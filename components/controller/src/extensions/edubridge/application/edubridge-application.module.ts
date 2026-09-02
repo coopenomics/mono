@@ -26,6 +26,7 @@ import { EdubridgeCapitalNarrowingPolicy } from './policies/edubridge-capital-na
 import { EdubridgeCatalogResolver } from './resolvers/edubridge-catalog.resolver';
 import { EdubridgeCourseAdminResolver } from './resolvers/edubridge-course-admin.resolver';
 import { EdubridgeAccessListener } from './listeners/edubridge-access.listener';
+import { EdubridgeApprovalListener } from './listeners/edubridge-approval.listener';
 import { EdubridgeMembershipExitListener } from './listeners/edubridge-membership-exit.listener';
 import { EdubridgeNotificationListener } from './listeners/edubridge-notification.listener';
 import { EdubridgeOwnerDirectory } from './membership/edubridge-owner.directory';
@@ -87,6 +88,7 @@ import { EdubridgeCourseService } from './services/edubridge-course.service';
     EdubridgeOutboxWorker,
     EdubridgeExpiryWorker,
     EdubridgeAccessListener,
+    EdubridgeApprovalListener,
     EdubridgeMembershipExitListener,
     EdubridgeNotificationListener,
     // Резолверы

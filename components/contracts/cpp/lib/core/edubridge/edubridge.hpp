@@ -1,5 +1,6 @@
 #pragma once
 
+#include <optional>
 #include <string>
 
 #include <eosio/asset.hpp>
@@ -10,6 +11,8 @@
 #include "../../domain/table_ledger2_userwallets.hpp"
 #include "../../domain/table_edubridge_subscriptions.hpp"
 #include "../../domain/table_edubridge_rids.hpp"
+#include "../../domain/table_edubridge_contracts.hpp"
+#include "../../domain/table_edubridge_annexes.hpp"
 #include "../ledger2/ledger2.hpp"
 #include "../utils.hpp"
 
@@ -69,6 +72,33 @@ get_rid_or_fail(edu_rids_index& rids, const checksum256& rid_hash) {
   auto it = idx.find(rid_hash);
   eosio::check(it != idx.end(), "Заявление о паевом взносе РИД с указанным hash не найдено");
   return rids.find(it->id);
+}
+
+/// Договор УХД преподавателя по username; nullopt, если не подписывал.
+inline std::optional<edu_contract> get_contract(eosio::name coopname, eosio::name username) {
+  edu_contracts_index contracts(_edubridge, coopname.value);
+  auto idx = contracts.get_index<"byusername"_n>();
+  auto it = idx.find(username.value);
+  if (it == idx.end()) return std::nullopt;
+  return *it;
+}
+
+/// Действующий (подписанный обеими сторонами) договор УХД; бросает, если его нет.
+inline edu_contract get_active_contract_or_fail(eosio::name coopname, eosio::name username) {
+  auto contract = get_contract(coopname, username);
+  eosio::check(contract.has_value(), "Преподаватель не подписал договор участия в хозяйственной деятельности");
+  eosio::check(contract->status == ContractStatus::ACTIVE,
+               "Договор участия в хозяйственной деятельности ещё не подписан председателем совета");
+  return *contract;
+}
+
+/// Приложение к договору по annex_hash; бросает, если не найдено.
+inline edu_annexes_index::const_iterator
+get_annex_or_fail(edu_annexes_index& annexes, const checksum256& annex_hash) {
+  auto idx = annexes.get_index<"byhash"_n>();
+  auto it = idx.find(annex_hash);
+  eosio::check(it != idx.end(), "Приложение к договору с указанным hash не найдено");
+  return annexes.find(it->id);
 }
 
 /// Валидация денежной суммы контракта: корректный asset, > 0, символ кооператива.

@@ -29,6 +29,10 @@ export class EdubridgeTeacherRepository {
     return this.assignments.find({ where: { coopname, ...(filter.teacher ? { teacher_username: filter.teacher } : {}) }, order: { created_at: 'DESC' } });
   }
 
+  findAssignmentByAnnexHash(coopname: string, annexHash: string): Promise<EdubridgeTeacherAssignmentEntity | null> {
+    return this.assignments.findOne({ where: { coopname, annex_hash: annexHash.toLowerCase() } });
+  }
+
   findAssignment(coopname: string, id: string): Promise<EdubridgeTeacherAssignmentEntity | null> {
     return this.assignments.findOne({ where: { coopname, id } });
   }

@@ -36,6 +36,10 @@ export class EdubridgeTeacherAssignmentEntity {
   @Column({ type: 'enum', enum: EduAssignmentStatus, default: EduAssignmentStatus.DRAFT })
   public status!: EduAssignmentStatus;
 
+  /** Причина отказа председателя в подписи приложения; пусто, пока отказа не было. */
+  @Column({ type: 'text', default: '' })
+  public decline_reason!: string;
+
   @CreateDateColumn({ type: 'timestamptz' })
   public created_at!: Date;
 

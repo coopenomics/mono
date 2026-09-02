@@ -9,6 +9,21 @@ import type { EduCatalogSubjectDTO, EduCourseInputDTO, EduPlatformCourseDTO, Edu
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+/**
+ * Привязка к площадке: у площадок с API идентификатор обязателен, у Skillspace
+ * это UUID курса из реестра школы (и UUID группы, если она есть) — числовой
+ * номер из адреса конструктора площадка не знает.
+ */
+function validatePlatformRef(carrier: EduAccessCarrier, ref: string): void {
+  if (!PLATFORM_CARRIERS.includes(carrier)) return;
+  if (!ref.trim()) throw new BadRequestException('Для площадки нужен идентификатор курса на площадке');
+  if (carrier !== EduAccessCarrier.SKILLSPACE) return;
+  const { course, group } = splitSkillspaceRef(ref);
+  if (!UUID_PATTERN.test(course) || (group && !UUID_PATTERN.test(group))) {
+    throw new BadRequestException('Для Skillspace нужен UUID курса из реестра школы (и UUID группы, если она есть) — числовой номер из адреса конструктора площадка не знает');
+  }
+}
+
 @Injectable()
 export class EdubridgeCourseService {
   constructor(
@@ -107,22 +122,17 @@ export class EdubridgeCourseService {
     if (!CARRIERS_BY_DIRECTION[input.direction].includes(input.carrier)) {
       throw new BadRequestException(`Носитель «${input.carrier}» недопустим для направления «${input.direction}»`);
     }
-    if (PLATFORM_CARRIERS.includes(input.carrier) && !input.external_ref?.trim()) {
-      throw new BadRequestException('Для площадки нужен идентификатор курса на площадке');
-    }
-    if (input.carrier === EduAccessCarrier.SKILLSPACE) {
-      const { course, group } = splitSkillspaceRef(input.external_ref ?? '');
-      if (!UUID_PATTERN.test(course) || (group && !UUID_PATTERN.test(group))) {
-        throw new BadRequestException('Для Skillspace нужен UUID курса из реестра школы (и UUID группы, если она есть) — числовой номер из адреса конструктора площадка не знает');
-      }
-    }
-    const teachers = input.teacher_usernames ?? [];
-    if (teachers.length) {
-      const known = new Set((await this.teachers.listContracts(coopname)).map((c) => c.teacher_username));
-      const strangers = teachers.filter((t) => !known.has(t));
-      if (strangers.length) {
-        throw new BadRequestException(`Нет договора участия в хозяйственной деятельности: ${strangers.join(', ')}`);
-      }
+    validatePlatformRef(input.carrier, input.external_ref ?? '');
+    await this.validateTeachers(coopname, input.teacher_usernames ?? []);
+  }
+
+  /** Преподавать могут только пайщики с подписанным договором УХД. */
+  private async validateTeachers(coopname: string, teachers: string[]): Promise<void> {
+    if (!teachers.length) return;
+    const known = new Set((await this.teachers.listContracts(coopname)).map((c) => c.teacher_username));
+    const strangers = teachers.filter((t) => !known.has(t));
+    if (strangers.length) {
+      throw new BadRequestException(`Нет договора участия в хозяйственной деятельности: ${strangers.join(', ')}`);
     }
   }
 

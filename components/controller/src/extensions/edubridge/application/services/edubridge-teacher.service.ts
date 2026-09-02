@@ -20,13 +20,18 @@ import {
   type ISignedDocument,
   type IUserWalletPort,
 } from '@coopenomics/innercoop';
-import { EduAssignmentStatus, EduContributionStatus } from '../../domain/enums';
+import { EduAssignmentStatus, EduContractStatus, EduContributionStatus } from '../../domain/enums';
 import { EDUBRIDGE_CHAIN_PORT, type EdubridgeChainPort } from '../../domain/ports/edubridge-chain.port';
-import type { EdubridgeContributionEntity, EdubridgeTeacherAssignmentEntity } from '../../infrastructure/entities';
+import type { EdubridgeContributionEntity, EdubridgeTeacherAssignmentEntity, EdubridgeTeacherContractEntity } from '../../infrastructure/entities';
 import { EdubridgeCourseRepository } from '../../infrastructure/repositories/edubridge-course.repository';
 import { EdubridgeTeacherRepository } from '../../infrastructure/repositories/edubridge-teacher.repository';
 import type { EduAssignmentInputDTO, EduContributionDraftInputDTO, EduTeacherSettlementDTO } from '../dto/edu-teacher.dto';
-import { EDUBRIDGE_CONTRIBUTION_DECIDED_EVENT, EDUBRIDGE_CONTRIBUTION_SUBMITTED_EVENT } from '../events/edubridge.events';
+import {
+  EDUBRIDGE_ANNEX_DECIDED_EVENT,
+  EDUBRIDGE_CONTRACT_DECIDED_EVENT,
+  EDUBRIDGE_CONTRIBUTION_DECIDED_EVENT,
+  EDUBRIDGE_CONTRIBUTION_SUBMITTED_EVENT,
+} from '../events/edubridge.events';
 
 const SHARE_WALLET = 'w.wal.share';
 /** Одно поле vars под все решения о РИД — ядро пишет туда номер и дату последнего решения. */
@@ -37,6 +42,13 @@ const RID_VARS_FIELD = 'education_rid_decision';
  * заявлению → решение совета (платформенный проект свободного решения) →
  * акт приёма-передачи → `acceptrid` (проводка Дт 04 / Кт 80, право требования
  * в главном паевом кошельке; возврат — штатным механизмом платформы).
+ *
+ * Договор УХД и приложения к нему — двухподписные, как в «Благоросте»:
+ * преподаватель подписывает первым (`signcontract` / `signannex`), контракт
+ * ставит документ в очередь одобрений совета, председатель подписывает вторым
+ * со стола «Запросы одобрений», и коллбэк совета (`apprvcontr` / `apprvannex`)
+ * делает договор действующим или назначение активным — статусы здесь
+ * переводит слушатель этих действий, а не сама мутация.
  */
 @Injectable()
 export class EdubridgeTeacherService {
@@ -59,17 +71,62 @@ export class EdubridgeTeacherService {
     return this.teachers.findContract(coopname, teacher);
   }
 
+  /**
+   * Первая подпись договора — преподавателя. В цепь уходит `signcontract`,
+   * запись ждёт подписи председателя; действующим договор станет по
+   * коллбэку совета (`onContractApproved`). Отклонённый договор подписывается
+   * заново — старая запись перезаписывается.
+   */
   async signContract(coopname: string, teacher: string, document: ISignedDocument, number: string) {
     const existing = await this.teachers.findContract(coopname, teacher);
-    if (existing) return existing;
+    if (existing && existing.status !== EduContractStatus.DECLINED) return existing;
     if (!document.signatures?.some((s) => s.signer === teacher)) throw new BadRequestException('Договор не подписан преподавателем');
-    return this.teachers.saveContract({ coopname, teacher_username: teacher, contract_hash: document.hash.toLowerCase(), contract_number: number });
+
+    await this.chain.signContract({ coopname, username: teacher, contract_hash: document.hash, contract: document as never });
+    this.logger.info(`[EDU.TEACH] ${teacher}: договор УХД ${document.hash} подписан, ждёт подписи председателя`);
+
+    return this.teachers.saveContract({
+      ...(existing ?? {}),
+      coopname,
+      teacher_username: teacher,
+      contract_hash: document.hash.toLowerCase(),
+      contract_number: number,
+      status: EduContractStatus.PENDING_APPROVAL,
+      decline_reason: '',
+      approved_at: null,
+    });
   }
 
-  private async requireContract(coopname: string, teacher: string): Promise<void> {
-    if (!(await this.teachers.findContract(coopname, teacher))) {
-      throw new BadRequestException('Сначала подпишите договор участия в хозяйственной деятельности');
+  /** Коллбэк совета `apprvcontr`: председатель подписал — договор действует. */
+  async onContractApproved(coopname: string, teacher: string, contractHash: string): Promise<void> {
+    const c = await this.teachers.findContract(coopname, teacher);
+    if (!c || c.contract_hash !== contractHash.toLowerCase()) {
+      this.logger.warn(`[EDU.TEACH] apprvcontr для неизвестного договора ${contractHash} (${teacher})`);
+      return;
     }
+    c.status = EduContractStatus.ACTIVE;
+    c.approved_at = new Date();
+    c.decline_reason = '';
+    await this.teachers.saveContract(c);
+    this.events.emit(EDUBRIDGE_CONTRACT_DECIDED_EVENT, { coopname, teacher_username: teacher, contract_hash: c.contract_hash, approved: true });
+  }
+
+  /** Коллбэк совета `dclinecontr`: председатель отказал — договор можно подписать заново. */
+  async onContractDeclined(coopname: string, teacher: string, contractHash: string, reason: string): Promise<void> {
+    const c = await this.teachers.findContract(coopname, teacher);
+    if (!c || c.contract_hash !== contractHash.toLowerCase()) return;
+    c.status = EduContractStatus.DECLINED;
+    c.decline_reason = reason;
+    await this.teachers.saveContract(c);
+    this.events.emit(EDUBRIDGE_CONTRACT_DECIDED_EVENT, { coopname, teacher_username: teacher, contract_hash: c.contract_hash, approved: false, reason });
+  }
+
+  private async requireContract(coopname: string, teacher: string): Promise<EdubridgeTeacherContractEntity> {
+    const c = await this.teachers.findContract(coopname, teacher);
+    if (!c) throw new BadRequestException('Сначала подпишите договор участия в хозяйственной деятельности');
+    if (c.status === EduContractStatus.PENDING_APPROVAL) throw new BadRequestException('Договор ещё не подписан председателем совета');
+    if (c.status !== EduContractStatus.ACTIVE) throw new BadRequestException('Договор отклонён председателем — подпишите его заново');
+    return c;
   }
 
   // ── Назначения ─────────────────────────────────────────────────────────────
@@ -102,16 +159,59 @@ export class EdubridgeTeacherService {
     return this.teachers.saveAssignment(a);
   }
 
-  /** Приложение к договору по курсу (3007) — подписывает преподаватель, назначение становится активным. */
+  /**
+   * Первая подпись приложения — преподавателя. В цепь уходит `signannex`,
+   * назначение ждёт подписи председателя; активным станет по коллбэку совета
+   * (`onAnnexApproved`). Отклонённое приложение подписывается заново.
+   */
   async signAnnex(coopname: string, teacher: string, assignmentId: string, document: ISignedDocument): Promise<EdubridgeTeacherAssignmentEntity> {
     await this.requireContract(coopname, teacher);
     const a = await this.teachers.findAssignment(coopname, assignmentId);
     if (!a) throw new NotFoundException('Назначение не найдено');
     if (a.teacher_username !== teacher) throw new ForbiddenException('Назначение выдано другому преподавателю');
+    if (a.status !== EduAssignmentStatus.DRAFT && a.status !== EduAssignmentStatus.DECLINED) {
+      throw new BadRequestException('Приложение по этому назначению уже подписано');
+    }
     if (!document.signatures?.some((s) => s.signer === teacher)) throw new BadRequestException('Приложение не подписано преподавателем');
+    const course = await this.courses.findById(coopname, a.course_id);
+    if (!course) throw new NotFoundException('Курс назначения не найден');
+
+    await this.chain.signAnnex({
+      coopname,
+      username: teacher,
+      course_id: Number(course.chain_ref),
+      annex_hash: document.hash,
+      annex: document as never,
+    });
+    this.logger.info(`[EDU.TEACH] ${teacher}: приложение ${document.hash} по курсу «${course.title}» подписано, ждёт подписи председателя`);
+
     a.annex_hash = document.hash.toLowerCase();
-    a.status = EduAssignmentStatus.ACTIVE;
+    a.status = EduAssignmentStatus.PENDING_APPROVAL;
+    a.decline_reason = '';
     return this.teachers.saveAssignment(a);
+  }
+
+  /** Коллбэк совета `apprvannex`: председатель подписал приложение — назначение действует. */
+  async onAnnexApproved(coopname: string, teacher: string, annexHash: string): Promise<void> {
+    const a = await this.teachers.findAssignmentByAnnexHash(coopname, annexHash);
+    if (!a || a.teacher_username !== teacher) {
+      this.logger.warn(`[EDU.TEACH] apprvannex для неизвестного приложения ${annexHash} (${teacher})`);
+      return;
+    }
+    a.status = EduAssignmentStatus.ACTIVE;
+    a.decline_reason = '';
+    await this.teachers.saveAssignment(a);
+    this.events.emit(EDUBRIDGE_ANNEX_DECIDED_EVENT, { coopname, teacher_username: teacher, assignment_id: a.id, approved: true });
+  }
+
+  /** Коллбэк совета `dclineannex`: председатель отказал — назначение отклонено. */
+  async onAnnexDeclined(coopname: string, teacher: string, annexHash: string, reason: string): Promise<void> {
+    const a = await this.teachers.findAssignmentByAnnexHash(coopname, annexHash);
+    if (!a || a.teacher_username !== teacher) return;
+    a.status = EduAssignmentStatus.DECLINED;
+    a.decline_reason = reason;
+    await this.teachers.saveAssignment(a);
+    this.events.emit(EDUBRIDGE_ANNEX_DECIDED_EVENT, { coopname, teacher_username: teacher, assignment_id: a.id, approved: false, reason });
   }
 
   // ── Взносы РИД ─────────────────────────────────────────────────────────────

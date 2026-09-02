@@ -39,3 +39,35 @@ export * as Acceptrid from './acceptrid'
  * Отказ в приёме РИД по решению совета.
  */
 export * as Declinerid from './declinerid'
+
+// ── p.edu.teach (договор УХД и приложения через одобрение председателя) ──
+
+/**
+ * Преподаватель подписывает договор УХД — первая подпись.
+ */
+export * as Signcontract from './signcontract'
+
+/**
+ * Председатель подписал договор — коллбэк совета, договор действует.
+ */
+export * as Apprvcontr from './apprvcontr'
+
+/**
+ * Председатель отказал в подписи договора — коллбэк совета.
+ */
+export * as Dclinecontr from './dclinecontr'
+
+/**
+ * Преподаватель подписывает приложение к договору на курс — первая подпись.
+ */
+export * as Signannex from './signannex'
+
+/**
+ * Председатель подписал приложение — коллбэк совета.
+ */
+export * as Apprvannex from './apprvannex'
+
+/**
+ * Председатель отказал в подписи приложения — коллбэк совета.
+ */
+export * as Dclineannex from './dclineannex'

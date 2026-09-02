@@ -11,10 +11,17 @@ title: Образовательный мост — договор УХД, наз
 # возврат — штатным механизмом платформы.
 
 sources:
+  contract:
+    - components/contracts/cpp/edubridge/src/p.edu.teach/**
+    - components/contracts/cpp/lib/domain/table_edubridge_contracts.hpp
+    - components/contracts/cpp/lib/domain/table_edubridge_annexes.hpp
   backend:
     - components/controller/src/extensions/edubridge/application/services/edubridge-teacher.service.ts
-    - components/controller/src/extensions/edubridge/application/resolvers/edubridge-teacher.resolver.ts
+    - components/controller/src/extensions/edubridge/application/listeners/edubridge-approval.listener.ts
     - components/controller/src/extensions/edubridge/infrastructure/repositories/edubridge-teacher.repository.ts
+    - components/controller/src/extensions/edubridge/infrastructure/entities/edubridge-teacher-contract.entity.ts
+    - components/controller/src/extensions/edubridge/infrastructure/entities/edubridge-teacher-assignment.entity.ts
+    - components/controller/src/extensions/edubridge/application/resolvers/edubridge-teacher.resolver.ts
     - components/controller/src/extensions/edubridge/application/dto/edu-teacher.dto.ts
   ui:
     - components/desktop/extensions/edubridge/pages/TeacherAssignmentsPage/**
@@ -70,5 +77,33 @@ cases:
     kind: happy
     scenario: Преподаватель подписывает ДУХД, приложение к назначению, подаёт взнос, после решения совета подписывает акт, видит расчёт.
     expect: Статусы меняются по шагам; кнопки показываются только в допустимом состоянии.
+    test: ~
+    status: missing
+  - id: edu.teach.side.02
+    level: backend
+    kind: side
+    scenario: "Договор УХД двухподписный через одобрение председателя: преподаватель подписывает (signcontract в цепь, PENDING_APPROVAL), пока председатель не подписал — приложение и взнос недоступны; коллбэк apprvcontr → ACTIVE, dclinecontr → DECLINED с причиной и повторная подпись; действующий договор повторно не подписывается; документ без подписи преподавателя в цепь не уходит."
+    expect: "Статусы переводит только слушатель коллбэков совета; повторная подпись отклонённого договора создаёт новую запись в цепи."
+    test: components/controller/tests/unit/edubridge/teacher.service.test.ts
+    status: written
+  - id: edu.teach.side.03
+    level: backend
+    kind: side
+    scenario: "Приложение к договору на курс двухподписное: signannex в цепь с числовым chain_ref курса (PENDING_APPROVAL); apprvannex → ACTIVE; dclineannex → DECLINED с причиной и повторная подпись; чужое назначение и уже подписанное приложение — отказ."
+    expect: "Назначение действует только после подписи председателя; отказ не закрывает договор."
+    test: components/controller/tests/unit/edubridge/teacher.service.test.ts
+    status: written
+  - id: edu.teach.contract.01
+    level: contract
+    kind: happy
+    scenario: "edubridge::signcontract → Soviet::create_approval; soviet::confirmapprv → edubridge::apprvcontr публикует двухподписный договор (make_complete_document) и переводит educontracts в active; signannex требует active-договор; apprvannex публикует приложение и стирает eduannexes; submitrid требует active-договор."
+    expect: "Стандарт p.edu.teach; отказы dclinecontr/dclineannex стирают ожидающие записи."
+    test: components/contracts/cpp/edubridge/p.edu.teach.standard.yaml
+    status: written
+  - id: edu.teach.ui.02
+    level: ui
+    kind: happy
+    scenario: "Стол преподавателя показывает договор «ждёт подписи председателя» / «действует» / «отклонён: причина»; приложение подписывается только при действующем договоре; стол председателя показывает запросы «Договор УХД преподавателя» и «Приложение к договору УХД на курс» и подписывает их второй подписью."
+    expect: "После подписи председателя без перезагрузки статусы обновляются по данным сервера."
     test: ~
     status: missing

@@ -2,7 +2,7 @@ import { Field, ID, InputType, ObjectType } from '@nestjs/graphql';
 import { IsArray, IsDateString, IsEnum, IsOptional, IsString, IsUUID, Length, Matches, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 import { SignedDigitalDocumentInputDTO } from '@coopenomics/extension-kit';
-import { EduAssignmentStatus, EduContributionStatus, EduRidType } from '../../domain/enums';
+import { EduAssignmentStatus, EduContractStatus, EduContributionStatus, EduRidType } from '../../domain/enums';
 import type { EdubridgeContributionEntity, EdubridgeTeacherAssignmentEntity, EdubridgeTeacherContractEntity } from '../../infrastructure/entities';
 import './edu-enums.registration';
 
@@ -16,13 +16,25 @@ export class EduTeacherContractDTO {
   @Field(() => String, { description: 'Номер договора' })
   contract_number!: string;
 
-  @Field(() => Date, { description: 'Подписан' })
+  @Field(() => EduContractStatus, { description: 'Состояние: ждёт подписи председателя, действует, отклонён' })
+  status!: EduContractStatus;
+
+  @Field(() => String, { description: 'Причина отказа председателя (если отказал)' })
+  decline_reason!: string;
+
+  @Field(() => Date, { description: 'Подписан преподавателем' })
   signed_at!: Date;
+
+  @Field(() => Date, { nullable: true, description: 'Подписан председателем совета' })
+  approved_at!: Date | null;
 
   constructor(e: EdubridgeTeacherContractEntity) {
     this.contract_hash = e.contract_hash;
     this.contract_number = e.contract_number;
+    this.status = e.status;
+    this.decline_reason = e.decline_reason ?? '';
     this.signed_at = e.signed_at;
+    this.approved_at = e.approved_at ?? null;
   }
 }
 
@@ -38,6 +50,7 @@ export class EduAssignmentDTO {
   @Field(() => String, { description: 'Период сдачи — конец' }) period_to!: string;
   @Field(() => String, { nullable: true, description: 'Хеш подписанного приложения к договору' }) annex_hash!: string | null;
   @Field(() => EduAssignmentStatus, { description: 'Состояние назначения' }) status!: EduAssignmentStatus;
+  @Field(() => String, { description: 'Причина отказа председателя в подписи приложения (если отказал)' }) decline_reason!: string;
   @Field(() => Date) created_at!: Date;
 
   constructor(e: EdubridgeTeacherAssignmentEntity, courseTitle: string) {

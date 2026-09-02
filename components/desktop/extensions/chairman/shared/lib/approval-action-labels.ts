@@ -3,6 +3,8 @@ const approval_action_labels: Record<string, string> = {
   'capital::approvereg': 'Договор УХД по приложению Благороста',
   'capital::approveinvst': 'Заявление на инвестицию в проект по приложению Благороста',
   'capital::approverslt': 'Внесение РИД по проекту Благороста',
+  'edubridge::apprvcontr': 'Договор УХД преподавателя по программе «Образование»',
+  'edubridge::apprvannex': 'Приложение к договору УХД преподавателя на курс',
   'branch::apprliab': 'Договор о материальной ответственности председателя участка',
   'branch::apprauth': 'Доверенность председателю кооперативного участка',
 };

@@ -180,6 +180,9 @@ export const PROCESS_HASH_LOCATOR: Readonly<Record<string, HashLocation[]>> = Ob
   //     (живёт до решения совета; acceptrid/declinerid стирают запись).
   'p.edu.access': [{ code: 'edubridge', table: 'edusubs', field: 'sub_hash' }],
   'p.edu.rid':    [{ code: 'edubridge', table: 'edurids', field: 'rid_hash' }],
+  //   - `educontracts.contract_hash` — договор УХД преподавателя; приложения
+  //     к нему (`eduannexes.annex_hash`) живут только до подписи председателя.
+  'p.edu.teach':  [{ code: 'edubridge', table: 'educontracts', field: 'contract_hash' }],
 
   // requirement b6 «Экономика КУ».
   // p.brn.fees — распределение членских взносов КУ: ручное распределение

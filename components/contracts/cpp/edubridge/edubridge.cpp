@@ -14,3 +14,11 @@
 #include "src/p.edu.rid/submitrid.cpp"
 #include "src/p.edu.rid/acceptrid.cpp"
 #include "src/p.edu.rid/declinerid.cpp"
+
+// ── p.edu.teach (6 actions) ──── договор УХД и приложения через одобрение ──
+#include "src/p.edu.teach/signcontract.cpp"
+#include "src/p.edu.teach/apprvcontr.cpp"
+#include "src/p.edu.teach/dclinecontr.cpp"
+#include "src/p.edu.teach/signannex.cpp"
+#include "src/p.edu.teach/apprvannex.cpp"
+#include "src/p.edu.teach/dclineannex.cpp"

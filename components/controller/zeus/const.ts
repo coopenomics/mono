@@ -628,6 +628,7 @@ export const AllTypesProps: Record<string,any> = {
 
 	},
 	EduConnectorHealth: "enum" as const,
+	EduContractStatus: "enum" as const,
 	EduContributionDraftInput:{
 		rid_type:"EduRidType"
 	},
@@ -5404,6 +5405,7 @@ export const ReturnTypes: Record<string,any> = {
 		course_id:"ID",
 		course_title:"String",
 		created_at:"DateTime",
+		decline_reason:"String",
 		expected_result:"String",
 		id:"ID",
 		period_from:"String",
@@ -5535,9 +5537,12 @@ export const ReturnTypes: Record<string,any> = {
 		sub_hash:"String"
 	},
 	EduTeacherContract:{
+		approved_at:"DateTime",
 		contract_hash:"String",
 		contract_number:"String",
-		signed_at:"DateTime"
+		decline_reason:"String",
+		signed_at:"DateTime",
+		status:"EduContractStatus"
 	},
 	EduTeacherOption:{
 		contract_number:"String",

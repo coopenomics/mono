@@ -87,6 +87,14 @@ namespace Names {
     constexpr eosio::name SETTLE_DEBT = "settledebt"_n;
   }
   
+  namespace Edubridge {
+    // Коллбэки одобрений председателя: договор УХД преподавателя и приложение к нему на курс
+    constexpr eosio::name APPROVE_CONTRACT = "apprvcontr"_n;
+    constexpr eosio::name DECLINE_CONTRACT = "dclinecontr"_n;
+    constexpr eosio::name APPROVE_ANNEX    = "apprvannex"_n;
+    constexpr eosio::name DECLINE_ANNEX    = "dclineannex"_n;
+  }
+
   namespace External {
     // Внешние действия в других контрактах
     constexpr eosio::name CREATE_OUTPAY = "createoutpay"_n;
@@ -140,5 +148,10 @@ namespace Names {
     constexpr eosio::name CREATE_WITHDRAW_3 = "createwthd3"_n; // акцепт возврата из программы
     constexpr eosio::name CREATE_RESULT = "createresult"_n; // акцепт результата
     constexpr eosio::name CONVERT_SEGMENT = "convertsegm"_n; // финальная фаза p.cap.rid — трансляция паевого взноса
+  }
+
+  namespace Edubridge {
+    constexpr eosio::name SIGN_CONTRACT = "signcontract"_n; // акцепт договора УХД преподавателя
+    constexpr eosio::name SIGN_ANNEX    = "signannex"_n;    // акцепт приложения к договору на курс
   }
 }

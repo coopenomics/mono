@@ -31,10 +31,19 @@ export const CONTRIBUTION_STATUS_LABELS: Record<string, { label: string; variant
   [Zeus.EduContributionStatus.DECLINED]: { label: 'Отклонён', variant: 'neg' },
 };
 
-export const ASSIGNMENT_STATUS_LABELS: Record<string, { label: string; variant: 'pos' | 'warn' | 'neutral' }> = {
+export const ASSIGNMENT_STATUS_LABELS: Record<string, { label: string; variant: 'pos' | 'neg' | 'warn' | 'info' | 'neutral' }> = {
   [Zeus.EduAssignmentStatus.DRAFT]: { label: 'Ждёт подписи приложения', variant: 'warn' },
+  [Zeus.EduAssignmentStatus.PENDING_APPROVAL]: { label: 'Ждёт подписи председателя', variant: 'info' },
   [Zeus.EduAssignmentStatus.ACTIVE]: { label: 'Действует', variant: 'pos' },
+  [Zeus.EduAssignmentStatus.DECLINED]: { label: 'Отклонено председателем', variant: 'neg' },
   [Zeus.EduAssignmentStatus.CLOSED]: { label: 'Закрыто', variant: 'neutral' },
+};
+
+/** Договор УХД: первая подпись — преподаватель, вторая — председатель совета со стола «Запросы одобрений». */
+export const CONTRACT_STATUS_LABELS: Record<string, { label: string; variant: 'pos' | 'neg' | 'info' }> = {
+  [Zeus.EduContractStatus.PENDING_APPROVAL]: { label: 'Ждёт подписи председателя', variant: 'info' },
+  [Zeus.EduContractStatus.ACTIVE]: { label: 'Действует', variant: 'pos' },
+  [Zeus.EduContractStatus.DECLINED]: { label: 'Отклонён председателем', variant: 'neg' },
 };
 
 async function q<T>(query: any, name: string, variables?: Record<string, unknown>): Promise<T> {

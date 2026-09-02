@@ -32,6 +32,12 @@ using namespace Edubridge;
  *    преподаватель вносит паевой взнос результатом интеллектуальной
  *    деятельности: заявление → решение совета → акт; средства ISSUE в
  *    главный паевой кошелёк преподавателя (o.edu.rid, Дт 04 / Кт 80).
+ *  - **p.edu.teach** (6 actions): signcontract, apprvcontr, dclinecontr,
+ *    signannex, apprvannex, dclineannex — договор УХД преподавателя и
+ *    приложения к нему на курс подписываются двумя сторонами: первая
+ *    подпись преподавателя, вторая — председателя совета через одобрение
+ *    (`Soviet::create_approval` → `soviet::confirmapprv` → коллбэк сюда),
+ *    как договор и приложения в «Благоросте». Движений средств нет.
  *
  * Все действия авторизуются ключом кооператива (`require_auth(coopname)`):
  * пайщик подписывает документ, отправляет его бэкенд кооператива — как
@@ -126,4 +132,71 @@ public:
   [[eosio::action]] void declinerid(eosio::name coopname,
                                     checksum256 rid_hash,
                                     document2 decision);
+
+  // ── p.edu.teach ──────────────────────────────────────────────────────
+
+  /**
+   * @brief Преподаватель подписывает Договор участия в хозяйственной
+   * деятельности (шаблон 3006) — первая подпись. Договор уходит на вторую
+   * подпись председателю совета (стол председателя, «Запросы одобрений»);
+   * до неё запись в `educontracts` стоит в `pending`.
+   * @ingroup public_edubridge_actions
+   */
+  [[eosio::action]] void signcontract(eosio::name coopname,
+                                      eosio::name username,
+                                      checksum256 contract_hash,
+                                      document2 contract);
+
+  /**
+   * @brief Председатель подписал договор — вторая подпись. Вызывается
+   * контрактом совета после подтверждения одобрения: договор становится
+   * действующим, двухподписный документ публикуется в реестре.
+   * @ingroup public_edubridge_actions
+   */
+  [[eosio::action]] void apprvcontr(eosio::name coopname,
+                                    eosio::name username,
+                                    checksum256 contract_hash,
+                                    document2 approved_document);
+
+  /**
+   * @brief Председатель отказал в подписи договора — запись стирается,
+   * преподаватель может подписать договор заново.
+   * @ingroup public_edubridge_actions
+   */
+  [[eosio::action]] void dclinecontr(eosio::name coopname,
+                                     eosio::name username,
+                                     checksum256 contract_hash,
+                                     std::string reason);
+
+  /**
+   * @brief Преподаватель подписывает Приложение к договору УХД на курс
+   * (шаблон 3007) — первая подпись. Нужен действующий договор. Приложение
+   * уходит на вторую подпись председателю.
+   * @ingroup public_edubridge_actions
+   */
+  [[eosio::action]] void signannex(eosio::name coopname,
+                                   eosio::name username,
+                                   uint64_t course_id,
+                                   checksum256 annex_hash,
+                                   document2 annex);
+
+  /**
+   * @brief Председатель подписал приложение — двухподписный документ
+   * публикуется в реестре, запись ожидания стирается; назначение
+   * преподавателя на курс действует.
+   * @ingroup public_edubridge_actions
+   */
+  [[eosio::action]] void apprvannex(eosio::name coopname,
+                                    eosio::name username,
+                                    checksum256 annex_hash,
+                                    document2 approved_document);
+
+  /**
+   * @brief Председатель отказал в подписи приложения — запись стирается.
+   * @ingroup public_edubridge_actions
+   */
+  [[eosio::action]] void dclineannex(eosio::name coopname,
+                                     eosio::name username,
+                                     checksum256 annex_hash,
+                                     std::string reason);
 };

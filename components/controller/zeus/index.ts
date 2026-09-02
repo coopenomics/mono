@@ -6678,6 +6678,8 @@ export type ValueTypes = {
 	/** Название курса */
 	course_title?:boolean | `@${string}`,
 	created_at?:boolean | `@${string}`,
+	/** Причина отказа председателя в подписи приложения (если отказал) */
+	decline_reason?:boolean | `@${string}`,
 	/** Ожидаемый результат */
 	expected_result?:boolean | `@${string}`,
 	id?:boolean | `@${string}`,
@@ -6761,6 +6763,8 @@ export type ValueTypes = {
 }>;
 	/** Состояние подключения площадки */
 ["EduConnectorHealth"]:EduConnectorHealth;
+	/** Состояние договора участия преподавателя в хозяйственной деятельности */
+["EduContractStatus"]:EduContractStatus;
 	["EduContribution"]: AliasType<{
 	act_hash?:boolean | `@${string}`,
 	/** Сумма паевого взноса */
@@ -7096,12 +7100,18 @@ export type ValueTypes = {
 	period: ValueTypes["EduEnrollmentPeriod"] | Variable<any, string>
 };
 	["EduTeacherContract"]: AliasType<{
+	/** Подписан председателем совета */
+	approved_at?:boolean | `@${string}`,
 	/** Хеш договора участия в хозяйственной деятельности */
 	contract_hash?:boolean | `@${string}`,
 	/** Номер договора */
 	contract_number?:boolean | `@${string}`,
-	/** Подписан */
+	/** Причина отказа председателя (если отказал) */
+	decline_reason?:boolean | `@${string}`,
+	/** Подписан преподавателем */
 	signed_at?:boolean | `@${string}`,
+	/** Состояние: ждёт подписи председателя, действует, отклонён */
+	status?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
 	['...on EduTeacherContract']?: Omit<ValueTypes["EduTeacherContract"], "...on EduTeacherContract">
 }>;
@@ -22213,6 +22223,8 @@ export type ResolverInputTypes = {
 	/** Название курса */
 	course_title?:boolean | `@${string}`,
 	created_at?:boolean | `@${string}`,
+	/** Причина отказа председателя в подписи приложения (если отказал) */
+	decline_reason?:boolean | `@${string}`,
 	/** Ожидаемый результат */
 	expected_result?:boolean | `@${string}`,
 	id?:boolean | `@${string}`,
@@ -22292,6 +22304,8 @@ export type ResolverInputTypes = {
 }>;
 	/** Состояние подключения площадки */
 ["EduConnectorHealth"]:EduConnectorHealth;
+	/** Состояние договора участия преподавателя в хозяйственной деятельности */
+["EduContractStatus"]:EduContractStatus;
 	["EduContribution"]: AliasType<{
 	act_hash?:boolean | `@${string}`,
 	/** Сумма паевого взноса */
@@ -22616,12 +22630,18 @@ export type ResolverInputTypes = {
 	period: ResolverInputTypes["EduEnrollmentPeriod"]
 };
 	["EduTeacherContract"]: AliasType<{
+	/** Подписан председателем совета */
+	approved_at?:boolean | `@${string}`,
 	/** Хеш договора участия в хозяйственной деятельности */
 	contract_hash?:boolean | `@${string}`,
 	/** Номер договора */
 	contract_number?:boolean | `@${string}`,
-	/** Подписан */
+	/** Причина отказа председателя (если отказал) */
+	decline_reason?:boolean | `@${string}`,
+	/** Подписан преподавателем */
 	signed_at?:boolean | `@${string}`,
+	/** Состояние: ждёт подписи председателя, действует, отклонён */
+	status?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
 	["EduTeacherOption"]: AliasType<{
@@ -37295,6 +37315,8 @@ export type ModelTypes = {
 	/** Название курса */
 	course_title: string,
 	created_at: ModelTypes["DateTime"],
+	/** Причина отказа председателя в подписи приложения (если отказал) */
+	decline_reason: string,
 	/** Ожидаемый результат */
 	expected_result: string,
 	id: ModelTypes["ID"],
@@ -37368,6 +37390,7 @@ export type ModelTypes = {
 	last_check_message?: string | undefined | null
 };
 	["EduConnectorHealth"]:EduConnectorHealth;
+	["EduContractStatus"]:EduContractStatus;
 	["EduContribution"]: {
 		act_hash?: string | undefined | null,
 	/** Сумма паевого взноса */
@@ -37672,12 +37695,18 @@ export type ModelTypes = {
 	period: ModelTypes["EduEnrollmentPeriod"]
 };
 	["EduTeacherContract"]: {
-		/** Хеш договора участия в хозяйственной деятельности */
+		/** Подписан председателем совета */
+	approved_at?: ModelTypes["DateTime"] | undefined | null,
+	/** Хеш договора участия в хозяйственной деятельности */
 	contract_hash: string,
 	/** Номер договора */
 	contract_number: string,
-	/** Подписан */
-	signed_at: ModelTypes["DateTime"]
+	/** Причина отказа председателя (если отказал) */
+	decline_reason: string,
+	/** Подписан преподавателем */
+	signed_at: ModelTypes["DateTime"],
+	/** Состояние: ждёт подписи председателя, действует, отклонён */
+	status: ModelTypes["EduContractStatus"]
 };
 	["EduTeacherOption"]: {
 		/** Номер договора участия в хозяйственной деятельности */
@@ -53411,6 +53440,8 @@ export type GraphQLTypes = {
 	/** Название курса */
 	course_title: string,
 	created_at: GraphQLTypes["DateTime"],
+	/** Причина отказа председателя в подписи приложения (если отказал) */
+	decline_reason: string,
 	/** Ожидаемый результат */
 	expected_result: string,
 	id: GraphQLTypes["ID"],
@@ -53493,6 +53524,8 @@ export type GraphQLTypes = {
 };
 	/** Состояние подключения площадки */
 ["EduConnectorHealth"]: EduConnectorHealth;
+	/** Состояние договора участия преподавателя в хозяйственной деятельности */
+["EduContractStatus"]: EduContractStatus;
 	["EduContribution"]: {
 	__typename: "EduContribution",
 	act_hash?: string | undefined | null,
@@ -53829,12 +53862,18 @@ export type GraphQLTypes = {
 };
 	["EduTeacherContract"]: {
 	__typename: "EduTeacherContract",
+	/** Подписан председателем совета */
+	approved_at?: GraphQLTypes["DateTime"] | undefined | null,
 	/** Хеш договора участия в хозяйственной деятельности */
 	contract_hash: string,
 	/** Номер договора */
 	contract_number: string,
-	/** Подписан */
+	/** Причина отказа председателя (если отказал) */
+	decline_reason: string,
+	/** Подписан преподавателем */
 	signed_at: GraphQLTypes["DateTime"],
+	/** Состояние: ждёт подписи председателя, действует, отклонён */
+	status: GraphQLTypes["EduContractStatus"],
 	['...on EduTeacherContract']: Omit<GraphQLTypes["EduTeacherContract"], "...on EduTeacherContract">
 };
 	["EduTeacherOption"]: {
@@ -64882,7 +64921,9 @@ export enum EduAccessTaskStatus {
 export enum EduAssignmentStatus {
 	ACTIVE = "ACTIVE",
 	CLOSED = "CLOSED",
-	DRAFT = "DRAFT"
+	DECLINED = "DECLINED",
+	DRAFT = "DRAFT",
+	PENDING_APPROVAL = "PENDING_APPROVAL"
 }
 /** Состояние подключения площадки */
 export enum EduConnectorHealth {
@@ -64890,6 +64931,12 @@ export enum EduConnectorHealth {
 	LICENSE_LIMIT = "LICENSE_LIMIT",
 	OK = "OK",
 	UNKNOWN = "UNKNOWN"
+}
+/** Состояние договора участия преподавателя в хозяйственной деятельности */
+export enum EduContractStatus {
+	ACTIVE = "ACTIVE",
+	DECLINED = "DECLINED",
+	PENDING_APPROVAL = "PENDING_APPROVAL"
 }
 /** Состояние взноса результатами работы */
 export enum EduContributionStatus {
@@ -65880,6 +65927,7 @@ type ZEUS_VARIABLES = {
 	["EduAssignmentStatus"]: ValueTypes["EduAssignmentStatus"];
 	["EduCatalogFilterInput"]: ValueTypes["EduCatalogFilterInput"];
 	["EduConnectorHealth"]: ValueTypes["EduConnectorHealth"];
+	["EduContractStatus"]: ValueTypes["EduContractStatus"];
 	["EduContributionDraftInput"]: ValueTypes["EduContributionDraftInput"];
 	["EduContributionStatus"]: ValueTypes["EduContributionStatus"];
 	["EduCourseDirection"]: ValueTypes["EduCourseDirection"];

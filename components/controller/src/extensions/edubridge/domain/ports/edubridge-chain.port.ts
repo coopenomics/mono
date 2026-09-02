@@ -17,6 +17,10 @@ export interface EdubridgeChainPort {
   submitRid(data: EdubridgeContract.Actions.Submitrid.ISubmitrid): Promise<InnerTransactResult>;
   acceptRid(data: EdubridgeContract.Actions.Acceptrid.IAcceptrid): Promise<InnerTransactResult>;
   declineRid(data: EdubridgeContract.Actions.Declinerid.IDeclinerid): Promise<InnerTransactResult>;
+  /** Договор УХД преподавателя (первая подпись) — уходит председателю на одобрение. */
+  signContract(data: EdubridgeContract.Actions.Signcontract.ISigncontract): Promise<InnerTransactResult>;
+  /** Приложение к договору на курс (первая подпись) — уходит председателю на одобрение. */
+  signAnnex(data: EdubridgeContract.Actions.Signannex.ISignannex): Promise<InnerTransactResult>;
 }
 
 export const EDUBRIDGE_CHAIN_PORT = Symbol('EDUBRIDGE_CHAIN_PORT');

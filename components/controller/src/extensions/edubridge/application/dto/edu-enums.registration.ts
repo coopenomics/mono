@@ -6,6 +6,7 @@ import {
   EduAccessTaskStatus,
   EduAssignmentStatus,
   EduConnectorHealth,
+  EduContractStatus,
   EduContributionStatus,
   EduCourseDirection,
   EduCourseStatus,
@@ -26,5 +27,6 @@ registerEnumType(EduAccessTaskKind, { name: 'EduAccessTaskKind', description: '�
 registerEnumType(EduAccessTaskStatus, { name: 'EduAccessTaskStatus', description: 'Состояние задачи очереди выдачи доступа' });
 registerEnumType(EduConnectorHealth, { name: 'EduConnectorHealth', description: 'Состояние подключения площадки' });
 registerEnumType(EduAssignmentStatus, { name: 'EduAssignmentStatus', description: 'Состояние назначения преподавателя' });
+registerEnumType(EduContractStatus, { name: 'EduContractStatus', description: 'Состояние договора участия преподавателя в хозяйственной деятельности' });
 registerEnumType(EduRidType, { name: 'EduRidType', description: 'Тип результата интеллектуальной деятельности' });
 registerEnumType(EduContributionStatus, { name: 'EduContributionStatus', description: 'Состояние взноса результатами работы' });

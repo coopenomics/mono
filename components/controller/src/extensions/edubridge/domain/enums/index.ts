@@ -90,9 +90,28 @@ export enum EduConnectorHealth {
   LICENSE_LIMIT = 'license_limit',
 }
 
-export enum EduAssignmentStatus {
-  DRAFT = 'draft',
+/**
+ * Договор УХД преподавателя — двухподписный: преподаватель, затем председатель
+ * совета через одобрение (как договор в «Благоросте»).
+ */
+export enum EduContractStatus {
+  /** Подписан преподавателем, ждёт подписи председателя на столе «Запросы одобрений». */
+  PENDING_APPROVAL = 'pending_approval',
+  /** Подписан обеими сторонами — действует. */
   ACTIVE = 'active',
+  /** Председатель отказал — можно подписать заново. */
+  DECLINED = 'declined',
+}
+
+export enum EduAssignmentStatus {
+  /** Назначение создано, приложение ещё не подписано преподавателем. */
+  DRAFT = 'draft',
+  /** Приложение подписано преподавателем, ждёт подписи председателя. */
+  PENDING_APPROVAL = 'pending_approval',
+  /** Приложение подписано обеими сторонами — назначение действует. */
+  ACTIVE = 'active',
+  /** Председатель отказал в подписи приложения. */
+  DECLINED = 'declined',
   CLOSED = 'closed',
 }
 

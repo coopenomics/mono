@@ -92,6 +92,51 @@ export interface IDeclinerid {
   decision: IDocument2
 }
 
+// ── p.edu.teach: actions ─────────────────────────────────────────────────
+
+export interface ISigncontract {
+  coopname: IName
+  username: IName
+  contract_hash: IChecksum256
+  contract: IDocument2
+}
+
+export interface IApprvcontr {
+  coopname: IName
+  username: IName
+  contract_hash: IChecksum256
+  approved_document: IDocument2
+}
+
+export interface IDclinecontr {
+  coopname: IName
+  username: IName
+  contract_hash: IChecksum256
+  reason: string
+}
+
+export interface ISignannex {
+  coopname: IName
+  username: IName
+  course_id: IUint64
+  annex_hash: IChecksum256
+  annex: IDocument2
+}
+
+export interface IApprvannex {
+  coopname: IName
+  username: IName
+  annex_hash: IChecksum256
+  approved_document: IDocument2
+}
+
+export interface IDclineannex {
+  coopname: IName
+  username: IName
+  annex_hash: IChecksum256
+  reason: string
+}
+
 // ── Таблицы ──────────────────────────────────────────────────────────────
 
 /**
@@ -122,5 +167,31 @@ export interface IEduRid {
   amount: IAsset
   rid_type: IName
   statement_hash: IChecksum256
+  created_at: ITimePointSec
+}
+
+/**
+ * educontracts (scope = coopname) — договоры УХД преподавателей: `pending` до
+ * подписи председателя, `active` после; отказ (dclinecontr) стирает запись.
+ */
+export interface IEduContract {
+  id: IUint64
+  username: IName
+  contract_hash: IChecksum256
+  status: IName
+  created_at: ITimePointSec
+  approved_at: ITimePointSec
+}
+
+/**
+ * eduannexes (scope = coopname) — приложения к договору на курс в ожидании
+ * подписи председателя; apprvannex / dclineannex стирают запись.
+ */
+export interface IEduAnnex {
+  id: IUint64
+  username: IName
+  course_id: IUint64
+  contract_hash: IChecksum256
+  annex_hash: IChecksum256
   created_at: ITimePointSec
 }

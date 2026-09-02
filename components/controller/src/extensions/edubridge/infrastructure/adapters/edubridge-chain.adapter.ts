@@ -70,6 +70,16 @@ export class EdubridgeChainAdapter implements EdubridgeChainPort {
     return this.chain.transact(this.action(EdubridgeContract.Actions.Acceptrid.actionName, data as unknown as Record<string, unknown>, data.coopname));
   }
 
+  async signContract(data: EdubridgeContract.Actions.Signcontract.ISigncontract): Promise<InnerTransactResult> {
+    await this.prepare(data.coopname);
+    return this.chain.transact(this.action(EdubridgeContract.Actions.Signcontract.actionName, data as unknown as Record<string, unknown>, data.coopname));
+  }
+
+  async signAnnex(data: EdubridgeContract.Actions.Signannex.ISignannex): Promise<InnerTransactResult> {
+    await this.prepare(data.coopname);
+    return this.chain.transact(this.action(EdubridgeContract.Actions.Signannex.actionName, data as unknown as Record<string, unknown>, data.coopname));
+  }
+
   async declineRid(data: EdubridgeContract.Actions.Declinerid.IDeclinerid): Promise<InnerTransactResult> {
     await this.prepare(data.coopname);
     return this.chain.transact(this.action(EdubridgeContract.Actions.Declinerid.actionName, data as unknown as Record<string, unknown>, data.coopname));

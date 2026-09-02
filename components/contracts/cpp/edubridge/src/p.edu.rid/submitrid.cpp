@@ -10,7 +10,7 @@
  * Guards:
  *  - amount > 0 в _root_govern_symbol; подпись Заявления валидна (username);
  *  - rid_hash ещё не занят;
- *  - преподаватель — активный член кооператива.
+ *  - преподаватель — активный член кооператива с действующим договором УХД.
  *
  * @ingroup public_edubridge_actions
  */
@@ -29,6 +29,9 @@ void edubridge::submitrid(eosio::name coopname,
   verify_document_or_fail(statement, { username });
 
   get_participant_or_fail(coopname, username);
+  // Паевой взнос результатом работы возможен только по действующему договору УХД
+  // (подписан преподавателем и председателем — p.edu.teach).
+  Edubridge::get_active_contract_or_fail(coopname, username);
 
   edu_rids_index rids(_edubridge, coopname.value);
   auto by_hash = rids.get_index<"byhash"_n>();
