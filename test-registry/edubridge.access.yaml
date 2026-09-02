@@ -15,10 +15,9 @@ title: Образовательный мост — выдача и отзыв д
 # /api/open/v1/course/student-invite, /course/:id/student-remove,
 # /school/course/list, /school/group/list, /course/structure.
 #
-# ЗАЩИТА БОЕВЫХ КУРСОВ: connectors.dry_run (по умолчанию true) и любой
-# контур кроме production — пишущие вызовы к площадкам не отправляются
-# вовсе, задачи помечаются «dry-run». Ключ школы владельца на стендах не
-# хранится; чтение реестров (course/list, group/list) безопасно.
+# Режима «без записи» нет: площадка получает приглашения и отзывы сразу,
+# как только у кооператива введён ключ. Ключ школы владельца на стендах не
+# хранится.
 
 sources:
   backend:
@@ -107,13 +106,6 @@ cases:
     kind: side
     scenario: Сверка курса с площадкой кэшируется (CHECK_TTL 1 час).
     expect: Повторная выдача по недавно сверенному курсу не зовёт check — экспорт-API GetCourse лимитирован 100/2ч.
-    test: components/controller/tests/unit/edubridge/access-outbox.service.test.ts
-    status: passing
-  - id: edu.access.break.01
-    level: backend
-    kind: break
-    scenario: Пишущие вызовы к площадкам на стенде или при dry_run.
-    expect: "Не отправляются ни при каких условиях (environment !== production ИЛИ dry_run) — задача done с last_result «dry-run»."
     test: components/controller/tests/unit/edubridge/access-outbox.service.test.ts
     status: passing
   - id: edu.access.happy.05

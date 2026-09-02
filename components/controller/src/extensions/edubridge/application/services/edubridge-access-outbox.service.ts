@@ -1,6 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { platformSettings } from '@coopenomics/extension-kit';
 import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import {
   EduAccessCarrier,
@@ -10,15 +9,14 @@ import {
   EduConnectorHealth,
   type EduRecipientType,
 } from '../../domain/enums';
-import type { AccessRequest, ConnectorResult } from '../../domain/connectors/access-carrier.connector';
-import type { EdubridgeAccessTaskEntity, EdubridgeEnrollmentEntity } from '../../infrastructure/entities';
+import type { AccessCarrierConnector, AccessRequest, ConnectorResult, CourseCheckResult } from '../../domain/connectors/access-carrier.connector';
+import type { EdubridgeAccessTaskEntity, EdubridgeCourseEntity, EdubridgeEnrollmentEntity, EdubridgeLearnerEntity } from '../../infrastructure/entities';
 import { AccessCarrierRegistry } from '../../infrastructure/connectors/access-carrier.registry';
 import { EdubridgeAccessTaskRepository } from '../../infrastructure/repositories/edubridge-access-task.repository';
 import { EdubridgeConnectorBindingRepository } from '../../infrastructure/repositories/edubridge-connector-binding.repository';
 import { EdubridgeCourseRepository } from '../../infrastructure/repositories/edubridge-course.repository';
 import { EdubridgeEnrollmentRepository } from '../../infrastructure/repositories/edubridge-enrollment.repository';
 import { EdubridgeLearnerRepository } from '../../infrastructure/repositories/edubridge-learner.repository';
-import { EdubridgeConfigHolder } from '../config/edubridge-config.holder';
 import {
   EDUBRIDGE_ACCESS_GRANTED_EVENT,
   EDUBRIDGE_ACCESS_NEEDS_ATTENTION_EVENT,
@@ -29,9 +27,21 @@ import {
 export const OUTBOX_MAX_ATTEMPTS = 10;
 /** Размер пачки воркера. */
 export const OUTBOX_BATCH = 20;
-/** Пишущие вызовы к площадкам разрешены только на рабочем контуре кооператива. */
-export function isProductionEnvironment(): boolean {
-  return platformSettings().environment === 'production';
+interface TaskContext {
+  enrollment: EdubridgeEnrollmentEntity;
+  learner: EdubridgeLearnerEntity;
+  course: EdubridgeCourseEntity;
+  connector: AccessCarrierConnector;
+}
+
+/** Чем сверка не сошлась: `retry` — площадка недоступна, иначе — курс не тот; `null` — всё сходится. */
+function courseCheckProblem(check: CourseCheckResult, course: EdubridgeCourseEntity): { message: string; retry?: boolean } | null {
+  if (check.unavailable) return { message: check.message ?? 'Площадка недоступна', retry: true };
+  if (!check.found) return { message: check.message ?? 'Курс не найден на площадке' };
+  if (check.title && course.external_title_seen && check.title !== course.external_title_seen) {
+    return { message: `Курс на площадке переименован: «${course.external_title_seen}» → «${check.title}»` };
+  }
+  return null;
 }
 
 /** Как долго верить сверке курса с площадкой. */
@@ -66,7 +76,6 @@ export class EdubridgeAccessOutboxService {
     private readonly courses: EdubridgeCourseRepository,
     private readonly bindings: EdubridgeConnectorBindingRepository,
     private readonly connectors: AccessCarrierRegistry,
-    private readonly config: EdubridgeConfigHolder,
     @Inject(LOGGER_PORT) private readonly logger: ILoggerPort,
     private readonly events: EventEmitter2
   ) {
@@ -100,31 +109,11 @@ export class EdubridgeAccessOutboxService {
   }
 
   private async run(task: EdubridgeAccessTaskEntity): Promise<void> {
-    const enrollment = await this.enrollments.findById(task.coopname, task.enrollment_id);
-    if (!enrollment) return this.attention(task, 'Подписка не найдена');
-    const [learner, course] = await Promise.all([
-      this.learners.findById(task.coopname, enrollment.learner_id),
-      this.courses.findById(task.coopname, enrollment.course_id),
-    ]);
-    if (!learner || !course) return this.attention(task, 'Обучающийся или курс не найдены');
+    const ctx = await this.loadContext(task);
+    if (!ctx) return;
+    const { enrollment, learner, course, connector } = ctx;
 
-    const connector = this.connectors.get(task.carrier);
-    if (!connector) return this.attention(task, `Носитель доступа ${task.carrier} не поддерживается`);
-
-    // Сверка карточки с площадкой до выдачи: переименован/удалён — не выдаём молча.
-    // Не чаще раза в CHECK_TTL_MS на курс: экспорт-API площадок лимитирован.
-    const checkedRecently = course.external_checked_at && Date.now() - course.external_checked_at.getTime() < CHECK_TTL_MS;
-    if (task.kind === EduAccessTaskKind.GRANT && course.external_ref && !checkedRecently) {
-      const check = await connector.check(task.coopname, course.external_ref);
-      if (check.unavailable) return this.fail(task, { code: 'retryable', message: check.message ?? 'Площадка недоступна' });
-      if (!check.found) return this.attention(task, check.message ?? 'Курс не найден на площадке', course.id);
-      if (check.title && course.external_title_seen && check.title !== course.external_title_seen) {
-        return this.attention(task, `Курс на площадке переименован: «${course.external_title_seen}» → «${check.title}»`, course.id);
-      }
-      if (check.title && !course.external_title_seen) course.external_title_seen = check.title;
-      course.external_checked_at = new Date();
-      await this.courses.save(course);
-    }
+    if (task.kind === EduAccessTaskKind.GRANT && !(await this.courseVerified(task, course, connector))) return;
 
     const recipient = task.recipient_override ?? { type: learner.recipient_type, value: learner.recipient_value };
     const request: AccessRequest = {
@@ -133,24 +122,70 @@ export class EdubridgeAccessOutboxService {
       course_ref: course.external_ref,
       enrollment_id: enrollment.id,
     };
-    // Режим «без записи»: боевые площадки от стендов и обкатки защищены — ничего не шлём.
-    if ((await this.config.load()).connectors.dry_run || !isProductionEnvironment()) {
-      this.logger.warn(`[EDU.OUTBOX] dry-run: ${task.kind} для подписки ${enrollment.id} на ${task.carrier} НЕ отправлен (course_ref=${course.external_ref})`);
-      return this.done(task, enrollment, { code: 'ok', message: 'dry-run: запрос на площадку не отправлялся' }, 'dry-run');
-    }
-
     const result = task.kind === EduAccessTaskKind.GRANT ? await connector.grant(request) : await connector.revoke(request);
     await this.bindings.touch(task.coopname, task.carrier, result);
+    return this.settle(task, enrollment, result);
+  }
 
+  /** Исход площадки → состояние задачи: успех/«уже есть» — done, отказ — вмешательство, остальное — повтор. */
+  private settle(task: EdubridgeAccessTaskEntity, enrollment: EdubridgeEnrollmentEntity, result: ConnectorResult): Promise<void> {
     if (result.code === 'ok' || result.code === 'exists') return this.done(task, enrollment, result);
     if (result.code === 'fatal') return this.attention(task, result.message ?? 'Отказ площадки', undefined, result.error_code);
     return this.fail(task, result);
   }
 
-  private async done(task: EdubridgeAccessTaskEntity, enrollment: EdubridgeEnrollmentEntity, result: ConnectorResult, resultLabel?: string): Promise<void> {
+  /** Подписка, обучающийся, курс и коннектор задачи; `null` — задача уже переведена в «требует вмешательства». */
+  private async loadContext(task: EdubridgeAccessTaskEntity): Promise<TaskContext | null> {
+    const enrollment = await this.enrollments.findById(task.coopname, task.enrollment_id);
+    if (!enrollment) {
+      await this.attention(task, 'Подписка не найдена');
+      return null;
+    }
+    const [learner, course] = await Promise.all([
+      this.learners.findById(task.coopname, enrollment.learner_id),
+      this.courses.findById(task.coopname, enrollment.course_id),
+    ]);
+    if (!learner || !course) {
+      await this.attention(task, 'Обучающийся или курс не найдены');
+      return null;
+    }
+    const connector = this.connectors.get(task.carrier);
+    if (!connector) {
+      await this.attention(task, `Носитель доступа ${task.carrier} не поддерживается`);
+      return null;
+    }
+    return { enrollment, learner, course, connector };
+  }
+
+  /**
+   * Сверка карточки с площадкой до выдачи: переименован/удалён — не выдаём молча.
+   * Не чаще раза в CHECK_TTL_MS на курс: экспорт-API площадок лимитирован.
+   * `false` — задача уже отложена или переведена в «требует вмешательства».
+   */
+  private async courseVerified(task: EdubridgeAccessTaskEntity, course: EdubridgeCourseEntity, connector: AccessCarrierConnector): Promise<boolean> {
+    const checkedRecently = course.external_checked_at && Date.now() - course.external_checked_at.getTime() < CHECK_TTL_MS;
+    if (!course.external_ref || checkedRecently) return true;
+
+    const check = await connector.check(task.coopname, course.external_ref);
+    const problem = courseCheckProblem(check, course);
+    if (problem?.retry) {
+      await this.fail(task, { code: 'retryable', message: problem.message });
+      return false;
+    }
+    if (problem) {
+      await this.attention(task, problem.message, course.id);
+      return false;
+    }
+    if (check.title && !course.external_title_seen) course.external_title_seen = check.title;
+    course.external_checked_at = new Date();
+    await this.courses.save(course);
+    return true;
+  }
+
+  private async done(task: EdubridgeAccessTaskEntity, enrollment: EdubridgeEnrollmentEntity, result: ConnectorResult): Promise<void> {
     task.status = EduAccessTaskStatus.DONE;
     task.attempts += 1;
-    task.last_result = resultLabel ?? result.code;
+    task.last_result = result.code;
     task.last_error = null;
     task.done_at = new Date();
     await this.tasks.save(task);

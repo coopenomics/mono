@@ -26,6 +26,29 @@ import { classifyHttpFailure, classifyStatus, httpCall } from './http-carrier.ba
  * группу-сигнал `<course_ref>:revoked`, а процесс площадки снимает доступ
  * (договорённость с владельцем площадки, описана в INSTALL.md).
  */
+interface GetcourseBody {
+  success?: boolean;
+  error?: boolean;
+  error_message?: string;
+  result?: { success?: boolean; error_message?: string };
+}
+
+/** Ответ GetCourse при HTTP 200: успех — в `success`, отказ — текстом в `error_message`. */
+const GETCOURSE_FATAL: Array<[RegExp, string]> = [
+  [/limit reached|лимит/i, 'LICENSE_LIMIT'],
+  [/unauthorized/i, 'UNAUTHORIZED'],
+  [/no email|empty action|forbidden/i, 'BAD_REQUEST'],
+];
+
+function classifyGetcourseBody(body: unknown, text: string): ConnectorResult {
+  const data = (body ?? {}) as GetcourseBody;
+  if (data.success === true || data.result?.success === true) return { code: 'ok' };
+  const message = data.error_message ?? data.result?.error_message ?? text.slice(0, 200);
+  const fatal = GETCOURSE_FATAL.find(([re]) => re.test(message));
+  if (fatal) return { code: 'fatal', message: `GetCourse: ${message}`, error_code: fatal[1] };
+  return { code: 'retryable', message };
+}
+
 @Injectable()
 export class GetCourseConnector implements AccessCarrierConnector {
   readonly carrier = EduAccessCarrier.GETCOURSE;
@@ -58,14 +81,7 @@ export class GetCourseConnector implements AccessCarrierConnector {
         body,
       });
       if (!res.ok) return classifyStatus(res.status, res.text);
-      const data = (res.body ?? {}) as { success?: boolean; error?: boolean; error_message?: string; result?: { success?: boolean; error_message?: string } };
-      const success = data.success === true || data.result?.success === true;
-      if (success) return { code: 'ok' };
-      const message = data.error_message ?? data.result?.error_message ?? res.text.slice(0, 200);
-      if (/limit reached|лимит/i.test(message)) return { code: 'fatal', message: `GetCourse: ${message}`, error_code: 'LICENSE_LIMIT' };
-      if (/unauthorized/i.test(message)) return { code: 'fatal', message: `GetCourse: ${message}`, error_code: 'UNAUTHORIZED' };
-      if (/no email|empty action|forbidden/i.test(message)) return { code: 'fatal', message: `GetCourse: ${message}`, error_code: 'BAD_REQUEST' };
-      return { code: 'retryable', message };
+      return classifyGetcourseBody(res.body, res.text);
     } catch (e) {
       return classifyHttpFailure(e);
     }

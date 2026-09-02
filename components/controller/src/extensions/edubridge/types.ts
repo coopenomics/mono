@@ -21,11 +21,6 @@ export interface IConnectorsConfig {
   skillspace_api_key: string;
   getcourse_account: string;
   getcourse_api_key: string;
-  /**
-   * Без записи на площадки: выдача/отзыв не отправляются, только журналируются.
-   * Защита боевых курсов от стендов и обкатки; по умолчанию включено вне production.
-   */
-  dry_run: boolean;
 }
 
 export interface IConfig {
@@ -41,7 +36,7 @@ export interface IConfig {
 
 export const defaultConfig: IConfig = {
   coopAcceptance: { accepted: false, accepted_at: '' },
-  connectors: { skillspace_api_key: '', getcourse_account: '', getcourse_api_key: '', dry_run: true },
+  connectors: { skillspace_api_key: '', getcourse_account: '', getcourse_api_key: '' },
   expiry_notice_days: 3,
   outbox_interval_sec: 30,
   capital_integration: true,
@@ -66,7 +61,7 @@ export const Schema = z.object({
       skillspace_api_key: z
         .string()
         .default('')
-        .describe(describeField({ label: 'Skillspace: API-ключ', note: 'Ключ интеграции площадки Skillspace. Виден только владельцу.' })),
+        .describe(describeField({ label: 'Skillspace: API-ключ', note: 'Ключ интеграции площадки Skillspace. Виден только владельцу.', password: true })),
       getcourse_account: z
         .string()
         .default('')
@@ -74,18 +69,9 @@ export const Schema = z.object({
       getcourse_api_key: z
         .string()
         .default('')
-        .describe(describeField({ label: 'GetCourse: API-ключ', note: 'Ключ интеграции площадки GetCourse. Виден только владельцу.' })),
-      dry_run: z
-        .boolean()
-        .default(true)
-        .describe(
-          describeField({
-            label: 'Без записи на площадки',
-            note: 'Пока включено, приглашения и отзывы доступа на площадки НЕ отправляются — задачи выполняются вхолостую и помечаются «dry-run». Выключайте только на рабочем контуре, когда курсы и ключи проверены.',
-          })
-        ),
+        .describe(describeField({ label: 'GetCourse: API-ключ', note: 'Ключ интеграции площадки GetCourse. Виден только владельцу.', password: true })),
     })
-    .default({ skillspace_api_key: '', getcourse_account: '', getcourse_api_key: '', dry_run: true })
+    .default({ skillspace_api_key: '', getcourse_account: '', getcourse_api_key: '' })
     .describe(describeField({ label: 'Площадки', note: 'Подключение образовательных площадок — носителей доступа.' })),
   expiry_notice_days: z
     .number()
@@ -108,6 +94,7 @@ export const Schema = z.object({
       describeField({
         label: 'Интервал очереди выдачи доступа, сек',
         note: 'Как часто проверяется очередь задач выдачи и отзыва доступа на площадках.',
+        visible: false,
       })
     ),
   capital_integration: z

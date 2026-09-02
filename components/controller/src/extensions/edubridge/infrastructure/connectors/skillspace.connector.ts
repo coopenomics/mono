@@ -68,19 +68,23 @@ export class SkillspaceConnector implements AccessCarrierConnector {
         body,
       });
       if (res.ok) return { code: 'ok' };
-      const apiCode = this.apiErrorCode(res.body);
-      if (res.status === 401 || apiCode === 'SCHOOL_PUBLIC_TOKEN_NOT_FOUND') {
-        return { code: 'fatal', message: 'Skillspace: неверный API-ключ школы', error_code: 'UNAUTHORIZED' };
-      }
-      if (apiCode === 'COURSE_NOT_FOUND') return { code: 'fatal', message: 'Skillspace: курс не найден в школе', error_code: 'COURSE_NOT_FOUND' };
-      if (res.status === 403) return { code: 'fatal', message: 'Skillspace: доступ запрещён для этого ключа', error_code: 'FORBIDDEN' };
-      if (res.status === 400 || res.status === 404) {
-        return { code: 'fatal', message: `Skillspace: ${apiCode ?? res.text.slice(0, 200)}`, error_code: apiCode ?? 'BAD_REQUEST' };
-      }
-      return classifyStatus(res.status, res.text);
+      return this.classifyError(res.status, res.text, this.apiErrorCode(res.body));
     } catch (e) {
       return classifyHttpFailure(e);
     }
+  }
+
+  /** Ошибки Skillspace приходят 404 с кодом в теле, а не 401/400 — код важнее статуса. */
+  private classifyError(status: number, text: string, apiCode: string | null | undefined): ConnectorResult {
+    if (status === 401 || apiCode === 'SCHOOL_PUBLIC_TOKEN_NOT_FOUND') {
+      return { code: 'fatal', message: 'Skillspace: неверный API-ключ школы', error_code: 'UNAUTHORIZED' };
+    }
+    if (apiCode === 'COURSE_NOT_FOUND') return { code: 'fatal', message: 'Skillspace: курс не найден в школе', error_code: 'COURSE_NOT_FOUND' };
+    if (status === 403) return { code: 'fatal', message: 'Skillspace: доступ запрещён для этого ключа', error_code: 'FORBIDDEN' };
+    if (status === 400 || status === 404) {
+      return { code: 'fatal', message: `Skillspace: ${apiCode ?? text.slice(0, 200)}`, error_code: apiCode ?? 'BAD_REQUEST' };
+    }
+    return classifyStatus(status, text);
   }
 
   private async getJson<T>(path: string): Promise<{ ok: true; data: T } | { ok: false; status: number; message: string }> {
@@ -148,13 +152,20 @@ export class SkillspaceConnector implements AccessCarrierConnector {
     if (!found) return { found: false, message: 'Курс с таким идентификатором не найден в школе Skillspace' };
 
     if (group) {
-      const groups = await this.getJson<SkillspaceGroup[]>(`/school/group/list?token=${encodeURIComponent(token)}`);
-      if (!groups.ok) return { found: false, unavailable: true, message: groups.message };
-      const g = (Array.isArray(groups.data) ? groups.data : []).find((x) => x.id === group);
-      if (!g) return { found: false, message: `Группа ${group} не найдена в школе Skillspace` };
-      if (g.courseId !== course) return { found: false, message: `Группа «${g.name}» принадлежит другому курсу` };
+      const groupCheck = await this.checkGroup(token, course, group);
+      if (groupCheck) return groupCheck;
     }
     return { found: true, title: found.name };
+  }
+
+  /** Группа должна существовать и принадлежать курсу; `null` — всё сходится. */
+  private async checkGroup(token: string, course: string, group: string): Promise<CourseCheckResult | null> {
+    const groups = await this.getJson<SkillspaceGroup[]>(`/school/group/list?token=${encodeURIComponent(token)}`);
+    if (!groups.ok) return { found: false, unavailable: true, message: groups.message };
+    const g = (Array.isArray(groups.data) ? groups.data : []).find((x) => x.id === group);
+    if (!g) return { found: false, message: `Группа ${group} не найдена в школе Skillspace` };
+    if (g.courseId !== course) return { found: false, message: `Группа «${g.name}» принадлежит другому курсу` };
+    return null;
   }
 
   /** Справочно для стола владельца: курсы школы. Только чтение. */
