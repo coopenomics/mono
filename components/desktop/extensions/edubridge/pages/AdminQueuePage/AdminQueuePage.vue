@@ -4,7 +4,7 @@
     | Очередь выдачи и отзыва доступа на площадках. Задачи повторяются сами; «требует вмешательства» — площадка отказала
     | или курс рассогласован: разберитесь с причиной и нажмите «Повторить». Выдать доступ в обход взноса нельзя.
   PageTabs.q-mb-md(:tabs="tabs" :active-key="tab" @select="(t) => (tab = t.key)")
-  BaseTable(:columns="columns" :rows="items" row-key="id" :loading="loading && !items.length" min-width="760px")
+  BaseTable(:columns="columns" :rows="items" row-key="id" :loading="loading && !items.length" min-width="1080px")
     template(#cell-kind="{ row }") {{ kindOf(row.kind) }}
     template(#cell-status="{ row }")
       BaseBadge(:variant="statusOf(row.status).variant") {{ statusOf(row.status).label }}

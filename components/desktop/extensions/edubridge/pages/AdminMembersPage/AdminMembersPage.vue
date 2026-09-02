@@ -5,7 +5,7 @@
   .row.q-col-gutter-md
     .col-12.col-lg-5
       BaseInput.q-mb-md(v-model="search" label="Поиск по учётному имени" type="search" clearable @update:model-value="debouncedLoad")
-      BaseTable(:columns="columns" :rows="rows" row-key="username" :loading="loading && !rows.length" hover min-width="480px")
+      BaseTable(:columns="columns" :rows="rows" row-key="username" :loading="loading && !rows.length" hover min-width="560px")
         template(#cell-username="{ row }")
           BaseButton(variant="ghost" size="sm" @click="open(row.username)")
             span.t-mono {{ row.username }}

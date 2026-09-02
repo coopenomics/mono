@@ -10,7 +10,7 @@
           .row.justify-end
             BaseButton(variant="primary" type="submit" :loading="busy") Назначить
     .col-12
-      BaseTable(:columns="columns" :rows="items" row-key="id" :loading="loading && !items.length" min-width="480px")
+      BaseTable(:columns="columns" :rows="items" row-key="id" :loading="loading && !items.length" min-width="640px")
         template(#cell-username="{ row }")
           span.t-mono {{ row.username }}
         template(#cell-created_at="{ row }") {{ formatDate(row.created_at) }}

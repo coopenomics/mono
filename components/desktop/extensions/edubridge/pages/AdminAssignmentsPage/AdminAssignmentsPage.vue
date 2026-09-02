@@ -6,7 +6,7 @@
   PageTabs.q-mb-md(:tabs="tabs" :active-key="tab" @select="(t) => (tab = t.key)")
 
   template(v-if="tab === 'assignments'")
-    BaseTable(:columns="assignmentColumns" :rows="assignments" row-key="id" :loading="loading && !assignments.length" min-width="760px")
+    BaseTable(:columns="assignmentColumns" :rows="assignments" row-key="id" :loading="loading && !assignments.length" min-width="960px")
       template(#cell-teacher_username="{ row }")
         span.t-mono {{ row.teacher_username }}
       template(#cell-period="{ row }") {{ row.period_from }} — {{ row.period_to }}
@@ -19,7 +19,7 @@
         q-icon(name="assignment_ind" size="32px")
 
   template(v-else)
-    BaseTable(:columns="contributionColumns" :rows="contributions" row-key="id" :loading="loading && !contributions.length" min-width="760px")
+    BaseTable(:columns="contributionColumns" :rows="contributions" row-key="id" :loading="loading && !contributions.length" min-width="1080px")
       template(#cell-teacher_username="{ row }")
         span.t-mono {{ row.teacher_username }}
       template(#cell-rid_type="{ row }") {{ ridType(row.rid_type) }}

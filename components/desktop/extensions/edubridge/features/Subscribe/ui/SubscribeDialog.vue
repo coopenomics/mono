@@ -29,8 +29,7 @@ BaseDialog(:model-value="modelValue" title="Получить доступ" size=
 
   BaseDialog(v-model="statementOpen" title="Заявление о конвертации" size="xl" maximized)
     CardListSkeleton(v-if="!statementHtml" :count="1")
-    //- eslint-disable-next-line vue/no-v-html
-    div.statement(v-else v-html="statementHtml")
+    DocumentHtmlReader(v-else :html="statementHtml" :sanitize="false")
 </template>
 
 <script setup lang="ts">
@@ -41,6 +40,7 @@ import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { BaseBanner, BaseButton, BaseCheckbox, BaseDialog, BaseSelect, CardListSkeleton } from 'src/shared/ui/base';
 import { DataRow } from 'src/shared/ui/domain';
+import { DocumentHtmlReader } from 'src/shared/ui/DocumentHtmlReader';
 import type { DigitalDocument } from 'src/shared/lib/document';
 import { fetchQuote, PERIOD_LABELS, type IEnrollment, type ILearner, type IQuote } from '../../../entities/Learner';
 import type { ICatalogCourse } from '../../../entities/Course';

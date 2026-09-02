@@ -26,7 +26,7 @@
 
     .col-12.col-lg-8
       BaseCard(variant="default" title="Подписки и доступ")
-        BaseTable(:columns="columns" :rows="enrollments" row-key="id" :loading="loadingEnrollments && !enrollments.length" min-width="640px")
+        BaseTable(:columns="columns" :rows="enrollments" row-key="id" :loading="loadingEnrollments && !enrollments.length" min-width="1040px")
           template(#cell-learner="{ row }") {{ learnerName(row.learner_id) }}
           template(#cell-period="{ row }") {{ periodLabel(row.period) }}
           template(#cell-paid_until="{ row }") {{ row.paid_until ? formatDate(row.paid_until) : '—' }}
