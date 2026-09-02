@@ -16,6 +16,7 @@ import { LoginRedirectPage } from 'src/features/User/LoginRedirect';
 import { NotMePage } from 'src/pages/Security/NotMe';
 import { PrivacyPage } from 'src/pages/Privacy';
 import { TermsPage } from 'src/pages/Terms';
+import { CoopidFlowPage } from 'src/pages/Registrator/CoopidFlow';
 import { defineComponent, h } from 'vue';
 
 // Dynamic layout wrapper, который определяет layout в runtime
@@ -55,6 +56,24 @@ const baseRoutes: RouteRecordRaw[] = [
         path: '/permission-denied',
         name: 'permissionDenied',
         component: PermissionDenied,
+      },
+      {
+        // Экраны потоков CoopID (105-30): authentik ведёт, стол рисует. Адрес без coopname —
+        // сюда возвращает nginx стенда с родного /if/flow/<slug>/, где coopname нет.
+        path: 'flow/:slug',
+        name: 'coopid-flow',
+        component: CoopidFlowPage,
+        children: [],
+        meta: {
+          title: 'Вход',
+          icon: 'login',
+          requiresAuth: false,
+          widget: {
+            title: 'Вход',
+            hideHeader: true,
+            hideFooter: true,
+          },
+        },
       },
       {
         path: ':coopname/auth/signin',
