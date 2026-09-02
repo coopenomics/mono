@@ -21,7 +21,7 @@ export interface IEdubridgeMembership {
   onboarded: boolean;
 }
 
-const NO_FACTS: EdubridgeRoleFacts = { isLearner: false, isTeacher: false, isAdmin: false };
+const NO_FACTS: EdubridgeRoleFacts = { isLearner: false, hasTeacherOffer: false, isTeacher: false, isAdmin: false };
 
 /**
  * Единственное место, где пользователь превращается в роли приложения.

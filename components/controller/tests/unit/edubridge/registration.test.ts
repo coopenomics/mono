@@ -23,7 +23,7 @@ describe('registerEdubridgeInAgreementRegistry', () => {
 describe('EdubridgeRoleFactsAdapter', () => {
   const logger = { setContext: jest.fn(), warn: jest.fn(), info: jest.fn(), error: jest.fn() } as any;
 
-  function make(opts: { parentSigned?: boolean; teacherSigned?: boolean; admin?: boolean; programs?: boolean }) {
+  function make(opts: { parentSigned?: boolean; teacherSigned?: boolean; contract?: boolean; admin?: boolean; programs?: boolean }) {
     const council = {
       getCoagreement: jest.fn(async (_c: string, type: string) =>
         opts.programs === false ? null : { program_id: type === 'eduparent' ? 5 : 6 }
@@ -35,22 +35,38 @@ describe('EdubridgeRoleFactsAdapter', () => {
       ),
     } as any;
     const admins = { findOne: jest.fn(async () => (opts.admin ? { username: 'ant' } : null)) } as any;
-    return new EdubridgeRoleFactsAdapter(council, programAgreements, logger, admins);
+    const contracts = { findOne: jest.fn(async () => (opts.contract ? { status: 'pending_approval' } : null)) } as any;
+    return new EdubridgeRoleFactsAdapter(council, programAgreements, logger, admins, contracts);
   }
 
-  it('подписана оферта родителя → learner; преподавателя → teacher; запись в admins → admin', async () => {
-    await expect(make({ parentSigned: true }).resolve('voskhod', 'ant')).resolves.toEqual({ isLearner: true, isTeacher: false, isAdmin: false });
-    await expect(make({ teacherSigned: true, admin: true }).resolve('voskhod', 'ant')).resolves.toEqual({ isLearner: false, isTeacher: true, isAdmin: true });
+  const none = { isLearner: false, hasTeacherOffer: false, isTeacher: false, isAdmin: false };
+
+  it('подписана оферта родителя → learner; преподавателя + договор → teacher; запись в admins → admin', async () => {
+    await expect(make({ parentSigned: true }).resolve('voskhod', 'ant')).resolves.toEqual({ ...none, isLearner: true });
+    await expect(make({ teacherSigned: true, contract: true, admin: true }).resolve('voskhod', 'ant')).resolves.toEqual({
+      isLearner: false,
+      hasTeacherOffer: true,
+      isTeacher: true,
+      isAdmin: true,
+    });
+  });
+
+  it('оферта преподавателя без договора УХД → только hasTeacherOffer, роли teacher нет', async () => {
+    await expect(make({ teacherSigned: true }).resolve('voskhod', 'ant')).resolves.toEqual({ ...none, hasTeacherOffer: true });
+  });
+
+  it('договор без оферты (оферта отозвана) → не преподаватель', async () => {
+    await expect(make({ contract: true }).resolve('voskhod', 'ant')).resolves.toEqual(none);
   });
 
   it('программы ещё не открыты в кооперативе → подписей нет', async () => {
-    await expect(make({ parentSigned: true, programs: false }).resolve('voskhod', 'ant')).resolves.toEqual({ isLearner: false, isTeacher: false, isAdmin: false });
+    await expect(make({ parentSigned: true, programs: false }).resolve('voskhod', 'ant')).resolves.toEqual(none);
   });
 
   it('ошибка порта не роняет вычисление — факт false и предупреждение', async () => {
     const adapter = make({});
     (adapter as any).council.getCoagreement = jest.fn(async () => { throw new Error('chain down'); });
-    await expect(adapter.resolve('voskhod', 'ant')).resolves.toEqual({ isLearner: false, isTeacher: false, isAdmin: false });
+    await expect(adapter.resolve('voskhod', 'ant')).resolves.toEqual(none);
     expect(logger.warn).toHaveBeenCalled();
   });
 });

@@ -1,4 +1,4 @@
-import { Injectable, UseGuards } from '@nestjs/common';
+import { ForbiddenException, Injectable, UseGuards } from '@nestjs/common';
 import { Args, ID, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { DocumentAggregateDTO, GeneratedDocumentDTO, GqlJwtAuthGuard, platformSettings } from '@coopenomics/extension-kit';
 import { CurrentEduMember } from '../decorators/current-edu-member.decorator';
@@ -23,6 +23,10 @@ import { EdubridgeTeacherService } from '../services/edubridge-teacher.service';
 
 const coop = () => platformSettings().coopname;
 
+function requireTeacherOffer(m: IEdubridgeMembership): void {
+  if (!m.facts.hasTeacherOffer) throw new ForbiddenException('Сначала подпишите оферту преподавателя по ЦПП «Образование»');
+}
+
 /** Стол преподавателя и управление назначениями/взносами администратором. */
 @Resolver()
 @Injectable()
@@ -30,18 +34,21 @@ export class EdubridgeTeacherResolver {
   constructor(private readonly teachers: EdubridgeTeacherService) {}
 
   // ── Преподаватель ──────────────────────────────────────────────────────────
+  // Договор — часть подключения: его подписывают до того, как роль
+  // преподавателя (и права стола) выданы, поэтому допуск — по подписанной
+  // оферте, а не по матрице прав.
   @Query(() => EduTeacherContractDTO, { nullable: true, name: 'edubridgeMyContract', description: 'Мой договор участия в хозяйственной деятельности' })
   @UseGuards(GqlJwtAuthGuard, EdubridgeAccessGuard)
-  @RequireEduAccess('EduAssignment', 'read:own')
   async edubridgeMyContract(@CurrentEduMember() m: IEdubridgeMembership): Promise<EduTeacherContractDTO | null> {
+    requireTeacherOffer(m);
     const c = await this.teachers.contract(coop(), m.username as string);
     return c ? new EduTeacherContractDTO(c) : null;
   }
 
-  @Mutation(() => EduTeacherContractDTO, { name: 'edubridgeSignContract', description: 'Подписать договор участия в хозяйственной деятельности' })
+  @Mutation(() => EduTeacherContractDTO, { name: 'edubridgeSignContract', description: 'Подписать договор участия в хозяйственной деятельности (первая подпись — преподаватель)' })
   @UseGuards(GqlJwtAuthGuard, EdubridgeAccessGuard)
-  @RequireEduAccess('EduAssignment', 'read:own')
   async edubridgeSignContract(@CurrentEduMember() m: IEdubridgeMembership, @Args('data') data: EduSignContractInputDTO): Promise<EduTeacherContractDTO> {
+    requireTeacherOffer(m);
     return new EduTeacherContractDTO(await this.teachers.signContract(coop(), m.username as string, data.document, data.contract_number));
   }
 

@@ -85,15 +85,31 @@ function today(): string {
   return `${pad(d.getDate())}.${pad(d.getMonth() + 1)}.${d.getFullYear()}`;
 }
 
-/** Договор УХД (3006): генерация с номером/датой, подпись, отправка. */
-export async function signContract(): Promise<IContract> {
+/** Экземпляр договора УХД с номером и датой — сначала для прочтения, потом тот же на подпись. */
+export interface IContractDraft {
+  document: DigitalDocument;
+  contract_number: string;
+}
+
+/**
+ * Договор УХД (3006): генерация с номером/датой. Преподаватель читает документ
+ * целиком на шлюзе подключения, и подписывается ровно прочитанный экземпляр.
+ */
+export async function buildContractDocument(): Promise<IContractDraft> {
   const { username, coopname } = who();
   const contract_number = number16();
-  const doc = new DigitalDocument();
-  await doc.generate({ registry_id: Cooperative.Registry.EducationParticipationContract.registry_id, coopname, username, contract_number, contract_created_at: today() });
-  await doc.sign(username);
-  if (!doc.signedDocument) throw new Error('Не удалось подписать договор');
-  return m<IContract>(Mutations.Edubridge.SignContract.mutation, Mutations.Edubridge.SignContract.name, { data: { document: doc.signedDocument, contract_number } });
+  const document = new DigitalDocument();
+  await document.generate({ registry_id: Cooperative.Registry.EducationParticipationContract.registry_id, coopname, username, contract_number, contract_created_at: today() });
+  return { document, contract_number };
+}
+
+/** Первая подпись договора — преподавателя; вторую ставит председатель со стола «Запросы одобрений». */
+export async function signContract(prepared?: IContractDraft): Promise<IContract> {
+  const { username } = who();
+  const { document, contract_number } = prepared ?? (await buildContractDocument());
+  await document.sign(username);
+  if (!document.signedDocument) throw new Error('Не удалось подписать договор');
+  return m<IContract>(Mutations.Edubridge.SignContract.mutation, Mutations.Edubridge.SignContract.name, { data: { document: document.signedDocument, contract_number } });
 }
 
 /** Приложение к договору по курсу (3007). */

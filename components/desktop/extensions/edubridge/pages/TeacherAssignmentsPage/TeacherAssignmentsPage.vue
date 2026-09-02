@@ -2,26 +2,12 @@
 .q-pa-md
   PageHint.q-mb-md(storage-key="edu:teacher-assignments:banner-dismissed")
     | Назначения — курс, расписание, ожидаемый результат и период сдачи. Назначение действует после подписи
-    | приложения к договору участия в хозяйственной деятельности; сам договор подписывается один раз.
+    | приложения к договору участия в хозяйственной деятельности вами и председателем совета.
 
-  BaseBanner.q-mb-md(v-if="contract === null" variant="warn")
-    template(#icon)
-      q-icon(name="history_edu")
-    | Договор участия в хозяйственной деятельности ещё не подписан — без него назначения не активируются.
-    | Договор подписывают двое: вы, затем председатель совета от лица кооператива.
-    .q-mt-sm
-      BaseButton(variant="primary" size="sm" :loading="busy === 'contract'" @click="onSignContract") Подписать договор
-  BaseBanner.q-mb-md(v-else-if="contract && contract.status === Zeus.EduContractStatus.PENDING_APPROVAL" variant="info")
+  BaseBanner.q-mb-md(v-if="contract && contract.status === Zeus.EduContractStatus.PENDING_APPROVAL" variant="info")
     template(#icon)
       q-icon(name="hourglass_top")
     | Договор № {{ contract.contract_number }} подписан вами {{ formatDate(contract.signed_at) }} и ждёт подписи председателя совета.
-    | Приложения на курсы станут доступны после его подписи.
-  BaseBanner.q-mb-md(v-else-if="contract && contract.status === Zeus.EduContractStatus.DECLINED" variant="neg")
-    template(#icon)
-      q-icon(name="block")
-    | Председатель отказал в подписи договора{{ contract.decline_reason ? `: ${contract.decline_reason}` : '' }}. Договор можно подписать заново.
-    .q-mt-sm
-      BaseButton(variant="primary" size="sm" :loading="busy === 'contract'" @click="onSignContract") Подписать договор заново
   BaseBanner.q-mb-md(v-else-if="contract" variant="pos")
     template(#icon)
       q-icon(name="verified")
@@ -45,9 +31,10 @@ import { Zeus } from '@coopenomics/sdk';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { BaseBadge, BaseBanner, BaseButton, BaseTable, EmptyState, type BaseTableColumn } from 'src/shared/ui/base';
 import { PageHint } from 'src/shared/ui/domain';
-import { ASSIGNMENT_STATUS_LABELS, fetchMyAssignments, fetchMyContract, signAnnex, signContract, type IAssignment, type IContract } from '../../entities/Teacher';
+import { ASSIGNMENT_STATUS_LABELS, fetchMyAssignments, fetchMyContract, signAnnex, type IAssignment, type IContract } from '../../entities/Teacher';
 
-const contract = ref<IContract | null | undefined>(undefined);
+// Договор здесь всегда есть: без него (и после отказа председателя) стол закрыт шлюзом подключения.
+const contract = ref<IContract | null>(null);
 const assignments = ref<IAssignment[]>([]);
 const loading = ref(false);
 const busy = ref<string | null>(null);
@@ -75,18 +62,6 @@ async function load(): Promise<void> {
     FailAlert(e);
   } finally {
     loading.value = false;
-  }
-}
-
-async function onSignContract(): Promise<void> {
-  busy.value = 'contract';
-  try {
-    contract.value = await signContract();
-    SuccessAlert('Договор подписан — ждёт подписи председателя совета');
-  } catch (e) {
-    FailAlert(e);
-  } finally {
-    busy.value = null;
   }
 }
 

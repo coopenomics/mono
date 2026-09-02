@@ -93,6 +93,13 @@ cases:
     expect: "Назначение действует только после подписи председателя; отказ не закрывает договор."
     test: components/controller/tests/unit/edubridge/teacher.service.test.ts
     status: written
+  - id: edu.teach.side.04
+    level: backend
+    kind: side
+    scenario: "Документ (договор, приложение, заявление РИД) уходит в контракт через адаптер цепи: meta-объект сериализуется в строку JSON, строковая meta не трогается, отсутствующая → «{}»; без ключа кооператива в хранилище транзакция не отправляется."
+    expect: "В таблице approvals совета meta документа — валидный JSON; синхронизатор одобрений записывает запрос, и он виден на столе председателя (инцидент 02.09.2026: «[object Object]» → запрос не доходил)."
+    test: components/controller/tests/unit/edubridge/chain.adapter.test.ts
+    status: written
   - id: edu.teach.contract.01
     level: contract
     kind: happy

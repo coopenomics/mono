@@ -29,6 +29,16 @@ export class EdubridgeChainAdapter implements EdubridgeChainPort {
     this.chain.initialize(coopname, wif);
   }
 
+  /**
+   * Документ в цепи хранит `meta` строкой JSON. Без этой сериализации в таблицу
+   * уходит «[object Object]», и синхронизатор одобрений совета не может
+   * разобрать документ — запрос до стола председателя не доходит.
+   */
+  private chainDoc(document: unknown): Record<string, unknown> {
+    const doc = document as Record<string, unknown>;
+    return { ...doc, meta: typeof doc.meta === 'string' ? doc.meta : JSON.stringify(doc.meta ?? {}) };
+  }
+
   private action(name: string, data: Record<string, unknown>, coopname: string): InnerChainAction {
     return {
       account: EdubridgeContract.contractName.production,
@@ -62,7 +72,9 @@ export class EdubridgeChainAdapter implements EdubridgeChainPort {
 
   async submitRid(data: EdubridgeContract.Actions.Submitrid.ISubmitrid): Promise<InnerTransactResult> {
     await this.prepare(data.coopname);
-    return this.chain.transact(this.action(EdubridgeContract.Actions.Submitrid.actionName, data as unknown as Record<string, unknown>, data.coopname));
+    return this.chain.transact(
+      this.action(EdubridgeContract.Actions.Submitrid.actionName, { ...data, statement: this.chainDoc(data.statement) }, data.coopname)
+    );
   }
 
   async acceptRid(data: EdubridgeContract.Actions.Acceptrid.IAcceptrid): Promise<InnerTransactResult> {
@@ -72,12 +84,16 @@ export class EdubridgeChainAdapter implements EdubridgeChainPort {
 
   async signContract(data: EdubridgeContract.Actions.Signcontract.ISigncontract): Promise<InnerTransactResult> {
     await this.prepare(data.coopname);
-    return this.chain.transact(this.action(EdubridgeContract.Actions.Signcontract.actionName, data as unknown as Record<string, unknown>, data.coopname));
+    return this.chain.transact(
+      this.action(EdubridgeContract.Actions.Signcontract.actionName, { ...data, contract: this.chainDoc(data.contract) }, data.coopname)
+    );
   }
 
   async signAnnex(data: EdubridgeContract.Actions.Signannex.ISignannex): Promise<InnerTransactResult> {
     await this.prepare(data.coopname);
-    return this.chain.transact(this.action(EdubridgeContract.Actions.Signannex.actionName, data as unknown as Record<string, unknown>, data.coopname));
+    return this.chain.transact(
+      this.action(EdubridgeContract.Actions.Signannex.actionName, { ...data, annex: this.chainDoc(data.annex) }, data.coopname)
+    );
   }
 
   async declineRid(data: EdubridgeContract.Actions.Declinerid.IDeclinerid): Promise<InnerTransactResult> {

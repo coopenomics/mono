@@ -4,10 +4,12 @@ import { EdubridgeMembershipService } from '~/extensions/edubridge/application/m
 import { EdubridgeConfigHolder } from '~/extensions/edubridge/application/config/edubridge-config.holder';
 import { defaultConfig } from '~/extensions/edubridge/types';
 
-function make(opts: { accepted?: boolean; teacher?: boolean; learner?: boolean } = {}) {
+function make(opts: { accepted?: boolean; teacher?: boolean; offer?: boolean; learner?: boolean } = {}) {
   const holder = new EdubridgeConfigHolder({ get: async () => null } as any);
   holder.set({ ...defaultConfig, coopAcceptance: { accepted: opts.accepted ?? true, accepted_at: '' } });
-  const facts = { resolve: async () => ({ isLearner: !!opts.learner, isTeacher: !!opts.teacher, isAdmin: false }) };
+  const facts = {
+    resolve: async () => ({ isLearner: !!opts.learner, hasTeacherOffer: !!opts.teacher || !!opts.offer, isTeacher: !!opts.teacher, isAdmin: false }),
+  };
   const membership = new EdubridgeMembershipService(facts, holder);
   const registry = { register: jest.fn() };
   return new EdubridgeDesktopGrantsProvider(registry, membership);
@@ -48,6 +50,12 @@ describe('EdubridgeDesktopGrantsProvider', () => {
     expect(grants).toContain('EduAssignment:read:own');
     expect(grants).toContain('Onboarding:learner');
     expect(grants).not.toContain('Onboarding:teacher');
+  });
+
+  it('оферта преподавателя подписана, договора УХД нет: маркер онбординга остаётся, прав стола нет', async () => {
+    const grants = await make({ offer: true }).resolveGrants({ coopname: coop, username: 'ant', userRole: 'user', userStatus: 'active' });
+    expect(grants).toContain('Onboarding:teacher');
+    expect(grants).not.toContain('EduAssignment:read:own');
   });
 
   it('пайщик со статусом не active — как гость', async () => {

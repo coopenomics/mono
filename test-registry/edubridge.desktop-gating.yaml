@@ -40,6 +40,13 @@ cases:
     expect: Гранты содержат 'Onboarding:learner' и 'Onboarding:teacher', рабочих прав learner/teacher нет.
     test: components/controller/tests/unit/edubridge/desktop-grants.provider.test.ts
     status: passing
+  - id: edu.gating.side.02
+    level: backend
+    kind: side
+    scenario: Оферта преподавателя подписана, договор УХД преподавателем ещё не подписан (или отклонён председателем).
+    expect: Роли teacher нет, права стола преподавания не выданы, маркер 'Onboarding:teacher' остаётся — шлюз ведёт ко второму шагу (договор). Договор ждёт председателя или действует → роль teacher и стол.
+    test: components/controller/tests/unit/edubridge/desktop-grants.provider.test.ts
+    status: written
   - id: edu.gating.side.01
     level: backend
     kind: side
