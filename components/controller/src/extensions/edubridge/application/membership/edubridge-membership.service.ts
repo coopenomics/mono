@@ -9,7 +9,7 @@ import { mapCoreRolesToEdubridgeRoles, type EdubridgeRole, type EdubridgeRoleFac
 export interface IEdubridgeRequester {
   username?: string;
   role?: string;
-  status?: string;
+  status?: MonoAccountStatus;
 }
 
 export interface IEdubridgeMembership {

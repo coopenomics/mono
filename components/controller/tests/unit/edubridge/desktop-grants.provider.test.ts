@@ -16,14 +16,24 @@ function make(opts: { accepted?: boolean; teacher?: boolean; learner?: boolean }
 const coop = 'voskhod';
 
 describe('EdubridgeDesktopGrantsProvider', () => {
-  it('гость: только каталог', async () => {
+  it('гость после подключения ЦПП: только каталог', async () => {
     const grants = await make().resolveGrants({ coopname: coop });
     expect(grants).toEqual(['EduCatalog:read']);
   });
 
-  it('председатель до принятия ЦПП: каталог + настройка, рабочих прав нет', async () => {
+  it('гость до подключения ЦПП: ничего — витрины ещё нет', async () => {
+    const grants = await make({ accepted: false }).resolveGrants({ coopname: coop });
+    expect(grants).toEqual([]);
+  });
+
+  it('председатель до принятия ЦПП: только настройка, каталога и рабочих прав нет', async () => {
     const grants = await make({ accepted: false }).resolveGrants({ coopname: coop, username: 'ant', userRole: 'chairman', userStatus: 'active' });
-    expect(grants.sort()).toEqual(['EduCatalog:read', 'Extension:configure']);
+    expect(grants).toEqual(['Extension:configure']);
+  });
+
+  it('рядовой пайщик до принятия ЦПП: ничего', async () => {
+    const grants = await make({ accepted: false }).resolveGrants({ coopname: coop, username: 'ant', userRole: 'user', userStatus: 'active' });
+    expect(grants).toEqual([]);
   });
 
   it('ЦПП принята, пайщик без оферт: маркеры онбординга обоих столов, рабочих прав нет', async () => {

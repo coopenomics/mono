@@ -2,7 +2,7 @@
 q-page.edu-onboarding(role="region" aria-label="Подключение ЦПП Образование")
   CouncilOnboardingCard(
     :config="config"
-    :loading="isLoading"
+    :loading="initialLoading"
     :submitting="submitting"
     title="Подключение ЦПП «Образование»"
     subtitle="Совет кооператива утверждает положение о программе, шаблоны оферт родителя-слушателя и преподавателя и шаблон договора участия в хозяйственной деятельности. После этого пайщики смогут вступать по офертам и записываться на курсы."
@@ -10,8 +10,6 @@ q-page.edu-onboarding(role="region" aria-label="Подключение ЦПП О
     :completion-message="config.completionMessage"
     @step-submit="handleStepSubmit"
   )
-    template(#status)
-      BaseBadge(:variant="allDone ? 'pos' : 'warn'" dot) {{ allDone ? 'Подключено' : 'Не подключено' }}
 </template>
 
 <script setup lang="ts">
@@ -24,7 +22,6 @@ import { useSessionStore } from 'src/entities/Session';
 import { useDesktopStore } from 'src/entities/Desktop/model';
 import { useExtensionCooperativeOnboarding } from 'src/features/CooperativeOnboarding';
 import { CouncilOnboardingCard, type ICouncilOnboardingConfig, type ICouncilOnboardingStep } from 'src/shared/ui/CouncilOnboarding';
-import { BaseBadge } from 'src/shared/ui/base';
 
 /**
  * L1 — подключение кооперативом ЦПП «Образование» на платформенном механизме
@@ -83,6 +80,10 @@ const sessionStore = useSessionStore();
 const desktopStore = useDesktopStore();
 const onboarding = useExtensionCooperativeOnboarding(() => EXTENSION_NAME);
 const { isLoading, allDone } = onboarding;
+// Лоадер карточки — только пока шаги ещё не загружены. Композабл поднимает
+// isLoading и на каждом «объявить собрание», а карточка на loading прячет
+// содержимое целиком — страница мигала бы при каждом действии.
+const initialLoading = computed(() => isLoading.value && !onboarding.steps.value.length);
 
 const submitting = ref(false);
 const documentsHtml = ref<Record<string, string>>({});

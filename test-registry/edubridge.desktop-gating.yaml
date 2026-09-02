@@ -22,15 +22,15 @@ cases:
   - id: edu.gating.happy.01
     level: backend
     kind: happy
-    scenario: Гость (без username) запрашивает стол.
-    expect: Гранты edubridge = ['EduCatalog:read']; столы member/teacher скрыты.
+    scenario: Гость (без username) запрашивает стол; ЦПП подключена.
+    expect: Гранты edubridge = ['EduCatalog:read']; столы member/teacher скрыты. До подключения ЦПП у гостя грантов нет вовсе.
     test: components/controller/tests/unit/edubridge/desktop-grants.provider.test.ts
     status: passing
   - id: edu.gating.happy.02
     level: backend
     kind: happy
     scenario: Председатель активного кооператива, ЦПП ещё не принята советом.
-    expect: Гранты = каталог + 'Extension:configure'; рабочих прав нет.
+    expect: Гранты = только 'Extension:configure' — ни каталога, ни рабочих прав; рядовой пайщик до подключения не получает ничего.
     test: components/controller/tests/unit/edubridge/desktop-grants.provider.test.ts
     status: passing
   - id: edu.gating.happy.03

@@ -1,6 +1,7 @@
 import { Inject, Injectable, type OnModuleInit } from '@nestjs/common';
 import {
   DESKTOP_GRANTS_REGISTRY_PORT,
+  MonoAccountStatus,
   type IDesktopGrantsHook,
   type IDesktopGrantsRegistryPort,
   type InnerDesktopGrantsContext,
@@ -15,7 +16,8 @@ import { EdubridgeMembershipService } from '../membership/edubridge-membership.s
  * не импортирует. Роли считает тот же сервис, что и guard резолверов.
  *
  * Гость получает право на каталог: приложение — витрина до вступления.
- * До принятия ЦПП советом у председателя только настройка расширения.
+ * Но витрина открывается только после подключения ЦПП советом: до этого
+ * у председателя одна лишь настройка расширения, у всех остальных — ничего.
  */
 @Injectable()
 export class EdubridgeDesktopGrantsProvider implements IDesktopGrantsHook, OnModuleInit {
@@ -34,14 +36,14 @@ export class EdubridgeDesktopGrantsProvider implements IDesktopGrantsHook, OnMod
     const m = await this.membership.resolve(ctx.coopname, {
       username: ctx.username,
       role: ctx.userRole,
-      status: ctx.userStatus,
+      // Контекст стола несёт статус строкой (ядро не знает enum расширения) — это тот же MonoAccountStatus.
+      status: ctx.userStatus as MonoAccountStatus | undefined,
     });
-    const grants = new Set(expandGrantsForRoles(m.roles));
-
     if (!m.onboarded) {
-      if (m.coreRoles.includes('Chairman')) grants.add('Extension:configure');
-      return [...grants];
+      return m.coreRoles.includes('Chairman') ? ['Extension:configure'] : [];
     }
+
+    const grants = new Set(expandGrantsForRoles(m.roles));
 
     if (m.username) {
       // Пайщик без подписанной оферты видит гейт-страницу соответствующего стола.
