@@ -8,7 +8,8 @@
  * установки кооператив донесёт сам.
  *
  * Активацию кооператива недоступность card.coop не блокирует (критерий приёмки): исход
- * доставки пишется в журнал, недоставленные объявления повторяются на старте.
+ * доставки пишется в журнал, недоставленные объявления повторяются на старте. Там же
+ * оператор объявляет допуск самому себе — событие активации у него не наступает.
  *
  * Включается настройкой «Я — оператор сети»: событие цепи видит каждая установка, а
  * объявлять допуск вправе только оператор — у остальных card.coop объявление и не примет.
@@ -86,6 +87,8 @@ export class CardcoopOperatorAnnounceService {
   async resendUndelivered(): Promise<void> {
     if (!this.extension.config.announce_as_operator) return;
 
+    await this.announceSelf();
+
     const pending = await this.announcements.find({ where: { delivered: false } });
     for (const record of pending) {
       try {
@@ -95,6 +98,28 @@ export class CardcoopOperatorAnnounceService {
           `Повтор объявления о ${record.coopname} не удался: ${error instanceof Error ? error.message : String(error)}`
         );
       }
+    }
+  }
+
+  /**
+   * Объявляет допуск самого оператора.
+   *
+   * Оператор — тоже кооператив сети, и своё подключение сеть без допуска не примет. Но
+   * события активации у него не бывает: кооператив, заведённый при загрузке цепи, минует
+   * `stcoopstatus`, и ждать его — значит ждать вечно (стенд 02.09.2026: подключение
+   * отвергалось «не допущен оператором», пока запись не завели руками). Объявляется один
+   * раз: доставленное повторно не отправляется.
+   */
+  private async announceSelf(): Promise<void> {
+    const own = platformSettings().coopname;
+    const known = await this.announcements.findOne({ where: { coopname: own } });
+    if (known?.delivered) return;
+    try {
+      await this.announce(own);
+    } catch (error) {
+      this.logger.error(
+        `Допуск самого оператора ${own} не объявлен: ${error instanceof Error ? error.message : String(error)}`
+      );
     }
   }
 

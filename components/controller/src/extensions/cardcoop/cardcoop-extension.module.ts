@@ -86,10 +86,17 @@ export class CardcoopExtensionModule {
   async initialize() {
     await this.cardcoopExtension.initialize();
 
-    // Самоподключение и повтор недоставленных объявлений идут в фоне: старт кооператива не
-    // зависит от доступности сети карт (NFR-3), а исходы видны в журнале и в таблицах.
-    void this.connect.connectIfChanged(this.cardcoopExtension.config.api_url);
-    void this.operatorAnnounce.resendUndelivered();
+    // Объявления допуска и самоподключение идут в фоне: старт кооператива не зависит от
+    // доступности сети карт (NFR-3), а исходы видны в журнале и в таблицах. Порядок строгий:
+    // сначала допуски, потом подключение — сеть принимает параметры только допущенного, и
+    // одновременный запуск отвергал собственное подключение оператора, пока его допуск ещё
+    // был в пути (стенд 02.09.2026). Пока сеть не приняла, подключение повторяется по расписанию.
+    const apiUrl = this.cardcoopExtension.config.api_url;
+    void (async () => {
+      await this.operatorAnnounce.resendUndelivered();
+      await this.connect.connectIfChanged(apiUrl);
+      this.connect.startRetries(apiUrl);
+    })();
     // Свидетельства и отзывы, не доставленные за время внутренних ретраев, повторяются
     // периодически: card.coop о них больше не напомнит — уведомление о связке мы уже
     // подтвердили, а событие выхода в цепи не повторится.

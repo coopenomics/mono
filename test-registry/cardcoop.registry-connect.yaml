@@ -70,6 +70,40 @@ cases:
     test: components/controller/tests/unit/cardcoop/cardcoop-registry.test.ts
     status: passing
 
+  - id: cc.connect.happy.03
+    level: backend
+    kind: happy
+    scenario: >
+      Установка подключается к сети, зная собственное наименование из реквизитов.
+    expect: >
+      в coop_connect уезжает display_name; пустое или совпадающее с именем аккаунта
+      не отправляется — сеть оставляет имя, которое у неё уже есть (в цепи названия нет)
+    test: components/controller/tests/unit/cardcoop/cardcoop-registry.test.ts
+    status: passing
+
+  - id: cc.connect.side.02
+    level: backend
+    kind: side
+    scenario: >
+      Сеть карт недоступна или не приняла подключение на старте.
+    expect: >
+      подключение повторяется по расписанию раз в четверть часа, пока не принято;
+      принятое с реквизитами клиента повторно не отправляется
+    test: components/controller/tests/unit/cardcoop/cardcoop-registry.test.ts
+    status: passing
+
+  - id: cc.announce.happy.02
+    level: backend
+    kind: happy
+    scenario: >
+      Установка с флагом «я — оператор сети» стартует.
+    expect: >
+      оператор объявляет допуск самому себе (события активации у boot-кооператива не
+      бывает), доставленное второй раз не объявляется; без флага самодопуска нет.
+      Порядок на старте: допуски → подключение → повторы подключения
+    test: components/controller/tests/unit/cardcoop/cardcoop-registry.test.ts
+    status: passing
+
   - id: cc.announce.happy.01
     level: backend
     kind: happy

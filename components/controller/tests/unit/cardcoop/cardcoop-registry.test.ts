@@ -41,13 +41,15 @@ describe('Самоподключение кооператива к сети ка
     }),
   });
 
+  let accounts: { getDisplayName: jest.Mock };
   const build = (settings: unknown = clientSettings) => {
     const integrations = { get: jest.fn(() => settings) };
     return new CardcoopConnectService(
       stateRepo() as any,
       attestationService,
       integrations as any,
-      logger as any
+      logger as any,
+      accounts as any
     );
   };
 
@@ -59,6 +61,7 @@ describe('Самоподключение кооператива к сети ка
       signDocument: jest.fn(async (payload: any) => ({ payload, signature: 'SIG_K1_x', chain: ['a', 'b'] })),
       deliverDocument,
     };
+    accounts = { getDisplayName: jest.fn(async () => 'ПК «Восход»') };
   });
 
   it('параметры установки уходят подписанным документом: issuer, клиент и адреса расширения', async () => {
@@ -76,6 +79,46 @@ describe('Самоподключение кооператива к сети ка
     expect(envelope.payload.chain_id).toBe('chain-1');
   });
 
+  it('наименование кооператива уезжает в документе — в цепи его нет, знает только установка', async () => {
+    await build().connectIfChanged('https://card.coop');
+
+    expect(deliverDocument.mock.calls[0][1].payload.display_name).toBe('ПК «Восход»');
+  });
+
+  it('пустое или техническое наименование не отправляется — сеть оставит имя, которое у неё есть', async () => {
+    accounts.getDisplayName = jest.fn(async () => 'voskhod');
+    await build().connectIfChanged('https://card.coop');
+
+    expect(deliverDocument.mock.calls[0][1].payload).not.toHaveProperty('display_name');
+  });
+
+  it('подключение повторяется по расписанию, пока сеть его не приняла', async () => {
+    jest.useFakeTimers();
+    try {
+      deliverDocument.mockResolvedValue({ delivered: false, status: null, reason: 'сеть недоступна' });
+      const service = build();
+      service.startRetries('https://card.coop');
+
+      await jest.advanceTimersByTimeAsync(15 * 60 * 1000);
+      await jest.advanceTimersByTimeAsync(15 * 60 * 1000);
+      expect(deliverDocument).toHaveBeenCalledTimes(2);
+
+      // Принятое подключение с реквизитами клиента повторно не уходит.
+      deliverDocument.mockResolvedValue({
+        delivered: true,
+        status: 200,
+        body: { rpClient: { clientId: 'c', clientSecret: 's', issuer: 'https://card.coop/application/o/coop-voskhod/' } },
+      });
+      await jest.advanceTimersByTimeAsync(15 * 60 * 1000);
+      expect(deliverDocument).toHaveBeenCalledTimes(3);
+      await jest.advanceTimersByTimeAsync(15 * 60 * 1000);
+      expect(deliverDocument).toHaveBeenCalledTimes(3);
+      service.onModuleDestroy();
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
   it('без реквизитов клиента подключение честно пропускается, а не шлёт пустой секрет', async () => {
     await build(null).connectIfChanged('https://card.coop');
 
@@ -84,6 +127,13 @@ describe('Самоподключение кооператива к сети ка
   });
 
   it('неизменившийся состав повторно не отправляется — рестарт не стучится в сеть', async () => {
+    // Принятым считается подключение, на которое сеть выдала реквизиты клиента (3B5-59):
+    // без них следующий старт подключается заново даже при том же составе.
+    deliverDocument.mockResolvedValue({
+      delivered: true,
+      status: 200,
+      body: { rpClient: { clientId: 'c', clientSecret: 's', issuer: 'https://card.coop/application/o/coop-voskhod/' } },
+    });
     const service = build();
 
     await service.connectIfChanged('https://card.coop');
@@ -193,8 +243,30 @@ describe('Объявление допуска оператором сети', ()
     expect(announcementRows.get('zarya')?.delivered).toBe(false);
 
     await service.resendUndelivered();
-    expect(deliverDocument).toHaveBeenCalledTimes(2);
+    const aboutZarya = deliverDocument.mock.calls.filter(([, envelope]) => envelope.payload.subject === 'zarya');
+    expect(aboutZarya).toHaveLength(2);
     expect(announcementRows.get('zarya')?.delivered).toBe(true);
+  });
+
+  it('на старте оператор объявляет допуск самому себе — событие активации у него не наступает', async () => {
+    const service = build(true);
+
+    await service.resendUndelivered();
+
+    const [url, envelope] = deliverDocument.mock.calls[0];
+    expect(url).toBe('https://card.coop/v1/registrar/announce');
+    expect(envelope.payload.subject).toBe('voskhod');
+    expect(announcementRows.get('voskhod')?.delivered).toBe(true);
+
+    // Доставленный допуск второй раз не объявляется.
+    await service.resendUndelivered();
+    expect(deliverDocument).toHaveBeenCalledTimes(1);
+  });
+
+  it('без флага оператора самодопуск не объявляется', async () => {
+    await build(false).resendUndelivered();
+
+    expect(deliverDocument).not.toHaveBeenCalled();
   });
 
   it('непрочитанная запись цепи не задерживает допуск: объявление уходит с именем аккаунта', async () => {

@@ -10,11 +10,13 @@
  * сами, а неизменившаяся установка не стучится в сеть на каждом рестарте.
  */
 import { createHash } from 'node:crypto';
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, type OnModuleDestroy } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import canonicalize from 'canonicalize';
 import {
+  ACCOUNT_PORT,
+  type IAccountPort,
   INTEGRATION_SETTINGS_PORT,
   type IIntegrationSettingsPort,
   LOGGER_PORT,
@@ -35,16 +37,50 @@ interface CardcoopClientSettings {
 /** Ключ единственной строки состояния. */
 const SELF = 'self';
 
+/**
+ * Период повтора подключения, пока сеть его не приняла.
+ *
+ * Раньше недоставка ждала следующего старта: сеть карт лежала в момент запуска — и
+ * кооператив оставался без реквизитов входа по карте до чьего-нибудь рестарта. Четверть
+ * часа достаточно, чтобы не стучаться в лежащую сеть без толку, и достаточно мало, чтобы
+ * человек не ждал.
+ */
+const CONNECT_RETRY_MS = 15 * 60 * 1000;
+
 @Injectable()
-export class CardcoopConnectService {
+export class CardcoopConnectService implements OnModuleDestroy {
+  private retryTimer: NodeJS.Timeout | null = null;
+
   constructor(
     @InjectRepository(CardcoopConnectStateTypeormEntity)
     private readonly state: Repository<CardcoopConnectStateTypeormEntity>,
     private readonly attestationService: CardcoopAttestationService,
     @Inject(INTEGRATION_SETTINGS_PORT) private readonly integrations: IIntegrationSettingsPort,
-    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
+    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort,
+    @Inject(ACCOUNT_PORT) private readonly accounts: IAccountPort
   ) {
     this.logger.setContext(CardcoopConnectService.name);
+  }
+
+  /**
+   * Повторяет подключение по расписанию, пока сеть его не примет.
+   *
+   * `connectIfChanged` сам решает, надо ли слать: принятый состав с реквизитами клиента
+   * повторно не отправляется, так что тик по расписанию у подключённой установки — пустой.
+   *
+   * @param apiUrl — адрес узла сети из конфигурации расширения.
+   */
+  startRetries(apiUrl: string): void {
+    if (this.retryTimer) return;
+    this.retryTimer = setInterval(() => void this.connectIfChanged(apiUrl), CONNECT_RETRY_MS);
+    // Процесс не держится живым ради повторов: недоставленное подхватится следующим запуском.
+    this.retryTimer.unref();
+  }
+
+  /** Останавливает повторы при выключении приложения. */
+  onModuleDestroy(): void {
+    if (this.retryTimer) clearInterval(this.retryTimer);
+    this.retryTimer = null;
   }
 
   /**
@@ -58,7 +94,7 @@ export class CardcoopConnectService {
    */
   async connectIfChanged(apiUrl: string): Promise<void> {
     try {
-      const stable = this.stablePayload();
+      const stable = await this.stablePayload();
       if (!stable) return;
 
       const hash = createHash('sha256').update(canonicalize(stable) as string, 'utf8').digest('hex');
@@ -83,7 +119,7 @@ export class CardcoopConnectService {
    * Пустые реквизиты клиента — не ошибка, а честное «подключать нечего»: клиент card.coop в
    * CoopID этой установки не заведён, и слать в реестр пустой секрет хуже, чем промолчать.
    */
-  private stablePayload(): Omit<CardcoopConnectPayload, 'issued_at' | 'chain_id'> | null {
+  private async stablePayload(): Promise<Omit<CardcoopConnectPayload, 'issued_at' | 'chain_id'> | null> {
     const client = this.integrations.get<CardcoopClientSettings>('cardcoop', 'cardcoop_client');
     if (!client?.client_id || !client.client_secret || !client.issuer) {
       this.logger.warn(
@@ -93,9 +129,11 @@ export class CardcoopConnectService {
     }
 
     const backend = platformSettings().backendUrl.replace(/\/+$/, '');
+    const displayName = await this.displayName();
     return {
       type: CardcoopRegistryDocumentType.Connect,
       coopname: platformSettings().coopname,
+      ...(displayName ? { display_name: displayName } : {}),
       oidc_issuer: client.issuer,
       oidc_client_id: client.client_id,
       oidc_client_secret: client.client_secret,
@@ -103,6 +141,25 @@ export class CardcoopConnectService {
       disclosure_url: `${backend}/v1/extensions/cardcoop/disclosures`,
       entry_callback_url: `${backend}/v1/extensions/cardcoop/entry/callback`,
     };
+  }
+
+  /**
+   * Наименование кооператива из его собственных реквизитов.
+   *
+   * В цепи названия нет, у оператора — тем более; знает его только сама установка. Пустое
+   * или совпадающее с именем аккаунта не отправляется: сеть тогда оставит имя, которое у
+   * неё уже есть, а не затрёт его техническим. Нечитаемые реквизиты подключение не держат.
+   *
+   * @returns Наименование либо `undefined`.
+   */
+  private async displayName(): Promise<string | undefined> {
+    const coopname = platformSettings().coopname;
+    try {
+      const name = (await this.accounts.getDisplayName(coopname)).trim();
+      return name && name !== coopname ? name : undefined;
+    } catch {
+      return undefined;
+    }
   }
 
   /**

@@ -41,4 +41,12 @@ export interface CardcoopConnectPayload extends CardcoopDocumentPayload {
   disclosure_url: string;
   /** Адрес возврата «Входа с CardCOOP» (story 9.2): по нему сеть заводит OAuth2-клиента. */
   entry_callback_url: string;
+  /**
+   * Наименование кооператива, каким он сам себя называет.
+   *
+   * В цепи названия нет (в `registrator::coops` только имя аккаунта и домен), и оператор,
+   * объявляя допуск, его не знает. Знает только сама установка — из своих же реквизитов.
+   * Может отсутствовать: тогда сеть оставит имя, которое у неё уже есть.
+   */
+  display_name?: string;
 }
