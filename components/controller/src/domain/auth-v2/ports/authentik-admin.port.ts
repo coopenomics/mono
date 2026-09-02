@@ -17,6 +17,15 @@ export interface IAuthentikAdminPort {
   findUserPk(username: string): Promise<number | null>;
 
   /**
+   * username учётки authentik по её uuid (то, что уезжает наружу как `sub`), либо null.
+   *
+   * Нужен там, где кооператив узнаёт пайщика по идентификатору из CoopID, а не по своему:
+   * uuid учётки authentik и id пользователя ядра — разные числа, миграция их не выравнивает.
+   * @throws при сетевой/инфраструктурной недоступности IdP.
+   */
+  findUsernameByUuid(uuid: string): Promise<string | null>;
+
+  /**
    * Гарантирует существование учётки пайщика (создаёт при отсутствии), возвращает pk.
    * Идемпотентно: повторный вызов для существующего username вернёт его pk.
    */
