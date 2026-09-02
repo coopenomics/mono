@@ -1,4 +1,3 @@
-import { CardcoopPage } from 'src/pages/User/CardcoopPage';
 import { UserPaymentMethodsPage } from 'src/pages/User/PaymentMethodsPage';
 import { UserSettingsPage } from 'src/pages/User/SettingsPage';
 import { markRaw } from 'vue';
@@ -18,19 +17,6 @@ export const manifest = {
       path: '/:coopname/user',
       name: 'home',
       children: [{
-          // Председатель — тоже пайщик: карта сети у него на том же месте, что у пайщика
-          // (владелец искал её в столе председателя 02.09.2026).
-          meta: {
-            title: 'Карта пайщика',
-            icon: 'badge',
-            roles: [],
-          },
-          path: 'cardcoop',
-          name: 'user-cardcoop',
-          component: markRaw(CardcoopPage),
-          children: [],
-        },
-        {
           meta: {
             title: 'Реквизиты',
             icon: '',
