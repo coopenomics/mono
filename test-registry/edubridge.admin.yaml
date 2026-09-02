@@ -52,3 +52,10 @@ cases:
     expect: У администратора контактов в карточке нет; у владельца — есть.
     test: ~
     status: missing
+  - id: edu.admin.side.10
+    level: backend
+    kind: side
+    scenario: "Реестр пайщиков (memberRows): агрегаты по обучающимся, подпискам и задачам выдачи при нескольких пайщиках и кооперативах; подзапросы не ссылаются на колонки внешнего запроса вне GROUP BY (инцидент 02.09.2026: «Subquery uses ungrouped column l.coopname»)."
+    expect: "Запрос выполняется в Postgres, счётчики по каждому пайщику верны и не смешивают кооперативы."
+    test: ~
+    status: missing
