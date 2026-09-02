@@ -155,19 +155,18 @@ public:
   [[eosio::action]] void revoke(eosio::name issuer, eosio::name subject);
 
   /**
-   * \brief Миграция контракта.
-   * \note Авторизация: @ ano @ active.
-   */
-  /**
-   * rief Опубликовать новую версию единой схемы весов репутации.
+   * \brief Опубликовать новую версию единой схемы весов репутации.
    *
    * \param version   номер публикуемой версии — строго следующий по порядку.
    * \param document  полный JSON схемы (валидируется оффчейн schema-contract).
    *
-   * 
-ote Авторизация: только АНО — владелец единой схемы сети.
+   * \note Авторизация: только АНО — владелец единой схемы сети.
    */
   [[eosio::action]] void pubrepschema(uint64_t version, std::string document);
 
+  /**
+   * \brief Миграция контракта.
+   * \note Авторизация: @ ano @ active.
+   */
   [[eosio::action]] void migrate();
 };
