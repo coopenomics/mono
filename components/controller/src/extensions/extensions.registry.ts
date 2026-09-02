@@ -420,14 +420,17 @@ export const AppRegistry: INamedExtension = {
     is_internal: true,
     // Обкатка на тестовом контуре; в основной сети — после приёмки MVP.
     availability: ExtensionAvailability.NON_MAINNET_ONLY,
-    // Три стола по ролям. Каждый `name` ОБЯЗАН совпадать с workspace из desktop
-    // `extensions/edubridge/install.ts`. Видимость — канон грантов
+    // Три стола по PRD: администратора (владелец и администратор в одном рабочем
+    // месте), ученика (каталог — витрина гостю, обучающиеся и доступ),
+    // преподавателя. Заголовки в меню стола берутся ОТСЮДА, install.ts десктопа
+    // их не переопределяет. Каждый `name` ОБЯЗАН совпадать с workspace из
+    // desktop `extensions/edubridge/install.ts`. Видимость — канон грантов
     // (EdubridgeDesktopGrantsProvider): гость видит каталог, до принятия ЦПП
     // советом у председателя только Extension:configure.
     desktops: [
-      { name: 'edubridge', title: 'Обучение', icon: 'school' },
-      { name: 'edubridge-member', title: 'Моё обучение', icon: 'family_restroom' },
-      { name: 'edubridge-teacher', title: 'Преподавание', icon: 'co_present' },
+      { name: 'edubridge', title: 'Стол администратора', icon: 'admin_panel_settings' },
+      { name: 'edubridge-member', title: 'Стол ученика', icon: 'family_restroom' },
+      { name: 'edubridge-teacher', title: 'Стол преподавателя', icon: 'co_present' },
     ],
     title: 'Образовательный мост',
     description: 'Курсы кооператива на образовательных площадках: каталог, членские взносы, автоматический доступ.',
