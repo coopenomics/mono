@@ -26,7 +26,7 @@ import {
  *                        рабочем месте; часть страниц шире у владельца (площадки,
  *                        администраторы, подключение). Курсы, преподаватели, реестр
  *                        пайщиков, очередь выдачи.
- *   edubridge-member   — «Стол родителя»: каталог курсов (открыт гостю после
+ *   edubridge-member   — «Стол ученика»: каталог курсов (открыт гостю после
  *                        подключения ЦПП советом — витрина до вступления, как каталог
  *                        в «Столе заказчика»), обучающиеся, подписки и доступ.
  *   edubridge-teacher  — «Стол преподавателя»: назначения, взносы результатами
@@ -62,7 +62,7 @@ function workspace(name: string, title: string, icon: string, defaultRoute: stri
   };
 }
 
-/** «Стол администратора»: владелец и администратор; каталог здесь не нужен — он в столе родителя. */
+/** «Стол администратора»: владелец и администратор; каталог здесь не нужен — он в столе ученика. */
 function adminWorkspace(): IWorkspaceConfig {
   return workspace('edubridge', 'Стол администратора', 'admin_panel_settings', 'edubridge-admin-courses', [
     memberPage('configure', 'edubridge-configure', ConfigurePage, { title: 'Подключение', icon: 'settings', requires: 'Extension:configure', gate: true }),
@@ -75,9 +75,9 @@ function adminWorkspace(): IWorkspaceConfig {
   ]);
 }
 
-/** «Стол родителя»: каталог (гостю — витрина), обучающиеся, подписки и доступ. */
+/** «Стол ученика»: каталог (гостю — витрина), обучающиеся, подписки и доступ. */
 function parentWorkspace(): IWorkspaceConfig {
-  return workspace('edubridge-member', 'Стол родителя', 'family_restroom', 'edubridge-catalog', [
+  return workspace('edubridge-member', 'Стол ученика', 'family_restroom', 'edubridge-catalog', [
     publicPage('catalog', 'edubridge-catalog', CatalogPage, { title: 'Каталог курсов', icon: 'school', requires: 'EduCatalog:read' }),
     publicPage('catalog/:id', 'edubridge-catalog-course', CourseCardPage, { title: 'Курс', icon: 'school', requires: 'EduCatalog:read', hidden: true }),
     memberPage('onboarding', 'edubridge-member-onboarding', MemberOnboardingPage, { title: 'Подключение', icon: 'how_to_reg', requires: 'Onboarding:learner', gate: true }),
