@@ -80,13 +80,6 @@ export class MarketplaceMembershipGuard implements CanActivate {
       return true;
     }
 
-    // Обе ветки выше гарантируют пользователя, но компилятор этого не выводит:
-    // явное сужение, иначе ts-node (TS 5.9) не собирает файл.
-    if (!user?.username) {
-      throw new UnauthorizedException('Требуется авторизованный пользователь');
-    }
-    const username = user.username;
-
     // Под межсервисным секретом статус не проверяется: это служебный вызов,
     // а не запрос пайщика.
     if (!bypass && user.status !== MonoAccountStatus.Active) {
