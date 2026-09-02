@@ -9,7 +9,7 @@
 экспорта, исчезнувший метод, новый обязательный параметр требуют major, а
 снятое старое — периода устаревания не меньше одного minor (INV-009).
 
-Всего экспортов: 258.
+Всего экспортов: 267.
 
 ## ACCOUNT_PORT
 
@@ -131,6 +131,12 @@
 - `decision_id?: string`
 - `decision_date?: string`
 - `metadata: Record<string, any>`
+
+## DESKTOP_GRANTS_FILTER_REGISTRY_PORT
+
+`const` · hooks
+
+- `Symbol.for('Innercoop.CorePort.DesktopGrantsFilterRegistry')`
 
 ## DESKTOP_GRANTS_REGISTRY_PORT
 
@@ -316,6 +322,20 @@
 - `getRuleById(id: string): Promise<TrackingRule | null>`
 - `deactivateRule(id: string): Promise<void>`
 - `deleteRule(id: string): Promise<void>`
+
+## IDesktopGrantsFilterHook
+
+`interface` · hooks
+
+- `readonly extensionName: string`
+- `filterGrants(target: InnerDesktopGrantsFilterTarget, context: InnerDesktopGrantsContext): Promise<readonly string[]>`
+
+## IDesktopGrantsFilterRegistryPort
+
+`interface` · hooks
+
+- `register(filter: IDesktopGrantsFilterHook): void`
+- `unregister(extensionName: string): void`
 
 ## IDesktopGrantsHook
 
@@ -763,6 +783,13 @@
 - `userRole?: string`
 - `userStatus?: string`
 - `config?: Record<string, any>`
+
+## InnerDesktopGrantsFilterTarget
+
+`interface` · hooks
+
+- `extensionName: string`
+- `grants: readonly string[]`
 
 ## InnerDocumentAggregate
 
@@ -1616,6 +1643,13 @@
 - `meta: string`
 - `document: ISignedDocument`
 
+## InnerRegistrationOfferFilterContext
+
+`interface` · hooks
+
+- `coopname?: string`
+- `accountType?: InnerAccountType | string`
+
 ## InnerRepresentative
 
 `interface` · core-ports
@@ -1860,6 +1894,13 @@
 - `generateStorageAgreementParameters(coopname: string, username: string): Promise<void>`
 - `generateBlagorostAgreementParametersIfNotExist(coopname: string, username: string): Promise<void>`
 
+## IProgramOfferParametersHook
+
+`interface` · hooks
+
+- `readonly programKey: string`
+- `generateOfferParameters(coopname: string, username: string): Promise<void>`
+
 ## IProgramWalletPort
 
 `interface` · core-ports
@@ -1910,6 +1951,25 @@
 
 - `registerProgramHook(hook: IProgramDocumentParametersHook): void`
 - `registerMarketplaceHook(hook: IMarketplaceDocumentParametersHook): void`
+- `registerProgramOfferHook(hook: IProgramOfferParametersHook): void`
+
+## IRegistrationOfferFilterHook
+
+`interface` · hooks
+
+- `readonly extensionName: string`
+- `filterPrograms(programs: readonly InnerProgramRegistration[], context: InnerRegistrationOfferFilterContext): readonly string[]`
+- `filterAgreements(`
+- `agreements: readonly InnerAgreementRegistration[],`
+- `context: InnerRegistrationOfferFilterContext`
+- `): readonly string[]`
+
+## IRegistrationOfferFilterRegistryPort
+
+`interface` · hooks
+
+- `register(filter: IRegistrationOfferFilterHook): void`
+- `unregister(extensionName: string): void`
 
 ## IRegistrationRegistryPort
 
@@ -2175,6 +2235,8 @@
 - `GENERATION = 'GENERATION',`
 - `CAPITALIZATION = 'CAPITALIZATION',`
 - `MARKETPLACE = 'MARKETPLACE',`
+- `EDUCATION = 'EDUCATION',`
+- `EDUCATION_TEACHING = 'EDUCATION_TEACHING',`
 - `UNDEFINED = 'UNDEFINED',`
 
 ## ProgramType
@@ -2209,6 +2271,12 @@
 `const` · hooks
 
 - `Symbol.for('Innercoop.CorePort.RegistrationDocumentParametersRegistry')`
+
+## REGISTRATION_OFFER_FILTER_REGISTRY_PORT
+
+`const` · hooks
+
+- `Symbol.for('Innercoop.CorePort.RegistrationOfferFilterRegistry')`
 
 ## REGISTRATION_REGISTRY_PORT
 

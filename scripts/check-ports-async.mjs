@@ -61,6 +61,7 @@ const KNOWN_SYNC = {
   'IDesktopGrantsRegistryPort.register': 'см. долг по объектам с методами',
   'IRegistrationDocumentParametersRegistryPort.registerProgramHook': 'см. долг по объектам с методами',
   'IRegistrationDocumentParametersRegistryPort.registerMarketplaceHook': 'см. долг по объектам с методами',
+  'IRegistrationDocumentParametersRegistryPort.registerProgramOfferHook': 'см. долг по объектам с методами',
   'IFileStoragePort.getBucket': 'см. долг по объектам с методами',
 };
 
@@ -69,6 +70,7 @@ const KNOWN_HANDLE_OBJECTS = {
   'IDesktopGrantsRegistryPort.register': 'кладёт в реестр ядра объект прав расширения',
   'IRegistrationDocumentParametersRegistryPort.registerProgramHook': 'кладёт в реестр ядра хук параметров оферт',
   'IRegistrationDocumentParametersRegistryPort.registerMarketplaceHook': 'кладёт в реестр ядра хук параметров оферт',
+  'IRegistrationDocumentParametersRegistryPort.registerProgramOfferHook': 'кладёт в реестр ядра хук параметров оферт программы по её ключу',
   'IFileStoragePort.getBucket': 'отдаёт расширению объект бакета с методами',
 };
 
