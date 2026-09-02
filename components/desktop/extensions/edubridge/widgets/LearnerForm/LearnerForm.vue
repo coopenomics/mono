@@ -5,7 +5,7 @@ BaseForm(:loading="loading" @submit="submit")
   BaseInput(
     v-model="form.recipient_value"
     :label="recipientLabel"
-    :type="form.recipient_type === 'email' ? 'email' : 'text'"
+    :type="form.recipient_type === Zeus.EduRecipientType.EMAIL ? 'email' : 'text'"
     :hint="recipientHint"
     required
   )
@@ -18,6 +18,7 @@ BaseForm(:loading="loading" @submit="submit")
 
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue';
+import { Zeus } from '@coopenomics/sdk';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { BaseButton, BaseCheckbox, BaseForm, BaseInput, BaseSelect } from 'src/shared/ui/base';
 import { addLearner, RECIPIENT_LABELS, updateLearner, type ILearner, type ILearnerInput } from '../../entities/Learner';
@@ -26,7 +27,7 @@ const props = defineProps<{ learner?: ILearner | null }>();
 const emit = defineEmits<{ saved: [learner: ILearner]; cancel: [] }>();
 
 const loading = ref(false);
-const form = reactive<ILearnerInput>({ display_name: '', recipient_type: 'email' as ILearnerInput['recipient_type'], recipient_value: '', is_self: false });
+const form = reactive<ILearnerInput>({ display_name: '', recipient_type: Zeus.EduRecipientType.EMAIL, recipient_value: '', is_self: false });
 
 watch(
   () => props.learner,
@@ -38,9 +39,14 @@ watch(
 );
 
 const recipientOptions = Object.entries(RECIPIENT_LABELS).map(([value, label]) => ({ value, label }));
-const recipientLabel = computed(() => ({ email: 'Почта обучающегося', telegram: 'Telegram обучающегося', onsite: 'Код пропуска' })[String(form.recipient_type)] ?? 'Контакт');
+const RECIPIENT_FIELD_LABELS: Record<string, string> = {
+  [Zeus.EduRecipientType.EMAIL]: 'Почта обучающегося',
+  [Zeus.EduRecipientType.TELEGRAM]: 'Telegram обучающегося',
+  [Zeus.EduRecipientType.ONSITE]: 'Код пропуска',
+};
+const recipientLabel = computed(() => RECIPIENT_FIELD_LABELS[form.recipient_type] ?? 'Контакт');
 const recipientHint = computed(() =>
-  form.recipient_type === 'email' ? 'Площадке передаётся только этот адрес — ни ФИО, ни телефон.' : 'Площадке передаётся только этот контакт.',
+  form.recipient_type === Zeus.EduRecipientType.EMAIL ? 'Площадке передаётся только этот адрес — ни ФИО, ни телефон.' : 'Площадке передаётся только этот контакт.',
 );
 
 async function submit(): Promise<void> {

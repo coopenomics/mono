@@ -57,3 +57,31 @@ cases:
     expect: Суммы через форматтер, тип направления не показан.
     test: ~
     status: missing
+  - id: edu.catalog.side.03
+    level: backend
+    kind: side
+    scenario: Носитель доступа не соответствует направлению (онлайн-платформа + Telegram, очное + GetCourse и т.п.).
+    expect: BadRequest; допустимые пары — ONLINE_PLATFORM→Skillspace/GetCourse, CLOSED_COMMUNITY→Telegram/VK, ONSITE→очно.
+    test: components/controller/tests/unit/edubridge/course.service.test.ts
+    status: written
+  - id: edu.catalog.side.04
+    level: backend
+    kind: side
+    scenario: Площадка (Skillspace/GetCourse) без идентификатора курса; очный курс с лишним идентификатором.
+    expect: Площадка без идентификатора — BadRequest; у очного и сообществ идентификатор не сохраняется.
+    test: components/controller/tests/unit/edubridge/course.service.test.ts
+    status: written
+  - id: edu.catalog.side.05
+    level: backend
+    kind: side
+    scenario: В преподаватели курса записан пайщик без договора УХД; несколько преподавателей с договорами.
+    expect: Без договора — BadRequest с учётным именем; с договорами — все сохраняются; edubridgeTeacherOptions отдаёт только пайщиков с договором.
+    test: components/controller/tests/unit/edubridge/course.service.test.ts
+    status: written
+  - id: edu.catalog.happy.03
+    level: ui
+    kind: happy
+    scenario: Конструктор курса — смена направления сужает носители, идентификатор площадки виден только у Skillspace/GetCourse, преподаватели выбираются из списка с договорами (несколько).
+    expect: Носитель вне направления недоступен и сбрасывается; поле идентификатора появляется только для площадок; выбранные преподаватели показаны списком и снимаются по одному.
+    test: ~
+    status: missing

@@ -6727,8 +6727,8 @@ export type ValueTypes = {
 	subject?:boolean | `@${string}`,
 	/** Учебная программа */
 	syllabus?:boolean | `@${string}`,
-	/** Преподаватель (учётное имя пайщика) */
-	teacher_username?:boolean | `@${string}`,
+	/** Преподаватели курса (учётные имена пайщиков) */
+	teacher_usernames?:boolean | `@${string}`,
 	/** Название курса */
 	title?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
@@ -6837,8 +6837,8 @@ export type ValueTypes = {
 	subject?:boolean | `@${string}`,
 	/** Учебная программа */
 	syllabus?:boolean | `@${string}`,
-	/** Преподаватель (учётное имя пайщика) */
-	teacher_username?:boolean | `@${string}`,
+	/** Преподаватели курса (учётные имена пайщиков) */
+	teacher_usernames?:boolean | `@${string}`,
 	/** Название курса */
 	title?:boolean | `@${string}`,
 	/** Изменён */
@@ -6871,8 +6871,8 @@ export type ValueTypes = {
 	subject: string | Variable<any, string>,
 	/** Учебная программа */
 	syllabus?: string | undefined | null | Variable<any, string>,
-	/** Преподаватель (учётное имя пайщика) */
-	teacher_username?: string | undefined | null | Variable<any, string>,
+	/** Преподаватели курса — из пайщиков с подписанным договором участия в хозяйственной деятельности */
+	teacher_usernames?: Array<string> | undefined | null | Variable<any, string>,
 	/** Название курса */
 	title: string | Variable<any, string>
 };
@@ -7087,6 +7087,16 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on EduTeacherContract']?: Omit<ValueTypes["EduTeacherContract"], "...on EduTeacherContract">
 }>;
+	["EduTeacherOption"]: AliasType<{
+	/** Номер договора участия в хозяйственной деятельности */
+	contract_number?:boolean | `@${string}`,
+	/** Когда подписан договор */
+	signed_at?:boolean | `@${string}`,
+	/** Учётное имя пайщика */
+	username?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on EduTeacherOption']?: Omit<ValueTypes["EduTeacherOption"], "...on EduTeacherOption">
+}>;
 	["EduTeacherSettlement"]: AliasType<{
 	/** Принято советом взносов РИД на сумму */
 	accepted_total?:boolean | `@${string}`,
@@ -7122,8 +7132,8 @@ export type ValueTypes = {
 	subject: string | Variable<any, string>,
 	/** Учебная программа */
 	syllabus?: string | undefined | null | Variable<any, string>,
-	/** Преподаватель (учётное имя пайщика) */
-	teacher_username?: string | undefined | null | Variable<any, string>,
+	/** Преподаватели курса — из пайщиков с подписанным договором участия в хозяйственной деятельности */
+	teacher_usernames?: Array<string> | undefined | null | Variable<any, string>,
 	/** Название курса */
 	title: string | Variable<any, string>
 };
@@ -14431,6 +14441,8 @@ edubridgeMembers?: [{	search?: string | undefined | null | Variable<any, string>
 	edubridgeOnboardingState?:ValueTypes["EduOnboardingState"],
 edubridgeQueue?: [{	filter?: ValueTypes["EduQueueFilterInput"] | undefined | null | Variable<any, string>},ValueTypes["EduAccessTask"]],
 edubridgeQuote?: [{	data: ValueTypes["EduQuoteInput"] | Variable<any, string>},ValueTypes["EduQuote"]],
+	/** Преподаватели, которых можно назначить на курс */
+	edubridgeTeacherOptions?:ValueTypes["EduTeacherOption"],
 expenseFile?: [{	id: number | Variable<any, string>},ValueTypes["ExpenseFile"]],
 expenseFilesByItem?: [{	coopname: string | Variable<any, string>,	item_hash: string | Variable<any, string>,	proposal_hash: string | Variable<any, string>},ValueTypes["ExpenseFile"]],
 expenseFilesByProposal?: [{	coopname: string | Variable<any, string>,	proposal_hash: string | Variable<any, string>},ValueTypes["ExpenseFile"]],
@@ -22230,8 +22242,8 @@ export type ResolverInputTypes = {
 	subject?:boolean | `@${string}`,
 	/** Учебная программа */
 	syllabus?:boolean | `@${string}`,
-	/** Преподаватель (учётное имя пайщика) */
-	teacher_username?:boolean | `@${string}`,
+	/** Преподаватели курса (учётные имена пайщиков) */
+	teacher_usernames?:boolean | `@${string}`,
 	/** Название курса */
 	title?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
@@ -22336,8 +22348,8 @@ export type ResolverInputTypes = {
 	subject?:boolean | `@${string}`,
 	/** Учебная программа */
 	syllabus?:boolean | `@${string}`,
-	/** Преподаватель (учётное имя пайщика) */
-	teacher_username?:boolean | `@${string}`,
+	/** Преподаватели курса (учётные имена пайщиков) */
+	teacher_usernames?:boolean | `@${string}`,
 	/** Название курса */
 	title?:boolean | `@${string}`,
 	/** Изменён */
@@ -22369,8 +22381,8 @@ export type ResolverInputTypes = {
 	subject: string,
 	/** Учебная программа */
 	syllabus?: string | undefined | null,
-	/** Преподаватель (учётное имя пайщика) */
-	teacher_username?: string | undefined | null,
+	/** Преподаватели курса — из пайщиков с подписанным договором участия в хозяйственной деятельности */
+	teacher_usernames?: Array<string> | undefined | null,
 	/** Название курса */
 	title: string
 };
@@ -22577,6 +22589,15 @@ export type ResolverInputTypes = {
 	signed_at?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	["EduTeacherOption"]: AliasType<{
+	/** Номер договора участия в хозяйственной деятельности */
+	contract_number?:boolean | `@${string}`,
+	/** Когда подписан договор */
+	signed_at?:boolean | `@${string}`,
+	/** Учётное имя пайщика */
+	username?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
 	["EduTeacherSettlement"]: AliasType<{
 	/** Принято советом взносов РИД на сумму */
 	accepted_total?:boolean | `@${string}`,
@@ -22611,8 +22632,8 @@ export type ResolverInputTypes = {
 	subject: string,
 	/** Учебная программа */
 	syllabus?: string | undefined | null,
-	/** Преподаватель (учётное имя пайщика) */
-	teacher_username?: string | undefined | null,
+	/** Преподаватели курса — из пайщиков с подписанным договором участия в хозяйственной деятельности */
+	teacher_usernames?: Array<string> | undefined | null,
 	/** Название курса */
 	title: string
 };
@@ -29690,6 +29711,8 @@ edubridgeMembers?: [{	search?: string | undefined | null},ResolverInputTypes["Ed
 	edubridgeOnboardingState?:ResolverInputTypes["EduOnboardingState"],
 edubridgeQueue?: [{	filter?: ResolverInputTypes["EduQueueFilterInput"] | undefined | null},ResolverInputTypes["EduAccessTask"]],
 edubridgeQuote?: [{	data: ResolverInputTypes["EduQuoteInput"]},ResolverInputTypes["EduQuote"]],
+	/** Преподаватели, которых можно назначить на курс */
+	edubridgeTeacherOptions?:ResolverInputTypes["EduTeacherOption"],
 expenseFile?: [{	id: number},ResolverInputTypes["ExpenseFile"]],
 expenseFilesByItem?: [{	coopname: string,	item_hash: string,	proposal_hash: string},ResolverInputTypes["ExpenseFile"]],
 expenseFilesByProposal?: [{	coopname: string,	proposal_hash: string},ResolverInputTypes["ExpenseFile"]],
@@ -37282,8 +37305,8 @@ export type ModelTypes = {
 	subject: string,
 	/** Учебная программа */
 	syllabus: string,
-	/** Преподаватель (учётное имя пайщика) */
-	teacher_username?: string | undefined | null,
+	/** Преподаватели курса (учётные имена пайщиков) */
+	teacher_usernames: Array<string>,
 	/** Название курса */
 	title: string
 };
@@ -37382,8 +37405,8 @@ export type ModelTypes = {
 	subject: string,
 	/** Учебная программа */
 	syllabus: string,
-	/** Преподаватель (учётное имя пайщика) */
-	teacher_username?: string | undefined | null,
+	/** Преподаватели курса (учётные имена пайщиков) */
+	teacher_usernames: Array<string>,
 	/** Название курса */
 	title: string,
 	/** Изменён */
@@ -37413,8 +37436,8 @@ export type ModelTypes = {
 	subject: string,
 	/** Учебная программа */
 	syllabus?: string | undefined | null,
-	/** Преподаватель (учётное имя пайщика) */
-	teacher_username?: string | undefined | null,
+	/** Преподаватели курса — из пайщиков с подписанным договором участия в хозяйственной деятельности */
+	teacher_usernames?: Array<string> | undefined | null,
 	/** Название курса */
 	title: string
 };
@@ -37606,6 +37629,14 @@ export type ModelTypes = {
 	/** Подписан */
 	signed_at: ModelTypes["DateTime"]
 };
+	["EduTeacherOption"]: {
+		/** Номер договора участия в хозяйственной деятельности */
+	contract_number: string,
+	/** Когда подписан договор */
+	signed_at: ModelTypes["DateTime"],
+	/** Учётное имя пайщика */
+	username: string
+};
 	["EduTeacherSettlement"]: {
 		/** Принято советом взносов РИД на сумму */
 	accepted_total: string,
@@ -37639,8 +37670,8 @@ export type ModelTypes = {
 	subject: string,
 	/** Учебная программа */
 	syllabus?: string | undefined | null,
-	/** Преподаватель (учётное имя пайщика) */
-	teacher_username?: string | undefined | null,
+	/** Преподаватели курса — из пайщиков с подписанным договором участия в хозяйственной деятельности */
+	teacher_usernames?: Array<string> | undefined | null,
 	/** Название курса */
 	title: string
 };
@@ -45332,6 +45363,8 @@ export type ModelTypes = {
 	edubridgeQueue: Array<ModelTypes["EduAccessTask"]>,
 	/** Сумма взноса за период и хватает ли паевого */
 	edubridgeQuote: ModelTypes["EduQuote"],
+	/** Преподаватели, которых можно назначить на курс */
+	edubridgeTeacherOptions: Array<ModelTypes["EduTeacherOption"]>,
 	/** Получить запись о файле + свежий короткоживущий read-URL.
 
 Требуемые роли: chairman, member, user.  */
@@ -53375,8 +53408,8 @@ export type GraphQLTypes = {
 	subject: string,
 	/** Учебная программа */
 	syllabus: string,
-	/** Преподаватель (учётное имя пайщика) */
-	teacher_username?: string | undefined | null,
+	/** Преподаватели курса (учётные имена пайщиков) */
+	teacher_usernames: Array<string>,
 	/** Название курса */
 	title: string,
 	['...on EduCatalogCourse']: Omit<GraphQLTypes["EduCatalogCourse"], "...on EduCatalogCourse">
@@ -53485,8 +53518,8 @@ export type GraphQLTypes = {
 	subject: string,
 	/** Учебная программа */
 	syllabus: string,
-	/** Преподаватель (учётное имя пайщика) */
-	teacher_username?: string | undefined | null,
+	/** Преподаватели курса (учётные имена пайщиков) */
+	teacher_usernames: Array<string>,
 	/** Название курса */
 	title: string,
 	/** Изменён */
@@ -53518,8 +53551,8 @@ export type GraphQLTypes = {
 	subject: string,
 	/** Учебная программа */
 	syllabus?: string | undefined | null,
-	/** Преподаватель (учётное имя пайщика) */
-	teacher_username?: string | undefined | null,
+	/** Преподаватели курса — из пайщиков с подписанным договором участия в хозяйственной деятельности */
+	teacher_usernames?: Array<string> | undefined | null,
 	/** Название курса */
 	title: string
 };
@@ -53734,6 +53767,16 @@ export type GraphQLTypes = {
 	signed_at: GraphQLTypes["DateTime"],
 	['...on EduTeacherContract']: Omit<GraphQLTypes["EduTeacherContract"], "...on EduTeacherContract">
 };
+	["EduTeacherOption"]: {
+	__typename: "EduTeacherOption",
+	/** Номер договора участия в хозяйственной деятельности */
+	contract_number: string,
+	/** Когда подписан договор */
+	signed_at: GraphQLTypes["DateTime"],
+	/** Учётное имя пайщика */
+	username: string,
+	['...on EduTeacherOption']: Omit<GraphQLTypes["EduTeacherOption"], "...on EduTeacherOption">
+};
 	["EduTeacherSettlement"]: {
 	__typename: "EduTeacherSettlement",
 	/** Принято советом взносов РИД на сумму */
@@ -53769,8 +53812,8 @@ export type GraphQLTypes = {
 	subject: string,
 	/** Учебная программа */
 	syllabus?: string | undefined | null,
-	/** Преподаватель (учётное имя пайщика) */
-	teacher_username?: string | undefined | null,
+	/** Преподаватели курса — из пайщиков с подписанным договором участия в хозяйственной деятельности */
+	teacher_usernames?: Array<string> | undefined | null,
 	/** Название курса */
 	title: string
 };
@@ -62023,6 +62066,8 @@ export type GraphQLTypes = {
 	edubridgeQueue: Array<GraphQLTypes["EduAccessTask"]>,
 	/** Сумма взноса за период и хватает ли паевого */
 	edubridgeQuote: GraphQLTypes["EduQuote"],
+	/** Преподаватели, которых можно назначить на курс */
+	edubridgeTeacherOptions: Array<GraphQLTypes["EduTeacherOption"]>,
 	/** Получить запись о файле + свежий короткоживущий read-URL.
 
 Требуемые роли: chairman, member, user.  */

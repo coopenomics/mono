@@ -1,6 +1,6 @@
 <template lang="pug">
 .q-pa-md
-  PageHint(storage-key="edu:teacher-settlement:banner-dismissed")
+  PageHint.q-mb-md(storage-key="edu:teacher-settlement:banner-dismissed")
     | Принятые советом взносы результатами работы зачисляются в ваш главный паевой кошелёк правом требования.
     | Возврат паевого взноса оформляется в кошельке — штатным механизмом кооператива.
   .row.q-col-gutter-md

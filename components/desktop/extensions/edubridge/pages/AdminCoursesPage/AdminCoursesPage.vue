@@ -1,6 +1,6 @@
 <template lang="pug">
 .q-pa-md
-  PageHint(storage-key="edu:admin-courses:banner-dismissed")
+  PageHint.q-mb-md(storage-key="edu:admin-courses:banner-dismissed")
     | Курсы кооператива. Добавьте курс, привяжите его к курсу на площадке и опубликуйте —
     | опубликованные курсы видны в каталоге всем посетителям.
 
@@ -28,16 +28,16 @@
           template(#icon-left)
             q-icon(name="edit" size="18px")
         BaseButton(
-          v-if="row.status !== 'published'"
+          v-if="row.status !== Zeus.EduCourseStatus.PUBLISHED"
           variant="secondary" size="sm"
           :loading="busyId === row.id"
-          @click="setStatus(row, 'published')"
+          @click="setStatus(row, Zeus.EduCourseStatus.PUBLISHED)"
         ) Опубликовать
         BaseButton(
           v-else
           variant="ghost" size="sm"
           :loading="busyId === row.id"
-          @click="setStatus(row, 'draft')"
+          @click="setStatus(row, Zeus.EduCourseStatus.DRAFT)"
         ) Снять с публикации
 
   EmptyState(v-if="!loading && !items.length" title="Курсов пока нет" body="Добавьте первый курс кнопкой в правом верхнем углу.")
@@ -50,6 +50,7 @@
 
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
+import { Zeus } from '@coopenomics/sdk';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { useHeaderActions } from 'src/shared/hooks';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
@@ -114,7 +115,7 @@ async function setStatus(course: ICourse, status: ICourse['status']): Promise<vo
   try {
     const updated = await setCourseStatus({ id: course.id, status });
     onSaved(updated);
-    SuccessAlert(status === 'published' ? 'Курс опубликован' : 'Курс снят с публикации');
+    SuccessAlert(status === Zeus.EduCourseStatus.PUBLISHED ? 'Курс опубликован' : 'Курс снят с публикации');
   } catch (e) {
     FailAlert(e);
   } finally {

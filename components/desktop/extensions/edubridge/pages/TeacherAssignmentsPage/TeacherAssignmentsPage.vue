@@ -1,6 +1,6 @@
 <template lang="pug">
 .q-pa-md
-  PageHint(storage-key="edu:teacher-assignments:banner-dismissed")
+  PageHint.q-mb-md(storage-key="edu:teacher-assignments:banner-dismissed")
     | Назначения — курс, расписание, ожидаемый результат и период сдачи. Назначение действует после подписи
     | приложения к договору участия в хозяйственной деятельности; сам договор подписывается один раз.
 
@@ -20,7 +20,7 @@
     template(#cell-status="{ row }")
       BaseBadge(:variant="statusOf(row.status).variant") {{ statusOf(row.status).label }}
     template(#cell-actions="{ row }")
-      BaseButton(v-if="row.status === 'draft' && contract" variant="primary" size="sm" :loading="busy === row.id" @click="onSignAnnex(row)") Подписать приложение
+      BaseButton(v-if="row.status === Zeus.EduAssignmentStatus.DRAFT && contract" variant="primary" size="sm" :loading="busy === row.id" @click="onSignAnnex(row)") Подписать приложение
   EmptyState(v-if="!loading && !assignments.length" title="Назначений пока нет" body="Администратор ещё не назначил вам курс.")
     template(#icon)
       q-icon(name="assignment" size="32px")
@@ -28,6 +28,7 @@
 
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
+import { Zeus } from '@coopenomics/sdk';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { BaseBadge, BaseBanner, BaseButton, BaseTable, EmptyState, type BaseTableColumn } from 'src/shared/ui/base';
 import { PageHint } from 'src/shared/ui/domain';

@@ -1,13 +1,23 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PaginationInputDTO, type PaginationResult } from '@coopenomics/extension-kit';
-import { EduCourseStatus } from '../../domain/enums';
+import { CARRIERS_BY_DIRECTION, EduCourseStatus, PLATFORM_CARRIERS } from '../../domain/enums';
 import type { EdubridgeCourseEntity } from '../../infrastructure/entities';
 import { EdubridgeCourseRepository, type EduCourseFilter } from '../../infrastructure/repositories/edubridge-course.repository';
-import type { EduCatalogSubjectDTO, EduCourseInputDTO, EduUpdateCourseInputDTO } from '../dto/edu-course.dto';
+import { EdubridgeTeacherRepository } from '../../infrastructure/repositories/edubridge-teacher.repository';
+import type { EduCatalogSubjectDTO, EduCourseInputDTO, EduTeacherOptionDTO, EduUpdateCourseInputDTO } from '../dto/edu-course.dto';
 
 @Injectable()
 export class EdubridgeCourseService {
-  constructor(private readonly courses: EdubridgeCourseRepository) {}
+  constructor(
+    private readonly courses: EdubridgeCourseRepository,
+    private readonly teachers: EdubridgeTeacherRepository
+  ) {}
+
+  /** Кого можно назначить преподавателем курса: пайщики с подписанным договором УХД. */
+  async teacherOptions(coopname: string): Promise<EduTeacherOptionDTO[]> {
+    const contracts = await this.teachers.listContracts(coopname);
+    return contracts.map((c) => ({ username: c.teacher_username, contract_number: c.contract_number, signed_at: c.signed_at }));
+  }
 
   /** Витрина: только опубликованные. */
   catalog(coopname: string, filter: EduCourseFilter, options?: PaginationInputDTO): Promise<PaginationResult<EdubridgeCourseEntity>> {
@@ -41,7 +51,8 @@ export class EdubridgeCourseService {
     return course;
   }
 
-  create(coopname: string, input: EduCourseInputDTO): Promise<EdubridgeCourseEntity> {
+  async create(coopname: string, input: EduCourseInputDTO): Promise<EdubridgeCourseEntity> {
+    await this.validate(coopname, input);
     const entity = this.courses.create({
       coopname,
       ...this.fields(input),
@@ -52,6 +63,7 @@ export class EdubridgeCourseService {
 
   async update(coopname: string, input: EduUpdateCourseInputDTO): Promise<EdubridgeCourseEntity> {
     const course = await this.get(coopname, input.id);
+    await this.validate(coopname, input);
     Object.assign(course, this.fields(input));
     // Привязка к площадке изменилась — прежняя сверка больше не действительна.
     if (input.external_ref !== undefined && input.external_ref !== course.external_ref) {
@@ -67,7 +79,30 @@ export class EdubridgeCourseService {
     return this.courses.save(course);
   }
 
+  /**
+   * Носитель обязан соответствовать направлению, идентификатор курса на площадке
+   * имеет смысл только у площадок с API, а преподавать могут лишь пайщики с
+   * подписанным договором — форма это подсказывает, сервер проверяет сам.
+   */
+  private async validate(coopname: string, input: EduCourseInputDTO): Promise<void> {
+    if (!CARRIERS_BY_DIRECTION[input.direction].includes(input.carrier)) {
+      throw new BadRequestException(`Носитель «${input.carrier}» недопустим для направления «${input.direction}»`);
+    }
+    if (PLATFORM_CARRIERS.includes(input.carrier) && !input.external_ref?.trim()) {
+      throw new BadRequestException('Для площадки нужен идентификатор курса на площадке');
+    }
+    const teachers = input.teacher_usernames ?? [];
+    if (teachers.length) {
+      const known = new Set((await this.teachers.listContracts(coopname)).map((c) => c.teacher_username));
+      const strangers = teachers.filter((t) => !known.has(t));
+      if (strangers.length) {
+        throw new BadRequestException(`Нет договора участия в хозяйственной деятельности: ${strangers.join(', ')}`);
+      }
+    }
+  }
+
   private fields(input: EduCourseInputDTO): Partial<EdubridgeCourseEntity> {
+    const platform = PLATFORM_CARRIERS.includes(input.carrier);
     return {
       title: input.title,
       subject: input.subject.trim(),
@@ -75,12 +110,12 @@ export class EdubridgeCourseService {
       description: input.description ?? '',
       syllabus: input.syllabus ?? '',
       schedule: input.schedule ?? '',
-      teacher_username: input.teacher_username ?? null,
+      teacher_usernames: input.teacher_usernames ?? [],
       fee_month: input.fee_month,
       fee_year: input.fee_year,
       direction: input.direction,
       carrier: input.carrier,
-      external_ref: input.external_ref ?? '',
+      external_ref: platform ? (input.external_ref ?? '').trim() : '',
       sort_order: input.sort_order ?? 0,
     };
   }

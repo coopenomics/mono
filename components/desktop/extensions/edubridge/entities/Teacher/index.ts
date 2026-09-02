@@ -1,5 +1,5 @@
 import { Cooperative } from 'cooptypes';
-import { Classes, Mutations, Queries } from '@coopenomics/sdk';
+import { Classes, Mutations, Queries, Zeus } from '@coopenomics/sdk';
 import { client } from 'src/shared/api/client';
 import { useSessionStore } from 'src/entities/Session';
 import { useSystemStore } from 'src/entities/System/model';
@@ -13,27 +13,28 @@ export type ISettlement = Queries.Edubridge.MySettlement.IOutput['edubridgeMySet
 export type IContributionDraftInput = Mutations.Edubridge.DraftContribution.IInput['data'];
 export type IAssignmentInput = Mutations.Edubridge.CreateAssignment.IInput['data'];
 
+// Ключи — имена enum'ов схемы (`Zeus.*`): именно их отдаёт и принимает GraphQL.
 export const RID_TYPE_LABELS: Record<string, string> = {
-  lesson_recording: 'Запись занятия',
-  methodical_material: 'Методический материал',
-  course_program: 'Программа курса',
-  assessment_material: 'Контрольные материалы',
-  other: 'Другое',
+  [Zeus.EduRidType.LESSON_RECORDING]: 'Запись занятия',
+  [Zeus.EduRidType.METHODICAL_MATERIAL]: 'Методический материал',
+  [Zeus.EduRidType.COURSE_PROGRAM]: 'Программа курса',
+  [Zeus.EduRidType.ASSESSMENT_MATERIAL]: 'Контрольные материалы',
+  [Zeus.EduRidType.OTHER]: 'Другое',
 };
 
 export const CONTRIBUTION_STATUS_LABELS: Record<string, { label: string; variant: 'pos' | 'neg' | 'warn' | 'info' | 'neutral' }> = {
-  draft: { label: 'Черновик', variant: 'neutral' },
-  submitted: { label: 'На рассмотрении совета', variant: 'info' },
-  council_approved: { label: 'Ждёт подписи акта', variant: 'warn' },
-  act_signed: { label: 'Ждёт подписи председателя', variant: 'info' },
-  accepted: { label: 'Принят', variant: 'pos' },
-  declined: { label: 'Отклонён', variant: 'neg' },
+  [Zeus.EduContributionStatus.DRAFT]: { label: 'Черновик', variant: 'neutral' },
+  [Zeus.EduContributionStatus.SUBMITTED]: { label: 'На рассмотрении совета', variant: 'info' },
+  [Zeus.EduContributionStatus.COUNCIL_APPROVED]: { label: 'Ждёт подписи акта', variant: 'warn' },
+  [Zeus.EduContributionStatus.ACT_SIGNED]: { label: 'Ждёт подписи председателя', variant: 'info' },
+  [Zeus.EduContributionStatus.ACCEPTED]: { label: 'Принят', variant: 'pos' },
+  [Zeus.EduContributionStatus.DECLINED]: { label: 'Отклонён', variant: 'neg' },
 };
 
 export const ASSIGNMENT_STATUS_LABELS: Record<string, { label: string; variant: 'pos' | 'warn' | 'neutral' }> = {
-  draft: { label: 'Ждёт подписи приложения', variant: 'warn' },
-  active: { label: 'Действует', variant: 'pos' },
-  closed: { label: 'Закрыто', variant: 'neutral' },
+  [Zeus.EduAssignmentStatus.DRAFT]: { label: 'Ждёт подписи приложения', variant: 'warn' },
+  [Zeus.EduAssignmentStatus.ACTIVE]: { label: 'Действует', variant: 'pos' },
+  [Zeus.EduAssignmentStatus.CLOSED]: { label: 'Закрыто', variant: 'neutral' },
 };
 
 async function q<T>(query: any, name: string, variables?: Record<string, unknown>): Promise<T> {

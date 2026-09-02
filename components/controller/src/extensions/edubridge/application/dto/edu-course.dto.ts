@@ -1,5 +1,5 @@
 import { Field, ID, InputType, Int, ObjectType } from '@nestjs/graphql';
-import { IsEnum, IsInt, IsOptional, IsString, IsUUID, Length, Matches, Min } from 'class-validator';
+import { ArrayUnique, IsArray, IsEnum, IsInt, IsOptional, IsString, IsUUID, Length, Matches, Min } from 'class-validator';
 import { createPaginationResult } from '@coopenomics/extension-kit';
 import { EduAccessCarrier, EduCourseDirection, EduCourseStatus } from '../../domain/enums';
 import type { EdubridgeCourseEntity } from '../../infrastructure/entities';
@@ -35,8 +35,8 @@ export class EduCatalogCourseDTO {
   @Field(() => String, { description: 'Расписание занятий' })
   schedule!: string;
 
-  @Field(() => String, { nullable: true, description: 'Преподаватель (учётное имя пайщика)' })
-  teacher_username!: string | null;
+  @Field(() => [String], { description: 'Преподаватели курса (учётные имена пайщиков)' })
+  teacher_usernames!: string[];
 
   @Field(() => String, { description: 'Членский взнос за месяц' })
   fee_month!: string;
@@ -52,7 +52,7 @@ export class EduCatalogCourseDTO {
     this.description = e.description;
     this.syllabus = e.syllabus;
     this.schedule = e.schedule;
-    this.teacher_username = e.teacher_username;
+    this.teacher_usernames = e.teacher_usernames ?? [];
     this.fee_month = e.fee_month;
     this.fee_year = e.fee_year;
   }
@@ -160,10 +160,12 @@ export class EduCourseInputDTO {
   @IsString()
   schedule?: string;
 
-  @Field(() => String, { nullable: true, description: 'Преподаватель (учётное имя пайщика)' })
+  @Field(() => [String], { nullable: true, description: 'Преподаватели курса — из пайщиков с подписанным договором участия в хозяйственной деятельности' })
   @IsOptional()
-  @IsString()
-  teacher_username?: string | null;
+  @IsArray()
+  @ArrayUnique()
+  @IsString({ each: true })
+  teacher_usernames?: string[] | null;
 
   @Field(() => String, { description: 'Членский взнос за месяц («1000.0000 RUB»)' })
   @Matches(ASSET_PATTERN, { message: 'Сумма должна быть в формате «1000.0000 RUB»' })
@@ -191,6 +193,19 @@ export class EduCourseInputDTO {
   @IsInt()
   @Min(0)
   sort_order?: number;
+}
+
+/** Преподаватель, которого можно назначить на курс: пайщик с подписанным договором УХД. */
+@ObjectType('EduTeacherOption')
+export class EduTeacherOptionDTO {
+  @Field(() => String, { description: 'Учётное имя пайщика' })
+  username!: string;
+
+  @Field(() => String, { description: 'Номер договора участия в хозяйственной деятельности' })
+  contract_number!: string;
+
+  @Field(() => Date, { description: 'Когда подписан договор' })
+  signed_at!: Date;
 }
 
 @InputType('EduUpdateCourseInput')

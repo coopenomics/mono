@@ -29,7 +29,7 @@
     .col-12.col-md-4
       BaseCard(variant="default" title="Условия")
         DataRow(label="Расписание" :value="course.schedule || '—'")
-        DataRow(label="Преподаватель" :value="course.teacher_username || '—'" mono)
+        DataRow(:label="course.teacher_usernames.length > 1 ? 'Преподаватели' : 'Преподаватель'" :value="course.teacher_usernames.join(', ') || '—'" mono)
         DataRow(label="Членский взнос в месяц" :value="formatAsset2Digits(course.fee_month)")
         DataRow(label="Членский взнос в год" :value="formatAsset2Digits(course.fee_year)")
         .q-mt-md

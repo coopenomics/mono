@@ -1,6 +1,6 @@
 <template lang="pug">
 .q-pa-md
-  PageHint(storage-key="edu:admin-admins:banner-dismissed")
+  PageHint.q-mb-md(storage-key="edu:admin-admins:banner-dismissed")
     | Администраторы ведут курсы, назначения, реестры и очередь. Контакты пайщиков и ключи площадок им не видны.
   .row.q-col-gutter-md
     .col-12.col-md-6

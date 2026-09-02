@@ -1,6 +1,6 @@
 <template lang="pug">
 .q-pa-md
-  PageHint(storage-key="edu:teacher-contributions:banner-dismissed")
+  PageHint.q-mb-md(storage-key="edu:teacher-contributions:banner-dismissed")
     | Паевой взнос результатами работы: укажите тип результата, ссылки на материалы и сумму, подпишите заявление —
     | совет рассмотрит его. После решения совета подпишите акт приёма-передачи: сумма поступит в ваш кошелёк правом требования.
 
@@ -11,8 +11,8 @@
       BaseBadge(:variant="statusOf(row.status).variant") {{ statusOf(row.status).label }}
       .t-muted.t-sm(v-if="row.decline_reason") {{ row.decline_reason }}
     template(#cell-actions="{ row }")
-      BaseButton(v-if="row.status === 'draft'" variant="primary" size="sm" :loading="busy === row.id" @click="onSubmit(row)") Подписать заявление
-      BaseButton(v-else-if="row.status === 'council_approved'" variant="primary" size="sm" :loading="busy === row.id" @click="onSignAct(row)") Подписать акт
+      BaseButton(v-if="row.status === Zeus.EduContributionStatus.DRAFT" variant="primary" size="sm" :loading="busy === row.id" @click="onSubmit(row)") Подписать заявление
+      BaseButton(v-else-if="row.status === Zeus.EduContributionStatus.COUNCIL_APPROVED" variant="primary" size="sm" :loading="busy === row.id" @click="onSignAct(row)") Подписать акт
   EmptyState(v-if="!loading && !items.length" title="Взносов пока нет" body="Подготовьте взнос кнопкой в правом верхнем углу.")
     template(#icon)
       q-icon(name="workspace_premium" size="32px")
@@ -32,6 +32,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue';
+import { Zeus } from '@coopenomics/sdk';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { useHeaderActions } from 'src/shared/hooks';
 import { useSystemStore } from 'src/entities/System/model';
@@ -62,7 +63,7 @@ const assignments = ref<IAssignment[]>([]);
 const loading = ref(false);
 const busy = ref<string | null>(null);
 const dialogOpen = ref(false);
-const form = reactive<IContributionDraftInput>({ assignment_id: '', rid_type: 'lesson_recording' as IContributionDraftInput['rid_type'], links: [], description: '', amount: '' });
+const form = reactive<IContributionDraftInput>({ assignment_id: '', rid_type: Zeus.EduRidType.LESSON_RECORDING, links: [], description: '', amount: '' });
 const linksText = ref('');
 const amountNumber = ref('');
 
@@ -75,7 +76,7 @@ const columns: BaseTableColumn<IContribution>[] = [
 ];
 const ridType = (t: string) => RID_TYPE_LABELS[t] ?? t;
 const statusOf = (s: string) => CONTRIBUTION_STATUS_LABELS[s] ?? { label: s, variant: 'neutral' as const };
-const assignmentOptions = computed(() => assignments.value.filter((a) => a.status === 'active').map((a) => ({ value: a.id, label: `${a.course_title} (${a.period_from} — ${a.period_to})` })));
+const assignmentOptions = computed(() => assignments.value.filter((a) => a.status === Zeus.EduAssignmentStatus.ACTIVE).map((a) => ({ value: a.id, label: `${a.course_title} (${a.period_from} — ${a.period_to})` })));
 const ridTypeOptions = Object.entries(RID_TYPE_LABELS).map(([value, label]) => ({ value, label }));
 
 async function load(): Promise<void> {

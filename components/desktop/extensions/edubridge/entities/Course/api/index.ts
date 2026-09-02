@@ -34,6 +34,11 @@ export async function fetchCourses(data: ICoursesInput = {}) {
   return result;
 }
 
+export async function fetchTeacherOptions() {
+  const { [Queries.Edubridge.TeacherOptions.name]: result } = await client.Query(Queries.Edubridge.TeacherOptions.query);
+  return result;
+}
+
 export async function fetchCourse(id: string) {
   const { [Queries.Edubridge.Course.name]: result } = await client.Query(Queries.Edubridge.Course.query, {
     variables: { id },

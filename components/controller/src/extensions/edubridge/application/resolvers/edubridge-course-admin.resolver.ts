@@ -7,6 +7,7 @@ import {
   EduCourseInputDTO,
   EduCoursesFilterInputDTO,
   EduSetCourseStatusInputDTO,
+  EduTeacherOptionDTO,
   EduUpdateCourseInputDTO,
   PaginatedEduCoursesDTO,
 } from '../dto/edu-course.dto';
@@ -35,6 +36,13 @@ export class EdubridgeCourseAdminResolver {
   @RequireEduAccess('EduCourse', 'manage')
   async edubridgeCourse(@Args('id', { type: () => ID }) id: string): Promise<EduCourseDTO> {
     return new EduCourseDTO(await this.courses.get(platformSettings().coopname, id));
+  }
+
+  @Query(() => [EduTeacherOptionDTO], { name: 'edubridgeTeacherOptions', description: 'Преподаватели, которых можно назначить на курс' })
+  @UseGuards(GqlJwtAuthGuard, EdubridgeAccessGuard)
+  @RequireEduAccess('EduCourse', 'manage')
+  edubridgeTeacherOptions(): Promise<EduTeacherOptionDTO[]> {
+    return this.courses.teacherOptions(platformSettings().coopname);
   }
 
   @Mutation(() => EduCourseDTO, { name: 'edubridgeCreateCourse', description: 'Добавить курс (черновик)' })

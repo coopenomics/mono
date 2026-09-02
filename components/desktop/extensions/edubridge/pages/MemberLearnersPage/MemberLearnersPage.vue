@@ -1,6 +1,6 @@
 <template lang="pug">
 .q-pa-md
-  PageHint(storage-key="edu:member-learners:banner-dismissed")
+  PageHint.q-mb-md(storage-key="edu:member-learners:banner-dismissed")
     | Добавьте обучающихся — себя или детей, каждого со своим адресом, — затем выберите курс и период.
     | Членский взнос вносится из паевого взноса по заявлению о конвертации; доступ на площадке выдаётся автоматически.
 

@@ -36,6 +36,7 @@ BaseDialog(:model-value="modelValue" title="Получить доступ" size=
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import { Zeus } from '@coopenomics/sdk';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { BaseBanner, BaseButton, BaseCheckbox, BaseDialog, BaseSelect, CardListSkeleton } from 'src/shared/ui/base';
@@ -63,7 +64,7 @@ const router = useRouter();
 
 const learnerId = ref<string | null>(null);
 const courseId = ref<string | null>(props.lockedCourseId ?? null);
-const period = ref<string>('month');
+const period = ref<Zeus.EduEnrollmentPeriod>(Zeus.EduEnrollmentPeriod.MONTH);
 const quote = ref<IQuote | null>(null);
 const agreed = ref(false);
 const busy = ref(false);
@@ -87,7 +88,7 @@ watch([learnerId, courseId, period], async () => {
   statementHtml.value = '';
   if (!learnerId.value || !courseId.value) return;
   try {
-    quote.value = await fetchQuote({ learner_id: learnerId.value, course_id: courseId.value, period: period.value as never });
+    quote.value = await fetchQuote({ learner_id: learnerId.value, course_id: courseId.value, period: period.value });
   } catch (e) {
     FailAlert(e);
   }
@@ -127,7 +128,7 @@ async function submit(): Promise<void> {
   busy.value = true;
   try {
     const doc = await ensureStatement();
-    const enrollment = await subscribe({ learner_id: learnerId.value, course_id: courseId.value, period: period.value as never }, doc);
+    const enrollment = await subscribe({ learner_id: learnerId.value, course_id: courseId.value, period: period.value }, doc);
     SuccessAlert('Членский взнос внесён, доступ оформляется');
     emit('subscribed', enrollment);
     emit('update:modelValue', false);

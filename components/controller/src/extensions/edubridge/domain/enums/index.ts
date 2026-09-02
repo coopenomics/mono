@@ -16,6 +16,21 @@ export enum EduCourseDirection {
   ONSITE = 'onsite',
 }
 
+/**
+ * Носители, которыми может доставляться доступ при данном направлении:
+ * онлайн-платформа — только площадки с API, закрытое сообщество — мессенджеры,
+ * очное обучение — очный пропуск. Конструктор курса показывает лишь их,
+ * сервер отказывает в любой другой паре.
+ */
+export const CARRIERS_BY_DIRECTION: Readonly<Record<EduCourseDirection, readonly EduAccessCarrier[]>> = {
+  [EduCourseDirection.ONLINE_PLATFORM]: [EduAccessCarrier.SKILLSPACE, EduAccessCarrier.GETCOURSE],
+  [EduCourseDirection.CLOSED_COMMUNITY]: [EduAccessCarrier.TELEGRAM, EduAccessCarrier.VK],
+  [EduCourseDirection.ONSITE]: [EduAccessCarrier.ONSITE],
+};
+
+/** Носители, у которых есть идентификатор курса на площадке. */
+export const PLATFORM_CARRIERS: readonly EduAccessCarrier[] = [EduAccessCarrier.SKILLSPACE, EduAccessCarrier.GETCOURSE];
+
 export enum EduCourseStatus {
   DRAFT = 'draft',
   PUBLISHED = 'published',

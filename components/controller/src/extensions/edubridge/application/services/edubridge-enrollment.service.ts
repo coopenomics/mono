@@ -158,22 +158,7 @@ export class EdubridgeEnrollmentService {
     }
 
     const convert = { coopname, username: member, amount: plan.amount, statement: document };
-    const paidUntilSec = Math.floor(plan.paidUntil.getTime() / 1000);
-    const subscribe = plan.isExtension
-      ? { kind: 'extend' as const, data: { coopname, sub_hash: plan.subHash, paid_until: new Date(paidUntilSec * 1000).toISOString().slice(0, 19), statement_hash: document.hash } }
-      : {
-          kind: 'open' as const,
-          data: {
-            coopname,
-            username: member,
-            sub_hash: plan.subHash,
-            learner_id: Number(plan.learner.chain_ref),
-            course_id: Number(plan.course.chain_ref),
-            period: PERIOD_CHAIN[period],
-            paid_until: new Date(paidUntilSec * 1000).toISOString().slice(0, 19),
-            statement_hash: document.hash,
-          },
-        };
+    const subscribe = this.subscribeAction(coopname, member, plan, period, document);
 
     const result = await this.chain.convertAndSubscribe(convert as never, subscribe as never);
     const trxId = String((result as { transaction_id?: string })?.transaction_id ?? document.hash);
@@ -206,6 +191,27 @@ export class EdubridgeEnrollmentService {
     };
     this.events.emit(plan.isExtension ? EDUBRIDGE_ENROLLMENT_EXTENDED_EVENT : EDUBRIDGE_ENROLLMENT_OPENED_EVENT, payload);
     return saved;
+  }
+
+  /** `extendsub` для действующей связки, `opensub` — для новой; время цепи без миллисекунд и зоны. */
+  private subscribeAction(coopname: string, member: string, plan: EnrollmentPlan, period: EduEnrollmentPeriod, document: ISignedDocument) {
+    const paid_until = new Date(Math.floor(plan.paidUntil.getTime() / 1000) * 1000).toISOString().slice(0, 19);
+    if (plan.isExtension) {
+      return { kind: 'extend' as const, data: { coopname, sub_hash: plan.subHash, paid_until, statement_hash: document.hash } };
+    }
+    return {
+      kind: 'open' as const,
+      data: {
+        coopname,
+        username: member,
+        sub_hash: plan.subHash,
+        learner_id: Number(plan.learner.chain_ref),
+        course_id: Number(plan.course.chain_ref),
+        period: PERIOD_CHAIN[period],
+        paid_until,
+        statement_hash: document.hash,
+      },
+    };
   }
 
   private async availableShare(coopname: string, member: string, symbol: string): Promise<string> {

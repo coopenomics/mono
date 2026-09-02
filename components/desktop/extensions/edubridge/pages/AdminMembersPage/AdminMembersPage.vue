@@ -1,6 +1,6 @@
 <template lang="pug">
 .q-pa-md
-  PageHint(storage-key="edu:admin-members:banner-dismissed")
+  PageHint.q-mb-md(storage-key="edu:admin-members:banner-dismissed")
     | Реестр пайщиков приложения: обучающиеся, подписки и состояние выдачи. Контакты обучающихся видит только председатель.
   .row.q-col-gutter-md
     .col-12.col-lg-5

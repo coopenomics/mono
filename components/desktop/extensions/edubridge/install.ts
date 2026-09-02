@@ -1,6 +1,6 @@
-import { markRaw } from 'vue';
+import { markRaw, type Component } from 'vue';
 import { agreementsBase } from 'src/shared/lib/consts/workspaces';
-import type { IWorkspaceConfig } from 'src/shared/lib/types/workspace';
+import type { IWorkspaceConfig, IWorkspaceRoute, IWorkspaceRouteMeta } from 'src/shared/lib/types/workspace';
 import {
   AdminAdminsPage,
   AdminAssignmentsPage,
@@ -24,249 +24,72 @@ import {
  * с `AppRegistry['edubridge'].desktops` в controller — иначе маршруты молча теряются.
  *
  * Видимость — канон грантов: backend (EdubridgeDesktopGrantsProvider) выдаёт
- * права, фронт сверяет `meta.requires`. Гость получает `EduCatalog:read` —
- * каталог открыт до вступления. Страницы с `gate: true` — шлюзы онбординга:
+ * права, фронт сверяет `meta.requires`. Гость получает `EduCatalog:read` после
+ * подключения ЦПП советом — до этого столов нет ни у кого, кроме председателя
+ * (`Extension:configure`). Страницы с `gate: true` — шлюзы онбординга:
  * показываются, пока не подписана соответствующая оферта.
  *
  *   edubridge          — «Обучение»: каталог (гость/все), курсы и настройка (владелец/администратор)
  *   edubridge-member   — «Моё обучение»: обучающиеся, подписки, доступ (родитель-слушатель)
  *   edubridge-teacher  — «Преподавание»: назначения, взносы РИД (преподаватель)
  */
+/** Что страница объявляет о себе: подпись, иконка и право стола; шлюз и скрытость — по месту. */
+type PageMeta = Pick<IWorkspaceRouteMeta, 'title' | 'icon' | 'requires' | 'gate' | 'hidden'> & { requires: string };
+
+/** Страница для гостя: без входа и соглашений. */
+function publicPage(path: string, name: string, component: Component, meta: PageMeta & IWorkspaceRouteMeta): IWorkspaceRoute {
+  return { path, name, component: markRaw(component), meta, children: [] };
+}
+
+/** Страница пайщика: вход и базовые соглашения обязательны. */
+function memberPage(path: string, name: string, component: Component, meta: PageMeta): IWorkspaceRoute {
+  return publicPage(path, name, component, { ...meta, requiresAuth: true, agreements: agreementsBase });
+}
+
+function workspace(name: string, title: string, icon: string, defaultRoute: string, children: IWorkspaceRoute[]): IWorkspaceConfig {
+  return {
+    workspace: name,
+    extension_name: 'edubridge',
+    title,
+    icon,
+    defaultRoute,
+    routes: [{ meta: { title, icon }, path: `/:coopname/${name}`, name, children }],
+  };
+}
+
+/** «Обучение»: каталог (после подключения ЦПП — всем), курсы и настройка (владелец/администратор). */
+function learningWorkspace(): IWorkspaceConfig {
+  return workspace('edubridge', 'Обучение', 'school', 'edubridge-catalog', [
+    publicPage('catalog', 'edubridge-catalog', CatalogPage, { title: 'Каталог курсов', icon: 'school', requires: 'EduCatalog:read' }),
+    publicPage('catalog/:id', 'edubridge-catalog-course', CourseCardPage, { title: 'Курс', icon: 'school', requires: 'EduCatalog:read', hidden: true }),
+    memberPage('configure', 'edubridge-configure', ConfigurePage, { title: 'Подключение', icon: 'settings', requires: 'Extension:configure', gate: true }),
+    memberPage('courses', 'edubridge-admin-courses', AdminCoursesPage, { title: 'Курсы', icon: 'library_books', requires: 'EduCourse:manage' }),
+    memberPage('assignments', 'edubridge-admin-assignments', AdminAssignmentsPage, { title: 'Преподаватели', icon: 'assignment_ind', requires: 'EduAssignment:manage' }),
+    memberPage('registry', 'edubridge-admin-registry', AdminMembersPage, { title: 'Реестр пайщиков', icon: 'groups', requires: 'EduRegistry:read' }),
+    memberPage('queue', 'edubridge-admin-queue', AdminQueuePage, { title: 'Очередь выдачи', icon: 'pending_actions', requires: 'EduQueue:read' }),
+    memberPage('connectors', 'edubridge-admin-connectors', AdminConnectorsPage, { title: 'Площадки', icon: 'hub', requires: 'EduConnector:manage' }),
+    memberPage('admins', 'edubridge-admin-admins', AdminAdminsPage, { title: 'Администраторы', icon: 'admin_panel_settings', requires: 'EduAdmin:manage' }),
+  ]);
+}
+
+/** «Моё обучение»: обучающиеся, подписки, доступ (родитель-слушатель). */
+function memberWorkspace(): IWorkspaceConfig {
+  return workspace('edubridge-member', 'Моё обучение', 'family_restroom', 'edubridge-learners', [
+    memberPage('onboarding', 'edubridge-member-onboarding', MemberOnboardingPage, { title: 'Подключение к обучению', icon: 'how_to_reg', requires: 'Onboarding:learner', gate: true }),
+    memberPage('learners', 'edubridge-learners', MemberLearnersPage, { title: 'Обучающиеся', icon: 'family_restroom', requires: 'EduLearner:read:own' }),
+  ]);
+}
+
+/** «Преподавание»: назначения, взносы РИД, расчёт (преподаватель). */
+function teacherWorkspace(): IWorkspaceConfig {
+  return workspace('edubridge-teacher', 'Преподавание', 'co_present', 'edubridge-assignments', [
+    memberPage('onboarding', 'edubridge-teacher-onboarding', TeacherOnboardingPage, { title: 'Подключение к преподаванию', icon: 'how_to_reg', requires: 'Onboarding:teacher', gate: true }),
+    memberPage('assignments', 'edubridge-assignments', TeacherAssignmentsPage, { title: 'Назначения', icon: 'assignment', requires: 'EduAssignment:read:own' }),
+    memberPage('contributions', 'edubridge-contributions', TeacherContributionsPage, { title: 'Взносы результатами работы', icon: 'workspace_premium', requires: 'EduContribution:read:own' }),
+    memberPage('settlement', 'edubridge-settlement', TeacherSettlementPage, { title: 'Расчёт', icon: 'account_balance_wallet', requires: 'EduTeacherWallet:read:own' }),
+  ]);
+}
+
 export default async function (): Promise<IWorkspaceConfig[]> {
-  return [
-    {
-      workspace: 'edubridge',
-      extension_name: 'edubridge',
-      title: 'Обучение',
-      icon: 'school',
-      defaultRoute: 'edubridge-catalog',
-      routes: [
-        {
-          meta: { title: 'Обучение', icon: 'school' },
-          path: '/:coopname/edubridge',
-          name: 'edubridge',
-          children: [
-            {
-              path: 'catalog',
-              name: 'edubridge-catalog',
-              component: markRaw(CatalogPage),
-              meta: { title: 'Каталог курсов', icon: 'school', requires: 'EduCatalog:read' },
-              children: [],
-            },
-            {
-              path: 'catalog/:id',
-              name: 'edubridge-catalog-course',
-              component: markRaw(CourseCardPage),
-              meta: { title: 'Курс', icon: 'school', requires: 'EduCatalog:read', hidden: true },
-              children: [],
-            },
-            {
-              path: 'configure',
-              name: 'edubridge-configure',
-              component: markRaw(ConfigurePage),
-              meta: {
-                title: 'Подключение',
-                icon: 'settings',
-                requires: 'Extension:configure',
-                gate: true,
-                requiresAuth: true,
-                agreements: agreementsBase,
-              },
-              children: [],
-            },
-            {
-              path: 'courses',
-              name: 'edubridge-admin-courses',
-              component: markRaw(AdminCoursesPage),
-              meta: {
-                title: 'Курсы',
-                icon: 'library_books',
-                requires: 'EduCourse:manage',
-                requiresAuth: true,
-                agreements: agreementsBase,
-              },
-              children: [],
-            },
-            {
-              path: 'assignments',
-              name: 'edubridge-admin-assignments',
-              component: markRaw(AdminAssignmentsPage),
-              meta: {
-                title: 'Преподаватели',
-                icon: 'assignment_ind',
-                requires: 'EduAssignment:manage',
-                requiresAuth: true,
-                agreements: agreementsBase,
-              },
-              children: [],
-            },
-            {
-              path: 'registry',
-              name: 'edubridge-admin-registry',
-              component: markRaw(AdminMembersPage),
-              meta: {
-                title: 'Реестр пайщиков',
-                icon: 'groups',
-                requires: 'EduRegistry:read',
-                requiresAuth: true,
-                agreements: agreementsBase,
-              },
-              children: [],
-            },
-            {
-              path: 'queue',
-              name: 'edubridge-admin-queue',
-              component: markRaw(AdminQueuePage),
-              meta: {
-                title: 'Очередь выдачи',
-                icon: 'pending_actions',
-                requires: 'EduQueue:read',
-                requiresAuth: true,
-                agreements: agreementsBase,
-              },
-              children: [],
-            },
-            {
-              path: 'connectors',
-              name: 'edubridge-admin-connectors',
-              component: markRaw(AdminConnectorsPage),
-              meta: {
-                title: 'Площадки',
-                icon: 'hub',
-                requires: 'EduConnector:manage',
-                requiresAuth: true,
-                agreements: agreementsBase,
-              },
-              children: [],
-            },
-            {
-              path: 'admins',
-              name: 'edubridge-admin-admins',
-              component: markRaw(AdminAdminsPage),
-              meta: {
-                title: 'Администраторы',
-                icon: 'admin_panel_settings',
-                requires: 'EduAdmin:manage',
-                requiresAuth: true,
-                agreements: agreementsBase,
-              },
-              children: [],
-            },
-          ],
-        },
-      ],
-    },
-    {
-      workspace: 'edubridge-member',
-      extension_name: 'edubridge',
-      title: 'Моё обучение',
-      icon: 'family_restroom',
-      defaultRoute: 'edubridge-learners',
-      routes: [
-        {
-          meta: { title: 'Моё обучение', icon: 'family_restroom' },
-          path: '/:coopname/edubridge-member',
-          name: 'edubridge-member',
-          children: [
-            {
-              path: 'onboarding',
-              name: 'edubridge-member-onboarding',
-              component: markRaw(MemberOnboardingPage),
-              meta: {
-                title: 'Подключение к обучению',
-                icon: 'how_to_reg',
-                requires: 'Onboarding:learner',
-                gate: true,
-                requiresAuth: true,
-                agreements: agreementsBase,
-              },
-              children: [],
-            },
-            {
-              path: 'learners',
-              name: 'edubridge-learners',
-              component: markRaw(MemberLearnersPage),
-              meta: {
-                title: 'Обучающиеся',
-                icon: 'family_restroom',
-                requires: 'EduLearner:read:own',
-                requiresAuth: true,
-                agreements: agreementsBase,
-              },
-              children: [],
-            },
-          ],
-        },
-      ],
-    },
-    {
-      workspace: 'edubridge-teacher',
-      extension_name: 'edubridge',
-      title: 'Преподавание',
-      icon: 'co_present',
-      defaultRoute: 'edubridge-assignments',
-      routes: [
-        {
-          meta: { title: 'Преподавание', icon: 'co_present' },
-          path: '/:coopname/edubridge-teacher',
-          name: 'edubridge-teacher',
-          children: [
-            {
-              path: 'onboarding',
-              name: 'edubridge-teacher-onboarding',
-              component: markRaw(TeacherOnboardingPage),
-              meta: {
-                title: 'Подключение к преподаванию',
-                icon: 'how_to_reg',
-                requires: 'Onboarding:teacher',
-                gate: true,
-                requiresAuth: true,
-                agreements: agreementsBase,
-              },
-              children: [],
-            },
-            {
-              path: 'assignments',
-              name: 'edubridge-assignments',
-              component: markRaw(TeacherAssignmentsPage),
-              meta: {
-                title: 'Назначения',
-                icon: 'assignment',
-                requires: 'EduAssignment:read:own',
-                requiresAuth: true,
-                agreements: agreementsBase,
-              },
-              children: [],
-            },
-            {
-              path: 'contributions',
-              name: 'edubridge-contributions',
-              component: markRaw(TeacherContributionsPage),
-              meta: {
-                title: 'Взносы результатами работы',
-                icon: 'workspace_premium',
-                requires: 'EduContribution:read:own',
-                requiresAuth: true,
-                agreements: agreementsBase,
-              },
-              children: [],
-            },
-            {
-              path: 'settlement',
-              name: 'edubridge-settlement',
-              component: markRaw(TeacherSettlementPage),
-              meta: {
-                title: 'Расчёт',
-                icon: 'account_balance_wallet',
-                requires: 'EduTeacherWallet:read:own',
-                requiresAuth: true,
-                agreements: agreementsBase,
-              },
-              children: [],
-            },
-          ],
-        },
-      ],
-    },
-  ];
+  return [learningWorkspace(), memberWorkspace(), teacherWorkspace()];
 }

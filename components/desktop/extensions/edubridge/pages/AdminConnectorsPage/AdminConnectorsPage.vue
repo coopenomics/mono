@@ -1,6 +1,6 @@
 <template lang="pug">
 .q-pa-md
-  PageHint(storage-key="edu:admin-connectors:banner-dismissed")
+  PageHint.q-mb-md(storage-key="edu:admin-connectors:banner-dismissed")
     | Площадки — носители доступа. Ключи API задаются в настройках приложения и видны только председателю;
     | здесь — состояние подключения и последняя проверка.
   .row.q-col-gutter-md

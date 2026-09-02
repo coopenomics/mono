@@ -8,6 +8,8 @@ export * as CatalogSubjects from './catalogSubjects'
 export * as Courses from './courses'
 /** Курс со служебными полями */
 export * as Course from './course'
+/** Преподаватели, которых можно назначить на курс (с договором УХД) */
+export * as TeacherOptions from './teacherOptions'
 /** Подписаны ли оферты родителя-слушателя и преподавателя */
 export * as OnboardingState from './onboardingState'
 /** Мои обучающиеся */

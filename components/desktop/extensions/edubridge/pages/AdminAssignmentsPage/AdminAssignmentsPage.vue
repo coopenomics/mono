@@ -1,6 +1,6 @@
 <template lang="pug">
 .q-pa-md
-  PageHint(storage-key="edu:admin-assignments:banner-dismissed")
+  PageHint.q-mb-md(storage-key="edu:admin-assignments:banner-dismissed")
     | Назначьте преподавателю курс, расписание, ожидаемый результат и период сдачи — он подпишет приложение к договору.
     | Ниже — взносы результатами работы: совет принимает решение в повестке, здесь можно отклонить с причиной.
   PageTabs.q-mb-md(:tabs="tabs" :active-key="tab" @select="(t) => (tab = t.key)")
@@ -28,15 +28,15 @@
         BaseBadge(:variant="contributionStatusOf(row.status).variant") {{ contributionStatusOf(row.status).label }}
       template(#cell-actions="{ row }")
         .row.no-wrap.justify-end.q-gutter-xs
-          BaseButton(v-if="row.status === 'act_signed'" variant="primary" size="sm" :loading="busyId === row.id" @click="onAccept(row)") Подписать акт
-          BaseButton(v-if="row.status === 'submitted' || row.status === 'council_approved' || row.status === 'act_signed'" variant="ghost" size="sm" @click="openDecline(row)") Отклонить
+          BaseButton(v-if="row.status === Zeus.EduContributionStatus.ACT_SIGNED" variant="primary" size="sm" :loading="busyId === row.id" @click="onAccept(row)") Подписать акт
+          BaseButton(v-if="canDecline(row)" variant="ghost" size="sm" @click="openDecline(row)") Отклонить
     EmptyState(v-if="!loading && !contributions.length" title="Взносов нет")
       template(#icon)
         q-icon(name="workspace_premium" size="32px")
 
   BaseDialog(v-model="createOpen" title="Новое назначение" size="md")
     BaseForm(:loading="busy" @submit="onCreate")
-      BaseInput(v-model="form.teacher_username" label="Преподаватель (учётное имя)" mono required)
+      BaseSelect(v-model="form.teacher_username" label="Преподаватель" :options="teacherOptions" hint="Пайщики с подписанным договором участия в хозяйственной деятельности" searchable required)
       BaseSelect(v-model="form.course_id" label="Курс" :options="courseOptions" required)
       BaseInput(v-model="form.schedule" label="Расписание")
       BaseInput(v-model="form.expected_result" label="Ожидаемый результат" type="textarea" :rows="2")
@@ -61,13 +61,14 @@
 
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue';
+import { Zeus } from '@coopenomics/sdk';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { useHeaderActions } from 'src/shared/hooks';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { BaseBadge, BaseButton, BaseDialog, BaseForm, BaseInput, BaseSelect, BaseTable, EmptyState, type BaseTableColumn } from 'src/shared/ui/base';
 import { PageHint } from 'src/shared/ui/domain';
 import { PageTabs, type PageTab } from 'src/shared/ui/layout';
-import { fetchCourses, type ICourse } from '../../entities/Course';
+import { fetchCourses, fetchTeacherOptions, type ICourse, type ITeacherOption } from '../../entities/Course';
 import {
   ASSIGNMENT_STATUS_LABELS,
   CONTRIBUTION_STATUS_LABELS,
@@ -93,6 +94,7 @@ const tab = ref('assignments');
 const assignments = ref<IAssignment[]>([]);
 const contributions = ref<IContribution[]>([]);
 const courses = ref<ICourse[]>([]);
+const teachers = ref<ITeacherOption[]>([]);
 const loading = ref(false);
 const busy = ref(false);
 const busyId = ref<string | null>(null);
@@ -118,6 +120,9 @@ const contributionColumns: BaseTableColumn<IContribution>[] = [
   { key: 'actions', label: '', align: 'right', width: '120px' },
 ];
 const courseOptions = computed(() => courses.value.map((c) => ({ value: c.id, label: `${c.title} · ${c.subject}, ${c.grade}` })));
+const teacherOptions = computed(() => teachers.value.map((t) => ({ value: t.username, label: `${t.username} · договор № ${t.contract_number}` })));
+const DECLINABLE = new Set<string>([Zeus.EduContributionStatus.SUBMITTED, Zeus.EduContributionStatus.COUNCIL_APPROVED, Zeus.EduContributionStatus.ACT_SIGNED]);
+const canDecline = (c: IContribution) => DECLINABLE.has(c.status);
 const assignmentStatusOf = (s: string) => ASSIGNMENT_STATUS_LABELS[s] ?? { label: s, variant: 'neutral' as const };
 const contributionStatusOf = (s: string) => CONTRIBUTION_STATUS_LABELS[s] ?? { label: s, variant: 'neutral' as const };
 const ridType = (t: string) => RID_TYPE_LABELS[t] ?? t;
@@ -125,10 +130,16 @@ const ridType = (t: string) => RID_TYPE_LABELS[t] ?? t;
 async function load(): Promise<void> {
   loading.value = true;
   try {
-    const [a, c, k] = await Promise.all([fetchAssignments(), fetchContributions(), fetchCourses({ options: { page: 1, limit: 200, sortBy: 'sort_order', sortOrder: 'ASC' } })]);
+    const [a, c, k, t] = await Promise.all([
+      fetchAssignments(),
+      fetchContributions(),
+      fetchCourses({ options: { page: 1, limit: 200, sortBy: 'sort_order', sortOrder: 'ASC' } }),
+      fetchTeacherOptions(),
+    ]);
     assignments.value = a;
     contributions.value = c;
     courses.value = k.items;
+    teachers.value = t;
   } catch (e) {
     FailAlert(e);
   } finally {

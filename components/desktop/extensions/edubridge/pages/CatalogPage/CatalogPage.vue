@@ -1,6 +1,6 @@
 <template lang="pug">
 .q-pa-md
-  PageHint(storage-key="edu:catalog:banner-dismissed")
+  PageHint.q-mb-md(storage-key="edu:catalog:banner-dismissed")
     | Каталог курсов кооператива. Выберите предмет и класс, откройте карточку —
     | там расписание, преподаватель, размер членского взноса и учебная программа.
 

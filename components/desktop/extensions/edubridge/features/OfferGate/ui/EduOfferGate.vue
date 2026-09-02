@@ -1,6 +1,6 @@
 <template lang="pug">
 .q-pa-md
-  PageHint(:storage-key="`edu:gate-${kind}:banner-dismissed`")
+  PageHint.q-mb-md(:storage-key="`edu:gate-${kind.toLowerCase()}:banner-dismissed`")
     | {{ hint }}
 
   BaseCard(v-if="offer" variant="default")
@@ -35,6 +35,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import { Zeus } from '@coopenomics/sdk';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { useDesktopStore } from 'src/entities/Desktop/model';
 import { BaseBanner, BaseButton, BaseCard, BaseCheckbox, BaseDialog, CardListSkeleton } from 'src/shared/ui/base';
@@ -67,7 +68,7 @@ const dialogOpen = ref(false);
 const offerHtml = ref('');
 const offerDoc = ref<DigitalDocument | null>(null);
 
-const offer = computed(() => (props.kind === 'parent' ? state.value?.parent : state.value?.teacher) ?? null);
+const offer = computed(() => (props.kind === Zeus.EduOfferKind.PARENT ? state.value?.parent : state.value?.teacher) ?? null);
 
 async function load(): Promise<void> {
   try {

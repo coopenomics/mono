@@ -36,9 +36,12 @@ export class EdubridgeCourseEntity {
   @Column({ type: 'text', default: '' })
   public schedule!: string;
 
-  /** Преподаватель (username пайщика); null — не назначен. */
-  @Column({ type: 'varchar', length: 13, nullable: true })
-  public teacher_username!: string | null;
+  /**
+   * Преподаватели курса — учётные имена пайщиков с подписанным договором УХД.
+   * Курс могут вести несколько; пустой список — ещё не назначены.
+   */
+  @Column({ type: 'jsonb', default: () => "'[]'" })
+  public teacher_usernames!: string[];
 
   /** Членский взнос за месяц и за год — asset-строки цепи («1000.0000 RUB»). */
   @Column({ type: 'varchar', length: 64 })

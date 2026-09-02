@@ -16,6 +16,11 @@ export class EdubridgeTeacherRepository {
     return this.contracts.findOne({ where: { coopname, teacher_username: teacher } });
   }
 
+  /** Все преподаватели с подписанным договором — из них выбирают ведущих курса. */
+  listContracts(coopname: string): Promise<EdubridgeTeacherContractEntity[]> {
+    return this.contracts.find({ where: { coopname }, order: { signed_at: 'ASC' } });
+  }
+
   saveContract(data: Partial<EdubridgeTeacherContractEntity>): Promise<EdubridgeTeacherContractEntity> {
     return this.contracts.save(this.contracts.create(data));
   }

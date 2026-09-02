@@ -5418,7 +5418,7 @@ export const ReturnTypes: Record<string,any> = {
 		schedule:"String",
 		subject:"String",
 		syllabus:"String",
-		teacher_username:"String",
+		teacher_usernames:"String",
 		title:"String"
 	},
 	EduCatalogSubject:{
@@ -5467,7 +5467,7 @@ export const ReturnTypes: Record<string,any> = {
 		status:"EduCourseStatus",
 		subject:"String",
 		syllabus:"String",
-		teacher_username:"String",
+		teacher_usernames:"String",
 		title:"String",
 		updated_at:"DateTime"
 	},
@@ -5526,6 +5526,11 @@ export const ReturnTypes: Record<string,any> = {
 		contract_hash:"String",
 		contract_number:"String",
 		signed_at:"DateTime"
+	},
+	EduTeacherOption:{
+		contract_number:"String",
+		signed_at:"DateTime",
+		username:"String"
 	},
 	EduTeacherSettlement:{
 		accepted_total:"String",
@@ -8117,6 +8122,7 @@ export const ReturnTypes: Record<string,any> = {
 		edubridgeOnboardingState:"EduOnboardingState",
 		edubridgeQueue:"EduAccessTask",
 		edubridgeQuote:"EduQuote",
+		edubridgeTeacherOptions:"EduTeacherOption",
 		expenseFile:"ExpenseFile",
 		expenseFilesByItem:"ExpenseFile",
 		expenseFilesByProposal:"ExpenseFile",

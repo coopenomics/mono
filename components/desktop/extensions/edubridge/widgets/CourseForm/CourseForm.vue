@@ -21,10 +21,31 @@ BaseForm(:loading="loading" :error="error" @submit="submit")
       BaseSelect(v-model="form.direction" label="Тип направления (внутренний)" :options="directionOptions" required)
     .col-12.col-md-6
       BaseSelect(v-model="form.carrier" label="Носитель доступа" :options="carrierOptions" required)
-    .col-12.col-md-8
-      BaseInput(v-model="form.external_ref" label="Идентификатор курса на площадке" mono hint="Код или идентификатор курса в Skillspace/GetCourse; для очного — код группы")
-    .col-12.col-md-4
-      BaseInput(v-model="form.teacher_username" label="Преподаватель" mono hint="Учётное имя пайщика")
+    .col-12(v-if="isPlatform")
+      BaseInput(v-model="form.external_ref" label="Идентификатор курса на площадке" mono :hint="externalRefHint" required)
+
+    .col-12
+      .t-sm.t-muted.q-mb-xs {{ teacherLabel }}
+      .row.q-col-gutter-sm.items-start
+        .col-12.col-md-6
+          BaseSelect(
+            :model-value="null"
+            label="Добавить преподавателя"
+            :options="teacherOptions"
+            :disabled="!teacherOptions.length"
+            :hint="teacherHint"
+            searchable
+            @update:model-value="addTeacher"
+          )
+        .col-12.col-md-6
+          .row.q-gutter-xs(v-if="form.teacher_usernames.length")
+            .col-auto(v-for="t in form.teacher_usernames" :key="t")
+              BaseChip(variant="neutral" size="sm")
+                span.t-mono {{ t }}
+                BaseButton.q-ml-xs(variant="ghost" size="sm" icon-only type="button" :aria-label="`Убрать ${t}`" @click="removeTeacher(t)")
+                  template(#icon-left)
+                    q-icon(name="close" size="14px")
+          .t-sm.t-muted(v-else) Преподаватели пока не назначены — курс можно сохранить и назначить их позже.
   template(#footer)
     .row.justify-end.q-gutter-sm
       BaseButton(variant="ghost" type="button" :disabled="loading" @click="emit('cancel')") Отменить
@@ -32,20 +53,31 @@ BaseForm(:loading="loading" :error="error" @submit="submit")
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref, watch } from 'vue';
+import { computed, onMounted, reactive, ref, watch } from 'vue';
+import { Zeus } from '@coopenomics/sdk';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { useSystemStore } from 'src/entities/System/model';
 import { formatToAsset } from 'src/shared/lib/utils';
-import { BaseButton, BaseForm, BaseInput, BaseSelect } from 'src/shared/ui/base';
+import { BaseButton, BaseChip, BaseForm, BaseInput, BaseSelect } from 'src/shared/ui/base';
 import {
   CARRIER_LABELS,
+  CARRIERS_BY_DIRECTION,
   DIRECTION_LABELS,
+  PLATFORM_CARRIERS,
   createCourse,
+  fetchTeacherOptions,
   updateCourse,
   type ICourse,
   type ICreateCourseInput,
+  type ITeacherOption,
 } from '../../entities/Course';
 
+/**
+ * Конструктор курса. Носитель доступа зависит от направления: онлайн-платформа —
+ * Skillspace/GetCourse, закрытое сообщество — Telegram/ВКонтакте, очное — очно;
+ * идентификатор курса на площадке нужен только площадкам с API. Преподаватели
+ * выбираются из пайщиков с подписанным договором УХД, их может быть несколько.
+ */
 const props = defineProps<{ course?: ICourse | null }>();
 const emit = defineEmits<{ saved: [course: ICourse]; cancel: [] }>();
 
@@ -54,19 +86,20 @@ const symbol = computed(() => system.governSymbol);
 
 const loading = ref(false);
 const error = ref('');
+const teachers = ref<ITeacherOption[]>([]);
 
-const form = reactive<ICreateCourseInput>({
+const form = reactive<ICreateCourseInput & { teacher_usernames: string[] }>({
   title: '',
   subject: '',
   grade: '',
   description: '',
   syllabus: '',
   schedule: '',
-  teacher_username: '',
+  teacher_usernames: [],
   fee_month: '',
   fee_year: '',
-  direction: 'online_platform' as ICreateCourseInput['direction'],
-  carrier: 'skillspace' as ICreateCourseInput['carrier'],
+  direction: Zeus.EduCourseDirection.ONLINE_PLATFORM,
+  carrier: Zeus.EduAccessCarrier.SKILLSPACE,
   external_ref: '',
   sort_order: 0,
 });
@@ -93,7 +126,7 @@ watch(
       description: c.description,
       syllabus: c.syllabus,
       schedule: c.schedule,
-      teacher_username: c.teacher_username ?? '',
+      teacher_usernames: [...c.teacher_usernames],
       direction: c.direction,
       carrier: c.carrier,
       external_ref: c.external_ref,
@@ -106,7 +139,46 @@ watch(
 );
 
 const directionOptions = Object.entries(DIRECTION_LABELS).map(([value, label]) => ({ value, label }));
-const carrierOptions = Object.entries(CARRIER_LABELS).map(([value, label]) => ({ value, label }));
+const allowedCarriers = computed(() => CARRIERS_BY_DIRECTION[form.direction] ?? []);
+const carrierOptions = computed(() => allowedCarriers.value.map((value) => ({ value, label: CARRIER_LABELS[value] ?? value })));
+const isPlatform = computed(() => PLATFORM_CARRIERS.includes(form.carrier));
+const externalRefHint = computed(() =>
+  form.carrier === Zeus.EduAccessCarrier.SKILLSPACE
+    ? 'UUID курса в Skillspace; при наборе в группу — «UUID курса:UUID группы»'
+    : 'Идентификатор группы GetCourse, в которую попадает обучающийся',
+);
+
+// Сменили направление — носитель вне его списка теряет смысл: берём первый допустимый.
+watch(
+  () => form.direction,
+  () => {
+    if (!allowedCarriers.value.includes(form.carrier)) form.carrier = allowedCarriers.value[0]!;
+  },
+);
+watch(isPlatform, (platform) => {
+  if (!platform) form.external_ref = '';
+});
+
+const teacherOptions = computed(() =>
+  teachers.value
+    .filter((t) => !form.teacher_usernames.includes(t.username))
+    .map((t) => ({ value: t.username, label: `${t.username} · договор № ${t.contract_number}` })),
+);
+const teacherLabel = computed(() => (form.teacher_usernames.length > 1 ? 'Преподаватели' : 'Преподаватель'));
+const teacherHint = computed(() =>
+  teachers.value.length
+    ? 'Пайщики с подписанным договором участия в хозяйственной деятельности'
+    : 'Пока никто не подписал договор участия в хозяйственной деятельности',
+);
+
+function addTeacher(value: string | number | null): void {
+  const username = String(value ?? '');
+  if (!username || form.teacher_usernames.includes(username)) return;
+  form.teacher_usernames.push(username);
+}
+function removeTeacher(username: string): void {
+  form.teacher_usernames = form.teacher_usernames.filter((t) => t !== username);
+}
 
 async function submit(): Promise<void> {
   error.value = '';
@@ -114,7 +186,7 @@ async function submit(): Promise<void> {
   try {
     const data: ICreateCourseInput = {
       ...form,
-      teacher_username: form.teacher_username || null,
+      external_ref: isPlatform.value ? form.external_ref : '',
       fee_month: toAsset(feeMonth.value),
       fee_year: toAsset(feeYear.value),
     };
@@ -127,4 +199,12 @@ async function submit(): Promise<void> {
     loading.value = false;
   }
 }
+
+onMounted(async () => {
+  try {
+    teachers.value = await fetchTeacherOptions();
+  } catch (e) {
+    FailAlert(e);
+  }
+});
 </script>
