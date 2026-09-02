@@ -38,12 +38,17 @@ export function splitSkillspaceRef(ref: string): { course: string; group: string
   return { course: course?.trim() ?? '', group: group.trim() };
 }
 
-interface SkillspaceCourse {
+/**
+ * Курс школы в реестре `school/course/list`. Идентификатор — UUID; числовой
+ * номер из адреса конструктора (`/course/131851/...`) в API не существует,
+ * поэтому в курсе кооператива хранится именно `id`.
+ */
+export interface SkillspaceCourse {
   id: string;
   name: string;
   slug?: string;
 }
-interface SkillspaceGroup {
+export interface SkillspaceGroup {
   id: string;
   courseId: string;
   name: string;
@@ -149,7 +154,9 @@ export class SkillspaceConnector implements AccessCarrierConnector {
     const courses = await this.getJson<SkillspaceCourse[]>(`/school/course/list?token=${encodeURIComponent(token)}`);
     if (!courses.ok) return { found: false, unavailable: true, message: courses.message };
     const found = (Array.isArray(courses.data) ? courses.data : []).find((c) => c.id === course);
-    if (!found) return { found: false, message: 'Курс с таким идентификатором не найден в школе Skillspace' };
+    if (!found) {
+      return { found: false, message: `В школе Skillspace нет курса с идентификатором ${course} — выберите курс из списка школы в карточке курса` };
+    }
 
     if (group) {
       const groupCheck = await this.checkGroup(token, course, group);
@@ -168,9 +175,15 @@ export class SkillspaceConnector implements AccessCarrierConnector {
     return null;
   }
 
-  /** Справочно для стола владельца: курсы школы. Только чтение. */
+  /** Реестр курсов школы — из него конструктор курса выбирает привязку. Только чтение. */
   async listCourses(): Promise<SkillspaceCourse[]> {
     const res = await this.getJson<SkillspaceCourse[]>(`/school/course/list?token=${encodeURIComponent(this.token())}`);
+    return res.ok && Array.isArray(res.data) ? res.data : [];
+  }
+
+  /** Реестр групп школы (с принадлежностью курсу). Только чтение. */
+  async listGroups(): Promise<SkillspaceGroup[]> {
+    const res = await this.getJson<SkillspaceGroup[]>(`/school/group/list?token=${encodeURIComponent(this.token())}`);
     return res.ok && Array.isArray(res.data) ? res.data : [];
   }
 }

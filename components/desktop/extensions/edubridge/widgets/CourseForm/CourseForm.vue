@@ -21,7 +21,27 @@ BaseForm(:loading="loading" :error="error" @submit="submit")
       BaseSelect(v-model="form.direction" label="Тип направления (внутренний)" :options="directionOptions" required)
     .col-12.col-md-6
       BaseSelect(v-model="form.carrier" label="Носитель доступа" :options="carrierOptions" required)
-    .col-12(v-if="isPlatform")
+    template(v-if="isSkillspace")
+      .col-12.col-md-6
+        BaseSelect(
+          v-model="skillspaceCourseId"
+          label="Курс в школе Skillspace"
+          :options="platformCourseOptions"
+          :disabled="!platformCourses.length"
+          :hint="platformCourses.length ? 'Реестр курсов школы по API-ключу кооператива' : 'Реестр школы пуст или ключ Skillspace не задан'"
+          searchable
+          required
+        )
+      .col-12.col-md-6
+        BaseSelect(
+          v-model="skillspaceGroupId"
+          label="Группа курса"
+          :options="platformGroupOptions"
+          :disabled="!platformGroupOptions.length"
+          :hint="platformGroupOptions.length ? 'Без группы обучающийся зачисляется на курс напрямую' : 'У курса нет групп — зачисление на курс напрямую'"
+          clearable
+        )
+    .col-12(v-else-if="isPlatform")
       BaseInput(v-model="form.external_ref" label="Идентификатор курса на площадке" mono :hint="externalRefHint" required)
 
     .col-12
@@ -65,10 +85,12 @@ import {
   DIRECTION_LABELS,
   PLATFORM_CARRIERS,
   createCourse,
+  fetchPlatformCourses,
   fetchTeacherOptions,
   updateCourse,
   type ICourse,
   type ICreateCourseInput,
+  type IPlatformCourse,
   type ITeacherOption,
 } from '../../entities/Course';
 
@@ -108,6 +130,13 @@ const form = reactive<ICreateCourseInput & { teacher_usernames: string[] }>({
 const feeMonth = ref('');
 const feeYear = ref('');
 
+// Skillspace: привязка выбирается из реестра школы, а не вводится руками —
+// числовой номер из адреса конструктора площадка не знает, а UUID в адресе
+// обычно принадлежит модулю. Хранится «UUID курса» или «UUID курса:UUID группы».
+const platformCourses = ref<IPlatformCourse[]>([]);
+const skillspaceCourseId = ref<string | null>(null);
+const skillspaceGroupId = ref<string | null>(null);
+
 function toAsset(value: string): string {
   return formatToAsset(String(value).replace(',', '.'), symbol.value);
 }
@@ -134,6 +163,11 @@ watch(
     });
     feeMonth.value = fromAsset(c.fee_month);
     feeYear.value = fromAsset(c.fee_year);
+    if (c.carrier === Zeus.EduAccessCarrier.SKILLSPACE) {
+      const [course = '', group = ''] = c.external_ref.split(':');
+      skillspaceCourseId.value = course || null;
+      skillspaceGroupId.value = group || null;
+    }
   },
   { immediate: true },
 );
@@ -142,10 +176,30 @@ const directionOptions = Object.entries(DIRECTION_LABELS).map(([value, label]) =
 const allowedCarriers = computed(() => CARRIERS_BY_DIRECTION[form.direction] ?? []);
 const carrierOptions = computed(() => allowedCarriers.value.map((value) => ({ value, label: CARRIER_LABELS[value] ?? value })));
 const isPlatform = computed(() => PLATFORM_CARRIERS.includes(form.carrier));
-const externalRefHint = computed(() =>
-  form.carrier === Zeus.EduAccessCarrier.SKILLSPACE
-    ? 'UUID курса в Skillspace; при наборе в группу — «UUID курса:UUID группы»'
-    : 'Идентификатор группы GetCourse, в которую попадает обучающийся',
+const isSkillspace = computed(() => form.carrier === Zeus.EduAccessCarrier.SKILLSPACE);
+const externalRefHint = 'Идентификатор группы GetCourse, в которую попадает обучающийся';
+
+const platformCourseOptions = computed(() => platformCourses.value.map((c) => ({ value: c.id, label: c.name })));
+const platformGroupOptions = computed(
+  () => platformCourses.value.find((c) => c.id === skillspaceCourseId.value)?.groups.map((g) => ({ value: g.id, label: g.name })) ?? [],
+);
+watch(skillspaceCourseId, () => {
+  if (!platformGroupOptions.value.some((g) => g.value === skillspaceGroupId.value)) skillspaceGroupId.value = null;
+});
+watch([skillspaceCourseId, skillspaceGroupId], ([course, group]) => {
+  if (isSkillspace.value) form.external_ref = course ? (group ? `${course}:${group}` : course) : '';
+});
+watch(
+  isSkillspace,
+  async (on) => {
+    if (!on || platformCourses.value.length) return;
+    try {
+      platformCourses.value = await fetchPlatformCourses(Zeus.EduAccessCarrier.SKILLSPACE);
+    } catch (e) {
+      FailAlert(e);
+    }
+  },
+  { immediate: true },
 );
 
 // Сменили направление — носитель вне его списка теряет смысл: берём первый допустимый.

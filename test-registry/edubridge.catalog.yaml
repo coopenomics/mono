@@ -85,3 +85,10 @@ cases:
     expect: Носитель вне направления недоступен и сбрасывается; поле идентификатора появляется только для площадок; выбранные преподаватели показаны списком и снимаются по одному.
     test: ~
     status: missing
+  - id: edu.catalog.side.06
+    level: backend
+    kind: side
+    scenario: "Привязка к Skillspace: в external_ref не UUID курса (числовой номер из адреса конструктора, UUID модуля с опечаткой, группа не UUID); список курсов площадки для конструктора."
+    expect: "BadRequest с подсказкой про реестр школы; edubridgePlatformCourses отдаёт курсы школы с их группами (для GetCourse/очного — пусто). Прецедент 2026-09-02: владелец вписал UUID из адреса конструктора модуля, выдача ушла в needs_attention."
+    test: components/controller/tests/unit/edubridge/course.service.test.ts
+    status: written

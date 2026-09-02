@@ -10,6 +10,8 @@ export * as Courses from './courses'
 export * as Course from './course'
 /** Преподаватели, которых можно назначить на курс (с договором УХД) */
 export * as TeacherOptions from './teacherOptions'
+/** Курсы и группы на площадке кооператива — для привязки курса каталога */
+export * as PlatformCourses from './platformCourses'
 /** Подписаны ли оферты родителя-слушателя и преподавателя */
 export * as OnboardingState from './onboardingState'
 /** Мои обучающиеся */

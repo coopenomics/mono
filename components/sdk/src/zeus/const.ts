@@ -2975,6 +2975,9 @@ export const AllTypesProps: Record<string,any> = {
 		edubridgeMembers:{
 
 		},
+		edubridgePlatformCourses:{
+			carrier:"EduAccessCarrier"
+		},
 		edubridgeQueue:{
 			filter:"EduQueueFilterInput"
 		},
@@ -5512,6 +5515,15 @@ export const ReturnTypes: Record<string,any> = {
 	EduOnboardingState:{
 		parent:"EduOfferState",
 		teacher:"EduOfferState"
+	},
+	EduPlatformCourse:{
+		groups:"EduPlatformGroup",
+		id:"String",
+		name:"String"
+	},
+	EduPlatformGroup:{
+		id:"String",
+		name:"String"
 	},
 	EduQuote:{
 		amount:"String",
@@ -8120,6 +8132,7 @@ export const ReturnTypes: Record<string,any> = {
 		edubridgeMyLearners:"EduLearner",
 		edubridgeMySettlement:"EduTeacherSettlement",
 		edubridgeOnboardingState:"EduOnboardingState",
+		edubridgePlatformCourses:"EduPlatformCourse",
 		edubridgeQueue:"EduAccessTask",
 		edubridgeQuote:"EduQuote",
 		edubridgeTeacherOptions:"EduTeacherOption",

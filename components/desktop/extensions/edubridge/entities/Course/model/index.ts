@@ -10,6 +10,7 @@ export type ICreateCourseInput = Mutations.Edubridge.CreateCourse.IInput['data']
 export type IUpdateCourseInput = Mutations.Edubridge.UpdateCourse.IInput['data'];
 export type ISetCourseStatusInput = Mutations.Edubridge.SetCourseStatus.IInput['data'];
 export type ITeacherOption = Queries.Edubridge.TeacherOptions.IOutput['edubridgeTeacherOptions'][number];
+export type IPlatformCourse = Queries.Edubridge.PlatformCourses.IOutput['edubridgePlatformCourses'][number];
 
 /**
  * Подписи состояний, носителей и направлений. Ключи — имена enum'ов схемы

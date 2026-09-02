@@ -208,6 +208,29 @@ export class EduTeacherOptionDTO {
   signed_at!: Date;
 }
 
+/** Группа курса на площадке — набор, в который зачисляется обучающийся. */
+@ObjectType('EduPlatformGroup')
+export class EduPlatformGroupDTO {
+  @Field(() => String, { description: 'Идентификатор группы на площадке' })
+  id!: string;
+
+  @Field(() => String, { description: 'Название группы' })
+  name!: string;
+}
+
+/** Курс на образовательной площадке кооператива — то, к чему привязывается курс каталога. */
+@ObjectType('EduPlatformCourse')
+export class EduPlatformCourseDTO {
+  @Field(() => String, { description: 'Идентификатор курса на площадке (для Skillspace — UUID)' })
+  id!: string;
+
+  @Field(() => String, { description: 'Название курса на площадке' })
+  name!: string;
+
+  @Field(() => [EduPlatformGroupDTO], { description: 'Группы курса; пустой список — зачисление на курс напрямую' })
+  groups!: EduPlatformGroupDTO[];
+}
+
 @InputType('EduUpdateCourseInput')
 export class EduUpdateCourseInputDTO extends EduCourseInputDTO {
   @Field(() => ID, { description: 'Идентификатор курса' })

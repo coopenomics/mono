@@ -34,6 +34,13 @@ export async function fetchCourses(data: ICoursesInput = {}) {
   return result;
 }
 
+export async function fetchPlatformCourses(carrier: Queries.Edubridge.PlatformCourses.IInput['carrier']) {
+  const { [Queries.Edubridge.PlatformCourses.name]: result } = await client.Query(Queries.Edubridge.PlatformCourses.query, {
+    variables: { carrier },
+  });
+  return result;
+}
+
 export async function fetchTeacherOptions() {
   const { [Queries.Edubridge.TeacherOptions.name]: result } = await client.Query(Queries.Edubridge.TeacherOptions.query);
   return result;

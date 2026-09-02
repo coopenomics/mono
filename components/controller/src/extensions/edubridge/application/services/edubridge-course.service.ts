@@ -1,17 +1,36 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PaginationInputDTO, type PaginationResult } from '@coopenomics/extension-kit';
-import { CARRIERS_BY_DIRECTION, EduCourseStatus, PLATFORM_CARRIERS } from '../../domain/enums';
+import { CARRIERS_BY_DIRECTION, EduAccessCarrier, EduCourseStatus, PLATFORM_CARRIERS } from '../../domain/enums';
 import type { EdubridgeCourseEntity } from '../../infrastructure/entities';
 import { EdubridgeCourseRepository, type EduCourseFilter } from '../../infrastructure/repositories/edubridge-course.repository';
 import { EdubridgeTeacherRepository } from '../../infrastructure/repositories/edubridge-teacher.repository';
-import type { EduCatalogSubjectDTO, EduCourseInputDTO, EduTeacherOptionDTO, EduUpdateCourseInputDTO } from '../dto/edu-course.dto';
+import { SkillspaceConnector, splitSkillspaceRef } from '../../infrastructure/connectors/skillspace.connector';
+import type { EduCatalogSubjectDTO, EduCourseInputDTO, EduPlatformCourseDTO, EduTeacherOptionDTO, EduUpdateCourseInputDTO } from '../dto/edu-course.dto';
+
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 @Injectable()
 export class EdubridgeCourseService {
   constructor(
     private readonly courses: EdubridgeCourseRepository,
-    private readonly teachers: EdubridgeTeacherRepository
+    private readonly teachers: EdubridgeTeacherRepository,
+    private readonly skillspace: SkillspaceConnector
   ) {}
+
+  /**
+   * Курсы школы Skillspace с группами — конструктор курса выбирает привязку из
+   * них, а не вводит руками: числовой номер из адреса конструктора в API не
+   * существует, а UUID из адреса чаще всего принадлежит модулю, не курсу.
+   */
+  async platformCourses(carrier: EduAccessCarrier): Promise<EduPlatformCourseDTO[]> {
+    if (carrier !== EduAccessCarrier.SKILLSPACE) return [];
+    const [courses, groups] = await Promise.all([this.skillspace.listCourses(), this.skillspace.listGroups()]);
+    return courses.map((c) => ({
+      id: c.id,
+      name: c.name,
+      groups: groups.filter((g) => g.courseId === c.id).map((g) => ({ id: g.id, name: g.name })),
+    }));
+  }
 
   /** Кого можно назначить преподавателем курса: пайщики с подписанным договором УХД. */
   async teacherOptions(coopname: string): Promise<EduTeacherOptionDTO[]> {
@@ -90,6 +109,12 @@ export class EdubridgeCourseService {
     }
     if (PLATFORM_CARRIERS.includes(input.carrier) && !input.external_ref?.trim()) {
       throw new BadRequestException('Для площадки нужен идентификатор курса на площадке');
+    }
+    if (input.carrier === EduAccessCarrier.SKILLSPACE) {
+      const { course, group } = splitSkillspaceRef(input.external_ref ?? '');
+      if (!UUID_PATTERN.test(course) || (group && !UUID_PATTERN.test(group))) {
+        throw new BadRequestException('Для Skillspace нужен UUID курса из реестра школы (и UUID группы, если она есть) — числовой номер из адреса конструктора площадка не знает');
+      }
     }
     const teachers = input.teacher_usernames ?? [];
     if (teachers.length) {

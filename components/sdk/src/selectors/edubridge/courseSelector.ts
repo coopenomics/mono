@@ -55,3 +55,9 @@ export const eduCatalogSubjectSelector = Selector('EduCatalogSubject')(rawSubjec
 const rawTeacherOptionSelector = { username: true, contract_number: true, signed_at: true }
 const _validateTeacherOption: MakeAllFieldsRequired<ValueTypes['EduTeacherOption']> = rawTeacherOptionSelector
 export const eduTeacherOptionSelector = Selector('EduTeacherOption')(rawTeacherOptionSelector)
+
+const rawPlatformGroupSelector = { id: true, name: true }
+const _validatePlatformGroup: MakeAllFieldsRequired<ValueTypes['EduPlatformGroup']> = rawPlatformGroupSelector
+const rawPlatformCourseSelector = { id: true, name: true, groups: rawPlatformGroupSelector }
+const _validatePlatformCourse: MakeAllFieldsRequired<ValueTypes['EduPlatformCourse']> = rawPlatformCourseSelector
+export const eduPlatformCourseSelector = Selector('EduPlatformCourse')(rawPlatformCourseSelector)

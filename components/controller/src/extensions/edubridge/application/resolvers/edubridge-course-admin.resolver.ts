@@ -6,6 +6,7 @@ import {
   EduCourseDTO,
   EduCourseInputDTO,
   EduCoursesFilterInputDTO,
+  EduPlatformCourseDTO,
   EduSetCourseStatusInputDTO,
   EduTeacherOptionDTO,
   EduUpdateCourseInputDTO,
@@ -13,6 +14,7 @@ import {
 } from '../dto/edu-course.dto';
 import { EdubridgeAccessGuard } from '../guards/edubridge-access.guard';
 import { EdubridgeCourseService } from '../services/edubridge-course.service';
+import { EduAccessCarrier } from '../../domain/enums';
 
 /** Управление курсами — владелец и администратор. */
 @Resolver()
@@ -43,6 +45,13 @@ export class EdubridgeCourseAdminResolver {
   @RequireEduAccess('EduCourse', 'manage')
   edubridgeTeacherOptions(): Promise<EduTeacherOptionDTO[]> {
     return this.courses.teacherOptions(platformSettings().coopname);
+  }
+
+  @Query(() => [EduPlatformCourseDTO], { name: 'edubridgePlatformCourses', description: 'Курсы и группы на площадке кооператива — для привязки курса каталога' })
+  @UseGuards(GqlJwtAuthGuard, EdubridgeAccessGuard)
+  @RequireEduAccess('EduCourse', 'manage')
+  edubridgePlatformCourses(@Args('carrier', { type: () => EduAccessCarrier }) carrier: EduAccessCarrier): Promise<EduPlatformCourseDTO[]> {
+    return this.courses.platformCourses(carrier);
   }
 
   @Mutation(() => EduCourseDTO, { name: 'edubridgeCreateCourse', description: 'Добавить курс (черновик)' })

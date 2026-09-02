@@ -6990,6 +6990,24 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on EduOnboardingState']?: Omit<ValueTypes["EduOnboardingState"], "...on EduOnboardingState">
 }>;
+	["EduPlatformCourse"]: AliasType<{
+	/** Группы курса; пустой список — зачисление на курс напрямую */
+	groups?:ValueTypes["EduPlatformGroup"],
+	/** Идентификатор курса на площадке (для Skillspace — UUID) */
+	id?:boolean | `@${string}`,
+	/** Название курса на площадке */
+	name?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on EduPlatformCourse']?: Omit<ValueTypes["EduPlatformCourse"], "...on EduPlatformCourse">
+}>;
+	["EduPlatformGroup"]: AliasType<{
+	/** Идентификатор группы на площадке */
+	id?:boolean | `@${string}`,
+	/** Название группы */
+	name?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on EduPlatformGroup']?: Omit<ValueTypes["EduPlatformGroup"], "...on EduPlatformGroup">
+}>;
 	["EduQueueFilterInput"]: {
 	/** Состояния задач */
 	statuses?: Array<ValueTypes["EduAccessTaskStatus"]> | undefined | null | Variable<any, string>
@@ -14439,6 +14457,7 @@ edubridgeMembers?: [{	search?: string | undefined | null | Variable<any, string>
 	edubridgeMySettlement?:ValueTypes["EduTeacherSettlement"],
 	/** Подписаны ли оферты родителя-слушателя и преподавателя */
 	edubridgeOnboardingState?:ValueTypes["EduOnboardingState"],
+edubridgePlatformCourses?: [{	carrier: ValueTypes["EduAccessCarrier"] | Variable<any, string>},ValueTypes["EduPlatformCourse"]],
 edubridgeQueue?: [{	filter?: ValueTypes["EduQueueFilterInput"] | undefined | null | Variable<any, string>},ValueTypes["EduAccessTask"]],
 edubridgeQuote?: [{	data: ValueTypes["EduQuoteInput"] | Variable<any, string>},ValueTypes["EduQuote"]],
 	/** Преподаватели, которых можно назначить на курс */
@@ -22494,6 +22513,22 @@ export type ResolverInputTypes = {
 	teacher?:ResolverInputTypes["EduOfferState"],
 		__typename?: boolean | `@${string}`
 }>;
+	["EduPlatformCourse"]: AliasType<{
+	/** Группы курса; пустой список — зачисление на курс напрямую */
+	groups?:ResolverInputTypes["EduPlatformGroup"],
+	/** Идентификатор курса на площадке (для Skillspace — UUID) */
+	id?:boolean | `@${string}`,
+	/** Название курса на площадке */
+	name?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["EduPlatformGroup"]: AliasType<{
+	/** Идентификатор группы на площадке */
+	id?:boolean | `@${string}`,
+	/** Название группы */
+	name?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
 	["EduQueueFilterInput"]: {
 	/** Состояния задач */
 	statuses?: Array<ResolverInputTypes["EduAccessTaskStatus"]> | undefined | null
@@ -29709,6 +29744,7 @@ edubridgeMembers?: [{	search?: string | undefined | null},ResolverInputTypes["Ed
 	edubridgeMySettlement?:ResolverInputTypes["EduTeacherSettlement"],
 	/** Подписаны ли оферты родителя-слушателя и преподавателя */
 	edubridgeOnboardingState?:ResolverInputTypes["EduOnboardingState"],
+edubridgePlatformCourses?: [{	carrier: ResolverInputTypes["EduAccessCarrier"]},ResolverInputTypes["EduPlatformCourse"]],
 edubridgeQueue?: [{	filter?: ResolverInputTypes["EduQueueFilterInput"] | undefined | null},ResolverInputTypes["EduAccessTask"]],
 edubridgeQuote?: [{	data: ResolverInputTypes["EduQuoteInput"]},ResolverInputTypes["EduQuote"]],
 	/** Преподаватели, которых можно назначить на курс */
@@ -37538,6 +37574,20 @@ export type ModelTypes = {
 	/** Оферта преподавателя */
 	teacher: ModelTypes["EduOfferState"]
 };
+	["EduPlatformCourse"]: {
+		/** Группы курса; пустой список — зачисление на курс напрямую */
+	groups: Array<ModelTypes["EduPlatformGroup"]>,
+	/** Идентификатор курса на площадке (для Skillspace — UUID) */
+	id: string,
+	/** Название курса на площадке */
+	name: string
+};
+	["EduPlatformGroup"]: {
+		/** Идентификатор группы на площадке */
+	id: string,
+	/** Название группы */
+	name: string
+};
 	["EduQueueFilterInput"]: {
 	/** Состояния задач */
 	statuses?: Array<ModelTypes["EduAccessTaskStatus"]> | undefined | null
@@ -45359,6 +45409,8 @@ export type ModelTypes = {
 	edubridgeMySettlement: ModelTypes["EduTeacherSettlement"],
 	/** Подписаны ли оферты родителя-слушателя и преподавателя */
 	edubridgeOnboardingState: ModelTypes["EduOnboardingState"],
+	/** Курсы и группы на площадке кооператива — для привязки курса каталога */
+	edubridgePlatformCourses: Array<ModelTypes["EduPlatformCourse"]>,
 	/** Очередь выдачи доступа и застрявшие задачи */
 	edubridgeQueue: Array<ModelTypes["EduAccessTask"]>,
 	/** Сумма взноса за период и хватает ли паевого */
@@ -53669,6 +53721,24 @@ export type GraphQLTypes = {
 	/** Оферта преподавателя */
 	teacher: GraphQLTypes["EduOfferState"],
 	['...on EduOnboardingState']: Omit<GraphQLTypes["EduOnboardingState"], "...on EduOnboardingState">
+};
+	["EduPlatformCourse"]: {
+	__typename: "EduPlatformCourse",
+	/** Группы курса; пустой список — зачисление на курс напрямую */
+	groups: Array<GraphQLTypes["EduPlatformGroup"]>,
+	/** Идентификатор курса на площадке (для Skillspace — UUID) */
+	id: string,
+	/** Название курса на площадке */
+	name: string,
+	['...on EduPlatformCourse']: Omit<GraphQLTypes["EduPlatformCourse"], "...on EduPlatformCourse">
+};
+	["EduPlatformGroup"]: {
+	__typename: "EduPlatformGroup",
+	/** Идентификатор группы на площадке */
+	id: string,
+	/** Название группы */
+	name: string,
+	['...on EduPlatformGroup']: Omit<GraphQLTypes["EduPlatformGroup"], "...on EduPlatformGroup">
 };
 	["EduQueueFilterInput"]: {
 		/** Состояния задач */
@@ -62062,6 +62132,8 @@ export type GraphQLTypes = {
 	edubridgeMySettlement: GraphQLTypes["EduTeacherSettlement"],
 	/** Подписаны ли оферты родителя-слушателя и преподавателя */
 	edubridgeOnboardingState: GraphQLTypes["EduOnboardingState"],
+	/** Курсы и группы на площадке кооператива — для привязки курса каталога */
+	edubridgePlatformCourses: Array<GraphQLTypes["EduPlatformCourse"]>,
 	/** Очередь выдачи доступа и застрявшие задачи */
 	edubridgeQueue: Array<GraphQLTypes["EduAccessTask"]>,
 	/** Сумма взноса за период и хватает ли паевого */
