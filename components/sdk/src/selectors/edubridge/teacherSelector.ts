@@ -1,7 +1,7 @@
 import { Selector, type ValueTypes } from '../../zeus/index'
 import type { MakeAllFieldsRequired } from '../../utils/MakeAllFieldsRequired'
 
-const rawContractSelector = { contract_hash: true, contract_number: true, signed_at: true }
+const rawContractSelector = { contract_hash: true, contract_number: true, status: true, decline_reason: true, signed_at: true, approved_at: true }
 const _validateContract: MakeAllFieldsRequired<ValueTypes['EduTeacherContract']> = rawContractSelector
 export const eduTeacherContractSelector = Selector('EduTeacherContract')(rawContractSelector)
 
@@ -16,6 +16,7 @@ const rawAssignmentSelector = {
   period_to: true,
   annex_hash: true,
   status: true,
+  decline_reason: true,
   created_at: true,
 }
 const _validateAssignment: MakeAllFieldsRequired<ValueTypes['EduAssignment']> = rawAssignmentSelector
