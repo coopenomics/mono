@@ -173,13 +173,28 @@ export async function loginWithMagicLink(params: LoginWithMagicLinkParams): Prom
 
   // 5. Повторный вход новым контуром. unlockWallet забирает только что сохранённый
   //    серверный блоб и расшифровывает новым паролём — заодно round-trip-проверка vault'а.
-  const user = await authenticateWithAuthentik({ issuer: params.issuer, email: params.email, password: params.newPassword, flowSlug: params.flowSlug })
-  await unlockWallet({ apiUrl, account, password: params.newPassword })
-  const handshake = await performTimestampHandshake(apiUrl)
-  return {
-    accessToken: handshake.accessToken,
-    idToken: user.id_token ?? '',
-    participantCertificate: handshake.participantCertificate ?? '',
+  //
+  //    Отсюда и до конца точка невозврата уже пройдена: пароль в authentik сменён,
+  //    ключ ротирован on-chain, одноразовая ссылка сожжена. Если вход сорвётся
+  //    (упал authentik, лаг узла, сеть), повторять восстановление НЕЧЕМ — поэтому
+  //    отдаём отдельный код, по которому экран уводит на обычный вход новым паролём,
+  //    а не оставляет пайщика на мёртвой форме с непонятной ошибкой.
+  try {
+    const user = await authenticateWithAuthentik({ issuer: params.issuer, email: params.email, password: params.newPassword, flowSlug: params.flowSlug })
+    await unlockWallet({ apiUrl, account, password: params.newPassword })
+    const handshake = await performTimestampHandshake(apiUrl)
+    return {
+      accessToken: handshake.accessToken,
+      idToken: user.id_token ?? '',
+      participantCertificate: handshake.participantCertificate ?? '',
+    }
+  }
+  catch (e) {
+    const reason = e instanceof Error ? e.message : String(e)
+    throw new AuthV2Error(
+      AuthV2ErrorCode.RecoveryDoneLoginFailed,
+      `Пароль изменён, но войти автоматически не получилось (${reason}). Войдите новым паролём.`,
+    )
   }
 }
 

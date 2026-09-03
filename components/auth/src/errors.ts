@@ -19,6 +19,8 @@ export enum AuthV2ErrorCode {
   InvalidTwoFactorCode = 'invalid_2fa_code',
   TwoFactorNotEnrolled = 'two_factor_not_enrolled',
   InvalidRecoveryToken = 'invalid_recovery_token',
+  /** Ключ уже сменён, а автоматический вход следом не удался — повторять восстановление нечем. */
+  RecoveryDoneLoginFailed = 'recovery_done_login_failed',
   InvalidOfflineCode = 'invalid_offline_code',
   InsufficientVerification = 'insufficient_verification',
   /** Ротация ключа недоступна: пайщик ещё не принят (кандидат) — регистрация не завершена. */
@@ -181,6 +183,13 @@ export const AUTH_V2_ERROR_VIEWS: Record<AuthV2ErrorCode, AuthV2ErrorViewBody> =
   [AuthV2ErrorCode.InvalidRecoveryToken]: {
     message: 'Ссылка восстановления недействительна или истекла. Запросите восстановление заново.',
     action: 'recover',
+    keepSession: false,
+  },
+  [AuthV2ErrorCode.RecoveryDoneLoginFailed]: {
+    message: 'Пароль изменён, но войти автоматически не получилось. Войдите новым паролём.',
+    // Повторять восстановление нечем: ссылка одноразовая и уже сожжена, ключ ротирован.
+    // Единственная осмысленная дорога отсюда — обычный вход новым паролём, его и предлагаем.
+    action: 'retry',
     keepSession: false,
   },
   [AuthV2ErrorCode.InvalidOfflineCode]: {
