@@ -6660,7 +6660,11 @@ export type ValueTypes = {
 ["EduAccessTaskStatus"]:EduAccessTaskStatus;
 	["EduAdmin"]: AliasType<{
 	appointed_by?:boolean | `@${string}`,
+	/** ФИО назначившего */
+	appointed_by_display_name?:boolean | `@${string}`,
 	created_at?:boolean | `@${string}`,
+	/** ФИО администратора */
+	display_name?:boolean | `@${string}`,
 	id?:boolean | `@${string}`,
 	username?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
@@ -6961,6 +6965,8 @@ export type ValueTypes = {
 	recipient_value: string | Variable<any, string>
 };
 	["EduMemberCard"]: AliasType<{
+	/** ФИО пайщика */
+	display_name?:boolean | `@${string}`,
 	enrollments?:ValueTypes["EduEnrollment"],
 	learners?:ValueTypes["EduLearner"],
 	tasks?:ValueTypes["EduAccessTask"],
@@ -6973,6 +6979,8 @@ export type ValueTypes = {
 	active_enrollments?:boolean | `@${string}`,
 	/** Подписок, требующих внимания */
 	attention_count?:boolean | `@${string}`,
+	/** ФИО пайщика (у организации — наименование); пусто, если сертификата нет */
+	display_name?:boolean | `@${string}`,
 	/** Обучающихся */
 	learners_count?:boolean | `@${string}`,
 	/** Учётное имя пайщика */
@@ -7130,6 +7138,8 @@ export type ValueTypes = {
 	["EduTeacherOption"]: AliasType<{
 	/** Номер договора участия в хозяйственной деятельности */
 	contract_number?:boolean | `@${string}`,
+	/** ФИО преподавателя; пусто, если сертификата нет */
+	display_name?:boolean | `@${string}`,
 	/** Когда подписан договор */
 	signed_at?:boolean | `@${string}`,
 	/** Учётное имя пайщика */
@@ -22220,7 +22230,11 @@ export type ResolverInputTypes = {
 ["EduAccessTaskStatus"]:EduAccessTaskStatus;
 	["EduAdmin"]: AliasType<{
 	appointed_by?:boolean | `@${string}`,
+	/** ФИО назначившего */
+	appointed_by_display_name?:boolean | `@${string}`,
 	created_at?:boolean | `@${string}`,
+	/** ФИО администратора */
+	display_name?:boolean | `@${string}`,
 	id?:boolean | `@${string}`,
 	username?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
@@ -22512,6 +22526,8 @@ export type ResolverInputTypes = {
 	recipient_value: string
 };
 	["EduMemberCard"]: AliasType<{
+	/** ФИО пайщика */
+	display_name?:boolean | `@${string}`,
 	enrollments?:ResolverInputTypes["EduEnrollment"],
 	learners?:ResolverInputTypes["EduLearner"],
 	tasks?:ResolverInputTypes["EduAccessTask"],
@@ -22523,6 +22539,8 @@ export type ResolverInputTypes = {
 	active_enrollments?:boolean | `@${string}`,
 	/** Подписок, требующих внимания */
 	attention_count?:boolean | `@${string}`,
+	/** ФИО пайщика (у организации — наименование); пусто, если сертификата нет */
+	display_name?:boolean | `@${string}`,
 	/** Обучающихся */
 	learners_count?:boolean | `@${string}`,
 	/** Учётное имя пайщика */
@@ -22673,6 +22691,8 @@ export type ResolverInputTypes = {
 	["EduTeacherOption"]: AliasType<{
 	/** Номер договора участия в хозяйственной деятельности */
 	contract_number?:boolean | `@${string}`,
+	/** ФИО преподавателя; пусто, если сертификата нет */
+	display_name?:boolean | `@${string}`,
 	/** Когда подписан договор */
 	signed_at?:boolean | `@${string}`,
 	/** Учётное имя пайщика */
@@ -37327,7 +37347,11 @@ export type ModelTypes = {
 	["EduAccessTaskStatus"]:EduAccessTaskStatus;
 	["EduAdmin"]: {
 		appointed_by: string,
+	/** ФИО назначившего */
+	appointed_by_display_name: string,
 	created_at: ModelTypes["DateTime"],
+	/** ФИО администратора */
+	display_name: string,
 	id: ModelTypes["ID"],
 	username: string
 };
@@ -37602,7 +37626,9 @@ export type ModelTypes = {
 	recipient_value: string
 };
 	["EduMemberCard"]: {
-		enrollments: Array<ModelTypes["EduEnrollment"]>,
+		/** ФИО пайщика */
+	display_name: string,
+	enrollments: Array<ModelTypes["EduEnrollment"]>,
 	learners: Array<ModelTypes["EduLearner"]>,
 	tasks: Array<ModelTypes["EduAccessTask"]>,
 	username: string
@@ -37612,6 +37638,8 @@ export type ModelTypes = {
 	active_enrollments: number,
 	/** Подписок, требующих внимания */
 	attention_count: number,
+	/** ФИО пайщика (у организации — наименование); пусто, если сертификата нет */
+	display_name: string,
 	/** Обучающихся */
 	learners_count: number,
 	/** Учётное имя пайщика */
@@ -37751,6 +37779,8 @@ export type ModelTypes = {
 	["EduTeacherOption"]: {
 		/** Номер договора участия в хозяйственной деятельности */
 	contract_number: string,
+	/** ФИО преподавателя; пусто, если сертификата нет */
+	display_name: string,
 	/** Когда подписан договор */
 	signed_at: ModelTypes["DateTime"],
 	/** Учётное имя пайщика */
@@ -53464,7 +53494,11 @@ export type GraphQLTypes = {
 	["EduAdmin"]: {
 	__typename: "EduAdmin",
 	appointed_by: string,
+	/** ФИО назначившего */
+	appointed_by_display_name: string,
 	created_at: GraphQLTypes["DateTime"],
+	/** ФИО администратора */
+	display_name: string,
 	id: GraphQLTypes["ID"],
 	username: string,
 	['...on EduAdmin']: Omit<GraphQLTypes["EduAdmin"], "...on EduAdmin">
@@ -53765,6 +53799,8 @@ export type GraphQLTypes = {
 };
 	["EduMemberCard"]: {
 	__typename: "EduMemberCard",
+	/** ФИО пайщика */
+	display_name: string,
 	enrollments: Array<GraphQLTypes["EduEnrollment"]>,
 	learners: Array<GraphQLTypes["EduLearner"]>,
 	tasks: Array<GraphQLTypes["EduAccessTask"]>,
@@ -53777,6 +53813,8 @@ export type GraphQLTypes = {
 	active_enrollments: number,
 	/** Подписок, требующих внимания */
 	attention_count: number,
+	/** ФИО пайщика (у организации — наименование); пусто, если сертификата нет */
+	display_name: string,
 	/** Обучающихся */
 	learners_count: number,
 	/** Учётное имя пайщика */
@@ -53934,6 +53972,8 @@ export type GraphQLTypes = {
 	__typename: "EduTeacherOption",
 	/** Номер договора участия в хозяйственной деятельности */
 	contract_number: string,
+	/** ФИО преподавателя; пусто, если сертификата нет */
+	display_name: string,
 	/** Когда подписан договор */
 	signed_at: GraphQLTypes["DateTime"],
 	/** Учётное имя пайщика */

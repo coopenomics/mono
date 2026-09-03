@@ -24,7 +24,8 @@ function make(contracts: string[] = ['teach']) {
     getReadUrl: jest.fn(async (k: string) => `https://x/${k}`),
     deleteImage: jest.fn(async () => undefined),
   } as any;
-  return { service: new EdubridgeCourseService(courses, teachers, skillspace, images), courses, teachers, images, saved };
+  const names = { displayNames: jest.fn(async (us: string[]) => new Map(us.map((u) => [u, `ФИО ${u}`]))) } as any;
+  return { service: new EdubridgeCourseService(courses, teachers, skillspace, images, names), courses, teachers, images, saved };
 }
 
 const base = {

@@ -8,7 +8,8 @@ import { EdubridgeCourseRepository } from '../../infrastructure/repositories/edu
 import { EdubridgeEnrollmentRepository } from '../../infrastructure/repositories/edubridge-enrollment.repository';
 import { EdubridgeLearnerRepository } from '../../infrastructure/repositories/edubridge-learner.repository';
 import { EdubridgeConfigHolder } from '../config/edubridge-config.holder';
-import { EduAccessTaskDTO, EduConnectorBindingDTO, EduMemberCardDTO } from '../dto/edu-admin.dto';
+import { EduAccessTaskDTO, EduAdminDTO, EduConnectorBindingDTO, EduMemberCardDTO, EduMemberRowDTO } from '../dto/edu-admin.dto';
+import { EdubridgeNamesService } from '../membership/edubridge-names.service';
 import { EduEnrollmentDTO } from '../dto/edu-enrollment.dto';
 import { EduLearnerDTO } from '../dto/edu-learner.dto';
 import { EdubridgeAccessOutboxService } from './edubridge-access-outbox.service';
@@ -25,11 +26,17 @@ export class EdubridgeAdminService {
     private readonly bindings: EdubridgeConnectorBindingRepository,
     private readonly connectors: AccessCarrierRegistry,
     private readonly outbox: EdubridgeAccessOutboxService,
-    private readonly config: EdubridgeConfigHolder
+    private readonly config: EdubridgeConfigHolder,
+    private readonly names: EdubridgeNamesService
   ) {}
 
-  members(coopname: string, search?: string) {
-    return this.admins.memberRows(coopname, search);
+  /** Реестр пайщиков с ФИО; поиск — по ФИО или учётному имени. */
+  async members(coopname: string, search?: string): Promise<EduMemberRowDTO[]> {
+    const rows = await this.admins.memberRows(coopname);
+    const names = await this.names.displayNames(rows.map((r) => r.username));
+    return rows
+      .map((r) => ({ ...r, display_name: names.get(r.username) ?? '' }))
+      .filter((r) => EdubridgeNamesService.matches(search ?? '', r.username, r.display_name));
   }
 
   /** Сводная карточка: обучающиеся, курсы, оплаты, состояние выдачи. Контакты — по флагу `showContacts`. */
@@ -41,6 +48,7 @@ export class EdubridgeAdminService {
     for (const e of enrollments) cards.push(new EduEnrollmentDTO(e, await this.courses.findById(coopname, e.course_id)));
     return {
       username,
+      display_name: await this.names.displayName(username),
       learners: learners.map((l) => new EduLearnerDTO(l, { showContact: showContacts })),
       enrollments: cards,
       tasks: tasks.map((t) => new EduAccessTaskDTO(t)),
@@ -93,12 +101,16 @@ export class EdubridgeAdminService {
     return found;
   }
 
-  listAdmins(coopname: string) {
-    return this.admins.listAdmins(coopname);
+  async listAdmins(coopname: string): Promise<EduAdminDTO[]> {
+    const admins = await this.admins.listAdmins(coopname);
+    const names = await this.names.displayNames(admins.flatMap((a) => [a.username, a.appointed_by]));
+    return admins.map((a) => new EduAdminDTO(a, { display_name: names.get(a.username), appointed_by_display_name: names.get(a.appointed_by) }));
   }
 
-  appoint(coopname: string, username: string, by: string) {
-    return this.admins.appoint(coopname, username.trim(), by);
+  async appoint(coopname: string, username: string, by: string): Promise<EduAdminDTO> {
+    const a = await this.admins.appoint(coopname, username.trim(), by);
+    const names = await this.names.displayNames([a.username, a.appointed_by]);
+    return new EduAdminDTO(a, { display_name: names.get(a.username), appointed_by_display_name: names.get(a.appointed_by) });
   }
 
   dismiss(coopname: string, username: string) {

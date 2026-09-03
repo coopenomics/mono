@@ -13,7 +13,7 @@
       q-icon(name="verified")
     | Договор № {{ contract.contract_number }} подписан вами {{ formatDate(contract.signed_at) }}{{ contract.approved_at ? ` и председателем ${formatDate(contract.approved_at)}` : '' }}.
 
-  BaseTable(:columns="columns" :rows="assignments" row-key="id" :loading="loading && !assignments.length" min-width="1100px")
+  BaseTable(v-if="loading || assignments.length" :columns="columns" :rows="assignments" row-key="id" :loading="loading && !assignments.length" min-width="960px")
     template(#cell-period="{ row }") {{ row.period_from }} — {{ row.period_to }}
     template(#cell-status="{ row }")
       BaseBadge(:variant="statusOf(row.status).variant") {{ statusOf(row.status).label }}

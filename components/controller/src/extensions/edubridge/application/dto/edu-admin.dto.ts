@@ -10,6 +10,7 @@ import './edu-enums.registration';
 @ObjectType('EduMemberRow')
 export class EduMemberRowDTO {
   @Field(() => String, { description: 'Учётное имя пайщика' }) username!: string;
+  @Field(() => String, { description: 'ФИО пайщика (у организации — наименование); пусто, если сертификата нет' }) display_name!: string;
   @Field(() => Int, { description: 'Обучающихся' }) learners_count!: number;
   @Field(() => Int, { description: 'Действующих подписок' }) active_enrollments!: number;
   @Field(() => Int, { description: 'Подписок, требующих внимания' }) attention_count!: number;
@@ -19,6 +20,7 @@ export class EduMemberRowDTO {
 @ObjectType('EduMemberCard')
 export class EduMemberCardDTO {
   @Field(() => String) username!: string;
+  @Field(() => String, { description: 'ФИО пайщика' }) display_name!: string;
   @Field(() => [EduLearnerDTO]) learners!: EduLearnerDTO[];
   @Field(() => [EduEnrollmentDTO]) enrollments!: EduEnrollmentDTO[];
   @Field(() => [EduAccessTaskDTO]) tasks!: EduAccessTaskDTO[];
@@ -79,11 +81,20 @@ export class EduSetConnectorEnabledInputDTO {
 export class EduAdminDTO {
   @Field(() => ID) id!: string;
   @Field(() => String) username!: string;
+  @Field(() => String, { description: 'ФИО администратора' }) display_name!: string;
   @Field(() => String) appointed_by!: string;
+  @Field(() => String, { description: 'ФИО назначившего' }) appointed_by_display_name!: string;
   @Field(() => Date) created_at!: Date;
 
-  constructor(a: EdubridgeAdminEntity) {
-    Object.assign(this, { id: a.id, username: a.username, appointed_by: a.appointed_by, created_at: a.created_at });
+  constructor(a: EdubridgeAdminEntity, names: { display_name?: string; appointed_by_display_name?: string } = {}) {
+    Object.assign(this, {
+      id: a.id,
+      username: a.username,
+      display_name: names.display_name ?? '',
+      appointed_by: a.appointed_by,
+      appointed_by_display_name: names.appointed_by_display_name ?? '',
+      created_at: a.created_at,
+    });
   }
 }
 

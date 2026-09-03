@@ -21,6 +21,7 @@ import { EdubridgeConfigHolder } from './config/edubridge-config.holder';
 import { EdubridgeDesktopGrantsProvider } from './desktop/edubridge-desktop-grants.provider';
 import { EdubridgeAccessGuard } from './guards/edubridge-access.guard';
 import { EdubridgeMembershipService } from './membership/edubridge-membership.service';
+import { EdubridgeNamesService } from './membership/edubridge-names.service';
 import { EDUBRIDGE_ROLE_FACTS_PORT } from './membership/edubridge-role-facts.port';
 import { EdubridgeRoleFactsAdapter } from './membership/edubridge-role-facts.adapter';
 import { EdubridgeUdataParametersAdapter } from './registration/edubridge-udata-parameters.adapter';
@@ -57,6 +58,7 @@ import { EdubridgeCatalogCourseFieldsResolver, EdubridgeCourseFieldsResolver } f
     { provide: EDUBRIDGE_ROLE_FACTS_PORT, useClass: EdubridgeRoleFactsAdapter },
     EdubridgeUdataParametersAdapter,
     EdubridgeMembershipService,
+    EdubridgeNamesService,
     EdubridgeAccessGuard,
     EdubridgeDesktopGrantsProvider,
     EdubridgeCapitalNarrowingPolicy,

@@ -53,7 +53,7 @@ const rawSubjectSelector = { subject: true, grades: true }
 const _validateSubject: MakeAllFieldsRequired<ValueTypes['EduCatalogSubject']> = rawSubjectSelector
 export const eduCatalogSubjectSelector = Selector('EduCatalogSubject')(rawSubjectSelector)
 
-const rawTeacherOptionSelector = { username: true, contract_number: true, signed_at: true }
+const rawTeacherOptionSelector = { username: true, display_name: true, contract_number: true, signed_at: true }
 const _validateTeacherOption: MakeAllFieldsRequired<ValueTypes['EduTeacherOption']> = rawTeacherOptionSelector
 export const eduTeacherOptionSelector = Selector('EduTeacherOption')(rawTeacherOptionSelector)
 

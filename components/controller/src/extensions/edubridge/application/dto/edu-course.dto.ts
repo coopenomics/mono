@@ -241,6 +241,9 @@ export class EduTeacherOptionDTO {
   @Field(() => String, { description: 'Учётное имя пайщика' })
   username!: string;
 
+  @Field(() => String, { description: 'ФИО преподавателя; пусто, если сертификата нет' })
+  display_name!: string;
+
   @Field(() => String, { description: 'Номер договора участия в хозяйственной деятельности' })
   contract_number!: string;
 

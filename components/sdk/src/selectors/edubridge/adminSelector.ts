@@ -1,7 +1,7 @@
 import { Selector, type ValueTypes } from '../../zeus/index'
 import type { MakeAllFieldsRequired } from '../../utils/MakeAllFieldsRequired'
 
-const rawMemberRowSelector = { username: true, learners_count: true, active_enrollments: true, attention_count: true }
+const rawMemberRowSelector = { username: true, display_name: true, learners_count: true, active_enrollments: true, attention_count: true }
 const _validateMemberRow: MakeAllFieldsRequired<ValueTypes['EduMemberRow']> = rawMemberRowSelector
 export const eduMemberRowSelector = Selector('EduMemberRow')(rawMemberRowSelector)
 
@@ -24,7 +24,7 @@ export const eduAccessTaskSelector = Selector('EduAccessTask')(rawTaskSelector)
 
 const rawLearnerSelector = { id: true, display_name: true, recipient_type: true, recipient_value: true, is_self: true, created_at: true }
 const rawEnrollmentSelector = { id: true, learner_id: true, course_id: true, course_title: true, period: true, paid_until: true, status: true, access_state: true, sub_hash: true }
-const rawMemberCardSelector = { username: true, learners: rawLearnerSelector, enrollments: rawEnrollmentSelector, tasks: rawTaskSelector }
+const rawMemberCardSelector = { username: true, display_name: true, learners: rawLearnerSelector, enrollments: rawEnrollmentSelector, tasks: rawTaskSelector }
 const _validateMemberCard: MakeAllFieldsRequired<ValueTypes['EduMemberCard']> = rawMemberCardSelector
 export const eduMemberCardSelector = Selector('EduMemberCard')(rawMemberCardSelector)
 
@@ -32,6 +32,6 @@ const rawBindingSelector = { carrier: true, enabled: true, configured: true, hea
 const _validateBinding: MakeAllFieldsRequired<ValueTypes['EduConnectorBinding']> = rawBindingSelector
 export const eduConnectorBindingSelector = Selector('EduConnectorBinding')(rawBindingSelector)
 
-const rawAdminSelector = { id: true, username: true, appointed_by: true, created_at: true }
+const rawAdminSelector = { id: true, username: true, display_name: true, appointed_by: true, appointed_by_display_name: true, created_at: true }
 const _validateAdmin: MakeAllFieldsRequired<ValueTypes['EduAdmin']> = rawAdminSelector
 export const eduAdminSelector = Selector('EduAdmin')(rawAdminSelector)

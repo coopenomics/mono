@@ -15,6 +15,7 @@ import type {
   EduUpdateCourseInputDTO,
 } from '../dto/edu-course.dto';
 import { EdubridgeCourseImagesService } from './edubridge-course-images.service';
+import { EdubridgeNamesService } from '../membership/edubridge-names.service';
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -39,7 +40,8 @@ export class EdubridgeCourseService {
     private readonly courses: EdubridgeCourseRepository,
     private readonly teachers: EdubridgeTeacherRepository,
     private readonly skillspace: SkillspaceConnector,
-    private readonly images: EdubridgeCourseImagesService
+    private readonly images: EdubridgeCourseImagesService,
+    private readonly names: EdubridgeNamesService
   ) {}
 
   /**
@@ -60,7 +62,13 @@ export class EdubridgeCourseService {
   /** Кого можно назначить преподавателем курса: пайщики с подписанным договором УХД. */
   async teacherOptions(coopname: string): Promise<EduTeacherOptionDTO[]> {
     const contracts = await this.teachers.listContracts(coopname);
-    return contracts.map((c) => ({ username: c.teacher_username, contract_number: c.contract_number, signed_at: c.signed_at }));
+    const names = await this.names.displayNames(contracts.map((c) => c.teacher_username));
+    return contracts.map((c) => ({
+      username: c.teacher_username,
+      display_name: names.get(c.teacher_username) ?? '',
+      contract_number: c.contract_number,
+      signed_at: c.signed_at,
+    }));
   }
 
   /** Витрина: только опубликованные. */

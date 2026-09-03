@@ -6,9 +6,10 @@
   PageTabs.q-mb-md(:tabs="tabs" :active-key="tab" @select="(t) => (tab = t.key)")
 
   template(v-if="tab === 'assignments'")
-    BaseTable(:columns="assignmentColumns" :rows="assignments" row-key="id" :loading="loading && !assignments.length" min-width="960px")
+    BaseTable(v-if="loading || assignments.length" :columns="assignmentColumns" :rows="assignments" row-key="id" :loading="loading && !assignments.length" min-width="760px")
       template(#cell-teacher_username="{ row }")
-        span.t-mono {{ row.teacher_username }}
+        div {{ teacherName(row.teacher_username) }}
+        .t-muted.t-sm.t-mono {{ row.teacher_username }}
       template(#cell-period="{ row }") {{ row.period_from }} — {{ row.period_to }}
       template(#cell-status="{ row }")
         BaseBadge(:variant="assignmentStatusOf(row.status).variant") {{ assignmentStatusOf(row.status).label }}
@@ -19,9 +20,10 @@
         q-icon(name="assignment_ind" size="32px")
 
   template(v-else)
-    BaseTable(:columns="contributionColumns" :rows="contributions" row-key="id" :loading="loading && !contributions.length" min-width="1080px")
+    BaseTable(v-if="loading || contributions.length" :columns="contributionColumns" :rows="contributions" row-key="id" :loading="loading && !contributions.length" min-width="860px")
       template(#cell-teacher_username="{ row }")
-        span.t-mono {{ row.teacher_username }}
+        div {{ teacherName(row.teacher_username) }}
+        .t-muted.t-sm.t-mono {{ row.teacher_username }}
       template(#cell-rid_type="{ row }") {{ ridType(row.rid_type) }}
       template(#cell-amount="{ row }") {{ formatAsset2Digits(row.amount) }}
       template(#cell-status="{ row }")
@@ -105,22 +107,24 @@ const declineReason = ref('');
 const form = reactive<IAssignmentInput>({ teacher_username: '', course_id: '', schedule: '', expected_result: '', period_from: '', period_to: '' });
 
 const assignmentColumns: BaseTableColumn<IAssignment>[] = [
-  { key: 'teacher_username', label: 'Преподаватель', width: '160px' },
+  { key: 'teacher_username', label: 'Преподаватель', width: '180px' },
   { key: 'course_title', label: 'Курс' },
-  { key: 'period', label: 'Период сдачи', width: '200px' },
-  { key: 'status', label: 'Состояние', width: '200px' },
-  { key: 'actions', label: '', align: 'right', width: '100px' },
+  { key: 'period', label: 'Период сдачи', width: '170px', nowrap: true },
+  { key: 'status', label: 'Состояние', width: '170px' },
+  { key: 'actions', label: '', align: 'right', width: '90px' },
 ];
 const contributionColumns: BaseTableColumn<IContribution>[] = [
-  { key: 'teacher_username', label: 'Преподаватель', width: '160px' },
-  { key: 'rid_type', label: 'Тип', width: '200px' },
+  { key: 'teacher_username', label: 'Преподаватель', width: '180px' },
+  { key: 'rid_type', label: 'Тип', width: '150px' },
   { key: 'description', label: 'Описание' },
-  { key: 'amount', label: 'Сумма', numeric: true, width: '140px' },
-  { key: 'status', label: 'Состояние', width: '220px' },
+  { key: 'amount', label: 'Сумма', numeric: true, width: '120px', nowrap: true },
+  { key: 'status', label: 'Состояние', width: '170px' },
   { key: 'actions', label: '', align: 'right', width: '120px' },
 ];
 const courseOptions = computed(() => courses.value.map((c) => ({ value: c.id, label: `${c.title} · ${c.subject}, ${c.grade}` })));
-const teacherOptions = computed(() => teachers.value.map((t) => ({ value: t.username, label: `${t.username} · договор № ${t.contract_number}` })));
+const teacherOptions = computed(() => teachers.value.map((t) => ({ value: t.username, label: `${t.display_name || t.username} · договор № ${t.contract_number}` })));
+// ФИО известны для преподавателей с договором; остальным показываем учётное имя.
+const teacherName = (username: string) => teachers.value.find((t) => t.username === username)?.display_name || username;
 const DECLINABLE = new Set<string>([Zeus.EduContributionStatus.SUBMITTED, Zeus.EduContributionStatus.COUNCIL_APPROVED, Zeus.EduContributionStatus.ACT_SIGNED]);
 const canDecline = (c: IContribution) => DECLINABLE.has(c.status);
 const assignmentStatusOf = (s: string) => ASSIGNMENT_STATUS_LABELS[s] ?? { label: s, variant: 'neutral' as const };

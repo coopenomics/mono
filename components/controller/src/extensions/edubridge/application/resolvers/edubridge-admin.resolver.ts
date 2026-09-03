@@ -83,15 +83,15 @@ export class EdubridgeAdminResolver {
   @Query(() => [EduAdminDTO], { name: 'edubridgeAdmins', description: 'Администраторы приложения' })
   @UseGuards(GqlJwtAuthGuard, EdubridgeAccessGuard)
   @RequireEduAccess('EduAdmin', 'manage')
-  async edubridgeAdmins(): Promise<EduAdminDTO[]> {
-    return (await this.admin.listAdmins(coop())).map((a) => new EduAdminDTO(a));
+  edubridgeAdmins(): Promise<EduAdminDTO[]> {
+    return this.admin.listAdmins(coop());
   }
 
   @Mutation(() => EduAdminDTO, { name: 'edubridgeAppointAdmin', description: 'Назначить администратора' })
   @UseGuards(GqlJwtAuthGuard, EdubridgeAccessGuard)
   @RequireEduAccess('EduAdmin', 'manage')
   async edubridgeAppointAdmin(@CurrentEduMember() m: IEdubridgeMembership, @Args('data') data: EduAdminInputDTO): Promise<EduAdminDTO> {
-    return new EduAdminDTO(await this.admin.appoint(coop(), data.username, m.username as string));
+    return this.admin.appoint(coop(), data.username, m.username as string);
   }
 
   @Mutation(() => Boolean, { name: 'edubridgeDismissAdmin', description: 'Снять администратора' })

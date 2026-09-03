@@ -5401,7 +5401,9 @@ export const ReturnTypes: Record<string,any> = {
 	},
 	EduAdmin:{
 		appointed_by:"String",
+		appointed_by_display_name:"String",
 		created_at:"DateTime",
+		display_name:"String",
 		id:"ID",
 		username:"String"
 	},
@@ -5503,6 +5505,7 @@ export const ReturnTypes: Record<string,any> = {
 		recipient_value:"String"
 	},
 	EduMemberCard:{
+		display_name:"String",
 		enrollments:"EduEnrollment",
 		learners:"EduLearner",
 		tasks:"EduAccessTask",
@@ -5511,6 +5514,7 @@ export const ReturnTypes: Record<string,any> = {
 	EduMemberRow:{
 		active_enrollments:"Int",
 		attention_count:"Int",
+		display_name:"String",
 		learners_count:"Int",
 		username:"String"
 	},
@@ -5553,6 +5557,7 @@ export const ReturnTypes: Record<string,any> = {
 	},
 	EduTeacherOption:{
 		contract_number:"String",
+		display_name:"String",
 		signed_at:"DateTime",
 		username:"String"
 	},

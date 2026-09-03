@@ -15,7 +15,8 @@ function make() {
   const connectors = { list: jest.fn(() => [{ carrier: EduAccessCarrier.SKILLSPACE }]), get: jest.fn() } as any;
   const outbox = { retry: jest.fn(async () => ({ id: 'T1', status: 'pending', attempts: 3, next_attempt_at: new Date(), created_at: new Date(), updated_at: new Date() })) } as any;
   const config = { get: () => ({ connectors: { skillspace_api_key: 'k', getcourse_account: '', getcourse_api_key: '' } }) } as any;
-  return new EdubridgeAdminService(admins, learners, enrollments, courses, tasks, bindings, connectors, outbox, config);
+  const names = { displayName: jest.fn(async (u: string) => (u === 'ant' ? 'Муравьёв Алексей' : '')), displayNames: jest.fn(async (us: string[]) => new Map(us.map((u) => [u, u === 'ant' ? 'Муравьёв Алексей' : '']))) } as any;
+  return new EdubridgeAdminService(admins, learners, enrollments, courses, tasks, bindings, connectors, outbox, config, names);
 }
 
 describe('EdubridgeAdminService', () => {
@@ -38,5 +39,19 @@ describe('EdubridgeAdminService', () => {
     const s = make();
     const t = await s.retry('voskhod', 'T1');
     expect(t.attempts).toBe(3);
+  });
+});
+
+describe('EdubridgeAdminService — реестр пайщиков с ФИО', () => {
+  it('строки получают ФИО из сертификата, поиск идёт по ФИО и учётному имени', async () => {
+    const { service, admins } = make();
+    admins.memberRows = jest.fn(async () => [
+      { username: 'ant', learners_count: 1, active_enrollments: 0, attention_count: 0 },
+      { username: 'bob', learners_count: 2, active_enrollments: 1, attention_count: 0 },
+    ]);
+    const all = await service.members('voskhod');
+    expect(all.map((r) => [r.username, r.display_name])).toEqual([['ant', 'Муравьёв Алексей'], ['bob', '']]);
+    expect((await service.members('voskhod', 'мурав')).map((r) => r.username)).toEqual(['ant']);
+    expect((await service.members('voskhod', 'BO')).map((r) => r.username)).toEqual(['bob']);
   });
 });

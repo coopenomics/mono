@@ -4,7 +4,7 @@
     | Паевой взнос результатами работы: укажите тип результата, ссылки на материалы и сумму, подпишите заявление —
     | совет рассмотрит его. После решения совета подпишите акт приёма-передачи: сумма поступит в ваш кошелёк правом требования.
 
-  BaseTable(:columns="columns" :rows="items" row-key="id" :loading="loading && !items.length" min-width="1000px")
+  BaseTable(v-if="loading || items.length" :columns="columns" :rows="items" row-key="id" :loading="loading && !items.length" min-width="900px")
     template(#cell-rid_type="{ row }") {{ ridType(row.rid_type) }}
     template(#cell-amount="{ row }") {{ formatAsset2Digits(row.amount) }}
     template(#cell-status="{ row }")

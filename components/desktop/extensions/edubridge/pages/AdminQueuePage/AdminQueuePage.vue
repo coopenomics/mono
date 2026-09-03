@@ -4,7 +4,7 @@
     | Очередь выдачи и отзыва доступа на площадках. Задачи повторяются сами; «требует вмешательства» — площадка отказала
     | или курс рассогласован: разберитесь с причиной и нажмите «Повторить». Выдать доступ в обход взноса нельзя.
   PageTabs.q-mb-md(:tabs="tabs" :active-key="tab" @select="(t) => (tab = t.key)")
-  BaseTable(:columns="columns" :rows="items" row-key="id" :loading="loading && !items.length" min-width="1080px")
+  BaseTable(v-if="loading || items.length" :columns="columns" :rows="items" row-key="id" :loading="loading && !items.length" min-width="860px")
     template(#cell-kind="{ row }") {{ kindOf(row.kind) }}
     template(#cell-status="{ row }")
       BaseBadge(:variant="statusOf(row.status).variant") {{ statusOf(row.status).label }}
@@ -36,13 +36,13 @@ const loading = ref(false);
 const busy = ref<string | null>(null);
 
 const columns: BaseTableColumn<IAccessTask>[] = [
-  { key: 'kind', label: 'Задача', width: '100px' },
-  { key: 'carrier', label: 'Площадка', width: '120px' },
-  { key: 'status', label: 'Состояние', width: '200px' },
-  { key: 'attempts', label: 'Попыток', numeric: true, width: '90px' },
-  { key: 'next_attempt_at', label: 'Следующая попытка', width: '170px' },
+  { key: 'kind', label: 'Задача', width: '90px' },
+  { key: 'carrier', label: 'Площадка', width: '110px' },
+  { key: 'status', label: 'Состояние', width: '170px' },
+  { key: 'attempts', label: 'Попыток', numeric: true, width: '80px' },
+  { key: 'next_attempt_at', label: 'Следующая попытка', width: '150px' },
   { key: 'last_error', label: 'Последняя ошибка' },
-  { key: 'actions', label: '', align: 'right', width: '120px' },
+  { key: 'actions', label: '', align: 'right', width: '110px' },
 ];
 const statusOf = (s: string) => TASK_STATUS_LABELS[s] ?? { label: s, variant: 'neutral' as const };
 const kindOf = (k: string) => TASK_KIND_LABELS[k] ?? k;
