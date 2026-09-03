@@ -49,9 +49,9 @@
 
 <script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue';
+import { useRouter } from 'vue-router';
 import { AuthV2ErrorCode, PASSWORD_POLICY_HINT, passwordPolicyErrors } from '@coopenomics/auth';
 import { useRecoverAccess } from 'src/features/User/RecoverAccess';
-import { navigateToPath } from 'src/shared/lib/navigation';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { AuthCard } from 'src/shared/ui/domain/AuthCard';
 import { BaseBanner } from 'src/shared/ui/base/BaseBanner';
@@ -64,6 +64,7 @@ const props = defineProps<{
   coopname: string;
 }>();
 
+const router = useRouter();
 const { confirmRecovery, loadRecoveryContext } = useRecoverAccess();
 
 // Почту и необходимость второго фактора отдаёт сервер по токену ссылки: пайщик их
@@ -127,18 +128,23 @@ const submit = async (): Promise<void> => {
       newPassword: newPassword.value,
     });
     SuccessAlert('Доступ восстановлен. Входим…');
-    // Автологин по дизайну есть: confirmRecovery уже вошёл новым паролём, разблокировал
-    // кошелёк и построил сессию CoopID с PIN-кэшем. Поэтому ведём в кабинет, а не на
-    // форму входа — заставлять входить второй раз значило бы выбросить готовую сессию.
-    // Перезагрузка нужна, чтобы канонический boot-путь поднял её из IndexedDB (переживает F5).
-    navigateToPath(`/${props.coopname}`, { reload: true });
+    // Обычный переход роутером, БЕЗ перезагрузки страницы. Сессия CoopID уже построена
+    // в этом же контексте (confirmRecovery вошёл новым паролём, разблокировал кошелёк и
+    // положил токены с PIN-кэшем), поднимать её заново из IndexedDB незачем.
+    //
+    // Прежний navigateToPath делал window.location.assign, то есть полный перезапуск
+    // приложения. Маршрут кабинета `/:coopname` регистрируется динамически, когда
+    // загрузится меню рабочего стола, — стартующий с нуля роутер его ещё не знает и
+    // показывает «404 страница не найдена» (владелец 04.09.2026). Push по живому
+    // роутеру этой гонки не создаёт.
+    await router.push(`/${props.coopname}`);
   } catch (e: any) {
     // Ключ уже сменён, а войти следом не удалось: ссылка одноразовая и сожжена,
     // повторять здесь нечего. Оставлять пайщика на этой форме — тупик, уводим на
     // обычный вход новым паролём (владелец 03.09.2026).
     if (e?.code === AuthV2ErrorCode.RecoveryDoneLoginFailed) {
       SuccessAlert('Пароль изменён. Войдите новым паролём.');
-      navigateToPath(`/${props.coopname}/auth/signin`, { reload: true });
+      await router.push({ name: 'signin', params: { coopname: props.coopname } });
       return;
     }
     errorMessage.value =
