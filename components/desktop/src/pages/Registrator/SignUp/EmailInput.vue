@@ -1,13 +1,16 @@
 <template lang='pug'>
 div
   q-step(:name='store.steps.EmailInput', title='Введите электронную почту', :done="store.isStepDone('EmailInput')")
-    p Добро пожаловать в {{ coopTitle }}! Для начала регистрации, пожалуйста, введите вашу электронную почту:
+    //- Одна колонка постоянной ширины: поле, кнопка и вторая дорога выстроены по левому
+    //- краю и одинаковы по ширине. Раньше кнопки были разного размера и «или» висело
+    //- посередине пустоты (замечание владельца 03.09.2026).
+    .email-input
+      p.email-input__lead Добро пожаловать в {{ coopTitle }}! Для начала регистрации введите вашу электронную почту.
 
-    .email-input__field
       BaseInput(
         :model-value='email',
         type='email',
-        label='Введите email',
+        label='Электронная почта',
         :readonly='inLoading',
         :error='emailError',
         autocomplete='email',
@@ -15,23 +18,27 @@ div
         @keypress.enter='setEmail'
       )
 
-    BaseButton(
-      variant='primary',
-      :disabled='!isValidEmail || isEmailExist',
-      :loading='inLoading',
-      @click='setEmail'
-    ) Продолжить
+      BaseButton(
+        variant='primary',
+        block,
+        :disabled='!isValidEmail || isEmailExist',
+        :loading='inLoading',
+        @click='setEmail'
+      ) Продолжить
 
-    //- Регистрация по карте пайщика — здесь, а не отдельным шагом в середине пути
-    //- (решение владельца 03.09.2026). Смысл карты в том, чтобы не заполнять анкету
-    //- заново: предлагать её после того, как человек всё ввёл руками, поздно.
-    template(v-if='cardcoopEntryAvailable')
-      .email-input__divider или
-      BaseButton(variant='secondary', :disabled='inLoading', @click='startCardcoopEntry')
-        template(#icon-left)
-          q-icon(name='badge', size='18px')
-        | Зарегистрироваться по карте пайщика
-      p.email-input__note Карта перенесёт анкету из кооператива, где вас уже приняли: останется проверить данные и подписать заявление.
+      //- Регистрация по карте пайщика — здесь, а не отдельным шагом в середине пути
+      //- (решение владельца 03.09.2026). Смысл карты в том, чтобы не заполнять анкету
+      //- заново: предлагать её после того, как человек ввёл всё руками, поздно.
+      template(v-if='cardcoopEntryAvailable')
+        .email-input__divider
+          span.email-input__divider-word или
+
+        BaseButton(variant='secondary', block, :disabled='inLoading', @click='startCardcoopEntry')
+          template(#icon-left)
+            q-icon(name='badge', size='18px')
+          | Зарегистрироваться по карте пайщика
+
+        p.email-input__note Анкета перенесётся из кооператива, где вас уже приняли: останется проверить данные и подписать заявление.
 </template>
 
 <script lang="ts" setup>
@@ -113,28 +120,49 @@ const setEmail = () => {
 };
 </script>
 
-<style scoped>
-.email-input__field {
-  margin-top: var(--p-4, 16px);
-  margin-bottom: var(--p-2, 8px);
-  /* Поле уже, чем тело stepper-step. На широких карточках читается лучше
-     если email-инпут не растягивается во всю ширину. */
+<style lang="scss" scoped>
+/* Форма шага — одна колонка: поле и обе кнопки одной ширины, зазоры одинаковые.
+   Ширина ограничена: на широкой карточке растянутое во всю ширину поле ввода почты
+   читается хуже. */
+.email-input {
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-3);
   max-width: 360px;
+  margin-top: var(--p-4);
 }
 
-/* Разделитель и пояснение — как на экране входа: две дороги, а не кнопка среди текста. */
+.email-input__lead {
+  margin: 0;
+  color: var(--p-ink-2);
+}
+
+/* Разделитель — линия с надписью по центру, а не текст в пустоте */
 .email-input__divider {
-  margin: var(--p-4) 0 var(--p-3);
-  max-width: 360px;
+  position: relative;
   text-align: center;
   color: var(--p-ink-3);
   font-size: var(--p-fs-body-sm);
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    border-top: 1px solid var(--p-line);
+  }
+}
+
+.email-input__divider-word {
+  position: relative;
+  padding: 0 var(--p-3);
+  background: var(--p-surface);
 }
 
 .email-input__note {
-  margin: var(--p-2) 0 0;
-  max-width: 360px;
-  color: var(--p-ink-2);
+  margin: 0;
+  color: var(--p-ink-3);
   font-size: var(--p-fs-body-sm);
 }
 </style>
