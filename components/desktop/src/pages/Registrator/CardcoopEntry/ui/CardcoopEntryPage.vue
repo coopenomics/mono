@@ -3,50 +3,42 @@
     <AuthCard :title="title" :subtitle="subtitle">
       <!-- Ошибка входа: человек передумал на card.coop либо обмен не удался -->
       <template v-if="failed">
-        <div class="banner banner--info">
-          <q-icon class="banner__icon" name="info" />
-          <div class="banner__body">
-            Вход по карте не завершился. Ничего не потеряно: войдите обычным способом или
-            зарегистрируйтесь — карту можно будет связать позже.
-          </div>
+        <BaseBanner variant="info">
+          Вход по карте не завершился. Ничего не потеряно: войдите обычным способом или
+          зарегистрируйтесь — карту можно будет связать позже.
+        </BaseBanner>
+        <div class="cardcoop-entry-page__actions">
+          <BaseButton variant="primary" block @click="goSignIn">Войти обычным способом</BaseButton>
+          <BaseButton variant="secondary" block @click="goSignUp">Зарегистрироваться</BaseButton>
         </div>
-        <BaseButton variant="primary" block @click="goSignIn">Войти обычным способом</BaseButton>
-        <BaseButton variant="secondary" block @click="goSignUp">Зарегистрироваться</BaseButton>
       </template>
 
-      <!-- Сессия грузится -->
+      <!-- Ответ сети ещё не пришёл: каркас той же формы, что и будущий экран -->
       <template v-else-if="!entry">
-        <div class="skel" />
-        <div class="skel" />
+        <q-skeleton type="rect" height="72px" />
+        <q-skeleton type="rect" height="40px" />
       </template>
 
-      <!-- Карта опознала человека: учётная запись у него уже есть. Вход — штатными
-           способами, сессий по карте не существует. Ветка общая и для пайщика, и для
-           кандидата, ждущего решения совета: вторая учётная запись ему ни к чему (3B5-53). -->
+      <!-- Карта опознала пайщика этого кооператива -->
       <template v-else-if="entry.username">
-        <div class="banner banner--info">
-          <q-icon class="banner__icon" name="badge" />
-          <div class="banner__body">
-            Карта опознала вас: учётная запись
-            <span class="t-mono">{{ entry.username }}</span
-            >. Войдите паролем — или восстановите доступ, если пароль утерян.
-          </div>
+        <BaseBanner variant="info">
+          Карта опознала вас: учётная запись
+          <span class="t-mono">{{ entry.username }}</span
+          >. Войдите паролем — или восстановите доступ, если пароль утерян.
+        </BaseBanner>
+        <div class="cardcoop-entry-page__actions">
+          <BaseButton variant="primary" block @click="goSignIn">Войти</BaseButton>
+          <BaseButton variant="secondary" block @click="goRecover">Восстановить доступ</BaseButton>
         </div>
-        <BaseButton variant="primary" block @click="goSignIn">Войти</BaseButton>
-        <BaseButton variant="secondary" block @click="goRecover">Восстановить доступ</BaseButton>
       </template>
 
-      <!-- Кандидат: быстрая регистрация -->
       <template v-else>
         <!-- Выбор кооператива-источника -->
         <template v-if="pickingSource && entry.memberships.length > 0">
-          <div class="banner banner--info">
-            <q-icon class="banner__icon" name="badge" />
-            <div class="banner__body">
-              Анкету можно перенести из кооператива, где вас уже верифицировали, — с вашего
-              согласия и напрямую, минуя сеть. Выберите кооператив-источник.
-            </div>
-          </div>
+          <BaseBanner variant="info">
+            Анкету можно перенести из кооператива, где вас уже верифицировали, — с вашего
+            согласия и напрямую, минуя сеть. Выберите кооператив-источник.
+          </BaseBanner>
           <div class="cardcoop-entry-page__sources">
             <label
               v-for="membership in entry.memberships"
@@ -55,82 +47,78 @@
             >
               <q-radio v-model="selectedSource" :val="membership.coopname" dense />
               <span class="cardcoop-entry-page__source-name">{{ membership.displayName }}</span>
-              <span v-if="membership.memberSince" class="t-sm t-muted">
+              <span v-if="membership.memberSince" class="cardcoop-entry-page__source-since">
                 пайщик с {{ membership.memberSince }}
               </span>
             </label>
           </div>
-          <BaseButton
-            variant="primary"
-            block
-            :loading="requesting"
-            :disabled="!selectedSource"
-            @click="requestDisclosure"
-          >
-            Запросить перенос анкеты
-          </BaseButton>
-          <BaseButton variant="ghost" block @click="goSignUp">Заполнить анкету вручную</BaseButton>
-          <BaseButton variant="ghost" block @click="goSignIn">У меня уже есть учётная запись</BaseButton>
+          <div class="cardcoop-entry-page__actions">
+            <BaseButton
+              variant="primary"
+              block
+              :loading="requesting"
+              :disabled="!selectedSource"
+              @click="requestDisclosure"
+            >
+              Запросить перенос анкеты
+            </BaseButton>
+            <BaseButton variant="secondary" block @click="goSignUp">Заполнить анкету вручную</BaseButton>
+            <BaseButton variant="ghost" block @click="goSignIn">У меня уже есть учётная запись</BaseButton>
+          </div>
         </template>
 
-        <!-- Членств нет: обычная регистрация, карта свяжется по её ходу -->
+        <!-- Членств нет: переносить неоткуда -->
         <template v-else-if="entry.status === Zeus.CardcoopEntryStatus.Started">
-          <div class="banner banner--info">
-            <q-icon class="banner__icon" name="badge" />
-            <div class="banner__body">
-              У карты пока нет подтверждённых членств — анкету перенести неоткуда.
-              Зарегистрируйтесь обычным порядком: карта будет связана по ходу вступления.
-            </div>
+          <BaseBanner variant="info">
+            У карты пока нет подтверждённых членств — анкету перенести неоткуда.
+            Зарегистрируйтесь обычным порядком: карта будет связана по ходу вступления.
+          </BaseBanner>
+          <div class="cardcoop-entry-page__actions">
+            <BaseButton variant="primary" block @click="goSignUp">Продолжить регистрацию</BaseButton>
+            <BaseButton variant="ghost" block @click="goSignIn">У меня уже есть учётная запись</BaseButton>
           </div>
-          <BaseButton variant="primary" block @click="goSignUp">Продолжить регистрацию</BaseButton>
-          <BaseButton variant="ghost" block @click="goSignIn">У меня уже есть учётная запись</BaseButton>
         </template>
 
-        <!-- Ждём решения держателя на card.coop -->
+        <!-- Ждём решения держателя на стороне сети -->
         <template v-else-if="entry.status === Zeus.CardcoopEntryStatus.AwaitingConsent">
-          <div class="banner banner--info">
-            <q-icon class="banner__icon" name="hourglass_top" />
-            <div class="banner__body">
-              Откройте кабинет card.coop и подтвердите перенос анкеты. Эта страница продолжит
-              сама, как только вы разрешите.
-            </div>
+          <BaseBanner variant="warn">
+            Откройте кабинет card.coop и подтвердите перенос анкеты. Эта страница продолжит
+            сама, как только вы разрешите.
+          </BaseBanner>
+          <div class="cardcoop-entry-page__actions">
+            <BaseButton variant="primary" block @click="openCardcoop">Открыть card.coop</BaseButton>
+            <BaseButton variant="ghost" block @click="goSignUp">Не ждать — заполнить вручную</BaseButton>
           </div>
-          <BaseButton variant="primary" block @click="openCardcoop">Открыть card.coop</BaseButton>
-          <div class="skel" />
-          <BaseButton variant="ghost" block @click="goSignUp">Не ждать — заполнить вручную</BaseButton>
         </template>
 
-        <!-- Анкета приехала -->
+        <!-- Анкета пришла и проверена -->
         <template v-else-if="entry.status === Zeus.CardcoopEntryStatus.ProfileReady">
-          <div class="banner banner--info">
-            <q-icon class="banner__icon" name="task_alt" />
-            <div class="banner__body">
-              Анкета получена от кооператива и подписана его ключом. Проверьте данные в форме
-              вступления, подпишите заявление и оплатите взнос — совет рассмотрит его обычным
-              порядком.
-            </div>
+          <BaseBanner variant="pos">
+            Анкета получена от кооператива и подписана его ключом. Проверьте данные в форме
+            вступления, подпишите заявление и оплатите взнос — совет рассмотрит его обычным
+            порядком.
+          </BaseBanner>
+          <div class="cardcoop-entry-page__actions">
+            <BaseButton variant="primary" block :loading="taking" @click="continueWithProfile">
+              Продолжить с перенесённой анкетой
+            </BaseButton>
           </div>
-          <BaseButton variant="primary" block :loading="taking" @click="continueWithProfile">
-            Продолжить с перенесённой анкетой
-          </BaseButton>
         </template>
 
-        <!-- Ветка закончилась без анкеты: отказ, молчание либо неудавшийся перенос.
-             У каждой из трёх есть конец и понятный следующий шаг (3B5-54). -->
+        <!-- Перенос не состоялся: отказ, истёкшее согласие или сбой -->
         <template v-else>
-          <div class="banner banner--info">
-            <q-icon class="banner__icon" :name="outcomeIcon" />
-            <div class="banner__body">{{ outcomeText }}</div>
+          <BaseBanner variant="warn">{{ outcomeText }}</BaseBanner>
+          <div class="cardcoop-entry-page__actions">
+            <BaseButton variant="primary" block @click="goSignUp">Заполнить анкету вручную</BaseButton>
+            <BaseButton
+              v-if="entry.memberships.length > 0"
+              variant="secondary"
+              block
+              @click="pickAnotherSource"
+            >
+              Попробовать ещё раз
+            </BaseButton>
           </div>
-          <BaseButton variant="primary" block @click="goSignUp">Заполнить анкету вручную</BaseButton>
-          <BaseButton
-            v-if="entry.memberships.length > 0"
-            variant="secondary"
-            block
-            @click="pickAnotherSource"
-          >
-            Попробовать ещё раз
-          </BaseButton>
         </template>
       </template>
     </AuthCard>
@@ -145,7 +133,7 @@ import { client } from 'src/shared/api/client';
 import { FailAlert } from 'src/shared/api';
 import { useRegistratorStore } from 'src/entities/Registrator';
 import { AuthCard } from 'src/shared/ui/domain/AuthCard';
-import { BaseButton } from 'src/shared/ui/base';
+import { BaseBanner, BaseButton } from 'src/shared/ui/base';
 
 /**
  * Страница входа по карте пайщика (карта пайщика, story 9.2/9.3).
@@ -205,12 +193,17 @@ const outcomeText = computed(() => {
   return 'Перенести анкету не удалось. Можно попробовать ещё раз или заполнить её вручную — на вступление это не влияет.';
 });
 
-const outcomeIcon = computed(() =>
-  entry.value?.status === Zeus.CardcoopEntryStatus.Denied ? 'block' : 'schedule',
-);
-const subtitle = computed(() =>
-  entry.value?.cardNumber ? `Карта ${entry.value.cardNumber.replace(/(.{4})(?=.)/g, '$1 ')}` : undefined,
-);
+/**
+ * Номер карты под заголовком.
+ *
+ * Разбивается по четыре ТОЛЬКО из цифр: сеть отдаёт номер уже с пробелами, и повторная
+ * разбивка сдвигала группы — «9830 449 6 65 75 9 722» вместо «9830 4496 6575 9722»
+ * (03.09.2026).
+ */
+const subtitle = computed(() => {
+  const digits = (entry.value?.cardNumber ?? '').replace(/\D/g, '');
+  return digits ? `Карта ${digits.replace(/(.{4})(?=.)/g, '$1 ')}` : undefined;
+});
 
 async function load(): Promise<void> {
   if (!entryId.value) return;
@@ -346,9 +339,15 @@ onUnmounted(() => stopPolling());
   flex: 1;
 }
 
-.skel {
-  height: 48px;
-  border-radius: var(--p-r-md);
-  background: var(--p-surface-2);
+/* Кнопки формы — одной колонкой с ровным зазором, как на других экранах входа. */
+.cardcoop-entry-page__actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-2);
+}
+
+.cardcoop-entry-page__source-since {
+  color: var(--p-ink-3);
+  font-size: var(--p-fs-body-sm);
 }
 </style>
