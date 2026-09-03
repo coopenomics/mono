@@ -52,6 +52,7 @@ import { computed, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { AuthV2ErrorCode, PASSWORD_POLICY_HINT, passwordPolicyErrors } from '@coopenomics/auth';
 import { useRecoverAccess } from 'src/features/User/RecoverAccess';
+import { useAccountStore } from 'src/entities/Account/model';
 import { useDesktopStore } from 'src/entities/Desktop/model';
 import { useSessionStore } from 'src/entities/Session';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
@@ -134,16 +135,23 @@ onMounted(async () => {
 async function enterDesktop(): Promise<void> {
   const session = useSessionStore();
   const desktops = useDesktopStore();
+  const account = useAccountStore();
+
+  // «Кабинет или регистрация» решаем по СВЕЖИМ данным пайщика, загрузив их сами.
+  // Сессия только что построена, currentUserAccount ещё пуст, и isRegistrationComplete
+  // в этот момент всегда false: пайщика уносило на регистрацию, а кабинет догонял через
+  // несколько секунд, когда init-wallet асинхронно доставлял аккаунт (владелец
+  // 04.09.2026). Один запрос здесь снимает и ложный маршрут, и ожидание.
+  try {
+    const userAccount = await account.getAccount(session.username);
+    if (userAccount) session.setCurrentUserAccount(userAccount);
+  } catch (e) {
+    console.warn('[BOOTRACE] не удалось загрузить аккаунт после восстановления:', e);
+  }
 
   if (!session.isRegistrationComplete) {
     await router.push({ name: 'signup', params: { coopname: props.coopname } });
     return;
-  }
-  // Данные пользователя догружаются асинхронно; ждём их так же, как обычный вход.
-  let attempts = 0;
-  while (!session.loadComplete && attempts < 50) {
-    await new Promise((resolve) => setTimeout(resolve, 100));
-    attempts++;
   }
   try {
     await desktops.loadDesktop();
