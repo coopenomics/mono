@@ -1,20 +1,18 @@
 <template lang="pug">
 BaseCard.edu-admin-course(variant="default")
   .edu-admin-course__media
-    q-img(v-if="course.image_url" :src="course.image_url" :ratio="16 / 9" fit="cover" no-spinner)
+    q-img(v-if="course.image_url" :src="course.image_url" :ratio="2 / 1" fit="cover" no-spinner)
     .edu-admin-course__placeholder(v-else)
       q-icon(name="image" size="32px")
     BaseBadge.edu-admin-course__status(:variant="status.variant") {{ status.label }}
   .row.q-gutter-xs
     BaseChip(variant="neutral" size="sm") {{ course.subject }}
     BaseChip(variant="neutral" size="sm") {{ course.grade }}
-  .text-subtitle1.text-weight-medium.q-mt-sm {{ course.title }}
+  .text-subtitle2.text-weight-medium.q-mt-sm.ellipsis-2-lines {{ course.title }}
   .edu-admin-course__rows.q-mt-sm
     .row.items-center.no-wrap.t-sm.t-muted
       q-icon.q-mr-xs(name="hub" size="16px")
       span {{ carrierLabel }}
-      span.q-mx-xs(v-if="course.external_ref") ·
-      span.t-mono.ellipsis(v-if="course.external_ref" :title="course.external_ref") {{ course.external_ref }}
     .row.items-center.no-wrap.t-sm.t-muted(v-if="course.teacher_usernames.length")
       q-icon.q-mr-xs(name="co_present" size="16px")
       span.t-mono.ellipsis {{ course.teacher_usernames.join(', ') }}
@@ -68,7 +66,7 @@ const carrierLabel = computed(() => CARRIER_LABELS[props.course.carrier] ?? prop
   background: var(--p-surface-2);
 }
 .edu-admin-course__placeholder {
-  aspect-ratio: 16 / 9;
+  aspect-ratio: 2 / 1;
   display: flex;
   align-items: center;
   justify-content: center;

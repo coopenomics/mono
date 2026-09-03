@@ -627,6 +627,9 @@ export const AllTypesProps: Record<string,any> = {
 	EduCatalogFilterInput:{
 
 	},
+	EduConnectorCredentialInput:{
+
+	},
 	EduConnectorHealth: "enum" as const,
 	EduContractStatus: "enum" as const,
 	EduContributionDraftInput:{
@@ -667,6 +670,10 @@ export const AllTypesProps: Record<string,any> = {
 
 	},
 	EduRidType: "enum" as const,
+	EduSetConnectorCredentialsInput:{
+		carrier:"EduAccessCarrier",
+		values:"EduConnectorCredentialInput"
+	},
 	EduSetConnectorEnabledInput:{
 		carrier:"EduAccessCarrier"
 	},
@@ -2011,6 +2018,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		edubridgeRidStatement:{
 
+		},
+		edubridgeSetConnectorCredentials:{
+			data:"EduSetConnectorCredentialsInput"
 		},
 		edubridgeSetConnectorEnabled:{
 			data:"EduSetConnectorEnabledInput"
@@ -5441,10 +5451,18 @@ export const ReturnTypes: Record<string,any> = {
 	EduConnectorBinding:{
 		carrier:"EduAccessCarrier",
 		configured:"Boolean",
+		credential_fields:"EduConnectorCredentialField",
 		enabled:"Boolean",
 		health:"EduConnectorHealth",
 		last_check_at:"DateTime",
 		last_check_message:"String"
+	},
+	EduConnectorCredentialField:{
+		is_set:"Boolean",
+		key:"String",
+		label:"String",
+		note:"String",
+		secret:"Boolean"
 	},
 	EduContribution:{
 		act_hash:"String",
@@ -7269,6 +7287,7 @@ export const ReturnTypes: Record<string,any> = {
 		edubridgeRetryTask:"EduAccessTask",
 		edubridgeRidAct:"GeneratedDocument",
 		edubridgeRidStatement:"GeneratedDocument",
+		edubridgeSetConnectorCredentials:"EduConnectorBinding",
 		edubridgeSetConnectorEnabled:"EduConnectorBinding",
 		edubridgeSetCourseStatus:"EduCourse",
 		edubridgeSignAct:"EduContribution",

@@ -1,4 +1,5 @@
 import type { EduAccessCarrier, EduRecipientType } from '../enums';
+import type { ConnectorCredentialField } from './connector-credentials';
 
 /** Кому выдаётся пропуск: площадке уходит только этот контакт и ничего больше. */
 export interface AccessRecipient {
@@ -42,6 +43,8 @@ export interface CourseCheckResult {
  */
 export interface AccessCarrierConnector {
   readonly carrier: EduAccessCarrier;
+  /** Поля подключения площадки; пусто — площадке ключи не нужны (очно). */
+  readonly credentialFields: ConnectorCredentialField[];
   grant(request: AccessRequest): Promise<ConnectorResult>;
   revoke(request: AccessRequest): Promise<ConnectorResult>;
   check(coopname: string, courseRef: string): Promise<CourseCheckResult>;

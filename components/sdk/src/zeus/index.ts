@@ -6757,8 +6757,10 @@ export type ValueTypes = {
 }>;
 	["EduConnectorBinding"]: AliasType<{
 	carrier?:boolean | `@${string}`,
-	/** Ключи площадки заданы (сами ключи наружу не выдаются) */
+	/** Все поля подключения заданы (сами ключи наружу не выдаются) */
 	configured?:boolean | `@${string}`,
+	/** Поля подключения площадки и отметки «задано» */
+	credential_fields?:ValueTypes["EduConnectorCredentialField"],
 	enabled?:boolean | `@${string}`,
 	health?:boolean | `@${string}`,
 	last_check_at?:boolean | `@${string}`,
@@ -6766,6 +6768,22 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on EduConnectorBinding']?: Omit<ValueTypes["EduConnectorBinding"], "...on EduConnectorBinding">
 }>;
+	["EduConnectorCredentialField"]: AliasType<{
+	/** Значение уже задано */
+	is_set?:boolean | `@${string}`,
+	key?:boolean | `@${string}`,
+	label?:boolean | `@${string}`,
+	note?:boolean | `@${string}`,
+	/** Секрет: вводится как пароль */
+	secret?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on EduConnectorCredentialField']?: Omit<ValueTypes["EduConnectorCredentialField"], "...on EduConnectorCredentialField">
+}>;
+	["EduConnectorCredentialInput"]: {
+	key: string | Variable<any, string>,
+	/** Пустое значение оставляет прежнее */
+	value: string | Variable<any, string>
+};
 	/** Состояние подключения площадки */
 ["EduConnectorHealth"]:EduConnectorHealth;
 	/** Состояние договора участия преподавателя в хозяйственной деятельности */
@@ -7069,6 +7087,10 @@ export type ValueTypes = {
 };
 	/** Тип результата интеллектуальной деятельности */
 ["EduRidType"]:EduRidType;
+	["EduSetConnectorCredentialsInput"]: {
+	carrier: ValueTypes["EduAccessCarrier"] | Variable<any, string>,
+	values: Array<ValueTypes["EduConnectorCredentialInput"]> | Variable<any, string>
+};
 	["EduSetConnectorEnabledInput"]: {
 	carrier: ValueTypes["EduAccessCarrier"] | Variable<any, string>,
 	enabled: boolean | Variable<any, string>
@@ -12640,6 +12662,7 @@ edubridgeRemoveLearner?: [{	id: ValueTypes["ID"] | Variable<any, string>},boolea
 edubridgeRetryTask?: [{	data: ValueTypes["EduRetryTaskInput"] | Variable<any, string>},ValueTypes["EduAccessTask"]],
 edubridgeRidAct?: [{	contribution_id: ValueTypes["ID"] | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 edubridgeRidStatement?: [{	contribution_id: ValueTypes["ID"] | Variable<any, string>},ValueTypes["GeneratedDocument"]],
+edubridgeSetConnectorCredentials?: [{	data: ValueTypes["EduSetConnectorCredentialsInput"] | Variable<any, string>},ValueTypes["EduConnectorBinding"]],
 edubridgeSetConnectorEnabled?: [{	data: ValueTypes["EduSetConnectorEnabledInput"] | Variable<any, string>},ValueTypes["EduConnectorBinding"]],
 edubridgeSetCourseStatus?: [{	data: ValueTypes["EduSetCourseStatusInput"] | Variable<any, string>},ValueTypes["EduCourse"]],
 edubridgeSignAct?: [{	data: ValueTypes["EduSignActInput"] | Variable<any, string>},ValueTypes["EduContribution"]],
@@ -22323,14 +22346,31 @@ export type ResolverInputTypes = {
 }>;
 	["EduConnectorBinding"]: AliasType<{
 	carrier?:boolean | `@${string}`,
-	/** Ключи площадки заданы (сами ключи наружу не выдаются) */
+	/** Все поля подключения заданы (сами ключи наружу не выдаются) */
 	configured?:boolean | `@${string}`,
+	/** Поля подключения площадки и отметки «задано» */
+	credential_fields?:ResolverInputTypes["EduConnectorCredentialField"],
 	enabled?:boolean | `@${string}`,
 	health?:boolean | `@${string}`,
 	last_check_at?:boolean | `@${string}`,
 	last_check_message?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	["EduConnectorCredentialField"]: AliasType<{
+	/** Значение уже задано */
+	is_set?:boolean | `@${string}`,
+	key?:boolean | `@${string}`,
+	label?:boolean | `@${string}`,
+	note?:boolean | `@${string}`,
+	/** Секрет: вводится как пароль */
+	secret?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["EduConnectorCredentialInput"]: {
+	key: string,
+	/** Пустое значение оставляет прежнее */
+	value: string
+};
 	/** Состояние подключения площадки */
 ["EduConnectorHealth"]:EduConnectorHealth;
 	/** Состояние договора участия преподавателя в хозяйственной деятельности */
@@ -22623,6 +22663,10 @@ export type ResolverInputTypes = {
 };
 	/** Тип результата интеллектуальной деятельности */
 ["EduRidType"]:EduRidType;
+	["EduSetConnectorCredentialsInput"]: {
+	carrier: ResolverInputTypes["EduAccessCarrier"],
+	values: Array<ResolverInputTypes["EduConnectorCredentialInput"]>
+};
 	["EduSetConnectorEnabledInput"]: {
 	carrier: ResolverInputTypes["EduAccessCarrier"],
 	enabled: boolean
@@ -28035,6 +28079,7 @@ edubridgeRemoveLearner?: [{	id: ResolverInputTypes["ID"]},boolean | `@${string}`
 edubridgeRetryTask?: [{	data: ResolverInputTypes["EduRetryTaskInput"]},ResolverInputTypes["EduAccessTask"]],
 edubridgeRidAct?: [{	contribution_id: ResolverInputTypes["ID"]},ResolverInputTypes["GeneratedDocument"]],
 edubridgeRidStatement?: [{	contribution_id: ResolverInputTypes["ID"]},ResolverInputTypes["GeneratedDocument"]],
+edubridgeSetConnectorCredentials?: [{	data: ResolverInputTypes["EduSetConnectorCredentialsInput"]},ResolverInputTypes["EduConnectorBinding"]],
 edubridgeSetConnectorEnabled?: [{	data: ResolverInputTypes["EduSetConnectorEnabledInput"]},ResolverInputTypes["EduConnectorBinding"]],
 edubridgeSetCourseStatus?: [{	data: ResolverInputTypes["EduSetCourseStatusInput"]},ResolverInputTypes["EduCourse"]],
 edubridgeSignAct?: [{	data: ResolverInputTypes["EduSignActInput"]},ResolverInputTypes["EduContribution"]],
@@ -37435,12 +37480,28 @@ export type ModelTypes = {
 };
 	["EduConnectorBinding"]: {
 		carrier: ModelTypes["EduAccessCarrier"],
-	/** Ключи площадки заданы (сами ключи наружу не выдаются) */
+	/** Все поля подключения заданы (сами ключи наружу не выдаются) */
 	configured: boolean,
+	/** Поля подключения площадки и отметки «задано» */
+	credential_fields: Array<ModelTypes["EduConnectorCredentialField"]>,
 	enabled: boolean,
 	health: ModelTypes["EduConnectorHealth"],
 	last_check_at?: ModelTypes["DateTime"] | undefined | null,
 	last_check_message?: string | undefined | null
+};
+	["EduConnectorCredentialField"]: {
+		/** Значение уже задано */
+	is_set: boolean,
+	key: string,
+	label: string,
+	note?: string | undefined | null,
+	/** Секрет: вводится как пароль */
+	secret: boolean
+};
+	["EduConnectorCredentialInput"]: {
+	key: string,
+	/** Пустое значение оставляет прежнее */
+	value: string
 };
 	["EduConnectorHealth"]:EduConnectorHealth;
 	["EduContractStatus"]:EduContractStatus;
@@ -37712,6 +37773,10 @@ export type ModelTypes = {
 	task_id: ModelTypes["ID"]
 };
 	["EduRidType"]:EduRidType;
+	["EduSetConnectorCredentialsInput"]: {
+	carrier: ModelTypes["EduAccessCarrier"],
+	values: Array<ModelTypes["EduConnectorCredentialInput"]>
+};
 	["EduSetConnectorEnabledInput"]: {
 	carrier: ModelTypes["EduAccessCarrier"],
 	enabled: boolean
@@ -43324,6 +43389,8 @@ export type ModelTypes = {
 	edubridgeRidAct: ModelTypes["GeneratedDocument"],
 	/** Сформировать заявление о паевом взносе РИД для подписи */
 	edubridgeRidStatement: ModelTypes["GeneratedDocument"],
+	/** Задать ключи подключения площадки (владелец); значения шифруются и наружу не выдаются */
+	edubridgeSetConnectorCredentials: ModelTypes["EduConnectorBinding"],
 	/** Включить или выключить площадку */
 	edubridgeSetConnectorEnabled: ModelTypes["EduConnectorBinding"],
 	/** Опубликовать, снять с публикации или архивировать курс */
@@ -53591,13 +53658,31 @@ export type GraphQLTypes = {
 	["EduConnectorBinding"]: {
 	__typename: "EduConnectorBinding",
 	carrier: GraphQLTypes["EduAccessCarrier"],
-	/** Ключи площадки заданы (сами ключи наружу не выдаются) */
+	/** Все поля подключения заданы (сами ключи наружу не выдаются) */
 	configured: boolean,
+	/** Поля подключения площадки и отметки «задано» */
+	credential_fields: Array<GraphQLTypes["EduConnectorCredentialField"]>,
 	enabled: boolean,
 	health: GraphQLTypes["EduConnectorHealth"],
 	last_check_at?: GraphQLTypes["DateTime"] | undefined | null,
 	last_check_message?: string | undefined | null,
 	['...on EduConnectorBinding']: Omit<GraphQLTypes["EduConnectorBinding"], "...on EduConnectorBinding">
+};
+	["EduConnectorCredentialField"]: {
+	__typename: "EduConnectorCredentialField",
+	/** Значение уже задано */
+	is_set: boolean,
+	key: string,
+	label: string,
+	note?: string | undefined | null,
+	/** Секрет: вводится как пароль */
+	secret: boolean,
+	['...on EduConnectorCredentialField']: Omit<GraphQLTypes["EduConnectorCredentialField"], "...on EduConnectorCredentialField">
+};
+	["EduConnectorCredentialInput"]: {
+		key: string,
+	/** Пустое значение оставляет прежнее */
+	value: string
 };
 	/** Состояние подключения площадки */
 ["EduConnectorHealth"]: EduConnectorHealth;
@@ -53902,6 +53987,10 @@ export type GraphQLTypes = {
 };
 	/** Тип результата интеллектуальной деятельности */
 ["EduRidType"]: EduRidType;
+	["EduSetConnectorCredentialsInput"]: {
+		carrier: GraphQLTypes["EduAccessCarrier"],
+	values: Array<GraphQLTypes["EduConnectorCredentialInput"]>
+};
 	["EduSetConnectorEnabledInput"]: {
 		carrier: GraphQLTypes["EduAccessCarrier"],
 	enabled: boolean
@@ -59902,6 +59991,8 @@ export type GraphQLTypes = {
 	edubridgeRidAct: GraphQLTypes["GeneratedDocument"],
 	/** Сформировать заявление о паевом взносе РИД для подписи */
 	edubridgeRidStatement: GraphQLTypes["GeneratedDocument"],
+	/** Задать ключи подключения площадки (владелец); значения шифруются и наружу не выдаются */
+	edubridgeSetConnectorCredentials: GraphQLTypes["EduConnectorBinding"],
 	/** Включить или выключить площадку */
 	edubridgeSetConnectorEnabled: GraphQLTypes["EduConnectorBinding"],
 	/** Опубликовать, снять с публикации или архивировать курс */
@@ -66022,6 +66113,7 @@ type ZEUS_VARIABLES = {
 	["EduAssignmentInput"]: ValueTypes["EduAssignmentInput"];
 	["EduAssignmentStatus"]: ValueTypes["EduAssignmentStatus"];
 	["EduCatalogFilterInput"]: ValueTypes["EduCatalogFilterInput"];
+	["EduConnectorCredentialInput"]: ValueTypes["EduConnectorCredentialInput"];
 	["EduConnectorHealth"]: ValueTypes["EduConnectorHealth"];
 	["EduContractStatus"]: ValueTypes["EduContractStatus"];
 	["EduContributionDraftInput"]: ValueTypes["EduContributionDraftInput"];
@@ -66042,6 +66134,7 @@ type ZEUS_VARIABLES = {
 	["EduRecipientType"]: ValueTypes["EduRecipientType"];
 	["EduRetryTaskInput"]: ValueTypes["EduRetryTaskInput"];
 	["EduRidType"]: ValueTypes["EduRidType"];
+	["EduSetConnectorCredentialsInput"]: ValueTypes["EduSetConnectorCredentialsInput"];
 	["EduSetConnectorEnabledInput"]: ValueTypes["EduSetConnectorEnabledInput"];
 	["EduSetCourseStatusInput"]: ValueTypes["EduSetCourseStatusInput"];
 	["EduSignActInput"]: ValueTypes["EduSignActInput"];

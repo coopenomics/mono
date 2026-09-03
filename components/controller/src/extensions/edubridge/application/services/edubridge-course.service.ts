@@ -49,9 +49,9 @@ export class EdubridgeCourseService {
    * них, а не вводит руками: числовой номер из адреса конструктора в API не
    * существует, а UUID из адреса чаще всего принадлежит модулю, не курсу.
    */
-  async platformCourses(carrier: EduAccessCarrier): Promise<EduPlatformCourseDTO[]> {
+  async platformCourses(coopname: string, carrier: EduAccessCarrier): Promise<EduPlatformCourseDTO[]> {
     if (carrier !== EduAccessCarrier.SKILLSPACE) return [];
-    const [courses, groups] = await Promise.all([this.skillspace.listCourses(), this.skillspace.listGroups()]);
+    const [courses, groups] = await Promise.all([this.skillspace.listCourses(coopname), this.skillspace.listGroups(coopname)]);
     return courses.map((c) => ({
       id: c.id,
       name: c.name,

@@ -14,6 +14,7 @@ import {
   EduQueueFilterInputDTO,
   EduRetryTaskInputDTO,
   EduSetConnectorEnabledInputDTO,
+  EduSetConnectorCredentialsInputDTO,
 } from '../dto/edu-admin.dto';
 import { EduAccessCarrier } from '../../domain/enums';
 import { EdubridgeAccessGuard } from '../guards/edubridge-access.guard';
@@ -78,6 +79,13 @@ export class EdubridgeAdminResolver {
   @RequireEduAccess('EduConnector', 'manage')
   edubridgeSetConnectorEnabled(@Args('data') data: EduSetConnectorEnabledInputDTO): Promise<EduConnectorBindingDTO> {
     return this.admin.setConnectorEnabled(coop(), data.carrier, data.enabled);
+  }
+
+  @Mutation(() => EduConnectorBindingDTO, { name: 'edubridgeSetConnectorCredentials', description: 'Задать ключи подключения площадки (владелец); значения шифруются и наружу не выдаются' })
+  @UseGuards(GqlJwtAuthGuard, EdubridgeAccessGuard)
+  @RequireEduAccess('EduConnector', 'manage')
+  edubridgeSetConnectorCredentials(@Args('data') data: EduSetConnectorCredentialsInputDTO): Promise<EduConnectorBindingDTO> {
+    return this.admin.setConnectorCredentials(coop(), data.carrier, data.values);
   }
 
   @Query(() => [EduAdminDTO], { name: 'edubridgeAdmins', description: 'Администраторы приложения' })

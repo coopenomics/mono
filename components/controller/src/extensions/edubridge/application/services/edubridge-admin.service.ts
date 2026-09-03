@@ -1,5 +1,5 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { EduAccessCarrier, type EduAccessTaskStatus } from '../../domain/enums';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { EduAccessCarrier, EduConnectorHealth, type EduAccessTaskStatus } from '../../domain/enums';
 import { AccessCarrierRegistry } from '../../infrastructure/connectors/access-carrier.registry';
 import { EdubridgeAccessTaskRepository } from '../../infrastructure/repositories/edubridge-access-task.repository';
 import { EdubridgeAdminRepository } from '../../infrastructure/repositories/edubridge-admin.repository';
@@ -10,6 +10,8 @@ import { EdubridgeLearnerRepository } from '../../infrastructure/repositories/ed
 import { EdubridgeConfigHolder } from '../config/edubridge-config.holder';
 import { EduAccessTaskDTO, EduAdminDTO, EduConnectorBindingDTO, EduMemberCardDTO, EduMemberRowDTO } from '../dto/edu-admin.dto';
 import { EdubridgeNamesService } from '../membership/edubridge-names.service';
+import { EdubridgeConnectorCredentialsStore } from '../../infrastructure/connectors/connector-credentials.store';
+import type { EduConnectorCredentialFieldDTO } from '../dto/edu-admin.dto';
 import { EduEnrollmentDTO } from '../dto/edu-enrollment.dto';
 import { EduLearnerDTO } from '../dto/edu-learner.dto';
 import { EdubridgeAccessOutboxService } from './edubridge-access-outbox.service';
@@ -27,7 +29,8 @@ export class EdubridgeAdminService {
     private readonly connectors: AccessCarrierRegistry,
     private readonly outbox: EdubridgeAccessOutboxService,
     private readonly config: EdubridgeConfigHolder,
-    private readonly names: EdubridgeNamesService
+    private readonly names: EdubridgeNamesService,
+    private readonly credentials: EdubridgeConnectorCredentialsStore
   ) {}
 
   /** Реестр пайщиков с ФИО; поиск — по ФИО или учётному имени. */
@@ -64,24 +67,31 @@ export class EdubridgeAdminService {
   }
 
   async connectorsState(coopname: string): Promise<EduConnectorBindingDTO[]> {
-    const cfg = this.config.get().connectors;
-    const configured: Record<string, boolean> = {
-      [EduAccessCarrier.SKILLSPACE]: Boolean(cfg.skillspace_api_key),
-      [EduAccessCarrier.GETCOURSE]: Boolean(cfg.getcourse_account && cfg.getcourse_api_key),
-      [EduAccessCarrier.ONSITE]: true,
-    };
     const result: EduConnectorBindingDTO[] = [];
-    for (const connector of this.connectors.list()) {
-      const b = await this.bindings.ensure(coopname, connector.carrier);
-      result.push(new EduConnectorBindingDTO(b, configured[connector.carrier] ?? false));
-    }
+    for (const connector of this.connectors.list()) result.push(await this.stateOf(coopname, connector.carrier));
     return result;
+  }
+
+  /** Владелец задаёт ключи площадки здесь, а не в настройках расширения: значения шифруются, наружу не выходят. */
+  async setConnectorCredentials(coopname: string, carrier: EduAccessCarrier, values: Array<{ key: string; value: string }>): Promise<EduConnectorBindingDTO> {
+    const connector = this.connectors.get(carrier);
+    if (!connector) throw new NotFoundException('Носитель не поддерживается');
+    const known = new Set(connector.credentialFields.map((f) => f.key));
+    const strangers = values.filter((v) => !known.has(v.key)).map((v) => v.key);
+    if (strangers.length) throw new BadRequestException(`Неизвестные поля подключения: ${strangers.join(', ')}`);
+    await this.credentials.set(coopname, carrier, Object.fromEntries(values.map((v) => [v.key, v.value])));
+    // Ключи сменились — прежний результат проверки ничего не значит.
+    await this.bindings.setHealth(coopname, carrier, EduConnectorHealth.UNKNOWN, null);
+    return this.stateOf(coopname, carrier);
   }
 
   /** Проверить площадку сейчас: доступность аккаунта/курса-пробы. */
   async checkConnector(coopname: string, carrier: EduAccessCarrier): Promise<EduConnectorBindingDTO> {
     const connector = this.connectors.get(carrier);
     if (!connector) throw new NotFoundException('Носитель не поддерживается');
+    if (!(await this.credentials.isConfigured(coopname, carrier, connector.credentialFields))) {
+      throw new BadRequestException('Площадка не настроена: сначала задайте ключи подключения');
+    }
     const probe = (await this.courses.findPage(coopname, {}, { page: 1, limit: 1, sortOrder: 'ASC' } as never)).items.find((c) => c.carrier === carrier);
     const check = await connector.check(coopname, probe?.external_ref ?? '');
     await this.bindings.touch(coopname, carrier, check.unavailable ? { code: 'retryable', message: check.message } : { code: 'ok', message: check.message });
@@ -96,10 +106,17 @@ export class EdubridgeAdminService {
   }
 
   private async stateOf(coopname: string, carrier: EduAccessCarrier): Promise<EduConnectorBindingDTO> {
-    const found = (await this.connectorsState(coopname)).find((x) => x.carrier === carrier);
-    if (!found) throw new NotFoundException('Носитель не поддерживается');
-    return found;
+    const connector = this.connectors.get(carrier);
+    const fields = connector?.credentialFields ?? [];
+    const [b, configured, flags] = await Promise.all([
+      this.bindings.ensure(coopname, carrier),
+      this.credentials.isConfigured(coopname, carrier, fields),
+      this.credentials.setFlags(coopname, carrier, fields),
+    ]);
+    const credential_fields: EduConnectorCredentialFieldDTO[] = fields.map((f) => ({ key: f.key, label: f.label, secret: f.secret, note: f.note, is_set: Boolean(flags[f.key]) }));
+    return new EduConnectorBindingDTO(b, configured, credential_fields);
   }
+
 
   async listAdmins(coopname: string): Promise<EduAdminDTO[]> {
     const admins = await this.admins.listAdmins(coopname);

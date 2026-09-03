@@ -3,13 +3,14 @@
   PageHint.q-mb-md(storage-key="edu:admin-assignments:banner-dismissed")
     | Назначьте преподавателю курс, расписание, ожидаемый результат и период сдачи — он подпишет приложение к договору.
     | Ниже — взносы результатами работы: совет принимает решение в повестке, здесь можно отклонить с причиной.
-  PageTabs.q-mb-md(:tabs="tabs" :active-key="tab" @select="(t) => (tab = t.key)")
+  PageTabs.q-mb-sm(:tabs="tabs" :active-key="tab" @select="(t) => (tab = t.key)")
+  .t-sm.t-muted.q-mb-md(v-if="tab === 'assignments'") Назначение появляется после кнопки «Новое назначение» и действует, когда приложение к договору подписали преподаватель и председатель совета.
+  .t-sm.t-muted.q-mb-md(v-else) Взнос появляется, когда преподаватель подаёт результат работы по действующему назначению со своего стола; решение принимает совет в повестке, здесь — подпись акта и отклонение с причиной.
 
   template(v-if="tab === 'assignments'")
     BaseTable(v-if="loading || assignments.length" :columns="assignmentColumns" :rows="assignments" row-key="id" :loading="loading && !assignments.length" min-width="760px")
       template(#cell-teacher_username="{ row }")
-        div {{ teacherName(row.teacher_username) }}
-        .t-muted.t-sm.t-mono {{ row.teacher_username }}
+        IdentityCell(:account-name="row.teacher_username" :full-name="teacherName(row.teacher_username)")
       template(#cell-period="{ row }") {{ row.period_from }} — {{ row.period_to }}
       template(#cell-status="{ row }")
         BaseBadge(:variant="assignmentStatusOf(row.status).variant") {{ assignmentStatusOf(row.status).label }}
@@ -22,8 +23,7 @@
   template(v-else)
     BaseTable(v-if="loading || contributions.length" :columns="contributionColumns" :rows="contributions" row-key="id" :loading="loading && !contributions.length" min-width="860px")
       template(#cell-teacher_username="{ row }")
-        div {{ teacherName(row.teacher_username) }}
-        .t-muted.t-sm.t-mono {{ row.teacher_username }}
+        IdentityCell(:account-name="row.teacher_username" :full-name="teacherName(row.teacher_username)")
       template(#cell-rid_type="{ row }") {{ ridType(row.rid_type) }}
       template(#cell-amount="{ row }") {{ formatAsset2Digits(row.amount) }}
       template(#cell-status="{ row }")
@@ -68,7 +68,7 @@ import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { useHeaderActions } from 'src/shared/hooks';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { BaseBadge, BaseButton, BaseDialog, BaseForm, BaseInput, BaseSelect, BaseTable, EmptyState, type BaseTableColumn } from 'src/shared/ui/base';
-import { PageHint } from 'src/shared/ui/domain';
+import { IdentityCell, PageHint } from 'src/shared/ui/domain';
 import { PageTabs, type PageTab } from 'src/shared/ui/layout';
 import { fetchCourses, fetchTeacherOptions, type ICourse, type ITeacherOption } from '../../entities/Course';
 import {
@@ -107,14 +107,14 @@ const declineReason = ref('');
 const form = reactive<IAssignmentInput>({ teacher_username: '', course_id: '', schedule: '', expected_result: '', period_from: '', period_to: '' });
 
 const assignmentColumns: BaseTableColumn<IAssignment>[] = [
-  { key: 'teacher_username', label: 'Преподаватель', width: '180px' },
+  { key: 'teacher_username', label: 'Преподаватель', width: '220px' },
   { key: 'course_title', label: 'Курс' },
   { key: 'period', label: 'Период сдачи', width: '170px', nowrap: true },
   { key: 'status', label: 'Состояние', width: '170px' },
   { key: 'actions', label: '', align: 'right', width: '90px' },
 ];
 const contributionColumns: BaseTableColumn<IContribution>[] = [
-  { key: 'teacher_username', label: 'Преподаватель', width: '180px' },
+  { key: 'teacher_username', label: 'Преподаватель', width: '220px' },
   { key: 'rid_type', label: 'Тип', width: '150px' },
   { key: 'description', label: 'Описание' },
   { key: 'amount', label: 'Сумма', numeric: true, width: '120px', nowrap: true },
@@ -124,7 +124,7 @@ const contributionColumns: BaseTableColumn<IContribution>[] = [
 const courseOptions = computed(() => courses.value.map((c) => ({ value: c.id, label: `${c.title} · ${c.subject}, ${c.grade}` })));
 const teacherOptions = computed(() => teachers.value.map((t) => ({ value: t.username, label: `${t.display_name || t.username} · договор № ${t.contract_number}` })));
 // ФИО известны для преподавателей с договором; остальным показываем учётное имя.
-const teacherName = (username: string) => teachers.value.find((t) => t.username === username)?.display_name || username;
+const teacherName = (username: string) => teachers.value.find((t) => t.username === username)?.display_name || null;
 const DECLINABLE = new Set<string>([Zeus.EduContributionStatus.SUBMITTED, Zeus.EduContributionStatus.COUNCIL_APPROVED, Zeus.EduContributionStatus.ACT_SIGNED]);
 const canDecline = (c: IContribution) => DECLINABLE.has(c.status);
 const assignmentStatusOf = (s: string) => ASSIGNMENT_STATUS_LABELS[s] ?? { label: s, variant: 'neutral' as const };

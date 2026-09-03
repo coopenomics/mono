@@ -6,7 +6,7 @@
 
   CardListSkeleton(v-if="loading && !items.length" :count="3")
   .row.q-col-gutter-md(v-else-if="items.length")
-    .col-12.col-sm-6.col-lg-4(v-for="course in items" :key="course.id")
+    .col-12.col-sm-6.col-md-4(v-for="course in items" :key="course.id")
       AdminCourseCard(
         :course="course"
         :busy="busyId === course.id"

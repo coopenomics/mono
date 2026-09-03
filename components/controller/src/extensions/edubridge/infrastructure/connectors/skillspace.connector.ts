@@ -6,7 +6,8 @@ import type {
   ConnectorResult,
   CourseCheckResult,
 } from '../../domain/connectors/access-carrier.connector';
-import { EdubridgeConfigHolder } from '../../application/config/edubridge-config.holder';
+import { Inject } from '@nestjs/common';
+import { CONNECTOR_CREDENTIALS_SOURCE, type ConnectorCredentialField, type IConnectorCredentialsSource } from '../../domain/connectors/connector-credentials';
 import { classifyHttpFailure, classifyStatus, httpCall } from './http-carrier.base';
 
 /**
@@ -59,10 +60,14 @@ export interface SkillspaceGroup {
 export class SkillspaceConnector implements AccessCarrierConnector {
   readonly carrier = EduAccessCarrier.SKILLSPACE;
 
-  constructor(private readonly config: EdubridgeConfigHolder) {}
+  readonly credentialFields: ConnectorCredentialField[] = [
+    { key: 'api_key', label: 'API-ключ школы', secret: true, note: 'Настройки школы Skillspace → Интеграции → Open API' },
+  ];
 
-  private token(): string {
-    return this.config.get().connectors.skillspace_api_key;
+  constructor(@Inject(CONNECTOR_CREDENTIALS_SOURCE) private readonly credentials: IConnectorCredentialsSource) {}
+
+  private async token(coopname: string): Promise<string> {
+    return (await this.credentials.get(coopname, this.carrier)).api_key ?? '';
   }
 
   private async post(path: string, body: URLSearchParams): Promise<ConnectorResult> {
@@ -113,8 +118,8 @@ export class SkillspaceConnector implements AccessCarrierConnector {
     return key && /^[A-Z_]+$/.test(key) ? key : null;
   }
 
-  private guard(request: AccessRequest): ConnectorResult | null {
-    if (!this.token()) return { code: 'fatal', message: 'Skillspace не настроен: укажите API-ключ школы', error_code: 'NOT_CONFIGURED' };
+  private guard(request: AccessRequest, token: string): ConnectorResult | null {
+    if (!token) return { code: 'fatal', message: 'Skillspace не настроен: укажите API-ключ школы', error_code: 'NOT_CONFIGURED' };
     if (request.recipient.type !== EduRecipientType.EMAIL) {
       return { code: 'fatal', message: 'Skillspace принимает только почту обучающегося', error_code: 'UNSUPPORTED_RECIPIENT' };
     }
@@ -125,19 +130,21 @@ export class SkillspaceConnector implements AccessCarrierConnector {
   }
 
   async grant(request: AccessRequest): Promise<ConnectorResult> {
-    const blocked = this.guard(request);
+    const token = await this.token(request.coopname);
+    const blocked = this.guard(request, token);
     if (blocked) return blocked;
     const { course, group } = splitSkillspaceRef(request.course_ref);
-    const body = new URLSearchParams({ token: this.token(), email: request.recipient.value });
+    const body = new URLSearchParams({ token, email: request.recipient.value });
     body.append(`courses[${course}]`, group);
     return this.post('/course/student-invite', body);
   }
 
   async revoke(request: AccessRequest): Promise<ConnectorResult> {
-    const blocked = this.guard(request);
+    const token = await this.token(request.coopname);
+    const blocked = this.guard(request, token);
     if (blocked) return blocked;
     const { course } = splitSkillspaceRef(request.course_ref);
-    const result = await this.post(`/course/${encodeURIComponent(course)}/student-remove`, new URLSearchParams({ token: this.token(), email: request.recipient.value }));
+    const result = await this.post(`/course/${encodeURIComponent(course)}/student-remove`, new URLSearchParams({ token, email: request.recipient.value }));
     // Удаление идемпотентно (проверено: повторный remove — 200), но если курс
     // уже удалён в школе — отзывать нечего, цель достигнута.
     if (result.code === 'fatal' && result.error_code === 'COURSE_NOT_FOUND') return { code: 'exists', message: 'Курса уже нет в школе' };
@@ -145,8 +152,8 @@ export class SkillspaceConnector implements AccessCarrierConnector {
   }
 
   /** Сверка по реестрам школы: курс существует (и как называется), группа принадлежит курсу. */
-  async check(_coopname: string, courseRef: string): Promise<CourseCheckResult> {
-    const token = this.token();
+  async check(coopname: string, courseRef: string): Promise<CourseCheckResult> {
+    const token = await this.token(coopname);
     if (!token) return { found: false, unavailable: true, message: 'Skillspace не настроен' };
     const { course, group } = splitSkillspaceRef(courseRef);
     if (!course) return { found: false, message: 'У курса не задан идентификатор курса Skillspace' };
@@ -176,14 +183,14 @@ export class SkillspaceConnector implements AccessCarrierConnector {
   }
 
   /** Реестр курсов школы — из него конструктор курса выбирает привязку. Только чтение. */
-  async listCourses(): Promise<SkillspaceCourse[]> {
-    const res = await this.getJson<SkillspaceCourse[]>(`/school/course/list?token=${encodeURIComponent(this.token())}`);
+  async listCourses(coopname: string): Promise<SkillspaceCourse[]> {
+    const res = await this.getJson<SkillspaceCourse[]>(`/school/course/list?token=${encodeURIComponent(await this.token(coopname))}`);
     return res.ok && Array.isArray(res.data) ? res.data : [];
   }
 
   /** Реестр групп школы (с принадлежностью курсу). Только чтение. */
-  async listGroups(): Promise<SkillspaceGroup[]> {
-    const res = await this.getJson<SkillspaceGroup[]>(`/school/group/list?token=${encodeURIComponent(this.token())}`);
+  async listGroups(coopname: string): Promise<SkillspaceGroup[]> {
+    const res = await this.getJson<SkillspaceGroup[]>(`/school/group/list?token=${encodeURIComponent(await this.token(coopname))}`);
     return res.ok && Array.isArray(res.data) ? res.data : [];
   }
 }

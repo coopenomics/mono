@@ -44,5 +44,7 @@ export const retryTask = (task_id: string) => m<IAccessTask>(Mutations.Edubridge
 export const checkConnector = (carrier: string) => m<IConnector>(Mutations.Edubridge.CheckConnector.mutation, Mutations.Edubridge.CheckConnector.name, { carrier });
 export const setConnectorEnabled = (carrier: string, enabled: boolean) =>
   m<IConnector>(Mutations.Edubridge.SetConnectorEnabled.mutation, Mutations.Edubridge.SetConnectorEnabled.name, { data: { carrier, enabled } });
+export const setConnectorCredentials = (carrier: string, values: Array<{ key: string; value: string }>) =>
+  m<IConnector>(Mutations.Edubridge.SetConnectorCredentials.mutation, Mutations.Edubridge.SetConnectorCredentials.name, { data: { carrier, values } });
 export const appointAdmin = (username: string) => m<IAdmin>(Mutations.Edubridge.AppointAdmin.mutation, Mutations.Edubridge.AppointAdmin.name, { data: { username } });
 export const dismissAdmin = (username: string) => m<boolean>(Mutations.Edubridge.DismissAdmin.mutation, Mutations.Edubridge.DismissAdmin.name, { data: { username } });

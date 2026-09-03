@@ -29,6 +29,13 @@ export class EdubridgeConnectorBindingEntity {
   @Column({ type: 'text', nullable: true })
   public last_check_message!: string | null;
 
+  /** Учётные данные площадки (JSON полей), зашифрованные ключом ядра (`SECRET_CIPHER_PORT`). */
+  @Column({ type: 'text', nullable: true })
+  public credentials_encrypted!: string | null;
+
+  @Column({ type: 'timestamptz', nullable: true })
+  public credentials_updated_at!: Date | null;
+
   @CreateDateColumn({ type: 'timestamptz' })
   public created_at!: Date;
 

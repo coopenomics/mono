@@ -7,7 +7,14 @@ const fetchMock = jest.fn();
 (global as any).fetch = fetchMock;
 const ok = (body: unknown = {}) => Promise.resolve({ ok: true, status: 200, text: async () => JSON.stringify(body) });
 const status = (code: number, text = '') => Promise.resolve({ ok: false, status: code, text: async () => text });
-const cfg = (c: Partial<Record<string, string>>) => ({ get: () => ({ connectors: { skillspace_api_key: '', getcourse_account: '', getcourse_api_key: '', ...c } }) }) as any;
+// Источник ключей: то, что раньше лежало в настройках расширения, теперь отдаёт хранилище привязок.
+const cfg = (c: Partial<Record<string, string>>) =>
+  ({
+    get: async (_coop: string, carrier: string) =>
+      carrier === 'skillspace'
+        ? { api_key: c.skillspace_api_key ?? '' }
+        : { account: c.getcourse_account ?? '', api_key: c.getcourse_api_key ?? '' },
+  }) as any;
 const req = { coopname: 'voskhod', recipient: { type: EduRecipientType.EMAIL, value: 'kid@x.ru' }, course_ref: '777:12', enrollment_id: 'E1' };
 
 beforeEach(() => fetchMock.mockReset());

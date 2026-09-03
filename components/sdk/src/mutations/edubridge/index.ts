@@ -42,6 +42,7 @@ export * as RetryTask from './retryTask'
 export * as CheckConnector from './checkConnector'
 /** Включить/выключить площадку */
 export * as SetConnectorEnabled from './setConnectorEnabled'
+export * as SetConnectorCredentials from './setConnectorCredentials'
 /** Назначить администратора */
 export * as AppointAdmin from './appointAdmin'
 /** Снять администратора */

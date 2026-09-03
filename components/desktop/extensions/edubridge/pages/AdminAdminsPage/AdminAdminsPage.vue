@@ -5,11 +5,9 @@
 
   BaseTable(v-if="loading || items.length" :columns="columns" :rows="items" row-key="id" :loading="loading && !items.length" min-width="720px")
     template(#cell-admin="{ row }")
-      .text-weight-medium {{ row.display_name || row.username }}
-      .t-muted.t-sm.t-mono {{ row.username }}
+      IdentityCell(:account-name="row.username" :full-name="row.display_name || null")
     template(#cell-appointed_by="{ row }")
-      div {{ row.appointed_by_display_name || row.appointed_by }}
-      .t-muted.t-sm.t-mono(v-if="row.appointed_by_display_name") {{ row.appointed_by }}
+      IdentityCell(:account-name="row.appointed_by" :full-name="row.appointed_by_display_name || null")
     template(#cell-created_at="{ row }") {{ formatDate(row.created_at) }}
     template(#cell-actions="{ row }")
       BaseButton(variant="ghost" size="sm" :loading="busyDismiss === row.id" @click="onDismiss(row)") Снять
@@ -30,7 +28,7 @@ import { onMounted, ref } from 'vue';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { useHeaderActions } from 'src/shared/hooks';
 import { BaseButton, BaseDialog, BaseTable, EmptyState, type BaseTableColumn } from 'src/shared/ui/base';
-import { PageHint } from 'src/shared/ui/domain';
+import { IdentityCell, PageHint } from 'src/shared/ui/domain';
 import { UserSearchSelector } from 'src/shared/ui/UserSearchSelector';
 import { appointAdmin, dismissAdmin, fetchAdmins, type IAdmin } from '../../entities/Admin';
 import AppointAdminHeaderButton from './AppointAdminHeaderButton.vue';
@@ -47,7 +45,7 @@ const username = ref<string | undefined>(undefined);
 
 const columns: BaseTableColumn<IAdmin>[] = [
   { key: 'admin', label: 'Администратор' },
-  { key: 'appointed_by', label: 'Назначил', width: '220px' },
+  { key: 'appointed_by', label: 'Назначил', width: '260px' },
   { key: 'created_at', label: 'С', width: '120px' },
   { key: 'actions', label: '', align: 'right', width: '100px' },
 ];

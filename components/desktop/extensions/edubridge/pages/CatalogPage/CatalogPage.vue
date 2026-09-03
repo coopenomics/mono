@@ -17,7 +17,7 @@
       q-icon(name="school" size="40px")
 
   .row.q-col-gutter-md(v-else)
-    .col-12.col-sm-6.col-lg-4(v-for="course in items" :key="course.id")
+    .col-12.col-sm-6.col-md-4(v-for="course in items" :key="course.id")
       CourseCard(:course="course" @open="openCourse(course.id)")
 
   .row.justify-center.q-mt-lg(v-if="hasMore")

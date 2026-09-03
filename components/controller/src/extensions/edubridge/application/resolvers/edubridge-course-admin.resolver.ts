@@ -53,7 +53,7 @@ export class EdubridgeCourseAdminResolver {
   @UseGuards(GqlJwtAuthGuard, EdubridgeAccessGuard)
   @RequireEduAccess('EduCourse', 'manage')
   edubridgePlatformCourses(@Args('carrier', { type: () => EduAccessCarrier }) carrier: EduAccessCarrier): Promise<EduPlatformCourseDTO[]> {
-    return this.courses.platformCourses(carrier);
+    return this.courses.platformCourses(platformSettings().coopname, carrier);
   }
 
   @Mutation(() => EduCourseDTO, { name: 'edubridgeCreateCourse', description: 'Добавить курс (черновик)' })

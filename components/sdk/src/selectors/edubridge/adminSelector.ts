@@ -28,7 +28,9 @@ const rawMemberCardSelector = { username: true, display_name: true, learners: ra
 const _validateMemberCard: MakeAllFieldsRequired<ValueTypes['EduMemberCard']> = rawMemberCardSelector
 export const eduMemberCardSelector = Selector('EduMemberCard')(rawMemberCardSelector)
 
-const rawBindingSelector = { carrier: true, enabled: true, configured: true, health: true, last_check_at: true, last_check_message: true }
+const rawCredentialFieldSelector = { key: true, label: true, secret: true, note: true, is_set: true }
+const _validateCredentialField: MakeAllFieldsRequired<ValueTypes['EduConnectorCredentialField']> = rawCredentialFieldSelector
+const rawBindingSelector = { carrier: true, enabled: true, configured: true, credential_fields: rawCredentialFieldSelector, health: true, last_check_at: true, last_check_message: true }
 const _validateBinding: MakeAllFieldsRequired<ValueTypes['EduConnectorBinding']> = rawBindingSelector
 export const eduConnectorBindingSelector = Selector('EduConnectorBinding')(rawBindingSelector)
 

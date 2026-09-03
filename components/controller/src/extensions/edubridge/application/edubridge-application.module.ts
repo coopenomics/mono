@@ -9,6 +9,8 @@ import { AccessCarrierRegistry } from '../infrastructure/connectors/access-carri
 import { GetCourseConnector } from '../infrastructure/connectors/getcourse.connector';
 import { OnsiteConnector } from '../infrastructure/connectors/onsite.connector';
 import { SkillspaceConnector } from '../infrastructure/connectors/skillspace.connector';
+import { EdubridgeConnectorCredentialsStore } from '../infrastructure/connectors/connector-credentials.store';
+import { CONNECTOR_CREDENTIALS_SOURCE } from '../domain/connectors/connector-credentials';
 import { EdubridgeAccessTaskRepository } from '../infrastructure/repositories/edubridge-access-task.repository';
 import { EdubridgeConnectorBindingRepository } from '../infrastructure/repositories/edubridge-connector-binding.repository';
 import { EdubridgeCourseRepository } from '../infrastructure/repositories/edubridge-course.repository';
@@ -72,6 +74,8 @@ import { EdubridgeCatalogCourseFieldsResolver, EdubridgeCourseFieldsResolver } f
     EdubridgeConnectorBindingRepository,
     { provide: EDUBRIDGE_CHAIN_PORT, useClass: EdubridgeChainAdapter },
     // Коннекторы площадок — фабрика по носителю; новая площадка = новый класс в списке
+    EdubridgeConnectorCredentialsStore,
+    { provide: CONNECTOR_CREDENTIALS_SOURCE, useExisting: EdubridgeConnectorCredentialsStore },
     SkillspaceConnector,
     GetCourseConnector,
     OnsiteConnector,

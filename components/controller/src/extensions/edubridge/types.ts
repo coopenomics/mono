@@ -16,7 +16,7 @@ export interface ICoopAcceptanceConfig {
   accepted_at: string; // ISO-8601, пустая строка = «не принято»
 }
 
-/** Ключи площадок-носителей доступа. Секреты — см. configPolicy в реестре. */
+/** Устарело: ключи площадок теперь задаются на странице «Площадки» и хранятся зашифрованными в привязке коннектора. Поле читается как запасной источник для стендов с уже введёнными ключами. */
 export interface IConnectorsConfig {
   skillspace_api_key: string;
   getcourse_account: string;
@@ -72,7 +72,13 @@ export const Schema = z.object({
         .describe(describeField({ label: 'GetCourse: API-ключ', note: 'Ключ интеграции площадки GetCourse. Виден только владельцу.', password: true })),
     })
     .default({ skillspace_api_key: '', getcourse_account: '', getcourse_api_key: '' })
-    .describe(describeField({ label: 'Площадки', note: 'Подключение образовательных площадок — носителей доступа.' })),
+    .describe(
+      describeField({
+        label: 'Площадки (устарело)',
+        note: 'Ключи площадок задаются на странице «Площадки» стола администратора; здесь — только прежние значения.',
+        visible: false,
+      })
+    ),
   expiry_notice_days: z
     .number()
     .int()

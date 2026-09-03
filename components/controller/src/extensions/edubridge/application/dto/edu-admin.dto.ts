@@ -1,5 +1,6 @@
 import { Field, ID, InputType, Int, ObjectType } from '@nestjs/graphql';
-import { IsArray, IsBoolean, IsEnum, IsOptional, IsString, IsUUID } from 'class-validator';
+import { IsArray, IsBoolean, IsEnum, IsOptional, IsString, IsUUID, ValidateNested } from 'class-validator';
+import { Type } from 'class-transformer';
 import { EduAccessCarrier, EduAccessTaskKind, EduAccessTaskStatus, EduConnectorHealth } from '../../domain/enums';
 import type { EdubridgeAccessTaskEntity, EdubridgeAdminEntity, EdubridgeConnectorBindingEntity } from '../../infrastructure/entities';
 import { EduEnrollmentDTO } from './edu-enrollment.dto';
@@ -57,18 +58,49 @@ export class EduQueueFilterInputDTO {
   statuses?: EduAccessTaskStatus[];
 }
 
+/** Поле подключения площадки: что вводит владелец и задано ли уже. Значений наружу нет. */
+@ObjectType('EduConnectorCredentialField')
+export class EduConnectorCredentialFieldDTO {
+  @Field(() => String) key!: string;
+  @Field(() => String) label!: string;
+  @Field(() => Boolean, { description: 'Секрет: вводится как пароль' }) secret!: boolean;
+  @Field(() => String, { nullable: true }) note?: string;
+  @Field(() => Boolean, { description: 'Значение уже задано' }) is_set!: boolean;
+}
+
 @ObjectType('EduConnectorBinding')
 export class EduConnectorBindingDTO {
   @Field(() => EduAccessCarrier) carrier!: EduAccessCarrier;
   @Field(() => Boolean) enabled!: boolean;
-  @Field(() => Boolean, { description: 'Ключи площадки заданы (сами ключи наружу не выдаются)' }) configured!: boolean;
+  @Field(() => Boolean, { description: 'Все поля подключения заданы (сами ключи наружу не выдаются)' }) configured!: boolean;
+  @Field(() => [EduConnectorCredentialFieldDTO], { description: 'Поля подключения площадки и отметки «задано»' }) credential_fields!: EduConnectorCredentialFieldDTO[];
   @Field(() => EduConnectorHealth) health!: EduConnectorHealth;
   @Field(() => Date, { nullable: true }) last_check_at!: Date | null;
   @Field(() => String, { nullable: true }) last_check_message!: string | null;
 
-  constructor(b: EdubridgeConnectorBindingEntity, configured: boolean) {
-    Object.assign(this, { carrier: b.carrier, enabled: b.enabled, configured, health: b.health, last_check_at: b.last_check_at, last_check_message: b.last_check_message });
+  constructor(b: EdubridgeConnectorBindingEntity, configured: boolean, credential_fields: EduConnectorCredentialFieldDTO[] = []) {
+    Object.assign(this, {
+      carrier: b.carrier,
+      enabled: b.enabled,
+      configured,
+      credential_fields,
+      health: b.health,
+      last_check_at: b.last_check_at,
+      last_check_message: b.last_check_message,
+    });
   }
+}
+
+@InputType('EduConnectorCredentialInput')
+export class EduConnectorCredentialInputDTO {
+  @Field(() => String) @IsString() key!: string;
+  @Field(() => String, { description: 'Пустое значение оставляет прежнее' }) @IsString() value!: string;
+}
+
+@InputType('EduSetConnectorCredentialsInput')
+export class EduSetConnectorCredentialsInputDTO {
+  @Field(() => EduAccessCarrier) @IsEnum(EduAccessCarrier) carrier!: EduAccessCarrier;
+  @Field(() => [EduConnectorCredentialInputDTO]) @IsArray() @ValidateNested({ each: true }) @Type(() => EduConnectorCredentialInputDTO) values!: EduConnectorCredentialInputDTO[];
 }
 
 @InputType('EduSetConnectorEnabledInput')

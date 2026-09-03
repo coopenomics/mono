@@ -10,6 +10,8 @@ import type { AccessCarrierConnector, AccessRequest, ConnectorResult, CourseChec
 @Injectable()
 export class OnsiteConnector implements AccessCarrierConnector {
   readonly carrier = EduAccessCarrier.ONSITE;
+  /** Очное обучение: пропуск выдаёт кооператив сам, ключи площадки не нужны. */
+  readonly credentialFields = [];
 
   async grant(_request: AccessRequest): Promise<ConnectorResult> {
     return { code: 'ok' };

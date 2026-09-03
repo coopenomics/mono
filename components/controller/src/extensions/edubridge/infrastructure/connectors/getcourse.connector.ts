@@ -6,7 +6,8 @@ import type {
   ConnectorResult,
   CourseCheckResult,
 } from '../../domain/connectors/access-carrier.connector';
-import { EdubridgeConfigHolder } from '../../application/config/edubridge-config.holder';
+import { Inject } from '@nestjs/common';
+import { CONNECTOR_CREDENTIALS_SOURCE, type ConnectorCredentialField, type IConnectorCredentialsSource } from '../../domain/connectors/connector-credentials';
 import { classifyHttpFailure, classifyStatus, httpCall } from './http-carrier.base';
 
 /**
@@ -53,15 +54,20 @@ function classifyGetcourseBody(body: unknown, text: string): ConnectorResult {
 export class GetCourseConnector implements AccessCarrierConnector {
   readonly carrier = EduAccessCarrier.GETCOURSE;
 
-  constructor(private readonly config: EdubridgeConfigHolder) {}
+  readonly credentialFields: ConnectorCredentialField[] = [
+    { key: 'account', label: 'Аккаунт GetCourse', secret: false, note: 'Поддомен школы: <аккаунт>.getcourse.ru' },
+    { key: 'api_key', label: 'API-ключ', secret: true, note: 'Настройки → Интеграции → API' },
+  ];
 
-  private settings(): { account: string; key: string } {
-    const c = this.config.get().connectors;
-    return { account: c.getcourse_account, key: c.getcourse_api_key };
+  constructor(@Inject(CONNECTOR_CREDENTIALS_SOURCE) private readonly credentials: IConnectorCredentialsSource) {}
+
+  private async settings(coopname: string): Promise<{ account: string; key: string }> {
+    const c = await this.credentials.get(coopname, this.carrier);
+    return { account: c.account ?? '', key: c.api_key ?? '' };
   }
 
   private async addToGroup(request: AccessRequest, group: string): Promise<ConnectorResult> {
-    const { account, key } = this.settings();
+    const { account, key } = await this.settings(request.coopname);
     if (!account || !key) return { code: 'fatal', message: 'GetCourse не настроен: укажите аккаунт и API-ключ', error_code: 'NOT_CONFIGURED' };
     if (request.recipient.type !== EduRecipientType.EMAIL) {
       return { code: 'fatal', message: 'GetCourse принимает только почту обучающегося', error_code: 'UNSUPPORTED_RECIPIENT' };
@@ -95,8 +101,8 @@ export class GetCourseConnector implements AccessCarrierConnector {
     return this.addToGroup(request, `${request.course_ref}:revoked`);
   }
 
-  async check(_coopname: string, courseRef: string): Promise<CourseCheckResult> {
-    const { account, key } = this.settings();
+  async check(coopname: string, courseRef: string): Promise<CourseCheckResult> {
+    const { account, key } = await this.settings(coopname);
     if (!account || !key) return { found: false, unavailable: true, message: 'GetCourse не настроен' };
     try {
       const res = await httpCall(`https://${account}.getcourse.ru/pl/api/account/groups?key=${encodeURIComponent(key)}`, { method: 'GET' });
