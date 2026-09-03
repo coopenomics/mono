@@ -52,6 +52,8 @@ import { computed, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { AuthV2ErrorCode, PASSWORD_POLICY_HINT, passwordPolicyErrors } from '@coopenomics/auth';
 import { useRecoverAccess } from 'src/features/User/RecoverAccess';
+import { useDesktopStore } from 'src/entities/Desktop/model';
+import { useSessionStore } from 'src/entities/Session';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { AuthCard } from 'src/shared/ui/domain/AuthCard';
 import { BaseBanner } from 'src/shared/ui/base/BaseBanner';
@@ -116,6 +118,42 @@ onMounted(async () => {
   }
 });
 
+/**
+ * Довести пайщика до кабинета после того, как сессия CoopID уже построена.
+ *
+ * Один в один пост-логин обычного входа (`finishLogin` в LoginForm): сначала
+ * перезагрузить рабочий стол под новую сессию — именно `loadDesktop` регистрирует
+ * маршруты кооператива в роутере, — затем выбрать рабочий стол и перейти на его
+ * страницу по умолчанию. Без этого шага любой переход упирался в стену: `/:coopname`
+ * матчился в NotFound (маршрута ещё нет), а `/` показывал пустой index — там
+ * буквально пустой div, в кабинет с него уводит guard, которому тоже нужен уже
+ * загруженный стол (владелец 04.09.2026, две итерации подряд).
+ *
+ * Переход роутером, без перезапуска приложения: сессия живёт в этом же контексте.
+ */
+async function enterDesktop(): Promise<void> {
+  const session = useSessionStore();
+  const desktops = useDesktopStore();
+
+  if (!session.isRegistrationComplete) {
+    await router.push({ name: 'signup', params: { coopname: props.coopname } });
+    return;
+  }
+  // Данные пользователя догружаются асинхронно; ждём их так же, как обычный вход.
+  let attempts = 0;
+  while (!session.loadComplete && attempts < 50) {
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    attempts++;
+  }
+  try {
+    await desktops.loadDesktop();
+  } catch (e) {
+    console.warn('[BOOTRACE] не удалось перезагрузить стол после восстановления:', e);
+  }
+  desktops.selectDefaultWorkspace(true);
+  desktops.goToDefaultPage(router);
+}
+
 const submit = async (): Promise<void> => {
   if (!isValid.value) return;
   loading.value = true;
@@ -128,17 +166,7 @@ const submit = async (): Promise<void> => {
       newPassword: newPassword.value,
     });
     SuccessAlert('Доступ восстановлен. Входим…');
-    // Ведём на главную, а не на `/:coopname`. Маршруты рабочего стола появляются в
-    // роутере только когда загрузится меню кооператива (store зовёт router.addRoute).
-    // Сразу после восстановления меню ещё не пришло, и переход по адресу кооператива
-    // ловит NotFound — в трассировке это видно как
-    // `afterEach установлен маршрут /voskhod (name=NotFound)` (владелец 04.09.2026).
-    // С главной кооператив подставляется сам, когда меню доедет.
-    //
-    // Переход именно роутером, без window.location: сессия CoopID уже построена в этом
-    // же контексте (confirmRecovery вошёл новым паролём, разблокировал кошелёк и положил
-    // токены с PIN-кэшем), перезапускать приложение и поднимать её из IndexedDB незачем.
-    await router.push({ name: 'index' });
+    await enterDesktop();
   } catch (e: any) {
     // Ключ уже сменён, а войти следом не удалось: ссылка одноразовая и сожжена,
     // повторять здесь нечего. Оставлять пайщика на этой форме — тупик, уводим на
