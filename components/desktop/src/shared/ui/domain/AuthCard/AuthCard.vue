@@ -62,8 +62,17 @@ const shellStyle = computed(() => ({
   color: var(--p-ink-2);
   margin: 6px 0 0;
 }
+/*
+ * Содержимое — колонка с ровным зазором. Без него соседние блоки слипались: баннер
+ * упирался в кнопку под ним (владелец 03.09.2026). Зазор задаётся контейнером, а не
+ * отступами у детей: содержимое приходит слотом из чужой области видимости, и scoped-правила
+ * до него не достают.
+ */
 .auth-card__body {
   padding: var(--p-3, 12px) var(--p-6, 24px) var(--p-5, 20px);
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-4, 16px);
 }
 .auth-card__footer {
   border-top: 1px solid var(--p-line);
