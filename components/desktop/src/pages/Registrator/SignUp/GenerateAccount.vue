@@ -133,12 +133,10 @@ const setAccount = async () => {
       cooperativeDisplayName: system.cooperativeDisplayName,
     });
 
-    // Карта пайщика: узнаём, есть ли куда звать вступающего. Запрос идёт уже под его
-    // сессией — до создания учётной записи авторизовать его было нечем (story 7.5).
-    await store.loadCardcoopEntry();
-
+    // Шага «У меня есть карта» здесь больше нет: карта нужна ДО анкеты, чтобы перенести
+    // её данные, и предлагается на первом шаге вместе с почтой (владелец 03.09.2026).
+    // Кто регистрировался почтой — свяжет карту позже, из раздела «Карта пайщика».
     if (store.isBranched) store.goTo('SelectBranch');
-    else if (store.cardcoopEnterUrl) store.goTo('LinkCardcoop');
     else store.goTo('ReadStatement');
   } catch (e: any) {
     // createUser падает из-за данных анкеты — возвращаем к ним. Установка пароля

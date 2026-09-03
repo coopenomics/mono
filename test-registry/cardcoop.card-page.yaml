@@ -25,7 +25,7 @@ sources:
   ui:
     - components/desktop/src/pages/User/CardcoopPage/**
     - components/desktop/src/entities/CardcoopCard/**
-    - components/desktop/src/pages/Registrator/SignUp/LinkCardcoop.vue
+    - components/desktop/src/pages/Registrator/SignUp/EmailInput.vue
 
 cases:
   - id: cc.card.happy.01

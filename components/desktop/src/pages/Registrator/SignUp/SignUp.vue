@@ -25,8 +25,6 @@
 
       SelectBranch(v-if='isBranched')
 
-      LinkCardcoop(v-if='registratorStore.cardcoopEnterUrl')
-
       ReadStatement
 
       SignStatement
@@ -50,7 +48,6 @@ import ReadStatement from './ReadStatement.vue';
 import PayInitial from './PayInitial.vue';
 import WaitingRegistration from './WaitingRegistration.vue';
 import SelectBranch from './SelectBranch.vue';
-import LinkCardcoop from './LinkCardcoop.vue';
 import { AuthCard } from 'src/shared/ui/domain/AuthCard';
 import { EmptyState } from 'src/shared/ui/base/EmptyState';
 

@@ -21,14 +21,27 @@ div
       :loading='inLoading',
       @click='setEmail'
     ) Продолжить
+
+    //- Регистрация по карте пайщика — здесь, а не отдельным шагом в середине пути
+    //- (решение владельца 03.09.2026). Смысл карты в том, чтобы не заполнять анкету
+    //- заново: предлагать её после того, как человек всё ввёл руками, поздно.
+    template(v-if='cardcoopEntryAvailable')
+      .email-input__divider или
+      BaseButton(variant='secondary', :disabled='inLoading', @click='startCardcoopEntry')
+        template(#icon-left)
+          q-icon(name='badge', size='18px')
+        | Зарегистрироваться по карте пайщика
+      p.email-input__note Карта перенесёт анкету из кооператива, где вас уже приняли: останется проверить данные и подписать заявление.
 </template>
 
 <script lang="ts" setup>
-import { ref, computed, watch } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { useCreateUser } from 'src/features/User/CreateUser';
 import { debounce } from 'quasar';
 import { useRegistratorStore } from 'src/entities/Registrator';
 import { env } from 'src/shared/config';
+import { client } from 'src/shared/api/client';
+import { Queries } from '@coopenomics/sdk';
 import { BaseInput } from 'src/shared/ui/base/BaseInput';
 import { BaseButton } from 'src/shared/ui/base/BaseButton';
 
@@ -69,6 +82,29 @@ watch(email, () => {
   checkEmailExists();
 });
 
+/**
+ * Доступен ли вход по карте пайщика. Спрашивается один раз при открытии шага: запрос
+ * публичный, а молчаливый отказ означает «кнопки нет» — регистрация не должна падать
+ * из-за расширения (NFR-3).
+ */
+const cardcoopEntryAvailable = ref(false);
+
+onMounted(async () => {
+  try {
+    const { [Queries.Cardcoop.GetEntryAvailable.name]: available } = await client.Query(
+      Queries.Cardcoop.GetEntryAvailable.query,
+    );
+    cardcoopEntryAvailable.value = Boolean(available);
+  } catch {
+    cardcoopEntryAvailable.value = false;
+  }
+});
+
+/** Уводит на card.coop: дальше человека ведут карта и сервер, секретов в браузере нет. */
+function startCardcoopEntry(): void {
+  window.location.href = `${env.BACKEND_URL.replace(/\/+$/, '')}/v1/extensions/cardcoop/entry/start`;
+}
+
 const setEmail = () => {
   if (isValidEmail.value && !isEmailExist.value) {
     store.state.email = email.value;
@@ -84,5 +120,21 @@ const setEmail = () => {
   /* Поле уже, чем тело stepper-step. На широких карточках читается лучше
      если email-инпут не растягивается во всю ширину. */
   max-width: 360px;
+}
+
+/* Разделитель и пояснение — как на экране входа: две дороги, а не кнопка среди текста. */
+.email-input__divider {
+  margin: var(--p-4) 0 var(--p-3);
+  max-width: 360px;
+  text-align: center;
+  color: var(--p-ink-3);
+  font-size: var(--p-fs-body-sm);
+}
+
+.email-input__note {
+  margin: var(--p-2) 0 0;
+  max-width: 360px;
+  color: var(--p-ink-2);
+  font-size: var(--p-fs-body-sm);
 }
 </style>

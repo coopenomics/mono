@@ -24,7 +24,7 @@ sources:
     - components/controller/src/extensions/cardcoop/membership/join-events.service.ts
     - components/controller/src/extensions/cardcoop/infrastructure/entities/cardcoop-pending-link.typeorm-entity.ts
   ui:
-    - components/desktop/src/pages/Registrator/SignUp/LinkCardcoop.vue
+    - components/desktop/src/pages/Registrator/SignUp/EmailInput.vue
     - components/desktop/src/entities/Registrator/model/store.ts
 
 cases:
@@ -86,10 +86,14 @@ cases:
     level: ui
     kind: happy
     scenario: >
-      Вступающий доходит до шага «У меня есть карта пайщика».
+      Вступающий открывает регистрацию в кооперативе, подключённом к сети карт (03.09.2026).
     expect: >
-      шаг показывается только когда расширение установлено и карта ещё не связана;
-      «Пропустить» продолжает вступление, переход в сеть открывается новой вкладкой
+      на ПЕРВОМ шаге, рядом с почтой, стоит «Зарегистрироваться по карте пайщика» — она
+      уводит на card.coop, откуда анкета переносится из кооператива-источника и остаётся
+      проверить данные и подписать заявление. Кнопка появляется только когда расширение
+      установлено. Отдельного шага «У меня есть карта пайщика» в середине пути больше нет:
+      предлагать карту после того, как человек ввёл всё руками, поздно — связать её можно
+      из раздела «Карта пайщика» в столе
     test: ''
     status: missing
 

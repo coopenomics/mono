@@ -147,7 +147,6 @@ export const useRegistratorStore = defineStore(
       'SelectProgram',
       'GenerateAccount',
       'SelectBranch',
-      'LinkCardcoop',
       'ReadStatement',
       'SignStatement',
       'PayInitial',
@@ -180,28 +179,6 @@ export const useRegistratorStore = defineStore(
     // Подтягиваем программы под выбранный тип аккаунта. Вызывается из шага
     // SetUserData при переходе дальше — чтобы шаг SelectProgram уже знал,
     // показываться ему или нет (см. requiresProgramSelection / filteredSteps).
-    // Адрес сети «Карта пайщика» для шага «У меня есть карта» (story 7.5). `null` означает,
-    // что расширение в кооперативе не установлено, — тогда шага в потоке нет вовсе, и
-    // спрашивать вступающего про карту, которой негде взяться, незачем.
-    const cardcoopEnterUrl = ref<string | null>(null);
-
-    // Грузится после создания учётной записи: до неё запрос некому авторизовать, а
-    // после — кандидат уже вошёл и может связать свою карту в той же сессии.
-    const loadCardcoopEntry = async () => {
-      try {
-        const { [Queries.Cardcoop.GetMyCard.name]: card } = await client.Query(
-          Queries.Cardcoop.GetMyCard.query,
-          { variables: {} },
-        );
-        // Карта уже связана — предлагать связать её ещё раз незачем.
-        cardcoopEnterUrl.value = card.issued ? null : card.enterUrl;
-      } catch {
-        // Расширение не установлено либо сеть недоступна: шаг просто не показывается.
-        // Ронять вступление из-за необязательного шага нельзя (NFR-3).
-        cardcoopEnterUrl.value = null;
-      }
-    };
-
     const loadAvailablePrograms = async () => {
       const accountType = state.userData.type;
       if (!accountType || !system.info?.coopname) {
@@ -244,7 +221,6 @@ export const useRegistratorStore = defineStore(
       stepNames.filter((step) => {
         if (step === 'SelectBranch' && !isBranched.value) return false;
         if (step === 'SelectProgram' && !requiresProgramSelection.value) return false;
-        if (step === 'LinkCardcoop' && !cardcoopEnterUrl.value) return false;
         return true;
       }),
     );
@@ -411,8 +387,6 @@ export const useRegistratorStore = defineStore(
       availablePrograms,
       requiresProgramSelection,
       loadAvailablePrograms,
-      cardcoopEnterUrl,
-      loadCardcoopEntry,
       next,
       prev,
       goTo,
