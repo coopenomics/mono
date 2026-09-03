@@ -17,12 +17,31 @@ import { RecoveryStrategyService } from './recovery-strategy.service';
 const RECOVERY_TOKEN_TTL_SEC = 5 * 60;
 
 /**
+ * Маска адреса для журнала: `iv***@yandex.ru`. Полный email не пишем — логи
+ * читает более широкий круг, чем профиль пайщика, — но домена и двух первых
+ * букв хватает, чтобы при разборе обращения опознать, о каком адресе речь,
+ * и увидеть опечатку в домене.
+ */
+function maskEmail(email: string): string {
+  const at = email.indexOf('@');
+  if (at <= 0) return '***';
+  return `${email.slice(0, Math.min(2, at))}***${email.slice(at)}`;
+}
+
+/**
  * Инициация восстановления доступа через email (CoopID, Story 3.1).
  *
  * Источник пайщика и email — user-домен coopback (`findUserByEmail`); таблицы
  * `participants` из AC в brownfield-mono нет, реестр пайщиков один — пользователи.
  * Письмо доставляет готовый Центр уведомлений (`NOTIFICATION_PORT`, workflow
  * `reset-key`) — собственный SMTP здесь не нужен.
+ *
+ * Наружу исход КОНСТАНТЕН (контроллер всегда отвечает 202) — это анти-enumeration.
+ * Внутрь, наоборот, причина отказа обязана быть видна: до 03.09.2026 все ветки
+ * отказа писались в `logger.debug`, а на проде уровень логгера выше, и в журнале
+ * не оставалось ни следа, почему письмо не ушло. Разбор обращения по ВОСХОДу
+ * (7 запросов за 30 дней, 0 писем) упёрся именно в эту немоту. Теперь каждая
+ * ветка — `warn` в лог и `failure` в audit с машинной причиной.
  */
 @Injectable()
 export class RecoveryService {
@@ -43,19 +62,39 @@ export class RecoveryService {
    */
   async requestByEmail(rawEmail: string, ip: string | null): Promise<void> {
     const email = normalizeUserEmail(rawEmail);
+    const masked = maskEmail(email);
     const user = await this.users.findUserByEmail(email);
 
-    // Анти-enumeration: молча выходим, если пайщика нет, email не подтверждён или
-    // нет subscriber_id (адрес Центра уведомлений ещё не настроен).
-    if (!user || !user.is_email_verified || !user.subscriber_id) {
-      this.logger.debug('recovery: запрос по неизвестному/неподтверждённому email — тихий выход');
+    if (!user) {
+      // Самая частая причина на практике — опечатка в адресе (домен `.ry` вместо
+      // `.ru`); маска в логе позволяет это увидеть, не вынося адрес целиком.
+      this.logger.warn(`recovery: пайщик по адресу ${masked} не найден — письмо не отправлено`);
+      await this.recordFailure('user_not_found', null, ip);
+      return;
+    }
+
+    // Подтверждение email больше НЕ гейтит восстановление (решение 03.09.2026).
+    // На проде верификацию почты не проходил никто (за 45 дней ни одного вызова
+    // `verifyEmail`), и гейт запирал единственный способ вернуть доступ тем, кто
+    // потерял пароль. Верификация почт — отдельный поток; когда он поедет, ветку
+    // возвращаем сюда осознанным решением, а не побочным эффектом. Факт остаётся
+    // виден в audit-контексте (`email_verified`) — по нему видно, скольким письмо
+    // ушло на неподтверждённый адрес.
+    if (!user.subscriber_id) {
+      this.logger.warn(
+        `recovery: у пайщика ${user.username} (${masked}) нет subscriber_id — адрес Центра уведомлений не настроен, письмо не отправлено`,
+      );
+      await this.recordFailure('no_subscriber_id', user.id, ip);
       return;
     }
 
     // Гейтинг стратегии (Story 3.5): email-канал работает только если он выбран.
     // Исход остаётся константным (void) — стратегия наружу не раскрывается.
     if (!(await this.strategy.isChannelActive(user.id, RecoveryStrategy.EmailMagicLink))) {
-      this.logger.debug('recovery: email-канал отключён стратегией пайщика — тихий выход');
+      this.logger.warn(
+        `recovery: у пайщика ${user.username} (${masked}) email-канал отключён стратегией — письмо не отправлено`,
+      );
+      await this.recordFailure('email_channel_disabled', user.id, ip);
       return;
     }
 
@@ -77,14 +116,38 @@ export class RecoveryService {
       payload: { resetUrl },
     });
 
+    this.logger.log(
+      `recovery: письмо со ссылкой восстановления поставлено в очередь пайщику ${user.username} (${masked}), email_verified=${Boolean(user.is_email_verified)}`,
+    );
+
     // Контекст без секретов: ни токена, ни URL, ни email (secret-blacklist AuditService).
     await this.audit.record({
       event: 'coopid.recovery.requested',
       subjectId: user.id,
       actor: 'self',
       result: 'success',
-      context: { strategy: 'email_magic_link' },
+      context: { strategy: 'email_magic_link', email_verified: Boolean(user.is_email_verified) },
       ip,
     });
+  }
+
+  /**
+   * Аудит отказа — best-effort: журнал не имеет права ронять ручку. Исход наружу
+   * константен (202), и недоступный coop-postgres не повод отдать пайщику 500,
+   * заодно выдав по коду ответа, что адрес существует.
+   */
+  private async recordFailure(reason: string, subjectId: string | null, ip: string | null): Promise<void> {
+    try {
+      await this.audit.record({
+        event: 'coopid.recovery.requested',
+        subjectId,
+        actor: 'self',
+        result: 'failure',
+        context: { reason },
+        ip,
+      });
+    } catch (error) {
+      this.logger.error(`recovery: не удалось записать audit-событие отказа (${reason})`, error as Error);
+    }
   }
 }
