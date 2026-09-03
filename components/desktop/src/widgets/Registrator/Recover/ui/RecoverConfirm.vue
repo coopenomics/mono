@@ -49,7 +49,7 @@
 
 <script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue';
-import { PASSWORD_POLICY_HINT, passwordPolicyErrors } from '@coopenomics/auth';
+import { AuthV2ErrorCode, PASSWORD_POLICY_HINT, passwordPolicyErrors } from '@coopenomics/auth';
 import { useRecoverAccess } from 'src/features/User/RecoverAccess';
 import { navigateToPath } from 'src/shared/lib/navigation';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
@@ -126,15 +126,21 @@ const submit = async (): Promise<void> => {
       totp: twoFactorRequired.value ? totp.value : undefined,
       newPassword: newPassword.value,
     });
-    SuccessAlert('Доступ восстановлен. Войдите новым паролем.');
-    // Ведём прямо на вход (решение владельца 03.09.2026). Раньше уходили на главную
-    // в расчёте, что сессия уже построена и boot-путь доведёт до рабочего стола. На
-    // практике пайщик после сброса попадал на главную без живой сессии, и рабочий стол
-    // уводил его дальше сам — на маршрут из настроек кооператива (signin/signup), то
-    // есть через лишний промежуточный экран. Прямой переход ко входу короче и честнее:
-    // пароль только что сменён, войти им — ожидаемое следующее действие.
-    navigateToPath(`/${props.coopname}/auth/signin`, { reload: true });
+    SuccessAlert('Доступ восстановлен. Входим…');
+    // Автологин по дизайну есть: confirmRecovery уже вошёл новым паролём, разблокировал
+    // кошелёк и построил сессию CoopID с PIN-кэшем. Поэтому ведём в кабинет, а не на
+    // форму входа — заставлять входить второй раз значило бы выбросить готовую сессию.
+    // Перезагрузка нужна, чтобы канонический boot-путь поднял её из IndexedDB (переживает F5).
+    navigateToPath(`/${props.coopname}`, { reload: true });
   } catch (e: any) {
+    // Ключ уже сменён, а войти следом не удалось: ссылка одноразовая и сожжена,
+    // повторять здесь нечего. Оставлять пайщика на этой форме — тупик, уводим на
+    // обычный вход новым паролём (владелец 03.09.2026).
+    if (e?.code === AuthV2ErrorCode.RecoveryDoneLoginFailed) {
+      SuccessAlert('Пароль изменён. Войдите новым паролём.');
+      navigateToPath(`/${props.coopname}/auth/signin`, { reload: true });
+      return;
+    }
     errorMessage.value =
       e?.message || 'Не удалось восстановить доступ. Проверьте код и попробуйте снова.';
     FailAlert(e);
