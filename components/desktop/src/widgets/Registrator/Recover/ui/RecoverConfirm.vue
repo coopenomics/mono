@@ -153,13 +153,30 @@ async function enterDesktop(): Promise<void> {
     await router.push({ name: 'signup', params: { coopname: props.coopname } });
     return;
   }
+
+  // Штатный лоадер смены рабочего стола (WindowLoader в layout) — тот же, что включает
+  // обычный вход перед finishLogin. Пока стол перезагружается, layout уже кабинетный,
+  // а в router-view всё ещё висит форма восстановления — без лоадера это выглядит как
+  // зависший экран смены пароля (владелец 04.09.2026). goToDefaultPage снимает его сам.
+  desktops.setWorkspaceChanging(true);
   try {
     await desktops.loadDesktop();
   } catch (e) {
     console.warn('[BOOTRACE] не удалось перезагрузить стол после восстановления:', e);
   }
   desktops.selectDefaultWorkspace(true);
-  desktops.goToDefaultPage(router);
+
+  // goToDefaultPage при отсутствии маршрута по умолчанию только сбрасывает лоадер и
+  // НИКУДА не ведёт — пайщик оставался бы на форме восстановления. В этом случае
+  // уходим на корень: его guard с уже загруженным столом доведёт до кабинета, а если
+  // и ему некуда — до регистрации, но не оставит форму сброса пароля на экране.
+  if (desktops.getDefaultPageRoute()) {
+    desktops.goToDefaultPage(router);
+  } else {
+    console.warn('[BOOTRACE] после восстановления нет маршрута по умолчанию — уходим на корень');
+    desktops.setWorkspaceChanging(false);
+    await router.push({ name: 'index' });
+  }
 }
 
 const submit = async (): Promise<void> => {
@@ -180,6 +197,7 @@ const submit = async (): Promise<void> => {
     // повторять здесь нечего. Оставлять пайщика на этой форме — тупик, уводим на
     // обычный вход новым паролём (владелец 03.09.2026).
     if (e?.code === AuthV2ErrorCode.RecoveryDoneLoginFailed) {
+      useDesktopStore().setWorkspaceChanging(false);
       SuccessAlert('Пароль изменён. Войдите новым паролём.');
       await router.push({ name: 'signin', params: { coopname: props.coopname } });
       return;
