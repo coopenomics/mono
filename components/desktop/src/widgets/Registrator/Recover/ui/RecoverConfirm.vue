@@ -4,16 +4,11 @@
     subtitle="Подтвердите смену ключа и задайте новый пароль"
   >
     <BaseForm :loading="loading" :error="errorMessage" @submit="submit">
-      <BaseInput
-        v-model="email"
-        label="Электронная почта"
-        type="email"
-        autocomplete="email"
-        :error="emailError"
-        required
-      />
+      <BaseBanner v-if="email" variant="neutral">
+        Восстанавливаем доступ для {{ email }}
+      </BaseBanner>
 
-      <div class="recover-confirm__field">
+      <div v-if="twoFactorRequired" class="recover-confirm__field">
         <span class="recover-confirm__label">Код из приложения-аутентификатора</span>
         <OtpInput v-model="totp" :length="6" :error="totpError" />
       </div>
@@ -53,13 +48,13 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { PASSWORD_POLICY_HINT, passwordPolicyErrors } from '@coopenomics/auth';
-import { useCreateUser } from 'src/features/User/CreateUser';
 import { useRecoverAccess } from 'src/features/User/RecoverAccess';
 import { navigateToPath } from 'src/shared/lib/navigation';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { AuthCard } from 'src/shared/ui/domain/AuthCard';
+import { BaseBanner } from 'src/shared/ui/base/BaseBanner';
 import { OtpInput } from 'src/shared/ui/domain/OtpInput';
 
 const props = defineProps<{
@@ -69,18 +64,20 @@ const props = defineProps<{
   coopname: string;
 }>();
 
-const { confirmRecovery } = useRecoverAccess();
-const { emailIsValid } = useCreateUser();
+const { confirmRecovery, loadRecoveryContext } = useRecoverAccess();
 
+// Почту и необходимость второго фактора отдаёт сервер по токену ссылки: пайщик их
+// не вводит. Раньше почту спрашивали, хотя сервер её знает, а код просили у всех —
+// у того, кто 2FA не подключал, экран упирался в тупик (владелец 03.09.2026).
 const email = ref('');
+const twoFactorRequired = ref(false);
 const totp = ref('');
 const newPassword = ref('');
 const repeatPassword = ref('');
 const loading = ref(false);
 const errorMessage = ref('');
 
-const isValidEmail = computed(() => emailIsValid(email.value));
-const isValidTotp = computed(() => totp.value.length === 6);
+const isValidTotp = computed(() => !twoFactorRequired.value || totp.value.length === 6);
 const isValidPassword = computed(
   () => passwordPolicyErrors(newPassword.value).length === 0,
 );
@@ -88,11 +85,8 @@ const passwordsMatch = computed(
   () => !!repeatPassword.value && repeatPassword.value === newPassword.value,
 );
 
-const emailError = computed(() =>
-  email.value && !isValidEmail.value ? 'Введите корректный email' : '',
-);
 const totpError = computed(() =>
-  totp.value && !isValidTotp.value ? 'Код состоит из 6 цифр' : '',
+  totp.value && totp.value.length !== 6 ? 'Код состоит из 6 цифр' : '',
 );
 const passwordError = computed(() =>
   newPassword.value ? passwordPolicyErrors(newPassword.value).join(', ') : '',
@@ -103,11 +97,23 @@ const repeatError = computed(() =>
 
 const isValid = computed(
   () =>
-    isValidEmail.value &&
+    !!email.value &&
     isValidTotp.value &&
     isValidPassword.value &&
     passwordsMatch.value,
 );
+
+onMounted(async () => {
+  try {
+    const ctx = await loadRecoveryContext(props.token);
+    email.value = ctx.email;
+    twoFactorRequired.value = ctx.twoFactorRequired;
+  } catch (e: any) {
+    // Протухшая или чужая ссылка: форму показывать не на чем — говорим прямо.
+    errorMessage.value =
+      e?.message || 'Ссылка восстановления недействительна или истекла. Запросите восстановление заново.';
+  }
+});
 
 const submit = async (): Promise<void> => {
   if (!isValid.value) return;
@@ -117,7 +123,7 @@ const submit = async (): Promise<void> => {
     await confirmRecovery({
       email: email.value,
       token: props.token,
-      totp: totp.value,
+      totp: twoFactorRequired.value ? totp.value : undefined,
       newPassword: newPassword.value,
     });
     SuccessAlert('Доступ восстановлен. Входим…');

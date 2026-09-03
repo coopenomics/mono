@@ -11,19 +11,22 @@ import { RecoveryService } from './recovery.service';
 describe('RecoveryService (Story 3.1 — magic-link recovery)', () => {
   function setup() {
     const notifications = { notify: jest.fn().mockResolvedValue({ acknowledged: true, outboxIds: ['o1'] }) };
-    const users = { findUserByEmail: jest.fn() };
-    const tokenStore = { issue: jest.fn().mockResolvedValue(undefined), consume: jest.fn() };
+    const users = { findUserByEmail: jest.fn(), findUserById: jest.fn() };
+    const tokenStore = { issue: jest.fn().mockResolvedValue(undefined), consume: jest.fn(), peek: jest.fn() };
     // По умолчанию email-канал активен (Story 3.5 гейтинг); тест отключения — отдельно.
     const strategy = { isChannelActive: jest.fn().mockResolvedValue(true) };
     const audit = { record: jest.fn().mockResolvedValue(undefined) };
+    // Второй фактор: по умолчанию не подключён — самый частый расклад на проде.
+    const twoFactor = { isEnabled: jest.fn().mockResolvedValue(false), verify: jest.fn() };
     const service = new RecoveryService(
       notifications as never,
       users as never,
       tokenStore as never,
       strategy as never,
       audit as never,
+      twoFactor as never,
     );
-    return { service, notifications, users, tokenStore, strategy, audit };
+    return { service, notifications, users, tokenStore, strategy, audit, twoFactor };
   }
 
   const verifiedUser = {
@@ -147,6 +150,52 @@ describe('RecoveryService (Story 3.1 — magic-link recovery)', () => {
     audit.record.mockRejectedValueOnce(new Error('coop-postgres недоступен'));
 
     await expect(service.requestByEmail('ghost@coop.test', null)).resolves.toBeUndefined();
+  });
+
+  it('контекст ссылки: отдаёт почту и «код не нужен», если 2FA не подключён', async () => {
+    // Экран собирает форму по этим двум фактам: почту не спрашивает, код не показывает.
+    const { service, tokenStore, users, twoFactor } = setup();
+    tokenStore.peek.mockResolvedValueOnce({ subjectId: 'user-uuid-1', username: 'ant', coopname: 'voskhod' });
+    users.findUserById.mockResolvedValueOnce(verifiedUser);
+    twoFactor.isEnabled.mockResolvedValueOnce(false);
+
+    await expect(service.contextByToken('tok-1')).resolves.toEqual({
+      email: 'ant@coop.test',
+      two_factor_required: false,
+    });
+    // Открыть страницу — ещё не подтвердить: ссылка не сжигается.
+    expect(tokenStore.consume).not.toHaveBeenCalled();
+  });
+
+  it('контекст ссылки: у кого 2FA подключён — код по-прежнему нужен', async () => {
+    const { service, tokenStore, users, twoFactor } = setup();
+    tokenStore.peek.mockResolvedValueOnce({ subjectId: 'user-uuid-1', username: 'ant', coopname: 'voskhod' });
+    users.findUserById.mockResolvedValueOnce(verifiedUser);
+    twoFactor.isEnabled.mockResolvedValueOnce(true);
+
+    await expect(service.contextByToken('tok-1')).resolves.toEqual({
+      email: 'ant@coop.test',
+      two_factor_required: true,
+    });
+  });
+
+  it('контекст ссылки: протухший токен → invalid_recovery_token', async () => {
+    const { service, tokenStore } = setup();
+    tokenStore.peek.mockResolvedValueOnce(null);
+
+    await expect(service.contextByToken('tok-dead')).rejects.toMatchObject({
+      code: 'invalid_recovery_token',
+    });
+  });
+
+  it('контекст ссылки: токен жив, а пайщика уже нет → та же ошибка, что и на протухшей', async () => {
+    const { service, tokenStore, users } = setup();
+    tokenStore.peek.mockResolvedValueOnce({ subjectId: 'ghost', username: 'ghost', coopname: 'voskhod' });
+    users.findUserById.mockResolvedValueOnce(null);
+
+    await expect(service.contextByToken('tok-1')).rejects.toMatchObject({
+      code: 'invalid_recovery_token',
+    });
   });
 
   it('нормализует email перед поиском (lookup-ключ детерминирован)', async () => {

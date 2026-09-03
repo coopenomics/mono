@@ -10,6 +10,9 @@ import { normalizeUserEmail } from '~/utils/normalize-user-email';
 import { RECOVERY_TOKEN_STORE } from '~/domain/auth-v2/ports/recovery-token-store.port';
 import type { IRecoveryTokenStore } from '~/domain/auth-v2/ports/recovery-token-store.port';
 import { RecoveryStrategy } from '~/domain/auth-v2/recovery-strategy/recovery-strategy.types';
+import { AuthV2Error, AuthV2ErrorCode } from '~/domain/auth-v2/errors/auth-v2.error';
+import { TWO_FACTOR_VERIFIER } from '~/domain/auth-v2/ports/two-factor.port';
+import type { ITwoFactorVerifier } from '~/domain/auth-v2/ports/two-factor.port';
 import { AuditService } from '../audit/audit.service';
 import { RecoveryStrategyService } from './recovery-strategy.service';
 
@@ -53,6 +56,7 @@ export class RecoveryService {
     @Inject(RECOVERY_TOKEN_STORE) private readonly tokenStore: IRecoveryTokenStore,
     private readonly strategy: RecoveryStrategyService,
     private readonly audit: AuditService,
+    @Inject(TWO_FACTOR_VERIFIER) private readonly twoFactor: ITwoFactorVerifier,
   ) {}
 
   /**
@@ -129,6 +133,39 @@ export class RecoveryService {
       context: { strategy: 'email_magic_link', email_verified: Boolean(user.is_email_verified) },
       ip,
     });
+  }
+
+  /**
+   * Контекст ссылки восстановления: кому она выдана и нужен ли второй фактор.
+   *
+   * Нужен экрану подтверждения. Почту он раньше спрашивал у пайщика, хотя сервер знает
+   * её по токену: лишний ввод, и опечатка в нём роняет повторный вход уже ПОСЛЕ смены
+   * ключа. Код аутентификатора экран просил безусловно — у того, кто 2FA не подключал,
+   * это тупик. Отдаём оба факта, и экран собирает форму по ним (владелец 03.09.2026).
+   *
+   * Токен не потребляется (`peek`): открыть страницу — ещё не подтвердить. Раскрытие
+   * почты по токену не расширяет поверхность атаки — сам токен уже даёт право сменить
+   * ключ, а живёт он 5 минут и приходит только на этот адрес.
+   */
+  async contextByToken(token: string): Promise<{ email: string; two_factor_required: boolean }> {
+    const payload = await this.tokenStore.peek(token);
+    if (!payload) {
+      throw new AuthV2Error(
+        AuthV2ErrorCode.InvalidRecoveryToken,
+        'Ссылка восстановления недействительна или истекла. Запросите восстановление заново.',
+      );
+    }
+    const user = await this.users.findUserById(payload.subjectId);
+    if (!user) {
+      // Токен жив, а пайщика уже нет — та же реакция, что и на протухшую ссылку.
+      this.logger.warn(`recovery: токен ссылки указывает на несуществующего пайщика ${payload.subjectId}`);
+      throw new AuthV2Error(
+        AuthV2ErrorCode.InvalidRecoveryToken,
+        'Ссылка восстановления недействительна или истекла. Запросите восстановление заново.',
+      );
+    }
+    const two_factor_required = await this.twoFactor.isEnabled(payload.subjectId);
+    return { email: user.email, two_factor_required };
   }
 
   /**

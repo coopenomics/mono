@@ -2,7 +2,9 @@ import {
   BadRequestException,
   Body,
   Controller,
+  Get,
   HttpCode,
+  Param,
   Post,
   Req,
   UseFilters,
@@ -30,6 +32,7 @@ interface OfflineCodeBody {
 
 interface RecoveryConfirmBody {
   token?: string;
+  /** Код второго фактора. Отсутствует, если пайщик 2FA не подключал. */
   code?: string;
   public_key?: string;
   vault?: EncryptedVaultBlob;
@@ -103,6 +106,26 @@ export class RecoveryController {
   }
 
   /**
+   * Контекст ссылки восстановления — чем экрану подтверждения собирать форму.
+   *
+   * Возвращает почту, которой выдана ссылка (спрашивать её у пайщика незачем — сервер
+   * знает её по токену), и признак, подключён ли второй фактор. Токен не потребляется:
+   * открыть страницу — ещё не подтвердить. Протухшая ссылка → `invalid_recovery_token`.
+   * Rate-limit по IP — чтобы по этой ручке не перебирали токены.
+   */
+  @Get('context/:token')
+  @HttpCode(200)
+  @UseFilters(AuthV2ExceptionFilter)
+  @UseGuards(AuthRateLimitGuard)
+  @AuthRateLimit({
+    ip: { ...LOGIN_IP_RULE, escalating: ESCALATING_LOCKOUT },
+    error: TOO_MANY_RECOVERY,
+  })
+  async context(@Param('token') token: string): Promise<{ email: string; two_factor_required: boolean }> {
+    return this.recovery.contextByToken(requireString(token, 'token'));
+  }
+
+  /**
    * Двухканальное подтверждение (Story 3.2): magic-link токен + TOTP-код + новый
    * ключевой материал и пароль одним запросом. Rate-limit per-IP и per-token —
    * против brute-force TOTP при удержанной ссылке; превышение → `429`.
@@ -118,7 +141,9 @@ export class RecoveryController {
   })
   async confirm(@Body() body: RecoveryConfirmBody, @Req() req: Request): Promise<{ username: string }> {
     const token = requireString(body?.token, 'token');
-    const code = requireString(body?.code, 'code');
+    // Код второго фактора необязателен: его спрашивают только у тех, кто 2FA подключал.
+    // Нужен он или нет — решает сервис по subject'у токена, клиенту верить нельзя.
+    const code = typeof body?.code === 'string' ? body.code : undefined;
     const newPublicKey = requireString(body?.public_key, 'public_key');
     const newPassword = requireString(body?.password, 'password');
     const vaultBlob = body?.vault;
