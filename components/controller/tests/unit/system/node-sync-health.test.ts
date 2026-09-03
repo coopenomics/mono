@@ -16,6 +16,8 @@ describe('Состояние синхронизации узла с цепью',
   let pubSub: { publish: jest.Mock };
   let redis: { hgetall: jest.Mock; publish: jest.Mock; subscribe: jest.Mock };
   let blockchain: { getInfo: jest.Mock };
+  // Метрики платформы: сервис публикует в них каждый пересчёт (recordNodeSync).
+  let metrics: { recordNodeSync: jest.Mock };
   let service: NodeSyncHealthService;
 
   /** Курсор, который парсер обновил только что. */
@@ -35,8 +37,9 @@ describe('Состояние синхронизации узла с цепью',
     pubSub = { publish: jest.fn().mockResolvedValue(undefined) };
     redis = { hgetall: jest.fn(), publish: jest.fn(), subscribe: jest.fn() };
     blockchain = { getInfo: jest.fn() };
+    metrics = { recordNodeSync: jest.fn() };
 
-    service = new NodeSyncHealthService(logger, pubSub as any, redis as any, blockchain as any);
+    service = new NodeSyncHealthService(logger, pubSub as any, redis as any, blockchain as any, metrics as any);
   });
 
   /** Один тик при заданных голове цепи и позиции чтения. */

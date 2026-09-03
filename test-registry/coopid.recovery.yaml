@@ -1,0 +1,87 @@
+feature: coopid.recovery
+title: Восстановление доступа magic-link'ом по email
+
+# Пайщик потерял пароль и просит ссылку восстановления на свою почту
+# (`POST /coop/recovery/request`). Наружу ручка отвечает 202 при любом исходе —
+# существование адреса не раскрывается (анти-enumeration). Внутрь исход обязан
+# быть виден: разбор обращения по ВОСХОДу 03.09.2026 показал 7 запросов за
+# 30 дней и 0 писем, причём в журнале не осталось ни следа — все ветки отказа
+# писались в logger.debug, а на проде уровень логгера выше.
+#
+# Тем же разбором снят гейт подтверждённой почты: верификацию email на проде не
+# проходил никто (за 45 дней ни одного вызова verifyEmail), и требование
+# `is_email_verified` запирало единственный способ вернуть доступ. Верификация
+# почт — отдельный поток; пока он не поедет, восстановление работает и по
+# неподтверждённому адресу, а факт пишется в audit-контекст (`email_verified`).
+
+sources:
+  backend:
+    - components/controller/src/application/auth-v2/recovery/recovery.service.ts
+    - components/controller/src/application/auth-v2/recovery/recovery.controller.ts
+
+cases:
+  - id: cid.rec.happy.01
+    level: backend
+    kind: happy
+    scenario: пайщик с подтверждённой почтой просит ссылку восстановления
+    expect: >
+      токен выпущен на 5 минут, письмо поставлено в очередь Центра уведомлений,
+      в audit — success со strategy=email_magic_link и email_verified=true
+    test: components/controller/src/application/auth-v2/recovery/recovery.service.spec.ts
+    status: written   # прогон не подтверждён локально — гоняет CI
+
+  - id: cid.rec.side.01
+    level: backend
+    kind: side
+    scenario: почта пайщика НЕ подтверждена
+    expect: >
+      письмо всё равно уходит (решение 03.09.2026), в audit success с
+      email_verified=false — по нему видно, скольким ушло на неподтверждённый адрес
+    test: components/controller/src/application/auth-v2/recovery/recovery.service.spec.ts
+    status: written   # прогон не подтверждён локально — гоняет CI
+
+  - id: cid.rec.break.01
+    level: backend
+    kind: break
+    scenario: адрес введён с опечаткой — такого пайщика нет
+    expect: >
+      письма нет, наружу тот же 202, в audit — failure с reason=user_not_found,
+      в логе — маска адреса (домен виден, опечатка опознаётся)
+    test: components/controller/src/application/auth-v2/recovery/recovery.service.spec.ts
+    status: written   # прогон не подтверждён локально — гоняет CI
+
+  - id: cid.rec.break.02
+    level: backend
+    kind: break
+    scenario: у пайщика не проставлен subscriber_id
+    expect: >
+      письма нет (адрес Центра уведомлений не настроен), в audit — failure с
+      reason=no_subscriber_id и subject_id пайщика
+    test: components/controller/src/application/auth-v2/recovery/recovery.service.spec.ts
+    status: written   # прогон не подтверждён локально — гоняет CI
+
+  - id: cid.rec.break.03
+    level: backend
+    kind: break
+    scenario: пайщик выбрал стратегию восстановления без email-канала (Story 3.5)
+    expect: письма нет, в audit — failure с reason=email_channel_disabled
+    test: components/controller/src/application/auth-v2/recovery/recovery.service.spec.ts
+    status: written   # прогон не подтверждён локально — гоняет CI
+
+  - id: cid.rec.break.04
+    level: backend
+    kind: break
+    scenario: coop-postgres недоступен, запись audit-события отказа падает
+    expect: >
+      ручка не падает — исход остаётся константным 202, иначе код ответа сам
+      выдал бы, что адрес существует; сбой журнала уходит в logger.error
+    test: components/controller/src/application/auth-v2/recovery/recovery.service.spec.ts
+    status: written   # прогон не подтверждён локально — гоняет CI
+
+  - id: cid.rec.side.02
+    level: backend
+    kind: side
+    scenario: адрес введён с пробелами и в другом регистре
+    expect: нормализуется до trim+lowercase перед поиском — lookup-ключ детерминирован
+    test: components/controller/src/application/auth-v2/recovery/recovery.service.spec.ts
+    status: written   # прогон не подтверждён локально — гоняет CI

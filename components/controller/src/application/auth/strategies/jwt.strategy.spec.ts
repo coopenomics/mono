@@ -34,13 +34,16 @@ function setup(opts: { migrated?: boolean } = {}) {
   const userDomainService = { getUserByLegacyMongoId: jest.fn().mockResolvedValue(USER) };
   const tokenRepository = { findById: jest.fn() };
   const vault = { retrieve: jest.fn().mockResolvedValue(opts.migrated ? { ciphertext: 'x' } : null) };
+  // След активности пишется на каждом авторизованном запросе (fire-and-forget).
+  const activity = { markActive: jest.fn().mockResolvedValue(undefined) };
   const strategy = new JwtAuthStrategy(
     userRepository as never,
     userDomainService as never,
     tokenRepository as never,
     vault as never,
+    activity as never,
   );
-  return { strategy, tokenRepository, vault };
+  return { strategy, tokenRepository, vault, activity };
 }
 
 const ACCESS = { sub: SUB, type: tokenTypes.ACCESS };
