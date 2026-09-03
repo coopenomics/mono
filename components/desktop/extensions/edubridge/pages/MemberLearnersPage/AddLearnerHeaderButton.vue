@@ -1,8 +1,8 @@
 <template lang="pug">
-BaseButton(variant="primary" size="sm" :icon-only="isCompact" aria-label="Получить доступ" @click="emit('click')")
+BaseButton(variant="primary" size="sm" :icon-only="isCompact" aria-label="Добавить обучающегося" @click="emit('click')")
   template(#icon-left)
-    q-icon(name="key" size="18px")
-  | Получить доступ
+    q-icon(name="person_add" size="18px")
+  | Добавить обучающегося
 </template>
 
 <script setup lang="ts">

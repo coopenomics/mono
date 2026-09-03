@@ -13,6 +13,7 @@ import {
   CourseCardPage,
   MemberLearnersPage,
   MemberOnboardingPage,
+  MemberSubscriptionsPage,
   TeacherAssignmentsPage,
   TeacherContributionsPage,
   TeacherOnboardingPage,
@@ -28,7 +29,7 @@ import {
  *                        пайщиков, очередь выдачи.
  *   edubridge-member   — «Стол ученика»: каталог курсов (открыт гостю после
  *                        подключения ЦПП советом — витрина до вступления, как каталог
- *                        в «Столе заказчика»), обучающиеся, подписки и доступ.
+ *                        в «Столе заказчика»), обучающиеся и отдельно подписки.
  *   edubridge-teacher  — «Стол преподавателя»: назначения, взносы результатами
  *                        работы, расчёт.
  *
@@ -75,13 +76,15 @@ function adminWorkspace(): IWorkspaceConfig {
   ]);
 }
 
-/** «Стол ученика»: каталог (гостю — витрина), обучающиеся, подписки и доступ. */
+/** «Стол ученика»: каталог (гостю — витрина), обучающиеся, подписки. Подписка
+    оформляется в карточке курса, поэтому кнопок «получить доступ» на столе нет. */
 function parentWorkspace(): IWorkspaceConfig {
   return workspace('edubridge-member', 'Стол ученика', 'family_restroom', 'edubridge-catalog', [
     publicPage('catalog', 'edubridge-catalog', CatalogPage, { title: 'Каталог курсов', icon: 'school', requires: 'EduCatalog:read' }),
     publicPage('catalog/:id', 'edubridge-catalog-course', CourseCardPage, { title: 'Курс', icon: 'school', requires: 'EduCatalog:read', hidden: true }),
     memberPage('onboarding', 'edubridge-member-onboarding', MemberOnboardingPage, { title: 'Подключение', icon: 'how_to_reg', requires: 'Onboarding:learner', gate: true }),
-    memberPage('learners', 'edubridge-learners', MemberLearnersPage, { title: 'Обучающиеся и доступ', icon: 'family_restroom', requires: 'EduLearner:read:own' }),
+    memberPage('learners', 'edubridge-learners', MemberLearnersPage, { title: 'Обучающиеся', icon: 'family_restroom', requires: 'EduLearner:read:own' }),
+    memberPage('subscriptions', 'edubridge-subscriptions', MemberSubscriptionsPage, { title: 'Мои подписки', icon: 'card_membership', requires: 'EduEnrollment:read:own' }),
   ]);
 }
 

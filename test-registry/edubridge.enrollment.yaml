@@ -17,6 +17,8 @@ sources:
     - components/controller/src/extensions/edubridge/infrastructure/repositories/edubridge-learner.repository.ts
   ui:
     - components/desktop/extensions/edubridge/pages/MemberLearnersPage/**
+    - components/desktop/extensions/edubridge/pages/MemberSubscriptionsPage/**
+    - components/desktop/extensions/edubridge/pages/CourseCardPage/**
     - components/desktop/extensions/edubridge/features/Subscribe/**
     - components/desktop/extensions/edubridge/widgets/LearnerForm/**
     - components/desktop/extensions/edubridge/entities/Learner/**
@@ -76,5 +78,26 @@ cases:
     kind: happy
     scenario: Пайщик добавляет обучающегося, нажимает «Получить доступ», видит котировку; при нехватке — ссылка на пополнение; при достатке — подписывает заявление.
     expect: После подписи строка подписки появляется в таблице со статусом «Действует» и доступом «Выдаётся».
+    test: ~
+    status: missing
+  - id: edu.enr.ui.01
+    level: ui
+    kind: happy
+    scenario: "Подписка оформляется в карточке курса: «Получить доступ» открывает диалог на месте, курс закреплён, обучающийся по умолчанию — сам пайщик (is_self); плюсик у поля заводит нового обучающегося прямо в диалоге, и он сразу выбран."
+    expect: "Со стола ученика кнопка «Получить доступ» убрана; после подписи человек уходит на «Мои подписки», новый обучающийся виден и на странице «Обучающиеся»."
+    test: ~
+    status: missing
+  - id: edu.enr.ui.02
+    level: ui
+    kind: side
+    scenario: "Пайщик без подписанной оферты родителя-слушателя жмёт «Получить доступ» в карточке курса (право Onboarding:learner ещё выдано)."
+    expect: "Уводится на страницу подключения, а не в диалог подписки, который бэкенд всё равно отклонит; после подписи оферты гейт возвращает в каталог."
+    test: ~
+    status: missing
+  - id: edu.enr.ui.03
+    level: ui
+    kind: happy
+    scenario: "Стол ученика разделён: «Обучающиеся» — состав и адреса доставки, «Мои подписки» — курс, период, оплачено до, состояние доступа и «Продлить»."
+    expect: "Пустые подписки предлагают перейти в каталог; продление открывает тот же диалог с закреплённым курсом."
     test: ~
     status: missing

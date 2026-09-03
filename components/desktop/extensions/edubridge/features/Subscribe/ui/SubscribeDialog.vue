@@ -2,6 +2,10 @@
 BaseDialog(:model-value="modelValue" title="Получить доступ" size="md" @update:model-value="(v) => emit('update:modelValue', v)")
   .q-gutter-md
     BaseSelect(v-model="learnerId" label="Обучающийся" :options="learnerOptions" required)
+      template(#after)
+        BaseButton(variant="ghost" size="sm" icon-only aria-label="Добавить обучающегося" @click="learnerFormOpen = true")
+          template(#icon-left)
+            q-icon(name="add" size="18px")
     BaseSelect(v-model="courseId" label="Курс" :options="courseOptions" :disabled="Boolean(lockedCourseId)" required)
     BaseSelect(v-model="period" label="Период членского взноса" :options="periodOptions" required)
 
@@ -27,6 +31,9 @@ BaseDialog(:model-value="modelValue" title="Получить доступ" size=
     BaseButton(variant="ghost" :disabled="busy" @click="emit('update:modelValue', false)") Отменить
     BaseButton(variant="primary" :disabled="!quote?.enough || !agreed" :loading="busy" @click="submit") Подписать и получить доступ
 
+  BaseDialog(v-model="learnerFormOpen" title="Новый обучающийся" size="md")
+    LearnerForm(:default-self="!pool.length" @saved="onLearnerAdded" @cancel="learnerFormOpen = false")
+
   BaseDialog(v-model="statementOpen" title="Заявление о конвертации" size="xl" maximized)
     CardListSkeleton(v-if="!statementHtml" :count="1")
     DocumentHtmlReader(v-else :html="statementHtml" :sanitize="false")
@@ -44,6 +51,7 @@ import { DocumentHtmlReader } from 'src/shared/ui/DocumentHtmlReader';
 import type { DigitalDocument } from 'src/shared/lib/document';
 import { fetchQuote, PERIOD_LABELS, type IEnrollment, type ILearner, type IQuote } from '../../../entities/Learner';
 import type { ICatalogCourse } from '../../../entities/Course';
+import { LearnerForm } from '../../../widgets/LearnerForm';
 import { buildConvertStatement, subscribe } from '../api';
 
 /**
@@ -57,12 +65,19 @@ const props = defineProps<{
   courses: ICatalogCourse[];
   lockedCourseId?: string | null;
 }>();
-const emit = defineEmits<{ 'update:modelValue': [v: boolean]; subscribed: [enrollment: IEnrollment] }>();
+const emit = defineEmits<{
+  'update:modelValue': [v: boolean];
+  subscribed: [enrollment: IEnrollment];
+  'learner-added': [learner: ILearner];
+}>();
 
 const route = useRoute();
 const router = useRouter();
 
 const learnerId = ref<string | null>(null);
+const learnerFormOpen = ref(false);
+/** Список обучающихся диалога: приходит от страницы, но пополняется прямо здесь. */
+const pool = ref<ILearner[]>([...props.learners]);
 const courseId = ref<string | null>(props.lockedCourseId ?? null);
 const period = ref<Zeus.EduEnrollmentPeriod>(Zeus.EduEnrollmentPeriod.MONTH);
 const quote = ref<IQuote | null>(null);
@@ -72,7 +87,7 @@ const statementOpen = ref(false);
 const statementHtml = ref('');
 const statement = ref<DigitalDocument | null>(null);
 
-const learnerOptions = computed(() => props.learners.map((l) => ({ value: l.id, label: l.display_name })));
+const learnerOptions = computed(() => pool.value.map((l) => ({ value: l.id, label: l.is_self ? `${l.display_name} (я)` : l.display_name })));
 const courseOptions = computed(() => props.courses.map((c) => ({ value: c.id, label: `${c.title} · ${c.subject}, ${c.grade}` })));
 const periodOptions = Object.entries(PERIOD_LABELS).map(([value, label]) => ({ value, label }));
 const courseTitle = computed(() => props.courses.find((c) => c.id === courseId.value)?.title ?? '');
@@ -100,6 +115,37 @@ watch(
     if (v) courseId.value = v;
   },
 );
+
+/** Обучающийся по умолчанию — сам пайщик: так подписка на себя оформляется в два клика. */
+function pickDefaultLearner(): void {
+  if (learnerId.value && pool.value.some((l) => l.id === learnerId.value)) return;
+  learnerId.value = (pool.value.find((l) => l.is_self) ?? pool.value[0])?.id ?? null;
+}
+
+watch(
+  () => props.learners,
+  (list) => {
+    pool.value = [...list];
+    pickDefaultLearner();
+  },
+  { immediate: true },
+);
+
+watch(
+  () => props.modelValue,
+  (open) => {
+    if (open) pickDefaultLearner();
+  },
+  { immediate: true },
+);
+
+/** Обучающийся, заведённый прямо в диалоге: сразу выбран и отдан странице, чтобы список не расходился. */
+function onLearnerAdded(learner: ILearner): void {
+  pool.value = [...pool.value.filter((l) => l.id !== learner.id), learner];
+  learnerId.value = learner.id;
+  learnerFormOpen.value = false;
+  emit('learner-added', learner);
+}
 
 async function ensureStatement(): Promise<DigitalDocument> {
   if (statement.value) return statement.value;

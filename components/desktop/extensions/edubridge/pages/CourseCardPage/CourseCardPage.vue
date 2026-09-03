@@ -26,7 +26,7 @@
           .t-muted.t-sm(v-else) Программа будет опубликована позже.
 
       .col-12.col-md-4
-        BaseCard(variant="default" title="Условия участия")
+        BaseCard.edu-course__terms(variant="default" title="Условия участия")
           DataRow(label="Расписание" :value="course.schedule || '______'")
           DataRow(:label="course.teacher_usernames.length > 1 ? 'Преподаватели' : 'Преподаватель'" :value="course.teacher_usernames.join(', ') || '______'" mono)
           DataRow(label="Членский взнос в месяц" :value="formatAsset2Digits(course.fee_month)" mono)
@@ -35,6 +35,15 @@
             BaseButton(variant="primary" block @click="getAccess") Получить доступ
           .t-muted.t-sm.q-mt-sm(v-if="!session.isAuth")
             | Для записи на курс нужно вступить в кооператив — это займёт несколько минут.
+
+    SubscribeDialog(
+      v-model="subscribeOpen"
+      :learners="learners"
+      :courses="course ? [course] : []"
+      :locked-course-id="course?.id ?? null"
+      @learner-added="onLearnerAdded"
+      @subscribed="onSubscribed"
+    )
 </template>
 
 <script setup lang="ts">
@@ -47,12 +56,15 @@ import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { BaseButton, BaseCard, BaseChip, CardListSkeleton, EmptyState } from 'src/shared/ui/base';
 import { DataRow } from 'src/shared/ui/domain';
 import { fetchCatalogCourse, type ICatalogCourse } from '../../entities/Course';
+import { fetchMyLearners, type ILearner } from '../../entities/Learner';
+import { SubscribeDialog } from '../../features/Subscribe';
 
 /**
  * Страница курса для посетителя: обложка, описание, учебная программа,
  * условия участия. Тип направления не показывается — суть курса читается из
  * заголовка и описания. Название курса уходит в шапку стола.
- * «Получить доступ»: гость уходит во вступление, пайщик — к обучающимся.
+ * «Получить доступ»: гость уходит во вступление, пайщик оформляет подписку
+ * здесь же — обучающегося можно завести прямо в диалоге.
  */
 const route = useRoute();
 const router = useRouter();
@@ -61,14 +73,39 @@ const desktopStore = useDesktopStore();
 
 const course = ref<ICatalogCourse | null>(null);
 const loading = ref(true);
+const subscribeOpen = ref(false);
+const learners = ref<ILearner[]>([]);
 
-function getAccess(): void {
-  const coopname = route.params.coopname;
+async function getAccess(): Promise<void> {
   if (!session.isAuth) {
-    void router.push({ name: 'signup', params: { coopname } });
+    void router.push({ name: 'signup', params: { coopname: route.params.coopname } });
     return;
   }
-  void router.push({ name: 'edubridge-learners', params: { coopname }, query: { course: String(route.params.id) } });
+  // Оферта родителя-слушателя не подписана — бэкенд откажет в подписке, поэтому
+  // сначала гейт подключения (право `Onboarding:learner` живёт ровно до подписи).
+  if (desktopStore.hasGrant('edubridge-member', 'Onboarding:learner')) {
+    void router.push({ name: 'edubridge-member-onboarding', params: { coopname: route.params.coopname } });
+    return;
+  }
+  try {
+    learners.value = await fetchMyLearners();
+  } catch (e) {
+    FailAlert(e);
+    return;
+  }
+  subscribeOpen.value = true;
+}
+
+function onLearnerAdded(l: ILearner): void {
+  const i = learners.value.findIndex((x) => x.id === l.id);
+  if (i >= 0) learners.value[i] = l;
+  else learners.value.push(l);
+}
+
+/** Подписка оформлена здесь же — дальше человеку нужны сроки и состояние доступа. */
+function onSubscribed(): void {
+  subscribeOpen.value = false;
+  void router.push({ name: 'edubridge-subscriptions', params: { coopname: route.params.coopname } });
 }
 
 onMounted(async () => {
@@ -93,5 +130,10 @@ onBeforeUnmount(() => desktopStore.clearPageTitleOverride());
 }
 .edu-course__text {
   white-space: pre-wrap;
+}
+/* Колонка условий узкая: пары «подпись — значение» внутри неё сами стекаются
+   в две строки (container query в DataRow), иначе сумма рвётся посреди числа. */
+.edu-course__terms {
+  container-type: inline-size;
 }
 </style>

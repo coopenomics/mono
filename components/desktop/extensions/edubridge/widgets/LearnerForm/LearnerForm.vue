@@ -23,11 +23,11 @@ import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { BaseButton, BaseCheckbox, BaseForm, BaseInput, BaseSelect } from 'src/shared/ui/base';
 import { addLearner, RECIPIENT_LABELS, updateLearner, type ILearner, type ILearnerInput } from '../../entities/Learner';
 
-const props = defineProps<{ learner?: ILearner | null }>();
+const props = withDefaults(defineProps<{ learner?: ILearner | null; defaultSelf?: boolean }>(), { defaultSelf: false });
 const emit = defineEmits<{ saved: [learner: ILearner]; cancel: [] }>();
 
 const loading = ref(false);
-const form = reactive<ILearnerInput>({ display_name: '', recipient_type: Zeus.EduRecipientType.EMAIL, recipient_value: '', is_self: false });
+const form = reactive<ILearnerInput>({ display_name: '', recipient_type: Zeus.EduRecipientType.EMAIL, recipient_value: '', is_self: props.defaultSelf });
 
 watch(
   () => props.learner,

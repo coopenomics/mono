@@ -85,6 +85,14 @@ async function onCopy(): Promise<void> {
     grid-template-columns: 1fr;
   }
 }
+/* Пара может стоять и в узкой колонке широкого экрана (боковая карточка условий):
+   там ширину задаёт контейнер, а не окно. Если предок объявил container-type,
+   стекаем так же — подпись сверху, значение под ней. */
+@container (max-width: 420px) {
+  .data-row--horizontal {
+    grid-template-columns: 1fr;
+  }
+}
 
 .data-row__label {
   color: var(--p-ink-2);
@@ -103,7 +111,9 @@ async function onCopy(): Promise<void> {
 
 .data-row__value-text {
   min-width: 0;
-  overflow-wrap: anywhere;
+  /* break-word, а не anywhere: длинный ключ всё равно переносится, но «1 000,00 RUB»
+     не рвётся посреди числа — сумма уезжает на следующую строку целиком. */
+  overflow-wrap: break-word;
 }
 
 .data-row--mono .data-row__value-text {
