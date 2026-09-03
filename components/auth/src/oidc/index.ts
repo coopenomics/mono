@@ -96,8 +96,9 @@ export interface LoginWithMagicLinkParams {
   email: string
   /** Magic-link токен из ссылки восстановления (или `recovery_token` offline-канала, Story 3.4). */
   token: string
-  /** TOTP-код из приложения-аутентификатора — второй фактор подтверждения (Story 3.2/3.6). */
-  totp: string
+  /** TOTP-код из приложения-аутентификатора — второй фактор подтверждения (Story 3.2/3.6).
+   *  Не передаётся, если пайщик 2FA не подключал: тогда ссылка из почты — единственный фактор. */
+  totp?: string
   /** Новый пароль: им шифруется новый vault и он же ставится в authentik (Story 12.1). */
   newPassword: string
   /** Slug flow аутентификации authentik (по умолчанию `default-authentication-flow`). */
@@ -148,7 +149,7 @@ export async function loginWithMagicLink(params: LoginWithMagicLinkParams): Prom
     res = await fetch(`${apiUrl}/coop/recovery/confirm`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ token: params.token, code: params.totp, public_key: newPublicKey, vault: vaultBlob, password: params.newPassword }),
+      body: JSON.stringify({ token: params.token, ...(params.totp ? { code: params.totp } : {}), public_key: newPublicKey, vault: vaultBlob, password: params.newPassword }),
     })
   }
   catch (e) {
@@ -180,6 +181,41 @@ export async function loginWithMagicLink(params: LoginWithMagicLinkParams): Prom
     idToken: user.id_token ?? '',
     participantCertificate: handshake.participantCertificate ?? '',
   }
+}
+
+/** Что нужно экрану подтверждения восстановления: кому выдана ссылка и нужен ли код. */
+export interface RecoveryContext {
+  /** Почта, на которую пришла ссылка. Экран её показывает, но не спрашивает. */
+  email: string
+  /** Подключён ли у пайщика второй фактор — только тогда просим код. */
+  twoFactorRequired: boolean
+}
+
+/**
+ * Контекст ссылки восстановления, `GET /coop/recovery/context/:token` (Эпик 3).
+ *
+ * Токен не потребляется — открыть страницу ещё не значит подтвердить. Нужен, чтобы
+ * экран не спрашивал почту (сервер знает её по токену) и не просил код у того, кто
+ * 2FA не подключал: раньше он просил безусловно, и восстановление упиралось в тупик.
+ */
+export async function recoveryContext(token: string): Promise<RecoveryContext> {
+  const base = coopIdApiUrl()
+  let res: Response
+  try {
+    res = await fetch(`${base}/coop/recovery/context/${encodeURIComponent(token)}`, {
+      method: 'GET',
+      headers: { 'content-type': 'application/json' },
+    })
+  }
+  catch (e) {
+    throw new AuthV2Error(AuthV2ErrorCode.NetworkError, `Сеть недоступна при открытии ссылки восстановления: ${e instanceof Error ? e.message : String(e)}`)
+  }
+  if (res.status === 429)
+    throw new AuthV2Error(AuthV2ErrorCode.TooManyRecoveryAttempts, 'Слишком много попыток, попробуйте позже')
+  if (!res.ok)
+    throw await authErrorFromResponse(res, AuthV2ErrorCode.InvalidRecoveryToken, 'Ссылка восстановления недействительна или истекла')
+  const body = (await res.json().catch(() => null)) as { email?: string, two_factor_required?: boolean } | null
+  return { email: body?.email ?? '', twoFactorRequired: Boolean(body?.two_factor_required) }
 }
 
 /**

@@ -18,6 +18,10 @@ sources:
   backend:
     - components/controller/src/application/auth-v2/recovery/recovery.service.ts
     - components/controller/src/application/auth-v2/recovery/recovery.controller.ts
+    - components/controller/src/application/auth-v2/recovery/recovery-confirm.service.ts
+  ui:
+    - components/desktop/src/widgets/Registrator/Recover/**
+    - components/desktop/src/features/User/RecoverAccess/**
 
 cases:
   - id: cid.rec.happy.01
@@ -85,3 +89,70 @@ cases:
     expect: нормализуется до trim+lowercase перед поиском — lookup-ключ детерминирован
     test: components/controller/src/application/auth-v2/recovery/recovery.service.spec.ts
     status: written   # прогон не подтверждён локально — гоняет CI
+
+  # ── Подтверждение по ссылке (второй фактор) ───────────────────────────────
+  # Решение владельца 03.09.2026: код аутентификатора требуется только тому, кто его
+  # подключал. До этого confirm требовал TOTP безусловно, и восстановление было мертво
+  # у всех, кто 2FA не заводил, — а оба входных канала (ссылка и offline-код) сходятся
+  # именно сюда. Штатного самостоятельного пути при утраченном TOTP по-прежнему нет:
+  # force-recovery существует только серверной ручкой согласия, интерфейса под него нет.
+
+  - id: cid.rec.happy.02
+    level: backend
+    kind: happy
+    scenario: пайщик без подключённого 2FA подтверждает восстановление по ссылке
+    expect: >
+      код не спрашивается и не проверяется, ключ ротируется, в audit — success со
+      second_factor=none
+    test: components/controller/src/application/auth-v2/recovery/recovery-confirm.service.spec.ts
+    status: written   # прогон не подтверждён локально — гоняет CI
+
+  - id: cid.rec.break.05
+    level: backend
+    kind: break
+    scenario: у пайщика 2FA подключён, а код не передан либо неверен
+    expect: >
+      отказ invalid_2fa_code, ссылка НЕ сжигается — контур двух каналов для тех,
+      кто его завёл, остаётся прежним
+    test: components/controller/src/application/auth-v2/recovery/recovery-confirm.service.spec.ts
+    status: written   # прогон не подтверждён локально — гоняет CI
+
+  # ── Контекст ссылки (чем экран собирает форму) ────────────────────────────
+
+  - id: cid.rec.happy.03
+    level: backend
+    kind: happy
+    scenario: открыта ссылка восстановления — экран запрашивает контекст по токену
+    expect: >
+      возвращаются почта пайщика и признак необходимости кода; токен НЕ потребляется —
+      открыть страницу ещё не значит подтвердить
+    test: components/controller/src/application/auth-v2/recovery/recovery.service.spec.ts
+    status: written   # прогон не подтверждён локально — гоняет CI
+
+  - id: cid.rec.break.06
+    level: backend
+    kind: break
+    scenario: контекст запрошен по протухшему токену либо пайщика уже нет
+    expect: invalid_recovery_token в обоих случаях — расклады снаружи неразличимы
+    test: components/controller/src/application/auth-v2/recovery/recovery.service.spec.ts
+    status: written   # прогон не подтверждён локально — гоняет CI
+
+  - id: cid.rec.side.03
+    level: ui
+    kind: side
+    scenario: экран подтверждения открыт пайщиком без 2FA
+    expect: >
+      почта показана строкой и не редактируется, поля кода нет вовсе, форма сводится
+      к паре «новый пароль + повтор»
+    test: null
+    status: missing   # сценарий harness не написан
+
+  - id: cid.rec.side.04
+    level: ui
+    kind: side
+    scenario: шестизначный код открыт на узкой карточке (телефон, диалог)
+    expect: >
+      ряд ячеек сжимается по ширине контейнера и не выходит за край карточки;
+      правка в самом OtpInput, поэтому касается всех семи мест, где он стоит
+    test: null
+    status: missing   # сценарий harness не написан

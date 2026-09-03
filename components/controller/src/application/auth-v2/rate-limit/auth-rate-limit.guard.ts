@@ -3,6 +3,7 @@ import { type CanActivate, type ExecutionContext, Inject, Injectable, Logger, Op
 import { Reflector } from '@nestjs/core';
 import type { ThrottlerStorage } from '@nestjs/throttler';
 import type { Request } from 'express';
+import appConfig from '~/config/config';
 import { AuthV2Error, AuthV2ErrorCode } from '~/domain/auth-v2/errors/auth-v2.error';
 import { RATE_LIMIT_STORAGE, type IEscalatingRateLimitStorage } from '~/domain/auth-v2/ports/rate-limit-storage.port';
 import { AuditService } from '../audit/audit.service';
@@ -49,6 +50,12 @@ export class AuthRateLimitGuard implements CanActivate {
       context.getClass(),
     ]);
     if (!config) return true;
+
+    // Dev-контур: счётчик попыток здесь только мешает. Разработчик открывает один и
+    // тот же экран десятки раз подряд и запирает сам себя на час — вместо формы видит
+    // «слишком много попыток» (владелец 03.09.2026). На проде и в testnet лимит
+    // работает как прежде; `test` тоже не трогаем — на нём стоят юнит-тесты guard'а.
+    if (appConfig.env === 'development') return true;
 
     const req = context.switchToHttp().getRequest<Request>();
     const ip = req.ip ?? 'unknown';
