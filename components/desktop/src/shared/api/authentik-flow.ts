@@ -166,6 +166,18 @@ export const fieldError = (challenge: FlowChallenge, field: string): string | un
   challenge.response_errors?.[field]?.[0]?.string;
 
 /** Есть ли у человека живая сессия authentik (по куке; отказ — это ответ, не ошибка). */
+/**
+ * Сбрасывает начатый поток: authentik держит план в сессии и на новый запрос отдаёт тот же
+ * шаг, поэтому «это не я» без отмены плана ничего не меняло (03.09.2026). Адрес отмены
+ * приходит в самом шаге (`flow_info.cancel_url`); ответ — переход, он не нужен.
+ *
+ * @param base — адрес CoopID.
+ * @param cancelUrl — адрес отмены из шага; без него берётся стандартный.
+ */
+export const cancelFlow = async (base = '', cancelUrl = '/flows/-/cancel/'): Promise<void> => {
+  await fetch(`${base}${cancelUrl}`, { credentials: 'include', redirect: 'manual' }).catch(() => undefined);
+};
+
 export const hasIdpSession = async (base = ''): Promise<boolean> => {
   try {
     const response = await fetch(`${base}/api/v3/core/users/me/`, {

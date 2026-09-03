@@ -62,7 +62,8 @@ const label = computed(() => (asksEmail.value ? 'Почта' : 'Имя акка�
 const error = computed(() => fieldError(props.challenge, 'uid_field'));
 const passwordError = computed(() => fieldError(props.challenge, 'password'));
 const asksPassword = computed(() => props.challenge.password_fields === true);
-const action = computed(() => props.challenge.primary_action || 'Продолжить');
+// Надпись своя: поток присылает английское «Log in», а у стола кнопка входа — «Войти».
+const action = computed(() => (asksPassword.value ? 'Войти' : 'Продолжить'));
 const byPromoted = (a: FlowSource, b: FlowSource): number => Number(b.promoted ?? false) - Number(a.promoted ?? false);
 const sources = computed(() => [...(props.challenge.sources ?? [])].sort(byPromoted));
 

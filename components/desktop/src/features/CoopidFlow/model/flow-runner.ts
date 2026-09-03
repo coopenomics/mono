@@ -8,6 +8,7 @@ import { computed, ref, type ComputedRef, type Ref } from 'vue';
 import {
   FlowStage,
   FlowUnavailable,
+  cancelFlow,
   executeFlow,
   formError,
   type FlowAnswer,
@@ -30,6 +31,8 @@ export interface FlowRunner {
   answer(payload: FlowAnswer): Promise<void>;
   /** Принимает готовый шаг, пришедший внутри другого (выбор источника входа). */
   take(next: FlowChallenge): Promise<void>;
+  /** Начинает поток заново: сбрасывает план в сессии authentik и открывает первый шаг. */
+  restart(): Promise<void>;
 }
 
 /** Стадии без экрана: ответ на них пустой. */
@@ -91,5 +94,11 @@ export const createFlowRunner = (
     },
     answer: send,
     take: settle,
+    async restart(): Promise<void> {
+      state.value = FlowState.Starting;
+      await cancelFlow(base, challenge.value?.flow_info?.cancel_url);
+      challenge.value = null;
+      await this.start();
+    },
   };
 };

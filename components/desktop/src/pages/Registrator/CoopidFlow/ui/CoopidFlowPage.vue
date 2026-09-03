@@ -38,7 +38,7 @@
           :sending='runner.sending.value',
           @answer='runner.answer',
           @flow='openFlow',
-          @restart='begin'
+          @restart='runner.restart'
         )
         FlowPrompt(v-else-if='stage === FlowStage.Prompt', :challenge='current', :sending='runner.sending.value', @answer='runner.answer')
         FlowEmail(v-else-if='stage === FlowStage.Email', :challenge='current', :sending='runner.sending.value', :slug='slug', @answer='runner.answer')
