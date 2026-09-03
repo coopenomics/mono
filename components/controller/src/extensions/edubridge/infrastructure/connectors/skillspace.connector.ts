@@ -27,7 +27,9 @@ import { classifyHttpFailure, classifyStatus, httpCall } from './http-carrier.ba
  * НЕопубликованный курс и без группы; первый invite нового ученика отвечает
  * 200 `{"passwordSetupLink": …}`, повторный — 200 `{}` (идемпотентно);
  * remove идемпотентен (200 `{}`); ошибки приходят как 404 с кодом в теле —
- * `{"COURSE_NOT_FOUND": …}`, `{"SCHOOL_PUBLIC_TOKEN_NOT_FOUND": …}`.
+ * `{"COURSE_NOT_FOUND": …}`, `{"SCHOOL_PUBLIC_TOKEN_NOT_FOUND": …}`, а на
+ * приглашение сотрудника школы — как 400 `{"INVITE_ONLY_EMPLOYEE": …}`
+ * (проверено 2026-09-03: тот же курс на посторонний адрес — 200).
  *
  * `course_ref` курса — `<ID_КУРСА>` или `<ID_КУРСА>:<ID_ГРУППЫ>` (UUID).
  * Площадке передаётся только почта обучающегося; имя не передаём.
@@ -90,6 +92,17 @@ export class SkillspaceConnector implements AccessCarrierConnector {
       return { code: 'fatal', message: 'Skillspace: неверный API-ключ школы', error_code: 'UNAUTHORIZED' };
     }
     if (apiCode === 'COURSE_NOT_FOUND') return { code: 'fatal', message: 'Skillspace: курс не найден в школе', error_code: 'COURSE_NOT_FOUND' };
+    // Проверено на живой школе 2026-09-03: приглашение на адрес, за которым в
+    // школе числится сотрудник (владелец, куратор, преподаватель), отвечает
+    // 400 INVITE_ONLY_EMPLOYEE — сотрудника нельзя записать учеником. Тот же
+    // курс на любой другой адрес приглашается штатно (200 + passwordSetupLink).
+    if (apiCode === 'INVITE_ONLY_EMPLOYEE') {
+      return {
+        code: 'fatal',
+        message: 'Skillspace: этот адрес принадлежит сотруднику школы — сотрудника нельзя записать учеником. Укажите обучающемуся другой адрес.',
+        error_code: 'INVITE_ONLY_EMPLOYEE',
+      };
+    }
     if (status === 403) return { code: 'fatal', message: 'Skillspace: доступ запрещён для этого ключа', error_code: 'FORBIDDEN' };
     if (status === 400 || status === 404) {
       return { code: 'fatal', message: `Skillspace: ${apiCode ?? text.slice(0, 200)}`, error_code: apiCode ?? 'BAD_REQUEST' };

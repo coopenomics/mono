@@ -5,7 +5,7 @@
     | из паевого по заявлению о конвертации, доступ на площадке выдаётся автоматически. Здесь — что оплачено и до какого числа.
 
   BaseCard(variant="default" title="Мои подписки")
-    BaseTable(v-if="loading || enrollments.length" :columns="columns" :rows="enrollments" row-key="id" :loading="loading && !enrollments.length" min-width="900px")
+    BaseTable(v-if="loading || enrollments.length" :columns="columns" :rows="enrollments" row-key="id" :loading="loading && !enrollments.length" min-width="820px")
       template(#cell-learner="{ row }") {{ learnerName(row.learner_id) }}
       template(#cell-period="{ row }") {{ periodLabel(row.period) }}
       template(#cell-paid_until="{ row }") {{ row.paid_until ? formatDate(row.paid_until) : '______' }}
@@ -64,14 +64,19 @@ const loading = ref(false);
 const extendOpen = ref(false);
 const lockedCourseId = ref<string | null>(null);
 
+/**
+ * Ширины: колонка курса единственная без фиксированной — она забирает остаток,
+ * поэтому сумма фиксированных (710px) с запасом меньше min-width таблицы,
+ * иначе курс схлопывается и длинное название наезжает на соседей.
+ */
 const columns: BaseTableColumn<IEnrollment>[] = [
   { key: 'course_title', label: 'Курс' },
-  { key: 'learner', label: 'Обучающийся', width: '160px' },
-  { key: 'period', label: 'Период', width: '100px' },
-  { key: 'paid_until', label: 'Оплачено до', width: '130px' },
-  { key: 'status', label: 'Подписка', width: '130px' },
-  { key: 'access_state', label: 'Доступ', width: '150px' },
-  { key: 'actions', label: '', align: 'right', width: '120px' },
+  { key: 'learner', label: 'Обучающийся', width: '140px' },
+  { key: 'period', label: 'Период', width: '90px', nowrap: true },
+  { key: 'paid_until', label: 'Оплачено до', width: '120px', nowrap: true },
+  { key: 'status', label: 'Подписка', width: '120px', nowrap: true },
+  { key: 'access_state', label: 'Доступ', width: '130px', nowrap: true },
+  { key: 'actions', label: '', align: 'right', width: '110px' },
 ];
 
 const learnerName = (id: string) => learners.value.find((l) => l.id === id)?.display_name ?? '______';

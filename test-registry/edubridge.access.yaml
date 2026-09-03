@@ -122,3 +122,11 @@ cases:
     expect: "invite 200 на неопубликованный курс без группы (первый раз — passwordSetupLink, повторный — {}); remove 200 идемпотентен; неверный курс — 404 COURSE_NOT_FOUND; неверный ключ — 404 SCHOOL_PUBLIC_TOKEN_NOT_FOUND (не 401 по документации). Коннектор разбирает код из тела."
     test: components/controller/tests/unit/edubridge/connectors.test.ts
     status: passing
+  - id: edu.access.side.09
+    level: backend
+    kind: side
+    scenario: "Приглашение на адрес, за которым в школе Skillspace числится сотрудник (владелец, куратор, преподаватель): площадка отвечает 400 INVITE_ONLY_EMPLOYEE."
+    expect: "Задача выдачи уходит в needs_attention с человеческим объяснением («адрес принадлежит сотруднику школы — укажите обучающемуся другой»), а не с кодом площадки. Живая проверка 2026-09-03: адрес владельца — 400 INVITE_ONLY_EMPLOYEE, любой другой адрес на тот же курс — 200 с passwordSetupLink."
+    test: components/controller/tests/unit/edubridge/connectors.test.ts
+    status: passing
+

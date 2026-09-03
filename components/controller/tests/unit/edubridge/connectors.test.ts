@@ -61,6 +61,17 @@ describe('SkillspaceConnector', () => {
     expect((await c.check('voskhod', '777')).unavailable).toBe(true);
   });
 
+  it('приглашение сотрудника школы — понятная ошибка, а не код площадки', async () => {
+    // Живой прецедент 2026-09-03: адрес владельца школы числится сотрудником,
+    // Skillspace отвечает 400 INVITE_ONLY_EMPLOYEE; выдача уходила в
+    // needs_attention с кодом, по которому нельзя понять, что делать.
+    fetchMock.mockReturnValueOnce(status(400, '{"INVITE_ONLY_EMPLOYEE":"api.error.INVITE_ONLY_EMPLOYEE"}'));
+    const r = await new SkillspaceConnector(cfg({ skillspace_api_key: 'TOK' })).grant(req);
+    expect(r.code).toBe('fatal');
+    expect(r.error_code).toBe('INVITE_ONLY_EMPLOYEE');
+    expect(r.message).toContain('сотруднику школы');
+  });
+
   it('без ключа — fatal NOT_CONFIGURED, сети не касаемся', async () => {
     const r = await new SkillspaceConnector(cfg({})).grant(req);
     expect(r.error_code).toBe('NOT_CONFIGURED');

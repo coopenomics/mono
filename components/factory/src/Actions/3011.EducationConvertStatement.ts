@@ -56,7 +56,8 @@ export class Factory extends DocFactory<EducationConvertStatement.Action> {
       user,
       program,
       sub_hash: data.sub_hash,
-      amount: data.amount,
+      // В документ сумма идёт человеку, а не цепи: «1000.0000 RUB» → «1000.00 RUB».
+      amount: this.formatAsset(data.amount),
       course_title: data.course_title,
       period: data.period,
       period_human,

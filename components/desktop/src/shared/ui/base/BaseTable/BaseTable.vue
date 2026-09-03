@@ -184,13 +184,17 @@ const tableStyle = computed(() => ({
     font-variant-numeric: tabular-nums;
   }
 
-  :deep(.col-nowrap) {
-    white-space: nowrap;
+  // Длинные наименования и адреса переносим, а не растягиваем колонку.
+  // `white-space: normal` обязателен: при table-layout: fixed ячейка с nowrap
+  // (наследованным или из темы) переливается на соседнюю колонку вместо переноса.
+  :deep(td) {
+    white-space: normal;
+    overflow-wrap: anywhere;
   }
 
-  // Длинные наименования и адреса переносим, а не растягиваем колонку.
-  :deep(td) {
-    overflow-wrap: anywhere;
+  // Колонка, помеченная nowrap, переносить не должна — правило ниже по каскаду.
+  :deep(td.col-nowrap) {
+    white-space: nowrap;
   }
 
   &--hover :deep(tbody tr:hover) {
