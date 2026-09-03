@@ -133,6 +133,23 @@ entries:
     model: authentik_flows.flow
     attrs:
       title: Вход через внешний сервис
+
+  # ── Почта и пароль на одном экране ───────────────────────────────────────
+  # Встроенный поток спрашивает почту, а пароль — следующим экраном, с «это не я» над
+  # полем. У стола вход всегда одной формой (почта и пароль вместе), и второй экран
+  # выглядел чужим (владелец 03.09.2026). Стадия опознания сама проверяет пароль, если ей
+  # назначить стадию пароля; отдельная привязка стадии пароля к потоку тогда снимается —
+  # иначе пароль спросили бы дважды.
+  - identifiers:
+      name: default-authentication-identification
+    model: authentik_stages_identification.identificationstage
+    attrs:
+      password_stage: !Find [authentik_stages_password.passwordstage, [name, default-authentication-password]]
+  - identifiers:
+      target: !Find [authentik_flows.flow, [slug, default-authentication-flow]]
+      stage: !Find [authentik_stages_password.passwordstage, [name, default-authentication-password]]
+    model: authentik_flows.flowstagebinding
+    state: absent
   - identifiers:
       slug: default-source-enrollment
     model: authentik_flows.flow
