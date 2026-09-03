@@ -144,6 +144,9 @@ entries:
       name: default-authentication-identification
     model: authentik_stages_identification.identificationstage
     attrs:
+      # Поля перечислены заново: сериализатор проверяет запись целиком и без них отвечает
+      # «When no user fields are selected, at least one source must be selected».
+      user_fields: [email, username]
       password_stage: !Find [authentik_stages_password.passwordstage, [name, default-authentication-password]]
   - identifiers:
       target: !Find [authentik_flows.flow, [slug, default-authentication-flow]]
