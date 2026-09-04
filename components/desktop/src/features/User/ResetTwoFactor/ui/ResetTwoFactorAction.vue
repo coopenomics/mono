@@ -81,6 +81,9 @@ async function onReset(): Promise<void> {
   display: flex;
   flex-direction: column;
   gap: var(--p-1, 4px);
+  /* Блок стоит между верификацией личности и карточкой личных данных: без
+     нижнего отступа бейдж прилипал к полю «Email» соседней карточки. */
+  margin-bottom: var(--p-4, 16px);
 }
 .reset-2fa__row {
   display: flex;
