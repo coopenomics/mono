@@ -42,6 +42,7 @@ function build() {
     get: jest.fn(async () => ({ totp_enrolled: true, second_factor: 'totp' })),
     set: jest.fn(async () => ({ totp_enrolled: true, second_factor: 'totp' })),
     onTotpUnenrolled: jest.fn(async () => undefined),
+    onTotpEnrolled: jest.fn(async () => undefined),
   };
   const resolver = new AccountSecurityResolver(
     sessions as unknown as SessionsService,
@@ -104,6 +105,12 @@ describe('AccountSecurityResolver', () => {
     const ok = await resolver.activateTwoFactor({ code: '123456' }, USER, IP);
     expect(ok).toBe(true);
     expect(twoFactor.activate).toHaveBeenCalledWith('u1', '123456', IP);
+  });
+
+  it('activateTwoFactor сразу включает TOTP-фактор входа — второй раз код не спрашиваем', async () => {
+    const { resolver, loginFactors } = build();
+    await resolver.activateTwoFactor({ code: '123456' }, USER, IP);
+    expect(loginFactors.onTotpEnrolled).toHaveBeenCalledWith('u1', IP);
   });
 
   it('disableTwoFactor отключает второй фактор кодом', async () => {

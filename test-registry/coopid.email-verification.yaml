@@ -1,0 +1,150 @@
+feature: coopid.email-verification
+title: Подтверждение электронной почты кодом из письма
+
+# Почту в кооперативе не подтверждал никто: механизм существовал (ссылка +
+# мутация verifyEmail), но ссылку никто не выпускал, а сама мутация искала
+# пайщика ТОЛЬКО по legacy mongo id — у всех, кто зарегистрировался после
+# переезда на PostgreSQL, подтверждение падало всегда. Следствие вскрылось
+# 03.09.2026 на разборе восстановления доступа: адреса с опечатками обнаруживались
+# только когда человек не мог вернуть доступ, а письмо уходило в никуда.
+#
+# Решение владельца 04.09.2026: подтверждать КОДОМ, а не ссылкой, и спрашивать
+# его прямо на шаге ввода почты при регистрации — до того, как пайщик пойдёт
+# дальше. Отсюда главное свойство механизма: состояние привязано к АДРЕСУ, а не
+# к учётной записи, потому что на том шаге записи ещё нет (она создаётся сильно
+# позже). Факт подтверждения кладётся отметкой, которую читает создание аккаунта.
+#
+# Идущие регистрации ломать нельзя (владелец: «задеть действующие регистрации мы
+# не должны»): подтверждение сделано ВТОРОЙ ФАЗОЙ внутри шага EmailInput, а не
+# новым шагом — номера шагов лежат в persist'е стора у всех, кто сейчас в пути.
+# И создание учётной записи при отсутствии отметки НЕ блокируется: иначе пайщик
+# со старой вкладкой упёрся бы в отказ на последнем шаге.
+
+sources:
+  backend:
+    - components/controller/src/application/auth/email-verification/**
+    - components/controller/src/infrastructure/auth-v2/redis-email-verification.store.ts
+    - components/controller/src/domain/auth-v2/ports/email-verification-store.port.ts
+  ui:
+    - components/desktop/src/features/User/VerifyEmail/**
+    - components/desktop/src/pages/Registrator/SignUp/EmailInput.vue
+
+cases:
+  - id: cid.ev.happy.01
+    level: backend
+    kind: happy
+    scenario: пайщик просит код на свой адрес
+    expect: >
+      письмо с шестизначным кодом поставлено в очередь на нормализованный адрес,
+      в ответе окно повторной отправки (60 с) и срок жизни кода (900 с)
+    test: components/controller/src/application/auth/email-verification/email-verification.service.spec.ts
+    status: passing
+
+  - id: cid.ev.happy.02
+    level: backend
+    kind: happy
+    scenario: верный код от существующего пайщика
+    expect: у пайщика проставлен is_email_verified, код сожжён, отметка адреса поставлена
+    test: components/controller/src/application/auth/email-verification/email-verification.service.spec.ts
+    status: passing
+
+  - id: cid.ev.happy.03
+    level: backend
+    kind: happy
+    scenario: верный код на адрес, у которого учётной записи ещё нет (шаг регистрации)
+    expect: >
+      подтверждение принято, обновлять некого — кладётся только отметка адреса,
+      которую позже прочитает создание учётной записи
+    test: components/controller/src/application/auth/email-verification/email-verification.service.spec.ts
+    status: passing
+
+  - id: cid.ev.side.01
+    level: backend
+    kind: side
+    scenario: код спрашивают повторно, не дождавшись окна троттла
+    expect: второе письмо НЕ уходит, в ответе остаток окна для обратного отсчёта
+    test: components/controller/src/application/auth/email-verification/email-verification.service.spec.ts
+    status: passing
+
+  - id: cid.ev.side.02
+    level: backend
+    kind: side
+    scenario: неверный код
+    expect: отказ, счётчик попыток растёт, флаг подтверждения НЕ ставится
+    test: components/controller/src/application/auth/email-verification/email-verification.service.spec.ts
+    status: passing
+
+  - id: cid.ev.break.01
+    level: backend
+    kind: break
+    scenario: перебор кода — пятая неверная попытка
+    expect: код сжигается целиком, пайщику предлагается запросить новый
+    test: components/controller/src/application/auth/email-verification/email-verification.service.spec.ts
+    status: passing
+
+  - id: cid.ev.break.02
+    level: backend
+    kind: break
+    scenario: один IP запрашивает коды на множество адресов
+    expect: после 20 запросов за час отказ ДО отправки письма
+    test: components/controller/src/application/auth/email-verification/email-verification.service.spec.ts
+    status: passing
+
+  - id: cid.ev.break.03
+    level: backend
+    kind: break
+    scenario: почтовая инфраструктура недоступна в момент запроса кода
+    expect: >
+      ошибка отправки, действующий прежний код НЕ затирается неотправленным
+      (иначе сбой почты обесценивал бы уже полученное пайщиком письмо)
+    test: components/controller/src/application/auth/email-verification/email-verification.service.spec.ts
+    status: passing
+
+  - id: cid.ev.break.04
+    level: backend
+    kind: break
+    scenario: повторное использование уже принятого кода
+    expect: отказ «код не запрашивался или недействителен» — код одноразовый
+    test: components/controller/src/application/auth/email-verification/email-verification.service.spec.ts
+    status: passing
+
+  - id: cid.ev.side.03
+    level: backend
+    kind: side
+    scenario: код запрашивают на строку без @
+    expect: отказ до обращения к почте
+    test: components/controller/src/application/auth/email-verification/email-verification.service.spec.ts
+    status: passing
+
+  - id: cid.ev.side.04
+    level: ui
+    kind: side
+    scenario: >
+      пайщик ошибся в адресе и на шаге подтверждения нажимает «Изменить адрес»
+    expect: >
+      возврат к полю ввода в том же шаге, прежнее подтверждение снимается —
+      следующий «Продолжить» снова требует код
+    test: null
+    status: missing
+
+  - id: cid.ev.side.05
+    level: ui
+    kind: side
+    scenario: пайщик обновил страницу после подтверждения адреса, но до конца регистрации
+    expect: >
+      код повторно не спрашивается (признак лежит в persist'е стора), шаг
+      проходится сразу
+    test: null
+    status: missing
+
+  - id: cid.ev.break.05
+    level: ui
+    kind: break
+    scenario: >
+      регистрация, начатая до появления подтверждения (в persist'е нет признака,
+      шаг ввода почты уже пройден)
+    expect: >
+      пайщика НЕ возвращают назад и создание учётной записи не блокируется;
+      аккаунт остаётся с неподтверждённой почтой и подтверждает её из кабинета
+    test: null
+    status: missing

@@ -1,4 +1,4 @@
-import { Injectable, Inject } from '@nestjs/common';
+import { Injectable, Inject, Logger } from '@nestjs/common';
 import httpStatus from 'http-status';
 import { tokenTypes } from '~/types/token.types';
 import { Bytes, Checksum256, Signature } from '@wharfkit/antelope';
@@ -9,6 +9,8 @@ import { HttpApiError } from '@coopenomics/extension-kit';
 
 @Injectable()
 export class AuthDomainService {
+  private readonly logger = new Logger(AuthDomainService.name);
+
   constructor(
     @Inject(BLOCKCHAIN_PORT) private readonly blockchainPort: BlockchainPort,
     private readonly tokenApplicationService: TokenApplicationService,
@@ -53,17 +55,45 @@ export class AuthDomainService {
     return user;
   }
 
+  /**
+   * Подтвердить почту по токену из письма.
+   *
+   * Пайщика ищем СНАЧАЛА по обычному id и только потом по legacy mongo id — ровно
+   * как в {@link resetKey}. Раньше здесь был единственный `getUserByLegacyMongoId`,
+   * хотя токен выпускается на `user.id` (см. `generateVerifyEmailToken`): у всех,
+   * кто зарегистрировался после переезда с MongoDB, подтверждение падало всегда, и
+   * на фронт уходило неразличимое `Email verification failed`. Отсюда и общий фон:
+   * подтверждённых почт в системе фактически нет.
+   *
+   * Причину отказа не глушим в одно сообщение: истёкшую ссылку пайщик перевыпустит
+   * сам, а «ссылка недействительна» шлёт его в поддержку — это разные исходы.
+   */
   async verifyEmail(verifyEmailToken: string) {
-    try {
-      const verifyEmailTokenDoc = await this.tokenApplicationService.verifyToken({
+    const verifyEmailTokenDoc = await this.tokenApplicationService
+      .verifyToken({
         token: verifyEmailToken,
         types: [tokenTypes.VERIFY_EMAIL],
+      })
+      .catch((error: any) => {
+        this.logger.warn(`verify-email: токен не принят — ${error?.message ?? error}`);
+        throw new HttpApiError(
+          httpStatus.UNAUTHORIZED,
+          'Ссылка подтверждения недействительна или истекла. Запросите новую в личном кабинете.'
+        );
       });
-      const user = await this.userDomainService.getUserByLegacyMongoId(verifyEmailTokenDoc.userId);
-      await this.tokenApplicationService.deleteTokens({ userId: user.id, type: tokenTypes.VERIFY_EMAIL });
-      await this.userDomainService.updateUserById(user.id, { is_email_verified: true });
-    } catch (error) {
-      throw new HttpApiError(httpStatus.UNAUTHORIZED, 'Email verification failed');
+
+    let user = await this.userDomainService.findUserById(verifyEmailTokenDoc.userId);
+    if (!user) {
+      user = await this.userDomainService.findUserByLegacyMongoId(verifyEmailTokenDoc.userId);
     }
+    if (!user) {
+      this.logger.warn(`verify-email: пайщик по токену не найден (userId=${verifyEmailTokenDoc.userId})`);
+      throw new HttpApiError(httpStatus.UNAUTHORIZED, 'Пользователь по ссылке подтверждения не найден.');
+    }
+
+    // Одноразовость: все выпущенные ссылки гасим, включая ту, по которой пришли.
+    await this.tokenApplicationService.deleteTokens({ userId: user.id, type: tokenTypes.VERIFY_EMAIL });
+    await this.userDomainService.updateUserById(user.id, { is_email_verified: true });
+    this.logger.log(`verify-email: почта подтверждена пайщиком ${user.username}`);
   }
 }

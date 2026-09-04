@@ -5462,6 +5462,12 @@ export type ValueTypes = {
 	/** Название кооператива */
 	coopname: string | Variable<any, string>
 };
+	["ConfirmEmailVerificationInputDTO"]: {
+	/** Код подтверждения из письма (6 цифр) */
+	code: string | Variable<any, string>,
+	/** Адрес электронной почты, который подтверждается */
+	email: string | Variable<any, string>
+};
 	["ContactsDTO"]: AliasType<{
 	chairman?:ValueTypes["PublicChairman"],
 	details?:ValueTypes["OrganizationDetails"],
@@ -6628,6 +6634,14 @@ export type ValueTypes = {
 	/** Новое название проекта */
 	title: string | Variable<any, string>
 };
+	["EmailVerificationRequestDTO"]: AliasType<{
+	/** Через сколько секунд можно запросить письмо повторно */
+	cooldown_seconds?:boolean | `@${string}`,
+	/** Сколько секунд действует код */
+	expires_seconds?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on EmailVerificationRequestDTO']?: Omit<ValueTypes["EmailVerificationRequestDTO"], "...on EmailVerificationRequestDTO">
+}>;
 	["Entrepreneur"]: AliasType<{
 	/** Дата рождения */
 	birthdate?:boolean | `@${string}`,
@@ -12025,6 +12039,7 @@ completeChairmanGeneralMeetStep?: [{	data: ValueTypes["ChairmanOnboardingGeneral
 completeExtensionOnboardingStep?: [{	data: ValueTypes["CompleteExtensionOnboardingStepInput"] | Variable<any, string>},ValueTypes["ExtensionOnboardingState"]],
 confirmAgreement?: [{	data: ValueTypes["ConfirmAgreementInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 confirmCriticalAction?: [{	id: string | Variable<any, string>},ValueTypes["PendingCriticalAction"]],
+confirmEmailVerification?: [{	data: ValueTypes["ConfirmEmailVerificationInputDTO"] | Variable<any, string>},boolean | `@${string}`],
 confirmMembershipExit?: [{	token: string | Variable<any, string>},ValueTypes["MembershipExitResult"]],
 createAnnualGeneralMeet?: [{	data: ValueTypes["CreateAnnualGeneralMeetInput"] | Variable<any, string>},ValueTypes["MeetAggregate"]],
 createBranch?: [{	data: ValueTypes["CreateBranchInput"] | Variable<any, string>},ValueTypes["Branch"]],
@@ -12205,6 +12220,7 @@ registerParticipant?: [{	data: ValueTypes["RegisterParticipantInput"] | Variable
 rejectVerification?: [{	data: ValueTypes["RejectVerificationInput"] | Variable<any, string>},ValueTypes["VerificationReview"]],
 reportExpenseItem?: [{	data: ValueTypes["ReportExpenseItemInput"] | Variable<any, string>},ValueTypes["ExpenseReportResult"]],
 reportNotMe?: [{	data: ValueTypes["ReportNotMeInput"] | Variable<any, string>},ValueTypes["RevokedSessionsResult"]],
+requestEmailVerification?: [{	data: ValueTypes["RequestEmailVerificationInputDTO"] | Variable<any, string>},ValueTypes["EmailVerificationRequestDTO"]],
 requestForceRecoveryConsent?: [{	data: ValueTypes["RequestForceRecoveryConsentInput"] | Variable<any, string>},boolean | `@${string}`],
 resendNotification?: [{	id: string | Variable<any, string>},ValueTypes["Notification"]],
 resetKey?: [{	data: ValueTypes["ResetKeyInput"] | Variable<any, string>},boolean | `@${string}`],
@@ -14486,6 +14502,10 @@ verificationReviews?: [{	data?: ValueTypes["VerificationReviewsInput"] | undefin
 	dictionaryValueId?: number | undefined | null | Variable<any, string>,
 	/** Значение атрибута */
 	value: string | Variable<any, string>
+};
+	["RequestEmailVerificationInputDTO"]: {
+	/** Адрес электронной почты, который подтверждается */
+	email: string | Variable<any, string>
 };
 	["RequestForceRecoveryConsentInput"]: {
 	/** Пайщик, для которого запрашивается согласие */
@@ -20395,6 +20415,12 @@ export type ResolverInputTypes = {
 	/** Название кооператива */
 	coopname: string
 };
+	["ConfirmEmailVerificationInputDTO"]: {
+	/** Код подтверждения из письма (6 цифр) */
+	code: string,
+	/** Адрес электронной почты, который подтверждается */
+	email: string
+};
 	["ContactsDTO"]: AliasType<{
 	chairman?:ResolverInputTypes["PublicChairman"],
 	details?:ResolverInputTypes["OrganizationDetails"],
@@ -21541,6 +21567,13 @@ export type ResolverInputTypes = {
 	/** Новое название проекта */
 	title: string
 };
+	["EmailVerificationRequestDTO"]: AliasType<{
+	/** Через сколько секунд можно запросить письмо повторно */
+	cooldown_seconds?:boolean | `@${string}`,
+	/** Сколько секунд действует код */
+	expires_seconds?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
 	["Entrepreneur"]: AliasType<{
 	/** Дата рождения */
 	birthdate?:boolean | `@${string}`,
@@ -26782,6 +26815,7 @@ completeChairmanGeneralMeetStep?: [{	data: ResolverInputTypes["ChairmanOnboardin
 completeExtensionOnboardingStep?: [{	data: ResolverInputTypes["CompleteExtensionOnboardingStepInput"]},ResolverInputTypes["ExtensionOnboardingState"]],
 confirmAgreement?: [{	data: ResolverInputTypes["ConfirmAgreementInput"]},ResolverInputTypes["Transaction"]],
 confirmCriticalAction?: [{	id: string},ResolverInputTypes["PendingCriticalAction"]],
+confirmEmailVerification?: [{	data: ResolverInputTypes["ConfirmEmailVerificationInputDTO"]},boolean | `@${string}`],
 confirmMembershipExit?: [{	token: string},ResolverInputTypes["MembershipExitResult"]],
 createAnnualGeneralMeet?: [{	data: ResolverInputTypes["CreateAnnualGeneralMeetInput"]},ResolverInputTypes["MeetAggregate"]],
 createBranch?: [{	data: ResolverInputTypes["CreateBranchInput"]},ResolverInputTypes["Branch"]],
@@ -26962,6 +26996,7 @@ registerParticipant?: [{	data: ResolverInputTypes["RegisterParticipantInput"]},R
 rejectVerification?: [{	data: ResolverInputTypes["RejectVerificationInput"]},ResolverInputTypes["VerificationReview"]],
 reportExpenseItem?: [{	data: ResolverInputTypes["ReportExpenseItemInput"]},ResolverInputTypes["ExpenseReportResult"]],
 reportNotMe?: [{	data: ResolverInputTypes["ReportNotMeInput"]},ResolverInputTypes["RevokedSessionsResult"]],
+requestEmailVerification?: [{	data: ResolverInputTypes["RequestEmailVerificationInputDTO"]},ResolverInputTypes["EmailVerificationRequestDTO"]],
 requestForceRecoveryConsent?: [{	data: ResolverInputTypes["RequestForceRecoveryConsentInput"]},boolean | `@${string}`],
 resendNotification?: [{	id: string},ResolverInputTypes["Notification"]],
 resetKey?: [{	data: ResolverInputTypes["ResetKeyInput"]},boolean | `@${string}`],
@@ -29152,6 +29187,10 @@ verificationReviews?: [{	data?: ResolverInputTypes["VerificationReviewsInput"] |
 	dictionaryValueId?: number | undefined | null,
 	/** Значение атрибута */
 	value: string
+};
+	["RequestEmailVerificationInputDTO"]: {
+	/** Адрес электронной почты, который подтверждается */
+	email: string
 };
 	["RequestForceRecoveryConsentInput"]: {
 	/** Пайщик, для которого запрашивается согласие */
@@ -34908,6 +34947,12 @@ export type ModelTypes = {
 	/** Название кооператива */
 	coopname: string
 };
+	["ConfirmEmailVerificationInputDTO"]: {
+	/** Код подтверждения из письма (6 цифр) */
+	code: string,
+	/** Адрес электронной почты, который подтверждается */
+	email: string
+};
 	["ContactsDTO"]: {
 		chairman: ModelTypes["PublicChairman"],
 	details: ModelTypes["OrganizationDetails"],
@@ -36026,6 +36071,12 @@ export type ModelTypes = {
 	project_hash: string,
 	/** Новое название проекта */
 	title: string
+};
+	["EmailVerificationRequestDTO"]: {
+		/** Через сколько секунд можно запросить письмо повторно */
+	cooldown_seconds: number,
+	/** Сколько секунд действует код */
+	expires_seconds: number
 };
 	["Entrepreneur"]: {
 		/** Дата рождения */
@@ -41387,6 +41438,8 @@ export type ModelTypes = {
 	confirmAgreement: ModelTypes["Transaction"],
 	/** Подтвердить критическое действие совета (член совета) */
 	confirmCriticalAction: ModelTypes["PendingCriticalAction"],
+	/** Подтвердить электронную почту кодом из письма */
+	confirmEmailVerification: boolean,
 	/** Подтвердить выход из кооператива по ссылке из письма. Проверяет токен и отправляет ранее подписанное заявление в блокчейн. */
 	confirmMembershipExit: ModelTypes["MembershipExitResult"],
 	/** Сгенерировать документ предложения повестки очередного общего собрания пайщиков
@@ -41913,6 +41966,8 @@ export type ModelTypes = {
 	reportExpenseItem: ModelTypes["ExpenseReportResult"],
 	/** Сигнал «Это не я»: немедленно завершить все сессии пайщика */
 	reportNotMe: ModelTypes["RevokedSessionsResult"],
+	/** Выслать код подтверждения на электронную почту */
+	requestEmailVerification: ModelTypes["EmailVerificationRequestDTO"],
 	/** Запросить согласие пайщика на принудительное восстановление (председатель) */
 	requestForceRecoveryConsent: boolean,
 	/** Переотправить уведомление (force-постановка новой строки в очередь доставки)
@@ -44448,6 +44503,10 @@ export type ModelTypes = {
 	/** Значение атрибута */
 	value: string
 };
+	["RequestEmailVerificationInputDTO"]: {
+	/** Адрес электронной почты, который подтверждается */
+	email: string
+};
 	["RequestForceRecoveryConsentInput"]: {
 	/** Пайщик, для которого запрашивается согласие */
 	target_id: string
@@ -46010,10 +46069,7 @@ export type ModelTypes = {
     }
 
 export type GraphQLTypes = {
-    // ------------------------------------------------------;
-	// THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY);
-	// ------------------------------------------------------;
-	["AccessGrant"]: {
+    ["AccessGrant"]: {
 	__typename: "AccessGrant",
 	/** Действие (например, read / confirm / manage) */
 	action: string,
@@ -50368,6 +50424,12 @@ export type GraphQLTypes = {
 	/** Название кооператива */
 	coopname: string
 };
+	["ConfirmEmailVerificationInputDTO"]: {
+		/** Код подтверждения из письма (6 цифр) */
+	code: string,
+	/** Адрес электронной почты, который подтверждается */
+	email: string
+};
 	["ContactsDTO"]: {
 	__typename: "ContactsDTO",
 	chairman: GraphQLTypes["PublicChairman"],
@@ -51533,6 +51595,14 @@ export type GraphQLTypes = {
 	project_hash: string,
 	/** Новое название проекта */
 	title: string
+};
+	["EmailVerificationRequestDTO"]: {
+	__typename: "EmailVerificationRequestDTO",
+	/** Через сколько секунд можно запросить письмо повторно */
+	cooldown_seconds: number,
+	/** Сколько секунд действует код */
+	expires_seconds: number,
+	['...on EmailVerificationRequestDTO']: Omit<GraphQLTypes["EmailVerificationRequestDTO"], "...on EmailVerificationRequestDTO">
 };
 	["Entrepreneur"]: {
 	__typename: "Entrepreneur",
@@ -57276,6 +57346,8 @@ export type GraphQLTypes = {
 	confirmAgreement: GraphQLTypes["Transaction"],
 	/** Подтвердить критическое действие совета (член совета) */
 	confirmCriticalAction: GraphQLTypes["PendingCriticalAction"],
+	/** Подтвердить электронную почту кодом из письма */
+	confirmEmailVerification: boolean,
 	/** Подтвердить выход из кооператива по ссылке из письма. Проверяет токен и отправляет ранее подписанное заявление в блокчейн. */
 	confirmMembershipExit: GraphQLTypes["MembershipExitResult"],
 	/** Сгенерировать документ предложения повестки очередного общего собрания пайщиков
@@ -57802,6 +57874,8 @@ export type GraphQLTypes = {
 	reportExpenseItem: GraphQLTypes["ExpenseReportResult"],
 	/** Сигнал «Это не я»: немедленно завершить все сессии пайщика */
 	reportNotMe: GraphQLTypes["RevokedSessionsResult"],
+	/** Выслать код подтверждения на электронную почту */
+	requestEmailVerification: GraphQLTypes["EmailVerificationRequestDTO"],
 	/** Запросить согласие пайщика на принудительное восстановление (председатель) */
 	requestForceRecoveryConsent: boolean,
 	/** Переотправить уведомление (force-постановка новой строки в очередь доставки)
@@ -60551,6 +60625,10 @@ export type GraphQLTypes = {
 	/** Значение атрибута */
 	value: string
 };
+	["RequestEmailVerificationInputDTO"]: {
+		/** Адрес электронной почты, который подтверждается */
+	email: string
+};
 	["RequestForceRecoveryConsentInput"]: {
 		/** Пайщик, для которого запрашивается согласие */
 	target_id: string
@@ -63211,6 +63289,7 @@ type ZEUS_VARIABLES = {
 	["ConfigInput"]: ValueTypes["ConfigInput"];
 	["ConfirmAgreementInput"]: ValueTypes["ConfirmAgreementInput"];
 	["ConfirmApproveInput"]: ValueTypes["ConfirmApproveInput"];
+	["ConfirmEmailVerificationInputDTO"]: ValueTypes["ConfirmEmailVerificationInputDTO"];
 	["ContributionType"]: ValueTypes["ContributionType"];
 	["ContributorStatus"]: ValueTypes["ContributorStatus"];
 	["ConvertSegmentInput"]: ValueTypes["ConvertSegmentInput"];
@@ -63645,6 +63724,7 @@ type ZEUS_VARIABLES = {
 	["ReportType"]: ValueTypes["ReportType"];
 	["RepresentedByInput"]: ValueTypes["RepresentedByInput"];
 	["RequestAttributeInput"]: ValueTypes["RequestAttributeInput"];
+	["RequestEmailVerificationInputDTO"]: ValueTypes["RequestEmailVerificationInputDTO"];
 	["RequestForceRecoveryConsentInput"]: ValueTypes["RequestForceRecoveryConsentInput"];
 	["RequestImageInput"]: ValueTypes["RequestImageInput"];
 	["RequestImageType"]: ValueTypes["RequestImageType"];

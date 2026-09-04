@@ -124,6 +124,10 @@ export class AccountSecurityResolver {
     @ClientIp() ip: string | null,
   ): Promise<boolean> {
     await this.twoFactor.activate(user.id, data.code, ip);
+    // Подключил приложение — фактор включается сразу: иначе пайщик проходил QR,
+    // вводил первый код и видел выключенный тумблер, который надо было двигать и
+    // подтверждать кодом второй раз.
+    await this.loginFactors.onTotpEnrolled(user.id, ip);
     return true;
   }
 

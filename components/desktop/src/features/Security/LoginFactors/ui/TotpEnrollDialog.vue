@@ -86,7 +86,7 @@ async function onActivate(): Promise<void> {
   codeError.value = '';
   try {
     await api.activateTwoFactor(code.value);
-    SuccessAlert('Приложение-аутентификатор подключено');
+    SuccessAlert('Приложение подключено — код будет запрашиваться при входе');
     emit('activated');
     visible.value = false;
   } catch (e: any) {

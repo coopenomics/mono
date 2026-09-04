@@ -388,6 +388,9 @@ export const AllTypesProps: Record<string,any> = {
 	ConfirmApproveInput:{
 		approved_document:"SignedDigitalDocumentInput"
 	},
+	ConfirmEmailVerificationInputDTO:{
+
+	},
 	ContributionType: "enum" as const,
 	ContributorStatus: "enum" as const,
 	ConvertSegmentInput:{
@@ -1795,6 +1798,9 @@ export const AllTypesProps: Record<string,any> = {
 		confirmCriticalAction:{
 
 		},
+		confirmEmailVerification:{
+			data:"ConfirmEmailVerificationInputDTO"
+		},
 		confirmMembershipExit:{
 
 		},
@@ -2341,6 +2347,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		reportNotMe:{
 			data:"ReportNotMeInput"
+		},
+		requestEmailVerification:{
+			data:"RequestEmailVerificationInputDTO"
 		},
 		requestForceRecoveryConsent:{
 			data:"RequestForceRecoveryConsentInput"
@@ -3288,6 +3297,9 @@ export const AllTypesProps: Record<string,any> = {
 	RequestAttributeInput:{
 
 	},
+	RequestEmailVerificationInputDTO:{
+
+	},
 	RequestForceRecoveryConsentInput:{
 
 	},
@@ -3647,6 +3659,10 @@ export const AllTypesProps: Record<string,any> = {
 }
 
 export const ReturnTypes: Record<string,any> = {
+	auth:{
+		roles:"String",
+		self:"String"
+	},
 	AccessGrant:{
 		action:"String",
 		resource:"String"
@@ -5186,6 +5202,10 @@ export const ReturnTypes: Record<string,any> = {
 		items:"DocumentPackageAggregate",
 		totalCount:"Int",
 		totalPages:"Int"
+	},
+	EmailVerificationRequestDTO:{
+		cooldown_seconds:"Int",
+		expires_seconds:"Int"
 	},
 	Entrepreneur:{
 		birthdate:"String",
@@ -6848,6 +6868,7 @@ export const ReturnTypes: Record<string,any> = {
 		completeExtensionOnboardingStep:"ExtensionOnboardingState",
 		confirmAgreement:"Transaction",
 		confirmCriticalAction:"PendingCriticalAction",
+		confirmEmailVerification:"Boolean",
 		confirmMembershipExit:"MembershipExitResult",
 		createAnnualGeneralMeet:"MeetAggregate",
 		createBranch:"Branch",
@@ -7023,6 +7044,7 @@ export const ReturnTypes: Record<string,any> = {
 		rejectVerification:"VerificationReview",
 		reportExpenseItem:"ExpenseReportResult",
 		reportNotMe:"RevokedSessionsResult",
+		requestEmailVerification:"EmailVerificationRequestDTO",
 		requestForceRecoveryConsent:"Boolean",
 		resendNotification:"Notification",
 		resetKey:"Boolean",
