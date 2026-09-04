@@ -36,7 +36,9 @@ export function useTabsScroll(
     let arrowsWidth = 0;
     const bar = el.parentElement;
     if (bar) {
-      for (const arrow of bar.querySelectorAll(':scope > .tabbar__arrow')) {
+      // Array.from, а не перебор NodeList напрямую: цель сборки ниже ES2015,
+      // и без него vue-tsc валит сборку на отсутствии итератора у NodeListOf.
+      for (const arrow of Array.from(bar.querySelectorAll(':scope > .tabbar__arrow'))) {
         arrowsWidth += (arrow as HTMLElement).offsetWidth;
       }
     }

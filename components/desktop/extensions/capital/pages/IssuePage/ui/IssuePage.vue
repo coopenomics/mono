@@ -135,6 +135,7 @@ import { FailAlert } from 'src/shared/api'
 import { api as IssueApi } from 'app/extensions/capital/entities/Issue/api'
 import { api as ProjectApi } from 'app/extensions/capital/entities/Project/api'
 import type { IIssue } from 'app/extensions/capital/entities/Issue/model'
+import { withLabels } from 'app/extensions/capital/entities/Issue/model'
 import type { IProject } from 'app/extensions/capital/entities/Project/model'
 import { EMPTY_HASH } from 'src/shared/lib/consts'
 import { goBackOr, useBackButton } from 'src/shared/lib/navigation'
@@ -384,13 +385,7 @@ const handleEstimateUpdate = (value: number) => {
 
 const handleLabelsUpdate = (value: string[]) => {
   if (!issue.value) return
-  const prev = issue.value.metadata
-  const base: Record<string, unknown> =
-    prev && typeof prev === 'object' && prev !== null && !Array.isArray(prev)
-      ? { ...(prev as Record<string, unknown>) }
-      : {}
-  base.labels = value
-  issue.value.metadata = base as IIssue['metadata']
+  issue.value.metadata = withLabels(issue.value.metadata, value)
   logsRefreshTrigger.value++
 }
 
