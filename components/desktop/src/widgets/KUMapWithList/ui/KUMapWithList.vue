@@ -20,13 +20,14 @@
     q-skeleton(v-else type="rect" height="200px")
 
   .ku-map-with-list__map(ref="mapContainer" v-if="apiKey" :style="mapMinHeight ? { minHeight: mapMinHeight } : undefined")
-  q-banner.bg-warning.text-white(v-else)
+  BaseBanner(v-else, variant='warn')
     | Карта недоступна: не задан YANDEX_MAPS_API_KEY.
 </template>
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { env } from 'src/shared/config'
+import { BaseBanner } from 'src/shared/ui/base'
 import { loadYandexMaps } from 'src/shared/lib/yandexMaps'
 import type { IMarketplaceKUDetails } from 'src/entities/MarketplaceKUDetails'
 
