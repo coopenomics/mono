@@ -137,7 +137,7 @@ entries:
             !Env [COOPNAME, "unset"],
           ]
       # sub = uuid учётной записи: стабилен при смене имени аккаунта и почты.
-      # На стороне card.coop он становится external_subject связки.
+      # На стороне card.coop он становится external_subject связи.
       sub_mode: user_uuid
       issuer_mode: per_provider
       include_claims_in_id_token: true
