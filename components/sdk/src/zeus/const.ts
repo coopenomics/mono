@@ -613,6 +613,104 @@ export const AllTypesProps: Record<string,any> = {
 	EditProjectInput:{
 		origin:"CapitalContentRevisionOrigin"
 	},
+	EduAcceptContributionInput:{
+		document:"SignedDigitalDocumentInput"
+	},
+	EduAccessCarrier: "enum" as const,
+	EduAccessState: "enum" as const,
+	EduAccessTaskKind: "enum" as const,
+	EduAccessTaskStatus: "enum" as const,
+	EduAdminInput:{
+
+	},
+	EduAssignmentInput:{
+
+	},
+	EduAssignmentStatus: "enum" as const,
+	EduCatalogFilterInput:{
+
+	},
+	EduConnectorCredentialInput:{
+
+	},
+	EduConnectorHealth: "enum" as const,
+	EduContractStatus: "enum" as const,
+	EduContributionDraftInput:{
+		rid_type:"EduRidType"
+	},
+	EduContributionStatus: "enum" as const,
+	EduCourseDirection: "enum" as const,
+	EduCourseImageUploadInput:{
+
+	},
+	EduCourseInput:{
+		carrier:"EduAccessCarrier",
+		direction:"EduCourseDirection",
+		image:"EduCourseImageUploadInput"
+	},
+	EduCourseStatus: "enum" as const,
+	EduCoursesFilterInput:{
+		status:"EduCourseStatus"
+	},
+	EduDeclineContributionInput:{
+
+	},
+	EduEnrollmentPeriod: "enum" as const,
+	EduEnrollmentStatus: "enum" as const,
+	EduLearnerInput:{
+		recipient_type:"EduRecipientType"
+	},
+	EduOfferKind: "enum" as const,
+	EduOnboardingSource: "enum" as const,
+	EduQueueFilterInput:{
+		statuses:"EduAccessTaskStatus"
+	},
+	EduQuoteInput:{
+		period:"EduEnrollmentPeriod"
+	},
+	EduRecipientType: "enum" as const,
+	EduRetryTaskInput:{
+
+	},
+	EduRidType: "enum" as const,
+	EduSetConnectorCredentialsInput:{
+		carrier:"EduAccessCarrier",
+		values:"EduConnectorCredentialInput"
+	},
+	EduSetConnectorEnabledInput:{
+		carrier:"EduAccessCarrier"
+	},
+	EduSetCourseStatusInput:{
+		status:"EduCourseStatus"
+	},
+	EduSignActInput:{
+		document:"SignedDigitalDocumentInput"
+	},
+	EduSignAnnexInput:{
+		document:"SignedDigitalDocumentInput"
+	},
+	EduSignContractInput:{
+		document:"SignedDigitalDocumentInput"
+	},
+	EduSignOfferInput:{
+		document:"SignedDigitalDocumentInput",
+		kind:"EduOfferKind"
+	},
+	EduSubmitContributionInput:{
+		document:"SignedDigitalDocumentInput"
+	},
+	EduSubscribeInput:{
+		document:"SignedDigitalDocumentInput",
+		period:"EduEnrollmentPeriod"
+	},
+	EduUpdateCourseInput:{
+		carrier:"EduAccessCarrier",
+		direction:"EduCourseDirection",
+		image:"EduCourseImageUploadInput"
+	},
+	EduUpdateLearnerInput:{
+		recipient_type:"EduRecipientType"
+	},
 	EntrepreneurDetailsInput:{
 
 	},
@@ -1882,6 +1980,84 @@ export const AllTypesProps: Record<string,any> = {
 		editBranch:{
 			data:"EditBranchInput"
 		},
+		edubridgeAcceptContribution:{
+			data:"EduAcceptContributionInput"
+		},
+		edubridgeAddLearner:{
+			data:"EduLearnerInput"
+		},
+		edubridgeAppointAdmin:{
+			data:"EduAdminInput"
+		},
+		edubridgeCheckConnector:{
+			carrier:"EduAccessCarrier"
+		},
+		edubridgeCloseAssignment:{
+
+		},
+		edubridgeConvertStatement:{
+			data:"EduQuoteInput"
+		},
+		edubridgeCreateAssignment:{
+			data:"EduAssignmentInput"
+		},
+		edubridgeCreateCourse:{
+			data:"EduCourseInput"
+		},
+		edubridgeDeclineContribution:{
+			data:"EduDeclineContributionInput"
+		},
+		edubridgeDismissAdmin:{
+			data:"EduAdminInput"
+		},
+		edubridgeDraftContribution:{
+			data:"EduContributionDraftInput"
+		},
+		edubridgeRemoveLearner:{
+
+		},
+		edubridgeRetryTask:{
+			data:"EduRetryTaskInput"
+		},
+		edubridgeRidAct:{
+
+		},
+		edubridgeRidStatement:{
+
+		},
+		edubridgeSetConnectorCredentials:{
+			data:"EduSetConnectorCredentialsInput"
+		},
+		edubridgeSetConnectorEnabled:{
+			data:"EduSetConnectorEnabledInput"
+		},
+		edubridgeSetCourseStatus:{
+			data:"EduSetCourseStatusInput"
+		},
+		edubridgeSignAct:{
+			data:"EduSignActInput"
+		},
+		edubridgeSignAnnex:{
+			data:"EduSignAnnexInput"
+		},
+		edubridgeSignContract:{
+			data:"EduSignContractInput"
+		},
+		edubridgeSignOffer:{
+			input:"EduSignOfferInput"
+		},
+		edubridgeSubmitContribution:{
+			data:"EduSubmitContributionInput"
+		},
+		edubridgeSubscribe:{
+			data:"EduSubscribeInput"
+		},
+		edubridgeUpdateCourse:{
+			data:"EduUpdateCourseInput"
+		},
+		edubridgeUpdateLearner:{
+			data:"EduUpdateLearnerInput"
+		},
 		generateAnnualGeneralMeetAgendaDocument:{
 			data:"AnnualGeneralMeetingAgendaGenerateDocumentInput",
 			options:"GenerateDocumentOptionsInput"
@@ -2803,6 +2979,38 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		cooperativePrograms:{
 
+		},
+		edubridgeActSignablePayload:{
+
+		},
+		edubridgeCatalog:{
+			filter:"EduCatalogFilterInput",
+			options:"PaginationInput"
+		},
+		edubridgeCatalogCourse:{
+
+		},
+		edubridgeCourse:{
+
+		},
+		edubridgeCourses:{
+			filter:"EduCoursesFilterInput",
+			options:"PaginationInput"
+		},
+		edubridgeMemberCard:{
+
+		},
+		edubridgeMembers:{
+
+		},
+		edubridgePlatformCourses:{
+			carrier:"EduAccessCarrier"
+		},
+		edubridgeQueue:{
+			filter:"EduQueueFilterInput"
+		},
+		edubridgeQuote:{
+			data:"EduQuoteInput"
 		},
 		expenseFile:{
 
@@ -5212,6 +5420,195 @@ export const ReturnTypes: Record<string,any> = {
 		totalCount:"Int",
 		totalPages:"Int"
 	},
+	EduAccessTask:{
+		attempts:"Int",
+		carrier:"EduAccessCarrier",
+		created_at:"DateTime",
+		done_at:"DateTime",
+		enrollment_id:"ID",
+		id:"ID",
+		kind:"EduAccessTaskKind",
+		last_error:"String",
+		last_result:"String",
+		next_attempt_at:"DateTime",
+		status:"EduAccessTaskStatus",
+		updated_at:"DateTime"
+	},
+	EduAdmin:{
+		appointed_by:"String",
+		appointed_by_display_name:"String",
+		created_at:"DateTime",
+		display_name:"String",
+		id:"ID",
+		username:"String"
+	},
+	EduAssignment:{
+		annex_hash:"String",
+		course_id:"ID",
+		course_title:"String",
+		created_at:"DateTime",
+		decline_reason:"String",
+		expected_result:"String",
+		id:"ID",
+		period_from:"String",
+		period_to:"String",
+		schedule:"String",
+		status:"EduAssignmentStatus",
+		teacher_username:"String"
+	},
+	EduCatalogCourse:{
+		description:"String",
+		fee_month:"String",
+		fee_year:"String",
+		grade:"String",
+		id:"ID",
+		image_url:"String",
+		schedule:"String",
+		subject:"String",
+		syllabus:"String",
+		teacher_usernames:"String",
+		title:"String"
+	},
+	EduCatalogSubject:{
+		grades:"String",
+		subject:"String"
+	},
+	EduConnectorBinding:{
+		carrier:"EduAccessCarrier",
+		configured:"Boolean",
+		credential_fields:"EduConnectorCredentialField",
+		enabled:"Boolean",
+		health:"EduConnectorHealth",
+		last_check_at:"DateTime",
+		last_check_message:"String"
+	},
+	EduConnectorCredentialField:{
+		is_set:"Boolean",
+		key:"String",
+		label:"String",
+		note:"String",
+		secret:"Boolean"
+	},
+	EduContribution:{
+		act_hash:"String",
+		amount:"String",
+		assignment_id:"ID",
+		council_decision_id:"String",
+		created_at:"DateTime",
+		decided_at:"DateTime",
+		decision_hash:"String",
+		decline_reason:"String",
+		description:"String",
+		id:"ID",
+		links:"String",
+		rid_hash:"String",
+		rid_type:"EduRidType",
+		statement_hash:"String",
+		status:"EduContributionStatus",
+		teacher_username:"String"
+	},
+	EduCourse:{
+		carrier:"EduAccessCarrier",
+		created_at:"DateTime",
+		description:"String",
+		direction:"EduCourseDirection",
+		external_ref:"String",
+		external_title_seen:"String",
+		fee_month:"String",
+		fee_year:"String",
+		grade:"String",
+		id:"ID",
+		image_url:"String",
+		schedule:"String",
+		sort_order:"Int",
+		status:"EduCourseStatus",
+		subject:"String",
+		syllabus:"String",
+		teacher_usernames:"String",
+		title:"String",
+		updated_at:"DateTime"
+	},
+	EduEnrollment:{
+		access_state:"EduAccessState",
+		course_id:"ID",
+		course_title:"String",
+		id:"ID",
+		learner_id:"ID",
+		paid_until:"DateTime",
+		period:"EduEnrollmentPeriod",
+		status:"EduEnrollmentStatus",
+		sub_hash:"String"
+	},
+	EduLearner:{
+		created_at:"DateTime",
+		display_name:"String",
+		id:"ID",
+		is_self:"Boolean",
+		recipient_type:"EduRecipientType",
+		recipient_value:"String"
+	},
+	EduMemberCard:{
+		display_name:"String",
+		enrollments:"EduEnrollment",
+		learners:"EduLearner",
+		tasks:"EduAccessTask",
+		username:"String"
+	},
+	EduMemberRow:{
+		active_enrollments:"Int",
+		attention_count:"Int",
+		display_name:"String",
+		learners_count:"Int",
+		username:"String"
+	},
+	EduOfferState:{
+		kind:"EduOfferKind",
+		registry_id:"Float",
+		requires_gate:"Boolean",
+		signed_at:"String",
+		source:"EduOnboardingSource"
+	},
+	EduOnboardingState:{
+		parent:"EduOfferState",
+		teacher:"EduOfferState"
+	},
+	EduPlatformCourse:{
+		groups:"EduPlatformGroup",
+		id:"String",
+		name:"String"
+	},
+	EduPlatformGroup:{
+		id:"String",
+		name:"String"
+	},
+	EduQuote:{
+		amount:"String",
+		available:"String",
+		enough:"Boolean",
+		is_extension:"Boolean",
+		paid_until:"DateTime",
+		shortfall:"String",
+		sub_hash:"String"
+	},
+	EduTeacherContract:{
+		approved_at:"DateTime",
+		contract_hash:"String",
+		contract_number:"String",
+		decline_reason:"String",
+		signed_at:"DateTime",
+		status:"EduContractStatus"
+	},
+	EduTeacherOption:{
+		contract_number:"String",
+		display_name:"String",
+		signed_at:"DateTime",
+		username:"String"
+	},
+	EduTeacherSettlement:{
+		accepted_total:"String",
+		available:"String",
+		last_accepted_at:"DateTime"
+	},
 	EmailVerificationRequestDTO:{
 		cooldown_seconds:"Int",
 		expires_seconds:"Int"
@@ -6905,6 +7302,32 @@ export const ReturnTypes: Record<string,any> = {
 		deleteTrustedAccount:"Branch",
 		disableTwoFactor:"Boolean",
 		editBranch:"Branch",
+		edubridgeAcceptContribution:"EduContribution",
+		edubridgeAddLearner:"EduLearner",
+		edubridgeAppointAdmin:"EduAdmin",
+		edubridgeCheckConnector:"EduConnectorBinding",
+		edubridgeCloseAssignment:"EduAssignment",
+		edubridgeConvertStatement:"GeneratedDocument",
+		edubridgeCreateAssignment:"EduAssignment",
+		edubridgeCreateCourse:"EduCourse",
+		edubridgeDeclineContribution:"EduContribution",
+		edubridgeDismissAdmin:"Boolean",
+		edubridgeDraftContribution:"EduContribution",
+		edubridgeRemoveLearner:"Boolean",
+		edubridgeRetryTask:"EduAccessTask",
+		edubridgeRidAct:"GeneratedDocument",
+		edubridgeRidStatement:"GeneratedDocument",
+		edubridgeSetConnectorCredentials:"EduConnectorBinding",
+		edubridgeSetConnectorEnabled:"EduConnectorBinding",
+		edubridgeSetCourseStatus:"EduCourse",
+		edubridgeSignAct:"EduContribution",
+		edubridgeSignAnnex:"EduAssignment",
+		edubridgeSignContract:"EduTeacherContract",
+		edubridgeSignOffer:"EduOnboardingState",
+		edubridgeSubmitContribution:"EduContribution",
+		edubridgeSubscribe:"EduEnrollment",
+		edubridgeUpdateCourse:"EduCourse",
+		edubridgeUpdateLearner:"EduLearner",
 		enrollTwoFactor:"TwoFactorEnrollment",
 		generateAnnualGeneralMeetAgendaDocument:"GeneratedDocument",
 		generateAnnualGeneralMeetDecisionDocument:"GeneratedDocument",
@@ -7333,6 +7756,18 @@ export const ReturnTypes: Record<string,any> = {
 		totalCount:"Int",
 		totalPages:"Int"
 	},
+	PaginatedEduCatalogCoursesPaginationResult:{
+		currentPage:"Int",
+		items:"EduCatalogCourse",
+		totalCount:"Int",
+		totalPages:"Int"
+	},
+	PaginatedEduCoursesPaginationResult:{
+		currentPage:"Int",
+		items:"EduCourse",
+		totalCount:"Int",
+		totalPages:"Int"
+	},
 	PaginatedExpenseProposalsPaginationResult:{
 		currentPage:"Int",
 		items:"ExpenseProposal",
@@ -7750,6 +8185,29 @@ export const ReturnTypes: Record<string,any> = {
 		checkReportReadiness:"ReportReadinessView",
 		cooperativeAgreements:"CoopAgreement",
 		cooperativePrograms:"CooperativeProgram",
+		edubridgeActSignablePayload:"DocumentAggregate",
+		edubridgeAdmins:"EduAdmin",
+		edubridgeAssignments:"EduAssignment",
+		edubridgeCatalog:"PaginatedEduCatalogCoursesPaginationResult",
+		edubridgeCatalogCourse:"EduCatalogCourse",
+		edubridgeCatalogSubjects:"EduCatalogSubject",
+		edubridgeConnectors:"EduConnectorBinding",
+		edubridgeContributions:"EduContribution",
+		edubridgeCourse:"EduCourse",
+		edubridgeCourses:"PaginatedEduCoursesPaginationResult",
+		edubridgeMemberCard:"EduMemberCard",
+		edubridgeMembers:"EduMemberRow",
+		edubridgeMyAssignments:"EduAssignment",
+		edubridgeMyContract:"EduTeacherContract",
+		edubridgeMyContributions:"EduContribution",
+		edubridgeMyEnrollments:"EduEnrollment",
+		edubridgeMyLearners:"EduLearner",
+		edubridgeMySettlement:"EduTeacherSettlement",
+		edubridgeOnboardingState:"EduOnboardingState",
+		edubridgePlatformCourses:"EduPlatformCourse",
+		edubridgeQueue:"EduAccessTask",
+		edubridgeQuote:"EduQuote",
+		edubridgeTeacherOptions:"EduTeacherOption",
 		expenseFile:"ExpenseFile",
 		expenseFilesByItem:"ExpenseFile",
 		expenseFilesByProposal:"ExpenseFile",
