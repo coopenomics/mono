@@ -39,7 +39,7 @@ export interface CardcoopMembershipPayload {
   type: CardcoopAttestationType.Membership;
   /** Кооператив-издатель; сверяется с тем, кем заканчивается цепочка признания. */
   coopname: string;
-  /** Карта держателя — её идентификатор кооператив узнаёт из уведомления о связке. */
+  /** Карта держателя — её идентификатор кооператив узнаёт из уведомления о связи. */
   card_id: string;
   /** Дата вступления в кооператив, `YYYY-MM-DD`. */
   member_since: string;

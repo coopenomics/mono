@@ -1,5 +1,5 @@
 /**
- * Приём уведомлений о связках от сети «Карта кооператора» (story 7.2, FR-E2).
+ * Приём уведомлений о связях от сети «Карта кооператора» (story 7.2, FR-E2).
  *
  * Замыкающее звено главного потока: пайщик выпускает карту на card.coop, сеть
  * сообщает кооперативу, что его пайщик дошёл до карты, и кооператив в ответ
@@ -52,7 +52,7 @@ const WEBHOOK_PERMISSION = 'cardcoop';
  */
 const KEY_CACHE_MS = 5 * 60 * 1000;
 
-/** Событие о новой связке карты с кооперативом. */
+/** Событие о новой связи карты с кооперативом. */
 const LINK_CREATED = 'link.created';
 
 /** Решения держателя по раскрытию анкеты (story 9.3, ADR-2 card.coop). */
@@ -60,13 +60,13 @@ const DISCLOSURE_GRANTED = 'disclosure.granted';
 const DISCLOSURE_DENIED = 'disclosure.denied';
 const DISCLOSURE_EXPIRED = 'disclosure.expired';
 
-/** Держатель удалил карту: связка и свидетельство больше ни о чём не говорят (3B5-60). */
+/** Держатель удалил карту: связь и свидетельство больше ни о чём не говорят (3B5-60). */
 const CARD_DELETED = 'card.deleted';
 
 /**
  * Тело уведомления.
  *
- * Персональных данных здесь нет и быть не должно: сеть сообщает факт связки, а
+ * Персональных данных здесь нет и быть не должно: сеть сообщает факт связи, а
  * кто это, кооператив знает сам — `external_subject` указывает на учётную запись
  * в его собственном CoopID.
  */
@@ -99,7 +99,7 @@ export class CardcoopLinkWebhookController {
   }
 
   /**
-   * Принимает уведомление о связке и выпускает подтверждение членства.
+   * Принимает уведомление о связи и выпускает подтверждение членства.
    *
    * Отвечает успехом сразу после проверки подписи и принадлежности: выпуск
    * подтверждения идёт своим ходом с повторами, и держать сеть в ожидании,
@@ -129,7 +129,7 @@ export class CardcoopLinkWebhookController {
   }
 
   /**
-   * Разводит события, не относящиеся к связке.
+   * Разводит события, не относящиеся к связи.
    *
    * Проверка принадлежности к ним не применяется, и это не упущение:
    *
@@ -142,7 +142,7 @@ export class CardcoopLinkWebhookController {
    * ходим к источнику анкеты, незачем — она бы отсчитала таймаут и прислала уведомление ещё раз.
    *
    * @param notification — проверенное подписью уведомление.
-   * @returns `true`, если событие обработано здесь и до связки дело не дойдёт.
+   * @returns `true`, если событие обработано здесь и до связи дело не дойдёт.
    */
   private routeAside(notification: LinkCreatedNotification): boolean {
     switch (notification.event) {
@@ -164,7 +164,7 @@ export class CardcoopLinkWebhookController {
   }
 
   /**
-   * Выпускает подтверждение по связке.
+   * Выпускает подтверждение по связи.
    *
    * Отдельно от ответа сети: ошибка здесь не должна выглядеть для card.coop
    * отказом принять уведомление — она разбирается по журналу и по состоянию
@@ -175,7 +175,7 @@ export class CardcoopLinkWebhookController {
       const user = await this.directory.findBySubject(subject);
       const memberSince = await this.memberSince(user.username);
 
-      // Кандидат ещё не принят: свидетельствовать не о чем, но и терять связку нельзя —
+      // Кандидат ещё не принят: свидетельствовать не о чем, но и терять связь нельзя —
       // человек пришёл со своей картой ровно затем, чтобы не заводить вторую (story 7.5).
       if (!memberSince) {
         await this.membership.rememberLink(user.username, cardId, cardNumber);
@@ -185,7 +185,7 @@ export class CardcoopLinkWebhookController {
       await this.membership.issue(this.extension.config.api_url, user.username, cardId, memberSince, cardNumber);
     } catch (error) {
       this.logger.error(
-        `Подтверждение по связке карты ${cardId} не выпущено: ${error instanceof Error ? error.message : String(error)}`
+        `Подтверждение по связи карты ${cardId} не выпущено: ${error instanceof Error ? error.message : String(error)}`
       );
     }
   }
@@ -201,7 +201,7 @@ export class CardcoopLinkWebhookController {
    * `soviet::addpartcpnt`) и удаляется при выходе — её существование и есть членство.
    *
    * Пустая дата — не ошибка: так выглядит кандидат, который связал карту на этапе
-   * вступления (story 7.5). Связка в этом случае ждёт решения совета, а свидетельство
+   * вступления (story 7.5). Связь в этом случае ждёт решения совета, а свидетельство
    * выпускается по записи цепи о приёме.
    *
    * Статус пайщика в реестре (`accepted` / `blocked`) здесь не читается намеренно — это

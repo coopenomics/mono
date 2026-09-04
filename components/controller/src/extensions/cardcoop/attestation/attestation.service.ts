@@ -50,7 +50,7 @@ const RETRY_MAX_MS = 30_000;
 export interface MembershipAttestationRequest {
   /** Пайщик, о котором свидетельствует кооператив. */
   username: string;
-  /** Карта держателя — идентификатор приходит в уведомлении о связке. */
+  /** Карта держателя — идентификатор приходит в уведомлении о связи. */
   cardId: string;
   /** Дата вступления в кооператив, `YYYY-MM-DD`. */
   memberSince: string;

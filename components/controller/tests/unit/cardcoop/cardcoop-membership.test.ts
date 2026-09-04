@@ -36,7 +36,7 @@ const makeRepo = (rows: any[] = []) => {
 
 const logger = { setContext: () => undefined, info: jest.fn(), warn: jest.fn(), error: jest.fn(), log: () => undefined };
 
-/** Связки, ждущие приёма в пайщики (story 7.5): в этих сценариях их нет. */
+/** Связи, ждущие приёма в пайщики (story 7.5): в этих сценариях их нет. */
 const noPendingLinks = () => makeRepo();
 
 const build = (attestations: any, exits: any, service: any, links: any = noPendingLinks()) =>
@@ -59,7 +59,7 @@ describe('Членство пайщика в сети карт', () => {
     });
   });
 
-  it('повторное уведомление о той же связке не порождает второго свидетельства', async () => {
+  it('повторное уведомление о той же связи не порождает второго свидетельства', async () => {
     const attestations = makeRepo([
       { username: 'ant', cardId: 'card-1', attestationId: 'att-1', state: CardcoopAttestationState.Active },
     ]);
@@ -140,7 +140,7 @@ describe('Членство пайщика в сети карт', () => {
   });
 
   it('повтор недоставленного: pending, неудавшийся отзыв и отлежавшееся rejected переотправляются', async () => {
-    // card.coop о застрявшем не напомнит: уведомление о связке уже подтверждено ответом 200,
+    // card.coop о застрявшем не напомнит: уведомление о связи уже подтверждено ответом 200,
     // а событие выхода в цепи не повторится. Значит повтор — наша обязанность (FR-E2/E3),
     // и ручной доставки не существует (решение ant 31.08.2026).
     const pendingRow = {

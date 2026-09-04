@@ -61,7 +61,7 @@ const repos = () => {
     sessions,
     connectState: { findOne: jest.fn(async (): Promise<any> => rpState) },
     attestations: { findOne: jest.fn(async (): Promise<any> => null) },
-    // Связки, ждущие приёма советом (story 7.5): у их владельцев учётная запись уже есть.
+    // Связи, ждущие приёма советом (story 7.5): у их владельцев учётная запись уже есть.
     pendingLinks: { findOne: jest.fn(async (): Promise<any> => null) },
     sessionsRepo: {
       delete: jest.fn(async () => ({ affected: 0 })),
@@ -158,7 +158,7 @@ describe('Вход по карте кооператора', () => {
     expect(session.username).toBe('ant');
   });
 
-  it('кандидат с ожидающей связкой опознан по учётной записи, но пайщиком не назван', async () => {
+  it('кандидат с ожидающей связью опознан по учётной записи, но пайщиком не назван', async () => {
     // Человек связал карту на вступлении и ждёт совета (story 7.5): учётная запись у него
     // уже есть, и второй ей взяться неоткуда — вести его в регистрацию заново нельзя.
     const deps = repos();

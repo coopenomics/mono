@@ -43,7 +43,7 @@ export interface CardcoopConnectPayload extends CardcoopDocumentPayload {
   oidc_client_id: string;
   /** `client_secret` того же клиента. */
   oidc_client_secret: string;
-  /** Адрес приёма уведомлений о связках. */
+  /** Адрес приёма уведомлений о связях. */
   attestation_callback_url: string;
   /** Адрес выдачи анкеты по гранту (story 9.3). */
   disclosure_url: string;
