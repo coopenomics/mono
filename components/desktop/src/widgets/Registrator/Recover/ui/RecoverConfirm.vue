@@ -3,7 +3,12 @@
     title="Восстановление доступа"
     subtitle="Подтвердите смену ключа и задайте новый пароль"
   >
-    <BaseForm :loading="loading" :error="errorMessage" @submit="submit">
+    <div v-if="finishing" class="recover-confirm__finishing">
+      <q-spinner size="2em" color="primary" />
+      <span class="recover-confirm__label">Входим…</span>
+    </div>
+
+    <BaseForm v-else :loading="loading" :error="errorMessage" @submit="submit">
       <BaseBanner v-if="email" variant="neutral">
         Восстанавливаем доступ для {{ email }}
       </BaseBanner>
@@ -75,6 +80,10 @@ const { confirmRecovery, loadRecoveryContext } = useRecoverAccess();
 // у того, кто 2FA не подключал, экран упирался в тупик (владелец 03.09.2026).
 const email = ref('');
 const twoFactorRequired = ref(false);
+// Восстановление прошло, идёт вход и переход. Форму с этого момента не показываем
+// вообще: она успевала вернуться на экран, пока guard ждал загрузки данных, и заново
+// ругалась на уже сожжённый токен (владелец 04.09.2026).
+const finishing = ref(false);
 const totp = ref('');
 const newPassword = ref('');
 const repeatPassword = ref('');
@@ -113,6 +122,8 @@ onMounted(async () => {
     email.value = ctx.email;
     twoFactorRequired.value = ctx.twoFactorRequired;
   } catch (e: any) {
+    // Уже подтвердили и уходим — токен законно сожжён, ошибку не показываем.
+    if (finishing.value) return;
     // Протухшая или чужая ссылка: форму показывать не на чем — говорим прямо.
     errorMessage.value =
       e?.message || 'Ссылка восстановления недействительна или истекла. Запросите восстановление заново.';
@@ -154,8 +165,12 @@ async function enterDesktop(): Promise<void> {
     return;
   }
 
-  // Лоадер уже поднят в submit — он держится всю операцию, включая перезагрузку стола.
-  // Снимет его goToDefaultPage после перехода.
+  // Данные пайщика уже на руках — снимаем флаг ожидания. Иначе навигационный guard
+  // видит isAuth && !loadComplete и КРУТИТ ЦИКЛ ДО 5 СЕКУНД, ожидая init-wallet, который
+  // в сценарии восстановления не запускается вовсе: маршрут всё это время не меняется
+  // (владелец 04.09.2026, «форма зависает»).
+  session.loadComplete = true;
+
   try {
     await desktops.loadDesktop();
   } catch (e) {
@@ -163,17 +178,13 @@ async function enterDesktop(): Promise<void> {
   }
   desktops.selectDefaultWorkspace(true);
 
-  // goToDefaultPage при отсутствии маршрута по умолчанию только сбрасывает лоадер и
-  // НИКУДА не ведёт — пайщик оставался бы на форме восстановления. В этом случае
-  // уходим на корень: его guard с уже загруженным столом доведёт до кабинета, а если
-  // и ему некуда — до регистрации, но не оставит форму сброса пароля на экране.
-  if (desktops.getDefaultPageRoute()) {
-    desktops.goToDefaultPage(router);
-  } else {
-    console.warn('[BOOTRACE] после восстановления нет маршрута по умолчанию — уходим на корень');
-    desktops.setWorkspaceChanging(false);
-    await router.push({ name: 'index' });
-  }
+  // Переход ждём сами, а не через goToDefaultPage: тот снимает общий лоадер по таймеру
+  // 500 мс, не дожидаясь навигации. Если маршрута по умолчанию нет (пайщика не принял
+  // совет — стол не даёт ему видимых страниц), уходим на корень: его guard с загруженным
+  // столом доведёт до регистрации.
+  const target = desktops.getDefaultPageRoute() ?? { name: 'index' };
+  await router.push(target);
+  desktops.setWorkspaceChanging(false);
 }
 
 const submit = async (): Promise<void> => {
@@ -181,13 +192,12 @@ const submit = async (): Promise<void> => {
   loading.value = true;
   errorMessage.value = '';
 
-  // Полноэкранный лоадер включаем СРАЗУ по нажатию, а не после подтверждения. Дальше
-  // идут деривация ключа (Argon2), confirm, вход в authentik и handshake — это секунды,
-  // и всё это время на экране висела форма смены пароля, будто ничего не происходит
-  // (владелец 04.09.2026). В layout спиннер рисуется ВМЕСТО router-view, поэтому форма
-  // скрывается сразу же. Снимаем его только если возвращаем пайщика на эту же форму.
-  const desktops = useDesktopStore();
-  desktops.setWorkspaceChanging(true);
+  // Прячем форму сразу по нажатию: дальше идут Argon2, confirm, вход и handshake — это
+  // секунды. Прежний вариант поднимал общий isWorkspaceChanging, но его снимает
+  // goToDefaultPage по таймеру 500 мс, не дожидаясь навигации, — форма возвращалась на
+  // экран раньше, чем менялся маршрут. Своё состояние компонента от чужих таймеров не
+  // зависит и снимается только вместе с ним.
+  finishing.value = true;
   try {
     await confirmRecovery({
       email: email.value,
@@ -202,13 +212,12 @@ const submit = async (): Promise<void> => {
     // повторять здесь нечего. Оставлять пайщика на этой форме — тупик, уводим на
     // обычный вход новым паролём (владелец 03.09.2026).
     if (e?.code === AuthV2ErrorCode.RecoveryDoneLoginFailed) {
-      desktops.setWorkspaceChanging(false);
       SuccessAlert('Пароль изменён. Войдите новым паролём.');
       await router.push({ name: 'signin', params: { coopname: props.coopname } });
       return;
     }
-    // Ссылка цела, ключ не тронут — возвращаем форму с сообщением, значит лоадер снимаем.
-    desktops.setWorkspaceChanging(false);
+    // Ссылка цела, ключ не тронут — возвращаем форму с сообщением.
+    finishing.value = false;
     errorMessage.value =
       e?.message || 'Не удалось восстановить доступ. Проверьте код и попробуйте снова.';
     FailAlert(e);
@@ -219,6 +228,13 @@ const submit = async (): Promise<void> => {
 </script>
 
 <style scoped>
+.recover-confirm__finishing {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--p-3, 12px);
+  padding: var(--p-6, 24px) 0;
+}
 .recover-confirm__field {
   display: flex;
   flex-direction: column;
