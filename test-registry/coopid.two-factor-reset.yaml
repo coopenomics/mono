@@ -1,0 +1,91 @@
+feature: coopid.two-factor-reset
+title: Сброс приложения-аутентификатора председателем
+
+# Пайщик, потерявший телефон, теряет и единственный источник кода: отключить
+# фактор сам он не может — `disableTwoFactor` требует действующий код, а взять
+# его негде. Вход в кабинет для такого пайщика закрыт наглухо.
+#
+# Владелец 04.09.2026: сброс делает председатель совета из реестра пайщиков —
+# там же, где он подтверждает личность. Полномочия проверяет сервер (роль
+# chairman на гейте), а не видимость кнопки: реестр открыт и членам совета.
+#
+# Сброс идёт БЕЗ кода — иначе он не решал бы задачу, ради которой заведён.
+# Поэтому обязательны два следа: аудит с именем председателя (а не пайщика) и
+# уведомление самому пайщику — он должен узнать, что защиту с его аккаунта
+# сняли, даже если просил об этом не он.
+
+sources:
+  backend:
+    - components/controller/src/application/auth-v2/two-factor/two-factor.service.ts
+    - components/controller/src/application/auth-v2/account-security/account-security.resolver.ts
+  ui:
+    - components/desktop/src/features/User/ResetTwoFactor/**
+
+cases:
+  - id: cid.2fr.happy.01
+    level: backend
+    kind: happy
+    scenario: председатель сбрасывает приложение пайщику с подключённым TOTP
+    expect: >
+      секрет удалён без проверки кода, настройка «код при входе» погашена,
+      пайщик уведомлён
+    test: components/controller/src/application/auth-v2/two-factor/two-factor.service.spec.ts
+    status: passing
+
+  - id: cid.2fr.happy.02
+    level: backend
+    kind: happy
+    scenario: тот же сброс со стороны резолвера
+    expect: >
+      пайщик найден по учётному имени, сброс вызван от имени председателя,
+      onTotpUnenrolled погасил настройку входа
+    test: components/controller/src/application/auth-v2/account-security/account-security.resolver.spec.ts
+    status: passing
+
+  - id: cid.2fr.side.01
+    level: backend
+    kind: side
+    scenario: у пайщика приложение не подключено
+    expect: >
+      возвращается false, записи в журнале и уведомления НЕ появляются —
+      сброс несуществующей защиты не событие безопасности
+    test: components/controller/src/application/auth-v2/two-factor/two-factor.service.spec.ts
+    status: passing
+
+  - id: cid.2fr.break.01
+    level: backend
+    kind: break
+    scenario: сброс запрашивает пайщик без роли председателя
+    expect: отказ на гейте роли (chairman), фактор не тронут
+    test: null
+    status: missing
+    # Гейт декларативный (@AuthRoles(['chairman']) + RolesGuard) — проверяется
+    # сквозным прогоном авторизации, а не unit-тестом резолвера.
+
+  - id: cid.2fr.side.02
+    level: backend
+    kind: side
+    scenario: в журнале безопасности разбирают, кто снял фактор
+    expect: >
+      в записи actor — учётное имя председателя и reason=chairman_reset,
+      а не «self»: иначе снятие защиты выглядело бы действием самого пайщика
+    test: components/controller/src/application/auth-v2/two-factor/two-factor.service.spec.ts
+    status: passing
+
+  - id: cid.2fr.side.03
+    level: ui
+    kind: side
+    scenario: реестр пайщиков открывает член совета (не председатель)
+    expect: блок сброса не показывается вовсе
+    test: null
+    status: missing
+
+  - id: cid.2fr.side.04
+    level: ui
+    kind: side
+    scenario: председатель разворачивает строки разных пайщиков подряд
+    expect: >
+      состояние приложения перезагружается под каждого — иначе председатель
+      увидел бы чужой статус и сбросил не тому
+    test: null
+    status: missing

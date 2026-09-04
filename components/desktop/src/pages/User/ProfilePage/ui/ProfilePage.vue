@@ -87,7 +87,13 @@
     DataRow(label='Публичный ключ', :value='publicKey', copyable, mono)
 
   BaseCard(title='Личные данные')
-    DataRow(label='Email', :value='currentProfile.email')
+    //- Почта — единственная строка профиля с действием: подтверждение адреса
+    //- нужно, чтобы пайщик мог вернуть доступ и получать уведомления.
+    DataRow(label='Email')
+      template(#value-override)
+        .profile-page__email
+          span {{ currentProfile.email }}
+          VerifyEmailAction(show-status)
     DataRow(label='Телефон', :value='currentProfile.phone')
     DataRow(
       v-if='hasBirthdate',
@@ -207,6 +213,7 @@ import { BaseButton } from 'src/shared/ui/base/BaseButton';
 import { EmptyState } from 'src/shared/ui/base/EmptyState';
 import { BaseDialog } from 'src/shared/ui/base/BaseDialog';
 import { CertificateQr } from 'src/features/User/ShowCertificate';
+import { VerifyEmailAction } from 'src/features/User/VerifyEmail';
 import { decodeTrustChain } from '@coopenomics/auth';
 import {
   highestVerificationLevel,
@@ -508,6 +515,14 @@ const getRepresentativeName = (representative: any) => {
 </script>
 
 <style lang="scss" scoped>
+.profile-page__email {
+  display: flex;
+  align-items: center;
+  gap: var(--p-2, 8px);
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
 .profile-page {
   display: flex;
   flex-direction: column;

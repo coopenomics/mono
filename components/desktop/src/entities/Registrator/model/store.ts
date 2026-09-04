@@ -135,6 +135,12 @@ export const useRegistratorStore = defineStore(
       userAgreement: structuredClone(initialDocumentState),
       payment: initialPaymentState as IInitialPaymentOrder | null,
       is_paid: false,
+      // Почта подтверждена кодом на шаге EmailInput. Флаг живёт в persist'е стора,
+      // чтобы обновление страницы посреди регистрации не заставляло подтверждать
+      // адрес заново. У регистраций, начатых до появления подтверждения, поля
+      // просто нет (undefined = не подтверждена), но их шаг EmailInput уже
+      // пройден — назад мы никого не возвращаем.
+      emailVerified: false,
       // Учётка уже создана на сервере (createUser прошёл). Шаг пароля состоит из
       // двух сетевых операций (createUser → установка пароля): если вторая упала,
       // повтор без маркера снова звал бы createUser и упирался в «email занят».
@@ -296,6 +302,7 @@ export const useRegistratorStore = defineStore(
       state.selectedProgramKey = '';
       availablePrograms.value = [];
       state.email = '';
+      state.emailVerified = false;
       state.account = structuredClone(initialAccountState);
       state.agreements = structuredClone(initialAgreementsState);
       state.userData = structuredClone(initialUserDataState);

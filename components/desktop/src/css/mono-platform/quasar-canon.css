@@ -226,10 +226,13 @@
 .q-badge.bg-info { background: var(--p-info-soft) !important; color: var(--p-info) !important; }
 
 /* ===== Banner ===== */
+/* Без цветного рельса слева: канон запрещает акцентные полосы (владелец
+   03.09.2026), а этот оверрайд возвращал их КАЖДОМУ сырому q-banner в обход
+   BaseBanner — так полоса и всплыла на форме входа 04.09.2026. */
 .q-banner {
-  background: var(--p-info-soft);
+  background: var(--p-surface-2);
   color: var(--p-ink);
-  border-left: 3px solid var(--p-info);
+  border: 1px solid var(--p-line);
   border-radius: var(--p-r-sm, 8px);
   padding: 12px 16px;
   font-size: var(--p-fs-body);

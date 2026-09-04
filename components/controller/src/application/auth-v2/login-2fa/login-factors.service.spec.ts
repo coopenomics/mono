@@ -142,4 +142,30 @@ describe('LoginFactorsService (настройки 2FA-входа)', () => {
     await service.onTotpUnenrolled(SUBJECT);
     expect(repo.set).not.toHaveBeenCalled();
   });
+  it('onTotpEnrolled: подключение приложения сразу включает фактор входа', async () => {
+    const { service, repo, audit } = setup({ record: { totpEnabled: false, emailEnabled: false } });
+    await service.onTotpEnrolled(SUBJECT, '10.0.0.1');
+    expect(repo.set).toHaveBeenCalledWith({ subjectId: SUBJECT, totpEnabled: true, emailEnabled: false });
+    expect(audit.record).toHaveBeenCalledWith(
+      expect.objectContaining({ context: expect.objectContaining({ reason: 'totp_enrolled' }) }),
+    );
+  });
+
+  it('onTotpEnrolled: email-фактор сохраняется как был', async () => {
+    const { service, repo } = setup({ record: { totpEnabled: false, emailEnabled: true } });
+    await service.onTotpEnrolled(SUBJECT);
+    expect(repo.set).toHaveBeenCalledWith({ subjectId: SUBJECT, totpEnabled: true, emailEnabled: true });
+  });
+
+  it('onTotpEnrolled: без пароля фактор не включается — спрашивать код негде', async () => {
+    const { service, repo } = setup({ record: { totpEnabled: false, emailEnabled: false }, hasPassword: false });
+    await service.onTotpEnrolled(SUBJECT);
+    expect(repo.set).not.toHaveBeenCalled();
+  });
+
+  it('onTotpEnrolled: уже включённый фактор не переписывается', async () => {
+    const { service, repo } = setup({ record: { totpEnabled: true, emailEnabled: false } });
+    await service.onTotpEnrolled(SUBJECT);
+    expect(repo.set).not.toHaveBeenCalled();
+  });
 });

@@ -1,10 +1,14 @@
 <template lang='pug'>
 div
   q-step(:name='store.steps.EmailInput', title='Введите электронную почту', :done="store.isStepDone('EmailInput')")
+    //- Шаг состоит из двух фаз: ввод адреса и подтверждение кодом из письма.
+    //- Отдельным шагом подтверждение делать нельзя — номера шагов лежат в
+    //- persist'е стора у всех, кто уже идёт по регистрации, и вставка сдвинула
+    //- бы их посреди пути.
     //- Одна колонка постоянной ширины: поле, кнопка и вторая дорога выстроены по левому
     //- краю и одинаковы по ширине. Раньше кнопки были разного размера и «или» висело
     //- посередине пустоты (замечание владельца 03.09.2026).
-    .email-input
+    .email-input(v-if='!confirming')
       p.email-input__lead Добро пожаловать в {{ coopTitle }}! Для начала регистрации введите вашу электронную почту.
 
       BaseInput(
@@ -39,6 +43,18 @@ div
           | Зарегистрироваться по карте пайщика
 
         p.email-input__note Анкета перенесётся из кооператива, где вас уже приняли: останется проверить данные и подписать заявление.
+
+    //- Вход по карте пайщика ведёт на card.coop и возвращается уже с анкетой —
+    //- почту там подтверждает сам эмитент карты, и эта фаза до него не доходит.
+    .email-input(v-else)
+      p.email-input__lead Мы отправили код на указанный адрес — так мы убеждаемся, что письма кооператива до вас дойдут.
+
+      EmailCodeForm(
+        :email='email',
+        changeable,
+        @verified='onVerified',
+        @change-email='confirming = false'
+      )
 </template>
 
 <script lang="ts" setup>
@@ -51,6 +67,7 @@ import { client } from 'src/shared/api/client';
 import { Queries } from '@coopenomics/sdk';
 import { BaseInput } from 'src/shared/ui/base/BaseInput';
 import { BaseButton } from 'src/shared/ui/base/BaseButton';
+import { EmailCodeForm } from 'src/features/User/VerifyEmail';
 
 const store = useRegistratorStore();
 const api = useCreateUser();
@@ -58,6 +75,9 @@ const api = useCreateUser();
 const coopTitle = computed(() => env.COOP_SHORT_NAME);
 const email = ref(store.state.email);
 const touched = ref<boolean>(Boolean(store.state.email));
+
+/** Вторая фаза шага: адрес принят, ждём код из письма. */
+const confirming = ref(false);
 
 watch(() => store.state.email, (val) => (email.value = val));
 
@@ -83,6 +103,8 @@ const checkEmailExists = debounce(async () => {
 function onEmailUpdate(val: string): void {
   email.value = val.trim();
   touched.value = true;
+  // Адрес правят — прежнее подтверждение к нему уже не относится.
+  if (store.state.emailVerified) store.state.emailVerified = false;
 }
 
 watch(email, () => {
@@ -113,11 +135,22 @@ function startCardcoopEntry(): void {
 }
 
 const setEmail = () => {
-  if (isValidEmail.value && !isEmailExist.value) {
-    store.state.email = email.value;
+  if (!isValidEmail.value || isEmailExist.value) return;
+  store.state.email = email.value;
+  // Подтверждённый адрес не переспрашиваем: пайщик мог вернуться на шаг назад
+  // или обновить страницу — код в письме не бесконечен, а его терпение тем более.
+  if (store.state.emailVerified) {
     store.next();
+    return;
   }
+  confirming.value = true;
 };
+
+function onVerified(): void {
+  store.state.emailVerified = true;
+  confirming.value = false;
+  store.next();
+}
 </script>
 
 <style lang="scss" scoped>

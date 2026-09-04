@@ -23,6 +23,10 @@
       @changed='emit("verification-changed")'
     )
 
+  //- Второй фактор входа: председатель снимает приложение-аутентификатор
+  //- пайщику, потерявшему устройство с кодами.
+  ResetTwoFactorAction(:participant='participant')
+
   EditableIndividualCard(
     v-if="individualParticipantData"
     :participantData="individualParticipantData"
@@ -50,6 +54,7 @@ import {
   type VerificationNaming,
 } from 'src/shared/lib/verification'
 import { VerifyIdentityActions } from 'src/features/User/VerifyIdentity'
+import { ResetTwoFactorAction } from 'src/features/User/ResetTwoFactor'
 import { EditableEntrepreneurCard } from 'src/shared/ui/EditableEntrepreneurCard'
 import { EditableIndividualCard } from 'src/shared/ui/EditableIndividualCard'
 import { EditableOrganizationCard } from 'src/shared/ui/EditableOrganizationCard'

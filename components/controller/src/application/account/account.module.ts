@@ -8,6 +8,7 @@ import { UserDomainModule } from '~/domain/user/user-domain.module';
 import { TokenApplicationModule } from '~/application/token/token-application.module';
 import { EventsInfrastructureModule } from '~/infrastructure/events/events.module';
 import { AuthV2InfrastructureModule } from '~/infrastructure/auth-v2/auth-v2-infrastructure.module';
+import { EmailVerificationModule } from '~/application/auth/email-verification/email-verification.module';
 
 @Module({
   imports: [
@@ -19,6 +20,8 @@ import { AuthV2InfrastructureModule } from '~/infrastructure/auth-v2/auth-v2-inf
     // инфраструктурный модуль (VAULT_REPOSITORY), а не AuthV2Module: тот через
     // AccountInfrastructureModule замыкается обратно на AccountModule (цикл).
     AuthV2InfrastructureModule,
+    // Отметка «адрес подтверждён кодом» с первого шага регистрации.
+    EmailVerificationModule,
   ],
   controllers: [],
   providers: [AccountInteractor, AccountService, AccountResolver, RegistrationDeclineListener],
