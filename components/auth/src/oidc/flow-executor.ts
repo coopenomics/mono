@@ -94,6 +94,31 @@ function isAccessDenied(c: FlowChallenge): boolean {
   return c.component === 'ak-stage-access-denied'
 }
 
+/**
+ * Сообщения authentik приходят по-английски и в интерфейс кооператива попадать не
+ * должны: пайщик видел «Failed to authenticate.» на форме входа (04.09.2026).
+ * Знакомые сводим к человеческому русскому тексту, незнакомое английское —
+ * к общему: показывать сырой ответ чужой системы всё равно нечего, а оригинал
+ * уезжает в `details` ошибки для разбора.
+ */
+const AUTHENTIK_MESSAGES: Record<string, string> = {
+  'Failed to authenticate.': 'Неверная почта или пароль',
+  'Invalid password': 'Неверная почта или пароль',
+  'Invalid credentials': 'Неверная почта или пароль',
+  'Invalid token': 'Неверный код подтверждения',
+  'Invalid code': 'Неверный код подтверждения',
+  'This field may not be blank.': 'Заполните поле',
+  'Access denied': 'Вход отклонён. Обратитесь в поддержку кооператива',
+}
+
+function humanizeAuthentikMessage(raw: string): string {
+  const known = AUTHENTIK_MESSAGES[raw.trim()]
+  if (known)
+    return known
+  // Латиница в тексте = сообщение чужой системы, а не наш текст.
+  return /[a-z]/i.test(raw) ? 'Не удалось войти. Проверьте почту и пароль' : raw
+}
+
 /** Первое человеко-читаемое сообщение об ошибке валидации из challenge'а (если есть). */
 function firstResponseError(c: FlowChallenge): string | null {
   const groups = c.response_errors
@@ -178,8 +203,13 @@ export async function authenticateWithFlowExecutor(params: FlowExecutorParams): 
       throw new AuthV2Error(AuthV2ErrorCode.InvalidCredentials, 'Доступ запрещён: проверьте email и пароль')
 
     const err = firstResponseError(challenge)
-    if (err !== null)
-      throw new AuthV2Error(AuthV2ErrorCode.InvalidCredentials, err || 'Неверный email или пароль')
+    if (err !== null) {
+      throw new AuthV2Error(
+        AuthV2ErrorCode.InvalidCredentials,
+        err ? humanizeAuthentikMessage(err) : 'Неверный email или пароль',
+        err ? { authentik_message: err } : undefined,
+      )
+    }
 
     switch (challenge.component) {
       case 'ak-stage-identification':

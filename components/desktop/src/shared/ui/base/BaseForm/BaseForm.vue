@@ -1,13 +1,8 @@
 <template>
   <q-form class="base-form" @submit.prevent="onSubmit">
-    <q-banner
-      v-if="error"
-      class="base-form__banner bg-negative-soft"
-      role="alert"
-      dense
-    >
+    <BaseBanner v-if="error" variant="neg" role="alert">
       {{ error }}
-    </q-banner>
+    </BaseBanner>
     <div class="base-form__body">
       <slot />
     </div>
@@ -18,6 +13,7 @@
 </template>
 
 <script setup lang="ts">
+import { BaseBanner } from '../BaseBanner';
 import type { BaseFormProps } from './BaseForm.types';
 
 const props = withDefaults(defineProps<BaseFormProps>(), {
@@ -56,12 +52,5 @@ function onSubmit(e: Event): void {
      «Пароли не совпадают» упиралось в кнопку. Инвариант «поля не прыгают»
      сохраняется: место резервируется всегда, зазор постоянный. */
   gap: var(--p-3);
-}
-
-.base-form__banner {
-  background: var(--p-neg-soft);
-  color: var(--p-neg);
-  border-left: 3px solid var(--p-neg);
-  border-radius: var(--p-r-sm, 8px);
 }
 </style>

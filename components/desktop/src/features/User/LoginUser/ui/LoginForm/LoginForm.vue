@@ -124,6 +124,7 @@ import { OtpInput } from 'src/shared/ui/domain/OtpInput';
 import {
   AuthV2Error,
   AuthV2ErrorCode,
+  describeAuthV2Error,
   PASSWORD_POLICY_HINT,
   passwordPolicyErrors,
   resendLoginEmailCode,
@@ -344,8 +345,10 @@ async function runLogin(action: () => Promise<void>): Promise<void> {
     }
 
     console.error(e);
-    errorMessage.value =
-      e?.message || 'Не удалось выполнить вход. Проверьте данные и попробуйте снова.';
+    // Текст берём из каталога SDK по коду ошибки, а не из `e.message`: в message
+    // приезжает ответ authentik, и пайщик видел на форме «Failed to authenticate.»
+    // (04.09.2026). Каталог — единственный источник текстов для человека.
+    errorMessage.value = describeAuthV2Error(e).message;
     FailAlert(e);
   }
 }
@@ -378,8 +381,7 @@ async function confirmFactor(): Promise<void> {
     }
     // Challenge истёк или сожжён перебором — начинаем вход заново.
     backToLogin();
-    errorMessage.value =
-      e?.message || 'Подтверждение входа не удалось. Войдите заново.';
+    errorMessage.value = describeAuthV2Error(e).message;
     FailAlert(e);
   }
 }
