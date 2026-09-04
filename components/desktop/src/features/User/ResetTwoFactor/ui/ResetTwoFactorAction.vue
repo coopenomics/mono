@@ -1,11 +1,14 @@
 <template lang="pug">
-//- Подтверждение входа пайщика в реестре: председатель совета снимает
-//- приложение-аутентификатор, если пайщик потерял устройство с кодами.
+//- Приложение двойной аутентификации пайщика в реестре: председатель совета
+//- снимает его, если пайщик потерял устройство с кодами.
 .reset-2fa(v-if='canManage && security')
-  .reset-2fa__title.t-sm.t-muted Подтверждение входа
+  //- Название бытовое, а не техническое: председатель видит строку пайщика и
+  //- должен понимать, о чём речь, без знания слов «фактор» и «TOTP»
+  //- (владелец 04.09.2026).
+  .reset-2fa__title.t-sm.t-muted Приложение двойной аутентификации
   .reset-2fa__row
     BaseBadge(:variant='security.totp_enrolled ? "pos" : "neutral"')
-      | {{ security.totp_enrolled ? 'Приложение подключено' : 'Приложение не подключено' }}
+      | {{ security.totp_enrolled ? 'Подключено' : 'Не подключено' }}
     span.t-sm.t-muted(v-if='security.totp_enrolled && !security.totp_enabled')
       | Код при входе временно не запрашивается
     BaseButton(
@@ -17,9 +20,9 @@
     )
       template(#icon-left)
         q-icon(name='phonelink_erase', size='16px')
-      | Сбросить приложение
+      | Сбросить
 
-  BaseDialog(v-model='confirmOpen', title='Сброс приложения-аутентификатора', size='sm')
+  BaseDialog(v-model='confirmOpen', title='Сброс приложения двойной аутентификации', size='sm')
     .reset-2fa__confirm
       .reset-2fa__confirm-name(v-if='fullName') {{ fullName }}
       .reset-2fa__confirm-hint
