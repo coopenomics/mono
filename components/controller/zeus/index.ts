@@ -12224,6 +12224,7 @@ requestEmailVerification?: [{	data: ValueTypes["RequestEmailVerificationInputDTO
 requestForceRecoveryConsent?: [{	data: ValueTypes["RequestForceRecoveryConsentInput"] | Variable<any, string>},boolean | `@${string}`],
 resendNotification?: [{	id: string | Variable<any, string>},ValueTypes["Notification"]],
 resetKey?: [{	data: ValueTypes["ResetKeyInput"] | Variable<any, string>},boolean | `@${string}`],
+resetParticipantTwoFactor?: [{	data: ValueTypes["ResetParticipantTwoFactorInput"] | Variable<any, string>},boolean | `@${string}`],
 	/** Откатить собственную незавершённую регистрацию к редактированию данных: снимает заморозку профиля и e-mail, сбрасывает подписанное заявление и непринятую попытку вступительного платежа. Доступно только до отправки регистрации в блокчейн; если взнос уже принят — требуется возврат средств. */
 	resetRegistration?:ValueTypes["Account"],
 restartAnnualGeneralMeet?: [{	data: ValueTypes["RestartAnnualGeneralMeetInput"] | Variable<any, string>},ValueTypes["MeetAggregate"]],
@@ -13047,6 +13048,14 @@ walmoveWallets?: [{	input: ValueTypes["WalmoveInput"] | Variable<any, string>},V
 	/** Имя аккаунта пайщика */
 	username: string | Variable<any, string>
 };
+	["ParticipantLoginSecurity"]: AliasType<{
+	/** Код из приложения запрашивается при входе */
+	totp_enabled?:boolean | `@${string}`,
+	/** Приложение-аутентификатор подключено */
+	totp_enrolled?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on ParticipantLoginSecurity']?: Omit<ValueTypes["ParticipantLoginSecurity"], "...on ParticipantLoginSecurity">
+}>;
 	/** Подтверждённый уровень верификации пайщика */
 ["ParticipantVerification"]: AliasType<{
 	/** Кто провёл верификацию (аккаунт) */
@@ -13923,6 +13932,7 @@ getMeets?: [{	data: ValueTypes["GetMeetsInput"] | Variable<any, string>},ValueTy
 getNotification?: [{	id: string | Variable<any, string>},ValueTypes["NotificationDetail"]],
 getNotifications?: [{	filter: ValueTypes["NotificationsFilterInput"] | Variable<any, string>,	pagination: ValueTypes["PaginationInput"] | Variable<any, string>},ValueTypes["NotificationPaginationResult"]],
 getParticipantCapabilitySets?: [{	username: string | Variable<any, string>},ValueTypes["CapabilitySetAssignment"]],
+getParticipantLoginSecurity?: [{	data: ValueTypes["ResetParticipantTwoFactorInput"] | Variable<any, string>},ValueTypes["ParticipantLoginSecurity"]],
 getPaymentMethods?: [{	data?: ValueTypes["GetPaymentMethodsInput"] | undefined | null | Variable<any, string>},ValueTypes["PaymentMethodPaginationResult"]],
 getPayments?: [{	data?: ValueTypes["PaymentFiltersInput"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedGatewayPaymentsPaginationResult"]],
 getProductCard?: [{	id: string | Variable<any, string>},ValueTypes["ProductCard"]],
@@ -14558,6 +14568,10 @@ verificationReviews?: [{	data?: ValueTypes["VerificationReviewsInput"] | undefin
 	public_key: string | Variable<any, string>,
 	/** Токен авторизации для замены ключа, полученный по email */
 	token: string | Variable<any, string>
+};
+	["ResetParticipantTwoFactorInput"]: {
+	/** Имя учётной записи пайщика */
+	username: string | Variable<any, string>
 };
 	["ResourceDelegationDTO"]: AliasType<{
 	/** Вес CPU */
@@ -27000,6 +27014,7 @@ requestEmailVerification?: [{	data: ResolverInputTypes["RequestEmailVerification
 requestForceRecoveryConsent?: [{	data: ResolverInputTypes["RequestForceRecoveryConsentInput"]},boolean | `@${string}`],
 resendNotification?: [{	id: string},ResolverInputTypes["Notification"]],
 resetKey?: [{	data: ResolverInputTypes["ResetKeyInput"]},boolean | `@${string}`],
+resetParticipantTwoFactor?: [{	data: ResolverInputTypes["ResetParticipantTwoFactorInput"]},boolean | `@${string}`],
 	/** Откатить собственную незавершённую регистрацию к редактированию данных: снимает заморозку профиля и e-mail, сбрасывает подписанное заявление и непринятую попытку вступительного платежа. Доступно только до отправки регистрации в блокчейн; если взнос уже принят — требуется возврат средств. */
 	resetRegistration?:ResolverInputTypes["Account"],
 restartAnnualGeneralMeet?: [{	data: ResolverInputTypes["RestartAnnualGeneralMeetInput"]},ResolverInputTypes["MeetAggregate"]],
@@ -27780,6 +27795,13 @@ walmoveWallets?: [{	input: ResolverInputTypes["WalmoveInput"]},ResolverInputType
 	/** Имя аккаунта пайщика */
 	username: string
 };
+	["ParticipantLoginSecurity"]: AliasType<{
+	/** Код из приложения запрашивается при входе */
+	totp_enabled?:boolean | `@${string}`,
+	/** Приложение-аутентификатор подключено */
+	totp_enrolled?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
 	/** Подтверждённый уровень верификации пайщика */
 ["ParticipantVerification"]: AliasType<{
 	/** Кто провёл верификацию (аккаунт) */
@@ -28627,6 +28649,7 @@ getMeets?: [{	data: ResolverInputTypes["GetMeetsInput"]},ResolverInputTypes["Mee
 getNotification?: [{	id: string},ResolverInputTypes["NotificationDetail"]],
 getNotifications?: [{	filter: ResolverInputTypes["NotificationsFilterInput"],	pagination: ResolverInputTypes["PaginationInput"]},ResolverInputTypes["NotificationPaginationResult"]],
 getParticipantCapabilitySets?: [{	username: string},ResolverInputTypes["CapabilitySetAssignment"]],
+getParticipantLoginSecurity?: [{	data: ResolverInputTypes["ResetParticipantTwoFactorInput"]},ResolverInputTypes["ParticipantLoginSecurity"]],
 getPaymentMethods?: [{	data?: ResolverInputTypes["GetPaymentMethodsInput"] | undefined | null},ResolverInputTypes["PaymentMethodPaginationResult"]],
 getPayments?: [{	data?: ResolverInputTypes["PaymentFiltersInput"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedGatewayPaymentsPaginationResult"]],
 getProductCard?: [{	id: string},ResolverInputTypes["ProductCard"]],
@@ -29242,6 +29265,10 @@ verificationReviews?: [{	data?: ResolverInputTypes["VerificationReviewsInput"] |
 	public_key: string,
 	/** Токен авторизации для замены ключа, полученный по email */
 	token: string
+};
+	["ResetParticipantTwoFactorInput"]: {
+	/** Имя учётной записи пайщика */
+	username: string
 };
 	["ResourceDelegationDTO"]: AliasType<{
 	/** Вес CPU */
@@ -41976,6 +42003,10 @@ export type ModelTypes = {
 	resendNotification: ModelTypes["Notification"],
 	/** Заменить приватный ключ аккаунта */
 	resetKey: boolean,
+	/** Снять приложение-аутентификатор у пайщика (только председатель совета)
+
+Требуемые роли: chairman.  */
+	resetParticipantTwoFactor: boolean,
 	/** Откатить собственную незавершённую регистрацию к редактированию данных: снимает заморозку профиля и e-mail, сбрасывает подписанное заявление и непринятую попытку вступительного платежа. Доступно только до отправки регистрации в блокчейн; если взнос уже принят — требуется возврат средств. */
 	resetRegistration: ModelTypes["Account"],
 	/** Перезапуск общего собрания пайщиков
@@ -42782,6 +42813,12 @@ export type ModelTypes = {
 	braname?: string | undefined | null,
 	/** Имя аккаунта пайщика */
 	username: string
+};
+	["ParticipantLoginSecurity"]: {
+		/** Код из приложения запрашивается при входе */
+	totp_enabled: boolean,
+	/** Приложение-аутентификатор подключено */
+	totp_enrolled: boolean
 };
 	/** Подтверждённый уровень верификации пайщика */
 ["ParticipantVerification"]: {
@@ -43802,6 +43839,10 @@ export type ModelTypes = {
 	getNotifications: ModelTypes["NotificationPaginationResult"],
 	/** Активные наборы возможностей, назначенные пайщику */
 	getParticipantCapabilitySets: Array<ModelTypes["CapabilitySetAssignment"]>,
+	/** Подтверждение входа у пайщика: подключено ли приложение-аутентификатор (председателю)
+
+Требуемые роли: chairman.  */
+	getParticipantLoginSecurity: ModelTypes["ParticipantLoginSecurity"],
 	/** Получить список методов оплаты
 
 Требуемые роли: chairman. Исключение: доступ разрешен, если `data.username` совпадает с `username` текущего пользователя. */
@@ -44551,6 +44592,10 @@ export type ModelTypes = {
 	public_key: string,
 	/** Токен авторизации для замены ключа, полученный по email */
 	token: string
+};
+	["ResetParticipantTwoFactorInput"]: {
+	/** Имя учётной записи пайщика */
+	username: string
 };
 	["ResourceDelegationDTO"]: {
 		/** Вес CPU */
@@ -57884,6 +57929,10 @@ export type GraphQLTypes = {
 	resendNotification: GraphQLTypes["Notification"],
 	/** Заменить приватный ключ аккаунта */
 	resetKey: boolean,
+	/** Снять приложение-аутентификатор у пайщика (только председатель совета)
+
+Требуемые роли: chairman.  */
+	resetParticipantTwoFactor: boolean,
 	/** Откатить собственную незавершённую регистрацию к редактированию данных: снимает заморозку профиля и e-mail, сбрасывает подписанное заявление и непринятую попытку вступительного платежа. Доступно только до отправки регистрации в блокчейн; если взнос уже принят — требуется возврат средств. */
 	resetRegistration: GraphQLTypes["Account"],
 	/** Перезапуск общего собрания пайщиков
@@ -58782,6 +58831,14 @@ export type GraphQLTypes = {
 	braname?: string | undefined | null,
 	/** Имя аккаунта пайщика */
 	username: string
+};
+	["ParticipantLoginSecurity"]: {
+	__typename: "ParticipantLoginSecurity",
+	/** Код из приложения запрашивается при входе */
+	totp_enabled: boolean,
+	/** Приложение-аутентификатор подключено */
+	totp_enrolled: boolean,
+	['...on ParticipantLoginSecurity']: Omit<GraphQLTypes["ParticipantLoginSecurity"], "...on ParticipantLoginSecurity">
 };
 	/** Подтверждённый уровень верификации пайщика */
 ["ParticipantVerification"]: {
@@ -59885,6 +59942,10 @@ export type GraphQLTypes = {
 	getNotifications: GraphQLTypes["NotificationPaginationResult"],
 	/** Активные наборы возможностей, назначенные пайщику */
 	getParticipantCapabilitySets: Array<GraphQLTypes["CapabilitySetAssignment"]>,
+	/** Подтверждение входа у пайщика: подключено ли приложение-аутентификатор (председателю)
+
+Требуемые роли: chairman.  */
+	getParticipantLoginSecurity: GraphQLTypes["ParticipantLoginSecurity"],
 	/** Получить список методов оплаты
 
 Требуемые роли: chairman. Исключение: доступ разрешен, если `data.username` совпадает с `username` текущего пользователя. */
@@ -60680,6 +60741,10 @@ export type GraphQLTypes = {
 	public_key: string,
 	/** Токен авторизации для замены ключа, полученный по email */
 	token: string
+};
+	["ResetParticipantTwoFactorInput"]: {
+		/** Имя учётной записи пайщика */
+	username: string
 };
 	["ResourceDelegationDTO"]: {
 	__typename: "ResourceDelegationDTO",
@@ -63735,6 +63800,7 @@ type ZEUS_VARIABLES = {
 	["RequestTypeInput"]: ValueTypes["RequestTypeInput"];
 	["RequisiteSource"]: ValueTypes["RequisiteSource"];
 	["ResetKeyInput"]: ValueTypes["ResetKeyInput"];
+	["ResetParticipantTwoFactorInput"]: ValueTypes["ResetParticipantTwoFactorInput"];
 	["RestartAnnualGeneralMeetInput"]: ValueTypes["RestartAnnualGeneralMeetInput"];
 	["ResultContributionActGenerateInput"]: ValueTypes["ResultContributionActGenerateInput"];
 	["ResultContributionDecisionGenerateInput"]: ValueTypes["ResultContributionDecisionGenerateInput"];

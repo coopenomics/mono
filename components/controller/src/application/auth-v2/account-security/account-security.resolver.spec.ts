@@ -30,6 +30,7 @@ function build() {
     beginEnrollment: jest.fn(async () => ({ secret: 'BASE32SECRET', otpauthUri: 'otpauth://totp/x' })),
     activate: jest.fn(async () => undefined),
     disable: jest.fn(async () => undefined),
+    resetByChairman: jest.fn(async () => true),
   };
   const recoveryStrategy = {
     getStrategy: jest.fn(async () => RecoveryStrategy.OfflineCode),
@@ -44,14 +45,19 @@ function build() {
     onTotpUnenrolled: jest.fn(async () => undefined),
     onTotpEnrolled: jest.fn(async () => undefined),
   };
+  // Председатель сбрасывает фактор по учётному имени — резолвер сначала находит пайщика.
+  const users = {
+    getUserByUsername: jest.fn(async (username: string) => ({ id: 'target-id', username })),
+  };
   const resolver = new AccountSecurityResolver(
     sessions as unknown as SessionsService,
     twoFactor as unknown as TwoFactorService,
     recoveryStrategy as unknown as RecoveryStrategyService,
     incidents as unknown as SecurityIncidentService,
     loginFactors as unknown as LoginFactorsService,
+    users as any,
   );
-  return { resolver, sessions, twoFactor, recoveryStrategy, incidents, loginFactors };
+  return { resolver, sessions, twoFactor, recoveryStrategy, incidents, loginFactors, users };
 }
 
 describe('AccountSecurityResolver', () => {
@@ -147,6 +153,43 @@ describe('AccountSecurityResolver', () => {
       ip: IP,
       source: 'settings',
       reportedSessionId: null,
+    });
+  });
+  it('resetParticipantTwoFactor снимает фактор у названного пайщика от имени председателя', async () => {
+    const { resolver, twoFactor, users } = build();
+    const chairman = { ...USER, username: 'ant', role: 'chairman' };
+    const ok = await resolver.resetParticipantTwoFactor({ username: 'payer1' }, chairman, IP);
+    expect(ok).toBe(true);
+    expect(users.getUserByUsername).toHaveBeenCalledWith('payer1');
+    // Код не спрашиваем: устройство пайщика утеряно, взять его негде.
+    expect(twoFactor.resetByChairman).toHaveBeenCalledWith('target-id', 'ant', IP);
+  });
+
+  it('resetParticipantTwoFactor гасит настройку «код при входе» вместе с приложением', async () => {
+    const { resolver, loginFactors } = build();
+    await resolver.resetParticipantTwoFactor({ username: 'payer1' }, { ...USER, username: 'ant' }, IP);
+    expect(loginFactors.onTotpUnenrolled).toHaveBeenCalledWith('target-id');
+  });
+
+  it('resetParticipantTwoFactor: сбрасывать нечего — настройку не трогаем', async () => {
+    const { resolver, twoFactor, loginFactors } = build();
+    twoFactor.resetByChairman.mockResolvedValueOnce(false);
+    const ok = await resolver.resetParticipantTwoFactor({ username: 'payer1' }, { ...USER, username: 'ant' }, IP);
+    expect(ok).toBe(false);
+    expect(loginFactors.onTotpUnenrolled).not.toHaveBeenCalled();
+  });
+
+  it('getParticipantLoginSecurity отдаёт состояние приложения у пайщика', async () => {
+    const { resolver, loginFactors } = build();
+    loginFactors.get.mockResolvedValueOnce({
+      totp_enrolled: true,
+      totp_enabled: false,
+      email_available: true,
+      email_enabled: false,
+    } as any);
+    await expect(resolver.getParticipantLoginSecurity({ username: 'payer1' })).resolves.toEqual({
+      totp_enrolled: true,
+      totp_enabled: false,
     });
   });
 });

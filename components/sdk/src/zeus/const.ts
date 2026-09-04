@@ -2360,6 +2360,9 @@ export const AllTypesProps: Record<string,any> = {
 		resetKey:{
 			data:"ResetKeyInput"
 		},
+		resetParticipantTwoFactor:{
+			data:"ResetParticipantTwoFactorInput"
+		},
 		restartAnnualGeneralMeet:{
 			data:"RestartAnnualGeneralMeetInput"
 		},
@@ -2907,6 +2910,9 @@ export const AllTypesProps: Record<string,any> = {
 		getParticipantCapabilitySets:{
 
 		},
+		getParticipantLoginSecurity:{
+			data:"ResetParticipantTwoFactorInput"
+		},
 		getPaymentMethods:{
 			data:"GetPaymentMethodsInput"
 		},
@@ -3317,6 +3323,9 @@ export const AllTypesProps: Record<string,any> = {
 	RequestTypeInput: "enum" as const,
 	RequisiteSource: "enum" as const,
 	ResetKeyInput:{
+
+	},
+	ResetParticipantTwoFactorInput:{
 
 	},
 	RestartAnnualGeneralMeetInput:{
@@ -7048,6 +7057,7 @@ export const ReturnTypes: Record<string,any> = {
 		requestForceRecoveryConsent:"Boolean",
 		resendNotification:"Notification",
 		resetKey:"Boolean",
+		resetParticipantTwoFactor:"Boolean",
 		resetRegistration:"Account",
 		restartAnnualGeneralMeet:"MeetAggregate",
 		returnExpenseItem:"Transaction",
@@ -7390,6 +7400,10 @@ export const ReturnTypes: Record<string,any> = {
 		representative_position:"String",
 		type:"AccountType",
 		username:"String"
+	},
+	ParticipantLoginSecurity:{
+		totp_enabled:"Boolean",
+		totp_enrolled:"Boolean"
 	},
 	ParticipantVerification:{
 		attested_by:"String",
@@ -7782,6 +7796,7 @@ export const ReturnTypes: Record<string,any> = {
 		getNotification:"NotificationDetail",
 		getNotifications:"NotificationPaginationResult",
 		getParticipantCapabilitySets:"CapabilitySetAssignment",
+		getParticipantLoginSecurity:"ParticipantLoginSecurity",
 		getPaymentMethods:"PaymentMethodPaginationResult",
 		getPayments:"PaginatedGatewayPaymentsPaginationResult",
 		getProductCard:"ProductCard",

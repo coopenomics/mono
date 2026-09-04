@@ -67,6 +67,37 @@ export class TwoFactorService implements ITwoFactorVerifier {
     await this.securityEvents.notify({ subjectId, kind: SecurityEventKind.TwoFactorDisabled, ip });
   }
 
+  /**
+   * Снять приложение-аутентификатор председателем — без кода.
+   *
+   * Пайщик теряет телефон, а вместе с ним и единственный источник кода: сам он
+   * отключить фактор уже не может (`disable` требует действующий код), и вход в
+   * кабинет для него закрыт. Владелец 04.09.2026: сброс делает председатель из
+   * реестра пайщиков — там же, где он подтверждает личность.
+   *
+   * Действие идёт в аудит как chairman-действие и уведомляет пайщика тем же
+   * событием, что и самостоятельное отключение: он обязан узнать, что защиту с
+   * его аккаунта сняли, даже если просил об этом не он.
+   *
+   * @returns было ли что сбрасывать (false — приложение и так не подключено).
+   */
+  async resetByChairman(subjectId: string, chairmanUsername: string, ip: string | null): Promise<boolean> {
+    const record = await this.repo.get(subjectId);
+    if (!record) return false;
+
+    await this.repo.remove(subjectId);
+    await this.audit.record({
+      event: 'coopid.2fa.disabled',
+      subjectId,
+      actor: chairmanUsername,
+      result: 'success',
+      context: { reason: 'chairman_reset' },
+      ip,
+    });
+    await this.securityEvents.notify({ subjectId, kind: SecurityEventKind.TwoFactorDisabled, ip });
+    return true;
+  }
+
   async isEnabled(subjectId: string): Promise<boolean> {
     const record = await this.repo.get(subjectId);
     return record?.enabled ?? false;

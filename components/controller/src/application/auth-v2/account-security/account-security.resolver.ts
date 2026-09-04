@@ -1,6 +1,6 @@
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
-import { UseGuards } from '@nestjs/common';
-import { GqlJwtAuthGuard, CurrentUser } from '@coopenomics/extension-kit';
+import { Inject, UseGuards } from '@nestjs/common';
+import { GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser } from '@coopenomics/extension-kit';
 import { ClientIp, RefreshTokenHeader } from '~/application/auth/decorators/request-meta.decorator';
 import { RecoveryStrategy } from '~/domain/auth-v2/recovery-strategy/recovery-strategy.types';
 import { SessionsService } from '../sessions/sessions.service';
@@ -8,10 +8,14 @@ import { TwoFactorService } from '../two-factor/two-factor.service';
 import { RecoveryStrategyService } from '../recovery/recovery-strategy.service';
 import { SecurityIncidentService } from '../security/security-incident.service';
 import { LoginFactorsService } from '../login-2fa/login-factors.service';
+import { USER_DOMAIN_SERVICE } from '~/domain/user/services/user-domain.service';
+import type { UserDomainService } from '~/domain/user/services/user-domain.service';
 import {
   AccountSessionDTO,
   LoginFactorsDTO,
+  ParticipantLoginSecurityDTO,
   ReportNotMeInputDTO,
+  ResetParticipantTwoFactorInputDTO,
   RevokeSessionInputDTO,
   RevokedSessionsResultDTO,
   SetLoginFactorsInputDTO,
@@ -46,6 +50,7 @@ export class AccountSecurityResolver {
     private readonly recoveryStrategy: RecoveryStrategyService,
     private readonly incidents: SecurityIncidentService,
     private readonly loginFactors: LoginFactorsService,
+    @Inject(USER_DOMAIN_SERVICE) private readonly users: UserDomainService,
   ) {}
 
   @Query(() => [AccountSessionDTO], {
@@ -181,6 +186,42 @@ export class AccountSecurityResolver {
     @ClientIp() ip: string | null,
   ): Promise<LoginFactorsDTO> {
     return this.loginFactors.set(user.id, data, ip);
+  }
+
+  @Query(() => ParticipantLoginSecurityDTO, {
+    name: 'getParticipantLoginSecurity',
+    description: 'Подтверждение входа у пайщика: подключено ли приложение-аутентификатор (председателю)',
+  })
+  @UseGuards(GqlJwtAuthGuard, RolesGuard)
+  @AuthRoles(['chairman'])
+  async getParticipantLoginSecurity(
+    @Args('data', { type: () => ResetParticipantTwoFactorInputDTO }) data: ResetParticipantTwoFactorInputDTO,
+  ): Promise<ParticipantLoginSecurityDTO> {
+    const target = await this.users.getUserByUsername(data.username);
+    const factors = await this.loginFactors.get(target.id);
+    return { totp_enrolled: factors.totp_enrolled, totp_enabled: factors.totp_enabled };
+  }
+
+  @Mutation(() => Boolean, {
+    name: 'resetParticipantTwoFactor',
+    description: 'Снять приложение-аутентификатор у пайщика (только председатель совета)',
+  })
+  @UseGuards(GqlJwtAuthGuard, RolesGuard)
+  @AuthRoles(['chairman'])
+  async resetParticipantTwoFactor(
+    @Args('data', { type: () => ResetParticipantTwoFactorInputDTO }) data: ResetParticipantTwoFactorInputDTO,
+    @CurrentUser() user: ICurrentUser,
+    @ClientIp() ip: string | null,
+  ): Promise<boolean> {
+    // Сброс идёт БЕЗ кода: пайщик потерял телефон, взять код неоткуда — ровно
+    // поэтому он и обращается к председателю. Проверка полномочий — на гейте
+    // роли, а не на владении устройством.
+    const target = await this.users.getUserByUsername(data.username);
+    const reset = await this.twoFactor.resetByChairman(target.id, user.username, ip);
+    // Настройка «спрашивать код при входе» без секрета мертва — гасим её вместе
+    // с приложением, как и при самостоятельном отключении.
+    if (reset) await this.loginFactors.onTotpUnenrolled(target.id);
+    return reset;
   }
 
   @Mutation(() => RevokedSessionsResultDTO, {

@@ -21,3 +21,6 @@ export * as SetLoginFactors from './setLoginFactors'
 
 /** Сменить стратегию восстановления */
 export * as SetRecoveryStrategy from './setRecoveryStrategy'
+
+/** Снять приложение-аутентификатор у пайщика (председатель) */
+export * as ResetParticipantTwoFactor from './resetParticipantTwoFactor'
