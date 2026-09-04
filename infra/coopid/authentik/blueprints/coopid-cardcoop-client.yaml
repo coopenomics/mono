@@ -1,7 +1,7 @@
-# Карта пайщика, Story 7.0 (FR-E1): confidential-клиент card.coop в CoopID кооператива.
+# Карта кооператора, Story 7.0 (FR-E1): confidential-клиент card.coop в CoopID кооператива.
 #
 # Зачем. card.coop подключает кооператив как federated-источник входа: пайщик,
-# нажав «Выпустить карту пайщика», уходит на CoopID своего кооператива, входит
+# нажав «Выпустить карту кооператора», уходит на CoopID своего кооператива, входит
 # там и возвращается на card.coop уже опознанным. Чтобы этот переход был
 # возможен, у card.coop должен быть собственный OIDC-клиент на стороне
 # кооператива — он и заводится здесь.
@@ -49,7 +49,7 @@ entries:
     attrs:
       name: CoopID OIDC scope - coop:membership
       scope_name: "coop:membership"
-      description: Членство в кооперативе, дата приёма и уровни верификации (карта пайщика)
+      description: Членство в кооперативе, дата приёма и уровни верификации (карта кооператора)
       expression: !Format
         - |
           try:
@@ -173,5 +173,5 @@ entries:
       name: CardCOOP
       slug: cardcoop
       provider: !KeyOf cardcoop-provider
-      meta_description: Карта пайщика — единая карта кооперативной сети при АНО
+      meta_description: Карта кооператора — единая карта кооперативной сети при АНО
       meta_publisher: АНО «Кооперативная Экономика»
