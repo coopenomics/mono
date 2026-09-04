@@ -3,12 +3,12 @@
   BaseButton(
     :variant='state.issued ? "secondary" : "primary"',
     size='sm',
-    :aria-label='state.issued ? "Открыть карту пайщика" : "Выпустить карту пайщика"',
+    :aria-label='state.issued ? "Открыть карту кооператора" : "Выпустить карту кооператора"',
     @click='state.onOpen'
   )
     template(#icon-left)
       q-icon(:name='state.issued ? "open_in_new" : "badge"', size='18px')
-    | {{ state.issued ? 'Открыть карту' : 'Выпустить карту пайщика' }}
+    | {{ state.issued ? 'Открыть карту' : 'Выпустить карту кооператора' }}
 </template>
 
 <script lang="ts" setup>

@@ -75,11 +75,11 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             children: [],
           },
           {
-            // Карта пайщика сети (story 7.4). Страница есть с эпика 7, но в сборщик стола
+            // Карта кооператора сети (story 7.4). Страница есть с эпика 7, но в сборщик стола
             // попала только 02.09.2026: манифесты src/desktops/* никто не читает, маршруты
             // стола пайщика собирает этот install — и карта в нём отсутствовала.
             meta: {
-              title: 'Карта пайщика',
+              title: 'Карта кооператора',
               icon: 'badge',
               roles: ['user', 'member', 'chairman'],
               requiresAuth: true,

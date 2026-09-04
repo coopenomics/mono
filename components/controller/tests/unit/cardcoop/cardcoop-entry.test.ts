@@ -82,7 +82,7 @@ const repos = () => {
   };
 };
 
-describe('Вход по карте пайщика', () => {
+describe('Вход по карте кооператора', () => {
   beforeEach(() => jest.restoreAllMocks());
 
   const build = (deps = repos()) => ({

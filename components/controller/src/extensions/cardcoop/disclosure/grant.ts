@@ -23,7 +23,7 @@ export const GRANT_TYP = 'cardcoop-grant+jws';
 /** Единственный признаваемый издатель согласия. */
 export const GRANT_ISSUER = 'card.coop';
 
-/** Единственный алгоритм подписи контура — secp256k1 (DECISION D5 проекта «Карта пайщика»). */
+/** Единственный алгоритм подписи контура — secp256k1 (DECISION D5 проекта «Карта кооператора»). */
 export const GRANT_ALG = 'ES256K';
 
 /**

@@ -309,7 +309,7 @@ const envVarsSchema = z.object({
   // Параметры GitHub
   GITHUB_TOKEN: z.string().optional().describe('GitHub токен для доступа к API'),
 
-  // Клиент card.coop в CoopID кооператива (карта пайщика, story 7.0/7.6). Те же значения
+  // Клиент card.coop в CoopID кооператива (карта кооператора, story 7.0/7.6). Те же значения
   // получает блюпринт coopid-cardcoop-client через окружение authentik; расширение доносит
   // их в реестр сети подписанным документом. Пустой секрет = подключение не отправляется.
   CARDCOOP_CLIENT_ID: z.string().optional().describe('client_id клиента card.coop в CoopID кооператива'),

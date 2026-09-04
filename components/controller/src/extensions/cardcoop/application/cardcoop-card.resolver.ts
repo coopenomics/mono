@@ -1,5 +1,5 @@
 /**
- * Карта пайщика в столе кооператива (story 7.4, FR-E4).
+ * Карта кооператора в столе кооператива (story 7.4, FR-E4).
  *
  * Отвечает на единственный вопрос, который стол задаёт о карте: есть ли она у этого
  * человека и что с его членством. Всё остальное — предмет card.coop, и спрашивать его
@@ -25,7 +25,7 @@ export class CardcoopCardResolver {
 
   @Query(() => CardcoopMyCardDTO, {
     name: 'cardcoopMyCard',
-    description: 'Карта пайщика в сети «Карта пайщика»: выпущена ли и что с членством',
+    description: 'Карта кооператора в сети «Карта кооператора»: выпущена ли и что с членством',
   })
   @UseGuards(GqlJwtAuthGuard, RolesGuard)
   @AuthRoles(['chairman', 'member', 'user'])

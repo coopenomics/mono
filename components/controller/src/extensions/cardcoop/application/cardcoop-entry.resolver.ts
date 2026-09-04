@@ -28,13 +28,13 @@ export class CardcoopEntryResolver {
   ) {}
 
   /**
-   * Доступен ли вход по карте пайщика в этом кооперативе.
+   * Доступен ли вход по карте кооператора в этом кооперативе.
    *
    * @returns `true`, когда кнопке входа есть куда вести.
    */
   @Query(() => Boolean, {
     name: 'cardcoopEntryAvailable',
-    description: 'Доступен ли вход по карте пайщика в этом кооперативе',
+    description: 'Доступен ли вход по карте кооператора в этом кооперативе',
   })
   async entryAvailable(): Promise<boolean> {
     return this.entry.available();
@@ -48,7 +48,7 @@ export class CardcoopEntryResolver {
    */
   @Query(() => CardcoopEntryDTO, {
     name: 'cardcoopEntry',
-    description: 'Сессия входа по карте пайщика: кто вошёл и на каком шаге быстрая регистрация',
+    description: 'Сессия входа по карте кооператора: кто вошёл и на каком шаге быстрая регистрация',
   })
   async entrySession(@Args('data') data: CardcoopEntryInputDTO): Promise<CardcoopEntryDTO> {
     return this.toDto(await this.entry.session(data.entry_id));

@@ -2,7 +2,7 @@ import { CardcoopCardService } from '~/extensions/cardcoop/application/cardcoop-
 import { CardcoopAttestationState } from '~/extensions/cardcoop/infrastructure/entities/cardcoop-attestation.typeorm-entity';
 
 /**
- * Карта пайщика глазами кооператива (story 7.4).
+ * Карта кооператора глазами кооператива (story 7.4).
  *
  * Стол показывает состояние по собственному журналу, а не по запросу в сеть: он обязан
  * работать, когда card.coop недоступен (NFR-3). Кооператив и так знает всё, что нужно
@@ -26,7 +26,7 @@ const build = (rows: unknown[], pending: unknown = null) => {
   return new CardcoopCardService({ find } as any, { findOne } as any);
 };
 
-describe('Карта пайщика в столе кооператива', () => {
+describe('Карта кооператора в столе кооператива', () => {
   it('карты нет — стол зовёт её выпустить, адрес собран из настроек и имени кооператива', async () => {
     const card = await build([]).forMember('ant', 'https://card.coop', 'voskhod');
 

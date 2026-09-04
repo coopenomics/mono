@@ -19,7 +19,7 @@ export const manifest = {
       name: 'home',
       children: [{
           meta: {
-            title: 'Карта пайщика',
+            title: 'Карта кооператора',
             icon: 'badge',
             roles: [],
           },

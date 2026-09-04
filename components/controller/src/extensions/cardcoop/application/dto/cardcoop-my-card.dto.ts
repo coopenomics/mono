@@ -3,7 +3,7 @@ import { CardcoopAttestationState } from '../../infrastructure/entities/cardcoop
 
 registerEnumType(CardcoopAttestationState, {
   name: 'CardcoopAttestationState',
-  description: 'Состояние свидетельства о членстве, выданного кооперативом в сеть «Карта пайщика»',
+  description: 'Состояние свидетельства о членстве, выданного кооперативом в сеть «Карта кооператора»',
 });
 
 /**

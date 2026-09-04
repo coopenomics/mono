@@ -1,7 +1,7 @@
 {
   "name": "cardcoop",
   "version": "1.0.0",
-  "description": "Интеграция кооператива с сетью «Карта пайщика» (card.coop)",
+  "description": "Интеграция кооператива с сетью «Карта кооператора» (card.coop)",
   "private": true,
   "main": "index.js",
   "scripts": {

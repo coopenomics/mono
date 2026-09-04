@@ -28,7 +28,7 @@ export class CardcoopEntryMembershipDTO {
   memberSince!: string | null;
 }
 
-/** Сессия входа по карте пайщика. */
+/** Сессия входа по карте кооператора. */
 @ObjectType('CardcoopEntry')
 export class CardcoopEntryDTO {
   @Field(() => String, { description: 'Идентификатор сессии входа' })
@@ -40,7 +40,7 @@ export class CardcoopEntryDTO {
   @Field(() => CardcoopEntryStatus, { description: 'Состояние быстрой регистрации' })
   status!: CardcoopEntryStatus;
 
-  @Field(() => String, { nullable: true, description: 'Номер карты пайщика' })
+  @Field(() => String, { nullable: true, description: 'Номер карты кооператора' })
   cardNumber!: string | null;
 
   @Field(() => String, {
@@ -55,7 +55,7 @@ export class CardcoopEntryDTO {
   memberships!: CardcoopEntryMembershipDTO[];
 
   @Field(() => String, {
-    description: 'Адрес сети «Карта пайщика»: там держатель подтверждает перенос анкеты',
+    description: 'Адрес сети «Карта кооператора»: там держатель подтверждает перенос анкеты',
   })
   networkUrl!: string;
 }
