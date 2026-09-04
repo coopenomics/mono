@@ -1,4 +1,5 @@
-import { configureTokenStorage, loginWithMagicLink, recover } from '@coopenomics/auth';
+import { configureTokenStorage, loginWithMagicLink, recover, recoveryContext } from '@coopenomics/auth';
+import type { RecoveryContext } from '@coopenomics/auth';
 import { env } from 'src/shared/config';
 import { useSessionStore } from 'src/entities/Session';
 import { useSystemStore } from 'src/entities/System/model';
@@ -9,8 +10,8 @@ export interface IConfirmRecoveryInput {
   email: string;
   /** Одноразовый токен из ссылки восстановления (`:coopname/auth/recover/:token`). */
   token: string;
-  /** TOTP-код из приложения-аутентификатора — второй фактор подтверждения. */
-  totp: string;
+  /** TOTP-код из приложения-аутентификатора. Пусто, если пайщик 2FA не подключал. */
+  totp?: string;
   /** Новый пароль: им шифруется новый vault и он же ставится в authentik. */
   newPassword: string;
 }
@@ -32,6 +33,14 @@ export function useRecoverAccess() {
   /** Шаг 1: запросить magic-link на email. Бэкенд всегда отвечает 202 (анти-enumeration). */
   async function requestRecovery(email: string): Promise<void> {
     await recover(email);
+  }
+
+  /**
+   * Шаг 1.5: чем собирать форму подтверждения. Почту сервер знает по токену — спрашивать
+   * её у пайщика незачем, а код просим только у того, кто 2FA подключал (владелец 03.09.2026).
+   */
+  async function loadRecoveryContext(token: string): Promise<RecoveryContext> {
+    return recoveryContext(token);
   }
 
   /**
@@ -60,5 +69,5 @@ export function useRecoverAccess() {
     await session.establishCoopIdSession({ persistPin: true });
   }
 
-  return { requestRecovery, confirmRecovery };
+  return { requestRecovery, loadRecoveryContext, confirmRecovery };
 }

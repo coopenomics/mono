@@ -387,14 +387,44 @@ export const useSessionStore = defineStore('session', (): ISessionStore => {
 
   const init = async () => {
     // Сессия CoopID уже установлена — восстанавливать нечего, и трогать её нельзя.
-    // Ниже идёт ветка легаси-контура: она первым делом присваивает `isAuth`
-    // результат проверки легаси-ключа, а у входа по паролю такого ключа нет — и
-    // живая сессия на мгновение становилась неавторизованной. Кабинет на это
-    // мгновение разбирался и собирался заново: весь набор запросов кабинета
-    // уходил на сервер дважды подряд, вход растягивался на лишние секунды.
+    // Ниже идёт восстановление с нуля, и легаси-ветка в нём присваивает `isAuth`
+    // результат проверки легаси-ключа, которого у входа по паролю нет — живая
+    // сессия на мгновение становилась неавторизованной. Кабинет на это мгновение
+    // разбирался и собирался заново: весь набор запросов кабинета уходил на
+    // сервер дважды подряд, вход растягивался на лишние секунды.
     if (isAuth.value && coopIdAccount.value) return;
 
     if (!globalStore.hasCreditials) {
+      // Сначала контур CoopID, легаси — только если контура на устройстве нет.
+      //
+      // Порядок обратный прежнему, и это принципиально. Легаси-записи в IndexedDB
+      // (ключ/токены под пустым паролем) переживают миграцию на пароль: их пишет
+      // регистрация, а стирал прежде только переход «ключ → пароль» из кабинета.
+      // Пока легаси проверялся первым, мигрировавший пайщик после F5 получал
+      // сессию на РОТИРОВАННОМ ключе и отозванных токенах — до живого vault'а
+      // дело не доходило вовсе. Кто на устройстве не входил по паролю, токенов
+      // CoopID здесь не найдёт, и легаси-ветка ниже отработает как раньше.
+      //
+      // Токены — из персистентного хранилища (паритет с легаси: переживание F5),
+      // ключ — из локального PIN-кэша (мост подписи, Эпик 7).
+      try {
+        configureTokenStorage(coopStorage());
+        const hasTokens = await restoreSession();
+        await loadPinMarker();
+        if (hasTokens && hasCustomPin.value && !isWalletUnlocked()) {
+          // Кастомный PIN: keystore заперт после reload — поднимаем блокирующий
+          // PIN-гейт. PinPrompt разблокирует ключ и до-инициализирует кабинет.
+          pinUnlockPending.value = true;
+          return;
+        }
+        if (await establishCoopIdSession()) return;
+      } catch (e: any) {
+        console.error(e);
+      }
+
+      // Легаси-контур: вход по ключу доступа. Живой сценарий здесь один —
+      // незаконченная регистрация: `createUser` кладёт ключ и токены в IndexedDB,
+      // и остаток регистрации (заявление, оплата, ожидание совета) держится на них.
       await globalStore.init();
       isAuth.value = globalStore.hasCreditials;
 
@@ -411,33 +441,12 @@ export const useSessionStore = defineStore('session', (): ISessionStore => {
               globalStore.wif as PrivateKey,
             ),
           });
-          return;
         }
       } catch (e: any) {
         console.error(e);
         FailAlert(e);
         close();
         globalStore.logout();
-        return;
-      }
-
-      // Легаси-ключа нет — пробуем контур CoopID: токены восстанавливаем из
-      // персистентного хранилища (паритет с легаси — переживание F5), ключ
-      // поднимаем из локального PIN-кэша (мост подписи, Эпик 7). Полностью
-      // аддитивно: если CoopID-артефактов нет, ветка — no-op, легаси не задет.
-      try {
-        configureTokenStorage(coopStorage());
-        const hasTokens = await restoreSession();
-        await loadPinMarker();
-        if (hasTokens && hasCustomPin.value && !isWalletUnlocked()) {
-          // Кастомный PIN: keystore заперт после reload — поднимаем блокирующий
-          // PIN-гейт. PinPrompt разблокирует ключ и до-инициализирует кабинет.
-          pinUnlockPending.value = true;
-        } else {
-          await establishCoopIdSession();
-        }
-      } catch (e: any) {
-        console.error(e);
       }
     }
   };

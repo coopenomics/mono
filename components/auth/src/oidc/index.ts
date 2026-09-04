@@ -96,8 +96,9 @@ export interface LoginWithMagicLinkParams {
   email: string
   /** Magic-link токен из ссылки восстановления (или `recovery_token` offline-канала, Story 3.4). */
   token: string
-  /** TOTP-код из приложения-аутентификатора — второй фактор подтверждения (Story 3.2/3.6). */
-  totp: string
+  /** TOTP-код из приложения-аутентификатора — второй фактор подтверждения (Story 3.2/3.6).
+   *  Не передаётся, если пайщик 2FA не подключал: тогда ссылка из почты — единственный фактор. */
+  totp?: string
   /** Новый пароль: им шифруется новый vault и он же ставится в authentik (Story 12.1). */
   newPassword: string
   /** Slug flow аутентификации authentik (по умолчанию `default-authentication-flow`). */
@@ -148,7 +149,7 @@ export async function loginWithMagicLink(params: LoginWithMagicLinkParams): Prom
     res = await fetch(`${apiUrl}/coop/recovery/confirm`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ token: params.token, code: params.totp, public_key: newPublicKey, vault: vaultBlob, password: params.newPassword }),
+      body: JSON.stringify({ token: params.token, ...(params.totp ? { code: params.totp } : {}), public_key: newPublicKey, vault: vaultBlob, password: params.newPassword }),
     })
   }
   catch (e) {
@@ -172,14 +173,64 @@ export async function loginWithMagicLink(params: LoginWithMagicLinkParams): Prom
 
   // 5. Повторный вход новым контуром. unlockWallet забирает только что сохранённый
   //    серверный блоб и расшифровывает новым паролём — заодно round-trip-проверка vault'а.
-  const user = await authenticateWithAuthentik({ issuer: params.issuer, email: params.email, password: params.newPassword, flowSlug: params.flowSlug })
-  await unlockWallet({ apiUrl, account, password: params.newPassword })
-  const handshake = await performTimestampHandshake(apiUrl)
-  return {
-    accessToken: handshake.accessToken,
-    idToken: user.id_token ?? '',
-    participantCertificate: handshake.participantCertificate ?? '',
+  //
+  //    Отсюда и до конца точка невозврата уже пройдена: пароль в authentik сменён,
+  //    ключ ротирован on-chain, одноразовая ссылка сожжена. Если вход сорвётся
+  //    (упал authentik, лаг узла, сеть), повторять восстановление НЕЧЕМ — поэтому
+  //    отдаём отдельный код, по которому экран уводит на обычный вход новым паролём,
+  //    а не оставляет пайщика на мёртвой форме с непонятной ошибкой.
+  try {
+    const user = await authenticateWithAuthentik({ issuer: params.issuer, email: params.email, password: params.newPassword, flowSlug: params.flowSlug })
+    await unlockWallet({ apiUrl, account, password: params.newPassword })
+    const handshake = await performTimestampHandshake(apiUrl)
+    return {
+      accessToken: handshake.accessToken,
+      idToken: user.id_token ?? '',
+      participantCertificate: handshake.participantCertificate ?? '',
+    }
   }
+  catch (e) {
+    const reason = e instanceof Error ? e.message : String(e)
+    throw new AuthV2Error(
+      AuthV2ErrorCode.RecoveryDoneLoginFailed,
+      `Пароль изменён, но войти автоматически не получилось (${reason}). Войдите новым паролём.`,
+    )
+  }
+}
+
+/** Что нужно экрану подтверждения восстановления: кому выдана ссылка и нужен ли код. */
+export interface RecoveryContext {
+  /** Почта, на которую пришла ссылка. Экран её показывает, но не спрашивает. */
+  email: string
+  /** Подключён ли у пайщика второй фактор — только тогда просим код. */
+  twoFactorRequired: boolean
+}
+
+/**
+ * Контекст ссылки восстановления, `GET /coop/recovery/context/:token` (Эпик 3).
+ *
+ * Токен не потребляется — открыть страницу ещё не значит подтвердить. Нужен, чтобы
+ * экран не спрашивал почту (сервер знает её по токену) и не просил код у того, кто
+ * 2FA не подключал: раньше он просил безусловно, и восстановление упиралось в тупик.
+ */
+export async function recoveryContext(token: string): Promise<RecoveryContext> {
+  const base = coopIdApiUrl()
+  let res: Response
+  try {
+    res = await fetch(`${base}/coop/recovery/context/${encodeURIComponent(token)}`, {
+      method: 'GET',
+      headers: { 'content-type': 'application/json' },
+    })
+  }
+  catch (e) {
+    throw new AuthV2Error(AuthV2ErrorCode.NetworkError, `Сеть недоступна при открытии ссылки восстановления: ${e instanceof Error ? e.message : String(e)}`)
+  }
+  if (res.status === 429)
+    throw new AuthV2Error(AuthV2ErrorCode.TooManyRecoveryAttempts, 'Слишком много попыток, попробуйте позже')
+  if (!res.ok)
+    throw await authErrorFromResponse(res, AuthV2ErrorCode.InvalidRecoveryToken, 'Ссылка восстановления недействительна или истекла')
+  const body = (await res.json().catch(() => null)) as { email?: string, two_factor_required?: boolean } | null
+  return { email: body?.email ?? '', twoFactorRequired: Boolean(body?.two_factor_required) }
 }
 
 /**

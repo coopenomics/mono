@@ -1,0 +1,219 @@
+feature: coopid.recovery
+title: Восстановление доступа magic-link'ом по email
+
+# Пайщик потерял пароль и просит ссылку восстановления на свою почту
+# (`POST /coop/recovery/request`). Наружу ручка отвечает 202 при любом исходе —
+# существование адреса не раскрывается (анти-enumeration). Внутрь исход обязан
+# быть виден: разбор обращения по ВОСХОДу 03.09.2026 показал 7 запросов за
+# 30 дней и 0 писем, причём в журнале не осталось ни следа — все ветки отказа
+# писались в logger.debug, а на проде уровень логгера выше.
+#
+# Тем же разбором снят гейт подтверждённой почты: верификацию email на проде не
+# проходил никто (за 45 дней ни одного вызова verifyEmail), и требование
+# `is_email_verified` запирало единственный способ вернуть доступ. Верификация
+# почт — отдельный поток; пока он не поедет, восстановление работает и по
+# неподтверждённому адресу, а факт пишется в audit-контекст (`email_verified`).
+
+sources:
+  backend:
+    - components/controller/src/application/auth-v2/recovery/recovery.service.ts
+    - components/controller/src/application/auth-v2/recovery/recovery.controller.ts
+    - components/controller/src/application/auth-v2/recovery/recovery-confirm.service.ts
+  ui:
+    - components/desktop/src/widgets/Registrator/Recover/**
+    - components/desktop/src/features/User/RecoverAccess/**
+
+cases:
+  - id: cid.rec.happy.01
+    level: backend
+    kind: happy
+    scenario: пайщик с подтверждённой почтой просит ссылку восстановления
+    expect: >
+      токен выпущен на 5 минут, письмо поставлено в очередь Центра уведомлений,
+      в audit — success со strategy=email_magic_link и email_verified=true
+    test: components/controller/src/application/auth-v2/recovery/recovery.service.spec.ts
+    status: written   # прогон не подтверждён локально — гоняет CI
+
+  - id: cid.rec.side.01
+    level: backend
+    kind: side
+    scenario: почта пайщика НЕ подтверждена
+    expect: >
+      письмо всё равно уходит (решение 03.09.2026), в audit success с
+      email_verified=false — по нему видно, скольким ушло на неподтверждённый адрес
+    test: components/controller/src/application/auth-v2/recovery/recovery.service.spec.ts
+    status: written   # прогон не подтверждён локально — гоняет CI
+
+  - id: cid.rec.break.01
+    level: backend
+    kind: break
+    scenario: адрес введён с опечаткой — такого пайщика нет
+    expect: >
+      письма нет, наружу тот же 202, в audit — failure с reason=user_not_found,
+      в логе — маска адреса (домен виден, опечатка опознаётся)
+    test: components/controller/src/application/auth-v2/recovery/recovery.service.spec.ts
+    status: written   # прогон не подтверждён локально — гоняет CI
+
+  - id: cid.rec.break.02
+    level: backend
+    kind: break
+    scenario: у пайщика не проставлен subscriber_id
+    expect: >
+      письма нет (адрес Центра уведомлений не настроен), в audit — failure с
+      reason=no_subscriber_id и subject_id пайщика
+    test: components/controller/src/application/auth-v2/recovery/recovery.service.spec.ts
+    status: written   # прогон не подтверждён локально — гоняет CI
+
+  - id: cid.rec.break.03
+    level: backend
+    kind: break
+    scenario: пайщик выбрал стратегию восстановления без email-канала (Story 3.5)
+    expect: письма нет, в audit — failure с reason=email_channel_disabled
+    test: components/controller/src/application/auth-v2/recovery/recovery.service.spec.ts
+    status: written   # прогон не подтверждён локально — гоняет CI
+
+  - id: cid.rec.break.04
+    level: backend
+    kind: break
+    scenario: coop-postgres недоступен, запись audit-события отказа падает
+    expect: >
+      ручка не падает — исход остаётся константным 202, иначе код ответа сам
+      выдал бы, что адрес существует; сбой журнала уходит в logger.error
+    test: components/controller/src/application/auth-v2/recovery/recovery.service.spec.ts
+    status: written   # прогон не подтверждён локально — гоняет CI
+
+  - id: cid.rec.side.02
+    level: backend
+    kind: side
+    scenario: адрес введён с пробелами и в другом регистре
+    expect: нормализуется до trim+lowercase перед поиском — lookup-ключ детерминирован
+    test: components/controller/src/application/auth-v2/recovery/recovery.service.spec.ts
+    status: written   # прогон не подтверждён локально — гоняет CI
+
+  # ── Подтверждение по ссылке (второй фактор) ───────────────────────────────
+  # Решение владельца 03.09.2026: код аутентификатора требуется только тому, кто его
+  # подключал. До этого confirm требовал TOTP безусловно, и восстановление было мертво
+  # у всех, кто 2FA не заводил, — а оба входных канала (ссылка и offline-код) сходятся
+  # именно сюда. Штатного самостоятельного пути при утраченном TOTP по-прежнему нет:
+  # force-recovery существует только серверной ручкой согласия, интерфейса под него нет.
+
+  - id: cid.rec.happy.02
+    level: backend
+    kind: happy
+    scenario: пайщик без подключённого 2FA подтверждает восстановление по ссылке
+    expect: >
+      код не спрашивается и не проверяется, ключ ротируется, в audit — success со
+      second_factor=none
+    test: components/controller/src/application/auth-v2/recovery/recovery-confirm.service.spec.ts
+    status: written   # прогон не подтверждён локально — гоняет CI
+
+  - id: cid.rec.break.05
+    level: backend
+    kind: break
+    scenario: у пайщика 2FA подключён, а код не передан либо неверен
+    expect: >
+      отказ invalid_2fa_code, ссылка НЕ сжигается — контур двух каналов для тех,
+      кто его завёл, остаётся прежним
+    test: components/controller/src/application/auth-v2/recovery/recovery-confirm.service.spec.ts
+    status: written   # прогон не подтверждён локально — гоняет CI
+
+  # ── Контекст ссылки (чем экран собирает форму) ────────────────────────────
+
+  - id: cid.rec.happy.03
+    level: backend
+    kind: happy
+    scenario: открыта ссылка восстановления — экран запрашивает контекст по токену
+    expect: >
+      возвращаются почта пайщика и признак необходимости кода; токен НЕ потребляется —
+      открыть страницу ещё не значит подтвердить
+    test: components/controller/src/application/auth-v2/recovery/recovery.service.spec.ts
+    status: written   # прогон не подтверждён локально — гоняет CI
+
+  - id: cid.rec.break.06
+    level: backend
+    kind: break
+    scenario: контекст запрошен по протухшему токену либо пайщика уже нет
+    expect: invalid_recovery_token в обоих случаях — расклады снаружи неразличимы
+    test: components/controller/src/application/auth-v2/recovery/recovery.service.spec.ts
+    status: written   # прогон не подтверждён локально — гоняет CI
+
+  - id: cid.rec.side.03
+    level: ui
+    kind: side
+    scenario: экран подтверждения открыт пайщиком без 2FA
+    expect: >
+      почта показана строкой и не редактируется, поля кода нет вовсе, форма сводится
+      к паре «новый пароль + повтор»
+    test: null
+    status: missing   # сценарий harness не написан
+
+  - id: cid.rec.side.04
+    level: ui
+    kind: side
+    scenario: шестизначный код открыт на узкой карточке (телефон, диалог)
+    expect: >
+      ряд ячеек сжимается по ширине контейнера и не выходит за край карточки;
+      правка в самом OtpInput, поэтому касается всех семи мест, где он стоит
+    test: null
+    status: missing   # сценарий harness не написан
+
+  - id: cid.rec.side.05
+    level: ui
+    kind: side
+    scenario: восстановление подтверждено успешно — куда попадает пайщик
+    expect: >
+      сначала общим шагом loadUserContext поднимается контекст пайщика — учётная
+      запись и кошелёк принятого советом (тот же шаг зовёт фоновый init-wallet), и
+      только по нему решается «кабинет или регистрация». Без аккаунта флаг
+      isRegistrationComplete всегда false и пайщика уносило на signup; без кошелька
+      в левом меню пропадала карточка пайщика с кнопкой выхода. Дальше loadDesktop
+      (регистрирует маршруты кооператива), выбор стола, страница по умолчанию
+    test: null
+    status: missing   # сценарий harness не написан
+
+  - id: cid.rec.break.07
+    level: ui
+    kind: break
+    scenario: ключ сменён, а автоматический вход следом сорвался (authentik недоступен, лаг узла)
+    expect: >
+      экран не оставляет пайщика на мёртвой форме — ссылка одноразовая и сожжена,
+      повторить нечем: код recovery_done_login_failed уводит на обычный вход с
+      сообщением «Пароль изменён. Войдите новым паролём»
+    test: null
+    status: missing   # сценарий harness не написан
+
+  - id: cid.rec.side.06
+    level: ui
+    kind: side
+    scenario: пайщик восстановил доступ, но советом ещё не принят (status joined/created/payed)
+    expect: >
+      пока стол перезагружается — штатный лоадер смены рабочего стола, а не висящая
+      форма смены пароля; маршрута по умолчанию у такого пайщика нет (стол не даёт ему
+      видимых страниц), поэтому уходим на корень, откуда guard ведёт на регистрацию —
+      как и при обычном входе
+    test: null
+    status: missing   # сценарий harness не написан
+
+  - id: cid.rec.side.07
+    level: ui
+    kind: side
+    scenario: нажата кнопка «Восстановить доступ» — что видно, пока идёт операция
+    expect: >
+      форма скрывается сразу по нажатию собственным состоянием компонента (не общим
+      isWorkspaceChanging: его снимает goToDefaultPage по таймеру 500 мс, и форма
+      возвращалась на экран раньше смены маршрута — вместе с ошибкой про сожжённый
+      токен). Возвращается только если пайщика оставляют на этой же форме с ошибкой
+    test: null
+    status: missing   # сценарий harness не написан
+
+  - id: cid.rec.break.08
+    level: ui
+    kind: break
+    scenario: восстановление прошло, но навигационный guard ждёт загрузки данных пайщика
+    expect: >
+      перехода ждём явно, а loadComplete выставляем сами — аккаунт уже загружен. Иначе
+      guard крутит цикл до 5 секунд в ожидании init-wallet, который в восстановлении не
+      запускается, маршрут не меняется, и форма успевает вернуться на экран
+    test: null
+    status: missing   # сценарий harness не написан
+

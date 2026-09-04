@@ -1,6 +1,6 @@
 <template lang="pug">
 .coopid-flow-page
-  AuthCard(:title='title', :max-width='480')
+  AuthCard(:title='title', :subtitle='subtitle', :max-width='480')
     template(v-if='runner.state.value === FlowState.Starting')
       p.flow-stage__lead Открываем вход…
 
@@ -38,7 +38,7 @@
           :sending='runner.sending.value',
           @answer='runner.answer',
           @flow='openFlow',
-          @restart='begin'
+          @restart='runner.restart'
         )
         FlowPrompt(v-else-if='stage === FlowStage.Prompt', :challenge='current', :sending='runner.sending.value', @answer='runner.answer')
         FlowEmail(v-else-if='stage === FlowStage.Email', :challenge='current', :sending='runner.sending.value', :slug='slug', @answer='runner.answer')
@@ -72,6 +72,7 @@
  */
 import { computed, onMounted, ref, shallowRef, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import { useSystemStore } from 'src/entities/System/model';
 import { AuthCard } from 'src/shared/ui/domain';
 import { BaseBanner, BaseButton } from 'src/shared/ui/base';
 import { FlowStage, hasIdpSession } from 'src/shared/api/authentik-flow';
@@ -90,6 +91,7 @@ import {
 
 const route = useRoute();
 const router = useRouter();
+const system = useSystemStore();
 
 const slug = computed(() => String(route.params.slug ?? ''));
 const next = computed(() => (typeof route.query.next === 'string' ? route.query.next : ''));
@@ -118,6 +120,20 @@ const title = computed(() => {
     return `${app || 'Сервис'} запрашивает доступ`;
   }
   return c?.flow_info?.title ?? 'Вход';
+});
+
+/**
+ * Подзаголовок карточки: чей это вход и почему он не похож на обычный вход стола.
+ *
+ * Сюда человека приводит карта пайщика: сеть карт просит кооператив опознать своего
+ * пайщика, и экран собирается из шагов CoopID, а не из формы стола. Без пояснения он
+ * читался как бедная копия обычного входа (формулировка владельца 03.09.2026). На согласии
+ * подзаголовка нет: там заголовок сам называет сервис, который просит доступ.
+ */
+const subtitle = computed(() => {
+  if (current.value?.component === FlowStage.Consent) return '';
+  const coop = system.cooperativeDisplayName;
+  return coop ? `Вход по карте пайщика · ${coop}` : 'Вход по карте пайщика';
 });
 
 const KNOWN = new Set<string>(Object.values(FlowStage));

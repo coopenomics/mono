@@ -38,6 +38,7 @@ import { PaymentTypeEnum } from '~/domain/gateway/enums/payment-type.enum';
 import { PaymentStatusEnum } from '~/domain/gateway/enums/payment-status.enum';
 import { CandidateStatus } from '~/domain/registration/enum';
 import { sha256 } from '~/utils/sha256';
+import { EmailVerificationService } from '~/application/auth/email-verification/email-verification.service';
 import { registrationProfileFingerprint } from '~/utils/registration-profile-fingerprint';
 import { normalizeUserEmail } from '~/utils/normalize-user-email';
 import type {
@@ -62,7 +63,8 @@ export class AccountInteractor {
     private readonly tokenApplicationService: TokenApplicationService,
     @Inject(USER_REPOSITORY) private readonly userRepository: UserRepository,
     @Inject(USER_DOMAIN_SERVICE) private readonly userDomainService: UserDomainService,
-    @Inject(PAYMENT_REPOSITORY) private readonly paymentRepository: PaymentRepository
+    @Inject(PAYMENT_REPOSITORY) private readonly paymentRepository: PaymentRepository,
+    private readonly emailVerification: EmailVerificationService
   ) {}
 
   private readonly logger = new Logger(AccountInteractor.name);
@@ -268,6 +270,22 @@ export class AccountInteractor {
   async registerAccount(data: RegisterAccountDomainInterface): Promise<RegisteredAccountDomainInterface> {
     //TODO refactor after migrate from mongo
     const user = await this.createUser({ ...data, role: 'user' });
+
+    // Почту подтверждают кодом на первом шаге регистрации — учётной записи тогда
+    // ещё нет, отметка лежит по адресу. Переносим её на созданного пайщика.
+    // Отсутствие отметки регистрацию НЕ блокирует: на момент выката люди уже шли
+    // по шагам со старой вкладкой, и обрывать их на последнем шаге нельзя. Такие
+    // аккаунты остаются с неподтверждённой почтой и подтверждают её из кабинета.
+    try {
+      if (await this.emailVerification.isVerified(user.email)) {
+        await this.userDomainService.updateUserById(user.id, { is_email_verified: true });
+      } else {
+        this.logger.warn(`Регистрация ${user.username}: почта не подтверждена кодом`);
+      }
+    } catch (error: any) {
+      this.logger.error(`Не удалось перенести подтверждение почты на ${user.username}: ${error.message}`);
+    }
+
     const tokens = await this.tokenApplicationService.generateAuthTokens(user.id);
 
     // Настраиваем identity получателя

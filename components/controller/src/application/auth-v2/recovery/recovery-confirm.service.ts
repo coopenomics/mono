@@ -13,8 +13,8 @@ import { passwordPolicyErrors } from '../password-policy';
 /** Вход confirm: токен magic-link + второй фактор (TOTP) + новый ключевой материал. */
 export interface RecoveryConfirmInput {
   token: string;
-  /** TOTP-код из приложения-аутентификатора (второй канал, Story 3.6). */
-  code: string;
+  /** TOTP-код из приложения-аутентификатора (второй канал, Story 3.6). Не нужен, если 2FA не подключён. */
+  code?: string;
   /** Новый публичный ключ пайщика — для COOPOS updateauth (финализация Story 3.3). */
   newPublicKey: string;
   /** Новый зашифрованный vault-блоб (собран на клиенте под новым паролем). */
@@ -65,22 +65,24 @@ export class RecoveryConfirmService {
     const payload = await this.tokenStore.peek(input.token);
     if (!payload) throw this.invalidToken();
 
-    // 2. Второй фактор: TOTP обязателен (решение владельца). Без подключённого
-    //    2FA — альтернативный канал offline-код (Story 3.4), не этот путь.
+    // 2. Второй фактор — только если пайщик его подключал (решение владельца 03.09.2026).
+    //    До этого TOTP требовался безусловно, и восстановление было мертво у всех, кто
+    //    2FA не заводил: экран просил код, которого у человека нет и быть не может, а
+    //    оба входных канала (magic-link 3.1 и offline-код 3.4) сходятся сюда же. У кого
+    //    2FA есть — контур прежний, два независимых канала; у кого нет — ссылка из почты
+    //    остаётся единственным фактором, как в обычном сбросе пароля.
     const enabled = await this.twoFactor.isEnabled(payload.subjectId);
-    if (!enabled) {
-      throw new AuthV2Error(
-        AuthV2ErrorCode.TwoFactorNotEnrolled,
-        'Для подтверждения восстановления нужен код из приложения-аутентификатора, но он не подключён.',
-      );
+    if (enabled) {
+      const codeOk = await this.twoFactor.verify(payload.subjectId, input.code ?? '');
+      if (!codeOk) {
+        throw new AuthV2Error(
+          AuthV2ErrorCode.InvalidTwoFactorCode,
+          'Неверный код из приложения-аутентификатора.',
+        );
+      }
     }
-    const codeOk = await this.twoFactor.verify(payload.subjectId, input.code);
-    if (!codeOk) {
-      throw new AuthV2Error(
-        AuthV2ErrorCode.InvalidTwoFactorCode,
-        'Неверный код из приложения-аутентификатора.',
-      );
-    }
+    // Чем подтверждено — пишем в audit ниже: 'totp' либо 'none' (только magic-link).
+    const secondFactor = enabled ? 'totp' : 'none';
 
     // 3. Claim токена (атомарный single-use) — только после успешной проверки.
     //    Если параллельный confirm уже потребил — null → токен невалиден.
@@ -105,7 +107,7 @@ export class RecoveryConfirmService {
         subjectId: claimed.subjectId,
         actor: 'self',
         result: 'failure',
-        context: { strategy: 'email_magic_link', second_factor: 'totp' },
+        context: { strategy: 'email_magic_link', second_factor: secondFactor },
         ip,
       });
       throw err;
@@ -116,7 +118,7 @@ export class RecoveryConfirmService {
       subjectId: claimed.subjectId,
       actor: 'self',
       result: 'success',
-      context: { strategy: 'email_magic_link', second_factor: 'totp' },
+      context: { strategy: 'email_magic_link', second_factor: secondFactor },
       ip,
     });
 

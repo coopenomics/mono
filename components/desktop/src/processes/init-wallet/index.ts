@@ -1,10 +1,8 @@
 // processes/init-wallet/index.ts
 import { useSessionStore } from 'src/entities/Session';
-import { useWalletStore } from 'src/entities/Wallet';
-import { useSystemStore } from 'src/entities/System/model';
-import { useAccountStore } from 'src/entities/Account/model';
 import { useDesktopStore } from 'src/entities/Desktop/model';
 import { extractGraphQLErrorMessages } from 'src/shared/api/errors';
+import { loadUserContext } from './loadUserContext';
 
 /** Ожидание GraphQL (в т.ч. цепочки уведомлений на бэкенде) не должно блокировать запуск приложения. */
 const WALLET_INIT_TIMEOUT_MS = 25_000;
@@ -19,22 +17,8 @@ function walletInitTimeoutPromise(): Promise<never> {
   });
 }
 
-// URL-based fallback на случай если info.coopname ещё не подгрузился
-// из getSystemInfo (race с login: init-wallet стартует до того как
-// useSystemStore.loadSystemInfo() заполнил info из бэка).
-function getCoopnameFromUrl(): string {
-  if (typeof window === 'undefined') return '';
-  const src = window.location.hash || window.location.pathname || '';
-  // hash вида "#/voskhod/..." или path "/voskhod/..."
-  const m = src.replace(/^#/, '').match(/^\/?([a-z0-9_-]+)\b/i);
-  return m ? m[1] : '';
-}
-
 export function useInitWalletProcess() {
   const session = useSessionStore();
-  const wallet = useWalletStore();
-  const { info } = useSystemStore();
-  const account = useAccountStore();
   const desktops = useDesktopStore();
 
   const run = async (forceReload = false) => {
@@ -58,29 +42,9 @@ export function useInitWalletProcess() {
 
     try {
       await Promise.race([
-        (async () => {
-          const userAccount = await account.getAccount(session.username);
-
-          if (userAccount) {
-            session.setCurrentUserAccount(userAccount);
-          }
-
-          // Кошелёк и его документы (оферта цифрового кошелька и т.п.) —
-          // только для пайщиков, принятых советом. На created/joined/payed/
-          // registered коопеномический аккаунт ещё не активен; loadUserWallet
-          // вернёт пустой кошелёк, а UI начнёт показывать подписи документов,
-          // которых юзер на этом этапе подписывать не должен.
-          if (session.isFullyActive) {
-            // info.coopname может быть undefined если getSystemInfo ещё не
-            // отдала ответ (race с login). URL-fallback гарантирует, что мы
-            // не вызовем loadUserWallet({coopname: undefined}) → GraphQL 400.
-            const coopname = info.coopname || getCoopnameFromUrl();
-            await wallet.loadUserWallet({
-              coopname,
-              username: session.username,
-            });
-          }
-        })(),
+        // Аккаунт пайщика и его кошелёк — общий шаг, им же пользуется восстановление
+        // доступа. Правки вносить в loadUserContext, а не копией здесь.
+        loadUserContext(),
         walletInitTimeoutPromise(),
       ]);
 
