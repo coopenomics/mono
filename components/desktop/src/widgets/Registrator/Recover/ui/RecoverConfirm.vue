@@ -154,11 +154,8 @@ async function enterDesktop(): Promise<void> {
     return;
   }
 
-  // Штатный лоадер смены рабочего стола (WindowLoader в layout) — тот же, что включает
-  // обычный вход перед finishLogin. Пока стол перезагружается, layout уже кабинетный,
-  // а в router-view всё ещё висит форма восстановления — без лоадера это выглядит как
-  // зависший экран смены пароля (владелец 04.09.2026). goToDefaultPage снимает его сам.
-  desktops.setWorkspaceChanging(true);
+  // Лоадер уже поднят в submit — он держится всю операцию, включая перезагрузку стола.
+  // Снимет его goToDefaultPage после перехода.
   try {
     await desktops.loadDesktop();
   } catch (e) {
@@ -183,6 +180,14 @@ const submit = async (): Promise<void> => {
   if (!isValid.value) return;
   loading.value = true;
   errorMessage.value = '';
+
+  // Полноэкранный лоадер включаем СРАЗУ по нажатию, а не после подтверждения. Дальше
+  // идут деривация ключа (Argon2), confirm, вход в authentik и handshake — это секунды,
+  // и всё это время на экране висела форма смены пароля, будто ничего не происходит
+  // (владелец 04.09.2026). В layout спиннер рисуется ВМЕСТО router-view, поэтому форма
+  // скрывается сразу же. Снимаем его только если возвращаем пайщика на эту же форму.
+  const desktops = useDesktopStore();
+  desktops.setWorkspaceChanging(true);
   try {
     await confirmRecovery({
       email: email.value,
@@ -197,11 +202,13 @@ const submit = async (): Promise<void> => {
     // повторять здесь нечего. Оставлять пайщика на этой форме — тупик, уводим на
     // обычный вход новым паролём (владелец 03.09.2026).
     if (e?.code === AuthV2ErrorCode.RecoveryDoneLoginFailed) {
-      useDesktopStore().setWorkspaceChanging(false);
+      desktops.setWorkspaceChanging(false);
       SuccessAlert('Пароль изменён. Войдите новым паролём.');
       await router.push({ name: 'signin', params: { coopname: props.coopname } });
       return;
     }
+    // Ссылка цела, ключ не тронут — возвращаем форму с сообщением, значит лоадер снимаем.
+    desktops.setWorkspaceChanging(false);
     errorMessage.value =
       e?.message || 'Не удалось восстановить доступ. Проверьте код и попробуйте снова.';
     FailAlert(e);
