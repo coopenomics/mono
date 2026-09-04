@@ -57,8 +57,8 @@ import { computed, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { AuthV2ErrorCode, PASSWORD_POLICY_HINT, passwordPolicyErrors } from '@coopenomics/auth';
 import { useRecoverAccess } from 'src/features/User/RecoverAccess';
-import { useAccountStore } from 'src/entities/Account/model';
 import { useDesktopStore } from 'src/entities/Desktop/model';
+import { loadUserContext } from 'src/processes/init-wallet/loadUserContext';
 import { useSessionStore } from 'src/entities/Session';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { AuthCard } from 'src/shared/ui/domain/AuthCard';
@@ -146,18 +146,16 @@ onMounted(async () => {
 async function enterDesktop(): Promise<void> {
   const session = useSessionStore();
   const desktops = useDesktopStore();
-  const account = useAccountStore();
 
-  // «Кабинет или регистрация» решаем по СВЕЖИМ данным пайщика, загрузив их сами.
-  // Сессия только что построена, currentUserAccount ещё пуст, и isRegistrationComplete
-  // в этот момент всегда false: пайщика уносило на регистрацию, а кабинет догонял через
-  // несколько секунд, когда init-wallet асинхронно доставлял аккаунт (владелец
-  // 04.09.2026). Один запрос здесь снимает и ложный маршрут, и ожидание.
+  // Тот же контекст пайщика, что поднимает фоновый init-wallet при обычном старте:
+  // учётная запись + кошелёк принятого советом. Зовём общий шаг, а не свою копию —
+  // копия уже разошлась однажды (аккаунт грузили, кошелёк нет) и в левом меню пропадала
+  // карточка пайщика с кнопкой выхода. Без него же isRegistrationComplete всегда false,
+  // и пайщика уносило на регистрацию, а кабинет догонял секундами позже.
   try {
-    const userAccount = await account.getAccount(session.username);
-    if (userAccount) session.setCurrentUserAccount(userAccount);
+    await loadUserContext();
   } catch (e) {
-    console.warn('[BOOTRACE] не удалось загрузить аккаунт после восстановления:', e);
+    console.warn('[BOOTRACE] не удалось поднять контекст пайщика после восстановления:', e);
   }
 
   if (!session.isRegistrationComplete) {
