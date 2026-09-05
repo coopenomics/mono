@@ -7,6 +7,7 @@ import { HttpJwtAuthGuard } from '@coopenomics/extension-kit';
 import { AuthResolver } from './resolvers/auth.resolver';
 import { AuthService } from './services/auth.service';
 import { AuthInteractor } from './interactors/auth.interactor';
+import { EmailVerificationModule } from './email-verification/email-verification.module';
 import { AuthDomainModule } from '~/domain/auth/auth.module';
 import { AccountDomainModule } from '~/domain/account/account-domain.module';
 import { UserDomainModule } from '~/domain/user/user-domain.module';
@@ -31,6 +32,8 @@ import config from '~/config/config';
     BlockchainModule,
     // 2FA-гейт легаси-входа по подписи: LoginTwoFactorService (auth-v2).
     AuthV2Module,
+    // Подтверждение почты кодом (запрос и проверка кода из письма).
+    EmailVerificationModule,
   ],
   providers: [JwtAuthStrategy, HttpJwtAuthGuard, AuthInteractor, AuthResolver, AuthService],
   exports: [PassportModule, JwtModule, HttpJwtAuthGuard],

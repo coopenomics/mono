@@ -4,10 +4,10 @@
     .full-width.q-pa-lg.flex.flex-center
       q-spinner(size='32px', color='primary')
   template(v-else-if='error')
-    q-banner(class='bg-negative text-white q-mb-md')
+    BaseBanner.q-mb-md(variant='neg')
       | Не удалось загрузить состояние онбординга: {{ error }}
       template(#action)
-        q-btn(flat, label='Повторить', @click='load')
+        BaseButton(variant='ghost', size='sm', @click='load') Повторить
   template(v-else-if='!allDone')
     slot(name='onboarding', :steps='steps', :on-propose='handlePropose', :all-done='allDone', :expires-at='expiresAt', :is-expired='isExpired')
       CooperativeOnboardingSteps(:steps='steps', @propose='handlePropose')
@@ -17,6 +17,7 @@
 
 <script lang="ts" setup>
 import { onMounted, computed } from 'vue'
+import { BaseBanner, BaseButton } from 'src/shared/ui/base'
 import { useExtensionCooperativeOnboarding } from '../model/composable'
 import CooperativeOnboardingSteps from './CooperativeOnboardingSteps.vue'
 import type { IExtensionOnboardingStepState } from '../model/types'

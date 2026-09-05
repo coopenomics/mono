@@ -35,6 +35,15 @@ export class AuthentikAdminAdapter implements IAuthentikAdminPort {
     return exact?.pk ?? null;
   }
 
+  async findUsernameByUuid(uuid: string): Promise<string | null> {
+    const url = `${this.baseUrl}/api/v3/core/users/?uuid=${encodeURIComponent(uuid)}`;
+    const res = await fetch(url, { headers: this.authHeaders() });
+    if (!res.ok) throw new Error(`authentik users-list вернул ${res.status}`);
+    const data = (await res.json()) as { results?: Array<{ uuid: string; username: string }> };
+    const exact = data.results?.find((u) => u.uuid === uuid);
+    return exact?.username ?? null;
+  }
+
   async ensureUser(params: { username: string; email: string; name?: string }): Promise<number> {
     const existing = await this.findUserPk(params.username);
     if (existing !== null) return existing;

@@ -199,7 +199,7 @@ services:
       # с redirect_uri mismatch, хотя переменная в .env стояла.
       COOPID_REDIRECT_URI: ${COOPID_REDIRECT_URI:-http://localhost:8108/auth/callback.html}
       # Клиент card.coop в CoopID кооператива (блюпринт coopid-cardcoop-client,
-      # Story 7.0 карты пайщика). Секрет генерирует scripts/coopid-gen-secrets.sh
+      # Story 7.0 карты кооператора). Секрет генерирует scripts/coopid-gen-secrets.sh
       # и кладёт в .env — без него блюпринт намеренно не создаёт клиента.
       # Имя кооператива нужно здесь как слаг источника на стороне card.coop:
       # адрес возврата собирается из адреса card.coop и этого имени.

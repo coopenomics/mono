@@ -1,7 +1,7 @@
 feature: coopid.cardcoop-client
-title: Клиент card.coop в CoopID кооператива (карта пайщика, Story 7.0)
+title: Клиент card.coop в CoopID кооператива (карта кооператора, Story 7.0)
 
-# Кооператив выпускает карту пайщика не сам: пайщик уходит на card.coop и входит
+# Кооператив выпускает карту кооператора не сам: пайщик уходит на card.coop и входит
 # там через CoopID своего кооператива. Для этого в authentik кооператива живёт
 # confidential-клиент card.coop, а состав claims отвечает на единственный вопрос
 # внешней стороны: этот человек — действующий пайщик, с какого момента, и какая у
@@ -124,3 +124,16 @@ cases:
       секретом означал бы открытую дверь в кооператив
     test: ~
     status: missing
+
+
+  - id: cc.client.side.subject-from-coopid
+    level: backend
+    kind: side
+    scenario: >
+      Сеть карт присылает уведомление о связи с sub пайщика из CoopID (uuid учётки authentik).
+    expect: >
+      справочник ядра сводит uuid учётки к пайщику через имя учётки в authentik, если по
+      своему id никого нет; свой id и прежний идентификатор Mongo разбираются как раньше,
+      неизвестный uuid даёт прежнюю ошибку, не-uuid в authentik не отправляется
+    test: components/controller/tests/unit/auth-v2/user-directory-subject.test.ts
+    status: passing

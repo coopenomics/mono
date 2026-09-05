@@ -119,3 +119,47 @@ entries:
       slug: coopid
       provider: !KeyOf coopid-provider
       meta_description: Удостоверение пайщика — единый вход кооператива
+
+  # ── Заголовки встроенных потоков ─────────────────────────────────────────
+  # Экраны потоков рисует стол (105-30), а заголовок берёт у потока; у встроенных
+  # потоков authentik он английский («Welcome to authentik!»). Имена — свои.
+  - identifiers:
+      slug: default-authentication-flow
+    model: authentik_flows.flow
+    attrs:
+      title: Вход в кооператив
+  - identifiers:
+      slug: default-source-authentication
+    model: authentik_flows.flow
+    attrs:
+      title: Вход через внешний сервис
+
+  # ── Почта и пароль на одном экране ───────────────────────────────────────
+  # Встроенный поток спрашивает почту, а пароль — следующим экраном, с «это не я» над
+  # полем. У стола вход всегда одной формой (почта и пароль вместе), и второй экран
+  # выглядел чужим (владелец 03.09.2026). Стадия опознания сама проверяет пароль, если ей
+  # назначить стадию пароля; отдельная привязка стадии пароля к потоку тогда снимается —
+  # иначе пароль спросили бы дважды.
+  - identifiers:
+      name: default-authentication-identification
+    model: authentik_stages_identification.identificationstage
+    attrs:
+      # Поля перечислены заново: сериализатор проверяет запись целиком и без них отвечает
+      # «When no user fields are selected, at least one source must be selected».
+      user_fields: [email, username]
+      password_stage: !Find [authentik_stages_password.passwordstage, [name, default-authentication-password]]
+  - identifiers:
+      target: !Find [authentik_flows.flow, [slug, default-authentication-flow]]
+      stage: !Find [authentik_stages_password.passwordstage, [name, default-authentication-password]]
+    model: authentik_flows.flowstagebinding
+    state: absent
+  - identifiers:
+      slug: default-source-enrollment
+    model: authentik_flows.flow
+    attrs:
+      title: Регистрация через внешний сервис
+  - identifiers:
+      slug: default-invalidation-flow
+    model: authentik_flows.flow
+    attrs:
+      title: Выход

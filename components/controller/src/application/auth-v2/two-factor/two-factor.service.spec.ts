@@ -102,4 +102,31 @@ describe('TwoFactorService (Story 3.6 — TOTP)', () => {
     repo.get.mockResolvedValueOnce(null);
     expect(await service.isEnabled('u1')).toBe(false);
   });
+  it('resetByChairman: снимает секрет без кода — устройство пайщика утеряно', async () => {
+    const { service, repo, securityEvents } = setup();
+    repo.get.mockResolvedValueOnce({ subjectId: 'u1', secretEnc: 'enc(SECRET32)', enabled: true });
+    await expect(service.resetByChairman('u1', 'ant', '10.0.0.1')).resolves.toBe(true);
+    expect(repo.remove).toHaveBeenCalledWith('u1');
+    expect(verifyMock).not.toHaveBeenCalled();
+    // Пайщик обязан узнать, что защиту сняли, даже если просил об этом не он.
+    expect(securityEvents.notify).toHaveBeenCalled();
+  });
+
+  it('resetByChairman: в аудите виден председатель, а не сам пайщик', async () => {
+    const { service, repo, audit } = setup();
+    repo.get.mockResolvedValueOnce({ subjectId: 'u1', secretEnc: 'enc(SECRET32)', enabled: true });
+    await service.resetByChairman('u1', 'ant', null);
+    expect(audit.record).toHaveBeenCalledWith(
+      expect.objectContaining({ actor: 'ant', context: { reason: 'chairman_reset' } }),
+    );
+  });
+
+  it('resetByChairman: сбрасывать нечего — ничего не пишем и не уведомляем', async () => {
+    const { service, repo, audit, securityEvents } = setup();
+    repo.get.mockResolvedValueOnce(null);
+    await expect(service.resetByChairman('u1', 'ant', null)).resolves.toBe(false);
+    expect(repo.remove).not.toHaveBeenCalled();
+    expect(audit.record).not.toHaveBeenCalled();
+    expect(securityEvents.notify).not.toHaveBeenCalled();
+  });
 });

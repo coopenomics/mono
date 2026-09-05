@@ -33,7 +33,7 @@ DetailsDrawer(
       @update:status='patch("status", $event)',
       @update:priority='patch("priority", $event)',
       @update:estimate='patch("estimate", $event)',
-      @update:labels='patch("labels", $event)',
+      @update:labels='onLabelsUpdate',
       @issue-updated='reload',
       @issue-deleted='overlay.close()',
       @issue-moved='reload'
@@ -88,7 +88,7 @@ import {
 } from 'app/extensions/capital/features/ContentRevisions';
 import { useIssueContentSave } from 'app/extensions/capital/features/Issue/UpdateIssue';
 import { api as IssueApi } from 'app/extensions/capital/entities/Issue/api';
-import { useIssueStore } from 'app/extensions/capital/entities/Issue/model';
+import { useIssueStore, withLabels } from 'app/extensions/capital/entities/Issue/model';
 import type { IIssue } from 'app/extensions/capital/entities/Issue/model';
 import { IssueSidebarWidget, IssueTitleEditor } from 'app/extensions/capital/widgets';
 import { capitalRouteName } from 'app/extensions/capital/shared/lib/capitalWorkspaceRoutes';
@@ -165,6 +165,16 @@ watch(
 
 // Сайдбар пишет на сервер сам и эмитит применённое значение — здесь только
 // локальный патч и синхронизация ленты списка под оверлеем
+/**
+ * Метки — не поле задачи, а часть `metadata` (см. withLabels): `patch("labels", …)`
+ * не проходил проверку типов и валил сборку.
+ */
+function onLabelsUpdate(value: string[]): void {
+  if (!issue.value) return;
+  issue.value.metadata = withLabels(issue.value.metadata, value);
+  void issueStore.updateIssueByHash(issue.value.project_hash, issue.value.issue_hash);
+}
+
 function patch(field: keyof IIssue, value: unknown): void {
   if (!issue.value) return;
   (issue.value as Record<string, unknown>)[field] = value;

@@ -11,19 +11,22 @@ import { RecoveryService } from './recovery.service';
 describe('RecoveryService (Story 3.1 — magic-link recovery)', () => {
   function setup() {
     const notifications = { notify: jest.fn().mockResolvedValue({ acknowledged: true, outboxIds: ['o1'] }) };
-    const users = { findUserByEmail: jest.fn() };
-    const tokenStore = { issue: jest.fn().mockResolvedValue(undefined), consume: jest.fn() };
+    const users = { findUserByEmail: jest.fn(), findUserById: jest.fn() };
+    const tokenStore = { issue: jest.fn().mockResolvedValue(undefined), consume: jest.fn(), peek: jest.fn() };
     // По умолчанию email-канал активен (Story 3.5 гейтинг); тест отключения — отдельно.
     const strategy = { isChannelActive: jest.fn().mockResolvedValue(true) };
     const audit = { record: jest.fn().mockResolvedValue(undefined) };
+    // Второй фактор: по умолчанию не подключён — самый частый расклад на проде.
+    const twoFactor = { isEnabled: jest.fn().mockResolvedValue(false), verify: jest.fn() };
     const service = new RecoveryService(
       notifications as never,
       users as never,
       tokenStore as never,
       strategy as never,
       audit as never,
+      twoFactor as never,
     );
-    return { service, notifications, users, tokenStore, strategy, audit };
+    return { service, notifications, users, tokenStore, strategy, audit, twoFactor };
   }
 
   const verifiedUser = {
@@ -66,42 +69,66 @@ describe('RecoveryService (Story 3.1 — magic-link recovery)', () => {
       }),
     );
     const ctx = audit.record.mock.calls[0][0].context;
+    expect(ctx).toEqual({ strategy: 'email_magic_link', email_verified: true });
     expect(JSON.stringify(ctx)).not.toContain(token);
   });
 
-  it('email не найден: ничего не делает (анти-enumeration), но не падает', async () => {
+  it('email не найден: письма нет, но отказ виден в audit (анти-enumeration наружу сохранён)', async () => {
     const { service, notifications, users, tokenStore, audit } = setup();
     users.findUserByEmail.mockResolvedValueOnce(null);
 
-    await service.requestByEmail('ghost@coop.test', null);
+    await service.requestByEmail('ghost@coop.test', '1.2.3.4');
 
     expect(tokenStore.issue).not.toHaveBeenCalled();
     expect(notifications.notify).not.toHaveBeenCalled();
-    expect(audit.record).not.toHaveBeenCalled();
+    expect(audit.record).toHaveBeenCalledWith(
+      expect.objectContaining({
+        event: 'coopid.recovery.requested',
+        subjectId: null,
+        result: 'failure',
+        context: { reason: 'user_not_found' },
+        ip: '1.2.3.4',
+      }),
+    );
   });
 
-  it('email не подтверждён: письмо не шлётся', async () => {
-    const { service, notifications, users, tokenStore } = setup();
+  it('email НЕ подтверждён: письмо всё равно шлётся, факт зафиксирован в audit', async () => {
+    // Решение 03.09.2026: верификация почты не гейтит восстановление — на проде
+    // её не проходил никто, и гейт запирал единственный способ вернуть доступ.
+    const { service, notifications, users, tokenStore, audit } = setup();
     users.findUserByEmail.mockResolvedValueOnce({ ...verifiedUser, is_email_verified: false });
 
     await service.requestByEmail('ant@coop.test', null);
 
-    expect(tokenStore.issue).not.toHaveBeenCalled();
-    expect(notifications.notify).not.toHaveBeenCalled();
+    expect(tokenStore.issue).toHaveBeenCalledTimes(1);
+    expect(notifications.notify).toHaveBeenCalledTimes(1);
+    expect(audit.record).toHaveBeenCalledWith(
+      expect.objectContaining({
+        result: 'success',
+        context: { strategy: 'email_magic_link', email_verified: false },
+      }),
+    );
   });
 
-  it('нет subscriber_id: письмо не шлётся (адрес Центра не настроен)', async () => {
-    const { service, notifications, tokenStore, users } = setup();
+  it('нет subscriber_id: письмо не шлётся, причина видна в audit', async () => {
+    const { service, notifications, tokenStore, users, audit } = setup();
     users.findUserByEmail.mockResolvedValueOnce({ ...verifiedUser, subscriber_id: '' });
 
     await service.requestByEmail('ant@coop.test', null);
 
     expect(tokenStore.issue).not.toHaveBeenCalled();
     expect(notifications.notify).not.toHaveBeenCalled();
+    expect(audit.record).toHaveBeenCalledWith(
+      expect.objectContaining({
+        subjectId: 'user-uuid-1',
+        result: 'failure',
+        context: { reason: 'no_subscriber_id' },
+      }),
+    );
   });
 
   it('стратегия отключила email-канал (Story 3.5): письмо не шлётся, исход константен', async () => {
-    const { service, notifications, users, tokenStore, strategy } = setup();
+    const { service, notifications, users, tokenStore, strategy, audit } = setup();
     users.findUserByEmail.mockResolvedValueOnce(verifiedUser);
     strategy.isChannelActive.mockResolvedValueOnce(false);
 
@@ -109,6 +136,66 @@ describe('RecoveryService (Story 3.1 — magic-link recovery)', () => {
 
     expect(tokenStore.issue).not.toHaveBeenCalled();
     expect(notifications.notify).not.toHaveBeenCalled();
+    expect(audit.record).toHaveBeenCalledWith(
+      expect.objectContaining({
+        result: 'failure',
+        context: { reason: 'email_channel_disabled' },
+      }),
+    );
+  });
+
+  it('падение audit на ветке отказа не роняет ручку (исход остаётся константным)', async () => {
+    const { service, users, audit } = setup();
+    users.findUserByEmail.mockResolvedValueOnce(null);
+    audit.record.mockRejectedValueOnce(new Error('coop-postgres недоступен'));
+
+    await expect(service.requestByEmail('ghost@coop.test', null)).resolves.toBeUndefined();
+  });
+
+  it('контекст ссылки: отдаёт почту и «код не нужен», если 2FA не подключён', async () => {
+    // Экран собирает форму по этим двум фактам: почту не спрашивает, код не показывает.
+    const { service, tokenStore, users, twoFactor } = setup();
+    tokenStore.peek.mockResolvedValueOnce({ subjectId: 'user-uuid-1', username: 'ant', coopname: 'voskhod' });
+    users.findUserById.mockResolvedValueOnce(verifiedUser);
+    twoFactor.isEnabled.mockResolvedValueOnce(false);
+
+    await expect(service.contextByToken('tok-1')).resolves.toEqual({
+      email: 'ant@coop.test',
+      two_factor_required: false,
+    });
+    // Открыть страницу — ещё не подтвердить: ссылка не сжигается.
+    expect(tokenStore.consume).not.toHaveBeenCalled();
+  });
+
+  it('контекст ссылки: у кого 2FA подключён — код по-прежнему нужен', async () => {
+    const { service, tokenStore, users, twoFactor } = setup();
+    tokenStore.peek.mockResolvedValueOnce({ subjectId: 'user-uuid-1', username: 'ant', coopname: 'voskhod' });
+    users.findUserById.mockResolvedValueOnce(verifiedUser);
+    twoFactor.isEnabled.mockResolvedValueOnce(true);
+
+    await expect(service.contextByToken('tok-1')).resolves.toEqual({
+      email: 'ant@coop.test',
+      two_factor_required: true,
+    });
+  });
+
+  it('контекст ссылки: протухший токен → invalid_recovery_token', async () => {
+    const { service, tokenStore } = setup();
+    tokenStore.peek.mockResolvedValueOnce(null);
+
+    await expect(service.contextByToken('tok-dead')).rejects.toMatchObject({
+      code: 'invalid_recovery_token',
+    });
+  });
+
+  it('контекст ссылки: токен жив, а пайщика уже нет → та же ошибка, что и на протухшей', async () => {
+    const { service, tokenStore, users } = setup();
+    tokenStore.peek.mockResolvedValueOnce({ subjectId: 'ghost', username: 'ghost', coopname: 'voskhod' });
+    users.findUserById.mockResolvedValueOnce(null);
+
+    await expect(service.contextByToken('tok-1')).rejects.toMatchObject({
+      code: 'invalid_recovery_token',
+    });
   });
 
   it('нормализует email перед поиском (lookup-ключ детерминирован)', async () => {

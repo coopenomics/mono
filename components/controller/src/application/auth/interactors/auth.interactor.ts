@@ -95,16 +95,6 @@ export class AuthInteractor {
     await this.notificationSenderService.sendNotificationToUser(user.username, Workflows.ResetKey.id, { resetUrl });
   }
 
-  async sendVerificationEmail(username: string): Promise<void> {
-    const user = await this.userDomainService.getUserByUsername(username);
-    const verifyEmailToken = await this.tokenApplicationService.generateVerifyEmailToken(user.id);
-    const verificationUrl = `${config.frontend_url}/${config.coopname}/auth/verify-email?token=${verifyEmailToken}`;
-
-    await this.notificationSenderService.sendNotificationToUser(user.username, Workflows.EmailVerification.id, {
-      verificationUrl,
-    });
-  }
-
   async resetKey(data: ResetKeyInputDomainInterface): Promise<void> {
     try {
       const resetKeyTokenDoc = await this.tokenApplicationService.verifyToken({

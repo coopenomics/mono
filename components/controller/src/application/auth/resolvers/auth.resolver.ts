@@ -7,10 +7,20 @@ import { LogoutInputDTO } from '../dto/logout-input.dto';
 import { StartResetKeyInputDTO } from '../dto/start-reset-key-input.dto';
 import { ResetKeyInputDTO } from '../dto/reset-key-input.dto';
 import { VerifyEmailInputDTO } from '../dto/verify-email-input.dto';
+import {
+  ConfirmEmailVerificationInputDTO,
+  EmailVerificationRequestDTO,
+  RequestEmailVerificationInputDTO,
+} from '../dto/email-verification.dto';
+import { ClientIp } from '../decorators/request-meta.decorator';
+import { EmailVerificationService } from '../email-verification/email-verification.service';
 
 @Resolver()
 export class AuthResolver {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly emailVerification: EmailVerificationService
+  ) {}
 
   @Mutation(() => RegisteredAccountDTO, {
     name: 'login',
@@ -68,6 +78,32 @@ export class AuthResolver {
   ): Promise<boolean> {
     await this.authService.resetKey(data);
     return true;
+  }
+
+  @Mutation(() => EmailVerificationRequestDTO, {
+    name: 'requestEmailVerification',
+    description: 'Выслать код подтверждения на электронную почту',
+  })
+  async requestEmailVerification(
+    @Args('data', { type: () => RequestEmailVerificationInputDTO })
+    data: RequestEmailVerificationInputDTO,
+    @ClientIp() ip: string | null
+  ): Promise<EmailVerificationRequestDTO> {
+    // Без авторизации: код спрашивается на первом шаге регистрации, когда
+    // учётной записи ещё нет. Ответ одинаков для знакомых и незнакомых адресов —
+    // иначе мутация стала бы проверялкой «кто состоит в кооперативе».
+    return this.emailVerification.request(data.email, ip);
+  }
+
+  @Mutation(() => Boolean, {
+    name: 'confirmEmailVerification',
+    description: 'Подтвердить электронную почту кодом из письма',
+  })
+  async confirmEmailVerification(
+    @Args('data', { type: () => ConfirmEmailVerificationInputDTO })
+    data: ConfirmEmailVerificationInputDTO
+  ): Promise<boolean> {
+    return this.emailVerification.confirm(data.email, data.code);
   }
 
   @Mutation(() => Boolean, {

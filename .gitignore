@@ -9,6 +9,11 @@ scripts/release-info.md
 components/docs/docs/sdk
 dist/
 .env
+# Ручные бэкапы .env: 03.09.2026 такой файл уехал в коммит вместе с ключами
+# и GitHub push protection заблокировал зеркалирование целиком — вместе с ним
+# встал деплой прода.
+.env.bak*
+.env.*.bak
 .DS_Store
 _blago/
 blago/
