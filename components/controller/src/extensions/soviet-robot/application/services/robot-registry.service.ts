@@ -22,9 +22,9 @@ export interface RobotVoterView {
 }
 
 export interface RobotQuorumView {
-  /** Делегировавшие голосующие члены совета, у которых робот держит ключ. */
+  /** Делегировавшие голосующие члены совета, у которых робот держит ключ (председатель не в счёт: он голосует сам). */
   delegated_count: number;
-  /** Сколько голосов «за» нужно по правилу контракта: больше половины состава. */
+  /** Сколько делегирований нужно роботу, чтобы решение проходило: порог контракта минус голос председателя. */
   required_count: number;
   total_members: number;
   reached: boolean;
@@ -54,6 +54,15 @@ export interface RobotDecisionTypeView {
 /** Правило кворума контракта: голосов «за» × 100 > состав × 50. */
 export function requiredVotes(totalMembers: number): number {
   return Math.floor(totalMembers / 2) + 1;
+}
+
+/**
+ * Сколько членов совета должны делегировать голос роботу, чтобы решение
+ * проходило автоматически. Робот повторяет за председателем, поэтому голос
+ * председателя в пороге уже учтён и роботу остаётся добрать остальные.
+ */
+export function requiredDelegations(totalMembers: number): number {
+  return Math.max(0, requiredVotes(totalMembers) - 1);
 }
 
 /**
@@ -87,8 +96,9 @@ export class RobotRegistryService {
     const mine = viewer ? alive.find((a) => a.member === viewer) : undefined;
 
     return Object.values(Cooperative.Document.decisionTypesRegistry).map((info) => {
+      // Председатель не повторяет сам за собой: его голос — исходный сигнал, а не голос робота.
       const voters: RobotVoterView[] = alive
-        .filter((a) => a.vote_types.includes(info.type) && isVoting(a.member))
+        .filter((a) => a.vote_types.includes(info.type) && isVoting(a.member) && a.member !== chairman)
         .map((a) => ({
           member: a.member,
           permission_name: a.permission_name,
@@ -109,9 +119,10 @@ export class RobotRegistryService {
         voters,
         vote_quorum: {
           delegated_count: delegated,
-          required_count: requiredVotes(totalMembers),
+          required_count: requiredDelegations(totalMembers),
           total_members: totalMembers,
-          reached: totalMembers > 0 && delegated * 100 > totalMembers * 50,
+          // Голос председателя даёт первый голос «за», робот добирает остальные.
+          reached: totalMembers > 0 && (delegated + 1) * 100 > totalMembers * 50,
         },
         chairman: {
           username: chairman,

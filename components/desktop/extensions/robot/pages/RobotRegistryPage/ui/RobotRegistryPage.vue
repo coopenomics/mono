@@ -3,7 +3,9 @@
   .banner.banner--info.q-mb-md(v-if='!dismissed')
     q-icon.banner__icon(name='info', size='20px')
     .banner__body
-      | Робот принимает типовые решения совета за секунды по правилам, которые совет задал заранее.
+      | Робот повторяет голос председателя: как только председатель голосует за решение,
+      | робот тем же голосом отвечает за всех, кто ему это доверил. Сам он решений не принимает
+      | и кворум без председателя не собирает.
       | Отметьте решения, по которым доверяете роботу свой голос; председатель отдельно отмечает,
       | какие протоколы робот подписывает за него. Каждый голос и протокол остаются вашей подписью:
       | их ставит ключ отдельного разрешения вашего аккаунта, выпущенного только для робота.
@@ -37,7 +39,11 @@
       .t-sm.t-muted {{ row.description }}
       .t-sm.text-warning(v-if='!row.serviceable') Протокол для этого решения ещё не описан — робот его не обслуживает
     template(#cell-my_vote='{ row }')
+      template(v-if='isChairman')
+        span.t-muted —
+        q-tooltip(anchor='top middle', self='bottom middle') Робот повторяет за вами, поэтому по решениям голосуете вы сами
       q-toggle(
+        v-else,
         :model-value='draft.vote[row.type] === true',
         :disable='!row.serviceable || busy',
         dense,
@@ -169,7 +175,8 @@ function voterLabel(voter: Row['voters'][number]): string {
 }
 
 function draftLists() {
-  const vote_types = rows.value.filter((row) => draft.vote[row.type]).map((row) => row.type);
+  // Председателю голос роботу не делегируется: робот повторяет за ним, ждать было бы некого.
+  const vote_types = isChairman.value ? [] : rows.value.filter((row) => draft.vote[row.type]).map((row) => row.type);
   const authorize_types = rows.value.filter((row) => draft.authorize[row.type]).map((row) => row.type);
   return { vote_types, authorize_types };
 }

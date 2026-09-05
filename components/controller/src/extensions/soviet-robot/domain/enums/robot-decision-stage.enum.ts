@@ -6,6 +6,8 @@
 export enum RobotDecisionStage {
   /** Повестка получена, голоса ещё не поданы. */
   NEW = 'new',
+  /** Председатель ещё не проголосовал «за» — робот повторяет за ним, а не решает сам. */
+  AWAITING_CHAIRMAN_VOTE = 'awaiting_chairman_vote',
   /** Голоса делегировавших членов совета поданы, кворум ещё проверяется. */
   VOTED = 'voted',
   /** Голосов робота не хватает — ждём ручных голосов. */
@@ -25,6 +27,7 @@ export enum RobotDecisionStage {
 /** Этапы, по которым сторож дожимает решение. */
 export const ROBOT_ACTIVE_STAGES: RobotDecisionStage[] = [
   RobotDecisionStage.NEW,
+  RobotDecisionStage.AWAITING_CHAIRMAN_VOTE,
   RobotDecisionStage.VOTED,
   RobotDecisionStage.AWAITING_QUORUM,
   RobotDecisionStage.AWAITING_CHAIRMAN,

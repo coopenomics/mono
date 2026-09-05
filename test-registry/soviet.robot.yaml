@@ -176,6 +176,22 @@ cases:
     test: components/controller/tests/unit/soviet-robot/robot-decision.service.test.ts
     status: passing
 
+  - id: sov.rob.side.12
+    level: backend
+    kind: side
+    scenario: Председатель ещё не проголосовал по решению делегированного типа
+    expect: робот не голосует и ждёт голоса председателя — кворум помимо него не собирается
+    test: components/controller/tests/unit/soviet-robot/robot-decision.service.test.ts
+    status: passing
+
+  - id: sov.rob.side.13
+    level: backend
+    kind: side
+    scenario: Расчёт кворума робота с учётом голоса председателя
+    expect: роботу нужно на одно делегирование меньше порога, председатель в число повторяющих не входит
+    test: components/controller/tests/unit/soviet-robot/robot-registry.service.test.ts
+    status: passing
+
   - id: sov.rob.happy.20
     level: ui
     kind: happy
