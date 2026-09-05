@@ -1,4 +1,4 @@
-import { UseGuards } from '@nestjs/common';
+import { Inject, UseGuards } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import {
   AuthRoles,
@@ -10,7 +10,7 @@ import {
   platformSettings,
   type PaginationResult,
 } from '@coopenomics/extension-kit';
-import type { IMonoAccount } from '@coopenomics/innercoop';
+import { ACCOUNT_PORT, type IAccountPort, type IMonoAccount } from '@coopenomics/innercoop';
 import { RobotCouncilDTO, RobotDecisionTypeDTO } from '../dto/robot-registry.dto';
 import { RobotDecisionDTO } from '../dto/robot-journal.dto';
 import { RobotDelegateKeyInputDTO, RobotKeyStatusDTO, RobotRetryDecisionInputDTO } from '../dto/robot-key.dto';
@@ -19,7 +19,6 @@ import { RobotKeyService } from '../services/robot-key.service';
 import { RobotWatchdogService } from '../services/robot-watchdog.service';
 import { RobotChainService } from '../services/robot-chain.service';
 import { ROBOT_DECISION_REPOSITORY, type RobotDecisionRepository } from '../../domain/repositories/robot-decision.repository';
-import { Inject } from '@nestjs/common';
 
 const paginatedRobotDecisions = createPaginationResult(RobotDecisionDTO, 'PaginatedRobotDecisions');
 
@@ -36,6 +35,7 @@ export class SovietRobotResolver {
     private readonly keys: RobotKeyService,
     private readonly watchdog: RobotWatchdogService,
     private readonly chain: RobotChainService,
+    @Inject(ACCOUNT_PORT) private readonly accounts: IAccountPort,
     @Inject(ROBOT_DECISION_REPOSITORY) private readonly journal: RobotDecisionRepository
   ) {}
 
@@ -58,18 +58,31 @@ export class SovietRobotResolver {
   async getCouncil(): Promise<RobotCouncilDTO> {
     const board = await this.chain.getSovietBoard(this.coopname);
     if (!board) throw new Error('Совет кооператива не найден');
-    const members = board.members.map((m) => ({
-      username: String(m.username),
-      is_voting: !!m.is_voting,
-      position: String(m.position),
-      position_title: String(m.position_title ?? ''),
-    }));
+    // Имя для показа берём у ядра: служебное учётное имя в интерфейсе не показываем.
+    const members = await Promise.all(
+      board.members.map(async (m) => ({
+        username: String(m.username),
+        full_name: await this.displayName(String(m.username)),
+        is_voting: !!m.is_voting,
+        position: String(m.position),
+        position_title: String(m.position_title ?? ''),
+      }))
+    );
     return {
       board_id: Number(board.id),
       chairman: members.find((m) => m.position === 'chairman')?.username ?? null,
       required_votes: requiredVotes(members.length),
       members,
     };
+  }
+
+  /** ФИО пайщика; если учётной записи нет, показываем то, что знает цепь. */
+  private async displayName(username: string): Promise<string> {
+    try {
+      return (await this.accounts.getDisplayName(username)) || username;
+    } catch {
+      return username;
+    }
   }
 
   @Query(() => RobotKeyStatusDTO, {

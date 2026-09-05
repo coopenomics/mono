@@ -14853,6 +14853,8 @@ verificationReviews?: [{	data?: ValueTypes["VerificationReviewsInput"] | undefin
 }>;
 	/** Член совета кооператива */
 ["RobotCouncilMember"]: AliasType<{
+	/** ФИО пайщика для показа */
+	full_name?:boolean | `@${string}`,
 	/** Имеет право голоса */
 	is_voting?:boolean | `@${string}`,
 	/** Должность в совете */
@@ -14977,7 +14979,7 @@ verificationReviews?: [{	data?: ValueTypes["VerificationReviewsInput"] | undefin
 	delegated_count?:boolean | `@${string}`,
 	/** Голоса, которые придут вслед за ведомыми, по каждому ведомому */
 	follow_groups?:ValueTypes["RobotFollowGroup"],
-	/** Кворум набирается, если все ведомые проголосуют «за» */
+	/** Кворум набирается, если ведомые проголосуют «за»: их голоса и голоса повторяющих за ними */
 	reachable?:boolean | `@${string}`,
 	/** Кворум набирается голосами «сразу», без чьего-либо участия */
 	reached?:boolean | `@${string}`,
@@ -29778,6 +29780,8 @@ verificationReviews?: [{	data?: ResolverInputTypes["VerificationReviewsInput"] |
 }>;
 	/** Член совета кооператива */
 ["RobotCouncilMember"]: AliasType<{
+	/** ФИО пайщика для показа */
+	full_name?:boolean | `@${string}`,
 	/** Имеет право голоса */
 	is_voting?:boolean | `@${string}`,
 	/** Должность в совете */
@@ -29897,7 +29901,7 @@ verificationReviews?: [{	data?: ResolverInputTypes["VerificationReviewsInput"] |
 	delegated_count?:boolean | `@${string}`,
 	/** Голоса, которые придут вслед за ведомыми, по каждому ведомому */
 	follow_groups?:ResolverInputTypes["RobotFollowGroup"],
-	/** Кворум набирается, если все ведомые проголосуют «за» */
+	/** Кворум набирается, если ведомые проголосуют «за»: их голоса и голоса повторяющих за ними */
 	reachable?:boolean | `@${string}`,
 	/** Кворум набирается голосами «сразу», без чьего-либо участия */
 	reached?:boolean | `@${string}`,
@@ -45330,7 +45334,9 @@ export type ModelTypes = {
 };
 	/** Член совета кооператива */
 ["RobotCouncilMember"]: {
-		/** Имеет право голоса */
+		/** ФИО пайщика для показа */
+	full_name: string,
+	/** Имеет право голоса */
 	is_voting: boolean,
 	/** Должность в совете */
 	position: string,
@@ -45443,7 +45449,7 @@ export type ModelTypes = {
 	delegated_count: number,
 	/** Голоса, которые придут вслед за ведомыми, по каждому ведомому */
 	follow_groups: Array<ModelTypes["RobotFollowGroup"]>,
-	/** Кворум набирается, если все ведомые проголосуют «за» */
+	/** Кворум набирается, если ведомые проголосуют «за»: их голоса и голоса повторяющих за ними */
 	reachable: boolean,
 	/** Кворум набирается голосами «сразу», без чьего-либо участия */
 	reached: boolean,
@@ -61715,6 +61721,8 @@ export type GraphQLTypes = {
 	/** Член совета кооператива */
 ["RobotCouncilMember"]: {
 	__typename: "RobotCouncilMember",
+	/** ФИО пайщика для показа */
+	full_name: string,
 	/** Имеет право голоса */
 	is_voting: boolean,
 	/** Должность в совете */
@@ -61839,7 +61847,7 @@ export type GraphQLTypes = {
 	delegated_count: number,
 	/** Голоса, которые придут вслед за ведомыми, по каждому ведомому */
 	follow_groups: Array<GraphQLTypes["RobotFollowGroup"]>,
-	/** Кворум набирается, если все ведомые проголосуют «за» */
+	/** Кворум набирается, если ведомые проголосуют «за»: их голоса и голоса повторяющих за ними */
 	reachable: boolean,
 	/** Кворум набирается голосами «сразу», без чьего-либо участия */
 	reached: boolean,

@@ -3,20 +3,19 @@
   .banner.banner--info.q-mb-md(v-if='!dismissed')
     q-icon.banner__icon(name='info', size='20px')
     .banner__body
-      | Состояние робота для председателя: у кого из членов совета робот держит ключ и совпадает ли он
-      | с разрешением в цепи, какие решения застряли и почему. Застрявшее решение можно повторить.
+      | Состояние робота для председателя: за кого из членов совета робот может голосовать,
+      | какие решения застряли и почему. Застрявшее решение можно повторить.
     button.icon-btn(type='button', aria-label='Скрыть', @click='dismiss')
       q-icon(name='close')
 
-  BaseCard.q-mb-md(title='Ключи членов совета', subtitle='Разрешения робота и ключи в хранилище')
+  BaseCard.q-mb-md(title='За кого голосует робот', subtitle='Члены совета, доверившие роботу подпись')
     BaseTable(:columns='keyColumns', :rows='keys', row-key='member', :loading='loadingKeys && !keys.length')
       template(#cell-member='{ row }')
-        .doc-primary {{ row.member }}
-        .t-sm.t-muted {{ row.permission_name }}
+        .doc-primary {{ robotStore.memberName(row.member) }}
       template(#cell-state='{ row }')
         BaseBadge(:variant='keyVariant(row)') {{ keyLabel(row) }}
-      template(#cell-public_key='{ row }')
-        span.t-mono-sm(v-if='row.public_key') {{ row.public_key }}
+      template(#cell-updated='{ row }')
+        span(v-if='row.updated_at') {{ formatWhen(row.updated_at) }}
         span.t-muted(v-else) —
 
   BaseCard(title='Застрявшие решения', subtitle='Попытки исчерпаны — нужен ручной повтор')
@@ -54,9 +53,15 @@ const failed = computed<IRobotDecision[]>(() => (robotStore.journal?.items ?? []
 
 const keyColumns: BaseTableColumn<IRobotKeyStatus>[] = [
   { key: 'member', label: 'Член совета' },
-  { key: 'state', label: 'Состояние', width: '200px' },
-  { key: 'public_key', label: 'Публичный ключ у робота' },
+  { key: 'state', label: 'Состояние', width: '220px' },
+  { key: 'updated', label: 'Ключ передан', width: '180px', nowrap: true },
 ];
+
+/** Когда робот получил ключ — датой и временем, без секунд. */
+function formatWhen(value: string | Date): string {
+  const at = new Date(value);
+  return Number.isNaN(at.getTime()) ? '—' : at.toLocaleString('ru-RU', { dateStyle: 'short', timeStyle: 'short' });
+}
 
 const failedColumns: BaseTableColumn<IRobotDecision>[] = [
   { key: 'decision', label: 'Решение' },
@@ -72,9 +77,9 @@ function keyVariant(row: IRobotKeyStatus): 'pos' | 'warn' | 'neutral' | 'neg' {
 }
 
 function keyLabel(row: IRobotKeyStatus): string {
-  if (row.has_key && row.chain_key_matches) return 'Ключ передан';
-  if (row.has_key && !row.chain_key_matches) return 'Ключ не совпадает с цепью';
-  if (row.chain_has_permission) return 'Разрешение без ключа';
+  if (row.has_key && row.chain_key_matches) return 'Робот голосует';
+  if (row.has_key && !row.chain_key_matches) return 'Ключ устарел — нужно передать заново';
+  if (row.chain_has_permission) return 'Ключ не передан';
   return 'Не делегировал';
 }
 
@@ -97,9 +102,11 @@ async function retry(decisionId: number) {
 
 onMounted(async () => {
   try {
+    // Состав совета — источник ФИО; названия типов решений — для журнала.
+    if (!robotStore.council) await robotStore.loadCouncil();
     if (!robotStore.registry.length) await robotStore.loadRegistry();
   } catch {
-    // названия типов — украшение
+    // имена и названия типов — украшение, без них страница всё равно работает
   }
   try {
     await robotStore.loadKeys();

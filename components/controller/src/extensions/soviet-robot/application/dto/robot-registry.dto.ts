@@ -122,6 +122,9 @@ export class RobotCouncilMemberDTO {
   @Field(() => String, { description: 'Учётное имя' })
   username!: string;
 
+  @Field(() => String, { description: 'ФИО пайщика для показа' })
+  full_name!: string;
+
   @Field(() => Boolean, { description: 'Имеет право голоса' })
   is_voting!: boolean;
 

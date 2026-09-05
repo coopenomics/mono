@@ -26,6 +26,23 @@ export const useRobotStore = defineStore(namespace, () => {
     Object.fromEntries(registry.value.map((item) => [item.type, item.title])),
   );
 
+  /** ФИО членов совета по учётному имени: в интерфейсе показываем людей, а не логины. */
+  const nameByMember = computed<Record<string, string>>(() =>
+    Object.fromEntries((council.value?.members ?? []).map((m) => [m.username, m.full_name || m.username])),
+  );
+
+  /** Полное ФИО: «Иванов Иван Иванович». Учётное имя — только если ФИО неизвестно. */
+  function memberName(username: string): string {
+    return nameByMember.value[username] ?? username;
+  }
+
+  /** Короткая форма для тесных мест: «Иванов И. И.». */
+  function shortMemberName(username: string): string {
+    const parts = memberName(username).split(/\s+/).filter(Boolean);
+    if (parts.length < 2) return parts[0] ?? username;
+    return `${parts[0]} ${parts.slice(1).map((p) => `${p[0]}.`).join(' ')}`;
+  }
+
   async function loadRegistry(): Promise<void> {
     registry.value = await api.loadRegistry();
   }
@@ -50,6 +67,9 @@ export const useRobotStore = defineStore(namespace, () => {
     registry,
     sortedRegistry,
     titleByType,
+    nameByMember,
+    memberName,
+    shortMemberName,
     council,
     keyStatus,
     journal,

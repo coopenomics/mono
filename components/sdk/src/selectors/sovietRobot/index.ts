@@ -120,6 +120,7 @@ export const robotKeyStatusSelector = Selector('RobotKeyStatus')(rawRobotKeyStat
 // Совет кооператива глазами робота
 export const rawRobotCouncilMemberSelector = {
   username: true,
+  full_name: true,
   is_voting: true,
   position: true,
   position_title: true,

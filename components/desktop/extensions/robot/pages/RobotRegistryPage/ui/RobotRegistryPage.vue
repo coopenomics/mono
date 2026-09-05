@@ -12,26 +12,17 @@
     button.icon-btn(type='button', aria-label='Скрыть', @click='dismiss')
       q-icon(name='close')
 
-  BaseCard.q-mb-md(title='Ключ робота', :subtitle='keySubtitle')
-    template(#actions)
-      BaseBadge(:variant='keyBadge.variant') {{ keyBadge.label }}
-    .row.items-center.q-col-gutter-md
-      .col-12.col-md-8
-        .t-sm.t-muted {{ keyHint }}
-        .t-sm.q-mt-xs(v-if='keyStatus?.public_key')
-          span.t-muted Публичный ключ:&nbsp;
-          span.t-mono-sm {{ keyStatus.public_key }}
-      .col-12.col-md-4.text-right
-        BaseButton(v-if='pendingWif', variant='primary', :loading='busy', @click='resendKey') Передать ключ роботу
-        BaseButton(v-else-if='keyReady', variant='danger', :loading='busy', @click='revokeAll') Отозвать делегирование
-        span.t-sm.t-muted(v-else) Ключ будет выпущен при сохранении настроек
+  .banner.banner--warn.q-mb-md(v-if='keyProblem')
+    q-icon.banner__icon(name='warning', size='20px')
+    .banner__body {{ keyProblem.text }}
+    BaseButton(v-if='keyProblem.action', variant='primary', size='sm', :loading='busy', @click='resendKey') Передать ключ роботу
 
   BaseTable(
     :columns='columns',
     :rows='rows',
     row-key='type',
     :loading='loading && !rows.length',
-    min-width='920px'
+    min-width='760px'
   )
     template(#cell-title='{ row }')
       .doc-primary {{ row.title }}
@@ -70,6 +61,10 @@
     template(#cell-protocol='{ row }')
       BaseBadge(:variant='protocolVariant(row)') {{ protocolLabel(row) }}
 
+  .row.items-center.justify-between.q-mt-md(v-if='keyReady')
+    .t-sm.t-muted Робот подписывает голоса ключом, выпущенным только для него. Отзыв удаляет этот ключ и снимает все ваши настройки.
+    BaseButton(variant='ghost', size='sm', :loading='busy', @click='revokeAll') Отозвать доступ робота
+
   .save-bar(v-if='dirty')
     BaseButton(variant='ghost', :disabled='busy', @click='resetDraft') Отменить
     BaseButton(variant='primary', :loading='busy', @click='save') Сохранить настройки
@@ -80,7 +75,7 @@ import { computed, onMounted, reactive, ref } from 'vue';
 import { useSessionStore } from 'src/entities/Session';
 import { useDismissibleBanner } from 'src/shared/hooks/useDismissibleBanner';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
-import { BaseBadge, BaseButton, BaseCard, BaseTable } from 'src/shared/ui/base';
+import { BaseBadge, BaseButton, BaseTable } from 'src/shared/ui/base';
 import type { BaseTableColumn } from 'src/shared/ui/base';
 import { useRobotStore } from '../../../entities/robot';
 import type { IRobotDecisionType } from '../../../entities/robot';
@@ -100,11 +95,13 @@ const keyStatus = computed(() => robotStore.keyStatus);
 const boardId = computed(() => robotStore.council?.board_id ?? 0);
 
 const columns = computed<BaseTableColumn<Row>[]>(() => [
+  // Ширины подобраны так, чтобы на обычном экране обходиться без прокрутки вбок:
+  // первой колонке достаётся весь остаток, а длинное описание переносится.
   { key: 'title', label: 'Решение', field: 'title' },
-  { key: 'my_vote', label: 'Мой голос', align: 'center', width: '180px' },
-  ...(isChairman.value ? [{ key: 'my_authorize', label: 'Мой протокол', align: 'center' as const, width: '130px' }] : []),
-  { key: 'quorum', label: 'Кворум робота', align: 'center', width: '220px' },
-  { key: 'protocol', label: 'Протокол председателя', align: 'center', width: '190px' },
+  { key: 'my_vote', label: 'Мой голос', align: 'center', width: '150px' },
+  ...(isChairman.value ? [{ key: 'my_authorize', label: 'Мой протокол', align: 'center' as const, width: '110px' }] : []),
+  { key: 'quorum', label: 'Кворум робота', align: 'center', width: '180px' },
+  { key: 'protocol', label: 'Кто подписывает', align: 'center', width: '150px' },
 ]);
 
 // Режим по типу в черновике: «manual», «auto» или «follow:‹имя›».
@@ -151,7 +148,7 @@ const modeOptions = computed(() => {
   return [
     { value: MODE_MANUAL, label: 'Вручную' },
     { value: MODE_AUTO, label: 'Сразу' },
-    ...others.map((m) => ({ value: FOLLOW_PREFIX + m.username, label: `Как ${m.username}` })),
+    ...others.map((m) => ({ value: FOLLOW_PREFIX + m.username, label: `Как ${robotStore.shortMemberName(m.username)}` })),
   ];
 });
 
@@ -166,23 +163,23 @@ const dirty = computed(() =>
 const hasRecord = computed(() => rows.value.some((row) => row.my_vote || row.my_authorize));
 const keyReady = computed(() => !!keyStatus.value?.has_key && !!keyStatus.value?.chain_key_matches);
 
-const keyBadge = computed(() => {
-  if (pendingWif.value) return { variant: 'warn' as const, label: 'Ключ не передан' };
-  if (keyReady.value) return { variant: 'pos' as const, label: 'Передан роботу' };
-  if (keyStatus.value?.chain_has_permission) return { variant: 'warn' as const, label: 'Разрешение без ключа' };
-  return { variant: 'neutral' as const, label: 'Не выпущен' };
-});
-
-const keySubtitle = computed(() => `Разрешение «${keyStatus.value?.permission_name ?? 'robot'}» вашего аккаунта`);
-
-const keyHint = computed(() => {
+/**
+ * Про ключ говорим, только когда от человека что-то требуется. Обычное
+ * состояние — «всё в порядке» — не показываем: члену совета незачем знать про
+ * разрешения аккаунта и публичные ключи, это делает за него рабочий стол.
+ */
+const keyProblem = computed<{ text: string; action: boolean } | null>(() => {
   if (pendingWif.value)
-    return 'Разрешение уже в цепи, но робот ключ не получил. Передайте его повторно — иначе робот не сможет голосовать за вас.';
-  if (keyReady.value)
-    return 'Робот держит ключ этого разрешения и подписывает им только делегированные голоса и протоколы. Отзыв удаляет разрешение с аккаунта и ключ у робота.';
-  if (keyStatus.value?.chain_has_permission)
-    return 'На аккаунте есть разрешение робота, но у робота нет его ключа. При сохранении будет выпущен новый ключ.';
-  return 'При первом сохранении на вашем устройстве будет создан новый ключ, на аккаунте появится отдельное разрешение только для голосования, а ключ уйдёт роботу по защищённому каналу.';
+    return {
+      text: 'Ключ выпущен, но не дошёл до робота — голосовать за вас он пока не может. Передайте ключ повторно.',
+      action: true,
+    };
+  if (hasRecord.value && !keyReady.value)
+    return {
+      text: 'У робота нет вашего ключа, поэтому голоса за вас он не подаёт. Нажмите «Сохранить настройки» — ключ будет выпущен заново.',
+      action: false,
+    };
+  return null;
 });
 
 function quorumVariant(row: Row): 'pos' | 'warn' | 'neutral' {
@@ -190,15 +187,14 @@ function quorumVariant(row: Row): 'pos' | 'warn' | 'neutral' {
   return row.vote_quorum.reachable ? 'warn' : 'neutral';
 }
 
-/** «2 из 3 сразу» — гарантированные голоса робота против порога совета. */
+/** «2 из 3» — голоса, которые робот подаёт сразу, против порога совета. */
 function quorumLabel(row: Row): string {
-  return `${row.vote_quorum.delegated_count} из ${row.vote_quorum.required_count} сразу`;
+  return `${row.vote_quorum.delegated_count} из ${row.vote_quorum.required_count}`;
 }
 
-/** Голоса, которые придут вслед за ведомыми: «+2 за ant, +1 за petr». */
+/** Голоса, которые придут вслед за другими: «+2 после голоса ant». */
 function followLabel(row: Row): string {
-  const parts = row.vote_quorum.follow_groups.map((g) => `+${g.count} за ${g.follow}`);
-  return row.vote_quorum.reachable && !row.vote_quorum.reached ? `кворум после голоса: ${parts.join(', ')}` : parts.join(', ');
+  return row.vote_quorum.follow_groups.map((g) => `+${g.count} после голоса ${robotStore.shortMemberName(g.follow)}`).join(', ');
 }
 
 function protocolVariant(row: Row): 'pos' | 'warn' | 'neutral' {
@@ -213,8 +209,9 @@ function protocolLabel(row: Row): string {
 }
 
 function voterLabel(voter: Row['voters'][number]): string {
-  const how = voter.follow ? `как ${voter.follow}` : 'сразу';
-  return voter.has_key ? `${voter.member} — ${how}` : `${voter.member} — ${how}, ключ не передан`;
+  const how = voter.follow ? `как ${robotStore.shortMemberName(voter.follow)}` : 'сразу';
+  const name = robotStore.memberName(voter.member);
+  return voter.has_key ? `${name} — ${how}` : `${name} — ${how}, ключ не передан`;
 }
 
 function draftLists(): RobotAutomationDraft {

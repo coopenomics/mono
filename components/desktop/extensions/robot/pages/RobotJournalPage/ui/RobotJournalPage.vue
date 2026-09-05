@@ -20,10 +20,10 @@
       .t-sm.t-muted {{ formatDate(row.created_at) }}
     template(#cell-stage='{ row }')
       BaseBadge(:variant='stageMeta(row.stage).variant') {{ stageMeta(row.stage).label }}
-      .t-sm.t-muted(v-if='row.waiting_for.length') за кем: {{ row.waiting_for.join(', ') }}
+      .t-sm.t-muted(v-if='row.waiting_for.length') ждём: {{ row.waiting_for.map(robotStore.shortMemberName).join(', ') }}
     template(#cell-votes='{ row }')
       template(v-if='row.votes.length')
-        div(v-for='vote in row.votes', :key='vote.member') {{ vote.member }}
+        div(v-for='vote in row.votes', :key='vote.member') {{ robotStore.shortMemberName(vote.member) }}
       span.t-muted(v-else) —
     template(#cell-tx='{ row }')
       div.t-mono-sm(v-for='tx in row.tx_hashes', :key='tx') {{ shortHash(tx) }}
@@ -110,6 +110,8 @@ async function goTo(next: number) {
 
 onMounted(async () => {
   try {
+    // Состав совета нужен, чтобы показывать ФИО вместо учётных имён.
+    if (!robotStore.council) await robotStore.loadCouncil();
     if (!robotStore.registry.length) await robotStore.loadRegistry();
   } catch {
     // названия типов — украшение; журнал читается и без них

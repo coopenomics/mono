@@ -49,9 +49,19 @@ export class RobotKeyService {
   static PERMISSION_READ_ATTEMPTS = 6;
   static PERMISSION_READ_PAUSE_MS = 1000;
 
-  /** Публичный ключ в едином представлении, чтобы сравнивать EOS… и PUB_K1_… формы. */
+  /**
+   * Публичный ключ в едином представлении. Один и тот же ключ ходит в двух
+   * записях — старой `EOS…` и новой `PUB_K1_…`, — и сравнивать их как строки
+   * нельзя: узел отдаёт одну форму, а в хранилище может лежать другая.
+   * Неразобранный ключ возвращаем как есть: пусть сравнение честно не сойдётся,
+   * а не роняет чтение состояния.
+   */
   static normalize(key: string): string {
-    return PublicKey.from(key).toString();
+    try {
+      return PublicKey.from(key).toString();
+    } catch {
+      return key;
+    }
   }
 
   private lastSeenPermissions: string[] = [];
@@ -145,13 +155,14 @@ export class RobotKeyService {
     } catch (e: any) {
       this.logger.warn(`Не удалось прочитать разрешения аккаунта ${member}: ${e?.message}`);
     }
+    const storedKey = stored ? RobotKeyService.normalize(stored.public_key) : null;
     return {
       member,
       permission_name,
       has_key: stored !== null,
-      public_key: stored?.public_key ?? null,
+      public_key: storedKey,
       chain_has_permission: chainKeys !== null,
-      chain_key_matches: stored !== null && chainKeys !== null && chainKeys.includes(stored.public_key),
+      chain_key_matches: storedKey !== null && chainKeys !== null && chainKeys.includes(storedKey),
       updated_at: stored?.updated_at ?? null,
     };
   }

@@ -240,6 +240,14 @@ cases:
     test: components/controller/tests/unit/soviet-robot/robot-watchdog.service.test.ts
     status: passing
 
+  - id: sov.rob.break.06
+    level: backend
+    kind: break
+    scenario: Ключ записан в старой форме EOS…, а узел отдаёт PUB_K1_…
+    expect: обе записи одного ключа приводятся к одному виду, состояние ключа не показывается как несовпадающее; разные ключи остаются разными
+    test: components/controller/tests/unit/soviet-robot/robot-key.normalize.test.ts
+    status: passing
+
   - id: sov.rob.happy.20
     level: ui
     kind: happy
@@ -251,7 +259,7 @@ cases:
     level: ui
     kind: happy
     scenario: Член совета видит, что делегировали остальные, и кворум робота по типу
-    expect: по каждому типу видно, чьи голоса и подпись протокола автоматизированы и достигнут ли кворум
+    expect: по каждому типу видно ФИО членов совета, их режим и достигнут ли кворум; длинные названия переносятся, таблица не едет вбок
     status: missing
 
   - id: sov.rob.happy.22

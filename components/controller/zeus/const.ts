@@ -8148,6 +8148,7 @@ export const ReturnTypes: Record<string,any> = {
 		required_votes:"Int"
 	},
 	RobotCouncilMember:{
+		full_name:"String",
 		is_voting:"Boolean",
 		position:"String",
 		position_title:"String",
