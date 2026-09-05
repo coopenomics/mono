@@ -2,8 +2,11 @@ import {
   // AnnualGeneralMeetingDecision,
   AnnualGeneralMeetingSovietDecision, // 300
   BranchEstablishmentSovietDecision, // 325
+  BranchFinancialAidProtocol, // 1112
   DecisionOfParticipantApplication, // 501
+  DecisionOfParticipantExit, // 201
   FreeDecision,
+  MarketplaceWriteoffProtocol, // 1107
   ResultContributionDecision, // 1041
 
   ReturnByMoneyDecision, // 901
@@ -21,6 +24,7 @@ import {
  */
 export const decisionsRegistry: Record<string, number> = {
   joincoop: DecisionOfParticipantApplication.registry_id, // регистрация пайщика
+  leavecoop: DecisionOfParticipantExit.registry_id, // выход пайщика из кооператива
   freedecision: FreeDecision.registry_id,
 
   creategm: AnnualGeneralMeetingSovietDecision.registry_id, // предложение повестки планового общего собрания
@@ -29,6 +33,8 @@ export const decisionsRegistry: Record<string, number> = {
   createwthd: ReturnByMoneyDecision.registry_id, // заявление на возврат паевого взноса
   // capitalinvst: InvestByResultDecision.registry_id, // заявление на инвестиции по договору УХД
   createresult: ResultContributionDecision.registry_id, // клайм прироста благороста из задания
+  brnaid: BranchFinancialAidProtocol.registry_id, // материальная помощь доверенному участка (p.brn.aid)
+  mktwroff: MarketplaceWriteoffProtocol.registry_id, // списание скоропорта Стола заказов (p.mkt.wroff)
   // createdebt: InvestByMoneyStatement.registry_id, // взять ссуду под залог будущего задания
   // capresexpns: InvestMembershipConvertation.registry_id, // произвести выплату по расходам задания
   // capwthdrprog: ReturnByAssetStatement.registry_id, // возврат накопленных членских взносов по программе на капиталиста

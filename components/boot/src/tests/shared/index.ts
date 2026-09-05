@@ -1,5 +1,6 @@
 export * from './combinedKeys'
 export * from './consoleIt'
 export * from './fakeDocument'
-export * from './fakeVote'
+export * from './signProtocol'
+export * from './signVote'
 export * from './formatDateToISOString'

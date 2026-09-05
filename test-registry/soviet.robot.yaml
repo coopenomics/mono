@@ -1,0 +1,193 @@
+feature: soviet.robot
+title: Робот решений совета — делегирование подписи и проверка ключей по разрешению
+
+# Механика: член совета заводит отдельное разрешение аккаунта с ключом робота и
+# записывает в реестр автоматизаций типы решений, по которым робот голосует за
+# него; председатель — типы решений, протоколы которых робот подписывает.
+# Контракт привязывает хэш голоса к решению и проверяет интринзиком
+# assert_recover_key_account, что ключ подписи принадлежит заявленному
+# разрешению аккаунта; для разрешения робота — ещё и что тип решения
+# делегирован и срок не истёк. Приватные ключи в цепи не хранятся.
+#
+# Компонент 67 «Робот решений совета» проекта 13 blago, задачи AC9-1…AC9-6.
+
+sources:
+  contract:
+    - components/contracts/cpp/soviet/src/automator/*
+    - components/contracts/cpp/soviet/src/vote/votefor.cpp
+    - components/contracts/cpp/soviet/src/vote/voteagainst.cpp
+    - components/contracts/cpp/soviet/src/decision/authorize.cpp
+  backend:
+    - components/controller/src/extensions/soviet-robot/**
+  ui:
+    - components/desktop/extensions/robot/**
+
+cases:
+  - id: sov.rob.side.01
+    level: contract
+    kind: side
+    scenario: Член совета пытается выдать роботу разрешение active
+    expect: контракт отказывает — роботу выдаётся только отдельное разрешение
+    test: components/boot/src/tests/soviet-robot.test.ts
+    status: passing
+
+  - id: sov.rob.side.02
+    level: contract
+    kind: side
+    scenario: Пайщик вне совета включает автоматизацию
+    expect: контракт отказывает — только член совета
+    test: components/boot/src/tests/soviet-robot.test.ts
+    status: passing
+
+  - id: sov.rob.happy.01
+    level: contract
+    kind: happy
+    scenario: Член совета делегирует роботу голосование по типу решения
+    expect: в реестре автоматизаций одна запись члена совета с разрешением и списком типов
+    test: components/boot/src/tests/soviet-robot.test.ts
+    status: passing
+
+  - id: sov.rob.side.03
+    level: contract
+    kind: side
+    scenario: Рядовой член совета включает автоматическую подпись протоколов
+    expect: контракт отказывает — подпись протоколов делегирует только председатель
+    test: components/boot/src/tests/soviet-robot.test.ts
+    status: passing
+
+  - id: sov.rob.happy.02
+    level: contract
+    kind: happy
+    scenario: Робот голосует за члена совета ключом его разрешения по делегированному типу
+    expect: голос учтён как голос члена совета
+    test: components/boot/src/tests/soviet-robot.test.ts
+    status: passing
+
+  - id: sov.rob.break.01
+    level: contract
+    kind: break
+    scenario: Голос подписан чужим ключом при включённой автоматизации
+    expect: контракт отказывает — ключ не принадлежит разрешению аккаунта
+    test: components/boot/src/tests/soviet-robot.test.ts
+    status: passing
+
+  - id: sov.rob.break.02
+    level: contract
+    kind: break
+    scenario: Голос ключом робота выдаётся за ручной (permission active)
+    expect: контракт отказывает — ключ робота не входит в active
+    test: components/boot/src/tests/soviet-robot.test.ts
+    status: passing
+
+  - id: sov.rob.side.04
+    level: contract
+    kind: side
+    scenario: Робот голосует по типу решения вне делегированного списка
+    expect: контракт отказывает
+    test: components/boot/src/tests/soviet-robot.test.ts
+    status: passing
+
+  - id: sov.rob.break.03
+    level: contract
+    kind: break
+    scenario: Подпись голоса за одно решение подаётся за другое решение
+    expect: контракт отказывает — хэш привязан к номеру решения
+    test: components/boot/src/tests/soviet-robot.test.ts
+    status: passing
+
+  - id: sov.rob.happy.03
+    level: contract
+    kind: happy
+    scenario: Член совета голосует сам активным ключом при включённой автоматизации
+    expect: ручной голос принимается
+    test: components/boot/src/tests/soviet-robot.test.ts
+    status: passing
+
+  - id: sov.rob.happy.04
+    level: contract
+    kind: happy
+    scenario: Новая повестка сообщает номер решения
+    expect: событие newsubmitted несёт decision_id, совпадающий с записью решения
+    test: components/boot/src/tests/soviet-robot.test.ts
+    status: passing
+
+  - id: sov.rob.side.05
+    level: contract
+    kind: side
+    scenario: Член совета отозвал делегирование, робот голосует снова
+    expect: контракт отказывает — автоматизация не включена
+    test: components/boot/src/tests/soviet-robot.test.ts
+    status: passing
+
+  - id: sov.rob.side.06
+    level: contract
+    kind: side
+    scenario: Робот подписывает протокол типа, не делегированного председателем
+    expect: контракт отказывает
+    test: components/boot/src/tests/soviet-robot.test.ts
+    status: passing
+
+  - id: sov.rob.happy.05
+    level: contract
+    kind: happy
+    scenario: Робот подписывает протокол ключом разрешения председателя и исполняет решение
+    expect: решение утверждено и исполнено, запись повестки закрыта
+    test: components/boot/src/tests/soviet-robot.test.ts
+    status: passing
+
+  - id: sov.rob.break.04
+    level: contract
+    kind: break
+    scenario: Протокол без подписи председателя
+    expect: контракт отказывает — подпись председателя обязательна
+    test: components/boot/src/tests/soviet-robot.test.ts
+    status: passing
+
+  - id: sov.rob.happy.10
+    level: backend
+    kind: happy
+    scenario: Робот получает новую повестку делегированного типа и подаёт голоса одной транзакцией
+    expect: запись журнала переходит из «новое» в «проголосовано», повтор события не даёт второго голоса
+    status: missing
+
+  - id: sov.rob.happy.11
+    level: backend
+    kind: happy
+    scenario: После кворума робот собирает протокол, подписывает ключом председателя, утверждает и исполняет
+    expect: вторая транзакция проходит, журнал «исполнено»
+    status: missing
+
+  - id: sov.rob.side.10
+    level: backend
+    kind: side
+    scenario: Кворум без ручных голосов недостижим
+    expect: робот голосует за делегировавших и ждёт ручных голосов, дожимает протокол после кворума
+    status: missing
+
+  - id: sov.rob.side.11
+    level: backend
+    kind: side
+    scenario: Процесс упал между голосами и протоколом
+    expect: сторож завершает решение с ограничением попыток, ошибка видна администратору
+    status: missing
+
+  - id: sov.rob.happy.20
+    level: ui
+    kind: happy
+    scenario: Член совета включает автоматизацию по типу решения в реестре действий автоматизации
+    expect: выпущено разрешение, ключ передан роботу, запись в реестре
+    status: missing
+
+  - id: sov.rob.happy.21
+    level: ui
+    kind: happy
+    scenario: Член совета видит, что делегировали остальные, и кворум робота по типу
+    expect: по каждому типу видно, чьи голоса и подпись протокола автоматизированы и достигнут ли кворум
+    status: missing
+
+  - id: sov.rob.happy.22
+    level: ui
+    kind: happy
+    scenario: Член совета отзывает делегирование
+    expect: запись удалена, разрешение снято, ключ стёрт у робота
+    status: missing

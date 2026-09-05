@@ -255,5 +255,11 @@ export default {
       name: 'CRYPTO_PRIMITIVES',
       hash: '6bcb40a24e49c26d0a60513b6aeb8551d264e4717f306b81a37a5afb3b47cedc',
     },
+    // Интринзик assert_recover_key_account: контракты проверяют, что подпись сделана
+    // ключом конкретного разрешения аккаунта. Нужен роботу решений совета (soviet).
+    {
+      name: 'ASSERT_RECOVER_KEY_ACCOUNT',
+      hash: '2ad6b7aabba8edbc87b46f3340df4d0db0e4b65474db3e1cd5db33fb685a506b',
+    },
   ],
 }

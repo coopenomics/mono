@@ -145,13 +145,13 @@ public:
   //setminamt.cpp
   [[eosio::action]] void setminamt(eosio::name coopname, eosio::name username, eosio::asset minimum);
 
-  //automator.cpp
-  [[eosio::action]] void automate(eosio::name coopname, uint64_t board_id, eosio::name member, eosio::name action_type, eosio::name provider, std::string encrypted_private_key);
-  [[eosio::action]] void disautomate(eosio::name coopname, uint64_t board_id, eosio::name member, uint64_t automation_id );
+  //automator.cpp — реестр автоматизаций робота решений совета
+  [[eosio::action]] void automate(eosio::name coopname, uint64_t board_id, eosio::name member, eosio::name permission_name, std::vector<eosio::name> vote_types, std::vector<eosio::name> authorize_types, eosio::asset limit, eosio::time_point_sec expires_at);
+  [[eosio::action]] void disautomate(eosio::name coopname, uint64_t board_id, eosio::name member);
   static void make_base_coagreements(eosio::name coopname, eosio::symbol govern_symbol);
   
   //chairman.cpp
-  [[eosio::action]] void authorize(eosio::name coopname, eosio::name chairman, uint64_t decision_id, document2 document);
+  [[eosio::action]] void authorize(eosio::name coopname, eosio::name chairman, uint64_t decision_id, document2 document, eosio::name permission);
   [[eosio::action]] void createboard(eosio::name coopname, eosio::name username, eosio::name type, std::vector<board_member> members, std::string name, std::string description);
   [[eosio::action]] void updateboard(eosio::name coopname, eosio::name username, uint64_t board_id, std::vector<board_member> members, std::string name, std::string description);
   
@@ -173,7 +173,8 @@ public:
     eosio::time_point_sec signed_at,
     checksum256 signed_hash,
     eosio::signature signature,
-    eosio::public_key public_key
+    eosio::public_key public_key,
+    eosio::name permission
   );
   
   [[eosio::action]] void voteagainst(
@@ -184,7 +185,8 @@ public:
     eosio::time_point_sec signed_at,
     checksum256 signed_hash,
     eosio::signature signature,
-    eosio::public_key public_key    
+    eosio::public_key public_key,
+    eosio::name permission
   );
   
   [[eosio::action]] void cancelvote(eosio::name coopname, eosio::name member, uint64_t decision_id);
@@ -287,33 +289,49 @@ public:
 /**
 \ingroup public_tables
 \ingroup public_soviet_tables
-\brief Таблица автоматизированных действий
+\brief Реестр автоматизаций робота решений совета
 *
-* Таблица содержит набор действий, которые член совета автоматизировал.
+* Одна запись на члена совета. Хранит имя отдельного разрешения аккаунта, ключом
+* которого робот подписывает голоса и протоколы от имени члена совета, и списки
+* типов решений, по которым это разрешено. Приватных ключей в цепи нет: ключ
+* живёт в хранилище робота, а принадлежность ключа разрешению аккаунта контракт
+* проверяет интринзиком assert_recover_key_account при каждой подписи.
 *
 * @note Таблица хранится в области памяти с именем аккаунта: @p _soviet и скоупом: @p coopname
 * @par Имя таблицы (table): automator
 
 */
 struct [[eosio::table, eosio::contract(SOVIET)]] automator {
-    uint64_t id; ///< Уникальный идентификатор автоматизированного действия
-    eosio::name coopname; ///< Имя кооператива, к которому относится данное автоматизированное действие
-    uint64_t board_id; ///< Идентификатор совета, который автоматизировал данное действие
-    eosio::name member; ///< Член совета, который автоматизировал данное действие
-    eosio::name action_type; ///< Тип автоматизированного действия
-    eosio::name permission_name; ///< Имя разрешения для авторизации действия
-    std::string encrypted_private_key; ///< Зашифрованный приватный ключ для авторизации действия
+    uint64_t id; ///< Уникальный идентификатор записи
+    eosio::name coopname; ///< Имя кооператива
+    uint64_t board_id; ///< Идентификатор совета
+    eosio::name member; ///< Член совета, делегировавший подпись роботу
+    eosio::name permission_name; ///< Разрешение аккаунта члена совета с ключом робота (не active и не owner)
+    std::vector<eosio::name> vote_types; ///< Типы решений, по которым робот голосует «за» от имени члена совета
+    std::vector<eosio::name> authorize_types; ///< Типы решений, протоколы которых робот подписывает от имени председателя (только для председателя)
+    eosio::asset limit; ///< Лимит суммы на одно решение; нулевая сумма — без лимита (соблюдается роботом)
+    eosio::time_point_sec expires_at; ///< Срок действия автоматизации; нулевое значение — бессрочно
+    eosio::time_point_sec created_at; ///< Момент включения автоматизации
+    eosio::time_point_sec updated_at; ///< Момент последнего изменения
 
     uint64_t primary_key() const { return id; }
-    uint128_t by_member_and_action_type() const { return combine_ids(member.value, action_type.value); } ///< Индекс по члену совета и типу действия
-    uint64_t by_action() const { return action_type.value; } ///< Индекс по типу действия
+    uint64_t by_member() const { return member.value; } ///< Индекс по члену совета
 
+    bool is_expired() const {
+      return expires_at.sec_since_epoch() != 0 && expires_at <= eosio::time_point_sec(eosio::current_time_point().sec_since_epoch());
+    }
+
+    bool allows_vote(eosio::name decision_type) const {
+      return std::find(vote_types.begin(), vote_types.end(), decision_type) != vote_types.end();
+    }
+
+    bool allows_authorize(eosio::name decision_type) const {
+      return std::find(authorize_types.begin(), authorize_types.end(), decision_type) != authorize_types.end();
+    }
 };
 
-
   typedef eosio::multi_index< "automator"_n, automator,
-    eosio::indexed_by<"byaction"_n, eosio::const_mem_fun<automator, uint64_t, &automator::by_action>>,
-    eosio::indexed_by<"bymembaction"_n, eosio::const_mem_fun<automator, uint128_t, &automator::by_member_and_action_type>>
+    eosio::indexed_by<"bymember"_n, eosio::const_mem_fun<automator, uint64_t, &automator::by_member>>
   > automator_index;
 
 

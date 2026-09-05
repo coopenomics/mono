@@ -34,8 +34,8 @@ import { createHash, randomBytes } from 'node:crypto'
 import Blockchain from '../../../blockchain'
 import config from '../../../configs'
 import { setDocumentSignatures } from '../../../utils/setDocumentSignatures'
-import { fakeDocument } from '../../../tests/shared/fakeDocument'
-import { fakeVote } from '../../../tests/shared/fakeVote'
+import { signProtocol } from '../../../tests/shared/signProtocol'
+import { signVote } from '../../../tests/shared/signVote'
 
 const log = (...a: unknown[]) => console.error('[seed-capital:13]', ...a)
 
@@ -153,23 +153,19 @@ async function processLastDecision(blockchain: Blockchain) {
   const voters = await getVotingBoardMembers(blockchain)
   log(`soviet decision id=${last.id} — голосуют ${voters.length} члена совета (${voters.join(', ')})`)
 
-  const voteActions = voters.map((voter) => ({
+  const voteActions = await Promise.all(voters.map(async (voter) => ({
     account: SovietContract.contractName.production,
     name: SovietContract.Actions.Decisions.VoteFor.actionName,
     authorization: [{ actor: voter, permission: 'active' }],
-    data: {
-      ...fakeVote,
-      coopname: COOPNAME,
-      username: voter,
-      decision_id: String(last.id),
-    } as unknown as SovietContract.Actions.Decisions.VoteFor.IVoteForDecision,
-  }))
+    data: await signVote(COOPNAME, voter, last.id),
+  })))
 
   const authData: SovietContract.Actions.Decisions.Authorize.IAuthorize = {
     coopname: COOPNAME,
     chairman: CHAIRMAN,
     decision_id: last.id,
-    document: fakeDocument,
+    document: await signProtocol(CHAIRMAN, last.id),
+    permission: 'active',
   }
   const execData: SovietContract.Actions.Decisions.Exec.IExec = {
     executer: CHAIRMAN,
@@ -183,13 +179,14 @@ async function processLastDecision(blockchain: Blockchain) {
       {
         account: SovietContract.contractName.production,
         name: SovietContract.Actions.Decisions.Authorize.actionName,
-        authorization: [{ actor: CHAIRMAN, permission: 'active' }],
+        // authorize и exec требуют подписи кооператива, не председателя
+        authorization: [{ actor: COOPNAME, permission: 'active' }],
         data: authData,
       },
       {
         account: SovietContract.contractName.production,
         name: SovietContract.Actions.Decisions.Exec.actionName,
-        authorization: [{ actor: CHAIRMAN, permission: 'active' }],
+        authorization: [{ actor: COOPNAME, permission: 'active' }],
         data: execData,
       },
     ],

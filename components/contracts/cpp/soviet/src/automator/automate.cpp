@@ -1,54 +1,89 @@
-inline void is_valid_action_for_automation(eosio::name action_type) {
-  std::vector<eosio::name> valid_types = {"regaccount"_n, "authorize"_n};
-  eosio::check(std::find(valid_types.begin(), valid_types.end(), action_type) != valid_types.end(), "Действие не найдено среди допустимых типов.");
-}
-
 /**
- * @brief Настройка автоматизации подписи на решениях
- * Позволяет члену совета настроить автоматическую подпись на решениях по определенным типам вопросов.
- * Создает запись об автоматизации с зашифрованным приватным ключом.
+ * @brief Включение или изменение автоматизации решений совета
+ *
+ * Член совета делегирует роботу решений совета право голосовать «за» по перечисленным
+ * типам решений, а председатель — дополнительно подписывать протоколы по своему списку
+ * типов. Подписи ставятся ключом отдельного разрешения аккаунта члена совета, которое он
+ * заводит сам (updateauth) и ключ которого передаёт роботу; в цепи ключ не хранится.
+ * Повторный вызов заменяет прежние настройки: одна запись на члена совета.
+ *
  * @param coopname Наименование кооператива
  * @param board_id Идентификатор совета кооператива
- * @param member Наименование члена совета, который настраивает автоматизацию
- * @param action_type Тип действия для автоматизации
- * @param permission_name Наименование разрешения для использования в автоматизированном действии
- * @param encrypted_private_key Зашифрованный приватный ключ для автоматизации
+ * @param member Член совета, который включает автоматизацию
+ * @param permission_name Разрешение аккаунта члена совета с ключом робота (не active и не owner)
+ * @param vote_types Типы решений, по которым робот голосует «за» от имени члена совета
+ * @param authorize_types Типы решений, протоколы которых робот подписывает от имени председателя (только председатель)
+ * @param limit Лимит суммы на одно решение; нулевая сумма — без лимита
+ * @param expires_at Срок действия автоматизации; нулевое значение — бессрочно
  * @ingroup public_actions
  * @ingroup public_soviet_actions
 
  * @note Авторизация требуется от аккаунта: @p member
  */
-void soviet::automate(eosio::name coopname, uint64_t board_id, eosio::name member, eosio::name action_type, eosio::name permission_name, std::string encrypted_private_key) {
-
+void soviet::automate(eosio::name coopname, uint64_t board_id, eosio::name member, eosio::name permission_name,
+                      std::vector<eosio::name> vote_types, std::vector<eosio::name> authorize_types, eosio::asset limit,
+                      eosio::time_point_sec expires_at) {
   require_auth(member);
- 
+
   boards_index boards(_soviet, coopname.value);
   auto board = boards.find(board_id);
   eosio::check(board != boards.end(), "Совет не найден");
+  eosio::check(board->type == "soviet"_n, "Автоматизация решений доступна только совету кооператива");
+  eosio::check(board->is_valid_member(member), "Только член совета может включить автоматизацию");
 
-  if (action_type == "authorize"_n){
-    board -> is_valid_chairman(member);  
-  } else {
-    is_valid_action_for_automation(action_type);  
-  };
+  eosio::check(permission_name != ""_n && permission_name != "active"_n && permission_name != "owner"_n,
+               "Роботу выдаётся отдельное разрешение аккаунта, а не active или owner");
+  eosio::check(!vote_types.empty() || !authorize_types.empty(), "Укажите хотя бы один тип решения для автоматизации");
+
+  if (!vote_types.empty()) {
+    eosio::check(board->is_voting_member(member), "У члена совета нет права голоса");
+    for (const auto& type : vote_types) {
+      eosio::check(soviet_actions.contains(type), "Недопустимый тип решения для голосования: " + type.to_string());
+    }
+  }
+
+  if (!authorize_types.empty()) {
+    eosio::check(board->is_valid_chairman(member), "Автоматическую подпись протоколов может включить только председатель совета");
+    for (const auto& type : authorize_types) {
+      eosio::check(soviet_actions.contains(type), "Недопустимый тип решения для подписи протокола: " + type.to_string());
+    }
+  }
+
+  eosio::check(limit.is_valid() && limit.amount >= 0, "Некорректный лимит");
+  eosio::check(limit.symbol == _root_govern_symbol, "Лимит указывается в валюте кооператива");
+
+  auto now = eosio::time_point_sec(eosio::current_time_point().sec_since_epoch());
+  if (expires_at.sec_since_epoch() != 0) {
+    eosio::check(expires_at > now, "Срок действия автоматизации уже истёк");
+  }
 
   automator_index automator(_soviet, coopname.value);
-  auto by_member_commit_index = automator.template get_index<"bymembaction"_n>();
-  auto idx = combine_ids(member.value, action_type.value);
-  auto autom = by_member_commit_index.find(idx);
-  
-  eosio::check(autom == by_member_commit_index.end(), "Автоматизация по данному действию уже установлена");
+  auto by_member = automator.get_index<"bymember"_n>();
+  auto existing = by_member.find(member.value);
 
-  automator.emplace(member, [&](auto &a){
-    a.id = automator.available_primary_key();
-    a.coopname = coopname;
-    a.board_id = board_id;
-    a.member = member;
-    a.action_type = action_type;
-    a.permission_name = permission_name;
-    a.encrypted_private_key = encrypted_private_key;
-  });
-
+  if (existing == by_member.end()) {
+    automator.emplace(member, [&](auto& a) {
+      a.id = automator.available_primary_key();
+      a.coopname = coopname;
+      a.board_id = board_id;
+      a.member = member;
+      a.permission_name = permission_name;
+      a.vote_types = vote_types;
+      a.authorize_types = authorize_types;
+      a.limit = limit;
+      a.expires_at = expires_at;
+      a.created_at = now;
+      a.updated_at = now;
+    });
+  } else {
+    by_member.modify(existing, member, [&](auto& a) {
+      a.board_id = board_id;
+      a.permission_name = permission_name;
+      a.vote_types = vote_types;
+      a.authorize_types = authorize_types;
+      a.limit = limit;
+      a.expires_at = expires_at;
+      a.updated_at = now;
+    });
+  }
 }
-
-  
