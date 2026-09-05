@@ -10,6 +10,21 @@ import { type GraphQLResponse, Thunder, ZeusScalars } from './zeus/index'
 /** Таймаут HTTP GraphQL — без него при мёртвом бэкенде fetch висит и копит запросы. */
 const HTTP_TIMEOUT_MS = 30_000
 
+/**
+ * Ошибка провайдера access-токена, после которой запрос отправлять нельзя
+ * (см. `Client.prepareAuthorization`). Провайдер выставляет `abortRequest`, SDK
+ * пробрасывает такую ошибку вызывающему коду вместо отправки запроса со старым
+ * заголовком.
+ */
+export interface AccessTokenUnavailableError extends Error {
+  abortRequest: true
+}
+
+function isAbortRequestError(error: unknown): error is AccessTokenUnavailableError {
+  return typeof error === 'object' && error !== null
+    && (error as { abortRequest?: unknown }).abortRequest === true
+}
+
 export * as Classes from './classes'
 export * as Mutations from './mutations'
 export * as Queries from './queries'
@@ -159,6 +174,42 @@ export class Client {
   }
 
   /**
+   * Готовит заголовок Authorization к запросу.
+   *
+   * Провайдер токена может отказать по двум разным причинам, и SDK их различает:
+   * - нет активной CoopID-сессии — запрос уходит с тем, что уже есть в заголовках
+   *   (legacy-токен из setToken/login, если был), итоговую авторизацию решает сервер;
+   * - токен есть, но обновить его нельзя (сеть) — провайдер помечает ошибку
+   *   `abortRequest`, и запрос не отправляется вовсе. Со старым заголовком он бы
+   *   не упал, а получил бы ответ как для гостя: бэкенд на негодный токен молча
+   *   понижает права, и клиент принимал бы гостевой ответ за свой.
+   * @returns true — запрос уйдёт от имени пользователя, false — гостем.
+   */
+  private async prepareAuthorization(): Promise<boolean> {
+    if (this.accessTokenProvider) {
+      try {
+        this.currentHeaders.Authorization = `Bearer ${await this.accessTokenProvider()}`
+        return true
+      }
+      catch (error) {
+        if (isAbortRequestError(error))
+          throw error
+      }
+    }
+    return Boolean(this.currentHeaders.Authorization)
+  }
+
+  /**
+   * Проверяет без запроса, что следующий запрос уйдёт от имени пользователя.
+   * Нужен там, где гостевой ответ неотличим от отказа (рабочий стол с грантами):
+   * вызывающий код помечает результат именем пользователя только при `true`.
+   * @throws как перед запросом — ошибка провайдера с `abortRequest`.
+   */
+  public async ensureAccessToken(): Promise<boolean> {
+    return this.prepareAuthorization()
+  }
+
+  /**
    * Установка WIF.
    * @param username Имя пользователя.
    * @param wif WIF для установки.
@@ -251,16 +302,7 @@ export class Client {
    */
   private createThunder(baseUrl: string) {
     return Thunder(async (query, variables) => {
-      if (this.accessTokenProvider) {
-        try {
-          this.currentHeaders.Authorization = `Bearer ${await this.accessTokenProvider()}`
-        }
-        catch {
-          // Нет активной CoopID-сессии или refresh не удался — отправляем запрос с тем,
-          // что уже есть в заголовках (legacy-токен из setToken/login, если был). Итоговую
-          // авторизацию решает сервер; перехватывать здесь не нужно.
-        }
-      }
+      await this.prepareAuthorization()
       const controller = typeof AbortController !== 'undefined' ? new AbortController() : null
       const timeoutId = controller
         ? setTimeout(() => controller.abort(), HTTP_TIMEOUT_MS)
@@ -302,7 +344,8 @@ export class Client {
         return json.data
       }
       finally {
-        if (timeoutId) clearTimeout(timeoutId)
+        if (timeoutId)
+          clearTimeout(timeoutId)
       }
     }, { scalars: Client.scalars })
   }
