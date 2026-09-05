@@ -37,6 +37,17 @@
 */
 
 
+/**
+ * \brief Правило повтора: по какому типу решения и за кем член совета повторяет голос
+ *
+ * Робот голосует от имени члена совета только после того, как голос ведомого
+ * лёг в цепь, и с тем же знаком. Пара «тип → за кем» — один режим на тип.
+ */
+struct follow_rule {
+    eosio::name decision_type; ///< Тип решения совета
+    eosio::name follow; ///< Член совета, за голосом которого робот повторяет
+};
+
 class [[eosio::contract(SOVIET)]] soviet : public eosio::contract {
 public:
   using contract::contract;
@@ -146,7 +157,7 @@ public:
   [[eosio::action]] void setminamt(eosio::name coopname, eosio::name username, eosio::asset minimum);
 
   //automator.cpp — реестр автоматизаций робота решений совета
-  [[eosio::action]] void automate(eosio::name coopname, uint64_t board_id, eosio::name member, eosio::name permission_name, std::vector<eosio::name> vote_types, std::vector<eosio::name> authorize_types, eosio::asset limit, eosio::time_point_sec expires_at);
+  [[eosio::action]] void automate(eosio::name coopname, uint64_t board_id, eosio::name member, eosio::name permission_name, std::vector<eosio::name> vote_types, std::vector<follow_rule> follow_rules, std::vector<eosio::name> authorize_types, eosio::asset limit, eosio::time_point_sec expires_at);
   [[eosio::action]] void disautomate(eosio::name coopname, uint64_t board_id, eosio::name member);
   static void make_base_coagreements(eosio::name coopname, eosio::symbol govern_symbol);
   
@@ -307,7 +318,8 @@ struct [[eosio::table, eosio::contract(SOVIET)]] automator {
     uint64_t board_id; ///< Идентификатор совета
     eosio::name member; ///< Член совета, делегировавший подпись роботу
     eosio::name permission_name; ///< Разрешение аккаунта члена совета с ключом робота (не active и не owner)
-    std::vector<eosio::name> vote_types; ///< Типы решений, по которым робот голосует «за» от имени члена совета
+    std::vector<eosio::name> vote_types; ///< Типы решений, по которым робот голосует «за» сразу при появлении повестки
+    std::vector<follow_rule> follow_rules; ///< Типы решений, по которым робот повторяет голос другого члена совета
     std::vector<eosio::name> authorize_types; ///< Типы решений, протоколы которых робот подписывает от имени председателя (только для председателя)
     eosio::asset limit; ///< Лимит суммы на одно решение; нулевая сумма — без лимита (соблюдается роботом)
     eosio::time_point_sec expires_at; ///< Срок действия автоматизации; нулевое значение — бессрочно
@@ -321,8 +333,13 @@ struct [[eosio::table, eosio::contract(SOVIET)]] automator {
       return expires_at.sec_since_epoch() != 0 && expires_at <= eosio::time_point_sec(eosio::current_time_point().sec_since_epoch());
     }
 
+    /// Тип решения делегирован роботу для голосования — сразу или вслед за другим членом совета
     bool allows_vote(eosio::name decision_type) const {
-      return std::find(vote_types.begin(), vote_types.end(), decision_type) != vote_types.end();
+      if (std::find(vote_types.begin(), vote_types.end(), decision_type) != vote_types.end()) return true;
+      for (const auto& rule : follow_rules) {
+        if (rule.decision_type == decision_type) return true;
+      }
+      return false;
     }
 
     bool allows_authorize(eosio::name decision_type) const {

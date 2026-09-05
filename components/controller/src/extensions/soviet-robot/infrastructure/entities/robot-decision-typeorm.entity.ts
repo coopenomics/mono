@@ -31,6 +31,9 @@ export class RobotDecisionTypeormEntity implements RobotDecisionDomainEntity {
   @Column({ type: 'jsonb', default: () => "'[]'" })
   votes!: RobotVoteRecord[];
 
+  @Column({ type: 'jsonb', default: () => "'[]'" })
+  waiting_for!: string[];
+
   @Column({ type: 'varchar', length: 64, nullable: true })
   protocol_hash!: string | null;
 

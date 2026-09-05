@@ -1,4 +1,19 @@
-import { Field, Int, ObjectType } from '@nestjs/graphql';
+import { Field, Int, ObjectType, registerEnumType } from '@nestjs/graphql';
+import { RobotVoteMode } from '../../domain/enums/robot-vote-mode.enum';
+
+registerEnumType(RobotVoteMode, {
+  name: 'RobotVoteMode',
+  description: 'Режим голосования робота по типу решения: сразу при появлении повестки или повтором за другим членом совета',
+});
+
+@ObjectType('RobotFollowGroup', { description: 'Сколько голосов придёт вслед за одним членом совета' })
+export class RobotFollowGroupDTO {
+  @Field(() => String, { description: 'За кем повторяют' })
+  follow!: string;
+
+  @Field(() => Int, { description: 'Сколько членов совета повторяют за ним' })
+  count!: number;
+}
 
 @ObjectType('RobotVoter', { description: 'Член совета, делегировавший роботу голос по типу решения' })
 export class RobotVoterDTO {
@@ -11,6 +26,12 @@ export class RobotVoterDTO {
   @Field(() => Boolean, { description: 'Робот держит ключ этого разрешения' })
   has_key!: boolean;
 
+  @Field(() => RobotVoteMode, { description: 'Голосует сразу или повторяет за другим членом совета' })
+  mode!: RobotVoteMode;
+
+  @Field(() => String, { nullable: true, description: 'За кем повторяет голос — в режиме повтора' })
+  follow?: string | null;
+
   @Field(() => String, { description: 'Лимит суммы на одно решение; нулевой — без лимита' })
   limit!: string;
 
@@ -20,8 +41,11 @@ export class RobotVoterDTO {
 
 @ObjectType('RobotQuorum', { description: 'Кворум робота по типу решения' })
 export class RobotQuorumDTO {
-  @Field(() => Int, { description: 'Сколько голосующих членов совета делегировали голос и передали ключ' })
+  @Field(() => Int, { description: 'Голоса, которые робот подаёт сразу: члены совета в режиме «сразу» с ключом у робота' })
   delegated_count!: number;
+
+  @Field(() => [RobotFollowGroupDTO], { description: 'Голоса, которые придут вслед за ведомыми, по каждому ведомому' })
+  follow_groups!: RobotFollowGroupDTO[];
 
   @Field(() => Int, { description: 'Сколько голосов «за» нужно по правилу совета' })
   required_count!: number;
@@ -29,8 +53,11 @@ export class RobotQuorumDTO {
   @Field(() => Int, { description: 'Состав совета' })
   total_members!: number;
 
-  @Field(() => Boolean, { description: 'Робот набирает кворум сам, без ручных голосов' })
+  @Field(() => Boolean, { description: 'Кворум набирается голосами «сразу», без чьего-либо участия' })
   reached!: boolean;
+
+  @Field(() => Boolean, { description: 'Кворум набирается, если ведомые проголосуют «за»: их голоса и голоса повторяющих за ними' })
+  reachable!: boolean;
 }
 
 @ObjectType('RobotChairmanDelegation', { description: 'Автоматическая подпись протоколов председателем' })
@@ -74,8 +101,17 @@ export class RobotDecisionTypeDTO {
   @Field(() => RobotChairmanDelegationDTO, { description: 'Автоматическая подпись протоколов' })
   chairman!: RobotChairmanDelegationDTO;
 
+  @Field(() => [String], { description: 'Правила повтора, которые не сработают: замкнутый круг, ведомый без права голоса' })
+  warnings!: string[];
+
   @Field(() => Boolean, { description: 'Текущий пользователь делегировал голос по этому типу' })
   my_vote!: boolean;
+
+  @Field(() => RobotVoteMode, { nullable: true, description: 'Режим текущего пользователя по этому типу; пусто — голосует вручную' })
+  my_mode?: RobotVoteMode | null;
+
+  @Field(() => String, { nullable: true, description: 'За кем повторяет текущий пользователь — в режиме повтора' })
+  my_follow?: string | null;
 
   @Field(() => Boolean, { description: 'Текущий пользователь (председатель) делегировал подпись протоколов этого типа' })
   my_authorize!: boolean;

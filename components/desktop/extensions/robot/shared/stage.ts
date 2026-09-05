@@ -6,6 +6,8 @@ export function robotStageMeta(stage: string): { label: string; variant: BaseBad
   switch (String(stage).toLowerCase()) {
     case 'new':
       return { label: 'Получено', variant: 'info' };
+    case 'awaiting_followed':
+      return { label: 'Ждёт голоса', variant: 'warn' };
     case 'voted':
       return { label: 'Голоса поданы', variant: 'info' };
     case 'awaiting_quorum':

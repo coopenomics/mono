@@ -6,9 +6,20 @@ export const ROBOT_PERMISSION = 'robot';
 /** Нулевое время в цепи — «бессрочно». */
 export const NO_EXPIRY = '1970-01-01T00:00:00';
 
+/** Правило «как ‹член совета›» по типу решения. */
+export type RobotFollowRule = SovietContract.Interfaces.IFollowRule;
+
 export interface RobotAutomationDraft {
+  /** Типы, по которым робот голосует сразу. */
   vote_types: string[];
+  /** Типы, по которым робот повторяет голос другого члена совета. */
+  follow_rules: RobotFollowRule[];
   authorize_types: string[];
+}
+
+/** В черновике есть хоть одно правило — запись в реестре нужна. */
+export function draftHasRules(draft: RobotAutomationDraft): boolean {
+  return draft.vote_types.length > 0 || draft.follow_rules.length > 0 || draft.authorize_types.length > 0;
 }
 
 export interface RobotActionContext {
@@ -30,6 +41,7 @@ export function automateAction(ctx: RobotActionContext, boardId: number, draft: 
     member: ctx.username,
     permission_name: ROBOT_PERMISSION,
     vote_types: draft.vote_types,
+    follow_rules: draft.follow_rules,
     authorize_types: draft.authorize_types,
     limit: ctx.zeroLimit,
     expires_at: NO_EXPIRY,

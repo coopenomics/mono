@@ -3,6 +3,7 @@ import {
   ROBOT_PERMISSION,
   automateAction,
   deleteauthAction,
+  draftHasRules,
   disautomateAction,
   isSameLinkError,
   linkauthAction,
@@ -42,7 +43,7 @@ export class RobotDelegationOps {
     if (this.pendingWif) return this.handOverPendingKey();
     const key = PrivateKey.generate(KeyType.K1);
     const actions: any[] = [updateauthAction(this.deps.ctx(), key.toPublic().toString())];
-    if (draft.vote_types.length || draft.authorize_types.length) actions.push(automateAction(this.deps.ctx(), boardId, draft));
+    if (draftHasRules(draft)) actions.push(automateAction(this.deps.ctx(), boardId, draft));
     await this.deps.transact(actions);
     this.pendingWif = key.toWif();
     try {
@@ -55,7 +56,7 @@ export class RobotDelegationOps {
 
   /** Изменение списков типов при уже выпущенном ключе. Пустые списки — отзыв записи. */
   async saveAutomation(boardId: number, draft: RobotAutomationDraft, hasRecord: boolean): Promise<void> {
-    if (!draft.vote_types.length && !draft.authorize_types.length) {
+    if (!draftHasRules(draft)) {
       if (hasRecord) await this.deps.transact(disautomateAction(this.deps.ctx(), boardId));
       return;
     }

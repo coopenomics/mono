@@ -25,6 +25,9 @@ export class RobotWatchdogService {
   private readonly coopname = platformSettings().coopname;
   private running = false;
   private wake: Set<RobotDecisionStage> = new Set();
+  /** Проходы в работе по решениям и по одному добавочному проходу, поставленному вслед. */
+  private readonly inflight = new Map<string, Promise<RobotDecisionDomainEntity>>();
+  private readonly queued = new Map<string, Promise<RobotDecisionDomainEntity>>();
 
   constructor(
     @Inject(ROBOT_DECISION_REPOSITORY) private readonly journal: RobotDecisionRepository,
@@ -52,7 +55,41 @@ export class RobotWatchdogService {
 
   /** Немедленная обработка записи (по событию), вне очереди сторожа. */
   async processNow(entry: RobotDecisionDomainEntity): Promise<RobotDecisionDomainEntity> {
-    return this.decisions.process(entry, await this.limits());
+    return this.processLocked(entry);
+  }
+
+  /**
+   * Одно решение — один проход за раз. Каждый голос по решению будит робота, и
+   * три голоса одной транзакции приходят тремя событиями разом; два параллельных
+   * прохода подали бы второй голос или второй протокол и затёрли бы этап друг
+   * друга. Событие во время прохода ставит один добавочный проход после текущего,
+   * остальные события ждут его же. Проход всегда берёт свежую запись из журнала.
+   */
+  async processLocked(entry: RobotDecisionDomainEntity): Promise<RobotDecisionDomainEntity> {
+    const key = `${entry.coopname}:${entry.decision_id}`;
+    const current = this.inflight.get(key);
+    if (!current) return this.runFresh(key, entry);
+    const queued = this.queued.get(key);
+    if (queued) return queued;
+    const next = current
+      .catch(() => entry)
+      .then(() => {
+        this.queued.delete(key);
+        return this.runFresh(key, entry);
+      });
+    this.queued.set(key, next);
+    return next;
+  }
+
+  private runFresh(key: string, entry: RobotDecisionDomainEntity): Promise<RobotDecisionDomainEntity> {
+    const run = (async () => {
+      const latest = (await this.journal.findByDecision(entry.coopname, entry.decision_id)) ?? entry;
+      return this.decisions.process(latest, await this.limits());
+    })();
+    this.inflight.set(key, run);
+    return run.finally(() => {
+      if (this.inflight.get(key) === run) this.inflight.delete(key);
+    });
   }
 
   /** Разбудить записи в этапе на ближайшем тике (например, после делегирования председателя). */
@@ -68,7 +105,8 @@ export class RobotWatchdogService {
     entry.last_error = null;
     entry.next_attempt_at = null;
     if (entry.stage === RobotDecisionStage.FAILED) entry.stage = RobotDecisionStage.NEW;
-    return this.decisions.process(entry, await this.limits());
+    await this.journal.save(entry);
+    return this.processLocked(entry);
   }
 
   @Interval(RobotWatchdogService.TICK_MS)
@@ -77,7 +115,6 @@ export class RobotWatchdogService {
     this.running = true;
     try {
       if (!(await this.isEnabled())) return;
-      const limits = await this.limits();
       const now = new Date();
       const due = await this.journal.findDue(this.coopname, ROBOT_ACTIVE_STAGES, now, RobotWatchdogService.BATCH);
       const woken = this.wake;
@@ -89,7 +126,7 @@ export class RobotWatchdogService {
         (d) => woken.has(d.stage) || now.getTime() - new Date(d.updated_at).getTime() >= RobotWatchdogService.TICK_MS
       );
       for (const entry of stale) {
-        await this.decisions.process(entry, limits);
+        await this.processLocked(entry);
       }
     } catch (e: any) {
       this.logger.error(`Сторож робота: ${e?.message}`, e?.stack);

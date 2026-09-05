@@ -7,17 +7,28 @@ export const rawRobotVoterSelector = {
   member: true,
   permission_name: true,
   has_key: true,
+  mode: true,
+  follow: true,
   limit: true,
   expires_at: true,
 }
 const _validateVoter: MakeAllFieldsRequired<ValueTypes['RobotVoter']> = rawRobotVoterSelector
 
+// Сколько голосов придёт вслед за одним ведомым
+export const rawRobotFollowGroupSelector = {
+  follow: true,
+  count: true,
+}
+const _validateFollowGroup: MakeAllFieldsRequired<ValueTypes['RobotFollowGroup']> = rawRobotFollowGroupSelector
+
 // Кворум робота по типу решения
 export const rawRobotQuorumSelector = {
   delegated_count: true,
+  follow_groups: rawRobotFollowGroupSelector,
   required_count: true,
   total_members: true,
   reached: true,
+  reachable: true,
 }
 const _validateQuorum: MakeAllFieldsRequired<ValueTypes['RobotQuorum']> = rawRobotQuorumSelector
 
@@ -40,7 +51,10 @@ export const rawRobotDecisionTypeSelector = {
   voters: rawRobotVoterSelector,
   vote_quorum: rawRobotQuorumSelector,
   chairman: rawRobotChairmanDelegationSelector,
+  warnings: true,
   my_vote: true,
+  my_mode: true,
+  my_follow: true,
   my_authorize: true,
 }
 const _validateType: MakeAllFieldsRequired<ValueTypes['RobotDecisionType']> = rawRobotDecisionTypeSelector
@@ -67,6 +81,7 @@ export const rawRobotDecisionSelector = {
   username: true,
   stage: true,
   votes: rawRobotVoteRecordSelector,
+  waiting_for: true,
   protocol_hash: true,
   tx_hashes: true,
   last_error: true,

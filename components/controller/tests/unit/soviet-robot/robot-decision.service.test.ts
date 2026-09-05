@@ -35,8 +35,13 @@ function makeBoard() {
   } as any;
 }
 
-function automation(member: string, vote_types: string[], authorize_types: string[] = []) {
-  return { member, permission_name: 'robot', vote_types, authorize_types, limit: '0.0000 RUB', expires_at: NO_EXPIRY } as any;
+function automation(member: string, vote_types: string[], authorize_types: string[] = [], follow_rules: { decision_type: string; follow: string }[] = []) {
+  return { member, permission_name: 'robot', vote_types, follow_rules, authorize_types, limit: '0.0000 RUB', expires_at: NO_EXPIRY } as any;
+}
+
+/** Правило «как X» по свободному решению. */
+function follows(member: string, follow: string) {
+  return automation(member, [], [], [{ decision_type: 'freedecision', follow }]);
 }
 
 function makeDecision(overrides: Record<string, any> = {}) {
@@ -65,6 +70,7 @@ function makeEntry(overrides: Record<string, any> = {}) {
     username: 'ant',
     stage: RobotDecisionStage.NEW,
     votes: [],
+    waiting_for: [],
     protocol_hash: null,
     tx_hashes: [],
     last_error: null,
@@ -110,8 +116,8 @@ describe('RobotDecisionService.process', () => {
     expect(result.last_error).toBeNull();
     expect(chain.submitVotes).toHaveBeenCalledTimes(1);
     const votes = chain.submitVotes.mock.calls[0][1];
-    expect(votes.map((v: any) => v.username)).toEqual(['petr', 'anna']);
-    expect(votes.every((v: any) => v.permission === 'robot' && v.decision_id === 7)).toBe(true);
+    expect(votes.map((v: any) => v.data.username)).toEqual(['petr', 'anna']);
+    expect(votes.every((v: any) => !v.against && v.data.permission === 'robot' && v.data.decision_id === 7)).toBe(true);
     expect(result.stage).toBe(RobotDecisionStage.VOTED);
     expect(result.votes.map((v: any) => v.member)).toEqual(['petr', 'anna']);
     expect(result.tx_hashes).toEqual(['tx-votes']);
@@ -169,6 +175,53 @@ describe('RobotDecisionService.process', () => {
     expect(result.stage).toBe(RobotDecisionStage.EXECUTED);
     expect(result.tx_hashes).toEqual(['tx-votes', 'tx-exec']);
     expect(result.protocol_hash).toBeTruthy();
+  });
+
+  it('режим повтора: пока ведомый не проголосовал, робот ждёт его и пишет, кого', async () => {
+    const { service, chain } = build({ decision: makeDecision(), automations: [follows('petr', 'ant'), follows('anna', 'ant')], keys: { petr: wif(), anna: wif() } });
+    const result = await service.process(makeEntry(), LIMITS);
+    expect(chain.submitVotes).not.toHaveBeenCalled();
+    expect(result.stage).toBe(RobotDecisionStage.AWAITING_FOLLOWED);
+    expect(result.waiting_for).toEqual(['ant']);
+  });
+
+  it('режим повтора: голос ведомого «за» — повторяющие голосуют «за», «против» — «против»', async () => {
+    const keys = { petr: wif(), anna: wif() };
+    const { service, chain } = build({
+      decision: makeDecision({ votes_for: ['ant'], votes_against: ['olga'] }),
+      automations: [follows('petr', 'ant'), follows('anna', 'olga')],
+      keys,
+    });
+    const result = await service.process(makeEntry(), LIMITS);
+    expect(chain.submitVotes).toHaveBeenCalledTimes(1);
+    const votes = chain.submitVotes.mock.calls[0][1];
+    expect(votes.map((v: any) => [v.data.username, v.against])).toEqual([['petr', false], ['anna', true]]);
+    expect(result.waiting_for).toEqual([]);
+    expect(result.stage).toBe(RobotDecisionStage.VOTED);
+  });
+
+  it('цепочка повтора: A как B, B как C — после голоса C голосует только B, A ждёт B', async () => {
+    const { service, chain } = build({
+      decision: makeDecision({ votes_for: ['mikhail'] }),
+      automations: [follows('petr', 'anna'), follows('anna', 'mikhail')],
+      keys: { petr: wif(), anna: wif() },
+    });
+    const result = await service.process(makeEntry(), LIMITS);
+    const votes = chain.submitVotes.mock.calls[0][1];
+    expect(votes.map((v: any) => v.data.username)).toEqual(['anna']);
+    expect(result.waiting_for).toEqual(['anna']);
+  });
+
+  it('режим «сразу» и режим повтора уживаются в одной транзакции', async () => {
+    const { service, chain } = build({
+      decision: makeDecision({ votes_for: ['ant'] }),
+      automations: [automation('petr', ['freedecision']), follows('anna', 'ant'), follows('mikhail', 'olga')],
+      keys: { petr: wif(), anna: wif(), mikhail: wif() },
+    });
+    const result = await service.process(makeEntry(), LIMITS);
+    const votes = chain.submitVotes.mock.calls[0][1];
+    expect(votes.map((v: any) => v.data.username)).toEqual(['petr', 'anna']);
+    expect(result.waiting_for).toEqual(['olga']);
   });
 
   it('решение исчезло с повестки — запись закрывается', async () => {

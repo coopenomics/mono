@@ -2,7 +2,8 @@
  * Реестр действий автоматизации робота совета: кворум по правилу контракта,
  * фильтрация просроченных делегирований, ключи и подпись протоколов председателем.
  */
-import { RobotRegistryService, isAutomationExpired, requiredVotes } from '~/extensions/soviet-robot/application/services/robot-registry.service';
+import { RobotRegistryService, followCycles, isAutomationExpired, requiredVotes } from '~/extensions/soviet-robot/application/services/robot-registry.service';
+import { RobotVoteMode } from '~/extensions/soviet-robot/domain/enums/robot-vote-mode.enum';
 
 const NO_EXPIRY = '1970-01-01T00:00:00';
 
@@ -14,7 +15,7 @@ function board(members: any[]) {
   return { id: 0, type: 'soviet', members } as any;
 }
 
-function automation(member: string, vote_types: string[], authorize_types: string[] = [], expires_at = NO_EXPIRY) {
+function automation(member: string, vote_types: string[], authorize_types: string[] = [], expires_at = NO_EXPIRY, follow_rules: { decision_type: string; follow: string }[] = []) {
   return {
     id: 1,
     coopname: 'voskhod',
@@ -22,6 +23,7 @@ function automation(member: string, vote_types: string[], authorize_types: strin
     member,
     permission_name: 'robot',
     vote_types,
+    follow_rules,
     authorize_types,
     limit: '0.0000 RUB',
     expires_at,
@@ -45,7 +47,7 @@ describe('RobotRegistryService.buildRegistry', () => {
     const registry = service.buildRegistry(rows, council, new Set(['petr', 'anna']), 'petr');
     const free = registry.find((r) => r.type === 'freedecision')!;
     expect(free.voters.map((v) => v.member)).toEqual(['petr', 'anna', 'mikhail']);
-    expect(free.vote_quorum).toEqual({ delegated_count: 2, required_count: 3, total_members: 5, reached: false });
+    expect(free.vote_quorum).toEqual({ delegated_count: 2, follow_groups: [], required_count: 3, total_members: 5, reached: false, reachable: false });
     expect(free.my_vote).toBe(true);
     expect(free.my_authorize).toBe(false);
   });
@@ -61,6 +63,51 @@ describe('RobotRegistryService.buildRegistry', () => {
     expect(free.vote_quorum.reached).toBe(true);
     expect(free.chairman).toEqual({ username: 'ant', delegated: true, has_key: true });
     expect(free.my_authorize).toBe(true);
+  });
+
+  it('режим повтора: группы по ведомым, кворум достижим после их голосов', () => {
+    const follow = (m: string, f: string) => automation(m, [], [], NO_EXPIRY, [{ decision_type: 'freedecision', follow: f }]);
+    const rows = [automation('petr', ['freedecision']), follow('anna', 'ant'), follow('mikhail', 'ant'), follow('olga', 'petr')];
+    const registry = service.buildRegistry(rows, council, new Set(['petr', 'anna', 'mikhail', 'olga']), 'anna');
+    const free = registry.find((r) => r.type === 'freedecision')!;
+    expect(free.voters.map((v) => [v.member, v.mode, v.follow])).toEqual([
+      ['petr', RobotVoteMode.AUTO, null],
+      ['anna', RobotVoteMode.FOLLOW, 'ant'],
+      ['mikhail', RobotVoteMode.FOLLOW, 'ant'],
+      ['olga', RobotVoteMode.FOLLOW, 'petr'],
+    ]);
+    expect(free.vote_quorum).toEqual({
+      delegated_count: 1,
+      follow_groups: [{ follow: 'ant', count: 2 }, { follow: 'petr', count: 1 }],
+      required_count: 3,
+      total_members: 5,
+      reached: false,
+      reachable: true,
+    });
+    expect(free.my_mode).toBe(RobotVoteMode.FOLLOW);
+    expect(free.my_follow).toBe('ant');
+    expect(free.my_vote).toBe(true);
+    expect(free.warnings).toEqual([]);
+  });
+
+  it('повтор без ключа у робота в кворум не идёт', () => {
+    const rows = [automation('anna', [], [], NO_EXPIRY, [{ decision_type: 'freedecision', follow: 'ant' }])];
+    const registry = service.buildRegistry(rows, council, new Set());
+    expect(registry.find((r) => r.type === 'freedecision')!.vote_quorum.follow_groups).toEqual([]);
+  });
+
+  it('замкнутый круг и ведомый без права голоса — предупреждения', () => {
+    const follow = (m: string, f: string) => automation(m, [], [], NO_EXPIRY, [{ decision_type: 'freedecision', follow: f }]);
+    const withSilent = board([member('ant', 'chairman'), member('petr'), member('anna'), member('mikhail'), member('olga', 'member', false)]);
+    const rows = [follow('petr', 'anna'), follow('anna', 'petr'), follow('mikhail', 'olga')];
+    const registry = service.buildRegistry(rows, withSilent, new Set(['petr', 'anna', 'mikhail']));
+    const free = registry.find((r) => r.type === 'freedecision')!;
+    expect(free.warnings).toEqual([
+      'mikhail повторяет за olga, у которого нет права голоса',
+      'petr, anna повторяют друг за другом — никто не проголосует первым',
+    ]);
+    expect(followCycles(new Map([['a', 'b'], ['b', 'c'], ['c', 'a'], ['d', 'a']]))).toEqual([['a', 'b', 'c']]);
+    expect(followCycles(new Map([['a', 'b'], ['b', 'x']]))).toEqual([]);
   });
 
   it('просроченное делегирование не учитывается', () => {

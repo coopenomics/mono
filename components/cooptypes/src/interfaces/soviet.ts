@@ -118,12 +118,19 @@ export interface IAuthorize {
   permission: IName
 }
 
+/** Правило повтора: по какому типу решения и за кем член совета повторяет голос */
+export interface IFollowRule {
+  decision_type: IName
+  follow: IName
+}
+
 export interface IAutomate {
   coopname: IName
   board_id: IUint64
   member: IName
   permission_name: IName
   vote_types: IName[]
+  follow_rules: IFollowRule[]
   authorize_types: IName[]
   limit: IAsset
   expires_at: ITimePointSec
@@ -136,6 +143,7 @@ export interface IAutomator {
   member: IName
   permission_name: IName
   vote_types: IName[]
+  follow_rules: IFollowRule[]
   authorize_types: IName[]
   limit: IAsset
   expires_at: ITimePointSec

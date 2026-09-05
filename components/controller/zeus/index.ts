@@ -14896,6 +14896,8 @@ verificationReviews?: [{	data?: ValueTypes["VerificationReviewsInput"] | undefin
 	username?:boolean | `@${string}`,
 	/** Голоса, поданные роботом */
 	votes?:ValueTypes["RobotVoteRecord"],
+	/** Члены совета, чьих голосов ждут повторяющие за ними */
+	waiting_for?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
 	['...on RobotDecision']?: Omit<ValueTypes["RobotDecision"], "...on RobotDecision">
 }>;
@@ -14911,6 +14913,10 @@ verificationReviews?: [{	data?: ValueTypes["VerificationReviewsInput"] | undefin
 	description?:boolean | `@${string}`,
 	/** Текущий пользователь (председатель) делегировал подпись протоколов этого типа */
 	my_authorize?:boolean | `@${string}`,
+	/** За кем повторяет текущий пользователь — в режиме повтора */
+	my_follow?:boolean | `@${string}`,
+	/** Режим текущего пользователя по этому типу; пусто — голосует вручную */
+	my_mode?:boolean | `@${string}`,
 	/** Текущий пользователь делегировал голос по этому типу */
 	my_vote?:boolean | `@${string}`,
 	/** Номер шаблона протокола в реестре документов */
@@ -14925,6 +14931,8 @@ verificationReviews?: [{	data?: ValueTypes["VerificationReviewsInput"] | undefin
 	vote_quorum?:ValueTypes["RobotQuorum"],
 	/** Кто делегировал роботу голос по этому типу */
 	voters?:ValueTypes["RobotVoter"],
+	/** Правила повтора, которые не сработают: замкнутый круг, ведомый без права голоса */
+	warnings?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
 	['...on RobotDecisionType']?: Omit<ValueTypes["RobotDecisionType"], "...on RobotDecisionType">
 }>;
@@ -14935,6 +14943,15 @@ verificationReviews?: [{	data?: ValueTypes["VerificationReviewsInput"] | undefin
 	/** Приватный ключ разрешения робота (WIF); передаётся один раз и не хранится на устройстве */
 	wif: string | Variable<any, string>
 };
+	/** Сколько голосов придёт вслед за одним членом совета */
+["RobotFollowGroup"]: AliasType<{
+	/** Сколько членов совета повторяют за ним */
+	count?:boolean | `@${string}`,
+	/** За кем повторяют */
+	follow?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on RobotFollowGroup']?: Omit<ValueTypes["RobotFollowGroup"], "...on RobotFollowGroup">
+}>;
 	/** Состояние ключа робота у члена совета */
 ["RobotKeyStatus"]: AliasType<{
 	/** На аккаунте есть разрешение робота */
@@ -14956,9 +14973,13 @@ verificationReviews?: [{	data?: ValueTypes["VerificationReviewsInput"] | undefin
 }>;
 	/** Кворум робота по типу решения */
 ["RobotQuorum"]: AliasType<{
-	/** Сколько голосующих членов совета делегировали голос и передали ключ */
+	/** Голоса, которые робот подаёт сразу: члены совета в режиме «сразу» с ключом у робота */
 	delegated_count?:boolean | `@${string}`,
-	/** Робот набирает кворум сам, без ручных голосов */
+	/** Голоса, которые придут вслед за ведомыми, по каждому ведомому */
+	follow_groups?:ValueTypes["RobotFollowGroup"],
+	/** Кворум набирается, если все ведомые проголосуют «за» */
+	reachable?:boolean | `@${string}`,
+	/** Кворум набирается голосами «сразу», без чьего-либо участия */
 	reached?:boolean | `@${string}`,
 	/** Сколько голосов «за» нужно по правилу совета */
 	required_count?:boolean | `@${string}`,
@@ -14972,6 +14993,8 @@ verificationReviews?: [{	data?: ValueTypes["VerificationReviewsInput"] | undefin
 	/** Номер решения совета */
 	decision_id: number | Variable<any, string>
 };
+	/** Режим голосования робота по типу решения: сразу при появлении повестки или повтором за другим членом совета */
+["RobotVoteMode"]:RobotVoteMode;
 	/** Голос, поданный роботом от имени члена совета */
 ["RobotVoteRecord"]: AliasType<{
 	/** Когда подан */
@@ -14989,12 +15012,16 @@ verificationReviews?: [{	data?: ValueTypes["VerificationReviewsInput"] | undefin
 ["RobotVoter"]: AliasType<{
 	/** Срок действия делегирования; пусто — бессрочно */
 	expires_at?:boolean | `@${string}`,
+	/** За кем повторяет голос — в режиме повтора */
+	follow?:boolean | `@${string}`,
 	/** Робот держит ключ этого разрешения */
 	has_key?:boolean | `@${string}`,
 	/** Лимит суммы на одно решение; нулевой — без лимита */
 	limit?:boolean | `@${string}`,
 	/** Учётное имя члена совета */
 	member?:boolean | `@${string}`,
+	/** Голосует сразу или повторяет за другим членом совета */
+	mode?:boolean | `@${string}`,
 	/** Разрешение аккаунта с ключом робота */
 	permission_name?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
@@ -29793,6 +29820,8 @@ verificationReviews?: [{	data?: ResolverInputTypes["VerificationReviewsInput"] |
 	username?:boolean | `@${string}`,
 	/** Голоса, поданные роботом */
 	votes?:ResolverInputTypes["RobotVoteRecord"],
+	/** Члены совета, чьих голосов ждут повторяющие за ними */
+	waiting_for?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
 	/** Этап решения в журнале робота совета */
@@ -29807,6 +29836,10 @@ verificationReviews?: [{	data?: ResolverInputTypes["VerificationReviewsInput"] |
 	description?:boolean | `@${string}`,
 	/** Текущий пользователь (председатель) делегировал подпись протоколов этого типа */
 	my_authorize?:boolean | `@${string}`,
+	/** За кем повторяет текущий пользователь — в режиме повтора */
+	my_follow?:boolean | `@${string}`,
+	/** Режим текущего пользователя по этому типу; пусто — голосует вручную */
+	my_mode?:boolean | `@${string}`,
 	/** Текущий пользователь делегировал голос по этому типу */
 	my_vote?:boolean | `@${string}`,
 	/** Номер шаблона протокола в реестре документов */
@@ -29821,6 +29854,8 @@ verificationReviews?: [{	data?: ResolverInputTypes["VerificationReviewsInput"] |
 	vote_quorum?:ResolverInputTypes["RobotQuorum"],
 	/** Кто делегировал роботу голос по этому типу */
 	voters?:ResolverInputTypes["RobotVoter"],
+	/** Правила повтора, которые не сработают: замкнутый круг, ведомый без права голоса */
+	warnings?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
 	/** Передача роботу приватного ключа разрешения */
@@ -29830,6 +29865,14 @@ verificationReviews?: [{	data?: ResolverInputTypes["VerificationReviewsInput"] |
 	/** Приватный ключ разрешения робота (WIF); передаётся один раз и не хранится на устройстве */
 	wif: string
 };
+	/** Сколько голосов придёт вслед за одним членом совета */
+["RobotFollowGroup"]: AliasType<{
+	/** Сколько членов совета повторяют за ним */
+	count?:boolean | `@${string}`,
+	/** За кем повторяют */
+	follow?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
 	/** Состояние ключа робота у члена совета */
 ["RobotKeyStatus"]: AliasType<{
 	/** На аккаунте есть разрешение робота */
@@ -29850,9 +29893,13 @@ verificationReviews?: [{	data?: ResolverInputTypes["VerificationReviewsInput"] |
 }>;
 	/** Кворум робота по типу решения */
 ["RobotQuorum"]: AliasType<{
-	/** Сколько голосующих членов совета делегировали голос и передали ключ */
+	/** Голоса, которые робот подаёт сразу: члены совета в режиме «сразу» с ключом у робота */
 	delegated_count?:boolean | `@${string}`,
-	/** Робот набирает кворум сам, без ручных голосов */
+	/** Голоса, которые придут вслед за ведомыми, по каждому ведомому */
+	follow_groups?:ResolverInputTypes["RobotFollowGroup"],
+	/** Кворум набирается, если все ведомые проголосуют «за» */
+	reachable?:boolean | `@${string}`,
+	/** Кворум набирается голосами «сразу», без чьего-либо участия */
 	reached?:boolean | `@${string}`,
 	/** Сколько голосов «за» нужно по правилу совета */
 	required_count?:boolean | `@${string}`,
@@ -29865,6 +29912,8 @@ verificationReviews?: [{	data?: ResolverInputTypes["VerificationReviewsInput"] |
 	/** Номер решения совета */
 	decision_id: number
 };
+	/** Режим голосования робота по типу решения: сразу при появлении повестки или повтором за другим членом совета */
+["RobotVoteMode"]:RobotVoteMode;
 	/** Голос, поданный роботом от имени члена совета */
 ["RobotVoteRecord"]: AliasType<{
 	/** Когда подан */
@@ -29881,12 +29930,16 @@ verificationReviews?: [{	data?: ResolverInputTypes["VerificationReviewsInput"] |
 ["RobotVoter"]: AliasType<{
 	/** Срок действия делегирования; пусто — бессрочно */
 	expires_at?:boolean | `@${string}`,
+	/** За кем повторяет голос — в режиме повтора */
+	follow?:boolean | `@${string}`,
 	/** Робот держит ключ этого разрешения */
 	has_key?:boolean | `@${string}`,
 	/** Лимит суммы на одно решение; нулевой — без лимита */
 	limit?:boolean | `@${string}`,
 	/** Учётное имя члена совета */
 	member?:boolean | `@${string}`,
+	/** Голосует сразу или повторяет за другим членом совета */
+	mode?:boolean | `@${string}`,
 	/** Разрешение аккаунта с ключом робота */
 	permission_name?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
@@ -45317,7 +45370,9 @@ export type ModelTypes = {
 	/** Кто подал повестку */
 	username: string,
 	/** Голоса, поданные роботом */
-	votes: Array<ModelTypes["RobotVoteRecord"]>
+	votes: Array<ModelTypes["RobotVoteRecord"]>,
+	/** Члены совета, чьих голосов ждут повторяющие за ними */
+	waiting_for: Array<string>
 };
 	["RobotDecisionStage"]:RobotDecisionStage;
 	/** Тип решения совета в реестре действий автоматизации */
@@ -45330,6 +45385,10 @@ export type ModelTypes = {
 	description: string,
 	/** Текущий пользователь (председатель) делегировал подпись протоколов этого типа */
 	my_authorize: boolean,
+	/** За кем повторяет текущий пользователь — в режиме повтора */
+	my_follow?: string | undefined | null,
+	/** Режим текущего пользователя по этому типу; пусто — голосует вручную */
+	my_mode?: ModelTypes["RobotVoteMode"] | undefined | null,
 	/** Текущий пользователь делегировал голос по этому типу */
 	my_vote: boolean,
 	/** Номер шаблона протокола в реестре документов */
@@ -45343,7 +45402,9 @@ export type ModelTypes = {
 	/** Кворум робота */
 	vote_quorum: ModelTypes["RobotQuorum"],
 	/** Кто делегировал роботу голос по этому типу */
-	voters: Array<ModelTypes["RobotVoter"]>
+	voters: Array<ModelTypes["RobotVoter"]>,
+	/** Правила повтора, которые не сработают: замкнутый круг, ведомый без права голоса */
+	warnings: Array<string>
 };
 	/** Передача роботу приватного ключа разрешения */
 ["RobotDelegateKeyInput"]: {
@@ -45351,6 +45412,13 @@ export type ModelTypes = {
 	permission_name?: string | undefined | null,
 	/** Приватный ключ разрешения робота (WIF); передаётся один раз и не хранится на устройстве */
 	wif: string
+};
+	/** Сколько голосов придёт вслед за одним членом совета */
+["RobotFollowGroup"]: {
+		/** Сколько членов совета повторяют за ним */
+	count: number,
+	/** За кем повторяют */
+	follow: string
 };
 	/** Состояние ключа робота у члена совета */
 ["RobotKeyStatus"]: {
@@ -45371,9 +45439,13 @@ export type ModelTypes = {
 };
 	/** Кворум робота по типу решения */
 ["RobotQuorum"]: {
-		/** Сколько голосующих членов совета делегировали голос и передали ключ */
+		/** Голоса, которые робот подаёт сразу: члены совета в режиме «сразу» с ключом у робота */
 	delegated_count: number,
-	/** Робот набирает кворум сам, без ручных голосов */
+	/** Голоса, которые придут вслед за ведомыми, по каждому ведомому */
+	follow_groups: Array<ModelTypes["RobotFollowGroup"]>,
+	/** Кворум набирается, если все ведомые проголосуют «за» */
+	reachable: boolean,
+	/** Кворум набирается голосами «сразу», без чьего-либо участия */
 	reached: boolean,
 	/** Сколько голосов «за» нужно по правилу совета */
 	required_count: number,
@@ -45385,6 +45457,7 @@ export type ModelTypes = {
 	/** Номер решения совета */
 	decision_id: number
 };
+	["RobotVoteMode"]:RobotVoteMode;
 	/** Голос, поданный роботом от имени члена совета */
 ["RobotVoteRecord"]: {
 		/** Когда подан */
@@ -45400,12 +45473,16 @@ export type ModelTypes = {
 ["RobotVoter"]: {
 		/** Срок действия делегирования; пусто — бессрочно */
 	expires_at?: string | undefined | null,
+	/** За кем повторяет голос — в режиме повтора */
+	follow?: string | undefined | null,
 	/** Робот держит ключ этого разрешения */
 	has_key: boolean,
 	/** Лимит суммы на одно решение; нулевой — без лимита */
 	limit: string,
 	/** Учётное имя члена совета */
 	member: string,
+	/** Голосует сразу или повторяет за другим членом совета */
+	mode: ModelTypes["RobotVoteMode"],
 	/** Разрешение аккаунта с ключом робота */
 	permission_name: string
 };
@@ -61681,6 +61758,8 @@ export type GraphQLTypes = {
 	username: string,
 	/** Голоса, поданные роботом */
 	votes: Array<GraphQLTypes["RobotVoteRecord"]>,
+	/** Члены совета, чьих голосов ждут повторяющие за ними */
+	waiting_for: Array<string>,
 	['...on RobotDecision']: Omit<GraphQLTypes["RobotDecision"], "...on RobotDecision">
 };
 	/** Этап решения в журнале робота совета */
@@ -61696,6 +61775,10 @@ export type GraphQLTypes = {
 	description: string,
 	/** Текущий пользователь (председатель) делегировал подпись протоколов этого типа */
 	my_authorize: boolean,
+	/** За кем повторяет текущий пользователь — в режиме повтора */
+	my_follow?: string | undefined | null,
+	/** Режим текущего пользователя по этому типу; пусто — голосует вручную */
+	my_mode?: GraphQLTypes["RobotVoteMode"] | undefined | null,
 	/** Текущий пользователь делегировал голос по этому типу */
 	my_vote: boolean,
 	/** Номер шаблона протокола в реестре документов */
@@ -61710,6 +61793,8 @@ export type GraphQLTypes = {
 	vote_quorum: GraphQLTypes["RobotQuorum"],
 	/** Кто делегировал роботу голос по этому типу */
 	voters: Array<GraphQLTypes["RobotVoter"]>,
+	/** Правила повтора, которые не сработают: замкнутый круг, ведомый без права голоса */
+	warnings: Array<string>,
 	['...on RobotDecisionType']: Omit<GraphQLTypes["RobotDecisionType"], "...on RobotDecisionType">
 };
 	/** Передача роботу приватного ключа разрешения */
@@ -61718,6 +61803,15 @@ export type GraphQLTypes = {
 	permission_name?: string | undefined | null,
 	/** Приватный ключ разрешения робота (WIF); передаётся один раз и не хранится на устройстве */
 	wif: string
+};
+	/** Сколько голосов придёт вслед за одним членом совета */
+["RobotFollowGroup"]: {
+	__typename: "RobotFollowGroup",
+	/** Сколько членов совета повторяют за ним */
+	count: number,
+	/** За кем повторяют */
+	follow: string,
+	['...on RobotFollowGroup']: Omit<GraphQLTypes["RobotFollowGroup"], "...on RobotFollowGroup">
 };
 	/** Состояние ключа робота у члена совета */
 ["RobotKeyStatus"]: {
@@ -61741,9 +61835,13 @@ export type GraphQLTypes = {
 	/** Кворум робота по типу решения */
 ["RobotQuorum"]: {
 	__typename: "RobotQuorum",
-	/** Сколько голосующих членов совета делегировали голос и передали ключ */
+	/** Голоса, которые робот подаёт сразу: члены совета в режиме «сразу» с ключом у робота */
 	delegated_count: number,
-	/** Робот набирает кворум сам, без ручных голосов */
+	/** Голоса, которые придут вслед за ведомыми, по каждому ведомому */
+	follow_groups: Array<GraphQLTypes["RobotFollowGroup"]>,
+	/** Кворум набирается, если все ведомые проголосуют «за» */
+	reachable: boolean,
+	/** Кворум набирается голосами «сразу», без чьего-либо участия */
 	reached: boolean,
 	/** Сколько голосов «за» нужно по правилу совета */
 	required_count: number,
@@ -61756,6 +61854,8 @@ export type GraphQLTypes = {
 		/** Номер решения совета */
 	decision_id: number
 };
+	/** Режим голосования робота по типу решения: сразу при появлении повестки или повтором за другим членом совета */
+["RobotVoteMode"]: RobotVoteMode;
 	/** Голос, поданный роботом от имени члена совета */
 ["RobotVoteRecord"]: {
 	__typename: "RobotVoteRecord",
@@ -61774,12 +61874,16 @@ export type GraphQLTypes = {
 	__typename: "RobotVoter",
 	/** Срок действия делегирования; пусто — бессрочно */
 	expires_at?: string | undefined | null,
+	/** За кем повторяет голос — в режиме повтора */
+	follow?: string | undefined | null,
 	/** Робот держит ключ этого разрешения */
 	has_key: boolean,
 	/** Лимит суммы на одно решение; нулевой — без лимита */
 	limit: string,
 	/** Учётное имя члена совета */
 	member: string,
+	/** Голосует сразу или повторяет за другим членом совета */
+	mode: GraphQLTypes["RobotVoteMode"],
 	/** Разрешение аккаунта с ключом робота */
 	permission_name: string,
 	['...on RobotVoter']: Omit<GraphQLTypes["RobotVoter"], "...on RobotVoter">
@@ -63971,6 +64075,7 @@ export enum ResultStatus {
 /** Этап решения в журнале робота совета */
 export enum RobotDecisionStage {
 	AWAITING_CHAIRMAN = "AWAITING_CHAIRMAN",
+	AWAITING_FOLLOWED = "AWAITING_FOLLOWED",
 	AWAITING_PROTOCOL = "AWAITING_PROTOCOL",
 	AWAITING_QUORUM = "AWAITING_QUORUM",
 	CLOSED = "CLOSED",
@@ -63978,6 +64083,11 @@ export enum RobotDecisionStage {
 	FAILED = "FAILED",
 	NEW = "NEW",
 	VOTED = "VOTED"
+}
+/** Режим голосования робота по типу решения: сразу при появлении повестки или повтором за другим членом совета */
+export enum RobotVoteMode {
+	AUTO = "AUTO",
+	FOLLOW = "FOLLOW"
 }
 /** Тип сообщения в истории комнаты Matrix (текст или расшифрованное аудио) */
 export enum RoomMessageKind {
@@ -64648,6 +64758,7 @@ type ZEUS_VARIABLES = {
 	["RobotDecisionStage"]: ValueTypes["RobotDecisionStage"];
 	["RobotDelegateKeyInput"]: ValueTypes["RobotDelegateKeyInput"];
 	["RobotRetryDecisionInput"]: ValueTypes["RobotRetryDecisionInput"];
+	["RobotVoteMode"]: ValueTypes["RobotVoteMode"];
 	["RoomMessageKind"]: ValueTypes["RoomMessageKind"];
 	["SaveCapitalProgramDocDataInput"]: ValueTypes["SaveCapitalProgramDocDataInput"];
 	["SaveReportDraftInput"]: ValueTypes["SaveReportDraftInput"];

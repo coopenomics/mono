@@ -24,7 +24,7 @@ export class RobotDecisionTypeormRepository implements RobotDecisionRepository {
     const existing = await this.findByDecision(data.coopname, data.decision_id);
     if (existing) return existing;
     try {
-      return await this.repository.save(this.repository.create({ ...data, votes: [], tx_hashes: [], attempts: 0 }));
+      return await this.repository.save(this.repository.create({ ...data, votes: [], waiting_for: [], tx_hashes: [], attempts: 0 }));
     } catch (e) {
       const again = await this.findByDecision(data.coopname, data.decision_id);
       if (again) return again;

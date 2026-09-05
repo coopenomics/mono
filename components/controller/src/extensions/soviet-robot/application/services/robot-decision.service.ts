@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { Classes } from '@coopenomics/sdk';
-import { Cooperative, SovietContract } from 'cooptypes';
+import { Cooperative } from 'cooptypes';
 import { DomainToBlockchainUtils } from '@coopenomics/extension-kit';
 import {
   DOCUMENT_PORT,
@@ -12,7 +12,7 @@ import {
 import { RobotDecisionStage } from '../../domain/enums/robot-decision-stage.enum';
 import type { RobotDecisionDomainEntity } from '../../domain/entities/robot-decision.entity';
 import { ROBOT_DECISION_REPOSITORY, type RobotDecisionRepository } from '../../domain/repositories/robot-decision.repository';
-import { RobotChainService, type AutomatorRow, type BoardRow, type DecisionRow } from './robot-chain.service';
+import { RobotChainService, type AutomatorRow, type BoardRow, type DecisionRow, type RobotVoteAction } from './robot-chain.service';
 import { RobotKeyService } from './robot-key.service';
 import { isAutomationExpired } from './robot-registry.service';
 
@@ -20,6 +20,9 @@ import { isAutomationExpired } from './robot-registry.service';
 const META_SERVICE_KEYS = new Set([
   'title', 'registry_id', 'lang', 'generator', 'version', 'coopname', 'username', 'created_at', 'block_num', 'timezone', 'links',
 ]);
+
+/** Намерение робота по одному члену совета для одного решения. */
+export type RobotVoteIntent = { kind: 'for' } | { kind: 'against' } | { kind: 'wait'; follow: string } | { kind: 'none' };
 
 export interface RobotLimits {
   max_attempts: number;
@@ -92,14 +95,22 @@ export class RobotDecisionService {
     // Шаг 1. Голоса — одна транзакция, дальше ждём следующего прохода.
     if (await this.castVotes(entry, decision, alive, board)) return entry;
 
-    // Шаг 2. Кворум.
+    return this.finishAfterVotes(entry, decision, alive, board);
+  }
+
+  /** Голоса уже в цепи: кворум (или чьи голоса ещё ждём) и, если кворум есть, протокол председателя. */
+  private async finishAfterVotes(
+    entry: RobotDecisionDomainEntity,
+    decision: DecisionRow,
+    alive: AutomatorRow[],
+    board: BoardRow
+  ): Promise<RobotDecisionDomainEntity> {
     const fresh = (await this.chain.getDecision(entry.coopname, entry.decision_id)) ?? decision;
     if (!fresh.approved) {
-      entry.stage = RobotDecisionStage.AWAITING_QUORUM;
+      entry.stage = entry.waiting_for.length ? RobotDecisionStage.AWAITING_FOLLOWED : RobotDecisionStage.AWAITING_QUORUM;
       return entry;
     }
 
-    // Шаг 3. Протокол председателя.
     const chairman = await this.chairmanSigner(entry, alive, board);
     if (!chairman) {
       entry.stage = RobotDecisionStage.AWAITING_CHAIRMAN;
@@ -147,36 +158,39 @@ export class RobotDecisionService {
     return entry;
   }
 
-  /** Голоса за делегировавших; true — транзакция ушла, запись обновлена. */
+  /**
+   * Что робот делает от имени члена совета по этому решению: голосует «за» (режим
+   * «сразу» или ведомый уже «за»), «против» (ведомый «против»), ждёт ведомого или ничего.
+   */
+  static voteIntent(row: AutomatorRow, type: string, decision: DecisionRow): RobotVoteIntent {
+    if (row.vote_types.includes(type)) return { kind: 'for' };
+    const rule = (row.follow_rules ?? []).find((r) => String(r.decision_type) === type);
+    if (!rule) return { kind: 'none' };
+    const followed = String(rule.follow);
+    if ((decision.votes_for ?? []).map(String).includes(followed)) return { kind: 'for' };
+    if ((decision.votes_against ?? []).map(String).includes(followed)) return { kind: 'against' };
+    return { kind: 'wait', follow: followed };
+  }
+
+  /** Голоса делегировавших; true — транзакция ушла, запись обновлена. */
   private async castVotes(entry: RobotDecisionDomainEntity, decision: DecisionRow, alive: AutomatorRow[], board: BoardRow): Promise<boolean> {
     const already = new Set([...(decision.votes_for ?? []), ...(decision.votes_against ?? [])].map(String));
-    const candidates = alive.filter(
-      (a) =>
-        a.vote_types.includes(entry.decision_type) &&
-        !already.has(a.member) &&
-        board.members.some((m) => m.username === a.member && m.is_voting)
-    );
-    if (candidates.length === 0) {
-      if (entry.stage === RobotDecisionStage.NEW) entry.stage = RobotDecisionStage.VOTED;
-      return false;
-    }
+    const pending = alive.filter((a) => !already.has(a.member) && board.members.some((m) => m.username === a.member && m.is_voting));
 
-    const votes: SovietContract.Actions.Decisions.VoteFor.IVoteForDecision[] = [];
+    const waiting = new Set<string>();
+    const votes: RobotVoteAction[] = [];
     const voters: { member: string; permission: string }[] = [];
-    for (const row of candidates) {
-      const key = await this.keys.getWif(entry.coopname, row.member);
-      if (!key) {
-        this.logger.warn(`У робота нет ключа члена совета ${row.member}: голос по решению ${entry.decision_id} не подан`);
-        continue;
-      }
-      if (key.permission_name !== row.permission_name) {
-        this.logger.warn(`Разрешение ключа ${row.member} (${key.permission_name}) не совпадает с реестром (${row.permission_name}): голос не подан`);
-        continue;
-      }
-      const vote = await new Classes.Vote(key.wif).voteFor(entry.coopname, row.member, entry.decision_id, row.permission_name);
+    for (const row of pending) {
+      const intent = RobotDecisionService.voteIntent(row, entry.decision_type, decision);
+      if (intent.kind === 'wait') waiting.add(intent.follow);
+      if (intent.kind !== 'for' && intent.kind !== 'against') continue;
+      const vote = await this.signVote(entry, row, intent.kind === 'against');
+      if (!vote) continue;
       votes.push(vote);
       voters.push({ member: row.member, permission: row.permission_name });
     }
+    entry.waiting_for = [...waiting];
+
     if (votes.length === 0) {
       if (entry.stage === RobotDecisionStage.NEW) entry.stage = RobotDecisionStage.VOTED;
       return false;
@@ -189,6 +203,24 @@ export class RobotDecisionService {
     entry.stage = RobotDecisionStage.VOTED;
     this.logger.info(`Решение ${entry.decision_id}: голоса робота за ${voters.map((v) => v.member).join(', ')} — транзакция ${txId}`);
     return true;
+  }
+
+  /** Подпись голоса ключом разрешения робота; null — ключа нет или он не совпадает с реестром. */
+  private async signVote(entry: RobotDecisionDomainEntity, row: AutomatorRow, against: boolean): Promise<RobotVoteAction | null> {
+    const key = await this.keys.getWif(entry.coopname, row.member);
+    if (!key) {
+      this.logger.warn(`У робота нет ключа члена совета ${row.member}: голос по решению ${entry.decision_id} не подан`);
+      return null;
+    }
+    if (key.permission_name !== row.permission_name) {
+      this.logger.warn(`Разрешение ключа ${row.member} (${key.permission_name}) не совпадает с реестром (${row.permission_name}): голос не подан`);
+      return null;
+    }
+    const signer = new Classes.Vote(key.wif);
+    const data = against
+      ? await signer.voteAgainst(entry.coopname, row.member, entry.decision_id, row.permission_name)
+      : await signer.voteFor(entry.coopname, row.member, entry.decision_id, row.permission_name);
+    return { data, against };
   }
 
   /**

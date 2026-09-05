@@ -4,7 +4,7 @@ import { SovietContract } from 'cooptypes';
 import { LOGGER_PORT, type ILoggerPort, type InnerChainActionRecord } from '@coopenomics/innercoop';
 import { platformSettings } from '@coopenomics/extension-kit';
 import { SOVIET } from '../../domain/constants';
-import { RobotDecisionStage } from '../../domain/enums/robot-decision-stage.enum';
+import { ROBOT_ACTIVE_STAGES, RobotDecisionStage } from '../../domain/enums/robot-decision-stage.enum';
 import { ROBOT_DECISION_REPOSITORY, type RobotDecisionRepository } from '../../domain/repositories/robot-decision.repository';
 import { RobotKeyService } from './robot-key.service';
 import { RobotWatchdogService } from './robot-watchdog.service';
@@ -50,18 +50,30 @@ export class RobotEventsService {
     }
   }
 
-  /** Ручной голос по решению, которое ждёт кворума: перепроверить. */
+  /**
+   * Любой голос по решению — повод пересмотреть запись: те, кто повторяет за
+   * проголосовавшим, теперь могут голосовать, а кворум мог измениться.
+   */
   @OnEvent(`action::${SOVIET}::${SovietContract.Actions.Decisions.VoteFor.actionName}`)
   async onVoteFor(action: InnerChainActionRecord): Promise<void> {
+    await this.onAnyVote(action, 'votefor');
+  }
+
+  @OnEvent(`action::${SOVIET}::${SovietContract.Actions.Decisions.VoteAgainst.actionName}`)
+  async onVoteAgainst(action: InnerChainActionRecord): Promise<void> {
+    await this.onAnyVote(action, 'voteagainst');
+  }
+
+  private async onAnyVote(action: InnerChainActionRecord, kind: string): Promise<void> {
     try {
       const data = action.data as SovietContract.Actions.Decisions.VoteFor.IVoteForDecision;
       if (!data?.coopname || data.coopname !== this.coopname) return;
       const entry = await this.journal.findByDecision(data.coopname, Number(data.decision_id));
-      if (!entry || entry.stage !== RobotDecisionStage.AWAITING_QUORUM) return;
+      if (!entry || !ROBOT_ACTIVE_STAGES.includes(entry.stage)) return;
       if (!(await this.watchdog.isEnabled())) return;
       await this.watchdog.processNow(entry);
     } catch (e: any) {
-      this.logger.error(`votefor: ${e?.message}`, e?.stack);
+      this.logger.error(`${kind}: ${e?.message}`, e?.stack);
     }
   }
 

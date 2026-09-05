@@ -69,7 +69,9 @@ async function issueRobotPermission(account: string) {
   return key
 }
 
-function automateAction(member: string, vote_types: string[], authorize_types: string[], permission_name = ROBOT_PERMISSION) {
+type FollowRule = SovietContract.Interfaces.IFollowRule
+
+function automateAction(member: string, vote_types: string[], authorize_types: string[], permission_name = ROBOT_PERMISSION, follow_rules: FollowRule[] = []) {
   return {
     account: SovietContract.contractName.production,
     name: SovietContract.Actions.Decisions.Automate.actionName,
@@ -80,6 +82,7 @@ function automateAction(member: string, vote_types: string[], authorize_types: s
       member,
       permission_name,
       vote_types,
+      follow_rules,
       authorize_types,
       limit: '0.0000 RUB',
       expires_at: '1970-01-01T00:00:00',
@@ -230,6 +233,31 @@ describe('робот решений совета: делегирование и 
     const { id } = await newFreeDecision()
     await expect(voteAsCoop(await signVote(COOP, 'mikhail', id, robotKeys.mikhail.wif, ROBOT_PERMISSION)))
       .rejects.toThrow('не делегировано')
+  })
+
+  it('режим повтора: за себя, за не-члена совета и два режима на тип отклоняются', async () => {
+    await expect(transact([automateAction('mikhail', [], [], ROBOT_PERMISSION, [{ decision_type: FREE, follow: 'mikhail' }])]))
+      .rejects.toThrow('за самим собой')
+    await expect(transact([automateAction('mikhail', [], [], ROBOT_PERMISSION, [{ decision_type: FREE, follow: COOP }])]))
+      .rejects.toThrow('голосующим членом совета')
+    await expect(transact([automateAction('mikhail', [FREE], [], ROBOT_PERMISSION, [{ decision_type: FREE, follow: CHAIRMAN }])]))
+      .rejects.toThrow('один режим')
+    await expect(transact([automateAction('mikhail', [], [], ROBOT_PERMISSION, [
+      { decision_type: FREE, follow: CHAIRMAN },
+      { decision_type: FREE, follow: 'petr' },
+    ])])).rejects.toThrow('за несколькими')
+  })
+
+  it('режим повтора записывается в реестр и открывает роботу голос по этому типу', async () => {
+    await transact([automateAction('mikhail', [], [], ROBOT_PERMISSION, [{ decision_type: FREE, follow: CHAIRMAN }])])
+    const row = await automatorRow('mikhail')
+    expect(row.vote_types).toEqual([])
+    expect(row.follow_rules).toEqual([{ decision_type: FREE, follow: CHAIRMAN }])
+    // Кого и когда повторять — решает робот; контракт лишь допускает подпись по этому типу.
+    const { id } = await newFreeDecision()
+    await voteAsCoop(await signVote(COOP, 'mikhail', id, robotKeys.mikhail.wif, ROBOT_PERMISSION))
+    expect((await decisionRow(id)).votes_for).toContain('mikhail')
+    await transact([automateAction('mikhail', ['joincoop'], [])])
   })
 
   it('подпись голоса за одно решение не принимается за другое', async () => {

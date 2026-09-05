@@ -19,6 +19,8 @@ export interface RobotDecisionDomainEntity {
   username: string;
   stage: RobotDecisionStage;
   votes: RobotVoteRecord[];
+  /** Чьих голосов ждут повторяющие за ними члены совета. */
+  waiting_for: string[];
   protocol_hash: string | null;
   tx_hashes: string[];
   last_error: string | null;

@@ -19,6 +19,12 @@ export type BoardRow = SovietContract.Tables.Boards.IBoards;
 /** Решение на повестке из таблицы decisions. */
 export type DecisionRow = SovietContract.Tables.Decisions.IDecision;
 
+/** Подписанный голос робота: данные действия и знак. */
+export interface RobotVoteAction {
+  data: SovietContract.Actions.Decisions.VoteFor.IVoteForDecision;
+  against: boolean;
+}
+
 /**
  * Чтение таблиц совета и проводка транзакций робота ключом кооператива.
  *
@@ -50,13 +56,13 @@ export class RobotChainService {
     return this.chain.getSingleRow<DecisionRow>(SOVIET, coopname, SovietContract.Tables.Decisions.tableName, decision_id);
   }
 
-  /** Голоса делегировавших членов совета одной транзакцией от имени кооператива. */
-  async submitVotes(coopname: string, votes: SovietContract.Actions.Decisions.VoteFor.IVoteForDecision[]): Promise<string> {
-    const actions: InnerChainAction[] = votes.map((data) => ({
+  /** Голоса делегировавших членов совета одной транзакцией от имени кооператива: «за» и «против» вперемешку. */
+  async submitVotes(coopname: string, votes: RobotVoteAction[]): Promise<string> {
+    const actions: InnerChainAction[] = votes.map((vote) => ({
       account: SOVIET,
-      name: SovietContract.Actions.Decisions.VoteFor.actionName,
+      name: vote.against ? SovietContract.Actions.Decisions.VoteAgainst.actionName : SovietContract.Actions.Decisions.VoteFor.actionName,
       authorization: [{ actor: coopname, permission: 'active' }],
-      data,
+      data: vote.data,
     }));
     return this.transactAsCoop(coopname, actions);
   }

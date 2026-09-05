@@ -10,7 +10,8 @@ const ROBOT_PERMISSION = 'robot'
 
 /**
  * Что предустановка отдаёт роботу: приём пайщика. Совет повторяет голос
- * председателя по этому типу решения, остальные типы остаются ручными.
+ * председателя по этому типу решения (режим «как председатель»), остальные
+ * типы остаются ручными.
  */
 const AUTOMATED_TYPE = 'joincoop'
 
@@ -68,8 +69,10 @@ async function issueRobotPermission(bc: Blockchain, member: string, pub: string)
   }
 }
 
+type FollowRule = SovietContract.Interfaces.IFollowRule
+
 /** Запись в реестре автоматизаций контракта совета. */
-async function automate(bc: Blockchain, boardId: number, member: string, voteTypes: string[], authorizeTypes: string[]) {
+async function automate(bc: Blockchain, boardId: number, member: string, followRules: FollowRule[], authorizeTypes: string[]) {
   await bc.update_pass_instance()
   await bc.api.transact({
     actions: [{
@@ -81,7 +84,8 @@ async function automate(bc: Blockchain, boardId: number, member: string, voteTyp
         board_id: boardId,
         member,
         permission_name: ROBOT_PERMISSION,
-        vote_types: voteTypes,
+        vote_types: [],
+        follow_rules: followRules,
         authorize_types: authorizeTypes,
         limit: `0.0000 ${GOVERN_SYMBOL}`,
         expires_at: '1970-01-01T00:00:00',
@@ -199,18 +203,18 @@ export async function installRobotPreset(blockchain: Blockchain): Promise<void> 
     keys.push({ member, wif: key.wif, pub: key.pub })
   }
 
-  // Председатель — источник воли: голосует он сам, роботу отдаёт только подпись
-  // протокола. Остальные члены совета повторяют его голос.
+  // Председатель голосует сам, роботу отдаёт только подпись протокола. Остальные
+  // члены совета повторяют его голос: робот голосует за них вслед за председателем.
   await automate(blockchain, boardId, chairman, [], [AUTOMATED_TYPE])
   for (const member of voters)
-    await automate(blockchain, boardId, member, [AUTOMATED_TYPE], [])
+    await automate(blockchain, boardId, member, [{ decision_type: AUTOMATED_TYPE, follow: chairman }], [])
 
   await saveRobotKeys(keys)
 
   console.log(`
 Робот совета предустановлен на решение о приёме пайщика (${AUTOMATED_TYPE}):
  - председатель ${chairman} голосует сам, протокол подписывает робот;
- - повторяют его голос: ${voters.join(', ')}.
+ - повторяют его голос (режим «как председатель»): ${voters.join(', ')}.
 Расширение «Робот совета» выключено — включите его на столе расширений,
 разрешения и ключи уже на месте.
 `)

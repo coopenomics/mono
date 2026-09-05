@@ -20,6 +20,7 @@
       .t-sm.t-muted {{ formatDate(row.created_at) }}
     template(#cell-stage='{ row }')
       BaseBadge(:variant='stageMeta(row.stage).variant') {{ stageMeta(row.stage).label }}
+      .t-sm.t-muted(v-if='row.waiting_for.length') за кем: {{ row.waiting_for.join(', ') }}
     template(#cell-votes='{ row }')
       template(v-if='row.votes.length')
         div(v-for='vote in row.votes', :key='vote.member') {{ vote.member }}

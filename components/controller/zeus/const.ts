@@ -3387,6 +3387,7 @@ export const AllTypesProps: Record<string,any> = {
 	RobotRetryDecisionInput:{
 
 	},
+	RobotVoteMode: "enum" as const,
 	RoomMessageKind: "enum" as const,
 	SaveCapitalProgramDocDataInput:{
 
@@ -8167,20 +8168,28 @@ export const ReturnTypes: Record<string,any> = {
 		tx_hashes:"String",
 		updated_at:"DateTime",
 		username:"String",
-		votes:"RobotVoteRecord"
+		votes:"RobotVoteRecord",
+		waiting_for:"String"
 	},
 	RobotDecisionType:{
 		area:"String",
 		chairman:"RobotChairmanDelegation",
 		description:"String",
 		my_authorize:"Boolean",
+		my_follow:"String",
+		my_mode:"RobotVoteMode",
 		my_vote:"Boolean",
 		protocol_registry_id:"Int",
 		serviceable:"Boolean",
 		title:"String",
 		type:"String",
 		vote_quorum:"RobotQuorum",
-		voters:"RobotVoter"
+		voters:"RobotVoter",
+		warnings:"String"
+	},
+	RobotFollowGroup:{
+		count:"Int",
+		follow:"String"
 	},
 	RobotKeyStatus:{
 		chain_has_permission:"Boolean",
@@ -8193,6 +8202,8 @@ export const ReturnTypes: Record<string,any> = {
 	},
 	RobotQuorum:{
 		delegated_count:"Int",
+		follow_groups:"RobotFollowGroup",
+		reachable:"Boolean",
 		reached:"Boolean",
 		required_count:"Int",
 		total_members:"Int"
@@ -8205,9 +8216,11 @@ export const ReturnTypes: Record<string,any> = {
 	},
 	RobotVoter:{
 		expires_at:"String",
+		follow:"String",
 		has_key:"Boolean",
 		limit:"String",
 		member:"String",
+		mode:"RobotVoteMode",
 		permission_name:"String"
 	},
 	SbpAccount:{

@@ -4,7 +4,8 @@
  * председателя) выпустили разрешения робота и передали ключи, свободное решение
  * опубликовано штатным путём — робот голосует за делегировавших первой
  * транзакцией, собирает протокол, подписывает его ключом председателя и второй
- * транзакцией утверждает и исполняет решение.
+ * транзакцией утверждает и исполняет решение. Второй сценарий — режим «как
+ * председатель»: робот молчит, пока председатель не проголосует, затем повторяет.
  *
  * Требует стенда после `reboot:extra` и работающего coopback с расширением
  * робота: API_URL указывает на его GraphQL (у mono-ai-3 — :3018).
@@ -14,6 +15,7 @@ import { SovietContract } from 'cooptypes'
 import Blockchain from '../blockchain'
 import config, { private_key } from '../configs'
 import { gqlAs, loginAs, signAs, type Who } from './marketplace/chainHelpers'
+import { signVote } from './shared/signVote'
 
 const COOP = 'voskhod'
 const ROBOT_PERMISSION = 'robot'
@@ -76,16 +78,52 @@ async function issueRobotPermission(account: string): Promise<string> {
   return key.wif
 }
 
-async function automate(member: string, vote_types: string[], authorize_types: string[]) {
+type FollowRule = SovietContract.Interfaces.IFollowRule
+
+async function automate(member: string, vote_types: string[], authorize_types: string[], follow_rules: FollowRule[] = []) {
   await transact([{
     account: SovietContract.contractName.production,
     name: SovietContract.Actions.Decisions.Automate.actionName,
     authorization: [{ actor: member, permission: 'active' }],
     data: {
       coopname: COOP, board_id: boardId, member, permission_name: ROBOT_PERMISSION,
-      vote_types, authorize_types, limit: '0.0000 RUB', expires_at: '1970-01-01T00:00:00',
+      vote_types, follow_rules, authorize_types, limit: '0.0000 RUB', expires_at: '1970-01-01T00:00:00',
     },
   }])
+}
+
+/** Свободное решение штатным путём: проект, заявление, публикация. Возвращает номер решения. */
+async function publishFreeDecision(question: string): Promise<number> {
+  const before = await maxDecisionId()
+  const created: any = await gqlAs(tokens.ant, 'mutation($d:CreateProjectFreeDecisionInput!){ createProjectOfFreeDecision(data:$d){ id } }', {
+    d: { question, decision: 'Считать проверку пройденной' },
+  })
+  const projectId = created.createProjectOfFreeDecision.id
+  const generated: any = await gqlAs(tokens.ant, 'mutation($d:ProjectFreeDecisionGenerateDocumentInput!){ generateProjectOfFreeDecision(data:$d){ full_title html hash meta binary } }', {
+    d: { coopname: COOP, project_id: projectId, username: 'ant' },
+  })
+  const signed = await signAs(private_key, generated.generateProjectOfFreeDecision, 'ant', 1)
+  await gqlAs(tokens.ant, 'mutation($d:PublishProjectFreeDecisionInput!){ publishProjectOfFreeDecision(data:$d){ table { id } } }', {
+    d: { coopname: COOP, username: 'ant', meta: '', document: signed },
+  })
+  const decisionId = await maxDecisionId()
+  expect(decisionId, 'повестка появилась в цепи').toBeGreaterThan(before)
+  return decisionId
+}
+
+/** Ждём, пока журнал робота доведёт решение до конечного этапа (или до заданного). */
+async function waitJournal(decisionId: number, until: (stage: string) => boolean, ms: number) {
+  const started = Date.now()
+  let entry: any = null
+  while (Date.now() - started < ms) {
+    const journal: any = await gqlAs(tokens.petr, 'query($o:PaginationInput){ sovietRobotJournal(options:$o){ items { decision_id decision_type stage waiting_for votes { member permission } tx_hashes last_error attempts } } }', {
+      o: { page: 1, limit: 50, sortBy: 'decision_id', sortOrder: 'DESC' },
+    })
+    entry = journal.sovietRobotJournal.items.find((i: any) => Number(i.decision_id) === decisionId) ?? null
+    if (entry && until(String(entry.stage).toLowerCase())) break
+    await new Promise(r => setTimeout(r, 3000))
+  }
+  return entry
 }
 
 async function decisionRow(id: number) {
@@ -138,33 +176,9 @@ describe('робот решений совета: сквозной сценар�
     expect(free.my_vote).toBe(true)
   })
 
-  it('свободное решение доводится роботом до исполнения двумя транзакциями', async () => {
-    const before = await maxDecisionId()
-    const created: any = await gqlAs(tokens.ant, 'mutation($d:CreateProjectFreeDecisionInput!){ createProjectOfFreeDecision(data:$d){ id } }', {
-      d: { question: 'Проверка робота совета', decision: 'Считать проверку пройденной' },
-    })
-    const projectId = created.createProjectOfFreeDecision.id
-    const generated: any = await gqlAs(tokens.ant, 'mutation($d:ProjectFreeDecisionGenerateDocumentInput!){ generateProjectOfFreeDecision(data:$d){ full_title html hash meta binary } }', {
-      d: { coopname: COOP, project_id: projectId, username: 'ant' },
-    })
-    const signed = await signAs(private_key, generated.generateProjectOfFreeDecision, 'ant', 1)
-    await gqlAs(tokens.ant, 'mutation($d:PublishProjectFreeDecisionInput!){ publishProjectOfFreeDecision(data:$d){ table { id } } }', {
-      d: { coopname: COOP, username: 'ant', meta: '', document: signed },
-    })
-
-    const decisionId = await maxDecisionId()
-    expect(decisionId, 'повестка появилась в цепи').toBeGreaterThan(before)
-
-    const started = Date.now()
-    let entry: any = null
-    while (Date.now() - started < 150_000) {
-      const journal: any = await gqlAs(tokens.petr, 'query($o:PaginationInput){ sovietRobotJournal(options:$o){ items { decision_id decision_type stage votes { member permission } tx_hashes last_error attempts } } }', {
-        o: { page: 1, limit: 50, sortBy: 'decision_id', sortOrder: 'DESC' },
-      })
-      entry = journal.sovietRobotJournal.items.find((i: any) => Number(i.decision_id) === decisionId) ?? null
-      if (entry && ['executed', 'failed', 'closed'].includes(String(entry.stage).toLowerCase())) break
-      await new Promise(r => setTimeout(r, 3000))
-    }
+  it('режим «сразу»: свободное решение доводится роботом до исполнения двумя транзакциями', async () => {
+    const decisionId = await publishFreeDecision('Проверка робота совета: режим «сразу»')
+    const entry = await waitJournal(decisionId, s => ['executed', 'failed', 'closed'].includes(s), 150_000)
 
     expect(entry, 'робот увидел повестку').toBeTruthy()
     // GraphQL отдаёт имя перечисления в верхнем регистре
@@ -174,4 +188,39 @@ describe('робот решений совета: сквозной сценар�
     expect(entry.tx_hashes.length, 'голоса и протокол — две транзакции').toBe(2)
     expect(await decisionRow(decisionId), 'решение снято с повестки после исполнения').toBeUndefined()
   }, 200_000)
+
+  it('режим «как председатель»: робот молчит до голоса председателя, затем повторяет и исполняет', async () => {
+    // Пётр и Анна повторяют за председателем; председатель голосует сам, протокол — робот.
+    await automate('petr', [], [], [{ decision_type: FREE, follow: 'ant' }])
+    await automate('anna', [], [], [{ decision_type: FREE, follow: 'ant' }])
+    await automate('ant', [], [FREE])
+
+    const reg: any = await gqlAs(tokens.petr, 'query{ sovietRobotRegistry{ type vote_quorum{ delegated_count follow_groups{ follow count } reached reachable } warnings my_mode my_follow } }')
+    const free = reg.sovietRobotRegistry.find((r: any) => r.type === FREE)
+    expect(free.vote_quorum).toMatchObject({ delegated_count: 0, follow_groups: [{ follow: 'ant', count: 2 }], reached: false, reachable: true })
+    expect(String(free.my_mode).toLowerCase()).toBe('follow')
+    expect(free.my_follow).toBe('ant')
+    expect(free.warnings).toEqual([])
+
+    const decisionId = await publishFreeDecision('Проверка робота совета: режим «как председатель»')
+    const waiting = await waitJournal(decisionId, s => s === 'awaiting_followed', 60_000)
+    expect(waiting, 'робот ждёт голоса председателя').toBeTruthy()
+    expect(String(waiting.stage).toLowerCase()).toBe('awaiting_followed')
+    expect(waiting.waiting_for).toEqual(['ant'])
+    expect(waiting.votes).toEqual([])
+
+    // Председатель голосует «за» вручную, ключом active.
+    await transact([{
+      account: SovietContract.contractName.production,
+      name: SovietContract.Actions.Decisions.VoteFor.actionName,
+      authorization: [{ actor: 'ant', permission: 'active' }],
+      data: await signVote(COOP, 'ant', decisionId),
+    }])
+
+    const entry = await waitJournal(decisionId, s => ['executed', 'failed', 'closed'].includes(s), 150_000)
+    expect(String(entry.stage).toLowerCase(), `этап решения (${entry?.last_error ?? ''})`).toBe('executed')
+    expect(entry.votes.map((v: any) => v.member).sort()).toEqual(['anna', 'petr'])
+    expect(entry.tx_hashes.length, 'голоса повторяющих и протокол — две транзакции').toBe(2)
+    expect(await decisionRow(decisionId), 'решение снято с повестки после исполнения').toBeUndefined()
+  }, 260_000)
 })

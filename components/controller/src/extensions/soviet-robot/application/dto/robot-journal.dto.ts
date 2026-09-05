@@ -44,6 +44,9 @@ export class RobotDecisionDTO {
   @Field(() => RobotDecisionStage, { description: 'Этап обработки' })
   stage!: RobotDecisionStage;
 
+  @Field(() => [String], { description: 'Члены совета, чьих голосов ждут повторяющие за ними' })
+  waiting_for!: string[];
+
   @Field(() => [RobotVoteRecordDTO], { description: 'Голоса, поданные роботом' })
   votes!: RobotVoteRecordDTO[];
 
