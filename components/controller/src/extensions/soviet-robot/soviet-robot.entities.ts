@@ -6,4 +6,7 @@
 import { RobotDecisionTypeormEntity } from './infrastructure/entities/robot-decision-typeorm.entity';
 import { RobotKeyTypeormEntity } from './infrastructure/entities/robot-key-typeorm.entity';
 
-export const sovietRobotEntities = [RobotDecisionTypeormEntity, RobotKeyTypeormEntity];
+export const sovietRobotEntities = [
+  RobotDecisionTypeormEntity,
+  RobotKeyTypeormEntity,
+];

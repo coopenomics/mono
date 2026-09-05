@@ -43,25 +43,29 @@ async function transact(actions: any[]) {
 async function issueRobotPermission(account: string) {
   const key = await generateKey()
   robotKeys[account] = key
-  await transact([
-    {
-      account: 'eosio',
-      name: 'updateauth',
-      authorization: [{ actor: account, permission: 'active' }],
-      data: {
-        account,
-        permission: ROBOT_PERMISSION,
-        parent: 'active',
-        auth: { threshold: 1, keys: [{ key: key.pub, weight: 1 }], accounts: [], waits: [] },
-      },
+  await transact([{
+    account: 'eosio',
+    name: 'updateauth',
+    authorization: [{ actor: account, permission: 'active' }],
+    data: {
+      account,
+      permission: ROBOT_PERMISSION,
+      parent: 'active',
+      auth: { threshold: 1, keys: [{ key: key.pub, weight: 1 }], accounts: [], waits: [] },
     },
-    {
+  }])
+  // Привязка к голосованию — отдельной транзакцией: повторную привязку той же
+  // пары «действие → разрешение» цепь отвергает, а после прошлого прогона она уже есть.
+  try {
+    await transact([{
       account: 'eosio',
       name: 'linkauth',
       authorization: [{ actor: account, permission: 'active' }],
       data: { account, code: SovietContract.contractName.production, type: 'votefor', requirement: ROBOT_PERMISSION },
-    },
-  ])
+    }])
+  } catch (e: any) {
+    if (!/same as old/.test(String(e?.message ?? e))) throw e
+  }
   return key
 }
 
@@ -258,11 +262,11 @@ describe('робот решений совета: делегирование и 
     await voteAsCoop(await signVote(COOP, CHAIRMAN, id, robotKeys.ant.wif, ROBOT_PERMISSION))
     await voteAsMember(await signVote(COOP, 'anna', id))
     await voteAsMember(await signVote(COOP, 'mikhail', id))
-    expect((await decisionRow(id)).approved).toBe(true)
+    expect(Boolean(Number((await decisionRow(id)).approved))).toBe(true)
 
     // протокол без подписи председателя
     const foreignProtocol = await signProtocol('anna', id)
-    await expect(authorizeAndExec(id, foreignProtocol, 'active')).rejects.toThrow('председател')
+    await expect(authorizeAndExec(id, foreignProtocol, 'active')).rejects.toThrow('обязательного подписанта')
 
     // подпись робота по типу, который председатель не делегировал
     const robotProtocol = await signProtocol(CHAIRMAN, id, robotKeys.ant.wif)

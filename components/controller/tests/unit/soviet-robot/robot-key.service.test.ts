@@ -5,6 +5,9 @@
 import { PrivateKey, KeyType } from '@wharfkit/antelope';
 import { RobotKeyService } from '~/extensions/soviet-robot/application/services/robot-key.service';
 
+// В тесте узел не запаздывает — повторные чтения без пауз.
+RobotKeyService.PERMISSION_READ_PAUSE_MS = 0;
+
 function makeLogger() {
   return { setContext: jest.fn(), info: jest.fn(), warn: jest.fn(), error: jest.fn() } as any;
 }

@@ -19,6 +19,7 @@ sources:
     - components/contracts/cpp/soviet/src/decision/authorize.cpp
   backend:
     - components/controller/src/extensions/soviet-robot/**
+    - components/boot/src/tests/soviet-robot-e2e.test.ts
   ui:
     - components/desktop/extensions/robot/**
 
@@ -148,28 +149,32 @@ cases:
     kind: happy
     scenario: Робот получает новую повестку делегированного типа и подаёт голоса одной транзакцией
     expect: запись журнала переходит из «новое» в «проголосовано», повтор события не даёт второго голоса
-    status: missing
+    test: components/boot/src/tests/soviet-robot-e2e.test.ts
+    status: passing
 
   - id: sov.rob.happy.11
     level: backend
     kind: happy
     scenario: После кворума робот собирает протокол, подписывает ключом председателя, утверждает и исполняет
     expect: вторая транзакция проходит, журнал «исполнено»
-    status: missing
+    test: components/boot/src/tests/soviet-robot-e2e.test.ts
+    status: passing
 
   - id: sov.rob.side.10
     level: backend
     kind: side
     scenario: Кворум без ручных голосов недостижим
     expect: робот голосует за делегировавших и ждёт ручных голосов, дожимает протокол после кворума
-    status: missing
+    test: components/controller/tests/unit/soviet-robot/robot-decision.service.test.ts
+    status: passing
 
   - id: sov.rob.side.11
     level: backend
     kind: side
     scenario: Процесс упал между голосами и протоколом
     expect: сторож завершает решение с ограничением попыток, ошибка видна администратору
-    status: missing
+    test: components/controller/tests/unit/soviet-robot/robot-decision.service.test.ts
+    status: passing
 
   - id: sov.rob.happy.20
     level: ui

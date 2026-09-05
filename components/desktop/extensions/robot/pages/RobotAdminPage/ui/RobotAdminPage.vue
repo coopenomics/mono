@@ -50,7 +50,7 @@ const loadingJournal = ref(true);
 const retrying = ref<number | null>(null);
 
 const keys = computed<IRobotKeyStatus[]>(() => robotStore.keys);
-const failed = computed<IRobotDecision[]>(() => (robotStore.journal?.items ?? []).filter((item) => item.stage === 'failed'));
+const failed = computed<IRobotDecision[]>(() => (robotStore.journal?.items ?? []).filter((item) => String(item.stage).toLowerCase() === 'failed'));
 
 const keyColumns: BaseTableColumn<IRobotKeyStatus>[] = [
   { key: 'member', label: 'Член совета' },

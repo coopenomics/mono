@@ -2,7 +2,12 @@
  * Конвейер робота решений совета: голоса первой транзакцией, протокол и
  * исполнение второй, идемпотентность и обработка ошибок.
  */
+import { webcrypto } from 'node:crypto';
 import { PrivateKey, KeyType } from '@wharfkit/antelope';
+
+// SDK хэширует через динамический import('node:crypto'), который в jest не
+// срабатывает; подставляем WebCrypto узла под браузерную ветку SDK.
+(globalThis as any).window = { crypto: webcrypto };
 import { RobotDecisionService } from '~/extensions/soviet-robot/application/services/robot-decision.service';
 import { RobotDecisionStage } from '~/extensions/soviet-robot/domain/enums/robot-decision-stage.enum';
 
@@ -102,6 +107,7 @@ describe('RobotDecisionService.process', () => {
     const keys = { petr: wif(), anna: wif() };
     const { service, chain } = build({ decision: makeDecision(), automations: [automation('petr', ['freedecision']), automation('anna', ['freedecision']), automation('olga', ['joincoop'])], keys });
     const result = await service.process(makeEntry(), LIMITS);
+    expect(result.last_error).toBeNull();
     expect(chain.submitVotes).toHaveBeenCalledTimes(1);
     const votes = chain.submitVotes.mock.calls[0][1];
     expect(votes.map((v: any) => v.username)).toEqual(['petr', 'anna']);
@@ -135,12 +141,21 @@ describe('RobotDecisionService.process', () => {
 
   it('при кворуме собирает протокол по типу решения, подписывает ключом председателя и исполняет', async () => {
     const chairmanWif = wif();
+    const decision = makeDecision({ approved: true, votes_for: ['petr', 'anna', 'mikhail'] });
     const { service, chain, documents } = build({
-      decision: makeDecision({ approved: true, votes_for: ['petr', 'anna', 'mikhail'] }),
+      decision,
       automations: [automation('ant', ['freedecision'], ['freedecision'])],
       keys: { ant: chairmanWif },
     });
-    const result = await service.process(makeEntry({ stage: RobotDecisionStage.VOTED }), LIMITS);
+    // Первый проход: председатель тоже делегировал голос — уходит первая транзакция.
+    let result = await service.process(makeEntry(), LIMITS);
+    expect(result.last_error).toBeNull();
+    expect(chain.submitVotes).toHaveBeenCalledTimes(1);
+    expect(result.stage).toBe(RobotDecisionStage.VOTED);
+    decision.votes_for.push('ant');
+    // Второй проход (следующий тик сторожа): голоса в цепи, кворум есть — протокол и исполнение.
+    result = await service.process(result, LIMITS);
+    expect(result.last_error).toBeNull();
     expect(documents.generate).toHaveBeenCalledTimes(1);
     const data = documents.generate.mock.calls[0][0].data;
     expect(data).toMatchObject({ registry_id: 600, coopname: 'voskhod', username: 'ant', decision_id: 7, project_id: 'p-1' });
@@ -152,7 +167,7 @@ describe('RobotDecisionService.process', () => {
     expect(permission).toBe('robot');
     expect(document.signatures[0].signer).toBe('ant');
     expect(result.stage).toBe(RobotDecisionStage.EXECUTED);
-    expect(result.tx_hashes).toEqual(['tx-exec']);
+    expect(result.tx_hashes).toEqual(['tx-votes', 'tx-exec']);
     expect(result.protocol_hash).toBeTruthy();
   });
 

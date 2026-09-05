@@ -12246,6 +12246,12 @@ setRecoveryStrategy?: [{	data: ValueTypes["SetRecoveryStrategyInput"] | Variable
 setWif?: [{	data: ValueTypes["SetWifInput"] | Variable<any, string>},boolean | `@${string}`],
 signByPresiderOnAnnualGeneralMeet?: [{	data: ValueTypes["SignByPresiderOnAnnualGeneralMeetInput"] | Variable<any, string>},ValueTypes["MeetAggregate"]],
 signBySecretaryOnAnnualGeneralMeet?: [{	data: ValueTypes["SignBySecretaryOnAnnualGeneralMeetInput"] | Variable<any, string>},ValueTypes["MeetAggregate"]],
+sovietRobotDelegateKey?: [{	data: ValueTypes["RobotDelegateKeyInput"] | Variable<any, string>},ValueTypes["RobotKeyStatus"]],
+sovietRobotRetryDecision?: [{	data: ValueTypes["RobotRetryDecisionInput"] | Variable<any, string>},ValueTypes["RobotDecision"]],
+	/** Удалить свой ключ из хранилища робота
+
+Требуемые роли: member, chairman.  */
+	sovietRobotRevokeKey?:boolean | `@${string}`,
 startInstall?: [{	data: ValueTypes["StartInstallInput"] | Variable<any, string>},ValueTypes["StartInstallResult"]],
 startResetKey?: [{	data: ValueTypes["StartResetKeyInput"] | Variable<any, string>},boolean | `@${string}`],
 submitExpenseReport?: [{	data: ValueTypes["SubmitExpenseReportInput"] | Variable<any, string>},ValueTypes["Transaction"]],
@@ -12858,6 +12864,18 @@ walmoveWallets?: [{	input: ValueTypes["WalmoveInput"] | Variable<any, string>},V
 	totalPages?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
 	['...on PaginatedMarketplaceWriteoffProposals']?: Omit<ValueTypes["PaginatedMarketplaceWriteoffProposals"], "...on PaginatedMarketplaceWriteoffProposals">
+}>;
+	["PaginatedRobotDecisionsPaginationResult"]: AliasType<{
+	/** Текущая страница */
+	currentPage?:boolean | `@${string}`,
+	/** Элементы текущей страницы */
+	items?:ValueTypes["RobotDecision"],
+	/** Общее количество элементов */
+	totalCount?:boolean | `@${string}`,
+	/** Общее количество страниц */
+	totalPages?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on PaginatedRobotDecisionsPaginationResult']?: Omit<ValueTypes["PaginatedRobotDecisionsPaginationResult"], "...on PaginatedRobotDecisionsPaginationResult">
 }>;
 	["PaginationInput"]: {
 	/** Количество элементов на странице */
@@ -14119,6 +14137,23 @@ process?: [{	coopname: string | Variable<any, string>,	hash: string | Variable<a
 processes?: [{	filter: ValueTypes["ProcessesFilter"] | Variable<any, string>,	pagination: ValueTypes["PaginationInput"] | Variable<any, string>},ValueTypes["ProcessSummaryPaginationResult"]],
 searchDocuments?: [{	data: ValueTypes["SearchDocumentsInput"] | Variable<any, string>},ValueTypes["SearchResult"]],
 searchPrivateAccounts?: [{	data: ValueTypes["SearchPrivateAccountsInput"] | Variable<any, string>},ValueTypes["PrivateAccountSearchResult"]],
+	/** Совет кооператива: идентификатор, председатель, состав и порог голосов
+
+Требуемые роли: member, chairman.  */
+	sovietRobotCouncil?:ValueTypes["RobotCouncil"],
+sovietRobotJournal?: [{	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedRobotDecisionsPaginationResult"]],
+	/** Состояние ключа робота текущего члена совета
+
+Требуемые роли: member, chairman.  */
+	sovietRobotKeyStatus?:ValueTypes["RobotKeyStatus"],
+	/** Состояние ключей робота у всех членов совета
+
+Требуемые роли: chairman.  */
+	sovietRobotKeys?:ValueTypes["RobotKeyStatus"],
+	/** Реестр действий автоматизации: кто и что делегировал роботу по каждому типу решения и достигнут ли кворум робота
+
+Требуемые роли: member, chairman.  */
+	sovietRobotRegistry?:ValueTypes["RobotDecisionType"],
 validateReportEdits?: [{	editsJson: string | Variable<any, string>,	reportType: ValueTypes["ReportType"] | Variable<any, string>},ValueTypes["FieldError"]],
 verificationReviewPhotos?: [{	data: ValueTypes["VerificationReviewPhotosInput"] | Variable<any, string>},ValueTypes["VerificationReviewPhoto"]],
 verificationReviews?: [{	data?: ValueTypes["VerificationReviewsInput"] | undefined | null | Variable<any, string>},ValueTypes["VerificationReview"]],
@@ -14791,6 +14826,179 @@ verificationReviews?: [{	data?: ValueTypes["VerificationReviewsInput"] | undefin
 	revoked?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
 	['...on RevokedSessionsResult']?: Omit<ValueTypes["RevokedSessionsResult"], "...on RevokedSessionsResult">
+}>;
+	/** Автоматическая подпись протоколов председателем */
+["RobotChairmanDelegation"]: AliasType<{
+	/** Председатель делегировал роботу подпись протоколов этого типа */
+	delegated?:boolean | `@${string}`,
+	/** Робот держит ключ разрешения председателя */
+	has_key?:boolean | `@${string}`,
+	/** Учётное имя председателя совета */
+	username?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on RobotChairmanDelegation']?: Omit<ValueTypes["RobotChairmanDelegation"], "...on RobotChairmanDelegation">
+}>;
+	/** Совет кооператива глазами робота */
+["RobotCouncil"]: AliasType<{
+	/** Идентификатор совета в контракте */
+	board_id?:boolean | `@${string}`,
+	/** Председатель совета */
+	chairman?:boolean | `@${string}`,
+	/** Состав совета */
+	members?:ValueTypes["RobotCouncilMember"],
+	/** Сколько голосов «за» нужно по правилу совета */
+	required_votes?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on RobotCouncil']?: Omit<ValueTypes["RobotCouncil"], "...on RobotCouncil">
+}>;
+	/** Член совета кооператива */
+["RobotCouncilMember"]: AliasType<{
+	/** Имеет право голоса */
+	is_voting?:boolean | `@${string}`,
+	/** Должность в совете */
+	position?:boolean | `@${string}`,
+	/** Название должности */
+	position_title?:boolean | `@${string}`,
+	/** Учётное имя */
+	username?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on RobotCouncilMember']?: Omit<ValueTypes["RobotCouncilMember"], "...on RobotCouncilMember">
+}>;
+	/** Решение совета в журнале робота */
+["RobotDecision"]: AliasType<{
+	/** Число неудачных попыток */
+	attempts?:boolean | `@${string}`,
+	/** Кооператив */
+	coopname?:boolean | `@${string}`,
+	/** Создано */
+	created_at?:boolean | `@${string}`,
+	/** Хэш повестки */
+	decision_hash?:boolean | `@${string}`,
+	/** Номер решения совета */
+	decision_id?:boolean | `@${string}`,
+	/** Тип решения */
+	decision_type?:boolean | `@${string}`,
+	/** Идентификатор записи журнала */
+	id?:boolean | `@${string}`,
+	/** Последняя ошибка */
+	last_error?:boolean | `@${string}`,
+	/** Время следующей попытки */
+	next_attempt_at?:boolean | `@${string}`,
+	/** Хэш протокола, подписанного роботом */
+	protocol_hash?:boolean | `@${string}`,
+	/** Этап обработки */
+	stage?:boolean | `@${string}`,
+	/** Транзакции робота по этому решению */
+	tx_hashes?:boolean | `@${string}`,
+	/** Обновлено */
+	updated_at?:boolean | `@${string}`,
+	/** Кто подал повестку */
+	username?:boolean | `@${string}`,
+	/** Голоса, поданные роботом */
+	votes?:ValueTypes["RobotVoteRecord"],
+		__typename?: boolean | `@${string}`,
+	['...on RobotDecision']?: Omit<ValueTypes["RobotDecision"], "...on RobotDecision">
+}>;
+	/** Этап решения в журнале робота совета */
+["RobotDecisionStage"]:RobotDecisionStage;
+	/** Тип решения совета в реестре действий автоматизации */
+["RobotDecisionType"]: AliasType<{
+	/** Область платформы, из которой приходит решение */
+	area?:boolean | `@${string}`,
+	/** Автоматическая подпись протоколов */
+	chairman?:ValueTypes["RobotChairmanDelegation"],
+	/** О чём решение */
+	description?:boolean | `@${string}`,
+	/** Текущий пользователь (председатель) делегировал подпись протоколов этого типа */
+	my_authorize?:boolean | `@${string}`,
+	/** Текущий пользователь делегировал голос по этому типу */
+	my_vote?:boolean | `@${string}`,
+	/** Номер шаблона протокола в реестре документов */
+	protocol_registry_id?:boolean | `@${string}`,
+	/** Робот умеет довести этот тип решения до протокола */
+	serviceable?:boolean | `@${string}`,
+	/** Название решения */
+	title?:boolean | `@${string}`,
+	/** Тип решения в повестке совета */
+	type?:boolean | `@${string}`,
+	/** Кворум робота */
+	vote_quorum?:ValueTypes["RobotQuorum"],
+	/** Кто делегировал роботу голос по этому типу */
+	voters?:ValueTypes["RobotVoter"],
+		__typename?: boolean | `@${string}`,
+	['...on RobotDecisionType']?: Omit<ValueTypes["RobotDecisionType"], "...on RobotDecisionType">
+}>;
+	/** Передача роботу приватного ключа разрешения */
+["RobotDelegateKeyInput"]: {
+	/** Имя разрешения; по умолчанию robot */
+	permission_name?: string | undefined | null | Variable<any, string>,
+	/** Приватный ключ разрешения робота (WIF); передаётся один раз и не хранится на устройстве */
+	wif: string | Variable<any, string>
+};
+	/** Состояние ключа робота у члена совета */
+["RobotKeyStatus"]: AliasType<{
+	/** На аккаунте есть разрешение робота */
+	chain_has_permission?:boolean | `@${string}`,
+	/** Ключ у робота совпадает с ключом разрешения в цепи */
+	chain_key_matches?:boolean | `@${string}`,
+	/** Робот держит ключ */
+	has_key?:boolean | `@${string}`,
+	/** Член совета */
+	member?:boolean | `@${string}`,
+	/** Разрешение аккаунта с ключом робота */
+	permission_name?:boolean | `@${string}`,
+	/** Публичный ключ, который держит робот */
+	public_key?:boolean | `@${string}`,
+	/** Когда ключ передан */
+	updated_at?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on RobotKeyStatus']?: Omit<ValueTypes["RobotKeyStatus"], "...on RobotKeyStatus">
+}>;
+	/** Кворум робота по типу решения */
+["RobotQuorum"]: AliasType<{
+	/** Сколько голосующих членов совета делегировали голос и передали ключ */
+	delegated_count?:boolean | `@${string}`,
+	/** Робот набирает кворум сам, без ручных голосов */
+	reached?:boolean | `@${string}`,
+	/** Сколько голосов «за» нужно по правилу совета */
+	required_count?:boolean | `@${string}`,
+	/** Состав совета */
+	total_members?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on RobotQuorum']?: Omit<ValueTypes["RobotQuorum"], "...on RobotQuorum">
+}>;
+	/** Ручной повтор застрявшего решения */
+["RobotRetryDecisionInput"]: {
+	/** Номер решения совета */
+	decision_id: number | Variable<any, string>
+};
+	/** Голос, поданный роботом от имени члена совета */
+["RobotVoteRecord"]: AliasType<{
+	/** Когда подан */
+	at?:boolean | `@${string}`,
+	/** Член совета */
+	member?:boolean | `@${string}`,
+	/** Разрешение аккаунта, ключом которого подписан голос */
+	permission?:boolean | `@${string}`,
+	/** Транзакция голоса */
+	tx_id?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on RobotVoteRecord']?: Omit<ValueTypes["RobotVoteRecord"], "...on RobotVoteRecord">
+}>;
+	/** Член совета, делегировавший роботу голос по типу решения */
+["RobotVoter"]: AliasType<{
+	/** Срок действия делегирования; пусто — бессрочно */
+	expires_at?:boolean | `@${string}`,
+	/** Робот держит ключ этого разрешения */
+	has_key?:boolean | `@${string}`,
+	/** Лимит суммы на одно решение; нулевой — без лимита */
+	limit?:boolean | `@${string}`,
+	/** Учётное имя члена совета */
+	member?:boolean | `@${string}`,
+	/** Разрешение аккаунта с ключом робота */
+	permission_name?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on RobotVoter']?: Omit<ValueTypes["RobotVoter"], "...on RobotVoter">
 }>;
 	/** Тип сообщения в истории комнаты Matrix (текст или расшифрованное аудио) */
 ["RoomMessageKind"]:RoomMessageKind;
@@ -27036,6 +27244,12 @@ setRecoveryStrategy?: [{	data: ResolverInputTypes["SetRecoveryStrategyInput"]},b
 setWif?: [{	data: ResolverInputTypes["SetWifInput"]},boolean | `@${string}`],
 signByPresiderOnAnnualGeneralMeet?: [{	data: ResolverInputTypes["SignByPresiderOnAnnualGeneralMeetInput"]},ResolverInputTypes["MeetAggregate"]],
 signBySecretaryOnAnnualGeneralMeet?: [{	data: ResolverInputTypes["SignBySecretaryOnAnnualGeneralMeetInput"]},ResolverInputTypes["MeetAggregate"]],
+sovietRobotDelegateKey?: [{	data: ResolverInputTypes["RobotDelegateKeyInput"]},ResolverInputTypes["RobotKeyStatus"]],
+sovietRobotRetryDecision?: [{	data: ResolverInputTypes["RobotRetryDecisionInput"]},ResolverInputTypes["RobotDecision"]],
+	/** Удалить свой ключ из хранилища робота
+
+Требуемые роли: member, chairman.  */
+	sovietRobotRevokeKey?:boolean | `@${string}`,
 startInstall?: [{	data: ResolverInputTypes["StartInstallInput"]},ResolverInputTypes["StartInstallResult"]],
 startResetKey?: [{	data: ResolverInputTypes["StartResetKeyInput"]},boolean | `@${string}`],
 submitExpenseReport?: [{	data: ResolverInputTypes["SubmitExpenseReportInput"]},ResolverInputTypes["Transaction"]],
@@ -27604,6 +27818,17 @@ walmoveWallets?: [{	input: ResolverInputTypes["WalmoveInput"]},ResolverInputType
 	currentPage?:boolean | `@${string}`,
 	/** Элементы текущей страницы */
 	items?:ResolverInputTypes["MarketplaceWriteoffProposal"],
+	/** Общее количество элементов */
+	totalCount?:boolean | `@${string}`,
+	/** Общее количество страниц */
+	totalPages?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["PaginatedRobotDecisionsPaginationResult"]: AliasType<{
+	/** Текущая страница */
+	currentPage?:boolean | `@${string}`,
+	/** Элементы текущей страницы */
+	items?:ResolverInputTypes["RobotDecision"],
 	/** Общее количество элементов */
 	totalCount?:boolean | `@${string}`,
 	/** Общее количество страниц */
@@ -28836,6 +29061,23 @@ process?: [{	coopname: string,	hash: string},ResolverInputTypes["ProcessView"]],
 processes?: [{	filter: ResolverInputTypes["ProcessesFilter"],	pagination: ResolverInputTypes["PaginationInput"]},ResolverInputTypes["ProcessSummaryPaginationResult"]],
 searchDocuments?: [{	data: ResolverInputTypes["SearchDocumentsInput"]},ResolverInputTypes["SearchResult"]],
 searchPrivateAccounts?: [{	data: ResolverInputTypes["SearchPrivateAccountsInput"]},ResolverInputTypes["PrivateAccountSearchResult"]],
+	/** Совет кооператива: идентификатор, председатель, состав и порог голосов
+
+Требуемые роли: member, chairman.  */
+	sovietRobotCouncil?:ResolverInputTypes["RobotCouncil"],
+sovietRobotJournal?: [{	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedRobotDecisionsPaginationResult"]],
+	/** Состояние ключа робота текущего члена совета
+
+Требуемые роли: member, chairman.  */
+	sovietRobotKeyStatus?:ResolverInputTypes["RobotKeyStatus"],
+	/** Состояние ключей робота у всех членов совета
+
+Требуемые роли: chairman.  */
+	sovietRobotKeys?:ResolverInputTypes["RobotKeyStatus"],
+	/** Реестр действий автоматизации: кто и что делегировал роботу по каждому типу решения и достигнут ли кворум робота
+
+Требуемые роли: member, chairman.  */
+	sovietRobotRegistry?:ResolverInputTypes["RobotDecisionType"],
 validateReportEdits?: [{	editsJson: string,	reportType: ResolverInputTypes["ReportType"]},ResolverInputTypes["FieldError"]],
 verificationReviewPhotos?: [{	data: ResolverInputTypes["VerificationReviewPhotosInput"]},ResolverInputTypes["VerificationReviewPhoto"]],
 verificationReviews?: [{	data?: ResolverInputTypes["VerificationReviewsInput"] | undefined | null},ResolverInputTypes["VerificationReview"]],
@@ -29483,6 +29725,170 @@ verificationReviews?: [{	data?: ResolverInputTypes["VerificationReviewsInput"] |
 	["RevokedSessionsResult"]: AliasType<{
 	/** Сколько активных сессий завершено */
 	revoked?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Автоматическая подпись протоколов председателем */
+["RobotChairmanDelegation"]: AliasType<{
+	/** Председатель делегировал роботу подпись протоколов этого типа */
+	delegated?:boolean | `@${string}`,
+	/** Робот держит ключ разрешения председателя */
+	has_key?:boolean | `@${string}`,
+	/** Учётное имя председателя совета */
+	username?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Совет кооператива глазами робота */
+["RobotCouncil"]: AliasType<{
+	/** Идентификатор совета в контракте */
+	board_id?:boolean | `@${string}`,
+	/** Председатель совета */
+	chairman?:boolean | `@${string}`,
+	/** Состав совета */
+	members?:ResolverInputTypes["RobotCouncilMember"],
+	/** Сколько голосов «за» нужно по правилу совета */
+	required_votes?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Член совета кооператива */
+["RobotCouncilMember"]: AliasType<{
+	/** Имеет право голоса */
+	is_voting?:boolean | `@${string}`,
+	/** Должность в совете */
+	position?:boolean | `@${string}`,
+	/** Название должности */
+	position_title?:boolean | `@${string}`,
+	/** Учётное имя */
+	username?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Решение совета в журнале робота */
+["RobotDecision"]: AliasType<{
+	/** Число неудачных попыток */
+	attempts?:boolean | `@${string}`,
+	/** Кооператив */
+	coopname?:boolean | `@${string}`,
+	/** Создано */
+	created_at?:boolean | `@${string}`,
+	/** Хэш повестки */
+	decision_hash?:boolean | `@${string}`,
+	/** Номер решения совета */
+	decision_id?:boolean | `@${string}`,
+	/** Тип решения */
+	decision_type?:boolean | `@${string}`,
+	/** Идентификатор записи журнала */
+	id?:boolean | `@${string}`,
+	/** Последняя ошибка */
+	last_error?:boolean | `@${string}`,
+	/** Время следующей попытки */
+	next_attempt_at?:boolean | `@${string}`,
+	/** Хэш протокола, подписанного роботом */
+	protocol_hash?:boolean | `@${string}`,
+	/** Этап обработки */
+	stage?:boolean | `@${string}`,
+	/** Транзакции робота по этому решению */
+	tx_hashes?:boolean | `@${string}`,
+	/** Обновлено */
+	updated_at?:boolean | `@${string}`,
+	/** Кто подал повестку */
+	username?:boolean | `@${string}`,
+	/** Голоса, поданные роботом */
+	votes?:ResolverInputTypes["RobotVoteRecord"],
+		__typename?: boolean | `@${string}`
+}>;
+	/** Этап решения в журнале робота совета */
+["RobotDecisionStage"]:RobotDecisionStage;
+	/** Тип решения совета в реестре действий автоматизации */
+["RobotDecisionType"]: AliasType<{
+	/** Область платформы, из которой приходит решение */
+	area?:boolean | `@${string}`,
+	/** Автоматическая подпись протоколов */
+	chairman?:ResolverInputTypes["RobotChairmanDelegation"],
+	/** О чём решение */
+	description?:boolean | `@${string}`,
+	/** Текущий пользователь (председатель) делегировал подпись протоколов этого типа */
+	my_authorize?:boolean | `@${string}`,
+	/** Текущий пользователь делегировал голос по этому типу */
+	my_vote?:boolean | `@${string}`,
+	/** Номер шаблона протокола в реестре документов */
+	protocol_registry_id?:boolean | `@${string}`,
+	/** Робот умеет довести этот тип решения до протокола */
+	serviceable?:boolean | `@${string}`,
+	/** Название решения */
+	title?:boolean | `@${string}`,
+	/** Тип решения в повестке совета */
+	type?:boolean | `@${string}`,
+	/** Кворум робота */
+	vote_quorum?:ResolverInputTypes["RobotQuorum"],
+	/** Кто делегировал роботу голос по этому типу */
+	voters?:ResolverInputTypes["RobotVoter"],
+		__typename?: boolean | `@${string}`
+}>;
+	/** Передача роботу приватного ключа разрешения */
+["RobotDelegateKeyInput"]: {
+	/** Имя разрешения; по умолчанию robot */
+	permission_name?: string | undefined | null,
+	/** Приватный ключ разрешения робота (WIF); передаётся один раз и не хранится на устройстве */
+	wif: string
+};
+	/** Состояние ключа робота у члена совета */
+["RobotKeyStatus"]: AliasType<{
+	/** На аккаунте есть разрешение робота */
+	chain_has_permission?:boolean | `@${string}`,
+	/** Ключ у робота совпадает с ключом разрешения в цепи */
+	chain_key_matches?:boolean | `@${string}`,
+	/** Робот держит ключ */
+	has_key?:boolean | `@${string}`,
+	/** Член совета */
+	member?:boolean | `@${string}`,
+	/** Разрешение аккаунта с ключом робота */
+	permission_name?:boolean | `@${string}`,
+	/** Публичный ключ, который держит робот */
+	public_key?:boolean | `@${string}`,
+	/** Когда ключ передан */
+	updated_at?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Кворум робота по типу решения */
+["RobotQuorum"]: AliasType<{
+	/** Сколько голосующих членов совета делегировали голос и передали ключ */
+	delegated_count?:boolean | `@${string}`,
+	/** Робот набирает кворум сам, без ручных голосов */
+	reached?:boolean | `@${string}`,
+	/** Сколько голосов «за» нужно по правилу совета */
+	required_count?:boolean | `@${string}`,
+	/** Состав совета */
+	total_members?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Ручной повтор застрявшего решения */
+["RobotRetryDecisionInput"]: {
+	/** Номер решения совета */
+	decision_id: number
+};
+	/** Голос, поданный роботом от имени члена совета */
+["RobotVoteRecord"]: AliasType<{
+	/** Когда подан */
+	at?:boolean | `@${string}`,
+	/** Член совета */
+	member?:boolean | `@${string}`,
+	/** Разрешение аккаунта, ключом которого подписан голос */
+	permission?:boolean | `@${string}`,
+	/** Транзакция голоса */
+	tx_id?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Член совета, делегировавший роботу голос по типу решения */
+["RobotVoter"]: AliasType<{
+	/** Срок действия делегирования; пусто — бессрочно */
+	expires_at?:boolean | `@${string}`,
+	/** Робот держит ключ этого разрешения */
+	has_key?:boolean | `@${string}`,
+	/** Лимит суммы на одно решение; нулевой — без лимита */
+	limit?:boolean | `@${string}`,
+	/** Учётное имя члена совета */
+	member?:boolean | `@${string}`,
+	/** Разрешение аккаунта с ключом робота */
+	permission_name?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
 	/** Тип сообщения в истории комнаты Matrix (текст или расшифрованное аудио) */
@@ -42063,6 +42469,18 @@ export type ModelTypes = {
 
 Требуемые роли: chairman, member.  */
 	signBySecretaryOnAnnualGeneralMeet: ModelTypes["MeetAggregate"],
+	/** Передать роботу приватный ключ своего разрешения; ключ проверяется по цепи и хранится зашифрованным
+
+Требуемые роли: member, chairman.  */
+	sovietRobotDelegateKey: ModelTypes["RobotKeyStatus"],
+	/** Повторить обработку застрявшего решения
+
+Требуемые роли: chairman.  */
+	sovietRobotRetryDecision?: ModelTypes["RobotDecision"] | undefined | null,
+	/** Удалить свой ключ из хранилища робота
+
+Требуемые роли: member, chairman.  */
+	sovietRobotRevokeKey: boolean,
 	/** Начать процесс установки кооператива, установить ключ и получить код установки */
 	startInstall: ModelTypes["StartInstallResult"],
 	/** Выслать токен для замены приватного ключа аккаунта на электронную почту */
@@ -42628,6 +43046,16 @@ export type ModelTypes = {
 	currentPage: number,
 	/** Элементы текущей страницы */
 	items: Array<ModelTypes["MarketplaceWriteoffProposal"]>,
+	/** Общее количество элементов */
+	totalCount: number,
+	/** Общее количество страниц */
+	totalPages: number
+};
+	["PaginatedRobotDecisionsPaginationResult"]: {
+		/** Текущая страница */
+	currentPage: number,
+	/** Элементы текущей страницы */
+	items: Array<ModelTypes["RobotDecision"]>,
 	/** Общее количество элементов */
 	totalCount: number,
 	/** Общее количество страниц */
@@ -44185,6 +44613,26 @@ export type ModelTypes = {
 
 Требуемые роли: chairman, member.  */
 	searchPrivateAccounts: Array<ModelTypes["PrivateAccountSearchResult"]>,
+	/** Совет кооператива: идентификатор, председатель, состав и порог голосов
+
+Требуемые роли: member, chairman.  */
+	sovietRobotCouncil: ModelTypes["RobotCouncil"],
+	/** Журнал решений робота: этапы, голоса, транзакции и ошибки
+
+Требуемые роли: member, chairman.  */
+	sovietRobotJournal: ModelTypes["PaginatedRobotDecisionsPaginationResult"],
+	/** Состояние ключа робота текущего члена совета
+
+Требуемые роли: member, chairman.  */
+	sovietRobotKeyStatus: ModelTypes["RobotKeyStatus"],
+	/** Состояние ключей робота у всех членов совета
+
+Требуемые роли: chairman.  */
+	sovietRobotKeys: Array<ModelTypes["RobotKeyStatus"]>,
+	/** Реестр действий автоматизации: кто и что делегировал роботу по каждому типу решения и достигнут ли кворум робота
+
+Требуемые роли: member, chairman.  */
+	sovietRobotRegistry: Array<ModelTypes["RobotDecisionType"]>,
 	/** Валидировать edits-состояние формы: возвращает список ошибок полей с JSONPath (совпадает с editedFields-путями на клиенте).
 
 Требуемые роли: chairman.  */
@@ -44806,6 +45254,160 @@ export type ModelTypes = {
 	["RevokedSessionsResult"]: {
 		/** Сколько активных сессий завершено */
 	revoked: number
+};
+	/** Автоматическая подпись протоколов председателем */
+["RobotChairmanDelegation"]: {
+		/** Председатель делегировал роботу подпись протоколов этого типа */
+	delegated: boolean,
+	/** Робот держит ключ разрешения председателя */
+	has_key: boolean,
+	/** Учётное имя председателя совета */
+	username?: string | undefined | null
+};
+	/** Совет кооператива глазами робота */
+["RobotCouncil"]: {
+		/** Идентификатор совета в контракте */
+	board_id: number,
+	/** Председатель совета */
+	chairman?: string | undefined | null,
+	/** Состав совета */
+	members: Array<ModelTypes["RobotCouncilMember"]>,
+	/** Сколько голосов «за» нужно по правилу совета */
+	required_votes: number
+};
+	/** Член совета кооператива */
+["RobotCouncilMember"]: {
+		/** Имеет право голоса */
+	is_voting: boolean,
+	/** Должность в совете */
+	position: string,
+	/** Название должности */
+	position_title: string,
+	/** Учётное имя */
+	username: string
+};
+	/** Решение совета в журнале робота */
+["RobotDecision"]: {
+		/** Число неудачных попыток */
+	attempts: number,
+	/** Кооператив */
+	coopname: string,
+	/** Создано */
+	created_at: ModelTypes["DateTime"],
+	/** Хэш повестки */
+	decision_hash: string,
+	/** Номер решения совета */
+	decision_id: number,
+	/** Тип решения */
+	decision_type: string,
+	/** Идентификатор записи журнала */
+	id: string,
+	/** Последняя ошибка */
+	last_error?: string | undefined | null,
+	/** Время следующей попытки */
+	next_attempt_at?: ModelTypes["DateTime"] | undefined | null,
+	/** Хэш протокола, подписанного роботом */
+	protocol_hash?: string | undefined | null,
+	/** Этап обработки */
+	stage: ModelTypes["RobotDecisionStage"],
+	/** Транзакции робота по этому решению */
+	tx_hashes: Array<string>,
+	/** Обновлено */
+	updated_at: ModelTypes["DateTime"],
+	/** Кто подал повестку */
+	username: string,
+	/** Голоса, поданные роботом */
+	votes: Array<ModelTypes["RobotVoteRecord"]>
+};
+	["RobotDecisionStage"]:RobotDecisionStage;
+	/** Тип решения совета в реестре действий автоматизации */
+["RobotDecisionType"]: {
+		/** Область платформы, из которой приходит решение */
+	area: string,
+	/** Автоматическая подпись протоколов */
+	chairman: ModelTypes["RobotChairmanDelegation"],
+	/** О чём решение */
+	description: string,
+	/** Текущий пользователь (председатель) делегировал подпись протоколов этого типа */
+	my_authorize: boolean,
+	/** Текущий пользователь делегировал голос по этому типу */
+	my_vote: boolean,
+	/** Номер шаблона протокола в реестре документов */
+	protocol_registry_id?: number | undefined | null,
+	/** Робот умеет довести этот тип решения до протокола */
+	serviceable: boolean,
+	/** Название решения */
+	title: string,
+	/** Тип решения в повестке совета */
+	type: string,
+	/** Кворум робота */
+	vote_quorum: ModelTypes["RobotQuorum"],
+	/** Кто делегировал роботу голос по этому типу */
+	voters: Array<ModelTypes["RobotVoter"]>
+};
+	/** Передача роботу приватного ключа разрешения */
+["RobotDelegateKeyInput"]: {
+	/** Имя разрешения; по умолчанию robot */
+	permission_name?: string | undefined | null,
+	/** Приватный ключ разрешения робота (WIF); передаётся один раз и не хранится на устройстве */
+	wif: string
+};
+	/** Состояние ключа робота у члена совета */
+["RobotKeyStatus"]: {
+		/** На аккаунте есть разрешение робота */
+	chain_has_permission: boolean,
+	/** Ключ у робота совпадает с ключом разрешения в цепи */
+	chain_key_matches: boolean,
+	/** Робот держит ключ */
+	has_key: boolean,
+	/** Член совета */
+	member: string,
+	/** Разрешение аккаунта с ключом робота */
+	permission_name: string,
+	/** Публичный ключ, который держит робот */
+	public_key?: string | undefined | null,
+	/** Когда ключ передан */
+	updated_at?: ModelTypes["DateTime"] | undefined | null
+};
+	/** Кворум робота по типу решения */
+["RobotQuorum"]: {
+		/** Сколько голосующих членов совета делегировали голос и передали ключ */
+	delegated_count: number,
+	/** Робот набирает кворум сам, без ручных голосов */
+	reached: boolean,
+	/** Сколько голосов «за» нужно по правилу совета */
+	required_count: number,
+	/** Состав совета */
+	total_members: number
+};
+	/** Ручной повтор застрявшего решения */
+["RobotRetryDecisionInput"]: {
+	/** Номер решения совета */
+	decision_id: number
+};
+	/** Голос, поданный роботом от имени члена совета */
+["RobotVoteRecord"]: {
+		/** Когда подан */
+	at: string,
+	/** Член совета */
+	member: string,
+	/** Разрешение аккаунта, ключом которого подписан голос */
+	permission: string,
+	/** Транзакция голоса */
+	tx_id: string
+};
+	/** Член совета, делегировавший роботу голос по типу решения */
+["RobotVoter"]: {
+		/** Срок действия делегирования; пусто — бессрочно */
+	expires_at?: string | undefined | null,
+	/** Робот держит ключ этого разрешения */
+	has_key: boolean,
+	/** Лимит суммы на одно решение; нулевой — без лимита */
+	limit: string,
+	/** Учётное имя члена совета */
+	member: string,
+	/** Разрешение аккаунта с ключом робота */
+	permission_name: string
 };
 	["RoomMessageKind"]:RoomMessageKind;
 	["SaveCapitalProgramDocDataInput"]: {
@@ -57989,6 +58591,18 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman, member.  */
 	signBySecretaryOnAnnualGeneralMeet: GraphQLTypes["MeetAggregate"],
+	/** Передать роботу приватный ключ своего разрешения; ключ проверяется по цепи и хранится зашифрованным
+
+Требуемые роли: member, chairman.  */
+	sovietRobotDelegateKey: GraphQLTypes["RobotKeyStatus"],
+	/** Повторить обработку застрявшего решения
+
+Требуемые роли: chairman.  */
+	sovietRobotRetryDecision?: GraphQLTypes["RobotDecision"] | undefined | null,
+	/** Удалить свой ключ из хранилища робота
+
+Требуемые роли: member, chairman.  */
+	sovietRobotRevokeKey: boolean,
 	/** Начать процесс установки кооператива, установить ключ и получить код установки */
 	startInstall: GraphQLTypes["StartInstallResult"],
 	/** Выслать токен для замены приватного ключа аккаунта на электронную почту */
@@ -58642,6 +59256,18 @@ export type GraphQLTypes = {
 	/** Общее количество страниц */
 	totalPages: number,
 	['...on PaginatedMarketplaceWriteoffProposals']: Omit<GraphQLTypes["PaginatedMarketplaceWriteoffProposals"], "...on PaginatedMarketplaceWriteoffProposals">
+};
+	["PaginatedRobotDecisionsPaginationResult"]: {
+	__typename: "PaginatedRobotDecisionsPaginationResult",
+	/** Текущая страница */
+	currentPage: number,
+	/** Элементы текущей страницы */
+	items: Array<GraphQLTypes["RobotDecision"]>,
+	/** Общее количество элементов */
+	totalCount: number,
+	/** Общее количество страниц */
+	totalPages: number,
+	['...on PaginatedRobotDecisionsPaginationResult']: Omit<GraphQLTypes["PaginatedRobotDecisionsPaginationResult"], "...on PaginatedRobotDecisionsPaginationResult">
 };
 	["PaginationInput"]: {
 		/** Количество элементов на странице */
@@ -60288,6 +60914,26 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman, member.  */
 	searchPrivateAccounts: Array<GraphQLTypes["PrivateAccountSearchResult"]>,
+	/** Совет кооператива: идентификатор, председатель, состав и порог голосов
+
+Требуемые роли: member, chairman.  */
+	sovietRobotCouncil: GraphQLTypes["RobotCouncil"],
+	/** Журнал решений робота: этапы, голоса, транзакции и ошибки
+
+Требуемые роли: member, chairman.  */
+	sovietRobotJournal: GraphQLTypes["PaginatedRobotDecisionsPaginationResult"],
+	/** Состояние ключа робота текущего члена совета
+
+Требуемые роли: member, chairman.  */
+	sovietRobotKeyStatus: GraphQLTypes["RobotKeyStatus"],
+	/** Состояние ключей робота у всех членов совета
+
+Требуемые роли: chairman.  */
+	sovietRobotKeys: Array<GraphQLTypes["RobotKeyStatus"]>,
+	/** Реестр действий автоматизации: кто и что делегировал роботу по каждому типу решения и достигнут ли кворум робота
+
+Требуемые роли: member, chairman.  */
+	sovietRobotRegistry: Array<GraphQLTypes["RobotDecisionType"]>,
 	/** Валидировать edits-состояние формы: возвращает список ошибок полей с JSONPath (совпадает с editedFields-путями на клиенте).
 
 Требуемые роли: chairman.  */
@@ -60964,6 +61610,179 @@ export type GraphQLTypes = {
 	/** Сколько активных сессий завершено */
 	revoked: number,
 	['...on RevokedSessionsResult']: Omit<GraphQLTypes["RevokedSessionsResult"], "...on RevokedSessionsResult">
+};
+	/** Автоматическая подпись протоколов председателем */
+["RobotChairmanDelegation"]: {
+	__typename: "RobotChairmanDelegation",
+	/** Председатель делегировал роботу подпись протоколов этого типа */
+	delegated: boolean,
+	/** Робот держит ключ разрешения председателя */
+	has_key: boolean,
+	/** Учётное имя председателя совета */
+	username?: string | undefined | null,
+	['...on RobotChairmanDelegation']: Omit<GraphQLTypes["RobotChairmanDelegation"], "...on RobotChairmanDelegation">
+};
+	/** Совет кооператива глазами робота */
+["RobotCouncil"]: {
+	__typename: "RobotCouncil",
+	/** Идентификатор совета в контракте */
+	board_id: number,
+	/** Председатель совета */
+	chairman?: string | undefined | null,
+	/** Состав совета */
+	members: Array<GraphQLTypes["RobotCouncilMember"]>,
+	/** Сколько голосов «за» нужно по правилу совета */
+	required_votes: number,
+	['...on RobotCouncil']: Omit<GraphQLTypes["RobotCouncil"], "...on RobotCouncil">
+};
+	/** Член совета кооператива */
+["RobotCouncilMember"]: {
+	__typename: "RobotCouncilMember",
+	/** Имеет право голоса */
+	is_voting: boolean,
+	/** Должность в совете */
+	position: string,
+	/** Название должности */
+	position_title: string,
+	/** Учётное имя */
+	username: string,
+	['...on RobotCouncilMember']: Omit<GraphQLTypes["RobotCouncilMember"], "...on RobotCouncilMember">
+};
+	/** Решение совета в журнале робота */
+["RobotDecision"]: {
+	__typename: "RobotDecision",
+	/** Число неудачных попыток */
+	attempts: number,
+	/** Кооператив */
+	coopname: string,
+	/** Создано */
+	created_at: GraphQLTypes["DateTime"],
+	/** Хэш повестки */
+	decision_hash: string,
+	/** Номер решения совета */
+	decision_id: number,
+	/** Тип решения */
+	decision_type: string,
+	/** Идентификатор записи журнала */
+	id: string,
+	/** Последняя ошибка */
+	last_error?: string | undefined | null,
+	/** Время следующей попытки */
+	next_attempt_at?: GraphQLTypes["DateTime"] | undefined | null,
+	/** Хэш протокола, подписанного роботом */
+	protocol_hash?: string | undefined | null,
+	/** Этап обработки */
+	stage: GraphQLTypes["RobotDecisionStage"],
+	/** Транзакции робота по этому решению */
+	tx_hashes: Array<string>,
+	/** Обновлено */
+	updated_at: GraphQLTypes["DateTime"],
+	/** Кто подал повестку */
+	username: string,
+	/** Голоса, поданные роботом */
+	votes: Array<GraphQLTypes["RobotVoteRecord"]>,
+	['...on RobotDecision']: Omit<GraphQLTypes["RobotDecision"], "...on RobotDecision">
+};
+	/** Этап решения в журнале робота совета */
+["RobotDecisionStage"]: RobotDecisionStage;
+	/** Тип решения совета в реестре действий автоматизации */
+["RobotDecisionType"]: {
+	__typename: "RobotDecisionType",
+	/** Область платформы, из которой приходит решение */
+	area: string,
+	/** Автоматическая подпись протоколов */
+	chairman: GraphQLTypes["RobotChairmanDelegation"],
+	/** О чём решение */
+	description: string,
+	/** Текущий пользователь (председатель) делегировал подпись протоколов этого типа */
+	my_authorize: boolean,
+	/** Текущий пользователь делегировал голос по этому типу */
+	my_vote: boolean,
+	/** Номер шаблона протокола в реестре документов */
+	protocol_registry_id?: number | undefined | null,
+	/** Робот умеет довести этот тип решения до протокола */
+	serviceable: boolean,
+	/** Название решения */
+	title: string,
+	/** Тип решения в повестке совета */
+	type: string,
+	/** Кворум робота */
+	vote_quorum: GraphQLTypes["RobotQuorum"],
+	/** Кто делегировал роботу голос по этому типу */
+	voters: Array<GraphQLTypes["RobotVoter"]>,
+	['...on RobotDecisionType']: Omit<GraphQLTypes["RobotDecisionType"], "...on RobotDecisionType">
+};
+	/** Передача роботу приватного ключа разрешения */
+["RobotDelegateKeyInput"]: {
+		/** Имя разрешения; по умолчанию robot */
+	permission_name?: string | undefined | null,
+	/** Приватный ключ разрешения робота (WIF); передаётся один раз и не хранится на устройстве */
+	wif: string
+};
+	/** Состояние ключа робота у члена совета */
+["RobotKeyStatus"]: {
+	__typename: "RobotKeyStatus",
+	/** На аккаунте есть разрешение робота */
+	chain_has_permission: boolean,
+	/** Ключ у робота совпадает с ключом разрешения в цепи */
+	chain_key_matches: boolean,
+	/** Робот держит ключ */
+	has_key: boolean,
+	/** Член совета */
+	member: string,
+	/** Разрешение аккаунта с ключом робота */
+	permission_name: string,
+	/** Публичный ключ, который держит робот */
+	public_key?: string | undefined | null,
+	/** Когда ключ передан */
+	updated_at?: GraphQLTypes["DateTime"] | undefined | null,
+	['...on RobotKeyStatus']: Omit<GraphQLTypes["RobotKeyStatus"], "...on RobotKeyStatus">
+};
+	/** Кворум робота по типу решения */
+["RobotQuorum"]: {
+	__typename: "RobotQuorum",
+	/** Сколько голосующих членов совета делегировали голос и передали ключ */
+	delegated_count: number,
+	/** Робот набирает кворум сам, без ручных голосов */
+	reached: boolean,
+	/** Сколько голосов «за» нужно по правилу совета */
+	required_count: number,
+	/** Состав совета */
+	total_members: number,
+	['...on RobotQuorum']: Omit<GraphQLTypes["RobotQuorum"], "...on RobotQuorum">
+};
+	/** Ручной повтор застрявшего решения */
+["RobotRetryDecisionInput"]: {
+		/** Номер решения совета */
+	decision_id: number
+};
+	/** Голос, поданный роботом от имени члена совета */
+["RobotVoteRecord"]: {
+	__typename: "RobotVoteRecord",
+	/** Когда подан */
+	at: string,
+	/** Член совета */
+	member: string,
+	/** Разрешение аккаунта, ключом которого подписан голос */
+	permission: string,
+	/** Транзакция голоса */
+	tx_id: string,
+	['...on RobotVoteRecord']: Omit<GraphQLTypes["RobotVoteRecord"], "...on RobotVoteRecord">
+};
+	/** Член совета, делегировавший роботу голос по типу решения */
+["RobotVoter"]: {
+	__typename: "RobotVoter",
+	/** Срок действия делегирования; пусто — бессрочно */
+	expires_at?: string | undefined | null,
+	/** Робот держит ключ этого разрешения */
+	has_key: boolean,
+	/** Лимит суммы на одно решение; нулевой — без лимита */
+	limit: string,
+	/** Учётное имя члена совета */
+	member: string,
+	/** Разрешение аккаунта с ключом робота */
+	permission_name: string,
+	['...on RobotVoter']: Omit<GraphQLTypes["RobotVoter"], "...on RobotVoter">
 };
 	/** Тип сообщения в истории комнаты Matrix (текст или расшифрованное аудио) */
 ["RoomMessageKind"]: RoomMessageKind;
@@ -63149,6 +63968,17 @@ export enum ResultStatus {
 	PENDING = "PENDING",
 	UNDEFINED = "UNDEFINED"
 }
+/** Этап решения в журнале робота совета */
+export enum RobotDecisionStage {
+	AWAITING_CHAIRMAN = "AWAITING_CHAIRMAN",
+	AWAITING_PROTOCOL = "AWAITING_PROTOCOL",
+	AWAITING_QUORUM = "AWAITING_QUORUM",
+	CLOSED = "CLOSED",
+	EXECUTED = "EXECUTED",
+	FAILED = "FAILED",
+	NEW = "NEW",
+	VOTED = "VOTED"
+}
 /** Тип сообщения в истории комнаты Matrix (текст или расшифрованное аудио) */
 export enum RoomMessageKind {
 	AUDIO = "AUDIO",
@@ -63815,6 +64645,9 @@ type ZEUS_VARIABLES = {
 	["RevokeCapabilitySetInput"]: ValueTypes["RevokeCapabilitySetInput"];
 	["RevokeParticipantKeyInput"]: ValueTypes["RevokeParticipantKeyInput"];
 	["RevokeSessionInput"]: ValueTypes["RevokeSessionInput"];
+	["RobotDecisionStage"]: ValueTypes["RobotDecisionStage"];
+	["RobotDelegateKeyInput"]: ValueTypes["RobotDelegateKeyInput"];
+	["RobotRetryDecisionInput"]: ValueTypes["RobotRetryDecisionInput"];
 	["RoomMessageKind"]: ValueTypes["RoomMessageKind"];
 	["SaveCapitalProgramDocDataInput"]: ValueTypes["SaveCapitalProgramDocDataInput"];
 	["SaveReportDraftInput"]: ValueTypes["SaveReportDraftInput"];

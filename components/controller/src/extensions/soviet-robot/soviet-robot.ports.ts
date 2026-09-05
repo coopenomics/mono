@@ -16,6 +16,16 @@ import {
 } from '@coopenomics/innercoop';
 
 export const sovietRobotPorts = {
-  required: [ACCOUNT_PORT, CHAIN_PORT, DESKTOP_GRANTS_REGISTRY_PORT, DOCUMENT_PORT, LOGGER_PORT, SECRET_CIPHER_PORT, VAULT_PORT],
-  optional: [NOTIFICATION_PORT],
+  required: [
+    ACCOUNT_PORT,
+    CHAIN_PORT,
+    DESKTOP_GRANTS_REGISTRY_PORT,
+    DOCUMENT_PORT,
+    LOGGER_PORT,
+    SECRET_CIPHER_PORT,
+    VAULT_PORT,
+  ],
+  optional: [
+    NOTIFICATION_PORT,
+  ],
 };

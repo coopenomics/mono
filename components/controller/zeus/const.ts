@@ -2414,6 +2414,12 @@ export const AllTypesProps: Record<string,any> = {
 		signBySecretaryOnAnnualGeneralMeet:{
 			data:"SignBySecretaryOnAnnualGeneralMeetInput"
 		},
+		sovietRobotDelegateKey:{
+			data:"RobotDelegateKeyInput"
+		},
+		sovietRobotRetryDecision:{
+			data:"RobotRetryDecisionInput"
+		},
 		startInstall:{
 			data:"StartInstallInput"
 		},
@@ -3228,6 +3234,9 @@ export const AllTypesProps: Record<string,any> = {
 		searchPrivateAccounts:{
 			data:"SearchPrivateAccountsInput"
 		},
+		sovietRobotJournal:{
+			options:"PaginationInput"
+		},
 		validateReportEdits:{
 			reportType:"ReportType"
 		},
@@ -3369,6 +3378,13 @@ export const AllTypesProps: Record<string,any> = {
 
 	},
 	RevokeSessionInput:{
+
+	},
+	RobotDecisionStage: "enum" as const,
+	RobotDelegateKeyInput:{
+
+	},
+	RobotRetryDecisionInput:{
 
 	},
 	RoomMessageKind: "enum" as const,
@@ -7077,6 +7093,9 @@ export const ReturnTypes: Record<string,any> = {
 		setWif:"Boolean",
 		signByPresiderOnAnnualGeneralMeet:"MeetAggregate",
 		signBySecretaryOnAnnualGeneralMeet:"MeetAggregate",
+		sovietRobotDelegateKey:"RobotKeyStatus",
+		sovietRobotRetryDecision:"RobotDecision",
+		sovietRobotRevokeKey:"Boolean",
 		startInstall:"StartInstallResult",
 		startResetKey:"Boolean",
 		submitExpenseReport:"Transaction",
@@ -7360,6 +7379,12 @@ export const ReturnTypes: Record<string,any> = {
 	PaginatedMarketplaceWriteoffProposals:{
 		currentPage:"Int",
 		items:"MarketplaceWriteoffProposal",
+		totalCount:"Int",
+		totalPages:"Int"
+	},
+	PaginatedRobotDecisionsPaginationResult:{
+		currentPage:"Int",
+		items:"RobotDecision",
 		totalCount:"Int",
 		totalPages:"Int"
 	},
@@ -7932,6 +7957,11 @@ export const ReturnTypes: Record<string,any> = {
 		processes:"ProcessSummaryPaginationResult",
 		searchDocuments:"SearchResult",
 		searchPrivateAccounts:"PrivateAccountSearchResult",
+		sovietRobotCouncil:"RobotCouncil",
+		sovietRobotJournal:"PaginatedRobotDecisionsPaginationResult",
+		sovietRobotKeyStatus:"RobotKeyStatus",
+		sovietRobotKeys:"RobotKeyStatus",
+		sovietRobotRegistry:"RobotDecisionType",
 		validateReportEdits:"FieldError",
 		verificationReviewPhotos:"VerificationReviewPhoto",
 		verificationReviews:"VerificationReview"
@@ -8104,6 +8134,81 @@ export const ReturnTypes: Record<string,any> = {
 	},
 	RevokedSessionsResult:{
 		revoked:"Int"
+	},
+	RobotChairmanDelegation:{
+		delegated:"Boolean",
+		has_key:"Boolean",
+		username:"String"
+	},
+	RobotCouncil:{
+		board_id:"Int",
+		chairman:"String",
+		members:"RobotCouncilMember",
+		required_votes:"Int"
+	},
+	RobotCouncilMember:{
+		is_voting:"Boolean",
+		position:"String",
+		position_title:"String",
+		username:"String"
+	},
+	RobotDecision:{
+		attempts:"Int",
+		coopname:"String",
+		created_at:"DateTime",
+		decision_hash:"String",
+		decision_id:"Int",
+		decision_type:"String",
+		id:"String",
+		last_error:"String",
+		next_attempt_at:"DateTime",
+		protocol_hash:"String",
+		stage:"RobotDecisionStage",
+		tx_hashes:"String",
+		updated_at:"DateTime",
+		username:"String",
+		votes:"RobotVoteRecord"
+	},
+	RobotDecisionType:{
+		area:"String",
+		chairman:"RobotChairmanDelegation",
+		description:"String",
+		my_authorize:"Boolean",
+		my_vote:"Boolean",
+		protocol_registry_id:"Int",
+		serviceable:"Boolean",
+		title:"String",
+		type:"String",
+		vote_quorum:"RobotQuorum",
+		voters:"RobotVoter"
+	},
+	RobotKeyStatus:{
+		chain_has_permission:"Boolean",
+		chain_key_matches:"Boolean",
+		has_key:"Boolean",
+		member:"String",
+		permission_name:"String",
+		public_key:"String",
+		updated_at:"DateTime"
+	},
+	RobotQuorum:{
+		delegated_count:"Int",
+		reached:"Boolean",
+		required_count:"Int",
+		total_members:"Int"
+	},
+	RobotVoteRecord:{
+		at:"String",
+		member:"String",
+		permission:"String",
+		tx_id:"String"
+	},
+	RobotVoter:{
+		expires_at:"String",
+		has_key:"Boolean",
+		limit:"String",
+		member:"String",
+		permission_name:"String"
 	},
 	SbpAccount:{
 		phone:"String"

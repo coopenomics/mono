@@ -108,4 +108,12 @@ export class SovietRobotExtension extends BaseExtensionModule {
   ],
   exports: [SovietRobotExtension, RobotRegistryService, RobotKeyService],
 })
-export class SovietRobotExtensionModule {}
+export class SovietRobotExtensionModule {
+  constructor(private readonly robotExtension: SovietRobotExtension) {}
+
+  /** Ядро вызывает initialize у экземпляра модуля при установке и включении расширения. */
+  async initialize(config?: IConfig) {
+    await this.robotExtension.initialize();
+    void config;
+  }
+}

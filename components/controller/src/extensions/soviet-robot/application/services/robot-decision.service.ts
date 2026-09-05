@@ -82,18 +82,15 @@ export class RobotDecisionService {
       if (entry.stage !== RobotDecisionStage.EXECUTED) entry.stage = RobotDecisionStage.CLOSED;
       return entry;
     }
-    if (Number(decision.authorized) === 1 || decision.authorized === true) {
-      // Утверждено, но не исполнено (ручной путь на полпути) — робот не вмешивается.
-      return entry;
-    }
+    // Утверждено, но не исполнено (ручной путь на полпути) — робот не вмешивается.
+    if (Number(decision.authorized) === 1 || decision.authorized === true) return entry;
 
     const [automations, board] = await Promise.all([this.chain.getAutomations(entry.coopname), this.chain.getSovietBoard(entry.coopname)]);
     if (!board) throw new Error('Совет кооператива не найден');
     const alive = automations.filter((a) => !isAutomationExpired(a));
 
-    // Шаг 1. Голоса.
-    const voted = await this.castVotes(entry, decision, alive, board);
-    if (voted) return entry;
+    // Шаг 1. Голоса — одна транзакция, дальше ждём следующего прохода.
+    if (await this.castVotes(entry, decision, alive, board)) return entry;
 
     // Шаг 2. Кворум.
     const fresh = (await this.chain.getDecision(entry.coopname, entry.decision_id)) ?? decision;
@@ -103,30 +100,46 @@ export class RobotDecisionService {
     }
 
     // Шаг 3. Протокол председателя.
-    const chairman = board.members.find((m) => m.position === 'chairman')?.username;
-    const chairmanRow = chairman ? alive.find((a) => a.member === chairman && a.authorize_types.includes(entry.decision_type)) : undefined;
-    const chairmanKey = chairman && chairmanRow ? await this.keys.getWif(entry.coopname, chairman) : null;
-    if (!chairman || !chairmanRow || !chairmanKey) {
+    const chairman = await this.chairmanSigner(entry, alive, board);
+    if (!chairman) {
       entry.stage = RobotDecisionStage.AWAITING_CHAIRMAN;
       return entry;
     }
-    if (chairmanKey.permission_name !== chairmanRow.permission_name) {
-      throw new Error(`Разрешение ключа председателя (${chairmanKey.permission_name}) не совпадает с реестром (${chairmanRow.permission_name})`);
-    }
+    return this.authorizeWithProtocol(entry, fresh, chairman);
+  }
 
+  /** Председатель, делегировавший подпись протоколов этого типа, и его ключ; null — ждать председателя. */
+  private async chairmanSigner(entry: RobotDecisionDomainEntity, alive: AutomatorRow[], board: BoardRow) {
+    const chairman = board.members.find((m) => m.position === 'chairman')?.username;
+    if (!chairman) return null;
+    const row = alive.find((a) => a.member === chairman && a.authorize_types.includes(entry.decision_type));
+    if (!row) return null;
+    const key = await this.keys.getWif(entry.coopname, chairman);
+    if (!key) return null;
+    if (key.permission_name !== row.permission_name) {
+      throw new Error(`Разрешение ключа председателя (${key.permission_name}) не совпадает с реестром (${row.permission_name})`);
+    }
+    return { username: String(chairman), wif: key.wif, permission: row.permission_name };
+  }
+
+  /** Протокол по шаблону типа решения, подпись ключом председателя, утверждение и исполнение одной транзакцией. */
+  private async authorizeWithProtocol(
+    entry: RobotDecisionDomainEntity,
+    decision: DecisionRow,
+    chairman: { username: string; wif: string; permission: string }
+  ): Promise<RobotDecisionDomainEntity> {
     entry.stage = RobotDecisionStage.AWAITING_PROTOCOL;
     const registryId = Cooperative.Document.decisionTypesRegistry[entry.decision_type]?.protocol_registry_id;
     if (!registryId) throw new Error(`Для типа решения ${entry.decision_type} не описан шаблон протокола`);
 
     const generated = await this.documents.generate({
-      data: this.protocolData(registryId, entry.coopname, fresh),
+      data: this.protocolData(registryId, entry.coopname, decision),
       options: { lang: 'ru' },
     });
-    const signer = new Classes.Document(chairmanKey.wif);
-    const signed = await signer.signDocument(generated as any, chairman, 1);
+    const signed = await new Classes.Document(chairman.wif).signDocument(generated as any, chairman.username, 1);
     const document = this.toChain.convertSignedDocumentToBlockchainFormat(signed as any);
 
-    const txId = await this.chain.authorizeAndExec(entry.coopname, chairman, entry.decision_id, document as any, chairmanRow.permission_name);
+    const txId = await this.chain.authorizeAndExec(entry.coopname, chairman.username, entry.decision_id, document as any, chairman.permission);
     entry.protocol_hash = String(signed.hash);
     entry.tx_hashes = [...entry.tx_hashes, txId];
     entry.stage = RobotDecisionStage.EXECUTED;

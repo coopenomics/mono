@@ -45,38 +45,37 @@ export class RobotKeyService {
     this.logger.setContext(RobotKeyService.name);
   }
 
+  /** Сколько раз перечитать разрешения аккаунта, пока узел не отдаст свежее, и пауза между чтениями. */
+  static PERMISSION_READ_ATTEMPTS = 6;
+  static PERMISSION_READ_PAUSE_MS = 1000;
+
   /** Публичный ключ в едином представлении, чтобы сравнивать EOS… и PUB_K1_… формы. */
   static normalize(key: string): string {
     return PublicKey.from(key).toString();
   }
 
+  private lastSeenPermissions: string[] = [];
+
   private async permissionKeys(member: string, permission_name: string): Promise<string[] | null> {
     const account = await this.accounts.getAccount(member);
     const permissions: any[] = account.blockchain_account?.permissions ?? [];
-    const permission = permissions.find((p) => p.perm_name === permission_name);
+    this.lastSeenPermissions = permissions.map((p) => String(p.perm_name));
+    // perm_name может прийти объектом Name из SDK узла, а не строкой — сравниваем по тексту
+    const permission = permissions.find((p) => String(p.perm_name) === permission_name);
     if (!permission) return null;
     const keys: any[] = permission.required_auth?.keys ?? [];
     return keys.map((k) => RobotKeyService.normalize(String(k.key)));
   }
 
-  async delegateKey(coopname: string, member: string, wif: string, permission_name: string = ROBOT_PERMISSION): Promise<RobotKeyStatus> {
-    const board = await this.chain.getSovietBoard(coopname);
-    if (!board || !board.members.some((m) => m.username === member)) {
-      throw new Error('Ключ робота принимается только от члена совета кооператива');
-    }
+  async delegateKey(coopname: string, member: string, wif: string, requestedPermission?: string | null): Promise<RobotKeyStatus> {
+    // Из GraphQL необязательное поле приходит как null, а не undefined — значение по умолчанию задаём сами.
+    const permission_name = requestedPermission || ROBOT_PERMISSION;
+    await this.assertCouncilMember(coopname, member);
     if (permission_name === 'active' || permission_name === 'owner') {
       throw new Error('Роботу выдаётся отдельное разрешение аккаунта, а не active или owner');
     }
-
-    let publicKey: string;
-    try {
-      publicKey = PrivateKey.from(wif).toPublic().toString();
-    } catch {
-      throw new Error('Приватный ключ не разобран: ожидается ключ в формате WIF');
-    }
-
-    const chainKeys = await this.permissionKeys(member, permission_name);
-    if (!chainKeys) throw new Error(`На аккаунте ${member} нет разрешения ${permission_name}: сначала выпустите его`);
+    const publicKey = RobotKeyService.publicKeyOf(wif);
+    const chainKeys = await this.waitPermissionKeys(member, permission_name);
     if (!chainKeys.includes(publicKey)) {
       throw new Error(`Ключ не принадлежит разрешению ${permission_name} аккаунта ${member}`);
     }
@@ -84,6 +83,36 @@ export class RobotKeyService {
     await this.keys.upsert({ coopname, member, permission_name, encrypted_wif: this.cipher.encrypt(wif), public_key: publicKey });
     this.logger.info(`Принят ключ разрешения ${permission_name} члена совета ${member}`);
     return this.getStatus(coopname, member);
+  }
+
+  private async assertCouncilMember(coopname: string, member: string): Promise<void> {
+    const board = await this.chain.getSovietBoard(coopname);
+    if (!board || !board.members.some((m) => m.username === member)) {
+      throw new Error('Ключ робота принимается только от члена совета кооператива');
+    }
+  }
+
+  private static publicKeyOf(wif: string): string {
+    try {
+      return PrivateKey.from(wif).toPublic().toString();
+    } catch {
+      throw new Error('Приватный ключ не разобран: ожидается ключ в формате WIF');
+    }
+  }
+
+  /**
+   * Ключи разрешения из цепи. Разрешение выпускают той же секундой, что и
+   * передают ключ, и узел может ещё не отдавать его — несколько повторных чтений.
+   */
+  private async waitPermissionKeys(member: string, permission_name: string): Promise<string[]> {
+    for (let attempt = 0; attempt < RobotKeyService.PERMISSION_READ_ATTEMPTS; attempt += 1) {
+      if (attempt > 0) await new Promise((resolve) => setTimeout(resolve, RobotKeyService.PERMISSION_READ_PAUSE_MS));
+      const keys = await this.permissionKeys(member, permission_name);
+      if (keys) return keys;
+    }
+    throw new Error(
+      `На аккаунте ${member} нет разрешения ${permission_name}: сначала выпустите его (в цепи видны: ${this.lastSeenPermissions.join(', ') || 'ничего'})`
+    );
   }
 
   async revokeKey(coopname: string, member: string): Promise<boolean> {

@@ -2,7 +2,8 @@ import type { BaseBadgeVariant } from 'src/shared/ui/base';
 
 /** Этап решения в журнале робота → подпись и вариант бейджа. Ключи — enum RobotDecisionStage бэкенда. */
 export function robotStageMeta(stage: string): { label: string; variant: BaseBadgeVariant } {
-  switch (stage) {
+  // GraphQL отдаёт имя перечисления (EXECUTED), бэкенд хранит значение (executed) — сравниваем без учёта регистра
+  switch (String(stage).toLowerCase()) {
     case 'new':
       return { label: 'Получено', variant: 'info' };
     case 'voted':
