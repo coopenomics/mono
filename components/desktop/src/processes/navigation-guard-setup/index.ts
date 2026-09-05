@@ -26,6 +26,9 @@ export function setupNavigationGuard(router: Router) {
     desktops.loadedForUsername === session.username;
   const hasAccessData = () =>
     Boolean(session.currentUserAccount) && desktopFresh();
+  // Аккаунт известен — можно судить о статусе пайщика. Пока он не загружен,
+  // «не активен» и «неизвестно» — разные вещи, и переадресовывать по второму нельзя.
+  const accountKnown = () => Boolean(session.currentUserAccount);
 
   // Однократная дозагрузка; параллельные переходы делят один промис.
   // `force` перечитывает стол и аккаунт, даже если они «есть»: стол мог приехать
@@ -103,6 +106,15 @@ export function setupNavigationGuard(router: Router) {
       }
     }
 
+    // Решения ниже (главная, статус пайщика, права на страницу) опираются на
+    // аккаунт и рабочий стол. На холодном старте или после обрыва связи они
+    // могли не приехать, и гвард принимал «не загружено» за «нет»: уводил на
+    // главную, на регистрацию, на «404», на «Недостаточно прав доступа».
+    // Поэтому сначала дожидаемся данных, а решаем уже по ним.
+    if (session.isAuth && !hasAccessData()) {
+      await reloadAccessData();
+    }
+
     // редирект с index
     if (to.name === 'index') {
       // Только пайщики со status='active' попадают на свой дашборд.
@@ -118,6 +130,11 @@ export function setupNavigationGuard(router: Router) {
         const defaultPageRoute = desktops.getDefaultPageRoute();
         if (defaultPageRoute) {
           next(defaultPageRoute);
+        } else if (!desktopFresh()) {
+          // Стол не загружен — страницы по умолчанию нет не потому, что её нет,
+          // а потому что не из чего выбирать. Остаёмся на главной, а не на «404».
+          console.warn('[guard] рабочий стол не загружен — главная без перенаправления');
+          next();
         } else {
           next({ name: 'somethingBad' });
         }
@@ -155,6 +172,7 @@ export function setupNavigationGuard(router: Router) {
     if (
       to.meta?.requiresAuth &&
       session.isAuth &&
+      accountKnown() &&
       !session.isFullyActive &&
       !(typeof to.path === 'string' && to.path.includes('/auth/'))
     ) {
