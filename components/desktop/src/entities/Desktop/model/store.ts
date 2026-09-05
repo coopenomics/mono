@@ -6,6 +6,7 @@ import type {
   IDesktopWithNavigation,
 } from './types';
 import { api } from '../api';
+import { client } from 'src/shared/api/client';
 import { useSystemStore } from 'src/entities/System/model';
 import { useSessionStore } from 'src/entities/Session';
 
@@ -61,8 +62,15 @@ export const useDesktopStore = defineStore(namespace, () => {
 
   async function loadDesktop(): Promise<void> {
     const requester = useSessionStore().username || '';
+    // Стол помечается именем пайщика только когда запрос уходит с подтверждённым
+    // ключом. Бэкенд на негодный ключ отвечает не отказом, а столом для гостя;
+    // записанный как «загружен для пайщика», такой стол больше не перезапрашивался,
+    // и гвард видел «права известны, прав нет» → «Недостаточно прав доступа».
+    // Если ключ нельзя обновить (сеть), `ensureAccessToken` бросает до запроса —
+    // прежний стол остаётся на месте.
+    const authenticated = requester ? await client.ensureAccessToken() : false;
     const newDesktop = await api.getDesktop();
-    loadedForUsername.value = requester;
+    loadedForUsername.value = authenticated ? requester : '';
 
     // Если уже есть расширения, мерджим маршруты
     if (currentDesktop.value && currentDesktop.value.workspaces) {
