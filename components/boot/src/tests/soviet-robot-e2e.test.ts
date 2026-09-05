@@ -1,10 +1,10 @@
 /**
  * Сквозной сценарий робота решений совета на стенде (реестр soviet.robot,
- * уровень backend): расширение установлено, члены совета выпустили разрешения
- * робота и передали ключи, свободное решение опубликовано штатным путём.
- * Председатель голосует «за» сам — робот повторяет его голос за делегировавших
- * первой транзакцией, собирает протокол, подписывает его ключом председателя и
- * второй транзакцией утверждает и исполняет решение.
+ * уровень backend): расширение установлено, три члена совета (включая
+ * председателя) выпустили разрешения робота и передали ключи, свободное решение
+ * опубликовано штатным путём — робот голосует за делегировавших первой
+ * транзакцией, собирает протокол, подписывает его ключом председателя и второй
+ * транзакцией утверждает и исполняет решение.
  *
  * Требует стенда после `reboot:extra` и работающего coopback с расширением
  * робота: API_URL указывает на его GraphQL (у mono-ai-3 — :3018).
@@ -14,7 +14,6 @@ import { SovietContract } from 'cooptypes'
 import Blockchain from '../blockchain'
 import config, { private_key } from '../configs'
 import { gqlAs, loginAs, signAs, type Who } from './marketplace/chainHelpers'
-import { signVote } from './shared/signVote'
 
 const COOP = 'voskhod'
 const ROBOT_PERMISSION = 'robot'
@@ -124,10 +123,7 @@ describe('робот решений совета: сквозной сценар�
   it('члены совета делегируют голос, председатель — протокол, ключи приняты роботом', async () => {
     for (const who of MEMBERS) {
       const wif = await issueRobotPermission(who.account)
-      // Председатель голосует сам и отдаёт роботу только подпись протокола;
-      // остальные повторяют его голос.
-      const isChairman = who.account === 'ant'
-      await automate(who.account, isChairman ? [] : [FREE], isChairman ? [FREE] : [])
+      await automate(who.account, [FREE], who.account === 'ant' ? [FREE] : [])
       const res: any = await gqlAs(tokens[who.account], 'mutation($d:RobotDelegateKeyInput!){ sovietRobotDelegateKey(data:$d){ member has_key chain_has_permission chain_key_matches permission_name } }', {
         d: { wif },
       })
@@ -137,7 +133,7 @@ describe('робот решений совета: сквозной сценар�
     const reg: any = await gqlAs(tokens.petr, 'query{ sovietRobotRegistry{ type serviceable vote_quorum{ delegated_count required_count reached } chairman{ username delegated has_key } my_vote } }')
     const free = reg.sovietRobotRegistry.find((r: any) => r.type === FREE)
     expect(free.serviceable).toBe(true)
-    expect(free.vote_quorum).toMatchObject({ delegated_count: 2, required_count: 2, reached: true })
+    expect(free.vote_quorum).toMatchObject({ delegated_count: 3, required_count: 3, reached: true })
     expect(free.chairman).toMatchObject({ username: 'ant', delegated: true, has_key: true })
     expect(free.my_vote).toBe(true)
   })
@@ -159,15 +155,6 @@ describe('робот решений совета: сквозной сценар�
     const decisionId = await maxDecisionId()
     expect(decisionId, 'повестка появилась в цепи').toBeGreaterThan(before)
 
-    // Робот повторяет за председателем, поэтому первым голосует председатель — вручную, ключом active.
-    const chairmanVote = await signVote(COOP, 'ant', decisionId)
-    await transact([{
-      account: SovietContract.contractName.production,
-      name: SovietContract.Actions.Decisions.VoteFor.actionName,
-      authorization: [{ actor: 'ant', permission: 'active' }],
-      data: chairmanVote,
-    }])
-
     const started = Date.now()
     let entry: any = null
     while (Date.now() - started < 150_000) {
@@ -182,7 +169,7 @@ describe('робот решений совета: сквозной сценар�
     expect(entry, 'робот увидел повестку').toBeTruthy()
     // GraphQL отдаёт имя перечисления в верхнем регистре
     expect(String(entry.stage).toLowerCase(), `этап решения (${entry?.last_error ?? ''})`).toBe('executed')
-    expect(entry.votes.map((v: any) => v.member).sort()).toEqual(['anna', 'petr'])
+    expect(entry.votes.map((v: any) => v.member).sort()).toEqual(['anna', 'ant', 'petr'])
     expect(entry.votes.every((v: any) => v.permission === ROBOT_PERMISSION)).toBe(true)
     expect(entry.tx_hashes.length, 'голоса и протокол — две транзакции').toBe(2)
     expect(await decisionRow(decisionId), 'решение снято с повестки после исполнения').toBeUndefined()

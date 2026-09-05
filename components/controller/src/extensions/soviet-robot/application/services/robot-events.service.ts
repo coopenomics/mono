@@ -4,7 +4,7 @@ import { SovietContract } from 'cooptypes';
 import { LOGGER_PORT, type ILoggerPort, type InnerChainActionRecord } from '@coopenomics/innercoop';
 import { platformSettings } from '@coopenomics/extension-kit';
 import { SOVIET } from '../../domain/constants';
-import { ROBOT_ACTIVE_STAGES, RobotDecisionStage } from '../../domain/enums/robot-decision-stage.enum';
+import { RobotDecisionStage } from '../../domain/enums/robot-decision-stage.enum';
 import { ROBOT_DECISION_REPOSITORY, type RobotDecisionRepository } from '../../domain/repositories/robot-decision.repository';
 import { RobotKeyService } from './robot-key.service';
 import { RobotWatchdogService } from './robot-watchdog.service';
@@ -50,17 +50,14 @@ export class RobotEventsService {
     }
   }
 
-  /**
-   * Голос по решению: главный сигнал для робота. Голос председателя — команда
-   * повторить за ним, любой другой голос двигает решение к кворуму.
-   */
+  /** Ручной голос по решению, которое ждёт кворума: перепроверить. */
   @OnEvent(`action::${SOVIET}::${SovietContract.Actions.Decisions.VoteFor.actionName}`)
   async onVoteFor(action: InnerChainActionRecord): Promise<void> {
     try {
       const data = action.data as SovietContract.Actions.Decisions.VoteFor.IVoteForDecision;
       if (!data?.coopname || data.coopname !== this.coopname) return;
       const entry = await this.journal.findByDecision(data.coopname, Number(data.decision_id));
-      if (!entry || !ROBOT_ACTIVE_STAGES.includes(entry.stage)) return;
+      if (!entry || entry.stage !== RobotDecisionStage.AWAITING_QUORUM) return;
       if (!(await this.watchdog.isEnabled())) return;
       await this.watchdog.processNow(entry);
     } catch (e: any) {

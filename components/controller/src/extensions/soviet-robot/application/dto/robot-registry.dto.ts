@@ -20,10 +20,10 @@ export class RobotVoterDTO {
 
 @ObjectType('RobotQuorum', { description: 'Кворум робота по типу решения' })
 export class RobotQuorumDTO {
-  @Field(() => Int, { description: 'Сколько членов совета доверили роботу повторять за председателем и передали ключ' })
+  @Field(() => Int, { description: 'Сколько голосующих членов совета делегировали голос и передали ключ' })
   delegated_count!: number;
 
-  @Field(() => Int, { description: 'Сколько таких доверенностей нужно, чтобы решение проходило: голос председателя уже учтён' })
+  @Field(() => Int, { description: 'Сколько голосов «за» нужно по правилу совета' })
   required_count!: number;
 
   @Field(() => Int, { description: 'Состав совета' })
@@ -104,7 +104,7 @@ export class RobotCouncilDTO {
   @Field(() => String, { nullable: true, description: 'Председатель совета' })
   chairman?: string | null;
 
-  @Field(() => Int, { description: 'Сколько таких доверенностей нужно, чтобы решение проходило: голос председателя уже учтён' })
+  @Field(() => Int, { description: 'Сколько голосов «за» нужно по правилу совета' })
   required_votes!: number;
 
   @Field(() => [RobotCouncilMemberDTO], { description: 'Состав совета' })

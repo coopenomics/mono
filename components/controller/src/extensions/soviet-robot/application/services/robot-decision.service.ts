@@ -89,46 +89,23 @@ export class RobotDecisionService {
     if (!board) throw new Error('Совет кооператива не найден');
     const alive = automations.filter((a) => !isAutomationExpired(a));
 
-    // Шаг 0. Робот повторяет за председателем, а не решает сам: пока председатель
-    // не проголосовал «за», голоса делегировавших членов совета не подаются. Так
-    // кворум не может собраться помимо воли председателя.
-    if (!this.chairmanVotedFor(decision, board)) {
-      entry.stage = RobotDecisionStage.AWAITING_CHAIRMAN_VOTE;
-      return entry;
-    }
-
     // Шаг 1. Голоса — одна транзакция, дальше ждём следующего прохода.
     if (await this.castVotes(entry, decision, alive, board)) return entry;
 
-    return this.finishAfterVotes(entry, decision, alive, board);
-  }
-
-  /** Голоса уже в цепи: проверить кворум и, если он есть, довести решение протоколом. */
-  private async finishAfterVotes(
-    entry: RobotDecisionDomainEntity,
-    decision: DecisionRow,
-    alive: AutomatorRow[],
-    board: BoardRow
-  ): Promise<RobotDecisionDomainEntity> {
+    // Шаг 2. Кворум.
     const fresh = (await this.chain.getDecision(entry.coopname, entry.decision_id)) ?? decision;
     if (!fresh.approved) {
       entry.stage = RobotDecisionStage.AWAITING_QUORUM;
       return entry;
     }
 
+    // Шаг 3. Протокол председателя.
     const chairman = await this.chairmanSigner(entry, alive, board);
     if (!chairman) {
       entry.stage = RobotDecisionStage.AWAITING_CHAIRMAN;
       return entry;
     }
     return this.authorizeWithProtocol(entry, fresh, chairman);
-  }
-
-  /** Проголосовал ли председатель «за» — сигнал, который робот повторяет за него. */
-  private chairmanVotedFor(decision: DecisionRow, board: BoardRow): boolean {
-    const chairman = board.members.find((m) => m.position === 'chairman')?.username;
-    if (!chairman) return false;
-    return (decision.votes_for ?? []).map(String).includes(String(chairman));
   }
 
   /** Председатель, делегировавший подпись протоколов этого типа, и его ключ; null — ждать председателя. */

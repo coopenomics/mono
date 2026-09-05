@@ -46,8 +46,7 @@ function makeDecision(overrides: Record<string, any> = {}) {
     username: 'ant',
     type: 'freedecision',
     hash: 'AB'.repeat(32),
-    // Робот повторяет голос председателя, поэтому в большинстве сценариев его голос уже стоит.
-    votes_for: ['ant'],
+    votes_for: [],
     votes_against: [],
     approved: false,
     authorized: false,
@@ -118,21 +117,9 @@ describe('RobotDecisionService.process', () => {
     expect(result.tx_hashes).toEqual(['tx-votes']);
   });
 
-  it('без голоса председателя робот не голосует: кворум помимо него не собирается', async () => {
-    const keys = { petr: wif(), anna: wif() };
-    const { service, chain } = build({
-      decision: makeDecision({ votes_for: [] }),
-      automations: [automation('petr', ['freedecision']), automation('anna', ['freedecision'])],
-      keys,
-    });
-    const result = await service.process(makeEntry(), LIMITS);
-    expect(chain.submitVotes).not.toHaveBeenCalled();
-    expect(result.stage).toBe(RobotDecisionStage.AWAITING_CHAIRMAN_VOTE);
-  });
-
   it('повторная обработка не даёт второго голоса: уже проголосовавшие пропускаются', async () => {
     const keys = { petr: wif() };
-    const { service, chain } = build({ decision: makeDecision({ votes_for: ['ant', 'petr'] }), automations: [automation('petr', ['freedecision'])], keys });
+    const { service, chain } = build({ decision: makeDecision({ votes_for: ['petr'] }), automations: [automation('petr', ['freedecision'])], keys });
     const result = await service.process(makeEntry({ stage: RobotDecisionStage.VOTED }), LIMITS);
     expect(chain.submitVotes).not.toHaveBeenCalled();
     expect(result.stage).toBe(RobotDecisionStage.AWAITING_QUORUM);
@@ -146,7 +133,7 @@ describe('RobotDecisionService.process', () => {
   });
 
   it('при кворуме без делегирования председателя ждёт его', async () => {
-    const { service, chain } = build({ decision: makeDecision({ approved: true, votes_for: ['ant', 'petr', 'anna', 'mikhail'] }), automations: [automation('petr', ['freedecision'])], keys: { petr: wif() } });
+    const { service, chain } = build({ decision: makeDecision({ approved: true, votes_for: ['petr', 'anna', 'mikhail'] }), automations: [automation('petr', ['freedecision'])], keys: { petr: wif() } });
     const result = await service.process(makeEntry({ stage: RobotDecisionStage.VOTED }), LIMITS);
     expect(chain.authorizeAndExec).not.toHaveBeenCalled();
     expect(result.stage).toBe(RobotDecisionStage.AWAITING_CHAIRMAN);
@@ -154,19 +141,18 @@ describe('RobotDecisionService.process', () => {
 
   it('при кворуме собирает протокол по типу решения, подписывает ключом председателя и исполняет', async () => {
     const chairmanWif = wif();
-    const decision = makeDecision({ votes_for: ['ant'] });
+    const decision = makeDecision({ approved: true, votes_for: ['petr', 'anna', 'mikhail'] });
     const { service, chain, documents } = build({
       decision,
-      automations: [automation('ant', [], ['freedecision']), automation('petr', ['freedecision'])],
-      keys: { ant: chairmanWif, petr: wif() },
+      automations: [automation('ant', ['freedecision'], ['freedecision'])],
+      keys: { ant: chairmanWif },
     });
-    // Первый проход: председатель уже проголосовал, робот повторяет за петра — первая транзакция.
+    // Первый проход: председатель тоже делегировал голос — уходит первая транзакция.
     let result = await service.process(makeEntry(), LIMITS);
     expect(result.last_error).toBeNull();
     expect(chain.submitVotes).toHaveBeenCalledTimes(1);
     expect(result.stage).toBe(RobotDecisionStage.VOTED);
-    decision.votes_for.push('petr');
-    decision.approved = true;
+    decision.votes_for.push('ant');
     // Второй проход (следующий тик сторожа): голоса в цепи, кворум есть — протокол и исполнение.
     result = await service.process(result, LIMITS);
     expect(result.last_error).toBeNull();
