@@ -259,7 +259,7 @@ export default {
     // ключом конкретного разрешения аккаунта. Нужен роботу решений совета (soviet).
     {
       name: 'ASSERT_RECOVER_KEY_ACCOUNT',
-      hash: '2ad6b7aabba8edbc87b46f3340df4d0db0e4b65474db3e1cd5db33fb685a506b',
+      hash: '903605faee0c27b7f291f85f01cf5e0623f91ddeff5fd805aa3d27315ccc7b97',
     },
   ],
 }

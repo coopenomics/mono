@@ -32,7 +32,8 @@ export async function signProtocol(chairman: string, decision_id: number | strin
       block_num: 0,
       timezone: 'UTC',
       links: [],
-      decision_id: Number(decision_id),
+      // строковый номер (например, для заявления) оставляем строкой: канонизация JCS не терпит NaN
+      decision_id: Number.isFinite(Number(decision_id)) ? Number(decision_id) : String(decision_id),
     },
     binary: '',
   }
