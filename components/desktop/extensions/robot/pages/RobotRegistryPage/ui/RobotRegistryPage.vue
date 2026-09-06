@@ -53,7 +53,6 @@
       span.t-muted(v-else) —
     template(#cell-quorum='{ row }')
       BaseBadge(:variant='quorumVariant(row)') {{ quorumLabel(row) }}
-      .t-sm.t-muted робот подаёт {{ row.vote_quorum.delegated_count }}, нужно {{ row.vote_quorum.required_count }}
       .t-sm.t-muted(v-if='row.vote_quorum.follow_groups.length') {{ followLabel(row) }}
       .t-sm.text-warning(v-for='warning in row.warnings', :key='warning') {{ warning }}
       q-tooltip(v-if='row.voters.length', anchor='top middle', self='bottom middle')
@@ -187,13 +186,9 @@ function quorumVariant(row: Row): 'pos' | 'warn' | 'neutral' {
   return row.vote_quorum.reachable ? 'warn' : 'neutral';
 }
 
-/**
- * Вердикт по кворуму словами: дробь «5 из 3» читается странно, а решает здесь
- * не число, а хватает ли голосов робота, чтобы решение прошло без людей.
- */
+/** «5 из 3» — голоса, которые робот подаёт без людей, против порога совета. */
 function quorumLabel(row: Row): string {
-  if (row.vote_quorum.reached) return 'Хватает';
-  return row.vote_quorum.reachable ? 'После живых голосов' : 'Не хватает';
+  return `${row.vote_quorum.delegated_count} из ${row.vote_quorum.required_count}`;
 }
 
 /** Голоса, которые придут вслед за другими: «+2 после голоса ant». */
