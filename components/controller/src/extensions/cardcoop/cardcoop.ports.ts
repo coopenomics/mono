@@ -21,7 +21,10 @@
  *   оператором (story 7.6): объявляется то, под чем кооператив зарегистрирован в цепи;
  * - `INTEGRATION_SETTINGS_PORT` — реквизиты клиента card.coop в CoopID установки: они
  *   задаются развёртыванием и доносятся в реестр сети подписанным документом (story 7.6),
- *   через настройки расширения не проходят.
+ *   через настройки расширения не проходят;
+ * - `VAULT_PORT` — подпись публикации ключа уведомлений сети в цепи (задача 3B5-51):
+ *   установка оператора распоряжается аккаунтом `ano` по делегированным правам и сверяет
+ *   ключ с цепью на каждом старте, а ключ подписи лежит в хранилище кооператива.
  */
 import {
   ACCOUNT_PORT,
@@ -32,6 +35,7 @@ import {
   LOGGER_PORT,
   ORGANIZATION_PORT,
   USER_DIRECTORY_PORT,
+  VAULT_PORT,
 } from '@coopenomics/innercoop';
 
 export const cardcoopPorts = {
@@ -44,6 +48,7 @@ export const cardcoopPorts = {
     LOGGER_PORT,
     ORGANIZATION_PORT,
     USER_DIRECTORY_PORT,
+    VAULT_PORT,
   ],
   optional: [],
 };
