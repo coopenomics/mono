@@ -927,16 +927,17 @@ export default async function (): Promise<IWorkspaceConfig[]> {
 
 /**
  * Кошельки, которые «Стол заказов» приносит на стол пайщика (путь B).
- * Членский кошелёк программы (`w.mkt.member`) — туда зачисляются возвратные
- * членские средства стола заказов. Главный членский ЦК (`w.wal.member`) и
- * резерв под заказ (`w.mkt.order`) здесь НЕ показываем.
+ * Свободный паевой программы (`w.mkt.share`) — сюда возвращается паевой
+ * взнос после выдачи, отказов и гарантийного возврата; отсюда резервируется
+ * следующий заказ, отзывается в Кошелёк действием recallshare. Паевой резерв
+ * под заказ (`w.mkt.order`) здесь НЕ показываем.
  */
 export const walletCards: DesktopWalletCard[] = [
   {
-    wallet_name: 'w.mkt.member',
-    label: 'Членский кошелёк',
+    wallet_name: 'w.mkt.share',
+    label: 'Свободный паевой',
     description: 'Стол заказов',
     accent: 'wallet',
-    icon: 'card_membership',
+    icon: 'savings',
   },
 ]

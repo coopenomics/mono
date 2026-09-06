@@ -28,10 +28,9 @@ export interface MarketplaceCanonicalBlockchainPort {
    * requirement 76: заказ из обезличенного остатка склада кооператива.
    * Продавец — сам кооператив (offerer == coopname на цепи); Order рождается
    * сразу в `acceptcoop` (имущество уже на счёте 10 после первичной приёмки)
-   * и идёт только через выдачу signiss1/signiss2. Фондируется из членских
-   * средств пайщика: o.mkt.lockm (тело, w.mkt.member → w.mkt.order) + o.mkt.lockmf
-   * (взнос, w.mkt.member → w.mkt.fee). Паевой пополняет членский кошелёк заранее
-   * отдельным действием `convert`.
+   * и идёт только через выдачу по саге (заявление → совет → акт). Фондируется
+   * из свободного паевого пайщика: o.mkt.lockp (тело, w.mkt.share → w.mkt.order)
+   * + o.mkt.lockpf (взнос, w.mkt.share → w.mkt.fee).
    *
    * Авторизация — кооператив (`require_auth(coopname)`).
    */

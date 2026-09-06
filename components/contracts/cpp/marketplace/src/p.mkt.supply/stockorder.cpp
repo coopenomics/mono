@@ -53,7 +53,7 @@ void marketplace::stockorder(eosio::name coopname,
   const eosio::asset membership_fee = Marketplace::calc_membership_fee(
       total_cost, Marketplace::get_membership_fee_percent(coopname));
 
-  // ── Достаточность ЧЛЕНСКИХ средств: w.mkt.member.available >= тело + взнос ──
+  // ── Достаточность свободного паевого: w.mkt.share.available >= тело + взнос ──
   //    Заказ из остатка фондируется только из членского кошелька; если средств
   // пополняет его действием `convert` (с паевого).
   const eosio::asset required_total = total_cost + membership_fee;
@@ -101,14 +101,14 @@ void marketplace::stockorder(eosio::name coopname,
     o.membership_fee = membership_fee;
   });
 
-  // ── o.mkt.lockm: тело — TRANSFER w.mkt.member → w.mkt.order (без Dr/Cr) ──
+  // ── o.mkt.lockp: тело — TRANSFER w.mkt.share → w.mkt.order (без Dr/Cr) ──
   Ledger2::apply(_marketplace, coopname,
                  operations::marketplace::LOCK_FROM_SHARE,
                  processes::marketplace::SUPPLY,
                  total_cost, orderer, order_hash,
                  Marketplace::Memo::get_stock_order_block_memo(new_id));
 
-  // ── o.mkt.lockmf: членский взнос — TRANSFER w.mkt.member → w.mkt.fee
+  // ── o.mkt.lockpf: членский взнос — TRANSFER w.mkt.share → w.mkt.fee (Дт 80 / Кт 86)
   //    (без Dr/Cr, оба на 86); ставка зафиксирована в Order.membership_fee ──
   if (membership_fee.amount > 0) {
     Ledger2::apply(_marketplace, coopname,

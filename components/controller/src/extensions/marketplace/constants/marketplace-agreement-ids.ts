@@ -11,7 +11,7 @@ import { ProgramKey } from '@coopenomics/innercoop';
  * `MARKETPLACE_AGREEMENT_TYPE` совпадает с program-именем в контракте
  * `lib/consts.hpp`: `_marketplace_program = "marketplace"_n` (program_id=2).
  * `_` в `eosio::name` запрещён, поэтому имя без подчёркиваний; см. также
- * `w.mkt.member` (`wallets.generated.ts`) и whitelist `marketplace`-контракта.
+ * `w.mkt.share` / `w.mkt.order` (`wallets.generated.ts`) и whitelist `marketplace`-контракта.
  *
  * `MARKETPLACE_OFFER_TEMPLATE_REGISTRY_ID` — `document_registry_id` шаблона
  * оферты ЦПП «Стол заказов» в платформенной фабрике документов. Story 1.7

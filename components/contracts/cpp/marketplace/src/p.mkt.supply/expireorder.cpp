@@ -8,7 +8,7 @@
  * threshold — это вычисление backend'а; on-chain — только закрытие конкретного
  * Order'а с возвратом резерва.
  *
- * Per-Order: o.mkt.unlock на total_cost (TRANSFER w.mkt.order → w.mkt.member — возврат резерва на членский «Стола заказов» заказчика) + статус active → cancelled.
+ * Per-Order: o.mkt.unlock на total_cost (TRANSFER w.mkt.order → w.mkt.share — возврат паевого резерва на свободный паевой «Стола заказов» заказчика) + статус active → cancelled.
  *
  * Guards:
  *  - Order существует и в статусе active (после акцепта поставщика
