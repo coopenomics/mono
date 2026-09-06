@@ -4,10 +4,7 @@ import { $, type GraphQLTypes, type InputType, type ModelTypes, Selector } from 
 export const name = 'marketplaceStockIssuancePayloads'
 
 export const query = Selector('Query')({
-  [name]: [
-    { data: $('data', 'MarketplaceStockIssuancePrepareInput!') },
-    marketplaceStockIssuanceOperatorLineSelector,
-  ],
+  [name]: [{ data: $('data', 'MarketplaceStockIssuancePrepareInput!') }, marketplaceStockIssuanceOperatorLineSelector],
 })
 
 export interface IInput {

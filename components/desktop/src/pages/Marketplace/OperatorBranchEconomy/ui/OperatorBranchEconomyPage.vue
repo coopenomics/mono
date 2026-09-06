@@ -23,7 +23,6 @@ import {
   type MarketplaceBranchEconomyView,
   type MarketplaceBranchWalletHistoryView,
   type MarketplacePersonalWalletHistoryView,
-  convertBranchFunds,
   createAid,
   createBranchExpense,
   type ICreateBranchExpenseInput,
@@ -45,10 +44,10 @@ import {
  * Стол ПВЗ → «Экономика участка» (requirement b6, раунд 5 — приоритет
  * общего кошелька). Зоны:
  *
- *  1. «Мои средства» — персональный кошелёк членских средств текущего
- *     оператора: перевод в членский кошелёк Стола заказов (заказы себе)
- *     либо материальная помощь (заявление → решение совета → выплата
- *     кассиром). НДФЛ кооператив удерживает сам: заявление подаётся на
+ *  1. «Мои средства» — персональный кошелёк распределённых средств
+ *     текущего оператора: материальная помощь (заявление → решение совета →
+ *     выплата кассиром). Перевода в Стол заказов нет — в паевой модели заказы
+ *     оплачиваются паевым взносом из Кошелька. НДФЛ кооператив удерживает сам: заявление подаётся на
  *     сумму до налога, на счёт приходит остаток.
  *  2. «Общий кошелёк участка» — сюда приходит 100% членских взносов
  *     исполненных заказов; показатели «Резерв на 30 дней» и «Доступно к
@@ -442,14 +441,11 @@ async function onDeleteWeight(username: string): Promise<void> {
 // Остальные документы кооператива подписываются так же.
 
 const getFundsOpen = ref(false)
-const convertPart = ref<number | null>(null)
 const aidPart = ref<number | null>(null)
 const aidPaymentMethodId = ref<string | null>(null)
 const getFundsSubmitting = ref(false)
 
-const getFundsTotal = computed(
-  () => (Number(convertPart.value) || 0) + (Number(aidPart.value) || 0)
-)
+const getFundsTotal = computed(() => Number(aidPart.value) || 0)
 const getFundsOverBalance = computed(
   () => getFundsTotal.value > assetAmount(personalBalance.value)
 )
@@ -461,70 +457,43 @@ const aidTax = computed(() => ndflTax(aidGross.value))
 const aidNet = computed(() => ndflNet(aidGross.value))
 
 function openGetFundsDialog(): void {
-  convertPart.value = null
   aidPart.value = null
   aidPaymentMethodId.value = null
   getFundsOpen.value = true
 }
 
 /**
- * Получение целиком одним действием: если в сумме есть материальная помощь —
- * заявление генерируется, подписывается и подаётся здесь же, вместе с
- * переводом в Стол заказов. Разносить операции по шагам нельзя: одна уже
- * совершена, вторая ещё нет, а окно можно закрыть между ними.
+ * Получение средств = материальная помощь: заявление генерируется,
+ * подписывается и подаётся здесь же; совет решает, кассир выплачивает.
  */
 async function onGetFunds(): Promise<void> {
-  const convert = Number(convertPart.value) || 0
   const aid = Number(aidPart.value) || 0
-  if (convert <= 0 && aid <= 0) return
+  if (aid <= 0) return
   if (getFundsOverBalance.value) return
-  if (aid > 0 && !aidPaymentMethodId.value) {
+  if (!aidPaymentMethodId.value) {
     FailAlert(new Error('Выберите реквизиты'), 'Для материальной помощи укажите реквизиты получения')
     return
   }
+  if (!braname.value) return
 
   getFundsSubmitting.value = true
-  let aidDone = false
   try {
-    if (aid > 0 && braname.value && aidPaymentMethodId.value) {
-      const doc = await getAidStatementSignablePayload({ braname: braname.value, amount: aid })
-      const signed = await new DigitalDocument(doc).sign(session.username)
-      const aidHash = (doc.meta as { aid_hash?: string })?.aid_hash
-      if (!aidHash) throw new Error('В заявлении нет идентификатора заявки')
-      await createAid({
-        braname: braname.value,
-        amount: aid,
-        aid_hash: aidHash,
-        statement: signed,
-        payment_method_id: aidPaymentMethodId.value,
-      })
-      aidDone = true
-    }
-    if (convert > 0) {
-      await convertBranchFunds({ amount: convert })
-    }
-    SuccessAlert(
-      aid > 0 && convert > 0
-        ? 'Заявление подано на рассмотрение совета, остальное переведено в кошелёк Стола заказов'
-        : aid > 0
-          ? 'Заявление подано на рассмотрение совета — выплата после его решения'
-          : 'Средства переведены в кошелёк Стола заказов',
-    )
+    const doc = await getAidStatementSignablePayload({ braname: braname.value, amount: aid })
+    const signed = await new DigitalDocument(doc).sign(session.username)
+    const aidHash = (doc.meta as { aid_hash?: string })?.aid_hash
+    if (!aidHash) throw new Error('В заявлении нет идентификатора заявки')
+    await createAid({
+      braname: braname.value,
+      amount: aid,
+      aid_hash: aidHash,
+      statement: signed,
+      payment_method_id: aidPaymentMethodId.value,
+    })
+    SuccessAlert('Заявление подано на рассмотрение совета — выплата после его решения')
     getFundsOpen.value = false
     await loadAll()
   } catch (e) {
-    // Заявление уже подано, а перевод не прошёл — говорим об этом прямо, иначе
-    // председатель повторит всё сразу и подаст второе заявление.
-    FailAlert(
-      e,
-      aidDone
-        ? 'Заявление подано, но перевод в Стол заказов не прошёл — повторите его отдельно'
-        : 'Не удалось выполнить получение средств',
-    )
-    if (aidDone) {
-      getFundsOpen.value = false
-      await loadAll()
-    }
+    FailAlert(e, 'Не удалось подать заявление о материальной помощи')
   } finally {
     getFundsSubmitting.value = false
   }
@@ -896,18 +865,10 @@ q-page.economy
   )
     .economy__dialog-body
       p
-        | Разделите сумму между переводом в Стол заказов и материальной
-        | помощью — её вы получаете по заявлению, которое рассматривает
+        | Материальную помощь вы получаете по заявлению, которое рассматривает
         | совет; после одобрения кассир переводит деньги на выбранные
         | реквизиты. Налог на доходы кооператив удерживает сам: на счёт придёт
         | сумма за вычетом налога.
-      AmountInput(
-        v-model='convertPart',
-        label='В Стол заказов',
-        :symbol='assetSymbol(personalBalance)',
-        :precision='2',
-        :min='0'
-      )
       AmountInput(
         v-model='aidPart',
         label='Материальной помощью',

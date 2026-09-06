@@ -120,17 +120,17 @@ async function confirm(): Promise<void> {
       })),
     );
     if (decision.value === DECISION_ACCEPT) {
-      // Приём возврата требует on-chain заявление (registry_id=1104) с ДВУМЯ
-      // подписями — пайщика (наложена при подаче заявления) и председателя
-      // (со-подпись поверх того же документа, канон двухподписных актов —
-      // см. review 2026-07-27: без этого шага backend отклонял приём с
-      // ошибкой «не найдено заявление со второй подписью»).
+      // Приём имущества требует заявление о внесении паевого взноса имуществом
+      // (registry 1116) с ДВУМЯ подписями — пайщика (при подаче) и оператора
+      // (со-подпись поверх того же документа). С обеими подписями контракт
+      // ставит заявление на повестку совета; деньги двигаются только по его
+      // решению.
       const aggregate = await fetchChairmanReturnSignablePayload(props.claim.id);
       const signer = new Classes.Document(wif!);
       const signed_statement = await signer.signDocument(aggregate.rawDocument, globalStore.username, 2, [
         aggregate.document,
       ]);
-      await acceptReturnAtVisit({
+      const result = await acceptReturnAtVisit({
         claim_id: props.claim.id,
         braname: props.braname.trim(),
         inspection_result: inspectionResult.value.trim(),
@@ -138,7 +138,11 @@ async function confirm(): Promise<void> {
         signed_statement,
       });
       SuccessAlert(
-        `Возврат принят. На программный кошелёк заказчика восстановлено ${formatAsset2Digits(props.claim.fact_cost)} ₽.`,
+        result.claim.status === 'ACCEPTED_BY_COUNCIL'
+          ? `Совет принял имущество: заказчику восстановлено ${formatAsset2Digits(result.claim.total_refund)} ₽.`
+          : result.claim.status === 'DECLINED_BY_COUNCIL'
+            ? 'Совет отказал — имущество остаётся на участке, выдайте его пайщику обратно.'
+            : 'Имущество принято, заявление на повестке совета. Решение придёт само — пайщик может идти.',
       );
     } else {
       await rejectReturnAtVisit({
@@ -173,8 +177,8 @@ const confirmLabel = computed(() =>
 const confirmDisabled = computed(() => submitting.value || !inspectionResult.value.trim());
 
 const decisionOptions = [
-  { label: 'Принять возврат', value: DECISION_ACCEPT, color: 'positive' },
-  { label: 'Отказать на месте (имущество остаётся у заказчика)', value: DECISION_REJECT, color: 'negative' },
+  { label: 'Принять имущество и передать заявление в совет', value: DECISION_ACCEPT, color: 'positive' },
+  { label: 'Не принимать (имущество остаётся у заказчика)', value: DECISION_REJECT, color: 'negative' },
 ];
 </script>
 
@@ -251,7 +255,7 @@ TakeoverDialog(
         )
         .banner.banner--pos.q-mt-md(v-if="decision === DECISION_ACCEPT")
           q-icon.banner__icon(name="check_circle", size="20px")
-          .banner__body Восстановим {{ formatAsset2Digits(claim.fact_cost) }} ₽ на программный кошелёк заказчика. Имущество вернётся на склад участка.
+          .banner__body Имущество принимается на участок, заявление уходит на решение совета. При согласии заказчику вернётся {{ formatAsset2Digits(claim.total_refund) }} ₽ (стоимость и членский взнос), имущество зачислится в остаток; при отказе имущество выдадите обратно.
         .banner.banner--warn.q-mt-md(v-else)
           q-icon.banner__icon(name="info", size="20px")
           .banner__body Имущество остаётся у заказчика. Движений по средствам нет.

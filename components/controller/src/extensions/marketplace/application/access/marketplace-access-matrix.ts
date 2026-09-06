@@ -37,9 +37,9 @@ export const marketplaceAccessMatrix: Record<MarketplaceRole, Record<string, str
     Cart: ['manage:own'],
     KU: ['read'],
     Vitrine: ['read'],
-    // Story 6.3 / FR24: заказчик закрывает АПП-выдачу финальной подписью
-    // на ПВЗ и видит свои заказы, готовые к получению.
-    Issuance: ['sign:final', 'read:own'],
+    // Паевая модель (компонент 68): заказчик подписывает заявление о возврате
+    // паевого взноса имуществом и первую подпись акта, видит ход своей выдачи.
+    Issuance: ['sign:statement', 'sign:act', 'read:own'],
     // Story 7.1 / FR29: заказчик подаёт заявление на гарантийный возврат
     // имущества по своему Order'у в пределах гарантийного срока и видит
     // только свои заявления.
@@ -67,9 +67,10 @@ export const marketplaceAccessMatrix: Record<MarketplaceRole, Record<string, str
   },
   operator: {
     Receiving: ['create', 'sign:closing'],
-    // Story 6.1: оператор/председатель КУ открывает выдачу первой подписью
-    // АПП-выдачи (`signiss1`) и видит ленту выдач на своём КУ.
-    Issuance: ['create', 'sign:first', 'read:own-KU'],
+    // Паевая модель (компонент 68): оператор участка отмечает готовность,
+    // фиксирует факт у стойки (create), закрывает выдачу второй подписью акта
+    // (close), отменяет начатую выдачу (cancel) и видит ленту своего участка.
+    Issuance: ['create', 'close', 'cancel', 'read:own-KU'],
     // Поток IV шаг 1: оператор/председатель КУ видит ленту ожидаемых партий
     // поставки на своём участке, чтобы открыть приёмку по приходу.
     Shipment: ['read:own-KU'],
@@ -93,7 +94,7 @@ export const marketplaceAccessMatrix: Record<MarketplaceRole, Record<string, str
     //  - read:own-KU   — лента и detail заявлений;
     //  - decide:remote — одобрить визит / отказать удалённо (Story 7.2);
     //  - decide:on-site — принять / отказать на месте (Story 7.3 + 7.4).
-    ReturnClaim: ['read:own-KU', 'decide:remote', 'decide:on-site'],
+    ReturnClaim: ['read:own-KU', 'decide:remote', 'decide:on-site', 'hand-back'],
     // requirement 76: оператор управляет обезличенным остатком своего КУ —
     // публикует его в каталог (цена прибытия/уценка), снимает с публикации,
     // накидывает предложения докладки у стойки и отзывает их, отменяет

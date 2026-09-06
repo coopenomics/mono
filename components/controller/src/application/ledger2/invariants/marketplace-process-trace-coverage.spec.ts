@@ -1,8 +1,8 @@
 /**
  * Story 11.2 — coverage трассировки ProcessRegistry для marketplace.
  *
- * Для каждой из 13 marketplace-операций (12 `o.mkt.*` + 1 `o.wal.conv` под
- * `p.mkt.supply`) проверяем, что:
+ * Для каждой marketplace-операции паевой модели (`o.mkt.*` под `p.mkt.supply`,
+ * `p.mkt.return`, `p.mkt.wroff`) проверяем, что:
  *   1. Операция присутствует в `Ledger2.LEDGER2_OPERATION_REGISTRY` с
  *      непустым `process_type`.
  *   2. `OPERATION_CODE_TO_PROCESS_TYPE` (читается ProcessRegistry в Phase A)
@@ -22,9 +22,9 @@
  * ↔ process-hash-locator), без которого on-chain трассировка не доедет до
  * UI стола бухгалтера.
  *
- * Full-flow сценарии (createorder → signsupp → signiss2 / submretrn /
- * execwroff) задокументированы как «гарантия покрытия в mono-ai-5» — здесь
- * проверяется только наличие всех 13 op_code в реестре + базовая связность.
+ * Full-flow сценарии (createorder → signchair → issueact2 / accretrn →
+ * onmktrtauth / execwroff) живут в contract-тестах boot — здесь проверяется
+ * только наличие всех op_code в реестре + базовая связность.
  */
 
 import { Ledger2 } from 'cooptypes'
@@ -36,20 +36,26 @@ import {
 import { MARKETPLACE_OPERATION_CODES } from './marketplace-ledger2-invariants'
 
 /**
- * Canonical список marketplace-операций (9 шт), полностью покрывающих
- * жизненный цикл Order'а, доплату по факту, гарантийный возврат и списание
+ * Canonical список marketplace-операций паевой модели (14 шт), полностью
+ * покрывающих жизненный цикл Order'а (паевой резерв, членский взнос, приём,
+ * выдача, отказ, уценка, отзыв паевого), гарантийный возврат и списание
  * скоропорта. Если этот список расходится с
  * `Ledger2.LEDGER2_OPERATION_REGISTRY` — это поломка контракта/cooptypes.
  */
 const EXPECTED_MARKETPLACE_OP_CODES = [
-  // p.mkt.supply (7 операций)
+  // p.mkt.supply (12 операций)
   'o.mkt.lock',
-  'o.mkt.conv',
-  'o.mkt.lockm',
+  'o.mkt.lockp',
   'o.mkt.unlock',
+  'o.mkt.penal',
   'o.mkt.purch',
   'o.mkt.payout',
   'o.mkt.consum',
+  'o.mkt.loss',
+  'o.mkt.fee',
+  'o.mkt.refund',
+  'o.mkt.lockpf',
+  'o.mkt.recall',
   // p.mkt.return (1)
   'o.mkt.return',
   // p.mkt.wroff (1)
@@ -57,8 +63,8 @@ const EXPECTED_MARKETPLACE_OP_CODES = [
 ] as const
 
 describe('Story 11.2 — coverage marketplace operation_code в cooptypes', () => {
-  it('canonical список содержит 9 кодов', () => {
-    expect(EXPECTED_MARKETPLACE_OP_CODES).toHaveLength(9)
+  it('canonical список содержит 14 кодов', () => {
+    expect(EXPECTED_MARKETPLACE_OP_CODES).toHaveLength(14)
   })
 
   it('каждый код присутствует в LEDGER2_OPERATION_REGISTRY', () => {
@@ -120,78 +126,20 @@ describe('Story 11.2 — wallet_op + Дт/Кт реестра соответст
    * Story 11.1 PR #375.
    */
   const EXPECTED_REGISTRY = [
-    {
-      code: 'o.mkt.lock',
-      walletOp: 'TRANSFER',
-      walletFrom: 'w.wal.share',
-      walletTo: 'w.mkt.order',
-      debit: 80,
-      credit: 86,
-    },
-    {
-      code: 'o.mkt.conv',
-      walletOp: 'TRANSFER',
-      walletFrom: 'w.wal.share',
-      walletTo: 'w.mkt.member',
-      debit: 80,
-      credit: 86,
-    },
-    {
-      code: 'o.mkt.lockm',
-      walletOp: 'TRANSFER',
-      walletFrom: 'w.mkt.member',
-      walletTo: 'w.mkt.order',
-      debit: null,
-      credit: null,
-    },
-    {
-      code: 'o.mkt.unlock',
-      walletOp: 'TRANSFER',
-      walletFrom: 'w.mkt.order',
-      walletTo: 'w.mkt.member',
-      debit: null,
-      credit: null,
-    },
-    {
-      code: 'o.mkt.purch',
-      walletOp: 'NONE',
-      walletFrom: null,
-      walletTo: null,
-      debit: 10,
-      credit: 86,
-    },
-    {
-      code: 'o.mkt.payout',
-      walletOp: 'ISSUE',
-      walletFrom: null,
-      walletTo: 'w.mkt.payout',
-      debit: 86,
-      credit: 51,
-    },
-    {
-      code: 'o.mkt.consum',
-      walletOp: 'BURN',
-      walletFrom: 'w.mkt.order',
-      walletTo: null,
-      debit: 86,
-      credit: 10,
-    },
-    {
-      code: 'o.mkt.return',
-      walletOp: 'ISSUE',
-      walletFrom: null,
-      walletTo: 'w.mkt.member',
-      debit: 10,
-      credit: 86,
-    },
-    {
-      code: 'o.mkt.wroff',
-      walletOp: 'NONE',
-      walletFrom: null,
-      walletTo: null,
-      debit: 86,
-      credit: 10,
-    },
+    { code: 'o.mkt.lock', walletOp: 'TRANSFER', walletFrom: 'w.wal.share', walletTo: 'w.mkt.order', debit: null, credit: null },
+    { code: 'o.mkt.lockp', walletOp: 'TRANSFER', walletFrom: 'w.mkt.share', walletTo: 'w.mkt.order', debit: null, credit: null },
+    { code: 'o.mkt.unlock', walletOp: 'TRANSFER', walletFrom: 'w.mkt.order', walletTo: 'w.mkt.share', debit: null, credit: null },
+    { code: 'o.mkt.penal', walletOp: 'TRANSFER', walletFrom: 'w.mkt.order', walletTo: 'w.mkt.fee', debit: 80, credit: 86 },
+    { code: 'o.mkt.purch', walletOp: 'NONE', walletFrom: null, walletTo: null, debit: 10, credit: 60 },
+    { code: 'o.mkt.payout', walletOp: 'ISSUE', walletFrom: null, walletTo: 'w.mkt.payout', debit: 60, credit: 51 },
+    { code: 'o.mkt.consum', walletOp: 'BURN', walletFrom: 'w.mkt.order', walletTo: null, debit: 80, credit: 10 },
+    { code: 'o.mkt.loss', walletOp: 'NONE', walletFrom: null, walletTo: null, debit: 91, credit: 10 },
+    { code: 'o.mkt.fee', walletOp: 'TRANSFER', walletFrom: 'w.wal.share', walletTo: 'w.mkt.fee', debit: 80, credit: 86 },
+    { code: 'o.mkt.refund', walletOp: 'TRANSFER', walletFrom: 'w.mkt.fee', walletTo: 'w.mkt.share', debit: 86, credit: 80 },
+    { code: 'o.mkt.lockpf', walletOp: 'TRANSFER', walletFrom: 'w.mkt.share', walletTo: 'w.mkt.fee', debit: 80, credit: 86 },
+    { code: 'o.mkt.recall', walletOp: 'TRANSFER', walletFrom: 'w.mkt.share', walletTo: 'w.wal.share', debit: null, credit: null },
+    { code: 'o.mkt.return', walletOp: 'ISSUE', walletFrom: null, walletTo: 'w.mkt.share', debit: 10, credit: 80 },
+    { code: 'o.mkt.wroff', walletOp: 'NONE', walletFrom: null, walletTo: null, debit: 86, credit: 10 },
   ] as const
 
   it.each(EXPECTED_REGISTRY)(
@@ -275,7 +223,7 @@ describe('Story 11.2 — синтетическая трассировка apply
     },
   )
 
-  it('full-flow happy supply (createorder → signsupp → signiss2) — одна process_hash, все операции under p.mkt.supply', () => {
+  it('full-flow happy supply (createorder → signchair → issueact2) — одна process_hash, все операции under p.mkt.supply', () => {
     const processHash = 'supply-flow-hash'
     const sequence = [
       'o.mkt.lock',
@@ -298,7 +246,7 @@ describe('Story 11.2 — синтетическая трассировка apply
     }
   })
 
-  it('full-flow return (submretrn → approve) — o.mkt.return under p.mkt.return', () => {
+  it('full-flow return (submretrn → accretrn → onmktrtauth) — o.mkt.return under p.mkt.return', () => {
     const processHash = 'return-flow-hash'
     const rows = buildTriadeForOp('o.mkt.return', processHash)
     const applies = rows.filter((r) => r.name === 'apply')

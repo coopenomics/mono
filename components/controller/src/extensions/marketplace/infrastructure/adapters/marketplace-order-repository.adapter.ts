@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, IsNull, Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import {
   MARKETPLACE_ORDER_STATUS_CHANGED_EVENT,
   type MarketplaceOrderStatusChangedEvent,
@@ -22,7 +22,6 @@ import {
 } from '../../domain/entities/marketplace-order.types';
 import { MarketplaceOrderEntity } from '../entities/marketplace-order.entity';
 import { MarketplaceOrderMapper } from '../mappers/marketplace-order.mapper';
-import type { ISignedDocument } from '@coopenomics/innercoop';
 import type { PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
 
 @Injectable()
@@ -424,53 +423,70 @@ export class MarketplaceOrderRepositoryAdapter implements MarketplaceOrderDomain
 
   // ── Story 6.1 / 6.3: выдача пайщику ──────────────────────────────
 
-  async applyIssuanceOpened(
+  async applyReadyIssue(
     id: string,
-    patch: {
-      chairman_account: string;
-      signiss1_tx_hash: string;
-      current_warehouse_braname: string;
-      issuance_fact: MarketplaceOrderIssuanceFactSnapshot;
-      issue_act_signiss1_document: ISignedDocument;
-    }
+    patch: { current_warehouse_braname: string }
   ): Promise<MarketplaceOrderDomainEntity> {
     const before = await this.repo.findOneOrFail({ where: { id } });
     await this.repo.update(
       { id },
       {
         status: 'READY_TO_RECEIVE',
-        chairman_signed_at: new Date(),
-        chairman_account: patch.chairman_account,
-        signiss1_tx_hash: patch.signiss1_tx_hash,
         current_warehouse_braname: patch.current_warehouse_braname,
-        issuance_fact: patch.issuance_fact,
-        issue_act_signiss1_document: patch.issue_act_signiss1_document,
+        ready_announced_at: before.ready_announced_at ?? new Date(),
       } as Record<string, unknown>
     );
-    const row = await this.repo.findOneOrFail({ where: { id } });
-    const updated = this.mapper.toDomain(row);
-    if (before.status !== updated.status) {
-      this.emitStatusChanged(updated, before.status);
-    }
+    const updated = this.mapper.toDomain(await this.repo.findOneOrFail({ where: { id } }));
+    if (before.status !== updated.status) this.emitStatusChanged(updated, before.status);
     return updated;
   }
 
-  async applyReadyAnnounced(id: string): Promise<MarketplaceOrderDomainEntity> {
-    // Идемпотентно: повторное объявление не сдвигает исходный момент — гейт и
-    // единственный push живут в сервисе (announceReady), здесь только запись.
+  async applyIssuanceStatement(
+    id: string,
+    patch: { issuance_fact: MarketplaceOrderIssuanceFactSnapshot }
+  ): Promise<MarketplaceOrderDomainEntity> {
+    const before = await this.repo.findOneOrFail({ where: { id } });
     await this.repo.update(
-      { id, ready_announced_at: IsNull() },
-      { ready_announced_at: new Date() } as Record<string, unknown>
+      { id },
+      {
+        status: 'ISSUE_PENDING',
+        issuance_fact: patch.issuance_fact,
+        issue_statement_at: new Date(),
+        issue_decision_id: null,
+      } as Record<string, unknown>
     );
-    const row = await this.repo.findOneOrFail({ where: { id } });
-    return this.mapper.toDomain(row);
+    const updated = this.mapper.toDomain(await this.repo.findOneOrFail({ where: { id } }));
+    if (before.status !== updated.status) this.emitStatusChanged(updated, before.status);
+    return updated;
   }
 
-  async applyIssuanceFinalized(
+  async applyIssuanceAuthorized(
+    id: string,
+    patch: { issue_decision_id: string | null }
+  ): Promise<MarketplaceOrderDomainEntity> {
+    const before = await this.repo.findOneOrFail({ where: { id } });
+    await this.repo.update(
+      { id },
+      { status: 'ISSUE_AUTHORIZED', issue_decision_id: patch.issue_decision_id } as Record<string, unknown>
+    );
+    const updated = this.mapper.toDomain(await this.repo.findOneOrFail({ where: { id } }));
+    if (before.status !== updated.status) this.emitStatusChanged(updated, before.status);
+    return updated;
+  }
+
+  async applyIssuanceAct1(id: string): Promise<MarketplaceOrderDomainEntity> {
+    const before = await this.repo.findOneOrFail({ where: { id } });
+    await this.repo.update({ id }, { status: 'ISSUE_ACT1' } as Record<string, unknown>);
+    const updated = this.mapper.toDomain(await this.repo.findOneOrFail({ where: { id } }));
+    if (before.status !== updated.status) this.emitStatusChanged(updated, before.status);
+    return updated;
+  }
+
+  async applyIssuanceClosed(
     id: string,
     patch: {
       delivery_signer_account: string;
-      signiss2_tx_hash: string;
+      issue_closed_tx_hash: string;
       issuance_fact: MarketplaceOrderIssuanceFactSnapshot;
       warranty_until: Date | null;
     }
@@ -481,18 +497,30 @@ export class MarketplaceOrderRepositoryAdapter implements MarketplaceOrderDomain
       {
         status: 'RECEIVED',
         received_at: new Date(),
-        orderer_signed_at: new Date(),
         delivery_signer_account: patch.delivery_signer_account,
-        signiss2_tx_hash: patch.signiss2_tx_hash,
+        issue_closed_tx_hash: patch.issue_closed_tx_hash,
         issuance_fact: patch.issuance_fact,
         warranty_until: patch.warranty_until,
       } as Record<string, unknown>
     );
-    const row = await this.repo.findOneOrFail({ where: { id } });
-    const updated = this.mapper.toDomain(row);
-    if (before.status !== updated.status) {
-      this.emitStatusChanged(updated, before.status);
-    }
+    const updated = this.mapper.toDomain(await this.repo.findOneOrFail({ where: { id } }));
+    if (before.status !== updated.status) this.emitStatusChanged(updated, before.status);
+    return updated;
+  }
+
+  async applyIssuanceReset(id: string): Promise<MarketplaceOrderDomainEntity> {
+    const before = await this.repo.findOneOrFail({ where: { id } });
+    await this.repo.update(
+      { id },
+      {
+        status: 'READY_TO_RECEIVE',
+        issuance_fact: null,
+        issue_statement_at: null,
+        issue_decision_id: null,
+      } as Record<string, unknown>
+    );
+    const updated = this.mapper.toDomain(await this.repo.findOneOrFail({ where: { id } }));
+    if (before.status !== updated.status) this.emitStatusChanged(updated, before.status);
     return updated;
   }
 
@@ -505,7 +533,7 @@ export class MarketplaceOrderRepositoryAdapter implements MarketplaceOrderDomain
       .where('o.coopname = :coop AND o.delivery_braname = :br AND o.status IN (:...sts)', {
         coop: coopname,
         br: delivery_braname,
-        sts: ['ACCEPTED_TO_COOP', 'READY_TO_RECEIVE'],
+        sts: ['ACCEPTED_TO_COOP', 'READY_TO_RECEIVE', 'ISSUE_PENDING', 'ISSUE_AUTHORIZED', 'ISSUE_ACT1'],
       })
       .orderBy('o.accepted_at', 'ASC')
       .getMany();

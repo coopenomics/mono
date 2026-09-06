@@ -29,7 +29,7 @@ export interface MarketplaceReturnClaimCreateInput {
   /** Возвращаемая доля членского взноса — вместе с fact_cost даёт полную сумму возврата. */
   fee_refund: string;
   photos: MarketplaceReturnClaimPhoto[];
-  /** Подписанное пайщиком заявление (1104) — для последующей со-подписи председателем. */
+  /** Подписанное пайщиком заявление (1116) — для последующей со-подписи оператором при приёме имущества. */
   statement: ISignedDocument | null;
   submretrn_tx_hash: string;
   status: MarketplaceReturnClaimStatus;
@@ -40,6 +40,16 @@ export interface MarketplaceReturnClaimApplyDecisionInput {
   decision_entry: MarketplaceReturnClaimDecisionLogEntry;
   on_site_inspection?: MarketplaceReturnClaimOnSiteInspection;
   ledger_snapshot?: MarketplaceReturnClaimLedgerSnapshot;
+  /** Заявление с обеими подписями (после приёма имущества у стойки). */
+  statement?: ISignedDocument;
+  accepted_at?: Date;
+  council_protocol?: ISignedDocument | null;
+}
+
+/** Поля совета, дописываемые без смены статуса (номер решения, режим, ошибка). */
+export interface MarketplaceReturnClaimCouncilPatch {
+  council_decision_id?: string | null;
+  council_decision_mode?: 'ROBOT' | 'MANUAL' | null;
 }
 
 export interface MarketplaceReturnClaimDomainRepository {
@@ -85,4 +95,24 @@ export interface MarketplaceReturnClaimDomainRepository {
     id: string,
     input: MarketplaceReturnClaimApplyDecisionInput
   ): Promise<MarketplaceReturnClaimDomainEntity>;
+
+  /**
+   * Атомарный переход «из ожидаемого статуса»: null — заявление уже ушло из
+   * `from` (гонка обратного вызова совета и сторожа).
+   */
+  transition(
+    id: string,
+    from: MarketplaceReturnClaimStatus,
+    input: MarketplaceReturnClaimApplyDecisionInput
+  ): Promise<MarketplaceReturnClaimDomainEntity | null>;
+
+  /** Дописать поля совета без смены статуса. */
+  patchCouncil(id: string, patch: MarketplaceReturnClaimCouncilPatch): Promise<MarketplaceReturnClaimDomainEntity>;
+
+  /** Заявления в заданных статусах по кооперативу (для сторожа ожидания совета). */
+  listByStatus(
+    coopname: string,
+    status: MarketplaceReturnClaimStatus | MarketplaceReturnClaimStatus[],
+    limit?: number
+  ): Promise<MarketplaceReturnClaimDomainEntity[]>;
 }

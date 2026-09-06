@@ -1,7 +1,6 @@
 import { Selector, type ValueTypes } from '../../zeus/index'
 import type { MakeAllFieldsRequired } from '../../utils/MakeAllFieldsRequired'
 import { rawOrderSelector } from './orderSelector'
-import { rawDocumentSelector } from '../common/documentSelector'
 
 /** Эпик 16: позиция корзины (оффер + кол-во + обогащение для UI). */
 const rawCartItemSelector = {
@@ -75,7 +74,6 @@ const rawCheckoutSignableLineSelector = {
   package_id: true,
   order_hash: true,
   amount: true,
-  document: rawDocumentSelector,
 }
 
 const _validateSignableLine: MakeAllFieldsRequired<ValueTypes['MarketplaceCheckoutSignableLine']> =

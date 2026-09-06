@@ -1,8 +1,6 @@
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import { randomUUID } from 'crypto';
-import { Cooperative, type MarketContract } from 'cooptypes';
-import { LOGGER_PORT, type ILoggerPort, DOCUMENT_PORT, type IDocumentPort, type InnerGeneratedDocument } from '@coopenomics/innercoop';
-import { SignedDigitalDocumentInputDTO } from '@coopenomics/extension-kit';
+import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import type { MarketplaceCheckoutSignedLineInputDTO } from '../dto/marketplace-checkout.dto';
 import { computeOrderHash, computeStockOrderHash } from '../shared/order-hash.util';
 import { resolveSaleUnit } from '../shared/packaging.util';
@@ -65,11 +63,10 @@ export interface MarketplaceCheckoutSignableLine {
   package_id: string | null;
   order_hash: string;
   amount: string;
-  document: InnerGeneratedDocument;
 }
 
 /** Кошельки, из которых createorder тянет средства под резерв заказа. */
-const SPENDABLE_WALLETS: ReadonlyArray<string> = ['w.wal.share', 'w.wal.member'];
+const SPENDABLE_WALLETS: ReadonlyArray<string> = ['w.wal.share'];
 
 /**
  * Эпик 16 (Story 16.2): оформление заказа из корзины.
@@ -107,7 +104,6 @@ export class MarketplaceCheckoutService {
     private readonly assetConfig: MarketplaceAssetConfig,
     @Inject(MARKETPLACE_ECONOMY_SERVICE)
     private readonly economyService: MarketplaceEconomyService,
-    @Inject(DOCUMENT_PORT) private readonly documentPort: IDocumentPort,
     @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
   ) {
     this.logger.setContext(MarketplaceCheckoutService.name);
@@ -139,19 +135,7 @@ export class MarketplaceCheckoutService {
         ? computeStockOrderHash(scope.coopname, scope.orderer_account, line.offer_id)
         : computeOrderHash(scope.coopname, scope.orderer_account, line.offer_id);
       const amount = this.lineAmount(line, feePercent);
-      const action: Cooperative.Registry.MarketplaceConvertStatement.Action = {
-        registry_id: Cooperative.Registry.MarketplaceConvertStatement.registry_id,
-        coopname: scope.coopname,
-        username: scope.orderer_account,
-        lang: 'ru',
-        order_hash,
-        amount,
-        // Тело сохраняется в стор: реестр документов пересобирает агрегат
-        // по doc_hash (rawDocument), preview-режим оставил бы запись пустой.
-        skip_save: false,
-      };
-      const document = await this.documentPort.generate({ data: action });
-      result.push({ offer_id: line.offer_id, package_id: line.package_id || null, order_hash, amount, document });
+      result.push({ offer_id: line.offer_id, package_id: line.package_id || null, order_hash, amount });
     }
     return result;
   }
@@ -205,34 +189,15 @@ export class MarketplaceCheckoutService {
     const succeededOfferIds: string[] = [];
     for (const line of payable) {
       try {
-        // Заявление о конвертации паевого взноса — обязательный спутник
-        // каждой строки: контракт требует подписанный документ и публикует
-        // его в реестр. Несовпадение суммы/якоря — позиция не оформляется,
-        // заявление нужно переподписать (цены могли измениться).
+        // Паевая модель: отдельного заявления при заказе нет — паевой взнос
+        // остаётся паевым в том же кооперативе. order_hash строки берём из
+        // превью (клиент показал его пайщику), иначе считаем на месте.
         const signedLine = signedByLine.get(lineKey(line.offer_id, line.package_id));
-        if (!signedLine) {
-          throw new BadRequestException(
-            'Нет подписанного заявления о конвертации паевого взноса — обновите оформление.'
-          );
-        }
-        const meta = signedLine.signed_statement.meta;
-        if (
-          meta.registry_id !== Cooperative.Registry.MarketplaceConvertStatement.registry_id ||
-          meta.order_hash !== signedLine.order_hash
-        ) {
-          throw new BadRequestException(
-            'Заявление о конвертации подписано для другого заказа — обновите оформление.'
-          );
-        }
-        const expectedAmount = this.lineAmount(line, feePercent);
-        if (meta.amount !== expectedAmount) {
-          throw new BadRequestException(
-            `Сумма позиции изменилась (в заявлении ${meta.amount}, к оплате ${expectedAmount}) — обновите оформление.`
-          );
-        }
-        const convert_statement = new SignedDigitalDocumentInputDTO(
-          signedLine.signed_statement
-        ).toDocument() as MarketContract.Actions.CreateOrder.ICreateOrder['convert_statement'];
+        const order_hash =
+          signedLine?.order_hash ??
+          (line.offer.stock_braname
+            ? computeStockOrderHash(scope.coopname, scope.orderer_account, line.offer_id)
+            : computeOrderHash(scope.coopname, scope.orderer_account, line.offer_id));
 
         // requirement 76 (remote-докладка): строка с предложением кооператива
         // со склада оформляется заказом из остатка — без цикла поставки,
@@ -245,11 +210,7 @@ export class MarketplaceCheckoutService {
             quantity: line.quantity,
             package_id: line.package_id || null,
             checkout_id: checkoutId,
-            order_hash: signedLine.order_hash,
-            // Заказ из остатка из членских: паевой конвертируется на сумму строки
-            // отдельным действием перед заказом (см. createStockOrder).
-            convert_statement,
-            convert_amount: expectedAmount,
+            order_hash,
           });
           createdDTOs.push(toMarketplaceOrderDTO(res.order));
           succeededOfferIds.push(line.offer_id);
@@ -263,8 +224,7 @@ export class MarketplaceCheckoutService {
           package_id: line.package_id || null,
           delivery_braname: deliveryBraname,
           checkout_id: checkoutId,
-          order_hash: signedLine.order_hash,
-          convert_statement,
+          order_hash,
         });
         createdDTOs.push(toMarketplaceOrderDTO(res.order));
         succeededOfferIds.push(line.offer_id);
@@ -360,7 +320,7 @@ export class MarketplaceCheckoutService {
     return { payable, failed };
   }
 
-  /** Доступно к расходу = available(w.wal.share) + available(w.wal.member). */
+  /** Доступно к расходу = available(w.wal.share): паевой взнос под заказ берётся из главного паевого кошелька. */
   private async spendableBalance(coopname: string, username: string): Promise<number> {
     const rows = await this.walletRepo.findByUsername(coopname, username);
     return SPENDABLE_WALLETS.reduce((sum, name) => {

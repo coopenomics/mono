@@ -8,13 +8,15 @@ import { Field, Int, ObjectType } from '@nestjs/graphql';
  * USER_SHARED-кошелька:
  *
  *   1. `w.wal.share`  — ЦПП «Цифровой Кошелёк», паевые взносы деньгами (program_id=1).
- *   2. `w.wal.member` — Универсальный членский кошелёк (program_id=1). Источник
- *                       средств при createorder и приёмник при возврате (отмена/
- *                       снятие резерва при signiss2 с актуал < ordered).
- *   3. `w.mkt.order`  — Резерв средств пайщика под конкретный Order (program_id=2).
- *                       Сюда движутся средства на createorder (TRANSFER из
- *                       w.wal.member), обратно — на cancel/decline/expire.
- *                       Сжигается BURN'ом на signiss2 (выдача имущества).
+ *   2. `w.mkt.order`  — Паевой резерв пайщика под конкретный Order (program_id=2).
+ *                       Сюда движется паевой взнос при createorder (TRANSFER из
+ *                       w.wal.share либо w.mkt.share), обратно — при недовыдаче,
+ *                       отмене и отказе. Сжигается BURN'ом при закрывающей подписи
+ *                       акта выдачи (имущество выдано).
+ *   3. `w.mkt.share`  — Свободный паевой «Стола заказов» (program_id=2): сюда
+ *                       возвращается паевой взнос после выдачи, отмены и
+ *                       гарантийного возврата; отсюда резервируется следующий
+ *                       заказ; отзывается в Кошелёк действием recallshare.
  *
  * Источник балансов — core `UserWalletRepository.findByUsername` (PG-кеш
  * `ledger2::userwallets`); RPC к chain не выполняется (ADR-011). Каждый
@@ -31,7 +33,7 @@ import { Field, Int, ObjectType } from '@nestjs/graphql';
  */
 @ObjectType('MarketplaceWalletEntry')
 export class MarketplaceWalletEntryDTO {
-  @Field(() => String, { description: 'eosio::name кошелька (w.wal.share / w.wal.member / w.mkt.order)' })
+  @Field(() => String, { description: 'eosio::name кошелька (w.wal.share / w.mkt.order / w.mkt.share)' })
   public readonly name!: string;
 
   @Field(() => String, { description: 'Человекочитаемое название (из cooptypes LEDGER2_WALLET_REGISTRY)' })

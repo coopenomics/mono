@@ -20,18 +20,3 @@ export function computeStockOrderHash(coopname: string, orderer: string, offer_i
     .digest('hex');
 }
 
-/**
- * Анкер единого Заявления о конвертации под одно принятие предложения/докладки:
- * детерминированный SHA256(coopname|orderer|convert|proposal_id) — без nonce,
- * чтобы backend на акцепте пересчитал его и сверил с подписанным заявлением.
- * Одно заявление на весь дефицит вместо документа на каждую строку.
- */
-export function computeConvertAnchorHash(
-  coopname: string,
-  orderer: string,
-  proposal_id: string
-): string {
-  return createHash('sha256')
-    .update(`${coopname}|${orderer}|convert|${proposal_id}`)
-    .digest('hex');
-}

@@ -16,8 +16,9 @@ import { USER_WALLET_PORT, type IUserWalletPort } from '@coopenomics/innercoop';
 /**
  * Релевантные стол-заказам USER_SHARED-кошельки по стандарту marketplace
  * (`marketplace/p.mkt.supply.standard.yaml`, секция «wallets»). Порядок
- * соответствует pipeline средств в createorder: `w.wal.share` (деньги) →
- * `w.wal.member` (универсальный членский) → `w.mkt.order` (резерв под Order).
+ * соответствует пути паевого взноса: `w.wal.share` (Цифровой кошелёк) →
+ * `w.mkt.order` (паевой резерв под заказ) → `w.mkt.share` (свободный паевой
+ * Стола заказов: остатки, источник заказов из остатка и доплат, вывод обратно).
  *
  * `label` — UX-метка в формате `<тип взноса> | <программа>`. Не та же что
  * `human_name` из cooptypes (там длинное юр.описание); этот label короткий,
@@ -29,8 +30,8 @@ const MARKETPLACE_RELEVANT_WALLETS: ReadonlyArray<{
   label: string;
 }> = [
   { name: 'w.wal.share', program_id: 1, label: 'Паевой | Цифровой Кошелёк' },
-  { name: 'w.wal.member', program_id: 1, label: 'Членский | Цифровой Кошелёк' },
-  { name: 'w.mkt.order', program_id: 2, label: 'Резерв | Стол Заказов' },
+  { name: 'w.mkt.order', program_id: 2, label: 'Паевой резерв под заказы | Стол Заказов' },
+  { name: 'w.mkt.share', program_id: 2, label: 'Свободный паевой | Стол Заказов' },
 ];
 
 /**
@@ -60,7 +61,7 @@ export class MarketplaceMemberWalletResolver {
   @Query(() => MarketplaceMemberWalletDTO, {
     name: 'marketplaceMemberWallet',
     description:
-      'Кошельки пайщика, релевантные столу заказов: w.wal.share, w.wal.member, w.mkt.order',
+      'Кошельки пайщика в Столе заказов: паевой Цифрового кошелька, паевой резерв под заказы и свободный паевой Стола заказов.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard)
   async marketplaceMemberWallet(

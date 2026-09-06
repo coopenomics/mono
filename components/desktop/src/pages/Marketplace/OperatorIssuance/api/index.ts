@@ -27,8 +27,6 @@ export type MarketplaceGeneratedDocumentView = Types.Document.IGeneratedDocument
 // Входные типы — строго из SDK (IInput['data']); функции принимают `data`
 // целиком и передают его в `variables: { data }` без разворачивания полей.
 export type ListIssuancesByBranameInput = Queries.Marketplace.ListIssuancesByBraname.IInput['data'];
-export type IssueActChairmanSignablePayloadInput =
-  Queries.Marketplace.IssueActChairmanSignablePayload.IInput['data'];
 
 export async function listIssuancesByBraname(
   data: ListIssuancesByBranameInput,
@@ -41,37 +39,110 @@ export async function listIssuancesByBraname(
   return result as MarketplaceOrderIssuanceView[];
 }
 
-/** Объявление готовности к выдаче: строго из SDK (IInput['data']). */
-export type AnnounceOrderReadyInput = Mutations.Marketplace.AnnounceOrderReady.IInput['data'];
-
 /**
- * Оператор объявляет заказ готовым к выдаче («Объявить выдачу»). Заказчику
- * уходит уведомление «приходите заберите»; статус заказа не меняется, сама
- * выдача оформляется позже при приходе заказчика. Мутация на один заказ —
- * карточка получателя вызывает её циклом по своим позициям.
+ * Оператор отмечает заказ готовым к выдаче: имущество поступило на участок,
+ * заказчику уходит «приходите заберите». Подписи нет — статус заказа меняется
+ * на «готов к получению». Мутация на один заказ — карточка получателя
+ * вызывает её циклом по своим позициям.
  */
-export async function announceOrderReady(order_id: string): Promise<MarketplaceOrderIssuanceView> {
-  const data: AnnounceOrderReadyInput = { order_id };
-  const { [Mutations.Marketplace.AnnounceOrderReady.name]: result } = await client.Mutation(
-    Mutations.Marketplace.AnnounceOrderReady.mutation,
+export async function readyIssue(order_id: string): Promise<MarketplaceOrderIssuanceView> {
+  const data: Mutations.Marketplace.ReadyIssue.IInput['data'] = { order_id };
+  const { [Mutations.Marketplace.ReadyIssue.name]: result } = await client.Mutation(
+    Mutations.Marketplace.ReadyIssue.mutation,
     { variables: { data } },
   );
   return result as MarketplaceOrderIssuanceView;
 }
 
-/**
- * Превью акта выдачи для подписи ОПЕРАТОРОМ КУ первой подписью (signiss1).
- * Оператор подписывает его и кладёт в бандл (createStockProposal) — на цепь акт
- * уходит только при контрподписи пайщика в marketplaceFinalizeStockIssuance.
- */
-export async function getChairmanSignablePayload(
-  data: IssueActChairmanSignablePayloadInput,
-): Promise<MarketplaceGeneratedDocumentView> {
-  const { [Queries.Marketplace.IssueActChairmanSignablePayload.name]: result } =
-    await client.Query(Queries.Marketplace.IssueActChairmanSignablePayload.query, {
-      variables: { data },
-    });
+// ── Сага выдачи (компонент 68): заявление → совет → акт → закрытие ──────────
+
+/** Ход выдачи по заказу: этап, чей ход, документы. */
+export type MarketplaceIssuanceSagaView =
+  Queries.Marketplace.ListIssuanceSagas.IOutput['marketplaceListIssuanceSagas'][number];
+export type ListIssuanceSagasInput = NonNullable<Queries.Marketplace.ListIssuanceSagas.IInput['data']>;
+export type IssuanceClosePayloadView =
+  Queries.Marketplace.IssuanceClosePayload.IOutput['marketplaceIssuanceClosePayload'];
+export type SignIssuanceActInput = Mutations.Marketplace.CloseIssuance.IInput['data'];
+
+export async function listIssuanceSagas(data?: ListIssuanceSagasInput): Promise<MarketplaceIssuanceSagaView[]> {
+  const { [Queries.Marketplace.ListIssuanceSagas.name]: result } = await client.Query(
+    Queries.Marketplace.ListIssuanceSagas.query,
+    { variables: { data } },
+  );
+  return result as MarketplaceIssuanceSagaView[];
+}
+
+export async function getIssuanceSaga(order_id: string): Promise<MarketplaceIssuanceSagaView | null> {
+  const { [Queries.Marketplace.IssuanceSaga.name]: result } = await client.Query(
+    Queries.Marketplace.IssuanceSaga.query,
+    { variables: { data: { order_id } } },
+  );
+  return (result ?? null) as MarketplaceIssuanceSagaView | null;
+}
+
+/** Акт с подписью заказчика — к закрывающей подписи оператора. */
+export async function getIssuanceClosePayload(order_id: string): Promise<IssuanceClosePayloadView> {
+  const { [Queries.Marketplace.IssuanceClosePayload.name]: result } = await client.Query(
+    Queries.Marketplace.IssuanceClosePayload.query,
+    { variables: { data: { order_id } } },
+  );
+  return result as IssuanceClosePayloadView;
+}
+
+/** Закрывающая подпись оператора: имущество выдано, деньги проведены. */
+export async function closeIssuance(data: SignIssuanceActInput): Promise<MarketplaceIssuanceSagaView> {
+  const { [Mutations.Marketplace.CloseIssuance.name]: result } = await client.Mutation(
+    Mutations.Marketplace.CloseIssuance.mutation,
+    { variables: { data } },
+  );
+  return result as MarketplaceIssuanceSagaView;
+}
+
+/** Заявление о возврате паевого взноса имуществом (1113) к подписи заказчиком. */
+export async function getIssuanceStatementPayload(order_id: string): Promise<MarketplaceGeneratedDocumentView> {
+  const { [Queries.Marketplace.IssuanceStatementPayload.name]: result } = await client.Query(
+    Queries.Marketplace.IssuanceStatementPayload.query,
+    { variables: { data: { order_id } } },
+  );
   return result as MarketplaceGeneratedDocumentView;
+}
+
+export type SignIssuanceStatementInput = Mutations.Marketplace.SignIssuanceStatement.IInput['data'];
+
+/** Заказчик подписал заявление: оно уходит в цепь и на повестку совета; ответ — сага после ответа робота. */
+export async function signIssuanceStatement(data: SignIssuanceStatementInput): Promise<MarketplaceIssuanceSagaView> {
+  const { [Mutations.Marketplace.SignIssuanceStatement.name]: result } = await client.Mutation(
+    Mutations.Marketplace.SignIssuanceStatement.mutation,
+    { variables: { data } },
+  );
+  return result as MarketplaceIssuanceSagaView;
+}
+
+/** Акт приёма-передачи (1115) к первой подписи заказчиком — после решения совета. */
+export async function getIssuanceActPayload(order_id: string): Promise<MarketplaceGeneratedDocumentView> {
+  const { [Queries.Marketplace.IssuanceActPayload.name]: result } = await client.Query(
+    Queries.Marketplace.IssuanceActPayload.query,
+    { variables: { data: { order_id } } },
+  );
+  return result as MarketplaceGeneratedDocumentView;
+}
+
+/** Заказчик подписал акт: осталась закрывающая подпись оператора. */
+export async function signIssuanceAct(data: SignIssuanceActInput): Promise<MarketplaceIssuanceSagaView> {
+  const { [Mutations.Marketplace.SignIssuanceAct.name]: result } = await client.Mutation(
+    Mutations.Marketplace.SignIssuanceAct.mutation,
+    { variables: { data } },
+  );
+  return result as MarketplaceIssuanceSagaView;
+}
+
+/** Оператор снимает выдачу до решения совета / до акта: паевой взнос остаётся на месте. */
+export async function cancelIssuance(order_id: string): Promise<MarketplaceIssuanceSagaView> {
+  const { [Mutations.Marketplace.CancelIssuance.name]: result } = await client.Mutation(
+    Mutations.Marketplace.CancelIssuance.mutation,
+    { variables: { data: { order_id } } },
+  );
+  return result as MarketplaceIssuanceSagaView;
 }
 
 // ── Единый бандл выдачи: заказы + докладка со склада (requirement 76) ─────────
@@ -113,28 +184,27 @@ export async function cancelStockProposal(proposal_id: string): Promise<Marketpl
   return result as MarketplaceStockProposalView;
 }
 
-/** Строка корзины докладки для подготовки актов оператору (offer_id + quantity). */
+/** Строка корзины докладки для подготовки бандла (offer_id + quantity + упаковка). */
 export type StockIssuancePayloadInput = Queries.Marketplace.StockIssuancePayloads.IInput['data'];
-/** Строка к подписи оператором: order_hash + АПП-выдачи (signiss1_document). */
+/** Строка подготовки докладки: order_hash будущего заказа, цена, упаковка. */
 export type IStockIssuanceOperatorLine =
   Queries.Marketplace.StockIssuancePayloads.IOutput['marketplaceStockIssuancePayloads'][number];
 
 /**
- * Нагрузка к ОДНОЙ подписи пайщика: по строке — order_hash и подписанный
- * оператором АПП-выдачи (signiss1_aggregate, для контрподписи получения), плюс
- * ОДНО Заявление о конвертации на весь дефицит (convert_document пустой —
- * членских средств хватает, подписывать нужно только сами акты).
+ * Нагрузка к ОДНОЙ подписи пайщика по бандлу: по строке — заказ (или будущий
+ * заказ из остатка) и заявление о возврате паевого взноса имуществом (1113).
  */
 export type IStockProposalAcceptPayload =
   Queries.Marketplace.StockProposalSignablePayloads.IOutput['marketplaceStockProposalSignablePayloads'];
 
 export type IStockFinalizeInput = Mutations.Marketplace.FinalizeStockIssuance.IInput['data'];
-/** Строка финализации (order_hash + контрподписанный пайщиком signiss2-акт). */
+/** Строка подписания (order_hash + подписанное пайщиком заявление). */
 export type IStockFinalizeOrderLine = IStockFinalizeInput['order_lines'][number];
-/** Подписанное единое Заявление о конвертации (если был дефицит). */
-export type IStockConvertSigned = NonNullable<IStockFinalizeInput['signed_convert']>;
+/** Результат подписи бандла: бандл, заказы и саги выдачи по ним. */
+export type IStockFinalizeResult =
+  Mutations.Marketplace.FinalizeStockIssuance.IOutput['marketplaceFinalizeStockIssuance'];
 
-/** Акты приёма-передачи к подписи оператором при формировании докладки. */
+/** Подготовка строк докладки при формировании бандла (без подписи оператора). */
 export async function getStockIssuancePayloads(
   data: StockIssuancePayloadInput,
 ): Promise<IStockIssuanceOperatorLine[]> {
@@ -157,24 +227,20 @@ export async function getStockProposalSignablePayloads(
 }
 
 /**
- * Пайщик одной подписью утверждает бандл выдачи: по строкам — контрподписанные
- * signiss2-акты, при дефиците — единое подписанное Заявление о конвертации.
+ * Пайщик одной подписью подписывает заявления по всем строкам бандла. Ответ
+ * несёт саги: если робот совета решил у стойки — следующий шаг (акт) сразу,
+ * иначе — спокойное ожидание.
  */
 export async function finalizeStockIssuance(
   proposal_id: string,
   order_lines: IStockFinalizeOrderLine[],
-  signed_convert?: IStockConvertSigned | null,
-): Promise<{ proposal: MarketplaceStockProposalView; order_ids: string[] }> {
-  const data: IStockFinalizeInput = {
-    proposal_id,
-    order_lines,
-    signed_convert: signed_convert ?? null,
-  };
+): Promise<IStockFinalizeResult> {
+  const data: IStockFinalizeInput = { proposal_id, order_lines };
   const { [Mutations.Marketplace.FinalizeStockIssuance.name]: result } = await client.Mutation(
     Mutations.Marketplace.FinalizeStockIssuance.mutation,
     { variables: { data } },
   );
-  return result as { proposal: MarketplaceStockProposalView; order_ids: string[] };
+  return result as IStockFinalizeResult;
 }
 
 export async function declineStockProposal(proposal_id: string): Promise<MarketplaceStockProposalView> {
@@ -191,3 +257,32 @@ export async function cancelStockOrder(data: CancelStockOrderInput): Promise<voi
   await client.Mutation(Mutations.Marketplace.CancelStockOrder.mutation, { variables: { data } });
 }
 
+/** Подпись этапа саги выдачи для карточек стола оператора и «Моих заказов». */
+export function issuanceStageDisplay(saga: { stage: string; decision_mode: string }): {
+  label: string;
+  variant: 'info' | 'warn' | 'pos' | 'neg' | 'neutral';
+} {
+  switch (saga.stage) {
+    case 'FACT_FIXED':
+      return { label: 'Ждём подпись заявления пайщиком', variant: 'warn' };
+    case 'STATEMENT_SIGNED':
+      return { label: 'Заявление подано в совет', variant: 'info' };
+    case 'DECISION_PENDING':
+      return {
+        label: saga.decision_mode === 'MANUAL' ? 'На рассмотрении совета' : 'Ждём решение совета',
+        variant: 'info',
+      };
+    case 'DECISION_AUTHORIZED':
+      return { label: 'Совет согласовал — ждём подпись акта пайщиком', variant: 'warn' };
+    case 'ACT1_SIGNED':
+      return { label: 'Акт подписан — закрываем выдачу', variant: 'pos' };
+    case 'CLOSED':
+      return { label: 'Выдано', variant: 'pos' };
+    case 'DECLINED':
+      return { label: 'Совет отказал', variant: 'neg' };
+    case 'CANCELLED':
+      return { label: 'Выдача снята', variant: 'neutral' };
+    default:
+      return { label: saga.stage, variant: 'neutral' };
+  }
+}

@@ -14,9 +14,17 @@ title: Гарантийный возврат имущества — заявле
 # `INTER_FILE_STORAGE` из `@coopenomics/inter`). Переименование 2026-08-09 —
 # только имена, поведение и набор случаев не менялись.
 
+# Паевая модель (компонент 68, 2026-09-06): приём имущества у стойки ставит
+# заявление 1116 на повестку совета; деньги двигаются только по решению совета
+# (onmktrtauth — все движения по заказу откатываются одной транзакцией), при
+# отказе имущество ждёт пайщика на участке, оператор выдаёт его обратно.
+
 sources:
   contract:
     - components/contracts/cpp/marketplace/src/p.mkt.return/accretrn.cpp
+    - components/contracts/cpp/marketplace/src/p.mkt.return/onmktrtauth.cpp
+    - components/contracts/cpp/marketplace/src/p.mkt.return/onmktrtdecl.cpp
+    - components/contracts/cpp/marketplace/src/p.mkt.return/handback.cpp
     - components/contracts/cpp/branch/src/retfee.cpp
   backend:
     - components/controller/src/extensions/marketplace/application/services/marketplace-return*.ts
@@ -54,9 +62,14 @@ cases:
     level: ui
     kind: happy
     scenario: Оператор участка принимает возвращаемое имущество по заявлению
-    expect: имущество возвращается на склад, средства возвращаются заказчику
+    expect: >
+      заявление уходит на решение совета; после решения «за» имущество в остатке,
+      паевой взнос восстановлен заказчику; после «против» имущество ждёт пайщика
     test: components/docs-harness/scenarios/marketplace/operator/return-accept.mjs
-    status: passing
+    status: pending
+    # Паевая модель (2026-09-06): приём у стойки больше не восстанавливает
+    # средства — решает совет. Сценарий harness переписать (голосование совета
+    # на стенде); до этого — pending.
     # ЗАБЛОКИРОВАН ДЕФЕКТОМ КОНТРАКТА (подтверждён прогоном 2026-08-09).
     # Сценарий доходит до последнего шага: удалённое одобрение проходит,
     # заявление получает APPROVED_FOR_VISIT, очный осмотр подписывается — и
@@ -189,12 +202,13 @@ cases:
     level: contract
     kind: happy
     scenario: >
-      Председатель участка принимает возврат на очном осмотре второй подписью
-      на заявлении пайщицы.
+      Оператор участка принимает имущество второй подписью на заявлении
+      пайщицы (1116); совет решает «за».
     expect: >
-      одной транзакцией проходят ТРИ ноги — o.mkt.return (имущество и средства
+      до решения совета движений по средствам нет; по решению одной
+      транзакцией проходят ТРИ ноги — o.mkt.return (имущество и паевой взнос
       заказчице), o.brn.retfee (участок возвращает долю взноса в пул) и
-      o.mkt.refund (пул доводит её до членского кошелька заказчицы)
+      o.mkt.refund (пул доводит её до свободного паевого заказчицы)
     test: components/boot/src/tests/marketplace-return.test.ts
     status: passing
 
@@ -204,8 +218,8 @@ cases:
     scenario: >
       Возврат принят; смотрим бухгалтерские проводки.
     expect: >
-      возвращённое имущество ложится Дт 10 (снова на складе), обязательство
-      перед пайщицей — Кт 86
+      возвращённое имущество ложится Дт 10 (снова на складе), паевой взнос
+      пайщицы восстанавливается Кт 80
     test: components/boot/src/tests/marketplace-return.test.ts
     status: passing
 
@@ -217,8 +231,9 @@ cases:
       участка на кошелёк пайщика невозможен — walletop держит один username на
       обе стороны.
     expect: >
-      транзит даёт ровно два кошельковых хода и НИ ОДНОЙ бухпроводки: деньги не
-      покидают целевое финансирование, а перекладываются внутри счёта 86
+      транзит даёт ровно два кошельковых хода; ход участок → пул без проводок
+      (внутри 86), ход пул → свободный паевой пайщицы — Дт 86 / Кт 80: членский
+      взнос возвращается в паевой
     test: components/boot/src/tests/marketplace-return.test.ts
     status: passing
 
@@ -233,3 +248,23 @@ cases:
       попадают в нитку поставки — у возврата своя нитка
     test: components/boot/src/tests/marketplace-return.test.ts
     status: passing
+
+  # ── Паевая модель: совет и выдача обратно (99D-9) ────────────────────────
+
+  - id: mkt.ret.side.40
+    level: contract
+    kind: side
+    scenario: Совет ещё не решил по принятому имуществу
+    expect: движений по средствам нет, заявление в статусе «ждём решение совета»
+    test: components/boot/src/tests/marketplace-return.test.ts
+    status: passing
+
+  - id: mkt.ret.side.41
+    level: backend
+    kind: side
+    scenario: Совет отказал либо не принял решение в срок ожидания (7 дней)
+    expect: >
+      имущество ждёт пайщика на участке, оператор выдаёт его обратно (handback),
+      заявление закрывается без движений по средствам
+    test: ~
+    status: missing

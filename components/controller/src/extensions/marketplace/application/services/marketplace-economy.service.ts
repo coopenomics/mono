@@ -522,18 +522,23 @@ export class MarketplaceEconomyService {
     }
   }
 
-  // ── Персональные средства доверенного ────────────────────────────────
+  // ── Свободный паевой Стола заказов ───────────────────────────────────
 
-  async convertBranchFunds(coopname: string, username: string, amount: number): Promise<string> {
+  /**
+   * Паевая модель: пайщик выводит свободный паевой «Стола заказов» (остатки
+   * от отмен, недовыдач и возвратов) в общий паевой Цифрового кошелька.
+   * Документа не требуется — паевой остаётся паевым в том же кооперативе.
+   */
+  async recallShare(coopname: string, username: string, amount: number): Promise<string> {
     if (!Number.isFinite(amount) || amount <= 0) {
-      throw new BadRequestException('Сумма перевода должна быть больше нуля');
+      throw new BadRequestException('Сумма вывода должна быть больше нуля');
     }
     const asset = this.formatAsset(amount);
-    const convert_hash = createHash('sha256')
-      .update(`${coopname}:${username}:convert:${randomBytes(16).toString('hex')}`)
+    const recall_hash = createHash('sha256')
+      .update(`${coopname}:${username}:recall:${randomBytes(16).toString('hex')}`)
       .digest('hex');
     try {
-      await this.chainPort.convertBranchFunds({ coopname, username, convert_hash, amount: asset });
+      await this.chainPort.recallShare({ coopname, username, recall_hash, amount: asset });
     } catch (e) {
       rethrowChainError(e);
     }

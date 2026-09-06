@@ -28,7 +28,7 @@ import {
   type MarketplaceReturnClaimExpectedResolution,
   type MarketplaceReturnClaimStatus,
 } from '../../domain/entities/marketplace-return-claim.types';
-import { MarketplaceReturnStatementSignedInputDTO } from '../documents-dto/marketplace-return-statement-document.dto';
+import { MarketplaceShareContributionStatementSignedInputDTO } from '../documents-dto/marketplace-share-contribution-statement-document.dto';
 import { MarketplaceUnitOfMeasureEnum } from './marketplace-offer.dto';
 
 /**
@@ -40,13 +40,28 @@ export enum MarketplaceReturnClaimStatusEnum {
   PENDING_CHAIRMAN_REVIEW = 'PENDING_CHAIRMAN_REVIEW',
   APPROVED_FOR_VISIT = 'APPROVED_FOR_VISIT',
   REJECTED_REMOTELY = 'REJECTED_REMOTELY',
-  ACCEPTED_AT_VISIT = 'ACCEPTED_AT_VISIT',
   REJECTED_AT_VISIT = 'REJECTED_AT_VISIT',
+  PENDING_COUNCIL = 'PENDING_COUNCIL',
+  ACCEPTED_BY_COUNCIL = 'ACCEPTED_BY_COUNCIL',
+  DECLINED_BY_COUNCIL = 'DECLINED_BY_COUNCIL',
+  HANDED_BACK = 'HANDED_BACK',
 }
 
 registerEnumType(MarketplaceReturnClaimStatusEnum, {
   name: 'MarketplaceReturnClaimStatus',
-  description: 'Состояние заявления на гарантийный возврат имущества пайщика.',
+  description:
+    'Состояние заявления на гарантийный возврат имущества пайщика: рассмотрение оператором, приглашение на участок, ' +
+    'имущество принято и ждёт решения совета, совет принял (паевой взнос восстановлен) или отказал (имущество ждёт пайщика), выдано обратно.',
+});
+
+export enum MarketplaceReturnClaimDecisionModeEnum {
+  ROBOT = 'ROBOT',
+  MANUAL = 'MANUAL',
+}
+
+registerEnumType(MarketplaceReturnClaimDecisionModeEnum, {
+  name: 'MarketplaceReturnClaimDecisionMode',
+  description: 'Кто решает по заявлению в совете: робот решений совета либо люди (нет кворума, крупная сумма, робот не настроен).',
 });
 
 export enum MarketplaceReturnClaimDefectCategoryEnum {
@@ -68,7 +83,7 @@ export enum MarketplaceReturnClaimExpectedResolutionEnum {
 
 registerEnumType(MarketplaceReturnClaimExpectedResolutionEnum, {
   name: 'MarketplaceReturnClaimExpectedResolution',
-  description: 'Желаемый исход возврата (в MVP — только восстановление средств на программном кошельке).',
+  description: 'Желаемый исход возврата (в MVP — только восстановление паевого взноса).',
 });
 
 export const MARKETPLACE_RETURN_CLAIM_STATUS_VALUES = MarketplaceReturnClaimStatuses;
@@ -118,12 +133,12 @@ export class MarketplaceCreateReturnClaimInputDTO {
   @Min(0)
   public readonly actual_quantity?: number;
 
-  @Field(() => MarketplaceReturnStatementSignedInputDTO, {
+  @Field(() => MarketplaceShareContributionStatementSignedInputDTO, {
     description: 'Подписанное пайщиком заявление о гарантийном возврате имущества (реестр документов 1104).',
   })
   @ValidateNested()
-  @Type(() => MarketplaceReturnStatementSignedInputDTO)
-  public readonly signed_statement!: MarketplaceReturnStatementSignedInputDTO;
+  @Type(() => MarketplaceShareContributionStatementSignedInputDTO)
+  public readonly signed_statement!: MarketplaceShareContributionStatementSignedInputDTO;
 
   @Field(() => [MarketplaceReturnClaimPhotoUploadInputDTO], {
     description: 'Фотографии товара — обязательно от 1 до 10 файлов.',
@@ -232,15 +247,24 @@ export class MarketplaceAcceptReturnAtVisitInputDTO {
   @Type(() => MarketplaceReturnClaimPhotoUploadInputDTO)
   public readonly inspection_photos?: MarketplaceReturnClaimPhotoUploadInputDTO[];
 
-  @Field(() => MarketplaceReturnStatementSignedInputDTO, {
-    nullable: true,
+  @Field(() => MarketplaceShareContributionStatementSignedInputDTO, {
     description:
-      'Заявление пайщика со второй подписью председателя — принятие возврата оформляется со-подписью на том же документе.',
+      'Заявление о внесении паевого взноса имуществом (1116) со второй подписью оператора — приём имущества оформляется со-подписью на том же документе; с ним заявление уходит на повестку совета.',
   })
-  @IsOptional()
   @ValidateNested()
-  @Type(() => MarketplaceReturnStatementSignedInputDTO)
-  public readonly signed_statement?: MarketplaceReturnStatementSignedInputDTO;
+  @Type(() => MarketplaceShareContributionStatementSignedInputDTO)
+  public readonly signed_statement!: MarketplaceShareContributionStatementSignedInputDTO;
+}
+
+@InputType('MarketplaceHandBackReturnInput')
+export class MarketplaceHandBackReturnInputDTO {
+  @Field(() => String, { description: 'Идентификатор заявления.' })
+  @IsString()
+  public readonly claim_id!: string;
+
+  @Field({ description: 'Кооперативный участок, где имущество выдаётся обратно.' })
+  @IsString()
+  public readonly braname!: string;
 }
 
 @InputType('MarketplaceRejectReturnAtVisitInput')
@@ -302,13 +326,16 @@ export class MarketplaceReturnClaimPhotoDTO {
   description: 'Запись о решении председателя по заявлению на возврат.',
 })
 export class MarketplaceReturnClaimDecisionEntryDTO {
-  @Field({ description: 'Стадия решения: «remote» — удалённое, «on_site» — очный осмотр.' })
+  @Field({ description: 'Стадия решения: «remote» — удалённое, «on_site» — у стойки, «council» — совет.' })
   public readonly stage!: string;
 
-  @Field({ description: 'Тип решения: approve_visit / reject_remote / accept_at_visit / reject_at_visit.' })
+  @Field({
+    description:
+      'Тип решения: approve_visit / reject_remote / accept_at_visit / reject_at_visit / council_authorized / council_declined / hand_back.',
+  })
   public readonly decision!: string;
 
-  @Field({ description: 'Аккаунт председателя, принявшего решение.' })
+  @Field({ description: 'Аккаунт принявшего решение (для решений совета — аккаунт кооператива).' })
   public readonly by_chairman_account!: string;
 
   @Field(() => String, { nullable: true, description: 'ФИО председателя, принявшего решение.' })
@@ -351,16 +378,16 @@ export class MarketplaceReturnClaimOnSiteInspectionDTO {
 }
 
 @ObjectType('MarketplaceReturnClaimLedgerSnapshot', {
-  description: 'Снапшот compensating-forward пары после успешного приёма возврата.',
+  description: 'Снапшот отката движений по решению совета: паевой и членский взносы восстановлены пайщику.',
 })
 export class MarketplaceReturnClaimLedgerSnapshotDTO {
-  @Field({ description: 'Сумма compensating-forward (восстановленная на программный кошелёк).' })
+  @Field({ description: 'Полная восстановленная сумма: стоимость имущества вместе с членским взносом за него.' })
   public readonly amount!: string;
 
   @Field(() => Float, { description: 'Возвращённое количество единиц имущества.' })
   public readonly returned_quantity!: number;
 
-  @Field({ description: 'Хэш транзакции accretrn в блокчейне.' })
+  @Field({ description: 'Хэш транзакции обратного вызова совета в блокчейне.' })
   public readonly tx_hash!: string;
 
   @Field({ description: 'Время фиксации возврата.' })
@@ -452,9 +479,27 @@ export class MarketplaceReturnClaimDTO {
 
   @Field(() => MarketplaceReturnClaimLedgerSnapshotDTO, {
     nullable: true,
-    description: 'Снапшот compensating-forward (только при ACCEPTED_AT_VISIT).',
+    description: 'Снапшот отката движений (только при ACCEPTED_BY_COUNCIL).',
   })
   public readonly ledger_snapshot!: MarketplaceReturnClaimLedgerSnapshotDTO | null;
+
+  @Field(() => String, { nullable: true, description: 'Номер решения совета по заявлению (после приёма имущества у стойки).' })
+  public readonly council_decision_id!: string | null;
+
+  @Field(() => MarketplaceReturnClaimDecisionModeEnum, {
+    nullable: true,
+    description: 'Кто решает: робот совета или люди. Пусто — совет ещё не задействован.',
+  })
+  public readonly council_decision_mode!: MarketplaceReturnClaimDecisionModeEnum | null;
+
+  @Field(() => Date, { nullable: true, description: 'Момент приёма имущества у стойки; от него идёт срок ожидания решения совета.' })
+  public readonly accepted_at!: Date | null;
+
+  @Field(() => Date, {
+    nullable: true,
+    description: 'Срок, после которого оператор может выдать имущество обратно без решения совета (7 дней с приёма).',
+  })
+  public readonly hand_back_available_at!: Date | null;
 
   @Field() public readonly created_at!: Date;
   @Field() public readonly updated_at!: Date;

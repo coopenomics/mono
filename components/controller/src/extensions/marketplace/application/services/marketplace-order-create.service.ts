@@ -2,9 +2,7 @@ import { rethrowChainError } from '@coopenomics/extension-kit';
 import { BadRequestException, ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { createHash } from 'crypto';
-import type { MarketContract } from 'cooptypes';
 import { LOGGER_PORT, type ILoggerPort,
-  type InnerTransactResult,
 } from '@coopenomics/innercoop';
 import { computeOrderHash } from '../shared/order-hash.util';
 import { toQuantityAsset } from '../shared/quantity.util';
@@ -72,18 +70,10 @@ export interface MarketplaceOrderCreateInputDto {
    */
   checkout_id?: string | null;
   /**
-   * Предвычисленный order_hash из подписываемого заявления о конвертации:
-   * заявление подписывается клиентом ДО chain submit и несёт order_hash в
-   * мете, поэтому hash рождается на этапе превью (checkout signable
-   * payloads), а не здесь. Без него генерируется на месте.
+   * Предвычисленный order_hash (из превью оформления корзины) — чтобы клиент
+   * и бэкенд говорили об одном заказе. Без него генерируется на месте.
    */
   order_hash?: string;
-  /**
-   * Подписанное заказчиком заявление о конвертации паевого взноса в
-   * членский (registry 1110) — обязательный параметр
-   * `marketplace::createorder`; контракт публикует его в реестр документов.
-   */
-  convert_statement: MarketContract.Actions.CreateOrder.ICreateOrder['convert_statement'];
 }
 
 export interface MarketplaceOrderCreateResult {
@@ -212,7 +202,6 @@ export class MarketplaceOrderCreateService {
         package_size: package_size_asset,
         warranty_period_secs,
         batch_hash: MarketplaceOrderCreateService.ZERO_HASH,
-        convert_statement: input.convert_statement,
       });
       const result = this.normalizeTxResult(tx);
       txHash = result.tx_hash;

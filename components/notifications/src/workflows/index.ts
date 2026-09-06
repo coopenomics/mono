@@ -35,6 +35,8 @@ import { workflow as marketplaceCashierNewPaymentWorkflow } from './marketplace-
 import { workflow as marketplaceSupplierPaymentConfirmedWorkflow } from './marketplace-supplier-payment-confirmed';
 import { workflow as marketplaceSupplierPaymentDeclinedWorkflow } from './marketplace-supplier-payment-declined';
 import { workflow as marketplaceOrderReadyWorkflow } from './marketplace-order-ready';
+import { workflow as marketplaceIssuanceDecidedWorkflow } from './marketplace-issuance-decided';
+import { workflow as marketplaceReturnCouncilDecidedWorkflow } from './marketplace-return-council-decided';
 import { workflow as marketplaceReturnClaimSubmittedWorkflow } from './marketplace-return-claim-submitted';
 import { workflow as marketplaceReturnClaimDecidedWorkflow } from './marketplace-return-claim-decided';
 import { workflow as marketplaceReturnClaimFinalizedWorkflow } from './marketplace-return-claim-finalized';
@@ -95,6 +97,8 @@ export * as MarketplaceCashierNewPayment from './marketplace-cashier-new-payment
 export * as MarketplaceSupplierPaymentConfirmed from './marketplace-supplier-payment-confirmed';
 export * as MarketplaceSupplierPaymentDeclined from './marketplace-supplier-payment-declined';
 export * as MarketplaceOrderReady from './marketplace-order-ready';
+export * as MarketplaceIssuanceDecided from './marketplace-issuance-decided';
+export * as MarketplaceReturnCouncilDecided from './marketplace-return-council-decided';
 export * as MarketplaceReturnClaimSubmitted from './marketplace-return-claim-submitted';
 export * as MarketplaceReturnClaimDecided from './marketplace-return-claim-decided';
 export * as MarketplaceReturnClaimFinalized from './marketplace-return-claim-finalized';
@@ -152,6 +156,8 @@ export const allWorkflows: WorkflowDefinition[] = [
   marketplaceSupplierPaymentConfirmedWorkflow,
   marketplaceSupplierPaymentDeclinedWorkflow,
   marketplaceOrderReadyWorkflow,
+  marketplaceIssuanceDecidedWorkflow,
+  marketplaceReturnCouncilDecidedWorkflow,
   marketplaceReturnClaimSubmittedWorkflow,
   marketplaceReturnClaimDecidedWorkflow,
   marketplaceReturnClaimFinalizedWorkflow,

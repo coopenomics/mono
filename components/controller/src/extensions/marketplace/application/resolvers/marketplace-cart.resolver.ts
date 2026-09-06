@@ -1,7 +1,7 @@
 import { Inject, Injectable, UseGuards } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 
-import { GqlJwtAuthGuard, platformSettings, GeneratedDocumentDTO } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, platformSettings } from '@coopenomics/extension-kit';
 import { CurrentMarketplaceMember } from '../decorators/current-marketplace-member.decorator';
 import { RequireMarketplaceAccess } from '../decorators/marketplace-access.decorator';
 import { MarketplaceMembershipGuard } from '../guards/marketplace-membership.guard';
@@ -129,8 +129,8 @@ export class MarketplaceCartResolver {
   @Query(() => [MarketplaceCheckoutSignableLineDTO], {
     name: 'marketplaceCheckoutSignablePayloads',
     description:
-      'Заявления о конвертации паевого взноса к подписи — по одному на каждую позицию корзины. ' +
-      'Подписанные заявления возвращаются строками lines в marketplaceCheckoutCart.',
+      'Превью оформления: по каждой позиции корзины — идентификатор будущего заказа и сумма к резервированию ' +
+      '(стоимость плюс членский взнос участка). Паевой взнос резервируется без отдельного заявления.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
   @RequireMarketplaceAccess('Cart', 'manage:own')
@@ -141,21 +141,15 @@ export class MarketplaceCartResolver {
       coopname: platformSettings().coopname,
       orderer_account: member.username,
     });
-    return lines.map((l) => {
-      const document = new GeneratedDocumentDTO();
-      document.full_title = l.document.full_title;
-      document.html = l.document.html;
-      document.hash = l.document.hash;
-      document.meta = l.document.meta;
-      document.binary = l.document.binary;
-      return new MarketplaceCheckoutSignableLineDTO({
-        offer_id: l.offer_id,
-        package_id: l.package_id,
-        order_hash: l.order_hash,
-        amount: l.amount,
-        document,
-      });
-    });
+    return lines.map(
+      (l) =>
+        new MarketplaceCheckoutSignableLineDTO({
+          offer_id: l.offer_id,
+          package_id: l.package_id,
+          order_hash: l.order_hash,
+          amount: l.amount,
+        })
+    );
   }
 
   @Mutation(() => MarketplaceCheckoutResultDTO, {
@@ -163,7 +157,7 @@ export class MarketplaceCartResolver {
     description:
       'Оформить заказ из корзины: предвалидация баланса, построчное создание заказов с общим ' +
       'идентификатором заказа и КУ; непрошедший остаток остаётся в корзине для повтора. ' +
-      'Каждая позиция сопровождается подписанным заявлением о конвертации паевого взноса (lines).',
+      'Паевой взнос резервируется под каждую позицию без отдельного заявления (строки lines — из превью).',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
   @RequireMarketplaceAccess('Cart', 'manage:own')

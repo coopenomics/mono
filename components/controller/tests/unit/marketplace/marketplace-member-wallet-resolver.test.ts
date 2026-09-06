@@ -3,7 +3,7 @@
  *
  * Resolver возвращает массив 3-х USER_SHARED-кошельков стандарта marketplace:
  *   - `w.wal.share`  — паевые взносы деньгами (program_id=1).
- *   - `w.wal.member` — универсальный членский (program_id=1). Источник средств
+ *   - `w.mkt.share` — свободный паевой «Стола заказов» (program_id=2): паевой взнос после выдачи/отказов
  *                       при createorder и приёмник при отмене/возврате.
  *   - `w.mkt.order`  — резерв под Order (program_id=2). Введён 2026-05-28
  *                       взамен механики .blocked на программном кошельке.
@@ -35,7 +35,7 @@ const member = {
 };
 
 describe('MarketplaceMemberWalletResolver', () => {
-  it('пайщик с записями share + mkt.order → массив из 3 кошельков, member нулевой', async () => {
+  it('пайщик с записями share + mkt.order → массив из 3 кошельков, свободный паевой нулевой', async () => {
     const repo = makeRepo([
       { wallet_name: 'w.wal.share', available: '125.0000 RUB', blocked: '5.0000 RUB' },
       { wallet_name: 'w.mkt.order', available: '80.0000 RUB', blocked: '0.0000 RUB' },
@@ -60,18 +60,18 @@ describe('MarketplaceMemberWalletResolver', () => {
       blocked: '5.0000 RUB',
     });
     expect(dto.wallets[1]).toMatchObject({
-      name: 'w.wal.member',
-      program_id: 1,
-      label: 'Членский | Цифровой Кошелёк',
-      available: '0',
-      blocked: '0',
-    });
-    expect(dto.wallets[2]).toMatchObject({
       name: 'w.mkt.order',
       program_id: 2,
-      label: 'Резерв | Стол Заказов',
+      label: 'Паевой резерв под заказы | Стол Заказов',
       available: '80.0000 RUB',
       blocked: '0.0000 RUB',
+    });
+    expect(dto.wallets[2]).toMatchObject({
+      name: 'w.mkt.share',
+      program_id: 2,
+      label: 'Свободный паевой | Стол Заказов',
+      available: '0',
+      blocked: '0',
     });
   });
 
@@ -88,8 +88,8 @@ describe('MarketplaceMemberWalletResolver', () => {
     }
     expect(dto.wallets.map((w) => w.name)).toEqual([
       'w.wal.share',
-      'w.wal.member',
       'w.mkt.order',
+      'w.mkt.share',
     ]);
   });
 
@@ -100,8 +100,8 @@ describe('MarketplaceMemberWalletResolver', () => {
     const dto = await resolver.marketplaceMemberWallet(member as any);
 
     expect(dto.wallets[0].human_name).toBe('Паевой взнос пайщика');
-    expect(dto.wallets[1].human_name).toBe('ЦК — членская часть пайщика');
-    expect(dto.wallets[2].human_name).toBe('ЦПП «Стол Заказов» — резерв под заказ у пайщика');
+    expect(dto.wallets[1].human_name).toBe('ЦПП «Стол Заказов» — паевой резерв под заказ у пайщика');
+    expect(dto.wallets[2].human_name).toBe('ЦПП «Стол Заказов» — свободный паевой пайщика в программе');
   });
 
   it('w.mkt.payout (COOPERATIVE) не попадает в выдачу — это кооперативный кошелёк, не пайщика', async () => {

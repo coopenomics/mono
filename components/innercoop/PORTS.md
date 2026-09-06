@@ -71,6 +71,7 @@
 | `MATRIX_ROOM_MESSAGING_PORT` | `IMatrixRoomMessagingPort` (4)<br><sub>cross-plugin-ports/matrix-room-messaging.port.ts</sub> | `ChatcoopInnercoopMatrixRoomMessagingAdapter` | capital* | Отправка сообщений в Matrix (Client-Server API) от имени сервисной учётки. |
 | `PROJECT_CAPITAL_CLEARANCE_PORT` | `IProjectCapitalClearancePort` (2)<br><sub>cross-plugin-ports/project-capital-clearance.port.ts</sub> | `CapitalInnercoopProjectCapitalClearanceAdapter` | chatcoop* | Допуск к проекту Capital (подтверждённый appendix / makeClearance). |
 | `PROJECT_COMMUNICATION_ARTIFACTS_PORT` | `IProjectCommunicationArtifactsPort` (8)<br><sub>cross-plugin-ports/project-communication-artifacts.port.ts</sub> | `ChatcoopInnercoopProjectCommunicationArtifactsAdapter` | capital*, chatcoop* | Сообщения Matrix в истории (текст и расшифрованное аудио). |
+| `SOVIET_ROBOT_PORT` | `ISovietRobotPort` (2)<br><sub>cross-plugin-ports/soviet-robot.port.ts</sub> | — | — | Робот решений совета (расширение `soviet-robot`): прямой рычаг для расширений, которые ставят повестку и ждут решение здесь и сейчас. |
 
 ## Хуки
 
@@ -81,4 +82,4 @@
 | `DESKTOP_GRANTS_REGISTRY_PORT` | `IDesktopGrantsRegistryPort` (1)<br><sub>hooks/desktop-grants.hook.ts</sub> | `ExtensionGrantsRegistry` | marketplace | Права пайщика на рабочем столе расширения. |
 | `REGISTRATION_DOCUMENT_PARAMETERS_REGISTRY_PORT` | `IRegistrationDocumentParametersRegistryPort` (2)<br><sub>hooks/registration-document-parameters.hook.ts</sub> | `RegistrationDocumentParametersRegistry` | capital, marketplace | Параметры оферты, которые расширение выдаёт вступающему пайщику. |
 
-Всего портов: 49.
+Всего портов: 50.

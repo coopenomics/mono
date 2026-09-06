@@ -3,7 +3,7 @@ import { computed, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { debounce } from 'quasar';
 import { Zeus } from '@coopenomics/sdk';
-import { FailAlert } from 'src/shared/api';
+import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { BaseBadge, BaseButton, BaseCard } from 'src/shared/ui/base';
 import { ActivityTimeline, type ActivityEvent } from 'src/shared/ui/domain';
 import { useMarketplaceRealtime } from 'src/shared/lib/marketplace';
@@ -15,7 +15,8 @@ import {
   returnClaimStatusVariant,
   returnClaimDecisionLabel,
 } from '../../OrdererReturnClaims';
-import { defectCategoryLabel, type MarketplaceReturnClaimView } from '../../OperatorReturnClaims/api';
+import { defectCategoryLabel, handBackReturn, type MarketplaceReturnClaimView } from '../../OperatorReturnClaims/api';
+import { RETURN_CLAIM_NEGATIVE_DECISIONS } from '../../OrdererReturnClaims/api';
 import RemoteDecisionDialog from '../../OperatorReturnClaims/ui/RemoteDecisionDialog.vue';
 import OnSiteDecisionDialog from '../../OperatorReturnClaims/ui/OnSiteDecisionDialog.vue';
 import { fetchReturnClaim } from '../api';
@@ -45,6 +46,33 @@ const onSiteDialog = ref(false);
 const status = computed(() => claim.value?.status ?? null);
 const isPendingReview = computed(() => status.value === Zeus.MarketplaceReturnClaimStatus.PENDING_CHAIRMAN_REVIEW);
 const isApprovedForVisit = computed(() => status.value === Zeus.MarketplaceReturnClaimStatus.APPROVED_FOR_VISIT);
+const isPendingCouncil = computed(() => status.value === Zeus.MarketplaceReturnClaimStatus.PENDING_COUNCIL);
+const isDeclinedByCouncil = computed(() => status.value === Zeus.MarketplaceReturnClaimStatus.DECLINED_BY_COUNCIL);
+// Выдать обратно: после отказа совета — сразу; без решения — по истечении срока ожидания.
+const canHandBack = computed(() => {
+  const c = claim.value;
+  if (!c) return false;
+  if (isDeclinedByCouncil.value) return true;
+  if (isPendingCouncil.value && c.hand_back_available_at) {
+    return new Date(String(c.hand_back_available_at)).getTime() <= Date.now();
+  }
+  return false;
+});
+const handingBack = ref(false);
+async function handBack(): Promise<void> {
+  const c = claim.value;
+  if (!c || handingBack.value) return;
+  handingBack.value = true;
+  try {
+    await handBackReturn({ claim_id: c.id, braname: c.delivery_braname });
+    SuccessAlert('Имущество выдано пайщику обратно — заявление закрыто.');
+    await load();
+  } catch (e) {
+    FailAlert(e, 'Не удалось выдать имущество обратно');
+  } finally {
+    handingBack.value = false;
+  }
+}
 
 function claimQuantityLabel(c: MarketplaceReturnClaimView): string {
   const saleUnit = marketplaceOrderSaleUnit(c.actual_quantity, c.unit_of_measure, c.package_size);
@@ -75,7 +103,7 @@ const timelineEvents = computed<ActivityEvent[]>(() => {
     date: String(c.created_at),
   });
   for (const entry of c.decision_log) {
-    const isReject = entry.decision === 'reject_remote' || entry.decision === 'reject_at_visit';
+    const isReject = RETURN_CLAIM_NEGATIVE_DECISIONS.has(entry.decision);
     events.push({
       id: `decision-${entry.tx_hash}`,
       type: isReject ? 'reject' : 'sign',
@@ -189,7 +217,13 @@ q-page.return-detail(role='region', aria-label='Заявление на гара
               .return-detail__fact-label Восстановлено пайщику
               .return-detail__fact-value.return-detail__fact-value--money {{ formatAsset2Digits(claim.ledger_snapshot.amount) }} ₽
 
-        .return-detail__actions(v-if='isPendingReview || isApprovedForVisit')
+        .return-detail__note(v-if='isPendingCouncil')
+          q-icon(name='schedule', size='16px')
+          span Имущество принято, заявление на повестке совета. Решение придёт сюда само — торопить его не нужно.
+        .return-detail__note(v-if='isDeclinedByCouncil')
+          q-icon(name='info', size='16px')
+          span Совет отказал. Имущество ждёт пайщика — выдайте его обратно при визите.
+        .return-detail__actions(v-if='isPendingReview || isApprovedForVisit || canHandBack')
           BaseButton(v-if='isPendingReview', variant='primary', size='sm', @click='startRemote')
             template(#icon-left)
               q-icon(name='gavel', size='16px')
@@ -197,7 +231,11 @@ q-page.return-detail(role='region', aria-label='Заявление на гара
           BaseButton(v-if='isApprovedForVisit', variant='secondary', size='sm', @click='startOnSite')
             template(#icon-left)
               q-icon(name='fact_check', size='16px')
-            | Очный осмотр
+            | Приём имущества
+          BaseButton(v-if='canHandBack', variant='secondary', size='sm', :loading='handingBack', @click='handBack')
+            template(#icon-left)
+              q-icon(name='undo', size='16px')
+            | Выдать обратно
 
       BaseCard.return-detail__card(v-if='timelineEvents.length')
         template(#head)
@@ -337,6 +375,15 @@ q-page.return-detail(role='region', aria-label='Заявление на гара
       font-weight: 700;
       font-feature-settings: 'tnum' 1;
     }
+  }
+
+  &__note {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--p-2, 8px);
+    padding: var(--p-3, 12px) 0;
+    font-size: var(--p-fs-body-sm, 13px);
+    color: var(--p-ink-2);
   }
 
   &__actions {

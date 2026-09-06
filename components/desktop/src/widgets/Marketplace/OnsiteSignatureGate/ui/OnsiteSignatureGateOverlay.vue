@@ -29,10 +29,12 @@ const {
   signingKey,
   supplierTasks,
   proposalTasks,
+  sagaTasks,
   refresh,
   signSupplier,
   cancelSupplier,
   signProposal,
+  signSaga,
   declineProposal,
 } = useOnsiteSignatureGate();
 
@@ -101,6 +103,16 @@ function proposalItemQuantity(i: {
 const supplierBusy = (g: ReceptionGroup<MarketplaceAplReceptionView>) => signingKey.value === g.key;
 const proposalBusy = (id: string) => signingKey.value === id;
 const anySigning = computed(() => signingKey.value !== null);
+
+/** Сага вне бандла: что именно подписываем — заявление или акт. */
+function sagaTaskTitle(s: { stage: string }): string {
+  return s.stage === 'FACT_FIXED' ? 'Заявление на выдачу' : 'Акт приёма-передачи';
+}
+function sagaTaskSub(s: { stage: string }): string {
+  return s.stage === 'FACT_FIXED'
+    ? 'Подпишите заявление о возврате паевого взноса имуществом — оно уйдёт на решение совета'
+    : 'Совет согласовал выдачу — подпишите акт, имущество выдаст оператор участка';
+}
 
 // Первичная загрузка состояния при монтировании оверлея (он живёт всё время
 // работы приложения). Дальше гейт обновляется realtime-подпиской + catch-up'ом
@@ -177,16 +189,17 @@ BaseDialog(
             q-icon(name='draw', size='18px')
           | {{ g.lines.some((l) => l.quantity > 0) ? 'Подписать поставку' : 'Подтвердить отмену' }}
 
-    //- Бандл выдачи: оператор уже подписал акт передачи (по заказам и/или
-    //- докладке со склада) — пайщику остаётся одна подпись получения; до неё на
-    //- цепи ничего нет, поэтому «Отменить» = отказ от бандла (оператор повторит).
+    //- Бандл выдачи: оператор зафиксировал факт (по заказам и/или докладке со
+    //- склада) — пайщик одним нажатием подписывает заявления о возврате паевого
+    //- взноса имуществом; до подписи на цепи ничего нет, поэтому «Отменить» =
+    //- отказ от бандла (оператор повторит).
     BaseCard.onsite-gate__card(v-for='p in proposalTasks', :key='p.id')
       template(#head)
         .onsite-gate__head
           q-icon(name='inventory_2', size='28px')
           .onsite-gate__ident
             span.onsite-gate__name Получение в пункте выдачи
-            span.onsite-gate__sub Подтвердите получение имущества — ваша подпись акта
+            span.onsite-gate__sub Подпишите заявления о выдаче имуществом — совет примет решение, и вы заберёте имущество
 
       table.onsite-gate__table
         thead
@@ -227,7 +240,35 @@ BaseDialog(
         )
           template(#icon-left)
             q-icon(name='draw', size='18px')
-          | Подписать и получить
+          | Подписать заявления
+
+    //- Сага вне бандла: заявление (факт зафиксирован) либо акт после решения
+    //- совета, пришедшего когда пайщик уже ушёл. Подписывается где угодно.
+    BaseCard.onsite-gate__card(v-for='s in sagaTasks', :key='s.id')
+      template(#head)
+        .onsite-gate__head
+          q-icon(name='assignment_turned_in', size='28px')
+          .onsite-gate__ident
+            span.onsite-gate__name {{ sagaTaskTitle(s) }}
+            span.onsite-gate__sub {{ sagaTaskSub(s) }}
+
+      table.onsite-gate__table
+        tbody
+          tr
+            td Заказ {{ s.order_id.slice(0, 8) }}
+            td.num {{ s.fact.actual_quantity }}
+            td.num {{ formatAsset2Digits(s.fact.fact_cost) }} ₽
+
+      .onsite-gate__foot
+        BaseButton(
+          variant='primary',
+          :loading='proposalBusy(s.id)',
+          :disabled='anySigning && !proposalBusy(s.id)',
+          @click='signSaga(s)'
+        )
+          template(#icon-left)
+            q-icon(name='draw', size='18px')
+          | Подписать
 </template>
 
 <style scoped lang="scss">

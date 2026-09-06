@@ -141,11 +141,12 @@ export async function deleteTrusteeWeight(data: IDeleteTrusteeWeightInput): Prom
 
 // ─── Персональные средства ───
 
-export type IConvertBranchFundsInput = Mutations.Marketplace.ConvertBranchFunds.IInput['data'];
+export type IRecallShareInput = Mutations.Marketplace.RecallShare.IInput['data'];
 
-export async function convertBranchFunds(data: IConvertBranchFundsInput): Promise<boolean> {
-  const { [Mutations.Marketplace.ConvertBranchFunds.name]: result } = await client.Mutation(
-    Mutations.Marketplace.ConvertBranchFunds.mutation,
+/** Отзыв свободного паевого взноса со Стола заказов в Кошелёк (паевая модель). */
+export async function recallShare(data: IRecallShareInput): Promise<boolean> {
+  const { [Mutations.Marketplace.RecallShare.name]: result } = await client.Mutation(
+    Mutations.Marketplace.RecallShare.mutation,
     { variables: { data } },
   );
   return Boolean(result);

@@ -4,6 +4,7 @@ import type {
   MarketplaceReturnClaimOnSiteInspection,
   MarketplaceReturnClaimPhoto,
 } from '../../domain/entities/marketplace-return-claim.types';
+import { MarketplaceReturnClaimDecisionModeEnum } from '../dto/marketplace-return-claim.dto';
 import type {
   MarketplaceReturnClaimDTO,
   MarketplaceReturnClaimDecisionEntryDTO,
@@ -12,6 +13,9 @@ import type {
   MarketplaceReturnClaimPhotoDTO,
 } from '../dto/marketplace-return-claim.dto';
 import type { MarketplaceUnitOfMeasureEnum } from '../dto/marketplace-offer.dto';
+
+/** Срок ожидания решения совета (контракт: RETURN_DECISION_WAIT_SECS = 7 суток). */
+const RETURN_DECISION_WAIT_MS = 7 * 24 * 60 * 60 * 1000;
 
 /**
  * Преобразование domain → GraphQL DTO. Подписанные URL фотографий запрашиваются
@@ -71,6 +75,10 @@ export async function toMarketplaceReturnClaimDTO(
     decision_log: claim.decision_log.map((entry) => toDecisionEntryDTO(entry, chairmanNames, branchNames)),
     on_site_inspection: inspection,
     ledger_snapshot: claim.ledger_snapshot ? toLedgerSnapshotDTO(claim.ledger_snapshot) : null,
+    council_decision_id: claim.council_decision_id,
+    council_decision_mode: (claim.council_decision_mode as MarketplaceReturnClaimDecisionModeEnum | null) ?? null,
+    accepted_at: claim.accepted_at,
+    hand_back_available_at: claim.accepted_at ? new Date(claim.accepted_at.getTime() + RETURN_DECISION_WAIT_MS) : null,
     created_at: claim.created_at,
     updated_at: claim.updated_at,
   };

@@ -7,14 +7,16 @@ import { useWalletStore, type ILoadUserWallet } from 'src/entities/Wallet';
 import { useSessionStore } from 'src/entities/Session';
 import { useSystemStore } from 'src/entities/System/model';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
+import { FailAlert, SuccessAlert } from 'src/shared/api';
+import { recallShare } from 'src/pages/Marketplace/OperatorBranchEconomy/api';
 
 /**
  * Кошелёк в шапке стола заказов (правка 2026-08-13).
  *
  * Заказчик живёт в каталоге, а деньги видел только на столе пайщика: при
  * нехватке средств окно предлагало «пополнить кошелёк», и человек уходил
- * искать его в другом столе; возврат по гарантии приходил на программный
- * кошелёк, которого в каталоге не видно вовсе — и его не находили.
+ * искать его в другом столе; паевой взнос после выдачи возвращался на
+ * свободный паевой Стола заказов, которого в каталоге не видно вовсе.
  *
  * Поэтому баланс стола заказов живёт прямо в шапке каталога, рядом с
  * корзиной, а по нажатию открывается окно с обоими кошельками и взносом.
@@ -24,9 +26,9 @@ import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 
 const props = defineProps<{ coopname: string }>();
 
-/** Программный кошелёк «Стола заказов» — из него платятся заказы и на него приходят возвраты. */
-const MARKET_WALLET = 'w.mkt.member';
-/** Главный паевой кошелёк ЦК — источник средств для конвертации в членский. */
+/** Свободный паевой «Стола заказов» — сюда возвращается паевой взнос после выдачи/отказов, отсюда резервируются новые заказы. */
+const MARKET_WALLET = 'w.mkt.share';
+/** Главный паевой кошелёк ЦК — источник паевого взноса под заказ. */
 const SHARE_WALLET = 'w.wal.share';
 
 const walletStore = useWalletStore();
@@ -51,6 +53,25 @@ function walletLocked(walletName: string): string | undefined {
 }
 
 const marketAmount = computed(() => walletAmount(MARKET_WALLET));
+
+// Отзыв свободного паевого: весь свободный остаток Стола заказов возвращается
+// в главный паевой кошелёк (contract: recallshare, o.mkt.recall).
+const recalling = ref(false);
+async function recallAll(): Promise<void> {
+  const row = walletStore.user_wallets.find((w) => w.wallet_name === MARKET_WALLET);
+  const amount = row?.available ? Number.parseFloat(String(row.available)) : 0;
+  if (!(amount > 0)) return;
+  recalling.value = true;
+  try {
+    await recallShare({ amount });
+    SuccessAlert('Паевой взнос возвращён в Кошелёк.');
+    await loadWallets();
+  } catch (e) {
+    FailAlert(e, 'Не удалось отозвать паевой взнос');
+  } finally {
+    recalling.value = false;
+  }
+}
 
 async function loadWallets(): Promise<void> {
   if (!session.username) return;
@@ -96,9 +117,9 @@ BaseDialog(v-model="dialogOpen", title="Кошелёк Стола заказов
     WalletCard(
       compact,
       stacked,
-      icon="card_membership",
-      title="Кошелёк Стола заказов",
-      subtitle="Оплата заказов и возвраты",
+      icon="savings",
+      title="Свободный паевой Стола заказов",
+      subtitle="Паевой взнос после выдачи и отказов",
       :balance="marketAmount",
       :symbol="symbol",
       :locked-balance="walletLocked(MARKET_WALLET)",
@@ -110,15 +131,23 @@ BaseDialog(v-model="dialogOpen", title="Кошелёк Стола заказов
       neutral,
       icon="account_balance_wallet",
       title="Главный паевой кошелёк",
-      subtitle="Отсюда средства идут на заказ",
+      subtitle="Отсюда паевой взнос резервируется под заказ",
       :balance="walletAmount(SHARE_WALLET)",
       :symbol="symbol",
       :loading="loading"
     )
     .mp-wallet__hint
-      | Не хватает средств на заказ — пополните паевой кошелёк взносом, и сумма
-      | перейдёт в членский при оформлении.
+      | Заказ оплачивается паевым взносом из главного паевого кошелька. После
+      | выдачи и отказов паевой взнос возвращается на свободный паевой Стола
+      | заказов — им оплачивается следующий заказ, либо его можно отозвать в
+      | Кошелёк.
   template(#footer)
+    BaseButton(
+      v-if="Number.parseFloat(marketAmount.replace(',', '.')) > 0",
+      variant="secondary",
+      :loading="recalling",
+      @click="recallAll"
+    ) Отозвать в Кошелёк
     DepositButton
 </template>
 

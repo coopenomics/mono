@@ -73,6 +73,15 @@ export const subscription = Selector('Subscription')({
         proposal_id: true,
         braname: true,
       },
+      '...on MarketplaceIssuanceSagaUpdatedEvent': {
+        saga_id: true,
+        order_id: true,
+        order_hash: true,
+        proposal_id: true,
+        braname: true,
+        stage: true,
+        decision_mode: true,
+      },
     },
   ],
 })

@@ -7,11 +7,11 @@
  * ходит desktop — корзина → оформление → акцепт поставщиком → экспресс-приёмка
  * на ПВЗ → бандл выдачи, — и ассертит нитку ledger2 по хэшу заказа:
  *
- *   • o.mkt.lock   — оформление резервирует тело заказа (Дт 80 / Кт 86);
+ *   • o.mkt.lock   — оформление резервирует паевой взнос под заказ (без проводки: паевой остаётся на 80);
  *   • o.mkt.fee    — там же блокируется членский взнос по ставке кооператива;
- *   • o.mkt.purch  — закрывающая подпись приёмки ставит имущество на баланс
+ *   • o.mkt.purch  — закрывающая подпись приёмки ставит имущество на баланс (Дт 10 / Кт 60)
  *                    по ЦЕНЕ ПРИБЫТИЯ (Дт 10 / Кт 86), а не по цене заказа;
- *   • o.mkt.consum — выдача списывает выданное по цене прибытия (Дт 86 / Кт 10);
+ *   • o.mkt.consum — выдача списывает выданное по цене прибытия (Дт 80 / Кт 10);
  *   • o.mkt.unlock — недовыдача разблокирует невыданный остаток заказчицы;
  *   • o.mkt.refund — неиспользованная часть взноса возвращается пропорционально;
  *   • o.brn.common — фактический взнос зачисляется общему кошельку участка,
@@ -30,6 +30,9 @@
  * Требует стенда после `reboot:extra` с сид-фазами docs-harness.
  */
 import { beforeAll, describe, expect, it } from 'vitest'
+import Blockchain from '../blockchain'
+import config from '../configs'
+import { issueOrder } from './marketplace/orderFlow'
 import {
   ACC,
   CHAIRMAN,
@@ -48,6 +51,8 @@ import {
   waitForOps,
   waitForOrderMirror,
 } from './marketplace/chainHelpers'
+
+const bc = new Blockchain(config.network, config.private_keys)
 
 const BRANAME = 'krg'
 const ORDER_QTY = 4 // заказано единиц
@@ -77,7 +82,7 @@ function postingsFor(rows: LedgerRow[], action: 'debit' | 'credit', accountId: n
   return rows.filter(r => r.action === action && r.accountId === accountId && Math.abs(amount(r.quantity) - value) < 0.005)
 }
 
-describe('Стол заказов — денежные места поставки и выдачи (contract, живая цепь)', () => {
+describe('стол заказов — денежные места поставки и выдачи (contract, живая цепь)', () => {
   beforeAll(async () => {
     chairmanToken = await loginAs(CHAIRMAN)
     sidorovToken = await loginAs(sidorov)
@@ -116,23 +121,15 @@ describe('Стол заказов — денежные места поставк
       i: { offer_id: offer.id, quantity: ORDER_QTY, delivery_braname: BRANAME },
     })
 
-    // Оформление = подпись Заявления о конвертации паевого взноса по позиции
-    // (ровно то, что делает desktop) + мутация оформления корзины.
+    // Оформление (паевая модель) = превью строк + мутация оформления корзины;
+    // документов нет — паевой взнос под заказ резервирует контракт.
     const sp: any = await gqlAs(ekaterinaToken, `query{
-      marketplaceCheckoutSignablePayloads{ offer_id package_id order_hash amount document{ full_title html hash meta binary } }
+      marketplaceCheckoutSignablePayloads{ offer_id package_id order_hash amount }
     }`)
     const payloads = sp.marketplaceCheckoutSignablePayloads as any[]
-    expect(payloads.length, 'по позиции корзины обязано прийти заявление к подписи').toBeGreaterThan(0)
+    expect(payloads.length, 'по позиции корзины обязано прийти превью оформления').toBeGreaterThan(0)
 
-    const lines: any[] = []
-    for (const p of payloads) {
-      lines.push({
-        offer_id: p.offer_id,
-        package_id: p.package_id,
-        order_hash: p.order_hash,
-        signed_statement: await signAs(ekaterina.wif, p.document, ekaterina.account, 1),
-      })
-    }
+    const lines = payloads.map(p => ({ offer_id: p.offer_id, package_id: p.package_id, order_hash: p.order_hash }))
 
     const co: any = await gqlAs(ekaterinaToken, `mutation($i:MarketplaceCheckoutCartInput){
       marketplaceCheckoutCart(input:$i){ fully_completed created_orders{ id status } failed_lines{ reason } }
@@ -174,13 +171,15 @@ describe('Стол заказов — денежные места поставк
     const lockRow = ops.find(r => r.operationCode === 'o.mkt.lock')!
     expect(lockRow.username, 'резерв ставится на заказчицу').toBe(ekaterina.account)
 
-    // Дт 80 / Кт 86 — паевой уходит в целевое финансирование.
+    // Паевой резерв бухпроводок не порождает (паевой взнос остаётся на 80);
+    // членский взнос — Дт 80 / Кт 86: паевой уходит в целевое финансирование.
     const rows = await historyOfProcess(chairmanToken, orderHash)
-    expect(postingsFor(rows, 'debit', ACC.SHARE, totalCost).length, 'резерв обязан лечь Дт 80').toBeGreaterThan(0)
-    expect(postingsFor(rows, 'credit', ACC.TARGET, totalCost).length, 'резерв обязан лечь Кт 86').toBeGreaterThan(0)
+    expect(postingsFor(rows, 'debit', ACC.SHARE, totalCost).length, 'резерв паевого взноса не должен порождать проводок').toBe(0)
+    expect(postingsFor(rows, 'debit', ACC.SHARE, membershipFee).length, 'членский взнос обязан лечь Дт 80').toBeGreaterThan(0)
+    expect(postingsFor(rows, 'credit', ACC.TARGET, membershipFee).length, 'членский взнос обязан лечь Кт 86').toBeGreaterThan(0)
   }, 300_000)
 
-  it('закрывающая подпись приёмки ставит имущество на баланс по цене прибытия (o.mkt.purch, Дт 10 / Кт 86)', async () => {
+  it('закрывающая подпись приёмки ставит имущество на баланс по цене прибытия (o.mkt.purch, Дт 10 / Кт 60)', async () => {
     await gqlAs(sidorovToken, 'mutation($i:MarketplaceAcceptOrdersBatchInput!){ marketplaceAcceptOrdersBatch(input:$i){ __typename } }', {
       i: { order_ids: [orderId] },
     })
@@ -230,8 +229,7 @@ describe('Стол заказов — денежные места поставк
     const cs: any = await gqlAs(chairkrgToken, `mutation($d:MarketplaceSignAplReceptionInput!){
       marketplaceSignAplReceptionAsChairman(data:$d){ apl_reception{ id status chairman_signchair_tx_hash } }
     }`, { d: { apl_reception_id: apl.id, signed_documents: chairSigned } })
-    expect(cs.marketplaceSignAplReceptionAsChairman.apl_reception.chairman_signchair_tx_hash,
-      'закрывающая подпись обязана уйти на цепь').toBeTruthy()
+    expect(cs.marketplaceSignAplReceptionAsChairman.apl_reception.chairman_signchair_tx_hash, 'закрывающая подпись обязана уйти на цепь').toBeTruthy()
 
     ops = await waitForOps(chairmanToken, orderHash, ['o.mkt.purch'])
 
@@ -243,77 +241,27 @@ describe('Стол заказов — денежные места поставк
 
     const rows = await historyOfProcess(chairmanToken, orderHash)
     expect(postingsFor(rows, 'debit', ACC.MATERIALS, arrivalCost).length, 'приёмка обязана лечь Дт 10').toBeGreaterThan(0)
-    expect(postingsFor(rows, 'credit', ACC.TARGET, arrivalCost).length, 'приёмка обязана лечь Кт 86').toBeGreaterThan(0)
+    expect(postingsFor(rows, 'credit', ACC.SUPPLIER, arrivalCost).length, 'приёмка обязана лечь Кт 60 — это закупка у поставщика').toBeGreaterThan(0)
   }, 300_000)
 
   it('выдача 3 из 4 списывает выданное по цене прибытия (o.mkt.consum) и разблокирует недовыдачу (o.mkt.unlock)', async () => {
-    // Маркировка позиций склада — штатный шаг перед выдачей; на позициях без
-    // штрих-кода выдача со стойки недоступна.
-    const inv: any = await gqlAs(chairkrgToken, `query($d:MarketplaceListInventoryInput){
-      marketplaceListInventory(data:$d){ id order_id barcode_value }
-    }`, { d: { order_id: orderId } }).catch(() => null)
-    for (const item of ((inv?.marketplaceListInventory ?? []) as any[]).filter(i => !i.barcode_value)) {
-      await gqlAs(chairkrgToken, `mutation($d:MarketplaceGenerateInventoryLabelInput!){
-        marketplaceGenerateInventoryLabel(data:$d){ __typename }
-      }`, { d: { inventory_id: item.id, format: 'EAN13' } }).catch(() => {})
-    }
-
-    // Единый путь выдачи: оператор подписывает АПП-выдачи (signiss1) и кладёт
-    // его в бандл; на цепь связка signiss1+signiss2 уходит только при подписи
-    // пайщика внутри финализации бандла.
-    const op: any = await gqlAs(chairkrgToken, `query($d:MarketplaceIssueActPayloadInput!){
-      marketplaceIssueActChairmanSignablePayload(data:$d){ full_title html hash meta binary }
-    }`, { d: { order_id: orderId, actual_quantity: ISSUED_QTY, actual_unit_price: unitPrice.toFixed(4) } })
-    const signiss1 = await signAs(chairkrg.wif, op.marketplaceIssueActChairmanSignablePayload, chairkrg.account, 1)
-
-    const prop: any = await gqlAs(chairkrgToken, `mutation($d:MarketplaceCreateStockProposalInput!){
-      marketplaceCreateStockProposal(data:$d){ id status member_account braname total_cost }
-    }`, {
-      d: {
-        braname: BRANAME,
-        member_account: ekaterina.account,
-        order_items: [{
-          order_id: orderId,
-          actual_quantity: ISSUED_QTY,
-          actual_unit_price: unitPrice.toFixed(4),
-          signiss1_act: signiss1,
-        }],
-      },
+    // Паевая модель: оператор фиксирует факт бандлом, пайщица подписывает
+    // заявление о возврате паевого взноса имуществом, совет решает (на стенде —
+    // голосованием членов совета), пайщица подписывает акт, оператор закрывает
+    // выдачу второй подписью — только тут идут движения по средствам.
+    const issued = await issueOrder({
+      blockchain: bc,
+      operatorToken: chairkrgToken,
+      operator: chairkrg,
+      memberToken: ekaterinaToken,
+      member: ekaterina,
+      orderId,
+      braname: BRANAME,
+      actualQuantity: ISSUED_QTY,
+      actualUnitPrice: unitPrice,
     })
-    const proposalId = prop.marketplaceCreateStockProposal.id
-
-    const pay: any = await gqlAs(ekaterinaToken, `query($d:MarketplaceResolveStockProposalInput!){
-      marketplaceStockProposalSignablePayloads(data:$d){
-        convert_amount member_amount
-        convert_document{ full_title html hash meta binary }
-        order_lines{
-          order_hash
-          signiss1_aggregate{
-            hash
-            rawDocument{ full_title html hash meta binary }
-            document{ version hash doc_hash meta_hash meta signatures{ id signer public_key signature signed_at signed_hash meta } }
-          }
-        }
-      }
-    }`, { d: { proposal_id: proposalId } })
-    const accept = pay.marketplaceStockProposalSignablePayloads
-
-    const orderLines: any[] = []
-    for (const l of accept.order_lines as any[]) {
-      orderLines.push({
-        order_hash: l.order_hash,
-        signed_signiss2_act: await signAs(
-          ekaterina.wif, l.signiss1_aggregate.rawDocument, ekaterina.account, 2, [l.signiss1_aggregate.document],
-        ),
-      })
-    }
-    // Дефицита членских средств быть не должно: факт МЕНЬШЕ заказа, доплаты нет.
-    expect(accept.convert_document, 'при недовыдаче Заявление о конвертации не требуется').toBeFalsy()
-
-    const fin: any = await gqlAs(ekaterinaToken, `mutation($d:MarketplaceFinalizeStockIssuanceInput!){
-      marketplaceFinalizeStockIssuance(data:$d){ proposal{ id status } order_ids }
-    }`, { d: { proposal_id: proposalId, order_lines: orderLines, signed_convert: null } })
-    expect(fin.marketplaceFinalizeStockIssuance.order_ids).toContain(orderId)
+    expect(issued.orderIds).toContain(orderId)
+    expect(issued.decisionId, 'заявление обязано попасть на повестку совета').toBeGreaterThan(0)
 
     ops = await waitForOps(chairmanToken, orderHash, ['o.mkt.consum', 'o.mkt.unlock'])
 
@@ -322,12 +270,11 @@ describe('Стол заказов — денежные места поставк
     expect(sumOf(ops, 'o.mkt.unlock'), 'недовыданный остаток резерва обязан вернуться заказчице').toBeCloseTo(totalCost - factCost, 2)
 
     const rows = await historyOfProcess(chairmanToken, orderHash)
-    expect(postingsFor(rows, 'debit', ACC.TARGET, factCost).length, 'выдача обязана лечь Дт 86').toBeGreaterThan(0)
+    expect(postingsFor(rows, 'debit', ACC.SHARE, factCost).length, 'выдача обязана лечь Дт 80 — возврат паевого взноса имуществом').toBeGreaterThan(0)
     expect(postingsFor(rows, 'credit', ACC.MATERIALS, factCost).length, 'выдача обязана лечь Кт 10').toBeGreaterThan(0)
 
     // Резерв не должен уйти дважды: сумма consum + unlock равна телу заказа.
-    expect(sumOf(ops, 'o.mkt.consum') + sumOf(ops, 'o.mkt.unlock'),
-      'выданное и разблокированное вместе обязаны закрыть весь резерв заказа').toBeCloseTo(totalCost, 2)
+    expect(sumOf(ops, 'o.mkt.consum') + sumOf(ops, 'o.mkt.unlock'), 'выданное и разблокированное вместе обязаны закрыть весь резерв заказа').toBeCloseTo(totalCost, 2)
   }, 300_000)
 
   it('членский взнос пересчитывается по факту: излишек возвращается (o.mkt.refund), фактический уходит участку (o.mkt.fee → o.brn.common)', async () => {
@@ -345,10 +292,16 @@ describe('Стол заказов — денежные места поставк
     const refunded = ops.find(r => r.operationCode === 'o.mkt.refund')!
     expect(refunded.username, 'возврат взноса адресован заказчице').toBe(ekaterina.account)
 
+    // Недовыданный резерв и излишек взноса возвращаются на свободный паевой
+    // «Стола заказов» — членских кошельков у пайщицы больше нет.
+    const rowsAfter = await historyOfProcess(chairmanToken, orderHash)
+    const toShare = rowsAfter.filter(r => r.action === 'walletop' && r.walletTo === 'w.mkt.share')
+    expect(toShare.length, 'возвраты пайщице обязаны прийти на свободный паевой «Стола заказов»').toBeGreaterThanOrEqual(2)
+    expect(rowsAfter.some(r => r.action === 'walletop' && (r.walletTo === 'w.mkt.member' || r.walletFrom === 'w.mkt.member')), 'членского кошелька «Стола заказов» в паевой модели нет').toBe(false)
+
     // Взнос не должен раздвоиться: зачисленное участку плюс возвращённое
     // пайщику ровно равны заблокированному при оформлении.
-    expect(sumOf(ops, 'o.brn.common') + sumOf(ops, 'o.mkt.refund'),
-      'зачисленный и возвращённый взнос вместе обязаны закрыть заблокированный при оформлении').toBeCloseTo(membershipFee, 2)
+    expect(sumOf(ops, 'o.brn.common') + sumOf(ops, 'o.mkt.refund'), 'зачисленный и возвращённый взнос вместе обязаны закрыть заблокированный при оформлении').toBeCloseTo(membershipFee, 2)
 
     // Движение кошельков взноса: пул «Стола заказов» → общий кошелёк участка.
     const rows = await historyOfProcess(chairmanToken, orderHash)
@@ -360,10 +313,8 @@ describe('Стол заказов — денежные места поставк
   it('l2.pnam.side.01: зачисление взноса участку идёт ниткой ПОСТАВКИ по хэшу заказа, а не ниткой экономики участка', async () => {
     const byOp = await processTypeByOperation(chairmanToken, orderHash)
 
-    expect(byOp['o.brn.common'],
-      'инлайн-зачисление экономики КУ обязано называть нитку именем контракта-источника (поставка), '
-      + 'иначе процесс заказа на столе бухгалтера подписывается «Членские взносы кооперативного участка»',
-    ).toBe('p.mkt.supply')
+    expect(byOp['o.brn.common'], 'инлайн-зачисление экономики КУ обязано называть нитку именем контракта-источника (поставка), '
+    + 'иначе процесс заказа на столе бухгалтера подписывается «Членские взносы кооперативного участка»').toBe('p.mkt.supply')
 
     // Вся нитка заказа — одно имя: приход, выдача, взнос и его возврат.
     for (const code of ['o.mkt.lock', 'o.mkt.fee', 'o.mkt.purch', 'o.mkt.consum', 'o.mkt.unlock', 'o.mkt.refund']) {
@@ -372,7 +323,8 @@ describe('Стол заказов — денежные места поставк
 
     // И реестр процессов отдаёт хэшу заказа ровно одно имя.
     const d: any = await gqlAs(chairmanToken, 'query($h:String!,$c:String!){ process(hash:$h, coopname:$c){ process_type } }', {
-      h: orderHash.toLowerCase(), c: 'voskhod',
+      h: orderHash.toLowerCase(),
+      c: 'voskhod',
     })
     expect(d.process.process_type).toBe('p.mkt.supply')
   }, 180_000)
@@ -380,7 +332,13 @@ describe('Стол заказов — денежные места поставк
   it('нитка заказа не содержит посторонних денежных кодов', async () => {
     const codes = new Set(opsCodes(await applyOpsOfProcess(chairmanToken, orderHash)))
     const expected = new Set([
-      'o.mkt.lock', 'o.mkt.fee', 'o.mkt.purch', 'o.mkt.consum', 'o.mkt.unlock', 'o.mkt.refund', 'o.brn.common',
+      'o.mkt.lock',
+      'o.mkt.fee',
+      'o.mkt.purch',
+      'o.mkt.consum',
+      'o.mkt.unlock',
+      'o.mkt.refund',
+      'o.brn.common',
     ])
     const unexpected = [...codes].filter(c => !expected.has(c))
     expect(unexpected, `в нитке заказа появились незапланированные проводки: ${unexpected.join(', ')}`).toEqual([])

@@ -30,12 +30,13 @@ const emit = defineEmits<{
 const statusKind = computed<'info' | 'success' | 'warning' | 'danger'>(() => {
   if (!props.claim) return 'info';
   switch (props.claim.status) {
-    case 'ACCEPTED_AT_VISIT':
+    case 'ACCEPTED_BY_COUNCIL':
       return 'success';
     case 'REJECTED_REMOTELY':
     case 'REJECTED_AT_VISIT':
       return 'danger';
     case 'APPROVED_FOR_VISIT':
+    case 'DECLINED_BY_COUNCIL':
       return 'warning';
     default:
       return 'info';
@@ -102,7 +103,7 @@ TakeoverDialog(
               v-for="entry in claim.decision_log" :key="entry.tx_hash"
               :title="returnClaimDecisionLabel(entry.decision)"
               :subtitle="`${entry.by_chairman_name || entry.by_chairman_account} · КУ ${entry.braname_name || entry.braname} · ${formatDateTime(entry.at)}`"
-              :color="entry.decision === 'accept_at_visit' ? 'positive' : entry.decision === 'reject_remote' || entry.decision === 'reject_at_visit' ? 'negative' : 'primary'"
+              :color="entry.decision === 'council_authorized' ? 'positive' : entry.decision === 'reject_remote' || entry.decision === 'reject_at_visit' || entry.decision === 'council_declined' ? 'negative' : 'primary'"
             )
               | {{ entry.comment }}
 
@@ -119,16 +120,33 @@ TakeoverDialog(
             )
               img(:src="p.url" :alt="`Фото осмотра ${i + 1}`")
 
+      q-card(flat bordered).q-mb-md(v-if="claim.status === 'PENDING_COUNCIL'")
+        q-card-section
+          .text-subtitle1 Имущество принято — ждём решение совета
+          .q-mt-sm
+            | Делать ничего не нужно. Совет рассмотрит заявление о внесении паевого
+            | взноса имуществом; мы сообщим, когда решение будет принято.
+            | При согласии стоимость имущества и членский взнос за него вернутся
+            | на Стол заказов.
+          .text-caption.q-mt-sm(v-if="claim.hand_back_available_at")
+            | Если совет не примет решение до {{ formatDateTime(claim.hand_back_available_at) }}, участок выдаст имущество обратно.
+
+      q-card(flat bordered).q-mb-md(v-if="claim.status === 'DECLINED_BY_COUNCIL'")
+        q-card-section
+          .text-subtitle1 Совет не принял имущество
+          .q-mt-sm
+            | Средства не восстанавливаются. Имущество ждёт вас на участке — заберите его при следующем визите.
+
       q-card(flat bordered).bg-positive.text-white(v-if="claim.ledger_snapshot")
         q-card-section
-          .text-subtitle1 Возврат принят
+          .text-subtitle1 Совет принял имущество как паевой взнос
           .q-mt-sm
-            | Восстановлено на программный кошелёк Стола Заказов:
+            | Восстановлено на Стол заказов (стоимость имущества и членский взнос):
             strong.q-ml-xs {{ formatAsset2Digits(claim.ledger_snapshot.amount) }} ₽
           .text-caption.q-mt-sm
-            | Композитная транзакция accretrn: {{ claim.ledger_snapshot.tx_hash }}
+            | Транзакция решения совета: {{ claim.ledger_snapshot.tx_hash }}
           .text-caption
-            | Вы можете направить средства на следующий заказ либо вывести в общий членский кошелёк отдельным действием.
+            | Средства доступны для следующего заказа; их можно отозвать в Кошелёк из окна кошелька Стола заказов.
 </template>
 
 <style scoped lang="scss">

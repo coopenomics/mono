@@ -16,7 +16,6 @@ import {
   type MarketplaceUnitOfMeasure,
 } from '../../domain/entities/marketplace-offer.types';
 import { numericQuantityTransformer } from './numeric-quantity.transformer';
-import type { ISignedDocument } from '@coopenomics/innercoop';
 
 /**
  * Story 4.1: TypeORM-сущность Order'а Стола заказов. Зеркало
@@ -180,28 +179,22 @@ export class MarketplaceOrderEntity {
   @Column({ type: 'timestamptz', nullable: true })
   public ready_announced_at!: Date | null;
 
+  // ── Паевая модель: выдача по заявлению, протоколу совета и акту (компонент 68) ──
+
+  /** Момент подписи заявления о возврате паевого взноса имуществом (`issuestmt`). */
   @Column({ type: 'timestamptz', nullable: true })
-  public chairman_signed_at!: Date | null;
+  public issue_statement_at!: Date | null;
 
-  @Column({ type: 'varchar', length: 13, nullable: true })
-  public chairman_account!: string | null;
+  /** Номер решения совета по выдаче (soviet.decisions). */
+  @Column({ type: 'varchar', length: 32, nullable: true })
+  public issue_decision_id!: string | null;
 
-  @Column({ type: 'varchar', length: 64, nullable: true })
-  public signiss1_tx_hash!: string | null;
-
-  @Column({ type: 'jsonb', nullable: true })
-  public issue_act_signiss1_document!: ISignedDocument | null;
-
-  // ── Story 6.3 / FR24 — финальная подпись заказчика (signiss2) ──────────
-
-  @Column({ type: 'timestamptz', nullable: true })
-  public orderer_signed_at!: Date | null;
-
+  /** Сторона кооператива, закрывшая выдачу второй подписью акта (`issueact2`). */
   @Column({ type: 'varchar', length: 13, nullable: true })
   public delivery_signer_account!: string | null;
 
   @Column({ type: 'varchar', length: 64, nullable: true })
-  public signiss2_tx_hash!: string | null;
+  public issue_closed_tx_hash!: string | null;
 
   // ── On-chain mirror (поля от syncer'а через `marketplace::orders` row) ──
 

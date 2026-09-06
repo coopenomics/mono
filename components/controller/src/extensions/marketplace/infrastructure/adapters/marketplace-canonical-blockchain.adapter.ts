@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { BranchContract, Ledger2Contract, MarketContract } from 'cooptypes';
+import { BranchContract, Ledger2Contract, MarketContract, SovietContract } from 'cooptypes';
 import httpStatus from 'http-status';
 import type { MarketplaceCanonicalBlockchainPort } from '../../domain/ports/marketplace-canonical-blockchain.port';
 import { HttpApiError } from '@coopenomics/extension-kit';
@@ -67,26 +67,6 @@ export class MarketplaceCanonicalBlockchainAdapter implements MarketplaceCanonic
     });
   }
 
-  async convert(data: MarketContract.Actions.Convert.IConvert): Promise<InnerTransactResult> {
-    const wif = await this.vaultDomainService.getWif(data.coopname);
-    if (!wif) {
-      throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ кооператива для submit convert');
-    }
-
-    this.blockchainService.initialize(data.coopname, wif);
-
-    return await this.blockchainService.transact({
-      account: MarketContract.contractName.production,
-      name: MarketContract.Actions.Convert.actionName,
-      authorization: [
-        {
-          actor: data.coopname,
-          permission: 'active',
-        },
-      ],
-      data,
-    });
-  }
 
   async markdown(data: MarketContract.Actions.Markdown.IMarkdown): Promise<InnerTransactResult> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
@@ -280,53 +260,7 @@ export class MarketplaceCanonicalBlockchainAdapter implements MarketplaceCanonic
     });
   }
 
-  async signIss1(data: MarketContract.Actions.SignIss1.ISignIss1): Promise<InnerTransactResult> {
-    const wif = await this.vaultDomainService.getWif(data.coopname);
-    if (!wif) {
-      throw new HttpApiError(
-        httpStatus.BAD_GATEWAY,
-        'Не найден приватный ключ кооператива для submit signiss1'
-      );
-    }
 
-    this.blockchainService.initialize(data.coopname, wif);
-
-    return await this.blockchainService.transact({
-      account: MarketContract.contractName.production,
-      name: MarketContract.Actions.SignIss1.actionName,
-      authorization: [
-        {
-          actor: data.coopname,
-          permission: 'active',
-        },
-      ],
-      data,
-    });
-  }
-
-  async signIss2(data: MarketContract.Actions.SignIss2.ISignIss2): Promise<InnerTransactResult> {
-    const wif = await this.vaultDomainService.getWif(data.coopname);
-    if (!wif) {
-      throw new HttpApiError(
-        httpStatus.BAD_GATEWAY,
-        'Не найден приватный ключ кооператива для submit signiss2'
-      );
-    }
-
-    this.blockchainService.initialize(data.coopname, wif);
-
-    return await this.blockchainService.transact({
-      account: MarketContract.contractName.production,
-      name: MarketContract.Actions.SignIss2.actionName,
-      authorization: [
-        {
-          actor: data.coopname,
-          permission: 'active',
-        },
-      ],
-      data,
-    });
-  }
 
   async submRetrn(data: MarketContract.Actions.SubmRetrn.ISubmRetrn): Promise<InnerTransactResult> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
@@ -493,6 +427,48 @@ export class MarketplaceCanonicalBlockchainAdapter implements MarketplaceCanonic
     });
   }
 
+  // ── Паевая модель: выдача и возврат по решению совета (компонент 68) ──
+
+  async readyIssue(data: MarketContract.Actions.ReadyIssue.IReadyIssue): Promise<InnerTransactResult> {
+    return this.submitAsCoop(data.coopname, MarketContract.contractName.production, MarketContract.Actions.ReadyIssue.actionName, data, 'readyissue');
+  }
+
+  async issueStmt(data: MarketContract.Actions.IssueStmt.IIssueStmt): Promise<InnerTransactResult> {
+    return this.submitAsCoop(data.coopname, MarketContract.contractName.production, MarketContract.Actions.IssueStmt.actionName, data, 'issuestmt');
+  }
+
+  async issueAct1(data: MarketContract.Actions.IssueAct1.IIssueAct1): Promise<InnerTransactResult> {
+    return this.submitAsCoop(data.coopname, MarketContract.contractName.production, MarketContract.Actions.IssueAct1.actionName, data, 'issueact1');
+  }
+
+  async issueAct2(data: MarketContract.Actions.IssueAct2.IIssueAct2): Promise<InnerTransactResult> {
+    return this.submitAsCoop(data.coopname, MarketContract.contractName.production, MarketContract.Actions.IssueAct2.actionName, data, 'issueact2');
+  }
+
+  async cancelIssue(data: MarketContract.Actions.CancelIssue.ICancelIssue): Promise<InnerTransactResult> {
+    return this.submitAsCoop(data.coopname, MarketContract.contractName.production, MarketContract.Actions.CancelIssue.actionName, data, 'cancelissue');
+  }
+
+  async recallShare(data: MarketContract.Actions.RecallShare.IRecallShare): Promise<InnerTransactResult> {
+    return this.submitAsCoop(data.coopname, MarketContract.contractName.production, MarketContract.Actions.RecallShare.actionName, data, 'recallshare');
+  }
+
+  async handBack(data: MarketContract.Actions.HandBack.IHandBack): Promise<InnerTransactResult> {
+    return this.submitAsCoop(data.coopname, MarketContract.contractName.production, MarketContract.Actions.HandBack.actionName, data, 'handback');
+  }
+
+  async findCouncilDecisionByHash(coopname: string, hash: string): Promise<SovietContract.Tables.Decisions.IDecision | null> {
+    // Решений у кооператива немного и живут они до исполнения — полный скан
+    // области допустим; при росте перевести на secondary-индекс byhash.
+    const rows: SovietContract.Tables.Decisions.IDecision[] = await this.blockchainService.getAllRows(
+      SovietContract.contractName.production,
+      coopname,
+      SovietContract.Tables.Decisions.tableName
+    );
+    const wanted = hash.toLowerCase();
+    return rows.find((r) => String(r.hash).toLowerCase() === wanted) ?? null;
+  }
+
   async setFee(data: MarketContract.Actions.SetFee.ISetFee): Promise<InnerTransactResult> {
     return this.submitAsCoop(
       data.coopname,
@@ -533,15 +509,6 @@ export class MarketplaceCanonicalBlockchainAdapter implements MarketplaceCanonic
     );
   }
 
-  async convertBranchFunds(data: BranchContract.Actions.Convert.IConvert): Promise<InnerTransactResult> {
-    return this.submitAsCoop(
-      data.coopname,
-      BranchContract.contractName.production,
-      BranchContract.Actions.Convert.actionName,
-      data,
-      'convert'
-    );
-  }
 
   async createAid(data: BranchContract.Actions.CreateAid.ICreateaid): Promise<InnerTransactResult> {
     return this.submitAsCoop(

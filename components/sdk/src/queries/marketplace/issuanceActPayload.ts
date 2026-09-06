@@ -1,13 +1,10 @@
 import { documentSelector } from '../../selectors/common/documentSelector'
 import { $, type GraphQLTypes, type InputType, type ModelTypes, Selector } from '../../zeus/index'
 
-export const name = 'marketplaceIssueActChairmanSignablePayload'
+export const name = 'marketplaceIssuanceActPayload'
 
 export const query = Selector('Query')({
-  [name]: [
-    { data: $('data', 'MarketplaceIssueActPayloadInput!') },
-    documentSelector,
-  ],
+  [name]: [{ data: $('data', 'MarketplaceIssuanceOrderInput!') }, documentSelector],
 })
 
 export interface IInput {
@@ -16,7 +13,7 @@ export interface IInput {
    */
   [key: string]: unknown
 
-  data: ModelTypes['MarketplaceIssueActPayloadInput']
+  data: ModelTypes['MarketplaceIssuanceOrderInput']
 }
 
 export type IOutput = InputType<GraphQLTypes['Query'], typeof query>

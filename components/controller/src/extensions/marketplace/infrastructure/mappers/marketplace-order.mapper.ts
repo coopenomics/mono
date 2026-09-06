@@ -40,13 +40,10 @@ export class MarketplaceOrderMapper {
       current_warehouse_braname: row.current_warehouse_braname,
       issuance_fact: row.issuance_fact,
       ready_announced_at: row.ready_announced_at,
-      chairman_signed_at: row.chairman_signed_at,
-      chairman_account: row.chairman_account,
-      signiss1_tx_hash: row.signiss1_tx_hash,
-      issue_act_signiss1_document: row.issue_act_signiss1_document,
-      orderer_signed_at: row.orderer_signed_at,
+      issue_statement_at: row.issue_statement_at,
+      issue_decision_id: row.issue_decision_id,
       delivery_signer_account: row.delivery_signer_account,
-      signiss2_tx_hash: row.signiss2_tx_hash,
+      issue_closed_tx_hash: row.issue_closed_tx_hash,
       on_chain_id: row.on_chain_id,
       on_chain_block_num:
         row.on_chain_block_num === null || row.on_chain_block_num === undefined

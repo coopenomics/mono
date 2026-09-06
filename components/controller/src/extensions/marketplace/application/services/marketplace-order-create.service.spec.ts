@@ -6,18 +6,9 @@ import type { MarketplaceOfferDomainRepository } from '../../domain/repositories
 import type { MarketplaceOrderDomainRepository } from '../../domain/repositories/marketplace-order.repository';
 import type { MarketplaceOfferCountersService } from './marketplace-offer-counters.service';
 import type { MarketplaceCanonicalBlockchainPort } from '../../domain/ports/marketplace-canonical-blockchain.port';
-import type { MarketContract } from 'cooptypes';
 
 // Подписанное заявление о конвертации (обязательный параметр createorder);
 // подпись верифицирует контракт, сервис передаёт документ как есть.
-const CONVERT_STATEMENT = {
-  version: '1.0.0',
-  hash: 'a'.repeat(64),
-  doc_hash: 'b'.repeat(64),
-  meta_hash: 'c'.repeat(64),
-  meta: '{}',
-  signatures: [],
-} as unknown as MarketContract.Actions.CreateOrder.ICreateOrder['convert_statement'];
 import {
   MarketplaceOfferStatuses,
   MarketplaceSaleForms,
@@ -110,7 +101,6 @@ describe('MarketplaceOrderCreateService', () => {
         offer_id: 'no-such-offer',
         quantity: 1,
         delivery_braname: 'ku.krasn.1',
-        convert_statement: CONVERT_STATEMENT,
       })
     ).rejects.toThrow(NotFoundException);
     expect(mocks.counters.onOrderBlocked).not.toHaveBeenCalled();
@@ -126,7 +116,6 @@ describe('MarketplaceOrderCreateService', () => {
         offer_id: 'offer-1',
         quantity: 1,
         delivery_braname: 'ku.krasn.1',
-        convert_statement: CONVERT_STATEMENT,
       })
     ).rejects.toThrow(ForbiddenException);
   });
@@ -140,7 +129,6 @@ describe('MarketplaceOrderCreateService', () => {
         offer_id: 'offer-1',
         quantity: 1,
         delivery_braname: 'ku.krasn.1',
-        convert_statement: CONVERT_STATEMENT,
       })
     ).rejects.toThrow(BadRequestException);
   });
@@ -154,7 +142,6 @@ describe('MarketplaceOrderCreateService', () => {
         offer_id: 'offer-1',
         quantity: 5,
         delivery_braname: 'ku.krasn.1',
-        convert_statement: CONVERT_STATEMENT,
       })
     ).rejects.toThrow(/Доступно только 2 ед./);
   });
@@ -167,7 +154,6 @@ describe('MarketplaceOrderCreateService', () => {
         offer_id: 'offer-1',
         quantity: 0,
         delivery_braname: 'ku.krasn.1',
-        convert_statement: CONVERT_STATEMENT,
       })
     ).rejects.toThrow(/Количество должно быть больше нуля/);
   });
@@ -182,7 +168,6 @@ describe('MarketplaceOrderCreateService', () => {
         offer_id: 'offer-1',
         quantity: 1,
         delivery_braname: '',
-        convert_statement: CONVERT_STATEMENT,
       })
     ).rejects.toThrow('Не указан ПВЗ получения.');
     expect(mocks.offerRepo.findById).not.toHaveBeenCalled();
@@ -212,7 +197,6 @@ describe('MarketplaceOrderCreateService', () => {
         offer_id: 'offer-1',
         quantity: 999,
         delivery_braname: 'ku.krasn.1',
-        convert_statement: CONVERT_STATEMENT,
       })
     ).rejects.toThrow('chain stop');
     expect(mocks.counters.onOrderBlocked).toHaveBeenCalledWith('offer-1', 999);
@@ -240,7 +224,6 @@ describe('MarketplaceOrderCreateService', () => {
           offer_id: 'offer-1',
           quantity: 1,
           delivery_braname: 'ku.krasn.1',
-          convert_statement: CONVERT_STATEMENT,
         })
       ).rejects.toThrow(/Некорректная цена за единицу|нулевой/);
 
@@ -267,7 +250,6 @@ describe('MarketplaceOrderCreateService', () => {
           offer_id: 'offer-1',
           quantity: 0.001,
           delivery_braname: 'ku.krasn.1',
-          convert_statement: CONVERT_STATEMENT,
         })
       ).rejects.toThrow('Итоговая сумма заказа получилась нулевой');
 
@@ -287,7 +269,6 @@ describe('MarketplaceOrderCreateService', () => {
           offer_id: 'offer-1',
           quantity: 1,
           delivery_braname: 'ku.krasn.1',
-          convert_statement: CONVERT_STATEMENT,
         })
       ).rejects.toThrow('Некорректная цена за единицу');
 
@@ -314,7 +295,6 @@ describe('MarketplaceOrderCreateService', () => {
         offer_id: 'offer-1',
         quantity: 3,
         delivery_braname: 'ku.krasn.1',
-        convert_statement: CONVERT_STATEMENT,
       })
     ).rejects.toThrow(/Недостаточно средств/);
 
@@ -353,7 +333,6 @@ describe('MarketplaceOrderCreateService', () => {
       offer_id: 'offer-1',
       quantity: 2,
       delivery_braname: 'ku.krasn.1',
-      convert_statement: CONVERT_STATEMENT,
     });
 
     expect(mocks.counters.onOrderBlocked).toHaveBeenCalledWith('offer-1', 2);
@@ -435,7 +414,6 @@ describe('MarketplaceOrderCreateService', () => {
       quantity: 10, // 10 упаковок, не 10 литров
       package_id: 'pkg-0.1l',
       delivery_braname: 'ku.krasn.1',
-      convert_statement: CONVERT_STATEMENT,
     });
 
     // Именно тот баг, который списал 100 ₽ вместо 1000 ₽ на реальном заказе:

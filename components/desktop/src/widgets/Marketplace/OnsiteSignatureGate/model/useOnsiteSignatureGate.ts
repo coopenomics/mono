@@ -16,8 +16,13 @@ import {
   finalizeStockIssuance,
   declineStockProposal,
   getStockProposalSignablePayloads,
+  listIssuanceSagas,
+  getIssuanceStatementPayload,
+  signIssuanceStatement,
+  getIssuanceActPayload,
+  signIssuanceAct,
   type MarketplaceStockProposalView,
-  type IStockConvertSigned,
+  type MarketplaceIssuanceSagaView,
   type IStockFinalizeOrderLine,
 } from 'src/pages/Marketplace/OperatorIssuance/api';
 
@@ -30,12 +35,17 @@ import {
  *    при ОЧНОЙ доставке (variant A). При доставке через экспедитора экран НЕ
  *    блокируем — поставщик подписывает в своём столе в удобный момент, гейт
  *    не должен мешать его работе.
- *  - ЗАКАЗЧИК: заказ готов к получению (председатель открыл выдачу первой
- *    подписью) и финальная подпись заказчика ещё не поставлена — он подтверждает
- *    получение второй (закрывающей) подписью.
+ *  - ЗАКАЗЧИК (паевая модель, компонент 68): оператор собрал бандл выдачи и
+ *    зафиксировал факт — пайщик одним нажатием подписывает заявления о
+ *    возврате паевого взноса имуществом по строкам; они уходят на повестку
+ *    совета. Робот совета решает за секунды у стойки — тогда в том же потоке
+ *    подписывается акт приёма-передачи; если решение ушло к людям, гейт
+ *    закрывается, пайщик спокойно ждёт (push придёт, когда совет решит), а
+ *    акт подписывает потом где угодно — гейт покажет его как отдельную задачу.
  *
- * Канон подписей (L1): передающий подписывает первым, принимающий — последним.
- * Приёмка: поставщик(1) → председатель(2). Выдача: председатель(1) → заказчик(2).
+ * Канон подписей: заявление и первую подпись акта ставит принимающий
+ * (заказчик), закрывающую — оператор участка, когда имущество выдано.
+ * Приёмка: поставщик(1) → председатель(2).
  *
  * Оператора/председателя гейт НЕ трогает: он держит много заказов на стойке и
  * находит действия в своих столах сам — здесь запрашиваются только «мои как
@@ -68,10 +78,13 @@ const IN_PERSON_VARIANTS = new Set(['A', 'IN_PERSON']);
 
 // Singleton-состояние (как у SelectBranchOverlay): один гейт на всё приложение.
 const supplierReceptions = ref<MarketplaceAplReceptionView[]>([]);
-// Единый бандл выдачи: оператор у стойки подписал акты (signiss1) по заказам
-// и/или докладке и отправил пайщику — пайщик решает прямо в гейте (подписать
-// получение / отменить). До его подписи на цепи ничего нет.
+// Единый бандл выдачи: оператор у стойки зафиксировал факт по заказам и/или
+// докладке и отправил пайщику — пайщик решает прямо в гейте (подписать
+// заявления / отменить). До его подписи на цепи ничего нет.
 const stockProposals = ref<MarketplaceStockProposalView[]>([]);
+// Саги выдачи, где ход за пайщиком: заявление (факт зафиксирован вне бандла)
+// или акт после решения совета (решение пришло, когда пайщик уже ушёл).
+const memberSagas = ref<MarketplaceIssuanceSagaView[]>([]);
 const loading = ref(false);
 /** Ключ задачи (group.key / task.key), которая сейчас подписывается. */
 const signingKey = ref<string | null>(null);
@@ -83,10 +96,12 @@ const supplierTasks = computed<ReceptionGroup<MarketplaceAplReceptionView>[]>(()
 );
 
 const proposalTasks = computed(() => stockProposals.value);
+/** Акты/заявления по сагам вне бандла — только те, где ждут подпись пайщика. */
+const sagaTasks = computed(() => memberSagas.value.filter((s) => s.awaits_member_signature));
 
 /** Гейт виден, пока есть хоть одна личная подпись/решение, которых ждут от пайщика. */
 const isVisible = computed(
-  () => supplierTasks.value.length > 0 || proposalTasks.value.length > 0,
+  () => supplierTasks.value.length > 0 || proposalTasks.value.length > 0 || sagaTasks.value.length > 0,
 );
 
 /**
@@ -99,24 +114,30 @@ async function refresh(source = 'ручной'): Promise<void> {
     // Не залогинен — гейта нет, очищаем возможный хвост.
     supplierReceptions.value = [];
     stockProposals.value = [];
+    memberSagas.value = [];
     return;
   }
   const wasVisible = isVisible.value;
   const desktop = useDesktopStore();
   loading.value = true;
   try {
-    const [receptions, proposals] = await Promise.all([
+    const isOrderer = desktop.hasGrant(ORDERER_WORKSPACE, ORDERER_GRANT);
+    const [receptions, proposals, sagas] = await Promise.all([
       desktop.hasGrant(SUPPLIER_WORKSPACE, SUPPLIER_GRANT)
         ? listAplReceptionsAsSupplier().catch(() => [] as MarketplaceAplReceptionView[])
         : Promise.resolve([] as MarketplaceAplReceptionView[]),
-      desktop.hasGrant(ORDERER_WORKSPACE, ORDERER_GRANT)
+      isOrderer
         ? listStockProposals({ statuses: [Zeus.MarketplaceStockProposalStatus.PROPOSED] }).catch(
             () => [] as MarketplaceStockProposalView[],
           )
         : Promise.resolve([] as MarketplaceStockProposalView[]),
+      isOrderer
+        ? listIssuanceSagas({ active_only: true }).catch(() => [] as MarketplaceIssuanceSagaView[])
+        : Promise.resolve([] as MarketplaceIssuanceSagaView[]),
     ]);
     supplierReceptions.value = receptions;
     stockProposals.value = proposals;
+    memberSagas.value = sagas;
   } finally {
     loading.value = false;
   }
@@ -125,7 +146,7 @@ async function refresh(source = 'ручной'): Promise<void> {
   // сокет; если перед этим был «POLL» — сработала страховочная дочитка.
   const appeared = !wasVisible && isVisible.value;
   console.info(
-    `%c[OnsiteGate] refresh ← ${source}: поставщик=${supplierTasks.value.length}, актов на подпись=${proposalTasks.value.length}, гейт виден=${isVisible.value}${appeared ? ' (ВСПЛЫЛ только что)' : ''}`,
+    `%c[OnsiteGate] refresh ← ${source}: поставщик=${supplierTasks.value.length}, бандлов=${proposalTasks.value.length}, актов/заявлений=${sagaTasks.value.length}, гейт виден=${isVisible.value}${appeared ? ' (ВСПЛЫЛ только что)' : ''}`,
     appeared ? 'color:#16a34a;font-weight:bold' : 'color:#64748b',
   );
 }
@@ -157,11 +178,12 @@ async function signSupplier(group: ReceptionGroup<MarketplaceAplReceptionView>):
 }
 
 /**
- * Пайщик ОДНОЙ подписью утверждает бандл как акт получения. Подписывает:
- * при дефиците членских — единое Заявление о конвертации (paевой → членский),
- * затем по каждой строке контрподписывает АПП-выдачи (signiss2) поверх подписи
- * оператора. Backend создаёт заказы из остатка и проводит выдачу — имущество
- * выдаётся сразу. Никакого отдельного «Принять»: принятие = подпись акта.
+ * Пайщик ОДНИМ нажатием подписывает заявления о возврате паевого взноса
+ * имуществом по всем строкам бандла. Backend создаёт заказы из остатка,
+ * подаёт заявления на повестку совета и зовёт робота напрямую. Если робот
+ * решил у стойки — сразу же подписываем акты по решённым заказам (то же
+ * нажатие, ключ уже в руках); если решение ушло к людям — ничего не ждём:
+ * пайщик спокойно уходит, push придёт, когда совет решит.
  */
 async function signProposal(task: MarketplaceStockProposalView): Promise<void> {
   const wifKey = await signingKeyOrAlert('Не удалось получить ключ для подписи');
@@ -173,41 +195,86 @@ async function signProposal(task: MarketplaceStockProposalView): Promise<void> {
   try {
     const payload = await getStockProposalSignablePayloads(task.id);
     const signer = new Classes.Document(wifKey);
-
-    // 1. Заявление о конвертации — только при дефиците членских средств (иначе
-    //    convert_document пустой и подписывать нечего, кроме самих актов).
-    let signed_convert: IStockConvertSigned | null = null;
-    if (payload.convert_document) {
-      signed_convert = (await signer.signDocument(
-        payload.convert_document,
-        global.username,
-        1,
-      )) as IStockConvertSigned;
-    }
-
-    // 2. Контрподпись получения (signiss2) поверх подписи оператора по каждой
-    //    строке — документ НЕ перегенерируется, берётся агрегат rawDocument +
-    //    document с подписью оператора (канон 2-подписи).
     const order_lines: IStockFinalizeOrderLine[] = await Promise.all(
-      payload.order_lines.map(async (line) => {
-        const rawDocument = line.signiss1_aggregate.rawDocument;
-        if (!rawDocument) {
-          throw new Error(`Не найден исходный документ АПП-выдачи для заказа ${line.order_hash}`);
-        }
-        return {
-          order_hash: line.order_hash,
-          signed_signiss2_act: (await signer.signDocument(
-            rawDocument,
-            global.username,
-            2,
-            [line.signiss1_aggregate.document],
-          )) as IStockFinalizeOrderLine['signed_signiss2_act'],
-        };
-      }),
+      payload.order_lines.map(async (line) => ({
+        order_hash: line.order_hash,
+        signed_statement: (await signer.signDocument(
+          line.statement,
+          global.username,
+          1,
+        )) as IStockFinalizeOrderLine['signed_statement'],
+      })),
     );
 
-    const { order_ids } = await finalizeStockIssuance(task.id, order_lines, signed_convert);
-    SuccessAlert(`Имущество получено по ${order_ids.length} позиц. Акт подписан.`);
+    const { sagas } = await finalizeStockIssuance(task.id, order_lines);
+    const authorized = sagas.filter((s) => s.awaits_member_signature);
+    const declined = sagas.filter((s) => s.stage === Zeus.MarketplaceIssuanceSagaStage.DECLINED);
+    let actsSigned = 0;
+    for (const saga of authorized) {
+      try {
+        await signActFor(saga.order_id, signer, global.username);
+        actsSigned += 1;
+      } catch (error) {
+        FailAlert(error, 'Заявление подано, но акт подписать не удалось — подпишите его из «Моих заказов»');
+      }
+    }
+    const pending = sagas.length - authorized.length - declined.length;
+    if (actsSigned === sagas.length) {
+      SuccessAlert(`Совет согласовал, акт подписан по ${actsSigned} позиц. Оператор закроет выдачу — забирайте.`);
+    } else if (pending > 0) {
+      SuccessAlert(
+        `Заявления поданы (${sagas.length} позиц.). Решение совета ещё рассматривается — делать ничего не нужно, мы сообщим, когда оно будет принято.`,
+      );
+    } else if (declined.length) {
+      FailAlert(new Error('Совет не согласовал выдачу — паевой взнос остался на Столе заказов.'));
+    }
+  } catch (error) {
+    FailAlert(error);
+  } finally {
+    signingKey.value = null;
+    await refresh();
+  }
+}
+
+/** Первая подпись акта приёма-передачи по решённой советом выдаче. */
+async function signActFor(order_id: string, signer: Classes.Document, username: string): Promise<void> {
+  const act = await getIssuanceActPayload(order_id);
+  const signed_act = (await signer.signDocument(act, username, 1)) as Parameters<typeof signIssuanceAct>[0]['signed_act'];
+  await signIssuanceAct({ order_id, signed_act });
+}
+
+/**
+ * Подпись по саге вне бандла: заявление (факт зафиксирован, заявление ещё не
+ * подписано) либо акт (совет решил, когда пайщик уже ушёл — подписывает где
+ * угодно, заберёт при следующем визите).
+ */
+async function signSaga(task: MarketplaceIssuanceSagaView): Promise<void> {
+  const wifKey = await signingKeyOrAlert('Не удалось получить ключ для подписи');
+  if (!wifKey) {
+    return;
+  }
+  const global = useGlobalStore();
+  signingKey.value = task.id;
+  try {
+    const signer = new Classes.Document(wifKey);
+    if (task.stage === Zeus.MarketplaceIssuanceSagaStage.FACT_FIXED) {
+      const statement = await getIssuanceStatementPayload(task.order_id);
+      const signed_statement = (await signer.signDocument(statement, global.username, 1)) as Parameters<
+        typeof signIssuanceStatement
+      >[0]['signed_statement'];
+      const saga = await signIssuanceStatement({ order_id: task.order_id, signed_statement });
+      if (saga.awaits_member_signature) {
+        await signActFor(task.order_id, signer, global.username);
+        SuccessAlert('Совет согласовал, акт подписан. Оператор закроет выдачу — забирайте.');
+      } else if (saga.stage === Zeus.MarketplaceIssuanceSagaStage.DECLINED) {
+        FailAlert(new Error('Совет не согласовал выдачу — паевой взнос остался на Столе заказов.'));
+      } else {
+        SuccessAlert('Заявление подано. Решение совета рассматривается — мы сообщим, когда оно будет принято.');
+      }
+    } else {
+      await signActFor(task.order_id, signer, global.username);
+      SuccessAlert('Акт подписан. Имущество выдаст оператор участка при вашем визите.');
+    }
   } catch (error) {
     FailAlert(error);
   } finally {
@@ -238,7 +305,7 @@ async function declineProposal(task: MarketplaceStockProposalView): Promise<void
   signingKey.value = task.id;
   try {
     await declineStockProposal(task.id);
-    SuccessAlert('Получение отменено. Оператор сформирует акт заново.');
+    SuccessAlert('Получение отменено. Оператор сформирует выдачу заново.');
   } catch (error) {
     FailAlert(error);
   } finally {
@@ -254,12 +321,14 @@ export function useOnsiteSignatureGate() {
     signingKey,
     supplierTasks,
     proposalTasks,
+    sagaTasks,
     refresh,
     signSupplier,
     cancelSupplier,
     signProposal,
+    signSaga,
     declineProposal,
   };
 }
 
-export type { MarketplaceStockProposalView };
+export type { MarketplaceStockProposalView, MarketplaceIssuanceSagaView };

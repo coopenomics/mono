@@ -22,7 +22,7 @@ import {
   MarketplaceAidDTO,
   MarketplaceBranchEconomyDTO,
   MarketplaceBranchWalletOperationDTO,
-  MarketplaceConvertBranchFundsInputDTO,
+  MarketplaceRecallShareInputDTO,
   MarketplaceCreateAidInputDTO,
   MarketplaceDeleteTrusteeWeightInputDTO,
   MarketplaceDistributeBranchFundsInputDTO,
@@ -242,17 +242,16 @@ export class MarketplaceEconomyResolver {
   }
 
   @Mutation(() => Boolean, {
-    name: 'marketplaceConvertBranchFunds',
+    name: 'marketplaceRecallShare',
     description:
-      'Перевести персональные членские средства в членский кошелёк «Стола заказов» — для заказа имущества как обычный пайщик.',
+      'Вывести свободный паевой «Стола заказов» (остатки от отмен, недовыдач и возвратов) в общий паевой Цифрового кошелька. Документа не требуется.',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('Economy', 'use:own')
-  async marketplaceConvertBranchFunds(
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard)
+  async marketplaceRecallShare(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
-    @Args('data') data: MarketplaceConvertBranchFundsInputDTO
+    @Args('data') data: MarketplaceRecallShareInputDTO
   ): Promise<boolean> {
-    await this.economyService.convertBranchFunds(platformSettings().coopname, member.username, data.amount);
+    await this.economyService.recallShare(platformSettings().coopname, member.username, data.amount);
     return true;
   }
 

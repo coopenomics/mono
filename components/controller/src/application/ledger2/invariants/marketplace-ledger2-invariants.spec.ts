@@ -6,12 +6,11 @@
  * массивах `Ledger2OperationDTO`.
  *
  * Операции marketplace:
- *   - o.mkt.lock:   TRANSFER w.wal.share → w.mkt.order, Дт 80 / Кт 86
- *   - o.mkt.conv:   TRANSFER w.wal.share → w.mkt.member, Дт 80 / Кт 86
- *   - o.mkt.lockm:  TRANSFER w.mkt.member → w.mkt.order, без проводки
- *   - o.mkt.unlock: TRANSFER w.mkt.order → w.mkt.member, без проводки
+ *   - o.mkt.lock:   TRANSFER w.wal.share → w.mkt.order, без проводки (паевой остаётся на 80)
+ *   - o.mkt.lockp:  TRANSFER w.mkt.share → w.mkt.order, без проводки
+ *   - o.mkt.unlock: TRANSFER w.mkt.order → w.mkt.share, без проводки
  *   - o.mkt.consum: BURN w.mkt.order, Дт 86 / Кт 10
- *   - o.mkt.return: ISSUE → w.mkt.member, Дт 10 / Кт 86
+ *   - o.mkt.return: ISSUE → w.mkt.share, Дт 10 / Кт 80
  *   - o.mkt.wroff:  NONE, Дт 86 / Кт 10
  */
 
@@ -97,8 +96,8 @@ function buildApplyTrio(params: {
  * Happy-path order flow (createorder → signsupp → signiss2):
  *   1. o.mkt.lock   (TRANSFER w.wal.share → w.mkt.order, Dr 80 / Cr 86) — резерв
  *   2. o.mkt.purch  (Dr 10 / Cr 86) — приёмка
- *   3. o.mkt.payout (Dr 86 / Cr 51, ISSUE w.mkt.payout) — задолженность поставщику
- *   4. o.mkt.consum (Dr 86 / Cr 10, BURN w.mkt.order) — выдача
+ *   3. o.mkt.payout (Dr 60 / Cr 51, ISSUE w.mkt.payout) — оплата поставщику
+ *   4. o.mkt.consum (Dr 80 / Cr 10, BURN w.mkt.order) — выдача
  */
 function happyPathOrderFlow(amount = 100): MarketplaceLedger2OperationRow[] {
   const orderHash = newProcessHash()
@@ -109,8 +108,8 @@ function happyPathOrderFlow(amount = 100): MarketplaceLedger2OperationRow[] {
       amount,
       walletFrom: 'w.wal.share',
       walletTo: 'w.mkt.order',
-      debitAccount: 80,
-      creditAccount: 86,
+      debitAccount: null,
+      creditAccount: null,
     }),
     ...buildApplyTrio({
       processHash: orderHash,
@@ -119,7 +118,7 @@ function happyPathOrderFlow(amount = 100): MarketplaceLedger2OperationRow[] {
       walletFrom: null,
       walletTo: null,
       debitAccount: 10,
-      creditAccount: 86,
+      creditAccount: 60,
     }),
     ...buildApplyTrio({
       processHash: orderHash,
@@ -127,7 +126,7 @@ function happyPathOrderFlow(amount = 100): MarketplaceLedger2OperationRow[] {
       amount,
       walletFrom: null,
       walletTo: 'w.mkt.payout',
-      debitAccount: 86,
+      debitAccount: 60,
       creditAccount: 51,
     }),
     ...buildApplyTrio({
@@ -136,7 +135,7 @@ function happyPathOrderFlow(amount = 100): MarketplaceLedger2OperationRow[] {
       amount,
       walletFrom: 'w.mkt.order',
       walletTo: null,
-      debitAccount: 86,
+      debitAccount: 80,
       creditAccount: 10,
     }),
   ]
@@ -151,15 +150,15 @@ function cancelOrderFlow(amount = 100): MarketplaceLedger2OperationRow[] {
       amount,
       walletFrom: 'w.wal.share',
       walletTo: 'w.mkt.order',
-      debitAccount: 80,
-      creditAccount: 86,
+      debitAccount: null,
+      creditAccount: null,
     }),
     ...buildApplyTrio({
       processHash: orderHash,
       operationCode: 'o.mkt.unlock',
       amount,
       walletFrom: 'w.mkt.order',
-      walletTo: 'w.mkt.member',
+      walletTo: 'w.mkt.share',
       debitAccount: null,
       creditAccount: null,
     }),
@@ -174,9 +173,9 @@ function returnFlow(amount = 100): MarketplaceLedger2OperationRow[] {
       operationCode: 'o.mkt.return',
       amount,
       walletFrom: null,
-      walletTo: 'w.mkt.member',
+      walletTo: 'w.mkt.share',
       debitAccount: 10,
-      creditAccount: 86,
+      creditAccount: 80,
     }),
   ]
 }
@@ -277,7 +276,7 @@ describe('I3 — баланс счёта 10 (Материалы)', () => {
       walletFrom: null,
       walletTo: null,
       debitAccount: 10,
-      creditAccount: 86,
+      creditAccount: 60,
     })
     const accounts: MarketplaceAccountRow[] = [{ accountId: 10, balance: '200.0000 RUB' }]
     const res = checkInvariantI3Account10Materials(purchOnly, accounts)
@@ -312,7 +311,7 @@ describe('I3 — баланс счёта 10 (Материалы)', () => {
       walletFrom: null,
       walletTo: null,
       debitAccount: 10,
-      creditAccount: 86,
+      creditAccount: 60,
     })
     const accounts: MarketplaceAccountRow[] = [{ accountId: 10, balance: '99.0000 RUB' }]
     const res = checkInvariantI3Account10Materials(purchOnly, accounts)
@@ -427,7 +426,7 @@ describe('I6 — нет orphan o.mkt.lock', () => {
       amount: 30,
       walletFrom: 'w.mkt.order',
       walletTo: null,
-      debitAccount: 86,
+      debitAccount: 80,
       creditAccount: 10,
     })
     const res = checkInvariantI6NoOrphanedReserves(rows)
@@ -452,7 +451,7 @@ describe('I6 — нет orphan o.mkt.lock', () => {
         operationCode: 'o.mkt.unlock',
         amount: 30,
         walletFrom: 'w.mkt.order',
-        walletTo: 'w.mkt.member',
+        walletTo: 'w.mkt.share',
         debitAccount: null,
         creditAccount: null,
       }),
@@ -462,7 +461,7 @@ describe('I6 — нет orphan o.mkt.lock', () => {
         amount: 30,
         walletFrom: 'w.mkt.order',
         walletTo: null,
-        debitAccount: 86,
+        debitAccount: 80,
         creditAccount: 10,
       }),
     ]
@@ -520,9 +519,8 @@ describe('I2 — marketplace-вклад в счёт 86 (sanity)', () => {
     const rows = happyPathOrderFlow(100)
     const res = checkInvariantI2Account86Delta(rows)
     expect(res.ok).toBe(true)
-    // Cr 86: conv(+100) + purch(+100) = +200
-    // Dr 86: payout(−100) + consum(−100) = −200
-    // delta = 200 − 200 = 0
+    // Паевая модель: тело заказа не заходит на 86 (lock без проводки, purch
+    // Дт 10 / Кт 60, payout Дт 60 / Кт 51, consum Дт 80 / Кт 10) — вклад в 86 нулевой.
     expect(res.expected).toBe('0.0000 RUB')
   })
 })

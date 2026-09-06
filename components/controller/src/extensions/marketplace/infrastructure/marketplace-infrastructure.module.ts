@@ -34,6 +34,7 @@ import { MarketplaceAplReceptionEntity } from './entities/marketplace-apl-recept
 import { MarketplaceOutgoingPaymentRequestEntity } from './entities/marketplace-outgoing-payment-request.entity';
 import { MarketplaceTtnDocumentEntity } from './entities/marketplace-ttn-document.entity';
 import { MarketplaceReturnClaimEntity } from './entities/marketplace-return-claim.entity';
+import { MarketplaceIssuanceSagaEntity } from './entities/marketplace-issuance-saga.entity';
 import { MarketplaceWriteoffProposalEntity } from './entities/marketplace-writeoff-proposal.entity';
 import { MarketplaceCartEntity } from './entities/marketplace-cart.entity';
 import { MarketplaceCartItemEntity } from './entities/marketplace-cart-item.entity';
@@ -70,6 +71,7 @@ import { MarketplaceAplReceptionRepositoryAdapter } from './adapters/marketplace
 import { MarketplaceOutgoingPaymentRequestRepositoryAdapter } from './adapters/marketplace-outgoing-payment-request-repository.adapter';
 import { MarketplaceTtnDocumentRepositoryAdapter } from './adapters/marketplace-ttn-document-repository.adapter';
 import { MarketplaceReturnClaimRepositoryAdapter } from './adapters/marketplace-return-claim-repository.adapter';
+import { MarketplaceIssuanceSagaRepositoryAdapter } from './adapters/marketplace-issuance-saga-repository.adapter';
 import { MarketplaceWriteoffProposalRepositoryAdapter } from './adapters/marketplace-writeoff-proposal-repository.adapter';
 import { MarketplaceCartRepositoryAdapter } from './adapters/marketplace-cart-repository.adapter';
 import { MarketplaceSupplierSettingsRepositoryAdapter } from './adapters/marketplace-supplier-settings-repository.adapter';
@@ -98,6 +100,7 @@ import { MarketplaceAplReceptionIndexInitializer } from './services/marketplace-
 import { MarketplaceOutgoingPaymentRequestMapper } from './mappers/marketplace-outgoing-payment-request.mapper';
 import { MarketplaceTtnDocumentMapper } from './mappers/marketplace-ttn-document.mapper';
 import { MarketplaceReturnClaimMapper } from './mappers/marketplace-return-claim.mapper';
+import { MarketplaceIssuanceSagaMapper } from './mappers/marketplace-issuance-saga.mapper';
 import { MarketplaceWriteoffProposalMapper } from './mappers/marketplace-writeoff-proposal.mapper';
 import { MarketplaceCartMapper } from './mappers/marketplace-cart.mapper';
 
@@ -132,6 +135,7 @@ import { MARKETPLACE_APL_RECEPTION_REPOSITORY } from '../domain/repositories/mar
 import { MARKETPLACE_OUTGOING_PAYMENT_REQUEST_REPOSITORY } from '../domain/repositories/marketplace-outgoing-payment-request.repository';
 import { MARKETPLACE_TTN_DOCUMENT_REPOSITORY } from '../domain/repositories/marketplace-ttn-document.repository';
 import { MARKETPLACE_RETURN_CLAIM_REPOSITORY } from '../domain/repositories/marketplace-return-claim.repository';
+import { MARKETPLACE_ISSUANCE_SAGA_REPOSITORY } from '../domain/repositories/marketplace-issuance-saga.repository';
 import { MARKETPLACE_WRITEOFF_PROPOSAL_REPOSITORY } from '../domain/repositories/marketplace-writeoff-proposal.repository';
 import { MARKETPLACE_CART_REPOSITORY } from '../domain/repositories/marketplace-cart.repository';
 import { MARKETPLACE_SUPPLIER_SETTINGS_REPOSITORY } from '../domain/repositories/marketplace-supplier-settings.repository';
@@ -189,6 +193,7 @@ import { MARKETPLACE_SUPPLIER_SETTINGS_REPOSITORY } from '../domain/repositories
             MarketplaceOutgoingPaymentRequestEntity,
             MarketplaceTtnDocumentEntity,
             MarketplaceReturnClaimEntity,
+            MarketplaceIssuanceSagaEntity,
             MarketplaceWriteoffProposalEntity,
             MarketplaceCartEntity,
             MarketplaceCartItemEntity,
@@ -231,6 +236,7 @@ import { MARKETPLACE_SUPPLIER_SETTINGS_REPOSITORY } from '../domain/repositories
         MarketplaceOutgoingPaymentRequestEntity,
         MarketplaceTtnDocumentEntity,
         MarketplaceReturnClaimEntity,
+        MarketplaceIssuanceSagaEntity,
         MarketplaceWriteoffProposalEntity,
         MarketplaceCartEntity,
         MarketplaceCartItemEntity,
@@ -387,6 +393,12 @@ import { MARKETPLACE_SUPPLIER_SETTINGS_REPOSITORY } from '../domain/repositories
       provide: MARKETPLACE_RETURN_CLAIM_REPOSITORY,
       useClass: MarketplaceReturnClaimRepositoryAdapter,
     },
+    // Компонент 68 — сага выдачи имущества (заявление → совет → акт → закрытие)
+    MarketplaceIssuanceSagaMapper,
+    {
+      provide: MARKETPLACE_ISSUANCE_SAGA_REPOSITORY,
+      useClass: MarketplaceIssuanceSagaRepositoryAdapter,
+    },
     // Эпик 8 — проекты решения совета о списании скоропорта
     MarketplaceWriteoffProposalMapper,
     {
@@ -441,6 +453,7 @@ import { MARKETPLACE_SUPPLIER_SETTINGS_REPOSITORY } from '../domain/repositories
     MARKETPLACE_TTN_DOCUMENT_REPOSITORY,
     // Эпик 7 — гарантийный возврат
     MARKETPLACE_RETURN_CLAIM_REPOSITORY,
+    MARKETPLACE_ISSUANCE_SAGA_REPOSITORY,
     // Эпик 8 — списание скоропорта
     MARKETPLACE_WRITEOFF_PROPOSAL_REPOSITORY,
     // Эпик 16 — корзина заказчика

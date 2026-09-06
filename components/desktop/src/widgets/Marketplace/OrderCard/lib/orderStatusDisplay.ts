@@ -34,6 +34,11 @@ const ORDER_STATUS_DISPLAY: Record<DomainOrderStatus, OrderStatusDisplay> = {
   SUPPLY_PREPARED: { label: 'Собрана к отгрузке', variant: 'info' },
   ACCEPTED_TO_COOP: { label: 'Принят кооперативом', variant: 'info' },
   READY_TO_RECEIVE: { label: 'Готов к выдаче', variant: 'warn' },
+  // Паевая модель (компонент 68): заявление подано, совет решает; согласовал —
+  // ждём акт пайщика; акт подписан — оператор закрывает выдачу.
+  ISSUE_PENDING: { label: 'На решении совета', variant: 'info' },
+  ISSUE_AUTHORIZED: { label: 'Совет согласовал — подпишите акт', variant: 'warn' },
+  ISSUE_ACT1: { label: 'Акт подписан — выдаётся', variant: 'pos' },
   RECEIVED: { label: 'Получен', variant: 'pos' },
   RETURNED: { label: 'Возвращён', variant: 'neutral' },
   CANCELLED_BY_ORDERER: { label: 'Отменён заказчиком', variant: 'neg' },

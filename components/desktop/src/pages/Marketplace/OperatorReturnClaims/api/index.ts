@@ -102,6 +102,17 @@ export async function acceptReturnAtVisit(
   return result;
 }
 
+export type IHandBackReturnInput = Mutations.Marketplace.HandBackReturn.IInput['data'];
+
+/** Оператор выдал имущество обратно: после отказа совета либо по истечении срока ожидания. */
+export async function handBackReturn(data: IHandBackReturnInput): Promise<MarketplaceReturnClaimResultView> {
+  const { [Mutations.Marketplace.HandBackReturn.name]: result } = await client.Mutation(
+    Mutations.Marketplace.HandBackReturn.mutation,
+    { variables: { data } },
+  );
+  return result as MarketplaceReturnClaimResultView;
+}
+
 export async function rejectReturnAtVisit(
   data: IRejectReturnAtVisitInput,
 ): Promise<MarketplaceReturnClaimResultView> {

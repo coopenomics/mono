@@ -172,9 +172,9 @@ export class MarketplacePersonalEconomyDTO {
   personal_balance!: string;
 }
 
-@InputType('MarketplaceConvertBranchFundsInput')
-export class MarketplaceConvertBranchFundsInputDTO {
-  @Field(() => Float, { description: 'Сумма перевода в членский кошелёк «Стола заказов».' })
+@InputType('MarketplaceRecallShareInput')
+export class MarketplaceRecallShareInputDTO {
+  @Field(() => Float, { description: 'Сумма вывода свободного паевого «Стола заказов» в общий паевой Цифрового кошелька.' })
   @IsNumber()
   @Min(0.0001)
   amount!: number;

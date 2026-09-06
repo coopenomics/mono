@@ -3,21 +3,19 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import { MarketplaceReturnClaimDomainEntity } from '../../domain/entities/marketplace-return-claim.entity';
 import {
-  MarketplaceReturnClaimStatuses,
+  MARKETPLACE_RETURN_CLAIM_ACTIVE_STATUSES,
   type MarketplaceReturnClaimStatus,
 } from '../../domain/entities/marketplace-return-claim.types';
 import type {
   MarketplaceReturnClaimApplyDecisionInput,
+  MarketplaceReturnClaimCouncilPatch,
   MarketplaceReturnClaimCreateInput,
   MarketplaceReturnClaimDomainRepository,
 } from '../../domain/repositories/marketplace-return-claim.repository';
 import { MarketplaceReturnClaimEntity } from '../entities/marketplace-return-claim.entity';
 import { MarketplaceReturnClaimMapper } from '../mappers/marketplace-return-claim.mapper';
 
-const ACTIVE_STATUSES: MarketplaceReturnClaimStatus[] = [
-  MarketplaceReturnClaimStatuses.PENDING_CHAIRMAN_REVIEW,
-  MarketplaceReturnClaimStatuses.APPROVED_FOR_VISIT,
-];
+const ACTIVE_STATUSES: MarketplaceReturnClaimStatus[] = [...MARKETPLACE_RETURN_CLAIM_ACTIVE_STATUSES];
 
 @Injectable()
 export class MarketplaceReturnClaimRepositoryAdapter
@@ -50,6 +48,10 @@ export class MarketplaceReturnClaimRepositoryAdapter
       fee_refund: input.fee_refund,
       photos: input.photos,
       statement: input.statement,
+      council_decision_id: null,
+      council_decision_mode: null,
+      council_protocol: null,
+      accepted_at: null,
       submretrn_tx_hash: input.submretrn_tx_hash,
       decision_log: [],
       on_site_inspection: null,
@@ -115,15 +117,60 @@ export class MarketplaceReturnClaimRepositoryAdapter
     input: MarketplaceReturnClaimApplyDecisionInput
   ): Promise<MarketplaceReturnClaimDomainEntity> {
     const row = await this.repo.findOneOrFail({ where: { id } });
-    const nextLog = [...(row.decision_log ?? []), input.decision_entry];
+    await this.repo.update({ id }, this.decisionPatch(row, input));
+    const fresh = await this.repo.findOneOrFail({ where: { id } });
+    return this.mapper.toDomain(fresh);
+  }
+
+  async transition(
+    id: string,
+    from: MarketplaceReturnClaimStatus,
+    input: MarketplaceReturnClaimApplyDecisionInput
+  ): Promise<MarketplaceReturnClaimDomainEntity | null> {
+    const row = await this.repo.findOne({ where: { id, status: from } });
+    if (!row) return null;
+    // Условие по статусу в WHERE — вторая сторона гонки получит affected=0.
+    const result = await this.repo.update({ id, status: from }, this.decisionPatch(row, input));
+    if (!result.affected) return null;
+    const fresh = await this.repo.findOneOrFail({ where: { id } });
+    return this.mapper.toDomain(fresh);
+  }
+
+  async patchCouncil(id: string, patch: MarketplaceReturnClaimCouncilPatch): Promise<MarketplaceReturnClaimDomainEntity> {
+    const update: Partial<MarketplaceReturnClaimEntity> = {};
+    if (patch.council_decision_id !== undefined) update.council_decision_id = patch.council_decision_id;
+    if (patch.council_decision_mode !== undefined) update.council_decision_mode = patch.council_decision_mode;
+    if (Object.keys(update).length > 0) await this.repo.update({ id }, update);
+    const fresh = await this.repo.findOneOrFail({ where: { id } });
+    return this.mapper.toDomain(fresh);
+  }
+
+  async listByStatus(
+    coopname: string,
+    status: MarketplaceReturnClaimStatus | MarketplaceReturnClaimStatus[],
+    limit = 50
+  ): Promise<MarketplaceReturnClaimDomainEntity[]> {
+    const rows = await this.repo.find({
+      where: { coopname, status: Array.isArray(status) ? In(status) : status },
+      order: { updated_at: 'ASC' },
+      take: limit,
+    });
+    return rows.map((r) => this.mapper.toDomain(r));
+  }
+
+  private decisionPatch(
+    row: MarketplaceReturnClaimEntity,
+    input: MarketplaceReturnClaimApplyDecisionInput
+  ): Partial<MarketplaceReturnClaimEntity> {
     const patch: Partial<MarketplaceReturnClaimEntity> = {
       status: input.status,
-      decision_log: nextLog,
+      decision_log: [...(row.decision_log ?? []), input.decision_entry],
     };
     if (input.on_site_inspection !== undefined) patch.on_site_inspection = input.on_site_inspection;
     if (input.ledger_snapshot !== undefined) patch.ledger_snapshot = input.ledger_snapshot;
-    await this.repo.update({ id }, patch);
-    const fresh = await this.repo.findOneOrFail({ where: { id } });
-    return this.mapper.toDomain(fresh);
+    if (input.statement !== undefined) patch.statement = input.statement;
+    if (input.accepted_at !== undefined) patch.accepted_at = input.accepted_at;
+    if (input.council_protocol !== undefined) patch.council_protocol = input.council_protocol;
+    return patch;
   }
 }

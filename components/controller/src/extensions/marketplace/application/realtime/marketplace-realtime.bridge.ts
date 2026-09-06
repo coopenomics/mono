@@ -14,6 +14,7 @@ import {
   MARKETPLACE_RETURN_CLAIM_SUBMITTED_EVENT,
   MARKETPLACE_STOCK_PROPOSAL_CREATED_EVENT,
   MARKETPLACE_STOCK_PROPOSAL_RESOLVED_EVENT,
+  MARKETPLACE_ISSUANCE_SAGA_UPDATED_EVENT,
   MARKETPLACE_SUPPLIER_PAYMENT_CONFIRMED_EVENT,
   MARKETPLACE_SUPPLIER_PAYMENT_DECLINED_EVENT,
   MARKETPLACE_WRITEOFF_AUTHORIZED_EVENT,
@@ -33,6 +34,7 @@ import {
   MarketplaceReturnClaimSubmittedEvent,
   MarketplaceStockProposalCreatedEvent,
   MarketplaceStockProposalResolvedEvent,
+  MarketplaceIssuanceSagaUpdatedEvent,
   MarketplaceSupplierPaymentConfirmedEvent,
   MarketplaceSupplierPaymentDeclinedEvent,
   MarketplaceWriteoffAuthorizedPayload,
@@ -54,6 +56,7 @@ import {
   MarketplaceReturnClaimStatusChangedEventDTO,
   MarketplaceStockProposalCreatedEventDTO,
   MarketplaceStockProposalResolvedEventDTO,
+  MarketplaceIssuanceSagaUpdatedEventDTO,
   MarketplaceWriteoffStatusChangedEventDTO,
 } from '../dto/marketplace-event.dto';
 import type { MarketplaceAplReceptionStatusEnum } from '../dto/marketplace-apl-reception.dto';
@@ -84,8 +87,11 @@ const RETURN_DECISION_TO_STATUS: Record<
 > = {
   approve_visit: MarketplaceReturnClaimStatusEnum.APPROVED_FOR_VISIT,
   reject_remote: MarketplaceReturnClaimStatusEnum.REJECTED_REMOTELY,
-  accept_at_visit: MarketplaceReturnClaimStatusEnum.ACCEPTED_AT_VISIT,
+  accept_at_visit: MarketplaceReturnClaimStatusEnum.PENDING_COUNCIL,
   reject_at_visit: MarketplaceReturnClaimStatusEnum.REJECTED_AT_VISIT,
+  council_authorized: MarketplaceReturnClaimStatusEnum.ACCEPTED_BY_COUNCIL,
+  council_declined: MarketplaceReturnClaimStatusEnum.DECLINED_BY_COUNCIL,
+  hand_back: MarketplaceReturnClaimStatusEnum.HANDED_BACK,
 };
 
 /**
@@ -208,6 +214,30 @@ export class MarketplaceRealtimeBridge {
     await this.pubSub.publish(memberTopic, payload);
   }
 
+  // Сага выдачи (паевая модель): пайщику — чтобы устройство подписало
+  // следующий документ или показало ожидание совета; стойке — чтобы закрыть
+  // выдачу второй подписью или увидеть отмену.
+  @OnEvent(MARKETPLACE_ISSUANCE_SAGA_UPDATED_EVENT)
+  async onIssuanceSagaUpdated(event: MarketplaceIssuanceSagaUpdatedEvent): Promise<void> {
+    const payload: MarketplaceIssuanceSagaUpdatedEventDTO = {
+      eventType: MarketplaceEventType.ISSUANCE_SAGA_UPDATED,
+      saga_id: event.saga_id,
+      order_id: event.order_id,
+      order_hash: event.order_hash,
+      proposal_id: event.proposal_id,
+      braname: event.braname,
+      stage: event.stage,
+      decision_mode: event.decision_mode,
+    };
+    const staffTopic = marketplaceStaffTopic(event.coopname);
+    const memberTopic = marketplaceMemberTopic(event.coopname, event.member_account);
+    this.logger.info(
+      `[mp-ws] PUBLISH ISSUANCE_SAGA_UPDATED → topics=${staffTopic},${memberTopic} order=${event.order_id} stage=${event.stage}`
+    );
+    await this.pubSub.publish(staffTopic, payload);
+    await this.pubSub.publish(memberTopic, payload);
+  }
+
   // Статус заказа сменился — адресный сигнал обеим сторонам заказа в их
   // персональные топики. Заказчик и поставщик ждут перехода с разных столов
   // (кабинет / приёмка), поэтому публикуем в оба; если это один и тот же
@@ -270,9 +300,10 @@ export class MarketplaceRealtimeBridge {
     );
   }
 
-  // Председатель принял решение по возврату (одобрил визит / отказал удалённо /
-  // принял или отказал на месте). Заказчик видит вердикт мгновенно — в том
-  // числе стоя у стойки при очном осмотре; стол оператора обновляет ленту.
+  // Решение по возврату (оператор удалённо / у стойки, совет, выдача обратно).
+  // Заказчик видит вердикт мгновенно — в том числе стоя у стойки; стол
+  // оператора обновляет ленту. Решение совета, пришедшее через дни, тем же
+  // сигналом обновит экран ожидания пайщика.
   @OnEvent(MARKETPLACE_RETURN_CLAIM_DECIDED_EVENT)
   async onReturnClaimDecided(event: MarketplaceReturnClaimDecidedEvent): Promise<void> {
     await this.publishReturnClaimStatus(

@@ -37,6 +37,7 @@ export enum MarketplaceEventType {
   WRITEOFF_STATUS_CHANGED = 'WRITEOFF_STATUS_CHANGED',
   STOCK_PROPOSAL_CREATED = 'STOCK_PROPOSAL_CREATED',
   STOCK_PROPOSAL_RESOLVED = 'STOCK_PROPOSAL_RESOLVED',
+  ISSUANCE_SAGA_UPDATED = 'ISSUANCE_SAGA_UPDATED',
 }
 
 @ObjectType('MarketplaceOrderReadyToReceiveEvent', {
@@ -220,6 +221,35 @@ export class MarketplaceStockProposalResolvedEventDTO {
   braname!: string;
 }
 
+@ObjectType('MarketplaceIssuanceSagaUpdatedEvent', {
+  description:
+    'Этап выдачи имущества изменился: подписано заявление, совет решил, подписан акт, выдача закрыта или отменена. Состояние дочитывается запросом саги.',
+})
+export class MarketplaceIssuanceSagaUpdatedEventDTO {
+  eventType!: MarketplaceEventType.ISSUANCE_SAGA_UPDATED;
+
+  @Field(() => String, { description: 'Идентификатор саги выдачи.' })
+  saga_id!: string;
+
+  @Field(() => String, { description: 'Идентификатор заказа.' })
+  order_id!: string;
+
+  @Field(() => String, { description: 'Контрольная сумма заказа.' })
+  order_hash!: string;
+
+  @Field(() => String, { nullable: true, description: 'Бандл выдачи у стойки, если выдача идёт в его составе.' })
+  proposal_id!: string | null;
+
+  @Field(() => String, { description: 'Кооперативный участок выдачи.' })
+  braname!: string;
+
+  @Field(() => String, { description: 'Этап саги выдачи.' })
+  stage!: string;
+
+  @Field(() => String, { description: 'Как принимается решение совета: роботом, людьми или ещё не известно.' })
+  decision_mode!: string;
+}
+
 /**
  * Объединение всех типов realtime-событий marketplace.
  *
@@ -246,6 +276,7 @@ export const MarketplaceEventUnion = createUnionType({
       MarketplaceWriteoffStatusChangedEventDTO,
       MarketplaceStockProposalCreatedEventDTO,
       MarketplaceStockProposalResolvedEventDTO,
+      MarketplaceIssuanceSagaUpdatedEventDTO,
     ] as const,
   resolveType(value: { eventType?: MarketplaceEventType }) {
     switch (value.eventType) {
@@ -273,6 +304,8 @@ export const MarketplaceEventUnion = createUnionType({
         return MarketplaceStockProposalCreatedEventDTO;
       case MarketplaceEventType.STOCK_PROPOSAL_RESOLVED:
         return MarketplaceStockProposalResolvedEventDTO;
+      case MarketplaceEventType.ISSUANCE_SAGA_UPDATED:
+        return MarketplaceIssuanceSagaUpdatedEventDTO;
       default:
         return null;
     }

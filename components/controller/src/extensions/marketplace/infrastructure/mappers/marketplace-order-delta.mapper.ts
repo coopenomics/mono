@@ -47,6 +47,9 @@ export class MarketplaceOrderDeltaMapper extends AbstractBlockchainDeltaMapper<
     supplyprep: MarketplaceOrderStatuses.SUPPLY_PREPARED,
     acceptcoop: MarketplaceOrderStatuses.ACCEPTED_TO_COOP,
     readyrecv: MarketplaceOrderStatuses.READY_TO_RECEIVE,
+    issuepend: MarketplaceOrderStatuses.ISSUE_PENDING,
+    issueauth: MarketplaceOrderStatuses.ISSUE_AUTHORIZED,
+    issueact1: MarketplaceOrderStatuses.ISSUE_ACT1,
     received: MarketplaceOrderStatuses.RECEIVED,
   };
 

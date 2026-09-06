@@ -6,7 +6,10 @@ import { SignedDigitalDocumentInputDTO, MetaDocumentInputDTO, GenerateMetaDocume
 
 /**
  * Подписываемая форма заявления пайщика о гарантийном возврате имущества
- * по ЦПП «Стол заказов» (registry_id=1104, `MarketplaceReturnStatement`).
+ * по ЦПП «Стол заказов» (registry_id=1116, `MarketplaceShareContributionStatement`):
+ * заявление о внесении паевого взноса имуществом. Пайщик подписывает при
+ * подаче, оператор — второй подписью при приёме имущества у стойки; с обеими
+ * подписями заявление уходит на повестку совета.
  *
  * Лежит рядом с 1102 «Акт приёма-передачи» и 1103 «ТТН» в Marketplace по
  * системе членских взносов. Не путать с registry_id=800 — тот документ
@@ -17,10 +20,10 @@ import { SignedDigitalDocumentInputDTO, MetaDocumentInputDTO, GenerateMetaDocume
  * хеширует детерминированный seed `return:<order_hash>:<orderer>:<actual_
  * quantity>` и кладёт результат в оба места.
  */
-type action = Cooperative.Registry.MarketplaceReturnStatement.Action;
+type action = Cooperative.Registry.MarketplaceShareContributionStatement.Action;
 
-@InputType('MarketplaceReturnStatementRequestPayloadInput')
-export class MarketplaceReturnStatementRequestPayloadInputDTO {
+@InputType('MarketplaceShareContributionStatementRequestPayloadInput')
+export class MarketplaceShareContributionStatementRequestPayloadInputDTO {
   @Field({ description: 'Якорный hash заявления на возврат (request_hash).' })
   @IsString()
   hash!: string;
@@ -60,8 +63,8 @@ export class MarketplaceReturnStatementRequestPayloadInputDTO {
   program_id!: number;
 }
 
-@InputType('BaseMarketplaceReturnStatementMetaDocumentInput')
-class BaseMarketplaceReturnStatementMetaDocumentInputDTO implements ExcludeCommonProps<action> {
+@InputType('BaseMarketplaceShareContributionStatementMetaDocumentInput')
+class BaseMarketplaceShareContributionStatementMetaDocumentInputDTO implements ExcludeCommonProps<action> {
   @Field({ description: 'Идентификатор заказа, по которому подаётся возврат.' })
   @IsString()
   order_id!: string;
@@ -123,10 +126,10 @@ class BaseMarketplaceReturnStatementMetaDocumentInputDTO implements ExcludeCommo
   skip_save!: boolean;
 }
 
-@InputType('MarketplaceReturnStatementGenerateDocumentInput')
-export class MarketplaceReturnStatementGenerateDocumentInputDTO
+@InputType('MarketplaceShareContributionStatementGenerateDocumentInput')
+export class MarketplaceShareContributionStatementGenerateDocumentInputDTO
   extends IntersectionType(
-    BaseMarketplaceReturnStatementMetaDocumentInputDTO,
+    BaseMarketplaceShareContributionStatementMetaDocumentInputDTO,
     OmitType(GenerateMetaDocumentInputDTO, ['registry_id'] as const)
   )
   implements action
@@ -138,17 +141,17 @@ export class MarketplaceReturnStatementGenerateDocumentInputDTO
   }
 }
 
-@InputType('MarketplaceReturnStatementSignedMetaDocumentInput')
-export class MarketplaceReturnStatementSignedMetaDocumentInputDTO
-  extends IntersectionType(BaseMarketplaceReturnStatementMetaDocumentInputDTO, MetaDocumentInputDTO)
+@InputType('MarketplaceShareContributionStatementSignedMetaDocumentInput')
+export class MarketplaceShareContributionStatementSignedMetaDocumentInputDTO
+  extends IntersectionType(BaseMarketplaceShareContributionStatementMetaDocumentInputDTO, MetaDocumentInputDTO)
   implements action {}
 
-@InputType('MarketplaceReturnStatementSignedInput')
-export class MarketplaceReturnStatementSignedInputDTO extends SignedDigitalDocumentInputDTO {
-  @Field(() => MarketplaceReturnStatementSignedMetaDocumentInputDTO, {
+@InputType('MarketplaceShareContributionStatementSignedInput')
+export class MarketplaceShareContributionStatementSignedInputDTO extends SignedDigitalDocumentInputDTO {
+  @Field(() => MarketplaceShareContributionStatementSignedMetaDocumentInputDTO, {
     description: 'Метаданные подписанного заявления о гарантийном возврате имущества.',
   })
   @ValidateNested()
-  @Type(() => MarketplaceReturnStatementSignedMetaDocumentInputDTO)
-  public readonly meta!: MarketplaceReturnStatementSignedMetaDocumentInputDTO;
+  @Type(() => MarketplaceShareContributionStatementSignedMetaDocumentInputDTO)
+  public readonly meta!: MarketplaceShareContributionStatementSignedMetaDocumentInputDTO;
 }

@@ -21,6 +21,7 @@ import { MarketplaceCategoryEntity } from './infrastructure/entities/marketplace
 import { MarketplaceConsolidatedRequestEntity } from './infrastructure/entities/marketplace-consolidated-request.entity';
 import { MarketplaceContainerTypeEntity, MarketplaceContainerEntity } from './infrastructure/entities/marketplace-container.entity';
 import { MarketplaceInventoryEntity } from './infrastructure/entities/marketplace-inventory.entity';
+import { MarketplaceIssuanceSagaEntity } from './infrastructure/entities/marketplace-issuance-saga.entity';
 import { MarketplaceModerationLogEntity } from './infrastructure/entities/marketplace-moderation-log.entity';
 import { MarketplaceOfferEntity } from './infrastructure/entities/marketplace-offer.entity';
 import { MarketplaceOrderEntity } from './infrastructure/entities/marketplace-order.entity';
@@ -56,6 +57,7 @@ export const marketplaceEntities = [
   MarketplaceContainerTypeEntity,
   MarketplaceContainerEntity,
   MarketplaceInventoryEntity,
+  MarketplaceIssuanceSagaEntity,
   MarketplaceModerationLogEntity,
   MarketplaceOfferEntity,
   MarketplaceOrderEntity,

@@ -24,14 +24,18 @@ export type MarketplaceReturnClaimView =
 // и в блоке гарантийного возврата на странице конкретного заказа (DRY:
 // один источник статус→текст/цвет вместо дублирования в двух местах).
 const RETURN_CLAIM_STATUS_LABELS: Record<Zeus.MarketplaceReturnClaimStatus, string> = {
-  // Заказчику не важно, кто именно решает (председатель КУ, не совет) —
-  // достаточно факта «на рассмотрении»; уточнение роли только путает
-  // (см. review 2026-07-27: «со вето путать не надо»).
+  // Заказчику не важно, кто именно решает на первом шаге — достаточно факта
+  // «на рассмотрении». Дальше (паевая модель) решает совет: имущество принято
+  // у стойки и ждёт решения; принято советом — паевой взнос восстановлен;
+  // совет отказал — имущество ждёт пайщика на участке; выдано обратно.
   [Zeus.MarketplaceReturnClaimStatus.PENDING_CHAIRMAN_REVIEW]: 'На рассмотрении',
-  [Zeus.MarketplaceReturnClaimStatus.APPROVED_FOR_VISIT]: 'Очный визит одобрен',
-  [Zeus.MarketplaceReturnClaimStatus.ACCEPTED_AT_VISIT]: 'Возврат принят',
+  [Zeus.MarketplaceReturnClaimStatus.APPROVED_FOR_VISIT]: 'Приглашение на участок',
   [Zeus.MarketplaceReturnClaimStatus.REJECTED_REMOTELY]: 'Отказано удалённо',
   [Zeus.MarketplaceReturnClaimStatus.REJECTED_AT_VISIT]: 'Отказано на месте',
+  [Zeus.MarketplaceReturnClaimStatus.PENDING_COUNCIL]: 'Имущество принято — ждём решение совета',
+  [Zeus.MarketplaceReturnClaimStatus.ACCEPTED_BY_COUNCIL]: 'Совет принял — паевой взнос восстановлен',
+  [Zeus.MarketplaceReturnClaimStatus.DECLINED_BY_COUNCIL]: 'Совет отказал — заберите имущество',
+  [Zeus.MarketplaceReturnClaimStatus.HANDED_BACK]: 'Имущество выдано обратно',
 };
 
 export function returnClaimStatusLabel(status: MarketplaceReturnClaimView['status']): string {
@@ -43,12 +47,17 @@ export function returnClaimStatusVariant(status: MarketplaceReturnClaimView['sta
     case Zeus.MarketplaceReturnClaimStatus.PENDING_CHAIRMAN_REVIEW:
       return 'info';
     case Zeus.MarketplaceReturnClaimStatus.APPROVED_FOR_VISIT:
+    case Zeus.MarketplaceReturnClaimStatus.DECLINED_BY_COUNCIL:
       return 'warn';
-    case Zeus.MarketplaceReturnClaimStatus.ACCEPTED_AT_VISIT:
+    case Zeus.MarketplaceReturnClaimStatus.PENDING_COUNCIL:
+      return 'info';
+    case Zeus.MarketplaceReturnClaimStatus.ACCEPTED_BY_COUNCIL:
       return 'pos';
     case Zeus.MarketplaceReturnClaimStatus.REJECTED_REMOTELY:
     case Zeus.MarketplaceReturnClaimStatus.REJECTED_AT_VISIT:
       return 'neg';
+    case Zeus.MarketplaceReturnClaimStatus.HANDED_BACK:
+      return 'neutral';
     default:
       return 'neutral';
   }
@@ -58,16 +67,26 @@ export function returnClaimStatusVariant(status: MarketplaceReturnClaimView['sta
 export const OPEN_RETURN_CLAIM_STATUSES = new Set<MarketplaceReturnClaimView['status']>([
   Zeus.MarketplaceReturnClaimStatus.PENDING_CHAIRMAN_REVIEW,
   Zeus.MarketplaceReturnClaimStatus.APPROVED_FOR_VISIT,
+  Zeus.MarketplaceReturnClaimStatus.PENDING_COUNCIL,
+  Zeus.MarketplaceReturnClaimStatus.DECLINED_BY_COUNCIL,
 ]);
 
 // Гуманизация решений из decision_log — используется и в деталях заявления,
 // и в хронологии заказа (DRY: один источник вместо двух локальных карт).
 const RETURN_CLAIM_DECISION_LABELS: Record<string, string> = {
-  approve_visit: 'Приглашение на очный осмотр',
+  approve_visit: 'Приглашение на участок',
   reject_remote: 'Отказано удалённо',
-  accept_at_visit: 'Возврат принят на очном осмотре',
-  reject_at_visit: 'Отказано на очном осмотре',
+  accept_at_visit: 'Имущество принято у стойки — заявление в совете',
+  reject_at_visit: 'Отказано на месте',
+  council_authorized: 'Совет принял имущество — паевой взнос восстановлен',
+  council_declined: 'Совет отказал',
+  hand_back: 'Имущество выдано обратно',
 };
+
+/** Решения, которые читаются как отказ (для цвета в хронологии). */
+export const RETURN_CLAIM_NEGATIVE_DECISIONS = new Set(['reject_remote', 'reject_at_visit', 'council_declined']);
+/** Решения, которые читаются как успех. */
+export const RETURN_CLAIM_POSITIVE_DECISIONS = new Set(['council_authorized']);
 
 export function returnClaimDecisionLabel(decision: string): string {
   return RETURN_CLAIM_DECISION_LABELS[decision] ?? decision;

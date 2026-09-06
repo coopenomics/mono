@@ -5,7 +5,6 @@ import type {
   MarketplaceOrderStatus,
 } from './marketplace-order.types';
 import type { MarketplaceUnitOfMeasure } from './marketplace-offer.types';
-import type { ISignedDocument } from '@coopenomics/innercoop';
 import type { IBlockchainSynchronizable } from '@coopenomics/extension-kit/sync';
 
 /**
@@ -73,15 +72,13 @@ export class MarketplaceOrderDomainEntity implements IBlockchainSynchronizable {
    * кабинете загорается «Готово к выдаче». null — ещё не объявлено.
    */
   public ready_announced_at: Date | null;
-  /** Story 6.1 / FR21: момент открытия выдачи председателем КУ (`signiss1`). */
-  public chairman_signed_at: Date | null;
-  public chairman_account: string | null;
-  public signiss1_tx_hash: string | null;
-  public issue_act_signiss1_document: ISignedDocument | null;
-  /** Story 6.3 / FR24: момент финальной подписи заказчика (`signiss2`). */
-  public orderer_signed_at: Date | null;
+  /** Паевая модель: момент подписи заявления о возврате паевого взноса имуществом (`issuestmt`). */
+  public issue_statement_at: Date | null;
+  /** Номер решения совета по выдаче. */
+  public issue_decision_id: string | null;
+  /** Сторона кооператива, закрывшая выдачу (`issueact2`). */
   public delivery_signer_account: string | null;
-  public signiss2_tx_hash: string | null;
+  public issue_closed_tx_hash: string | null;
   public on_chain_id: string | null;
   public on_chain_block_num: number | null;
   public on_chain_present: boolean;
@@ -123,13 +120,10 @@ export class MarketplaceOrderDomainEntity implements IBlockchainSynchronizable {
     this.current_warehouse_braname = props.current_warehouse_braname;
     this.issuance_fact = props.issuance_fact;
     this.ready_announced_at = props.ready_announced_at;
-    this.chairman_signed_at = props.chairman_signed_at;
-    this.chairman_account = props.chairman_account;
-    this.signiss1_tx_hash = props.signiss1_tx_hash;
-    this.issue_act_signiss1_document = props.issue_act_signiss1_document;
-    this.orderer_signed_at = props.orderer_signed_at;
+    this.issue_statement_at = props.issue_statement_at;
+    this.issue_decision_id = props.issue_decision_id;
     this.delivery_signer_account = props.delivery_signer_account;
-    this.signiss2_tx_hash = props.signiss2_tx_hash;
+    this.issue_closed_tx_hash = props.issue_closed_tx_hash;
     this.on_chain_id = props.on_chain_id;
     this.on_chain_block_num = props.on_chain_block_num;
     this.on_chain_present = props.on_chain_present;
@@ -247,15 +241,19 @@ export class MarketplaceOrderDomainEntity implements IBlockchainSynchronizable {
       this.status === 'ACCEPTED' ||
       this.status === 'SUPPLY_PREPARED' ||
       this.status === 'ACCEPTED_TO_COOP' ||
-      this.status === 'READY_TO_RECEIVE'
+      this.status === 'READY_TO_RECEIVE' ||
+      this.status === 'ISSUE_PENDING' ||
+      this.status === 'ISSUE_AUTHORIZED' ||
+      this.status === 'ISSUE_ACT1'
     );
   }
 
   /**
-   * Story 6.1: ожидает первой подписи председателя КУ (открытие выдачи).
+   * Паевая модель: имущество принято кооперативом, но на участок выдачи ещё не
+   * поступило (оператор не отметил `readyissue`).
    */
-  public get awaits_chairman_issue_open(): boolean {
-    return this.status === 'ACCEPTED_TO_COOP' && this.chairman_signed_at === null;
+  public get awaits_ready_issue(): boolean {
+    return this.status === 'ACCEPTED_TO_COOP';
   }
 
   /**
@@ -267,11 +265,13 @@ export class MarketplaceOrderDomainEntity implements IBlockchainSynchronizable {
     return this.ready_announced_at !== null;
   }
 
-  /**
-   * Story 6.3: ожидает финальной подписи заказчика (получение имущества).
-   */
-  public get awaits_orderer_issue_final(): boolean {
-    return this.status === 'READY_TO_RECEIVE' && this.orderer_signed_at === null;
+  /** Паевая модель: выдача начата заявлением и ещё не закрыта (сага в работе). */
+  public get is_issuance_in_progress(): boolean {
+    return (
+      this.status === 'ISSUE_PENDING' ||
+      this.status === 'ISSUE_AUTHORIZED' ||
+      this.status === 'ISSUE_ACT1'
+    );
   }
 
   /**

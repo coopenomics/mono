@@ -33,6 +33,9 @@ const GATE_EVENT_TYPES = new Set<MarketplaceRealtimeEvent['__typename']>([
   // гейте немедленно; разрешение (принял/отозвано) — закрывает его.
   'MarketplaceStockProposalCreatedEvent',
   'MarketplaceStockProposalResolvedEvent',
+  // Сага выдачи (паевая модель): совет решил — у пайщика появился акт на
+  // подпись; закрытие оператором — гейт закрывается.
+  'MarketplaceIssuanceSagaUpdatedEvent',
 ]);
 
 /** Схлопывает шквал open при флапающем бэкенде (рестарт/checkout ветки). */

@@ -57,8 +57,16 @@ export * as AplReceptionChairmanSignablePayloads from './aplReceptionChairmanSig
 export * as ListIssuancesByBraname from './listIssuancesByBraname'
 /** Эпик 6: заказы пайщика, готовые к получению на ПВЗ */
 /** Эпик 6: превью акта выдачи для подписи председателем КУ (первая подпись) */
-export * as IssueActChairmanSignablePayload from './issueActChairmanSignablePayload'
-/** Эпик 6: превью акта выдачи для финальной подписи заказчика */
+/** Компонент 68: заявление о возврате паевого взноса имуществом к подписи заказчиком */
+export * as IssuanceStatementPayload from './issuanceStatementPayload'
+/** Компонент 68: акт приёма-передачи к подписи заказчиком после решения совета */
+export * as IssuanceActPayload from './issuanceActPayload'
+/** Компонент 68: акт с подписью заказчика к закрывающей подписи оператора */
+export * as IssuanceClosePayload from './issuanceClosePayload'
+/** Компонент 68: ход выдачи по заказу (сага) */
+export * as IssuanceSaga from './issuanceSaga'
+/** Компонент 68: саги выдачи — стойка оператора / «мои» у заказчика */
+export * as ListIssuanceSagas from './listIssuanceSagas'
 /** Эпик 7: все заявления текущего пайщика на гарантийный возврат */
 export * as ListMyReturnClaims from './listMyReturnClaims'
 /** Эпик 7: заявления на возврат текущего КУ для operator-стола */
@@ -67,7 +75,7 @@ export * as ListReturnClaimsByBraname from './listReturnClaimsByBraname'
 export * as ReturnClaim from './returnClaim'
 /** Эпик 7: превью заявления на гарантийный возврат для подписи заказчиком */
 export * as ReturnClaimSignablePayload from './returnClaimSignablePayload'
-/** Эпик 7: заявление на возврат с подписью пайщика, для со-подписи председателя при приёме на очном осмотре */
+/** Эпик 7 + компонент 68: заявление 1116 с подписью пайщика, для со-подписи оператора при приёме имущества у стойки */
 export * as ReturnClaimChairmanSignablePayload from './returnClaimChairmanSignablePayload'
 /** Эпик 8: текущий открытый черновик проекта списания (если есть) */
 export * as OpenWriteoffDraft from './openWriteoffDraft'
@@ -109,7 +117,7 @@ export * as GetCart from './getCart'
 export * as ListStock from './listStock'
 /** Докладка: предложения со склада кооператива (стойка оператора / входящие пайщика) */
 export * as ListStockProposals from './listStockProposals'
-/** Докладка: акты приёма-передачи к подписи оператором при формировании докладки */
+/** Докладка: подготовка строк (order_hash, цена, упаковка) при формировании бандла */
 export * as StockIssuancePayloads from './stockIssuancePayloads'
 
 // requirement b6 «Экономика КУ»

@@ -16,6 +16,7 @@ import {
   MarketplaceReturnClaimDTO,
   MarketplaceReturnClaimResultDTO,
   MarketplaceReturnClaimSignablePayloadInputDTO,
+  MarketplaceHandBackReturnInputDTO,
 } from '../dto/marketplace-return-claim.dto';
 import { MarketplaceReturnClaimService } from '../services/marketplace-return-claim.service';
 import type { MarketplaceReturnClaimDomainEntity } from '../../domain/entities/marketplace-return-claim.entity';
@@ -157,7 +158,8 @@ export class MarketplaceReturnClaimResolver {
   @Mutation(() => MarketplaceReturnClaimResultDTO, {
     name: 'marketplaceAcceptReturnAtVisit',
     description:
-      'Председатель по результатам очного осмотра принимает гарантийный возврат — атомарно восстанавливает средства на программный кошелёк пайщика и возвращает имущество на склад участка.',
+      'Оператор принял имущество у стойки: вторая подпись на заявлении о внесении паевого взноса имуществом, заявление уходит на повестку совета. ' +
+      'Робот решений совета зовётся напрямую и ждётся у стойки; без решения заявление остаётся в спокойном ожидании — деньги двигаются только по решению совета.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
   @RequireMarketplaceAccess('ReturnClaim', 'decide:on-site')
@@ -181,7 +183,7 @@ export class MarketplaceReturnClaimResolver {
   @Mutation(() => MarketplaceReturnClaimResultDTO, {
     name: 'marketplaceRejectReturnAtVisit',
     description:
-      'Председатель по результатам очного осмотра отказывает в гарантийном возврате — заказчик забирает имущество обратно, движений по средствам нет.',
+      'Оператор по результатам осмотра не принимает имущество — заказчик забирает его сразу, движений по средствам нет.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
   @RequireMarketplaceAccess('ReturnClaim', 'decide:on-site')
@@ -277,10 +279,30 @@ export class MarketplaceReturnClaimResolver {
     return this.toClaimDTO(claim);
   }
 
+  @Mutation(() => MarketplaceReturnClaimResultDTO, {
+    name: 'marketplaceHandBackReturn',
+    description:
+      'Оператор выдал имущество обратно пайщику: после отказа совета либо по истечении срока ожидания решения (7 дней с приёма). Записи в цепи не остаётся, заказ остаётся выданным.',
+  })
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @RequireMarketplaceAccess('ReturnClaim', 'hand-back')
+  async marketplaceHandBackReturn(
+    @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
+    @Args('data') data: MarketplaceHandBackReturnInputDTO
+  ): Promise<MarketplaceReturnClaimResultDTO> {
+    const result = await this.service.handBackReturn({
+      coopname: platformSettings().coopname,
+      operator_account: member.username,
+      braname: data.braname,
+      claim_id: data.claim_id,
+    });
+    return this.toResultDTO(result);
+  }
+
   @Query(() => DocumentAggregateDTO, {
     name: 'marketplaceReturnClaimChairmanSignablePayload',
     description:
-      'Заявление пайщика на гарантийный возврат, подписанное пайщиком, для со-подписи председателя при принятии на очном осмотре. Содержит тело документа для ознакомления и подпись пайщика; председатель накладывает свою подпись поверх.',
+      'Заявление о внесении паевого взноса имуществом (1116), подписанное пайщиком, для со-подписи оператора при приёме имущества у стойки. Содержит тело документа для ознакомления и подпись пайщика; оператор накладывает свою подпись поверх, после чего заявление уходит на повестку совета.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
   @RequireMarketplaceAccess('ReturnClaim', 'decide:on-site')

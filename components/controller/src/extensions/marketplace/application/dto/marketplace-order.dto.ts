@@ -291,7 +291,7 @@ export class MarketplaceOrderDTO {
 
   @Field(() => MarketplaceOrderIssuanceFactSnapshotDTO, {
     nullable: true,
-    description: 'Фактическая выдача после финальной подписи заказчика (заполняется на ПВЗ).',
+    description: 'Фактическая выдача: факт фиксируется оператором у стойки и закрепляется заявлением заказчика.',
   })
   public readonly issuance_fact!: MarketplaceOrderIssuanceFactSnapshotDTO | null;
 
@@ -305,40 +305,24 @@ export class MarketplaceOrderDTO {
 
   @Field(() => Date, {
     nullable: true,
-    description: 'Когда председатель кооперативного участка открыл выдачу первой подписью.',
+    description: 'Когда заказчик подписал заявление о возврате паевого взноса имуществом (выдача начата).',
   })
-  public readonly chairman_signed_at!: Date | null;
-
+  public readonly issue_statement_at!: Date | null;
   @Field(() => String, {
     nullable: true,
-    description: 'Учётная запись председателя, открывшего выдачу первой подписью.',
+    description: 'Номер решения совета о возврате паевого взноса имуществом по этому заказу.',
   })
-  public readonly chairman_account!: string | null;
-
+  public readonly issue_decision_id!: string | null;
   @Field(() => String, {
     nullable: true,
-    description: 'Хэш транзакции открытия выдачи в блокчейне.',
-  })
-  public readonly signiss1_tx_hash!: string | null;
-
-  @Field(() => Date, {
-    nullable: true,
-    description: 'Когда заказчик поставил финальную подпись на акте выдачи.',
-  })
-  public readonly orderer_signed_at!: Date | null;
-
-  @Field(() => String, {
-    nullable: true,
-    description: 'Учётная запись стороны кооператива, поставившей подпись вместе с заказчиком.',
+    description: 'Учётная запись стороны кооператива, закрывшей выдачу второй подписью акта.',
   })
   public readonly delivery_signer_account!: string | null;
-
   @Field(() => String, {
     nullable: true,
-    description: 'Хэш транзакции финальной подписи выдачи в блокчейне.',
+    description: 'Хэш закрывающей транзакции выдачи в блокчейне.',
   })
-  public readonly signiss2_tx_hash!: string | null;
-
+  public readonly issue_closed_tx_hash!: string | null;
   @Field(() => Date, { description: 'Когда запись о заказе создана в системе.' })
   public readonly created_at!: Date;
 
@@ -494,12 +478,10 @@ export function toMarketplaceOrderDTO(
         })
       : null,
     is_ready_announced: o.is_ready_announced,
-    chairman_signed_at: o.chairman_signed_at,
-    chairman_account: o.chairman_account,
-    signiss1_tx_hash: o.signiss1_tx_hash,
-    orderer_signed_at: o.orderer_signed_at,
+    issue_statement_at: o.issue_statement_at,
+    issue_decision_id: o.issue_decision_id,
     delivery_signer_account: o.delivery_signer_account,
-    signiss2_tx_hash: o.signiss2_tx_hash,
+    issue_closed_tx_hash: o.issue_closed_tx_hash,
     created_at: o.created_at,
     updated_at: o.updated_at,
   });

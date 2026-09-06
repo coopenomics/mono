@@ -1,3 +1,8 @@
+import type {
+  MarketplaceReturnClaimDecision,
+  MarketplaceReturnClaimDecisionStage,
+} from '../../domain/entities/marketplace-return-claim.types';
+
 /**
  * Per-contract event-bus каналы marketplace для push-уведомлений (Эпик 5).
  * Эмитятся ПОСЛЕ commit'а в PG (INV-12) — listener доставляет уведомление
@@ -313,7 +318,7 @@ export const MARKETPLACE_RETURN_CLAIM_DECIDED_EVENT =
 
 /**
  * Story 7.4 (Эпик 7): заявление достигло финального статуса
- * (ACCEPTED_AT_VISIT / REJECTED_REMOTELY / REJECTED_AT_VISIT) — отдельное
+ * (ACCEPTED_BY_COUNCIL / HANDED_BACK / REJECTED_REMOTELY / REJECTED_AT_VISIT) — отдельное
  * событие для финализации orderer-стола и обновления карточки Order'а.
  */
 export const MARKETPLACE_RETURN_CLAIM_FINALIZED_EVENT =
@@ -354,8 +359,8 @@ export interface MarketplaceReturnClaimDecidedEvent {
   coopname: string;
   claim_id: string;
   orderer_account: string;
-  stage: 'remote' | 'on_site';
-  decision: 'approve_visit' | 'reject_remote' | 'accept_at_visit' | 'reject_at_visit';
+  stage: MarketplaceReturnClaimDecisionStage;
+  decision: MarketplaceReturnClaimDecision;
   comment: string;
   braname: string;
 }
@@ -366,8 +371,8 @@ export interface MarketplaceReturnClaimFinalizedEvent {
   orderer_account: string;
   /** Финальный статус заявления (значение из `MarketplaceReturnClaimStatuses`). */
   final_status: string;
-  /** Действие, приведшее к финальному состоянию (approve_visit здесь не появляется). */
-  decision: 'approve_visit' | 'reject_remote' | 'accept_at_visit' | 'reject_at_visit';
+  /** Действие, приведшее к финальному состоянию (approve_visit / accept_at_visit здесь не появляются). */
+  decision: MarketplaceReturnClaimDecision;
   comment: string;
   ledger_snapshot: {
     amount: string;
@@ -518,4 +523,61 @@ export interface MarketplaceAidCouncilDecidedEvent {
   /** true — совет одобрил выплату; false — отказал либо повестка просрочена. */
   approved: boolean;
   reason?: string;
+}
+
+// ── Паевая модель: сага выдачи и возврат по решению совета (компонент 68) ──
+
+/**
+ * Этап саги выдачи изменился: оператор зафиксировал факт, заказчик подписал
+ * заявление, совет решил (робот или люди), подписан акт, выдача закрыта или
+ * отменена. Один сигнал на все переходы: клиент дочитывает сагу запросом.
+ * Адресаты — заказчик (персональный канал) и персонал участка выдачи
+ * (служебный канал стойки).
+ */
+export const MARKETPLACE_ISSUANCE_SAGA_UPDATED_EVENT = 'marketplace.issuance.saga.updated';
+
+export interface MarketplaceIssuanceSagaUpdatedEvent {
+  coopname: string;
+  saga_id: string;
+  order_id: string;
+  order_hash: string;
+  proposal_id: string | null;
+  member_account: string;
+  braname: string;
+  /** Этап саги (MarketplaceIssuanceSagaStage). */
+  stage: string;
+  /** Как принято решение: ROBOT / MANUAL / UNKNOWN. */
+  decision_mode: string;
+}
+
+/**
+ * Совет принял решение по выдаче в ручном режиме (робота нет или кворум
+ * набирали люди), а пайщика у стойки уже нет: push «решение принято,
+ * подпишите акт». В режиме робота сигнала достаточно — пайщик у стойки.
+ */
+export const MARKETPLACE_ISSUANCE_DECIDED_OFFLINE_EVENT = 'marketplace.issuance.member.decidedOffline';
+
+export interface MarketplaceIssuanceDecidedOfflineEvent {
+  coopname: string;
+  order_id: string;
+  order_hash: string;
+  orderer_account: string;
+  braname: string;
+  /** true — совет согласился, false — отказал. */
+  authorized: boolean;
+}
+
+/**
+ * Совет решил по гарантийному возврату (принял имущество как паевой взнос
+ * или отказал): заявка меняет статус, заказчику и стойке — сигнал и push.
+ */
+export const MARKETPLACE_RETURN_COUNCIL_DECIDED_EVENT = 'marketplace.return.council.decided';
+
+export interface MarketplaceReturnCouncilDecidedEvent {
+  coopname: string;
+  claim_id: string;
+  order_id: string;
+  orderer_account: string;
+  delivery_braname: string;
+  authorized: boolean;
 }

@@ -13,6 +13,7 @@ import {
   DESKTOP_GRANTS_REGISTRY_PORT,
   DOCUMENT_PORT,
   EXPENSE_CHASSIS_PORT,
+  SOVIET_ROBOT_PORT,
   EXTENSION_CONFIG_PORT,
   FREE_DECISION_PORT,
   LEDGER2_HISTORY_PORT,
@@ -222,6 +223,14 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
       useExisting: ExpensesInnercoopExpenseChassisAdapter,
     },
     {
+      // Робот решений совета живёт в ветке feat/soviet-robot: до её слияния
+      // владельца порта нет, и мост честно отдаёт `null` (INV-013) — Стол
+      // заказов переходит в ручной режим ожидания решения. После слияния
+      // здесь встаёт `useExisting: SovietRobotInnercoopAdapter`.
+      provide: SOVIET_ROBOT_PORT,
+      useValue: null,
+    },
+    {
       provide: LEDGER2_HISTORY_PORT,
       useExisting: Ledger2InnercoopHistoryAdapter,
     },
@@ -411,6 +420,7 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
   ],
   exports: [
     PROJECT_COMMUNICATION_ARTIFACTS_PORT,
+    SOVIET_ROBOT_PORT,
     MATRIX_ROOM_MESSAGING_PORT,
     CHATCOOP_CALENDAR_PORT,
     PROJECT_CAPITAL_CLEARANCE_PORT,

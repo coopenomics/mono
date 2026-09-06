@@ -1,10 +1,15 @@
 feature: marketplace.issuance
-title: Выдача заказа на пункте выдачи — открытие по коду, подписи оператора и заказчика
+title: Выдача заказа на пункте выдачи — заявление пайщика, решение совета, акт и закрывающая подпись оператора
 
-# Слайс от готового к получению заказа до подтверждения получения заказчиком.
-# Порядок подписей по решению L1 проекта: при выдаче первым подписывает
-# председатель участка (оператор), финальную подпись ставит заказчик — то есть
-# зеркально приёмке, где финальная подпись у председателя.
+# Слайс от готового к получению заказа до закрытия выдачи (паевая модель,
+# компонент 68, 2026-09-06). Оператор фиксирует факт у стойки без подписи;
+# пайщик одним нажатием подписывает Заявление о возврате паевого взноса
+# имуществом (1113), контракт ставит его на повестку совета; совет решает —
+# робот по прямому вызову (секунды у стойки) либо люди (сколь угодно долго,
+# пайщик в спокойном ожидании); по протоколу (1114) формируется Акт (1115):
+# первую подпись ставит пайщик, закрывающую — оператор, и только тут идут
+# движения по средствам: выдача Дт 80 / Кт 10, недовыдача и излишек взноса
+# возвращаются на свободный паевой «Стола заказов» (w.mkt.share).
 
 #
 # Правка 2026-08-09 (FC1-4): сервисы слайса получают журнал через `ILoggerPort`
@@ -22,12 +27,22 @@ title: Выдача заказа на пункте выдачи — открыт
 
 sources:
   contract:
-    - components/contracts/cpp/marketplace/src/p.mkt.supply/signiss2.cpp
+    - components/contracts/cpp/marketplace/src/p.mkt.supply/readyissue.cpp
+    - components/contracts/cpp/marketplace/src/p.mkt.supply/issuestmt.cpp
+    - components/contracts/cpp/marketplace/src/p.mkt.supply/onmktisauth.cpp
+    - components/contracts/cpp/marketplace/src/p.mkt.supply/onmktisdecl.cpp
+    - components/contracts/cpp/marketplace/src/p.mkt.supply/issueact1.cpp
+    - components/contracts/cpp/marketplace/src/p.mkt.supply/issueact2.cpp
+    - components/contracts/cpp/marketplace/src/p.mkt.supply/cancelissue.cpp
     - components/contracts/cpp/branch/src/accrue.cpp
   backend:
     - components/controller/src/extensions/marketplace/application/services/marketplace-issuance*.ts
+    - components/controller/src/extensions/marketplace/application/services/marketplace-stock-proposal.service.ts
+    - components/controller/src/extensions/marketplace/domain/entities/marketplace-issuance-saga*.ts
+    - components/innercoop/src/cross-plugin-ports/soviet-robot.port.ts
   ui:
     - components/desktop/src/pages/Marketplace/OperatorIssuance/**
+    - components/desktop/src/widgets/Marketplace/OnsiteSignatureGate/**
     - components/desktop/src/pages/Marketplace/OrdererReceiveCode/**
     - components/desktop/src/pages/Marketplace/OrdererOrderDetail/**
 
@@ -36,43 +51,53 @@ cases:
     level: ui
     kind: happy
     scenario: >
-      Оператор открывает выдачу по коду получателя, сверяет имущество и подписывает акт выдачи.
+      Оператор начинает выдачу по коду получателя, сверяет имущество и фиксирует факт.
     expect: >
-      выдача открывается только по коду пайщика; после подписи акт уходит заказчику на подтверждение
+      выдача начинается только по коду пайщика; после отправки пайщику уходит заявление на подпись
     test: components/docs-harness/scenarios/marketplace/operator/issuance-open.mjs
-    status: passing
+    status: pending
+    # Паевая модель (компонент 68, 2026-09-06): подписи оператора при открытии
+    # выдачи больше нет — пайщик подписывает заявление, совет решает, пайщик
+    # подписывает акт, стол оператора закрывает выдачу сам. Сценарий harness
+    # переписать под новый путь; до этого — pending.
+
 
   - id: mkt.iss.happy.02
     level: ui
     kind: happy
     scenario: >
-      Заказчик видит выданный заказ в «Моих заказах» после подписи оператора
+      Заказчик видит выданный заказ в «Моих заказах» после закрывающей подписи оператора
     expect: статус «Получен», сохранены количество, сумма и пункт выдачи
     test: components/docs-harness/scenarios/marketplace/orderer/ready-to-receive.mjs
-    status: passing
+    status: pending
+    # Паевая модель (компонент 68, 2026-09-06): подписи оператора при открытии
+    # выдачи больше нет — пайщик подписывает заявление, совет решает, пайщик
+    # подписывает акт, стол оператора закрывает выдачу сам. Сценарий harness
+    # переписать под новый путь; до этого — pending.
+
 
   - id: mkt.iss.side.01
     level: ui
     kind: side
-    scenario: Оператор пытается открыть выдачу без кода получателя
-    expect: выдача не открывается
+    scenario: Оператор пытается начать выдачу без кода получателя
+    expect: выдача не начинается
     test: components/docs-harness/scenarios/marketplace/operator/issuance-no-code.mjs
     status: passing
 
   - id: mkt.iss.side.02
     level: backend
     kind: side
-    scenario: Код получателя принадлежит другому пайщику, а не тому, чей заказ
-    expect: отказ — выдать чужой заказ нельзя
+    scenario: Заявление или акт по заказу подписывает другой пайщик, а не его владелец
+    expect: отказ — чужую выдачу двигать нельзя, на цепь ничего не уходит
     test: components/controller/tests/unit/marketplace/marketplace-issuance-ownership.test.ts
     status: passing
 
   - id: mkt.iss.side.03
     level: backend
     kind: side
-    scenario: Оператор указывает к выдаче больше единиц, чем принято на складе
-    expect: отказ — выдать больше принятого нельзя
-    test: components/controller/src/extensions/marketplace/application/services/marketplace-issuance.service.spec.ts
+    scenario: Оператор фиксирует к выдаче больше единиц, чем принято на складе
+    expect: отказ — выдать больше принятого нельзя, сага не рождается
+    test: components/controller/tests/unit/marketplace/marketplace-issuance-saga.test.ts
     status: passing
 
   - id: mkt.iss.side.04
@@ -93,17 +118,17 @@ cases:
   - id: mkt.iss.side.05
     level: backend
     kind: side
-    scenario: Повторная подпись акта выдачи оператором
-    expect: повторная подпись не создаёт второй акт
-    test: components/controller/src/extensions/marketplace/application/services/marketplace-issuance.service.spec.ts
+    scenario: Повторная фиксация факта по заказу, выдача которого уже идёт
+    expect: отказ — вторая сага не рождается; закрытие уже закрытой выдачи — no-op
+    test: components/controller/tests/unit/marketplace/marketplace-issuance-saga.test.ts
     status: passing
 
   - id: mkt.iss.side.06
     level: backend
     kind: side
-    scenario: Заказчик подтверждает получение по акту, который ему не адресован
+    scenario: Заказчик подписывает акт, который ему не адресован
     expect: отказ доступа
-    test: components/controller/src/extensions/marketplace/application/services/marketplace-issuance.service.spec.ts
+    test: components/controller/tests/unit/marketplace/marketplace-issuance-saga.test.ts
     status: passing
 
   - id: mkt.iss.side.07
@@ -114,7 +139,12 @@ cases:
     expect: >
       снижение цены уменьшает итог к оплате, повышение увеличивает; количество сверх принятого обрезается до принятого; снятая позиция даёт нулевой итог без возврата (остаётся на складе), а нулевое количество у оставленной позиции показывает всю сумму как возврат в кошелёк Стола заказов
     test: components/docs-harness/scenarios/marketplace/operator/issuance-correction.mjs
-    status: passing
+    status: pending
+    # Паевая модель (компонент 68, 2026-09-06): подписи оператора при открытии
+    # выдачи больше нет — пайщик подписывает заявление, совет решает, пайщик
+    # подписывает акт, стол оператора закрывает выдачу сам. Сценарий harness
+    # переписать под новый путь; до этого — pending.
+
     # Сценарий уходит из диалога без подписи: подписанный акт переопределил бы
     # количество и сумму заказа, а от них считаются возврат и остаток склада —
     # вся ветка после выдачи поехала бы на других числах. Проверяется расчёт,
@@ -129,9 +159,9 @@ cases:
   - id: mkt.iss.break.01
     level: backend
     kind: break
-    scenario: Цепь недоступна в момент подписи акта выдачи
-    expect: акт не считается подписанным, повторная попытка возможна
-    test: components/controller/src/extensions/marketplace/application/services/marketplace-issuance.service.spec.ts
+    scenario: Цепь недоступна в момент подписи заявления или закрывающей подписи акта
+    expect: сага не двигается, причина сохранена, повторная попытка возможна; имущество не передаётся
+    test: components/controller/tests/unit/marketplace/marketplace-issuance-saga.test.ts
     status: passing
 
   - id: mkt.iss.happy.03
@@ -142,7 +172,12 @@ cases:
     expect: >
       выданный заказ сохранён в истории с составом и суммой; очередь выдач не содержит завершённых
     test: components/docs-harness/scenarios/marketplace/operator/issuance-finalize.mjs
-    status: passing
+    status: pending
+    # Паевая модель (компонент 68, 2026-09-06): подписи оператора при открытии
+    # выдачи больше нет — пайщик подписывает заявление, совет решает, пайщик
+    # подписывает акт, стол оператора закрывает выдачу сам. Сценарий harness
+    # переписать под новый путь; до этого — pending.
+
 
   - id: mkt.iss.ui.01
     level: ui
@@ -160,11 +195,11 @@ cases:
     level: contract
     kind: happy
     scenario: >
-      Оператор подписывает акт выдачи и кладёт его в бандл, пайщица
-      контрподписывает — связка signiss1+signiss2 уходит на цепь.
+      Оператор фиксирует факт бандлом, пайщица подписывает заявление, совет
+      решает, пайщица подписывает акт, оператор закрывает выдачу.
     expect: >
-      выданное списывается по ЦЕНЕ ПРИБЫТИЯ (o.mkt.consum, Дт 86 / Кт 10), а не
-      по цене продажи
+      выданное списывается по ЦЕНЕ ПРИБЫТИЯ (o.mkt.consum, Дт 80 / Кт 10 —
+      возврат паевого взноса имуществом), а не по цене продажи
     test: components/boot/src/tests/marketplace-money.test.ts
     status: passing
 
@@ -174,8 +209,8 @@ cases:
     scenario: >
       Выдано меньше заказанного (три единицы из четырёх).
     expect: >
-      невыданный остаток резерва возвращается заказчице на членский «Стола
-      заказов» (o.mkt.unlock) ровно на разницу заказа и факта
+      невыданный остаток резерва возвращается заказчице на свободный паевой
+      «Стола заказов» (o.mkt.unlock → w.mkt.share) ровно на разницу заказа и факта
     test: components/boot/src/tests/marketplace-money.test.ts
     status: passing
 
@@ -235,4 +270,58 @@ cases:
       в нитке заказа нет посторонних денежных кодов — ровно семь ожидаемых
       проводок и ни одной лишней
     test: components/boot/src/tests/marketplace-money.test.ts
+    status: passing
+
+  # ── Паевая модель: сага выдачи и режим ожидания решения совета (99D-7) ───
+
+  - id: mkt.iss.happy.40
+    level: backend
+    kind: happy
+    scenario: >
+      Пайщик подписал заявление; робот решений совета настроен и решает у стойки
+    expect: >
+      заявление в цепи, номер решения дочитан, робот вызван напрямую по номеру
+      решения; обратный вызов совета доводит сагу до акта в том же ответе —
+      пайщик подписывает акт без второго нажатия
+    test: components/controller/tests/unit/marketplace/marketplace-issuance-saga.test.ts
+    status: passing
+
+  - id: mkt.iss.side.40
+    level: backend
+    kind: side
+    scenario: >
+      Робот не настроен либо ответил «вручную» (нет кворума, крупная сумма)
+    expect: >
+      сага остаётся в ожидании решения без блокировки ответа; пайщик в спокойном
+      режиме — ничего подписывать не нужно; решение людей приходит обратным
+      вызовом совета, акт формируется, уходит push «подпишите акт»
+    test: components/controller/tests/unit/marketplace/marketplace-issuance-saga.test.ts
+    status: passing
+
+  - id: mkt.iss.side.41
+    level: backend
+    kind: side
+    scenario: Совет отказал по заявлению
+    expect: >
+      сага закрыта отказом, заказ снова «готов к выдаче», паевой взнос остаётся
+      на месте — движений по средствам нет
+    test: components/controller/tests/unit/marketplace/marketplace-issuance-saga.test.ts
+    status: passing
+
+  - id: mkt.iss.side.42
+    level: backend
+    kind: side
+    scenario: Оператор снимает выдачу, пока совет рассматривает заявление
+    expect: отказ — снять можно до заявления или после ответа совета
+    test: components/controller/tests/unit/marketplace/marketplace-issuance-saga.test.ts
+    status: passing
+
+  - id: mkt.iss.side.43
+    level: backend
+    kind: side
+    scenario: >
+      Оператор закрывает выдачу актом, в котором подпись заказчика утеряна или
+      подменена, либо без своей подписи
+    expect: отказ — закрывающая подпись ставится поверх подписи заказчика
+    test: components/controller/tests/unit/marketplace/marketplace-issuance-saga.test.ts
     status: passing

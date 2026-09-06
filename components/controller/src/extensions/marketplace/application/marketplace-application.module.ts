@@ -143,13 +143,15 @@ import {
   MARKETPLACE_ISSUANCE_SERVICE,
 } from './services/marketplace-issuance.service';
 import { MarketplaceIssuanceResolver } from './resolvers/marketplace-issuance.resolver';
-// Эпик 7 — гарантийный возврат (compensating forward)
+import { MarketplaceIssuanceSyncService } from './services/marketplace-issuance-sync.service';
+// Эпик 7 + компонент 68 — гарантийный возврат через решение совета
 import {
   MarketplaceReturnClaimService,
   MARKETPLACE_RETURN_CLAIM_SERVICE,
 } from './services/marketplace-return-claim.service';
 import { MarketplaceReturnClaimImagesService } from './services/marketplace-return-claim-images.service';
 import { MarketplaceReturnClaimResolver } from './resolvers/marketplace-return-claim.resolver';
+import { MarketplaceReturnClaimSyncService } from './services/marketplace-return-claim-sync.service';
 import { bucketProvidersFor } from '@coopenomics/extension-kit';
 import { FILE_STORAGE_PORT } from '@coopenomics/innercoop';
 // Эпик 8 — списание скоропорта через решение совета
@@ -409,12 +411,14 @@ import { MarketplaceRealtimeBridge } from './realtime/marketplace-realtime.bridg
     // Слушает per-contract event-bus, отправка через Novu без обратного
     // влияния на основной flow (INV-12: emit после save в PG).
     MarketplaceNotificationService,
-    // Story 6.1 / 6.3 / 6.4 — выдача пайщику с двойной подписью АПП
-    // (signiss1 + signiss2) и тремя ветками сверки факт vs заказ.
+    // Компонент 68 — выдача пайщику как возврат паевого взноса имуществом:
+    // сага заявление → решение совета (робот / люди) → акт → закрывающая
+    // подпись оператора; слушатель обратных вызовов совета и сторож саги.
     {
       provide: MARKETPLACE_ISSUANCE_SERVICE,
       useClass: MarketplaceIssuanceService,
     },
+    MarketplaceIssuanceSyncService,
     {
       provide: MARKETPLACE_STOCK_SERVICE,
       useClass: MarketplaceStockService,
@@ -432,13 +436,15 @@ import { MarketplaceRealtimeBridge } from './realtime/marketplace-realtime.bridg
     },
     MarketplaceStockProposalService,
     MarketplaceIssuanceService,
-    // Эпик 7 — гарантийный возврат (compensating forward к o.mkt.consum).
+    // Эпик 7 + компонент 68 — гарантийный возврат: приём имущества у стойки →
+    // повестка совета → откат движений по решению; слушатель и сторож.
     {
       provide: MARKETPLACE_RETURN_CLAIM_SERVICE,
       useClass: MarketplaceReturnClaimService,
     },
     MarketplaceReturnClaimService,
     MarketplaceReturnClaimImagesService,
+    MarketplaceReturnClaimSyncService,
     // Эпик 8 — списание скоропорта
     MarketplaceWriteoffService,
     MarketplaceWriteoffCronService,

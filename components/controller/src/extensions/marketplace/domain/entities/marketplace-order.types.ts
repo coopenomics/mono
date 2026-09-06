@@ -1,4 +1,3 @@
-import type { ISignedDocument } from '@coopenomics/innercoop';
 import type { MarketplaceUnitOfMeasure } from './marketplace-offer.types';
 
 export type MarketplaceOrderStatus =
@@ -9,6 +8,9 @@ export type MarketplaceOrderStatus =
   | 'SUPPLY_PREPARED'
   | 'ACCEPTED_TO_COOP'
   | 'READY_TO_RECEIVE'
+  | 'ISSUE_PENDING'
+  | 'ISSUE_AUTHORIZED'
+  | 'ISSUE_ACT1'
   | 'RECEIVED'
   | 'RETURNED'
   | 'CANCELLED_BY_ORDERER'
@@ -22,6 +24,9 @@ export const MarketplaceOrderStatuses = {
   SUPPLY_PREPARED: 'SUPPLY_PREPARED',
   ACCEPTED_TO_COOP: 'ACCEPTED_TO_COOP',
   READY_TO_RECEIVE: 'READY_TO_RECEIVE',
+  ISSUE_PENDING: 'ISSUE_PENDING',
+  ISSUE_AUTHORIZED: 'ISSUE_AUTHORIZED',
+  ISSUE_ACT1: 'ISSUE_ACT1',
   RECEIVED: 'RECEIVED',
   RETURNED: 'RETURNED',
   CANCELLED_BY_ORDERER: 'CANCELLED_BY_ORDERER',
@@ -49,8 +54,11 @@ export const MARKETPLACE_ORDER_STATUS_RANK: Record<MarketplaceOrderStatus, numbe
   SUPPLY_PREPARED: 3,
   ACCEPTED_TO_COOP: 4,
   READY_TO_RECEIVE: 5,
-  RECEIVED: 6,
-  RETURNED: 7,
+  ISSUE_PENDING: 6,
+  ISSUE_AUTHORIZED: 7,
+  ISSUE_ACT1: 8,
+  RECEIVED: 9,
+  RETURNED: 10,
   CANCELLED_BY_ORDERER: 99,
   CANCELLED_BY_SUPPLIER: 99,
 };
@@ -143,24 +151,14 @@ export interface MarketplaceOrderProps {
    * не объявлено.
    */
   ready_announced_at: Date | null;
-  /** Время первой подписи (председатель КУ выдачи открыл выдачу — `signiss1`). */
-  chairman_signed_at: Date | null;
-  /** Backend account, открывший выдачу первой подписью. */
-  chairman_account: string | null;
-  /** tx_hash on-chain транзакции `signiss1`. */
-  signiss1_tx_hash: string | null;
-  /**
-   * Документ акта выдачи, подписанный председателем при открытии выдачи
-   * (`signiss1`). Заказчик получает его как DocumentAggregate и накладывает
-   * вторую подпись поверх — backend цепь не читает (канон двухподписного акта).
-   */
-  issue_act_signiss1_document: ISignedDocument | null;
-  /** Время финальной подписи заказчика (получение имущества — `signiss2`). */
-  orderer_signed_at: Date | null;
-  /** Backend account стороны кооператива при `signiss2` (председатель/доверенный). */
+  /** Момент подписи заявления о возврате паевого взноса имуществом (`issuestmt`); null — выдача не начата. */
+  issue_statement_at: Date | null;
+  /** Номер решения совета по выдаче (soviet.decisions); null — решение ещё не принято или не известно. */
+  issue_decision_id: string | null;
+  /** Сторона кооператива, закрывшая выдачу второй подписью акта (`issueact2`). */
   delivery_signer_account: string | null;
-  /** tx_hash on-chain транзакции `signiss2`. */
-  signiss2_tx_hash: string | null;
+  /** tx_hash закрывающей транзакции выдачи `issueact2`. */
+  issue_closed_tx_hash: string | null;
   on_chain_id: string | null;
   on_chain_block_num: number | null;
   on_chain_present: boolean;

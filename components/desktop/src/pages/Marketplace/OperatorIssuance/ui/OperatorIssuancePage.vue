@@ -19,10 +19,19 @@ import {
   useMarketplaceHandoffSignal,
   useMarketplaceRealtime,
 } from 'src/shared/lib/marketplace';
+import { Classes } from '@coopenomics/sdk';
+import { useGlobalStore } from 'src/shared/store';
+import { signingKeyOrAlert } from 'src/shared/lib/utils/signingKey';
 import {
-  announceOrderReady,
+  readyIssue,
   listIssuancesByBraname,
+  listIssuanceSagas,
+  getIssuanceClosePayload,
+  closeIssuance,
+  cancelIssuance,
+  issuanceStageDisplay,
   type MarketplaceOrderIssuanceView,
+  type MarketplaceIssuanceSagaView,
 } from '../api';
 import IssueActOpenDialog from './IssueActOpenDialog.vue';
 
@@ -32,20 +41,24 @@ import IssueActOpenDialog from './IssueActOpenDialog.vue';
  * код / находит заказчика и сразу видит «кому что отдать» — список единиц, а не
  * россыпь сотен строк.
  *
- * Внутри карточки заказы разнесены по стадии выдачи:
- *   - «К выдаче» (ACCEPTED_TO_COOP) — оператор открывает выдачу подписью
- *     председателя (IssueActOpenDialog, full-screen);
- *   - «Ждут получения» (READY_TO_RECEIVE) — выдача открыта, ждём, когда сам
- *     заказчик подтвердит получение в своём кабинете.
+ * Внутри карточки заказы разнесены по стадии выдачи (паевая модель, компонент 68):
+ *   - «К выдаче» (принят кооперативом / готов к получению) — оператор при
+ *     приходе пайщика фиксирует факт (IssueActOpenDialog, full-screen);
+ *   - «Выдача в процессе» — сага: заявление пайщика → решение совета → акт
+ *     пайщика → закрывающая подпись оператора. Закрывающую подпись стол ставит
+ *     САМ, как только появился акт пайщика (автозакрытие): оператор ничего не
+ *     нажимает, имущество отдаёт и отпускает заказчика.
  */
 
 const route = useRoute();
 const router = useRouter();
 const store = useOperatorBranchStore();
+const globalStore = useGlobalStore();
 const handoffSignal = useMarketplaceHandoffSignal();
 const coopname = computed(() => String(route.params.coopname ?? ''));
 const braname = computed(() => store.activeBraname ?? '');
 const items = ref<MarketplaceOrderIssuanceView[]>([]);
+const sagas = ref<MarketplaceIssuanceSagaView[]>([]);
 const loading = ref(true);
 
 const openDialog = ref(false);
@@ -53,8 +66,20 @@ const openDialog = ref(false);
 // оператора, диалог разносит их по актам циклом.
 const selectedOrders = ref<MarketplaceOrderIssuanceView[]>([]);
 
-// Статусы заказа, релевантные выдаче (ожидают открытия или финальной подписи).
-const ISSUANCE_STATUSES = ['ACCEPTED_TO_COOP', 'READY_TO_RECEIVE'];
+// Статусы заказа, по которым можно начать выдачу у стойки (факт ещё не зафиксирован
+// либо бандл не подписан пайщиком).
+const ISSUABLE_STATUSES = ['ACCEPTED_TO_COOP', 'READY_TO_RECEIVE'];
+// Статусы заказа, релевантные выдаче (к выдаче либо выдача в процессе).
+const ISSUANCE_STATUSES = [...ISSUABLE_STATUSES, 'ISSUE_PENDING', 'ISSUE_AUTHORIZED', 'ISSUE_ACT1'];
+/** Сага, в которой пайщик ещё не подписал заявление — заказ всё ещё можно переформировать у стойки. */
+function sagaByOrder(order_id: string): MarketplaceIssuanceSagaView | undefined {
+  return sagas.value.find((s) => s.order_id === order_id);
+}
+function isIssuable(o: MarketplaceOrderIssuanceView): boolean {
+  if (!ISSUABLE_STATUSES.includes(o.status)) return false;
+  const saga = sagaByOrder(o.id);
+  return !saga || saga.stage === 'FACT_FIXED';
+}
 
 // Строка выдачи: одинаковое имущество (один товар, одна цена за единицу, одна
 // стадия) слито в одну строку с просуммированными кол-вом и стоимостью. Разная
@@ -152,12 +177,13 @@ interface IssuanceGroup {
   account: string;
   name: string;
   toIssue: MarketplaceOrderIssuanceView[];
-  /** Позиции «к выдаче», по которым готовность ещё НЕ объявлена — цель кнопки. */
+  /** Позиции «принят кооперативом», по которым готовность ещё НЕ отмечена — цель кнопки. */
   toAnnounce: MarketplaceOrderIssuanceView[];
-  /** Сколько позиций «к выдаче» уже объявлены готовыми (ждём прихода заказчика). */
+  /** Сколько позиций уже отмечены готовыми (ждём прихода заказчика). */
   announcedCount: number;
   toIssueLines: IssuanceLine[];
-  awaitingLines: IssuanceLine[];
+  /** Выдача в процессе: сага по заказу + подпись этапа. */
+  inProgress: Array<{ order: MarketplaceOrderIssuanceView; saga: MarketplaceIssuanceSagaView }>;
   total: string;
   count: number;
 }
@@ -172,11 +198,14 @@ const groups = computed<IssuanceGroup[]>(() => {
   const out: IssuanceGroup[] = [];
   for (const [account, orders] of map) {
     const named = orders.find((o) => o.orderer_name);
-    const toIssue = orders.filter((o) => o.status === 'ACCEPTED_TO_COOP');
-    const toAnnounce = toIssue.filter((o) => !o.is_ready_announced);
+    const toIssue = orders.filter(isIssuable);
+    const toAnnounce = toIssue.filter((o) => o.status === 'ACCEPTED_TO_COOP');
     const announcedCount = toIssue.length - toAnnounce.length;
     const toIssueLines = mergeLines(toIssue);
-    const awaitingLines = mergeLines(orders.filter((o) => o.status === 'READY_TO_RECEIVE'));
+    const inProgress = orders
+      .filter((o) => !isIssuable(o) && ISSUANCE_STATUSES.includes(o.status))
+      .map((o) => ({ order: o, saga: sagaByOrder(o.id) }))
+      .filter((x): x is { order: MarketplaceOrderIssuanceView; saga: MarketplaceIssuanceSagaView } => !!x.saga);
     out.push({
       account,
       name: named?.orderer_name || account,
@@ -184,10 +213,10 @@ const groups = computed<IssuanceGroup[]>(() => {
       toAnnounce,
       announcedCount,
       toIssueLines,
-      awaitingLines,
+      inProgress,
       // Итог — по факту строк (склад/акт), не по заказанному: при недопоставке
       // карточка не должна обещать сумму, которой нет на складе.
-      total: [...toIssueLines, ...awaitingLines]
+      total: [...toIssueLines, ...inProgress.map((x) => ({ total: x.saga.fact.fact_cost }))]
         .reduce((a, l) => a + Number.parseFloat(l.total), 0)
         .toFixed(4),
       count: orders.length,
@@ -201,40 +230,125 @@ async function load(): Promise<void> {
   if (!braname.value.trim()) return;
   loading.value = true;
   try {
-    items.value = await listIssuancesByBraname({ delivery_braname: braname.value.trim() });
+    const [orders, active] = await Promise.all([
+      listIssuancesByBraname({ delivery_braname: braname.value.trim() }),
+      listIssuanceSagas({ braname: braname.value.trim(), active_only: true }).catch(
+        () => [] as MarketplaceIssuanceSagaView[],
+      ),
+    ]);
+    items.value = orders;
+    sagas.value = active;
   } catch (e) {
     FailAlert(e, 'Не удалось загрузить ленту выдач');
   } finally {
     loading.value = false;
   }
+  void autoCloseIssuances();
 }
 
 function startOpen(orders: MarketplaceOrderIssuanceView[]): void {
-  const toIssue = orders.filter((o) => o.status === 'ACCEPTED_TO_COOP');
+  const toIssue = orders.filter(isIssuable);
   if (!toIssue.length) return;
   selectedOrders.value = toIssue;
   openDialog.value = true;
 }
 
-// Объявление готовности к выдаче: по карточке заказчика разом объявляем все его
-// ещё не объявленные позиции «к выдаче». Статус заказа не меняется — заказчику
-// уходит push «приходите заберите», позиции получают бейдж «Объявлено». Сама
-// выдача по-прежнему открывается при приходе заказчика (скан QR).
+// Готовность к выдаче: по карточке заказчика разом отмечаем все его позиции
+// «принят кооперативом» готовыми (имущество на участке). Заказ переходит в
+// «готов к получению», заказчику уходит push «приходите заберите». Сама выдача
+// по-прежнему начинается при приходе заказчика (скан QR).
 const announcingAccount = ref<string | null>(null);
 async function announceGroup(g: IssuanceGroup): Promise<void> {
   if (!g.toAnnounce.length || announcingAccount.value) return;
   announcingAccount.value = g.account;
   try {
     for (const o of g.toAnnounce) {
-      await announceOrderReady(o.id);
+      await readyIssue(o.id);
     }
     SuccessAlert(`Заказчик оповещён — заказ готов к выдаче (${g.toAnnounce.length} позиц.).`);
     await load();
   } catch (e) {
-    FailAlert(e, 'Не удалось объявить готовность к выдаче');
+    FailAlert(e, 'Не удалось отметить готовность к выдаче');
   } finally {
     announcingAccount.value = null;
   }
+}
+
+// ── Автозакрытие: закрывающая подпись оператора ставится сама ────────────
+// Как только по саге появился акт с подписью пайщика (совет согласовал), стол
+// оператора берёт ключ из сессии, ставит вторую подпись и закрывает выдачу —
+// имущество выдано, деньги проведены. Оператор ничего не нажимает. Если ключ
+// заперт (PIN) — спросим один раз; при отказе останется кнопка «Закрыть».
+const closingOrders = ref<Set<string>>(new Set());
+let autoClosing = false;
+async function autoCloseIssuances(): Promise<void> {
+  if (autoClosing) return;
+  const pending = sagas.value.filter((s) => s.awaits_operator_close && !closingOrders.value.has(s.order_id));
+  if (!pending.length) return;
+  autoClosing = true;
+  try {
+    const wif = await signingKeyOrAlert('Для закрытия выдачи нужен ключ оператора');
+    if (!wif) return;
+    const signer = new Classes.Document(wif);
+    for (const saga of pending) {
+      await closeOne(saga, signer);
+    }
+  } finally {
+    autoClosing = false;
+  }
+}
+
+async function closeOne(saga: MarketplaceIssuanceSagaView, signer: Classes.Document): Promise<void> {
+  closingOrders.value = new Set([...closingOrders.value, saga.order_id]);
+  try {
+    const payload = await getIssuanceClosePayload(saga.order_id);
+    const raw = payload.act.rawDocument;
+    if (!raw) throw new Error('Не найден исходный акт для закрывающей подписи');
+    const signed_act = (await signer.signDocument(raw, globalStore.username, 2, [payload.act.document])) as Parameters<
+      typeof closeIssuance
+    >[0]['signed_act'];
+    await closeIssuance({ order_id: saga.order_id, signed_act });
+    SuccessAlert(`Выдача закрыта: заказ ${saga.order_id.slice(0, 8)} выдан.`);
+  } catch (e) {
+    FailAlert(e, 'Не удалось закрыть выдачу — попробуйте кнопкой «Закрыть»');
+  } finally {
+    const next = new Set(closingOrders.value);
+    next.delete(saga.order_id);
+    closingOrders.value = next;
+    await load();
+  }
+}
+
+async function closeManually(saga: MarketplaceIssuanceSagaView): Promise<void> {
+  const wif = await signingKeyOrAlert('Для закрытия выдачи нужен ключ оператора');
+  if (!wif) return;
+  await closeOne(saga, new Classes.Document(wif));
+}
+
+// Снять выдачу до акта: паевой взнос пайщика остаётся на месте, заказ
+// возвращается в «готов к получению». Используется, если пайщик передумал или
+// совет не собрался, а имущество нужно оставить на складе.
+const cancellingOrders = ref<Set<string>>(new Set());
+async function cancelOne(saga: MarketplaceIssuanceSagaView): Promise<void> {
+  cancellingOrders.value = new Set([...cancellingOrders.value, saga.order_id]);
+  try {
+    await cancelIssuance(saga.order_id);
+    SuccessAlert('Выдача снята — заказ снова ждёт пайщика.');
+  } catch (e) {
+    FailAlert(e, 'Не удалось снять выдачу');
+  } finally {
+    const next = new Set(cancellingOrders.value);
+    next.delete(saga.order_id);
+    cancellingOrders.value = next;
+    await load();
+  }
+}
+
+function stageOf(saga: MarketplaceIssuanceSagaView) {
+  return issuanceStageDisplay(saga);
+}
+function canCancel(saga: MarketplaceIssuanceSagaView): boolean {
+  return !saga.awaits_operator_close && saga.stage !== 'CLOSED';
 }
 
 // QR-код получения: оператор сканирует account-bound код заказчика → резолвим
@@ -250,9 +364,7 @@ const pickupOrders = computed(() =>
 // Те же позиции, но слитые по одинаковому имуществу — для отображения в диалоге.
 const pickupLines = computed(() => mergeLines(pickupOrders.value));
 // Сколько позиций пайщика реально можно открыть к выдаче прямо сейчас.
-const pickupToIssueCount = computed(
-  () => pickupOrders.value.filter((o) => o.status === 'ACCEPTED_TO_COOP').length,
-);
+const pickupToIssueCount = computed(() => pickupOrders.value.filter(isIssuable).length);
 
 // Верификация личности получателя (105-28): без базового уровня (паспорт
 // сверен на КУ) сервер не откроет выдачу. Вердикт приезжает с лентой
@@ -370,15 +482,18 @@ watch(braname, () => void load());
 // Повторный заход с новым кодом (универсальный сканер уже на этом столе).
 watch(() => handoffSignal.pendingCode, () => void consumeHandoffSignal());
 
-// Realtime: заказчик подтвердил получение в своём кабинете (READY_TO_RECEIVE →
-// RECEIVED) — карточка уходит со стола сама; оператор у стойки видит подпись
-// сразу и отпускает заказчика. Сигнал — служебный канал персонала КУ.
+// Realtime: сага двинулась (пайщик подписал заявление / совет решил / пайщик
+// подписал акт) — лента перечитывается, а автозакрытие ставит закрывающую
+// подпись, как только появился акт пайщика. Сигнал — служебный канал персонала КУ.
 const reloadLive = debounce(() => {
   if (loading.value) return;
   void load();
 }, 400);
 useMarketplaceRealtime(
-  { MarketplaceOrderStatusChangedEvent: () => reloadLive() },
+  {
+    MarketplaceOrderStatusChangedEvent: () => reloadLive(),
+    MarketplaceIssuanceSagaUpdatedEvent: () => reloadLive(),
+  },
   { onResync: () => reloadLive() }
 );
 
@@ -404,9 +519,10 @@ q-page.issuance(role='region', aria-label='Выдача заказов')
   template(v-else)
     PageHint(storage-key='mp:operator-issuance:banner-dismissed')
       | Заказы сгруппированы по заказчикам. Карточки показывают, что кому
-      | причитается. Открыть выдачу можно только отсканировав QR-код получателя
+      | причитается. Начать выдачу можно только отсканировав QR-код получателя
       | («Сканировать QR заказа») — так подтверждаем, что пришёл именно он.
-      | Дальше заказчик подтвердит получение сам в своём кабинете.
+      | Дальше пайщик подписывает заявление, совет принимает решение, пайщик
+      | подписывает акт — и стол закрывает выдачу сам.
 
     //- Действие страницы — в шапку (канон Teleport), как на столе приёмки:
     //- сканирование кода получения заказчика всегда в одном месте сверху.
@@ -454,19 +570,34 @@ q-page.issuance(role='region', aria-label='Выдача заказов')
               template(#icon-left)
                 q-icon(name='campaign', size='16px')
               | Объявить выдачу
-            BaseBadge(v-if='g.announcedCount', variant='pos') Объявлено, ждём заказчика
+            BaseBadge(v-if='g.announcedCount', variant='pos') Готово, ждём заказчика
 
-        //- Ждут получения — выдача открыта, ждём подпись заказчика.
-        .issuance__section(v-if='g.awaitingLines.length')
-          .issuance__section-head Ждут получения заказчиком
-          .issuance__line(v-for='line in g.awaitingLines', :key='line.key')
+        //- Выдача в процессе: заявление пайщика → решение совета → акт →
+        //- закрывающая подпись (ставится сама). Оператор видит этап и может
+        //- снять выдачу до акта либо закрыть вручную, если автозакрытие не прошло.
+        .issuance__section(v-if='g.inProgress.length')
+          .issuance__section-head Выдача в процессе
+          .issuance__line(v-for='x in g.inProgress', :key='x.saga.id')
             .issuance__line-info
-              .issuance__line-name {{ line.name }}
+              .issuance__line-name {{ x.order.product_name || 'Товар по предложению' }}
               .issuance__line-meta
-                | {{ lineQuantityLabel(line.quantity, line) }} · {{ formatAsset2Digits(line.total) }} ₽
-                span.issuance__line-shortage(v-if='line.quantity < line.orderedQuantity')
-                  |  · заказано {{ lineQuantityLabel(line.orderedQuantity, line) }}
-            BaseBadge(:variant='orderStatusDisplay(line.status).variant') {{ orderStatusDisplay(line.status).label }}
+                | {{ lineQuantityLabel(x.saga.fact.actual_quantity, { unit: x.order.unit_of_measure, packageSize: x.order.package_size ?? null }) }} · {{ formatAsset2Digits(x.saga.fact.fact_cost) }} ₽
+                span.issuance__line-shortage(v-if='x.saga.last_error')  · {{ x.saga.last_error }}
+            BaseBadge(:variant='stageOf(x.saga).variant') {{ stageOf(x.saga).label }}
+            BaseButton(
+              v-if='x.saga.awaits_operator_close',
+              variant='primary',
+              size='sm',
+              :loading='closingOrders.has(x.order.id)',
+              @click='closeManually(x.saga)'
+            ) Закрыть
+            BaseButton(
+              v-else-if='canCancel(x.saga)',
+              variant='ghost',
+              size='sm',
+              :loading='cancellingOrders.has(x.order.id)',
+              @click='cancelOne(x.saga)'
+            ) Снять
 
         //- Итог по заказчику — снизу, под выдачей (не в шапке карточки).
         .issuance__card-foot

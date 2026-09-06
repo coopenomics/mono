@@ -1,6 +1,6 @@
 import { ForbiddenException, Inject, Injectable, UseGuards } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
-import { GqlJwtAuthGuard, platformSettings, GeneratedDocumentDTO, DocumentAggregateDTO } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, platformSettings, GeneratedDocumentDTO } from '@coopenomics/extension-kit';
 import { CurrentMarketplaceMember } from '../decorators/current-marketplace-member.decorator';
 import { RequireMarketplaceAccess } from '../decorators/marketplace-access.decorator';
 import { MarketplaceMembershipGuard } from '../guards/marketplace-membership.guard';
@@ -44,7 +44,7 @@ import {
 } from '../dto/marketplace-stock.dto';
 import { MarketplaceOrderDTO, toMarketplaceOrderDTO } from '../dto/marketplace-order.dto';
 import type { MarketplaceStockProposalStatus } from '../../domain/entities/marketplace-stock-proposal.types';
-import type { ISignedDocument } from '@coopenomics/innercoop';
+import { toMarketplaceIssuanceSagaDTO } from '../dto/marketplace-issuance-saga.dto';
 
 /**
  * requirement 76 «Склад кооператива на КУ»: обезличенный остаток, его
@@ -139,7 +139,7 @@ export class MarketplaceStockResolver {
   @Query(() => [MarketplaceStockIssuanceOperatorLineDTO], {
     name: 'marketplaceStockIssuancePayloads',
     description:
-      'Акты приёма-передачи к подписи оператором КУ для докладки со склада: по строке корзины — order_hash будущего заказа и документ для подписи передающей стороны.',
+      'Подготовка докладки со склада: по строке корзины — детерминированный order_hash будущего заказа и снапшоты цены/упаковки. Оператор ничего не подписывает: его подпись закрывающая.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
   @RequireMarketplaceAccess('StockProposal', 'create:own-KU')
@@ -164,7 +164,6 @@ export class MarketplaceStockResolver {
       dto.product_name = l.product_name;
       dto.package_id = l.package_id;
       dto.package_size = l.package_size;
-      dto.signiss1_document = new GeneratedDocumentDTO(l.signiss1_document);
       return dto;
     });
   }
@@ -191,13 +190,11 @@ export class MarketplaceStockResolver {
         quantity: i.quantity,
         package_id: i.package_id ?? null,
         order_hash: i.order_hash,
-        signiss1_act: i.signiss1_act as unknown as ISignedDocument,
       })),
       order_items: (data.order_items ?? []).map((i) => ({
         order_id: i.order_id,
         actual_quantity: i.actual_quantity,
         actual_unit_price: i.actual_unit_price,
-        signiss1_act: i.signiss1_act as unknown as ISignedDocument,
       })),
     });
     return toMarketplaceStockProposalDTO(proposal);
@@ -224,8 +221,8 @@ export class MarketplaceStockResolver {
   @Query(() => MarketplaceStockAcceptPayloadDTO, {
     name: 'marketplaceStockProposalSignablePayloads',
     description:
-      'Нагрузка к принятию предложения со склада: строки-заказы и ОДНО Заявление о конвертации ' +
-      'на всю сумму доплаты. Если членских средств хватает (замена из высвобожденных) — заявления нет.',
+      'Нагрузка к подписи бандла пайщиком: по каждой строке — заявление о возврате паевого взноса имуществом. ' +
+      'Отдельного заявления о конвертации нет: паевой резерв под докладку берётся из свободного паевого при подписи.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
   @RequireMarketplaceAccess('StockProposal', 'resolve:own')
@@ -238,36 +235,22 @@ export class MarketplaceStockResolver {
       data.proposal_id,
       member.username
     );
-
-    let convert_document: GeneratedDocumentDTO | null = null;
-    if (payload.convert) {
-      convert_document = new GeneratedDocumentDTO();
-      convert_document.full_title = payload.convert.document.full_title;
-      convert_document.html = payload.convert.document.html;
-      convert_document.hash = payload.convert.document.hash;
-      convert_document.meta = payload.convert.document.meta;
-      convert_document.binary = payload.convert.document.binary;
-    }
-
     return {
       order_lines: payload.order_lines.map((l) => ({
         offer_id: l.offer_id,
+        order_id: l.order_id,
         order_hash: l.order_hash,
-        signiss1_aggregate: new DocumentAggregateDTO(l.signiss1_aggregate),
+        statement: new GeneratedDocumentDTO(l.statement),
       })),
-      member_amount: payload.member_amount,
-      convert_amount: payload.convert?.amount ?? null,
-      convert_hash: payload.convert?.convert_hash ?? null,
-      convert_document,
     };
   }
 
   @Mutation(() => MarketplaceStockProposalAcceptResultDTO, {
     name: 'marketplaceFinalizeStockIssuance',
     description:
-      'Пайщик одной подписью утверждает докладку как акт: при дефиците членских средств — конвертация с паевого по подписанному Заявлению, ' +
-      'затем по каждой строке создаётся заказ из остатка и проводится выдача (подпись передачи оператора + подпись получения пайщика). ' +
-      'Имущество выдаётся сразу. Заявление (signed_convert) не передаётся, когда членских средств хватает.',
+      'Пайщик одним нажатием подписывает заявления по всем строкам бандла: по докладке создаётся заказ из остатка (резерв из паевого), ' +
+      'по каждому заказу заявление уходит в цепь и на повестку совета; робот решений совета зовётся напрямую и ждётся у стойки. ' +
+      'Ответ несёт саги выдачи: решение принято — пайщик подписывает акт, иначе — режим ожидания без действий с его стороны.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
   @RequireMarketplaceAccess('StockProposal', 'resolve:own')
@@ -279,11 +262,12 @@ export class MarketplaceStockResolver {
       platformSettings().coopname,
       data.proposal_id,
       member.username,
-      { order_lines: data.order_lines, signed_convert: data.signed_convert ?? null }
+      { order_lines: data.order_lines }
     );
     const dto = new MarketplaceStockProposalAcceptResultDTO();
     dto.proposal = toMarketplaceStockProposalDTO(result.proposal);
     dto.order_ids = result.order_ids;
+    dto.sagas = result.sagas.map(toMarketplaceIssuanceSagaDTO);
     return dto;
   }
 

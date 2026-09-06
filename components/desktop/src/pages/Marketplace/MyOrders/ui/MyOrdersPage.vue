@@ -76,7 +76,7 @@ const FILTERS: Array<{ key: string; label: string; statuses: MarketplaceOrderSta
   {
     key: 'in-progress',
     label: 'В работе',
-    statuses: ['ACCEPTED', 'SUPPLY_PREPARED', 'ACCEPTED_TO_COOP'],
+    statuses: ['ACCEPTED', 'SUPPLY_PREPARED', 'ACCEPTED_TO_COOP', 'READY_TO_RECEIVE', 'ISSUE_PENDING', 'ISSUE_AUTHORIZED', 'ISSUE_ACT1'],
   },
   { key: 'received', label: 'Получены', statuses: ['RECEIVED'] },
   {
@@ -272,7 +272,10 @@ const reloadLive = debounce(() => {
   void load(currentPage.value, false);
 }, 400);
 useMarketplaceRealtime(
-  { MarketplaceOrderStatusChangedEvent: () => reloadLive() },
+  {
+    MarketplaceOrderStatusChangedEvent: () => reloadLive(),
+    MarketplaceIssuanceSagaUpdatedEvent: () => reloadLive(),
+  },
   { onResync: () => reloadLive() }
 );
 </script>

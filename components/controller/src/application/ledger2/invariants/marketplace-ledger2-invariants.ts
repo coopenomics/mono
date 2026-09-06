@@ -84,9 +84,7 @@ export interface InvariantResult {
 
 const MARKETPLACE_OP_CODES = Object.freeze(
   new Set(
-    Ledger2.LEDGER2_OPERATION_REGISTRY.filter(
-      (op) => op.contract === 'marketplace' || op.code === 'o.wal.conv',
-    ).map((op) => op.code),
+    Ledger2.LEDGER2_OPERATION_REGISTRY.filter((op) => op.contract === 'marketplace').map((op) => op.code),
   ),
 )
 
@@ -177,12 +175,10 @@ export function checkInvariantI1PayoutBalance(
 //   Δ86_marketplace = Σ credit(86, mkt) − Σ debit(86, mkt)
 //
 // Marketplace contribution на счёт 86 формирует:
-//   + o.mkt.lock     (Cr 86, +)   — резервирование (Дт 80 / Кт 86)
-//   + o.mkt.purch    (Cr 86, +)   — приём имущества
-//   + o.mkt.consum   (Dr 86, −)   — выдача имущества пайщику
-//   + o.mkt.return   (Cr 86, +)   — гарантийный возврат восстанавливает ЦФ
-//   + o.mkt.payout   (Dr 86, −)   — выплата поставщику
-//   + o.mkt.wroff    (Dr 86, −)   — списание скоропорта
+//   Паевая модель: тело заказа живёт на счёте 80 (паевой), на 86 попадают
+//   только членские взносы (o.mkt.fee Кт 86, o.mkt.refund Дт 86, o.mkt.penal Кт 86)
+//   и списание скоропорта (o.mkt.wroff Дт 86). Приём имущества идёт Дт 10 / Кт 60,
+//   выдача — Дт 80 / Кт 10, возврат — Дт 10 / Кт 80.
 //
 // Инвариант не требует наличия конкретного balance(86), но проверяет, что
 // `delta` от marketplace в принципе считается без NaN/расхождений в подсчётах
@@ -227,10 +223,11 @@ export function checkInvariantI2Account86Delta(
 //   balance(10) = Σ debit(10) − Σ credit(10)
 //
 // По marketplace-операциям:
-//   +o.mkt.purch  (Dr 10)
-//   −o.mkt.consum (Cr 10)
-//   −o.mkt.wroff  (Cr 10)
-//   +o.mkt.return (Dr 10)
+//   +o.mkt.purch  (Dr 10)   — приём имущества (Дт 10 / Кт 60)
+//   −o.mkt.consum (Cr 10)   — выдача (Дт 80 / Кт 10)
+//   −o.mkt.wroff  (Cr 10)   — списание скоропорта
+//   −o.mkt.loss   (Cr 10)   — уценка остатка
+//   +o.mkt.return (Dr 10)   — гарантийный возврат (Дт 10 / Кт 80)
 //
 // Сверяем delta по 10 с показанием `getLedger2Accounts.balance(10)`.
 // Если на входе нет accounts[10] — return ok с computed=delta (для
@@ -320,17 +317,18 @@ export function checkInvariantI4Account91Transit(
 }
 
 // ---------------------------------------------------------------------------
-// I5 — Согласованность резерва под Order на кошельке w.mkt.order:
-//   sum(TRANSFER w.wal.share  → w.mkt.order)        // o.mkt.lock   — резерв вошёл (Дт 80 / Кт 86)
-//   + sum(TRANSFER w.mkt.member → w.mkt.order)      // o.mkt.lockm  — добор резерва доплатой (без проводки)
-//   − sum(TRANSFER w.mkt.order → w.mkt.member)      // o.mkt.unlock — резерв снят / недовыдача (без проводки)
-//   − sum(BURN w.mkt.order)                         // o.mkt.consum — резерв сожжён (Дт 86 / Кт 10)
+// I5 — Согласованность паевого резерва под Order на кошельке w.mkt.order:
+//   sum(TRANSFER w.wal.share → w.mkt.order)         // o.mkt.lock   — паевой резерв из Кошелька (без проводки)
+//   + sum(TRANSFER w.mkt.share → w.mkt.order)       // o.mkt.lockp  — резерв из свободного паевого «Стола заказов»
+//   − sum(TRANSFER w.mkt.order → w.mkt.share)       // o.mkt.unlock — резерв снят / недовыдача / отказ
+//   − sum(TRANSFER w.mkt.order → w.mkt.fee)         // o.mkt.penal  — штраф за отказ (Дт 80 / Кт 86)
+//   − sum(BURN w.mkt.order)                         // o.mkt.consum — резерв сожжён при выдаче (Дт 80 / Кт 10)
 //     = sum(available у w.mkt.order-кошельков пайщиков).
 //
-// Архитектура 2026-05-31 (ревью PR #50): средства заказчика идут с паевого
-// (w.wal.share) напрямую на резерв-кошелёк w.mkt.order при createorder; доплата
-// по факту добирается с членского «Стола заказов» (o.mkt.lockm после o.mkt.conv);
-// возврат при отмене/недовыдаче поступает на членский «Стола заказов» w.mkt.member.
+// Паевая модель (компонент 68, 2026-09-06): паевой взнос под заказ идёт с
+// главного паевого (w.wal.share) либо со свободного паевого «Стола заказов»
+// (w.mkt.share) на резерв-кошелёк w.mkt.order при createorder; возврат при
+// отмене/недовыдаче/отказе поступает на свободный паевой w.mkt.share.
 //
 // На входе тестов wallets обычно содержит aggregated available по всем
 // w.mkt.order-row. Можно подать одну строку с агрегированным `balance`.
@@ -346,12 +344,16 @@ export function checkInvariantI5ReserveConsistency(
     if (r.walletFrom === 'w.wal.share' && r.walletTo === 'w.mkt.order') {
       computed += parseAssetToBigInt(r.quantity)
     }
-    // o.mkt.lockm: TRANSFER w.mkt.member → w.mkt.order  (добор резерва доплатой)
-    else if (r.walletFrom === 'w.mkt.member' && r.walletTo === 'w.mkt.order') {
+    // o.mkt.lockp: TRANSFER w.mkt.share → w.mkt.order  (резерв из свободного паевого)
+    else if (r.walletFrom === 'w.mkt.share' && r.walletTo === 'w.mkt.order') {
       computed += parseAssetToBigInt(r.quantity)
     }
-    // o.mkt.unlock: TRANSFER w.mkt.order → w.mkt.member  (резерв снят)
-    else if (r.walletFrom === 'w.mkt.order' && r.walletTo === 'w.mkt.member') {
+    // o.mkt.unlock: TRANSFER w.mkt.order → w.mkt.share  (резерв снят)
+    else if (r.walletFrom === 'w.mkt.order' && r.walletTo === 'w.mkt.share') {
+      computed -= parseAssetToBigInt(r.quantity)
+    }
+    // o.mkt.penal: TRANSFER w.mkt.order → w.mkt.fee  (штраф за отказ ушёл из резерва)
+    else if (r.walletFrom === 'w.mkt.order' && r.walletTo === 'w.mkt.fee') {
       computed -= parseAssetToBigInt(r.quantity)
     }
     // o.mkt.consum: BURN w.mkt.order  (резерв сожжён при выдаче)

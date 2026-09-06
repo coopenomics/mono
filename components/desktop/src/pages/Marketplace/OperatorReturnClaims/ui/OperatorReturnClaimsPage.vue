@@ -46,7 +46,7 @@ const onSiteDialog = ref(false);
 const scanDialogOpen = ref(false);
 const selectedClaim = ref<MarketplaceReturnClaimView | null>(null);
 
-const activeKey = ref<'all' | 'pending' | 'approved' | 'archive'>('all');
+const activeKey = ref<'all' | 'pending' | 'approved' | 'council' | 'archive'>('all');
 
 const pendingClaims = computed(() =>
   items.value.filter((c) => c.status === Zeus.MarketplaceReturnClaimStatus.PENDING_CHAIRMAN_REVIEW),
@@ -54,10 +54,20 @@ const pendingClaims = computed(() =>
 const approvedClaims = computed(() =>
   items.value.filter((c) => c.status === Zeus.MarketplaceReturnClaimStatus.APPROVED_FOR_VISIT),
 );
+// Имущество на участке: ждём решение совета либо совет отказал и пайщик
+// должен забрать имущество (оператор выдаёт обратно).
+const councilClaims = computed(() =>
+  items.value.filter(
+    (c) =>
+      c.status === Zeus.MarketplaceReturnClaimStatus.PENDING_COUNCIL ||
+      c.status === Zeus.MarketplaceReturnClaimStatus.DECLINED_BY_COUNCIL,
+  ),
+);
 const archiveClaims = computed(() =>
   items.value.filter(
     (c) =>
-      c.status === Zeus.MarketplaceReturnClaimStatus.ACCEPTED_AT_VISIT ||
+      c.status === Zeus.MarketplaceReturnClaimStatus.ACCEPTED_BY_COUNCIL ||
+      c.status === Zeus.MarketplaceReturnClaimStatus.HANDED_BACK ||
       c.status === Zeus.MarketplaceReturnClaimStatus.REJECTED_REMOTELY ||
       c.status === Zeus.MarketplaceReturnClaimStatus.REJECTED_AT_VISIT,
   ),
@@ -67,6 +77,7 @@ const tabs = computed<PageTab[]>(() => [
   { key: 'all', label: 'Все', count: items.value.length },
   { key: 'pending', label: 'Ждут рассмотрения', count: pendingClaims.value.length },
   { key: 'approved', label: 'Ожидают визита', count: approvedClaims.value.length },
+  { key: 'council', label: 'Имущество на участке', count: councilClaims.value.length },
   { key: 'archive', label: 'Архив', count: archiveClaims.value.length },
 ]);
 
@@ -76,6 +87,8 @@ const visibleClaims = computed(() => {
       return pendingClaims.value;
     case 'approved':
       return approvedClaims.value;
+    case 'council':
+      return councilClaims.value;
     case 'archive':
       return archiveClaims.value;
     default:

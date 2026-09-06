@@ -8,7 +8,18 @@ export * as RetryKUGeocode from './retryKUGeocode'
 /** Отменить свой заказ до приёма поставщиком */
 export * as CancelOrder from './cancelOrder'
 
-export * as AnnounceOrderReady from './announceOrderReady'
+/** Компонент 68: оператор отмечает заказ готовым к выдаче (имущество на участке) */
+export * as ReadyIssue from './readyIssue'
+/** Компонент 68: оператор фиксирует факт выдачи — рождается сага и заявление к подписи */
+export * as FixIssuanceFact from './fixIssuanceFact'
+/** Компонент 68: заказчик подписывает заявление о возврате паевого взноса имуществом (на повестку совета) */
+export * as SignIssuanceStatement from './signIssuanceStatement'
+/** Компонент 68: заказчик подписывает акт приёма-передачи после решения совета */
+export * as SignIssuanceAct from './signIssuanceAct'
+/** Компонент 68: оператор закрывает выдачу второй подписью акта — имущество выдано */
+export * as CloseIssuance from './closeIssuance'
+/** Компонент 68: оператор снимает выдачу до решения совета / до акта */
+export * as CancelIssuance from './cancelIssuance'
 /** Эпик 15: поставщик принимает к поставке выбранные заказы (offer × КУ) единым массивом */
 export * as AcceptOrdersBatch from './acceptOrdersBatch'
 /** Эпик 15: поставщик отклоняет выбранные активные заказы — средства разблокируются */
@@ -46,18 +57,18 @@ export * as CancelAplReception from './cancelAplReception'
 export * as SignAplReceptionAsSupplier from './signAplReceptionAsSupplier'
 /** Эпик 5: закрывающая подпись председателя КУ */
 export * as SignAplReceptionAsChairman from './signAplReceptionAsChairman'
-/** Эпик 6: председатель КУ открывает выдачу первой подписью акта */
-/** Эпик 6: заказчик закрывает выдачу финальной подписью с указанием фактического количества */
 /** Эпик 7: заказчик подаёт заявление на гарантийный возврат имущества */
 export * as CreateReturnClaim from './createReturnClaim'
 /** Эпик 7: председатель КУ удалённо приглашает заказчика на очный осмотр */
 export * as ApproveReturnVisit from './approveReturnVisit'
 /** Эпик 7: председатель КУ удалённо отказывает в гарантийном возврате */
 export * as RejectReturnRemote from './rejectReturnRemote'
-/** Эпик 7: председатель КУ принимает гарантийный возврат на очном осмотре (compensating forward) */
+/** Эпик 7 + компонент 68: оператор принял имущество у стойки — заявление уходит на повестку совета */
 export * as AcceptReturnAtVisit from './acceptReturnAtVisit'
-/** Эпик 7: председатель КУ отказывает в гарантийном возврате на очном осмотре */
+/** Эпик 7: оператор не принимает имущество по результатам осмотра */
 export * as RejectReturnAtVisit from './rejectReturnAtVisit'
+/** Компонент 68: оператор выдал имущество обратно после отказа совета или по истечении срока ожидания */
+export * as HandBackReturn from './handBackReturn'
 /** Эпик 8: общий администратор создаёт черновик проекта списания скоропорта */
 export * as CreateWriteoffDraft from './createWriteoffDraft'
 /** Эпик 8: общий администратор изменяет состав черновика проекта списания */
@@ -112,11 +123,11 @@ export * as CheckoutCart from './checkoutCart'
 export * as PublishStock from './publishStock'
 /** Склад кооператива: снятие свободного остатка с витрины */
 export * as UnpublishStock from './unpublishStock'
-/** Докладка у стойки: оператор формирует докладку со склада (с подписью передачи) */
+/** Бандл выдачи у стойки: оператор собирает заказы к выдаче и докладку со склада, фиксируя факт */
 export * as CreateStockProposal from './createStockProposal'
 /** Докладка: оператор отзывает неотвеченное предложение */
 export * as CancelStockProposal from './cancelStockProposal'
-/** Докладка: пайщик одной подписью утверждает докладку как акт (заказ+выдача со склада) */
+/** Бандл выдачи: пайщик одной подписью подписывает заявления по строкам — заказы из остатка и повестки совета */
 export * as FinalizeStockIssuance from './finalizeStockIssuance'
 /** Докладка: пайщик отказывается от предложения */
 export * as DeclineStockProposal from './declineStockProposal'
@@ -130,7 +141,8 @@ export * as DistributeBranchFunds from './distributeBranchFunds'
 export * as SetSupplierPayoutMethod from './setSupplierPayoutMethod'
 export * as SetTrusteeWeight from './setTrusteeWeight'
 export * as DeleteTrusteeWeight from './deleteTrusteeWeight'
-export * as ConvertBranchFunds from './convertBranchFunds'
+/** Паевая модель: пайщик отзывает свободный паевой взнос со Стола заказов в Кошелёк */
+export * as RecallShare from './recallShare'
 export * as CreateAid from './createAid'
 /** Подать расход кооперативного участка на решение совета через шасси расходов */
 export * as CreateBranchExpense from './createBranchExpense'
