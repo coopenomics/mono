@@ -305,3 +305,8 @@ cases:
       видит в кабинете ту же сумму, которую у неё реально заблокировали
     test: components/boot/src/tests/marketplace-money.test.ts
     status: passing
+
+# 2026-09-06 (паевая модель, компонент 68): `createorder` без заявления о
+# конвертации — паевой резерв `o.mkt.lock` (без проводки) и взнос `o.mkt.fee`;
+# `signchair` приходует Дт 10 / Кт 60. Контрактные случаи денежных мест — в
+# `marketplace.issuance.yaml` (boot-тест `marketplace-money`). Набор случаев не менялся.

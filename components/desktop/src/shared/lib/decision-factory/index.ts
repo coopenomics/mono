@@ -9,7 +9,7 @@ class DecisionFactory {
 
   /**
    * Регистрирует обработчик для типа решения
-   * @param decisionType - тип решения (ключ из decisionsRegistry)
+   * @param decisionType - тип решения (ключ из decisionTypesRegistry)
    * @param handler - обработчик решения
    */
   registerHandler(decisionType: string, handler: IDecisionHandler): void {

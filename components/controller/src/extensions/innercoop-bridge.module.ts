@@ -116,6 +116,8 @@ import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 import { ChatCoopExtensionModule } from './chatcoop/chatcoop-extension.module';
 import { CapitalExtensionModule } from './capital/capital-extension.module';
 import { ExpensesExtensionModule } from './expenses/expenses-extension.module';
+import { SovietRobotExtensionModule } from '~/extensions/soviet-robot/soviet-robot-extension.module';
+import { SovietRobotInnercoopAdapter } from '~/extensions/soviet-robot/application/adapters/soviet-robot-innercoop.adapter';
 import { Ledger2Module } from '~/application/ledger2/ledger2.module';
 import { ChatcoopInnercoopProjectCommunicationArtifactsAdapter } from './chatcoop/infrastructure/innercoop/chatcoop-innercoop-project-communication-artifacts.adapter';
 import { ChatcoopInnercoopMatrixRoomMessagingAdapter } from './chatcoop/infrastructure/innercoop/chatcoop-innercoop-matrix-room-messaging.adapter';
@@ -141,6 +143,7 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
     CapitalExtensionModule,
     ChatCoopExtensionModule,
     ExpensesExtensionModule,
+    SovietRobotExtensionModule,
     Ledger2Module,
     RedisModule,
     SystemDomainModule,
@@ -223,12 +226,11 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
       useExisting: ExpensesInnercoopExpenseChassisAdapter,
     },
     {
-      // Робот решений совета живёт в ветке feat/soviet-robot: до её слияния
-      // владельца порта нет, и мост честно отдаёт `null` (INV-013) — Стол
-      // заказов переходит в ручной режим ожидания решения. После слияния
-      // здесь встаёт `useExisting: SovietRobotInnercoopAdapter`.
+      // Робот решений совета: Стол заказов зовёт его напрямую по номеру
+      // решения и ждёт ответ у стойки; без установленного расширения адаптер
+      // отвечает «вручную», и сага уходит в спокойное ожидание решения людей.
       provide: SOVIET_ROBOT_PORT,
-      useValue: null,
+      useExisting: SovietRobotInnercoopAdapter,
     },
     {
       provide: LEDGER2_HISTORY_PORT,

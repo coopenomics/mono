@@ -65,8 +65,8 @@ cases:
     expect: >
       заявление уходит на решение совета; после решения «за» имущество в остатке,
       паевой взнос восстановлен заказчику; после «против» имущество ждёт пайщика
-    test: components/docs-harness/scenarios/marketplace/operator/return-accept.mjs
-    status: pending
+    test: ~ # было: components/docs-harness/scenarios/marketplace/operator/return-accept.mjs
+    status: missing
     # Паевая модель (2026-09-06): приём у стойки больше не восстанавливает
     # средства — решает совет. Сценарий harness переписать (голосование совета
     # на стенде); до этого — pending.

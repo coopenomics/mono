@@ -42,7 +42,8 @@ void soviet::withdraw(eosio::name coopname, eosio::name username, uint64_t withd
     username,
     _withdraw_action,
     hash,
-    statement
+    statement,
+    decision_id
   );
 };
 

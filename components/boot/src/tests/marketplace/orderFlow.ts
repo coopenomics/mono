@@ -10,8 +10,8 @@
  *
  * Паевая модель (компонент 68): оформление без документов (паевой взнос
  * резервируется контрактом), выдача — сага: факт оператора → заявление
- * пайщика (1113) → решение совета (на стенде робота нет — голосуем советом
- * через `processDecision`) → акт пайщика (1115) → закрывающая подпись
+ * пайщика (1113) → решение совета (робот, если он делегирован по `mktissue`,
+ * иначе голосуем советом через `processDecision`) → акт пайщика (1115) → закрывающая подпись
  * оператора.
  */
 import type Blockchain from '../../blockchain'
@@ -244,7 +244,12 @@ export async function issueOrder(args: {
   const pending = await waitForSaga(memberToken, orderId, s => Boolean(s.decision_id) || s.awaits_member_signature)
   const decisionId = Number(pending.decision_id)
   if (!pending.awaits_member_signature) {
-    await processDecision(blockchain, decisionId)
+    // Если на стенде включён робот с делегированным `mktissue`, он может
+    // успеть утвердить решение между чтением саги и голосованием — тогда
+    // голосование отбивается цепью, а сага всё равно дойдёт до акта.
+    await processDecision(blockchain, decisionId).catch((e: any) => {
+      console.warn(`processDecision(${decisionId}) отбит: ${e?.message ?? e} — возможно, решение уже принял робот`)
+    })
   }
   await waitForSaga(memberToken, orderId, s => s.awaits_member_signature)
 

@@ -9,7 +9,7 @@ import {
 } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { createHash, randomUUID } from 'crypto';
-import { Cooperative, type MarketContract } from 'cooptypes';
+import { Cooperative, SovietContract, type MarketContract } from 'cooptypes';
 import { PublicKey, Signature } from '@wharfkit/antelope';
 import http from 'http-status';
 import {
@@ -23,6 +23,7 @@ import {
   type ISovietRobotPort,
 } from '@coopenomics/innercoop';
 import { toQuantityAsset } from '../shared/quantity.util';
+import { findInlineActionData } from '../shared/chain-trace.util';
 import {
   calcCostAmount,
   minorToDecimalString,
@@ -665,6 +666,11 @@ export class MarketplaceReturnClaimService {
       accepted_at: at,
     });
     claim = moved ?? (await this.findById(input.coopname, input.claim_id));
+    // Номер решения — из трассы транзакции (инлайн `soviet::newsubmitted`), без ожидания парсера.
+    const tracedDecisionId = this.decisionIdFromTrace(tx);
+    if (tracedDecisionId && !claim.council_decision_id) {
+      claim = await this.claimRepo.patchCouncil(claim.id, { council_decision_id: tracedDecisionId });
+    }
 
     this.logger.log(
       `Заявление на возврат ${claim.id}: имущество принято на КУ ${input.braname}, заявление на повестке совета (tx=${txHash}).`
@@ -722,13 +728,14 @@ export class MarketplaceReturnClaimService {
             decision_hash: claim.request_hash,
             username: claim.orderer_account,
           });
-          mode = result.outcome === 'manual' ? 'MANUAL' : 'ROBOT';
+          // Ждём у стойки только когда робот сам довёл решение; остальное — ждём людей.
+          mode = result.outcome === 'authorized' || result.outcome === 'declined' ? 'ROBOT' : 'MANUAL';
           this.logger.log(`Заявление ${claim.id}: робот решений совета ответил «${result.outcome}»${result.detail ? ` (${result.detail})` : ''}.`);
         }
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
         this.logger.warn(`Заявление ${claim.id}: вызов робота решений совета не удался (${message}); ждём решение людей.`);
-        mode = 'ROBOT';
+        mode = 'MANUAL';
       }
     }
     await this.claimRepo.patchCouncil(claim.id, { council_decision_mode: mode });
@@ -1352,6 +1359,17 @@ export class MarketplaceReturnClaimService {
     }
     if (!last) throw new NotFoundException('Заявление на возврат не найдено.');
     return last;
+  }
+
+  /** Номер решения из инлайн-действия `soviet::newsubmitted` в трассе транзакции. */
+  private decisionIdFromTrace(tx: unknown): string | null {
+    try {
+      const data = findInlineActionData<{ decision_id?: unknown }>(tx, 'newsubmitted', SovietContract.contractName.production);
+      const id = data?.decision_id;
+      return id !== undefined && id !== null && Number(id) > 0 ? String(id) : null;
+    } catch {
+      return null;
+    }
   }
 
   private decisionIdFromProtocol(protocol: ISignedDocument | null): string | null {

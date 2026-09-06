@@ -142,15 +142,22 @@ describe('Заявление заказчика (submitStatement)', () => {
     expect(saga.awaits_council).toBe(true);
   });
 
-  it('робот отвечает «manual» (нет кворума / крупная сумма) — режим MANUAL, у стойки не ждём', async () => {
-    const robotPort = { isEnabled: jest.fn(async () => true), requestDecision: jest.fn(async () => ({ outcome: 'manual', detail: 'нет кворума' })) };
+  it.each([
+    ['manual', 'робот выключен'],
+    ['pending', 'нет кворума делегировавших — ждём людей'],
+    ['failed', 'ошибка цепи, сторож робота повторит'],
+  ])('робот отвечает «%s» (%s) — режим MANUAL, у стойки не ждём', async (outcome, detail) => {
+    const robotPort = { isEnabled: jest.fn(async () => true), requestDecision: jest.fn(async () => ({ outcome, detail })) };
     const m = buildMocks({ sagas: [buildSaga()], robotPort });
     const service = buildService(m);
     stubSignatureChecks(service);
+    const started = Date.now();
     const saga = await submit(service);
     expect(robotPort.requestDecision).toHaveBeenCalledWith(expect.objectContaining({ decision_id: 77, decision_type: 'mktissue', decision_hash: 'h-order-1', username: 'orderer1' }));
     expect(saga.decision_mode).toBe('MANUAL');
     expect(saga.stage).toBe(MarketplaceIssuanceSagaStages.DECISION_PENDING);
+    // Ожидания у стойки нет: ответ возвращается сразу, пайщик уходит.
+    expect(Date.now() - started).toBeLessThan(5_000);
   });
 
   it('робот решил у стойки: обратный вызов совета доводит сагу до акта в том же ответе', async () => {

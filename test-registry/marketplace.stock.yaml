@@ -56,8 +56,8 @@ cases:
     scenario: Оператор выдаёт второму пайщику заказ из остатка
     expect: >
       выдача начинается по коду второго пайщика; после его заявления, решения совета и акта оператор закрывает выдачу; остаток кооператива на складе уменьшается на выданное
-    test: components/docs-harness/scenarios/marketplace/operator/stock-issuance.mjs
-    status: pending
+    test: ~ # было: components/docs-harness/scenarios/marketplace/operator/stock-issuance.mjs
+    status: missing
     # Паевая модель (2026-09-06): выдача идёт сагой с решением совета —
     # сценарий harness переписать; до этого — pending.
 
@@ -78,8 +78,8 @@ cases:
       Оператор принимает возврат по заказу из остатка, совет решает «за»: имущество возвращается кооперативу
     expect: >
       паевой взнос восстановлен второму пайщику; имущество снова числится обезличенным остатком кооператива на том же участке — первый заказчик к нему отношения не имеет
-    test: components/docs-harness/scenarios/marketplace/operator/stock-return-accept.mjs
-    status: pending
+    test: ~ # было: components/docs-harness/scenarios/marketplace/operator/stock-return-accept.mjs
+    status: missing
     # Паевая модель (2026-09-06): восстановление средств — по решению совета;
     # сценарий harness переписать; до этого — pending.
 

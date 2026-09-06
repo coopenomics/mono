@@ -141,6 +141,9 @@ async function refresh(source = 'ручной'): Promise<void> {
   } finally {
     loading.value = false;
   }
+  // Совет решил, пока приложение открыто: акт подписывается сам, без нажатия
+  // (FR-B5 / L19) — если ключ сессии отперт. Заперт PIN-кодом — остаётся кнопка.
+  void autoSignAuthorizedActs();
   // Явный маркер: ЧТО дёрнуло дочитку (ПОДПИСКА / POLL / ручной) и всплыл ли
   // гейт. Если overlay появился сразу после «✅ ПОДПИСКА СРАБОТАЛА» — отработал
   // сокет; если перед этим был «POLL» — сработала страховочная дочитка.
@@ -234,6 +237,38 @@ async function signProposal(task: MarketplaceStockProposalView): Promise<void> {
     signingKey.value = null;
     await refresh();
   }
+}
+
+/** Заказы, по которым акт уже подписывается сам — второй раз не запускаем. */
+const autoSigning = new Set<string>();
+
+/**
+ * Решение совета пришло по подписке, когда пайщик уже подписал заявление:
+ * устройство ставит первую подпись акта без нового нажатия, если ключ сессии
+ * доступен без PIN-кода. Иначе задача остаётся в гейте кнопкой «Подписать».
+ */
+async function autoSignAuthorizedActs(): Promise<void> {
+  const global = useGlobalStore();
+  const wif = global.wif?.toString();
+  if (!wif || signingKey.value) return;
+  const ready = memberSagas.value.filter(
+    (s) => s.awaits_member_signature && s.stage === Zeus.MarketplaceIssuanceSagaStage.DECISION_AUTHORIZED && !autoSigning.has(s.order_id),
+  );
+  if (!ready.length) return;
+  const signer = new Classes.Document(wif);
+  for (const saga of ready) {
+    autoSigning.add(saga.order_id);
+    try {
+      await signActFor(saga.order_id, signer, global.username);
+      SuccessAlert(`Совет согласовал выдачу по заказу ${saga.order_id.slice(0, 8)} — акт подписан, имущество выдаст оператор участка.`);
+    } catch (error) {
+      // Не алертим: задача останется в гейте с кнопкой, пайщик подпишет вручную.
+      console.warn('[OnsiteGate] автоподпись акта не удалась', error);
+    } finally {
+      autoSigning.delete(saga.order_id);
+    }
+  }
+  await refresh('автоподпись акта');
 }
 
 /** Первая подпись акта приёма-передачи по решённой советом выдаче. */

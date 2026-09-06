@@ -213,7 +213,9 @@ describe('стол заказов — денежные места гаранти
       decisionId = Number(c.marketplaceReturnClaim.council_decision_id || 0)
     }
     expect(decisionId, 'заявление обязано попасть на повестку совета').toBeGreaterThan(0)
-    await processDecision(bc, decisionId)
+    await processDecision(bc, decisionId).catch((e: any) => {
+      console.warn(`processDecision(${decisionId}) отбит: ${e?.message ?? e} — возможно, решение уже принял робот`)
+    })
 
     ops = await waitForOps(chairmanToken, requestHash, ['o.mkt.return', 'o.brn.retfee', 'o.mkt.refund'])
 

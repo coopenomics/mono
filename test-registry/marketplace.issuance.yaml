@@ -54,8 +54,8 @@ cases:
       Оператор начинает выдачу по коду получателя, сверяет имущество и фиксирует факт.
     expect: >
       выдача начинается только по коду пайщика; после отправки пайщику уходит заявление на подпись
-    test: components/docs-harness/scenarios/marketplace/operator/issuance-open.mjs
-    status: pending
+    test: ~ # было: components/docs-harness/scenarios/marketplace/operator/issuance-open.mjs
+    status: missing
     # Паевая модель (компонент 68, 2026-09-06): подписи оператора при открытии
     # выдачи больше нет — пайщик подписывает заявление, совет решает, пайщик
     # подписывает акт, стол оператора закрывает выдачу сам. Сценарий harness
@@ -68,8 +68,8 @@ cases:
     scenario: >
       Заказчик видит выданный заказ в «Моих заказах» после закрывающей подписи оператора
     expect: статус «Получен», сохранены количество, сумма и пункт выдачи
-    test: components/docs-harness/scenarios/marketplace/orderer/ready-to-receive.mjs
-    status: pending
+    test: ~ # было: components/docs-harness/scenarios/marketplace/orderer/ready-to-receive.mjs
+    status: missing
     # Паевая модель (компонент 68, 2026-09-06): подписи оператора при открытии
     # выдачи больше нет — пайщик подписывает заявление, совет решает, пайщик
     # подписывает акт, стол оператора закрывает выдачу сам. Сценарий harness
@@ -138,8 +138,8 @@ cases:
       Оператор правит факт выдачи — количество и цену — и сверяет пересчёт денег
     expect: >
       снижение цены уменьшает итог к оплате, повышение увеличивает; количество сверх принятого обрезается до принятого; снятая позиция даёт нулевой итог без возврата (остаётся на складе), а нулевое количество у оставленной позиции показывает всю сумму как возврат в кошелёк Стола заказов
-    test: components/docs-harness/scenarios/marketplace/operator/issuance-correction.mjs
-    status: pending
+    test: ~ # было: components/docs-harness/scenarios/marketplace/operator/issuance-correction.mjs
+    status: missing
     # Паевая модель (компонент 68, 2026-09-06): подписи оператора при открытии
     # выдачи больше нет — пайщик подписывает заявление, совет решает, пайщик
     # подписывает акт, стол оператора закрывает выдачу сам. Сценарий harness
@@ -171,8 +171,8 @@ cases:
       После выдачи оператор видит заказ в истории участка, а поток выдач пуст.
     expect: >
       выданный заказ сохранён в истории с составом и суммой; очередь выдач не содержит завершённых
-    test: components/docs-harness/scenarios/marketplace/operator/issuance-finalize.mjs
-    status: pending
+    test: ~ # было: components/docs-harness/scenarios/marketplace/operator/issuance-finalize.mjs
+    status: missing
     # Паевая модель (компонент 68, 2026-09-06): подписи оператора при открытии
     # выдачи больше нет — пайщик подписывает заявление, совет решает, пайщик
     # подписывает акт, стол оператора закрывает выдачу сам. Сценарий harness

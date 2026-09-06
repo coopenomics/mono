@@ -139,7 +139,7 @@ cases:
     kind: side
     scenario: оператор открывает выдачу заказа получателю без базовой верификации
     expect: отказ до подписи акта — «получатель не прошёл верификацию личности»
-    test: components/controller/src/extensions/marketplace/application/services/marketplace-issuance.service.spec.ts
+    test: components/controller/tests/unit/marketplace/marketplace-issuance-saga.test.ts
     status: passing
 
   - id: cid.ver.happy.03
@@ -292,3 +292,7 @@ cases:
     expect: предупреждение «возьмите с собой паспорт» над QR-кодом
     test: ~
     status: missing
+
+# 2026-09-06 (паевая модель, компонент 68): гейт верификации получателя переехал
+# из открытия выдачи в фиксацию факта у стойки (`fixFact`); спека сервиса выдачи
+# заменена тестом саги `marketplace-issuance-saga.test.ts`. Набор случаев не менялся.

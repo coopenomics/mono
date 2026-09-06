@@ -268,3 +268,7 @@ cases:
       карточка заказа открывается по клику
     test: components/docs-harness/scenarios/marketplace/operator/orders-history.mjs
     status: passing
+
+# 2026-09-06 (паевая модель, компонент 68): оформление без документов — паевой
+# резерв ставит контракт; в «Моих заказах» новые статусы выдачи ISSUE_PENDING /
+# ISSUE_AUTHORIZED / ISSUE_ACT1 и обновление по событию саги. Случаи не менялись.

@@ -92,6 +92,7 @@ static constexpr eosio::name _capital_program = "capital"_n; ///< Кошелёк
 static const std::set<eosio::name> soviet_actions = {
     "joincoop"_n, //регистрация пайщика
     "leavecoop"_n, //выход пайщика из кооператива (возврат паевого взноса)
+    "freedecision"_n, //свободное решение совета по произвольному вопросу повестки (sov.decision)
 
     //MEET
     "creategm"_n,//предложение повестки планового общего собрание

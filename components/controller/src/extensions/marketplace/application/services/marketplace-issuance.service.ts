@@ -8,7 +8,7 @@ import {
   Optional,
 } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { Cooperative, type MarketContract } from 'cooptypes';
+import { Cooperative, SovietContract, type MarketContract } from 'cooptypes';
 import { PublicKey, Signature } from '@wharfkit/antelope';
 import {
   LOGGER_PORT,
@@ -52,6 +52,7 @@ import { calcCostAmount, compareMoney } from '../shared/cost.util';
 import { isStockOrder } from '../shared/order-kind.util';
 import { MARKETPLACE_ISSUE_ACTION_CODE } from '../shared/verification-action.const';
 import { toQuantityAsset } from '../shared/quantity.util';
+import { findInlineActionData } from '../shared/chain-trace.util';
 import type { MarketplaceOrderDomainEntity } from '../../domain/entities/marketplace-order.entity';
 import type { MarketplaceOrderIssuanceFactSnapshot } from '../../domain/entities/marketplace-order.types';
 import type { MarketplaceIssuanceSagaDomainEntity } from '../../domain/entities/marketplace-issuance-saga.entity';
@@ -308,8 +309,12 @@ export class MarketplaceIssuanceService {
       throw new ConflictException(`Заявление не принято цепью: ${message}. Повторите подписание.`);
     }
     const txHash = this.extractTxHash(tx);
+    // Номер решения — из трассы транзакции инициатора (инлайн `soviet::newsubmitted`,
+    // L20): без ожидания парсера. Не нашли — дочитаем из таблицы решений ниже.
+    const tracedDecisionId = this.decisionIdFromTrace(tx);
     const moved = await this.sagaRepo.transition(saga.id, MarketplaceIssuanceSagaStages.FACT_FIXED, {
-      stage: MarketplaceIssuanceSagaStages.STATEMENT_SIGNED,
+      stage: tracedDecisionId ? MarketplaceIssuanceSagaStages.DECISION_PENDING : MarketplaceIssuanceSagaStages.STATEMENT_SIGNED,
+      decision_id: tracedDecisionId,
       statement_document: input.signed_statement as unknown as ISignedDocument,
       tx_hashes: { ...saga.tx_hashes, issuestmt: txHash },
       last_error: null,
@@ -380,15 +385,19 @@ export class MarketplaceIssuanceService {
             decision_hash: saga.order_hash,
             username: saga.member_account,
           });
-          mode = result.outcome === 'manual' ? 'MANUAL' : 'ROBOT';
+          // Ждём у стойки только когда робот сам довёл решение (протокол в
+          // цепи, обратный вызов уже в пути). «pending» (нет кворума, ждём
+          // людей), «manual» (робот выключен) и «failed» — режим ожидания
+          // людей: пайщик уходит, push придёт с решением.
+          mode = result.outcome === 'authorized' || result.outcome === 'declined' ? 'ROBOT' : 'MANUAL';
           detail = result.detail ?? null;
           this.logger.log(`Сага ${saga.id}: робот решений совета ответил «${result.outcome}»${detail ? ` (${detail})` : ''}.`);
         }
       } catch (err) {
-        // Робот упал — это его сторожу; для пайщика это ручной режим ожидания.
+        // Робот упал — это его сторожу; для пайщика это режим ожидания людей.
         detail = this.errMessage(err);
         this.logger.warn(`Сага ${saga.id}: вызов робота решений совета не удался (${detail}); ждём решение людей.`);
-        mode = 'ROBOT';
+        mode = 'MANUAL';
       }
     }
     await this.sagaRepo.update(saga.id, { decision_mode: mode, last_error: detail });
@@ -859,6 +868,17 @@ export class MarketplaceIssuanceService {
 
   private assertOrderer(order: MarketplaceOrderDomainEntity, member_account: string): void {
     if (order.orderer_account !== member_account) throw new ForbiddenException('Заказ принадлежит другому пайщику.');
+  }
+
+  /** Номер решения из инлайн-действия `soviet::newsubmitted` в трассе транзакции. */
+  private decisionIdFromTrace(tx: unknown): string | null {
+    try {
+      const data = findInlineActionData<{ decision_id?: unknown }>(tx, 'newsubmitted', SovietContract.contractName.production);
+      const id = data?.decision_id;
+      return id !== undefined && id !== null && Number(id) > 0 ? String(id) : null;
+    } catch {
+      return null;
+    }
   }
 
   private decisionIdFromProtocol(protocol: ISignedDocument | null): string | null {
