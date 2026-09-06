@@ -38,6 +38,7 @@
   },
   "dependencies": {
     "@coopenomics/factory": "workspace:*",
+    "@coopenomics/sdk": "workspace:*",
     "@types/pg": "^8.16.0",
     "axios": "^1.13.5",
     "chai": "^5.1.2",

@@ -182,6 +182,9 @@ importers:
       '@coopenomics/factory':
         specifier: workspace:*
         version: link:../factory
+      '@coopenomics/sdk':
+        specifier: workspace:*
+        version: link:../sdk
       '@types/pg':
         specifier: ^8.16.0
         version: 8.20.0
