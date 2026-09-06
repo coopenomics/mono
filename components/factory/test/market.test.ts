@@ -1,110 +1,96 @@
-import { beforeAll, beforeEach, describe, expect, it } from 'vitest'
-import type { RegistratorContract, SovietContract } from 'cooptypes'
+import { beforeAll, describe, it } from 'vitest'
 import { Cooperative } from 'cooptypes'
-import { v4 as uuidv4 } from 'uuid'
-import { Generator } from '../src'
-import type { IGenerate, IGeneratedDocument } from '../src/Interfaces/Documents'
-import { saveBufferToDisk } from '../src/Utils/saveBufferToDisk'
-import { loadBufferFromDisk } from '../src/Utils/loadBufferFromDisk'
-import { calculateSha256 } from '../src/Utils/calculateSHA'
-import { MongoDBConnector } from '../src/Services/Databazor'
-
-import type { ExternalEntrepreneurData, ExternalIndividualData, ExternalOrganizationData, ExternalProjectData, IVars } from '../src/Models'
-import type { PaymentData } from '../src/Models/PaymentMethod'
-import type { CoopenomicsAgreement } from '../src/Templates'
-import { PrivacyPolicy, Registry, RegulationElectronicSignature, UserAgreement, WalletAgreement } from '../src/Templates'
-import { signatureExample } from './signatureExample'
-import { coopname, deleteAllFiles, generator, mongoUri } from './utils'
+import { generator, mongoUri } from './utils'
 import { testDocumentGeneration } from './utils/testDocument'
 
 beforeAll(async () => {
   generator.connect(mongoUri)
 })
 
-beforeEach(async () => {
+/**
+ * Документы паевой модели Стола заказов (компонент 68): выдача товара пайщику
+ * (1113 → 1114 → 1115) и гарантийный возврат (1116 → 1117). Снятые вместе с
+ * членской веткой 700–702 и 800–802 здесь больше не проверяются — шаблонов
+ * этих документов в фабрике нет.
+ */
+describe('тест генератора документов стола заказов', async () => {
+  const goods = {
+    sku: 'offer-1',
+    product_title: 'Молоко "Бурёнка"',
+    unit_of_measurement: 'Литр',
+    unit_cost: '100.0000',
+    currency: 'RUB',
+  }
 
-})
-
-describe('тест генератора документов', async () => {
-  it('генерируем заявление на паевый взнос имуществом', async () => {
-    await testDocumentGeneration<Cooperative.Registry.AssetContributionStatement.Action>({
-      registry_id: Cooperative.Registry.AssetContributionStatement.registry_id,
+  it('генерируем заявление на выдачу товара паевым взносом', async () => {
+    await testDocumentGeneration<Cooperative.Registry.MarketplaceShareReturnStatement.Action>({
+      registry_id: Cooperative.Registry.MarketplaceShareReturnStatement.registry_id,
       coopname: 'voskhod',
       username: 'entrepreneur',
-      request: {
-        hash: '917f7443a115d495574dbe73405b7b6be3fed929526ba736228f3ff234ad7fce',
-        title: 'Молоко "Бурёнка"',
-        unit_of_measurement: 'Литр',
-        units: 10,
-        unit_cost: '100.0000 RUB',
-        total_cost: '1000.0000 RUB',
-        currency: 'RUB',
-        type: 'Материальный',
-        program_id: 1,
-      },
+      order_id: '1',
+      order_hash: '917f7443a115d495574dbe73405b7b6be3fed929526ba736228f3ff234ad7fce',
+      braname: 'branch1',
+      fact_quantity: 10,
+      total_amount: '1000.0000',
+      ...goods,
     })
   })
 
-  it('генерируем решение о приеме паевого взноса имуществом', async () => {
-    await testDocumentGeneration<Cooperative.Registry.AssetContributionDecision.Action>({
-      registry_id: Cooperative.Registry.AssetContributionDecision.registry_id,
+  it('генерируем решение совета о выдаче товара паевым взносом', async () => {
+    await testDocumentGeneration<Cooperative.Registry.MarketplaceShareReturnDecision.Action>({
+      registry_id: Cooperative.Registry.MarketplaceShareReturnDecision.registry_id,
       coopname: 'voskhod',
       username: 'entrepreneur',
-      request_id: 1,
       decision_id: 1,
+      order_hash: '917f7443a115d495574dbe73405b7b6be3fed929526ba736228f3ff234ad7fce',
+      fact_quantity: 10,
+      total_amount: '1000.0000',
+      ...goods,
     })
   })
 
-  it('генерируем акт о приёме паевого взноса имуществом', async () => {
-    await testDocumentGeneration<Cooperative.Registry.AssetContributionAct.Action>({
-      registry_id: Cooperative.Registry.AssetContributionAct.registry_id,
+  it('генерируем акт о выдаче товара паевым взносом', async () => {
+    await testDocumentGeneration<Cooperative.Registry.MarketplaceShareReturnAct.Action>({
+      registry_id: Cooperative.Registry.MarketplaceShareReturnAct.registry_id,
       coopname: 'voskhod',
       username: 'entrepreneur',
-      request_id: 1,
-      decision_id: 1,
-      act_id: '123',
-      receiver: 'ant',
-    })
-  })
-
-  it('генерируем заявление на возврат паевого взноса имуществом', async () => {
-    await testDocumentGeneration<Cooperative.Registry.ReturnByAssetStatement.Action>({
-      registry_id: Cooperative.Registry.ReturnByAssetStatement.registry_id,
-      coopname: 'voskhod',
-      username: 'entrepreneur',
-      request: {
-        hash: '917f7443a115d495574dbe73405b7b6be3fed929526ba736228f3ff234ad7fce',
-        title: 'Молоко "Бурёнка"',
-        unit_of_measurement: 'Литр',
-        units: 10,
-        unit_cost: '100.0000 RUB',
-        total_cost: '1000.0000 RUB',
-        currency: 'RUB',
-        type: 'Материальный',
-        program_id: 1,
-      },
-    })
-  })
-
-  it('генерируем решение о возврате паевого взноса имуществом', async () => {
-    await testDocumentGeneration<Cooperative.Registry.ReturnByAssetDecision.Action>({
-      registry_id: Cooperative.Registry.AssetContributionDecision.registry_id,
-      coopname: 'voskhod',
-      username: 'entrepreneur',
-      request_id: 1,
-      decision_id: 1,
-    })
-  })
-
-  it('генерируем акт о возврате паевого взноса имуществом', async () => {
-    await testDocumentGeneration<Cooperative.Registry.ReturnByAssetAct.Action>({
-      registry_id: Cooperative.Registry.ReturnByAssetAct.registry_id,
-      coopname: 'voskhod',
-      username: 'entrepreneur',
-      request_id: 1,
+      order_id: '1',
+      order_hash: '917f7443a115d495574dbe73405b7b6be3fed929526ba736228f3ff234ad7fce',
       decision_id: 1,
       act_id: '123',
       transmitter: 'ant',
+      braname: 'branch1',
+      fact_quantity: 10,
+      total_amount: '1000.0000',
+      ...goods,
+    })
+  })
+
+  it('генерируем заявление на гарантийный возврат товара', async () => {
+    await testDocumentGeneration<Cooperative.Registry.MarketplaceShareContributionStatement.Action>({
+      registry_id: Cooperative.Registry.MarketplaceShareContributionStatement.registry_id,
+      coopname: 'voskhod',
+      username: 'entrepreneur',
+      order_id: '1',
+      order_hash: '917f7443a115d495574dbe73405b7b6be3fed929526ba736228f3ff234ad7fce',
+      braname: 'branch1',
+      reason_text: 'Товар не соответствует заявленному качеству.',
+      actual_quantity: 2,
+      fact_cost: '200.0000',
+      ...goods,
+    })
+  })
+
+  it('генерируем решение совета о гарантийном возврате товара', async () => {
+    await testDocumentGeneration<Cooperative.Registry.MarketplaceShareContributionDecision.Action>({
+      registry_id: Cooperative.Registry.MarketplaceShareContributionDecision.registry_id,
+      coopname: 'voskhod',
+      username: 'entrepreneur',
+      decision_id: 1,
+      order_hash: '917f7443a115d495574dbe73405b7b6be3fed929526ba736228f3ff234ad7fce',
+      actual_quantity: 2,
+      fact_cost: '200.0000',
+      ...goods,
     })
   })
 })

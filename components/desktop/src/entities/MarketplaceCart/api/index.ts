@@ -79,11 +79,11 @@ async function setDeliveryPoint(delivery_braname: string): Promise<IMarketplaceC
   return cart as IMarketplaceCart
 }
 
-/** Заявления о конвертации паевого взноса к подписи — по одному на позицию корзины. */
+/** Строки превью оформления — по одной на позицию корзины (сумма к резервированию). */
 export type ICheckoutSignableLine =
   Queries.Marketplace.CheckoutSignablePayloads.IOutput['marketplaceCheckoutSignablePayloads'][number]
 
-/** Подписанная строка оформления (offer_id + order_hash + подписанное заявление). */
+/** Строка оформления, уходящая в мутацию (offer_id + упаковка + order_hash). */
 export type ICheckoutSignedLine = NonNullable<
   NonNullable<Mutations.Marketplace.CheckoutCart.IInput['input']>['lines']
 >[number]
@@ -99,7 +99,7 @@ async function getCheckoutSignablePayloads(): Promise<ICheckoutSignableLine[]> {
 /**
  * Оформить корзину в заказ-агрегат. Без `checkout_id` — новый заказ; с ним —
  * повтор непрошедшего остатка прошлого оформления в тот же заказ.
- * Каждая позиция сопровождается подписанным заявлением о конвертации (lines).
+ * Позиции передаются строками превью (lines), заявлений к подписи больше нет.
  * Частичный сбой не откатывает прошедшее: возвращает failed_lines + остаток.
  */
 async function checkout(
