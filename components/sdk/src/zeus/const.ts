@@ -3685,10 +3685,6 @@ export const AllTypesProps: Record<string,any> = {
 }
 
 export const ReturnTypes: Record<string,any> = {
-	auth:{
-		roles:"String",
-		self:"String"
-	},
 	AccessGrant:{
 		action:"String",
 		resource:"String"
@@ -8173,7 +8169,6 @@ export const ReturnTypes: Record<string,any> = {
 		waiting_for:"String"
 	},
 	RobotDecisionType:{
-		area:"String",
 		chairman:"RobotChairmanDelegation",
 		description:"String",
 		my_authorize:"Boolean",
@@ -8181,7 +8176,6 @@ export const ReturnTypes: Record<string,any> = {
 		my_mode:"RobotVoteMode",
 		my_vote:"Boolean",
 		protocol_registry_id:"Int",
-		serviceable:"Boolean",
 		title:"String",
 		type:"String",
 		vote_quorum:"RobotQuorum",

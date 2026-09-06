@@ -27,9 +27,8 @@
     template(#cell-title='{ row }')
       .doc-primary {{ row.title }}
       .t-sm.t-muted {{ row.description }}
-      .t-sm.text-warning(v-if='!row.serviceable') Протокол для этого решения ещё не описан — робот его не обслуживает
     template(#cell-my_vote='{ row }')
-      BaseButton(variant='ghost', size='sm', :disabled='!row.serviceable || busy')
+      BaseButton(variant='ghost', size='sm', :disabled='busy')
         | {{ modeLabel(draft.mode[row.type]) }}
         q-icon(name='arrow_drop_down')
         q-menu(anchor='bottom middle', self='top middle')
@@ -47,7 +46,7 @@
       q-toggle(
         v-if='isChairman',
         :model-value='draft.authorize[row.type] === true',
-        :disable='!row.serviceable || busy',
+        :disable='busy',
         dense,
         @update:model-value='(v) => setAuthorize(row.type, v)'
       )

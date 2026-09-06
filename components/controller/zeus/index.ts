@@ -14907,8 +14907,6 @@ verificationReviews?: [{	data?: ValueTypes["VerificationReviewsInput"] | undefin
 ["RobotDecisionStage"]:RobotDecisionStage;
 	/** Тип решения совета в реестре действий автоматизации */
 ["RobotDecisionType"]: AliasType<{
-	/** Область платформы, из которой приходит решение */
-	area?:boolean | `@${string}`,
 	/** Автоматическая подпись протоколов */
 	chairman?:ValueTypes["RobotChairmanDelegation"],
 	/** О чём решение */
@@ -14923,8 +14921,6 @@ verificationReviews?: [{	data?: ValueTypes["VerificationReviewsInput"] | undefin
 	my_vote?:boolean | `@${string}`,
 	/** Номер шаблона протокола в реестре документов */
 	protocol_registry_id?:boolean | `@${string}`,
-	/** Робот умеет довести этот тип решения до протокола */
-	serviceable?:boolean | `@${string}`,
 	/** Название решения */
 	title?:boolean | `@${string}`,
 	/** Тип решения в повестке совета */
@@ -29832,8 +29828,6 @@ verificationReviews?: [{	data?: ResolverInputTypes["VerificationReviewsInput"] |
 ["RobotDecisionStage"]:RobotDecisionStage;
 	/** Тип решения совета в реестре действий автоматизации */
 ["RobotDecisionType"]: AliasType<{
-	/** Область платформы, из которой приходит решение */
-	area?:boolean | `@${string}`,
 	/** Автоматическая подпись протоколов */
 	chairman?:ResolverInputTypes["RobotChairmanDelegation"],
 	/** О чём решение */
@@ -29848,8 +29842,6 @@ verificationReviews?: [{	data?: ResolverInputTypes["VerificationReviewsInput"] |
 	my_vote?:boolean | `@${string}`,
 	/** Номер шаблона протокола в реестре документов */
 	protocol_registry_id?:boolean | `@${string}`,
-	/** Робот умеет довести этот тип решения до протокола */
-	serviceable?:boolean | `@${string}`,
 	/** Название решения */
 	title?:boolean | `@${string}`,
 	/** Тип решения в повестке совета */
@@ -45383,9 +45375,7 @@ export type ModelTypes = {
 	["RobotDecisionStage"]:RobotDecisionStage;
 	/** Тип решения совета в реестре действий автоматизации */
 ["RobotDecisionType"]: {
-		/** Область платформы, из которой приходит решение */
-	area: string,
-	/** Автоматическая подпись протоколов */
+		/** Автоматическая подпись протоколов */
 	chairman: ModelTypes["RobotChairmanDelegation"],
 	/** О чём решение */
 	description: string,
@@ -45398,9 +45388,7 @@ export type ModelTypes = {
 	/** Текущий пользователь делегировал голос по этому типу */
 	my_vote: boolean,
 	/** Номер шаблона протокола в реестре документов */
-	protocol_registry_id?: number | undefined | null,
-	/** Робот умеет довести этот тип решения до протокола */
-	serviceable: boolean,
+	protocol_registry_id: number,
 	/** Название решения */
 	title: string,
 	/** Тип решения в повестке совета */
@@ -46799,7 +46787,10 @@ export type ModelTypes = {
     }
 
 export type GraphQLTypes = {
-    ["AccessGrant"]: {
+    // ------------------------------------------------------;
+	// THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY);
+	// ------------------------------------------------------;
+	["AccessGrant"]: {
 	__typename: "AccessGrant",
 	/** Действие (например, read / confirm / manage) */
 	action: string,
@@ -61775,8 +61766,6 @@ export type GraphQLTypes = {
 	/** Тип решения совета в реестре действий автоматизации */
 ["RobotDecisionType"]: {
 	__typename: "RobotDecisionType",
-	/** Область платформы, из которой приходит решение */
-	area: string,
 	/** Автоматическая подпись протоколов */
 	chairman: GraphQLTypes["RobotChairmanDelegation"],
 	/** О чём решение */
@@ -61790,9 +61779,7 @@ export type GraphQLTypes = {
 	/** Текущий пользователь делегировал голос по этому типу */
 	my_vote: boolean,
 	/** Номер шаблона протокола в реестре документов */
-	protocol_registry_id?: number | undefined | null,
-	/** Робот умеет довести этот тип решения до протокола */
-	serviceable: boolean,
+	protocol_registry_id: number,
 	/** Название решения */
 	title: string,
 	/** Тип решения в повестке совета */

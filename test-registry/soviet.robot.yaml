@@ -19,6 +19,7 @@ sources:
     - components/contracts/cpp/soviet/src/decision/authorize.cpp
   backend:
     - components/controller/src/extensions/soviet-robot/**
+    - components/cooptypes/src/cooperative/document/decisionTypesRegistry.ts
     - components/boot/src/tests/soviet-robot-e2e.test.ts
   ui:
     - components/desktop/extensions/robot/**
@@ -268,3 +269,19 @@ cases:
     scenario: Член совета отзывает делегирование
     expect: запись удалена, разрешение снято, ключ стёрт у робота
     status: missing
+
+  - id: sov.rob.break.07
+    level: backend
+    kind: break
+    scenario: Контракт стал выносить на совет новый тип решения, а реестр решений не обновили
+    expect: гейт падает и называет тип — единственный список автоматизируемых решений не расходится с контрактами
+    test: components/controller/tests/unit/soviet-robot/decision-types-registry.test.ts
+    status: passing
+
+  - id: sov.rob.side.16
+    level: backend
+    kind: side
+    scenario: Кооператив без Благороста открывает реестр действий автоматизации
+    expect: решений Благороста в реестре нет; ядровые и решения установленных расширений на месте
+    test: components/controller/tests/unit/soviet-robot/robot-registry.service.test.ts
+    status: passing

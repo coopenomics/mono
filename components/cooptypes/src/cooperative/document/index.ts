@@ -1,7 +1,6 @@
 import type { SovietContract } from '../../contracts'
 import type { IAction, IExtendedAction } from '../blockchain'
 
-export * from './decisionsRegistry'
 export * from './decisionTypesRegistry'
 // export * from './documentsRegistry'
 export interface IGenerationOptions {

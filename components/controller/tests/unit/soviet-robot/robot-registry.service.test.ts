@@ -33,7 +33,7 @@ function automation(member: string, vote_types: string[], authorize_types: strin
 }
 
 describe('RobotRegistryService.buildRegistry', () => {
-  const service = new RobotRegistryService({} as any, {} as any);
+  const service = new RobotRegistryService({} as any, {} as any, {} as any);
   const council = board([member('ant', 'chairman'), member('petr'), member('anna'), member('mikhail'), member('olga')]);
 
   it('кворум по правилу контракта: больше половины состава', () => {
@@ -118,10 +118,25 @@ describe('RobotRegistryService.buildRegistry', () => {
     expect(registry.find((r) => r.type === 'freedecision')!.voters).toEqual([]);
   });
 
-  it('тип без шаблона протокола помечен как необслуживаемый', () => {
+  it('в реестре только решения с шаблоном протокола', () => {
     const registry = service.buildRegistry([], council, new Set());
-    expect(registry.find((r) => r.type === 'freedecision')!.serviceable).toBe(true);
-    expect(registry.find((r) => r.type === 'mktissue')!.serviceable).toBe(false);
+    expect(registry.every((r) => r.protocol_registry_id > 0)).toBe(true);
+    expect(registry.find((r) => r.type === 'freedecision')).toBeDefined();
+    // mktissue заведён в контракте, но повестки по нему нет и протокол не описан
+    expect(registry.find((r) => r.type === 'mktissue')).toBeUndefined();
+  });
+
+  it('решения расширения приходят только тому, у кого расширение установлено', async () => {
+    const chain = { getAutomations: async () => [], getSovietBoard: async () => council } as any;
+    const keys = { membersWithKeys: async () => new Set<string>() } as any;
+    // Стол заказов установлен, Благорост — нет.
+    const extensions = { get: async (name: string) => (name === 'market' ? {} : null) } as any;
+
+    const registry = await new RobotRegistryService(chain, keys, extensions).getRegistry('voskhod');
+
+    expect(registry.map((r) => r.type)).toContain('joincoop');
+    expect(registry.map((r) => r.type)).toContain('mktwroff');
+    expect(registry.map((r) => r.type)).not.toContain('createresult');
   });
 
   it('без совета кворум недостижим', () => {

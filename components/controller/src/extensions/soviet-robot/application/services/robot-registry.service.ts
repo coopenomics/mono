@@ -1,4 +1,5 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
+import { EXTENSION_CONFIG_PORT, type IExtensionConfigPort } from '@coopenomics/innercoop';
 import { Cooperative } from 'cooptypes';
 import { RobotChainService, type AutomatorRow, type BoardRow } from './robot-chain.service';
 import { RobotKeyService } from './robot-key.service';
@@ -55,10 +56,7 @@ export interface RobotDecisionTypeView {
   type: string;
   title: string;
   description: string;
-  area: string;
-  protocol_registry_id: number | null;
-  /** Робот умеет довести этот тип до протокола. */
-  serviceable: boolean;
+  protocol_registry_id: number;
   voters: RobotVoterView[];
   vote_quorum: RobotQuorumView;
   chairman: RobotChairmanView;
@@ -112,19 +110,40 @@ export function followCycles(followBy: Map<string, string>): string[][] {
 export class RobotRegistryService {
   constructor(
     private readonly chain: RobotChainService,
-    private readonly keys: RobotKeyService
+    private readonly keys: RobotKeyService,
+    @Inject(EXTENSION_CONFIG_PORT) private readonly extensions: IExtensionConfigPort
   ) {}
 
   async getRegistry(coopname: string, viewer?: string): Promise<RobotDecisionTypeView[]> {
-    const [automations, board, withKeys] = await Promise.all([
+    const [automations, board, withKeys, types] = await Promise.all([
       this.chain.getAutomations(coopname),
       this.chain.getSovietBoard(coopname),
       this.keys.membersWithKeys(coopname),
+      this.availableTypes(),
     ]);
-    return this.buildRegistry(automations, board, withKeys, viewer);
+    return this.buildRegistry(automations, board, withKeys, viewer, types);
   }
 
-  buildRegistry(automations: AutomatorRow[], board: BoardRow | null, withKeys: Set<string>, viewer?: string): RobotDecisionTypeView[] {
+  /**
+   * Решения, которые бывают у этого кооператива: ядровые плюс те, чьё
+   * расширение установлено. Настройка расширения читается портом — установка
+   * соседа напрямую из базы не проверяется.
+   */
+  private async availableTypes(): Promise<Cooperative.Document.IDecisionTypeInfo[]> {
+    const names = Cooperative.Document.decisionTypeExtensions();
+    const installed = await Promise.all(
+      names.map(async (name) => ((await this.extensions.get(name)) === null ? null : name))
+    );
+    return Cooperative.Document.decisionTypesForExtensions(installed.filter((name): name is string => name !== null));
+  }
+
+  buildRegistry(
+    automations: AutomatorRow[],
+    board: BoardRow | null,
+    withKeys: Set<string>,
+    viewer?: string,
+    types: Cooperative.Document.IDecisionTypeInfo[] = Object.values(Cooperative.Document.decisionTypesRegistry)
+  ): RobotDecisionTypeView[] {
     const now = new Date();
     const members = board?.members ?? [];
     const totalMembers = members.length;
@@ -133,19 +152,16 @@ export class RobotRegistryService {
     const alive = automations.filter((a) => !isAutomationExpired(a, now));
     const mine = viewer ? alive.find((a) => a.member === viewer) : undefined;
 
-    return Object.values(Cooperative.Document.decisionTypesRegistry).map((info) => {
+    return types.map((info) => {
       const voters = this.votersOf(alive, info.type, isVoting, withKeys);
       const chairmanRow = chairman ? alive.find((a) => a.member === chairman && a.authorize_types.includes(info.type)) : undefined;
-      const serviceable = info.protocol_registry_id !== undefined;
       const myFollow = mine ? followOf(mine, info.type) : null;
       const myAuto = !!mine && mine.vote_types.includes(info.type);
       return {
         type: info.type,
         title: info.title,
         description: info.description,
-        area: info.area,
-        protocol_registry_id: info.protocol_registry_id ?? null,
-        serviceable,
+        protocol_registry_id: info.protocol_registry_id,
         voters,
         vote_quorum: this.quorumOf(voters, totalMembers, isVoting),
         chairman: {

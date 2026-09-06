@@ -141,7 +141,10 @@ export class RobotDecisionService {
   ): Promise<RobotDecisionDomainEntity> {
     entry.stage = RobotDecisionStage.AWAITING_PROTOCOL;
     const registryId = Cooperative.Document.decisionTypesRegistry[entry.decision_type]?.protocol_registry_id;
-    if (!registryId) throw new Error(`Для типа решения ${entry.decision_type} не описан шаблон протокола`);
+    if (!registryId)
+      throw new Error(
+        `Тип решения ${entry.decision_type} не описан в реестре решений совета — автоматизировать его нельзя`
+      );
 
     const generated = await this.documents.generate({
       data: this.protocolData(registryId, entry.coopname, decision),

@@ -17,9 +17,9 @@ export const useRobotStore = defineStore(namespace, () => {
   const journal = ref<IRobotJournal | null>(null);
   const keys = ref<IRobotKeyStatus[]>([]);
 
-  /** Типы, которые робот умеет довести до протокола, — первыми. */
+  /** Реестр по алфавиту: все решения в нём одинаково доступны автоматизации. */
   const sortedRegistry = computed(() =>
-    [...registry.value].sort((a, b) => Number(b.serviceable) - Number(a.serviceable) || a.title.localeCompare(b.title, 'ru')),
+    [...registry.value].sort((a, b) => a.title.localeCompare(b.title, 'ru')),
   );
 
   const titleByType = computed<Record<string, string>>(() =>

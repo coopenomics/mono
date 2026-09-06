@@ -83,14 +83,8 @@ export class RobotDecisionTypeDTO {
   @Field(() => String, { description: 'О чём решение' })
   description!: string;
 
-  @Field(() => String, { description: 'Область платформы, из которой приходит решение' })
-  area!: string;
-
-  @Field(() => Int, { nullable: true, description: 'Номер шаблона протокола в реестре документов' })
-  protocol_registry_id?: number | null;
-
-  @Field(() => Boolean, { description: 'Робот умеет довести этот тип решения до протокола' })
-  serviceable!: boolean;
+  @Field(() => Int, { description: 'Номер шаблона протокола в реестре документов' })
+  protocol_registry_id!: number;
 
   @Field(() => [RobotVoterDTO], { description: 'Кто делегировал роботу голос по этому типу' })
   voters!: RobotVoterDTO[];
