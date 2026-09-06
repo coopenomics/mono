@@ -15,6 +15,7 @@ import { GeneratedDocumentDTO } from '@coopenomics/extension-kit';
 import { MarketplaceUnitOfMeasureEnum } from './marketplace-offer.dto';
 import { marketplaceOrderUnitLabel } from '../shared/unit-label.util';
 import { MarketplaceShareReturnStatementSignedInputDTO } from '../documents-dto/marketplace-share-return-statement-document.dto';
+import { MarketplaceConvertStatementSignedInputDTO } from '../documents-dto/marketplace-convert-statement-document.dto';
 import { MarketplaceIssuanceSagaDTO } from './marketplace-issuance-saga.dto';
 
 export enum MarketplaceStockProposalStatusEnum {
@@ -255,6 +256,19 @@ export class MarketplaceStockAcceptOrderLineDTO {
       'Заявление о возврате паевого взноса имуществом по строке — к подписи пайщиком. Совет принимает решение по нему.',
   })
   public readonly statement!: GeneratedDocumentDTO;
+
+  @Field(() => String, {
+    description:
+      'Конвертируется из свободного паевого в членский по заявлению (недостающая до членского взноса участка часть), с валютой; ноль — взнос покрыт членским кошельком.',
+  })
+  public readonly convert_amount!: string;
+
+  @Field(() => GeneratedDocumentDTO, {
+    nullable: true,
+    description:
+      'Заявление 1110 о переводе паевого взноса на оплату с уплатой членского взноса — к подписи пайщиком вместе с заявлением о выдаче: по докладке всегда, по заказу — на доплату при факте больше заказа; null — подпись не требуется.',
+  })
+  public readonly convert_statement!: GeneratedDocumentDTO | null;
 }
 
 @ObjectType('MarketplaceStockAcceptPayload')
@@ -278,6 +292,15 @@ export class MarketplaceStockFinalizeLineInputDTO {
   @ValidateNested()
   @Type(() => MarketplaceShareReturnStatementSignedInputDTO)
   public readonly signed_statement!: MarketplaceShareReturnStatementSignedInputDTO;
+
+  @Field(() => MarketplaceConvertStatementSignedInputDTO, {
+    nullable: true,
+    description: 'Заявление 1110, подписанное пайщиком — только если payloads вернули его по строке.',
+  })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => MarketplaceConvertStatementSignedInputDTO)
+  public readonly signed_convert?: MarketplaceConvertStatementSignedInputDTO | null;
 }
 
 @InputType('MarketplaceFinalizeStockIssuanceInput')

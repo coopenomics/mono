@@ -10,9 +10,11 @@
  *     Цифрового кошелька нет);
  *  2. o.mkt.consum на fact_cost — BURN w.mkt.order, Дт 80 / Кт 10: возврат
  *     паевого взноса имуществом по протоколу совета;
- *  3. членский взнос участка по факту: излишек — o.mkt.refund (Дт 86 / Кт 80),
- *     недостаток — o.mkt.lockpf (Дт 80 / Кт 86), затем branch::accrue → 100 %
- *     факта взноса в общий кошелёк участка выдачи;
+ *  3. членский взнос участка по факту: излишек — o.mkt.refund на членский
+ *     кошелёк программы (w.mkt.fee → w.mkt.member), недостаток — o.mkt.fee с
+ *     членского кошелька (недостающее конвертировано по заявлению на
+ *     issuestmt), затем branch::accrue → 100 % факта взноса в общий кошелёк
+ *     участка выдачи;
  *  4. `issueact1 → received`, гарантийное окно, `issue_act2` = акт,
  *     `Soviet::make_complete_document` для акта (пакет = order_hash).
  *
@@ -93,14 +95,14 @@ void marketplace::issueact2(eosio::name coopname,
                      Marketplace::Memo::get_membership_fee_refund_memo(o.id));
     } else if (fact_fee > locked_fee) {
       const eosio::asset fee_diff = fact_fee - locked_fee;
-      auto bal_share_fee = Marketplace::get_user_wallet_balance(
-          coopname, ledger2_wallets::MARKETPLACE_SHARE_FUND, o.orderer);
-      eosio::check(bal_share_fee.available >= fee_diff,
-                   std::string{"Недостаточно паевых средств «Стола заказов» для довзноса по факту: требуется "} +
-                     fee_diff.to_string() + ", доступно " + bal_share_fee.available.to_string() +
-                     ". Уменьшите состав выдачи либо пополните паевой взнос и повторите.");
+      auto bal_member = Marketplace::get_user_wallet_balance(
+          coopname, ledger2_wallets::MARKETPLACE_MEMBER_FUND, o.orderer);
+      eosio::check(bal_member.available >= fee_diff,
+                   std::string{"Недостаточно членского взноса «Стола заказов» для довзноса по факту: требуется "} +
+                     fee_diff.to_string() + ", доступно " + bal_member.available.to_string() +
+                     ". Уменьшите состав выдачи либо повторите заявление о выдаче с конвертацией.");
       Ledger2::apply(_marketplace, coopname,
-                     operations::marketplace::LOCK_FEE_FROM_SHARE,
+                     operations::marketplace::MEMBERSHIP_FEE_LOCK,
                      processes::marketplace::SUPPLY,
                      fee_diff, o.orderer, o.hash,
                      Marketplace::Memo::get_membership_fee_topup_memo(o.id));

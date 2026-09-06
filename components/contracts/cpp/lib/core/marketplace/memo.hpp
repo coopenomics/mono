@@ -35,12 +35,16 @@ namespace Marketplace::Memo {
     return "Паевой резерв под заказ имущества № " + std::to_string(order_id) + " со склада кооператива из свободного паевого Стола заказов";
   }
 
+  inline std::string get_convert_to_member_memo(uint64_t order_id) {
+    return "Конвертация паевого взноса в членский по заявлению под заказ имущества № " + std::to_string(order_id) + " в Столе заказов";
+  }
+
   inline std::string get_membership_fee_lock_memo(uint64_t order_id) {
     return "Членский взнос по заказу имущества № " + std::to_string(order_id) + " в Столе заказов";
   }
 
   inline std::string get_membership_fee_refund_memo(uint64_t order_id) {
-    return "Сторно членского взноса участка на паевой по заказу имущества № " + std::to_string(order_id) + " в Столе заказов";
+    return "Сторно членского взноса участка на членский кошелёк Стола заказов по заказу имущества № " + std::to_string(order_id);
   }
 
   inline std::string get_membership_fee_topup_memo(uint64_t order_id) {

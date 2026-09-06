@@ -116,10 +116,25 @@ export interface IssuanceMocks {
   chainPort: any;
   assetConfig: MarketplaceAssetConfig;
   documentPort: any;
+  /** Конвертация по заявлению 1110: по умолчанию членского кошелька хватает — довзноса и заявления нет. */
+  convertService: any;
+  economyService: any;
   verificationPort: any;
   robotPort: any;
   eventBus: any;
   logger: any;
+}
+
+/** asset-строка «12.3400 RUB» → минимальные единицы (4 знака), без float. */
+export function toUnits(value: string): bigint {
+  const numeric = String(value).trim().split(/\s+/)[0] ?? '0';
+  const [int, frac = ''] = numeric.split('.');
+  return BigInt(int || '0') * 10_000n + BigInt((frac + '0000').slice(0, 4) || '0');
+}
+
+export function toAsset(units: bigint): string {
+  const padded = units.toString().padStart(5, '0');
+  return `${padded.slice(0, -4)}.${padded.slice(-4)} RUB`;
 }
 
 export function buildMocks(opts: {
@@ -128,6 +143,8 @@ export function buildMocks(opts: {
   /** Принято на склад по заказу (для заказа поставщика) / зарезервировано (для заказа из остатка). */
   warehouse?: number;
   robotPort?: any;
+  /** Остаток членского кошелька программы пайщика в минимальных единицах (по умолчанию — хватает на всё). */
+  memberAvailableUnits?: bigint;
 } = {}): IssuanceMocks {
   const order = opts.order ?? buildOrder();
   const warehouse = opts.warehouse ?? 10;
@@ -166,6 +183,44 @@ export function buildMocks(opts: {
     getVerificationTypes: jest.fn(async () => []),
   };
   const logger = { setContext: jest.fn(), debug: jest.fn(), log: jest.fn(), error: jest.fn(), warn: jest.fn(), info: jest.fn() };
+  const memberAvailable = opts.memberAvailableUnits ?? 1_000_000_000n;
+  const economyService = {
+    assetToUnits: jest.fn((v: string) => toUnits(v)),
+    unitsToAsset: jest.fn((u: bigint) => toAsset(u)),
+    getMembershipFeeContractPercent: jest.fn(async () => 300000),
+    toHumanFeePercent: jest.fn((v: number) => (Number(v) * 100) / 1_000_000),
+  };
+  const convertService = {
+    memberAvailableUnits: jest.fn(async () => memberAvailable),
+    shortfallUnits: jest.fn((available: bigint, fee: bigint) => (fee > available ? fee - available : 0n)),
+    planConversions: jest.fn((available: bigint, fees: bigint[]) => {
+      let left = available;
+      return fees.map((fee_units) => {
+        const convert_units = fee_units > left ? fee_units - left : 0n;
+        left = left + convert_units - fee_units;
+        return { fee_units, convert_units };
+      });
+    }),
+    generateStatement: jest.fn(async (input: any) => ({
+      full_title: 'convert',
+      html: '<html/>',
+      hash: 'hash-1110',
+      meta: {
+        registry_id: 1110,
+        order_hash: input.order_hash,
+        amount: toAsset(input.body_units + input.fee_units),
+        membership_fee: toAsset(input.fee_units),
+        convert_amount: toAsset(input.convert_units),
+        source: input.source,
+      },
+      binary: '',
+    })),
+    verifySigned: jest.fn((signed: any) => {
+      if (!signed) throw new Error('Нет подписанного заявления о конвертации');
+      return { hash: signed.hash ?? 'signed-1110', meta: JSON.stringify(signed.meta), signatures: signed.signatures ?? [] };
+    }),
+    emptyDocument: jest.fn(() => ({ hash: '0'.repeat(64), meta: '', signatures: [] })),
+  };
   return {
     orderRepo,
     sagaRepo,
@@ -175,6 +230,8 @@ export function buildMocks(opts: {
     chainPort,
     assetConfig: { symbol: 'RUB', decimals: 4 },
     documentPort,
+    convertService,
+    economyService,
     verificationPort,
     robotPort: opts.robotPort ?? null,
     eventBus: { emit: jest.fn() },
@@ -191,6 +248,8 @@ export function buildService(m: IssuanceMocks): MarketplaceIssuanceService {
     m.chainPort,
     m.assetConfig,
     m.documentPort,
+    m.convertService,
+    m.economyService,
     m.verificationPort,
     m.robotPort,
     m.eventBus,

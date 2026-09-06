@@ -61,6 +61,7 @@ export * as ListIssuancesByBraname from './listIssuancesByBraname'
 export * as IssuanceStatementPayload from './issuanceStatementPayload'
 /** Компонент 68: акт приёма-передачи к подписи заказчиком после решения совета */
 export * as IssuanceActPayload from './issuanceActPayload'
+export * as IssuanceConvertPayload from './issuanceConvertPayload'
 /** Компонент 68: акт с подписью заказчика к закрывающей подписи оператора */
 export * as IssuanceClosePayload from './issuanceClosePayload'
 /** Компонент 68: ход выдачи по заказу (сага) */

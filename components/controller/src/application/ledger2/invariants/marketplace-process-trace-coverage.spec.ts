@@ -43,7 +43,7 @@ import { MARKETPLACE_OPERATION_CODES } from './marketplace-ledger2-invariants'
  * `Ledger2.LEDGER2_OPERATION_REGISTRY` — это поломка контракта/cooptypes.
  */
 const EXPECTED_MARKETPLACE_OP_CODES = [
-  // p.mkt.supply (12 операций)
+  // p.mkt.supply (13 операций)
   'o.mkt.lock',
   'o.mkt.lockp',
   'o.mkt.unlock',
@@ -52,9 +52,10 @@ const EXPECTED_MARKETPLACE_OP_CODES = [
   'o.mkt.payout',
   'o.mkt.consum',
   'o.mkt.loss',
+  'o.mkt.conv',
+  'o.mkt.convp',
   'o.mkt.fee',
   'o.mkt.refund',
-  'o.mkt.lockpf',
   'o.mkt.recall',
   // p.mkt.return (1)
   'o.mkt.return',
@@ -63,8 +64,8 @@ const EXPECTED_MARKETPLACE_OP_CODES = [
 ] as const
 
 describe('Story 11.2 — coverage marketplace operation_code в cooptypes', () => {
-  it('canonical список содержит 14 кодов', () => {
-    expect(EXPECTED_MARKETPLACE_OP_CODES).toHaveLength(14)
+  it('canonical список содержит 15 кодов', () => {
+    expect(EXPECTED_MARKETPLACE_OP_CODES).toHaveLength(15)
   })
 
   it('каждый код присутствует в LEDGER2_OPERATION_REGISTRY', () => {
@@ -134,9 +135,10 @@ describe('Story 11.2 — wallet_op + Дт/Кт реестра соответст
     { code: 'o.mkt.payout', walletOp: 'ISSUE', walletFrom: null, walletTo: 'w.mkt.payout', debit: 60, credit: 51 },
     { code: 'o.mkt.consum', walletOp: 'BURN', walletFrom: 'w.mkt.order', walletTo: null, debit: 80, credit: 10 },
     { code: 'o.mkt.loss', walletOp: 'NONE', walletFrom: null, walletTo: null, debit: 91, credit: 10 },
-    { code: 'o.mkt.fee', walletOp: 'TRANSFER', walletFrom: 'w.wal.share', walletTo: 'w.mkt.fee', debit: 80, credit: 86 },
-    { code: 'o.mkt.refund', walletOp: 'TRANSFER', walletFrom: 'w.mkt.fee', walletTo: 'w.mkt.share', debit: 86, credit: 80 },
-    { code: 'o.mkt.lockpf', walletOp: 'TRANSFER', walletFrom: 'w.mkt.share', walletTo: 'w.mkt.fee', debit: 80, credit: 86 },
+    { code: 'o.mkt.conv', walletOp: 'TRANSFER', walletFrom: 'w.wal.share', walletTo: 'w.mkt.member', debit: 80, credit: 86 },
+    { code: 'o.mkt.convp', walletOp: 'TRANSFER', walletFrom: 'w.mkt.share', walletTo: 'w.mkt.member', debit: 80, credit: 86 },
+    { code: 'o.mkt.fee', walletOp: 'TRANSFER', walletFrom: 'w.mkt.member', walletTo: 'w.mkt.fee', debit: null, credit: null },
+    { code: 'o.mkt.refund', walletOp: 'TRANSFER', walletFrom: 'w.mkt.fee', walletTo: 'w.mkt.member', debit: null, credit: null },
     { code: 'o.mkt.recall', walletOp: 'TRANSFER', walletFrom: 'w.mkt.share', walletTo: 'w.wal.share', debit: null, credit: null },
     { code: 'o.mkt.return', walletOp: 'ISSUE', walletFrom: null, walletTo: 'w.mkt.share', debit: 10, credit: 80 },
     { code: 'o.mkt.wroff', walletOp: 'NONE', walletFrom: null, walletTo: null, debit: 86, credit: 10 },

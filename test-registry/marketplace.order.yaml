@@ -20,6 +20,8 @@ title: Заказ пайщика — оформление, приём и отк�
 sources:
   backend:
     - components/controller/src/extensions/marketplace/application/services/marketplace-order-create.service.ts
+    - components/controller/src/extensions/marketplace/application/services/marketplace-checkout.service.ts
+    - components/controller/src/extensions/marketplace/application/services/marketplace-convert.service.ts
     - components/controller/src/extensions/marketplace/application/services/marketplace-order-cancel.service.ts
     - components/controller/src/extensions/marketplace/application/services/marketplace-order-supplier-action.service.ts
     - components/controller/src/extensions/marketplace/application/services/marketplace-order-display.service.ts
@@ -272,3 +274,77 @@ cases:
 # 2026-09-06 (паевая модель, компонент 68): оформление без документов — паевой
 # резерв ставит контракт; в «Моих заказах» новые статусы выдачи ISSUE_PENDING /
 # ISSUE_AUTHORIZED / ISSUE_ACT1 и обновление по событию саги. Случаи не менялись.
+
+# Правка 2026-09-06 (99D-4/99D-7, решение владельца вечером того же дня):
+# членская часть модели остаётся для взноса кооперативного участка. Заявление
+# 1110 возвращено с новым текстом: перевод полной суммы заказа из Цифрового
+# кошелька в программу с выделением членского взноса; по кошелькам паевая и
+# членская части идут каждая своим путём, в членский кошелёк программы
+# `w.mkt.member` переводится только недостающая до взноса часть, остаток
+# кошелька зачитывается автоматически. Контракт: `createorder` снова
+# принимает `convert_statement` (обязателен), операции o.mkt.conv
+# (w.wal.share → w.mkt.member) и o.mkt.fee с членского кошелька; сторно
+# o.mkt.refund — на членский кошелёк. Превью корзины отдаёт документ по
+# каждой строке.
+
+  - id: mkt.order.side.30
+    level: backend
+    kind: side
+    scenario: >
+      План конвертации по строкам корзины: членского кошелька программы хватает
+      на всё, на часть строк, ни на одну; ставка взноса нулевая
+    expect: >
+      конвертируется ровно недостающая до взноса часть в порядке проведения строк;
+      при достаточном остатке заявлений нет; при нулевой ставке конвертации нет
+    test: components/controller/tests/unit/marketplace/marketplace-convert-statement.test.ts
+    status: written
+
+  - id: mkt.order.side.31
+    level: backend
+    kind: side
+    scenario: >
+      Превью строки формирует заявление 1110 при частичном зачёте членского кошелька и
+      при пустом кошельке; членский кошелёк ещё не заведён у пайщика
+    expect: >
+      в мете — полная сумма позиции, взнос участка, переводимая в членский часть, зачёт
+      остатка (только при частичном зачёте), ставка и источник; незаведённый кошелёк — пустой
+    test: components/controller/tests/unit/marketplace/marketplace-convert-statement.test.ts
+    status: written
+
+  - id: mkt.order.side.32
+    level: backend
+    kind: side
+    scenario: >
+      Оформление с заявлением 1110, которого нет, которое подписано на другой заказ,
+      с разошедшейся полной суммой, взносом или переводимой частью (баланс кошелька
+      изменился с превью), либо чужой подписью; и полностью сошедшееся
+    expect: >
+      отказ «обновите оформление» до отправки в цепь, с обеими суммами при расхождении;
+      сошедшееся заявление превращается в document2 для контракта
+    test: components/controller/tests/unit/marketplace/marketplace-convert-statement.test.ts
+    status: written
+
+  - id: mkt.order.side.33
+    level: contract
+    kind: side
+    scenario: >
+      createorder без заявления 1110; с заявлением при пустом членском кошельке; с заявлением,
+      когда остатка кошелька хватает на взнос
+    expect: >
+      первый отвергается; второй проходит с o.mkt.lock, o.mkt.conv на весь взнос и o.mkt.fee;
+      третий проходит с o.mkt.lock и o.mkt.fee без o.mkt.conv, заявление публикуется в обоих
+    test: ~
+    status: missing
+
+  - id: mkt.order.happy.04
+    level: contract
+    kind: happy
+    scenario: >
+      Пайщица оформляет заказ: превью отдаёт заявление 1110 на полную сумму с выделением
+      взноса и переводимой частью, она подписывает его, заказ проходит
+    expect: >
+      в нитке заказа o.mkt.lock на тело, o.mkt.conv ровно на переводимую часть из превью
+      (w.wal.share → w.mkt.member, не больше взноса), o.mkt.fee на взнос (w.mkt.member →
+      w.mkt.fee); при недовыдаче излишек взноса возвращается на w.mkt.member, а не на паевой
+    test: components/boot/src/tests/marketplace-money.test.ts
+    status: written

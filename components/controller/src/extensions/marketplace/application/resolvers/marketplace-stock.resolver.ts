@@ -221,8 +221,9 @@ export class MarketplaceStockResolver {
   @Query(() => MarketplaceStockAcceptPayloadDTO, {
     name: 'marketplaceStockProposalSignablePayloads',
     description:
-      'Нагрузка к подписи бандла пайщиком: по каждой строке — заявление о возврате паевого взноса имуществом. ' +
-      'Отдельного заявления о конвертации нет: паевой резерв под докладку берётся из свободного паевого при подписи.',
+      'Нагрузка к подписи бандла пайщиком: по каждой строке — заявление о возврате паевого взноса имуществом; по докладке ' +
+      'ещё и заявление 1110 о переводе свободного паевого на оплату заказа из остатка с уплатой членского взноса участка, ' +
+      'по заказу — только на доплату при факте больше заказа.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
   @RequireMarketplaceAccess('StockProposal', 'resolve:own')
@@ -241,6 +242,8 @@ export class MarketplaceStockResolver {
         order_id: l.order_id,
         order_hash: l.order_hash,
         statement: new GeneratedDocumentDTO(l.statement),
+        convert_amount: l.convert_amount,
+        convert_statement: l.convert_statement ? new GeneratedDocumentDTO(l.convert_statement) : null,
       })),
     };
   }
@@ -248,7 +251,8 @@ export class MarketplaceStockResolver {
   @Mutation(() => MarketplaceStockProposalAcceptResultDTO, {
     name: 'marketplaceFinalizeStockIssuance',
     description:
-      'Пайщик одним нажатием подписывает заявления по всем строкам бандла: по докладке создаётся заказ из остатка (резерв из паевого), ' +
+      'Пайщик одним нажатием подписывает заявления по всем строкам бандла: по докладке создаётся заказ из остатка (тело из свободного паевого, ' +
+      'членский взнос участка с членского кошелька программы, недостающее — по заявлению о конвертации 1110), ' +
       'по каждому заказу заявление уходит в цепь и на повестку совета; робот решений совета зовётся напрямую и ждётся у стойки. ' +
       'Ответ несёт саги выдачи: решение принято — пайщик подписывает акт, иначе — режим ожидания без действий с его стороны.',
   })

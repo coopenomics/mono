@@ -202,6 +202,23 @@ export class MarketplaceIssuanceResolver {
     return toGeneratedDocumentDTO(doc);
   }
 
+  @Query(() => GeneratedDocumentDTO, {
+    nullable: true,
+    name: 'marketplaceIssuanceConvertPayload',
+    description:
+      'Заявление 1110 на доплату по факту (разница тела и довзнос участка) — к подписи заказчиком вместе ' +
+      'с заявлением о выдаче, только если факт больше заказа и членского кошелька «Стола заказов» не хватает на довзнос; иначе null.',
+  })
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @RequireMarketplaceAccess('Issuance', 'sign:statement')
+  async marketplaceIssuanceConvertPayload(
+    @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
+    @Args('data') data: MarketplaceIssuanceOrderInputDTO
+  ): Promise<GeneratedDocumentDTO | null> {
+    const doc = await this.service.getConvertSignablePayload(platformSettings().coopname, data.order_id, member.username);
+    return doc ? toGeneratedDocumentDTO(doc) : null;
+  }
+
   @Mutation(() => MarketplaceIssuanceSagaDTO, {
     name: 'marketplaceSignIssuanceStatement',
     description: 'Заказчик подписал заявление: оно уходит совету. Если робот решений совета ответил сразу, в ответе уже есть протокол и акт к подписи; иначе выдача ждёт решение — придёт уведомление.',
@@ -212,7 +229,7 @@ export class MarketplaceIssuanceResolver {
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceSignIssuanceStatementInputDTO
   ): Promise<MarketplaceIssuanceSagaDTO> {
-    const saga = await this.service.submitStatement({ coopname: platformSettings().coopname, member_account: member.username, order_id: data.order_id, signed_statement: data.signed_statement });
+    const saga = await this.service.submitStatement({ coopname: platformSettings().coopname, member_account: member.username, order_id: data.order_id, signed_statement: data.signed_statement, signed_convert: data.signed_convert ?? null });
     return toMarketplaceIssuanceSagaDTO(saga);
   }
 

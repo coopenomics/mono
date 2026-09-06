@@ -9,6 +9,8 @@ import {
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { LOGGER_PORT, type ILoggerPort, type InnerGeneratedDocument } from '@coopenomics/innercoop';
 import type { MarketplaceShareReturnStatementSignedInputDTO } from '../documents-dto/marketplace-share-return-statement-document.dto';
+import type { MarketplaceConvertStatementSignedInputDTO } from '../documents-dto/marketplace-convert-statement-document.dto';
+import { MARKETPLACE_CONVERT_SERVICE, MarketplaceConvertService } from './marketplace-convert.service';
 import { computeStockOrderHash } from '../shared/order-hash.util';
 import type { MarketplaceIssuanceSagaDomainEntity } from '../../domain/entities/marketplace-issuance-saga.entity';
 import { MarketplaceIssuanceSagaStages } from '../../domain/entities/marketplace-issuance-saga.types';
@@ -106,23 +108,44 @@ export interface MarketplaceStockIssuanceOperatorLine {
   package_size: number;
 }
 
-/** Строка к подписи пайщиком: заявление о возврате паевого взноса имуществом по заказу или докладке. */
+/**
+ * Строка к подписи пайщиком: заявление о возврате паевого взноса имуществом
+ * по заказу или докладке и заявление 1110 о переводе паевого взноса на оплату
+ * с уплатой членского взноса: по докладке — всегда (полная сумма заказа из
+ * остатка с выделением взноса участка), по существующему заказу — только на
+ * доплату при факте больше заказа, когда членского кошелька не хватает на
+ * довзнос; иначе `convert_statement` пустой.
+ */
 export interface MarketplaceStockAcceptOrderLine {
   offer_id: string;
   order_id: string | null;
   order_hash: string;
   statement: InnerGeneratedDocument;
+  convert_amount: string;
+  convert_statement: InnerGeneratedDocument | null;
 }
 
-/** Полезная нагрузка к одной подписи пайщика: заявления по строкам, отдельного заявления о конвертации нет. */
+/** Полезная нагрузка к одной подписи пайщика: заявления по строкам. */
 export interface MarketplaceStockAcceptPayload {
   order_lines: MarketplaceStockAcceptOrderLine[];
 }
 
-/** Строка подписания: order_hash + подписанное заказчиком заявление 1113. */
+/** Строка подписания: order_hash, подписанное заказчиком заявление 1113 и, если было выдано, 1110. */
 export interface MarketplaceStockFinalizeLine {
   order_hash: string;
   signed_statement: MarketplaceShareReturnStatementSignedInputDTO;
+  signed_convert?: MarketplaceConvertStatementSignedInputDTO | null;
+}
+
+/** Строка бандла с планом сумм (порядок = порядок проведения). */
+interface BundlePlannedItem {
+  item: MarketplaceStockProposalItem;
+  /** Тело: стоимость заказа из остатка (докладка) либо доплата по факту (существующий заказ), в единицах. */
+  body_units: bigint;
+  /** Взнос участка (докладка) либо довзнос по факту (существующий заказ), в единицах. */
+  fee_units: bigint;
+  /** Недостающая до взноса часть членского кошелька — переводится из паевого в членский. */
+  convert_units: bigint;
 }
 
 export interface MarketplaceStockFinalizeInput {
@@ -154,6 +177,8 @@ export class MarketplaceStockProposalService {
     private readonly issuanceService: MarketplaceIssuanceService,
     @Inject(MARKETPLACE_ECONOMY_SERVICE)
     private readonly economyService: MarketplaceEconomyService,
+    @Inject(MARKETPLACE_CONVERT_SERVICE)
+    private readonly convertService: MarketplaceConvertService,
     @Inject(MARKETPLACE_ISSUANCE_SAGA_REPOSITORY)
     private readonly sagaRepo: MarketplaceIssuanceSagaDomainRepository,
     private readonly eventBus: EventEmitter2,
@@ -163,10 +188,54 @@ export class MarketplaceStockProposalService {
   }
 
   /**
+   * План членского взноса по бандлу в порядке проведения: сначала докладка
+   * (заказы из остатка рождаются первыми и берут взнос участка с членского
+   * кошелька программы), затем довзносы по существующим заказам при факте
+   * больше заказа. Остаток членского кошелька зачитывается последовательно,
+   * недостающее по каждой строке — конвертация по заявлению 1110. Порядок
+   * обязан совпадать с `finalizeStockIssuance`, иначе суммы заявлений и
+   * расчёт контракта разойдутся.
+   */
+  private async planBundle(
+    coopname: string,
+    proposal: MarketplaceStockProposalDomainEntity,
+    member_account: string
+  ): Promise<BundlePlannedItem[]> {
+    const feePercent = await this.economyService.getMembershipFeeContractPercent(coopname);
+    const stockItems = proposal.items.filter((i) => !i.order_id);
+    const orderItems = proposal.items.filter((i) => !!i.order_id);
+    const bodies: bigint[] = [];
+    const fees: bigint[] = [];
+    for (const item of stockItems) {
+      const { resolved } = await this.validateStockLine(coopname, proposal.braname, item.offer_id, item.quantity, item.package_id);
+      const saleUnitCount = resolved.packageSize > 0 ? resolved.packageCount! : resolved.baseQuantity;
+      const body = this.economyService.lineBodyUnits(resolved.unitPrice, saleUnitCount);
+      bodies.push(body);
+      fees.push(this.economyService.membershipFeeUnits(body, feePercent));
+    }
+    const topUps: Array<{ body: bigint; fee: bigint }> = [];
+    for (const item of orderItems) {
+      const t = await this.issuanceService.getFeeTopUp(coopname, item.order_id!, member_account);
+      topUps.push({ body: t.body_topup_units, fee: t.topup_units });
+    }
+    const memberAvailable = await this.convertService.memberAvailableUnits(coopname, member_account);
+    const plan = this.convertService.planConversions(memberAvailable, [...fees, ...topUps.map((t) => t.fee)]);
+    const planned: BundlePlannedItem[] = [];
+    stockItems.forEach((item, i) => planned.push({ item, body_units: bodies[i]!, fee_units: fees[i]!, convert_units: plan[i]!.convert_units }));
+    orderItems.forEach((item, i) =>
+      planned.push({ item, body_units: topUps[i]!.body, fee_units: topUps[i]!.fee, convert_units: plan[fees.length + i]!.convert_units })
+    );
+    return planned;
+  }
+
+  /**
    * Заявления к одной подписи пайщика: по каждой строке бандла — заявление о
    * возврате паевого взноса имуществом (1113). Для существующих заказов
    * документ строится из саги (факт зафиксирован оператором), для докладки —
-   * из строки бандла по детерминированному order_hash.
+   * из строки бандла по детерминированному order_hash. По докладке к строке
+   * всегда добавляется заявление 1110 о переводе паевого взноса на оплату с
+   * уплатой членского взноса участка; по существующему заказу — только на
+   * доплату при факте больше заказа, когда членского кошелька не хватает.
    */
   async getAcceptSignablePayloads(
     coopname: string,
@@ -178,21 +247,41 @@ export class MarketplaceStockProposalService {
       throw new ForbiddenException('Подписать заявления может только адресат предложения.');
     }
     this.assertProposed(proposal);
-    const order_lines: MarketplaceStockAcceptOrderLine[] = [];
     for (const item of proposal.items) {
       if (!item.order_hash) {
         throw new ConflictException('Бандл в устаревшем формате (без order_hash) — переформируйте его у стойки.');
       }
+    }
+    const feePercent = await this.economyService.getMembershipFeeContractPercent(coopname);
+    const planned = await this.planBundle(coopname, proposal, member_account);
+    const planByHash = new Map(planned.map((p) => [p.item.order_hash!, p]));
+    const order_lines: MarketplaceStockAcceptOrderLine[] = [];
+    for (const item of proposal.items) {
+      const plan = planByHash.get(item.order_hash!)!;
+      const needsStatement = !item.order_id || plan.convert_units > 0n;
+      const convert_statement = needsStatement
+        ? await this.convertService.generateStatement({
+            coopname,
+            username: member_account,
+            order_hash: item.order_hash!,
+            body_units: plan.body_units,
+            fee_units: plan.fee_units,
+            convert_units: plan.convert_units,
+            fee_contract_percent: feePercent,
+            source: 'market',
+          })
+        : null;
+      const convert_amount = this.economyService.unitsToAsset(plan.convert_units);
       if (item.order_id) {
         const statement = await this.issuanceService.getStatementSignablePayload(coopname, item.order_id, member_account);
-        order_lines.push({ offer_id: item.offer_id, order_id: item.order_id, order_hash: item.order_hash, statement });
+        order_lines.push({ offer_id: item.offer_id, order_id: item.order_id, order_hash: item.order_hash!, statement, convert_amount, convert_statement });
         continue;
       }
       const { offer, resolved } = await this.validateStockLine(coopname, proposal.braname, item.offer_id, item.quantity, item.package_id);
       const statement = await this.issuanceService.generateStatementPreview({
         coopname,
         orderer_account: member_account,
-        order_hash: item.order_hash,
+        order_hash: item.order_hash!,
         braname: proposal.braname,
         offer_id: offer.id,
         product_title: offer.product_name,
@@ -201,7 +290,7 @@ export class MarketplaceStockProposalService {
         actual_quantity: resolved.baseQuantity,
         actual_unit_price: resolved.unitPrice,
       });
-      order_lines.push({ offer_id: item.offer_id, order_id: null, order_hash: item.order_hash, statement });
+      order_lines.push({ offer_id: item.offer_id, order_id: null, order_hash: item.order_hash!, statement, convert_amount, convert_statement });
     }
     return { order_lines };
   }
@@ -408,13 +497,17 @@ export class MarketplaceStockProposalService {
       throw new ForbiddenException('Подписать заявления может только адресат предложения.');
     }
     this.assertProposed(proposal);
-    const signedByHash = new Map((input.order_lines ?? []).map((l) => [l.order_hash, l.signed_statement]));
+    const signedByHash = new Map((input.order_lines ?? []).map((l) => [l.order_hash, l]));
     for (const item of proposal.items) {
       if (!item.order_hash) throw new ConflictException('Бандл в устаревшем формате — переформируйте его у стойки.');
-      if (!signedByHash.get(item.order_hash)) {
+      if (!signedByHash.get(item.order_hash)?.signed_statement) {
         throw new BadRequestException('Состав подписания не совпадает с бандлом — обновите подписание.');
       }
     }
+    // План по свежему балансу членского кошелька: суммы конвертации обязаны
+    // совпасть с подписанными заявлениями 1110, иначе подписание повторяется.
+    const planned = await this.planBundle(coopname, proposal, member_account);
+    const planByHash = new Map(planned.map((p) => [p.item.order_hash!, p]));
 
     // ── 1) Заказы из остатка — атомарно ────────────────────────────────
     const issuables: Array<{ order_id: string; item: MarketplaceStockProposalItem; fresh: boolean }> = [];
@@ -425,6 +518,12 @@ export class MarketplaceStockProposalService {
           issuables.push({ order_id: item.order_id, item, fresh: false });
           continue;
         }
+        const plan = planByHash.get(item.order_hash!)!;
+        const convert_statement = this.convertService.verifySigned(
+          signedByHash.get(item.order_hash!)?.signed_convert,
+          { order_hash: item.order_hash!, body_units: plan.body_units, fee_units: plan.fee_units, convert_units: plan.convert_units },
+          member_account
+        );
         const { order } = await this.stockService.createStockOrder({
           coopname,
           orderer_account: member_account,
@@ -433,6 +532,7 @@ export class MarketplaceStockProposalService {
           package_id: item.package_id ?? null,
           checkout_id: proposal.id,
           order_hash: item.order_hash!,
+          convert_statement,
         });
         createdStock.push(order.id);
         issuables.push({ order_id: order.id, item, fresh: true });
@@ -465,11 +565,15 @@ export class MarketplaceStockProposalService {
           actual_unit_price: item.unit_price,
         });
       }
+      const signedLine = signedByHash.get(item.order_hash!)!;
       const saga = await this.issuanceService.submitStatement({
         coopname,
         member_account,
         order_id,
-        signed_statement: signedByHash.get(item.order_hash!)!,
+        signed_statement: signedLine.signed_statement,
+        // Довзнос по факту существующего заказа: заявление 1110 сверяется в саге
+        // по свежему балансу (заказы из остатка выше уже забрали своё).
+        signed_convert: fresh ? null : signedLine.signed_convert ?? null,
       });
       sagas.push(saga);
       order_ids.push(order_id);

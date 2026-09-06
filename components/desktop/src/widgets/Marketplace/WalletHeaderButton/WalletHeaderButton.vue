@@ -30,6 +30,8 @@ const props = defineProps<{ coopname: string }>();
 const MARKET_WALLET = 'w.mkt.share';
 /** Главный паевой кошелёк ЦК — источник паевого взноса под заказ. */
 const SHARE_WALLET = 'w.wal.share';
+/** Членский кошелёк «Стола заказов» — членский взнос участка по заявлению о конвертации; остаток зачитывается при следующем заказе. */
+const MEMBER_WALLET = 'w.mkt.member';
 
 const walletStore = useWalletStore();
 const session = useSessionStore();
@@ -128,6 +130,16 @@ BaseDialog(v-model="dialogOpen", title="Кошелёк Стола заказов
     WalletCard(
       compact,
       stacked,
+      icon="card_membership",
+      title="Членский взнос Стола заказов",
+      subtitle="Зачитывается в счёт взноса участка по следующему заказу",
+      :balance="walletAmount(MEMBER_WALLET)",
+      :symbol="symbol",
+      :loading="loading"
+    )
+    WalletCard(
+      compact,
+      stacked,
       neutral,
       icon="account_balance_wallet",
       title="Главный паевой кошелёк",
@@ -137,10 +149,13 @@ BaseDialog(v-model="dialogOpen", title="Кошелёк Стола заказов
       :loading="loading"
     )
     .mp-wallet__hint
-      | Заказ оплачивается паевым взносом из главного паевого кошелька. После
-      | выдачи и отказов паевой взнос возвращается на свободный паевой Стола
-      | заказов — им оплачивается следующий заказ, либо его можно отозвать в
-      | Кошелёк.
+      | Имущество оплачивается паевым взносом из главного паевого кошелька.
+      | Членский взнос участка переходит из паевого в членский по заявлению о
+      | конвертации при оформлении и уходит участку при выдаче; его
+      | неиспользованная часть возвращается на членский кошелёк и зачитывается
+      | при следующем заказе. После выдачи и отказов паевой взнос возвращается
+      | на свободный паевой Стола заказов — им оплачивается следующий заказ,
+      | либо его можно отозвать в Кошелёк.
   template(#footer)
     BaseButton(
       v-if="Number.parseFloat(marketAmount.replace(',', '.')) > 0",

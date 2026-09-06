@@ -92,8 +92,12 @@ namespace operations {
 
   // marketplace — паевая модель «Стола заказов» (компонент 68, решение 06.09.2026).
   // Тело заказа от резерва до выдачи остаётся паевым взносом на счёте 80;
-  // единственный членский взнос процесса — взнос кооперативного участка.
+  // единственный членский взнос процесса — взнос кооперативного участка, и он
+  // переходит из паевого в членский только по Заявлению о конвертации (1110)
+  // на членский кошелёк программы w.mkt.member, откуда и берётся под заказ.
   namespace marketplace {
+    inline constexpr eosio::name CONVERT_TO_MEMBER      = "o.mkt.conv"_n;     ///< Конвертация паевого взноса в членский по заявлению 1110 при createorder (TRANSFER w.wal.share → w.mkt.member, Dr 80 / Cr 86). Сумма — недостающая до взноса участка часть: остаток w.mkt.member используется автоматически.
+    inline constexpr eosio::name CONVERT_FROM_SHARE     = "o.mkt.convp"_n;    ///< Конвертация свободного паевого «Стола заказов» в членский по заявлению 1110 (TRANSFER w.mkt.share → w.mkt.member, Dr 80 / Cr 86). stockorder и довзнос при факте больше заказа (issuestmt).
     inline constexpr eosio::name LOCK_ORDER             = "o.mkt.lock"_n;     ///< Паевой резерв под конкретный Order (TRANSFER w.wal.share → w.mkt.order, без Dr/Cr — оба кошелька на 80). Единственный обязательный шаг ledger2 при createorder.
     inline constexpr eosio::name LOCK_FROM_SHARE        = "o.mkt.lockp"_n;    ///< Паевой резерв из свободного паевого «Стола заказов» (TRANSFER w.mkt.share → w.mkt.order, без Dr/Cr — оба на 80). Так фондируется stockorder целиком и добирается доплата по факту на issueact2; автоматического добора с w.wal.share нет — при нехватке отказ.
     inline constexpr eosio::name UNLOCK_ORDER           = "o.mkt.unlock"_n;   ///< Возврат резерва при отмене Order'а или недовыдаче (TRANSFER w.mkt.order → w.mkt.share, без Dr/Cr — оба на 80). Средства остаются паевыми и остаются в программе; вывод в общий паевой — RECALL_SHARE.
@@ -103,9 +107,8 @@ namespace operations {
     inline constexpr eosio::name RETURN_BY_MEMBER       = "o.mkt.return"_n;   ///< Гарантийный возврат имущества по решению совета — compensating forward к CONSUME_BY_MEMBER (ISSUE ∅ → w.mkt.share, Dr 10 / Cr 80 — восстановление паевого на свободном паевом «Стола заказов» и возврат имущества на склад). Реверты ledger2::revert в Столе заказов не используются.
     inline constexpr eosio::name WRITE_OFF_PERISHABLE   = "o.mkt.wroff"_n;    ///< Утилизация скоропорта со склада (NONE Dr 86 / Cr 10). По протоколу совета. Проводка после перехода закупки на 60 — вопрос бухгалтеру (86 или 91).
     inline constexpr eosio::name MARKDOWN_LOSS          = "o.mkt.loss"_n;     ///< Уценка при выдаче из остатка кооператива (NONE Dr 91 / Cr 10): разница между ценой прибытия и фактической ценой выдачи выбывает со склада в прочие расходы. Вместе с o.mkt.consum даёт выбытие по полной стоимости прибытия — на счёте 10 ничего не зависает.
-    inline constexpr eosio::name MEMBERSHIP_FEE_LOCK    = "o.mkt.fee"_n;      ///< Членский взнос кооперативного участка при создании заказа (TRANSFER w.wal.share → w.mkt.fee, Dr 80 / Cr 86). Взнос считается от единой ставки кооператива и фиксируется явным полем Order.membership_fee.
-    inline constexpr eosio::name MEMBERSHIP_FEE_REFUND  = "o.mkt.refund"_n;   ///< Сторно неиспользованной части членского взноса участка на паевой (TRANSFER w.mkt.fee → w.mkt.share, Dr 86 / Cr 80). Отмена — полностью, недовыдача — пропорционально факту, гарантийный возврат — доля за возвращённое (TBD-Standardization: основание сторно).
-    inline constexpr eosio::name LOCK_FEE_FROM_SHARE    = "o.mkt.lockpf"_n;   ///< Членский взнос участка из свободного паевого «Стола заказов» (TRANSFER w.mkt.share → w.mkt.fee, Dr 80 / Cr 86). Парный к LOCK_FROM_SHARE: взнос по stockorder и довзнос по факту на issueact2.
+    inline constexpr eosio::name MEMBERSHIP_FEE_LOCK    = "o.mkt.fee"_n;      ///< Членский взнос кооперативного участка под заказ из членского кошелька программы (TRANSFER w.mkt.member → w.mkt.fee, без Dr/Cr — оба на 86). createorder, stockorder и довзнос по факту на issueact2; взнос считается от единой ставки кооператива и фиксируется явным полем Order.membership_fee.
+    inline constexpr eosio::name MEMBERSHIP_FEE_REFUND  = "o.mkt.refund"_n;   ///< Сторно неиспользованной части членского взноса участка на членский кошелёк программы (TRANSFER w.mkt.fee → w.mkt.member, без Dr/Cr — оба на 86). Отмена — полностью, недовыдача — пропорционально факту, гарантийный возврат — доля за возвращённое; членский остаётся членским и идёт в зачёт следующего заказа.
     inline constexpr eosio::name REFUSAL_PENALTY        = "o.mkt.penal"_n;    ///< Удержание 50% при отказе пайщика от получения после акцепта поставщиком (TRANSFER w.mkt.order → w.mkt.fee, Dr 80 / Cr 86 — паевой становится членским взносом участка; основание в положении о ЦПП — TBD-Standardization). Транзит через пул взносов: далее единым o.brn.common уходит в общий кошелёк КУ. Имущество остаётся на складе КУ; вторая половина возвращается пайщику (o.mkt.unlock + o.mkt.refund).
     inline constexpr eosio::name RECALL_SHARE           = "o.mkt.recall"_n;   ///< Вывод свободного паевого «Стола заказов» в общий паевой Цифрового кошелька (TRANSFER w.mkt.share → w.wal.share, без Dr/Cr — оба на 80). Действие пайщика recallshare без документа; та же операция консолидирует кошелёк при выходе из кооператива.
   }
@@ -440,26 +443,35 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
     ledger2_accounts::OTHER_INCOME_EXPENSES, ledger2_accounts::MATERIALS,
     "Уценка имущества при выдаче со склада кооператива" },
 
-  // 12i. p.mkt.supply: Членский взнос кооперативного участка по заказу
-  //      (TRANSFER w.wal.share → w.mkt.fee, Dr 80 / Cr 86).
+  // 12h. p.mkt.supply: Конвертация паевого взноса в членский по заявлению 1110
+  //      (TRANSFER w.wal.share → w.mkt.member, Dr 80 / Cr 86). createorder — на
+  //      недостающую до взноса участка сумму.
+  { operations::marketplace::CONVERT_TO_MEMBER, processes::marketplace::SUPPLY, WalletOp::TRANSFER,
+    ledger2_wallets::SHARE_FUND_PAY, ledger2_wallets::MARKETPLACE_MEMBER_FUND,
+    ledger2_accounts::SHARE_FUND, ledger2_accounts::TARGET_RECEIPTS,
+    "Конвертация паевого взноса в членский по заявлению" },
+
+  // 12h². p.mkt.supply: Конвертация свободного паевого «Стола заказов» в членский
+  //       по заявлению 1110 (TRANSFER w.mkt.share → w.mkt.member, Dr 80 / Cr 86).
+  //       stockorder и довзнос при факте больше заказа.
+  { operations::marketplace::CONVERT_FROM_SHARE, processes::marketplace::SUPPLY, WalletOp::TRANSFER,
+    ledger2_wallets::MARKETPLACE_SHARE_FUND, ledger2_wallets::MARKETPLACE_MEMBER_FUND,
+    ledger2_accounts::SHARE_FUND, ledger2_accounts::TARGET_RECEIPTS,
+    "Конвертация свободного паевого «Стола заказов» в членский по заявлению" },
+
+  // 12i. p.mkt.supply: Членский взнос кооперативного участка под заказ
+  //      (TRANSFER w.mkt.member → w.mkt.fee, без Dr/Cr — оба на 86).
   { operations::marketplace::MEMBERSHIP_FEE_LOCK, processes::marketplace::SUPPLY, WalletOp::TRANSFER,
-    ledger2_wallets::SHARE_FUND_PAY, ledger2_wallets::MARKETPLACE_FEE_POOL,
-    ledger2_accounts::SHARE_FUND, ledger2_accounts::TARGET_RECEIPTS,
-    "Членский взнос кооперативного участка по заказу" },
+    ledger2_wallets::MARKETPLACE_MEMBER_FUND, ledger2_wallets::MARKETPLACE_FEE_POOL,
+    0, 0,
+    "Членский взнос кооперативного участка под заказ" },
 
-  // 12j. p.mkt.supply / p.mkt.return: Сторно членского взноса участка на паевой
-  //      (TRANSFER w.mkt.fee → w.mkt.share, Dr 86 / Cr 80).
+  // 12j. p.mkt.supply / p.mkt.return: Сторно членского взноса участка на членский
+  //      кошелёк программы (TRANSFER w.mkt.fee → w.mkt.member, без Dr/Cr — оба на 86).
   { operations::marketplace::MEMBERSHIP_FEE_REFUND, processes::marketplace::SUPPLY, WalletOp::TRANSFER,
-    ledger2_wallets::MARKETPLACE_FEE_POOL, ledger2_wallets::MARKETPLACE_SHARE_FUND,
-    ledger2_accounts::TARGET_RECEIPTS, ledger2_accounts::SHARE_FUND,
-    "Сторно членского взноса участка на паевой" },
-
-  // 12k. p.mkt.supply: Членский взнос участка из свободного паевого «Стола заказов»
-  //      (TRANSFER w.mkt.share → w.mkt.fee, Dr 80 / Cr 86). Парный к LOCK_FROM_SHARE.
-  { operations::marketplace::LOCK_FEE_FROM_SHARE, processes::marketplace::SUPPLY, WalletOp::TRANSFER,
-    ledger2_wallets::MARKETPLACE_SHARE_FUND, ledger2_wallets::MARKETPLACE_FEE_POOL,
-    ledger2_accounts::SHARE_FUND, ledger2_accounts::TARGET_RECEIPTS,
-    "Членский взнос участка из свободного паевого «Стола заказов»" },
+    ledger2_wallets::MARKETPLACE_FEE_POOL, ledger2_wallets::MARKETPLACE_MEMBER_FUND,
+    0, 0,
+    "Сторно членского взноса участка на членский кошелёк программы" },
 
   // 12l. p.mkt.supply: Вывод свободного паевого «Стола заказов» в общий паевой
   //      (TRANSFER w.mkt.share → w.wal.share, без Dr/Cr — оба на 80). Действие

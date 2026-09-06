@@ -7,8 +7,11 @@
  *
  * Фондируется из свободного паевого «Стола заказов» пайщика — средств,
  * вернувшихся ему за отмены, недовыдачи и гарантийные возвраты:
- *  - o.mkt.lockp  — тело заказа (w.mkt.share → w.mkt.order, без проводки);
- *  - o.mkt.lockpf — членский взнос участка (w.mkt.share → w.mkt.fee, Дт 80 / Кт 86).
+ *  - o.mkt.lockp — тело заказа (w.mkt.share → w.mkt.order, без проводки);
+ *  - o.mkt.convp — конвертация недостающей до взноса части по Заявлению о
+ *    конвертации 1110 (w.mkt.share → w.mkt.member, Дт 80 / Кт 86); остаток
+ *    членского кошелька программы идёт в зачёт автоматически;
+ *  - o.mkt.fee — членский взнос участка (w.mkt.member → w.mkt.fee, без проводки).
  * Автоматического добора с паевого Цифрового кошелька нет: при нехватке —
  * отказ с суммами, пайщик пополняет паевой и размещает обычный заказ.
  *
@@ -23,7 +26,8 @@ void marketplace::stockorder(eosio::name coopname,
                               eosio::asset unit_price,
                               eosio::asset package_size,
                               uint32_t warranty_period_secs,
-                              checksum256 batch_hash) {
+                              checksum256 batch_hash,
+                              document2 convert_statement) {
   require_auth(coopname);
 
   // ── Базовая валидация параметров ────────────────────────────────────
@@ -53,17 +57,28 @@ void marketplace::stockorder(eosio::name coopname,
   const eosio::asset membership_fee = Marketplace::calc_membership_fee(
       total_cost, Marketplace::get_membership_fee_percent(coopname));
 
-  // ── Достаточность свободного паевого: w.mkt.share.available >= тело + взнос ──
-  //    Заказ из остатка фондируется только из членского кошелька; если средств
-  // пополняет его действием `convert` (с паевого).
-  const eosio::asset required_total = total_cost + membership_fee;
+  // ── Недостающая до взноса часть членского кошелька программы —
+  //    конвертируется из свободного паевого только по заявлению 1110 ──────
+  const eosio::asset convert_amount =
+      Marketplace::membership_fee_shortfall(coopname, orderer, membership_fee);
+  if (convert_amount.amount > 0) {
+    eosio::check(!is_empty_document(convert_statement),
+                 "Отсутствует заявление о переводе паевого взноса с уплатой членского взноса на сумму конвертации " +
+                   convert_amount.to_string());
+  }
+  if (!is_empty_document(convert_statement)) {
+    verify_document_or_fail(convert_statement, { orderer });
+  }
+
+  // ── Достаточность свободного паевого: w.mkt.share.available >= тело + конвертация ──
+  const eosio::asset required_total = total_cost + convert_amount;
   auto bal_share = Marketplace::get_user_wallet_balance(
       coopname, ledger2_wallets::MARKETPLACE_SHARE_FUND, orderer);
   eosio::check(bal_share.available >= required_total,
                std::string{"Недостаточно свободного паевого «Стола заказов» для заказа из остатка: требуется "} +
                  required_total.to_string() +
-                 (membership_fee.amount > 0
-                      ? " (включая членский взнос " + membership_fee.to_string() + ")"
+                 (convert_amount.amount > 0
+                      ? " (включая конвертацию в членский взнос " + convert_amount.to_string() + ")"
                       : "") +
                  ", доступно " + bal_share.available.to_string() +
                  ". Пополните паевой взнос и разместите обычный заказ либо дождитесь остатка от отмен и недовыдач.");
@@ -108,13 +123,25 @@ void marketplace::stockorder(eosio::name coopname,
                  total_cost, orderer, order_hash,
                  Marketplace::Memo::get_stock_order_block_memo(new_id));
 
-  // ── o.mkt.lockpf: членский взнос — TRANSFER w.mkt.share → w.mkt.fee (Дт 80 / Кт 86)
-  //    (без Dr/Cr, оба на 86); ставка зафиксирована в Order.membership_fee ──
-  if (membership_fee.amount > 0) {
+  // ── o.mkt.convp: конвертация недостающей части взноса по заявлению 1110 —
+  //    TRANSFER w.mkt.share → w.mkt.member (Дт 80 / Кт 86) ─────────────────
+  if (convert_amount.amount > 0) {
     Ledger2::apply(_marketplace, coopname,
-                   operations::marketplace::LOCK_FEE_FROM_SHARE,
+                   operations::marketplace::CONVERT_FROM_SHARE,
                    processes::marketplace::SUPPLY,
-                   membership_fee, orderer, order_hash,
-                   Marketplace::Memo::get_membership_fee_lock_memo(new_id));
+                   convert_amount, orderer, order_hash,
+                   Marketplace::Memo::get_convert_to_member_memo(new_id));
   }
+  // Подписанное заявление публикуется всегда, даже если взнос покрыт остатком
+  // членского кошелька: оно описывает перевод всей суммы заказа в программу.
+  if (!is_empty_document(convert_statement)) {
+    Soviet::make_complete_document(_marketplace, coopname, orderer,
+                                   "stockorder"_n,
+                                   convert_statement.hash, convert_statement);
+  }
+
+  // ── o.mkt.fee: членский взнос под заказ — TRANSFER w.mkt.member → w.mkt.fee
+  //    (без проводки, оба на 86); ставка зафиксирована в Order.membership_fee ──
+  Marketplace::lock_membership_fee(coopname, new_id, orderer, order_hash, membership_fee,
+                                   Marketplace::Memo::get_membership_fee_lock_memo(new_id));
 }

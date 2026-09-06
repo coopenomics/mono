@@ -178,6 +178,16 @@ export class MarketplaceEconomyService {
     return (Number(contractValue) * 100) / HUNDR_PERCENTS;
   }
 
+  /** Контрактная ставка (HUNDR_PERCENTS = 100%) → проценты для человека (30 = 30%). */
+  toHumanFeePercent(contractValue: number | string): number {
+    return this.toHumanPercent(contractValue);
+  }
+
+  /** Тело строки заказа (цена за единицу отпуска × число единиц) в минимальных единицах валюты. */
+  lineBodyUnits(pricePerUnit: string, quantity: number): bigint {
+    return this.toUnits(pricePerUnit, this.assetConfig.decimals) * BigInt(quantity);
+  }
+
   private formatAsset(amount: number): string {
     return `${amount.toFixed(this.assetConfig.decimals)} ${this.assetConfig.symbol}`;
   }

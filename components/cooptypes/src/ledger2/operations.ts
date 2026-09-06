@@ -152,7 +152,20 @@ export const LEDGER2_OPERATION_REGISTRY: readonly OperationMeta[] = [
   // marketplace — паевая модель «Стола заказов» (компонент 68, решение
   // 06.09.2026; синхронно с operations.hpp `OPERATION_REGISTRY`, namespace
   // operations::marketplace). Тело заказа от резерва до выдачи остаётся паевым
-  // взносом на счёте 80; единственный членский взнос процесса — взнос участка.
+  // взносом на счёте 80; единственный членский взнос процесса — взнос участка,
+  // и он переходит из паевого в членский только по заявлению о конвертации
+  // (1110) на членский кошелёк программы w.mkt.member.
+  { code: 'o.mkt.conv',    process_type: 'p.mkt.supply',  contract: 'marketplace',
+    name: 'CONVERT_TO_MEMBER', wallet_op: 'TRANSFER', wallet_from: 'w.wal.share', wallet_to: 'w.mkt.member',
+    debit: 80, credit: 86,
+    human_name: 'Конвертация паевого взноса в членский по заявлению' },
+
+  // То же со свободного паевого программы: заказ из остатка и довзнос по факту.
+  { code: 'o.mkt.convp',   process_type: 'p.mkt.supply',  contract: 'marketplace',
+    name: 'CONVERT_FROM_SHARE', wallet_op: 'TRANSFER', wallet_from: 'w.mkt.share', wallet_to: 'w.mkt.member',
+    debit: 80, credit: 86,
+    human_name: 'Конвертация свободного паевого «Стола заказов» в членский по заявлению' },
+
   { code: 'o.mkt.lock',    process_type: 'p.mkt.supply',  contract: 'marketplace',
     name: 'LOCK_ORDER',     wallet_op: 'TRANSFER', wallet_from: 'w.wal.share', wallet_to: 'w.mkt.order',
     debit: null, credit: null,
@@ -218,25 +231,20 @@ export const LEDGER2_OPERATION_REGISTRY: readonly OperationMeta[] = [
     debit: 91, credit: 10,
     human_name: 'Уценка имущества при выдаче со склада кооператива' },
 
-  // Членский взнос кооперативного участка по заказу — с паевого при createorder.
+  // Членский взнос кооперативного участка под заказ — с членского кошелька
+  // программы (createorder, stockorder, довзнос по факту на issueact2).
   { code: 'o.mkt.fee',     process_type: 'p.mkt.supply',  contract: 'marketplace',
-    name: 'MEMBERSHIP_FEE_LOCK', wallet_op: 'TRANSFER', wallet_from: 'w.wal.share', wallet_to: 'w.mkt.fee',
-    debit: 80, credit: 86,
-    human_name: 'Членский взнос кооперативного участка по заказу' },
+    name: 'MEMBERSHIP_FEE_LOCK', wallet_op: 'TRANSFER', wallet_from: 'w.mkt.member', wallet_to: 'w.mkt.fee',
+    debit: null, credit: null,
+    human_name: 'Членский взнос кооперативного участка под заказ' },
 
-  // Сторно неиспользованной части взноса на паевой: отмена — полностью,
-  // недовыдача — пропорционально факту, гарантийный возврат — доля за возвращённое.
+  // Сторно неиспользованной части взноса на членский кошелёк программы:
+  // отмена — полностью, недовыдача — пропорционально факту, гарантийный
+  // возврат — доля за возвращённое. Членский остаётся членским.
   { code: 'o.mkt.refund',  process_type: 'p.mkt.supply',  contract: 'marketplace',
-    name: 'MEMBERSHIP_FEE_REFUND', wallet_op: 'TRANSFER', wallet_from: 'w.mkt.fee', wallet_to: 'w.mkt.share',
-    debit: 86, credit: 80,
-    human_name: 'Сторно членского взноса участка на паевой' },
-
-  // Членский взнос участка из свободного паевого «Стола заказов» (stockorder,
-  // довзнос по факту). Парный к o.mkt.lockp.
-  { code: 'o.mkt.lockpf',  process_type: 'p.mkt.supply',  contract: 'marketplace',
-    name: 'LOCK_FEE_FROM_SHARE', wallet_op: 'TRANSFER', wallet_from: 'w.mkt.share', wallet_to: 'w.mkt.fee',
-    debit: 80, credit: 86,
-    human_name: 'Членский взнос участка из свободного паевого «Стола заказов»' },
+    name: 'MEMBERSHIP_FEE_REFUND', wallet_op: 'TRANSFER', wallet_from: 'w.mkt.fee', wallet_to: 'w.mkt.member',
+    debit: null, credit: null,
+    human_name: 'Сторно членского взноса участка на членский кошелёк программы' },
 
   // Вывод свободного паевого «Стола заказов» в общий паевой Цифрового кошелька
   // (действие пайщика recallshare; та же операция консолидирует кошелёк при выходе).

@@ -29,8 +29,9 @@ export interface MarketplaceCanonicalBlockchainPort {
    * Продавец — сам кооператив (offerer == coopname на цепи); Order рождается
    * сразу в `acceptcoop` (имущество уже на счёте 10 после первичной приёмки)
    * и идёт только через выдачу по саге (заявление → совет → акт). Фондируется
-   * из свободного паевого пайщика: o.mkt.lockp (тело, w.mkt.share → w.mkt.order)
-   * + o.mkt.lockpf (взнос, w.mkt.share → w.mkt.fee).
+   * из свободного паевого пайщика: o.mkt.lockp (тело, w.mkt.share → w.mkt.order),
+   * o.mkt.convp (недостающая часть взноса по заявлению 1110, w.mkt.share →
+   * w.mkt.member) и o.mkt.fee (взнос, w.mkt.member → w.mkt.fee).
    *
    * Авторизация — кооператив (`require_auth(coopname)`).
    */

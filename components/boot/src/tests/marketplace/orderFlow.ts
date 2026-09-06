@@ -8,8 +8,10 @@
  * проверил». Шаги повторяют путь desktop'а один в один, включая двухподписные
  * акты (первая подпись id=1, вторая — id=2 поверх агрегата).
  *
- * Паевая модель (компонент 68): оформление без документов (паевой взнос
- * резервируется контрактом), выдача — сага: факт оператора → заявление
+ * Паевая модель (компонент 68): по каждой строке пайщик подписывает заявление
+ * 1110 о переводе паевого взноса в программу на полную сумму с выделением
+ * членского взноса (тело — паевыми кошельками, взнос — членскими, в членский
+ * переводится только недостающая часть); выдача — сага: факт оператора → заявление
  * пайщика (1113) → решение совета (робот, если он делегирован по `mktissue`,
  * иначе голосуем советом через `processDecision`) → акт пайщика (1115) → закрывающая подпись
  * оператора.
@@ -51,7 +53,8 @@ export async function pickOffer(
 
 /**
  * Оформление заказа пайщиком: корзина → превью строк → оформление корзины.
- * Документов на этом шаге нет: паевой взнос под заказ резервирует контракт.
+ * Заявление 1110 из превью подписываем ключом пайщика по каждой строке, как
+ * это делает desktop.
  */
 export async function placeOrder(args: {
   token: string
@@ -60,7 +63,7 @@ export async function placeOrder(args: {
   quantity: number
   braname: string
 }): Promise<{ orderId: string, orderHash: string }> {
-  const { token, offerId, quantity, braname } = args
+  const { token, who, offerId, quantity, braname } = args
 
   await gqlAs(token, 'mutation{ marketplaceClearCart{ __typename } }').catch(() => {})
   await gqlAs(token, 'mutation($i:MarketplaceAddToCartInput!){ marketplaceAddToCart(input:$i){ __typename } }', {
@@ -68,13 +71,18 @@ export async function placeOrder(args: {
   })
 
   const sp: any = await gqlAs(token, `query{
-    marketplaceCheckoutSignablePayloads{ offer_id package_id order_hash amount }
+    marketplaceCheckoutSignablePayloads{ offer_id package_id order_hash amount membership_fee convert_amount document{ full_title html hash meta binary } }
   }`)
   const payloads = sp.marketplaceCheckoutSignablePayloads as any[]
   if (!payloads.length)
     throw new Error('по позиции корзины не пришло превью оформления')
 
-  const lines = payloads.map(p => ({ offer_id: p.offer_id, package_id: p.package_id, order_hash: p.order_hash }))
+  const lines = await Promise.all(payloads.map(async p => ({
+    offer_id: p.offer_id,
+    package_id: p.package_id,
+    order_hash: p.order_hash,
+    signed_statement: p.document ? await signAs(who.wif, p.document, who.account, 1) : null,
+  })))
 
   const co: any = await gqlAs(token, `mutation($i:MarketplaceCheckoutCartInput){
     marketplaceCheckoutCart(input:$i){ fully_completed created_orders{ id status } failed_lines{ reason } }

@@ -277,9 +277,35 @@ inline eosio::asset get_order_membership_fee(const order& o) {
   return o.membership_fee;
 }
 
+/// Недостающая до членского взноса участка сумма на членском кошельке
+/// программы w.mkt.member: столько пайщик конвертирует из паевого по Заявлению
+/// о конвертации (1110). Остаток членского кошелька идёт в зачёт автоматически.
+inline eosio::asset membership_fee_shortfall(eosio::name coopname,
+                                             eosio::name username,
+                                             const eosio::asset& fee) {
+  if (fee.amount <= 0) return eosio::asset(0, _root_govern_symbol);
+  auto bal = get_user_wallet_balance(coopname, ledger2_wallets::MARKETPLACE_MEMBER_FUND, username);
+  return bal.available >= fee ? eosio::asset(0, _root_govern_symbol) : fee - bal.available;
+}
+
+/// Списание членского взноса участка под заказ с членского кошелька программы
+/// (o.mkt.fee, w.mkt.member → w.mkt.fee); no-op для нулевого взноса. Недостающую
+/// часть вызывающая сторона конвертирует заранее по заявлению 1110.
+inline void lock_membership_fee(eosio::name coopname, uint64_t order_id,
+                                eosio::name orderer, const checksum256& order_hash,
+                                const eosio::asset& fee, const std::string& memo) {
+  if (fee.amount <= 0) return;
+  Ledger2::apply(_marketplace, coopname,
+                 operations::marketplace::MEMBERSHIP_FEE_LOCK,
+                 processes::marketplace::SUPPLY,
+                 fee, orderer, order_hash, memo);
+}
+
 /// Полный возврат членского взноса заказа на членский кошелёк «Стола
-/// заказов» (o.mkt.refund) при отмене/отклонении/истечении; no-op для
-/// заказов без взноса. Частичный возврат при недовыдаче — в issueact2.
+/// заказов» w.mkt.member (o.mkt.refund) при отмене/отклонении/истечении; no-op
+/// для заказов без взноса. Частичный возврат при недовыдаче — в issueact2.
+/// Членский остаётся членским: обратно в паевой не транслируется, идёт в
+/// зачёт следующего заказа.
 inline void refund_membership_fee_if_any(eosio::name coopname, const order& o) {
   const eosio::asset fee = get_order_membership_fee(o);
   if (fee.amount <= 0) return;

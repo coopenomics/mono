@@ -25,6 +25,7 @@ sources:
   backend:
     - components/controller/src/extensions/marketplace/application/services/marketplace-stock.service.ts
     - components/controller/src/extensions/marketplace/application/services/marketplace-stock-proposal.service.ts
+    - components/controller/src/extensions/marketplace/application/services/marketplace-convert.service.ts
   ui:
     - components/desktop/src/widgets/Marketplace/CoopStockSection/**
     - components/desktop/src/pages/Marketplace/OperatorOwnWarehouse/**
@@ -167,3 +168,36 @@ cases:
       ячейка A-01 появляется на карте; позиция получает адрес и уходит из колонки «Поступило»
     test: components/docs-harness/scenarios/marketplace/operator/warehouse-cells.mjs
     status: passing
+
+# Правка 2026-09-06 (99D-7, вечернее решение владельца): по каждой строке
+# докладки пайщик подписывает у стойки заявление 1110 о переводе свободного
+# паевого на оплату заказа из остатка с выделением членского взноса участка;
+# взнос берётся с членского кошелька программы, недостающая часть
+# конвертируется со свободного паевого (o.mkt.convp). План сумм по бандлу
+# считается в порядке проведения: сначала докладка, затем довзносы по
+# существующим заказам.
+
+  - id: mkt.stock.side.07
+    level: backend
+    kind: side
+    scenario: >
+      Бандл у стойки с двумя строками докладки и одним заказом с фактом больше
+      заказанного при остатке членского кошелька, которого хватает только на первую строку
+    expect: >
+      заявление 1110 приходит по обеим строкам докладки (по первой — с зачётом остатка, без
+      переводимой части) и по довзносу заказа; на подписании суммы сверяются по свежему
+      балансу, заказы из остатка создаются с документом
+    test: ~
+    status: missing
+
+  - id: mkt.stock.side.08
+    level: contract
+    kind: side
+    scenario: >
+      stockorder без заявления о конвертации при пустом членском кошельке; с заявлением —
+      конвертация со свободного паевого и взнос с членского кошелька
+    expect: >
+      первый отвергается с суммой; второй проходит: o.mkt.lockp, o.mkt.convp (w.mkt.share →
+      w.mkt.member), o.mkt.fee (w.mkt.member → w.mkt.fee)
+    test: ~
+    status: missing

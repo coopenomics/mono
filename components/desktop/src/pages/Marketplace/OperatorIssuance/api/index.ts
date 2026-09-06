@@ -107,6 +107,19 @@ export async function getIssuanceStatementPayload(order_id: string): Promise<Mar
   return result as MarketplaceGeneratedDocumentView;
 }
 
+/**
+ * Заявление о конвертации паевого взноса в членский (1110) на довзнос по факту —
+ * только когда выдаётся больше заказанного и членского кошелька «Стола заказов»
+ * не хватает; иначе null и подписывать нечего.
+ */
+export async function getIssuanceConvertPayload(order_id: string): Promise<MarketplaceGeneratedDocumentView | null> {
+  const { [Queries.Marketplace.IssuanceConvertPayload.name]: result } = await client.Query(
+    Queries.Marketplace.IssuanceConvertPayload.query,
+    { variables: { data: { order_id } } },
+  );
+  return (result ?? null) as MarketplaceGeneratedDocumentView | null;
+}
+
 export type SignIssuanceStatementInput = Mutations.Marketplace.SignIssuanceStatement.IInput['data'];
 
 /** Заказчик подписал заявление: оно уходит в цепь и на повестку совета; ответ — сага после ответа робота. */
@@ -192,13 +205,15 @@ export type IStockIssuanceOperatorLine =
 
 /**
  * Нагрузка к ОДНОЙ подписи пайщика по бандлу: по строке — заказ (или будущий
- * заказ из остатка) и заявление о возврате паевого взноса имуществом (1113).
+ * заказ из остатка), заявление о возврате паевого взноса имуществом (1113) и,
+ * если членского кошелька не хватает на взнос участка, заявление о
+ * конвертации паевого в членский (1110) на недостающую часть.
  */
 export type IStockProposalAcceptPayload =
   Queries.Marketplace.StockProposalSignablePayloads.IOutput['marketplaceStockProposalSignablePayloads'];
 
 export type IStockFinalizeInput = Mutations.Marketplace.FinalizeStockIssuance.IInput['data'];
-/** Строка подписания (order_hash + подписанное пайщиком заявление). */
+/** Строка подписания (order_hash + подписанные пайщиком заявления: 1113 и, если было выдано, 1110). */
 export type IStockFinalizeOrderLine = IStockFinalizeInput['order_lines'][number];
 /** Результат подписи бандла: бандл, заказы и саги выдачи по ним. */
 export type IStockFinalizeResult =

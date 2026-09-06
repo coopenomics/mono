@@ -1,5 +1,8 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
+import { Classes } from '@coopenomics/sdk'
+import { useGlobalStore } from 'src/shared/store'
+import { useSessionStore } from 'src/entities/Session'
 import { api, type ICheckoutSignedLine } from '../api'
 import type { IMarketplaceCart, IMarketplaceCartItem, IMarketplaceCheckoutResult } from './types'
 
@@ -103,19 +106,35 @@ export const useMarketplaceCartStore = defineStore(namespace, () => {
   }
 
   /**
-   * Оформление = одна мутация по строкам превью. Отдельного заявления о
-   * конвертации паевого взноса больше нет: в паевой модели взнос резервируется
-   * под каждую позицию самим контрактом, подписывать заказчику нечего.
+   * Оформление = одна мутация по строкам превью. Паевая модель: по каждой
+   * строке заказчик подписывает заявление 1110 о переводе паевого взноса в
+   * ЦПП «Стол заказов» на полную сумму позиции с выделением членского взноса
+   * участка (по кошелькам тело идёт паевыми кошельками, взнос — членскими).
+   * Превью кладёт документ в строку, здесь он подписывается ключом сессии
+   * (запертый кошелёк — PIN).
    */
   async function checkout(checkout_id?: string): Promise<IMarketplaceCheckoutResult> {
     checkingOut.value = true
     try {
       const payloads = await api.getCheckoutSignablePayloads()
-      const lines: ICheckoutSignedLine[] = payloads.map((p) => ({
-        offer_id: p.offer_id,
-        package_id: p.package_id,
-        order_hash: p.order_hash,
-      }))
+      const needsSignature = payloads.some((p) => !!p.document)
+      // Ключ берём только когда есть что подписывать — иначе PIN не спрашиваем.
+      const wifKey = needsSignature ? await useGlobalStore().ensureSigningKey() : null
+      const username = useSessionStore().username
+      const signer = wifKey ? new Classes.Document(wifKey) : null
+      const lines: ICheckoutSignedLine[] = []
+      for (const p of payloads) {
+        const signed_statement =
+          p.document && signer
+            ? ((await signer.signDocument(p.document, username, 1)) as NonNullable<ICheckoutSignedLine['signed_statement']>)
+            : null
+        lines.push({
+          offer_id: p.offer_id,
+          package_id: p.package_id,
+          order_hash: p.order_hash,
+          signed_statement,
+        })
+      }
 
       const result = await api.checkout(checkout_id, lines)
       // Сервер вернул корзину с непрошедшим остатком — синхронизируем состояние.

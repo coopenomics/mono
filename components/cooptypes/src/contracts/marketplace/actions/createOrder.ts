@@ -4,7 +4,10 @@ import { Actors } from '../../../common'
 
 /**
  * Заказчик размещает заказ на товар из каталога (p.mkt.supply шаг 1, паевая модель).
- * o.mkt.lock (паевой резерв, без проводки) + o.mkt.fee (членский взнос участка). Заявления нет.
+ * o.mkt.lock (паевой резерв, без проводки), o.mkt.conv (конвертация недостающей до
+ * членского взноса участка части по заявлению 1110 `convert_statement`, w.wal.share →
+ * w.mkt.member) и o.mkt.fee (взнос участка с членского кошелька программы). Остаток
+ * членского кошелька зачитывается автоматически — тогда заявление пустое.
  */
 export const authorizations = [{ permissions: [Permissions.active], actor: Actors._username }] as const
 

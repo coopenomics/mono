@@ -86,9 +86,15 @@ public:
   /**
    * @brief Заказчик размещает заказ на товар из каталога (Story 4.1).
    * Паевая модель: o.mkt.lock (TRANSFER w.wal.share → w.mkt.order, без
-   * проводки — оба кошелька на 80) и членский взнос участка o.mkt.fee
-   * (Дт 80 / Кт 86). Отдельного заявления при заказе нет — паевой взнос
-   * остаётся паевым в том же кооперативе.
+   * проводки — оба кошелька на 80), конвертация недостающей до членского
+   * взноса участка части по Заявлению о конвертации 1110 `convert_statement`
+   * (o.mkt.conv, w.wal.share → w.mkt.member, Дт 80 / Кт 86) и сам взнос
+   * участка с членского кошелька программы (o.mkt.fee, w.mkt.member →
+   * w.mkt.fee). Заявление 1110 подписывается при каждом заказе на полную
+   * сумму перевода в программу с выделением взноса; по кошелькам обе части
+   * идут каждая своим путём: паевая — по паевым кошелькам, членская — по
+   * членским (в членский переходит недостающая часть взноса, остаток
+   * членского кошелька зачитывается автоматически).
    * @ingroup public_marketplace_actions
    */
   [[eosio::action]] void createorder(eosio::name coopname,
@@ -101,7 +107,8 @@ public:
                                       eosio::asset unit_price,
                                       eosio::asset package_size,
                                       uint32_t warranty_period_secs,
-                                      checksum256 batch_hash);
+                                      checksum256 batch_hash,
+                                      document2 convert_statement);
 
   /**
    * @brief Заказ из обезличенного остатка склада кооператива (requirement 76).
@@ -112,10 +119,12 @@ public:
    * существуют.
    *
    * Заказ из остатка фондируется из свободного паевого «Стола заказов»
-   * пайщика: o.mkt.lockp (тело, w.mkt.share → w.mkt.order) + o.mkt.lockpf
-   * (взнос, w.mkt.share → w.mkt.fee). Это средства, вернувшиеся пайщику за
-   * отмены, недовыдачи и гарантийные возвраты; при нехватке — отказ, пайщик
-   * пополняет паевой и размещает обычный заказ.
+   * пайщика: o.mkt.lockp (тело, w.mkt.share → w.mkt.order), o.mkt.convp
+   * (недостающая часть взноса по заявлению 1110 `convert_statement`,
+   * w.mkt.share → w.mkt.member) и o.mkt.fee (взнос, w.mkt.member →
+   * w.mkt.fee). Это средства, вернувшиеся пайщику за отмены, недовыдачи и
+   * гарантийные возвраты; при нехватке — отказ, пайщик пополняет паевой и
+   * размещает обычный заказ.
    * @ingroup public_marketplace_actions
    */
   [[eosio::action]] void stockorder(eosio::name coopname,
@@ -127,7 +136,8 @@ public:
                                      eosio::asset unit_price,
                                      eosio::asset package_size,
                                      uint32_t warranty_period_secs,
-                                     checksum256 batch_hash);
+                                     checksum256 batch_hash,
+                                     document2 convert_statement);
 
   /**
    * @brief Заказчик отменяет заказ до акцепта (Story 4.4). Триггерит o.mkt.unlock.
@@ -288,7 +298,10 @@ public:
    * `readyrecv → issuepend`. Факт (количество, цена) фиксируется в заказе;
    * тем же действием контракт инлайн ставит повестку совета
    * (`soviet::createagenda`, тип `mktissue`, hash = order_hash, обратные
-   * вызовы onmktisauth / onmktisdecl). Движений по средствам нет.
+   * вызовы onmktisauth / onmktisdecl). Движений по телу заказа нет; при факте
+   * больше заказа недостающая на довзнос часть членского кошелька программы
+   * конвертируется из свободного паевого по заявлению 1110 `convert_statement`
+   * (o.mkt.convp) — иначе документ пустой.
    * @ingroup public_marketplace_actions
    */
   [[eosio::action]] void issuestmt(eosio::name coopname,
@@ -297,6 +310,7 @@ public:
                                     eosio::asset actual_quantity,
                                     eosio::asset actual_unit_price,
                                     document2 statement,
+                                    document2 convert_statement,
                                     std::string meta);
   /**
    * @brief Обратный вызов совета: решение о возврате паевого взноса имуществом
@@ -331,7 +345,7 @@ public:
    * движения: корректировка по факту (o.mkt.unlock при факте меньше,
    * o.mkt.lockp при факте больше), возврат паевого взноса имуществом
    * o.mkt.consum (Дт 80 / Кт 10) на фактическую сумму, пересчёт членского
-   * взноса участка (o.mkt.refund / o.mkt.lockpf) и зачисление его участку
+   * взноса участка (o.mkt.refund / o.mkt.fee с членского кошелька) и зачисление его участку
    * (branch::accrue). Открывается гарантийное окно; акт публикуется в реестре
    * документов пакетом процесса заказа.
    * @ingroup public_marketplace_actions

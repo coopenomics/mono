@@ -18,6 +18,7 @@ import {
   getStockProposalSignablePayloads,
   listIssuanceSagas,
   getIssuanceStatementPayload,
+  getIssuanceConvertPayload,
   signIssuanceStatement,
   getIssuanceActPayload,
   signIssuanceAct,
@@ -198,6 +199,8 @@ async function signProposal(task: MarketplaceStockProposalView): Promise<void> {
   try {
     const payload = await getStockProposalSignablePayloads(task.id);
     const signer = new Classes.Document(wifKey);
+    // По каждой строке — заявление о выдаче (1113); там, где членского кошелька
+    // не хватает на взнос участка, ещё и заявление о конвертации (1110).
     const order_lines: IStockFinalizeOrderLine[] = await Promise.all(
       payload.order_lines.map(async (line) => ({
         order_hash: line.order_hash,
@@ -206,6 +209,13 @@ async function signProposal(task: MarketplaceStockProposalView): Promise<void> {
           global.username,
           1,
         )) as IStockFinalizeOrderLine['signed_statement'],
+        signed_convert: line.convert_statement
+          ? ((await signer.signDocument(
+              line.convert_statement,
+              global.username,
+              1,
+            )) as NonNullable<IStockFinalizeOrderLine['signed_convert']>)
+          : null,
       })),
     );
 
@@ -297,7 +307,15 @@ async function signSaga(task: MarketplaceIssuanceSagaView): Promise<void> {
       const signed_statement = (await signer.signDocument(statement, global.username, 1)) as Parameters<
         typeof signIssuanceStatement
       >[0]['signed_statement'];
-      const saga = await signIssuanceStatement({ order_id: task.order_id, signed_statement });
+      // Довзнос по факту сверх членского кошелька — заявление о конвертации (1110)
+      // подписывается тем же нажатием; в обычной выдаче его нет.
+      const convert = await getIssuanceConvertPayload(task.order_id);
+      const signed_convert = convert
+        ? ((await signer.signDocument(convert, global.username, 1)) as NonNullable<
+            Parameters<typeof signIssuanceStatement>[0]['signed_convert']
+          >)
+        : null;
+      const saga = await signIssuanceStatement({ order_id: task.order_id, signed_statement, signed_convert });
       if (saga.awaits_member_signature) {
         await signActFor(task.order_id, signer, global.username);
         SuccessAlert('Совет согласовал, акт подписан. Оператор закроет выдачу — забирайте.');

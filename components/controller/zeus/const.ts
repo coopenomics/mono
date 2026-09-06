@@ -1054,7 +1054,7 @@ export const AllTypesProps: Record<string,any> = {
 		lines:"MarketplaceCheckoutSignedLineInput"
 	},
 	MarketplaceCheckoutSignedLineInput:{
-
+		signed_statement:"MarketplaceConvertStatementSignedInput"
 	},
 	MarketplaceClearInventoryLabelInput:{
 
@@ -1063,6 +1063,13 @@ export const AllTypesProps: Record<string,any> = {
 		signed_memo:"SignedDigitalDocumentInput"
 	},
 	MarketplaceConsolidatedRequestStatus: "enum" as const,
+	MarketplaceConvertStatementSignedInput:{
+		meta:"MarketplaceConvertStatementSignedMetaDocumentInput",
+		signatures:"SignatureInfoInput"
+	},
+	MarketplaceConvertStatementSignedMetaDocumentInput:{
+
+	},
 	MarketplaceCreateAidInput:{
 		statement:"SignedDigitalDocumentInput"
 	},
@@ -1347,6 +1354,7 @@ export const AllTypesProps: Record<string,any> = {
 		signed_act:"MarketplaceShareReturnActSignedInput"
 	},
 	MarketplaceSignIssuanceStatementInput:{
+		signed_convert:"MarketplaceConvertStatementSignedInput",
 		signed_statement:"MarketplaceShareReturnStatementSignedInput"
 	},
 	MarketplaceSignOnboardingOfferInput:{
@@ -1356,6 +1364,7 @@ export const AllTypesProps: Record<string,any> = {
 		splits:"MarketplaceInventorySplitEntryInput"
 	},
 	MarketplaceStockFinalizeLineInput:{
+		signed_convert:"MarketplaceConvertStatementSignedInput",
 		signed_statement:"MarketplaceShareReturnStatementSignedInput"
 	},
 	MarketplaceStockIssuancePrepareInput:{
@@ -3125,6 +3134,9 @@ export const AllTypesProps: Record<string,any> = {
 			data:"MarketplaceIssuanceOrderInput"
 		},
 		marketplaceIssuanceClosePayload:{
+			data:"MarketplaceIssuanceOrderInput"
+		},
+		marketplaceIssuanceConvertPayload:{
 			data:"MarketplaceIssuanceOrderInput"
 		},
 		marketplaceIssuanceSaga:{
@@ -5982,6 +5994,9 @@ export const ReturnTypes: Record<string,any> = {
 	},
 	MarketplaceCheckoutSignableLine:{
 		amount:"String",
+		convert_amount:"String",
+		document:"GeneratedDocument",
+		membership_fee:"String",
 		offer_id:"String",
 		order_hash:"String",
 		package_id:"String"
@@ -6597,6 +6612,8 @@ export const ReturnTypes: Record<string,any> = {
 		vehicle_number:"String"
 	},
 	MarketplaceStockAcceptOrderLine:{
+		convert_amount:"String",
+		convert_statement:"GeneratedDocument",
 		offer_id:"String",
 		order_hash:"String",
 		order_id:"String",
@@ -8037,6 +8054,7 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceGetUserRequests:"MarketplaceRequest",
 		marketplaceIssuanceActPayload:"GeneratedDocument",
 		marketplaceIssuanceClosePayload:"MarketplaceIssuanceClosePayload",
+		marketplaceIssuanceConvertPayload:"GeneratedDocument",
 		marketplaceIssuanceSaga:"MarketplaceIssuanceSaga",
 		marketplaceIssuanceStatementPayload:"GeneratedDocument",
 		marketplaceListAids:"MarketplaceAid",

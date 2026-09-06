@@ -1,7 +1,7 @@
 import { Inject, Injectable, UseGuards } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 
-import { GqlJwtAuthGuard, platformSettings } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, platformSettings, GeneratedDocumentDTO } from '@coopenomics/extension-kit';
 import { CurrentMarketplaceMember } from '../decorators/current-marketplace-member.decorator';
 import { RequireMarketplaceAccess } from '../decorators/marketplace-access.decorator';
 import { MarketplaceMembershipGuard } from '../guards/marketplace-membership.guard';
@@ -129,8 +129,9 @@ export class MarketplaceCartResolver {
   @Query(() => [MarketplaceCheckoutSignableLineDTO], {
     name: 'marketplaceCheckoutSignablePayloads',
     description:
-      'Превью оформления: по каждой позиции корзины — идентификатор будущего заказа и сумма к резервированию ' +
-      '(стоимость плюс членский взнос участка). Паевой взнос резервируется без отдельного заявления.',
+      'Превью оформления: по каждой позиции корзины — идентификатор будущего заказа, суммы к списанию и заявление 1110 ' +
+      'о переводе паевого взноса в ЦПП «Стол заказов» на полную сумму позиции с выделением членского взноса участка — ' +
+      'к подписи заказчиком. По кошелькам тело идёт паевыми кошельками, взнос — членскими.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
   @RequireMarketplaceAccess('Cart', 'manage:own')
@@ -148,6 +149,9 @@ export class MarketplaceCartResolver {
           package_id: l.package_id,
           order_hash: l.order_hash,
           amount: l.amount,
+          membership_fee: l.membership_fee,
+          convert_amount: l.convert_amount,
+          document: l.document ? new GeneratedDocumentDTO(l.document) : null,
         })
     );
   }
@@ -157,7 +161,7 @@ export class MarketplaceCartResolver {
     description:
       'Оформить заказ из корзины: предвалидация баланса, построчное создание заказов с общим ' +
       'идентификатором заказа и КУ; непрошедший остаток остаётся в корзине для повтора. ' +
-      'Паевой взнос резервируется под каждую позицию без отдельного заявления (строки lines — из превью).',
+      'Строки lines — из превью, каждая с подписанным заявлением 1110 о переводе паевого взноса в программу.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
   @RequireMarketplaceAccess('Cart', 'manage:own')

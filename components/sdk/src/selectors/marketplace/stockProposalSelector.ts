@@ -4,9 +4,9 @@ import { rawIssuanceSagaSelector } from './issuanceSagaSelector'
 
 /**
  * Нагрузка к ОДНОЙ подписи пайщика по бандлу выдачи: по строке — заказ (или
- * будущий заказ из остатка) и заявление о возврате паевого взноса имуществом.
- * Отдельного заявления о конвертации нет — паевой резерв берётся из свободного
- * паевого при подписи.
+ * будущий заказ из остатка), заявление о возврате паевого взноса имуществом и
+ * заявление 1110 о переводе паевого взноса на оплату с уплатой членского
+ * взноса: по докладке всегда, по заказу — на доплату при факте больше заказа.
  */
 export const marketplaceStockAcceptPayloadSelector = Selector('MarketplaceStockAcceptPayload')({
   order_lines: {
@@ -14,6 +14,8 @@ export const marketplaceStockAcceptPayloadSelector = Selector('MarketplaceStockA
     order_id: true,
     order_hash: true,
     statement: rawDocumentSelector,
+    convert_amount: true,
+    convert_statement: rawDocumentSelector,
   },
 })
 

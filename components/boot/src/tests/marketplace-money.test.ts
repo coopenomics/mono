@@ -8,7 +8,10 @@
  * на ПВЗ → бандл выдачи, — и ассертит нитку ledger2 по хэшу заказа:
  *
  *   • o.mkt.lock   — оформление резервирует паевой взнос под заказ (без проводки: паевой остаётся на 80);
- *   • o.mkt.fee    — там же блокируется членский взнос по ставке кооператива;
+ *   • o.mkt.conv   — недостающая до членского взноса часть конвертируется из
+ *                    паевого в членский кошелёк программы по заявлению 1110;
+ *   • o.mkt.fee    — членский взнос по ставке кооператива уходит с членского
+ *                    кошелька в пул взносов под заказ;
  *   • o.mkt.purch  — закрывающая подпись приёмки ставит имущество на баланс (Дт 10 / Кт 60)
  *                    по ЦЕНЕ ПРИБЫТИЯ (Дт 10 / Кт 86), а не по цене заказа;
  *   • o.mkt.consum — выдача списывает выданное по цене прибытия (Дт 80 / Кт 10);
@@ -73,6 +76,8 @@ let orderId = ''
 let orderHash = ''
 let totalCost = 0
 let membershipFee = 0
+/** Недостающая до взноса часть, которую превью велело конвертировать по заявлению 1110. */
+let expectedConvert = 0
 
 /** Проводки нитки заказа — переиспользуются несколькими ассертами. */
 let ops: LedgerRow[] = []
@@ -114,22 +119,39 @@ describe('стол заказов — денежные места поставк
     await ensureShareFunds(ekaterina.account, ORDER_QTY * unitPrice * 2)
   }, 180_000)
 
-  it('оформление заказа резервирует тело (o.mkt.lock) и блокирует членский взнос (o.mkt.fee)', async () => {
+  it('оформление заказа резервирует тело (o.mkt.lock), конвертирует недостающий взнос по заявлению (o.mkt.conv) и блокирует членский взнос (o.mkt.fee)', async () => {
     // Корзина может держать хвост прошлого прогона — начинаем с чистой.
     await gqlAs(ekaterinaToken, 'mutation{ marketplaceClearCart{ __typename } }').catch(() => {})
     await gqlAs(ekaterinaToken, 'mutation($i:MarketplaceAddToCartInput!){ marketplaceAddToCart(input:$i){ __typename } }', {
       i: { offer_id: offer.id, quantity: ORDER_QTY, delivery_braname: BRANAME },
     })
 
-    // Оформление (паевая модель) = превью строк + мутация оформления корзины;
-    // документов нет — паевой взнос под заказ резервирует контракт.
+    // Оформление (паевая модель) = превью строк + мутация оформления корзины.
+    // По каждой строке пайщица подписывает заявление 1110 о переводе паевого
+    // взноса в программу на полную сумму с выделением членского взноса; по
+    // кошелькам тело идёт паевыми кошельками, взнос — членскими, и в членский
+    // переводится только недостающая до взноса часть.
     const sp: any = await gqlAs(ekaterinaToken, `query{
-      marketplaceCheckoutSignablePayloads{ offer_id package_id order_hash amount }
+      marketplaceCheckoutSignablePayloads{ offer_id package_id order_hash amount membership_fee convert_amount document{ full_title html hash meta binary } }
     }`)
     const payloads = sp.marketplaceCheckoutSignablePayloads as any[]
     expect(payloads.length, 'по позиции корзины обязано прийти превью оформления').toBeGreaterThan(0)
+    expectedConvert = amount(payloads[0].convert_amount)
+    // Заявление приходит по каждой строке: полная сумма = тело + взнос, а
+    // переводимая в членский часть не больше взноса (остаток кошелька зачтён).
+    expect(payloads[0].document, 'по строке обязано прийти заявление 1110 к подписи').toBeTruthy()
+    const stmtMeta = JSON.parse(payloads[0].document.meta)
+    expect(amount(stmtMeta.amount), 'в заявлении — полная сумма позиции').toBeCloseTo(amount(payloads[0].amount), 2)
+    expect(amount(stmtMeta.membership_fee), 'в заявлении выделен членский взнос участка').toBeCloseTo(amount(payloads[0].membership_fee), 2)
+    expect(amount(stmtMeta.convert_amount)).toBeCloseTo(expectedConvert, 2)
+    expect(expectedConvert, 'в членский переводится не больше взноса').toBeLessThanOrEqual(amount(payloads[0].membership_fee) + 0.005)
 
-    const lines = payloads.map(p => ({ offer_id: p.offer_id, package_id: p.package_id, order_hash: p.order_hash }))
+    const lines = await Promise.all(payloads.map(async p => ({
+      offer_id: p.offer_id,
+      package_id: p.package_id,
+      order_hash: p.order_hash,
+      signed_statement: p.document ? await signAs(ekaterina.wif, p.document, ekaterina.account, 1) : null,
+    })))
 
     const co: any = await gqlAs(ekaterinaToken, `mutation($i:MarketplaceCheckoutCartInput){
       marketplaceCheckoutCart(input:$i){ fully_completed created_orders{ id status } failed_lines{ reason } }
@@ -144,9 +166,20 @@ describe('стол заказов — денежные места поставк
     }`, { i: { order_id: orderId } })
     orderHash = created.marketplaceGetOrder.order_hash
 
-    ops = await waitForOps(chairmanToken, orderHash, ['o.mkt.lock', 'o.mkt.fee'])
+    ops = await waitForOps(chairmanToken, orderHash, expectedConvert > 0 ? ['o.mkt.lock', 'o.mkt.conv', 'o.mkt.fee'] : ['o.mkt.lock', 'o.mkt.fee'])
     const lockAmount = sumOf(ops, 'o.mkt.lock')
     const feeAmount = sumOf(ops, 'o.mkt.fee')
+    // Конвертация по заявлению — ровно на недостающую часть взноса, не больше.
+    expect(sumOf(ops, 'o.mkt.conv'), 'конвертируется ровно недостающая до взноса часть из превью').toBeCloseTo(expectedConvert, 2)
+    expect(sumOf(ops, 'o.mkt.conv'), 'конвертация не превышает членский взнос').toBeLessThanOrEqual(feeAmount + 0.005)
+    const convRows = (await historyOfProcess(chairmanToken, orderHash)).filter(r => r.action === 'walletop' && r.operationCode === 'o.mkt.conv')
+    for (const r of convRows) {
+      expect([r.walletFrom, r.walletTo], 'конвертация идёт с главного паевого на членский кошелёк программы').toEqual(['w.wal.share', 'w.mkt.member'])
+    }
+    const feeRows = (await historyOfProcess(chairmanToken, orderHash)).filter(r => r.action === 'walletop' && r.operationCode === 'o.mkt.fee')
+    for (const r of feeRows) {
+      expect([r.walletFrom, r.walletTo], 'взнос под заказ берётся с членского кошелька программы').toEqual(['w.mkt.member', 'w.mkt.fee'])
+    }
 
     // Зеркало бэкенда обязано сойтись с цепью — иначе пайщик видит в кабинете
     // не ту сумму, которую у него реально заблокировали.
@@ -292,12 +325,18 @@ describe('стол заказов — денежные места поставк
     const refunded = ops.find(r => r.operationCode === 'o.mkt.refund')!
     expect(refunded.username, 'возврат взноса адресован заказчице').toBe(ekaterina.account)
 
-    // Недовыданный резерв и излишек взноса возвращаются на свободный паевой
-    // «Стола заказов» — членских кошельков у пайщицы больше нет.
+    // Недовыданный резерв возвращается на свободный паевой «Стола заказов»,
+    // излишек взноса — на членский кошелёк программы: членский остаётся
+    // членским и зачитывается при следующем заказе.
     const rowsAfter = await historyOfProcess(chairmanToken, orderHash)
     const toShare = rowsAfter.filter(r => r.action === 'walletop' && r.walletTo === 'w.mkt.share')
-    expect(toShare.length, 'возвраты пайщице обязаны прийти на свободный паевой «Стола заказов»').toBeGreaterThanOrEqual(2)
-    expect(rowsAfter.some(r => r.action === 'walletop' && (r.walletTo === 'w.mkt.member' || r.walletFrom === 'w.mkt.member')), 'членского кошелька «Стола заказов» в паевой модели нет').toBe(false)
+    expect(toShare.length, 'недовыданный резерв обязан прийти на свободный паевой «Стола заказов»').toBeGreaterThanOrEqual(1)
+    const refundRows = rowsAfter.filter(r => r.action === 'walletop' && r.operationCode === 'o.mkt.refund')
+    expect(refundRows.length, 'сторно взноса обязано быть переводом по кошелькам').toBeGreaterThan(0)
+    for (const r of refundRows) {
+      expect([r.walletFrom, r.walletTo], 'излишек взноса возвращается на членский кошелёк программы, не на паевой').toEqual(['w.mkt.fee', 'w.mkt.member'])
+    }
+    expect(rowsAfter.some(r => r.action === 'walletop' && r.walletFrom === 'w.mkt.fee' && r.walletTo === 'w.mkt.share'), 'членский взнос не транслируется обратно в паевой').toBe(false)
 
     // Взнос не должен раздвоиться: зачисленное участку плюс возвращённое
     // пайщику ровно равны заблокированному при оформлении.
@@ -320,6 +359,9 @@ describe('стол заказов — денежные места поставк
     for (const code of ['o.mkt.lock', 'o.mkt.fee', 'o.mkt.purch', 'o.mkt.consum', 'o.mkt.unlock', 'o.mkt.refund']) {
       expect(byOp[code], `проводка ${code} обязана идти ниткой поставки`).toBe('p.mkt.supply')
     }
+    if (expectedConvert > 0) {
+      expect(byOp['o.mkt.conv'], 'конвертация по заявлению обязана идти ниткой поставки').toBe('p.mkt.supply')
+    }
 
     // И реестр процессов отдаёт хэшу заказа ровно одно имя.
     const d: any = await gqlAs(chairmanToken, 'query($h:String!,$c:String!){ process(hash:$h, coopname:$c){ process_type } }', {
@@ -333,6 +375,7 @@ describe('стол заказов — денежные места поставк
     const codes = new Set(opsCodes(await applyOpsOfProcess(chairmanToken, orderHash)))
     const expected = new Set([
       'o.mkt.lock',
+      'o.mkt.conv',
       'o.mkt.fee',
       'o.mkt.purch',
       'o.mkt.consum',

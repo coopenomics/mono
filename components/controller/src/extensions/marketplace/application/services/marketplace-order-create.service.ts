@@ -1,3 +1,5 @@
+import type { MarketContract } from 'cooptypes';
+import { createEmptyDocument } from '../../../../shared/utils/document-utils';
 import { rethrowChainError } from '@coopenomics/extension-kit';
 import { BadRequestException, ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
@@ -44,6 +46,12 @@ import {
 
 
 export interface MarketplaceOrderCreateInputDto {
+  /**
+   * Заявление о конвертации паевого взноса в членский (1110), подписанное
+   * заказчиком на недостающую до членского взноса участка часть; пусто —
+   * взнос покрыт остатком членского кошелька программы (контракт проверит).
+   */
+  convert_statement?: MarketContract.Actions.CreateOrder.ICreateOrder['convert_statement'] | null;
   /** coopname кооператива. Берётся из core-сессии в resolver'е. */
   coopname: string;
   /** Пайщик-заказчик (eosio::name). Из core-сессии в resolver'е. */
@@ -202,6 +210,7 @@ export class MarketplaceOrderCreateService {
         package_size: package_size_asset,
         warranty_period_secs,
         batch_hash: MarketplaceOrderCreateService.ZERO_HASH,
+        convert_statement: input.convert_statement ?? createEmptyDocument(),
       });
       const result = this.normalizeTxResult(tx);
       txHash = result.tx_hash;

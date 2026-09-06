@@ -32,6 +32,7 @@ const MARKETPLACE_RELEVANT_WALLETS: ReadonlyArray<{
   { name: 'w.wal.share', program_id: 1, label: 'Паевой | Цифровой Кошелёк' },
   { name: 'w.mkt.order', program_id: 2, label: 'Паевой резерв под заказы | Стол Заказов' },
   { name: 'w.mkt.share', program_id: 2, label: 'Свободный паевой | Стол Заказов' },
+  { name: 'w.mkt.member', program_id: 2, label: 'Членский взнос | Стол Заказов' },
 ];
 
 /**

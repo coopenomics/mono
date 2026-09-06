@@ -174,6 +174,10 @@ import {
   MarketplaceCheckoutService,
   MARKETPLACE_CHECKOUT_SERVICE,
 } from './services/marketplace-checkout.service';
+import {
+  MarketplaceConvertService,
+  MARKETPLACE_CONVERT_SERVICE,
+} from './services/marketplace-convert.service';
 // Фаза 2: realtime-подписка marketplace (GraphQL subscription поверх graphql-ws).
 import { MarketplaceEventsResolver } from './resolvers/marketplace-events.resolver';
 import { MarketplaceRealtimeBridge } from './realtime/marketplace-realtime.bridge';
@@ -463,6 +467,12 @@ import { MarketplaceRealtimeBridge } from './realtime/marketplace-realtime.bridg
       useClass: MarketplaceCheckoutService,
     },
     MarketplaceCheckoutService,
+    // Паевая модель: заявление о конвертации паевого в членский на взнос участка
+    {
+      provide: MARKETPLACE_CONVERT_SERVICE,
+      useClass: MarketplaceConvertService,
+    },
+    MarketplaceConvertService,
   ],
   exports: [
     // Экспортируем сервисы для использования в других модулях
@@ -564,6 +574,8 @@ import { MarketplaceRealtimeBridge } from './realtime/marketplace-realtime.bridg
     MarketplaceCartService,
     MARKETPLACE_CHECKOUT_SERVICE,
     MarketplaceCheckoutService,
+    MARKETPLACE_CONVERT_SERVICE,
+    MarketplaceConvertService,
     MarketplaceCartResolver,
   ],
 })
