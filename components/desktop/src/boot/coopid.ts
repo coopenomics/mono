@@ -1,5 +1,5 @@
 import { boot } from 'quasar/wrappers';
-import { configureCoopId, configureOidc, getAccessToken } from '@coopenomics/auth';
+import { AuthV2Error, AuthV2ErrorCode, configureCoopId, configureOidc, getAccessToken } from '@coopenomics/auth';
 import { client } from 'src/shared/api/client';
 import { env } from 'src/shared/config';
 
@@ -25,7 +25,22 @@ export default boot(() => {
 
   // Источник access-токена контура CoopID. Ставим безусловно: при легаси-сессии
   // провайдер бросает и SDK использует уже выставленный legacy-bearer (инвариант выше).
-  client.setAccessTokenProvider(() => getAccessToken());
+  client.setAccessTokenProvider(async () => {
+    try {
+      return await getAccessToken();
+    } catch (error) {
+      // Токен есть, но обновить его по сети не вышло (вкладка вернулась из фона
+      // раньше связи). Запрос со старым токеном не упал бы, а получил бы гостевой
+      // ответ — так рабочий стол приезжал без прав и уводил на «Недостаточно прав
+      // доступа». Помечаем ошибку: SDK не отправит запрос, вызывающий код увидит
+      // сетевую ошибку и оставит прежние данные. Остальные отказы провайдера
+      // (нет CoopID-сессии, истёкшая сессия) — как раньше, решает сервер.
+      if (error instanceof AuthV2Error && error.code === AuthV2ErrorCode.NetworkError) {
+        Object.assign(error, { abortRequest: true });
+      }
+      throw error;
+    }
+  });
 
   // OIDC-клиент authentik (фактор-1 входа по паролю) — только когда заданы публичный
   // OAuth2-клиент и issuer. Без них desktop остаётся на легаси-входе по ключу (инфра

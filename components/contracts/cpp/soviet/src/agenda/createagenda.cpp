@@ -46,7 +46,8 @@
     username,
     type,
     hash,
-    statement
+    statement,
+    decision_id
   );
 }
 

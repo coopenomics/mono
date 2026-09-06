@@ -1,3 +1,4 @@
+import axios from 'axios'
 import { TextDecoder, TextEncoder } from 'node:util' // Add missing import
 import fs from 'node:fs'
 import { JsSignatureProvider } from 'eosjs/dist/eosjs-jssig'
@@ -335,8 +336,39 @@ export default class Blockchain {
     }
   }
 
+  /**
+   * Digest фичи по её кодовому имени у самой ноды. Текст описания builtin-фичи
+   * в coopos правили после выкатов, и digest в конфиге расходится с тем, что
+   * знает конкретный бинарь (у ASSERT_RECOVER_KEY_ACCOUNT три разных digest:
+   * в репозитории, в образе dev-стендов и на боевой цепи). Нода на чужой digest
+   * отвечает «protocol feature … is unrecognized», поэтому спрашиваем её саму.
+   * Если producer API недоступен или имени нет — остаётся digest из конфига.
+   */
+  async resolveFeatureDigest(feature: Feature): Promise<string> {
+    try {
+      const url = `${this.network.protocol}://${this.network.host}${this.network.port}`
+      const response = await axios.post(`${url}/v1/producer/get_supported_protocol_features`, {
+        exclude_disabled: false,
+        exclude_unactivatable: false,
+      })
+      const supported: any[] = Array.isArray(response.data) ? response.data : []
+      const found = supported.find(f =>
+        (f.specification ?? []).some((s: any) => s.name === 'builtin_feature_codename' && s.value === feature.name),
+      )
+      if (found?.feature_digest && found.feature_digest !== feature.hash) {
+        console.warn(`Фича ${feature.name}: нода знает digest ${found.feature_digest}, в конфиге ${feature.hash} — берём digest ноды`)
+        return found.feature_digest
+      }
+    }
+    catch (e: any) {
+      console.warn(`Не удалось спросить у ноды список фич (${e?.message}), используем digest из конфига`)
+    }
+    return feature.hash
+  }
+
   async activateFeature(feature: Feature) {
     await this.update_pass_instance()
+    const featureDigest = await this.resolveFeatureDigest(feature)
 
     try {
       await this.api.transact(
@@ -352,7 +384,7 @@ export default class Blockchain {
                 },
               ],
               data: {
-                feature_digest: feature.hash,
+                feature_digest: featureDigest,
               },
             },
           ],

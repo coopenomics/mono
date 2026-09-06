@@ -3,6 +3,7 @@
     v-model:pagination="pagination"
     v-model:selected="selectedRows"
     flat
+    wrap-cells
     :rows="displayRows"
     :columns="quasarColumns"
     :row-key="rowKeyName"
@@ -174,8 +175,10 @@ const tableStyle = computed(() => ({
     max-height: var(--base-table-max-height, none);
   }
 
+  // Числа и суммы не переносим: разорванная посередине сумма читается как две.
   :deep(.col-num) {
     font-variant-numeric: tabular-nums;
+    white-space: nowrap;
   }
 
   :deep(.col-nowrap) {
@@ -183,6 +186,8 @@ const tableStyle = computed(() => ({
   }
 
   // Длинные наименования и адреса переносим, а не растягиваем колонку.
+  // Сам перенос включает `wrap-cells` у q-table: без него Quasar ставит
+  // `white-space: nowrap`, и длинный текст вылезает поверх соседних колонок.
   :deep(td) {
     overflow-wrap: anywhere;
   }

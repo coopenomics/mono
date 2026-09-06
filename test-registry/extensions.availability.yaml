@@ -13,6 +13,10 @@ title: Доступность расширений в зависимости о�
 # стало `extensionClass`, классы расширений `<X>Plugin`/`<X>PluginModule` —
 # `<X>Extension`/`<X>ExtensionModule`. Только имена; поведение, набор полей
 # и набор случаев не менялись. Поле внутреннее, в GraphQL не экспонируется.
+#
+# Правка 2026-09-05 (AC9-3): в реестр добавлена запись расширения «Робот
+# совета» (`robot`, availability EVERYWHERE, по умолчанию выключено). Логика
+# доступности не менялась; случаи те же.
 sources:
   backend:
     - components/controller/src/extensions/extensions.registry.ts

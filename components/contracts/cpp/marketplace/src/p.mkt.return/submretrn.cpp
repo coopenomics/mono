@@ -120,5 +120,5 @@ void marketplace::submretrn(eosio::name coopname,
   // версия), rejretrn/rejretrem → newdeclined.
   Action::send<newsubmitted_interface>(_soviet, "newsubmitted"_n, _marketplace,
                                        coopname, orderer, "submretrn"_n,
-                                       o.hash, statement);
+                                       o.hash, statement, uint64_t(0));
 }

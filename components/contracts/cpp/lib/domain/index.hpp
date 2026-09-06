@@ -93,3 +93,4 @@
 
 // ano (цепочка доверия)
 #include "table_ano_endorsements.hpp"
+#include "table_ano_repschemas.hpp"

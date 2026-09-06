@@ -17,6 +17,7 @@ import { MarketplaceExtensionModule, MarketplaceExtension } from './marketplace/
 import { Schema as MarketplaceSchema } from './marketplace/types';
 import { KuExtensionModule, KuExtension, Schema as KuSchema } from './ku/ku-extension.module';
 import { CardcoopExtensionModule, CardcoopExtension, Schema as CardcoopSchema } from './cardcoop/cardcoop-extension.module';
+import { SovietRobotExtensionModule, SovietRobotExtension, Schema as SovietRobotSchema, defaultConfig as sovietRobotDefaultConfig } from './soviet-robot/soviet-robot-extension.module';
 
 import { capitalEntities } from './capital/capital.entities';
 import { cardcoopEntities } from './cardcoop/cardcoop.entities';
@@ -25,6 +26,7 @@ import { chatcoopEntities } from './chatcoop/chatcoop.entities';
 import { expensesEntities } from './expenses/expenses.entities';
 import { kuEntities } from './ku/ku.entities';
 import { marketplaceEntities } from './marketplace/marketplace.entities';
+import { sovietRobotEntities } from './soviet-robot/soviet-robot.entities';
 import { reportsEntities } from './reports/reports.entities';
 
 import { chatcoopMigrations } from './chatcoop/chatcoop.migrations';
@@ -38,6 +40,7 @@ import { chairmanPorts } from './chairman/chairman.ports';
 import { chatcoopPorts } from './chatcoop/chatcoop.ports';
 import { kuPorts } from './ku/ku.ports';
 import { marketplacePorts } from './marketplace/marketplace.ports';
+import { sovietRobotPorts } from './soviet-robot/soviet-robot.ports';
 import { participantPorts } from './participant/participant.ports';
 import { powerupPorts } from './powerup/powerup.ports';
 import { qrpayPorts } from './qrpay/qrpay.ports';
@@ -82,8 +85,34 @@ function getInstructionsContent(dirPath: string): Promise<string> {
  * Ключ — это name расширения, значение — объект IRegistryExtension.
  */
 export const AppRegistry: INamedExtension = {
+  robot: {
+    is_internal: true,
+    availability: ExtensionAvailability.EVERYWHERE,
+    desktops: [
+      {
+        name: 'robot',
+        title: 'Робот совета',
+        icon: 'smart_toy',
+      },
+    ],
+    title: 'Робот совета',
+    description:
+      'Принимает типовые решения совета автоматически по правилам, которые члены совета задали заранее: голосует и подписывает протоколы ключами делегированных разрешений.',
+    image: 'https://i.ibb.co/Q3NmVvzN/Chat-GPT-Image-10-2025-20-40-44.png',
+    class: SovietRobotExtensionModule,
+    extensionClass: SovietRobotExtension,
+    entities: sovietRobotEntities,
+    ports: sovietRobotPorts,
+    schema: SovietRobotSchema,
+    defaults: { enabled: false, config: sovietRobotDefaultConfig },
+    tags: ['стол', 'совет', 'автоматизация'],
+    readme: getReadmeContent('./soviet-robot'),
+    instructions: getInstructionsContent('./soviet-robot'),
+    get is_desktop() {
+      return !!this.desktops && this.desktops.length > 0;
+    },
+  },
   soviet: {
-    is_builtin: true,
     is_internal: true,
     availability: ExtensionAvailability.EVERYWHERE,
     desktops: [
@@ -109,7 +138,6 @@ export const AppRegistry: INamedExtension = {
     },
   },
   capital: {
-    is_builtin: false,
     is_internal: true,
     availability: ExtensionAvailability.EVERYWHERE,
     desktops: [
@@ -135,7 +163,6 @@ export const AppRegistry: INamedExtension = {
     },
   },
   chairman: {
-    is_builtin: true,
     is_internal: true,
     availability: ExtensionAvailability.EVERYWHERE,
     desktops: [
@@ -162,7 +189,6 @@ export const AppRegistry: INamedExtension = {
     },
   },
   trustee: {
-    is_builtin: true,
     is_internal: true,
     availability: ExtensionAvailability.EVERYWHERE,
     desktops: [
@@ -188,7 +214,6 @@ export const AppRegistry: INamedExtension = {
     },
   },
   participant: {
-    is_builtin: true,
     is_internal: true,
     availability: ExtensionAvailability.EVERYWHERE,
     desktops: [
@@ -214,7 +239,6 @@ export const AppRegistry: INamedExtension = {
     },
   },
   powerup: {
-    is_builtin: false,
     is_internal: true,
     availability: ExtensionAvailability.EVERYWHERE,
     desktops: [
@@ -241,7 +265,6 @@ export const AppRegistry: INamedExtension = {
     },
   },
   yookassa: {
-    is_builtin: false,
     is_internal: true,
     availability: ExtensionAvailability.NOWHERE,
     desktops: undefined, // Это не desktop расширение
@@ -294,7 +317,6 @@ export const AppRegistry: INamedExtension = {
     },
   },
   sberpoll: {
-    is_builtin: false,
     is_internal: true,
     availability: ExtensionAvailability.NOWHERE,
     desktops: undefined, // Это не desktop расширение
@@ -314,7 +336,6 @@ export const AppRegistry: INamedExtension = {
     },
   },
   qrpay: {
-    is_builtin: false,
     is_internal: true,
     availability: ExtensionAvailability.EVERYWHERE,
     desktops: undefined, // Это не desktop расширение
@@ -334,7 +355,6 @@ export const AppRegistry: INamedExtension = {
     },
   },
   chatcoop: {
-    is_builtin: false,
     is_internal: true,
     availability: ExtensionAvailability.EVERYWHERE,
     desktops: [
@@ -361,7 +381,6 @@ export const AppRegistry: INamedExtension = {
     },
   },
   reports: {
-    is_builtin: true,
     is_internal: true,
     availability: ExtensionAvailability.EVERYWHERE,
     desktops: [
@@ -388,7 +407,6 @@ export const AppRegistry: INamedExtension = {
     },
   },
   market: {
-    is_builtin: false,
     is_internal: true,
     // Обкатка Стола заказов идёт на тестовом контуре; в основной сети приложение
     // остаётся закрытым, пока здесь не поставят EVERYWHERE.

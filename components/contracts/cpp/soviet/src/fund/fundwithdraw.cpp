@@ -41,7 +41,8 @@ void soviet::fundwithdraw(eosio::name coopname, eosio::name username, eosio::nam
     username,
     "fundwithdraw"_n,
     hash,
-    document
+    document,
+    decision_id
   );
   
 };

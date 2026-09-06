@@ -26,21 +26,37 @@ export function setupNavigationGuard(router: Router) {
     desktops.loadedForUsername === session.username;
   const hasAccessData = () =>
     Boolean(session.currentUserAccount) && desktopFresh();
+  // Аккаунт известен — можно судить о статусе пайщика. Пока он не загружен,
+  // «не активен» и «неизвестно» — разные вещи, и переадресовывать по второму нельзя.
+  const accountKnown = () => Boolean(session.currentUserAccount);
 
   // Однократная дозагрузка; параллельные переходы делят один промис.
+  // `force` перечитывает стол и аккаунт, даже если они «есть»: стол мог приехать
+  // гостевым во время обрыва связи и числиться свежим, а аккаунт — настоящим уже
+  // после обрыва. По отдельности оба выглядят загруженными, вместе дают ложный
+  // отказ. Ошибка одного запроса не отменяет результат другого (allSettled).
   let reloading: Promise<void> | null = null;
-  const reloadAccessData = (): Promise<void> => {
+  const reloadAccessData = (force = false): Promise<void> => {
     if (!reloading) {
       reloading = (async () => {
         try {
           await session.init();
-          const [acc] = await Promise.all([
-            session.currentUserAccount
-              ? Promise.resolve(undefined)
-              : account.getAccount(session.username),
-            desktopFresh() ? Promise.resolve() : desktops.loadDesktop(),
+          const needAccount = force || !session.currentUserAccount;
+          const needDesktop = force || !desktopFresh();
+          const [accountResult, desktopResult] = await Promise.allSettled([
+            needAccount && session.username
+              ? account.getAccount(session.username)
+              : Promise.resolve(undefined),
+            needDesktop ? desktops.loadDesktop() : Promise.resolve(),
           ]);
-          if (acc) session.setCurrentUserAccount(acc);
+          if (accountResult.status === 'fulfilled' && accountResult.value) {
+            session.setCurrentUserAccount(accountResult.value);
+          }
+          for (const result of [accountResult, desktopResult]) {
+            if (result.status === 'rejected') {
+              console.warn('[guard] дозагрузка прав не удалась:', result.reason);
+            }
+          }
         } catch (e) {
           console.warn('[guard] дозагрузка прав не удалась:', e);
         } finally {
@@ -50,6 +66,11 @@ export function setupNavigationGuard(router: Router) {
     }
     return reloading;
   };
+
+  // Принудительная перечитка — не чаще раза в интервал: пайщик без прав, кликающий
+  // по закрытой странице, не должен слать два запроса на каждый клик.
+  const FORCED_RELOAD_COOLDOWN_MS = 15_000;
+  let lastForcedReloadAt = 0;
 
   router.beforeEach(async (to, from, next) => {
     // если требуется установка
@@ -85,6 +106,15 @@ export function setupNavigationGuard(router: Router) {
       }
     }
 
+    // Решения ниже (главная, статус пайщика, права на страницу) опираются на
+    // аккаунт и рабочий стол. На холодном старте или после обрыва связи они
+    // могли не приехать, и гвард принимал «не загружено» за «нет»: уводил на
+    // главную, на регистрацию, на «404», на «Недостаточно прав доступа».
+    // Поэтому сначала дожидаемся данных, а решаем уже по ним.
+    if (session.isAuth && !hasAccessData()) {
+      await reloadAccessData();
+    }
+
     // редирект с index
     if (to.name === 'index') {
       // Только пайщики со status='active' попадают на свой дашборд.
@@ -100,6 +130,11 @@ export function setupNavigationGuard(router: Router) {
         const defaultPageRoute = desktops.getDefaultPageRoute();
         if (defaultPageRoute) {
           next(defaultPageRoute);
+        } else if (!desktopFresh()) {
+          // Стол не загружен — страницы по умолчанию нет не потому, что её нет,
+          // а потому что не из чего выбирать. Остаёмся на главной, а не на «404».
+          console.warn('[guard] рабочий стол не загружен — главная без перенаправления');
+          next();
         } else {
           next({ name: 'somethingBad' });
         }
@@ -137,6 +172,7 @@ export function setupNavigationGuard(router: Router) {
     if (
       to.meta?.requiresAuth &&
       session.isAuth &&
+      accountKnown() &&
       !session.isFullyActive &&
       !(typeof to.path === 'string' && to.path.includes('/auth/'))
     ) {
@@ -154,15 +190,19 @@ export function setupNavigationGuard(router: Router) {
     }
 
     // «Прав нет» ≠ «права неизвестны». Роль (chairman/member) живёт в
-    // currentUserAccount, гранты столов — в currentDesktop; оба грузятся одним
-    // запросом на старте без ретрая. Если бэкенд в этот момент перезапускался
-    // (dev-рестарт, апгрейд), запросы падали молча: аккаунт пуст → роль 'user',
-    // стол пуст → grants нет — и авторизованного председателя уносило на
-    // «Недостаточно прав доступа». Здесь пробуем дозагрузить данные один раз
-    // и перепроверить; если бэкенд всё ещё лежит — пропускаем (fail-open:
-    // отказ всё равно даст резолвер, а ложный отказ при живых правах хуже).
-    if (session.isAuth && !hasAccessData()) {
-      await reloadAccessData();
+    // currentUserAccount, гранты столов — в currentDesktop; оба грузятся на старте
+    // без ретрая, и любой из них мог приехать гостевым или не приехать вовсе, если
+    // бэкенд в этот момент перезапускался или связь рвалась. Перед отказом
+    // перечитываем оба принудительно и перепроверяем; если бэкенд всё ещё лежит —
+    // пропускаем (fail-open: отказ всё равно даст резолвер, а ложный отказ при
+    // живых правах хуже).
+    if (session.isAuth) {
+      const now = Date.now();
+      const force = now - lastForcedReloadAt >= FORCED_RELOAD_COOLDOWN_MS;
+      if (force) lastForcedReloadAt = now;
+      if (force || !hasAccessData()) {
+        await reloadAccessData(force);
+      }
       if (desktops.hasRouteAccess(matchedNames, to.meta)) {
         next();
         return;

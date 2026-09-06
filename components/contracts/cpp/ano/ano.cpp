@@ -2,6 +2,7 @@
 
 #include "src/endorse.cpp"
 #include "src/revoke.cpp"
+#include "src/pubrepschema.cpp"
 
 /**
  * \brief Миграция контракта.
