@@ -77,7 +77,17 @@ export const subscription = Selector('Subscription')({
         saga_id: true,
         order_id: true,
         order_hash: true,
-        proposal_id: true,
+        // Бандл выдачи здесь необязателен (выдача может идти вне бандла), а у
+        // событий докладки и списания одноимённое поле обязательное. В одном
+        // наборе выборки GraphQL считает `String` и `String!` конфликтом и
+        // отвергает ВЕСЬ документ подписки — realtime стола молчал целиком,
+        // а гейт жил на страховочном поллинге. Поэтому берём поле под своим
+        // именем: конфликта имён больше нет, значение то же.
+        __alias: {
+          bundle_proposal_id: {
+            proposal_id: true,
+          },
+        },
         braname: true,
         stage: true,
         decision_mode: true,
