@@ -1,0 +1,189 @@
+feature: cardcoop.disclosures
+title: Выдача анкеты пайщика по гранту card.coop (карта кооператора, Story 7.8)
+
+# Человек с картой приходит в кооператив B, где его ещё нет. Анкета у него уже
+# заполнена в кооперативе A, где его проверяли по паспорту. Переписывать её
+# заново бессмысленно и вредно: ошибки ввода как раз и порождают расхождения
+# реквизитов, которые потом всплывают сверкой отпечатков (Story 7.7).
+#
+# Поэтому анкета едет от A к B напрямую, минуя card.coop (PRD §10 п.9, вариант
+# B): у сети остаётся только факт — кто у кого взял, когда и по чьему согласию.
+# Само согласие удостоверяет грант: короткоживущий compact JWS, подписанный
+# ключом card.coop.
+#
+# Отсюда четыре свойства, каждое из которых проверяется отдельно. Грант выдан
+# НАМ как источнику (`from`), выдан НА СЕЙЧАС (`exp`), выдан НА ОДИН обмен
+# (`jti`) и выдан card.coop, а не кем угодно (подпись по JWKS). Отпадает любое —
+# анкета не выдаётся.
+#
+# Причина отказа наружу не выходит никогда. Ответить «такого пайщика у нас нет»
+# значит рассказать чужому о членстве человека — ровно то, что запрещает
+# архитектура §8. Предъявителю достаётся один и тот же отказ, причина остаётся в
+# журнале кооператива.
+
+sources:
+  backend:
+    - components/controller/src/extensions/cardcoop/disclosure/**
+    - components/controller/src/extensions/cardcoop/application/disclosure.controller.ts
+    - components/controller/src/extensions/cardcoop/identity/identity.service.ts
+
+cases:
+  - id: cc.disclose.happy.01
+    level: backend
+    kind: happy
+    scenario: >
+      Кооператив-получатель предъявляет действительный грант на карту кооператора с
+      действующим подтверждением членства.
+    expect: >
+      анкета выдаётся конвертом, подписанным ключом заверения кооператива, с
+      цепочкой признания — получатель проверяет её по реестру, не обращаясь ни к
+      нам, ни к card.coop
+    test: components/controller/tests/unit/cardcoop/cardcoop-disclosure.test.ts
+    status: passing
+
+  - id: cc.disclose.happy.02
+    level: backend
+    kind: happy
+    scenario: >
+      Анкета выдана.
+    expect: >
+      на card.coop уходит подписанная отметка о передаче с тем же
+      идентификатором согласия — держатель видит в журнале, чем кончилось его
+      «разрешаю»
+    test: components/controller/tests/unit/cardcoop/cardcoop-disclosure.test.ts
+    status: passing
+
+  - id: cc.disclose.happy.03
+    level: backend
+    kind: happy
+    scenario: >
+      Анкета физлица и анкета организации собираются для выдачи.
+    expect: >
+      состав не урезан (иначе недостающие поля получатель добирал бы руками —
+      тем самым способом, который и порождает расхождения), а внутреннее учётное
+      имя пайщика в нашем кооперативе наружу не уходит
+    test: components/controller/tests/unit/cardcoop/cardcoop-identity.test.ts
+    status: passing
+
+  - id: cc.disclose.side.01
+    level: backend
+    kind: side
+    scenario: >
+      Ключ подписи грантов у card.coop сменился, а в кэше кооператива лежит
+      прежний набор.
+    expect: >
+      незнакомый отпечаток ключа заставляет перечитать JWKS, и первый же грант,
+      подписанный новым ключом, проходит — без простоя и перенастройки
+      кооперативов
+    test: components/controller/tests/unit/cardcoop/cardcoop-disclosure.test.ts
+    status: passing
+
+  - id: cc.disclose.side.02
+    level: backend
+    kind: side
+    scenario: >
+      Подряд приходят два гранта.
+    expect: >
+      JWKS читается один раз и живёт в кэше: card.coop не должен оказаться в
+      критическом пути обмена, который задуман идущим мимо него
+    test: components/controller/tests/unit/cardcoop/cardcoop-disclosure.test.ts
+    status: passing
+
+  - id: cc.disclose.side.03
+    level: backend
+    kind: side
+    scenario: >
+      Грант на карту кооператора, у которого нет действующего подтверждения членства.
+    expect: >
+      отказ, при этом согласие НЕ считается израсходованным: держатель ни при чём,
+      и переспрашивать его из-за нашего отказа незачем
+    test: components/controller/tests/unit/cardcoop/cardcoop-disclosure.test.ts
+    status: passing
+
+  - id: cc.disclose.break.01
+    level: backend
+    kind: break
+    scenario: >
+      Предъявлен просроченный грант.
+    expect: >
+      отказ; допуск на расхождение часов — полминуты, и он не продлевает жизнь
+      согласия сверх этого
+    test: components/controller/tests/unit/cardcoop/cardcoop-disclosure.test.ts
+    status: passing
+
+  - id: cc.disclose.break.02
+    level: backend
+    kind: break
+    scenario: >
+      Предъявлен грант, в котором источником анкеты назван другой кооператив.
+    expect: >
+      отказ: предъявитель принёс настоящее согласие не в ту дверь, и выдача по
+      нему означала бы раскрытие без согласия на нас
+    test: components/controller/tests/unit/cardcoop/cardcoop-disclosure.test.ts
+    status: passing
+
+  - id: cc.disclose.break.03
+    level: backend
+    kind: break
+    scenario: >
+      Тот же грант предъявлен второй раз.
+    expect: >
+      отказ: согласие даётся на один обмен, а не на доступ к анкете на все
+      минуты жизни гранта
+    test: components/controller/tests/unit/cardcoop/cardcoop-disclosure.test.ts
+    status: passing
+
+  - id: cc.disclose.break.04
+    level: backend
+    kind: break
+    scenario: >
+      Грант подписан чужим ключом либо тело гранта подменено после подписи.
+    expect: >
+      отказ в обоих случаях: подпись накрывает содержимое, а не факт отправки
+    test: components/controller/tests/unit/cardcoop/cardcoop-disclosure.test.ts
+    status: passing
+
+  - id: cc.disclose.break.05
+    level: backend
+    kind: break
+    scenario: >
+      Вместо гранта предъявлено заверение цепи доверия — тот же формат подписи,
+      другое назначение.
+    expect: >
+      отказ по типу документа: иначе подписанное для одного назначения
+      предъявлялось бы для другого
+    test: components/controller/tests/unit/cardcoop/cardcoop-disclosure.test.ts
+    status: passing
+
+  - id: cc.disclose.break.06
+    level: backend
+    kind: break
+    scenario: >
+      JWKS card.coop недоступен в момент предъявления гранта.
+    expect: >
+      отказ, а не выдача без проверки: проверять нечем — значит не выдаём
+    test: components/controller/tests/unit/cardcoop/cardcoop-disclosure.test.ts
+    status: passing
+
+  - id: cc.disclose.break.07
+    level: backend
+    kind: break
+    scenario: >
+      Четыре разных отказа подряд: просрочен, нет членства, согласие уже
+      израсходовано, внутренняя неполадка кооператива.
+    expect: >
+      наружу все четыре выглядят одним и тем же ответом — иначе по различию
+      ответов чужой узнавал бы, состоит ли человек в кооперативе
+    test: components/controller/tests/unit/cardcoop/cardcoop-disclosure.test.ts
+    status: passing
+
+  - id: cc.disclose.break.08
+    level: backend
+    kind: break
+    scenario: >
+      Запрос пришёл вообще без гранта.
+    expect: >
+      тот же отказ, и до анкеты дело не доходит — журнал и карточка пайщика при
+      этом не читаются
+    test: components/controller/tests/unit/cardcoop/cardcoop-disclosure.test.ts
+    status: passing

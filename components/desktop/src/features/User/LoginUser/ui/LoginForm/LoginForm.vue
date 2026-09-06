@@ -33,6 +33,18 @@
       >
         Войти
       </BaseButton>
+      <!-- Вход по карте кооператора (карта кооператора, story 9.2): карта опознаёт человека и ведёт
+           пайщика к его аккаунту, кандидата — в быструю регистрацию. Кнопка появляется только
+           когда кооператив подключён к сети: кнопка, ведущая в отказ, хуже её отсутствия. -->
+      <BaseButton
+        v-if="cardcoopEntryAvailable"
+        variant="secondary"
+        block
+        :disabled="loading"
+        @click="startCardcoopEntry"
+      >
+        Войти с помощью карты кооператора
+      </BaseButton>
     </template>
 
     <!-- Шаг 2FA: пароль и ключ приняты, сервер ждёт код второго фактора -->
@@ -110,6 +122,8 @@
 import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { LocalStorage } from 'quasar';
+import { Queries } from '@coopenomics/sdk';
+import { client } from 'src/shared/api/client';
 import { useSessionStore } from 'src/entities/Session';
 import { useLoginUser } from 'src/features/User/LoginUser';
 import { useNotificationPermissionDialog } from 'src/features/NotificationPermissionDialog';
@@ -146,6 +160,26 @@ const { migrateAndLogin, loginWithPassword, confirmLoginSecondFactor } = useLogi
 
 const email = ref('');
 const secret = ref('');
+
+// Вход по карте кооператора (story 9.2). Доступность спрашивается один раз при открытии формы:
+// запрос публичный, а молчаливый отказ означает «кнопки нет» — экран входа не должен падать
+// из-за расширения.
+const cardcoopEntryAvailable = ref(false);
+onMounted(async () => {
+  try {
+    const { [Queries.Cardcoop.GetEntryAvailable.name]: available } = await client.Query(
+      Queries.Cardcoop.GetEntryAvailable.query,
+    );
+    cardcoopEntryAvailable.value = Boolean(available);
+  } catch {
+    cardcoopEntryAvailable.value = false;
+  }
+});
+
+/** Уводит на card.coop: дальше человека ведут карта и сервер, секретов в браузере нет. */
+function startCardcoopEntry(): void {
+  window.location.href = `${env.BACKEND_URL.replace(/\/+$/, '')}/v1/extensions/cardcoop/entry/start`;
+}
 const mode = ref<'login' | 'migrate' | 'twofactor'>('login');
 const newPassword = ref('');
 const repeatPassword = ref('');

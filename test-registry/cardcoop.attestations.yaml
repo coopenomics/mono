@@ -1,0 +1,231 @@
+feature: cardcoop.attestations
+title: Выпуск подтверждений членства в сеть карты кооператора (Story 7.2/7.3)
+
+# Кооператив не выпускает карту — он свидетельствует, что человек у него состоит.
+# Свидетельство подписывается ключом заверения и едет вместе с цепочкой признания,
+# поэтому проверить его может любой участник сети, не обращаясь к card.coop и не
+# доверяя ему (NFR-5 проекта «Карта кооператора»).
+#
+# Ключевое решение: подписывается КАНОНИЧЕСКИЙ образ документа (JCS, RFC 8785) —
+# той же библиотекой, что документы в @coopenomics/sdk. Иначе принимающая сторона,
+# собрав тот же документ в другом порядке ключей, не сошлась бы с подписью и
+# отвергла честное свидетельство.
+#
+# Ключ заверения расширению не выдаётся: COOP_CREDENTIAL_PORT подписывает у себя
+# и возвращает подпись. Компрометация этого ключа означает, что все выданные
+# кооперативом удостоверения перестают проверяться, поэтому копиям по расширениям
+# он расходиться не должен.
+#
+# Повторы доставки: повторяем только то, что могло получиться со второй попытки —
+# недоступность сети и серверную ошибку. Отказ с разбором документа (4xx, кроме
+# 429) не повторяется: документ не станет другим, а повторы прячут настоящую
+# причину.
+
+sources:
+  backend:
+    - components/controller/src/extensions/cardcoop/**
+    - components/controller/src/infrastructure/innercoop/coop-credential-innercoop.adapter.ts
+    - components/innercoop/src/core-ports/coop-credential.port.ts
+
+cases:
+  - id: cc.att.happy.01
+    level: backend
+    kind: happy
+    scenario: >
+      Кооператив выпускает подтверждение членства пайщика по уведомлению о связи.
+    expect: >
+      документ содержит кооператив, карту, дату вступления, идентификатор сети и
+      блок реквизитов; момент выпуска — разбираемая дата
+    test: components/controller/tests/unit/cardcoop/cardcoop-attestation.test.ts
+    status: passing
+
+  - id: cc.att.happy.02
+    level: backend
+    kind: happy
+    scenario: >
+      Подпись документа проверяется восстановлением открытого ключа из подписи.
+    expect: >
+      восстановленный ключ совпадает с ключом заверения кооператива — подпись
+      накрывает канонический образ, а не произвольную сериализацию
+    test: components/controller/tests/unit/cardcoop/cardcoop-attestation.test.ts
+    status: passing
+
+  - id: cc.att.happy.03
+    level: backend
+    kind: happy
+    scenario: >
+      Тот же документ собран с другим порядком ключей.
+    expect: >
+      канонический образ тот же — принимающая сторона сойдётся с подписью
+    test: components/controller/tests/unit/cardcoop/cardcoop-attestation.test.ts
+    status: passing
+
+  - id: cc.att.happy.04
+    level: backend
+    kind: happy
+    scenario: >
+      Кооператив отзывает ранее выданное подтверждение.
+    expect: >
+      отзыв подписан отдельно и называет отзываемое подтверждение внутри подписи —
+      иначе подписанный отзыв применили бы к любому подтверждению кооператива
+    test: components/controller/tests/unit/cardcoop/cardcoop-attestation.test.ts
+    status: passing
+
+  - id: cc.att.side.01
+    level: backend
+    kind: side
+    scenario: >
+      Кооператив ещё не признан в сети: цепочка заверений пуста.
+    expect: >
+      документ выпускается, но факт попадает в журнал — сеть его отвергнет, и
+      причина должна быть видна здесь, а не выясняться по отказам
+    test: components/controller/tests/unit/cardcoop/cardcoop-attestation.test.ts
+    status: passing
+
+  - id: cc.att.side.02
+    level: backend
+    kind: side
+    scenario: >
+      Сеть ответила серверной ошибкой, со второй попытки приняла.
+    expect: >
+      доставка повторяется и завершается успехом; задержка растёт и упирается в предел
+    test: components/controller/tests/unit/cardcoop/cardcoop-attestation.test.ts
+    status: passing
+
+  - id: cc.att.break.01
+    level: backend
+    kind: break
+    scenario: >
+      Сеть отвергла документ с разбором (422: неизвестные поля).
+    expect: >
+      повторов нет — документ не станет другим; причина возвращается и
+      попадает в журнал для разбора оператором
+    test: components/controller/tests/unit/cardcoop/cardcoop-attestation.test.ts
+    status: passing
+
+  - id: cc.att.break.02
+    level: backend
+    kind: break
+    scenario: >
+      Сеть недоступна все попытки подряд.
+    expect: >
+      недоставка возвращается как результат, а не исключение: это рабочая
+      ситуация, её разбирает оператор, а выпуск документа не должен падать
+    test: components/controller/tests/unit/cardcoop/cardcoop-attestation.test.ts
+    status: written
+
+  - id: cc.att.happy.05
+    level: backend
+    kind: happy
+    scenario: >
+      Сеть прислала подписанное уведомление о новой связи карты с кооперативом.
+    expect: >
+      выпускается подтверждение членства; членство и дата приёма берутся из
+      реестра пайщиков цепи (`soviet::participants`), а не из строки
+      `registrator::accounts` — та существует и у кандидата, которого совет ещё
+      не принимал, и её `registered_at` — момент создания аккаунта, а не приёма
+    test: components/controller/tests/unit/cardcoop/cardcoop-link-webhook.test.ts
+    status: passing
+
+  - id: cc.att.break.03
+    level: backend
+    kind: break
+    scenario: >
+      Уведомление пришло без подписи, с чужой подписью либо с подменённым телом.
+    expect: >
+      отказ во всех трёх случаях, подтверждение не выпускается: принять такое
+      значило бы засвидетельствовать членство по чужой команде
+    test: components/controller/tests/unit/cardcoop/cardcoop-link-webhook.test.ts
+    status: passing
+
+  - id: cc.att.break.04
+    level: backend
+    kind: break
+    scenario: >
+      Уведомление адресовано ДРУГОМУ кооперативу.
+    expect: >
+      отказ — кооператив свидетельствует только о своих пайщиках
+    test: components/controller/tests/unit/cardcoop/cardcoop-link-webhook.test.ts
+    status: passing
+
+  - id: cc.att.break.05
+    level: backend
+    kind: break
+    scenario: >
+      Ключ уведомлений сети не опубликован в цепи (разрешение `cardcoop` на
+      аккаунте `ano` отсутствует или держит не один ключ).
+    expect: >
+      приём закрыт с внятной причиной: проверять подпись нечем, а принимать
+      непроверенное — значит выпускать свидетельства по чужой команде. Ручного
+      ввода ключа в настройках нет вовсе — это запрещено архитектурно
+    test: components/controller/tests/unit/cardcoop/cardcoop-link-webhook.test.ts
+    status: passing
+
+  - id: cc.att.happy.06
+    level: backend
+    kind: happy
+    scenario: >
+      Сеть ротировала ключ уведомлений (сменила ключ разрешения в цепи), в кэше
+      кооператива ещё старый.
+    expect: >
+      несовпадение подписи ведёт к перечитке ключа из цепи мимо кэша, и первое же
+      уведомление, подписанное новым ключом, проходит — без простоя и без
+      перенастройки кооперативов
+    test: components/controller/tests/unit/cardcoop/cardcoop-link-webhook.test.ts
+    status: passing
+
+  - id: cc.att.side.03
+    level: backend
+    kind: side
+    scenario: >
+      Пайщик по уведомлению не принят в кооператив в цепи.
+    expect: >
+      подтверждение не выпускается, причина в журнале; сети возвращается приём —
+      повторная присылка того же уведомления ничего не исправит
+    test: components/controller/tests/unit/cardcoop/cardcoop-link-webhook.test.ts
+    status: passing
+
+  - id: cc.att.side.04
+    level: backend
+    kind: side
+    scenario: Сеть прислала уведомление об удалении карты либо о погашении согласия.
+    expect: >
+      оба события маршрутизируются без проверки принадлежности: удаление
+      адресовано всем, кто был с картой связан, а согласие находится по
+      идентификатору, который выдавали нам; уведомление об удалении без карты
+      ничего не стирает
+    test: components/controller/tests/unit/cardcoop/cardcoop-link-webhook.test.ts
+    status: passing
+
+  - id: cc.att.break.06
+    level: backend
+    kind: break
+    scenario: >
+      Подъём контроллера с установленным расширением: класс расширения нужен
+      контроллерам, резолверам и слушателям цепи одновременно.
+    expect: >
+      приложение стартует и маршруты расширения объявлены; класс расширения
+      объявлен отдельным файлом, поэтому импорт из него не замыкает круг на файл
+      модуля и Nest резолвит зависимость
+    status: missing
+    note: >
+      Автотеста на подъём модуля нет: это проверяется стартом приложения, и
+      подходящего уровня в реестре пока не заведено. Случай оставлен видимым,
+      чтобы регрессия не прошла молча.
+
+  - id: cc.att.side.05
+    level: backend
+    kind: side
+    scenario: >
+      Свидетельство выпускается пайщику, заблокированному в реестре цепи (статус
+      участника `blocked`).
+    expect: >
+      статус участника не читается намеренно (решение владельца 01.09.2026):
+      блокировка снимает право голоса, но членство не прекращает, а свидетельство
+      утверждает только дату вступления; прекращает членство лишь выход, и он
+      виден исчезновением строки реестра
+    status: missing
+    note: >
+      Проверяется тем же путём, что и обычный выпуск: отдельная ветка в коде
+      отсутствует именно потому, что статус не читается. Случай заведён ради
+      видимости решения.

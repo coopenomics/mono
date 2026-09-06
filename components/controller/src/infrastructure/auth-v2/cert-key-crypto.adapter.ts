@@ -43,6 +43,10 @@ export class CertKeyCryptoAdapter implements ICertKeyCrypto {
     return createPrivateKey({ key: der, format: 'der', type: 'sec1' });
   }
 
+  signChainMessage(privateKey: string, message: Uint8Array): string {
+    return PrivateKey.fromString(privateKey).signMessage(message).toString();
+  }
+
   normalizePublicKey(publicKey: string): string {
     try {
       return PublicKey.from(publicKey).toString();

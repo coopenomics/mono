@@ -105,3 +105,14 @@ cases:
     test: components/controller/tests/unit/extension/extension-install-gate.test.ts
     status: passing
 
+  - id: ext.avail.side.05
+    level: backend
+    kind: side
+    scenario: >
+      Расширение «Карта кооператора» заведено в реестре: сеть карт обкатывается на
+      тестовом контуре раньше, чем открывается в основной.
+    expect: >
+      запись помечена NON_MAINNET_ONLY — в основной сети расширение к установке
+      закрыто, вне её доступно
+    test: components/controller/tests/unit/extension/extension-availability.test.ts
+    status: passing

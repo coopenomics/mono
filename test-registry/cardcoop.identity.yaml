@@ -1,0 +1,118 @@
+feature: cardcoop.identity
+title: Реквизиты пайщика в подтверждении членства (карта кооператора, Story 7.7)
+
+# Кооператив свидетельствует членство пайщика в сети card.coop, но анкету наружу
+# не отдаёт. В подтверждение попадают ФИО (для организации — наименование)
+# открыто и пополевые отпечатки sha256 остальных полей анкеты.
+#
+# Ключевое решение: значения НЕ канонизируются — ни `ё`→`е`, ни регистр, ни
+# схлопывание пробелов. Пайщик заполняет анкету как в паспорте, и расхождение
+# написания между кооперативами означает ошибку ввода, которую card.coop обязан
+# заметить и назвать по имени поля. Свели бы написания к общему канону — ошибка
+# стала бы невидимой, и весь механизм потерял бы смысл.
+#
+# Пополевые отпечатки, а не один сводный: сводный сказал бы только «где-то
+# расходится», а кооперативу, который пойдёт исправлять, нужно знать, где именно.
+#
+# Перца на этой стороне нет: чистый sha256 считает кооператив, второй слой
+# card.coop накладывает у себя при хранении (PRD §10 п.8 проекта «Карта
+# пайщика»). Поэтому расширению не нужно принимать, хранить и ротировать
+# никаких секретов сети.
+#
+# Перечень полей задан явным списком и выровнен с
+# `~/utils/registration-profile-fingerprint.ts`: обход объекта означал бы, что
+# состав блока молча меняется вместе с `cooptypes`, и отпечатки переставали бы
+# сходиться с уже отправленными.
+
+sources:
+  backend:
+    - components/controller/src/extensions/cardcoop/**
+
+cases:
+  - id: cc.identity.happy.01
+    level: backend
+    kind: happy
+    scenario: >
+      Пайщик-физлицо с заполненной анкетой, кооператив формирует подтверждение.
+    expect: >
+      ФИО уходит открыто; дата рождения, адрес, телефон, почта и паспорт —
+      отпечатками sha256; ни одного значения этих полей в блоке нет
+    test: components/controller/tests/unit/cardcoop/cardcoop-identity.test.ts
+    status: passing
+
+  - id: cc.identity.happy.02
+    level: backend
+    kind: happy
+    scenario: >
+      Паспорт пайщика разложен на серия, номер, кем выдан, когда выдан, код.
+    expect: >
+      каждое подполе даёт собственный отпечаток — card.coop может назвать
+      расходящееся поле по имени, не зная его значения
+    test: components/controller/tests/unit/cardcoop/cardcoop-identity.test.ts
+    status: passing
+
+  - id: cc.identity.happy.03
+    level: backend
+    kind: happy
+    scenario: >
+      Пайщик-организация: наименование, реквизиты и представитель.
+    expect: >
+      короткое и полное наименование открыто; ИНН, ОГРН, КПП и ФИО
+      представителя — отпечатками
+    test: components/controller/tests/unit/cardcoop/cardcoop-identity.test.ts
+    status: passing
+
+  - id: cc.identity.side.01
+    level: backend
+    kind: side
+    scenario: >
+      Одно и то же поле у двух кооперативов написано через «ё» и через «е»
+      («Королёв» / «Королев»).
+    expect: >
+      отпечатки РАЗНЫЕ. Это цель, а не дефект: расхождение означает, что
+      где-то введено не как в паспорте, и это исправляют повторной верификацией
+    test: components/controller/tests/unit/cardcoop/cardcoop-identity.test.ts
+    status: passing
+
+  - id: cc.identity.side.02
+    level: backend
+    kind: side
+    scenario: >
+      Значение отличается только регистром или ведущим пробелом.
+    expect: >
+      отпечатки разные — значения не приводятся к канону ни в каком виде
+    test: components/controller/tests/unit/cardcoop/cardcoop-identity.test.ts
+    status: passing
+
+  - id: cc.identity.side.03
+    level: backend
+    kind: side
+    scenario: >
+      В анкете нет паспорта либо поле пустое.
+    expect: >
+      поле в отпечатки не попадает вовсе; card.coop сверяет пересечение
+      имеющихся полей, а не считает пустое совпадением
+    test: components/controller/tests/unit/cardcoop/cardcoop-identity.test.ts
+    status: passing
+
+  - id: cc.identity.break.01
+    level: backend
+    kind: break
+    scenario: >
+      ФИО пытается попасть в отпечатки наравне с остальными полями.
+    expect: >
+      в отпечатках его нет: оно уходит открыто, и дублирование дало бы
+      card.coop лишний способ перебора при уже известном значении
+    test: components/controller/tests/unit/cardcoop/cardcoop-identity.test.ts
+    status: passing
+
+  - id: cc.identity.break.02
+    level: backend
+    kind: break
+    scenario: >
+      У пайщика нет заполненной анкеты, а подтверждение запрошено.
+    expect: >
+      отказ с внятной причиной: кооператив свидетельствует о человеке,
+      которого верифицировал, а не о пустой записи
+    test: components/controller/tests/unit/cardcoop/cardcoop-identity.test.ts
+    status: passing

@@ -1,0 +1,215 @@
+feature: cardcoop.entry
+title: Вход по карте кооператора и быстрая регистрация (карта кооператора, Story 9.2/9.3)
+
+# Границы решения ant 31.08.2026: карта опознаёт, но не впускает. Вход в стол —
+# это пароль (сейф) и подпись ключом; карта не даёт ни того, ни другого, поэтому
+# сессий стола по карте не существует. Пайщика карта приводит к его учётной
+# записи и штатному входу либо восстановлению доступа; кандидата — в быструю
+# регистрацию.
+#
+# Быстрая регистрация не обходит приём: кооператив рассматривает заявление в
+# любом случае. Переносится анкета — чтобы человек, которого уже верифицировали
+# в другом кооперативе, не перепечатывал её и не плодил расхождения реквизитов
+# (ради обнаружения которых заведена сверка отпечатков, story 4.7).
+#
+# Анкета едет от кооператива к кооперативу напрямую, минуя card.coop (PRD §10
+# п.9): сеть удостоверяет только согласие держателя (грант) и привозит его
+# подписанным уведомлением (ADR-2 card.coop). Ответ источника проверяется ключом
+# его заверения ИЗ ЦЕПИ (`ano::endorsements`) — узлу кооператива для этого не
+# нужны ни JWKS, ни посредники. Полученная анкета читается в форму ровно один
+# раз: ссылка сессии остаётся в истории браузера, и повторное открытие не должно
+# отдавать персональные данные.
+
+sources:
+  backend:
+    - components/controller/src/extensions/cardcoop/entry/**
+    - components/controller/src/extensions/cardcoop/application/entry.controller.ts
+    - components/controller/src/extensions/cardcoop/application/cardcoop-entry.resolver.ts
+    - components/controller/src/extensions/cardcoop/application/dto/cardcoop-entry.dto.ts
+    - components/controller/src/extensions/cardcoop/infrastructure/entities/cardcoop-entry-session.typeorm-entity.ts
+  ui:
+    - components/desktop/src/pages/Registrator/CardcoopEntry/**
+    - components/desktop/src/features/User/LoginUser/ui/LoginForm/LoginForm.vue
+
+cases:
+  - id: cc.entry.happy.01
+    level: backend
+    kind: happy
+    scenario: >
+      Начало входа: кнопка на экране входа стола уводит на card.coop.
+    expect: >
+      адрес авторизации с нашим клиентом, PKCE S256 и скоупами карты и членств;
+      адрес возврата — приёмник расширения, заявленный сети при подключении
+    test: components/controller/tests/unit/cardcoop/cardcoop-entry.test.ts
+    status: passing
+
+  - id: cc.entry.happy.02
+    level: backend
+    kind: happy
+    scenario: >
+      Возврат пайщика: по карте есть действующее подтверждение в НАШЕМ журнале.
+    expect: >
+      карта опознаёт по собственному журналу кооператива, а не по чужим claims;
+      сессии стола не возникает — человеку показывается его учётная запись и
+      штатные вход либо восстановление доступа
+    test: components/controller/tests/unit/cardcoop/cardcoop-entry.test.ts
+    status: passing
+
+  - id: cc.entry.happy.03
+    level: backend
+    kind: happy
+    scenario: >
+      Возврат кандидата: членства в этом кооперативе нет.
+    expect: >
+      кандидату остаются только действующие членства ЧУЖИХ кооперативов — из них
+      выбирается источник анкеты; свой кооператив и прекращённые членства
+      источниками не предлагаются
+    test: components/controller/tests/unit/cardcoop/cardcoop-entry.test.ts
+    status: passing
+
+  - id: cc.entry.happy.04
+    level: backend
+    kind: happy
+    scenario: >
+      Кандидат выбрал источник; держатель разрешил на card.coop; грант приехал
+      подписанным уведомлением.
+    expect: >
+      запрос раскрытия подписан нами и называет источник только из членств карты;
+      по гранту анкета немедленно забирается у источника напрямую и проверяется
+      ключом его заверения из цепи
+    test: components/controller/tests/unit/cardcoop/cardcoop-entry.test.ts
+    status: passing
+
+  - id: cc.entry.side.04
+    level: backend
+    kind: side
+    scenario: >
+      Председатель выключил «Вход с помощью карты кооператора» в настройках расширения.
+    expect: >
+      cardcoopEntryAvailable отвечает false даже при реквизитах клиента от сети —
+      кнопка на форме входа исчезает, остаётся вход по паролю и ключу
+    test: components/controller/tests/unit/cardcoop/cardcoop-entry.test.ts
+    status: passing
+
+  - id: cc.entry.side.01
+    level: backend
+    kind: side
+    scenario: >
+      Кооператив не подключён к сети (реквизитов клиента нет); либо повторный
+      возврат с тем же state; либо отказ держателя.
+    expect: >
+      вход честно недоступен (кнопке некуда вести); state одноразовый; отказ
+      переводит в «заполнить руками» — регистрация нигде не тупик
+    test: components/controller/tests/unit/cardcoop/cardcoop-entry.test.ts
+    status: passing
+
+  - id: cc.entry.break.01
+    level: backend
+    kind: break
+    scenario: >
+      Токен чужого издателя или чужого клиента; анкета, подписанная не ключом
+      заверения источника; анкета по чужому согласию или чужой карте.
+    expect: >
+      отказ в каждом случае: подпись и принадлежность проверяются до всякого
+      использования, ошибка проверки не превращает сессию в анкету
+    test: components/controller/tests/unit/cardcoop/cardcoop-entry.test.ts
+    status: passing
+
+  - id: cc.entry.break.02
+    level: backend
+    kind: break
+    scenario: >
+      Повторное чтение полученной анкеты — из истории браузера либо перебором.
+    expect: >
+      анкета читается ровно один раз и стирается при прочтении; повтор получает
+      отказ, а не персональные данные
+    test: components/controller/tests/unit/cardcoop/cardcoop-entry.test.ts
+    status: passing
+
+  - id: cc.entry.ui.01
+    level: ui
+    kind: happy
+    scenario: >
+      Экран входа стола с подключённой картой; страница входа по карте во всех
+      состояниях (пайщик, выбор источника, ожидание согласия, анкета получена,
+      отказ, ошибка).
+    expect: >
+      кнопка «Войти с помощью карты кооператора» есть только при подключённой сети;
+      каждое состояние страницы объясняет, что происходит и что делать дальше;
+      предзаполненная форма вступления показывает перенесённые данные
+    status: missing
+
+  - id: cc.entry.side.02
+    level: backend
+    kind: side
+    scenario: >
+      Возврат человека, чьё свидетельство членства застряло в доставке либо
+      отвергнуто сетью, а также кандидата со связью, ждущей решения совета.
+    expect: >
+      карта опознаёт его по учётной записи: недоставка документа — состояние
+      доставки, а не состояние человека, и вести пайщика во второе вступление
+      нельзя; отозванное свидетельство при этом означает выход и кандидатом
+      человека делает справедливо
+    test: components/controller/tests/unit/cardcoop/cardcoop-entry.test.ts
+    status: passing
+
+  - id: cc.entry.break.03
+    level: backend
+    kind: break
+    scenario: >
+      Держатель не ответил на запрос раскрытия, а уведомление сети о погашении
+      не доехало.
+    expect: >
+      ожидание кончается собственным сроком (тем же, что и у запроса в сети), и
+      сессия переходит в «согласия не было»; свежее ожидание не гасится
+    test: components/controller/tests/unit/cardcoop/cardcoop-entry.test.ts
+    status: passing
+
+  - id: cc.entry.break.04
+    level: backend
+    kind: break
+    scenario: Обмен гранта на анкету не удался (мёртвый грант, ошибка источника, чужая подпись).
+    expect: >
+      сессия заканчивается состоянием «перенести не удалось» — прежде она висела
+      в ожидании, и страница опрашивала сервер до закрытия вкладки
+    test: components/controller/tests/unit/cardcoop/cardcoop-entry.test.ts
+    status: passing
+
+  - id: cc.entry.side.03
+    level: backend
+    kind: side
+    scenario: Сеть сообщила, что запрос погас без ответа держателя.
+    expect: сессия закрывается как «согласия не было», регистрация продолжается вручную
+    test: components/controller/tests/unit/cardcoop/cardcoop-entry.test.ts
+    status: passing
+
+  - id: cc.entry.break.05
+    level: backend
+    kind: break
+    scenario: Чтение сессии, у которой вышли сутки жизни.
+    expect: >
+      отказ, а не ответ как у живой: чистка идёт при новом входе, а его может не
+      быть сутками — просроченная сессия с анкетой отвечать не должна
+    test: components/controller/tests/unit/cardcoop/cardcoop-entry.test.ts
+    status: passing
+
+  - id: cc.entry.break.06
+    level: backend
+    kind: break
+    scenario: Токен сети просрочен либо возврат пришёл спустя срок начатого входа.
+    expect: >
+      оба случая отклоняются наравне с чужим издателем: срок — такое же
+      утверждение токена, как адресат, а начатый вход живёт десять минут
+    test: components/controller/tests/unit/cardcoop/cardcoop-entry.test.ts
+    status: passing
+
+  - id: cc.entry.break.07
+    level: backend
+    kind: break
+    scenario: Заверение кооператива-источника в цепи истекло.
+    expect: >
+      анкета не принимается: истёкшее заверение означает, что подписывать сейчас
+      источник не вправе; сессия заканчивается «перенести не удалось»
+    test: components/controller/tests/unit/cardcoop/cardcoop-entry.test.ts
+    status: passing
+

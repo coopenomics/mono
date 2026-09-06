@@ -316,6 +316,77 @@ export const useRegistratorStore = defineStore(
       state.userAgreement = structuredClone(initialDocumentState);
     };
 
+    /**
+     * Предзаполняет анкету вступления данными, перенесёнными по карте кооператора (story 9.3).
+     *
+     * Данные пришли от кооператива, где человека уже верифицировали, и проверены подписью
+     * его заверенного ключа. Человек всё равно проходит форму и видит каждое поле:
+     * перенос избавляет от перепечатывания, а не от проверки.
+     *
+     * Поля кладутся только совпадающие по смыслу: чего в нашей форме нет (паспорт, почта в
+     * анкете), то не кладётся; чего не было в анкете — остаётся пустым и вводится руками.
+     */
+    const applyCardcoopProfile = (subjectType: string, profile: Record<string, any>): void => {
+      const text = (value: unknown): string => (typeof value === 'string' ? value : '');
+
+      if (typeof profile.email === 'string' && profile.email) state.email = profile.email;
+
+      if (subjectType === 'individual') {
+        state.userData.type = 'individual';
+        Object.assign(state.userData.individual_data, {
+          first_name: text(profile.first_name),
+          last_name: text(profile.last_name),
+          middle_name: text(profile.middle_name),
+          birthdate: text(profile.birthdate),
+          full_address: text(profile.full_address),
+          phone: text(profile.phone),
+        });
+        return;
+      }
+
+      if (subjectType === 'entrepreneur') {
+        state.userData.type = 'entrepreneur';
+        Object.assign(state.userData.entrepreneur_data, {
+          first_name: text(profile.first_name),
+          last_name: text(profile.last_name),
+          middle_name: text(profile.middle_name),
+          birthdate: text(profile.birthdate),
+          phone: text(profile.phone),
+          city: text(profile.city),
+          full_address: text(profile.full_address),
+        });
+        Object.assign(state.userData.entrepreneur_data.details, {
+          inn: text(profile.details?.inn),
+          ogrn: text(profile.details?.ogrn),
+        });
+        return;
+      }
+
+      if (subjectType === 'organization') {
+        state.userData.type = 'organization';
+        Object.assign(state.userData.organization_data, {
+          short_name: text(profile.short_name),
+          full_name: text(profile.full_name),
+          city: text(profile.city),
+          full_address: text(profile.full_address),
+          fact_address: text(profile.fact_address),
+          phone: text(profile.phone),
+        });
+        Object.assign(state.userData.organization_data.represented_by, {
+          first_name: text(profile.represented_by?.first_name),
+          last_name: text(profile.represented_by?.last_name),
+          middle_name: text(profile.represented_by?.middle_name),
+          position: text(profile.represented_by?.position),
+          based_on: text(profile.represented_by?.based_on),
+        });
+        Object.assign(state.userData.organization_data.details, {
+          inn: text(profile.details?.inn),
+          ogrn: text(profile.details?.ogrn),
+          kpp: text(profile.details?.kpp),
+        });
+      }
+    };
+
     return {
       state,
       steps,
@@ -330,6 +401,7 @@ export const useRegistratorStore = defineStore(
       isStep,
       clearUserData,
       resetConsents,
+      applyCardcoopProfile,
       addUserState,
       isBranched,
     };

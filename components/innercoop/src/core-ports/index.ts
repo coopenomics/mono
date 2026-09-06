@@ -24,6 +24,7 @@ export * from './participant-registered.event';
 export * from './wallet.port';
 export * from './program-agreement.port';
 export * from './vault.port';
+export * from './coop-credential.port';
 export * from './onboarding.port';
 export * from './branch.port';
 export * from './registration.port';

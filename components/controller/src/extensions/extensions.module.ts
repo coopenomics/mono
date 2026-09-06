@@ -13,6 +13,7 @@ import { ReportsExtensionModule } from './reports/reports-extension.module';
 import { MarketplaceExtensionModule } from './marketplace/marketplace-extension.module';
 import { ExpensesExtensionModule } from './expenses/expenses-extension.module';
 import { KuExtensionModule } from './ku/ku-extension.module';
+import { CardcoopExtensionModule } from './cardcoop/cardcoop-extension.module';
 import { SovietRobotExtensionModule } from './soviet-robot/soviet-robot-extension.module';
 
 @Module({})
@@ -37,6 +38,7 @@ export class ExtensionsModule {
         MarketplaceExtensionModule,
         ExpensesExtensionModule,
         KuExtensionModule,
+        CardcoopExtensionModule,
         SovietRobotExtensionModule,
       ],
       providers: [],
@@ -57,6 +59,7 @@ export class ExtensionsModule {
         MarketplaceExtensionModule,
         ExpensesExtensionModule,
         KuExtensionModule,
+        CardcoopExtensionModule,
         SovietRobotExtensionModule,
       ],
     };
