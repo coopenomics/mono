@@ -50,7 +50,7 @@ async function issueRobotPermission(bc: Blockchain, member: string, pub: string)
     }],
   }, { blocksBehind: 3, expireSeconds: 30 })
 
-  for (const type of ['votefor', 'voteagainst']) {
+  for (const type of SovietContract.robotLinkedActions) {
     try {
       await bc.api.transact({
         actions: [{

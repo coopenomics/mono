@@ -5359,7 +5359,6 @@ export const ReturnTypes: Record<string,any> = {
 		image:"String",
 		instructions:"String",
 		is_available:"Boolean",
-		is_builtin:"Boolean",
 		is_installed:"Boolean",
 		is_internal:"Boolean",
 		name:"String",

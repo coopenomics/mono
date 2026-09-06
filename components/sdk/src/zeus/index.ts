@@ -7140,8 +7140,6 @@ export type ValueTypes = {
 	instructions?:boolean | `@${string}`,
 	/** Показывает, доступно ли расширение */
 	is_available?:boolean | `@${string}`,
-	/** Показывает, встроенное ли это расширение */
-	is_builtin?:boolean | `@${string}`,
 	/** Показывает, установлено ли расширение */
 	is_installed?:boolean | `@${string}`,
 	/** Показывает, внутреннее ли это расширение */
@@ -22309,8 +22307,6 @@ export type ResolverInputTypes = {
 	instructions?:boolean | `@${string}`,
 	/** Показывает, доступно ли расширение */
 	is_available?:boolean | `@${string}`,
-	/** Показывает, встроенное ли это расширение */
-	is_builtin?:boolean | `@${string}`,
 	/** Показывает, установлено ли расширение */
 	is_installed?:boolean | `@${string}`,
 	/** Показывает, внутреннее ли это расширение */
@@ -37029,8 +37025,6 @@ export type ModelTypes = {
 	instructions: string,
 	/** Показывает, доступно ли расширение */
 	is_available: boolean,
-	/** Показывает, встроенное ли это расширение */
-	is_builtin: boolean,
 	/** Показывает, установлено ли расширение */
 	is_installed: boolean,
 	/** Показывает, внутреннее ли это расширение */
@@ -52824,8 +52818,6 @@ export type GraphQLTypes = {
 	instructions: string,
 	/** Показывает, доступно ли расширение */
 	is_available: boolean,
-	/** Показывает, встроенное ли это расширение */
-	is_builtin: boolean,
 	/** Показывает, установлено ли расширение */
 	is_installed: boolean,
 	/** Показывает, внутреннее ли это расширение */

@@ -57,12 +57,12 @@ async function issueRobotPermission(account: string) {
   // Привязка к голосованию — отдельной транзакцией: повторную привязку той же
   // пары «действие → разрешение» цепь отвергает, а после прошлого прогона она уже есть.
   try {
-    await transact([{
+    await transact(SovietContract.robotLinkedActions.map(type => ({
       account: 'eosio',
       name: 'linkauth',
       authorization: [{ actor: account, permission: 'active' }],
-      data: { account, code: SovietContract.contractName.production, type: 'votefor', requirement: ROBOT_PERMISSION },
-    }])
+      data: { account, code: SovietContract.contractName.production, type, requirement: ROBOT_PERMISSION },
+    })))
   } catch (e: any) {
     if (!/same as old/.test(String(e?.message ?? e))) throw e
   }

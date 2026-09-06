@@ -5,9 +5,10 @@ import {
   deleteauthAction,
   draftHasRules,
   disautomateAction,
+  isMissingLinkError,
   isSameLinkError,
-  linkauthAction,
-  unlinkauthAction,
+  linkauthActions,
+  unlinkauthActions,
   updateauthAction,
   type RobotActionContext,
   type RobotAutomationDraft,
@@ -47,7 +48,7 @@ export class RobotDelegationOps {
     await this.deps.transact(actions);
     this.pendingWif = key.toWif();
     try {
-      await this.deps.transact(linkauthAction(this.deps.ctx()));
+      await this.deps.transact(linkauthActions(this.deps.ctx()));
     } catch (e: unknown) {
       if (!isSameLinkError(e)) throw e;
     }
@@ -63,14 +64,37 @@ export class RobotDelegationOps {
     await this.deps.transact(automateAction(this.deps.ctx(), boardId, draft));
   }
 
-  /** Полный отзыв: запись реестра, привязка и разрешение — одной транзакцией; ключ стирается у робота. */
+  /** Полный отзыв: запись реестра, привязки и разрешение — одной транзакцией; ключ стирается у робота. */
   async revoke(boardId: number, hasRecord: boolean, hasPermission: boolean): Promise<void> {
     const actions: any[] = [];
     if (hasRecord) actions.push(disautomateAction(this.deps.ctx(), boardId));
-    if (hasPermission) actions.push(unlinkauthAction(this.deps.ctx()), deleteauthAction(this.deps.ctx()));
-    if (actions.length) await this.deps.transact(actions);
+    if (hasPermission) actions.push(...unlinkauthActions(this.deps.ctx()), deleteauthAction(this.deps.ctx()));
+    if (actions.length) await this.transactSkippingMissingLinks(actions);
     await this.deps.revokeKey();
     this.pendingWif = null;
+  }
+
+  /**
+   * Разрешение, выпущенное прежней версией стола, привязано не ко всем
+   * действиям сразу. Снятие несуществующей привязки цепь отвергает и роняет
+   * транзакцию целиком, а с ней и удаление разрешения. Поэтому при такой ошибке
+   * снимаем привязки поштучно, пропуская отсутствующие.
+   */
+  private async transactSkippingMissingLinks(actions: any[]): Promise<void> {
+    try {
+      await this.deps.transact(actions);
+      return;
+    } catch (e: unknown) {
+      if (!isMissingLinkError(e)) throw e;
+    }
+    for (const unlink of actions.filter((a) => a.name === 'unlinkauth')) {
+      try {
+        await this.deps.transact([unlink]);
+      } catch (e: unknown) {
+        if (!isMissingLinkError(e)) throw e;
+      }
+    }
+    await this.deps.transact(actions.filter((a) => a.name !== 'unlinkauth'));
   }
 }
 

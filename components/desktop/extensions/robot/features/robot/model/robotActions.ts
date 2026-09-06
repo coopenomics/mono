@@ -84,32 +84,38 @@ export function updateauthAction(ctx: RobotActionContext, publicKey: string) {
   };
 }
 
-/** Привязка разрешения робота только к голосованию в совете. */
-export function linkauthAction(ctx: RobotActionContext) {
-  return {
+/**
+ * Привязка разрешения робота к голосованию в совете — по действию на каждый
+ * голос. Список общий с предустановкой стенда: разойдись он, и разрешение
+ * осталось бы привязанным к неотвязанному действию, а цепь не даёт удалить
+ * такое разрешение.
+ */
+export function linkauthActions(ctx: RobotActionContext) {
+  return SovietContract.robotLinkedActions.map((type) => ({
     account: SystemContract.contractName.production,
     name: 'linkauth',
     authorization: memberAuth(ctx),
     data: {
       account: ctx.username,
       code: SovietContract.contractName.production,
-      type: SovietContract.Actions.Decisions.VoteFor.actionName,
+      type,
       requirement: ROBOT_PERMISSION,
     },
-  };
+  }));
 }
 
-export function unlinkauthAction(ctx: RobotActionContext) {
-  return {
+/** Снятие привязок — обязательно до удаления разрешения, по всем действиям сразу. */
+export function unlinkauthActions(ctx: RobotActionContext) {
+  return SovietContract.robotLinkedActions.map((type) => ({
     account: SystemContract.contractName.production,
     name: 'unlinkauth',
     authorization: memberAuth(ctx),
     data: {
       account: ctx.username,
       code: SovietContract.contractName.production,
-      type: SovietContract.Actions.Decisions.VoteFor.actionName,
+      type,
     },
-  };
+  }));
 }
 
 export function deleteauthAction(ctx: RobotActionContext) {
@@ -124,4 +130,9 @@ export function deleteauthAction(ctx: RobotActionContext) {
 /** Повтор той же привязки цепь отвергает — после прошлого делегирования это не ошибка. */
 export function isSameLinkError(e: unknown): boolean {
   return /same as old/.test(String((e as Error)?.message ?? e));
+}
+
+/** Снятие привязки, которой нет: разрешение выпускала прежняя версия стола. */
+export function isMissingLinkError(e: unknown): boolean {
+  return /no link found|Attempting to unlink/i.test(String((e as Error)?.message ?? e));
 }

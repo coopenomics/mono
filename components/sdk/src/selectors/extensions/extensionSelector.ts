@@ -13,7 +13,6 @@ const rawExtensionSelector = {
   is_available: true,
   is_installed: true,
   desktops: rawDesktopSelector,
-  is_builtin: true,
   external_url: true,
   is_internal: true,
   enabled: true,

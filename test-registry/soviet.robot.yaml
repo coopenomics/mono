@@ -285,3 +285,25 @@ cases:
     expect: решений Благороста в реестре нет; ядровые и решения установленных расширений на месте
     test: components/controller/tests/unit/soviet-robot/robot-registry.service.test.ts
     status: passing
+
+  - id: sov.rob.break.08
+    level: ui
+    kind: break
+    scenario: Член совета отзывает доступ робота, у которого разрешение привязано к обоим голосам
+    expect: сняты все привязки и удалено разрешение; цепь не отвечает «Cannot delete a linked authority»
+    status: missing
+
+  - id: sov.rob.side.17
+    level: ui
+    kind: side
+    scenario: Отзыв доступа у разрешения, выпущенного прежней версией стола (привязка только к одному голосу)
+    expect: снятие несуществующей привязки не роняет отзыв — разрешение всё равно удаляется, ключ стирается
+    status: missing
+
+  - id: sov.rob.happy.23
+    level: ui
+    kind: happy
+    scenario: Председатель смотрит стол робота и видит, кто чей голос повторяет
+    expect: по каждому члену совета показано «Сразу» или «Как ‹ФИО›» с названиями решений и подпись протоколов у председателя
+    status: missing
+

@@ -82,7 +82,6 @@ function getInstructionsContent(dirPath: string): Promise<string> {
  */
 export const AppRegistry: INamedExtension = {
   robot: {
-    is_builtin: false,
     is_internal: true,
     availability: ExtensionAvailability.EVERYWHERE,
     desktops: [
@@ -110,7 +109,6 @@ export const AppRegistry: INamedExtension = {
     },
   },
   soviet: {
-    is_builtin: true,
     is_internal: true,
     availability: ExtensionAvailability.EVERYWHERE,
     desktops: [
@@ -136,7 +134,6 @@ export const AppRegistry: INamedExtension = {
     },
   },
   capital: {
-    is_builtin: false,
     is_internal: true,
     availability: ExtensionAvailability.EVERYWHERE,
     desktops: [
@@ -162,7 +159,6 @@ export const AppRegistry: INamedExtension = {
     },
   },
   chairman: {
-    is_builtin: true,
     is_internal: true,
     availability: ExtensionAvailability.EVERYWHERE,
     desktops: [
@@ -189,7 +185,6 @@ export const AppRegistry: INamedExtension = {
     },
   },
   trustee: {
-    is_builtin: true,
     is_internal: true,
     availability: ExtensionAvailability.EVERYWHERE,
     desktops: [
@@ -215,7 +210,6 @@ export const AppRegistry: INamedExtension = {
     },
   },
   participant: {
-    is_builtin: true,
     is_internal: true,
     availability: ExtensionAvailability.EVERYWHERE,
     desktops: [
@@ -241,7 +235,6 @@ export const AppRegistry: INamedExtension = {
     },
   },
   powerup: {
-    is_builtin: false,
     is_internal: true,
     availability: ExtensionAvailability.EVERYWHERE,
     desktops: [
@@ -268,7 +261,6 @@ export const AppRegistry: INamedExtension = {
     },
   },
   yookassa: {
-    is_builtin: false,
     is_internal: true,
     availability: ExtensionAvailability.NOWHERE,
     desktops: undefined, // Это не desktop расширение
@@ -295,7 +287,6 @@ export const AppRegistry: INamedExtension = {
     },
   },
   sberpoll: {
-    is_builtin: false,
     is_internal: true,
     availability: ExtensionAvailability.NOWHERE,
     desktops: undefined, // Это не desktop расширение
@@ -315,7 +306,6 @@ export const AppRegistry: INamedExtension = {
     },
   },
   qrpay: {
-    is_builtin: false,
     is_internal: true,
     availability: ExtensionAvailability.EVERYWHERE,
     desktops: undefined, // Это не desktop расширение
@@ -335,7 +325,6 @@ export const AppRegistry: INamedExtension = {
     },
   },
   chatcoop: {
-    is_builtin: false,
     is_internal: true,
     availability: ExtensionAvailability.EVERYWHERE,
     desktops: [
@@ -362,7 +351,6 @@ export const AppRegistry: INamedExtension = {
     },
   },
   reports: {
-    is_builtin: true,
     is_internal: true,
     availability: ExtensionAvailability.EVERYWHERE,
     desktops: [
@@ -389,7 +377,6 @@ export const AppRegistry: INamedExtension = {
     },
   },
   market: {
-    is_builtin: false,
     is_internal: true,
     // Обкатка Стола заказов идёт на тестовом контуре; в основной сети приложение
     // остаётся закрытым, пока здесь не поставят EVERYWHERE.
