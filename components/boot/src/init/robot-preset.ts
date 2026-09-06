@@ -1,7 +1,7 @@
 /* eslint-disable node/prefer-global/process */
 import crypto from 'node:crypto'
 import { Client } from 'pg'
-import { SovietContract } from 'cooptypes'
+import { Cooperative, SovietContract } from 'cooptypes'
 import type Blockchain from '../blockchain'
 import { GOVERN_SYMBOL, provider } from '../configs'
 
@@ -9,11 +9,26 @@ import { GOVERN_SYMBOL, provider } from '../configs'
 const ROBOT_PERMISSION = 'robot'
 
 /**
- * Что предустановка отдаёт роботу: приём пайщика. Совет повторяет голос
- * председателя по этому типу решения (режим «как председатель»), остальные
- * типы остаются ручными.
+ * Приём пайщика: совет повторяет голос председателя (режим «как председатель»).
+ * Решение принимает человек, робот лишь избавляет остальных от четырёх входов
+ * в кабинет.
  */
-const AUTOMATED_TYPE = 'joincoop'
+const FOLLOWED_TYPE = 'joincoop'
+
+/**
+ * Решения Стола заказов: на стенде они автоматизированы полностью — весь совет
+ * вместе с председателем голосует «сразу», протоколы подписывает робот. Так
+ * видно, за сколько платформа проводит выдачу и возврат паевого взноса без
+ * единого человека; на боевом контуре такой режим совет выбирает сам.
+ *
+ * Список берётся из общего реестра решений, а не перечисляется здесь: появится
+ * новое решение Стола заказов — предустановка подхватит его сама.
+ */
+function marketplaceTypes(): string[] {
+  return Object.values(Cooperative.Document.decisionTypesRegistry)
+    .filter(info => info.extension === 'market')
+    .map(info => info.type)
+}
 
 interface RobotKeyRow {
   member: string
@@ -72,7 +87,14 @@ async function issueRobotPermission(bc: Blockchain, member: string, pub: string)
 type FollowRule = SovietContract.Interfaces.IFollowRule
 
 /** Запись в реестре автоматизаций контракта совета. */
-async function automate(bc: Blockchain, boardId: number, member: string, followRules: FollowRule[], authorizeTypes: string[]) {
+async function automate(
+  bc: Blockchain,
+  boardId: number,
+  member: string,
+  voteTypes: string[],
+  followRules: FollowRule[],
+  authorizeTypes: string[],
+) {
   await bc.update_pass_instance()
   await bc.api.transact({
     actions: [{
@@ -84,7 +106,7 @@ async function automate(bc: Blockchain, boardId: number, member: string, followR
         board_id: boardId,
         member,
         permission_name: ROBOT_PERMISSION,
-        vote_types: [],
+        vote_types: voteTypes,
         follow_rules: followRules,
         authorize_types: authorizeTypes,
         limit: `0.0000 ${GOVERN_SYMBOL}`,
@@ -102,7 +124,25 @@ function encryptWif(wif: string): string {
   return `${iv.toString('hex')}:${cipher.update(wif, 'utf8', 'hex') + cipher.final('hex')}`
 }
 
-/** Таблица ключей робота: расширение ещё не включено, схему создаём сами. */
+/** Одно подключение к базе стенда на операцию: параметры те же, что у контроллера. */
+async function withPg<T>(fn: (client: Client) => Promise<T>): Promise<T> {
+  const client = new Client({
+    host: process.env.POSTGRES_HOST,
+    port: parseInt(process.env.POSTGRES_PORT || '5432'),
+    user: process.env.POSTGRES_USERNAME,
+    password: process.env.POSTGRES_PASSWORD,
+    database: process.env.POSTGRES_DATABASE,
+  })
+  try {
+    await client.connect()
+    return await fn(client)
+  }
+  finally {
+    await client.end()
+  }
+}
+
+/** Таблица ключей робота: расширение ставится этой же предустановкой, схему создаём сами. */
 async function ensureRobotKeysTable(client: Client) {
   await client.query(`
     CREATE TABLE IF NOT EXISTS public.soviet_robot_keys (
@@ -128,16 +168,7 @@ async function ensureRobotKeysTable(client: Client) {
  * требует уже включённого расширения, а здесь его ещё нет.
  */
 async function saveRobotKeys(rows: RobotKeyRow[]) {
-  const client = new Client({
-    host: process.env.POSTGRES_HOST,
-    port: parseInt(process.env.POSTGRES_PORT || '5432'),
-    user: process.env.POSTGRES_USERNAME,
-    password: process.env.POSTGRES_PASSWORD,
-    database: process.env.POSTGRES_DATABASE,
-  })
-
-  try {
-    await client.connect()
+  await withPg(async (client) => {
     await ensureRobotKeysTable(client)
 
     for (const row of rows) {
@@ -153,10 +184,30 @@ async function saveRobotKeys(rows: RobotKeyRow[]) {
       )
     }
     console.log(`Ключи робота сохранены в хранилище расширения: ${rows.map(r => r.member).join(', ')}`)
-  }
-  finally {
-    await client.end()
-  }
+  })
+}
+
+/**
+ * Расширение «Робот совета» на стенде включается сразу: предустановка нужна
+ * именно для того, чтобы посмотреть, как решения проходят без людей, а
+ * выключенное расширение не сделает ни одного голоса. В обычной загрузке
+ * расширения нет вовсе — председатель ставит его из каталога, как любое
+ * приложение.
+ *
+ * Значения конфига повторяют дефолты расширения
+ * (`soviet-robot-extension.module.ts`): boot не может импортировать код
+ * контроллера, а схема расширения всё равно подставит их при чтении.
+ */
+async function enableRobotExtension() {
+  await withPg(async (client) => {
+    await client.query(
+      `INSERT INTO "extensions" (name, enabled, config, schema_version, created_at, updated_at)
+       VALUES ('robot', true, $1, 1, now(), now())
+       ON CONFLICT (name) DO UPDATE SET enabled = true, updated_at = now()`,
+      [JSON.stringify({ max_attempts: 5, retry_backoff_sec: 5 })],
+    )
+    console.log('Расширение «Робот совета» установлено и включено')
+  })
 }
 
 /** Совет кооператива: идентификатор, председатель и остальные голосующие члены. */
@@ -183,10 +234,13 @@ async function readSoviet(bc: Blockchain) {
 /**
  * Предустановка робота решений совета для стенда.
  *
- * Совет из пяти человек — это пять входов в кабинет на каждое решение о приёме
- * пайщика. После предустановки хватает голоса председателя: робот повторяет его
- * за остальных, собирает протокол и исполняет решение. Само расширение при этом
- * не включается — председатель включает его сам, а разрешения и ключи уже готовы.
+ * Совет из пяти человек — это пять входов в кабинет на каждое решение. После
+ * предустановки приёму пайщика хватает голоса председателя: робот повторяет его
+ * за остальных, собирает протокол и исполняет решение. Решения Стола заказов
+ * идут полностью на роботе — ни одного живого голоса. Само расширение при этом
+ * же включается: стенд для того и нужен, чтобы посмотреть, как решения проходят
+ * без людей. В обычной загрузке расширения нет — председатель ставит его из
+ * каталога, как любое приложение.
  */
 export async function installRobotPreset(blockchain: Blockchain): Promise<void> {
   if (!process.env.SERVER_SECRET) {
@@ -203,19 +257,22 @@ export async function installRobotPreset(blockchain: Blockchain): Promise<void> 
     keys.push({ member, wif: key.wif, pub: key.pub })
   }
 
-  // Председатель голосует сам, роботу отдаёт только подпись протокола. Остальные
-  // члены совета повторяют его голос: робот голосует за них вслед за председателем.
-  await automate(blockchain, boardId, chairman, [], [AUTOMATED_TYPE])
+  const market = marketplaceTypes()
+
+  // Приём пайщика: голосует председатель, остальные повторяют за ним.
+  // Стол заказов: голосуют все и сразу, протоколы подписывает робот, — решение
+  // проходит целиком без людей.
+  await automate(blockchain, boardId, chairman, market, [], [FOLLOWED_TYPE, ...market])
   for (const member of voters)
-    await automate(blockchain, boardId, member, [{ decision_type: AUTOMATED_TYPE, follow: chairman }], [])
+    await automate(blockchain, boardId, member, market, [{ decision_type: FOLLOWED_TYPE, follow: chairman }], [])
 
   await saveRobotKeys(keys)
+  await enableRobotExtension()
 
   console.log(`
-Робот совета предустановлен на решение о приёме пайщика (${AUTOMATED_TYPE}):
- - председатель ${chairman} голосует сам, протокол подписывает робот;
- - повторяют его голос (режим «как председатель»): ${voters.join(', ')}.
-Расширение «Робот совета» выключено — включите его на столе расширений,
-разрешения и ключи уже на месте.
+Робот совета предустановлен:
+ - приём пайщика (${FOLLOWED_TYPE}): голосует председатель ${chairman}, за ним повторяют ${voters.join(', ')};
+ - Стол заказов (${market.join(', ')}): голосует весь совет сразу, протоколы подписывает робот — решение проходит без людей.
+Расширение «Робот совета» установлено и включено — стенд считает решения сам.
 `)
 }

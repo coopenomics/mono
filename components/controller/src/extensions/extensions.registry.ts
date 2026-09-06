@@ -17,7 +17,7 @@ import { MarketplaceExtensionModule, MarketplaceExtension } from './marketplace/
 import { Schema as MarketplaceSchema } from './marketplace/types';
 import { KuExtensionModule, KuExtension, Schema as KuSchema } from './ku/ku-extension.module';
 import { CardcoopExtensionModule, CardcoopExtension, Schema as CardcoopSchema } from './cardcoop/cardcoop-extension.module';
-import { SovietRobotExtensionModule, SovietRobotExtension, Schema as SovietRobotSchema, defaultConfig as sovietRobotDefaultConfig } from './soviet-robot/soviet-robot-extension.module';
+import { SovietRobotExtensionModule, SovietRobotExtension, Schema as SovietRobotSchema } from './soviet-robot/soviet-robot-extension.module';
 
 import { capitalEntities } from './capital/capital.entities';
 import { cardcoopEntities } from './cardcoop/cardcoop.entities';
@@ -104,7 +104,10 @@ export const AppRegistry: INamedExtension = {
     entities: sovietRobotEntities,
     ports: sovietRobotPorts,
     schema: SovietRobotSchema,
-    defaults: { enabled: false, config: sovietRobotDefaultConfig },
+    // `defaults` намеренно нет: расширение ставит председатель из каталога, как
+    // любое приложение. Запись `defaults` означала бы установку в каждом новом
+    // кооперативе — с `enabled: false` это выглядело как «установлен, но
+    // выключен» и требовало объяснений вместо честного «не установлен».
     tags: ['стол', 'совет', 'автоматизация'],
     readme: getReadmeContent('./soviet-robot'),
     instructions: getInstructionsContent('./soviet-robot'),
