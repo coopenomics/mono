@@ -205,16 +205,18 @@ export type IStockIssuanceOperatorLine =
 
 /**
  * Нагрузка к ОДНОЙ подписи пайщика по бандлу: по строке — заказ (или будущий
- * заказ из остатка), заявление о возврате паевого взноса имуществом (1113) и,
- * если членского кошелька не хватает на взнос участка, заявление о
- * конвертации паевого в членский (1110) на недостающую часть.
+ * заказ из остатка) и заявление о возврате паевого взноса имуществом (1113);
+ * если внутреннего членского кошелька не хватает на бандл — одно заявление
+ * 1110 о переводе недостающей суммы со свободного паевого программы.
  */
 export type IStockProposalAcceptPayload =
   Queries.Marketplace.StockProposalSignablePayloads.IOutput['marketplaceStockProposalSignablePayloads'];
 
 export type IStockFinalizeInput = Mutations.Marketplace.FinalizeStockIssuance.IInput['data'];
-/** Строка подписания (order_hash + подписанные пайщиком заявления: 1113 и, если было выдано, 1110). */
+/** Строка подписания (order_hash + подписанное пайщиком заявление 1113). */
 export type IStockFinalizeOrderLine = IStockFinalizeInput['order_lines'][number];
+/** Подписанное заявление 1110 на бандл. */
+export type IStockSignedConvert = NonNullable<IStockFinalizeInput['signed_convert']>;
 /** Результат подписи бандла: бандл, заказы и саги выдачи по ним. */
 export type IStockFinalizeResult =
   Mutations.Marketplace.FinalizeStockIssuance.IOutput['marketplaceFinalizeStockIssuance'];
@@ -249,8 +251,9 @@ export async function getStockProposalSignablePayloads(
 export async function finalizeStockIssuance(
   proposal_id: string,
   order_lines: IStockFinalizeOrderLine[],
+  signed_convert: IStockSignedConvert | null = null,
 ): Promise<IStockFinalizeResult> {
-  const data: IStockFinalizeInput = { proposal_id, order_lines };
+  const data: IStockFinalizeInput = { proposal_id, order_lines, signed_convert };
   const { [Mutations.Marketplace.FinalizeStockIssuance.name]: result } = await client.Mutation(
     Mutations.Marketplace.FinalizeStockIssuance.mutation,
     { variables: { data } },

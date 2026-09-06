@@ -35,8 +35,28 @@ namespace Marketplace::Memo {
     return "Паевой резерв под заказ имущества № " + std::to_string(order_id) + " со склада кооператива из свободного паевого Стола заказов";
   }
 
-  inline std::string get_convert_to_member_memo(uint64_t order_id) {
-    return "Конвертация паевого взноса в членский по заявлению под заказ имущества № " + std::to_string(order_id) + " в Столе заказов";
+  inline std::string get_convert_to_member_memo() {
+    return "Перевод паевого взноса в членский кошелёк Стола заказов по заявлению пайщика";
+  }
+
+  inline std::string get_member_lock_memo(uint64_t order_id) {
+    return "Членский резерв под заказ имущества № " + std::to_string(order_id) + " из внутреннего членского кошелька Стола заказов";
+  }
+
+  inline std::string get_member_unlock_memo(uint64_t order_id) {
+    return "Возврат членского резерва по заказу имущества № " + std::to_string(order_id) + " на внутренний членский кошелёк Стола заказов";
+  }
+
+  inline std::string get_consume_member_memo(uint64_t order_id) {
+    return "Выдача имущества по заказу № " + std::to_string(order_id) + " в счёт членского резерва Стола заказов";
+  }
+
+  inline std::string get_refusal_penalty_member_memo(uint64_t order_id) {
+    return "Удержание при отказе от получения по заказу имущества № " + std::to_string(order_id) + " из членского резерва Стола заказов";
+  }
+
+  inline std::string get_return_member_memo(uint64_t return_request_id, uint64_t order_id) {
+    return "Гарантийный возврат № " + std::to_string(return_request_id) + " по заказу имущества № " + std::to_string(order_id) + ": восстановление членских средств в Столе заказов";
   }
 
   inline std::string get_membership_fee_lock_memo(uint64_t order_id) {

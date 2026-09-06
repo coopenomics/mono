@@ -6,10 +6,12 @@
  * единственно допустимая авторизация — `_soviet`.
  *
  * Все движения по выданному заказу откатываются одной транзакцией:
- *  - o.mkt.return на fact_cost заявки: ISSUE w.mkt.share, Дт 10 / Кт 80 —
- *    паевой взнос за возвращённое восстановлен на свободном паевом «Стола
- *    заказов», имущество на складе участка; compensating forward к
- *    o.mkt.consum, исходные записи журнала не меняются;
+ *  - o.mkt.return на паевую часть fact_cost заявки: ISSUE w.mkt.share,
+ *    Дт 10 / Кт 80 — паевой взнос за возвращённое восстановлен на свободном
+ *    паевом «Стола заказов»; o.mkt.retm на часть, оплаченную из
+ *    внутреннего членского кошелька (member_return): ISSUE w.mkt.member,
+ *    Дт 10 / Кт 86; имущество на складе участка; compensating forward к
+ *    o.mkt.consum / o.mkt.consm, исходные записи журнала не меняются;
  *  - членский взнос участка за возвращённое: branch::retfee (общий кошелёк
  *    участка → пул взносов) и o.mkt.refund (пул → членский кошелёк программы
  *    w.mkt.member, без проводки — членский остаётся членским).
@@ -31,11 +33,21 @@ void marketplace::onmktrtauth(eosio::name coopname,
   auto o = Marketplace::get_order_by_hash_or_fail(coopname, r.original_order_hash);
   const eosio::name braname = o.delivery_braname;
 
-  Ledger2::apply(_marketplace, coopname,
-                 operations::marketplace::RETURN_BY_MEMBER,
-                 processes::marketplace::RETURN,
-                 r.fact_cost, r.orderer, r.hash,
-                 Marketplace::Memo::get_return_by_member_memo(r.id, r.original_order_id));
+  const eosio::asset share_return = r.fact_cost - r.member_return;
+  if (share_return.amount > 0) {
+    Ledger2::apply(_marketplace, coopname,
+                   operations::marketplace::RETURN_BY_MEMBER,
+                   processes::marketplace::RETURN,
+                   share_return, r.orderer, r.hash,
+                   Marketplace::Memo::get_return_by_member_memo(r.id, r.original_order_id));
+  }
+  if (r.member_return.amount > 0) {
+    Ledger2::apply(_marketplace, coopname,
+                   operations::marketplace::RETURN_MEMBER,
+                   processes::marketplace::RETURN,
+                   r.member_return, r.orderer, r.hash,
+                   Marketplace::Memo::get_return_member_memo(r.id, r.original_order_id));
+  }
 
   const eosio::asset fee_refund = r.fee_refund;
   if (fee_refund.amount > 0) {

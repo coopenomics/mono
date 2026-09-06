@@ -79,21 +79,27 @@ async function setDeliveryPoint(delivery_braname: string): Promise<IMarketplaceC
   return cart as IMarketplaceCart
 }
 
-/** Строки превью оформления — по одной на позицию корзины (сумма к резервированию). */
-export type ICheckoutSignableLine =
-  Queries.Marketplace.CheckoutSignablePayloads.IOutput['marketplaceCheckoutSignablePayloads'][number]
+/** Превью оформления: строки по позициям и, если членского кошелька не хватает, заявление 1110. */
+export type ICheckoutPreview =
+  Queries.Marketplace.CheckoutSignablePayloads.IOutput['marketplaceCheckoutSignablePayloads']
+/** Строка превью оформления — по одной на позицию корзины (суммы по частям). */
+export type ICheckoutSignableLine = ICheckoutPreview['lines'][number]
+/** Подписанное заявление 1110 на оформление. */
+export type ICheckoutSignedConvert = NonNullable<
+  NonNullable<Mutations.Marketplace.CheckoutCart.IInput['input']>['signed_convert']
+>
 
 /** Строка оформления, уходящая в мутацию (offer_id + упаковка + order_hash). */
 export type ICheckoutSignedLine = NonNullable<
   NonNullable<Mutations.Marketplace.CheckoutCart.IInput['input']>['lines']
 >[number]
 
-async function getCheckoutSignablePayloads(): Promise<ICheckoutSignableLine[]> {
+async function getCheckoutSignablePayloads(): Promise<ICheckoutPreview> {
   const { [Queries.Marketplace.CheckoutSignablePayloads.name]: result } = await client.Query(
     Queries.Marketplace.CheckoutSignablePayloads.query,
     {},
   )
-  return result as ICheckoutSignableLine[]
+  return result as ICheckoutPreview
 }
 
 /**
@@ -105,8 +111,9 @@ async function getCheckoutSignablePayloads(): Promise<ICheckoutSignableLine[]> {
 async function checkout(
   checkout_id: string | undefined,
   lines: ICheckoutSignedLine[],
+  signed_convert: ICheckoutSignedConvert | null = null,
 ): Promise<IMarketplaceCheckoutResult> {
-  const input = { ...(checkout_id ? { checkout_id } : {}), lines }
+  const input = { ...(checkout_id ? { checkout_id } : {}), lines, signed_convert }
   const { [Mutations.Marketplace.CheckoutCart.name]: result } = await client.Mutation(
     Mutations.Marketplace.CheckoutCart.mutation,
     { variables: { input } },

@@ -1,5 +1,3 @@
-import type { MarketContract } from 'cooptypes';
-import { createEmptyDocument } from '../../../../shared/utils/document-utils';
 import { rethrowChainError } from '@coopenomics/extension-kit';
 import {
   BadRequestException,
@@ -95,12 +93,6 @@ export interface MarketplaceStockOrderCreateInput {
   checkout_id?: string | null;
   /** Предвычисленный order_hash из превью оформления / бандла (см. order-create). */
   order_hash?: string;
-  /**
-   * Заявление о конвертации свободного паевого в членский (1110) на
-   * недостающую до взноса участка часть членского кошелька программы; пусто —
-   * взнос покрыт остатком кошелька (контракт проверит).
-   */
-  convert_statement?: MarketContract.Actions.StockOrder.IStockOrder['convert_statement'] | null;
 }
 
 export interface MarketplaceStockOrderCreateResult {
@@ -436,10 +428,9 @@ export class MarketplaceStockService {
     const package_size_asset = toQuantityAsset(resolved.packageSize, offer.unit_of_measure);
     const warranty_period_secs = offer.warranty_days * 86_400;
 
-    // Паевая модель: тело заказа из остатка фондируется из свободного паевого
-    // «Стола заказов» без заявления; членский взнос участка — с членского
-    // кошелька программы, недостающая часть конвертируется по заявлению 1110.
-    // При нехватке контракт откажет с суммами.
+    // Паевая модель: внутренний членский кошелёк первым (взнос и тело), остаток
+    // тела — со свободного паевого «Стола заказов»; недостающее пайщик перевёл
+    // заранее действием convert. При нехватке контракт откажет с суммами.
 
     // Optimistic counter ДО chain submit (как в createOrder поставщика).
     await this.offerCounters.onOrderBlocked(offer.id, resolved.baseQuantity);
@@ -457,7 +448,6 @@ export class MarketplaceStockService {
         package_size: package_size_asset,
         warranty_period_secs,
         batch_hash: MarketplaceStockService.ZERO_HASH,
-        convert_statement: input.convert_statement ?? createEmptyDocument(),
       });
       txHash = normalizeChainTxHash(
         tx,

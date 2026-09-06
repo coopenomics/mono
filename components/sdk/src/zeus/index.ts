@@ -9241,8 +9241,10 @@ export type ValueTypes = {
 ["MarketplaceCheckoutCartInput"]: {
 	/** Идентификатор заказа для повтора остатка: при частичном сбое прошлого оформления передаётся тот же checkout_id, чтобы непрошедшие позиции легли в тот же заказ. Пусто — оформляется новый заказ. */
 	checkout_id?: string | undefined | null | Variable<any, string>,
-	/** Строки оформления из превью — по одной на каждую позицию корзины, каждая с подписанным заявлением 1110 о переводе паевого взноса в программу с уплатой членского взноса. */
-	lines?: Array<ValueTypes["MarketplaceCheckoutSignedLineInput"]> | undefined | null | Variable<any, string>
+	/** Строки оформления из превью — по одной на каждую позицию корзины (order_hash будущего заказа). */
+	lines?: Array<ValueTypes["MarketplaceCheckoutSignedLineInput"]> | undefined | null | Variable<any, string>,
+	/** Подписанное заказчиком заявление 1110 из превью о переводе недостающей суммы с Цифрового кошелька в программу — только если превью вернуло его (внутреннего членского кошелька не хватает). */
+	signed_convert?: ValueTypes["MarketplaceConvertStatementSignedInput"] | undefined | null | Variable<any, string>
 };
 	/** Позиция корзины, которую не удалось оформить (осталась в корзине для повтора). */
 ["MarketplaceCheckoutFailedLine"]: AliasType<{
@@ -9256,6 +9258,14 @@ export type ValueTypes = {
 	reason?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
 	['...on MarketplaceCheckoutFailedLine']?: Omit<ValueTypes["MarketplaceCheckoutFailedLine"], "...on MarketplaceCheckoutFailedLine">
+}>;
+	/** Превью оформления корзины: строки по позициям и, если внутреннего членского кошелька не хватает, заявление 1110 к подписи. */
+["MarketplaceCheckoutPreview"]: AliasType<{
+	/** Заявление о переводе недостающей суммы; null — подпись не нужна. */
+	convert?:ValueTypes["MarketplaceConvertPayload"],
+	lines?:ValueTypes["MarketplaceCheckoutSignableLine"],
+		__typename?: boolean | `@${string}`,
+	['...on MarketplaceCheckoutPreview']?: Omit<ValueTypes["MarketplaceCheckoutPreview"], "...on MarketplaceCheckoutPreview">
 }>;
 	/** Результат оформления заказа из корзины: общий идентификатор заказа, оформленные позиции и непрошедший остаток (если был частичный сбой). */
 ["MarketplaceCheckoutResult"]: AliasType<{
@@ -9274,14 +9284,14 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on MarketplaceCheckoutResult']?: Omit<ValueTypes["MarketplaceCheckoutResult"], "...on MarketplaceCheckoutResult">
 }>;
-	/** Превью строки оформления: идентификатор будущего заказа, суммы к списанию и заявление 1110 о переводе паевого взноса в программу на полную сумму позиции с выделением членского взноса участка — к подписи заказчиком. По кошелькам тело идёт паевыми кошельками, взнос — членскими; из паевого в членский переводится только недостающая до взноса часть, остаток членского кошелька зачитывается. */
+	/** Превью строки оформления: идентификатор будущего заказа и суммы по частям — сколько покрывает внутренний членский кошелёк «Стола заказов» (он расходуется первым на взнос и тело) и сколько уйдёт с паевого. */
 ["MarketplaceCheckoutSignableLine"]: AliasType<{
-	/** Сумма к списанию с паевого (стоимость позиции + членский взнос участка), с валютой. */
+	/** Стоимость позиции с членским взносом участка, с валютой. */
 	amount?:boolean | `@${string}`,
-	/** Конвертируется из паевого в членский по заявлению (недостающая до взноса часть), с валютой; ноль — взнос покрыт членским кошельком. */
-	convert_amount?:boolean | `@${string}`,
-	/** Заявление 1110 к подписи заказчиком (по позиции корзины — всегда). */
-	document?:ValueTypes["GeneratedDocument"],
+	/** Покрывается внутренним членским кошельком (взнос и часть тела), с валютой. */
+	from_member?:boolean | `@${string}`,
+	/** Уходит с паевого (главный паевой, у позиций со склада — свободный паевой программы), с валютой. */
+	from_share?:boolean | `@${string}`,
 	/** Членский взнос кооперативного участка по позиции, с валютой. */
 	membership_fee?:boolean | `@${string}`,
 	/** Идентификатор предложения позиции корзины. */
@@ -9300,9 +9310,7 @@ export type ValueTypes = {
 	/** order_hash будущего заказа из превью. */
 	order_hash: string | Variable<any, string>,
 	/** Упаковка позиции (при отпуске упаковкой). Пусто — отпуск по мере. */
-	package_id?: string | undefined | null | Variable<any, string>,
-	/** Подписанное заказчиком заявление 1110 из превью о переводе паевого взноса в программу на полную сумму позиции с выделением членского взноса участка. */
-	signed_statement?: ValueTypes["MarketplaceConvertStatementSignedInput"] | undefined | null | Variable<any, string>
+	package_id?: string | undefined | null | Variable<any, string>
 };
 	["MarketplaceClearInventoryLabelInput"]: {
 	/** Позиция склада, с которой снимается штрих-код (для переклейки). */
@@ -9390,6 +9398,17 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on MarketplaceContainerType']?: Omit<ValueTypes["MarketplaceContainerType"], "...on MarketplaceContainerType">
 }>;
+	/** Заявление 1110 к подписи: недостающая сумма перевода в программу (паевая и членская части вместе) и её членская часть. Приходит только когда внутреннего членского кошелька «Стола заказов» не хватает. */
+["MarketplaceConvertPayload"]: AliasType<{
+	/** Недостающая сумма перевода, с валютой. */
+	amount?:boolean | `@${string}`,
+	/** Заявление к подписи. */
+	document?:ValueTypes["GeneratedDocument"],
+	/** Членская часть перевода — уходит в членский кошелёк действием convert, с валютой. */
+	membership_fee?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on MarketplaceConvertPayload']?: Omit<ValueTypes["MarketplaceConvertPayload"], "...on MarketplaceConvertPayload">
+}>;
 	["MarketplaceConvertStatementSignedInput"]: {
 	/** Хэш содержимого документа */
 	doc_hash: string | Variable<any, string>,
@@ -9405,27 +9424,23 @@ export type ValueTypes = {
 	version: string | Variable<any, string>
 };
 	["MarketplaceConvertStatementSignedMetaDocumentInput"]: {
-	/** Полная сумма перевода в программу (стоимость имущества вместе с членским взносом), с валютой. */
+	/** Недостающая сумма перевода в программу (паевая и членская части вместе), с валютой. */
 	amount: string | Variable<any, string>,
 	/** Номер блока, на котором был создан документ */
 	block_num: number | Variable<any, string>,
-	/** Часть взноса, переводимая из паевого в членский по заявлению, с валютой (остальное — зачёт членского кошелька). */
-	convert_amount: string | Variable<any, string>,
 	/** Название кооператива, связанное с документом */
 	coopname: string | Variable<any, string>,
 	/** Дата и время создания документа */
 	created_at: string | Variable<any, string>,
-	/** Ставка членского взноса кооператива, процентов. */
-	fee_percent: number | Variable<any, string>,
 	/** Имя генератора, использованного для создания документа */
 	generator: string | Variable<any, string>,
 	/** Язык документа */
 	lang: string | Variable<any, string>,
 	/** Ссылки, связанные с документом */
 	links: Array<string> | Variable<any, string>,
-	/** Членский взнос кооперативного участка в составе суммы, с валютой. */
+	/** Членская часть суммы — переводится в членский кошелёк действием convert, с валютой. */
 	membership_fee: string | Variable<any, string>,
-	/** Канонический order_hash заказа, под который конвертируется взнос. */
+	/** Якорь заявления: хеш оформления, бандла или заказа, к которому относится перевод. */
 	order_hash: string | Variable<any, string>,
 	/** ID документа в реестре */
 	registry_id: number | Variable<any, string>,
@@ -9731,7 +9746,9 @@ export type ValueTypes = {
 	/** Строки бандла с подписанными заявлениями из marketplaceStockProposalSignablePayloads. */
 	order_lines: Array<ValueTypes["MarketplaceStockFinalizeLineInput"]> | Variable<any, string>,
 	/** Предложение со склада кооператива. */
-	proposal_id: string | Variable<any, string>
+	proposal_id: string | Variable<any, string>,
+	/** Подписанное заявление 1110 на бандл — только если payloads его вернули. */
+	signed_convert?: ValueTypes["MarketplaceConvertStatementSignedInput"] | undefined | null | Variable<any, string>
 };
 	["MarketplaceFixIssuanceFactInput"]: {
 	/** Фактически выдаваемое количество (в базовой единице). */
@@ -11337,10 +11354,6 @@ export type ValueTypes = {
 	splits: Array<ValueTypes["MarketplaceInventorySplitEntryInput"]> | Variable<any, string>
 };
 	["MarketplaceStockAcceptOrderLine"]: AliasType<{
-	/** Конвертируется из свободного паевого в членский по заявлению (недостающая до членского взноса участка часть), с валютой; ноль — взнос покрыт членским кошельком. */
-	convert_amount?:boolean | `@${string}`,
-	/** Заявление 1110 о переводе паевого взноса на оплату с уплатой членского взноса — к подписи пайщиком вместе с заявлением о выдаче: по докладке всегда, по заказу — на доплату при факте больше заказа; null — подпись не требуется. */
-	convert_statement?:ValueTypes["GeneratedDocument"],
 	/** Идентификатор предложения позиции. */
 	offer_id?:boolean | `@${string}`,
 	/** order_hash заказа (для докладки — будущего заказа из остатка). */
@@ -11353,6 +11366,8 @@ export type ValueTypes = {
 	['...on MarketplaceStockAcceptOrderLine']?: Omit<ValueTypes["MarketplaceStockAcceptOrderLine"], "...on MarketplaceStockAcceptOrderLine">
 }>;
 	["MarketplaceStockAcceptPayload"]: AliasType<{
+	/** Заявление 1110 о переводе недостающей суммы со свободного паевого программы на весь бандл — только если внутреннего членского кошелька не хватает. */
+	convert?:ValueTypes["MarketplaceConvertPayload"],
 	/** Строки бандла с заявлениями к подписи — вернуть их подписанными в marketplaceFinalizeStockIssuance. */
 	order_lines?:ValueTypes["MarketplaceStockAcceptOrderLine"],
 		__typename?: boolean | `@${string}`,
@@ -11361,8 +11376,6 @@ export type ValueTypes = {
 	["MarketplaceStockFinalizeLineInput"]: {
 	/** order_hash строки бандла (из payloads). */
 	order_hash: string | Variable<any, string>,
-	/** Заявление 1110, подписанное пайщиком — только если payloads вернули его по строке. */
-	signed_convert?: ValueTypes["MarketplaceConvertStatementSignedInput"] | undefined | null | Variable<any, string>,
 	/** Заявление о возврате паевого взноса имуществом, подписанное пайщиком. */
 	signed_statement: ValueTypes["MarketplaceShareReturnStatementSignedInput"] | Variable<any, string>
 };
@@ -14284,8 +14297,8 @@ marketplaceCategoryAttributes?: [{	input: ValueTypes["GetCategoryAttributesInput
 marketplaceCategoryAttributesGrouped?: [{	input: ValueTypes["GetCategoryAttributesInput"] | Variable<any, string>},ValueTypes["MarketplaceAttributeGroup"]],
 marketplaceCategoryOfferCounts?: [{	/** Пункт выдачи (КУ). Задан — считаем только товары, доставимые на него; пусто — по всему кооперативу. */
 	delivery_braname?: string | undefined | null | Variable<any, string>},ValueTypes["MarketplaceCategoryOfferCount"]],
-	/** Превью оформления: по каждой позиции корзины — идентификатор будущего заказа, суммы к списанию и заявление 1110 о переводе паевого взноса в ЦПП «Стол заказов» на полную сумму позиции с выделением членского взноса участка — к подписи заказчиком. По кошелькам тело идёт паевыми кошельками, взнос — членскими. */
-	marketplaceCheckoutSignablePayloads?:ValueTypes["MarketplaceCheckoutSignableLine"],
+	/** Превью оформления: по каждой позиции корзины — идентификатор будущего заказа и суммы по частям (внутренний членский кошелёк «Стола заказов» расходуется первым на взнос участка и тело, остаток — с паевого); если кошелька не хватает — заявление 1110 о переводе недостающей суммы с Цифрового кошелька в программу, к подписи заказчиком. */
+	marketplaceCheckoutSignablePayloads?:ValueTypes["MarketplaceCheckoutPreview"],
 	/** Статус принятия положения ЦПП «Стол заказов» Советом кооператива (L1). `active` если принято, `not_accepted` иначе. */
 	marketplaceCppStatus?:ValueTypes["MarketplaceCppStatus"],
 	/** Дефолтная витрина кооператива (MVP — единственная) */
@@ -24631,8 +24644,10 @@ export type ResolverInputTypes = {
 ["MarketplaceCheckoutCartInput"]: {
 	/** Идентификатор заказа для повтора остатка: при частичном сбое прошлого оформления передаётся тот же checkout_id, чтобы непрошедшие позиции легли в тот же заказ. Пусто — оформляется новый заказ. */
 	checkout_id?: string | undefined | null,
-	/** Строки оформления из превью — по одной на каждую позицию корзины, каждая с подписанным заявлением 1110 о переводе паевого взноса в программу с уплатой членского взноса. */
-	lines?: Array<ResolverInputTypes["MarketplaceCheckoutSignedLineInput"]> | undefined | null
+	/** Строки оформления из превью — по одной на каждую позицию корзины (order_hash будущего заказа). */
+	lines?: Array<ResolverInputTypes["MarketplaceCheckoutSignedLineInput"]> | undefined | null,
+	/** Подписанное заказчиком заявление 1110 из превью о переводе недостающей суммы с Цифрового кошелька в программу — только если превью вернуло его (внутреннего членского кошелька не хватает). */
+	signed_convert?: ResolverInputTypes["MarketplaceConvertStatementSignedInput"] | undefined | null
 };
 	/** Позиция корзины, которую не удалось оформить (осталась в корзине для повтора). */
 ["MarketplaceCheckoutFailedLine"]: AliasType<{
@@ -24644,6 +24659,13 @@ export type ResolverInputTypes = {
 	quantity?:boolean | `@${string}`,
 	/** Причина, по которой позиция не оформлена. */
 	reason?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Превью оформления корзины: строки по позициям и, если внутреннего членского кошелька не хватает, заявление 1110 к подписи. */
+["MarketplaceCheckoutPreview"]: AliasType<{
+	/** Заявление о переводе недостающей суммы; null — подпись не нужна. */
+	convert?:ResolverInputTypes["MarketplaceConvertPayload"],
+	lines?:ResolverInputTypes["MarketplaceCheckoutSignableLine"],
 		__typename?: boolean | `@${string}`
 }>;
 	/** Результат оформления заказа из корзины: общий идентификатор заказа, оформленные позиции и непрошедший остаток (если был частичный сбой). */
@@ -24662,14 +24684,14 @@ export type ResolverInputTypes = {
 	fully_completed?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
-	/** Превью строки оформления: идентификатор будущего заказа, суммы к списанию и заявление 1110 о переводе паевого взноса в программу на полную сумму позиции с выделением членского взноса участка — к подписи заказчиком. По кошелькам тело идёт паевыми кошельками, взнос — членскими; из паевого в членский переводится только недостающая до взноса часть, остаток членского кошелька зачитывается. */
+	/** Превью строки оформления: идентификатор будущего заказа и суммы по частям — сколько покрывает внутренний членский кошелёк «Стола заказов» (он расходуется первым на взнос и тело) и сколько уйдёт с паевого. */
 ["MarketplaceCheckoutSignableLine"]: AliasType<{
-	/** Сумма к списанию с паевого (стоимость позиции + членский взнос участка), с валютой. */
+	/** Стоимость позиции с членским взносом участка, с валютой. */
 	amount?:boolean | `@${string}`,
-	/** Конвертируется из паевого в членский по заявлению (недостающая до взноса часть), с валютой; ноль — взнос покрыт членским кошельком. */
-	convert_amount?:boolean | `@${string}`,
-	/** Заявление 1110 к подписи заказчиком (по позиции корзины — всегда). */
-	document?:ResolverInputTypes["GeneratedDocument"],
+	/** Покрывается внутренним членским кошельком (взнос и часть тела), с валютой. */
+	from_member?:boolean | `@${string}`,
+	/** Уходит с паевого (главный паевой, у позиций со склада — свободный паевой программы), с валютой. */
+	from_share?:boolean | `@${string}`,
 	/** Членский взнос кооперативного участка по позиции, с валютой. */
 	membership_fee?:boolean | `@${string}`,
 	/** Идентификатор предложения позиции корзины. */
@@ -24687,9 +24709,7 @@ export type ResolverInputTypes = {
 	/** order_hash будущего заказа из превью. */
 	order_hash: string,
 	/** Упаковка позиции (при отпуске упаковкой). Пусто — отпуск по мере. */
-	package_id?: string | undefined | null,
-	/** Подписанное заказчиком заявление 1110 из превью о переводе паевого взноса в программу на полную сумму позиции с выделением членского взноса участка. */
-	signed_statement?: ResolverInputTypes["MarketplaceConvertStatementSignedInput"] | undefined | null
+	package_id?: string | undefined | null
 };
 	["MarketplaceClearInventoryLabelInput"]: {
 	/** Позиция склада, с которой снимается штрих-код (для переклейки). */
@@ -24773,6 +24793,16 @@ export type ResolverInputTypes = {
 	width_cm?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	/** Заявление 1110 к подписи: недостающая сумма перевода в программу (паевая и членская части вместе) и её членская часть. Приходит только когда внутреннего членского кошелька «Стола заказов» не хватает. */
+["MarketplaceConvertPayload"]: AliasType<{
+	/** Недостающая сумма перевода, с валютой. */
+	amount?:boolean | `@${string}`,
+	/** Заявление к подписи. */
+	document?:ResolverInputTypes["GeneratedDocument"],
+	/** Членская часть перевода — уходит в членский кошелёк действием convert, с валютой. */
+	membership_fee?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
 	["MarketplaceConvertStatementSignedInput"]: {
 	/** Хэш содержимого документа */
 	doc_hash: string,
@@ -24788,27 +24818,23 @@ export type ResolverInputTypes = {
 	version: string
 };
 	["MarketplaceConvertStatementSignedMetaDocumentInput"]: {
-	/** Полная сумма перевода в программу (стоимость имущества вместе с членским взносом), с валютой. */
+	/** Недостающая сумма перевода в программу (паевая и членская части вместе), с валютой. */
 	amount: string,
 	/** Номер блока, на котором был создан документ */
 	block_num: number,
-	/** Часть взноса, переводимая из паевого в членский по заявлению, с валютой (остальное — зачёт членского кошелька). */
-	convert_amount: string,
 	/** Название кооператива, связанное с документом */
 	coopname: string,
 	/** Дата и время создания документа */
 	created_at: string,
-	/** Ставка членского взноса кооператива, процентов. */
-	fee_percent: number,
 	/** Имя генератора, использованного для создания документа */
 	generator: string,
 	/** Язык документа */
 	lang: string,
 	/** Ссылки, связанные с документом */
 	links: Array<string>,
-	/** Членский взнос кооперативного участка в составе суммы, с валютой. */
+	/** Членская часть суммы — переводится в членский кошелёк действием convert, с валютой. */
 	membership_fee: string,
-	/** Канонический order_hash заказа, под который конвертируется взнос. */
+	/** Якорь заявления: хеш оформления, бандла или заказа, к которому относится перевод. */
 	order_hash: string,
 	/** ID документа в реестре */
 	registry_id: number,
@@ -25107,7 +25133,9 @@ export type ResolverInputTypes = {
 	/** Строки бандла с подписанными заявлениями из marketplaceStockProposalSignablePayloads. */
 	order_lines: Array<ResolverInputTypes["MarketplaceStockFinalizeLineInput"]>,
 	/** Предложение со склада кооператива. */
-	proposal_id: string
+	proposal_id: string,
+	/** Подписанное заявление 1110 на бандл — только если payloads его вернули. */
+	signed_convert?: ResolverInputTypes["MarketplaceConvertStatementSignedInput"] | undefined | null
 };
 	["MarketplaceFixIssuanceFactInput"]: {
 	/** Фактически выдаваемое количество (в базовой единице). */
@@ -26668,10 +26696,6 @@ export type ResolverInputTypes = {
 	splits: Array<ResolverInputTypes["MarketplaceInventorySplitEntryInput"]>
 };
 	["MarketplaceStockAcceptOrderLine"]: AliasType<{
-	/** Конвертируется из свободного паевого в членский по заявлению (недостающая до членского взноса участка часть), с валютой; ноль — взнос покрыт членским кошельком. */
-	convert_amount?:boolean | `@${string}`,
-	/** Заявление 1110 о переводе паевого взноса на оплату с уплатой членского взноса — к подписи пайщиком вместе с заявлением о выдаче: по докладке всегда, по заказу — на доплату при факте больше заказа; null — подпись не требуется. */
-	convert_statement?:ResolverInputTypes["GeneratedDocument"],
 	/** Идентификатор предложения позиции. */
 	offer_id?:boolean | `@${string}`,
 	/** order_hash заказа (для докладки — будущего заказа из остатка). */
@@ -26683,6 +26707,8 @@ export type ResolverInputTypes = {
 		__typename?: boolean | `@${string}`
 }>;
 	["MarketplaceStockAcceptPayload"]: AliasType<{
+	/** Заявление 1110 о переводе недостающей суммы со свободного паевого программы на весь бандл — только если внутреннего членского кошелька не хватает. */
+	convert?:ResolverInputTypes["MarketplaceConvertPayload"],
 	/** Строки бандла с заявлениями к подписи — вернуть их подписанными в marketplaceFinalizeStockIssuance. */
 	order_lines?:ResolverInputTypes["MarketplaceStockAcceptOrderLine"],
 		__typename?: boolean | `@${string}`
@@ -26690,8 +26716,6 @@ export type ResolverInputTypes = {
 	["MarketplaceStockFinalizeLineInput"]: {
 	/** order_hash строки бандла (из payloads). */
 	order_hash: string,
-	/** Заявление 1110, подписанное пайщиком — только если payloads вернули его по строке. */
-	signed_convert?: ResolverInputTypes["MarketplaceConvertStatementSignedInput"] | undefined | null,
 	/** Заявление о возврате паевого взноса имуществом, подписанное пайщиком. */
 	signed_statement: ResolverInputTypes["MarketplaceShareReturnStatementSignedInput"]
 };
@@ -29506,8 +29530,8 @@ marketplaceCategoryAttributes?: [{	input: ResolverInputTypes["GetCategoryAttribu
 marketplaceCategoryAttributesGrouped?: [{	input: ResolverInputTypes["GetCategoryAttributesInput"]},ResolverInputTypes["MarketplaceAttributeGroup"]],
 marketplaceCategoryOfferCounts?: [{	/** Пункт выдачи (КУ). Задан — считаем только товары, доставимые на него; пусто — по всему кооперативу. */
 	delivery_braname?: string | undefined | null},ResolverInputTypes["MarketplaceCategoryOfferCount"]],
-	/** Превью оформления: по каждой позиции корзины — идентификатор будущего заказа, суммы к списанию и заявление 1110 о переводе паевого взноса в ЦПП «Стол заказов» на полную сумму позиции с выделением членского взноса участка — к подписи заказчиком. По кошелькам тело идёт паевыми кошельками, взнос — членскими. */
-	marketplaceCheckoutSignablePayloads?:ResolverInputTypes["MarketplaceCheckoutSignableLine"],
+	/** Превью оформления: по каждой позиции корзины — идентификатор будущего заказа и суммы по частям (внутренний членский кошелёк «Стола заказов» расходуется первым на взнос участка и тело, остаток — с паевого); если кошелька не хватает — заявление 1110 о переводе недостающей суммы с Цифрового кошелька в программу, к подписи заказчиком. */
+	marketplaceCheckoutSignablePayloads?:ResolverInputTypes["MarketplaceCheckoutPreview"],
 	/** Статус принятия положения ЦПП «Стол заказов» Советом кооператива (L1). `active` если принято, `not_accepted` иначе. */
 	marketplaceCppStatus?:ResolverInputTypes["MarketplaceCppStatus"],
 	/** Дефолтная витрина кооператива (MVP — единственная) */
@@ -39543,8 +39567,10 @@ export type ModelTypes = {
 ["MarketplaceCheckoutCartInput"]: {
 	/** Идентификатор заказа для повтора остатка: при частичном сбое прошлого оформления передаётся тот же checkout_id, чтобы непрошедшие позиции легли в тот же заказ. Пусто — оформляется новый заказ. */
 	checkout_id?: string | undefined | null,
-	/** Строки оформления из превью — по одной на каждую позицию корзины, каждая с подписанным заявлением 1110 о переводе паевого взноса в программу с уплатой членского взноса. */
-	lines?: Array<ModelTypes["MarketplaceCheckoutSignedLineInput"]> | undefined | null
+	/** Строки оформления из превью — по одной на каждую позицию корзины (order_hash будущего заказа). */
+	lines?: Array<ModelTypes["MarketplaceCheckoutSignedLineInput"]> | undefined | null,
+	/** Подписанное заказчиком заявление 1110 из превью о переводе недостающей суммы с Цифрового кошелька в программу — только если превью вернуло его (внутреннего членского кошелька не хватает). */
+	signed_convert?: ModelTypes["MarketplaceConvertStatementSignedInput"] | undefined | null
 };
 	/** Позиция корзины, которую не удалось оформить (осталась в корзине для повтора). */
 ["MarketplaceCheckoutFailedLine"]: {
@@ -39556,6 +39582,12 @@ export type ModelTypes = {
 	quantity: number,
 	/** Причина, по которой позиция не оформлена. */
 	reason: string
+};
+	/** Превью оформления корзины: строки по позициям и, если внутреннего членского кошелька не хватает, заявление 1110 к подписи. */
+["MarketplaceCheckoutPreview"]: {
+		/** Заявление о переводе недостающей суммы; null — подпись не нужна. */
+	convert?: ModelTypes["MarketplaceConvertPayload"] | undefined | null,
+	lines: Array<ModelTypes["MarketplaceCheckoutSignableLine"]>
 };
 	/** Результат оформления заказа из корзины: общий идентификатор заказа, оформленные позиции и непрошедший остаток (если был частичный сбой). */
 ["MarketplaceCheckoutResult"]: {
@@ -39572,14 +39604,14 @@ export type ModelTypes = {
 	/** true — все позиции оформлены и корзина по этому заказу пуста; false — есть остаток. */
 	fully_completed: boolean
 };
-	/** Превью строки оформления: идентификатор будущего заказа, суммы к списанию и заявление 1110 о переводе паевого взноса в программу на полную сумму позиции с выделением членского взноса участка — к подписи заказчиком. По кошелькам тело идёт паевыми кошельками, взнос — членскими; из паевого в членский переводится только недостающая до взноса часть, остаток членского кошелька зачитывается. */
+	/** Превью строки оформления: идентификатор будущего заказа и суммы по частям — сколько покрывает внутренний членский кошелёк «Стола заказов» (он расходуется первым на взнос и тело) и сколько уйдёт с паевого. */
 ["MarketplaceCheckoutSignableLine"]: {
-		/** Сумма к списанию с паевого (стоимость позиции + членский взнос участка), с валютой. */
+		/** Стоимость позиции с членским взносом участка, с валютой. */
 	amount: string,
-	/** Конвертируется из паевого в членский по заявлению (недостающая до взноса часть), с валютой; ноль — взнос покрыт членским кошельком. */
-	convert_amount: string,
-	/** Заявление 1110 к подписи заказчиком (по позиции корзины — всегда). */
-	document?: ModelTypes["GeneratedDocument"] | undefined | null,
+	/** Покрывается внутренним членским кошельком (взнос и часть тела), с валютой. */
+	from_member: string,
+	/** Уходит с паевого (главный паевой, у позиций со склада — свободный паевой программы), с валютой. */
+	from_share: string,
 	/** Членский взнос кооперативного участка по позиции, с валютой. */
 	membership_fee: string,
 	/** Идентификатор предложения позиции корзины. */
@@ -39596,9 +39628,7 @@ export type ModelTypes = {
 	/** order_hash будущего заказа из превью. */
 	order_hash: string,
 	/** Упаковка позиции (при отпуске упаковкой). Пусто — отпуск по мере. */
-	package_id?: string | undefined | null,
-	/** Подписанное заказчиком заявление 1110 из превью о переводе паевого взноса в программу на полную сумму позиции с выделением членского взноса участка. */
-	signed_statement?: ModelTypes["MarketplaceConvertStatementSignedInput"] | undefined | null
+	package_id?: string | undefined | null
 };
 	["MarketplaceClearInventoryLabelInput"]: {
 	/** Позиция склада, с которой снимается штрих-код (для переклейки). */
@@ -39677,6 +39707,15 @@ export type ModelTypes = {
 	/** Ширина в сантиметрах. */
 	width_cm: number
 };
+	/** Заявление 1110 к подписи: недостающая сумма перевода в программу (паевая и членская части вместе) и её членская часть. Приходит только когда внутреннего членского кошелька «Стола заказов» не хватает. */
+["MarketplaceConvertPayload"]: {
+		/** Недостающая сумма перевода, с валютой. */
+	amount: string,
+	/** Заявление к подписи. */
+	document: ModelTypes["GeneratedDocument"],
+	/** Членская часть перевода — уходит в членский кошелёк действием convert, с валютой. */
+	membership_fee: string
+};
 	["MarketplaceConvertStatementSignedInput"]: {
 	/** Хэш содержимого документа */
 	doc_hash: string,
@@ -39692,27 +39731,23 @@ export type ModelTypes = {
 	version: string
 };
 	["MarketplaceConvertStatementSignedMetaDocumentInput"]: {
-	/** Полная сумма перевода в программу (стоимость имущества вместе с членским взносом), с валютой. */
+	/** Недостающая сумма перевода в программу (паевая и членская части вместе), с валютой. */
 	amount: string,
 	/** Номер блока, на котором был создан документ */
 	block_num: number,
-	/** Часть взноса, переводимая из паевого в членский по заявлению, с валютой (остальное — зачёт членского кошелька). */
-	convert_amount: string,
 	/** Название кооператива, связанное с документом */
 	coopname: string,
 	/** Дата и время создания документа */
 	created_at: string,
-	/** Ставка членского взноса кооператива, процентов. */
-	fee_percent: number,
 	/** Имя генератора, использованного для создания документа */
 	generator: string,
 	/** Язык документа */
 	lang: string,
 	/** Ссылки, связанные с документом */
 	links: Array<string>,
-	/** Членский взнос кооперативного участка в составе суммы, с валютой. */
+	/** Членская часть суммы — переводится в членский кошелёк действием convert, с валютой. */
 	membership_fee: string,
-	/** Канонический order_hash заказа, под который конвертируется взнос. */
+	/** Якорь заявления: хеш оформления, бандла или заказа, к которому относится перевод. */
 	order_hash: string,
 	/** ID документа в реестре */
 	registry_id: number,
@@ -39988,7 +40023,9 @@ export type ModelTypes = {
 	/** Строки бандла с подписанными заявлениями из marketplaceStockProposalSignablePayloads. */
 	order_lines: Array<ModelTypes["MarketplaceStockFinalizeLineInput"]>,
 	/** Предложение со склада кооператива. */
-	proposal_id: string
+	proposal_id: string,
+	/** Подписанное заявление 1110 на бандл — только если payloads его вернули. */
+	signed_convert?: ModelTypes["MarketplaceConvertStatementSignedInput"] | undefined | null
 };
 	["MarketplaceFixIssuanceFactInput"]: {
 	/** Фактически выдаваемое количество (в базовой единице). */
@@ -41486,11 +41523,7 @@ export type ModelTypes = {
 	splits: Array<ModelTypes["MarketplaceInventorySplitEntryInput"]>
 };
 	["MarketplaceStockAcceptOrderLine"]: {
-		/** Конвертируется из свободного паевого в членский по заявлению (недостающая до членского взноса участка часть), с валютой; ноль — взнос покрыт членским кошельком. */
-	convert_amount: string,
-	/** Заявление 1110 о переводе паевого взноса на оплату с уплатой членского взноса — к подписи пайщиком вместе с заявлением о выдаче: по докладке всегда, по заказу — на доплату при факте больше заказа; null — подпись не требуется. */
-	convert_statement?: ModelTypes["GeneratedDocument"] | undefined | null,
-	/** Идентификатор предложения позиции. */
+		/** Идентификатор предложения позиции. */
 	offer_id: string,
 	/** order_hash заказа (для докладки — будущего заказа из остатка). */
 	order_hash: string,
@@ -41500,14 +41533,14 @@ export type ModelTypes = {
 	statement: ModelTypes["GeneratedDocument"]
 };
 	["MarketplaceStockAcceptPayload"]: {
-		/** Строки бандла с заявлениями к подписи — вернуть их подписанными в marketplaceFinalizeStockIssuance. */
+		/** Заявление 1110 о переводе недостающей суммы со свободного паевого программы на весь бандл — только если внутреннего членского кошелька не хватает. */
+	convert?: ModelTypes["MarketplaceConvertPayload"] | undefined | null,
+	/** Строки бандла с заявлениями к подписи — вернуть их подписанными в marketplaceFinalizeStockIssuance. */
 	order_lines: Array<ModelTypes["MarketplaceStockAcceptOrderLine"]>
 };
 	["MarketplaceStockFinalizeLineInput"]: {
 	/** order_hash строки бандла (из payloads). */
 	order_hash: string,
-	/** Заявление 1110, подписанное пайщиком — только если payloads вернули его по строке. */
-	signed_convert?: ModelTypes["MarketplaceConvertStatementSignedInput"] | undefined | null,
 	/** Заявление о возврате паевого взноса имуществом, подписанное пайщиком. */
 	signed_statement: ModelTypes["MarketplaceShareReturnStatementSignedInput"]
 };
@@ -43054,7 +43087,7 @@ export type ModelTypes = {
 	marketplaceCancelStockProposal: ModelTypes["MarketplaceStockProposal"],
 	/** Удалить черновик. Доступно только пока проект в статусе DRAFT. */
 	marketplaceCancelWriteoffDraft: boolean,
-	/** Оформить заказ из корзины: предвалидация баланса, построчное создание заказов с общим идентификатором заказа и КУ; непрошедший остаток остаётся в корзине для повтора. Строки lines — из превью, каждая с подписанным заявлением 1110 о переводе паевого взноса в программу. */
+	/** Оформить заказ из корзины: предвалидация баланса, построчное создание заказов с общим идентификатором заказа и КУ; непрошедший остаток остаётся в корзине для повтора. Строки lines — из превью; signed_convert — подписанное заявление 1110, если превью его вернуло: перевод недостающей суммы выполняется отдельной транзакцией до заказов. */
 	marketplaceCheckoutCart: ModelTypes["MarketplaceCheckoutResult"],
 	/** Очистить все доступные категории (сделать доступными все)
 
@@ -43118,7 +43151,7 @@ export type ModelTypes = {
 	marketplaceDetailKU: ModelTypes["MarketplaceKUDetails"],
 	/** Распределить указанную сумму из общего кошелька участка между председателем и доверенными по их весам. Возможно частично и несколько раз; после распределения в общем кошельке должно остаться не меньше планового резерва расходов на 30 дней. Доступно председателю участка. */
 	marketplaceDistributeBranchFunds: boolean,
-	/** Пайщик одним нажатием подписывает заявления по всем строкам бандла: по докладке создаётся заказ из остатка (тело из свободного паевого, членский взнос участка с членского кошелька программы, недостающее — по заявлению о конвертации 1110), по каждому заказу заявление уходит в цепь и на повестку совета; робот решений совета зовётся напрямую и ждётся у стойки. Ответ несёт саги выдачи: решение принято — пайщик подписывает акт, иначе — режим ожидания без действий с его стороны. */
+	/** Пайщик одним нажатием подписывает заявления по всем строкам бандла (и заявление 1110 на бандл, если членского кошелька не хватает — перевод идёт отдельной транзакцией до заказов): по докладке создаётся заказ из остатка, по каждому заказу заявление уходит в цепь и на повестку совета; робот решений совета зовётся напрямую и ждётся у стойки. Ответ несёт саги выдачи: решение принято — пайщик подписывает акт, иначе — режим ожидания без действий с его стороны. */
 	marketplaceFinalizeStockIssuance: ModelTypes["MarketplaceStockProposalAcceptResult"],
 	/** Оператор у стойки сверил состав и отправляет факт на подпись заказчику: рождается ход выдачи и заявление о возврате паевого взноса имуществом. Подписи оператора нет. */
 	marketplaceFixIssuanceFact: ModelTypes["MarketplaceIssuanceStatementPayload"],
@@ -45258,8 +45291,8 @@ export type ModelTypes = {
 	marketplaceCategoryAttributesGrouped: Array<ModelTypes["MarketplaceAttributeGroup"]>,
 	/** Число доступных к заказу товаров в каждой категории — чтобы скрыть пустые категории в каталоге. Если задан пункт выдачи, считаются только товары, доставимые на него. */
 	marketplaceCategoryOfferCounts: Array<ModelTypes["MarketplaceCategoryOfferCount"]>,
-	/** Превью оформления: по каждой позиции корзины — идентификатор будущего заказа, суммы к списанию и заявление 1110 о переводе паевого взноса в ЦПП «Стол заказов» на полную сумму позиции с выделением членского взноса участка — к подписи заказчиком. По кошелькам тело идёт паевыми кошельками, взнос — членскими. */
-	marketplaceCheckoutSignablePayloads: Array<ModelTypes["MarketplaceCheckoutSignableLine"]>,
+	/** Превью оформления: по каждой позиции корзины — идентификатор будущего заказа и суммы по частям (внутренний членский кошелёк «Стола заказов» расходуется первым на взнос участка и тело, остаток — с паевого); если кошелька не хватает — заявление 1110 о переводе недостающей суммы с Цифрового кошелька в программу, к подписи заказчиком. */
+	marketplaceCheckoutSignablePayloads: ModelTypes["MarketplaceCheckoutPreview"],
 	/** Статус принятия положения ЦПП «Стол заказов» Советом кооператива (L1). `active` если принято, `not_accepted` иначе. */
 	marketplaceCppStatus: ModelTypes["MarketplaceCppStatus"],
 	/** Дефолтная витрина кооператива (MVP — единственная) */
@@ -45444,7 +45477,7 @@ export type ModelTypes = {
 	marketplaceSearchRequests: Array<ModelTypes["MarketplaceRequest"]>,
 	/** Подготовка докладки со склада: по строке корзины — детерминированный order_hash будущего заказа и снапшоты цены/упаковки. Оператор ничего не подписывает: его подпись закрывающая. */
 	marketplaceStockIssuancePayloads: Array<ModelTypes["MarketplaceStockIssuanceOperatorLine"]>,
-	/** Нагрузка к подписи бандла пайщиком: по каждой строке — заявление о возврате паевого взноса имуществом; по докладке ещё и заявление 1110 о переводе свободного паевого на оплату заказа из остатка с уплатой членского взноса участка, по заказу — только на доплату при факте больше заказа. */
+	/** Нагрузка к подписи бандла пайщиком: по каждой строке — заявление о возврате паевого взноса имуществом; если внутреннего членского кошелька «Стола заказов» не хватает на бандл — одно заявление 1110 о переводе недостающей суммы со свободного паевого программы. */
 	marketplaceStockProposalSignablePayloads: ModelTypes["MarketplaceStockAcceptPayload"],
 	/** Валидация значений атрибута marketplace */
 	marketplaceValidateAttributeValues: ModelTypes["MarketplaceAttributeValidation"],
@@ -55750,8 +55783,10 @@ export type GraphQLTypes = {
 ["MarketplaceCheckoutCartInput"]: {
 		/** Идентификатор заказа для повтора остатка: при частичном сбое прошлого оформления передаётся тот же checkout_id, чтобы непрошедшие позиции легли в тот же заказ. Пусто — оформляется новый заказ. */
 	checkout_id?: string | undefined | null,
-	/** Строки оформления из превью — по одной на каждую позицию корзины, каждая с подписанным заявлением 1110 о переводе паевого взноса в программу с уплатой членского взноса. */
-	lines?: Array<GraphQLTypes["MarketplaceCheckoutSignedLineInput"]> | undefined | null
+	/** Строки оформления из превью — по одной на каждую позицию корзины (order_hash будущего заказа). */
+	lines?: Array<GraphQLTypes["MarketplaceCheckoutSignedLineInput"]> | undefined | null,
+	/** Подписанное заказчиком заявление 1110 из превью о переводе недостающей суммы с Цифрового кошелька в программу — только если превью вернуло его (внутреннего членского кошелька не хватает). */
+	signed_convert?: GraphQLTypes["MarketplaceConvertStatementSignedInput"] | undefined | null
 };
 	/** Позиция корзины, которую не удалось оформить (осталась в корзине для повтора). */
 ["MarketplaceCheckoutFailedLine"]: {
@@ -55765,6 +55800,14 @@ export type GraphQLTypes = {
 	/** Причина, по которой позиция не оформлена. */
 	reason: string,
 	['...on MarketplaceCheckoutFailedLine']: Omit<GraphQLTypes["MarketplaceCheckoutFailedLine"], "...on MarketplaceCheckoutFailedLine">
+};
+	/** Превью оформления корзины: строки по позициям и, если внутреннего членского кошелька не хватает, заявление 1110 к подписи. */
+["MarketplaceCheckoutPreview"]: {
+	__typename: "MarketplaceCheckoutPreview",
+	/** Заявление о переводе недостающей суммы; null — подпись не нужна. */
+	convert?: GraphQLTypes["MarketplaceConvertPayload"] | undefined | null,
+	lines: Array<GraphQLTypes["MarketplaceCheckoutSignableLine"]>,
+	['...on MarketplaceCheckoutPreview']: Omit<GraphQLTypes["MarketplaceCheckoutPreview"], "...on MarketplaceCheckoutPreview">
 };
 	/** Результат оформления заказа из корзины: общий идентификатор заказа, оформленные позиции и непрошедший остаток (если был частичный сбой). */
 ["MarketplaceCheckoutResult"]: {
@@ -55783,15 +55826,15 @@ export type GraphQLTypes = {
 	fully_completed: boolean,
 	['...on MarketplaceCheckoutResult']: Omit<GraphQLTypes["MarketplaceCheckoutResult"], "...on MarketplaceCheckoutResult">
 };
-	/** Превью строки оформления: идентификатор будущего заказа, суммы к списанию и заявление 1110 о переводе паевого взноса в программу на полную сумму позиции с выделением членского взноса участка — к подписи заказчиком. По кошелькам тело идёт паевыми кошельками, взнос — членскими; из паевого в членский переводится только недостающая до взноса часть, остаток членского кошелька зачитывается. */
+	/** Превью строки оформления: идентификатор будущего заказа и суммы по частям — сколько покрывает внутренний членский кошелёк «Стола заказов» (он расходуется первым на взнос и тело) и сколько уйдёт с паевого. */
 ["MarketplaceCheckoutSignableLine"]: {
 	__typename: "MarketplaceCheckoutSignableLine",
-	/** Сумма к списанию с паевого (стоимость позиции + членский взнос участка), с валютой. */
+	/** Стоимость позиции с членским взносом участка, с валютой. */
 	amount: string,
-	/** Конвертируется из паевого в членский по заявлению (недостающая до взноса часть), с валютой; ноль — взнос покрыт членским кошельком. */
-	convert_amount: string,
-	/** Заявление 1110 к подписи заказчиком (по позиции корзины — всегда). */
-	document?: GraphQLTypes["GeneratedDocument"] | undefined | null,
+	/** Покрывается внутренним членским кошельком (взнос и часть тела), с валютой. */
+	from_member: string,
+	/** Уходит с паевого (главный паевой, у позиций со склада — свободный паевой программы), с валютой. */
+	from_share: string,
 	/** Членский взнос кооперативного участка по позиции, с валютой. */
 	membership_fee: string,
 	/** Идентификатор предложения позиции корзины. */
@@ -55809,9 +55852,7 @@ export type GraphQLTypes = {
 	/** order_hash будущего заказа из превью. */
 	order_hash: string,
 	/** Упаковка позиции (при отпуске упаковкой). Пусто — отпуск по мере. */
-	package_id?: string | undefined | null,
-	/** Подписанное заказчиком заявление 1110 из превью о переводе паевого взноса в программу на полную сумму позиции с выделением членского взноса участка. */
-	signed_statement?: GraphQLTypes["MarketplaceConvertStatementSignedInput"] | undefined | null
+	package_id?: string | undefined | null
 };
 	["MarketplaceClearInventoryLabelInput"]: {
 		/** Позиция склада, с которой снимается штрих-код (для переклейки). */
@@ -55899,6 +55940,17 @@ export type GraphQLTypes = {
 	width_cm: number,
 	['...on MarketplaceContainerType']: Omit<GraphQLTypes["MarketplaceContainerType"], "...on MarketplaceContainerType">
 };
+	/** Заявление 1110 к подписи: недостающая сумма перевода в программу (паевая и членская части вместе) и её членская часть. Приходит только когда внутреннего членского кошелька «Стола заказов» не хватает. */
+["MarketplaceConvertPayload"]: {
+	__typename: "MarketplaceConvertPayload",
+	/** Недостающая сумма перевода, с валютой. */
+	amount: string,
+	/** Заявление к подписи. */
+	document: GraphQLTypes["GeneratedDocument"],
+	/** Членская часть перевода — уходит в членский кошелёк действием convert, с валютой. */
+	membership_fee: string,
+	['...on MarketplaceConvertPayload']: Omit<GraphQLTypes["MarketplaceConvertPayload"], "...on MarketplaceConvertPayload">
+};
 	["MarketplaceConvertStatementSignedInput"]: {
 		/** Хэш содержимого документа */
 	doc_hash: string,
@@ -55914,27 +55966,23 @@ export type GraphQLTypes = {
 	version: string
 };
 	["MarketplaceConvertStatementSignedMetaDocumentInput"]: {
-		/** Полная сумма перевода в программу (стоимость имущества вместе с членским взносом), с валютой. */
+		/** Недостающая сумма перевода в программу (паевая и членская части вместе), с валютой. */
 	amount: string,
 	/** Номер блока, на котором был создан документ */
 	block_num: number,
-	/** Часть взноса, переводимая из паевого в членский по заявлению, с валютой (остальное — зачёт членского кошелька). */
-	convert_amount: string,
 	/** Название кооператива, связанное с документом */
 	coopname: string,
 	/** Дата и время создания документа */
 	created_at: string,
-	/** Ставка членского взноса кооператива, процентов. */
-	fee_percent: number,
 	/** Имя генератора, использованного для создания документа */
 	generator: string,
 	/** Язык документа */
 	lang: string,
 	/** Ссылки, связанные с документом */
 	links: Array<string>,
-	/** Членский взнос кооперативного участка в составе суммы, с валютой. */
+	/** Членская часть суммы — переводится в членский кошелёк действием convert, с валютой. */
 	membership_fee: string,
-	/** Канонический order_hash заказа, под который конвертируется взнос. */
+	/** Якорь заявления: хеш оформления, бандла или заказа, к которому относится перевод. */
 	order_hash: string,
 	/** ID документа в реестре */
 	registry_id: number,
@@ -56241,7 +56289,9 @@ export type GraphQLTypes = {
 		/** Строки бандла с подписанными заявлениями из marketplaceStockProposalSignablePayloads. */
 	order_lines: Array<GraphQLTypes["MarketplaceStockFinalizeLineInput"]>,
 	/** Предложение со склада кооператива. */
-	proposal_id: string
+	proposal_id: string,
+	/** Подписанное заявление 1110 на бандл — только если payloads его вернули. */
+	signed_convert?: GraphQLTypes["MarketplaceConvertStatementSignedInput"] | undefined | null
 };
 	["MarketplaceFixIssuanceFactInput"]: {
 		/** Фактически выдаваемое количество (в базовой единице). */
@@ -57848,10 +57898,6 @@ export type GraphQLTypes = {
 };
 	["MarketplaceStockAcceptOrderLine"]: {
 	__typename: "MarketplaceStockAcceptOrderLine",
-	/** Конвертируется из свободного паевого в членский по заявлению (недостающая до членского взноса участка часть), с валютой; ноль — взнос покрыт членским кошельком. */
-	convert_amount: string,
-	/** Заявление 1110 о переводе паевого взноса на оплату с уплатой членского взноса — к подписи пайщиком вместе с заявлением о выдаче: по докладке всегда, по заказу — на доплату при факте больше заказа; null — подпись не требуется. */
-	convert_statement?: GraphQLTypes["GeneratedDocument"] | undefined | null,
 	/** Идентификатор предложения позиции. */
 	offer_id: string,
 	/** order_hash заказа (для докладки — будущего заказа из остатка). */
@@ -57864,6 +57910,8 @@ export type GraphQLTypes = {
 };
 	["MarketplaceStockAcceptPayload"]: {
 	__typename: "MarketplaceStockAcceptPayload",
+	/** Заявление 1110 о переводе недостающей суммы со свободного паевого программы на весь бандл — только если внутреннего членского кошелька не хватает. */
+	convert?: GraphQLTypes["MarketplaceConvertPayload"] | undefined | null,
 	/** Строки бандла с заявлениями к подписи — вернуть их подписанными в marketplaceFinalizeStockIssuance. */
 	order_lines: Array<GraphQLTypes["MarketplaceStockAcceptOrderLine"]>,
 	['...on MarketplaceStockAcceptPayload']: Omit<GraphQLTypes["MarketplaceStockAcceptPayload"], "...on MarketplaceStockAcceptPayload">
@@ -57871,8 +57919,6 @@ export type GraphQLTypes = {
 	["MarketplaceStockFinalizeLineInput"]: {
 		/** order_hash строки бандла (из payloads). */
 	order_hash: string,
-	/** Заявление 1110, подписанное пайщиком — только если payloads вернули его по строке. */
-	signed_convert?: GraphQLTypes["MarketplaceConvertStatementSignedInput"] | undefined | null,
 	/** Заявление о возврате паевого взноса имуществом, подписанное пайщиком. */
 	signed_statement: GraphQLTypes["MarketplaceShareReturnStatementSignedInput"]
 };
@@ -59497,7 +59543,7 @@ export type GraphQLTypes = {
 	marketplaceCancelStockProposal: GraphQLTypes["MarketplaceStockProposal"],
 	/** Удалить черновик. Доступно только пока проект в статусе DRAFT. */
 	marketplaceCancelWriteoffDraft: boolean,
-	/** Оформить заказ из корзины: предвалидация баланса, построчное создание заказов с общим идентификатором заказа и КУ; непрошедший остаток остаётся в корзине для повтора. Строки lines — из превью, каждая с подписанным заявлением 1110 о переводе паевого взноса в программу. */
+	/** Оформить заказ из корзины: предвалидация баланса, построчное создание заказов с общим идентификатором заказа и КУ; непрошедший остаток остаётся в корзине для повтора. Строки lines — из превью; signed_convert — подписанное заявление 1110, если превью его вернуло: перевод недостающей суммы выполняется отдельной транзакцией до заказов. */
 	marketplaceCheckoutCart: GraphQLTypes["MarketplaceCheckoutResult"],
 	/** Очистить все доступные категории (сделать доступными все)
 
@@ -59561,7 +59607,7 @@ export type GraphQLTypes = {
 	marketplaceDetailKU: GraphQLTypes["MarketplaceKUDetails"],
 	/** Распределить указанную сумму из общего кошелька участка между председателем и доверенными по их весам. Возможно частично и несколько раз; после распределения в общем кошельке должно остаться не меньше планового резерва расходов на 30 дней. Доступно председателю участка. */
 	marketplaceDistributeBranchFunds: boolean,
-	/** Пайщик одним нажатием подписывает заявления по всем строкам бандла: по докладке создаётся заказ из остатка (тело из свободного паевого, членский взнос участка с членского кошелька программы, недостающее — по заявлению о конвертации 1110), по каждому заказу заявление уходит в цепь и на повестку совета; робот решений совета зовётся напрямую и ждётся у стойки. Ответ несёт саги выдачи: решение принято — пайщик подписывает акт, иначе — режим ожидания без действий с его стороны. */
+	/** Пайщик одним нажатием подписывает заявления по всем строкам бандла (и заявление 1110 на бандл, если членского кошелька не хватает — перевод идёт отдельной транзакцией до заказов): по докладке создаётся заказ из остатка, по каждому заказу заявление уходит в цепь и на повестку совета; робот решений совета зовётся напрямую и ждётся у стойки. Ответ несёт саги выдачи: решение принято — пайщик подписывает акт, иначе — режим ожидания без действий с его стороны. */
 	marketplaceFinalizeStockIssuance: GraphQLTypes["MarketplaceStockProposalAcceptResult"],
 	/** Оператор у стойки сверил состав и отправляет факт на подпись заказчику: рождается ход выдачи и заявление о возврате паевого взноса имуществом. Подписи оператора нет. */
 	marketplaceFixIssuanceFact: GraphQLTypes["MarketplaceIssuanceStatementPayload"],
@@ -61880,8 +61926,8 @@ export type GraphQLTypes = {
 	marketplaceCategoryAttributesGrouped: Array<GraphQLTypes["MarketplaceAttributeGroup"]>,
 	/** Число доступных к заказу товаров в каждой категории — чтобы скрыть пустые категории в каталоге. Если задан пункт выдачи, считаются только товары, доставимые на него. */
 	marketplaceCategoryOfferCounts: Array<GraphQLTypes["MarketplaceCategoryOfferCount"]>,
-	/** Превью оформления: по каждой позиции корзины — идентификатор будущего заказа, суммы к списанию и заявление 1110 о переводе паевого взноса в ЦПП «Стол заказов» на полную сумму позиции с выделением членского взноса участка — к подписи заказчиком. По кошелькам тело идёт паевыми кошельками, взнос — членскими. */
-	marketplaceCheckoutSignablePayloads: Array<GraphQLTypes["MarketplaceCheckoutSignableLine"]>,
+	/** Превью оформления: по каждой позиции корзины — идентификатор будущего заказа и суммы по частям (внутренний членский кошелёк «Стола заказов» расходуется первым на взнос участка и тело, остаток — с паевого); если кошелька не хватает — заявление 1110 о переводе недостающей суммы с Цифрового кошелька в программу, к подписи заказчиком. */
+	marketplaceCheckoutSignablePayloads: GraphQLTypes["MarketplaceCheckoutPreview"],
 	/** Статус принятия положения ЦПП «Стол заказов» Советом кооператива (L1). `active` если принято, `not_accepted` иначе. */
 	marketplaceCppStatus: GraphQLTypes["MarketplaceCppStatus"],
 	/** Дефолтная витрина кооператива (MVP — единственная) */
@@ -62066,7 +62112,7 @@ export type GraphQLTypes = {
 	marketplaceSearchRequests: Array<GraphQLTypes["MarketplaceRequest"]>,
 	/** Подготовка докладки со склада: по строке корзины — детерминированный order_hash будущего заказа и снапшоты цены/упаковки. Оператор ничего не подписывает: его подпись закрывающая. */
 	marketplaceStockIssuancePayloads: Array<GraphQLTypes["MarketplaceStockIssuanceOperatorLine"]>,
-	/** Нагрузка к подписи бандла пайщиком: по каждой строке — заявление о возврате паевого взноса имуществом; по докладке ещё и заявление 1110 о переводе свободного паевого на оплату заказа из остатка с уплатой членского взноса участка, по заказу — только на доплату при факте больше заказа. */
+	/** Нагрузка к подписи бандла пайщиком: по каждой строке — заявление о возврате паевого взноса имуществом; если внутреннего членского кошелька «Стола заказов» не хватает на бандл — одно заявление 1110 о переводе недостающей суммы со свободного паевого программы. */
 	marketplaceStockProposalSignablePayloads: GraphQLTypes["MarketplaceStockAcceptPayload"],
 	/** Валидация значений атрибута marketplace */
 	marketplaceValidateAttributeValues: GraphQLTypes["MarketplaceAttributeValidation"],

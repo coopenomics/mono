@@ -9,38 +9,57 @@ import {
   type IUserWalletPort,
 } from '@coopenomics/innercoop';
 import { SignedDigitalDocumentInputDTO } from '@coopenomics/extension-kit';
-import { createEmptyDocument } from '../../../../shared/utils/document-utils';
 import type { MarketplaceConvertStatementSignedInputDTO } from '../documents-dto/marketplace-convert-statement-document.dto';
 import { MARKETPLACE_ASSET_CONFIG, type MarketplaceAssetConfig } from './marketplace-asset.config';
 import { MARKETPLACE_ECONOMY_SERVICE, MarketplaceEconomyService } from './marketplace-economy.service';
 
 export const MARKETPLACE_CONVERT_SERVICE = Symbol('MARKETPLACE_CONVERT_SERVICE');
 
-/** Членский кошелёк пайщика в ЦПП «Стол заказов» (USER_SHARED, счёт 86). */
+/** Внутренний членский кошелёк пайщика в ЦПП «Стол заказов» (USER_SHARED, счёт 86). */
 export const MARKETPLACE_MEMBER_WALLET = 'w.mkt.member';
-/** Главный паевой кошелёк ЦК — источник конвертации при обычном заказе. */
+/** Главный паевой кошелёк ЦК — паевой источник обычного заказа. */
 export const MAIN_SHARE_WALLET = 'w.wal.share';
-/** Свободный паевой «Стола заказов» — источник при заказе из остатка и довзносе по факту. */
+/** Свободный паевой «Стола заказов» — паевой источник заказа из остатка и доплаты по факту. */
 export const MARKETPLACE_SHARE_WALLET = 'w.mkt.share';
 
-export type ConvertStatementDocument = MarketContract.Actions.CreateOrder.ICreateOrder['convert_statement'];
+export type ConvertStatementDocument = MarketContract.Actions.Convert.IConvert['convert_statement'];
 
-/** Строка плана конвертации: полный взнос и недостающая часть, в минимальных единицах. */
-export interface MarketplaceConvertPlanLine {
+/** Строка к фондированию: тело и взнос участка в минимальных единицах. */
+export interface FundingLineInput {
+  body_units: bigint;
   fee_units: bigint;
-  convert_units: bigint;
+}
+
+/** Как контракт разложит строку: взнос с членского кошелька, тело — из членского и с паевого. */
+export interface FundingLinePlan extends FundingLineInput {
+  /** Недостающая на взнос часть — переводится в членский кошелёк действием convert. */
+  fee_convert_units: bigint;
+  /** Часть тела из внутреннего членского кошелька (членский резерв). */
+  body_member_units: bigint;
+  /** Часть тела с паевого источника (паевой резерв). */
+  body_share_units: bigint;
+}
+
+export interface FundingPlan {
+  lines: FundingLinePlan[];
+  /** Сумма переводов в членский кошелёк (все строки) — параметр действия convert. */
+  fee_convert_units: bigint;
+  /** Паевая часть тел с паевого источника (все строки). */
+  body_share_units: bigint;
+  /** Недостающая сумма — всё, что уходит с паевого источника: тело + перевод в членский. Ноль — заявление не нужно. */
+  transfer_units: bigint;
 }
 
 /**
- * Заявление 1110 о переводе паевого взноса в ЦПП «Стол заказов» с уплатой
- * членского взноса (паевая модель, компонент 68). Текст — на полную сумму
- * заказа с выделением взноса участка; по кошелькам обе части идут каждая
- * своим путём: паевая — по паевым кошелькам, членская — по членским: взнос
- * под заказ берётся с членского кошелька программы `w.mkt.member`,
- * недостающая до взноса часть конвертируется из паевого, остаток кошелька
- * зачитывается автоматически. Контракт считает недостачу сам по балансу на
- * момент действия — здесь тот же расчёт для превью и проверки подписанных
- * мет, чтобы суммы совпали побитово.
+ * Заявление 1110 о переводе паевого взноса в ЦПП «Стол заказов» (паевая
+ * модель, уточнение владельца 06.09.2026). Внутренний членский кошелёк
+ * `w.mkt.member` расходуется первым — на взнос участка и на тело заказа;
+ * заявление пишется только на недостающую сумму («прошу перевести с баланса
+ * моего Цифрового кошелька на баланс ЦПП «Стол заказов» N, из них членский
+ * взнос M») и не пишется вовсе, если кошелька хватает. Отдельная транзакция
+ * `convert` до заказа переводит членскую часть M; паевая часть тела уходит
+ * своим путём при создании заказа. Контракт раскладывает суммы сам по балансу
+ * на момент действия — здесь тот же расчёт для превью и сверки подписанных мет.
  */
 @Injectable()
 export class MarketplaceConvertService {
@@ -58,62 +77,64 @@ export class MarketplaceConvertService {
     return row?.available ? this.economyService.assetToUnits(String(row.available)) : 0n;
   }
 
-  /** Остаток членского кошелька программы — зачитывается в счёт взноса автоматически. */
+  /** Остаток внутреннего членского кошелька — расходуется первым. */
   memberAvailableUnits(coopname: string, username: string): Promise<bigint> {
     return this.availableUnits(coopname, username, MARKETPLACE_MEMBER_WALLET);
   }
 
   /**
-   * План конвертации по строкам в порядке проведения: каждая строка сначала
-   * забирает остаток членского кошелька, недостающее — конвертация по
-   * заявлению. Порядок обязан совпадать с порядком отправки в цепь.
+   * План фондирования строк в порядке проведения (тот же, что в контракте):
+   * по каждой строке сначала взнос с членского кошелька (нехватка —
+   * перевод в членский по заявлению), затем тело из остатка кошелька,
+   * остаток тела — с паевого источника. Остаток кошелька тянется между
+   * строками последовательно; порядок обязан совпадать с порядком отправки.
    */
-  planConversions(memberAvailableUnits: bigint, feeUnits: ReadonlyArray<bigint>): MarketplaceConvertPlanLine[] {
-    let available = memberAvailableUnits > 0n ? memberAvailableUnits : 0n;
-    return feeUnits.map((fee_units) => {
-      const convert_units = fee_units > available ? fee_units - available : 0n;
-      available = available + convert_units - fee_units;
-      return { fee_units, convert_units };
+  planFunding(memberAvailableUnits: bigint, lines: ReadonlyArray<FundingLineInput>): FundingPlan {
+    let member = memberAvailableUnits > 0n ? memberAvailableUnits : 0n;
+    const planned: FundingLinePlan[] = lines.map((line) => {
+      const fee_convert_units = line.fee_units > member ? line.fee_units - member : 0n;
+      member = member + fee_convert_units - line.fee_units;
+      const body_member_units = line.body_units > member ? member : line.body_units;
+      member -= body_member_units;
+      return {
+        ...line,
+        fee_convert_units,
+        body_member_units,
+        body_share_units: line.body_units - body_member_units,
+      };
     });
+    const fee_convert_units = planned.reduce((s, l) => s + l.fee_convert_units, 0n);
+    const body_share_units = planned.reduce((s, l) => s + l.body_share_units, 0n);
+    return { lines: planned, fee_convert_units, body_share_units, transfer_units: fee_convert_units + body_share_units };
   }
 
-  /** Недостающая до одной суммы часть членского кошелька (довзнос по факту, одна строка). */
+  /** Недостающая на одну сумму часть членского кошелька (довзнос по факту). */
   shortfallUnits(memberAvailableUnits: bigint, feeUnits: bigint): bigint {
-    return this.planConversions(memberAvailableUnits, [feeUnits])[0]!.convert_units;
+    return this.planFunding(memberAvailableUnits, [{ body_units: 0n, fee_units: feeUnits }]).fee_convert_units;
   }
 
-  /**
-   * Заявление 1110 к подписи: полная сумма перевода в программу (тело +
-   * взнос), членский взнос в её составе и часть взноса, которая по этому
-   * заявлению переходит из паевого в членский (остальное — зачёт кошелька).
-   */
+  /** Заявление 1110 к подписи: только недостающая сумма и членская часть в ней. */
   async generateStatement(input: {
     coopname: string;
     username: string;
-    order_hash: string;
-    /** Тело заказа (стоимость имущества) в минимальных единицах. */
-    body_units: bigint;
-    /** Членский взнос участка в минимальных единицах. */
+    /** Якорь: хеш оформления, бандла либо заказа. */
+    anchor_hash: string;
+    /** Недостающая сумма — уходит с паевого источника (тело + перевод в членский). */
+    amount_units: bigint;
+    /** Членская часть — параметр действия convert. */
     fee_units: bigint;
-    /** Недостающая до взноса часть — переводится из паевого в членский. */
-    convert_units: bigint;
-    fee_contract_percent: number;
-    /** wallet — с Цифрового кошелька (обычный заказ), market — со свободного паевого программы. */
+    /** wallet — Цифровой кошелёк (обычный заказ), market — свободный паевой программы. */
     source: 'wallet' | 'market';
   }): Promise<InnerGeneratedDocument> {
-    const credited = input.fee_units - input.convert_units;
-    const action: Cooperative.Registry.MarketplaceConvertStatement.Action & { credited_amount?: string } = {
+    const action: Cooperative.Registry.MarketplaceConvertStatement.Action = {
       registry_id: Cooperative.Registry.MarketplaceConvertStatement.registry_id,
       coopname: input.coopname,
       username: input.username,
       lang: 'ru',
-      order_hash: input.order_hash,
-      amount: this.economyService.unitsToAsset(input.body_units + input.fee_units),
+      order_hash: input.anchor_hash,
+      amount: this.economyService.unitsToAsset(input.amount_units),
       membership_fee: this.economyService.unitsToAsset(input.fee_units),
-      convert_amount: this.economyService.unitsToAsset(input.convert_units),
-      fee_percent: this.economyService.toHumanFeePercent(input.fee_contract_percent),
       source: input.source,
-      ...(credited > 0n ? { credited_amount: this.economyService.unitsToAsset(credited) } : {}),
       // Тело сохраняется в стор: реестр документов пересобирает агрегат по doc_hash.
       skip_save: false,
     };
@@ -121,50 +142,39 @@ export class MarketplaceConvertService {
   }
 
   /**
-   * Проверка подписанного заявления перед отправкой в цепь: тот же заказ,
-   * та же сумма (баланс членского кошелька мог измениться с превью),
-   * подпись пайщика верна. Возвращает document2 для контракта.
+   * Проверка подписанного заявления перед отправкой в цепь: тот же якорь,
+   * та же недостающая сумма и членская часть (баланс кошелька мог измениться
+   * с превью), подпись пайщика верна. Возвращает document2 для контракта.
    */
   verifySigned(
     signed: MarketplaceConvertStatementSignedInputDTO | null | undefined,
-    expected: { order_hash: string; body_units: bigint; fee_units: bigint; convert_units: bigint },
+    expected: { anchor_hash: string; amount_units: bigint; fee_units: bigint },
     signer: string
   ): ConvertStatementDocument {
     if (!signed) {
       throw new BadRequestException(
-        `Нет подписанного заявления о переводе паевого взноса в программу на ${this.economyService.unitsToAsset(expected.body_units + expected.fee_units)} — обновите оформление.`
+        `Нет подписанного заявления о переводе паевого взноса в программу на ${this.economyService.unitsToAsset(expected.amount_units)} — обновите оформление.`
       );
     }
     const meta = signed.meta;
     if (
       meta.registry_id !== Cooperative.Registry.MarketplaceConvertStatement.registry_id ||
-      meta.order_hash !== expected.order_hash
+      meta.order_hash !== expected.anchor_hash
     ) {
-      throw new BadRequestException('Заявление подписано для другого заказа — обновите оформление.');
+      throw new BadRequestException('Заявление подписано для другого оформления — обновите оформление.');
     }
-    const expectedTotal = expected.body_units + expected.fee_units;
-    if (this.economyService.assetToUnits(String(meta.amount)) !== expectedTotal) {
+    if (this.economyService.assetToUnits(String(meta.amount)) !== expected.amount_units) {
       throw new BadRequestException(
-        `Сумма позиции изменилась (в заявлении ${meta.amount}, к оплате ${this.economyService.unitsToAsset(expectedTotal)}) — обновите оформление.`
+        `Недостающая сумма изменилась (в заявлении ${meta.amount}, к переводу ${this.economyService.unitsToAsset(expected.amount_units)}) — обновите оформление.`
       );
     }
     if (this.economyService.assetToUnits(String(meta.membership_fee)) !== expected.fee_units) {
       throw new BadRequestException(
-        `Членский взнос изменился (в заявлении ${meta.membership_fee}, по ставке ${this.economyService.unitsToAsset(expected.fee_units)}) — обновите оформление.`
-      );
-    }
-    if (this.economyService.assetToUnits(String(meta.convert_amount)) !== expected.convert_units) {
-      throw new BadRequestException(
-        `Сумма перевода в членский изменилась (в заявлении ${meta.convert_amount}, к переводу ${this.economyService.unitsToAsset(expected.convert_units)}) — обновите оформление.`
+        `Членская часть перевода изменилась (в заявлении ${meta.membership_fee}, к переводу ${this.economyService.unitsToAsset(expected.fee_units)}) — обновите оформление.`
       );
     }
     this.verifySignature(signed, signer);
     return new SignedDigitalDocumentInputDTO(signed).toDocument() as ConvertStatementDocument;
-  }
-
-  /** Пустой document2 — когда взнос покрыт остатком членского кошелька и заявление не нужно. */
-  emptyDocument(): ConvertStatementDocument {
-    return createEmptyDocument() as ConvertStatementDocument;
   }
 
   private verifySignature(

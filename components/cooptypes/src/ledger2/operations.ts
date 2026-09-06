@@ -152,19 +152,50 @@ export const LEDGER2_OPERATION_REGISTRY: readonly OperationMeta[] = [
   // marketplace — паевая модель «Стола заказов» (компонент 68, решение
   // 06.09.2026; синхронно с operations.hpp `OPERATION_REGISTRY`, namespace
   // operations::marketplace). Тело заказа от резерва до выдачи остаётся паевым
-  // взносом на счёте 80; единственный членский взнос процесса — взнос участка,
-  // и он переходит из паевого в членский только по заявлению о конвертации
-  // (1110) на членский кошелёк программы w.mkt.member.
+  // взносом на счёте 80; членская часть — внутренний членский кошелёк
+  // w.mkt.member: пополняется по заявлению 1110 (действие convert) и
+  // возвратами членских средств, расходуется первым на взнос участка и на тело
+  // заказа (членский резерв w.mkt.morder на 86).
   { code: 'o.mkt.conv',    process_type: 'p.mkt.supply',  contract: 'marketplace',
     name: 'CONVERT_TO_MEMBER', wallet_op: 'TRANSFER', wallet_from: 'w.wal.share', wallet_to: 'w.mkt.member',
     debit: 80, credit: 86,
-    human_name: 'Конвертация паевого взноса в членский по заявлению' },
+    human_name: 'Перевод паевого взноса в членский кошелёк Стола заказов по заявлению' },
 
   // То же со свободного паевого программы: заказ из остатка и довзнос по факту.
   { code: 'o.mkt.convp',   process_type: 'p.mkt.supply',  contract: 'marketplace',
     name: 'CONVERT_FROM_SHARE', wallet_op: 'TRANSFER', wallet_from: 'w.mkt.share', wallet_to: 'w.mkt.member',
     debit: 80, credit: 86,
-    human_name: 'Конвертация свободного паевого «Стола заказов» в членский по заявлению' },
+    human_name: 'Перевод свободного паевого «Стола заказов» в членский кошелёк по заявлению' },
+
+  // Членский резерв под заказ: часть тела, оплаченная из внутреннего членского кошелька.
+  { code: 'o.mkt.lockm',   process_type: 'p.mkt.supply',  contract: 'marketplace',
+    name: 'LOCK_MEMBER_ORDER', wallet_op: 'TRANSFER', wallet_from: 'w.mkt.member', wallet_to: 'w.mkt.morder',
+    debit: null, credit: null,
+    human_name: 'Членский резерв под заказ из внутреннего членского кошелька' },
+
+  // Возврат членского резерва (отмена / недовыдача): членское остаётся членским.
+  { code: 'o.mkt.unlkm', process_type: 'p.mkt.supply',  contract: 'marketplace',
+    name: 'UNLOCK_MEMBER_ORDER', wallet_op: 'TRANSFER', wallet_from: 'w.mkt.morder', wallet_to: 'w.mkt.member',
+    debit: null, credit: null,
+    human_name: 'Возврат членского резерва на внутренний членский кошелёк' },
+
+  // Выдача имущества в счёт членского резерва (закрывающая подпись акта).
+  { code: 'o.mkt.consm', process_type: 'p.mkt.supply',  contract: 'marketplace',
+    name: 'CONSUME_MEMBER', wallet_op: 'BURN', wallet_from: 'w.mkt.morder', wallet_to: null,
+    debit: 86, credit: 10,
+    human_name: 'Выдача имущества в счёт членского резерва по акту выдачи' },
+
+  // Гарантийный возврат части, оплаченной из членского кошелька.
+  { code: 'o.mkt.retm', process_type: 'p.mkt.return',  contract: 'marketplace',
+    name: 'RETURN_MEMBER', wallet_op: 'ISSUE', wallet_from: null, wallet_to: 'w.mkt.member',
+    debit: 10, credit: 86,
+    human_name: 'Гарантийный возврат — восстановление членских средств и имущества' },
+
+  // Удержание при отказе из членского резерва (внутри 86).
+  { code: 'o.mkt.penalm',  process_type: 'p.mkt.supply',  contract: 'marketplace',
+    name: 'REFUSAL_PENALTY_MEMBER', wallet_op: 'TRANSFER', wallet_from: 'w.mkt.morder', wallet_to: 'w.mkt.fee',
+    debit: null, credit: null,
+    human_name: 'Удержание при отказе пайщика из членского резерва' },
 
   { code: 'o.mkt.lock',    process_type: 'p.mkt.supply',  contract: 'marketplace',
     name: 'LOCK_ORDER',     wallet_op: 'TRANSFER', wallet_from: 'w.wal.share', wallet_to: 'w.mkt.order',

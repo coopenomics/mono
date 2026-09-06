@@ -171,6 +171,12 @@ struct [[eosio::table, eosio::contract(MARKETPLACE)]] order {
    */
   eosio::asset membership_fee = asset(0, _root_govern_symbol);
 
+  /// Часть тела заказа (total_cost), оплаченная из внутреннего членского кошелька
+  /// пайщика и лежащая членским резервом на w.mkt.morder (счёт 86); остальное
+  /// тело — паевой резерв на w.mkt.order (счёт 80). При недовыдаче и отмене
+  /// возвращается на w.mkt.member, при выдаче гасится o.mkt.consm (Дт 86 / Кт 10).
+  eosio::asset member_funded = asset(0, _root_govern_symbol);
+
   // Все timestamp'ы переходов состояний (createorder/accepted/received_to_coop/
   // ready/received/cancelled) восстанавливаются на бэкенде из blockchain_actions[at]
   // по соответствующим action'ам — нет смысла держать их в RAM-таблице.

@@ -37,6 +37,14 @@ export interface MarketplaceCanonicalBlockchainPort {
    */
   stockOrder(data: MarketContract.Actions.StockOrder.IStockOrder): Promise<InnerTransactResult>;
 
+  /**
+   * Перевод паевого взноса во внутренний членский кошелёк «Стола заказов» по
+   * заявлению 1110 — отдельная транзакция до заказа, только когда кошелька не
+   * хватает (o.mkt.conv с Цифрового кошелька, o.mkt.convp со свободного паевого
+   * программы при from_market). Заявление публикуется в реестр документов.
+   */
+  convert(data: MarketContract.Actions.Convert.IConvert): Promise<InnerTransactResult>;
+
 
   /**
    * requirement 76 (вопрос 4): списание уценки по заказу из остатка после

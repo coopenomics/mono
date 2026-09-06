@@ -1,12 +1,13 @@
 import { Selector } from '../../zeus/index'
 import { rawDocumentSelector } from '../common/documentSelector'
 import { rawIssuanceSagaSelector } from './issuanceSagaSelector'
+import { rawConvertPayloadSelector } from './cartSelector'
 
 /**
  * Нагрузка к ОДНОЙ подписи пайщика по бандлу выдачи: по строке — заказ (или
- * будущий заказ из остатка), заявление о возврате паевого взноса имуществом и
- * заявление 1110 о переводе паевого взноса на оплату с уплатой членского
- * взноса: по докладке всегда, по заказу — на доплату при факте больше заказа.
+ * будущий заказ из остатка) и заявление о возврате паевого взноса имуществом;
+ * если внутреннего членского кошелька не хватает на бандл — одно заявление
+ * 1110 о переводе недостающей суммы со свободного паевого программы.
  */
 export const marketplaceStockAcceptPayloadSelector = Selector('MarketplaceStockAcceptPayload')({
   order_lines: {
@@ -14,9 +15,8 @@ export const marketplaceStockAcceptPayloadSelector = Selector('MarketplaceStockA
     order_id: true,
     order_hash: true,
     statement: rawDocumentSelector,
-    convert_amount: true,
-    convert_statement: rawDocumentSelector,
   },
+  convert: rawConvertPayloadSelector,
 })
 
 /**

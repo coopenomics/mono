@@ -35,6 +35,7 @@ const {
   cancelSupplier,
   signProposal,
   signSaga,
+  proposalConverts,
   declineProposal,
 } = useOnsiteSignatureGate();
 
@@ -223,6 +224,20 @@ BaseDialog(
             td.num {{ formatAsset2Digits(proposalFeeAmount(p)) }} ₽
           tr
             td К оплате
+            td.num
+            td.num {{ formatAsset2Digits(proposalTotalWithFee(p)) }} ₽
+          //- Внутренний членский кошелёк расходуется первым; недостающее — по
+          //- заявлению о переводе с паевого, которое подписывается тем же нажатием.
+          tr(v-if='proposalConverts[p.id]')
+            td Переводится с паевого по заявлению
+            td.num
+            td.num {{ formatAsset2Digits(proposalConverts[p.id]!.amount) }} ₽
+          tr(v-if='proposalConverts[p.id]')
+            td из них членский взнос
+            td.num
+            td.num {{ formatAsset2Digits(proposalConverts[p.id]!.membership_fee) }} ₽
+          tr(v-else)
+            td Оплачивается из членского кошелька Стола заказов
             td.num
             td.num {{ formatAsset2Digits(proposalTotalWithFee(p)) }} ₽
 

@@ -1,47 +1,34 @@
-import { Field, Float, InputType, IntersectionType, OmitType } from '@nestjs/graphql';
-import { IsBoolean, IsNumber, IsString, ValidateNested } from 'class-validator';
+import { Field, InputType, IntersectionType, OmitType } from '@nestjs/graphql';
+import { IsBoolean, IsString, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 import { Cooperative } from 'cooptypes';
 import { SignedDigitalDocumentInputDTO, MetaDocumentInputDTO, GenerateMetaDocumentInputDTO, ExcludeCommonProps } from '@coopenomics/extension-kit';
 
 /**
- * Подписываемая форма заявления пайщика о конвертации паевого взноса в
- * членский взнос по ЦПП «Стол заказов» (registry_id=1110,
- * `MarketplaceConvertStatement`).
- *
- * Паевая модель (компонент 68): заявление на полную сумму перевода из
- * Цифрового кошелька в программу с выделением членского взноса участка. По
- * кошелькам проходят обе части, каждая своим путём: паевая — по паевым
- * кошелькам (резерв под заказ), членская — по членским (в членский кошелёк
- * программы `w.mkt.member` переходит недостающая до взноса часть, остаток
- * зачитывается автоматически). Уходит on-chain параметром `convert_statement` действий
- * `marketplace::createorder` / `marketplace::stockorder` / `marketplace::issuestmt`;
- * контракт публикует его в реестр документов самостоятельным пакетом
- * (package = hash заявления).
+ * Подписываемая форма заявления 1110 о переводе паевого взноса в ЦПП «Стол
+ * заказов» (`MarketplaceConvertStatement`): «прошу перевести с баланса моего
+ * Цифрового кошелька на баланс ЦПП «Стол заказов» N, из них членский взнос M».
+ * Пишется только на недостающую сумму — то, чего не хватает на внутреннем
+ * членском кошельке программы, — и уходит on-chain параметром
+ * `convert_statement` действия `marketplace::convert` отдельной транзакцией
+ * до заказа; контракт переводит членскую часть и публикует заявление в реестр
+ * документов самостоятельным пакетом.
  */
 type action = Cooperative.Registry.MarketplaceConvertStatement.Action;
 
 @InputType('BaseMarketplaceConvertStatementMetaDocumentInput')
 class BaseMarketplaceConvertStatementMetaDocumentInputDTO implements ExcludeCommonProps<action> {
-  @Field({ description: 'Канонический order_hash заказа, под который конвертируется взнос.' })
+  @Field({ description: 'Якорь заявления: хеш оформления, бандла или заказа, к которому относится перевод.' })
   @IsString()
   order_hash!: string;
 
-  @Field({ description: 'Полная сумма перевода в программу (стоимость имущества вместе с членским взносом), с валютой.' })
+  @Field({ description: 'Недостающая сумма перевода в программу (паевая и членская части вместе), с валютой.' })
   @IsString()
   amount!: string;
 
-  @Field({ description: 'Членский взнос кооперативного участка в составе суммы, с валютой.' })
+  @Field({ description: 'Членская часть суммы — переводится в членский кошелёк действием convert, с валютой.' })
   @IsString()
   membership_fee!: string;
-
-  @Field({ description: 'Часть взноса, переводимая из паевого в членский по заявлению, с валютой (остальное — зачёт членского кошелька).' })
-  @IsString()
-  convert_amount!: string;
-
-  @Field(() => Float, { description: 'Ставка членского взноса кооператива, процентов.' })
-  @IsNumber()
-  fee_percent!: number;
 
   @Field({ description: 'Источник перевода: wallet — Цифровой кошелёк, market — свободный паевой Стола заказов.' })
   @IsString()

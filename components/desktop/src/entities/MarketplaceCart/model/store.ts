@@ -3,7 +3,7 @@ import { computed, ref } from 'vue'
 import { Classes } from '@coopenomics/sdk'
 import { useGlobalStore } from 'src/shared/store'
 import { useSessionStore } from 'src/entities/Session'
-import { api, type ICheckoutSignedLine } from '../api'
+import { api, type ICheckoutSignedConvert, type ICheckoutSignedLine } from '../api'
 import type { IMarketplaceCart, IMarketplaceCartItem, IMarketplaceCheckoutResult } from './types'
 
 const namespace = 'marketplaceCartStore'
@@ -106,37 +106,33 @@ export const useMarketplaceCartStore = defineStore(namespace, () => {
   }
 
   /**
-   * Оформление = одна мутация по строкам превью. Паевая модель: по каждой
-   * строке заказчик подписывает заявление 1110 о переводе паевого взноса в
-   * ЦПП «Стол заказов» на полную сумму позиции с выделением членского взноса
-   * участка (по кошелькам тело идёт паевыми кошельками, взнос — членскими).
-   * Превью кладёт документ в строку, здесь он подписывается ключом сессии
-   * (запертый кошелёк — PIN).
+   * Оформление = одна мутация по строкам превью. Паевая модель: внутренний
+   * членский кошелёк «Стола заказов» расходуется первым — на взнос участка и
+   * тело; если его не хватает, превью приносит заявление 1110 о переводе
+   * недостающей суммы с Цифрового кошелька в программу — оно подписывается
+   * ключом сессии (запертый кошелёк — PIN) один раз на всё оформление, и
+   * бэкенд проводит перевод отдельной транзакцией до заказов. Хватает —
+   * подписывать нечего.
    */
   async function checkout(checkout_id?: string): Promise<IMarketplaceCheckoutResult> {
     checkingOut.value = true
     try {
-      const payloads = await api.getCheckoutSignablePayloads()
-      const needsSignature = payloads.some((p) => !!p.document)
-      // Ключ берём только когда есть что подписывать — иначе PIN не спрашиваем.
-      const wifKey = needsSignature ? await useGlobalStore().ensureSigningKey() : null
-      const username = useSessionStore().username
-      const signer = wifKey ? new Classes.Document(wifKey) : null
-      const lines: ICheckoutSignedLine[] = []
-      for (const p of payloads) {
-        const signed_statement =
-          p.document && signer
-            ? ((await signer.signDocument(p.document, username, 1)) as NonNullable<ICheckoutSignedLine['signed_statement']>)
-            : null
-        lines.push({
-          offer_id: p.offer_id,
-          package_id: p.package_id,
-          order_hash: p.order_hash,
-          signed_statement,
-        })
+      const preview = await api.getCheckoutSignablePayloads()
+      const lines: ICheckoutSignedLine[] = preview.lines.map((p) => ({
+        offer_id: p.offer_id,
+        package_id: p.package_id,
+        order_hash: p.order_hash,
+      }))
+      let signed_convert: ICheckoutSignedConvert | null = null
+      if (preview.convert) {
+        // Ключ берём только когда есть что подписывать — иначе PIN не спрашиваем.
+        const wifKey = await useGlobalStore().ensureSigningKey()
+        const username = useSessionStore().username
+        const signer = new Classes.Document(wifKey)
+        signed_convert = (await signer.signDocument(preview.convert.document, username, 1)) as ICheckoutSignedConvert
       }
 
-      const result = await api.checkout(checkout_id, lines)
+      const result = await api.checkout(checkout_id, lines, signed_convert)
       // Сервер вернул корзину с непрошедшим остатком — синхронизируем состояние.
       cart.value = result.cart
       lastCheckout.value = result

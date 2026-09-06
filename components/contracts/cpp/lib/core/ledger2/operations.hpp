@@ -92,12 +92,18 @@ namespace operations {
 
   // marketplace — паевая модель «Стола заказов» (компонент 68, решение 06.09.2026).
   // Тело заказа от резерва до выдачи остаётся паевым взносом на счёте 80;
-  // единственный членский взнос процесса — взнос кооперативного участка, и он
-  // переходит из паевого в членский только по Заявлению о конвертации (1110)
-  // на членский кошелёк программы w.mkt.member, откуда и берётся под заказ.
+  // членская часть — внутренний членский кошелёк w.mkt.member: пополняется по
+  // Заявлению о переводе 1110 (действие convert) на недостающую часть и
+  // возвратами членских средств, расходуется первым на взнос участка и на
+  // тело заказа (членский резерв w.mkt.morder на 86).
   namespace marketplace {
-    inline constexpr eosio::name CONVERT_TO_MEMBER      = "o.mkt.conv"_n;     ///< Конвертация паевого взноса в членский по заявлению 1110 при createorder (TRANSFER w.wal.share → w.mkt.member, Dr 80 / Cr 86). Сумма — недостающая до взноса участка часть: остаток w.mkt.member используется автоматически.
-    inline constexpr eosio::name CONVERT_FROM_SHARE     = "o.mkt.convp"_n;    ///< Конвертация свободного паевого «Стола заказов» в членский по заявлению 1110 (TRANSFER w.mkt.share → w.mkt.member, Dr 80 / Cr 86). stockorder и довзнос при факте больше заказа (issuestmt).
+    inline constexpr eosio::name CONVERT_TO_MEMBER      = "o.mkt.conv"_n;     ///< Перевод паевого взноса в членский кошелёк программы по заявлению 1110, действие convert (TRANSFER w.wal.share → w.mkt.member, Dr 80 / Cr 86). Только когда членского кошелька не хватает на взнос участка: сумма — недостающая часть взноса.
+    inline constexpr eosio::name CONVERT_FROM_SHARE     = "o.mkt.convp"_n;    ///< То же со свободного паевого «Стола заказов» (TRANSFER w.mkt.share → w.mkt.member, Dr 80 / Cr 86): заказ из остатка и довзнос при факте больше заказа.
+    inline constexpr eosio::name LOCK_MEMBER_ORDER      = "o.mkt.lockm"_n;    ///< Членский резерв под Order: часть тела заказа, оплаченная из внутреннего членского кошелька (TRANSFER w.mkt.member → w.mkt.morder, без Dr/Cr — оба на 86). createorder / stockorder после взноса, пока хватает остатка кошелька; остальное тело — паевой резерв.
+    inline constexpr eosio::name UNLOCK_MEMBER_ORDER    = "o.mkt.unlkm"_n;  ///< Возврат членского резерва при отмене Order'а или недовыдаче (TRANSFER w.mkt.morder → w.mkt.member, без Dr/Cr). Членские остаются членскими и идут в зачёт следующего заказа.
+    inline constexpr eosio::name CONSUME_MEMBER         = "o.mkt.consm"_n;  ///< Выдача имущества в счёт членского резерва по акту (BURN с w.mkt.morder, Dr 86 / Cr 10). Парная к CONSUME_BY_MEMBER для части заказа, оплаченной из членского кошелька; только issueact2.
+    inline constexpr eosio::name RETURN_MEMBER          = "o.mkt.retm"_n;  ///< Гарантийный возврат части, оплаченной из членского кошелька (ISSUE ∅ → w.mkt.member, Dr 10 / Cr 86) — compensating forward к CONSUME_MEMBER.
+    inline constexpr eosio::name REFUSAL_PENALTY_MEMBER = "o.mkt.penalm"_n;   ///< Удержание при отказе пайщика после акцепта поставщиком из членского резерва (TRANSFER w.mkt.morder → w.mkt.fee, без Dr/Cr — внутри 86). Парная к REFUSAL_PENALTY.
     inline constexpr eosio::name LOCK_ORDER             = "o.mkt.lock"_n;     ///< Паевой резерв под конкретный Order (TRANSFER w.wal.share → w.mkt.order, без Dr/Cr — оба кошелька на 80). Единственный обязательный шаг ledger2 при createorder.
     inline constexpr eosio::name LOCK_FROM_SHARE        = "o.mkt.lockp"_n;    ///< Паевой резерв из свободного паевого «Стола заказов» (TRANSFER w.mkt.share → w.mkt.order, без Dr/Cr — оба на 80). Так фондируется stockorder целиком и добирается доплата по факту на issueact2; автоматического добора с w.wal.share нет — при нехватке отказ.
     inline constexpr eosio::name UNLOCK_ORDER           = "o.mkt.unlock"_n;   ///< Возврат резерва при отмене Order'а или недовыдаче (TRANSFER w.mkt.order → w.mkt.share, без Dr/Cr — оба на 80). Средства остаются паевыми и остаются в программе; вывод в общий паевой — RECALL_SHARE.
@@ -458,6 +464,42 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
     ledger2_wallets::MARKETPLACE_SHARE_FUND, ledger2_wallets::MARKETPLACE_MEMBER_FUND,
     ledger2_accounts::SHARE_FUND, ledger2_accounts::TARGET_RECEIPTS,
     "Конвертация свободного паевого «Стола заказов» в членский по заявлению" },
+
+  // 12h³. p.mkt.supply: Членский резерв под заказ из внутреннего членского кошелька
+  //       (TRANSFER w.mkt.member → w.mkt.morder, без Dr/Cr — оба на 86).
+  { operations::marketplace::LOCK_MEMBER_ORDER, processes::marketplace::SUPPLY, WalletOp::TRANSFER,
+    ledger2_wallets::MARKETPLACE_MEMBER_FUND, ledger2_wallets::MARKETPLACE_MEMBER_LOCK,
+    0, 0,
+    "Членский резерв под заказ из внутреннего членского кошелька" },
+
+  // 12h⁴. p.mkt.supply: Возврат членского резерва (TRANSFER w.mkt.morder → w.mkt.member,
+  //       без Dr/Cr). cancelorder / declineorder / expireorder; на issueact2 — на
+  //       невыданную часть, оплаченную из членского кошелька.
+  { operations::marketplace::UNLOCK_MEMBER_ORDER, processes::marketplace::SUPPLY, WalletOp::TRANSFER,
+    ledger2_wallets::MARKETPLACE_MEMBER_LOCK, ledger2_wallets::MARKETPLACE_MEMBER_FUND,
+    0, 0,
+    "Возврат членского резерва на внутренний членский кошелёк" },
+
+  // 12h⁵. p.mkt.supply: Выдача имущества в счёт членского резерва (BURN с w.mkt.morder,
+  //       Dr 86 / Cr 10). Только закрывающая подпись акта (issueact2).
+  { operations::marketplace::CONSUME_MEMBER, processes::marketplace::SUPPLY, WalletOp::BURN,
+    ledger2_wallets::MARKETPLACE_MEMBER_LOCK, eosio::name{},
+    ledger2_accounts::TARGET_RECEIPTS, ledger2_accounts::MATERIALS,
+    "Выдача имущества в счёт членского резерва по акту выдачи" },
+
+  // 12h⁶. p.mkt.return: Гарантийный возврат части, оплаченной из членского кошелька
+  //       (ISSUE ∅ → w.mkt.member, Dr 10 / Cr 86). Compensating forward к CONSUME_MEMBER.
+  { operations::marketplace::RETURN_MEMBER, processes::marketplace::RETURN, WalletOp::ISSUE,
+    eosio::name{}, ledger2_wallets::MARKETPLACE_MEMBER_FUND,
+    ledger2_accounts::MATERIALS, ledger2_accounts::TARGET_RECEIPTS,
+    "Гарантийный возврат — восстановление членских средств и имущества" },
+
+  // 12h⁷. p.mkt.supply: Удержание при отказе из членского резерва
+  //       (TRANSFER w.mkt.morder → w.mkt.fee, без Dr/Cr — внутри 86).
+  { operations::marketplace::REFUSAL_PENALTY_MEMBER, processes::marketplace::SUPPLY, WalletOp::TRANSFER,
+    ledger2_wallets::MARKETPLACE_MEMBER_LOCK, ledger2_wallets::MARKETPLACE_FEE_POOL,
+    0, 0,
+    "Удержание при отказе пайщика из членского резерва" },
 
   // 12i. p.mkt.supply: Членский взнос кооперативного участка под заказ
   //      (TRANSFER w.mkt.member → w.mkt.fee, без Dr/Cr — оба на 86).

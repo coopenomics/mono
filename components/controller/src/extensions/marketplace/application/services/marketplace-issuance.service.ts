@@ -92,9 +92,10 @@ export interface MarketplaceIssuanceSubmitStatementInput {
   order_id: string;
   signed_statement: MarketplaceShareReturnStatementSignedInputDTO;
   /**
-   * Заявление о конвертации (1110) на довзнос по факту: при факте больше
-   * заказа и нехватке членского кошелька программы на недостающий взнос
-   * участка. Нужно только когда `getConvertSignablePayload` вернул документ.
+   * Заявление 1110 на доплату по факту: при факте больше заказа и нехватке
+   * внутреннего членского кошелька на довзнос участка. Перевод членской части
+   * идёт отдельной транзакцией `convert` до заявления о выдаче. Нужно только
+   * когда `getConvertSignablePayload` вернул документ.
    */
   signed_convert?: MarketplaceConvertStatementSignedInputDTO | null;
 }
@@ -299,12 +300,7 @@ export class MarketplaceIssuanceService {
     return { body_topup_units, topup_units: factFee > locked ? factFee - locked : 0n, fact_fee_units: factFee };
   }
 
-  /**
-   * Заявление о конвертации (1110) на довзнос по факту к подписи заказчиком —
-   * только если факт больше заказа и остатка членского кошелька программы на
-   * недостающий взнос не хватает; иначе null и подпись не требуется.
-   */
-  /** Довзнос по факту для заказа в саге на этапе «факт зафиксирован» (для плана бандла у стойки). */
+  /** Доплата по факту для заказа в саге на этапе «факт зафиксирован» (для плана бандла у стойки). */
   async getFeeTopUp(coopname: string, order_id: string, member_account: string): Promise<MarketplaceIssuanceFeeTopUp> {
     const order = await this.loadOrder(coopname, order_id);
     this.assertOrderer(order, member_account);
@@ -313,27 +309,41 @@ export class MarketplaceIssuanceService {
     return this.feeTopUp(order, saga.fact);
   }
 
+  /**
+   * Заявление 1110 на доплату по факту к подписи заказчиком — только если
+   * факт больше заказа и внутреннего членского кошелька не хватает на довзнос
+   * участка; иначе null и подпись не требуется. Сумма — недостающее со
+   * свободного паевого: доплата тела и членская часть довзноса.
+   */
   async getConvertSignablePayload(coopname: string, order_id: string, member_account: string): Promise<InnerGeneratedDocument | null> {
     const order = await this.loadOrder(coopname, order_id);
     this.assertOrderer(order, member_account);
     const saga = await this.requireSaga(coopname, order.id);
     if (saga.stage !== MarketplaceIssuanceSagaStages.FACT_FIXED) return null;
-    const topUp = this.feeTopUp(order, saga.fact);
-    if (topUp.topup_units <= 0n) return null;
-    const memberAvailable = await this.convertService.memberAvailableUnits(coopname, order.orderer_account);
-    const convert_units = this.convertService.shortfallUnits(memberAvailable, topUp.topup_units);
-    if (convert_units <= 0n) return null;
-    // Заявление — на доплату по факту: разница тела и довзнос участка.
+    const plan = await this.topUpPlan(coopname, order, saga.fact);
+    if (!plan) return null;
     return this.convertService.generateStatement({
       coopname,
       username: order.orderer_account,
-      order_hash: order.order_hash,
-      body_units: topUp.body_topup_units,
-      fee_units: topUp.topup_units,
-      convert_units,
-      fee_contract_percent: await this.economyService.getMembershipFeeContractPercent(coopname),
+      anchor_hash: order.order_hash,
+      amount_units: plan.amount_units,
+      fee_units: plan.fee_units,
       source: 'market',
     });
+  }
+
+  /** Недостающее на доплату по факту: null — членского кошелька хватает или факт не больше заказа. */
+  private async topUpPlan(
+    coopname: string,
+    order: MarketplaceOrderDomainEntity,
+    fact: MarketplaceIssuanceSagaFact
+  ): Promise<{ amount_units: bigint; fee_units: bigint } | null> {
+    const topUp = this.feeTopUp(order, fact);
+    if (topUp.topup_units <= 0n) return null;
+    const memberAvailable = await this.convertService.memberAvailableUnits(coopname, order.orderer_account);
+    const fee_units = this.convertService.shortfallUnits(memberAvailable, topUp.topup_units);
+    if (fee_units <= 0n) return null;
+    return { amount_units: topUp.body_topup_units + fee_units, fee_units };
   }
 
   // ── Этап 1: заявление ────────────────────────────────────────────────
@@ -370,20 +380,28 @@ export class MarketplaceIssuanceService {
     }
     this.verifyDocumentSignature(input.signed_statement, order.orderer_account);
 
-    // Довзнос по факту: недостающая на него часть членского кошелька программы
-    // конвертируется из свободного паевого только по заявлению 1110 — контракт
-    // считает недостачу сам, здесь та же сумма сверяется с подписанной метой.
-    const topUp = this.feeTopUp(order, saga.fact);
-    let convert_statement = this.convertService.emptyDocument();
-    if (topUp.topup_units > 0n) {
-      const memberAvailable = await this.convertService.memberAvailableUnits(input.coopname, order.orderer_account);
-      const convert_units = this.convertService.shortfallUnits(memberAvailable, topUp.topup_units);
-      if (convert_units > 0n) {
-        convert_statement = this.convertService.verifySigned(
-          input.signed_convert,
-          { order_hash: order.order_hash, body_units: topUp.body_topup_units, fee_units: topUp.topup_units, convert_units },
-          order.orderer_account
-        );
+    // Довзнос по факту сверх внутреннего членского кошелька: заявление 1110 на
+    // недостающее и перевод членской части отдельной транзакцией до заявления
+    // о выдаче — контракт на issuestmt проверит, что кошелька теперь хватает.
+    const topUp = await this.topUpPlan(input.coopname, order, saga.fact);
+    if (topUp) {
+      const convert_statement = this.convertService.verifySigned(
+        input.signed_convert,
+        { anchor_hash: order.order_hash, amount_units: topUp.amount_units, fee_units: topUp.fee_units },
+        order.orderer_account
+      );
+      try {
+        await this.chainPort.convert({
+          coopname: order.coopname,
+          orderer: order.orderer_account,
+          amount: this.economyService.unitsToAsset(topUp.fee_units),
+          from_market: true,
+          convert_statement,
+        });
+      } catch (err) {
+        const message = this.errMessage(err);
+        await this.sagaRepo.update(saga.id, { last_error: message });
+        throw new ConflictException(`Перевод в членский кошелёк не принят цепью: ${message}. Повторите подписание.`);
       }
     }
 
@@ -397,7 +415,6 @@ export class MarketplaceIssuanceService {
         actual_quantity: toQuantityAsset(saga.fact.actual_quantity, order.unit_of_measure),
         actual_unit_price: this.formatAsset(saga.fact.actual_unit_price),
         statement,
-        convert_statement,
         meta: '',
       });
     } catch (err) {

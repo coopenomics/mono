@@ -25,6 +25,8 @@ import {
   type MarketplaceStockProposalView,
   type MarketplaceIssuanceSagaView,
   type IStockFinalizeOrderLine,
+  type IStockProposalAcceptPayload,
+  type IStockSignedConvert,
 } from 'src/pages/Marketplace/OperatorIssuance/api';
 
 /**
@@ -97,6 +99,8 @@ const supplierTasks = computed<ReceptionGroup<MarketplaceAplReceptionView>[]>(()
 );
 
 const proposalTasks = computed(() => stockProposals.value);
+/** Заявление 1110 по бандлу (недостающая сумма и членская часть) — для показа перед подписью; null — перевод не нужен. */
+const proposalConverts = ref<Record<string, IStockProposalAcceptPayload['convert']>>({});
 /** Акты/заявления по сагам вне бандла — только те, где ждут подпись пайщика. */
 const sagaTasks = computed(() => memberSagas.value.filter((s) => s.awaits_member_signature));
 
@@ -139,6 +143,11 @@ async function refresh(source = 'ручной'): Promise<void> {
     supplierReceptions.value = receptions;
     stockProposals.value = proposals;
     memberSagas.value = sagas;
+    // Суммы перевода по бандлам — чтобы пайщик видел, сколько уйдёт с паевого, до нажатия.
+    const converts = await Promise.all(
+      proposals.map(async (p) => [p.id, (await getStockProposalSignablePayloads(p.id).catch(() => null))?.convert ?? null] as const),
+    );
+    proposalConverts.value = Object.fromEntries(converts);
   } finally {
     loading.value = false;
   }
@@ -199,8 +208,8 @@ async function signProposal(task: MarketplaceStockProposalView): Promise<void> {
   try {
     const payload = await getStockProposalSignablePayloads(task.id);
     const signer = new Classes.Document(wifKey);
-    // По каждой строке — заявление о выдаче (1113); там, где членского кошелька
-    // не хватает на взнос участка, ещё и заявление о конвертации (1110).
+    // По каждой строке — заявление о выдаче (1113); если членского кошелька
+    // не хватает на бандл — одно заявление 1110 о переводе недостающего.
     const order_lines: IStockFinalizeOrderLine[] = await Promise.all(
       payload.order_lines.map(async (line) => ({
         order_hash: line.order_hash,
@@ -209,17 +218,13 @@ async function signProposal(task: MarketplaceStockProposalView): Promise<void> {
           global.username,
           1,
         )) as IStockFinalizeOrderLine['signed_statement'],
-        signed_convert: line.convert_statement
-          ? ((await signer.signDocument(
-              line.convert_statement,
-              global.username,
-              1,
-            )) as NonNullable<IStockFinalizeOrderLine['signed_convert']>)
-          : null,
       })),
     );
+    const signed_convert = payload.convert
+      ? ((await signer.signDocument(payload.convert.document, global.username, 1)) as IStockSignedConvert)
+      : null;
 
-    const { sagas } = await finalizeStockIssuance(task.id, order_lines);
+    const { sagas } = await finalizeStockIssuance(task.id, order_lines, signed_convert);
     const authorized = sagas.filter((s) => s.awaits_member_signature);
     const declined = sagas.filter((s) => s.stage === Zeus.MarketplaceIssuanceSagaStage.DECLINED);
     let actsSigned = 0;
@@ -374,6 +379,7 @@ export function useOnsiteSignatureGate() {
     signingKey,
     supplierTasks,
     proposalTasks,
+    proposalConverts,
     sagaTasks,
     refresh,
     signSupplier,

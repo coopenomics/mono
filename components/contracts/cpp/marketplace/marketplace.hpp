@@ -85,16 +85,12 @@ public:
 
   /**
    * @brief Заказчик размещает заказ на товар из каталога (Story 4.1).
-   * Паевая модель: o.mkt.lock (TRANSFER w.wal.share → w.mkt.order, без
-   * проводки — оба кошелька на 80), конвертация недостающей до членского
-   * взноса участка части по Заявлению о конвертации 1110 `convert_statement`
-   * (o.mkt.conv, w.wal.share → w.mkt.member, Дт 80 / Кт 86) и сам взнос
-   * участка с членского кошелька программы (o.mkt.fee, w.mkt.member →
-   * w.mkt.fee). Заявление 1110 подписывается при каждом заказе на полную
-   * сумму перевода в программу с выделением взноса; по кошелькам обе части
-   * идут каждая своим путём: паевая — по паевым кошелькам, членская — по
-   * членским (в членский переходит недостающая часть взноса, остаток
-   * членского кошелька зачитывается автоматически).
+   * Паевая модель: внутренний членский кошелёк w.mkt.member расходуется
+   * первым — на взнос участка (o.mkt.fee) и на тело заказа (o.mkt.lockm →
+   * членский резерв w.mkt.morder); остальное тело — паевой резерв o.mkt.lock
+   * (w.wal.share → w.mkt.order, без проводки). Заявления здесь нет:
+   * недостающую часть пайщик заранее перевёл действием `convert` по
+   * заявлению 1110; членского кошелька обязано хватать на взнос целиком.
    * @ingroup public_marketplace_actions
    */
   [[eosio::action]] void createorder(eosio::name coopname,
@@ -107,8 +103,24 @@ public:
                                       eosio::asset unit_price,
                                       eosio::asset package_size,
                                       uint32_t warranty_period_secs,
-                                      checksum256 batch_hash,
-                                      document2 convert_statement);
+                                      checksum256 batch_hash);
+
+  /**
+   * @brief Перевод паевого взноса во внутренний членский кошелёк «Стола
+   * заказов» по Заявлению 1110 — отдельная транзакция до заказа, только когда
+   * членского кошелька не хватает. Заявление пишется на недостающую сумму
+   * («прошу перевести с баланса моего Цифрового кошелька на баланс ЦПП «Стол
+   * заказов» N, из них членский взнос M»); по кошелькам здесь двигается
+   * только членская часть M: o.mkt.conv (w.wal.share → w.mkt.member) либо
+   * o.mkt.convp (w.mkt.share → w.mkt.member при `from_market`), Дт 80 / Кт 86.
+   * При amount = 0 действие только публикует заявление.
+   * @ingroup public_marketplace_actions
+   */
+  [[eosio::action]] void convert(eosio::name coopname,
+                                 eosio::name orderer,
+                                 eosio::asset amount,
+                                 bool from_market,
+                                 document2 convert_statement);
 
   /**
    * @brief Заказ из обезличенного остатка склада кооператива (requirement 76).
@@ -118,13 +130,12 @@ public:
    * issueact2). Этапы поставки и выплата поставщику для такого заказа не
    * существуют.
    *
-   * Заказ из остатка фондируется из свободного паевого «Стола заказов»
-   * пайщика: o.mkt.lockp (тело, w.mkt.share → w.mkt.order), o.mkt.convp
-   * (недостающая часть взноса по заявлению 1110 `convert_statement`,
-   * w.mkt.share → w.mkt.member) и o.mkt.fee (взнос, w.mkt.member →
-   * w.mkt.fee). Это средства, вернувшиеся пайщику за отмены, недовыдачи и
-   * гарантийные возвраты; при нехватке — отказ, пайщик пополняет паевой и
-   * размещает обычный заказ.
+   * Заказ из остатка фондируется как обычный, но паевой источник — свободный
+   * паевой «Стола заказов» (средства, вернувшиеся за отмены, недовыдачи и
+   * гарантийные возвраты): членский кошелёк первым (o.mkt.fee, o.mkt.lockm),
+   * остаток тела — o.mkt.lockp (w.mkt.share → w.mkt.order). Недостающую часть
+   * пайщик заранее перевёл действием `convert` (o.mkt.convp); при нехватке
+   * свободного паевого — отказ.
    * @ingroup public_marketplace_actions
    */
   [[eosio::action]] void stockorder(eosio::name coopname,
@@ -136,8 +147,7 @@ public:
                                      eosio::asset unit_price,
                                      eosio::asset package_size,
                                      uint32_t warranty_period_secs,
-                                     checksum256 batch_hash,
-                                     document2 convert_statement);
+                                     checksum256 batch_hash);
 
   /**
    * @brief Заказчик отменяет заказ до акцепта (Story 4.4). Триггерит o.mkt.unlock.
@@ -298,10 +308,9 @@ public:
    * `readyrecv → issuepend`. Факт (количество, цена) фиксируется в заказе;
    * тем же действием контракт инлайн ставит повестку совета
    * (`soviet::createagenda`, тип `mktissue`, hash = order_hash, обратные
-   * вызовы onmktisauth / onmktisdecl). Движений по телу заказа нет; при факте
-   * больше заказа недостающая на довзнос часть членского кошелька программы
-   * конвертируется из свободного паевого по заявлению 1110 `convert_statement`
-   * (o.mkt.convp) — иначе документ пустой.
+   * вызовы onmktisauth / onmktisdecl). Движений по средствам нет; при факте
+   * больше заказа заранее проверяется, что на доплату хватает свободного
+   * паевого, а на довзнос участка — внутреннего членского кошелька.
    * @ingroup public_marketplace_actions
    */
   [[eosio::action]] void issuestmt(eosio::name coopname,
@@ -310,7 +319,6 @@ public:
                                     eosio::asset actual_quantity,
                                     eosio::asset actual_unit_price,
                                     document2 statement,
-                                    document2 convert_statement,
                                     std::string meta);
   /**
    * @brief Обратный вызов совета: решение о возврате паевого взноса имуществом
@@ -342,10 +350,11 @@ public:
   /**
    * @brief Закрывающая подпись Акта приёма-передачи председателем (доверенным,
    * оператором) участка выдачи: `issueact1 → received`. Только здесь идут
-   * движения: корректировка по факту (o.mkt.unlock при факте меньше,
-   * o.mkt.lockp при факте больше), возврат паевого взноса имуществом
-   * o.mkt.consum (Дт 80 / Кт 10) на фактическую сумму, пересчёт членского
-   * взноса участка (o.mkt.refund / o.mkt.fee с членского кошелька) и зачисление его участку
+   * движения: корректировка по факту (o.mkt.unlock / o.mkt.unlkm при факте
+   * меньше, o.mkt.lockp при факте больше), выдача в счёт резерва — членского
+   * o.mkt.consm (Дт 86 / Кт 10) первым и паевого o.mkt.consum (Дт 80 / Кт 10)
+   * на фактическую сумму, пересчёт членского взноса участка (o.mkt.refund /
+   * o.mkt.fee с членского кошелька) и зачисление его участку
    * (branch::accrue). Открывается гарантийное окно; акт публикуется в реестре
    * документов пакетом процесса заказа.
    * @ingroup public_marketplace_actions

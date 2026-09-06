@@ -67,10 +67,9 @@ export const marketplaceCheckoutResultSelector = Selector('MarketplaceCheckoutRe
 )
 
 /**
- * Строка превью оформления по позиции корзины: суммы к списанию и заявление
- * 1110 о переводе паевого взноса в ЦПП «Стол заказов» на полную сумму позиции
- * с выделением членского взноса участка — подписывается заказчиком при
- * оформлении по каждой строке.
+ * Строка превью оформления по позиции корзины: суммы по частям — сколько
+ * покрывает внутренний членский кошелёк «Стола заказов» (он расходуется первым
+ * на взнос участка и тело), сколько уйдёт с паевого.
  */
 const rawCheckoutSignableLineSelector = {
   offer_id: true,
@@ -78,8 +77,8 @@ const rawCheckoutSignableLineSelector = {
   order_hash: true,
   amount: true,
   membership_fee: true,
-  convert_amount: true,
-  document: rawDocumentSelector,
+  from_member: true,
+  from_share: true,
 }
 
 const _validateSignableLine: MakeAllFieldsRequired<ValueTypes['MarketplaceCheckoutSignableLine']> =
@@ -87,4 +86,30 @@ const _validateSignableLine: MakeAllFieldsRequired<ValueTypes['MarketplaceChecko
 
 export const marketplaceCheckoutSignableLineSelector = Selector('MarketplaceCheckoutSignableLine')(
   rawCheckoutSignableLineSelector
+)
+
+/**
+ * Заявление 1110 к подписи — недостающая сумма перевода в программу и её
+ * членская часть; приходит только когда членского кошелька не хватает.
+ */
+export const rawConvertPayloadSelector = {
+  amount: true,
+  membership_fee: true,
+  document: rawDocumentSelector,
+}
+
+const _validateConvertPayload: MakeAllFieldsRequired<ValueTypes['MarketplaceConvertPayload']> =
+  rawConvertPayloadSelector
+
+/** Превью оформления: строки и, если нужно, заявление 1110. */
+const rawCheckoutPreviewSelector = {
+  lines: rawCheckoutSignableLineSelector,
+  convert: rawConvertPayloadSelector,
+}
+
+const _validateCheckoutPreview: MakeAllFieldsRequired<ValueTypes['MarketplaceCheckoutPreview']> =
+  rawCheckoutPreviewSelector
+
+export const marketplaceCheckoutPreviewSelector = Selector('MarketplaceCheckoutPreview')(
+  rawCheckoutPreviewSelector
 )

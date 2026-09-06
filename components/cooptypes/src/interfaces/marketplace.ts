@@ -54,6 +54,15 @@ export interface ICreateOrder {
   package_size: IAsset
   warranty_period_secs: IUint32
   batch_hash: IChecksum256
+}
+
+export interface IConvert {
+  coopname: IName
+  orderer: IName
+  /** Членская часть перевода — недостающая до взноса участка сумма; 0 — только публикация заявления. */
+  amount: IAsset
+  /** true — источник свободный паевой «Стола заказов» (o.mkt.convp), false — Цифровой кошелёк (o.mkt.conv). */
+  from_market: boolean
   convert_statement: IDocument2
 }
 
@@ -68,7 +77,6 @@ export interface IStockOrder {
   package_size: IAsset
   warranty_period_secs: IUint32
   batch_hash: IChecksum256
-  convert_statement: IDocument2
 }
 
 export interface IMarkdown {
@@ -160,7 +168,6 @@ export interface IIssueStmt {
   actual_quantity: IAsset
   actual_unit_price: IAsset
   statement: IDocument2
-  convert_statement: IDocument2
   meta: string
 }
 
@@ -364,6 +371,8 @@ export interface IOrder {
   markdown_cost: IAsset
   /** Членский взнос по заказу (requirement b6); ноль — взнос не начислялся. */
   membership_fee: IAsset
+  /** Часть тела заказа, оплаченная из внутреннего членского кошелька (членский резерв w.mkt.morder). */
+  member_funded: IAsset
 }
 
 export interface IReturnRequest {
@@ -378,6 +387,8 @@ export interface IReturnRequest {
   fact_cost: IAsset
   /** Возвращаемая доля членского взноса; ноль — взнос не возвращается. */
   fee_refund: IAsset
+  /** Часть возвращаемой стоимости, восстанавливаемая на внутренний членский кошелёк (o.mkt.retm). */
+  member_return: IAsset
   reason_text: string
   photos: IChecksum256[]
   status: IName

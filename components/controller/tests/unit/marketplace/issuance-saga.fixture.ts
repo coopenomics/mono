@@ -171,6 +171,7 @@ export function buildMocks(opts: {
     issueAct1: jest.fn(async () => ({ transaction: { id: 'tx-act1' } })),
     issueAct2: jest.fn(async () => ({ transaction: { id: 'tx-act2' } })),
     cancelIssue: jest.fn(async () => ({ transaction: { id: 'tx-cancel' } })),
+    convert: jest.fn(async () => ({ transaction: { id: 'tx-convert' } })),
     markdown: jest.fn(async () => ({ transaction: { id: 'tx-md' } })),
     findCouncilDecisionByHash: jest.fn(async () => ({ id: 77 })),
   };
@@ -190,36 +191,40 @@ export function buildMocks(opts: {
     getMembershipFeeContractPercent: jest.fn(async () => 300000),
     toHumanFeePercent: jest.fn((v: number) => (Number(v) * 100) / 1_000_000),
   };
+  const planFunding = (available: bigint, lines: Array<{ body_units: bigint; fee_units: bigint }>) => {
+    let member = available;
+    const planned = lines.map((line) => {
+      const fee_convert_units = line.fee_units > member ? line.fee_units - member : 0n;
+      member = member + fee_convert_units - line.fee_units;
+      const body_member_units = line.body_units > member ? member : line.body_units;
+      member -= body_member_units;
+      return { ...line, fee_convert_units, body_member_units, body_share_units: line.body_units - body_member_units };
+    });
+    const fee_convert_units = planned.reduce((sum, l) => sum + l.fee_convert_units, 0n);
+    const body_share_units = planned.reduce((sum, l) => sum + l.body_share_units, 0n);
+    return { lines: planned, fee_convert_units, body_share_units, transfer_units: fee_convert_units + body_share_units };
+  };
   const convertService = {
     memberAvailableUnits: jest.fn(async () => memberAvailable),
-    shortfallUnits: jest.fn((available: bigint, fee: bigint) => (fee > available ? fee - available : 0n)),
-    planConversions: jest.fn((available: bigint, fees: bigint[]) => {
-      let left = available;
-      return fees.map((fee_units) => {
-        const convert_units = fee_units > left ? fee_units - left : 0n;
-        left = left + convert_units - fee_units;
-        return { fee_units, convert_units };
-      });
-    }),
+    planFunding: jest.fn(planFunding),
+    shortfallUnits: jest.fn((available: bigint, fee: bigint) => planFunding(available, [{ body_units: 0n, fee_units: fee }]).fee_convert_units),
     generateStatement: jest.fn(async (input: any) => ({
       full_title: 'convert',
       html: '<html/>',
       hash: 'hash-1110',
       meta: {
         registry_id: 1110,
-        order_hash: input.order_hash,
-        amount: toAsset(input.body_units + input.fee_units),
+        order_hash: input.anchor_hash,
+        amount: toAsset(input.amount_units),
         membership_fee: toAsset(input.fee_units),
-        convert_amount: toAsset(input.convert_units),
         source: input.source,
       },
       binary: '',
     })),
     verifySigned: jest.fn((signed: any) => {
-      if (!signed) throw new Error('Нет подписанного заявления о конвертации');
+      if (!signed) throw new Error('Нет подписанного заявления о переводе');
       return { hash: signed.hash ?? 'signed-1110', meta: JSON.stringify(signed.meta), signatures: signed.signatures ?? [] };
     }),
-    emptyDocument: jest.fn(() => ({ hash: '0'.repeat(64), meta: '', signatures: [] })),
   };
   return {
     orderRepo,

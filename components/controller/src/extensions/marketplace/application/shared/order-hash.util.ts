@@ -20,3 +20,12 @@ export function computeStockOrderHash(coopname: string, orderer: string, offer_i
     .digest('hex');
 }
 
+
+/**
+ * Якорь заявления 1110 о переводе паевого взноса в программу: у оформления
+ * корзины — по корзине, у бандла у стойки — по бандлу, у доплаты по факту —
+ * хеш заказа. Без nonce: превью и оформление обязаны сойтись по якорю.
+ */
+export function computeConvertAnchorHash(coopname: string, orderer: string, key: string): string {
+  return createHash('sha256').update(`${coopname}|${orderer}|convert|${key}`).digest('hex');
+}

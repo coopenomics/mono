@@ -1,10 +1,10 @@
-import { marketplaceCheckoutSignableLineSelector } from '../../selectors/marketplace/cartSelector'
+import { marketplaceCheckoutPreviewSelector } from '../../selectors/marketplace/cartSelector'
 import { type GraphQLTypes, type InputType, Selector } from '../../zeus/index'
 
 export const name = 'marketplaceCheckoutSignablePayloads'
 
 export const query = Selector('Query')({
-  [name]: marketplaceCheckoutSignableLineSelector,
+  [name]: marketplaceCheckoutPreviewSelector,
 })
 
 export interface IInput {

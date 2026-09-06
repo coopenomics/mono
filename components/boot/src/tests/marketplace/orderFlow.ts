@@ -8,10 +8,10 @@
  * проверил». Шаги повторяют путь desktop'а один в один, включая двухподписные
  * акты (первая подпись id=1, вторая — id=2 поверх агрегата).
  *
- * Паевая модель (компонент 68): по каждой строке пайщик подписывает заявление
- * 1110 о переводе паевого взноса в программу на полную сумму с выделением
- * членского взноса (тело — паевыми кошельками, взнос — членскими, в членский
- * переводится только недостающая часть); выдача — сага: факт оператора → заявление
+ * Паевая модель (компонент 68): внутренний членский кошелёк «Стола заказов»
+ * расходуется первым; если его не хватает, превью приносит заявление 1110 о
+ * переводе недостающей суммы — пайщик подписывает его один раз, перевод идёт
+ * отдельной транзакцией до заказов; выдача — сага: факт оператора → заявление
  * пайщика (1113) → решение совета (робот, если он делегирован по `mktissue`,
  * иначе голосуем советом через `processDecision`) → акт пайщика (1115) → закрывающая подпись
  * оператора.
@@ -52,9 +52,9 @@ export async function pickOffer(
 }
 
 /**
- * Оформление заказа пайщиком: корзина → превью строк → оформление корзины.
- * Заявление 1110 из превью подписываем ключом пайщика по каждой строке, как
- * это делает desktop.
+ * Оформление заказа пайщиком: корзина → превью → оформление корзины.
+ * Заявление 1110 из превью (если членского кошелька не хватает) подписываем
+ * ключом пайщика один раз, как это делает desktop.
  */
 export async function placeOrder(args: {
   token: string
@@ -71,22 +71,21 @@ export async function placeOrder(args: {
   })
 
   const sp: any = await gqlAs(token, `query{
-    marketplaceCheckoutSignablePayloads{ offer_id package_id order_hash amount membership_fee convert_amount document{ full_title html hash meta binary } }
+    marketplaceCheckoutSignablePayloads{
+      lines{ offer_id package_id order_hash amount membership_fee from_member from_share }
+      convert{ amount membership_fee document{ full_title html hash meta binary } }
+    }
   }`)
-  const payloads = sp.marketplaceCheckoutSignablePayloads as any[]
-  if (!payloads.length)
+  const preview = sp.marketplaceCheckoutSignablePayloads
+  if (!preview.lines.length)
     throw new Error('по позиции корзины не пришло превью оформления')
 
-  const lines = await Promise.all(payloads.map(async p => ({
-    offer_id: p.offer_id,
-    package_id: p.package_id,
-    order_hash: p.order_hash,
-    signed_statement: p.document ? await signAs(who.wif, p.document, who.account, 1) : null,
-  })))
+  const lines = preview.lines.map((p: any) => ({ offer_id: p.offer_id, package_id: p.package_id, order_hash: p.order_hash }))
+  const signed_convert = preview.convert ? await signAs(who.wif, preview.convert.document, who.account, 1) : null
 
   const co: any = await gqlAs(token, `mutation($i:MarketplaceCheckoutCartInput){
     marketplaceCheckoutCart(input:$i){ fully_completed created_orders{ id status } failed_lines{ reason } }
-  }`, { i: { lines } })
+  }`, { i: { lines, signed_convert } })
   const result = co.marketplaceCheckoutCart
   if (!result.fully_completed)
     throw new Error(`оформление не прошло целиком: ${JSON.stringify(result.failed_lines)}`)
@@ -237,15 +236,19 @@ export async function issueOrder(args: {
   const pay: any = await gqlAs(memberToken, `query($d:MarketplaceResolveStockProposalInput!){
     marketplaceStockProposalSignablePayloads(data:$d){
       order_lines{ offer_id order_id order_hash statement{ full_title html hash meta binary } }
+      convert{ amount membership_fee document{ full_title html hash meta binary } }
     }
   }`, { d: { proposal_id: proposalId } })
+  const payload = pay.marketplaceStockProposalSignablePayloads
   const orderLines: any[] = []
-  for (const l of pay.marketplaceStockProposalSignablePayloads.order_lines as any[]) {
+  for (const l of payload.order_lines as any[]) {
     orderLines.push({ order_hash: l.order_hash, signed_statement: await signAs(member.wif, l.statement, member.account, 1) })
   }
+  // Членского кошелька не хватило на бандл — одно заявление 1110 на бандл.
+  const signedConvert = payload.convert ? await signAs(member.wif, payload.convert.document, member.account, 1) : null
   const fin: any = await gqlAs(memberToken, `mutation($d:MarketplaceFinalizeStockIssuanceInput!){
     marketplaceFinalizeStockIssuance(data:$d){ proposal{ id status } order_ids sagas{ ${SAGA_FIELDS} } }
-  }`, { d: { proposal_id: proposalId, order_lines: orderLines } })
+  }`, { d: { proposal_id: proposalId, order_lines: orderLines, signed_convert: signedConvert } })
   const orderIds = fin.marketplaceFinalizeStockIssuance.order_ids as string[]
 
   // 3) Совет: робота на стенде нет — сага в ожидании; голосуем членами совета.

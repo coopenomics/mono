@@ -4,16 +4,17 @@
  * (компонент 68, задача 99D-6). Единственная точка движений по выдаче.
  *
  * В одной транзакции по факту, зафиксированному на issuestmt:
- *  1. корректировка резерва: факт меньше заказа — o.mkt.unlock на разницу
- *     (w.mkt.order → w.mkt.share); факт больше — o.mkt.lockp с w.mkt.share
- *     (при нехватке — отказ с суммами; автоматического добора с паевого
- *     Цифрового кошелька нет);
- *  2. o.mkt.consum на fact_cost — BURN w.mkt.order, Дт 80 / Кт 10: возврат
- *     паевого взноса имуществом по протоколу совета;
- *  3. членский взнос участка по факту: излишек — o.mkt.refund на членский
- *     кошелёк программы (w.mkt.fee → w.mkt.member), недостаток — o.mkt.fee с
- *     членского кошелька (недостающее конвертировано по заявлению на
- *     issuestmt), затем branch::accrue → 100 % факта взноса в общий кошелёк
+ *  1. корректировка резерва: факт больше заказа — o.mkt.lockp доплата тела с
+ *     w.mkt.share (при нехватке — отказ с суммами); невыданная часть
+ *     возвращается каждой части резерва на свой кошелёк — паевая o.mkt.unlock
+ *     (→ w.mkt.share), членская o.mkt.unlkm (→ w.mkt.member);
+ *  2. выдача в счёт резерва: членский резерв гасится первым — o.mkt.consm
+ *     (BURN w.mkt.morder, Дт 86 / Кт 10), остаток факта — o.mkt.consum
+ *     (BURN w.mkt.order, Дт 80 / Кт 10): возврат паевого взноса имуществом;
+ *  3. членский взнос участка по факту: излишек — o.mkt.refund на внутренний
+ *     членский кошелёк (w.mkt.fee → w.mkt.member), недостаток — o.mkt.fee с
+ *     членского кошелька (недостающее переведено действием convert до
+ *     заявления), затем branch::accrue → 100 % факта взноса в общий кошелёк
  *     участка выдачи;
  *  4. `issueact1 → received`, гарантийное окно, `issue_act2` = акт,
  *     `Soviet::make_complete_document` для акта (пакет = order_hash).
@@ -52,15 +53,13 @@ void marketplace::issueact2(eosio::name coopname,
   eosio::check(fact_cost.amount > 0,
                "Итоговая фактическая сумма заказа должна быть больше нуля");
 
-  // ── 1. Корректировка резерва по факту ──
-  if (fact_cost < o.total_cost) {
-    const eosio::asset diff = o.total_cost - fact_cost;
-    Ledger2::apply(_marketplace, coopname,
-                   operations::marketplace::UNLOCK_ORDER,
-                   processes::marketplace::SUPPLY,
-                   diff, o.orderer, o.hash,
-                   Marketplace::Memo::get_issue_correction_less_memo(o.id));
-  } else if (fact_cost > o.total_cost) {
+  // ── 1–2. Корректировка резерва по факту и выдача в счёт резерва ──
+  //   Членский резерв (часть тела из внутреннего членского кошелька) гасится
+  //   первым, остаток факта — из паевого резерва; невыданное возвращается
+  //   каждой части на свой кошелёк. Факт больше заказа — доплата тела со
+  //   свободного паевого «Стола заказов» в паевой резерв.
+  eosio::asset share_part = Marketplace::share_funded(o);
+  if (fact_cost > o.total_cost) {
     const eosio::asset diff = fact_cost - o.total_cost;
     auto bal_share = Marketplace::get_user_wallet_balance(
         coopname, ledger2_wallets::MARKETPLACE_SHARE_FUND, o.orderer);
@@ -73,14 +72,26 @@ void marketplace::issueact2(eosio::name coopname,
                    processes::marketplace::SUPPLY,
                    diff, o.orderer, o.hash,
                    Marketplace::Memo::get_issue_correction_more_block_memo(o.id));
+    share_part += diff;
   }
-
-  // ── 2. Возврат паевого взноса имуществом ──
-  Ledger2::apply(_marketplace, coopname,
-                 operations::marketplace::CONSUME_BY_MEMBER,
-                 processes::marketplace::SUPPLY,
-                 fact_cost, o.orderer, o.hash,
-                 Marketplace::Memo::get_consume_by_member_memo(o.id));
+  const eosio::asset consumed_member = o.member_funded >= fact_cost ? fact_cost : o.member_funded;
+  const eosio::asset consumed_share  = fact_cost - consumed_member;
+  Marketplace::unlock_order_parts(coopname, o, share_part - consumed_share, o.member_funded - consumed_member,
+                                  Marketplace::Memo::get_issue_correction_less_memo(o.id));
+  if (consumed_share.amount > 0) {
+    Ledger2::apply(_marketplace, coopname,
+                   operations::marketplace::CONSUME_BY_MEMBER,
+                   processes::marketplace::SUPPLY,
+                   consumed_share, o.orderer, o.hash,
+                   Marketplace::Memo::get_consume_by_member_memo(o.id));
+  }
+  if (consumed_member.amount > 0) {
+    Ledger2::apply(_marketplace, coopname,
+                   operations::marketplace::CONSUME_MEMBER,
+                   processes::marketplace::SUPPLY,
+                   consumed_member, o.orderer, o.hash,
+                   Marketplace::Memo::get_consume_member_memo(o.id));
+  }
 
   // ── 3. Членский взнос участка по факту ──
   const eosio::asset locked_fee = Marketplace::get_order_membership_fee(o);
@@ -100,7 +111,7 @@ void marketplace::issueact2(eosio::name coopname,
       eosio::check(bal_member.available >= fee_diff,
                    std::string{"Недостаточно членского взноса «Стола заказов» для довзноса по факту: требуется "} +
                      fee_diff.to_string() + ", доступно " + bal_member.available.to_string() +
-                     ". Уменьшите состав выдачи либо повторите заявление о выдаче с конвертацией.");
+                     ". Сначала подайте заявление о переводе паевого взноса в программу.");
       Ledger2::apply(_marketplace, coopname,
                      operations::marketplace::MEMBERSHIP_FEE_LOCK,
                      processes::marketplace::SUPPLY,

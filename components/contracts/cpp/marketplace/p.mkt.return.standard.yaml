@@ -227,6 +227,7 @@ transitions:
     ledger_code: p.mkt.return
     operations:
       - o.mkt.return
+      - o.mkt.retm
       - o.brn.retfee
       - o.mkt.refund
     guards:
@@ -448,6 +449,26 @@ operations:
       участок мог успеть распределить или потратить эти средства. Тогда
       исполнение решения не проходит, и председатель сперва пополняет общий
       кошелёк.
+
+  - ledger_code: o.mkt.retm
+    human_name: Гарантийный возврат — восстановление членских средств и имущества
+    wallet_op: ISSUE
+    debit: 10                      # Материалы
+    credit: 86                     # Целевое финансирование
+    wallet_from: null
+    wallet_to: w.mkt.member
+    user_wallet: w.mkt.member
+    user_ref: return_request.orderer
+    available_delta: +return_request.member_return
+    blocked_delta: null
+    amount_ref: return_request.member_return
+    triggered_by: marketplace::onmktrtauth
+    description: >
+      Часть возвращаемого имущества, которая при выдаче была оплачена из
+      внутреннего членского кошелька, восстанавливается на нём: имущество
+      возвращается на склад, членские средства — заказчику для следующих
+      заказов (Дт 10 / Кт 86). Паевая часть восстанавливается на свободном
+      паевом отдельной операцией.
 
   - ledger_code: o.mkt.refund
     human_name: Сторно членского взноса участка на членский кошелёк программы

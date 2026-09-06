@@ -1051,10 +1051,11 @@ export const AllTypesProps: Record<string,any> = {
 	},
 	MarketplaceCartItemBlocker: "enum" as const,
 	MarketplaceCheckoutCartInput:{
-		lines:"MarketplaceCheckoutSignedLineInput"
+		lines:"MarketplaceCheckoutSignedLineInput",
+		signed_convert:"MarketplaceConvertStatementSignedInput"
 	},
 	MarketplaceCheckoutSignedLineInput:{
-		signed_statement:"MarketplaceConvertStatementSignedInput"
+
 	},
 	MarketplaceClearInventoryLabelInput:{
 
@@ -1136,7 +1137,8 @@ export const AllTypesProps: Record<string,any> = {
 
 	},
 	MarketplaceFinalizeStockIssuanceInput:{
-		order_lines:"MarketplaceStockFinalizeLineInput"
+		order_lines:"MarketplaceStockFinalizeLineInput",
+		signed_convert:"MarketplaceConvertStatementSignedInput"
 	},
 	MarketplaceFixIssuanceFactInput:{
 
@@ -1364,7 +1366,6 @@ export const AllTypesProps: Record<string,any> = {
 		splits:"MarketplaceInventorySplitEntryInput"
 	},
 	MarketplaceStockFinalizeLineInput:{
-		signed_convert:"MarketplaceConvertStatementSignedInput",
 		signed_statement:"MarketplaceShareReturnStatementSignedInput"
 	},
 	MarketplaceStockIssuancePrepareInput:{
@@ -5984,6 +5985,10 @@ export const ReturnTypes: Record<string,any> = {
 		quantity:"Float",
 		reason:"String"
 	},
+	MarketplaceCheckoutPreview:{
+		convert:"MarketplaceConvertPayload",
+		lines:"MarketplaceCheckoutSignableLine"
+	},
 	MarketplaceCheckoutResult:{
 		cart:"MarketplaceCart",
 		checkout_id:"String",
@@ -5994,8 +5999,8 @@ export const ReturnTypes: Record<string,any> = {
 	},
 	MarketplaceCheckoutSignableLine:{
 		amount:"String",
-		convert_amount:"String",
-		document:"GeneratedDocument",
+		from_member:"String",
+		from_share:"String",
 		membership_fee:"String",
 		offer_id:"String",
 		order_hash:"String",
@@ -6043,6 +6048,11 @@ export const ReturnTypes: Record<string,any> = {
 		name:"String",
 		volume_m3:"String",
 		width_cm:"Int"
+	},
+	MarketplaceConvertPayload:{
+		amount:"String",
+		document:"GeneratedDocument",
+		membership_fee:"String"
 	},
 	MarketplaceCppStatus:{
 		accepted_at:"String",
@@ -6612,14 +6622,13 @@ export const ReturnTypes: Record<string,any> = {
 		vehicle_number:"String"
 	},
 	MarketplaceStockAcceptOrderLine:{
-		convert_amount:"String",
-		convert_statement:"GeneratedDocument",
 		offer_id:"String",
 		order_hash:"String",
 		order_id:"String",
 		statement:"GeneratedDocument"
 	},
 	MarketplaceStockAcceptPayload:{
+		convert:"MarketplaceConvertPayload",
 		order_lines:"MarketplaceStockAcceptOrderLine"
 	},
 	MarketplaceStockIssuanceOperatorLine:{
@@ -8023,7 +8032,7 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceCategoryAttributes:"MarketplaceAttribute",
 		marketplaceCategoryAttributesGrouped:"MarketplaceAttributeGroup",
 		marketplaceCategoryOfferCounts:"MarketplaceCategoryOfferCount",
-		marketplaceCheckoutSignablePayloads:"MarketplaceCheckoutSignableLine",
+		marketplaceCheckoutSignablePayloads:"MarketplaceCheckoutPreview",
 		marketplaceCppStatus:"MarketplaceCppStatus",
 		marketplaceDefaultVitrine:"MarketplaceVitrine",
 		marketplaceFindPotentialMatches:"MarketplaceRequest",

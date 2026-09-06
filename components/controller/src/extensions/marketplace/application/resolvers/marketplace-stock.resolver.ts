@@ -1,6 +1,7 @@
 import { ForbiddenException, Inject, Injectable, UseGuards } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { GqlJwtAuthGuard, platformSettings, GeneratedDocumentDTO } from '@coopenomics/extension-kit';
+import { MarketplaceConvertPayloadDTO } from '../dto/marketplace-checkout.dto';
 import { CurrentMarketplaceMember } from '../decorators/current-marketplace-member.decorator';
 import { RequireMarketplaceAccess } from '../decorators/marketplace-access.decorator';
 import { MarketplaceMembershipGuard } from '../guards/marketplace-membership.guard';
@@ -221,9 +222,9 @@ export class MarketplaceStockResolver {
   @Query(() => MarketplaceStockAcceptPayloadDTO, {
     name: 'marketplaceStockProposalSignablePayloads',
     description:
-      'Нагрузка к подписи бандла пайщиком: по каждой строке — заявление о возврате паевого взноса имуществом; по докладке ' +
-      'ещё и заявление 1110 о переводе свободного паевого на оплату заказа из остатка с уплатой членского взноса участка, ' +
-      'по заказу — только на доплату при факте больше заказа.',
+      'Нагрузка к подписи бандла пайщиком: по каждой строке — заявление о возврате паевого взноса имуществом; если ' +
+      'внутреннего членского кошелька «Стола заказов» не хватает на бандл — одно заявление 1110 о переводе недостающей ' +
+      'суммы со свободного паевого программы.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
   @RequireMarketplaceAccess('StockProposal', 'resolve:own')
@@ -242,17 +243,22 @@ export class MarketplaceStockResolver {
         order_id: l.order_id,
         order_hash: l.order_hash,
         statement: new GeneratedDocumentDTO(l.statement),
-        convert_amount: l.convert_amount,
-        convert_statement: l.convert_statement ? new GeneratedDocumentDTO(l.convert_statement) : null,
       })),
+      convert: payload.convert
+        ? new MarketplaceConvertPayloadDTO({
+            amount: payload.convert.amount,
+            membership_fee: payload.convert.membership_fee,
+            document: new GeneratedDocumentDTO(payload.convert.document),
+          })
+        : null,
     };
   }
 
   @Mutation(() => MarketplaceStockProposalAcceptResultDTO, {
     name: 'marketplaceFinalizeStockIssuance',
     description:
-      'Пайщик одним нажатием подписывает заявления по всем строкам бандла: по докладке создаётся заказ из остатка (тело из свободного паевого, ' +
-      'членский взнос участка с членского кошелька программы, недостающее — по заявлению о конвертации 1110), ' +
+      'Пайщик одним нажатием подписывает заявления по всем строкам бандла (и заявление 1110 на бандл, если членского кошелька не хватает — ' +
+      'перевод идёт отдельной транзакцией до заказов): по докладке создаётся заказ из остатка, ' +
       'по каждому заказу заявление уходит в цепь и на повестку совета; робот решений совета зовётся напрямую и ждётся у стойки. ' +
       'Ответ несёт саги выдачи: решение принято — пайщик подписывает акт, иначе — режим ожидания без действий с его стороны.',
   })
@@ -266,7 +272,7 @@ export class MarketplaceStockResolver {
       platformSettings().coopname,
       data.proposal_id,
       member.username,
-      { order_lines: data.order_lines }
+      { order_lines: data.order_lines, signed_convert: data.signed_convert ?? null }
     );
     const dto = new MarketplaceStockProposalAcceptResultDTO();
     dto.proposal = toMarketplaceStockProposalDTO(result.proposal);

@@ -88,6 +88,13 @@ void marketplace::submretrn(eosio::name coopname,
                                        o.actual_quantity.amount);
   }
 
+  // Часть возвращаемой стоимости, приходящаяся на членский резерв: та же
+  // пропорция, что при выдаче (членский резерв гасился первым).
+  const eosio::asset consumed_member = o.member_funded >= o.fact_cost ? o.fact_cost : o.member_funded;
+  const eosio::asset member_return = o.fact_cost.amount > 0
+      ? Marketplace::pro_rata(fact_cost, consumed_member.amount, o.fact_cost.amount)
+      : eosio::asset(0, _root_govern_symbol);
+
   // Создание return_request entity
   return_requests_index requests(_marketplace, coopname.value);
   uint64_t request_id = requests.available_primary_key();
@@ -103,6 +110,7 @@ void marketplace::submretrn(eosio::name coopname,
     r.actual_quantity       = actual_quantity;
     r.fact_cost             = fact_cost;
     r.fee_refund            = fee_refund;
+    r.member_return         = member_return;
     r.reason_text           = reason_text;
     r.photos                = photos;
     r.status                = ReturnStatus::PENDING_REVIEW;
