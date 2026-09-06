@@ -291,7 +291,6 @@ export const AppRegistry: INamedExtension = {
     },
   },
   cardcoop: {
-    is_builtin: false,
     is_internal: true,
     availability: ExtensionAvailability.NON_MAINNET_ONLY,
     desktops: undefined, // Это не desktop расширение
