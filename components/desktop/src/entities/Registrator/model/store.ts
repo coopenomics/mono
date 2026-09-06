@@ -23,8 +23,18 @@ const initialAccountState: IGeneratedAccount = {
   public_key: '',
 };
 
+/**
+ * Форма ведёт все три анкеты сразу: переключение типа субъекта не должно
+ * стирать уже введённое, поэтому в состоянии блоки заданы всегда. В самом
+ * `IUserData` они опциональны — там это вход мутаций, где приезжает ровно
+ * один блок. Отсюда отдельный тип состояния: без него присвоение полей
+ * анкеты не проходит проверку типов, ведь блок формально может отсутствовать.
+ */
+type IUserDataState = IUserData &
+  Required<Pick<IUserData, 'entrepreneur_data' | 'individual_data' | 'organization_data'>>;
+
 // Начальное состояние для userData
-const initialUserDataState: IUserData = {
+const initialUserDataState: IUserDataState = {
   type: null,
   individual_data: {
     first_name: '',
