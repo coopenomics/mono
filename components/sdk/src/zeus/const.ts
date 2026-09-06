@@ -335,6 +335,15 @@ export const AllTypesProps: Record<string,any> = {
 	CapitalTopupProgramExpenseInput:{
 
 	},
+	CardcoopAttestationState: "enum" as const,
+	CardcoopEntryInput:{
+
+	},
+	CardcoopEntryOutcome: "enum" as const,
+	CardcoopEntryStatus: "enum" as const,
+	CardcoopRequestEntryDisclosureInput:{
+
+	},
 	CategoryTypeInput:{
 
 	},
@@ -1770,6 +1779,12 @@ export const AllTypesProps: Record<string,any> = {
 		capitalUpdateStory:{
 			data:"UpdateStoryInput"
 		},
+		cardcoopRequestEntryDisclosure:{
+			data:"CardcoopRequestEntryDisclosureInput"
+		},
+		cardcoopTakeEntryProfile:{
+			data:"CardcoopEntryInput"
+		},
 		chairmanConfirmApprove:{
 			data:"ConfirmApproveInput"
 		},
@@ -2807,6 +2822,9 @@ export const AllTypesProps: Record<string,any> = {
 		capitalVotes:{
 			filter:"VoteFilter",
 			options:"PaginationInput"
+		},
+		cardcoopEntry:{
+			data:"CardcoopEntryInput"
 		},
 		chairmanApproval:{
 
@@ -5027,6 +5045,31 @@ export const ReturnTypes: Record<string,any> = {
 		label:"WaveLabel",
 		value:"Float"
 	},
+	CardcoopEntry:{
+		cardNumber:"String",
+		id:"String",
+		memberships:"CardcoopEntryMembership",
+		networkUrl:"String",
+		outcome:"CardcoopEntryOutcome",
+		status:"CardcoopEntryStatus",
+		username:"String"
+	},
+	CardcoopEntryMembership:{
+		coopname:"String",
+		displayName:"String",
+		memberSince:"String"
+	},
+	CardcoopEntryProfile:{
+		profile:"JSON",
+		subjectType:"String"
+	},
+	CardcoopMyCard:{
+		cardNumber:"String",
+		enterUrl:"String",
+		issued:"Boolean",
+		memberSince:"String",
+		state:"CardcoopAttestationState"
+	},
 	Category:{
 		coopname:"String",
 		description:"String",
@@ -6968,6 +7011,8 @@ export const ReturnTypes: Record<string,any> = {
 		capitalUpdateMeasure:"CapitalMeasure",
 		capitalUpdateProcessTemplate:"ProcessTemplate",
 		capitalUpdateStory:"CapitalStory",
+		cardcoopRequestEntryDisclosure:"CardcoopEntry",
+		cardcoopTakeEntryProfile:"CardcoopEntryProfile",
 		chairmanConfirmApprove:"Approval",
 		chairmanDeclineApprove:"Approval",
 		chatcoopCreateAccount:"Boolean",
@@ -7855,6 +7900,9 @@ export const ReturnTypes: Record<string,any> = {
 		capitalTimeStats:"CapitalTimeStats",
 		capitalVote:"CapitalVote",
 		capitalVotes:"PaginatedCapitalVotesPaginationResult",
+		cardcoopEntry:"CardcoopEntry",
+		cardcoopEntryAvailable:"Boolean",
+		cardcoopMyCard:"CardcoopMyCard",
 		chairmanApproval:"Approval",
 		chairmanApprovals:"PaginatedChairmanApprovalsPaginationResult",
 		chatcoopCheckUsernameAvailability:"Boolean",

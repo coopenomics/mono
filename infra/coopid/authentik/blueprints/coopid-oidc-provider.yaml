@@ -148,6 +148,32 @@ entries:
       # «When no user fields are selected, at least one source must be selected».
       user_fields: [email, username]
       password_stage: !Find [authentik_stages_password.passwordstage, [name, default-authentication-password]]
+  # ── Сколько живёт вход в кооператив ──────────────────────────────────────
+  # У встроенных стадий срок сессии — `seconds=0`, то есть «до закрытия браузера»: запись в
+  # базе живёт сутки, но кука сессионная и перезапуск браузера её уносит. Пайщик при этом
+  # остаётся в рабочем столе — тот держит свой токен в хранилище, — и не понимает, почему
+  # переход на карту кооператора требует ввести пароль заново (владелец, 05.09.2026).
+  #
+  # Неделя — середина между «до закрытия браузера» и сроком токена обновления стола (30
+  # дней): пайщик не входит заново каждый день, а брошенная сессия на чужой машине не живёт
+  # месяц. Значение осознанно короче токена стола: сессия входа — это право завести новый
+  # доступ, и держать её дольше самого доступа незачем.
+  - identifiers:
+      name: default-authentication-login
+    model: authentik_stages_user_login.userloginstage
+    attrs:
+      session_duration: days=7
+  - identifiers:
+      name: default-source-authentication-login
+    model: authentik_stages_user_login.userloginstage
+    attrs:
+      session_duration: days=7
+  - identifiers:
+      name: default-source-enrollment-login
+    model: authentik_stages_user_login.userloginstage
+    attrs:
+      session_duration: days=7
+
   - identifiers:
       target: !Find [authentik_flows.flow, [slug, default-authentication-flow]]
       stage: !Find [authentik_stages_password.passwordstage, [name, default-authentication-password]]

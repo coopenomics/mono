@@ -1,4 +1,5 @@
 import { ProfilePage } from 'src/pages/User/ProfilePage';
+import { CardcoopPage } from 'src/pages/User/CardcoopPage';
 import { WalletPage } from 'src/pages/User/WalletPage';
 import { MembershipExitConfirmPage } from 'src/pages/User/MembershipExitConfirmPage';
 import { ConnectionAgreementPage, InstallationCompletedPage } from 'src/pages/Union/ConnectionAgreement';
@@ -71,6 +72,21 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             path: 'profile',
             name: 'profile',
             component: markRaw(ProfilePage),
+            children: [],
+          },
+          {
+            // Карта кооператора сети (story 7.4). Страница есть с эпика 7, но в сборщик стола
+            // попала только 02.09.2026: манифесты src/desktops/* никто не читает, маршруты
+            // стола пайщика собирает этот install — и карта в нём отсутствовала.
+            meta: {
+              title: 'Карта кооператора',
+              icon: 'badge',
+              roles: ['user', 'member', 'chairman'],
+              requiresAuth: true,
+            },
+            path: 'cardcoop',
+            name: 'user-cardcoop',
+            component: markRaw(CardcoopPage),
             children: [],
           },
           {

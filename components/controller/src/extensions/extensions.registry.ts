@@ -16,9 +16,11 @@ import { ReportsExtensionModule } from './reports/reports-extension.module';
 import { MarketplaceExtensionModule, MarketplaceExtension } from './marketplace/marketplace-extension.module';
 import { Schema as MarketplaceSchema } from './marketplace/types';
 import { KuExtensionModule, KuExtension, Schema as KuSchema } from './ku/ku-extension.module';
+import { CardcoopExtensionModule, CardcoopExtension, Schema as CardcoopSchema } from './cardcoop/cardcoop-extension.module';
 import { SovietRobotExtensionModule, SovietRobotExtension, Schema as SovietRobotSchema, defaultConfig as sovietRobotDefaultConfig } from './soviet-robot/soviet-robot-extension.module';
 
 import { capitalEntities } from './capital/capital.entities';
+import { cardcoopEntities } from './cardcoop/cardcoop.entities';
 import { chairmanEntities } from './chairman/chairman.entities';
 import { chatcoopEntities } from './chatcoop/chatcoop.entities';
 import { expensesEntities } from './expenses/expenses.entities';
@@ -33,6 +35,7 @@ import { powerupMigrations } from './powerup/powerup.migrations';
 
 import { builtinPorts } from './builtin/builtin.ports';
 import { capitalPorts } from './capital/capital.ports';
+import { cardcoopPorts } from './cardcoop/cardcoop.ports';
 import { chairmanPorts } from './chairman/chairman.ports';
 import { chatcoopPorts } from './chatcoop/chatcoop.ports';
 import { kuPorts } from './ku/ku.ports';
@@ -46,6 +49,7 @@ import { sberpollPorts } from './sberpoll/sberpoll.ports';
 import { yookassaPorts } from './yookassa/yookassa.ports';
 
 import { defaultConfig as builtinDefaultConfig } from './builtin/builtin-extension.module';
+import { defaultConfig as cardcoopDefaultConfig } from './cardcoop/cardcoop-extension.module';
 import { defaultConfig as chairmanDefaultConfig } from './chairman/chairman-extension.module';
 import { defaultConfig as powerupDefaultConfig } from './powerup/powerup-extension.module';
 import { defaultConfig as qrpayDefaultConfig } from './qrpay/qrpay-extension.module';
@@ -282,6 +286,32 @@ export const AppRegistry: INamedExtension = {
     tags: ['платежи'],
     readme: getReadmeContent('./yookassa'),
     instructions: getInstructionsContent('./yookassa'),
+    get is_desktop() {
+      return !!this.desktops && this.desktops.length > 0;
+    },
+  },
+  cardcoop: {
+    is_builtin: false,
+    is_internal: true,
+    availability: ExtensionAvailability.NON_MAINNET_ONLY,
+    desktops: undefined, // Это не desktop расширение
+    title: 'Карта кооператора',
+    description:
+      'Подтверждение членства пайщика в сети «Карта кооператора»: кооператив свидетельствует участие, карта живёт в сети.',
+    image: 'https://i.ibb.co/Y7pByhp/QR-Code-3.png',
+    class: CardcoopExtensionModule,
+    extensionClass: CardcoopExtension,
+    // Кооператив получает его сразу и включённым, как стол совета: карта кооператора — часть
+    // членства, а не дополнение к нему. Пока сеть карт не открыта для основной сети,
+    // доступность держит `NON_MAINNET_ONLY`, и туда расширение не поедет (см. фильтр
+    // доступности в составе расширений по умолчанию).
+    defaults: { enabled: true, config: cardcoopDefaultConfig },
+    entities: cardcoopEntities,
+    ports: cardcoopPorts,
+    schema: CardcoopSchema,
+    tags: ['членство'],
+    readme: getReadmeContent('./cardcoop'),
+    instructions: getInstructionsContent('./cardcoop'),
     get is_desktop() {
       return !!this.desktops && this.desktops.length > 0;
     },

@@ -1,6 +1,6 @@
 {
   "name": "@coopenomics/controller",
-  "version": "2026.9.4-3",
+  "version": "2026.9.6",
   "description": "Бэкенд GraphQL API кооператива на NestJS",
   "private": true,
   "bin": "bin/createNodejsApp.js",
@@ -115,6 +115,7 @@
     "apollo-server-express": "^3.13.0",
     "axios": "^1.6.2",
     "bcryptjs": "^2.4.3",
+    "canonicalize": "^2.1.0",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.1",
     "compression": "^1.8.1",

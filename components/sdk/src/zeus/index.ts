@@ -5180,6 +5180,72 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on CapitalWaveSwing']?: Omit<ValueTypes["CapitalWaveSwing"], "...on CapitalWaveSwing">
 }>;
+	/** Состояние свидетельства о членстве, выданного кооперативом в сеть «Карта кооператора» */
+["CardcoopAttestationState"]:CardcoopAttestationState;
+	["CardcoopEntry"]: AliasType<{
+	/** Номер карты кооператора */
+	cardNumber?:boolean | `@${string}`,
+	/** Идентификатор сессии входа */
+	id?:boolean | `@${string}`,
+	/** Членства карты в других кооперативах — из них выбирается источник анкеты */
+	memberships?:ValueTypes["CardcoopEntryMembership"],
+	/** Адрес сети «Карта кооператора»: там держатель подтверждает перенос анкеты */
+	networkUrl?:boolean | `@${string}`,
+	/** Пайщик или кандидат */
+	outcome?:boolean | `@${string}`,
+	/** Состояние быстрой регистрации */
+	status?:boolean | `@${string}`,
+	/** Учётное имя пайщика, которого опознала карта; пусто у кандидата */
+	username?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on CardcoopEntry']?: Omit<ValueTypes["CardcoopEntry"], "...on CardcoopEntry">
+}>;
+	["CardcoopEntryInput"]: {
+	/** Идентификатор сессии входа */
+	entry_id: string | Variable<any, string>
+};
+	["CardcoopEntryMembership"]: AliasType<{
+	/** Системное имя кооператива */
+	coopname?:boolean | `@${string}`,
+	/** Наименование кооператива */
+	displayName?:boolean | `@${string}`,
+	/** Дата вступления */
+	memberSince?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on CardcoopEntryMembership']?: Omit<ValueTypes["CardcoopEntryMembership"], "...on CardcoopEntryMembership">
+}>;
+	/** Кем оказался человек, вошедший по карте: пайщиком или кандидатом */
+["CardcoopEntryOutcome"]:CardcoopEntryOutcome;
+	["CardcoopEntryProfile"]: AliasType<{
+	/** Анкета для предзаполнения формы вступления */
+	profile?:boolean | `@${string}`,
+	/** Вид субъекта: физлицо, ИП или организация */
+	subjectType?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on CardcoopEntryProfile']?: Omit<ValueTypes["CardcoopEntryProfile"], "...on CardcoopEntryProfile">
+}>;
+	/** Состояние быстрой регистрации по карте */
+["CardcoopEntryStatus"]:CardcoopEntryStatus;
+	["CardcoopMyCard"]: AliasType<{
+	/** Номер карты — то, что человек называет вслух; null, пока карта не выпущена */
+	cardNumber?:boolean | `@${string}`,
+	/** Адрес выпуска карты в сети: сюда уходит пайщик, у которого карты ещё нет. Строится из адреса сети и имени кооператива, руками нигде не вписывается */
+	enterUrl?:boolean | `@${string}`,
+	/** Выпущена ли карта: пайщик дошёл до сети и связал её со своей учётной записью */
+	issued?:boolean | `@${string}`,
+	/** Дата вступления в кооператив, о которой свидетельствует документ (YYYY-MM-DD) */
+	memberSince?:boolean | `@${string}`,
+	/** Состояние свидетельства о членстве; null, пока карта не выпущена */
+	state?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on CardcoopMyCard']?: Omit<ValueTypes["CardcoopMyCard"], "...on CardcoopMyCard">
+}>;
+	["CardcoopRequestEntryDisclosureInput"]: {
+	/** Идентификатор сессии входа */
+	entry_id: string | Variable<any, string>,
+	/** Системное имя кооператива-источника */
+	from_coopname: string | Variable<any, string>
+};
 	["Category"]: AliasType<{
 	coopname?:boolean | `@${string}`,
 	description?:boolean | `@${string}`,
@@ -12148,6 +12214,8 @@ capitalUpdateIssue?: [{	data: ValueTypes["UpdateIssueInput"] | Variable<any, str
 capitalUpdateMeasure?: [{	data: ValueTypes["UpdateMeasureInput"] | Variable<any, string>},ValueTypes["CapitalMeasure"]],
 capitalUpdateProcessTemplate?: [{	data: ValueTypes["UpdateProcessTemplateInput"] | Variable<any, string>},ValueTypes["ProcessTemplate"]],
 capitalUpdateStory?: [{	data: ValueTypes["UpdateStoryInput"] | Variable<any, string>},ValueTypes["CapitalStory"]],
+cardcoopRequestEntryDisclosure?: [{	data: ValueTypes["CardcoopRequestEntryDisclosureInput"] | Variable<any, string>},ValueTypes["CardcoopEntry"]],
+cardcoopTakeEntryProfile?: [{	data: ValueTypes["CardcoopEntryInput"] | Variable<any, string>},ValueTypes["CardcoopEntryProfile"]],
 chairmanConfirmApprove?: [{	data: ValueTypes["ConfirmApproveInput"] | Variable<any, string>},ValueTypes["Approval"]],
 chairmanDeclineApprove?: [{	data: ValueTypes["DeclineApproveInput"] | Variable<any, string>},ValueTypes["Approval"]],
 chatcoopCreateAccount?: [{	data: ValueTypes["CreateMatrixAccountInputDTO"] | Variable<any, string>},boolean | `@${string}`],
@@ -13983,6 +14051,13 @@ capitalTimeEntriesByIssues?: [{	filter?: ValueTypes["CapitalTimeEntriesFilter"] 
 capitalTimeStats?: [{	data?: ValueTypes["CapitalTimeStatsInput"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["CapitalTimeStats"]],
 capitalVote?: [{	data: ValueTypes["GetVoteInput"] | Variable<any, string>},ValueTypes["CapitalVote"]],
 capitalVotes?: [{	filter?: ValueTypes["VoteFilter"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedCapitalVotesPaginationResult"]],
+cardcoopEntry?: [{	data: ValueTypes["CardcoopEntryInput"] | Variable<any, string>},ValueTypes["CardcoopEntry"]],
+	/** Доступен ли вход по карте кооператора в этом кооперативе */
+	cardcoopEntryAvailable?:boolean | `@${string}`,
+	/** Карта кооператора в сети «Карта кооператора»: выпущена ли и что с членством
+
+Требуемые роли: chairman, member, user.  */
+	cardcoopMyCard?:ValueTypes["CardcoopMyCard"],
 chairmanApproval?: [{	id: string | Variable<any, string>},ValueTypes["Approval"]],
 chairmanApprovals?: [{	filter?: ValueTypes["ApprovalFilter"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedChairmanApprovalsPaginationResult"]],
 chatcoopCheckUsernameAvailability?: [{	data: ValueTypes["CheckMatrixUsernameInput"] | Variable<any, string>},boolean | `@${string}`],
@@ -20528,6 +20603,68 @@ export type ResolverInputTypes = {
 	value?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	/** Состояние свидетельства о членстве, выданного кооперативом в сеть «Карта кооператора» */
+["CardcoopAttestationState"]:CardcoopAttestationState;
+	["CardcoopEntry"]: AliasType<{
+	/** Номер карты кооператора */
+	cardNumber?:boolean | `@${string}`,
+	/** Идентификатор сессии входа */
+	id?:boolean | `@${string}`,
+	/** Членства карты в других кооперативах — из них выбирается источник анкеты */
+	memberships?:ResolverInputTypes["CardcoopEntryMembership"],
+	/** Адрес сети «Карта кооператора»: там держатель подтверждает перенос анкеты */
+	networkUrl?:boolean | `@${string}`,
+	/** Пайщик или кандидат */
+	outcome?:boolean | `@${string}`,
+	/** Состояние быстрой регистрации */
+	status?:boolean | `@${string}`,
+	/** Учётное имя пайщика, которого опознала карта; пусто у кандидата */
+	username?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["CardcoopEntryInput"]: {
+	/** Идентификатор сессии входа */
+	entry_id: string
+};
+	["CardcoopEntryMembership"]: AliasType<{
+	/** Системное имя кооператива */
+	coopname?:boolean | `@${string}`,
+	/** Наименование кооператива */
+	displayName?:boolean | `@${string}`,
+	/** Дата вступления */
+	memberSince?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Кем оказался человек, вошедший по карте: пайщиком или кандидатом */
+["CardcoopEntryOutcome"]:CardcoopEntryOutcome;
+	["CardcoopEntryProfile"]: AliasType<{
+	/** Анкета для предзаполнения формы вступления */
+	profile?:boolean | `@${string}`,
+	/** Вид субъекта: физлицо, ИП или организация */
+	subjectType?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Состояние быстрой регистрации по карте */
+["CardcoopEntryStatus"]:CardcoopEntryStatus;
+	["CardcoopMyCard"]: AliasType<{
+	/** Номер карты — то, что человек называет вслух; null, пока карта не выпущена */
+	cardNumber?:boolean | `@${string}`,
+	/** Адрес выпуска карты в сети: сюда уходит пайщик, у которого карты ещё нет. Строится из адреса сети и имени кооператива, руками нигде не вписывается */
+	enterUrl?:boolean | `@${string}`,
+	/** Выпущена ли карта: пайщик дошёл до сети и связал её со своей учётной записью */
+	issued?:boolean | `@${string}`,
+	/** Дата вступления в кооператив, о которой свидетельствует документ (YYYY-MM-DD) */
+	memberSince?:boolean | `@${string}`,
+	/** Состояние свидетельства о членстве; null, пока карта не выпущена */
+	state?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["CardcoopRequestEntryDisclosureInput"]: {
+	/** Идентификатор сессии входа */
+	entry_id: string,
+	/** Системное имя кооператива-источника */
+	from_coopname: string
+};
 	["Category"]: AliasType<{
 	coopname?:boolean | `@${string}`,
 	description?:boolean | `@${string}`,
@@ -27304,6 +27441,8 @@ capitalUpdateIssue?: [{	data: ResolverInputTypes["UpdateIssueInput"]},ResolverIn
 capitalUpdateMeasure?: [{	data: ResolverInputTypes["UpdateMeasureInput"]},ResolverInputTypes["CapitalMeasure"]],
 capitalUpdateProcessTemplate?: [{	data: ResolverInputTypes["UpdateProcessTemplateInput"]},ResolverInputTypes["ProcessTemplate"]],
 capitalUpdateStory?: [{	data: ResolverInputTypes["UpdateStoryInput"]},ResolverInputTypes["CapitalStory"]],
+cardcoopRequestEntryDisclosure?: [{	data: ResolverInputTypes["CardcoopRequestEntryDisclosureInput"]},ResolverInputTypes["CardcoopEntry"]],
+cardcoopTakeEntryProfile?: [{	data: ResolverInputTypes["CardcoopEntryInput"]},ResolverInputTypes["CardcoopEntryProfile"]],
 chairmanConfirmApprove?: [{	data: ResolverInputTypes["ConfirmApproveInput"]},ResolverInputTypes["Approval"]],
 chairmanDeclineApprove?: [{	data: ResolverInputTypes["DeclineApproveInput"]},ResolverInputTypes["Approval"]],
 chatcoopCreateAccount?: [{	data: ResolverInputTypes["CreateMatrixAccountInputDTO"]},boolean | `@${string}`],
@@ -29065,6 +29204,13 @@ capitalTimeEntriesByIssues?: [{	filter?: ResolverInputTypes["CapitalTimeEntriesF
 capitalTimeStats?: [{	data?: ResolverInputTypes["CapitalTimeStatsInput"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["CapitalTimeStats"]],
 capitalVote?: [{	data: ResolverInputTypes["GetVoteInput"]},ResolverInputTypes["CapitalVote"]],
 capitalVotes?: [{	filter?: ResolverInputTypes["VoteFilter"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedCapitalVotesPaginationResult"]],
+cardcoopEntry?: [{	data: ResolverInputTypes["CardcoopEntryInput"]},ResolverInputTypes["CardcoopEntry"]],
+	/** Доступен ли вход по карте кооператора в этом кооперативе */
+	cardcoopEntryAvailable?:boolean | `@${string}`,
+	/** Карта кооператора в сети «Карта кооператора»: выпущена ли и что с членством
+
+Требуемые роли: chairman, member, user.  */
+	cardcoopMyCard?:ResolverInputTypes["CardcoopMyCard"],
 chairmanApproval?: [{	id: string},ResolverInputTypes["Approval"]],
 chairmanApprovals?: [{	filter?: ResolverInputTypes["ApprovalFilter"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedChairmanApprovalsPaginationResult"]],
 chatcoopCheckUsernameAvailability?: [{	data: ResolverInputTypes["CheckMatrixUsernameInput"]},boolean | `@${string}`],
@@ -35438,6 +35584,61 @@ export type ModelTypes = {
 	label: ModelTypes["WaveLabel"],
 	/** Значение на экстремуме */
 	value: number
+};
+	["CardcoopAttestationState"]:CardcoopAttestationState;
+	["CardcoopEntry"]: {
+		/** Номер карты кооператора */
+	cardNumber?: string | undefined | null,
+	/** Идентификатор сессии входа */
+	id: string,
+	/** Членства карты в других кооперативах — из них выбирается источник анкеты */
+	memberships: Array<ModelTypes["CardcoopEntryMembership"]>,
+	/** Адрес сети «Карта кооператора»: там держатель подтверждает перенос анкеты */
+	networkUrl: string,
+	/** Пайщик или кандидат */
+	outcome: ModelTypes["CardcoopEntryOutcome"],
+	/** Состояние быстрой регистрации */
+	status: ModelTypes["CardcoopEntryStatus"],
+	/** Учётное имя пайщика, которого опознала карта; пусто у кандидата */
+	username?: string | undefined | null
+};
+	["CardcoopEntryInput"]: {
+	/** Идентификатор сессии входа */
+	entry_id: string
+};
+	["CardcoopEntryMembership"]: {
+		/** Системное имя кооператива */
+	coopname: string,
+	/** Наименование кооператива */
+	displayName: string,
+	/** Дата вступления */
+	memberSince?: string | undefined | null
+};
+	["CardcoopEntryOutcome"]:CardcoopEntryOutcome;
+	["CardcoopEntryProfile"]: {
+		/** Анкета для предзаполнения формы вступления */
+	profile: ModelTypes["JSON"],
+	/** Вид субъекта: физлицо, ИП или организация */
+	subjectType: string
+};
+	["CardcoopEntryStatus"]:CardcoopEntryStatus;
+	["CardcoopMyCard"]: {
+		/** Номер карты — то, что человек называет вслух; null, пока карта не выпущена */
+	cardNumber?: string | undefined | null,
+	/** Адрес выпуска карты в сети: сюда уходит пайщик, у которого карты ещё нет. Строится из адреса сети и имени кооператива, руками нигде не вписывается */
+	enterUrl: string,
+	/** Выпущена ли карта: пайщик дошёл до сети и связал её со своей учётной записью */
+	issued: boolean,
+	/** Дата вступления в кооператив, о которой свидетельствует документ (YYYY-MM-DD) */
+	memberSince?: string | undefined | null,
+	/** Состояние свидетельства о членстве; null, пока карта не выпущена */
+	state?: ModelTypes["CardcoopAttestationState"] | undefined | null
+};
+	["CardcoopRequestEntryDisclosureInput"]: {
+	/** Идентификатор сессии входа */
+	entry_id: string,
+	/** Системное имя кооператива-источника */
+	from_coopname: string
 };
 	["Category"]: {
 		coopname: string,
@@ -42243,6 +42444,10 @@ export type ModelTypes = {
 
 Требуемые роли: chairman, member, user.  */
 	capitalUpdateStory: ModelTypes["CapitalStory"],
+	/** Запросить перенос анкеты из выбранного кооператива — решение принимает держатель на card.coop */
+	cardcoopRequestEntryDisclosure: ModelTypes["CardcoopEntry"],
+	/** Забрать перенесённую анкету в форму вступления; повторного прочтения не существует */
+	cardcoopTakeEntryProfile: ModelTypes["CardcoopEntryProfile"],
 	/** Подтверждение одобрения документа председателем совета
 
 Требуемые роли: chairman.  */
@@ -44497,6 +44702,14 @@ export type ModelTypes = {
 	capitalVote?: ModelTypes["CapitalVote"] | undefined | null,
 	/** Получение списка голосов кооператива с фильтрацией */
 	capitalVotes: ModelTypes["PaginatedCapitalVotesPaginationResult"],
+	/** Сессия входа по карте кооператора: кто вошёл и на каком шаге быстрая регистрация */
+	cardcoopEntry: ModelTypes["CardcoopEntry"],
+	/** Доступен ли вход по карте кооператора в этом кооперативе */
+	cardcoopEntryAvailable: boolean,
+	/** Карта кооператора в сети «Карта кооператора»: выпущена ли и что с членством
+
+Требуемые роли: chairman, member, user.  */
+	cardcoopMyCard: ModelTypes["CardcoopMyCard"],
 	/** Получение одобрения по внутреннему ID базы данных */
 	chairmanApproval?: ModelTypes["Approval"] | undefined | null,
 	/** Получение списка одобрений председателя совета с фильтрацией */
@@ -51267,6 +51480,72 @@ export type GraphQLTypes = {
 	/** Значение на экстремуме */
 	value: number,
 	['...on CapitalWaveSwing']: Omit<GraphQLTypes["CapitalWaveSwing"], "...on CapitalWaveSwing">
+};
+	/** Состояние свидетельства о членстве, выданного кооперативом в сеть «Карта кооператора» */
+["CardcoopAttestationState"]: CardcoopAttestationState;
+	["CardcoopEntry"]: {
+	__typename: "CardcoopEntry",
+	/** Номер карты кооператора */
+	cardNumber?: string | undefined | null,
+	/** Идентификатор сессии входа */
+	id: string,
+	/** Членства карты в других кооперативах — из них выбирается источник анкеты */
+	memberships: Array<GraphQLTypes["CardcoopEntryMembership"]>,
+	/** Адрес сети «Карта кооператора»: там держатель подтверждает перенос анкеты */
+	networkUrl: string,
+	/** Пайщик или кандидат */
+	outcome: GraphQLTypes["CardcoopEntryOutcome"],
+	/** Состояние быстрой регистрации */
+	status: GraphQLTypes["CardcoopEntryStatus"],
+	/** Учётное имя пайщика, которого опознала карта; пусто у кандидата */
+	username?: string | undefined | null,
+	['...on CardcoopEntry']: Omit<GraphQLTypes["CardcoopEntry"], "...on CardcoopEntry">
+};
+	["CardcoopEntryInput"]: {
+		/** Идентификатор сессии входа */
+	entry_id: string
+};
+	["CardcoopEntryMembership"]: {
+	__typename: "CardcoopEntryMembership",
+	/** Системное имя кооператива */
+	coopname: string,
+	/** Наименование кооператива */
+	displayName: string,
+	/** Дата вступления */
+	memberSince?: string | undefined | null,
+	['...on CardcoopEntryMembership']: Omit<GraphQLTypes["CardcoopEntryMembership"], "...on CardcoopEntryMembership">
+};
+	/** Кем оказался человек, вошедший по карте: пайщиком или кандидатом */
+["CardcoopEntryOutcome"]: CardcoopEntryOutcome;
+	["CardcoopEntryProfile"]: {
+	__typename: "CardcoopEntryProfile",
+	/** Анкета для предзаполнения формы вступления */
+	profile: GraphQLTypes["JSON"],
+	/** Вид субъекта: физлицо, ИП или организация */
+	subjectType: string,
+	['...on CardcoopEntryProfile']: Omit<GraphQLTypes["CardcoopEntryProfile"], "...on CardcoopEntryProfile">
+};
+	/** Состояние быстрой регистрации по карте */
+["CardcoopEntryStatus"]: CardcoopEntryStatus;
+	["CardcoopMyCard"]: {
+	__typename: "CardcoopMyCard",
+	/** Номер карты — то, что человек называет вслух; null, пока карта не выпущена */
+	cardNumber?: string | undefined | null,
+	/** Адрес выпуска карты в сети: сюда уходит пайщик, у которого карты ещё нет. Строится из адреса сети и имени кооператива, руками нигде не вписывается */
+	enterUrl: string,
+	/** Выпущена ли карта: пайщик дошёл до сети и связал её со своей учётной записью */
+	issued: boolean,
+	/** Дата вступления в кооператив, о которой свидетельствует документ (YYYY-MM-DD) */
+	memberSince?: string | undefined | null,
+	/** Состояние свидетельства о членстве; null, пока карта не выпущена */
+	state?: GraphQLTypes["CardcoopAttestationState"] | undefined | null,
+	['...on CardcoopMyCard']: Omit<GraphQLTypes["CardcoopMyCard"], "...on CardcoopMyCard">
+};
+	["CardcoopRequestEntryDisclosureInput"]: {
+		/** Идентификатор сессии входа */
+	entry_id: string,
+	/** Системное имя кооператива-источника */
+	from_coopname: string
 };
 	["Category"]: {
 	__typename: "Category",
@@ -58538,6 +58817,10 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman, member, user.  */
 	capitalUpdateStory: GraphQLTypes["CapitalStory"],
+	/** Запросить перенос анкеты из выбранного кооператива — решение принимает держатель на card.coop */
+	cardcoopRequestEntryDisclosure: GraphQLTypes["CardcoopEntry"],
+	/** Забрать перенесённую анкету в форму вступления; повторного прочтения не существует */
+	cardcoopTakeEntryProfile: GraphQLTypes["CardcoopEntryProfile"],
 	/** Подтверждение одобрения документа председателем совета
 
 Требуемые роли: chairman.  */
@@ -60971,6 +61254,14 @@ export type GraphQLTypes = {
 	capitalVote?: GraphQLTypes["CapitalVote"] | undefined | null,
 	/** Получение списка голосов кооператива с фильтрацией */
 	capitalVotes: GraphQLTypes["PaginatedCapitalVotesPaginationResult"],
+	/** Сессия входа по карте кооператора: кто вошёл и на каком шаге быстрая регистрация */
+	cardcoopEntry: GraphQLTypes["CardcoopEntry"],
+	/** Доступен ли вход по карте кооператора в этом кооперативе */
+	cardcoopEntryAvailable: boolean,
+	/** Карта кооператора в сети «Карта кооператора»: выпущена ли и что с членством
+
+Требуемые роли: chairman, member, user.  */
+	cardcoopMyCard: GraphQLTypes["CardcoopMyCard"],
 	/** Получение одобрения по внутреннему ID базы данных */
 	chairmanApproval?: GraphQLTypes["Approval"] | undefined | null,
 	/** Получение списка одобрений председателя совета с фильтрацией */
@@ -63906,6 +64197,27 @@ export enum CapitalStoryContentFormat {
 	MARKDOWN = "MARKDOWN",
 	MERMAID = "MERMAID"
 }
+/** Состояние свидетельства о членстве, выданного кооперативом в сеть «Карта кооператора» */
+export enum CardcoopAttestationState {
+	Active = "Active",
+	Pending = "Pending",
+	Rejected = "Rejected",
+	Revoked = "Revoked"
+}
+/** Кем оказался человек, вошедший по карте: пайщиком или кандидатом */
+export enum CardcoopEntryOutcome {
+	Candidate = "Candidate",
+	Member = "Member"
+}
+/** Состояние быстрой регистрации по карте */
+export enum CardcoopEntryStatus {
+	AwaitingConsent = "AwaitingConsent",
+	Denied = "Denied",
+	Expired = "Expired",
+	Failed = "Failed",
+	ProfileReady = "ProfileReady",
+	Started = "Started"
+}
 export enum ChairmanOnboardingAgendaStep {
 	participant_application = "participant_application",
 	privacy_agreement = "privacy_agreement",
@@ -64852,6 +65164,11 @@ type ZEUS_VARIABLES = {
 	["CapitalTimeEntriesFilter"]: ValueTypes["CapitalTimeEntriesFilter"];
 	["CapitalTimeStatsInput"]: ValueTypes["CapitalTimeStatsInput"];
 	["CapitalTopupProgramExpenseInput"]: ValueTypes["CapitalTopupProgramExpenseInput"];
+	["CardcoopAttestationState"]: ValueTypes["CardcoopAttestationState"];
+	["CardcoopEntryInput"]: ValueTypes["CardcoopEntryInput"];
+	["CardcoopEntryOutcome"]: ValueTypes["CardcoopEntryOutcome"];
+	["CardcoopEntryStatus"]: ValueTypes["CardcoopEntryStatus"];
+	["CardcoopRequestEntryDisclosureInput"]: ValueTypes["CardcoopRequestEntryDisclosureInput"];
 	["CategoryTypeInput"]: ValueTypes["CategoryTypeInput"];
 	["ChairmanOnboardingAgendaInput"]: ValueTypes["ChairmanOnboardingAgendaInput"];
 	["ChairmanOnboardingAgendaStep"]: ValueTypes["ChairmanOnboardingAgendaStep"];
