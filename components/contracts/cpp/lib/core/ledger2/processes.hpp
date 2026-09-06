@@ -78,7 +78,7 @@ namespace processes {
 
   // branch — экономика кооперативного участка (requirement b6)
   namespace branch {
-    inline constexpr eosio::name FEES  = "p.brn.fees"_n;  ///< Членские взносы КУ: зачисление в общий кошелёк при финализации заказа (o.brn.common), ручное распределение председателем (o.brn.release + o.brn.person) и использование персональных средств доверенным (o.brn.conv).
+    inline constexpr eosio::name FEES  = "p.brn.fees"_n;  ///< Членские взносы КУ: зачисление в общий кошелёк при финализации заказа (o.brn.common), ручное распределение председателем (o.brn.release + o.brn.person).
     inline constexpr eosio::name AID   = "p.brn.aid"_n;   ///< Материальная помощь доверенному КУ из его персонального кошелька (o.brn.aid; заявление → выплата кассиром).
     inline constexpr eosio::name SPEND = "p.brn.spend"_n; ///< Оплата расхода КУ из общего кошелька (o.brn.spend; команда председателя → выплата кассиром по реквизитам). Плановый реестр расходов и резерв 30 дней ведёт бэкенд.
   }

@@ -44,7 +44,7 @@ namespace WroffStatus {
  * Может ссылаться:
  *  - на конкретный Order (если позиция «не выдана первичному заказчику») —
  *    `source_order_id` != 0;
- *  - на излишек в результате signiss2 fact > ordered + остаток на складе —
+ *  - на излишек в результате issueact2 fact > ordered + остаток на складе —
  *    `source_order_id` == 0, аналитика только через `braname` + `meta`;
  *  - на возвращённое имущество из p.mkt.return — `source_order_id` ссылка
  *    через original Order, через который имущество физически вернулось.

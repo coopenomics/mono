@@ -165,14 +165,6 @@ public:
                                      eosio::asset amount,
                                      std::string memo);
 
-  /**
-   * @brief Перевод персональных средств доверенного в членский кошелёк
-   * «Стола заказов» (o.brn.conv) — для заказов как обычный пайщик.
-   * @ingroup public_branch_actions
-   */
-  [[eosio::action]] void convert(eosio::name coopname, eosio::name username,
-                                  eosio::checksum256 convert_hash,
-                                  eosio::asset amount);
 
   /**
    * @brief Заявление на материальную помощь доверенного из его персонального

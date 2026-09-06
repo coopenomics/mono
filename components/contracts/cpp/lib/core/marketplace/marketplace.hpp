@@ -279,7 +279,7 @@ inline eosio::asset get_order_membership_fee(const order& o) {
 
 /// Полный возврат членского взноса заказа на членский кошелёк «Стола
 /// заказов» (o.mkt.refund) при отмене/отклонении/истечении; no-op для
-/// заказов без взноса. Частичный возврат при недовыдаче — в signiss2.
+/// заказов без взноса. Частичный возврат при недовыдаче — в issueact2.
 inline void refund_membership_fee_if_any(eosio::name coopname, const order& o) {
   const eosio::asset fee = get_order_membership_fee(o);
   if (fee.amount <= 0) return;
@@ -290,8 +290,8 @@ inline void refund_membership_fee_if_any(eosio::name coopname, const order& o) {
                  Marketplace::Memo::get_membership_fee_refund_memo(o.id));
 }
 
-/// Полный возврат резерва заказа и членского взноса на членский «Стола
-/// заказов» (бесплатная отмена: до акцепта поставщиком либо заказ из остатка
+/// Полный возврат резерва заказа на свободный паевой «Стола заказов» и
+/// сторно членского взноса (бесплатная отмена: до акцепта поставщиком либо заказ из остатка
 /// кооператива — поставщика и его риска нет).
 inline void refund_order_full(eosio::name coopname, const order& o) {
   Ledger2::apply(_marketplace, coopname,
@@ -306,6 +306,23 @@ inline void refund_order_full(eosio::name coopname, const order& o) {
 /// Hard-code (определяется Положением целевой потребительской программы).
 inline constexpr uint64_t REFUSAL_PENALTY_PERCENT = 50;
 
+/// Срок ожидания решения совета по принятому на участок имуществу при
+/// гарантийном возврате. Если совет не решил за это время, оператор вправе
+/// выдать имущество заказчику обратно (handback) — баланс не восстанавливается.
+/// TBD-Standardization: величину подтверждает методолог.
+inline constexpr uint32_t RETURN_DECISION_WAIT_SECS = 7 * 24 * 3600;
+
+/// Снятие документов начатой выдачи с заказа (отказ совета, отмена оператором):
+/// заявление, протокол и обе подписи акта очищаются, факт возвращается к заказу.
+inline void clear_issue_documents(order& o) {
+  o.issue_statement = document2{};
+  o.issue_protocol  = document2{};
+  o.issue_act1      = document2{};
+  o.issue_act2      = document2{};
+  o.actual_quantity = o.quantity;
+  o.fact_cost       = o.total_cost;
+}
+
 /// Удерживаемая часть суммы (округление вниз — остаток в пользу пайщика).
 inline eosio::asset refusal_penalty_share(const eosio::asset& base) {
   return calc_membership_fee(base, REFUSAL_PENALTY_PERCENT);
@@ -315,7 +332,7 @@ inline eosio::asset refusal_penalty_share(const eosio::asset& base) {
 /// Тело заказа и членский взнос делятся пополам — удержанная половина уходит
 /// в общий кошелёк КУ выдачи (тело — транзитом через пул взносов o.mkt.penalty,
 /// затем единым Branch::accrue вместе с удержанной половиной взноса), вторая
-/// половина возвращается пайщику на членский «Стола заказов». Имущество
+/// половина возвращается пайщику на свободный паевой «Стола заказов». Имущество
 /// остаётся на складе КУ (без движения по счёту 10) — кооператив несёт риск
 /// уже оплаченной поставки, под который и держится удержание.
 inline void retain_refusal_penalty(eosio::name coopname, const order& o) {

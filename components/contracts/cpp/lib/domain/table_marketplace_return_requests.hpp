@@ -27,6 +27,8 @@ using namespace eosio;
 namespace ReturnStatus {
   inline constexpr eosio::name PENDING_REVIEW       = "pendrev"_n;
   inline constexpr eosio::name APPROVED_FOR_VISIT   = "approvvisit"_n;
+  inline constexpr eosio::name RETURN_PENDING       = "retpend"_n;     ///< имущество принято оператором, ждём решение совета
+  inline constexpr eosio::name RETURN_DECLINED      = "retdecl"_n;     ///< совет отказал, имущество ждёт заказчика на участке
 }
 
 /**
@@ -89,6 +91,7 @@ struct [[eosio::table, eosio::contract(MARKETPLACE)]] return_request {
 
   eosio::name status = ReturnStatus::PENDING_REVIEW;
   document2 statement;                                        ///< заявление пайщика (его подпись)
+  time_point_sec accepted_at = time_point_sec(0);            ///< момент приёма имущества оператором (accretrn); от него считается срок ожидания решения совета для handback
 
   // Timestamp'ы submretrn/aprretrem/rejretrem/accretrn/rejretrn — на бэкенде
   // из blockchain_actions[at]. В контракте никаких guard'ов по датам нет.

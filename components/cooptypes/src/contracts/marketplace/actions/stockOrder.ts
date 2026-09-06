@@ -3,12 +3,12 @@ import type * as Marketplace from '../../../interfaces/marketplace'
 import { Actors } from '../../../common'
 
 /**
- * Заказ имущества из обезличенного остатка склада кооператива (requirement 76).
+ * Заказ имущества из обезличенного остатка склада кооператива (паевая модель).
  * Продавец — сам кооператив (offerer == coopname); Order рождается сразу в
- * acceptcoop и идёт только через выдачу signiss1/signiss2.
- * Фондируется из членских средств пайщика начисто: o.mkt.lockm (тело,
- * w.mkt.member → w.mkt.order) + o.mkt.lockmf (взнос, w.mkt.member → w.mkt.fee).
- * Паевой пополняет членский кошелёк заранее отдельным действием `convert`.
+ * acceptcoop и идёт только через выдачу (readyissue → issuestmt → … → issueact2).
+ * Фондируется из свободного паевого «Стола заказов»: o.mkt.lockp (тело,
+ * w.mkt.share → w.mkt.order) + o.mkt.lockpf (взнос, w.mkt.share → w.mkt.fee).
+ * При нехватке — отказ; автоматического добора с паевого Цифрового кошелька нет.
  */
 export const authorizations = [{ permissions: [Permissions.active], actor: Actors._username }] as const
 

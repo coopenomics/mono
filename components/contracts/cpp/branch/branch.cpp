@@ -4,7 +4,6 @@
 #include "src/addtrusted.cpp"
 #include "src/aidconfirm.cpp"
 #include "src/aiddecline.cpp"
-#include "src/convert.cpp"
 #include "src/createaid.cpp"
 #include "src/createbranch.cpp"
 #include "src/deletebranch.cpp"

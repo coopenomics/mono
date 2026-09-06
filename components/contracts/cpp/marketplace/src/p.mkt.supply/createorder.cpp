@@ -33,16 +33,12 @@ void marketplace::createorder(eosio::name coopname,
                                eosio::asset unit_price,
                                eosio::asset package_size,
                                uint32_t warranty_period_secs,
-                               checksum256 batch_hash,
-                               document2 convert_statement) {
+                               checksum256 batch_hash) {
   require_auth(coopname);
 
   // ── Базовая валидация параметров ────────────────────────────────────
   Marketplace::check_quantity(quantity);
   Marketplace::check_packaging(quantity, package_size);  // Эпик 18: при упаковочном отпуске quantity кратно упаковке
-  eosio::check(!is_empty_document(convert_statement),
-               "Отсутствует заявление о конвертации паевого взноса");
-  verify_document_or_fail(convert_statement, { orderer });
   eosio::check(unit_price.is_valid() && unit_price.amount > 0,
                "Некорректная цена за единицу");
   eosio::check(unit_price.symbol == _root_govern_symbol,
@@ -95,11 +91,11 @@ void marketplace::createorder(eosio::name coopname,
     o.accept_braname   = eosio::name{};   // заполняется на signsupp
 
     o.quantity        = quantity;
-    o.actual_quantity = quantity;          // до signiss2 == quantity (Story 6.2/6.3)
+    o.actual_quantity = quantity;          // до issuestmt == quantity
     o.package_size    = package_size;      // Эпик 18: 0 = по мере, >0 = упаковкой
     o.unit_price      = unit_price;
     o.total_cost      = total_cost;
-    o.fact_cost       = total_cost;        // до signiss2 == total_cost
+    o.fact_cost       = total_cost;        // до issuestmt == total_cost
 
     o.warranty_period_secs  = warranty_period_secs;
 
@@ -132,7 +128,4 @@ void marketplace::createorder(eosio::name coopname,
   // самостоятельным пакетом (package = hash самого заявления): конвертация —
   // операция программы «Стол заказов», а не процесса поставки (пакет процесса
   // поставки группируется вокруг order_hash актами приёма-передачи).
-  Soviet::make_complete_document(_marketplace, coopname, orderer,
-                                 "createorder"_n,
-                                 convert_statement.hash, convert_statement);
 }

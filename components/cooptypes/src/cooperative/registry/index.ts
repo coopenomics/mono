@@ -15,14 +15,6 @@ export * as SelectBranchStatement from './101.SelectBranchStatement'
 export * as ProjectFreeDecision from './599.ProjectFreeDecision'
 export * as FreeDecision from './600.FreeDecision'
 
-export * as AssetContributionStatement from './700.AssetContributionStatement'
-export * as AssetContributionDecision from './701.AssetContributionDecision'
-export * as AssetContributionAct from './702.AssetContributionAct'
-
-export * as ReturnByAssetStatement from './800.ReturnByAssetStatement'
-export * as ReturnByAssetDecision from './801.ReturnByAssetDecision'
-export * as ReturnByAssetAct from './802.ReturnByAssetAct'
-
 export * as ReturnByMoney from './900.ReturnByMoney'
 export * as ReturnByMoneyDecision from './901.ReturnByMoneyDecision'
 
@@ -79,14 +71,17 @@ export * as MarketplaceOfferTemplate from './1101.MarketplaceOfferTemplate'
 export * as MarketplaceOffer from './1102.MarketplaceOffer'
 export * as MarketplaceTransportNote from './1103.MarketplaceTransportNote'
 export * as MarketplaceAplReception from './1104.MarketplaceAplReception'
-export * as MarketplaceAplIssuance from './1105.MarketplaceAplIssuance'
-export * as MarketplaceReturnStatement from './1106.MarketplaceReturnStatement'
 export * as MarketplaceWriteoffProtocol from './1107.MarketplaceWriteoffProtocol'
 export * as MarketplaceWriteoffStatement from './1108.MarketplaceWriteoffStatement'
 export * as BranchFinancialAidStatement from './1109.BranchFinancialAidStatement'
-export * as MarketplaceConvertStatement from './1110.MarketplaceConvertStatement'
 export * as MarketplaceWriteoffServiceMemo from './1111.MarketplaceWriteoffServiceMemo'
 export * as BranchFinancialAidProtocol from './1112.BranchFinancialAidProtocol'
+// Стол заказов — паевая модель (компонент 68): выдача и гарантийный возврат
+export * as MarketplaceShareReturnStatement from './1113.MarketplaceShareReturnStatement'
+export * as MarketplaceShareReturnDecision from './1114.MarketplaceShareReturnDecision'
+export * as MarketplaceShareReturnAct from './1115.MarketplaceShareReturnAct'
+export * as MarketplaceShareContributionStatement from './1116.MarketplaceShareContributionStatement'
+export * as MarketplaceShareContributionDecision from './1117.MarketplaceShareContributionDecision'
 
 export * as SosediAgreement from './699.SosediAgreement'
 

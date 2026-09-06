@@ -55,6 +55,8 @@ inline void consolidate_share_to_main(name coopname, name username, name wallet_
     op = operations::registrator::MOVE_MINSHARE;       // w.reg.minshr → w.wal.share
   } else if (wallet_name == ledger2_wallets::BLAGOROST_FUND) {
     op = operations::capital::WITHDRAW_FROM_CAPITAL;   // w.cap.blago  → w.wal.share
+  } else if (wallet_name == ledger2_wallets::MARKETPLACE_SHARE_FUND) {
+    op = operations::marketplace::RECALL_SHARE;        // w.mkt.share  → w.wal.share
   } else {
     eosio::check(false,
       std::string{"Нет операции консолидации паевого кошелька "} + wallet_name.to_string() +

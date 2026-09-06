@@ -73,6 +73,7 @@ struct ledger2_accounts {
   static constexpr uint64_t MATERIALS                 = 10 * 1000;   ///< 10 — Материалы (А; склад имущества на КУ, per-КУ субсчета)
   static constexpr uint64_t BANK_ACCOUNT              = 51 * 1000;   ///< 51 — Расчётный счёт (А)
   static constexpr uint64_t FINANCIAL_INVESTMENTS     = 58 * 1000;   ///< 58 — Финансовые вложения (А)
+  static constexpr uint64_t SUPPLIER_SETTLEMENTS      = 60 * 1000;   ///< 60 — Расчёты с поставщиками и подрядчиками (А-П): обязательство перед поставщиком между приёмкой и выплатой в Столе заказов (TBD-Standardization: по решению бухгалтера допустим 76)
 
   // Активно-пассивные
   static constexpr uint64_t PARTICIPANT_SETTLEMENTS   = 76 * 1000;   ///< 76 — Расчёты с пайщиками (А-П): суспенс регистрационного взноса до решения совета
@@ -83,7 +84,7 @@ struct ledger2_accounts {
   static constexpr uint64_t TARGET_RECEIPTS           = 86 * 1000;   ///< 86 — Целевое финансирование (П)
 
   // Активно-пассивный
-  static constexpr uint64_t OTHER_INCOME_EXPENSES     = 91 * 1000;   ///< 91 — Прочие доходы и расходы (А/П; транзит на выдаче и при утилизации скоропорта)
+  static constexpr uint64_t OTHER_INCOME_EXPENSES     = 91 * 1000;   ///< 91 — Прочие доходы и расходы (А/П; только уценка остатка при выдаче)
 };
 
 /**
@@ -105,12 +106,13 @@ struct Ledger2AccountMeta {
  * `constexpr std::array` + `string_view` — чтобы не было dynamic init
  * при загрузке контракта и тип был полностью заморожен на этапе сборки.
  */
-inline constexpr std::array<Ledger2AccountMeta, 10> LEDGER2_ACCOUNT_MAP = {{
+inline constexpr std::array<Ledger2AccountMeta, 11> LEDGER2_ACCOUNT_MAP = {{
   { ledger2_accounts::INTANGIBLE_ASSETS,       "Нематериальные активы",                 AccountType::ACTIVE },
   { ledger2_accounts::NON_CURRENT_INVESTMENTS, "Вложения во внеоборотные активы",       AccountType::ACTIVE },
   { ledger2_accounts::MATERIALS,               "Материалы",                             AccountType::ACTIVE },
   { ledger2_accounts::BANK_ACCOUNT,            "Расчётный счёт",                        AccountType::ACTIVE },
   { ledger2_accounts::FINANCIAL_INVESTMENTS,   "Финансовые вложения",                   AccountType::ACTIVE },
+  { ledger2_accounts::SUPPLIER_SETTLEMENTS,    "Расчёты с поставщиками и подрядчиками", AccountType::ACTIVE_PASSIVE },
   { ledger2_accounts::PARTICIPANT_SETTLEMENTS, "Расчёты с пайщиками",                   AccountType::ACTIVE_PASSIVE },
   { ledger2_accounts::TAX_SETTLEMENTS,         "Расчёты по налогам и сборам",           AccountType::PASSIVE },
   { ledger2_accounts::SHARE_FUND,              "Паевой фонд (складочный капитал)",      AccountType::PASSIVE },

@@ -1,29 +1,22 @@
-// Canonical actions контракта marketplace (Story 11.1, членская модель «Стола заказов»).
+// Canonical actions контракта marketplace (паевая модель «Стола заказов», компонент 68).
 // Источник правды: components/contracts/build/contracts/marketplace/marketplace.abi
 // Раскладка по процессам соответствует YAML-стандартам:
 //   p.mkt.supply.standard.yaml / p.mkt.return.standard.yaml / p.mkt.wroff.standard.yaml
 
-// ── p.mkt.supply (12 actions) — Stories Эпиков 4-5-6 + E11 техдолг 598-16 ──
+// ── p.mkt.supply — Stories Эпиков 4-5-6 + E11 техдолг 598-16 ──
 
 /**
- * Заказчик размещает заказ на товар из каталога (Story 4.1).
- * Серия: o.wal.conv (conditional) → o.mkt.assign (conditional) → o.mkt.block.
+ * Заказчик размещает заказ на товар из каталога: o.mkt.lock (паевой резерв) +
+ * o.mkt.fee (членский взнос участка). Отдельного заявления нет.
  */
 export * as CreateOrder from './createOrder'
 
 /**
- * Заказ имущества из обезличенного остатка склада кооператива (requirement 76).
- * Продавец — кооператив; Order рождается сразу в acceptcoop. Фондируется из
- * членских средств: o.mkt.lockm (тело) + o.mkt.lockmf (взнос).
+ * Заказ имущества из обезличенного остатка склада кооператива. Продавец —
+ * кооператив; Order рождается сразу в acceptcoop. Фондируется из свободного
+ * паевого «Стола заказов»: o.mkt.lockp (тело) + o.mkt.lockpf (взнос).
  */
 export * as StockOrder from './stockOrder'
-
-/**
- * Конвертация паевого взноса в членский кошелёк «Стола заказов» (requirement 76):
- * o.mkt.conv (w.wal.share → w.mkt.member). Пополняет членские средства под заказ
- * со склада; выполняется перед stockorder, когда членских средств не хватает.
- */
-export * as Convert from './convert'
 
 /**
  * Списание уценки по заказу из остатка (requirement 76): o.mkt.loss (Дт 91 / Кт 10)
@@ -87,16 +80,31 @@ export * as PayConfirm from './payConfirm'
  */
 export * as PayDecline from './payDecline'
 
-/**
- * Председатель / trustee КУ выдачи открывает выдачу первой подписью АПП-выдачи (Story 6.1).
- */
-export * as SignIss1 from './signIss1'
+// ── Выдача по заявлению, протоколу совета и акту (паевая модель, компонент 68) ──
 
-/**
- * Заказчик ставит финальную подпись АПП-выдачи (Story 6.3).
- * Per-Order с поддержкой actual_quantity ≠ ordered (Story 6.2).
- */
-export * as SignIss2 from './signIss2'
+/** Оператор участка выдачи отмечает поступление имущества: acceptcoop → readyrecv, без подписи. */
+export * as ReadyIssue from './readyIssue'
+
+/** Заказчик подписывает Заявление 1113 на фактический состав: readyrecv → issuepend + повестка совета mktissue. */
+export * as IssueStmt from './issueStmt'
+
+/** Callback soviet::exec после Протокола 1114: issuepend → issueauth. */
+export * as OnMktIsAuth from './onMktIsAuth'
+
+/** Callback soviet при отказе по выдаче: issuepend → readyrecv. */
+export * as OnMktIsDecl from './onMktIsDecl'
+
+/** Первая подпись Акта 1115 заказчиком: issueauth → issueact1. */
+export * as IssueAct1 from './issueAct1'
+
+/** Закрывающая подпись Акта 1115 председателем участка: issueact1 → received, все движения выдачи. */
+export * as IssueAct2 from './issueAct2'
+
+/** Отмена начатой выдачи оператором: issueauth / issueact1 → readyrecv. */
+export * as CancelIssue from './cancelIssue'
+
+/** Вывод свободного паевого «Стола заказов» в общий паевой (o.mkt.recall). */
+export * as RecallShare from './recallShare'
 
 /**
  * Единая ставка членского взноса кооператива (requirement b6, «Экономика КУ»).
@@ -109,7 +117,7 @@ export * as SetFee from './setFee'
  * Меняет председатель КУ; применяется при финализации заказов в branch::distribute.
  */
 
-// ── p.mkt.return (5 actions) — Stories Эпика 7 ─────────────────────────
+// ── p.mkt.return — Stories Эпика 7 ─────────────────────────
 
 /**
  * Пайщик подаёт заявление на гарантийный возврат (Story 7.1).
@@ -127,10 +135,19 @@ export * as AprRetRem from './aprRetRem'
 export * as RejRetRem from './rejRetRem'
 
 /**
- * Председатель принимает возврат на очном осмотре (Story 7.4).
- * Atomic: o.mkt.return + o.mkt.return2 (compensating forward).
+ * Оператор участка принимает имущество у стойки (паевая модель): вторая подпись
+ * на Заявлении 1116, approvvisit → retpend + повестка совета mktretrn. Движений нет.
  */
 export * as AccRetrn from './accRetrn'
+
+/** Callback soviet::exec после Протокола 1117: откат движений выдачи, o.mkt.return (Дт 10 / Кт 80); заявка стирается. */
+export * as OnMktRtAuth from './onMktRtAuth'
+
+/** Callback soviet при отказе совета: retpend → retdecl, имущество ждёт заказчика. */
+export * as OnMktRtDecl from './onMktRtDecl'
+
+/** Оператор выдал имущество обратно (после отказа совета или по истечении срока ожидания). */
+export * as HandBack from './handBack'
 
 /**
  * Председатель отказывает на очном осмотре (Story 7.3).

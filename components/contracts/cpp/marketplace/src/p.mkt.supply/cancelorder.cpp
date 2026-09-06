@@ -16,7 +16,7 @@
  *  - readyrecv / received                     → закрыто (акт выдачи уже открыт).
  *  - Заказ из остатка кооператива (offerer == coopname, см. stockorder):
  *    поставщика и его риска нет — отмена бесплатна в acceptcoop до первой
- *    подписи акта выдачи (requirement 76, решение 11); после signiss1 закрыта.
+ *    подписи акта выдачи (requirement 76, решение 11); после readyissue закрыта.
  *
  * @ingroup public_marketplace_actions
  */
@@ -31,8 +31,9 @@ void marketplace::cancelorder(eosio::name coopname,
 
   if (is_stock_order) {
     // Остаток кооператива: нет поставщика — отмена бесплатна до выдачи.
-    eosio::check(o.status == OrderStatus::ACCEPTED_TO_COOP,
-                 "Нельзя отменить заказ из остатка: выдача уже открыта");
+    eosio::check(o.status == OrderStatus::ACCEPTED_TO_COOP ||
+                 o.status == OrderStatus::READY_TO_RECEIVE,
+                 "Нельзя отменить заказ из остатка: выдача уже начата");
     Marketplace::refund_order_full(coopname, o);
   } else if (o.status == OrderStatus::ACTIVE) {
     // До акцепта поставщиком — бесплатно.

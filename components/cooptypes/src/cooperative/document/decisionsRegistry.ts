@@ -4,6 +4,8 @@ import {
   BranchEstablishmentSovietDecision, // 325
   DecisionOfParticipantApplication, // 501
   FreeDecision,
+  MarketplaceShareContributionDecision, // 1117
+  MarketplaceShareReturnDecision, // 1114
   ResultContributionDecision, // 1041
 
   ReturnByMoneyDecision, // 901
@@ -29,6 +31,8 @@ export const decisionsRegistry: Record<string, number> = {
   createwthd: ReturnByMoneyDecision.registry_id, // заявление на возврат паевого взноса
   // capitalinvst: InvestByResultDecision.registry_id, // заявление на инвестиции по договору УХД
   createresult: ResultContributionDecision.registry_id, // клайм прироста благороста из задания
+  mktissue: MarketplaceShareReturnDecision.registry_id, // выдача имущества пайщику в паевой модели Стола заказов (p.mkt.supply)
+  mktretrn: MarketplaceShareContributionDecision.registry_id, // гарантийный возврат: принятие имущества и восстановление паевого взноса (p.mkt.return)
   // createdebt: InvestByMoneyStatement.registry_id, // взять ссуду под залог будущего задания
   // capresexpns: InvestMembershipConvertation.registry_id, // произвести выплату по расходам задания
   // capwthdrprog: ReturnByAssetStatement.registry_id, // возврат накопленных членских взносов по программе на капиталиста

@@ -11,13 +11,7 @@ import * as DecisionOfParticipantExit from './201.DecisionOfParticipantExit'
 import * as SelectBranchStatement from './101.SelectBranchStatement'
 import * as ProjectFreeDecision from './599.ProjectFreeDecision'
 import * as FreeDecision from './600.FreeDecision'
-import * as AssetContributionStatement from './700.assetContributionStatement'
-import * as ReturnByAssetStatement from './800.returnByAssetStatement'
-import * as AssetContributionDecision from './701.assetContributionDecision'
-import * as ReturnByAssetDecision from './801.returnByAssetDecision'
 
-import * as AssetContributionAct from './702.assetContributionAct'
-import * as ReturnByAssetAct from './802.returnByAssetAct'
 import * as ReturnByMoney from './900.returnByMoney'
 import * as ReturnByMoneyDecision from './901.ReturnByMoneyDecision'
 import * as GenerationContract from './1001.GenerationContract'
@@ -87,14 +81,16 @@ import * as MarketplaceOfferTemplate from './1101.MarketplaceOfferTemplate'
 import * as MarketplaceOffer from './1102.MarketplaceOffer'
 import * as MarketplaceTransportNote from './1103.MarketplaceTransportNote'
 import * as MarketplaceAplReception from './1104.MarketplaceAplReception'
-import * as MarketplaceAplIssuance from './1105.MarketplaceAplIssuance'
-import * as MarketplaceReturnStatement from './1106.MarketplaceReturnStatement'
 import * as MarketplaceWriteoffProtocol from './1107.MarketplaceWriteoffProtocol'
 import * as MarketplaceWriteoffStatement from './1108.MarketplaceWriteoffStatement'
 import * as BranchFinancialAidStatement from './1109.BranchFinancialAidStatement'
-import * as MarketplaceConvertStatement from './1110.MarketplaceConvertStatement'
 import * as MarketplaceWriteoffServiceMemo from './1111.MarketplaceWriteoffServiceMemo'
 import * as BranchFinancialAidProtocol from './1112.BranchFinancialAidProtocol'
+import * as MarketplaceShareReturnStatement from './1113.MarketplaceShareReturnStatement'
+import * as MarketplaceShareReturnDecision from './1114.MarketplaceShareReturnDecision'
+import * as MarketplaceShareReturnAct from './1115.MarketplaceShareReturnAct'
+import * as MarketplaceShareContributionStatement from './1116.MarketplaceShareContributionStatement'
+import * as MarketplaceShareContributionDecision from './1117.MarketplaceShareContributionDecision'
 import * as MarketplaceProgramTemplate from './1100.MarketplaceProgramTemplate'
 
 export const Registry = {
@@ -127,12 +123,6 @@ export const Registry = {
   599: ProjectFreeDecision,
   600: FreeDecision,
   699: SosediAgreement,
-  700: AssetContributionStatement,
-  701: AssetContributionDecision,
-  702: AssetContributionAct,
-  800: ReturnByAssetStatement,
-  801: ReturnByAssetDecision,
-  802: ReturnByAssetAct,
   900: ReturnByMoney,
   901: ReturnByMoneyDecision,
   994: GeneratorProgramTemplate,
@@ -172,14 +162,16 @@ export const Registry = {
   1102: MarketplaceOffer,
   1103: MarketplaceTransportNote,
   1104: MarketplaceAplReception,
-  1105: MarketplaceAplIssuance,
-  1106: MarketplaceReturnStatement,
   1107: MarketplaceWriteoffProtocol,
   1108: MarketplaceWriteoffStatement,
   1109: BranchFinancialAidStatement,
-  1110: MarketplaceConvertStatement,
   1111: MarketplaceWriteoffServiceMemo,
   1112: BranchFinancialAidProtocol,
+  1113: MarketplaceShareReturnStatement,
+  1114: MarketplaceShareReturnDecision,
+  1115: MarketplaceShareReturnAct,
+  1116: MarketplaceShareContributionStatement,
+  1117: MarketplaceShareContributionDecision,
   2010: ExpenseProposalStatement,
   2011: ExpenseProposalDecision,
 }

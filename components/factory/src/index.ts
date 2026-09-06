@@ -166,11 +166,6 @@ export class Generator implements IGenerator {
       [Actions.FreeDecision.Template.registry_id]: new Actions.FreeDecision.Factory(this.storage), // 600
 
       [Actions.SosediAgreement.Template.registry_id]: new Actions.SosediAgreement.Factory(this.storage), // 699
-
-      [Actions.AssetContributionStatement.Template.registry_id]: new Actions.AssetContributionStatement.Factory(this.storage), // 700
-      [Actions.ReturnByAssetStatement.Template.registry_id]: new Actions.ReturnByAssetStatement.Factory(this.storage), // 800
-      [Actions.ReturnByAssetDecision.Template.registry_id]: new Actions.ReturnByAssetDecision.Factory(this.storage), // 801
-      [Actions.ReturnByAssetAct.Template.registry_id]: new Actions.ReturnByAssetAct.Factory(this.storage), // 802
       [Actions.ReturnByMoney.Template.registry_id]: new Actions.ReturnByMoney.Factory(this.storage), // 900
       [Actions.ReturnByMoneyDecision.Template.registry_id]: new Actions.ReturnByMoneyDecision.Factory(this.storage), // 901
 
@@ -185,8 +180,6 @@ export class Generator implements IGenerator {
       [Actions.BlagorostOfferTemplate.Template.registry_id]: new Actions.BlagorostOfferTemplate.Factory(this.storage), // 999
       [Actions.BlagorostOffer.Template.registry_id]: new Actions.BlagorostOffer.Factory(this.storage), // 1000
 
-      [Actions.AssetContributionDecision.Template.registry_id]: new Actions.AssetContributionDecision.Factory(this.storage), // 701
-      [Actions.AssetContributionAct.Template.registry_id]: new Actions.AssetContributionAct.Factory(this.storage), // 702
       [Actions.GenerationContract.Template.registry_id]: new Actions.GenerationContract.Factory(this.storage), // 1001
       [Actions.ProjectGenerationContract.Template.registry_id]: new Actions.ProjectGenerationContract.Factory(this.storage), // 1002
       [Actions.ComponentGenerationContract.Template.registry_id]: new Actions.ComponentGenerationContract.Factory(this.storage), // 1003
@@ -234,18 +227,20 @@ export class Generator implements IGenerator {
       // Marketplace (Стол заказов) — Эпик 5
       [Actions.MarketplaceTransportNote.Template.registry_id]: new Actions.MarketplaceTransportNote.Factory(this.storage), // 1103
       [Actions.MarketplaceAplReception.Template.registry_id]: new Actions.MarketplaceAplReception.Factory(this.storage), // 1104 — приёмка (поставщик → кооператив)
-      [Actions.MarketplaceAplIssuance.Template.registry_id]: new Actions.MarketplaceAplIssuance.Factory(this.storage), // 1105 — выдача (кооператив → заказчик)
-
-      // Marketplace (Стол заказов) — Эпик 7: гарантийный возврат
-      [Actions.MarketplaceReturnStatement.Template.registry_id]: new Actions.MarketplaceReturnStatement.Factory(this.storage), // 1106
 
       // Marketplace (Стол заказов) — Эпик 8: списание скоропорта
       [Actions.MarketplaceWriteoffProtocol.Template.registry_id]: new Actions.MarketplaceWriteoffProtocol.Factory(this.storage), // 1107
       [Actions.MarketplaceWriteoffStatement.Template.registry_id]: new Actions.MarketplaceWriteoffStatement.Factory(this.storage), // 1108
       [Actions.BranchFinancialAidStatement.Template.registry_id]: new Actions.BranchFinancialAidStatement.Factory(this.storage), // 1109
-      [Actions.MarketplaceConvertStatement.Template.registry_id]: new Actions.MarketplaceConvertStatement.Factory(this.storage), // 1110
       [Actions.MarketplaceWriteoffServiceMemo.Template.registry_id]: new Actions.MarketplaceWriteoffServiceMemo.Factory(this.storage), // 1111
       [Actions.BranchFinancialAidProtocol.Template.registry_id]: new Actions.BranchFinancialAidProtocol.Factory(this.storage), // 1112
+
+      // Marketplace (Стол заказов) — паевая модель (компонент 68): выдача и гарантийный возврат
+      [Actions.MarketplaceShareReturnStatement.Template.registry_id]: new Actions.MarketplaceShareReturnStatement.Factory(this.storage), // 1113
+      [Actions.MarketplaceShareReturnDecision.Template.registry_id]: new Actions.MarketplaceShareReturnDecision.Factory(this.storage), // 1114
+      [Actions.MarketplaceShareReturnAct.Template.registry_id]: new Actions.MarketplaceShareReturnAct.Factory(this.storage), // 1115
+      [Actions.MarketplaceShareContributionStatement.Template.registry_id]: new Actions.MarketplaceShareContributionStatement.Factory(this.storage), // 1116
+      [Actions.MarketplaceShareContributionDecision.Template.registry_id]: new Actions.MarketplaceShareContributionDecision.Factory(this.storage), // 1117
     }
 
     // Источник данных раздаётся фабрикам одним местом — иначе его пришлось бы
