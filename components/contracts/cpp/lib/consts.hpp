@@ -68,6 +68,7 @@ static constexpr eosio::name _change_action = "change"_n;
 static constexpr eosio::name _product_contribution_action = "productcntr"_n;
 static constexpr eosio::name _product_return_action = "productrtrn"_n;
 static constexpr eosio::name _marketplace_writeoff_action = "mktwroff"_n;     ///< Списание скоропорта по решению совета (p.mkt.wroff)
+static constexpr eosio::name _marketplace_issue_action = "mktissue"_n;        ///< Выдача имущества пайщику в паевой ветке Стола заказов по решению совета (p.mkt.supply)
 
 // branch linked actions
 static constexpr eosio::name _branch_aid_action = "brnaid"_n;                ///< Материальная помощь доверенному КУ по решению совета (p.brn.aid)
@@ -90,6 +91,7 @@ static constexpr eosio::name _capital_program = "capital"_n; ///< Кошелёк
 static const std::set<eosio::name> soviet_actions = {
     "joincoop"_n, //регистрация пайщика
     "leavecoop"_n, //выход пайщика из кооператива (возврат паевого взноса)
+    "freedecision"_n, //свободное решение совета по произвольному вопросу повестки (sov.decision)
 
     //MEET
     "creategm"_n,//предложение повестки планового общего собрание
@@ -123,6 +125,7 @@ static const std::set<eosio::name> soviet_actions = {
     "authoffs2c"_n, //заявление на взнос имуществом
     "authoffc2r"_n, //заявление на возврат паевого взноса имуществом
     "mktwroff"_n, //проект списания скоропорта на повестку совета (p.mkt.wroff)
+    "mktissue"_n, //заявление о выдаче имущества пайщику в паевой ветке на повестку совета (p.mkt.supply)
 };
 
 //program_ids

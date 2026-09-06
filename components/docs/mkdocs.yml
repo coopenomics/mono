@@ -155,6 +155,7 @@ nav:
       - Реестр платежей: new/council/payments.md
       - Реестр собраний: new/council/meetings.md
       - Реестр кошельков: new/council/wallets.md
+      - Робот совета: new/council/robot.md
     
   - Стол председателя:
     - Запросы одобрений: new/chairman/approval-requests.md

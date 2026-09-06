@@ -14,16 +14,21 @@ void add_vote_against(eosio::name coopname, eosio::name username, uint64_t decis
 
 /**
  * @brief Голосование против решения совета
- * Позволяет члену совета голосовать против конкретного решения.
- * Проверяет права голоса и предотвращает повторное голосование.
- * @param version Версия протокола
+ *
+ * Член совета голосует «против». Подпись и ключ проверяются так же, как у голоса «за»:
+ * хэш привязан к голосу «против» по этому решению, ключ принадлежит указанному
+ * разрешению аккаунта. Робот против не голосует, но ограничения автоматизации
+ * действуют и здесь: разрешение робота принимается только по делегированным типам.
+ *
+ * @param version Версия протокола подписи голоса
  * @param coopname Наименование кооператива
- * @param username Наименование члена совета, голосующего против решения
- * @param decision_id Идентификатор решения для голосования
+ * @param username Наименование члена совета
+ * @param decision_id Идентификатор решения
  * @param signed_at Время подписи
- * @param signed_hash Подписанный хеш
+ * @param signed_hash Подписанный хэш (привязан к действию, кооперативу, решению и времени)
  * @param signature Подпись
- * @param public_key Публичный ключ
+ * @param public_key Публичный ключ подписи
+ * @param permission Разрешение аккаунта члена совета, которому принадлежит ключ подписи
  * @ingroup public_actions
  * @ingroup public_soviet_actions
 
@@ -37,7 +42,8 @@ void soviet::voteagainst(
   eosio::time_point_sec signed_at,
   checksum256 signed_hash,
   eosio::signature signature,
-  eosio::public_key public_key
+  eosio::public_key public_key,
+  eosio::name permission
 ) { 
   eosio::check(version == "1.0.0", "Неверная версия");
   if (!has_auth(username)) {
@@ -45,12 +51,6 @@ void soviet::voteagainst(
   } else {
     require_auth(username);
   }
-  
-  // // Проверка соответствия ID решения
-  // eosio::check(signed_at <= eosio::current_time_point(), "Время подписи не может быть в будущем");
-  
-  // Проверка подписи
-  assert_recover_key(signed_hash, signature, public_key);
   
   // Ищем решение по ID
   decisions_index decisions(_soviet, coopname.value);
@@ -62,10 +62,15 @@ void soviet::voteagainst(
   
   decision -> check_for_any_vote_exist(username);
 
+  eosio::check(signed_hash == Automation::vote_digest("voteagainst"_n, coopname, decision_id, signed_at),
+               "Подписанный хэш не соответствует голосу против этого решения");
+
+  Automation::verify_member_signature(coopname, username, permission, decision->type, Automation::Kind::vote,
+                                      signed_hash, signature, public_key);
+
   // Голос «против» только фиксируется. Отрицательный консенсус НЕ затирает
   // решение автоматически: отказ при достигнутом большинстве «против» проводит
   // председатель явным действием declinedec (развязано с авто-отменой по сроку
   // cancelexprd). Так принятое отрицательно решение не исчезает само из повестки.
   add_vote_against(coopname, username, decision->id);
 };
-

@@ -33,23 +33,14 @@
   //- Главная, установлено: настройки / вкл-выкл / удаление.
   template(v-if='isMain && extension.is_installed')
     SettingsButton
-    p.ext-actions__note(v-if='extension.is_builtin') Минимальное расширение
-    .ext-actions__toggle(v-else)
-      DisableButton(
-        v-if='extension.enabled',
-        :extension='extension',
-        :disabled='extension.is_builtin'
-      )
+    .ext-actions__toggle
+      DisableButton(v-if='extension.enabled', :extension='extension')
       EnableButton(
         v-if='!extension.enabled',
         :extension-name='extension.name',
-        :config='extension.config',
-        :disabled='extension.is_builtin'
+        :config='extension.config'
       )
-      UninstallButton(
-        :extension-name='extension.name',
-        :disabled='extension.is_builtin'
-      )
+      UninstallButton(:extension-name='extension.name')
     DesktopsList(:desktops='extension.desktops')
 </template>
 
@@ -99,12 +90,5 @@ const isSettings = computed(() => props.mode === 'settings');
 .ext-actions__toggle > * {
   flex: 1;
   min-width: 0;
-}
-
-.ext-actions__note {
-  margin: 0;
-  text-align: center;
-  font-size: var(--p-fs-body-sm);
-  color: var(--p-ink-3);
 }
 </style>
