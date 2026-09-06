@@ -102,6 +102,55 @@ export function followCycles(followBy: Map<string, string>): string[][] {
 }
 
 /**
+ * Голоса, которые робот подаёт без участия человека: сначала «сразу», затем все,
+ * кто повторяет за уже автоматическим голосом, и так до конца цепочки.
+ */
+function automaticVoters(withKey: RobotVoterView[]): Set<string> {
+  const automatic = new Set(withKey.filter((v) => v.mode === RobotVoteMode.AUTO).map((v) => v.member));
+  for (let grew = true; grew; ) {
+    grew = false;
+    for (const v of withKey) {
+      if (v.follow && !automatic.has(v.member) && automatic.has(v.follow)) {
+        automatic.add(v.member);
+        grew = true;
+      }
+    }
+  }
+  return automatic;
+}
+
+/**
+ * Начало цепочки повторов — тот, чьего живого голоса ждут все, кто идёт за ним.
+ * `null` — повторяющие замкнулись в круг, голоса не будет ни у кого.
+ */
+function chainRoot(start: RobotVoterView, byMember: Map<string, RobotVoterView>): string | null {
+  const seen = new Set<string>([start.member]);
+  let current = start.follow as string;
+  for (;;) {
+    if (seen.has(current)) return null;
+    seen.add(current);
+    const next = byMember.get(current);
+    if (!next?.follow) return current;
+    current = next.follow;
+  }
+}
+
+/** Кто ждёт живого голоса и сколько голосов придёт вслед за каждым таким голосом. */
+function waitingGroups(withKey: RobotVoterView[], automatic: Set<string>) {
+  const byMember = new Map(withKey.map((v) => [v.member, v]));
+  const groups = new Map<string, number>();
+  const waiting = new Set<string>();
+  for (const v of withKey) {
+    if (!v.follow || automatic.has(v.member)) continue;
+    const root = chainRoot(v, byMember);
+    if (!root) continue;
+    groups.set(root, (groups.get(root) ?? 0) + 1);
+    waiting.add(v.member);
+  }
+  return { groups, waiting };
+}
+
+/**
  * Реестр действий автоматизации: что и кто делегировал роботу по каждому
  * типу решения, и достигает ли робот кворума сам. Источник — таблицы цепи,
  * поэтому все члены совета видят одно и то же.
@@ -197,28 +246,31 @@ export class RobotRegistryService {
   }
 
   /**
-   * Кворум: гарантированные голоса «сразу» и голоса вслед за ведомыми; в счёт идут
-   * только те, у кого ключ у робота. Достижимость считает и голоса самих ведомых:
-   * повтор срабатывает после их голоса «за», а этот голос уже лежит в цепи.
+   * Кворум робота: сколько голосов он подаёт сам, без единого живого человека.
+   *
+   * Повтор — не всегда ожидание человека. Если тот, за кем повторяют, сам
+   * доверил голос роботу режимом «сразу», то робот сначала голосует за него, а
+   * следом за всеми, кто идёт за ним, — и так по цепочке. Такие голоса
+   * гарантированы и идут в кворум наравне с «сразу». Ждать живого голоса
+   * приходится только там, где корень цепочки повторов голосует сам.
    */
   private quorumOf(voters: RobotVoterView[], totalMembers: number, isVoting: (u: string) => boolean): RobotQuorumView {
     const withKey = voters.filter((v) => v.has_key);
-    const delegated = withKey.filter((v) => v.mode === RobotVoteMode.AUTO).length;
-    const groups = new Map<string, number>();
-    for (const v of withKey) {
-      if (v.follow) groups.set(v.follow, (groups.get(v.follow) ?? 0) + 1);
+    const automatic = automaticVoters(withKey);
+    const { groups, waiting } = waitingGroups(withKey, automatic);
+
+    const potential = new Set<string>([...automatic, ...waiting]);
+    for (const root of groups.keys()) {
+      if (isVoting(root)) potential.add(root);
     }
-    const potential = new Set<string>(withKey.map((v) => v.member));
-    for (const followed of groups.keys()) {
-      if (isVoting(followed)) potential.add(followed);
-    }
+
     const enough = (votes: number) => totalMembers > 0 && votes * 100 > totalMembers * 50;
     return {
-      delegated_count: delegated,
+      delegated_count: automatic.size,
       follow_groups: [...groups.entries()].map(([follow, count]) => ({ follow, count })),
       required_count: requiredVotes(totalMembers),
       total_members: totalMembers,
-      reached: enough(delegated),
+      reached: enough(automatic.size),
       reachable: enough(potential.size),
     };
   }

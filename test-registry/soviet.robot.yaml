@@ -307,3 +307,11 @@ cases:
     expect: по каждому члену совета показано «Сразу» или «Как ‹ФИО›» с названиями решений и подпись протоколов у председателя
     status: missing
 
+  - id: sov.rob.break.09
+    level: backend
+    kind: break
+    scenario: Председатель голосует роботом «сразу», остальные повторяют за ним
+    expect: все голоса цепочки считаются гарантированными — кворум набран, ожидания живого голоса нет
+    test: components/controller/tests/unit/soviet-robot/robot-registry.service.test.ts
+    status: passing
+

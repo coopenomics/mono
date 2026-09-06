@@ -76,9 +76,11 @@ describe('RobotRegistryService.buildRegistry', () => {
       ['mikhail', RobotVoteMode.FOLLOW, 'ant'],
       ['olga', RobotVoteMode.FOLLOW, 'petr'],
     ]);
+    // Ольга повторяет за Петром, а Пётр голосует «сразу» — её голос робот подаёт
+    // следом сам, без людей. Ждём живого голоса только от Иванова.
     expect(free.vote_quorum).toEqual({
-      delegated_count: 1,
-      follow_groups: [{ follow: 'ant', count: 2 }, { follow: 'petr', count: 1 }],
+      delegated_count: 2,
+      follow_groups: [{ follow: 'ant', count: 2 }],
       required_count: 3,
       total_members: 5,
       reached: false,
@@ -88,6 +90,39 @@ describe('RobotRegistryService.buildRegistry', () => {
     expect(free.my_follow).toBe('ant');
     expect(free.my_vote).toBe(true);
     expect(free.warnings).toEqual([]);
+  });
+
+  it('вся цепочка повторов за автоматическим голосом — кворум робот набирает сам', () => {
+    const follow = (m: string) => automation(m, [], [], NO_EXPIRY, [{ decision_type: 'freedecision', follow: 'ant' }]);
+    const rows = [automation('ant', ['freedecision'], ['freedecision']), follow('petr'), follow('anna'), follow('mikhail'), follow('olga')];
+    const registry = service.buildRegistry(rows, council, new Set(['ant', 'petr', 'anna', 'mikhail', 'olga']), 'ant');
+    const free = registry.find((r) => r.type === 'freedecision')!;
+    // Председатель отдал голос роботу режимом «сразу», четверо повторяют за ним:
+    // ждать некого, все пять голосов подаёт робот.
+    expect(free.vote_quorum.delegated_count).toBe(5);
+    expect(free.vote_quorum.follow_groups).toEqual([]);
+    expect(free.vote_quorum.reached).toBe(true);
+  });
+
+  it('цепочка повторов длиной в три звена доходит до автоматического голоса', () => {
+    const follow = (m: string, f: string) => automation(m, [], [], NO_EXPIRY, [{ decision_type: 'freedecision', follow: f }]);
+    const rows = [automation('ant', ['freedecision']), follow('petr', 'ant'), follow('anna', 'petr'), follow('mikhail', 'anna')];
+    const registry = service.buildRegistry(rows, council, new Set(['ant', 'petr', 'anna', 'mikhail']), 'ant');
+    const free = registry.find((r) => r.type === 'freedecision')!;
+    expect(free.vote_quorum.delegated_count).toBe(4);
+    expect(free.vote_quorum.reached).toBe(true);
+  });
+
+  it('повтор за тем, кто голосует сам, ждёт его живого голоса', () => {
+    const follow = (m: string) => automation(m, [], [], NO_EXPIRY, [{ decision_type: 'freedecision', follow: 'ant' }]);
+    const rows = [follow('petr'), follow('anna'), follow('mikhail'), follow('olga')];
+    const registry = service.buildRegistry(rows, council, new Set(['petr', 'anna', 'mikhail', 'olga']), 'petr');
+    const free = registry.find((r) => r.type === 'freedecision')!;
+    // Иванов роботу ничего не доверил — четыре голоса придут только после его.
+    expect(free.vote_quorum.delegated_count).toBe(0);
+    expect(free.vote_quorum.follow_groups).toEqual([{ follow: 'ant', count: 4 }]);
+    expect(free.vote_quorum.reached).toBe(false);
+    expect(free.vote_quorum.reachable).toBe(true);
   });
 
   it('повтор без ключа у робота в кворум не идёт', () => {
