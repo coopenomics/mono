@@ -131,11 +131,11 @@ describe('mkt.order.side.32 — подписанное заявление све
 
 describe('mkt.iss.side.44 — довзнос по факту: заявление 1110 и перевод convert только когда членского кошелька не хватает', () => {
   const orderWithFee = () => buildOrder({ total_cost: '100.0000 RUB', membership_fee: '30.0000 RUB' } as never);
-  const bigFact = () => buildSaga({ fact: { actual_quantity: 12, actual_unit_price: '10.0000', fact_cost: '120.0000 RUB' } } as never);
+  const bigFact = () => buildSaga({ fact: { actual_quantity: 12, actual_unit_price: '10.0000', fact_cost: '120.0000' } } as never);
   const stmt = (total: string) => signedDoc({ registry_id: 1113, order_hash: 'h-order-1', total_amount: total }, ['orderer1']) as never;
 
   it('факт меньше или равен заказу — довзноса нет, заявления нет', async () => {
-    const m = buildMocks({ order: orderWithFee(), sagas: [buildSaga({ fact: { actual_quantity: 5, actual_unit_price: '10.0000', fact_cost: '50.0000 RUB' } } as never)] });
+    const m = buildMocks({ order: orderWithFee(), sagas: [buildSaga({ fact: { actual_quantity: 5, actual_unit_price: '10.0000', fact_cost: '50.0000' } } as never)] });
     const service = buildService(m);
     expect(await service.getConvertSignablePayload(COOP, 'order-1', 'orderer1')).toBeNull();
     expect(m.convertService.generateStatement).not.toHaveBeenCalled();
@@ -194,7 +194,7 @@ describe('mkt.iss.side.44 — довзнос по факту: заявление
   });
 
   it('обычная выдача без довзноса — convert не зовётся', async () => {
-    const m = buildMocks({ order: orderWithFee(), sagas: [buildSaga({ fact: { actual_quantity: 5, actual_unit_price: '10.0000', fact_cost: '50.0000 RUB' } } as never)] });
+    const m = buildMocks({ order: orderWithFee(), sagas: [buildSaga({ fact: { actual_quantity: 5, actual_unit_price: '10.0000', fact_cost: '50.0000' } } as never)] });
     const service = buildService(m);
     stubSignatureChecks(service);
     await service.submitStatement({ coopname: COOP, member_account: 'orderer1', order_id: 'order-1', signed_statement: stmt('50.0000 RUB') });

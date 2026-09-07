@@ -17,11 +17,11 @@ import {
  * `scripts/gen-from-cpp.ts` или формат hpp-файла поехал.
  */
 describe('ledger2 wallets registry (generated from C++)', () => {
-  it('lEDGER2_WALLET_REGISTRY snapshot', () => {
+  it('LEDGER2_WALLET_REGISTRY snapshot', () => {
     expect(LEDGER2_WALLET_REGISTRY).toMatchSnapshot()
   })
 
-  it('lEDGER2_USER_SHARED_PROGRAM_MAPPING snapshot', () => {
+  it('LEDGER2_USER_SHARED_PROGRAM_MAPPING snapshot', () => {
     expect(LEDGER2_USER_SHARED_PROGRAM_MAPPING).toMatchSnapshot()
   })
 
@@ -35,7 +35,7 @@ describe('ledger2 wallets registry (generated from C++)', () => {
     }
   })
 
-  it('цК split: program_id=1 → share + member', () => {
+  it('ЦК split: program_id=1 → share + member', () => {
     expect(walletNamesForProgram(1).sort()).toEqual(['w.wal.member', 'w.wal.share'])
   })
 

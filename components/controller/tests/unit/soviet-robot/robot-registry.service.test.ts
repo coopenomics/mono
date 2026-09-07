@@ -157,8 +157,9 @@ describe('RobotRegistryService.buildRegistry', () => {
     const registry = service.buildRegistry([], council, new Set());
     expect(registry.every((r) => r.protocol_registry_id > 0)).toBe(true);
     expect(registry.find((r) => r.type === 'freedecision')).toBeDefined();
-    // mktissue заведён в контракте, но повестки по нему нет и протокол не описан
-    expect(registry.find((r) => r.type === 'mktissue')).toBeUndefined();
+    // Выдача имущества пайщику: с паевой моделью у неё появилась и повестка,
+    // и протокол 1114, поэтому робот её ведёт наравне со свободным решением.
+    expect(registry.find((r) => r.type === 'mktissue')?.protocol_registry_id).toBe(1114);
   });
 
   it('решения расширения приходят только тому, у кого расширение установлено', async () => {

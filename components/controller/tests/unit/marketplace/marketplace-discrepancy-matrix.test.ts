@@ -5,6 +5,7 @@
  * денежный итог считается от фактического количества по фактической цене.
  */
 import { MarketplaceIssuanceSagaStages } from '~/extensions/marketplace/domain/entities/marketplace-issuance-saga.types';
+import { MarketplaceUnitsOfMeasure } from '~/extensions/marketplace/domain/entities/marketplace-offer.types';
 import { COOP, buildMocks, buildOrder, buildSaga, buildService, signedDoc, stubSignatureChecks } from './issuance-saga.fixture';
 
 /**
@@ -90,7 +91,7 @@ describe('Расхождения на выдаче: количество и це
 describe('Отпуск упаковкой: цена относится к упаковке, а не к содержимому', () => {
   // Заказ 10 упаковок по 0,1 кг (1 кг) по 100 ₽ за упаковку = 1000 ₽; факт
   // хранится в базовой единице (кг), цена — за упаковку.
-  const packaged = { unit_of_measure: 'kilogram', package_size: 0.1, quantity: 1, price_per_unit: '100.0000', total_cost: '1000.0000' };
+  const packaged = { unit_of_measure: MarketplaceUnitsOfMeasure.KG, package_size: 0.1, quantity: 1, price_per_unit: '100.0000', total_cost: '1000.0000' };
 
   it('недовыдача упаковками: 4 упаковки вместо 10 → 400 ₽', async () => {
     const fact = await issueWith(1, 0.4, '100.0000', packaged);

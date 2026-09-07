@@ -65,4 +65,4 @@ export interface ISovietRobotPort {
  * Робот решений совета. Провайдер — расширение `soviet-robot`; без него мост
  * регистрирует `null`. Потребители: marketplace*.
  */
-export const SOVIET_ROBOT_PORT = Symbol.for('Innercoop.CrossPluginPort.SovietRobot');
+export const SOVIET_ROBOT_PORT = Symbol.for('Innercoop.CrossPlugin.SovietRobot');

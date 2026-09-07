@@ -15,6 +15,7 @@ jest.mock('~/config/config', () => ({
 
 import { ForbiddenException } from '@nestjs/common';
 import { MarketplaceIssuanceResolver } from '~/extensions/marketplace/application/resolvers/marketplace-issuance.resolver';
+import { buildSaga } from './issuance-saga.fixture';
 
 const makeResolver = (isMember: boolean) => {
   const service = {} as any;
@@ -64,7 +65,9 @@ const orderOf = (overrides: Record<string, unknown>) =>
 const makePayloadResolver = (order: any, ownBranames: string[]) => {
   const service = {
     getCloseSignablePayload: jest.fn().mockResolvedValue({ hash: 'h', rawDocument: { hash: 'h' }, document: { hash: 'h' } }),
-    getSagaByOrder: jest.fn().mockResolvedValue(null),
+    // Акт к закрывающей подписи существует только внутри начатой выдачи:
+    // резолвер сперва берёт сагу заказа и без неё отказывает.
+    getSagaByOrder: jest.fn().mockResolvedValue(buildSaga()),
   } as any;
   const orderRepo = { findById: jest.fn().mockResolvedValue(order) } as any;
   const kuChairmanService = { listBranamesForMember: jest.fn().mockResolvedValue(ownBranames) } as any;
