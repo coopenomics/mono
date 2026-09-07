@@ -40,6 +40,11 @@ exports[`ledger2 wallets registry (generated from C++) > LEDGER2_USER_SHARED_PRO
   {
     "program_label": "Marketplace",
     "required_program_id": 2,
+    "wallet_name": "w.mkt.share",
+  },
+  {
+    "program_label": "Marketplace",
+    "required_program_id": 2,
     "wallet_name": "w.mkt.member",
   },
   {
@@ -93,12 +98,17 @@ exports[`ledger2 wallets registry (generated from C++) > LEDGER2_WALLET_REGISTRY
     "name": "w.cap.preimp",
   },
   {
-    "human_name": "ЦПП «Стол Заказов» — резерв под заказ у пайщика",
+    "human_name": "ЦПП «Стол Заказов» — паевой резерв под заказ у пайщика",
     "kind": "USER_SHARED",
     "name": "w.mkt.order",
   },
   {
-    "human_name": "ЦПП «Стол Заказов» — членский кошелёк пайщика программы",
+    "human_name": "ЦПП «Стол Заказов» — свободный паевой пайщика в программе",
+    "kind": "USER_SHARED",
+    "name": "w.mkt.share",
+  },
+  {
+    "human_name": "ЦПП «Стол Заказов» — членский взнос пайщика в программе",
     "kind": "USER_SHARED",
     "name": "w.mkt.member",
   },

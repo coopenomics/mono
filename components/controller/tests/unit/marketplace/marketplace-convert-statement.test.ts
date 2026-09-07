@@ -11,7 +11,7 @@
  */
 import { BadRequestException } from '@nestjs/common';
 import { MarketplaceConvertService } from '../../../src/extensions/marketplace/application/services/marketplace-convert.service';
-import { buildMocks, buildOrder, buildSaga, buildService, stubSignatureChecks, signedDoc, toAsset, toUnits } from './issuance-saga.fixture';
+import { COOP, buildMocks, buildOrder, buildSaga, buildService, stubSignatureChecks, signedDoc, toAsset, toUnits } from './issuance-saga.fixture';
 
 function buildConvertService(memberAvailable: string, walletName = 'w.mkt.member', shareAvailable = '0.0000 RUB'): MarketplaceConvertService {
   const walletRepo = {
@@ -74,11 +74,11 @@ describe('mkt.order.side.30 — план: членский кошелёк на �
 describe('mkt.order.side.31 — заявление 1110: только недостающее, членская часть уменьшена на остаток членского кошелька', () => {
   it('в мете — якорь, сумма, членская часть; ничего лишнего', async () => {
     const svc = buildConvertService('10.0000 RUB', 'w.mkt.member', '30.0000 RUB');
-    const balances = await svc.programBalances('coop', 'orderer1');
+    const balances = await svc.programBalances(COOP, 'orderer1');
     expect(balances).toEqual({ member: 10_0000n, share: 30_0000n });
     const plan = svc.planFunding(balances, [{ body_units: 100_0000n, fee_units: 30_0000n }]);
     const doc = await svc.generateStatement({
-      coopname: 'coop',
+      coopname: COOP,
       username: 'orderer1',
       anchor_hash: 'anchor-1',
       amount_units: plan.transfer_units,
@@ -90,7 +90,7 @@ describe('mkt.order.side.31 — заявление 1110: только недос
 
   it('членский кошелёк ещё не заведён (строки нет) — остаток 0', async () => {
     const svc = buildConvertService('5.0000 RUB', 'w.wal.share');
-    expect(await svc.memberAvailableUnits('coop', 'orderer1')).toBe(0n);
+    expect(await svc.memberAvailableUnits(COOP, 'orderer1')).toBe(0n);
   });
 });
 
@@ -137,20 +137,20 @@ describe('mkt.iss.side.44 — довзнос по факту: заявление
   it('факт меньше или равен заказу — довзноса нет, заявления нет', async () => {
     const m = buildMocks({ order: orderWithFee(), sagas: [buildSaga({ fact: { actual_quantity: 5, actual_unit_price: '10.0000', fact_cost: '50.0000 RUB' } } as never)] });
     const service = buildService(m);
-    expect(await service.getConvertSignablePayload('coop', 'order-1', 'orderer1')).toBeNull();
+    expect(await service.getConvertSignablePayload(COOP, 'order-1', 'orderer1')).toBeNull();
     expect(m.convertService.generateStatement).not.toHaveBeenCalled();
   });
 
   it('факт больше заказа и кошельков программы хватает на доплату и довзнос — заявления нет', async () => {
     const m = buildMocks({ order: orderWithFee(), sagas: [bigFact()] });
     const service = buildService(m);
-    expect(await service.getConvertSignablePayload('coop', 'order-1', 'orderer1')).toBeNull();
+    expect(await service.getConvertSignablePayload(COOP, 'order-1', 'orderer1')).toBeNull();
   });
 
   it('факт больше заказа, кошельки программы пусты — заявление на доплату тела и довзнос по пропорции контракта', async () => {
     const m = buildMocks({ order: orderWithFee(), sagas: [bigFact()], memberAvailableUnits: 0n, shareAvailableUnits: 0n });
     const service = buildService(m);
-    const doc = await service.getConvertSignablePayload('coop', 'order-1', 'orderer1');
+    const doc = await service.getConvertSignablePayload(COOP, 'order-1', 'orderer1');
     // fact_fee = 30 × 120 / 100 = 36; довзнос = 6; доплата тела = 20 — заявление на 26, из них членский взнос 6.
     expect(doc?.meta).toMatchObject({ order_hash: 'h-order-1', amount: '26.0000 RUB', membership_fee: '6.0000 RUB' });
   });
@@ -158,7 +158,7 @@ describe('mkt.iss.side.44 — довзнос по факту: заявление
   it('факт больше заказа, свободного паевого хватает на доплату, членского нет — заявление только на довзнос', async () => {
     const m = buildMocks({ order: orderWithFee(), sagas: [bigFact()], memberAvailableUnits: 0n });
     const service = buildService(m);
-    const doc = await service.getConvertSignablePayload('coop', 'order-1', 'orderer1');
+    const doc = await service.getConvertSignablePayload(COOP, 'order-1', 'orderer1');
     expect(doc?.meta).toMatchObject({ amount: '6.0000 RUB', membership_fee: '6.0000 RUB' });
   });
 
@@ -167,7 +167,7 @@ describe('mkt.iss.side.44 — довзнос по факту: заявление
     const service = buildService(m);
     stubSignatureChecks(service);
     await expect(
-      service.submitStatement({ coopname: 'coop', member_account: 'orderer1', order_id: 'order-1', signed_statement: stmt('120.0000 RUB'), signed_convert: null })
+      service.submitStatement({ coopname: COOP, member_account: 'orderer1', order_id: 'order-1', signed_statement: stmt('120.0000 RUB'), signed_convert: null })
     ).rejects.toThrow(/заявления о переводе/);
     expect(m.chainPort.convert).not.toHaveBeenCalled();
     expect(m.chainPort.issueStmt).not.toHaveBeenCalled();
@@ -178,7 +178,7 @@ describe('mkt.iss.side.44 — довзнос по факту: заявление
     const service = buildService(m);
     stubSignatureChecks(service);
     await service.submitStatement({
-      coopname: 'coop',
+      coopname: COOP,
       member_account: 'orderer1',
       order_id: 'order-1',
       signed_statement: stmt('120.0000 RUB'),
@@ -197,7 +197,7 @@ describe('mkt.iss.side.44 — довзнос по факту: заявление
     const m = buildMocks({ order: orderWithFee(), sagas: [buildSaga({ fact: { actual_quantity: 5, actual_unit_price: '10.0000', fact_cost: '50.0000 RUB' } } as never)] });
     const service = buildService(m);
     stubSignatureChecks(service);
-    await service.submitStatement({ coopname: 'coop', member_account: 'orderer1', order_id: 'order-1', signed_statement: stmt('50.0000 RUB') });
+    await service.submitStatement({ coopname: COOP, member_account: 'orderer1', order_id: 'order-1', signed_statement: stmt('50.0000 RUB') });
     expect(m.chainPort.convert).not.toHaveBeenCalled();
     expect(m.convertService.verifySigned).not.toHaveBeenCalled();
   });

@@ -4,7 +4,7 @@
  * Сиблинг #205. Инвариант: matrix даёт capability (`Issuance:read:own-KU`
  * оператору), а скоуп ДАННЫХ — ответственность резолвера:
  *   - роль с `Issuance:read:all` → лента любого КУ, КУ-сервис не дёргается;
- *   - оператор (только read:own-KU) обязан быть членом запрашиваемого КУ:
+ *   - оператор (только read:own-KU) обязан быть в числе участников запрашиваемого КУ:
  *       • член КУ → лента этого КУ;
  *       • чужой КУ → ForbiddenException, репозиторий не дёргается.
  */
@@ -19,8 +19,10 @@ import { MarketplaceIssuanceResolver } from '~/extensions/marketplace/applicatio
 const makeResolver = (isMember: boolean) => {
   const service = {} as any;
   const orderRepo = { listForIssuanceByBraname: jest.fn().mockResolvedValue([]) } as any;
+  // Скоуп считается по списку СВОИХ участков пайщика: резолвер спрашивает их
+  // один раз и сверяет с запрошенным, а не задаёт вопрос про каждый участок.
   const kuChairmanService = {
-    isMemberOfBranch: jest.fn().mockResolvedValue(isMember),
+    listBranamesForMember: jest.fn().mockResolvedValue(isMember ? ['krg'] : []),
   } as any;
   const displayService = { enrich: jest.fn().mockResolvedValue(new Map()) } as any;
   const resolver = new MarketplaceIssuanceResolver(service, orderRepo, kuChairmanService, displayService);
@@ -36,7 +38,7 @@ describe('marketplaceListIssuancesByBraname ownership-scoping', () => {
     await resolver.marketplaceListIssuancesByBraname(asMember(['operator']), {
       delivery_braname: 'krg',
     } as any);
-    expect(kuChairmanService.isMemberOfBranch).toHaveBeenCalledWith('voskhod', 'krg', 'op');
+    expect(kuChairmanService.listBranamesForMember).toHaveBeenCalledWith('voskhod', 'op');
     expect(orderRepo.listForIssuanceByBraname).toHaveBeenCalledWith('voskhod', 'krg');
   });
 

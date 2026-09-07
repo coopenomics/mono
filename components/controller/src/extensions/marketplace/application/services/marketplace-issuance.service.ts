@@ -1118,9 +1118,29 @@ export class MarketplaceIssuanceService {
     }
   }
 
+  /**
+   * Хеш транзакции из ответа цепи. Форма ответа зависит от пути: у nodeos он
+   * лежит в `response.transaction_id`, у собранной транзакции — в
+   * `resolved.transaction.id`, у части адаптеров — в `transaction.id`. Разбор
+   * такой же, как в приёмке имущества; читать одно поле нельзя — на другом
+   * пути сага падала бы на пустом хеше при успешно отправленной транзакции.
+   */
   private extractTxHash(tx: unknown): string {
-    const anyTx = tx as { transaction_id?: string; id?: string; resolved?: { transaction?: { id?: string } } } | undefined;
-    const hash = anyTx?.transaction_id ?? anyTx?.id ?? anyTx?.resolved?.transaction?.id;
+    const candidate = tx as
+      | {
+          response?: { transaction_id?: string };
+          resolved?: { transaction?: { id?: string } };
+          transaction?: { id?: string };
+          transaction_id?: string;
+          id?: string;
+        }
+      | undefined;
+    const hash =
+      candidate?.response?.transaction_id ??
+      candidate?.resolved?.transaction?.id ??
+      candidate?.transaction?.id ??
+      candidate?.transaction_id ??
+      candidate?.id;
     if (!hash) throw new ConflictException('Не получен tx_hash от блокчейна — повторите действие.');
     return String(hash);
   }
