@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { computed } from 'vue';
+import { BaseCard } from 'src/shared/ui/base';
 import { TakeoverDialog } from 'src/widgets/Marketplace/TakeoverDialog';
 import { HandoffQr } from 'src/widgets/Marketplace/HandoffQr';
 import { formatAsset2Digits } from 'src/shared/lib/utils';
@@ -70,83 +71,76 @@ TakeoverDialog(
 )
   template(#default v-if="claim")
     .mp-return-details
-      q-card(flat bordered).q-mb-md(v-if="claim.status === 'APPROVED_FOR_VISIT'")
-        q-card-section.flex.flex-center.column
+      BaseCard.q-mb-md(v-if="claim.status === 'APPROVED_FOR_VISIT'")
+        .flex.flex-center.column
           .text-subtitle1.q-mb-sm Покажите этот код на пункте выдачи
           HandoffQr(
             :value="encodeReturnClaimCode(claim.coopname, claim.id)"
             caption="Оператор пункта выдачи отсканирует его на очном осмотре — так он сразу откроет решение по вашей заявке."
           )
 
-      q-card(flat bordered).q-mb-md
-        q-card-section
-          .text-subtitle1 Причина обращения
-          .q-mt-sm {{ claim.reason_text }}
-          .q-mt-sm.text-caption.text-grey(v-if="claim.defect_category")
-            | Категория дефекта: {{ defectCategoryLabel(claim.defect_category) }}
+      BaseCard.q-mb-md
+        .text-subtitle1 Причина обращения
+        .q-mt-sm {{ claim.reason_text }}
+        .q-mt-sm.text-caption.text-grey(v-if="claim.defect_category")
+          | Категория дефекта: {{ defectCategoryLabel(claim.defect_category) }}
 
-      q-card(flat bordered).q-mb-md
-        q-card-section
-          .text-subtitle1 Приложенные фотографии
-          .row.q-mt-sm.q-gutter-sm
-            a.mp-return-details__thumb(
-              v-for="(p, i) in claim.photos" :key="p.content_hash"
-              :href="p.url" target="_blank" rel="noopener"
-            )
-              img(:src="p.url" :alt="`Фото ${i + 1}`")
+      BaseCard.q-mb-md
+        .text-subtitle1 Приложенные фотографии
+        .row.q-mt-sm.q-gutter-sm
+          a.mp-return-details__thumb(
+            v-for="(p, i) in claim.photos" :key="p.content_hash"
+            :href="p.url" target="_blank" rel="noopener"
+          )
+            img(:src="p.url" :alt="`Фото ${i + 1}`")
 
-      q-card(flat bordered).q-mb-md(v-if="claim.decision_log.length > 0")
-        q-card-section
-          .text-subtitle1 История решений по заявлению
-          q-timeline(layout="dense" color="primary").q-mt-sm
-            q-timeline-entry(
-              v-for="entry in claim.decision_log" :key="entry.tx_hash"
-              :title="returnClaimDecisionLabel(entry.decision)"
-              :subtitle="`${entry.by_chairman_name || entry.by_chairman_account} · КУ ${entry.braname_name || entry.braname} · ${formatDateTime(entry.at)}`"
-              :color="entry.decision === 'council_authorized' ? 'positive' : entry.decision === 'reject_remote' || entry.decision === 'reject_at_visit' || entry.decision === 'council_declined' ? 'negative' : 'primary'"
-            )
-              | {{ entry.comment }}
+      BaseCard.q-mb-md(v-if="claim.decision_log.length > 0")
+        .text-subtitle1 История решений по заявлению
+        q-timeline(layout="dense" color="primary").q-mt-sm
+          q-timeline-entry(
+            v-for="entry in claim.decision_log" :key="entry.tx_hash"
+            :title="returnClaimDecisionLabel(entry.decision)"
+            :subtitle="`${entry.by_chairman_name || entry.by_chairman_account} · КУ ${entry.braname_name || entry.braname} · ${formatDateTime(entry.at)}`"
+            :color="entry.decision === 'council_authorized' ? 'positive' : entry.decision === 'reject_remote' || entry.decision === 'reject_at_visit' || entry.decision === 'council_declined' ? 'negative' : 'primary'"
+          )
+            | {{ entry.comment }}
 
-      q-card(flat bordered).q-mb-md(v-if="claim.on_site_inspection")
-        q-card-section
-          .text-subtitle1 Результат очного осмотра
-          .q-mt-sm {{ claim.on_site_inspection.result_text }}
-          .q-mt-sm.text-caption.text-grey(v-if="claim.on_site_inspection.scanned_barcode")
-            | Сканированный штрих-код: {{ claim.on_site_inspection.scanned_barcode }}
-          .row.q-mt-sm.q-gutter-sm(v-if="claim.on_site_inspection.photos.length > 0")
-            a.mp-return-details__thumb(
-              v-for="(p, i) in claim.on_site_inspection.photos" :key="p.content_hash"
-              :href="p.url" target="_blank" rel="noopener"
-            )
-              img(:src="p.url" :alt="`Фото осмотра ${i + 1}`")
+      BaseCard.q-mb-md(v-if="claim.on_site_inspection")
+        .text-subtitle1 Результат очного осмотра
+        .q-mt-sm {{ claim.on_site_inspection.result_text }}
+        .q-mt-sm.text-caption.text-grey(v-if="claim.on_site_inspection.scanned_barcode")
+          | Сканированный штрих-код: {{ claim.on_site_inspection.scanned_barcode }}
+        .row.q-mt-sm.q-gutter-sm(v-if="claim.on_site_inspection.photos.length > 0")
+          a.mp-return-details__thumb(
+            v-for="(p, i) in claim.on_site_inspection.photos" :key="p.content_hash"
+            :href="p.url" target="_blank" rel="noopener"
+          )
+            img(:src="p.url" :alt="`Фото осмотра ${i + 1}`")
 
-      q-card(flat bordered).q-mb-md(v-if="claim.status === 'PENDING_COUNCIL'")
-        q-card-section
-          .text-subtitle1 Имущество принято — ждём решение совета
-          .q-mt-sm
-            | Делать ничего не нужно. Совет рассмотрит заявление о внесении паевого
-            | взноса имуществом; мы сообщим, когда решение будет принято.
-            | При согласии стоимость имущества и членский взнос за него вернутся
-            | на Стол заказов.
-          .text-caption.q-mt-sm(v-if="claim.hand_back_available_at")
-            | Если совет не примет решение до {{ formatDateTime(claim.hand_back_available_at) }}, участок выдаст имущество обратно.
+      BaseCard.q-mb-md(v-if="claim.status === 'PENDING_COUNCIL'")
+        .text-subtitle1 Имущество принято — ждём решение совета
+        .q-mt-sm
+          | Делать ничего не нужно. Совет рассмотрит заявление о внесении паевого
+          | взноса имуществом; мы сообщим, когда решение будет принято.
+          | При согласии стоимость имущества и членский взнос за него вернутся
+          | на Стол заказов.
+        .text-caption.q-mt-sm(v-if="claim.hand_back_available_at")
+          | Если совет не примет решение до {{ formatDateTime(claim.hand_back_available_at) }}, участок выдаст имущество обратно.
 
-      q-card(flat bordered).q-mb-md(v-if="claim.status === 'DECLINED_BY_COUNCIL'")
-        q-card-section
-          .text-subtitle1 Совет не принял имущество
-          .q-mt-sm
-            | Средства не восстанавливаются. Имущество ждёт вас на участке — заберите его при следующем визите.
+      BaseCard.q-mb-md(v-if="claim.status === 'DECLINED_BY_COUNCIL'")
+        .text-subtitle1 Совет не принял имущество
+        .q-mt-sm
+          | Средства не восстанавливаются. Имущество ждёт вас на участке — заберите его при следующем визите.
 
-      q-card(flat bordered).bg-positive.text-white(v-if="claim.ledger_snapshot")
-        q-card-section
-          .text-subtitle1 Совет принял имущество как паевой взнос
-          .q-mt-sm
-            | Восстановлено на Стол заказов (стоимость имущества и членский взнос):
-            strong.q-ml-xs {{ formatAsset2Digits(claim.ledger_snapshot.amount) }} ₽
-          .text-caption.q-mt-sm
-            | Транзакция решения совета: {{ claim.ledger_snapshot.tx_hash }}
-          .text-caption
-            | Средства доступны для следующего заказа; их можно отозвать в Кошелёк из окна кошелька Стола заказов.
+      BaseCard.bg-positive.text-white(v-if="claim.ledger_snapshot")
+        .text-subtitle1 Совет принял имущество как паевой взнос
+        .q-mt-sm
+          | Восстановлено на Стол заказов (стоимость имущества и членский взнос):
+          strong.q-ml-xs {{ formatAsset2Digits(claim.ledger_snapshot.amount) }} ₽
+        .text-caption.q-mt-sm
+          | Транзакция решения совета: {{ claim.ledger_snapshot.tx_hash }}
+        .text-caption
+          | Средства доступны для следующего заказа; их можно отозвать в Кошелёк из окна кошелька Стола заказов.
 </template>
 
 <style scoped lang="scss">

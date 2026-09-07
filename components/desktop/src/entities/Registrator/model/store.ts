@@ -114,6 +114,81 @@ const initialAgreementsState = {
   user: false,
   self_paid: false,
 };
+/** Строка из значения профиля карты кооператора: не строка — пустая строка. */
+const cardcoopText = (value: unknown): string => (typeof value === 'string' ? value : '');
+
+/** Вложенный блок профиля (`details`, `represented_by`): блока может не быть — тогда пустой. */
+const cardcoopBlock = (value: unknown): Record<string, unknown> =>
+  value !== null && typeof value === 'object' ? (value as Record<string, unknown>) : {};
+
+/**
+ * Ветка переноса для физлица. Вынесена из applyCardcoopProfile: три ветки
+ * анкеты независимы и читаются каждая отдельно.
+ */
+const fillIndividualFromCardcoop = (
+  individual: NonNullable<IUserData['individual_data']>,
+  profile: Record<string, unknown>,
+): void => {
+  Object.assign(individual, {
+    first_name: cardcoopText(profile.first_name),
+    last_name: cardcoopText(profile.last_name),
+    middle_name: cardcoopText(profile.middle_name),
+    birthdate: cardcoopText(profile.birthdate),
+    full_address: cardcoopText(profile.full_address),
+    phone: cardcoopText(profile.phone),
+  });
+};
+
+/** Ветка переноса для ИП: анкета плюс реквизиты (ИНН, ОГРНИП). */
+const fillEntrepreneurFromCardcoop = (
+  entrepreneur: NonNullable<IUserData['entrepreneur_data']>,
+  profile: Record<string, unknown>,
+): void => {
+  Object.assign(entrepreneur, {
+    first_name: cardcoopText(profile.first_name),
+    last_name: cardcoopText(profile.last_name),
+    middle_name: cardcoopText(profile.middle_name),
+    birthdate: cardcoopText(profile.birthdate),
+    phone: cardcoopText(profile.phone),
+    city: cardcoopText(profile.city),
+    full_address: cardcoopText(profile.full_address),
+  });
+  const details = cardcoopBlock(profile.details);
+  Object.assign(entrepreneur.details, {
+    inn: cardcoopText(details.inn),
+    ogrn: cardcoopText(details.ogrn),
+  });
+};
+
+/** Ветка переноса для организации: анкета, представитель и реквизиты. */
+const fillOrganizationFromCardcoop = (
+  organization: NonNullable<IUserData['organization_data']>,
+  profile: Record<string, unknown>,
+): void => {
+  Object.assign(organization, {
+    short_name: cardcoopText(profile.short_name),
+    full_name: cardcoopText(profile.full_name),
+    city: cardcoopText(profile.city),
+    full_address: cardcoopText(profile.full_address),
+    fact_address: cardcoopText(profile.fact_address),
+    phone: cardcoopText(profile.phone),
+  });
+  const representative = cardcoopBlock(profile.represented_by);
+  Object.assign(organization.represented_by, {
+    first_name: cardcoopText(representative.first_name),
+    last_name: cardcoopText(representative.last_name),
+    middle_name: cardcoopText(representative.middle_name),
+    position: cardcoopText(representative.position),
+    based_on: cardcoopText(representative.based_on),
+  });
+  const details = cardcoopBlock(profile.details);
+  Object.assign(organization.details, {
+    inn: cardcoopText(details.inn),
+    ogrn: cardcoopText(details.ogrn),
+    kpp: cardcoopText(details.kpp),
+  });
+};
+
 export const useRegistratorStore = defineStore(
   namespace,
   () => {
@@ -327,8 +402,6 @@ export const useRegistratorStore = defineStore(
      * анкете), то не кладётся; чего не было в анкете — остаётся пустым и вводится руками.
      */
     const applyCardcoopProfile = (subjectType: string, profile: Record<string, any>): void => {
-      const text = (value: unknown): string => (typeof value === 'string' ? value : '');
-
       if (typeof profile.email === 'string' && profile.email) state.email = profile.email;
 
       // Блоки анкеты в IUserData необязательны, поэтому перед записью берём блок
@@ -336,65 +409,21 @@ export const useRegistratorStore = defineStore(
       if (subjectType === 'individual') {
         state.userData.type = 'individual';
         const individual = state.userData.individual_data;
-        if (individual) {
-          Object.assign(individual, {
-            first_name: text(profile.first_name),
-            last_name: text(profile.last_name),
-            middle_name: text(profile.middle_name),
-            birthdate: text(profile.birthdate),
-            full_address: text(profile.full_address),
-            phone: text(profile.phone),
-          });
-        }
+        if (individual) fillIndividualFromCardcoop(individual, profile);
         return;
       }
 
       if (subjectType === 'entrepreneur') {
         state.userData.type = 'entrepreneur';
         const entrepreneur = state.userData.entrepreneur_data;
-        if (entrepreneur) {
-          Object.assign(entrepreneur, {
-            first_name: text(profile.first_name),
-            last_name: text(profile.last_name),
-            middle_name: text(profile.middle_name),
-            birthdate: text(profile.birthdate),
-            phone: text(profile.phone),
-            city: text(profile.city),
-            full_address: text(profile.full_address),
-          });
-          Object.assign(entrepreneur.details, {
-            inn: text(profile.details?.inn),
-            ogrn: text(profile.details?.ogrn),
-          });
-        }
+        if (entrepreneur) fillEntrepreneurFromCardcoop(entrepreneur, profile);
         return;
       }
 
       if (subjectType === 'organization') {
         state.userData.type = 'organization';
         const organization = state.userData.organization_data;
-        if (organization) {
-          Object.assign(organization, {
-            short_name: text(profile.short_name),
-            full_name: text(profile.full_name),
-            city: text(profile.city),
-            full_address: text(profile.full_address),
-            fact_address: text(profile.fact_address),
-            phone: text(profile.phone),
-          });
-          Object.assign(organization.represented_by, {
-            first_name: text(profile.represented_by?.first_name),
-            last_name: text(profile.represented_by?.last_name),
-            middle_name: text(profile.represented_by?.middle_name),
-            position: text(profile.represented_by?.position),
-            based_on: text(profile.represented_by?.based_on),
-          });
-          Object.assign(organization.details, {
-            inn: text(profile.details?.inn),
-            ogrn: text(profile.details?.ogrn),
-            kpp: text(profile.details?.kpp),
-          });
-        }
+        if (organization) fillOrganizationFromCardcoop(organization, profile);
       }
     };
 

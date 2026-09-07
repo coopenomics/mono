@@ -589,22 +589,7 @@ export class MarketplaceReturnClaimService {
     }
     this.assertBranameMatchesClaim(claim, input.braname, 'приём имущества');
 
-    if (!input.signed_statement) {
-      throw new BadRequestException(
-        'Для приёма имущества требуется заявление пайщика со второй подписью оператора.'
-      );
-    }
-    const meta = input.signed_statement.meta as { registry_id?: number; order_hash?: string } | undefined;
-    if (
-      meta?.registry_id !== Cooperative.Registry.MarketplaceShareContributionStatement.registry_id ||
-      (meta?.order_hash && meta.order_hash !== claim.order_hash)
-    ) {
-      throw new BadRequestException('Подписан не тот документ — обновите экран заявления.');
-    }
-    this.verifySignatures(input.signed_statement);
-    const coSignedStatement = new SignedDigitalDocumentInputDTO(
-      input.signed_statement
-    ).toDocument() as MarketContract.Actions.AccRetrn.IAccRetrn['statement'];
+    const coSignedStatement = this.requireCoSignedContributionStatement(input, claim);
 
     const inspectionPhotos = await this.uploadOptionalPhotos({
       files: input.inspection_photos,
@@ -680,6 +665,34 @@ export class MarketplaceReturnClaimService {
     claim = await this.attachCouncilDecision(claim);
     claim = await this.settleAfterRobot(claim);
     return { claim, tx_hash: txHash };
+  }
+
+  /**
+   * Входной контроль заявления 1116 со второй подписью оператора: заявление
+   * есть, документ тот самый (реестр и привязка к заказу), подписи верны.
+   * Возвращает документ в виде, который принимает `accretrn`. Вынесено из
+   * `acceptReturnAtVisit` — там остаётся только сценарий приёма имущества.
+   */
+  private requireCoSignedContributionStatement(
+    input: MarketplaceAcceptReturnAtVisitInput,
+    claim: MarketplaceReturnClaimDomainEntity
+  ): MarketContract.Actions.AccRetrn.IAccRetrn['statement'] {
+    if (!input.signed_statement) {
+      throw new BadRequestException(
+        'Для приёма имущества требуется заявление пайщика со второй подписью оператора.'
+      );
+    }
+    const meta = input.signed_statement.meta as { registry_id?: number; order_hash?: string } | undefined;
+    if (
+      meta?.registry_id !== Cooperative.Registry.MarketplaceShareContributionStatement.registry_id ||
+      (meta?.order_hash && meta.order_hash !== claim.order_hash)
+    ) {
+      throw new BadRequestException('Подписан не тот документ — обновите экран заявления.');
+    }
+    this.verifySignatures(input.signed_statement);
+    return new SignedDigitalDocumentInputDTO(
+      input.signed_statement
+    ).toDocument() as MarketContract.Actions.AccRetrn.IAccRetrn['statement'];
   }
 
   // ── Совет: номер решения, робот, ожидание ────────────────────────────

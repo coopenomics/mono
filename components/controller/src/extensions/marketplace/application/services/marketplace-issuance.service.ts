@@ -367,42 +367,8 @@ export class MarketplaceIssuanceService {
       throw new ConflictException(`Заказ в статусе «${order.status}» — подписать заявление нельзя.`);
     }
 
-    const meta = input.signed_statement.meta;
-    if (
-      meta.registry_id !== Cooperative.Registry.MarketplaceShareReturnStatement.registry_id ||
-      meta.order_hash !== order.order_hash
-    ) {
-      throw new BadRequestException('Заявление подписано для другого заказа — обновите экран выдачи.');
-    }
-    if (compareMoney(String(meta.total_amount), saga.fact.fact_cost, this.assetConfig.decimals) !== 0) {
-      throw new BadRequestException('Состав в заявлении не совпадает с зафиксированным оператором — обновите экран выдачи.');
-    }
-    this.verifyDocumentSignature(input.signed_statement, order.orderer_account);
-
-    // Доплата по факту сверх кошельков программы: заявление 1110 на недостающее
-    // с Цифрового кошелька и перевод членской части отдельной транзакцией до
-    // заявления о выдаче — контракт на issuestmt проверит, что средств хватает
-    // (тело добирается с Цифрового кошелька на закрывающей подписи).
-    const topUp = await this.topUpPlan(input.coopname, order, saga.fact);
-    if (topUp) {
-      const convert_statement = this.convertService.verifySigned(
-        input.signed_convert,
-        { anchor_hash: order.order_hash, amount_units: topUp.amount_units, fee_units: topUp.fee_units },
-        order.orderer_account
-      );
-      try {
-        await this.chainPort.convert({
-          coopname: order.coopname,
-          orderer: order.orderer_account,
-          amount: this.economyService.unitsToAsset(topUp.fee_units),
-          convert_statement,
-        });
-      } catch (err) {
-        const message = this.errMessage(err);
-        await this.sagaRepo.update(saga.id, { last_error: message });
-        throw new ConflictException(`Перевод в членский кошелёк не принят цепью: ${message}. Повторите подписание.`);
-      }
-    }
+    this.assertStatementMatchesFact(input.signed_statement, order, saga);
+    await this.transferMembershipPart(input, order, saga);
 
     const statement = new SignedDigitalDocumentInputDTO(input.signed_statement).toDocument() as MarketContract.Actions.IssueStmt.IIssueStmt['statement'];
     let tx;
@@ -438,6 +404,62 @@ export class MarketplaceIssuanceService {
 
     saga = await this.attachDecision(saga);
     return this.settleAfterRobot(saga);
+  }
+
+  /**
+   * Сверяет подписанное Заявление 1113 с заказом и зафиксированным фактом:
+   * реестр документа, привязка к заказу, сумма и подпись заказчика. Вынесено
+   * из `submitStatement` — это входной контроль подписи, а не шаг сценария.
+   */
+  private assertStatementMatchesFact(
+    signed_statement: MarketplaceShareReturnStatementSignedInputDTO,
+    order: MarketplaceOrderDomainEntity,
+    saga: MarketplaceIssuanceSagaDomainEntity
+  ): void {
+    const meta = signed_statement.meta;
+    if (
+      meta.registry_id !== Cooperative.Registry.MarketplaceShareReturnStatement.registry_id ||
+      meta.order_hash !== order.order_hash
+    ) {
+      throw new BadRequestException('Заявление подписано для другого заказа — обновите экран выдачи.');
+    }
+    if (compareMoney(String(meta.total_amount), saga.fact.fact_cost, this.assetConfig.decimals) !== 0) {
+      throw new BadRequestException('Состав в заявлении не совпадает с зафиксированным оператором — обновите экран выдачи.');
+    }
+    this.verifyDocumentSignature(signed_statement, order.orderer_account);
+  }
+
+  /**
+   * Доплата по факту сверх кошельков программы: заявление 1110 на недостающее
+   * с Цифрового кошелька и перевод членской части отдельной транзакцией до
+   * заявления о выдаче — контракт на issuestmt проверит, что средств хватает
+   * (тело добирается с Цифрового кошелька на закрывающей подписи). Вынесено из
+   * `submitStatement`: ветка нужна только когда факт больше заказа.
+   */
+  private async transferMembershipPart(
+    input: MarketplaceIssuanceSubmitStatementInput,
+    order: MarketplaceOrderDomainEntity,
+    saga: MarketplaceIssuanceSagaDomainEntity
+  ): Promise<void> {
+    const topUp = await this.topUpPlan(input.coopname, order, saga.fact);
+    if (!topUp) return;
+    const convert_statement = this.convertService.verifySigned(
+      input.signed_convert,
+      { anchor_hash: order.order_hash, amount_units: topUp.amount_units, fee_units: topUp.fee_units },
+      order.orderer_account
+    );
+    try {
+      await this.chainPort.convert({
+        coopname: order.coopname,
+        orderer: order.orderer_account,
+        amount: this.economyService.unitsToAsset(topUp.fee_units),
+        convert_statement,
+      });
+    } catch (err) {
+      const message = this.errMessage(err);
+      await this.sagaRepo.update(saga.id, { last_error: message });
+      throw new ConflictException(`Перевод в членский кошелёк не принят цепью: ${message}. Повторите подписание.`);
+    }
   }
 
   /**
@@ -612,14 +634,7 @@ export class MarketplaceIssuanceService {
     if (saga.stage !== MarketplaceIssuanceSagaStages.DECISION_AUTHORIZED) {
       throw new ConflictException(saga.awaits_council ? 'Совет ещё не принял решение по заявлению.' : `Выдача на этапе «${saga.stage}» — акт подписывать нельзя.`);
     }
-    const meta = input.signed_act.meta;
-    if (meta.registry_id !== Cooperative.Registry.MarketplaceShareReturnAct.registry_id || meta.order_hash !== order.order_hash) {
-      throw new BadRequestException('Акт подписан для другого заказа — обновите экран.');
-    }
-    if (saga.act_document_hash && input.signed_act.doc_hash !== saga.act_document_hash) {
-      throw new ForbiddenException('Подписанный акт не совпадает с выданным к подписи — подпись отклонена.');
-    }
-    this.verifyDocumentSignature(input.signed_act, order.orderer_account);
+    this.assertActMatchesSaga(input.signed_act, order, saga);
     const act = new SignedDigitalDocumentInputDTO(input.signed_act).toDocument() as MarketContract.Actions.IssueAct1.IIssueAct1['act'];
     let tx;
     try {
@@ -640,6 +655,26 @@ export class MarketplaceIssuanceService {
     await this.orderRepo.applyIssuanceAct1(order.id);
     this.emitSagaUpdated(result);
     return result;
+  }
+
+  /**
+   * Сверяет подписанный Акт 1115 с заказом и актом, выданным к подписи:
+   * реестр документа, привязка к заказу, совпадение исходника и подпись
+   * заказчика. Вынесено из `signAct1` — входной контроль подписи.
+   */
+  private assertActMatchesSaga(
+    signed_act: MarketplaceShareReturnActSignedInputDTO,
+    order: MarketplaceOrderDomainEntity,
+    saga: MarketplaceIssuanceSagaDomainEntity
+  ): void {
+    const meta = signed_act.meta;
+    if (meta.registry_id !== Cooperative.Registry.MarketplaceShareReturnAct.registry_id || meta.order_hash !== order.order_hash) {
+      throw new BadRequestException('Акт подписан для другого заказа — обновите экран.');
+    }
+    if (saga.act_document_hash && signed_act.doc_hash !== saga.act_document_hash) {
+      throw new ForbiddenException('Подписанный акт не совпадает с выданным к подписи — подпись отклонена.');
+    }
+    this.verifyDocumentSignature(signed_act, order.orderer_account);
   }
 
   // ── Этап 4: закрывающая подпись оператора ─────────────────────────────
@@ -671,17 +706,7 @@ export class MarketplaceIssuanceService {
       throw new ConflictException('Акт ещё не подписан заказчиком — закрыть выдачу нельзя.');
     }
     const sub = input.signed_act as unknown as ISignedDocument;
-    const stored = saga.act1_document;
-    if (sub.doc_hash !== stored.doc_hash || sub.meta_hash !== stored.meta_hash) {
-      throw new ForbiddenException('Подписанный акт не совпадает с актом заказчика — подпись отклонена.');
-    }
-    const memberSig = stored.signatures?.[0];
-    const memberPreserved = !!memberSig && sub.signatures.some((s) => s.signer === memberSig.signer && s.signature === memberSig.signature);
-    if (!memberPreserved) throw new ForbiddenException('Подпись заказчика на акте утеряна или подменена — подпись отклонена.');
-    if (!sub.signatures.some((s) => s.signer === input.operator_account)) {
-      throw new ForbiddenException('Закрывающую подпись должен поставить оператор, закрывающий выдачу.');
-    }
-    this.verifyDocumentSignature(input.signed_act, input.operator_account);
+    this.assertClosingActMatches(sub, saga.act1_document, input);
 
     const act = new SignedDigitalDocumentInputDTO(input.signed_act).toDocument() as MarketContract.Actions.IssueAct2.IIssueAct2['act'];
     let tx;
@@ -713,6 +738,29 @@ export class MarketplaceIssuanceService {
     this.emitSagaUpdated(result);
     this.logger.log(`Выдача заказа ${order.id} закрыта оператором ${input.operator_account} (tx=${txHash}): факт ${saga.fact.actual_quantity}, сумма ${saga.fact.fact_cost}.`);
     return result;
+  }
+
+  /**
+   * Сверяет закрывающую подпись с актом заказчика: тот же документ, подпись
+   * заказчика на месте и не подменена, есть подпись закрывающего оператора,
+   * все подписи криптографически верны. Вынесено из `closeIssuance` — это
+   * входной контроль подписи перед единственной точкой движений по средствам.
+   */
+  private assertClosingActMatches(
+    submitted: ISignedDocument,
+    stored: ISignedDocument,
+    input: MarketplaceIssuanceCloseInput
+  ): void {
+    if (submitted.doc_hash !== stored.doc_hash || submitted.meta_hash !== stored.meta_hash) {
+      throw new ForbiddenException('Подписанный акт не совпадает с актом заказчика — подпись отклонена.');
+    }
+    const memberSig = stored.signatures?.[0];
+    const memberPreserved = !!memberSig && submitted.signatures.some((s) => s.signer === memberSig.signer && s.signature === memberSig.signature);
+    if (!memberPreserved) throw new ForbiddenException('Подпись заказчика на акте утеряна или подменена — подпись отклонена.');
+    if (!submitted.signatures.some((s) => s.signer === input.operator_account)) {
+      throw new ForbiddenException('Закрывающую подпись должен поставить оператор, закрывающий выдачу.');
+    }
+    this.verifyDocumentSignature(input.signed_act, input.operator_account);
   }
 
   /** Оператор отменяет начатую выдачу: `cancelissue`, сага CANCELLED, заказ снова готов к выдаче. */
@@ -760,28 +808,47 @@ export class MarketplaceIssuanceService {
     for (const saga of stale) {
       try {
         if (saga.stage === MarketplaceIssuanceSagaStages.STATEMENT_SIGNED) {
-          const decided = await this.attachDecision(saga);
-          if (decided.stage === MarketplaceIssuanceSagaStages.DECISION_PENDING) await this.requestRobot(decided);
+          await this.watchdogAttachDecision(saga);
         } else if (saga.stage === MarketplaceIssuanceSagaStages.DECISION_PENDING) {
-          if (saga.decision_mode === 'ROBOT' && saga.attempts < 5) {
-            await this.sagaRepo.update(saga.id, { attempts: saga.attempts + 1 });
-            await this.requestRobot(saga);
-          } else {
-            // Решение могло пройти мимо слушателя (перезапуск): сверяемся с цепью.
-            const decision = saga.decision_id ? null : await this.chainPort.findCouncilDecisionByHash(coopname, saga.order_hash).catch(() => null);
-            if (decision?.authorized) await this.onCouncilAuthorized({ coopname, order_hash: saga.order_hash, protocol: decision.authorization as unknown as ISignedDocument });
-            else await this.sagaRepo.update(saga.id, { attempts: saga.attempts + 1 });
-          }
+          await this.watchdogPushDecision(coopname, saga);
         } else if (saga.stage === MarketplaceIssuanceSagaStages.DECISION_AUTHORIZED && !saga.act_document_hash) {
-          const order = await this.loadOrder(coopname, saga.order_id);
-          const act = await this.generateActDocument(order, saga, saga.decision_id ?? '0');
-          await this.sagaRepo.update(saga.id, { act_document_hash: act.hash });
+          await this.watchdogBuildAct(coopname, saga);
         }
       } catch (err) {
         this.logger.warn(`Сторож выдачи: сага ${saga.id} не дожата (${this.errMessage(err)}).`);
         await this.sagaRepo.update(saga.id, { last_error: this.errMessage(err), attempts: saga.attempts + 1 });
       }
     }
+  }
+
+  /** Сторож на STATEMENT_SIGNED: дочитать номер решения и позвать робота, если решение появилось. */
+  private async watchdogAttachDecision(saga: MarketplaceIssuanceSagaDomainEntity): Promise<void> {
+    const decided = await this.attachDecision(saga);
+    if (decided.stage === MarketplaceIssuanceSagaStages.DECISION_PENDING) await this.requestRobot(decided);
+  }
+
+  /**
+   * Сторож на DECISION_PENDING: повторно позвать робота, а если робот не ведёт
+   * решение или попытки исчерпаны — сверить решение с цепью. Вынесено из
+   * `watchdogTick`, чтобы ветки сторожа не вкладывались одна в другую.
+   */
+  private async watchdogPushDecision(coopname: string, saga: MarketplaceIssuanceSagaDomainEntity): Promise<void> {
+    if (saga.decision_mode === 'ROBOT' && saga.attempts < 5) {
+      await this.sagaRepo.update(saga.id, { attempts: saga.attempts + 1 });
+      await this.requestRobot(saga);
+      return;
+    }
+    // Решение могло пройти мимо слушателя (перезапуск): сверяемся с цепью.
+    const decision = saga.decision_id ? null : await this.chainPort.findCouncilDecisionByHash(coopname, saga.order_hash).catch(() => null);
+    if (decision?.authorized) await this.onCouncilAuthorized({ coopname, order_hash: saga.order_hash, protocol: decision.authorization as unknown as ISignedDocument });
+    else await this.sagaRepo.update(saga.id, { attempts: saga.attempts + 1 });
+  }
+
+  /** Сторож на DECISION_AUTHORIZED без акта: сформировать Акт 1115 и запомнить его хэш. */
+  private async watchdogBuildAct(coopname: string, saga: MarketplaceIssuanceSagaDomainEntity): Promise<void> {
+    const order = await this.loadOrder(coopname, saga.order_id);
+    const act = await this.generateActDocument(order, saga, saga.decision_id ?? '0');
+    await this.sagaRepo.update(saga.id, { act_document_hash: act.hash });
   }
 
   // ── Документы ────────────────────────────────────────────────────────
