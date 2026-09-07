@@ -7,7 +7,6 @@ import { useWalletStore, type ILoadUserWallet } from 'src/entities/Wallet';
 import { useSessionStore } from 'src/entities/Session';
 import { useSystemStore } from 'src/entities/System/model';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
-import { FailAlert, SuccessAlert } from 'src/shared/api';
 
 /**
  * Кошелёк в шапке стола заказов (правка 2026-08-13).
