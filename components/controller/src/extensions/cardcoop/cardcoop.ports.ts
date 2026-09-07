@@ -32,6 +32,7 @@ import {
   LOGGER_PORT,
   ORGANIZATION_PORT,
   USER_DIRECTORY_PORT,
+  VAULT_PORT,
 } from '@coopenomics/innercoop';
 
 export const cardcoopPorts = {
@@ -44,6 +45,8 @@ export const cardcoopPorts = {
     LOGGER_PORT,
     ORGANIZATION_PORT,
     USER_DIRECTORY_PORT,
+    // Ключ подписи вебхуков реестра репутации хранится в хранилище секретов.
+    VAULT_PORT,
   ],
   optional: [],
 };

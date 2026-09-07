@@ -9,7 +9,7 @@
 экспорта, исчезнувший метод, новый обязательный параметр требуют major, а
 снятое старое — периода устаревания не меньше одного minor (INV-009).
 
-Всего экспортов: 261.
+Всего экспортов: 266.
 
 ## ACCOUNT_PORT
 
@@ -1647,6 +1647,30 @@
 - `position: string`
 - `based_on: string`
 
+## InnerRobotDecisionOutcome
+
+`type` · cross-plugin-ports
+
+- `| 'authorized' | 'declined' | 'pending' | 'manual' | 'failed'`
+
+## InnerRobotDecisionRequest
+
+`interface` · cross-plugin-ports
+
+- `coopname: string`
+- `decision_id: number`
+- `decision_type: string`
+- `decision_hash: string`
+- `username: string`
+
+## InnerRobotDecisionResult
+
+`interface` · cross-plugin-ports
+
+- `outcome: InnerRobotDecisionOutcome`
+- `tx_hash?: string`
+- `detail?: string`
+
 ## InnerRoomMessageKind
 
 `type` · cross-plugin-ports
@@ -1966,6 +1990,13 @@
 
 - `{ version: string`
 
+## ISovietRobotPort
+
+`interface` · cross-plugin-ports
+
+- `isEnabled(): Promise<boolean>`
+- `requestDecision(input: InnerRobotDecisionRequest): Promise<InnerRobotDecisionResult>`
+
 ## IUserCertificatePort
 
 `interface` · core-ports
@@ -2242,6 +2273,12 @@
 `const` · core-ports
 
 - `Symbol.for('Innercoop.CorePort.SecretCipher')`
+
+## SOVIET_ROBOT_PORT
+
+`const` · cross-plugin-ports
+
+- `Symbol.for('Innercoop.CrossPluginPort.SovietRobot')`
 
 ## TrackingRule
 

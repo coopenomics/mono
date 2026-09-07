@@ -55,7 +55,7 @@
 | `USER_CERTIFICATE_PORT` | `IUserCertificatePort` (1)<br><sub>core-ports/user-certificate.port.ts</sub> | `UserCertificateInnercoopAdapter` | marketplace | Сертификат пайщика — как его подписывать в документах и показывать в интерфейсе. |
 | `USER_DATA_PORT` | `IUserDataPort` (5)<br><sub>core-ports/user-data.port.ts</sub> | `UserDataInnercoopAdapter` | capital, marketplace | Пользовательские данные пайщика — записи «ключ→значение» в разрезе кооператива. |
 | `USER_DIRECTORY_PORT` | `IUserDirectoryPort` (3)<br><sub>core-ports/user-directory.port.ts</sub> | `UserDirectoryInnercoopAdapter` | capital, cardcoop, chatcoop, marketplace | Справочник пользователей кооператива — учётные имена и роли. |
-| `VAULT_PORT` | `IVaultPort` (1)<br><sub>core-ports/vault.port.ts</sub> | `VaultInnercoopAdapter` | capital, chairman, expenses, ku, marketplace, reports, soviet-robot | Ключи подписи, хранимые кооперативом. |
+| `VAULT_PORT` | `IVaultPort` (1)<br><sub>core-ports/vault.port.ts</sub> | `VaultInnercoopAdapter` | capital, cardcoop, chairman, expenses, ku, marketplace, reports, soviet-robot | Ключи подписи, хранимые кооперативом. |
 | `VERIFICATION_PORT` | `IVerificationPort` (2)<br><sub>core-ports/verification.port.ts</sub> | `VerificationInnercoopAdapter` | marketplace | Верификация личности пайщика — уровни подтверждения, которыми ядро отвечает на вопрос расширения «можно ли этому пайщику доверить действие». |
 | `PROGRAM_WALLET_PORT` | `IProgramWalletPort` (2)<br><sub>core-ports/wallet.port.ts</sub> | `ProgramWalletInnercoopAdapter` | capital | Кошельки пайщика. |
 | `USER_WALLET_PORT` | `IProgramWalletPort` (2)<br><sub>core-ports/wallet.port.ts</sub> | `UserWalletInnercoopAdapter` | marketplace | Кошельки пайщика. |
@@ -72,7 +72,7 @@
 | `MATRIX_ROOM_MESSAGING_PORT` | `IMatrixRoomMessagingPort` (4)<br><sub>cross-plugin-ports/matrix-room-messaging.port.ts</sub> | `ChatcoopInnercoopMatrixRoomMessagingAdapter` | capital* | Отправка сообщений в Matrix (Client-Server API) от имени сервисной учётки. |
 | `PROJECT_CAPITAL_CLEARANCE_PORT` | `IProjectCapitalClearancePort` (2)<br><sub>cross-plugin-ports/project-capital-clearance.port.ts</sub> | `CapitalInnercoopProjectCapitalClearanceAdapter` | chatcoop* | Допуск к проекту Capital (подтверждённый appendix / makeClearance). |
 | `PROJECT_COMMUNICATION_ARTIFACTS_PORT` | `IProjectCommunicationArtifactsPort` (8)<br><sub>cross-plugin-ports/project-communication-artifacts.port.ts</sub> | `ChatcoopInnercoopProjectCommunicationArtifactsAdapter` | capital*, chatcoop* | Сообщения Matrix в истории (текст и расшифрованное аудио). |
-| `SOVIET_ROBOT_PORT` | `ISovietRobotPort` (2)<br><sub>cross-plugin-ports/soviet-robot.port.ts</sub> | — | — | Робот решений совета (расширение `soviet-robot`): прямой рычаг для расширений, которые ставят повестку и ждут решение здесь и сейчас. |
+| `SOVIET_ROBOT_PORT` | `ISovietRobotPort` (2)<br><sub>cross-plugin-ports/soviet-robot.port.ts</sub> | `SovietRobotInnercoopAdapter` | marketplace* | Робот решений совета (расширение `soviet-robot`): прямой рычаг для расширений, которые ставят повестку и ждут решение здесь и сейчас. |
 
 ## Хуки
 
@@ -83,4 +83,4 @@
 | `DESKTOP_GRANTS_REGISTRY_PORT` | `IDesktopGrantsRegistryPort` (1)<br><sub>hooks/desktop-grants.hook.ts</sub> | `ExtensionGrantsRegistry` | marketplace, soviet-robot | Права пайщика на рабочем столе расширения. |
 | `REGISTRATION_DOCUMENT_PARAMETERS_REGISTRY_PORT` | `IRegistrationDocumentParametersRegistryPort` (2)<br><sub>hooks/registration-document-parameters.hook.ts</sub> | `RegistrationDocumentParametersRegistry` | capital, marketplace | Параметры оферты, которые расширение выдаёт вступающему пайщику. |
 
-Всего портов: 50.
+Всего портов: 51.
