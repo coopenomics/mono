@@ -302,9 +302,9 @@ async function closeOne(saga: MarketplaceIssuanceSagaView, signer: Classes.Docum
   closingOrders.value = new Set([...closingOrders.value, saga.order_id]);
   try {
     const payload = await getIssuanceClosePayload(saga.order_id);
-    const raw = payload.act.rawDocument;
+    const raw = payload.act_aggregate.rawDocument;
     if (!raw) throw new Error('Не найден исходный акт для закрывающей подписи');
-    const signed_act = (await signer.signDocument(raw, globalStore.username, 2, [payload.act.document])) as Parameters<
+    const signed_act = (await signer.signDocument(raw, globalStore.username, 2, [payload.act_aggregate.document])) as Parameters<
       typeof closeIssuance
     >[0]['signed_act'];
     await closeIssuance({ order_id: saga.order_id, signed_act });
@@ -554,7 +554,8 @@ q-page.issuance(role='region', aria-label='Выдача заказов')
                 | {{ lineQuantityLabel(line.quantity, line) }} · {{ formatAsset2Digits(line.total) }} ₽
                 span.issuance__line-shortage(v-if='line.quantity < line.orderedQuantity')
                   |  · заказано {{ lineQuantityLabel(line.orderedQuantity, line) }}
-            BaseBadge(v-if='line.quantity < line.orderedQuantity', variant='warn') Недопоставка
+            .issuance__line-side(v-if='line.quantity < line.orderedQuantity')
+              BaseBadge(variant='warn') Недопоставка
 
           //- Одна кнопка на карточку: объявить готовыми к выдаче все ещё не
           //- объявленные позиции заказчика (заказчику уходит уведомление).
@@ -583,21 +584,22 @@ q-page.issuance(role='region', aria-label='Выдача заказов')
               .issuance__line-meta
                 | {{ lineQuantityLabel(x.saga.fact.actual_quantity, { unit: x.order.unit_of_measure, packageSize: x.order.package_size ?? null }) }} · {{ formatAsset2Digits(x.saga.fact.fact_cost) }} ₽
                 span.issuance__line-shortage(v-if='x.saga.last_error')  · {{ x.saga.last_error }}
-            BaseBadge(:variant='stageOf(x.saga).variant') {{ stageOf(x.saga).label }}
-            BaseButton(
-              v-if='x.saga.awaits_operator_close',
-              variant='primary',
-              size='sm',
-              :loading='closingOrders.has(x.order.id)',
-              @click='closeManually(x.saga)'
-            ) Закрыть
-            BaseButton(
-              v-else-if='canCancel(x.saga)',
-              variant='ghost',
-              size='sm',
-              :loading='cancellingOrders.has(x.order.id)',
-              @click='cancelOne(x.saga)'
-            ) Снять
+            .issuance__line-side
+              BaseBadge(:variant='stageOf(x.saga).variant') {{ stageOf(x.saga).label }}
+              BaseButton(
+                v-if='x.saga.awaits_operator_close',
+                variant='primary',
+                size='sm',
+                :loading='closingOrders.has(x.order.id)',
+                @click='closeManually(x.saga)'
+              ) Закрыть
+              BaseButton(
+                v-else-if='canCancel(x.saga)',
+                variant='ghost',
+                size='sm',
+                :loading='cancellingOrders.has(x.order.id)',
+                @click='cancelOne(x.saga)'
+              ) Снять
 
         //- Итог по заказчику — снизу, под выдачей (не в шапке карточки).
         .issuance__card-foot
@@ -755,19 +757,35 @@ q-page.issuance(role='region', aria-label='Выдача заказов')
     align-items: center;
     justify-content: space-between;
     gap: var(--p-3, 12px);
+    // Узкая карточка: статус и кнопки уезжают на вторую строку целиком, а не
+    // расплющивают название товара в столбик из букв.
+    flex-wrap: wrap;
     padding: var(--p-2, 8px) var(--p-3, 12px);
     background: var(--p-surface-2);
     border-radius: var(--p-r-sm, 8px);
   }
 
   &__line-info {
-    min-width: 0;
+    // Занимает остаток строки и не сжимается уже читаемой ширины: без базиса
+    // длинный статус («Акт подписан — закрываем выдачу») съедал колонку целиком.
+    flex: 1 1 220px;
+  }
+
+  // Статус и действия по строке — одним блоком, чтобы переносились вместе.
+  &__line-side {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: var(--p-2, 8px);
+    margin-left: auto;
   }
 
   &__line-name {
     font-size: var(--p-fs-body-sm, 13px);
     color: var(--p-ink);
-    overflow-wrap: anywhere;
+    // По словам, а не в любом месте: при anywhere минимальная ширина колонки
+    // равна одной букве, и flex складывал «МОЛОКО» в вертикальный столбик.
+    overflow-wrap: break-word;
   }
 
   &__line-meta {

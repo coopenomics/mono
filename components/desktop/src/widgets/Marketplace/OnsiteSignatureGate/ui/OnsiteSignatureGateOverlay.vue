@@ -109,6 +109,10 @@ const anySigning = computed(() => signingKey.value !== null);
 function sagaTaskTitle(s: { stage: string }): string {
   return s.stage === 'FACT_FIXED' ? 'Заявление на выдачу' : 'Акт приёма-передачи';
 }
+/** Надпись на кнопке саги: заявление — то же «подписать и получить», что и в бандле. */
+function sagaTaskAction(s: { stage: string }): string {
+  return s.stage === 'FACT_FIXED' ? 'Подписать и получить' : 'Подписать акт';
+}
 function sagaTaskSub(s: { stage: string }): string {
   return s.stage === 'FACT_FIXED'
     ? 'Подпишите заявление о возврате паевого взноса имуществом — оно уйдёт на решение совета'
@@ -279,7 +283,7 @@ BaseDialog(
         )
           template(#icon-left)
             q-icon(name='draw', size='18px')
-          | Подписать
+          | {{ sagaTaskAction(s) }}
 </template>
 
 <style scoped lang="scss">

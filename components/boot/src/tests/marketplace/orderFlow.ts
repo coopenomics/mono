@@ -275,14 +275,14 @@ export async function issueOrder(args: {
   // 5) Закрывающая подпись оператора поверх подписи пайщика.
   const closePl: any = await gqlAs(operatorToken, `query($d:MarketplaceIssuanceOrderInput!){
     marketplaceIssuanceClosePayload(data:$d){
-      act{
+      act_aggregate{
         hash
         rawDocument{ full_title html hash meta binary }
         document{ version hash doc_hash meta_hash meta signatures{ id signer public_key signature signed_at signed_hash meta } }
       }
     }
   }`, { d: { order_id: orderId } })
-  const agg = closePl.marketplaceIssuanceClosePayload.act
+  const agg = closePl.marketplaceIssuanceClosePayload.act_aggregate
   await gqlAs(operatorToken, `mutation($d:MarketplaceSignIssuanceActInput!){
     marketplaceCloseIssuance(data:$d){ ${SAGA_FIELDS} }
   }`, { d: { order_id: orderId, signed_act: await signAs(operator.wif, agg.rawDocument, operator.account, 2, [agg.document]) } })

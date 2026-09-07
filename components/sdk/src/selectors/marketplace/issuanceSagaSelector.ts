@@ -63,5 +63,5 @@ export const marketplaceIssuanceStatementPayloadSelector = Selector('Marketplace
 /** Нагрузка к закрывающей подписи оператора: сага + акт с подписью заказчика. */
 export const marketplaceIssuanceClosePayloadSelector = Selector('MarketplaceIssuanceClosePayload')({
   saga: rawIssuanceSagaSelector,
-  act: documentAggregateSelector,
+  act_aggregate: documentAggregateSelector,
 })
