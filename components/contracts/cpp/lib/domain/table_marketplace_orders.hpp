@@ -2,6 +2,7 @@
 
 #include <eosio/asset.hpp>
 #include <eosio/crypto.hpp>
+#include <eosio/binary_extension.hpp>
 #include <eosio/eosio.hpp>
 #include <string>
 
@@ -142,10 +143,12 @@ struct [[eosio::table, eosio::contract(MARKETPLACE)]] order {
 
   document2 acceptance_act_signsupp;                          ///< АПП приёмки — первая подпись поставщика (signsupp)
   document2 acceptance_act_signchair;                         ///< АПП приёмки — финальная подпись председателя приёмного КУ (signchair)
-  document2 issue_statement;                                  ///< Заявление о возврате паевого взноса имуществом (1113) — подпись заказчика (issuestmt)
-  document2 issue_protocol;                                   ///< Протокол решения совета о возврате паевого взноса имуществом (1114) — из callback onmktisauth
-  document2 issue_act1;                                       ///< Акт приёма-передачи (1115) — первая подпись заказчика (issueact1)
-  document2 issue_act2;                                       ///< Акт приёма-передачи (1115) — закрывающая подпись председателя участка выдачи (issueact2)
+  // Раскладка совместима со строками членской модели на живых стендах: два
+  // слота document2 прежних актов выдачи (issue_act_signiss1/2) заняты актом
+  // 1115 (первая и закрывающая подписи), а заявление и протокол добавлены в
+  // хвост как binary_extension — старые строки читаются без миграции.
+  document2 issue_act1;                                       ///< Акт приёма-передачи (1115) — первая подпись заказчика (issueact1); слот прежнего issue_act_signiss1
+  document2 issue_act2;                                       ///< Акт приёма-передачи (1115) — закрывающая подпись председателя участка выдачи (issueact2); слот прежнего issue_act_signiss2
 
   eosio::name payout_status = OrderPayoutStatus::NONE;        ///< Locked Decision L12 — состояние выплаты поставщику через gateway (см. namespace OrderPayoutStatus)
   std::string payout_decline_reason;                          ///< Заполняется только при payout_status == DECLINED (текст причины из gateway::outdecline)
@@ -171,11 +174,13 @@ struct [[eosio::table, eosio::contract(MARKETPLACE)]] order {
    */
   eosio::asset membership_fee = asset(0, _root_govern_symbol);
 
-  /// Часть тела заказа (total_cost), оплаченная из внутреннего членского кошелька
-  /// пайщика и лежащая членским резервом на w.mkt.morder (счёт 86); остальное
-  /// тело — паевой резерв на w.mkt.order (счёт 80). При недовыдаче и отмене
-  /// возвращается на w.mkt.member, при выдаче гасится o.mkt.consm (Дт 86 / Кт 10).
-  eosio::asset member_funded = asset(0, _root_govern_symbol);
+  /// Заявление о возврате паевого взноса имуществом (1113) — подпись заказчика
+  /// (issuestmt). binary_extension: у строк, созданных до паевой модели, значения
+  /// нет — читать через value_or(document2{}).
+  eosio::binary_extension<document2> issue_statement;
+  /// Протокол решения совета о возврате паевого взноса имуществом (1114) — из
+  /// обратного вызова onmktisauth. binary_extension, как и issue_statement.
+  eosio::binary_extension<document2> issue_protocol;
 
   // Все timestamp'ы переходов состояний (createorder/accepted/received_to_coop/
   // ready/received/cancelled) восстанавливаются на бэкенде из blockchain_actions[at]

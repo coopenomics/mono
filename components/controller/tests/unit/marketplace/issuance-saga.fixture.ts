@@ -194,15 +194,13 @@ export function buildMocks(opts: {
   const planFunding = (available: bigint, lines: Array<{ body_units: bigint; fee_units: bigint }>) => {
     let member = available;
     const planned = lines.map((line) => {
-      const fee_convert_units = line.fee_units > member ? line.fee_units - member : 0n;
-      member = member + fee_convert_units - line.fee_units;
-      const body_member_units = line.body_units > member ? member : line.body_units;
-      member -= body_member_units;
-      return { ...line, fee_convert_units, body_member_units, body_share_units: line.body_units - body_member_units };
+      const fee_member_units = line.fee_units > member ? member : line.fee_units;
+      member -= fee_member_units;
+      return { ...line, fee_member_units, fee_convert_units: line.fee_units - fee_member_units };
     });
     const fee_convert_units = planned.reduce((sum, l) => sum + l.fee_convert_units, 0n);
-    const body_share_units = planned.reduce((sum, l) => sum + l.body_share_units, 0n);
-    return { lines: planned, fee_convert_units, body_share_units, transfer_units: fee_convert_units + body_share_units };
+    const body_units = planned.reduce((sum, l) => sum + l.body_units, 0n);
+    return { lines: planned, fee_convert_units, body_units, transfer_units: body_units + fee_convert_units };
   };
   const convertService = {
     memberAvailableUnits: jest.fn(async () => memberAvailable),

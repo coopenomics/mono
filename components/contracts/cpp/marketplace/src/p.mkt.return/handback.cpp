@@ -30,7 +30,7 @@ void marketplace::handback(eosio::name coopname,
 
   if (r.status == ReturnStatus::RETURN_PENDING) {
     const auto now = eosio::time_point_sec(eosio::current_time_point().sec_since_epoch());
-    eosio::check(now.sec_since_epoch() >= r.accepted_at.sec_since_epoch() + Marketplace::RETURN_DECISION_WAIT_SECS,
+    eosio::check(now.sec_since_epoch() >= r.accepted_at.value_or(time_point_sec(0)).sec_since_epoch() + Marketplace::RETURN_DECISION_WAIT_SECS,
                  "Совет ещё рассматривает заявление — срок ожидания решения не истёк");
   } else {
     eosio::check(r.status == ReturnStatus::RETURN_DECLINED,

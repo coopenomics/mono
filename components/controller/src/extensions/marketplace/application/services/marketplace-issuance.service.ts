@@ -310,10 +310,10 @@ export class MarketplaceIssuanceService {
   }
 
   /**
-   * Заявление 1110 на доплату по факту к подписи заказчиком — только если
+   * Заявление 1110 на довзнос по факту к подписи заказчиком — только если
    * факт больше заказа и внутреннего членского кошелька не хватает на довзнос
-   * участка; иначе null и подпись не требуется. Сумма — недостающее со
-   * свободного паевого: доплата тела и членская часть довзноса.
+   * участка; иначе null и подпись не требуется. Сумма — недостающая часть
+   * довзноса со свободного паевого (доплата тела идёт без заявления).
    */
   async getConvertSignablePayload(coopname: string, order_id: string, member_account: string): Promise<InnerGeneratedDocument | null> {
     const order = await this.loadOrder(coopname, order_id);
@@ -343,7 +343,7 @@ export class MarketplaceIssuanceService {
     const memberAvailable = await this.convertService.memberAvailableUnits(coopname, order.orderer_account);
     const fee_units = this.convertService.shortfallUnits(memberAvailable, topUp.topup_units);
     if (fee_units <= 0n) return null;
-    return { amount_units: topUp.body_topup_units + fee_units, fee_units };
+    return { amount_units: fee_units, fee_units };
   }
 
   // ── Этап 1: заявление ────────────────────────────────────────────────

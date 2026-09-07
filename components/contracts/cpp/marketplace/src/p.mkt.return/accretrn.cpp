@@ -42,7 +42,7 @@ void marketplace::accretrn(eosio::name coopname,
   Marketplace::update_return_request(coopname, r.id, [&](auto& upd) {
     upd.status      = ReturnStatus::RETURN_PENDING;
     upd.statement   = statement;
-    upd.accepted_at = now;
+    upd.accepted_at.emplace(now);
   });
 
   // Повестка совета: hash = request_hash, чтобы обратные вызовы нашли заявку.

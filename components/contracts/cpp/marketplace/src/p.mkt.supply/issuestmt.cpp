@@ -88,7 +88,7 @@ void marketplace::issuestmt(eosio::name coopname,
     upd.status          = OrderStatus::ISSUE_PENDING;
     upd.actual_quantity = actual_quantity;
     upd.fact_cost       = fact_cost;
-    upd.issue_statement = statement;
+    upd.issue_statement.emplace(statement);
   });
 
   // Повестка совета: marketplace в contracts_whitelist, createagenda

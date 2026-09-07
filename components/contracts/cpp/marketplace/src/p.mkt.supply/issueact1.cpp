@@ -23,7 +23,7 @@ void marketplace::issueact1(eosio::name coopname,
   eosio::check(o.orderer == orderer, "Вы не заказчик этого заказа");
   eosio::check(o.status == OrderStatus::ISSUE_AUTHORIZED,
                "Акт можно подписать только после решения совета о выдаче");
-  eosio::check(!is_empty_document(o.issue_protocol),
+  eosio::check(!is_empty_document(o.issue_protocol.value_or(document2{})),
                "В заказе нет протокола решения совета");
   eosio::check(is_empty_document(o.issue_act1),
                "Первая подпись акта выдачи уже зафиксирована");

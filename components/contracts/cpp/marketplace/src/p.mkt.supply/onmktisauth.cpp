@@ -20,6 +20,6 @@ void marketplace::onmktisauth(eosio::name coopname,
 
   Marketplace::update_order(coopname, o.id, [&](auto& upd) {
     upd.status         = OrderStatus::ISSUE_AUTHORIZED;
-    upd.issue_protocol = authorization;
+    upd.issue_protocol.emplace(authorization);
   });
 }

@@ -2,6 +2,7 @@
 
 #include <eosio/asset.hpp>
 #include <eosio/crypto.hpp>
+#include <eosio/binary_extension.hpp>
 #include <eosio/eosio.hpp>
 #include <string>
 #include <vector>
@@ -85,17 +86,16 @@ struct [[eosio::table, eosio::contract(MARKETPLACE)]] return_request {
    * он заплатил за заказ. Ноль — взнос не возвращается.
    */
   eosio::asset fee_refund = asset(0, _root_govern_symbol);
-  /// Часть возвращаемой стоимости, приходящаяся на членский резерв заказа
-  /// (o.member_funded): восстанавливается на внутренний членский кошелёк
-  /// o.mkt.retm (Дт 10 / Кт 86), остальное — на свободный паевой o.mkt.return.
-  eosio::asset member_return = asset(0, _root_govern_symbol);
 
   std::string reason_text;                                    ///< причина обращения (≤ 500 символов)
   std::vector<checksum256> photos;                            ///< хеши файлов в bucket'е stol-zakazov:images
 
   eosio::name status = ReturnStatus::PENDING_REVIEW;
   document2 statement;                                        ///< заявление пайщика (его подпись)
-  time_point_sec accepted_at = time_point_sec(0);            ///< момент приёма имущества оператором (accretrn); от него считается срок ожидания решения совета для handback
+  /// Момент приёма имущества оператором (accretrn); от него считается срок
+  /// ожидания решения совета для handback. binary_extension: у заявок, созданных
+  /// до паевой модели, значения нет — читать через value_or(time_point_sec(0)).
+  eosio::binary_extension<time_point_sec> accepted_at;
 
   // Timestamp'ы submretrn/aprretrem/rejretrem/accretrn/rejretrn — на бэкенде
   // из blockchain_actions[at]. В контракте никаких guard'ов по датам нет.

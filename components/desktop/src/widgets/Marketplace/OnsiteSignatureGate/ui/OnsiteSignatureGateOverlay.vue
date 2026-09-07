@@ -226,20 +226,16 @@ BaseDialog(
             td К оплате
             td.num
             td.num {{ formatAsset2Digits(proposalTotalWithFee(p)) }} ₽
-          //- Внутренний членский кошелёк расходуется первым; недостающее — по
-          //- заявлению о переводе с паевого, которое подписывается тем же нажатием.
+          //- Членский взнос покрывается остатком внутреннего членского кошелька;
+          //- недостающее — по заявлению о переводе, которое подписывается тем же нажатием.
           tr(v-if='proposalConverts[p.id]')
-            td Переводится с паевого по заявлению
-            td.num
-            td.num {{ formatAsset2Digits(proposalConverts[p.id]!.amount) }} ₽
-          tr(v-if='proposalConverts[p.id]')
-            td из них членский взнос
+            td Членский взнос сверх остатка членского кошелька — по заявлению
             td.num
             td.num {{ formatAsset2Digits(proposalConverts[p.id]!.membership_fee) }} ₽
           tr(v-else)
-            td Оплачивается из членского кошелька Стола заказов
+            td Членский взнос покрыт членским кошельком Стола заказов
             td.num
-            td.num {{ formatAsset2Digits(proposalTotalWithFee(p)) }} ₽
+            td.num {{ formatAsset2Digits(proposalFeeAmount(p)) }} ₽
 
       .onsite-gate__foot
         BaseButton(

@@ -360,8 +360,10 @@ export interface IOrder {
   batch_hash: IChecksum256
   acceptance_act_signsupp: IDocument2
   acceptance_act_signchair: IDocument2
-  issue_statement: IDocument2
-  issue_protocol: IDocument2
+  /** binary_extension: у заказов, созданных до паевой модели, поля нет. */
+  issue_statement?: IDocument2
+  /** binary_extension: у заказов, созданных до паевой модели, поля нет. */
+  issue_protocol?: IDocument2
   issue_act1: IDocument2
   issue_act2: IDocument2
   payout_status: IName
@@ -371,8 +373,6 @@ export interface IOrder {
   markdown_cost: IAsset
   /** Членский взнос по заказу (requirement b6); ноль — взнос не начислялся. */
   membership_fee: IAsset
-  /** Часть тела заказа, оплаченная из внутреннего членского кошелька (членский резерв w.mkt.morder). */
-  member_funded: IAsset
 }
 
 export interface IReturnRequest {
@@ -387,13 +387,12 @@ export interface IReturnRequest {
   fact_cost: IAsset
   /** Возвращаемая доля членского взноса; ноль — взнос не возвращается. */
   fee_refund: IAsset
-  /** Часть возвращаемой стоимости, восстанавливаемая на внутренний членский кошелёк (o.mkt.retm). */
-  member_return: IAsset
   reason_text: string
   photos: IChecksum256[]
   status: IName
   statement: IDocument2
-  accepted_at: ITimePointSec
+  /** binary_extension: у заявок, созданных до паевой модели, поля нет. */
+  accepted_at?: ITimePointSec
 }
 
 export interface IWroffItem {

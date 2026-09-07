@@ -30,36 +30,35 @@ export interface FundingLineInput {
   fee_units: bigint;
 }
 
-/** Как контракт разложит строку: взнос с членского кошелька, тело — из членского и с паевого. */
+/** Как контракт разложит строку: взнос с членского кошелька (недостающее — перевод), тело — с паевого. */
 export interface FundingLinePlan extends FundingLineInput {
   /** Недостающая на взнос часть — переводится в членский кошелёк действием convert. */
   fee_convert_units: bigint;
-  /** Часть тела из внутреннего членского кошелька (членский резерв). */
-  body_member_units: bigint;
-  /** Часть тела с паевого источника (паевой резерв). */
-  body_share_units: bigint;
+  /** Часть взноса, покрытая остатком внутреннего членского кошелька. */
+  fee_member_units: bigint;
 }
 
 export interface FundingPlan {
   lines: FundingLinePlan[];
   /** Сумма переводов в членский кошелёк (все строки) — параметр действия convert. */
   fee_convert_units: bigint;
-  /** Паевая часть тел с паевого источника (все строки). */
-  body_share_units: bigint;
-  /** Недостающая сумма — всё, что уходит с паевого источника: тело + перевод в членский. Ноль — заявление не нужно. */
+  /** Тела всех строк — всегда с паевого источника. */
+  body_units: bigint;
+  /** Сумма заявления: тела + недостающая часть взносов. */
   transfer_units: bigint;
 }
 
 /**
  * Заявление 1110 о переводе паевого взноса в ЦПП «Стол заказов» (паевая
  * модель, уточнение владельца 06.09.2026). Внутренний членский кошелёк
- * `w.mkt.member` расходуется первым — на взнос участка и на тело заказа;
- * заявление пишется только на недостающую сумму («прошу перевести с баланса
+ * `w.mkt.member` (туда возвращаются членские средства при отменах и
+ * гарантийных возвратах) оплачивает только членские взносы следующих
+ * заказов; тело заказа всегда паевое. Заявление — «прошу перевести с баланса
  * моего Цифрового кошелька на баланс ЦПП «Стол заказов» N, из них членский
- * взнос M») и не пишется вовсе, если кошелька хватает. Отдельная транзакция
- * `convert` до заказа переводит членскую часть M; паевая часть тела уходит
- * своим путём при создании заказа. Контракт раскладывает суммы сам по балансу
- * на момент действия — здесь тот же расчёт для превью и сверки подписанных мет.
+ * взнос M», где M — взнос за вычетом остатка членского кошелька, N — тело
+ * плюс M. Отдельная транзакция `convert` до заказа переводит M; тело уходит
+ * своим путём при создании заказа. Контракт раскладывает суммы сам по
+ * балансу на момент действия — здесь тот же расчёт для превью и сверки мет.
  */
 @Injectable()
 export class MarketplaceConvertService {
@@ -83,29 +82,21 @@ export class MarketplaceConvertService {
   }
 
   /**
-   * План фондирования строк в порядке проведения (тот же, что в контракте):
-   * по каждой строке сначала взнос с членского кошелька (нехватка —
-   * перевод в членский по заявлению), затем тело из остатка кошелька,
-   * остаток тела — с паевого источника. Остаток кошелька тянется между
-   * строками последовательно; порядок обязан совпадать с порядком отправки.
+   * План по строкам в порядке проведения (тот же, что в контракте): взнос
+   * каждой строки покрывается остатком внутреннего членского кошелька, нехватка
+   * — перевод в членский по заявлению; тело всегда с паевого источника.
+   * Остаток кошелька тянется между строками последовательно.
    */
   planFunding(memberAvailableUnits: bigint, lines: ReadonlyArray<FundingLineInput>): FundingPlan {
     let member = memberAvailableUnits > 0n ? memberAvailableUnits : 0n;
     const planned: FundingLinePlan[] = lines.map((line) => {
-      const fee_convert_units = line.fee_units > member ? line.fee_units - member : 0n;
-      member = member + fee_convert_units - line.fee_units;
-      const body_member_units = line.body_units > member ? member : line.body_units;
-      member -= body_member_units;
-      return {
-        ...line,
-        fee_convert_units,
-        body_member_units,
-        body_share_units: line.body_units - body_member_units,
-      };
+      const fee_member_units = line.fee_units > member ? member : line.fee_units;
+      member -= fee_member_units;
+      return { ...line, fee_member_units, fee_convert_units: line.fee_units - fee_member_units };
     });
     const fee_convert_units = planned.reduce((s, l) => s + l.fee_convert_units, 0n);
-    const body_share_units = planned.reduce((s, l) => s + l.body_share_units, 0n);
-    return { lines: planned, fee_convert_units, body_share_units, transfer_units: fee_convert_units + body_share_units };
+    const body_units = planned.reduce((s, l) => s + l.body_units, 0n);
+    return { lines: planned, fee_convert_units, body_units, transfer_units: body_units + fee_convert_units };
   }
 
   /** Недостающая на одну сумму часть членского кошелька (довзнос по факту). */
@@ -113,15 +104,15 @@ export class MarketplaceConvertService {
     return this.planFunding(memberAvailableUnits, [{ body_units: 0n, fee_units: feeUnits }]).fee_convert_units;
   }
 
-  /** Заявление 1110 к подписи: только недостающая сумма и членская часть в ней. */
+  /** Заявление 1110 к подписи: сумма перевода (тело и недостающая часть взноса) и членская часть в ней. */
   async generateStatement(input: {
     coopname: string;
     username: string;
     /** Якорь: хеш оформления, бандла либо заказа. */
     anchor_hash: string;
-    /** Недостающая сумма — уходит с паевого источника (тело + перевод в членский). */
+    /** Сумма заявления — тело с паевого источника плюс недостающая часть взноса. */
     amount_units: bigint;
-    /** Членская часть — параметр действия convert. */
+    /** Членская часть (взнос за вычетом остатка членского кошелька) — параметр действия convert. */
     fee_units: bigint;
     /** wallet — Цифровой кошелёк (обычный заказ), market — свободный паевой программы. */
     source: 'wallet' | 'market';
