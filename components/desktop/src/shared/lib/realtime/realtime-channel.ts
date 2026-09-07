@@ -46,8 +46,18 @@ const SAFETY_RESYNC_MS = 60_000;
 const RESYNC_DEBOUNCE_MS = 1_500;
 let resyncTimer: ReturnType<typeof setTimeout> | null = null;
 
+/**
+ * Признак авторизации. По умолчанию — ключ в памяти (легаси-вход по ключу);
+ * App подменяет его признаком сессии. Ключ сессии CoopID запирается PIN-кодом
+ * по простою и после перезагрузки страницы, и это не выход из кабинета: пайщик
+ * авторизован, запросы уходят с токеном, — а канал прежде закрывал подписки и
+ * переставал дочитывать состояние, и гейт подписи у стойки молчал, пока пайщик
+ * не подпишет что-нибудь сам (инцидент 2026-09-07: бандл выдачи не всплыл).
+ */
+let authProvider: () => boolean = () => Boolean(useGlobalStore().wif);
+
 function isAuthed(): boolean {
-  return Boolean(useGlobalStore().wif);
+  return authProvider();
 }
 
 function isForeground(): boolean {
@@ -121,12 +131,13 @@ export function registerRealtimeSubscription(sub: RealtimeSubscription): void {
  * подписки по факту авторизации и навешивает catch-up на возврат активности +
  * страховочный таймер от «зомби-сокета».
  */
-export function startRealtimeChannel(): void {
+export function startRealtimeChannel(opts?: { isAuthed?: () => boolean }): void {
   // Канал чисто клиентский (ws + таймеры). На сервере SSR App.setup тоже
   // исполняется — там стартовать нечего.
   if (typeof window === 'undefined') return;
   if (installed) return;
   installed = true;
+  if (opts?.isAuthed) authProvider = opts.isAuthed;
 
   // Авто-открытие/закрытие по состоянию авторизации.
   watch(

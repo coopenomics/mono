@@ -1,6 +1,7 @@
 import { computed, ref } from 'vue';
 import { useGlobalStore } from 'src/shared/store';
 import { useDesktopStore } from 'src/entities/Desktop/model';
+import { useSessionStore } from 'src/entities/Session';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { signingKeyOrAlert } from 'src/shared/lib/utils/signingKey';
 import { groupAplReceptions, type ReceptionGroup } from 'src/shared/lib/marketplace';
@@ -114,8 +115,11 @@ const isVisible = computed(
  * и не алертит — это фоновый poll, не действие пользователя.
  */
 async function refresh(source = 'ручной'): Promise<void> {
-  const global = useGlobalStore();
-  if (!global.wif) {
+  // Авторизация — по сессии, не по ключу в памяти: ключ CoopID запирается
+  // PIN-кодом по простою и после перезагрузки, но пайщик остаётся в кабинете и
+  // задачи на подпись ему показывать надо; ключ спросится при самой подписи.
+  const session = useSessionStore();
+  if (!session.isAuth) {
     // Не залогинен — гейта нет, очищаем возможный хвост.
     supplierReceptions.value = [];
     stockProposals.value = [];
@@ -141,7 +145,10 @@ async function refresh(source = 'ручной'): Promise<void> {
         : Promise.resolve([] as MarketplaceIssuanceSagaView[]),
     ]);
     supplierReceptions.value = receptions;
-    stockProposals.value = proposals;
+    // Оператору участка резолвер отдаёт бандлы всей стойки — гейт же личный:
+    // показываем только адресованные самому пайщику.
+    const me = session.username;
+    stockProposals.value = me ? proposals.filter((p) => p.member_account === me) : proposals;
     memberSagas.value = sagas;
     // Суммы перевода по бандлам — чтобы пайщик видел, сколько уйдёт с паевого, до нажатия.
     const converts = await Promise.all(

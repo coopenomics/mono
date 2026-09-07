@@ -38,7 +38,9 @@ const globalOverlays = getGlobalOverlays();
 // авторизации, дёргает catch-up на возврат активности. Подписки расширения
 // регистрируют сами в своих install.ts (фабрика, как и оверлеи).
 registerCoreRealtimeSubscriptions();
-startRealtimeChannel();
+// Признак авторизации — сессия, а не ключ в памяти: запертый PIN-кодом ключ
+// не должен закрывать подписки и глушить дочитку состояния.
+startRealtimeChannel({ isAuthed: () => session.isAuth });
 
 // [BOOTRACE] таймстемп первого холодного старта (грепается по слову BOOTRACE).
 const bootraceTs = (): string => {
