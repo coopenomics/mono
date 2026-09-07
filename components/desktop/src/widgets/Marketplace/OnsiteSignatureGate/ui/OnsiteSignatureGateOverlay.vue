@@ -231,7 +231,7 @@ BaseDialog(
           tr(v-if='proposalConverts[p.id]')
             td Членский взнос сверх остатка членского кошелька — по заявлению
             td.num
-            td.num {{ formatAsset2Digits(proposalConverts[p.id]!.membership_fee) }} ₽
+            td.num {{ formatAsset2Digits(proposalConverts[p.id]?.membership_fee) }} ₽
           tr(v-else)
             td Членский взнос покрыт членским кошельком Стола заказов
             td.num
