@@ -7,11 +7,11 @@ import type { MongoDBConnector } from '../Services/Databazor'
 export { MarketplaceConvertStatement as Template } from '../Templates'
 
 /**
- * Factory для Заявления о конвертации паевого взноса в членский взнос по
- * ЦПП «Стол заказов» (процесс p.mkt.supply). Генерируется на оформлении
- * заказа по одному на каждый Order и подписывается заказчиком
- * (`data.username` = заказчик) перед `marketplace::createorder` /
- * `marketplace::stockorder`.
+ * Factory для Заявления о переводе паевого взноса в ЦПП «Стол заказов» с
+ * уплатой членского взноса (процесс p.mkt.supply). Пишется только на
+ * недостающую сумму и одно на всё оформление, бандл выдачи или доплату по
+ * факту: якорь — `order_hash`. Подписывается заказчиком (`data.username`)
+ * и уходит отдельной транзакцией `marketplace::convert` до заказа.
  */
 export class Factory extends DocFactory<MarketplaceConvertStatement.Action> {
   constructor(storage: MongoDBConnector) {
@@ -53,6 +53,9 @@ export class Factory extends DocFactory<MarketplaceConvertStatement.Action> {
       program,
       order_hash: data.order_hash,
       amount: data.amount,
+      // Членский взнос выделен отдельной суммой прямо в тексте заявления —
+      // без него схема модели не проходит проверку, а фраза печатается пустой.
+      membership_fee: data.membership_fee,
     }
 
     await this.validate(combinedData, template.model)
