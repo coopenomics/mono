@@ -131,8 +131,13 @@ const STAGE_RANK: Record<MarketplaceOrderStatusView, number> = {
   SUPPLY_PREPARED: 3,
   ACCEPTED_TO_COOP: 4,
   READY_TO_RECEIVE: 5,
-  RECEIVED: 6,
-  RETURNED: 7,
+  // Этапы саги выдачи: заявление заказчика, решение совета, его подпись акта.
+  // Идут между готовностью к получению и полученным заказом.
+  ISSUE_PENDING: 6,
+  ISSUE_AUTHORIZED: 7,
+  ISSUE_ACT1: 8,
+  RECEIVED: 9,
+  RETURNED: 10,
   CANCELLED_BY_ORDERER: 99,
   CANCELLED_BY_SUPPLIER: 99,
 };

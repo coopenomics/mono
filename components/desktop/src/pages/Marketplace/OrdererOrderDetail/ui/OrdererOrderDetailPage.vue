@@ -216,7 +216,9 @@ const timelineEvents = computed<ActivityEvent[]>(() => {
   };
   add('created', 'create', 'shopping_cart', 'Заказ оформлен', o.created_at);
   add('accepted', 'sign', 'inventory_2', 'Ожидает отгрузки', o.accepted_at);
-  add('opened', 'system', 'lock_open', 'Выдача открыта на пункте', o.chairman_signed_at);
+  // Выдача начинается с подписи заявления заказчиком; отметки подписей
+  // членской модели сняты вместе с ней.
+  add('opened', 'system', 'lock_open', 'Заявление о выдаче подписано', o.issue_statement_at);
   add('received', 'sign', 'check_circle', 'Заказ получен', o.received_at);
   add('cancelled', 'reject', 'cancel', 'Заказ отменён', o.cancelled_at);
 

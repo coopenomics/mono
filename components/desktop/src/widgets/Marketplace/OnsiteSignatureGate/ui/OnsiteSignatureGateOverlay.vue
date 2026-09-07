@@ -259,7 +259,7 @@ BaseDialog(
 
     //- Сага вне бандла: заявление (факт зафиксирован) либо акт после решения
     //- совета, пришедшего когда пайщик уже ушёл. Подписывается где угодно.
-    BaseCard.onsite-gate__card(v-for='s in sagaTasks', :key='s.id')
+    BaseCard.onsite-gate__card(v-for='s in sagaTasks', :key='String(s.id)')
       template(#head)
         .onsite-gate__head
           q-icon(name='assignment_turned_in', size='28px')
@@ -277,8 +277,8 @@ BaseDialog(
       .onsite-gate__foot
         BaseButton(
           variant='primary',
-          :loading='proposalBusy(s.id)',
-          :disabled='anySigning && !proposalBusy(s.id)',
+          :loading='proposalBusy(String(s.id))',
+          :disabled='anySigning && !proposalBusy(String(s.id))',
           @click='signSaga(s)'
         )
           template(#icon-left)

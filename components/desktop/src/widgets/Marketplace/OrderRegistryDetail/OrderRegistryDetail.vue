@@ -109,12 +109,15 @@ const events = computed<ActivityEvent[]>(() => {
   if (o.accepted_at) {
     ev.push({ id: 'accepted', type: 'update', icon: 'inventory_2', title: 'Поставщик принял заказ', actor: supplierTitle.value, date: formatDate(o.accepted_at) });
   }
-  if (o.chairman_signed_at) {
-    ev.push({ id: 'chairman', type: 'sign', title: 'Принят кооперативом (АПП приёмки)', date: formatDate(o.chairman_signed_at) });
+  // Веха выдачи — момент, когда заказчик подписал заявление о возврате паевого
+  // взноса имуществом: с него начинается решение совета и акт. Прежние отметки
+  // подписей председателя и заказчика жили в членской модели и вместе с ней
+  // сняты, отдельного времени приёмки у заказа больше нет.
+  if (o.issue_statement_at) {
+    ev.push({ id: 'issue-statement', type: 'sign', title: 'Заказчик подписал заявление о выдаче', actor: ordererTitle.value, date: formatDate(o.issue_statement_at) });
   }
-  const issued = o.orderer_signed_at ?? o.received_at;
-  if (issued) {
-    ev.push({ id: 'issued', type: 'sign', title: 'Получен заказчиком (АПП выдачи)', actor: ordererTitle.value, date: formatDate(issued) });
+  if (o.received_at) {
+    ev.push({ id: 'issued', type: 'sign', title: 'Получен заказчиком по акту', actor: ordererTitle.value, date: formatDate(o.received_at) });
   }
   if (o.cancelled_at) {
     ev.push({ id: 'cancelled', type: 'reject', title: orderStatusDisplay(o.status).label, description: o.last_status_reason || undefined, date: formatDate(o.cancelled_at) });

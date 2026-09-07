@@ -578,7 +578,7 @@ q-page.issuance(role='region', aria-label='Выдача заказов')
         //- снять выдачу до акта либо закрыть вручную, если автозакрытие не прошло.
         .issuance__section(v-if='g.inProgress.length')
           .issuance__section-head Выдача в процессе
-          .issuance__line(v-for='x in g.inProgress', :key='x.saga.id')
+          .issuance__line(v-for='x in g.inProgress', :key='String(x.saga.id)')
             .issuance__line-info
               .issuance__line-name {{ x.order.product_name || 'Товар по предложению' }}
               .issuance__line-meta
