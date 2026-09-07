@@ -413,25 +413,24 @@ BaseDialog(
       | забирает сейчас. «План» — сколько заказано, «Принято» — сколько на складе
       | (выдать больше нельзя). Снятые позиции остаются на складе.
 
-    template
-      .issue-act__toolbar
-        BaseButton(variant="ghost", @click="stockPickOpen = true")
-          template(#icon-left)
-            q-icon(name="add_shopping_cart", size="18px")
-          | Со склада
-      CorrectionTable(:rows="correctionRows", selectable, @change="onCorrectionChange", @toggle="onCorrectionToggle")
+    .issue-act__toolbar
+      BaseButton(variant="ghost", @click="stockPickOpen = true")
+        template(#icon-left)
+          q-icon(name="add_shopping_cart", size="18px")
+        | Со склада
+    CorrectionTable(:rows="correctionRows", selectable, @change="onCorrectionChange", @toggle="onCorrectionToggle")
 
-      .issue-act__restock(v-if="restockLines.length")
-        .issue-act__restock-head
-          BaseBadge(variant="info") Доложено со склада
-        .issue-act__restock-row(v-for="l in restockLines", :key="l.offer_id")
-          .issue-act__restock-info
-            span.issue-act__restock-name {{ l.product_name }}
-            span.issue-act__restock-meta {{ formatAsset2Digits(l.price_per_unit) }} ₽ × {{ restockLineQuantityLabel(l) }}
-          .issue-act__restock-right
-            span.issue-act__restock-sum {{ formatAsset2Digits(restockLineSum(l)) }} ₽
-            BaseButton(variant="ghost", @click="removeRestock(l.offer_id)")
-              q-icon(name="close", size="18px")
+    .issue-act__restock(v-if="restockLines.length")
+      .issue-act__restock-head
+        BaseBadge(variant="info") Доложено со склада
+      .issue-act__restock-row(v-for="l in restockLines", :key="l.offer_id")
+        .issue-act__restock-info
+          span.issue-act__restock-name {{ l.product_name }}
+          span.issue-act__restock-meta {{ formatAsset2Digits(l.price_per_unit) }} ₽ × {{ restockLineQuantityLabel(l) }}
+        .issue-act__restock-right
+          span.issue-act__restock-sum {{ formatAsset2Digits(restockLineSum(l)) }} ₽
+          BaseButton(variant="ghost", @click="removeRestock(l.offer_id)")
+            q-icon(name="close", size="18px")
 
     template(#after)
       .issue-act__totals
