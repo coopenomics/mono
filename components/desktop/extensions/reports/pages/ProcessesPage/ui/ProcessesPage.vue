@@ -1,5 +1,5 @@
 <template lang="pug">
-div.page-shell
+div.processes-page
   q-card.q-mt-md(flat)
     q-card-section
       .row.q-gutter-sm.items-center.q-mb-sm(v-if='filters.processType || filters.username || filters.processHash')
@@ -381,7 +381,7 @@ onMounted(async () => {
 /* Реестр — обзорный список: гасим подсветку строки при наведении (canon-правило
    .q-table tbody tr:hover) и в основной таблице, и во вложенных таблицах
    детализации (операции/проводки) — мигание при наведении мешает. */
-.page-shell :deep(.q-table tbody tr:hover) {
+.processes-page :deep(.q-table tbody tr:hover) {
   background: transparent;
 }
 </style>
