@@ -1,6 +1,6 @@
 <template lang="pug">
 div.processes-page
-  q-card.q-mt-md(flat)
+  q-card(flat)
     q-card-section
       .row.q-gutter-sm.items-center.q-mb-sm(v-if='filters.processType || filters.username || filters.processHash')
         q-chip(
@@ -374,6 +374,13 @@ onMounted(async () => {
 </script>
 
 <style scoped>
+/* Поле страницы — как в соседних реестрах операций и проводок. */
+.processes-page {
+  padding: var(--p-6, 24px);
+}
+@media (max-width: 768px) {
+  .processes-page { padding: var(--p-4, 16px); }
+}
 .font-monospace {
   font-family: 'JetBrains Mono', 'Courier New', monospace;
   letter-spacing: 0.03em;
