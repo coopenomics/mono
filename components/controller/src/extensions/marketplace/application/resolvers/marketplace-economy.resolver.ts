@@ -22,7 +22,6 @@ import {
   MarketplaceAidDTO,
   MarketplaceBranchEconomyDTO,
   MarketplaceBranchWalletOperationDTO,
-  MarketplaceRecallShareInputDTO,
   MarketplaceCreateAidInputDTO,
   MarketplaceDeleteTrusteeWeightInputDTO,
   MarketplaceDistributeBranchFundsInputDTO,
@@ -241,19 +240,6 @@ export class MarketplaceEconomyResolver {
     };
   }
 
-  @Mutation(() => Boolean, {
-    name: 'marketplaceRecallShare',
-    description:
-      'Вывести свободный паевой «Стола заказов» (остатки от отмен, недовыдач и возвратов) в общий паевой Цифрового кошелька. Документа не требуется.',
-  })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard)
-  async marketplaceRecallShare(
-    @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
-    @Args('data') data: MarketplaceRecallShareInputDTO
-  ): Promise<boolean> {
-    await this.economyService.recallShare(platformSettings().coopname, member.username, data.amount);
-    return true;
-  }
 
   @Query(() => GeneratedDocumentDTO, {
     name: 'marketplaceAidStatementSignablePayload',

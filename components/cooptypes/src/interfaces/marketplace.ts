@@ -201,13 +201,6 @@ export interface ICancelIssue {
   order_hash: IChecksum256
 }
 
-export interface IRecallShare {
-  coopname: IName
-  username: IName
-  recall_hash: IChecksum256
-  amount: IAsset
-}
-
 // ── p.mkt.return: actions ────────────────────────────────────────────────
 
 export interface ISubmRetrn {

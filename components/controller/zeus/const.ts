@@ -1253,9 +1253,6 @@ export const AllTypesProps: Record<string,any> = {
 	MarketplaceReadyIssueInput:{
 
 	},
-	MarketplaceRecallShareInput:{
-
-	},
 	MarketplaceRejectOfferInput:{
 
 	},
@@ -2263,9 +2260,6 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		marketplaceReadyIssue:{
 			data:"MarketplaceReadyIssueInput"
-		},
-		marketplaceRecallShare:{
-			data:"MarketplaceRecallShareInput"
 		},
 		marketplaceRejectOffer:{
 			input:"MarketplaceRejectOfferInput"
@@ -7190,7 +7184,6 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceMoveContainer:"MarketplaceContainer",
 		marketplacePublishStock:"MarketplaceOffer",
 		marketplaceReadyIssue:"MarketplaceOrder",
-		marketplaceRecallShare:"Boolean",
 		marketplaceRejectOffer:"MarketplaceOffer",
 		marketplaceRejectReturnAtVisit:"MarketplaceReturnClaimResult",
 		marketplaceRejectReturnRemote:"MarketplaceReturnClaimResult",

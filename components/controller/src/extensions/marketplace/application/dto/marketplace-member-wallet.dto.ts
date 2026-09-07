@@ -16,7 +16,7 @@ import { Field, Int, ObjectType } from '@nestjs/graphql';
  *   3. `w.mkt.share`  — Свободный паевой «Стола заказов» (program_id=2): сюда
  *                       возвращается паевой взнос после выдачи, отмены и
  *                       гарантийного возврата; отсюда резервируется следующий
- *                       заказ; отзывается в Кошелёк действием recallshare.
+ *                       заказ; отзывается в Кошелёк при выходе из кооператива.
  *
  * Источник балансов — core `UserWalletRepository.findByUsername` (PG-кеш
  * `ledger2::userwallets`); RPC к chain не выполняется (ADR-011). Каждый

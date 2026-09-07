@@ -271,8 +271,6 @@ export interface MarketplaceCanonicalBlockchainPort {
   issueAct2(data: MarketContract.Actions.IssueAct2.IIssueAct2): Promise<InnerTransactResult>;
   /** Отмена начатой выдачи оператором: issueauth / issueact1 → readyrecv. */
   cancelIssue(data: MarketContract.Actions.CancelIssue.ICancelIssue): Promise<InnerTransactResult>;
-  /** Вывод свободного паевого «Стола заказов» в общий паевой (o.mkt.recall). */
-  recallShare(data: MarketContract.Actions.RecallShare.IRecallShare): Promise<InnerTransactResult>;
   /** Оператор выдал имущество обратно после отказа совета или по истечении срока ожидания. */
   handBack(data: MarketContract.Actions.HandBack.IHandBack): Promise<InnerTransactResult>;
   /**

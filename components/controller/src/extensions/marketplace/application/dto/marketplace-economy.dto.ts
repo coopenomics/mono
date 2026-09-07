@@ -172,14 +172,6 @@ export class MarketplacePersonalEconomyDTO {
   personal_balance!: string;
 }
 
-@InputType('MarketplaceRecallShareInput')
-export class MarketplaceRecallShareInputDTO {
-  @Field(() => Float, { description: 'Сумма вывода свободного паевого «Стола заказов» в общий паевой Цифрового кошелька.' })
-  @IsNumber()
-  @Min(0.0001)
-  amount!: number;
-}
-
 @InputType('MarketplaceAidStatementSignablePayloadInput')
 export class MarketplaceAidStatementSignablePayloadInputDTO {
   @Field({ description: 'Кооперативный участок, средства которого распределены получателю.' })

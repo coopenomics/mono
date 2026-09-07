@@ -453,10 +453,6 @@ export class MarketplaceCanonicalBlockchainAdapter implements MarketplaceCanonic
     return this.submitAsCoop(data.coopname, MarketContract.contractName.production, MarketContract.Actions.Convert.actionName, data, 'convert');
   }
 
-  async recallShare(data: MarketContract.Actions.RecallShare.IRecallShare): Promise<InnerTransactResult> {
-    return this.submitAsCoop(data.coopname, MarketContract.contractName.production, MarketContract.Actions.RecallShare.actionName, data, 'recallshare');
-  }
-
   async handBack(data: MarketContract.Actions.HandBack.IHandBack): Promise<InnerTransactResult> {
     return this.submitAsCoop(data.coopname, MarketContract.contractName.production, MarketContract.Actions.HandBack.actionName, data, 'handback');
   }

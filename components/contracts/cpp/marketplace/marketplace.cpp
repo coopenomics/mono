@@ -28,7 +28,6 @@
 #include "src/p.mkt.supply/issueact1.cpp"
 #include "src/p.mkt.supply/issueact2.cpp"
 #include "src/p.mkt.supply/cancelissue.cpp"
-#include "src/p.mkt.supply/recallshare.cpp"
 
 // ── p.mkt.return (5 actions) ──── Stories Эпика 7 ──────────────────────
 #include "src/p.mkt.return/submretrn.cpp"

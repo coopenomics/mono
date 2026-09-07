@@ -8,7 +8,6 @@ import { useSessionStore } from 'src/entities/Session';
 import { useSystemStore } from 'src/entities/System/model';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
-import { recallShare } from 'src/pages/Marketplace/OperatorBranchEconomy/api';
 
 /**
  * Кошелёк в шапке стола заказов (правка 2026-08-13).
@@ -55,25 +54,6 @@ function walletLocked(walletName: string): string | undefined {
 }
 
 const marketAmount = computed(() => walletAmount(MARKET_WALLET));
-
-// Отзыв свободного паевого: весь свободный остаток Стола заказов возвращается
-// в главный паевой кошелёк (contract: recallshare, o.mkt.recall).
-const recalling = ref(false);
-async function recallAll(): Promise<void> {
-  const row = walletStore.user_wallets.find((w) => w.wallet_name === MARKET_WALLET);
-  const amount = row?.available ? Number.parseFloat(String(row.available)) : 0;
-  if (!(amount > 0)) return;
-  recalling.value = true;
-  try {
-    await recallShare({ amount });
-    SuccessAlert('Паевой взнос возвращён в Кошелёк.');
-    await loadWallets();
-  } catch (e) {
-    FailAlert(e, 'Не удалось отозвать паевой взнос');
-  } finally {
-    recalling.value = false;
-  }
-}
 
 async function loadWallets(): Promise<void> {
   if (!session.username) return;
@@ -154,15 +134,8 @@ BaseDialog(v-model="dialogOpen", title="Кошелёк Стола заказов
       | конвертации при оформлении и уходит участку при выдаче; его
       | неиспользованная часть возвращается на членский кошелёк и зачитывается
       | при следующем заказе. После выдачи и отказов паевой взнос возвращается
-      | на свободный паевой Стола заказов — им оплачивается следующий заказ,
-      | либо его можно отозвать в Кошелёк.
+      | на свободный паевой Стола заказов и идёт на оплату следующих заказов.
   template(#footer)
-    BaseButton(
-      v-if="Number.parseFloat(marketAmount.replace(',', '.')) > 0",
-      variant="secondary",
-      :loading="recalling",
-      @click="recallAll"
-    ) Отозвать в Кошелёк
     DepositButton
 </template>
 

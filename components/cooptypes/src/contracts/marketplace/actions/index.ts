@@ -106,7 +106,6 @@ export * as IssueAct2 from './issueAct2'
 export * as CancelIssue from './cancelIssue'
 
 /** Вывод свободного паевого «Стола заказов» в общий паевой (o.mkt.recall). */
-export * as RecallShare from './recallShare'
 
 /**
  * Единая ставка членского взноса кооператива (requirement b6, «Экономика КУ»).

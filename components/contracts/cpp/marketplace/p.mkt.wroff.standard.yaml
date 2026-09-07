@@ -105,6 +105,24 @@ actions:
       пер-КУ): их стоимость относится на расход целевых средств программы.
       Когда подтверждены все участки проекта, проект считается завершённым.
 
+  - name: marketplace::onmktwoauth
+    human: Совет одобрил списание
+    actor: council
+    role: progress
+    purpose: >
+      Обратный вызов совета по типовому процессу решений: проект списания
+      одобрен, протокол совета ложится в проект, и списание ждёт
+      подтверждения председателей участков.
+
+  - name: marketplace::onmktwodecl
+    human: Совет отклонил списание
+    actor: council
+    role: closer
+    purpose: >
+      Обратный вызов совета: проект отклонён либо повестка просрочена, запись
+      проекта закрывается, позиции остаются на складах участков и могут
+      попасть в следующий цикл списания.
+
   - name: marketplace::execwroff
     human: Исполнить отдельную позицию списания (низкоуровневый примитив)
     actor: chairman
@@ -155,6 +173,7 @@ transitions:
 
   - from: proposed
     to: authorized
+    action: marketplace::onmktwoauth
     actor: council
     guards:
       - Совет рассмотрел проект и принял положительное решение по типовому процессу решения совета.
@@ -176,11 +195,24 @@ transitions:
 
   - from: proposed
     to: "∅"
+    action: marketplace::onmktwodecl
     actor: council
     guards:
       - Совет рассмотрел проект и отклонил его по типовому процессу решения
         совета — позиции остаются на складах участков и могут попасть в
         следующий цикл списания.
+
+  # Низкоуровневый путь: исполнение одной позиции авторизованного проекта.
+  - from: authorized
+    to: "∅"
+    action: marketplace::execwroff
+    actor: chairman
+    ledger_code: p.mkt.wroff
+    operations:
+      - o.mkt.wroff
+    guards:
+      - Проект авторизован советом; позиция ещё не исполнена.
+      - Исполнение последней позиции закрывает проект.
 
 # ── Секция 4. Сценарий ──────────────────────────────────────────────────────
 scenario:
@@ -274,7 +306,7 @@ documents:
     stored_in: writeoff_proposals.statement
     note: "Подписывается председателем перед внесением проекта на рассмотрение совета. Содержит список позиций к списанию (участок, наименование, количество, сумма, причина). Источник правды — components/cooptypes/src/cooperative/registry/1108.MarketplaceWriteoffStatement"
 
-  - action: null
+  - action: marketplace::onmktwoauth
     title: Протокол совета о списании скоропорта
     registry_id: 1107
     signed_by: [chairman]

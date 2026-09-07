@@ -534,26 +534,6 @@ export class MarketplaceEconomyService {
 
   // ── Свободный паевой Стола заказов ───────────────────────────────────
 
-  /**
-   * Паевая модель: пайщик выводит свободный паевой «Стола заказов» (остатки
-   * от отмен, недовыдач и возвратов) в общий паевой Цифрового кошелька.
-   * Документа не требуется — паевой остаётся паевым в том же кооперативе.
-   */
-  async recallShare(coopname: string, username: string, amount: number): Promise<string> {
-    if (!Number.isFinite(amount) || amount <= 0) {
-      throw new BadRequestException('Сумма вывода должна быть больше нуля');
-    }
-    const asset = this.formatAsset(amount);
-    const recall_hash = createHash('sha256')
-      .update(`${coopname}:${username}:recall:${randomBytes(16).toString('hex')}`)
-      .digest('hex');
-    try {
-      await this.chainPort.recallShare({ coopname, username, recall_hash, amount: asset });
-    } catch (e) {
-      rethrowChainError(e);
-    }
-    return asset;
-  }
 
   /**
    * Сформировать подписываемое Заявление на материальную помощь (registry

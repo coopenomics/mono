@@ -32,7 +32,7 @@ using namespace Marketplace;
  *  - **p.mkt.supply**: createorder, stockorder, cancelorder, expireorder,
  *    acceptorder, declineorder, signsupp, signchair, payout, payconfirm,
  *    paydecline, readyissue, issuestmt, onmktisauth, onmktisdecl, issueact1,
- *    issueact2, cancelissue, recallshare, closeorder, markdown, setfee.
+ *    issueact2, cancelissue, closeorder, markdown, setfee.
  *  - **p.mkt.return**: submretrn, aprretrem, rejretrem, accretrn, onmktrtauth,
  *    onmktrtdecl, handback, rejretrn.
  *  - **p.mkt.wroff** (4 actions): propwroff, execwroff, onmktwoauth, onmktwodecl.
@@ -368,17 +368,6 @@ public:
   [[eosio::action]] void cancelissue(eosio::name coopname,
                                       eosio::name signer,
                                       checksum256 order_hash);
-  /**
-   * @brief Пайщик выводит свободный паевой «Стола заказов» в общий паевой
-   * Цифрового кошелька: o.mkt.recall (TRANSFER w.mkt.share → w.wal.share, без
-   * проводки). Документа не требуется — паевой остаётся паевым.
-   * `recall_hash` — идентификатор операции для журнала (process hash).
-   * @ingroup public_marketplace_actions
-   */
-  [[eosio::action]] void recallshare(eosio::name coopname,
-                                      eosio::name username,
-                                      checksum256 recall_hash,
-                                      eosio::asset amount);
 
   // ── p.mkt.return ─────────────────────────────────────────────────────
 

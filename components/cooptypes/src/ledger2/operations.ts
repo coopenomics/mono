@@ -160,6 +160,72 @@ export const LEDGER2_OPERATION_REGISTRY: readonly OperationMeta[] = [
     debit: 80, credit: 86,
     human_name: 'Перевод паевого взноса в членский кошелёк Стола заказов по заявлению' },
 
+  { code: 'o.mkt.lock',    process_type: 'p.mkt.supply',  contract: 'marketplace',
+    name: 'LOCK_ORDER',     wallet_op: 'TRANSFER', wallet_from: 'w.wal.share', wallet_to: 'w.mkt.order',
+    debit: null, credit: null,
+    human_name: 'Паевой резерв под заказ' },
+
+  // Тело любого заказа и доплата по факту берутся сначала со свободного паевого
+  // «Стола заказов» (сюда возвращаются паевые средства при отменах и возвратах),
+  // остаток — с паевого Цифрового кошелька (o.mkt.lock).
+  { code: 'o.mkt.lockp',   process_type: 'p.mkt.supply',  contract: 'marketplace',
+    name: 'LOCK_FROM_SHARE', wallet_op: 'TRANSFER', wallet_from: 'w.mkt.share', wallet_to: 'w.mkt.order',
+    debit: null, credit: null,
+    human_name: 'Паевой резерв из свободного паевого «Стола заказов»' },
+
+  // Возврат резерва (отмена / недовыдача): средства остаются паевыми и
+  // остаются в программе на свободном паевом «Стола заказов».
+  { code: 'o.mkt.unlock',  process_type: 'p.mkt.supply',  contract: 'marketplace',
+    name: 'UNLOCK_ORDER',   wallet_op: 'TRANSFER', wallet_from: 'w.mkt.order', wallet_to: 'w.mkt.share',
+    debit: null, credit: null,
+    human_name: 'Возврат резерва на свободный паевой «Стола заказов»' },
+
+  // Удержание 50% при отказе пайщика от получения после акцепта поставщиком:
+  // паевой становится членским взносом участка (Дт 80 / Кт 86, основание в
+  // положении о ЦПП — TBD-Standardization), транзитом через пул взносов.
+  { code: 'o.mkt.penal',   process_type: 'p.mkt.supply',  contract: 'marketplace',
+    name: 'REFUSAL_PENALTY', wallet_op: 'TRANSFER', wallet_from: 'w.mkt.order', wallet_to: 'w.mkt.fee',
+    debit: 80, credit: 86,
+    human_name: 'Удержание при отказе пайщика от получения после акцепта поставщиком' },
+
+  // Закупка через счёт расчётов с поставщиками (TBD-Standardization: 60 или 76).
+  { code: 'o.mkt.purch',   process_type: 'p.mkt.supply',  contract: 'marketplace',
+    name: 'PURCHASE_FROM_SUPPLIER', wallet_op: 'NONE', wallet_from: null, wallet_to: null,
+    debit: 10, credit: 60,
+    human_name: 'Приёмка имущества кооперативом по АПП приёмки' },
+
+  { code: 'o.mkt.payout',  process_type: 'p.mkt.supply',  contract: 'marketplace',
+    name: 'PAY_SUPPLIER',   wallet_op: 'ISSUE', wallet_from: null, wallet_to: 'w.mkt.payout',
+    debit: 60, credit: 51,
+    human_name: 'Оплата поставщику с расчётного счёта по подтверждению кассира' },
+
+  // Возврат паевого взноса имуществом по акту выдачи (закрывающая подпись
+  // председателя участка, issueact2).
+  { code: 'o.mkt.consum',  process_type: 'p.mkt.supply',  contract: 'marketplace',
+    name: 'CONSUME_BY_MEMBER', wallet_op: 'BURN', wallet_from: 'w.mkt.order', wallet_to: null,
+    debit: 80, credit: 10,
+    human_name: 'Возврат паевого взноса имуществом по акту выдачи' },
+
+  // Гарантийный возврат по решению совета — compensating forward к o.mkt.consum:
+  // восстановление паевого на свободном паевом «Стола заказов» и имущества на складе.
+  { code: 'o.mkt.return',  process_type: 'p.mkt.return',  contract: 'marketplace',
+    name: 'RETURN_BY_MEMBER', wallet_op: 'ISSUE', wallet_from: null, wallet_to: 'w.mkt.share',
+    debit: 10, credit: 80,
+    human_name: 'Гарантийный возврат — восстановление паевого взноса и имущества' },
+
+  // Проводка списания после перехода закупки на 60 — вопрос бухгалтеру.
+  { code: 'o.mkt.wroff',   process_type: 'p.mkt.wroff',   contract: 'marketplace',
+    name: 'WRITE_OFF_PERISHABLE', wallet_op: 'NONE', wallet_from: null, wallet_to: null,
+    debit: 86, credit: 10,
+    human_name: 'Утилизация скоропорта' },
+
+  // Уценка при выдаче из остатка кооператива: разница цены прибытия и факта
+  // выбывает со склада в прочие расходы.
+  { code: 'o.mkt.loss',    process_type: 'p.mkt.supply',  contract: 'marketplace',
+    name: 'MARKDOWN_LOSS',  wallet_op: 'NONE', wallet_from: null, wallet_to: null,
+    debit: 91, credit: 10,
+    human_name: 'Уценка имущества при выдаче со склада кооператива' },
+
   // Членский взнос кооперативного участка под заказ — с членского кошелька
   // программы (createorder, stockorder, довзнос по факту на issueact2).
   { code: 'o.mkt.fee',     process_type: 'p.mkt.supply',  contract: 'marketplace',
@@ -175,18 +241,26 @@ export const LEDGER2_OPERATION_REGISTRY: readonly OperationMeta[] = [
     debit: null, credit: null,
     human_name: 'Сторно членского взноса участка на членский кошелёк программы' },
 
-  // Вывод свободного паевого «Стола заказов» в общий паевой Цифрового кошелька
-  // (действие пайщика recallshare; та же операция консолидирует кошелёк при выходе).
+  // Консолидация свободного паевого «Стола заказов» в общий паевой при выходе
+  // пайщика из кооператива (зовёт registrator). Действия пайщика в Столе
+  // заказов нет: паевой остаток живёт в программе и идёт на следующие заказы.
   { code: 'o.mkt.recall',  process_type: 'p.mkt.supply',  contract: 'marketplace',
     name: 'RECALL_SHARE',   wallet_op: 'TRANSFER', wallet_from: 'w.mkt.share', wallet_to: 'w.wal.share',
     debit: null, credit: null,
-    human_name: 'Вывод свободного паевого «Стола заказов» в общий паевой' },
+    human_name: 'Консолидация свободного паевого «Стола заказов» при выходе из кооператива' },
 
   // branch — экономика кооперативного участка (requirement b6)
   { code: 'o.brn.common',  process_type: 'p.brn.fees',    contract: 'branch',
     name: 'DISTRIBUTE_COMMON', wallet_op: 'TRANSFER', wallet_from: 'w.mkt.fee', wallet_to: 'w.brn.common',
     debit: null, credit: null,
     human_name: 'Членский взнос в общий кошелёк кооперативного участка' },
+
+  // Гарантийный возврат: взнос идёт обратно тем же путём, каким пришёл —
+  // из общего кошелька участка в пул взносов, далее o.mkt.refund пайщику.
+  { code: 'o.brn.retfee',  process_type: 'p.brn.fees',    contract: 'branch',
+    name: 'RETURN_FEE_FROM_COMMON', wallet_op: 'TRANSFER', wallet_from: 'w.brn.common', wallet_to: 'w.mkt.fee',
+    debit: null, credit: null,
+    human_name: 'Возврат членского взноса из общего кошелька кооперативного участка' },
 
   { code: 'o.brn.release', process_type: 'p.brn.fees',    contract: 'branch',
     name: 'RELEASE_FROM_COMMON', wallet_op: 'TRANSFER', wallet_from: 'w.brn.common', wallet_to: 'w.brn.pool',

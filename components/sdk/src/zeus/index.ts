@@ -10592,10 +10592,6 @@ export type ValueTypes = {
 	/** Заказ, имущество по которому поступило на участок выдачи. */
 	order_id: ValueTypes["ID"] | Variable<any, string>
 };
-	["MarketplaceRecallShareInput"]: {
-	/** Сумма вывода свободного паевого «Стола заказов» в общий паевой Цифрового кошелька. */
-	amount: number | Variable<any, string>
-};
 	/** Поставка ожидает подписи поставщика на пункте приёмки. */
 ["MarketplaceReceptionPendingSignEvent"]: AliasType<{
 	/** Наименование кооперативного участка приёмки. */
@@ -12455,7 +12451,6 @@ marketplaceHandBackReturn?: [{	data: ValueTypes["MarketplaceHandBackReturnInput"
 marketplaceMoveContainer?: [{	data: ValueTypes["MarketplaceMoveContainerInput"] | Variable<any, string>},ValueTypes["MarketplaceContainer"]],
 marketplacePublishStock?: [{	data: ValueTypes["MarketplacePublishStockInput"] | Variable<any, string>},ValueTypes["MarketplaceOffer"]],
 marketplaceReadyIssue?: [{	data: ValueTypes["MarketplaceReadyIssueInput"] | Variable<any, string>},ValueTypes["MarketplaceOrder"]],
-marketplaceRecallShare?: [{	data: ValueTypes["MarketplaceRecallShareInput"] | Variable<any, string>},boolean | `@${string}`],
 marketplaceRejectOffer?: [{	input: ValueTypes["MarketplaceRejectOfferInput"] | Variable<any, string>},ValueTypes["MarketplaceOffer"]],
 marketplaceRejectReturnAtVisit?: [{	data: ValueTypes["MarketplaceRejectReturnAtVisitInput"] | Variable<any, string>},ValueTypes["MarketplaceReturnClaimResult"]],
 marketplaceRejectReturnRemote?: [{	data: ValueTypes["MarketplaceRejectReturnRemoteInput"] | Variable<any, string>},ValueTypes["MarketplaceReturnClaimResult"]],
@@ -25950,10 +25945,6 @@ export type ResolverInputTypes = {
 	/** Заказ, имущество по которому поступило на участок выдачи. */
 	order_id: ResolverInputTypes["ID"]
 };
-	["MarketplaceRecallShareInput"]: {
-	/** Сумма вывода свободного паевого «Стола заказов» в общий паевой Цифрового кошелька. */
-	amount: number
-};
 	/** Поставка ожидает подписи поставщика на пункте приёмки. */
 ["MarketplaceReceptionPendingSignEvent"]: AliasType<{
 	/** Наименование кооперативного участка приёмки. */
@@ -27762,7 +27753,6 @@ marketplaceHandBackReturn?: [{	data: ResolverInputTypes["MarketplaceHandBackRetu
 marketplaceMoveContainer?: [{	data: ResolverInputTypes["MarketplaceMoveContainerInput"]},ResolverInputTypes["MarketplaceContainer"]],
 marketplacePublishStock?: [{	data: ResolverInputTypes["MarketplacePublishStockInput"]},ResolverInputTypes["MarketplaceOffer"]],
 marketplaceReadyIssue?: [{	data: ResolverInputTypes["MarketplaceReadyIssueInput"]},ResolverInputTypes["MarketplaceOrder"]],
-marketplaceRecallShare?: [{	data: ResolverInputTypes["MarketplaceRecallShareInput"]},boolean | `@${string}`],
 marketplaceRejectOffer?: [{	input: ResolverInputTypes["MarketplaceRejectOfferInput"]},ResolverInputTypes["MarketplaceOffer"]],
 marketplaceRejectReturnAtVisit?: [{	data: ResolverInputTypes["MarketplaceRejectReturnAtVisitInput"]},ResolverInputTypes["MarketplaceReturnClaimResult"]],
 marketplaceRejectReturnRemote?: [{	data: ResolverInputTypes["MarketplaceRejectReturnRemoteInput"]},ResolverInputTypes["MarketplaceReturnClaimResult"]],
@@ -40800,10 +40790,6 @@ export type ModelTypes = {
 	/** Заказ, имущество по которому поступило на участок выдачи. */
 	order_id: ModelTypes["ID"]
 };
-	["MarketplaceRecallShareInput"]: {
-	/** Сумма вывода свободного паевого «Стола заказов» в общий паевой Цифрового кошелька. */
-	amount: number
-};
 	/** Поставка ожидает подписи поставщика на пункте приёмки. */
 ["MarketplaceReceptionPendingSignEvent"]: {
 		/** Наименование кооперативного участка приёмки. */
@@ -43165,8 +43151,6 @@ export type ModelTypes = {
 	marketplacePublishStock: Array<ModelTypes["MarketplaceOffer"]>,
 	/** Оператор участка выдачи отмечает поступление имущества по заказу: заказчику уходит уведомление «приходите заберите». Без подписи. */
 	marketplaceReadyIssue: ModelTypes["MarketplaceOrder"],
-	/** Вывести свободный паевой «Стола заказов» (остатки от отмен, недовыдач и возвратов) в общий паевой Цифрового кошелька. Документа не требуется. */
-	marketplaceRecallShare: boolean,
 	/** Отклонить Offer с причиной (status → REJECTED) (admin) */
 	marketplaceRejectOffer: ModelTypes["MarketplaceOffer"],
 	/** Оператор по результатам осмотра не принимает имущество — заказчик забирает его сразу, движений по средствам нет. */
@@ -57135,10 +57119,6 @@ export type GraphQLTypes = {
 		/** Заказ, имущество по которому поступило на участок выдачи. */
 	order_id: GraphQLTypes["ID"]
 };
-	["MarketplaceRecallShareInput"]: {
-		/** Сумма вывода свободного паевого «Стола заказов» в общий паевой Цифрового кошелька. */
-	amount: number
-};
 	/** Поставка ожидает подписи поставщика на пункте приёмки. */
 ["MarketplaceReceptionPendingSignEvent"]: {
 	__typename: "MarketplaceReceptionPendingSignEvent",
@@ -59621,8 +59601,6 @@ export type GraphQLTypes = {
 	marketplacePublishStock: Array<GraphQLTypes["MarketplaceOffer"]>,
 	/** Оператор участка выдачи отмечает поступление имущества по заказу: заказчику уходит уведомление «приходите заберите». Без подписи. */
 	marketplaceReadyIssue: GraphQLTypes["MarketplaceOrder"],
-	/** Вывести свободный паевой «Стола заказов» (остатки от отмен, недовыдач и возвратов) в общий паевой Цифрового кошелька. Документа не требуется. */
-	marketplaceRecallShare: boolean,
 	/** Отклонить Offer с причиной (status → REJECTED) (admin) */
 	marketplaceRejectOffer: GraphQLTypes["MarketplaceOffer"],
 	/** Оператор по результатам осмотра не принимает имущество — заказчик забирает его сразу, движений по средствам нет. */
@@ -65809,7 +65787,6 @@ type ZEUS_VARIABLES = {
 	["MarketplaceOutgoingPaymentRequestStatus"]: ValueTypes["MarketplaceOutgoingPaymentRequestStatus"];
 	["MarketplacePublishStockInput"]: ValueTypes["MarketplacePublishStockInput"];
 	["MarketplaceReadyIssueInput"]: ValueTypes["MarketplaceReadyIssueInput"];
-	["MarketplaceRecallShareInput"]: ValueTypes["MarketplaceRecallShareInput"];
 	["MarketplaceRejectOfferInput"]: ValueTypes["MarketplaceRejectOfferInput"];
 	["MarketplaceRejectReturnAtVisitInput"]: ValueTypes["MarketplaceRejectReturnAtVisitInput"];
 	["MarketplaceRejectReturnRemoteInput"]: ValueTypes["MarketplaceRejectReturnRemoteInput"];

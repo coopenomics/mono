@@ -141,16 +141,6 @@ export async function deleteTrusteeWeight(data: IDeleteTrusteeWeightInput): Prom
 
 // ─── Персональные средства ───
 
-export type IRecallShareInput = Mutations.Marketplace.RecallShare.IInput['data'];
-
-/** Отзыв свободного паевого взноса со Стола заказов в Кошелёк (паевая модель). */
-export async function recallShare(data: IRecallShareInput): Promise<boolean> {
-  const { [Mutations.Marketplace.RecallShare.name]: result } = await client.Mutation(
-    Mutations.Marketplace.RecallShare.mutation,
-    { variables: { data } },
-  );
-  return Boolean(result);
-}
 
 export type IAidStatementPayloadInput =
   Queries.Marketplace.AidStatementSignablePayload.IInput['data'];

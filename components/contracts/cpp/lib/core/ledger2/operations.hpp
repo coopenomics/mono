@@ -109,7 +109,7 @@ namespace operations {
     inline constexpr eosio::name MEMBERSHIP_FEE_LOCK    = "o.mkt.fee"_n;      ///< Членский взнос кооперативного участка под заказ из членского кошелька программы (TRANSFER w.mkt.member → w.mkt.fee, без Dr/Cr — оба на 86). createorder, stockorder и довзнос по факту на issueact2; взнос считается от единой ставки кооператива и фиксируется явным полем Order.membership_fee.
     inline constexpr eosio::name MEMBERSHIP_FEE_REFUND  = "o.mkt.refund"_n;   ///< Сторно неиспользованной части членского взноса участка на членский кошелёк программы (TRANSFER w.mkt.fee → w.mkt.member, без Dr/Cr — оба на 86). Отмена — полностью, недовыдача — пропорционально факту, гарантийный возврат — доля за возвращённое; членский остаётся членским и идёт в зачёт следующего заказа.
     inline constexpr eosio::name REFUSAL_PENALTY        = "o.mkt.penal"_n;    ///< Удержание 50% при отказе пайщика от получения после акцепта поставщиком (TRANSFER w.mkt.order → w.mkt.fee, Dr 80 / Cr 86 — паевой становится членским взносом участка; основание в положении о ЦПП — TBD-Standardization). Транзит через пул взносов: далее единым o.brn.common уходит в общий кошелёк КУ. Имущество остаётся на складе КУ; вторая половина возвращается пайщику (o.mkt.unlock + o.mkt.refund).
-    inline constexpr eosio::name RECALL_SHARE           = "o.mkt.recall"_n;   ///< Вывод свободного паевого «Стола заказов» в общий паевой Цифрового кошелька (TRANSFER w.mkt.share → w.wal.share, без Dr/Cr — оба на 80). Действие пайщика recallshare без документа; та же операция консолидирует кошелёк при выходе из кооператива.
+    inline constexpr eosio::name RECALL_SHARE           = "o.mkt.recall"_n;   ///< Консолидация свободного паевого «Стола заказов» в общий паевой Цифрового кошелька при выходе пайщика из кооператива (TRANSFER w.mkt.share → w.wal.share, без Dr/Cr — оба на 80); зовёт registrator (exit_helpers). Действия пайщика в Столе заказов нет: паевой остаток живёт в программе и идёт на следующие заказы; вывод по заявлению — отдельная будущая задача о движении между программами.
   }
 
   // branch — экономика кооперативного участка (requirement b6).
@@ -464,9 +464,9 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
     0, 0,
     "Сторно членского взноса участка на членский кошелёк программы" },
 
-  // 12l. p.mkt.supply: Вывод свободного паевого «Стола заказов» в общий паевой
-  //      (TRANSFER w.mkt.share → w.wal.share, без Dr/Cr — оба на 80). Действие
-  //      пайщика recallshare; та же операция — консолидация при выходе.
+  // 12l. Консолидация свободного паевого «Стола заказов» в общий паевой при
+  //      выходе из кооператива (TRANSFER w.mkt.share → w.wal.share, без Dr/Cr —
+  //      оба на 80); зовёт registrator. Действия пайщика в Столе заказов нет.
   { operations::marketplace::RECALL_SHARE, processes::marketplace::SUPPLY, WalletOp::TRANSFER,
     ledger2_wallets::MARKETPLACE_SHARE_FUND, ledger2_wallets::SHARE_FUND_PAY,
     0, 0,

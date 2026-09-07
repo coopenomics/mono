@@ -141,8 +141,6 @@ export * as DistributeBranchFunds from './distributeBranchFunds'
 export * as SetSupplierPayoutMethod from './setSupplierPayoutMethod'
 export * as SetTrusteeWeight from './setTrusteeWeight'
 export * as DeleteTrusteeWeight from './deleteTrusteeWeight'
-/** Паевая модель: пайщик отзывает свободный паевой взнос со Стола заказов в Кошелёк */
-export * as RecallShare from './recallShare'
 export * as CreateAid from './createAid'
 /** Подать расход кооперативного участка на решение совета через шасси расходов */
 export * as CreateBranchExpense from './createBranchExpense'
