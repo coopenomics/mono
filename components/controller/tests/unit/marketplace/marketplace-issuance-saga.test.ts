@@ -333,3 +333,12 @@ describe('Снятие выдачи (cancelIssuance)', () => {
     expect(m.orderRepo.applyIssuanceReset).toHaveBeenCalledWith('order-1');
   });
 });
+
+describe('MarketplaceIssuanceSagaDomainEntity.awaits_member_signature', () => {
+  it('заявление по строке бандла подписывается на самом бандле — отдельной задачей сага не считается', () => {
+    expect(buildSaga({ proposal_id: 'proposal-1' }).awaits_member_signature).toBe(false);
+    expect(buildSaga().awaits_member_signature).toBe(true);
+    expect(buildSaga({ proposal_id: 'proposal-1', stage: MarketplaceIssuanceSagaStages.DECISION_AUTHORIZED }).awaits_member_signature).toBe(true);
+  });
+});
+

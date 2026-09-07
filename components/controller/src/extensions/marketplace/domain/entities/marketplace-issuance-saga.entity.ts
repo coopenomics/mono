@@ -70,9 +70,17 @@ export class MarketplaceIssuanceSagaDomainEntity {
     return MARKETPLACE_ISSUANCE_SAGA_ACTIVE_STAGES.has(this.stage);
   }
 
-  /** Пайщику есть что подписать прямо сейчас (заявление или акт). */
+  /**
+   * Пайщику есть что подписать прямо сейчас (заявление или акт).
+   *
+   * Заявление по заказу из бандла выдачи подписывается одним нажатием на самом
+   * бандле — отдельной задачей «подпишите заявление» такая сага не является,
+   * иначе у стойки пайщик видел бы две карточки на один заказ (2026-09-07).
+   * Акт после решения совета — уже личная задача саги.
+   */
   public get awaits_member_signature(): boolean {
-    return this.stage === 'FACT_FIXED' || this.stage === 'DECISION_AUTHORIZED';
+    if (this.stage === 'DECISION_AUTHORIZED') return true;
+    return this.stage === 'FACT_FIXED' && !this.proposal_id;
   }
 
   /** Оператору есть что закрыть: акт с первой подписью пайщика. */

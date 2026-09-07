@@ -102,8 +102,17 @@ const supplierTasks = computed<ReceptionGroup<MarketplaceAplReceptionView>[]>(()
 const proposalTasks = computed(() => stockProposals.value);
 /** Заявление 1110 по бандлу (недостающая сумма и членская часть) — для показа перед подписью; null — перевод не нужен. */
 const proposalConverts = ref<Record<string, IStockProposalAcceptPayload['convert']>>({});
-/** Акты/заявления по сагам вне бандла — только те, где ждут подпись пайщика. */
-const sagaTasks = computed(() => memberSagas.value.filter((s) => s.awaits_member_signature));
+/**
+ * Акты/заявления по сагам вне бандла — только те, где ждут подпись пайщика.
+ * Заявление по строке живого бандла подписывается на самом бандле, поэтому
+ * сага такой строки отдельной карточкой не показывается.
+ */
+const sagaTasks = computed(() => {
+  const bundled = new Set(stockProposals.value.map((p) => p.id));
+  return memberSagas.value.filter(
+    (s) => s.awaits_member_signature && !(s.proposal_id && bundled.has(s.proposal_id)),
+  );
+});
 
 /** Гейт виден, пока есть хоть одна личная подпись/решение, которых ждут от пайщика. */
 const isVisible = computed(
