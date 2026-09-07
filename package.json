@@ -79,6 +79,8 @@
     "check:changed": "bash scripts/check.sh changed",
     "check:registry": "bash scripts/check.sh registry",
     "check:ledger2": "bash scripts/check.sh ledger2",
+    "typecheck:changed": "bash scripts/typecheck-changed.sh",
+    "typecheck:all": "TYPECHECK_ALL=1 bash scripts/typecheck-changed.sh",
     "registry:audit": "node scripts/registry-audit.mjs",
     "mutate:changed": "bash scripts/mutate-changed.sh",
     "test": "pnpm run test:unit && pnpm run test:component && pnpm run test:integration",

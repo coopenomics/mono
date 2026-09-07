@@ -7,6 +7,7 @@
 import { ConflictException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { Cooperative } from 'cooptypes';
 import { MarketplaceIssuanceSagaStages } from '~/extensions/marketplace/domain/entities/marketplace-issuance-saga.types';
+import { MarketplaceUnitsOfMeasure } from '~/extensions/marketplace/domain/entities/marketplace-offer.types';
 import {
   MARKETPLACE_ISSUANCE_DECIDED_OFFLINE_EVENT,
   MARKETPLACE_ORDER_READY_TO_RECEIVE_EVENT,
@@ -84,7 +85,7 @@ describe('Факт у стойки (fixFact)', () => {
   });
 
   it('отпуск упаковкой: заявление в упаковках — 5 × «упак. 0,1 кг» по цене упаковки', async () => {
-    const order = buildOrder({ unit_of_measure: 'kilogram', package_size: 0.1, quantity: 0.5, price_per_unit: '50.0000', total_cost: '250.0000' });
+    const order = buildOrder({ unit_of_measure: MarketplaceUnitsOfMeasure.KG, package_size: 0.1, quantity: 0.5, price_per_unit: '50.0000', total_cost: '250.0000' });
     const m = buildMocks({ order, warehouse: 0.5 });
     const { statement } = await fix(buildService(m), 0.5, '50.0000');
     expect(statement.meta.fact_quantity).toBe(5);

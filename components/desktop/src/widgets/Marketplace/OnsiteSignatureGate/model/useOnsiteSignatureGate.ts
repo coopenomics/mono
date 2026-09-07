@@ -101,7 +101,7 @@ const supplierTasks = computed<ReceptionGroup<MarketplaceAplReceptionView>[]>(()
 
 const proposalTasks = computed(() => stockProposals.value);
 /** Заявление 1110 по бандлу (недостающая сумма и членская часть) — для показа перед подписью; null — перевод не нужен. */
-const proposalConverts = ref<Record<string, IStockProposalAcceptPayload['convert']>>({});
+const proposalConverts = ref<Record<string, NonNullable<IStockProposalAcceptPayload['convert']> | null>>({});
 /**
  * Акты/заявления по сагам вне бандла — только те, где ждут подпись пайщика.
  * Заявление по строке живого бандла подписывается на самом бандле, поэтому
@@ -320,7 +320,8 @@ async function signSaga(task: MarketplaceIssuanceSagaView): Promise<void> {
     return;
   }
   const global = useGlobalStore();
-  signingKey.value = task.id;
+  // Ключ задачи — строка: идентификатор саги приходит из схемы скаляром ID.
+  signingKey.value = String(task.id);
   try {
     const signer = new Classes.Document(wifKey);
     if (task.stage === Zeus.MarketplaceIssuanceSagaStage.FACT_FIXED) {
