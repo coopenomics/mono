@@ -5,13 +5,10 @@
  * в `acceptcoop` и идёт только через выдачу (readyissue → issuestmt → … →
  * issueact2). Этапы поставки и выплата поставщику для него не существуют.
  *
- * Фондируется как обычный заказ, но паевой источник — свободный паевой
- * «Стола заказов» (средства, вернувшиеся за отмены, недовыдачи и гарантийные
- * возвраты): взнос участка — с внутреннего членского кошелька (o.mkt.fee),
- * тело — паевым резервом o.mkt.lockp (w.mkt.share → w.mkt.order, без
- * проводки). Недостающую часть взноса пайщик заранее перевёл действием
- * `convert` (o.mkt.convp) по заявлению 1110. Автоматического добора с паевого
- * Цифрового кошелька нет: при нехватке — отказ с суммами.
+ * Фондируется как обычный заказ: взнос участка — с внутреннего членского
+ * кошелька (o.mkt.fee), тело — сначала со свободного паевого «Стола заказов»
+ * (o.mkt.lockp), остаток с главного паевого Цифрового кошелька (o.mkt.lock).
+ * Недостающее пайщик заранее перевёл действием `convert` по заявлению 1110.
  *
  * @ingroup public_marketplace_actions
  */
@@ -54,14 +51,17 @@ void marketplace::stockorder(eosio::name coopname,
   const eosio::asset membership_fee = Marketplace::calc_membership_fee(
       total_cost, Marketplace::get_membership_fee_percent(coopname));
 
-  // ── Членского кошелька обязано хватать на взнос; тело — со свободного паевого ──
+  // ── Членского кошелька обязано хватать на взнос; тело — паевыми кошельками ──
   Marketplace::require_member_fee(coopname, orderer, membership_fee);
-  auto bal_share = Marketplace::get_user_wallet_balance(
-      coopname, ledger2_wallets::MARKETPLACE_SHARE_FUND, orderer);
-  eosio::check(bal_share.available >= total_cost,
-               std::string{"Недостаточно свободного паевого «Стола заказов» для заказа из остатка: требуется "} +
-                 total_cost.to_string() + ", доступно " + bal_share.available.to_string() +
-                 ". Пополните паевой взнос и разместите обычный заказ либо дождитесь остатка от отмен и недовыдач.");
+  {
+    auto program = Marketplace::get_user_wallet_balance(coopname, ledger2_wallets::MARKETPLACE_SHARE_FUND, orderer);
+    auto wallet  = Marketplace::get_user_wallet_balance(coopname, ledger2_wallets::SHARE_FUND_PAY, orderer);
+    eosio::check(program.available + wallet.available >= total_cost,
+                 std::string{"Недостаточно паевых средств для заказа из остатка: требуется "} + total_cost.to_string() +
+                   ", доступно " + (program.available + wallet.available).to_string() +
+                   " (свободный паевой Стола заказов " + program.available.to_string() +
+                   " и Цифровой кошелёк " + wallet.available.to_string() + ")");
+  }
 
   // ── Создание Order entity сразу в acceptcoop ─────────────────────────
   orders_index orders(_marketplace, coopname.value);
@@ -98,10 +98,8 @@ void marketplace::stockorder(eosio::name coopname,
   // ── o.mkt.fee: взнос с внутреннего членского кошелька (внутри 86) ──
   Marketplace::lock_membership_fee(coopname, new_id, orderer, order_hash, membership_fee,
                                    Marketplace::Memo::get_membership_fee_lock_memo(new_id));
-  // ── o.mkt.lockp: тело — TRANSFER w.mkt.share → w.mkt.order (без Dr/Cr) ──
-  Ledger2::apply(_marketplace, coopname,
-                 operations::marketplace::LOCK_FROM_SHARE,
-                 processes::marketplace::SUPPLY,
-                 total_cost, orderer, order_hash,
-                 Marketplace::Memo::get_stock_order_block_memo(new_id));
+  // ── тело: o.mkt.lockp со свободного паевого программы, остаток o.mkt.lock с ЦК ──
+  Marketplace::lock_order_body(coopname, new_id, orderer, order_hash, total_cost,
+                               Marketplace::Memo::get_stock_order_block_memo(new_id),
+                               Marketplace::Memo::get_create_order_block_memo(new_id));
 }

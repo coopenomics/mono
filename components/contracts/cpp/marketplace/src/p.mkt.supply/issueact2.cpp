@@ -5,7 +5,8 @@
  *
  * В одной транзакции по факту, зафиксированному на issuestmt:
  *  1. корректировка резерва: факт меньше заказа — o.mkt.unlock на разницу
- *     (w.mkt.order → w.mkt.share); факт больше — o.mkt.lockp с w.mkt.share
+ *     (w.mkt.order → w.mkt.share); факт больше — o.mkt.lockp с w.mkt.share и
+ *     o.mkt.lock с w.wal.share на остаток
  *     (при нехватке — отказ с суммами; автоматического добора с паевого
  *     Цифрового кошелька нет);
  *  2. o.mkt.consum на fact_cost — BURN w.mkt.order, Дт 80 / Кт 10: возврат
@@ -62,17 +63,11 @@ void marketplace::issueact2(eosio::name coopname,
                    Marketplace::Memo::get_issue_correction_less_memo(o.id));
   } else if (fact_cost > o.total_cost) {
     const eosio::asset diff = fact_cost - o.total_cost;
-    auto bal_share = Marketplace::get_user_wallet_balance(
-        coopname, ledger2_wallets::MARKETPLACE_SHARE_FUND, o.orderer);
-    eosio::check(bal_share.available >= diff,
-                 std::string{"Недостаточно паевых средств «Стола заказов» для доплаты по факту: требуется "} +
-                   diff.to_string() + ", доступно " + bal_share.available.to_string() +
-                   ". Уменьшите состав выдачи либо пополните паевой взнос и повторите.");
-    Ledger2::apply(_marketplace, coopname,
-                   operations::marketplace::LOCK_FROM_SHARE,
-                   processes::marketplace::SUPPLY,
-                   diff, o.orderer, o.hash,
-                   Marketplace::Memo::get_issue_correction_more_block_memo(o.id));
+    // Доплата тела теми же паевыми кошельками, что и заказ: свободный паевой
+    // программы, остаток — Цифровой кошелёк (при нехватке — отказ с суммами).
+    Marketplace::lock_order_body(coopname, o.id, o.orderer, o.hash, diff,
+                                 Marketplace::Memo::get_issue_correction_more_block_memo(o.id),
+                                 Marketplace::Memo::get_issue_correction_more_block_memo(o.id));
   }
 
   // ── 2. Возврат паевого взноса имуществом ──

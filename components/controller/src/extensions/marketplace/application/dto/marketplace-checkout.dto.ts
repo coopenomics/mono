@@ -68,11 +68,11 @@ export class MarketplaceCheckoutCartInputDTO {
 
 @ObjectType('MarketplaceConvertPayload', {
   description:
-    'Заявление 1110 к подписи: сумма перевода в программу (тело и недостающая часть членского взноса) и членская часть — ' +
-    'взнос за вычетом остатка внутреннего членского кошелька «Стола заказов».',
+    'Заявление 1110 к подписи: сумма перевода с Цифрового кошелька (недостающая часть тела сверх свободного паевого и ' +
+    'недостающая часть взноса сверх членского кошелька) и членская часть в ней.',
 })
 export class MarketplaceConvertPayloadDTO {
-  @Field(() => String, { description: 'Сумма перевода: тело и недостающая часть взноса, с валютой.' })
+  @Field(() => String, { description: 'Сумма перевода с Цифрового кошелька: недостающие части тела и взноса, с валютой.' })
   public readonly amount!: string;
 
   @Field(() => String, { description: 'Членская часть перевода (взнос минус остаток членского кошелька) — уходит в членский кошелёк действием convert, с валютой.' })
@@ -88,8 +88,8 @@ export class MarketplaceConvertPayloadDTO {
 
 @ObjectType('MarketplaceCheckoutSignableLine', {
   description:
-    'Превью строки оформления: идентификатор будущего заказа и суммы по частям — какая часть членского взноса покрыта ' +
-    'остатком внутреннего членского кошелька «Стола заказов» и сколько уйдёт с паевого (тело и недостающая часть взноса).',
+    'Превью строки оформления: идентификатор будущего заказа и суммы по частям — что покрыто кошельками программы ' +
+    '(членский взнос — членским, тело — свободным паевым «Стола заказов») и что уйдёт с Цифрового кошелька по заявлению.',
 })
 export class MarketplaceCheckoutSignableLineDTO {
   @Field(() => String, { description: 'Идентификатор предложения позиции корзины.' })
@@ -113,8 +113,11 @@ export class MarketplaceCheckoutSignableLineDTO {
   @Field(() => String, { description: 'Часть членского взноса, покрытая остатком внутреннего членского кошелька, с валютой.' })
   public readonly from_member!: string;
 
-  @Field(() => String, { description: 'Уходит с паевого: тело и недостающая часть взноса (у позиций со склада тело — со свободного паевого программы), с валютой.' })
-  public readonly from_share!: string;
+  @Field(() => String, { description: 'Часть тела, покрытая остатком свободного паевого «Стола заказов», с валютой.' })
+  public readonly from_program!: string;
+
+  @Field(() => String, { description: 'Уходит с Цифрового кошелька по заявлению: остаток тела и недостающая часть взноса, с валютой.' })
+  public readonly from_wallet!: string;
 
   constructor(init: Partial<MarketplaceCheckoutSignableLineDTO>) {
     Object.assign(this, init);

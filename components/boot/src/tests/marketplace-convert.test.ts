@@ -17,7 +17,7 @@ import { beforeAll, describe, expect, it } from 'vitest'
 import Blockchain from '../blockchain'
 import config from '../configs'
 import { pickOffer, placeOrder } from './marketplace/orderFlow'
-import { amount, ensureShareFunds, fromState, gqlAs, historyOfProcess, loginAs, signAs, waitForOps } from './marketplace/chainHelpers'
+import { amount, ensureShareFunds, fromState, gqlAs, historyOfProcess, loginAs, signAs, sumOf, waitForOps } from './marketplace/chainHelpers'
 
 const BRANAME = 'krg'
 const COOPNAME = 'voskhod'
@@ -98,14 +98,14 @@ describe('Стол заказов: заявление 1110 и внутренни
     })
     const sp: any = await gqlAs(ekaterinaToken, `query{
       marketplaceCheckoutSignablePayloads{
-        lines{ order_hash amount membership_fee from_member from_share }
+        lines{ order_hash amount membership_fee from_member from_program from_wallet }
         convert{ amount membership_fee document{ full_title html hash meta binary } }
       }
     }`)
     const preview = sp.marketplaceCheckoutSignablePayloads
-    expect(preview.convert, 'превью обязано принести заявление').toBeTruthy()
+    expect(preview.convert, 'кошельков программы не хватает — превью обязано принести заявление').toBeTruthy()
     const line = preview.lines[0]
-    expect(amount(preview.convert.amount), 'заявление — на тело плюс недостающую часть взноса').toBeCloseTo(amount(line.from_share), 2)
+    expect(amount(preview.convert.amount), 'заявление — только на то, чего не хватило в кошельках программы').toBeCloseTo(amount(line.from_wallet), 2)
     expect(amount(preview.convert.membership_fee), 'членская часть — взнос за вычетом остатка кошелька').toBeCloseTo(amount(line.membership_fee) - amount(line.from_member), 2)
     expect(amount(preview.convert.membership_fee), 'кошелька на взнос не хватало — членская часть больше нуля').toBeGreaterThan(0)
     const meta = JSON.parse(preview.convert.document.meta)
@@ -122,8 +122,9 @@ describe('Стол заказов: заявление 1110 и внутренни
 
     const convOps = await waitForOps(chairmanToken, preview.convert.document.hash, ['o.mkt.conv'])
     expect(amount(convOps.find(r => r.operationCode === 'o.mkt.conv')!.quantity), 'переведена ровно членская часть').toBeCloseTo(amount(preview.convert.membership_fee), 2)
-    const orderOps = await waitForOps(chairmanToken, line.order_hash, ['o.mkt.fee', 'o.mkt.lock'])
-    expect(amount(orderOps.find(r => r.operationCode === 'o.mkt.lock')!.quantity), 'тело целиком паевым резервом').toBeCloseTo(amount(line.amount) - amount(line.membership_fee), 2)
+    const orderOps = await waitForOps(chairmanToken, line.order_hash, ['o.mkt.fee'])
+    expect(sumOf(orderOps, 'o.mkt.lock') + sumOf(orderOps, 'o.mkt.lockp'), 'тело целиком паевым резервом из двух паевых кошельков').toBeCloseTo(amount(line.amount) - amount(line.membership_fee), 2)
+    expect(sumOf(orderOps, 'o.mkt.lockp'), 'свободный паевой программы идёт на тело в первую очередь').toBeCloseTo(amount(line.from_program), 2)
     expect(amount(orderOps.find(r => r.operationCode === 'o.mkt.fee')!.quantity), 'взнос целиком с членского кошелька').toBeCloseTo(amount(line.membership_fee), 2)
   }, 300_000)
 

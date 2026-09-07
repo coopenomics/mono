@@ -125,9 +125,9 @@ export interface MarketplaceStockAcceptOrderLine {
 
 /**
  * Полезная нагрузка к одной подписи пайщика: заявления по строкам и, если
- * внутреннего членского кошелька не хватает на членские взносы бандла (взносы
- * докладки и довзносы по заказам), одно заявление 1110 о переводе недостающей
- * части взносов со свободного паевого программы — на весь бандл.
+ * кошельков программы не хватает на бандл (свободного паевого — на тела
+ * докладки и доплаты, членского — на взносы и довзносы), одно заявление 1110
+ * о переводе недостающего с Цифрового кошелька — на весь бандл.
  */
 export interface MarketplaceStockAcceptPayload {
   order_lines: MarketplaceStockAcceptOrderLine[];
@@ -146,10 +146,12 @@ export interface MarketplaceStockFinalizeInput {
   signed_convert?: MarketplaceConvertStatementSignedInputDTO | null;
 }
 
-/** План членских взносов бандла в минимальных единицах (порядок = порядок проведения). */
+/** План сумм бандла в минимальных единицах (порядок = порядок проведения). */
 interface BundlePlan {
-  /** Недостающая часть взносов — параметр действия convert и сумма заявления (со свободного паевого). */
+  /** Недостающая часть взносов — параметр действия convert. */
   fee_convert_units: bigint;
+  /** Сумма заявления с Цифрового кошелька: тела сверх свободного паевого плюс недостающие взносы. */
+  transfer_units: bigint;
 }
 
 /**
@@ -190,12 +192,11 @@ export class MarketplaceStockProposalService {
   }
 
   /**
-   * План членских взносов по бандлу в порядке проведения (тот же, что в
-   * контракте и в `finalizeStockIssuance`): сначала докладка — заказы из
-   * остатка рождаются первыми и берут взнос участка с внутреннего членского
-   * кошелька; затем довзносы по существующим заказам при факте больше заказа.
-   * Тела и доплаты идут со свободного паевого без заявления. Недостающая часть
-   * взносов — заявление 1110 на весь бандл.
+   * План сумм по бандлу в порядке проведения (тот же, что в контракте и в
+   * `finalizeStockIssuance`): сначала докладка — заказы из остатка рождаются
+   * первыми, взнос с членского кошелька, тело со свободного паевого программы;
+   * затем довзносы и доплаты по существующим заказам при факте больше заказа.
+   * Нехватка каждой части — с Цифрового кошелька по заявлению 1110 на весь бандл.
    */
   private async planBundle(
     coopname: string,
@@ -208,14 +209,15 @@ export class MarketplaceStockProposalService {
       const { resolved } = await this.validateStockLine(coopname, proposal.braname, item.offer_id, item.quantity, item.package_id);
       const saleUnitCount = resolved.packageSize > 0 ? resolved.packageCount! : resolved.baseQuantity;
       const body_units = this.economyService.lineBodyUnits(resolved.unitPrice, saleUnitCount);
-      inputs.push({ body_units: 0n, fee_units: this.economyService.membershipFeeUnits(body_units, feePercent) });
+      inputs.push({ body_units, fee_units: this.economyService.membershipFeeUnits(body_units, feePercent) });
     }
     for (const item of proposal.items.filter((i) => !!i.order_id)) {
       const t = await this.issuanceService.getFeeTopUp(coopname, item.order_id!, member_account);
-      inputs.push({ body_units: 0n, fee_units: t.topup_units });
+      inputs.push({ body_units: t.body_topup_units, fee_units: t.topup_units });
     }
-    const memberAvailable = await this.convertService.memberAvailableUnits(coopname, member_account);
-    return { fee_convert_units: this.convertService.planFunding(memberAvailable, inputs).fee_convert_units };
+    const balances = await this.convertService.programBalances(coopname, member_account);
+    const funding = this.convertService.planFunding(balances, inputs);
+    return { fee_convert_units: funding.fee_convert_units, transfer_units: funding.transfer_units };
   }
 
   /** Якорь заявления 1110 бандла — по бандлу, без nonce. */
@@ -270,17 +272,16 @@ export class MarketplaceStockProposalService {
     }
     const plan = await this.planBundle(coopname, proposal, member_account);
     const convert =
-      plan.fee_convert_units > 0n
+      plan.transfer_units > 0n
         ? {
-            amount: this.economyService.unitsToAsset(plan.fee_convert_units),
+            amount: this.economyService.unitsToAsset(plan.transfer_units),
             membership_fee: this.economyService.unitsToAsset(plan.fee_convert_units),
             document: await this.convertService.generateStatement({
               coopname,
               username: member_account,
               anchor_hash: this.convertAnchor(coopname, member_account, proposal.id),
-              amount_units: plan.fee_convert_units,
+              amount_units: plan.transfer_units,
               fee_units: plan.fee_convert_units,
-              source: 'market',
             }),
           }
         : null;
@@ -500,10 +501,10 @@ export class MarketplaceStockProposalService {
     // совпасть с подписанным заявлением 1110, иначе подписание повторяется.
     // Перевод — отдельной транзакцией до заказов из остатка.
     const plan = await this.planBundle(coopname, proposal, member_account);
-    if (plan.fee_convert_units > 0n) {
+    if (plan.transfer_units > 0n) {
       const convert_statement = this.convertService.verifySigned(
         input.signed_convert,
-        { anchor_hash: this.convertAnchor(coopname, member_account, proposal.id), amount_units: plan.fee_convert_units, fee_units: plan.fee_convert_units },
+        { anchor_hash: this.convertAnchor(coopname, member_account, proposal.id), amount_units: plan.transfer_units, fee_units: plan.fee_convert_units },
         member_account
       );
       try {
@@ -511,7 +512,6 @@ export class MarketplaceStockProposalService {
           coopname,
           orderer: member_account,
           amount: this.economyService.unitsToAsset(plan.fee_convert_units),
-          from_market: true,
           convert_statement,
         });
       } catch (e) {

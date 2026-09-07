@@ -145,6 +145,8 @@ export function buildMocks(opts: {
   robotPort?: any;
   /** Остаток членского кошелька программы пайщика в минимальных единицах (по умолчанию — хватает на всё). */
   memberAvailableUnits?: bigint;
+  /** Остаток свободного паевого программы (по умолчанию — хватает на любую доплату). */
+  shareAvailableUnits?: bigint;
 } = {}): IssuanceMocks {
   const order = opts.order ?? buildOrder();
   const warehouse = opts.warehouse ?? 10;
@@ -185,27 +187,33 @@ export function buildMocks(opts: {
   };
   const logger = { setContext: jest.fn(), debug: jest.fn(), log: jest.fn(), error: jest.fn(), warn: jest.fn(), info: jest.fn() };
   const memberAvailable = opts.memberAvailableUnits ?? 1_000_000_000n;
+  const shareAvailable = opts.shareAvailableUnits ?? 1_000_000_000n;
   const economyService = {
     assetToUnits: jest.fn((v: string) => toUnits(v)),
     unitsToAsset: jest.fn((u: bigint) => toAsset(u)),
     getMembershipFeeContractPercent: jest.fn(async () => 300000),
     toHumanFeePercent: jest.fn((v: number) => (Number(v) * 100) / 1_000_000),
   };
-  const planFunding = (available: bigint, lines: Array<{ body_units: bigint; fee_units: bigint }>) => {
-    let member = available;
+  const planFunding = (balances: { member: bigint; share: bigint }, lines: Array<{ body_units: bigint; fee_units: bigint }>) => {
+    let member = balances.member;
+    let share = balances.share;
     const planned = lines.map((line) => {
       const fee_member_units = line.fee_units > member ? member : line.fee_units;
       member -= fee_member_units;
-      return { ...line, fee_member_units, fee_convert_units: line.fee_units - fee_member_units };
+      const body_program_units = line.body_units > share ? share : line.body_units;
+      share -= body_program_units;
+      return { ...line, fee_member_units, fee_convert_units: line.fee_units - fee_member_units, body_program_units, body_wallet_units: line.body_units - body_program_units };
     });
     const fee_convert_units = planned.reduce((sum, l) => sum + l.fee_convert_units, 0n);
-    const body_units = planned.reduce((sum, l) => sum + l.body_units, 0n);
-    return { lines: planned, fee_convert_units, body_units, transfer_units: body_units + fee_convert_units };
+    const body_wallet_units = planned.reduce((sum, l) => sum + l.body_wallet_units, 0n);
+    return { lines: planned, fee_convert_units, body_wallet_units, transfer_units: body_wallet_units + fee_convert_units };
   };
   const convertService = {
     memberAvailableUnits: jest.fn(async () => memberAvailable),
+    programShareAvailableUnits: jest.fn(async () => shareAvailable),
+    programBalances: jest.fn(async () => ({ member: memberAvailable, share: shareAvailable })),
     planFunding: jest.fn(planFunding),
-    shortfallUnits: jest.fn((available: bigint, fee: bigint) => planFunding(available, [{ body_units: 0n, fee_units: fee }]).fee_convert_units),
+    shortfallUnits: jest.fn((available: bigint, fee: bigint) => planFunding({ member: available, share: 0n }, [{ body_units: 0n, fee_units: fee }]).fee_convert_units),
     generateStatement: jest.fn(async (input: any) => ({
       full_title: 'convert',
       html: '<html/>',
@@ -215,7 +223,6 @@ export function buildMocks(opts: {
         order_hash: input.anchor_hash,
         amount: toAsset(input.amount_units),
         membership_fee: toAsset(input.fee_units),
-        source: input.source,
       },
       binary: '',
     })),

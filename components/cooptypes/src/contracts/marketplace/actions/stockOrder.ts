@@ -7,8 +7,8 @@ import { Actors } from '../../../common'
  * Продавец — сам кооператив (offerer == coopname); Order рождается сразу в
  * acceptcoop и идёт только через выдачу (readyissue → issuestmt → … → issueact2).
  * Взнос — с внутреннего членского кошелька (o.mkt.fee), тело — o.mkt.lockp
- * (w.mkt.share → w.mkt.order); недостающую часть взноса пайщик перевёл заранее
- * действием convert (o.mkt.convp) по заявлению 1110.
+ * (w.mkt.share → w.mkt.order), остаток o.mkt.lock (w.wal.share); недостающую
+ * часть взноса пайщик перевёл заранее действием convert по заявлению 1110.
  * При нехватке — отказ; автоматического добора с паевого Цифрового кошелька нет.
  */
 export const authorizations = [{ permissions: [Permissions.active], actor: Actors._username }] as const

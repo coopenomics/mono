@@ -39,7 +39,6 @@ import type { InnerGeneratedDocument } from '@coopenomics/innercoop';
 import {
   MARKETPLACE_CONVERT_SERVICE,
   MAIN_SHARE_WALLET,
-  MARKETPLACE_SHARE_WALLET,
   MarketplaceConvertService,
   type FundingLinePlan,
 } from './marketplace-convert.service';
@@ -77,13 +76,15 @@ export interface MarketplaceCheckoutSignableLine {
   membership_fee: string;
   /** Часть взноса, покрытая остатком внутреннего членского кошелька, с валютой. */
   from_member: string;
-  /** Уходит с паевого: тело позиции и недостающая часть взноса, с валютой. */
-  from_share: string;
+  /** Часть тела, покрытая остатком свободного паевого «Стола заказов», с валютой. */
+  from_program: string;
+  /** Уходит с Цифрового кошелька по заявлению: остаток тела и недостающая часть взноса, с валютой. */
+  from_wallet: string;
 }
 
-/** Заявление 1110 к подписи. */
+/** Заявление 1110 к подписи — только когда кошельков программы на заказ не хватает. */
 export interface MarketplaceConvertPayload {
-  /** Сумма перевода: тело и недостающая часть взноса, с валютой. */
+  /** Сумма перевода с Цифрового кошелька: недостающая часть тела плюс недостающая часть взноса, с валютой. */
   amount: string;
   /** Членская часть — взнос за вычетом остатка членского кошелька, уходит в членский кошелёк действием convert, с валютой. */
   membership_fee: string;
@@ -106,10 +107,8 @@ interface CheckoutPlan {
   lines: CheckoutPlannedLine[];
   /** Членская часть перевода — параметр действия convert. */
   fee_convert_units: bigint;
-  /** Сумма заявления с Цифрового кошелька: тела обычных строк + недостающие части взносов всех строк. */
+  /** Сумма заявления с Цифрового кошелька: тела сверх свободного паевого плюс недостающие части взносов. */
   transfer_units: bigint;
-  /** Тела строк со склада — со свободного паевого «Стола заказов», в заявление не входят. */
-  stock_share_units: bigint;
 }
 
 /**
@@ -154,11 +153,11 @@ export class MarketplaceCheckoutService {
   }
 
   /**
-   * Превью оформления. Паевая модель: членский взнос каждой позиции покрывается
-   * остатком внутреннего членского кошелька «Стола заказов», нехватка — перевод
-   * по заявлению; тело всегда с паевого (главный паевой у обычных позиций,
-   * свободный паевой программы у позиций со склада). Заявление 1110 — на тело
-   * обычных позиций плюс недостающую часть взносов, клиент подписывает его
+   * Превью оформления. Паевая модель: два кошелька программы оплачивают каждый
+   * свою часть — членский взнос позиции покрывается остатком внутреннего
+   * членского кошелька, тело — остатком свободного паевого «Стола заказов»
+   * (туда возвращаются средства при отменах и возвратах). Заявление 1110 — на
+   * то, чего в них не хватило, с Цифрового кошелька; клиент подписывает его
    * один раз на всё оформление; если переводить нечего, заявления нет.
    */
   async getSignablePayloads(scope: CheckoutScope): Promise<MarketplaceCheckoutPreview> {
@@ -182,7 +181,8 @@ export class MarketplaceCheckoutService {
       amount: this.economyService.unitsToAsset(p.plan.body_units + p.plan.fee_units),
       membership_fee: this.economyService.unitsToAsset(p.plan.fee_units),
       from_member: this.economyService.unitsToAsset(p.plan.fee_member_units),
-      from_share: this.economyService.unitsToAsset(p.plan.body_units + p.plan.fee_convert_units),
+      from_program: this.economyService.unitsToAsset(p.plan.body_program_units),
+      from_wallet: this.economyService.unitsToAsset(p.plan.body_wallet_units + p.plan.fee_convert_units),
     }));
     const convert =
       planned.transfer_units > 0n
@@ -195,7 +195,6 @@ export class MarketplaceCheckoutService {
               anchor_hash: this.convertAnchor(scope, cart.id),
               amount_units: planned.transfer_units,
               fee_units: planned.fee_convert_units,
-              source: 'wallet',
             }),
           }
         : null;
@@ -236,11 +235,10 @@ export class MarketplaceCheckoutService {
     const planned = await this.planLines(scope, payable, feePercent, orderHashByLine);
 
     // Предвалидация баланса под всю оформляемую корзину (без частичного
-    // списания): с Цифрового кошелька — сумма заявления (тела обычных строк и
-    // недостающие части взносов), со свободного паевого — тела строк со склада.
+    // списания): с Цифрового кошелька уходит сумма заявления — тела сверх
+    // свободного паевого программы и недостающие части взносов.
     if (planned.lines.length > 0) {
-      await this.assertSpendable(scope, MAIN_SHARE_WALLET, planned.transfer_units, 'главном паевом кошельке');
-      await this.assertSpendable(scope, MARKETPLACE_SHARE_WALLET, planned.stock_share_units, 'свободном паевом «Стола заказов»');
+      await this.assertSpendable(scope, MAIN_SHARE_WALLET, planned.transfer_units, 'Цифровом кошельке');
     }
 
     // ── Заявление 1110 и перевод в членский кошелёк — одной транзакцией до заказов ──
@@ -255,7 +253,6 @@ export class MarketplaceCheckoutService {
           coopname: scope.coopname,
           orderer: scope.orderer_account,
           amount: this.economyService.unitsToAsset(planned.fee_convert_units),
-          from_market: false,
           convert_statement,
         });
       } catch (e) {
@@ -356,8 +353,8 @@ export class MarketplaceCheckoutService {
    * (Эпик 18: по мере — цена базовой единицы × количество; упаковкой — цена
    * упаковки × число упаковок), членский взнос участка той же формулой, что
    * контракт, и раскладка по кошелькам в порядке проведения — взнос с
-   * внутреннего членского кошелька (нехватка — перевод по заявлению), тело
-   * всегда с паевого.
+   * внутреннего членского кошелька, тело со свободного паевого программы,
+   * нехватка каждой части — с Цифрового кошелька по заявлению.
    * order_hash берётся из строк превью (в нём случайный nonce), иначе
    * рождается здесь. Единый расчёт для превью, проверки баланса и
    * оформления — суммы обязаны совпадать побитово.
@@ -374,9 +371,11 @@ export class MarketplaceCheckoutService {
       const body_units = this.economyService.lineBodyUnits(r.unitPrice, saleUnitCount);
       return { body_units, fee_units: this.economyService.membershipFeeUnits(body_units, feePercent) };
     });
-    const memberAvailable =
-      payable.length > 0 ? await this.convertService.memberAvailableUnits(scope.coopname, scope.orderer_account) : 0n;
-    const funding = this.convertService.planFunding(memberAvailable, inputs);
+    const balances =
+      payable.length > 0
+        ? await this.convertService.programBalances(scope.coopname, scope.orderer_account)
+        : { member: 0n, share: 0n };
+    const funding = this.convertService.planFunding(balances, inputs);
     const lines: CheckoutPlannedLine[] = payable.map((line, i) => ({
       line,
       order_hash:
@@ -386,17 +385,7 @@ export class MarketplaceCheckoutService {
           : computeOrderHash(scope.coopname, scope.orderer_account, line.offer_id)),
       plan: funding.lines[i]!,
     }));
-    // Тела строк со склада идут со свободного паевого программы и в заявление
-    // о переводе с Цифрового кошелька не входят.
-    const stock_share_units = lines
-      .filter((l) => !!l.line.offer.stock_braname)
-      .reduce((sum, l) => sum + l.plan.body_units, 0n);
-    return {
-      lines,
-      fee_convert_units: funding.fee_convert_units,
-      transfer_units: funding.transfer_units - stock_share_units,
-      stock_share_units,
-    };
+    return { lines, fee_convert_units: funding.fee_convert_units, transfer_units: funding.transfer_units };
   }
 
   /** Достаточность паевого кошелька под сумму. */

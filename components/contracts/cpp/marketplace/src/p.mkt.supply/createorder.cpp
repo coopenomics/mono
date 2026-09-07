@@ -1,14 +1,18 @@
 /**
  * @brief Заказчик размещает заказ на товар (Story 4.1, p.mkt.supply шаг 1).
  *
- * Движения (паевая модель, компонент 68, уточнение владельца 06.09.2026):
+ * Движения (паевая модель, компонент 68, уточнения владельца 06–07.09.2026):
+ *  два кошелька программы оплачивают каждый свою часть, и лишь недостающее
+ *  переводится с Цифрового кошелька по заявлению 1110 (действие `convert`
+ *  заранее, отдельной транзакцией):
  *  - `o.mkt.fee` — членский взнос участка с внутреннего членского кошелька
- *    w.mkt.member (туда же возвращаются членские средства при отменах и
- *    гарантийных возвратах; они оплачивают только взносы следующих заказов);
- *  - `o.mkt.lock` — тело заказа паевым резервом (w.wal.share → w.mkt.order,
- *    без проводки — оба кошелька на 80); тело всегда паевое.
- *  Заявления здесь нет: недостающую часть взноса пайщик заранее перевёл
- *  действием `convert` по Заявлению 1110; кошелька обязано хватать на взнос.
+ *    w.mkt.member (сюда возвращаются членские средства при отменах и
+ *    гарантийных возвратах; кошелька обязано хватать на взнос целиком);
+ *  - `o.mkt.lockp` — тело заказа со свободного паевого «Стола заказов»
+ *    w.mkt.share (сюда возвращаются паевые средства при отменах, недовыдачах и
+ *    гарантийных возвратах), сколько там есть;
+ *  - `o.mkt.lock` — остаток тела с главного паевого w.wal.share.
+ *  Тело всегда паевое, обе части — один резерв w.mkt.order (без проводок).
  *
  * Guards (из p.mkt.supply.standard.yaml + Locked Decision L6):
  *  - quantity > 0; unit_price > 0 в _root_govern_symbol.
@@ -16,7 +20,7 @@
  *  - Заказчик — активный пайщик кооператива (`get_participant_or_fail`).
  *  - `delivery_braname` существует в `branches` (КУ выдачи задаётся пайщиком
  *    из доступных и неизменен после создания Order'а).
- *  - w.mkt.member.available заказчика >= взнос; w.wal.share.available >= тело
+ *  - w.mkt.member.available заказчика >= взнос; w.mkt.share + w.wal.share >= тело
  *    заказа; иначе createorder фейлится без создания Order'а.
  *  - Подписка пайщика на оферту ЦПП «Стол заказов» (L2/L3 онбординг) —
  *    автоматически проверяется в `ledger2::walletop` через
@@ -67,13 +71,17 @@ void marketplace::createorder(eosio::name coopname,
   const eosio::asset membership_fee = Marketplace::calc_membership_fee(
       total_cost, Marketplace::get_membership_fee_percent(coopname));
 
-  // ── Членского кошелька обязано хватать на взнос; тело — с главного паевого ──
+  // ── Членского кошелька обязано хватать на взнос; тело — паевыми кошельками ──
   Marketplace::require_member_fee(coopname, orderer, membership_fee);
-  auto bal_share = Marketplace::get_user_wallet_balance(
-      coopname, ledger2_wallets::SHARE_FUND_PAY, orderer);
-  eosio::check(bal_share.available >= total_cost,
-               std::string{"Недостаточно паевых средств для заказа: требуется "} +
-                 total_cost.to_string() + ", доступно " + bal_share.available.to_string());
+  {
+    auto program = Marketplace::get_user_wallet_balance(coopname, ledger2_wallets::MARKETPLACE_SHARE_FUND, orderer);
+    auto wallet  = Marketplace::get_user_wallet_balance(coopname, ledger2_wallets::SHARE_FUND_PAY, orderer);
+    eosio::check(program.available + wallet.available >= total_cost,
+                 std::string{"Недостаточно паевых средств для заказа: требуется "} + total_cost.to_string() +
+                   ", доступно " + (program.available + wallet.available).to_string() +
+                   " (свободный паевой Стола заказов " + program.available.to_string() +
+                   " и Цифровой кошелёк " + wallet.available.to_string() + ")");
+  }
 
   // ── Создание Order entity (id потребуется для memo) ─────────────────
   orders_index orders(_marketplace, coopname.value);
@@ -110,10 +118,8 @@ void marketplace::createorder(eosio::name coopname,
   // ── o.mkt.fee: взнос с внутреннего членского кошелька (внутри 86) ──
   Marketplace::lock_membership_fee(coopname, new_id, orderer, order_hash, membership_fee,
                                    Marketplace::Memo::get_membership_fee_lock_memo(new_id));
-  // ── o.mkt.lock: тело — TRANSFER w.wal.share → w.mkt.order (без проводки) ──
-  Ledger2::apply(_marketplace, coopname,
-                 operations::marketplace::LOCK_ORDER,
-                 processes::marketplace::SUPPLY,
-                 total_cost, orderer, order_hash,
-                 Marketplace::Memo::get_create_order_block_memo(new_id));
+  // ── тело: o.mkt.lockp со свободного паевого программы, остаток o.mkt.lock с ЦК ──
+  Marketplace::lock_order_body(coopname, new_id, orderer, order_hash, total_cost,
+                               Marketplace::Memo::get_stock_order_block_memo(new_id),
+                               Marketplace::Memo::get_create_order_block_memo(new_id));
 }

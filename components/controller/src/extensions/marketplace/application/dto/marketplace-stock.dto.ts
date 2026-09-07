@@ -269,7 +269,7 @@ export class MarketplaceStockAcceptPayloadDTO {
   @Field(() => MarketplaceConvertPayloadDTO, {
     nullable: true,
     description:
-      'Заявление 1110 о переводе недостающей части членских взносов со свободного паевого программы на весь бандл — только если внутреннего членского кошелька на взносы не хватает.',
+      'Заявление 1110 о переводе недостающего с Цифрового кошелька на весь бандл — только если кошельков программы на тела и взносы не хватает.',
   })
   public readonly convert!: MarketplaceConvertPayloadDTO | null;
 }

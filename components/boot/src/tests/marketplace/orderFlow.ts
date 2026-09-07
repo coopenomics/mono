@@ -8,9 +8,9 @@
  * проверил». Шаги повторяют путь desktop'а один в один, включая двухподписные
  * акты (первая подпись id=1, вторая — id=2 поверх агрегата).
  *
- * Паевая модель (компонент 68): внутренний членский кошелёк «Стола заказов»
- * расходуется первым; если его не хватает, превью приносит заявление 1110 о
- * переводе недостающей суммы — пайщик подписывает его один раз, перевод идёт
+ * Паевая модель (компонент 68): кошельки программы оплачивают каждый свою
+ * часть (членский — взнос, свободный паевой — тело); на недостающее превью
+ * приносит заявление 1110 — пайщик подписывает его один раз, перевод идёт
  * отдельной транзакцией до заказов; выдача — сага: факт оператора → заявление
  * пайщика (1113) → решение совета (робот, если он делегирован по `mktissue`,
  * иначе голосуем советом через `processDecision`) → акт пайщика (1115) → закрывающая подпись
@@ -72,7 +72,7 @@ export async function placeOrder(args: {
 
   const sp: any = await gqlAs(token, `query{
     marketplaceCheckoutSignablePayloads{
-      lines{ offer_id package_id order_hash amount membership_fee from_member from_share }
+      lines{ offer_id package_id order_hash amount membership_fee from_member from_program from_wallet }
       convert{ amount membership_fee document{ full_title html hash meta binary } }
     }
   }`)

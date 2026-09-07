@@ -6000,7 +6000,8 @@ export const ReturnTypes: Record<string,any> = {
 	MarketplaceCheckoutSignableLine:{
 		amount:"String",
 		from_member:"String",
-		from_share:"String",
+		from_program:"String",
+		from_wallet:"String",
 		membership_fee:"String",
 		offer_id:"String",
 		order_hash:"String",

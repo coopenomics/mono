@@ -223,8 +223,7 @@ export class MarketplaceStockResolver {
     name: 'marketplaceStockProposalSignablePayloads',
     description:
       'Нагрузка к подписи бандла пайщиком: по каждой строке — заявление о возврате паевого взноса имуществом; если ' +
-      'внутреннего членского кошелька «Стола заказов» не хватает на членские взносы бандла — одно заявление 1110 о переводе ' +
-      'недостающей части взносов со свободного паевого программы.',
+      'кошельков программы не хватает на бандл — одно заявление 1110 о переводе недостающего с Цифрового кошелька.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
   @RequireMarketplaceAccess('StockProposal', 'resolve:own')

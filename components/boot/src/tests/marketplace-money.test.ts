@@ -135,21 +135,24 @@ describe('стол заказов — денежные места поставк
     // пайщица подписывает его один раз, перевод идёт отдельной транзакцией.
     const sp: any = await gqlAs(ekaterinaToken, `query{
       marketplaceCheckoutSignablePayloads{
-        lines{ offer_id package_id order_hash amount membership_fee from_member from_share }
+        lines{ offer_id package_id order_hash amount membership_fee from_member from_program from_wallet }
         convert{ amount membership_fee document{ full_title html hash meta binary } }
       }
     }`)
     const preview = sp.marketplaceCheckoutSignablePayloads
     expect(preview.lines.length, 'по позиции корзины обязано прийти превью оформления').toBeGreaterThan(0)
     const line = preview.lines[0]
-    expect(amount(line.from_member) + amount(line.from_share), 'части позиции обязаны складываться в её стоимость с взносом').toBeCloseTo(amount(line.amount), 2)
-    expect(preview.convert, 'тело всегда уходит с паевого — заявление обязано быть').toBeTruthy()
-    expectedConvert = amount(preview.convert.membership_fee)
-    const stmtMeta = JSON.parse(preview.convert.document.meta)
-    expect(amount(stmtMeta.amount), 'в заявлении — тело плюс недостающая часть взноса').toBeCloseTo(amount(line.from_share), 2)
-    expect(amount(stmtMeta.membership_fee), 'членская часть — взнос за вычетом остатка членского кошелька').toBeCloseTo(amount(line.membership_fee) - amount(line.from_member), 2)
-    expect(Object.keys(stmtMeta).sort(), 'в мете заявления нет лишних полей').toEqual(['amount', 'coopname', 'created_at', 'lang', 'membership_fee', 'order_hash', 'registry_id', 'skip_save', 'source', 'username'].filter(k => k in stmtMeta).sort())
-    convertHash = preview.convert.document.hash
+    expect(amount(line.from_member) + amount(line.from_program) + amount(line.from_wallet), 'части позиции обязаны складываться в её стоимость с взносом').toBeCloseTo(amount(line.amount), 2)
+    // Заявление есть ровно тогда, когда с Цифрового кошелька что-то уходит.
+    expect(!!preview.convert, 'заявление приходит только на недостающее').toBe(amount(line.from_wallet) > 0.005)
+    expectedConvert = preview.convert ? amount(preview.convert.membership_fee) : 0
+    if (preview.convert) {
+      const stmtMeta = JSON.parse(preview.convert.document.meta)
+      expect(amount(stmtMeta.amount), 'в заявлении — только то, чего не хватило в кошельках программы').toBeCloseTo(amount(line.from_wallet), 2)
+      expect(amount(stmtMeta.membership_fee), 'членская часть — взнос за вычетом остатка членского кошелька').toBeCloseTo(amount(line.membership_fee) - amount(line.from_member), 2)
+      expect(Object.keys(stmtMeta).sort(), 'в мете заявления нет лишних полей').toEqual(['amount', 'coopname', 'created_at', 'lang', 'membership_fee', 'order_hash', 'registry_id', 'skip_save', 'username'].filter(k => k in stmtMeta).sort())
+      convertHash = preview.convert.document.hash
+    }
 
     const lines = preview.lines.map((p: any) => ({ offer_id: p.offer_id, package_id: p.package_id, order_hash: p.order_hash }))
     const signed_convert = preview.convert ? await signAs(ekaterina.wif, preview.convert.document, ekaterina.account, 1) : null
@@ -167,15 +170,20 @@ describe('стол заказов — денежные места поставк
     }`, { i: { order_id: orderId } })
     orderHash = created.marketplaceGetOrder.order_hash
 
-    ops = await waitForOps(chairmanToken, orderHash, ['o.mkt.lock', 'o.mkt.fee'])
-    const lockAmount = sumOf(ops, 'o.mkt.lock')
+    ops = await waitForOps(chairmanToken, orderHash, ['o.mkt.fee'])
+    // Тело — паевой резерв из двух паевых кошельков: сначала свободный паевой
+    // программы (o.mkt.lockp), остаток с Цифрового кошелька (o.mkt.lock).
+    const lockAmount = sumOf(ops, 'o.mkt.lock') + sumOf(ops, 'o.mkt.lockp')
     const feeAmount = sumOf(ops, 'o.mkt.fee')
-    // Взнос — всегда с внутреннего членского кошелька; тело — всегда паевой резерв.
+    expect(sumOf(ops, 'o.mkt.lockp'), 'из свободного паевого программы берётся ровно столько, сколько превью показало').toBeCloseTo(amount(line.from_program), 2)
+    // Взнос — всегда с внутреннего членского кошелька.
     const rowsCreate = await historyOfProcess(chairmanToken, orderHash)
     for (const r of rowsCreate.filter(r => r.action === 'walletop' && r.operationCode === 'o.mkt.fee')) {
       expect([r.walletFrom, r.walletTo], 'взнос под заказ берётся с членского кошелька программы').toEqual(['w.mkt.member', 'w.mkt.fee'])
     }
-    expect(rowsCreate.some(r => r.action === 'walletop' && r.walletTo === 'w.mkt.morder'), 'членских резервов под тело нет — тело всегда паевое').toBe(false)
+    for (const r of rowsCreate.filter(r => r.action === 'walletop' && r.operationCode === 'o.mkt.lockp')) {
+      expect([r.walletFrom, r.walletTo], 'часть тела со свободного паевого программы').toEqual(['w.mkt.share', 'w.mkt.order'])
+    }
     for (const r of rowsCreate.filter(r => r.action === 'walletop' && r.operationCode === 'o.mkt.lock')) {
       expect([r.walletFrom, r.walletTo], 'паевая часть тела ложится паевым резервом').toEqual(['w.wal.share', 'w.mkt.order'])
     }
@@ -209,7 +217,7 @@ describe('стол заказов — денежные места поставк
     expect(lockAmount, 'резерв обязан равняться телу заказа').toBeCloseTo(totalCost, 2)
     expect(feeAmount, 'взнос обязан равняться ставке, зафиксированной в заказе').toBeCloseTo(membershipFee, 2)
 
-    const lockRow = ops.find(r => r.operationCode === 'o.mkt.lock')!
+    const lockRow = ops.find(r => r.operationCode === 'o.mkt.lock' || r.operationCode === 'o.mkt.lockp')!
     expect(lockRow.username, 'резерв ставится на заказчицу').toBe(ekaterina.account)
 
     // Нитка заказа бухпроводок не порождает: паевой резерв остаётся на 80,
@@ -370,8 +378,11 @@ describe('стол заказов — денежные места поставк
     + 'иначе процесс заказа на столе бухгалтера подписывается «Членские взносы кооперативного участка»').toBe('p.mkt.supply')
 
     // Вся нитка заказа — одно имя: приход, выдача, взнос и его возврат.
-    for (const code of ['o.mkt.lock', 'o.mkt.fee', 'o.mkt.purch', 'o.mkt.consum', 'o.mkt.unlock', 'o.mkt.refund']) {
+    for (const code of ['o.mkt.fee', 'o.mkt.purch', 'o.mkt.consum', 'o.mkt.unlock', 'o.mkt.refund']) {
       expect(byOp[code], `проводка ${code} обязана идти ниткой поставки`).toBe('p.mkt.supply')
+    }
+    for (const code of ['o.mkt.lock', 'o.mkt.lockp']) {
+      if (byOp[code] !== undefined) expect(byOp[code], `проводка ${code} обязана идти ниткой поставки`).toBe('p.mkt.supply')
     }
 
     // И реестр процессов отдаёт хэшу заказа ровно одно имя.
@@ -386,6 +397,7 @@ describe('стол заказов — денежные места поставк
     const codes = new Set(opsCodes(await applyOpsOfProcess(chairmanToken, orderHash)))
     const expected = new Set([
       'o.mkt.lock',
+      'o.mkt.lockp',
       'o.mkt.fee',
       'o.mkt.purch',
       'o.mkt.consum',

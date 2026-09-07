@@ -24,9 +24,8 @@ export const Schema: JSONSchemaType<Model> = {
     order_hash: { type: 'string' },
     amount: { type: 'string' },
     membership_fee: { type: 'string' },
-    source: { type: 'string', enum: ['wallet', 'market'] },
   },
-  required: ['meta', 'coop', 'vars', 'user', 'program', 'order_hash', 'amount', 'membership_fee', 'source'],
+  required: ['meta', 'coop', 'vars', 'user', 'program', 'order_hash', 'amount', 'membership_fee'],
   additionalProperties: true,
 }
 

@@ -22,17 +22,13 @@ class BaseMarketplaceConvertStatementMetaDocumentInputDTO implements ExcludeComm
   @IsString()
   order_hash!: string;
 
-  @Field({ description: 'Недостающая сумма перевода в программу (паевая и членская части вместе), с валютой.' })
+  @Field({ description: 'Сумма перевода с Цифрового кошелька: недостающая часть тела плюс членская часть, с валютой.' })
   @IsString()
   amount!: string;
 
-  @Field({ description: 'Членская часть суммы — переводится в членский кошелёк действием convert, с валютой.' })
+  @Field({ description: 'Членская часть суммы (взнос минус остаток членского кошелька) — переводится действием convert, с валютой.' })
   @IsString()
   membership_fee!: string;
-
-  @Field({ description: 'Источник перевода: wallet — Цифровой кошелёк, market — свободный паевой Стола заказов.' })
-  @IsString()
-  source!: 'wallet' | 'market';
 
   @Field({
     description: 'Сформировать документ без сохранения (preview-режим).',

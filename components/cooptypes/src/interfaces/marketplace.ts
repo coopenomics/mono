@@ -59,10 +59,8 @@ export interface ICreateOrder {
 export interface IConvert {
   coopname: IName
   orderer: IName
-  /** Членская часть перевода — недостающая до взноса участка сумма; 0 — только публикация заявления. */
+  /** Членская часть перевода — взнос за вычетом остатка членского кошелька; 0 — только публикация заявления. */
   amount: IAsset
-  /** true — источник свободный паевой «Стола заказов» (o.mkt.convp), false — Цифровой кошелёк (o.mkt.conv). */
-  from_market: boolean
   convert_statement: IDocument2
 }
 

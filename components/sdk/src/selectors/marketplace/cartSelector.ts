@@ -67,9 +67,9 @@ export const marketplaceCheckoutResultSelector = Selector('MarketplaceCheckoutRe
 )
 
 /**
- * Строка превью оформления по позиции корзины: суммы по частям — сколько
- * покрывает внутренний членский кошелёк «Стола заказов» (он расходуется первым
- * на взнос участка и тело), сколько уйдёт с паевого.
+ * Строка превью оформления по позиции корзины: суммы по частям — что покрыто
+ * кошельками программы (членский взнос — членским, тело — свободным паевым
+ * «Стола заказов») и что уйдёт с Цифрового кошелька по заявлению.
  */
 const rawCheckoutSignableLineSelector = {
   offer_id: true,
@@ -78,7 +78,8 @@ const rawCheckoutSignableLineSelector = {
   amount: true,
   membership_fee: true,
   from_member: true,
-  from_share: true,
+  from_program: true,
+  from_wallet: true,
 }
 
 const _validateSignableLine: MakeAllFieldsRequired<ValueTypes['MarketplaceCheckoutSignableLine']> =
@@ -89,8 +90,8 @@ export const marketplaceCheckoutSignableLineSelector = Selector('MarketplaceChec
 )
 
 /**
- * Заявление 1110 к подписи — недостающая сумма перевода в программу и её
- * членская часть; приходит только когда членского кошелька не хватает.
+ * Заявление 1110 к подписи — сумма перевода с Цифрового кошелька (то, чего не
+ * хватило в кошельках программы) и её членская часть; null — переводить нечего.
  */
 export const rawConvertPayloadSelector = {
   amount: true,

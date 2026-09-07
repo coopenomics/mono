@@ -293,6 +293,40 @@ inline void require_member_fee(eosio::name coopname, eosio::name orderer,
                  ". Сначала подайте заявление о переводе паевого взноса в программу.");
 }
 
+/// Паевое тело заказа (и доплата по факту) фондируется двумя паевыми кошельками
+/// каждым в свою очередь: сначала свободный паевой «Стола заказов» w.mkt.share
+/// (туда возвращаются паевые средства при отменах, недовыдачах и гарантийных
+/// возвратах), остаток — с главного паевого Цифрового кошелька w.wal.share.
+/// Обе части ложатся одним паевым резервом w.mkt.order (o.mkt.lockp и
+/// o.mkt.lock, без проводок — все кошельки на 80). При нехватке — отказ.
+inline void lock_order_body(eosio::name coopname, uint64_t order_id, eosio::name orderer,
+                            const checksum256& order_hash, const eosio::asset& body,
+                            const std::string& program_memo, const std::string& wallet_memo) {
+  if (body.amount <= 0) return;
+  auto program = get_user_wallet_balance(coopname, ledger2_wallets::MARKETPLACE_SHARE_FUND, orderer);
+  const eosio::asset from_program = program.available >= body ? body : program.available;
+  const eosio::asset from_wallet  = body - from_program;
+  if (from_wallet.amount > 0) {
+    auto wallet = get_user_wallet_balance(coopname, ledger2_wallets::SHARE_FUND_PAY, orderer);
+    eosio::check(wallet.available >= from_wallet,
+                 std::string{"Недостаточно паевых средств для заказа: требуется с Цифрового кошелька "} +
+                   from_wallet.to_string() + ", доступно " + wallet.available.to_string() +
+                   " (свободный паевой Стола заказов " + program.available.to_string() + " уже учтён)");
+  }
+  if (from_program.amount > 0) {
+    Ledger2::apply(_marketplace, coopname,
+                   operations::marketplace::LOCK_FROM_SHARE,
+                   processes::marketplace::SUPPLY,
+                   from_program, orderer, order_hash, program_memo);
+  }
+  if (from_wallet.amount > 0) {
+    Ledger2::apply(_marketplace, coopname,
+                   operations::marketplace::LOCK_ORDER,
+                   processes::marketplace::SUPPLY,
+                   from_wallet, orderer, order_hash, wallet_memo);
+  }
+}
+
 /// Списание членского взноса участка под заказ с внутреннего членского кошелька
 /// (o.mkt.fee, w.mkt.member → w.mkt.fee); no-op для нулевого взноса.
 inline void lock_membership_fee(eosio::name coopname, uint64_t order_id,
