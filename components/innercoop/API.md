@@ -2278,7 +2278,7 @@
 
 `const` · cross-plugin-ports
 
-- `Symbol.for('Innercoop.CrossPluginPort.SovietRobot')`
+- `Symbol.for('Innercoop.CrossPlugin.SovietRobot')`
 
 ## TrackingRule
 

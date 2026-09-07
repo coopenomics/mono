@@ -130,8 +130,12 @@ describe('mkt.order.side.32 — подписанное заявление све
 });
 
 describe('mkt.iss.side.44 — довзнос по факту: заявление 1110 и перевод convert только когда членского кошелька не хватает', () => {
-  const orderWithFee = () => buildOrder({ total_cost: '100.0000 RUB', membership_fee: '30.0000 RUB' } as never);
+  // Денежные поля заказа — голые десятичные строки, как в фикстуре: валюту
+  // добавляет форматтер на выходе, а разбор сумм её не принимает.
+  const orderWithFee = () => buildOrder({ total_cost: '100.0000', membership_fee: '30.0000' } as never);
   const bigFact = () => buildSaga({ fact: { actual_quantity: 12, actual_unit_price: '10.0000', fact_cost: '120.0000' } } as never);
+  // Сумма в заявлении о выдаче — голая десятичная строка: она сверяется с
+  // фактом через разбор числа, валюту такой разбор не принимает.
   const stmt = (total: string) => signedDoc({ registry_id: 1113, order_hash: 'h-order-1', total_amount: total }, ['orderer1']) as never;
 
   it('факт меньше или равен заказу — довзноса нет, заявления нет', async () => {
@@ -167,7 +171,7 @@ describe('mkt.iss.side.44 — довзнос по факту: заявление
     const service = buildService(m);
     stubSignatureChecks(service);
     await expect(
-      service.submitStatement({ coopname: COOP, member_account: 'orderer1', order_id: 'order-1', signed_statement: stmt('120.0000 RUB'), signed_convert: null })
+      service.submitStatement({ coopname: COOP, member_account: 'orderer1', order_id: 'order-1', signed_statement: stmt('120.0000'), signed_convert: null })
     ).rejects.toThrow(/заявления о переводе/);
     expect(m.chainPort.convert).not.toHaveBeenCalled();
     expect(m.chainPort.issueStmt).not.toHaveBeenCalled();
@@ -181,7 +185,7 @@ describe('mkt.iss.side.44 — довзнос по факту: заявление
       coopname: COOP,
       member_account: 'orderer1',
       order_id: 'order-1',
-      signed_statement: stmt('120.0000 RUB'),
+      signed_statement: stmt('120.0000'),
       signed_convert: signedDoc({ registry_id: 1110, order_hash: 'h-order-1', amount: '26.0000 RUB', membership_fee: '6.0000 RUB' }, ['orderer1']) as never,
     });
     expect(m.convertService.verifySigned).toHaveBeenCalledWith(expect.anything(), { anchor_hash: 'h-order-1', amount_units: 26_0000n, fee_units: 6_0000n }, 'orderer1');
@@ -197,7 +201,7 @@ describe('mkt.iss.side.44 — довзнос по факту: заявление
     const m = buildMocks({ order: orderWithFee(), sagas: [buildSaga({ fact: { actual_quantity: 5, actual_unit_price: '10.0000', fact_cost: '50.0000' } } as never)] });
     const service = buildService(m);
     stubSignatureChecks(service);
-    await service.submitStatement({ coopname: COOP, member_account: 'orderer1', order_id: 'order-1', signed_statement: stmt('50.0000 RUB') });
+    await service.submitStatement({ coopname: COOP, member_account: 'orderer1', order_id: 'order-1', signed_statement: stmt('50.0000') });
     expect(m.chainPort.convert).not.toHaveBeenCalled();
     expect(m.convertService.verifySigned).not.toHaveBeenCalled();
   });
