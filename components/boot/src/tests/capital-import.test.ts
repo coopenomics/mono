@@ -35,8 +35,6 @@ import { processDeleteProject } from './capital/processDeleteProject'
 import { getProject } from './capital/getProject'
 import { processFundProgram } from './capital/processFundProgram'
 import { processRefreshProg } from './capital/processRefreshProg'
-import { processFundProject } from './capital/processFundProject'
-import { processRefreshProj } from './capital/processRefreshProj'
 // const CLI_PATH = 'src/index.ts'
 
 const blockchain = new Blockchain(config.network, config.private_keys)

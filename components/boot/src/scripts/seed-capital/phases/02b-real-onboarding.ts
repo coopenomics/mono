@@ -245,13 +245,15 @@ export async function phase02b(): Promise<void> {
     //    (parser-индекс). После votefor parser индексирует ~1-2 блока
     //    (≈700ms-2s). Без паузы получаем «Голоса за решение не найдены» —
     //    ждём с retry до 10s.
-    let protocolDoc: { hash: string; doc_hash: string; meta_hash: string; meta: unknown; html: string; binary?: string; full_title?: string } | null = null
+    // Тип протокола берём у самого signDocument — так документ проходит
+    // от генерации до подписи без потери формы.
+    let protocolDoc: Parameters<typeof client.Document.signDocument>[0] | null = null
     let lastErr: unknown = null
     for (let attempt = 1; attempt <= 6; attempt++) {
       await new Promise(r => setTimeout(r, attempt === 1 ? 1500 : 2000))
       log(`[${step.id}] генерирую протокол (FreeDecision, decision_id=${decision.id}) attempt=${attempt}`)
       try {
-        const protocolGen = await client.Mutation(
+        const { [Mutations.Documents.GenerateDocument.name]: generated } = await client.Mutation(
           Mutations.Documents.GenerateDocument.mutation,
           {
             variables: {
@@ -267,8 +269,8 @@ export async function phase02b(): Promise<void> {
               },
             } as Mutations.Documents.GenerateDocument.IInput,
           },
-        ) as Record<string, { hash: string; doc_hash: string; meta_hash: string; meta: unknown; html: string; binary?: string; full_title?: string }>
-        protocolDoc = protocolGen[Mutations.Documents.GenerateDocument.name]
+        )
+        protocolDoc = generated
         break
       } catch (e) {
         lastErr = e
@@ -279,7 +281,7 @@ export async function phase02b(): Promise<void> {
 
     log(`[${step.id}] подписываю протокол hash=${protocolDoc.hash.slice(0, 12)}...`)
     const signedRaw = await client.Document.signDocument(
-      protocolDoc as Parameters<typeof client.Document.signDocument>[0],
+      protocolDoc,
       CHAIRMAN, // signer eosio name; без него signatures[].signer=undefined и
                 // soviet::authorize валится на «Expected string containing name».
     )

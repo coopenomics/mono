@@ -18,6 +18,7 @@
  *   ORDER_ID=39578e30-2bb4-4495-836b-c91c89eb744f \
  *     pnpm --filter @coopenomics/boot exec esno src/scripts/diag-e2e-apl.ts
  */
+import type { RpcInterfaces } from 'eosjs'
 import ecc from 'eosjs-ecc'
 import { Classes } from '@coopenomics/sdk'
 
@@ -41,7 +42,7 @@ async function gql(token: string | null, query: string, variables?: any): Promis
 }
 
 async function login(who: { email: string; wif: string; account: string }): Promise<string> {
-  const info = await (await fetch(`${CHAIN_URL}/v1/chain/get_info`)).json()
+  const info = await (await fetch(`${CHAIN_URL}/v1/chain/get_info`)).json() as RpcInterfaces.GetInfoResult
   const now = info.head_block_time
   const digest = ecc.sha256(Buffer.from(now, 'utf8'), 'hex')
   const signature = ecc.signHash(digest, who.wif)

@@ -28,7 +28,10 @@ name: Typecheck
 # триггер не срабатывал ни разу.
 on:
   push:
-    branches: [dev, testnet, main]
+    # ci/tests — ветка-полигон: сюда пушится ветка разработки, чтобы получить
+    # вердикт по типам до слияния. Локальные прогоны tsc/vue-tsc запрещены
+    # (вешают машину владельца), поэтому единственная точка контроля — здесь.
+    branches: [dev, testnet, main, ci/tests]
   workflow_call:
   workflow_dispatch:
 

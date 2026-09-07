@@ -34,6 +34,7 @@ import { createHash, randomBytes } from 'node:crypto'
 import Blockchain from '../../../blockchain'
 import config from '../../../configs'
 import { setDocumentSignatures } from '../../../utils/setDocumentSignatures'
+import { fakeDocument } from '../../../tests/shared/fakeDocument'
 import { signProtocol } from '../../../tests/shared/signProtocol'
 import { signVote } from '../../../tests/shared/signVote'
 

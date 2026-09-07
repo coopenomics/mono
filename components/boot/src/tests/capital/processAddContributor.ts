@@ -9,6 +9,7 @@ export async function processAddContributor(
   coopname: string,
   project_hash: string,
   username: string,
+  user_shares: string,
 ) {
   // Состояние сегмента до добавления (может не существовать)
   let segmentBefore: any = null
@@ -19,10 +20,13 @@ export async function processAddContributor(
     // Сегмент может не существовать - это нормально
   }
 
+  // regshare регистрирует долю пайщика в проекте: user_shares — его баланс
+  // в целевой программе (Благорост), см. processRegShare.
   const data: CapitalContract.Actions.RegisterShare.IRegisterShare = {
     coopname,
     project_hash,
     username,
+    user_shares,
   }
 
   // Выполняем добавление участника в проект

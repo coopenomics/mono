@@ -7,6 +7,7 @@
  * Для typed-запросов (ledger2) используйте SDK Client напрямую.
  */
 
+import type { RpcInterfaces } from 'eosjs'
 import ecc from 'eosjs-ecc'
 
 // eslint-disable-next-line node/prefer-global/process
@@ -26,7 +27,7 @@ export interface LoginResult {
 }
 
 export async function loginAsChairman(): Promise<LoginResult> {
-  const info = await (await fetch(`${CHAIN_URL}/v1/chain/get_info`)).json()
+  const info = await (await fetch(`${CHAIN_URL}/v1/chain/get_info`)).json() as RpcInterfaces.GetInfoResult
   const now = info.head_block_time
 
   // SDK Client.login хэширует utf8-строку timestamp'а в sha256 и подписывает

@@ -18,7 +18,7 @@
  */
 
 import { describe, expect, it, beforeAll } from 'vitest'
-import { Ledger2 } from 'cooptypes'
+import { Ledger2, RegistratorContract } from 'cooptypes'
 import Blockchain from '../blockchain'
 import config from '../configs'
 
@@ -206,7 +206,6 @@ describe('ledger2 wallet registry — integration (blockchain ledger2::wallets)'
     // Прямой adduser с spread_initial=true — это единственный путь, где registrator::adduser
     // эмитит ОБЕ операции: o.reg.putmin (USER_SHARED w.reg.minshr) + o.reg.payent (COOPERATIVE w.reg.entry).
     // addUser2 helper хардкодит spread_initial=false и отсекает PAY_ENTRANCE, поэтому идём напрямую.
-    const { RegistratorContract } = await import('cooptypes')
     const { generateRandomUsername } = await import('../utils/randomUsername')
     const { generateRandomSHA256 } = await import('../utils/randomHash')
 

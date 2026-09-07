@@ -13,7 +13,6 @@ import {
 } from 'cooptypes'
 // @ts-expect-error заменить на antelope
 import EosApi from 'eosjs-api'
-// @ts-expect-error заменить на antelope
 import ecc from 'eosjs-ecc'
 import config from '../configs'
 import { consoleIt } from '../tests/shared/consoleIt'

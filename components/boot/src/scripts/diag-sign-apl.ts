@@ -9,6 +9,7 @@
  *   SERVER_SECRET=SECRET APL_ID=8d7cf06c-7c9d-4e05-86c9-a41d94165c9c \
  *     pnpm --filter @coopenomics/boot exec esno src/scripts/diag-sign-apl.ts
  */
+import type { RpcInterfaces } from 'eosjs'
 import ecc from 'eosjs-ecc'
 import { Classes } from '@coopenomics/sdk'
 
@@ -34,7 +35,7 @@ async function gqlRaw(token: string | null, query: string, variables?: any): Pro
 }
 
 async function main() {
-  const info = await (await fetch(`${CHAIN_URL}/v1/chain/get_info`)).json()
+  const info = await (await fetch(`${CHAIN_URL}/v1/chain/get_info`)).json() as RpcInterfaces.GetInfoResult
   const now = info.head_block_time
   const digest = ecc.sha256(Buffer.from(now, 'utf8'), 'hex')
   const signature = ecc.signHash(digest, WIF)

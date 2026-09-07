@@ -226,7 +226,6 @@ export async function installInitialData(blockchain: Blockchain, isExtended = fa
       details: {
         bik: '044525225',
         corr: '30101810400000000225',
-        kpp: '773643001',
       },
     },
   })
@@ -746,7 +745,6 @@ export async function installExtraData(blockchain: Blockchain) {
       details: {
         bik: '044525225',
         corr: '30101810400000000225',
-        kpp: '772801002',
       },
     },
   })

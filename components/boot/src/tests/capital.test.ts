@@ -34,8 +34,6 @@ import { processDeleteProject } from './capital/processDeleteProject'
 import { getProject } from './capital/getProject'
 import { processFundProgram } from './capital/processFundProgram'
 import { processRefreshProg } from './capital/processRefreshProg'
-import { processFundProject } from './capital/processFundProject'
-import { processRefreshProj } from './capital/processRefreshProj'
 import { processRegShare } from './capital/processRegShare'
 // const CLI_PATH = 'src/index.ts'
 

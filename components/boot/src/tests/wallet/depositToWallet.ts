@@ -87,6 +87,10 @@ export async function depositToWallet(blockchain: any, coopname: string, usernam
   const userWallet = await getUserProgramWallet(blockchain, coopname, username, 1)
   console.log('▶ Кошелёк пользователя после пополнения: ', userWallet)
 
+  // После зачисления депозита кошелёк пайщика обязан существовать.
+  if (!userWallet)
+    throw new Error(`Кошелёк пайщика ${username} в программе 1 не найден после пополнения`)
+
   // Проверяем изменение балансов
   compareTokenAmounts(prevUserWalletAvailable, userWallet.available, amount)
   compareTokenAmounts(prevCoopWalletAvailable, (await getCirculationAccount(blockchain, coopname)).available, amount)
