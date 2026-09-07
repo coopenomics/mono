@@ -24,16 +24,7 @@
 
 <script setup lang="ts">
 import { type PropType } from 'vue'
-
-export type ChannelKind = 'push' | 'email' | 'sms'
-export type ChannelStatus = 'sent' | 'delivered' | 'read' | 'failed' | 'pending' | 'disabled'
-
-export interface ChannelStatusEntry {
-  kind: ChannelKind
-  status: ChannelStatus
-  at?: string | Date
-  error?: string
-}
+import type { ChannelKind, ChannelStatus, ChannelStatusEntry } from './MultiChannelStatus.types'
 
 defineProps({
   label: { type: String, default: 'Доставка уведомления' },

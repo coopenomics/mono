@@ -65,22 +65,7 @@
 
 <script setup lang="ts">
 import { ref, type PropType } from 'vue'
-
-export interface GroupingItem {
-  id: string | number
-  shortId: string
-  title: string
-  units: number
-  unitLabel?: string
-  pvz: string
-}
-
-export interface GroupingColumn {
-  id: string
-  title: string
-  meta?: string
-  items: GroupingItem[]
-}
+import type { GroupingColumn } from './ExpeditorGroupingBoard.types'
 
 const props = defineProps({
   columns: { type: Array as PropType<GroupingColumn[]>, required: true },

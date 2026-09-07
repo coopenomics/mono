@@ -34,7 +34,8 @@
     "start": "./scripts/restart.sh",
     "stop": "./scripts/stop.sh",
     "test": "vitest run src/tests/capital.test.ts --testTimeout=240000",
-    "test:all": "vitest run --testTimeout=240000"
+    "test:all": "vitest run --testTimeout=240000",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@coopenomics/factory": "workspace:*",

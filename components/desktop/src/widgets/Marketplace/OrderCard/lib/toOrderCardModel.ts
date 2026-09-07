@@ -1,6 +1,6 @@
 import { Queries } from '@coopenomics/sdk';
 import { marketplaceOrderSaleUnit } from 'src/shared/lib/consts/marketplace-units';
-import type { Order, OrderStatus } from '../OrderCard.vue';
+import type { Order, OrderStatus } from '../OrderCard.types';
 import { orderStatusDisplay } from './orderStatusDisplay';
 
 /**

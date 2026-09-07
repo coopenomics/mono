@@ -331,59 +331,70 @@ export const useRegistratorStore = defineStore(
 
       if (typeof profile.email === 'string' && profile.email) state.email = profile.email;
 
+      // Блоки анкеты в IUserData необязательны, поэтому перед записью берём блок
+      // в локальную переменную и проверяем его наличие.
       if (subjectType === 'individual') {
         state.userData.type = 'individual';
-        Object.assign(state.userData.individual_data, {
-          first_name: text(profile.first_name),
-          last_name: text(profile.last_name),
-          middle_name: text(profile.middle_name),
-          birthdate: text(profile.birthdate),
-          full_address: text(profile.full_address),
-          phone: text(profile.phone),
-        });
+        const individual = state.userData.individual_data;
+        if (individual) {
+          Object.assign(individual, {
+            first_name: text(profile.first_name),
+            last_name: text(profile.last_name),
+            middle_name: text(profile.middle_name),
+            birthdate: text(profile.birthdate),
+            full_address: text(profile.full_address),
+            phone: text(profile.phone),
+          });
+        }
         return;
       }
 
       if (subjectType === 'entrepreneur') {
         state.userData.type = 'entrepreneur';
-        Object.assign(state.userData.entrepreneur_data, {
-          first_name: text(profile.first_name),
-          last_name: text(profile.last_name),
-          middle_name: text(profile.middle_name),
-          birthdate: text(profile.birthdate),
-          phone: text(profile.phone),
-          city: text(profile.city),
-          full_address: text(profile.full_address),
-        });
-        Object.assign(state.userData.entrepreneur_data.details, {
-          inn: text(profile.details?.inn),
-          ogrn: text(profile.details?.ogrn),
-        });
+        const entrepreneur = state.userData.entrepreneur_data;
+        if (entrepreneur) {
+          Object.assign(entrepreneur, {
+            first_name: text(profile.first_name),
+            last_name: text(profile.last_name),
+            middle_name: text(profile.middle_name),
+            birthdate: text(profile.birthdate),
+            phone: text(profile.phone),
+            city: text(profile.city),
+            full_address: text(profile.full_address),
+          });
+          Object.assign(entrepreneur.details, {
+            inn: text(profile.details?.inn),
+            ogrn: text(profile.details?.ogrn),
+          });
+        }
         return;
       }
 
       if (subjectType === 'organization') {
         state.userData.type = 'organization';
-        Object.assign(state.userData.organization_data, {
-          short_name: text(profile.short_name),
-          full_name: text(profile.full_name),
-          city: text(profile.city),
-          full_address: text(profile.full_address),
-          fact_address: text(profile.fact_address),
-          phone: text(profile.phone),
-        });
-        Object.assign(state.userData.organization_data.represented_by, {
-          first_name: text(profile.represented_by?.first_name),
-          last_name: text(profile.represented_by?.last_name),
-          middle_name: text(profile.represented_by?.middle_name),
-          position: text(profile.represented_by?.position),
-          based_on: text(profile.represented_by?.based_on),
-        });
-        Object.assign(state.userData.organization_data.details, {
-          inn: text(profile.details?.inn),
-          ogrn: text(profile.details?.ogrn),
-          kpp: text(profile.details?.kpp),
-        });
+        const organization = state.userData.organization_data;
+        if (organization) {
+          Object.assign(organization, {
+            short_name: text(profile.short_name),
+            full_name: text(profile.full_name),
+            city: text(profile.city),
+            full_address: text(profile.full_address),
+            fact_address: text(profile.fact_address),
+            phone: text(profile.phone),
+          });
+          Object.assign(organization.represented_by, {
+            first_name: text(profile.represented_by?.first_name),
+            last_name: text(profile.represented_by?.last_name),
+            middle_name: text(profile.represented_by?.middle_name),
+            position: text(profile.represented_by?.position),
+            based_on: text(profile.represented_by?.based_on),
+          });
+          Object.assign(organization.details, {
+            inn: text(profile.details?.inn),
+            ogrn: text(profile.details?.ogrn),
+            kpp: text(profile.details?.kpp),
+          });
+        }
       }
     };
 

@@ -54,7 +54,8 @@ async function retryDecision(data: IRobotRetryDecisionInput): Promise<IRobotDeci
   const { [Mutations.SovietRobot.RetryDecision.name]: result } = await client.Mutation(Mutations.SovietRobot.RetryDecision.mutation, {
     variables: { data },
   });
-  return result;
+  // SDK отдаёт undefined, когда решения нет; контракт функции обещает null.
+  return result ?? null;
 }
 
 export const api = {

@@ -111,3 +111,23 @@ jobs:
 
       - name: tsc --noEmit (controller)
         run: pnpm --filter @coopenomics/controller run typecheck
+
+      # Остальные пакеты workspace проверяются здесь же, а не отдельной job:
+      # дорогая часть — `lerna run build` выше, а сами прогоны стоят секунды
+      # (cooptypes 4 с, factory 16 с, sdk 20 с, boot 12 с). До 07.09.2026 их не
+      # проверял никто: сборка unbuild/esbuild типы срезает, а этот workflow
+      # знал только desktop и controller. За день через дыру уехали две ошибки
+      # компилятора — в factory (документ собирался без обязательного поля
+      # модели) и в sdk (селектор спрашивал у схемы несуществующее поле); обе
+      # владелец увидел в браузере.
+      - name: tsc --noEmit (cooptypes)
+        run: pnpm --filter cooptypes run typecheck
+
+      - name: tsc --noEmit (factory)
+        run: pnpm --filter @coopenomics/factory run typecheck
+
+      - name: tsc --noEmit (sdk)
+        run: pnpm --filter @coopenomics/sdk run typecheck
+
+      - name: tsc --noEmit (boot)
+        run: pnpm --filter @coopenomics/boot run typecheck

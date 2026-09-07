@@ -61,35 +61,7 @@
 import { computed, type PropType } from 'vue';
 import { BaseBadge, BaseCheckbox, BaseInput } from 'src/shared/ui/base';
 import type { BaseBadgeVariant } from 'src/shared/ui/base';
-
-export interface CorrectionRow {
-  sku: string;
-  title: string;
-  unit: string;
-  /** План (заказ), количество. */
-  expected: number;
-  /** Факт (поступление/выдача), количество. */
-  fact: number;
-  /**
-   * Выдавать ли позицию в этой операции (режим `selectable`). Снятая галочка =
-   * имущество остаётся на складе, в текущую выдачу не попадает.
-   */
-  included?: boolean;
-  /**
-   * Принято на склад и не выдано — потолок факта при выдаче. fact > available
-   * → «Больше принятого».
-   */
-  available?: number;
-  /** Место хранения после раскладки: бокс и/или ячейка склада. */
-  location?: string;
-  expectedPrice?: number;
-  factPrice?: number;
-  /**
-   * Позиция отпускается упаковкой: количество ведётся целыми упаковками и
-   * дробить его нельзя — упаковку не вскрывают, договариваются ценой.
-   */
-  packaged?: boolean;
-}
+import type { CorrectionRow } from './CorrectionTable.types';
 
 const props = defineProps({
   rows: { type: Array as PropType<CorrectionRow[]>, required: true },
