@@ -82,7 +82,7 @@ export class EmailChannelAdapter implements EmailChannelPort {
       return { delivered: true, providerResponse: info.messageId };
     } catch (error: any) {
       this.logger.error(`Ошибка отправки письма на ${to}: ${error.message}`);
-      return { delivered: false, error: error.message };
+      return { delivered: false, error: error.message, transportUnavailable: isSmtpTransportDown(error) };
     }
   }
 
@@ -100,12 +100,34 @@ export class EmailChannelAdapter implements EmailChannelPort {
       if (!response.ok) {
         const reason = payload.error || `HTTP ${response.status}`;
         this.logger.error(`Релей отклонил письмо на ${to}: ${reason}`);
-        return { delivered: false, error: reason };
+        // 5xx/429 — лежит сам релей или шлюз за ним (504 «Connection timeout» к
+        // SMTP): письмо не виновато, ждём восстановления. 4xx (кроме 429) —
+        // отвергнуто по существу (адрес, токен, тело), повтор не поможет.
+        return {
+          delivered: false,
+          error: reason,
+          transportUnavailable: response.status >= 500 || response.status === 429,
+        };
       }
       return { delivered: true, providerResponse: payload.messageId };
     } catch (error: any) {
+      // Сюда падают сетевые отказы fetch (релей недоступен, DNS, таймаут) —
+      // это всегда транспорт, а не письмо.
       this.logger.error(`Ошибка обращения к email-релею для ${to}: ${error.message}`);
-      return { delivered: false, error: error.message };
+      return { delivered: false, error: error.message, transportUnavailable: true };
     }
   }
+}
+
+/**
+ * Сетевой отказ SMTP против отказа по существу письма. Коды даёт nodemailer
+ * (`error.code`), текст — на случай транспортов без кода: именно `Connection
+ * timeout` пришёл в инциденте 08.09.2026, когда лёг почтовый шлюз.
+ */
+function isSmtpTransportDown(error: { code?: string; message?: string }): boolean {
+  const code = String(error?.code ?? '');
+  if (['ETIMEDOUT', 'ECONNECTION', 'ECONNREFUSED', 'ECONNRESET', 'ESOCKET', 'EDNS', 'EAI_AGAIN'].includes(code)) {
+    return true;
+  }
+  return /connection timeout|socket close|network|getaddrinfo|econnrefused|etimedout/i.test(String(error?.message ?? ''));
 }

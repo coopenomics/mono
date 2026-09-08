@@ -29,6 +29,12 @@ const WORKER_BATCH_SIZE = Number(process.env.NOTIFICATION_WORKER_BATCH_SIZE) || 
 const SENDING_STALE_MS = Number(process.env.NOTIFICATION_WORKER_SENDING_STALE_MS) || 120_000;
 // Экспоненциальный backoff по номеру попытки. Последнее значение — для попыток сверх длины.
 const BACKOFF_SCHEDULE_MS = [5_000, 30_000, 120_000, 600_000, 3_600_000];
+// Сколько всего ждём восстановления лежащего канала, считая от постановки в очередь.
+// Сутки: переживает ночное падение узла, но не копит письма бесконечно.
+const DELIVERY_WINDOW_MS = Number(process.env.NOTIFICATION_DELIVERY_WINDOW_MS) || 24 * 60 * 60 * 1000;
+// Пауза между попытками, пока канал лежит. Своё расписание, короче общего:
+// когда канал вернётся, письмо должно уйти в пределах десяти минут, а не часа.
+const TRANSPORT_BACKOFF_MS = [30_000, 60_000, 120_000, 300_000, 600_000];
 
 /** Канал доставки — общая форма всех channel-портов (структурно совпадают). */
 type DeliveryChannelPort = { send(message: ChannelMessage): Promise<ChannelDeliveryResult> };
@@ -42,6 +48,15 @@ type DeliveryChannelPort = { send(message: ChannelMessage): Promise<ChannelDeliv
  * с экспоненциальным backoff; после `maxAttempts` строка → терминальный `failed`
  * (переотправляема со стола председателя, эпик 6). Дубликаты гасит идемпотентность
  * из эпика 1.
+ *
+ * Из счёта `maxAttempts` изъят один случай — **канал лежит целиком**
+ * (`transportUnavailable`, см. {@link ChannelDeliveryResult}). Пять попыток
+ * выгорают за 17 минут, а инфраструктура падает на часы: 08.09.2026 почтовый
+ * шлюз `provider-1` был недоступен с 08:47 до 10:34, и четыре кода подтверждения
+ * умерли окончательно — вернувшийся канал их уже не досылал, человек об этом не
+ * знал и перебирал свои почтовые ящики. Теперь такие строки ждут возвращения
+ * канала в пределах окна `NOTIFICATION_DELIVERY_WINDOW_MS` (сутки) и уходят
+ * сами, как только он ответит.
  *
  * Строка outbox = один канал (роутер бьёт fan-out по каналам), поэтому попытки по
  * каналам ретраятся независимо: лежит SMTP — push/in-app уже доставлены, у каждого
@@ -133,7 +148,11 @@ export class OutboxWorkerService implements OnModuleInit {
       : { delivered: false, error: `нет адаптера для канала '${row.channel}'` };
 
     // Контекст для логов — председатель/оператор должен видеть, кому что и почему.
-    const ctx = `workflow=${row.workflowId} канал=${row.channel} получатель=${row.recipientUsername || row.recipientSubscriberId} попытка ${attemptNumber}/${row.maxAttempts}`;
+    const target = `workflow=${row.workflowId} канал=${row.channel} получатель=${row.recipientUsername || row.recipientSubscriberId}`;
+    const ctx = `${target} попытка ${attemptNumber}/${row.maxAttempts}`;
+    // Ожидание канала номера попытки не имеет — писать «попытка 5/5» там,
+    // где лимит не тратится, значит врать читателю логов.
+    const waitCtx = target;
 
     // Канал неприменим к получателю (нет push-подписки / нет email-адреса) — это
     // не сбой доставки: гасим строку в canceled, без ретраев и без записи попытки
@@ -146,6 +165,53 @@ export class OutboxWorkerService implements OnModuleInit {
       this.logger.log(`Канал пропущен (неприменим к получателю): ${ctx}: ${result.error}`);
       return;
     }
+
+    // Канал лежит целиком — письмо ни при чём. Такая попытка НЕ тратит лимит:
+    // откатываем инкремент claim'а и ждём возвращения канала до конца окна
+    // доставки, уходя сразу, как он оживёт.
+    const transportDown = !result.delivered && result.transportUnavailable === true;
+    const waitedMs = now.getTime() - new Date(row.createdAt).getTime();
+    const windowLeft = DELIVERY_WINDOW_MS - waitedMs;
+
+    if (transportDown && windowLeft > 0) {
+      await this.parkUntilChannelReturns(row, result, now, waitedMs, windowLeft, waitCtx);
+      return;
+    }
+
+    await this.recordOutcome(row, result, { attemptNumber, ctx, now, transportDown });
+  }
+
+  /**
+   * Отложить письмо до возвращения канала: откатить потраченную попытку и
+   * назначить следующий заход. В журнал доставок такой заход не пишем — журнал
+   * отвечает на вопрос «сколько раз пытались доставить адресату», а не «сколько
+   * раз лежал канал»: сутки простоя забили бы его сотней пустых строк на письмо.
+   */
+  private async parkUntilChannelReturns(
+    row: NotificationOutboxTypeormEntity,
+    result: ChannelDeliveryResult,
+    now: Date,
+    waitedMs: number,
+    windowLeft: number,
+    waitCtx: string
+  ): Promise<void> {
+    row.attempts = Math.max(0, row.attempts - 1);
+    row.status = NotificationOutboxStatus.PENDING;
+    row.lastError = result.error;
+    row.scheduledAt = new Date(now.getTime() + transportBackoffMs(waitedMs));
+    await this.outboxRepository.save(row);
+    this.logger.warn(
+      `Канал недоступен, письмо ждёт восстановления (лимит попыток не тратится, в запасе ${formatDuration(windowLeft)}): ${waitCtx}: ${result.error}`
+    );
+  }
+
+  /** Записать исход состоявшейся попытки: журнал + терминальный статус либо ретрай. */
+  private async recordOutcome(
+    row: NotificationOutboxTypeormEntity,
+    result: ChannelDeliveryResult,
+    meta: { attemptNumber: number; ctx: string; now: Date; transportDown: boolean }
+  ): Promise<void> {
+    const { attemptNumber, ctx, now, transportDown } = meta;
 
     // Журнал попытки (append-only) — источник стола председателя.
     await this.deliveryRepository.save(
@@ -167,6 +233,13 @@ export class OutboxWorkerService implements OnModuleInit {
       row.lastError = undefined;
       // info-уровень: каждая успешная доставка видна в логах без рытья в БД.
       this.logger.log(`Доставлено: ${ctx}${result.providerResponse ? ` (${result.providerResponse})` : ''}`);
+    } else if (transportDown) {
+      // Окно вышло: канала не было целые сутки — дальше держать письмо смысла нет.
+      row.status = NotificationOutboxStatus.FAILED;
+      row.lastError = result.error;
+      this.logger.error(
+        `Доставка провалена: канал не вернулся за ${formatDuration(DELIVERY_WINDOW_MS)}: ${ctx}: ${result.error}`
+      );
     } else if (row.attempts >= row.maxAttempts) {
       // Попытки исчерпаны — терминальный failed (виден/переотправляем на столе председателя).
       row.status = NotificationOutboxStatus.FAILED;
@@ -212,4 +285,26 @@ export class OutboxWorkerService implements OnModuleInit {
   private backoffMs(attempts: number): number {
     return BACKOFF_SCHEDULE_MS[Math.min(attempts - 1, BACKOFF_SCHEDULE_MS.length - 1)];
   }
+}
+
+/**
+ * Пауза до следующего стука в лежащий канал. Считается от того, сколько письмо
+ * уже ждёт, а не от счётчика попыток: счётчик мы при недоступности канала не
+ * увеличиваем, а лишнего состояния в строке заводить не нужно. Первые минуты
+ * пробуем часто (короткий сбой — письмо уходит почти сразу), дальше реже, но
+ * не реже десяти минут, чтобы после возвращения канала не держать очередь.
+ */
+export function transportBackoffMs(waitedMs: number): number {
+  const step = [2 * 60_000, 10 * 60_000, 30 * 60_000, 2 * 60 * 60_000].findIndex((limit) => waitedMs < limit);
+  return TRANSPORT_BACKOFF_MS[step === -1 ? TRANSPORT_BACKOFF_MS.length - 1 : step];
+}
+
+/** «1 ч 30 мин» / «45 мин» / «30 с» — для человекочитаемых строк лога. */
+function formatDuration(ms: number): string {
+  const totalMinutes = Math.round(ms / 60_000);
+  if (totalMinutes < 1) return `${Math.round(ms / 1000)} с`;
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  if (hours === 0) return `${minutes} мин`;
+  return minutes === 0 ? `${hours} ч` : `${hours} ч ${minutes} мин`;
 }
