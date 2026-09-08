@@ -207,7 +207,7 @@ export interface MarketplaceReturnClaimProps {
    * Заявление оператора участка в совет об отмене сделки (registry 1116) с его
    * подписью — после приёма имущества у стойки; оно же документ повестки совета.
    */
-  cancel_statement?: ISignedDocument | null;
+  cancel_statement: ISignedDocument | null;
   /** Номер решения совета (soviet.decisions) — известен после приёма имущества у стойки. */
   council_decision_id: string | null;
   /** Кто решает: робот совета либо люди (нет кворума / робот не настроен). Null — совет ещё не задействован. */

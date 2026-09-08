@@ -96,6 +96,36 @@ const claimQuantityLabel = computed(() => {
   return `${saleUnit.units}×${saleUnit.unitLabel}`;
 });
 
+/**
+ * Приём имущества — заявление оператора в совет об отмене сделки (registry
+ * 1116): бэкенд собирает его по рекламации пайщика, заказу и результату
+ * осмотра, оператор ставит единственную подпись. С ним контракт ставит вопрос
+ * на повестку совета; деньги двигаются только по его решению.
+ */
+async function acceptWithStatement(
+  claim: MarketplaceReturnClaimView,
+  wif: string,
+  inspectionPhotos: ReturnClaimPhotoUploadInput[],
+): Promise<void> {
+  const inspection = inspectionResult.value.trim();
+  const statement = await fetchChairmanReturnSignablePayload(claim.id, inspection);
+  const signed_statement = await new Classes.Document(wif).signDocument(statement, globalStore.username, 1);
+  const result = await acceptReturnAtVisit({
+    claim_id: claim.id,
+    braname: props.braname.trim(),
+    inspection_result: inspection,
+    inspection_photos: inspectionPhotos.length > 0 ? inspectionPhotos : undefined,
+    signed_statement,
+  });
+  SuccessAlert(
+    result.claim.status === 'ACCEPTED_BY_COUNCIL'
+      ? `Совет отменил сделку: заказчику восстановлено ${formatAsset2Digits(result.claim.total_refund)} ₽.`
+      : result.claim.status === 'DECLINED_BY_COUNCIL'
+        ? 'Совет отказал — имущество остаётся на участке, выдайте его пайщику обратно.'
+        : 'Имущество принято, заявление на повестке совета. Решение придёт само — пайщик может идти.',
+  );
+}
+
 async function confirm(): Promise<void> {
   if (!props.claim) return;
   if (!inspectionResult.value.trim()) {
@@ -121,31 +151,7 @@ async function confirm(): Promise<void> {
       })),
     );
     if (decision.value === DECISION_ACCEPT) {
-      // Приём имущества — заявление оператора в совет об отмене сделки
-      // (registry 1116): бэкенд собирает его по рекламации пайщика, заказу и
-      // результату осмотра, оператор ставит единственную подпись. С ним
-      // контракт ставит вопрос на повестку совета; деньги двигаются только
-      // по его решению.
-      const statement = await fetchChairmanReturnSignablePayload(
-        props.claim.id,
-        inspectionResult.value.trim(),
-      );
-      const signer = new Classes.Document(wif!);
-      const signed_statement = await signer.signDocument(statement, globalStore.username, 1);
-      const result = await acceptReturnAtVisit({
-        claim_id: props.claim.id,
-        braname: props.braname.trim(),
-        inspection_result: inspectionResult.value.trim(),
-        inspection_photos: inspectionPhotos.length > 0 ? inspectionPhotos : undefined,
-        signed_statement,
-      });
-      SuccessAlert(
-        result.claim.status === 'ACCEPTED_BY_COUNCIL'
-          ? `Совет отменил сделку: заказчику восстановлено ${formatAsset2Digits(result.claim.total_refund)} ₽.`
-          : result.claim.status === 'DECLINED_BY_COUNCIL'
-            ? 'Совет отказал — имущество остаётся на участке, выдайте его пайщику обратно.'
-            : 'Имущество принято, заявление на повестке совета. Решение придёт само — пайщик может идти.',
-      );
+      await acceptWithStatement(props.claim, wif!, inspectionPhotos);
     } else {
       await rejectReturnAtVisit({
         claim_id: props.claim.id,

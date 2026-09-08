@@ -70,7 +70,7 @@ export class MarketplaceReturnClaimDomainEntity {
     this.fee_refund = props.fee_refund ?? '0';
     this.photos = props.photos;
     this.statement = props.statement;
-    this.cancel_statement = props.cancel_statement ?? null;
+    this.cancel_statement = props.cancel_statement;
     this.council_decision_id = props.council_decision_id ?? null;
     this.council_decision_mode = props.council_decision_mode ?? null;
     this.council_protocol = props.council_protocol ?? null;

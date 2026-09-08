@@ -18,7 +18,6 @@ import {
   DOCUMENT_PORT,
   type IDocumentPort,
   type InnerGeneratedDocument,
-  type InnerDocumentAggregate,
   SOVIET_ROBOT_PORT,
   type ISovietRobotPort,
 } from '@coopenomics/innercoop';
@@ -96,6 +95,15 @@ import {
  * фронт уже работает через base64-payload в input'е). Backend сам хеширует и
  * кладёт в bucket `stol-zakazov:images`.
  */
+/** Деловые поля метаданных заявления оператора об отмене сделки (1116), которые сверяются при приёме. */
+type CancelStatementMeta = {
+  registry_id?: number;
+  order_hash?: string;
+  request_hash?: string;
+  operator?: string;
+  inspection_result?: string;
+};
+
 /** Сколько ждать робота решений совета у стойки, прежде чем отпустить мутацию в режим ожидания. */
 const ROBOT_WAIT_MS = 12_000;
 /** Сколько ждать материализации решения в цепи после accretrn (парсер и узел). */
@@ -678,32 +686,40 @@ export class MarketplaceReturnClaimService {
         'Для приёма имущества требуется подписанное оператором заявление в совет об отмене сделки.'
       );
     }
-    const meta = input.signed_statement.meta as {
-      registry_id?: number;
-      order_hash?: string;
-      request_hash?: string;
-      operator?: string;
-      inspection_result?: string;
-    } | undefined;
-    if (
-      meta?.registry_id !== Cooperative.Registry.MarketplaceReturnCancelStatement.registry_id ||
-      (meta?.order_hash && meta.order_hash !== claim.order_hash) ||
-      (meta?.request_hash && meta.request_hash !== claim.request_hash)
-    ) {
-      throw new BadRequestException('Подписан не тот документ — обновите экран заявления.');
-    }
-    if (meta?.operator && meta.operator !== input.chairman_account) {
-      throw new BadRequestException('Заявление об отмене сделки подписывает тот оператор, на чьё имя оно составлено.');
-    }
-    if ((meta?.inspection_result ?? '').trim() !== input.inspection_result.trim()) {
-      throw new BadRequestException(
-        'Результат осмотра в подписанном заявлении отличается от введённого — подпишите заявление заново.'
-      );
-    }
+    this.assertCancelStatementMeta(
+      (input.signed_statement.meta ?? {}) as CancelStatementMeta,
+      claim,
+      input.chairman_account,
+      input.inspection_result
+    );
     this.verifySignatures(input.signed_statement);
     return new SignedDigitalDocumentInputDTO(
       input.signed_statement
     ).toDocument() as MarketContract.Actions.AccRetrn.IAccRetrn['statement'];
+  }
+
+  /** Заявление составлено на эту заявку, этого оператора и с тем же результатом осмотра, что введён у стойки. */
+  private assertCancelStatementMeta(
+    meta: CancelStatementMeta,
+    claim: MarketplaceReturnClaimDomainEntity,
+    operator: string,
+    inspection_result: string
+  ): void {
+    const sameClaim =
+      meta.registry_id === Cooperative.Registry.MarketplaceReturnCancelStatement.registry_id &&
+      (!meta.order_hash || meta.order_hash === claim.order_hash) &&
+      (!meta.request_hash || meta.request_hash === claim.request_hash);
+    if (!sameClaim) {
+      throw new BadRequestException('Подписан не тот документ — обновите экран заявления.');
+    }
+    if (meta.operator && meta.operator !== operator) {
+      throw new BadRequestException('Заявление об отмене сделки подписывает тот оператор, на чьё имя оно составлено.');
+    }
+    if ((meta.inspection_result ?? '').trim() !== inspection_result.trim()) {
+      throw new BadRequestException(
+        'Результат осмотра в подписанном заявлении отличается от введённого — подпишите заявление заново.'
+      );
+    }
   }
 
   // ── Совет: номер решения, робот, ожидание ────────────────────────────
