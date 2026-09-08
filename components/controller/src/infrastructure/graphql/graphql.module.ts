@@ -17,6 +17,7 @@ import { fieldAuthDirectiveTransformer } from './directives/fieldAuth.directive'
 import logger from '~/config/logger';
 import * as jwt from 'jsonwebtoken';
 import { tokenTypes } from '~/types/token.types';
+import { isWsSessionAlive } from './ws-session-check.registry';
 
 /**
  * Bearer-токен из connectionParams ws-соединения. Принимаем и сам токен, и
