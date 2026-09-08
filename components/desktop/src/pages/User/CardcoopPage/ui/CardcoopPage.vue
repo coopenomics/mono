@@ -193,16 +193,42 @@ watchEffect(() => {
   };
 });
 
-onMounted(async () => {
-  registerAction({ id: 'cardcoop-actions', component: CardcoopHeaderActions, order: 1 });
+/**
+ * Читает состояние карты из журнала кооператива.
+ *
+ * @param silent — тихое перечитывание: экран уже нарисован, и подменять его скелетом ради
+ * фонового обновления значит мигать на ровном месте.
+ */
+const load = async (silent = false): Promise<void> => {
+  if (!silent) loading.value = true;
   try {
     card.value = await cardcoopCardApi.loadMyCard();
   } finally {
     loading.value = false;
   }
+};
+
+/**
+ * Возврат на вкладку — повод перечитать: карта выпускается НЕ здесь.
+ *
+ * Человек уходит по кнопке в сеть карт, выпускает карту там и возвращается сюда — а стол
+ * всё ещё показывает «Карта ещё не выпущена», потому что состояние он спросил один раз при
+ * открытии. Приходилось уходить на соседнюю страницу и обратно, чтобы увидеть правду
+ * (замечание владельца 08.09.2026). Тем же обновлением подхватывается и подтверждение
+ * членства, которое кооператив мог выдать, пока вкладка лежала в стороне.
+ */
+const onVisible = (): void => {
+  if (document.visibilityState === 'visible') void load(true);
+};
+
+onMounted(async () => {
+  registerAction({ id: 'cardcoop-actions', component: CardcoopHeaderActions, order: 1 });
+  await load();
+  document.addEventListener('visibilitychange', onVisible);
 });
 
 onBeforeUnmount(() => {
+  document.removeEventListener('visibilitychange', onVisible);
   cardcoopHeaderState.value = null;
 });
 </script>
