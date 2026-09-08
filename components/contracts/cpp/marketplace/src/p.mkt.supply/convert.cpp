@@ -43,6 +43,10 @@ void marketplace::convert(eosio::name coopname,
                  "Некорректная сумма перевода в членский кошелёк");
     eosio::check(target.amount.symbol == _root_govern_symbol,
                  "Некорректный символ валюты в сумме перевода");
+    // Пустой хэш увёл бы операцию в нитку без анкера — ровно то, ради чего
+    // адресация и вводилась; сумма без заказа смысла не имеет.
+    eosio::check(target.amount.amount == 0 || target.order_hash != checksum256{},
+                 "Не указан заказ, который оплачивает перевод в членский кошелёк");
     total += target.amount;
   }
 
