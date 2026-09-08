@@ -16,7 +16,13 @@ export class MarketplaceOfferMapper {
       price_per_unit: row.price_per_unit,
       unit_of_measure: row.unit_of_measure,
       sale_form: row.sale_form ?? 'by_measure',
-      packages: row.packages ?? [],
+      // Счётчики упаковок у записей до учёта по упаковкам отсутствуют — ноль.
+      packages: (row.packages ?? []).map((p) => ({
+        ...p,
+        quantity_available: p.quantity_available ?? 0,
+        quantity_blocked: p.quantity_blocked ?? 0,
+        quantity_consumed: p.quantity_consumed ?? 0,
+      })),
       quantity_available: row.quantity_available,
       quantity_blocked: row.quantity_blocked,
       quantity_consumed: row.quantity_consumed,

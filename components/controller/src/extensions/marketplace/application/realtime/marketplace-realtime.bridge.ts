@@ -156,6 +156,7 @@ export class MarketplaceRealtimeBridge {
       offer_id: event.offer_id,
       quantity_available: event.quantity_available,
       unlimited_flag: event.unlimited_flag,
+      packages: event.packages.map((p) => ({ package_id: p.id, quantity_available: p.quantity_available })),
     };
     const topic = marketplaceCatalogTopic(platformSettings().coopname);
     this.logger.info(

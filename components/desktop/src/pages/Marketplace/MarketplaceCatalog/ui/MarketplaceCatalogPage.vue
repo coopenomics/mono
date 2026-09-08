@@ -288,11 +288,23 @@ onMounted(async () => {
 // мельтешения (частое событие). Новый оффер / catch-up → ненавязчивое обновление
 // с сохранением уже загруженной глубины (НЕ сброс на первую страницу — иначе
 // страховочный resync раз в 60с дёргал бы прокрутку у листающего пайщика).
-function patchOfferStock(offerId: string, quantityAvailable: number, unlimited: boolean): void {
+function patchOfferStock(
+  offerId: string,
+  quantityAvailable: number,
+  unlimited: boolean,
+  packages: ReadonlyArray<{ package_id: string; quantity_available: number }>,
+): void {
   const item = items.value.find((o) => o.id === offerId);
   if (!item) return; // оффер не на текущей вкладке/в загруженном диапазоне — пропуск
   item.quantity_available = quantityAvailable;
   item.unlimited_flag = unlimited;
+  // Остаток по упаковкам: диалог «В корзину» ограничивает ввод остатком
+  // выбранной упаковки, поэтому обновляем и его. До перезапуска dev-сервера
+  // предсобранный SDK поля ещё не запрашивает — тогда списка нет.
+  for (const p of packages ?? []) {
+    const pkg = item.packages.find((x) => x.id === p.package_id);
+    if (pkg) pkg.quantity_available = p.quantity_available;
+  }
 }
 
 async function refreshCatalogLiveNow(): Promise<void> {
@@ -334,7 +346,7 @@ const refreshCatalogLive = debounce(() => {
 useMarketplaceRealtime(
   {
     MarketplaceOfferStockChangedEvent: (e) =>
-      patchOfferStock(e.offer_id, e.quantity_available, e.unlimited_flag),
+      patchOfferStock(e.offer_id, e.quantity_available, e.unlimited_flag, e.packages),
     MarketplaceOfferPublishedEvent: () => refreshCatalogLive(),
   },
   { onResync: () => refreshCatalogLive() }

@@ -58,3 +58,4 @@ export {
   type MarketplaceRealtimeHandlers,
   type MarketplaceRealtimeOptions,
 } from './marketplace-realtime';
+export { marketplacePackageStockLabel, marketplacePackagesAvailable } from './package-stock';

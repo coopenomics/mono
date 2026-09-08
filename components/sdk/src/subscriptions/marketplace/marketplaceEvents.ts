@@ -40,6 +40,10 @@ export const subscription = Selector('Subscription')({
         offer_id: true,
         quantity_available: true,
         unlimited_flag: true,
+        packages: {
+          package_id: true,
+          quantity_available: true,
+        },
       },
       '...on MarketplaceOfferPublishedEvent': {
         offer_id: true,

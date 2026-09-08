@@ -7,7 +7,7 @@ import { LOGGER_PORT, type ILoggerPort,
 import { computeOrderHash } from '../shared/order-hash.util';
 import { toQuantityAsset } from '../shared/quantity.util';
 import { calcCostAmount } from '../shared/cost.util';
-import { resolveSaleUnit } from '../shared/packaging.util';
+import { packageDeltaOfSaleUnit, resolveSaleUnit, saleUnitShortfall } from '../shared/packaging.util';
 import {
   MARKETPLACE_NEW_ORDER_FOR_SUPPLIER_EVENT,
   type MarketplaceNewOrderForSupplierEvent,
@@ -163,11 +163,14 @@ export class MarketplaceOrderCreateService {
     // По мере — quantity как базовое количество; упаковкой — quantity как число
     // упаковок, базовое = число × содержимое, цена — за упаковку.
     const resolved = resolveSaleUnit(offer, input.quantity, input.package_id);
-    if (!offer.unlimited_flag && offer.quantity_available < resolved.baseQuantity) {
+    // Нехватка проверяется по выбранной упаковке, а не по котлу базовых единиц.
+    const shortfall = saleUnitShortfall(offer, resolved);
+    if (shortfall) {
       throw new BadRequestException(
-        `Доступно только ${offer.quantity_available} ед.; нельзя заказать ${resolved.baseQuantity}.`
+        `Доступно только ${shortfall.available} ${shortfall.unitLabel}; нельзя заказать ${shortfall.requested}.`
       );
     }
+    const packageDelta = packageDeltaOfSaleUnit(resolved);
 
     // ── 2. Вычисление производных полей Order'а ─────────────────────
     const order_hash =
@@ -181,7 +184,7 @@ export class MarketplaceOrderCreateService {
     const warranty_period_secs = offer.warranty_days * 86_400;
 
     // ── 3. Optimistic counter (синхронно ДО chain submit) ──────────
-    const offerBeforeBlock = await this.offerCounters.onOrderBlocked(offer.id, resolved.baseQuantity);
+    const offerBeforeBlock = await this.offerCounters.onOrderBlocked(offer.id, resolved.baseQuantity, packageDelta);
     this.logger.debug(
       `MarketplaceOrderCreateService: counter onOrderBlocked OK (offer=${offer.id}, qty=${resolved.baseQuantity}, available=${offerBeforeBlock.quantity_available}, blocked=${offerBeforeBlock.quantity_blocked})`
     );
@@ -212,7 +215,7 @@ export class MarketplaceOrderCreateService {
         error.stack
       );
       try {
-        await this.offerCounters.onOrderRolledBack(offer.id, resolved.baseQuantity);
+        await this.offerCounters.onOrderRolledBack(offer.id, resolved.baseQuantity, packageDelta);
       } catch (compErr: any) {
         // Counter rollback fail на compensating-path — критическая
         // несогласованность; alert + manual reconciliation.
@@ -245,6 +248,7 @@ export class MarketplaceOrderCreateService {
       unit_of_measure: offer.unit_of_measure,
       price_per_unit: resolved.unitPrice,
       package_size: resolved.packageSize,
+      package_id: resolved.packageId,
       total_cost: locked_amount,
       cycle_id: null,
       checkout_id: input.checkout_id ?? null,

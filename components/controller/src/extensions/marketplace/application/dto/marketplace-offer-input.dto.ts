@@ -73,6 +73,17 @@ export class MarketplaceOfferPackageInputDTO {
   @IsOptional()
   @IsBoolean()
   public readonly is_default?: boolean;
+
+  @Field(() => Int, {
+    nullable: true,
+    description:
+      'Сколько упаковок этого вида свободно к заказу. Обязательно при ограниченном остатке; ' +
+      'при правке пустое значение оставляет прежний остаток упаковки.',
+  })
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  public readonly quantity_available?: number | null;
 }
 
 @InputType('MarketplaceOfferDeliveryPointInput')
@@ -167,7 +178,12 @@ export class MarketplaceCreateOfferInputDTO {
   @Type(() => MarketplaceOfferPackageInputDTO)
   public packages?: MarketplaceOfferPackageInputDTO[];
 
-  @Field(() => Float, { nullable: true })
+  @Field(() => Float, {
+    nullable: true,
+    description:
+      'Свободный остаток в базовых единицах при отпуске по мере. При отпуске упаковкой ' +
+      'не используется — остаток задаётся на каждой упаковке в `packages`.',
+  })
   @IsOptional()
   @IsNumber()
   @Min(0)

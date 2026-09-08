@@ -63,6 +63,9 @@ describe('toMarketplaceOfferDTO — упаковка без названной �
     // Остальное предложение читается без потерь.
     expect(dto.packages[0].size).toBe(0.5);
     expect(dto.packages[0].price).toBe('50.0000');
+    // Счётчиков упаковки у старой записи тоже нет — в ответе нули, не undefined.
+    expect(dto.packages[0].quantity_available).toBe(0);
+    expect(dto.packages[0].quantity_blocked).toBe(0);
   });
 
   it('упаковка с названной тарой отдаёт её как есть', () => {

@@ -36,6 +36,8 @@ interface CoopStockPackage {
   price: string;
   label: string | null;
   is_default: boolean;
+  /** Свободно упаковок этого вида — остаток ведётся на упаковке. */
+  quantity_available: number;
 }
 
 type CoopStockOffer = {
@@ -97,9 +99,8 @@ function unitPrice(offer: CoopStockOffer): string {
 /** Потолок набора в единицах отпуска — целых упаковок на складе. */
 function maxQty(offer: CoopStockOffer): number {
   if (!isPackaged(offer)) return offer.quantity_available;
-  const pkg = selectedPackage(offer);
-  if (!pkg || pkg.size <= 0) return 0;
-  return Math.floor(offer.quantity_available / pkg.size);
+  // Остаток по упаковкам: сколько свободно именно этой упаковки.
+  return selectedPackage(offer)?.quantity_available ?? 0;
 }
 
 function packageOptions(offer: CoopStockOffer): Array<{ value: string; label: string }> {

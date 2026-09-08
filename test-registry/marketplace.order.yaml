@@ -116,7 +116,8 @@ cases:
     scenario: >
       Заказ упаковками: количество трактуется как число упаковок, базовое количество считается через содержимое упаковки.
     expect: >
-      остаток проверяется по базовому количеству, а не по числу упаковок; цена берётся за упаковку
+      на цепь и в счётчики предложения уходит базовое количество, в счётчик упаковки — число упаковок;
+      в заказе сохраняется упаковка; цена берётся за упаковку
     test: components/controller/src/extensions/marketplace/application/services/marketplace-order-create.service.spec.ts
     status: passing
 
@@ -349,6 +350,30 @@ cases:
       o.mkt.lock на всё тело паевым резервом
     test: components/boot/src/tests/marketplace-convert.test.ts
     status: written
+
+  - id: mkt.order.side.35
+    level: backend
+    kind: side
+    scenario: >
+      Остаток по упаковкам: заказчик просит пять бутылок по 0,5 л, свободных бутылок этого
+      объёма три, хотя литров у предложения хватает
+    expect: >
+      отказ «Доступно только 3 упак.» до счётчиков и до цепи; заказ по мере по-прежнему
+      сверяется с остатком в базовых единицах
+    test: components/controller/src/extensions/marketplace/application/services/marketplace-order-create.service.spec.ts
+    status: passing
+
+  - id: mkt.order.side.36
+    level: backend
+    kind: side
+    scenario: >
+      Помощники остатка по упаковкам: сумма по упаковкам в базовых единицах, нехватка по
+      упаковке и по мере, упаковка заказа для счётчиков, снятие позиций склада с витрины остатка
+    expect: >
+      9,5 л из 3 × 0,5 и 8 × 1; нехватка считается по упаковке; заказ без упаковки до счётчика
+      упаковки не доходит; снятие уменьшает упаковку по содержимому не ниже нуля
+    test: components/controller/src/extensions/marketplace/application/shared/packaging.util.spec.ts
+    status: passing
 
   - id: mkt.order.happy.04
     level: contract

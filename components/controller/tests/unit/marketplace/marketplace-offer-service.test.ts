@@ -5,6 +5,8 @@
  *   - create: статус PENDING_MODERATION; rate-limit 10/час; неизвестная
  *     категория → 400; валидация product_name/description/unit/cycle/price;
  *     unlimited_flag=true обнуляет quantity_available;
+ *   - остаток по упаковкам: при отпуске упаковкой остаток задаётся на каждой
+ *     упаковке, остаток предложения — их сумма в базовых единицах;
  *   - update: ownership check (403 чужому); WITHDRAWN → 403; REJECTED →
  *     правка проходит и уходит на повторную модерацию;
  *     reset status в PENDING_MODERATION; валидация полей;
@@ -327,6 +329,74 @@ describe('MarketplaceOfferService.create', () => {
     expect(repo.create).toHaveBeenCalledWith(
       expect.objectContaining({ unlimited_flag: true, quantity_available: 0 })
     );
+  });
+
+  it('отпуск упаковкой: остаток задаётся на упаковках, остаток предложения — сумма в базовых единицах', async () => {
+    const repo = makeOfferRepo();
+    const cats = makeCategoryRepo();
+    repo.countRecentCreatedBy.mockResolvedValue(0);
+    repo.create.mockResolvedValue(makeOffer({ sale_form: 'packaged' }));
+    const service = makeService(repo, cats);
+
+    await service.create(
+      baseCreateRequest({
+        unit_of_measure: 'liter',
+        sale_form: 'packaged',
+        quantity_available: null,
+        packages: [
+          { size: 0.5, price: '70.0000', package_type: 'стекло', is_default: true, quantity_available: 3 },
+          { size: 1, price: '120.0000', package_type: 'пластик', quantity_available: 8 },
+        ],
+      })
+    );
+
+    const input = repo.create.mock.calls[0][0];
+    expect(input.packages.map((p) => [p.quantity_available, p.quantity_blocked, p.quantity_consumed])).toEqual([
+      [3, 0, 0],
+      [8, 0, 0],
+    ]);
+    // 3 × 0,5 л + 8 × 1 л
+    expect(input.quantity_available).toBe(9.5);
+  });
+
+  it('отпуск упаковкой без остатка упаковки при ограниченном остатке → 400', async () => {
+    const repo = makeOfferRepo();
+    const cats = makeCategoryRepo();
+    repo.countRecentCreatedBy.mockResolvedValue(0);
+    const service = makeService(repo, cats);
+
+    await expect(
+      service.create(
+        baseCreateRequest({
+          sale_form: 'packaged',
+          quantity_available: null,
+          packages: [{ size: 0.5, price: '70.0000', package_type: 'стекло' }],
+        })
+      )
+    ).rejects.toThrow(/сколько упаковок/);
+    expect(repo.create).not.toHaveBeenCalled();
+  });
+
+  it('отпуск упаковкой без ограничения: остаток упаковок и предложения — нули', async () => {
+    const repo = makeOfferRepo();
+    const cats = makeCategoryRepo();
+    repo.countRecentCreatedBy.mockResolvedValue(0);
+    repo.create.mockResolvedValue(makeOffer({ sale_form: 'packaged', unlimited_flag: true }));
+    const service = makeService(repo, cats);
+
+    await service.create(
+      baseCreateRequest({
+        sale_form: 'packaged',
+        unlimited_flag: true,
+        quantity_available: null,
+        packages: [{ size: 0.5, price: '70.0000', package_type: 'стекло', quantity_available: 5 }],
+      })
+    );
+
+    const input = repo.create.mock.calls[0][0];
+    expect(input.unlimited_flag).toBe(true);
+    expect(input.quantity_available).toBe(0);
+    expect(input.packages[0].quantity_available).toBe(0);
   });
 
   it('пустой набор КУ поставки → 400', async () => {

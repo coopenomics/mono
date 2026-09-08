@@ -12,10 +12,63 @@ import type { MarketplaceOfferDomainEntity } from '../../domain/entities/marketp
 import {
   MarketplaceOfferStatuses,
   type MarketplaceOfferStatus,
+  type OfferPackageDelta,
 } from '../../domain/entities/marketplace-offer.types';
 import { MarketplaceOfferEntity } from '../entities/marketplace-offer.entity';
 import { MarketplaceOfferMapper } from '../mappers/marketplace-offer.mapper';
 import type { PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
+
+/** Одно из четырёх движений счётчиков предложения и упаковки. */
+type OfferCounterOp = 'block' | 'unblock' | 'consume' | 'rollback';
+
+/** Счётчик упаковки в jsonb; у упаковок, заведённых до учёта по упаковкам, его нет — считаем нулём. */
+const pv = (alias: string, field: string): string => `COALESCE((${alias}->>'${field}')::numeric, 0)`;
+
+/**
+ * SET и WHERE каждого движения. Предложение считается в базовых единицах ($2),
+ * упаковка — в упаковках ($4) по своему идентификатору ($3); при безлимите
+ * свободное не трогается ни там, ни там.
+ */
+const OFFER_COUNTER_SQL: Record<OfferCounterOp, { offer: string; pkg: string; where: string }> = {
+  block: {
+    offer: `quantity_blocked = o.quantity_blocked + $2,
+            quantity_available = CASE WHEN o.unlimited_flag THEN o.quantity_available ELSE o.quantity_available - $2 END`,
+    pkg: `'quantity_blocked', ${pv('p', 'quantity_blocked')} + $4,
+          'quantity_available', CASE WHEN o.unlimited_flag THEN ${pv('p', 'quantity_available')} ELSE ${pv('p', 'quantity_available')} - $4 END`,
+    where: `o.status = 'ACTIVE' AND (o.unlimited_flag = true OR o.quantity_available >= $2)`,
+  },
+  unblock: {
+    offer: `quantity_blocked = o.quantity_blocked - $2,
+            quantity_available = CASE WHEN o.unlimited_flag THEN o.quantity_available ELSE o.quantity_available + $2 END`,
+    pkg: `'quantity_blocked', ${pv('p', 'quantity_blocked')} - $4,
+          'quantity_available', CASE WHEN o.unlimited_flag THEN ${pv('p', 'quantity_available')} ELSE ${pv('p', 'quantity_available')} + $4 END`,
+    where: 'o.quantity_blocked >= $2',
+  },
+  consume: {
+    offer: `quantity_blocked = o.quantity_blocked - $2,
+            quantity_consumed = o.quantity_consumed + $2`,
+    pkg: `'quantity_blocked', ${pv('p', 'quantity_blocked')} - $4,
+          'quantity_consumed', ${pv('p', 'quantity_consumed')} + $4`,
+    where: 'o.quantity_blocked >= $2',
+  },
+  rollback: {
+    offer: `quantity_blocked = o.quantity_blocked - $2,
+            quantity_available = CASE WHEN o.unlimited_flag THEN o.quantity_available ELSE o.quantity_available + $2 END`,
+    pkg: `'quantity_blocked', ${pv('p', 'quantity_blocked')} - $4,
+          'quantity_available', CASE WHEN o.unlimited_flag THEN ${pv('p', 'quantity_available')} ELSE ${pv('p', 'quantity_available')} + $4 END`,
+    where: '',
+  },
+};
+
+/** Каталог упаковок с переписанными счётчиками одной упаковки ($3); порядок сохраняется. */
+const packageRewriteSql = (fields: string): string =>
+  `SELECT COALESCE(jsonb_agg(CASE WHEN p->>'id' = $3 THEN p || jsonb_build_object(${fields}) ELSE p END ORDER BY ord), '[]'::jsonb)
+     FROM jsonb_array_elements(o.packages) WITH ORDINALITY AS t(p, ord)`;
+
+/** Блокировка проходит, только если свободных упаковок именно этого вида хватает. */
+const PACKAGE_AVAILABLE_GUARD_SQL = `(o.unlimited_flag = true OR EXISTS (
+  SELECT 1 FROM jsonb_array_elements(o.packages) q
+   WHERE q->>'id' = $3 AND ${pv('q', 'quantity_available')} >= $4))`;
 
 @Injectable()
 export class MarketplaceOfferRepositoryAdapter implements MarketplaceOfferDomainRepository {
@@ -190,77 +243,56 @@ export class MarketplaceOfferRepositoryAdapter implements MarketplaceOfferDomain
     return this.mapper.toDomain(row);
   }
 
-  async applyBlockDelta(offer_id: string, qty: number): Promise<OfferCountersDeltaResult> {
-    if (qty <= 0) return { ok: false, reason: 'insufficient_available' };
-    const result = await this.repo.query(
-      `UPDATE marketplace_offer
-         SET quantity_blocked = quantity_blocked + $2,
-             quantity_available = CASE
-               WHEN unlimited_flag THEN quantity_available
-               ELSE quantity_available - $2
-             END,
-             updated_at = NOW()
-       WHERE id = $1
-         AND status = 'ACTIVE'
-         AND (unlimited_flag = true OR quantity_available >= $2)
-       RETURNING *`,
-      [offer_id, qty]
-    );
-    return this.interpretDelta(result, offer_id, 'insufficient_available');
+  async applyBlockDelta(offer_id: string, qty: number, pkg?: OfferPackageDelta): Promise<OfferCountersDeltaResult> {
+    return this.applyCounterDelta('block', offer_id, qty, pkg);
   }
 
-  async applyUnblockDelta(offer_id: string, qty: number): Promise<OfferCountersDeltaResult> {
-    if (qty <= 0) return { ok: false, reason: 'insufficient_blocked' };
-    const result = await this.repo.query(
-      `UPDATE marketplace_offer
-         SET quantity_blocked = quantity_blocked - $2,
-             quantity_available = CASE
-               WHEN unlimited_flag THEN quantity_available
-               ELSE quantity_available + $2
-             END,
-             updated_at = NOW()
-       WHERE id = $1
-         AND quantity_blocked >= $2
-       RETURNING *`,
-      [offer_id, qty]
-    );
-    return this.interpretDelta(result, offer_id, 'insufficient_blocked');
+  async applyUnblockDelta(offer_id: string, qty: number, pkg?: OfferPackageDelta): Promise<OfferCountersDeltaResult> {
+    return this.applyCounterDelta('unblock', offer_id, qty, pkg);
   }
 
-  async applyConsumeDelta(offer_id: string, qty: number): Promise<OfferCountersDeltaResult> {
-    if (qty <= 0) return { ok: false, reason: 'insufficient_blocked' };
-    const result = await this.repo.query(
-      `UPDATE marketplace_offer
-         SET quantity_blocked = quantity_blocked - $2,
-             quantity_consumed = quantity_consumed + $2,
-             updated_at = NOW()
-       WHERE id = $1
-         AND quantity_blocked >= $2
-       RETURNING *`,
-      [offer_id, qty]
-    );
-    return this.interpretDelta(result, offer_id, 'insufficient_blocked');
+  async applyConsumeDelta(offer_id: string, qty: number, pkg?: OfferPackageDelta): Promise<OfferCountersDeltaResult> {
+    return this.applyCounterDelta('consume', offer_id, qty, pkg);
   }
 
-  async applyRollbackDelta(offer_id: string, qty: number): Promise<OfferCountersDeltaResult> {
-    if (qty <= 0) return { ok: false, reason: 'insufficient_blocked' };
+  async applyRollbackDelta(offer_id: string, qty: number, pkg?: OfferPackageDelta): Promise<OfferCountersDeltaResult> {
     // ADR-005: rollback без CAS — counter может уйти в отрицательное
     // значение при rollback Order'а, который уже перешёл в consumed.
     // Это ожидаемо при катастрофе fork-вне-Rollback-Horizon; fix через
     // manual reconciliation (FR12 ARCH-sync).
+    return this.applyCounterDelta('rollback', offer_id, qty, pkg);
+  }
+
+  /**
+   * Одна атомарная команда на все четыре движения. Счётчики предложения (в
+   * базовых единицах) и счётчик заказанной упаковки (в упаковках, внутри
+   * jsonb `packages`) меняются одним UPDATE, поэтому гонка параллельных
+   * заказов их не разводит, а нехватка проверяется в WHERE по той упаковке,
+   * что заказана: литров может хватать, а бутылок нужного объёма — нет.
+   */
+  private async applyCounterDelta(
+    op: OfferCounterOp,
+    offer_id: string,
+    qty: number,
+    pkg?: OfferPackageDelta
+  ): Promise<OfferCountersDeltaResult> {
+    const failure = op === 'block' ? 'insufficient_available' : 'insufficient_blocked';
+    if (qty <= 0 || (pkg && pkg.count <= 0)) return { ok: false, reason: failure };
+
+    const spec = OFFER_COUNTER_SQL[op];
+    const params: unknown[] = [offer_id, qty];
+    const sets = [spec.offer, 'updated_at = NOW()'];
+    const where = ['o.id = $1', spec.where];
+    if (pkg) {
+      params.push(pkg.id, pkg.count);
+      sets.push(`packages = (${packageRewriteSql(spec.pkg)})`);
+      if (op === 'block') where.push(PACKAGE_AVAILABLE_GUARD_SQL);
+    }
     const result = await this.repo.query(
-      `UPDATE marketplace_offer
-         SET quantity_blocked = quantity_blocked - $2,
-             quantity_available = CASE
-               WHEN unlimited_flag THEN quantity_available
-               ELSE quantity_available + $2
-             END,
-             updated_at = NOW()
-       WHERE id = $1
-       RETURNING *`,
-      [offer_id, qty]
+      `UPDATE marketplace_offer o SET ${sets.join(', ')} WHERE ${where.filter(Boolean).join(' AND ')} RETURNING *`,
+      params
     );
-    return this.interpretDelta(result, offer_id, 'insufficient_blocked');
+    return this.interpretDelta(result, offer_id, failure);
   }
 
   /**

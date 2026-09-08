@@ -228,16 +228,30 @@ q-page.mp-role-offerer.offer-wizard(role='region', aria-label='Создание 
                 description='Остаток не считается — берёте столько заказов, сколько придёт.',
                 @update:model-value='onSelectStockMode'
               )
-          AmountInput(
-            v-if='!form.unlimited_flag',
-            :model-value='form.quantity_available',
-            :precision='sizePrecision',
-            :symbol='orderUnitLabel',
-            label='Доступное количество',
-            :hint='stockHint',
-            :error='fieldError("stock", "quantity_available")',
-            @update:model-value='(v) => (form.quantity_available = v)'
-          )
+          template(v-if='!form.unlimited_flag')
+            AmountInput(
+              v-if='form.sale_form !== MarketplaceSaleForm.PACKAGED',
+              :model-value='form.quantity_available',
+              :precision='sizePrecision',
+              :symbol='orderUnitLabel',
+              label='Доступное количество',
+              :hint='stockHint',
+              :error='fieldError("stock", "quantity_available")',
+              @update:model-value='(v) => (form.quantity_available = v)'
+            )
+            //- Отпуск упаковкой — остаток ведётся на каждой упаковке, в упаковках.
+            .offer-wizard__stock-pkgs(v-else)
+              p.offer-wizard__hint {{ stockHint }}
+              .offer-wizard__stock-pkg(v-for='(pkg, i) in form.packages', :key='i')
+                span.offer-wizard__stock-pkg-title {{ packageTitle(pkg, i) }}
+                AmountInput.offer-wizard__stock-pkg-input(
+                  :model-value='pkg.quantity_available',
+                  :precision='0',
+                  symbol='упак.',
+                  label='Свободно',
+                  :error='fieldError("stock", `pkg.${i}.quantity_available`)',
+                  @update:model-value='(v) => (pkg.quantity_available = v)'
+                )
 
         //- ───────── Шаг 4: КУ поставки и минимальный объём ─────────
         .offer-wizard__step(v-else-if='step.key === "supply"')
@@ -417,7 +431,12 @@ import { useSystemStore } from 'src/entities/System/model';
 import { useMarketplaceKUDetailsStore, GeocodeStatus } from 'src/entities/MarketplaceKUDetails';
 import { MARKETPLACE_UNIT_OPTIONS, marketplaceOrderUnitLabel } from 'src/shared/lib/consts';
 import { fileToBase64, formatAsset2Digits } from 'src/shared/lib/utils';
-import { applyMembershipFee, getMembershipFeePercent } from 'src/shared/lib/marketplace';
+import {
+  applyMembershipFee,
+  getMembershipFeePercent,
+  marketplacePackageStockLabel,
+  marketplacePackagesAvailable,
+} from 'src/shared/lib/marketplace';
 import { Zeus } from '@coopenomics/sdk';
 import { republishOffer, withdrawOffer } from 'src/entities/MarketplaceOffer';
 import {
@@ -766,7 +785,7 @@ function onSelectStockMode(value: string | number): void {
 }
 const stockHint = computed(() =>
   form.value.sale_form === MarketplaceSaleForm.PACKAGED
-    ? `Остаток ведётся в базовых единицах (${orderUnitLabel.value}), а не в упаковках`
+    ? 'Сколько упаковок каждого вида готовы отдать — остаток ведётся по упаковкам, а не общим объёмом'
     : `Столько ${orderUnitLabel.value} готовы отдать заказчикам`
 );
 
@@ -784,6 +803,7 @@ function addPackage(): void {
     label: '',
     package_type: '',
     is_default: isFirst,
+    quantity_available: null,
   });
 }
 
@@ -914,12 +934,25 @@ const priceWithFeeHint = computed(() => {
   return `Цена для заказчика: ${formatted} за ${previewUnitLabel.value}`;
 });
 
-const stockEmpty = computed(
-  () => !form.value.unlimited_flag && (form.value.quantity_available ?? 0) <= 0
+// Остаток при отпуске упаковкой — на каждой упаковке; в превью показываем по
+// упаковкам, как увидит заказчик.
+const isPackaged = computed(() => form.value.sale_form === MarketplaceSaleForm.PACKAGED);
+const stockPackages = computed(() =>
+  form.value.packages
+    .filter((p) => p.size !== null && p.size > 0)
+    .map((p) => ({ size: p.size as number, label: p.label, quantity_available: p.quantity_available ?? 0 }))
 );
+const stockEmpty = computed(() => {
+  if (form.value.unlimited_flag) return false;
+  if (isPackaged.value) return marketplacePackagesAvailable(stockPackages.value) <= 0;
+  return (form.value.quantity_available ?? 0) <= 0;
+});
 const stockLabel = computed(() => {
   if (form.value.unlimited_flag) return 'В наличии';
   if (stockEmpty.value) return 'Нет в наличии';
+  if (isPackaged.value) {
+    return `В наличии: ${marketplacePackageStockLabel(stockPackages.value, form.value.unit_of_measure)}`;
+  }
   return `В наличии: ${form.value.quantity_available} ${orderUnitLabel.value}`;
 });
 
@@ -1153,6 +1186,20 @@ const stockErrors = computed<Record<string, string>>(() => {
   const errors: Record<string, string> = {};
   const f = form.value;
   if (f.unlimited_flag) return errors;
+  if (f.sale_form === MarketplaceSaleForm.PACKAGED) {
+    // Остаток задаётся на каждой упаковке — целым числом упаковок.
+    f.packages.forEach((pkg, i) => {
+      const qty = pkg.quantity_available ?? null;
+      if (qty === null) {
+        errors[`pkg.${i}.quantity_available`] = 'Укажите, сколько упаковок свободно';
+      } else if (qty < 0) {
+        errors[`pkg.${i}.quantity_available`] = 'Не может быть отрицательным';
+      } else if (!Number.isInteger(qty)) {
+        errors[`pkg.${i}.quantity_available`] = 'Целое число упаковок';
+      }
+    });
+    return errors;
+  }
   if (f.quantity_available === null) {
     errors.quantity_available = 'Укажите количество или снимите ограничение';
   } else if (f.quantity_available < 0) {
@@ -1282,6 +1329,8 @@ async function onSubmit(): Promise<void> {
       label: p.label.trim() ? p.label.trim() : null,
       package_type: p.package_type.trim(),
       is_default: p.is_default,
+      // Остаток ведётся на упаковке; при отпуске без ограничения он не считается.
+      quantity_available: f.unlimited_flag ? null : p.quantity_available,
     }));
     // price_per_unit при упаковочном отпуске backend выводит из упаковки по
     // умолчанию; шлём цену дефолт-упаковки, чтобы удовлетворить валидацию DTO.
@@ -1296,7 +1345,9 @@ async function onSubmit(): Promise<void> {
     unit_of_measure: f.unit_of_measure,
     sale_form: f.sale_form,
     packages: packagesPayload,
-    quantity_available: f.unlimited_flag ? null : f.quantity_available,
+    // При отпуске упаковкой остаток предложения бэкенд складывает из упаковок.
+    quantity_available:
+      f.unlimited_flag || f.sale_form === MarketplaceSaleForm.PACKAGED ? null : f.quantity_available,
     unlimited_flag: f.unlimited_flag,
     delivery_points: f.delivery_points,
     shelf_life_days: f.shelf_life_days,
@@ -1353,6 +1404,7 @@ async function prefillForEdit(id: string): Promise<void> {
         label: p.label ?? '',
         package_type: p.package_type ?? '',
         is_default: p.is_default,
+        quantity_available: p.quantity_available ?? null,
       })),
       quantity_available: offer.quantity_available,
       unlimited_flag: offer.unlimited_flag,
@@ -1523,6 +1575,30 @@ onBeforeUnmount(() => {
     font-variant-numeric: tabular-nums;
   }
 
+  // Наличие по упаковкам: название упаковки слева, поле «упак.» справа.
+  &__stock-pkgs {
+    display: flex;
+    flex-direction: column;
+    gap: var(--p-3, 12px);
+  }
+
+  &__stock-pkg {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 200px;
+    align-items: center;
+    gap: var(--p-3, 12px);
+    padding: var(--p-3, 12px) var(--p-4, 16px);
+    border: 1px solid var(--p-line);
+    border-radius: var(--p-r-md, 12px);
+    background: var(--p-surface);
+  }
+
+  &__stock-pkg-title {
+    min-width: 0;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+  }
+
   &__pkg-add {
     align-self: flex-start;
   }
@@ -1682,6 +1758,10 @@ onBeforeUnmount(() => {
 
   .offer-wizard__pkg {
     padding: var(--p-3, 12px);
+  }
+
+  .offer-wizard__stock-pkg {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 

@@ -5,6 +5,7 @@ import {
   type MarketplaceOfferDomainRepository,
 } from '../../domain/repositories/marketplace-offer.repository';
 import type { MarketplaceOfferDomainEntity } from '../../domain/entities/marketplace-offer.entity';
+import type { OfferPackageDelta } from '../../domain/entities/marketplace-offer.types';
 import { MARKETPLACE_OFFER_COUNTERS_CHANGED_EVENT } from '../events/marketplace-notification.events';
 
 export const MARKETPLACE_OFFER_COUNTERS_SERVICE = Symbol('MARKETPLACE_OFFER_COUNTERS_SERVICE');
@@ -26,6 +27,11 @@ export const MARKETPLACE_OFFER_COUNTERS_SERVICE = Symbol('MARKETPLACE_OFFER_COUN
  * Инвариант поддерживается дельтами: блок −A +B, разблок +A −B,
  * consume −B +C — изменение суммы 0.
  *
+ * Остаток по упаковкам: при отпуске упаковкой те же дельты идут и по
+ * заказанной упаковке (`pkg` — идентификатор и число упаковок), в той же
+ * команде, что и счётчики предложения. Нехватку проверяет упаковка, а не
+ * котёл базовых единиц.
+ *
  * `EventEmitter2` пингует канал `marketplace.offer.counters.changed`
  * после успешной операции — Story 3.5 каталог / offerer-вкладка
  * «Активность» подписываются (Phase 2 GraphQL subscription).
@@ -40,33 +46,33 @@ export class MarketplaceOfferCountersService {
     private readonly eventBus: EventEmitter2
   ) {}
 
-  async onOrderBlocked(offer_id: string, qty: number): Promise<MarketplaceOfferDomainEntity> {
-    this.assertPositive(qty);
-    const result = await this.repo.applyBlockDelta(offer_id, qty);
+  async onOrderBlocked(offer_id: string, qty: number, pkg?: OfferPackageDelta): Promise<MarketplaceOfferDomainEntity> {
+    this.assertPositive(qty, pkg);
+    const result = await this.repo.applyBlockDelta(offer_id, qty, pkg);
     if (!result.ok || !result.offer) {
       this.throwForReason(result.reason, offer_id, 'block', qty);
     }
-    this.emit(result.offer!, 'block', qty);
+    this.emit(result.offer!, 'block', qty, pkg);
     return result.offer!;
   }
 
-  async onOrderUnblocked(offer_id: string, qty: number): Promise<MarketplaceOfferDomainEntity> {
-    this.assertPositive(qty);
-    const result = await this.repo.applyUnblockDelta(offer_id, qty);
+  async onOrderUnblocked(offer_id: string, qty: number, pkg?: OfferPackageDelta): Promise<MarketplaceOfferDomainEntity> {
+    this.assertPositive(qty, pkg);
+    const result = await this.repo.applyUnblockDelta(offer_id, qty, pkg);
     if (!result.ok || !result.offer) {
       this.throwForReason(result.reason, offer_id, 'unblock', qty);
     }
-    this.emit(result.offer!, 'unblock', qty);
+    this.emit(result.offer!, 'unblock', qty, pkg);
     return result.offer!;
   }
 
-  async onOrderConsumed(offer_id: string, qty: number): Promise<MarketplaceOfferDomainEntity> {
-    this.assertPositive(qty);
-    const result = await this.repo.applyConsumeDelta(offer_id, qty);
+  async onOrderConsumed(offer_id: string, qty: number, pkg?: OfferPackageDelta): Promise<MarketplaceOfferDomainEntity> {
+    this.assertPositive(qty, pkg);
+    const result = await this.repo.applyConsumeDelta(offer_id, qty, pkg);
     if (!result.ok || !result.offer) {
       this.throwForReason(result.reason, offer_id, 'consume', qty);
     }
-    this.emit(result.offer!, 'consume', qty);
+    this.emit(result.offer!, 'consume', qty, pkg);
     return result.offer!;
   }
 
@@ -74,8 +80,12 @@ export class MarketplaceOfferCountersService {
    * Корректировка «факт меньше заказа» (FR23) — разница K возвращается
    * на available. Семантически = unblock на разницу.
    */
-  async onOrderAdjusted(offer_id: string, qty_diff: number): Promise<MarketplaceOfferDomainEntity> {
-    return this.onOrderUnblocked(offer_id, qty_diff);
+  async onOrderAdjusted(
+    offer_id: string,
+    qty_diff: number,
+    pkg?: OfferPackageDelta
+  ): Promise<MarketplaceOfferDomainEntity> {
+    return this.onOrderUnblocked(offer_id, qty_diff, pkg);
   }
 
   /**
@@ -89,19 +99,26 @@ export class MarketplaceOfferCountersService {
    * вызвать `onOrderRolledBack(offer_id, qty)` — иначе counters
    * разъедутся с реальностью.
    */
-  async onOrderRolledBack(offer_id: string, qty: number): Promise<MarketplaceOfferDomainEntity> {
-    this.assertPositive(qty);
-    const result = await this.repo.applyRollbackDelta(offer_id, qty);
+  async onOrderRolledBack(offer_id: string, qty: number, pkg?: OfferPackageDelta): Promise<MarketplaceOfferDomainEntity> {
+    this.assertPositive(qty, pkg);
+    const result = await this.repo.applyRollbackDelta(offer_id, qty, pkg);
     if (!result.ok || !result.offer) {
       this.throwForReason(result.reason, offer_id, 'rollback', qty);
     }
-    this.emit(result.offer!, 'rollback', qty);
+    this.emit(result.offer!, 'rollback', qty, pkg);
     return result.offer!;
   }
 
-  private assertPositive(qty: number): void {
-    if (!Number.isInteger(qty) || qty <= 0) {
-      throw new BadRequestException('Количество должно быть целым числом больше нуля.');
+  /**
+   * Базовое количество бывает дробным (0,5 кг по мере — FR7c), число
+   * упаковок — только целым.
+   */
+  private assertPositive(qty: number, pkg?: OfferPackageDelta): void {
+    if (!Number.isFinite(qty) || qty <= 0) {
+      throw new BadRequestException('Количество должно быть больше нуля.');
+    }
+    if (pkg && (!Number.isInteger(pkg.count) || pkg.count <= 0)) {
+      throw new BadRequestException('Число упаковок должно быть целым и больше нуля.');
     }
   }
 
@@ -133,16 +150,28 @@ export class MarketplaceOfferCountersService {
     }
   }
 
-  private emit(offer: MarketplaceOfferDomainEntity, op: string, qty: number): void {
+  private emit(
+    offer: MarketplaceOfferDomainEntity,
+    op: 'block' | 'unblock' | 'consume' | 'rollback',
+    qty: number,
+    pkg?: OfferPackageDelta
+  ): void {
     this.eventBus.emit(MarketplaceOfferCountersService.EVENT_CHANGED, {
       offer_id: offer.id,
       supplier_account: offer.supplier_account,
       op,
       qty,
+      package: pkg ?? null,
       quantity_available: offer.quantity_available,
       quantity_blocked: offer.quantity_blocked,
       quantity_consumed: offer.quantity_consumed,
       unlimited_flag: offer.unlimited_flag,
+      packages: (offer.packages ?? []).map((p) => ({
+        id: p.id,
+        quantity_available: p.quantity_available ?? 0,
+        quantity_blocked: p.quantity_blocked ?? 0,
+        quantity_consumed: p.quantity_consumed ?? 0,
+      })),
     });
   }
 }

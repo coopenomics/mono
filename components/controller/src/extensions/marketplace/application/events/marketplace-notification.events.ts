@@ -224,11 +224,21 @@ export interface MarketplaceOfferCountersChangedEvent {
   offer_id: string;
   supplier_account: string;
   op: 'block' | 'unblock' | 'consume' | 'rollback';
+  /** Базовое количество движения. */
   qty: number;
+  /** Заказанная упаковка и число упаковок; null — отпуск по мере. */
+  package: { id: string; count: number } | null;
   quantity_available: number;
   quantity_blocked: number;
   quantity_consumed: number;
   unlimited_flag: boolean;
+  /** Счётчики упаковок после движения — в упаковках; пусто при отпуске по мере. */
+  packages: Array<{
+    id: string;
+    quantity_available: number;
+    quantity_blocked: number;
+    quantity_consumed: number;
+  }>;
 }
 
 export interface MarketplaceOfferApprovedEvent {

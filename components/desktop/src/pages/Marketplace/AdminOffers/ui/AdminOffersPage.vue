@@ -11,8 +11,8 @@ import { onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { FailAlert } from 'src/shared/api';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
-import { marketplaceQuantityLabel } from 'src/shared/lib/consts/marketplace-units';
-import { applyMembershipFee, getMembershipFeePercent } from 'src/shared/lib/marketplace';
+import { MarketplaceSaleForm, marketplaceQuantityLabel } from 'src/shared/lib/consts/marketplace-units';
+import { applyMembershipFee, getMembershipFeePercent, marketplacePackageStockLabel } from 'src/shared/lib/marketplace';
 import { useSystemStore } from 'src/entities/System/model';
 import { useFioCache } from 'src/shared/lib/account/useFioCache';
 import { BaseBadge, BaseButton, EmptyState } from 'src/shared/ui/base';
@@ -89,6 +89,10 @@ function formatPrice(v: string | null | undefined): string {
 }
 function availableLabel(o: AdminOfferView): string {
   if (o.unlimited_flag) return 'Без ограничений';
+  // Остаток при отпуске упаковкой — по упаковкам.
+  if (o.sale_form === MarketplaceSaleForm.PACKAGED && o.packages.length) {
+    return marketplacePackageStockLabel(o.packages, o.unit_of_measure);
+  }
   return marketplaceQuantityLabel(o.quantity_available, o.unit_of_measure);
 }
 function formatWarranty(days: number | null | undefined): string {

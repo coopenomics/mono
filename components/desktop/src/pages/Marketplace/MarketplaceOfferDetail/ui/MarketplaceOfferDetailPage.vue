@@ -8,8 +8,14 @@ import { BaseButton, BaseBadge, EmptyState } from 'src/shared/ui/base';
 import { OfferGallery } from 'src/widgets/Marketplace/OfferGallery';
 import { CartHeaderButton } from 'src/widgets/Marketplace/CartHeaderButton';
 import { marketplaceOrderUnitLabel } from 'src/shared/lib/consts';
+import { MarketplaceSaleForm } from 'src/shared/lib/consts/marketplace-units';
 import { marketplaceOfferImageUrls } from 'src/shared/lib/utils';
-import { useMarketplaceRealtime, getMembershipFeePercent, applyMembershipFee } from 'src/shared/lib/marketplace';
+import {
+  useMarketplaceRealtime,
+  getMembershipFeePercent,
+  applyMembershipFee,
+  marketplacePackageStockLabel,
+} from 'src/shared/lib/marketplace';
 import { useMarketplaceCartStore } from 'src/entities/MarketplaceCart';
 import { useOfferModeration } from 'src/features/Marketplace/OfferModeration';
 import { fetchCategories } from '../../MarketplaceCatalog/api';
@@ -99,9 +105,13 @@ const canOrder = computed(
 const stockLabel = computed(() => {
   if (!offer.value) return '';
   if (offer.value.unlimited_flag) return 'Без ограничения остатка';
-  return isEmpty.value
-    ? 'Нет в наличии'
-    : `В наличии: ${offer.value.quantity_available}×${unitShort.value}`;
+  if (isEmpty.value) return 'Нет в наличии';
+  // Остаток при отпуске упаковкой ведётся на каждой упаковке — показываем
+  // по упаковкам, а не одним числом литров.
+  if (offer.value.sale_form === MarketplaceSaleForm.PACKAGED && offer.value.packages.length) {
+    return `В наличии: ${marketplacePackageStockLabel(offer.value.packages, offer.value.unit_of_measure)}`;
+  }
+  return `В наличии: ${offer.value.quantity_available}×${unitShort.value}`;
 });
 
 // requirement b6: единая ставка членского взноса входит в цену для всех,

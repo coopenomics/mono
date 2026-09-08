@@ -9,6 +9,7 @@ import type {
   MarketplaceOfferPackageInput,
   MarketplaceOfferStatus,
   MarketplaceSaleForm,
+  OfferPackageDelta,
 } from '../entities/marketplace-offer.types';
 import type { PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
 
@@ -87,6 +88,10 @@ export interface OfferUpdateInput {
 /**
  * Story 3.4 — атомарные дельты counters Offer'а.
  *
+ * `qty` — базовое количество для счётчиков предложения; `pkg` — заказанная
+ * упаковка и число упаковок для её собственных счётчиков (остаток по
+ * упаковкам). Оба движения выполняются одной командой.
+ *
  * Каждый из методов выполняется одним SQL UPDATE с returning, чтобы:
  *  (а) избежать race condition между read-modify-write при параллельных
  *      Order-блокировках одного Offer'а;
@@ -145,7 +150,7 @@ export interface MarketplaceOfferDomainRepository {
    *   - quantity_available -= K (если не unlimited);
    *   - требование: status='ACTIVE' AND (unlimited OR available >= K).
    */
-  applyBlockDelta(offer_id: string, qty: number): Promise<OfferCountersDeltaResult>;
+  applyBlockDelta(offer_id: string, qty: number, pkg?: OfferPackageDelta): Promise<OfferCountersDeltaResult>;
 
   /**
    * Order отменён / цикл expire / поставщик отказался → возврат
@@ -154,7 +159,7 @@ export interface MarketplaceOfferDomainRepository {
    *   - quantity_available += K (если не unlimited);
    *   - требование: blocked >= K.
    */
-  applyUnblockDelta(offer_id: string, qty: number): Promise<OfferCountersDeltaResult>;
+  applyUnblockDelta(offer_id: string, qty: number, pkg?: OfferPackageDelta): Promise<OfferCountersDeltaResult>;
 
   /**
    * Выдача пайщику (consum/consum2) → K единиц перемещаются
@@ -163,7 +168,7 @@ export interface MarketplaceOfferDomainRepository {
    *   - quantity_consumed += K;
    *   - требование: blocked >= K.
    */
-  applyConsumeDelta(offer_id: string, qty: number): Promise<OfferCountersDeltaResult>;
+  applyConsumeDelta(offer_id: string, qty: number, pkg?: OfferPackageDelta): Promise<OfferCountersDeltaResult>;
 
   /**
    * Fork rollback (ADR-005): Order был в block-состоянии и откатывается
@@ -177,5 +182,5 @@ export interface MarketplaceOfferDomainRepository {
    * Дёргается из ForkRegistry handler'а `MarketplaceOrderSyncService`.
    * См. spec-3-4-bc-integration.md секция 3.1.
    */
-  applyRollbackDelta(offer_id: string, qty: number): Promise<OfferCountersDeltaResult>;
+  applyRollbackDelta(offer_id: string, qty: number, pkg?: OfferPackageDelta): Promise<OfferCountersDeltaResult>;
 }

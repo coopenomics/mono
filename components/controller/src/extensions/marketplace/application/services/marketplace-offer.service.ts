@@ -35,6 +35,7 @@ import {
   MarketplaceSaleForms,
 } from '../../domain/entities/marketplace-offer.types';
 import { MARKETPLACE_UNIT_PRECISION } from '../shared/quantity.util';
+import { packagedBaseQuantity } from '../shared/packaging.util';
 import { randomUUID } from 'crypto';
 import { MarketplaceOfferImagesService } from './marketplace-offer-images.service';
 import {
@@ -166,7 +167,13 @@ export class MarketplaceOfferService {
     // за базовую единицу выводится из упаковки по умолчанию — для витрины/
     // сортировки каталога; истина по деньгам — цена самой упаковки.
     const sale_form = input.sale_form ?? MarketplaceSaleForms.BY_MEASURE;
-    const packages = this.buildPackages(sale_form, input.packages ?? [], input.unit_of_measure);
+    const packages = this.buildPackages(
+      sale_form,
+      input.packages ?? [],
+      input.unit_of_measure,
+      [],
+      input.unlimited_flag
+    );
     const price_per_unit =
       sale_form === MarketplaceSaleForms.PACKAGED
         ? this.deriveDisplayUnitPrice(packages, input.unit_of_measure)
@@ -189,7 +196,7 @@ export class MarketplaceOfferService {
       unit_of_measure: input.unit_of_measure,
       sale_form,
       packages,
-      quantity_available: input.unlimited_flag ? 0 : (input.quantity_available ?? 0),
+      quantity_available: this.initialQuantity(input, sale_form, packages),
       unlimited_flag: input.unlimited_flag,
       delivery_points: this.normalizeDeliveryPoints(input.delivery_points),
       shelf_life_days: input.shelf_life_days,
@@ -243,24 +250,8 @@ export class MarketplaceOfferService {
       throw new BadRequestException('Срок годности не может быть отрицательным.');
     }
 
-    // Эпик 18: способ отпуска / каталог упаковок. Нормализуем на объединении
-    // patch и текущего оффера (переключение by_measure↔packaged требует
-    // согласованного набора упаковок и единицы измерения).
     if (patch.sale_form !== undefined || patch.packages !== undefined) {
-      const merged_sale_form = patch.sale_form ?? offer.sale_form;
-      const merged_unit = patch.unit_of_measure ?? offer.unit_of_measure;
-      const raw_packages = patch.packages ?? offer.packages;
-      const normalized = this.buildPackages(
-        merged_sale_form,
-        raw_packages,
-        merged_unit,
-        offer.packages ?? []
-      );
-      patch.sale_form = merged_sale_form;
-      patch.packages = normalized;
-      if (merged_sale_form === MarketplaceSaleForms.PACKAGED) {
-        patch.price_per_unit = this.deriveDisplayUnitPrice(normalized, merged_unit);
-      }
+      this.applyPackagesPatch(offer, patch);
     }
 
     if (patch.barcode_strategy !== undefined || patch.pack_size !== undefined) {
@@ -482,10 +473,11 @@ export class MarketplaceOfferService {
     this.assertUnit(input.unit_of_measure);
     this.assertDeliveryPoints(input.delivery_points);
 
-    if (!input.unlimited_flag) {
+    // При отпуске упаковкой остаток задаётся на каждой упаковке (см. buildPackages).
+    if (!input.unlimited_flag && input.sale_form !== MarketplaceSaleForms.PACKAGED) {
       if (input.quantity_available === null || input.quantity_available < 0) {
         throw new BadRequestException(
-          'Укажите количество товара (целое неотрицательное число) или включите «без ограничения».'
+          'Укажите количество товара (неотрицательное число) или включите «без ограничения».'
         );
       }
     }
@@ -558,7 +550,8 @@ export class MarketplaceOfferService {
     sale_form: MarketplaceSaleForm,
     raw: MarketplaceOfferPackageInput[],
     unit: MarketplaceUnitOfMeasure,
-    existing: MarketplaceOfferPackage[] = []
+    existing: MarketplaceOfferPackage[] = [],
+    unlimited = false
   ): MarketplaceOfferPackage[] {
     if (sale_form !== MarketplaceSaleForms.PACKAGED) {
       return [];
@@ -574,28 +567,7 @@ export class MarketplaceOfferService {
     const takenIds = new Set<string>();
     let hasDefault = false;
     const packages: MarketplaceOfferPackage[] = raw.map((p, index) => {
-      if (!Number.isFinite(p.size) || p.size <= 0) {
-        throw new BadRequestException('Размер упаковки должен быть больше нуля.');
-      }
-      const scaled = p.size * 10 ** precision;
-      if (Math.abs(scaled - Math.round(scaled)) > 1e-9) {
-        throw new BadRequestException(
-          `Размер упаковки допускает не более ${precision} знаков после запятой для этой единицы.`
-        );
-      }
-      if (typeof p.price !== 'string' || !/^\d+(\.\d{1,4})?$/.test(p.price) || Number.parseFloat(p.price) <= 0) {
-        throw new BadRequestException('Цена упаковки должна быть положительным числом (до 4 знаков).');
-      }
-      // Вид упаковки обязателен: заказчик должен знать, в чём получит товар.
-      const package_type = typeof p.package_type === 'string' ? p.package_type.trim() : '';
-      if (!package_type) {
-        throw new BadRequestException(
-          'Укажите вид упаковки — в чём поставляется товар (например «стекло», «пластиковая бутылка», «корзинка»).'
-        );
-      }
-      if (package_type.length > 64) {
-        throw new BadRequestException('Вид упаковки не длиннее 64 символов.');
-      }
+      const package_type = this.assertPackageInput(p, precision);
       const is_default = p.is_default === true && !hasDefault;
       if (is_default) hasDefault = true;
       // Чужой или повторно присланный идентификатор игнорируем — упаковка
@@ -610,12 +582,109 @@ export class MarketplaceOfferService {
         package_type,
         sort_order: index,
         is_default,
+        ...this.packageCounters(p, existing.find((e) => e.id === keptId), unlimited),
       };
     });
     if (!hasDefault) {
       packages[0] = { ...packages[0], is_default: true };
     }
     return packages;
+  }
+
+  /** Содержимое, цена и тара одной упаковки; возвращает нормализованный вид тары. */
+  private assertPackageInput(p: MarketplaceOfferPackageInput, precision: number): string {
+    if (!Number.isFinite(p.size) || p.size <= 0) {
+      throw new BadRequestException('Размер упаковки должен быть больше нуля.');
+    }
+    const scaled = p.size * 10 ** precision;
+    if (Math.abs(scaled - Math.round(scaled)) > 1e-9) {
+      throw new BadRequestException(
+        `Размер упаковки допускает не более ${precision} знаков после запятой для этой единицы.`
+      );
+    }
+    if (typeof p.price !== 'string' || !/^\d+(\.\d{1,4})?$/.test(p.price) || Number.parseFloat(p.price) <= 0) {
+      throw new BadRequestException('Цена упаковки должна быть положительным числом (до 4 знаков).');
+    }
+    // Вид упаковки обязателен: заказчик должен знать, в чём получит товар.
+    const package_type = typeof p.package_type === 'string' ? p.package_type.trim() : '';
+    if (!package_type) {
+      throw new BadRequestException(
+        'Укажите вид упаковки — в чём поставляется товар (например «стекло», «пластиковая бутылка», «корзинка»).'
+      );
+    }
+    if (package_type.length > 64) {
+      throw new BadRequestException('Вид упаковки не длиннее 64 символов.');
+    }
+    return package_type;
+  }
+
+  /**
+   * Эпик 18: способ отпуска / каталог упаковок при правке. Нормализуем на
+   * объединении patch и текущего оффера (переключение by_measure↔packaged
+   * требует согласованного набора упаковок и единицы измерения). Свободный
+   * остаток предложения при отпуске упаковкой — сумма по упаковкам; отдельно
+   * поставщик его не задаёт.
+   */
+  private applyPackagesPatch(offer: MarketplaceOfferDomainEntity, patch: OfferUpdateInput): void {
+    const merged_sale_form = patch.sale_form ?? offer.sale_form;
+    const merged_unit = patch.unit_of_measure ?? offer.unit_of_measure;
+    const merged_unlimited = patch.unlimited_flag ?? offer.unlimited_flag;
+    const normalized = this.buildPackages(
+      merged_sale_form,
+      patch.packages ?? offer.packages,
+      merged_unit,
+      offer.packages ?? [],
+      merged_unlimited
+    );
+    patch.sale_form = merged_sale_form;
+    patch.packages = normalized;
+    if (merged_sale_form === MarketplaceSaleForms.PACKAGED) {
+      patch.price_per_unit = this.deriveDisplayUnitPrice(normalized, merged_unit);
+      patch.quantity_available = merged_unlimited
+        ? 0
+        : packagedBaseQuantity(normalized, 'quantity_available', merged_unit);
+    }
+  }
+
+  /**
+   * Счётчики упаковки: свободное задаёт поставщик (в упаковках), при правке
+   * пустое значение оставляет прежнее; заблокированное и выданное ведут
+   * заказы и переносятся как есть. Безлимит обнуляет свободное — оно не
+   * считается.
+   */
+  private packageCounters(
+    p: MarketplaceOfferPackageInput,
+    existing: MarketplaceOfferPackage | undefined,
+    unlimited: boolean
+  ): Pick<MarketplaceOfferPackage, 'quantity_available' | 'quantity_blocked' | 'quantity_consumed'> {
+    const available = p.quantity_available ?? existing?.quantity_available ?? null;
+    if (!unlimited && (available === null || !Number.isInteger(available) || available < 0)) {
+      throw new BadRequestException(
+        'Укажите, сколько упаковок каждого вида свободно к заказу (целое число, не меньше нуля), или включите «без ограничения».'
+      );
+    }
+    return {
+      quantity_available: unlimited ? 0 : (available as number),
+      quantity_blocked: existing?.quantity_blocked ?? 0,
+      quantity_consumed: existing?.quantity_consumed ?? 0,
+    };
+  }
+
+  /**
+   * Свободный остаток предложения при создании: по мере — что указал
+   * поставщик, упаковкой — сумма остатков упаковок в базовых единицах;
+   * безлимит — ноль.
+   */
+  private initialQuantity(
+    input: { unlimited_flag: boolean; quantity_available: number | null; unit_of_measure: MarketplaceUnitOfMeasure },
+    sale_form: MarketplaceSaleForm,
+    packages: MarketplaceOfferPackage[]
+  ): number {
+    if (input.unlimited_flag) return 0;
+    if (sale_form === MarketplaceSaleForms.PACKAGED) {
+      return packagedBaseQuantity(packages, 'quantity_available', input.unit_of_measure);
+    }
+    return input.quantity_available ?? 0;
   }
 
   /**

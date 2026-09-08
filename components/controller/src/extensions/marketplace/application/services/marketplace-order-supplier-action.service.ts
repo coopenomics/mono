@@ -25,6 +25,7 @@ import {
 import type { MarketplaceOrderDomainEntity } from '../../domain/entities/marketplace-order.entity';
 import { MarketplaceOrderStatuses } from '../../domain/entities/marketplace-order.types';
 import { normalizeChainTxHash } from '../shared/chain-tx.util';
+import { packageDeltaOfOrder } from '../shared/packaging.util';
 
 import {
   MARKETPLACE_ORDER_DECLINED_BY_SUPPLIER_EVENT,
@@ -348,7 +349,7 @@ export class MarketplaceOrderSupplierActionService {
     }
 
     try {
-      await this.offerCounters.onOrderUnblocked(order.offer_id, order.quantity);
+      await this.offerCounters.onOrderUnblocked(order.offer_id, order.quantity, packageDeltaOfOrder(order));
     } catch (counterErr: any) {
       this.logger.warn(
         `MarketplaceOrderSupplierActionService: counter onOrderUnblocked упал (offer=${order.offer_id}, qty=${order.quantity}, order=${order.id}): ${counterErr.message} — продолжаю applyStatusTransition`

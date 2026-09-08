@@ -23,6 +23,7 @@ export class MarketplaceOrderMapper {
       unit_of_measure: row.unit_of_measure,
       price_per_unit: row.price_per_unit,
       package_size: row.package_size ?? 0,
+      package_id: row.package_id ?? null,
       total_cost: row.total_cost,
       membership_fee: row.membership_fee ?? null,
       cycle_id: row.cycle_id,

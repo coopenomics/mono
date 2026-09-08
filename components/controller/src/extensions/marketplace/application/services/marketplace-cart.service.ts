@@ -237,8 +237,9 @@ export class MarketplaceCartService {
           available_on_current_ku: available,
           blocker,
           // Безлимитное предложение → null (клиент не ограничивает ввод); иначе —
-          // остаток на предложении как потолок количества в корзине.
-          max_available: offer && !offer.unlimited_flag ? offer.quantity_available : null,
+          // потолок в единицах отпуска строки: упаковок выбранной упаковки либо
+          // базовых единиц по мере.
+          max_available: cartLineMaxAvailable(offer, pkg),
         });
       })
     );
@@ -255,4 +256,16 @@ export class MarketplaceCartService {
         : minorToDecimalString(0n, decimals),
     });
   }
+}
+
+/**
+ * Потолок количества строки корзины в её единицах отпуска: упаковок выбранной
+ * упаковки при отпуске упаковкой, базовых единиц по мере; безлимит — null.
+ */
+function cartLineMaxAvailable(
+  offer: { unlimited_flag: boolean; quantity_available: number } | null | undefined,
+  pkg: { quantity_available?: number } | null | undefined
+): number | null {
+  if (!offer || offer.unlimited_flag) return null;
+  return pkg ? (pkg.quantity_available ?? 0) : offer.quantity_available;
 }

@@ -16,6 +16,7 @@ import {
 } from '../../domain/ports/marketplace-canonical-blockchain.port';
 import type { MarketplaceOrderDomainEntity } from '../../domain/entities/marketplace-order.entity';
 import { normalizeChainTxHash } from '../shared/chain-tx.util';
+import { packageDeltaOfOrder } from '../shared/packaging.util';
 
 
 export interface MarketplaceOrderCancelInputDto {
@@ -132,7 +133,7 @@ export class MarketplaceOrderCancelService {
 
     // ── 3. Counter onOrderUnblocked (best-effort) ───────────────────
     try {
-      await this.offerCounters.onOrderUnblocked(order.offer_id, order.quantity);
+      await this.offerCounters.onOrderUnblocked(order.offer_id, order.quantity, packageDeltaOfOrder(order));
     } catch (counterErr: any) {
       this.logger.warn(
         `MarketplaceOrderCancelService: counter onOrderUnblocked упал (offer=${order.offer_id}, qty=${order.quantity}, order=${order.id}): ${counterErr.message} — продолжаю applyStatusTransition`

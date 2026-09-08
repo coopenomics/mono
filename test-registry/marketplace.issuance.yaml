@@ -344,3 +344,7 @@ cases:
       свободного паевого, затем issuestmt без документа
     test: components/controller/tests/unit/marketplace/marketplace-convert-statement.test.ts
     status: written
+
+# 2026-09-08: остаток по упаковкам — в докладке со склада (`marketplace-stock-proposal.service.ts`)
+# нехватка сверяется по выбранной упаковке, а не по базовым единицам предложения остатка;
+# набор случаев выдачи не менялся, гард докладки — mkt.stock.side.10.

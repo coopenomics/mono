@@ -25,7 +25,7 @@ import {
   MARKETPLACE_ISSUANCE_SAGA_REPOSITORY,
   type MarketplaceIssuanceSagaDomainRepository,
 } from '../../domain/repositories/marketplace-issuance-saga.repository';
-import { resolveSaleUnit, type ResolvedSaleUnit } from '../shared/packaging.util';
+import { resolveSaleUnit, saleUnitShortfall, type ResolvedSaleUnit } from '../shared/packaging.util';
 import {
   MARKETPLACE_ISSUANCE_SERVICE,
   type MarketplaceIssuanceService,
@@ -327,9 +327,10 @@ export class MarketplaceStockProposalService {
       throw new BadRequestException(`«${offer.product_name}» снят с публикации.`);
     }
     const resolved = resolveSaleUnit(offer, quantity, package_id);
-    if (offer.quantity_available < resolved.baseQuantity) {
+    const shortfall = saleUnitShortfall(offer, resolved);
+    if (shortfall) {
       throw new BadRequestException(
-        `«${offer.product_name}»: на складе свободно ${offer.quantity_available} ед., нельзя предложить ${resolved.baseQuantity}.`
+        `«${offer.product_name}»: на складе свободно ${shortfall.available} ${shortfall.unitLabel}, нельзя предложить ${shortfall.requested}.`
       );
     }
     return { offer, resolved };

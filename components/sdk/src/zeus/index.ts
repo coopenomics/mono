@@ -9156,7 +9156,7 @@ export type ValueTypes = {
 	image_url?:boolean | `@${string}`,
 	/** Сумма позиции (цена за единицу × количество). */
 	line_total?:boolean | `@${string}`,
-	/** Максимально доступное количество единиц по предложению. null — без ограничения (можно заказать любое количество). */
+	/** Потолок количества строки в её единицах отпуска: упаковок выбранной упаковки при отпуске упаковкой, базовых единиц по мере. null — без ограничения (можно заказать любое количество). */
 	max_available?:boolean | `@${string}`,
 	/** Идентификатор предложения. */
 	offer_id?:boolean | `@${string}`,
@@ -9544,6 +9544,7 @@ export type ValueTypes = {
 	/** Цена за базовую единицу товара (кг/л/шт) при отпуске по мере. numeric как string, до 4 знаков. При отпуске упаковкой цена задаётся у каждой упаковки. */
 	price_per_unit: string | Variable<any, string>,
 	product_name: string | Variable<any, string>,
+	/** Свободный остаток в базовых единицах при отпуске по мере. При отпуске упаковкой не используется — остаток задаётся на каждой упаковке в `packages`. */
 	quantity_available?: number | undefined | null | Variable<any, string>,
 	/** Способ отпуска: по мере (by_measure, по умолчанию) или упаковкой (packaged). При упаковкой обязателен непустой список упаковок. */
 	sale_form?: ValueTypes["MarketplaceSaleForm"] | undefined | null | Variable<any, string>,
@@ -10195,6 +10196,7 @@ export type ValueTypes = {
 	/** Цена за одну единицу заказа (фасовку). numeric как string. */
 	price_per_unit?:boolean | `@${string}`,
 	product_name?:boolean | `@${string}`,
+	/** Свободно к заказу в базовых единицах. При отпуске упаковкой — сумма по упаковкам; остаток каждой упаковки смотрите в `packages`. */
 	quantity_available?:boolean | `@${string}`,
 	quantity_blocked?:boolean | `@${string}`,
 	quantity_consumed?:boolean | `@${string}`,
@@ -10287,6 +10289,12 @@ export type ValueTypes = {
 	package_type?:boolean | `@${string}`,
 	/** Цена за одну упаковку (numeric-строка). */
 	price?:boolean | `@${string}`,
+	/** Свободно к заказу — в упаковках этого вида. */
+	quantity_available?:boolean | `@${string}`,
+	/** Заблокировано под заказы — в упаковках. */
+	quantity_blocked?:boolean | `@${string}`,
+	/** Выдано пайщикам — в упаковках. */
+	quantity_consumed?:boolean | `@${string}`,
 	/** Содержимое одной упаковки в базовой единице (0,5 л/кг; 12 шт). */
 	size?:boolean | `@${string}`,
 	/** Порядок показа упаковки в карточке. */
@@ -10305,9 +10313,20 @@ export type ValueTypes = {
 	package_type: string | Variable<any, string>,
 	/** Цена за одну упаковку (numeric-строка, до 4 знаков). */
 	price: string | Variable<any, string>,
+	/** Сколько упаковок этого вида свободно к заказу. Обязательно при ограниченном остатке; при правке пустое значение оставляет прежний остаток упаковки. */
+	quantity_available?: number | undefined | null | Variable<any, string>,
 	/** Содержимое одной упаковки в базовой единице (0,5 л/кг; 12 шт). */
 	size: number | Variable<any, string>
 };
+	/** Свободный остаток одной упаковки предложения — в упаковках. */
+["MarketplaceOfferPackageStock"]: AliasType<{
+	/** Идентификатор упаковки в каталоге предложения. */
+	package_id?:boolean | `@${string}`,
+	/** Свободно к заказу упаковок. */
+	quantity_available?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on MarketplaceOfferPackageStock']?: Omit<ValueTypes["MarketplaceOfferPackageStock"], "...on MarketplaceOfferPackageStock">
+}>;
 	["MarketplaceOfferPaginationResult"]: AliasType<{
 	/** Текущая страница */
 	currentPage?:boolean | `@${string}`,
@@ -10335,7 +10354,9 @@ export type ValueTypes = {
 ["MarketplaceOfferStockChangedEvent"]: AliasType<{
 	/** Идентификатор предложения. */
 	offer_id?:boolean | `@${string}`,
-	/** Доступное к заказу количество единиц. */
+	/** Свободный остаток по упаковкам при отпуске упаковкой; пусто при отпуске по мере. */
+	packages?:ValueTypes["MarketplaceOfferPackageStock"],
+	/** Доступное к заказу количество базовых единиц. */
 	quantity_available?:boolean | `@${string}`,
 	/** Предложение без ограничения по количеству. */
 	unlimited_flag?:boolean | `@${string}`,
@@ -10422,6 +10443,8 @@ export type ValueTypes = {
 	orderer_name?:boolean | `@${string}`,
 	/** Прошёл ли получатель верификацию личности, требуемую для выдачи имущества (null — вердикт не запрашивался). */
 	orderer_verification_passed?:boolean | `@${string}`,
+	/** Упаковка каталога предложения, которой оформлен заказ; пусто — отпуск по мере либо заказ до учёта остатка по упаковкам. */
+	package_id?:boolean | `@${string}`,
 	/** Содержимое упаковки в базовой единице (Эпик 18): 0 — отпуск по мере, иначе quantity/package_size — число упаковок в заказе. */
 	package_size?:boolean | `@${string}`,
 	/** Цена за единицу товара на момент заказа. */
@@ -24750,7 +24773,7 @@ export type ResolverInputTypes = {
 	image_url?:boolean | `@${string}`,
 	/** Сумма позиции (цена за единицу × количество). */
 	line_total?:boolean | `@${string}`,
-	/** Максимально доступное количество единиц по предложению. null — без ограничения (можно заказать любое количество). */
+	/** Потолок количества строки в её единицах отпуска: упаковок выбранной упаковки при отпуске упаковкой, базовых единиц по мере. null — без ограничения (можно заказать любое количество). */
 	max_available?:boolean | `@${string}`,
 	/** Идентификатор предложения. */
 	offer_id?:boolean | `@${string}`,
@@ -25121,6 +25144,7 @@ export type ResolverInputTypes = {
 	/** Цена за базовую единицу товара (кг/л/шт) при отпуске по мере. numeric как string, до 4 знаков. При отпуске упаковкой цена задаётся у каждой упаковки. */
 	price_per_unit: string,
 	product_name: string,
+	/** Свободный остаток в базовых единицах при отпуске по мере. При отпуске упаковкой не используется — остаток задаётся на каждой упаковке в `packages`. */
 	quantity_available?: number | undefined | null,
 	/** Способ отпуска: по мере (by_measure, по умолчанию) или упаковкой (packaged). При упаковкой обязателен непустой список упаковок. */
 	sale_form?: ResolverInputTypes["MarketplaceSaleForm"] | undefined | null,
@@ -25757,6 +25781,7 @@ export type ResolverInputTypes = {
 	/** Цена за одну единицу заказа (фасовку). numeric как string. */
 	price_per_unit?:boolean | `@${string}`,
 	product_name?:boolean | `@${string}`,
+	/** Свободно к заказу в базовых единицах. При отпуске упаковкой — сумма по упаковкам; остаток каждой упаковки смотрите в `packages`. */
 	quantity_available?:boolean | `@${string}`,
 	quantity_blocked?:boolean | `@${string}`,
 	quantity_consumed?:boolean | `@${string}`,
@@ -25845,6 +25870,12 @@ export type ResolverInputTypes = {
 	package_type?:boolean | `@${string}`,
 	/** Цена за одну упаковку (numeric-строка). */
 	price?:boolean | `@${string}`,
+	/** Свободно к заказу — в упаковках этого вида. */
+	quantity_available?:boolean | `@${string}`,
+	/** Заблокировано под заказы — в упаковках. */
+	quantity_blocked?:boolean | `@${string}`,
+	/** Выдано пайщикам — в упаковках. */
+	quantity_consumed?:boolean | `@${string}`,
 	/** Содержимое одной упаковки в базовой единице (0,5 л/кг; 12 шт). */
 	size?:boolean | `@${string}`,
 	/** Порядок показа упаковки в карточке. */
@@ -25862,9 +25893,19 @@ export type ResolverInputTypes = {
 	package_type: string,
 	/** Цена за одну упаковку (numeric-строка, до 4 знаков). */
 	price: string,
+	/** Сколько упаковок этого вида свободно к заказу. Обязательно при ограниченном остатке; при правке пустое значение оставляет прежний остаток упаковки. */
+	quantity_available?: number | undefined | null,
 	/** Содержимое одной упаковки в базовой единице (0,5 л/кг; 12 шт). */
 	size: number
 };
+	/** Свободный остаток одной упаковки предложения — в упаковках. */
+["MarketplaceOfferPackageStock"]: AliasType<{
+	/** Идентификатор упаковки в каталоге предложения. */
+	package_id?:boolean | `@${string}`,
+	/** Свободно к заказу упаковок. */
+	quantity_available?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
 	["MarketplaceOfferPaginationResult"]: AliasType<{
 	/** Текущая страница */
 	currentPage?:boolean | `@${string}`,
@@ -25890,7 +25931,9 @@ export type ResolverInputTypes = {
 ["MarketplaceOfferStockChangedEvent"]: AliasType<{
 	/** Идентификатор предложения. */
 	offer_id?:boolean | `@${string}`,
-	/** Доступное к заказу количество единиц. */
+	/** Свободный остаток по упаковкам при отпуске упаковкой; пусто при отпуске по мере. */
+	packages?:ResolverInputTypes["MarketplaceOfferPackageStock"],
+	/** Доступное к заказу количество базовых единиц. */
 	quantity_available?:boolean | `@${string}`,
 	/** Предложение без ограничения по количеству. */
 	unlimited_flag?:boolean | `@${string}`,
@@ -25975,6 +26018,8 @@ export type ResolverInputTypes = {
 	orderer_name?:boolean | `@${string}`,
 	/** Прошёл ли получатель верификацию личности, требуемую для выдачи имущества (null — вердикт не запрашивался). */
 	orderer_verification_passed?:boolean | `@${string}`,
+	/** Упаковка каталога предложения, которой оформлен заказ; пусто — отпуск по мере либо заказ до учёта остатка по упаковкам. */
+	package_id?:boolean | `@${string}`,
 	/** Содержимое упаковки в базовой единице (Эпик 18): 0 — отпуск по мере, иначе quantity/package_size — число упаковок в заказе. */
 	package_size?:boolean | `@${string}`,
 	/** Цена за единицу товара на момент заказа. */
@@ -39860,7 +39905,7 @@ export type ModelTypes = {
 	image_url?: string | undefined | null,
 	/** Сумма позиции (цена за единицу × количество). */
 	line_total?: string | undefined | null,
-	/** Максимально доступное количество единиц по предложению. null — без ограничения (можно заказать любое количество). */
+	/** Потолок количества строки в её единицах отпуска: упаковок выбранной упаковки при отпуске упаковкой, базовых единиц по мере. null — без ограничения (можно заказать любое количество). */
 	max_available?: number | undefined | null,
 	/** Идентификатор предложения. */
 	offer_id: string,
@@ -40212,6 +40257,7 @@ export type ModelTypes = {
 	/** Цена за базовую единицу товара (кг/л/шт) при отпуске по мере. numeric как string, до 4 знаков. При отпуске упаковкой цена задаётся у каждой упаковки. */
 	price_per_unit: string,
 	product_name: string,
+	/** Свободный остаток в базовых единицах при отпуске по мере. При отпуске упаковкой не используется — остаток задаётся на каждой упаковке в `packages`. */
 	quantity_available?: number | undefined | null,
 	/** Способ отпуска: по мере (by_measure, по умолчанию) или упаковкой (packaged). При упаковкой обязателен непустой список упаковок. */
 	sale_form?: ModelTypes["MarketplaceSaleForm"] | undefined | null,
@@ -40810,6 +40856,7 @@ export type ModelTypes = {
 	/** Цена за одну единицу заказа (фасовку). numeric как string. */
 	price_per_unit: string,
 	product_name: string,
+	/** Свободно к заказу в базовых единицах. При отпуске упаковкой — сумма по упаковкам; остаток каждой упаковки смотрите в `packages`. */
 	quantity_available: number,
 	quantity_blocked: number,
 	quantity_consumed: number,
@@ -40894,6 +40941,12 @@ export type ModelTypes = {
 	package_type?: string | undefined | null,
 	/** Цена за одну упаковку (numeric-строка). */
 	price: string,
+	/** Свободно к заказу — в упаковках этого вида. */
+	quantity_available: number,
+	/** Заблокировано под заказы — в упаковках. */
+	quantity_blocked: number,
+	/** Выдано пайщикам — в упаковках. */
+	quantity_consumed: number,
 	/** Содержимое одной упаковки в базовой единице (0,5 л/кг; 12 шт). */
 	size: number,
 	/** Порядок показа упаковки в карточке. */
@@ -40910,8 +40963,17 @@ export type ModelTypes = {
 	package_type: string,
 	/** Цена за одну упаковку (numeric-строка, до 4 знаков). */
 	price: string,
+	/** Сколько упаковок этого вида свободно к заказу. Обязательно при ограниченном остатке; при правке пустое значение оставляет прежний остаток упаковки. */
+	quantity_available?: number | undefined | null,
 	/** Содержимое одной упаковки в базовой единице (0,5 л/кг; 12 шт). */
 	size: number
+};
+	/** Свободный остаток одной упаковки предложения — в упаковках. */
+["MarketplaceOfferPackageStock"]: {
+		/** Идентификатор упаковки в каталоге предложения. */
+	package_id: string,
+	/** Свободно к заказу упаковок. */
+	quantity_available: number
 };
 	["MarketplaceOfferPaginationResult"]: {
 		/** Текущая страница */
@@ -40935,7 +40997,9 @@ export type ModelTypes = {
 ["MarketplaceOfferStockChangedEvent"]: {
 		/** Идентификатор предложения. */
 	offer_id: string,
-	/** Доступное к заказу количество единиц. */
+	/** Свободный остаток по упаковкам при отпуске упаковкой; пусто при отпуске по мере. */
+	packages: Array<ModelTypes["MarketplaceOfferPackageStock"]>,
+	/** Доступное к заказу количество базовых единиц. */
 	quantity_available: number,
 	/** Предложение без ограничения по количеству. */
 	unlimited_flag: boolean
@@ -41017,6 +41081,8 @@ export type ModelTypes = {
 	orderer_name?: string | undefined | null,
 	/** Прошёл ли получатель верификацию личности, требуемую для выдачи имущества (null — вердикт не запрашивался). */
 	orderer_verification_passed?: boolean | undefined | null,
+	/** Упаковка каталога предложения, которой оформлен заказ; пусто — отпуск по мере либо заказ до учёта остатка по упаковкам. */
+	package_id?: string | undefined | null,
 	/** Содержимое упаковки в базовой единице (Эпик 18): 0 — отпуск по мере, иначе quantity/package_size — число упаковок в заказе. */
 	package_size: number,
 	/** Цена за единицу товара на момент заказа. */
@@ -56234,7 +56300,7 @@ export type GraphQLTypes = {
 	image_url?: string | undefined | null,
 	/** Сумма позиции (цена за единицу × количество). */
 	line_total?: string | undefined | null,
-	/** Максимально доступное количество единиц по предложению. null — без ограничения (можно заказать любое количество). */
+	/** Потолок количества строки в её единицах отпуска: упаковок выбранной упаковки при отпуске упаковкой, базовых единиц по мере. null — без ограничения (можно заказать любое количество). */
 	max_available?: number | undefined | null,
 	/** Идентификатор предложения. */
 	offer_id: string,
@@ -56621,6 +56687,7 @@ export type GraphQLTypes = {
 	/** Цена за базовую единицу товара (кг/л/шт) при отпуске по мере. numeric как string, до 4 знаков. При отпуске упаковкой цена задаётся у каждой упаковки. */
 	price_per_unit: string,
 	product_name: string,
+	/** Свободный остаток в базовых единицах при отпуске по мере. При отпуске упаковкой не используется — остаток задаётся на каждой упаковке в `packages`. */
 	quantity_available?: number | undefined | null,
 	/** Способ отпуска: по мере (by_measure, по умолчанию) или упаковкой (packaged). При упаковкой обязателен непустой список упаковок. */
 	sale_form?: GraphQLTypes["MarketplaceSaleForm"] | undefined | null,
@@ -57274,6 +57341,7 @@ export type GraphQLTypes = {
 	/** Цена за одну единицу заказа (фасовку). numeric как string. */
 	price_per_unit: string,
 	product_name: string,
+	/** Свободно к заказу в базовых единицах. При отпуске упаковкой — сумма по упаковкам; остаток каждой упаковки смотрите в `packages`. */
 	quantity_available: number,
 	quantity_blocked: number,
 	quantity_consumed: number,
@@ -57366,6 +57434,12 @@ export type GraphQLTypes = {
 	package_type?: string | undefined | null,
 	/** Цена за одну упаковку (numeric-строка). */
 	price: string,
+	/** Свободно к заказу — в упаковках этого вида. */
+	quantity_available: number,
+	/** Заблокировано под заказы — в упаковках. */
+	quantity_blocked: number,
+	/** Выдано пайщикам — в упаковках. */
+	quantity_consumed: number,
 	/** Содержимое одной упаковки в базовой единице (0,5 л/кг; 12 шт). */
 	size: number,
 	/** Порядок показа упаковки в карточке. */
@@ -57383,8 +57457,19 @@ export type GraphQLTypes = {
 	package_type: string,
 	/** Цена за одну упаковку (numeric-строка, до 4 знаков). */
 	price: string,
+	/** Сколько упаковок этого вида свободно к заказу. Обязательно при ограниченном остатке; при правке пустое значение оставляет прежний остаток упаковки. */
+	quantity_available?: number | undefined | null,
 	/** Содержимое одной упаковки в базовой единице (0,5 л/кг; 12 шт). */
 	size: number
+};
+	/** Свободный остаток одной упаковки предложения — в упаковках. */
+["MarketplaceOfferPackageStock"]: {
+	__typename: "MarketplaceOfferPackageStock",
+	/** Идентификатор упаковки в каталоге предложения. */
+	package_id: string,
+	/** Свободно к заказу упаковок. */
+	quantity_available: number,
+	['...on MarketplaceOfferPackageStock']: Omit<GraphQLTypes["MarketplaceOfferPackageStock"], "...on MarketplaceOfferPackageStock">
 };
 	["MarketplaceOfferPaginationResult"]: {
 	__typename: "MarketplaceOfferPaginationResult",
@@ -57414,7 +57499,9 @@ export type GraphQLTypes = {
 	__typename: "MarketplaceOfferStockChangedEvent",
 	/** Идентификатор предложения. */
 	offer_id: string,
-	/** Доступное к заказу количество единиц. */
+	/** Свободный остаток по упаковкам при отпуске упаковкой; пусто при отпуске по мере. */
+	packages: Array<GraphQLTypes["MarketplaceOfferPackageStock"]>,
+	/** Доступное к заказу количество базовых единиц. */
 	quantity_available: number,
 	/** Предложение без ограничения по количеству. */
 	unlimited_flag: boolean,
@@ -57501,6 +57588,8 @@ export type GraphQLTypes = {
 	orderer_name?: string | undefined | null,
 	/** Прошёл ли получатель верификацию личности, требуемую для выдачи имущества (null — вердикт не запрашивался). */
 	orderer_verification_passed?: boolean | undefined | null,
+	/** Упаковка каталога предложения, которой оформлен заказ; пусто — отпуск по мере либо заказ до учёта остатка по упаковкам. */
+	package_id?: string | undefined | null,
 	/** Содержимое упаковки в базовой единице (Эпик 18): 0 — отпуск по мере, иначе quantity/package_size — число упаковок в заказе. */
 	package_size: number,
 	/** Цена за единицу товара на момент заказа. */

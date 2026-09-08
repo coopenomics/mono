@@ -91,9 +91,10 @@ const selectedPackage = computed(() =>
 const maxQuantity = computed(() => {
   if (!props.offer) return null;
   if (props.offer.unlimited_flag) return null;
-  // Остаток в базовых единицах; при упаковке — переводим в число упаковок.
-  if (isPackaged.value && selectedPackage.value) {
-    return Math.floor(props.offer.quantity_available / selectedPackage.value.size);
+  // Остаток ведётся на упаковке: бутылок нужного объёма может не быть при
+  // полном котле литров, поэтому делить общий остаток на размер нельзя.
+  if (isPackaged.value) {
+    return selectedPackage.value?.quantity_available ?? 0;
   }
   return props.offer.quantity_available;
 });

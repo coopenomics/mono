@@ -28,7 +28,7 @@ import {
   type MarketplaceOfferDomainRepository,
 } from '../../domain/repositories/marketplace-offer.repository';
 import { marketplaceOrderUnitLabel } from '../shared/unit-label.util';
-import { presentSaleUnit } from '../shared/packaging.util';
+import { presentSaleUnit, releasePackagesForPositions } from '../shared/packaging.util';
 import { calcCostAmount } from '../shared/cost.util';
 import type { MarketplaceWriteoffCandidate } from '../../domain/repositories/marketplace-inventory.repository';
 import type { MarketplaceInventoryOrigin } from '../../domain/entities/marketplace-inventory.types';
@@ -964,6 +964,7 @@ export class MarketplaceWriteoffService {
     if (!offer) return;
     await this.offerRepo.applyUpdate(offer.id, {
       quantity_available: Math.max(0, offer.quantity_available - inv.quantity_per_label),
+      packages: releasePackagesForPositions(offer.packages, [inv]),
     });
   }
 

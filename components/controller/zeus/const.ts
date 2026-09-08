@@ -6307,8 +6307,15 @@ export const ReturnTypes: Record<string,any> = {
 		label:"String",
 		package_type:"String",
 		price:"String",
+		quantity_available:"Float",
+		quantity_blocked:"Float",
+		quantity_consumed:"Float",
 		size:"Float",
 		sort_order:"Int"
+	},
+	MarketplaceOfferPackageStock:{
+		package_id:"String",
+		quantity_available:"Float"
 	},
 	MarketplaceOfferPaginationResult:{
 		currentPage:"Int",
@@ -6322,6 +6329,7 @@ export const ReturnTypes: Record<string,any> = {
 	},
 	MarketplaceOfferStockChangedEvent:{
 		offer_id:"String",
+		packages:"MarketplaceOfferPackageStock",
 		quantity_available:"Float",
 		unlimited_flag:"Boolean"
 	},
@@ -6365,6 +6373,7 @@ export const ReturnTypes: Record<string,any> = {
 		orderer_account:"String",
 		orderer_name:"String",
 		orderer_verification_passed:"Boolean",
+		package_id:"String",
 		package_size:"Float",
 		price_per_unit:"String",
 		product_name:"String",

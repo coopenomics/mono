@@ -171,6 +171,14 @@ export class MarketplaceOrderDTO {
   })
   public readonly package_size!: number;
 
+  @Field(() => String, {
+    nullable: true,
+    description:
+      'Упаковка каталога предложения, которой оформлен заказ; пусто — отпуск по мере ' +
+      'либо заказ до учёта остатка по упаковкам.',
+  })
+  public readonly package_id!: string | null;
+
   @Field(() => Float, {
     nullable: true,
     description:
@@ -447,6 +455,7 @@ export function toMarketplaceOrderDTO(
     delivery_point_lng: display?.delivery_point_lng ?? null,
     quantity: o.quantity,
     package_size: o.package_size,
+    package_id: o.package_id,
     warehouse_quantity: display?.warehouse_quantity ?? null,
     warehouse_locations: display?.warehouse_locations ?? null,
     warehouse_arrival_price: display?.warehouse_arrival_price ?? null,

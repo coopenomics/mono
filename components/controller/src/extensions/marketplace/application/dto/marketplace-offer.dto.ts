@@ -119,6 +119,15 @@ export class MarketplaceOfferPackageDTO {
   @Field(() => Boolean, { description: 'Упаковка по умолчанию (для витрины и сортировки).' })
   public readonly is_default!: boolean;
 
+  @Field(() => Float, { description: 'Свободно к заказу — в упаковках этого вида.' })
+  public readonly quantity_available!: number;
+
+  @Field(() => Float, { description: 'Заблокировано под заказы — в упаковках.' })
+  public readonly quantity_blocked!: number;
+
+  @Field(() => Float, { description: 'Выдано пайщикам — в упаковках.' })
+  public readonly quantity_consumed!: number;
+
   constructor(init: Partial<MarketplaceOfferPackageDTO>) {
     Object.assign(this, init);
   }
@@ -156,7 +165,12 @@ export class MarketplaceOfferDTO {
   })
   public readonly unit_of_measure!: MarketplaceUnitOfMeasureEnum;
 
-  @Field(() => Float) public readonly quantity_available!: number;
+  @Field(() => Float, {
+    description:
+      'Свободно к заказу в базовых единицах. При отпуске упаковкой — сумма по упаковкам; ' +
+      'остаток каждой упаковки смотрите в `packages`.',
+  })
+  public readonly quantity_available!: number;
   @Field(() => Float) public readonly quantity_blocked!: number;
   @Field(() => Float) public readonly quantity_consumed!: number;
   @Field(() => Boolean) public readonly unlimited_flag!: boolean;
@@ -239,7 +253,14 @@ export function toMarketplaceOfferDTO(o: MarketplaceOfferDomainEntity): Marketpl
     // У предложений, заведённых до появления вида упаковки, ключа в jsonb нет —
     // приводим к null явно, иначе поле уходит в ответ как undefined.
     packages: (o.packages ?? []).map(
-      (p) => new MarketplaceOfferPackageDTO({ ...p, package_type: p.package_type ?? null })
+      (p) =>
+        new MarketplaceOfferPackageDTO({
+          ...p,
+          package_type: p.package_type ?? null,
+          quantity_available: p.quantity_available ?? 0,
+          quantity_blocked: p.quantity_blocked ?? 0,
+          quantity_consumed: p.quantity_consumed ?? 0,
+        })
     ),
     quantity_available: o.quantity_available,
     quantity_blocked: o.quantity_blocked,

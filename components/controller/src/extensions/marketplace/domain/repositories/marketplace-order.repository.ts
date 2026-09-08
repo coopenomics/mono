@@ -23,6 +23,8 @@ export interface MarketplaceOrderCreateInput {
   price_per_unit: string;
   /** Содержимое упаковки в базовой единице (Эпик 18); 0 = отпуск по мере. */
   package_size: number;
+  /** Упаковка каталога, которой оформлен заказ; null — по мере. */
+  package_id: string | null;
   total_cost: string;
   cycle_id: string | null;
   /** Грань «заказ заказчика» (Эпик 16): общий id строк одного оформления на один КУ. */

@@ -96,6 +96,15 @@ export class MarketplaceOrderEntity {
   @Column({ type: 'numeric', precision: 18, scale: 3, default: 0, transformer: numericQuantityTransformer })
   public package_size!: number;
 
+  /**
+   * Упаковка каталога предложения, которой оформлен заказ (остаток по
+   * упаковкам): по ней счётчик упаковки возвращает штуки при отмене и откате.
+   * NULL — отпуск по мере либо заказ до появления поля; миграция V2.5.7
+   * дозаполняет старые заказы по содержимому упаковки.
+   */
+  @Column({ type: 'varchar', length: 64, nullable: true })
+  public package_id!: string | null;
+
   @Column({ type: 'numeric', precision: 24, scale: 4 })
   public total_cost!: string;
 

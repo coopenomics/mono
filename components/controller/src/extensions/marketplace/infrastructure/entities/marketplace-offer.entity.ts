@@ -59,9 +59,11 @@ export class MarketplaceOfferEntity {
 
   /**
    * Каталог упаковок при `sale_form = packaged` (Эпик 18). jsonb-массив
-   * `{ id, size, price, label, package_type, sort_order, is_default }` — у
-   * каждой упаковки своя цена (управляемая упаковка) и своя тара. Пустой при
-   * отпуске по мере. Паттерн jsonb value-object как `delivery_points`/`images`.
+   * `{ id, size, price, label, package_type, sort_order, is_default,
+   * quantity_available, quantity_blocked, quantity_consumed }` — у каждой
+   * упаковки своя цена (управляемая упаковка), своя тара и свой остаток в
+   * упаковках; счётчики движет одна SQL-команда вместе со счётчиками
+   * предложения (см. адаптер репозитория). Пустой при отпуске по мере.
    */
   @Column({ type: 'jsonb', default: () => "'[]'::jsonb" })
   public packages!: Array<{
@@ -76,6 +78,13 @@ export class MarketplaceOfferEntity {
     package_type: string | null;
     sort_order: number;
     is_default: boolean;
+    /**
+     * Остаток по упаковкам — в упаковках. У записей до миграции V2.5.7 ключей
+     * нет: маппер читает их нулём.
+     */
+    quantity_available?: number;
+    quantity_blocked?: number;
+    quantity_consumed?: number;
   }>;
 
   // Дробный остаток (Эпик 17): numeric в базовой единице (кг/л/шт), transformer → number.

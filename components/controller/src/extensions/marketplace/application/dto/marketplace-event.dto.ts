@@ -69,6 +69,17 @@ export class MarketplaceReceptionPendingSignEventDTO {
   ku_name!: string;
 }
 
+@ObjectType('MarketplaceOfferPackageStock', {
+  description: 'Свободный остаток одной упаковки предложения — в упаковках.',
+})
+export class MarketplaceOfferPackageStockDTO {
+  @Field(() => String, { description: 'Идентификатор упаковки в каталоге предложения.' })
+  package_id!: string;
+
+  @Field(() => Float, { description: 'Свободно к заказу упаковок.' })
+  quantity_available!: number;
+}
+
 @ObjectType('MarketplaceOfferStockChangedEvent', {
   description: 'У предложения в каталоге изменилось доступное количество.',
 })
@@ -78,11 +89,16 @@ export class MarketplaceOfferStockChangedEventDTO {
   @Field(() => String, { description: 'Идентификатор предложения.' })
   offer_id!: string;
 
-  @Field(() => Float, { description: 'Доступное к заказу количество единиц.' })
+  @Field(() => Float, { description: 'Доступное к заказу количество базовых единиц.' })
   quantity_available!: number;
 
   @Field(() => Boolean, { description: 'Предложение без ограничения по количеству.' })
   unlimited_flag!: boolean;
+
+  @Field(() => [MarketplaceOfferPackageStockDTO], {
+    description: 'Свободный остаток по упаковкам при отпуске упаковкой; пусто при отпуске по мере.',
+  })
+  packages!: MarketplaceOfferPackageStockDTO[];
 }
 
 @ObjectType('MarketplaceOfferPublishedEvent', {
