@@ -51,6 +51,7 @@ export const rawOrderSelector = {
   delivery_point_lng: true,
   quantity: true,
   package_size: true,
+  package_id: true,
   warehouse_quantity: true,
   warehouse_locations: true,
   warehouse_arrival_price: true,
