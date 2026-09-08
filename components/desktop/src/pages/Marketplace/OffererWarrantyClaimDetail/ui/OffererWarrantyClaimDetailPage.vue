@@ -47,40 +47,49 @@ function formatDate(value: unknown): string {
   return out ? `${out} ${getTimezoneLabel()}` : '—';
 }
 
-const timelineEvents = computed<ActivityEvent[]>(() => {
-  const c = claim.value;
-  if (!c) return [];
-  const events: ActivityEvent[] = [];
-  for (const entry of c.history) {
+function historyEvents(c: MarketplaceSupplierClaimView): ActivityEvent[] {
+  return c.history.map((entry) => {
     const isReject = RETURN_CLAIM_NEGATIVE_DECISIONS.has(entry.decision);
-    events.push({
+    return {
       id: `step-${entry.tx_hash}`,
       type: isReject ? 'reject' : 'sign',
       icon: isReject ? 'cancel' : 'check_circle',
       title: returnClaimDecisionLabel(entry.decision),
       description: entry.comment || undefined,
       date: String(entry.at),
-    });
-  }
-  events.push({
-    id: 'issued',
-    type: 'create',
-    icon: 'request_quote',
-    title: 'Претензия выставлена поставщику',
-    date: String(c.issued_at),
+    };
   });
+}
+
+function decisionTitle(c: MarketplaceSupplierClaimView): string {
+  if (c.status === 'REFUSED') return 'Поставщик отказал';
+  return c.auto_admitted ? 'Претензия признана по истечении срока ответа' : 'Поставщик признал претензию';
+}
+
+function claimEvents(c: MarketplaceSupplierClaimView): ActivityEvent[] {
+  const events: ActivityEvent[] = [
+    { id: 'issued', type: 'create', icon: 'request_quote', title: 'Претензия выставлена поставщику', date: String(c.issued_at) },
+  ];
   if (c.decided_at) {
     const refused = c.status === 'REFUSED';
     events.push({
       id: 'decided',
       type: refused ? 'reject' : 'sign',
       icon: refused ? 'cancel' : 'check_circle',
-      title: refused ? 'Поставщик отказал' : c.auto_admitted ? 'Претензия признана по истечении срока ответа' : 'Поставщик признал претензию',
+      title: decisionTitle(c),
       description: c.refuse_reason || undefined,
       date: String(c.decided_at),
     });
   }
-  return events.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  return events;
+}
+
+const timelineEvents = computed<ActivityEvent[]>(() => {
+  const c = claim.value;
+  if (!c) return [];
+  return [...historyEvents(c), ...claimEvents(c)].sort(
+    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
+  );
 });
 
 async function load(): Promise<void> {

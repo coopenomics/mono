@@ -194,6 +194,9 @@ function buildService(mocks: ReturnType<typeof buildMocks>): MarketplaceAplRecep
     mocks.supplierRegistry,
     mocks.supplierActionService,
     mocks.documentDomainService,
+    // 99D-13: остаток признанного гарантийного долга поставщика читается из
+    // кеша кошельков; в сценариях спека долга нет.
+    { findByWalletAndUsername: jest.fn().mockResolvedValue(null) } as never,
     mocks.eventBus,
     mocks.logger
   );

@@ -1194,20 +1194,24 @@ export class MarketplaceAplReceptionService {
         coopname: input.coopname,
         order_hash: input.order_hash,
       });
-      if (nothingToPay) {
-        // Контракт закрыл выплату удержанием долга в той же транзакции —
-        // `payconfirm` не придёт, проекцию закрываем здесь.
-        const txId = (tx as { response?: { transaction_id?: string } } | undefined)?.response?.transaction_id ?? null;
-        await this.paymentRepo.applyCompletion(input.coopname, input.order_hash, {
-          completed_at: new Date(),
-          payout_tx_hash: txId,
-        });
-      }
+      if (nothingToPay) await this.completeWithheldPayout(input.coopname, input.order_hash, tx);
     } catch (err: any) {
       this.logger.warn(
         `initiatePayouts: on-chain payOut для order ${input.order_id} упал: ${err.message}; projection остаётся PENDING, gateway::outcomes не создан. Требуется retry.`
       );
     }
+  }
+
+  /**
+   * Долг покрыл всю выплату: контракт закрыл её удержанием в той же транзакции,
+   * `payconfirm` не придёт — проекция закрывается здесь.
+   */
+  private async completeWithheldPayout(coopname: string, order_hash: string, tx: unknown): Promise<void> {
+    const txId = (tx as { response?: { transaction_id?: string } } | undefined)?.response?.transaction_id ?? null;
+    await this.paymentRepo.applyCompletion(coopname, order_hash, {
+      completed_at: new Date(),
+      payout_tx_hash: txId,
+    });
   }
 
   // ── private ──

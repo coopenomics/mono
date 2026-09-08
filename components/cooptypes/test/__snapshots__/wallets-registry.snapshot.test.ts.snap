@@ -50,6 +50,21 @@ exports[`ledger2 wallets registry (generated from C++) > LEDGER2_USER_SHARED_PRO
   {
     "program_label": null,
     "required_program_id": 0,
+    "wallet_name": "w.mkt.claim",
+  },
+  {
+    "program_label": null,
+    "required_program_id": 0,
+    "wallet_name": "w.mkt.debt",
+  },
+  {
+    "program_label": null,
+    "required_program_id": 0,
+    "wallet_name": "w.mkt.refuse",
+  },
+  {
+    "program_label": null,
+    "required_program_id": 0,
     "wallet_name": "w.brn.person",
   },
   {
@@ -111,6 +126,21 @@ exports[`ledger2 wallets registry (generated from C++) > LEDGER2_WALLET_REGISTRY
     "human_name": "ЦПП «Стол Заказов» — членский взнос пайщика в программе",
     "kind": "USER_SHARED",
     "name": "w.mkt.member",
+  },
+  {
+    "human_name": "ЦПП «Стол Заказов» — гарантийные претензии поставщику, ожидающие ответа",
+    "kind": "USER_SHARED",
+    "name": "w.mkt.claim",
+  },
+  {
+    "human_name": "ЦПП «Стол Заказов» — признанный гарантийный долг поставщика к удержанию",
+    "kind": "USER_SHARED",
+    "name": "w.mkt.debt",
+  },
+  {
+    "human_name": "ЦПП «Стол Заказов» — отказанные поставщиком гарантийные претензии",
+    "kind": "USER_SHARED",
+    "name": "w.mkt.refuse",
   },
   {
     "human_name": "Персональный кошелёк доверенного кооперативного участка",

@@ -2,7 +2,7 @@
 import { computed, ref, watch } from 'vue';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { TakeoverDialog } from 'src/widgets/Marketplace/TakeoverDialog';
-import { BaseInput } from 'src/shared/ui/base';
+import { BaseCard, BaseInput } from 'src/shared/ui/base';
 import { formatAsset2Digits } from 'src/shared/lib/utils';
 import { refuseSupplierClaim, type MarketplaceSupplierClaimView } from '../api';
 
@@ -66,10 +66,8 @@ TakeoverDialog(
 )
   template(#default v-if="claim")
     .mp-claim-refuse
-      q-card(flat bordered).q-mb-md
-        q-card-section
-          .text-subtitle1 Причина отказа
-          BaseInput.q-mt-sm(
+      BaseCard.q-mb-md(title='Причина отказа')
+        BaseInput(
             v-model="reason"
             type="textarea"
             autogrow
