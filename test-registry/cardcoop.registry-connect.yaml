@@ -25,7 +25,26 @@ sources:
     - components/controller/src/extensions/cardcoop/infrastructure/entities/cardcoop-connect-state.typeorm-entity.ts
     - components/controller/src/extensions/cardcoop/infrastructure/entities/cardcoop-operator-announcement.typeorm-entity.ts
 
+# Правка 2026-09-08 (прод): оператор догоняет допуски — на старте он объявляет их не только
+# по недоставленным записям журнала, но и всем активным кооперативам цепи. Причина: допуск
+# рождается из события `stcoopstatus`, а сеть активирована задолго до расширения, и у старых
+# кооперативов события не будет никогда; их подключение сеть отвергала с 403 «не допущен
+# оператором сети». Доставленное не повторяется, случаи ниже действительны как есть.
+#
 cases:
+  - id: cardcoop.registry.admission.side.backfill-active
+    level: backend
+    kind: side
+    scenario: >
+      Оператор запускается в сети, где кооперативы активированы задолго до появления
+      расширения: события `stcoopstatus` по ним уже прошли и не повторятся
+    expect: >
+      Допуск объявляется каждому активному кооперативу цепи, у которого в журнале нет
+      доставленной записи; заблокированные и ожидающие пропускаются, доставленное повторно
+      не отправляется, а недоступность цепи не мешает разобрать журнал
+    test: components/controller/tests/unit/cardcoop/cardcoop-registry.test.ts
+    status: passing
+
   - id: cc.connect.happy.01
     level: backend
     kind: happy

@@ -36,6 +36,12 @@ import { isNetworkOperator } from './operator';
 const CONTRACT = RegistratorContract.contractName.production;
 
 /** Статусы кооператива в контракте регистратора (`registrator::stcoopstatus`). */
+/** Строка кооператива в таблице `registrator::coops` — берём из неё только имя и статус. */
+interface ChainCoopRow {
+  username: string;
+  status: string;
+}
+
 enum ChainCoopStatus {
   /** Кооператив активирован — единственный статус, порождающий объявление допуска. */
   Active = 'active',
@@ -79,27 +85,61 @@ export class CardcoopOperatorAnnounceService {
   }
 
   /**
-   * Повторяет недоставленные объявления.
+   * Догоняет допуски: недоставленные объявления и кооперативы, активированные до расширения.
    *
    * Вызывается расширением после инициализации: card.coop мог лежать в момент активации, и
    * без повтора кооператив завис бы между «принят в цепи» и «допущен в сеть» до ручного
-   * вмешательства.
+   * вмешательства. По той же причине проход берёт и активных из цепи — их активация
+   * случилась раньше, чем расширение появилось, и события им ждать неоткуда.
    */
   async resendUndelivered(): Promise<void> {
     if (!this.isOperator()) return;
 
     await this.announceSelf();
 
-    const pending = await this.announcements.find({ where: { delivered: false } });
-    for (const record of pending) {
+    for (const coopname of await this.awaitingAdmission()) {
       try {
-        await this.announce(record.coopname);
+        await this.announce(coopname);
       } catch (error) {
         this.logger.error(
-          `Повтор объявления о ${record.coopname} не удался: ${error instanceof Error ? error.message : String(error)}`
+          `Повтор объявления о ${coopname} не удался: ${error instanceof Error ? error.message : String(error)}`
         );
       }
     }
+  }
+
+  /**
+   * Кому допуск ещё не объявлен: недоставленные записи журнала и активные кооперативы цепи.
+   *
+   * Вторая половина — это догон истории. Оператор узнаёт о допуске из события
+   * `stcoopstatus`, а кооперативы сети активированы годами раньше расширения: события у них
+   * не будет никогда, и без такого прохода они навсегда оставались бы «принят в цепи, но не
+   * допущен в сеть» — сеть отвергает их подключение с 403 (прод 08.09.2026: так висел
+   * второй кооператив, пока ВОСХОД подключился сразу как оператор). Доставленное не
+   * повторяется, поэтому проход безобиден и на каждом старте, и на сети из сотни имён.
+   *
+   * @returns Имена кооперативов без доставленного объявления, по разу каждое.
+   */
+  private async awaitingAdmission(): Promise<string[]> {
+    const pending = await this.announcements.find({ where: { delivered: false } });
+    const names = new Set(pending.map((record) => record.coopname));
+
+    try {
+      const rows = await this.chain.getAllRows<ChainCoopRow>(CONTRACT, CONTRACT, 'coops');
+      for (const row of rows) {
+        if (row.status !== ChainCoopStatus.Active) continue;
+        const known = await this.announcements.findOne({ where: { coopname: row.username } });
+        if (known?.delivered) continue;
+        names.add(row.username);
+      }
+    } catch (error) {
+      // Цепь недоступна — объявляем хотя бы по журналу: он на месте и без неё.
+      this.logger.error(
+        `Список кооперативов цепи не прочитан, догон истории пропущен: ${error instanceof Error ? error.message : String(error)}`
+      );
+    }
+
+    return [...names];
   }
 
   /**
