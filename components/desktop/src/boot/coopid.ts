@@ -1,6 +1,7 @@
 import { boot } from 'quasar/wrappers';
 import { AuthV2Error, AuthV2ErrorCode, configureCoopId, configureOidc, getAccessToken } from '@coopenomics/auth';
 import { client } from 'src/shared/api/client';
+import { startCoopidKeepalive } from 'src/shared/api/coopid-keepalive';
 import { env } from 'src/shared/config';
 
 /**
@@ -68,4 +69,9 @@ export default boot(() => {
       scope: 'openid profile',
     });
   }
+
+  // Сессия CoopID продлевается только обращением браузера, а кабинет после входа туда не
+  // ходит: через сутки она истекала молча, и переход в Карту кооператора или на форум
+  // просил пароль у человека, сидящего в своём же кабинете. Напоминаем о себе сами.
+  startCoopidKeepalive();
 });
