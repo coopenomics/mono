@@ -95,4 +95,48 @@
       coop.parent_username = _provider;
     });
   }
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // Принятые советом пайщики, застрявшие в «pending» (инцидент 2026-09-08).
+  //
+  // Статус «active» в registrator::accounts ставится только в confirmreg — по
+  // решению совета о приёме — либо сразу в adduser при импорте. Но три
+  // аккаунта ВОСХОДа октября 2024 (pgrzosdeyuwg, honruwpdxtty, vvqamckynxod)
+  // приняты советом — в soviet::participants у них «accepted», взносы
+  // признаны, — а в картотеке так и остались «pending»: их приём прошёл ещё
+  // старой редакцией контракта, которая статус аккаунта не поднимала.
+  //
+  // Пока эти два реестра расходятся, кабинет живёт наполовину: он пускает по
+  // членству (participant_account есть), а защищённые страницы открывает по
+  // user_account.status == active — и уводит принятого пайщика на регистрацию.
+  // Так po-chest@mail.ru не мог войти после восстановления доступа.
+  //
+  // Источник истины — soviet::participants, как и в нормализации типа выше:
+  // членство в реестре совета со статусом «accepted» и означает, что совет
+  // человека принял. Перебираем кооперативы из acc.storages; достаточно одного.
+  // Трогаем только «pending»: «blocked» ставит выход из кооператива, и он же
+  // удаляет пайщика из реестра, так что под условие он не попадёт — но явная
+  // проверка дешевле, чем полагаться на это.
+  //
+  // Идемпотентно: у поднятых аккаунтов статус уже «active» → no-op.
+  for (auto acc = accounts.begin(); acc != accounts.end(); ++acc) {
+    if (acc->status != "pending"_n)
+      continue;
+
+    bool accepted = false;
+
+    for (const auto &coopname : acc->storages) {
+      participants_index participants(_soviet, coopname.value);
+      auto part = participants.find(acc->username.value);
+      if (part != participants.end() && part->is_active()) {
+        accepted = true;
+        break;
+      }
+    }
+
+    if (!accepted)
+      continue;
+
+    accounts.modify(acc, eosio::same_payer, [&](auto &row) { row.status = "active"_n; });
+  }
 }
