@@ -12,6 +12,7 @@ const rawOutgoingPaymentSelector = {
   symbol: true,
   purpose: true,
   payout_destination: true,
+  withheld_amount: true,
   status: true,
   completed_at: true,
   decline_reason: true,

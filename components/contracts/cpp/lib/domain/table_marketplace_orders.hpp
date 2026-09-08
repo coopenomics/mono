@@ -201,6 +201,11 @@ struct [[eosio::table, eosio::contract(MARKETPLACE)]] order {
   /// Протокол решения совета о возврате паевого взноса имуществом (1114) — из
   /// обратного вызова onmktisauth. binary_extension, как и issue_statement.
   eosio::binary_extension<document2> issue_protocol;
+  /// Часть выплаты поставщику, удержанная в счёт его признанного гарантийного
+  /// долга (w.mkt.debt) при инициации выплаты (`payout`); по подтверждению
+  /// кассира (`payconfirm`) на неё ставится o.mkt.deduct. binary_extension:
+  /// у прежних заказов значения нет — читать через value_or(asset(0, …)).
+  eosio::binary_extension<eosio::asset> payout_withheld;
 
   // Все timestamp'ы переходов состояний (createorder/accepted/received_to_coop/
   // ready/received/cancelled) восстанавливаются на бэкенде из blockchain_actions[at]

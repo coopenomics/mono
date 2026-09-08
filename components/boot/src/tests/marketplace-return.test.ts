@@ -176,19 +176,30 @@ describe('стол заказов — денежные места гаранти
       marketplaceApproveReturnVisit(data:$d){ claim { id status } }
     }`, { d: { claim_id: claimId, braname: BRANAME, comment: 'Приглашение на очный осмотр (контрактный тест).' } })
 
-    // Приём имущества — оператор подписывает своё заявление в совет об отмене
+    // Приём имущества — две подписи оператора: своё заявление в совет об отмене
     // сделки (1116), собранное бэкендом по рекламации пайщицы (1106), заказу и
-    // результату осмотра; с ним контракт ставит вопрос на повестку совета.
-    // Денег на этом шаге нет.
+    // результату осмотра, и вторая подпись на самой рекламации — с двумя
+    // подписями она уйдёт поставщику как претензия. С заявлением контракт
+    // ставит вопрос на повестку совета. Денег на этом шаге нет.
     const inspection = 'Дефект подтверждён на очном осмотре (контрактный тест).'
     const cp: any = await gqlAs(chairkrgToken, `query($c:String!,$r:String!){
-      marketplaceReturnClaimChairmanSignablePayload(claim_id:$c, inspection_result:$r){ full_title html hash meta binary }
+      marketplaceReturnClaimChairmanSignablePayload(claim_id:$c, inspection_result:$r){
+        cancel_statement{ full_title html hash meta binary }
+        reclamation{
+          hash
+          rawDocument{ full_title html hash meta binary }
+          document{ version hash doc_hash meta_hash meta signatures{ id signer public_key signature signed_at signed_hash meta } }
+        }
+      }
     }`, { c: claimId, r: inspection })
-    const cancelStatement = cp.marketplaceReturnClaimChairmanSignablePayload
+    const docs = cp.marketplaceReturnClaimChairmanSignablePayload
+    const cancelStatement = docs.cancel_statement
     expect(cancelStatement.meta.registry_id, 'у стойки подписывается заявление об отмене сделки').toBe(1116)
     expect(cancelStatement.meta.orderer, 'в заявлении оператора указана пайщица, чья сделка отменяется').toBe(ekaterina.account)
     expect(amount(cancelStatement.meta.fee_refund), 'заявление несёт членский взнос к восстановлению').toBeCloseTo(feeRefund, 2)
+    expect(docs.reclamation.document.meta.registry_id ?? docs.reclamation.rawDocument.meta.registry_id, 'под вторую подпись идёт рекламация пайщицы').toBe(1106)
     const signedCancel = await signAs(chairkrg.wif, cancelStatement, chairkrg.account, 1)
+    const signedReclamation = await signAs(chairkrg.wif, docs.reclamation.rawDocument, chairkrg.account, 2, [docs.reclamation.document])
 
     const acc: any = await gqlAs(chairkrgToken, `mutation($d:MarketplaceAcceptReturnAtVisitInput!){
       marketplaceAcceptReturnAtVisit(data:$d){ tx_hash claim { id status council_decision_id council_decision_mode } }
@@ -199,6 +210,7 @@ describe('стол заказов — денежные места гаранти
         inspection_result: inspection,
         inspection_photos: [PHOTO],
         signed_statement: signedCancel,
+        signed_reclamation: signedReclamation,
       },
     })
     const accepted = acc.marketplaceAcceptReturnAtVisit.claim
@@ -297,6 +309,46 @@ describe('стол заказов — денежные места гаранти
     // И длина не режется по границе байта: строка обязана быть валидным UTF-8
     // без «хвоста» — round-trip через Buffer совпадает с исходной.
     expect(Buffer.from(memo, 'utf8').toString('utf8')).toBe(memo)
+  }, 300_000)
+
+  it('99D-13: по решению совета поставщику выставлена претензия, признание кладёт сумму в долг к удержанию', async () => {
+    // Хэш претензии выводится из хэша рекламации: sha256(байты хэша ‖ "claim").
+    const { createHash } = await import('node:crypto')
+    const claimHash = createHash('sha256')
+      .update(Buffer.concat([Buffer.from(requestHash, 'hex'), Buffer.from('claim', 'utf8')]))
+      .digest('hex')
+    const issued = await waitForOps(chairmanToken, claimHash, ['o.mkt.claim'])
+    expect(sumOf(issued, 'o.mkt.claim'), 'претензия выставлена на стоимость возвращённого имущества').toBeCloseTo(factCost, 2)
+    expect(issued.find(r => r.operationCode === 'o.mkt.claim')!.username, 'претензия висит на поставщике').toBe(sidorov.account)
+
+    // Поставщик видит претензию у себя: рекламация с двумя подписями, сумма, состояние.
+    let list: any = null
+    for (let i = 0; i < 20 && !list?.length; i += 1) {
+      const r: any = await gqlAs(sidorovToken, `query{ marketplaceListSupplierClaims { id claim_hash status amount supplier_account } }`)
+      list = r.marketplaceListSupplierClaims.filter((c: any) => c.claim_hash.toLowerCase() === claimHash.toLowerCase())
+      if (!list.length) await new Promise(res => setTimeout(res, 1_500))
+    }
+    expect(list?.length, 'претензия обязана появиться на столе поставщика').toBe(1)
+    const claim = list[0]
+    expect(claim.status).toBe('PENDING')
+    expect(amount(claim.amount)).toBeCloseTo(factCost, 2)
+
+    const one: any = await gqlAs(sidorovToken, `query($c:String!){ marketplaceSupplierClaim(claim_id:$c){ id reclamation{ hash document{ signatures{ signer } } } } }`, { c: claim.id })
+    const signers = (one.marketplaceSupplierClaim.reclamation?.document?.signatures ?? []).map((x: any) => x.signer)
+    expect(signers, 'рекламация поставщику — с подписями пайщицы и оператора').toEqual(expect.arrayContaining([ekaterina.account, chairkrg.account]))
+
+    // Поставщик признаёт: сумма уходит в признанный долг (o.mkt.admit, Дт 76 / Кт 91).
+    const adm: any = await gqlAs(sidorovToken, `mutation($d:MarketplaceAdmitSupplierClaimInput!){ marketplaceAdmitSupplierClaim(data:$d){ tx_hash claim { status } } }`, { d: { claim_id: claim.id } })
+    expect(adm.marketplaceAdmitSupplierClaim.claim.status).toBe('ADMITTED')
+    const admitted = await waitForOps(chairmanToken, claimHash, ['o.mkt.admit'])
+    expect(sumOf(admitted, 'o.mkt.admit')).toBeCloseTo(factCost, 2)
+
+    const rows = await historyOfProcess(chairmanToken, claimHash)
+    const postings = rows.filter(r => r.action === 'apply' && r.operationCode === 'o.mkt.admit')
+    void postings
+
+    const sum: any = await gqlAs(sidorovToken, `query{ marketplaceSupplierClaimSummary { admitted_debt refused_total pending_total } }`)
+    expect(amount(sum.marketplaceSupplierClaimSummary.admitted_debt), 'сводка признанного долга равна сумме претензии').toBeCloseTo(factCost, 2)
   }, 300_000)
 
   it('возврат — compensating forward: нитка исходной поставки не переписывается', async () => {

@@ -85,6 +85,11 @@ export class MarketplaceOutgoingPaymentRequestDTO {
   })
   payout_destination!: string | null;
 
+  @Field(() => String, {
+    description: 'Удержано в счёт признанного гарантийного долга поставщика; сумма к переводу уже уменьшена на неё.',
+  })
+  withheld_amount!: string;
+
   @Field(() => MarketplaceOutgoingPaymentRequestStatusEnum)
   status!: MarketplaceOutgoingPaymentRequestStatusEnum;
 
@@ -132,6 +137,7 @@ export function toMarketplaceOutgoingPaymentRequestDTO(
   dto.symbol = e.symbol;
   dto.purpose = e.purpose;
   dto.payout_destination = e.payout_destination;
+  dto.withheld_amount = e.withheld_amount;
   dto.status = e.status as MarketplaceOutgoingPaymentRequestStatusEnum;
   dto.completed_at = e.completed_at;
   dto.decline_reason = e.decline_reason;

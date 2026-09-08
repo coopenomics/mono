@@ -457,6 +457,18 @@ export class MarketplaceCanonicalBlockchainAdapter implements MarketplaceCanonic
     return this.submitAsCoop(data.coopname, MarketContract.contractName.production, MarketContract.Actions.HandBack.actionName, data, 'handback');
   }
 
+  async admitClaim(data: MarketContract.Actions.AdmitClaim.IAdmitClaim): Promise<InnerTransactResult> {
+    return this.submitAsCoop(data.coopname, MarketContract.contractName.production, MarketContract.Actions.AdmitClaim.actionName, data, 'admitclaim');
+  }
+
+  async refuseClaim(data: MarketContract.Actions.RefuseClaim.IRefuseClaim): Promise<InnerTransactResult> {
+    return this.submitAsCoop(data.coopname, MarketContract.contractName.production, MarketContract.Actions.RefuseClaim.actionName, data, 'refuseclaim');
+  }
+
+  async autoClaim(data: MarketContract.Actions.AutoClaim.IAutoClaim): Promise<InnerTransactResult> {
+    return this.submitAsCoop(data.coopname, MarketContract.contractName.production, MarketContract.Actions.AutoClaim.actionName, data, 'autoclaim');
+  }
+
   async findCouncilDecisionByHash(coopname: string, hash: string): Promise<SovietContract.Tables.Decisions.IDecision | null> {
     // Решений у кооператива немного и живут они до исполнения — полный скан
     // области допустим; при росте перевести на secondary-индекс byhash.

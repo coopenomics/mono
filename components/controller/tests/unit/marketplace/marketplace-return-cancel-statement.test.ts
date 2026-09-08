@@ -31,7 +31,7 @@ function claimApproved(overrides: Record<string, unknown> = {}) {
     fact_cost: '400.0000',
     fee_refund: '40.0000',
     photos: [],
-    statement: null,
+    statement: { hash: 'r-hash', doc_hash: 'r-doc', meta_hash: 'r-meta', meta: { registry_id: 1106 }, signatures: [{ signer: 'ekaterina' }] },
     ...overrides,
   };
 }
@@ -59,7 +59,11 @@ function makeService() {
   const orderRepo = { findById: jest.fn() };
   const offerRepo = { findById: jest.fn().mockResolvedValue({ product_name: 'Молоко «Бурёнка»' }) };
   const chainPort = { accRetrn: jest.fn() };
-  const documentPort = { generate: jest.fn(async (input: { data: unknown }) => ({ meta: input.data, html: '', hash: 'h', full_title: 't', binary: '' })) };
+  const documentPort = {
+    generate: jest.fn(async (input: { data: unknown }) => ({ meta: input.data, html: '', hash: 'h', full_title: 't', binary: '' })),
+    // Рекламация под вторую подпись оператора — агрегат исходника без регенерации.
+    buildAggregate: jest.fn(async (doc: { hash: string }) => ({ hash: doc.hash, document: doc, rawDocument: { hash: doc.hash, html: '', meta: {}, full_title: '', binary: '' } })),
+  };
   const service = new MarketplaceReturnClaimService(
     claimRepo as never,
     orderRepo as never,
@@ -69,6 +73,7 @@ function makeService() {
     { symbol: 'RUB', decimals: 4 } as never,
     documentPort as never,
     { putImage: jest.fn() } as never,
+    { issueFromReturnClaim: jest.fn().mockResolvedValue(null) } as never,
     { emit: jest.fn() } as never,
     { setContext: jest.fn(), info: jest.fn(), warn: jest.fn(), error: jest.fn(), log: jest.fn() } as never
   );
@@ -89,6 +94,8 @@ describe('Заявление оператора об отмене сделки: 
     });
 
     const { data } = documentPort.generate.mock.calls[0][0] as { data: Record<string, unknown> };
+    // Под вторую подпись оператора идёт исходная рекламация пайщика, не новый документ.
+    expect(documentPort.buildAggregate).toHaveBeenCalledWith(expect.objectContaining({ hash: 'r-hash' }));
     expect(data.registry_id).toBe(1116);
     expect(data.username).toBe('chairkrg');
     expect(data.operator).toBe('chairkrg');

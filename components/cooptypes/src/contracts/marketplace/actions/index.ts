@@ -150,6 +150,11 @@ export * as OnMktRtDecl from './onMktRtDecl'
 /** Оператор выдал имущество обратно (после отказа совета или по истечении срока ожидания). */
 export * as HandBack from './handBack'
 
+// p.mkt.claim — гарантийная претензия поставщику (99D-13)
+export * as AdmitClaim from './admitClaim'
+export * as RefuseClaim from './refuseClaim'
+export * as AutoClaim from './autoClaim'
+
 /**
  * Председатель отказывает на очном осмотре (Story 7.3).
  */

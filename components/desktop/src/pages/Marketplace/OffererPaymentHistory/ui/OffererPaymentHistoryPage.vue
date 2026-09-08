@@ -193,6 +193,9 @@ q-page.offerer-payments
         .payout-card__row(v-if='row.payout_destination')
           q-icon(name='account_balance', size='14px')
           span {{ row.payout_destination }}
+        .payout-card__row(v-if='Number(row.withheld_amount) > 0')
+          q-icon(name='request_quote', size='14px')
+          span Удержано в счёт гарантийного долга: {{ formatAsset2Digits(`${row.withheld_amount} ${row.symbol}`) }}
         .payout-card__purpose(v-if='row.purpose') {{ row.purpose }}
         .payout-card__decline(v-if='row.decline_reason') Причина отказа: {{ row.decline_reason }}
 

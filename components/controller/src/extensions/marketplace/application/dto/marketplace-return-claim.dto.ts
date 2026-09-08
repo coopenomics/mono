@@ -28,6 +28,7 @@ import {
   type MarketplaceReturnClaimExpectedResolution,
   type MarketplaceReturnClaimStatus,
 } from '../../domain/entities/marketplace-return-claim.types';
+import { DocumentAggregateDTO, GeneratedDocumentDTO } from '@coopenomics/extension-kit';
 import { MarketplaceReturnStatementSignedInputDTO } from '../documents-dto/marketplace-return-statement-document.dto';
 import { MarketplaceReturnCancelStatementSignedInputDTO } from '../documents-dto/marketplace-return-cancel-statement-document.dto';
 import { MarketplaceUnitOfMeasureEnum } from './marketplace-offer.dto';
@@ -255,6 +256,25 @@ export class MarketplaceAcceptReturnAtVisitInputDTO {
   @ValidateNested()
   @Type(() => MarketplaceReturnCancelStatementSignedInputDTO)
   public readonly signed_statement!: MarketplaceReturnCancelStatementSignedInputDTO;
+
+  @Field(() => MarketplaceReturnStatementSignedInputDTO, {
+    description:
+      'Рекламация пайщика (1106) со второй подписью оператора — тот же документ без регенерации; с двумя подписями уйдёт поставщику как гарантийная претензия.',
+  })
+  @ValidateNested()
+  @Type(() => MarketplaceReturnStatementSignedInputDTO)
+  public readonly signed_reclamation!: MarketplaceReturnStatementSignedInputDTO;
+}
+
+@ObjectType('MarketplaceReturnAcceptancePayload', {
+  description: 'Документы для подписи оператором при приёме имущества: заявление в совет об отмене сделки и рекламация пайщика под вторую подпись.',
+})
+export class MarketplaceReturnAcceptancePayloadDTO {
+  @Field(() => GeneratedDocumentDTO, { description: 'Заявление оператора в совет об отмене сделки (1116) — первая и единственная подпись оператора.' })
+  public readonly cancel_statement!: GeneratedDocumentDTO;
+
+  @Field(() => DocumentAggregateDTO, { description: 'Рекламация пайщика (1106) с его подписью — оператор ставит вторую подпись поверх.' })
+  public readonly reclamation!: DocumentAggregateDTO;
 }
 
 @InputType('MarketplaceHandBackReturnInput')

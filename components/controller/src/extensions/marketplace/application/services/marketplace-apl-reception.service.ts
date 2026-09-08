@@ -7,7 +7,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { LOGGER_PORT, type ILoggerPort, DOCUMENT_PORT, type IDocumentPort, type InnerGeneratedDocument, type InnerDocumentAggregate } from '@coopenomics/innercoop';
+import { LOGGER_PORT, type ILoggerPort, DOCUMENT_PORT, type IDocumentPort, type InnerGeneratedDocument, type InnerDocumentAggregate, USER_WALLET_PORT, type IUserWalletPort } from '@coopenomics/innercoop';
 import {
   MARKETPLACE_APL_RECEPTION_STATUS_CHANGED_EVENT,
   MARKETPLACE_APL_SUPPLIER_SIGN_REQUEST_EVENT,
@@ -285,6 +285,7 @@ export class MarketplaceAplReceptionService {
     @Inject(MARKETPLACE_ORDER_SUPPLIER_ACTION_SERVICE)
     private readonly supplierActionService: MarketplaceOrderSupplierActionService,
     @Inject(DOCUMENT_PORT) private readonly documentPort: IDocumentPort,
+    @Inject(USER_WALLET_PORT) private readonly userWallets: IUserWalletPort,
     private readonly eventBus: EventEmitter2,
     @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
   ) {
@@ -1049,6 +1050,11 @@ export class MarketplaceAplReceptionService {
       supplier?.contract_date ?? null
     );
 
+    // Признанный гарантийный долг поставщика (99D-13) удерживается из выплат:
+    // контракт `payout` уменьшает перевод на остаток долга, проекция должна
+    // показывать ту же сумму. Остаток списывается по заказам в порядке обхода.
+    let debtLeft = await this.supplierAdmittedDebt(reception.coopname, reception.offerer_account);
+
     for (const order of groupOrders) {
       const orderHash = orderHashByOrderId.get(order.id);
       if (!orderHash) {
@@ -1069,16 +1075,35 @@ export class MarketplaceAplReceptionService {
         decimals: this.assetConfig.decimals,
       });
 
+      const full = Number.parseFloat(amount);
+      const withheldNum = Math.min(debtLeft, full);
+      debtLeft = Math.max(0, debtLeft - withheldNum);
+      const withheld = withheldNum.toFixed(this.assetConfig.decimals);
+      const toPay = (full - withheldNum).toFixed(this.assetConfig.decimals);
+
       await this.initiatePayoutForOrder({
         coopname: reception.coopname,
         order_hash: orderHash,
         order_id: order.id,
         apl_reception_id: reception.id,
         payee_account: reception.offerer_account,
-        amount,
+        amount: toPay,
+        withheld_amount: withheld,
         purpose,
         payout_method: payoutMethod,
       });
+    }
+  }
+
+  /** Остаток признанного гарантийного долга поставщика (`w.mkt.debt`) из PG-кеша кошельков; нет записи — 0. */
+  private async supplierAdmittedDebt(coopname: string, supplier: string): Promise<number> {
+    try {
+      const row = await this.userWallets.findByWalletAndUsername(coopname, 'w.mkt.debt', supplier);
+      const num = Number.parseFloat(String(row?.available ?? '0').split(' ')[0]);
+      return Number.isFinite(num) && num > 0 ? num : 0;
+    } catch (err) {
+      this.logger.warn(`initiatePayouts: остаток долга поставщика ${supplier} не прочитан (${(err as Error).message}) — считаю 0.`);
+      return 0;
     }
   }
 
@@ -1089,6 +1114,7 @@ export class MarketplaceAplReceptionService {
     apl_reception_id: string;
     payee_account: string;
     amount: string;
+    withheld_amount: string;
     purpose: string;
     payout_method: InnerPaymentMethod | null;
   }): Promise<void> {
@@ -1104,6 +1130,7 @@ export class MarketplaceAplReceptionService {
         apl_reception_id: input.apl_reception_id,
         payee_account: input.payee_account,
         amount: input.amount,
+        withheld_amount: input.withheld_amount,
         symbol: this.assetConfig.symbol,
         purpose: input.purpose,
         payout_destination: payoutDestination,
@@ -1115,7 +1142,10 @@ export class MarketplaceAplReceptionService {
       return;
     }
 
-    if (!projection.core_payment_id) {
+    // Долг покрыл всю выплату: банковского перевода нет, контракт в `payout`
+    // сразу проводит удержание и закрывает выплату — платёж кассиру не нужен.
+    const nothingToPay = Number.parseFloat(input.amount) <= 0;
+    if (!projection.core_payment_id && !nothingToPay) {
       try {
         // payment_hash обязан совпадать с on-chain gateway::outcomes.outcome_hash,
         // который marketplace::payout регистрирует как сам order_hash. Иначе
@@ -1160,10 +1190,19 @@ export class MarketplaceAplReceptionService {
     }
 
     try {
-      await this.chainPort.payOut({
+      const tx = await this.chainPort.payOut({
         coopname: input.coopname,
         order_hash: input.order_hash,
       });
+      if (nothingToPay) {
+        // Контракт закрыл выплату удержанием долга в той же транзакции —
+        // `payconfirm` не придёт, проекцию закрываем здесь.
+        const txId = (tx as { response?: { transaction_id?: string } } | undefined)?.response?.transaction_id ?? null;
+        await this.paymentRepo.applyCompletion(input.coopname, input.order_hash, {
+          completed_at: new Date(),
+          payout_tx_hash: txId,
+        });
+      }
     } catch (err: any) {
       this.logger.warn(
         `initiatePayouts: on-chain payOut для order ${input.order_id} упал: ${err.message}; projection остаётся PENDING, gateway::outcomes не создан. Требуется retry.`

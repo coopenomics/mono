@@ -8679,6 +8679,8 @@ export type ValueTypes = {
 	inspection_result: string | Variable<any, string>,
 	/** Сканированный штрих-код имущества для сверки с заказом (если применимо). */
 	scanned_barcode?: string | undefined | null | Variable<any, string>,
+	/** Рекламация пайщика (1106) со второй подписью оператора — тот же документ без регенерации; с двумя подписями уйдёт поставщику как гарантийная претензия. */
+	signed_reclamation: ValueTypes["MarketplaceReturnStatementSignedInput"] | Variable<any, string>,
 	/** Заявление оператора участка в совет об отмене сделки по гарантийному возврату (1116), подписанное оператором, принявшим имущество; с ним заявление уходит на повестку совета. */
 	signed_statement: ValueTypes["MarketplaceReturnCancelStatementSignedInput"] | Variable<any, string>
 };
@@ -8702,6 +8704,10 @@ export type ValueTypes = {
 	package_id?: string | undefined | null | Variable<any, string>,
 	/** Количество: при отпуске по мере — в базовой единице (дробное для веса/объёма); при отпуске упаковкой — целое число упаковок. */
 	quantity: number | Variable<any, string>
+};
+	["MarketplaceAdmitSupplierClaimInput"]: {
+	/** Идентификатор претензии. */
+	claim_id: string | Variable<any, string>
 };
 	/** Заявление на материальную помощь доверенного кооперативного участка. Выплаченные и отклонённые заявления в списке не показываются — итог выплаты виден в движениях по кошельку. */
 ["MarketplaceAid"]: AliasType<{
@@ -10543,6 +10549,8 @@ export type ValueTypes = {
 	/** Символ актива (например, RUB). */
 	symbol?:boolean | `@${string}`,
 	updated_at?:boolean | `@${string}`,
+	/** Удержано в счёт признанного гарантийного долга поставщика; сумма к переводу уже уменьшена на неё. */
+	withheld_amount?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
 	['...on MarketplaceOutgoingPaymentRequest']?: Omit<ValueTypes["MarketplaceOutgoingPaymentRequest"], "...on MarketplaceOutgoingPaymentRequest">
 }>;
@@ -10601,6 +10609,12 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on MarketplaceReceptionPendingSignEvent']?: Omit<ValueTypes["MarketplaceReceptionPendingSignEvent"], "...on MarketplaceReceptionPendingSignEvent">
 }>;
+	["MarketplaceRefuseSupplierClaimInput"]: {
+	/** Идентификатор претензии. */
+	claim_id: string | Variable<any, string>,
+	/** Почему поставщик не признаёт претензию (до 500 символов). */
+	reason: string | Variable<any, string>
+};
 	["MarketplaceRegistrationOfferStatus"]: AliasType<{
 	/** AGREEMENT_ID (например `marketplace_offer`) */
 	agreement_id?:boolean | `@${string}`,
@@ -10842,6 +10856,15 @@ export type ValueTypes = {
 	/** Секция целиком. Указывается вместо яруса. */
 	section?: string | undefined | null | Variable<any, string>
 };
+	/** Документы для подписи оператором при приёме имущества: заявление в совет об отмене сделки и рекламация пайщика под вторую подпись. */
+["MarketplaceReturnAcceptancePayload"]: AliasType<{
+	/** Заявление оператора в совет об отмене сделки (1116) — первая и единственная подпись оператора. */
+	cancel_statement?:ValueTypes["GeneratedDocument"],
+	/** Рекламация пайщика (1106) с его подписью — оператор ставит вторую подпись поверх. */
+	reclamation?:ValueTypes["DocumentAggregate"],
+		__typename?: boolean | `@${string}`,
+	['...on MarketplaceReturnAcceptancePayload']?: Omit<ValueTypes["MarketplaceReturnAcceptancePayload"], "...on MarketplaceReturnAcceptancePayload">
+}>;
 	["MarketplaceReturnCancelStatementSignedInput"]: {
 	/** Хэш содержимого документа */
 	doc_hash: string | Variable<any, string>,
@@ -11618,6 +11641,82 @@ export type ValueTypes = {
 	tx_hashes?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
 	['...on MarketplaceSupplierBatchActionResult']?: Omit<ValueTypes["MarketplaceSupplierBatchActionResult"], "...on MarketplaceSupplierBatchActionResult">
+}>;
+	/** Гарантийная претензия поставщику по имуществу, возвращённому пайщиком и принятому обратно кооперативом. */
+["MarketplaceSupplierClaim"]: AliasType<{
+	/** Возвращённое количество в базовых единицах. */
+	actual_quantity?:boolean | `@${string}`,
+	/** Сумма претензии — стоимость возвращённого имущества. */
+	amount?:boolean | `@${string}`,
+	/** Когда претензия будет признана автоматически, если автоприём включён и ответа нет. */
+	auto_admit_at?:boolean | `@${string}`,
+	/** Претензия признана автоматически по истечении срока ответа. */
+	auto_admitted?:boolean | `@${string}`,
+	/** Хэш претензии в блокчейне — нитка процесса претензии. */
+	claim_hash?:boolean | `@${string}`,
+	coopname?:boolean | `@${string}`,
+	created_at?:boolean | `@${string}`,
+	/** Момент ответа поставщика или автоприёма. */
+	decided_at?:boolean | `@${string}`,
+	/** Кооперативный участок, где принято имущество и где его можно забрать. */
+	delivery_braname?:boolean | `@${string}`,
+	/** Название кооперативного участка. */
+	delivery_branch_name?:boolean | `@${string}`,
+	/** Пройденные шаги гарантийного возврата: рассмотрение, приём имущества, решение совета. */
+	history?:ValueTypes["MarketplaceReturnClaimDecisionEntry"],
+	id?:boolean | `@${string}`,
+	/** Результат осмотра имущества оператором участка. */
+	inspection_result?:boolean | `@${string}`,
+	/** Момент решения совета об отмене сделки — с него претензия выставлена. */
+	issued_at?:boolean | `@${string}`,
+	order_hash?:boolean | `@${string}`,
+	order_id?:boolean | `@${string}`,
+	orderer_account?:boolean | `@${string}`,
+	/** ФИО заказчика, вернувшего имущество. */
+	orderer_name?:boolean | `@${string}`,
+	/** Размер упаковки; 0 или пусто — отпуск по мере. */
+	package_size?:boolean | `@${string}`,
+	/** Фотографии из рекламации пайщика. */
+	photos?:ValueTypes["MarketplaceReturnClaimPhoto"],
+	/** Наименование товара. */
+	product_name?:boolean | `@${string}`,
+	/** Причина обращения пайщика из рекламации. */
+	reason_text?:boolean | `@${string}`,
+	/** Рекламация пайщика с двумя подписями — пайщика и оператора участка, принявшего имущество. */
+	reclamation?:ValueTypes["DocumentAggregate"],
+	/** Причина отказа поставщика. */
+	refuse_reason?:boolean | `@${string}`,
+	/** Заявление на гарантийный возврат, из которого выросла претензия. */
+	return_claim_id?:boolean | `@${string}`,
+	status?:boolean | `@${string}`,
+	supplier_account?:boolean | `@${string}`,
+	/** Базовая единица измерения товара. */
+	unit_of_measure?:boolean | `@${string}`,
+	updated_at?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on MarketplaceSupplierClaim']?: Omit<ValueTypes["MarketplaceSupplierClaim"], "...on MarketplaceSupplierClaim">
+}>;
+	["MarketplaceSupplierClaimResult"]: AliasType<{
+	claim?:ValueTypes["MarketplaceSupplierClaim"],
+	/** Хэш транзакции ответа поставщика. */
+	tx_hash?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on MarketplaceSupplierClaimResult']?: Omit<ValueTypes["MarketplaceSupplierClaimResult"], "...on MarketplaceSupplierClaimResult">
+}>;
+	/** Состояние гарантийной претензии поставщику: ожидает ответа, признана (долг к удержанию из выплат), отклонена (основание для иска). */
+["MarketplaceSupplierClaimStatus"]:MarketplaceSupplierClaimStatus;
+	/** Сводка гарантийных претензий поставщика по кошелькам: признанный долг к удержанию и отказанные суммы. */
+["MarketplaceSupplierClaimSummary"]: AliasType<{
+	/** Признанный гарантийный долг, ещё не удержанный из выплат. */
+	admitted_debt?:boolean | `@${string}`,
+	/** Сумма претензий, ожидающих ответа поставщика. */
+	pending_total?:boolean | `@${string}`,
+	/** Сумма претензий, по которым поставщик отказал — потенциальный иск. */
+	refused_total?:boolean | `@${string}`,
+	/** Символ валюты. */
+	symbol?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on MarketplaceSupplierClaimSummary']?: Omit<ValueTypes["MarketplaceSupplierClaimSummary"], "...on MarketplaceSupplierClaimSummary">
 }>;
 	["MarketplaceSupplierMemberInput"]: {
 	/** Аккаунт поставщика */
@@ -12478,6 +12577,7 @@ marketplaceAddAvailableCategories?: [{	input: ValueTypes["AddAvailableCategories
 marketplaceAddAvailableCategoryTypes?: [{	input: ValueTypes["AddAvailableCategoryTypesInput"] | Variable<any, string>},ValueTypes["MarketplaceAvailableCategory"]],
 marketplaceAddSupplier?: [{	input: ValueTypes["MarketplaceAddSupplierInput"] | Variable<any, string>},ValueTypes["MarketplaceSupplier"]],
 marketplaceAddToCart?: [{	input: ValueTypes["MarketplaceAddToCartInput"] | Variable<any, string>},ValueTypes["MarketplaceCart"]],
+marketplaceAdmitSupplierClaim?: [{	data: ValueTypes["MarketplaceAdmitSupplierClaimInput"] | Variable<any, string>},ValueTypes["MarketplaceSupplierClaimResult"]],
 marketplaceApproveOffer?: [{	input: ValueTypes["MarketplaceApproveOfferInput"] | Variable<any, string>},ValueTypes["MarketplaceOffer"]],
 marketplaceApproveReturnVisit?: [{	data: ValueTypes["MarketplaceApproveReturnVisitInput"] | Variable<any, string>},ValueTypes["MarketplaceReturnClaimResult"]],
 marketplaceApproveSupplier?: [{	input: ValueTypes["MarketplaceSupplierMemberInput"] | Variable<any, string>},ValueTypes["MarketplaceSupplier"]],
@@ -12527,6 +12627,7 @@ marketplaceHandBackReturn?: [{	data: ValueTypes["MarketplaceHandBackReturnInput"
 marketplaceMoveContainer?: [{	data: ValueTypes["MarketplaceMoveContainerInput"] | Variable<any, string>},ValueTypes["MarketplaceContainer"]],
 marketplacePublishStock?: [{	data: ValueTypes["MarketplacePublishStockInput"] | Variable<any, string>},ValueTypes["MarketplaceOffer"]],
 marketplaceReadyIssue?: [{	data: ValueTypes["MarketplaceReadyIssueInput"] | Variable<any, string>},ValueTypes["MarketplaceOrder"]],
+marketplaceRefuseSupplierClaim?: [{	data: ValueTypes["MarketplaceRefuseSupplierClaimInput"] | Variable<any, string>},ValueTypes["MarketplaceSupplierClaimResult"]],
 marketplaceRejectOffer?: [{	input: ValueTypes["MarketplaceRejectOfferInput"] | Variable<any, string>},ValueTypes["MarketplaceOffer"]],
 marketplaceRejectReturnAtVisit?: [{	data: ValueTypes["MarketplaceRejectReturnAtVisitInput"] | Variable<any, string>},ValueTypes["MarketplaceReturnClaimResult"]],
 marketplaceRejectReturnRemote?: [{	data: ValueTypes["MarketplaceRejectReturnRemoteInput"] | Variable<any, string>},ValueTypes["MarketplaceReturnClaimResult"]],
@@ -14458,6 +14559,8 @@ marketplaceListShipmentsByBraname?: [{	data: ValueTypes["MarketplaceListShipment
 marketplaceListStock?: [{	braname?: string | undefined | null | Variable<any, string>},ValueTypes["MarketplaceInventoryItem"]],
 marketplaceListStockProposals?: [{	data?: ValueTypes["MarketplaceListStockProposalsInput"] | undefined | null | Variable<any, string>},ValueTypes["MarketplaceStockProposal"]],
 marketplaceListStorageCells?: [{	data?: ValueTypes["MarketplaceListStorageCellsInput"] | undefined | null | Variable<any, string>},ValueTypes["MarketplaceStorageCell"]],
+	/** Гарантийные претензии, выставленные текущему поставщику, — новые сверху. */
+	marketplaceListSupplierClaims?:ValueTypes["MarketplaceSupplierClaim"],
 marketplaceListSupplierOrders?: [{	input?: ValueTypes["MarketplaceListOrdersInput"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["MarketplaceOrderPaginationResult"]],
 marketplaceListSupplierPickupOrders?: [{	data: ValueTypes["MarketplaceListSupplierPickupOrdersInput"] | Variable<any, string>},ValueTypes["MarketplaceOrder"]],
 	/** Реестр поставщиков кооператива */
@@ -14479,13 +14582,16 @@ marketplaceRequiredAttributes?: [{	data: ValueTypes["GetRequiredAttributesInput"
 marketplaceResolveContainerByCode?: [{	data: ValueTypes["MarketplaceResolveContainerByCodeInput"] | Variable<any, string>},ValueTypes["MarketplaceContainer"]],
 marketplaceReturnClaim?: [{	claim_id: string | Variable<any, string>},ValueTypes["MarketplaceReturnClaim"]],
 marketplaceReturnClaimChairmanSignablePayload?: [{	claim_id: string | Variable<any, string>,	/** Результат осмотра имущества на участке — попадает в текст заявления. */
-	inspection_result: string | Variable<any, string>},ValueTypes["GeneratedDocument"]],
+	inspection_result: string | Variable<any, string>},ValueTypes["MarketplaceReturnAcceptancePayload"]],
 marketplaceReturnClaimSignablePayload?: [{	data: ValueTypes["MarketplaceReturnClaimSignablePayloadInput"] | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 marketplaceSearchAttributes?: [{	input: ValueTypes["SearchAttributesInput"] | Variable<any, string>},ValueTypes["MarketplaceAttribute"]],
 marketplaceSearchDictionaryValues?: [{	input: ValueTypes["SearchDictionaryValuesInput"] | Variable<any, string>},ValueTypes["MarketplaceDictionaryValue"]],
 marketplaceSearchRequests?: [{	data: ValueTypes["SearchRequestsInput"] | Variable<any, string>},ValueTypes["MarketplaceRequest"]],
 marketplaceStockIssuancePayloads?: [{	data: ValueTypes["MarketplaceStockIssuancePrepareInput"] | Variable<any, string>},ValueTypes["MarketplaceStockIssuanceOperatorLine"]],
 marketplaceStockProposalSignablePayloads?: [{	data: ValueTypes["MarketplaceResolveStockProposalInput"] | Variable<any, string>},ValueTypes["MarketplaceStockAcceptPayload"]],
+marketplaceSupplierClaim?: [{	claim_id: string | Variable<any, string>},ValueTypes["MarketplaceSupplierClaim"]],
+	/** Сводка претензий текущего поставщика: признанный долг к удержанию из выплат и отказанные суммы. */
+	marketplaceSupplierClaimSummary?:ValueTypes["MarketplaceSupplierClaimSummary"],
 marketplaceValidateAttributeValues?: [{	input: ValueTypes["ValidateAttributeValuesInput"] | Variable<any, string>},ValueTypes["MarketplaceAttributeValidation"]],
 	/** Контекст пайщика для Стола заказов: роли, участки оператора и включённые настройки адресного хранения */
 	marketplaceWhoAmI?:ValueTypes["MarketplaceCurrentMember"],
@@ -24176,6 +24282,8 @@ export type ResolverInputTypes = {
 	inspection_result: string,
 	/** Сканированный штрих-код имущества для сверки с заказом (если применимо). */
 	scanned_barcode?: string | undefined | null,
+	/** Рекламация пайщика (1106) со второй подписью оператора — тот же документ без регенерации; с двумя подписями уйдёт поставщику как гарантийная претензия. */
+	signed_reclamation: ResolverInputTypes["MarketplaceReturnStatementSignedInput"],
 	/** Заявление оператора участка в совет об отмене сделки по гарантийному возврату (1116), подписанное оператором, принявшим имущество; с ним заявление уходит на повестку совета. */
 	signed_statement: ResolverInputTypes["MarketplaceReturnCancelStatementSignedInput"]
 };
@@ -24199,6 +24307,10 @@ export type ResolverInputTypes = {
 	package_id?: string | undefined | null,
 	/** Количество: при отпуске по мере — в базовой единице (дробное для веса/объёма); при отпуске упаковкой — целое число упаковок. */
 	quantity: number
+};
+	["MarketplaceAdmitSupplierClaimInput"]: {
+	/** Идентификатор претензии. */
+	claim_id: string
 };
 	/** Заявление на материальную помощь доверенного кооперативного участка. Выплаченные и отклонённые заявления в списке не показываются — итог выплаты виден в движениях по кошельку. */
 ["MarketplaceAid"]: AliasType<{
@@ -25977,6 +26089,8 @@ export type ResolverInputTypes = {
 	/** Символ актива (например, RUB). */
 	symbol?:boolean | `@${string}`,
 	updated_at?:boolean | `@${string}`,
+	/** Удержано в счёт признанного гарантийного долга поставщика; сумма к переводу уже уменьшена на неё. */
+	withheld_amount?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
 	/** Статус исходящей выплаты поставщику на стороне marketplace. Подтверждение и отказ выполняет общий стол кассира кооператива; marketplace отображает результат только для истории. */
@@ -26030,6 +26144,12 @@ export type ResolverInputTypes = {
 	reception_id?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	["MarketplaceRefuseSupplierClaimInput"]: {
+	/** Идентификатор претензии. */
+	claim_id: string,
+	/** Почему поставщик не признаёт претензию (до 500 символов). */
+	reason: string
+};
 	["MarketplaceRegistrationOfferStatus"]: AliasType<{
 	/** AGREEMENT_ID (например `marketplace_offer`) */
 	agreement_id?:boolean | `@${string}`,
@@ -26266,6 +26386,14 @@ export type ResolverInputTypes = {
 	/** Секция целиком. Указывается вместо яруса. */
 	section?: string | undefined | null
 };
+	/** Документы для подписи оператором при приёме имущества: заявление в совет об отмене сделки и рекламация пайщика под вторую подпись. */
+["MarketplaceReturnAcceptancePayload"]: AliasType<{
+	/** Заявление оператора в совет об отмене сделки (1116) — первая и единственная подпись оператора. */
+	cancel_statement?:ResolverInputTypes["GeneratedDocument"],
+	/** Рекламация пайщика (1106) с его подписью — оператор ставит вторую подпись поверх. */
+	reclamation?:ResolverInputTypes["DocumentAggregate"],
+		__typename?: boolean | `@${string}`
+}>;
 	["MarketplaceReturnCancelStatementSignedInput"]: {
 	/** Хэш содержимого документа */
 	doc_hash: string,
@@ -27020,6 +27148,79 @@ export type ResolverInputTypes = {
 	orders?:ResolverInputTypes["MarketplaceOrder"],
 	/** Идентификаторы транзакций приёма/отказа в блокчейне. */
 	tx_hashes?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Гарантийная претензия поставщику по имуществу, возвращённому пайщиком и принятому обратно кооперативом. */
+["MarketplaceSupplierClaim"]: AliasType<{
+	/** Возвращённое количество в базовых единицах. */
+	actual_quantity?:boolean | `@${string}`,
+	/** Сумма претензии — стоимость возвращённого имущества. */
+	amount?:boolean | `@${string}`,
+	/** Когда претензия будет признана автоматически, если автоприём включён и ответа нет. */
+	auto_admit_at?:boolean | `@${string}`,
+	/** Претензия признана автоматически по истечении срока ответа. */
+	auto_admitted?:boolean | `@${string}`,
+	/** Хэш претензии в блокчейне — нитка процесса претензии. */
+	claim_hash?:boolean | `@${string}`,
+	coopname?:boolean | `@${string}`,
+	created_at?:boolean | `@${string}`,
+	/** Момент ответа поставщика или автоприёма. */
+	decided_at?:boolean | `@${string}`,
+	/** Кооперативный участок, где принято имущество и где его можно забрать. */
+	delivery_braname?:boolean | `@${string}`,
+	/** Название кооперативного участка. */
+	delivery_branch_name?:boolean | `@${string}`,
+	/** Пройденные шаги гарантийного возврата: рассмотрение, приём имущества, решение совета. */
+	history?:ResolverInputTypes["MarketplaceReturnClaimDecisionEntry"],
+	id?:boolean | `@${string}`,
+	/** Результат осмотра имущества оператором участка. */
+	inspection_result?:boolean | `@${string}`,
+	/** Момент решения совета об отмене сделки — с него претензия выставлена. */
+	issued_at?:boolean | `@${string}`,
+	order_hash?:boolean | `@${string}`,
+	order_id?:boolean | `@${string}`,
+	orderer_account?:boolean | `@${string}`,
+	/** ФИО заказчика, вернувшего имущество. */
+	orderer_name?:boolean | `@${string}`,
+	/** Размер упаковки; 0 или пусто — отпуск по мере. */
+	package_size?:boolean | `@${string}`,
+	/** Фотографии из рекламации пайщика. */
+	photos?:ResolverInputTypes["MarketplaceReturnClaimPhoto"],
+	/** Наименование товара. */
+	product_name?:boolean | `@${string}`,
+	/** Причина обращения пайщика из рекламации. */
+	reason_text?:boolean | `@${string}`,
+	/** Рекламация пайщика с двумя подписями — пайщика и оператора участка, принявшего имущество. */
+	reclamation?:ResolverInputTypes["DocumentAggregate"],
+	/** Причина отказа поставщика. */
+	refuse_reason?:boolean | `@${string}`,
+	/** Заявление на гарантийный возврат, из которого выросла претензия. */
+	return_claim_id?:boolean | `@${string}`,
+	status?:boolean | `@${string}`,
+	supplier_account?:boolean | `@${string}`,
+	/** Базовая единица измерения товара. */
+	unit_of_measure?:boolean | `@${string}`,
+	updated_at?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["MarketplaceSupplierClaimResult"]: AliasType<{
+	claim?:ResolverInputTypes["MarketplaceSupplierClaim"],
+	/** Хэш транзакции ответа поставщика. */
+	tx_hash?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Состояние гарантийной претензии поставщику: ожидает ответа, признана (долг к удержанию из выплат), отклонена (основание для иска). */
+["MarketplaceSupplierClaimStatus"]:MarketplaceSupplierClaimStatus;
+	/** Сводка гарантийных претензий поставщика по кошелькам: признанный долг к удержанию и отказанные суммы. */
+["MarketplaceSupplierClaimSummary"]: AliasType<{
+	/** Признанный гарантийный долг, ещё не удержанный из выплат. */
+	admitted_debt?:boolean | `@${string}`,
+	/** Сумма претензий, ожидающих ответа поставщика. */
+	pending_total?:boolean | `@${string}`,
+	/** Сумма претензий, по которым поставщик отказал — потенциальный иск. */
+	refused_total?:boolean | `@${string}`,
+	/** Символ валюты. */
+	symbol?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
 	["MarketplaceSupplierMemberInput"]: {
@@ -27857,6 +28058,7 @@ marketplaceAddAvailableCategories?: [{	input: ResolverInputTypes["AddAvailableCa
 marketplaceAddAvailableCategoryTypes?: [{	input: ResolverInputTypes["AddAvailableCategoryTypesInput"]},ResolverInputTypes["MarketplaceAvailableCategory"]],
 marketplaceAddSupplier?: [{	input: ResolverInputTypes["MarketplaceAddSupplierInput"]},ResolverInputTypes["MarketplaceSupplier"]],
 marketplaceAddToCart?: [{	input: ResolverInputTypes["MarketplaceAddToCartInput"]},ResolverInputTypes["MarketplaceCart"]],
+marketplaceAdmitSupplierClaim?: [{	data: ResolverInputTypes["MarketplaceAdmitSupplierClaimInput"]},ResolverInputTypes["MarketplaceSupplierClaimResult"]],
 marketplaceApproveOffer?: [{	input: ResolverInputTypes["MarketplaceApproveOfferInput"]},ResolverInputTypes["MarketplaceOffer"]],
 marketplaceApproveReturnVisit?: [{	data: ResolverInputTypes["MarketplaceApproveReturnVisitInput"]},ResolverInputTypes["MarketplaceReturnClaimResult"]],
 marketplaceApproveSupplier?: [{	input: ResolverInputTypes["MarketplaceSupplierMemberInput"]},ResolverInputTypes["MarketplaceSupplier"]],
@@ -27906,6 +28108,7 @@ marketplaceHandBackReturn?: [{	data: ResolverInputTypes["MarketplaceHandBackRetu
 marketplaceMoveContainer?: [{	data: ResolverInputTypes["MarketplaceMoveContainerInput"]},ResolverInputTypes["MarketplaceContainer"]],
 marketplacePublishStock?: [{	data: ResolverInputTypes["MarketplacePublishStockInput"]},ResolverInputTypes["MarketplaceOffer"]],
 marketplaceReadyIssue?: [{	data: ResolverInputTypes["MarketplaceReadyIssueInput"]},ResolverInputTypes["MarketplaceOrder"]],
+marketplaceRefuseSupplierClaim?: [{	data: ResolverInputTypes["MarketplaceRefuseSupplierClaimInput"]},ResolverInputTypes["MarketplaceSupplierClaimResult"]],
 marketplaceRejectOffer?: [{	input: ResolverInputTypes["MarketplaceRejectOfferInput"]},ResolverInputTypes["MarketplaceOffer"]],
 marketplaceRejectReturnAtVisit?: [{	data: ResolverInputTypes["MarketplaceRejectReturnAtVisitInput"]},ResolverInputTypes["MarketplaceReturnClaimResult"]],
 marketplaceRejectReturnRemote?: [{	data: ResolverInputTypes["MarketplaceRejectReturnRemoteInput"]},ResolverInputTypes["MarketplaceReturnClaimResult"]],
@@ -29763,6 +29966,8 @@ marketplaceListShipmentsByBraname?: [{	data: ResolverInputTypes["MarketplaceList
 marketplaceListStock?: [{	braname?: string | undefined | null},ResolverInputTypes["MarketplaceInventoryItem"]],
 marketplaceListStockProposals?: [{	data?: ResolverInputTypes["MarketplaceListStockProposalsInput"] | undefined | null},ResolverInputTypes["MarketplaceStockProposal"]],
 marketplaceListStorageCells?: [{	data?: ResolverInputTypes["MarketplaceListStorageCellsInput"] | undefined | null},ResolverInputTypes["MarketplaceStorageCell"]],
+	/** Гарантийные претензии, выставленные текущему поставщику, — новые сверху. */
+	marketplaceListSupplierClaims?:ResolverInputTypes["MarketplaceSupplierClaim"],
 marketplaceListSupplierOrders?: [{	input?: ResolverInputTypes["MarketplaceListOrdersInput"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["MarketplaceOrderPaginationResult"]],
 marketplaceListSupplierPickupOrders?: [{	data: ResolverInputTypes["MarketplaceListSupplierPickupOrdersInput"]},ResolverInputTypes["MarketplaceOrder"]],
 	/** Реестр поставщиков кооператива */
@@ -29784,13 +29989,16 @@ marketplaceRequiredAttributes?: [{	data: ResolverInputTypes["GetRequiredAttribut
 marketplaceResolveContainerByCode?: [{	data: ResolverInputTypes["MarketplaceResolveContainerByCodeInput"]},ResolverInputTypes["MarketplaceContainer"]],
 marketplaceReturnClaim?: [{	claim_id: string},ResolverInputTypes["MarketplaceReturnClaim"]],
 marketplaceReturnClaimChairmanSignablePayload?: [{	claim_id: string,	/** Результат осмотра имущества на участке — попадает в текст заявления. */
-	inspection_result: string},ResolverInputTypes["GeneratedDocument"]],
+	inspection_result: string},ResolverInputTypes["MarketplaceReturnAcceptancePayload"]],
 marketplaceReturnClaimSignablePayload?: [{	data: ResolverInputTypes["MarketplaceReturnClaimSignablePayloadInput"]},ResolverInputTypes["GeneratedDocument"]],
 marketplaceSearchAttributes?: [{	input: ResolverInputTypes["SearchAttributesInput"]},ResolverInputTypes["MarketplaceAttribute"]],
 marketplaceSearchDictionaryValues?: [{	input: ResolverInputTypes["SearchDictionaryValuesInput"]},ResolverInputTypes["MarketplaceDictionaryValue"]],
 marketplaceSearchRequests?: [{	data: ResolverInputTypes["SearchRequestsInput"]},ResolverInputTypes["MarketplaceRequest"]],
 marketplaceStockIssuancePayloads?: [{	data: ResolverInputTypes["MarketplaceStockIssuancePrepareInput"]},ResolverInputTypes["MarketplaceStockIssuanceOperatorLine"]],
 marketplaceStockProposalSignablePayloads?: [{	data: ResolverInputTypes["MarketplaceResolveStockProposalInput"]},ResolverInputTypes["MarketplaceStockAcceptPayload"]],
+marketplaceSupplierClaim?: [{	claim_id: string},ResolverInputTypes["MarketplaceSupplierClaim"]],
+	/** Сводка претензий текущего поставщика: признанный долг к удержанию из выплат и отказанные суммы. */
+	marketplaceSupplierClaimSummary?:ResolverInputTypes["MarketplaceSupplierClaimSummary"],
 marketplaceValidateAttributeValues?: [{	input: ResolverInputTypes["ValidateAttributeValuesInput"]},ResolverInputTypes["MarketplaceAttributeValidation"]],
 	/** Контекст пайщика для Стола заказов: роли, участки оператора и включённые настройки адресного хранения */
 	marketplaceWhoAmI?:ResolverInputTypes["MarketplaceCurrentMember"],
@@ -39200,6 +39408,8 @@ export type ModelTypes = {
 	inspection_result: string,
 	/** Сканированный штрих-код имущества для сверки с заказом (если применимо). */
 	scanned_barcode?: string | undefined | null,
+	/** Рекламация пайщика (1106) со второй подписью оператора — тот же документ без регенерации; с двумя подписями уйдёт поставщику как гарантийная претензия. */
+	signed_reclamation: ModelTypes["MarketplaceReturnStatementSignedInput"],
 	/** Заявление оператора участка в совет об отмене сделки по гарантийному возврату (1116), подписанное оператором, принявшим имущество; с ним заявление уходит на повестку совета. */
 	signed_statement: ModelTypes["MarketplaceReturnCancelStatementSignedInput"]
 };
@@ -39223,6 +39433,10 @@ export type ModelTypes = {
 	package_id?: string | undefined | null,
 	/** Количество: при отпуске по мере — в базовой единице (дробное для веса/объёма); при отпуске упаковкой — целое число упаковок. */
 	quantity: number
+};
+	["MarketplaceAdmitSupplierClaimInput"]: {
+	/** Идентификатор претензии. */
+	claim_id: string
 };
 	/** Заявление на материальную помощь доверенного кооперативного участка. Выплаченные и отклонённые заявления в списке не показываются — итог выплаты виден в движениях по кошельку. */
 ["MarketplaceAid"]: {
@@ -40903,7 +41117,9 @@ export type ModelTypes = {
 	status: ModelTypes["MarketplaceOutgoingPaymentRequestStatus"],
 	/** Символ актива (например, RUB). */
 	symbol: string,
-	updated_at: ModelTypes["DateTime"]
+	updated_at: ModelTypes["DateTime"],
+	/** Удержано в счёт признанного гарантийного долга поставщика; сумма к переводу уже уменьшена на неё. */
+	withheld_amount: string
 };
 	["MarketplaceOutgoingPaymentRequestStatus"]:MarketplaceOutgoingPaymentRequestStatus;
 	/** У выплаты поставщику сменился статус — история выплат должна перечитать состояние. */
@@ -40950,6 +41166,12 @@ export type ModelTypes = {
 	ku_name: string,
 	/** Идентификатор приёмки. */
 	reception_id: string
+};
+	["MarketplaceRefuseSupplierClaimInput"]: {
+	/** Идентификатор претензии. */
+	claim_id: string,
+	/** Почему поставщик не признаёт претензию (до 500 символов). */
+	reason: string
 };
 	["MarketplaceRegistrationOfferStatus"]: {
 		/** AGREEMENT_ID (например `marketplace_offer`) */
@@ -41181,6 +41403,13 @@ export type ModelTypes = {
 	level?: number | undefined | null,
 	/** Секция целиком. Указывается вместо яруса. */
 	section?: string | undefined | null
+};
+	/** Документы для подписи оператором при приёме имущества: заявление в совет об отмене сделки и рекламация пайщика под вторую подпись. */
+["MarketplaceReturnAcceptancePayload"]: {
+		/** Заявление оператора в совет об отмене сделки (1116) — первая и единственная подпись оператора. */
+	cancel_statement: ModelTypes["GeneratedDocument"],
+	/** Рекламация пайщика (1106) с его подписью — оператор ставит вторую подпись поверх. */
+	reclamation: ModelTypes["DocumentAggregate"]
 };
 	["MarketplaceReturnCancelStatementSignedInput"]: {
 	/** Хэш содержимого документа */
@@ -41908,6 +42137,75 @@ export type ModelTypes = {
 	orders: Array<ModelTypes["MarketplaceOrder"]>,
 	/** Идентификаторы транзакций приёма/отказа в блокчейне. */
 	tx_hashes: Array<string>
+};
+	/** Гарантийная претензия поставщику по имуществу, возвращённому пайщиком и принятому обратно кооперативом. */
+["MarketplaceSupplierClaim"]: {
+		/** Возвращённое количество в базовых единицах. */
+	actual_quantity: number,
+	/** Сумма претензии — стоимость возвращённого имущества. */
+	amount: string,
+	/** Когда претензия будет признана автоматически, если автоприём включён и ответа нет. */
+	auto_admit_at?: ModelTypes["DateTime"] | undefined | null,
+	/** Претензия признана автоматически по истечении срока ответа. */
+	auto_admitted: boolean,
+	/** Хэш претензии в блокчейне — нитка процесса претензии. */
+	claim_hash: string,
+	coopname: string,
+	created_at: ModelTypes["DateTime"],
+	/** Момент ответа поставщика или автоприёма. */
+	decided_at?: ModelTypes["DateTime"] | undefined | null,
+	/** Кооперативный участок, где принято имущество и где его можно забрать. */
+	delivery_braname: string,
+	/** Название кооперативного участка. */
+	delivery_branch_name?: string | undefined | null,
+	/** Пройденные шаги гарантийного возврата: рассмотрение, приём имущества, решение совета. */
+	history: Array<ModelTypes["MarketplaceReturnClaimDecisionEntry"]>,
+	id: string,
+	/** Результат осмотра имущества оператором участка. */
+	inspection_result: string,
+	/** Момент решения совета об отмене сделки — с него претензия выставлена. */
+	issued_at: ModelTypes["DateTime"],
+	order_hash: string,
+	order_id: string,
+	orderer_account: string,
+	/** ФИО заказчика, вернувшего имущество. */
+	orderer_name?: string | undefined | null,
+	/** Размер упаковки; 0 или пусто — отпуск по мере. */
+	package_size?: number | undefined | null,
+	/** Фотографии из рекламации пайщика. */
+	photos: Array<ModelTypes["MarketplaceReturnClaimPhoto"]>,
+	/** Наименование товара. */
+	product_name?: string | undefined | null,
+	/** Причина обращения пайщика из рекламации. */
+	reason_text: string,
+	/** Рекламация пайщика с двумя подписями — пайщика и оператора участка, принявшего имущество. */
+	reclamation?: ModelTypes["DocumentAggregate"] | undefined | null,
+	/** Причина отказа поставщика. */
+	refuse_reason?: string | undefined | null,
+	/** Заявление на гарантийный возврат, из которого выросла претензия. */
+	return_claim_id: string,
+	status: ModelTypes["MarketplaceSupplierClaimStatus"],
+	supplier_account: string,
+	/** Базовая единица измерения товара. */
+	unit_of_measure?: ModelTypes["MarketplaceUnitOfMeasure"] | undefined | null,
+	updated_at: ModelTypes["DateTime"]
+};
+	["MarketplaceSupplierClaimResult"]: {
+		claim: ModelTypes["MarketplaceSupplierClaim"],
+	/** Хэш транзакции ответа поставщика. */
+	tx_hash: string
+};
+	["MarketplaceSupplierClaimStatus"]:MarketplaceSupplierClaimStatus;
+	/** Сводка гарантийных претензий поставщика по кошелькам: признанный долг к удержанию и отказанные суммы. */
+["MarketplaceSupplierClaimSummary"]: {
+		/** Признанный гарантийный долг, ещё не удержанный из выплат. */
+	admitted_debt: string,
+	/** Сумма претензий, ожидающих ответа поставщика. */
+	pending_total: string,
+	/** Сумма претензий, по которым поставщик отказал — потенциальный иск. */
+	refused_total: string,
+	/** Символ валюты. */
+	symbol: string
 };
 	["MarketplaceSupplierMemberInput"]: {
 	/** Аккаунт поставщика */
@@ -43281,6 +43579,8 @@ export type ModelTypes = {
 	marketplaceAddSupplier: ModelTypes["MarketplaceSupplier"],
 	/** Добавить товар в корзину (с привязкой корзины к пункту выдачи). */
 	marketplaceAddToCart: ModelTypes["MarketplaceCart"],
+	/** Поставщик признаёт гарантийную претензию: сумма становится долгом и удерживается из следующих выплат. */
+	marketplaceAdmitSupplierClaim: ModelTypes["MarketplaceSupplierClaimResult"],
 	/** Одобрить Offer (status → ACTIVE) и установить гарантийный срок возврата (admin) */
 	marketplaceApproveOffer: ModelTypes["MarketplaceOffer"],
 	/** Председатель кооперативного участка по результатам удалённого рассмотрения приглашает пайщика на очный осмотр имущества. */
@@ -43381,6 +43681,8 @@ export type ModelTypes = {
 	marketplacePublishStock: Array<ModelTypes["MarketplaceOffer"]>,
 	/** Оператор участка выдачи отмечает поступление имущества по заказу: заказчику уходит уведомление «приходите заберите». Без подписи. */
 	marketplaceReadyIssue: ModelTypes["MarketplaceOrder"],
+	/** Поставщик отказывает по гарантийной претензии с указанием причины: сумма учитывается как отказанная. */
+	marketplaceRefuseSupplierClaim: ModelTypes["MarketplaceSupplierClaimResult"],
 	/** Отклонить Offer с причиной (status → REJECTED) (admin) */
 	marketplaceRejectOffer: ModelTypes["MarketplaceOffer"],
 	/** Оператор по результатам осмотра не принимает имущество — заказчик забирает его сразу, движений по средствам нет. */
@@ -45653,6 +45955,8 @@ export type ModelTypes = {
 	marketplaceListStockProposals: Array<ModelTypes["MarketplaceStockProposal"]>,
 	/** Ячейки хранения складов кооперативных участков. */
 	marketplaceListStorageCells: Array<ModelTypes["MarketplaceStorageCell"]>,
+	/** Гарантийные претензии, выставленные текущему поставщику, — новые сверху. */
+	marketplaceListSupplierClaims: Array<ModelTypes["MarketplaceSupplierClaim"]>,
 	/** Список заказов, по которым текущий пайщик является поставщиком (стол поставщика). */
 	marketplaceListSupplierOrders: ModelTypes["MarketplaceOrderPaginationResult"],
 	/** Единицы имущества поставщика, ожидающие приёмки на текущем КУ: задекларированные в партии (по ТТН) и добор по акцепту. Базис агрегирующей приёмки для оператора кооперативного участка. */
@@ -45679,8 +45983,8 @@ export type ModelTypes = {
 	marketplaceResolveContainerByCode: ModelTypes["MarketplaceContainer"],
 	/** Получить одно заявление на гарантийный возврат по идентификатору. */
 	marketplaceReturnClaim: ModelTypes["MarketplaceReturnClaim"],
-	/** Заявление оператора участка в совет об отмене сделки по гарантийному возврату (1116) для подписи у стойки: заказ и принятое имущество из рекламации пайщика, результат осмотра, суммы паевого и членского взносов к восстановлению. Оператор подписывает его одной подписью, после чего заявление уходит на повестку совета. */
-	marketplaceReturnClaimChairmanSignablePayload: ModelTypes["GeneratedDocument"],
+	/** Документы приёма имущества у стойки: заявление оператора участка в совет об отмене сделки (1116) — одна подпись оператора, и рекламация пайщика (1106) под вторую подпись оператора; с ней претензия уйдёт поставщику по решению совета. */
+	marketplaceReturnClaimChairmanSignablePayload: ModelTypes["MarketplaceReturnAcceptancePayload"],
 	/** Превью заявления на гарантийный возврат имущества для подписания пайщиком-заказчиком. */
 	marketplaceReturnClaimSignablePayload: ModelTypes["GeneratedDocument"],
 	/** Поиск атрибутов marketplace по названию */
@@ -45693,6 +45997,10 @@ export type ModelTypes = {
 	marketplaceStockIssuancePayloads: Array<ModelTypes["MarketplaceStockIssuanceOperatorLine"]>,
 	/** Нагрузка к подписи бандла пайщиком: по каждой строке — заявление о возврате паевого взноса имуществом; если кошельков программы не хватает на бандл — одно заявление 1110 о переводе недостающего с Цифрового кошелька. */
 	marketplaceStockProposalSignablePayloads: ModelTypes["MarketplaceStockAcceptPayload"],
+	/** Одна гарантийная претензия с рекламацией, фотографиями и пройденными шагами возврата. */
+	marketplaceSupplierClaim: ModelTypes["MarketplaceSupplierClaim"],
+	/** Сводка претензий текущего поставщика: признанный долг к удержанию из выплат и отказанные суммы. */
+	marketplaceSupplierClaimSummary: ModelTypes["MarketplaceSupplierClaimSummary"],
 	/** Валидация значений атрибута marketplace */
 	marketplaceValidateAttributeValues: ModelTypes["MarketplaceAttributeValidation"],
 	/** Контекст пайщика для Стола заказов: роли, участки оператора и включённые настройки адресного хранения */
@@ -55432,6 +55740,8 @@ export type GraphQLTypes = {
 	inspection_result: string,
 	/** Сканированный штрих-код имущества для сверки с заказом (если применимо). */
 	scanned_barcode?: string | undefined | null,
+	/** Рекламация пайщика (1106) со второй подписью оператора — тот же документ без регенерации; с двумя подписями уйдёт поставщику как гарантийная претензия. */
+	signed_reclamation: GraphQLTypes["MarketplaceReturnStatementSignedInput"],
 	/** Заявление оператора участка в совет об отмене сделки по гарантийному возврату (1116), подписанное оператором, принявшим имущество; с ним заявление уходит на повестку совета. */
 	signed_statement: GraphQLTypes["MarketplaceReturnCancelStatementSignedInput"]
 };
@@ -55455,6 +55765,10 @@ export type GraphQLTypes = {
 	package_id?: string | undefined | null,
 	/** Количество: при отпуске по мере — в базовой единице (дробное для веса/объёма); при отпуске упаковкой — целое число упаковок. */
 	quantity: number
+};
+	["MarketplaceAdmitSupplierClaimInput"]: {
+		/** Идентификатор претензии. */
+	claim_id: string
 };
 	/** Заявление на материальную помощь доверенного кооперативного участка. Выплаченные и отклонённые заявления в списке не показываются — итог выплаты виден в движениях по кошельку. */
 ["MarketplaceAid"]: {
@@ -57298,6 +57612,8 @@ export type GraphQLTypes = {
 	/** Символ актива (например, RUB). */
 	symbol: string,
 	updated_at: GraphQLTypes["DateTime"],
+	/** Удержано в счёт признанного гарантийного долга поставщика; сумма к переводу уже уменьшена на неё. */
+	withheld_amount: string,
 	['...on MarketplaceOutgoingPaymentRequest']: Omit<GraphQLTypes["MarketplaceOutgoingPaymentRequest"], "...on MarketplaceOutgoingPaymentRequest">
 };
 	/** Статус исходящей выплаты поставщику на стороне marketplace. Подтверждение и отказ выполняет общий стол кассира кооператива; marketplace отображает результат только для истории. */
@@ -57354,6 +57670,12 @@ export type GraphQLTypes = {
 	/** Идентификатор приёмки. */
 	reception_id: string,
 	['...on MarketplaceReceptionPendingSignEvent']: Omit<GraphQLTypes["MarketplaceReceptionPendingSignEvent"], "...on MarketplaceReceptionPendingSignEvent">
+};
+	["MarketplaceRefuseSupplierClaimInput"]: {
+		/** Идентификатор претензии. */
+	claim_id: string,
+	/** Почему поставщик не признаёт претензию (до 500 символов). */
+	reason: string
 };
 	["MarketplaceRegistrationOfferStatus"]: {
 	__typename: "MarketplaceRegistrationOfferStatus",
@@ -57595,6 +57917,15 @@ export type GraphQLTypes = {
 	level?: number | undefined | null,
 	/** Секция целиком. Указывается вместо яруса. */
 	section?: string | undefined | null
+};
+	/** Документы для подписи оператором при приёме имущества: заявление в совет об отмене сделки и рекламация пайщика под вторую подпись. */
+["MarketplaceReturnAcceptancePayload"]: {
+	__typename: "MarketplaceReturnAcceptancePayload",
+	/** Заявление оператора в совет об отмене сделки (1116) — первая и единственная подпись оператора. */
+	cancel_statement: GraphQLTypes["GeneratedDocument"],
+	/** Рекламация пайщика (1106) с его подписью — оператор ставит вторую подпись поверх. */
+	reclamation: GraphQLTypes["DocumentAggregate"],
+	['...on MarketplaceReturnAcceptancePayload']: Omit<GraphQLTypes["MarketplaceReturnAcceptancePayload"], "...on MarketplaceReturnAcceptancePayload">
 };
 	["MarketplaceReturnCancelStatementSignedInput"]: {
 		/** Хэш содержимого документа */
@@ -58372,6 +58703,82 @@ export type GraphQLTypes = {
 	/** Идентификаторы транзакций приёма/отказа в блокчейне. */
 	tx_hashes: Array<string>,
 	['...on MarketplaceSupplierBatchActionResult']: Omit<GraphQLTypes["MarketplaceSupplierBatchActionResult"], "...on MarketplaceSupplierBatchActionResult">
+};
+	/** Гарантийная претензия поставщику по имуществу, возвращённому пайщиком и принятому обратно кооперативом. */
+["MarketplaceSupplierClaim"]: {
+	__typename: "MarketplaceSupplierClaim",
+	/** Возвращённое количество в базовых единицах. */
+	actual_quantity: number,
+	/** Сумма претензии — стоимость возвращённого имущества. */
+	amount: string,
+	/** Когда претензия будет признана автоматически, если автоприём включён и ответа нет. */
+	auto_admit_at?: GraphQLTypes["DateTime"] | undefined | null,
+	/** Претензия признана автоматически по истечении срока ответа. */
+	auto_admitted: boolean,
+	/** Хэш претензии в блокчейне — нитка процесса претензии. */
+	claim_hash: string,
+	coopname: string,
+	created_at: GraphQLTypes["DateTime"],
+	/** Момент ответа поставщика или автоприёма. */
+	decided_at?: GraphQLTypes["DateTime"] | undefined | null,
+	/** Кооперативный участок, где принято имущество и где его можно забрать. */
+	delivery_braname: string,
+	/** Название кооперативного участка. */
+	delivery_branch_name?: string | undefined | null,
+	/** Пройденные шаги гарантийного возврата: рассмотрение, приём имущества, решение совета. */
+	history: Array<GraphQLTypes["MarketplaceReturnClaimDecisionEntry"]>,
+	id: string,
+	/** Результат осмотра имущества оператором участка. */
+	inspection_result: string,
+	/** Момент решения совета об отмене сделки — с него претензия выставлена. */
+	issued_at: GraphQLTypes["DateTime"],
+	order_hash: string,
+	order_id: string,
+	orderer_account: string,
+	/** ФИО заказчика, вернувшего имущество. */
+	orderer_name?: string | undefined | null,
+	/** Размер упаковки; 0 или пусто — отпуск по мере. */
+	package_size?: number | undefined | null,
+	/** Фотографии из рекламации пайщика. */
+	photos: Array<GraphQLTypes["MarketplaceReturnClaimPhoto"]>,
+	/** Наименование товара. */
+	product_name?: string | undefined | null,
+	/** Причина обращения пайщика из рекламации. */
+	reason_text: string,
+	/** Рекламация пайщика с двумя подписями — пайщика и оператора участка, принявшего имущество. */
+	reclamation?: GraphQLTypes["DocumentAggregate"] | undefined | null,
+	/** Причина отказа поставщика. */
+	refuse_reason?: string | undefined | null,
+	/** Заявление на гарантийный возврат, из которого выросла претензия. */
+	return_claim_id: string,
+	status: GraphQLTypes["MarketplaceSupplierClaimStatus"],
+	supplier_account: string,
+	/** Базовая единица измерения товара. */
+	unit_of_measure?: GraphQLTypes["MarketplaceUnitOfMeasure"] | undefined | null,
+	updated_at: GraphQLTypes["DateTime"],
+	['...on MarketplaceSupplierClaim']: Omit<GraphQLTypes["MarketplaceSupplierClaim"], "...on MarketplaceSupplierClaim">
+};
+	["MarketplaceSupplierClaimResult"]: {
+	__typename: "MarketplaceSupplierClaimResult",
+	claim: GraphQLTypes["MarketplaceSupplierClaim"],
+	/** Хэш транзакции ответа поставщика. */
+	tx_hash: string,
+	['...on MarketplaceSupplierClaimResult']: Omit<GraphQLTypes["MarketplaceSupplierClaimResult"], "...on MarketplaceSupplierClaimResult">
+};
+	/** Состояние гарантийной претензии поставщику: ожидает ответа, признана (долг к удержанию из выплат), отклонена (основание для иска). */
+["MarketplaceSupplierClaimStatus"]: MarketplaceSupplierClaimStatus;
+	/** Сводка гарантийных претензий поставщика по кошелькам: признанный долг к удержанию и отказанные суммы. */
+["MarketplaceSupplierClaimSummary"]: {
+	__typename: "MarketplaceSupplierClaimSummary",
+	/** Признанный гарантийный долг, ещё не удержанный из выплат. */
+	admitted_debt: string,
+	/** Сумма претензий, ожидающих ответа поставщика. */
+	pending_total: string,
+	/** Сумма претензий, по которым поставщик отказал — потенциальный иск. */
+	refused_total: string,
+	/** Символ валюты. */
+	symbol: string,
+	['...on MarketplaceSupplierClaimSummary']: Omit<GraphQLTypes["MarketplaceSupplierClaimSummary"], "...on MarketplaceSupplierClaimSummary">
 };
 	["MarketplaceSupplierMemberInput"]: {
 		/** Аккаунт поставщика */
@@ -59804,6 +60211,8 @@ export type GraphQLTypes = {
 	marketplaceAddSupplier: GraphQLTypes["MarketplaceSupplier"],
 	/** Добавить товар в корзину (с привязкой корзины к пункту выдачи). */
 	marketplaceAddToCart: GraphQLTypes["MarketplaceCart"],
+	/** Поставщик признаёт гарантийную претензию: сумма становится долгом и удерживается из следующих выплат. */
+	marketplaceAdmitSupplierClaim: GraphQLTypes["MarketplaceSupplierClaimResult"],
 	/** Одобрить Offer (status → ACTIVE) и установить гарантийный срок возврата (admin) */
 	marketplaceApproveOffer: GraphQLTypes["MarketplaceOffer"],
 	/** Председатель кооперативного участка по результатам удалённого рассмотрения приглашает пайщика на очный осмотр имущества. */
@@ -59904,6 +60313,8 @@ export type GraphQLTypes = {
 	marketplacePublishStock: Array<GraphQLTypes["MarketplaceOffer"]>,
 	/** Оператор участка выдачи отмечает поступление имущества по заказу: заказчику уходит уведомление «приходите заберите». Без подписи. */
 	marketplaceReadyIssue: GraphQLTypes["MarketplaceOrder"],
+	/** Поставщик отказывает по гарантийной претензии с указанием причины: сумма учитывается как отказанная. */
+	marketplaceRefuseSupplierClaim: GraphQLTypes["MarketplaceSupplierClaimResult"],
 	/** Отклонить Offer с причиной (status → REJECTED) (admin) */
 	marketplaceRejectOffer: GraphQLTypes["MarketplaceOffer"],
 	/** Оператор по результатам осмотра не принимает имущество — заказчик забирает его сразу, движений по средствам нет. */
@@ -62355,6 +62766,8 @@ export type GraphQLTypes = {
 	marketplaceListStockProposals: Array<GraphQLTypes["MarketplaceStockProposal"]>,
 	/** Ячейки хранения складов кооперативных участков. */
 	marketplaceListStorageCells: Array<GraphQLTypes["MarketplaceStorageCell"]>,
+	/** Гарантийные претензии, выставленные текущему поставщику, — новые сверху. */
+	marketplaceListSupplierClaims: Array<GraphQLTypes["MarketplaceSupplierClaim"]>,
 	/** Список заказов, по которым текущий пайщик является поставщиком (стол поставщика). */
 	marketplaceListSupplierOrders: GraphQLTypes["MarketplaceOrderPaginationResult"],
 	/** Единицы имущества поставщика, ожидающие приёмки на текущем КУ: задекларированные в партии (по ТТН) и добор по акцепту. Базис агрегирующей приёмки для оператора кооперативного участка. */
@@ -62381,8 +62794,8 @@ export type GraphQLTypes = {
 	marketplaceResolveContainerByCode: GraphQLTypes["MarketplaceContainer"],
 	/** Получить одно заявление на гарантийный возврат по идентификатору. */
 	marketplaceReturnClaim: GraphQLTypes["MarketplaceReturnClaim"],
-	/** Заявление оператора участка в совет об отмене сделки по гарантийному возврату (1116) для подписи у стойки: заказ и принятое имущество из рекламации пайщика, результат осмотра, суммы паевого и членского взносов к восстановлению. Оператор подписывает его одной подписью, после чего заявление уходит на повестку совета. */
-	marketplaceReturnClaimChairmanSignablePayload: GraphQLTypes["GeneratedDocument"],
+	/** Документы приёма имущества у стойки: заявление оператора участка в совет об отмене сделки (1116) — одна подпись оператора, и рекламация пайщика (1106) под вторую подпись оператора; с ней претензия уйдёт поставщику по решению совета. */
+	marketplaceReturnClaimChairmanSignablePayload: GraphQLTypes["MarketplaceReturnAcceptancePayload"],
 	/** Превью заявления на гарантийный возврат имущества для подписания пайщиком-заказчиком. */
 	marketplaceReturnClaimSignablePayload: GraphQLTypes["GeneratedDocument"],
 	/** Поиск атрибутов marketplace по названию */
@@ -62395,6 +62808,10 @@ export type GraphQLTypes = {
 	marketplaceStockIssuancePayloads: Array<GraphQLTypes["MarketplaceStockIssuanceOperatorLine"]>,
 	/** Нагрузка к подписи бандла пайщиком: по каждой строке — заявление о возврате паевого взноса имуществом; если кошельков программы не хватает на бандл — одно заявление 1110 о переводе недостающего с Цифрового кошелька. */
 	marketplaceStockProposalSignablePayloads: GraphQLTypes["MarketplaceStockAcceptPayload"],
+	/** Одна гарантийная претензия с рекламацией, фотографиями и пройденными шагами возврата. */
+	marketplaceSupplierClaim: GraphQLTypes["MarketplaceSupplierClaim"],
+	/** Сводка претензий текущего поставщика: признанный долг к удержанию из выплат и отказанные суммы. */
+	marketplaceSupplierClaimSummary: GraphQLTypes["MarketplaceSupplierClaimSummary"],
 	/** Валидация значений атрибута marketplace */
 	marketplaceValidateAttributeValues: GraphQLTypes["MarketplaceAttributeValidation"],
 	/** Контекст пайщика для Стола заказов: роли, участки оператора и включённые настройки адресного хранения */
@@ -65271,6 +65688,12 @@ export enum MarketplaceStockProposalStatus {
 	DECLINED = "DECLINED",
 	PROPOSED = "PROPOSED"
 }
+/** Состояние гарантийной претензии поставщику: ожидает ответа, признана (долг к удержанию из выплат), отклонена (основание для иска). */
+export enum MarketplaceSupplierClaimStatus {
+	ADMITTED = "ADMITTED",
+	PENDING = "PENDING",
+	REFUSED = "REFUSED"
+}
 /** Модель работы поставщика: членская или паевая */
 export enum MarketplaceSupplierModel {
 	MEMBERSHIP = "MEMBERSHIP",
@@ -65999,6 +66422,7 @@ type ZEUS_VARIABLES = {
 	["MarketplaceAcceptReturnAtVisitInput"]: ValueTypes["MarketplaceAcceptReturnAtVisitInput"];
 	["MarketplaceAddSupplierInput"]: ValueTypes["MarketplaceAddSupplierInput"];
 	["MarketplaceAddToCartInput"]: ValueTypes["MarketplaceAddToCartInput"];
+	["MarketplaceAdmitSupplierClaimInput"]: ValueTypes["MarketplaceAdmitSupplierClaimInput"];
 	["MarketplaceAidStage"]: ValueTypes["MarketplaceAidStage"];
 	["MarketplaceAidStatementSignablePayloadInput"]: ValueTypes["MarketplaceAidStatementSignablePayloadInput"];
 	["MarketplaceAplReceptionByIdInput"]: ValueTypes["MarketplaceAplReceptionByIdInput"];
@@ -66090,6 +66514,7 @@ type ZEUS_VARIABLES = {
 	["MarketplaceOutgoingPaymentRequestStatus"]: ValueTypes["MarketplaceOutgoingPaymentRequestStatus"];
 	["MarketplacePublishStockInput"]: ValueTypes["MarketplacePublishStockInput"];
 	["MarketplaceReadyIssueInput"]: ValueTypes["MarketplaceReadyIssueInput"];
+	["MarketplaceRefuseSupplierClaimInput"]: ValueTypes["MarketplaceRefuseSupplierClaimInput"];
 	["MarketplaceRejectOfferInput"]: ValueTypes["MarketplaceRejectOfferInput"];
 	["MarketplaceRejectReturnAtVisitInput"]: ValueTypes["MarketplaceRejectReturnAtVisitInput"];
 	["MarketplaceRejectReturnRemoteInput"]: ValueTypes["MarketplaceRejectReturnRemoteInput"];
@@ -66136,6 +66561,7 @@ type ZEUS_VARIABLES = {
 	["MarketplaceStockProposalItemInput"]: ValueTypes["MarketplaceStockProposalItemInput"];
 	["MarketplaceStockProposalStatus"]: ValueTypes["MarketplaceStockProposalStatus"];
 	["MarketplaceSubmitWriteoffDraftInput"]: ValueTypes["MarketplaceSubmitWriteoffDraftInput"];
+	["MarketplaceSupplierClaimStatus"]: ValueTypes["MarketplaceSupplierClaimStatus"];
 	["MarketplaceSupplierMemberInput"]: ValueTypes["MarketplaceSupplierMemberInput"];
 	["MarketplaceSupplierModel"]: ValueTypes["MarketplaceSupplierModel"];
 	["MarketplaceSupplierStatus"]: ValueTypes["MarketplaceSupplierStatus"];

@@ -22,6 +22,8 @@ import { OperatorReceptionPage } from 'src/pages/Marketplace/OperatorReception'
 import { OffererSupplyPreparationPage } from 'src/pages/Marketplace/OffererSupplyPreparation'
 import { OffererShipPartyPage } from 'src/pages/Marketplace/OffererShipParty'
 import { OffererPaymentHistoryPage } from 'src/pages/Marketplace/OffererPaymentHistory'
+import { OffererWarrantyClaimsPage } from 'src/pages/Marketplace/OffererWarrantyClaims'
+import { OffererWarrantyClaimDetailPage } from 'src/pages/Marketplace/OffererWarrantyClaimDetail'
 import { AdminWriteoffsPage } from 'src/pages/Marketplace/AdminWriteoffs'
 import { ChairmanModerationPage } from 'src/pages/Marketplace/ChairmanModeration'
 import { AdminOrdersPage } from 'src/pages/Marketplace/AdminOrders'
@@ -416,6 +418,35 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             // заказах». Это одна и та же поставка на всём пути, и держать ради
             // одной кнопки отдельный экран со своим списком значило заставлять
             // поставщика сверять два списка одних и тех же заказов.
+            {
+              // 99D-13: гарантийные претензии поставщику — перед «Выплатами»,
+              // потому что признанная претензия уменьшает следующие выплаты.
+              path: 'claims',
+              name: 'marketplace-supplier-claims',
+              component: markRaw(OffererWarrantyClaimsPage),
+              meta: {
+                title: 'Гарантийные возвраты',
+                icon: 'fa-solid fa-rotate-left',
+                requires: 'Offer:create:own',
+                requiresAuth: true,
+                agreements: agreementsBase,
+              },
+              children: [],
+            },
+            {
+              path: 'claims/:claimId',
+              name: 'marketplace-supplier-claim-detail',
+              component: markRaw(OffererWarrantyClaimDetailPage),
+              meta: {
+                title: 'Гарантийная претензия',
+                icon: 'fa-solid fa-rotate-left',
+                requires: 'Offer:create:own',
+                requiresAuth: true,
+                hidden: true,
+                agreements: agreementsBase,
+              },
+              children: [],
+            },
             {
               // Эпик 5 / Story 5.9: offerer-стол «Выплаты». Настройка
               // «выплаты получаю на…» (реквизиты ядра) + история выплат

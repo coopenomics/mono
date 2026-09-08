@@ -31,11 +31,25 @@ void marketplace::payconfirm(eosio::name coopname, checksum256 outcome_hash) {
   eosio::check(o.payout_status == OrderPayoutStatus::PENDING,
                "Callback gateway::outcomplete получен на Order не в статусе ожидания выплаты");
 
+  // Удержанная при инициации часть (признанный гарантийный долг поставщика,
+  // задача 99D-13) не платится деньгами — она гасит долг: o.mkt.deduct (BURN
+  // с w.mkt.debt, без проводки — обязательство и дебиторка на одном счёте 76).
+  const eosio::asset withheld = o.payout_withheld.value_or(eosio::asset(0, _root_govern_symbol));
+  const eosio::asset paid = o.fact_cost - withheld;
+  eosio::check(paid.amount > 0, "Выплата поставщику после удержания долга пуста");
+
   Ledger2::apply(_marketplace, coopname,
                  operations::marketplace::PAY_SUPPLIER,
                  processes::marketplace::SUPPLY,
-                 o.fact_cost, o.offerer, o.hash,
+                 paid, o.offerer, o.hash,
                  Marketplace::Memo::get_pay_supplier_memo(o.id));
+  if (withheld.amount > 0) {
+    Ledger2::apply(_marketplace, coopname,
+                   operations::marketplace::DEDUCT_DEBT,
+                   processes::marketplace::SUPPLY,
+                   withheld, o.offerer, o.hash,
+                   Marketplace::Memo::get_deduct_debt_memo(o.id));
+  }
 
   Marketplace::update_order(coopname, o.id, [&](auto& upd) {
     upd.payout_status = OrderPayoutStatus::COMPLETED;

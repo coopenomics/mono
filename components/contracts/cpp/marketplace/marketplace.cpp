@@ -37,6 +37,11 @@
 #include "src/p.mkt.return/rejretrn.cpp"
 #include "src/p.mkt.return/onmktrtauth.cpp"
 #include "src/p.mkt.return/onmktrtdecl.cpp"
+
+// ── p.mkt.claim (3 actions) ── гарантийная претензия поставщику (99D-13) ──
+#include "src/p.mkt.claim/admitclaim.cpp"
+#include "src/p.mkt.claim/refuseclaim.cpp"
+#include "src/p.mkt.claim/autoclaim.cpp"
 #include "src/p.mkt.return/handback.cpp"
 
 // ── p.mkt.wroff (4 actions) ───── Stories Эпика 8 ──────────────────────

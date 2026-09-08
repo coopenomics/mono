@@ -60,11 +60,16 @@ const EXPECTED_MARKETPLACE_OP_CODES = [
   'o.mkt.return',
   // p.mkt.wroff (1)
   'o.mkt.wroff',
+  // p.mkt.claim (3) + удержание долга в нитке заказа (1)
+  'o.mkt.claim',
+  'o.mkt.admit',
+  'o.mkt.refuse',
+  'o.mkt.deduct',
 ] as const
 
 describe('Story 11.2 — coverage marketplace operation_code в cooptypes', () => {
-  it('canonical список содержит 14 кодов', () => {
-    expect(EXPECTED_MARKETPLACE_OP_CODES).toHaveLength(14)
+  it('canonical список содержит 18 кодов', () => {
+    expect(EXPECTED_MARKETPLACE_OP_CODES).toHaveLength(18)
   })
 
   it('каждый код присутствует в LEDGER2_OPERATION_REGISTRY', () => {
@@ -85,7 +90,7 @@ describe('Story 11.2 — coverage marketplace operation_code в cooptypes', () =
     (code) => {
       const op = Ledger2.LEDGER2_OPERATION_REGISTRY.find((o) => o.code === code)!
       expect(op).toBeDefined()
-      expect(['p.mkt.supply', 'p.mkt.return', 'p.mkt.wroff']).toContain(op.process_type)
+      expect(['p.mkt.supply', 'p.mkt.return', 'p.mkt.wroff', 'p.mkt.claim']).toContain(op.process_type)
     },
   )
 
@@ -97,8 +102,8 @@ describe('Story 11.2 — coverage marketplace operation_code в cooptypes', () =
     },
   )
 
-  it('все 3 marketplace process_type объявлены в PROCESS_HASH_LOCATOR (Phase B fan-out)', () => {
-    for (const pt of ['p.mkt.supply', 'p.mkt.return', 'p.mkt.wroff']) {
+  it('все 4 marketplace process_type объявлены в PROCESS_HASH_LOCATOR (Phase B fan-out)', () => {
+    for (const pt of ['p.mkt.supply', 'p.mkt.return', 'p.mkt.wroff', 'p.mkt.claim']) {
       expect(PROCESS_HASH_LOCATOR[pt]).toBeDefined()
       expect(PROCESS_HASH_LOCATOR[pt].length).toBeGreaterThan(0)
       expect(KNOWN_PROCESS_TYPES.has(pt)).toBe(true)
@@ -114,6 +119,9 @@ describe('Story 11.2 — coverage marketplace operation_code в cooptypes', () =
     ])
     expect(PROCESS_HASH_LOCATOR['p.mkt.wroff']).toEqual([
       { code: 'marketplace', table: 'wroffprops', field: 'hash' },
+    ])
+    expect(PROCESS_HASH_LOCATOR['p.mkt.claim']).toEqual([
+      { code: 'marketplace', table: 'claims', field: 'hash' },
     ])
   })
 })
@@ -140,6 +148,10 @@ describe('Story 11.2 — wallet_op + Дт/Кт реестра соответст
     { code: 'o.mkt.recall', walletOp: 'TRANSFER', walletFrom: 'w.mkt.share', walletTo: 'w.wal.share', debit: null, credit: null },
     { code: 'o.mkt.return', walletOp: 'ISSUE', walletFrom: null, walletTo: 'w.mkt.share', debit: 10, credit: 80 },
     { code: 'o.mkt.wroff', walletOp: 'NONE', walletFrom: null, walletTo: null, debit: 86, credit: 10 },
+    { code: 'o.mkt.claim', walletOp: 'ISSUE', walletFrom: null, walletTo: 'w.mkt.claim', debit: null, credit: null },
+    { code: 'o.mkt.admit', walletOp: 'TRANSFER', walletFrom: 'w.mkt.claim', walletTo: 'w.mkt.debt', debit: 76, credit: 91 },
+    { code: 'o.mkt.refuse', walletOp: 'TRANSFER', walletFrom: 'w.mkt.claim', walletTo: 'w.mkt.refuse', debit: null, credit: null },
+    { code: 'o.mkt.deduct', walletOp: 'BURN', walletFrom: 'w.mkt.debt', walletTo: null, debit: null, credit: null },
   ] as const
 
   it.each(EXPECTED_REGISTRY)(
@@ -219,7 +231,7 @@ describe('Story 11.2 — синтетическая трассировка apply
       // process_type (Phase A якорь в ProcessRegistryService.getProcess
       // делает ровно эту проверку).
       const processType = OPERATION_CODE_TO_PROCESS_TYPE[code]
-      expect(['p.mkt.supply', 'p.mkt.return', 'p.mkt.wroff']).toContain(processType)
+      expect(['p.mkt.supply', 'p.mkt.return', 'p.mkt.wroff', 'p.mkt.claim']).toContain(processType)
     },
   )
 

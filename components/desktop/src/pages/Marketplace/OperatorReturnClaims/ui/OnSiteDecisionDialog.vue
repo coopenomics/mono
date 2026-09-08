@@ -97,10 +97,12 @@ const claimQuantityLabel = computed(() => {
 });
 
 /**
- * Приём имущества — заявление оператора в совет об отмене сделки (registry
- * 1116): бэкенд собирает его по рекламации пайщика, заказу и результату
- * осмотра, оператор ставит единственную подпись. С ним контракт ставит вопрос
- * на повестку совета; деньги двигаются только по его решению.
+ * Приём имущества — две подписи оператора под одним нажатием: своё заявление
+ * в совет об отмене сделки (1116; бэкенд собирает его по рекламации пайщика,
+ * заказу и результату осмотра) и вторая подпись на рекламации пайщика (1106,
+ * тот же документ без регенерации) — с двумя подписями она уйдёт поставщику
+ * как гарантийная претензия. С заявлением контракт ставит вопрос на повестку
+ * совета; деньги двигаются только по его решению.
  */
 async function acceptWithStatement(
   claim: MarketplaceReturnClaimView,
@@ -108,14 +110,19 @@ async function acceptWithStatement(
   inspectionPhotos: ReturnClaimPhotoUploadInput[],
 ): Promise<void> {
   const inspection = inspectionResult.value.trim();
-  const statement = await fetchChairmanReturnSignablePayload(claim.id, inspection);
-  const signed_statement = await new Classes.Document(wif).signDocument(statement, globalStore.username, 1);
+  const docs = await fetchChairmanReturnSignablePayload(claim.id, inspection);
+  const signer = new Classes.Document(wif);
+  const signed_statement = await signer.signDocument(docs.cancel_statement, globalStore.username, 1);
+  const signed_reclamation = await signer.signDocument(docs.reclamation.rawDocument, globalStore.username, 2, [
+    docs.reclamation.document,
+  ]);
   const result = await acceptReturnAtVisit({
     claim_id: claim.id,
     braname: props.braname.trim(),
     inspection_result: inspection,
     inspection_photos: inspectionPhotos.length > 0 ? inspectionPhotos : undefined,
     signed_statement,
+    signed_reclamation,
   });
   SuccessAlert(
     result.claim.status === 'ACCEPTED_BY_COUNCIL'

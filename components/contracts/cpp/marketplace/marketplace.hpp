@@ -35,6 +35,8 @@ using namespace Marketplace;
  *    issueact2, cancelissue, closeorder, markdown, setfee.
  *  - **p.mkt.return**: submretrn, aprretrem, rejretrem, accretrn, onmktrtauth,
  *    onmktrtdecl, handback, rejretrn.
+ *  - **p.mkt.claim** (3 actions): admitclaim, refuseclaim, autoclaim —
+ *    гарантийная претензия поставщику, выставляемая контрактом в onmktrtauth.
  *  - **p.mkt.wroff** (4 actions): propwroff, execwroff, onmktwoauth, onmktwodecl.
  *    Cписание скоропорта идёт через канонический паттерн «решение совета»:
  *    backend подписывает Заявление о списании (registry 1106) ключом
@@ -266,6 +268,39 @@ public:
                                      checksum256 outcome_hash,
                                      std::string reason);
 
+  // ── p.mkt.claim ── гарантийная претензия поставщику (задача 99D-13) ───────
+
+  /**
+   * @brief Поставщик признал гарантийную претензию: `pending → admitted`,
+   * o.mkt.admit (TRANSFER w.mkt.claim → w.mkt.debt, Дт 76 / Кт 91). Признанная
+   * сумма удерживается из следующих выплат поставщику (`payout`).
+   * Авторизация: кооператив; `supplier` обязан совпасть с поставщиком претензии.
+   * @ingroup public_marketplace_actions
+   */
+  [[eosio::action]] void admitclaim(eosio::name coopname,
+                                     eosio::name supplier,
+                                     checksum256 claim_hash);
+
+  /**
+   * @brief Поставщик отказал по гарантийной претензии: `pending → refused`,
+   * o.mkt.refuse (TRANSFER w.mkt.claim → w.mkt.refuse, без проводки). Сумма
+   * остаётся в разрезе поставщика как основание для иска.
+   * @ingroup public_marketplace_actions
+   */
+  [[eosio::action]] void refuseclaim(eosio::name coopname,
+                                      eosio::name supplier,
+                                      checksum256 claim_hash,
+                                      std::string reason);
+
+  /**
+   * @brief Кооператив признаёт претензию за поставщика по истечении срока
+   * ответа (CLAIM_AUTO_ADMIT_SECS) — только при включённом автоприёме в
+   * настройках Стола заказов (решает бэкенд). Эффект как у admitclaim.
+   * @ingroup public_marketplace_actions
+   */
+  [[eosio::action]] void autoclaim(eosio::name coopname,
+                                    checksum256 claim_hash);
+
   /**
    * @brief Списание уценки по заказу из остатка кооператива (requirement 76).
    * Разница между стоимостью прибытия выданного и фактической суммой выдачи
@@ -425,7 +460,8 @@ public:
                                    eosio::name braname,
                                    checksum256 request_hash,
                                    document2 statement,
-                                   std::string meta);
+                                   std::string meta,
+                                   document2 reclamation);
 
   /**
    * @brief Председатель отказывает на очном осмотре (Story 7.3).

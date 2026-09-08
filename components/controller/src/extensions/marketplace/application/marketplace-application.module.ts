@@ -152,6 +152,10 @@ import {
 import { MarketplaceReturnClaimImagesService } from './services/marketplace-return-claim-images.service';
 import { MarketplaceReturnClaimResolver } from './resolvers/marketplace-return-claim.resolver';
 import { MarketplaceReturnClaimSyncService } from './services/marketplace-return-claim-sync.service';
+// Компонент 68 / 99D-13 — гарантийная претензия поставщику
+import { MarketplaceSupplierClaimService, MARKETPLACE_SUPPLIER_CLAIM_SERVICE } from './services/marketplace-supplier-claim.service';
+import { MarketplaceSupplierClaimSyncService } from './services/marketplace-supplier-claim-sync.service';
+import { MarketplaceSupplierClaimResolver } from './resolvers/marketplace-supplier-claim.resolver';
 import { bucketProvidersFor } from '@coopenomics/extension-kit';
 import { FILE_STORAGE_PORT } from '@coopenomics/innercoop';
 // Эпик 8 — списание скоропорта через решение совета
@@ -257,6 +261,7 @@ import { MarketplaceRealtimeBridge } from './realtime/marketplace-realtime.bridg
     MarketplaceSupplierSettingsResolver,
     MarketplaceIssuanceResolver,
     MarketplaceReturnClaimResolver,
+    MarketplaceSupplierClaimResolver,
     // Эпик 16 — корзина заказчика
     MarketplaceCartResolver,
     // Фаза 2 — realtime-подписка персонального канала пайщика + мост из
@@ -449,6 +454,14 @@ import { MarketplaceRealtimeBridge } from './realtime/marketplace-realtime.bridg
     MarketplaceReturnClaimService,
     MarketplaceReturnClaimImagesService,
     MarketplaceReturnClaimSyncService,
+    // Компонент 68 / 99D-13 — претензии поставщику: выставление по решению совета,
+    // ответ поставщика, автоприём по сроку, удержание из выплат.
+    {
+      provide: MARKETPLACE_SUPPLIER_CLAIM_SERVICE,
+      useClass: MarketplaceSupplierClaimService,
+    },
+    MarketplaceSupplierClaimService,
+    MarketplaceSupplierClaimSyncService,
     // Эпик 8 — списание скоропорта
     MarketplaceWriteoffService,
     MarketplaceWriteoffCronService,
@@ -527,6 +540,7 @@ import { MarketplaceRealtimeBridge } from './realtime/marketplace-realtime.bridg
     MarketplaceOutgoingPaymentResolver,
     MarketplaceIssuanceResolver,
     MarketplaceReturnClaimResolver,
+    MarketplaceSupplierClaimResolver,
 
     // Экспортируем сервисы Story 4.1 для использования в follow-up Stories Эпика 4
     MARKETPLACE_ORDER_CREATE_SERVICE,
@@ -566,6 +580,8 @@ import { MarketplaceRealtimeBridge } from './realtime/marketplace-realtime.bridg
     // Эпик 7
     MARKETPLACE_RETURN_CLAIM_SERVICE,
     MarketplaceReturnClaimService,
+    MARKETPLACE_SUPPLIER_CLAIM_SERVICE,
+    MarketplaceSupplierClaimService,
     // Эпик 8
     MarketplaceWriteoffService,
     MarketplaceWriteoffResolver,

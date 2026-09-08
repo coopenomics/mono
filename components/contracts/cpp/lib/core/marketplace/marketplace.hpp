@@ -220,6 +220,33 @@ inline void erase_writeoff_proposal(eosio::name coopname, uint64_t proposal_id) 
   proposals.erase(it);
 }
 
+// ── Warranty claims (претензии поставщику, p.mkt.claim) ─────────────────
+
+inline std::optional<warranty_claim> get_claim_by_hash(eosio::name coopname,
+                                                       const checksum256& claim_hash) {
+  warranty_claims_index claims(_marketplace, coopname.value);
+  auto idx = claims.get_index<"byhash"_n>();
+  auto it = idx.find(claim_hash);
+  if (it == idx.end()) return std::nullopt;
+  return *it;
+}
+
+inline warranty_claim get_claim_by_hash_or_fail(eosio::name coopname,
+                                                const checksum256& claim_hash,
+                                                const std::string& msg = "Гарантийная претензия поставщику не найдена по хэшу") {
+  auto c = get_claim_by_hash(coopname, claim_hash);
+  eosio::check(c.has_value(), msg);
+  return *c;
+}
+
+inline void update_claim(eosio::name coopname, uint64_t claim_id,
+                         const std::function<void(warranty_claim&)>& fn) {
+  warranty_claims_index claims(_marketplace, coopname.value);
+  auto it = claims.find(claim_id);
+  eosio::check(it != claims.end(), "Гарантийная претензия не найдена по id");
+  claims.modify(it, _marketplace, [&](auto& c) { fn(c); });
+}
+
 // ── Cross-contract read: ledger2 wallet/userwallet balances ─────────────
 //
 // Используется в createorder для guard'а Locked Decision L6 (без отрицательного
@@ -375,6 +402,14 @@ inline constexpr uint64_t REFUSAL_PENALTY_PERCENT = 50;
 /// выдать имущество заказчику обратно (handback) — баланс не восстанавливается.
 /// TBD-Standardization: величину подтверждает методолог.
 inline constexpr uint32_t RETURN_DECISION_WAIT_SECS = 7 * 24 * 3600;
+
+/**
+ * @brief Срок ответа поставщика на гарантийную претензию, после которого
+ * кооператив вправе признать претензию за него (`autoclaim`) — только при
+ * включённом автоприёме в настройках Стола заказов (по умолчанию выключен).
+ * 14 суток — решение владельца 08.09.2026 (TBD-Standardization).
+ */
+inline constexpr uint32_t CLAIM_AUTO_ADMIT_SECS = 14 * 24 * 3600;
 
 /// Снятие документов начатой выдачи с заказа (отказ совета, отмена оператором):
 /// заявление, протокол и обе подписи акта очищаются, факт возвращается к заказу.

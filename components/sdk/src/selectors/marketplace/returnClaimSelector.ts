@@ -1,7 +1,7 @@
 import { Selector, type ValueTypes } from '../../zeus/index'
 import type { MakeAllFieldsRequired } from '../../utils/MakeAllFieldsRequired'
 
-const rawPhotoSelector = {
+export const rawPhotoSelector = {
   url: true,
   content_hash: true,
   mime_type: true,
@@ -15,7 +15,7 @@ export const marketplaceReturnClaimPhotoSelector = Selector('MarketplaceReturnCl
   rawPhotoSelector,
 )
 
-const rawDecisionEntrySelector = {
+export const rawDecisionEntrySelector = {
   stage: true,
   decision: true,
   by_chairman_account: true,

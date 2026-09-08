@@ -250,6 +250,27 @@ export const LEDGER2_OPERATION_REGISTRY: readonly OperationMeta[] = [
     debit: null, credit: null,
     human_name: 'Консолидация свободного паевого «Стола заказов» при выходе из кооператива' },
 
+  // p.mkt.claim — гарантийная претензия поставщику (99D-13)
+  { code: 'o.mkt.claim',   process_type: 'p.mkt.claim',   contract: 'marketplace',
+    name: 'CLAIM_SUPPLIER', wallet_op: 'ISSUE', wallet_from: null, wallet_to: 'w.mkt.claim',
+    debit: null, credit: null,
+    human_name: 'Гарантийная претензия поставщику по отменённой советом сделке' },
+
+  { code: 'o.mkt.admit',   process_type: 'p.mkt.claim',   contract: 'marketplace',
+    name: 'ADMIT_CLAIM',    wallet_op: 'TRANSFER', wallet_from: 'w.mkt.claim', wallet_to: 'w.mkt.debt',
+    debit: 76, credit: 91,
+    human_name: 'Претензия признана поставщиком — долг к удержанию из выплат' },
+
+  { code: 'o.mkt.refuse',  process_type: 'p.mkt.claim',   contract: 'marketplace',
+    name: 'REFUSE_CLAIM',   wallet_op: 'TRANSFER', wallet_from: 'w.mkt.claim', wallet_to: 'w.mkt.refuse',
+    debit: null, credit: null,
+    human_name: 'Претензия отклонена поставщиком — основание для иска' },
+
+  { code: 'o.mkt.deduct',  process_type: 'p.mkt.supply',  contract: 'marketplace',
+    name: 'DEDUCT_DEBT',    wallet_op: 'BURN', wallet_from: 'w.mkt.debt', wallet_to: null,
+    debit: null, credit: null,
+    human_name: 'Удержание гарантийного долга поставщика из выплаты' },
+
   // branch — экономика кооперативного участка (requirement b6)
   { code: 'o.brn.common',  process_type: 'p.brn.fees',    contract: 'branch',
     name: 'DISTRIBUTE_COMMON', wallet_op: 'TRANSFER', wallet_from: 'w.mkt.fee', wallet_to: 'w.brn.common',

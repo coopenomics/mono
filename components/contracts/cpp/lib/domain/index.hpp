@@ -80,6 +80,7 @@
 #include "table_marketplace_fee_config.hpp"
 #include "table_marketplace_orders.hpp"
 #include "table_marketplace_return_requests.hpp"
+#include "table_marketplace_warranty_claims.hpp"
 #include "table_marketplace_writeoff_proposals.hpp"
 
 // apps (каталог приложений)

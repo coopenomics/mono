@@ -46,7 +46,7 @@ import { workflow as marketplaceWriteoffAuthorizedWorkflow } from './marketplace
 import { workflow as marketplaceWriteoffExecutedWorkflow } from './marketplace-writeoff-executed';
 import { workflow as marketplaceWriteoffRejectedWorkflow } from './marketplace-writeoff-rejected';
 import { workflow as marketplaceNewOrderForSupplierWorkflow } from './marketplace-new-order-for-supplier';
-import { workflow as marketplaceReturnAcceptedSupplierWorkflow } from './marketplace-return-accepted-supplier';
+import { workflow as marketplaceSupplierClaimIssuedWorkflow } from './marketplace-supplier-claim-issued';
 import { workflow as marketplaceOrderDeclinedBySupplierWorkflow } from './marketplace-order-declined-by-supplier';
 import { workflow as marketplaceNewSupplierRequestWorkflow } from './marketplace-new-supplier-request';
 import { workflow as marketplaceOfferOnModerationWorkflow } from './marketplace-offer-on-moderation';
@@ -108,7 +108,7 @@ export * as MarketplaceWriteoffAuthorized from './marketplace-writeoff-authorize
 export * as MarketplaceWriteoffExecuted from './marketplace-writeoff-executed';
 export * as MarketplaceWriteoffRejected from './marketplace-writeoff-rejected';
 export * as MarketplaceNewOrderForSupplier from './marketplace-new-order-for-supplier';
-export * as MarketplaceReturnAcceptedSupplier from './marketplace-return-accepted-supplier';
+export * as MarketplaceSupplierClaimIssued from './marketplace-supplier-claim-issued';
 export * as MarketplaceOrderDeclinedBySupplier from './marketplace-order-declined-by-supplier';
 export * as MarketplaceNewSupplierRequest from './marketplace-new-supplier-request';
 export * as MarketplaceOfferOnModeration from './marketplace-offer-on-moderation';
@@ -167,7 +167,7 @@ export const allWorkflows: WorkflowDefinition[] = [
   marketplaceWriteoffExecutedWorkflow,
   marketplaceWriteoffRejectedWorkflow,
   marketplaceNewOrderForSupplierWorkflow,
-  marketplaceReturnAcceptedSupplierWorkflow,
+  marketplaceSupplierClaimIssuedWorkflow,
   marketplaceOrderDeclinedBySupplierWorkflow,
   marketplaceNewSupplierRequestWorkflow,
   marketplaceOfferOnModerationWorkflow,

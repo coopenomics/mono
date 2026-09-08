@@ -246,8 +246,49 @@ export interface IAccRetrn {
   signer: IName
   braname: IName
   request_hash: IChecksum256
+  /** Заявление оператора участка в совет об отмене сделки (1116), подпись оператора. */
   statement: IDocument2
   meta: string
+  /** Рекламация пайщика (1106) со второй подписью оператора — уйдёт поставщику как претензия. */
+  reclamation: IDocument2
+}
+
+export interface IAdmitClaim {
+  coopname: IName
+  supplier: IName
+  claim_hash: IChecksum256
+}
+
+export interface IRefuseClaim {
+  coopname: IName
+  supplier: IName
+  claim_hash: IChecksum256
+  reason: string
+}
+
+export interface IAutoClaim {
+  coopname: IName
+  claim_hash: IChecksum256
+}
+
+/** Гарантийная претензия поставщику — таблица `claims`, анкер процесса p.mkt.claim. */
+export interface IWarrantyClaim {
+  id: IUint64
+  hash: IChecksum256
+  coopname: IName
+  supplier: IName
+  orderer: IName
+  original_order_id: IUint64
+  original_order_hash: IChecksum256
+  actual_quantity: IAsset
+  amount: IAsset
+  reason_text: string
+  photos: IChecksum256[]
+  reclamation: IDocument2
+  status: IName
+  created_at: ITimePointSec
+  decided_at: ITimePointSec
+  refuse_reason: string
 }
 
 export interface IRejRetrn {
@@ -367,6 +408,8 @@ export interface IOrder {
   issue_statement?: IDocument2
   /** binary_extension: у заказов, созданных до паевой модели, поля нет. */
   issue_protocol?: IDocument2
+  /** Удержанная в счёт признанного гарантийного долга поставщика часть выплаты; binary_extension. */
+  payout_withheld?: IAsset
   issue_act1: IDocument2
   issue_act2: IDocument2
   payout_status: IName

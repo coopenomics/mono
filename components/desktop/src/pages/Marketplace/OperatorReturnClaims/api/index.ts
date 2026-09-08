@@ -43,22 +43,30 @@ export type IRejectReturnAtVisitInput =
   Mutations.Marketplace.RejectReturnAtVisit.IInput['data'];
 
 /**
- * Заявление оператора участка в совет об отмене сделки по гарантийному
- * возврату (1116): бэкенд генерирует его по рекламации, заказу и результату
- * осмотра, оператор подписывает одной подписью. Пайщик ничего не подписывает.
+ * Документы приёма имущества у стойки: заявление оператора в совет об отмене
+ * сделки (1116, бэкенд генерирует по рекламации, заказу и результату осмотра;
+ * одна подпись оператора) и рекламация пайщика (1106) под вторую подпись
+ * оператора. Пайщик ничего не подписывает.
  */
-export type MarketplaceReturnCancelStatementView =
+type _RawAcceptancePayload =
   Queries.Marketplace.ReturnClaimChairmanSignablePayload.IOutput['marketplaceReturnClaimChairmanSignablePayload'];
+
+export type MarketplaceReturnAcceptancePayloadView = Omit<_RawAcceptancePayload, 'reclamation'> & {
+  reclamation: Omit<_RawAcceptancePayload['reclamation'], 'rawDocument'> & {
+    rawDocument: NonNullable<_RawAcceptancePayload['reclamation']['rawDocument']>;
+  };
+};
 
 export async function fetchChairmanReturnSignablePayload(
   claim_id: string,
   inspection_result: string,
-): Promise<MarketplaceReturnCancelStatementView> {
+): Promise<MarketplaceReturnAcceptancePayloadView> {
   const { [Queries.Marketplace.ReturnClaimChairmanSignablePayload.name]: result } = await client.Query(
     Queries.Marketplace.ReturnClaimChairmanSignablePayload.query,
     { variables: { claim_id, inspection_result } },
   );
-  return result;
+  // Бэкенд всегда отдаёт тело рекламации; в Zeus оно опционально — фиксируем как обязательное.
+  return result as MarketplaceReturnAcceptancePayloadView;
 }
 
 export async function listReturnClaimsByBraname(

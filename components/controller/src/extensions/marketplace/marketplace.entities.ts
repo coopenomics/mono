@@ -27,6 +27,7 @@ import { MarketplaceOfferEntity } from './infrastructure/entities/marketplace-of
 import { MarketplaceOrderEntity } from './infrastructure/entities/marketplace-order.entity';
 import { MarketplaceOutgoingPaymentRequestEntity } from './infrastructure/entities/marketplace-outgoing-payment-request.entity';
 import { MarketplaceReturnClaimEntity } from './infrastructure/entities/marketplace-return-claim.entity';
+import { MarketplaceSupplierClaimEntity } from './infrastructure/entities/marketplace-supplier-claim.entity';
 import { MarketplaceShipmentEntity } from './infrastructure/entities/marketplace-shipment.entity';
 import { MarketplaceStockProposalEntity } from './infrastructure/entities/marketplace-stock-proposal.entity';
 import { MarketplaceStorageCellEntity } from './infrastructure/entities/marketplace-storage-cell.entity';
@@ -63,6 +64,7 @@ export const marketplaceEntities = [
   MarketplaceOrderEntity,
   MarketplaceOutgoingPaymentRequestEntity,
   MarketplaceReturnClaimEntity,
+  MarketplaceSupplierClaimEntity,
   MarketplaceShipmentEntity,
   MarketplaceStockProposalEntity,
   MarketplaceStorageCellEntity,

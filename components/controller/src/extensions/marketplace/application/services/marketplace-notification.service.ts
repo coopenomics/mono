@@ -18,7 +18,7 @@ import {
   MARKETPLACE_RETURN_CLAIM_DECIDED_EVENT,
   MARKETPLACE_RETURN_CLAIM_FINALIZED_EVENT,
   MARKETPLACE_RETURN_CLAIM_SUBMITTED_EVENT,
-  MARKETPLACE_RETURN_ACCEPTED_FOR_SUPPLIER_EVENT,
+  MARKETPLACE_SUPPLIER_CLAIM_ISSUED_EVENT,
   MARKETPLACE_RETURN_COUNCIL_DECIDED_EVENT,
   MARKETPLACE_ISSUANCE_DECIDED_OFFLINE_EVENT,
   MARKETPLACE_SUPPLIER_PAYMENT_CONFIRMED_EVENT,
@@ -43,7 +43,7 @@ import {
   type MarketplaceReturnCouncilDecidedEvent,
   type MarketplaceIssuanceDecidedOfflineEvent,
   type MarketplaceReturnClaimSubmittedEvent,
-  type MarketplaceReturnAcceptedForSupplierEvent,
+  type MarketplaceSupplierClaimIssuedEvent,
   type MarketplaceSupplierPaymentConfirmedEvent,
   type MarketplaceSupplierPaymentDeclinedEvent,
   type MarketplaceNewSupplierRequestEvent,
@@ -715,36 +715,33 @@ export class MarketplaceNotificationService implements OnModuleInit {
     }
   }
 
-  @OnEvent(MARKETPLACE_RETURN_ACCEPTED_FOR_SUPPLIER_EVENT)
-  async handleReturnAcceptedForSupplier(
-    event: MarketplaceReturnAcceptedForSupplierEvent
-  ): Promise<void> {
+  @OnEvent(MARKETPLACE_SUPPLIER_CLAIM_ISSUED_EVENT)
+  async handleSupplierClaimIssued(event: MarketplaceSupplierClaimIssuedEvent): Promise<void> {
     try {
       const supplierName = await this.accountPort.getDisplayName(event.supplier_account);
-      const reasonExcerpt =
-        event.inspection_result.length > 240
-          ? event.inspection_result.slice(0, 240) + '…'
-          : event.inspection_result;
-      const payload: Workflows.MarketplaceReturnAcceptedSupplier.IPayload = {
+      const reason = event.inspection_result || event.reason_text;
+      const reasonExcerpt = reason.length > 240 ? reason.slice(0, 240) + '…' : reason;
+      const payload: Workflows.MarketplaceSupplierClaimIssued.IPayload = {
         supplierName,
         kuName: event.braname,
+        amount: event.amount,
         reasonExcerpt,
         coopname: event.coopname,
         claim_id: event.claim_id,
         order_id: event.order_id,
-        deepLinkUrl: `${platformSettings().frontendUrl}/${event.coopname}/market-supplier/incoming-orders`,
+        deepLinkUrl: `${platformSettings().frontendUrl}/${event.coopname}/market-supplier/claims/${event.claim_id}`,
       };
       await this.notificationSenderService.notifyUser(
         event.supplier_account,
-        Workflows.MarketplaceReturnAcceptedSupplier.id,
+        Workflows.MarketplaceSupplierClaimIssued.id,
         payload
       );
       this.logger.log(
-        `Заявление на возврат ${event.claim_id}: уведомление поставщику ${event.supplier_account} о приёме возврата в кооператив отправлено.`
+        `Претензия ${event.claim_id}: уведомление поставщику ${event.supplier_account} на ${event.amount} отправлено.`
       );
     } catch (err: any) {
       this.logger.warn(
-        `Заявление на возврат ${event.claim_id}: ошибка отправки уведомления поставщику о приёме возврата (${err.message}) — flow не блокируется.`
+        `Претензия ${event.claim_id}: ошибка отправки уведомления поставщику (${err.message}) — flow не блокируется.`
       );
     }
   }

@@ -334,24 +334,30 @@ export interface MarketplaceReturnClaimSubmittedEvent {
 }
 
 /**
- * Карта уведомлений (пробел B): гарантийный возврат принят в кооператив на
- * очном осмотре (`accretrn`) — имущество принято на счёт 10, претензия
- * зафиксирована. Поставщику уходит multi-channel уведомление: дальше
- * председатель КУ свяжется с ним по претензии за пределами системы. Эмитится
- * ПОСЛЕ commit'а решения в PG (INV-12).
+ * Задача 99D-13: по решению совета об отмене сделки поставщику выставлена
+ * гарантийная претензия — рекламация пайщика в две подписи, имущество на
+ * участке, сумма к признанию или отказу. Поставщику уходит multi-channel
+ * уведомление со ссылкой на раздел «Гарантийные возвраты» его стола.
+ * Эмитится ПОСЛЕ записи претензии в PG (INV-12).
  */
-export const MARKETPLACE_RETURN_ACCEPTED_FOR_SUPPLIER_EVENT =
-  'marketplace.returnClaim.supplier.acceptedToCoop';
+export const MARKETPLACE_SUPPLIER_CLAIM_ISSUED_EVENT = 'marketplace.supplierClaim.issued';
 
-export interface MarketplaceReturnAcceptedForSupplierEvent {
+export interface MarketplaceSupplierClaimIssuedEvent {
   coopname: string;
+  /** Претензия поставщику (marketplace_supplier_claim). */
   claim_id: string;
+  /** Заявление на гарантийный возврат, из которого выросла претензия. */
+  return_claim_id: string;
   order_id: string;
   /** Поставщик — адресат уведомления. */
   supplier_account: string;
-  /** КУ доставки, где имущество принято обратно. */
+  /** КУ, где имущество принято и где поставщик может его забрать. */
   braname: string;
-  /** Результат очного осмотра (краткая причина претензии). */
+  /** Сумма претензии с символом. */
+  amount: string;
+  /** Причина обращения пайщика. */
+  reason_text: string;
+  /** Результат осмотра имущества оператором участка. */
   inspection_result: string;
 }
 

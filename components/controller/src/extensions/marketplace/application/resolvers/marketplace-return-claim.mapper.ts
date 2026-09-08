@@ -84,7 +84,7 @@ export async function toMarketplaceReturnClaimDTO(
   };
 }
 
-async function toPhotoDTO(
+export async function toPhotoDTO(
   photo: MarketplaceReturnClaimPhoto,
   urlResolver: (bucket_key: string) => Promise<string>
 ): Promise<MarketplaceReturnClaimPhotoDTO> {
@@ -99,7 +99,7 @@ async function toPhotoDTO(
   };
 }
 
-function toDecisionEntryDTO(
+export function toDecisionEntryDTO(
   entry: MarketplaceReturnClaimDecisionLogEntry,
   chairmanNames?: Map<string, string | null>,
   branchNames?: Map<string, string | null>

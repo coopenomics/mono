@@ -1,17 +1,25 @@
-import { documentSelector } from '../../selectors/common/documentSelector'
-import { $, type GraphQLTypes, type InputType, Selector } from '../../zeus/index'
+import { rawDocumentAggregateSelector, rawGeneratedDocumentSelector } from '../../selectors/documents/documentAggregateSelector'
+import { $, type GraphQLTypes, type InputType, Selector, type ValueTypes } from '../../zeus/index'
+import type { MakeAllFieldsRequired } from '../../utils/MakeAllFieldsRequired'
 
 export const name = 'marketplaceReturnClaimChairmanSignablePayload'
 
+const rawAcceptancePayloadSelector = {
+  cancel_statement: rawGeneratedDocumentSelector,
+  reclamation: rawDocumentAggregateSelector,
+}
+
+const _validate: MakeAllFieldsRequired<ValueTypes['MarketplaceReturnAcceptancePayload']> = rawAcceptancePayloadSelector
+
 /**
- * Заявление оператора участка в совет об отмене сделки по гарантийному
- * возврату (1116) — генерируется по рекламации, заказу и результату осмотра;
- * оператор подписывает одной подписью и отправляет в acceptReturnAtVisit.
+ * Документы приёма имущества у стойки: заявление оператора в совет об отмене
+ * сделки (1116, одна подпись оператора) и рекламация пайщика (1106) под
+ * вторую подпись оператора — с ней претензия уйдёт поставщику.
  */
 export const query = Selector('Query')({
   [name]: [
     { claim_id: $('claim_id', 'String!'), inspection_result: $('inspection_result', 'String!') },
-    documentSelector,
+    Selector('MarketplaceReturnAcceptancePayload')(rawAcceptancePayloadSelector),
   ],
 })
 

@@ -42,6 +42,8 @@ export interface MarketplaceReturnClaimApplyDecisionInput {
   ledger_snapshot?: MarketplaceReturnClaimLedgerSnapshot;
   /** Заявление оператора участка в совет об отмене сделки (1116) — после приёма имущества у стойки. */
   cancel_statement?: ISignedDocument;
+  /** Рекламация пайщика (1106) со второй подписью оператора — тот же документ, дополненный подписью. */
+  statement?: ISignedDocument;
   accepted_at?: Date;
   council_protocol?: ISignedDocument | null;
 }

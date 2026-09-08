@@ -74,6 +74,12 @@ export * as ListMyReturnClaims from './listMyReturnClaims'
 export * as ListReturnClaimsByBraname from './listReturnClaimsByBraname'
 /** Эпик 7: одно заявление на возврат по id — для детальной страницы возврата */
 export * as ReturnClaim from './returnClaim'
+/** 99D-13: гарантийные претензии поставщику — раздел «Гарантийные возвраты» стола поставщика */
+export * as ListSupplierClaims from './listSupplierClaims'
+/** 99D-13: одна претензия с рекламацией, фото и шагами возврата */
+export * as SupplierClaim from './supplierClaim'
+/** 99D-13: сводка претензий поставщика по кошелькам долга и отказов */
+export * as SupplierClaimSummary from './supplierClaimSummary'
 /** Эпик 7: превью заявления на гарантийный возврат для подписи заказчиком */
 export * as ReturnClaimSignablePayload from './returnClaimSignablePayload'
 /** Эпик 7 + компонент 68: заявление 1116 с подписью пайщика, для со-подписи оператора при приёме имущества у стойки */

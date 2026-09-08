@@ -64,6 +64,8 @@ export const marketplaceAccessMatrix: Record<MarketplaceRole, Record<string, str
     KU: ['read'],
     Vitrine: ['read'],
     Economy: ['read'],
+    // 99D-13: гарантийные претензии, выставленные этому поставщику
+    SupplierClaim: ['read:to-self', 'respond:to-self'],
   },
   operator: {
     Receiving: ['create', 'sign:closing'],
@@ -137,6 +139,7 @@ export const marketplaceAccessMatrix: Record<MarketplaceRole, Record<string, str
     Container: ['read:all', 'read:own-KU'],
     Shipment: ['read:all'],
     Payment: ['read:all'],
+    SupplierClaim: ['read:all'],
     Extension: ['configure'],
     // Эпик 8: общий администратор формирует и редактирует DRAFT-проект
     // списания, подписывает Заявление 1106 и отправляет проект в совет.

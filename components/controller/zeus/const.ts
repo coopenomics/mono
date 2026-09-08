@@ -998,12 +998,16 @@ export const AllTypesProps: Record<string,any> = {
 	},
 	MarketplaceAcceptReturnAtVisitInput:{
 		inspection_photos:"MarketplaceReturnClaimPhotoUploadInput",
+		signed_reclamation:"MarketplaceReturnStatementSignedInput",
 		signed_statement:"MarketplaceReturnCancelStatementSignedInput"
 	},
 	MarketplaceAddSupplierInput:{
 		model:"MarketplaceSupplierModel"
 	},
 	MarketplaceAddToCartInput:{
+
+	},
+	MarketplaceAdmitSupplierClaimInput:{
 
 	},
 	MarketplaceAidStage: "enum" as const,
@@ -1253,6 +1257,9 @@ export const AllTypesProps: Record<string,any> = {
 	MarketplaceReadyIssueInput:{
 
 	},
+	MarketplaceRefuseSupplierClaimInput:{
+
+	},
 	MarketplaceRejectOfferInput:{
 
 	},
@@ -1382,6 +1389,7 @@ export const AllTypesProps: Record<string,any> = {
 	MarketplaceSubmitWriteoffDraftInput:{
 		signed_statement:"SignedDigitalDocumentInput"
 	},
+	MarketplaceSupplierClaimStatus: "enum" as const,
 	MarketplaceSupplierMemberInput:{
 
 	},
@@ -2139,6 +2147,9 @@ export const AllTypesProps: Record<string,any> = {
 		marketplaceAddToCart:{
 			input:"MarketplaceAddToCartInput"
 		},
+		marketplaceAdmitSupplierClaim:{
+			data:"MarketplaceAdmitSupplierClaimInput"
+		},
 		marketplaceApproveOffer:{
 			input:"MarketplaceApproveOfferInput"
 		},
@@ -2267,6 +2278,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		marketplaceReadyIssue:{
 			data:"MarketplaceReadyIssueInput"
+		},
+		marketplaceRefuseSupplierClaim:{
+			data:"MarketplaceRefuseSupplierClaimInput"
 		},
 		marketplaceRejectOffer:{
 			input:"MarketplaceRejectOfferInput"
@@ -3269,6 +3283,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		marketplaceStockProposalSignablePayloads:{
 			data:"MarketplaceResolveStockProposalInput"
+		},
+		marketplaceSupplierClaim:{
+
 		},
 		marketplaceValidateAttributeValues:{
 			input:"ValidateAttributeValuesInput"
@@ -6415,7 +6432,8 @@ export const ReturnTypes: Record<string,any> = {
 		purpose:"String",
 		status:"MarketplaceOutgoingPaymentRequestStatus",
 		symbol:"String",
-		updated_at:"DateTime"
+		updated_at:"DateTime",
+		withheld_amount:"String"
 	},
 	MarketplacePaymentStatusChangedEvent:{
 		payment_request_id:"String",
@@ -6525,6 +6543,10 @@ export const ReturnTypes: Record<string,any> = {
 		completedDeals:"Int",
 		requestsByCategory:"MarketplaceCategoryRequestCount",
 		totalRequests:"Int"
+	},
+	MarketplaceReturnAcceptancePayload:{
+		cancel_statement:"GeneratedDocument",
+		reclamation:"DocumentAggregate"
 	},
 	MarketplaceReturnClaim:{
 		accepted_at:"DateTime",
@@ -6709,6 +6731,47 @@ export const ReturnTypes: Record<string,any> = {
 		cycle_id:"String",
 		orders:"MarketplaceOrder",
 		tx_hashes:"String"
+	},
+	MarketplaceSupplierClaim:{
+		actual_quantity:"Float",
+		amount:"String",
+		auto_admit_at:"DateTime",
+		auto_admitted:"Boolean",
+		claim_hash:"String",
+		coopname:"String",
+		created_at:"DateTime",
+		decided_at:"DateTime",
+		delivery_braname:"String",
+		delivery_branch_name:"String",
+		history:"MarketplaceReturnClaimDecisionEntry",
+		id:"String",
+		inspection_result:"String",
+		issued_at:"DateTime",
+		order_hash:"String",
+		order_id:"String",
+		orderer_account:"String",
+		orderer_name:"String",
+		package_size:"Float",
+		photos:"MarketplaceReturnClaimPhoto",
+		product_name:"String",
+		reason_text:"String",
+		reclamation:"DocumentAggregate",
+		refuse_reason:"String",
+		return_claim_id:"String",
+		status:"MarketplaceSupplierClaimStatus",
+		supplier_account:"String",
+		unit_of_measure:"MarketplaceUnitOfMeasure",
+		updated_at:"DateTime"
+	},
+	MarketplaceSupplierClaimResult:{
+		claim:"MarketplaceSupplierClaim",
+		tx_hash:"String"
+	},
+	MarketplaceSupplierClaimSummary:{
+		admitted_debt:"String",
+		pending_total:"String",
+		refused_total:"String",
+		symbol:"String"
 	},
 	MarketplaceSupplierPaymentSettings:{
 		has_payout_method:"Boolean",
@@ -7150,6 +7213,7 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceAddAvailableCategoryTypes:"MarketplaceAvailableCategory",
 		marketplaceAddSupplier:"MarketplaceSupplier",
 		marketplaceAddToCart:"MarketplaceCart",
+		marketplaceAdmitSupplierClaim:"MarketplaceSupplierClaimResult",
 		marketplaceApproveOffer:"MarketplaceOffer",
 		marketplaceApproveReturnVisit:"MarketplaceReturnClaimResult",
 		marketplaceApproveSupplier:"MarketplaceSupplier",
@@ -7195,6 +7259,7 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceMoveContainer:"MarketplaceContainer",
 		marketplacePublishStock:"MarketplaceOffer",
 		marketplaceReadyIssue:"MarketplaceOrder",
+		marketplaceRefuseSupplierClaim:"MarketplaceSupplierClaimResult",
 		marketplaceRejectOffer:"MarketplaceOffer",
 		marketplaceRejectReturnAtVisit:"MarketplaceReturnClaimResult",
 		marketplaceRejectReturnRemote:"MarketplaceReturnClaimResult",
@@ -8102,6 +8167,7 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceListStock:"MarketplaceInventoryItem",
 		marketplaceListStockProposals:"MarketplaceStockProposal",
 		marketplaceListStorageCells:"MarketplaceStorageCell",
+		marketplaceListSupplierClaims:"MarketplaceSupplierClaim",
 		marketplaceListSupplierOrders:"MarketplaceOrderPaginationResult",
 		marketplaceListSupplierPickupOrders:"MarketplaceOrder",
 		marketplaceListSuppliers:"MarketplaceSupplier",
@@ -8115,13 +8181,15 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceRequiredAttributes:"MarketplaceAttribute",
 		marketplaceResolveContainerByCode:"MarketplaceContainer",
 		marketplaceReturnClaim:"MarketplaceReturnClaim",
-		marketplaceReturnClaimChairmanSignablePayload:"GeneratedDocument",
+		marketplaceReturnClaimChairmanSignablePayload:"MarketplaceReturnAcceptancePayload",
 		marketplaceReturnClaimSignablePayload:"GeneratedDocument",
 		marketplaceSearchAttributes:"MarketplaceAttribute",
 		marketplaceSearchDictionaryValues:"MarketplaceDictionaryValue",
 		marketplaceSearchRequests:"MarketplaceRequest",
 		marketplaceStockIssuancePayloads:"MarketplaceStockIssuanceOperatorLine",
 		marketplaceStockProposalSignablePayloads:"MarketplaceStockAcceptPayload",
+		marketplaceSupplierClaim:"MarketplaceSupplierClaim",
+		marketplaceSupplierClaimSummary:"MarketplaceSupplierClaimSummary",
 		marketplaceValidateAttributeValues:"MarketplaceAttributeValidation",
 		marketplaceWhoAmI:"MarketplaceCurrentMember",
 		marketplaceWriteoffPendingConfirmations:"MarketplaceWriteoffConfirmationGroup",

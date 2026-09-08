@@ -198,6 +198,7 @@ nav:
       - Входящие заказы: new/marketplace/offerer/incoming-orders.md
       - Подготовка отгрузки: new/marketplace/offerer/shipment.md
       - Подпись акта приёма-передачи: new/marketplace/offerer/reception-sign.md
+      - Гарантийные возвраты: new/marketplace/offerer/claims.md
       - Выплаты: new/marketplace/offerer/payments.md
     - Стол оператора ПВЗ:
       - new/marketplace/operator/index.md

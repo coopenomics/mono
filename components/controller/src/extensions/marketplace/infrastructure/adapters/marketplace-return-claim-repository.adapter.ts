@@ -170,6 +170,7 @@ export class MarketplaceReturnClaimRepositoryAdapter
     if (input.on_site_inspection !== undefined) patch.on_site_inspection = input.on_site_inspection;
     if (input.ledger_snapshot !== undefined) patch.ledger_snapshot = input.ledger_snapshot;
     if (input.cancel_statement !== undefined) patch.cancel_statement = input.cancel_statement;
+    if (input.statement !== undefined) patch.statement = input.statement;
     if (input.accepted_at !== undefined) patch.accepted_at = input.accepted_at;
     if (input.council_protocol !== undefined) patch.council_protocol = input.council_protocol;
     return patch;

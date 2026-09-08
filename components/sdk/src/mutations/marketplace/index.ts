@@ -69,6 +69,10 @@ export * as AcceptReturnAtVisit from './acceptReturnAtVisit'
 export * as RejectReturnAtVisit from './rejectReturnAtVisit'
 /** Компонент 68: оператор выдал имущество обратно после отказа совета или по истечении срока ожидания */
 export * as HandBackReturn from './handBackReturn'
+/** 99D-13: поставщик признаёт гарантийную претензию */
+export * as AdmitSupplierClaim from './admitSupplierClaim'
+/** 99D-13: поставщик отказывает по гарантийной претензии */
+export * as RefuseSupplierClaim from './refuseSupplierClaim'
 /** Эпик 8: общий администратор создаёт черновик проекта списания скоропорта */
 export * as CreateWriteoffDraft from './createWriteoffDraft'
 /** Эпик 8: общий администратор изменяет состав черновика проекта списания */

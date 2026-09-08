@@ -1,6 +1,6 @@
 import { ForbiddenException, Inject, Injectable, UseGuards } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
-import { GqlJwtAuthGuard, platformSettings, GeneratedDocumentDTO } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, platformSettings, GeneratedDocumentDTO, DocumentAggregateDTO } from '@coopenomics/extension-kit';
 import { CurrentMarketplaceMember } from '../decorators/current-marketplace-member.decorator';
 import { RequireMarketplaceAccess } from '../decorators/marketplace-access.decorator';
 import { MarketplaceMembershipGuard } from '../guards/marketplace-membership.guard';
@@ -13,6 +13,7 @@ import {
   MarketplaceListReturnClaimsByBranameInputDTO,
   MarketplaceRejectReturnAtVisitInputDTO,
   MarketplaceRejectReturnRemoteInputDTO,
+  MarketplaceReturnAcceptancePayloadDTO,
   MarketplaceReturnClaimDTO,
   MarketplaceReturnClaimResultDTO,
   MarketplaceReturnClaimSignablePayloadInputDTO,
@@ -176,6 +177,7 @@ export class MarketplaceReturnClaimResolver {
       scanned_barcode: data.scanned_barcode ?? null,
       inspection_photos: data.inspection_photos?.map((p) => ({ base64: p.base64, mime_type: p.mime_type })),
       signed_statement: data.signed_statement,
+      signed_reclamation: data.signed_reclamation,
     });
     return this.toResultDTO(result);
   }
@@ -299,10 +301,10 @@ export class MarketplaceReturnClaimResolver {
     return this.toResultDTO(result);
   }
 
-  @Query(() => GeneratedDocumentDTO, {
+  @Query(() => MarketplaceReturnAcceptancePayloadDTO, {
     name: 'marketplaceReturnClaimChairmanSignablePayload',
     description:
-      'Заявление оператора участка в совет об отмене сделки по гарантийному возврату (1116) для подписи у стойки: заказ и принятое имущество из рекламации пайщика, результат осмотра, суммы паевого и членского взносов к восстановлению. Оператор подписывает его одной подписью, после чего заявление уходит на повестку совета.',
+      'Документы приёма имущества у стойки: заявление оператора участка в совет об отмене сделки (1116) — одна подпись оператора, и рекламация пайщика (1106) под вторую подпись оператора; с ней претензия уйдёт поставщику по решению совета.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
   @RequireMarketplaceAccess('ReturnClaim', 'decide:on-site')
@@ -311,7 +313,7 @@ export class MarketplaceReturnClaimResolver {
     @Args('claim_id') claim_id: string,
     @Args('inspection_result', { description: 'Результат осмотра имущества на участке — попадает в текст заявления.' })
     inspection_result: string
-  ): Promise<GeneratedDocumentDTO> {
+  ): Promise<MarketplaceReturnAcceptancePayloadDTO> {
     const claim = await this.service.findById(platformSettings().coopname, claim_id);
     const isMember = await this.kuChairmanService.isMemberOfBranch(
       platformSettings().coopname,
@@ -323,13 +325,16 @@ export class MarketplaceReturnClaimResolver {
         'Заявление об отмене сделки готовится только для участка, на котором вы являетесь председателем или доверенным лицом.'
       );
     }
-    const doc = await this.service.getChairmanReturnSignablePayload({
+    const docs = await this.service.getChairmanReturnSignablePayload({
       coopname: platformSettings().coopname,
       claim_id,
       operator_account: member.username,
       inspection_result,
     });
-    return toGeneratedDocumentDTO(doc);
+    return {
+      cancel_statement: toGeneratedDocumentDTO(docs.cancel_statement),
+      reclamation: new DocumentAggregateDTO(docs.reclamation),
+    };
   }
 
   // ── helpers ──────────────────────────────────────────────────────────

@@ -8,7 +8,10 @@
  * обращения пайщика из рекламации (1106, лежит в `return_request.statement`),
  * суммы паевого и членского взносов к восстановлению. `statement` несёт
  * только подпись оператора: пайщик ничего не вносит, сделка отменяется
- * (решение владельца 08.09.2026). Тем же действием контракт ставит повестку
+ * (решение владельца 08.09.2026). `reclamation` — та же рекламация 1106, что
+ * лежит в заявке, со второй подписью оператора (канон DocumentAggregate, без
+ * регенерации): с двумя подписями она уйдёт поставщику как гарантийная
+ * претензия при исполнении решения совета (задача 99D-13). Тем же действием контракт ставит повестку
  * совета: инлайн `soviet::createagenda` от `permission_level{_marketplace,
  * active}` с `type=mktretrn`, `hash=request_hash`, документом повестки —
  * этим заявлением и обратными вызовами `onmktrtauth` / `onmktrtdecl`. Совет
@@ -20,7 +23,9 @@
  *
  * Guards:
  *  - actor coopname; status == approvvisit; участок выдачи заказа;
- *  - signer уполномочен на участке; заявление подписано signer.
+ *  - signer уполномочен на участке; заявление подписано signer;
+ *  - рекламация — тот же документ, что подан пайщиком (совпадает hash),
+ *    подписана пайщиком и signer.
  *
  * @ingroup public_marketplace_actions
  */
@@ -29,7 +34,8 @@ void marketplace::accretrn(eosio::name coopname,
                             eosio::name braname,
                             checksum256 request_hash,
                             document2 statement,
-                            std::string meta) {
+                            std::string meta,
+                            document2 reclamation) {
   require_auth(coopname);
 
   auto r = Marketplace::get_return_request_by_hash_or_fail(coopname, request_hash);
@@ -42,10 +48,16 @@ void marketplace::accretrn(eosio::name coopname,
   eosio::check(!is_empty_document(statement),
                "Приём имущества требует заявления оператора об отмене сделки с его подписью");
   verify_document_or_fail(statement, { signer });
+  eosio::check(!is_empty_document(reclamation),
+               "Приём имущества требует рекламации пайщика со второй подписью оператора");
+  eosio::check(reclamation.hash == r.statement.hash,
+               "Рекламация со второй подписью обязана быть тем же документом, что подал пайщик");
+  verify_document_or_fail(reclamation, { r.orderer, signer });
 
   const auto now = eosio::time_point_sec(eosio::current_time_point().sec_since_epoch());
   Marketplace::update_return_request(coopname, r.id, [&](auto& upd) {
     upd.status      = ReturnStatus::RETURN_PENDING;
+    upd.statement   = reclamation;   // та же рекламация, теперь с двумя подписями
     upd.accepted_at.emplace(now);
     upd.cancel_statement.emplace(statement);
   });

@@ -18,6 +18,7 @@ import {
   DOCUMENT_PORT,
   type IDocumentPort,
   type InnerGeneratedDocument,
+  type InnerDocumentAggregate,
   SOVIET_ROBOT_PORT,
   type ISovietRobotPort,
 } from '@coopenomics/innercoop';
@@ -61,6 +62,7 @@ import {
 } from './marketplace-asset.config';
 import { marketplaceOrderUnitLabel } from '../shared/unit-label.util';
 import { MarketplaceReturnClaimImagesService } from './marketplace-return-claim-images.service';
+import { MarketplaceSupplierClaimService } from './marketplace-supplier-claim.service';
 import type { MarketplaceReturnClaimDomainEntity } from '../../domain/entities/marketplace-return-claim.entity';
 import {
   MarketplaceReturnClaimDefectCategories,
@@ -80,13 +82,11 @@ import {
   MARKETPLACE_RETURN_CLAIM_SUBMITTED_EVENT,
   MARKETPLACE_RETURN_CLAIM_DECIDED_EVENT,
   MARKETPLACE_RETURN_CLAIM_FINALIZED_EVENT,
-  MARKETPLACE_RETURN_ACCEPTED_FOR_SUPPLIER_EVENT,
   MARKETPLACE_RETURN_COUNCIL_DECIDED_EVENT,
   type MarketplaceReturnCouncilDecidedEvent,
   type MarketplaceReturnClaimSubmittedEvent,
   type MarketplaceReturnClaimDecidedEvent,
   type MarketplaceReturnClaimFinalizedEvent,
-  type MarketplaceReturnAcceptedForSupplierEvent,
 } from '../events/marketplace-notification.events';
 
 /**
@@ -162,6 +162,12 @@ export interface MarketplaceAcceptReturnAtVisitInput {
    * повестки совета; пайщик ничего не подписывает.
    */
   signed_statement?: MarketplaceReturnCancelStatementSignedInputDTO;
+  /**
+   * Рекламация пайщика (1106) со второй подписью оператора — тот же документ
+   * без регенерации (канон DocumentAggregate). С двумя подписями уходит
+   * поставщику как гарантийная претензия при исполнении решения совета.
+   */
+  signed_reclamation?: MarketplaceReturnStatementSignedInputDTO;
 }
 
 export interface MarketplaceHandBackReturnInput {
@@ -236,6 +242,7 @@ export class MarketplaceReturnClaimService {
     private readonly assetConfig: MarketplaceAssetConfig,
     @Inject(DOCUMENT_PORT) private readonly documentPort: IDocumentPort,
     private readonly imagesService: MarketplaceReturnClaimImagesService,
+    private readonly supplierClaims: MarketplaceSupplierClaimService,
     private readonly eventBus: EventEmitter2,
     @Inject(LOGGER_PORT) private readonly logger: ILoggerPort,
     // Порт робота решений совета: до слияния ветки робота мост отдаёт null —
@@ -304,7 +311,7 @@ export class MarketplaceReturnClaimService {
     claim_id: string;
     operator_account: string;
     inspection_result: string;
-  }): Promise<InnerGeneratedDocument> {
+  }): Promise<{ cancel_statement: InnerGeneratedDocument; reclamation: InnerDocumentAggregate }> {
     this.requireInspectionResult(input.inspection_result);
     const claim = await this.findById(input.coopname, input.claim_id);
     if (claim.status !== MarketplaceReturnClaimStatuses.APPROVED_FOR_VISIT) {
@@ -312,11 +319,21 @@ export class MarketplaceReturnClaimService {
         `Заявление в статусе «${claim.status}»: заявление об отмене сделки готовится только после одобрения очного визита.`
       );
     }
-    return this.generateCancelStatementDocument({
+    if (!claim.statement) {
+      throw new ConflictException(`Заявление ${claim.id}: рекламация пайщика не сохранена — приём невозможен.`);
+    }
+    // Вторая подпись оператора ставится на исходную рекламацию без регенерации:
+    // с двумя подписями она уйдёт поставщику как гарантийная претензия.
+    const reclamation = await this.documentPort.buildAggregate(claim.statement);
+    if (!reclamation) {
+      throw new ConflictException(`Заявление ${claim.id}: тело рекламации по doc_hash ${claim.statement.doc_hash} не найдено.`);
+    }
+    const cancel_statement = await this.generateCancelStatementDocument({
       claim,
       operator: input.operator_account,
       inspection_result: input.inspection_result,
     });
+    return { cancel_statement, reclamation };
   }
 
   // ── Story 7.1: пайщик подаёт заявление ───────────────────────────────
@@ -594,6 +611,7 @@ export class MarketplaceReturnClaimService {
     this.assertBranameMatchesClaim(claim, input.braname, 'приём имущества');
 
     const cancelStatement = this.requireOperatorCancelStatement(input, claim);
+    const reclamation = this.requireCoSignedReclamation(input, claim);
 
     const inspectionPhotos = await this.uploadOptionalPhotos({
       files: input.inspection_photos,
@@ -613,6 +631,7 @@ export class MarketplaceReturnClaimService {
         statement: cancelStatement,
         // Деловые поля протокола 1117 робот берёт из меты заявления повестки.
         meta: '',
+        reclamation,
       });
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
@@ -652,6 +671,7 @@ export class MarketplaceReturnClaimService {
       decision_entry: entry,
       on_site_inspection: inspection,
       cancel_statement: input.signed_statement as unknown as ISignedDocument,
+      statement: input.signed_reclamation as unknown as ISignedDocument,
       accepted_at: at,
     });
     claim = moved ?? (await this.findById(input.coopname, input.claim_id));
@@ -696,6 +716,30 @@ export class MarketplaceReturnClaimService {
     return new SignedDigitalDocumentInputDTO(
       input.signed_statement
     ).toDocument() as MarketContract.Actions.AccRetrn.IAccRetrn['statement'];
+  }
+
+  /**
+   * Рекламация пайщика со второй подписью оператора: тот же документ, что
+   * подан пайщиком (совпадает hash), обе подписи верны. Контракт проверит
+   * ещё раз и подпись пайщика, и подпись оператора.
+   */
+  private requireCoSignedReclamation(
+    input: MarketplaceAcceptReturnAtVisitInput,
+    claim: MarketplaceReturnClaimDomainEntity
+  ): MarketContract.Actions.AccRetrn.IAccRetrn['reclamation'] {
+    if (!input.signed_reclamation) {
+      throw new BadRequestException('Для приёма имущества требуется рекламация пайщика со второй подписью оператора.');
+    }
+    if (!claim.statement || String(input.signed_reclamation.hash) !== String(claim.statement.hash)) {
+      throw new BadRequestException('Подписана не та рекламация — обновите экран заявления.');
+    }
+    if ((input.signed_reclamation.signatures ?? []).length < 2) {
+      throw new BadRequestException('На рекламации должны стоять подписи пайщика и оператора.');
+    }
+    this.verifySignatures(input.signed_reclamation);
+    return new SignedDigitalDocumentInputDTO(
+      input.signed_reclamation
+    ).toDocument() as MarketContract.Actions.AccRetrn.IAccRetrn['reclamation'];
   }
 
   /** Заявление составлено на эту заявку, этого оператора и с тем же результатом осмотра, что введён у стойки. */
@@ -829,7 +873,14 @@ export class MarketplaceReturnClaimService {
     this.emitDecided(moved, entry);
     this.emitFinalized(moved, entry);
     this.emitCouncilDecided(moved, true);
-    this.emitReturnAcceptedForSupplier(moved, claim.on_site_inspection?.result_text ?? claim.reason_text);
+    // Претензия поставщику (99D-13): контракт завёл её в той же транзакции —
+    // зеркалим в PG и уведомляем поставщика. По заказу из остатка кооператива
+    // претензии нет. Сбой здесь не откатывает решение совета.
+    try {
+      await this.supplierClaims.issueFromReturnClaim(moved, input.tx_hash);
+    } catch (err) {
+      this.logger.warn(`Заявление на возврат ${claim.id}: претензия поставщику не заведена (${(err as Error).message}).`);
+    }
   }
 
   /**
@@ -1478,20 +1529,6 @@ export class MarketplaceReturnClaimService {
     return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
-  private emitReturnAcceptedForSupplier(
-    claim: MarketplaceReturnClaimDomainEntity,
-    inspectionResult: string
-  ): void {
-    const event: MarketplaceReturnAcceptedForSupplierEvent = {
-      coopname: claim.coopname,
-      claim_id: claim.id,
-      order_id: claim.order_id,
-      supplier_account: claim.supplier_account,
-      braname: claim.delivery_braname,
-      inspection_result: inspectionResult,
-    };
-    this.eventBus.emit(MARKETPLACE_RETURN_ACCEPTED_FOR_SUPPLIER_EVENT, event);
-  }
 
   /**
    * Возвращённое по гарантии имущество зачисляется отдельной позицией
