@@ -47,7 +47,8 @@ import {
 } from '../../domain/repositories/marketplace-offer.repository';
 import { computeActNumber } from '../shared/act-number.util';
 import { marketplaceOrderUnitLabel } from '../shared/unit-label.util';
-import { packageDeltaOfOrder, presentSaleUnit } from '../shared/packaging.util';
+import { presentSaleUnit } from '../shared/packaging.util';
+import { orderPackageDelta, splitBlockedByReceived } from '../shared/offer-settlement.util';
 import { calcCostAmount, compareMoney } from '../shared/cost.util';
 import { isStockOrder } from '../shared/order-kind.util';
 import {
@@ -997,6 +998,10 @@ export class MarketplaceIssuanceService {
 
   /** Складской учёт после закрытия выдачи — best-effort, не роняет закрытие. */
   private async settleWarehouse(order: MarketplaceOrderDomainEntity, fact: MarketplaceIssuanceSagaFact): Promise<void> {
+    // Принятое кооперативом считаем ДО складского итога: он переводит позиции
+    // в выданные и в обезличенный остаток, после него принятого по заказу на
+    // складе уже не видно.
+    const receivedByCoop = isStockOrder(order) ? order.quantity : await this.receivedOnWarehouse(order);
     let releasedToStock = 0;
     try {
       if (isStockOrder(order)) {
@@ -1011,7 +1016,24 @@ export class MarketplaceIssuanceService {
     } catch (err) {
       this.logger.warn(`Выдача order ${order.id}: не удалось закрыть складские позиции (${this.errMessage(err)}); склад покажет их как остаток до ручной сверки.`);
     }
-    await this.settleOfferCounters(order, releasedToStock);
+    await this.settleOfferCounters(order, receivedByCoop, releasedToStock);
+  }
+
+  /**
+   * Сколько имущества по заказу поставщик реально передал кооперативу. Чтение
+   * склада не должно ронять выдачу: при сбое считаем, что привезли всё
+   * заказанное — тогда счётчики ведут себя как прежде и заблокированное не
+   * зависает.
+   */
+  private async receivedOnWarehouse(order: MarketplaceOrderDomainEntity): Promise<number> {
+    try {
+      return await this.loadAvailableOnWarehouse(order);
+    } catch (err) {
+      this.logger.warn(
+        `Выдача order ${order.id}: не удалось прочитать принятое на склад (${this.errMessage(err)}); считаю поставку полной.`
+      );
+      return order.quantity;
+    }
   }
 
   /**
@@ -1019,43 +1041,40 @@ export class MarketplaceIssuanceService {
    * `quantity_blocked` висел бы вечно, а `quantity_consumed` навсегда
    * оставался нулём — предложение показывало бы выданное как «в заказах».
    *
-   * У заказа поставщика выбывает весь заблокированный объём: часть получил
-   * пайщик, невыданный излишек ушёл в обезличенный остаток кооператива и
-   * продаётся уже его предложением — обратно поставщику он не возвращается.
-   * У заказа из остатка кооператива невыданный резерв освобождается на том же
-   * складе и остаётся опубликованным, поэтому он возвращается в свободное
-   * этого же предложения, а выданное становится выданным.
+   * Что выбывает, а что возвращается, решает одно правило (см.
+   * `splitBlockedByReceived`): у поставщика выбывает ровно принятое
+   * кооперативом, недопоставленное возвращается ему в свободное — этого
+   * имущества кооператив не получал, оно так и стоит у поставщика. Невыданный
+   * пайщику излишек поставщику не возвращается: он уже оплачен и продаётся
+   * предложением кооператива.
+   *
+   * У заказа из остатка кооператива недопоставки не бывает — имущество уже на
+   * его складе; там возвращается освобождённый резерв, который остался
+   * опубликованным в том же предложении.
    *
    * Best-effort, как и складской итог: цепь уже приняла закрывающий акт, и
    * ронять выдачу из-за счётчика витрины нельзя.
    */
-  private async settleOfferCounters(order: MarketplaceOrderDomainEntity, released: number): Promise<void> {
-    const consumed = Math.max(0, order.quantity - released);
+  private async settleOfferCounters(
+    order: MarketplaceOrderDomainEntity,
+    receivedByCoop: number,
+    released: number
+  ): Promise<void> {
+    const split = splitBlockedByReceived(order.quantity, receivedByCoop);
+    const consumed = Math.max(0, split.consumed - released);
+    const returned = Number((split.returned + released).toFixed(6));
     try {
       if (consumed > 0) {
-        await this.offerCounters.onOrderConsumed(order.offer_id, consumed, this.packageDelta(order, consumed));
+        await this.offerCounters.onOrderConsumed(order.offer_id, consumed, orderPackageDelta(order, consumed));
       }
-      if (released > 0) {
-        await this.offerCounters.onOrderUnblocked(order.offer_id, released, this.packageDelta(order, released));
+      if (returned > 0) {
+        await this.offerCounters.onOrderUnblocked(order.offer_id, returned, orderPackageDelta(order, returned));
       }
     } catch (err) {
       this.logger.warn(
         `Выдача order ${order.id}: счётчики предложения ${order.offer_id} не сошлись (${this.errMessage(err)}); заблокированное останется висеть до ручной сверки.`
       );
     }
-  }
-
-  /**
-   * Часть движения, относящаяся к упаковке заказа: имущество отпускается
-   * целыми упаковками (канон единицы отпуска), поэтому базовое количество
-   * кратно содержимому и делится нацело.
-   */
-  private packageDelta(order: MarketplaceOrderDomainEntity, baseQuantity: number) {
-    return packageDeltaOfOrder({
-      package_id: order.package_id,
-      package_size: order.package_size,
-      quantity: baseQuantity,
-    });
   }
 
   /** Уценка по заказу из остатка (chain `markdown`, o.mkt.loss) — best-effort, идемпотентно на цепи. */

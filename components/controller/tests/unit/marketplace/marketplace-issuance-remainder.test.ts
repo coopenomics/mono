@@ -67,13 +67,33 @@ describe('Недовыдача: имущество остаётся коопер
 });
 
 describe('Счётчики предложения на выдаче: заблокированное становится выданным', () => {
-  it('заказ поставщика: выбывает весь заблокированный объём, включая ушедшее в остаток кооператива', async () => {
-    // Заказано 10, выдано 8, одна единица в обезличенный остаток КУ: обратно
-    // поставщику она не возвращается — за неё уже заплачено, продаёт её теперь
-    // предложение кооператива.
+  it('заказ поставщика: выбывает принятое кооперативом, недопоставка возвращается поставщику', async () => {
+    // Заказано 10, привезли 9, выдано 8. Одна единица ушла в обезличенный
+    // остаток КУ — она уже оплачена поставщику и продаётся предложением
+    // кооператива, поэтому выбывает. Ещё одну поставщик просто не привёз: она
+    // так и стоит у него и снова доступна к заказу.
     const { m, service } = setup(8);
     await close(service);
-    expect(m.offerCounters.onOrderConsumed).toHaveBeenCalledWith('offer-1', 10, undefined);
+    expect(m.offerCounters.onOrderConsumed).toHaveBeenCalledWith('offer-1', 9, undefined);
+    expect(m.offerCounters.onOrderUnblocked).toHaveBeenCalledWith('offer-1', 1, undefined);
+  });
+
+  it('поставка полная — поставщику не возвращается ничего', async () => {
+    // Принято 9 из 9 заказанных: недопоставки нет, весь объём выбывает.
+    const order = buildOrder({ orderer_account: ORDERER, quantity: 9 });
+    const saga = buildSaga({
+      member_account: ORDERER,
+      stage: MarketplaceIssuanceSagaStages.ACT1_SIGNED,
+      act1_document: signedDoc(ACT, [ORDERER]),
+      fact: { actual_quantity: 8, actual_unit_price: '200.0000', fact_cost: '1600.0000' },
+    });
+    const m = buildMocks({ order, sagas: [saga], warehouse: 9 });
+    m.inventoryRepo.detachRemainderToStock.mockResolvedValue(1);
+    const service = buildService(m);
+    stubSignatureChecks(service);
+
+    await close(service);
+    expect(m.offerCounters.onOrderConsumed).toHaveBeenCalledWith('offer-1', 9, undefined);
     expect(m.offerCounters.onOrderUnblocked).not.toHaveBeenCalled();
   });
 

@@ -15,8 +15,12 @@ import {
   type MarketplaceCanonicalBlockchainPort,
 } from '../../domain/ports/marketplace-canonical-blockchain.port';
 import type { MarketplaceOrderDomainEntity } from '../../domain/entities/marketplace-order.entity';
+import {
+  MARKETPLACE_INVENTORY_REPOSITORY,
+  type MarketplaceInventoryDomainRepository,
+} from '../../domain/repositories/marketplace-inventory.repository';
 import { normalizeChainTxHash } from '../shared/chain-tx.util';
-import { packageDeltaOfOrder } from '../shared/packaging.util';
+import { orderPackageDelta, splitBlockedByReceived } from '../shared/offer-settlement.util';
 
 
 export interface MarketplaceOrderCancelInputDto {
@@ -65,6 +69,8 @@ export class MarketplaceOrderCancelService {
   constructor(
     @Inject(MARKETPLACE_ORDER_REPOSITORY)
     private readonly orderRepo: MarketplaceOrderDomainRepository,
+    @Inject(MARKETPLACE_INVENTORY_REPOSITORY)
+    private readonly inventoryRepo: MarketplaceInventoryDomainRepository,
     @Inject(MARKETPLACE_OFFER_COUNTERS_SERVICE)
     private readonly offerCounters: MarketplaceOfferCountersService,
     @Inject(MARKETPLACE_CANONICAL_BLOCKCHAIN_PORT)
@@ -131,14 +137,8 @@ export class MarketplaceOrderCancelService {
       rethrowChainError(error);
     }
 
-    // ── 3. Counter onOrderUnblocked (best-effort) ───────────────────
-    try {
-      await this.offerCounters.onOrderUnblocked(order.offer_id, order.quantity, packageDeltaOfOrder(order));
-    } catch (counterErr: any) {
-      this.logger.warn(
-        `MarketplaceOrderCancelService: counter onOrderUnblocked упал (offer=${order.offer_id}, qty=${order.quantity}, order=${order.id}): ${counterErr.message} — продолжаю applyStatusTransition`
-      );
-    }
+    // ── 3. Counters предложения (best-effort) ───────────────────────
+    await this.settleOfferCounters(order);
 
     // ── 4. Persist Order.status → CANCELLED_BY_ORDERER ──────────────
     const updated = await this.orderRepo.applyStatusTransition(
@@ -153,6 +153,45 @@ export class MarketplaceOrderCancelService {
 
     return { order: updated, tx_hash: txHash! };
   }
+  /**
+   * Отказаться от заказа можно и после того, как имущество приняли на склад
+   * кооператива (статус «принято кооперативом» — на нём стоит отказ от
+   * позиции при выдаче). Возвращать поставщику весь объём в этом случае
+   * нельзя: принятое кооператив уже оплатил и продаст сам, а предложение
+   * поставщика показало бы то же имущество второй раз.
+   *
+   * Поэтому в свободное возвращается только то, чего кооператив не получал —
+   * то же правило, что и на выдаче (`splitBlockedByReceived`). Пока заказ не
+   * дошёл до склада, принятого нет и возвращается весь объём, как раньше.
+   *
+   * Best-effort: цепь отмену уже приняла, ронять её из-за счётчика витрины
+   * нельзя — расхождение разбирают ручной сверкой.
+   */
+  private async settleOfferCounters(order: MarketplaceOrderDomainEntity): Promise<void> {
+    let receivedByCoop = 0;
+    try {
+      const sums = await this.inventoryRepo.sumOnWarehouseByOrders(order.coopname, [order.id]);
+      receivedByCoop = sums.get(order.id) ?? 0;
+    } catch (err: any) {
+      this.logger.warn(
+        `MarketplaceOrderCancelService: не удалось прочитать принятое на склад по заказу ${order.id} (${err.message}); считаю, что имущество к кооперативу не поступало.`
+      );
+    }
+    const { consumed, returned } = splitBlockedByReceived(order.quantity, receivedByCoop);
+    try {
+      if (returned > 0) {
+        await this.offerCounters.onOrderUnblocked(order.offer_id, returned, orderPackageDelta(order, returned));
+      }
+      if (consumed > 0) {
+        await this.offerCounters.onOrderConsumed(order.offer_id, consumed, orderPackageDelta(order, consumed));
+      }
+    } catch (counterErr: any) {
+      this.logger.warn(
+        `MarketplaceOrderCancelService: счётчики предложения ${order.offer_id} не сошлись по заказу ${order.id} (${counterErr.message}) — продолжаю applyStatusTransition`
+      );
+    }
+  }
+
 }
 
 export const MARKETPLACE_ORDER_CANCEL_SERVICE = Symbol('MARKETPLACE_ORDER_CANCEL_SERVICE');

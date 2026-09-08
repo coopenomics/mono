@@ -375,6 +375,19 @@ cases:
     test: components/controller/src/extensions/marketplace/application/shared/packaging.util.spec.ts
     status: passing
 
+  - id: mkt.order.side.37
+    level: backend
+    kind: side
+    scenario: >
+      Отказ заказчика после приёмки имущества на склад кооператива (статус «принято кооперативом»):
+      принято всё; принята часть; заказ до склада не дошёл; склад недоступен
+    expect: >
+      принятое кооперативом выбывает из предложения поставщика — оно уже оплачено и продаётся
+      кооперативом; в свободное возвращается только непоставленное. До склада заказ не дошёл или
+      склад недоступен — возвращается весь объём, как при обычной отмене
+    test: components/controller/src/extensions/marketplace/application/services/marketplace-order-cancel.service.spec.ts
+    status: passing
+
   - id: mkt.order.happy.04
     level: contract
     kind: happy
