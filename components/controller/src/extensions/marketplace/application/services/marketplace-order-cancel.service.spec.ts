@@ -82,7 +82,7 @@ describe('MarketplaceOrderCancelService', () => {
       orderer: 'orderer1',
       order_hash: 'h-order-1',
     });
-    expect(mocks.offerCounters.onOrderUnblocked).toHaveBeenCalledWith('offer-1', 5);
+    expect(mocks.offerCounters.onOrderUnblocked).toHaveBeenCalledWith('offer-1', 5, undefined);
     expect(mocks.orderRepo.applyStatusTransition).toHaveBeenCalledWith(
       'order-1',
       'CANCELLED_BY_ORDERER',

@@ -973,7 +973,8 @@ describe('MarketplaceOfferService.update — упаковки при отпус�
     await service.update('offer-1', 'alice', {
       packages: [
         { id: 'pkg-1', size: 1, price: '100.00', package_type: 'стекло', is_default: true },
-        { size: 5, price: '450.00', package_type: 'канистра' },
+        // Новой упаковке остаток задаётся сразу — прежнего у неё нет.
+        { size: 5, price: '450.00', package_type: 'канистра', quantity_available: 2 },
       ],
     });
     const patchArg = repo.applyUpdate.mock.calls[0][1] as { packages: Array<{ id: string }> };
@@ -1028,6 +1029,8 @@ describe('MarketplaceOfferService.update — упаковки при отпус�
           price: '200.00',
           package_type: 'стекло',
           is_default: true,
+          // Чужой идентификатор не тянет прежний остаток — упаковка новая, остаток задаётся.
+          quantity_available: 4,
         },
       ],
     });

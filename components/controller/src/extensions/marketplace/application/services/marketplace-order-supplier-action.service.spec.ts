@@ -250,7 +250,7 @@ describe('MarketplaceOrderSupplierActionService (Эпик 15 — batch)', () => 
       });
 
       expect(mocks.chainPort.declineOrder).toHaveBeenCalledTimes(1);
-      expect(mocks.offerCounters.onOrderUnblocked).toHaveBeenCalledWith('offer-1', 7);
+      expect(mocks.offerCounters.onOrderUnblocked).toHaveBeenCalledWith('offer-1', 7, undefined);
       expect(mocks.orderRepo.applyStatusTransition).toHaveBeenCalledWith('order-1', 'CANCELLED_BY_SUPPLIER', 'нет ресурса');
       expect(result.cycle_id).toBeNull();
       expect(result.tx_hashes).toEqual(['tx-dec-1']);

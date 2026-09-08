@@ -199,7 +199,7 @@ describe('MarketplaceOrderCreateService', () => {
         delivery_braname: 'ku.krasn.1',
       })
     ).rejects.toThrow('chain stop');
-    expect(mocks.counters.onOrderBlocked).toHaveBeenCalledWith('offer-1', 999);
+    expect(mocks.counters.onOrderBlocked).toHaveBeenCalledWith('offer-1', 999, undefined);
   });
 
   /**
@@ -298,8 +298,8 @@ describe('MarketplaceOrderCreateService', () => {
       })
     ).rejects.toThrow(/Недостаточно средств/);
 
-    expect(mocks.counters.onOrderBlocked).toHaveBeenCalledWith('offer-1', 3);
-    expect(mocks.counters.onOrderRolledBack).toHaveBeenCalledWith('offer-1', 3);
+    expect(mocks.counters.onOrderBlocked).toHaveBeenCalledWith('offer-1', 3, undefined);
+    expect(mocks.counters.onOrderRolledBack).toHaveBeenCalledWith('offer-1', 3, undefined);
     expect(mocks.orderRepo.persistAfterBlock).not.toHaveBeenCalled();
   });
 
@@ -335,7 +335,7 @@ describe('MarketplaceOrderCreateService', () => {
       delivery_braname: 'ku.krasn.1',
     });
 
-    expect(mocks.counters.onOrderBlocked).toHaveBeenCalledWith('offer-1', 2);
+    expect(mocks.counters.onOrderBlocked).toHaveBeenCalledWith('offer-1', 2, undefined);
     expect(mocks.chainPort.createOrder).toHaveBeenCalledTimes(1);
     expect(mocks.counters.onOrderRolledBack).not.toHaveBeenCalled();
     expect(mocks.orderRepo.persistAfterBlock).toHaveBeenCalledTimes(1);
