@@ -244,7 +244,8 @@ export interface MarketplaceExpressPickupCandidate {
  *      Здесь — backend-only переход в ACCEPTED_TO_COOP; Order'ы группы
  *      переводятся в ACCEPTED_TO_COOP, Shipment → ACCEPTED_TO_COOP.
  *      offerer_counters.onOrderRolledBack/onOrderConsumed не дёргаем —
- *      consumed-переход выполняется на выдаче (Эпик 6).
+ *      consumed-переход выполняется на выдаче, при закрывающей подписи
+ *      (`MarketplaceIssuanceService.settleOfferCounters`).
  *
  * Edge-case (Story 5.4 «поставщик не подписывает»): АПП остаётся в
  * PENDING_SUPPLIER_SIGN. MVP не автоматизирует разрешение; кооператив

@@ -2,6 +2,11 @@
  * Недовыдача (паевая модель): при закрывающей подписи оператора выданное
  * уходит пайщику, невыданное отделяется в обезличенный остаток кооператива —
  * по ВЫДАННОМУ количеству, а не по заказанному. Сбой склада выдачу не роняет.
+ *
+ * Здесь же — счётчики предложения на выдаче: заблокированное заказом обязано
+ * стать выданным, иначе предложение вечно показывает выданное как «в
+ * заказах». У заказа из остатка кооператива невыданный резерв возвращается в
+ * свободное того же предложения — позиции остались на складе и в каталоге.
  */
 import { MarketplaceIssuanceSagaStages } from '~/extensions/marketplace/domain/entities/marketplace-issuance-saga.types';
 import { COOP, buildMocks, buildOrder, buildSaga, buildService, signedDoc, stubSignatureChecks } from './issuance-saga.fixture';
@@ -58,5 +63,67 @@ describe('Недовыдача: имущество остаётся коопер
     // складской записи нельзя, расхождение разбирают ручной сверкой.
     await expect(close(service)).resolves.toBeDefined();
     expect(m.logger.warn).toHaveBeenCalledWith(expect.stringContaining('склад недоступен'));
+  });
+});
+
+describe('Счётчики предложения на выдаче: заблокированное становится выданным', () => {
+  it('заказ поставщика: выбывает весь заблокированный объём, включая ушедшее в остаток кооператива', async () => {
+    // Заказано 10, выдано 8, одна единица в обезличенный остаток КУ: обратно
+    // поставщику она не возвращается — за неё уже заплачено, продаёт её теперь
+    // предложение кооператива.
+    const { m, service } = setup(8);
+    await close(service);
+    expect(m.offerCounters.onOrderConsumed).toHaveBeenCalledWith('offer-1', 10, undefined);
+    expect(m.offerCounters.onOrderUnblocked).not.toHaveBeenCalled();
+  });
+
+  it('заказ из остатка: выданное становится выданным, освобождённый резерв — снова свободным', async () => {
+    const order = buildOrder({ orderer_account: ORDERER, supplier_account: COOP, quantity: 10 });
+    const saga = buildSaga({
+      member_account: ORDERER,
+      stage: MarketplaceIssuanceSagaStages.ACT1_SIGNED,
+      act1_document: signedDoc(ACT, [ORDERER]),
+      fact: { actual_quantity: 7, actual_unit_price: '100.0000', fact_cost: '700.0000' },
+    });
+    const m = buildMocks({ order, sagas: [saga], warehouse: 10 });
+    m.inventoryRepo.finalizeReservedIssue.mockResolvedValue({ released: 3, issued_arrival_cost: '700.0000' });
+    const service = buildService(m);
+    stubSignatureChecks(service);
+
+    await close(service);
+    expect(m.offerCounters.onOrderConsumed).toHaveBeenCalledWith('offer-1', 7, undefined);
+    expect(m.offerCounters.onOrderUnblocked).toHaveBeenCalledWith('offer-1', 3, undefined);
+  });
+
+  it('отпуск упаковкой: движение идёт и по упаковке заказа, целыми упаковками', async () => {
+    const order = buildOrder({
+      orderer_account: ORDERER,
+      supplier_account: COOP,
+      quantity: 5, // 10 упаковок по 0,5 л
+      package_size: 0.5,
+      package_id: 'pkg-0.5',
+      unit_of_measure: 'liter',
+    });
+    const saga = buildSaga({
+      member_account: ORDERER,
+      stage: MarketplaceIssuanceSagaStages.ACT1_SIGNED,
+      act1_document: signedDoc(ACT, [ORDERER]),
+      fact: { actual_quantity: 4, actual_unit_price: '70.0000', fact_cost: '560.0000' },
+    });
+    const m = buildMocks({ order, sagas: [saga], warehouse: 5 });
+    m.inventoryRepo.finalizeReservedIssue.mockResolvedValue({ released: 1, issued_arrival_cost: '560.0000' });
+    const service = buildService(m);
+    stubSignatureChecks(service);
+
+    await close(service);
+    expect(m.offerCounters.onOrderConsumed).toHaveBeenCalledWith('offer-1', 4, { id: 'pkg-0.5', count: 8 });
+    expect(m.offerCounters.onOrderUnblocked).toHaveBeenCalledWith('offer-1', 1, { id: 'pkg-0.5', count: 2 });
+  });
+
+  it('сбой счётчика не срывает выдачу — акт уже на цепи', async () => {
+    const { m, service } = setup(8);
+    m.offerCounters.onOrderConsumed.mockRejectedValueOnce(new Error('счётчик недоступен'));
+    await expect(close(service)).resolves.toBeDefined();
+    expect(m.logger.warn).toHaveBeenCalledWith(expect.stringContaining('счётчик недоступен'));
   });
 });

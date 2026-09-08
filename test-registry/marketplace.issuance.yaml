@@ -345,6 +345,47 @@ cases:
     test: components/controller/tests/unit/marketplace/marketplace-convert-statement.test.ts
     status: written
 
+  # ── Счётчики предложения на выдаче (08.09.2026) ─────────────────────────
+  # До этого заблокированное заказом висело в предложении вечно, а выданное
+  # оставалось нулём: предложение показывало выданное как «в заказах», а у
+  # заказа из остатка освобождённый резерв не возвращался в каталог.
+  - id: mkt.iss.side.45
+    level: backend
+    kind: side
+    scenario: >
+      Закрытие выдачи по заказу поставщика: заказано 10, выдано 8, одна единица ушла
+      в обезличенный остаток кооператива
+    expect: >
+      из предложения поставщика выбывает весь заблокированный объём (10) — ушедшее в остаток
+      кооператива обратно ему не возвращается
+    test: components/controller/tests/unit/marketplace/marketplace-issuance-remainder.test.ts
+    status: passing
+
+  - id: mkt.iss.side.46
+    level: backend
+    kind: side
+    scenario: >
+      Закрытие выдачи по заказу из остатка кооператива: зарезервировано 10, выдано 7,
+      3 освобождены обратно на склад
+    expect: >
+      выданное становится выданным (7), освобождённый резерв возвращается в свободное того же
+      предложения (3) — позиции остались опубликованными
+    test: components/controller/tests/unit/marketplace/marketplace-issuance-remainder.test.ts
+    status: passing
+
+  - id: mkt.iss.side.47
+    level: backend
+    kind: side
+    scenario: Закрытие выдачи при отпуске упаковкой и сбой счётчика предложения
+    expect: >
+      движение идёт и по упаковке заказа целыми упаковками; сбой счётчика пишется в лог
+      и выдачу не роняет — закрывающий акт уже принят цепью
+    test: components/controller/tests/unit/marketplace/marketplace-issuance-remainder.test.ts
+    status: passing
+
 # 2026-09-08: остаток по упаковкам — в докладке со склада (`marketplace-stock-proposal.service.ts`)
 # нехватка сверяется по выбранной упаковке, а не по базовым единицам предложения остатка;
 # набор случаев выдачи не менялся, гард докладки — mkt.stock.side.10.
+# 2026-09-08: счётчики предложения на выдаче — `marketplace-issuance.service.ts`
+# (`settleOfferCounters`) переводит заблокированное в выданное, у заказа из остатка
+# возвращает освобождённый резерв в свободное.

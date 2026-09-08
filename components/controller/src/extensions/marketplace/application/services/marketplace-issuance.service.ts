@@ -47,9 +47,13 @@ import {
 } from '../../domain/repositories/marketplace-offer.repository';
 import { computeActNumber } from '../shared/act-number.util';
 import { marketplaceOrderUnitLabel } from '../shared/unit-label.util';
-import { presentSaleUnit } from '../shared/packaging.util';
+import { packageDeltaOfOrder, presentSaleUnit } from '../shared/packaging.util';
 import { calcCostAmount, compareMoney } from '../shared/cost.util';
 import { isStockOrder } from '../shared/order-kind.util';
+import {
+  MARKETPLACE_OFFER_COUNTERS_SERVICE,
+  MarketplaceOfferCountersService,
+} from './marketplace-offer-counters.service';
 import { MARKETPLACE_ISSUE_ACTION_CODE } from '../shared/verification-action.const';
 import { toQuantityAsset } from '../shared/quantity.util';
 import { findInlineActionData } from '../shared/chain-trace.util';
@@ -164,6 +168,8 @@ export class MarketplaceIssuanceService {
     private readonly inventoryRepo: MarketplaceInventoryDomainRepository,
     @Inject(MARKETPLACE_OFFER_REPOSITORY)
     private readonly offerRepo: MarketplaceOfferDomainRepository,
+    @Inject(MARKETPLACE_OFFER_COUNTERS_SERVICE)
+    private readonly offerCounters: MarketplaceOfferCountersService,
     @Inject(MARKETPLACE_CANONICAL_BLOCKCHAIN_PORT)
     private readonly chainPort: MarketplaceCanonicalBlockchainPort,
     @Inject(MARKETPLACE_ASSET_CONFIG)
@@ -991,9 +997,11 @@ export class MarketplaceIssuanceService {
 
   /** Складской учёт после закрытия выдачи — best-effort, не роняет закрытие. */
   private async settleWarehouse(order: MarketplaceOrderDomainEntity, fact: MarketplaceIssuanceSagaFact): Promise<void> {
+    let releasedToStock = 0;
     try {
       if (isStockOrder(order)) {
         const { released, issued_arrival_cost } = await this.inventoryRepo.finalizeReservedIssue(order.coopname, order.id, fact.actual_quantity, order.price_per_unit);
+        releasedToStock = released;
         this.logger.log(`Выдача stock-order ${order.id}: выдано ${fact.actual_quantity}, возвращено в остаток ${released} ед.`);
         await this.submitMarkdownLoss(order, issued_arrival_cost, fact.fact_cost);
       } else {
@@ -1003,6 +1011,51 @@ export class MarketplaceIssuanceService {
     } catch (err) {
       this.logger.warn(`Выдача order ${order.id}: не удалось закрыть складские позиции (${this.errMessage(err)}); склад покажет их как остаток до ручной сверки.`);
     }
+    await this.settleOfferCounters(order, releasedToStock);
+  }
+
+  /**
+   * Заблокированное заказом уходит из предложения на выдаче: до этого шага
+   * `quantity_blocked` висел бы вечно, а `quantity_consumed` навсегда
+   * оставался нулём — предложение показывало бы выданное как «в заказах».
+   *
+   * У заказа поставщика выбывает весь заблокированный объём: часть получил
+   * пайщик, невыданный излишек ушёл в обезличенный остаток кооператива и
+   * продаётся уже его предложением — обратно поставщику он не возвращается.
+   * У заказа из остатка кооператива невыданный резерв освобождается на том же
+   * складе и остаётся опубликованным, поэтому он возвращается в свободное
+   * этого же предложения, а выданное становится выданным.
+   *
+   * Best-effort, как и складской итог: цепь уже приняла закрывающий акт, и
+   * ронять выдачу из-за счётчика витрины нельзя.
+   */
+  private async settleOfferCounters(order: MarketplaceOrderDomainEntity, released: number): Promise<void> {
+    const consumed = Math.max(0, order.quantity - released);
+    try {
+      if (consumed > 0) {
+        await this.offerCounters.onOrderConsumed(order.offer_id, consumed, this.packageDelta(order, consumed));
+      }
+      if (released > 0) {
+        await this.offerCounters.onOrderUnblocked(order.offer_id, released, this.packageDelta(order, released));
+      }
+    } catch (err) {
+      this.logger.warn(
+        `Выдача order ${order.id}: счётчики предложения ${order.offer_id} не сошлись (${this.errMessage(err)}); заблокированное останется висеть до ручной сверки.`
+      );
+    }
+  }
+
+  /**
+   * Часть движения, относящаяся к упаковке заказа: имущество отпускается
+   * целыми упаковками (канон единицы отпуска), поэтому базовое количество
+   * кратно содержимому и делится нацело.
+   */
+  private packageDelta(order: MarketplaceOrderDomainEntity, baseQuantity: number) {
+    return packageDeltaOfOrder({
+      package_id: order.package_id,
+      package_size: order.package_size,
+      quantity: baseQuantity,
+    });
   }
 
   /** Уценка по заказу из остатка (chain `markdown`, o.mkt.loss) — best-effort, идемпотентно на цепи. */

@@ -29,6 +29,7 @@ export function buildOrder(overrides: Partial<MarketplaceOrderDomainEntity> = {}
     quantity: 10,
     unit_of_measure: 'piece',
     package_size: 0,
+    package_id: null,
     price_per_unit: '100.0000',
     total_cost: '1000.0000',
     status: 'READY_TO_RECEIVE',
@@ -113,6 +114,8 @@ export interface IssuanceMocks {
   sagaStore: Map<string, MarketplaceIssuanceSagaDomainEntity>;
   inventoryRepo: any;
   offerRepo: any;
+  /** Счётчики предложения: на выдаче заблокированное становится выданным. */
+  offerCounters: any;
   chainPort: any;
   assetConfig: MarketplaceAssetConfig;
   documentPort: any;
@@ -167,6 +170,10 @@ export function buildMocks(opts: {
     finalizeReservedIssue: jest.fn(async () => ({ released: 0, issued_arrival_cost: '0.0000' })),
   };
   const offerRepo = { findById: jest.fn(async () => null) };
+  const offerCounters = {
+    onOrderConsumed: jest.fn(async () => undefined),
+    onOrderUnblocked: jest.fn(async () => undefined),
+  };
   const chainPort = {
     readyIssue: jest.fn(async () => ({ transaction: { id: 'tx-ready' } })),
     issueStmt: jest.fn(async () => ({ transaction: { id: 'tx-stmt' } })),
@@ -237,6 +244,7 @@ export function buildMocks(opts: {
     sagaStore,
     inventoryRepo,
     offerRepo,
+    offerCounters,
     chainPort,
     assetConfig: { symbol: 'RUB', decimals: 4 },
     documentPort,
@@ -255,6 +263,7 @@ export function buildService(m: IssuanceMocks): MarketplaceIssuanceService {
     m.sagaRepo,
     m.inventoryRepo,
     m.offerRepo,
+    m.offerCounters,
     m.chainPort,
     m.assetConfig,
     m.documentPort,
