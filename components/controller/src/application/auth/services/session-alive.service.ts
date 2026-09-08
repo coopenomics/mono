@@ -51,6 +51,7 @@ export class SessionAliveService {
    * Пайщика по `sub` не нашли — сессии нет и быть не может.
    */
   async isAliveBySub(sessionId: unknown, sub: unknown): Promise<boolean> {
+    if (typeof sub !== 'string' || !sub) return false;
     try {
       const user = await resolveUserBySub(sub, this.userRepository, this.userDomainService);
       return await this.isAlive(sessionId, user.username);
