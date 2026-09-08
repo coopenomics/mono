@@ -189,7 +189,12 @@ describe('mkt.iss.side.44 — довзнос по факту: заявление
       signed_convert: signedDoc({ registry_id: 1110, order_hash: 'h-order-1', amount: '26.0000 RUB', membership_fee: '6.0000 RUB' }, ['orderer1']) as never,
     });
     expect(m.convertService.verifySigned).toHaveBeenCalledWith(expect.anything(), { anchor_hash: 'h-order-1', amount_units: 26_0000n, fee_units: 6_0000n }, 'orderer1');
-    expect(m.chainPort.convert).toHaveBeenCalledWith(expect.objectContaining({ orderer: 'orderer1', amount: '6.0000 RUB' }));
+    // Перевод адресован своему заказу: операция ложится в нитку этого заказа,
+    // а не заводит отдельную по хешу заявления (уточнение владельца 08.09.2026).
+    expect(m.chainPort.convert).toHaveBeenCalledWith(expect.objectContaining({
+      orderer: 'orderer1',
+      targets: [{ order_hash: 'h-order-1', amount: '6.0000 RUB' }],
+    }));
     expect(m.chainPort.convert).toHaveBeenCalledWith(expect.not.objectContaining({ from_market: expect.anything() }));
     const convertOrder = m.chainPort.convert.mock.invocationCallOrder[0];
     const stmtOrder = m.chainPort.issueStmt.mock.invocationCallOrder[0];
