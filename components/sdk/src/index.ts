@@ -169,16 +169,21 @@ export class Client {
   }
 
   /**
-   * Опознать в ответе потерю доступа. Признак — текст ошибки: отдельного кода у
-   * платформы нет, а формулировка «Сессия завершена, требуется повторная
-   * авторизация» приходит именно с этим словом (то же правило уже применяет
-   * инициализация кошелька в desktop).
+   * Опознать в ответе потерю доступа. Отдельного кода у платформы нет, признак —
+   * текст: «Сессия завершена, требуется повторная авторизация» сервер отдаёт
+   * ровно в одном месте, когда сессия токена отозвана.
+   *
+   * Голое «Unauthorized» потерей доступа НЕ считается: так отвечает страж любому
+   * запросу без токена — а их шлют и гость на странице регистрации, и стол, чьи
+   * запросы ушли раньше, чем приложение узнало о входе. Реагировать на них
+   * перезагрузкой значило бы гонять гостя по кругу. Поэтому два условия сразу:
+   * запрос ушёл с bearer (доступ БЫЛ), и сервер сказал, что сессии больше нет.
    */
-  private reportAuthLoss(errors: unknown): void {
-    if (!this.authLostHandler)
+  private reportAuthLoss(errors: unknown, hadToken: boolean): void {
+    if (!this.authLostHandler || !hadToken)
       return
     const text = JSON.stringify(errors ?? '')
-    if (/авторизац|Unauthorized/i.test(text))
+    if (/Сессия завершена/i.test(text))
       this.authLostHandler()
   }
 
@@ -332,7 +337,7 @@ export class Client {
    */
   private createThunder(baseUrl: string) {
     return Thunder(async (query, variables) => {
-      await this.prepareAuthorization()
+      const hadToken = await this.prepareAuthorization()
       const controller = typeof AbortController !== 'undefined' ? new AbortController() : null
       const timeoutId = controller
         ? setTimeout(() => controller.abort(), HTTP_TIMEOUT_MS)
@@ -368,7 +373,7 @@ export class Client {
         const json = (await response.json()) as GraphQLResponse
 
         if (json.errors) {
-          this.reportAuthLoss(json.errors)
+          this.reportAuthLoss(json.errors, hadToken)
           throw json.errors
         }
 
