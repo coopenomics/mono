@@ -6,7 +6,7 @@
 // Выплата поставщику разделена на три action'а вокруг контракта gateway
 // (E11 техдолг 598-16, Locked Decision L12):
 //   - payout      — backend инициирует исходящий платёж (inline → gateway::createoutpay);
-//   - payconfirm  — callback gateway::outcomplete (auth=_gateway), здесь Дт 86 / Кт 51;
+//   - payconfirm  — callback gateway::outcomplete (auth=_gateway), здесь Дт 76 / Кт 51;
 //   - paydecline  — callback gateway::outdecline (auth=_gateway), без ledger-движения.
 
 export type IAsset = string
@@ -56,11 +56,23 @@ export interface ICreateOrder {
   batch_hash: IChecksum256
 }
 
+/**
+ * Адресат перевода по заявлению 1110: заказ и его доля членской части.
+ * Заявление одно на всё оформление, а нитка процесса ведётся по заказу —
+ * контракт эмитит `o.mkt.conv` на каждый адресат с `process_hash = order_hash`.
+ */
+export interface IConvertTarget {
+  /** Хэш заказа, который оплачивает эта часть перевода (заказа ещё нет). */
+  order_hash: IChecksum256
+  /** Членская часть перевода под этот заказ. */
+  amount: IAsset
+}
+
 export interface IConvert {
   coopname: IName
   orderer: IName
-  /** Членская часть перевода — взнос за вычетом остатка членского кошелька; 0 — только публикация заявления. */
-  amount: IAsset
+  /** Разбивка членской части перевода по заказам; пустой список — только публикация заявления. */
+  targets: IConvertTarget[]
   convert_statement: IDocument2
 }
 

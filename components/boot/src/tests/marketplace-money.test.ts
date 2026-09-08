@@ -13,7 +13,7 @@
  *                    отдельной транзакцией (нитка = хеш заявления);
  *   • o.mkt.fee    — членский взнос по ставке кооператива уходит с членского
  *                    кошелька в пул взносов под заказ; тело всегда паевое;
- *   • o.mkt.purch  — закрывающая подпись приёмки ставит имущество на баланс (Дт 10 / Кт 60)
+ *   • o.mkt.purch  — закрывающая подпись приёмки ставит имущество на баланс (Дт 10 / Кт 76)
  *                    по ЦЕНЕ ПРИБЫТИЯ (Дт 10 / Кт 86), а не по цене заказа;
  *   • o.mkt.consum — выдача списывает выданное по цене прибытия (Дт 80 / Кт 10);
  *   • o.mkt.unlock — недовыдача разблокирует невыданный остаток заказчицы;
@@ -122,7 +122,7 @@ describe('стол заказов — денежные места поставк
     await ensureShareFunds(ekaterina.account, ORDER_QTY * unitPrice * 2)
   }, 180_000)
 
-  it('оформление заказа: взнос с членского кошелька (o.mkt.fee) после перевода по заявлению (o.mkt.conv), тело — паевым резервом (o.mkt.lock)', async () => {
+  it('оформление заказа: перевод по заявлению (o.mkt.conv), взнос с членского кошелька (o.mkt.fee) и тело паевым резервом (o.mkt.lock) — одной ниткой заказа', async () => {
     // Корзина может держать хвост прошлого прогона — начинаем с чистой.
     await gqlAs(ekaterinaToken, 'mutation{ marketplaceClearCart{ __typename } }').catch(() => {})
     await gqlAs(ekaterinaToken, 'mutation($i:MarketplaceAddToCartInput!){ marketplaceAddToCart(input:$i){ __typename } }', {
@@ -187,14 +187,16 @@ describe('стол заказов — денежные места поставк
     for (const r of rowsCreate.filter(r => r.action === 'walletop' && r.operationCode === 'o.mkt.lock')) {
       expect([r.walletFrom, r.walletTo], 'паевая часть тела ложится паевым резервом').toEqual(['w.wal.share', 'w.mkt.order'])
     }
-    expect(rowsCreate.some(r => r.action === 'walletop' && r.operationCode === 'o.mkt.conv'), 'перевод по заявлению — отдельная нитка, не нитка заказа').toBe(false)
-    // Перевод по заявлению (если был) — своей ниткой по хешу заявления, ровно на членскую часть.
+    // Перевод по заявлению (если был) идёт первым шагом ЭТОЙ ЖЕ нитки: тип
+    // процесса один, значит и идентификатор обязан быть один (уточнение
+    // владельца 08.09.2026) — своей нитки по хешу заявления больше нет.
     if (expectedConvert > 0) {
-      const convOps = await waitForOps(chairmanToken, convertHash, ['o.mkt.conv'])
+      const convOps = await waitForOps(chairmanToken, orderHash, ['o.mkt.conv'])
       expect(sumOf(convOps, 'o.mkt.conv'), 'переводится ровно членская часть из заявления').toBeCloseTo(expectedConvert, 2)
-      for (const r of (await historyOfProcess(chairmanToken, convertHash)).filter(r => r.action === 'walletop' && r.operationCode === 'o.mkt.conv')) {
+      for (const r of rowsCreate.filter(r => r.action === 'walletop' && r.operationCode === 'o.mkt.conv')) {
         expect([r.walletFrom, r.walletTo], 'перевод идёт с главного паевого на членский кошелёк программы').toEqual(['w.wal.share', 'w.mkt.member'])
       }
+      expect(await historyOfProcess(chairmanToken, convertHash), 'нитки по хешу заявления быть не должно — перевод живёт в нитке заказа').toEqual([])
     }
 
     // Зеркало бэкенда обязано сойтись с цепью — иначе пайщик видит в кабинете
@@ -220,19 +222,22 @@ describe('стол заказов — денежные места поставк
     const lockRow = ops.find(r => r.operationCode === 'o.mkt.lock' || r.operationCode === 'o.mkt.lockp')!
     expect(lockRow.username, 'резерв ставится на заказчицу').toBe(ekaterina.account)
 
-    // Нитка заказа бухпроводок не порождает: паевой резерв остаётся на 80,
-    // взнос идёт внутри 86. Единственная проводка Дт 80 / Кт 86 — перевод по
-    // заявлению, и она в нитке заявления.
+    // Резерв и взнос проводок не порождают: паевой резерв остаётся на 80,
+    // взнос идёт внутри 86. Единственная проводка нитки Дт 80 / Кт 86 — перевод
+    // по заявлению, и он теперь в этой же нитке.
     const rows = await historyOfProcess(chairmanToken, orderHash)
-    expect(rows.filter(r => r.action === 'debit' || r.action === 'credit').length, 'резерв и взнос под заказ не должны порождать проводок').toBe(0)
+    const postings = rows.filter(r => r.action === 'debit' || r.action === 'credit')
     if (expectedConvert > 0) {
-      const convRows = await historyOfProcess(chairmanToken, convertHash)
-      expect(postingsFor(convRows, 'debit', ACC.SHARE, expectedConvert).length, 'перевод в членский обязан лечь Дт 80').toBeGreaterThan(0)
-      expect(postingsFor(convRows, 'credit', ACC.TARGET, expectedConvert).length, 'перевод в членский обязан лечь Кт 86').toBeGreaterThan(0)
+      expect(postingsFor(rows, 'debit', ACC.SHARE, expectedConvert).length, 'перевод в членский обязан лечь Дт 80').toBeGreaterThan(0)
+      expect(postingsFor(rows, 'credit', ACC.TARGET, expectedConvert).length, 'перевод в членский обязан лечь Кт 86').toBeGreaterThan(0)
+      expect(postings.length, 'кроме перевода по заявлению нитка заказа проводок не порождает').toBe(2)
+    }
+    else {
+      expect(postings.length, 'резерв и взнос под заказ не должны порождать проводок').toBe(0)
     }
   }, 300_000)
 
-  it('закрывающая подпись приёмки ставит имущество на баланс по цене прибытия (o.mkt.purch, Дт 10 / Кт 60)', async () => {
+  it('закрывающая подпись приёмки ставит имущество на баланс по цене прибытия (o.mkt.purch, Дт 10 / Кт 76)', async () => {
     await gqlAs(sidorovToken, 'mutation($i:MarketplaceAcceptOrdersBatchInput!){ marketplaceAcceptOrdersBatch(input:$i){ __typename } }', {
       i: { order_ids: [orderId] },
     })
@@ -294,7 +299,7 @@ describe('стол заказов — денежные места поставк
 
     const rows = await historyOfProcess(chairmanToken, orderHash)
     expect(postingsFor(rows, 'debit', ACC.MATERIALS, arrivalCost).length, 'приёмка обязана лечь Дт 10').toBeGreaterThan(0)
-    expect(postingsFor(rows, 'credit', ACC.SUPPLIER, arrivalCost).length, 'приёмка обязана лечь Кт 60 — это закупка у поставщика').toBeGreaterThan(0)
+    expect(postingsFor(rows, 'credit', ACC.SETTLEMENTS, arrivalCost).length, 'приёмка обязана лечь Кт 76 — это закупка у поставщика').toBeGreaterThan(0)
   }, 300_000)
 
   it('выдача 3 из 4 списывает выданное по цене прибытия (o.mkt.consum) и разблокирует недовыдачу (o.mkt.unlock)', async () => {

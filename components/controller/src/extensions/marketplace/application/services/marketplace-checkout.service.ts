@@ -249,10 +249,18 @@ export class MarketplaceCheckoutService {
         scope.orderer_account
       );
       try {
+        // Разбивка по заказам: контракт эмитит o.mkt.conv на каждый заказ с его
+        // хэшем как process_hash, поэтому перевод ложится первой операцией
+        // нитки того заказа, который оплачивает, а не заводит нитку без анкера.
         await this.chainPort.convert({
           coopname: scope.coopname,
           orderer: scope.orderer_account,
-          amount: this.economyService.unitsToAsset(planned.fee_convert_units),
+          targets: planned.lines
+            .filter((p) => p.plan.fee_convert_units > 0n)
+            .map((p) => ({
+              order_hash: p.order_hash,
+              amount: this.economyService.unitsToAsset(p.plan.fee_convert_units),
+            })),
           convert_statement,
         });
       } catch (e) {

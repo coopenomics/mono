@@ -152,6 +152,8 @@ interface BundlePlan {
   fee_convert_units: bigint;
   /** Сумма заявления с Цифрового кошелька: тела сверх свободного паевого плюс недостающие взносы. */
   transfer_units: bigint;
+  /** Разбивка недостающей части взносов по заказам бандла — адресаты действия convert. */
+  convert_targets: Array<{ order_hash: string; fee_convert_units: bigint }>;
 }
 
 /**
@@ -205,19 +207,27 @@ export class MarketplaceStockProposalService {
   ): Promise<BundlePlan> {
     const feePercent = await this.economyService.getMembershipFeeContractPercent(coopname);
     const inputs: Array<{ body_units: bigint; fee_units: bigint }> = [];
+    // Хэши заказов идут параллельно строкам плана: нитка процесса ведётся по
+    // заказу, поэтому перевод адресуется построчно (см. действие convert).
+    const hashes: string[] = [];
     for (const item of proposal.items.filter((i) => !i.order_id)) {
       const { resolved } = await this.validateStockLine(coopname, proposal.braname, item.offer_id, item.quantity, item.package_id);
       const saleUnitCount = resolved.packageSize > 0 ? resolved.packageCount! : resolved.baseQuantity;
       const body_units = this.economyService.lineBodyUnits(resolved.unitPrice, saleUnitCount);
       inputs.push({ body_units, fee_units: this.economyService.membershipFeeUnits(body_units, feePercent) });
+      hashes.push(item.order_hash ?? '');
     }
     for (const item of proposal.items.filter((i) => !!i.order_id)) {
       const t = await this.issuanceService.getFeeTopUp(coopname, item.order_id!, member_account);
       inputs.push({ body_units: t.body_topup_units, fee_units: t.topup_units });
+      hashes.push(item.order_hash ?? '');
     }
     const balances = await this.convertService.programBalances(coopname, member_account);
     const funding = this.convertService.planFunding(balances, inputs);
-    return { fee_convert_units: funding.fee_convert_units, transfer_units: funding.transfer_units };
+    const convert_targets = funding.lines
+      .map((line, i) => ({ order_hash: hashes[i] ?? '', fee_convert_units: line.fee_convert_units }))
+      .filter((t) => t.fee_convert_units > 0n && t.order_hash.length > 0);
+    return { fee_convert_units: funding.fee_convert_units, transfer_units: funding.transfer_units, convert_targets };
   }
 
   /** Якорь заявления 1110 бандла — по бандлу, без nonce. */
@@ -511,7 +521,10 @@ export class MarketplaceStockProposalService {
         await this.chainPort.convert({
           coopname,
           orderer: member_account,
-          amount: this.economyService.unitsToAsset(plan.fee_convert_units),
+          targets: plan.convert_targets.map((t) => ({
+            order_hash: t.order_hash,
+            amount: this.economyService.unitsToAsset(t.fee_convert_units),
+          })),
           convert_statement,
         });
       } catch (e) {

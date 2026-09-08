@@ -32,7 +32,7 @@ export const SERVER_SECRET = process.env.SERVER_SECRET || 'SECRET'
 export const COOP = 'voskhod'
 
 /** Бухсчёта в истории отдаются умноженными на 1000 (`accountId`). */
-export const ACC = { MATERIALS: 10_000, SUPPLIER: 60_000, SHARE: 80_000, TARGET: 86_000, OTHER: 91_000, CASH: 51_000 }
+export const ACC = { MATERIALS: 10_000, SETTLEMENTS: 76_000, SHARE: 80_000, TARGET: 86_000, OTHER: 91_000, CASH: 51_000 }
 
 export interface Who { email: string, wif: string, account: string }
 

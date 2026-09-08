@@ -113,12 +113,15 @@ public:
    * взнос M» (M — взнос за вычетом остатка членского кошелька, N — недостающая
    * часть тела сверх свободного паевого программы плюс M); по кошелькам здесь
    * двигается только членская часть M: o.mkt.conv (w.wal.share → w.mkt.member,
-   * Дт 80 / Кт 86). При amount = 0 действие только публикует заявление.
+   * Дт 80 / Кт 86). Сумма приходит разбитой по заказам (`targets`), и на
+   * каждый заказ эмитится своя операция с `process_hash = order_hash` —
+   * перевод идёт первым шагом нитки того заказа, который оплачивает. Пустой
+   * `targets` (или нулевые суммы) — действие только публикует заявление.
    * @ingroup public_marketplace_actions
    */
   [[eosio::action]] void convert(eosio::name coopname,
                                  eosio::name orderer,
-                                 eosio::asset amount,
+                                 std::vector<convert_target> targets,
                                  document2 convert_statement);
 
   /**

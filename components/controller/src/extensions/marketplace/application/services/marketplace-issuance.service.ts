@@ -452,7 +452,9 @@ export class MarketplaceIssuanceService {
       await this.chainPort.convert({
         coopname: order.coopname,
         orderer: order.orderer_account,
-        amount: this.economyService.unitsToAsset(topUp.fee_units),
+        // Доплата по факту адресуется своему заказу: o.mkt.conv ложится в нитку
+        // этого заказа, а не заводит отдельную нитку по хэшу заявления.
+        targets: [{ order_hash: order.order_hash, amount: this.economyService.unitsToAsset(topUp.fee_units) }],
         convert_statement,
       });
     } catch (err) {

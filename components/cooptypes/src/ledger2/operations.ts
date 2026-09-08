@@ -188,15 +188,16 @@ export const LEDGER2_OPERATION_REGISTRY: readonly OperationMeta[] = [
     debit: 80, credit: 86,
     human_name: 'Удержание при отказе пайщика от получения после акцепта поставщиком' },
 
-  // Закупка через счёт расчётов с поставщиками (TBD-Standardization: 60 или 76).
+  // Закупка через счёт расчётов с разными дебиторами и кредиторами (76;
+  // решение владельца 08.09.2026 — счёт 60 из плана снят).
   { code: 'o.mkt.purch',   process_type: 'p.mkt.supply',  contract: 'marketplace',
     name: 'PURCHASE_FROM_SUPPLIER', wallet_op: 'NONE', wallet_from: null, wallet_to: null,
-    debit: 10, credit: 60,
+    debit: 10, credit: 76,
     human_name: 'Приёмка имущества кооперативом по АПП приёмки' },
 
   { code: 'o.mkt.payout',  process_type: 'p.mkt.supply',  contract: 'marketplace',
     name: 'PAY_SUPPLIER',   wallet_op: 'ISSUE', wallet_from: null, wallet_to: 'w.mkt.payout',
-    debit: 60, credit: 51,
+    debit: 76, credit: 51,
     human_name: 'Оплата поставщику с расчётного счёта по подтверждению кассира' },
 
   // Возврат паевого взноса имуществом по акту выдачи (закрывающая подпись

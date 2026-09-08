@@ -5,7 +5,8 @@
  *   • createorder без подготовленного членского кошелька (взнос не покрыт) —
  *     контракт отвергает с подсказкой подать заявление; средств не трогает;
  *   • перевод по заявлению (convert) кладёт на членский кошелёк ровно членскую
- *     часть, после чего тот же createorder проходит;
+ *     часть, после чего тот же createorder проходит; перевод адресован заказу и
+ *     идёт первой операцией его нитки (уточнение владельца 08.09.2026);
  *   • заявление — на тело плюс взнос за вычетом остатка членского кошелька;
  *     тело всегда ложится паевым резервом (o.mkt.lock);
  *   • stockorder без покрытого взноса отвергается так же, как createorder.
@@ -113,16 +114,16 @@ describe('Стол заказов: заявление 1110 и внутренни
     expect(preview.convert.document.html, 'текст заявления — слова владельца').toMatch(/Прошу перевести с баланса моего Цифрового кошелька/)
     expect(preview.convert.document.html).not.toMatch(/ставк|зачит/i)
 
-    // Оформление: перевод отдельной ниткой (хеш заявления), затем заказ.
+    // Оформление: перевод адресован заказу и ложится в его нитку, затем заказ.
     const signed = await signAs(ekaterina.wif, preview.convert.document, ekaterina.account, 1)
     const co: any = await gqlAs(ekaterinaToken, `mutation($i:MarketplaceCheckoutCartInput){
       marketplaceCheckoutCart(input:$i){ fully_completed created_orders{ id order_hash } failed_lines{ reason } }
     }`, { i: { lines: [{ offer_id: offer.id, package_id: null, order_hash: line.order_hash }], signed_convert: signed } })
     expect(co.marketplaceCheckoutCart.fully_completed, JSON.stringify(co.marketplaceCheckoutCart.failed_lines)).toBe(true)
 
-    const convOps = await waitForOps(chairmanToken, preview.convert.document.hash, ['o.mkt.conv'])
-    expect(amount(convOps.find(r => r.operationCode === 'o.mkt.conv')!.quantity), 'переведена ровно членская часть').toBeCloseTo(amount(preview.convert.membership_fee), 2)
-    const orderOps = await waitForOps(chairmanToken, line.order_hash, ['o.mkt.fee'])
+    const orderOps = await waitForOps(chairmanToken, line.order_hash, ['o.mkt.conv', 'o.mkt.fee'])
+    expect(amount(orderOps.find(r => r.operationCode === 'o.mkt.conv')!.quantity), 'переведена ровно членская часть, и перевод — в нитке заказа').toBeCloseTo(amount(preview.convert.membership_fee), 2)
+    expect(await historyOfProcess(chairmanToken, preview.convert.document.hash), 'отдельной нитки по хешу заявления быть не должно').toEqual([])
     expect(sumOf(orderOps, 'o.mkt.lock') + sumOf(orderOps, 'o.mkt.lockp'), 'тело целиком паевым резервом из двух паевых кошельков').toBeCloseTo(amount(line.amount) - amount(line.membership_fee), 2)
     expect(sumOf(orderOps, 'o.mkt.lockp'), 'свободный паевой программы идёт на тело в первую очередь').toBeCloseTo(amount(line.from_program), 2)
     expect(amount(orderOps.find(r => r.operationCode === 'o.mkt.fee')!.quantity), 'взнос целиком с членского кошелька').toBeCloseTo(amount(line.membership_fee), 2)

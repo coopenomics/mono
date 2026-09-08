@@ -96,7 +96,7 @@ function buildApplyTrio(params: {
  * Happy-path order flow (createorder → signsupp → signiss2):
  *   1. o.mkt.lock   (TRANSFER w.wal.share → w.mkt.order, Dr 80 / Cr 86) — резерв
  *   2. o.mkt.purch  (Dr 10 / Cr 86) — приёмка
- *   3. o.mkt.payout (Dr 60 / Cr 51, ISSUE w.mkt.payout) — оплата поставщику
+ *   3. o.mkt.payout (Dr 76 / Cr 51, ISSUE w.mkt.payout) — оплата поставщику
  *   4. o.mkt.consum (Dr 80 / Cr 10, BURN w.mkt.order) — выдача
  */
 function happyPathOrderFlow(amount = 100): MarketplaceLedger2OperationRow[] {
@@ -118,7 +118,7 @@ function happyPathOrderFlow(amount = 100): MarketplaceLedger2OperationRow[] {
       walletFrom: null,
       walletTo: null,
       debitAccount: 10,
-      creditAccount: 60,
+      creditAccount: 76,
     }),
     ...buildApplyTrio({
       processHash: orderHash,
@@ -126,7 +126,7 @@ function happyPathOrderFlow(amount = 100): MarketplaceLedger2OperationRow[] {
       amount,
       walletFrom: null,
       walletTo: 'w.mkt.payout',
-      debitAccount: 60,
+      debitAccount: 76,
       creditAccount: 51,
     }),
     ...buildApplyTrio({
@@ -276,7 +276,7 @@ describe('I3 — баланс счёта 10 (Материалы)', () => {
       walletFrom: null,
       walletTo: null,
       debitAccount: 10,
-      creditAccount: 60,
+      creditAccount: 76,
     })
     const accounts: MarketplaceAccountRow[] = [{ accountId: 10, balance: '200.0000 RUB' }]
     const res = checkInvariantI3Account10Materials(purchOnly, accounts)
@@ -311,7 +311,7 @@ describe('I3 — баланс счёта 10 (Материалы)', () => {
       walletFrom: null,
       walletTo: null,
       debitAccount: 10,
-      creditAccount: 60,
+      creditAccount: 76,
     })
     const accounts: MarketplaceAccountRow[] = [{ accountId: 10, balance: '99.0000 RUB' }]
     const res = checkInvariantI3Account10Materials(purchOnly, accounts)
@@ -520,7 +520,7 @@ describe('I2 — marketplace-вклад в счёт 86 (sanity)', () => {
     const res = checkInvariantI2Account86Delta(rows)
     expect(res.ok).toBe(true)
     // Паевая модель: тело заказа не заходит на 86 (lock без проводки, purch
-    // Дт 10 / Кт 60, payout Дт 60 / Кт 51, consum Дт 80 / Кт 10) — вклад в 86 нулевой.
+    // Дт 10 / Кт 76, payout Дт 76 / Кт 51, consum Дт 80 / Кт 10) — вклад в 86 нулевой.
     expect(res.expected).toBe('0.0000 RUB')
   })
 })
