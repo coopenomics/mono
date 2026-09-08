@@ -46,7 +46,7 @@ export const MarketplaceReturnClaimExpectedResolutions = {
 /**
  * Статусы заявления. Маппинг на контрактные имена `ReturnStatus::*`:
  *
- *   PENDING_CHAIRMAN_REVIEW ↔ pendrev     — после submretrn (заявление 1116 подписано пайщиком)
+ *   PENDING_CHAIRMAN_REVIEW ↔ pendrev     — после submretrn (рекламация 1106 подписана пайщиком)
  *   APPROVED_FOR_VISIT      ↔ approvvisit — после aprretrem (приглашён на участок)
  *   REJECTED_REMOTELY       ↔ rejremote   — после rejretrem (финал)
  *   REJECTED_AT_VISIT       ↔ rejatku     — оператор не стал принимать имущество (финал)
@@ -199,12 +199,15 @@ export interface MarketplaceReturnClaimProps {
   fee_refund?: string;
   photos: MarketplaceReturnClaimPhoto[];
   /**
-   * Подписанное пайщиком Заявление о внесении паевого взноса имуществом
-   * (registry 1116) — сохраняется при подаче, чтобы оператор мог наложить
-   * вторую подпись при приёме имущества (агрегат для со-подписи строится из
-   * этого документа); с обеими подписями уходит в повестку совета.
+   * Подписанная пайщиком рекламация — Заявление о гарантийном возврате
+   * имущества (registry 1106). Больше пайщик ничего не подписывает.
    */
   statement: ISignedDocument | null;
+  /**
+   * Заявление оператора участка в совет об отмене сделки (registry 1116) с его
+   * подписью — после приёма имущества у стойки; оно же документ повестки совета.
+   */
+  cancel_statement?: ISignedDocument | null;
   /** Номер решения совета (soviet.decisions) — известен после приёма имущества у стойки. */
   council_decision_id: string | null;
   /** Кто решает: робот совета либо люди (нет кворума / робот не настроен). Null — совет ещё не задействован. */

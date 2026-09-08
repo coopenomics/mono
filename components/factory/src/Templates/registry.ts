@@ -81,6 +81,7 @@ import * as MarketplaceOfferTemplate from './1101.MarketplaceOfferTemplate'
 import * as MarketplaceOffer from './1102.MarketplaceOffer'
 import * as MarketplaceTransportNote from './1103.MarketplaceTransportNote'
 import * as MarketplaceAplReception from './1104.MarketplaceAplReception'
+import * as MarketplaceReturnStatement from './1106.MarketplaceReturnStatement'
 import * as MarketplaceWriteoffProtocol from './1107.MarketplaceWriteoffProtocol'
 import * as MarketplaceWriteoffStatement from './1108.MarketplaceWriteoffStatement'
 import * as BranchFinancialAidStatement from './1109.BranchFinancialAidStatement'
@@ -90,8 +91,8 @@ import * as BranchFinancialAidProtocol from './1112.BranchFinancialAidProtocol'
 import * as MarketplaceShareReturnStatement from './1113.MarketplaceShareReturnStatement'
 import * as MarketplaceShareReturnDecision from './1114.MarketplaceShareReturnDecision'
 import * as MarketplaceShareReturnAct from './1115.MarketplaceShareReturnAct'
-import * as MarketplaceShareContributionStatement from './1116.MarketplaceShareContributionStatement'
-import * as MarketplaceShareContributionDecision from './1117.MarketplaceShareContributionDecision'
+import * as MarketplaceReturnCancelStatement from './1116.MarketplaceReturnCancelStatement'
+import * as MarketplaceReturnCancelDecision from './1117.MarketplaceReturnCancelDecision'
 import * as MarketplaceProgramTemplate from './1100.MarketplaceProgramTemplate'
 
 export const Registry = {
@@ -163,6 +164,7 @@ export const Registry = {
   1102: MarketplaceOffer,
   1103: MarketplaceTransportNote,
   1104: MarketplaceAplReception,
+  1106: MarketplaceReturnStatement,
   1107: MarketplaceWriteoffProtocol,
   1108: MarketplaceWriteoffStatement,
   1109: BranchFinancialAidStatement,
@@ -172,8 +174,8 @@ export const Registry = {
   1113: MarketplaceShareReturnStatement,
   1114: MarketplaceShareReturnDecision,
   1115: MarketplaceShareReturnAct,
-  1116: MarketplaceShareContributionStatement,
-  1117: MarketplaceShareContributionDecision,
+  1116: MarketplaceReturnCancelStatement,
+  1117: MarketplaceReturnCancelDecision,
   2010: ExpenseProposalStatement,
   2011: ExpenseProposalDecision,
 }

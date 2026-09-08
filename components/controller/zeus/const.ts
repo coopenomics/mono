@@ -998,7 +998,7 @@ export const AllTypesProps: Record<string,any> = {
 	},
 	MarketplaceAcceptReturnAtVisitInput:{
 		inspection_photos:"MarketplaceReturnClaimPhotoUploadInput",
-		signed_statement:"MarketplaceShareContributionStatementSignedInput"
+		signed_statement:"MarketplaceReturnCancelStatementSignedInput"
 	},
 	MarketplaceAddSupplierInput:{
 		model:"MarketplaceSupplierModel"
@@ -1100,7 +1100,7 @@ export const AllTypesProps: Record<string,any> = {
 	MarketplaceCreateReturnClaimInput:{
 		defect_category:"MarketplaceReturnClaimDefectCategory",
 		photos:"MarketplaceReturnClaimPhotoUploadInput",
-		signed_statement:"MarketplaceShareContributionStatementSignedInput"
+		signed_statement:"MarketplaceReturnStatementSignedInput"
 	},
 	MarketplaceCreateShipmentInput:{
 		groups:"MarketplaceShipmentGroupInput"
@@ -1283,6 +1283,13 @@ export const AllTypesProps: Record<string,any> = {
 	MarketplaceRetireStorageCellsInput:{
 
 	},
+	MarketplaceReturnCancelStatementSignedInput:{
+		meta:"MarketplaceReturnCancelStatementSignedMetaDocumentInput",
+		signatures:"SignatureInfoInput"
+	},
+	MarketplaceReturnCancelStatementSignedMetaDocumentInput:{
+
+	},
 	MarketplaceReturnClaimDecisionMode: "enum" as const,
 	MarketplaceReturnClaimDefectCategory: "enum" as const,
 	MarketplaceReturnClaimExpectedResolution: "enum" as const,
@@ -1293,6 +1300,13 @@ export const AllTypesProps: Record<string,any> = {
 
 	},
 	MarketplaceReturnClaimStatus: "enum" as const,
+	MarketplaceReturnStatementSignedInput:{
+		meta:"MarketplaceReturnStatementSignedMetaDocumentInput",
+		signatures:"SignatureInfoInput"
+	},
+	MarketplaceReturnStatementSignedMetaDocumentInput:{
+
+	},
 	MarketplaceSaleForm: "enum" as const,
 	MarketplaceSetCartDeliveryPointInput:{
 
@@ -1310,13 +1324,6 @@ export const AllTypesProps: Record<string,any> = {
 
 	},
 	MarketplaceSetTrusteeWeightInput:{
-
-	},
-	MarketplaceShareContributionStatementSignedInput:{
-		meta:"MarketplaceShareContributionStatementSignedMetaDocumentInput",
-		signatures:"SignatureInfoInput"
-	},
-	MarketplaceShareContributionStatementSignedMetaDocumentInput:{
 
 	},
 	MarketplaceShareReturnActSignedInput:{
@@ -3757,6 +3764,10 @@ export const AllTypesProps: Record<string,any> = {
 }
 
 export const ReturnTypes: Record<string,any> = {
+	auth:{
+		roles:"String",
+		self:"String"
+	},
 	AccessGrant:{
 		action:"String",
 		resource:"String"
@@ -8104,7 +8115,7 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceRequiredAttributes:"MarketplaceAttribute",
 		marketplaceResolveContainerByCode:"MarketplaceContainer",
 		marketplaceReturnClaim:"MarketplaceReturnClaim",
-		marketplaceReturnClaimChairmanSignablePayload:"DocumentAggregate",
+		marketplaceReturnClaimChairmanSignablePayload:"GeneratedDocument",
 		marketplaceReturnClaimSignablePayload:"GeneratedDocument",
 		marketplaceSearchAttributes:"MarketplaceAttribute",
 		marketplaceSearchDictionaryValues:"MarketplaceDictionaryValue",

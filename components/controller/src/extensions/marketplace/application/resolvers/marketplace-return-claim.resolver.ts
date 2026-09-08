@@ -1,6 +1,6 @@
 import { ForbiddenException, Inject, Injectable, UseGuards } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
-import { GqlJwtAuthGuard, platformSettings, GeneratedDocumentDTO, DocumentAggregateDTO } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, platformSettings, GeneratedDocumentDTO } from '@coopenomics/extension-kit';
 import { CurrentMarketplaceMember } from '../decorators/current-marketplace-member.decorator';
 import { RequireMarketplaceAccess } from '../decorators/marketplace-access.decorator';
 import { MarketplaceMembershipGuard } from '../guards/marketplace-membership.guard';
@@ -299,17 +299,19 @@ export class MarketplaceReturnClaimResolver {
     return this.toResultDTO(result);
   }
 
-  @Query(() => DocumentAggregateDTO, {
+  @Query(() => GeneratedDocumentDTO, {
     name: 'marketplaceReturnClaimChairmanSignablePayload',
     description:
-      'Заявление о внесении паевого взноса имуществом (1116), подписанное пайщиком, для со-подписи оператора при приёме имущества у стойки. Содержит тело документа для ознакомления и подпись пайщика; оператор накладывает свою подпись поверх, после чего заявление уходит на повестку совета.',
+      'Заявление оператора участка в совет об отмене сделки по гарантийному возврату (1116) для подписи у стойки: заказ и принятое имущество из рекламации пайщика, результат осмотра, суммы паевого и членского взносов к восстановлению. Оператор подписывает его одной подписью, после чего заявление уходит на повестку совета.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
   @RequireMarketplaceAccess('ReturnClaim', 'decide:on-site')
   async marketplaceReturnClaimChairmanSignablePayload(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
-    @Args('claim_id') claim_id: string
-  ): Promise<DocumentAggregateDTO> {
+    @Args('claim_id') claim_id: string,
+    @Args('inspection_result', { description: 'Результат осмотра имущества на участке — попадает в текст заявления.' })
+    inspection_result: string
+  ): Promise<GeneratedDocumentDTO> {
     const claim = await this.service.findById(platformSettings().coopname, claim_id);
     const isMember = await this.kuChairmanService.isMemberOfBranch(
       platformSettings().coopname,
@@ -318,14 +320,16 @@ export class MarketplaceReturnClaimResolver {
     );
     if (!isMember) {
       throw new ForbiddenException(
-        'Со-подпись возможна только для участка, на котором вы являетесь председателем или доверенным лицом.'
+        'Заявление об отмене сделки готовится только для участка, на котором вы являетесь председателем или доверенным лицом.'
       );
     }
-    const aggregate = await this.service.getChairmanReturnSignablePayload(
-      platformSettings().coopname,
-      claim_id
-    );
-    return new DocumentAggregateDTO(aggregate);
+    const doc = await this.service.getChairmanReturnSignablePayload({
+      coopname: platformSettings().coopname,
+      claim_id,
+      operator_account: member.username,
+      inspection_result,
+    });
+    return toGeneratedDocumentDTO(doc);
   }
 
   // ── helpers ──────────────────────────────────────────────────────────

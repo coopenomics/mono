@@ -42,23 +42,23 @@ export type IAcceptReturnAtVisitInput =
 export type IRejectReturnAtVisitInput =
   Mutations.Marketplace.RejectReturnAtVisit.IInput['data'];
 
-/** Агрегат документа: тело + подпись пайщика. Председатель со-подписывает поверх, не перегенерируя документ. */
-type _RawChairmanSignablePayload =
+/**
+ * Заявление оператора участка в совет об отмене сделки по гарантийному
+ * возврату (1116): бэкенд генерирует его по рекламации, заказу и результату
+ * осмотра, оператор подписывает одной подписью. Пайщик ничего не подписывает.
+ */
+export type MarketplaceReturnCancelStatementView =
   Queries.Marketplace.ReturnClaimChairmanSignablePayload.IOutput['marketplaceReturnClaimChairmanSignablePayload'];
-
-export type MarketplaceReturnClaimDocumentAggregateView = Omit<_RawChairmanSignablePayload, 'rawDocument'> & {
-  rawDocument: NonNullable<_RawChairmanSignablePayload['rawDocument']>;
-};
 
 export async function fetchChairmanReturnSignablePayload(
   claim_id: string,
-): Promise<MarketplaceReturnClaimDocumentAggregateView> {
+  inspection_result: string,
+): Promise<MarketplaceReturnCancelStatementView> {
   const { [Queries.Marketplace.ReturnClaimChairmanSignablePayload.name]: result } = await client.Query(
     Queries.Marketplace.ReturnClaimChairmanSignablePayload.query,
-    { variables: { claim_id } },
+    { variables: { claim_id, inspection_result } },
   );
-  // Backend всегда возвращает rawDocument; в Zeus оно опционально — фиксируем как обязательное.
-  return result as MarketplaceReturnClaimDocumentAggregateView;
+  return result;
 }
 
 export async function listReturnClaimsByBraname(

@@ -2,21 +2,24 @@ import type { IDocDataRef, IGenerate, IMetaDocument } from '../../document'
 import type { ICommonProgram, ICommonRequest, ICommonUser, ICooperativeData, IVars } from '../../model'
 import type { IOrganizationData } from '../../users'
 
-export const registry_id = 1116
+export const registry_id = 1106
 
 /**
- * Заявление о внесении паевого взноса имуществом при гарантийном возврате —
- * паевая модель ЦПП «Стол заказов» (компонент 68, задача 99D-9).
+ * Заявление пайщика о гарантийном возврате имущества — Эпик 7 ЦПП
+ * «Стол заказов» (членские взносы).
  *
- * Пайщик получил имущество как возврат паевого взноса; возвращая его в
- * пределах гарантийного срока, он вносит это имущество обратно как паевой
- * взнос. Две подписи на одном документе: заказчика — при подаче
- * (`marketplace::submretrn`), оператора участка — при приёме имущества у
- * стойки (`marketplace::accretrn`, канон DocumentAggregate). После второй
- * подписи заявление уходит в повестку совета (тип `mktretrn`); паевой взнос
- * восстанавливается только по решению совета (протокол 1117).
+ * Подписывается пайщиком-заказчиком и инициирует процесс возврата
+ * полученного по АПП (1104.MarketplaceAplReception) имущества обратно
+ * на кооператив в пределах гарантийного срока, заданного поставщиком.
  *
- * Текст — на основе прежнего 1106 членской модели (снят вместе с моделью).
+ * При окончательном принятии заявления на очном осмотре C++ контракт
+ * `p.mkt.return` выполняет атомарную compensating-forward-пару
+ * `o.mkt.return + o.mkt.return2` через транзит 91 — на программный
+ * кошелёк пайщика `w.mkt.member.available` возвращается стоимость, а
+ * имущество — на склад кооператива.
+ *
+ * Не путать с registry_id=800 `ReturnByAssetStatement` — тот документ
+ * принадлежит старой системе клиринга и сохранён отдельно как есть.
  */
 export interface Action extends IGenerate, IDocDataRef {
   registry_id: number
@@ -68,8 +71,8 @@ export interface Model {
   branch?: IOrganizationData
 }
 
-export const title = 'Заявление о внесении паевого взноса имуществом (гарантийный возврат)'
-export const description = 'Форма заявления пайщика о внесении паевого взноса имуществом при гарантийном возврате по ЦПП «Стол заказов»'
+export const title = 'Заявление о гарантийном возврате имущества'
+export const description = 'Форма заявления пайщика о гарантийном возврате имущества по ЦПП «Стол заказов»'
 export const context = '<style>\nh1 {\n  margin: 0px;\n  text-align: center;\n}\nh3 {\n  margin: 0px;\n  padding-top: 15px;\n}\n.about {\n  padding: 20px;\n}\n.about p {\n  margin: 0px;\n}\n.digital-document {\n  padding: 20px;\n}\n.digital-document p {\n  margin: 0 0 6px;\n}\n.subheader {\n  padding-bottom: 20px;\n}\ntable {\n  width: 100%;\n  border-collapse: collapse;\n}\nth, td {\n  border: 1px solid currentColor;\n  padding: 8px;\n  text-align: left;\n  word-wrap: break-word;\n  overflow-wrap: break-word;\n}\nth {\n  width: 30%;\n}\n</style>\n\n<div class="digital-document">\n  <div style="text-align: right; margin-bottom: 24px;">\n    <p style="margin: 0px !important">{% trans \'v_soviet\' %} {{ vars.full_abbr_genitive }} "{{ vars.name }}"</p>\n    <p style="margin: 0px !important">{% trans \'from\' %} {{ user.full_name_or_short_name }}</p>\n  </div>\n\n  <div style="text-align: center">\n    <h1 class="header">{% trans \'statement\' %}</h1>\n    <p class="subheader">{% trans \'statement_subheader\', program.name %}</p>\n  </div>\n\n  {% if coop.is_branched %}\n  <p>{% trans \'branched_return\', branch.short_name, vars.full_abbr_genitive, vars.name, program.name %}</p>\n  {% else %}\n  <p>{% trans \'unbranched_return\', vars.full_abbr_genitive, vars.name, program.name %}</p>\n  {% endif %}\n\n  <table>\n    <tbody>\n      <tr>\n        <th>№</th>\n        <td>1</td>\n      </tr>\n      <tr>\n        <th>{% trans \'article\' %}</th>\n        <td>{{ request.hash }}</td>\n      </tr>\n      <tr>\n        <th>{% trans \'asset_title\' %}</th>\n        <td>{{ request.title }}</td>\n      </tr>\n      <tr>\n        <th>{% trans \'form_of_asset\' %}</th>\n        <td>{% trans \'form_of_asset_type\' %}</td>\n      </tr>\n      <tr>\n        <th>{% trans \'unit_of_measurement\' %}</th>\n        <td>{{ request.unit_of_measurement }}</td>\n      </tr>\n      <tr>\n        <th>{% trans \'units_returned\' %}</th>\n        <td>{{ actual_quantity }}</td>\n      </tr>\n      <tr>\n        <th>{% trans \'unit_cost\', request.currency %}</th>\n        <td>{{ request.unit_cost }}</td>\n      </tr>\n      <tr>\n        <th>{% trans \'fact_cost\', request.currency %}</th>\n        <td>{{ fact_cost }}</td>\n      </tr>\n    </tbody>\n  </table>\n\n  <p>{% trans \'reason_label\' %}</p>\n  <p>{{ reason_text }}</p>\n\n  <p>{% trans \'signature\' %}</p>\n  <p>{{ user.full_name_or_short_name }}</p>\n  <p>{{ meta.created_at }}</p>\n</div>\n'
 
 export const translations = {
@@ -77,9 +80,9 @@ export const translations = {
     from: 'от',
     v_soviet: 'В Совет',
     statement: 'ЗАЯВЛЕНИЕ',
-    statement_subheader: 'о внесении паевого взноса имуществом при гарантийном возврате по Целевой Потребительской Программе «{0}»',
-    unbranched_return: 'Прошу принять от меня в качестве паевого взноса имущество, ранее полученное мной от {0} "{1}" в счёт возврата паевого взноса по Целевой Потребительской Программе "{2}", в связи с гарантийным обращением в пределах гарантийного срока, установленного поставщиком, и восстановить мой паевой взнос в размере стоимости этого имущества, в следующем составе:',
-    branched_return: 'Прошу принять от меня через кооперативный участок "{0}" в качестве паевого взноса имущество, ранее полученное мной от {1} "{2}" в счёт возврата паевого взноса по Целевой Потребительской Программе "{3}", в связи с гарантийным обращением в пределах гарантийного срока, установленного поставщиком, и восстановить мой паевой взнос в размере стоимости этого имущества, в следующем составе:',
+    statement_subheader: 'о гарантийном возврате имущества по Целевой Потребительской Программе «{0}»',
+    unbranched_return: 'Прошу принять заявление о гарантийном возврате имущества, полученного мной от {0} "{1}" в рамках Целевой Потребительской Программы "{2}", в пределах гарантийного срока, установленного поставщиком, в следующем составе:',
+    branched_return: 'Прошу принять заявление о гарантийном возврате имущества, полученного мной через кооперативный участок "{0}" {1} "{2}" в рамках Целевой Потребительской Программы "{3}", в пределах гарантийного срока, установленного поставщиком, в следующем составе:',
     signature: 'Подписано электронной подписью.',
     article: 'Артикул',
     asset_title: 'Наименование/Реквизиты',
@@ -88,7 +91,7 @@ export const translations = {
     unit_of_measurement: 'Единицы измерения',
     units_returned: 'Количество к возврату',
     unit_cost: 'Стоимость Единицы, {0}',
-    fact_cost: 'Стоимость имущества к восстановлению паевого взноса, {0}',
+    fact_cost: 'Сумма возврата, {0}',
     reason_label: 'Причина обращения:',
   },
 }

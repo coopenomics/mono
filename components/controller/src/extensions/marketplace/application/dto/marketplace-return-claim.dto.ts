@@ -28,7 +28,8 @@ import {
   type MarketplaceReturnClaimExpectedResolution,
   type MarketplaceReturnClaimStatus,
 } from '../../domain/entities/marketplace-return-claim.types';
-import { MarketplaceShareContributionStatementSignedInputDTO } from '../documents-dto/marketplace-share-contribution-statement-document.dto';
+import { MarketplaceReturnStatementSignedInputDTO } from '../documents-dto/marketplace-return-statement-document.dto';
+import { MarketplaceReturnCancelStatementSignedInputDTO } from '../documents-dto/marketplace-return-cancel-statement-document.dto';
 import { MarketplaceUnitOfMeasureEnum } from './marketplace-offer.dto';
 
 /**
@@ -133,12 +134,12 @@ export class MarketplaceCreateReturnClaimInputDTO {
   @Min(0)
   public readonly actual_quantity?: number;
 
-  @Field(() => MarketplaceShareContributionStatementSignedInputDTO, {
-    description: 'Подписанное пайщиком заявление о гарантийном возврате имущества (реестр документов 1104).',
+  @Field(() => MarketplaceReturnStatementSignedInputDTO, {
+    description: 'Подписанная пайщиком рекламация — заявление о гарантийном возврате имущества (реестр документов 1106).',
   })
   @ValidateNested()
-  @Type(() => MarketplaceShareContributionStatementSignedInputDTO)
-  public readonly signed_statement!: MarketplaceShareContributionStatementSignedInputDTO;
+  @Type(() => MarketplaceReturnStatementSignedInputDTO)
+  public readonly signed_statement!: MarketplaceReturnStatementSignedInputDTO;
 
   @Field(() => [MarketplaceReturnClaimPhotoUploadInputDTO], {
     description: 'Фотографии товара — обязательно от 1 до 10 файлов.',
@@ -247,13 +248,13 @@ export class MarketplaceAcceptReturnAtVisitInputDTO {
   @Type(() => MarketplaceReturnClaimPhotoUploadInputDTO)
   public readonly inspection_photos?: MarketplaceReturnClaimPhotoUploadInputDTO[];
 
-  @Field(() => MarketplaceShareContributionStatementSignedInputDTO, {
+  @Field(() => MarketplaceReturnCancelStatementSignedInputDTO, {
     description:
-      'Заявление о внесении паевого взноса имуществом (1116) со второй подписью оператора — приём имущества оформляется со-подписью на том же документе; с ним заявление уходит на повестку совета.',
+      'Заявление оператора участка в совет об отмене сделки по гарантийному возврату (1116), подписанное оператором, принявшим имущество; с ним заявление уходит на повестку совета.',
   })
   @ValidateNested()
-  @Type(() => MarketplaceShareContributionStatementSignedInputDTO)
-  public readonly signed_statement!: MarketplaceShareContributionStatementSignedInputDTO;
+  @Type(() => MarketplaceReturnCancelStatementSignedInputDTO)
+  public readonly signed_statement!: MarketplaceReturnCancelStatementSignedInputDTO;
 }
 
 @InputType('MarketplaceHandBackReturnInput')

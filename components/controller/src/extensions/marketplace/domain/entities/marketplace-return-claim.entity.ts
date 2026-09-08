@@ -37,6 +37,7 @@ export class MarketplaceReturnClaimDomainEntity {
   public readonly fee_refund: string;
   public readonly photos: MarketplaceReturnClaimPhoto[];
   public readonly statement: ISignedDocument | null;
+  public cancel_statement: ISignedDocument | null;
   public council_decision_id: string | null;
   public council_decision_mode: 'ROBOT' | 'MANUAL' | null;
   public council_protocol: ISignedDocument | null;
@@ -69,6 +70,7 @@ export class MarketplaceReturnClaimDomainEntity {
     this.fee_refund = props.fee_refund ?? '0';
     this.photos = props.photos;
     this.statement = props.statement;
+    this.cancel_statement = props.cancel_statement ?? null;
     this.council_decision_id = props.council_decision_id ?? null;
     this.council_decision_mode = props.council_decision_mode ?? null;
     this.council_protocol = props.council_protocol ?? null;

@@ -29,7 +29,7 @@ export interface MarketplaceReturnClaimCreateInput {
   /** Возвращаемая доля членского взноса — вместе с fact_cost даёт полную сумму возврата. */
   fee_refund: string;
   photos: MarketplaceReturnClaimPhoto[];
-  /** Подписанное пайщиком заявление (1116) — для последующей со-подписи оператором при приёме имущества. */
+  /** Подписанная пайщиком рекламация — Заявление о гарантийном возврате имущества (1106). */
   statement: ISignedDocument | null;
   submretrn_tx_hash: string;
   status: MarketplaceReturnClaimStatus;
@@ -40,8 +40,8 @@ export interface MarketplaceReturnClaimApplyDecisionInput {
   decision_entry: MarketplaceReturnClaimDecisionLogEntry;
   on_site_inspection?: MarketplaceReturnClaimOnSiteInspection;
   ledger_snapshot?: MarketplaceReturnClaimLedgerSnapshot;
-  /** Заявление с обеими подписями (после приёма имущества у стойки). */
-  statement?: ISignedDocument;
+  /** Заявление оператора участка в совет об отмене сделки (1116) — после приёма имущества у стойки. */
+  cancel_statement?: ISignedDocument;
   accepted_at?: Date;
   council_protocol?: ISignedDocument | null;
 }

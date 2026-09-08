@@ -8679,8 +8679,8 @@ export type ValueTypes = {
 	inspection_result: string | Variable<any, string>,
 	/** Сканированный штрих-код имущества для сверки с заказом (если применимо). */
 	scanned_barcode?: string | undefined | null | Variable<any, string>,
-	/** Заявление о внесении паевого взноса имуществом (1116) со второй подписью оператора — приём имущества оформляется со-подписью на том же документе; с ним заявление уходит на повестку совета. */
-	signed_statement: ValueTypes["MarketplaceShareContributionStatementSignedInput"] | Variable<any, string>
+	/** Заявление оператора участка в совет об отмене сделки по гарантийному возврату (1116), подписанное оператором, принявшим имущество; с ним заявление уходит на повестку совета. */
+	signed_statement: ValueTypes["MarketplaceReturnCancelStatementSignedInput"] | Variable<any, string>
 };
 	["MarketplaceAddSupplierInput"]: {
 	/** Дата заключения договора (ГГГГ-ММ-ДД) */
@@ -9566,8 +9566,8 @@ export type ValueTypes = {
 	photos: Array<ValueTypes["MarketplaceReturnClaimPhotoUploadInput"]> | Variable<any, string>,
 	/** Текст обращения пайщика (1-500 символов). */
 	reason_text: string | Variable<any, string>,
-	/** Подписанное пайщиком заявление о гарантийном возврате имущества (реестр документов 1104). */
-	signed_statement: ValueTypes["MarketplaceShareContributionStatementSignedInput"] | Variable<any, string>
+	/** Подписанная пайщиком рекламация — заявление о гарантийном возврате имущества (реестр документов 1106). */
+	signed_statement: ValueTypes["MarketplaceReturnStatementSignedInput"] | Variable<any, string>
 };
 	["MarketplaceCreateShipmentInput"]: {
 	/** Идентификатор консолидированной заявки в статусе ACCEPTED. */
@@ -10842,6 +10842,82 @@ export type ValueTypes = {
 	/** Секция целиком. Указывается вместо яруса. */
 	section?: string | undefined | null | Variable<any, string>
 };
+	["MarketplaceReturnCancelStatementSignedInput"]: {
+	/** Хэш содержимого документа */
+	doc_hash: string | Variable<any, string>,
+	/** Общий хэш (doc_hash + meta_hash) */
+	hash: string | Variable<any, string>,
+	/** Метаданные подписанного заявления оператора об отмене сделки по гарантийному возврату. */
+	meta: ValueTypes["MarketplaceReturnCancelStatementSignedMetaDocumentInput"] | Variable<any, string>,
+	/** Хэш мета-данных */
+	meta_hash: string | Variable<any, string>,
+	/** Вектор подписей */
+	signatures: Array<ValueTypes["SignatureInfoInput"]> | Variable<any, string>,
+	/** Версия стандарта документа */
+	version: string | Variable<any, string>
+};
+	["MarketplaceReturnCancelStatementSignedMetaDocumentInput"]: {
+	/** Принятое на участке количество единиц. */
+	actual_quantity: number | Variable<any, string>,
+	/** Номер блока, на котором был создан документ */
+	block_num: number | Variable<any, string>,
+	/** Кооперативный участок, на котором принято имущество. */
+	braname: string | Variable<any, string>,
+	/** Название кооператива, связанное с документом */
+	coopname: string | Variable<any, string>,
+	/** Дата и время создания документа */
+	created_at: string | Variable<any, string>,
+	/** Код валюты расчёта (например «RUB»). */
+	currency: string | Variable<any, string>,
+	/** Стоимость принятого имущества — паевой взнос к восстановлению (4 знака после запятой). */
+	fact_cost: string | Variable<any, string>,
+	/** Членский взнос за принятое имущество — к восстановлению (4 знака после запятой). */
+	fee_refund: string | Variable<any, string>,
+	/** Имя генератора, использованного для создания документа */
+	generator: string | Variable<any, string>,
+	/** Результат осмотра имущества оператором на участке. */
+	inspection_result: string | Variable<any, string>,
+	/** Номер протокола решения совета о выдаче имущества по заказу; 0 — без протокола. */
+	issue_decision_id: number | Variable<any, string>,
+	/** Язык документа */
+	lang: string | Variable<any, string>,
+	/** Ссылки, связанные с документом */
+	links: Array<string> | Variable<any, string>,
+	/** Оператор участка, принявший имущество. */
+	operator: string | Variable<any, string>,
+	/** Канонический order_hash отменяемой сделки. */
+	order_hash: string | Variable<any, string>,
+	/** Идентификатор заказа, сделка по которому отменяется. */
+	order_id: string | Variable<any, string>,
+	/** Пайщик-заказчик, чья сделка отменяется. */
+	orderer: string | Variable<any, string>,
+	/** Наименование товара из предложения. */
+	product_title: string | Variable<any, string>,
+	/** Причина обращения пайщика из рекламации. */
+	reason_text: string | Variable<any, string>,
+	/** ID документа в реестре */
+	registry_id: number | Variable<any, string>,
+	/** Хэш рекламации пайщика (заявления на возврат). */
+	request_hash: string | Variable<any, string>,
+	/** Сформировать документ без сохранения (preview-режим). */
+	skip_save: boolean | Variable<any, string>,
+	/** Артикул (SKU) товара — идентификатор предложения исходного заказа. */
+	sku: string | Variable<any, string>,
+	/** Часовой пояс, в котором был создан документ */
+	timezone: string | Variable<any, string>,
+	/** Название документа */
+	title: string | Variable<any, string>,
+	/** Всего к восстановлению пайщику (4 знака после запятой). */
+	total_refund: string | Variable<any, string>,
+	/** Стоимость базовой единицы товара (4 знака после запятой). */
+	unit_cost: string | Variable<any, string>,
+	/** Единица измерения (например «литры», «кг», «шт.»). */
+	unit_of_measurement: string | Variable<any, string>,
+	/** Имя пользователя, создавшего документ */
+	username: string | Variable<any, string>,
+	/** Версия генератора, использованного для создания документа */
+	version: string | Variable<any, string>
+};
 	/** Заявление пайщика на гарантийный возврат имущества (Эпик 7). */
 ["MarketplaceReturnClaim"]: AliasType<{
 	/** Момент приёма имущества у стойки; от него идёт срок ожидания решения совета. */
@@ -11008,49 +11084,13 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on MarketplaceReturnClaimStatusChangedEvent']?: Omit<ValueTypes["MarketplaceReturnClaimStatusChangedEvent"], "...on MarketplaceReturnClaimStatusChangedEvent">
 }>;
-	/** Способ отпуска товара: by_measure — по мере (делимый, заказывают произвольное количество, цена за базовую единицу); packaged — упаковкой (целыми упаковками фиксированного содержимого, у каждой своя цена). */
-["MarketplaceSaleForm"]:MarketplaceSaleForm;
-	/** Сменить пункт выдачи (КУ) корзины. */
-["MarketplaceSetCartDeliveryPointInput"]: {
-	/** Имя пункта выдачи (branch.name) нового КУ доставки. */
-	delivery_braname: string | Variable<any, string>
-};
-	["MarketplaceSetKUStatusInput"]: {
-	/** Имя аккаунта кооператива */
-	coopname: string | Variable<any, string>,
-	/** Идентификатор КУ в core (`braname`) */
-	coreBraname: string | Variable<any, string>,
-	/** Целевой статус ПВЗ */
-	status: ValueTypes["MarketplaceKUStatus"] | Variable<any, string>
-};
-	["MarketplaceSetMembershipFeeInput"]: {
-	/** Новая единая ставка членского взноса, проценты (от 0 до 100). */
-	membership_fee_percent: number | Variable<any, string>
-};
-	["MarketplaceSetOfferWarrantyInput"]: {
-	offer_id: string | Variable<any, string>,
-	/** Новый гарантийный срок возврата в днях (окно возврата имущества). */
-	warranty_days: number | Variable<any, string>
-};
-	["MarketplaceSetSupplierPayoutMethodInput"]: {
-	/** Идентификатор реквизитов (платёжного метода) из раздела «Реквизиты» пайщика. */
-	method_id: string | Variable<any, string>
-};
-	["MarketplaceSetTrusteeWeightInput"]: {
-	/** Кооперативный участок. */
-	braname: string | Variable<any, string>,
-	/** Аккаунт председателя или доверенного — участника распределения. */
-	username: string | Variable<any, string>,
-	/** Вес в распределении (целое число больше нуля). */
-	weight: number | Variable<any, string>
-};
-	["MarketplaceShareContributionStatementSignedInput"]: {
+	["MarketplaceReturnStatementSignedInput"]: {
 	/** Хэш содержимого документа */
 	doc_hash: string | Variable<any, string>,
 	/** Общий хэш (doc_hash + meta_hash) */
 	hash: string | Variable<any, string>,
 	/** Метаданные подписанного заявления о гарантийном возврате имущества. */
-	meta: ValueTypes["MarketplaceShareContributionStatementSignedMetaDocumentInput"] | Variable<any, string>,
+	meta: ValueTypes["MarketplaceReturnStatementSignedMetaDocumentInput"] | Variable<any, string>,
 	/** Хэш мета-данных */
 	meta_hash: string | Variable<any, string>,
 	/** Вектор подписей */
@@ -11058,7 +11098,7 @@ export type ValueTypes = {
 	/** Версия стандарта документа */
 	version: string | Variable<any, string>
 };
-	["MarketplaceShareContributionStatementSignedMetaDocumentInput"]: {
+	["MarketplaceReturnStatementSignedMetaDocumentInput"]: {
 	/** Фактическое количество единиц к возврату. */
 	actual_quantity: number | Variable<any, string>,
 	/** Номер блока, на котором был создан документ */
@@ -11107,6 +11147,42 @@ export type ValueTypes = {
 	username: string | Variable<any, string>,
 	/** Версия генератора, использованного для создания документа */
 	version: string | Variable<any, string>
+};
+	/** Способ отпуска товара: by_measure — по мере (делимый, заказывают произвольное количество, цена за базовую единицу); packaged — упаковкой (целыми упаковками фиксированного содержимого, у каждой своя цена). */
+["MarketplaceSaleForm"]:MarketplaceSaleForm;
+	/** Сменить пункт выдачи (КУ) корзины. */
+["MarketplaceSetCartDeliveryPointInput"]: {
+	/** Имя пункта выдачи (branch.name) нового КУ доставки. */
+	delivery_braname: string | Variable<any, string>
+};
+	["MarketplaceSetKUStatusInput"]: {
+	/** Имя аккаунта кооператива */
+	coopname: string | Variable<any, string>,
+	/** Идентификатор КУ в core (`braname`) */
+	coreBraname: string | Variable<any, string>,
+	/** Целевой статус ПВЗ */
+	status: ValueTypes["MarketplaceKUStatus"] | Variable<any, string>
+};
+	["MarketplaceSetMembershipFeeInput"]: {
+	/** Новая единая ставка членского взноса, проценты (от 0 до 100). */
+	membership_fee_percent: number | Variable<any, string>
+};
+	["MarketplaceSetOfferWarrantyInput"]: {
+	offer_id: string | Variable<any, string>,
+	/** Новый гарантийный срок возврата в днях (окно возврата имущества). */
+	warranty_days: number | Variable<any, string>
+};
+	["MarketplaceSetSupplierPayoutMethodInput"]: {
+	/** Идентификатор реквизитов (платёжного метода) из раздела «Реквизиты» пайщика. */
+	method_id: string | Variable<any, string>
+};
+	["MarketplaceSetTrusteeWeightInput"]: {
+	/** Кооперативный участок. */
+	braname: string | Variable<any, string>,
+	/** Аккаунт председателя или доверенного — участника распределения. */
+	username: string | Variable<any, string>,
+	/** Вес в распределении (целое число больше нуля). */
+	weight: number | Variable<any, string>
 };
 	["MarketplaceShareReturnActSignedInput"]: {
 	/** Хэш содержимого документа */
@@ -14402,7 +14478,8 @@ marketplaceListWriteoffProposals?: [{	data: ValueTypes["MarketplaceListWriteoffP
 marketplaceRequiredAttributes?: [{	data: ValueTypes["GetRequiredAttributesInput"] | Variable<any, string>},ValueTypes["MarketplaceAttribute"]],
 marketplaceResolveContainerByCode?: [{	data: ValueTypes["MarketplaceResolveContainerByCodeInput"] | Variable<any, string>},ValueTypes["MarketplaceContainer"]],
 marketplaceReturnClaim?: [{	claim_id: string | Variable<any, string>},ValueTypes["MarketplaceReturnClaim"]],
-marketplaceReturnClaimChairmanSignablePayload?: [{	claim_id: string | Variable<any, string>},ValueTypes["DocumentAggregate"]],
+marketplaceReturnClaimChairmanSignablePayload?: [{	claim_id: string | Variable<any, string>,	/** Результат осмотра имущества на участке — попадает в текст заявления. */
+	inspection_result: string | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 marketplaceReturnClaimSignablePayload?: [{	data: ValueTypes["MarketplaceReturnClaimSignablePayloadInput"] | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 marketplaceSearchAttributes?: [{	input: ValueTypes["SearchAttributesInput"] | Variable<any, string>},ValueTypes["MarketplaceAttribute"]],
 marketplaceSearchDictionaryValues?: [{	input: ValueTypes["SearchDictionaryValuesInput"] | Variable<any, string>},ValueTypes["MarketplaceDictionaryValue"]],
@@ -24099,8 +24176,8 @@ export type ResolverInputTypes = {
 	inspection_result: string,
 	/** Сканированный штрих-код имущества для сверки с заказом (если применимо). */
 	scanned_barcode?: string | undefined | null,
-	/** Заявление о внесении паевого взноса имуществом (1116) со второй подписью оператора — приём имущества оформляется со-подписью на том же документе; с ним заявление уходит на повестку совета. */
-	signed_statement: ResolverInputTypes["MarketplaceShareContributionStatementSignedInput"]
+	/** Заявление оператора участка в совет об отмене сделки по гарантийному возврату (1116), подписанное оператором, принявшим имущество; с ним заявление уходит на повестку совета. */
+	signed_statement: ResolverInputTypes["MarketplaceReturnCancelStatementSignedInput"]
 };
 	["MarketplaceAddSupplierInput"]: {
 	/** Дата заключения договора (ГГГГ-ММ-ДД) */
@@ -24953,8 +25030,8 @@ export type ResolverInputTypes = {
 	photos: Array<ResolverInputTypes["MarketplaceReturnClaimPhotoUploadInput"]>,
 	/** Текст обращения пайщика (1-500 символов). */
 	reason_text: string,
-	/** Подписанное пайщиком заявление о гарантийном возврате имущества (реестр документов 1104). */
-	signed_statement: ResolverInputTypes["MarketplaceShareContributionStatementSignedInput"]
+	/** Подписанная пайщиком рекламация — заявление о гарантийном возврате имущества (реестр документов 1106). */
+	signed_statement: ResolverInputTypes["MarketplaceReturnStatementSignedInput"]
 };
 	["MarketplaceCreateShipmentInput"]: {
 	/** Идентификатор консолидированной заявки в статусе ACCEPTED. */
@@ -26189,6 +26266,82 @@ export type ResolverInputTypes = {
 	/** Секция целиком. Указывается вместо яруса. */
 	section?: string | undefined | null
 };
+	["MarketplaceReturnCancelStatementSignedInput"]: {
+	/** Хэш содержимого документа */
+	doc_hash: string,
+	/** Общий хэш (doc_hash + meta_hash) */
+	hash: string,
+	/** Метаданные подписанного заявления оператора об отмене сделки по гарантийному возврату. */
+	meta: ResolverInputTypes["MarketplaceReturnCancelStatementSignedMetaDocumentInput"],
+	/** Хэш мета-данных */
+	meta_hash: string,
+	/** Вектор подписей */
+	signatures: Array<ResolverInputTypes["SignatureInfoInput"]>,
+	/** Версия стандарта документа */
+	version: string
+};
+	["MarketplaceReturnCancelStatementSignedMetaDocumentInput"]: {
+	/** Принятое на участке количество единиц. */
+	actual_quantity: number,
+	/** Номер блока, на котором был создан документ */
+	block_num: number,
+	/** Кооперативный участок, на котором принято имущество. */
+	braname: string,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at: string,
+	/** Код валюты расчёта (например «RUB»). */
+	currency: string,
+	/** Стоимость принятого имущества — паевой взнос к восстановлению (4 знака после запятой). */
+	fact_cost: string,
+	/** Членский взнос за принятое имущество — к восстановлению (4 знака после запятой). */
+	fee_refund: string,
+	/** Имя генератора, использованного для создания документа */
+	generator: string,
+	/** Результат осмотра имущества оператором на участке. */
+	inspection_result: string,
+	/** Номер протокола решения совета о выдаче имущества по заказу; 0 — без протокола. */
+	issue_decision_id: number,
+	/** Язык документа */
+	lang: string,
+	/** Ссылки, связанные с документом */
+	links: Array<string>,
+	/** Оператор участка, принявший имущество. */
+	operator: string,
+	/** Канонический order_hash отменяемой сделки. */
+	order_hash: string,
+	/** Идентификатор заказа, сделка по которому отменяется. */
+	order_id: string,
+	/** Пайщик-заказчик, чья сделка отменяется. */
+	orderer: string,
+	/** Наименование товара из предложения. */
+	product_title: string,
+	/** Причина обращения пайщика из рекламации. */
+	reason_text: string,
+	/** ID документа в реестре */
+	registry_id: number,
+	/** Хэш рекламации пайщика (заявления на возврат). */
+	request_hash: string,
+	/** Сформировать документ без сохранения (preview-режим). */
+	skip_save: boolean,
+	/** Артикул (SKU) товара — идентификатор предложения исходного заказа. */
+	sku: string,
+	/** Часовой пояс, в котором был создан документ */
+	timezone: string,
+	/** Название документа */
+	title: string,
+	/** Всего к восстановлению пайщику (4 знака после запятой). */
+	total_refund: string,
+	/** Стоимость базовой единицы товара (4 знака после запятой). */
+	unit_cost: string,
+	/** Единица измерения (например «литры», «кг», «шт.»). */
+	unit_of_measurement: string,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version: string
+};
 	/** Заявление пайщика на гарантийный возврат имущества (Эпик 7). */
 ["MarketplaceReturnClaim"]: AliasType<{
 	/** Момент приёма имущества у стойки; от него идёт срок ожидания решения совета. */
@@ -26348,49 +26501,13 @@ export type ResolverInputTypes = {
 	status?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
-	/** Способ отпуска товара: by_measure — по мере (делимый, заказывают произвольное количество, цена за базовую единицу); packaged — упаковкой (целыми упаковками фиксированного содержимого, у каждой своя цена). */
-["MarketplaceSaleForm"]:MarketplaceSaleForm;
-	/** Сменить пункт выдачи (КУ) корзины. */
-["MarketplaceSetCartDeliveryPointInput"]: {
-	/** Имя пункта выдачи (branch.name) нового КУ доставки. */
-	delivery_braname: string
-};
-	["MarketplaceSetKUStatusInput"]: {
-	/** Имя аккаунта кооператива */
-	coopname: string,
-	/** Идентификатор КУ в core (`braname`) */
-	coreBraname: string,
-	/** Целевой статус ПВЗ */
-	status: ResolverInputTypes["MarketplaceKUStatus"]
-};
-	["MarketplaceSetMembershipFeeInput"]: {
-	/** Новая единая ставка членского взноса, проценты (от 0 до 100). */
-	membership_fee_percent: number
-};
-	["MarketplaceSetOfferWarrantyInput"]: {
-	offer_id: string,
-	/** Новый гарантийный срок возврата в днях (окно возврата имущества). */
-	warranty_days: number
-};
-	["MarketplaceSetSupplierPayoutMethodInput"]: {
-	/** Идентификатор реквизитов (платёжного метода) из раздела «Реквизиты» пайщика. */
-	method_id: string
-};
-	["MarketplaceSetTrusteeWeightInput"]: {
-	/** Кооперативный участок. */
-	braname: string,
-	/** Аккаунт председателя или доверенного — участника распределения. */
-	username: string,
-	/** Вес в распределении (целое число больше нуля). */
-	weight: number
-};
-	["MarketplaceShareContributionStatementSignedInput"]: {
+	["MarketplaceReturnStatementSignedInput"]: {
 	/** Хэш содержимого документа */
 	doc_hash: string,
 	/** Общий хэш (doc_hash + meta_hash) */
 	hash: string,
 	/** Метаданные подписанного заявления о гарантийном возврате имущества. */
-	meta: ResolverInputTypes["MarketplaceShareContributionStatementSignedMetaDocumentInput"],
+	meta: ResolverInputTypes["MarketplaceReturnStatementSignedMetaDocumentInput"],
 	/** Хэш мета-данных */
 	meta_hash: string,
 	/** Вектор подписей */
@@ -26398,7 +26515,7 @@ export type ResolverInputTypes = {
 	/** Версия стандарта документа */
 	version: string
 };
-	["MarketplaceShareContributionStatementSignedMetaDocumentInput"]: {
+	["MarketplaceReturnStatementSignedMetaDocumentInput"]: {
 	/** Фактическое количество единиц к возврату. */
 	actual_quantity: number,
 	/** Номер блока, на котором был создан документ */
@@ -26447,6 +26564,42 @@ export type ResolverInputTypes = {
 	username: string,
 	/** Версия генератора, использованного для создания документа */
 	version: string
+};
+	/** Способ отпуска товара: by_measure — по мере (делимый, заказывают произвольное количество, цена за базовую единицу); packaged — упаковкой (целыми упаковками фиксированного содержимого, у каждой своя цена). */
+["MarketplaceSaleForm"]:MarketplaceSaleForm;
+	/** Сменить пункт выдачи (КУ) корзины. */
+["MarketplaceSetCartDeliveryPointInput"]: {
+	/** Имя пункта выдачи (branch.name) нового КУ доставки. */
+	delivery_braname: string
+};
+	["MarketplaceSetKUStatusInput"]: {
+	/** Имя аккаунта кооператива */
+	coopname: string,
+	/** Идентификатор КУ в core (`braname`) */
+	coreBraname: string,
+	/** Целевой статус ПВЗ */
+	status: ResolverInputTypes["MarketplaceKUStatus"]
+};
+	["MarketplaceSetMembershipFeeInput"]: {
+	/** Новая единая ставка членского взноса, проценты (от 0 до 100). */
+	membership_fee_percent: number
+};
+	["MarketplaceSetOfferWarrantyInput"]: {
+	offer_id: string,
+	/** Новый гарантийный срок возврата в днях (окно возврата имущества). */
+	warranty_days: number
+};
+	["MarketplaceSetSupplierPayoutMethodInput"]: {
+	/** Идентификатор реквизитов (платёжного метода) из раздела «Реквизиты» пайщика. */
+	method_id: string
+};
+	["MarketplaceSetTrusteeWeightInput"]: {
+	/** Кооперативный участок. */
+	braname: string,
+	/** Аккаунт председателя или доверенного — участника распределения. */
+	username: string,
+	/** Вес в распределении (целое число больше нуля). */
+	weight: number
 };
 	["MarketplaceShareReturnActSignedInput"]: {
 	/** Хэш содержимого документа */
@@ -29630,7 +29783,8 @@ marketplaceListWriteoffProposals?: [{	data: ResolverInputTypes["MarketplaceListW
 marketplaceRequiredAttributes?: [{	data: ResolverInputTypes["GetRequiredAttributesInput"]},ResolverInputTypes["MarketplaceAttribute"]],
 marketplaceResolveContainerByCode?: [{	data: ResolverInputTypes["MarketplaceResolveContainerByCodeInput"]},ResolverInputTypes["MarketplaceContainer"]],
 marketplaceReturnClaim?: [{	claim_id: string},ResolverInputTypes["MarketplaceReturnClaim"]],
-marketplaceReturnClaimChairmanSignablePayload?: [{	claim_id: string},ResolverInputTypes["DocumentAggregate"]],
+marketplaceReturnClaimChairmanSignablePayload?: [{	claim_id: string,	/** Результат осмотра имущества на участке — попадает в текст заявления. */
+	inspection_result: string},ResolverInputTypes["GeneratedDocument"]],
 marketplaceReturnClaimSignablePayload?: [{	data: ResolverInputTypes["MarketplaceReturnClaimSignablePayloadInput"]},ResolverInputTypes["GeneratedDocument"]],
 marketplaceSearchAttributes?: [{	input: ResolverInputTypes["SearchAttributesInput"]},ResolverInputTypes["MarketplaceAttribute"]],
 marketplaceSearchDictionaryValues?: [{	input: ResolverInputTypes["SearchDictionaryValuesInput"]},ResolverInputTypes["MarketplaceDictionaryValue"]],
@@ -39046,8 +39200,8 @@ export type ModelTypes = {
 	inspection_result: string,
 	/** Сканированный штрих-код имущества для сверки с заказом (если применимо). */
 	scanned_barcode?: string | undefined | null,
-	/** Заявление о внесении паевого взноса имуществом (1116) со второй подписью оператора — приём имущества оформляется со-подписью на том же документе; с ним заявление уходит на повестку совета. */
-	signed_statement: ModelTypes["MarketplaceShareContributionStatementSignedInput"]
+	/** Заявление оператора участка в совет об отмене сделки по гарантийному возврату (1116), подписанное оператором, принявшим имущество; с ним заявление уходит на повестку совета. */
+	signed_statement: ModelTypes["MarketplaceReturnCancelStatementSignedInput"]
 };
 	["MarketplaceAddSupplierInput"]: {
 	/** Дата заключения договора (ГГГГ-ММ-ДД) */
@@ -39859,8 +40013,8 @@ export type ModelTypes = {
 	photos: Array<ModelTypes["MarketplaceReturnClaimPhotoUploadInput"]>,
 	/** Текст обращения пайщика (1-500 символов). */
 	reason_text: string,
-	/** Подписанное пайщиком заявление о гарантийном возврате имущества (реестр документов 1104). */
-	signed_statement: ModelTypes["MarketplaceShareContributionStatementSignedInput"]
+	/** Подписанная пайщиком рекламация — заявление о гарантийном возврате имущества (реестр документов 1106). */
+	signed_statement: ModelTypes["MarketplaceReturnStatementSignedInput"]
 };
 	["MarketplaceCreateShipmentInput"]: {
 	/** Идентификатор консолидированной заявки в статусе ACCEPTED. */
@@ -41028,6 +41182,82 @@ export type ModelTypes = {
 	/** Секция целиком. Указывается вместо яруса. */
 	section?: string | undefined | null
 };
+	["MarketplaceReturnCancelStatementSignedInput"]: {
+	/** Хэш содержимого документа */
+	doc_hash: string,
+	/** Общий хэш (doc_hash + meta_hash) */
+	hash: string,
+	/** Метаданные подписанного заявления оператора об отмене сделки по гарантийному возврату. */
+	meta: ModelTypes["MarketplaceReturnCancelStatementSignedMetaDocumentInput"],
+	/** Хэш мета-данных */
+	meta_hash: string,
+	/** Вектор подписей */
+	signatures: Array<ModelTypes["SignatureInfoInput"]>,
+	/** Версия стандарта документа */
+	version: string
+};
+	["MarketplaceReturnCancelStatementSignedMetaDocumentInput"]: {
+	/** Принятое на участке количество единиц. */
+	actual_quantity: number,
+	/** Номер блока, на котором был создан документ */
+	block_num: number,
+	/** Кооперативный участок, на котором принято имущество. */
+	braname: string,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at: string,
+	/** Код валюты расчёта (например «RUB»). */
+	currency: string,
+	/** Стоимость принятого имущества — паевой взнос к восстановлению (4 знака после запятой). */
+	fact_cost: string,
+	/** Членский взнос за принятое имущество — к восстановлению (4 знака после запятой). */
+	fee_refund: string,
+	/** Имя генератора, использованного для создания документа */
+	generator: string,
+	/** Результат осмотра имущества оператором на участке. */
+	inspection_result: string,
+	/** Номер протокола решения совета о выдаче имущества по заказу; 0 — без протокола. */
+	issue_decision_id: number,
+	/** Язык документа */
+	lang: string,
+	/** Ссылки, связанные с документом */
+	links: Array<string>,
+	/** Оператор участка, принявший имущество. */
+	operator: string,
+	/** Канонический order_hash отменяемой сделки. */
+	order_hash: string,
+	/** Идентификатор заказа, сделка по которому отменяется. */
+	order_id: string,
+	/** Пайщик-заказчик, чья сделка отменяется. */
+	orderer: string,
+	/** Наименование товара из предложения. */
+	product_title: string,
+	/** Причина обращения пайщика из рекламации. */
+	reason_text: string,
+	/** ID документа в реестре */
+	registry_id: number,
+	/** Хэш рекламации пайщика (заявления на возврат). */
+	request_hash: string,
+	/** Сформировать документ без сохранения (preview-режим). */
+	skip_save: boolean,
+	/** Артикул (SKU) товара — идентификатор предложения исходного заказа. */
+	sku: string,
+	/** Часовой пояс, в котором был создан документ */
+	timezone: string,
+	/** Название документа */
+	title: string,
+	/** Всего к восстановлению пайщику (4 знака после запятой). */
+	total_refund: string,
+	/** Стоимость базовой единицы товара (4 знака после запятой). */
+	unit_cost: string,
+	/** Единица измерения (например «литры», «кг», «шт.»). */
+	unit_of_measurement: string,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version: string
+};
 	/** Заявление пайщика на гарантийный возврат имущества (Эпик 7). */
 ["MarketplaceReturnClaim"]: {
 		/** Момент приёма имущества у стойки; от него идёт срок ожидания решения совета. */
@@ -41176,48 +41406,13 @@ export type ModelTypes = {
 	/** Новый статус заявления. */
 	status: ModelTypes["MarketplaceReturnClaimStatus"]
 };
-	["MarketplaceSaleForm"]:MarketplaceSaleForm;
-	/** Сменить пункт выдачи (КУ) корзины. */
-["MarketplaceSetCartDeliveryPointInput"]: {
-	/** Имя пункта выдачи (branch.name) нового КУ доставки. */
-	delivery_braname: string
-};
-	["MarketplaceSetKUStatusInput"]: {
-	/** Имя аккаунта кооператива */
-	coopname: string,
-	/** Идентификатор КУ в core (`braname`) */
-	coreBraname: string,
-	/** Целевой статус ПВЗ */
-	status: ModelTypes["MarketplaceKUStatus"]
-};
-	["MarketplaceSetMembershipFeeInput"]: {
-	/** Новая единая ставка членского взноса, проценты (от 0 до 100). */
-	membership_fee_percent: number
-};
-	["MarketplaceSetOfferWarrantyInput"]: {
-	offer_id: string,
-	/** Новый гарантийный срок возврата в днях (окно возврата имущества). */
-	warranty_days: number
-};
-	["MarketplaceSetSupplierPayoutMethodInput"]: {
-	/** Идентификатор реквизитов (платёжного метода) из раздела «Реквизиты» пайщика. */
-	method_id: string
-};
-	["MarketplaceSetTrusteeWeightInput"]: {
-	/** Кооперативный участок. */
-	braname: string,
-	/** Аккаунт председателя или доверенного — участника распределения. */
-	username: string,
-	/** Вес в распределении (целое число больше нуля). */
-	weight: number
-};
-	["MarketplaceShareContributionStatementSignedInput"]: {
+	["MarketplaceReturnStatementSignedInput"]: {
 	/** Хэш содержимого документа */
 	doc_hash: string,
 	/** Общий хэш (doc_hash + meta_hash) */
 	hash: string,
 	/** Метаданные подписанного заявления о гарантийном возврате имущества. */
-	meta: ModelTypes["MarketplaceShareContributionStatementSignedMetaDocumentInput"],
+	meta: ModelTypes["MarketplaceReturnStatementSignedMetaDocumentInput"],
 	/** Хэш мета-данных */
 	meta_hash: string,
 	/** Вектор подписей */
@@ -41225,7 +41420,7 @@ export type ModelTypes = {
 	/** Версия стандарта документа */
 	version: string
 };
-	["MarketplaceShareContributionStatementSignedMetaDocumentInput"]: {
+	["MarketplaceReturnStatementSignedMetaDocumentInput"]: {
 	/** Фактическое количество единиц к возврату. */
 	actual_quantity: number,
 	/** Номер блока, на котором был создан документ */
@@ -41274,6 +41469,41 @@ export type ModelTypes = {
 	username: string,
 	/** Версия генератора, использованного для создания документа */
 	version: string
+};
+	["MarketplaceSaleForm"]:MarketplaceSaleForm;
+	/** Сменить пункт выдачи (КУ) корзины. */
+["MarketplaceSetCartDeliveryPointInput"]: {
+	/** Имя пункта выдачи (branch.name) нового КУ доставки. */
+	delivery_braname: string
+};
+	["MarketplaceSetKUStatusInput"]: {
+	/** Имя аккаунта кооператива */
+	coopname: string,
+	/** Идентификатор КУ в core (`braname`) */
+	coreBraname: string,
+	/** Целевой статус ПВЗ */
+	status: ModelTypes["MarketplaceKUStatus"]
+};
+	["MarketplaceSetMembershipFeeInput"]: {
+	/** Новая единая ставка членского взноса, проценты (от 0 до 100). */
+	membership_fee_percent: number
+};
+	["MarketplaceSetOfferWarrantyInput"]: {
+	offer_id: string,
+	/** Новый гарантийный срок возврата в днях (окно возврата имущества). */
+	warranty_days: number
+};
+	["MarketplaceSetSupplierPayoutMethodInput"]: {
+	/** Идентификатор реквизитов (платёжного метода) из раздела «Реквизиты» пайщика. */
+	method_id: string
+};
+	["MarketplaceSetTrusteeWeightInput"]: {
+	/** Кооперативный участок. */
+	braname: string,
+	/** Аккаунт председателя или доверенного — участника распределения. */
+	username: string,
+	/** Вес в распределении (целое число больше нуля). */
+	weight: number
 };
 	["MarketplaceShareReturnActSignedInput"]: {
 	/** Хэш содержимого документа */
@@ -45449,8 +45679,8 @@ export type ModelTypes = {
 	marketplaceResolveContainerByCode: ModelTypes["MarketplaceContainer"],
 	/** Получить одно заявление на гарантийный возврат по идентификатору. */
 	marketplaceReturnClaim: ModelTypes["MarketplaceReturnClaim"],
-	/** Заявление о внесении паевого взноса имуществом (1116), подписанное пайщиком, для со-подписи оператора при приёме имущества у стойки. Содержит тело документа для ознакомления и подпись пайщика; оператор накладывает свою подпись поверх, после чего заявление уходит на повестку совета. */
-	marketplaceReturnClaimChairmanSignablePayload: ModelTypes["DocumentAggregate"],
+	/** Заявление оператора участка в совет об отмене сделки по гарантийному возврату (1116) для подписи у стойки: заказ и принятое имущество из рекламации пайщика, результат осмотра, суммы паевого и членского взносов к восстановлению. Оператор подписывает его одной подписью, после чего заявление уходит на повестку совета. */
+	marketplaceReturnClaimChairmanSignablePayload: ModelTypes["GeneratedDocument"],
 	/** Превью заявления на гарантийный возврат имущества для подписания пайщиком-заказчиком. */
 	marketplaceReturnClaimSignablePayload: ModelTypes["GeneratedDocument"],
 	/** Поиск атрибутов marketplace по названию */
@@ -47630,10 +47860,7 @@ export type ModelTypes = {
     }
 
 export type GraphQLTypes = {
-    // ------------------------------------------------------;
-	// THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY);
-	// ------------------------------------------------------;
-	["AccessGrant"]: {
+    ["AccessGrant"]: {
 	__typename: "AccessGrant",
 	/** Действие (например, read / confirm / manage) */
 	action: string,
@@ -55205,8 +55432,8 @@ export type GraphQLTypes = {
 	inspection_result: string,
 	/** Сканированный штрих-код имущества для сверки с заказом (если применимо). */
 	scanned_barcode?: string | undefined | null,
-	/** Заявление о внесении паевого взноса имуществом (1116) со второй подписью оператора — приём имущества оформляется со-подписью на том же документе; с ним заявление уходит на повестку совета. */
-	signed_statement: GraphQLTypes["MarketplaceShareContributionStatementSignedInput"]
+	/** Заявление оператора участка в совет об отмене сделки по гарантийному возврату (1116), подписанное оператором, принявшим имущество; с ним заявление уходит на повестку совета. */
+	signed_statement: GraphQLTypes["MarketplaceReturnCancelStatementSignedInput"]
 };
 	["MarketplaceAddSupplierInput"]: {
 		/** Дата заключения договора (ГГГГ-ММ-ДД) */
@@ -56092,8 +56319,8 @@ export type GraphQLTypes = {
 	photos: Array<GraphQLTypes["MarketplaceReturnClaimPhotoUploadInput"]>,
 	/** Текст обращения пайщика (1-500 символов). */
 	reason_text: string,
-	/** Подписанное пайщиком заявление о гарантийном возврате имущества (реестр документов 1104). */
-	signed_statement: GraphQLTypes["MarketplaceShareContributionStatementSignedInput"]
+	/** Подписанная пайщиком рекламация — заявление о гарантийном возврате имущества (реестр документов 1106). */
+	signed_statement: GraphQLTypes["MarketplaceReturnStatementSignedInput"]
 };
 	["MarketplaceCreateShipmentInput"]: {
 		/** Идентификатор консолидированной заявки в статусе ACCEPTED. */
@@ -57369,6 +57596,82 @@ export type GraphQLTypes = {
 	/** Секция целиком. Указывается вместо яруса. */
 	section?: string | undefined | null
 };
+	["MarketplaceReturnCancelStatementSignedInput"]: {
+		/** Хэш содержимого документа */
+	doc_hash: string,
+	/** Общий хэш (doc_hash + meta_hash) */
+	hash: string,
+	/** Метаданные подписанного заявления оператора об отмене сделки по гарантийному возврату. */
+	meta: GraphQLTypes["MarketplaceReturnCancelStatementSignedMetaDocumentInput"],
+	/** Хэш мета-данных */
+	meta_hash: string,
+	/** Вектор подписей */
+	signatures: Array<GraphQLTypes["SignatureInfoInput"]>,
+	/** Версия стандарта документа */
+	version: string
+};
+	["MarketplaceReturnCancelStatementSignedMetaDocumentInput"]: {
+		/** Принятое на участке количество единиц. */
+	actual_quantity: number,
+	/** Номер блока, на котором был создан документ */
+	block_num: number,
+	/** Кооперативный участок, на котором принято имущество. */
+	braname: string,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at: string,
+	/** Код валюты расчёта (например «RUB»). */
+	currency: string,
+	/** Стоимость принятого имущества — паевой взнос к восстановлению (4 знака после запятой). */
+	fact_cost: string,
+	/** Членский взнос за принятое имущество — к восстановлению (4 знака после запятой). */
+	fee_refund: string,
+	/** Имя генератора, использованного для создания документа */
+	generator: string,
+	/** Результат осмотра имущества оператором на участке. */
+	inspection_result: string,
+	/** Номер протокола решения совета о выдаче имущества по заказу; 0 — без протокола. */
+	issue_decision_id: number,
+	/** Язык документа */
+	lang: string,
+	/** Ссылки, связанные с документом */
+	links: Array<string>,
+	/** Оператор участка, принявший имущество. */
+	operator: string,
+	/** Канонический order_hash отменяемой сделки. */
+	order_hash: string,
+	/** Идентификатор заказа, сделка по которому отменяется. */
+	order_id: string,
+	/** Пайщик-заказчик, чья сделка отменяется. */
+	orderer: string,
+	/** Наименование товара из предложения. */
+	product_title: string,
+	/** Причина обращения пайщика из рекламации. */
+	reason_text: string,
+	/** ID документа в реестре */
+	registry_id: number,
+	/** Хэш рекламации пайщика (заявления на возврат). */
+	request_hash: string,
+	/** Сформировать документ без сохранения (preview-режим). */
+	skip_save: boolean,
+	/** Артикул (SKU) товара — идентификатор предложения исходного заказа. */
+	sku: string,
+	/** Часовой пояс, в котором был создан документ */
+	timezone: string,
+	/** Название документа */
+	title: string,
+	/** Всего к восстановлению пайщику (4 знака после запятой). */
+	total_refund: string,
+	/** Стоимость базовой единицы товара (4 знака после запятой). */
+	unit_cost: string,
+	/** Единица измерения (например «литры», «кг», «шт.»). */
+	unit_of_measurement: string,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version: string
+};
 	/** Заявление пайщика на гарантийный возврат имущества (Эпик 7). */
 ["MarketplaceReturnClaim"]: {
 	__typename: "MarketplaceReturnClaim",
@@ -57535,49 +57838,13 @@ export type GraphQLTypes = {
 	status: GraphQLTypes["MarketplaceReturnClaimStatus"],
 	['...on MarketplaceReturnClaimStatusChangedEvent']: Omit<GraphQLTypes["MarketplaceReturnClaimStatusChangedEvent"], "...on MarketplaceReturnClaimStatusChangedEvent">
 };
-	/** Способ отпуска товара: by_measure — по мере (делимый, заказывают произвольное количество, цена за базовую единицу); packaged — упаковкой (целыми упаковками фиксированного содержимого, у каждой своя цена). */
-["MarketplaceSaleForm"]: MarketplaceSaleForm;
-	/** Сменить пункт выдачи (КУ) корзины. */
-["MarketplaceSetCartDeliveryPointInput"]: {
-		/** Имя пункта выдачи (branch.name) нового КУ доставки. */
-	delivery_braname: string
-};
-	["MarketplaceSetKUStatusInput"]: {
-		/** Имя аккаунта кооператива */
-	coopname: string,
-	/** Идентификатор КУ в core (`braname`) */
-	coreBraname: string,
-	/** Целевой статус ПВЗ */
-	status: GraphQLTypes["MarketplaceKUStatus"]
-};
-	["MarketplaceSetMembershipFeeInput"]: {
-		/** Новая единая ставка членского взноса, проценты (от 0 до 100). */
-	membership_fee_percent: number
-};
-	["MarketplaceSetOfferWarrantyInput"]: {
-		offer_id: string,
-	/** Новый гарантийный срок возврата в днях (окно возврата имущества). */
-	warranty_days: number
-};
-	["MarketplaceSetSupplierPayoutMethodInput"]: {
-		/** Идентификатор реквизитов (платёжного метода) из раздела «Реквизиты» пайщика. */
-	method_id: string
-};
-	["MarketplaceSetTrusteeWeightInput"]: {
-		/** Кооперативный участок. */
-	braname: string,
-	/** Аккаунт председателя или доверенного — участника распределения. */
-	username: string,
-	/** Вес в распределении (целое число больше нуля). */
-	weight: number
-};
-	["MarketplaceShareContributionStatementSignedInput"]: {
+	["MarketplaceReturnStatementSignedInput"]: {
 		/** Хэш содержимого документа */
 	doc_hash: string,
 	/** Общий хэш (doc_hash + meta_hash) */
 	hash: string,
 	/** Метаданные подписанного заявления о гарантийном возврате имущества. */
-	meta: GraphQLTypes["MarketplaceShareContributionStatementSignedMetaDocumentInput"],
+	meta: GraphQLTypes["MarketplaceReturnStatementSignedMetaDocumentInput"],
 	/** Хэш мета-данных */
 	meta_hash: string,
 	/** Вектор подписей */
@@ -57585,7 +57852,7 @@ export type GraphQLTypes = {
 	/** Версия стандарта документа */
 	version: string
 };
-	["MarketplaceShareContributionStatementSignedMetaDocumentInput"]: {
+	["MarketplaceReturnStatementSignedMetaDocumentInput"]: {
 		/** Фактическое количество единиц к возврату. */
 	actual_quantity: number,
 	/** Номер блока, на котором был создан документ */
@@ -57634,6 +57901,42 @@ export type GraphQLTypes = {
 	username: string,
 	/** Версия генератора, использованного для создания документа */
 	version: string
+};
+	/** Способ отпуска товара: by_measure — по мере (делимый, заказывают произвольное количество, цена за базовую единицу); packaged — упаковкой (целыми упаковками фиксированного содержимого, у каждой своя цена). */
+["MarketplaceSaleForm"]: MarketplaceSaleForm;
+	/** Сменить пункт выдачи (КУ) корзины. */
+["MarketplaceSetCartDeliveryPointInput"]: {
+		/** Имя пункта выдачи (branch.name) нового КУ доставки. */
+	delivery_braname: string
+};
+	["MarketplaceSetKUStatusInput"]: {
+		/** Имя аккаунта кооператива */
+	coopname: string,
+	/** Идентификатор КУ в core (`braname`) */
+	coreBraname: string,
+	/** Целевой статус ПВЗ */
+	status: GraphQLTypes["MarketplaceKUStatus"]
+};
+	["MarketplaceSetMembershipFeeInput"]: {
+		/** Новая единая ставка членского взноса, проценты (от 0 до 100). */
+	membership_fee_percent: number
+};
+	["MarketplaceSetOfferWarrantyInput"]: {
+		offer_id: string,
+	/** Новый гарантийный срок возврата в днях (окно возврата имущества). */
+	warranty_days: number
+};
+	["MarketplaceSetSupplierPayoutMethodInput"]: {
+		/** Идентификатор реквизитов (платёжного метода) из раздела «Реквизиты» пайщика. */
+	method_id: string
+};
+	["MarketplaceSetTrusteeWeightInput"]: {
+		/** Кооперативный участок. */
+	braname: string,
+	/** Аккаунт председателя или доверенного — участника распределения. */
+	username: string,
+	/** Вес в распределении (целое число больше нуля). */
+	weight: number
 };
 	["MarketplaceShareReturnActSignedInput"]: {
 		/** Хэш содержимого документа */
@@ -62078,8 +62381,8 @@ export type GraphQLTypes = {
 	marketplaceResolveContainerByCode: GraphQLTypes["MarketplaceContainer"],
 	/** Получить одно заявление на гарантийный возврат по идентификатору. */
 	marketplaceReturnClaim: GraphQLTypes["MarketplaceReturnClaim"],
-	/** Заявление о внесении паевого взноса имуществом (1116), подписанное пайщиком, для со-подписи оператора при приёме имущества у стойки. Содержит тело документа для ознакомления и подпись пайщика; оператор накладывает свою подпись поверх, после чего заявление уходит на повестку совета. */
-	marketplaceReturnClaimChairmanSignablePayload: GraphQLTypes["DocumentAggregate"],
+	/** Заявление оператора участка в совет об отмене сделки по гарантийному возврату (1116) для подписи у стойки: заказ и принятое имущество из рекламации пайщика, результат осмотра, суммы паевого и членского взносов к восстановлению. Оператор подписывает его одной подписью, после чего заявление уходит на повестку совета. */
+	marketplaceReturnClaimChairmanSignablePayload: GraphQLTypes["GeneratedDocument"],
 	/** Превью заявления на гарантийный возврат имущества для подписания пайщиком-заказчиком. */
 	marketplaceReturnClaimSignablePayload: GraphQLTypes["GeneratedDocument"],
 	/** Поиск атрибутов marketplace по названию */
@@ -65797,12 +66100,16 @@ type ZEUS_VARIABLES = {
 	["MarketplaceResolveContainerByCodeInput"]: ValueTypes["MarketplaceResolveContainerByCodeInput"];
 	["MarketplaceResolveStockProposalInput"]: ValueTypes["MarketplaceResolveStockProposalInput"];
 	["MarketplaceRetireStorageCellsInput"]: ValueTypes["MarketplaceRetireStorageCellsInput"];
+	["MarketplaceReturnCancelStatementSignedInput"]: ValueTypes["MarketplaceReturnCancelStatementSignedInput"];
+	["MarketplaceReturnCancelStatementSignedMetaDocumentInput"]: ValueTypes["MarketplaceReturnCancelStatementSignedMetaDocumentInput"];
 	["MarketplaceReturnClaimDecisionMode"]: ValueTypes["MarketplaceReturnClaimDecisionMode"];
 	["MarketplaceReturnClaimDefectCategory"]: ValueTypes["MarketplaceReturnClaimDefectCategory"];
 	["MarketplaceReturnClaimExpectedResolution"]: ValueTypes["MarketplaceReturnClaimExpectedResolution"];
 	["MarketplaceReturnClaimPhotoUploadInput"]: ValueTypes["MarketplaceReturnClaimPhotoUploadInput"];
 	["MarketplaceReturnClaimSignablePayloadInput"]: ValueTypes["MarketplaceReturnClaimSignablePayloadInput"];
 	["MarketplaceReturnClaimStatus"]: ValueTypes["MarketplaceReturnClaimStatus"];
+	["MarketplaceReturnStatementSignedInput"]: ValueTypes["MarketplaceReturnStatementSignedInput"];
+	["MarketplaceReturnStatementSignedMetaDocumentInput"]: ValueTypes["MarketplaceReturnStatementSignedMetaDocumentInput"];
 	["MarketplaceSaleForm"]: ValueTypes["MarketplaceSaleForm"];
 	["MarketplaceSetCartDeliveryPointInput"]: ValueTypes["MarketplaceSetCartDeliveryPointInput"];
 	["MarketplaceSetKUStatusInput"]: ValueTypes["MarketplaceSetKUStatusInput"];
@@ -65810,8 +66117,6 @@ type ZEUS_VARIABLES = {
 	["MarketplaceSetOfferWarrantyInput"]: ValueTypes["MarketplaceSetOfferWarrantyInput"];
 	["MarketplaceSetSupplierPayoutMethodInput"]: ValueTypes["MarketplaceSetSupplierPayoutMethodInput"];
 	["MarketplaceSetTrusteeWeightInput"]: ValueTypes["MarketplaceSetTrusteeWeightInput"];
-	["MarketplaceShareContributionStatementSignedInput"]: ValueTypes["MarketplaceShareContributionStatementSignedInput"];
-	["MarketplaceShareContributionStatementSignedMetaDocumentInput"]: ValueTypes["MarketplaceShareContributionStatementSignedMetaDocumentInput"];
 	["MarketplaceShareReturnActSignedInput"]: ValueTypes["MarketplaceShareReturnActSignedInput"];
 	["MarketplaceShareReturnActSignedMetaDocumentInput"]: ValueTypes["MarketplaceShareReturnActSignedMetaDocumentInput"];
 	["MarketplaceShareReturnStatementSignedInput"]: ValueTypes["MarketplaceShareReturnStatementSignedInput"];

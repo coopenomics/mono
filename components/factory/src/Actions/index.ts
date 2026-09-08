@@ -91,6 +91,7 @@ export * as MarketplaceOffer from './1102.MarketplaceOffer'
 // Marketplace (Стол заказов) — Эпик 5
 export * as MarketplaceTransportNote from './1103.MarketplaceTransportNote'
 export * as MarketplaceAplReception from './1104.MarketplaceAplReception'
+export * as MarketplaceReturnStatement from './1106.MarketplaceReturnStatement'
 
 // Marketplace (Стол заказов) — Эпик 8: списание скоропорта
 export * as MarketplaceWriteoffProtocol from './1107.MarketplaceWriteoffProtocol'
@@ -104,5 +105,5 @@ export * as BranchFinancialAidProtocol from './1112.BranchFinancialAidProtocol'
 export * as MarketplaceShareReturnStatement from './1113.MarketplaceShareReturnStatement'
 export * as MarketplaceShareReturnDecision from './1114.MarketplaceShareReturnDecision'
 export * as MarketplaceShareReturnAct from './1115.MarketplaceShareReturnAct'
-export * as MarketplaceShareContributionStatement from './1116.MarketplaceShareContributionStatement'
-export * as MarketplaceShareContributionDecision from './1117.MarketplaceShareContributionDecision'
+export * as MarketplaceReturnCancelStatement from './1116.MarketplaceReturnCancelStatement'
+export * as MarketplaceReturnCancelDecision from './1117.MarketplaceReturnCancelDecision'

@@ -33,7 +33,7 @@ const RETURN_CLAIM_STATUS_LABELS: Record<Zeus.MarketplaceReturnClaimStatus, stri
   [Zeus.MarketplaceReturnClaimStatus.REJECTED_REMOTELY]: 'Отказано удалённо',
   [Zeus.MarketplaceReturnClaimStatus.REJECTED_AT_VISIT]: 'Отказано на месте',
   [Zeus.MarketplaceReturnClaimStatus.PENDING_COUNCIL]: 'Имущество принято — ждём решение совета',
-  [Zeus.MarketplaceReturnClaimStatus.ACCEPTED_BY_COUNCIL]: 'Совет принял — паевой взнос восстановлен',
+  [Zeus.MarketplaceReturnClaimStatus.ACCEPTED_BY_COUNCIL]: 'Совет отменил сделку — взносы восстановлены',
   [Zeus.MarketplaceReturnClaimStatus.DECLINED_BY_COUNCIL]: 'Совет отказал — заберите имущество',
   [Zeus.MarketplaceReturnClaimStatus.HANDED_BACK]: 'Имущество выдано обратно',
 };
@@ -78,7 +78,7 @@ const RETURN_CLAIM_DECISION_LABELS: Record<string, string> = {
   reject_remote: 'Отказано удалённо',
   accept_at_visit: 'Имущество принято у стойки — заявление в совете',
   reject_at_visit: 'Отказано на месте',
-  council_authorized: 'Совет принял имущество — паевой взнос восстановлен',
+  council_authorized: 'Совет отменил сделку — взносы восстановлены',
   council_declined: 'Совет отказал',
   hand_back: 'Имущество выдано обратно',
 };

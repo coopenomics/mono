@@ -227,6 +227,7 @@ export class Generator implements IGenerator {
       // Marketplace (Стол заказов) — Эпик 5
       [Actions.MarketplaceTransportNote.Template.registry_id]: new Actions.MarketplaceTransportNote.Factory(this.storage), // 1103
       [Actions.MarketplaceAplReception.Template.registry_id]: new Actions.MarketplaceAplReception.Factory(this.storage), // 1104 — приёмка (поставщик → кооператив)
+      [Actions.MarketplaceReturnStatement.Template.registry_id]: new Actions.MarketplaceReturnStatement.Factory(this.storage), // 1106 — рекламация пайщика (гарантийный возврат)
 
       // Marketplace (Стол заказов) — Эпик 8: списание скоропорта
       [Actions.MarketplaceWriteoffProtocol.Template.registry_id]: new Actions.MarketplaceWriteoffProtocol.Factory(this.storage), // 1107
@@ -240,8 +241,8 @@ export class Generator implements IGenerator {
       [Actions.MarketplaceShareReturnStatement.Template.registry_id]: new Actions.MarketplaceShareReturnStatement.Factory(this.storage), // 1113
       [Actions.MarketplaceShareReturnDecision.Template.registry_id]: new Actions.MarketplaceShareReturnDecision.Factory(this.storage), // 1114
       [Actions.MarketplaceShareReturnAct.Template.registry_id]: new Actions.MarketplaceShareReturnAct.Factory(this.storage), // 1115
-      [Actions.MarketplaceShareContributionStatement.Template.registry_id]: new Actions.MarketplaceShareContributionStatement.Factory(this.storage), // 1116
-      [Actions.MarketplaceShareContributionDecision.Template.registry_id]: new Actions.MarketplaceShareContributionDecision.Factory(this.storage), // 1117
+      [Actions.MarketplaceReturnCancelStatement.Template.registry_id]: new Actions.MarketplaceReturnCancelStatement.Factory(this.storage), // 1116
+      [Actions.MarketplaceReturnCancelDecision.Template.registry_id]: new Actions.MarketplaceReturnCancelDecision.Factory(this.storage), // 1117
     }
 
     // Источник данных раздаётся фабрикам одним местом — иначе его пришлось бы

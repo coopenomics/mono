@@ -176,18 +176,19 @@ describe('стол заказов — денежные места гаранти
       marketplaceApproveReturnVisit(data:$d){ claim { id status } }
     }`, { d: { claim_id: claimId, braname: BRANAME, comment: 'Приглашение на очный осмотр (контрактный тест).' } })
 
-    // Приём имущества — вторая подпись оператора на заявлении пайщицы о
-    // внесении паевого взноса имуществом (1116); с обеими подписями контракт
-    // ставит заявление на повестку совета. Денег на этом шаге нет.
-    const cp: any = await gqlAs(chairkrgToken, `query($c:String!){
-      marketplaceReturnClaimChairmanSignablePayload(claim_id:$c){
-        hash
-        rawDocument{ full_title html hash meta binary }
-        document{ version hash doc_hash meta_hash meta signatures{ id signer public_key signature signed_at signed_hash meta } }
-      }
-    }`, { c: claimId })
-    const agg = cp.marketplaceReturnClaimChairmanSignablePayload
-    const coSigned = await signAs(chairkrg.wif, agg.rawDocument, chairkrg.account, 2, [agg.document])
+    // Приём имущества — оператор подписывает своё заявление в совет об отмене
+    // сделки (1116), собранное бэкендом по рекламации пайщицы (1106), заказу и
+    // результату осмотра; с ним контракт ставит вопрос на повестку совета.
+    // Денег на этом шаге нет.
+    const inspection = 'Дефект подтверждён на очном осмотре (контрактный тест).'
+    const cp: any = await gqlAs(chairkrgToken, `query($c:String!,$r:String!){
+      marketplaceReturnClaimChairmanSignablePayload(claim_id:$c, inspection_result:$r){ full_title html hash meta binary }
+    }`, { c: claimId, r: inspection })
+    const cancelStatement = cp.marketplaceReturnClaimChairmanSignablePayload
+    expect(cancelStatement.meta.registry_id, 'у стойки подписывается заявление об отмене сделки').toBe(1116)
+    expect(cancelStatement.meta.orderer, 'в заявлении оператора указана пайщица, чья сделка отменяется').toBe(ekaterina.account)
+    expect(amount(cancelStatement.meta.fee_refund), 'заявление несёт членский взнос к восстановлению').toBeCloseTo(feeRefund, 2)
+    const signedCancel = await signAs(chairkrg.wif, cancelStatement, chairkrg.account, 1)
 
     const acc: any = await gqlAs(chairkrgToken, `mutation($d:MarketplaceAcceptReturnAtVisitInput!){
       marketplaceAcceptReturnAtVisit(data:$d){ tx_hash claim { id status council_decision_id council_decision_mode } }
@@ -195,9 +196,9 @@ describe('стол заказов — денежные места гаранти
       d: {
         claim_id: claimId,
         braname: BRANAME,
-        inspection_result: 'Дефект подтверждён на очном осмотре (контрактный тест).',
+        inspection_result: inspection,
         inspection_photos: [PHOTO],
-        signed_statement: coSigned,
+        signed_statement: signedCancel,
       },
     })
     const accepted = acc.marketplaceAcceptReturnAtVisit.claim

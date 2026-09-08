@@ -212,7 +212,7 @@ export const LEDGER2_OPERATION_REGISTRY: readonly OperationMeta[] = [
   { code: 'o.mkt.return',  process_type: 'p.mkt.return',  contract: 'marketplace',
     name: 'RETURN_BY_MEMBER', wallet_op: 'ISSUE', wallet_from: null, wallet_to: 'w.mkt.share',
     debit: 10, credit: 80,
-    human_name: 'Гарантийный возврат — восстановление паевого взноса и имущества' },
+    human_name: 'Отмена сделки по гарантийному возврату — имущество на склад, паевой взнос восстановлен' },
 
   // Проводка списания после перехода закупки на 60 — вопрос бухгалтеру.
   { code: 'o.mkt.wroff',   process_type: 'p.mkt.wroff',   contract: 'marketplace',

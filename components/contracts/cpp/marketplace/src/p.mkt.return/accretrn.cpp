@@ -1,13 +1,18 @@
 /**
  * @brief Оператор участка принимает имущество у стойки — гарантийный возврат
- * в паевой модели (компонент 68, задача 99D-9): `approvvisit → retpend`.
+ * в паевой модели (компонент 68, задачи 99D-9 / 99D-12): `approvvisit → retpend`.
  *
- * Оператор накладывает вторую подпись на Заявление о внесении паевого взноса
- * имуществом (registry 1116); `statement` несёт обе подписи — заказчика (с
- * подачи) и оператора (приём имущества). Тем же действием контракт ставит
- * повестку совета: инлайн `soviet::createagenda` от
- * `permission_level{_marketplace, active}` с `type=mktretrn`,
- * `hash=request_hash`, обратными вызовами `onmktrtauth` / `onmktrtdecl`.
+ * Оператор осмотрел имущество, принял его под свою материальную
+ * ответственность и подписал Заявление в совет об отмене сделки (registry
+ * 1116): какой заказ и какое имущество принято, результат осмотра, причина
+ * обращения пайщика из рекламации (1106, лежит в `return_request.statement`),
+ * суммы паевого и членского взносов к восстановлению. `statement` несёт
+ * только подпись оператора: пайщик ничего не вносит, сделка отменяется
+ * (решение владельца 08.09.2026). Тем же действием контракт ставит повестку
+ * совета: инлайн `soviet::createagenda` от `permission_level{_marketplace,
+ * active}` с `type=mktretrn`, `hash=request_hash`, документом повестки —
+ * этим заявлением и обратными вызовами `onmktrtauth` / `onmktrtdecl`. Совет
+ * лишь легитимизирует решение оператора.
  *
  * Движений по средствам нет: имущество лежит на участке, баланс заказчика
  * восстанавливается только по решению совета (onmktrtauth). При отказе или
@@ -15,7 +20,7 @@
  *
  * Guards:
  *  - actor coopname; status == approvvisit; участок выдачи заказа;
- *  - signer уполномочен на участке; заявление подписано заказчиком и signer.
+ *  - signer уполномочен на участке; заявление подписано signer.
  *
  * @ingroup public_marketplace_actions
  */
@@ -35,17 +40,19 @@ void marketplace::accretrn(eosio::name coopname,
   eosio::check(branch.is_user_authorized(signer),
                "Подписант не уполномочен принимать возвраты данного кооперативного участка");
   eosio::check(!is_empty_document(statement),
-               "Приём имущества требует заявления с подписями заказчика и оператора");
-  verify_document_or_fail(statement, { r.orderer, signer });
+               "Приём имущества требует заявления оператора об отмене сделки с его подписью");
+  verify_document_or_fail(statement, { signer });
 
   const auto now = eosio::time_point_sec(eosio::current_time_point().sec_since_epoch());
   Marketplace::update_return_request(coopname, r.id, [&](auto& upd) {
     upd.status      = ReturnStatus::RETURN_PENDING;
-    upd.statement   = statement;
     upd.accepted_at.emplace(now);
+    upd.cancel_statement.emplace(statement);
   });
 
-  // Повестка совета: hash = request_hash, чтобы обратные вызовы нашли заявку.
+  // Повестка совета: hash = request_hash, чтобы обратные вызовы нашли заявку;
+  // автор повестки — пайщик (его сделка отменяется), документ — заявление
+  // оператора; протокол 1117 берёт деловые поля из его метаданных.
   action(permission_level{_marketplace, "active"_n}, _soviet, "createagenda"_n,
     std::make_tuple(
       coopname,

@@ -103,7 +103,7 @@ namespace operations {
     inline constexpr eosio::name PURCHASE_FROM_SUPPLIER = "o.mkt.purch"_n;    ///< Приёмка имущества кооперативом по АПП приёмки (Dr 10 / Cr 76, NONE — только бухпроводка; имущество — аналитика по 10). Обязательство перед поставщиком на счёте расчётов с разными дебиторами и кредиторами (решение владельца 08.09.2026: 76 вместо 60).
     inline constexpr eosio::name PAY_SUPPLIER           = "o.mkt.payout"_n;   ///< Оплата поставщику с расчётного счёта по подтверждению кассира (Dr 76 / Cr 51, ISSUE ∅ → SUPPLIER_PAYMENTS). Гасит обязательство, открытое PURCHASE_FROM_SUPPLIER.
     inline constexpr eosio::name CONSUME_BY_MEMBER      = "o.mkt.consum"_n;   ///< Возврат паевого взноса имуществом по акту выдачи (BURN с w.mkt.order, Dr 80 / Cr 10 — паевой фонд уменьшается на стоимость переданного имущества по протоколу совета). Ставится только закрывающей подписью председателя участка (issueact2).
-    inline constexpr eosio::name RETURN_BY_MEMBER       = "o.mkt.return"_n;   ///< Гарантийный возврат имущества по решению совета — compensating forward к CONSUME_BY_MEMBER (ISSUE ∅ → w.mkt.share, Dr 10 / Cr 80 — восстановление паевого на свободном паевом «Стола заказов» и возврат имущества на склад). Реверты ledger2::revert в Столе заказов не используются.
+    inline constexpr eosio::name RETURN_BY_MEMBER       = "o.mkt.return"_n;   ///< Отмена сделки по гарантийному возврату по решению совета — compensating forward к CONSUME_BY_MEMBER (ISSUE ∅ → w.mkt.share, Dr 10 / Cr 80 — восстановление паевого на свободном паевом «Стола заказов» и возврат имущества на склад). Реверты ledger2::revert в Столе заказов не используются.
     inline constexpr eosio::name WRITE_OFF_PERISHABLE   = "o.mkt.wroff"_n;    ///< Утилизация скоропорта со склада (NONE Dr 86 / Cr 10). По протоколу совета. Проводка после перехода закупки на счёт расчётов 76 — вопрос бухгалтеру (86 или 91).
     inline constexpr eosio::name MARKDOWN_LOSS          = "o.mkt.loss"_n;     ///< Уценка при выдаче из остатка кооператива (NONE Dr 91 / Cr 10): разница между ценой прибытия и фактической ценой выдачи выбывает со склада в прочие расходы. Вместе с o.mkt.consum даёт выбытие по полной стоимости прибытия — на счёте 10 ничего не зависает.
     inline constexpr eosio::name MEMBERSHIP_FEE_LOCK    = "o.mkt.fee"_n;      ///< Членский взнос кооперативного участка под заказ из членского кошелька программы (TRANSFER w.mkt.member → w.mkt.fee, без Dr/Cr — оба на 86). createorder, stockorder и довзнос по факту на issueact2; взнос считается от единой ставки кооператива и фиксируется явным полем Order.membership_fee.
@@ -427,7 +427,7 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
   { operations::marketplace::RETURN_BY_MEMBER, processes::marketplace::RETURN, WalletOp::ISSUE,
     eosio::name{}, ledger2_wallets::MARKETPLACE_SHARE_FUND,
     ledger2_accounts::MATERIALS, ledger2_accounts::SHARE_FUND,
-    "Гарантийный возврат — восстановление паевого взноса и имущества" },
+    "Отмена сделки по гарантийному возврату — имущество на склад, паевой взнос восстановлен" },
 
   // 12g. p.mkt.wroff: Утилизация скоропорта со склада (NONE Dr 86 / Cr 10).
   //      По протоколу совета. Проводка — вопрос бухгалтеру (TBD-Standardization).

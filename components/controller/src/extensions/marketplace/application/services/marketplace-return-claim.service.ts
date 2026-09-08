@@ -74,7 +74,8 @@ import {
   type MarketplaceReturnClaimStatus,
 } from '../../domain/entities/marketplace-return-claim.types';
 import type { MarketplaceOrderDomainEntity } from '../../domain/entities/marketplace-order.entity';
-import type { MarketplaceShareContributionStatementSignedInputDTO } from '../documents-dto/marketplace-share-contribution-statement-document.dto';
+import type { MarketplaceReturnStatementSignedInputDTO } from '../documents-dto/marketplace-return-statement-document.dto';
+import type { MarketplaceReturnCancelStatementSignedInputDTO } from '../documents-dto/marketplace-return-cancel-statement-document.dto';
 import { SignedDigitalDocumentInputDTO, HttpApiError } from '@coopenomics/extension-kit';
 import {
   MARKETPLACE_RETURN_CLAIM_SUBMITTED_EVENT,
@@ -116,8 +117,8 @@ export interface MarketplaceCreateReturnClaimInput {
   defect_category: MarketplaceReturnClaimDefectCategory | null;
   /** Возвращаемое количество — по умолчанию = order.actual_quantity. */
   actual_quantity?: number;
-  /** Подписанное заказчиком Заявление о внесении паевого взноса имуществом (registry_id=1116). */
-  signed_statement: MarketplaceShareContributionStatementSignedInputDTO;
+  /** Подписанная заказчиком рекламация — Заявление о гарантийном возврате имущества (registry_id=1106). */
+  signed_statement: MarketplaceReturnStatementSignedInputDTO;
   /** Фотографии товара — обязательно мин. 1, макс. 10. */
   photos: MarketplaceReturnClaimImageUploadDTO[];
 }
@@ -148,12 +149,11 @@ export interface MarketplaceAcceptReturnAtVisitInput {
   scanned_barcode: string | null;
   inspection_photos?: MarketplaceReturnClaimImageUploadDTO[];
   /**
-   * Заявление о внесении паевого взноса имуществом (registry 1116) со второй
-   * подписью оператора — приём имущества оформляется со-подписью на том же
-   * документе (канон двухподписных документов). Контракт требует обе
-   * подписи и с ними ставит заявление на повестку совета.
+   * Заявление оператора участка в совет об отмене сделки (registry 1116) с
+   * подписью оператора, принявшего имущество. Контракт ставит его документом
+   * повестки совета; пайщик ничего не подписывает.
    */
-  signed_statement?: MarketplaceShareContributionStatementSignedInputDTO;
+  signed_statement?: MarketplaceReturnCancelStatementSignedInputDTO;
 }
 
 export interface MarketplaceHandBackReturnInput {
@@ -183,13 +183,13 @@ export interface MarketplaceReturnClaimResult {
  * `p.mkt.return.standard.yaml`); переходы проходят через действия контракта
  * `marketplace` и обратные вызовы совета:
  *
- *  - submretrn   — пайщик подаёт заявление 1116 (своя подпись); PENDING_CHAIRMAN_REVIEW
+ *  - submretrn   — пайщик подаёт рекламацию 1106 (своя подпись); PENDING_CHAIRMAN_REVIEW
  *  - aprretrem   — оператор приглашает на участок; APPROVED_FOR_VISIT
  *  - rejretrem   — отказ удалённо; REJECTED_REMOTELY (final)
  *  - rejretrn    — оператор не стал принимать имущество; REJECTED_AT_VISIT (final)
- *  - accretrn    — оператор принял имущество (вторая подпись на 1116), контракт
- *                  инлайн ставит повестку совета `mktretrn`; PENDING_COUNCIL.
- *                  Движений по средствам нет.
+ *  - accretrn    — оператор принял имущество и подписал заявление в совет об
+ *                  отмене сделки (1116), контракт инлайн ставит повестку совета
+ *                  `mktretrn`; PENDING_COUNCIL. Движений по средствам нет.
  *  - onmktrtauth — совет «за»: контракт одной транзакцией откатывает все
  *                  движения по заказу (паевой + членский взнос обратно
  *                  пайщику); ACCEPTED_BY_COUNCIL (final), имущество — в остаток.
@@ -258,7 +258,7 @@ export class MarketplaceReturnClaimService {
   }
 
   /**
-   * Story 7.1: backend-генерируемый payload заявления (registry_id=1116,
+   * Story 7.1: backend-генерируемый payload рекламации (registry_id=1106,
    * `MarketplaceReturnStatement`). UI получает HTML preview + canonical hash
    * и подписывает приватным ключом пайщика, после чего отправляет в
    * `submitReturnClaim` вместе с фото.
@@ -286,34 +286,29 @@ export class MarketplaceReturnClaimService {
   }
 
   /**
-   * Агрегат для со-подписи оператора при приёме имущества: исходное заявление
-   * пайщика (1116) с его подписью + тело документа для ознакомления. Фронт
-   * накладывает вторую подпись (`signDocument(rawDocument, operator, 2,
-   * [document])`) и отправляет в `acceptReturnAtVisit`. Ownership-проверка КУ —
-   * на резолвере (как в АПП-приёмке).
+   * Заявление оператора участка в совет об отмене сделки (1116) — генерируется
+   * у стойки по рекламации, заказу и результату осмотра. Оператор подписывает
+   * его одной подписью (`signDocument(doc, operator, 1)`) и отправляет в
+   * `acceptReturnAtVisit`. Ownership-проверка КУ — на резолвере.
    */
-  async getChairmanReturnSignablePayload(
-    coopname: string,
-    claim_id: string
-  ): Promise<InnerDocumentAggregate> {
-    const claim = await this.findById(coopname, claim_id);
+  async getChairmanReturnSignablePayload(input: {
+    coopname: string;
+    claim_id: string;
+    operator_account: string;
+    inspection_result: string;
+  }): Promise<InnerGeneratedDocument> {
+    this.requireInspectionResult(input.inspection_result);
+    const claim = await this.findById(input.coopname, input.claim_id);
     if (claim.status !== MarketplaceReturnClaimStatuses.APPROVED_FOR_VISIT) {
       throw new ConflictException(
-        `Заявление в статусе «${claim.status}»: со-подпись председателя доступна только после одобрения очного визита.`
+        `Заявление в статусе «${claim.status}»: заявление об отмене сделки готовится только после одобрения очного визита.`
       );
     }
-    if (!claim.statement) {
-      throw new ConflictException(
-        `Заявление ${claim.id}: подписанное пайщиком заявление не сохранено — со-подпись невозможна.`
-      );
-    }
-    const aggregate = await this.documentPort.buildAggregate(claim.statement);
-    if (!aggregate) {
-      throw new ConflictException(
-        `Заявление ${claim.id}: тело документа по doc_hash ${claim.statement.doc_hash} не найдено в сторе.`
-      );
-    }
-    return aggregate;
+    return this.generateCancelStatementDocument({
+      claim,
+      operator: input.operator_account,
+      inspection_result: input.inspection_result,
+    });
   }
 
   // ── Story 7.1: пайщик подаёт заявление ───────────────────────────────
@@ -567,8 +562,9 @@ export class MarketplaceReturnClaimService {
   // ── У стойки: приём имущества → повестка совета ──────────────────────
 
   /**
-   * Оператор принял имущество: вторая подпись на заявлении 1116 → `accretrn`
-   * → контракт инлайн ставит повестку совета. Денег не двигаем. Дальше —
+   * Оператор принял имущество и подписал заявление в совет об отмене сделки
+   * (1116) → `accretrn` → контракт инлайн ставит повестку совета с этим
+   * заявлением. Денег не двигаем. Дальше —
    * номер решения из цепи, прямой вызов робота и короткое ожидание у стойки;
    * если решение не пришло, заявление остаётся в PENDING_COUNCIL.
    */
@@ -589,7 +585,7 @@ export class MarketplaceReturnClaimService {
     }
     this.assertBranameMatchesClaim(claim, input.braname, 'приём имущества');
 
-    const coSignedStatement = this.requireCoSignedContributionStatement(input, claim);
+    const cancelStatement = this.requireOperatorCancelStatement(input, claim);
 
     const inspectionPhotos = await this.uploadOptionalPhotos({
       files: input.inspection_photos,
@@ -606,8 +602,8 @@ export class MarketplaceReturnClaimService {
         signer: input.chairman_account,
         braname: input.braname,
         request_hash: claim.request_hash,
-        statement: coSignedStatement,
-        // Бизнес-поля для протокола робот берёт из меты заявления повестки.
+        statement: cancelStatement,
+        // Деловые поля протокола 1117 робот берёт из меты заявления повестки.
         meta: '',
       });
     } catch (err) {
@@ -647,7 +643,7 @@ export class MarketplaceReturnClaimService {
       status: MarketplaceReturnClaimStatuses.PENDING_COUNCIL,
       decision_entry: entry,
       on_site_inspection: inspection,
-      statement: input.signed_statement as unknown as ISignedDocument,
+      cancel_statement: input.signed_statement as unknown as ISignedDocument,
       accepted_at: at,
     });
     claim = moved ?? (await this.findById(input.coopname, input.claim_id));
@@ -668,26 +664,41 @@ export class MarketplaceReturnClaimService {
   }
 
   /**
-   * Входной контроль заявления 1116 со второй подписью оператора: заявление
-   * есть, документ тот самый (реестр и привязка к заказу), подписи верны.
-   * Возвращает документ в виде, который принимает `accretrn`. Вынесено из
-   * `acceptReturnAtVisit` — там остаётся только сценарий приёма имущества.
+   * Входной контроль заявления оператора об отмене сделки (1116): документ
+   * есть, тот самый (реестр, заказ, рекламация, результат осмотра совпадает с
+   * введённым), подпись оператора верна. Возвращает документ в виде, который
+   * принимает `accretrn`.
    */
-  private requireCoSignedContributionStatement(
+  private requireOperatorCancelStatement(
     input: MarketplaceAcceptReturnAtVisitInput,
     claim: MarketplaceReturnClaimDomainEntity
   ): MarketContract.Actions.AccRetrn.IAccRetrn['statement'] {
     if (!input.signed_statement) {
       throw new BadRequestException(
-        'Для приёма имущества требуется заявление пайщика со второй подписью оператора.'
+        'Для приёма имущества требуется подписанное оператором заявление в совет об отмене сделки.'
       );
     }
-    const meta = input.signed_statement.meta as { registry_id?: number; order_hash?: string } | undefined;
+    const meta = input.signed_statement.meta as {
+      registry_id?: number;
+      order_hash?: string;
+      request_hash?: string;
+      operator?: string;
+      inspection_result?: string;
+    } | undefined;
     if (
-      meta?.registry_id !== Cooperative.Registry.MarketplaceShareContributionStatement.registry_id ||
-      (meta?.order_hash && meta.order_hash !== claim.order_hash)
+      meta?.registry_id !== Cooperative.Registry.MarketplaceReturnCancelStatement.registry_id ||
+      (meta?.order_hash && meta.order_hash !== claim.order_hash) ||
+      (meta?.request_hash && meta.request_hash !== claim.request_hash)
     ) {
       throw new BadRequestException('Подписан не тот документ — обновите экран заявления.');
+    }
+    if (meta?.operator && meta.operator !== input.chairman_account) {
+      throw new BadRequestException('Заявление об отмене сделки подписывает тот оператор, на чьё имя оно составлено.');
+    }
+    if ((meta?.inspection_result ?? '').trim() !== input.inspection_result.trim()) {
+      throw new BadRequestException(
+        'Результат осмотра в подписанном заявлении отличается от введённого — подпишите заявление заново.'
+      );
     }
     this.verifySignatures(input.signed_statement);
     return new SignedDigitalDocumentInputDTO(
@@ -1197,8 +1208,8 @@ export class MarketplaceReturnClaimService {
     // (материализует их в null) — client-side canonicalize(meta) давал
     // разные meta_hash при подписи и при повторном чтении для со-подписи
     // председателя («Хэш метаданных не совпадает», см. review 2026-07-27).
-    const action: Cooperative.Registry.MarketplaceShareContributionStatement.Action = {
-      registry_id: Cooperative.Registry.MarketplaceShareContributionStatement.registry_id,
+    const action: Cooperative.Registry.MarketplaceReturnStatement.Action = {
+      registry_id: Cooperative.Registry.MarketplaceReturnStatement.registry_id,
       coopname: input.order.coopname,
       username: input.orderer,
       order_id: input.order.id,
@@ -1212,9 +1223,56 @@ export class MarketplaceReturnClaimService {
       unit_of_measurement: marketplaceOrderUnitLabel(input.order.unit_of_measure),
       unit_cost: this.effectiveUnitCost(input.order).toFixed(4),
       currency: this.assetConfig.symbol,
-      // Тело документа сохраняется в стор: оператору при со-подписи на
-      // приёме имущества нужен ИСХОДНЫЙ документ (тот же порядок/состав ключей
-      // meta) по doc_hash через buildDocumentAggregate — как и в АПП-приёмке.
+      // Тело рекламации сохраняется в стор: оператор читает её у стойки, а
+      // после решения совета она публикуется в пакете документов заказа.
+      skip_save: false,
+    };
+    return this.documentPort.generate({ data: action });
+  }
+
+  /**
+   * Заявление оператора участка в совет об отмене сделки (1116): заказ и
+   * принятое имущество из рекламации, суммы паевого и членского взносов к
+   * восстановлению — те же, что контракт зафиксировал при подаче, номер
+   * протокола совета о выдаче — из заказа. Подписант — оператор.
+   */
+  private async generateCancelStatementDocument(input: {
+    claim: MarketplaceReturnClaimDomainEntity;
+    operator: string;
+    inspection_result: string;
+  }): Promise<InnerGeneratedDocument> {
+    const { claim } = input;
+    const order = await this.orderRepo.findById(claim.order_id);
+    if (!order || order.coopname !== claim.coopname) {
+      throw new NotFoundException(`Заказ ${claim.order_id} по заявлению ${claim.id} не найден.`);
+    }
+    const offer = await this.offerRepo.findById(order.offer_id);
+    const fee_refund = claim.fee_refund ?? '0';
+    const total_refund = sumMoney([claim.fact_cost, fee_refund], this.assetConfig.decimals);
+    const action: Cooperative.Registry.MarketplaceReturnCancelStatement.Action = {
+      registry_id: Cooperative.Registry.MarketplaceReturnCancelStatement.registry_id,
+      coopname: claim.coopname,
+      username: input.operator,
+      order_id: order.id,
+      order_hash: claim.order_hash,
+      request_hash: claim.request_hash,
+      braname: claim.delivery_braname,
+      orderer: claim.orderer_account,
+      operator: input.operator,
+      issue_decision_id: Number(order.issue_decision_id ?? 0) || 0,
+      sku: order.offer_id,
+      product_title: offer?.product_name ?? 'Товар по предложению',
+      unit_of_measurement: marketplaceOrderUnitLabel(order.unit_of_measure),
+      actual_quantity: claim.actual_quantity,
+      unit_cost: this.effectiveUnitCost(order).toFixed(4),
+      fact_cost: claim.fact_cost,
+      fee_refund,
+      total_refund,
+      currency: this.assetConfig.symbol,
+      reason_text: claim.reason_text,
+      inspection_result: input.inspection_result.trim(),
+      // Заявление уходит в повестку совета и публикуется контрактом soviet;
+      // тело нужно в сторе, чтобы его читали стол совета и пакет документов.
       skip_save: false,
     };
     return this.documentPort.generate({ data: action });

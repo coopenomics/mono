@@ -31,13 +31,14 @@ type ReturnClaimPhotoUploadInput = NonNullable<IAcceptReturnAtVisitInput['inspec
  *     этого решение принималось вслепую (см. review 2026-07-27).
  *  1. Записывает результат осмотра (`inspection_result`, до 2000 симв.).
  *  2. Опционально прилагает фото осмотра (до 10 файлов, до 10 МБ каждое).
- *  3. Выбирает действие: «Принять имущество» → accretrn (вторая подпись на
- *     заявлении 1116, заявление уходит на повестку совета, денег нет);
- *     «Не принимать» → rejretrn.
+ *  3. Выбирает действие: «Принять имущество» → подписывает своё заявление
+ *     в совет об отмене сделки (1116) → accretrn (заявление уходит на
+ *     повестку совета, денег нет); «Не принимать» → rejretrn.
  *
  * Средства восстанавливаются только по решению совета (`onmktrtauth`):
- * паевой взнос и членский взнос за возвращённое возвращаются на свободный
- * паевой «Стола заказов», имущество зачисляется в остаток участка.
+ * сделка отменяется, паевой взнос за возвращённое возвращается на свободный
+ * паевой «Стола заказов», членский — на членский кошелёк пайщика, имущество
+ * зачисляется в остаток участка.
  */
 
 const DECISION_ACCEPT = 'accept' as const;
@@ -120,16 +121,17 @@ async function confirm(): Promise<void> {
       })),
     );
     if (decision.value === DECISION_ACCEPT) {
-      // Приём имущества требует заявление о внесении паевого взноса имуществом
-      // (registry 1116) с ДВУМЯ подписями — пайщика (при подаче) и оператора
-      // (со-подпись поверх того же документа). С обеими подписями контракт
-      // ставит заявление на повестку совета; деньги двигаются только по его
-      // решению.
-      const aggregate = await fetchChairmanReturnSignablePayload(props.claim.id);
+      // Приём имущества — заявление оператора в совет об отмене сделки
+      // (registry 1116): бэкенд собирает его по рекламации пайщика, заказу и
+      // результату осмотра, оператор ставит единственную подпись. С ним
+      // контракт ставит вопрос на повестку совета; деньги двигаются только
+      // по его решению.
+      const statement = await fetchChairmanReturnSignablePayload(
+        props.claim.id,
+        inspectionResult.value.trim(),
+      );
       const signer = new Classes.Document(wif!);
-      const signed_statement = await signer.signDocument(aggregate.rawDocument, globalStore.username, 2, [
-        aggregate.document,
-      ]);
+      const signed_statement = await signer.signDocument(statement, globalStore.username, 1);
       const result = await acceptReturnAtVisit({
         claim_id: props.claim.id,
         braname: props.braname.trim(),
@@ -139,7 +141,7 @@ async function confirm(): Promise<void> {
       });
       SuccessAlert(
         result.claim.status === 'ACCEPTED_BY_COUNCIL'
-          ? `Совет принял имущество: заказчику восстановлено ${formatAsset2Digits(result.claim.total_refund)} ₽.`
+          ? `Совет отменил сделку: заказчику восстановлено ${formatAsset2Digits(result.claim.total_refund)} ₽.`
           : result.claim.status === 'DECLINED_BY_COUNCIL'
             ? 'Совет отказал — имущество остаётся на участке, выдайте его пайщику обратно.'
             : 'Имущество принято, заявление на повестке совета. Решение придёт само — пайщик может идти.',
@@ -171,13 +173,13 @@ const kind = computed<'success' | 'danger'>(() =>
 );
 const confirmLabel = computed(() =>
   decision.value === DECISION_ACCEPT
-    ? 'Принять возврат и восстановить средства'
+    ? 'Принять имущество и подать заявление в совет'
     : 'Отказать на месте',
 );
 const confirmDisabled = computed(() => submitting.value || !inspectionResult.value.trim());
 
 const decisionOptions = [
-  { label: 'Принять имущество и передать заявление в совет', value: DECISION_ACCEPT, color: 'positive' },
+  { label: 'Принять имущество и подать в совет заявление об отмене сделки', value: DECISION_ACCEPT, color: 'positive' },
   { label: 'Не принимать (имущество остаётся у заказчика)', value: DECISION_REJECT, color: 'negative' },
 ];
 </script>
@@ -255,7 +257,7 @@ TakeoverDialog(
         )
         .banner.banner--pos.q-mt-md(v-if="decision === DECISION_ACCEPT")
           q-icon.banner__icon(name="check_circle", size="20px")
-          .banner__body Имущество принимается на участок, заявление уходит на решение совета. При согласии заказчику вернётся {{ formatAsset2Digits(claim.total_refund) }} ₽ (стоимость и членский взнос), имущество зачислится в остаток; при отказе имущество выдадите обратно.
+          .banner__body Имущество принимается на участок под вашу ответственность, в совет уходит ваше заявление об отмене сделки. При согласии сделка отменяется и заказчику вернётся {{ formatAsset2Digits(claim.total_refund) }} ₽ (паевой и членский взносы), имущество зачислится в остаток; при отказе имущество выдадите обратно.
         .banner.banner--warn.q-mt-md(v-else)
           q-icon.banner__icon(name="info", size="20px")
           .banner__body Имущество остаётся у заказчика. Движений по средствам нет.

@@ -393,9 +393,12 @@ export interface IReturnRequest {
   reason_text: string
   photos: IChecksum256[]
   status: IName
+  /** Рекламация пайщика — Заявление о гарантийном возврате имущества (1106). */
   statement: IDocument2
   /** binary_extension: у заявок, созданных до паевой модели, поля нет. */
   accepted_at?: ITimePointSec
+  /** Заявление оператора участка в совет об отмене сделки (1116); binary_extension: у заявок до задачи 99D-12 поля нет. */
+  cancel_statement?: IDocument2
 }
 
 export interface IWroffItem {

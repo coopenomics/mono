@@ -5,7 +5,7 @@ import {
   DecisionOfParticipantApplication, // 501
   DecisionOfParticipantExit, // 201
   FreeDecision,
-  MarketplaceShareContributionDecision, // 1117
+  MarketplaceReturnCancelDecision, // 1117
   MarketplaceShareReturnDecision, // 1114
   MarketplaceWriteoffProtocol, // 1107
   ResultContributionDecision, // 1041
@@ -128,9 +128,9 @@ export const decisionTypesRegistry: Record<string, IDecisionTypeInfo> = {
   },
   mktretrn: {
     type: 'mktretrn',
-    title: 'Гарантийный возврат имущества',
-    description: 'Заявление пайщика о внесении паевого взноса имуществом: совет принимает возвращённое имущество и восстанавливает паевой взнос.',
-    protocol_registry_id: MarketplaceShareContributionDecision.registry_id,
+    title: 'Отмена сделки по гарантийному возврату',
+    description: 'Заявление оператора кооперативного участка об отмене сделки: имущество принято на участке по рекламации пайщика, совет отменяет сделку и восстанавливает паевой и членский взносы.',
+    protocol_registry_id: MarketplaceReturnCancelDecision.registry_id,
     extension: 'market',
   },
   createresult: {

@@ -98,6 +98,10 @@ export class MarketplaceReturnClaimEntity {
   @Column({ type: 'jsonb', nullable: true })
   public statement!: ISignedDocument | null;
 
+  /** Заявление оператора участка в совет об отмене сделки (1116) — после приёма имущества у стойки. */
+  @Column({ type: 'jsonb', nullable: true })
+  public cancel_statement!: ISignedDocument | null;
+
   @Column({ type: 'varchar', length: 32, nullable: true })
   public council_decision_id!: string | null;
 

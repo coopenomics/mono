@@ -23,6 +23,7 @@ export class MarketplaceReturnClaimMapper {
       fee_refund: row.fee_refund,
       photos: row.photos,
       statement: row.statement,
+      cancel_statement: row.cancel_statement ?? null,
       council_decision_id: row.council_decision_id ?? null,
       council_decision_mode: row.council_decision_mode ?? null,
       council_protocol: row.council_protocol ?? null,
