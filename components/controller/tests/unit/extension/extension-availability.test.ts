@@ -27,9 +27,9 @@ describe('Доступность расширений по сети', () => {
       }
     });
 
-    it('Карта кооператора открыта только вне основной сети — сеть карт обкатывается на тестовом контуре', () => {
-      expect(AppRegistry.cardcoop.availability).toBe(ExtensionAvailability.NON_MAINNET_ONLY);
-      expect(isExtensionAvailable(AppRegistry.cardcoop.availability, true)).toBe(false);
+    it('Карта кооператора открыта везде, включая основную сеть (решение владельца 08.09.2026)', () => {
+      expect(AppRegistry.cardcoop.availability).toBe(ExtensionAvailability.EVERYWHERE);
+      expect(isExtensionAvailable(AppRegistry.cardcoop.availability, true)).toBe(true);
       expect(isExtensionAvailable(AppRegistry.cardcoop.availability, false)).toBe(true);
     });
 

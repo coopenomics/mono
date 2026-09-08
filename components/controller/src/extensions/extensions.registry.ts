@@ -292,7 +292,7 @@ export const AppRegistry: INamedExtension = {
   },
   cardcoop: {
     is_internal: true,
-    availability: ExtensionAvailability.NON_MAINNET_ONLY,
+    availability: ExtensionAvailability.EVERYWHERE,
     desktops: undefined, // Это не desktop расширение
     title: 'Карта кооператора',
     description:
@@ -301,9 +301,10 @@ export const AppRegistry: INamedExtension = {
     class: CardcoopExtensionModule,
     extensionClass: CardcoopExtension,
     // Кооператив получает его сразу и включённым, как стол совета: карта кооператора — часть
-    // членства, а не дополнение к нему. Пока сеть карт не открыта для основной сети,
-    // доступность держит `NON_MAINNET_ONLY`, и туда расширение не поедет (см. фильтр
-    // доступности в составе расширений по умолчанию).
+    // членства, а не дополнение к нему. Сеть карт открыта для основной сети 08.09.2026
+    // (решение владельца): боевой узел работает на id.card.coop, обкатка прошла на тестовом
+    // контуре. До этого доступность держала `NON_MAINNET_ONLY`, и кооперативы основной сети
+    // расширения не получали вовсе — раздел в кабинете был, а записи установки не было.
     defaults: { enabled: true, config: cardcoopDefaultConfig },
     entities: cardcoopEntities,
     ports: cardcoopPorts,
