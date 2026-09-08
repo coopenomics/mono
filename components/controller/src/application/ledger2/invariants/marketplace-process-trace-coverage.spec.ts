@@ -60,16 +60,15 @@ const EXPECTED_MARKETPLACE_OP_CODES = [
   'o.mkt.return',
   // p.mkt.wroff (1)
   'o.mkt.wroff',
-  // p.mkt.claim (3) + удержание долга в нитке заказа (1)
+  // p.mkt.claim (2) + удержание долга в нитке заказа (1)
   'o.mkt.claim',
   'o.mkt.admit',
-  'o.mkt.refuse',
   'o.mkt.deduct',
 ] as const
 
 describe('Story 11.2 — coverage marketplace operation_code в cooptypes', () => {
-  it('canonical список содержит 18 кодов', () => {
-    expect(EXPECTED_MARKETPLACE_OP_CODES).toHaveLength(18)
+  it('canonical список содержит 17 кодов', () => {
+    expect(EXPECTED_MARKETPLACE_OP_CODES).toHaveLength(17)
   })
 
   it('каждый код присутствует в LEDGER2_OPERATION_REGISTRY', () => {
@@ -150,7 +149,6 @@ describe('Story 11.2 — wallet_op + Дт/Кт реестра соответст
     { code: 'o.mkt.wroff', walletOp: 'NONE', walletFrom: null, walletTo: null, debit: 86, credit: 10 },
     { code: 'o.mkt.claim', walletOp: 'ISSUE', walletFrom: null, walletTo: 'w.mkt.claim', debit: null, credit: null },
     { code: 'o.mkt.admit', walletOp: 'TRANSFER', walletFrom: 'w.mkt.claim', walletTo: 'w.mkt.debt', debit: 76, credit: 91 },
-    { code: 'o.mkt.refuse', walletOp: 'TRANSFER', walletFrom: 'w.mkt.claim', walletTo: 'w.mkt.refuse', debit: null, credit: null },
     { code: 'o.mkt.deduct', walletOp: 'BURN', walletFrom: 'w.mkt.debt', walletTo: null, debit: null, credit: null },
   ] as const
 

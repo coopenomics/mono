@@ -31,6 +31,7 @@ import { marketplaceOrderUnitLabel } from '../shared/unit-label.util';
 import { presentSaleUnit } from '../shared/packaging.util';
 import { calcCostAmount } from '../shared/cost.util';
 import type { MarketplaceWriteoffCandidate } from '../../domain/repositories/marketplace-inventory.repository';
+import type { MarketplaceInventoryOrigin } from '../../domain/entities/marketplace-inventory.types';
 import type { MarketplaceUnitOfMeasure } from '../../domain/entities/marketplace-offer.types';
 import { MarketplaceOrderDisplayService } from './marketplace-order-display.service';
 import {
@@ -108,6 +109,8 @@ export interface MarketplaceWriteoffCandidateView {
   braname: string;
   branch_name: string;
   asset_title: string;
+  /** Происхождение партий строки: приёмка либо гарантийный возврат пайщика. */
+  origin: MarketplaceInventoryOrigin;
   unit_of_measure: MarketplaceUnitOfMeasure | null;
   package_size: number | null;
   /** Суммарное количество по всем партиям агрегата. */
@@ -318,6 +321,7 @@ export class MarketplaceWriteoffService {
         inventory_ids: string[];
         braname: string;
         asset_title: string;
+        origin: MarketplaceInventoryOrigin;
         quantity: number;
         amount: number;
         // Размерность строки — из первой партии группы: ключ группировки
@@ -334,7 +338,8 @@ export class MarketplaceWriteoffService {
       if (lockedIds.has(c.inventory_id)) continue;
       // Состояние партии: просрочена / без срока (без гарантии) / ещё годна.
       const state = c.is_expired ? 'expired' : c.expiry_date === null ? 'nowarranty' : 'valid';
-      const key = `${c.braname}|${c.asset_title}|${state}`;
+      // Возвращённое по гарантии — отдельной строкой: председатель видит, что списывает.
+      const key = `${c.braname}|${c.asset_title}|${state}|${c.origin}`;
       const amount = this.candidateAmount(c);
       const expiryMs = c.expiry_date ? c.expiry_date.getTime() : null;
 
@@ -353,6 +358,7 @@ export class MarketplaceWriteoffService {
           inventory_ids: [c.inventory_id],
           braname: c.braname,
           asset_title: c.asset_title,
+          origin: c.origin,
           quantity: c.quantity,
           amount,
           unit_of_measure: c.unit_of_measure,
@@ -378,6 +384,7 @@ export class MarketplaceWriteoffService {
         braname: g.braname,
         branch_name: branchName,
         asset_title: g.asset_title,
+        origin: g.origin,
         unit_of_measure: g.unit_of_measure,
         package_size: g.package_size || null,
         quantity: String(g.quantity),

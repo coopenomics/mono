@@ -91,7 +91,14 @@ const STATE_BADGE: Record<StockState, { label: string; variant: 'neutral' | 'pos
   reserved: { label: 'Зарезервирована', variant: 'info' },
 };
 
+function isWarrantyReturn(i: MarketplaceInventoryItemView): boolean {
+  return i.origin === 'WARRANTY_RETURN';
+}
+
 const selectedItems = computed(() => items.value.filter((i) => selected.value.has(i.id)));
+// Возвращённое по гарантии публикуется как обычный остаток, но оператор обязан
+// понимать, что выставляет на витрину имущество, по которому была рекламация.
+const selectedWarrantyReturns = computed(() => selectedItems.value.filter(isWarrantyReturn));
 const selectedFree = computed(() => selectedItems.value.filter((i) => stateOf(i) === 'free'));
 const selectedPublished = computed(() =>
   selectedItems.value.filter((i) => stateOf(i) === 'published'),
@@ -213,7 +220,9 @@ BaseCard.coop-stock(v-else)
                 dense,
                 @update:model-value='toggle(i.id)'
               )
-            td {{ i.product_name_snapshot }}
+            td
+              | {{ i.product_name_snapshot }}
+              BaseBadge.q-ml-sm(v-if='isWarrantyReturn(i)', variant='warn', size='sm') Гарантийный возврат
             td.num {{ quantityLabel(i) }}
             td.num {{ i.arrival_price ? formatAsset2Digits(i.arrival_price) + ' ₽' : '—' }}
             td {{ expiryLabel(i) }}
@@ -230,6 +239,12 @@ BaseDialog(
       | Выбранные позиции станут предложением от кооператива с мгновенной
       | выдачей со склада. База цены — цена прибытия; укажите меньшую,
       | чтобы продать с уценкой.
+    .banner.banner--warn(v-if='selectedWarrantyReturns.length')
+      q-icon.banner__icon(name='assignment_return', size='18px')
+      .banner__body
+        | Среди выбранного — имущество, возвращённое пайщиком по гарантии
+        | ({{ selectedWarrantyReturns.length }} поз.). Убедитесь, что оно пригодно к выдаче,
+        | прежде чем публиковать.
     BaseInput(
       v-model='publishPrice',
       label='Цена за единицу, ₽',

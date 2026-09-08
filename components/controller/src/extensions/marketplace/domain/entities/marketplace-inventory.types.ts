@@ -54,6 +54,14 @@ export const MarketplaceInventoryStatuses = {
   WRITTEN_OFF: 'WRITTEN_OFF',
 } as const satisfies Record<string, MarketplaceInventoryStatus>;
 
+/** Происхождение позиции склада: приёмка от поставщика либо гарантийный возврат пайщика (99D-13). */
+export type MarketplaceInventoryOrigin = 'RECEPTION' | 'WARRANTY_RETURN';
+
+export const MarketplaceInventoryOrigins = {
+  RECEPTION: 'RECEPTION',
+  WARRANTY_RETURN: 'WARRANTY_RETURN',
+} as const satisfies Record<string, MarketplaceInventoryOrigin>;
+
 /** Статусы «физически на складе КУ» — для фильтра склада и крон-сканера. */
 export const MarketplaceInventoryOnWarehouseStatuses: readonly MarketplaceInventoryStatus[] = [
   MarketplaceInventoryStatuses.RECEIVED,
@@ -155,6 +163,15 @@ export interface MarketplaceInventoryProps {
    * дефолт) либо обезличенный остаток кооператива (`COOP`).
    */
   ownership: MarketplaceInventoryOwnership;
+  /**
+   * Происхождение позиции (99D-13): приёмка от поставщика (`RECEPTION`) либо
+   * гарантийный возврат пайщика, принятый по решению совета (`WARRANTY_RETURN`).
+   * Возвращённое лежит в остатке как обычное имущество — списывается и
+   * переопубликовывается так же, но оператор видит пометку и ссылку на рекламацию.
+   */
+  origin: MarketplaceInventoryOrigin;
+  /** Заявление на гарантийный возврат, по которому позиция вернулась на склад; NULL для приёмки. */
+  return_claim_id: string | null;
   /**
    * Цена прибытия за единицу (закупочная из акта приёмки, numeric-строка).
    * База цены при публикации остатка; nullable для записей до введения остатка.

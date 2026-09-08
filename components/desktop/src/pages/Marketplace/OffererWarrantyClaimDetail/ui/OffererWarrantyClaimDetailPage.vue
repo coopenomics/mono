@@ -16,14 +16,15 @@ import {
   supplierClaimStatusVariant,
   type MarketplaceSupplierClaimView,
 } from '../../OffererWarrantyClaims/api';
-import RefuseClaimDialog from '../../OffererWarrantyClaims/ui/RefuseClaimDialog.vue';
+import DisagreeClaimDialog from '../../OffererWarrantyClaims/ui/DisagreeClaimDialog.vue';
 
 /**
  * Карточка гарантийной претензии на столе поставщика (99D-13): что вернули и
  * на какую сумму, где забрать, причина обращения пайщика и результат осмотра
  * оператора, фотографии, рекламация с двумя подписями и пройденные шаги
- * возврата. Протокол решения совета поставщику не показывается — его дело
- * ответить по претензии: принять или отказать.
+ * возврата. Протокол решения совета поставщику не показывается. По умолчанию
+ * поставщик не согласен; «Согласен» переводит сумму в долг к удержанию,
+ * «Не согласен» показывает контакты участка.
  */
 
 const route = useRoute();
@@ -33,7 +34,7 @@ const claimId = computed(() => String(route.params.claimId ?? ''));
 const claim = ref<MarketplaceSupplierClaimView | null>(null);
 const loading = ref(false);
 const admitting = ref(false);
-const refuseDialog = ref(false);
+const disagreeDialog = ref(false);
 
 const isPending = computed(() => claim.value?.status === 'PENDING');
 
@@ -61,23 +62,16 @@ function historyEvents(c: MarketplaceSupplierClaimView): ActivityEvent[] {
   });
 }
 
-function decisionTitle(c: MarketplaceSupplierClaimView): string {
-  if (c.status === 'REFUSED') return 'Поставщик отказал';
-  return c.auto_admitted ? 'Претензия признана по истечении срока ответа' : 'Поставщик признал претензию';
-}
-
 function claimEvents(c: MarketplaceSupplierClaimView): ActivityEvent[] {
   const events: ActivityEvent[] = [
     { id: 'issued', type: 'create', icon: 'request_quote', title: 'Претензия выставлена поставщику', date: String(c.issued_at) },
   ];
   if (c.decided_at) {
-    const refused = c.status === 'REFUSED';
     events.push({
       id: 'decided',
-      type: refused ? 'reject' : 'sign',
-      icon: refused ? 'cancel' : 'check_circle',
-      title: decisionTitle(c),
-      description: c.refuse_reason || undefined,
+      type: 'sign',
+      icon: 'check_circle',
+      title: 'Поставщик согласился с претензией',
       date: String(c.decided_at),
     });
   }
@@ -177,13 +171,10 @@ q-page.claim-detail(role='region', aria-label='Гарантийная прете
             .claim-detail__fact(v-if='claim.inspection_result')
               .claim-detail__fact-label Результат осмотра на участке
               .claim-detail__fact-value {{ claim.inspection_result }}
-            .claim-detail__fact(v-if='claim.refuse_reason')
-              .claim-detail__fact-label Ваш отказ
-              .claim-detail__fact-value {{ claim.refuse_reason }}
 
-        .claim-detail__note(v-if='isPending && claim.auto_admit_at')
-          q-icon(name='schedule', size='16px')
-          span Без ответа претензия будет признана {{ formatDate(claim.auto_admit_at) }}.
+        .claim-detail__note(v-if='isPending')
+          q-icon(name='info', size='16px')
+          span Пока вы не согласились, сумма считается непризнанной и из выплат не удерживается; кооператив вправе обратиться с ней в суд.
         .claim-detail__note(v-if='claim.status === "ADMITTED"')
           q-icon(name='info', size='16px')
           span Сумма удерживается из ваших следующих выплат за поставки — переводить ничего не нужно.
@@ -191,11 +182,11 @@ q-page.claim-detail(role='region', aria-label='Гарантийная прете
           BaseButton(variant='primary', size='sm', :loading='admitting', @click='admit')
             template(#icon-left)
               q-icon(name='check_circle', size='16px')
-            | Принять претензию
-          BaseButton(variant='secondary', size='sm', :disabled='admitting', @click='refuseDialog = true')
+            | Согласен
+          BaseButton(variant='secondary', size='sm', :disabled='admitting', @click='disagreeDialog = true')
             template(#icon-left)
               q-icon(name='cancel', size='16px')
-            | Отказать
+            | Не согласен
 
       BaseCard.claim-detail__card(v-if='claim.reclamation')
         template(#head)
@@ -208,7 +199,7 @@ q-page.claim-detail(role='region', aria-label='Гарантийная прете
           .t-h3 Как проходил возврат
         ActivityTimeline(:events='timelineEvents', group-by-date)
 
-    RefuseClaimDialog(v-model='refuseDialog', :claim='claim', @decided='load')
+    DisagreeClaimDialog(v-model='disagreeDialog', :claim='claim')
 </template>
 
 <style scoped lang="scss">

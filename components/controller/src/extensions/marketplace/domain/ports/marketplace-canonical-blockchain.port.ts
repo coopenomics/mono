@@ -278,12 +278,8 @@ export interface MarketplaceCanonicalBlockchainPort {
   handBack(data: MarketContract.Actions.HandBack.IHandBack): Promise<InnerTransactResult>;
 
   // ── p.mkt.claim — гарантийная претензия поставщику (99D-13) ──
-  /** Поставщик признал претензию: o.mkt.admit, долг к удержанию из выплат. */
+  /** Поставщик признал претензию: o.mkt.admit, долг к удержанию из выплат. Несогласие в цепь не пишется. */
   admitClaim(data: MarketContract.Actions.AdmitClaim.IAdmitClaim): Promise<InnerTransactResult>;
-  /** Поставщик отказал по претензии: o.mkt.refuse, основание для иска. */
-  refuseClaim(data: MarketContract.Actions.RefuseClaim.IRefuseClaim): Promise<InnerTransactResult>;
-  /** Кооператив признаёт претензию за поставщика по истечении срока ответа (автоприём). */
-  autoClaim(data: MarketContract.Actions.AutoClaim.IAutoClaim): Promise<InnerTransactResult>;
   /**
    * Решение совета по хэшу повестки (order_hash / request_hash) — источник
    * номера решения для протокола и журнала саги. `null` — повестка ещё не

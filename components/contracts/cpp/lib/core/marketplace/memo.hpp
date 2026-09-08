@@ -139,14 +139,6 @@ namespace Marketplace::Memo {
     return "Гарантийная претензия поставщику № " + std::to_string(claim_id) + " (заказ № " + std::to_string(order_id) + "): признана поставщиком, долг к удержанию из выплат";
   }
 
-  inline std::string get_auto_admit_claim_memo(uint64_t claim_id, uint64_t order_id) {
-    return "Гарантийная претензия поставщику № " + std::to_string(claim_id) + " (заказ № " + std::to_string(order_id) + "): признана по истечении срока ответа поставщика";
-  }
-
-  inline std::string get_refuse_claim_memo(uint64_t claim_id, uint64_t order_id) {
-    return "Гарантийная претензия поставщику № " + std::to_string(claim_id) + " (заказ № " + std::to_string(order_id) + "): отклонена поставщиком";
-  }
-
   inline std::string get_deduct_debt_memo(uint64_t order_id) {
     return "Удержание признанного гарантийного долга поставщика из выплаты по заказу № " + std::to_string(order_id);
   }

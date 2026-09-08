@@ -259,18 +259,6 @@ export interface IAdmitClaim {
   claim_hash: IChecksum256
 }
 
-export interface IRefuseClaim {
-  coopname: IName
-  supplier: IName
-  claim_hash: IChecksum256
-  reason: string
-}
-
-export interface IAutoClaim {
-  coopname: IName
-  claim_hash: IChecksum256
-}
-
 /** Гарантийная претензия поставщику — таблица `claims`, анкер процесса p.mkt.claim. */
 export interface IWarrantyClaim {
   id: IUint64
@@ -288,7 +276,6 @@ export interface IWarrantyClaim {
   status: IName
   created_at: ITimePointSec
   decided_at: ITimePointSec
-  refuse_reason: string
 }
 
 export interface IRejRetrn {

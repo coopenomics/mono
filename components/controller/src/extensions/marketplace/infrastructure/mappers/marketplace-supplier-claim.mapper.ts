@@ -24,8 +24,6 @@ export class MarketplaceSupplierClaimMapper {
       status: row.status,
       issued_at: row.issued_at,
       decided_at: row.decided_at ?? null,
-      refuse_reason: row.refuse_reason ?? null,
-      auto_admitted: row.auto_admitted ?? false,
       issue_tx_hash: row.issue_tx_hash ?? '',
       decide_tx_hash: row.decide_tx_hash ?? null,
       created_at: row.created_at,

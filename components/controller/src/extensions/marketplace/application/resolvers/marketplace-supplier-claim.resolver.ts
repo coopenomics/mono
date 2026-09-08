@@ -8,7 +8,7 @@ import { MarketplaceRoleGuard } from '../guards/marketplace-role.guard';
 import type { IMarketplaceCurrentMember } from '../dto/marketplace-current-member.dto';
 import {
   MarketplaceAdmitSupplierClaimInputDTO,
-  MarketplaceRefuseSupplierClaimInputDTO,
+  MarketplaceSupplierClaimBranchContactsDTO,
   MarketplaceSupplierClaimDTO,
   MarketplaceSupplierClaimResultDTO,
   MarketplaceSupplierClaimStatusEnum,
@@ -22,10 +22,14 @@ import {
 } from '../services/marketplace-order-display.service';
 import { toDecisionEntryDTO, toPhotoDTO } from './marketplace-return-claim.mapper';
 
+type BranchContacts = Awaited<ReturnType<MarketplaceOrderDisplayService['resolveBranchContacts']>>;
+type OrderDisplay = Awaited<ReturnType<MarketplaceOrderDisplayService['enrichByOrderIds']>> extends Map<string, infer V> ? V : never;
+
 /**
  * Стол поставщика «Гарантийные возвраты» (задача 99D-13): список претензий и
- * сводка по кошелькам, карточка претензии с рекламацией в две подписи,
- * ответ «принять» / «отказать». Поставщик видит только свои претензии
+ * сводка по двум кошелькам, карточка претензии с рекламацией в две подписи и
+ * контактами участка, признание претензии. Несогласие в цепь не пишется —
+ * поставщик связывается с участком. Поставщик видит только свои претензии
  * (`SupplierClaim:read:to-self`), совет и администратор — все.
  */
 @Resolver()
@@ -97,26 +101,6 @@ export class MarketplaceSupplierClaimResolver {
     return { claim: dto, tx_hash: result.tx_hash };
   }
 
-  @Mutation(() => MarketplaceSupplierClaimResultDTO, {
-    name: 'marketplaceRefuseSupplierClaim',
-    description: 'Поставщик отказывает по гарантийной претензии с указанием причины: сумма учитывается как отказанная.',
-  })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('SupplierClaim', 'respond:to-self')
-  async marketplaceRefuseSupplierClaim(
-    @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
-    @Args('data') data: MarketplaceRefuseSupplierClaimInputDTO
-  ): Promise<MarketplaceSupplierClaimResultDTO> {
-    const result = await this.service.refuse({
-      coopname: platformSettings().coopname,
-      supplier: member.username,
-      claim_id: data.claim_id,
-      reason: data.reason,
-    });
-    const [dto] = await this.toDTOs([result.claim], true);
-    return { claim: dto, tx_hash: result.tx_hash };
-  }
-
   // ── helpers ──────────────────────────────────────────────────────────
 
   private assertVisible(claim: MarketplaceSupplierClaimDomainEntity, member: IMarketplaceCurrentMember): void {
@@ -126,10 +110,47 @@ export class MarketplaceSupplierClaimResolver {
     throw new ForbiddenException('Претензия выставлена другому поставщику.');
   }
 
+  /** Контакты участков, где лежит имущество по претензиям, — по одному запросу на участок. */
+  private async contactsByBranch(claims: MarketplaceSupplierClaimDomainEntity[]): Promise<Map<string, BranchContacts>> {
+    const out = new Map<string, BranchContacts>();
+    for (const braname of new Set(claims.map((c) => c.delivery_braname))) {
+      out.set(braname, await this.orderDisplay.resolveBranchContacts(braname));
+    }
+    return out;
+  }
+
+  /** Куда поставщику ехать разбираться: реквизиты участка и оператор, принявший имущество. */
+  private static branchContacts(
+    contacts: BranchContacts | undefined,
+    operatorAccount: string | null,
+    names: Map<string, string>
+  ): MarketplaceSupplierClaimBranchContactsDTO {
+    return {
+      name: contacts?.name ?? null,
+      address: contacts?.address ?? null,
+      phone: contacts?.phone ?? null,
+      email: contacts?.email ?? null,
+      operator_account: operatorAccount,
+      operator_name: operatorAccount ? (names.get(operatorAccount) ?? null) : null,
+    };
+  }
+
+  /** Поля, которые претензия берёт из заказа: заказчик, товар, фасовка, имя участка. */
+  private static orderFields(d: OrderDisplay | undefined, branchName: string | null | undefined) {
+    return {
+      orderer_name: d?.orderer_name ?? null,
+      delivery_branch_name: branchName ?? null,
+      product_name: d?.product_name ?? null,
+      unit_of_measure: d?.unit_of_measure ?? null,
+      package_size: d?.package_size ?? null,
+    };
+  }
+
   /** Батч-обогащение: товар и участок из заказа, имена в истории; рекламация — только в карточке. */
   private async toDTOs(claims: MarketplaceSupplierClaimDomainEntity[], withDocument: boolean): Promise<MarketplaceSupplierClaimDTO[]> {
     const display = await this.orderDisplay.enrichByOrderIds(claims.map((c) => c.order_id), { withParticipantNames: true });
     const branchNames = await this.orderDisplay.resolveBranchNames([...new Set(claims.map((c) => c.delivery_braname))]);
+    const contactsByBranch = await this.contactsByBranch(claims);
     return Promise.all(
       claims.map(async (claim) => {
         const photos = await Promise.all(claim.photos.map((p) => toPhotoDTO(p, (key) => this.service.getPhotoReadUrl(key))));
@@ -138,7 +159,12 @@ export class MarketplaceSupplierClaimResolver {
         const names = await this.orderDisplay.resolveAccountNames([...new Set(log.map((e) => e.by_chairman_account))]);
         const logBranches = await this.orderDisplay.resolveBranchNames([...new Set(log.map((e) => e.braname))]);
         const aggregate = withDocument ? await this.service.reclamationAggregate(claim) : null;
-        const d = display.get(claim.order_id);
+        const operatorAccount = returnClaim?.on_site_inspection?.by_chairman_account ?? null;
+        const branch_contacts = MarketplaceSupplierClaimResolver.branchContacts(
+          contactsByBranch.get(claim.delivery_braname),
+          operatorAccount,
+          names
+        );
         return {
           id: claim.id,
           coopname: claim.coopname,
@@ -148,12 +174,8 @@ export class MarketplaceSupplierClaimResolver {
           order_hash: claim.order_hash,
           supplier_account: claim.supplier_account,
           orderer_account: claim.orderer_account,
-          orderer_name: d?.orderer_name ?? null,
           delivery_braname: claim.delivery_braname,
-          delivery_branch_name: branchNames.get(claim.delivery_braname) ?? null,
-          product_name: d?.product_name ?? null,
-          unit_of_measure: d?.unit_of_measure ?? null,
-          package_size: d?.package_size ?? null,
+          ...MarketplaceSupplierClaimResolver.orderFields(display.get(claim.order_id), branchNames.get(claim.delivery_braname)),
           actual_quantity: claim.actual_quantity,
           amount: claim.amount,
           reason_text: claim.reason_text,
@@ -163,9 +185,7 @@ export class MarketplaceSupplierClaimResolver {
           status: claim.status as MarketplaceSupplierClaimStatusEnum,
           issued_at: claim.issued_at,
           decided_at: claim.decided_at,
-          refuse_reason: claim.refuse_reason,
-          auto_admitted: claim.auto_admitted,
-          auto_admit_at: await this.service.autoAdmitAt(claim),
+          branch_contacts,
           history: log.map((e) => toDecisionEntryDTO(e, names, logBranches)),
           created_at: claim.created_at,
           updated_at: claim.updated_at,

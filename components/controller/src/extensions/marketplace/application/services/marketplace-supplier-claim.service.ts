@@ -1,5 +1,4 @@
 import {
-  BadRequestException,
   ConflictException,
   ForbiddenException,
   Inject,
@@ -33,7 +32,6 @@ import {
   type MarketplaceCanonicalBlockchainPort,
 } from '../../domain/ports/marketplace-canonical-blockchain.port';
 import { MARKETPLACE_ASSET_CONFIG, type MarketplaceAssetConfig } from './marketplace-asset.config';
-import { MarketplaceExtensionConfigService } from './marketplace-extension-config.service';
 import { MarketplaceReturnClaimImagesService } from './marketplace-return-claim-images.service';
 import {
   MARKETPLACE_SUPPLIER_CLAIM_ISSUED_EVENT,
@@ -44,9 +42,10 @@ export const MARKETPLACE_SUPPLIER_CLAIM_SERVICE = Symbol('MARKETPLACE_SUPPLIER_C
 
 /** Кошельки ledger2 претензий поставщику — разрез по поставщику (см. wallets.hpp). */
 export const SUPPLIER_CLAIM_WALLETS = {
+  /** Непризнанные претензии: по умолчанию поставщик не согласен. */
   pending: 'w.mkt.claim',
+  /** Признанный долг — гасится удержанием из выплат. */
   debt: 'w.mkt.debt',
-  refused: 'w.mkt.refuse',
 } as const;
 
 /**
@@ -60,14 +59,11 @@ export function supplierClaimHashOf(request_hash: string): string {
     .digest('hex');
 }
 
-/** Контрактный минимум срока ответа поставщика (CLAIM_AUTO_ADMIT_SECS = 14 суток). */
-const CONTRACT_AUTO_ADMIT_DAYS = 14;
-const DAY_MS = 24 * 60 * 60 * 1000;
-
 export interface MarketplaceSupplierClaimSummary {
+  /** Признанный долг, ещё не удержанный из выплат. */
   admitted_debt: string;
-  refused_total: string;
-  pending_total: string;
+  /** Непризнанные претензии — основание для иска. */
+  not_admitted_total: string;
   symbol: string;
 }
 
@@ -76,11 +72,12 @@ export interface MarketplaceSupplierClaimSummary {
  *
  * Претензию заводит контракт при исполнении решения совета об отмене сделки
  * (`onmktrtauth`) по заказу с внешним поставщиком; здесь она зеркалится в PG
- * из заявления на возврат, поставщику уходит уведомление. Поставщик отвечает
- * со своего стола: `admit` → `admitclaim` (долг к удержанию из выплат),
- * `refuse` → `refuseclaim` (основание для иска). Сторож при включённом
- * автоприёме признаёт претензию за поставщика по истечении срока ответа.
- * Сводки по кошелькам читаются из PG-кеша `ledger2::userwallets`.
+ * из заявления на возврат, поставщику уходит уведомление. По умолчанию
+ * поставщик не согласен — сумма лежит на кошельке непризнанных претензий,
+ * кооператив ничего не делает. Признание со стола поставщика — `admit` →
+ * `admitclaim` (долг к удержанию из выплат). Несогласие в цепь не пишется:
+ * поставщику показываются контакты участка. Сводки по кошелькам читаются из
+ * PG-кеша `ledger2::userwallets`.
  */
 @Injectable()
 export class MarketplaceSupplierClaimService {
@@ -95,7 +92,6 @@ export class MarketplaceSupplierClaimService {
     private readonly assetConfig: MarketplaceAssetConfig,
     @Inject(DOCUMENT_PORT) private readonly documentPort: IDocumentPort,
     @Inject(USER_WALLET_PORT) private readonly userWallets: IUserWalletPort,
-    private readonly extensionConfig: MarketplaceExtensionConfigService,
     private readonly imagesService: MarketplaceReturnClaimImagesService,
     private readonly eventBus: EventEmitter2,
     @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
@@ -190,30 +186,21 @@ export class MarketplaceSupplierClaimService {
     return this.imagesService.getReadUrl(bucketKey);
   }
 
-  /** Когда претензия будет признана автоматически; null — автоприём выключен или ответ уже дан. */
-  async autoAdmitAt(claim: MarketplaceSupplierClaimDomainEntity): Promise<Date | null> {
-    if (claim.status !== MarketplaceSupplierClaimStatuses.PENDING) return null;
-    const cfg = await this.autoAdmitConfig();
-    if (!cfg.enabled) return null;
-    return new Date(claim.issued_at.getTime() + cfg.days * DAY_MS);
-  }
-
   /**
-   * Сводка по кошелькам поставщика: признанный долг к удержанию (`w.mkt.debt`),
-   * отказанные претензии (`w.mkt.refuse`), ожидающие ответа (`w.mkt.claim`).
-   * Отсутствующая запись кошелька — ноль, не ошибка.
+   * Сводка по кошелькам поставщика: признанный долг к удержанию (`w.mkt.debt`)
+   * и непризнанные претензии (`w.mkt.claim`). Отсутствующая запись кошелька —
+   * ноль, не ошибка.
    */
   async summary(coopname: string, supplier: string): Promise<MarketplaceSupplierClaimSummary> {
     const read = async (wallet: string): Promise<string> => {
       const row = await this.userWallets.findByWalletAndUsername(coopname, wallet, supplier);
       return this.normalizeAmount(row?.available);
     };
-    const [admitted_debt, refused_total, pending_total] = await Promise.all([
+    const [admitted_debt, not_admitted_total] = await Promise.all([
       read(SUPPLIER_CLAIM_WALLETS.debt),
-      read(SUPPLIER_CLAIM_WALLETS.refused),
       read(SUPPLIER_CLAIM_WALLETS.pending),
     ]);
-    return { admitted_debt, refused_total, pending_total, symbol: this.assetConfig.symbol };
+    return { admitted_debt, not_admitted_total, symbol: this.assetConfig.symbol };
   }
 
   // ── Ответ поставщика ─────────────────────────────────────────────────
@@ -226,85 +213,18 @@ export class MarketplaceSupplierClaimService {
       claim_hash: claim.claim_hash,
     });
     const txHash = this.extractTxHash(tx);
-    const decided = await this.claimRepo.decide(claim.id, {
-      status: MarketplaceSupplierClaimStatuses.ADMITTED,
-      decided_at: new Date(),
-      decide_tx_hash: txHash,
-    });
+    const admitted = await this.claimRepo.admit(claim.id, { decided_at: new Date(), decide_tx_hash: txHash });
     this.logger.log(`Претензия ${claim.id}: поставщик ${claim.supplier_account} признал (tx=${txHash}).`);
-    return { claim: decided ?? (await this.findById(input.coopname, input.claim_id)), tx_hash: txHash };
+    return { claim: admitted ?? (await this.findById(input.coopname, input.claim_id)), tx_hash: txHash };
   }
 
-  async refuse(input: { coopname: string; supplier: string; claim_id: string; reason: string }): Promise<{ claim: MarketplaceSupplierClaimDomainEntity; tx_hash: string }> {
-    const reason = input.reason.trim();
-    if (!reason) throw new BadRequestException('Укажите причину отказа по претензии.');
-    if (reason.length > 500) throw new BadRequestException('Причина отказа не должна превышать 500 символов.');
-    const claim = await this.requirePendingOwn(input.coopname, input.claim_id, input.supplier);
-    const tx = await this.chainPort.refuseClaim({
-      coopname: claim.coopname,
-      supplier: claim.supplier_account,
-      claim_hash: claim.claim_hash,
-      reason,
-    });
-    const txHash = this.extractTxHash(tx);
-    const decided = await this.claimRepo.decide(claim.id, {
-      status: MarketplaceSupplierClaimStatuses.REFUSED,
-      decided_at: new Date(),
-      refuse_reason: reason,
-      decide_tx_hash: txHash,
-    });
-    this.logger.log(`Претензия ${claim.id}: поставщик ${claim.supplier_account} отказал (tx=${txHash}).`);
-    return { claim: decided ?? (await this.findById(input.coopname, input.claim_id)), tx_hash: txHash };
-  }
+  // ── Зеркало признания из цепи (идемпотентно) ─────────────────────────
 
-  // ── Зеркало ответов из цепи (идемпотентно) ───────────────────────────
-
-  /** Ответ, проведённый в цепи (в том числе автоприём) — довести PG до состояния цепи. */
-  async mirrorDecision(input: {
-    coopname: string;
-    claim_hash: string;
-    status: 'ADMITTED' | 'REFUSED';
-    reason?: string;
-    auto?: boolean;
-    tx_hash: string;
-  }): Promise<void> {
+  /** Признание, проведённое в цепи, — довести PG до состояния цепи. */
+  async mirrorAdmitted(input: { coopname: string; claim_hash: string; tx_hash: string }): Promise<void> {
     const claim = await this.claimRepo.findByClaimHash(input.coopname, input.claim_hash.toLowerCase());
     if (!claim || claim.status !== MarketplaceSupplierClaimStatuses.PENDING) return;
-    await this.claimRepo.decide(claim.id, {
-      status: input.status,
-      decided_at: new Date(),
-      refuse_reason: input.reason ?? null,
-      auto_admitted: input.auto ?? false,
-      decide_tx_hash: input.tx_hash,
-    });
-  }
-
-  // ── Сторож автоприёма ────────────────────────────────────────────────
-
-  /**
-   * При включённом автоприёме признать за поставщика претензии без ответа,
-   * выставленные раньше срока. Контракт сам проверяет 14-дневный минимум.
-   */
-  async autoAdmitTick(coopname: string): Promise<void> {
-    const cfg = await this.autoAdmitConfig();
-    if (!cfg.enabled) return;
-    const before = new Date(Date.now() - cfg.days * DAY_MS);
-    const due = await this.claimRepo.listPendingIssuedBefore(coopname, before);
-    for (const claim of due) {
-      try {
-        const tx = await this.chainPort.autoClaim({ coopname, claim_hash: claim.claim_hash });
-        const txHash = this.extractTxHash(tx);
-        await this.claimRepo.decide(claim.id, {
-          status: MarketplaceSupplierClaimStatuses.ADMITTED,
-          decided_at: new Date(),
-          auto_admitted: true,
-          decide_tx_hash: txHash,
-        });
-        this.logger.log(`Претензия ${claim.id}: признана автоматически по истечении срока ответа (tx=${txHash}).`);
-      } catch (err) {
-        this.logger.warn(`Претензия ${claim.id}: автоприём не прошёл (${(err as Error).message}); повтор на следующем тике.`);
-      }
-    }
+    await this.claimRepo.admit(claim.id, { decided_at: new Date(), decide_tx_hash: input.tx_hash });
   }
 
   // ── private ──────────────────────────────────────────────────────────
@@ -315,16 +235,9 @@ export class MarketplaceSupplierClaimService {
       throw new ForbiddenException('Отвечать по претензии может только поставщик, которому она выставлена.');
     }
     if (claim.status !== MarketplaceSupplierClaimStatuses.PENDING) {
-      throw new ConflictException('По этой претензии ответ уже дан.');
+      throw new ConflictException('Претензия уже признана.');
     }
     return claim;
-  }
-
-  private async autoAdmitConfig(): Promise<{ enabled: boolean; days: number }> {
-    const cfg = await this.extensionConfig.get();
-    const enabled = cfg?.supplierClaims?.auto_admit_enabled ?? false;
-    const days = Math.max(CONTRACT_AUTO_ADMIT_DAYS, Number(cfg?.supplierClaims?.auto_admit_days ?? CONTRACT_AUTO_ADMIT_DAYS));
-    return { enabled, days };
   }
 
   private normalizeAmount(value: string | null | undefined): string {

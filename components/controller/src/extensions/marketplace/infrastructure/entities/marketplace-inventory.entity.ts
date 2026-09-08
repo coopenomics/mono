@@ -10,6 +10,7 @@ import type {
   MarketplaceBarcodeFormat,
   MarketplaceInventoryOwnership,
   MarketplaceInventoryStatus,
+  MarketplaceInventoryOrigin,
 } from '../../domain/entities/marketplace-inventory.types';
 import { numericQuantityTransformer } from './numeric-quantity.transformer';
 import {
@@ -124,6 +125,15 @@ export class MarketplaceInventoryEntity {
   // обезличенный остаток кооператива (COOP). Default — для legacy-записей.
   @Column({ type: 'varchar', length: 8, default: 'ORDER' })
   public ownership!: MarketplaceInventoryOwnership;
+
+  // 99D-13: происхождение позиции — приёмка от поставщика либо гарантийный
+  // возврат пайщика, принятый по решению совета. Возвращённое лежит в остатке
+  // как обычное имущество, но оператор видит пометку. Default — для legacy.
+  @Column({ type: 'varchar', length: 16, default: 'RECEPTION' })
+  public origin!: MarketplaceInventoryOrigin;
+
+  @Column({ type: 'uuid', nullable: true })
+  public return_claim_id!: string | null;
 
   // Цена прибытия за ЕДИНИЦУ ОТПУСКА (закупочная из акта приёмки) — база
   // публикации остатка. По мере — за базовую единицу, упаковкой — за упаковку

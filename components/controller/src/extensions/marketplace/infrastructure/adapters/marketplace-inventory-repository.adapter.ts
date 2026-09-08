@@ -52,6 +52,8 @@ export class MarketplaceInventoryRepositoryAdapter implements MarketplaceInvento
       labeled_by_operator_account: input.labeled_by_operator_account ?? null,
       expiry_date: input.expiry_date ?? null,
       ownership: input.ownership ?? MarketplaceInventoryOwnerships.ORDER,
+      origin: input.origin ?? 'RECEPTION',
+      return_claim_id: input.return_claim_id ?? null,
       arrival_price: input.arrival_price ?? null,
       package_size: input.package_size ?? 0,
       unit_of_measure: input.unit_of_measure ?? MarketplaceUnitsOfMeasure.PIECE,
@@ -206,6 +208,7 @@ export class MarketplaceInventoryRepositoryAdapter implements MarketplaceInvento
       .map((r) => ({
         inventory_id: r.id,
         braname: r.braname,
+        origin: r.origin ?? 'RECEPTION',
         asset_title: r.product_name_snapshot,
         quantity: r.quantity_per_label,
         arrival_price: r.arrival_price,
@@ -581,6 +584,10 @@ export class MarketplaceInventoryRepositoryAdapter implements MarketplaceInvento
       // без размера упаковки её не с чем перемножать.
       package_size: row.package_size,
       unit_of_measure: row.unit_of_measure,
+      // Происхождение наследуется: отколотая часть гарантийного возврата —
+      // всё ещё гарантийный возврат.
+      origin: row.origin,
+      return_claim_id: row.return_claim_id,
       published_offer_id: null,
       reserved_order_id: null,
     };

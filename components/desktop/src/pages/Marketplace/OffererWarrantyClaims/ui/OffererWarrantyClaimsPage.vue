@@ -17,15 +17,17 @@ import {
   type MarketplaceSupplierClaimSummaryView,
   type MarketplaceSupplierClaimView,
 } from '../api';
-import RefuseClaimDialog from './RefuseClaimDialog.vue';
+import DisagreeClaimDialog from './DisagreeClaimDialog.vue';
 
 /**
  * Стол поставщика «Гарантийные возвраты» (99D-13). Две сводки по кошелькам
- * поставщика — признанный долг к удержанию из выплат и отказанные претензии
- * (потенциальный иск) — и список претензий: имущество, количество, сумма,
- * дата, состояние. «Открыть» ведёт в карточку с рекламацией, фотографиями и
- * пройденными шагами; «Принять» и «Отказать» доступны, пока ответа нет.
- * Текст рекламации в списке не показывается — он может быть длинным.
+ * поставщика — непризнанные претензии (по умолчанию он не согласен, для
+ * кооператива это основание для иска) и признанный долг к удержанию из
+ * выплат — и список претензий: имущество, количество, сумма, дата,
+ * состояние. «Открыть» ведёт в карточку с рекламацией, фотографиями и
+ * пройденными шагами; «Согласен» переводит сумму в долг, «Не согласен» лишь
+ * показывает контакты участка — в цепи ничего не происходит. Текст
+ * рекламации в списке не показывается — он может быть длинным.
  */
 
 const router = useRouter();
@@ -35,8 +37,8 @@ const items = ref<MarketplaceSupplierClaimView[]>([]);
 const summary = ref<MarketplaceSupplierClaimSummaryView | null>(null);
 const loading = ref(false);
 const admitting = ref<string | null>(null);
-const refuseTarget = ref<MarketplaceSupplierClaimView | null>(null);
-const refuseDialog = ref(false);
+const disagreeTarget = ref<MarketplaceSupplierClaimView | null>(null);
+const disagreeDialog = ref(false);
 
 const pendingCount = computed(() => items.value.filter((c) => c.status === 'PENDING').length);
 
@@ -76,9 +78,9 @@ async function admit(c: MarketplaceSupplierClaimView): Promise<void> {
   }
 }
 
-function refuse(c: MarketplaceSupplierClaimView): void {
-  refuseTarget.value = c;
-  refuseDialog.value = true;
+function disagree(c: MarketplaceSupplierClaimView): void {
+  disagreeTarget.value = c;
+  disagreeDialog.value = true;
 }
 
 onMounted(() => {
@@ -90,35 +92,36 @@ onMounted(() => {
 q-page.offerer-claims
   PageHint(storage-key='mp:offerer-claims:banner-dismissed')
     | Гарантийные претензии по вашему товару: пайщик вернул имущество, кооператив
-    | принял его на участке, совет отменил сделку. Признанная сумма удерживается
-    | из ваших следующих выплат; отказ остаётся за вами, но кооператив вправе
-    | обратиться в суд. Имущество можно забрать на участке, где оно принято.
+    | принял его на участке, совет отменил сделку. Пока вы не согласились, сумма
+    | считается непризнанной и из выплат не удерживается, но кооператив вправе
+    | обратиться с ней в суд. Согласие переводит сумму в долг, который гасится
+    | из ваших следующих выплат. Имущество можно забрать на участке, где оно принято.
 
   .offerer-claims__cards
+    WalletCard(
+      neutral,
+      icon='gavel',
+      title='Не признано'
+      subtitle='Претензии, с которыми вы не согласились'
+      :balance='summary ? formatAsset2Digits(summary.not_admitted_total) : "0.00"',
+      :symbol='summary?.symbol ?? ""',
+      balance-label='Спорная сумма'
+      :loading='loading && !summary'
+    )
     WalletCard(
       program='wallet',
       icon='request_quote',
       title='Признанный долг',
-      subtitle='Будет удержано из следующих выплат'
+      subtitle='Гасится из следующих выплат'
       :balance='summary ? formatAsset2Digits(summary.admitted_debt) : "0.00"',
       :symbol='summary?.symbol ?? ""',
       balance-label='К удержанию'
       :loading='loading && !summary'
     )
-    WalletCard(
-      neutral,
-      icon='gavel',
-      title='Отказано'
-      subtitle='Претензии, по которым вы отказали'
-      :balance='summary ? formatAsset2Digits(summary.refused_total) : "0.00"',
-      :symbol='summary?.symbol ?? ""',
-      balance-label='Спорная сумма'
-      :loading='loading && !summary'
-    )
 
   .offerer-claims__title
     .t-h2 Претензии
-    BaseBadge(v-if='pendingCount', variant='warn') Ждут ответа: {{ pendingCount }}
+    BaseBadge(v-if='pendingCount', variant='warn') Не признано: {{ pendingCount }}
 
   CardListSkeleton(v-if='loading && !items.length', :count='3')
   .offerer-claims__list(v-else-if='items.length')
@@ -132,9 +135,6 @@ q-page.offerer-claims
         .claim-card__row
           .claim-card__amount {{ formatAsset2Digits(c.amount) }} ₽
           .claim-card__date {{ formatDateToHumanDateTime(c.issued_at) }}
-        .claim-card__hint(v-if='c.status === "PENDING" && c.auto_admit_at')
-          | Без ответа претензия будет признана {{ formatDateToHumanDateTime(c.auto_admit_at) }}
-        .claim-card__refuse(v-if='c.refuse_reason') Причина отказа: {{ c.refuse_reason }}
         .claim-card__actions
           BaseButton(variant='ghost', size='sm', @click='open(c)')
             template(#icon-left)
@@ -144,11 +144,11 @@ q-page.offerer-claims
             BaseButton(variant='primary', size='sm', :loading='admitting === c.id', @click='admit(c)')
               template(#icon-left)
                 q-icon(name='check_circle', size='16px')
-              | Принять
-            BaseButton(variant='secondary', size='sm', :disabled='admitting === c.id', @click='refuse(c)')
+              | Согласен
+            BaseButton(variant='secondary', size='sm', :disabled='admitting === c.id', @click='disagree(c)')
               template(#icon-left)
                 q-icon(name='cancel', size='16px')
-              | Отказать
+              | Не согласен
 
   EmptyState(
     v-else,
@@ -158,7 +158,7 @@ q-page.offerer-claims
     template(#icon)
       q-icon(name='assignment_return', size='48px')
 
-  RefuseClaimDialog(v-model='refuseDialog', :claim='refuseTarget', @decided='load')
+  DisagreeClaimDialog(v-model='disagreeDialog', :claim='disagreeTarget')
 </template>
 
 <style scoped lang="scss">
@@ -223,13 +223,6 @@ q-page.offerer-claims
   &__date {
     color: var(--p-ink-3);
     font-size: var(--p-fs-sm, 13px);
-  }
-  &__hint {
-    color: var(--p-ink-2);
-    font-size: var(--p-fs-sm, 13px);
-  }
-  &__refuse {
-    color: var(--p-neg);
   }
   &__actions {
     display: flex;

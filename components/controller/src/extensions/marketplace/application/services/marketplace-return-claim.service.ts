@@ -45,6 +45,7 @@ import {
   type MarketplaceInventoryDomainRepository,
 } from '../../domain/repositories/marketplace-inventory.repository';
 import {
+  MarketplaceInventoryOrigins,
   MarketplaceInventoryOwnerships,
   MarketplaceInventoryStatuses,
 } from '../../domain/entities/marketplace-inventory.types';
@@ -1629,6 +1630,10 @@ export class MarketplaceReturnClaimService {
         received_by_operator_account: chairman_account,
         expiry_date,
         ownership: MarketplaceInventoryOwnerships.COOP,
+        // Пометка «гарантийный возврат» со ссылкой на рекламацию: оператор видит
+        // её в остатке, корзине списания и при публикации.
+        origin: MarketplaceInventoryOrigins.WARRANTY_RETURN,
+        return_claim_id: claim.id,
         arrival_price,
       });
 

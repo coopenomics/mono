@@ -47,6 +47,17 @@ registerEnumType(MarketplaceInventoryOwnershipEnum, {
     'Принадлежность позиции склада: адресная под заказ пайщика (ORDER) либо обезличенный остаток кооператива (COOP).',
 });
 
+export enum MarketplaceInventoryOriginEnum {
+  RECEPTION = 'RECEPTION',
+  WARRANTY_RETURN = 'WARRANTY_RETURN',
+}
+
+registerEnumType(MarketplaceInventoryOriginEnum, {
+  name: 'MarketplaceInventoryOrigin',
+  description:
+    'Происхождение позиции склада: приёмка от поставщика либо гарантийный возврат пайщика, принятый по решению совета.',
+});
+
 export enum MarketplaceInventoryStatusEnum {
   RECEIVED = 'RECEIVED',
   LABELED = 'LABELED',
@@ -167,6 +178,17 @@ export class MarketplaceInventoryItemDTO {
     description: 'Принадлежность: адресная позиция заказа или обезличенный остаток кооператива.',
   })
   ownership!: MarketplaceInventoryOwnershipEnum;
+
+  @Field(() => MarketplaceInventoryOriginEnum, {
+    description: 'Происхождение позиции: приёмка от поставщика либо гарантийный возврат пайщика.',
+  })
+  origin!: MarketplaceInventoryOriginEnum;
+
+  @Field(() => String, {
+    nullable: true,
+    description: 'Заявление на гарантийный возврат, по которому имущество вернулось на склад.',
+  })
+  return_claim_id!: string | null;
 
   @Field(() => String, {
     nullable: true,
@@ -363,6 +385,8 @@ export function toMarketplaceInventoryItemDTO(
   dto.labeled_at = e.labeled_at;
   dto.labeled_by_operator_account = e.labeled_by_operator_account;
   dto.ownership = e.ownership as MarketplaceInventoryOwnershipEnum;
+  dto.origin = e.origin as MarketplaceInventoryOriginEnum;
+  dto.return_claim_id = e.return_claim_id;
   dto.arrival_price = e.arrival_price;
   dto.published_offer_id = e.published_offer_id;
   dto.reserved_order_id = e.reserved_order_id;

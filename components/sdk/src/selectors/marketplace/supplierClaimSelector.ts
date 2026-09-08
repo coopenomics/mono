@@ -28,9 +28,14 @@ const rawSupplierClaimSelector = {
   status: true,
   issued_at: true,
   decided_at: true,
-  refuse_reason: true,
-  auto_admitted: true,
-  auto_admit_at: true,
+  branch_contacts: {
+    name: true,
+    address: true,
+    phone: true,
+    email: true,
+    operator_name: true,
+    operator_account: true,
+  },
   history: rawDecisionEntrySelector,
   created_at: true,
   updated_at: true,
@@ -42,8 +47,7 @@ export const marketplaceSupplierClaimSelector = Selector('MarketplaceSupplierCla
 
 const rawSupplierClaimSummarySelector = {
   admitted_debt: true,
-  refused_total: true,
-  pending_total: true,
+  not_admitted_total: true,
   symbol: true,
 }
 

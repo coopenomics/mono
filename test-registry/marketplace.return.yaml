@@ -291,7 +291,7 @@ cases:
   - id: mkt.ret.side.50
     level: backend
     kind: side
-    scenario: Претензию пытается признать не тот поставщик, либо ответ даётся повторно, либо отказ без причины
+    scenario: С претензией пытается согласиться не тот поставщик, либо согласие даётся повторно
     expect: отказ до обращения к цепи; по заказу из остатка кооператива претензия не заводится
     test: components/controller/tests/unit/marketplace/marketplace-supplier-claim.test.ts
     status: passing
@@ -299,10 +299,11 @@ cases:
   - id: mkt.ret.side.51
     level: backend
     kind: side
-    scenario: Автоприём претензии по сроку
+    scenario: Сводка поставщика по двум кошелькам претензий
     expect: >
-      выключен по умолчанию — сторож не трогает претензии; включён — претензии
-      старше срока (не меньше 14 дней) признаются за поставщика
+      непризнанное — с кошелька непризнанных претензий, признанный долг — с
+      кошелька долга; пустой кошелёк даёт ноль; несогласие в цепь не пишется,
+      автоматических решений нет
     test: components/controller/tests/unit/marketplace/marketplace-supplier-claim.test.ts
     status: passing
 

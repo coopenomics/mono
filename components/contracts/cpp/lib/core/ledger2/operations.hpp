@@ -110,9 +110,8 @@ namespace operations {
     inline constexpr eosio::name MEMBERSHIP_FEE_REFUND  = "o.mkt.refund"_n;   ///< Сторно неиспользованной части членского взноса участка на членский кошелёк программы (TRANSFER w.mkt.fee → w.mkt.member, без Dr/Cr — оба на 86). Отмена — полностью, недовыдача — пропорционально факту, гарантийный возврат — доля за возвращённое; членский остаётся членским и идёт в зачёт следующего заказа.
     inline constexpr eosio::name REFUSAL_PENALTY        = "o.mkt.penal"_n;    ///< Удержание 50% при отказе пайщика от получения после акцепта поставщиком (TRANSFER w.mkt.order → w.mkt.fee, Dr 80 / Cr 86 — паевой становится членским взносом участка; основание в положении о ЦПП — TBD-Standardization). Транзит через пул взносов: далее единым o.brn.common уходит в общий кошелёк КУ. Имущество остаётся на складе КУ; вторая половина возвращается пайщику (o.mkt.unlock + o.mkt.refund).
     inline constexpr eosio::name RECALL_SHARE           = "o.mkt.recall"_n;
-    inline constexpr eosio::name CLAIM_SUPPLIER         = "o.mkt.claim"_n;    ///< Гарантийная претензия поставщику выставлена по решению совета об отмене сделки (ISSUE ∅ → w.mkt.claim по поставщику, без проводки — до признания претензия не актив). Сумма — стоимость возвращённого имущества.
-    inline constexpr eosio::name ADMIT_CLAIM            = "o.mkt.admit"_n;    ///< Поставщик признал претензию (или срок ответа истёк при включённом автоприёме): TRANSFER w.mkt.claim → w.mkt.debt, Dr 76 / Cr 91 — дебиторка поставщика признана прочим доходом; далее гасится удержанием из выплат.
-    inline constexpr eosio::name REFUSE_CLAIM           = "o.mkt.refuse"_n;   ///< Поставщик отказал по претензии: TRANSFER w.mkt.claim → w.mkt.refuse, без проводки — сумма учитывается как основание для иска.
+    inline constexpr eosio::name CLAIM_SUPPLIER         = "o.mkt.claim"_n;    ///< Гарантийная претензия поставщику выставлена по решению совета об отмене сделки (ISSUE ∅ → w.mkt.claim по поставщику, без проводки — до признания претензия не актив). По умолчанию поставщик не согласен: сумма остаётся здесь как основание для иска. Сумма — стоимость возвращённого имущества.
+    inline constexpr eosio::name ADMIT_CLAIM            = "o.mkt.admit"_n;    ///< Поставщик признал претензию: TRANSFER w.mkt.claim → w.mkt.debt, Dr 76 / Cr 91 — дебиторка поставщика признана прочим доходом; далее гасится удержанием из выплат.
     inline constexpr eosio::name DEDUCT_DEBT            = "o.mkt.deduct"_n;   ///< Удержание признанного гарантийного долга из выплаты поставщику (BURN с w.mkt.debt, без проводки: обязательство перед поставщиком и его дебиторка на одном счёте 76 сворачиваются). Идёт в нитке заказа, по которому уменьшена выплата (payout / payconfirm).   ///< Консолидация свободного паевого «Стола заказов» в общий паевой Цифрового кошелька при выходе пайщика из кооператива (TRANSFER w.mkt.share → w.wal.share, без Dr/Cr — оба на 80); зовёт registrator (exit_helpers). Действия пайщика в Столе заказов нет: паевой остаток живёт в программе и идёт на следующие заказы; вывод по заявлению — отдельная будущая задача о движении между программами.
   }
 
@@ -445,7 +444,7 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
   { operations::marketplace::CLAIM_SUPPLIER, processes::marketplace::CLAIM, WalletOp::ISSUE,
     eosio::name{}, ledger2_wallets::MARKETPLACE_CLAIM_PENDING,
     0, 0,
-    "Гарантийная претензия поставщику по отменённой советом сделке" },
+    "Гарантийная претензия поставщику по отменённой советом сделке (не признана)" },
 
   // 12n. p.mkt.claim: Поставщик признал претензию
   //      (TRANSFER w.mkt.claim → w.mkt.debt, Dr 76 / Cr 91 — TBD-Standardization).
@@ -453,13 +452,6 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
     ledger2_wallets::MARKETPLACE_CLAIM_PENDING, ledger2_wallets::MARKETPLACE_SUPPLIER_DEBT,
     ledger2_accounts::OTHER_SETTLEMENTS, ledger2_accounts::OTHER_INCOME_EXPENSES,
     "Претензия признана поставщиком — долг к удержанию из выплат" },
-
-  // 12o. p.mkt.claim: Поставщик отказал по претензии
-  //      (TRANSFER w.mkt.claim → w.mkt.refuse, без проводки).
-  { operations::marketplace::REFUSE_CLAIM, processes::marketplace::CLAIM, WalletOp::TRANSFER,
-    ledger2_wallets::MARKETPLACE_CLAIM_PENDING, ledger2_wallets::MARKETPLACE_CLAIM_REFUSED,
-    0, 0,
-    "Претензия отклонена поставщиком — основание для иска" },
 
   // 12p. p.mkt.supply: Удержание признанного гарантийного долга из выплаты
   //      поставщику (BURN с w.mkt.debt, без проводки — обе стороны на 76).

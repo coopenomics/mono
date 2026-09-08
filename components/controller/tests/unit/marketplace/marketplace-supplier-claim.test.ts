@@ -2,10 +2,11 @@
  * Гарантийная претензия поставщику (задача 99D-13).
  *
  * Претензию заводит контракт по решению совета; бэкенд зеркалит её из
- * заявления на возврат и даёт поставщику ответить. Здесь — границы ответа
- * (чужая претензия, повторный ответ, пустая причина), выставление только по
- * заказу с внешним поставщиком, хэш претензии как у контракта и автоприём
- * строго по настройке.
+ * заявления на возврат. По умолчанию поставщик не согласен и ничего не
+ * происходит; согласие переводит сумму в долг. Здесь — границы согласия
+ * (чужая претензия, повторное согласие), выставление только по заказу с
+ * внешним поставщиком, хэш претензии как у контракта и сводка по двум
+ * кошелькам.
  */
 import { createHash } from 'crypto';
 import {
@@ -50,18 +51,20 @@ function pendingClaim(overrides: Record<string, unknown> = {}) {
   };
 }
 
-function makeService(config: { auto_admit_enabled?: boolean; auto_admit_days?: number } | null = null) {
+function makeService(wallets: Record<string, string> = {}) {
   const claimRepo = {
     createIfNotExists: jest.fn(async (input: Record<string, unknown>) => ({ id: 'claim-1', status: 'PENDING', ...input })),
     findByClaimHash: jest.fn().mockResolvedValue(null),
     findById: jest.fn(),
-    listPendingIssuedBefore: jest.fn().mockResolvedValue([]),
-    decide: jest.fn(async (id: string, patch: Record<string, unknown>) => ({ id, ...patch })),
+    admit: jest.fn(async (id: string, patch: Record<string, unknown>) => ({ id, status: 'ADMITTED', ...patch })),
   };
   const chainPort = {
     admitClaim: jest.fn().mockResolvedValue({ response: { transaction_id: 'tx-admit' } }),
-    refuseClaim: jest.fn().mockResolvedValue({ response: { transaction_id: 'tx-refuse' } }),
-    autoClaim: jest.fn().mockResolvedValue({ response: { transaction_id: 'tx-auto' } }),
+  };
+  const userWallets = {
+    findByWalletAndUsername: jest.fn(async (_c: string, wallet: string) =>
+      wallets[wallet] ? { available: wallets[wallet] } : null
+    ),
   };
   const eventBus = { emit: jest.fn() };
   const service = new MarketplaceSupplierClaimService(
@@ -70,13 +73,12 @@ function makeService(config: { auto_admit_enabled?: boolean; auto_admit_days?: n
     chainPort as never,
     { symbol: 'RUB', decimals: 4 } as never,
     { buildAggregate: jest.fn() } as never,
-    { findByWalletAndUsername: jest.fn().mockResolvedValue(null) } as never,
-    { get: jest.fn().mockResolvedValue(config ? { supplierClaims: config } : null) } as never,
+    userWallets as never,
     { getReadUrl: jest.fn() } as never,
     eventBus as never,
     { setContext: jest.fn(), log: jest.fn(), warn: jest.fn(), error: jest.fn() } as never
   );
-  return { service, claimRepo, chainPort, eventBus };
+  return { service, claimRepo, chainPort, eventBus, userWallets };
 }
 
 describe('Хэш претензии', () => {
@@ -123,17 +125,17 @@ describe('Выставление претензии по решению сове
   });
 });
 
-describe('Ответ поставщика', () => {
-  it('признание проходит в цепь и переводит претензию в ADMITTED', async () => {
+describe('Согласие поставщика', () => {
+  it('согласие проходит в цепь и переводит претензию в ADMITTED', async () => {
     const { service, claimRepo, chainPort } = makeService();
     claimRepo.findById.mockResolvedValue(pendingClaim());
     const result = await service.admit({ coopname: COOP, supplier: 'ivanpetrov', claim_id: 'claim-1' });
     expect(chainPort.admitClaim).toHaveBeenCalledWith({ coopname: COOP, supplier: 'ivanpetrov', claim_hash: supplierClaimHashOf(REQUEST_HASH) });
-    expect(claimRepo.decide).toHaveBeenCalledWith('claim-1', expect.objectContaining({ status: 'ADMITTED', decide_tx_hash: 'tx-admit' }));
+    expect(claimRepo.admit).toHaveBeenCalledWith('claim-1', expect.objectContaining({ decide_tx_hash: 'tx-admit' }));
     expect(result.tx_hash).toBe('tx-admit');
   });
 
-  it('чужую претензию признать нельзя', async () => {
+  it('с чужой претензией согласиться нельзя', async () => {
     const { service, claimRepo, chainPort } = makeService();
     claimRepo.findById.mockResolvedValue(pendingClaim());
     await expect(service.admit({ coopname: COOP, supplier: 'someoneelse', claim_id: 'claim-1' })).rejects.toThrow(
@@ -142,40 +144,30 @@ describe('Ответ поставщика', () => {
     expect(chainPort.admitClaim).not.toHaveBeenCalled();
   });
 
-  it('повторный ответ по решённой претензии отбивается', async () => {
+  it('повторное согласие по признанной претензии отбивается', async () => {
     const { service, claimRepo, chainPort } = makeService();
     claimRepo.findById.mockResolvedValue(pendingClaim({ status: 'ADMITTED' }));
-    await expect(service.refuse({ coopname: COOP, supplier: 'ivanpetrov', claim_id: 'claim-1', reason: 'Нет.' })).rejects.toThrow(
-      'ответ уже дан'
+    await expect(service.admit({ coopname: COOP, supplier: 'ivanpetrov', claim_id: 'claim-1' })).rejects.toThrow(
+      'уже признана'
     );
-    expect(chainPort.refuseClaim).not.toHaveBeenCalled();
+    expect(chainPort.admitClaim).not.toHaveBeenCalled();
   });
 
-  it('отказ без причины не принимается', async () => {
-    const { service, chainPort } = makeService();
-    await expect(service.refuse({ coopname: COOP, supplier: 'ivanpetrov', claim_id: 'claim-1', reason: '  ' })).rejects.toThrow(
-      'Укажите причину отказа'
-    );
-    expect(chainPort.refuseClaim).not.toHaveBeenCalled();
+  it('зеркало признания из цепи не трогает уже признанную претензию', async () => {
+    const { service, claimRepo } = makeService();
+    claimRepo.findByClaimHash.mockResolvedValue(pendingClaim({ status: 'ADMITTED' }));
+    await service.mirrorAdmitted({ coopname: COOP, claim_hash: supplierClaimHashOf(REQUEST_HASH), tx_hash: 'tx' });
+    expect(claimRepo.admit).not.toHaveBeenCalled();
   });
 });
 
-describe('Автоприём по сроку', () => {
-  it('выключен по умолчанию — сторож ничего не делает', async () => {
-    const { service, claimRepo, chainPort } = makeService(null);
-    await service.autoAdmitTick(COOP);
-    expect(claimRepo.listPendingIssuedBefore).not.toHaveBeenCalled();
-    expect(chainPort.autoClaim).not.toHaveBeenCalled();
-  });
+describe('Сводка по двум кошелькам', () => {
+  it('непризнанное — с кошелька претензий, признанный долг — с кошелька долга; пустой кошелёк — ноль', async () => {
+    const { service } = makeService({ 'w.mkt.claim': '300.0000 RUB', 'w.mkt.debt': '120.5000 RUB' });
+    const sum = await service.summary(COOP, 'ivanpetrov');
+    expect(sum).toEqual({ not_admitted_total: '300.0000', admitted_debt: '120.5000', symbol: 'RUB' });
 
-  it('включён — претензии старше срока признаются за поставщика, срок не меньше контрактных 14 дней', async () => {
-    const { service, claimRepo, chainPort } = makeService({ auto_admit_enabled: true, auto_admit_days: 3 });
-    claimRepo.listPendingIssuedBefore.mockResolvedValue([pendingClaim()]);
-    await service.autoAdmitTick(COOP);
-    const before = claimRepo.listPendingIssuedBefore.mock.calls[0][1] as Date;
-    const ageDays = (Date.now() - before.getTime()) / (24 * 3600 * 1000);
-    expect(ageDays).toBeGreaterThanOrEqual(13.99);
-    expect(chainPort.autoClaim).toHaveBeenCalledWith({ coopname: COOP, claim_hash: supplierClaimHashOf(REQUEST_HASH) });
-    expect(claimRepo.decide).toHaveBeenCalledWith('claim-1', expect.objectContaining({ status: 'ADMITTED', auto_admitted: true }));
+    const { service: empty } = makeService();
+    expect(await empty.summary(COOP, 'ivanpetrov')).toEqual({ not_admitted_total: '0.0000', admitted_debt: '0.0000', symbol: 'RUB' });
   });
 });

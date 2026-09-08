@@ -7,17 +7,19 @@ import type { MarketplaceReturnClaimPhoto } from './marketplace-return-claim.typ
  * Возникает по решению совета об отмене сделки (`onmktrtauth`) по заказу с
  * внешним поставщиком: кооператив оплатил имущество, а оно вернулось на склад
  * участка по рекламации пайщика. Зеркало on-chain `marketplace::claims`
- * (hash = хэш рекламации = process_hash процесса p.mkt.claim):
+ * (process_hash процесса p.mkt.claim):
  *
- *   PENDING  ↔ pending   — выставлена, ждёт ответа поставщика
- *   ADMITTED ↔ admitted  — поставщик признал (или срок ответа истёк при
- *                          включённом автоприёме): долг к удержанию из выплат
- *   REFUSED  ↔ refused   — поставщик отказал: основание для иска
+ *   PENDING  ↔ pending   — выставлена; поставщик по умолчанию не согласен,
+ *                          сумма на кошельке непризнанных претензий (основание
+ *                          для иска), кооператив ничего не делает
+ *   ADMITTED ↔ admitted  — поставщик признал: долг к удержанию из выплат
+ *
+ * Несогласие в цепь не пишется: кнопка «Не согласен» лишь показывает
+ * контакты участка, где лежит имущество.
  */
 export const MarketplaceSupplierClaimStatuses = {
   PENDING: 'PENDING',
   ADMITTED: 'ADMITTED',
-  REFUSED: 'REFUSED',
 } as const;
 
 export type MarketplaceSupplierClaimStatus =
@@ -46,12 +48,10 @@ export interface MarketplaceSupplierClaimProps {
   /** Рекламация 1106 с двумя подписями — пайщика и оператора участка. */
   reclamation: ISignedDocument | null;
   status: MarketplaceSupplierClaimStatus;
-  /** Момент решения совета — от него считается срок автоприёма. */
+  /** Момент решения совета — выставление претензии. */
   issued_at: Date;
+  /** Момент признания поставщиком. */
   decided_at: Date | null;
-  refuse_reason: string | null;
-  /** Претензия признана автоматически по истечении срока ответа. */
-  auto_admitted: boolean;
   issue_tx_hash: string;
   decide_tx_hash: string | null;
   created_at: Date;

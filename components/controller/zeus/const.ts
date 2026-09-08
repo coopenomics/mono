@@ -1160,6 +1160,7 @@ export const AllTypesProps: Record<string,any> = {
 	MarketplaceHandBackReturnInput:{
 
 	},
+	MarketplaceInventoryOrigin: "enum" as const,
 	MarketplaceInventoryOwnership: "enum" as const,
 	MarketplaceInventorySplitEntryInput:{
 
@@ -1255,9 +1256,6 @@ export const AllTypesProps: Record<string,any> = {
 
 	},
 	MarketplaceReadyIssueInput:{
-
-	},
-	MarketplaceRefuseSupplierClaimInput:{
 
 	},
 	MarketplaceRejectOfferInput:{
@@ -2278,9 +2276,6 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		marketplaceReadyIssue:{
 			data:"MarketplaceReadyIssueInput"
-		},
-		marketplaceRefuseSupplierClaim:{
-			data:"MarketplaceRefuseSupplierClaimInput"
 		},
 		marketplaceRejectOffer:{
 			input:"MarketplaceRejectOfferInput"
@@ -6157,6 +6152,7 @@ export const ReturnTypes: Record<string,any> = {
 		order_id:"String",
 		orderer_account_snapshot:"String",
 		orderer_name:"String",
+		origin:"MarketplaceInventoryOrigin",
 		ownership:"MarketplaceInventoryOwnership",
 		package_size:"Float",
 		product_name_snapshot:"String",
@@ -6165,6 +6161,7 @@ export const ReturnTypes: Record<string,any> = {
 		received_at:"DateTime",
 		received_by_operator_account:"String",
 		reserved_order_id:"String",
+		return_claim_id:"String",
 		shipment_id:"String",
 		status:"MarketplaceInventoryStatus",
 		unit_of_measure:"MarketplaceUnitOfMeasure",
@@ -6735,8 +6732,7 @@ export const ReturnTypes: Record<string,any> = {
 	MarketplaceSupplierClaim:{
 		actual_quantity:"Float",
 		amount:"String",
-		auto_admit_at:"DateTime",
-		auto_admitted:"Boolean",
+		branch_contacts:"MarketplaceSupplierClaimBranchContacts",
 		claim_hash:"String",
 		coopname:"String",
 		created_at:"DateTime",
@@ -6756,12 +6752,19 @@ export const ReturnTypes: Record<string,any> = {
 		product_name:"String",
 		reason_text:"String",
 		reclamation:"DocumentAggregate",
-		refuse_reason:"String",
 		return_claim_id:"String",
 		status:"MarketplaceSupplierClaimStatus",
 		supplier_account:"String",
 		unit_of_measure:"MarketplaceUnitOfMeasure",
 		updated_at:"DateTime"
+	},
+	MarketplaceSupplierClaimBranchContacts:{
+		address:"String",
+		email:"String",
+		name:"String",
+		operator_account:"String",
+		operator_name:"String",
+		phone:"String"
 	},
 	MarketplaceSupplierClaimResult:{
 		claim:"MarketplaceSupplierClaim",
@@ -6769,8 +6772,7 @@ export const ReturnTypes: Record<string,any> = {
 	},
 	MarketplaceSupplierClaimSummary:{
 		admitted_debt:"String",
-		pending_total:"String",
-		refused_total:"String",
+		not_admitted_total:"String",
 		symbol:"String"
 	},
 	MarketplaceSupplierPaymentSettings:{
@@ -6819,6 +6821,7 @@ export const ReturnTypes: Record<string,any> = {
 		is_expired:"Boolean",
 		key:"String",
 		lots_count:"Int",
+		origin:"MarketplaceInventoryOrigin",
 		package_size:"Float",
 		quantity:"String",
 		unit_of_measure:"MarketplaceUnitOfMeasure"
@@ -7259,7 +7262,6 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceMoveContainer:"MarketplaceContainer",
 		marketplacePublishStock:"MarketplaceOffer",
 		marketplaceReadyIssue:"MarketplaceOrder",
-		marketplaceRefuseSupplierClaim:"MarketplaceSupplierClaimResult",
 		marketplaceRejectOffer:"MarketplaceOffer",
 		marketplaceRejectReturnAtVisit:"MarketplaceReturnClaimResult",
 		marketplaceRejectReturnRemote:"MarketplaceReturnClaimResult",

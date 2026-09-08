@@ -71,16 +71,6 @@ export interface IWarehouseConfig {
   posting_on_reception_required: boolean;
 }
 
-/**
- * 99D-13: автоприём гарантийной претензии поставщиком. Пока выключено —
- * поставщик отвечает сам; при включении сторож признаёт претензию за него по
- * истечении срока ответа (не меньше контрактного срока в 14 дней).
- */
-export interface ISupplierClaimsConfig {
-  auto_admit_enabled: boolean;
-  auto_admit_days: number;
-}
-
 // Конфигурация для расширения marketplace
 export interface IConfig {
   // Story 1.9: статус принятия положения ЦПП Советом кооператива (системное
@@ -91,8 +81,6 @@ export interface IConfig {
   // Эпик 19: адресное хранение (боксы, координатные ячейки, обязательность
   // указания места при приёмке).
   warehouse: IWarehouseConfig;
-  // 99D-13: гарантийные претензии поставщику.
-  supplierClaims: ISupplierClaimsConfig;
 }
 
 // Дефолтные параметры конфигурации
@@ -111,10 +99,6 @@ export const defaultConfig: IConfig = {
     containers_enabled: false,
     cells_enabled: false,
     posting_on_reception_required: false,
-  },
-  supplierClaims: {
-    auto_admit_enabled: false,
-    auto_admit_days: 14,
   },
 };
 
@@ -212,38 +196,6 @@ export const Schema = z.object({
       describeField({
         label: 'Адресное хранение на складе',
         note: 'Боксы и координатные ячейки на складах кооперативных участков. Кооперативной закупке нужны, небольшому кооперативному кафе будут мешать.',
-      })
-    ),
-  supplierClaims: z
-    .object({
-      auto_admit_enabled: z
-        .boolean()
-        .default(false)
-        .describe(
-          describeField({
-            label: 'Признавать претензию без ответа поставщика',
-            note: 'Если включено, гарантийная претензия, на которую поставщик не ответил в срок, считается признанной: сумма удерживается из его следующих выплат. Если выключено — претензия ждёт ответа поставщика сколько угодно.',
-          })
-        ),
-      auto_admit_days: z
-        .number()
-        .int()
-        .min(14)
-        .default(14)
-        .describe(
-          describeField({
-            label: 'Срок ответа поставщика',
-            note: 'Сколько дней после решения совета ждать ответа поставщика по претензии, прежде чем признать её автоматически. Не меньше 14 дней — столько требует контракт.',
-            rules: ['val >= 14'],
-            append: 'дн.',
-          })
-        ),
-    })
-    .default({ auto_admit_enabled: false, auto_admit_days: 14 })
-    .describe(
-      describeField({
-        label: 'Гарантийные претензии поставщикам',
-        note: 'Как поступать с претензией, если поставщик на неё не отвечает.',
       })
     ),
 });

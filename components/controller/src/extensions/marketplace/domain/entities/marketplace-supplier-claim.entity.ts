@@ -22,8 +22,6 @@ export class MarketplaceSupplierClaimDomainEntity {
   public status: MarketplaceSupplierClaimStatus;
   public readonly issued_at: Date;
   public decided_at: Date | null;
-  public refuse_reason: string | null;
-  public auto_admitted: boolean;
   public readonly issue_tx_hash: string;
   public decide_tx_hash: string | null;
   public readonly created_at: Date;
@@ -51,8 +49,6 @@ export class MarketplaceSupplierClaimDomainEntity {
     this.status = props.status;
     this.issued_at = props.issued_at;
     this.decided_at = props.decided_at;
-    this.refuse_reason = props.refuse_reason;
-    this.auto_admitted = props.auto_admitted;
     this.issue_tx_hash = props.issue_tx_hash;
     this.decide_tx_hash = props.decide_tx_hash;
     this.created_at = props.created_at;

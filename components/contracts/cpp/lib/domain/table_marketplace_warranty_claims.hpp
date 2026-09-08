@@ -17,14 +17,14 @@ using namespace eosio;
 /**
  * @brief Статусы гарантийной претензии поставщику (процесс p.mkt.claim).
  *
- * Граф: ∅ → pending → admitted | refused. Запись не стирается: отказанные
- * претензии — основание для суда, признанные — долг, который удерживается из
- * следующих выплат поставщику; обе видны в разрезе поставщика.
+ * Граф: ∅ → pending → admitted. По умолчанию поставщик не согласен — претензия
+ * остаётся в pending сколько угодно (сумма на кошельке непризнанных претензий,
+ * основание для суда); признание переводит сумму в долг, который гасится
+ * удержанием из следующих выплат. Запись не стирается.
  */
 namespace ClaimStatus {
-  inline constexpr eosio::name PENDING  = "pending"_n;   ///< выставлена по решению совета, ждёт ответа поставщика
-  inline constexpr eosio::name ADMITTED = "admitted"_n;  ///< поставщик признал (или срок ответа истёк при включённом автоприёме)
-  inline constexpr eosio::name REFUSED  = "refused"_n;   ///< поставщик отказал — потенциальный иск
+  inline constexpr eosio::name PENDING  = "pending"_n;   ///< выставлена по решению совета; поставщик не признал
+  inline constexpr eosio::name ADMITTED = "admitted"_n;  ///< поставщик признал — долг к удержанию из выплат
 }
 
 /**
@@ -40,9 +40,8 @@ namespace ClaimStatus {
  * scope = coopname; primary_key = id; `hash` = sha256(байты хэша рекламации
  * ‖ "claim") — process_hash всех операций претензии; выводится из хэша
  * рекламации детерминированно, но отличается от него, чтобы нитка претензии в
- * реестре процессов не сливалась с ниткой возврата. Поставщик отвечает
- * `admitclaim` / `refuseclaim`; при включённом автоприёме кооператив после
- * срока ожидания зовёт `autoclaim`.
+ * реестре процессов не сливалась с ниткой возврата. Поставщик признаёт
+ * претензию `admitclaim`; несогласие в цепь не пишется.
  */
 struct [[eosio::table, eosio::contract(MARKETPLACE)]] warranty_claim {
   uint64_t id;
@@ -62,9 +61,8 @@ struct [[eosio::table, eosio::contract(MARKETPLACE)]] warranty_claim {
   document2 reclamation;                                      ///< рекламация 1106 с подписями пайщика и оператора участка
 
   eosio::name status = ClaimStatus::PENDING;
-  time_point_sec created_at;                                  ///< момент решения совета — от него считается срок автоприёма
-  time_point_sec decided_at;                                  ///< момент ответа поставщика (или автоприёма)
-  std::string refuse_reason;                                  ///< причина отказа поставщика (≤ 500 символов)
+  time_point_sec created_at;                                  ///< момент решения совета
+  time_point_sec decided_at;                                  ///< момент признания поставщиком
 
   uint64_t primary_key()           const { return id; }
   checksum256 by_hash()            const { return hash; }

@@ -403,14 +403,6 @@ inline constexpr uint64_t REFUSAL_PENALTY_PERCENT = 50;
 /// TBD-Standardization: величину подтверждает методолог.
 inline constexpr uint32_t RETURN_DECISION_WAIT_SECS = 7 * 24 * 3600;
 
-/**
- * @brief Срок ответа поставщика на гарантийную претензию, после которого
- * кооператив вправе признать претензию за него (`autoclaim`) — только при
- * включённом автоприёме в настройках Стола заказов (по умолчанию выключен).
- * 14 суток — решение владельца 08.09.2026 (TBD-Standardization).
- */
-inline constexpr uint32_t CLAIM_AUTO_ADMIT_SECS = 14 * 24 * 3600;
-
 /// Снятие документов начатой выдачи с заказа (отказ совета, отмена оператором):
 /// заявление, протокол и обе подписи акта очищаются, факт возвращается к заказу.
 inline void clear_issue_documents(order& o) {

@@ -1,5 +1,5 @@
 import { Field, Float, InputType, ObjectType, registerEnumType } from '@nestjs/graphql';
-import { IsNotEmpty, IsString, MaxLength } from 'class-validator';
+import { IsNotEmpty, IsString } from 'class-validator';
 import { DocumentAggregateDTO } from '@coopenomics/extension-kit';
 import { MarketplaceReturnClaimDecisionEntryDTO, MarketplaceReturnClaimPhotoDTO } from './marketplace-return-claim.dto';
 import { MarketplaceUnitOfMeasureEnum } from './marketplace-offer.dto';
@@ -11,14 +11,26 @@ import { MarketplaceUnitOfMeasureEnum } from './marketplace-offer.dto';
 export enum MarketplaceSupplierClaimStatusEnum {
   PENDING = 'PENDING',
   ADMITTED = 'ADMITTED',
-  REFUSED = 'REFUSED',
 }
 
 registerEnumType(MarketplaceSupplierClaimStatusEnum, {
   name: 'MarketplaceSupplierClaimStatus',
   description:
-    'Состояние гарантийной претензии поставщику: ожидает ответа, признана (долг к удержанию из выплат), отклонена (основание для иска).',
+    'Состояние гарантийной претензии поставщику: не признана (по умолчанию поставщик не согласен, сумма — основание для иска) либо признана (долг к удержанию из выплат).',
 });
+
+@ObjectType('MarketplaceSupplierClaimBranchContacts', {
+  description: 'Контакты кооперативного участка, где принято имущество, — для связи по претензии.',
+})
+export class MarketplaceSupplierClaimBranchContactsDTO {
+  @Field(() => String, { nullable: true }) public readonly name!: string | null;
+  @Field(() => String, { nullable: true }) public readonly address!: string | null;
+  @Field(() => String, { nullable: true }) public readonly phone!: string | null;
+  @Field(() => String, { nullable: true }) public readonly email!: string | null;
+  @Field(() => String, { nullable: true, description: 'Оператор участка, принявший имущество.' })
+  public readonly operator_name!: string | null;
+  @Field(() => String, { nullable: true }) public readonly operator_account!: string | null;
+}
 
 @InputType('MarketplaceAdmitSupplierClaimInput')
 export class MarketplaceAdmitSupplierClaimInputDTO {
@@ -26,20 +38,6 @@ export class MarketplaceAdmitSupplierClaimInputDTO {
   @IsString()
   @IsNotEmpty()
   public readonly claim_id!: string;
-}
-
-@InputType('MarketplaceRefuseSupplierClaimInput')
-export class MarketplaceRefuseSupplierClaimInputDTO {
-  @Field(() => String, { description: 'Идентификатор претензии.' })
-  @IsString()
-  @IsNotEmpty()
-  public readonly claim_id!: string;
-
-  @Field(() => String, { description: 'Почему поставщик не признаёт претензию (до 500 символов).' })
-  @IsString()
-  @IsNotEmpty()
-  @MaxLength(500)
-  public readonly reason!: string;
 }
 
 @ObjectType('MarketplaceSupplierClaim', {
@@ -87,17 +85,12 @@ export class MarketplaceSupplierClaimDTO {
   public readonly status!: MarketplaceSupplierClaimStatusEnum;
   @Field({ description: 'Момент решения совета об отмене сделки — с него претензия выставлена.' })
   public readonly issued_at!: Date;
-  @Field(() => Date, { nullable: true, description: 'Момент ответа поставщика или автоприёма.' })
+  @Field(() => Date, { nullable: true, description: 'Момент признания претензии поставщиком.' })
   public readonly decided_at!: Date | null;
-  @Field(() => String, { nullable: true, description: 'Причина отказа поставщика.' })
-  public readonly refuse_reason!: string | null;
-  @Field({ description: 'Претензия признана автоматически по истечении срока ответа.' })
-  public readonly auto_admitted!: boolean;
-  @Field(() => Date, {
-    nullable: true,
-    description: 'Когда претензия будет признана автоматически, если автоприём включён и ответа нет.',
+  @Field(() => MarketplaceSupplierClaimBranchContactsDTO, {
+    description: 'Контакты участка, где лежит имущество, — при несогласии поставщик связывается с ним.',
   })
-  public readonly auto_admit_at!: Date | null;
+  public readonly branch_contacts!: MarketplaceSupplierClaimBranchContactsDTO;
   @Field(() => [MarketplaceReturnClaimDecisionEntryDTO], {
     description: 'Пройденные шаги гарантийного возврата: рассмотрение, приём имущества, решение совета.',
   })
@@ -107,15 +100,13 @@ export class MarketplaceSupplierClaimDTO {
 }
 
 @ObjectType('MarketplaceSupplierClaimSummary', {
-  description: 'Сводка гарантийных претензий поставщика по кошелькам: признанный долг к удержанию и отказанные суммы.',
+  description: 'Сводка гарантийных претензий поставщика по двум кошелькам: непризнанные претензии и признанный долг к удержанию.',
 })
 export class MarketplaceSupplierClaimSummaryDTO {
   @Field({ description: 'Признанный гарантийный долг, ещё не удержанный из выплат.' })
   public readonly admitted_debt!: string;
-  @Field({ description: 'Сумма претензий, по которым поставщик отказал — потенциальный иск.' })
-  public readonly refused_total!: string;
-  @Field({ description: 'Сумма претензий, ожидающих ответа поставщика.' })
-  public readonly pending_total!: string;
+  @Field({ description: 'Непризнанные претензии — поставщик не согласен; основание для иска.' })
+  public readonly not_admitted_total!: string;
   @Field({ description: 'Символ валюты.' })
   public readonly symbol!: string;
 }

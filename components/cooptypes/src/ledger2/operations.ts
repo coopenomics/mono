@@ -254,17 +254,12 @@ export const LEDGER2_OPERATION_REGISTRY: readonly OperationMeta[] = [
   { code: 'o.mkt.claim',   process_type: 'p.mkt.claim',   contract: 'marketplace',
     name: 'CLAIM_SUPPLIER', wallet_op: 'ISSUE', wallet_from: null, wallet_to: 'w.mkt.claim',
     debit: null, credit: null,
-    human_name: 'Гарантийная претензия поставщику по отменённой советом сделке' },
+    human_name: 'Гарантийная претензия поставщику по отменённой советом сделке (не признана)' },
 
   { code: 'o.mkt.admit',   process_type: 'p.mkt.claim',   contract: 'marketplace',
     name: 'ADMIT_CLAIM',    wallet_op: 'TRANSFER', wallet_from: 'w.mkt.claim', wallet_to: 'w.mkt.debt',
     debit: 76, credit: 91,
     human_name: 'Претензия признана поставщиком — долг к удержанию из выплат' },
-
-  { code: 'o.mkt.refuse',  process_type: 'p.mkt.claim',   contract: 'marketplace',
-    name: 'REFUSE_CLAIM',   wallet_op: 'TRANSFER', wallet_from: 'w.mkt.claim', wallet_to: 'w.mkt.refuse',
-    debit: null, credit: null,
-    human_name: 'Претензия отклонена поставщиком — основание для иска' },
 
   { code: 'o.mkt.deduct',  process_type: 'p.mkt.supply',  contract: 'marketplace',
     name: 'DEDUCT_DEBT',    wallet_op: 'BURN', wallet_from: 'w.mkt.debt', wallet_to: null,

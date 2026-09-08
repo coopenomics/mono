@@ -4,9 +4,10 @@ import type { BaseBadgeVariant } from 'src/shared/ui/base';
 
 /**
  * Раздел «Гарантийные возвраты» стола поставщика (99D-13): претензии по
- * имуществу, которое пайщик вернул по гарантии, а совет отменил сделку.
- * Поставщик признаёт претензию (сумма удерживается из следующих выплат) или
- * отказывает (сумма учитывается как основание для иска).
+ * имуществу, которое пайщик вернул по гарантии, а совет отменил сделку. По
+ * умолчанию поставщик не согласен — сумма лежит на кошельке непризнанных;
+ * «Согласен» переводит её в долг, который гасится из следующих выплат;
+ * «Не согласен» лишь показывает контакты участка.
  */
 export type MarketplaceSupplierClaimView =
   Queries.Marketplace.ListSupplierClaims.IOutput['marketplaceListSupplierClaims'][number];
@@ -18,9 +19,8 @@ export type MarketplaceSupplierClaimResultView =
   Mutations.Marketplace.AdmitSupplierClaim.IOutput['marketplaceAdmitSupplierClaim'];
 
 const CLAIM_STATUS_LABELS: Record<Zeus.MarketplaceSupplierClaimStatus, string> = {
-  [Zeus.MarketplaceSupplierClaimStatus.PENDING]: 'Ждёт вашего ответа',
+  [Zeus.MarketplaceSupplierClaimStatus.PENDING]: 'Не признана',
   [Zeus.MarketplaceSupplierClaimStatus.ADMITTED]: 'Признана — удерживается из выплат',
-  [Zeus.MarketplaceSupplierClaimStatus.REFUSED]: 'Отказано',
 };
 
 export function supplierClaimStatusLabel(status: MarketplaceSupplierClaimView['status']): string {
@@ -33,8 +33,6 @@ export function supplierClaimStatusVariant(status: MarketplaceSupplierClaimView[
       return 'warn';
     case Zeus.MarketplaceSupplierClaimStatus.ADMITTED:
       return 'pos';
-    case Zeus.MarketplaceSupplierClaimStatus.REFUSED:
-      return 'neg';
     default:
       return 'neutral';
   }
@@ -68,14 +66,6 @@ export async function admitSupplierClaim(claim_id: string): Promise<MarketplaceS
   const { [Mutations.Marketplace.AdmitSupplierClaim.name]: result } = await client.Mutation(
     Mutations.Marketplace.AdmitSupplierClaim.mutation,
     { variables: { data: { claim_id } } },
-  );
-  return result;
-}
-
-export async function refuseSupplierClaim(claim_id: string, reason: string): Promise<MarketplaceSupplierClaimResultView> {
-  const { [Mutations.Marketplace.RefuseSupplierClaim.name]: result } = await client.Mutation(
-    Mutations.Marketplace.RefuseSupplierClaim.mutation,
-    { variables: { data: { claim_id, reason } } },
   );
   return result;
 }

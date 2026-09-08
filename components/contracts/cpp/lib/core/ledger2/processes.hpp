@@ -28,7 +28,7 @@
  *                                       o.mkt.payout + o.mkt.consum
  *   - processes::marketplace::RETURN  ← o.mkt.return
  *   - processes::marketplace::WRITEOFF ← o.mkt.wroff
- *   - processes::marketplace::CLAIM    ← o.mkt.claim + o.mkt.admit + o.mkt.refuse
+ *   - processes::marketplace::CLAIM    ← o.mkt.claim + o.mkt.admit
  *
  * Одноактовые процессы: `capital::IMPORT`, `capital::PROPERTY`,
  * `capital::INVEST`, `soviet::AXN_CONVERT` (process_type совпадает с
@@ -75,7 +75,7 @@ namespace processes {
     inline constexpr eosio::name SUPPLY    = "p.mkt.supply"_n;   ///< Прямая поставка-приобретение имущества (5 операций: o.mkt.lock + o.mkt.unlock + o.mkt.purch + o.mkt.payout + o.mkt.consum).
     inline constexpr eosio::name RETURN    = "p.mkt.return"_n;   ///< Гарантийный возврат имущества пайщиком — compensating forward к o.mkt.consum (o.mkt.return).
     inline constexpr eosio::name WRITEOFF  = "p.mkt.wroff"_n;    ///< Утилизация скоропорта со склада КУ (o.mkt.wroff, по протоколу совета).
-    inline constexpr eosio::name CLAIM     = "p.mkt.claim"_n;    ///< Гарантийная претензия поставщику по отменённой советом сделке (o.mkt.claim → o.mkt.admit | o.mkt.refuse); удержание долга из выплат — o.mkt.deduct в нитке заказа.
+    inline constexpr eosio::name CLAIM     = "p.mkt.claim"_n;    ///< Гарантийная претензия поставщику по отменённой советом сделке (o.mkt.claim → o.mkt.admit; несогласие в цепь не пишется); удержание долга из выплат — o.mkt.deduct в нитке заказа.
   }
 
   // branch — экономика кооперативного участка (requirement b6)

@@ -27,6 +27,8 @@ const rawInventorySelector = {
   labeled_by_operator_account: true,
   created_at: true,
   ownership: true,
+  origin: true,
+  return_claim_id: true,
   arrival_price: true,
   published_offer_id: true,
   reserved_order_id: true,

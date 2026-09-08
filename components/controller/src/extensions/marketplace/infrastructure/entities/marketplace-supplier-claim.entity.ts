@@ -17,12 +17,10 @@ import type { MarketplaceSupplierClaimStatus } from '../../domain/entities/marke
  * Hot-path индексы:
  *   - `(coopname, claim_hash)` unique — сверка с цепью и слушатели ответов;
  *   - `(coopname, supplier_account, status)` — стол поставщика «Гарантийные возвраты»;
- *   - `(coopname, status, issued_at)` — сторож автоприёма.
  */
 @Entity({ name: 'marketplace_supplier_claim' })
 @Index('IDX_marketplace_supplier_claim_hash_unique', ['coopname', 'claim_hash'], { unique: true })
 @Index(['coopname', 'supplier_account', 'status'])
-@Index(['coopname', 'status', 'issued_at'])
 export class MarketplaceSupplierClaimEntity {
   @PrimaryGeneratedColumn('uuid')
   public id!: string;
@@ -77,12 +75,6 @@ export class MarketplaceSupplierClaimEntity {
 
   @Column({ type: 'timestamptz', nullable: true })
   public decided_at!: Date | null;
-
-  @Column({ type: 'varchar', length: 500, nullable: true })
-  public refuse_reason!: string | null;
-
-  @Column({ type: 'boolean', default: false })
-  public auto_admitted!: boolean;
 
   @Column({ type: 'varchar', length: 128, default: '' })
   public issue_tx_hash!: string;

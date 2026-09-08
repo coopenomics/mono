@@ -342,6 +342,7 @@ q-page.writeoffs(role="region", aria-label="Списания скоропорт�
       template(#body-cell-state="props")
         q-td(:props="props")
           BaseBadge(:variant="candidateStateVariant(props.row)") {{ candidateStateLabel(props.row) }}
+          BaseBadge.q-ml-xs(v-if="props.row.origin === 'WARRANTY_RETURN'", variant="warn") Гарантийный возврат
       template(#body-cell-expiry_date="props")
         q-td(:props="props") {{ props.row.expiry_date ? formatDate(props.row.expiry_date) : 'Без гарантии' }}
       template(#body-cell-amount="props")

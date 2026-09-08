@@ -1,14 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, LessThan, Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import type { MarketplaceSupplierClaimDomainEntity } from '../../domain/entities/marketplace-supplier-claim.entity';
 import {
   MarketplaceSupplierClaimStatuses,
   type MarketplaceSupplierClaimStatus,
 } from '../../domain/entities/marketplace-supplier-claim.types';
 import type {
+  MarketplaceSupplierClaimAdmitPatch,
   MarketplaceSupplierClaimCreateInput,
-  MarketplaceSupplierClaimDecisionPatch,
   MarketplaceSupplierClaimDomainRepository,
 } from '../../domain/repositories/marketplace-supplier-claim.repository';
 import { MarketplaceSupplierClaimEntity } from '../entities/marketplace-supplier-claim.entity';
@@ -29,8 +29,6 @@ export class MarketplaceSupplierClaimRepositoryAdapter implements MarketplaceSup
       ...input,
       status: MarketplaceSupplierClaimStatuses.PENDING,
       decided_at: null,
-      refuse_reason: null,
-      auto_admitted: false,
       decide_tx_hash: null,
     });
     try {
@@ -72,23 +70,13 @@ export class MarketplaceSupplierClaimRepositoryAdapter implements MarketplaceSup
     return rows.map((r) => this.mapper.toDomain(r));
   }
 
-  async listPendingIssuedBefore(coopname: string, before: Date): Promise<MarketplaceSupplierClaimDomainEntity[]> {
-    const rows = await this.repo.find({
-      where: { coopname, status: MarketplaceSupplierClaimStatuses.PENDING, issued_at: LessThan(before) },
-      order: { issued_at: 'ASC' },
-    });
-    return rows.map((r) => this.mapper.toDomain(r));
-  }
-
-  async decide(id: string, patch: MarketplaceSupplierClaimDecisionPatch): Promise<MarketplaceSupplierClaimDomainEntity | null> {
+  async admit(id: string, patch: MarketplaceSupplierClaimAdmitPatch): Promise<MarketplaceSupplierClaimDomainEntity | null> {
     const result = await this.repo
       .createQueryBuilder()
       .update(MarketplaceSupplierClaimEntity)
       .set({
-        status: patch.status,
+        status: MarketplaceSupplierClaimStatuses.ADMITTED,
         decided_at: patch.decided_at,
-        refuse_reason: patch.refuse_reason ?? null,
-        auto_admitted: patch.auto_admitted ?? false,
         decide_tx_hash: patch.decide_tx_hash ?? null,
       })
       .where('id = :id AND status = :pending', { id, pending: MarketplaceSupplierClaimStatuses.PENDING })

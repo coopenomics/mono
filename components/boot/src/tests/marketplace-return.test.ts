@@ -311,7 +311,7 @@ describe('стол заказов — денежные места гаранти
     expect(Buffer.from(memo, 'utf8').toString('utf8')).toBe(memo)
   }, 300_000)
 
-  it('99D-13: по решению совета поставщику выставлена претензия, признание кладёт сумму в долг к удержанию', async () => {
+  it('99D-13: по решению совета поставщику выставлена претензия (не признана), согласие кладёт сумму в долг к удержанию', async () => {
     // Хэш претензии выводится из хэша рекламации: sha256(байты хэша ‖ "claim").
     const { createHash } = await import('node:crypto')
     const claimHash = createHash('sha256')
@@ -337,7 +337,7 @@ describe('стол заказов — денежные места гаранти
     const signers = (one.marketplaceSupplierClaim.reclamation?.document?.signatures ?? []).map((x: any) => x.signer)
     expect(signers, 'рекламация поставщику — с подписями пайщицы и оператора').toEqual(expect.arrayContaining([ekaterina.account, chairkrg.account]))
 
-    // Поставщик признаёт: сумма уходит в признанный долг (o.mkt.admit, Дт 76 / Кт 91).
+    // Поставщик соглашается: сумма уходит с кошелька непризнанных в признанный долг (o.mkt.admit, Дт 76 / Кт 91).
     const adm: any = await gqlAs(sidorovToken, `mutation($d:MarketplaceAdmitSupplierClaimInput!){ marketplaceAdmitSupplierClaim(data:$d){ tx_hash claim { status } } }`, { d: { claim_id: claim.id } })
     expect(adm.marketplaceAdmitSupplierClaim.claim.status).toBe('ADMITTED')
     const admitted = await waitForOps(chairmanToken, claimHash, ['o.mkt.admit'])
@@ -347,8 +347,9 @@ describe('стол заказов — денежные места гаранти
     const postings = rows.filter(r => r.action === 'apply' && r.operationCode === 'o.mkt.admit')
     void postings
 
-    const sum: any = await gqlAs(sidorovToken, `query{ marketplaceSupplierClaimSummary { admitted_debt refused_total pending_total } }`)
+    const sum: any = await gqlAs(sidorovToken, `query{ marketplaceSupplierClaimSummary { admitted_debt not_admitted_total } }`)
     expect(amount(sum.marketplaceSupplierClaimSummary.admitted_debt), 'сводка признанного долга равна сумме претензии').toBeCloseTo(factCost, 2)
+    expect(amount(sum.marketplaceSupplierClaimSummary.not_admitted_total), 'после согласия непризнанного по этой претензии не осталось').toBeCloseTo(0, 2)
   }, 300_000)
 
   it('возврат — compensating forward: нитка исходной поставки не переписывается', async () => {
