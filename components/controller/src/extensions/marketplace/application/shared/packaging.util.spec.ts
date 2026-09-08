@@ -120,6 +120,9 @@ describe('packaging.util — findOfferPackageOrFail', () => {
     package_type: 'пластиковая бутылка',
     sort_order: 0,
     is_default: true,
+    quantity_available: 5,
+    quantity_blocked: 0,
+    quantity_consumed: 0,
   };
 
   it('находит упаковку по id', () => {
