@@ -70,6 +70,8 @@ export class Client {
   private thunder: ReturnType<typeof Thunder>
   /** Shared graphql-ws транспорт — не создавать на каждый доступ к getter. */
   private subscriptionApi: WsSubscriptionApi | null = null
+  /** Извещение приложения о том, что сервер больше не признаёт наш доступ. */
+  private authLostHandler?: () => void
   private static scalars = ZeusScalars({
     DateTime: {
       decode: (e: unknown) => new Date(e as string), // Преобразует строку в объект Date
@@ -150,6 +152,34 @@ export class Client {
     this.currentHeaders.Authorization = `Bearer ${result.tokens.access.token}`
 
     return result
+  }
+
+  /**
+   * Кого звать, когда сервер сказал, что доступа больше нет.
+   *
+   * Без такого извещения каждый вызов разбирается с отказом сам, а фоновые —
+   * счётчик уведомлений, статус членства — не разбираются вовсе: они молча
+   * падают по кругу. Пайщик `pgrzosdeyuwg` 08.09.2026 просидел так несколько
+   * часов: раз в минуту два отказа в логах сервера, а в кабинете ни ошибки, ни
+   * возврата на вход — только исчезнувший кошелёк и предложение вступить в
+   * пайщики. Обработчик ставит приложение, SDK лишь сообщает факт.
+   */
+  public setAuthLostHandler(handler?: () => void): void {
+    this.authLostHandler = handler
+  }
+
+  /**
+   * Опознать в ответе потерю доступа. Признак — текст ошибки: отдельного кода у
+   * платформы нет, а формулировка «Сессия завершена, требуется повторная
+   * авторизация» приходит именно с этим словом (то же правило уже применяет
+   * инициализация кошелька в desktop).
+   */
+  private reportAuthLoss(errors: unknown): void {
+    if (!this.authLostHandler)
+      return
+    const text = JSON.stringify(errors ?? '')
+    if (/авторизац|Unauthorized/i.test(text))
+      this.authLostHandler()
   }
 
   /**
@@ -338,6 +368,7 @@ export class Client {
         const json = (await response.json()) as GraphQLResponse
 
         if (json.errors) {
+          this.reportAuthLoss(json.errors)
           throw json.errors
         }
 

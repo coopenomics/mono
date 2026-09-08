@@ -66,7 +66,7 @@ const authDirective = new GraphQLDirective({
       subscriptions: {
         'graphql-ws': {
           path: '/v1/graphql',
-          onConnect: (context: any) => {
+          onConnect: async (context: any) => {
             const params = context?.connectionParams ?? {};
             const token = extractBearerToken(params.authorization ?? params.Authorization);
             if (!token) {
@@ -77,6 +77,13 @@ const authDirective = new GraphQLDirective({
               const payload: any = jwt.verify(token, config.jwt.secret);
               if (payload?.type !== tokenTypes.ACCESS) {
                 logger.warn(`[mp-ws] onConnect ОТКЛОНЁН: тип токена "${payload?.type}" != ACCESS`);
+                return false;
+              }
+              // Подписи и типа мало: сессия могла быть отозвана (выход, смена
+              // пароля, восстановление доступа). HTTP это проверяет, и ws обязан
+              // судить так же — иначе отозванный доступ живёт наполовину.
+              if (!(await isWsSessionAlive(payload.sid, payload.sub))) {
+                logger.warn(`[mp-ws] onConnect ОТКЛОНЁН: сессия завершена (sub=${payload.sub})`);
                 return false;
               }
               context.extra = context.extra ?? {};
