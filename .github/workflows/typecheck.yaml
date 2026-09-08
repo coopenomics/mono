@@ -28,7 +28,10 @@ name: Typecheck
 # триггер не срабатывал ни разу.
 on:
   push:
-    branches: [dev, testnet, main]
+    # ci/tests — ветка-полигон: рабочая ветка пушится сюда, чтобы получить
+    # вердикт по типам до слияния. Локальные прогоны tsc/vue-tsc запрещены —
+    # они вешают машину разработчика, — поэтому других точек контроля нет.
+    branches: [dev, testnet, main, ci/tests]
   workflow_call:
   workflow_dispatch:
 
@@ -111,3 +114,22 @@ jobs:
 
       - name: tsc --noEmit (controller)
         run: pnpm --filter @coopenomics/controller run typecheck
+
+      # Пакеты workspace проверяются здесь же, а не отдельной job: дорогая
+      # часть — `lerna run build` выше, сами прогоны стоят секунды. До
+      # 07.09.2026 их не проверял никто: сборка unbuild/esbuild типы срезает,
+      # а workflow знал только desktop и controller. Через эту дыру на стенд
+      # уехали две ошибки компилятора — в factory (документ собирался без
+      # обязательного поля модели) и в sdk (селектор спрашивал у схемы
+      # несуществующее поле).
+      #
+      # cooptypes и boot пока не подключены: в них лежит старый долг
+      # (недогенерированные интерфейсы капитала и отсутствующие @types), из-за
+      # которого прогон был бы красным с первого дня. Долг вычищен в ветке
+      # паевой модели Стола заказов — подключить их этими же двумя строками
+      # сразу после её слияния.
+      - name: tsc --noEmit (factory)
+        run: pnpm --filter @coopenomics/factory run typecheck
+
+      - name: tsc --noEmit (sdk)
+        run: pnpm --filter @coopenomics/sdk run typecheck
