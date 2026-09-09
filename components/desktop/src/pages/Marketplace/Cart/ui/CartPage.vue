@@ -296,19 +296,19 @@ q-page.mp-cart.mp-role-orderer(role="region", aria-label="Корзина Сто�
             )
               template(#icon-left)
                 q-icon(name="remove")
-            .mp-cart__qty-val
-              //- Inline-ввод: не стандартный outlined-input, а часть степпера —
-              //- правка цифр прямо в числе, кламп к остатку на предложении.
-              input.mp-cart__qty-input(
-                type="text",
-                inputmode="numeric",
-                :value="it.quantity",
-                :disabled="cartStore.mutating",
-                aria-label="Количество",
-                @change="onQtyInput(it, $event)",
-                @keyup.enter="blurOnEnter"
-              )
-              span.mp-cart__qty-unit × {{ saleUnitLabel(it) }}
+            //- Inline-ввод: не стандартный outlined-input, а часть степпера —
+            //- правка цифр прямо в числе, кламп к остатку на предложении. Что
+            //- считается штукой (упаковка, литр), написано строкой выше, у цены:
+            //- вторая такая же подпись под числом только загромождала строку.
+            input.mp-cart__qty-input(
+              type="text",
+              inputmode="numeric",
+              :value="it.quantity",
+              :disabled="cartStore.mutating",
+              aria-label="Количество",
+              @change="onQtyInput(it, $event)",
+              @keyup.enter="blurOnEnter"
+            )
             BaseButton(
               variant="ghost",
               icon-only,
@@ -490,26 +490,21 @@ q-page.mp-cart.mp-role-orderer(role="region", aria-label="Корзина Сто�
     margin-top: var(--p-1, 4px);
   }
 
-  // Степпер количества: фиксированной ширины, не прыгает.
+  // Степпер количества — один собранный элемент в рамке: минус, число, плюс.
+  // Раньше это были три отдельные кнопки, разъезжавшиеся по ширине строки.
   &__qty {
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    gap: var(--p-1, 4px);
     flex-shrink: 0;
-  }
-
-  &__qty-val {
-    min-width: 48px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    line-height: 1.1;
+    border: 1px solid var(--p-line);
+    border-radius: var(--p-r-pill, 999px);
+    padding: 2px;
   }
 
   // Поле прямого ввода — без рамок/фона, выглядит как число степпера, но
   // редактируемое. Так не «прыгает» и не ломает строку, как outlined-input.
   &__qty-input {
-    width: 48px;
+    width: 44px;
     border: none;
     background: transparent;
     text-align: center;
@@ -528,11 +523,6 @@ q-page.mp-cart.mp-role-orderer(role="region", aria-label="Корзина Сто�
     &:disabled {
       color: var(--p-ink-2);
     }
-  }
-
-  &__qty-unit {
-    font-size: var(--p-fs-meta);
-    color: var(--p-ink-3);
   }
 
   &__sum {
@@ -618,42 +608,50 @@ q-page.mp-cart.mp-role-orderer(role="region", aria-label="Корзина Сто�
   }
 
   @media (max-width: 768px) {
-    // На узком экране строка раскладывается сеткой в два ряда: сверху товар с
-    // ценой и кнопкой удаления, снизу количество и сумма. Обычный перенос по
-    // flex-wrap сжимал название и цену в колонку шириной в одно слово —
-    // «65 RUB / упак. 0,5 л» ломалось по букве на строку.
+    // Узкий экран: сверху товар (снимок, название, цена) и удаление, снизу —
+    // степпер слева и сумма позиции справа. Одной строкой это не помещается:
+    // название с ценой сжимались в колонку шириной в слово.
     &__line {
       display: grid;
-      grid-template-columns: 56px minmax(0, 1fr) auto;
+      grid-template-columns: 64px minmax(0, 1fr) auto;
       grid-template-areas:
         'thumb info del'
         'qty   qty  sum';
-      align-items: center;
-      gap: var(--p-2, 8px) var(--p-3, 12px);
+      align-items: start;
+      gap: var(--p-3, 12px);
+      padding: var(--p-4, 16px) 0;
     }
 
     &__thumb {
       grid-area: thumb;
+      width: 64px;
+      height: 64px;
     }
 
     &__info {
       grid-area: info;
+      align-self: center;
     }
 
     &__del {
       grid-area: del;
       align-self: start;
+      margin-top: calc(var(--p-1, 4px) * -1);
     }
 
     &__qty {
       grid-area: qty;
-      justify-content: flex-start;
+      justify-self: start;
     }
 
+    // Сумма позиции — на одной линии со степпером и тем же кеглем, что итог
+    // заказа: это главное число строки.
     &__sum {
       grid-area: sum;
       width: auto;
+      align-self: center;
       text-align: right;
+      font-size: var(--p-fs-h3, 18px);
     }
 
     &__summary {
