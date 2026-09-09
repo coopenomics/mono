@@ -159,7 +159,7 @@ const stockLabel = computed(() => {
   if (isUnlimited.value) return 'Без ограничений'
   return isEmpty.value
     ? 'Нет в наличии'
-    : `${props.offer.remainUnits}×${unitLabel.value}`
+    : `${props.offer.remainUnits} ${unitLabel.value}`
 })
 
 const cardClasses = computed(() => ({

@@ -5,7 +5,7 @@ import { client } from 'src/shared/api/client';
 import { BaseDialog, BaseButton, BaseBadge, BaseSelect } from 'src/shared/ui/base';
 import { FailAlert } from 'src/shared/api';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
-import { marketplaceOrderSaleUnit, marketplaceOrderUnitLabel } from 'src/shared/lib/consts/marketplace-units';
+import { marketplaceOrderSaleUnitLabel, marketplaceOrderUnitLabel } from 'src/shared/lib/consts/marketplace-units';
 import { MarketplaceSaleForm } from 'src/shared/lib/consts';
 
 /**
@@ -144,8 +144,7 @@ async function loadOffers(): Promise<void> {
 
 function availableLabel(o: CoopStockOffer): string {
   const size = selectedPackage(o)?.size ?? o.stock_package_size;
-  const saleUnit = marketplaceOrderSaleUnit(o.quantity_available, o.unit_of_measure, size);
-  return `свободно ${saleUnit.units}×${saleUnit.unitLabel}`;
+  return `свободно ${marketplaceOrderSaleUnitLabel(o.quantity_available, o.unit_of_measure, size)}`;
 }
 
 function bump(offer: CoopStockOffer, delta: number): void {

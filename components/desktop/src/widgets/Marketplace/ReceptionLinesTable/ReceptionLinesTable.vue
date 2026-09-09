@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import { marketplaceOrderSaleUnit } from 'src/shared/lib/consts/marketplace-units';
+import { marketplaceOrderSaleUnitLabel } from 'src/shared/lib/consts/marketplace-units';
 import { marketplaceLineCost } from 'src/shared/lib/marketplace';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import type { ReceptionLineRow } from './ReceptionLinesTable.types';
@@ -17,12 +17,7 @@ const props = defineProps<{
 }>();
 
 function qtyLabel(row: ReceptionLineRow): string {
-  const saleUnit = marketplaceOrderSaleUnit(
-    row.fact_quantity,
-    row.unit_of_measure,
-    row.package_size ?? null,
-  );
-  return `${saleUnit.units}×${saleUnit.unitLabel}`;
+  return marketplaceOrderSaleUnitLabel(row.fact_quantity, row.unit_of_measure, row.package_size ?? null,);
 }
 
 function lineSum(row: ReceptionLineRow): number {

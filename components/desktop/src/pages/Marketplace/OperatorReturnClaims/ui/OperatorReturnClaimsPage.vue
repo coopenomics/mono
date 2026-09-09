@@ -10,7 +10,7 @@ import { PageHint } from 'src/shared/ui/domain';
 import { PageTabs, type PageTab } from 'src/shared/ui/layout';
 import { ScannerDialog } from 'src/widgets/Marketplace/ScannerDialog';
 import { useMarketplaceRealtime, decodeReturnClaimCode } from 'src/shared/lib/marketplace';
-import { marketplaceOrderSaleUnit } from 'src/shared/lib/consts/marketplace-units';
+import { marketplaceOrderSaleUnitLabel } from 'src/shared/lib/consts/marketplace-units';
 import { formatAsset2Digits } from 'src/shared/lib/utils';
 import { returnClaimStatusLabel, returnClaimStatusVariant } from '../../OrdererReturnClaims';
 import { listReturnClaimsByBraname, type MarketplaceReturnClaimView } from '../api';
@@ -144,8 +144,7 @@ function onQrScanned(code: string): void {
 }
 
 function claimQuantityLabel(c: MarketplaceReturnClaimView): string {
-  const saleUnit = marketplaceOrderSaleUnit(c.actual_quantity, c.unit_of_measure, c.package_size);
-  return `${saleUnit.units}×${saleUnit.unitLabel}`;
+  return marketplaceOrderSaleUnitLabel(c.actual_quantity, c.unit_of_measure, c.package_size);
 }
 
 function onDecided(): void {

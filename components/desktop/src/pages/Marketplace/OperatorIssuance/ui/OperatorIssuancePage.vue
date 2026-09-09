@@ -10,7 +10,7 @@ import { VerifyIdentityDialog } from 'src/features/User/VerifyIdentity';
 import { ScannerDialog } from 'src/widgets/Marketplace/ScannerDialog';
 import { StockRestockPanel } from 'src/widgets/Marketplace/StockRestockPanel';
 import { orderStatusDisplay } from 'src/widgets/Marketplace/OrderCard';
-import { marketplaceOrderSaleUnit } from 'src/shared/lib/consts/marketplace-units';
+import { marketplaceOrderSaleUnitLabel } from 'src/shared/lib/consts/marketplace-units';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import {
   decodeScannedCode,
@@ -130,8 +130,7 @@ function factOf(o: MarketplaceOrderIssuanceView): { qty: number; ordered: number
 }
 
 function lineQuantityLabel(qty: number, l: { unit: MarketplaceOrderIssuanceView['unit_of_measure']; packageSize: number | null }): string {
-  const saleUnit = marketplaceOrderSaleUnit(qty, l.unit, l.packageSize);
-  return `${saleUnit.units}×${saleUnit.unitLabel}`;
+  return marketplaceOrderSaleUnitLabel(qty, l.unit, l.packageSize);
 }
 
 function mergeLines(orders: MarketplaceOrderIssuanceView[]): IssuanceLine[] {

@@ -10,10 +10,7 @@ import type { BaseBadgeVariant } from 'src/shared/ui/base';
 import { AccountBadge, PageHint } from 'src/shared/ui/domain';
 import { ActDialogLayout } from 'src/widgets/Marketplace/ActDialogLayout';
 import { ScannerDialog } from 'src/widgets/Marketplace/ScannerDialog';
-import {
-  marketplaceOrderSaleUnit,
-  marketplaceSaleUnitLabel,
-} from 'src/shared/lib/consts/marketplace-units';
+import { marketplaceOrderSaleUnitLabel, marketplaceSaleUnitLabel } from 'src/shared/lib/consts/marketplace-units';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { formatDateToLocalTimezone } from 'src/shared/lib/utils/dates';
 import {
@@ -255,8 +252,7 @@ const unitsPerBoxByOrder = computed(() => {
 });
 
 function lineQuantityLabel(l: { quantity: number; unit: string; packageSize: number | null }): string {
-  const saleUnit = marketplaceOrderSaleUnit(l.quantity, l.unit, l.packageSize);
-  return `${saleUnit.units}×${saleUnit.unitLabel}`;
+  return marketplaceOrderSaleUnitLabel(l.quantity, l.unit, l.packageSize);
 }
 
 function aggregateLines(orders: MarketplaceSupplierPickupOrderView[]): DeliveryLine[] {

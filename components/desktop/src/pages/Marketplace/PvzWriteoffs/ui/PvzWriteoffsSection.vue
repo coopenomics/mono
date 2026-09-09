@@ -4,7 +4,7 @@ import { debounce } from 'quasar';
 import { FailAlert } from 'src/shared/api';
 import { useMarketplaceRealtime } from 'src/shared/lib/marketplace';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
-import { marketplaceOrderSaleUnit } from 'src/shared/lib/consts/marketplace-units';
+import { marketplaceOrderSaleUnitLabel } from 'src/shared/lib/consts/marketplace-units';
 import { BaseBadge, BaseButton, BaseCard, CardListSkeleton, EmptyState } from 'src/shared/ui/base';
 import { PageHint } from 'src/shared/ui/domain';
 import { DocumentViewerDialog } from 'src/shared/ui/domain/DocumentViewerDialog';
@@ -55,8 +55,7 @@ function groupKey(g: MarketplaceWriteoffConfirmationGroupView): string {
 
 // Позиция-агрегат несёт список партий; стабильный ключ строки — наименование+состояние.
 function itemQuantityLabel(it: { quantity: string; unit_of_measure?: string | null; package_size?: number | null }): string {
-  const saleUnit = marketplaceOrderSaleUnit(Number.parseFloat(it.quantity) || 0, it.unit_of_measure, it.package_size);
-  return `${saleUnit.units}×${saleUnit.unitLabel}`;
+  return marketplaceOrderSaleUnitLabel(Number.parseFloat(it.quantity) || 0, it.unit_of_measure, it.package_size);
 }
 
 function itemRowKey(it: { asset_title: string; reason: string }): string {

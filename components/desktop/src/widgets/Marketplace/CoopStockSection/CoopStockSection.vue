@@ -14,7 +14,7 @@ import {
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { floorDecimalString } from 'src/shared/lib/utils/floorDecimalString';
-import { marketplaceOrderSaleUnit } from 'src/shared/lib/consts/marketplace-units';
+import { marketplaceOrderSaleUnitLabel } from 'src/shared/lib/consts/marketplace-units';
 import { useMarketplaceRealtime } from 'src/shared/lib/marketplace';
 import {
   listStock,
@@ -112,8 +112,7 @@ function toggle(id: string): void {
 }
 
 function quantityLabel(i: MarketplaceInventoryItemView): string {
-  const saleUnit = marketplaceOrderSaleUnit(i.quantity_per_label, i.unit_of_measure, i.package_size);
-  return `${saleUnit.units}×${saleUnit.unitLabel}`;
+  return marketplaceOrderSaleUnitLabel(i.quantity_per_label, i.unit_of_measure, i.package_size);
 }
 
 function expiryLabel(i: MarketplaceInventoryItemView): string {

@@ -183,7 +183,7 @@ async function onSubmit(): Promise<void> {
   // к моменту показа уже могут смениться.
   const addedLabel = [
     props.offer.product_name,
-    `${Number(quantity.value).toLocaleString('ru-RU')} × ${saleUnitLabel.value}`,
+    `${Number(quantity.value).toLocaleString('ru-RU')} ${saleUnitLabel.value}`,
     `${totalSum.value.toLocaleString('ru-RU')} ${system.governSymbol}`,
   ].join(' · ');
   try {

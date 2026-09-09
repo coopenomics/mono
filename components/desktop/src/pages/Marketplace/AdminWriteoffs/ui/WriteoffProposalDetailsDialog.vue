@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import { computed } from 'vue';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
-import { marketplaceOrderSaleUnit } from 'src/shared/lib/consts/marketplace-units';
+import { marketplaceOrderSaleUnitLabel } from 'src/shared/lib/consts/marketplace-units';
 import { BaseDialog, BaseBadge, BaseCard } from 'src/shared/ui/base';
 import { DataRow } from 'src/shared/ui/domain/DataRow';
 import { ActivityTimeline } from 'src/shared/ui/domain/ActivityTimeline';
@@ -18,8 +18,7 @@ const emit = defineEmits<{
 }>();
 
 function itemQuantityLabel(it: { quantity: string; unit_of_measure?: string | null; package_size?: number | null }): string {
-  const saleUnit = marketplaceOrderSaleUnit(Number.parseFloat(it.quantity) || 0, it.unit_of_measure, it.package_size);
-  return `${saleUnit.units}×${saleUnit.unitLabel}`;
+  return marketplaceOrderSaleUnitLabel(Number.parseFloat(it.quantity) || 0, it.unit_of_measure, it.package_size);
 }
 
 function fmtDate(value: string | null | undefined): string {

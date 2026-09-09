@@ -5,7 +5,7 @@ import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { BaseBadge, BaseButton, BaseCard } from 'src/shared/ui/base';
 import { BaseDocument } from 'src/shared/ui/BaseDocument';
 import { ActivityTimeline, type ActivityEvent } from 'src/shared/ui/domain';
-import { marketplaceOrderSaleUnit } from 'src/shared/lib/consts/marketplace-units';
+import { marketplaceOrderSaleUnitLabel } from 'src/shared/lib/consts/marketplace-units';
 import { formatAsset2Digits } from 'src/shared/lib/utils';
 import { formatDateToLocalTimezone, getTimezoneLabel } from 'src/shared/lib/utils/dates';
 import { returnClaimDecisionLabel, RETURN_CLAIM_NEGATIVE_DECISIONS } from '../../OrdererReturnClaims/api';
@@ -39,8 +39,7 @@ const disagreeDialog = ref(false);
 const isPending = computed(() => claim.value?.status === 'PENDING');
 
 function quantityLabel(c: MarketplaceSupplierClaimView): string {
-  const saleUnit = marketplaceOrderSaleUnit(c.actual_quantity, c.unit_of_measure, c.package_size);
-  return `${saleUnit.units}×${saleUnit.unitLabel}`;
+  return marketplaceOrderSaleUnitLabel(c.actual_quantity, c.unit_of_measure, c.package_size);
 }
 
 function formatDate(value: unknown): string {

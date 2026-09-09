@@ -7,7 +7,7 @@ import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { BaseBadge, BaseButton, BaseCard } from 'src/shared/ui/base';
 import { ActivityTimeline, type ActivityEvent } from 'src/shared/ui/domain';
 import { useMarketplaceRealtime } from 'src/shared/lib/marketplace';
-import { marketplaceOrderSaleUnit } from 'src/shared/lib/consts/marketplace-units';
+import { marketplaceOrderSaleUnitLabel } from 'src/shared/lib/consts/marketplace-units';
 import { formatAsset2Digits } from 'src/shared/lib/utils';
 import { formatDateToLocalTimezone, getTimezoneLabel } from 'src/shared/lib/utils/dates';
 import {
@@ -75,8 +75,7 @@ async function handBack(): Promise<void> {
 }
 
 function claimQuantityLabel(c: MarketplaceReturnClaimView): string {
-  const saleUnit = marketplaceOrderSaleUnit(c.actual_quantity, c.unit_of_measure, c.package_size);
-  return `${saleUnit.units}×${saleUnit.unitLabel}`;
+  return marketplaceOrderSaleUnitLabel(c.actual_quantity, c.unit_of_measure, c.package_size);
 }
 
 function formatDate(value: unknown): string {

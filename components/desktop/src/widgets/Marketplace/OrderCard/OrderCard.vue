@@ -46,7 +46,7 @@
 
     <div class="order-row__money">
       <div class="order-row__sum">{{ formatPrice(order.totalCost) }}</div>
-      <div class="order-row__qty">{{ order.units }}&nbsp;×&nbsp;{{ order.unitLabel ?? 'ед.' }}</div>
+      <div class="order-row__qty">{{ order.units }}&nbsp;{{ order.unitLabel ?? 'ед.' }}</div>
       <div v-if="order.feeNote" class="order-row__fee-note">{{ order.feeNote }}</div>
     </div>
 
@@ -137,7 +137,7 @@
       </div>
       <div class="order-card__fact">
         <div class="order-card__fact-label">Кол-во</div>
-        <div class="order-card__fact-value">{{ order.units }}×{{ order.unitLabel ?? 'ед.' }}</div>
+        <div class="order-card__fact-value">{{ order.units }} {{ order.unitLabel ?? 'ед.' }}</div>
       </div>
     </div>
 

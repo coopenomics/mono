@@ -28,7 +28,7 @@ import {
 } from 'src/entities/MarketplaceStorage';
 import { listInventory } from 'src/entities/MarketplaceInventory';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
-import { marketplaceOrderSaleUnit } from 'src/shared/lib/consts/marketplace-units';
+import { marketplaceOrderSaleUnitLabel } from 'src/shared/lib/consts/marketplace-units';
 import { MarketplaceSaleForm } from 'src/shared/lib/consts';
 import { quantizeSaleQuantity } from 'src/shared/lib/marketplace/sale-quantity-step';
 import {
@@ -199,8 +199,7 @@ const units = computed<PostingUnit[]>(() =>
 );
 
 function unitQuantityLabel(u: PostingUnit): string {
-  const saleUnit = marketplaceOrderSaleUnit(u.quantity, u.unit, u.packageSize);
-  return `${saleUnit.units}×${saleUnit.unitLabel}`;
+  return marketplaceOrderSaleUnitLabel(u.quantity, u.unit, u.packageSize);
 }
 
 /**
@@ -605,8 +604,7 @@ function lineQuantityLabel(l: {
   unit: string;
   packageSize: number | null;
 }): string {
-  const saleUnit = marketplaceOrderSaleUnit(l.quantity, l.unit, l.packageSize);
-  return `${saleUnit.units}×${saleUnit.unitLabel}`;
+  return marketplaceOrderSaleUnitLabel(l.quantity, l.unit, l.packageSize);
 }
 
 async function loadPreview(): Promise<void> {

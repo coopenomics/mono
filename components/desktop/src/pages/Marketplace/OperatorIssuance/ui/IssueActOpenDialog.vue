@@ -85,7 +85,7 @@ function restockLineSum(l: StockPickLine): string {
   return (l.quantity * Number.parseFloat(l.price_per_unit)).toFixed(4);
 }
 function restockLineQuantityLabel(l: StockPickLine): string {
-  return `${l.quantity}×${marketplaceSaleUnitLabel(l.unit_of_measure, l.stock_package_size)}`;
+  return `${l.quantity} ${marketplaceSaleUnitLabel(l.unit_of_measure, l.stock_package_size)}`;
 }
 function onAddRestock(lines: StockPickLine[]): void {
   const map = new Map(restockLines.value.map((l) => [l.offer_id, { ...l }]));

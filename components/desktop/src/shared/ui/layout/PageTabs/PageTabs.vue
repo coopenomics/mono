@@ -7,7 +7,7 @@
   <Teleport defer to="#page-tabs-host" :disabled="!hoist || !hostReady">
     <!-- Атрибуты страницы (класс, data-*) кладём на саму полосу: корень
          компонента — телепорт, и Vue их туда не наследует. -->
-    <nav class="tabbar" v-bind="$attrs">
+    <nav ref="navRef" class="tabbar" v-bind="$attrs">
     <!--
       Стрелки прокрутки. Появляются обе сразу, как только вкладки перестают
       помещаться, и гаснут поодиночке, когда крутить в ту сторону уже некуда.
@@ -67,6 +67,7 @@ import { inject, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useTabsScroll } from 'src/shared/hooks/useTabsScroll';
 import { TabsScrollArrow } from '../TabsScrollArrow';
+import { useHoistedTabsHeight } from './useHoistedTabsHeight';
 import { PAGE_TABS_HOST } from './PageTabs.types';
 import type { PageTabsProps, PageTab } from './PageTabs.types';
 
@@ -85,6 +86,11 @@ const router = useRouter();
 // известен до первого рендера: телепорт нельзя включать позже монтирования —
 // цель к тому моменту уже запомнена пустой (см. PAGE_TABS_HOST).
 const hostReady = inject(PAGE_TABS_HOST, false);
+
+// Высота поднятой полосы уходит в переменную документа: страница под ней
+// укорачивается ровно на столько, сколько полоса заняла (см. модуль).
+const navRef = ref<HTMLElement | null>(null);
+useHoistedTabsHeight(navRef, () => props.hoist === true && hostReady);
 
 const tabsRef = ref<HTMLElement | null>(null);
 const { scrollable, canScrollLeft, canScrollRight, scrollTowards } = useTabsScroll(

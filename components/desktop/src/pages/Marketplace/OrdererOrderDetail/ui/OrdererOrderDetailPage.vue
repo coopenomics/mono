@@ -104,7 +104,7 @@ const cancelDialogOpen = ref(false);
 const cancelMessage = computed(() => {
   const o = order.value;
   if (!o) return '';
-  return `Заказ № ${o.id.slice(0, 8)} (${orderSaleUnit.value.units}×${orderSaleUnit.value.unitLabel || 'ед.'}, ${formatPrice(o.total_cost_with_fee)}) будет отменён.`;
+  return `Заказ № ${o.id.slice(0, 8)} (${orderSaleUnit.value.units} ${orderSaleUnit.value.unitLabel || 'ед.'}, ${formatPrice(o.total_cost_with_fee)}) будет отменён.`;
 });
 
 // Заявление подаётся только по выданному заказу (RECEIVED) в пределах окна
@@ -401,7 +401,7 @@ q-page.order-detail(role="region", aria-label="Заказ")
                 .order-detail__fact-value--money {{ formatPrice(String(totalWithFee)) }}
               .order-detail__fact
                 .order-detail__fact-label Количество
-                .order-detail__fact-value {{ orderSaleUnit.units }}×{{ orderSaleUnit.unitLabel }}
+                .order-detail__fact-value {{ orderSaleUnit.units }} {{ orderSaleUnit.unitLabel }}
               .order-detail__fact
                 .order-detail__fact-label Цена за единицу
                 .order-detail__fact-value {{ formatPrice(String(unitPriceWithFee)) }}
@@ -431,8 +431,8 @@ q-page.order-detail(role="region", aria-label="Заказ")
           tbody
             tr
               td Количество
-              td.text-right {{ order.quantity }}×{{ unitShort }}
-              td.text-right {{ issuanceFact.actual_quantity }}×{{ unitShort }}
+              td.text-right {{ order.quantity }} {{ unitShort }}
+              td.text-right {{ issuanceFact.actual_quantity }} {{ unitShort }}
             tr
               td Сумма
               td.text-right {{ formatPrice(String(totalWithFee)) }}

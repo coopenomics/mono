@@ -89,7 +89,7 @@ function ordererName(row: MarketplaceInventoryItemView): string {
 // Тот же формат, что и в «Остатке кооператива» ниже на этой странице.
 function quantityLabel(row: MarketplaceInventoryItemView): string {
   const saleUnit = marketplaceOrderSaleUnit(row.quantity_per_label, row.unit_of_measure, row.package_size)
-  return `${saleUnit.units}×${saleUnit.unitLabel}`
+  return `${saleUnit.units} ${saleUnit.unitLabel}`
 }
 
 // Омни-поиск: одно поле ищет по нескольким способам сразу — заказчик (ФИО и

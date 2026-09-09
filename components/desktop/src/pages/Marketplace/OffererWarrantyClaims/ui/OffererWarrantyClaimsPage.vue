@@ -5,7 +5,7 @@ import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { BaseBadge, BaseButton, BaseCard, CardListSkeleton, EmptyState } from 'src/shared/ui/base';
 import { PageHint, WalletCard } from 'src/shared/ui/domain';
 import { useSystemStore } from 'src/entities/System/model';
-import { marketplaceOrderSaleUnit } from 'src/shared/lib/consts/marketplace-units';
+import { marketplaceOrderSaleUnitLabel } from 'src/shared/lib/consts/marketplace-units';
 import { formatAsset2Digits } from 'src/shared/lib/utils';
 import { formatDateToHumanDateTime } from 'src/shared/lib/utils/dates/formatDateToHumanDateTime';
 import {
@@ -43,8 +43,7 @@ const disagreeDialog = ref(false);
 const pendingCount = computed(() => items.value.filter((c) => c.status === 'PENDING').length);
 
 function quantityLabel(c: MarketplaceSupplierClaimView): string {
-  const saleUnit = marketplaceOrderSaleUnit(c.actual_quantity, c.unit_of_measure, c.package_size);
-  return `${saleUnit.units}×${saleUnit.unitLabel}`;
+  return marketplaceOrderSaleUnitLabel(c.actual_quantity, c.unit_of_measure, c.package_size);
 }
 
 async function load(): Promise<void> {

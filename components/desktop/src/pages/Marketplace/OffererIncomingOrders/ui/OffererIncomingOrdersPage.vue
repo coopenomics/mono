@@ -8,7 +8,7 @@ import { Map as MapView } from 'src/shared/ui/Map';
 import { PageHint } from 'src/shared/ui/domain';
 import { PageTabs, type PageTab } from 'src/shared/ui/layout';
 import { SupplyPartyCard } from 'src/widgets/Marketplace/SupplyPartyCard';
-import { marketplaceOrderSaleUnit, marketplaceQuantityLabel } from 'src/shared/lib/consts/marketplace-units';
+import { marketplaceOrderSaleUnit, marketplaceOrderSaleUnitLabel, marketplaceQuantityLabel } from 'src/shared/lib/consts/marketplace-units';
 import {
   groupAplReceptions,
   marketplacePackageLabel,
@@ -328,8 +328,7 @@ function barColor(p: SupplierParty): string {
 // базовой единице (это порог поставки, не зависит от того, как заказчики
 // упаковали покупку).
 function totalUnitsLabel(p: SupplierParty): string {
-  const saleUnit = marketplaceOrderSaleUnit(p.totalUnits, p.unitOfMeasure, p.packageSize);
-  return `${saleUnit.units}×${saleUnit.unitLabel}`;
+  return marketplaceOrderSaleUnitLabel(p.totalUnits, p.unitOfMeasure, p.packageSize);
 }
 
 /**

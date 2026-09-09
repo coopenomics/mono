@@ -4,10 +4,7 @@ import { BaseButton, BaseCard, BaseChip, BaseDialog } from 'src/shared/ui/base';
 import { useSystemStore } from 'src/entities/System/model';
 import { useMarketplaceKUDetailsStore } from 'src/entities/MarketplaceKUDetails';
 import { type ReceptionGroup, getMembershipFeePercent, applyMembershipFee } from 'src/shared/lib/marketplace';
-import {
-  marketplaceOrderSaleUnit,
-  marketplaceSaleUnitLabel,
-} from 'src/shared/lib/consts/marketplace-units';
+import { marketplaceOrderSaleUnitLabel, marketplaceSaleUnitLabel } from 'src/shared/lib/consts/marketplace-units';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import type { MarketplaceAplReceptionView } from 'src/entities/MarketplaceAplReception';
 import { useOnsiteSignatureGate } from '../model/useOnsiteSignatureGate';
@@ -81,8 +78,7 @@ function proposalTotalWithFee(p: { total_cost: string }): string {
 }
 
 function receptionLineQuantity(l: { quantity: number; unit: string; packageSize: number | null }): string {
-  const saleUnit = marketplaceOrderSaleUnit(l.quantity, l.unit, l.packageSize);
-  return `${saleUnit.units}×${saleUnit.unitLabel}`;
+  return marketplaceOrderSaleUnitLabel(l.quantity, l.unit, l.packageSize);
 }
 
 // Единица измерения у позиции предложения необязательна (услуги её не имеют),
@@ -98,7 +94,7 @@ function proposalItemQuantity(i: {
   unit_of_measure?: string | null;
   package_size?: number | null;
 }): string {
-  return `${i.quantity}×${marketplaceSaleUnitLabel(i.unit_of_measure ?? null, i.package_size ?? null)}`;
+  return `${i.quantity} ${marketplaceSaleUnitLabel(i.unit_of_measure ?? null, i.package_size ?? null)}`;
 }
 
 const supplierBusy = (g: ReceptionGroup<MarketplaceAplReceptionView>) => signingKey.value === g.key;

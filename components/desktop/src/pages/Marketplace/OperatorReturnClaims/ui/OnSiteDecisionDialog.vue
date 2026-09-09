@@ -8,7 +8,7 @@ import { TakeoverDialog } from 'src/widgets/Marketplace/TakeoverDialog';
 import { BaseInput } from 'src/shared/ui/base';
 import { FileUploader, type FileUploaderError } from 'src/shared/ui/domain';
 import { fileToBase64, formatAsset2Digits } from 'src/shared/lib/utils';
-import { marketplaceOrderSaleUnit } from 'src/shared/lib/consts/marketplace-units';
+import { marketplaceOrderSaleUnitLabel } from 'src/shared/lib/consts/marketplace-units';
 import {
   acceptReturnAtVisit,
   rejectReturnAtVisit,
@@ -88,12 +88,7 @@ function formatDateTime(value: unknown): string {
 
 const claimQuantityLabel = computed(() => {
   if (!props.claim) return '';
-  const saleUnit = marketplaceOrderSaleUnit(
-    props.claim.actual_quantity,
-    props.claim.unit_of_measure,
-    props.claim.package_size,
-  );
-  return `${saleUnit.units}×${saleUnit.unitLabel}`;
+  return marketplaceOrderSaleUnitLabel(props.claim.actual_quantity, props.claim.unit_of_measure, props.claim.package_size,);
 });
 
 /**

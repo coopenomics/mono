@@ -5,7 +5,7 @@ import { Zeus } from '@coopenomics/sdk';
 import { FailAlert } from 'src/shared/api';
 import { useMarketplaceRealtime } from 'src/shared/lib/marketplace';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
-import { marketplaceOrderSaleUnit } from 'src/shared/lib/consts/marketplace-units';
+import { marketplaceOrderSaleUnitLabel } from 'src/shared/lib/consts/marketplace-units';
 import { useRoute, useRouter } from 'vue-router';
 import { BaseBadge, BaseButton, BaseCard, BaseInput, CardListSkeleton, EmptyState } from 'src/shared/ui/base';
 import type { BaseBadgeVariant } from 'src/shared/ui/base';
@@ -128,8 +128,7 @@ async function load(): Promise<void> {
 }
 
 function candidateQuantityLabel(c: MarketplaceWriteoffCandidateView): string {
-  const saleUnit = marketplaceOrderSaleUnit(Number.parseFloat(c.quantity) || 0, c.unit_of_measure, c.package_size);
-  return `${saleUnit.units}×${saleUnit.unitLabel}`;
+  return marketplaceOrderSaleUnitLabel(Number.parseFloat(c.quantity) || 0, c.unit_of_measure, c.package_size);
 }
 
 function hasAmount(c: MarketplaceWriteoffCandidateView): boolean {
