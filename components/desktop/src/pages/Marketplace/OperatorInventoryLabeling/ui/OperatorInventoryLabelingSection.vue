@@ -138,6 +138,18 @@ const inboxItems = computed(() =>
   boardItems.value.filter((i) => !i.container_id && !i.cell_id).filter(matchesItem),
 )
 
+/**
+ * Подпись пустой колонки «Поступило». Различает три причины пустоты: на склад
+ * ещё ничего не привозили, всё привезённое уже разложено, либо поиск ничего не
+ * нашёл. Раньше пустой склад целиком подменял доску заглушкой, и оператор не
+ * мог подготовить ячейки заранее.
+ */
+const inboxEmptyLabel = computed(() => {
+  if (!boardItems.value.length) return 'Пока ничего не поступало'
+  if (!placementEnabled.value) return 'Ничего не найдено'
+  return 'Всё разложено'
+})
+
 function containersInCell(cellId: string): MarketplaceContainerView[] {
   return storage.activeContainers.filter((c) => c.cell_id === cellId)
 }
@@ -652,8 +664,14 @@ function addLevelDown(): void {
 }
 
 /** Первая ячейка пустого склада — A-01, дальше сетка растёт плюсами. */
+/**
+ * Стартовая сетка: три секции по три яруса. Одна ячейка A-01, с которой
+ * начинали раньше, выглядела на карте случайной точкой и всё равно требовала
+ * достраивания вручную; девять ячеек сразу дают узнаваемый склад, который
+ * правится по месту — секции переименовываются, лишнее снимается.
+ */
 function startGrid(): void {
-  void growGrid(['A'], 1, 1)
+  void growGrid(['A', 'B', 'C'], 1, 3)
 }
 
 // ─── Пересборка сетки: переименование секции и разбор координат ──
@@ -899,14 +917,9 @@ onMounted(async () => {
     //- Канон загрузки: скелетон, а не спиннер.
     CardListSkeleton(v-if='loading && !items.length', :count='3')
 
-    EmptyState(
-      v-else-if='!boardItems.length',
-      title='На складе пусто',
-      body='Здесь появятся принятые позиции — после приёмки партии на столе «Ожидаемые поставки».'
-    )
-      template(#icon)
-        q-icon(name='inventory_2', size='48px')
-
+    //- Пустой склад доску не прячет: ячейки и боксы заводят заранее, до первой
+    //- поставки, — иначе оператору негде подготовить место (просьба владельца
+    //- 2026-09-09). Пустота показывается внутри колонок, а не вместо карты.
     template(v-else)
       //- `field-flush` снимает у поля резерв строки под сообщение об ошибке:
       //- здесь ошибок не бывает, а резерв поднимал поле относительно
@@ -939,7 +952,7 @@ onMounted(async () => {
 
           .place__col-body
             .place__empty-drop(v-if='!inboxItems.length')
-              | {{ placementEnabled ? 'Всё разложено' : 'Ничего не найдено' }}
+              | {{ inboxEmptyLabel }}
 
             .place__card(
               v-for='item in inboxItems',
@@ -1011,15 +1024,15 @@ onMounted(async () => {
           EmptyState(
             v-if='!storage.activeCells.length',
             title='Сетка склада не заведена',
-            body='Опишите склад координатами: секции по горизонтали, ярусы по вертикали. Тогда место находится адресом, а не перебором. Начните с первой ячейки — дальше сетка достраивается плюсами по краям карты.'
+            body='Начните с трёх секций по три яруса — дальше правьте по месту.'
           )
             template(#icon)
               q-icon(name='grid_view', size='48px')
             template(#action)
               BaseButton(variant='primary', size='sm', :loading='growing', @click='startGrid')
                 template(#icon-left)
-                  q-icon(name='add', size='16px')
-                | Завести ячейку A-01
+                  q-icon(name='grid_view', size='16px')
+                | Завести стартовую сетку
 
           EmptyState(
             v-else-if='!visibleSections.length',
@@ -1511,6 +1524,13 @@ onMounted(async () => {
   }
 
   // ─── Координатная сетка ───
+  // Пустое состояние карты стоит по центру свободной области и не жмётся к
+  // краям: подсказка про адресный склад уже сказана баннером выше, здесь нужен
+  // только повод завести сетку (просьба владельца 2026-09-09).
+  &__grid-wrap :deep(.empty) {
+    padding: var(--p-8, 48px) var(--p-6, 24px);
+  }
+
   &__grid-wrap {
     flex: 1 1 480px;
     min-width: 0;
