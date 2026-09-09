@@ -393,17 +393,20 @@ q-page.catalog(role="region", aria-label="Каталог Стола заказо
           q-icon(name="swap_vert", size="18px")
         span.catalog__sort-label {{ currentSortLabel }}
         q-icon(name="arrow_drop_down", size="18px")
-        q-menu(anchor="bottom right", self="top right")
-          q-list(dense, style="min-width: 180px")
-            q-item(
-              v-for="opt in sortOptions",
-              :key="opt.value",
-              clickable,
-              v-close-popup,
-              :active="opt.value === sort",
-              @click="onSortChange(opt.value)"
-            )
-              q-item-section {{ opt.label }}
+        //- Меню — отдельным слотом кнопки: иначе Quasar считает триггером
+        //- только подпись, и меню открывается через раз.
+        template(#menu)
+          q-menu(anchor="bottom right", self="top right")
+            q-list(dense, style="min-width: 180px")
+              q-item(
+                v-for="opt in sortOptions",
+                :key="opt.value",
+                clickable,
+                v-close-popup,
+                :active="opt.value === sort",
+                @click="onSortChange(opt.value)"
+              )
+                q-item-section {{ opt.label }}
 
   //- Канон: на первичной загрузке — скелетон-сетка карточек, не перекрывающий
   //- спиннер. Polling обновляет молча.

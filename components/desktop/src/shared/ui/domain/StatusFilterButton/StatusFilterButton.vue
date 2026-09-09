@@ -11,26 +11,28 @@ BaseButton(
   | {{ buttonLabel }}
   BaseBadge.q-ml-sm(v-if='activeCount', variant='info') {{ activeCount }}
 
-  q-menu(anchor='bottom right', self='top right')
-    q-list.status-filter(dense)
-      q-item(clickable, @click='reset')
-        q-item-section(avatar)
-          q-icon(name='filter_alt_off', size='18px')
-        q-item-section Показать все
-      q-separator
-      q-item(
-        v-for='option in props.options',
-        :key='option.key',
-        clickable,
-        @click='toggle(option)'
-      )
-        q-item-section(avatar)
-          q-icon(
-            :name='isActive(option) ? "check_box" : "check_box_outline_blank"',
-            :color='isActive(option) ? "primary" : undefined',
-            size='18px'
-          )
-        q-item-section {{ option.label }}
+  //- Меню — отдельным слотом: так его триггером остаётся вся кнопка целиком.
+  template(#menu)
+    q-menu(anchor='bottom right', self='top right')
+      q-list.status-filter(dense)
+        q-item(clickable, @click='reset')
+          q-item-section(avatar)
+            q-icon(name='filter_alt_off', size='18px')
+          q-item-section Показать все
+        q-separator
+        q-item(
+          v-for='option in props.options',
+          :key='option.key',
+          clickable,
+          @click='toggle(option)'
+        )
+          q-item-section(avatar)
+            q-icon(
+              :name='isActive(option) ? "check_box" : "check_box_outline_blank"',
+              :color='isActive(option) ? "primary" : undefined',
+              size='18px'
+            )
+          q-item-section {{ option.label }}
 </template>
 
 <script setup lang="ts">
