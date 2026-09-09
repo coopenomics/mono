@@ -39,3 +39,36 @@ export const ALL_ORDER_REGISTRY_STATUSES: OrderRegistryStatusView[] = [
   'CANCELLED_BY_ORDERER',
   'CANCELLED_BY_SUPPLIER',
 ];
+
+/** Пункт фильтра: одна понятная позиция в меню, за ней — один или два статуса. */
+export interface OrderRegistryFilterOption {
+  key: string;
+  label: string;
+  statuses: OrderRegistryStatusView[];
+}
+
+/**
+ * Меню фильтра по состоянию заказа. Пункт «Ждёт акцепта» покрывает сразу два
+ * статуса: заказ, дождавшийся сборки партии, и одиночный заказ, попавший к
+ * поставщику сразу. Для администратора это одно и то же ожидание, а двумя
+ * пунктами с одинаковой подписью список выглядел как ошибка.
+ */
+export const ORDER_REGISTRY_FILTERS: OrderRegistryFilterOption[] = [
+  { key: 'active', label: 'Ожидает сборки партии', statuses: ['ACTIVE'] },
+  {
+    key: 'pending_supplier',
+    label: 'Ждёт акцепта поставщика',
+    statuses: ['ACCEPTED_PENDING_SUPPLIER', 'ACCEPTED_PENDING_SUPPLIER_INDIVIDUAL'],
+  },
+  { key: 'accepted', label: 'Ожидает отгрузки', statuses: ['ACCEPTED'] },
+  { key: 'supply_prepared', label: 'Собрана к отгрузке', statuses: ['SUPPLY_PREPARED'] },
+  { key: 'accepted_to_coop', label: 'Принят кооперативом', statuses: ['ACCEPTED_TO_COOP'] },
+  { key: 'ready', label: 'Готов к выдаче', statuses: ['READY_TO_RECEIVE'] },
+  { key: 'issue_pending', label: 'На решении совета', statuses: ['ISSUE_PENDING'] },
+  { key: 'issue_authorized', label: 'Совет согласовал — подпишите акт', statuses: ['ISSUE_AUTHORIZED'] },
+  { key: 'issue_act1', label: 'Акт подписан — выдаётся', statuses: ['ISSUE_ACT1'] },
+  { key: 'received', label: 'Получен', statuses: ['RECEIVED'] },
+  { key: 'returned', label: 'Возвращён', statuses: ['RETURNED'] },
+  { key: 'cancelled_orderer', label: 'Отменён заказчиком', statuses: ['CANCELLED_BY_ORDERER'] },
+  { key: 'cancelled_supplier', label: 'Отменён поставщиком', statuses: ['CANCELLED_BY_SUPPLIER'] },
+];

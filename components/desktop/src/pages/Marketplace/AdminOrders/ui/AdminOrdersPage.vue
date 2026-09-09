@@ -11,7 +11,12 @@ import { useRouter } from 'vue-router';
 import { FailAlert } from 'src/shared/api';
 import { useSystemStore } from 'src/entities/System/model';
 import { PageHint } from 'src/shared/ui/domain';
-import { OrdersRegistryTable, type OrderRegistryStatusView } from 'src/widgets/Marketplace/OrdersRegistryTable';
+import {
+  OrdersRegistryFilterButton,
+  OrdersRegistryTable,
+  type OrderRegistryStatusView,
+} from 'src/widgets/Marketplace/OrdersRegistryTable';
+import { useHeaderActions } from 'src/shared/hooks';
 import { OrderRegistryOverlay } from 'src/widgets/Marketplace/OrderRegistryOverlay';
 import { useQueryOverlay } from 'src/shared/lib/navigation';
 import { fetchAllOrders } from '../api';
@@ -19,6 +24,7 @@ import type { AdminOrderView } from '../types';
 
 const { info } = useSystemStore();
 const router = useRouter();
+const { registerAction } = useHeaderActions();
 const orderOverlay = useQueryOverlay('order');
 
 const items = ref<AdminOrderView[]>([]);
@@ -84,6 +90,14 @@ function goToOffer(offerId: string): void {
 }
 
 onMounted(() => {
+  // Фильтр по состоянию — кнопкой в шапке (канон: действия страницы в топбаре).
+  // Раньше четырнадцать чипов лежали над таблицей и занимали половину экрана.
+  registerAction({
+    id: 'mp-admin-orders-filter',
+    component: OrdersRegistryFilterButton,
+    props: { statuses: statusFilter, onChange: onStatusFilterUpdate },
+    order: 1,
+  });
   void load();
 });
 </script>
@@ -97,8 +111,6 @@ q-page.admin-orders
     :items="items",
     :loading="loading",
     :pagination="pagination",
-    :status-filter="statusFilter",
-    @update:status-filter="onStatusFilterUpdate",
     @request="onRequest",
     @order-click="goToOrder",
     @offer-click="goToOffer"

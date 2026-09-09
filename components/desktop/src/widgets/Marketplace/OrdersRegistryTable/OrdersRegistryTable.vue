@@ -17,18 +17,13 @@ import { marketplaceOrderSaleUnit } from 'src/shared/lib/consts/marketplace-unit
 import { BaseBadge, EmptyState } from 'src/shared/ui/base';
 import { EntityIdBadge } from 'src/shared/ui';
 import { orderStatusDisplay } from 'src/widgets/Marketplace/OrderCard';
-import {
-  ALL_ORDER_REGISTRY_STATUSES,
-  type OrderRegistryStatusView,
-  type OrderRegistryView,
-} from './lib/types';
+import type { OrderRegistryView } from './lib/types';
 
 const props = withDefaults(
   defineProps<{
     items: OrderRegistryView[];
     loading: boolean;
     pagination: { page: number; rowsPerPage: number; rowsNumber: number };
-    statusFilter: OrderRegistryStatusView[];
     /** Ссылка «открыть предложение» — скрыта, если у роли нет права Offer:read (стол ПВЗ). */
     showOfferLink?: boolean;
   }>(),
@@ -36,7 +31,6 @@ const props = withDefaults(
 );
 
 const emit = defineEmits<{
-  (e: 'update:statusFilter', value: OrderRegistryStatusView[]): void;
   (e: 'request', value: { pagination: { page: number; rowsPerPage: number; rowsNumber?: number } }): void;
   (e: 'offer-click', offerId: string): void;
   (e: 'order-click', orderId: string): void;
@@ -59,20 +53,6 @@ function statusLabel(s: string): string {
 }
 function statusVariant(s: string) {
   return orderStatusDisplay(s).variant;
-}
-
-function isStatusActive(s: OrderRegistryStatusView): boolean {
-  return props.statusFilter.includes(s);
-}
-function toggleStatus(s: OrderRegistryStatusView): void {
-  emit(
-    'update:statusFilter',
-    isStatusActive(s) ? props.statusFilter.filter((x) => x !== s) : [...props.statusFilter, s]
-  );
-}
-function resetFilters(): void {
-  if (!props.statusFilter.length) return;
-  emit('update:statusFilter', []);
 }
 
 function shortId(id: string | null | undefined): string {
@@ -123,27 +103,7 @@ function onRequest(requestProps: { pagination: { page: number; rowsPerPage: numb
 
 <template lang="pug">
 .orders-registry(role="region", aria-label="Реестр заказов")
-  .orders-registry__chips(role="group", aria-label="Фильтр по статусу")
-    .chip(
-      v-for="s in ALL_ORDER_REGISTRY_STATUSES",
-      :key="s",
-      :class="isStatusActive(s) ? 'chip--accent' : 'chip--neutral'",
-      role="button",
-      tabindex="0",
-      @click="toggleStatus(s)",
-      @keydown.enter="toggleStatus(s)"
-    ) {{ statusLabel(s) }}
-    .chip.chip--reset(
-      v-if="props.statusFilter.length",
-      role="button",
-      tabindex="0",
-      @click="resetFilters",
-      @keydown.enter="resetFilters"
-    )
-      q-icon(name="close", size="14px")
-      | Сбросить
-
-  q-card.q-mt-md(flat)
+  q-card(flat)
     q-table.full-height(
       flat,
       :rows="props.items",
@@ -204,22 +164,6 @@ function onRequest(requestProps: { pagination: { page: number; rowsPerPage: numb
     width: 100%;
     display: flex;
     justify-content: center;
-  }
-
-  &__chips {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--p-2, 8px);
-
-    .chip {
-      cursor: pointer;
-      user-select: none;
-      height: 28px;
-      padding: 0 12px;
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-    }
   }
 
   // Строка открывает страницу заказа — подсветка при наведении и курсор

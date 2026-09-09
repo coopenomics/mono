@@ -12,13 +12,20 @@ import { FailAlert } from 'src/shared/api';
 import { OperatorBranchBar, useOperatorBranchStore } from 'src/entities/OperatorBranch';
 import { EmptyState } from 'src/shared/ui/base';
 import { PageHint } from 'src/shared/ui/domain';
-import { OrdersRegistryTable, type OrderRegistryStatusView, type OrderRegistryView } from 'src/widgets/Marketplace/OrdersRegistryTable';
+import {
+  OrdersRegistryFilterButton,
+  OrdersRegistryTable,
+  type OrderRegistryStatusView,
+  type OrderRegistryView,
+} from 'src/widgets/Marketplace/OrdersRegistryTable';
+import { useHeaderActions } from 'src/shared/hooks';
 import { OrderRegistryOverlay } from 'src/widgets/Marketplace/OrderRegistryOverlay';
 import { useQueryOverlay } from 'src/shared/lib/navigation';
 import { fetchBranchOrders } from '../api';
 
 const route = useRoute();
 const store = useOperatorBranchStore();
+const { registerAction } = useHeaderActions();
 const orderOverlay = useQueryOverlay('order');
 
 const coopname = computed(() => String(route.params.coopname ?? ''));
@@ -78,6 +85,13 @@ function onRequest(props: { pagination: { page: number; rowsPerPage: number; row
 }
 
 onMounted(async () => {
+  // Фильтр по состоянию — кнопкой в шапке (канон: действия страницы в топбаре).
+  registerAction({
+    id: 'mp-branch-orders-filter',
+    component: OrdersRegistryFilterButton,
+    props: { statuses: statusFilter, onChange: onStatusFilterUpdate },
+    order: 1,
+  });
   await store.ensureLoaded(coopname.value);
   void load();
 });
@@ -105,9 +119,7 @@ q-page.operator-orders
       :items="items",
       :loading="loading",
       :pagination="pagination",
-      :status-filter="statusFilter",
       :show-offer-link="false",
-      @update:status-filter="onStatusFilterUpdate",
       @order-click="goToOrder",
       @request="onRequest"
     )
