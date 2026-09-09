@@ -4,7 +4,7 @@
     отступов страницы (см. проп hoist). Выключенный телепорт рендерит ту же
     разметку на месте — вложенным вкладкам внутри страницы поднимать нечего.
   -->
-  <Teleport to="#page-tabs-host" :disabled="!hoist || !hostReady">
+  <Teleport defer to="#page-tabs-host" :disabled="!hoist || !hostReady">
     <!-- Атрибуты страницы (класс, data-*) кладём на саму полосу: корень
          компонента — телепорт, и Vue их туда не наследует. -->
     <nav class="tabbar" v-bind="$attrs">
@@ -63,10 +63,11 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
+import { inject, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useTabsScroll } from 'src/shared/hooks/useTabsScroll';
 import { TabsScrollArrow } from '../TabsScrollArrow';
+import { PAGE_TABS_HOST } from './PageTabs.types';
 import type { PageTabsProps, PageTab } from './PageTabs.types';
 
 defineOptions({ inheritAttrs: false });
@@ -80,12 +81,10 @@ const emit = defineEmits<{
 const route = useRoute();
 const router = useRouter();
 
-// Цель телепорта живёт в каркасе приложения. В обособленных каркасах
-// (виджет-режим) её нет — тогда полоса остаётся на месте, как раньше.
-const hostReady = ref(false);
-onMounted(() => {
-  hostReady.value = !!document.getElementById('page-tabs-host');
-});
+// Есть ли в каркасе место для поднятой полосы. Признак приходит инъекцией и
+// известен до первого рендера: телепорт нельзя включать позже монтирования —
+// цель к тому моменту уже запомнена пустой (см. PAGE_TABS_HOST).
+const hostReady = inject(PAGE_TABS_HOST, false);
 
 const tabsRef = ref<HTMLElement | null>(null);
 const { scrollable, canScrollLeft, canScrollRight, scrollTowards } = useTabsScroll(

@@ -77,7 +77,7 @@ q-layout(view='lHh LpR fff')
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted } from 'vue';
+import { computed, onMounted, onUnmounted, provide } from 'vue';
 import { useRouter } from 'vue-router';
 import type { RouteRecordRaw } from 'vue-router';
 import { storeToRefs } from 'pinia';
@@ -97,7 +97,13 @@ import { useDefaultLayoutLogic } from './useDefaultLayoutLogic';
 import { usePWAThemeColor } from 'src/shared/lib/composables/usePWAThemeColor';
 import { useRightDrawerReader } from 'src/shared/hooks/useRightDrawer';
 import { WindowLoader } from 'src/shared/ui/Loader';
+import { PAGE_TABS_HOST } from 'src/shared/ui/layout/PageTabs';
 import { Zeus } from '@coopenomics/sdk';
+
+// Каркас объявляет, что место для поднятой полосы вкладок здесь есть. Страницы
+// узнают об этом до первого рендера — искать место в документе на монтировании
+// поздно, телепорт к тому времени уже запомнил пустую цель.
+provide(PAGE_TABS_HOST, true);
 
 const router = useRouter();
 const desktop = useDesktopStore();
