@@ -725,7 +725,7 @@ BaseDialog(
 
     //- ─────────────── Шаг 1: сверка ───────────────
     template(v-if="step === 'check'")
-      table.sign-apl__table(v-if="!showActs")
+      table.act-table(v-if="!showActs")
         thead
           tr
             th Товар
@@ -1026,35 +1026,6 @@ BaseDialog(
     .is-done & {
       border-color: var(--p-pos);
       color: var(--p-pos);
-    }
-  }
-
-  &__table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: var(--p-fs-body-sm, 13px);
-
-    th,
-    td {
-      padding: var(--p-2, 8px);
-      border-bottom: 1px solid var(--p-line);
-      text-align: left;
-      color: var(--p-ink);
-    }
-
-    th {
-      color: var(--p-ink-2);
-      font-weight: 600;
-    }
-
-    .num {
-      text-align: right;
-      font-variant-numeric: tabular-nums;
-    }
-
-    tfoot td {
-      font-weight: 600;
-      border-bottom: none;
     }
   }
 

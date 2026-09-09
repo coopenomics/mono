@@ -187,7 +187,7 @@ BaseDialog(
 
     template(v-if="!showActs")
       .sign-apl__section-head(v-if="hasRejected && hasAccepted") Принимается
-      table.sign-apl__table(v-if="hasAccepted")
+      table.act-table(v-if="hasAccepted")
         thead
           tr
             th Товар
@@ -308,35 +308,9 @@ BaseDialog(
     font-variant-numeric: tabular-nums;
   }
 
-  &__table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: var(--p-fs-body-sm, 13px);
-
-    th,
-    td {
-      padding: var(--p-2, 8px);
-      border-bottom: 1px solid var(--p-line);
-      text-align: left;
-      color: var(--p-ink);
-    }
-
-    th {
-      color: var(--p-ink-2);
-      font-weight: 600;
-    }
-
-    .num {
-      text-align: right;
-      font-variant-numeric: tabular-nums;
-    }
-
-    tfoot td {
-      font-weight: 600;
-      border-bottom: none;
-    }
-  }
-
+  // Состав поставки — накладной в рамке, как на карточках у оператора: одна и
+  // та же поставка выглядит одинаково по обе стороны подписи (просьба
+  // владельца 2026-09-09). Количество идёт упаковками, как принимали.
   &__preview {
     position: relative;
     min-height: 120px;

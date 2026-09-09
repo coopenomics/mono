@@ -623,6 +623,44 @@ body {
   min-height: calc(100dvh - var(--p-topbar-h) - var(--p-tabs-host-h, var(--p-tabbar-h))) !important;
 }
 
+/* Состав поставки в диалогах подписи — накладная в рамке. Один класс на обе
+   стороны подписи: поставщик и оператор подписывают одну и ту же поставку и
+   обязаны видеть её одинаково, вплоть до строк по упаковкам (просьба владельца
+   2026-09-09). Раньше стиль лежал двумя копиями в самих диалогах и разошёлся. */
+.act-table {
+  width: 100%;
+  border-collapse: collapse;
+  border: 1px solid var(--p-line);
+  border-radius: var(--p-r-sm);
+  overflow: hidden;
+  font-size: var(--p-fs-body-sm);
+}
+.act-table th,
+.act-table td {
+  padding: var(--p-2) var(--p-3);
+  text-align: left;
+  color: var(--p-ink);
+}
+.act-table thead th {
+  background: var(--p-surface-2);
+  border-bottom: 1px solid var(--p-line);
+  font-size: var(--p-fs-meta);
+  font-weight: 400;
+  letter-spacing: var(--p-ls-eyebrow);
+  text-transform: uppercase;
+  color: var(--p-ink-3);
+}
+.act-table tbody td { border-top: 1px solid var(--p-line); }
+.act-table tbody tr:first-child td { border-top: none; }
+.act-table .num { text-align: right; font-variant-numeric: tabular-nums; }
+/* Итог — главная величина акта: отбит линией и крупнее строк состава. */
+.act-table tfoot td {
+  border-top: 1px solid var(--p-line);
+  background: var(--p-surface-2);
+  font-weight: 700;
+}
+.act-table tfoot .num:last-child { font-size: var(--p-fs-h3); }
+
 .tabbar {
   display: flex;
   align-items: stretch;

@@ -258,7 +258,10 @@ function lineQuantityLabel(l: { quantity: number; unit: string; packageSize: num
 function aggregateLines(orders: MarketplaceSupplierPickupOrderView[]): DeliveryLine[] {
   const map = new Map<string, DeliveryLine>();
   for (const o of orders) {
-    const key = `${o.product_name ?? ''}|${o.unit_of_measure ?? ''}`;
+    // Тара — часть ключа: оператор принимает и раскладывает упаковками, и «10
+    // упак. 0,5 л» рядом с «10 упак. 1 л» должны остаться разными строками.
+    // Слитые в одну, они превращались в безликое «15 л» (жалоба 2026-09-09).
+    const key = `${o.product_name ?? ''}|${o.unit_of_measure ?? ''}|${o.package_size ?? 0}`;
     const qty = Number(o.quantity) || 0;
     const per = unitsPerBoxByOrder.value.get(o.id);
     const boxes = per && per > 0 ? Math.ceil(qty / per) : 0;
@@ -266,7 +269,6 @@ function aggregateLines(orders: MarketplaceSupplierPickupOrderView[]): DeliveryL
     if (ex) {
       ex.quantity += qty;
       ex.boxes += boxes;
-      if (ex.packageSize !== (o.package_size ?? null)) ex.packageSize = null;
     } else
       map.set(key, {
         key,
@@ -277,7 +279,10 @@ function aggregateLines(orders: MarketplaceSupplierPickupOrderView[]): DeliveryL
         boxes,
       });
   }
-  return [...map.values()];
+  // Крупная тара выше мелкой — строки одного товара читаются как накладная.
+  return [...map.values()].sort((a, b) =>
+    a.productName === b.productName ? (b.packageSize ?? 0) - (a.packageSize ?? 0) : 0,
+  );
 }
 
 // Единый список ожидаемых поставок, АГРЕГИРОВАННЫЙ ПО ПОСТАВЩИКУ: один поставщик
@@ -784,10 +789,12 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
         .reception__card-badges
           BaseBadge(:variant='statusVariant(g.status)') {{ statusLabel(g.status) }}
           BaseBadge(variant='neutral') {{ variantLabel(g.variant) }}
-        ul.reception__card-items(v-if='g.lines.length')
-          li.reception__card-item(v-for='l in g.lines', :key='l.key')
-            span.reception__card-prod {{ l.productName }}
-            span.reception__card-qty {{ lineQuantityLabel(l) }}
+        .reception__card-goods(v-if='g.lines.length')
+          .reception__card-goods-head В поставке
+          ul.reception__card-items
+            li.reception__card-item(v-for='l in g.lines', :key='l.key')
+              span.reception__card-prod {{ l.productName }}
+              span.reception__card-qty {{ lineQuantityLabel(l) }}
         .reception__card-stamps(v-if='g.createdAt || g.supplierSignedAt')
           .reception__card-stamp(v-if='g.createdAt')
             q-icon(name='inventory_2', size='14px')
@@ -829,12 +836,14 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
         .reception__card-badges
           BaseBadge(variant='info') Ожидает приёмки
           BaseBadge(v-for='m in d.deliveryLabels', :key='m', variant='neutral') {{ m }}
-        ul.reception__card-items(v-if='d.lines.length')
-          li.reception__card-item(v-for='l in d.lines', :key='l.key')
-            span.reception__card-prod {{ l.productName }}
-            span.reception__card-qty
-              | {{ lineQuantityLabel(l) }}
-              span.reception__card-boxes(v-if='l.boxes')  · {{ l.boxes }} кор.
+        .reception__card-goods(v-if='d.lines.length')
+          .reception__card-goods-head Привезёт
+          ul.reception__card-items
+            li.reception__card-item(v-for='l in d.lines', :key='l.key')
+              span.reception__card-prod {{ l.productName }}
+              span.reception__card-qty
+                | {{ lineQuantityLabel(l) }}
+                span.reception__card-boxes(v-if='l.boxes')  · {{ l.boxes }} кор.
         .reception__card-stamps
           .reception__card-stamp(v-if='d.formedAt')
             q-icon(name='inventory_2', size='14px')
@@ -1040,27 +1049,45 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
   }
 
   &__card-summary-label {
-    font-size: var(--p-fs-body-sm, 13px);
-    color: var(--p-ink-2);
+    font-size: var(--p-fs-meta, 12px);
+    letter-spacing: var(--p-ls-eyebrow, 0.08em);
+    text-transform: uppercase;
+    color: var(--p-ink-3);
   }
 
+  // Сумма — главная величина карточки, поэтому крупнее строк состава.
   &__card-amount {
     flex: 0 0 auto;
-    font-family: var(--p-mono);
-    font-weight: 600;
+    font-size: var(--p-fs-h2, 18px);
+    font-weight: 700;
+    letter-spacing: var(--p-ls-h2, -0.012em);
     color: var(--p-ink);
     font-variant-numeric: tabular-nums;
   }
 
+  // Состав поставки — накладной в рамке, а не серой плашкой: строки идут по
+  // упаковкам («10 упак. 0,5 л»), и волосяные линии между ними читаются лучше,
+  // чем сплошная заливка (просьба владельца 2026-09-09).
+  &__card-goods {
+    border: 1px solid var(--p-line);
+    border-radius: var(--p-r-sm, 8px);
+    overflow: hidden;
+  }
+
+  &__card-goods-head {
+    padding: var(--p-2, 8px) var(--p-3, 12px);
+    background: var(--p-surface-2);
+    border-bottom: 1px solid var(--p-line);
+    font-size: var(--p-fs-meta, 12px);
+    letter-spacing: var(--p-ls-eyebrow, 0.08em);
+    text-transform: uppercase;
+    color: var(--p-ink-3);
+  }
+
   &__card-items {
     margin: 0;
-    padding: var(--p-3, 12px);
+    padding: 0;
     list-style: none;
-    display: flex;
-    flex-direction: column;
-    gap: var(--p-2, 8px);
-    background: var(--p-surface-2);
-    border-radius: var(--p-r-sm, 8px);
   }
 
   &__card-item {
@@ -1068,7 +1095,13 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
     align-items: baseline;
     justify-content: space-between;
     gap: var(--p-3, 12px);
+    padding: var(--p-2, 8px) var(--p-3, 12px);
+    border-top: 1px solid var(--p-line);
     font-size: var(--p-fs-body-sm, 13px);
+
+    &:first-child {
+      border-top: none;
+    }
   }
 
   // Бейджи статуса/способа доставки — отдельной строкой под именем (раньше
