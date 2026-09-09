@@ -1,22 +1,23 @@
 <script lang="ts" setup>
 import { computed } from 'vue';
-import { BaseBadge } from 'src/shared/ui/base';
+import { BaseBadge, BaseButton } from 'src/shared/ui/base';
 import { orderStatusDisplay, type DomainOrderStatus } from 'src/widgets/Marketplace/OrderCard';
 
 /**
- * Единая карточка партии Стола заказов — одна вёрстка на всех столах и стадиях.
+ * Карточка партии Стола заказов — заказы одной пары «предложение × участок».
  *
- * Партия (заказы по паре оферта × КУ) показывается одинаково и у заказчика
- * («Коллективный заказ»), и у поставщика («Входящие заказы»), на любом этапе
- * (копится / принята / в работе): шапка (товар + КУ + бейдж этапа + счётчик),
- * прогресс-бар сбора, состав партии строками, подвал (итог + действия).
- * Меняются только данные и тексты — не вёрстка. Раньше каждая страница
- * рисовала свою карточку (накопитель ≠ принятая) — путало и нарушало DRY.
+ * Три яруса, каждый отвечает на свой вопрос. Шапка — «что и куда»: товар,
+ * участок с адресом и состояние партии. Середина — «как идёт сбор» и «что
+ * именно заказано»: полоса накопления и разбор партии по таре. Подвал —
+ * «сколько всего» и действия поставщика.
  *
- * Вариативные части — слотами:
- *  - `#hint`    — пояснение под прогресс-баром (тексты у столов разные);
- *  - `#actions` — кнопки в подвале (у поставщика «Принять/Отклонить», у
- *                 заказчика пусто).
+ * Разбор по таре обязателен: партия копится к минимальному объёму поставки в
+ * базовой единице («15 л»), но отгружать поставщику предстоит упаковки, и по
+ * одному итогу непонятно, что везти — тридцать поллитровок или пятнадцать
+ * литровых (жалоба 2026-09-09).
+ *
+ * Вариативные части — слотами: `#hint` (пояснение под полосой сбора) и
+ * `#actions` (кнопки подвала).
  */
 
 const props = defineProps<{
@@ -24,66 +25,62 @@ const props = defineProps<{
   /** Обложка товара — по ней партия узнаётся с одного взгляда, без чтения. */
   imageUrl?: string | null;
   pvzName: string;
+  /** Адрес участка: поставщику везти туда, а название участка адреса не заменяет. */
+  pvzAddress?: string | null;
+  /** У участка есть координаты — показываем кнопку «На карте» (эмитит `map`). */
+  mappable?: boolean;
   /** Доменный статус-этап партии (минимальный по рангу среди заказов). */
   stageStatus: DomainOrderStatus | string;
+  /** Сколько заказов пайщиков вошло в партию — подпись к разбору состава. */
   orderCount: number;
   /**
-   * Скрыть бейдж «N зак.» (число заказов в партии). У заказчика число других
-   * участников нерелевантно — ему важно лишь наполнение партии; у поставщика
-   * счётчик остаётся.
-   */
-  hideOrderCount?: boolean;
-  /**
-   * Заполнение прогресс-бара 0..1 (доля от минимального объёма поставки).
-   * Абсолютные величины (сколько литров/упаковок набрано) на баре не
-   * показываем — набор в партии может идти разными упаковками одного товара,
-   * а порог сбора всегда в базовой единице, поэтому смешивать их в одной
-   * подписи вводит в заблуждение (Эпик 18, инцидент «Объём партии: 1×л» при
-   * 10 упаковках по 0,1 л). Точный состав — ниже, в `totalValue` («10×упак.
-   * 0,1 л»). Бар — только процент готовности; сам объём/цель поставщик и так
-   * задавал при настройке предложения.
+   * Заполнение полосы сбора 0..1 (доля от минимального объёма поставки).
+   * Абсолютных величин на полосе нет намеренно: набор идёт разными упаковками
+   * одного товара, а цель сбора всегда в базовой единице. Что именно набрано —
+   * ниже, в разборе по таре.
    */
   progress: number;
-  /** Цвет бара (Quasar color): primary пока копится, positive когда набрано/принято. */
+  /** Цвет полосы (Quasar color): primary пока копится, positive когда набрано/принято. */
   barColor: string;
   /**
-   * Показывать бар вообще. Имеет смысл только пока партия реально копится к
-   * цели — после приёма/получения бар всегда «100%» и не несёт информации,
-   * только шум (жалоба 2026-08-02). Передаётся страницей: `kind === 'collecting'
-   * && hasTarget`.
+   * Показывать полосу вообще. Имеет смысл, только пока партия копится к цели —
+   * после приёма/получения она всегда «100%» и не несёт информации, только шум
+   * (жалоба 2026-08-02).
    */
   showProgress?: boolean;
-  /** Состав партии строками: кто · сколько · стоимость. */
-  // `who` опционально: на столе поставщика ФИО заказчиков НЕ показываем
-  // (приватность — поставщику видны только объёмы партии, не кто заказал).
-  members: Array<{ id: string; who?: string; qty: string; cost: string }>;
-  /** Подпись итога, напр. «Итого партии» / «Ваш вклад в партию». */
+  /**
+   * Разбор партии по таре: строка на каждую упаковку — подпись тары, сколько
+   * упаковок, сколько это в базовой единице и на какую сумму.
+   */
+  breakdown?: Array<{ id: string; label: string; units: string; volume: string; cost: string }>;
+  /** Подпись итога, напр. «Итого партии». */
   totalLabel: string;
-  /** Деньги партии, напр. «1 200 ₽» — главная величина карточки. */
+  /** Деньги партии, напр. «1 500 ₽» — главная величина карточки. */
   totalValue: string;
   /**
-   * Объём партии, напр. «5 кг» / «10×упак. 0,1 л». Показывается отдельно от
-   * денег: слитая строка «1 200 ₽ · 10×упак. 0,1 л» читается как одна невнятная
-   * величина, хотя это разные вещи — сколько денег и сколько имущества.
+   * Объём партии в базовой единице, напр. «15 л». Показывается рядом с
+   * деньгами: это разные вещи — сколько денег и сколько имущества.
    */
   totalUnits?: string;
   /**
-   * Пояснение под итогом (requirement b6) — например «С учётом взноса
-   * пайщиков: 1 300 ₽» на столе поставщика, где `totalValue` — его
-   * себестоимость без взноса. У заказчика не передаётся.
+   * Пояснение под итогом — например «С учётом взноса пайщиков: 1 600 ₽», где
+   * `totalValue` — себестоимость поставщика без взноса.
    */
   totalFeeNote?: string;
-  /**
-   * Карточка кликабельна (курсор-указатель + role=button + emit `card-click`).
-   * У заказчика на «Коллективном заказе» клик ведёт в карточку предложения; у
-   * поставщика по умолчанию выключено (карточка — только сводка).
-   */
+  /** Карточка кликабельна (курсор-указатель + role=button + emit `card-click`). */
   clickable?: boolean;
 }>();
 
-const emit = defineEmits<{ (e: 'card-click'): void }>();
+const emit = defineEmits<{ (e: 'card-click'): void; (e: 'map'): void }>();
 
 const statusDisplay = computed(() => orderStatusDisplay(props.stageStatus));
+
+/** «2 заказа пайщиков» — состав партии всегда из чьих-то заказов. */
+const orderCountLabel = computed(() => {
+  const n = props.orderCount;
+  const tail = n % 10 === 1 && n % 100 !== 11 ? 'заказ' : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20) ? 'заказа' : 'заказов';
+  return `${n} ${tail}`;
+});
 
 function onCardClick(): void {
   if (props.clickable) emit('card-click');
@@ -98,22 +95,33 @@ function onCardClick(): void {
   @click="onCardClick",
   @keyup.enter="onCardClick"
 )
+  //- Ярус «что и куда»: товар с участком слева, состояние партии справа.
   .supply-party__head
     .supply-party__thumb
-      q-img.supply-party__thumb-img(v-if="imageUrl", :src="imageUrl", ratio="1")
+      q-img.supply-party__thumb-img(v-if="imageUrl", :src="imageUrl", ratio="1", fit="contain")
       .supply-party__thumb-empty(v-else)
         q-icon(name="image", size="20px")
-    .supply-party__title
+
+    .supply-party__ident
       .supply-party__name {{ productName }}
-      .supply-party__sub
-        q-icon(name="place", size="14px")
-        | КУ «{{ pvzName }}»
+      .supply-party__place
+        q-icon.supply-party__place-icon(name="place", size="14px")
+        span.supply-party__place-name КУ «{{ pvzName }}»
+        span.supply-party__place-addr(v-if="pvzAddress") {{ pvzAddress }}
+        BaseButton.supply-party__map-btn(
+          v-if="mappable",
+          variant="ghost",
+          size="sm",
+          @click.stop="emit('map')"
+        )
+          template(#icon-left)
+            q-icon(name="map", size="16px")
+          | На карте
+
     .supply-party__marks
       BaseBadge(:variant="statusDisplay.variant") {{ statusDisplay.label }}
-      span.chip.chip--accent(v-if="!hideOrderCount")
-        q-icon(name="layers", size="14px")
-        | {{ orderCount }} заказ
 
+  //- Ярус «как идёт сбор».
   .supply-party__progress(v-if="showProgress !== false")
     .supply-party__progress-top
       span.supply-party__progress-label Собрано
@@ -128,27 +136,26 @@ function onCardClick(): void {
     .supply-party__progress-hint(v-if="$slots.hint")
       slot(name="hint")
 
-  //- Разбивка по участникам — только когда есть смысловые строки. На столе
-  //- поставщика ФИО скрыты, поэтому страница не передаёт состав вовсе (одна
-  //- анонимная строка = дубль «Итого партии»); здесь блок просто не рисуется.
-  .supply-party__members(v-if="members.length")
-    .supply-party__member(
-      v-for="m in members",
-      :key="m.id",
-      :class="{ 'supply-party__member--anon': !m.who }"
-    )
-      span.supply-party__member-who(v-if="m.who") {{ m.who }}
-      span.supply-party__member-qty {{ m.qty }}
-      span.supply-party__member-cost {{ m.cost }}
+  //- Ярус «что именно заказано»: строка на каждую упаковку — везти предстоит
+  //- упаковки, а не литры.
+  .supply-party__breakdown(v-if="breakdown && breakdown.length")
+    .supply-party__breakdown-head
+      span.supply-party__breakdown-title Заказано
+      span.supply-party__breakdown-count {{ orderCountLabel }}
+    .supply-party__line(v-for="row in breakdown", :key="row.id")
+      span.supply-party__line-pkg {{ row.label }}
+      span.supply-party__line-units {{ row.units }}
+      span.supply-party__line-volume {{ row.volume }}
+      span.supply-party__line-cost {{ row.cost }}
 
+  //- Ярус «сколько всего» и действия.
   .supply-party__foot
     .supply-party__total
-      span.t-muted {{ totalLabel }}
+      span.supply-party__total-label {{ totalLabel }}
       .supply-party__total-row
         span.supply-party__total-val {{ totalValue }}
         span.supply-party__total-units(v-if="totalUnits") · {{ totalUnits }}
       span.supply-party__total-fee-note(v-if="totalFeeNote") {{ totalFeeNote }}
-    q-space
     .supply-party__actions
       slot(name="actions")
 </template>
@@ -163,8 +170,8 @@ function onCardClick(): void {
   flex-direction: column;
   gap: var(--p-4, 16px);
 
-  // Отклик на наведение есть у всех карточек списка — так же, как у карточки
-  // заказа: тонкая смена цвета рамки, без теней и подъёма.
+  // Отклик на наведение такой же, как у карточки заказа: тонкая смена цвета
+  // рамки, без теней и подъёма.
   transition: border-color 0.15s ease, background 0.15s ease;
 
   &:hover {
@@ -180,21 +187,18 @@ function onCardClick(): void {
     }
   }
 
-  // Шапка: название с адресом слева, отметки состояния — справа, по верхнему
-  // краю, чтобы длинное имя товара не толкало бейдж вниз.
+  // Шапка: миниатюра, рядом товар с участком, состояние прижато вправо по
+  // верхнему краю — длинное имя товара не толкает бейдж вниз.
   &__head {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: var(--p-3, 12px);
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: start;
+    gap: var(--p-3, 12px) var(--p-4, 16px);
   }
 
-  // Миниатюра товара — фиксированный квадрат слева, как в карточке заказа и
-  // корзине.
   &__thumb {
-    flex: 0 0 48px;
-    width: 48px;
-    height: 48px;
+    width: 56px;
+    height: 56px;
     border-radius: var(--p-r-sm, 8px);
     overflow: hidden;
     background: var(--p-surface-2);
@@ -214,8 +218,7 @@ function onCardClick(): void {
     color: var(--p-ink-3);
   }
 
-  &__title {
-    flex: 1 1 auto;
+  &__ident {
     min-width: 0;
   }
 
@@ -228,20 +231,36 @@ function onCardClick(): void {
     overflow-wrap: anywhere;
   }
 
+  // Участок одной строкой: значок, название, адрес, кнопка карты. Адрес не
+  // уводим на отдельную строку — это продолжение одного ответа «куда везти».
+  &__place {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 2px var(--p-2, 8px);
+    margin-top: var(--p-1, 4px);
+    font-size: var(--p-fs-body-sm, 13px);
+    min-width: 0;
+  }
+
+  &__place-icon {
+    color: var(--p-ink-3);
+    flex-shrink: 0;
+  }
+
+  &__place-name {
+    color: var(--p-ink-2);
+  }
+
+  &__place-addr {
+    color: var(--p-ink-3);
+    overflow-wrap: anywhere;
+  }
+
   &__marks {
     display: flex;
     align-items: center;
     gap: var(--p-2, 8px);
-    flex: 0 0 auto;
-  }
-
-  &__sub {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    margin-top: var(--p-1, 4px);
-    font-size: var(--p-fs-body-sm, 13px);
-    color: var(--p-ink-2);
   }
 
   &__progress {
@@ -250,8 +269,8 @@ function onCardClick(): void {
     gap: var(--p-2, 8px);
   }
 
-  // Подпись сбора — над баром: цифра внутри толстой полосы читалась хуже и
-  // делала карточку тяжёлой.
+  // Подпись сбора — над полосой: цифра внутри полосы читалась хуже и делала
+  // карточку тяжелее.
   &__progress-top {
     display: flex;
     align-items: baseline;
@@ -283,7 +302,9 @@ function onCardClick(): void {
     color: var(--p-ink-3);
   }
 
-  &__members {
+  // Разбор по таре: подпись тары тянется, числа стоят столбцами и выровнены
+  // вправо — строки читаются сверху вниз, а не как сплошной текст.
+  &__breakdown {
     display: flex;
     flex-direction: column;
     border: 1px solid var(--p-line);
@@ -291,41 +312,73 @@ function onCardClick(): void {
     overflow: hidden;
   }
 
-  &__member {
+  &__breakdown-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--p-2, 8px);
+    padding: var(--p-2, 8px) var(--p-3, 12px);
+    background: var(--p-surface-2);
+    border-bottom: 1px solid var(--p-line);
+  }
+
+  &__breakdown-title {
+    font-size: var(--p-fs-meta, 12px);
+    letter-spacing: var(--p-ls-eyebrow, 0.08em);
+    text-transform: uppercase;
+    color: var(--p-ink-3);
+  }
+
+  &__breakdown-count {
+    font-size: var(--p-fs-body-sm, 13px);
+    color: var(--p-ink-3);
+  }
+
+  &__line {
     display: grid;
-    grid-template-columns: 1fr auto auto;
-    gap: var(--p-4, 16px);
-    align-items: center;
+    grid-template-columns: minmax(0, 1fr) auto auto auto;
+    align-items: baseline;
+    gap: var(--p-2, 8px) var(--p-4, 16px);
     padding: var(--p-2, 8px) var(--p-3, 12px);
     border-top: 1px solid var(--p-line);
+    font-size: var(--p-fs-body-sm, 13px);
 
-    &:first-child {
+    &:first-of-type {
       border-top: none;
-    }
-
-    // Без ФИО (поставщик): объём слева, сумма справа.
-    &--anon {
-      grid-template-columns: 1fr auto;
     }
   }
 
-  &__member-who {
-    overflow: hidden;
-    text-overflow: ellipsis;
+  &__line-pkg {
+    color: var(--p-ink);
+    overflow-wrap: anywhere;
+  }
+
+  &__line-units {
+    color: var(--p-ink);
+    font-variant-numeric: tabular-nums;
     white-space: nowrap;
   }
 
-  &__member-qty {
-    color: var(--p-ink-2);
+  &__line-volume {
+    color: var(--p-ink-3);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    min-width: 64px;
+    text-align: right;
   }
 
-  &__member-cost {
+  &__line-cost {
+    color: var(--p-ink);
     font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    min-width: 96px;
+    text-align: right;
   }
 
   &__foot {
     display: flex;
     align-items: flex-end;
+    justify-content: space-between;
     gap: var(--p-3, 12px);
     flex-wrap: wrap;
     padding-top: var(--p-4, 16px);
@@ -339,8 +392,14 @@ function onCardClick(): void {
     min-width: 0;
   }
 
-  // Деньги и объём — в одной спокойной строке: сумма чуть плотнее, объём
-  // приглушён. Раздувать её незачем, это не главное на карточке.
+  &__total-label {
+    font-size: var(--p-fs-meta, 12px);
+    letter-spacing: var(--p-ls-eyebrow, 0.08em);
+    text-transform: uppercase;
+    color: var(--p-ink-3);
+  }
+
+  // Деньги — главная величина партии, объём рядом приглушён.
   &__total-row {
     display: flex;
     align-items: baseline;
@@ -349,8 +408,9 @@ function onCardClick(): void {
   }
 
   &__total-val {
-    font-size: var(--p-fs-body, 14px);
-    font-weight: 600;
+    font-size: var(--p-fs-h2, 18px);
+    font-weight: 700;
+    letter-spacing: var(--p-ls-h2, -0.012em);
     color: var(--p-ink);
     font-variant-numeric: tabular-nums;
   }
@@ -370,7 +430,43 @@ function onCardClick(): void {
     display: flex;
     align-items: center;
     gap: var(--p-2, 8px);
-    flex: 0 0 auto;
+    flex-wrap: wrap;
+  }
+
+  // Узкий экран: бейдж состояния переезжает под товар, числа разбора встают в
+  // две колонки, действия занимают строку целиком.
+  @media (max-width: 760px) {
+    padding: var(--p-4, 16px);
+
+    &__head {
+      grid-template-columns: auto minmax(0, 1fr);
+    }
+
+    &__marks {
+      grid-column: 1 / -1;
+    }
+
+    &__line {
+      grid-template-columns: minmax(0, 1fr) auto;
+    }
+
+    &__line-volume {
+      text-align: left;
+      min-width: 0;
+    }
+
+    &__line-cost {
+      text-align: right;
+    }
+
+    &__foot {
+      align-items: stretch;
+    }
+
+    &__actions {
+      width: 100%;
+      justify-content: flex-end;
+    }
   }
 }
 </style>

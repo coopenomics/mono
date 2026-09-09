@@ -3,12 +3,18 @@ import { computed, onMounted, ref } from 'vue';
 import { Dialog, debounce } from 'quasar';
 import { SuccessAlert, FailAlert, NotifyAlert } from 'src/shared/api';
 import { useRoute, useRouter } from 'vue-router';
-import { BaseButton, EmptyState } from 'src/shared/ui/base';
+import { BaseButton, BaseDialog, EmptyState } from 'src/shared/ui/base';
+import { Map as MapView } from 'src/shared/ui/Map';
 import { PageHint } from 'src/shared/ui/domain';
 import { PageTabs, type PageTab } from 'src/shared/ui/layout';
 import { SupplyPartyCard } from 'src/widgets/Marketplace/SupplyPartyCard';
-import { marketplaceOrderSaleUnit } from 'src/shared/lib/consts/marketplace-units';
-import { groupAplReceptions, useMarketplaceRealtime, type ReceptionGroup } from 'src/shared/lib/marketplace';
+import { marketplaceOrderSaleUnit, marketplaceQuantityLabel } from 'src/shared/lib/consts/marketplace-units';
+import {
+  groupAplReceptions,
+  marketplacePackageLabel,
+  useMarketplaceRealtime,
+  type ReceptionGroup,
+} from 'src/shared/lib/marketplace';
 import {
   listAplReceptionsAsSupplier,
   type MarketplaceAplReceptionView,
@@ -18,7 +24,8 @@ import {
   acceptOrdersBatch,
   declineOrdersBatch,
   fetchSupplierOrders,
-  fetchSupplierMinVolumeMap,
+  fetchSupplierOfferMeta,
+  type SupplierPackageMeta,
 } from '../api';
 import type {
   MarketplaceOrderStatusView,
@@ -63,12 +70,19 @@ const totalPages = ref(0);
 const currentPage = ref(1);
 // true до первого onMounted-запроса — иначе на самый первый рендер
 // (loading=false, items=[]) успевает попасть EmptyState «Нет партий» перед
-// скелетоном, особенно если fetchSupplierMinVolumeMap отвечает не мгновенно
+// скелетоном, особенно если fetchSupplierOfferMeta отвечает не мгновенно
 // (жалоба 2026-08-02).
 const loading = ref(true);
 const activeKey = ref('all');
 // Карта min-объёма поставки на КУ: `${offer_id}::${braname}` → min_supply_volume.
 const minVolumeMap = ref<Map<string, number>>(new Map());
+// Упаковки собственных предложений по идентификатору — из них берётся название
+// тары для разбора партии («0,5 л, стекло»); в заказе лежит только её размер.
+const packageMeta = ref<Map<string, SupplierPackageMeta>>(new Map());
+
+// Карта «куда везти» — по кнопке на карточке партии.
+const mapOpen = ref(false);
+const mapTarget = ref<{ lat: number; lng: number; name: string } | null>(null);
 
 // Акты приёмки поставщика. Грузятся отдельным запросом и НЕ зависят от вкладки
 // и страницы списка заказов — иначе поставка, ждущая подписи, пропадала бы из
@@ -153,6 +167,10 @@ interface SupplierParty {
   imageUrl: string | null;
   deliveryBraname: string;
   pvzName: string;
+  /** Адрес участка — поставщику везти туда, название участка адреса не заменяет. */
+  pvzAddress: string | null;
+  pvzLat: number | null;
+  pvzLng: number | null;
   /** Базовая единица (сырое значение) — для пересчёта «Итого» в упаковки (Эпик 18). */
   unitOfMeasure: MarketplaceOrderView['unit_of_measure'];
   /** Содержимое упаковки в базовой единице; null — по мере либо разные упаковки в партии (смешанные не считаем упаковками). */
@@ -242,6 +260,9 @@ const parties = computed<SupplierParty[]>(() => {
         imageUrl: o.image_url ?? null,
         deliveryBraname: o.delivery_braname,
         pvzName: o.delivery_point_name || o.delivery_braname,
+        pvzAddress: o.delivery_point_address ?? null,
+        pvzLat: o.delivery_point_lat ?? null,
+        pvzLng: o.delivery_point_lng ?? null,
         unitOfMeasure: o.unit_of_measure,
         packageSize: o.package_size,
         orders: [],
@@ -309,6 +330,61 @@ function barColor(p: SupplierParty): string {
 function totalUnitsLabel(p: SupplierParty): string {
   const saleUnit = marketplaceOrderSaleUnit(p.totalUnits, p.unitOfMeasure, p.packageSize);
   return `${saleUnit.units}×${saleUnit.unitLabel}`;
+}
+
+/**
+ * Разбор партии по таре: строка на каждую упаковку — «0,5 л, стекло · 10 упак.
+ * · 5 л · 500,00 ₽». Партия копится к цели в базовой единице, но отгружать
+ * поставщику предстоит упаковки: по одному итогу «15 л» непонятно, что везти —
+ * тридцать поллитровок или пятнадцать литровых (жалоба 2026-09-09).
+ *
+ * Ключ группировки — упаковка предложения; заказы до учёта остатка по упаковкам
+ * её не несут, для них ключом служит содержимое упаковки, а по мере — отдельная
+ * строка «по мере».
+ */
+function partyBreakdown(p: SupplierParty): Array<{
+  id: string;
+  label: string;
+  units: string;
+  volume: string;
+  cost: string;
+}> {
+  const rows = new Map<string, { size: number; packageId: string | null; qty: number; cost: number }>();
+  for (const o of p.orders) {
+    const size = o.package_size || 0;
+    const key = o.package_id ?? (size > 0 ? `size:${size}` : 'bulk');
+    const row = rows.get(key);
+    const cost = parseFloat(o.total_cost) || 0;
+    if (row) {
+      row.qty += o.quantity;
+      row.cost += cost;
+    } else {
+      rows.set(key, { size, packageId: o.package_id ?? null, qty: o.quantity, cost });
+    }
+  }
+  // Крупная тара выше мелкой — так строки читаются как прайс, а не вразнобой.
+  return [...rows.entries()]
+    .sort((a, b) => b[1].size - a[1].size)
+    .map(([key, row]) => {
+      const meta = row.packageId ? packageMeta.value.get(row.packageId) : undefined;
+      const saleUnit = marketplaceOrderSaleUnit(row.qty, p.unitOfMeasure, row.size || null);
+      return {
+        id: key,
+        label:
+          row.size > 0
+            ? marketplacePackageLabel(row.size, p.unitOfMeasure, meta?.package_type ?? null)
+            : 'По мере',
+        units: row.size > 0 ? `${saleUnit.units} упак.` : marketplaceQuantityLabel(row.qty, p.unitOfMeasure),
+        volume: marketplaceQuantityLabel(row.qty, p.unitOfMeasure),
+        cost: formatCost(row.cost),
+      };
+    });
+}
+
+function openPartyMap(p: SupplierParty): void {
+  if (p.pvzLat == null || p.pvzLng == null) return;
+  mapTarget.value = { lat: p.pvzLat, lng: p.pvzLng, name: `КУ «${p.pvzName}»` };
+  mapOpen.value = true;
 }
 
 function formatCost(value: number): string {
@@ -407,9 +483,12 @@ onMounted(async () => {
   const fromUrl = FILTERS.find((f) => f.key === slug);
   if (fromUrl) activeKey.value = fromUrl.key;
 
-  // Карту min-объёмов грузим один раз — она меняется редко (при правке оферты).
+  // Справочники предложений грузим один раз — они меняются редко (при правке
+  // оферты): цели сбора по участкам и упаковки для разбора партии по таре.
   try {
-    minVolumeMap.value = await fetchSupplierMinVolumeMap();
+    const meta = await fetchSupplierOfferMeta();
+    minVolumeMap.value = meta.minVolume;
+    packageMeta.value = meta.packages;
   } catch (e) {
     // Прогресс просто деградирует в поштучный режим — не блокируем стол.
     FailAlert(e);
@@ -449,7 +528,7 @@ q-page.incoming-orders(role='region', aria-label='Входящие заказы 
       | подтверждаете факт приёмки, дальше акт уходит на закрывающую подпись
       | оператора участка.
 
-    PageTabs.incoming-orders__tabs(:tabs='tabs', :active-key='activeKey', @select='onSelectTab')
+    PageTabs.incoming-orders__tabs(hoist, :tabs='tabs', :active-key='activeKey', @select='onSelectTab')
 
     //- Скелетон вместо спиннера на первичной загрузке.
     .incoming-orders__skel-list(v-if='showSkeleton')
@@ -477,16 +556,18 @@ q-page.incoming-orders(role='region', aria-label='Входящие заказы 
         :product-name='p.productName',
         :image-url='p.imageUrl',
         :pvz-name='p.pvzName',
+        :pvz-address='p.pvzAddress',
+        :mappable='p.pvzLat != null && p.pvzLng != null',
         :stage-status='p.stageStatus',
         :order-count='p.orders.length',
-        hide-order-count,
         :progress='progressRatio(p)',
         :bar-color='barColor(p)',
         :show-progress='p.kind === "collecting" && hasTarget(p)',
-        :members='[]',
-        total-label='Итого',
+        :breakdown='partyBreakdown(p)',
+        total-label='Итого партии',
         :total-value='formatCost(p.totalCost)',
-        :total-units='totalUnitsLabel(p)'
+        :total-units='totalUnitsLabel(p)',
+        @map='openPartyMap(p)'
       )
         template(#actions)
           template(v-if='p.kind === "collecting"')
@@ -513,6 +594,10 @@ q-page.incoming-orders(role='region', aria-label='Входящие заказы 
     :group='signGroup',
     @signed='onSigned'
   )
+
+  //- Карта участка «куда везти» — по кнопке на карточке партии.
+  BaseDialog(v-model='mapOpen', :title="mapTarget?.name || 'Кооперативный участок'")
+    MapView(v-if='mapTarget', :lat='mapTarget.lat', :long='mapTarget.lng')
 </template>
 
 <style scoped lang="scss">
@@ -526,15 +611,6 @@ q-page.incoming-orders(role='region', aria-label='Входящие заказы 
     display: flex;
     flex-direction: column;
     gap: var(--p-4, 16px);
-  }
-
-  &__tabs {
-    :deep(.tabbar__tabs) {
-      padding: 0;
-    }
-    :deep(.tabbar__actions) {
-      padding-right: 0;
-    }
   }
 
   &__list,

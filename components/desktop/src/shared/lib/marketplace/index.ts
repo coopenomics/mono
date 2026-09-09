@@ -60,6 +60,7 @@ export {
 } from './marketplace-realtime';
 export {
   marketplaceCardPackages,
+  marketplacePackageLabel,
   marketplacePackageStockLabel,
   marketplacePackagesAvailable,
   offerCardUnitCost,

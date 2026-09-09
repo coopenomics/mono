@@ -28,6 +28,20 @@ export function marketplacePackagesAvailable(packages: ReadonlyArray<PackageStoc
   return packages.reduce((sum, p) => sum + (p.quantity_available ?? 0), 0);
 }
 
+/**
+ * Подпись упаковки: «0,5 л» или «0,5 л, стекло», если тип тары известен. Одна
+ * на все столы — каталог, модерация, стол поставщика и разбор партии зовут её
+ * же, иначе одна и та же упаковка называется в четырёх местах по-разному.
+ */
+export function marketplacePackageLabel(
+  size: number,
+  unit: string | null | undefined,
+  packageType?: string | null,
+): string {
+  const sizeLabel = `${String(size).replace('.', ',')} ${marketplaceOrderUnitLabel(unit)}`;
+  return packageType ? `${sizeLabel}, ${packageType}` : sizeLabel;
+}
+
 /** Упаковка предложения в том виде, в каком её отдаёт бэкенд. */
 export interface OfferPackageLike {
   id: string;
@@ -48,12 +62,9 @@ export function marketplaceCardPackages(
   unit: string | null | undefined,
   unlimited: boolean,
 ): Array<{ id: string; label: string; price: string; remain: number | null }> {
-  const unitLabel = marketplaceOrderUnitLabel(unit);
   return (packages ?? []).map((p) => ({
     id: p.id,
-    label: [`${String(p.size).replace('.', ',')} ${unitLabel}`, p.package_type]
-      .filter(Boolean)
-      .join(', '),
+    label: marketplacePackageLabel(p.size, unit, p.package_type),
     price: p.price,
     remain: unlimited ? null : p.quantity_available,
   }));
