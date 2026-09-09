@@ -10,9 +10,9 @@ import { onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { FailAlert } from 'src/shared/api';
 import { useSystemStore } from 'src/entities/System/model';
-import { PageHint } from 'src/shared/ui/domain';
+import { PageHint, StatusFilterButton } from 'src/shared/ui/domain';
 import {
-  OrdersRegistryFilterButton,
+  ORDER_REGISTRY_FILTERS,
   OrdersRegistryTable,
   type OrderRegistryStatusView,
 } from 'src/widgets/Marketplace/OrdersRegistryTable';
@@ -94,8 +94,12 @@ onMounted(() => {
   // Раньше четырнадцать чипов лежали над таблицей и занимали половину экрана.
   registerAction({
     id: 'mp-admin-orders-filter',
-    component: OrdersRegistryFilterButton,
-    props: { statuses: statusFilter, onChange: onStatusFilterUpdate },
+    component: StatusFilterButton,
+    props: {
+      options: ORDER_REGISTRY_FILTERS,
+      selected: statusFilter,
+      onChange: onStatusFilterUpdate,
+    },
     order: 1,
   });
   void load();

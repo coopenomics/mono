@@ -11,9 +11,9 @@ import { useRoute } from 'vue-router';
 import { FailAlert } from 'src/shared/api';
 import { OperatorBranchBar, useOperatorBranchStore } from 'src/entities/OperatorBranch';
 import { EmptyState } from 'src/shared/ui/base';
-import { PageHint } from 'src/shared/ui/domain';
+import { PageHint, StatusFilterButton } from 'src/shared/ui/domain';
 import {
-  OrdersRegistryFilterButton,
+  ORDER_REGISTRY_FILTERS,
   OrdersRegistryTable,
   type OrderRegistryStatusView,
   type OrderRegistryView,
@@ -88,8 +88,12 @@ onMounted(async () => {
   // Фильтр по состоянию — кнопкой в шапке (канон: действия страницы в топбаре).
   registerAction({
     id: 'mp-branch-orders-filter',
-    component: OrdersRegistryFilterButton,
-    props: { statuses: statusFilter, onChange: onStatusFilterUpdate },
+    component: StatusFilterButton,
+    props: {
+      options: ORDER_REGISTRY_FILTERS,
+      selected: statusFilter,
+      onChange: onStatusFilterUpdate,
+    },
     order: 1,
   });
   await store.ensureLoaded(coopname.value);

@@ -19,11 +19,13 @@ import { BaseBadge, BaseButton, EmptyState } from 'src/shared/ui/base';
 import type { BaseBadgeVariant } from 'src/shared/ui/base';
 import { EntityIdBadge } from 'src/shared/ui';
 import { useOfferModeration } from 'src/features/Marketplace/OfferModeration';
-import { PageHint } from 'src/shared/ui/domain';
+import { PageHint, StatusFilterButton } from 'src/shared/ui/domain';
+import { useHeaderActions } from 'src/shared/hooks';
 import { fetchAllOffers } from '../api';
 import type { AdminOfferView, AdminOfferStatusView } from '../types';
 
 const { info } = useSystemStore();
+const { registerAction } = useHeaderActions();
 const router = useRouter();
 const { fioCache, enrichFio } = useFioCache();
 
@@ -40,7 +42,12 @@ const OFFER_STATUS: Record<string, { label: string; variant: BaseBadgeVariant }>
   REJECTED: { label: 'Отклонено', variant: 'neg' },
   WITHDRAWN: { label: 'Снято с публикации', variant: 'neutral' },
 };
-const ALL_STATUSES = Object.keys(OFFER_STATUS) as AdminOfferStatusView[];
+/** Пункты меню фильтра — в порядке жизненного цикла предложения. */
+const STATUS_FILTERS = (Object.keys(OFFER_STATUS) as AdminOfferStatusView[]).map((s) => ({
+  key: s,
+  label: OFFER_STATUS[s]?.label ?? s,
+  statuses: [s],
+}));
 
 function statusLabel(s: string): string {
   return OFFER_STATUS[s]?.label ?? s;
@@ -62,18 +69,8 @@ const columns = [
   { name: 'actions', align: 'right' as const, label: '', field: 'id' },
 ];
 
-function isStatusActive(s: AdminOfferStatusView): boolean {
-  return statusFilter.value.includes(s);
-}
-function toggleStatus(s: AdminOfferStatusView): void {
-  statusFilter.value = isStatusActive(s)
-    ? statusFilter.value.filter((x) => x !== s)
-    : [...statusFilter.value, s];
-  void reload();
-}
-function resetFilters(): void {
-  if (!statusFilter.value.length) return;
-  statusFilter.value = [];
+function onStatusFilterUpdate(value: string[]): void {
+  statusFilter.value = value as AdminOfferStatusView[];
   void reload();
 }
 
@@ -172,6 +169,17 @@ function onRequest(props: { pagination: { page: number; rowsPerPage: number; row
 }
 
 onMounted(async () => {
+  // Фильтр по состоянию — кнопкой в шапке (канон: действия страницы в топбаре).
+  registerAction({
+    id: 'mp-admin-offers-filter',
+    component: StatusFilterButton,
+    props: {
+      options: STATUS_FILTERS,
+      selected: statusFilter,
+      onChange: onStatusFilterUpdate,
+    },
+    order: 1,
+  });
   try {
     feePercent.value = await getMembershipFeePercent();
   } catch {
@@ -185,26 +193,6 @@ onMounted(async () => {
 q-page.admin-offers(role="region", aria-label="Реестр предложений кооператива")
   PageHint(storage-key="mp:admin-offers:banner-dismissed")
     | Все предложения поставщиков кооператива любого статуса — опубликованные, снятые, отклонённые и ждущие модерации. Нажмите на предложение, чтобы открыть его карточку. Модерация ждущих решения — на отдельной странице.
-
-  .admin-offers__chips(role="group", aria-label="Фильтр по статусу")
-    .chip(
-      v-for="s in ALL_STATUSES",
-      :key="s",
-      :class="isStatusActive(s) ? 'chip--accent' : 'chip--neutral'",
-      role="button",
-      tabindex="0",
-      @click="toggleStatus(s)",
-      @keydown.enter="toggleStatus(s)"
-    ) {{ statusLabel(s) }}
-    .chip.chip--reset(
-      v-if="statusFilter.length",
-      role="button",
-      tabindex="0",
-      @click="resetFilters",
-      @keydown.enter="resetFilters"
-    )
-      q-icon(name="close", size="14px")
-      | Сбросить
 
   q-card.q-mt-md(flat)
     q-table.full-height(
@@ -286,22 +274,6 @@ q-page.admin-offers(role="region", aria-label="Реестр предложени
     display: inline-flex;
     gap: var(--p-2, 8px);
     justify-content: flex-end;
-  }
-
-  &__chips {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--p-2, 8px);
-
-    .chip {
-      cursor: pointer;
-      user-select: none;
-      height: 28px;
-      padding: 0 12px;
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-    }
   }
 
   // Строки кликабельны (ведут на карточку) — курсор-указатель как аффорданс.

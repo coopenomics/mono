@@ -6,7 +6,9 @@ import { useSessionStore } from 'src/entities/Session/model';
 import { BaseBadge, BaseButton, BaseInput, BaseDialog, EmptyState } from 'src/shared/ui/base';
 import { TableSkeleton } from 'src/shared/ui/base/TableSkeleton';
 import type { TableSkeletonColumn } from 'src/shared/ui/base/TableSkeleton';
-import { IdentityCell } from 'src/shared/ui/domain';
+import { IdentityCell, PageHint } from 'src/shared/ui/domain';
+import { useHeaderActions } from 'src/shared/hooks';
+import AddSupplierButton from './AddSupplierButton.vue';
 import { useQueryOverlay } from 'src/shared/lib/navigation';
 import SupplierDetailOverlay from './SupplierDetailOverlay.vue';
 import { getName } from 'src/shared/lib/utils/account';
@@ -33,6 +35,7 @@ import {
 
 const session = useSessionStore();
 const isChairman = computed(() => session.isChairman);
+const { registerAction } = useHeaderActions();
 
 const items = ref<MarketplaceSupplierView[]>([]);
 const loading = ref(false);
@@ -152,19 +155,24 @@ function contractLabel(row: MarketplaceSupplierView): string {
     : `№ ${row.contract_number}`;
 }
 
-onMounted(load);
+onMounted(() => {
+  // Добавление поставщика — главное действие страницы, поэтому живёт в шапке
+  // (канон), а пояснение — в общей карточке-подсказке, как на соседних столах.
+  registerAction({
+    id: 'mp-supplier-registry-add',
+    component: AddSupplierButton,
+    props: { onClick: () => (addOpen.value = true) },
+    order: 1,
+  });
+  void load();
+});
 </script>
 
 <template lang="pug">
 q-page.mp-role-admin.supplier-registry(role="region", aria-label="Реестр поставщиков")
-  .supplier-registry__toolbar
-    .supplier-registry__hint.text-body2.text-grey-7
-      | Все поставщики действуют по договору. Заявку пайщика одобряет председатель;
-      | администратор может добавить поставщика напрямую.
-    BaseButton(variant="primary", @click="addOpen = true")
-      template(#icon-left)
-        q-icon(name="person_add", size="18px")
-      | Добавить поставщика
+  PageHint(storage-key="mp:supplier-registry:banner-dismissed")
+    | Все поставщики действуют по договору. Заявку пайщика одобряет председатель;
+    | администратор может добавить поставщика напрямую.
 
   TableSkeleton(
     v-if="loading && !items.length",
@@ -269,17 +277,6 @@ q-page.mp-role-admin.supplier-registry(role="region", aria-label="Реестр �
   display: flex;
   flex-direction: column;
   gap: var(--p-4, 16px);
-
-  &__toolbar {
-    display: flex;
-    align-items: center;
-    gap: var(--p-4, 16px);
-  }
-
-  &__hint {
-    flex: 1;
-    min-width: 0;
-  }
 
   &__form {
     display: flex;
