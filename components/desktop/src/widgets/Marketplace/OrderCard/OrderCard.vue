@@ -1,87 +1,76 @@
 <template>
-  <!-- Строка списка «Мои заказы»: сетка из двух ярусов, а не один длинный
-       ряд колонок. Верхний ярус — «что это»: миниатюра, название, номер с
-       датой и состояние заказа. Нижний — «сколько и куда»: количество, сумма и
-       пункт выдачи равными ячейками. Прежний одноярусный ряд при заужении
-       переносил колонки по одной, и карточка расползалась: сумма липла к
-       количеству, а пункт выдачи оставался сиротой внизу (жалоба 2026-09-09). -->
+  <!-- Строка списка «Мои заказы». Четыре зоны, каждая отвечает на свой
+       вопрос: миниатюра с названием, номером и пунктом выдачи — «что и
+       куда»; сумма с количеством под ней — «сколько»; бейдж с полосой сбора
+       партии — «в каком состоянии». На широком экране зоны стоят в ряд, на
+       узком — те же зоны перестраиваются в два яруса: состояние встаёт под
+       номером, рядом с миниатюрой, а сумма с количеством уходят в нижнюю
+       строку-чек. Разметка одна, раскладку меняет только сетка. -->
   <div
     v-if="layout === 'row'"
     class="order-row"
     :class="[`order-row--${order.status}`, { 'order-row--openable': openable }]"
     @click="onCardClick"
   >
-    <div class="order-row__head">
-      <div class="order-row__thumb">
-        <!-- fit=contain: товар виден целиком. Обрезка по квадрату резала
-             вертикальные снимки — от бутылки оставалась середина. -->
-        <q-img v-if="order.imageUrl" :src="order.imageUrl" ratio="1" fit="contain" class="order-row__thumb-img" />
-        <div v-else class="order-row__thumb-empty">
-          <q-icon name="image" size="20px" />
-        </div>
-      </div>
-
-      <div class="order-row__ident">
-        <div class="order-row__title">{{ order.title }}</div>
-        <div class="order-row__sub">
-          <span class="order-row__num">№&nbsp;{{ order.shortId ?? order.id }}</span>
-          <span class="order-row__sep" aria-hidden="true">·</span>
-          <span>{{ formatDate(order.createdAt) }}</span>
-        </div>
-      </div>
-
-      <div class="order-row__status-col">
-        <BaseBadge :variant="order.statusVariant" class="order-row__status">
-          {{ order.statusLabel }}
-        </BaseBadge>
+    <div class="order-row__thumb">
+      <!-- fit=contain: товар виден целиком. Обрезка по квадрату резала
+           вертикальные снимки — от бутылки оставалась середина. -->
+      <q-img v-if="order.imageUrl" :src="order.imageUrl" ratio="1" fit="contain" class="order-row__thumb-img" />
+      <div v-else class="order-row__thumb-empty">
+        <q-icon name="image" size="20px" />
       </div>
     </div>
 
-    <!-- Сбор партии — отдельной строкой во всю ширину под шапкой: полоса и
-         подпись читаются вместе, не жмутся к бейджу состояния. -->
-    <div v-if="order.progress !== undefined" class="order-row__progress">
-      <q-linear-progress
-        class="order-row__progress-bar"
-        :value="order.progress"
-        rounded
-        size="4px"
-        color="primary"
-        track-color="grey-3"
-      />
-      <div class="order-row__progress-label">
-        коллективный заказ · {{ Math.round(order.progress * 100) }}%
-        <q-icon name="help_outline" size="12px" class="order-row__progress-help">
-          <q-tooltip>Заказ копится вместе с другими пайщиками до минимального объёма поставки на этот пункт выдачи.</q-tooltip>
-        </q-icon>
+    <div class="order-row__ident">
+      <div class="order-row__title">{{ order.title }}</div>
+      <div class="order-row__meta">
+        <span class="order-row__num">№&nbsp;{{ order.shortId ?? order.id }}</span>
+        <span class="order-row__sep" aria-hidden="true">·</span>
+        <span>{{ formatDate(order.createdAt) }}</span>
       </div>
-    </div>
-
-    <div class="order-row__facts">
-      <div class="order-row__fact">
-        <div class="order-row__fact-label">Кол-во</div>
-        <div class="order-row__fact-value">{{ order.units }}×{{ order.unitLabel ?? 'ед.' }}</div>
-      </div>
-
-      <div class="order-row__fact">
-        <div class="order-row__fact-label">Сумма</div>
-        <div class="order-row__fact-value order-row__fact-value--money">{{ formatPrice(order.totalCost) }}</div>
-        <div v-if="order.feeNote" class="order-row__fee-note">{{ order.feeNote }}</div>
-      </div>
-
+      <!-- Пункт выдачи — строкой под номером, а не отдельной ячейкой: это
+           часть ответа «что за заказ», как адрес в чеке. Значок карты стоит
+           сразу за адресом, не уплывает к правому краю карточки. -->
       <div
         v-if="order.pvzName || order.pvz"
-        class="order-row__fact order-row__fact--pvz"
-        :class="{ 'order-row__fact--mappable': hasMap }"
+        class="order-row__pvz"
+        :class="{ 'order-row__pvz--mappable': hasMap }"
         @click.stop="hasMap && emit('map', order)"
       >
-        <div class="order-row__fact-label">Пункт выдачи</div>
-        <div class="order-row__pvz">
-          <q-icon name="place" size="16px" class="order-row__pvz-icon" />
-          <div class="order-row__pvz-text">
-            <div v-if="order.pvzName" class="order-row__pvz-name">{{ order.pvzName }}</div>
-            <div v-if="order.pvz" class="order-row__pvz-addr">{{ order.pvz }}</div>
-          </div>
-          <q-icon v-if="hasMap" name="map" size="14px" class="order-row__pvz-map" />
+        <q-icon name="place" size="14px" class="order-row__pvz-icon" />
+        <span v-if="order.pvzName" class="order-row__pvz-name">{{ order.pvzName }}</span>
+        <span v-if="order.pvz" class="order-row__pvz-addr">{{ order.pvz }}</span>
+        <q-icon v-if="hasMap" name="map" size="14px" class="order-row__pvz-map" />
+      </div>
+    </div>
+
+    <div class="order-row__money">
+      <div class="order-row__sum">{{ formatPrice(order.totalCost) }}</div>
+      <div class="order-row__qty">{{ order.units }}&nbsp;×&nbsp;{{ order.unitLabel ?? 'ед.' }}</div>
+      <div v-if="order.feeNote" class="order-row__fee-note">{{ order.feeNote }}</div>
+    </div>
+
+    <div class="order-row__state">
+      <BaseBadge :variant="order.statusVariant" class="order-row__status">
+        {{ order.statusLabel }}
+      </BaseBadge>
+      <!-- Сбор партии живёт под бейджем: полоса объясняет состояние «ожидает
+           сборки», поэтому ходит вместе с ним, а не отдельной балкой на всю
+           ширину карточки. -->
+      <div v-if="order.progress !== undefined" class="order-row__progress">
+        <q-linear-progress
+          class="order-row__progress-bar"
+          :value="order.progress"
+          rounded
+          size="3px"
+          color="primary"
+          track-color="grey-3"
+        />
+        <div class="order-row__progress-label">
+          коллективный заказ · {{ Math.round(order.progress * 100) }}%
+          <q-icon name="help_outline" size="12px" class="order-row__progress-help">
+            <q-tooltip>Заказ копится вместе с другими пайщиками до минимального объёма поставки на этот пункт выдачи.</q-tooltip>
+          </q-icon>
         </div>
       </div>
     </div>
@@ -493,15 +482,18 @@ function formatPrice(v: number) {
   }
 }
 
-// Строчная раскладка (layout="row"): карточка списка «Мои заказы» из двух
-// ярусов. Верхний — «что это»: миниатюра, название, номер с датой и состояние.
-// Нижний — «сколько и куда»: количество, сумма и пункт выдачи равными ячейками
-// с подписями. Так карточка держит форму на любой ширине: колонки не разъезжаются
-// по одной, а перестраиваются целыми ярусами.
+// Строчная раскладка (layout="row"). Сетка с именованными зонами: на широком
+// экране один ряд «товар · сумма · состояние», на узком те же зоны становятся
+// двумя ярусами. Ширины зон фиксированы там, где важна колонность списка
+// (сумма над суммой, бейдж над бейджем), и тянется только зона товара.
 .order-row {
-  display: flex;
-  flex-direction: column;
-  gap: var(--p-3, 12px);
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  grid-template-areas:
+    'thumb ident money state'
+    'actions actions actions actions';
+  column-gap: var(--p-6, 24px);
+  align-items: start;
   padding: var(--p-4, 16px) var(--p-5, 20px);
   border: 1px solid var(--p-line);
   border-radius: var(--p-r-md, 12px);
@@ -516,18 +508,7 @@ function formatPrice(v: number) {
     }
   }
 
-  // Верхний ярус: миниатюра слева, рядом с ней — название и номер, состояние
-  // прижато вправо. На узком экране состояние встаёт под номером, оставаясь
-  // рядом с миниатюрой (просьба владельца 2026-09-09).
-  &__head {
-    display: grid;
-    grid-template-columns: auto minmax(0, 1fr) auto;
-    grid-template-areas: 'thumb ident status';
-    align-items: center;
-    gap: var(--p-2, 8px) var(--p-4, 16px);
-  }
-
-  // Миниатюра товара — фиксированный квадрат слева, как в корзине/каталоге.
+  // Миниатюра товара — фиксированный квадрат, как в корзине и каталоге.
   &__thumb {
     grid-area: thumb;
     width: 56px;
@@ -535,7 +516,6 @@ function formatPrice(v: number) {
     border-radius: var(--p-r-sm, 8px);
     overflow: hidden;
     background: var(--p-surface-2);
-    align-self: start;
   }
 
   &__thumb-img {
@@ -552,13 +532,17 @@ function formatPrice(v: number) {
     color: var(--p-ink-3);
   }
 
+  // Зона товара: название, номер с датой, пункт выдачи. Единственная, что
+  // тянется, — отдаёт место остальным первой.
   &__ident {
     grid-area: ident;
     min-width: 0;
+    // Миниатюра 56px, текст в три строки чуть ниже — крохотный сдвиг вниз
+    // выравнивает заголовок по верхней кромке картинки оптически.
+    padding-top: 1px;
   }
 
   &__title {
-    min-width: 0;
     font-size: var(--p-fs-h3, 15px);
     font-weight: 600;
     letter-spacing: var(--p-ls-h3, -0.01em);
@@ -567,23 +551,12 @@ function formatPrice(v: number) {
     overflow-wrap: anywhere;
   }
 
-  &__status-col {
-    grid-area: status;
-    display: flex;
-    justify-content: flex-end;
-    min-width: 0;
-  }
-
-  &__status {
-    white-space: nowrap;
-  }
-
-  &__sub {
+  &__meta {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     gap: var(--p-1, 4px) var(--p-2, 8px);
-    margin-top: var(--p-1, 4px);
+    margin-top: 2px;
     font-size: var(--p-fs-body-sm, 13px);
     color: var(--p-ink-3);
   }
@@ -597,15 +570,117 @@ function formatPrice(v: number) {
     color: var(--p-ink-3);
   }
 
-  // Сбор партии — свой ярус между шапкой и цифрами: полоса и подпись под ней
-  // читаются как одно целое.
+  // Пункт выдачи — одна строка: значок, имя участка, адрес, значок карты.
+  // Всё в потоке текста, ничего не прижато к краю карточки.
+  &__pvz {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 2px var(--p-2, 8px);
+    margin-top: var(--p-2, 8px);
+    font-size: var(--p-fs-body-sm, 13px);
+    min-width: 0;
+
+    &--mappable {
+      cursor: pointer;
+
+      .order-row__pvz-addr {
+        color: var(--p-primary);
+      }
+
+      &:hover .order-row__pvz-addr,
+      &:hover .order-row__pvz-map {
+        color: var(--p-primary-hover);
+      }
+    }
+  }
+
+  &__pvz-icon {
+    color: var(--p-ink-3);
+    flex-shrink: 0;
+  }
+
+  &__pvz-name {
+    color: var(--p-ink);
+    overflow-wrap: anywhere;
+  }
+
+  &__pvz-addr {
+    color: var(--p-ink-3);
+    overflow-wrap: anywhere;
+  }
+
+  &__pvz-map {
+    color: var(--p-primary);
+    flex-shrink: 0;
+  }
+
+  // Зона «сколько»: сумма — герой, под ней количество как подпись. Ширина
+  // зафиксирована, текст прижат вправо: «650 ₽» и «1 300 ₽» в соседних
+  // строках встают в один столбец.
+  &__money {
+    grid-area: money;
+    min-width: 120px;
+    text-align: right;
+    // Опускаем на высоту строки заголовка: сумма стоит на одной линии с
+    // названием товара, а не на волосок выше.
+    padding-top: 1px;
+  }
+
+  &__sum {
+    font-size: var(--p-fs-h2, 18px);
+    font-weight: 700;
+    letter-spacing: var(--p-ls-h2, -0.01em);
+    line-height: var(--p-lh-h3, 1.3);
+    color: var(--p-ink);
+    font-feature-settings: 'tnum' 1;
+    white-space: nowrap;
+  }
+
+  &__qty {
+    margin-top: 2px;
+    font-size: var(--p-fs-body-sm, 13px);
+    color: var(--p-ink-2);
+    white-space: nowrap;
+  }
+
+  // Пояснение поставщику про цену для заказчика — переносится внутри своей
+  // зоны, не расталкивает соседей.
+  &__fee-note {
+    margin-top: 2px;
+    max-width: 200px;
+    font-size: var(--p-fs-body-sm, 12px);
+    color: var(--p-ink-3);
+  }
+
+  // Зона состояния: бейдж, под ним полоса сбора партии той же ширины.
+  // Ширина фиксирована — у одного заказа полоса есть, у другого нет, и на
+  // авто-ширине столбец «дышал» бы от строки к строке.
+  &__state {
+    grid-area: state;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: var(--p-2, 8px);
+    width: 200px;
+    // Бейдж по вертикали центрируется относительно строки заголовка.
+    padding-top: 1px;
+  }
+
+  &__status {
+    white-space: nowrap;
+  }
+
   &__progress {
     display: flex;
     flex-direction: column;
+    align-items: flex-end;
     gap: 4px;
+    width: 100%;
   }
 
   &__progress-bar {
+    width: 100%;
     border-radius: var(--p-r-sm, 8px);
   }
 
@@ -615,6 +690,7 @@ function formatPrice(v: number) {
     gap: 4px;
     font-size: var(--p-fs-eyebrow, 11px);
     color: var(--p-ink-3);
+    white-space: nowrap;
   }
 
   &__progress-help {
@@ -622,133 +698,66 @@ function formatPrice(v: number) {
     cursor: help;
   }
 
-  // Нижний ярус: количество, сумма и пункт выдачи — равноправные ячейки с
-  // подписями. Раньше пункт выдачи шёл отдельной колонкой без подписи и на
-  // узком экране оставался внизу сам по себе, а сумма липла к количеству.
-  &__facts {
-    display: grid;
-    grid-template-columns: minmax(0, 0.8fr) minmax(0, 0.8fr) minmax(0, 1.4fr);
-    gap: var(--p-3, 12px) var(--p-5, 20px);
-    padding-top: var(--p-3, 12px);
-    border-top: 1px solid var(--p-line);
-  }
-
-  &__fact {
-    min-width: 0;
-  }
-
-  // Пункт выдачи с координатами открывает карту «куда ехать». Подложки под
-  // наведение нет намеренно: она требовала бы отрицательных отступов внутри
-  // карточки — того самого приёма, который давал горизонтальную прокрутку.
-  &__fact--mappable {
-    cursor: pointer;
-
-    &:hover .order-row__pvz-addr,
-    &:hover .order-row__pvz-map {
-      color: var(--p-primary-hover);
-    }
-  }
-
-  &__fact-label {
-    font-size: var(--p-fs-eyebrow, 11px);
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    color: var(--p-ink-3);
-    margin-bottom: 2px;
-  }
-
-  &__fact-value {
-    font-size: var(--p-fs-body, 14px);
-    color: var(--p-ink);
-
-    &--money {
-      font-size: var(--p-fs-h3, 15px);
-      font-weight: 700;
-      letter-spacing: var(--p-ls-h3, -0.01em);
-      font-feature-settings: 'tnum' 1;
-    }
-  }
-
-  &__fee-note {
-    font-size: var(--p-fs-body-sm, 12px);
-    color: var(--p-ink-3);
-    margin-top: 2px;
-  }
-
-  &__pvz {
-    display: flex;
-    align-items: flex-start;
-    gap: var(--p-2, 8px);
-    min-width: 0;
-  }
-
-  &__pvz-icon {
-    color: var(--p-ink-3);
-    flex-shrink: 0;
-    margin-top: 1px;
-  }
-
-  &__pvz-text {
-    display: flex;
-    flex-direction: column;
-    min-width: 0;
-  }
-
-  &__pvz-name {
-    font-size: var(--p-fs-body-sm, 13px);
-    color: var(--p-ink);
-    overflow-wrap: anywhere;
-  }
-
-  &__pvz-addr {
-    font-size: var(--p-fs-body-sm, 13px);
-    color: var(--p-ink-3);
-    overflow-wrap: anywhere;
-  }
-
-  &__fact--mappable &__pvz-addr {
-    color: var(--p-primary);
-  }
-
-  &__pvz-map {
-    color: var(--p-primary);
-    flex-shrink: 0;
-    align-self: center;
-    margin-left: auto;
-  }
-
   &__actions {
+    grid-area: actions;
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     justify-content: flex-end;
     gap: var(--p-2, 8px);
+    margin-top: var(--p-3, 12px);
     padding-top: var(--p-3, 12px);
     border-top: 1px solid var(--p-line);
   }
 
-  // Узкий экран: состояние переезжает под номер заказа — рядом с миниатюрой,
-  // а не отдельной строкой снизу. Цифры внизу становятся в две колонки, пункт
-  // выдачи занимает строку целиком: адрес длинный, в трети ширины он рвётся.
-  @media (max-width: 700px) {
-    &__head {
-      grid-template-columns: auto minmax(0, 1fr);
-      grid-template-areas:
-        'thumb ident'
-        'thumb status';
-      align-items: start;
+  // Узкий экран: два яруса. Вверху миниатюра, рядом с ней название, номер,
+  // пункт выдачи и под ними состояние с полосой. Внизу — строка-чек:
+  // количество слева, сумма справа, отбита волосяной линией.
+  @media (max-width: 760px) {
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-areas:
+      'thumb ident'
+      'thumb state'
+      'money money'
+      'actions actions';
+    column-gap: var(--p-4, 16px);
+    padding: var(--p-4, 16px);
+
+    &__state {
+      width: auto;
+      align-items: flex-start;
+      margin-top: var(--p-2, 8px);
+      padding-top: 0;
     }
 
-    &__status-col {
-      justify-content: flex-start;
+    &__progress {
+      align-items: flex-start;
+      max-width: 220px;
     }
 
-    &__facts {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
+    &__money {
+      display: flex;
+      flex-direction: row-reverse;
+      justify-content: space-between;
+      align-items: baseline;
+      flex-wrap: wrap;
+      gap: 2px var(--p-3, 12px);
+      min-width: 0;
+      margin-top: var(--p-3, 12px);
+      padding-top: var(--p-3, 12px);
+      border-top: 1px solid var(--p-line);
+      text-align: left;
     }
 
-    &__fact--pvz {
-      grid-column: 1 / -1;
+    &__qty {
+      margin-top: 0;
+      white-space: normal;
+    }
+
+    &__fee-note {
+      flex: 1 1 100%;
+      max-width: none;
+      text-align: right;
     }
 
     &__actions {
