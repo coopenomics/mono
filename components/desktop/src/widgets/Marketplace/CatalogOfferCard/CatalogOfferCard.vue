@@ -40,10 +40,26 @@
           {{ formatPrice(displayUnitCost) }}
           <span class="mp-catalog-offer-card__unit">/ {{ unitLabel }}</span>
         </span>
-        <span class="mp-catalog-offer-card__stock" :class="{ 'mp-catalog-offer-card__stock--empty': isEmpty }">
+        <span
+          v-if="!packageRows.length"
+          class="mp-catalog-offer-card__stock"
+          :class="{ 'mp-catalog-offer-card__stock--empty': isEmpty }"
+        >
           {{ stockLabel }}
         </span>
       </div>
+
+      <!-- Отпуск упаковкой: в чём приедет товар и сколько какой упаковки
+           осталось. Одно число в базовых единицах тут ничего не говорит —
+           заказчик берёт упаковку, а не литр. -->
+      <ul v-if="packageRows.length" class="mp-catalog-offer-card__packages">
+        <li v-for="row in packageRows" :key="row.id" class="mp-catalog-offer-card__package">
+          <span class="mp-catalog-offer-card__package-name">{{ row.label }}</span>
+          <span class="mp-catalog-offer-card__package-value">
+            {{ formatPrice(row.price) }}<template v-if="row.remain"> · {{ row.remain }}</template>
+          </span>
+        </li>
+      </ul>
 
       <div v-if="offer.referenceNote" class="mp-catalog-offer-card__reference">
         {{ offer.referenceNote }}
@@ -170,6 +186,22 @@ const displayUnitCost = computed<number | string>(() => {
   return base
 })
 
+/**
+ * Строки упаковок: подпись, цена за упаковку (с тем же взносом, что и крупная
+ * цена) и остаток в упаковках. Пусто — отпуск по мере, карточка остаётся
+ * прежней.
+ */
+const packageRows = computed(() =>
+  (props.offer.packages ?? []).map((p) => ({
+    id: p.id,
+    label: p.label,
+    price: hasFee.value && !props.showFeeNote
+      ? applyMembershipFee(Number(p.price), props.feePercent)
+      : p.price,
+    remain: p.remain == null ? 'без ограничения' : `${p.remain} упак.`,
+  })),
+)
+
 function formatPrice(v: number | string) {
   const n = typeof v === 'number' ? v : Number(v)
   if (Number.isNaN(n)) return String(v)
@@ -288,6 +320,36 @@ function onClick() {
     font-weight: 400;
     color: var(--mp-on-surface-muted);
     margin-left: 2px;
+  }
+
+  // Упаковки: подпись слева, цена и остаток справа — по строке на упаковку.
+  &__packages {
+    margin: var(--p-1, 4px) 0 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  &__package {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--p-2, 8px);
+    font-size: var(--p-fs-body-sm, 13px);
+  }
+
+  &__package-name {
+    min-width: 0;
+    color: var(--p-ink-2);
+    overflow-wrap: anywhere;
+  }
+
+  &__package-value {
+    flex: 0 0 auto;
+    color: var(--p-ink-3);
+    font-variant-numeric: tabular-nums;
   }
 
   &__stock {

@@ -4,9 +4,14 @@ import { debounce } from 'quasar';
 import { useRoute, useRouter } from 'vue-router';
 import { FailAlert } from 'src/shared/api';
 import { fetchCategories } from '../../MarketplaceCatalog/api';
-import { marketplaceOrderUnitLabel } from 'src/shared/lib/consts';
 import { marketplaceOfferImageUrls } from 'src/shared/lib/utils';
-import { useMarketplaceRealtime, getMembershipFeePercent } from 'src/shared/lib/marketplace';
+import {
+  useMarketplaceRealtime,
+  getMembershipFeePercent,
+  marketplaceCardPackages,
+  offerCardUnitCost,
+  offerCardUnitLabel,
+} from 'src/shared/lib/marketplace';
 import { BaseButton, CardListSkeleton, EmptyState } from 'src/shared/ui/base';
 import { PageHint } from 'src/shared/ui/domain';
 import {
@@ -75,8 +80,11 @@ function toCatalogOffer(offer: MarketplacePendingOfferView): CatalogOffer {
     description: offer.description ?? undefined,
     images: marketplaceOfferImageUrls(offer.images),
     remainUnits: offer.unlimited_flag ? undefined : offer.quantity_available,
-    unitCost: offer.price_per_unit,
-    unitLabel: marketplaceOrderUnitLabel(offer.unit_of_measure),
+    // При отпуске упаковкой цена и остаток показываются по упаковкам: модератор
+    // проверяет ту же карточку, что увидит заказчик.
+    unitCost: offerCardUnitCost(offer),
+    unitLabel: offerCardUnitLabel(offer),
+    packages: marketplaceCardPackages(offer.packages, offer.unit_of_measure, offer.unlimited_flag),
     status: 'moderation',
     category: categoryName(offer) ?? undefined,
     supplierName: offer.supplier_name ?? offer.supplier_account ?? undefined,

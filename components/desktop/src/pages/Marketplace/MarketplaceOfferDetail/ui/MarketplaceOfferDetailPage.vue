@@ -96,6 +96,10 @@ const categoryLabel = computed(() => {
   return id != null ? categoryNames.value[id] ?? null : null;
 });
 
+/** Отпуск упаковкой: заказчик берёт целые упаковки, цена — за упаковку. */
+const isPackaged = computed(
+  () => offer.value?.sale_form === MarketplaceSaleForm.PACKAGED && !!offer.value?.packages?.length,
+);
 const isEmpty = computed(
   () => !!offer.value && !offer.value.unlimited_flag && offer.value.quantity_available <= 0,
 );
@@ -108,22 +112,53 @@ const stockLabel = computed(() => {
   if (isEmpty.value) return 'Нет в наличии';
   // Остаток при отпуске упаковкой ведётся на каждой упаковке — показываем
   // по упаковкам, а не одним числом литров.
-  if (offer.value.sale_form === MarketplaceSaleForm.PACKAGED && offer.value.packages.length) {
+  if (isPackaged.value) {
     return `В наличии: ${marketplacePackageStockLabel(offer.value.packages, offer.value.unit_of_measure)}`;
   }
-  return `В наличии: ${offer.value.quantity_available}×${unitShort.value}`;
+  return `В наличии: ${offer.value.quantity_available} ${unitShort.value}`;
 });
 
 // requirement b6: единая ставка членского взноса входит в цену для всех,
 // кроме стола поставщика (там — своя цена + строка «для заказчика»).
 const feePercent = ref(0);
-const priceWithFee = computed(() =>
-  offer.value ? applyMembershipFee(Number(offer.value.price_per_unit), feePercent.value) : 0,
+// Цена — за единицу отпуска: при отпуске упаковкой это цена за упаковку, а
+// не за литр. Основная упаковка задаёт цену, которую заказчик видит первой.
+const defaultPackage = computed(
+  () => offer.value?.packages?.find((p) => p.is_default) ?? offer.value?.packages?.[0] ?? null,
 );
-const priceLabel = computed(() =>
-  offer.value
-    ? `${priceWithFee.value.toLocaleString('ru-RU')} ${system.governSymbol} / ${unitShort.value}`
-    : '',
+const saleUnitLabel = computed(() => {
+  const pkg = defaultPackage.value;
+  if (!isPackaged.value || !pkg) return unitShort.value;
+  return `упак. ${formatSize(pkg.size)} ${unitShort.value}`;
+});
+const priceLabel = computed(() => {
+  if (!offer.value) return '';
+  const base = isPackaged.value && defaultPackage.value
+    ? Number(defaultPackage.value.price)
+    : Number(offer.value.price_per_unit);
+  const withFee = applyMembershipFee(base, feePercent.value);
+  return `${withFee.toLocaleString('ru-RU')} ${system.governSymbol} / ${saleUnitLabel.value}`;
+});
+
+/** Компактная запись объёма: 0.5 → «0,5». */
+function formatSize(size: number): string {
+  return String(size).replace('.', ',');
+}
+
+/**
+ * Упаковки предложения: что заказчик реально берёт. Без этого блока карточка
+ * молчит о том, в чём приедет товар и сколько какой упаковки осталось —
+ * заказчику и модератору видна была только цена за литр.
+ */
+const packageRows = computed(() =>
+  (offer.value?.packages ?? []).map((p) => ({
+    key: p.id,
+    name: [`${formatSize(p.size)} ${unitShort.value}`, p.package_type].filter(Boolean).join(', '),
+    price: `${applyMembershipFee(Number(p.price), feePercent.value).toLocaleString('ru-RU')} ${system.governSymbol}`,
+    stock: offer.value?.unlimited_flag
+      ? 'без ограничения'
+      : `${p.quantity_available} упак.`,
+  })),
 );
 // Цена всегда задаётся за базовую единицу (Эпик 17) — справочный пересчёт из
 // фасовки больше не нужен.
@@ -133,7 +168,7 @@ const deliveryPoints = computed(() =>
   (offer.value?.delivery_points ?? []).map((p) => ({
     key: p.braname,
     name: p.name ?? p.braname,
-    volume: `от ${p.min_supply_volume}×${unitShort.value}`,
+    volume: `от ${p.min_supply_volume} ${unitShort.value}`,
   })),
 );
 
@@ -266,6 +301,13 @@ q-page.offer-detail(role="region", aria-label="Описание предложе
     section.offer-detail__section(v-if="offer.description")
       .offer-detail__section-head Описание
       .offer-detail__desc {{ offer.description }}
+
+    section.offer-detail__section(v-if="packageRows.length")
+      .offer-detail__section-head Упаковки
+      ul.offer-detail__points
+        li.offer-detail__point(v-for="row in packageRows", :key="row.key")
+          span.offer-detail__point-name {{ row.name }}
+          span.offer-detail__point-vol {{ row.price }} · {{ row.stock }}
 
     section.offer-detail__section(v-if="deliveryPoints.length")
       .offer-detail__section-head Участки поставки

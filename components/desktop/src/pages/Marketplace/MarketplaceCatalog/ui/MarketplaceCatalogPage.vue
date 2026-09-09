@@ -3,7 +3,12 @@ import { computed, onMounted, ref } from 'vue';
 import { debounce } from 'quasar';
 import { useRoute, useRouter } from 'vue-router';
 import { FailAlert } from 'src/shared/api';
-import { useMarketplaceRealtime } from 'src/shared/lib/marketplace';
+import {
+  useMarketplaceRealtime,
+  marketplaceCardPackages,
+  offerCardUnitCost,
+  offerCardUnitLabel,
+} from 'src/shared/lib/marketplace';
 import {
   CatalogOfferCard,
   CatalogOfferCardSkeleton,
@@ -16,7 +21,6 @@ import { KUHeaderBar } from 'src/widgets/Marketplace/KUHeaderBar';
 import { CartHeaderButton } from 'src/widgets/Marketplace/CartHeaderButton';
 import { WalletHeaderButton } from 'src/widgets/Marketplace/WalletHeaderButton';
 import { useMarketplaceCartStore } from 'src/entities/MarketplaceCart';
-import { marketplaceOrderUnitLabel } from 'src/shared/lib/consts';
 import { marketplaceOfferImageUrls } from 'src/shared/lib/utils';
 import { getMembershipFeePercent } from 'src/shared/lib/marketplace';
 import {
@@ -129,8 +133,9 @@ function toCatalogOffer(offer: MarketplaceOfferView): CatalogOffer {
     description: offer.description ?? undefined,
     images: marketplaceOfferImageUrls(offer.images),
     remainUnits: offer.unlimited_flag ? undefined : offer.quantity_available,
-    unitCost: offer.price_per_unit,
-    unitLabel: marketplaceOrderUnitLabel(offer.unit_of_measure),
+    unitCost: offerCardUnitCost(offer),
+    unitLabel: offerCardUnitLabel(offer),
+    packages: marketplaceCardPackages(offer.packages, offer.unit_of_measure, offer.unlimited_flag),
     referenceNote: referencePriceNote(offer),
     status,
     category: categoryNameById.value[offer.category_id] ?? undefined,
