@@ -259,7 +259,7 @@ q-page.mp-role-offerer.offer-wizard(role='region', aria-label='Создание 
         //- ───────── Шаг 4: КУ поставки и минимальный объём ─────────
         .offer-wizard__step(v-else-if='step.key === "supply"')
           p.offer-wizard__hint
-            | Отметьте кооперативные участки, на которые готовы обеспечить доставку, и укажите объём поставки на каждое.
+            | Отметьте кооперативные участки, на которые готовы обеспечить доставку, и укажите объём поставки на каждый.
           .offer-wizard__hint(v-if='kuLoading') Загрузка участков…
           .offer-wizard__hint(v-else-if='!kuOptions.length') Нет доступных кооперативных участков.
           .offer-wizard__cards
@@ -294,7 +294,6 @@ q-page.mp-role-offerer.offer-wizard(role='region', aria-label='Создание 
                 :precision='0',
                 :min='1',
                 :symbol='orderUnitLabel',
-                hint='Ниже этого объёма везти на участок невыгодно — кооператив копит заказы до него',
                 @update:model-value='(v) => setKuMin(ku.braname, v)'
               )
 
