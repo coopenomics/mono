@@ -527,7 +527,7 @@ q-page.incoming-orders(role='region', aria-label='Входящие заказы 
       | подтверждаете факт приёмки, дальше акт уходит на закрывающую подпись
       | оператора участка.
 
-    PageTabs.incoming-orders__tabs(hoist, :tabs='tabs', :active-key='activeKey', @select='onSelectTab')
+    PageTabs.incoming-orders__tabs(:tabs='tabs', :active-key='activeKey', @select='onSelectTab')
 
     //- Скелетон вместо спиннера на первичной загрузке.
     .incoming-orders__skel-list(v-if='showSkeleton')
@@ -610,6 +610,17 @@ q-page.incoming-orders(role='region', aria-label='Входящие заказы 
     display: flex;
     flex-direction: column;
     gap: var(--p-4, 16px);
+  }
+
+  // Полоса вкладок стоит в потоке страницы, под подсказкой: подсказка объясняет
+  // раздел целиком, поэтому идёт первой (просьба владельца 2026-09-09).
+  &__tabs {
+    :deep(.tabbar__tabs) {
+      padding: 0;
+    }
+    :deep(.tabbar__actions) {
+      padding-right: 0;
+    }
   }
 
   &__list,
