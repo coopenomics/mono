@@ -296,7 +296,7 @@ q-page.orders(role="region", aria-label="Мои заказы")
     | Отменить заказ можно, пока его не принял поставщик. Получение оформит
     | оператор на месте — акт вы подпишете там же.
 
-  PageTabs.orders__tabs(:tabs="tabs", :active-key="activeKey", @select="onSelectTab")
+  PageTabs.orders__tabs(hoist, :tabs="tabs", :active-key="activeKey", @select="onSelectTab")
 
   //- Канон загрузки: скелетон на первичной загрузке, не пустой экран.
   CardListSkeleton(v-if="loading && !items.length", :count="3")
@@ -360,15 +360,6 @@ q-page.orders(role="region", aria-label="Мои заказы")
   display: flex;
   flex-direction: column;
   gap: var(--p-4, 16px);
-
-  // Канон-tabbar тянется во всю ширину; в странице с боковыми отступами
-  // убираем его внутренний горизонтальный паддинг, чтобы вкладки шли от края.
-  &__tabs {
-    margin: 0 calc(-1 * var(--p-6, 24px));
-    :deep(.tabbar__tabs) {
-      padding: 0 var(--p-6, 24px);
-    }
-  }
 
   // Список строк на всю ширину (OrderCard layout="row"), не сетка плиток:
   // сверху вниз — от самого нового к самому старому, порядок читается

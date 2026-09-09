@@ -1,5 +1,13 @@
 <template>
-  <nav class="tabbar">
+  <!--
+    Поднятая полоса вкладок уезжает телепортом под шапку, за пределы боковых
+    отступов страницы (см. проп hoist). Выключенный телепорт рендерит ту же
+    разметку на месте — вложенным вкладкам внутри страницы поднимать нечего.
+  -->
+  <Teleport to="#page-tabs-host" :disabled="!hoist || !hostReady">
+    <!-- Атрибуты страницы (класс, data-*) кладём на саму полосу: корень
+         компонента — телепорт, и Vue их туда не наследует. -->
+    <nav class="tabbar" v-bind="$attrs">
     <!--
       Стрелки прокрутки. Появляются обе сразу, как только вкладки перестают
       помещаться, и гаснут поодиночке, когда крутить в ту сторону уже некуда.
@@ -47,18 +55,21 @@
       @scroll="scrollTowards(1)"
     />
 
-    <div v-if="$slots.actions" class="tabbar__actions">
-      <slot name="actions" />
-    </div>
-  </nav>
+      <div v-if="$slots.actions" class="tabbar__actions">
+        <slot name="actions" />
+      </div>
+    </nav>
+  </Teleport>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useTabsScroll } from 'src/shared/hooks/useTabsScroll';
 import { TabsScrollArrow } from '../TabsScrollArrow';
 import type { PageTabsProps, PageTab } from './PageTabs.types';
+
+defineOptions({ inheritAttrs: false });
 
 const props = defineProps<PageTabsProps>();
 
@@ -68,6 +79,13 @@ const emit = defineEmits<{
 
 const route = useRoute();
 const router = useRouter();
+
+// Цель телепорта живёт в каркасе приложения. В обособленных каркасах
+// (виджет-режим) её нет — тогда полоса остаётся на месте, как раньше.
+const hostReady = ref(false);
+onMounted(() => {
+  hostReady.value = !!document.getElementById('page-tabs-host');
+});
 
 const tabsRef = ref<HTMLElement | null>(null);
 const { scrollable, canScrollLeft, canScrollRight, scrollTowards } = useTabsScroll(

@@ -1,6 +1,7 @@
 <template lang="pug">
 q-page.participants-page
   PageTabs.participants-page__tabs(
+    hoist,
     :tabs='tabs',
     :active-key='activeTab',
     @select='(tab) => (activeTab = tab.key)'
@@ -191,12 +192,6 @@ const update = (
   padding: 0 var(--p-6, 24px) var(--p-6, 24px);
 }
 
-/* Полоса вкладок тянется во всю ширину страницы: её нижняя линия отделяет
-   вкладки от содержимого, а обрезанная по бокам линия читается как ошибка. */
-.participants-page__tabs {
-  margin: 0 calc(-1 * var(--p-6, 24px)) var(--p-4, 16px);
-}
-
 /* Таблица реестра в обрамлённой канон-поверхности */
 .participants-page__card {
   background: var(--p-surface);
@@ -214,9 +209,6 @@ const update = (
     padding: 0 var(--p-4, 16px) var(--p-4, 16px);
   }
 
-  .participants-page__tabs {
-    margin: 0 calc(-1 * var(--p-4, 16px)) var(--p-3, 12px);
-  }
   .participants-page__card {
     background: transparent;
     border: none;

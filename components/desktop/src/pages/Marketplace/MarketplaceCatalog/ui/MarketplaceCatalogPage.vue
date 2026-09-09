@@ -380,6 +380,7 @@ q-page.catalog(role="region", aria-label="Каталог Стола заказо
     span Показаны все товары кооператива. Чтобы заказывать и отфильтровать витрину под себя — выберите пункт выдачи в шапке.
 
   PageTabs.catalog__tabs(
+    hoist,
     :tabs="categoryTabs",
     :active-key="activeCategoryKey",
     @select="onSelectCategory"
@@ -460,7 +461,6 @@ q-page.catalog(role="region", aria-label="Каталог Стола заказо
   // Канон-`.tabbar` тянется во всю ширину; гасим его внутренний горизонтальный
   // паддинг, чтобы вкладки шли от края страницы (у страницы свои отступы).
   &__tabs {
-    margin: 0 calc(-1 * var(--p-6, 24px));
 
     :deep(.tabbar__tabs) {
       padding: 0 var(--p-6, 24px);
