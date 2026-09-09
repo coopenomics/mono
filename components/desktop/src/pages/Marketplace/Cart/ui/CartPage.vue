@@ -618,13 +618,42 @@ q-page.mp-cart.mp-role-orderer(role="region", aria-label="Корзина Сто�
   }
 
   @media (max-width: 768px) {
+    // На узком экране строка раскладывается сеткой в два ряда: сверху товар с
+    // ценой и кнопкой удаления, снизу количество и сумма. Обычный перенос по
+    // flex-wrap сжимал название и цену в колонку шириной в одно слово —
+    // «65 RUB / упак. 0,5 л» ломалось по букве на строку.
     &__line {
-      flex-wrap: wrap;
+      display: grid;
+      grid-template-columns: 56px minmax(0, 1fr) auto;
+      grid-template-areas:
+        'thumb info del'
+        'qty   qty  sum';
+      align-items: center;
+      gap: var(--p-2, 8px) var(--p-3, 12px);
+    }
+
+    &__thumb {
+      grid-area: thumb;
+    }
+
+    &__info {
+      grid-area: info;
+    }
+
+    &__del {
+      grid-area: del;
+      align-self: start;
+    }
+
+    &__qty {
+      grid-area: qty;
+      justify-content: flex-start;
     }
 
     &__sum {
+      grid-area: sum;
       width: auto;
-      text-align: left;
+      text-align: right;
     }
 
     &__summary {
