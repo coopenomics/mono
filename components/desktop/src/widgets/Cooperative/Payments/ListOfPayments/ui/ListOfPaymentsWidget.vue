@@ -20,9 +20,8 @@
               th.col-sort.col-date(@click='onSort("created_at")') Дата создания {{ sortMark('created_at') }}
               th.col-sort.col-num(@click='onSort("quantity")') Сумма {{ sortMark('quantity') }}
               th Тип платежа
-              //- «Направление» — относительно того, чей это стол: на столе совета
-              //- относительно кооператива (в/из кооператива), на личном столе
-              //- пайщика относительно пайщика (поступление/списание) — см. displayDirection.
+              //- «Направление» — всегда относительно кооператива: взнос пайщика
+              //- входящий, выплата пайщику исходящая (см. displayDirection).
               th Направление
               th.col-sort(@click='onSort("status")') Статус {{ sortMark('status') }}
               th.col-action(v-if='!hideActions') Действия
@@ -278,20 +277,19 @@ const getStatusVariant = paymentStatusVariant;
 const isIncoming = (direction?: string | null): boolean =>
   direction === Zeus.PaymentDirection.INCOMING;
 
-// Направление показываем относительно того, чей это стол. on-chain `direction` —
-// всегда относительно кооператива (INCOMING = деньги в кооператив). Совет
-// (!hideActions) так и видит; на личном столе пайщика (hideActions) перспектива
-// обратная (исходящий из кооператива = поступление пайщику), поэтому инвертируем.
-const displayDirection = (row: IPaymentRow): string | null | undefined =>
-  props.hideActions
-    ? (isIncoming(row.direction) ? Zeus.PaymentDirection.OUTGOING : Zeus.PaymentDirection.INCOMING)
-    : row.direction;
+// Направление читается одинаково на всех столах — относительно кооператива,
+// как оно и записано в цепи: взнос пайщика входящий, выплата пайщику
+// исходящая. Раньше на личном столе направление переворачивалось «от лица
+// пайщика», и собственный паевой взнос показывался исходящим — читалось как
+// списание, хотя пайщик деньги внёс. Один платёж не может называться в
+// кабинете двумя разными словами в зависимости от того, кто на него смотрит.
+const displayDirection = (row: IPaymentRow): string | null | undefined => row.direction;
 const directionLabel = (row: IPaymentRow): string =>
   isIncoming(displayDirection(row)) ? 'Входящий' : 'Исходящий';
 const directionHint = (row: IPaymentRow): string => {
   const incoming = isIncoming(displayDirection(row));
   return props.hideActions
-    ? incoming ? 'Поступление вам' : 'Списание с вас'
+    ? incoming ? 'Ваш взнос в кооператив' : 'Выплата вам из кооператива'
     : incoming ? 'В кооператив' : 'Из кооператива';
 };
 
