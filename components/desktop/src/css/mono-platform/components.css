@@ -603,13 +603,20 @@ body {
 .page-tabs-host {
   display: contents;
 }
+/* Quasar задаёт странице минимальную высоту «окно минус шапка» и про полосу
+   вкладок над ней не знает: страница во весь экран плюс полоса сверху давали
+   вертикальную прокрутку даже на пустом экране. Когда в контейнере стоит
+   поднятая полоса, минимальная высота страницы уменьшается на её высоту. */
+.q-page-container:has(> .tabbar) > .q-page {
+  min-height: calc(100dvh - var(--p-topbar-h) - var(--p-tabbar-h)) !important;
+}
 
 .tabbar {
   display: flex;
   align-items: stretch;
   border-bottom: 1px solid var(--p-line);
   background: var(--p-canvas);
-  min-height: 52px;
+  min-height: var(--p-tabbar-h);
   /* Полоса табов липнет под шапкой и остаётся на виду всю прокрутку: это
      основная навигация раздела, уезжать вместе с контентом ей незачем.
      Отступ сверху равен высоте шапки — ровно под ней. */
