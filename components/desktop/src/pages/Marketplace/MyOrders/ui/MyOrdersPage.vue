@@ -296,7 +296,7 @@ q-page.orders(role="region", aria-label="Мои заказы")
     | Отменить заказ можно, пока его не принял поставщик. Получение оформит
     | оператор на месте — акт вы подпишете там же.
 
-  PageTabs.orders__tabs(hoist, :tabs="tabs", :active-key="activeKey", @select="onSelectTab")
+  PageTabs.orders__tabs(:tabs="tabs", :active-key="activeKey", @select="onSelectTab")
 
   //- Канон загрузки: скелетон на первичной загрузке, не пустой экран.
   CardListSkeleton(v-if="loading && !items.length", :count="3")

@@ -1,7 +1,6 @@
 <template lang="pug">
 q-page.participants-page
   PageTabs.participants-page__tabs(
-    hoist,
     :tabs='tabs',
     :active-key='activeTab',
     @select='(tab) => (activeTab = tab.key)'
