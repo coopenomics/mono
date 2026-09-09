@@ -90,7 +90,7 @@ const hostReady = inject(PAGE_TABS_HOST, false);
 // Высота поднятой полосы уходит в переменную документа: страница под ней
 // укорачивается ровно на столько, сколько полоса заняла (см. модуль).
 const navRef = ref<HTMLElement | null>(null);
-useHoistedTabsHeight(navRef, () => props.hoist === true && hostReady);
+useHoistedTabsHeight(navRef, () => Boolean(props.hoist) && hostReady);
 
 const tabsRef = ref<HTMLElement | null>(null);
 const { scrollable, canScrollLeft, canScrollRight, scrollTowards } = useTabsScroll(

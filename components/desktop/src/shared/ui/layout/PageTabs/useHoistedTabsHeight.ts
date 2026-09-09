@@ -1,4 +1,4 @@
-import { onBeforeUnmount, onMounted, watch, type Ref } from 'vue';
+import { onBeforeUnmount, watch, type Ref } from 'vue';
 
 /**
  * Публикует фактическую высоту поднятой полосы вкладок в переменную документа
@@ -20,6 +20,12 @@ import { onBeforeUnmount, onMounted, watch, type Ref } from 'vue';
  * стёрла бы только что опубликованную высоту.
  */
 const CSS_VAR = '--p-tabs-host-h';
+/**
+ * Признак на контейнере страниц. Ставится рядом с публикацией высоты, чтобы
+ * правило в `components.css` не зависело от того, как именно полоса вложена в
+ * каркас: до этого условие искало её по структуре и молча промахивалось.
+ */
+const CONTAINER_CLASS = 'has-hoisted-tabs';
 let hoistedCount = 0;
 
 export function useHoistedTabsHeight(el: Ref<HTMLElement | null>, isHoisted: () => boolean): void {
@@ -30,9 +36,14 @@ export function useHoistedTabsHeight(el: Ref<HTMLElement | null>, isHoisted: () 
     if (px > 0) document.documentElement.style.setProperty(CSS_VAR, `${Math.round(px)}px`);
   }
 
+  /** Контейнер страниц, в котором сейчас живёт поднятая полоса. */
+  let container: Element | null = null;
+
   function start(): void {
     if (observer || !el.value || typeof ResizeObserver === 'undefined') return;
     hoistedCount += 1;
+    container = el.value.closest('.q-page-container');
+    container?.classList.add(CONTAINER_CLASS);
     observer = new ResizeObserver(() => publish());
     observer.observe(el.value);
     publish();
@@ -43,13 +54,20 @@ export function useHoistedTabsHeight(el: Ref<HTMLElement | null>, isHoisted: () 
     observer.disconnect();
     observer = null;
     hoistedCount = Math.max(0, hoistedCount - 1);
-    if (hoistedCount === 0) document.documentElement.style.removeProperty(CSS_VAR);
+    if (hoistedCount === 0) {
+      document.documentElement.style.removeProperty(CSS_VAR);
+      container?.classList.remove(CONTAINER_CLASS);
+    }
+    container = null;
   }
 
-  onMounted(() => {
-    if (isHoisted()) start();
-  });
-  // Полоса может подняться не сразу: страница включает признак по условию.
-  watch(isHoisted, (on) => (on ? start() : stop()));
+  // Следим и за признаком, и за самим узлом: полоса уезжает отложенным
+  // телепортом, и на момент `onMounted` её элемента может ещё не быть — разовая
+  // проверка там тихо не находила, что мерить, и высота не публиковалась вовсе.
+  watch(
+    [el, isHoisted] as const,
+    ([node, on]) => (node && on ? start() : stop()),
+    { immediate: true, flush: 'post' },
+  );
   onBeforeUnmount(stop);
 }
