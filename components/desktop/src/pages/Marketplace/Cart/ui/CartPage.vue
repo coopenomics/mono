@@ -608,15 +608,15 @@ q-page.mp-cart.mp-role-orderer(role="region", aria-label="Корзина Сто�
   }
 
   @media (max-width: 768px) {
-    // Узкий экран: сверху товар (снимок, название, цена) и удаление, снизу —
-    // степпер слева и сумма позиции справа. Одной строкой это не помещается:
-    // название с ценой сжимались в колонку шириной в слово.
+    // Узкий экран: верхний ряд — снимок, название и цена во всю ширину;
+    // нижний — степпер слева, сумма и удаление справа. Одной строкой это не
+    // помещается: название с ценой сжимались в колонку шириной в слово.
     &__line {
       display: grid;
       grid-template-columns: 64px minmax(0, 1fr) auto;
       grid-template-areas:
-        'thumb info del'
-        'qty   qty  sum';
+        'thumb info info'
+        'qty   sum  del';
       align-items: start;
       gap: var(--p-3, 12px);
       padding: var(--p-4, 16px) 0;
@@ -633,10 +633,13 @@ q-page.mp-cart.mp-role-orderer(role="region", aria-label="Корзина Сто�
       align-self: center;
     }
 
+    // Удаление уехало в нижний ряд, к сумме: в верхнем оно отнимало ширину у
+    // названия и цены, и «упак. 0,5 л, пластик» переносилось на вторую строку
+    // из-за кнопки, которая нужна раз в жизни позиции.
     &__del {
       grid-area: del;
-      align-self: start;
-      margin-top: calc(var(--p-1, 4px) * -1);
+      align-self: center;
+      justify-self: end;
     }
 
     &__qty {
