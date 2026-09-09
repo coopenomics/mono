@@ -44,6 +44,7 @@ function buildMocks() {
   // По умолчанию до склада заказ не дошёл — имущество у поставщика.
   const inventoryRepo: jest.Mocked<MarketplaceInventoryDomainRepository> = {
     sumOnWarehouseByOrders: jest.fn().mockResolvedValue(new Map()),
+    detachRemainderToStock: jest.fn().mockResolvedValue(0),
   } as unknown as jest.Mocked<MarketplaceInventoryDomainRepository>;
 
   const chainPort: jest.Mocked<MarketplaceCanonicalBlockchainPort> = {
@@ -236,6 +237,32 @@ describe('MarketplaceOrderCancelService — отказ после приёмки
     await cancel();
     expect(mocks.offerCounters.onOrderConsumed).toHaveBeenCalledWith('offer-1', 5, undefined);
     expect(mocks.offerCounters.onOrderUnblocked).not.toHaveBeenCalled();
+  });
+
+  it('принятое имущество уходит в обезличенный остаток КУ — ждать его больше некому', async () => {
+    mocks.orderRepo.findById.mockResolvedValue(buildOrder({ status: 'ACCEPTED_TO_COOP' }));
+    mocks.inventoryRepo.sumOnWarehouseByOrders.mockResolvedValue(new Map([['order-1', 5]]));
+
+    await cancel();
+    // Ноль выданного = «выдавать некому, снять адресность со всего»; иначе
+    // позиция висит адресной за мёртвым заказом и выпадает из оборота.
+    expect(mocks.inventoryRepo.detachRemainderToStock).toHaveBeenCalledWith('voskhod', 'order-1', 0, '150.0000');
+  });
+
+  it('до склада заказ не дошёл — адресность снимать не с чего, склад не трогаем', async () => {
+    mocks.orderRepo.findById.mockResolvedValue(buildOrder({ status: 'ACCEPTED' }));
+
+    await cancel();
+    expect(mocks.inventoryRepo.detachRemainderToStock).not.toHaveBeenCalled();
+  });
+
+  it('сбой склада не срывает отмену — цепь её уже приняла', async () => {
+    mocks.orderRepo.findById.mockResolvedValue(buildOrder({ status: 'ACCEPTED_TO_COOP' }));
+    mocks.inventoryRepo.sumOnWarehouseByOrders.mockResolvedValue(new Map([['order-1', 5]]));
+    mocks.inventoryRepo.detachRemainderToStock.mockRejectedValue(new Error('склад недоступен'));
+
+    await expect(cancel()).resolves.toBeDefined();
+    expect(mocks.logger.warn).toHaveBeenCalledWith(expect.stringContaining('склад недоступен'));
   });
 
   it('привезли не всё — недопоставка возвращается поставщику, принятое выбывает', async () => {

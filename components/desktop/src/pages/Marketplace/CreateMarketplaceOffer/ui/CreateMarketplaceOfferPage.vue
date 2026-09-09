@@ -212,7 +212,6 @@ q-page.mp-role-offerer.offer-wizard(role='region', aria-label='Создание 
         //- ───────── Шаг 3: Наличие ─────────
         .offer-wizard__step(v-else-if='step.key === "stock"')
           .offer-wizard__choice
-            .offer-wizard__choice-title Сколько готовы отдать
             .offer-wizard__choice-cards
               BaseRadioCard(
                 :model-value='stockMode',
@@ -242,13 +241,17 @@ q-page.mp-role-offerer.offer-wizard(role='region', aria-label='Создание 
             //- Отпуск упаковкой — остаток ведётся на каждой упаковке, в упаковках.
             .offer-wizard__stock-pkgs(v-else)
               p.offer-wizard__hint {{ stockHint }}
-              .offer-wizard__stock-pkg(v-for='(pkg, i) in form.packages', :key='i')
-                span.offer-wizard__stock-pkg-title {{ packageTitle(pkg, i) }}
-                AmountInput.offer-wizard__stock-pkg-input(
+              .offer-wizard__card(v-for='(pkg, i) in form.packages', :key='i')
+                header.offer-wizard__card-head
+                  span.offer-wizard__card-title {{ packageTitle(pkg, i) }}
+                  BaseChip(v-if='pkg.is_default', variant='accent', size='sm') Основная
+                  q-space
+                  span.offer-wizard__card-note(v-if='packageNote(pkg)') {{ packageNote(pkg) }}
+                AmountInput.offer-wizard__card-field(
                   :model-value='pkg.quantity_available',
                   :precision='0',
                   symbol='упак.',
-                  label='Свободно',
+                  label='Доступно',
                   :error='fieldError("stock", `pkg.${i}.quantity_available`)',
                   @update:model-value='(v) => (pkg.quantity_available = v)'
                 )
@@ -259,33 +262,41 @@ q-page.mp-role-offerer.offer-wizard(role='region', aria-label='Создание 
             | Отметьте кооперативные участки, на которые готовы обеспечить доставку, и укажите объём поставки на каждое.
           .offer-wizard__hint(v-if='kuLoading') Загрузка участков…
           .offer-wizard__hint(v-else-if='!kuOptions.length') Нет доступных кооперативных участков.
-          .offer-wizard__ku-row(v-for='ku in kuOptions', :key='ku.braname')
-            BaseCheckbox(
-              :model-value='isKuSelected(ku.braname)',
-              @update:model-value='(v) => toggleKu(ku.braname, v)'
+          .offer-wizard__cards
+            .offer-wizard__card(
+              v-for='ku in kuOptions',
+              :key='ku.braname',
+              :class='{ "offer-wizard__card--on": isKuSelected(ku.braname) }'
             )
-              .offer-wizard__ku-label
-                .offer-wizard__ku-name {{ ku.name }}
-                .offer-wizard__ku-addr {{ ku.address }}
-            BaseButton(
-              v-if='kuHasCoords(ku)',
-              variant='ghost',
-              icon-only,
-              size='sm',
-              aria-label='Открыть карту',
-              @click='openKuMap(ku)'
-            )
-              template(#icon-left)
-                q-icon(name='map', size='18px')
-            AmountInput.offer-wizard__ku-min(
-              v-if='isKuSelected(ku.braname)',
-              :model-value='kuMinVolume(ku.braname)',
-              label='Мин. объём',
-              :precision='0',
-              :min='1',
-              :symbol='orderUnitLabel',
-              @update:model-value='(v) => setKuMin(ku.braname, v)'
-            )
+              header.offer-wizard__card-head
+                BaseCheckbox(
+                  :model-value='isKuSelected(ku.braname)',
+                  @update:model-value='(v) => toggleKu(ku.braname, v)'
+                )
+                  .offer-wizard__ku-label
+                    .offer-wizard__card-title {{ ku.name }}
+                    .offer-wizard__card-note {{ ku.address }}
+                q-space
+                BaseButton(
+                  v-if='kuHasCoords(ku)',
+                  variant='ghost',
+                  icon-only,
+                  size='sm',
+                  aria-label='Открыть карту',
+                  @click='openKuMap(ku)'
+                )
+                  template(#icon-left)
+                    q-icon(name='map', size='18px')
+              AmountInput.offer-wizard__card-field(
+                v-if='isKuSelected(ku.braname)',
+                :model-value='kuMinVolume(ku.braname)',
+                label='Минимальный объём поставки',
+                :precision='0',
+                :min='1',
+                :symbol='orderUnitLabel',
+                hint='Ниже этого объёма везти на участок невыгодно — кооператив копит заказы до него',
+                @update:model-value='(v) => setKuMin(ku.braname, v)'
+              )
 
         //- ───────── Шаг 5: Изображения ─────────
         .offer-wizard__step(v-else-if='step.key === "images"')
@@ -362,12 +373,19 @@ q-page.mp-role-offerer.offer-wizard(role='region', aria-label='Создание 
               header.offer-preview__head
                 h2.offer-preview__name {{ form.product_name || 'Без названия' }}
                 BaseChip(variant='neutral', size='sm') {{ selectedCategoryLabel }}
-              .offer-preview__pricerow
-                .offer-preview__pricebox
-                  span.offer-preview__price {{ formattedPrice }}
-                  span.offer-preview__per за {{ previewUnitLabel }}
-                BaseChip(:variant='stockEmpty ? "neg" : "pos"', size='sm') {{ stockLabel }}
+              .offer-preview__pricebox
+                span.offer-preview__price {{ formattedPrice }}
+                span.offer-preview__per за {{ previewUnitLabel }}
               p.offer-preview__fee(v-if='priceWithFeeHint') {{ priceWithFeeHint }}
+              //- Наличие: по мере — одной строкой, упаковкой — по строке на
+              //- упаковку: одно число на все упаковки заказчику ничего не говорит.
+              .offer-preview__stock
+                BaseChip(v-if='!previewStockRows.length', :variant='stockEmpty ? "neg" : "pos"', size='sm') {{ stockLabel }}
+                template(v-else)
+                  .offer-preview__stock-title В наличии
+                  .offer-preview__stock-row(v-for='row in previewStockRows', :key='row.key')
+                    span.offer-preview__stock-name {{ row.name }}
+                    span.offer-preview__stock-count {{ row.count }}
               p.offer-preview__desc(v-if='form.description') {{ form.description }}
               section.offer-preview__specs
                 .offer-preview__specs-title Характеристики
@@ -633,7 +651,7 @@ function onWithdraw(): void {
 const steps: StepperStep[] = [
   { key: 'basics', label: 'Товар', description: 'Название, категория, срок годности' },
   { key: 'pricing', label: 'Цена', description: 'Способ отпуска и стоимость' },
-  { key: 'stock', label: 'Наличие', description: 'Сколько готовы отдать' },
+  { key: 'stock', label: 'Наличие', description: 'Сколько готовы отдать заказчикам' },
   { key: 'supply', label: 'Условия поставки', description: 'Участки и объём поставки' },
   { key: 'images', label: 'Изображения', description: 'Фотографии товара' },
   { key: 'review', label: 'Проверка и публикация', description: 'Сверьте карточку перед отправкой' },
@@ -954,6 +972,24 @@ const stockLabel = computed(() => {
     return `В наличии: ${marketplacePackageStockLabel(stockPackages.value, form.value.unit_of_measure)}`;
   }
   return `В наличии: ${form.value.quantity_available} ${orderUnitLabel.value}`;
+});
+
+/**
+ * Наличие в карточке предпросмотра при отпуске упаковкой — по строке на
+ * упаковку: слева упаковка, справа сколько её осталось. Одной строкой через
+ * разделитель это читается как ребус, а заказчик выбирает именно упаковку.
+ * Пусто — показываем прежнюю строку-чип (отпуск по мере, безлимит, «нет в
+ * наличии»).
+ */
+const previewStockRows = computed<Array<{ key: string; name: string; count: string }>>(() => {
+  if (!isPackaged.value || form.value.unlimited_flag || stockEmpty.value) return [];
+  return form.value.packages
+    .filter((p) => p.size !== null && p.size > 0)
+    .map((p, i) => ({
+      key: p.id ?? String(i),
+      name: packageTitle(p, i),
+      count: `${p.quantity_available ?? 0} упак.`,
+    }));
 });
 
 // ===== Черновик формы в LocalStorage (только режим создания) =====
@@ -1575,28 +1611,55 @@ onBeforeUnmount(() => {
     font-variant-numeric: tabular-nums;
   }
 
-  // Наличие по упаковкам: название упаковки слева, поле «упак.» справа.
-  &__stock-pkgs {
+  // Карточка со строкой ввода — общий вид для наличия по упаковкам и для
+  // участков поставки. Поле стоит под шапкой, а не рядом с подписью: у него
+  // зарезервирована строка подсказки, и в одной строке с текстом оно
+  // выглядело бы съехавшим вверх.
+  &__stock-pkgs,
+  &__cards {
     display: flex;
     flex-direction: column;
     gap: var(--p-3, 12px);
   }
 
-  &__stock-pkg {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) 200px;
-    align-items: center;
-    gap: var(--p-3, 12px);
+  &__card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--p-2, 8px);
     padding: var(--p-3, 12px) var(--p-4, 16px);
     border: 1px solid var(--p-line);
     border-radius: var(--p-r-md, 12px);
     background: var(--p-surface);
+
+    &--on {
+      border-color: var(--p-primary-line, var(--p-primary));
+    }
   }
 
-  &__stock-pkg-title {
+  &__card-head {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--p-2, 8px);
+    min-height: 32px;
+  }
+
+  &__card-title {
     min-width: 0;
     font-weight: 600;
     overflow-wrap: anywhere;
+  }
+
+  &__card-note {
+    font-size: var(--p-fs-body-sm, 13px);
+    color: var(--p-ink-3);
+    overflow-wrap: anywhere;
+  }
+
+  // Поле не тянется во всю карточку: число упаковок и объём — короткие
+  // значения, широкое поле под них выглядит пустым.
+  &__card-field {
+    max-width: 280px;
   }
 
   &__pkg-add {
@@ -1613,33 +1676,11 @@ onBeforeUnmount(() => {
     }
   }
 
-  // Строка КУ: чекбокс с наименованием+адресом слева, кнопка карты и
-  // поле мин. объёма — справа.
-  &__ku-row {
-    display: flex;
-    align-items: flex-start;
-    gap: var(--p-3, 12px);
-  }
-
+  // Подпись участка внутри чекбокса: название и адрес друг под другом.
   &__ku-label {
-    flex: 1 1 auto;
     display: flex;
     flex-direction: column;
     gap: 2px;
-  }
-
-  &__ku-name {
-    font-weight: 600;
-    color: var(--p-ink-2);
-  }
-
-  &__ku-addr {
-    font-size: var(--p-fs-body-sm, 13px);
-    color: var(--p-ink-3);
-  }
-
-  &__ku-min {
-    flex: 0 0 140px;
   }
 
   &__map {
@@ -1760,8 +1801,8 @@ onBeforeUnmount(() => {
     padding: var(--p-3, 12px);
   }
 
-  .offer-wizard__stock-pkg {
-    grid-template-columns: minmax(0, 1fr);
+  .offer-wizard__card-field {
+    max-width: none;
   }
 }
 
@@ -1824,17 +1865,13 @@ onBeforeUnmount(() => {
   }
 
   // Цена и наличие — в одну строку: цена слева крупно, наличие чипом справа.
-  &__pricerow {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--p-3, 12px);
-  }
-
+  // Цена и её единица — друг под другом: «100,00 RUB» и «за упак. 1 л» в одну
+  // строку не помещаются и ломаются на узкие столбики по букве.
   &__pricebox {
     display: flex;
-    align-items: baseline;
-    gap: 6px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
     min-width: 0;
   }
 
@@ -1854,6 +1891,41 @@ onBeforeUnmount(() => {
     margin: 0;
     font-size: var(--p-fs-body-sm, 13px);
     color: var(--p-ink-3);
+  }
+
+  // Наличие по упаковкам — списком: упаковка слева, её остаток справа.
+  &__stock {
+    display: flex;
+    flex-direction: column;
+    gap: var(--p-1, 4px);
+  }
+
+  &__stock-title {
+    font-size: var(--p-fs-eyebrow, 11px);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--p-ink-3);
+  }
+
+  &__stock-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--p-3, 12px);
+    font-size: var(--p-fs-body-sm, 13px);
+  }
+
+  &__stock-name {
+    min-width: 0;
+    color: var(--p-ink-2);
+    overflow-wrap: anywhere;
+  }
+
+  &__stock-count {
+    flex: 0 0 auto;
+    font-weight: 600;
+    color: var(--p-ink);
+    font-variant-numeric: tabular-nums;
   }
 
   &__desc {

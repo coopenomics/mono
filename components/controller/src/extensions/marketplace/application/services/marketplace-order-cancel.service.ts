@@ -137,8 +137,8 @@ export class MarketplaceOrderCancelService {
       rethrowChainError(error);
     }
 
-    // ── 3. Counters предложения (best-effort) ───────────────────────
-    await this.settleOfferCounters(order);
+    // ── 3. Счётчики предложения и склад (best-effort) ───────────────
+    await this.settleAfterCancel(order);
 
     // ── 4. Persist Order.status → CANCELLED_BY_ORDERER ──────────────
     const updated = await this.orderRepo.applyStatusTransition(
@@ -156,27 +156,48 @@ export class MarketplaceOrderCancelService {
   /**
    * Отказаться от заказа можно и после того, как имущество приняли на склад
    * кооператива (статус «принято кооперативом» — на нём стоит отказ от
-   * позиции при выдаче). Возвращать поставщику весь объём в этом случае
-   * нельзя: принятое кооператив уже оплатил и продаст сам, а предложение
-   * поставщика показало бы то же имущество второй раз.
+   * позиции при выдаче). Тогда закрыть нужно две вещи сразу.
    *
-   * Поэтому в свободное возвращается только то, чего кооператив не получал —
-   * то же правило, что и на выдаче (`splitBlockedByReceived`). Пока заказ не
-   * дошёл до склада, принятого нет и возвращается весь объём, как раньше.
+   * Счётчики предложения: возвращать поставщику весь объём нельзя — принятое
+   * кооператив уже оплатил и продаст сам, а предложение поставщика показало
+   * бы то же имущество второй раз. В свободное возвращается только то, чего
+   * кооператив не получал (`splitBlockedByReceived`, то же правило, что на
+   * выдаче).
    *
-   * Best-effort: цепь отмену уже приняла, ронять её из-за счётчика витрины
+   * Склад: адресность снимается. Заказчик от имущества отказался, ждать его
+   * больше некому, а пока позиция числится адресной, она невидима в разделе
+   * остатка и её нельзя ни опубликовать заново, ни продать из остатка, ни
+   * доложить на стойку — имущество кооператива выпадает из оборота.
+   *
+   * Порядок обязателен: принятое считается ДО снятия адресности, иначе
+   * переведённые в остаток позиции в подсчёт уже не попадут.
+   *
+   * Best-effort: цепь отмену уже приняла, ронять её из-за витрины или склада
    * нельзя — расхождение разбирают ручной сверкой.
    */
-  private async settleOfferCounters(order: MarketplaceOrderDomainEntity): Promise<void> {
-    let receivedByCoop = 0;
+  private async settleAfterCancel(order: MarketplaceOrderDomainEntity): Promise<void> {
+    const receivedByCoop = await this.receivedOnWarehouse(order);
+    await this.settleOfferCounters(order, receivedByCoop);
+    if (receivedByCoop > 0) await this.detachWarehouseToStock(order);
+  }
+
+  /** Сколько имущества по заказу успело поступить на склад кооператива. */
+  private async receivedOnWarehouse(order: MarketplaceOrderDomainEntity): Promise<number> {
     try {
       const sums = await this.inventoryRepo.sumOnWarehouseByOrders(order.coopname, [order.id]);
-      receivedByCoop = sums.get(order.id) ?? 0;
+      return sums.get(order.id) ?? 0;
     } catch (err: any) {
       this.logger.warn(
         `MarketplaceOrderCancelService: не удалось прочитать принятое на склад по заказу ${order.id} (${err.message}); считаю, что имущество к кооперативу не поступало.`
       );
+      return 0;
     }
+  }
+
+  private async settleOfferCounters(
+    order: MarketplaceOrderDomainEntity,
+    receivedByCoop: number
+  ): Promise<void> {
     const { consumed, returned } = splitBlockedByReceived(order.quantity, receivedByCoop);
     try {
       if (returned > 0) {
@@ -188,6 +209,30 @@ export class MarketplaceOrderCancelService {
     } catch (counterErr: any) {
       this.logger.warn(
         `MarketplaceOrderCancelService: счётчики предложения ${order.offer_id} не сошлись по заказу ${order.id} (${counterErr.message}) — продолжаю applyStatusTransition`
+      );
+    }
+  }
+
+  /**
+   * Имущество отменённого заказа переходит в обезличенный остаток КУ: ноль
+   * выданного в `detachRemainderToStock` означает «выдавать некому, снять
+   * адресность со всего». Оттуда оператор публикует его в каталог, продаёт
+   * из остатка или списывает — так же, как невыданный излишек после выдачи.
+   */
+  private async detachWarehouseToStock(order: MarketplaceOrderDomainEntity): Promise<void> {
+    try {
+      const detached = await this.inventoryRepo.detachRemainderToStock(
+        order.coopname,
+        order.id,
+        0,
+        order.price_per_unit
+      );
+      this.logger.log(
+        `MarketplaceOrderCancelService: заказ ${order.id} отменён после приёмки — ${detached} ед. переведены в обезличенный остаток КУ.`
+      );
+    } catch (err: any) {
+      this.logger.warn(
+        `MarketplaceOrderCancelService: не удалось снять адресность с позиций заказа ${order.id} (${err.message}); имущество останется адресным до ручной сверки.`
       );
     }
   }
