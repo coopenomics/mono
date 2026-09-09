@@ -378,7 +378,7 @@ q-page.mp-role-orderer.mp-member-cpp(role="region", aria-label="Подключе
   // Шапка карточки: teal icon-tile + заголовок/подзаголовок + чип выбранного КУ.
   &__head {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: var(--p-3, 12px);
   }
 
@@ -529,6 +529,24 @@ q-page.mp-role-orderer.mp-member-cpp(role="region", aria-label="Подключе
   }
 
   @media (max-width: 768px) {
+    // На узком экране заголовок переносится на две строки, и значок,
+    // выровненный по центру этого блока, оказывался между строками. Ставим
+    // его сверху отдельной строкой, а текст — под ним во всю ширину.
+    &__head {
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    &__head-text {
+      flex: 1 1 100%;
+      order: 2;
+    }
+
+    &__picked {
+      order: 3;
+      align-self: flex-start;
+    }
+
     &__bar {
       flex-direction: column;
       align-items: stretch;
