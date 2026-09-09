@@ -9,7 +9,9 @@
     @click="onCardClick"
   >
     <div class="order-row__thumb">
-      <q-img v-if="order.imageUrl" :src="order.imageUrl" ratio="1" class="order-row__thumb-img" />
+      <!-- fit=contain: товар виден целиком. Обрезка по квадрату резала
+           вертикальные снимки — от бутылки оставалась середина. -->
+      <q-img v-if="order.imageUrl" :src="order.imageUrl" ratio="1" fit="contain" class="order-row__thumb-img" />
       <div v-else class="order-row__thumb-empty">
         <q-icon name="image" size="20px" />
       </div>
@@ -726,6 +728,42 @@ function formatPrice(v: number) {
     gap: var(--p-2, 8px);
     flex: 0 0 auto;
     margin-left: auto;
+  }
+
+  // Узкий экран: колонки строки перестают держать свою ширину и занимают всю
+  // строку целиком. Раньше столбец статуса был жёстко 200 px, а подпись «сбор
+  // партии» не переносилась — вместе они распирали карточку шире экрана, и
+  // страница ездила вправо-влево, а полоса сбора уходила за край.
+  @media (max-width: 600px) {
+    gap: var(--p-3, 12px);
+
+    &__status-col {
+      flex: 1 1 100%;
+      align-items: flex-start;
+    }
+
+    &__progress {
+      align-items: stretch;
+      width: 100%;
+    }
+
+    &__progress-label {
+      white-space: normal;
+    }
+
+    &__main {
+      flex: 1 1 100%;
+    }
+
+    &__pvz {
+      flex: 1 1 100%;
+    }
+
+    &__actions {
+      flex: 1 1 100%;
+      justify-content: flex-start;
+      margin-left: 0;
+    }
   }
 }
 </style>
