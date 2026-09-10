@@ -11,7 +11,7 @@
  *   - o.mkt.unlock: TRANSFER w.mkt.order → w.mkt.share, без проводки
  *   - o.mkt.consum: BURN w.mkt.order, Дт 86 / Кт 10
  *   - o.mkt.return: ISSUE → w.mkt.share, Дт 10 / Кт 80
- *   - o.mkt.wroff:  NONE, Дт 86 / Кт 10
+ *   - o.mkt.wroff:  NONE, Дт 91 / Кт 10 (с 10.09.2026 — прочий расход, как уценка)
  */
 
 import { createHash, randomBytes } from 'node:crypto'
@@ -191,7 +191,7 @@ function writeoffFlow(amount = 100): MarketplaceLedger2OperationRow[] {
       amount,
       walletFrom: null,
       walletTo: null,
-      debitAccount: 86,
+      debitAccount: 91,
       creditAccount: 10,
     }),
   ]
@@ -414,6 +414,10 @@ describe('I4 — счёт 91: только уценка и признанные 
     for (let i = 0; i < 2; i++) rows.push(...writeoffFlow(15 + i))
     const res = checkInvariantI4Account91Usage(rows)
     expect(res.ok).toBe(true)
+  })
+
+  it('happy path: списание скоропорта (o.mkt.wroff, Дт 91) — законная проводка по 91', () => {
+    expect(checkInvariantI4Account91Usage(writeoffFlow(40)).ok).toBe(true)
   })
 
   it('happy path: уценка (o.mkt.loss, Дт 91) и признанная претензия (o.mkt.admit, Кт 91) — законные проводки по 91', () => {
@@ -801,7 +805,7 @@ describe('I2 — счёт 86: только перевод в членский, �
     expect(res.expected).toBe('dr=0.0000 RUB / cr=0.0000 RUB')
   })
 
-  it('happy path: списание скоропорта (Дт 86), перевод в членский и удержание при отказе (Кт 86) — законные проводки', () => {
+  it('happy path: перевод в членский и удержание при отказе (Кт 86) — законные проводки; списание скоропорта 86 не задевает', () => {
     const orderHash = newProcessHash()
     const rows: MarketplaceLedger2OperationRow[] = [
       ...writeoffFlow(40),
@@ -826,7 +830,25 @@ describe('I2 — счёт 86: только перевод в членский, �
     ]
     const res = checkInvariantI2Account86Usage(rows)
     expect(res.ok).toBe(true)
-    expect(res.expected).toBe('dr=40.0000 RUB / cr=150.0000 RUB')
+    expect(res.expected).toBe('dr=0.0000 RUB / cr=150.0000 RUB')
+  })
+
+  it('violation: дебет 86 в нитке Стола заказов — у программы такого движения нет', () => {
+    // Так выглядело списание скоропорта до 10.09.2026: счёт 86 уменьшался,
+    // а кошельки на нём — нет, и сальдо расходилось с кошельками навсегда.
+    const res = checkInvariantI2Account86Usage(
+      buildApplyTrio({
+        processHash: newProcessHash(),
+        operationCode: 'o.mkt.wroff',
+        amount: 40,
+        walletFrom: null,
+        walletTo: null,
+        debitAccount: 86,
+        creditAccount: 10,
+      }),
+    )
+    expect(res.ok).toBe(false)
+    expect(res.details?.[0]?.message).toMatch(/дебет 86/)
   })
 
   it('violation: проводка по 86 в нитке Стола заказов вне трёх допустимых операций', () => {
@@ -853,9 +875,9 @@ describe('I2 — счёт 86: только перевод в членский, �
     const processHash = newProcessHash()
     const applySeq = nextSeq()
     const rows: MarketplaceLedger2OperationRow[] = [
-      { globalSequence: applySeq, action: 'apply', operationCode: 'o.mkt.wroff', processHash, quantity: '40.0000 RUB' },
-      { globalSequence: nextSeq(), action: 'debit', processHash, accountId: 86, quantity: '40.0000 RUB', parentApplyGlobalSequence: applySeq },
-      { globalSequence: nextSeq(), action: 'credit', processHash, accountId: 10, quantity: '40.0000 RUB', parentApplyGlobalSequence: applySeq },
+      { globalSequence: applySeq, action: 'apply', operationCode: 'o.mkt.penal', processHash, quantity: '40.0000 RUB' },
+      { globalSequence: nextSeq(), action: 'debit', processHash, accountId: 80, quantity: '40.0000 RUB', parentApplyGlobalSequence: applySeq },
+      { globalSequence: nextSeq(), action: 'credit', processHash, accountId: 86, quantity: '40.0000 RUB', parentApplyGlobalSequence: applySeq },
     ]
     expect(checkInvariantI2Account86Usage(rows).ok).toBe(true)
   })

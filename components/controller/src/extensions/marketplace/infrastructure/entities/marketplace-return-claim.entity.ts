@@ -126,6 +126,14 @@ export class MarketplaceReturnClaimEntity {
   @Column({ type: 'jsonb', nullable: true })
   public ledger_snapshot!: MarketplaceReturnClaimLedgerSnapshot | null;
 
+  /**
+   * Совет отменил сделку, а общий кошелёк участка был уже распределён:
+   * членский взнос ждёт пополнения кошелька (заявка на цепи в `feepend`,
+   * задача 99D-15). Крон повторяет `payretfee`; null — взнос не ждёт.
+   */
+  @Column({ type: 'timestamptz', nullable: true })
+  public fee_refund_pending_at!: Date | null;
+
   @CreateDateColumn({ type: 'timestamptz' })
   public created_at!: Date;
 

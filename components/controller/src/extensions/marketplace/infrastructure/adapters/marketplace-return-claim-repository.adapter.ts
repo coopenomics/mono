@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, Repository } from 'typeorm';
+import { In, IsNull, Not, Repository } from 'typeorm';
 import { MarketplaceReturnClaimDomainEntity } from '../../domain/entities/marketplace-return-claim.entity';
 import {
   MARKETPLACE_RETURN_CLAIM_ACTIVE_STATUSES,
@@ -141,9 +141,23 @@ export class MarketplaceReturnClaimRepositoryAdapter
     const update: Partial<MarketplaceReturnClaimEntity> = {};
     if (patch.council_decision_id !== undefined) update.council_decision_id = patch.council_decision_id;
     if (patch.council_decision_mode !== undefined) update.council_decision_mode = patch.council_decision_mode;
+    if (patch.fee_refund_pending_at !== undefined) update.fee_refund_pending_at = patch.fee_refund_pending_at;
+    if (patch.decision_entry) {
+      const row = await this.repo.findOneOrFail({ where: { id } });
+      update.decision_log = [...(row.decision_log ?? []), patch.decision_entry];
+    }
     if (Object.keys(update).length > 0) await this.repo.update({ id }, update);
     const fresh = await this.repo.findOneOrFail({ where: { id } });
     return this.mapper.toDomain(fresh);
+  }
+
+  async listFeeRefundPending(coopname: string, limit = 50): Promise<MarketplaceReturnClaimDomainEntity[]> {
+    const rows = await this.repo.find({
+      where: { coopname, fee_refund_pending_at: Not(IsNull()) },
+      order: { fee_refund_pending_at: 'ASC' },
+      take: limit,
+    });
+    return rows.map((r) => this.mapper.toDomain(r));
   }
 
   async listByStatus(

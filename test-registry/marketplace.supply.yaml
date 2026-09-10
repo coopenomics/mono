@@ -449,3 +449,15 @@ cases:
       вычитает удержанное при инициации
     test: components/controller/src/extensions/marketplace/application/invariants/marketplace-ledger2-invariants.spec.ts
     status: written   # прогон не подтверждён локально — гоняет CI
+
+  - id: mkt.supply.side.42
+    level: contract
+    kind: side
+    scenario: Пайщик подаёт заявление о выходе из кооператива, пока у него есть незавершённый заказ в Столе заказов.
+    expect: >
+      заявление отклоняется с суммой резерва под заказы; после выдачи или
+      отмены заказов выход проходит, свободный паевой программы
+      консолидируется в общий паевой, а остаток членского кошелька программы
+      уходит в пул взносов (o.mkt.exfee) и в сумму возврата не входит
+    test: ~
+    status: missing   # сценарий выхода на живой цепи — реестр registrator (cardcoop.membership) не покрывает Стол заказов

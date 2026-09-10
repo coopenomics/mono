@@ -52,6 +52,10 @@ export interface MarketplaceReturnClaimApplyDecisionInput {
 export interface MarketplaceReturnClaimCouncilPatch {
   council_decision_id?: string | null;
   council_decision_mode?: 'ROBOT' | 'MANUAL' | null;
+  /** Взнос ждёт пополнения общего кошелька участка (задача 99D-15); null — снять ожидание. */
+  fee_refund_pending_at?: Date | null;
+  /** Запись в журнал решений вместе с патчем (взнос ждёт / взнос довнесён). */
+  decision_entry?: MarketplaceReturnClaimDecisionLogEntry;
 }
 
 export interface MarketplaceReturnClaimDomainRepository {
@@ -110,6 +114,12 @@ export interface MarketplaceReturnClaimDomainRepository {
 
   /** Дописать поля совета без смены статуса. */
   patchCouncil(id: string, patch: MarketplaceReturnClaimCouncilPatch): Promise<MarketplaceReturnClaimDomainEntity>;
+
+  /**
+   * Заявления, у которых членский взнос ждёт пополнения общего кошелька
+   * участка (задача 99D-15) — кандидаты крона на повтор `payretfee`.
+   */
+  listFeeRefundPending(coopname: string, limit?: number): Promise<MarketplaceReturnClaimDomainEntity[]>;
 
   /** Заявления в заданных статусах по кооперативу (для сторожа ожидания совета). */
   listByStatus(

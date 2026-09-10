@@ -10,11 +10,11 @@
  *   2) совет авторизует проект (onmktwoauth) — это ещё НЕ выбытие: совет лишь
  *      признаёт списание допустимым;
  *   3) председатель кооперативного участка подписывает Служебную записку —
- *      только тогда идёт проводка o.mkt.wroff (Дт 86 / Кт 10), и только по
+ *      только тогда идёт проводка o.mkt.wroff (Дт 91 / Кт 10), и только по
  *      позициям СВОЕГО участка.
  *
  * Проверяется именно третий шаг: что до записки денег не двигают, что проводка
- * ложится Дт 86 / Кт 10 на сумму позиции, идёт ниткой списания по хэшу проекта
+ * ложится Дт 91 / Кт 10 на сумму позиции, идёт ниткой списания по хэшу проекта
  * и разрезом — по участку, а не по пайщику.
  *
  * Тест берёт МАЛУЮ часть доступного кандидата (одну единицу), чтобы не съедать
@@ -149,7 +149,7 @@ describe('Стол заказов — денежное место списани
       'решение совета — разрешение, а не выбытие: проводки на этом шаге быть не должно').toBe(0)
   }, 300_000)
 
-  it('Служебная записка председателя участка списывает имущество: o.mkt.wroff, Дт 86 / Кт 10', async () => {
+  it('Служебная записка председателя участка списывает имущество: o.mkt.wroff, Дт 91 / Кт 10', async () => {
     const pl: any = await gqlAs(chairkrgToken, `query($d:MarketplaceWriteoffServiceMemoSignablePayloadInput!){
       marketplaceWriteoffServiceMemoSignablePayload(data:$d){ full_title html hash meta binary }
     }`, { d: { braname: BRANAME, proposal_id: proposalId } })
@@ -167,11 +167,13 @@ describe('Стол заказов — денежное место списани
       'разрез списания — кооперативный участок, чей это склад, а не пайщик').toBe(BRANAME)
 
     const rows = await historyOfProcess(chairmanToken, proposalHash)
-    const debited = rows.filter(r => r.action === 'debit' && r.accountId === ACC.TARGET
+    // Порча запаса — прочий расход, как уценка (решение владельца 10.09.2026):
+    // счёт 86 списание не трогает, иначе его сальдо расходилось бы с кошельками.
+    const debited = rows.filter(r => r.action === 'debit' && r.accountId === ACC.OTHER
       && Math.abs(amount(r.quantity) - writeoffAmount) < 0.005)
     const credited = rows.filter(r => r.action === 'credit' && r.accountId === ACC.MATERIALS
       && Math.abs(amount(r.quantity) - writeoffAmount) < 0.005)
-    expect(debited.length, 'списание обязано лечь Дт 86 — закрывается целевое финансирование').toBeGreaterThan(0)
+    expect(debited.length, 'списание обязано лечь Дт 91 — порча запаса уходит в прочие расходы').toBeGreaterThan(0)
     expect(credited.length, 'списание обязано лечь Кт 10 — имущество выбывает со склада').toBeGreaterThan(0)
 
     // Кошельки при утилизации не двигаются: выбывает имущество, а не деньги.

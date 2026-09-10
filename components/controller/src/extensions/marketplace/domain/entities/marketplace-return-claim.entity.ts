@@ -46,6 +46,8 @@ export class MarketplaceReturnClaimDomainEntity {
   public decision_log: MarketplaceReturnClaimDecisionLogEntry[];
   public on_site_inspection: MarketplaceReturnClaimOnSiteInspection | null;
   public ledger_snapshot: MarketplaceReturnClaimLedgerSnapshot | null;
+  /** Членский взнос ждёт пополнения общего кошелька участка (задача 99D-15); null — не ждёт. */
+  public fee_refund_pending_at: Date | null;
   public readonly created_at: Date;
   public updated_at: Date;
 
@@ -79,6 +81,7 @@ export class MarketplaceReturnClaimDomainEntity {
     this.decision_log = props.decision_log;
     this.on_site_inspection = props.on_site_inspection;
     this.ledger_snapshot = props.ledger_snapshot;
+    this.fee_refund_pending_at = props.fee_refund_pending_at;
     this.created_at = props.created_at;
     this.updated_at = props.updated_at;
   }

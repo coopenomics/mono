@@ -35,7 +35,9 @@
 #include "src/p.mkt.return/rejretrem.cpp"
 #include "src/p.mkt.return/accretrn.cpp"
 #include "src/p.mkt.return/rejretrn.cpp"
+#include "src/p.mkt.return/return_fee_helpers.hpp"
 #include "src/p.mkt.return/onmktrtauth.cpp"
+#include "src/p.mkt.return/payretfee.cpp"
 #include "src/p.mkt.return/onmktrtdecl.cpp"
 
 // ── p.mkt.claim (1 action) ── гарантийная претензия поставщику (99D-13) ──

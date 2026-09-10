@@ -1546,6 +1546,27 @@ operations:
       — выход пайщика из кооператива: при подтверждении выхода остаток
       собирается на главном паевом кошельке для возврата.
 
+
+  - ledger_code: o.mkt.exfee
+    human_name: Остаток членского кошелька Стола заказов в пул взносов при выходе из кооператива
+    wallet_op: TRANSFER
+    # L1 — без проводки: оба кошелька на счёте 86
+    debit: null
+    credit: null
+    wallet_from: w.mkt.member      # Членский кошелёк пайщика в Столе заказов
+    wallet_to: w.mkt.fee           # Пул членских взносов «Стола заказов»
+    user_wallet: w.mkt.member
+    user_ref: username
+    available_delta: -quantity
+    blocked_delta: null
+    amount_ref: quantity
+    triggered_by: registrator::confirmexit
+    description: >
+      Членский взнос при выходе из кооператива не возвращается и обратно в
+      паевой не превращается: остаток членского кошелька программы уходит в
+      пул взносов Стола заказов (решение владельца 10.09.2026). Выход при
+      незавершённых заказах Стола заказов невозможен — резерв под них
+      возвращается только выдачей или отменой заказа.
   - ledger_code: o.mkt.loss
     human_name: Уценка при выдаче
     wallet_op: NONE

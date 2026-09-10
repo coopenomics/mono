@@ -150,6 +150,9 @@ export * as OnMktRtDecl from './onMktRtDecl'
 /** Оператор выдал имущество обратно (после отказа совета или по истечении срока ожидания). */
 export * as HandBack from './handBack'
 
+/** Довнесение членского взноса по возврату, ждавшему пополнения общего кошелька участка (feepend → ∅). */
+export * as PayRetFee from './payRetFee'
+
 // p.mkt.claim — гарантийная претензия поставщику (99D-13): признание; несогласие в цепь не пишется
 export * as AdmitClaim from './admitClaim'
 

@@ -64,6 +64,7 @@ const EXPECTED_MARKETPLACE_OP_CODES = [
   'o.mkt.fee',
   'o.mkt.refund',
   'o.mkt.recall',
+  'o.mkt.exfee',
   // p.mkt.return (1)
   'o.mkt.return',
   // p.mkt.wroff (1)
@@ -75,8 +76,8 @@ const EXPECTED_MARKETPLACE_OP_CODES = [
 ] as const
 
 describe('Story 11.2 — coverage marketplace operation_code в cooptypes', () => {
-  it('canonical список содержит 17 кодов', () => {
-    expect(EXPECTED_MARKETPLACE_OP_CODES).toHaveLength(17)
+  it('canonical список содержит 18 кодов', () => {
+    expect(EXPECTED_MARKETPLACE_OP_CODES).toHaveLength(18)
   })
 
   it('каждый код присутствует в LEDGER2_OPERATION_REGISTRY', () => {
@@ -153,8 +154,9 @@ describe('Story 11.2 — wallet_op + Дт/Кт реестра соответст
     { code: 'o.mkt.fee', walletOp: 'TRANSFER', walletFrom: 'w.mkt.member', walletTo: 'w.mkt.fee', debit: null, credit: null },
     { code: 'o.mkt.refund', walletOp: 'TRANSFER', walletFrom: 'w.mkt.fee', walletTo: 'w.mkt.member', debit: null, credit: null },
     { code: 'o.mkt.recall', walletOp: 'TRANSFER', walletFrom: 'w.mkt.share', walletTo: 'w.wal.share', debit: null, credit: null },
+    { code: 'o.mkt.exfee', walletOp: 'TRANSFER', walletFrom: 'w.mkt.member', walletTo: 'w.mkt.fee', debit: null, credit: null },
     { code: 'o.mkt.return', walletOp: 'ISSUE', walletFrom: null, walletTo: 'w.mkt.share', debit: 10, credit: 80 },
-    { code: 'o.mkt.wroff', walletOp: 'NONE', walletFrom: null, walletTo: null, debit: 86, credit: 10 },
+    { code: 'o.mkt.wroff', walletOp: 'NONE', walletFrom: null, walletTo: null, debit: 91, credit: 10 },
     { code: 'o.mkt.claim', walletOp: 'ISSUE', walletFrom: null, walletTo: 'w.mkt.claim', debit: null, credit: null },
     { code: 'o.mkt.admit', walletOp: 'TRANSFER', walletFrom: 'w.mkt.claim', walletTo: 'w.mkt.debt', debit: 76, credit: 91 },
     { code: 'o.mkt.deduct', walletOp: 'BURN', walletFrom: 'w.mkt.debt', walletTo: null, debit: null, credit: null },

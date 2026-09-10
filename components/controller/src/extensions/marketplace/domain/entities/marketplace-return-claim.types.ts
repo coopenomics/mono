@@ -118,7 +118,11 @@ export type MarketplaceReturnClaimDecision =
   | 'reject_at_visit'
   | 'council_authorized'
   | 'council_declined'
-  | 'hand_back';
+  | 'hand_back'
+  /** Совет «за», но взнос ждёт пополнения общего кошелька участка (задача 99D-15). */
+  | 'fee_pending'
+  /** Взнос довнесён после пополнения кошелька участка. */
+  | 'fee_settled';
 
 /**
  * Запись о решении — append-only, журналирует «кто, когда, каким действием,
@@ -223,6 +227,8 @@ export interface MarketplaceReturnClaimProps {
   on_site_inspection: MarketplaceReturnClaimOnSiteInspection | null;
   /** Снапшот отката движений (только при status = ACCEPTED_BY_COUNCIL). */
   ledger_snapshot: MarketplaceReturnClaimLedgerSnapshot | null;
+  /** Членский взнос ждёт пополнения общего кошелька участка (задача 99D-15); null — не ждёт. */
+  fee_refund_pending_at: Date | null;
   created_at: Date;
   updated_at: Date;
 }

@@ -76,6 +76,33 @@ inline void consolidate_share_to_main(name coopname, name username, name wallet_
 }
 
 /**
+ * @brief Выход запрещён, пока у пайщика есть паевой резерв под заказы Стола
+ * заказов (w.mkt.order): он вернётся только выдачей или отменой заказа, а
+ * автоматическая отмена при выходе тихо удержала бы половину после акцепта
+ * поставщиком (решение владельца 10.09.2026, задача 99D-15).
+ */
+inline void check_no_marketplace_reserve(name coopname, name username) {
+  const asset reserve = get_user_wallet_available(coopname, ledger2_wallets::MARKETPLACE_ORDER_LOCK, username);
+  eosio::check(reserve.amount == 0,
+    std::string{"Выход из кооператива невозможен: под заказы Стола заказов зарезервировано "} +
+      reserve.to_string() + " — завершите или отмените заказы");
+}
+
+/**
+ * @brief Остаток членского кошелька программы Стола заказов (w.mkt.member)
+ * при выходе уходит в пул взносов программы (o.mkt.exfee): членский взнос не
+ * возвращается и в паевой не транслируется. Нулевой остаток — операции нет.
+ */
+inline void forfeit_marketplace_member_fund(name coopname, name username, checksum256 exit_hash) {
+  const asset balance = get_user_wallet_available(coopname, ledger2_wallets::MARKETPLACE_MEMBER_FUND, username);
+  if (balance.amount <= 0) return;
+  std::string memo = "Остаток членского кошелька Стола заказов в пул взносов при выходе, username=" +
+                     username.to_string();
+  Ledger2::apply(_registrator, coopname, operations::marketplace::EXIT_FEE_TO_POOL,
+                 processes::wallet::WITHDRAW, balance, username, exit_hash, memo);
+}
+
+/**
  * @brief Финализация выхода: удаление пайщика из реестра совета и блокировка
  * аккаунта в registrator.
  *

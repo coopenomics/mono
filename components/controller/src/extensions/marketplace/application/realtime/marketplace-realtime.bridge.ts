@@ -92,6 +92,10 @@ const RETURN_DECISION_TO_STATUS: Record<
   council_authorized: MarketplaceReturnClaimStatusEnum.ACCEPTED_BY_COUNCIL,
   council_declined: MarketplaceReturnClaimStatusEnum.DECLINED_BY_COUNCIL,
   hand_back: MarketplaceReturnClaimStatusEnum.HANDED_BACK,
+  // Взнос ждёт пополнения кошелька участка / довнесён (задача 99D-15): статус
+  // заявления не меняется — совет уже отменил сделку.
+  fee_pending: MarketplaceReturnClaimStatusEnum.ACCEPTED_BY_COUNCIL,
+  fee_settled: MarketplaceReturnClaimStatusEnum.ACCEPTED_BY_COUNCIL,
 };
 
 /**

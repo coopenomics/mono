@@ -16,19 +16,60 @@ function buildService() {
     findByOrderHash: jest.fn(async () => null),
   };
   const paymentRepo = { listAll: jest.fn(async () => []) };
-  const chainPort = { markdown: jest.fn(async () => ({})) };
+  const chainPort = { markdown: jest.fn(async () => ({})), payRetFee: jest.fn(async () => ({})) };
   const receptionService = { redeliverPayout: jest.fn(async () => undefined) };
+  const claimRepo = { listFeeRefundPending: jest.fn(async () => []) };
+  const returnService = { onFeeRefundSettled: jest.fn(async () => undefined) };
   const logger = { setContext: jest.fn(), info: jest.fn(), warn: jest.fn(), debug: jest.fn(), error: jest.fn() };
   const service = new MarketplaceChainRetryCronService(
     orderRepo as never,
     paymentRepo as never,
     chainPort as never,
     receptionService as never,
+    claimRepo as never,
+    returnService as never,
     { symbol: 'RUB', decimals: 4 } as never,
     logger as never
   );
-  return { service, orderRepo, paymentRepo, chainPort, receptionService, logger };
+  return { service, orderRepo, paymentRepo, chainPort, receptionService, claimRepo, returnService, logger };
 }
+
+describe('Повтор взноса по гарантийному возврату, ждавшего пополнения кошелька участка', () => {
+  const claim = { request_hash: 'r1', fee_refund: '45.0000' };
+
+  it('заявление с ожидающим взносом получает повторный payretfee', async () => {
+    const { service, claimRepo, chainPort } = buildService();
+    claimRepo.listFeeRefundPending.mockResolvedValue([claim] as never);
+
+    const res = await service.retryReturnFees(COOP);
+
+    expect(res).toEqual({ sent: 1, failed: 0 });
+    expect(chainPort.payRetFee).toHaveBeenCalledWith({ coopname: COOP, request_hash: 'r1' });
+  });
+
+  it('кошелёк участка всё ещё пуст — заявление ждёт следующего прогона, отказ виден в журнале', async () => {
+    const { service, claimRepo, chainPort, returnService, logger } = buildService();
+    claimRepo.listFeeRefundPending.mockResolvedValue([claim] as never);
+    chainPort.payRetFee.mockRejectedValueOnce(new Error('Недостаточно средств в общем кошельке кооперативного участка'));
+
+    const res = await service.retryReturnFees(COOP);
+
+    expect(res).toEqual({ sent: 0, failed: 1 });
+    expect(returnService.onFeeRefundSettled).not.toHaveBeenCalled();
+    expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('Недостаточно средств'));
+  });
+
+  it('заявка на цепи уже закрыта — ожидание снимается без повтора', async () => {
+    const { service, claimRepo, chainPort, returnService } = buildService();
+    claimRepo.listFeeRefundPending.mockResolvedValue([claim] as never);
+    chainPort.payRetFee.mockRejectedValueOnce(new Error('Заявление на возврат не ожидает довнесения членского взноса'));
+
+    const res = await service.retryReturnFees(COOP);
+
+    expect(res).toEqual({ sent: 0, failed: 0 });
+    expect(returnService.onFeeRefundSettled).toHaveBeenCalledWith(expect.objectContaining({ request_hash: 'r1' }));
+  });
+});
 
 describe('Повтор уценки, не дошедшей до цепи', () => {
   it('заказ с рассчитанной уценкой без зеркала на цепи получает повторный markdown на ту же сумму', async () => {

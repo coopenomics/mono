@@ -14,7 +14,12 @@
  *    o.mkt.consum, исходные записи журнала не меняются;
  *  - членский взнос участка за возвращённое: branch::retfee (общий кошелёк
  *    участка → пул взносов) и o.mkt.refund (пул → членский кошелёк программы
- *    w.mkt.member, без проводки — членский остаётся членским).
+ *    w.mkt.member, без проводки — членский остаётся членским). Взнос ушёл
+ *    участку на выдаче, и к моменту возврата участок мог его распределить:
+ *    тогда решение совета не падает — имущество и паевой возвращаются здесь,
+ *    заявка остаётся в статусе `feepend`, а взнос доводит `payretfee`, когда
+ *    председатель пополнит общий кошелёк участка (задача 99D-15, решение
+ *    владельца 10.09.2026).
  *  - `newresolved` для рекламации пайщика (1106) в пакет документов заказа;
  *    заявление оператора и протокол публикует контракт soviet пакетом
  *    повестки; запись заявки стирается.
@@ -47,17 +52,11 @@ void marketplace::onmktrtauth(eosio::name coopname,
                  r.fact_cost, r.orderer, r.hash,
                  Marketplace::Memo::get_return_by_member_memo(r.id, r.original_order_id));
 
+  // Взнос возвращается сразу, только если участок ещё держит его в общем
+  // кошельке; иначе заявка ждёт пополнения (feepend), см. payretfee.
   const eosio::asset fee_refund = r.fee_refund;
-  if (fee_refund.amount > 0) {
-    Branch::retfee(_marketplace, coopname, braname, fee_refund,
-                   processes::marketplace::RETURN, r.hash,
-                   Marketplace::Memo::get_return_fee_from_common_memo(r.id, r.original_order_id));
-    Ledger2::apply(_marketplace, coopname,
-                   operations::marketplace::MEMBERSHIP_FEE_REFUND,
-                   processes::marketplace::RETURN,
-                   fee_refund, r.orderer, r.hash,
-                   Marketplace::Memo::get_return_fee_to_member_memo(r.id, r.original_order_id));
-  }
+  const bool fee_paid_now = fee_refund.amount == 0 ||
+                            Marketplace::refund_return_fee_if_available(coopname, braname, r);
 
   Action::send<newresolved_interface>(_soviet, "newresolved"_n, _marketplace,
                                       coopname, r.orderer, "onmktrtauth"_n,
@@ -100,5 +99,11 @@ void marketplace::onmktrtauth(eosio::name coopname,
                    Marketplace::Memo::get_claim_supplier_memo(claim_id, r.original_order_id));
   }
 
-  Marketplace::erase_return_request(coopname, r.id);
+  if (fee_paid_now) {
+    Marketplace::erase_return_request(coopname, r.id);
+    return;
+  }
+  Marketplace::update_return_request(coopname, r.id, [&](auto& upd) {
+    upd.status = ReturnStatus::FEE_PENDING;
+  });
 }

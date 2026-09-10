@@ -81,12 +81,14 @@ const RETURN_CLAIM_DECISION_LABELS: Record<string, string> = {
   council_authorized: 'Совет отменил сделку — взносы восстановлены',
   council_declined: 'Совет отказал',
   hand_back: 'Имущество выдано обратно',
+  fee_pending: 'Имущество и паевой взнос возвращены — членский взнос ждёт пополнения кошелька участка',
+  fee_settled: 'Членский взнос возвращён',
 };
 
 /** Решения, которые читаются как отказ (для цвета в хронологии). */
 export const RETURN_CLAIM_NEGATIVE_DECISIONS = new Set(['reject_remote', 'reject_at_visit', 'council_declined']);
 /** Решения, которые читаются как успех. */
-export const RETURN_CLAIM_POSITIVE_DECISIONS = new Set(['council_authorized']);
+export const RETURN_CLAIM_POSITIVE_DECISIONS = new Set(['council_authorized', 'fee_settled']);
 
 export function returnClaimDecisionLabel(decision: string): string {
   return RETURN_CLAIM_DECISION_LABELS[decision] ?? decision;

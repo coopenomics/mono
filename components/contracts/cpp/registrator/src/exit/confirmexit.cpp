@@ -35,6 +35,10 @@ void registrator::confirmexit(eosio::name coopname, checksum256 exit_hash, docum
   // backend-preview, поэтому расчёт на фронте совпадает с этим): аккумулируем
   // доступный баланс каждого (>0) и тут же консолидируем его на главный паевой
   // (w.wal.share), чтобы единым платежом вернуть весь паевой через o.wal.*.
+  // Заказ мог быть оформлен после подачи заявления — резерв под него не
+  // консолидируется и не пропадает: выход ждёт завершения заказов.
+  Registrator::check_no_marketplace_reserve(coopname, username);
+
   eosio::asset total_return = eosio::asset(0, _root_govern_symbol);
   for (const auto &wallet_name : LEDGER2_EXIT_REFUND_WALLETS) {
     eosio::asset balance = Registrator::get_user_wallet_available(coopname, wallet_name, username);
@@ -42,6 +46,10 @@ void registrator::confirmexit(eosio::name coopname, checksum256 exit_hash, docum
     total_return += balance;
     Registrator::consolidate_share_to_main(coopname, username, wallet_name, balance, exit_hash);
   }
+
+  // Членский кошелёк программы Стола заказов не возвращается: остаток уходит
+  // в пул взносов программы (решение владельца 10.09.2026, задача 99D-15).
+  Registrator::forfeit_marketplace_member_fund(coopname, username, exit_hash);
 
   exits.modify(e, _soviet, [&](auto &row) {
     row.status = "authorized"_n;

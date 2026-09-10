@@ -30,6 +30,7 @@ namespace ReturnStatus {
   inline constexpr eosio::name APPROVED_FOR_VISIT   = "approvvisit"_n;
   inline constexpr eosio::name RETURN_PENDING       = "retpend"_n;     ///< имущество принято оператором, ждём решение совета
   inline constexpr eosio::name RETURN_DECLINED      = "retdecl"_n;     ///< совет отказал, имущество ждёт заказчика на участке
+  inline constexpr eosio::name FEE_PENDING          = "feepend"_n;     ///< совет «за», имущество и паевой возвращены; взнос ждёт пополнения общего кошелька участка (payretfee)
 }
 
 /**

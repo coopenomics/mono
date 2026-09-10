@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { BranchContract, Ledger2Contract, MarketContract, SovietContract } from 'cooptypes';
+import { BranchContract, Ledger2Contract, MarketContract, SovietContract, type Interfaces } from 'cooptypes';
 import httpStatus from 'http-status';
 import type { MarketplaceCanonicalBlockchainPort } from '../../domain/ports/marketplace-canonical-blockchain.port';
 import { HttpApiError } from '@coopenomics/extension-kit';
@@ -455,6 +455,22 @@ export class MarketplaceCanonicalBlockchainAdapter implements MarketplaceCanonic
 
   async handBack(data: MarketContract.Actions.HandBack.IHandBack): Promise<InnerTransactResult> {
     return this.submitAsCoop(data.coopname, MarketContract.contractName.production, MarketContract.Actions.HandBack.actionName, data, 'handback');
+  }
+
+  async payRetFee(data: MarketContract.Actions.PayRetFee.IPayRetFee): Promise<InnerTransactResult> {
+    return this.submitAsCoop(data.coopname, MarketContract.contractName.production, MarketContract.Actions.PayRetFee.actionName, data, 'payretfee');
+  }
+
+  async findReturnRequestByHash(coopname: string, request_hash: string): Promise<Interfaces.Marketplace.IReturnRequest | null> {
+    // Заявлений на возврат у кооператива немного и живут они до закрытия —
+    // полный скан области допустим; при росте перевести на индекс byhash.
+    const rows: Interfaces.Marketplace.IReturnRequest[] = await this.blockchainService.getAllRows(
+      MarketContract.contractName.production,
+      coopname,
+      MarketContract.Tables.RetRequests.tableName
+    );
+    const wanted = request_hash.toLowerCase();
+    return rows.find((r) => String(r.hash).toLowerCase() === wanted) ?? null;
   }
 
   async admitClaim(data: MarketContract.Actions.AdmitClaim.IAdmitClaim): Promise<InnerTransactResult> {

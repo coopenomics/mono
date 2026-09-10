@@ -20,6 +20,11 @@ void registrator::exitcoop(eosio::name coopname, eosio::name username, checksum2
   // выйти может только действующий пайщик (не заблокированный)
   get_participant_or_fail(coopname, username);
 
+  // Паевой резерв под незавершённые заказы Стола заказов вернётся пайщику
+  // только выдачей или отменой — выход до их завершения запрещён (решение
+  // владельца 10.09.2026, задача 99D-15).
+  Registrator::check_no_marketplace_reserve(coopname, username);
+
   // повторная подача запрещена — у пайщика может быть только один процесс выхода
   Registrator::exits_index exits(_registrator, coopname.value);
   auto existing = exits.find(username.value);

@@ -305,6 +305,11 @@ export interface IHandBack {
   request_hash: IChecksum256
 }
 
+export interface IPayRetFee {
+  coopname: IName
+  request_hash: IChecksum256
+}
+
 // ── p.mkt.wroff: actions ─────────────────────────────────────────────────
 
 export interface IPropWroff {

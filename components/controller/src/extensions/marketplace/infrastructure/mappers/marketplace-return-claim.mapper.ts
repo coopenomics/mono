@@ -32,6 +32,7 @@ export class MarketplaceReturnClaimMapper {
       decision_log: row.decision_log,
       on_site_inspection: row.on_site_inspection,
       ledger_snapshot: row.ledger_snapshot,
+      fee_refund_pending_at: row.fee_refund_pending_at ?? null,
       created_at: row.created_at,
       updated_at: row.updated_at,
     });

@@ -495,6 +495,17 @@ public:
                                    eosio::name braname,
                                    checksum256 request_hash);
 
+  /**
+   * @brief Довнесение членского взноса по гарантийному возврату, ждавшему
+   * пополнения общего кошелька участка: `feepend → ∅` (задача 99D-15).
+   * o.brn.retfee (общий кошелёк участка → пул взносов) и o.mkt.refund (пул →
+   * членский кошелёк программы заказчика). Участок — из заказа. Зовёт бэкенд
+   * по расписанию, пока `branch::retfee` не пройдёт. Авторизация: кооператив.
+   * @ingroup public_marketplace_actions
+   */
+  [[eosio::action]] void payretfee(eosio::name coopname,
+                                    checksum256 request_hash);
+
   // ── p.mkt.wroff ──────────────────────────────────────────────────────
 
   /**
@@ -579,7 +590,7 @@ public:
    *
    * Эффект:
    *  - Ledger2::apply(o.mkt.wroff) по каждой неисполненной позиции с этим
-   *    `braname` (Дт 86 / Кт 10), как в `execwroff`.
+   *    `braname` (Дт 91 / Кт 10), как в `execwroff`.
    *  - Служебная записка `memo` публикуется в реестр документов
    *    (`make_complete_document`, package = proposal_hash).
    *  - Позиции КУ помечаются executed; когда исполнены все позиции проекта,

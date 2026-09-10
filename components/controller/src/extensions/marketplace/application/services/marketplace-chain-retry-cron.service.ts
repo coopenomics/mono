@@ -21,9 +21,20 @@ import {
 } from '../../domain/ports/marketplace-canonical-blockchain.port';
 import { MARKETPLACE_ASSET_CONFIG, type MarketplaceAssetConfig } from './marketplace-asset.config';
 import { MARKETPLACE_APL_RECEPTION_SERVICE, type MarketplaceAplReceptionService } from './marketplace-apl-reception.service';
+import {
+  MARKETPLACE_RETURN_CLAIM_REPOSITORY,
+  type MarketplaceReturnClaimDomainRepository,
+} from '../../domain/repositories/marketplace-return-claim.repository';
+import { MARKETPLACE_RETURN_CLAIM_SERVICE, type MarketplaceReturnClaimService } from './marketplace-return-claim.service';
 
 /** Сколько заказов с недоведённой уценкой берём за прогон — защита от лавины сабмитов. */
 const MARKDOWN_BATCH_LIMIT = 100;
+
+/** Сколько заявлений с ожидающим взносом берём за прогон. */
+const RETURN_FEE_BATCH_LIMIT = 50;
+
+/** Контракт отвечает так, когда заявка уже стёрта или взнос по ней уже доведён. */
+const RETURN_FEE_NOT_PENDING_RE = /не ожидает довнесения|не найдено по хэшу/;
 
 /**
  * Повтор денежных действий, которые бэкенд отправляет в цепь после
@@ -41,6 +52,11 @@ const MARKDOWN_BATCH_LIMIT = 100;
  *    инициирована (зеркало заказа не в pending/completed) либо нет платежа в
  *    общем реестре кооператива, довозятся недостающим шагом.
  *
+ *  - взнос по гарантийному возврату: заявления, у которых совет отменил
+ *    сделку, а общий кошелёк участка был распределён, получают повторный
+ *    `payretfee`; контракт отказывает, пока участок не пополнил кошелёк, и
+ *    снимает ожидание сам, когда взнос доведён (слушатель `payretfee`).
+ *
  * Выплата по заказу, у которого проекции нет вовсе (сбой до её создания),
  * крону не видна — такой случай виден инварианту I7 и разбирается вручную.
  */
@@ -55,6 +71,10 @@ export class MarketplaceChainRetryCronService {
     private readonly chainPort: MarketplaceCanonicalBlockchainPort,
     @Inject(MARKETPLACE_APL_RECEPTION_SERVICE)
     private readonly receptionService: MarketplaceAplReceptionService,
+    @Inject(MARKETPLACE_RETURN_CLAIM_REPOSITORY)
+    private readonly claimRepo: MarketplaceReturnClaimDomainRepository,
+    @Inject(MARKETPLACE_RETURN_CLAIM_SERVICE)
+    private readonly returnService: MarketplaceReturnClaimService,
     @Inject(MARKETPLACE_ASSET_CONFIG)
     private readonly assetConfig: MarketplaceAssetConfig,
     @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
@@ -68,6 +88,51 @@ export class MarketplaceChainRetryCronService {
     if (!coopname) return;
     await this.retryMarkdowns(coopname);
     await this.retryPayouts(coopname);
+    await this.retryReturnFees(coopname);
+  }
+
+  /**
+   * Взнос по гарантийному возврату ждёт пополнения общего кошелька участка:
+   * повторный `payretfee` проходит, как только средства появились. Отказ
+   * «не ожидает довнесения» значит, что заявка на цепи уже закрыта — ожидание
+   * в проекции снимается, чтобы не слать повтор по закрытой заявке.
+   */
+  async retryReturnFees(coopname: string): Promise<{ sent: number; failed: number }> {
+    let pending;
+    try {
+      pending = await this.claimRepo.listFeeRefundPending(coopname, RETURN_FEE_BATCH_LIMIT);
+    } catch (e) {
+      this.logger.warn(`[CHAIN_RETRY] выборка заявлений с ожидающим взносом упала: ${(e as Error).message}`);
+      return { sent: 0, failed: 0 };
+    }
+    let sent = 0;
+    let failed = 0;
+    for (const claim of pending) {
+      try {
+        await this.chainPort.payRetFee({
+          coopname,
+          request_hash: claim.request_hash as MarketContract.Actions.PayRetFee.IPayRetFee['request_hash'],
+        });
+        sent++;
+      } catch (e) {
+        const message = (e as Error).message ?? '';
+        if (RETURN_FEE_NOT_PENDING_RE.test(message)) {
+          await this.returnService.onFeeRefundSettled({
+            coopname,
+            request_hash: claim.request_hash,
+            tx_hash: '',
+            comment: 'По данным цепи взнос по заявлению уже доведён либо заявка закрыта.',
+          });
+          continue;
+        }
+        failed++;
+        this.logger.warn(`[CHAIN_RETRY] взнос ${claim.fee_refund} по возврату ${claim.request_hash} не доведён: ${message}`);
+      }
+    }
+    if (pending.length > 0) {
+      this.logger.info(`[CHAIN_RETRY] взносы по возвратам: отправлено ${sent}, ждут пополнения ${failed} из ${pending.length} (coopname=${coopname})`);
+    }
+    return { sent, failed };
   }
 
   async retryMarkdowns(coopname: string): Promise<{ sent: number; failed: number }> {

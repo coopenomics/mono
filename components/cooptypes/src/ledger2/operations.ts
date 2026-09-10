@@ -214,10 +214,12 @@ export const LEDGER2_OPERATION_REGISTRY: readonly OperationMeta[] = [
     debit: 10, credit: 80,
     human_name: 'Отмена сделки по гарантийному возврату — имущество на склад, паевой взнос восстановлен' },
 
-  // Проводка списания после перехода закупки на 60 — вопрос бухгалтеру.
+  // Порча запаса выбывает в прочие расходы тем же путём, что уценка
+  // (решение владельца 10.09.2026): счёт 86 двигают только операции с
+  // кошельками, закрытие 91 — отдельное решение.
   { code: 'o.mkt.wroff',   process_type: 'p.mkt.wroff',   contract: 'marketplace',
     name: 'WRITE_OFF_PERISHABLE', wallet_op: 'NONE', wallet_from: null, wallet_to: null,
-    debit: 86, credit: 10,
+    debit: 91, credit: 10,
     human_name: 'Утилизация скоропорта' },
 
   // Уценка при выдаче из остатка кооператива: разница цены прибытия и факта
@@ -249,6 +251,14 @@ export const LEDGER2_OPERATION_REGISTRY: readonly OperationMeta[] = [
     name: 'RECALL_SHARE',   wallet_op: 'TRANSFER', wallet_from: 'w.mkt.share', wallet_to: 'w.wal.share',
     debit: null, credit: null,
     human_name: 'Консолидация свободного паевого «Стола заказов» при выходе из кооператива' },
+
+  // Остаток членского кошелька программы при выходе пайщика уходит в пул
+  // взносов: членский взнос не возвращается и в паевой не транслируется
+  // (решение владельца 10.09.2026); зовёт registrator при одобрении выхода.
+  { code: 'o.mkt.exfee',   process_type: 'p.mkt.supply',  contract: 'marketplace',
+    name: 'EXIT_FEE_TO_POOL', wallet_op: 'TRANSFER', wallet_from: 'w.mkt.member', wallet_to: 'w.mkt.fee',
+    debit: null, credit: null,
+    human_name: 'Остаток членского кошелька Стола заказов в пул взносов при выходе из кооператива' },
 
   // p.mkt.claim — гарантийная претензия поставщику (99D-13)
   { code: 'o.mkt.claim',   process_type: 'p.mkt.claim',   contract: 'marketplace',

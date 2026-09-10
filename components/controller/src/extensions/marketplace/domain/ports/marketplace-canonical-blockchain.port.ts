@@ -1,4 +1,4 @@
-import type { BranchContract, Ledger2Contract, MarketContract , SovietContract } from 'cooptypes';
+import type { BranchContract, Interfaces, Ledger2Contract, MarketContract, SovietContract } from 'cooptypes';
 import type { InnerTransactResult } from '@coopenomics/innercoop';
 
 /**
@@ -276,6 +276,19 @@ export interface MarketplaceCanonicalBlockchainPort {
   cancelIssue(data: MarketContract.Actions.CancelIssue.ICancelIssue): Promise<InnerTransactResult>;
   /** Оператор выдал имущество обратно после отказа совета или по истечении срока ожидания. */
   handBack(data: MarketContract.Actions.HandBack.IHandBack): Promise<InnerTransactResult>;
+
+  /**
+   * Довнесение членского взноса по возврату, ждавшему пополнения общего
+   * кошелька участка (`feepend → ∅`, задача 99D-15). Зовёт крон повтора.
+   */
+  payRetFee(data: MarketContract.Actions.PayRetFee.IPayRetFee): Promise<InnerTransactResult>;
+
+  /**
+   * Заявление на возврат на цепи по хэшу — null, если запись уже стёрта.
+   * Читается сразу после обратного вызова совета: по статусу `feepend` бэкенд
+   * узнаёт, что взнос ждёт пополнения кошелька участка.
+   */
+  findReturnRequestByHash(coopname: string, request_hash: string): Promise<Interfaces.Marketplace.IReturnRequest | null>;
 
   // ── p.mkt.claim — гарантийная претензия поставщику (99D-13) ──
   /** Поставщик признал претензию: o.mkt.admit, долг к удержанию из выплат. Несогласие в цепь не пишется. */
