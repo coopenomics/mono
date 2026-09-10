@@ -3,6 +3,10 @@
  * у стойки (`fixFact`), снапшот с признаком расхождения ложится на заказ при
  * закрывающей подписи. Количество и цена расходятся по отдельности и вместе;
  * денежный итог считается от фактического количества по фактической цене.
+ *
+ * Цену при выдаче можно только снизить (решение владельца 10.09.2026): потолок —
+ * цена прибытия из акта приёмки, без неё — цена заказа. Стоимость выше заказа
+ * возможна, только если на приёмке имущество взяли дороже цены заказа.
  */
 import { MarketplaceIssuanceSagaStages } from '~/extensions/marketplace/domain/entities/marketplace-issuance-saga.types';
 import { MarketplaceUnitsOfMeasure } from '~/extensions/marketplace/domain/entities/marketplace-offer.types';
@@ -12,9 +16,9 @@ import { COOP, buildMocks, buildOrder, buildSaga, buildService, signedDoc, stubS
  * `accepted` — сколько физически принято на склад по заказу. Недоприём
  * задаётся именно им: заказ остаётся на 10, а на складе, скажем, 9.
  */
-async function issueWith(accepted: number, actual_quantity: number, actual_unit_price: string, orderOverrides = {}) {
+async function issueWith(accepted: number, actual_quantity: number, actual_unit_price: string, orderOverrides = {}, arrivalPrice?: string) {
   const order = buildOrder(orderOverrides);
-  const m = buildMocks({ order, warehouse: accepted });
+  const m = buildMocks({ order, warehouse: accepted, arrivalPrice });
   const service = buildService(m);
   stubSignatureChecks(service);
   const { saga } = await service.fixFact({ coopname: COOP, operator_account: 'chairkrg', order_id: 'order-1', actual_quantity, actual_unit_price });
@@ -53,8 +57,13 @@ describe('Расхождения на выдаче: количество и це
     expect(fact.diff_state).toBe('less');
   });
 
-  it('цена повышена при том же количестве → стоимость больше заказа', async () => {
-    const fact = await issueWith(10, 10, '110.0000');
+  it('цена выше цены прибытия — отказ: поднять цену при выдаче нельзя', async () => {
+    await expect(issueWith(10, 10, '110.0000')).rejects.toThrow(/можно только снизить/);
+    await expect(issueWith(10, 10, '110.0000', {}, '105.0000')).rejects.toThrow(/не выше 105.0000/);
+  });
+
+  it('приняли дороже цены заказа и выдали по цене прибытия → стоимость больше заказа', async () => {
+    const fact = await issueWith(10, 10, '110.0000', {}, '110.0000');
     expect(fact.fact_cost).toBe('1100.0000');
     expect(fact.diff_state).toBe('more');
   });
@@ -72,8 +81,8 @@ describe('Расхождения на выдаче: количество и це
     expect(fact.fact_cost).toBe('810.0000');
   });
 
-  it('выдано меньше, но дороже — стоимость всё ещё ниже заказа', async () => {
-    const fact = await issueWith(10, 9, '105.0000');
+  it('выдано меньше, но дороже заказа (по цене прибытия) — стоимость всё ещё ниже заказа', async () => {
+    const fact = await issueWith(10, 9, '105.0000', {}, '105.0000');
     expect(fact.fact_cost).toBe('945.0000');
     expect(fact.diff_state).toBe('less');
   });
@@ -81,7 +90,8 @@ describe('Расхождения на выдаче: количество и це
   it('взаимная компенсация: 9 по 111,1111 ₽ — расхождение по количеству есть, по деньгам нет', async () => {
     // 9 × 111.1111 = 999.9999 → после округления к 4 знакам ниже заказа на копейку:
     // расхождение по деньгам считается точно, а не «на глаз».
-    const fact = await issueWith(10, 9, '111.1111');
+    // Цена прибытия 111,1111 ₽: на приёмке имущество взяли дороже цены заказа.
+    const fact = await issueWith(10, 9, '111.1111', {}, '111.1111');
     expect(fact.actual_quantity).toBe(9);
     expect(fact.fact_cost).toBe('999.9999');
     expect(fact.diff_state).toBe('less');
