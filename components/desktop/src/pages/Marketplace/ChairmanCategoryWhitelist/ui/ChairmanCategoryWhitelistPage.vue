@@ -31,7 +31,9 @@ import {
 
 const categories = ref<MarketplaceCoopCategoryView[]>([]);
 const available = ref<MarketplaceAvailableCategoryView[]>([]);
-const loading = ref(false);
+// true до первого запроса: иначе первый кадр до загрузки показывает пустое
+// состояние вместо скелетона, и первая загрузка неотличима от пустого списка.
+const loading = ref(true);
 /** Скелетон — только на первой загрузке; дочитка обновляет молча. */
 const firstLoad = useFirstLoad(loading);
 const savingId = ref<number | null>(null);

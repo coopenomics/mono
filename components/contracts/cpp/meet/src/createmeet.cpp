@@ -25,9 +25,9 @@ void meet::createmeet(name coopname, checksum256 hash, eosio::name initiator, na
   
   auto coop = get_cooperative_or_fail(coopname);
   
-  get_participant_or_fail(coopname, initiator);
-  get_participant_or_fail(coopname, presider);
-  get_participant_or_fail(coopname, secretary);
+  get_active_participant_or_fail(coopname, initiator);
+  get_active_participant_or_fail(coopname, presider);
+  get_active_participant_or_fail(coopname, secretary);
   
   auto now = current_time_point();
   

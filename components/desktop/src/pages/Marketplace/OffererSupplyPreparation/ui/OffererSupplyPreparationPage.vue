@@ -62,7 +62,9 @@ const shipments = ref<MarketplaceShipmentView[]>([]);
 const acceptedOrders = ref<MarketplaceOrderView[]>([]);
 // Заказы сформированных партий (статус SUPPLY_PREPARED) — источник состава ТТН.
 const preparedOrders = ref<MarketplaceOrderView[]>([]);
-const loading = ref(false);
+// true до первого запроса: иначе первый кадр до загрузки показывает пустое
+// состояние вместо скелетона, и первая загрузка неотличима от пустого списка.
+const loading = ref(true);
 /** Скелетон — только на первой загрузке; дочитка обновляет молча. */
 const firstLoad = useFirstLoad(loading);
 

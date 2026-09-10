@@ -190,15 +190,22 @@ export const LEDGER2_OPERATION_REGISTRY: readonly OperationMeta[] = [
 
   // Закупка через счёт расчётов с разными дебиторами и кредиторами (76;
   // решение владельца 08.09.2026 — счёт 60 из плана снят).
+  // Обязательство перед поставщиком зеркалится кошельком к оплате по поставщику
+  // (задача 99D-16): приёмка пополняет, выплата и зачёт удержанного долга гасят.
   { code: 'o.mkt.purch',   process_type: 'p.mkt.supply',  contract: 'marketplace',
-    name: 'PURCHASE_FROM_SUPPLIER', wallet_op: 'NONE', wallet_from: null, wallet_to: null,
+    name: 'PURCHASE_FROM_SUPPLIER', wallet_op: 'ISSUE', wallet_from: null, wallet_to: 'w.mkt.topay',
     debit: 10, credit: 76,
     human_name: 'Приёмка имущества кооперативом по АПП приёмки' },
 
   { code: 'o.mkt.payout',  process_type: 'p.mkt.supply',  contract: 'marketplace',
-    name: 'PAY_SUPPLIER',   wallet_op: 'ISSUE', wallet_from: null, wallet_to: 'w.mkt.payout',
+    name: 'PAY_SUPPLIER',   wallet_op: 'BURN', wallet_from: 'w.mkt.topay', wallet_to: null,
     debit: 76, credit: 51,
     human_name: 'Оплата поставщику с расчётного счёта по подтверждению кассира' },
+
+  { code: 'o.mkt.offset',  process_type: 'p.mkt.supply',  contract: 'marketplace',
+    name: 'OFFSET_PAYABLE', wallet_op: 'BURN', wallet_from: 'w.mkt.topay', wallet_to: null,
+    debit: null, credit: null,
+    human_name: 'Зачёт удержанного долга поставщика против суммы к оплате' },
 
   // Возврат паевого взноса имуществом по акту выдачи (закрывающая подпись
   // председателя участка, issueact2).
@@ -253,8 +260,10 @@ export const LEDGER2_OPERATION_REGISTRY: readonly OperationMeta[] = [
     human_name: 'Консолидация свободного паевого «Стола заказов» при выходе из кооператива' },
 
   // Остаток членского кошелька программы при выходе пайщика уходит в пул
-  // взносов: членский взнос не возвращается и в паевой не транслируется
-  // (решение владельца 10.09.2026); зовёт registrator при одобрении выхода.
+  // взносов и той же транзакцией — в общий кошелёк участка пайщика (без
+  // участка остаётся в пулe): членский взнос не возвращается и в паевой не
+  // транслируется (решения владельца 10.09.2026); зовёт registrator, когда
+  // выход состоялся (подтверждение выплаты либо одобрение без выплаты).
   { code: 'o.mkt.exfee',   process_type: 'p.mkt.supply',  contract: 'marketplace',
     name: 'EXIT_FEE_TO_POOL', wallet_op: 'TRANSFER', wallet_from: 'w.mkt.member', wallet_to: 'w.mkt.fee',
     debit: null, credit: null,
@@ -358,6 +367,8 @@ export const LEDGER2_OPERATION_REGISTRY: readonly OperationMeta[] = [
   { code: 'o.mig.share', process_type: 'p.mig.trans', contract: 'migration', name: 'SHARE', wallet_op: 'ISSUE', wallet_from: null, wallet_to: 'w.wal.share', debit: 51, credit: 80, human_name: 'Транзит: остаток паевых взносов деньгами' },
 
   { code: 'o.mig.entry', process_type: 'p.mig.trans', contract: 'migration', name: 'ENTRY', wallet_op: 'ISSUE', wallet_from: null, wallet_to: 'w.reg.entry', debit: 51, credit: 86, human_name: 'Транзит: вступительные взносы' },
+
+  { code: 'o.mig.topay', process_type: 'p.mig.trans', contract: 'migration', name: 'SUPPLIER_PAYABLE', wallet_op: 'ISSUE', wallet_from: null, wallet_to: 'w.mkt.topay', debit: null, credit: null, human_name: 'Перенос открытых обязательств перед поставщиками на кошелёк к оплате' },
 
   // adjustment (ручные корректировки председателя — динамические параметры,
   // не идут через ledger2::apply; см. operations.hpp `OPERATION_ADJUSTMENT_REGISTRY`).

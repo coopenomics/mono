@@ -94,8 +94,9 @@ struct [[eosio::table, eosio::contract(MARKETPLACE)]] return_request {
 
   eosio::name status = ReturnStatus::PENDING_REVIEW;
   document2 statement;                                        ///< рекламация пайщика — Заявление о гарантийном возврате имущества (1106), его подпись
-  /// Момент приёма имущества оператором (accretrn); от него считается срок
-  /// ожидания решения совета для handback. binary_extension: у заявок, созданных
+  /// Момент приёма имущества оператором (accretrn). Выдача обратно до решения
+  /// совета не допускается, поэтому срока ожидания от него больше не считается
+  /// (задача 99D-16). binary_extension: у заявок, созданных
   /// до паевой модели, значения нет — читать через value_or(time_point_sec(0)).
   eosio::binary_extension<time_point_sec> accepted_at;
   /// Заявление оператора участка в совет об отмене сделки (1116) с подписью

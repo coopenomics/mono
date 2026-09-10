@@ -190,6 +190,13 @@ export interface MarketplaceOrderDomainRepository
    */
   listMarkdownPending(coopname: string, limit: number): Promise<MarketplaceOrderDomainEntity[]>;
 
+  /**
+   * Заказы, принятые поставщиком не позже `accepted_before` и так и не
+   * привезённые (статус ACCEPTED, запись на цепи жива), — кандидаты на
+   * закрытие по сроку непоставки (задача 99D-16).
+   */
+  listUndelivered(coopname: string, accepted_before: Date, limit: number): Promise<MarketplaceOrderDomainEntity[]>;
+
   // ── Story 6.1 / 6.3: выдача пайщику на КУ ─────────────────────────
 
   /**

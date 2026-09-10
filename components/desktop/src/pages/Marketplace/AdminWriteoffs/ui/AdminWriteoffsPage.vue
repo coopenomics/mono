@@ -41,7 +41,9 @@ import WriteoffProposalDetailsDialog from './WriteoffProposalDetailsDialog.vue';
 const draft = ref<MarketplaceWriteoffProposalView | null>(null);
 const inCouncil = ref<MarketplaceWriteoffProposalView[]>([]);
 const archive = ref<MarketplaceWriteoffProposalView[]>([]);
-const loading = ref(false);
+// true до первого запроса: иначе первый кадр до загрузки показывает пустое
+// состояние вместо скелетона, и первая загрузка неотличима от пустого списка.
+const loading = ref(true);
 /** Скелетон — только на первой загрузке; дочитка обновляет молча. */
 const firstLoad = useFirstLoad(loading);
 

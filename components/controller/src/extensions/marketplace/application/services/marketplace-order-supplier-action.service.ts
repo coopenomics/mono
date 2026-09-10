@@ -32,6 +32,10 @@ import {
   type MarketplaceOrderDeclinedBySupplierEvent,
 } from '../events/marketplace-notification.events';
 
+/** Причина отмены заказа, который поставщик принял и не привёз в срок. */
+export const MARKETPLACE_UNDELIVERED_ORDER_REASON =
+  'Поставщик не привёз заказ в течение 48 часов после принятия — резерв и членский взнос возвращены полностью.';
+
 export interface MarketplaceSupplierAcceptBatchInput {
   coopname: string;
   offerer_account: string;
@@ -348,6 +352,53 @@ export class MarketplaceOrderSupplierActionService {
       rethrowChainError(error);
     }
 
+    const updated = await this.settleSupplierCancellation(order, reason);
+    this.logger.log(
+      `MarketplaceOrderSupplierActionService: Order ${order.id} (hash=${order.order_hash}) отклонён поставщиком ${offerer_account}; tx=${txHash!}; reason="${reason}"`
+    );
+    return { order: updated, tx_hash: txHash! };
+  }
+
+  /**
+   * Непоставка (задача 99D-16, срок утверждён владельцем): поставщик принял
+   * заказ и за 48 часов не привёз. Кооператив закрывает заказ по сроку
+   * (`expireorder`) — резерв и членский взнос возвращаются заказчику полностью,
+   * без удержания. Для заказчика это отказ поставщика: тот же статус и то же
+   * уведомление, причина — непоставка в срок.
+   */
+  async expireUndeliveredOrder(order: MarketplaceOrderDomainEntity): Promise<MarketplaceSupplierActionResult> {
+    let txHash: string;
+    try {
+      const tx = await this.chainPort.expireOrder({
+        coopname: order.coopname,
+        order_hash: order.order_hash,
+      });
+      txHash = normalizeChainTxHash(tx, 'Закрытие заказа по сроку поставки: цепь не вернула tx_hash.');
+    } catch (error: any) {
+      this.logger.error(
+        `MarketplaceOrderSupplierActionService: chain.expireOrder fail для Order ${order.id}: ${error.message}`,
+        error.stack
+      );
+      rethrowChainError(error);
+    }
+
+    const updated = await this.settleSupplierCancellation(order, MARKETPLACE_UNDELIVERED_ORDER_REASON);
+    this.logger.log(
+      `MarketplaceOrderSupplierActionService: Order ${order.id} (hash=${order.order_hash}) закрыт по сроку поставки; tx=${txHash!}`
+    );
+    await this.emitDeclinedNotifications([updated], MARKETPLACE_UNDELIVERED_ORDER_REASON);
+    return { order: updated, tx_hash: txHash! };
+  }
+
+  /**
+   * Общий хвост отмены заказа по вине поставщика после того, как цепь вернула
+   * резерв: заблокированное возвращается в предложение, заказ помечается
+   * отменённым поставщиком. Счётчик — best-effort, цепь уже приняла отмену.
+   */
+  private async settleSupplierCancellation(
+    order: MarketplaceOrderDomainEntity,
+    reason: string
+  ): Promise<MarketplaceOrderDomainEntity> {
     try {
       await this.offerCounters.onOrderUnblocked(order.offer_id, order.quantity, packageDeltaOfOrder(order));
     } catch (counterErr: any) {
@@ -355,16 +406,7 @@ export class MarketplaceOrderSupplierActionService {
         `MarketplaceOrderSupplierActionService: counter onOrderUnblocked упал (offer=${order.offer_id}, qty=${order.quantity}, order=${order.id}): ${counterErr.message} — продолжаю applyStatusTransition`
       );
     }
-
-    const updated = await this.orderRepo.applyStatusTransition(
-      order.id,
-      MarketplaceOrderStatuses.CANCELLED_BY_SUPPLIER,
-      reason
-    );
-    this.logger.log(
-      `MarketplaceOrderSupplierActionService: Order ${order.id} (hash=${order.order_hash}) отклонён поставщиком ${offerer_account}; tx=${txHash!}; reason="${reason}"`
-    );
-    return { order: updated, tx_hash: txHash! };
+    return this.orderRepo.applyStatusTransition(order.id, MarketplaceOrderStatuses.CANCELLED_BY_SUPPLIER, reason);
   }
 
   private async guardSupplierOrder(

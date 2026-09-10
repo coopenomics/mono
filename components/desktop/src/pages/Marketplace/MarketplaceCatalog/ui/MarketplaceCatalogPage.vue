@@ -59,7 +59,10 @@ const categories = ref<MarketplaceCategoryView[]>([]);
 const counts = ref<Map<number, number>>(new Map());
 const items = ref<MarketplaceOfferView[]>([]);
 const total = ref(0);
-const loading = ref(false);
+// true до первого запроса витрины: перед ним страница ждёт корзину и категории,
+// и с `false` в это время на экране стояло «Ничего не найдено», а скелетон
+// появлялся только потом — первая загрузка была неотличима от пустой витрины.
+const loading = ref(true);
 /** Пустое состояние и каркас — по первой загрузке; дочитка обновляет молча. */
 const firstLoad = useFirstLoad(loading);
 // Кол-во скелетон-карточек на первичной загрузке витрины.
@@ -287,7 +290,13 @@ onMounted(async () => {
   } catch {
     // Без корзины currentBraname=null → витрина покажется целиком.
   }
-  await loadCategories();
+  // Сбой категорий не должен оставить витрину в каркасе: загрузка страницы
+  // идёт в любом случае и завершает первую загрузку.
+  try {
+    await loadCategories();
+  } catch (e) {
+    FailAlert(e);
+  }
   await loadPage(false);
 });
 

@@ -154,6 +154,27 @@ inline void erase_order(eosio::name coopname, uint64_t order_id) {
 
 // ── Return requests ─────────────────────────────────────────────────────
 
+/// Номер новой заявки на возврат. Ноль не выдаётся: в заказе
+/// `return_request_id == 0` означает «возврата по заказу не было», а
+/// `available_primary_key` на пустой таблице (заявки стираются терминалами)
+/// возвращает ноль — тогда по такому заказу открывался бы второй возврат, а
+/// `closeorder` не видел бы открытой заявки (задача 99D-16).
+inline uint64_t next_return_request_id(eosio::name coopname) {
+  return_requests_index requests(_marketplace, coopname.value);
+  const uint64_t id = requests.available_primary_key();
+  return id == 0 ? 1 : id;
+}
+
+/// По заказу есть незакрытая заявка на возврат. Номера стёртых заявок
+/// выдаются заново, поэтому заявка с номером из заказа относится к нему,
+/// только если совпадает хэш заказа.
+inline bool has_open_return_request(eosio::name coopname, const order& o) {
+  if (o.return_request_id == 0) return false;
+  return_requests_index requests(_marketplace, coopname.value);
+  auto it = requests.find(o.return_request_id);
+  return it != requests.end() && it->original_order_hash == o.hash;
+}
+
 inline std::optional<return_request> get_return_request_by_hash(eosio::name coopname,
                                                                  const checksum256& request_hash) {
   return_requests_index requests(_marketplace, coopname.value);
@@ -412,12 +433,6 @@ inline void refund_order_full(eosio::name coopname, const order& o) {
 /// Доля удержания при отказе пайщика от получения после акцепта поставщиком.
 /// Hard-code (определяется Положением целевой потребительской программы).
 inline constexpr uint64_t REFUSAL_PENALTY_PERCENT = 50;
-
-/// Срок ожидания решения совета по принятому на участок имуществу при
-/// гарантийном возврате. Если совет не решил за это время, оператор вправе
-/// выдать имущество заказчику обратно (handback) — баланс не восстанавливается.
-/// TBD-Standardization: величину подтверждает методолог.
-inline constexpr uint32_t RETURN_DECISION_WAIT_SECS = 7 * 24 * 3600;
 
 /// Снятие документов начатой выдачи с заказа (отказ совета, отмена оператором):
 /// заявление, протокол и обе подписи акта очищаются, факт возвращается к заказу.

@@ -34,11 +34,8 @@ void marketplace::closeorder(eosio::name coopname,
                  "Гарантийный срок по заказу ещё не вышел — закрытие недоступно");
   }
 
-  if (o.return_request_id != 0) {
-    Marketplace::return_requests_index requests(_marketplace, coopname.value);
-    eosio::check(requests.find(o.return_request_id) == requests.end(),
-                 "По заказу открыт гарантийный возврат — дождитесь его завершения");
-  }
+  eosio::check(!Marketplace::has_open_return_request(coopname, o),
+               "По заказу открыт гарантийный возврат — дождитесь его завершения");
 
   if (o.offerer != coopname) {
     eosio::check(o.payout_status == OrderPayoutStatus::COMPLETED,

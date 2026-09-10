@@ -48,16 +48,8 @@ const isPendingReview = computed(() => status.value === Zeus.MarketplaceReturnCl
 const isApprovedForVisit = computed(() => status.value === Zeus.MarketplaceReturnClaimStatus.APPROVED_FOR_VISIT);
 const isPendingCouncil = computed(() => status.value === Zeus.MarketplaceReturnClaimStatus.PENDING_COUNCIL);
 const isDeclinedByCouncil = computed(() => status.value === Zeus.MarketplaceReturnClaimStatus.DECLINED_BY_COUNCIL);
-// Выдать обратно: после отказа совета — сразу; без решения — по истечении срока ожидания.
-const canHandBack = computed(() => {
-  const c = claim.value;
-  if (!c) return false;
-  if (isDeclinedByCouncil.value) return true;
-  if (isPendingCouncil.value && c.hand_back_available_at) {
-    return new Date(String(c.hand_back_available_at)).getTime() <= Date.now();
-  }
-  return false;
-});
+// Выдать обратно можно только после отказа совета: пока повестка открыта, имущество ждёт решения.
+const canHandBack = computed(() => Boolean(claim.value) && isDeclinedByCouncil.value);
 const handingBack = ref(false);
 async function handBack(): Promise<void> {
   const c = claim.value;

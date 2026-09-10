@@ -103,7 +103,9 @@ function goToRequisites(): void {
 
 // ── история выплат ──
 const items = ref<MarketplaceOutgoingPaymentRequestView[]>([]);
-const loading = ref(false);
+// true до первого запроса: иначе первый кадр до загрузки показывает пустое
+// состояние вместо скелетона, и первая загрузка неотличима от пустого списка.
+const loading = ref(true);
 /** Скелетон — только на первой загрузке; дочитка обновляет молча. */
 const firstLoad = useFirstLoad(loading);
 

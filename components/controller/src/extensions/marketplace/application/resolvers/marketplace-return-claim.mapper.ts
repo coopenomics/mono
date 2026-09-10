@@ -14,9 +14,6 @@ import type {
 } from '../dto/marketplace-return-claim.dto';
 import type { MarketplaceUnitOfMeasureEnum } from '../dto/marketplace-offer.dto';
 
-/** Срок ожидания решения совета (контракт: RETURN_DECISION_WAIT_SECS = 7 суток). */
-const RETURN_DECISION_WAIT_MS = 7 * 24 * 60 * 60 * 1000;
-
 /**
  * Преобразование domain → GraphQL DTO. Подписанные URL фотографий запрашиваются
  * у переданного `urlResolver` (имплементация знает про bucket file-storage —
@@ -78,7 +75,6 @@ export async function toMarketplaceReturnClaimDTO(
     council_decision_id: claim.council_decision_id,
     council_decision_mode: (claim.council_decision_mode as MarketplaceReturnClaimDecisionModeEnum | null) ?? null,
     accepted_at: claim.accepted_at,
-    hand_back_available_at: claim.accepted_at ? new Date(claim.accepted_at.getTime() + RETURN_DECISION_WAIT_MS) : null,
     created_at: claim.created_at,
     updated_at: claim.updated_at,
   };

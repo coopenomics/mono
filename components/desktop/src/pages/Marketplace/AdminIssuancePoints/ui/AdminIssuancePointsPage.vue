@@ -43,7 +43,9 @@ const kuStore = useMarketplaceKUDetailsStore()
 const coopname = computed(() => String(route.params.coopname ?? ''))
 const isChairman = computed(() => session.isChairman ?? false)
 
-const loading = ref(false)
+// true до первого запроса: иначе первый кадр до загрузки показывает пустое
+// состояние вместо скелетона, и первая загрузка неотличима от пустого списка.
+const loading = ref(true)
 /** Скелетон — только на первой загрузке; дочитка обновляет молча. */
 const firstLoad = useFirstLoad(loading)
 // Ручной перезапуск геокода — показываем лоадер на кнопке, пока мутация идёт.

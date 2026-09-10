@@ -33,7 +33,7 @@ void marketplace::convert(eosio::name coopname,
                "Отсутствует заявление о переводе паевого взноса в программу");
   verify_document_or_fail(convert_statement, { orderer });
 
-  get_participant_or_fail(coopname, orderer);
+  get_active_participant_or_fail(coopname, orderer);
 
   // Общая сумма перевода — сумма долей заказов; проверяется одним чтением
   // баланса, чтобы частичного списания не случилось при нехватке на последней.

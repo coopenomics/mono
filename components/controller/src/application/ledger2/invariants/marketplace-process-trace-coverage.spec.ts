@@ -69,15 +69,16 @@ const EXPECTED_MARKETPLACE_OP_CODES = [
   'o.mkt.return',
   // p.mkt.wroff (1)
   'o.mkt.wroff',
-  // p.mkt.claim (2) + удержание долга в нитке заказа (1)
+  // p.mkt.claim (2) + удержание долга и зачёт против суммы к оплате в нитке заказа (2)
   'o.mkt.claim',
   'o.mkt.admit',
   'o.mkt.deduct',
+  'o.mkt.offset',
 ] as const
 
 describe('Story 11.2 — coverage marketplace operation_code в cooptypes', () => {
-  it('canonical список содержит 18 кодов', () => {
-    expect(EXPECTED_MARKETPLACE_OP_CODES).toHaveLength(18)
+  it('canonical список содержит 19 кодов', () => {
+    expect(EXPECTED_MARKETPLACE_OP_CODES).toHaveLength(19)
   })
 
   it('каждый код присутствует в LEDGER2_OPERATION_REGISTRY', () => {
@@ -146,8 +147,8 @@ describe('Story 11.2 — wallet_op + Дт/Кт реестра соответст
     { code: 'o.mkt.lockp', walletOp: 'TRANSFER', walletFrom: 'w.mkt.share', walletTo: 'w.mkt.order', debit: null, credit: null },
     { code: 'o.mkt.unlock', walletOp: 'TRANSFER', walletFrom: 'w.mkt.order', walletTo: 'w.mkt.share', debit: null, credit: null },
     { code: 'o.mkt.penal', walletOp: 'TRANSFER', walletFrom: 'w.mkt.order', walletTo: 'w.mkt.fee', debit: 80, credit: 86 },
-    { code: 'o.mkt.purch', walletOp: 'NONE', walletFrom: null, walletTo: null, debit: 10, credit: 76 },
-    { code: 'o.mkt.payout', walletOp: 'ISSUE', walletFrom: null, walletTo: 'w.mkt.payout', debit: 76, credit: 51 },
+    { code: 'o.mkt.purch', walletOp: 'ISSUE', walletFrom: null, walletTo: 'w.mkt.topay', debit: 10, credit: 76 },
+    { code: 'o.mkt.payout', walletOp: 'BURN', walletFrom: 'w.mkt.topay', walletTo: null, debit: 76, credit: 51 },
     { code: 'o.mkt.consum', walletOp: 'BURN', walletFrom: 'w.mkt.order', walletTo: null, debit: 80, credit: 10 },
     { code: 'o.mkt.loss', walletOp: 'NONE', walletFrom: null, walletTo: null, debit: 91, credit: 10 },
     { code: 'o.mkt.conv', walletOp: 'TRANSFER', walletFrom: 'w.wal.share', walletTo: 'w.mkt.member', debit: 80, credit: 86 },
@@ -160,6 +161,7 @@ describe('Story 11.2 — wallet_op + Дт/Кт реестра соответст
     { code: 'o.mkt.claim', walletOp: 'ISSUE', walletFrom: null, walletTo: 'w.mkt.claim', debit: null, credit: null },
     { code: 'o.mkt.admit', walletOp: 'TRANSFER', walletFrom: 'w.mkt.claim', walletTo: 'w.mkt.debt', debit: 76, credit: 91 },
     { code: 'o.mkt.deduct', walletOp: 'BURN', walletFrom: 'w.mkt.debt', walletTo: null, debit: null, credit: null },
+    { code: 'o.mkt.offset', walletOp: 'BURN', walletFrom: 'w.mkt.topay', walletTo: null, debit: null, credit: null },
   ] as const
 
   it.each(EXPECTED_REGISTRY)(

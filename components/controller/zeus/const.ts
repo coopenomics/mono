@@ -6576,7 +6576,6 @@ export const ReturnTypes: Record<string,any> = {
 		expected_resolution:"MarketplaceReturnClaimExpectedResolution",
 		fact_cost:"String",
 		fee_refund:"String",
-		hand_back_available_at:"DateTime",
 		id:"String",
 		ledger_snapshot:"MarketplaceReturnClaimLedgerSnapshot",
 		on_site_inspection:"MarketplaceReturnClaimOnSiteInspection",

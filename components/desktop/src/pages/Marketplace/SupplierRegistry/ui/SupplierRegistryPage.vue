@@ -39,7 +39,9 @@ const isChairman = computed(() => session.isChairman);
 const { registerAction } = useHeaderActions();
 
 const items = ref<MarketplaceSupplierView[]>([]);
-const loading = ref(false);
+// true до первого запроса: иначе первый кадр до загрузки показывает пустое
+// состояние вместо скелетона, и первая загрузка неотличима от пустого списка.
+const loading = ref(true);
 /** Скелетон — только на первой загрузке; дочитка обновляет молча. */
 const firstLoad = useFirstLoad(loading);
 const acting = ref<string | null>(null);

@@ -10,11 +10,16 @@
  *
  * Per-Order: o.mkt.unlock на total_cost (TRANSFER w.mkt.order → w.mkt.share — возврат паевого резерва на свободный паевой «Стола заказов» заказчика) + статус active → cancelled.
  *
+ * Второй случай — непоставка (решение владельца 10.09.2026, задача 99D-16):
+ * поставщик принял заказ и за 48 часов от акцепта не привёз. Бэкенд по
+ * расписанию закрывает такой заказ тем же действием с полным возвратом без
+ * удержания — вина не пайщика. Срок контракт не проверяет: отметки времени
+ * акцепта в заказе нет, её держит бэкенд.
+ *
  * Guards:
- *  - Order существует и в статусе active (после акцепта поставщика
- *    expireorder не применим — поставщик уже взял обязательство; такие
- *    Order'ы должны идти через `issueact2` обычным порядком либо через
- *    отдельный механизм просрочки доставки).
+ *  - Order существует и в статусе active либо accepted. После подписи
+ *    поставщика на акте приёмки (supplyprep) закрытие по сроку не
+ *    применяется: имущество привезено, дальше ход за приёмкой.
  *  - require_auth(coopname) — backend от имени кооператива.
  *
  * @ingroup public_marketplace_actions
@@ -24,8 +29,8 @@ void marketplace::expireorder(eosio::name coopname,
   require_auth(coopname);
 
   auto o = Marketplace::get_order_by_hash_or_fail(coopname, order_hash);
-  eosio::check(o.status == OrderStatus::ACTIVE,
-               "Закрыть по таймауту можно только активный заказ");
+  eosio::check(o.status == OrderStatus::ACTIVE || o.status == OrderStatus::ACCEPTED,
+               "Закрыть по сроку можно только заказ, который ещё не набран или принят поставщиком и не привезён");
 
   Ledger2::apply(_marketplace, coopname,
                  operations::marketplace::UNLOCK_ORDER,

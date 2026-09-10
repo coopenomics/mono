@@ -42,6 +42,9 @@ void marketplace::submretrn(eosio::name coopname,
   auto o = Marketplace::get_order_by_hash_or_fail(coopname, original_order_hash);
   eosio::check(o.orderer == orderer,
                "Вы не заказчик исходного заказа");
+  // Вышедший или выходящий пайщик возврат не открывает: паевой и взнос по
+  // решению совета пришли бы на заблокированный аккаунт (задача 99D-16).
+  get_active_participant_or_fail(coopname, orderer);
   eosio::check(o.status == OrderStatus::RECEIVED,
                "Возврат возможен только по выданному заказу");
   eosio::check(o.return_request_id == 0,
@@ -91,7 +94,7 @@ void marketplace::submretrn(eosio::name coopname,
 
   // Создание return_request entity
   return_requests_index requests(_marketplace, coopname.value);
-  uint64_t request_id = requests.available_primary_key();
+  const uint64_t request_id = Marketplace::next_return_request_id(coopname);
   requests.emplace(_marketplace, [&](auto& r) {
     r.id                    = request_id;
     r.hash                  = request_hash;

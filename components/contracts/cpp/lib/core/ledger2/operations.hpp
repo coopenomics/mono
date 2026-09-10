@@ -100,8 +100,9 @@ namespace operations {
     inline constexpr eosio::name LOCK_ORDER             = "o.mkt.lock"_n;     ///< Паевой резерв под конкретный Order (TRANSFER w.wal.share → w.mkt.order, без Dr/Cr — оба кошелька на 80). Единственный обязательный шаг ledger2 при createorder.
     inline constexpr eosio::name LOCK_FROM_SHARE        = "o.mkt.lockp"_n;    ///< Паевой резерв из свободного паевого «Стола заказов» (TRANSFER w.mkt.share → w.mkt.order, без Dr/Cr — оба на 80). Тело любого заказа и доплата по факту берутся отсюда в первую очередь (сюда возвращаются паевые средства при отменах, недовыдачах и гарантийных возвратах), остаток — LOCK_ORDER с w.wal.share.
     inline constexpr eosio::name UNLOCK_ORDER           = "o.mkt.unlock"_n;   ///< Возврат резерва при отмене Order'а или недовыдаче (TRANSFER w.mkt.order → w.mkt.share, без Dr/Cr — оба на 80). Средства остаются паевыми и остаются в программе: идут на тело следующих заказов (LOCK_FROM_SHARE); в общий паевой не выводятся, RECALL_SHARE — только при выходе из кооператива.
-    inline constexpr eosio::name PURCHASE_FROM_SUPPLIER = "o.mkt.purch"_n;    ///< Приёмка имущества кооперативом по АПП приёмки (Dr 10 / Cr 76, NONE — только бухпроводка; имущество — аналитика по 10). Обязательство перед поставщиком на счёте расчётов с разными дебиторами и кредиторами (решение владельца 08.09.2026: 76 вместо 60).
-    inline constexpr eosio::name PAY_SUPPLIER           = "o.mkt.payout"_n;   ///< Оплата поставщику с расчётного счёта по подтверждению кассира (Dr 76 / Cr 51, ISSUE ∅ → SUPPLIER_PAYMENTS). Гасит обязательство, открытое PURCHASE_FROM_SUPPLIER.
+    inline constexpr eosio::name PURCHASE_FROM_SUPPLIER = "o.mkt.purch"_n;    ///< Приёмка имущества кооперативом по АПП приёмки (Dr 10 / Cr 76, ISSUE ∅ → w.mkt.topay по поставщику; имущество — аналитика по 10). Обязательство перед поставщиком на счёте расчётов с разными дебиторами и кредиторами (решение владельца 08.09.2026: 76 вместо 60) и сумма к оплате на кошельке поставщика (задача 99D-16).
+    inline constexpr eosio::name PAY_SUPPLIER           = "o.mkt.payout"_n;   ///< Оплата поставщику с расчётного счёта по подтверждению кассира (Dr 76 / Cr 51, BURN с w.mkt.topay). Гасит обязательство, открытое PURCHASE_FROM_SUPPLIER.
+    inline constexpr eosio::name OFFSET_PAYABLE         = "o.mkt.offset"_n;   ///< Зачёт удержанного гарантийного долга против суммы к оплате поставщику (BURN с w.mkt.topay, без проводки). Парная к DEDUCT_DEBT на ту же сумму в той же транзакции `payout`: долг поставщика и обязательство перед ним уменьшаются вместе (задача 99D-16).
     inline constexpr eosio::name CONSUME_BY_MEMBER      = "o.mkt.consum"_n;   ///< Возврат паевого взноса имуществом по акту выдачи (BURN с w.mkt.order, Dr 80 / Cr 10 — паевой фонд уменьшается на стоимость переданного имущества по протоколу совета). Ставится только закрывающей подписью председателя участка (issueact2).
     inline constexpr eosio::name RETURN_BY_MEMBER       = "o.mkt.return"_n;   ///< Отмена сделки по гарантийному возврату по решению совета — compensating forward к CONSUME_BY_MEMBER (ISSUE ∅ → w.mkt.share, Dr 10 / Cr 80 — восстановление паевого на свободном паевом «Стола заказов» и возврат имущества на склад). Реверты ledger2::revert в Столе заказов не используются.
     inline constexpr eosio::name WRITE_OFF_PERISHABLE   = "o.mkt.wroff"_n;    ///< Утилизация скоропорта со склада (NONE Dr 91 / Cr 10). По протоколу совета. Порча запаса выбывает в прочие расходы тем же путём, что уценка (решение владельца 10.09.2026, задача 99D-15): счёт 86 двигают только операции с кошельками, а закрытие 91 — отдельное решение.
@@ -110,10 +111,10 @@ namespace operations {
     inline constexpr eosio::name MEMBERSHIP_FEE_REFUND  = "o.mkt.refund"_n;   ///< Сторно неиспользованной части членского взноса участка на членский кошелёк программы (TRANSFER w.mkt.fee → w.mkt.member, без Dr/Cr — оба на 86). Отмена — полностью, недовыдача — пропорционально факту, гарантийный возврат — доля за возвращённое; членский остаётся членским и идёт в зачёт следующего заказа.
     inline constexpr eosio::name REFUSAL_PENALTY        = "o.mkt.penal"_n;    ///< Удержание 50% при отказе пайщика от получения после акцепта поставщиком (TRANSFER w.mkt.order → w.mkt.fee, Dr 80 / Cr 86 — паевой становится членским взносом участка; основание в положении о ЦПП — TBD-Standardization). Транзит через пул взносов: далее единым o.brn.common уходит в общий кошелёк КУ. Имущество остаётся на складе КУ; вторая половина возвращается пайщику (o.mkt.unlock + o.mkt.refund).
     inline constexpr eosio::name RECALL_SHARE           = "o.mkt.recall"_n;   ///< Консолидация свободного паевого «Стола заказов» в общий паевой Цифрового кошелька при выходе пайщика из кооператива (TRANSFER w.mkt.share → w.wal.share, без Dr/Cr — оба на 80); зовёт registrator (exit_helpers).
-    inline constexpr eosio::name EXIT_FEE_TO_POOL       = "o.mkt.exfee"_n;    ///< Остаток членского кошелька программы при выходе пайщика из кооператива уходит в пул взносов программы (TRANSFER w.mkt.member → w.mkt.fee, без Dr/Cr — оба на 86): членский взнос не возвращается и в паевой не транслируется (решение владельца 10.09.2026, задача 99D-15); зовёт registrator (confirmexit).
+    inline constexpr eosio::name EXIT_FEE_TO_POOL       = "o.mkt.exfee"_n;    ///< Остаток членского кошелька программы при выходе пайщика из кооператива (TRANSFER w.mkt.member → w.mkt.fee, без Dr/Cr — оба на 86): членский взнос не возвращается и в паевой не транслируется (решение владельца 10.09.2026, задача 99D-15). Транзит: той же транзакцией o.brn.common зачисляет его в общий кошелёк участка, к которому прикреплён пайщик; без участка остаётся в пуле (задача 99D-16). Зовёт registrator, когда выход состоялся (completexit, confirmexit без выплаты).
     inline constexpr eosio::name CLAIM_SUPPLIER         = "o.mkt.claim"_n;    ///< Гарантийная претензия поставщику выставлена по решению совета об отмене сделки (ISSUE ∅ → w.mkt.claim по поставщику, без проводки — до признания претензия не актив). По умолчанию поставщик не согласен: сумма остаётся здесь как основание для иска. Сумма — стоимость возвращённого имущества.
     inline constexpr eosio::name ADMIT_CLAIM            = "o.mkt.admit"_n;    ///< Поставщик признал претензию: TRANSFER w.mkt.claim → w.mkt.debt, Dr 76 / Cr 91 — дебиторка поставщика признана прочим доходом; далее гасится удержанием из выплат.
-    inline constexpr eosio::name DEDUCT_DEBT            = "o.mkt.deduct"_n;   ///< Удержание признанного гарантийного долга из выплаты поставщику (BURN с w.mkt.debt, без проводки: обязательство перед поставщиком и его дебиторка на одном счёте 76 сворачиваются). Идёт в нитке заказа, по которому уменьшена выплата (payout / payconfirm).   ///< Консолидация свободного паевого «Стола заказов» в общий паевой Цифрового кошелька при выходе пайщика из кооператива (TRANSFER w.mkt.share → w.wal.share, без Dr/Cr — оба на 80); зовёт registrator (exit_helpers). Действия пайщика в Столе заказов нет: паевой остаток живёт в программе и идёт на следующие заказы; вывод по заявлению — отдельная будущая задача о движении между программами.
+    inline constexpr eosio::name DEDUCT_DEBT            = "o.mkt.deduct"_n;   ///< Удержание признанного гарантийного долга из выплаты поставщику (BURN с w.mkt.debt, без проводки: обязательство перед поставщиком и его дебиторка на одном счёте 76 сворачиваются). Идёт в нитке заказа при инициации выплаты (`payout`) вместе с OFFSET_PAYABLE на ту же сумму.
   }
 
   // branch — экономика кооперативного участка (requirement b6).
@@ -172,6 +173,7 @@ namespace operations {
     inline constexpr eosio::name MIN_SHARE        = "o.mig.minshr"_n;   ///< Перенос: минимальный паевой взнос (Dr 51 / Cr 80, ISSUE MIN_SHARE_FUND).
     inline constexpr eosio::name SHARE            = "o.mig.share"_n;    ///< Перенос: остаток паевых деньгами (Dr 51 / Cr 80, ISSUE SHARE_FUND_PAY).
     inline constexpr eosio::name ENTRY            = "o.mig.entry"_n;    ///< Перенос: вступительные (Dr 51 / Cr 86, ISSUE ENTRANCE_FEES).
+    inline constexpr eosio::name SUPPLIER_PAYABLE = "o.mig.topay"_n;    ///< Перенос открытых обязательств перед поставщиками на кошелёк к оплате (ISSUE w.mkt.topay, без Dr/Cr — Кт 76 уже проведён приёмкой). Разовый, из marketplace::migrate (задача 99D-16).
   }
 
   // adjustment (ручные корректировки председателя)
@@ -402,19 +404,27 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
     "Удержание при отказе пайщика от получения после акцепта поставщиком" },
 
   // 12c. p.mkt.supply: Приёмка имущества кооперативом по АПП приёмки
-  //      (Dr 10 / Cr 76, NONE — только бухпроводка). Кооператив получил имущество
-  //      и стал должен поставщику; источник средств выбирается на выдаче.
-  { operations::marketplace::PURCHASE_FROM_SUPPLIER, processes::marketplace::SUPPLY, WalletOp::NONE,
-    eosio::name{}, eosio::name{},
+  //      (Dr 10 / Cr 76, ISSUE ∅ → w.mkt.topay по поставщику). Кооператив получил
+  //      имущество и стал должен поставщику; источник средств выбирается на выдаче.
+  { operations::marketplace::PURCHASE_FROM_SUPPLIER, processes::marketplace::SUPPLY, WalletOp::ISSUE,
+    eosio::name{}, ledger2_wallets::MARKETPLACE_SUPPLIER_PAYABLE,
     ledger2_accounts::MATERIALS, ledger2_accounts::OTHER_SETTLEMENTS,
     "Приёмка имущества кооперативом по АПП приёмки" },
 
   // 12d. p.mkt.supply: Оплата поставщику с расчётного счёта
-  //      (Dr 76 / Cr 51, ISSUE ∅ → w.mkt.payout). Гасит обязательство приёмки.
-  { operations::marketplace::PAY_SUPPLIER, processes::marketplace::SUPPLY, WalletOp::ISSUE,
-    eosio::name{}, ledger2_wallets::SUPPLIER_PAYMENTS,
+  //      (Dr 76 / Cr 51, BURN с w.mkt.topay). Гасит обязательство приёмки.
+  { operations::marketplace::PAY_SUPPLIER, processes::marketplace::SUPPLY, WalletOp::BURN,
+    ledger2_wallets::MARKETPLACE_SUPPLIER_PAYABLE, eosio::name{},
     ledger2_accounts::OTHER_SETTLEMENTS, ledger2_accounts::BANK_ACCOUNT,
     "Оплата поставщику с расчётного счёта по подтверждению кассира" },
+
+  // 12d². p.mkt.supply: Зачёт удержанного гарантийного долга против суммы к
+  //       оплате поставщику (BURN с w.mkt.topay, без проводки — обязательство и
+  //       дебиторка на одном счёте 76). Парная к o.mkt.deduct в `payout`.
+  { operations::marketplace::OFFSET_PAYABLE, processes::marketplace::SUPPLY, WalletOp::BURN,
+    ledger2_wallets::MARKETPLACE_SUPPLIER_PAYABLE, eosio::name{},
+    0, 0,
+    "Зачёт удержанного долга поставщика против суммы к оплате" },
 
   // 12e. p.mkt.supply: Возврат паевого взноса имуществом по акту выдачи
   //      (BURN с w.mkt.order, Dr 80 / Cr 10 — резерв гасится, имущество выбывает
@@ -765,6 +775,13 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
   { operations::migration::ENTRY, processes::migration::TRANSIT, WalletOp::ISSUE, eosio::name{}, ledger2_wallets::ENTRANCE_FEES,
     ledger2_accounts::BANK_ACCOUNT, ledger2_accounts::TARGET_RECEIPTS,
     "Транзитный перенос: вступительные взносы при миграции" },
+
+  // 18. Миграция: открытые обязательства перед поставщиками на кошелёк к оплате
+  //     (ISSUE w.mkt.topay, без Dr/Cr — Кт 76 уже проведён приёмкой). Разовый
+  //     перенос из marketplace::migrate (задача 99D-16).
+  { operations::migration::SUPPLIER_PAYABLE, processes::migration::TRANSIT, WalletOp::ISSUE, eosio::name{}, ledger2_wallets::MARKETPLACE_SUPPLIER_PAYABLE,
+    0, 0,
+    "Перенос открытых обязательств перед поставщиками на кошелёк к оплате" },
 };
 
 static constexpr size_t OPERATION_REGISTRY_SIZE = sizeof(OPERATION_REGISTRY) / sizeof(OPERATION_REGISTRY[0]);

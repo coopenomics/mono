@@ -78,7 +78,9 @@ const { isApproving, isRejecting, confirmApprove, confirmReject } = useOfferMode
 });
 
 const offer = ref<MarketplaceOfferDetailView | null>(null);
-const loading = ref(false);
+// true до первого запроса: иначе первый кадр до загрузки показывает пустое
+// состояние вместо скелетона, и первая загрузка неотличима от пустого списка.
+const loading = ref(true);
 /** Каркас и пустое состояние — по первой загрузке; дочитка обновляет молча. */
 const firstLoad = useFirstLoad(loading);
 const categoryNames = ref<Record<number, string>>({});

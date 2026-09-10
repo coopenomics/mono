@@ -1,9 +1,10 @@
 /**
  * @brief Оператор участка выдал имущество заказчику обратно — гарантийный
- * возврат в паевой модели (компонент 68). Допустимо из `retdecl` (совет
- * отказал) и из `retpend` по истечении срока ожидания решения совета
- * (`RETURN_DECISION_WAIT_SECS` от момента приёма имущества): без решения
- * совета баланс не восстанавливается, имущество ждать бесконечно не может.
+ * возврат в паевой модели (компонент 68). Допустимо только из `retdecl`
+ * (совет отказал). Пока повестка открыта, имущество ждёт решения совета:
+ * выдача обратно до решения стирала заявку, и потом решение совета нельзя
+ * было ни исполнить, ни снять истечением (решение владельца 10.09.2026,
+ * задача 99D-16).
  *
  * Документа нет — имущество участок юридически не принимал. Запись заявки
  * стирается (`newdeclined` для заявления в пакет документов заказа), заказ
@@ -12,7 +13,7 @@
  * Guards:
  *  - actor coopname; заявку рассматривает участок выдачи заказа;
  *  - signer уполномочен на участке;
- *  - status == retdecl, либо retpend и срок ожидания истёк.
+ *  - status == retdecl.
  *
  * @ingroup public_marketplace_actions
  */
@@ -28,14 +29,10 @@ void marketplace::handback(eosio::name coopname,
   eosio::check(branch.is_user_authorized(signer),
                "Подписант не уполномочен закрывать возвраты данного кооперативного участка");
 
-  if (r.status == ReturnStatus::RETURN_PENDING) {
-    const auto now = eosio::time_point_sec(eosio::current_time_point().sec_since_epoch());
-    eosio::check(now.sec_since_epoch() >= r.accepted_at.value_or(time_point_sec(0)).sec_since_epoch() + Marketplace::RETURN_DECISION_WAIT_SECS,
-                 "Совет ещё рассматривает заявление — срок ожидания решения не истёк");
-  } else {
-    eosio::check(r.status == ReturnStatus::RETURN_DECLINED,
-                 "Выдать имущество обратно можно только после отказа совета или по истечении срока ожидания");
-  }
+  eosio::check(r.status == ReturnStatus::RETURN_DECLINED,
+               r.status == ReturnStatus::RETURN_PENDING
+                 ? "Совет ещё рассматривает заявление — выдать имущество обратно можно только после его отказа"
+                 : "Выдать имущество обратно можно только после отказа совета");
 
   Action::send<newdeclined_interface>(_soviet, "newdeclined"_n, _marketplace,
                                       coopname, r.orderer,

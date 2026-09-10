@@ -262,7 +262,7 @@ operations:
     available_delta: -order.payout_withheld
     blocked_delta: null
     amount_ref: order.payout_withheld
-    triggered_by: marketplace::payconfirm
+    triggered_by: marketplace::payout
     description: >
       Часть выплаты поставщику, удержанная в счёт признанного долга, гасит
       долг. Идёт в нитке заказа, по которому выплата уменьшена (стандарт

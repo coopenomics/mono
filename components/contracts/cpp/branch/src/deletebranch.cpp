@@ -17,7 +17,27 @@
   auto coop = get_cooperative_or_fail(coopname);
 
   eosio::check(branch != branches.end(), "Кооперативный участок не найден");
-  
+
+  // Участок нельзя удалить, пока на нём держится экономика Стола заказов:
+  // заказы с выдачей или приёмкой на этом участке (и заявки на возврат по ним)
+  // упёрлись бы в «участок не найден», а остаток общего кошелька участка
+  // осиротел бы (задача 99D-16).
+  Marketplace::orders_index orders(_marketplace, coopname.value);
+  auto by_delivery = orders.get_index<"bydelivbra"_n>();
+  eosio::check(by_delivery.find(braname.value) == by_delivery.end(),
+               "Кооперативный участок нельзя удалить: на нём есть заказы Стола заказов к выдаче — завершите или отмените их");
+  auto by_accept = orders.get_index<"byacceptbra"_n>();
+  eosio::check(by_accept.find(braname.value) == by_accept.end(),
+               "Кооперативный участок нельзя удалить: на нём есть заказы Стола заказов, принятые от поставщиков — завершите их");
+
+  userwallets_index user_wallets(_ledger2, coopname.value);
+  auto wallets_idx = user_wallets.get_index<"byuserwallet"_n>();
+  auto common = wallets_idx.find(combine_ids(ledger2_wallets::BRANCH_COMMON.value, braname.value));
+  eosio::check(common == wallets_idx.end() || common->available.amount == 0,
+               std::string{"Кооперативный участок нельзя удалить: в общем кошельке участка остаток "} +
+                 (common == wallets_idx.end() ? std::string{} : common->available.to_string()) +
+                 " — распределите или израсходуйте его");
+
   branches.erase(branch);
   
   // отключаем участников кооператива от кооперативного участка

@@ -86,6 +86,13 @@ void marketplace::payout(eosio::name coopname, checksum256 order_hash) {
                    processes::marketplace::SUPPLY,
                    deducted_now, o.offerer, o.hash,
                    Marketplace::Memo::get_deduct_debt_memo(o.id));
+    // Той же суммой уменьшается и сумма к оплате поставщику: долг и
+    // обязательство на одном счёте 76 сворачиваются (задача 99D-16).
+    Ledger2::apply(_marketplace, coopname,
+                   operations::marketplace::OFFSET_PAYABLE,
+                   processes::marketplace::SUPPLY,
+                   deducted_now, o.offerer, o.hash,
+                   Marketplace::Memo::get_deduct_debt_memo(o.id));
   }
   const eosio::asset withheld = already_withheld + deducted_now;
   const eosio::asset to_pay = accepted_cost - withheld;

@@ -43,7 +43,9 @@ const router = useRouter();
 
 const items = ref<MarketplacePendingOfferView[]>([]);
 const total = ref(0);
-const loading = ref(false);
+// true до первого запроса: иначе первый кадр до загрузки показывает пустое
+// состояние вместо скелетона, и первая загрузка неотличима от пустого списка.
+const loading = ref(true);
 /** Пустое состояние и каркас — по первой загрузке; дочитка обновляет молча. */
 const firstLoad = useFirstLoad(loading);
 const currentPage = ref(1);

@@ -10992,7 +10992,7 @@ export type ValueTypes = {
 };
 	/** Заявление пайщика на гарантийный возврат имущества (Эпик 7). */
 ["MarketplaceReturnClaim"]: AliasType<{
-	/** Момент приёма имущества у стойки; от него идёт срок ожидания решения совета. */
+	/** Момент приёма имущества у стойки оператором участка. */
 	accepted_at?:boolean | `@${string}`,
 	actual_quantity?:boolean | `@${string}`,
 	coopname?:boolean | `@${string}`,
@@ -11011,8 +11011,6 @@ export type ValueTypes = {
 	fact_cost?:boolean | `@${string}`,
 	/** Возвращаемая часть членского взноса, уплаченного за это имущество. */
 	fee_refund?:boolean | `@${string}`,
-	/** Срок, после которого оператор может выдать имущество обратно без решения совета (7 дней с приёма). */
-	hand_back_available_at?:boolean | `@${string}`,
 	id?:boolean | `@${string}`,
 	/** Снапшот отката движений (только при ACCEPTED_BY_COUNCIL). */
 	ledger_snapshot?:ValueTypes["MarketplaceReturnClaimLedgerSnapshot"],
@@ -26580,7 +26578,7 @@ export type ResolverInputTypes = {
 };
 	/** Заявление пайщика на гарантийный возврат имущества (Эпик 7). */
 ["MarketplaceReturnClaim"]: AliasType<{
-	/** Момент приёма имущества у стойки; от него идёт срок ожидания решения совета. */
+	/** Момент приёма имущества у стойки оператором участка. */
 	accepted_at?:boolean | `@${string}`,
 	actual_quantity?:boolean | `@${string}`,
 	coopname?:boolean | `@${string}`,
@@ -26599,8 +26597,6 @@ export type ResolverInputTypes = {
 	fact_cost?:boolean | `@${string}`,
 	/** Возвращаемая часть членского взноса, уплаченного за это имущество. */
 	fee_refund?:boolean | `@${string}`,
-	/** Срок, после которого оператор может выдать имущество обратно без решения совета (7 дней с приёма). */
-	hand_back_available_at?:boolean | `@${string}`,
 	id?:boolean | `@${string}`,
 	/** Снапшот отката движений (только при ACCEPTED_BY_COUNCIL). */
 	ledger_snapshot?:ResolverInputTypes["MarketplaceReturnClaimLedgerSnapshot"],
@@ -41651,7 +41647,7 @@ export type ModelTypes = {
 };
 	/** Заявление пайщика на гарантийный возврат имущества (Эпик 7). */
 ["MarketplaceReturnClaim"]: {
-		/** Момент приёма имущества у стойки; от него идёт срок ожидания решения совета. */
+		/** Момент приёма имущества у стойки оператором участка. */
 	accepted_at?: ModelTypes["DateTime"] | undefined | null,
 	actual_quantity: number,
 	coopname: string,
@@ -41670,8 +41666,6 @@ export type ModelTypes = {
 	fact_cost: string,
 	/** Возвращаемая часть членского взноса, уплаченного за это имущество. */
 	fee_refund: string,
-	/** Срок, после которого оператор может выдать имущество обратно без решения совета (7 дней с приёма). */
-	hand_back_available_at?: ModelTypes["DateTime"] | undefined | null,
 	id: string,
 	/** Снапшот отката движений (только при ACCEPTED_BY_COUNCIL). */
 	ledger_snapshot?: ModelTypes["MarketplaceReturnClaimLedgerSnapshot"] | undefined | null,
@@ -58230,7 +58224,7 @@ export type GraphQLTypes = {
 	/** Заявление пайщика на гарантийный возврат имущества (Эпик 7). */
 ["MarketplaceReturnClaim"]: {
 	__typename: "MarketplaceReturnClaim",
-	/** Момент приёма имущества у стойки; от него идёт срок ожидания решения совета. */
+	/** Момент приёма имущества у стойки оператором участка. */
 	accepted_at?: GraphQLTypes["DateTime"] | undefined | null,
 	actual_quantity: number,
 	coopname: string,
@@ -58249,8 +58243,6 @@ export type GraphQLTypes = {
 	fact_cost: string,
 	/** Возвращаемая часть членского взноса, уплаченного за это имущество. */
 	fee_refund: string,
-	/** Срок, после которого оператор может выдать имущество обратно без решения совета (7 дней с приёма). */
-	hand_back_available_at?: GraphQLTypes["DateTime"] | undefined | null,
 	id: string,
 	/** Снапшот отката движений (только при ACCEPTED_BY_COUNCIL). */
 	ledger_snapshot?: GraphQLTypes["MarketplaceReturnClaimLedgerSnapshot"] | undefined | null,

@@ -59,3 +59,22 @@ participant get_participant_or_fail(eosio::name coopname, eosio::name username) 
 
   return *participant_row;
 }
+
+/**
+ * @brief Действующий пайщик без начатого выхода из кооператива.
+ *
+ * Пока заявление на выход подано и не завершено (запись в registrator::exits
+ * в любом статусе), пайщик формально ещё в реестре, но новых обязательств
+ * открывать не должен: сумма возврата считается при одобрении советом, а
+ * после выплаты аккаунт блокируется — всё, что появилось после подачи
+ * заявления, осталось бы на заблокированном аккаунте (задача 99D-16).
+ * Действия, завершающие уже начатое (подтверждение кассира, восстановление
+ * ключа), по-прежнему зовут `get_participant_or_fail`.
+ */
+participant get_active_participant_or_fail(eosio::name coopname, eosio::name username) {
+  auto participant = get_participant_or_fail(coopname, username);
+  Registrator::exits_index exits(_registrator, coopname.value);
+  eosio::check(exits.find(username.value) == exits.end(),
+               "Пайщик подал заявление на выход из кооператива — новые действия недоступны до его рассмотрения");
+  return participant;
+}

@@ -50,7 +50,7 @@
   eosio::check(amount.symbol == _root_govern_symbol,
                "Некорректный символ валюты в сумме материальной помощи");
 
-  get_participant_or_fail(coopname, username);
+  get_active_participant_or_fail(coopname, username);
   verify_document_or_fail(statement, { username });
 
   // Материальная помощь выплачивается из средств, распределённых на участнике

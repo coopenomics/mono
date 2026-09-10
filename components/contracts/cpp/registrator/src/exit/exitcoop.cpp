@@ -24,6 +24,7 @@ void registrator::exitcoop(eosio::name coopname, eosio::name username, checksum2
   // только выдачей или отменой — выход до их завершения запрещён (решение
   // владельца 10.09.2026, задача 99D-15).
   Registrator::check_no_marketplace_reserve(coopname, username);
+  Registrator::check_no_open_marketplace_returns(coopname, username);
 
   // повторная подача запрещена — у пайщика может быть только один процесс выхода
   Registrator::exits_index exits(_registrator, coopname.value);

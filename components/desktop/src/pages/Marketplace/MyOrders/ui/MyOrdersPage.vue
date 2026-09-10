@@ -46,7 +46,9 @@ const items = ref<MarketplaceOrderView[]>([]);
 const totalCount = ref(0);
 const totalPages = ref(0);
 const currentPage = ref(1);
-const loading = ref(false);
+// true до первого запроса: иначе первый кадр до загрузки показывает пустое
+// состояние вместо скелетона, и первая загрузка неотличима от пустого списка.
+const loading = ref(true);
 /** Скелетон — только на первой загрузке; дочитка обновляет молча. */
 const firstLoad = useFirstLoad(loading);
 const activeKey = ref('all');

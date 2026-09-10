@@ -89,9 +89,26 @@ inline void check_no_marketplace_reserve(name coopname, name username) {
 }
 
 /**
+ * @brief Выход запрещён, пока у пайщика открыта заявка на гарантийный возврат
+ * в Столе заказов: решение совета по ней восстановит паевой и членский взнос,
+ * и после выхода они легли бы на заблокированный аккаунт (решение владельца
+ * 10.09.2026, задача 99D-16). Гарантийное окно выданных заказов выход не держит.
+ */
+inline void check_no_open_marketplace_returns(name coopname, name username) {
+  Marketplace::return_requests_index requests(_marketplace, coopname.value);
+  auto by_orderer = requests.get_index<"byorderer"_n>();
+  eosio::check(by_orderer.find(username.value) == by_orderer.end(),
+    "Выход из кооператива невозможен: открыто заявление на гарантийный возврат в Столе заказов — дождитесь его рассмотрения");
+}
+
+/**
  * @brief Остаток членского кошелька программы Стола заказов (w.mkt.member)
- * при выходе уходит в пул взносов программы (o.mkt.exfee): членский взнос не
- * возвращается и в паевой не транслируется. Нулевой остаток — операции нет.
+ * при выходе уходит через пул взносов (o.mkt.exfee) в общий кошелёк участка
+ * пайщика (o.brn.common): членский взнос не возвращается и в паевой не
+ * транслируется. Нулевой остаток — операции нет.
+ * Вызывается там, где выход состоялся (`completexit` и одобрение без
+ * выплаты), а не при одобрении с выплатой: кассир может выплату отклонить, и
+ * пайщик останется в кооперативе (задача 99D-16).
  */
 inline void forfeit_marketplace_member_fund(name coopname, name username, checksum256 exit_hash) {
   const asset balance = get_user_wallet_available(coopname, ledger2_wallets::MARKETPLACE_MEMBER_FUND, username);
@@ -100,6 +117,24 @@ inline void forfeit_marketplace_member_fund(name coopname, name username, checks
                      username.to_string();
   Ledger2::apply(_registrator, coopname, operations::marketplace::EXIT_FEE_TO_POOL,
                  processes::wallet::WITHDRAW, balance, username, exit_hash, memo);
+
+  // Из пула — в общий кошелёк участка, к которому прикреплён пайщик (решение
+  // владельца 10.09.2026, задача 99D-16). Прямой перевод с кошелька пайщика на
+  // кошелёк участка невозможен (один username на операцию), поэтому транзит
+  // через пул взносов. Пайщик без участка или участок удалён — остаток
+  // остаётся в пуле, выход не падает. Запись пайщика ещё жива: удаление из
+  // реестра совета уходит инлайном позже (finalize_member_exit).
+  participants_index participants(_soviet, coopname.value);
+  auto participant = participants.find(username.value);
+  if (participant == participants.end() || !participant->braname.has_value()) return;
+  const name braname = participant->braname.value();
+  if (braname == name{}) return;
+  branch_index branches(_branch, coopname.value);
+  if (branches.find(braname.value) == branches.end()) return;
+
+  ::Branch::accrue(_registrator, coopname, braname, balance, processes::wallet::WITHDRAW, exit_hash,
+                   "Остаток членского кошелька Стола заказов в общий кошелёк участка при выходе, username=" +
+                     username.to_string());
 }
 
 /**

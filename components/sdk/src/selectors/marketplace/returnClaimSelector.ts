@@ -96,7 +96,6 @@ const rawClaimSelector = {
   council_decision_id: true,
   council_decision_mode: true,
   accepted_at: true,
-  hand_back_available_at: true,
   created_at: true,
   updated_at: true,
 }

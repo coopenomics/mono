@@ -36,8 +36,8 @@ void marketplace::stockorder(eosio::name coopname,
   eosio::check(!Marketplace::get_order_by_hash(coopname, order_hash).has_value(),
                "Заказ с таким идентификатором уже создан");
 
-  // Заказчик — активный пайщик кооператива (бросает если не найден / blocked)
-  get_participant_or_fail(coopname, orderer);
+  // Заказчик — действующий пайщик без начатого выхода
+  get_active_participant_or_fail(coopname, orderer);
 
   // КУ, на складе которого лежит остаток; он же — КУ выдачи
   get_branch_or_fail(coopname, delivery_braname);

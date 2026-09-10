@@ -54,9 +54,67 @@
 #include "src/p.mkt.wroff/execwroff.cpp"
 #include "src/p.mkt.wroff/confirmwroff.cpp"
 
+/**
+ * Перенос открытых обязательств перед поставщиками на кошелёк к оплате
+ * `w.mkt.topay` (задача 99D-16, решение владельца 10.09.2026).
+ *
+ * До появления кошелька приёмка проводила только Дт 10 / Кт 76, и у заказов,
+ * принятых раньше, суммы к оплате на кошельке нет — выплата по ним списывает
+ * с него и упала бы на нехватке. Здесь по каждому поставщику считается
+ * непогашенное: принятая стоимость заказов, выплата по которым не завершена,
+ * за вычетом уже удержанного при инициации долга. Начисляется только разница
+ * с текущим остатком кошелька: приёмка после установки уже пополнила его сама,
+ * а повторный запуск ничего не удваивает. Проводки нет — Кт 76 проведён
+ * приёмкой. Как и `migrate` остальных контрактов, вызывается без аргументов
+ * при установке и обходит все кооперативы.
+ */
+static void migrate_supplier_payables(eosio::name coopname);
+
 [[eosio::action]] void marketplace::migrate() {
-  // Donor-таблиц нет (AR30 — donor-actions удалены вместе с requests/segments/
-  // shipments). Заглушка остаётся для совместимости с прежним ABI; вызывать
-  // не имеет эффекта.
   require_auth(_marketplace);
+
+  cooperatives2_index coops(_registrator, _registrator.value);
+  for (auto c = coops.begin(); c != coops.end(); ++c) {
+    migrate_supplier_payables(c->username);
+  }
+}
+
+static void migrate_supplier_payables(eosio::name coopname) {
+  std::vector<std::pair<eosio::name, eosio::asset>> outstanding_by_supplier;
+  Marketplace::orders_index orders(_marketplace, coopname.value);
+  for (const auto& o : orders) {
+    if (o.offerer == coopname) continue;
+    const bool accepted_by_coop =
+        o.status == OrderStatus::ACCEPTED_TO_COOP || o.status == OrderStatus::READY_TO_RECEIVE ||
+        o.status == OrderStatus::ISSUE_PENDING    || o.status == OrderStatus::ISSUE_AUTHORIZED ||
+        o.status == OrderStatus::ISSUE_ACT1       || o.status == OrderStatus::RECEIVED ||
+        o.status == OrderStatus::REFUSED;
+    if (!accepted_by_coop || o.payout_status == OrderPayoutStatus::COMPLETED) continue;
+
+    const eosio::asset withheld = o.payout_withheld.has_value()
+        ? o.payout_withheld.value()
+        : eosio::asset(0, _root_govern_symbol);
+    const eosio::asset outstanding = Marketplace::get_accepted_cost(o) - withheld;
+    if (outstanding.amount <= 0) continue;
+
+    bool merged = false;
+    for (auto& entry : outstanding_by_supplier) {
+      if (entry.first == o.offerer) { entry.second += outstanding; merged = true; break; }
+    }
+    if (!merged) outstanding_by_supplier.emplace_back(o.offerer, outstanding);
+  }
+
+  for (const auto& [supplier, outstanding] : outstanding_by_supplier) {
+    const auto payable = Marketplace::get_user_wallet_balance(
+        coopname, ledger2_wallets::MARKETPLACE_SUPPLIER_PAYABLE, supplier);
+    const eosio::asset deficit = outstanding - payable.available;
+    if (deficit.amount <= 0) continue;
+
+    const std::string seed = "marketplace.topay:" + coopname.to_string() + ":" + supplier.to_string();
+    Ledger2::apply(_marketplace, coopname,
+                   operations::migration::SUPPLIER_PAYABLE,
+                   processes::migration::TRANSIT,
+                   deficit, supplier, eosio::sha256(seed.data(), seed.size()),
+                   "Перенос открытых обязательств перед поставщиком на кошелёк к оплате, поставщик=" + supplier.to_string());
+  }
 }

@@ -960,16 +960,17 @@ export class MarketplaceReturnClaimService {
   }
 
   /**
-   * Оператор выдал имущество обратно: после отказа совета либо по истечении
-   * срока ожидания решения (контракт проверяет срок сам). Записи в цепи не
-   * остаётся, заказ остаётся выданным. HANDED_BACK (final).
+   * Оператор выдал имущество обратно после отказа совета. Пока повестка
+   * открыта, выдача обратно недоступна — имущество ждёт решения (задача
+   * 99D-16). Записи в цепи не остаётся, заказ остаётся выданным.
+   * HANDED_BACK (final).
    */
   async handBackReturn(input: MarketplaceHandBackReturnInput): Promise<MarketplaceReturnClaimResult> {
     const claim = await this.findById(input.coopname, input.claim_id);
-    if (
-      claim.status !== MarketplaceReturnClaimStatuses.DECLINED_BY_COUNCIL &&
-      claim.status !== MarketplaceReturnClaimStatuses.PENDING_COUNCIL
-    ) {
+    if (claim.status === MarketplaceReturnClaimStatuses.PENDING_COUNCIL) {
+      throw new ConflictException('Совет ещё рассматривает заявление — выдать имущество обратно можно только после его отказа.');
+    }
+    if (claim.status !== MarketplaceReturnClaimStatuses.DECLINED_BY_COUNCIL) {
       throw new ConflictException(`Заявление в статусе «${claim.status}» — выдавать имущество обратно нечего.`);
     }
     this.assertBranameMatchesClaim(claim, input.braname, 'выдача имущества обратно');
@@ -991,10 +992,7 @@ export class MarketplaceReturnClaimService {
       decision: 'hand_back',
       by_chairman_account: input.operator_account,
       braname: input.braname,
-      comment:
-        claim.status === MarketplaceReturnClaimStatuses.DECLINED_BY_COUNCIL
-          ? 'Имущество выдано пайщику обратно после отказа совета.'
-          : 'Имущество выдано пайщику обратно: совет не принял решение в срок.',
+      comment: 'Имущество выдано пайщику обратно после отказа совета.',
       at: new Date(),
       tx_hash: txHash,
     };

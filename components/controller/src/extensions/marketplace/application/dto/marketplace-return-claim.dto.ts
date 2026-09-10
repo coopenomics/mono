@@ -513,14 +513,8 @@ export class MarketplaceReturnClaimDTO {
   })
   public readonly council_decision_mode!: MarketplaceReturnClaimDecisionModeEnum | null;
 
-  @Field(() => Date, { nullable: true, description: 'Момент приёма имущества у стойки; от него идёт срок ожидания решения совета.' })
+  @Field(() => Date, { nullable: true, description: 'Момент приёма имущества у стойки оператором участка.' })
   public readonly accepted_at!: Date | null;
-
-  @Field(() => Date, {
-    nullable: true,
-    description: 'Срок, после которого оператор может выдать имущество обратно без решения совета (7 дней с приёма).',
-  })
-  public readonly hand_back_available_at!: Date | null;
 
   @Field() public readonly created_at!: Date;
   @Field() public readonly updated_at!: Date;

@@ -575,6 +575,20 @@ export class MarketplaceOrderRepositoryAdapter implements MarketplaceOrderDomain
     return rows.map((r) => this.mapper.toDomain(r));
   }
 
+  async listUndelivered(coopname: string, accepted_before: Date, limit: number): Promise<MarketplaceOrderDomainEntity[]> {
+    const rows = await this.repo
+      .createQueryBuilder('o')
+      .where('o.coopname = :coop', { coop: coopname })
+      .andWhere('o.on_chain_present = true')
+      .andWhere('o.status = :accepted', { accepted: MarketplaceOrderStatuses.ACCEPTED })
+      .andWhere('o.accepted_at IS NOT NULL')
+      .andWhere('o.accepted_at <= :before', { before: accepted_before })
+      .orderBy('o.accepted_at', 'ASC')
+      .take(limit)
+      .getMany();
+    return rows.map((r) => this.mapper.toDomain(r));
+  }
+
   async listForIssuanceByBraname(
     coopname: string,
     delivery_braname: string

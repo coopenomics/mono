@@ -56,8 +56,14 @@ void marketplace::createorder(eosio::name coopname,
   eosio::check(!Marketplace::get_order_by_hash(coopname, order_hash).has_value(),
                "Заказ с таким идентификатором уже создан");
 
-  // Заказчик — активный пайщик кооператива (бросает если не найден / blocked)
-  get_participant_or_fail(coopname, orderer);
+  // Сам кооператив пользуется столом только через заказ из остатка
+  // (stockorder): поставщиком по обычному заказу он быть не может — приёмка
+  // открыла бы долг на 76 без права выплаты (задача 99D-16).
+  eosio::check(offerer != coopname,
+               "Кооператив не может быть поставщиком заказа — используйте заказ из остатка");
+
+  // Заказчик — действующий пайщик без начатого выхода
+  get_active_participant_or_fail(coopname, orderer);
 
   // КУ выдачи существует
   get_branch_or_fail(coopname, delivery_braname);

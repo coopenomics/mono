@@ -124,8 +124,6 @@ TakeoverDialog(
           | сделки; мы сообщим, когда решение будет принято. При согласии сделка отменяется:
           | стоимость имущества вернётся на паевой кошелёк Стола заказов, членский взнос
           | за него — на членский.
-        .text-caption.q-mt-sm(v-if="claim.hand_back_available_at")
-          | Если совет не примет решение до {{ formatDateTime(claim.hand_back_available_at) }}, участок выдаст имущество обратно.
 
       BaseCard.q-mb-md(v-if="claim.status === 'DECLINED_BY_COUNCIL'")
         .text-subtitle1 Совет не принял имущество
