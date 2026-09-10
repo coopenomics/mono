@@ -16,6 +16,10 @@
  * перезаписать заявление о выдаче, и проводка разошлась бы с переводом, а
  * остаток долга навсегда завис бы на счёте 76 (задача 99D-14).
  *
+ * Удержанный долг (o.mkt.deduct) здесь не гасится: он погашен при инициации
+ * выплаты в `payout` — иначе вторая ожидающая выплата тому же поставщику
+ * удержала бы тот же долг повторно (задача 99D-15).
+ *
  * `outcome_hash` приходит из gateway и равен `order.hash` (так его задал
  * marketplace::payout). Поиск Order'а — по индексу `byhash`.
  *
@@ -39,10 +43,9 @@ void marketplace::payconfirm(eosio::name coopname, checksum256 outcome_hash) {
   eosio::check(o.payout_status == OrderPayoutStatus::PENDING,
                "Callback gateway::outcomplete получен на Order не в статусе ожидания выплаты");
 
-  // Удержанная при инициации часть (признанный гарантийный долг поставщика,
-  // задача 99D-13) не платится деньгами — она гасит долг: o.mkt.deduct (BURN
-  // с w.mkt.debt, без проводки — обязательство и дебиторка на одном счёте 76).
-  const eosio::asset withheld = o.payout_withheld.value_or(eosio::asset(0, _root_govern_symbol));
+  const eosio::asset withheld = o.payout_withheld.has_value()
+      ? o.payout_withheld.value()
+      : eosio::asset(0, _root_govern_symbol);
   const eosio::asset paid = Marketplace::get_accepted_cost(o) - withheld;
   eosio::check(paid.amount > 0, "Выплата поставщику после удержания долга пуста");
 
@@ -51,13 +54,6 @@ void marketplace::payconfirm(eosio::name coopname, checksum256 outcome_hash) {
                  processes::marketplace::SUPPLY,
                  paid, o.offerer, o.hash,
                  Marketplace::Memo::get_pay_supplier_memo(o.id));
-  if (withheld.amount > 0) {
-    Ledger2::apply(_marketplace, coopname,
-                   operations::marketplace::DEDUCT_DEBT,
-                   processes::marketplace::SUPPLY,
-                   withheld, o.offerer, o.hash,
-                   Marketplace::Memo::get_deduct_debt_memo(o.id));
-  }
 
   if (o.status == OrderStatus::REFUSED) {
     Marketplace::erase_order(coopname, o.id);

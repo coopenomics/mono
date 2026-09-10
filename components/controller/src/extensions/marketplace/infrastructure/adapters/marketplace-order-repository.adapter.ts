@@ -532,12 +532,45 @@ export class MarketplaceOrderRepositoryAdapter implements MarketplaceOrderDomain
       .createQueryBuilder('o')
       .where('o.coopname = :coop', { coop: coopname })
       .andWhere('o.on_chain_present = true')
-      .andWhere('o.accepted_cost IS NOT NULL')
+      // Заказы, принятые до появления `accepted_cost`, узнаются по статусу
+      // после приёмки (задача 99D-15); отказ после приёмки живёт на цепи как
+      // `refused` с терминальным статусом проекции.
+      .andWhere('(o.accepted_cost IS NOT NULL OR o.status IN (:...accepted))', {
+        accepted: [
+          MarketplaceOrderStatuses.ACCEPTED_TO_COOP,
+          MarketplaceOrderStatuses.READY_TO_RECEIVE,
+          MarketplaceOrderStatuses.ISSUE_PENDING,
+          MarketplaceOrderStatuses.ISSUE_AUTHORIZED,
+          MarketplaceOrderStatuses.ISSUE_ACT1,
+          MarketplaceOrderStatuses.RECEIVED,
+          MarketplaceOrderStatuses.RETURNED,
+          MarketplaceOrderStatuses.CANCELLED_BY_ORDERER,
+        ],
+      })
       .andWhere('o.supplier_account <> :coop', { coop: coopname })
       .andWhere('(o.payout_status IS NULL OR o.payout_status <> :done)', {
         done: MarketplaceOrderPayoutStatuses.COMPLETED,
       })
       .orderBy('o.accepted_at', 'ASC')
+      .getMany();
+    return rows.map((r) => this.mapper.toDomain(r));
+  }
+
+  async applyMarkdownDue(id: string, markdown_due: string | null): Promise<MarketplaceOrderDomainEntity> {
+    await this.repo.update({ id }, { markdown_due } as Record<string, unknown>);
+    return this.mapper.toDomain(await this.repo.findOneOrFail({ where: { id } }));
+  }
+
+  async listMarkdownPending(coopname: string, limit: number): Promise<MarketplaceOrderDomainEntity[]> {
+    const rows = await this.repo
+      .createQueryBuilder('o')
+      .where('o.coopname = :coop', { coop: coopname })
+      .andWhere('o.on_chain_present = true')
+      .andWhere('o.status = :received', { received: MarketplaceOrderStatuses.RECEIVED })
+      .andWhere('o.markdown_due > 0')
+      .andWhere('(o.markdown_cost IS NULL OR o.markdown_cost = 0)')
+      .orderBy('o.received_at', 'ASC')
+      .take(limit)
       .getMany();
     return rows.map((r) => this.mapper.toDomain(r));
   }

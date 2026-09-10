@@ -8,8 +8,11 @@ import { Actors } from '../../../common'
  * вызовом регистрирует запись в `gateway::outcomes` со статусом pending и
  * привязанными callback'ами `payconfirm` / `paydecline` на marketplace.
  * Сумма — принятая стоимость `accepted_cost` за вычетом признанного долга.
- * Ledger2 (Дт 76 / Кт 51) применяется НЕ здесь, а в callback'е `payconfirm`
- * после подтверждения кассиром фактического банковского перевода.
+ * Долг удерживается здесь же (o.mkt.deduct, BURN w.mkt.debt) — в момент,
+ * когда сумма перевода определена, чтобы вторая выплата тому же поставщику
+ * не удержала тот же долг повторно. Ledger2 (Дт 76 / Кт 51) применяется НЕ
+ * здесь, а в callback'е `payconfirm` после подтверждения кассиром
+ * фактического банковского перевода.
  * `order.payout_status` переходит NONE/DECLINED → PENDING.
  */
 export const authorizations = [{ permissions: [Permissions.active], actor: Actors._coopname }] as const

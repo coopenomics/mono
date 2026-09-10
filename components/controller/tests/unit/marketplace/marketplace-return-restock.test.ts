@@ -45,7 +45,9 @@ function buildService(
    * позиции; заказ из остатка кооператива её только резервирует, и связь
    * живёт в `reserved_order_id` — разбор обязан уметь оба пути.
    */
-  link: 'order_id' | 'reserved_order_id' = 'order_id'
+  link: 'order_id' | 'reserved_order_id' = 'order_id',
+  /** Снапшот выдачи заказа: цена, по которой имущество реально выдали. */
+  issuanceFact: { fact_unit_price: string } | null = null
 ) {
   const inventoryRepo = {
     list: jest.fn().mockImplementation(async (filter: Record<string, unknown>) => {
@@ -70,6 +72,7 @@ function buildService(
       offer_id: 'offer-1',
       price_per_unit: '100.0000',
       shipment_id: orderShipment,
+      issuance_fact: issuanceFact,
     }),
   };
 
@@ -168,6 +171,27 @@ describe('Приём возврата: имущество возвращаетс
     expect(created.shipment_id).toBe(ORIGIN_SHIPMENT);
     // Имущество возвращается кооперативу, а не первому заказчику.
     expect(created.ownership).toBe('COOP');
+  });
+
+  it('возвращённое ложится в остаток по цене выдачи, а не по цене прибытия партии', async () => {
+    // Контракт возвращает имущество на счёт 10 по сумме выдачи; разница с
+    // ценой прибытия уже выбыла уценкой. Остаток по цене прибытия списал бы
+    // её второй раз при следующей выдаче (задача 99D-15).
+    const { service, inventoryRepo } = buildService(ORIGIN_SHIPMENT, ORDER_SHIPMENT, 'order_id', {
+      fact_unit_price: '90.0000',
+    });
+
+    await restock(service);
+
+    expect(inventoryRepo.create.mock.calls[0][0].arrival_price).toBe('90.0000');
+  });
+
+  it('без снапшота выдачи остаток берёт цену прибытия исходной партии', async () => {
+    const { service, inventoryRepo } = buildService(ORIGIN_SHIPMENT, ORDER_SHIPMENT);
+
+    await restock(service);
+
+    expect(inventoryRepo.create.mock.calls[0][0].arrival_price).toBe('100.0000');
   });
 
   it('заказ не найден — молча не создаём чужую позицию', async () => {

@@ -29,6 +29,8 @@ export class MarketplaceOrderMapper {
       membership_fee: row.membership_fee ?? null,
       accepted_cost: row.accepted_cost ?? null,
       payout_status: (row.payout_status as MarketplaceOrderPayoutStatus | null) ?? null,
+      markdown_cost: row.markdown_cost,
+      markdown_due: row.markdown_due,
       cycle_id: row.cycle_id,
       checkout_id: row.checkout_id ?? null,
       shipment_id: row.shipment_id ?? null,

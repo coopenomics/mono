@@ -169,11 +169,26 @@ export interface MarketplaceOrderDomainRepository
 
   /**
    * Заказы с незавершённым расчётом с поставщиком (задача 99D-14): имущество
-   * принято (`accepted_cost` зеркалится с цепи), запись ещё жива на цепи, а
+   * принято (`accepted_cost` зеркалится с цепи; у заказов, принятых до
+   * появления поля, — по статусу после приёмки), запись ещё жива на цепи, а
    * выплата не подтверждена кассиром. Заказы из остатка кооператива не
    * входят — поставщика и выплаты у них нет.
    */
   listOpenSupplierSettlements(coopname: string): Promise<MarketplaceOrderDomainEntity[]>;
+
+  /**
+   * Уценка, рассчитанная при закрытии выдачи и ожидающая проведения на цепи
+   * (задача 99D-15). Пишется до отправки `markdown`; снимается кроном, когда
+   * цепь отзеркалила `markdown_cost`, либо явно.
+   */
+  applyMarkdownDue(id: string, markdown_due: string | null): Promise<MarketplaceOrderDomainEntity>;
+
+  /**
+   * Выданные заказы, у которых уценка рассчитана (`markdown_due` > 0), а на
+   * цепи ещё не проведена (`markdown_cost` пуст) и запись жива, — кандидаты на
+   * повтор `markdown` кроном.
+   */
+  listMarkdownPending(coopname: string, limit: number): Promise<MarketplaceOrderDomainEntity[]>;
 
   // ── Story 6.1 / 6.3: выдача пайщику на КУ ─────────────────────────
 

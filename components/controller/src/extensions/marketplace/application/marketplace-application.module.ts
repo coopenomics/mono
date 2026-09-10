@@ -167,6 +167,8 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { MarketplaceInventoryEntity } from '../infrastructure/entities/marketplace-inventory.entity';
 // Конечный жизненный цикл заказов: крон-закрытие выданных после гарантии
 import { MarketplaceOrderCloseCronService } from './services/marketplace-order-close-cron.service';
+// Задача 99D-15: повтор уценки и инициации выплаты, не дошедших до цепи
+import { MarketplaceChainRetryCronService } from './services/marketplace-chain-retry-cron.service';
 // Задача 99D-14: сверка инвариантов учёта (счёт 76 и остальные) по часам и по запросу
 import {
   MarketplaceLedgerInvariantsService,
@@ -475,6 +477,8 @@ import { MarketplaceRealtimeBridge } from './realtime/marketplace-realtime.bridg
     MarketplaceWriteoffResolver,
     // Конечный жизненный цикл заказов: закрытие выданных после гарантии
     MarketplaceOrderCloseCronService,
+    // Задача 99D-15: повтор уценки и инициации выплаты, не дошедших до цепи
+    MarketplaceChainRetryCronService,
     // Задача 99D-14: инварианты учёта Стола заказов
     {
       provide: MARKETPLACE_LEDGER_INVARIANTS_SERVICE,

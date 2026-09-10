@@ -19,8 +19,8 @@ import {
   MarketplaceLedger2OperationRow,
   MarketplaceWalletRow,
   MarketplaceAccountRow,
-  checkInvariantI1PayoutBalance,
-  checkInvariantI2Account86Delta,
+  checkInvariantI1SupplierThreads,
+  checkInvariantI2Account86Usage,
   checkInvariantI3Account10Materials,
   checkInvariantI4Account91Usage,
   checkInvariantI5ReserveConsistency,
@@ -225,43 +225,123 @@ describe('parseAssetToBigInt', () => {
   })
 })
 
-describe('I1 — баланс w.mkt.payout', () => {
+describe('I1 — расчёт с поставщиком по заказу закрывается принятой суммой (99D-15)', () => {
   beforeEach(() => {
     seq = 100n
   })
 
-  it('happy path: один payout без BURN → баланс = ISSUE amount', () => {
-    const rows = happyPathOrderFlow(150)
-    const wallets: MarketplaceWalletRow[] = [{ wallet: 'w.mkt.payout', balance: '150.0000 RUB' }]
-    const res = checkInvariantI1PayoutBalance(rows, wallets)
-    expect(res.ok).toBe(true)
-    expect(res.expected).toBe('150.0000 RUB')
-  })
-
-  it('happy path: payout + BURN → баланс = 0', () => {
-    const rows = happyPathOrderFlow(150)
-    rows.push({
-      globalSequence: nextSeq(),
-      action: 'walletop',
-      operationCode: 'o.gw.payconf',
-      processHash: newProcessHash(),
-      walletFrom: 'w.mkt.payout',
+  /** Приёмка, затем удержание долга при инициации и выплата остатка кассиром. */
+  function supplierThread(accepted: number, deduct: number, payout: number | null, processHash = newProcessHash()) {
+    const rows = buildApplyTrio({
+      processHash,
+      operationCode: 'o.mkt.purch',
+      amount: accepted,
+      walletFrom: null,
       walletTo: null,
-      quantity: '150.0000 RUB',
+      debitAccount: 10,
+      creditAccount: 76,
     })
-    const wallets: MarketplaceWalletRow[] = [{ wallet: 'w.mkt.payout', balance: '0.0000 RUB' }]
-    const res = checkInvariantI1PayoutBalance(rows, wallets)
+    if (deduct > 0) {
+      rows.push(
+        ...buildApplyTrio({
+          processHash,
+          operationCode: 'o.mkt.deduct',
+          amount: deduct,
+          walletFrom: 'w.mkt.debt',
+          walletTo: null,
+          debitAccount: null,
+          creditAccount: null,
+        }),
+      )
+    }
+    if (payout !== null) {
+      rows.push(
+        ...buildApplyTrio({
+          processHash,
+          operationCode: 'o.mkt.payout',
+          amount: payout,
+          walletFrom: null,
+          walletTo: 'w.mkt.payout',
+          debitAccount: 76,
+          creditAccount: 51,
+        }),
+      )
+    }
+    return rows
+  }
+
+  it('happy path: выплата на принятую сумму закрывает расчёт', () => {
+    const res = checkInvariantI1SupplierThreads(happyPathOrderFlow(150))
     expect(res.ok).toBe(true)
+    expect(res.expected).toBe('ниток: 1, закрытых: 1')
   })
 
-  it('violation: ISSUE без соответствия в balance', () => {
-    const rows = happyPathOrderFlow(150)
-    const wallets: MarketplaceWalletRow[] = [{ wallet: 'w.mkt.payout', balance: '0.0000 RUB' }]
-    const res = checkInvariantI1PayoutBalance(rows, wallets)
+  it('happy path: удержание при инициации плюс выплата остатка = принятая стоимость', () => {
+    const res = checkInvariantI1SupplierThreads(supplierThread(1000, 200, 800))
+    expect(res.ok).toBe(true)
+    expect(res.expected).toBe('ниток: 1, закрытых: 1')
+  })
+
+  it('happy path: долг покрыл всю выплату — банковского перевода нет, расчёт закрыт удержанием', () => {
+    const res = checkInvariantI1SupplierThreads(supplierThread(1000, 1000, null))
+    expect(res.ok).toBe(true)
+    expect(res.expected).toBe('ниток: 1, закрытых: 1')
+  })
+
+  it('happy path: приёмка без выплаты — расчёт открыт, нарушения нет', () => {
+    const res = checkInvariantI1SupplierThreads(supplierThread(1000, 0, null))
+    expect(res.ok).toBe(true)
+    expect(res.expected).toBe('ниток: 1, закрытых: 0')
+  })
+
+  it('violation: выплата проведена на сумму выдачи вместо принятой', () => {
+    const res = checkInvariantI1SupplierThreads(supplierThread(1000, 0, 800))
     expect(res.ok).toBe(false)
     expect(res.violation).toMatch(/I1/)
-    expect(res.expected).toBe('150.0000 RUB')
-    expect(res.actual).toBe('0.0000 RUB')
+    expect(res.details?.[0]?.message).toMatch(/не закрывают принятую стоимость 1000\.0000 RUB/)
+  })
+
+  it('violation: удержание учтено дважды — выплата и удержание больше принятого', () => {
+    // Сценарий задачи: две выплаты одному поставщику удержали один и тот же
+    // долг; во второй нитке удержание с выплатой превышают принятую стоимость.
+    const res = checkInvariantI1SupplierThreads(supplierThread(1000, 200, 1000))
+    expect(res.ok).toBe(false)
+    expect(res.details?.[0]?.message).toMatch(/не закрывают принятую стоимость/)
+  })
+
+  it('violation: выплата в нитке без приёмки', () => {
+    const processHash = newProcessHash()
+    const rows = buildApplyTrio({
+      processHash,
+      operationCode: 'o.mkt.payout',
+      amount: 500,
+      walletFrom: null,
+      walletTo: 'w.mkt.payout',
+      debitAccount: 76,
+      creditAccount: 51,
+    })
+    const res = checkInvariantI1SupplierThreads(rows)
+    expect(res.ok).toBe(false)
+    expect(res.details?.[0]?.message).toMatch(/без приёмки/)
+  })
+
+  it('violation: выплата проведена дважды', () => {
+    const processHash = newProcessHash()
+    const rows = [
+      ...supplierThread(1000, 0, 1000, processHash),
+      ...buildApplyTrio({
+        processHash,
+        operationCode: 'o.mkt.payout',
+        amount: 1000,
+        walletFrom: null,
+        walletTo: 'w.mkt.payout',
+        debitAccount: 76,
+        creditAccount: 51,
+      }),
+    ]
+    const res = checkInvariantI1SupplierThreads(rows)
+    expect(res.ok).toBe(false)
+    expect(res.details?.some((d) => /выплата проведена 2 раза/.test(d.message))).toBe(true)
   })
 })
 
@@ -435,6 +515,44 @@ describe('I7 — долг поставщикам на счёте 76 равен �
     expect(res.expected).toBe('800.0000 RUB')
   })
 
+  it('happy path: заказ принят до появления accepted_cost — принятая стоимость берётся из истории (99D-15)', () => {
+    const { processHash, rows } = acceptedOnly(1000)
+    const settlements: MarketplaceOpenSettlementRow[] = [{ processHash, acceptedCost: null }]
+    const res = checkInvariantI7SupplierSettlements(rows, [], settlements)
+    expect(res.ok).toBe(true)
+    expect(res.expected).toBe('1000.0000 RUB')
+  })
+
+  it('happy path: долг удержан при инициации, выплата остатка ждёт кассира — 76 меньше на удержанное', () => {
+    const { processHash, rows } = acceptedOnly(1000, newProcessHash())
+    rows.push(
+      ...buildApplyTrio({
+        processHash: newProcessHash(),
+        operationCode: 'o.mkt.admit',
+        amount: 200,
+        walletFrom: 'w.mkt.claim',
+        walletTo: 'w.mkt.debt',
+        debitAccount: 76,
+        creditAccount: 91,
+      }),
+      ...buildApplyTrio({
+        processHash,
+        operationCode: 'o.mkt.deduct',
+        amount: 200,
+        walletFrom: 'w.mkt.debt',
+        walletTo: null,
+        debitAccount: null,
+        creditAccount: null,
+      }),
+    )
+    // Долг сожжён при инициации: кошелёк долга пуст, к переводу 800.
+    const wallets: MarketplaceWalletRow[] = [{ wallet: 'w.mkt.debt', balance: '0.0000 RUB' }]
+    const settlements: MarketplaceOpenSettlementRow[] = [{ processHash, acceptedCost: '1000.0000 RUB' }]
+    const res = checkInvariantI7SupplierSettlements(rows, wallets, settlements)
+    expect(res.ok).toBe(true)
+    expect(res.expected).toBe('800.0000 RUB')
+  })
+
   it('violation (сценарий 1 задачи): выплата проведена на сумму выдачи вместо принятой — остаток зависает на 76', () => {
     const processHash = newProcessHash()
     const rows = [
@@ -549,6 +667,34 @@ describe('I6 — нет orphan o.mkt.lock', () => {
     expect(res.ok).toBe(true)
   })
 
+  it('happy path: резерв из свободного паевого (lockp) + consum — выдача с резервом', () => {
+    // Задача 99D-15: заказ, оплаченный целиком из свободного паевого «Стола
+    // заказов», содержит только lockp; прежняя редакция считала это выдачей
+    // без резерва и писала нарушение каждый час.
+    const orderHash = newProcessHash()
+    const rows: MarketplaceLedger2OperationRow[] = [
+      ...buildApplyTrio({
+        processHash: orderHash,
+        operationCode: 'o.mkt.lockp',
+        amount: 30,
+        walletFrom: 'w.mkt.share',
+        walletTo: 'w.mkt.order',
+        debitAccount: null,
+        creditAccount: null,
+      }),
+      ...buildApplyTrio({
+        processHash: orderHash,
+        operationCode: 'o.mkt.consum',
+        amount: 30,
+        walletFrom: 'w.mkt.order',
+        walletTo: null,
+        debitAccount: 80,
+        creditAccount: 10,
+      }),
+    ]
+    expect(checkInvariantI6NoOrphanedReserves(rows).ok).toBe(true)
+  })
+
   it('violation: consum без lock (двойная выдача / битый flow)', () => {
     const orderHash = newProcessHash()
     const rows = buildApplyTrio({
@@ -562,7 +708,7 @@ describe('I6 — нет orphan o.mkt.lock', () => {
     })
     const res = checkInvariantI6NoOrphanedReserves(rows)
     expect(res.ok).toBe(false)
-    expect(res.details?.[0]?.message).toMatch(/consum без предшествующего lock/)
+    expect(res.details?.[0]?.message).toMatch(/consum без предшествующего резерва/)
   })
 
   it('violation: lock + unlock + consum (двойное закрытие)', () => {
@@ -642,17 +788,75 @@ describe('checkAllMarketplaceLedger2Invariants — батч', () => {
   })
 })
 
-describe('I2 — marketplace-вклад в счёт 86 (sanity)', () => {
+describe('I2 — счёт 86: только перевод в членский, удержание при отказе и списание скоропорта', () => {
   beforeEach(() => {
     seq = 100n
   })
 
-  it('подсчёт debit/credit на 86 для полного flow', () => {
-    const rows = happyPathOrderFlow(100)
-    const res = checkInvariantI2Account86Delta(rows)
-    expect(res.ok).toBe(true)
+  it('happy path: полный flow заказа счёт 86 не задевает', () => {
     // Паевая модель: тело заказа не заходит на 86 (lock без проводки, purch
-    // Дт 10 / Кт 76, payout Дт 76 / Кт 51, consum Дт 80 / Кт 10) — вклад в 86 нулевой.
-    expect(res.expected).toBe('0.0000 RUB')
+    // Дт 10 / Кт 76, payout Дт 76 / Кт 51, consum Дт 80 / Кт 10).
+    const res = checkInvariantI2Account86Usage(happyPathOrderFlow(100))
+    expect(res.ok).toBe(true)
+    expect(res.expected).toBe('dr=0.0000 RUB / cr=0.0000 RUB')
+  })
+
+  it('happy path: списание скоропорта (Дт 86), перевод в членский и удержание при отказе (Кт 86) — законные проводки', () => {
+    const orderHash = newProcessHash()
+    const rows: MarketplaceLedger2OperationRow[] = [
+      ...writeoffFlow(40),
+      ...buildApplyTrio({
+        processHash: orderHash,
+        operationCode: 'o.mkt.conv',
+        amount: 100,
+        walletFrom: 'w.wal.share',
+        walletTo: 'w.mkt.member',
+        debitAccount: 80,
+        creditAccount: 86,
+      }),
+      ...buildApplyTrio({
+        processHash: orderHash,
+        operationCode: 'o.mkt.penal',
+        amount: 50,
+        walletFrom: 'w.mkt.order',
+        walletTo: 'w.mkt.fee',
+        debitAccount: 80,
+        creditAccount: 86,
+      }),
+    ]
+    const res = checkInvariantI2Account86Usage(rows)
+    expect(res.ok).toBe(true)
+    expect(res.expected).toBe('dr=40.0000 RUB / cr=150.0000 RUB')
+  })
+
+  it('violation: проводка по 86 в нитке Стола заказов вне трёх допустимых операций', () => {
+    // Приёмка легла на 86 вместо 76 — так выглядел бы реестр до перевода
+    // закупки на счёт расчётов.
+    const res = checkInvariantI2Account86Usage(
+      buildApplyTrio({
+        processHash: newProcessHash(),
+        operationCode: 'o.mkt.purch',
+        amount: 100,
+        walletFrom: null,
+        walletTo: null,
+        debitAccount: 10,
+        creditAccount: 86,
+      }),
+    )
+    expect(res.ok).toBe(false)
+    expect(res.violation).toMatch(/I2/)
+    expect(res.details?.[0]?.message).toMatch(/кредит 86/)
+  })
+
+  it('проводка без кода привязывается к операции по родительскому apply', () => {
+    // В живой истории у строк debit/credit кода нет — есть ссылка на apply.
+    const processHash = newProcessHash()
+    const applySeq = nextSeq()
+    const rows: MarketplaceLedger2OperationRow[] = [
+      { globalSequence: applySeq, action: 'apply', operationCode: 'o.mkt.wroff', processHash, quantity: '40.0000 RUB' },
+      { globalSequence: nextSeq(), action: 'debit', processHash, accountId: 86, quantity: '40.0000 RUB', parentApplyGlobalSequence: applySeq },
+      { globalSequence: nextSeq(), action: 'credit', processHash, accountId: 10, quantity: '40.0000 RUB', parentApplyGlobalSequence: applySeq },
+    ]
+    expect(checkInvariantI2Account86Usage(rows).ok).toBe(true)
   })
 })

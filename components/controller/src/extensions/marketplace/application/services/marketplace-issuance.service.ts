@@ -236,6 +236,38 @@ export class MarketplaceIssuanceService {
    * Возвращает сагу и сформированное Заявление 1113 к подписи.
    */
   async fixFact(input: MarketplaceIssuanceFixFactInput): Promise<{ saga: MarketplaceIssuanceSagaDomainEntity; statement: InnerGeneratedDocument }> {
+    const order = await this.validateFact(input);
+
+    const fact = this.buildFact(order, input.actual_quantity, input.actual_unit_price);
+    const saga = await this.sagaRepo.createOrReuse({
+      coopname: order.coopname,
+      order_id: order.id,
+      order_hash: order.order_hash,
+      proposal_id: input.proposal_id ?? null,
+      member_account: order.orderer_account,
+      operator_account: input.operator_account,
+      braname: order.delivery_braname,
+      fact,
+    });
+    if (saga.stage !== MarketplaceIssuanceSagaStages.FACT_FIXED) {
+      throw new ConflictException(`Выдача по заказу уже начата (этап «${saga.stage}») — дождитесь её завершения или отмените.`);
+    }
+    const statement = await this.generateStatementDocument(order, saga.fact);
+    this.emitSagaUpdated(saga);
+    return { saga, statement };
+  }
+
+  /**
+   * Все проверки факта без побочных эффектов: бандл у стойки проверяет свои
+   * строки ДО того, как сохранить себя, — иначе отказ по одной строке (цена
+   * выше потолка, нет остатка на складе) оставлял бы пустой бандл без саг.
+   */
+  async assertFactAllowed(input: MarketplaceIssuanceFixFactInput): Promise<void> {
+    await this.validateFact(input);
+  }
+
+  /** Заказ, по которому факт допустим: статус, количество, цена, личность получателя, остаток на складе, потолок цены. */
+  private async validateFact(input: MarketplaceIssuanceFixFactInput): Promise<MarketplaceOrderDomainEntity> {
     const order = await this.loadOrder(input.coopname, input.order_id);
     if (order.status !== 'READY_TO_RECEIVE' && order.status !== 'ACCEPTED_TO_COOP') {
       throw new ConflictException(`Заказ в статусе «${order.status}» — выдача недоступна.`);
@@ -260,24 +292,7 @@ export class MarketplaceIssuanceService {
         `Цену при выдаче можно только снизить: не выше ${priceCeiling} ₽ за единицу отпуска — по этой цене имущество числится на складе.`
       );
     }
-
-    const fact = this.buildFact(order, input.actual_quantity, input.actual_unit_price);
-    const saga = await this.sagaRepo.createOrReuse({
-      coopname: order.coopname,
-      order_id: order.id,
-      order_hash: order.order_hash,
-      proposal_id: input.proposal_id ?? null,
-      member_account: order.orderer_account,
-      operator_account: input.operator_account,
-      braname: order.delivery_braname,
-      fact,
-    });
-    if (saga.stage !== MarketplaceIssuanceSagaStages.FACT_FIXED) {
-      throw new ConflictException(`Выдача по заказу уже начата (этап «${saga.stage}») — дождитесь её завершения или отмените.`);
-    }
-    const statement = await this.generateStatementDocument(order, saga.fact);
-    this.emitSagaUpdated(saga);
-    return { saga, statement };
+    return order;
   }
 
   /** Заявление 1113 к подписи по живой саге (повторное открытие экрана пайщика). */
@@ -1091,15 +1106,26 @@ export class MarketplaceIssuanceService {
     }
   }
 
-  /** Уценка по заказу из остатка (chain `markdown`, o.mkt.loss) — best-effort, идемпотентно на цепи. */
+  /**
+   * Уценка по заказу (chain `markdown`, o.mkt.loss). Сумма сначала пишется в
+   * проекцию (`markdown_due`), потом уходит в цепь: сбой отправки не теряет
+   * её — крон повторяет `markdown`, пока цепь не отзеркалит `markdown_cost`,
+   * а закрытие заказа до этого откладывается (задача 99D-15).
+   */
   private async submitMarkdownLoss(order: MarketplaceOrderDomainEntity, issued_arrival_cost: string, fact_cost: string): Promise<void> {
     const delta = Number.parseFloat(issued_arrival_cost) - Number.parseFloat(fact_cost);
     const minStep = 10 ** -this.assetConfig.decimals;
     if (!Number.isFinite(delta) || delta < minStep) return;
+    const amount = delta.toFixed(this.assetConfig.decimals);
     try {
-      await this.chainPort.markdown({ coopname: order.coopname, order_hash: order.order_hash, amount: this.formatAsset(delta.toFixed(this.assetConfig.decimals)) });
+      await this.orderRepo.applyMarkdownDue(order.id, amount);
     } catch (err) {
-      this.logger.warn(`Заказ ${order.id}: списание уценки не прошло (${this.errMessage(err)}); дослать вручную повторным markdown.`);
+      this.logger.warn(`Заказ ${order.id}: уценка ${amount} не записана в проекцию (${this.errMessage(err)}); повтор по расписанию её не увидит.`);
+    }
+    try {
+      await this.chainPort.markdown({ coopname: order.coopname, order_hash: order.order_hash, amount: this.formatAsset(amount) });
+    } catch (err) {
+      this.logger.warn(`Заказ ${order.id}: списание уценки не прошло (${this.errMessage(err)}); повтор по расписанию.`);
     }
   }
 

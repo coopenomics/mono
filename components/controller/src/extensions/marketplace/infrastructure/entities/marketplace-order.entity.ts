@@ -238,6 +238,18 @@ export class MarketplaceOrderEntity {
   @Column({ type: 'varchar', length: 12, nullable: true })
   public payout_status!: string | null;
 
+  /** Списанная уценка — on-chain mirror `markdown_cost`. Null до первой sync-дельты. */
+  @Column({ type: 'numeric', precision: 24, scale: 4, nullable: true })
+  public markdown_cost!: string | null;
+
+  /**
+   * Уценка, рассчитанная бэкендом при закрытии выдачи и ожидающая проведения
+   * на цепи (задача 99D-15). Backend-only: крон повторяет `markdown`, пока
+   * `markdown_cost` на цепи пуст; закрытие заказа до этого откладывается.
+   */
+  @Column({ type: 'numeric', precision: 24, scale: 4, nullable: true })
+  public markdown_due!: string | null;
+
   @CreateDateColumn({ type: 'timestamptz' })
   public created_at!: Date;
 

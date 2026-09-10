@@ -3,12 +3,12 @@
  * (E11 техдолг 598-16, Locked Decision L12, p.mkt.supply).
  *
  * Backend дёргает это действие, когда кассир в админке отметил готовность
- * проводить выплату поставщику. Действие НЕ применяет ledger2 — оно лишь
- * inline-вызовом регистрирует в gateway::outcomes запись типа «исходящий
- * платёж» со статусом pending и привязанным callback'ом на marketplace. Сам
- * Дт 76 / Кт 51 произойдёт уже в callback'е `payconfirm` после фактического
- * банковского перевода (gateway::outcomplete вызывает кассир через свой
- * стол), либо отменится в `paydecline` (gateway::outdecline).
+ * проводить выплату поставщику. Проводки Дт 76 / Кт 51 здесь нет — она
+ * произойдёт в callback'е `payconfirm` после фактического банковского перевода
+ * (gateway::outcomplete вызывает кассир через свой стол), либо отменится в
+ * `paydecline` (gateway::outdecline). Действие лишь inline-вызовом регистрирует
+ * в gateway::outcomes запись типа «исходящий платёж» со статусом pending и
+ * привязанным callback'ом на marketplace.
  *
  * Inline-вызов: `gateway::createoutpay` с `callback_contract = _marketplace`,
  * `confirm_callback = "payconfirm"_n`, `decline_callback = "paydecline"_n`,
@@ -20,6 +20,20 @@
  * кооператив должен поставщику ровно принятое, и эта сумма совпадает с
  * приходованием имущества Кт 76 и с суммой платежа в реестре платежей
  * кооператива независимо от того, сколько потом выдали пайщику (задача 99D-14).
+ *
+ * Удержание признанного гарантийного долга (w.mkt.debt, задача 99D-13)
+ * проводится ЗДЕСЬ, при инициации: o.mkt.deduct (BURN с кошелька долга, без
+ * проводки — обязательство и дебиторка на одном счёте 76) гасит долг в момент,
+ * когда сумма перевода определена. Гасить его при подтверждении кассира нельзя:
+ * пока выплата ждёт кассира, остаток долга на кошельке не меняется, и вторая
+ * выплата тому же поставщику удержала бы тот же долг ещё раз — а её
+ * подтверждение сжигало бы больше, чем осталось, и падало вместе с действием
+ * кассира (задача 99D-15). После инициации `payout_withheld` и `accepted_cost`
+ * не меняются: `payconfirm` проводит ровно `accepted_cost − payout_withheld`.
+ *
+ * Повторная инициация после `paydecline` удержание не повторяет: уже
+ * удержанное остаётся в `payout_withheld`, доудерживается только новый долг,
+ * признанный с тех пор, и только в пределах ещё не выплаченного остатка.
  *
  * Status Order'а не меняется (выплата может идти параллельно шагам выдачи).
  * payout_status переходит NONE/DECLINED → PENDING; declined-кейс — повторная
@@ -51,23 +65,34 @@ void marketplace::payout(eosio::name coopname, checksum256 order_hash) {
 
   const eosio::asset accepted_cost = Marketplace::get_accepted_cost(o);
 
-  // Удержание признанного гарантийного долга поставщика (w.mkt.debt, задача
-  // 99D-13): выплата уменьшается на остаток долга, не больше самой выплаты.
+  // Уже удержанное прошлой (отклонённой кассиром) инициацией: долг по нему
+  // сожжён тогда же, повторно не удерживается.
+  const eosio::asset already_withheld = o.payout_withheld.has_value()
+      ? o.payout_withheld.value()
+      : eosio::asset(0, _root_govern_symbol);
+  eosio::check(already_withheld <= accepted_cost,
+               "Удержанный долг превышает принятую стоимость заказа");
+  const eosio::asset outstanding = accepted_cost - already_withheld;
+
+  // Новое удержание — остаток признанного долга поставщика, не больше ещё не
+  // выплаченного по заказу. Долг гасится сразу: следующая выплата тому же
+  // поставщику увидит уже уменьшенный остаток.
   const auto debt = Marketplace::get_user_wallet_balance(coopname, ledger2_wallets::MARKETPLACE_SUPPLIER_DEBT, o.offerer);
-  eosio::asset withheld(0, _root_govern_symbol);
-  if (debt.exists && debt.available.amount > 0) {
-    withheld = debt.available.amount < accepted_cost.amount ? debt.available : accepted_cost;
+  eosio::asset deducted_now(0, _root_govern_symbol);
+  if (debt.exists && debt.available.amount > 0 && outstanding.amount > 0) {
+    deducted_now = debt.available.amount < outstanding.amount ? debt.available : outstanding;
+    Ledger2::apply(_marketplace, coopname,
+                   operations::marketplace::DEDUCT_DEBT,
+                   processes::marketplace::SUPPLY,
+                   deducted_now, o.offerer, o.hash,
+                   Marketplace::Memo::get_deduct_debt_memo(o.id));
   }
+  const eosio::asset withheld = already_withheld + deducted_now;
   const eosio::asset to_pay = accepted_cost - withheld;
 
   if (to_pay.amount == 0) {
     // Долг покрывает всю выплату: банковского перевода не будет, удержание
-    // проводится сразу, выплата считается завершённой.
-    Ledger2::apply(_marketplace, coopname,
-                   operations::marketplace::DEDUCT_DEBT,
-                   processes::marketplace::SUPPLY,
-                   withheld, o.offerer, o.hash,
-                   Marketplace::Memo::get_deduct_debt_memo(o.id));
+    // уже проведено, выплата считается завершённой.
     if (o.status == OrderStatus::REFUSED) {
       // Пайщик уже отказался, заказ ждал только расчёта с поставщиком —
       // расчёт закрыт удержанием, запись больше не нужна.
@@ -83,9 +108,9 @@ void marketplace::payout(eosio::name coopname, checksum256 order_hash) {
   }
 
   // Регистрация исходящего платежа в gateway на принятую сумму за вычетом
-  // удержания. Сам Дт 76 / Кт 51 и o.mkt.deduct произойдут в callback'е
-  // `payconfirm` от gateway после действия кассира — на ту же сумму:
-  // accepted_cost и payout_withheld после этого шага не меняются.
+  // удержания. Сам Дт 76 / Кт 51 произойдёт в callback'е `payconfirm` от
+  // gateway после действия кассира — на ту же сумму: accepted_cost и
+  // payout_withheld после этого шага не меняются.
   Gateway::create_outcome(_marketplace, coopname, o.offerer, o.hash, to_pay,
                           _marketplace, "payconfirm"_n, "paydecline"_n);
 

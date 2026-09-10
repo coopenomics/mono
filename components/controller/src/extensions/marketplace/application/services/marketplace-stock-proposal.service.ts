@@ -337,6 +337,29 @@ export class MarketplaceStockProposalService {
   }
 
   /**
+   * Строки существующих заказов: позиция бандла плюс проверка факта ДО
+   * сохранения бандла — отказ (цена выше потолка, нет остатка на складе)
+   * иначе оставлял бы пустой бандл без саг (задача 99D-15).
+   */
+  private async buildOrderItems(
+    input: MarketplaceStockProposalCreateInput,
+    orderLines: MarketplaceOrderProposalCreateLine[]
+  ): Promise<MarketplaceStockProposalItem[]> {
+    const items: MarketplaceStockProposalItem[] = [];
+    for (const line of orderLines) {
+      items.push(await this.buildOrderItem(input.coopname, input.braname, input.member_account, line));
+      await this.issuanceService.assertFactAllowed({
+        coopname: input.coopname,
+        operator_account: input.operator_account,
+        order_id: line.order_id,
+        actual_quantity: line.actual_quantity,
+        actual_unit_price: line.actual_unit_price,
+      });
+    }
+    return items;
+  }
+
+  /**
    * Валидация строки обычного заказа в бандле + снапшот для показа пайщику.
    * Заказ обязан быть принят кооперативом (или уже готов к выдаче) без начатой
    * выдачи, принадлежать адресату бандла и выдаваться ИМЕННО с этого КУ.
@@ -443,9 +466,7 @@ export class MarketplaceStockProposalService {
         order_hash: line.order_hash,
       });
     }
-    for (const line of orderLines) {
-      items.push(await this.buildOrderItem(input.coopname, input.braname, input.member_account, line));
-    }
+    items.push(...(await this.buildOrderItems(input, orderLines)));
     const proposal = await this.proposalRepo.create({
       coopname: input.coopname,
       braname: input.braname,

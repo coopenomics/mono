@@ -152,6 +152,17 @@ export interface MarketplaceOrderProps {
    * (none / pending / completed / declined). Null до первой sync-дельты.
    */
   payout_status?: MarketplaceOrderPayoutStatus | null;
+  /**
+   * Списанная уценка — on-chain mirror `markdown_cost` (o.mkt.loss по
+   * заказу). Null до первой sync-дельты; «0.0000», пока уценка не проведена.
+   */
+  markdown_cost?: string | null;
+  /**
+   * Уценка, которую бэкенд рассчитал при закрытии выдачи и обязан довезти до
+   * цепи (задача 99D-15). Backend-only: пока `markdown_cost` на цепи пуст,
+   * крон повторяет отправку, а закрытие заказа откладывается.
+   */
+  markdown_due?: string | null;
   cycle_id: string | null;
   /** Грань «заказ заказчика» (Эпик 16): общий id строк одного оформления на один КУ; null = legacy покарточный заказ. */
   checkout_id: string | null;

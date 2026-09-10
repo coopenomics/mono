@@ -7,9 +7,9 @@ import { Actors } from '../../../common'
  * перевода поставщику (E11 техдолг 598-16, Locked Decision L12). Inline-action,
  * отправляется контрактом gateway; backend сам этот action не дёргает.
  * Авторизация — `_gateway`. Здесь применяется o.mkt.payout (Дт 76 / Кт 51) на
- * принятую стоимость `accepted_cost` за вычетом удержанного долга и
- * `order.payout_status` переходит PENDING → COMPLETED; заказ в статусе
- * `refused` после проводки стирается.
+ * принятую стоимость `accepted_cost` за вычетом долга, удержанного при
+ * инициации в `payout`, и `order.payout_status` переходит PENDING →
+ * COMPLETED; заказ в статусе `refused` после проводки стирается.
  */
 export const authorizations = [{ permissions: [Permissions.active], actor: Actors._contract }] as const
 

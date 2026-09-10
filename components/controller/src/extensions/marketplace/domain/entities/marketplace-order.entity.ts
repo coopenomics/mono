@@ -48,6 +48,10 @@ export class MarketplaceOrderDomainEntity implements IBlockchainSynchronizable {
   public accepted_cost: string | null;
   /** Состояние выплаты поставщику (on-chain mirror `payout_status`). */
   public payout_status: MarketplaceOrderPayoutStatus | null;
+  /** Списанная уценка (on-chain mirror `markdown_cost`); null до первой sync-дельты. */
+  public markdown_cost: string | null;
+  /** Уценка, рассчитанная бэкендом при выдаче и ожидающая проведения на цепи (задача 99D-15). */
+  public markdown_due: string | null;
   public readonly cycle_id: string | null;
   /** Грань «заказ заказчика» (Эпик 16): общий id строк одного оформления на один КУ; null = legacy покарточный заказ. */
   public readonly checkout_id: string | null;
@@ -115,6 +119,8 @@ export class MarketplaceOrderDomainEntity implements IBlockchainSynchronizable {
     this.membership_fee = props.membership_fee;
     this.accepted_cost = props.accepted_cost ?? null;
     this.payout_status = props.payout_status ?? null;
+    this.markdown_cost = props.markdown_cost ?? null;
+    this.markdown_due = props.markdown_due ?? null;
     this.cycle_id = props.cycle_id;
     this.checkout_id = props.checkout_id;
     this.shipment_id = props.shipment_id;
@@ -186,6 +192,8 @@ export class MarketplaceOrderDomainEntity implements IBlockchainSynchronizable {
     // величины зеркалятся безусловно, как и membership_fee.
     this.accepted_cost = blockchainData.accepted_cost;
     this.payout_status = blockchainData.payout_status;
+    // markdown_cost пишет только `markdown` и один раз — зеркалится безусловно.
+    this.markdown_cost = blockchainData.markdown_cost ?? null;
     // Forward-only guard. Backend опережает цепь на нескольких переходах
     // «прямого пути»: cycle-hook / синтез индивидуальной заявки переводят
     // Order в ACCEPTED_PENDING_SUPPLIER(_INDIVIDUAL) и далее ACCEPTED /
@@ -329,4 +337,6 @@ export interface MarketplaceOrderBlockchainData {
   accepted_cost: string | null;
   /** Состояние выплаты поставщику (`payout_status`). */
   payout_status: MarketplaceOrderPayoutStatus | null;
+  /** Списанная уценка (`markdown_cost`); «0.0000», пока уценка не проведена. */
+  markdown_cost?: string | null;
 }

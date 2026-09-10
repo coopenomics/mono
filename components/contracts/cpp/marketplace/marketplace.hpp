@@ -238,9 +238,12 @@ public:
    * одному Order'у (E11 техдолг 598-16, Locked Decision L12). Per-Order:
    * inline-вызов `gateway::createoutpay` с callback'ами на `payconfirm` /
    * `paydecline`. Ledger2-операция o.mkt.payout (Дт 76 / Кт 51) применяется
-   * НЕ здесь, а в callback'е `payconfirm` после действия кассира. Статус
-   * Order'а не меняется; защита от двойного запроса — через
-   * `order.payout_status` (NONE/DECLINED → PENDING).
+   * НЕ здесь, а в callback'е `payconfirm` после действия кассира. Признанный
+   * гарантийный долг поставщика удерживается здесь же: o.mkt.deduct (BURN
+   * w.mkt.debt) на остаток долга в пределах принятой стоимости, перевод
+   * регистрируется на разницу (задача 99D-15). Статус Order'а не меняется;
+   * защита от двойного запроса — через `order.payout_status`
+   * (NONE/DECLINED → PENDING).
    * @ingroup public_marketplace_actions
    */
   [[eosio::action]] void payout(eosio::name coopname,
@@ -249,8 +252,10 @@ public:
   /**
    * @brief Callback от gateway::outcomplete — кассир подтвердил
    * банковский перевод поставщику (E11 техдолг 598-16, Locked Decision L12).
-   * Здесь применяется o.mkt.payout (Дт 76 / Кт 51) на принятую стоимость `accepted_cost` за вычетом удержания; заказ в статусе `refused` стирается; иначе `payout_status`
-   * переходит PENDING → COMPLETED. Авторизация: `_gateway`. `outcome_hash`
+   * Здесь применяется o.mkt.payout (Дт 76 / Кт 51) на принятую стоимость
+   * `accepted_cost` за вычетом удержания, проведённого при инициации
+   * (`payout_withheld`); заказ в статусе `refused` стирается; иначе
+   * `payout_status` переходит PENDING → COMPLETED. Авторизация: `_gateway`. `outcome_hash`
    * совпадает с `order.hash` (так задано при `payout`).
    * @ingroup public_marketplace_actions
    */

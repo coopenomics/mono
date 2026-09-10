@@ -15,6 +15,13 @@ import {
 /** Сколько кандидатов закрываем за один прогон — защита от лавины сабмитов. */
 const CLOSE_BATCH_LIMIT = 200;
 
+/** Уценка рассчитана бэкендом, а цепь её ещё не отзеркалила. */
+export function isMarkdownPending(order: { markdown_due: string | null; markdown_cost: string | null }): boolean {
+  const due = Number.parseFloat(order.markdown_due ?? '0');
+  const done = Number.parseFloat(order.markdown_cost ?? '0');
+  return due > 0 && !(done > 0);
+}
+
 /**
  * Крон-закрытие выданных заказов после выхода гарантийного срока (принцип
  * конечного жизненного цикла RAM-записей: ничего не висит на цепи навсегда).
@@ -27,6 +34,11 @@ const CLOSE_BATCH_LIMIT = 200;
  * остаётся кандидатом следующего прогона. После успешного закрытия дельта
  * парсера (present=false) снимает `on_chain_present`, и заказ выпадает из
  * выборки; история заказа остаётся в PG и журнале действий.
+ *
+ * Заказ с рассчитанной, но не проведённой на цепи уценкой (`markdown_due`
+ * без `markdown_cost`) не закрывается: после закрытия запись стёрта и
+ * уценку уже не провести — разница навсегда осталась бы на счёте 10
+ * (задача 99D-15). Такой заказ ждёт крон повтора уценки.
  */
 @Injectable()
 export class MarketplaceOrderCloseCronService implements OnModuleInit {
@@ -71,6 +83,13 @@ export class MarketplaceOrderCloseCronService implements OnModuleInit {
     let closed = 0;
     let skipped = 0;
     for (const order of candidates) {
+      if (isMarkdownPending(order)) {
+        skipped++;
+        this.logger.warn(
+          `[ORDER_CLOSE_CRON] заказ ${order.order_hash} не закрыт: уценка ${order.markdown_due} ещё не проведена на цепи`
+        );
+        continue;
+      }
       try {
         await this.chainPort.closeOrder({
           coopname,

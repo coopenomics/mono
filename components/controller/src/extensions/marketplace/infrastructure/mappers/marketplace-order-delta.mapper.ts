@@ -114,6 +114,7 @@ export class MarketplaceOrderDeltaMapper extends AbstractBlockchainDeltaMapper<
         accepted_cost: MarketplaceOrderDeltaMapper.parseAssetAmount(value.accepted_cost),
         payout_status:
           MarketplaceOrderDeltaMapper.PAYOUT_STATUS_MAP[value.payout_status?.toLowerCase() ?? ''] ?? null,
+        markdown_cost: MarketplaceOrderDeltaMapper.parseAssetAmount(value.markdown_cost),
       };
     } catch (error: any) {
       this.logger.error(

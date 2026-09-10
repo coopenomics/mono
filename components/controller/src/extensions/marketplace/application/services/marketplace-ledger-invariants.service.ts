@@ -36,6 +36,17 @@ function normalizeAccountId(id: number | null | undefined): number | null {
 const SUPPLIER_DEBT_WALLET = 'w.mkt.debt';
 
 /**
+ * Срез истории учёта, дочитываемый по страницам. История только растёт
+ * (journal append-only), поэтому следующая сверка продолжает с той
+ * страницы, где остановилась прошлая; форк цепи может убрать хвост — тогда
+ * последняя строка кеша не найдётся на своём месте, и срез читается заново.
+ */
+interface HistoryCache {
+  coopname: string;
+  rows: MarketplaceLedger2OperationRow[];
+}
+
+/**
  * Сверка инвариантов учёта Стола заказов на живых данных (задача 99D-14).
  *
  * Агрегаторы I1–I7 (`invariants/marketplace-ledger2-invariants.ts`) чистые:
@@ -46,6 +57,8 @@ const SUPPLIER_DEBT_WALLET = 'w.mkt.debt';
  */
 @Injectable()
 export class MarketplaceLedgerInvariantsService {
+  private historyCache: HistoryCache | null = null;
+
   constructor(
     @Inject(LEDGER2_HISTORY_PORT) private readonly ledger: ILedger2HistoryPort,
     @Inject(USER_WALLET_PORT) private readonly userWallets: IUserWalletPort,
@@ -94,19 +107,38 @@ export class MarketplaceLedgerInvariantsService {
     }
   }
 
+  /**
+   * История учёта — дочитыванием: страницы, уже лежащие в кеше, повторно не
+   * читаются (задача 99D-15: часовая сверка перечитывала всю историю
+   * кооператива). Кеш живёт в памяти процесса и валиден, пока его последняя
+   * строка стоит на своём месте в цепи; иначе — полное чтение.
+   */
   private async loadHistory(coopname: string): Promise<MarketplaceLedger2OperationRow[]> {
-    const out: MarketplaceLedger2OperationRow[] = [];
-    for (let page = 1; ; page++) {
-      const resp = await this.ledger.getHistory({
-        coopname,
-        page,
-        limit: HISTORY_PAGE_LIMIT,
-        sortOrder: 'ASC',
-      });
-      out.push(...resp.items.map((op) => this.toRow(op)));
+    const cache = this.historyCache;
+    const cached = cache && cache.coopname === coopname ? cache.rows : [];
+    const rows = (await this.isCacheStillValid(coopname, cached)) ? [...cached] : [];
+    const fullPages = Math.floor(rows.length / HISTORY_PAGE_LIMIT);
+    rows.length = fullPages * HISTORY_PAGE_LIMIT;
+    for (let page = fullPages + 1; ; page++) {
+      const resp = await this.fetchPage(coopname, page);
+      rows.push(...resp.items.map((op) => this.toRow(op)));
       if (resp.items.length < HISTORY_PAGE_LIMIT || page >= resp.totalPages) break;
     }
-    return out;
+    this.historyCache = { coopname, rows };
+    return rows;
+  }
+
+  /** Последняя полная страница кеша обязана заканчиваться той же строкой, что и в цепи. */
+  private async isCacheStillValid(coopname: string, cached: readonly MarketplaceLedger2OperationRow[]): Promise<boolean> {
+    const fullPages = Math.floor(cached.length / HISTORY_PAGE_LIMIT);
+    if (fullPages === 0) return false;
+    const resp = await this.fetchPage(coopname, fullPages);
+    const last = resp.items[resp.items.length - 1];
+    return !!last && last.globalSequence === cached[fullPages * HISTORY_PAGE_LIMIT - 1]?.globalSequence;
+  }
+
+  private fetchPage(coopname: string, page: number) {
+    return this.ledger.getHistory({ coopname, page, limit: HISTORY_PAGE_LIMIT, sortOrder: 'ASC' });
   }
 
   private toRow(op: InnerLedger2Operation): MarketplaceLedger2OperationRow {
@@ -119,6 +151,7 @@ export class MarketplaceLedgerInvariantsService {
       walletTo: op.walletTo ?? null,
       accountId: normalizeAccountId(op.accountId),
       quantity: op.quantity ?? null,
+      parentApplyGlobalSequence: op.parentApplyGlobalSequence ?? null,
     };
   }
 
@@ -148,11 +181,15 @@ export class MarketplaceLedgerInvariantsService {
     return out;
   }
 
+  /**
+   * Открытые расчёты с поставщиками. Принятую стоимость инвариант берёт из
+   * истории (o.mkt.purch нитки заказа); значение из проекции — запасное для
+   * заказов, принятых до появления поля `accepted_cost`, у которых нитки в
+   * срезе нет.
+   */
   private async loadOpenSettlements(coopname: string): Promise<MarketplaceOpenSettlementRow[]> {
     const orders = await this.orderRepo.listOpenSupplierSettlements(coopname);
-    return orders
-      .filter((o) => o.accepted_cost !== null)
-      .map((o) => ({ processHash: o.order_hash, acceptedCost: o.accepted_cost as string }));
+    return orders.map((o) => ({ processHash: o.order_hash, acceptedCost: o.accepted_cost }));
   }
 }
 

@@ -40,6 +40,7 @@ import {
   MARKETPLACE_OUTGOING_PAYMENT_REQUEST_REPOSITORY,
   type MarketplaceOutgoingPaymentRequestDomainRepository,
 } from '../../domain/repositories/marketplace-outgoing-payment-request.repository';
+import type { MarketplaceOutgoingPaymentRequestDomainEntity } from '../../domain/entities/marketplace-outgoing-payment-request.entity';
 import {
   MARKETPLACE_OFFER_REPOSITORY,
   type MarketplaceOfferDomainRepository,
@@ -1115,7 +1116,7 @@ export class MarketplaceAplReceptionService {
     const payoutDestination = input.payout_method
       ? formatPayoutDestination(input.payout_method)
       : null;
-    let projection;
+    let projection: MarketplaceOutgoingPaymentRequestDomainEntity;
     try {
       projection = await this.paymentRepo.createIfNotExists({
         coopname: input.coopname,
@@ -1135,63 +1136,104 @@ export class MarketplaceAplReceptionService {
       );
       return;
     }
+    await this.deliverPayout(projection, input.payout_method, { createCorePayment: true, submitChain: true });
+  }
 
-    // Долг покрыл всю выплату: банковского перевода нет, контракт в `payout`
-    // сразу проводит удержание и закрывает выплату — платёж кассиру не нужен.
-    const nothingToPay = Number.parseFloat(input.amount) <= 0;
-    if (!projection.core_payment_id && !nothingToPay) {
+  /**
+   * Повтор доставки выплаты по уже созданной проекции (крон, задача 99D-15):
+   * платёж в общем реестре кооператива, если его ещё нет, и `marketplace::payout`,
+   * если цепь его ещё не приняла. Какие шаги нужны, решает вызывающий по
+   * состоянию проекции и зеркала заказа; реквизиты поставщика резолвятся
+   * заново — снапшот в проекции маскирован и для платежа не годится.
+   */
+  async redeliverPayout(
+    projection: MarketplaceOutgoingPaymentRequestDomainEntity,
+    steps: { createCorePayment: boolean; submitChain: boolean }
+  ): Promise<void> {
+    let payoutMethod: InnerPaymentMethod | null = null;
+    if (steps.createCorePayment && !projection.core_payment_id) {
       try {
-        // payment_hash обязан совпадать с on-chain gateway::outcomes.outcome_hash,
-        // который marketplace::payout регистрирует как сам order_hash. Иначе
-        // кассирский gateway::outcomplete ищет объект выплаты по другому хэшу и
-        // падает с «Объект возврата не существует с указанным хэшем».
-        // Снапшот реквизитов поставщика — кассир видит банк/счёт/назначение
-        // прямо в развороте платежа общего реестра (как у обычного withdraw).
-        const corePayment = await this.coreGateway.createSystemOutgoingPayment({
-          coopname: input.coopname,
-          username: input.payee_account,
-          quantity: Number.parseFloat(input.amount),
-          symbol: this.assetConfig.symbol,
-          memo: input.purpose,
-          related_extension: 'marketplace',
-          related_entity_id: projection.id,
-          payment_hash: input.order_hash,
-          payment_method_id: input.payout_method?.method_id,
-          payment_details: input.payout_method
-            ? {
-                data: input.payout_method.data,
-                amount_plus_fee: input.amount,
-                amount_without_fee: input.amount,
-                fee_amount: '0',
-                fee_percent: 0,
-                fact_fee_percent: 0,
-                tolerance_percent: 0,
-              }
-            : undefined,
-        });
-        if (corePayment.id) {
-          await this.paymentRepo.applyCorePaymentId(
-            input.coopname,
-            input.order_hash,
-            corePayment.id
-          );
-        }
+        payoutMethod = await this.supplierSettings.resolvePayoutMethod(projection.coopname, projection.payee_account);
       } catch (err: any) {
         this.logger.warn(
-          `initiatePayouts: core createSystemOutgoingPayment для order ${input.order_id} упал: ${err.message}; кассирский стол core не увидит выплату до повторной попытки.`
+          `redeliverPayout: резолв реквизитов поставщика ${projection.payee_account} упал: ${err.message}; платёж создаётся без реквизитов.`
         );
       }
     }
+    await this.deliverPayout(projection, payoutMethod, steps);
+  }
 
+  /**
+   * Довоз выплаты до кассы и до цепи. Обе части best-effort: сбой пишется в
+   * журнал, проекция остаётся PENDING, и крон повторяет недостающий шаг.
+   */
+  private async deliverPayout(
+    projection: MarketplaceOutgoingPaymentRequestDomainEntity,
+    payoutMethod: InnerPaymentMethod | null,
+    steps: { createCorePayment: boolean; submitChain: boolean }
+  ): Promise<void> {
+    // Долг покрыл всю выплату: банковского перевода нет, контракт в `payout`
+    // сразу проводит удержание и закрывает выплату — платёж кассиру не нужен.
+    const nothingToPay = Number.parseFloat(projection.amount) <= 0;
+    if (steps.createCorePayment && !projection.core_payment_id && !nothingToPay) {
+      await this.createCorePayment(projection, payoutMethod);
+    }
+    if (!steps.submitChain) return;
     try {
       const tx = await this.chainPort.payOut({
-        coopname: input.coopname,
-        order_hash: input.order_hash,
+        coopname: projection.coopname,
+        order_hash: projection.order_hash,
       });
-      if (nothingToPay) await this.completeWithheldPayout(input.coopname, input.order_hash, tx);
+      if (nothingToPay) await this.completeWithheldPayout(projection.coopname, projection.order_hash, tx);
     } catch (err: any) {
       this.logger.warn(
-        `initiatePayouts: on-chain payOut для order ${input.order_id} упал: ${err.message}; projection остаётся PENDING, gateway::outcomes не создан. Требуется retry.`
+        `initiatePayouts: on-chain payOut для order ${projection.order_id} упал: ${err.message}; projection остаётся PENDING, gateway::outcomes не создан — повтор по расписанию.`
+      );
+    }
+  }
+
+  /**
+   * Платёж поставщику в общем реестре кооператива — его видит кассир.
+   * payment_hash обязан совпадать с on-chain gateway::outcomes.outcome_hash,
+   * который marketplace::payout регистрирует как сам order_hash. Иначе
+   * кассирский gateway::outcomplete ищет объект выплаты по другому хэшу и
+   * падает с «Объект возврата не существует с указанным хэшем».
+   * Снапшот реквизитов поставщика — кассир видит банк/счёт/назначение
+   * прямо в развороте платежа общего реестра (как у обычного withdraw).
+   */
+  private async createCorePayment(
+    projection: MarketplaceOutgoingPaymentRequestDomainEntity,
+    payoutMethod: InnerPaymentMethod | null
+  ): Promise<void> {
+    try {
+      const corePayment = await this.coreGateway.createSystemOutgoingPayment({
+        coopname: projection.coopname,
+        username: projection.payee_account,
+        quantity: Number.parseFloat(projection.amount),
+        symbol: this.assetConfig.symbol,
+        memo: projection.purpose,
+        related_extension: 'marketplace',
+        related_entity_id: projection.id,
+        payment_hash: projection.order_hash,
+        payment_method_id: payoutMethod?.method_id,
+        payment_details: payoutMethod
+          ? {
+              data: payoutMethod.data,
+              amount_plus_fee: projection.amount,
+              amount_without_fee: projection.amount,
+              fee_amount: '0',
+              fee_percent: 0,
+              fact_fee_percent: 0,
+              tolerance_percent: 0,
+            }
+          : undefined,
+      });
+      if (corePayment.id) {
+        await this.paymentRepo.applyCorePaymentId(projection.coopname, projection.order_hash, corePayment.id);
+      }
+    } catch (err: any) {
+      this.logger.warn(
+        `initiatePayouts: core createSystemOutgoingPayment для order ${projection.order_id} упал: ${err.message}; кассирский стол core не увидит выплату до повтора по расписанию.`
       );
     }
   }

@@ -22,6 +22,9 @@ sources:
     - components/contracts/cpp/marketplace/src/p.mkt.supply/signchair.cpp
   backend:
     - components/controller/src/extensions/marketplace/application/services/marketplace-apl-reception*.ts
+    - components/controller/src/extensions/marketplace/application/services/marketplace-chain-retry*.ts
+    - components/controller/src/extensions/marketplace/application/services/marketplace-ledger-invariants*.ts
+    - components/controller/src/extensions/marketplace/application/invariants/*.ts
     - components/controller/src/extensions/marketplace/application/services/marketplace-shipment*.ts
     - components/controller/src/extensions/marketplace/application/services/marketplace-cycle*.ts
   ui:
@@ -339,7 +342,8 @@ cases:
       удержание половины проходит, заказ переходит в состояние «отказ» и
       остаётся на цепи; подтверждение выплаты проводит Дт 76 / Кт 51 и стирает
       заказ; повторный отказ отклоняется
-    status: missing   # сценарий на живой цепи не написан: нужен второй заказ с отказом до выдачи
+    test: components/boot/src/tests/marketplace-refusal-markdown.test.ts
+    status: written   # стенд не прогонялся: vitest локально запрещён, в CI живой цепи нет
 
   - id: mkt.supply.side.34
     level: contract
@@ -368,5 +372,80 @@ cases:
     expect: >
       сверка показывает расхождение остатка счёта 76 с открытыми расчётами;
       приёмка без выплаты и признанный, но не удержанный долг сходятся
+    test: components/controller/src/extensions/marketplace/application/invariants/marketplace-ledger2-invariants.spec.ts
+    status: written   # прогон не подтверждён локально — гоняет CI
+
+# 2026-09-10 (задача 99D-15, замкнутость учёта): удержание признанного долга
+# поставщика переехало из подтверждения кассира в инициацию выплаты — иначе
+# две ожидающие выплаты одному поставщику удерживали один долг дважды, и
+# второе подтверждение падало вместе с действием кассира. Уценку и инициацию
+# выплаты, не дошедшие до цепи, довозит крон. Инварианты: I1 — закрытие
+# расчёта по каждому заказу, I2 — использование счёта 86, I6 знает резерв из
+# свободного паевого, I7 берёт принятую стоимость из истории.
+
+  - id: mkt.supply.side.37
+    level: contract
+    kind: side
+    scenario: >
+      Две выплаты одному поставщику ждут кассира, у поставщика признан
+      гарантийный долг.
+    expect: >
+      долг удерживается при инициации первой выплаты (o.mkt.deduct в её нитке,
+      кошелёк долга уменьшается сразу); вторая выплата видит остаток долга и
+      удерживает только его; оба подтверждения кассира проходят на сумму
+      перевода без удержания
+    test: ~
+    status: missing   # требует претензии и двух поставок одного поставщика на стенде (реестр mkt.ret.side.52)
+
+  - id: mkt.supply.side.38
+    level: contract
+    kind: side
+    scenario: Кассир отклонил перевод после того, как при инициации удержан долг; выплата инициируется повторно.
+    expect: >
+      удержанное не восстанавливается и не удерживается повторно; повторная
+      инициация регистрирует перевод на прежний остаток, доудерживая только
+      долг, признанный с тех пор
+    test: ~
+    status: missing   # сценарий на живой цепи — после первого прогона side.37
+
+  - id: mkt.supply.side.39
+    level: backend
+    kind: side
+    scenario: >
+      Инициация выплаты в цепь либо платёж в общем реестре кооператива не
+      прошли при закрывающей подписи приёмки.
+    expect: >
+      крон повторяет недостающий шаг по проекции в ожидании: инициацию — если
+      зеркало заказа не показывает выплату на цепи, платёж — если его нет в
+      реестре; стёртый заказ и завершённая выплата повтора не получают
+    test: components/controller/tests/unit/marketplace/marketplace-chain-retry-cron.test.ts
+    status: written   # прогон не подтверждён локально — гоняет CI
+
+  - id: mkt.supply.side.40
+    level: backend
+    kind: side
+    scenario: >
+      Инвариант I1: выплата и удержание по заказу против принятой стоимости;
+      выплата без приёмки; выплата дважды.
+    expect: >
+      расчёт, закрытый переводом и удержанием ровно на принятую сумму, и
+      расчёт, закрытый одним удержанием, сходятся; перевод на сумму выдачи,
+      двойное удержание, выплата без приёмки и повторная выплата — нарушения
+    test: components/controller/src/extensions/marketplace/application/invariants/marketplace-ledger2-invariants.spec.ts
+    status: written   # прогон не подтверждён локально — гоняет CI
+
+  - id: mkt.supply.side.41
+    level: backend
+    kind: side
+    scenario: >
+      Инварианты I2, I6, I7 на данных стенда: проводка по 86 вне трёх
+      операций Стола заказов; заказ, оплаченный из свободного паевого; заказ,
+      принятый до появления поля принятой стоимости; долг, удержанный при
+      инициации.
+    expect: >
+      I2 отмечает чужую проводку по 86 и принимает списание, перевод в членский
+      и удержание при отказе; I6 не считает выдачу по резерву из свободного
+      паевого выдачей без резерва; I7 берёт принятую стоимость из истории и
+      вычитает удержанное при инициации
     test: components/controller/src/extensions/marketplace/application/invariants/marketplace-ledger2-invariants.spec.ts
     status: written   # прогон не подтверждён локально — гоняет CI

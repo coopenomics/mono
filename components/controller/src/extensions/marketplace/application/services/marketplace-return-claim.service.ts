@@ -1566,6 +1566,14 @@ export class MarketplaceReturnClaimService {
    * Наружу это выглядело как принятый возврат без имущества на складе: деньги
    * пайщику вернулись, а остаток кооператива не появлялся, и списывать было
    * нечего. Поэтому нет партии → `null`, и вызывающий не пишет позицию вовсе.
+   *
+   * Цена, по которой возвращённое ложится в остаток, — цена выдачи, а не цена
+   * прибытия исходной партии: контракт возвращает имущество на счёт 10 по
+   * сумме выдачи (o.mkt.return от `fact_cost`), и если выдавали со снижением
+   * цены, разница уже выбыла уценкой. Положить в остаток по цене прибытия
+   * значило бы списать эту разницу второй раз при следующей выдаче из остатка
+   * (задача 99D-15). Без снапшота выдачи — цена прибытия партии, затем цена
+   * заказа.
    */
   private async resolveRestockOrigin(
     claim: MarketplaceReturnClaimDomainEntity,
@@ -1587,7 +1595,7 @@ export class MarketplaceReturnClaimService {
       : null;
 
     return {
-      arrival_price: origin?.arrival_price ?? order.price_per_unit,
+      arrival_price: order.issuance_fact?.fact_unit_price ?? origin?.arrival_price ?? order.price_per_unit,
       expiry_date: origin?.expiry_date ?? shelfLifeExpiry,
       shipment_id,
     };

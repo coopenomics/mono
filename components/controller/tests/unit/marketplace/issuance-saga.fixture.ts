@@ -164,6 +164,7 @@ export function buildMocks(opts: {
     applyIssuanceAct1: jest.fn(async () => order),
     applyIssuanceClosed: jest.fn(async () => buildOrder({ ...order, status: 'RECEIVED' })),
     applyIssuanceReset: jest.fn(async () => buildOrder({ ...order, status: 'READY_TO_RECEIVE' })),
+    applyMarkdownDue: jest.fn(async () => order),
   };
   const inventoryRepo = {
     sumOnWarehouseByOrders: jest.fn(async (_c: string, ids: string[]) => new Map(ids.map((id) => [id, warehouse]))),
