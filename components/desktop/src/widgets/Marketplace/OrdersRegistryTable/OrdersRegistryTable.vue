@@ -119,6 +119,14 @@ function openOrder(o: OrderRegistryView): void {
 function onRequest(requestProps: { pagination: { page: number; rowsPerPage: number; rowsNumber?: number } }): void {
   emit('request', requestProps);
 }
+
+// q-table читает проп pagination только при слушателе update:pagination, иначе
+// берёт копию, снятую при монтировании (rowsNumber: 0), — подвал показывал
+// «1-0 из 0», листание стояло. В серверном режиме само событие не приходит:
+// смена страницы идёт через request, слушатель нужен ради чтения пропа.
+function onPaginationUpdate(pagination: { page: number; rowsPerPage: number; rowsNumber?: number }): void {
+  emit('request', { pagination });
+}
 </script>
 
 <template lang="pug">
@@ -151,6 +159,7 @@ function onRequest(requestProps: { pagination: { page: number; rowsPerPage: numb
       row-key="id",
       :loading="props.loading",
       :pagination="props.pagination",
+      @update:pagination="onPaginationUpdate",
       :rows-per-page-options="[25, 50, 100, 200]",
       no-data-label="Заказы не найдены",
       @request="onRequest"

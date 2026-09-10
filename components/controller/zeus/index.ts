@@ -13497,9 +13497,13 @@ walmoveWallets?: [{	input: ValueTypes["WalmoveInput"] | Variable<any, string>},V
 	title: string | Variable<any, string>
 };
 	["ProcessSummary"]: AliasType<{
+	/** Сумма главной операции процесса — наибольшая среди его операций */
+	amount?:boolean | `@${string}`,
 	coopname?:boolean | `@${string}`,
 	firstSeenAt?:boolean | `@${string}`,
 	lastSeenAt?:boolean | `@${string}`,
+	/** Назначение главной операции процесса */
+	memo?:boolean | `@${string}`,
 	processHash?:boolean | `@${string}`,
 	processType?:boolean | `@${string}`,
 	username?:boolean | `@${string}`,
@@ -28525,9 +28529,13 @@ walmoveWallets?: [{	input: ResolverInputTypes["WalmoveInput"]},ResolverInputType
 	title: string
 };
 	["ProcessSummary"]: AliasType<{
+	/** Сумма главной операции процесса — наибольшая среди его операций */
+	amount?:boolean | `@${string}`,
 	coopname?:boolean | `@${string}`,
 	firstSeenAt?:boolean | `@${string}`,
 	lastSeenAt?:boolean | `@${string}`,
+	/** Назначение главной операции процесса */
+	memo?:boolean | `@${string}`,
 	processHash?:boolean | `@${string}`,
 	processType?:boolean | `@${string}`,
 	username?:boolean | `@${string}`,
@@ -43797,9 +43805,13 @@ export type ModelTypes = {
 	title: string
 };
 	["ProcessSummary"]: {
-		coopname: string,
+		/** Сумма главной операции процесса — наибольшая среди его операций */
+	amount?: string | undefined | null,
+	coopname: string,
 	firstSeenAt: ModelTypes["DateTime"],
 	lastSeenAt: ModelTypes["DateTime"],
+	/** Назначение главной операции процесса */
+	memo?: string | undefined | null,
 	processHash: string,
 	processType: string,
 	username?: string | undefined | null
@@ -60175,9 +60187,13 @@ export type GraphQLTypes = {
 };
 	["ProcessSummary"]: {
 	__typename: "ProcessSummary",
+	/** Сумма главной операции процесса — наибольшая среди его операций */
+	amount?: string | undefined | null,
 	coopname: string,
 	firstSeenAt: GraphQLTypes["DateTime"],
 	lastSeenAt: GraphQLTypes["DateTime"],
+	/** Назначение главной операции процесса */
+	memo?: string | undefined | null,
 	processHash: string,
 	processType: string,
 	username?: string | undefined | null,

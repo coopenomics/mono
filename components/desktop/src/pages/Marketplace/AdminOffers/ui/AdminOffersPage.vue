@@ -209,7 +209,7 @@ q-page.admin-offers(role="region", aria-label="Реестр предложени
       :columns="columns",
       row-key="id",
       :loading="loading",
-      :pagination="pagination",
+      v-model:pagination="pagination",
       :rows-per-page-options="[25, 50, 100, 200]",
       no-data-label="Предложения не найдены",
       @request="onRequest",

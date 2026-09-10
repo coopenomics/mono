@@ -532,12 +532,16 @@ function makeRow(partial: {
   operationCodes: (string | null)[];
   processTypes?: (string | null)[];
   usernames?: (string | null)[];
+  amounts?: (string | null)[];
+  memos?: (string | null)[];
   processHash?: string;
 }) {
   return {
     operationCodes: partial.operationCodes,
     processTypes: partial.processTypes ?? partial.operationCodes.map(() => null),
     usernames: partial.usernames ?? partial.operationCodes.map(() => null),
+    amounts: partial.amounts ?? partial.operationCodes.map(() => null),
+    memos: partial.memos ?? partial.operationCodes.map(() => null),
     processHash: partial.processHash ?? HASH,
     coopname: COOP,
     firstSeenAt: '2026-08-10T19:11:00Z',
@@ -562,6 +566,50 @@ describe('ProcessRegistryService.listProcesses', () => {
     expect(page.items).toHaveLength(1);
     expect(page.items[0].processType).toBe('p.mkt.supply');
     expect(page.items[0].username).toBe('orderer');
+  });
+
+  test('строка несёт сумму и назначение главной операции — у поставки это тело заказа', async () => {
+    // Два заказа одного пайщика иначе неразличимы: тип, пайщик и даты совпадают.
+    const { svc } = makeListService([
+      makeRow({
+        operationCodes: ['o.mkt.conv', 'o.mkt.fee', 'o.mkt.lock'],
+        processTypes: ['p.mkt.supply', 'p.mkt.supply', 'p.mkt.supply'],
+        amounts: ['300.0000 RUB', '300.0000 RUB', '1000.0000 RUB'],
+        memos: [
+          'Перевод паевого взноса в членский кошелёк Стола заказов по заявлению пайщика',
+          'Членский взнос по заказу имущества № 0 в Столе заказов',
+          'Паевой резерв под заказ имущества № 0 в Столе заказов',
+        ],
+      }),
+    ]);
+
+    const page = await svc.listProcesses({ coopname: COOP }, PAGE);
+
+    expect(page.items[0].amount).toBe('1000.0000 RUB');
+    expect(page.items[0].memo).toBe('Паевой резерв под заказ имущества № 0 в Столе заказов');
+  });
+
+  test('при равных суммах главной считается первая операция нитки', async () => {
+    const { svc } = makeListService([
+      makeRow({
+        operationCodes: ['o.wal.depcpl', 'o.wal.depcpl'],
+        amounts: ['100.0000 RUB', '100.0000 RUB'],
+        memos: ['первая', 'вторая'],
+      }),
+    ]);
+
+    const page = await svc.listProcesses({ coopname: COOP }, PAGE);
+
+    expect(page.items[0].memo).toBe('первая');
+  });
+
+  test('нитка без сумм показывается без суммы и назначения', async () => {
+    const { svc } = makeListService([makeRow({ operationCodes: ['o.adj.walmove'] })]);
+
+    const page = await svc.listProcesses({ coopname: COOP }, PAGE);
+
+    expect(page.items[0].amount).toBeNull();
+    expect(page.items[0].memo).toBeNull();
   });
 
   test('список и деталь называют один процесс одинаково', async () => {

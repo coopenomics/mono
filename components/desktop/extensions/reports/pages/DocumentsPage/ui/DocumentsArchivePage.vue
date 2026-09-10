@@ -35,7 +35,7 @@
       row-key='id'
       flat
       :loading='reportStore.archiveLoading'
-      :pagination='archivePagination'
+      v-model:pagination='archivePagination'
       @request='onArchiveRequest'
     )
       template(#body-cell-valid='props')

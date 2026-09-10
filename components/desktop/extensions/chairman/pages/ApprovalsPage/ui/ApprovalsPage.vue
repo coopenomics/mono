@@ -24,17 +24,6 @@
       :pagination='pagination',
       @request='onRequest'
     )
-
-    // Пагинация
-    q-card-actions(align='center')
-      q-pagination(
-        v-model='pagination.page',
-        :max='Math.ceil((approvalStore.approvals?.totalCount || 0) / pagination.rowsPerPage)',
-        :max-pages='5',
-        direction-links,
-        boundary-links,
-        @update:model-value='onPageChange'
-      )
 </template>
 
 <script lang="ts" setup>
@@ -94,6 +83,9 @@ const loadApprovals = async () => {
     };
 
     await approvalStore.loadApprovals(data);
+    // Общее число — в пагинацию таблицы: её подвал и листание работают от него,
+    // отдельный пагинатор под таблицей больше не нужен.
+    pagination.value.rowsNumber = approvalStore.approvals?.totalCount || 0;
   } catch (error) {
     console.error('Ошибка загрузки одобрений:', error);
     FailAlert('Ошибка загрузки одобрений');
@@ -105,11 +97,6 @@ const loadApprovals = async () => {
 // Обработчик изменения фильтров
 const onFiltersChange = () => {
   pagination.value.page = 1; // Сбрасываем на первую страницу
-  loadApprovals();
-};
-
-// Обработчик изменения страницы
-const onPageChange = () => {
   loadApprovals();
 };
 
