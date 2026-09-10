@@ -54,7 +54,8 @@ async function retryDecision(data: IRobotRetryDecisionInput): Promise<IRobotDeci
   const { [Mutations.SovietRobot.RetryDecision.name]: result } = await client.Mutation(Mutations.SovietRobot.RetryDecision.mutation, {
     variables: { data },
   });
-  // SDK отдаёт undefined, когда решения нет; контракт функции обещает null.
+  // Поле необязательное в схеме, поэтому клиент отдаёт `undefined`, а наружу
+  // мы обещаем `null`: у вызывающего одна проверка на пустоту, а не две.
   return result ?? null;
 }
 

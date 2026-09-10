@@ -70,6 +70,8 @@ export class Client {
   private thunder: ReturnType<typeof Thunder>
   /** Shared graphql-ws транспорт — не создавать на каждый доступ к getter. */
   private subscriptionApi: WsSubscriptionApi | null = null
+  /** Извещение приложения о том, что сервер больше не признаёт наш доступ. */
+  private authLostHandler?: () => void
   private static scalars = ZeusScalars({
     DateTime: {
       decode: (e: unknown) => new Date(e as string), // Преобразует строку в объект Date
@@ -150,6 +152,39 @@ export class Client {
     this.currentHeaders.Authorization = `Bearer ${result.tokens.access.token}`
 
     return result
+  }
+
+  /**
+   * Кого звать, когда сервер сказал, что доступа больше нет.
+   *
+   * Без такого извещения каждый вызов разбирается с отказом сам, а фоновые —
+   * счётчик уведомлений, статус членства — не разбираются вовсе: они молча
+   * падают по кругу. Пайщик `pgrzosdeyuwg` 08.09.2026 просидел так несколько
+   * часов: раз в минуту два отказа в логах сервера, а в кабинете ни ошибки, ни
+   * возврата на вход — только исчезнувший кошелёк и предложение вступить в
+   * пайщики. Обработчик ставит приложение, SDK лишь сообщает факт.
+   */
+  public setAuthLostHandler(handler?: () => void): void {
+    this.authLostHandler = handler
+  }
+
+  /**
+   * Опознать в ответе потерю доступа. Отдельного кода у платформы нет, признак —
+   * текст: «Сессия завершена, требуется повторная авторизация» сервер отдаёт
+   * ровно в одном месте, когда сессия токена отозвана.
+   *
+   * Голое «Unauthorized» потерей доступа НЕ считается: так отвечает страж любому
+   * запросу без токена — а их шлют и гость на странице регистрации, и стол, чьи
+   * запросы ушли раньше, чем приложение узнало о входе. Реагировать на них
+   * перезагрузкой значило бы гонять гостя по кругу. Поэтому два условия сразу:
+   * запрос ушёл с bearer (доступ БЫЛ), и сервер сказал, что сессии больше нет.
+   */
+  private reportAuthLoss(errors: unknown, hadToken: boolean): void {
+    if (!this.authLostHandler || !hadToken)
+      return
+    const text = JSON.stringify(errors ?? '')
+    if (/Сессия завершена/i.test(text))
+      this.authLostHandler()
   }
 
   /**
@@ -302,7 +337,7 @@ export class Client {
    */
   private createThunder(baseUrl: string) {
     return Thunder(async (query, variables) => {
-      await this.prepareAuthorization()
+      const hadToken = await this.prepareAuthorization()
       const controller = typeof AbortController !== 'undefined' ? new AbortController() : null
       const timeoutId = controller
         ? setTimeout(() => controller.abort(), HTTP_TIMEOUT_MS)
@@ -338,6 +373,7 @@ export class Client {
         const json = (await response.json()) as GraphQLResponse
 
         if (json.errors) {
+          this.reportAuthLoss(json.errors, hadToken)
           throw json.errors
         }
 

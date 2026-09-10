@@ -176,7 +176,7 @@ describe('Объявление допуска оператором сети', ()
   let announcementRows: Map<string, any>;
   let deliverDocument: jest.Mock;
   let attestationService: any;
-  let chain: { getSingleRow: jest.Mock };
+  let chain: { getSingleRow: jest.Mock; getAllRows: jest.Mock };
 
   const build = (announceAsOperator: boolean) => {
     const repo = {
@@ -209,7 +209,10 @@ describe('Объявление допуска оператором сети', ()
       signDocument: jest.fn(async (payload: any) => ({ payload, signature: 'SIG_K1_x', chain: ['a', 'b'] })),
       deliverDocument,
     };
-    chain = { getSingleRow: jest.fn(async () => ({ announce: 'ПО «Заря»' })) };
+    chain = {
+      getSingleRow: jest.fn(async () => ({ announce: 'ПО «Заря»' })),
+      getAllRows: jest.fn(async () => []),
+    };
   });
 
   it('активация кооператива в цепи ведёт к подписанному объявлению с наименованием из цепи', async () => {
@@ -274,6 +277,43 @@ describe('Объявление допуска оператором сети', ()
     // Доставленный допуск второй раз не объявляется.
     await service.resendUndelivered();
     expect(deliverDocument).toHaveBeenCalledTimes(1);
+  });
+
+  it('допуск объявляется и кооперативам, активированным до расширения — событие им ждать неоткуда', async () => {
+    chain.getAllRows.mockResolvedValueOnce([
+      { username: 'voskhod', status: 'active' },
+      { username: 'chest', status: 'active' },
+      { username: 'sonnaya', status: 'blocked' },
+    ]);
+    const service = build(true);
+
+    await service.resendUndelivered();
+
+    const announced = deliverDocument.mock.calls.map(([, envelope]: any[]) => envelope.payload.subject);
+    expect(announced).toContain('chest');
+    expect(announced).not.toContain('sonnaya');
+  });
+
+  it('доставленный допуск догон не повторяет — рестарт оператора сеть не тревожит', async () => {
+    announcementRows.set('chest', { coopname: 'chest', displayName: 'ПК «ЧЕСТЬ»', delivered: true });
+    chain.getAllRows.mockResolvedValueOnce([{ username: 'chest', status: 'active' }]);
+    const service = build(true);
+
+    await service.resendUndelivered();
+
+    const announced = deliverDocument.mock.calls.map(([, envelope]: any[]) => envelope.payload.subject);
+    expect(announced).not.toContain('chest');
+  });
+
+  it('цепь недоступна — догон пропускается, а журнал всё равно разбирается', async () => {
+    announcementRows.set('zarya', { coopname: 'zarya', displayName: 'ПО «Заря»', delivered: false });
+    chain.getAllRows.mockRejectedValueOnce(new Error('узел недоступен'));
+    const service = build(true);
+
+    await service.resendUndelivered();
+
+    const announced = deliverDocument.mock.calls.map(([, envelope]: any[]) => envelope.payload.subject);
+    expect(announced).toContain('zarya');
   });
 
   it('без флага оператора самодопуск не объявляется', async () => {

@@ -1,6 +1,13 @@
 import { UnauthorizedException } from '@nestjs/common';
 import { tokenTypes } from '~/types/token.types';
 import { JwtAuthStrategy } from './jwt.strategy';
+import { SessionAliveService } from '../services/session-alive.service';
+
+// Сервис живости сессии при создании отдаёт себя веб-сокету через реестр —
+// здесь проверяется стратегия HTTP, реестр ей не нужен.
+jest.mock('~/infrastructure/graphql/ws-session-check.registry', () => ({
+  registerWsSessionCheck: jest.fn(),
+}));
 
 /**
  * Завершение сессии обязано отбирать доступ.
@@ -36,11 +43,19 @@ function setup(opts: { migrated?: boolean } = {}) {
   const vault = { retrieve: jest.fn().mockResolvedValue(opts.migrated ? { ciphertext: 'x' } : null) };
   // След активности пишется на каждом авторизованном запросе (fire-and-forget).
   const activity = { markActive: jest.fn().mockResolvedValue(undefined) };
+  // Живость сессии стратегия спрашивает у общего сервиса — того же, что и
+  // веб-сокет. Собираем его настоящим из тех же моков: проверки ниже смотрят,
+  // как он ходит в хранилище сессий и vault, а не подменяют его ответ.
+  const sessionAlive = new SessionAliveService(
+    tokenRepository as never,
+    userRepository as never,
+    userDomainService as never,
+    vault as never,
+  );
   const strategy = new JwtAuthStrategy(
     userRepository as never,
     userDomainService as never,
-    tokenRepository as never,
-    vault as never,
+    sessionAlive,
     activity as never,
   );
   return { strategy, tokenRepository, vault, activity };
