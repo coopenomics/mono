@@ -161,10 +161,17 @@ function getEnv(): EnvVars {
   }
 
   // Fallback к process.env (для сервера или dev режима)
+  //
+  // SSR-сервер рендерит страницу внутри контура и за данными должен ходить к
+  // соседнему nginx напрямую, а не наружу по публичному имени: через шлюз он
+  // получает 403 (стенды) или лишний круг через L7 (прод), и страница
+  // рендерится как для гостя. SSR_BACKEND_URL / SSR_CHAIN_URL действуют только
+  // на сервере; браузеру по-прежнему уходят публичные адреса из injectEnv.
+  const onServer = typeof window === 'undefined';
   envCache = {
     NODE_ENV: process.env.NODE_ENV as string,
-    BACKEND_URL: process.env.BACKEND_URL as string,
-    CHAIN_URL: process.env.CHAIN_URL as string,
+    BACKEND_URL: ((onServer && process.env.SSR_BACKEND_URL) || process.env.BACKEND_URL) as string,
+    CHAIN_URL: ((onServer && process.env.SSR_CHAIN_URL) || process.env.CHAIN_URL) as string,
     CHAIN_ID: process.env.CHAIN_ID as string,
     CURRENCY: process.env.CURRENCY as string,
     COOP_SHORT_NAME: process.env.COOP_SHORT_NAME as string,
