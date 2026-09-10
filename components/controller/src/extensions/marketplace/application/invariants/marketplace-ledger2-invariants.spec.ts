@@ -1,7 +1,7 @@
 /**
  * CI-инварианты ledger2 marketplace.
  *
- * Юниты на off-chain агрегаторы I1..I6 в `marketplace-ledger2-invariants.ts`.
+ * Юниты на off-chain агрегаторы I1..I7 в `marketplace-ledger2-invariants.ts`.
  * Никаких NestJS / TypeORM / реального chain'а — работа на синтетических
  * массивах `Ledger2OperationDTO`.
  *
@@ -22,10 +22,12 @@ import {
   checkInvariantI1PayoutBalance,
   checkInvariantI2Account86Delta,
   checkInvariantI3Account10Materials,
-  checkInvariantI4Account91Transit,
+  checkInvariantI4Account91Usage,
   checkInvariantI5ReserveConsistency,
   checkInvariantI6NoOrphanedReserves,
+  checkInvariantI7SupplierSettlements,
   checkAllMarketplaceLedger2Invariants,
+  type MarketplaceOpenSettlementRow,
   parseAssetToBigInt,
   formatBigIntAsset,
 } from './marketplace-ledger2-invariants'
@@ -320,18 +322,147 @@ describe('I3 — баланс счёта 10 (Материалы)', () => {
   })
 })
 
-describe('I4 — транзитный счёт 91 (в marketplace больше не используется)', () => {
+describe('I4 — счёт 91: только уценка и признанные претензии', () => {
   beforeEach(() => {
     seq = 100n
   })
 
-  it('happy path: новый flow не задевает 91 → I4 пройден тривиально', () => {
+  it('happy path: поставка, возврат и списание 91 не задевают → I4 пройден', () => {
     const rows: MarketplaceLedger2OperationRow[] = []
     for (let i = 0; i < 3; i++) rows.push(...happyPathOrderFlow(50 + i))
     for (let i = 0; i < 2; i++) rows.push(...returnFlow(20 + i))
     for (let i = 0; i < 2; i++) rows.push(...writeoffFlow(15 + i))
-    const res = checkInvariantI4Account91Transit(rows)
+    const res = checkInvariantI4Account91Usage(rows)
     expect(res.ok).toBe(true)
+  })
+
+  it('happy path: уценка (o.mkt.loss, Дт 91) и признанная претензия (o.mkt.admit, Кт 91) — законные проводки по 91', () => {
+    const rows = [
+      ...buildApplyTrio({
+        processHash: newProcessHash(),
+        operationCode: 'o.mkt.loss',
+        amount: 12,
+        walletFrom: null,
+        walletTo: null,
+        debitAccount: 91,
+        creditAccount: 10,
+      }),
+      ...buildApplyTrio({
+        processHash: newProcessHash(),
+        operationCode: 'o.mkt.admit',
+        amount: 40,
+        walletFrom: 'w.mkt.claim',
+        walletTo: 'w.mkt.debt',
+        debitAccount: 76,
+        creditAccount: 91,
+      }),
+    ]
+    const res = checkInvariantI4Account91Usage(rows)
+    expect(res.ok).toBe(true)
+    expect(res.expected).toBe('dr=12.0000 RUB / cr=40.0000 RUB')
+  })
+
+  it('violation: проводка по 91 в нитке без уценки и без претензии', () => {
+    const rows = buildApplyTrio({
+      processHash: newProcessHash(),
+      operationCode: 'o.mkt.purch',
+      amount: 30,
+      walletFrom: null,
+      walletTo: null,
+      debitAccount: 91,
+      creditAccount: 76,
+    })
+    const res = checkInvariantI4Account91Usage(rows)
+    expect(res.ok).toBe(false)
+    expect(res.violation).toMatch(/I4/)
+    expect(res.details?.[0]?.message).toMatch(/без уценки/)
+  })
+})
+
+describe('I7 — долг поставщикам на счёте 76 равен открытым расчётам (99D-14)', () => {
+  beforeEach(() => {
+    seq = 100n
+  })
+
+  /** Приёмка без выплаты: долг поставщику открыт на принятую стоимость. */
+  function acceptedOnly(amount: number, processHash = newProcessHash()) {
+    return {
+      processHash,
+      rows: buildApplyTrio({
+        processHash,
+        operationCode: 'o.mkt.purch',
+        amount,
+        walletFrom: null,
+        walletTo: null,
+        debitAccount: 10,
+        creditAccount: 76,
+      }),
+    }
+  }
+
+  it('happy path: приёмка без выплаты → 76 = принятая стоимость открытого заказа', () => {
+    const { processHash, rows } = acceptedOnly(1000)
+    const settlements: MarketplaceOpenSettlementRow[] = [{ processHash, acceptedCost: '1000.0000 RUB' }]
+    const res = checkInvariantI7SupplierSettlements(rows, [], settlements)
+    expect(res.ok).toBe(true)
+    expect(res.expected).toBe('1000.0000 RUB')
+  })
+
+  it('happy path: выплата подтверждена на принятую сумму → 76 = 0, открытых расчётов нет', () => {
+    const rows = happyPathOrderFlow(1000)
+    const res = checkInvariantI7SupplierSettlements(rows, [], [])
+    expect(res.ok).toBe(true)
+    expect(res.expected).toBe('0.0000 RUB')
+  })
+
+  it('happy path: признанная претензия ещё не удержана → 76 меньше на признанный долг', () => {
+    const { processHash, rows } = acceptedOnly(1000)
+    rows.push(
+      ...buildApplyTrio({
+        processHash: newProcessHash(),
+        operationCode: 'o.mkt.admit',
+        amount: 200,
+        walletFrom: 'w.mkt.claim',
+        walletTo: 'w.mkt.debt',
+        debitAccount: 76,
+        creditAccount: 91,
+      }),
+    )
+    const wallets: MarketplaceWalletRow[] = [{ wallet: 'w.mkt.debt', balance: '200.0000 RUB' }]
+    const settlements: MarketplaceOpenSettlementRow[] = [{ processHash, acceptedCost: '1000.0000 RUB' }]
+    const res = checkInvariantI7SupplierSettlements(rows, wallets, settlements)
+    expect(res.ok).toBe(true)
+    expect(res.expected).toBe('800.0000 RUB')
+  })
+
+  it('violation (сценарий 1 задачи): выплата проведена на сумму выдачи вместо принятой — остаток зависает на 76', () => {
+    const processHash = newProcessHash()
+    const rows = [
+      ...acceptedOnly(1000, processHash).rows,
+      ...buildApplyTrio({
+        processHash,
+        operationCode: 'o.mkt.payout',
+        amount: 800, // выдали 8 из 10 — старый контракт проводил бы факт выдачи
+        walletFrom: null,
+        walletTo: 'w.mkt.payout',
+        debitAccount: 76,
+        creditAccount: 51,
+      }),
+    ]
+    const res = checkInvariantI7SupplierSettlements(rows, [], [])
+    expect(res.ok).toBe(false)
+    expect(res.violation).toMatch(/I7/)
+    expect(res.expected).toBe('0.0000 RUB')
+    expect(res.actual).toBe('200.0000 RUB')
+  })
+
+  it('violation (сценарий 2 задачи): заказ стёрт при незавершённой выплате — долг на 76 без заказа', () => {
+    const { rows } = acceptedOnly(1000)
+    // Проекция заказов открытого расчёта не видит: запись стёрта отказом.
+    const res = checkInvariantI7SupplierSettlements(rows, [], [])
+    expect(res.ok).toBe(false)
+    expect(res.actual).toBe('1000.0000 RUB')
+    expect(res.expected).toBe('0.0000 RUB')
   })
 })
 
@@ -476,7 +607,7 @@ describe('checkAllMarketplaceLedger2Invariants — батч', () => {
     seq = 100n
   })
 
-  it('полный happy-path order flow: все 6 инвариантов ok', () => {
+  it('полный happy-path order flow: все 7 инвариантов ok', () => {
     const rows = happyPathOrderFlow(100)
     const wallets: MarketplaceWalletRow[] = [
       { wallet: 'w.mkt.payout', balance: '100.0000 RUB' },
@@ -484,7 +615,8 @@ describe('checkAllMarketplaceLedger2Invariants — батч', () => {
     ]
     const accounts: MarketplaceAccountRow[] = [{ accountId: 10, balance: '0.0000 RUB' }]
     const results = checkAllMarketplaceLedger2Invariants(rows, wallets, accounts)
-    expect(results.map((r) => r.ok)).toEqual([true, true, true, true, true, true])
+    expect(results.map((r) => r.invariant)).toEqual(['I1', 'I2', 'I3', 'I4', 'I5', 'I6', 'I7'])
+    expect(results.map((r) => r.ok)).toEqual([true, true, true, true, true, true, true])
   })
 
   it('повторение order flow N раз с разными amounts — все инварианты ok', () => {

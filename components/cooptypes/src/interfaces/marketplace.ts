@@ -397,6 +397,12 @@ export interface IOrder {
   issue_protocol?: IDocument2
   /** Удержанная в счёт признанного гарантийного долга поставщика часть выплаты; binary_extension. */
   payout_withheld?: IAsset
+  /**
+   * Принятая стоимость по закрывающей подписи акта приёмки — база долга поставщику
+   * (Дт 10 / Кт 76) и суммы выплаты; заявление о выдаче её не меняет. binary_extension:
+   * у заказов, принятых до появления поля, значения нет — контракт читает `fact_cost`.
+   */
+  accepted_cost?: IAsset
   issue_act1: IDocument2
   issue_act2: IDocument2
   payout_status: IName

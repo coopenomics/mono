@@ -7,7 +7,8 @@ import { Actors } from '../../../common'
  * (E11 техдолг 598-16, Locked Decision L12). require_auth(coopname). Inline
  * вызовом регистрирует запись в `gateway::outcomes` со статусом pending и
  * привязанными callback'ами `payconfirm` / `paydecline` на marketplace.
- * Ledger2 (Дт 86 / Кт 51) применяется НЕ здесь, а в callback'е `payconfirm`
+ * Сумма — принятая стоимость `accepted_cost` за вычетом признанного долга.
+ * Ledger2 (Дт 76 / Кт 51) применяется НЕ здесь, а в callback'е `payconfirm`
  * после подтверждения кассиром фактического банковского перевода.
  * `order.payout_status` переходит NONE/DECLINED → PENDING.
  */

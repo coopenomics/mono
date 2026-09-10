@@ -1,6 +1,7 @@
 import type {
   MarketplaceOrderCreateTxSnapshot,
   MarketplaceOrderIssuanceFactSnapshot,
+  MarketplaceOrderPayoutStatus,
   MarketplaceOrderProps,
   MarketplaceOrderStatus,
 } from './marketplace-order.types';
@@ -43,6 +44,10 @@ export class MarketplaceOrderDomainEntity implements IBlockchainSynchronizable {
   public readonly total_cost: string;
   /** Членский взнос, включённый в стоимость заказа — on-chain mirror (см. MarketplaceOrderProps). */
   public membership_fee: string | null;
+  /** Принятая стоимость по акту приёмки (on-chain mirror `accepted_cost`, задача 99D-14). */
+  public accepted_cost: string | null;
+  /** Состояние выплаты поставщику (on-chain mirror `payout_status`). */
+  public payout_status: MarketplaceOrderPayoutStatus | null;
   public readonly cycle_id: string | null;
   /** Грань «заказ заказчика» (Эпик 16): общий id строк одного оформления на один КУ; null = legacy покарточный заказ. */
   public readonly checkout_id: string | null;
@@ -108,6 +113,8 @@ export class MarketplaceOrderDomainEntity implements IBlockchainSynchronizable {
     this.package_id = props.package_id ?? null;
     this.total_cost = props.total_cost;
     this.membership_fee = props.membership_fee;
+    this.accepted_cost = props.accepted_cost ?? null;
+    this.payout_status = props.payout_status ?? null;
     this.cycle_id = props.cycle_id;
     this.checkout_id = props.checkout_id;
     this.shipment_id = props.shipment_id;
@@ -174,6 +181,11 @@ export class MarketplaceOrderDomainEntity implements IBlockchainSynchronizable {
     // membership_fee — immutable on-chain snapshot (контракт пишет его один
     // раз при createorder), безусловный overwrite идемпотентен.
     this.membership_fee = blockchainData.membership_fee;
+    // accepted_cost пишет только закрывающая подпись приёмки и дальше не
+    // меняет; payout_status идёт вперёд по своей машине состояний — обе
+    // величины зеркалятся безусловно, как и membership_fee.
+    this.accepted_cost = blockchainData.accepted_cost;
+    this.payout_status = blockchainData.payout_status;
     // Forward-only guard. Backend опережает цепь на нескольких переходах
     // «прямого пути»: cycle-hook / синтез индивидуальной заявки переводят
     // Order в ACCEPTED_PENDING_SUPPLIER(_INDIVIDUAL) и далее ACCEPTED /
@@ -313,4 +325,8 @@ export interface MarketplaceOrderBlockchainData {
   status: MarketplaceOrderStatus;
   /** Членский взнос из on-chain `order` row (requirement b6), null — старая строка без поля. */
   membership_fee: string | null;
+  /** Принятая стоимость по акту приёмки (`accepted_cost`, задача 99D-14); null — до приёмки или старая строка. */
+  accepted_cost: string | null;
+  /** Состояние выплаты поставщику (`payout_status`). */
+  payout_status: MarketplaceOrderPayoutStatus | null;
 }

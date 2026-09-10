@@ -101,6 +101,16 @@ export interface MarketplaceOrderIssuanceFactSnapshot {
   diff_state: 'equal' | 'less' | 'more';
 }
 
+/** On-chain состояние выплаты поставщику по заказу (`OrderPayoutStatus` контракта). */
+export type MarketplaceOrderPayoutStatus = 'none' | 'pending' | 'completed' | 'declined';
+
+export const MarketplaceOrderPayoutStatuses = {
+  NONE: 'none',
+  PENDING: 'pending',
+  COMPLETED: 'completed',
+  DECLINED: 'declined',
+} as const satisfies Record<string, MarketplaceOrderPayoutStatus>;
+
 export interface MarketplaceOrderProps {
   id: string;
   coopname: string;
@@ -130,6 +140,18 @@ export interface MarketplaceOrderProps {
    * созданных до появления поля на контракте (`binary_extension`).
    */
   membership_fee: string | null;
+  /**
+   * Принятая стоимость по закрывающей подписи акта приёмки — on-chain mirror
+   * поля `accepted_cost` (задача 99D-14): база долга поставщику и суммы
+   * выплаты, заявление о выдаче её не меняет. Null до приёмки и у заказов,
+   * принятых до появления поля на контракте.
+   */
+  accepted_cost?: string | null;
+  /**
+   * Состояние выплаты поставщику — on-chain mirror `payout_status`
+   * (none / pending / completed / declined). Null до первой sync-дельты.
+   */
+  payout_status?: MarketplaceOrderPayoutStatus | null;
   cycle_id: string | null;
   /** Грань «заказ заказчика» (Эпик 16): общий id строк одного оформления на один КУ; null = legacy покарточный заказ. */
   checkout_id: string | null;

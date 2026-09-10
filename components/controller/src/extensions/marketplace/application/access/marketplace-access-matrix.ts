@@ -118,6 +118,9 @@ export const marketplaceAccessMatrix: Record<MarketplaceRole, Record<string, str
     // read:all — реестр всех предложений кооператива любого статуса (наряду с
     // модерацией PENDING); read:all есть и у совета (board_readonly).
     Offer: ['moderate', 'read', 'read:all'],
+    // Задача 99D-14: сверка инвариантов учёта Стола заказов (счета 10/76/91,
+    // кошельки резерва и выплат) — по запросу председателя.
+    Ledger: ['audit'],
     Order: ['read:all'],
     KU: ['manage'],
     // Реестр поставщиков: администратор видит реестр и добавляет поставщика

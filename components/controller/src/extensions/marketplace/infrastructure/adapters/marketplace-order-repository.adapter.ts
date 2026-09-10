@@ -19,6 +19,7 @@ import {
   MarketplaceOrderStatuses,
   type MarketplaceOrderIssuanceFactSnapshot,
   type MarketplaceOrderStatus,
+  MarketplaceOrderPayoutStatuses,
 } from '../../domain/entities/marketplace-order.types';
 import { MarketplaceOrderEntity } from '../entities/marketplace-order.entity';
 import { MarketplaceOrderMapper } from '../mappers/marketplace-order.mapper';
@@ -250,6 +251,8 @@ export class MarketplaceOrderRepositoryAdapter implements MarketplaceOrderDomain
       existing.on_chain_present = present;
       existing.status = blockchainData.status;
       existing.membership_fee = blockchainData.membership_fee;
+      existing.accepted_cost = blockchainData.accepted_cost;
+      existing.payout_status = blockchainData.payout_status;
       return this.persistDomain(existing);
     }
     // Out-of-band on-chain Order: оставляем минимальный stub-row,
@@ -522,6 +525,21 @@ export class MarketplaceOrderRepositoryAdapter implements MarketplaceOrderDomain
     const updated = this.mapper.toDomain(await this.repo.findOneOrFail({ where: { id } }));
     if (before.status !== updated.status) this.emitStatusChanged(updated, before.status);
     return updated;
+  }
+
+  async listOpenSupplierSettlements(coopname: string): Promise<MarketplaceOrderDomainEntity[]> {
+    const rows = await this.repo
+      .createQueryBuilder('o')
+      .where('o.coopname = :coop', { coop: coopname })
+      .andWhere('o.on_chain_present = true')
+      .andWhere('o.accepted_cost IS NOT NULL')
+      .andWhere('o.supplier_account <> :coop', { coop: coopname })
+      .andWhere('(o.payout_status IS NULL OR o.payout_status <> :done)', {
+        done: MarketplaceOrderPayoutStatuses.COMPLETED,
+      })
+      .orderBy('o.accepted_at', 'ASC')
+      .getMany();
+    return rows.map((r) => this.mapper.toDomain(r));
   }
 
   async listForIssuanceByBraname(

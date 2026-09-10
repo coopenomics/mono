@@ -33,7 +33,15 @@ import {
   PROCESS_HASH_LOCATOR,
   KNOWN_PROCESS_TYPES,
 } from '~/domain/process-registry/config/process-hash-locator'
-import { MARKETPLACE_OPERATION_CODES } from './marketplace-ledger2-invariants'
+
+/**
+ * Коды marketplace-операций из реестра. Считаются здесь, а не берутся из
+ * инвариантов: агрегаторы инвариантов переехали в расширение Стола заказов
+ * (`extensions/marketplace/application/invariants`), ядро их не импортирует.
+ */
+const MARKETPLACE_OPERATION_CODES: ReadonlySet<string> = new Set(
+  Ledger2.LEDGER2_OPERATION_REGISTRY.filter((op) => op.contract === 'marketplace').map((op) => op.code),
+)
 
 /**
  * Canonical список marketplace-операций паевой модели (14 шт), полностью

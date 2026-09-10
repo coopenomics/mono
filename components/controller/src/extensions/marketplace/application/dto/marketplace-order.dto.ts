@@ -236,6 +236,14 @@ export class MarketplaceOrderDTO {
   public readonly membership_fee!: string | null;
 
   @Field(() => String, {
+    nullable: true,
+    description:
+      'Принятая стоимость по акту приёмки: сколько кооператив должен поставщику за этот заказ. ' +
+      'Пусто — имущество ещё не принято.',
+  })
+  public readonly accepted_cost!: string | null;
+
+  @Field(() => String, {
     description:
       'Полная сумма к оплате заказчиком: total_cost + membership_fee. Готовое значение — ' +
       'клиенту не нужно складывать поля самому.',
@@ -464,6 +472,7 @@ export function toMarketplaceOrderDTO(
     price_per_unit: o.price_per_unit,
     total_cost: o.total_cost,
     membership_fee: o.membership_fee,
+    accepted_cost: o.accepted_cost ?? null,
     total_cost_with_fee: sumOrderAmounts(o.total_cost, o.membership_fee),
     cycle_id: o.cycle_id,
     checkout_id: o.checkout_id,

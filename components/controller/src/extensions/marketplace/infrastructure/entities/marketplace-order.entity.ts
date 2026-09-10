@@ -226,6 +226,18 @@ export class MarketplaceOrderEntity {
   @Column({ type: 'numeric', precision: 24, scale: 4, nullable: true })
   public membership_fee!: string | null;
 
+  /**
+   * Принятая стоимость по закрывающей подписи акта приёмки — on-chain mirror
+   * `accepted_cost` (задача 99D-14). Null до приёмки и у заказов, принятых до
+   * появления поля на контракте.
+   */
+  @Column({ type: 'numeric', precision: 24, scale: 4, nullable: true })
+  public accepted_cost!: string | null;
+
+  /** Состояние выплаты поставщику — on-chain mirror `payout_status`. Null до первой sync-дельты. */
+  @Column({ type: 'varchar', length: 12, nullable: true })
+  public payout_status!: string | null;
+
   @CreateDateColumn({ type: 'timestamptz' })
   public created_at!: Date;
 

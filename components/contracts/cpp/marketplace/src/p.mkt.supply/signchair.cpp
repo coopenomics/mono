@@ -3,19 +3,24 @@
  * по одному Order'у (Story 5.3/5.4, p.mkt.supply).
  *
  * Per-Order — только бухгалтерская приёмка имущества:
- *  - Ledger2::apply(o.mkt.purch, fact_cost, …, hash=order.hash) — Дт 10 / Кт 86.
+ *  - Ledger2::apply(o.mkt.purch, accepted_cost, …, hash=order.hash) — Дт 10 / Кт 76.
  *
  * Факт приёмки (кол-во и цена за единицу) корректируется оператором при
  * открытии приёмки и зашивается в акт, который утверждает поставщик: привезли
  * меньше / другого качества → принимаем со скидкой. Кооператив приходует
- * поставщику итоговую `fact_cost = actual_quantity × actual_unit_price`, а не
- * исходную `o.total_cost`. Резерва пайщика на приёмке нет, поэтому веток
+ * поставщику итоговую `accepted_cost = actual_quantity × actual_unit_price`, а
+ * не исходную `o.total_cost`. Резерва пайщика на приёмке нет, поэтому веток
  * возврата/доплаты (как в issueact2) здесь не требуется — это просто итоговая
  * стоимость к получению поставщиком.
  *
+ * Принятая стоимость хранится в своём поле `accepted_cost` и дальше не меняется:
+ * заявление о выдаче перезаписывает `fact_cost` фактом выдачи, а долг поставщику
+ * от того, сколько потом выдали пайщику, не зависит (задача 99D-14). В
+ * `actual_quantity` / `fact_cost` тот же факт кладётся для чтения до выдачи.
+ *
  * Имущество приходуется на склад приёмного КУ (`accept_braname`); у кооператива
- * возникает обязательство Кт 86 перед поставщиком. Фактическая выплата деньгами
- * (Дт 86 / Кт 51) — отдельным lazy action'ом `marketplace::payout` после
+ * возникает обязательство Кт 76 перед поставщиком. Фактическая выплата деньгами
+ * (Дт 76 / Кт 51) — отдельным lazy action'ом `marketplace::payout` после
  * подтверждения кассиром реального банковского перевода (Locked Decision L12,
  * E11 техдолг 598-16).
  *
@@ -60,21 +65,22 @@ void marketplace::signchair(eosio::name coopname,
 
   // Итоговая стоимость к получению поставщиком — от скорректированного факта.
   // При упаковочном отпуске actual_unit_price — скорректированная цена упаковки.
-  const eosio::asset fact_cost = Marketplace::calc_cost(actual_quantity, actual_unit_price, o.package_size);
-  eosio::check(fact_cost.amount > 0,
+  const eosio::asset accepted_cost = Marketplace::calc_cost(actual_quantity, actual_unit_price, o.package_size);
+  eosio::check(accepted_cost.amount > 0,
                "Итоговая фактическая сумма приёмки должна быть больше нуля");
 
   // Только приёмка имущества; payout — отдельный lazy action (L12).
   Ledger2::apply(_marketplace, coopname,
                  operations::marketplace::PURCHASE_FROM_SUPPLIER,
                  processes::marketplace::SUPPLY,
-                 fact_cost, o.offerer, o.hash,
+                 accepted_cost, o.offerer, o.hash,
                  Marketplace::Memo::get_purchase_from_supplier_memo(o.id));
 
   Marketplace::update_order(coopname, o.id, [&](auto& upd) {
     upd.status = OrderStatus::ACCEPTED_TO_COOP;
     upd.actual_quantity = actual_quantity;
-    upd.fact_cost = fact_cost;
+    upd.fact_cost = accepted_cost;
+    upd.accepted_cost.emplace(accepted_cost);
     upd.acceptance_act_signchair = act;
     upd.current_warehouse_braname = o.accept_braname;  // имущество на приёмном складе
   });

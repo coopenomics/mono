@@ -5,7 +5,9 @@ import { Interfaces } from 'cooptypes';
 type IOrderRow = Interfaces.Marketplace.IOrder;
 import type { MarketplaceOrderBlockchainData } from '../../domain/entities/marketplace-order.entity';
 import {
+  MarketplaceOrderPayoutStatuses,
   MarketplaceOrderStatuses,
+  type MarketplaceOrderPayoutStatus,
   type MarketplaceOrderStatus,
 } from '../../domain/entities/marketplace-order.types';
 
@@ -19,9 +21,9 @@ import {
  * Sync-key: `order_hash` (backend имя) = `hash` поле on-chain row.
  *
  * Status mapping: on-chain `eosio::name` — короткие имена (≤12 символов),
- * как объявлено в C++ `OrderStatus` (table_marketplace_orders.hpp): ровно
- * 7 значений `active`, `cancelled`, `accepted`, `supplyprep`, `acceptcoop`,
- * `readyrecv`, `received`. Это НЕ snake_case доменных статусов — раньше
+ * как объявлено в C++ `OrderStatus` (table_marketplace_orders.hpp):
+ * `active`, `accepted`, `supplyprep`, `acceptcoop`, `readyrecv`, `issuepend`,
+ * `issueauth`, `issueact1`, `received`, `refused`. Это НЕ snake_case доменных статусов — раньше
  * STATUS_MAP ошибочно ждал `supply_prepared`/`accepted_to_coop`/
  * `ready_to_receive`, из-за чего happy-path read-back дельты падали в
  * «schema drift» и не материализовали bc.status (#220).
@@ -51,6 +53,17 @@ export class MarketplaceOrderDeltaMapper extends AbstractBlockchainDeltaMapper<
     issueauth: MarketplaceOrderStatuses.ISSUE_AUTHORIZED,
     issueact1: MarketplaceOrderStatuses.ISSUE_ACT1,
     received: MarketplaceOrderStatuses.RECEIVED,
+    // Отказ пайщика после приёмки при незавершённой выплате поставщику
+    // (задача 99D-14): заказ остаётся на цепи до подтверждения кассира.
+    // Точный терминальный под-статус backend уже выставил при отказе.
+    refused: MarketplaceOrderStatuses.CANCELLED_BY_ORDERER,
+  };
+
+  private static readonly PAYOUT_STATUS_MAP: Record<string, MarketplaceOrderPayoutStatus> = {
+    none: MarketplaceOrderPayoutStatuses.NONE,
+    pending: MarketplaceOrderPayoutStatuses.PENDING,
+    completed: MarketplaceOrderPayoutStatuses.COMPLETED,
+    declined: MarketplaceOrderPayoutStatuses.DECLINED,
   };
 
   /**
@@ -98,6 +111,9 @@ export class MarketplaceOrderDeltaMapper extends AbstractBlockchainDeltaMapper<
         on_chain_id: value.id.toString(),
         status,
         membership_fee: MarketplaceOrderDeltaMapper.parseAssetAmount(value.membership_fee),
+        accepted_cost: MarketplaceOrderDeltaMapper.parseAssetAmount(value.accepted_cost),
+        payout_status:
+          MarketplaceOrderDeltaMapper.PAYOUT_STATUS_MAP[value.payout_status?.toLowerCase() ?? ''] ?? null,
       };
     } catch (error: any) {
       this.logger.error(

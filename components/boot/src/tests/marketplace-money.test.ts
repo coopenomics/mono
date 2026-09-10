@@ -16,6 +16,9 @@
  *   • o.mkt.purch  — закрывающая подпись приёмки ставит имущество на баланс (Дт 10 / Кт 76)
  *                    по ЦЕНЕ ПРИБЫТИЯ (Дт 10 / Кт 86), а не по цене заказа;
  *   • o.mkt.consum — выдача списывает выданное по цене прибытия (Дт 80 / Кт 10);
+ *   • o.mkt.payout — подтверждение кассиром выплаты поставщику проводит Дт 76 / Кт 51
+ *                    на ПРИНЯТУЮ стоимость (mkt.supply.happy.33, задача 99D-14),
+ *                    даже если заказчице к этому моменту выдали меньше;
  *   • o.mkt.unlock — недовыдача разблокирует невыданный остаток заказчицы;
  *   • o.mkt.refund — неиспользованная часть взноса возвращается пропорционально;
  *   • o.brn.common — фактический взнос зачисляется общему кошельку участка,
@@ -34,12 +37,14 @@
  * Требует стенда после `reboot:extra` с сид-фазами docs-harness.
  */
 import { beforeAll, describe, expect, it } from 'vitest'
+import { GatewayContract } from 'cooptypes'
 import Blockchain from '../blockchain'
 import config from '../configs'
 import { issueOrder } from './marketplace/orderFlow'
 import {
   ACC,
   CHAIRMAN,
+  COOP,
   type LedgerRow,
   amount,
   applyOpsOfProcess,
@@ -416,4 +421,37 @@ describe('стол заказов — денежные места поставк
     // нитке приёмки её быть не должно.
     expect(codes.has('o.mkt.payout'), 'выплата поставщику не должна происходить на приёмке').toBe(false)
   }, 180_000)
+
+  it('mkt.supply.happy.33: подтверждение выплаты после выдачи 3 из 4 проводит Дт 76 / Кт 51 на принятую стоимость, а не на сумму выдачи', async () => {
+    // Выплату поставщику бэкенд инициировал сразу после закрывающей подписи
+    // приёмки: в шлюзе лежит исходящий платёж с хэшем заказа на принятую
+    // сумму. Кассир подтверждает его уже после выдачи — заявление о выдаче к
+    // этому моменту перезаписало факт заказа (3 из 4), но долг поставщику
+    // сложился на приёмке и от выдачи не зависит.
+    await bc.api.transact({
+      actions: [{
+        account: GatewayContract.contractName.production,
+        name: GatewayContract.Actions.CompleteOutcome.actionName,
+        authorization: [{ actor: COOP, permission: 'active' }],
+        data: { coopname: COOP, outcome_hash: orderHash },
+      }],
+    }, { blocksBehind: 3, expireSeconds: 30 })
+
+    ops = await waitForOps(chairmanToken, orderHash, ['o.mkt.payout'])
+
+    const acceptedCost = ORDER_QTY * unitPrice
+    const issuedCost = ISSUED_QTY * unitPrice
+    const paid = sumOf(ops, 'o.mkt.payout')
+    expect(paid, 'выплата обязана идти на принятую стоимость — столько кассир перевёл в банк').toBeCloseTo(acceptedCost, 2)
+    expect(Math.abs(paid - issuedCost) > 0.005, 'выплата не должна повторять сумму выдачи').toBe(true)
+
+    const rows = await historyOfProcess(chairmanToken, orderHash)
+    expect(postingsFor(rows, 'debit', ACC.SETTLEMENTS, acceptedCost).length, 'выплата обязана лечь Дт 76').toBeGreaterThan(0)
+    expect(postingsFor(rows, 'credit', ACC.CASH, acceptedCost).length, 'выплата обязана лечь Кт 51').toBeGreaterThan(0)
+
+    // Долг поставщику по заказу закрыт ровно: кредит 76 приёмки равен дебету 76 выплаты.
+    const credit76 = rows.filter(r => r.action === 'credit' && r.accountId === ACC.SETTLEMENTS).reduce((s, r) => s + amount(r.quantity), 0)
+    const debit76 = rows.filter(r => r.action === 'debit' && r.accountId === ACC.SETTLEMENTS).reduce((s, r) => s + amount(r.quantity), 0)
+    expect(credit76 - debit76, 'на счёте 76 по заказу не должно остаться долга').toBeCloseTo(0, 2)
+  }, 300_000)
 })

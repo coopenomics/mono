@@ -9995,6 +9995,30 @@ export type ValueTypes = {
 }>;
 	/** Статус подключения ПВЗ: ACTIVE — активен, INACTIVE — отключён. */
 ["MarketplaceKUStatus"]:MarketplaceKUStatus;
+	["MarketplaceLedgerInvariant"]: AliasType<{
+	/** Фактическое значение по остаткам счетов и кошельков. */
+	actual?:boolean | `@${string}`,
+	/** Процессы, в которых найдено расхождение. */
+	details?:ValueTypes["MarketplaceLedgerInvariantDetail"],
+	/** Ожидаемое значение по истории операций. */
+	expected?:boolean | `@${string}`,
+	/** Код инварианта: I1 … I7. */
+	invariant?:boolean | `@${string}`,
+	/** Инвариант сходится. */
+	ok?:boolean | `@${string}`,
+	/** Описание расхождения; пусто, если инвариант сходится. */
+	violation?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on MarketplaceLedgerInvariant']?: Omit<ValueTypes["MarketplaceLedgerInvariant"], "...on MarketplaceLedgerInvariant">
+}>;
+	["MarketplaceLedgerInvariantDetail"]: AliasType<{
+	/** Что именно не сошлось в этом процессе. */
+	message?:boolean | `@${string}`,
+	/** Хэш процесса (заказа, заявления, претензии), в котором найдено расхождение. */
+	process_hash?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on MarketplaceLedgerInvariantDetail']?: Omit<ValueTypes["MarketplaceLedgerInvariantDetail"], "...on MarketplaceLedgerInvariantDetail">
+}>;
 	["MarketplaceListAidsInput"]: {
 	/** Показать заявки только этого получателя (по умолчанию — свои). */
 	username?: string | undefined | null | Variable<any, string>
@@ -10381,6 +10405,8 @@ export type ValueTypes = {
 ["MarketplaceOrder"]: AliasType<{
 	/** Когда поставщик принял заказ. */
 	accepted_at?:boolean | `@${string}`,
+	/** Принятая стоимость по акту приёмки: сколько кооператив должен поставщику за этот заказ. Пусто — имущество ещё не принято. */
+	accepted_cost?:boolean | `@${string}`,
 	/** Когда средства были заблокированы. */
 	blocked_at?:boolean | `@${string}`,
 	/** Когда заказ был отменён. */
@@ -14555,6 +14581,8 @@ marketplaceIssuanceClosePayload?: [{	data: ValueTypes["MarketplaceIssuanceOrderI
 marketplaceIssuanceConvertPayload?: [{	data: ValueTypes["MarketplaceIssuanceOrderInput"] | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 marketplaceIssuanceSaga?: [{	data: ValueTypes["MarketplaceIssuanceOrderInput"] | Variable<any, string>},ValueTypes["MarketplaceIssuanceSaga"]],
 marketplaceIssuanceStatementPayload?: [{	data: ValueTypes["MarketplaceIssuanceOrderInput"] | Variable<any, string>},ValueTypes["GeneratedDocument"]],
+	/** Сверка инвариантов учёта Стола заказов: кошелёк выплат поставщикам, остатки счетов 10, 76, 86 и 91, паевой резерв под заказы. Расхождение указывает на процессы, в которых оно найдено. */
+	marketplaceLedgerInvariants?:ValueTypes["MarketplaceLedgerInvariant"],
 marketplaceListAids?: [{	data?: ValueTypes["MarketplaceListAidsInput"] | undefined | null | Variable<any, string>},ValueTypes["MarketplaceAid"]],
 marketplaceListAllOffers?: [{	input?: ValueTypes["MarketplaceListAllOffersInput"] | undefined | null | Variable<any, string>},ValueTypes["MarketplaceOfferPaginationResult"]],
 marketplaceListAllOrders?: [{	input?: ValueTypes["MarketplaceListOrdersInput"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["MarketplaceOrderPaginationResult"]],
@@ -25586,6 +25614,28 @@ export type ResolverInputTypes = {
 }>;
 	/** Статус подключения ПВЗ: ACTIVE — активен, INACTIVE — отключён. */
 ["MarketplaceKUStatus"]:MarketplaceKUStatus;
+	["MarketplaceLedgerInvariant"]: AliasType<{
+	/** Фактическое значение по остаткам счетов и кошельков. */
+	actual?:boolean | `@${string}`,
+	/** Процессы, в которых найдено расхождение. */
+	details?:ResolverInputTypes["MarketplaceLedgerInvariantDetail"],
+	/** Ожидаемое значение по истории операций. */
+	expected?:boolean | `@${string}`,
+	/** Код инварианта: I1 … I7. */
+	invariant?:boolean | `@${string}`,
+	/** Инвариант сходится. */
+	ok?:boolean | `@${string}`,
+	/** Описание расхождения; пусто, если инвариант сходится. */
+	violation?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["MarketplaceLedgerInvariantDetail"]: AliasType<{
+	/** Что именно не сошлось в этом процессе. */
+	message?:boolean | `@${string}`,
+	/** Хэш процесса (заказа, заявления, претензии), в котором найдено расхождение. */
+	process_hash?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
 	["MarketplaceListAidsInput"]: {
 	/** Показать заявки только этого получателя (по умолчанию — свои). */
 	username?: string | undefined | null
@@ -25960,6 +26010,8 @@ export type ResolverInputTypes = {
 ["MarketplaceOrder"]: AliasType<{
 	/** Когда поставщик принял заказ. */
 	accepted_at?:boolean | `@${string}`,
+	/** Принятая стоимость по акту приёмки: сколько кооператив должен поставщику за этот заказ. Пусто — имущество ещё не принято. */
+	accepted_cost?:boolean | `@${string}`,
 	/** Когда средства были заблокированы. */
 	blocked_at?:boolean | `@${string}`,
 	/** Когда заказ был отменён. */
@@ -29994,6 +30046,8 @@ marketplaceIssuanceClosePayload?: [{	data: ResolverInputTypes["MarketplaceIssuan
 marketplaceIssuanceConvertPayload?: [{	data: ResolverInputTypes["MarketplaceIssuanceOrderInput"]},ResolverInputTypes["GeneratedDocument"]],
 marketplaceIssuanceSaga?: [{	data: ResolverInputTypes["MarketplaceIssuanceOrderInput"]},ResolverInputTypes["MarketplaceIssuanceSaga"]],
 marketplaceIssuanceStatementPayload?: [{	data: ResolverInputTypes["MarketplaceIssuanceOrderInput"]},ResolverInputTypes["GeneratedDocument"]],
+	/** Сверка инвариантов учёта Стола заказов: кошелёк выплат поставщикам, остатки счетов 10, 76, 86 и 91, паевой резерв под заказы. Расхождение указывает на процессы, в которых оно найдено. */
+	marketplaceLedgerInvariants?:ResolverInputTypes["MarketplaceLedgerInvariant"],
 marketplaceListAids?: [{	data?: ResolverInputTypes["MarketplaceListAidsInput"] | undefined | null},ResolverInputTypes["MarketplaceAid"]],
 marketplaceListAllOffers?: [{	input?: ResolverInputTypes["MarketplaceListAllOffersInput"] | undefined | null},ResolverInputTypes["MarketplaceOfferPaginationResult"]],
 marketplaceListAllOrders?: [{	input?: ResolverInputTypes["MarketplaceListOrdersInput"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["MarketplaceOrderPaginationResult"]],
@@ -40667,6 +40721,26 @@ export type ModelTypes = {
 	workingHours: ModelTypes["WorkingHours"]
 };
 	["MarketplaceKUStatus"]:MarketplaceKUStatus;
+	["MarketplaceLedgerInvariant"]: {
+		/** Фактическое значение по остаткам счетов и кошельков. */
+	actual?: string | undefined | null,
+	/** Процессы, в которых найдено расхождение. */
+	details: Array<ModelTypes["MarketplaceLedgerInvariantDetail"]>,
+	/** Ожидаемое значение по истории операций. */
+	expected?: string | undefined | null,
+	/** Код инварианта: I1 … I7. */
+	invariant: string,
+	/** Инвариант сходится. */
+	ok: boolean,
+	/** Описание расхождения; пусто, если инвариант сходится. */
+	violation?: string | undefined | null
+};
+	["MarketplaceLedgerInvariantDetail"]: {
+		/** Что именно не сошлось в этом процессе. */
+	message: string,
+	/** Хэш процесса (заказа, заявления, претензии), в котором найдено расхождение. */
+	process_hash: string
+};
 	["MarketplaceListAidsInput"]: {
 	/** Показать заявки только этого получателя (по умолчанию — свои). */
 	username?: string | undefined | null
@@ -41027,6 +41101,8 @@ export type ModelTypes = {
 ["MarketplaceOrder"]: {
 		/** Когда поставщик принял заказ. */
 	accepted_at?: ModelTypes["DateTime"] | undefined | null,
+	/** Принятая стоимость по акту приёмки: сколько кооператив должен поставщику за этот заказ. Пусто — имущество ещё не принято. */
+	accepted_cost?: string | undefined | null,
 	/** Когда средства были заблокированы. */
 	blocked_at?: ModelTypes["DateTime"] | undefined | null,
 	/** Когда заказ был отменён. */
@@ -45983,6 +46059,8 @@ export type ModelTypes = {
 	marketplaceIssuanceSaga?: ModelTypes["MarketplaceIssuanceSaga"] | undefined | null,
 	/** Заявление о возврате паевого взноса имуществом к подписи заказчиком по начатой выдаче. */
 	marketplaceIssuanceStatementPayload: ModelTypes["GeneratedDocument"],
+	/** Сверка инвариантов учёта Стола заказов: кошелёк выплат поставщикам, остатки счетов 10, 76, 86 и 91, паевой резерв под заказы. Расхождение указывает на процессы, в которых оно найдено. */
+	marketplaceLedgerInvariants: Array<ModelTypes["MarketplaceLedgerInvariant"]>,
 	/** Заявления на материальную помощь: свои — для доверенного; все заявления кооператива — для администратора. Показывает стадию (рассмотрение советом либо ожидание выплаты) и статус выплаты у кассира. */
 	marketplaceListAids: Array<ModelTypes["MarketplaceAid"]>,
 	/** Реестр всех предложений кооператива любого статуса (стол администратора). */
@@ -48262,7 +48340,10 @@ export type ModelTypes = {
     }
 
 export type GraphQLTypes = {
-    ["AccessGrant"]: {
+    // ------------------------------------------------------;
+	// THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY);
+	// ------------------------------------------------------;
+	["AccessGrant"]: {
 	__typename: "AccessGrant",
 	/** Действие (например, read / confirm / manage) */
 	action: string,
@@ -57151,6 +57232,30 @@ export type GraphQLTypes = {
 };
 	/** Статус подключения ПВЗ: ACTIVE — активен, INACTIVE — отключён. */
 ["MarketplaceKUStatus"]: MarketplaceKUStatus;
+	["MarketplaceLedgerInvariant"]: {
+	__typename: "MarketplaceLedgerInvariant",
+	/** Фактическое значение по остаткам счетов и кошельков. */
+	actual?: string | undefined | null,
+	/** Процессы, в которых найдено расхождение. */
+	details: Array<GraphQLTypes["MarketplaceLedgerInvariantDetail"]>,
+	/** Ожидаемое значение по истории операций. */
+	expected?: string | undefined | null,
+	/** Код инварианта: I1 … I7. */
+	invariant: string,
+	/** Инвариант сходится. */
+	ok: boolean,
+	/** Описание расхождения; пусто, если инвариант сходится. */
+	violation?: string | undefined | null,
+	['...on MarketplaceLedgerInvariant']: Omit<GraphQLTypes["MarketplaceLedgerInvariant"], "...on MarketplaceLedgerInvariant">
+};
+	["MarketplaceLedgerInvariantDetail"]: {
+	__typename: "MarketplaceLedgerInvariantDetail",
+	/** Что именно не сошлось в этом процессе. */
+	message: string,
+	/** Хэш процесса (заказа, заявления, претензии), в котором найдено расхождение. */
+	process_hash: string,
+	['...on MarketplaceLedgerInvariantDetail']: Omit<GraphQLTypes["MarketplaceLedgerInvariantDetail"], "...on MarketplaceLedgerInvariantDetail">
+};
 	["MarketplaceListAidsInput"]: {
 		/** Показать заявки только этого получателя (по умолчанию — свои). */
 	username?: string | undefined | null
@@ -57538,6 +57643,8 @@ export type GraphQLTypes = {
 	__typename: "MarketplaceOrder",
 	/** Когда поставщик принял заказ. */
 	accepted_at?: GraphQLTypes["DateTime"] | undefined | null,
+	/** Принятая стоимость по акту приёмки: сколько кооператив должен поставщику за этот заказ. Пусто — имущество ещё не принято. */
+	accepted_cost?: string | undefined | null,
 	/** Когда средства были заблокированы. */
 	blocked_at?: GraphQLTypes["DateTime"] | undefined | null,
 	/** Когда заказ был отменён. */
@@ -62827,6 +62934,8 @@ export type GraphQLTypes = {
 	marketplaceIssuanceSaga?: GraphQLTypes["MarketplaceIssuanceSaga"] | undefined | null,
 	/** Заявление о возврате паевого взноса имуществом к подписи заказчиком по начатой выдаче. */
 	marketplaceIssuanceStatementPayload: GraphQLTypes["GeneratedDocument"],
+	/** Сверка инвариантов учёта Стола заказов: кошелёк выплат поставщикам, остатки счетов 10, 76, 86 и 91, паевой резерв под заказы. Расхождение указывает на процессы, в которых оно найдено. */
+	marketplaceLedgerInvariants: Array<GraphQLTypes["MarketplaceLedgerInvariant"]>,
 	/** Заявления на материальную помощь: свои — для доверенного; все заявления кооператива — для администратора. Показывает стадию (рассмотрение советом либо ожидание выплаты) и статус выплаты у кассира. */
 	marketplaceListAids: Array<GraphQLTypes["MarketplaceAid"]>,
 	/** Реестр всех предложений кооператива любого статуса (стол администратора). */

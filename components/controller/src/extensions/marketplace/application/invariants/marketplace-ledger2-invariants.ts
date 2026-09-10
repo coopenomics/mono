@@ -1,9 +1,9 @@
 /**
  * Off-chain агрегаторы инвариантов ledger2 для marketplace-операций (Story 11.3).
  *
- * Считают шесть инвариантов учёта по срезу `Ledger2OperationDTO[]` (из
- * `getLedger2History`) + текущим балансам кошельков и счетов
- * (`getLedger2Wallets` / `getLedger2Accounts`). Та же логика что в UI стола
+ * Считают семь инвариантов учёта по срезу истории учёта (порт
+ * `LEDGER2_HISTORY_PORT`) + текущим балансам кошельков и счетов + открытым
+ * расчётам с поставщиками из проекции заказов. Та же логика что в UI стола
  * бухгалтера: никаких сумм по всем кошелькам пайщиков в смарт-контракте —
  * всё считается серверной агрегацией.
  *
@@ -12,8 +12,11 @@
  *   1. Гонять unit-тестами на синтетических последовательностях операций
  *      без реального chain'а (Story 11.3 CI guard на каждом PR в marketplace
  *      или ledger2).
- *   2. Использовать тот же код в админ-эндпойнте «сверить инварианты» для
- *      продовых данных.
+ *   2. Использовать тот же код в работе: `MarketplaceLedgerInvariantsService`
+ *      прогоняет его по часам и по запросу председателя (задача 99D-14).
+ *
+ * Живёт в расширении, а не в ядре: инвариант по счёту 76 сверяет проводки с
+ * заказами, а заказы ядру недоступны.
  *
  * Все суммы — `bigint` в minor units (4 знака после запятой для RUB),
  * чтобы избежать ошибок float-арифметики при агрегации длинной истории.
@@ -71,6 +74,17 @@ export interface MarketplaceWalletRow {
 export interface MarketplaceAccountRow {
   accountId: number // 10 / 86 / 91 / 51 / 80
   balance: string
+}
+
+/**
+ * Незавершённый расчёт с поставщиком по заказу: имущество принято (есть
+ * `accepted_cost`), выплата ещё не подтверждена кассиром. Источник — проекция
+ * заказов; `processHash` = хэш заказа.
+ */
+export interface MarketplaceOpenSettlementRow {
+  processHash: string
+  /** Принятая стоимость по акту приёмки — asset «100.0000 RUB». */
+  acceptedCost: string
 }
 
 export interface InvariantResult {
@@ -272,50 +286,64 @@ export function checkInvariantI3Account10Materials(
 }
 
 // ---------------------------------------------------------------------------
-// I4 — Счёт 91 в marketplace = 0.
+// I4 — Счёт 91 в marketplace: только уценка и признанные претензии.
 //
-// 91 «Прочие доходы и расходы» в marketplace-операциях не используется —
-// все выбытие/возврат имущества идут напрямую между 10 и 86. Этот
-// инвариант для marketplace-rows тривиально пройден (Σ marketplace 91 = 0).
+// 91 «Прочие доходы и расходы» в marketplace пишут ровно две операции:
+//   o.mkt.loss  (Дт 91 / Кт 10) — уценка остатка при выдаче (markdown);
+//   o.mkt.admit (Дт 76 / Кт 91) — поставщик признал гарантийную претензию.
+// Любая другая строка по 91 в нитке marketplace — чужая проводка либо сбой
+// реестра. Проверка по ниткам: дебет 91 допустим только в процессе с
+// o.mkt.loss, кредит 91 — только с o.mkt.admit.
 // ---------------------------------------------------------------------------
-export function checkInvariantI4Account91Transit(
+/** Какая операция оправдывает проводку по 91 на каждой стороне и как назвать её отсутствие. */
+const ACCOUNT_91_SIDES: Record<'debit' | 'credit', { code: string; missing: string }> = {
+  debit: { code: 'o.mkt.loss', missing: 'без уценки (o.mkt.loss)' },
+  credit: { code: 'o.mkt.admit', missing: 'без признанной претензии (o.mkt.admit)' },
+}
+
+/** Строки debit/credit по счёту `accountId` в нитках marketplace. */
+function marketplacePostingsOnAccount(
+  rows: readonly MarketplaceLedger2OperationRow[],
+  applyIndex: Map<string, string[]>,
+  accountId: number,
+): MarketplaceLedger2OperationRow[] {
+  return rows.filter(
+    (r) =>
+      (r.action === 'debit' || r.action === 'credit') &&
+      r.accountId === accountId &&
+      processHashHasMarketplaceApply(r.processHash, applyIndex),
+  )
+}
+
+export function checkInvariantI4Account91Usage(
   rows: readonly MarketplaceLedger2OperationRow[],
 ): InvariantResult {
   const applyIndex = indexApplyOperationsByProcessHash(rows)
-  const perProcess = new Map<string, bigint>() // delta Dr − Cr
-  for (const r of rows) {
-    if (!r.processHash) continue
-    if (!processHashHasMarketplaceApply(r.processHash, applyIndex)) continue
-    if (r.accountId !== 91) continue
-    const cur = perProcess.get(r.processHash) ?? 0n
-    if (r.action === 'debit') {
-      perProcess.set(r.processHash, cur + parseAssetToBigInt(r.quantity))
-    } else if (r.action === 'credit') {
-      perProcess.set(r.processHash, cur - parseAssetToBigInt(r.quantity))
-    }
-  }
   const violations: Array<{ processHash: string; message: string }> = []
-  let totalDelta = 0n
-  for (const [hash, delta] of perProcess) {
-    totalDelta += delta
-    if (delta !== 0n) {
+  const totals = { debit: 0n, credit: 0n }
+  for (const r of marketplacePostingsOnAccount(rows, applyIndex, 91)) {
+    const side = r.action as 'debit' | 'credit'
+    totals[side] += parseAssetToBigInt(r.quantity)
+    const codes = applyIndex.get(r.processHash as string) ?? []
+    if (!codes.includes(ACCOUNT_91_SIDES[side].code)) {
       violations.push({
-        processHash: hash,
-        message: `transit 91 не сбалансирован: Dr − Cr = ${formatBigIntAsset(delta)}`,
+        processHash: r.processHash as string,
+        message: `${side === 'debit' ? 'дебет' : 'кредит'} 91 на ${r.quantity ?? '∅'} ${ACCOUNT_91_SIDES[side].missing} в нитке: ${codes.join(', ')}`,
       })
     }
   }
+  const summary = `dr=${formatBigIntAsset(totals.debit)} / cr=${formatBigIntAsset(totals.credit)}`
   if (violations.length > 0) {
     return {
       ok: false,
       invariant: 'I4',
-      expected: '0.0000 RUB',
-      actual: formatBigIntAsset(totalDelta),
-      violation: 'I4: счёт 91 (транзит) не сбалансирован для одного или нескольких marketplace-процессов.',
+      expected: 'дебет 91 только уценкой, кредит 91 только признанной претензией',
+      actual: summary,
+      violation: 'I4: на счёте 91 есть marketplace-проводки вне уценки и признанных претензий.',
       details: violations,
     }
   }
-  return { ok: true, invariant: 'I4', expected: '0.0000 RUB' }
+  return { ok: true, invariant: 'I4', expected: summary }
 }
 
 // ---------------------------------------------------------------------------
@@ -335,6 +363,20 @@ export function checkInvariantI4Account91Transit(
 // На входе тестов wallets обычно содержит aggregated available по всем
 // w.mkt.order-row. Можно подать одну строку с агрегированным `balance`.
 // ---------------------------------------------------------------------------
+/**
+ * Знак движения по резерву w.mkt.order для пары кошельков walletop:
+ *   +1 — резерв входит (o.mkt.lock с w.wal.share, o.mkt.lockp с w.mkt.share);
+ *   −1 — резерв выходит (o.mkt.unlock на w.mkt.share, o.mkt.penal на w.mkt.fee,
+ *        o.mkt.consum — BURN без получателя);
+ *    0 — движение резерва не касается.
+ */
+function reserveDeltaSign(walletFrom: string | null | undefined, walletTo: string | null | undefined): -1n | 0n | 1n {
+  if (walletTo === 'w.mkt.order' && (walletFrom === 'w.wal.share' || walletFrom === 'w.mkt.share')) return 1n
+  if (walletFrom !== 'w.mkt.order') return 0n
+  if (walletTo === 'w.mkt.share' || walletTo === 'w.mkt.fee' || walletTo == null) return -1n
+  return 0n
+}
+
 export function checkInvariantI5ReserveConsistency(
   rows: readonly MarketplaceLedger2OperationRow[],
   wallets: readonly MarketplaceWalletRow[],
@@ -342,26 +384,7 @@ export function checkInvariantI5ReserveConsistency(
   let computed = 0n
   for (const r of rows) {
     if (r.action !== 'walletop') continue
-    // o.mkt.lock: TRANSFER w.wal.share → w.mkt.order  (резерв входит)
-    if (r.walletFrom === 'w.wal.share' && r.walletTo === 'w.mkt.order') {
-      computed += parseAssetToBigInt(r.quantity)
-    }
-    // o.mkt.lockp: TRANSFER w.mkt.share → w.mkt.order  (резерв из свободного паевого)
-    else if (r.walletFrom === 'w.mkt.share' && r.walletTo === 'w.mkt.order') {
-      computed += parseAssetToBigInt(r.quantity)
-    }
-    // o.mkt.unlock: TRANSFER w.mkt.order → w.mkt.share  (резерв снят)
-    else if (r.walletFrom === 'w.mkt.order' && r.walletTo === 'w.mkt.share') {
-      computed -= parseAssetToBigInt(r.quantity)
-    }
-    // o.mkt.penal: TRANSFER w.mkt.order → w.mkt.fee  (штраф за отказ ушёл из резерва)
-    else if (r.walletFrom === 'w.mkt.order' && r.walletTo === 'w.mkt.fee') {
-      computed -= parseAssetToBigInt(r.quantity)
-    }
-    // o.mkt.consum: BURN w.mkt.order  (резерв сожжён при выдаче)
-    else if (r.walletFrom === 'w.mkt.order' && r.walletTo == null) {
-      computed -= parseAssetToBigInt(r.quantity)
-    }
+    computed += reserveDeltaSign(r.walletFrom, r.walletTo) * parseAssetToBigInt(r.quantity)
   }
   const orderWallets = wallets.filter((w) => w.wallet === 'w.mkt.order')
   let totalReserve = 0n
@@ -438,22 +461,81 @@ export function checkInvariantI6NoOrphanedReserves(
   return { ok: true, invariant: 'I6' }
 }
 
+// ---------------------------------------------------------------------------
+// I7 — Долг поставщикам на счёте 76 равен открытым расчётам (задача 99D-14).
+//
+// 76 «Расчёты с разными дебиторами и кредиторами» в marketplace двигают:
+//   o.mkt.purch  (Кт 76) — приёмка: долг поставщику на принятую стоимость;
+//   o.mkt.payout (Дт 76) — выплата подтверждена кассиром;
+//   o.mkt.admit  (Дт 76) — поставщик признал претензию: его долг сворачивается
+//                          с нашим (гасится удержанием без проводки, o.mkt.deduct).
+// Значит остаток кредита 76 по marketplace-строкам обязан равняться сумме
+// принятой стоимости заказов, по которым выплата ещё не подтверждена, минус
+// признанный, но ещё не удержанный долг поставщиков (остаток w.mkt.debt).
+//
+// Именно этот инвариант ловит оба дефекта задачи: проводку выплаты не на ту
+// сумму (остаток 76 ≠ 0 при закрытых расчётах) и стёртый заказ с открытой
+// выплатой (76 держит долг, а заказа, который его закроет, больше нет).
+// ---------------------------------------------------------------------------
+export function checkInvariantI7SupplierSettlements(
+  rows: readonly MarketplaceLedger2OperationRow[],
+  wallets: readonly MarketplaceWalletRow[],
+  settlements: readonly MarketplaceOpenSettlementRow[],
+): InvariantResult {
+  const applyIndex = indexApplyOperationsByProcessHash(rows)
+  let ledger76 = 0n
+  for (const r of rows) {
+    if (!processHashHasMarketplaceApply(r.processHash, applyIndex)) continue
+    if (r.accountId !== 76) continue
+    if (r.action === 'credit') ledger76 += parseAssetToBigInt(r.quantity)
+    else if (r.action === 'debit') ledger76 -= parseAssetToBigInt(r.quantity)
+  }
+
+  let openAccepted = 0n
+  for (const s of settlements) openAccepted += parseAssetToBigInt(s.acceptedCost)
+  let admittedDebt = 0n
+  for (const w of wallets) {
+    if (w.wallet === 'w.mkt.debt') admittedDebt += parseAssetToBigInt(w.balance)
+  }
+  const expected = openAccepted - admittedDebt
+
+  if (ledger76 !== expected) {
+    return {
+      ok: false,
+      invariant: 'I7',
+      expected: formatBigIntAsset(expected),
+      actual: formatBigIntAsset(ledger76),
+      violation:
+        'I7: остаток счёта 76 по Столу заказов не равен открытым расчётам с поставщиками ' +
+        '(принятая стоимость заказов с неподтверждённой выплатой минус признанный долг поставщиков). ' +
+        'Возможный источник: выплата проведена не на принятую сумму либо заказ стёрт при незавершённой выплате.',
+      details: settlements.map((s) => ({
+        processHash: s.processHash,
+        message: `открытый расчёт на ${s.acceptedCost}`,
+      })),
+    }
+  }
+  return { ok: true, invariant: 'I7', expected: formatBigIntAsset(expected) }
+}
+
 /**
- * Пакетная проверка всех 6 инвариантов. Возвращает массив результатов
- * в порядке I1..I6. Никогда не throw — все проблемы как `violation` в результате.
+ * Пакетная проверка всех 7 инвариантов. Возвращает массив результатов
+ * в порядке I1..I7. Никогда не throw — все проблемы как `violation` в результате.
  */
 export function checkAllMarketplaceLedger2Invariants(
   rows: readonly MarketplaceLedger2OperationRow[],
   wallets: readonly MarketplaceWalletRow[],
   accounts: readonly MarketplaceAccountRow[],
+  settlements: readonly MarketplaceOpenSettlementRow[] = [],
 ): InvariantResult[] {
   return [
     checkInvariantI1PayoutBalance(rows, wallets),
     checkInvariantI2Account86Delta(rows),
     checkInvariantI3Account10Materials(rows, accounts),
-    checkInvariantI4Account91Transit(rows),
+    checkInvariantI4Account91Usage(rows),
     checkInvariantI5ReserveConsistency(rows, wallets),
     checkInvariantI6NoOrphanedReserves(rows),
+    checkInvariantI7SupplierSettlements(rows, wallets, settlements),
   ]
 }
 

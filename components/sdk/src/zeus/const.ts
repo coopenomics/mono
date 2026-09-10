@@ -3776,10 +3776,6 @@ export const AllTypesProps: Record<string,any> = {
 }
 
 export const ReturnTypes: Record<string,any> = {
-	auth:{
-		roles:"String",
-		self:"String"
-	},
 	AccessGrant:{
 		action:"String",
 		resource:"String"
@@ -6235,6 +6231,18 @@ export const ReturnTypes: Record<string,any> = {
 		updatedAt:"DateTime",
 		workingHours:"WorkingHours"
 	},
+	MarketplaceLedgerInvariant:{
+		actual:"String",
+		details:"MarketplaceLedgerInvariantDetail",
+		expected:"String",
+		invariant:"String",
+		ok:"Boolean",
+		violation:"String"
+	},
+	MarketplaceLedgerInvariantDetail:{
+		message:"String",
+		process_hash:"String"
+	},
 	MarketplaceMemberWallet:{
 		coopname:"String",
 		username:"String",
@@ -6342,6 +6350,7 @@ export const ReturnTypes: Record<string,any> = {
 	},
 	MarketplaceOrder:{
 		accepted_at:"DateTime",
+		accepted_cost:"String",
 		blocked_at:"DateTime",
 		cancelled_at:"DateTime",
 		checkout_id:"String",
@@ -8149,6 +8158,7 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceIssuanceConvertPayload:"GeneratedDocument",
 		marketplaceIssuanceSaga:"MarketplaceIssuanceSaga",
 		marketplaceIssuanceStatementPayload:"GeneratedDocument",
+		marketplaceLedgerInvariants:"MarketplaceLedgerInvariant",
 		marketplaceListAids:"MarketplaceAid",
 		marketplaceListAllOffers:"MarketplaceOfferPaginationResult",
 		marketplaceListAllOrders:"MarketplaceOrderPaginationResult",

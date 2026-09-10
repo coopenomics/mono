@@ -1011,9 +1011,7 @@ export class MarketplaceAplReceptionService {
     allOrders: MarketplaceOrderDomainEntity[],
     orderHashByOrderId: Map<string, string>
   ): Promise<void> {
-    const factByOrderId = new Map(
-      reception.fact_quantity_per_order.map((f) => [f.order_id, f.fact_quantity])
-    );
+    const factByOrderId = new Map(reception.fact_quantity_per_order.map((f) => [f.order_id, f]));
     const groupOrders = allOrders.filter((o) => o.delivery_braname === reception.braname);
 
     // Реквизиты поставщика резолвятся один раз на всю группу: снапшот на
@@ -1064,17 +1062,12 @@ export class MarketplaceAplReceptionService {
         );
         continue;
       }
-      const factQuantity = factByOrderId.get(order.id) ?? order.quantity;
-      // Цена заказа — за единицу отпуска (при упаковочном отпуске за упаковку),
-      // поэтому сумма выплаты считается общей формулой, а не произведением на
-      // базовое количество.
-      const amount = calcCostAmount({
-        quantity: factQuantity,
-        unit: order.unit_of_measure,
-        unitPrice: order.price_per_unit,
-        packageSize: order.package_size,
-        decimals: this.assetConfig.decimals,
-      });
+      // Сумма выплаты — принятая стоимость по акту: то же количество и та же
+      // цена, что ушли в закрывающую подпись приёмки и в проводку Дт 10 / Кт 76.
+      // Цена заказа здесь не годится: оператор мог принять со скидкой, и
+      // контракт тогда проведёт выплату на одну сумму, а кассир переведёт
+      // другую (задача 99D-14).
+      const amount = this.factEntryAmount(factByOrderId.get(order.id), order);
 
       const full = Number.parseFloat(amount);
       const withheldNum = Math.min(debtLeft, full);
@@ -1809,19 +1802,29 @@ export class MarketplaceAplReceptionService {
     for (const entry of fact) {
       const order = byId.get(entry.order_id);
       if (!order) continue;
-      // Цена — за единицу отпуска: при отпуске упаковкой это цена упаковки, и
-      // умножать её на базовое количество нельзя (сумма занижалась в разы).
-      amounts.push(
-        calcCostAmount({
-          quantity: entry.fact_quantity,
-          unit: order.unit_of_measure,
-          unitPrice: entry.fact_unit_price ?? order.price_per_unit,
-          packageSize: order.package_size,
-          decimals: this.assetConfig.decimals,
-        })
-      );
+      amounts.push(this.factEntryAmount(entry, order));
     }
     return sumMoney(amounts, this.assetConfig.decimals);
+  }
+
+  /**
+   * Принятая стоимость позиции акта: фактическое количество по фактической
+   * цене приёмки (без записи в акте — заказанное по цене заказа). Одна формула
+   * для итога акта, суммы выплаты поставщику и того, что контракт проводит на
+   * `signchair`: цена — за единицу отпуска, при отпуске упаковкой это цена
+   * упаковки, и умножать её на базовое количество нельзя.
+   */
+  private factEntryAmount(
+    entry: MarketplaceAplReceptionFactQuantityEntry | undefined,
+    order: MarketplaceOrderDomainEntity
+  ): string {
+    return calcCostAmount({
+      quantity: entry?.fact_quantity ?? order.quantity,
+      unit: order.unit_of_measure,
+      unitPrice: entry?.fact_unit_price ?? order.price_per_unit,
+      packageSize: order.package_size,
+      decimals: this.assetConfig.decimals,
+    });
   }
 
   private formatAsset(value: string): string {

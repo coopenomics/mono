@@ -90,6 +90,8 @@ describe('MarketplaceOrderDomainEntity', () => {
           on_chain_id: '99',
           status: 'ACTIVE',
           membership_fee: null,
+          accepted_cost: null,
+          payout_status: null,
         },
         1_000_000,
         true
@@ -260,6 +262,8 @@ describe('MarketplaceOrderDomainEntity', () => {
           on_chain_id: '14',
           status: 'ACCEPTED_PENDING_SUPPLIER_INDIVIDUAL',
           membership_fee: null,
+          accepted_cost: null,
+          payout_status: null,
         },
         2_400_000,
         true

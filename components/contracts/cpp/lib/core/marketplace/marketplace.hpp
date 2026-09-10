@@ -127,6 +127,20 @@ inline void update_order(eosio::name coopname, uint64_t order_id, const std::fun
   orders.modify(it, _marketplace, [&](auto& o) { fn(o); });
 }
 
+/// Принятая стоимость заказа — база долга поставщику (Дт 10 / Кт 76 на
+/// приёмке, Дт 76 / Кт 51 на выплате). У заказов, принятых до появления поля,
+/// расширения нет: тогда берётся `fact_cost`, как читалось раньше.
+inline eosio::asset get_accepted_cost(const order& o) {
+  return o.accepted_cost.value_or(o.fact_cost);
+}
+
+/// Выплата поставщику по заказу ещё не завершена: заказ нельзя стирать —
+/// обратные вызовы шлюза (`payconfirm` / `paydecline`) и повторная инициация
+/// ищут его по хэшу (задача 99D-14).
+inline bool is_supplier_settlement_open(const order& o) {
+  return o.payout_status != OrderPayoutStatus::COMPLETED;
+}
+
 // Терминал жизненного цикла: запись стирается из RAM, история процесса
 // остаётся в журнале действий (blockchain_actions парсера).
 inline void erase_order(eosio::name coopname, uint64_t order_id) {
@@ -425,7 +439,8 @@ inline eosio::asset refusal_penalty_share(const eosio::asset& base) {
 /// затем единым Branch::accrue вместе с удержанной половиной взноса), вторая
 /// половина возвращается пайщику на свободный паевой «Стола заказов». Имущество
 /// остаётся на складе КУ (без движения по счёту 10) — кооператив несёт риск
-/// уже оплаченной поставки, под который и держится удержание.
+/// уже оплаченной поставки, под который и держится удержание. Долг поставщику
+/// (Кт 76 с приёмки) удержание не трогает: он гасится выплатой своим чередом.
 inline void retain_refusal_penalty(eosio::name coopname, const order& o) {
   // ── Тело заказа 50/50 ──
   const eosio::asset penalty_body = refusal_penalty_share(o.total_cost);

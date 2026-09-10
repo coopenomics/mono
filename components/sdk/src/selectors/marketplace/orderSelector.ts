@@ -60,6 +60,7 @@ export const rawOrderSelector = {
   price_per_unit: true,
   total_cost: true,
   membership_fee: true,
+  accepted_cost: true,
   total_cost_with_fee: true,
   cycle_id: true,
   checkout_id: true,

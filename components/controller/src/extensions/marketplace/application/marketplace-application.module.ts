@@ -167,6 +167,12 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { MarketplaceInventoryEntity } from '../infrastructure/entities/marketplace-inventory.entity';
 // Конечный жизненный цикл заказов: крон-закрытие выданных после гарантии
 import { MarketplaceOrderCloseCronService } from './services/marketplace-order-close-cron.service';
+// Задача 99D-14: сверка инвариантов учёта (счёт 76 и остальные) по часам и по запросу
+import {
+  MarketplaceLedgerInvariantsService,
+  MARKETPLACE_LEDGER_INVARIANTS_SERVICE,
+} from './services/marketplace-ledger-invariants.service';
+import { MarketplaceLedgerInvariantsResolver } from './resolvers/marketplace-ledger-invariants.resolver';
 import { MarketplaceOrderEntity } from '../infrastructure/entities/marketplace-order.entity';
 // Эпик 16 — корзина и заказ-агрегат
 import { MarketplaceCartResolver } from './resolvers/marketplace-cart.resolver';
@@ -469,6 +475,12 @@ import { MarketplaceRealtimeBridge } from './realtime/marketplace-realtime.bridg
     MarketplaceWriteoffResolver,
     // Конечный жизненный цикл заказов: закрытие выданных после гарантии
     MarketplaceOrderCloseCronService,
+    // Задача 99D-14: инварианты учёта Стола заказов
+    {
+      provide: MARKETPLACE_LEDGER_INVARIANTS_SERVICE,
+      useClass: MarketplaceLedgerInvariantsService,
+    },
+    MarketplaceLedgerInvariantsResolver,
     // Эпик 16 — корзина заказчика
     {
       provide: MARKETPLACE_CART_SERVICE,

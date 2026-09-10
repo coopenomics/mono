@@ -237,7 +237,7 @@ public:
    * @brief Инициация исходящей выплаты поставщику через контракт gateway по
    * одному Order'у (E11 техдолг 598-16, Locked Decision L12). Per-Order:
    * inline-вызов `gateway::createoutpay` с callback'ами на `payconfirm` /
-   * `paydecline`. Ledger2-операция o.mkt.payout (Дт 86 / Кт 51) применяется
+   * `paydecline`. Ledger2-операция o.mkt.payout (Дт 76 / Кт 51) применяется
    * НЕ здесь, а в callback'е `payconfirm` после действия кассира. Статус
    * Order'а не меняется; защита от двойного запроса — через
    * `order.payout_status` (NONE/DECLINED → PENDING).
@@ -249,7 +249,7 @@ public:
   /**
    * @brief Callback от gateway::outcomplete — кассир подтвердил
    * банковский перевод поставщику (E11 техдолг 598-16, Locked Decision L12).
-   * Здесь применяется o.mkt.payout (Дт 86 / Кт 51) и `payout_status`
+   * Здесь применяется o.mkt.payout (Дт 76 / Кт 51) на принятую стоимость `accepted_cost` за вычетом удержания; заказ в статусе `refused` стирается; иначе `payout_status`
    * переходит PENDING → COMPLETED. Авторизация: `_gateway`. `outcome_hash`
    * совпадает с `order.hash` (так задано при `payout`).
    * @ingroup public_marketplace_actions
@@ -260,7 +260,7 @@ public:
   /**
    * @brief Callback от gateway::outdecline — кассир отметил, что
    * банковский перевод не состоялся (E11 техдолг 598-16, Locked Decision L12).
-   * Ledger2-операция НЕ применяется; обязательство Кт 86 остаётся открытым.
+   * Ledger2-операция НЕ применяется; обязательство Кт 76 остаётся открытым.
    * `payout_status` PENDING → DECLINED; `payout_decline_reason` сохраняется.
    * Авторизация: `_gateway`.
    * @ingroup public_marketplace_actions

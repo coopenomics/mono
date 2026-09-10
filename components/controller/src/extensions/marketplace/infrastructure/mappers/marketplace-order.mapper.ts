@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { MarketplaceOrderDomainEntity } from '../../domain/entities/marketplace-order.entity';
 import { MarketplaceOrderEntity } from '../entities/marketplace-order.entity';
+import type { MarketplaceOrderPayoutStatus } from '../../domain/entities/marketplace-order.types';
 
 /**
  * Row → domain. TypeORM `bigint` колонки приходят как string —
@@ -26,6 +27,8 @@ export class MarketplaceOrderMapper {
       package_id: row.package_id ?? null,
       total_cost: row.total_cost,
       membership_fee: row.membership_fee ?? null,
+      accepted_cost: row.accepted_cost ?? null,
+      payout_status: (row.payout_status as MarketplaceOrderPayoutStatus | null) ?? null,
       cycle_id: row.cycle_id,
       checkout_id: row.checkout_id ?? null,
       shipment_id: row.shipment_id ?? null,

@@ -9,7 +9,7 @@
 экспорта, исчезнувший метод, новый обязательный параметр требуют major, а
 снятое старое — периода устаревания не меньше одного minor (INV-009).
 
-Всего экспортов: 266.
+Всего экспортов: 267.
 
 ## ACCOUNT_PORT
 
@@ -424,6 +424,7 @@
 
 - `getHistory(filter: InnerLedger2HistoryFilter): Promise<InnerLedger2HistoryResult>`
 - `getAccounts(coopname: string): Promise<InnerLedger2Account[]>`
+- `getWallets(coopname: string): Promise<InnerLedger2Wallet[]>`
 
 ## ILoggerPort
 
@@ -1185,6 +1186,14 @@
 - `memo?: string | null`
 - `parentApplyGlobalSequence?: string | null`
 - `createdAt: Date`
+
+## InnerLedger2Wallet
+
+`interface` · core-ports
+
+- `id: string`
+- `name: string`
+- `available: string`
 
 ## InnerLogMeta
 

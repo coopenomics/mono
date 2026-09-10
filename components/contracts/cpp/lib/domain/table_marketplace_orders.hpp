@@ -21,6 +21,9 @@ using namespace eosio;
  *                    стирают запись из RAM — статуса «отменён» в таблице нет,
  *                    история в журнале действий)
  *                  → accepted → supplyprep → acceptcoop → readyrecv
+ *                  acceptcoop → refused (отказ пайщика после приёмки при
+ *                    незавершённой выплате поставщику: заказ живёт до
+ *                    подтверждения кассира, payconfirm стирает его сам)
  *                  → issuepend → issueauth → issueact1 → received
  *                  (паевая модель: заявление → протокол совета → акт первой
  *                  подписью заказчика → закрывающая подпись председателя;
@@ -44,6 +47,7 @@ namespace OrderStatus {
   inline constexpr eosio::name ISSUE_AUTHORIZED = "issueauth"_n;   ///< протокол совета получен, ждём первую подпись акта заказчиком
   inline constexpr eosio::name ISSUE_ACT1       = "issueact1"_n;   ///< акт подписан заказчиком, ждём закрывающую подпись председателя участка
   inline constexpr eosio::name RECEIVED         = "received"_n;
+  inline constexpr eosio::name REFUSED          = "refused"_n;     ///< пайщик отказался после приёмки, долг поставщику ещё не погашен: запись ждёт payconfirm и стирается им
 }
 
 /**
@@ -54,9 +58,9 @@ namespace OrderStatus {
  * Допустимые переходы:
  *   none → pending             — `marketplace::payout` отправил inline в gateway.
  *   pending → completed        — gateway::outcomplete → callback `payconfirm`.
- *                                Здесь применяется o.mkt.payout (Дт 86 / Кт 51).
+ *                                Здесь применяется o.mkt.payout (Дт 76 / Кт 51).
  *   pending → declined         — gateway::outdecline → callback `paydecline`.
- *                                Без ledger-движения; обязательство Кт 86 остаётся.
+ *                                Без ledger-движения; обязательство Кт 76 остаётся.
  *   declined → pending         — повторная попытка `marketplace::payout` после
  *                                исправления реквизитов кассиром.
  */
@@ -130,8 +134,11 @@ struct convert_target {
  * Order'ов в UI. Все per-batch операции на on-chain делаются per-Order
  * (backend проходит циклом по orders батча) — векторов order'ов в action'ах нет.
  *
- * `actual_quantity` / `fact_cost` заполняются на issueact2 (Story 6.2/6.3).
- * До issueact2 равны соответственно `quantity` / `total_cost`.
+ * `actual_quantity` / `fact_cost` — факт выдачи: фиксируются заявлением
+ * `issuestmt`, от них идут движения `issueact2` и расчёт гарантийного возврата.
+ * До заявления равны `quantity` / `total_cost`; `signchair` временно кладёт
+ * сюда факт приёмки. Принятая стоимость живёт отдельно в `accepted_cost` —
+ * выплата поставщику считается только от неё (задача 99D-14).
  *
  * `warranty_until` — рассчитывается в issueact2 как `now() + warranty_period_secs`
  * (period приходит с Offer'а через backend; в `submretrn` валидируется только это поле).
@@ -206,6 +213,13 @@ struct [[eosio::table, eosio::contract(MARKETPLACE)]] order {
   /// кассира (`payconfirm`) на неё ставится o.mkt.deduct. binary_extension:
   /// у прежних заказов значения нет — читать через value_or(asset(0, …)).
   eosio::binary_extension<eosio::asset> payout_withheld;
+  /// Принятая стоимость по закрывающей подписи акта приёмки (`signchair`):
+  /// основание Дт 10 / Кт 76 и единственная база суммы выплаты поставщику
+  /// (`payout` / `payconfirm`). Заявление о выдаче её не трогает — `fact_cost`
+  /// перезаписывается фактом выдачи, а долг поставщику от выдачи не зависит
+  /// (задача 99D-14). binary_extension: у заказов, принятых до этого поля,
+  /// значения нет — читать через `Marketplace::get_accepted_cost`.
+  eosio::binary_extension<eosio::asset> accepted_cost;
 
   // Все timestamp'ы переходов состояний (createorder/accepted/received_to_coop/
   // ready/received/cancelled) восстанавливаются на бэкенде из blockchain_actions[at]

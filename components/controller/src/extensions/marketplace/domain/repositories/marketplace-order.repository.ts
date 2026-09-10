@@ -167,6 +167,14 @@ export interface MarketplaceOrderDomainRepository
    */
   findByCycleId(coopname: string, cycle_id: string): Promise<MarketplaceOrderDomainEntity[]>;
 
+  /**
+   * Заказы с незавершённым расчётом с поставщиком (задача 99D-14): имущество
+   * принято (`accepted_cost` зеркалится с цепи), запись ещё жива на цепи, а
+   * выплата не подтверждена кассиром. Заказы из остатка кооператива не
+   * входят — поставщика и выплаты у них нет.
+   */
+  listOpenSupplierSettlements(coopname: string): Promise<MarketplaceOrderDomainEntity[]>;
+
   // ── Story 6.1 / 6.3: выдача пайщику на КУ ─────────────────────────
 
   /**

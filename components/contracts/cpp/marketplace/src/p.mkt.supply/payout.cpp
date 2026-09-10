@@ -6,7 +6,7 @@
  * проводить выплату поставщику. Действие НЕ применяет ledger2 — оно лишь
  * inline-вызовом регистрирует в gateway::outcomes запись типа «исходящий
  * платёж» со статусом pending и привязанным callback'ом на marketplace. Сам
- * Дт 86 / Кт 51 произойдёт уже в callback'е `payconfirm` после фактического
+ * Дт 76 / Кт 51 произойдёт уже в callback'е `payconfirm` после фактического
  * банковского перевода (gateway::outcomplete вызывает кассир через свой
  * стол), либо отменится в `paydecline` (gateway::outdecline).
  *
@@ -14,12 +14,12 @@
  * `confirm_callback = "payconfirm"_n`, `decline_callback = "paydecline"_n`,
  * `outcome_hash = order.hash` (уникальность гарантирована индексом orders).
  *
- * Сумма выплаты — `o.fact_cost` (фактически принятое после приёмки), а НЕ
- * `o.total_cost` (исходный заказ): при отбраковке части поставки на приёмке
- * (signchair снизил факт) кооператив должен поставщику ровно принятое.
- * fact_cost зафиксирован на приёмке (статус-гард ниже гарантирует, что приёмка
- * уже прошла), совпадает с приходованием имущества Кт 86 и с суммой платежа в
- * реестре платежей кооператива.
+ * Сумма выплаты — принятая стоимость `accepted_cost` (факт закрывающей подписи
+ * приёмки), а НЕ `o.total_cost` (исходный заказ) и НЕ `o.fact_cost` (его
+ * перезаписывает заявление о выдаче): при отбраковке части поставки на приёмке
+ * кооператив должен поставщику ровно принятое, и эта сумма совпадает с
+ * приходованием имущества Кт 76 и с суммой платежа в реестре платежей
+ * кооператива независимо от того, сколько потом выдали пайщику (задача 99D-14).
  *
  * Status Order'а не меняется (выплата может идти параллельно шагам выдачи).
  * payout_status переходит NONE/DECLINED → PENDING; declined-кейс — повторная
@@ -27,7 +27,8 @@
  *
  * Guards:
  *  - Order существует и приёмка завершена (статус ∈ accepted_to_coop /
- *    ready_to_receive / received).
+ *    ready_to_receive / received / refused — после отказа пайщика долг
+ *    поставщику всё равно гасится).
  *  - payout_status ∈ { NONE, DECLINED } — нельзя инициировать выплату поверх
  *    pending или completed.
  *
@@ -41,20 +42,23 @@ void marketplace::payout(eosio::name coopname, checksum256 order_hash) {
                "По заказу из остатка кооператива выплата поставщику не предусмотрена: имущество уже оплачено при первичной приёмке");
   eosio::check(o.status == OrderStatus::ACCEPTED_TO_COOP ||
                o.status == OrderStatus::READY_TO_RECEIVE ||
-               o.status == OrderStatus::RECEIVED,
+               o.status == OrderStatus::RECEIVED ||
+               o.status == OrderStatus::REFUSED,
                "Выплата возможна только после приёмки имущества кооперативом");
   eosio::check(o.payout_status == OrderPayoutStatus::NONE ||
                o.payout_status == OrderPayoutStatus::DECLINED,
                "Выплата уже инициирована либо завершена");
+
+  const eosio::asset accepted_cost = Marketplace::get_accepted_cost(o);
 
   // Удержание признанного гарантийного долга поставщика (w.mkt.debt, задача
   // 99D-13): выплата уменьшается на остаток долга, не больше самой выплаты.
   const auto debt = Marketplace::get_user_wallet_balance(coopname, ledger2_wallets::MARKETPLACE_SUPPLIER_DEBT, o.offerer);
   eosio::asset withheld(0, _root_govern_symbol);
   if (debt.exists && debt.available.amount > 0) {
-    withheld = debt.available.amount < o.fact_cost.amount ? debt.available : o.fact_cost;
+    withheld = debt.available.amount < accepted_cost.amount ? debt.available : accepted_cost;
   }
-  const eosio::asset to_pay = o.fact_cost - withheld;
+  const eosio::asset to_pay = accepted_cost - withheld;
 
   if (to_pay.amount == 0) {
     // Долг покрывает всю выплату: банковского перевода не будет, удержание
@@ -64,6 +68,12 @@ void marketplace::payout(eosio::name coopname, checksum256 order_hash) {
                    processes::marketplace::SUPPLY,
                    withheld, o.offerer, o.hash,
                    Marketplace::Memo::get_deduct_debt_memo(o.id));
+    if (o.status == OrderStatus::REFUSED) {
+      // Пайщик уже отказался, заказ ждал только расчёта с поставщиком —
+      // расчёт закрыт удержанием, запись больше не нужна.
+      Marketplace::erase_order(coopname, o.id);
+      return;
+    }
     Marketplace::update_order(coopname, o.id, [&](auto& upd) {
       upd.payout_status = OrderPayoutStatus::COMPLETED;
       upd.payout_decline_reason.clear();
@@ -72,9 +82,10 @@ void marketplace::payout(eosio::name coopname, checksum256 order_hash) {
     return;
   }
 
-  // Регистрация исходящего платежа в gateway на фактически принятую сумму
-  // за вычетом удержания. Сам Дт 76 / Кт 51 и o.mkt.deduct произойдут в
-  // callback'е `payconfirm` от gateway после действия кассира.
+  // Регистрация исходящего платежа в gateway на принятую сумму за вычетом
+  // удержания. Сам Дт 76 / Кт 51 и o.mkt.deduct произойдут в callback'е
+  // `payconfirm` от gateway после действия кассира — на ту же сумму:
+  // accepted_cost и payout_withheld после этого шага не меняются.
   Gateway::create_outcome(_marketplace, coopname, o.offerer, o.hash, to_pay,
                           _marketplace, "payconfirm"_n, "paydecline"_n);
 
