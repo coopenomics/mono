@@ -173,8 +173,10 @@ onMounted(async () => {
     order: 1,
   });
 
-  // Загружаем данные текущего участника аналогично CapitalBase
-  await contributorStore.loadSelf({ username });
+  // Загружаем данные текущего участника аналогично CapitalBase. Отказ не роняем
+  // из onMounted — он уходил в обработчик ошибок приложения безымянным
+  // «Object captured as exception»; опрос ниже повторит загрузку сам.
+  await reloadProfileData();
 
   // Запускаем poll обновление данных
   startProfilePoll();

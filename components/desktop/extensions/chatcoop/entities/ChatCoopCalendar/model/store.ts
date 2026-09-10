@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, type Ref } from 'vue'
 import { api } from '../api'
+import { useCalendarBoardPermissions } from '../../../shared/lib/useCalendarBoardPermissions'
 import type { IChatCoopCalendarEvent, IChatCoopCalendarRoomOption } from './types'
 
 const namespace = 'chatCoopCalendarStore'
@@ -21,12 +22,20 @@ export const useChatCoopCalendarStore = defineStore(
     const events = ref<IChatCoopCalendarEvent[]>([])
     const isLoading = ref(false)
     const error = ref<string | null>(null)
+    const { canManageCalendarEvents } = useCalendarBoardPermissions()
 
     const loadAll = async (): Promise<void> => {
       isLoading.value = true
       error.value = null
       try {
-        const [roomRows, eventRows] = await Promise.all([api.listRooms(), api.listEvents()])
+        // Комнаты нужны только диалогу создания события, а он открыт лишь совету —
+        // сервер отдаёт их тоже только совету. Раньше их просил и рядовой пайщик:
+        // сервер отказывал, и вместе с комнатами в Promise.all падали события —
+        // пайщик видел «Не удалось загрузить календарь» вместо расписания.
+        const [roomRows, eventRows] = await Promise.all([
+          canManageCalendarEvents.value ? api.listRooms() : Promise.resolve([]),
+          api.listEvents(),
+        ])
         rooms.value = roomRows
         events.value = eventRows
       } catch (err: unknown) {

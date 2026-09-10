@@ -141,6 +141,15 @@ const initEditor = async (initialMarkdown?: string) => {
     });
 
     await editor.create();
+
+    // Компонент успели снять, пока редактор создавался (открыли и сразу закрыли
+    // карточку). destroyEditor в этот момент не видел редактора и ничего не
+    // гасил, а созданный после размонтирования продолжал жить и сыпать ошибками
+    // «editorView not found» из своих отложенных обработчиков.
+    if (isUnmounted) {
+      await editor.destroy().catch(() => undefined);
+      return;
+    }
     crepeRef.value = editor;
 
     if (props.readonly) {
@@ -245,7 +254,12 @@ onMounted(() => {
   });
 });
 
+// В отличие от isDestroyed, который сбрасывается при пересоздании редактора
+// (смена темы, плейсхолдера, внешнего значения), это необратимо: компонент снят.
+let isUnmounted = false;
+
 onBeforeUnmount(() => {
+  isUnmounted = true;
   void destroyEditor();
 });
 

@@ -2,6 +2,7 @@
 import { computed, onMounted, ref, watch } from 'vue';
 import { BaseButton, BaseCard, BaseChip, BaseDialog } from 'src/shared/ui/base';
 import { useSystemStore } from 'src/entities/System/model';
+import { useSessionStore } from 'src/entities/Session';
 import { useMarketplaceKUDetailsStore } from 'src/entities/MarketplaceKUDetails';
 import { type ReceptionGroup, getMembershipFeePercent, applyMembershipFee } from 'src/shared/lib/marketplace';
 import {
@@ -107,10 +108,28 @@ const anySigning = computed(() => signingKey.value !== null);
 // канала ядра — поллинга больше нет (Фаза 2).
 onMounted(() => {
   void refresh();
-  getMembershipFeePercent()
-    .then((p) => (feePercent.value = p))
-    .catch(() => undefined); // нет ставки — сумму покажем без взноса
 });
+
+// Ставка взноса открыта только действующему пайщику, а оверлей смонтирован на
+// всех страницах с первой секунды, включая вход и регистрацию: гость получал
+// на этот запрос отказ 401, не принятый ещё пайщик — 403, и так при каждом
+// открытии приложения. Запрашиваем ставку, когда пайщик действительно активен,
+// один раз; неудачу повторим при следующей смене статуса.
+const session = useSessionStore();
+let feeRequested = false;
+watch(
+  () => session.isFullyActive,
+  (active) => {
+    if (!active || feeRequested) return;
+    feeRequested = true;
+    getMembershipFeePercent()
+      .then((p) => (feePercent.value = p))
+      .catch(() => {
+        feeRequested = false; // нет ставки — сумму покажем без взноса
+      });
+  },
+  { immediate: true },
+);
 </script>
 
 <template lang="pug">

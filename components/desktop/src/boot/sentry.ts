@@ -26,6 +26,27 @@ export default boot(({ app, router }) => {
       ],
       tracesSampleRate: 0.01,
       environment: env.NODE_ENV || 'development',
+      // Обрыв связи и таймаут запроса — не ошибка кабинета, а состояние сети:
+      // во время обновления узла бэкенд недоступен минуту-другую, и пайщик в это
+      // время видит заглушку «Техническое обслуживание» или «Синхронизация».
+      // Такие события составляли почти весь журнал браузера и прятали настоящие
+      // ошибки. Шаблоны закреплены целиком, а не подстрокой: «Failed to fetch
+      // dynamically imported module» — это рассинхрон кусков сборки после
+      // выкатки, и его видеть нужно.
+      ignoreErrors: [
+        /^(TypeError: )?Failed to fetch$/,
+        /^(TypeError: )?Load failed$/,
+        /^(TypeError: )?NetworkError when attempting to fetch resource\.?$/,
+        /^(Error: )?(AbortError: )?(Fetch is aborted|signal is aborted without reason|The user aborted a request\.)$/,
+        // Отложенные обработчики Milkdown (debounce в его плагинах) срабатывают
+        // после уничтожения редактора и не отменяются самой библиотекой —
+        // пайщик при этом ничего не теряет: редактор уже закрыт.
+        /Context "editorView" not found/,
+        // Виджет поддержки не загрузился за 30 секунд (обычно его режет
+        // блокировщик рекламы), и библиотека виджета отклоняет свой же промис
+        // без перехвата. Кабинет от этого не страдает.
+        /^(Error: )?Chatwoot not loaded$/,
+      ],
     });
   } catch (error) {
     console.error('Failed to initialize Sentry:', error);
