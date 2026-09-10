@@ -63,6 +63,10 @@ export interface ProcessSummary {
   username: string | null;
   firstSeenAt: Date;
   lastSeenAt: Date;
+  /** Сумма главной операции нитки — наибольшая среди её операций (сырой ассет цепи). */
+  amount: string | null;
+  /** Назначение главной операции нитки — текст, который контракт записал в операцию. */
+  memo: string | null;
 }
 
 /**

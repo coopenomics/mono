@@ -8,7 +8,7 @@ div.processes-page
           removable
           color='primary'
           text-color='white'
-          icon='fa-solid fa-gears'
+          icon='account_tree'
           @remove='clearProcessTypeFilter'
         ) {{ processTypeLabel(filters.processType) }}
         q-chip(
@@ -16,7 +16,7 @@ div.processes-page
           removable
           color='primary'
           text-color='white'
-          icon='fa-solid fa-user'
+          icon='person'
           @remove='clearUsernameFilter'
         ) Пайщик {{ fioCache.get(filters.username) || filters.username }}
         q-chip(
@@ -24,7 +24,7 @@ div.processes-page
           removable
           color='primary'
           text-color='white'
-          icon='fa-solid fa-fingerprint'
+          icon='fingerprint'
           class='font-monospace'
           @remove='clearProcessHashFilter'
         ) Процесс {{ filters.processHash.slice(0, 8) }}
@@ -52,11 +52,11 @@ div.processes-page
           @keyup.enter='applyUsernameFilter'
         )
           template(#append)
-            q-icon.cursor-pointer(name='fa-solid fa-magnifying-glass' @click='applyUsernameFilter')
+            q-icon.cursor-pointer(name='search' @click='applyUsernameFilter')
         q-btn.col-md-auto(
           v-if='hasAnyFilter'
           flat
-          icon='fa-solid fa-rotate'
+          icon='refresh'
           label='Сбросить'
           @click='resetFilters'
         )
@@ -69,7 +69,7 @@ div.processes-page
       :columns='columns'
       row-key='processHash'
       :loading='loading'
-      :pagination='pagination'
+      v-model:pagination='pagination'
       :rows-per-page-options='[25, 50, 100, 200]'
       :no-data-label='"Процессы не найдены"'
       @request='onRequest'
@@ -88,6 +88,7 @@ div.processes-page
               :color='processChipBg(props.row.processType)'
               :text-color='processChipText(props.row.processType)'
             ) {{ processTypeLabel(props.row.processType) }}
+            .processes-registry__memo(v-if='props.row.memo') {{ props.row.memo }}
           q-td
             EntityIdBadge(
               :rawId='shortHash(props.row.processHash)'
@@ -106,6 +107,7 @@ div.processes-page
               label='КУ'
             )
               q-tooltip Кооперативный участок
+          q-td.text-right.font-monospace {{ formatProcessAmount(props.row.amount) }}
           q-td {{ formatDate(props.row.firstSeenAt) }}
           q-td {{ formatDate(props.row.lastSeenAt) }}
 
@@ -134,6 +136,8 @@ div.processes-page
               .col
                 .text-caption.text-grey-6 {{ formatDate(props.row.lastSeenAt) }}
                 .text-body2.text-weight-medium {{ processTypeLabel(props.row.processType) }}
+                .processes-registry__memo(v-if='props.row.memo') {{ props.row.memo }}
+              .col-auto.text-body2.font-monospace(v-if='props.row.amount') {{ formatProcessAmount(props.row.amount) }}
               .col-12.text-caption.text-grey-7
                 | {{ isBranch(props.row.username) ? 'Участок' : 'Пайщик' }}: {{ subjectName(props.row.username) }}
               .col-12.row.q-gutter-xs.q-mt-xs.items-center
@@ -157,6 +161,7 @@ import { useProcessStore, type IProcessSummary } from 'src/entities/Process'
 import { useFioCache } from 'src/shared/lib/account/useFioCache'
 import { ProcessDetailCard } from 'src/widgets/Process/ProcessDetailCard'
 import {
+  formatProcessAmount,
   processChipBg,
   processChipText,
   processTypeLabel,
@@ -238,6 +243,7 @@ const columns = [
   { name: 'processType', align: 'left' as const, label: 'Тип процесса', field: 'processType' },
   { name: 'processHash', align: 'left' as const, label: 'ID процесса', field: 'processHash' },
   { name: 'username', align: 'left' as const, label: 'Пайщик', field: 'username' },
+  { name: 'amount', align: 'right' as const, label: 'Сумма', field: 'amount' },
   { name: 'firstSeenAt', align: 'left' as const, label: 'Создан', field: 'firstSeenAt' },
   { name: 'lastSeenAt', align: 'left' as const, label: 'Последнее событие', field: 'lastSeenAt' },
 ]
@@ -380,6 +386,17 @@ onMounted(async () => {
 }
 @media (max-width: 768px) {
   .processes-page { padding: var(--p-4, 16px); }
+}
+/* Назначение главной операции — второй строкой под типом: по нему различаются
+   нитки одного типа у одного пайщика (заказ № 0 и заказ № 1). Ячейки q-table
+   не переносят текст, поэтому перенос и предел ширины задаются здесь. */
+.processes-registry__memo {
+  margin-top: var(--p-1);
+  max-width: calc(var(--p-10) * 5);
+  font-size: var(--p-fs-caption);
+  line-height: var(--p-lh-body-sm);
+  color: var(--p-ink-3);
+  white-space: normal;
 }
 .font-monospace {
   font-family: 'JetBrains Mono', 'Courier New', monospace;

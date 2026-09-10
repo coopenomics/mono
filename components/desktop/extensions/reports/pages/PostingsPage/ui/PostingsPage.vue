@@ -122,7 +122,7 @@
       :columns='columns'
       row-key='key'
       :loading='loading'
-      :pagination='pagination'
+      v-model:pagination='pagination'
       :rows-per-page-options='[25, 50, 100, 200]'
       :no-data-label='"Проводки не найдены"'
       @request='onRequest'

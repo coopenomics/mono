@@ -212,6 +212,10 @@ export class ProcessRegistryService {
                    ORDER BY a.block_num ASC, (a.global_sequence)::numeric ASC) AS "processTypes",
          ARRAY_AGG(a.data ->> 'username'
                    ORDER BY a.block_num ASC, (a.global_sequence)::numeric ASC) AS "usernames",
+         ARRAY_AGG(a.data ->> 'amount'
+                   ORDER BY a.block_num ASC, (a.global_sequence)::numeric ASC) AS "amounts",
+         ARRAY_AGG(a.data ->> 'memo'
+                   ORDER BY a.block_num ASC, (a.global_sequence)::numeric ASC) AS "memos",
          LOWER(a.data ->> 'process_hash')     AS "processHash",
          (a.data ->> 'coopname')              AS "coopname",
          MIN(a.created_at)                    AS "firstSeenAt",
@@ -381,6 +385,8 @@ export class ProcessRegistryService {
     const codes: (string | null)[] = r.operationCodes ?? [];
     const types: (string | null)[] = r.processTypes ?? [];
     const usernames: (string | null)[] = r.usernames ?? [];
+    const amounts: (string | null)[] = r.amounts ?? [];
+    const memos: (string | null)[] = r.memos ?? [];
     const applies = codes.map((code, i) =>
       this.toApplyRef({ operation_code: code, process_type: types[i] })
     );
@@ -400,6 +406,11 @@ export class ProcessRegistryService {
     // операций экономики КУ в username стоит имя участка, а не заказчика.
     const subject = naming ? usernames[naming.index] : usernames.find((u) => !!u);
 
+    // Сумма и назначение — по главной операции нитки. Без них две нитки одного
+    // типа у одного пайщика (два заказа, два пополнения) выглядели в реестре
+    // двойниками: тип, пайщик и даты совпадают, отличался только хэш.
+    const main = this.pickMainOperation(amounts);
+
     return {
       processType: naming?.processType ?? '',
       processHash: r.processHash,
@@ -407,7 +418,28 @@ export class ProcessRegistryService {
       username: subject ?? null,
       firstSeenAt: new Date(r.firstSeenAt),
       lastSeenAt: new Date(r.lastSeenAt),
+      amount: main >= 0 ? amounts[main] : null,
+      memo: main >= 0 ? memos[main] || null : null,
     };
+  }
+
+  /**
+   * Индекс главной операции нитки — с наибольшей суммой; при равных суммах
+   * первая по порядку. У поставки это паевой резерв под тело заказа, а не
+   * перевод недостающей части или членский взнос; у приёма пайщика — полный
+   * регистрационный взнос, а не его доли. `-1` — ни одна операция суммы не несёт.
+   */
+  private pickMainOperation(amounts: (string | null)[]): number {
+    let best = -1;
+    let bestValue = -Infinity;
+    amounts.forEach((amount, i) => {
+      const value = Number.parseFloat(String(amount ?? '').split(' ')[0]);
+      if (Number.isFinite(value) && value > bestValue) {
+        best = i;
+        bestValue = value;
+      }
+    });
+    return best;
   }
 
   private toApplyRef(data: unknown): ProcessApplyRef {

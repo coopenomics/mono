@@ -7848,9 +7848,11 @@ export const ReturnTypes: Record<string,any> = {
 		title:"String"
 	},
 	ProcessSummary:{
+		amount:"String",
 		coopname:"String",
 		firstSeenAt:"DateTime",
 		lastSeenAt:"DateTime",
+		memo:"String",
 		processHash:"String",
 		processType:"String",
 		username:"String"
