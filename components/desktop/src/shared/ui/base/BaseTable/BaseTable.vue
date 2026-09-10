@@ -53,6 +53,7 @@
 import { computed, ref, watch } from 'vue';
 import type { QTableProps } from 'quasar';
 import type { BaseTableProps } from './BaseTable.types';
+import { useFirstLoad } from 'src/shared/lib/composables';
 
 /**
  * Канон-таблица платформы: единственный способ показать реестр в
@@ -85,8 +86,14 @@ const selectedRows = computed<T[]>({
   set: (rows) => emit('update:selected', rows),
 });
 
-/** Каркас показываем, только пока показывать нечего: обновление идёт молча. */
-const skeleton = computed(() => Boolean(props.loading) && props.rows.length === 0);
+/**
+ * Каркас — только на первой загрузке, пока показывать нечего. Повторные
+ * загрузки (дочитка, поллинг) идут молча: на пустой таблице «loading и пусто»
+ * снова истинно, и без признака завершённой первой загрузки строки каждый раз
+ * сносило в каркас — таблица мерцала.
+ */
+const firstLoad = useFirstLoad(() => props.loading);
+const skeleton = computed(() => firstLoad.value && props.rows.length === 0);
 
 /** На каркасе выбирать нечего — галочки на пустышках только сбивают с толку. */
 const selectionMode = computed(() => (skeleton.value ? 'none' : props.selection));

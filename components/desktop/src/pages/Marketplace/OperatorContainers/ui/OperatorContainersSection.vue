@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref, watch } from 'vue'
+import { useFirstLoad } from 'src/shared/lib/composables'
 import QRCode from 'qrcode'
 import { useRoute } from 'vue-router'
 import { FailAlert, SuccessAlert } from 'src/shared/api'
@@ -67,6 +68,8 @@ const cellsEnabled = computed(() => branchStore.warehouseSettings.cells_enabled)
 
 const inventory = ref<MarketplaceInventoryItemView[]>([])
 const loading = ref(true)
+/** Пустое состояние и каркас — по первой загрузке; дочитка обновляет молча. */
+const firstLoad = useFirstLoad(loading)
 
 /**
  * Отмеченные боксы — для перепечатки этикеток пачкой. Печать всех годится
@@ -521,7 +524,7 @@ async function retire(container: MarketplaceContainerView): Promise<void> {
     //- ─────────────────────────── Боксы ───────────────────────────
     template(v-if='activeTab === "containers"')
       EmptyState(
-        v-if='!loading && !storage.activeTypes.length',
+        v-if='!firstLoad && !storage.activeTypes.length',
         title='Сначала заведите тип боксов',
         body='Габариты и объём задаёт тип, а не отдельный бокс: тару закупают одинаковыми партиями, а объём нужен агрегатом для расчёта перевозки.'
       )
@@ -529,7 +532,7 @@ async function retire(container: MarketplaceContainerView): Promise<void> {
           q-icon(name='straighten', size='48px')
 
       BaseTable(
-        v-else-if='loading || storage.activeContainers.length',
+        v-else-if='firstLoad || storage.activeContainers.length',
         :columns='containerColumns',
         :rows='storage.activeContainers',
         row-key='id',
@@ -582,7 +585,7 @@ async function retire(container: MarketplaceContainerView): Promise<void> {
     //- ────────────────────────── Типы боксов ──────────────────────
     template(v-else)
       BaseTable(
-        v-if='loading || storage.activeTypes.length',
+        v-if='firstLoad || storage.activeTypes.length',
         :columns='typeColumns',
         :rows='storage.activeTypes',
         row-key='id',

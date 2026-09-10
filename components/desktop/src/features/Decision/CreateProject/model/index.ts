@@ -2,7 +2,7 @@ import { Mutations } from '@coopenomics/sdk'
 import type { ICreatedProjectDecisionData, IGeneratedProjectDecisionDocument } from 'src/entities/Decision/model';
 import type { IAgenda } from 'src/entities/Agenda/model';
 import { client } from 'src/shared/api/client';
-import { useSignDocument } from 'src/shared/lib/document';
+import { signDocument } from 'src/shared/lib/document';
 import { ref, type Ref } from 'vue';
 
 export type ICreateProjectDecisionData = Mutations.FreeDecisions.CreateProjectOfFreeDecision.IInput['data']
@@ -30,7 +30,6 @@ export function useCreateProjectOfFreeDecision() {
       title: normalizedTitle,
     })
 
-    const { signDocument } = useSignDocument()
 
     const signedDocument = await signDocument(generatedDocument, username)
 

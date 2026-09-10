@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue';
+import { useFirstLoad } from 'src/shared/lib/composables';
 import { Dialog, debounce } from 'quasar';
 import { SuccessAlert, FailAlert, NotifyAlert } from 'src/shared/api';
 import { useRoute, useRouter } from 'vue-router';
@@ -73,6 +74,8 @@ const currentPage = ref(1);
 // скелетоном, особенно если fetchSupplierOfferMeta отвечает не мгновенно
 // (жалоба 2026-08-02).
 const loading = ref(true);
+/** Пустое состояние и каркас — по первой загрузке; дочитка обновляет молча. */
+const firstLoad = useFirstLoad(loading);
 const activeKey = ref('all');
 // Карта min-объёма поставки на КУ: `${offer_id}::${braname}` → min_supply_volume.
 const minVolumeMap = ref<Map<string, number>>(new Map());
@@ -95,7 +98,7 @@ const signGroup = ref<ReceptionGroup<MarketplaceAplReceptionView> | null>(null);
 const kuStore = useMarketplaceKUDetailsStore();
 
 const hasMore = computed(() => currentPage.value < totalPages.value);
-const showSkeleton = computed(() => loading.value && items.value.length === 0);
+const showSkeleton = computed(() => firstLoad.value);
 
 // Фильтр по этапу. «Все» — дефолт (весь оборот). Остальные табы — фильтры по статусу.
 // «Ждут акцепта» = ACTIVE (заказ создан пайщиком, ждёт приёма поставщиком к
@@ -537,7 +540,7 @@ q-page.incoming-orders(role='region', aria-label='Входящие заказы 
         .skel.skel--num.incoming-orders__skel-line.incoming-orders__skel-line--meta
 
     EmptyState(
-      v-if='!loading && !hasParties',
+      v-if='!firstLoad && !hasParties',
       title='Нет партий в этом фильтре',
       body='Когда пайщики оформят заказ на ваше предложение — он появится здесь партией по участку.'
     )

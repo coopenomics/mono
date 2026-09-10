@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue';
+import { useFirstLoad } from 'src/shared/lib/composables';
 import { Zeus } from '@coopenomics/sdk';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { useSessionStore } from 'src/entities/Session/model';
@@ -39,6 +40,8 @@ const { registerAction } = useHeaderActions();
 
 const items = ref<MarketplaceSupplierView[]>([]);
 const loading = ref(false);
+/** Скелетон — только на первой загрузке; дочитка обновляет молча. */
+const firstLoad = useFirstLoad(loading);
 const acting = ref<string | null>(null);
 const supplierOverlay = useQueryOverlay('supplier');
 
@@ -175,7 +178,7 @@ q-page.mp-role-admin.supplier-registry(role="region", aria-label="Реестр �
     | администратор может добавить поставщика напрямую.
 
   TableSkeleton(
-    v-if="loading && !items.length",
+    v-if="firstLoad",
     :columns="skeletonColumns",
     :rows="5",
     min-width="760px"

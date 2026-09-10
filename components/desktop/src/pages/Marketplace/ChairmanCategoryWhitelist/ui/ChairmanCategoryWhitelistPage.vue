@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue';
+import { useFirstLoad } from 'src/shared/lib/composables';
 import { Dialog, Notify, debounce } from 'quasar';
 import { SuccessAlert, FailAlert } from 'src/shared/api';
 import { BaseBadge, BaseButton, BaseInput, BaseDialog, EmptyState, TableSkeleton } from 'src/shared/ui/base';
@@ -31,6 +32,8 @@ import {
 const categories = ref<MarketplaceCoopCategoryView[]>([]);
 const available = ref<MarketplaceAvailableCategoryView[]>([]);
 const loading = ref(false);
+/** Скелетон — только на первой загрузке; дочитка обновляет молча. */
+const firstLoad = useFirstLoad(loading);
 const savingId = ref<number | null>(null);
 
 const addDialogOpen = ref(false);
@@ -170,12 +173,12 @@ q-page.categories(role='region', aria-label='Категории кооперат
         q-icon(name='add', size='18px')
       | Добавить категорию
 
-  .categories__summary(v-if='!loading || categories.length')
+  .categories__summary(v-if='!firstLoad || categories.length')
     span(v-if='isOpenCatalog') Открыт весь каталог — доступны все категории ({{ categories.length }})
     span(v-else) Доступно категорий: {{ enabledCount }} из {{ categories.length }}
 
   TableSkeleton(
-    v-if='loading && !categories.length',
+    v-if='firstLoad',
     :columns='skeletonColumns',
     :rows='6',
     min-width='560px'
@@ -217,7 +220,7 @@ q-page.categories(role='region', aria-label='Категории кооперат
       span Категорий: {{ categories.length }}
 
   EmptyState(
-    v-else-if='!loading',
+    v-else-if='!firstLoad',
     title='Категорий нет',
     body='Базовые категории не загрузились. Обновите страницу или добавьте собственную.'
   )

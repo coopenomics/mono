@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref, watch } from 'vue';
+import { useFirstLoad } from 'src/shared/lib/composables';
 import { debounce } from 'quasar';
 import { useRoute, useRouter } from 'vue-router';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
@@ -8,6 +9,7 @@ import { Avatar, BaseBadge, BaseButton, BaseDialog, CardListSkeleton, EmptyState
 import { AccountBadge, PageHint } from 'src/shared/ui/domain';
 import { VerifyIdentityDialog } from 'src/features/User/VerifyIdentity';
 import { ScannerDialog } from 'src/widgets/Marketplace/ScannerDialog';
+import { GoodsManifest, type GoodsManifestLine } from 'src/widgets/Marketplace/GoodsManifest';
 import { StockRestockPanel } from 'src/widgets/Marketplace/StockRestockPanel';
 import { orderStatusDisplay } from 'src/widgets/Marketplace/OrderCard';
 import { marketplaceOrderSaleUnitLabel } from 'src/shared/lib/consts/marketplace-units';
@@ -19,9 +21,8 @@ import {
   useMarketplaceHandoffSignal,
   useMarketplaceRealtime,
 } from 'src/shared/lib/marketplace';
-import { Classes } from '@coopenomics/sdk';
 import { useGlobalStore } from 'src/shared/store';
-import { signingKeyOrAlert } from 'src/shared/lib/utils/signingKey';
+import { ensureSigningUnlocked, signDocument } from 'src/shared/lib/document';
 import {
   readyIssue,
   listIssuancesByBraname,
@@ -60,6 +61,8 @@ const braname = computed(() => store.activeBraname ?? '');
 const items = ref<MarketplaceOrderIssuanceView[]>([]);
 const sagas = ref<MarketplaceIssuanceSagaView[]>([]);
 const loading = ref(true);
+/** Скелетон — только на первой загрузке; дочитка обновляет молча. */
+const firstLoad = useFirstLoad(loading);
 
 const openDialog = ref(false);
 // Открываем выдачу СРАЗУ по всем позициям пайщика «к выдаче» — одна операция
@@ -133,6 +136,41 @@ function lineQuantityLabel(qty: number, l: { unit: MarketplaceOrderIssuanceView[
   return marketplaceOrderSaleUnitLabel(qty, l.unit, l.packageSize);
 }
 
+/** Строки «к выдаче» → накладная виджета: факт, стоимость, недопоставка пометкой. */
+function toIssueManifest(lines: IssuanceLine[]): GoodsManifestLine[] {
+  return lines.map((l) => ({
+    key: l.key,
+    name: l.name,
+    quantity: lineQuantityLabel(l.quantity, l),
+    cost: `${formatAsset2Digits(l.total)} ₽`,
+    note:
+      l.quantity < l.orderedQuantity
+        ? `Недопоставка · заказано ${lineQuantityLabel(l.orderedQuantity, l)}`
+        : undefined,
+  }));
+}
+
+/** Выдачи в процессе → накладная виджета; стадия и кнопки — через слот по ключу. */
+function inProgressManifest(
+  rows: Array<{ order: MarketplaceOrderIssuanceView; saga: MarketplaceIssuanceSagaView }>,
+): GoodsManifestLine[] {
+  return rows.map((x) => ({
+    key: String(x.saga.id),
+    name: x.order.product_name || 'Товар по предложению',
+    quantity: lineQuantityLabel(x.saga.fact.actual_quantity, {
+      unit: x.order.unit_of_measure,
+      packageSize: x.order.package_size ?? null,
+    }),
+    cost: `${formatAsset2Digits(x.saga.fact.fact_cost)} ₽`,
+    note: x.saga.last_error ?? undefined,
+  }));
+}
+
+/** Строка саги по ключу строки накладной — для слота со стадией и кнопками. */
+function stageRowsOf(g: IssuanceGroup, key: string): IssuanceGroup['inProgress'] {
+  return g.inProgress.filter((x) => String(x.saga.id) === key);
+}
+
 function mergeLines(orders: MarketplaceOrderIssuanceView[]): IssuanceLine[] {
   const map = new Map<string, IssuanceLine>();
   for (const o of orders) {
@@ -141,14 +179,16 @@ function mergeLines(orders: MarketplaceOrderIssuanceView[]): IssuanceLine[] {
     const unitPrice = ordered
       ? (Number.parseFloat(String(o.total_cost ?? '0')) || 0) / ordered
       : total;
-    // Цена за единицу в ключе — разная цена не сливается в одну строку.
-    const key = `${name}__${o.unit_of_measure ?? ''}__${o.status}__${unitPrice.toFixed(4)}`;
+    // Цена за единицу в ключе — разная цена не сливается в одну строку. Тара —
+    // тоже: оператор выдаёт упаковками, и «10 упак. 1 л» рядом с «10 упак.
+    // 0,5 л» должны остаться разными строками, а не безликим «15 л»
+    // (просьба владельца 2026-09-09, как на «Ожидаемых поставках»).
+    const key = `${name}__${o.unit_of_measure ?? ''}__${o.package_size ?? 0}__${o.status}__${unitPrice.toFixed(4)}`;
     const ex = map.get(key);
     if (ex) {
       ex.quantity += qty;
       ex.orderedQuantity += ordered;
       ex.total = (Number.parseFloat(ex.total) + total).toFixed(4);
-      if (ex.packageSize !== (o.package_size ?? null)) ex.packageSize = null;
     } else {
       map.set(key, {
         key,
@@ -286,24 +326,23 @@ async function autoCloseIssuances(): Promise<void> {
   if (!pending.length) return;
   autoClosing = true;
   try {
-    const wif = await signingKeyOrAlert('Для закрытия выдачи нужен ключ оператора');
-    if (!wif) return;
-    const signer = new Classes.Document(wif);
+    // Серия закрытий — ключ отпираем один раз до цикла.
+    if (!(await ensureSigningUnlocked('Для закрытия выдачи нужен ключ оператора'))) return;
     for (const saga of pending) {
-      await closeOne(saga, signer);
+      await closeOne(saga);
     }
   } finally {
     autoClosing = false;
   }
 }
 
-async function closeOne(saga: MarketplaceIssuanceSagaView, signer: Classes.Document): Promise<void> {
+async function closeOne(saga: MarketplaceIssuanceSagaView): Promise<void> {
   closingOrders.value = new Set([...closingOrders.value, saga.order_id]);
   try {
     const payload = await getIssuanceClosePayload(saga.order_id);
     const raw = payload.act_aggregate.rawDocument;
     if (!raw) throw new Error('Не найден исходный акт для закрывающей подписи');
-    const signed_act = (await signer.signDocument(raw, globalStore.username, 2, [payload.act_aggregate.document])) as Parameters<
+    const signed_act = (await signDocument(raw, globalStore.username, 2, [payload.act_aggregate.document])) as Parameters<
       typeof closeIssuance
     >[0]['signed_act'];
     await closeIssuance({ order_id: saga.order_id, signed_act });
@@ -319,9 +358,7 @@ async function closeOne(saga: MarketplaceIssuanceSagaView, signer: Classes.Docum
 }
 
 async function closeManually(saga: MarketplaceIssuanceSagaView): Promise<void> {
-  const wif = await signingKeyOrAlert('Для закрытия выдачи нужен ключ оператора');
-  if (!wif) return;
-  await closeOne(saga, new Classes.Document(wif));
+  await closeOne(saga);
 }
 
 // Снять выдачу до акта: паевой взнос пайщика остаётся на месте, заказ
@@ -532,7 +569,7 @@ q-page.issuance(role='region', aria-label='Выдача заказов')
         | Сканировать QR заказа
 
     //- Канон загрузки: скелетон, а не спиннер.
-    CardListSkeleton(v-if='loading && !items.length', :count='3')
+    CardListSkeleton(v-if='firstLoad', :count='3')
 
     .issuance__grid(v-else-if='groups.length')
       BaseCard.issuance__card(v-for='g in groups', :key='g.account')
@@ -542,48 +579,45 @@ q-page.issuance(role='region', aria-label='Выдача заказов')
             .issuance__card-ident
               span.issuance__card-name {{ g.name }}
               AccountBadge(:account-name='g.account', size='sm')
-        //- К выдаче — открыть выдачу можно ТОЛЬКО отсканировав QR-код заказчика
-        //- (кнопка скана в тулбаре). Здесь — только что причитается пайщику.
-        .issuance__section(v-if='g.toIssueLines.length')
-          .issuance__section-head К выдаче
-          .issuance__line(v-for='line in g.toIssueLines', :key='line.key')
-            .issuance__line-info
-              .issuance__line-name {{ line.name }}
-              .issuance__line-meta
-                | {{ lineQuantityLabel(line.quantity, line) }} · {{ formatAsset2Digits(line.total) }} ₽
-                span.issuance__line-shortage(v-if='line.quantity < line.orderedQuantity')
-                  |  · заказано {{ lineQuantityLabel(line.orderedQuantity, line) }}
-            .issuance__line-side(v-if='line.quantity < line.orderedQuantity')
-              BaseBadge(variant='warn') Недопоставка
 
-          //- Одна кнопка на карточку: объявить готовыми к выдаче все ещё не
-          //- объявленные позиции заказчика (заказчику уходит уведомление).
-          //- Уже объявленные показываем бейджем — оператор не жмёт повторно.
-          .issuance__announce
-            BaseButton(
-              v-if='g.toAnnounce.length',
-              variant='primary',
-              size='sm',
-              :loading='announcingAccount === g.account',
-              @click='announceGroup(g)'
-            )
-              template(#icon-left)
-                q-icon(name='campaign', size='16px')
-              | Объявить выдачу
-            BaseBadge(v-if='g.announcedCount', variant='pos') Готово, ждём заказчика
+        //- К выдаче — накладная в рамке, как на «Ожидаемых поставках»: строки
+        //- идут по упаковкам («10 упак. 1 л»), чтобы оператор видел, какую
+        //- тару и сколько отдать. Открыть выдачу можно ТОЛЬКО отсканировав
+        //- QR-код заказчика (кнопка скана в тулбаре).
+        GoodsManifest(
+          v-if='g.toIssueLines.length',
+          title='К выдаче',
+          :count='`${g.toIssueLines.length} поз.`',
+          :lines='toIssueManifest(g.toIssueLines)'
+        )
+
+        //- Одна кнопка на карточку: объявить готовыми к выдаче все ещё не
+        //- объявленные позиции заказчика (заказчику уходит уведомление).
+        //- Уже объявленные показываем бейджем — оператор не жмёт повторно.
+        .issuance__announce(v-if='g.toIssueLines.length')
+          BaseButton(
+            v-if='g.toAnnounce.length',
+            variant='primary',
+            size='sm',
+            :loading='announcingAccount === g.account',
+            @click='announceGroup(g)'
+          )
+            template(#icon-left)
+              q-icon(name='campaign', size='16px')
+            | Объявить выдачу
+          BaseBadge(v-if='g.announcedCount', variant='pos') Готово, ждём заказчика
 
         //- Выдача в процессе: заявление пайщика → решение совета → акт →
         //- закрывающая подпись (ставится сама). Оператор видит этап и может
         //- снять выдачу до акта либо закрыть вручную, если автозакрытие не прошло.
-        .issuance__section(v-if='g.inProgress.length')
-          .issuance__section-head Выдача в процессе
-          .issuance__line(v-for='x in g.inProgress', :key='String(x.saga.id)')
-            .issuance__line-info
-              .issuance__line-name {{ x.order.product_name || 'Товар по предложению' }}
-              .issuance__line-meta
-                | {{ lineQuantityLabel(x.saga.fact.actual_quantity, { unit: x.order.unit_of_measure, packageSize: x.order.package_size ?? null }) }} · {{ formatAsset2Digits(x.saga.fact.fact_cost) }} ₽
-                span.issuance__line-shortage(v-if='x.saga.last_error')  · {{ x.saga.last_error }}
-            .issuance__line-side
+        GoodsManifest(
+          v-if='g.inProgress.length',
+          title='Выдача в процессе',
+          :count='`${g.inProgress.length} поз.`',
+          :lines='inProgressManifest(g.inProgress)'
+        )
+          template(#line-extra='{ line }')
+            .issuance__card-stage(v-for='x in stageRowsOf(g, line.key)', :key='x.order.id')
               BaseBadge(:variant='stageOf(x.saga).variant') {{ stageOf(x.saga).label }}
               BaseButton(
                 v-if='x.saga.awaits_operator_close',
@@ -600,10 +634,10 @@ q-page.issuance(role='region', aria-label='Выдача заказов')
                 @click='cancelOne(x.saga)'
               ) Снять
 
-        //- Итог по заказчику — снизу, под выдачей (не в шапке карточки).
-        .issuance__card-foot
-          BaseBadge(variant='neutral') Позиций: {{ g.count }}
-          span.issuance__card-total {{ formatAsset2Digits(g.total) }} ₽
+        //- Итог по заказчику — снизу, под выдачей: сумма по факту строк.
+        .issuance__card-summary
+          span.issuance__card-summary-label Сумма к выдаче
+          span.issuance__card-amount {{ formatAsset2Digits(g.total) }} ₽
 
     EmptyState(
       v-else,
@@ -712,28 +746,39 @@ q-page.issuance(role='region', aria-label='Выдача заказов')
     overflow-wrap: anywhere;
   }
 
-  // Итог по заказчику снизу карточки, под списком выдачи.
-  &__card-foot {
+  // Стадия выдачи и действие по ней — одной строкой под названием.
+  &__card-stage {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    flex-wrap: wrap;
     gap: var(--p-2, 8px);
+  }
+
+  &__card-summary {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--p-3, 12px);
     margin-top: auto;
     padding-top: var(--p-3, 12px);
     border-top: 1px solid var(--p-line);
   }
 
-  &__card-total {
-    font-family: var(--p-mono);
-    font-weight: 600;
-    color: var(--p-ink);
-    font-variant-numeric: tabular-nums;
+  &__card-summary-label {
+    font-size: var(--p-fs-meta, 12px);
+    letter-spacing: var(--p-ls-eyebrow, 0.08em);
+    text-transform: uppercase;
+    color: var(--p-ink-3);
   }
 
-  &__section {
-    display: flex;
-    flex-direction: column;
-    gap: var(--p-2, 8px);
+  // Сумма — главная величина карточки, поэтому крупнее строк состава.
+  &__card-amount {
+    flex: 0 0 auto;
+    font-size: var(--p-fs-h2, 18px);
+    font-weight: 700;
+    letter-spacing: var(--p-ls-h2, -0.012em);
+    color: var(--p-ink);
+    font-variant-numeric: tabular-nums;
   }
 
   &__announce {
@@ -741,59 +786,9 @@ q-page.issuance(role='region', aria-label='Выдача заказов')
     align-items: center;
     flex-wrap: wrap;
     gap: var(--p-2, 8px);
-    margin-top: var(--p-1, 4px);
   }
 
-  &__section-head {
-    font-size: var(--p-fs-meta, 12px);
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    color: var(--p-ink-3);
-  }
-
-  &__line {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--p-3, 12px);
-    // Узкая карточка: статус и кнопки уезжают на вторую строку целиком, а не
-    // расплющивают название товара в столбик из букв.
-    flex-wrap: wrap;
-    padding: var(--p-2, 8px) var(--p-3, 12px);
-    background: var(--p-surface-2);
-    border-radius: var(--p-r-sm, 8px);
-  }
-
-  &__line-info {
-    // Занимает остаток строки и не сжимается уже читаемой ширины: без базиса
-    // длинный статус («Акт подписан — закрываем выдачу») съедал колонку целиком.
-    flex: 1 1 220px;
-  }
-
-  // Статус и действия по строке — одним блоком, чтобы переносились вместе.
-  &__line-side {
-    flex: 0 0 auto;
-    display: flex;
-    align-items: center;
-    gap: var(--p-2, 8px);
-    margin-left: auto;
-  }
-
-  &__line-name {
-    font-size: var(--p-fs-body-sm, 13px);
-    color: var(--p-ink);
-    // По словам, а не в любом месте: при anywhere минимальная ширина колонки
-    // равна одной букве, и flex складывал «МОЛОКО» в вертикальный столбик.
-    overflow-wrap: break-word;
-  }
-
-  &__line-meta {
-    font-size: var(--p-fs-meta, 12px);
-    color: var(--p-ink-2);
-    font-variant-numeric: tabular-nums;
-  }
-
-  // Недопоставка: заказанное количество рядом с фактом, приглушённо-предупреждающе.
+  // Недопоставка в окне сверки: заказанное рядом с фактом, приглушённо.
   &__line-shortage {
     color: var(--p-warn);
   }

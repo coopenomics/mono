@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue';
+import { useFirstLoad } from 'src/shared/lib/composables';
 import { useRoute, useRouter } from 'vue-router';
 import { debounce } from 'quasar';
 import { FailAlert } from 'src/shared/api';
@@ -46,6 +47,8 @@ const totalCount = ref(0);
 const totalPages = ref(0);
 const currentPage = ref(1);
 const loading = ref(false);
+/** Скелетон — только на первой загрузке; дочитка обновляет молча. */
+const firstLoad = useFirstLoad(loading);
 const activeKey = ref('all');
 
 const hasMore = computed(() => currentPage.value < totalPages.value);
@@ -299,10 +302,10 @@ q-page.orders(role="region", aria-label="Мои заказы")
   PageTabs.orders__tabs(:tabs="tabs", :active-key="activeKey", @select="onSelectTab")
 
   //- Канон загрузки: скелетон на первичной загрузке, не пустой экран.
-  CardListSkeleton(v-if="loading && !items.length", :count="3")
+  CardListSkeleton(v-if="firstLoad", :count="3")
 
   EmptyState(
-    v-if="!items.length && !loading",
+    v-if="!items.length && !firstLoad",
     title="У вас пока нет заказов",
     body="Перейдите в каталог, чтобы оформить первый заказ."
   )

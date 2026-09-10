@@ -4,7 +4,7 @@ import { useSystemStore } from 'src/entities/System/model';
 import { useSessionStore } from 'src/entities/Session';
 import { useAccountStore } from 'src/entities/Account/model';
 import { Queries, Mutations } from '@coopenomics/sdk';
-import { useSignDocument } from 'src/shared/lib/document/model/entity';
+import { signDocument } from 'src/shared/lib/document';
 import { SuccessAlert, FailAlert } from 'src/shared/api';
 
 /**
@@ -149,7 +149,6 @@ export function useProviderAxonConvert() {
       });
 
       // Подписываем документ
-      const { signDocument } = useSignDocument();
       const signedDocument = await signDocument(generatedDocument, params.username);
 
 

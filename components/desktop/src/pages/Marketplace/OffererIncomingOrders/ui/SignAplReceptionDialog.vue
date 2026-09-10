@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
-import { signingKeyOrAlert } from 'src/shared/lib/utils/signingKey';
+import { ensureSigningUnlocked } from 'src/shared/lib/document';
 import { BaseButton, BaseChip, BaseDialog } from 'src/shared/ui/base';
 import { ActDialogLayout } from 'src/widgets/Marketplace/ActDialogLayout';
 import { useMarketplaceKUDetailsStore } from 'src/entities/MarketplaceKUDetails';
@@ -117,8 +117,8 @@ async function loadPreview(): Promise<void> {
 async function confirm(): Promise<void> {
   if (!props.group || !props.group.receptions.length) return;
 
-  const wif = await signingKeyOrAlert('Не удалось получить ключ поставщика для подписи');
-  if (!wif) return;
+  // Акты подписываются параллельно — ключ отпираем один раз до старта.
+  if (!(await ensureSigningUnlocked('Не удалось получить ключ поставщика для подписи'))) return;
 
   signing.value = true;
   done.value = 0;
@@ -128,7 +128,6 @@ async function confirm(): Promise<void> {
     // кнопки, ошибки/успех алертим здесь.
     const { errors } = await signReceptionGroupAsSupplier(
       props.group.receptions,
-      wif,
       (d) => {
         done.value = d;
       },

@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref, watch } from 'vue'
+import { useFirstLoad } from 'src/shared/lib/composables'
 import { debounce } from 'quasar'
 import { useRoute } from 'vue-router'
 import { FailAlert, SuccessAlert } from 'src/shared/api'
@@ -61,6 +62,8 @@ const placementEnabled = computed(() => store.addressedStorageEnabled)
 const search = ref<string>('')
 const items = ref<MarketplaceInventoryItemView[]>([])
 const loading = ref(true)
+/** Каркас и пустое состояние — по первой загрузке; дочитка обновляет молча. */
+const firstLoad = useFirstLoad(loading)
 
 // Склад/Остатки — два раздела в табах (канон — «Гарантийные возвраты»), не
 // карточка, которая появляется/исчезает в зависимости от наличия остатков
@@ -368,7 +371,7 @@ function isExpired(value: unknown): boolean {
       )
 
       BaseTable(
-        v-if='loading || filteredRows.length',
+        v-if='firstLoad || filteredRows.length',
         :columns='columns',
         :rows='filteredRows',
         row-key='id',

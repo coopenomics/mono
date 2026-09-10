@@ -22,6 +22,18 @@
 .q-field--outlined .q-field__control::after {
   border-radius: var(--p-r-sm, 8px);
 }
+/* Рамка поля — та же линия, что у outline-кнопок (hairline --p-line-1).
+   Свою рамку Quasar рисует белым с прозрачностью (в тёмной теме — 60%),
+   и рядом с кнопкой в --p-line-1 поле выглядело обведённым вдвое жирнее:
+   форма приёмки, 09.09.2026. Ошибка и фокус красятся дальше по каскаду
+   Quasar (--q-negative / --q-primary), их не трогаем. */
+.q-field--outlined:not(.q-field--error) .q-field__control::before {
+  border-color: var(--p-line-1) !important;
+}
+.q-field--outlined:not(.q-field--error):not(.q-field--readonly):not(.q-field--disabled)
+  .q-field__control:hover::before {
+  border-color: var(--p-line-2) !important;
+}
 /* Цвет текста значения */
 .q-field--outlined .q-field__native,
 .q-field--outlined .q-field__input {

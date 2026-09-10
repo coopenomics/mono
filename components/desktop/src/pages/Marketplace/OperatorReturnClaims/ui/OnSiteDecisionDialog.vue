@@ -1,9 +1,8 @@
 <script lang="ts" setup>
 import { computed, ref, watch } from 'vue';
-import { Classes } from '@coopenomics/sdk';
 import { useGlobalStore } from 'src/shared/store';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
-import { signingKeyOrAlert } from 'src/shared/lib/utils/signingKey';
+import { signDocument } from 'src/shared/lib/document';
 import { TakeoverDialog } from 'src/widgets/Marketplace/TakeoverDialog';
 import { BaseInput } from 'src/shared/ui/base';
 import { FileUploader, type FileUploaderError } from 'src/shared/ui/domain';
@@ -101,14 +100,12 @@ const claimQuantityLabel = computed(() => {
  */
 async function acceptWithStatement(
   claim: MarketplaceReturnClaimView,
-  wif: string,
   inspectionPhotos: ReturnClaimPhotoUploadInput[],
 ): Promise<void> {
   const inspection = inspectionResult.value.trim();
   const docs = await fetchChairmanReturnSignablePayload(claim.id, inspection);
-  const signer = new Classes.Document(wif);
-  const signed_statement = await signer.signDocument(docs.cancel_statement, globalStore.username, 1);
-  const signed_reclamation = await signer.signDocument(docs.reclamation.rawDocument, globalStore.username, 2, [
+  const signed_statement = await signDocument(docs.cancel_statement, globalStore.username, 1);
+  const signed_reclamation = await signDocument(docs.reclamation.rawDocument, globalStore.username, 2, [
     docs.reclamation.document,
   ]);
   const result = await acceptReturnAtVisit({
@@ -138,12 +135,6 @@ async function confirm(): Promise<void> {
     FailAlert(new Error('Не выбран кооперативный участок.'));
     return;
   }
-  const wif =
-    decision.value === DECISION_ACCEPT
-      ? await signingKeyOrAlert('Не удалось получить ключ для подписи')
-      : undefined;
-  if (decision.value === DECISION_ACCEPT && !wif) return;
-
   submitting.value = true;
   try {
     const inspectionPhotos: ReturnClaimPhotoUploadInput[] = await Promise.all(
@@ -153,7 +144,7 @@ async function confirm(): Promise<void> {
       })),
     );
     if (decision.value === DECISION_ACCEPT) {
-      await acceptWithStatement(props.claim, wif!, inspectionPhotos);
+      await acceptWithStatement(props.claim, inspectionPhotos);
     } else {
       await rejectReturnAtVisit({
         claim_id: props.claim.id,

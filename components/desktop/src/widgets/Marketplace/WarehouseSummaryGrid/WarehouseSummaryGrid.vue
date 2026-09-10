@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, type PropType } from 'vue'
+import { useFirstLoad } from 'src/shared/lib/composables'
 import { EmptyState, TableSkeleton } from 'src/shared/ui/base'
 import type { TableSkeletonColumn } from 'src/shared/ui/base'
 import { FilterBar } from 'src/shared/ui/domain'
@@ -13,6 +14,9 @@ const props = defineProps({
 })
 
 const filter = ref('')
+
+/** Скелетон — только на первой загрузке; дочитка обновляет молча. */
+const firstLoad = useFirstLoad(() => props.loading)
 
 // Колонки скелетона повторяют шапку реальной таблицы (форма не дёргается).
 const skeletonColumns: TableSkeletonColumn[] = [
@@ -52,7 +56,7 @@ defineExpose({ filteredRows })
   )
 
   TableSkeleton(
-    v-if='loading && !filteredRows.length',
+    v-if='firstLoad',
     :columns='skeletonColumns',
     min-width='900px'
   )

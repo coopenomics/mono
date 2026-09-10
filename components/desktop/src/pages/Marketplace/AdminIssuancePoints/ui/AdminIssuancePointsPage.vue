@@ -15,7 +15,7 @@ import type { IMarketplaceKUDetails } from 'src/entities/MarketplaceKUDetails'
 import { BaseBadge, BaseButton, BaseDialog, EmptyState, TableSkeleton } from 'src/shared/ui/base'
 import type { BaseBadgeVariant, TableSkeletonColumn } from 'src/shared/ui/base'
 import { IdentityCell, PageHint } from 'src/shared/ui/domain'
-import { useDataPoller } from 'src/shared/lib/composables'
+import { useDataPoller, useFirstLoad } from 'src/shared/lib/composables'
 import { useMarketplaceRealtime } from 'src/shared/lib/marketplace'
 // Map экспортируется как `Map` — импортируем под алиасом, чтобы не затенять
 // глобальный `Map` (используется в `rows`).
@@ -44,6 +44,8 @@ const coopname = computed(() => String(route.params.coopname ?? ''))
 const isChairman = computed(() => session.isChairman ?? false)
 
 const loading = ref(false)
+/** Скелетон — только на первой загрузке; дочитка обновляет молча. */
+const firstLoad = useFirstLoad(loading)
 // Ручной перезапуск геокода — показываем лоадер на кнопке, пока мутация идёт.
 const geocodingBranames = ref<Set<string>>(new Set())
 
@@ -239,11 +241,11 @@ q-page.admin-pvz
     | Адрес геокодируется автоматически для карты.
 
   .admin-pvz__toolbar
-    .admin-pvz__counter(v-if='!loading && rows.length')
+    .admin-pvz__counter(v-if='!firstLoad && rows.length')
       | Подключено пунктов выдачи: {{ connectedCount }} из {{ rows.length }}
 
   TableSkeleton(
-    v-if='loading && !rows.length',
+    v-if='firstLoad',
     :columns='skeletonColumns',
     :rows='5',
     min-width='1140px'

@@ -1,5 +1,5 @@
 import { client } from 'src/shared/api/client'
-import { useSignDocument } from 'src/shared/lib/document/model/entity'
+import { signDocument } from 'src/shared/lib/document'
 import { Mutations, Zeus } from '@coopenomics/sdk'
 import { computed, ref, type Ref } from 'vue'
 import { useMeetStore } from 'src/entities/Meet'
@@ -19,7 +19,6 @@ interface ICloseMeetWithDecisionInput {
 
 // Базовые функции API для работы с бэкендом
 export async function signBySecretaryOnAnnualGeneralMeetWithDecision(data: ICloseMeetWithDecisionInput): Promise<ISignBySecretaryResult> {
-  const { signDocument } = useSignDocument()
 
   const variables: Mutations.Meet.GenerateAnnualGeneralMeetDecisionDocument.IInput = {
     data: {
@@ -60,7 +59,6 @@ export async function signBySecretaryOnAnnualGeneralMeetWithDecision(data: IClos
 }
 
 export async function signByPresiderOnAnnualGeneralMeetWithDecision(data: ICloseMeetWithDecisionInput): Promise<ISignByPresiderResult> {
-  const { signDocument } = useSignDocument()
   const meetStore = useMeetStore()
 
   // Получаем текущее собрание из store

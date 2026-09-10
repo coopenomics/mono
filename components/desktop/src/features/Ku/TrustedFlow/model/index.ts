@@ -3,7 +3,7 @@ import { Cooperative } from 'cooptypes';
 import { useSystemStore } from 'src/entities/System/model';
 import { useSessionStore } from 'src/entities/Session';
 import type { IKuTrustRequest } from 'src/entities/Ku/model';
-import { DigitalDocument, useSignDocument, type IGeneratedDocument } from 'src/shared/lib/document';
+import { DigitalDocument, signDocument, type IGeneratedDocument } from 'src/shared/lib/document';
 import { generateUniqueHash } from 'src/shared/lib/utils/generateUniqueHash';
 import { api } from '../api';
 
@@ -19,7 +19,6 @@ export * from './types';
 export function useKuTrustedFlow() {
   const system = useSystemStore();
   const session = useSessionStore();
-  const { signDocument } = useSignDocument();
 
   const isSubmitting = ref(false);
 

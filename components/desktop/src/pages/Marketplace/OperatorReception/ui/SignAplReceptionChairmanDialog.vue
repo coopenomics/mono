@@ -3,7 +3,7 @@ import { computed, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { useGlobalStore } from 'src/shared/store';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
-import { signingKeyOrAlert } from 'src/shared/lib/utils/signingKey';
+import { ensureSigningUnlocked } from 'src/shared/lib/document';
 import {
   Avatar,
   BaseBadge,
@@ -337,6 +337,8 @@ const labeledCount = computed(() =>
   units.value.reduce((sum, u) => sum + rowsOf(u.orderId).filter((row) => row.barcode).length, 0),
 );
 const placedCount = computed(() => units.value.filter(isFullyPlaced).length);
+/** Хоть одна позиция разложена по нескольким местам — таблице нужна колонка количества. */
+const hasSplitRows = computed(() => units.value.some((u) => rowsOf(u.orderId).length > 1));
 const allPlaced = computed(
   () => units.value.length > 0 && placedCount.value === units.value.length,
 );
@@ -347,6 +349,20 @@ const allPlaced = computed(
 
 const labelScannerOpen = ref(false);
 const labelTarget = ref<{ orderId: string; index: number } | null>(null);
+
+/**
+ * Код этикетки в узкой клетке режется посередине, а не с конца: этикетки
+ * одной партии различаются последними цифрами, и «12345678901…» для двух
+ * соседних строк выглядит одинаково. Хвост держится целиком, начало — с
+ * многоточием (просьба владельца 09.09.2026).
+ */
+const BARCODE_TAIL_LENGTH = 4;
+function barcodeHead(code: string): string {
+  return code.slice(0, -BARCODE_TAIL_LENGTH);
+}
+function barcodeTail(code: string): string {
+  return code.slice(-BARCODE_TAIL_LENGTH);
+}
 
 function openLabelScanner(orderId: string, index: number): void {
   labelTarget.value = { orderId, index };
@@ -411,6 +427,24 @@ function printLabels(): void {
 
 const boxScannerOpen = ref(false);
 const resolvingCode = ref(false);
+/**
+ * Куда положить отсканированный бокс. `null` — во всё принятое разом (кнопка
+ * в шапке, обычный случай у стойки). Заполненная цель — только эта часть:
+ * когда позиции расходятся по разной таре, выбирать место мышью в списке из
+ * десятков боксов дольше, чем поднести сканер (просьба владельца 09.09.2026).
+ */
+const boxScanTarget = ref<{ orderId: string; index: number } | null>(null);
+
+function openBoxScanner(target: { orderId: string; index: number } | null = null): void {
+  boxScanTarget.value = target;
+  boxScannerOpen.value = true;
+}
+
+/** Крутилка — только на той кнопке, которой сканировали: остальные не при чём. */
+function isResolvingRow(orderId: string, index: number): boolean {
+  const target = boxScanTarget.value;
+  return resolvingCode.value && target !== null && target.orderId === orderId && target.index === index;
+}
 /** Сколько позиций уже лежит в боксах участка — для подписи «BX-0001 — 3 поз.». */
 const inventoryCountByContainer = ref<Record<string, number>>({});
 
@@ -546,7 +580,10 @@ function setPlacementForAll(value: string | null): void {
   placementsByOrder.value = next;
 }
 
-/** Скан QR бокса кладёт туда всё принятое разом — обычный случай у стойки. */
+/**
+ * Скан QR бокса кладёт туда всё принятое разом — либо одну часть, если сканер
+ * вызвали из её строки (`boxScanTarget`).
+ */
 async function onBoxScanned(raw: string): Promise<void> {
   if (resolvingCode.value) return;
   const token = decodeScannedCode(raw, coopname.value);
@@ -563,8 +600,15 @@ async function onBoxScanned(raw: string): Promise<void> {
       );
       return;
     }
-    setPlacementForAll(placementValueOf({ container_id: container.id }));
-    SuccessAlert(`Всё принятое ляжет в бокс ${container.code}`);
+    const value = placementValueOf({ container_id: container.id });
+    const target = boxScanTarget.value;
+    if (target) {
+      setPlacement(target.orderId, target.index, value);
+      SuccessAlert(`Место: бокс ${container.code}`);
+    } else {
+      setPlacementForAll(value);
+      SuccessAlert(`Всё принятое ляжет в бокс ${container.code}`);
+    }
     boxScannerOpen.value = false;
   } catch (e) {
     FailAlert(e, 'Бокс по этому коду не найден');
@@ -627,8 +671,8 @@ async function loadPreview(): Promise<void> {
 async function confirm(): Promise<void> {
   if (!props.group || !props.group.receptions.length) return;
 
-  const wif = await signingKeyOrAlert('Не удалось получить ключ оператора для подписи');
-  if (!wif) return;
+  // Акты подписываются параллельно — ключ отпираем один раз до старта.
+  if (!(await ensureSigningUnlocked('Не удалось получить ключ оператора для подписи'))) return;
 
   signing.value = true;
   done.value = 0;
@@ -638,7 +682,6 @@ async function confirm(): Promise<void> {
     // теряет уже подписанные. Прогресс прокидываем в счётчик кнопки.
     const { errors } = await signReceptionGroupAsChairman(
       props.group.receptions,
-      wif,
       globalStore.username,
       (d) => {
         done.value = d;
@@ -756,11 +799,9 @@ BaseDialog(
     //- иначе не понять, что из разложенного кому принадлежит.
     template(v-else)
       .sign-apl__lead
-        | Разложите принятое по местам хранения и подпишите приёмку. Отсканируйте
-        | QR на таре — всё ляжет в этот бокс; место можно выбрать и в списке,
-        | набрав часть кода. Если в один бокс не помещается, добавьте «Ещё место»
-        | и укажите, сколько кладёте в каждое. На каждую часть наклейте этикетку
-        | и привяжите её сканером — тогда при выдаче видно, что и где чьё.
+        | По каждой позиции: наклейте этикетку и привяжите её сканером, затем
+        | укажите бокс — сканом или выбором из списка. Если в один бокс не
+        | помещается, добавьте «Ещё место» и укажите, сколько кладёте в каждое.
 
       //- Тары нет. Дальше два разных положения, и путать их нельзя: при
       //- обязательном месте приёмку не закрыть, пока не заведён бокс, — обещать
@@ -779,103 +820,147 @@ BaseDialog(
         | разложите принятое на столе «Раскладка и маркировка».
 
       template(v-else)
-        .sign-apl__unit-head
-          .sign-apl__unit-tools
+        //- Панель над таблицей: групповые действия слева, итог справа. Обе
+        //- кнопки одного вида — это действия одного ранга, а не главное и
+        //- второстепенное.
+        .sign-apl__toolbar
+          .sign-apl__toolbar-actions
             BaseButton(
               v-if="containersEnabled",
               variant="secondary",
               size="sm",
-              :loading="resolvingCode",
-              @click="boxScannerOpen = true"
+              :loading="resolvingCode && !boxScanTarget",
+              @click="openBoxScanner()"
             )
               template(#icon-left)
                 q-icon(name="qr_code_scanner", size="18px")
-              | Сканировать бокс
-            BaseButton(variant="ghost", size="sm", @click="printLabels")
+              | Всё в один бокс
+            BaseButton(variant="secondary", size="sm", @click="printLabels")
               template(#icon-left)
                 q-icon(name="print", size="18px")
               | Напечатать этикетки
-          span.sign-apl__counter(:class="{ 'is-bad': signBlocked }")
+          .sign-apl__counter(:class="{ 'is-bad': placementInputInvalid }")
             template(v-if="placementInputInvalid")
               | Укажите количество в каждом месте — не больше принятого
             template(v-else)
               | Размещено: {{ placedCount }} / {{ units.length }} · этикеток: {{ labeledCount }}
-              template(v-if="placementRequired")  · место обязательно
+              //- Требование места — не ошибка, а условие подписи: красить им
+              //- весь счётчик значит кричать на оператора цифрами, которые в
+              //- порядке. Выделяем только само требование.
+              span.sign-apl__counter-note(v-if="placementRequired")  · место обязательно
 
-        .sign-apl__unit.sign-apl__unit--split(v-for="u in units", :key="u.orderId")
-          .sign-apl__unit-info
-            .sign-apl__unit-name {{ u.productName }}
-            .sign-apl__unit-meta {{ unitQuantityLabel(u) }} · {{ u.orderer }}
-            .sign-apl__unit-rest(v-if="rowsOf(u.orderId).length > 1 && !isFullyPlaced(u)")
-              | Без места: {{ restQuantityOf(u) }}
+        //- Таблица позиций. Заголовок и строки держат одну сетку: позиция,
+        //- этикетка, место, и — только когда что-то разложено по нескольким
+        //- местам — количество с кнопкой удаления. Все контролы одной высоты
+        //- с полем места: разнобой кнопок 28px рядом с полем 40px выглядел
+        //- собранным из разных наборов.
+        .sign-apl__table(:class="{ 'is-split': hasSplitRows }")
+          .sign-apl__cols
+            span Позиция
+            span Этикетка
+            span Место
+            template(v-if="hasSplitRows")
+              span Кол-во
+              span
 
-          //- Мест может быть несколько: что не влезло в один бокс, кладут в
-          //- следующий. Пока место одно, количество не спрашиваем — это всё
-          //- принятое по заказу.
-          .sign-apl__places
-            .sign-apl__place-row(v-for="(row, i) in rowsOf(u.orderId)", :key="i")
-              BaseSelect.sign-apl__place-select.field-flush(
-                :model-value="row.key",
-                :options="placementOptions",
-                placeholder="Выберите место",
-                searchable,
-                clearable,
-                @update:model-value="(v: string | number | null) => setPlacement(u.orderId, i, v === null ? null : String(v))"
-              )
-              BaseInput.sign-apl__place-qty.field-flush(
-                v-if="rowsOf(u.orderId).length > 1",
-                :model-value="row.quantity === null ? '' : String(row.quantity)",
-                type="number",
-                :placeholder="String(u.quantity)",
-                aria-label="Количество в этом месте",
-                @update:model-value="(v: string | number) => setPlacementQuantity(u.orderId, i, v === '' ? null : Number(v))"
-              )
-              //- Этикетка — на ту же часть, что и место: наклеил на коробку,
-              //- которую сейчас кладёшь, и сразу привязал сканером.
-              BaseBadge.sign-apl__place-label(v-if="row.barcode", variant="pos") {{ row.barcode }}
-              BaseButton(
-                v-if="row.barcode",
+          .sign-apl__unit(v-for="u in units", :key="u.orderId")
+            .sign-apl__unit-info
+              .sign-apl__unit-name {{ u.productName }}
+              .sign-apl__unit-meta {{ unitQuantityLabel(u) }}
+              .sign-apl__unit-meta {{ u.orderer }}
+              .sign-apl__unit-rest(v-if="rowsOf(u.orderId).length > 1 && !isFullyPlaced(u)")
+                | Без места: {{ restQuantityOf(u) }}
+
+            //- Мест может быть несколько: что не влезло в один бокс, кладут в
+            //- следующий. Пока место одно, количество не спрашиваем — это всё
+            //- принятое по заказу.
+            .sign-apl__places
+              .sign-apl__place-row(v-for="(row, i) in rowsOf(u.orderId)", :key="i")
+                //- Этикетка — на ту же часть, что и место: наклеил на коробку,
+                //- которую сейчас кладёшь, и сразу привязал сканером. Пока
+                //- этикетки нет, это действие с подписью, а не серый значок,
+                //- который оператор не замечал (09.09.2026).
+                .sign-apl__place-label-cell
+                  //- Привязанная этикетка занимает ту же клетку и ту же высоту,
+                  //- что и кнопка: строка не прыгает при маркировке.
+                  .sign-apl__label-chip(v-if="row.barcode")
+                    q-icon.sign-apl__label-chip-icon(name="label", size="18px")
+                    span.sign-apl__label-chip-code(:title="row.barcode")
+                      span.sign-apl__label-chip-head {{ barcodeHead(row.barcode) }}
+                      span.sign-apl__label-chip-tail {{ barcodeTail(row.barcode) }}
+                    BaseButton.sign-apl__place-unlabel(
+                      variant="ghost",
+                      size="sm",
+                      icon-only,
+                      aria-label="Снять этикетку",
+                      @click="setRowBarcode(u.orderId, i, null)"
+                    )
+                      template(#icon-left)
+                        q-icon(name="close", size="16px")
+                        q-tooltip Снять этикетку
+                  BaseButton.sign-apl__place-label-btn(
+                    v-else,
+                    variant="secondary",
+                    block,
+                    aria-label="Привязать этикетку",
+                    @click="openLabelScanner(u.orderId, i)"
+                  )
+                    template(#icon-left)
+                      q-icon(name="new_label", size="18px")
+                      q-tooltip Наклейте этикетку на эту часть и привяжите её сканером
+                    | Привязать
+
+                //- Поле места и его сканер — одна группа: кнопка примыкает к
+                //- полю, потому что заполняет его же, только сканом.
+                .sign-apl__place-field
+                  BaseSelect.sign-apl__place-select.field-flush(
+                    :model-value="row.key",
+                    :options="placementOptions",
+                    placeholder="Выберите место",
+                    searchable,
+                    clearable,
+                    @update:model-value="(v: string | number | null) => setPlacement(u.orderId, i, v === null ? null : String(v))"
+                  )
+                  BaseButton.sign-apl__place-scan(
+                    v-if="containersEnabled",
+                    variant="secondary",
+                    :loading="isResolvingRow(u.orderId, i)",
+                    aria-label="Отсканировать бокс для этой части",
+                    @click="openBoxScanner({ orderId: u.orderId, index: i })"
+                  )
+                    template(#icon-left)
+                      q-icon(name="qr_code_scanner", size="18px")
+                      q-tooltip Отсканировать бокс для этой части
+                    | Сканировать
+
+                BaseInput.sign-apl__place-qty.field-flush(
+                  v-if="rowsOf(u.orderId).length > 1",
+                  :model-value="row.quantity === null ? '' : String(row.quantity)",
+                  type="number",
+                  :placeholder="String(u.quantity)",
+                  aria-label="Количество в этом месте",
+                  @update:model-value="(v: string | number) => setPlacementQuantity(u.orderId, i, v === '' ? null : Number(v))"
+                )
+                BaseButton.sign-apl__place-remove(
+                  v-if="rowsOf(u.orderId).length > 1",
+                  variant="ghost",
+                  icon-only,
+                  aria-label="Убрать это место",
+                  @click="removePlacementRow(u, i)"
+                )
+                  template(#icon-left)
+                    q-icon(name="close", size="18px")
+                    q-tooltip Убрать это место
+
+              BaseButton.sign-apl__place-add(
                 variant="ghost",
                 size="sm",
-                icon-only,
-                aria-label="Снять этикетку",
-                @click="setRowBarcode(u.orderId, i, null)"
+                :disabled="isFullyPlaced(u) && rowsOf(u.orderId).length > 1",
+                @click="addPlacementRow(u)"
               )
                 template(#icon-left)
-                  q-icon(name="label_off", size="16px")
-                  q-tooltip Снять этикетку
-              BaseButton(
-                v-else,
-                variant="ghost",
-                size="sm",
-                icon-only,
-                aria-label="Привязать этикетку",
-                @click="openLabelScanner(u.orderId, i)"
-              )
-                template(#icon-left)
-                  q-icon(name="qr_code_scanner", size="16px")
-                  q-tooltip Привязать этикетку
-              BaseButton(
-                v-if="rowsOf(u.orderId).length > 1",
-                variant="ghost",
-                size="sm",
-                icon-only,
-                aria-label="Убрать это место",
-                @click="removePlacementRow(u, i)"
-              )
-                template(#icon-left)
-                  q-icon(name="close", size="16px")
-                  q-tooltip Убрать это место
-
-            BaseButton.sign-apl__place-add(
-              variant="ghost",
-              size="sm",
-              :disabled="isFullyPlaced(u) && rowsOf(u.orderId).length > 1",
-              @click="addPlacementRow(u)"
-            )
-              template(#icon-left)
-                q-icon(name="add", size="16px")
-              | Ещё место
+                  q-icon(name="add", size="16px")
+                | Ещё место
 
   template(#footer)
     //- Шаг 1: сверка. Дальше идём, если есть куда: при выключенном адресном
@@ -915,7 +1000,7 @@ BaseDialog(
 
   ScannerDialog(
     v-model="boxScannerOpen",
-    title="Сканировать бокс",
+    :title="boxScanTarget ? 'Бокс для этой части' : 'Бокс для всего принятого'",
     idle-caption="Наведите камеру на QR-этикетку бокса",
     frame-hint="Поместите QR-код в рамку",
     manual-label="Или введите код бокса",
@@ -1070,14 +1155,30 @@ BaseDialog(
     margin-bottom: var(--p-3, 12px);
   }
 
-  // ─── Единицы имущества (шаги 2–3) ───
-  &__unit-head {
+  // ─── Шаг 2: таблица позиций ───
+  // Высота всех контролов строки — как у плотного поля Quasar (40px): кнопки,
+  // чип этикетки, поле количества. Ширины колонок фиксированы, кроме места.
+  $row-h: 40px;
+  $col-info: 208px;
+  $col-label: 176px;
+  $col-qty: 88px;
+  $col-remove: 36px;
+  $gap: var(--p-2, 8px);
+
+  &__toolbar {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: var(--p-3, 12px);
     flex-wrap: wrap;
-    margin-bottom: var(--p-3, 12px);
+    margin-bottom: var(--p-4, 16px);
+  }
+
+  &__toolbar-actions {
+    display: flex;
+    align-items: center;
+    gap: $gap;
+    flex-wrap: wrap;
   }
 
   &__counter {
@@ -1091,23 +1192,58 @@ BaseDialog(
     }
   }
 
-  &__unit {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--p-3, 12px);
-    padding: var(--p-2, 8px) 0;
-    border-bottom: 1px solid var(--p-line);
-    flex-wrap: wrap;
+  &__counter-note {
+    color: var(--p-warn);
+    font-weight: 600;
   }
 
+  // Заголовок колонок и строки позиций делят один шаг сетки: заголовок
+  // перечисляет все колонки подряд, строка — позицию и вложенную сетку мест
+  // с тем же зазором, поэтому границы совпадают до пикселя.
+  &__cols {
+    display: grid;
+    grid-template-columns: $col-info $col-label minmax(220px, 1fr);
+    gap: $gap;
+    padding-bottom: var(--p-2, 8px);
+    border-bottom: 1px solid var(--p-line);
+    font-size: var(--p-fs-meta, 12px);
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--p-ink-3);
+  }
+
+  &__table.is-split &__cols {
+    grid-template-columns: $col-info $col-label minmax(220px, 1fr) $col-qty $col-remove;
+  }
+
+  &__unit {
+    display: grid;
+    grid-template-columns: $col-info minmax(0, 1fr);
+    gap: $gap;
+    align-items: start;
+    padding: var(--p-3, 12px) 0;
+    border-bottom: 1px solid var(--p-line);
+
+    &:last-child {
+      border-bottom: 0;
+    }
+  }
+
+  // Описание позиции выровнено по первой строке мест: имя на одной линии с
+  // контролами, остальное — под ним.
   &__unit-info {
-    flex: 1 1 240px;
     min-width: 0;
+    min-height: $row-h;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 2px;
   }
 
   &__unit-name {
     font-size: var(--p-fs-body, 14px);
+    font-weight: 500;
     color: var(--p-ink);
     overflow-wrap: anywhere;
   }
@@ -1119,34 +1255,6 @@ BaseDialog(
     overflow-wrap: anywhere;
   }
 
-  &__unit-action {
-    flex: 0 0 auto;
-  }
-
-  // Место выбирается в строке позиции — поле не показывает ошибок, поэтому
-  // резерв строки под них снят классом field-flush в шаблоне.
-  &__unit-place {
-    flex: 0 1 320px;
-    min-width: 220px;
-  }
-
-  // Единица, разложенная по нескольким местам: список строк выравнивается по
-  // правому краю карточки, чтобы поля не расползались по ширине.
-  // Единица с раскладкой: заголовок сверху, места — строками во всю ширину под
-  // ним. Прижимать их вправо нельзя: с этикеткой и количеством в строке код
-  // бокса ужимается до нечитаемого «Бокс B…».
-  &__unit--split {
-    flex-direction: column;
-    align-items: stretch;
-    gap: var(--p-2, 8px);
-
-    // В колонке flex-basis задаёт высоту — базис заголовка снимаем, иначе он
-    // растянулся бы на 240 пикселей пустоты.
-    .sign-apl__unit-info {
-      flex: 0 0 auto;
-    }
-  }
-
   &__unit-rest {
     margin-top: var(--p-1, 4px);
     font-size: var(--p-fs-body-sm, 13px);
@@ -1155,43 +1263,154 @@ BaseDialog(
   }
 
   &__places {
-    width: 100%;
     min-width: 0;
     display: flex;
     flex-direction: column;
-    gap: var(--p-2, 8px);
+    gap: $gap;
   }
 
   &__place-row {
+    display: grid;
+    grid-template-columns: $col-label minmax(220px, 1fr);
+    gap: $gap;
+    align-items: center;
+  }
+
+  &__table.is-split &__place-row {
+    grid-template-columns: $col-label minmax(220px, 1fr) $col-qty $col-remove;
+  }
+
+  &__place-label-cell {
+    min-width: 0;
+  }
+
+  &__place-label-btn,
+  &__place-scan {
+    min-height: $row-h;
+  }
+
+  // Код привязанной этикетки: та же геометрия, что у кнопки на её месте.
+  &__label-chip {
     display: flex;
     align-items: center;
-    gap: var(--p-2, 8px);
+    gap: var(--p-1, 4px);
+    min-height: $row-h;
+    padding: 0 var(--p-1, 4px) 0 var(--p-3, 12px);
+    border: 1px solid var(--p-pos);
+    border-radius: var(--p-r-sm, 8px);
+    background: var(--p-pos-soft);
+    min-width: 0;
+  }
+
+  &__label-chip-icon {
+    color: var(--p-pos);
+    flex: 0 0 auto;
+  }
+
+  // Обрезка посередине: начало сжимается с многоточием, хвост не сжимается.
+  &__label-chip-code {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    font-family: var(--p-mono);
+    font-size: var(--p-fs-body-sm, 13px);
+    font-variant-numeric: tabular-nums;
+    color: var(--p-pos);
+    white-space: nowrap;
+  }
+
+  &__label-chip-head {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &__label-chip-tail {
+    flex: 0 0 auto;
+  }
+
+  // Поле места и кнопка сканера — одна группа: общая рамка без шва.
+  &__place-field {
+    display: flex;
+    align-items: stretch;
+    min-width: 0;
   }
 
   &__place-select {
     flex: 1 1 auto;
     min-width: 0;
+
+    :deep(.q-field__control),
+    :deep(.q-field__control::before),
+    :deep(.q-field__control::after) {
+      border-top-right-radius: 0;
+      border-bottom-right-radius: 0;
+    }
+  }
+
+  &__place-scan {
+    flex: 0 0 auto;
+    margin-left: -1px;
+
+    &::before {
+      border-top-left-radius: 0;
+      border-bottom-left-radius: 0;
+    }
   }
 
   &__place-qty {
-    flex: 0 0 96px;
+    min-width: 0;
   }
 
-  // Номер этикетки в строке места: моноширинный, чтобы цифры читались подряд.
-  &__place-label {
+  // Снятие этикетки и удаление места — действия отката: приглушены, пока на
+  // них не навели, и краснеют под курсором, чтобы их не жали случайно.
+  &__place-unlabel,
+  &__place-remove {
     flex: 0 0 auto;
-    font-variant-numeric: tabular-nums;
+
+    :deep(.q-icon) {
+      color: var(--p-ink-3);
+      transition: color 0.15s ease;
+    }
+
+    &:hover :deep(.q-icon) {
+      color: var(--p-neg);
+    }
   }
 
-  &__unit-tools {
-    display: flex;
-    align-items: center;
-    gap: var(--p-2, 8px);
-    flex-wrap: wrap;
+  &__place-remove {
+    min-height: $row-h;
+    min-width: $col-remove;
+  }
+
+  // Внутри зелёного чипа серый крестик выглядит чужим — приглушаем его тем же
+  // цветом, а красным он становится только под курсором.
+  &__label-chip &__place-unlabel :deep(.q-icon) {
+    color: var(--p-pos);
+    opacity: 0.7;
   }
 
   &__place-add {
     align-self: flex-start;
+  }
+
+  // Узкий экран: заголовок колонок теряет смысл, позиция и её места встают
+  // друг под друга во всю ширину.
+  @media (max-width: 720px) {
+    &__cols {
+      display: none;
+    }
+
+    &__unit,
+    &__table.is-split &__place-row,
+    &__place-row {
+      grid-template-columns: 1fr;
+    }
+
+    &__unit-info {
+      min-height: 0;
+    }
   }
 }
 </style>

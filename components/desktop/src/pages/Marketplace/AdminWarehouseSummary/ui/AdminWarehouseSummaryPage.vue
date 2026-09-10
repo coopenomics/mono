@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue'
+import { useFirstLoad } from 'src/shared/lib/composables'
 import { debounce } from 'quasar'
 import { Zeus } from '@coopenomics/sdk'
 import { FailAlert } from 'src/shared/api'
@@ -17,6 +18,8 @@ import { listInventory, type MarketplaceInventoryItemView } from 'src/entities/M
 const tab = ref<'warehouse' | 'flow'>('warehouse')
 const items = ref<MarketplaceInventoryItemView[]>([])
 const loading = ref(false)
+/** Скелетон — только на первой загрузке; дочитка обновляет молча. */
+const firstLoad = useFirstLoad(loading)
 
 async function load(): Promise<void> {
   loading.value = true
@@ -161,7 +164,7 @@ q-page.warehouse-summary(role='region', aria-label='Сводный склад к
       WarehouseSummaryGrid(:rows='warehouseRows', :loading='loading')
 
     q-tab-panel.q-px-none(name='flow')
-      TableSkeleton(v-if='loading && !topRows.length', :columns='topSkeletonColumns')
+      TableSkeleton(v-if='firstLoad', :columns='topSkeletonColumns')
 
       .table-wrap(v-else-if='topRows.length')
         .table-scroll

@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue'
+import { useFirstLoad } from 'src/shared/lib/composables'
 import { debounce } from 'quasar'
 import { useRoute } from 'vue-router'
 import { FailAlert } from 'src/shared/api'
@@ -43,6 +44,8 @@ const cells = ref<MarketplaceStorageCellView[]>([])
 const types = ref<MarketplaceContainerTypeView[]>([])
 const inventory = ref<MarketplaceInventoryItemView[]>([])
 const loading = ref(true)
+/** Каркас и пустое состояние — по первой загрузке; дочитка обновляет молча. */
+const firstLoad = useFirstLoad(loading)
 
 const search = ref('')
 const branchFilter = ref<string | null>(null)
@@ -223,7 +226,7 @@ q-page.boxreg(role='region', aria-label='Боксы кооператива')
     )
 
   BaseTable(
-    v-if='loading || rows.length',
+    v-if='firstLoad || rows.length',
     :columns='columns',
     :rows='rows',
     row-key='id',

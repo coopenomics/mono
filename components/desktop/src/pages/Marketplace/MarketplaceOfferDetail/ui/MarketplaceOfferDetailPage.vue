@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue';
+import { useFirstLoad } from 'src/shared/lib/composables';
 import { debounce } from 'quasar';
 import { useRoute, useRouter } from 'vue-router';
 import { FailAlert } from 'src/shared/api';
@@ -78,6 +79,8 @@ const { isApproving, isRejecting, confirmApprove, confirmReject } = useOfferMode
 
 const offer = ref<MarketplaceOfferDetailView | null>(null);
 const loading = ref(false);
+/** Каркас и пустое состояние — по первой загрузке; дочитка обновляет молча. */
+const firstLoad = useFirstLoad(loading);
 const categoryNames = ref<Record<number, string>>({});
 
 const cartDialogOpen = ref(false);
@@ -238,11 +241,11 @@ q-page.offer-detail(role="region", aria-label="Описание предложе
         q-icon(name="arrow_back", size="16px")
       | {{ backTarget.label }}
 
-  q-inner-loading(:showing="loading")
+  q-inner-loading(:showing="firstLoad")
     q-spinner(color="primary", size="2em")
 
   EmptyState(
-    v-if="!loading && !offer",
+    v-if="!firstLoad && !offer",
     title="Предложение не найдено",
     body="Возможно, оно снято с публикации."
   )

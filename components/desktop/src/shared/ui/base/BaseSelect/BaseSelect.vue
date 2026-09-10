@@ -47,6 +47,17 @@
     <template v-if="$slots.option" #option="scope">
       <slot name="option" v-bind="scope" />
     </template>
+    <!-- Пояснение к варианту (caption) — в списке справа от подписи. -->
+    <template v-else-if="hasCaptions" #option="scope">
+      <q-item v-bind="scope.itemProps">
+        <q-item-section>
+          <q-item-label>{{ scope.opt.label }}</q-item-label>
+        </q-item-section>
+        <q-item-section v-if="scope.opt.caption" side>
+          <q-item-label caption>{{ scope.opt.caption }}</q-item-label>
+        </q-item-section>
+      </q-item>
+    </template>
     <template v-if="$slots['selected-item']" #selected-item="scope">
       <slot name="selected-item" v-bind="scope" />
     </template>
@@ -71,6 +82,8 @@ const emit = defineEmits<{
 const autoId = useId();
 const resolvedId = computed(() => props.id ?? `base-select-${autoId}`);
 
+const hasCaptions = computed(() => props.options.some((o) => Boolean(o.caption)));
+
 // Поиск идёт по подписи варианта и по подстроке, а не с начала: код бокса
 // человек помнит хвостом («0001»), а не префиксом.
 const visibleOptions = ref<BaseSelectOption[]>([...props.options]);
@@ -85,7 +98,11 @@ function onFilter(needle: string, update: (fn: () => void) => void): void {
   update(() => {
     const query = needle.trim().toLowerCase();
     visibleOptions.value = query
-      ? props.options.filter((o) => o.label.toLowerCase().includes(query))
+      ? props.options.filter(
+          (o) =>
+            o.label.toLowerCase().includes(query) ||
+            Boolean(o.caption && o.caption.toLowerCase().includes(query)),
+        )
       : [...props.options];
   });
 }
@@ -94,3 +111,16 @@ function onUpdate(value: unknown): void {
   emit('update:modelValue', value as string | number | null);
 }
 </script>
+
+<style scoped>
+/*
+ * Узкое поле: выбранное обрезается многоточием, а не режется по букве —
+ * «Бокс BX-000» без хвоста читается как другой код.
+ */
+.base-select :deep(.q-field__input),
+.base-select :deep(.q-field__native) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+</style>

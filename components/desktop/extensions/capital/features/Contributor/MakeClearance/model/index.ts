@@ -8,7 +8,7 @@ import {
   type IGenerateComponentGenerationContractInput,
   type IGenerateComponentGenerationContractOutput
 } from '../api';
-import { useSignDocument } from 'src/shared/lib/document/model/entity';
+import { signDocument } from 'src/shared/lib/document';
 import { useSessionStore } from 'src/entities/Session/model';
 import type { Cooperative } from 'cooptypes';
 import type { IGenerateDocumentInput, IGeneratedDocumentOutput } from 'src/shared/lib/types/document';
@@ -21,7 +21,6 @@ export type { IGenerateDocumentInput, IGeneratedDocumentOutput };
 
 export function useMakeClearance() {
   const isLoading = ref(false);
-  const { signDocument } = useSignDocument();
   const { username } = useSessionStore();
 
   const makeClearance = async (

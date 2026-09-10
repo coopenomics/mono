@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue';
+import { useFirstLoad } from 'src/shared/lib/composables';
 import { debounce } from 'quasar';
 import { useRoute, useRouter } from 'vue-router';
 import { FailAlert } from 'src/shared/api';
@@ -59,6 +60,8 @@ const counts = ref<Map<number, number>>(new Map());
 const items = ref<MarketplaceOfferView[]>([]);
 const total = ref(0);
 const loading = ref(false);
+/** Пустое состояние и каркас — по первой загрузке; дочитка обновляет молча. */
+const firstLoad = useFirstLoad(loading);
 // Кол-во скелетон-карточек на первичной загрузке витрины.
 const SKELETON_COUNT = 8;
 const selectedCategoryId = ref<number>(ALL_KEY);
@@ -410,12 +413,12 @@ q-page.catalog(role="region", aria-label="Каталог Стола заказо
 
   //- Канон: на первичной загрузке — скелетон-сетка карточек, не перекрывающий
   //- спиннер. Polling обновляет молча.
-  .row.q-col-gutter-md(v-if="loading && items.length === 0")
+  .row.q-col-gutter-md(v-if="firstLoad")
     .col-12.col-sm-6.col-md-4.col-lg-3(v-for="n in SKELETON_COUNT", :key="`skel-${n}`")
       CatalogOfferCardSkeleton
 
   EmptyState(
-    v-if="!loading && items.length === 0",
+    v-if="!firstLoad && items.length === 0",
     title="Ничего не найдено",
     :body="emptyBody"
   )

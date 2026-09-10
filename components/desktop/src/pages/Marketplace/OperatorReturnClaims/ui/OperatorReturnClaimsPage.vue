@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref, watch } from 'vue';
+import { useFirstLoad } from 'src/shared/lib/composables';
 import { debounce } from 'quasar';
 import { useRoute, useRouter } from 'vue-router';
 import { Zeus } from '@coopenomics/sdk';
@@ -41,6 +42,8 @@ const coopname = computed(() => String(route.params.coopname ?? ''));
 const braname = computed(() => store.activeBraname ?? '');
 const items = ref<MarketplaceReturnClaimView[]>([]);
 const loading = ref(true);
+/** Скелетон — только на первой загрузке; дочитка обновляет молча. */
+const firstLoad = useFirstLoad(loading);
 
 const onSiteDialog = ref(false);
 const scanDialogOpen = ref(false);
@@ -202,7 +205,7 @@ q-page.returns(role='region', aria-label='Гарантийные возврат�
     PageTabs(:tabs='tabs', :active-key='activeKey', @select='onSelectTab')
 
     //- Канон загрузки: скелетон вместо мелькающих заглушек «пусто» на первичной загрузке.
-    CardListSkeleton(v-if='loading && !items.length', :count='2')
+    CardListSkeleton(v-if='firstLoad', :count='2')
 
     EmptyState(
       v-else-if='!visibleClaims.length',

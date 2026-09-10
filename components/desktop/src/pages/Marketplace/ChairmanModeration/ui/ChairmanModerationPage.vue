@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue';
+import { useFirstLoad } from 'src/shared/lib/composables';
 import { debounce } from 'quasar';
 import { useRoute, useRouter } from 'vue-router';
 import { FailAlert } from 'src/shared/api';
@@ -43,6 +44,8 @@ const router = useRouter();
 const items = ref<MarketplacePendingOfferView[]>([]);
 const total = ref(0);
 const loading = ref(false);
+/** Пустое состояние и каркас — по первой загрузке; дочитка обновляет молча. */
+const firstLoad = useFirstLoad(loading);
 const currentPage = ref(1);
 // Модератор — как поставщик и администратор — видит цену с учётом членского
 // взноса (это то, что реально заплатит заказчик); заказчику в каталоге эта
@@ -170,10 +173,10 @@ q-page.moderation(role="region", aria-label="Модерация предложе
       | На модерации: {{ total }}
 
   //- Канон загрузки: скелетон, а не спиннер поверх.
-  CardListSkeleton(v-if="loading && items.length === 0", :count="3")
+  CardListSkeleton(v-if="firstLoad", :count="3")
 
   EmptyState(
-    v-if="!loading && items.length === 0",
+    v-if="!firstLoad && items.length === 0",
     title="Очередь модерации пуста",
     body="Все предложения поставщиков рассмотрены."
   )

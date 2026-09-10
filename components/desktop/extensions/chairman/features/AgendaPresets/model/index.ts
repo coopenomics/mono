@@ -2,7 +2,7 @@ import { ref } from 'vue'
 import { api, type GeneratedDocument } from '../api'
 import type { IDocumentPreset } from './types'
 import { FailAlert, SuccessAlert } from 'src/shared/api'
-import { useSignDocument } from 'src/shared/lib/document'
+import { signDocument } from 'src/shared/lib/document'
 
 export * from './presets'
 
@@ -61,7 +61,6 @@ export const useAgendaPresets = () => {
       })
 
       // 3. Подписываем документ
-      const { signDocument } = useSignDocument()
       const signedDocument = await signDocument(projectDocument, username)
 
       // 4. Публикуем подписанный документ

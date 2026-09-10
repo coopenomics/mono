@@ -1,6 +1,6 @@
 import { client } from 'src/shared/api/client'
 import { Mutations } from '@coopenomics/sdk'
-import { useSignDocument } from 'src/shared/lib/document/model/entity'
+import { signDocument } from 'src/shared/lib/document'
 import { getTimezone } from 'src/shared/lib/utils/dates/timezone'
 import moment from 'moment-timezone'
 
@@ -61,7 +61,6 @@ export async function createMeet(data: ICreateMeetInput): Promise<ICreateMeetRes
 
 export async function createMeetWithAgenda(data: ICreateMeetWithAgendaInput): Promise<ICreateMeetResult> {
 
-  const { signDocument } = useSignDocument()
 
   // Получаем московский часовой пояс для форматирования
   const timezone = getTimezone()

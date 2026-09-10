@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue';
+import { useFirstLoad } from 'src/shared/lib/composables';
 import { debounce } from 'quasar';
 import { SuccessAlert, FailAlert } from 'src/shared/api';
 import {
@@ -77,6 +78,8 @@ const items = ref<MarketplaceOfferView[]>([]);
 const totalPages = ref(0);
 const currentPage = ref(1);
 const loading = ref(false);
+/** Пустое состояние и каркас — по первой загрузке; дочитка обновляет молча. */
+const firstLoad = useFirstLoad(loading);
 const statusFilter = ref<MarketplaceOfferStatusView | null>(null);
 const search = ref('');
 // Поставщик видит крупно свою цену; ниже — сколько заплатит заказчик
@@ -85,7 +88,7 @@ const feePercent = ref(0);
 
 // Скелетон показываем только на первичной загрузке (список ещё пуст). При
 // polling'е данные обновляются молча — без дёргания спиннером.
-const showSkeleton = computed(() => loading.value && items.value.length === 0);
+const showSkeleton = computed(() => firstLoad.value);
 
 // Фильтр статусов = канон-меню `.tabbar`. `slug` — стабильный ключ в URL
 // (`?status=moderation`), чтобы на любой фильтр можно было перейти ссылкой.
@@ -291,7 +294,7 @@ q-page.my-offers(role="region", aria-label="Мои предложения")
         CatalogOfferCardSkeleton
 
     EmptyState(
-      v-if="!loading && filtered.length === 0",
+      v-if="!firstLoad && filtered.length === 0",
       title="Нет предложений в этом фильтре",
       body="Если у вас нет ни одного предложения — создайте первое на странице «Создать предложение»."
     )

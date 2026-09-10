@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue';
+import { useFirstLoad } from 'src/shared/lib/composables';
 import { debounce } from 'quasar';
 import { useRoute } from 'vue-router';
 import { FailAlert } from 'src/shared/api';
@@ -62,6 +63,8 @@ const acceptedOrders = ref<MarketplaceOrderView[]>([]);
 // Заказы сформированных партий (статус SUPPLY_PREPARED) — источник состава ТТН.
 const preparedOrders = ref<MarketplaceOrderView[]>([]);
 const loading = ref(false);
+/** Скелетон — только на первой загрузке; дочитка обновляет молча. */
+const firstLoad = useFirstLoad(loading);
 
 // Есть ли акцептованные заказы (привязанные к заявке), из которых можно
 // сформировать партию — управляет доступностью глобальной кнопки.
@@ -71,7 +74,7 @@ const hasFormable = computed(() => acceptedOrders.value.some((o) => o.cycle_id))
 // (как на остальных столах). Текст зависит от того, есть ли уже принятые заказы,
 // готовые к формированию: если есть — зовём нажать «Сформировать партию»,
 // если нет — отправляем принимать заказы во «Входящих».
-const showEmpty = computed(() => !loading.value && shipments.value.length === 0);
+const showEmpty = computed(() => !firstLoad.value && shipments.value.length === 0);
 
 const emptyState = computed(() =>
   hasFormable.value
@@ -236,7 +239,7 @@ q-page.offerer-supply
     | партии. Сформированные партии и их следующий шаг — ниже.
 
   TableSkeleton(
-    v-if='loading && !shipments.length',
+    v-if='firstLoad',
     :columns='skeletonColumns',
     :rows='6',
     min-width="1140px"

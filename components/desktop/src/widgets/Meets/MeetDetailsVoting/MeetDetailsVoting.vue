@@ -73,7 +73,7 @@ import { BaseButton } from 'src/shared/ui/base/BaseButton';
 import type { IMeet } from 'src/entities/Meet';
 import { useSessionStore } from 'src/entities/Session';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
-import { useSignDocument } from 'src/shared/lib/document';
+import { signDocument } from 'src/shared/lib/document';
 import {
   useVoteOnMeet,
   type IVoteOnMeetInput,
@@ -97,7 +97,6 @@ const {
 } = useVoteOnMeet();
 
 const sessionStore = useSessionStore();
-const { signDocument } = useSignDocument();
 
 const isVoting = ref(false);
 

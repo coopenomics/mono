@@ -1,6 +1,6 @@
 import { ref } from 'vue';
 import { api } from '../api';
-import { useSignDocument } from 'src/shared/lib/document/model/entity';
+import { signDocument } from 'src/shared/lib/document';
 import { useSessionStore } from 'src/entities/Session/model';
 import type { ISegment } from 'app/extensions/capital/entities/Segment/model';
 import type { ISignActAsContributorInput, ISignActAsChairmanInput } from './types';
@@ -10,7 +10,6 @@ import { useResultStore } from 'app/extensions/capital/entities/Result/model';
 export * from './types';
 
 export function useSignAct() {
-  const { signDocument } = useSignDocument();
   const { username } = useSessionStore();
   const segmentStore = useSegmentStore();
   const resultStore = useResultStore();

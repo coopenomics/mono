@@ -41,11 +41,13 @@ export function buildPlacementOptions(input: PlacementOptionsInput): BaseSelectO
     })
     for (const container of boxes) {
       const count = input.countOf(container.id)
+      // Счётчик позиций — пояснение в списке, а не часть подписи: в узком поле
+      // «Бокс BX-0006 — 1 поз.» резалось до «Бокс BX-000», и код бокса
+      // становилось не прочесть (09.09.2026).
       out.push({
         value: `${CONTAINER_PREFIX}${container.id}`,
-        label: `Бокс ${containerLabel(container, input.index)} — ${
-          count ? `${count} поз.` : 'пусто'
-        }`,
+        label: `Бокс ${containerLabel(container, input.index)}`,
+        caption: count ? `${count} поз.` : 'пусто',
       })
     }
   }
@@ -54,7 +56,8 @@ export function buildPlacementOptions(input: PlacementOptionsInput): BaseSelectO
     for (const cell of input.cells) {
       out.push({
         value: `${CELL_PREFIX}${cell.id}`,
-        label: `Ячейка ${cell.code} (негабарит)`,
+        label: `Ячейка ${cell.code}`,
+        caption: 'негабарит',
       })
     }
   }

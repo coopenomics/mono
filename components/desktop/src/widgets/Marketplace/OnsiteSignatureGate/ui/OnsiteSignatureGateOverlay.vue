@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
 import { BaseButton, BaseCard, BaseChip, BaseDialog } from 'src/shared/ui/base';
+import { VerticalStepper, type StepperStep } from 'src/shared/ui/domain';
 import { useSystemStore } from 'src/entities/System/model';
 import { useMarketplaceKUDetailsStore } from 'src/entities/MarketplaceKUDetails';
 import { type ReceptionGroup, getMembershipFeePercent, applyMembershipFee } from 'src/shared/lib/marketplace';
@@ -34,7 +35,78 @@ const {
   signSaga,
   proposalConverts,
   declineProposal,
+  activeFlow,
 } = useOnsiteSignatureGate();
+
+// ─── Ход получения ───
+// Пока идёт поток (заявления → совет → акт), карточки с кнопками не нужны:
+// пайщик нажал одну кнопку и смотрит, как дело движется. Карточка акта с
+// кнопкой вернётся только там, где подпись сама не прошла.
+const FLOW_STEPS: StepperStep[] = [
+  { key: 'statements', label: 'Заявления о выдаче', description: 'Подписываются вашим ключом' },
+  { key: 'council', label: 'Решение совета', description: 'Заявления ушли совету — у стойки он решает за секунды' },
+  { key: 'act', label: 'Акт приёма-передачи', description: 'Устройство подписывает акт само' },
+];
+const flowStep = computed(() => activeFlow.value?.step ?? null);
+const flowActiveKey = computed(() => {
+  const step = flowStep.value;
+  if (step === 'done') return 'act';
+  if (step === 'pending' || step === 'declined') return 'council';
+  return step ?? 'statements';
+});
+const flowCompleted = computed<string[]>(() => {
+  switch (flowStep.value) {
+    case 'council':
+    case 'pending':
+    case 'declined':
+      return ['statements'];
+    case 'act':
+      return ['statements', 'council'];
+    case 'done':
+      return ['statements', 'council', 'act'];
+    default:
+      return [];
+  }
+});
+const flowErrored = computed<string[]>(() => (flowStep.value === 'declined' ? ['council'] : []));
+/** Поток ещё идёт — под активным шагом бежит полоса. */
+const flowRunning = computed(() =>
+  flowStep.value === 'statements' || flowStep.value === 'council' || flowStep.value === 'act',
+);
+const flowTitle = computed(() => {
+  switch (flowStep.value) {
+    case 'done':
+      return 'Готово — забирайте';
+    case 'pending':
+      return 'Решение совета рассматривается';
+    case 'declined':
+      return 'Совет не согласовал выдачу';
+    default:
+      return 'Получение в пункте выдачи';
+  }
+});
+const flowSub = computed(() => {
+  const flow = activeFlow.value;
+  switch (flow?.step) {
+    case 'statements':
+      return 'Подписываем заявления о возврате паевого взноса имуществом';
+    case 'council':
+      return 'Ждём решение совета';
+    case 'act':
+      return flow.total > 1
+        ? `Подписываем акт: ${flow.signedActs} из ${flow.total}`
+        : 'Подписываем акт приёма-передачи';
+    case 'done':
+      return 'Акт подписан. Оператор закроет выдачу и передаст имущество';
+    case 'pending':
+      return 'Решение ушло к людям — делать ничего не нужно, мы сообщим, когда оно будет принято';
+    case 'declined':
+      return 'Паевой взнос остался на Столе заказов';
+    default:
+      return '';
+  }
+});
+const dialogTitle = computed(() => (activeFlow.value ? 'Получение имущества' : 'Подпишите документ'));
 
 const systemStore = useSystemStore();
 const kuStore = useMarketplaceKUDetailsStore();
@@ -129,13 +201,45 @@ onMounted(() => {
 <template lang="pug">
 BaseDialog(
   :model-value='isVisible',
-  title='Подпишите документ',
+  :title='dialogTitle',
   :maximized='true',
   :hide-close-button='true',
   :close-on-backdrop='false',
   :close-on-escape='false'
 )
-  .onsite-gate
+  //- Идёт получение: одна панель с ходом дела, без карточек и кнопок.
+  .onsite-gate(v-if='activeFlow')
+    p.onsite-gate__lead
+      | Вы нажали одну кнопку — дальше всё происходит само. Окно закроется,
+      | как только акт будет подписан.
+
+    BaseCard.onsite-gate__card
+      template(#head)
+        .onsite-gate__head
+          q-icon(v-if='flowStep === "done"', name='task_alt', size='28px')
+          q-icon(v-else-if='flowStep === "declined"', name='block', size='28px')
+          q-icon(v-else, name='inventory_2', size='28px')
+          .onsite-gate__ident
+            span.onsite-gate__name {{ flowTitle }}
+            span.onsite-gate__sub {{ flowSub }}
+
+      VerticalStepper(
+        :steps='FLOW_STEPS',
+        :active-key='flowActiveKey',
+        :completed='flowCompleted',
+        :errored='flowErrored'
+      )
+        template(#active)
+          q-linear-progress.onsite-gate__bar(
+            v-if='flowRunning',
+            indeterminate,
+            color='primary',
+            track-color='grey-9',
+            size='4px',
+            rounded
+          )
+
+  .onsite-gate(v-else)
     p.onsite-gate__lead
       | Чтобы завершить операцию на пункте, подтвердите документ своей подписью.
       | Окно закроется само, как только подпись будет принята.
@@ -386,6 +490,12 @@ BaseDialog(
     justify-content: flex-end;
     align-items: center;
     gap: var(--p-3, 12px);
+  }
+
+  // Полоса под активным шагом: дело движется, даже если ответ идёт секунды.
+  &__bar {
+    margin-top: var(--p-2, 8px);
+    max-width: 320px;
   }
 }
 </style>

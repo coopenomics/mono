@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
+import { useFirstLoad } from 'src/shared/lib/composables';
 import { date } from 'quasar';
 import {
   BaseBadge,
@@ -37,6 +38,8 @@ const emit = defineEmits<{ (e: 'count', value: number): void }>();
 
 const items = ref<MarketplaceInventoryItemView[]>([]);
 const loading = ref(true);
+/** Скелетон — только на первой загрузке; дочитка обновляет молча. */
+const firstLoad = useFirstLoad(loading);
 const selected = ref<Set<string>>(new Set());
 watch(items, (v) => emit('count', v.length), { immediate: true });
 
@@ -165,7 +168,7 @@ async function unpublishSelected(): Promise<void> {
 
 <template lang="pug">
 TableSkeleton(
-  v-if='loading && !items.length',
+  v-if='firstLoad',
   :columns='skeletonColumns',
   :rows='4'
 )

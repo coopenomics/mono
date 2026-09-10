@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue';
+import { useFirstLoad } from 'src/shared/lib/composables';
 import { debounce, Dialog } from 'quasar';
 import { useRoute, useRouter } from 'vue-router';
 import { FailAlert, NotifyAlert } from 'src/shared/api';
@@ -37,6 +38,8 @@ const route = useRoute();
 const router = useRouter();
 const system = useSystemStore();
 const cartStore = useMarketplaceCartStore();
+/** Каркас — только на первой загрузке; дочитка обновляет молча. */
+const firstLoad = useFirstLoad(() => cartStore.loading);
 
 const coopname = computed(() => String(route.params.coopname ?? ''));
 
@@ -249,7 +252,7 @@ q-page.mp-cart.mp-role-orderer(role="region", aria-label="Корзина Сто�
   KUHeaderBar(:coopname="coopname")
 
   //- Канон: первичная загрузка — скелетон-строки позиций, не перекрывающий спиннер.
-  BaseCard.mp-cart__skel(v-if="cartStore.loading && !cartStore.cart")
+  BaseCard.mp-cart__skel(v-if="firstLoad && !cartStore.cart")
     .mp-cart__skel-line(v-for="n in 4", :key="`skel-${n}`")
       .skel.mp-cart__skel-thumb
       .mp-cart__skel-text

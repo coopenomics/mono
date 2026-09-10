@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { onMounted, ref, watch } from 'vue';
+import { useFirstLoad } from 'src/shared/lib/composables';
 import { debounce } from 'quasar';
 import { FailAlert } from 'src/shared/api';
 import { useMarketplaceRealtime } from 'src/shared/lib/marketplace';
@@ -34,6 +35,8 @@ const groups = ref<MarketplaceWriteoffConfirmationGroupView[]>([]);
 // он стоит на другом разделе.
 watch(groups, (list) => emit('count', list.length), { immediate: true });
 const loading = ref(false);
+/** Скелетон — только на первой загрузке; дочитка обновляет молча. */
+const firstLoad = useFirstLoad(loading);
 const confirmOpen = ref(false);
 const selectedGroup = ref<MarketplaceWriteoffConfirmationGroupView | null>(null);
 
@@ -114,9 +117,9 @@ onMounted(() => {
   PageHint(storage-key="mp:pvz-writeoffs:banner-dismissed")
     | Совет одобрил списание имущества со складов. Подтвердите фактическое списание со склада своего участка — для этого подпишите Служебную записку о списании. Только после вашей подписи имущество выбывает со склада.
 
-  CardListSkeleton(v-if="loading && !groups.length", :count="2")
+  CardListSkeleton(v-if="firstLoad", :count="2")
 
-  .pvz-writeoffs__empty(v-if="!loading && groups.length === 0")
+  .pvz-writeoffs__empty(v-if="!firstLoad && groups.length === 0")
     EmptyState(
       title="Нет списаний на подтверждение",
       body="Когда совет одобрит проект списания по вашему участку, он появится здесь."

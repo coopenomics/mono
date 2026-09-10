@@ -398,7 +398,9 @@ BaseDialog(
   maximized
   @update:model-value="(v: boolean) => emit('update:modelValue', v)"
 )
-  ActDialogLayout(wide)
+  //- Ширина под таблицу сверки: в 960px каркаса восемь колонок не помещаются,
+  //- а без предела (wide) поля факта уезжали от названий на весь монитор.
+  ActDialogLayout.issue-act__layout(wide)
     template(#head)
       .issue-act__who(v-if="recipientName")
         span.issue-act__name {{ recipientName }}
@@ -413,11 +415,14 @@ BaseDialog(
       | забирает сейчас. «План» — сколько заказано, «Принято» — сколько на складе
       | (выдать больше нельзя). Снятые позиции остаются на складе.
 
+    //- Шапка панели: что в ней и сколько — слева, действие — справа. Одинокая
+    //- кнопка над таблицей оставляла всю строку пустой.
     .issue-act__toolbar
-      BaseButton(variant="ghost", @click="stockPickOpen = true")
+      span.issue-act__toolbar-title Позиции пайщика · {{ positionsCount }}
+      BaseButton(variant="secondary", size="sm", @click="stockPickOpen = true")
         template(#icon-left)
           q-icon(name="add_shopping_cart", size="18px")
-        | Со склада
+        | Добавить со склада
     CorrectionTable(:rows="correctionRows", selectable, @change="onCorrectionChange", @toggle="onCorrectionToggle")
 
     .issue-act__restock(v-if="restockLines.length")
@@ -440,7 +445,7 @@ BaseDialog(
         .issue-act__sum(v-if="feePercent > 0")
           span.issue-act__sum-label Наценка ({{ feePercent }}%)
           span.issue-act__sum-value {{ formatAsset2Digits(membershipFeeAmount.toFixed(4)) }} ₽
-        .issue-act__sum
+        .issue-act__sum.issue-act__sum--total
           span.issue-act__sum-label Итого к оплате
           span.issue-act__sum-value {{ formatAsset2Digits(totalFactCostWithFee.toFixed(4)) }} ₽
         .issue-act__sum(v-if="leftCount > 0")
@@ -481,6 +486,11 @@ BaseDialog(
 
 <style scoped lang="scss">
 .issue-act {
+  &__layout {
+    max-width: 1180px;
+    margin: 0 auto;
+  }
+
   &__who {
     display: flex;
     flex-direction: column;
@@ -501,7 +511,18 @@ BaseDialog(
 
   &__toolbar {
     display: flex;
-    justify-content: flex-end;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--p-3, 12px);
+    flex-wrap: wrap;
+  }
+
+  &__toolbar-title {
+    font-size: var(--p-fs-meta, 12px);
+    letter-spacing: var(--p-ls-eyebrow, 0.08em);
+    text-transform: uppercase;
+    color: var(--p-ink-3);
+    font-variant-numeric: tabular-nums;
   }
 
   &__restock {
@@ -509,9 +530,10 @@ BaseDialog(
     flex-direction: column;
     gap: var(--p-2, 8px);
     padding: var(--p-3, 12px);
-    border: 1px solid var(--p-info-line, var(--p-line));
+    // Нейтральная рамка: цветные заливки карточек канон запрещает, смысл
+    // блока несёт бейдж в его шапке.
+    border: 1px solid var(--p-line);
     border-radius: var(--p-r-md, 12px);
-    background: var(--p-info-soft);
 
     &-head {
       display: flex;
@@ -557,17 +579,37 @@ BaseDialog(
     }
   }
 
+  // Итоги — колонкой у правого края той же ширины, что у сумм в актах:
+  // подписи слева, суммы справа по одной вертикали, итог отбит линией.
   &__totals {
     display: flex;
     flex-direction: column;
     gap: var(--p-1, 4px);
+    width: min(100%, 440px);
+    margin-left: auto;
   }
 
   &__sum {
     display: flex;
     align-items: baseline;
-    justify-content: flex-end;
+    justify-content: space-between;
     gap: var(--p-3, 12px);
+
+    &--total {
+      margin-top: var(--p-1, 4px);
+      padding-top: var(--p-2, 8px);
+      border-top: 1px solid var(--p-line);
+
+      .issue-act__sum-label {
+        color: var(--p-ink);
+        font-weight: 500;
+      }
+
+      .issue-act__sum-value {
+        font-size: var(--p-fs-h2, 18px);
+        font-weight: 700;
+      }
+    }
   }
 
   &__sum-label {
@@ -578,9 +620,10 @@ BaseDialog(
   &__sum-value {
     font-family: var(--p-mono);
     font-weight: 600;
-    font-size: var(--p-fs-h3, 15px);
+    font-size: var(--p-fs-body, 14px);
     color: var(--p-ink);
     font-variant-numeric: tabular-nums;
+    white-space: nowrap;
   }
 
   &__blocker {

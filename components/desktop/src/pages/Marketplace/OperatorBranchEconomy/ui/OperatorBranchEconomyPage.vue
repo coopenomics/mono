@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref, watch } from 'vue'
+import { useFirstLoad } from 'src/shared/lib/composables'
 import { useRoute, useRouter } from 'vue-router'
 import { Zeus } from '@coopenomics/sdk'
 import { FailAlert, SuccessAlert } from 'src/shared/api'
@@ -73,6 +74,8 @@ const isBranchTrustee = computed(
 )
 
 const loading = ref(true)
+/** Скелетон — только на первой загрузке; дочитка обновляет молча. */
+const firstLoad = useFirstLoad(loading)
 const economy = ref<MarketplaceBranchEconomyView | null>(null)
 const plans = ref<ExpensePlanView[]>([])
 const personalBalance = ref('')
@@ -567,7 +570,7 @@ q-page.economy
       .economy__section
         .economy__section-title Движения по кошельку
 
-        TableSkeleton(v-if='loading && !walletHistory.length', :columns='historyColumns')
+        TableSkeleton(v-if='firstLoad', :columns='historyColumns')
 
         .table-wrap(v-if='walletHistory.length')
           .table-scroll
@@ -595,7 +598,7 @@ q-page.economy
                         q-icon(name='open_in_new', size='14px')
                       | Заказ
 
-        .banner.banner--info(v-else-if='!loading')
+        .banner.banner--info(v-else-if='!firstLoad')
           q-icon.banner__icon(name='info', size='18px')
           .banner__body Движений по общему кошельку пока не было.
 
@@ -622,7 +625,7 @@ q-page.economy
         )
 
       .economy__section
-        TableSkeleton(v-if='loading && !economy', :columns='planColumns')
+        TableSkeleton(v-if='firstLoad', :columns='planColumns')
 
         .table-wrap(v-if='plans.length')
           .table-scroll
@@ -678,7 +681,7 @@ q-page.economy
     //- Распределение членских взносов — участники (веса) + ручная команда «Распределить»
     template(v-if='activeKey === "distribution"')
       .economy__section
-        TableSkeleton(v-if='loading && !economy', :columns='weightColumns')
+        TableSkeleton(v-if='firstLoad', :columns='weightColumns')
 
         .table-wrap(v-if='economy && economy.weights.length')
           .table-scroll
@@ -794,7 +797,7 @@ q-page.economy
                     BaseBadge(variant='pos') Выполнено
 
       EmptyState(
-        v-if='!loading && !aids.length && !personalWalletHistory.length',
+        v-if='!firstLoad && !aids.length && !personalWalletHistory.length',
         title='Получений ещё не было',
         body='Нажмите «Получить», чтобы перевести свободные средства в Стол заказов или запросить материальную помощь.'
       )

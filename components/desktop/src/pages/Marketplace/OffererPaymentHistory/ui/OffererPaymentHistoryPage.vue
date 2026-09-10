@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue';
+import { useFirstLoad } from 'src/shared/lib/composables';
 import { debounce } from 'quasar';
 import { useRouter } from 'vue-router';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
@@ -103,6 +104,8 @@ function goToRequisites(): void {
 // ── история выплат ──
 const items = ref<MarketplaceOutgoingPaymentRequestView[]>([]);
 const loading = ref(false);
+/** Скелетон — только на первой загрузке; дочитка обновляет молча. */
+const firstLoad = useFirstLoad(loading);
 
 // Статус выплаты (PENDING/COMPLETED/DECLINED) → метка + canon-вариант бейджа.
 const PAYMENT_STATUS: Record<string, { label: string; variant: BaseBadgeVariant }> = {
@@ -182,7 +185,7 @@ q-page.offerer-payments
   //- ───────── История выплат ─────────
   //- Карточки, не таблица: на узких экранах таблица уезжала в горизонтальный
   //- скролл и дёргалась — карточки мотаются просто вниз.
-  CardListSkeleton(v-if='loading && !items.length', :count='4')
+  CardListSkeleton(v-if='firstLoad', :count='4')
   .payout-list(v-else-if='items.length')
     BaseCard(v-for='row in items', :key='row.id')
       .payout-card

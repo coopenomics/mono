@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue';
+import { useFirstLoad } from 'src/shared/lib/composables';
 import { debounce } from 'quasar';
 import { Zeus } from '@coopenomics/sdk';
 import { FailAlert } from 'src/shared/api';
@@ -41,6 +42,8 @@ const draft = ref<MarketplaceWriteoffProposalView | null>(null);
 const inCouncil = ref<MarketplaceWriteoffProposalView[]>([]);
 const archive = ref<MarketplaceWriteoffProposalView[]>([]);
 const loading = ref(false);
+/** Скелетон — только на первой загрузке; дочитка обновляет молча. */
+const firstLoad = useFirstLoad(loading);
 
 // Имущество на складах: председатель выделяет позиции, указывает причину и
 // сразу отправляет в совет.
@@ -349,7 +352,7 @@ q-page.writeoffs(role="region", aria-label="Списания скоропорт�
 
   //- Вкладки «На повестке» / «Архив»: общая лента проектов списания.
   template(v-else)
-    CardListSkeleton(v-if="loading && !proposalsList.length", :count="3")
+    CardListSkeleton(v-if="firstLoad", :count="3")
     EmptyState(
       v-else-if="!proposalsList.length",
       :title="activeKey === 'council' ? 'Нет проектов на повестке' : 'Архив пуст'",

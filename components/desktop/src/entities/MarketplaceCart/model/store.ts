@@ -1,7 +1,6 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
-import { Classes } from '@coopenomics/sdk'
-import { useGlobalStore } from 'src/shared/store'
+import { signDocument } from 'src/shared/lib/document'
 import { useSessionStore } from 'src/entities/Session'
 import { api, type ICheckoutSignedConvert, type ICheckoutSignedLine } from '../api'
 import type { IMarketplaceCart, IMarketplaceCartItem, IMarketplaceCheckoutResult } from './types'
@@ -125,11 +124,9 @@ export const useMarketplaceCartStore = defineStore(namespace, () => {
       }))
       let signed_convert: ICheckoutSignedConvert | null = null
       if (preview.convert) {
-        // Ключ берём только когда есть что подписывать — иначе PIN не спрашиваем.
-        const wifKey = await useGlobalStore().ensureSigningKey()
+        // Подпись только когда есть что подписывать — иначе PIN-код не спрашиваем.
         const username = useSessionStore().username
-        const signer = new Classes.Document(wifKey)
-        signed_convert = (await signer.signDocument(preview.convert.document, username, 1)) as ICheckoutSignedConvert
+        signed_convert = (await signDocument(preview.convert.document, username, 1)) as ICheckoutSignedConvert
       }
 
       const result = await api.checkout(checkout_id, lines, signed_convert)

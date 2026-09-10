@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue';
+import { useFirstLoad } from 'src/shared/lib/composables';
 import { useRouter } from 'vue-router';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { BaseBadge, BaseButton, BaseCard, CardListSkeleton, EmptyState } from 'src/shared/ui/base';
@@ -36,6 +37,8 @@ const { info } = useSystemStore();
 const items = ref<MarketplaceSupplierClaimView[]>([]);
 const summary = ref<MarketplaceSupplierClaimSummaryView | null>(null);
 const loading = ref(false);
+/** Скелетон — только на первой загрузке; дочитка обновляет молча. */
+const firstLoad = useFirstLoad(loading);
 const admitting = ref<string | null>(null);
 const disagreeTarget = ref<MarketplaceSupplierClaimView | null>(null);
 const disagreeDialog = ref(false);
@@ -122,7 +125,7 @@ q-page.offerer-claims
     .t-h2 Претензии
     BaseBadge(v-if='pendingCount', variant='warn') Не признано: {{ pendingCount }}
 
-  CardListSkeleton(v-if='loading && !items.length', :count='3')
+  CardListSkeleton(v-if='firstLoad', :count='3')
   .offerer-claims__list(v-else-if='items.length')
     BaseCard(v-for='c in items', :key='c.id')
       .claim-card
