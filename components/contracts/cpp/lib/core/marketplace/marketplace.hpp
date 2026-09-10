@@ -131,7 +131,9 @@ inline void update_order(eosio::name coopname, uint64_t order_id, const std::fun
 /// приёмке, Дт 76 / Кт 51 на выплате). У заказов, принятых до появления поля,
 /// расширения нет: тогда берётся `fact_cost`, как читалось раньше.
 inline eosio::asset get_accepted_cost(const order& o) {
-  return o.accepted_cost.value_or(o.fact_cost);
+  // value_or(def) у binary_extension не помечен const — для константной
+  // записи читаем через has_value()/value().
+  return o.accepted_cost.has_value() ? o.accepted_cost.value() : o.fact_cost;
 }
 
 /// Выплата поставщику по заказу ещё не завершена: заказ нельзя стирать —

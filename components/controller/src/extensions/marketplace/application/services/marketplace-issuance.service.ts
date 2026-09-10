@@ -251,9 +251,14 @@ export class MarketplaceIssuanceService {
     const available = await this.loadAvailableOnWarehouse(order);
     this.assertWithinWarehouse(order, input.actual_quantity, available);
 
-    // Заказ из остатка: цену при выдаче можно только снизить (уценка), не поднять.
-    if (isStockOrder(order) && Number.parseFloat(input.actual_unit_price) > Number.parseFloat(order.price_per_unit) + 1e-9) {
-      throw new ConflictException('По заказу со склада кооператива цену при выдаче можно только снизить.');
+    // Цену при выдаче можно только снизить (решение владельца 10.09.2026):
+    // имущество числится на складе по цене прибытия, снижение выбывает
+    // уценкой после выдачи, а для повышения доходной проводки в модели нет.
+    const priceCeiling = await this.issuePriceCeiling(order);
+    if (compareMoney(input.actual_unit_price, priceCeiling, this.assetConfig.decimals) > 0) {
+      throw new ConflictException(
+        `Цену при выдаче можно только снизить: не выше ${priceCeiling} ₽ за единицу отпуска — по этой цене имущество числится на складе.`
+      );
     }
 
     const fact = this.buildFact(order, input.actual_quantity, input.actual_unit_price);
@@ -1010,8 +1015,17 @@ export class MarketplaceIssuanceService {
         this.logger.log(`Выдача stock-order ${order.id}: выдано ${fact.actual_quantity}, возвращено в остаток ${released} ед.`);
         await this.submitMarkdownLoss(order, issued_arrival_cost, fact.fact_cost);
       } else {
+        // Цену прибытия читаем до отделения остатка: после него позиции заказа
+        // перестают быть адресными, и выборка по заказу их уже не найдёт.
+        const arrivalPrice = await this.arrivalPriceOf(order);
         const detached = await this.inventoryRepo.detachRemainderToStock(order.coopname, order.id, fact.actual_quantity, order.price_per_unit);
         this.logger.log(`Выдача order ${order.id}: выдано ${fact.actual_quantity}, в обезличенный остаток КУ ушло ${detached} ед.`);
+        // Выдано дешевле цены приёмки (брак внутри упаковки отражён ценой) —
+        // разница выбывает уценкой, иначе она зависла бы на счёте 10.
+        if (arrivalPrice) {
+          const issuedArrivalCost = this.buildFact(order, fact.actual_quantity, arrivalPrice).fact_cost;
+          await this.submitMarkdownLoss(order, issuedArrivalCost, fact.fact_cost);
+        }
       }
     } catch (err) {
       this.logger.warn(`Выдача order ${order.id}: не удалось закрыть складские позиции (${this.errMessage(err)}); склад покажет их как остаток до ручной сверки.`);
@@ -1085,7 +1099,7 @@ export class MarketplaceIssuanceService {
     try {
       await this.chainPort.markdown({ coopname: order.coopname, order_hash: order.order_hash, amount: this.formatAsset(delta.toFixed(this.assetConfig.decimals)) });
     } catch (err) {
-      this.logger.warn(`Stock-order ${order.id}: списание уценки не прошло (${this.errMessage(err)}); дослать вручную повторным markdown.`);
+      this.logger.warn(`Заказ ${order.id}: списание уценки не прошло (${this.errMessage(err)}); дослать вручную повторным markdown.`);
     }
   }
 
@@ -1094,6 +1108,23 @@ export class MarketplaceIssuanceService {
     if (!verification.passed) {
       throw new ConflictException('Выдача невозможна: получатель не прошёл верификацию личности. Сверьте паспорт пайщика, подтвердите его личность и повторите.');
     }
+  }
+
+  /**
+   * Потолок цены выдачи за единицу отпуска. Заказ из остатка — цена заказа
+   * (сама публикация остатка не выше цены прибытия). Заказ поставщика — цена
+   * прибытия из акта приёмки, по ней имущество числится на счёте 10; без
+   * позиций с ценой прибытия — цена заказа.
+   */
+  private async issuePriceCeiling(order: MarketplaceOrderDomainEntity): Promise<string> {
+    if (isStockOrder(order)) return order.price_per_unit;
+    return (await this.arrivalPriceOf(order)) ?? order.price_per_unit;
+  }
+
+  /** Цена прибытия адресных позиций заказа на складе; нет позиций с ценой — null. */
+  private async arrivalPriceOf(order: MarketplaceOrderDomainEntity): Promise<string | null> {
+    const prices = await this.inventoryRepo.arrivalPriceOnWarehouseByOrders(order.coopname, [order.id]);
+    return prices.get(order.id) ?? null;
   }
 
   private async loadAvailableOnWarehouse(order: MarketplaceOrderDomainEntity): Promise<number> {

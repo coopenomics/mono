@@ -183,6 +183,9 @@ const correctionRows = computed<CorrectionRow[]>(() =>
       // Правку оператора показываем как есть, до неё — цену прибытия
       // (см. defaultPriceOf).
       factPrice: f?.price ?? defaultPriceOf(o),
+      // Цену при выдаче можно только снизить: потолок — цена, с которой
+      // открылась выдача (цена прибытия, у остатка — цена заказа).
+      maxPrice: defaultPriceOf(o),
       included: f?.included ?? availableOf(o) > 0,
     };
   }),
@@ -309,7 +312,12 @@ function onCorrectionChange(payload: { sku: string; fact: number; factPrice?: nu
   const packageSize = order?.package_size ?? 0;
   const factBase = packageSize > 0 ? Math.max(0, payload.fact) * packageSize : payload.fact;
   f.qty = Math.min(Math.max(0, factBase), ceiling);
-  if (payload.factPrice !== undefined) f.price = Math.max(0, payload.factPrice);
+  // Цену поднять нельзя — бэкенд и контракт откажут; снижение уйдёт уценкой.
+  // Форма поправляет ввод к потолку сразу, как и количество к складу.
+  if (payload.factPrice !== undefined) {
+    const priceCeiling = order ? defaultPriceOf(order) : Number.POSITIVE_INFINITY;
+    f.price = Math.min(Math.max(0, payload.factPrice), priceCeiling);
+  }
   facts.value = { ...facts.value, [id]: f };
   // Акты зависят от факта — сбрасываем устаревший превью.
 }

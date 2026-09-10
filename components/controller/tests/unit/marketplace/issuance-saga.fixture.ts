@@ -150,6 +150,8 @@ export function buildMocks(opts: {
   memberAvailableUnits?: bigint;
   /** Остаток свободного паевого программы (по умолчанию — хватает на любую доплату). */
   shareAvailableUnits?: bigint;
+  /** Цена прибытия адресных позиций заказа на складе (по умолчанию — позиций с ценой нет). */
+  arrivalPrice?: string;
 } = {}): IssuanceMocks {
   const order = opts.order ?? buildOrder();
   const warehouse = opts.warehouse ?? 10;
@@ -168,6 +170,9 @@ export function buildMocks(opts: {
     sumReservedByOrders: jest.fn(async (_c: string, ids: string[]) => new Map(ids.map((id) => [id, warehouse]))),
     detachRemainderToStock: jest.fn(async () => 0),
     finalizeReservedIssue: jest.fn(async () => ({ released: 0, issued_arrival_cost: '0.0000' })),
+    arrivalPriceOnWarehouseByOrders: jest.fn(async (_c: string, ids: string[]) =>
+      new Map(opts.arrivalPrice ? ids.map((id) => [id, opts.arrivalPrice as string]) : [])
+    ),
   };
   const offerRepo = { findById: jest.fn(async () => null) };
   const offerCounters = {

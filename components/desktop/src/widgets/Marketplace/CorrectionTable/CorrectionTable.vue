@@ -49,6 +49,8 @@
       BaseInput.field-flush(
         :model-value='r.factPrice',
         type='number',
+        :min='0',
+        :max='r.maxPrice',
         :disabled='isOff(r)',
         :suffix='r.packaged ? "₽/упак." : "₽/ед."',
         :aria-label='r.packaged ? "Цена за упаковку" : "Цена за единицу"',

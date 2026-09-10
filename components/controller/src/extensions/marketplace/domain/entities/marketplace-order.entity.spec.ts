@@ -18,6 +18,8 @@ function buildProps(overrides: Partial<MarketplaceOrderProps> = {}): Marketplace
     package_id: null,
     total_cost: '450.0000',
     membership_fee: null,
+    accepted_cost: null,
+    payout_status: null,
     cycle_id: null,
     checkout_id: null,
     shipment_id: null,
@@ -112,6 +114,8 @@ describe('MarketplaceOrderDomainEntity', () => {
         on_chain_id: '101',
         status: 'ACCEPTED',
         membership_fee: null,
+        accepted_cost: null,
+        payout_status: null,
       },
       2_000_000,
       true
@@ -170,7 +174,7 @@ describe('MarketplaceOrderDomainEntity', () => {
       const order = new MarketplaceOrderDomainEntity(buildProps({ status: 'ACTIVE' }));
 
       order.updateFromBlockchain(
-        { order_hash: 'a'.repeat(64), on_chain_id: '10', status: 'ACCEPTED', membership_fee: null },
+        { order_hash: 'a'.repeat(64), on_chain_id: '10', status: 'ACCEPTED', membership_fee: null, accepted_cost: null, payout_status: null },
         2_000_000,
         true
       );
@@ -184,7 +188,7 @@ describe('MarketplaceOrderDomainEntity', () => {
       );
 
       order.updateFromBlockchain(
-        { order_hash: 'a'.repeat(64), on_chain_id: '11', status: 'ACTIVE', membership_fee: null },
+        { order_hash: 'a'.repeat(64), on_chain_id: '11', status: 'ACTIVE', membership_fee: null, accepted_cost: null, payout_status: null },
         2_100_000,
         true
       );
@@ -198,7 +202,7 @@ describe('MarketplaceOrderDomainEntity', () => {
       const order = new MarketplaceOrderDomainEntity(buildProps({ status: 'ACCEPTED' }));
 
       order.updateFromBlockchain(
-        { order_hash: 'a'.repeat(64), on_chain_id: '12', status: 'ACTIVE', membership_fee: null },
+        { order_hash: 'a'.repeat(64), on_chain_id: '12', status: 'ACTIVE', membership_fee: null, accepted_cost: null, payout_status: null },
         2_200_000,
         true
       );
@@ -210,7 +214,7 @@ describe('MarketplaceOrderDomainEntity', () => {
       const order = new MarketplaceOrderDomainEntity(buildProps({ status: 'ACCEPTED' }));
 
       order.updateFromBlockchain(
-        { order_hash: 'a'.repeat(64), on_chain_id: '13', status: 'CANCELLED_BY_ORDERER', membership_fee: null },
+        { order_hash: 'a'.repeat(64), on_chain_id: '13', status: 'CANCELLED_BY_ORDERER', membership_fee: null, accepted_cost: null, payout_status: null },
         2_300_000,
         false
       );
@@ -230,7 +234,7 @@ describe('MarketplaceOrderDomainEntity', () => {
       );
 
       order.updateFromBlockchain(
-        { order_hash: 'a'.repeat(64), on_chain_id: '20', status: 'ACTIVE', membership_fee: null },
+        { order_hash: 'a'.repeat(64), on_chain_id: '20', status: 'ACTIVE', membership_fee: null, accepted_cost: null, payout_status: null },
         2_500_000,
         false
       );
@@ -243,7 +247,7 @@ describe('MarketplaceOrderDomainEntity', () => {
       const order = new MarketplaceOrderDomainEntity(buildProps({ status: 'RETURNED' }));
 
       order.updateFromBlockchain(
-        { order_hash: 'a'.repeat(64), on_chain_id: '21', status: 'RECEIVED', membership_fee: null },
+        { order_hash: 'a'.repeat(64), on_chain_id: '21', status: 'RECEIVED', membership_fee: null, accepted_cost: null, payout_status: null },
         2_600_000,
         false
       );

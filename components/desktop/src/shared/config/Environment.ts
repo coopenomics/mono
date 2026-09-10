@@ -47,6 +47,32 @@ declare global {
 let envCache: EnvVars | null = null;
 let isLoading = false;
 
+/** Итог попытки выполнить config-скрипт: загружен, ответ не скрипт, скрипта нет. */
+type ConfigScriptResult = 'loaded' | 'not-script' | 'missing';
+
+/**
+ * Синхронно запрашивает и выполняет config-скрипт по пути `path`.
+ *
+ * В dev-режиме Vite на несуществующий скрипт отдаёт index.html (catch-all для
+ * SPA). eval(htmlString) бросает SyntaxError, который всплывает как "Quasar
+ * boot error" и ломает последующую init-app, поэтому выполняется только ответ
+ * с явным content-type JavaScript.
+ */
+function evalConfigScript(path: string): ConfigScriptResult {
+  try {
+    const xhr = new XMLHttpRequest();
+    xhr.open('GET', `${path}?t=${Date.now()}`, false); // false = синхронный запрос
+    xhr.send();
+    if (xhr.status !== 200) return 'missing';
+    const ct = (xhr.getResponseHeader('content-type') || '').toLowerCase();
+    if (!ct.includes('javascript')) return 'not-script';
+    eval(xhr.responseText);
+    return window.__APP_CONFIG__ ? 'loaded' : 'missing';
+  } catch {
+    return 'missing';
+  }
+}
+
 /**
  * Синхронная загрузка config.js через блокирующий XMLHttpRequest
  * Используется как fallback когда переменные не инжектированы в HTML
@@ -54,121 +80,61 @@ let isLoading = false;
 function loadConfigSync(): boolean {
   if (typeof window === 'undefined') return false;
 
+  const primary = evalConfigScript('/config.js');
+  // Ответ не скрипт — это catch-all dev-сервера: резервный путь не пробуем.
+  if (primary !== 'missing') return primary === 'loaded';
+
+  // Резервный config.default.js — для SPA-dev режима, где SSR middleware не
+  // запущен и нет /config.js: без него фронт получает пустой BACKEND_URL.
+  return evalConfigScript('/config.default.js') === 'loaded';
+}
+
+/** Пустой набор переменных — на время повторного входа в загрузку. */
+function emptyEnv(): EnvVars {
+  return {
+    NODE_ENV: 'development',
+    BACKEND_URL: '',
+    CHAIN_URL: '',
+    CHAIN_ID: '',
+    CURRENCY: '',
+    COOP_SHORT_NAME: '',
+    SITE_DESCRIPTION: '',
+    SITE_IMAGE: '',
+    STORAGE_URL: '',
+    UPLOAD_URL: '',
+    TIMEZONE: 'Europe/Moscow',
+    VUE_ROUTER_MODE: '',
+    VUE_ROUTER_BASE: '',
+    VAPID_PUBLIC_KEY: '',
+    SENTRY_DSN: '',
+    OPENREPLAY_PROJECT_KEY: '',
+    YANDEX_MAPS_API_KEY: '',
+  };
+}
+
+/** Конфигурация браузера: инжектированная в HTML либо загруженная config-скриптом. */
+function readWindowConfig(): EnvVars | null {
+  if (typeof window === 'undefined') return null;
   try {
-    const xhr = new XMLHttpRequest();
-    xhr.open('GET', `/config.js?t=${Date.now()}`, false); // false = синхронный запрос
-    xhr.send();
-
-    if (xhr.status === 200) {
-      // В dev-режиме Vite на несуществующий /config.js отдаёт index.html
-      // (catch-all для SPA). eval(htmlString) бросает SyntaxError, который
-      // всплывает как "Quasar boot error" и ломает последующую init-app.
-      // Запускаем eval только если content-type явно JavaScript.
-      const ct = (xhr.getResponseHeader('content-type') || '').toLowerCase();
-      if (!ct.includes('javascript')) {
-        return false;
-      }
-      // Выполняем JavaScript код из ответа
-      eval(xhr.responseText);
-
-      if (window.__APP_CONFIG__) {
-        return true;
-      }
-    }
+    if (window.__APP_CONFIG__ || loadConfigSync()) return window.__APP_CONFIG__ ?? null;
   } catch {
-
+    // молча — ниже сработает fallback к process.env
   }
-
-  // Пробуем резервный config.default.js (для SPA-dev режима, где SSR middleware
-  // не запущен и нет /config.js — без этого фронт получает пустой BACKEND_URL).
-  try {
-    const xhr = new XMLHttpRequest();
-    xhr.open('GET', `/config.default.js?t=${Date.now()}`, false);
-    xhr.send();
-
-    if (xhr.status === 200) {
-      const ct = (xhr.getResponseHeader('content-type') || '').toLowerCase();
-      if (!ct.includes('javascript')) {
-        return false;
-      }
-      eval(xhr.responseText);
-      if (window.__APP_CONFIG__) {
-        return true;
-      }
-    }
-  } catch {
-    // молча — следующая ветка вернёт false
-  }
-
-  return false;
+  return null;
 }
 
 /**
- * Определение переменных окружения для разных сред
- * Автоматически загружает config.js если переменные недоступны
+ * Fallback к process.env (для сервера или dev режима).
+ *
+ * SSR-сервер рендерит страницу внутри контура и за данными должен ходить к
+ * соседнему nginx напрямую, а не наружу по публичному имени: через шлюз он
+ * получает 403 (стенды) или лишний круг через L7 (прод), и страница
+ * рендерится как для гостя. SSR_BACKEND_URL / SSR_CHAIN_URL действуют только
+ * на сервере; браузеру по-прежнему уходят публичные адреса из injectEnv.
  */
-function getEnv(): EnvVars {
-  // Если уже есть кэш, возвращаем его
-  if (envCache) {
-    return envCache;
-  }
-
-  // Предотвращаем множественные загрузки
-  if (isLoading) {
-
-    // В синхронном режиме просто возвращаем объект с базовыми значениями
-    return {
-      NODE_ENV: 'development',
-      BACKEND_URL: '',
-      CHAIN_URL: '',
-      CHAIN_ID: '',
-      CURRENCY: '',
-      COOP_SHORT_NAME: '',
-      SITE_DESCRIPTION: '',
-      SITE_IMAGE: '',
-      STORAGE_URL: '',
-      UPLOAD_URL: '',
-      TIMEZONE: 'Europe/Moscow',
-      VUE_ROUTER_MODE: '',
-      VUE_ROUTER_BASE: '',
-      VAPID_PUBLIC_KEY: '',
-      SENTRY_DSN: '',
-      OPENREPLAY_PROJECT_KEY: '',
-      YANDEX_MAPS_API_KEY: '',
-    };
-  }
-
-  isLoading = true;
-
-  // Пробуем получить window.__APP_CONFIG__ (инжектированные в HTML)
-  try {
-    if (typeof window !== 'undefined' && window.__APP_CONFIG__) {
-      envCache = window.__APP_CONFIG__;
-      isLoading = false;
-      return envCache;
-    } else if (typeof window !== 'undefined') {
-      // Пытаемся загрузить конфигурацию синхронно
-      if (loadConfigSync() && window.__APP_CONFIG__) {
-        envCache = window.__APP_CONFIG__;
-        isLoading = false;
-        return envCache;
-      }
-    } else {
-
-    }
-  } catch {
-
-  }
-
-  // Fallback к process.env (для сервера или dev режима)
-  //
-  // SSR-сервер рендерит страницу внутри контура и за данными должен ходить к
-  // соседнему nginx напрямую, а не наружу по публичному имени: через шлюз он
-  // получает 403 (стенды) или лишний круг через L7 (прод), и страница
-  // рендерится как для гостя. SSR_BACKEND_URL / SSR_CHAIN_URL действуют только
-  // на сервере; браузеру по-прежнему уходят публичные адреса из injectEnv.
+function envFromProcess(): EnvVars {
   const onServer = typeof window === 'undefined';
-  envCache = {
+  return {
     NODE_ENV: process.env.NODE_ENV as string,
     BACKEND_URL: ((onServer && process.env.SSR_BACKEND_URL) || process.env.BACKEND_URL) as string,
     CHAIN_URL: ((onServer && process.env.SSR_CHAIN_URL) || process.env.CHAIN_URL) as string,
@@ -191,7 +157,20 @@ function getEnv(): EnvVars {
     COOPID_CLIENT_ID: process.env.COOPID_CLIENT_ID as string,
     YANDEX_MAPS_API_KEY: process.env.YANDEX_MAPS_API_KEY as string,
   };
+}
 
+/**
+ * Определение переменных окружения для разных сред
+ * Автоматически загружает config.js если переменные недоступны
+ */
+function getEnv(): EnvVars {
+  if (envCache) return envCache;
+  // Предотвращаем множественные загрузки: в синхронном режиме повторный вход
+  // получает объект с базовыми значениями.
+  if (isLoading) return emptyEnv();
+
+  isLoading = true;
+  envCache = readWindowConfig() ?? envFromProcess();
   isLoading = false;
   return envCache;
 }
