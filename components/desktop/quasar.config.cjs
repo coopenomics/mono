@@ -203,6 +203,17 @@ module.exports = configure(function (ctx) {
       port: parseInt(process.env.DESKTOP_PORT || '2999', 10),
       strictPort: true,
       host: '0.0.0.0',
+      // SSR dev: Vite работает как middleware и держит вебсокет горячей
+      // перезагрузки на отдельном порту 24678, а браузеру велит подключаться
+      // к нему по адресу страницы. За шлюзом стенда этот порт закрыт, и клиент
+      // Vite бесконечно переподключается — тысячи «Uncaught (in promise)» в
+      // консоли, задержки на каждом переходе. Отдаём вебсокету свой путь и
+      // публичный порт страницы: nginx стенда проксирует /__vite_hmr на 24678
+      // (infra/coopid/nginx/dev.conf). В SPA-режиме вебсокет живёт на порту
+      // самого dev-сервера, и настройка не нужна.
+      ...(ctx.mode.ssr
+        ? { hmr: { path: '/__vite_hmr', port: 24678, clientPort: 443 } }
+        : {}),
     },
 
     // https://v2.quasar.dev/quasar-cli-vite/quasar-config-js#framework
