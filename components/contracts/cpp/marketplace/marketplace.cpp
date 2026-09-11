@@ -90,9 +90,7 @@ static void migrate_supplier_payables(eosio::name coopname) {
         o.status == OrderStatus::REFUSED;
     if (!accepted_by_coop || o.payout_status == OrderPayoutStatus::COMPLETED) continue;
 
-    const eosio::asset withheld = o.payout_withheld.has_value()
-        ? o.payout_withheld.value()
-        : eosio::asset(0, _root_govern_symbol);
+    const eosio::asset withheld = Marketplace::get_payout_withheld(o);
     const eosio::asset outstanding = Marketplace::get_accepted_cost(o) - withheld;
     if (outstanding.amount <= 0) continue;
 

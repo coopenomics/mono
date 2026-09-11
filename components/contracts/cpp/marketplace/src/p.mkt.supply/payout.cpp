@@ -67,9 +67,7 @@ void marketplace::payout(eosio::name coopname, checksum256 order_hash) {
 
   // Уже удержанное прошлой (отклонённой кассиром) инициацией: долг по нему
   // сожжён тогда же, повторно не удерживается.
-  const eosio::asset already_withheld = o.payout_withheld.has_value()
-      ? o.payout_withheld.value()
-      : eosio::asset(0, _root_govern_symbol);
+  const eosio::asset already_withheld = Marketplace::get_payout_withheld(o);
   eosio::check(already_withheld <= accepted_cost,
                "Удержанный долг превышает принятую стоимость заказа");
   const eosio::asset outstanding = accepted_cost - already_withheld;

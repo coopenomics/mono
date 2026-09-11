@@ -43,9 +43,7 @@ void marketplace::payconfirm(eosio::name coopname, checksum256 outcome_hash) {
   eosio::check(o.payout_status == OrderPayoutStatus::PENDING,
                "Callback gateway::outcomplete получен на Order не в статусе ожидания выплаты");
 
-  const eosio::asset withheld = o.payout_withheld.has_value()
-      ? o.payout_withheld.value()
-      : eosio::asset(0, _root_govern_symbol);
+  const eosio::asset withheld = Marketplace::get_payout_withheld(o);
   const eosio::asset paid = Marketplace::get_accepted_cost(o) - withheld;
   eosio::check(paid.amount > 0, "Выплата поставщику после удержания долга пуста");
 

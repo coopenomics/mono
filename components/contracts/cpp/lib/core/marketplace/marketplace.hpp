@@ -127,13 +127,29 @@ inline void update_order(eosio::name coopname, uint64_t order_id, const std::fun
   orders.modify(it, _marketplace, [&](auto& o) { fn(o); });
 }
 
+/// Денежное расширение строки заказа, если в нём действительно сумма.
+/// Расширения сериализуются по порядку: когда контракт записывает более
+/// позднее поле, все предыдущие ложатся пустым asset без символа ("0 "). Это
+/// не сумма, а отсутствие данных — сравнение или вычитание с ним цепь
+/// отвергает («comparison of assets with different symbols»), так 11.09.2026
+/// на тестнете встали выдача прежних заказов и выплаты поставщикам.
+/// value_or(def) у binary_extension не помечен const — читаем через
+/// has_value()/value().
+inline std::optional<eosio::asset> get_asset_extension(const eosio::binary_extension<eosio::asset>& ext) {
+  if (!ext.has_value() || ext.value().symbol.raw() == 0) return std::nullopt;
+  return ext.value();
+}
+
 /// Принятая стоимость заказа — база долга поставщику (Дт 10 / Кт 76 на
 /// приёмке, Дт 76 / Кт 51 на выплате). У заказов, принятых до появления поля,
-/// расширения нет: тогда берётся `fact_cost`, как читалось раньше.
+/// суммы нет: тогда берётся `fact_cost`, как читалось раньше.
 inline eosio::asset get_accepted_cost(const order& o) {
-  // value_or(def) у binary_extension не помечен const — для константной
-  // записи читаем через has_value()/value().
-  return o.accepted_cost.has_value() ? o.accepted_cost.value() : o.fact_cost;
+  return get_asset_extension(o.accepted_cost).value_or(o.fact_cost);
+}
+
+/// Долг поставщика, уже удержанный при инициации выплаты; без суммы — ноль.
+inline eosio::asset get_payout_withheld(const order& o) {
+  return get_asset_extension(o.payout_withheld).value_or(eosio::asset(0, _root_govern_symbol));
 }
 
 /// Выплата поставщику по заказу ещё не завершена: заказ нельзя стирать —
