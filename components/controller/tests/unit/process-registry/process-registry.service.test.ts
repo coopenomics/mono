@@ -35,6 +35,7 @@ type AnyQB = any;
 
 function mockQB(rows: any[]): AnyQB {
   const qb: AnyQB = {
+    rows,
     where: jest.fn(() => qb),
     andWhere: jest.fn(() => qb),
     orderBy: jest.fn(() => qb),
@@ -92,12 +93,19 @@ function makeAction(partial: Partial<ActionEntity>): ActionEntity {
 function makeService({
   actions,
   entityDeltasPerLocation,
+  linkedActions = [],
+  actionQueries = [],
 }: {
   actions: ActionEntity[];
   // Дельты по порядку локаций из PROCESS_HASH_LOCATOR[processType] —
   // порядок определяется конфигом, не тестом. Для одиночной локации (большинство
   // процессов) достаточно одного массива.
   entityDeltasPerLocation: DeltaEntity[][];
+  // Второй запрос по blockchain_actions — действия с хэшем процесса в данных
+  // (документы вне сущностных таблиц). Первый запрос — якорь Phase A.
+  linkedActions?: ActionEntity[];
+  // Сюда складываются созданные query builder'ы действий — для проверки условий.
+  actionQueries?: AnyQB[];
 }): ProcessRegistryService {
   let deltaCallIdx = 0;
   const deltaRepo: any = {
@@ -109,7 +117,11 @@ function makeService({
     manager: { query: jest.fn(async () => [{ cnt: '0' }]) },
   };
   const actionRepo: any = {
-    createQueryBuilder: jest.fn(() => mockQB(actions)),
+    createQueryBuilder: jest.fn(() => {
+      const qb = mockQB(actionQueries.length === 0 ? actions : linkedActions);
+      actionQueries.push(qb);
+      return qb;
+    }),
     manager: { query: jest.fn(async () => [{ cnt: '0' }]) },
   };
 
@@ -270,6 +282,126 @@ describe('ProcessRegistryService.getProcess', () => {
     expect(view.actions).toHaveLength(2);
     expect(view.delta_history).toHaveLength(1);
     expect(view.delta_history[0].table).toBe('candidates2');
+  });
+
+  describe('документы из параметров действий', () => {
+    const signedDoc = (docHash: string, signatures: number) => ({
+      version: '1.0.0',
+      hash: docHash,
+      doc_hash: docHash,
+      meta_hash: 'm'.repeat(64),
+      meta: '{"registry_id":1110}',
+      signatures: Array.from({ length: signatures }, (_, i) => ({ id: i + 1, signer: `signer${i}` })),
+    });
+
+    const supplyAnchor = () =>
+      makeAction({
+        account: 'ledger2',
+        name: 'apply',
+        data: { operation_code: 'o.mkt.lock', process_hash: HASH, coopname: COOP, username: 'orderer' },
+        block_num: 100 as any,
+        global_sequence: '10',
+      });
+
+    test('(h1) заявление 1110 из marketplace::convert попадает в документы поставки', async () => {
+      // Заявление о переводе паевого взноса в Стол заказов живёт только в
+      // параметре convert: в строку заказа оно не пишется, а хэш заказа лежит
+      // в targets. Раньше бухгалтер видел перевод, но не видел заявления.
+      const convert = makeAction({
+        account: 'marketplace',
+        name: 'convert',
+        data: {
+          coopname: COOP,
+          orderer: 'orderer',
+          targets: [{ order_hash: HASH.toUpperCase(), amount: '10.0000 RUB' }],
+          convert_statement: signedDoc('c'.repeat(64), 1),
+        },
+        block_num: 99 as any,
+        global_sequence: '9',
+      });
+      const order = makeDelta({ code: 'marketplace', table: 'orders', value: { hash: HASH, coopname: COOP }, block_num: 120 as any });
+
+      const svc = makeService({
+        actions: [supplyAnchor()],
+        entityDeltasPerLocation: [[order]],
+        linkedActions: [convert],
+      });
+      const view = await svc.getProcess(HASH, COOP);
+
+      expect(view.documents).toHaveLength(1);
+      expect(view.documents[0].source).toEqual({
+        code: 'marketplace',
+        table: 'convert',
+        field: 'convert_statement',
+        primary_key: '9',
+      });
+      expect(view.documents[0].hash).toBe('c'.repeat(64));
+    });
+
+    test('(h2) один документ из дельты и из действия — одна запись с максимумом подписей', async () => {
+      const docHash = 'd'.repeat(64);
+      const order = makeDelta({
+        code: 'marketplace',
+        table: 'orders',
+        value: { hash: HASH, coopname: COOP, acceptance_act: signedDoc(docHash, 1) },
+        block_num: 110 as any,
+      });
+      const signchair = makeAction({
+        account: 'marketplace',
+        name: 'signchair',
+        data: { coopname: COOP, hash: HASH, act: signedDoc(docHash, 2) },
+        block_num: 111 as any,
+        global_sequence: '20',
+      });
+
+      const svc = makeService({
+        actions: [supplyAnchor()],
+        entityDeltasPerLocation: [[order]],
+        linkedActions: [signchair],
+      });
+      const view = await svc.getProcess(HASH, COOP);
+
+      expect(view.documents).toHaveLength(1);
+      expect(view.documents[0].document.signatures).toHaveLength(2);
+      expect(view.documents[0].source.table).toBe('signchair');
+    });
+
+    test('(h3) действие с хэшем процесса, но без документа, записи не даёт', async () => {
+      const payconfirm = makeAction({
+        account: 'marketplace',
+        name: 'payconfirm',
+        data: { coopname: COOP, hash: HASH, amount: '10.0000 RUB', memo: { note: 'без подписи' } },
+        block_num: 130 as any,
+        global_sequence: '30',
+      });
+
+      const svc = makeService({
+        actions: [supplyAnchor()],
+        entityDeltasPerLocation: [[]],
+        linkedActions: [payconfirm],
+      });
+      const view = await svc.getProcess(HASH, COOP);
+
+      expect(view.documents).toHaveLength(0);
+    });
+
+    test('(h4) поиск действий ограничен окном процесса, кооперативом и хэшем, ledger2 исключён', async () => {
+      const order = makeDelta({ code: 'marketplace', table: 'orders', value: { hash: HASH, coopname: COOP }, block_num: 250 as any });
+      const actionQueries: AnyQB[] = [];
+      const svc = makeService({
+        actions: [supplyAnchor()],
+        entityDeltasPerLocation: [[order]],
+        actionQueries,
+      });
+      await svc.getProcess(HASH, COOP);
+
+      expect(actionQueries).toHaveLength(2);
+      const linked = actionQueries[1];
+      expect(linked.where).toHaveBeenCalledWith('a.block_num BETWEEN :from AND :to', { from: 100, to: 250 });
+      expect(linked.andWhere).toHaveBeenCalledWith('a.account <> :ledger2', { ledger2: 'ledger2' });
+      expect(linked.andWhere).toHaveBeenCalledWith(`a.data ->> 'coopname' = :coop`, { coop: COOP });
+      expect(linked.andWhere).toHaveBeenCalledWith(`a.data::text ILIKE :pattern`, { pattern: `%${HASH}%` });
+    });
   });
 
   test('(e) p.mig.trans: только migration-actions, entity-дельт нет', async () => {
