@@ -394,3 +394,16 @@ cases:
       «не ожидает довнесения» снимает отметку без повтора
     test: components/controller/tests/unit/marketplace/marketplace-chain-retry-cron.test.ts
     status: written   # прогон не подтверждён локально — гоняет CI
+
+  - id: mkt.ret.side.56
+    level: backend
+    kind: side
+    scenario: >
+      В проекции остались заявления на гарантийный возврат со статусом
+      ACCEPTED_AT_VISIT, снятым при переходе на решение совета; оператор
+      открывает «Гарантийные возвраты».
+    expect: >
+      миграция v22 переводит их в ACCEPTED_BY_COUNCIL, список заявлений отдаётся
+      целиком; повторный запуск миграции ничего не меняет
+    test: components/controller/tests/unit/marketplace/marketplace-bootstrap-v22.migration.test.ts
+    status: written   # прогон не подтверждён локально — гоняет CI
