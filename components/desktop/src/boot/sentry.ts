@@ -38,6 +38,9 @@ export default boot(({ app, router }) => {
         /^(TypeError: )?Load failed$/,
         /^(TypeError: )?NetworkError when attempting to fetch resource\.?$/,
         /^(Error: )?(AbortError: )?(Fetch is aborted|signal is aborted without reason|The user aborted a request\.)$/,
+        // Тот же обрыв, но узел за прокси уже отвечает страницей nginx: SDK
+        // отдаёт её текстом ошибки GraphQLResponseError со статусом 502/503/504.
+        /^(GraphQLResponseError: )?(HTTP 50[234]$|50[234] (Bad Gateway|Service (Temporarily )?Unavailable|Gateway Time-?out)\b)/i,
         // Отложенные обработчики Milkdown (debounce в его плагинах) срабатывают
         // после уничтожения редактора и не отменяются самой библиотекой —
         // пайщик при этом ничего не теряет: редактор уже закрыт.

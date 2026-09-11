@@ -3,6 +3,7 @@ import { Bytes, Checksum256, PrivateKey } from '@wharfkit/session'
 import WebSocket from 'isomorphic-ws'
 
 import * as Classes from './classes'
+import { type GraphQLErrorItem, graphQLErrorsFromBody, GraphQLResponseError } from './errors'
 import * as Mutations from './mutations'
 import { wsSubscription, type WsSubscriptionApi } from './utils/wsSubscription'
 import { type GraphQLResponse, Thunder, ZeusScalars } from './zeus/index'
@@ -26,6 +27,7 @@ function isAbortRequestError(error: unknown): error is AccessTokenUnavailableErr
 }
 
 export * as Classes from './classes'
+export { type GraphQLErrorItem, GraphQLResponseError } from './errors'
 export * as Mutations from './mutations'
 export * as Queries from './queries'
 export * as Selectors from './selectors'
@@ -354,27 +356,31 @@ export class Client {
           signal: controller?.signal,
         })
 
+        // Отказ уходит наружу настоящей ошибкой (см. GraphQLResponseError): сырой
+        // массив или тело ответа без `message` и стека журнал ошибок показывал как
+        // «[object Object]». Исходный список сервера сохранён в `errors`.
         if (!response.ok) {
-          return new Promise((resolve, reject) => {
-            response
-              .text()
-              .then((text) => {
-                try {
-                  reject(JSON.parse(text))
-                }
-                catch {
-                  reject(text)
-                }
-              })
-              .catch(reject)
-          })
+          const text = await response.text()
+          let body: unknown = text
+          try {
+            body = JSON.parse(text)
+          }
+          catch {
+            // тело не JSON — прокси или сервер ответили текстом, он и станет сообщением
+          }
+          const errors = graphQLErrorsFromBody(body, response.status)
+          this.reportAuthLoss(errors, hadToken)
+          throw new GraphQLResponseError(errors, { response: body, status: response.status })
         }
 
         const json = (await response.json()) as GraphQLResponse
 
         if (json.errors) {
           this.reportAuthLoss(json.errors, hadToken)
-          throw json.errors
+          throw new GraphQLResponseError(json.errors as GraphQLErrorItem[], {
+            response: json,
+            status: response.status,
+          })
         }
 
         return json.data
