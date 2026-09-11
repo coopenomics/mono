@@ -29,10 +29,10 @@ void registrator::completexit(eosio::name coopname, checksum256 exit_hash) {
                  processes::wallet::WITHDRAW,
                  e->quantity, username, exit_hash, memo);
 
-  // Выход состоялся: остаток членского кошелька программы Стола заказов
-  // уходит в пул взносов (при отклонении выплаты он остаётся у пайщика —
-  // задача 99D-16), затем пайщик удаляется и аккаунт блокируется.
-  Registrator::forfeit_marketplace_member_fund(coopname, username, exit_hash);
+  // Выход состоялся: программы закрывают членские кошельки пайщика (при
+  // отклонении выплаты они остаются у него — задача 99D-16), затем пайщик
+  // удаляется и аккаунт блокируется.
+  Core::Registrator::settle_program_wallets_on_exit(_registrator, coopname, username, exit_hash);
   Registrator::finalize_member_exit(coopname, username);
 
   exits.erase(e);

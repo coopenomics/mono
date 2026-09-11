@@ -73,9 +73,8 @@ static void migrate_supplier_payables(eosio::name coopname);
 [[eosio::action]] void marketplace::migrate() {
   require_auth(_marketplace);
 
-  cooperatives2_index coops(_registrator, _registrator.value);
-  for (auto c = coops.begin(); c != coops.end(); ++c) {
-    migrate_supplier_payables(c->username);
+  for (const auto& coopname : Core::Registrator::get_cooperative_names()) {
+    migrate_supplier_payables(coopname);
   }
 }
 

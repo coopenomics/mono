@@ -46,6 +46,12 @@ bool is_trusted(eosio::name coopname, eosio::name braname, eosio::name username)
   return branch_itr->is_account_in_trusted(username);
 }
 
+/// Кооперативный участок существует (не удалён).
+inline bool exists(eosio::name coopname, eosio::name braname) {
+  branch_index branches(_branch, coopname.value);
+  return branches.find(braname.value) != branches.end();
+}
+
 /**
  * @brief Inline-вызов branch::accrue от контракта-источника членских
  * взносов (requirement b6 «Экономика КУ», раунд 5: приоритет общего

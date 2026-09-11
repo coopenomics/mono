@@ -35,14 +35,13 @@ void registrator::confirmexit(eosio::name coopname, checksum256 exit_hash, docum
   // backend-preview, поэтому расчёт на фронте совпадает с этим): аккумулируем
   // доступный баланс каждого (>0) и тут же консолидируем его на главный паевой
   // (w.wal.share), чтобы единым платежом вернуть весь паевой через o.wal.*.
-  // Заказ мог быть оформлен после подачи заявления — резерв под него не
-  // консолидируется и не пропадает: выход ждёт завершения заказов.
-  Registrator::check_no_marketplace_reserve(coopname, username);
-  Registrator::check_no_open_marketplace_returns(coopname, username);
+  // Программы могли получить новые обязательства до одобрения — выход ждёт
+  // их завершения (проверки в shared-слое).
+  Core::Registrator::check_member_can_exit(coopname, username);
 
   eosio::asset total_return = eosio::asset(0, _root_govern_symbol);
   for (const auto &wallet_name : LEDGER2_EXIT_REFUND_WALLETS) {
-    eosio::asset balance = Registrator::get_user_wallet_available(coopname, wallet_name, username);
+    eosio::asset balance = Ledger2::get_user_available(coopname, wallet_name, username);
     if (balance.amount <= 0) continue;
     total_return += balance;
     Registrator::consolidate_share_to_main(coopname, username, wallet_name, balance, exit_hash);
@@ -75,10 +74,9 @@ void registrator::confirmexit(eosio::name coopname, checksum256 exit_hash, docum
       "declinexit"_n
     );
   } else {
-    // Возвращать нечего — финализируем выход без платежа. Членский кошелёк
-    // программы Стола заказов не возвращается: остаток уходит в пул взносов
-    // в момент, когда выход состоялся (задачи 99D-15, 99D-16).
-    Registrator::forfeit_marketplace_member_fund(coopname, username, exit_hash);
+    // Возвращать нечего — финализируем выход без платежа. Членские кошельки
+    // программ закрываются в момент, когда выход состоялся (задачи 99D-15, 99D-16).
+    Core::Registrator::settle_program_wallets_on_exit(_registrator, coopname, username, exit_hash);
     Registrator::finalize_member_exit(coopname, username);
     exits.erase(e);
   }

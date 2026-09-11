@@ -502,4 +502,58 @@ inline void retain_refusal_penalty(eosio::name coopname, const order& o) {
   }
 }
 
+// ── Факты Стола заказов для других контрактов (shared-слой, задача 99D-16) ──
+// Код других контрактов таблиц marketplace напрямую не читает: участок,
+// выход пайщика и прочие проверки спрашивают Стол заказов только этими методами.
+
+/// Участок занят Столом заказов: он участок выдачи или приёмки хотя бы одного
+/// заказа (пока по заказу открыта заявка на возврат, заказ тоже жив).
+inline bool has_orders_at_branch(eosio::name coopname, eosio::name braname) {
+  orders_index orders(_marketplace, coopname.value);
+  auto by_delivery = orders.get_index<"bydelivbra"_n>();
+  if (by_delivery.find(braname.value) != by_delivery.end()) return true;
+  auto by_accept = orders.get_index<"byacceptbra"_n>();
+  return by_accept.find(braname.value) != by_accept.end();
+}
+
+/// Выход пайщика не оставит в Столе заказов незавершённого: резерв под заказы
+/// вернётся только выдачей или отменой (решение владельца, задача 99D-15), а
+/// решение совета по открытой заявке на возврат зачислило бы паевой и взнос на
+/// заблокированный аккаунт (задача 99D-16).
+inline void check_member_can_exit(eosio::name coopname, eosio::name username) {
+  const eosio::asset reserve =
+      get_user_wallet_balance(coopname, ledger2_wallets::MARKETPLACE_ORDER_LOCK, username).available;
+  eosio::check(reserve.amount == 0,
+               "Выход из кооператива невозможен: под заказы Стола заказов зарезервировано " +
+                 reserve.to_string() + " — завершите или отмените заказы");
+
+  return_requests_index requests(_marketplace, coopname.value);
+  auto by_orderer = requests.get_index<"byorderer"_n>();
+  eosio::check(by_orderer.find(username.value) == by_orderer.end(),
+               "Выход из кооператива невозможен: открыто заявление на гарантийный возврат в Столе заказов — дождитесь его рассмотрения");
+}
+
+/// Выход состоялся: остаток членского кошелька программы не возвращается и в
+/// паевой не транслируется — через пул взносов (o.mkt.exfee) уходит в общий
+/// кошелёк участка, к которому прикреплён пайщик (o.brn.common). Пайщик без
+/// участка или участок удалён — остаток остаётся в пуле. `actor` — контракт,
+/// проводящий выход (его разрешение подписывает операции).
+inline void settle_member_fund_on_exit(eosio::name actor, eosio::name coopname,
+                                       eosio::name username, const checksum256& exit_hash) {
+  const eosio::asset balance =
+      get_user_wallet_balance(coopname, ledger2_wallets::MARKETPLACE_MEMBER_FUND, username).available;
+  if (balance.amount <= 0) return;
+
+  Ledger2::apply(actor, coopname, operations::marketplace::EXIT_FEE_TO_POOL,
+                 processes::wallet::WITHDRAW, balance, username, exit_hash,
+                 "Остаток членского кошелька Стола заказов в пул взносов при выходе, username=" +
+                   username.to_string());
+
+  const auto braname = ::get_participant_branch(coopname, username);
+  if (!braname.has_value() || !Branch::exists(coopname, *braname)) return;
+  Branch::accrue(actor, coopname, *braname, balance, processes::wallet::WITHDRAW, exit_hash,
+                 "Остаток членского кошелька Стола заказов в общий кошелёк участка при выходе, username=" +
+                   username.to_string());
+}
+
 } // namespace Marketplace
