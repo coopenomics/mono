@@ -12,7 +12,12 @@ import { RobotDecisionService } from '~/extensions/soviet-robot/application/serv
 import { RobotDecisionStage } from '~/extensions/soviet-robot/domain/enums/robot-decision-stage.enum';
 
 const NO_EXPIRY = '1970-01-01T00:00:00';
-const LIMITS = { max_attempts: 3, retry_backoff_sec: 5 };
+const LIMITS = { max_attempts: 3, retry_backoff_sec: 5, index_lag_attempts: 3, index_lag_pause_ms: 0 };
+
+/** Отказ генерации так, как его отдаёт генератор контроллера: общий текст, исходная ошибка фабрики в `cause`. */
+function generationError(cause: string) {
+  return Object.assign(new Error('Ошибка при генерации документа'), { cause: new Error(cause) });
+}
 
 function wif() {
   return PrivateKey.generate(KeyType.K1).toWif();
@@ -243,6 +248,57 @@ describe('RobotDecisionService.process', () => {
     entry = await service.process(entry, LIMITS);
     expect(entry.attempts).toBe(3);
     expect(entry.stage).toBe(RobotDecisionStage.FAILED);
+  });
+
+  describe('протокол, пока голоса робота не видны в истории действий', () => {
+    const VOTES_LAG = 'Голоса за решение не найдены {"data.decision_id":"7"}';
+
+    function atProtocol() {
+      const decision = makeDecision({ approved: true, votes_for: ['petr', 'anna', 'mikhail', 'ant'] });
+      return build({ decision, automations: [automation('ant', [], ['freedecision'])], keys: { ant: wif() } });
+    }
+
+    it('голосов ещё нет в индексе — протокол пересобирается в том же проходе, без отсрочки', async () => {
+      const { service, chain, documents } = atProtocol();
+      const generate = documents.generate.getMockImplementation();
+      documents.generate.mockRejectedValueOnce(generationError(VOTES_LAG)).mockImplementation(generate);
+      const result = await service.process(makeEntry({ stage: RobotDecisionStage.VOTED }), LIMITS);
+      expect(documents.generate).toHaveBeenCalledTimes(2);
+      expect(chain.authorizeAndExec).toHaveBeenCalledTimes(1);
+      expect(result.stage).toBe(RobotDecisionStage.EXECUTED);
+      expect(result.attempts).toBe(0);
+      expect(result.last_error).toBeNull();
+      expect(result.next_attempt_at).toBeNull();
+    });
+
+    it('иная ошибка генерации — без пересборки, прежняя отсрочка повтора', async () => {
+      const { service, chain, documents } = atProtocol();
+      documents.generate.mockRejectedValue(generationError('Шаблон документа не найден'));
+      const result = await service.process(makeEntry({ stage: RobotDecisionStage.VOTED }), LIMITS);
+      expect(documents.generate).toHaveBeenCalledTimes(1);
+      expect(chain.authorizeAndExec).not.toHaveBeenCalled();
+      expect(result.attempts).toBe(1);
+      expect(result.next_attempt_at).toBeInstanceOf(Date);
+    });
+
+    it('индекс так и не догнал — после отведённых сборок обычная ошибка с отсрочкой', async () => {
+      const { service, chain, documents } = atProtocol();
+      documents.generate.mockRejectedValue(generationError(VOTES_LAG));
+      const result = await service.process(makeEntry({ stage: RobotDecisionStage.VOTED }), LIMITS);
+      expect(documents.generate).toHaveBeenCalledTimes(LIMITS.index_lag_attempts);
+      expect(chain.authorizeAndExec).not.toHaveBeenCalled();
+      expect(result.attempts).toBe(1);
+      expect(result.last_error).toBe('Ошибка при генерации документа');
+      expect(result.next_attempt_at).toBeInstanceOf(Date);
+    });
+
+    it('отставание узнаётся и в исходной ошибке, и в цепочке причин; чужие ошибки — нет', () => {
+      expect(RobotDecisionService.isVotesNotIndexedYet(new Error(VOTES_LAG))).toBe(true);
+      expect(RobotDecisionService.isVotesNotIndexedYet(generationError(VOTES_LAG))).toBe(true);
+      expect(RobotDecisionService.isVotesNotIndexedYet(generationError('Шаблон документа не найден'))).toBe(false);
+      expect(RobotDecisionService.isVotesNotIndexedYet(new Error(`Ошибка: ${VOTES_LAG}`))).toBe(false);
+      expect(RobotDecisionService.isVotesNotIndexedYet(null)).toBe(false);
+    });
   });
 });
 

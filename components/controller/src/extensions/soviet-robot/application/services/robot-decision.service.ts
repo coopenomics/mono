@@ -27,7 +27,18 @@ export type RobotVoteIntent = { kind: 'for' } | { kind: 'against' } | { kind: 'w
 export interface RobotLimits {
   max_attempts: number;
   retry_backoff_sec: number;
+  /** Сколько раз собрать протокол подряд, пока парсер не проиндексировал голоса робота. */
+  index_lag_attempts: number;
+  /** Пауза между такими сборками, мс. */
+  index_lag_pause_ms: number;
 }
+
+/**
+ * Начало текста ошибки фабрики, когда голосов за решение нет в истории действий
+ * (components/factory/src/Factory/index.ts, getDecision). Типизированного кода у
+ * этой ошибки нет, поэтому узнаём её по тексту.
+ */
+const VOTES_NOT_INDEXED_PREFIX = 'Голоса за решение не найдены';
 
 /**
  * Конвейер робота по одному решению. Две транзакции:
@@ -58,7 +69,7 @@ export class RobotDecisionService {
   /** Обработать запись журнала: шаг вперёд, ошибки — в запись с отсрочкой повтора. */
   async process(entry: RobotDecisionDomainEntity, limits: RobotLimits): Promise<RobotDecisionDomainEntity> {
     try {
-      const next = await this.step(entry);
+      const next = await this.step(entry, limits);
       next.last_error = null;
       next.next_attempt_at = null;
       return await this.journal.save(next);
@@ -78,7 +89,7 @@ export class RobotDecisionService {
     }
   }
 
-  private async step(entry: RobotDecisionDomainEntity): Promise<RobotDecisionDomainEntity> {
+  private async step(entry: RobotDecisionDomainEntity, limits: RobotLimits): Promise<RobotDecisionDomainEntity> {
     const decision = await this.chain.getDecision(entry.coopname, entry.decision_id);
     if (!decision) {
       // Решения нет на повестке: исполнено вручную, отклонено или просрочено.
@@ -95,7 +106,7 @@ export class RobotDecisionService {
     // Шаг 1. Голоса — одна транзакция, дальше ждём следующего прохода.
     if (await this.castVotes(entry, decision, alive, board)) return entry;
 
-    return this.finishAfterVotes(entry, decision, alive, board);
+    return this.finishAfterVotes(entry, decision, alive, board, limits);
   }
 
   /** Голоса уже в цепи: кворум (или чьи голоса ещё ждём) и, если кворум есть, протокол председателя. */
@@ -103,7 +114,8 @@ export class RobotDecisionService {
     entry: RobotDecisionDomainEntity,
     decision: DecisionRow,
     alive: AutomatorRow[],
-    board: BoardRow
+    board: BoardRow,
+    limits: RobotLimits
   ): Promise<RobotDecisionDomainEntity> {
     const fresh = (await this.chain.getDecision(entry.coopname, entry.decision_id)) ?? decision;
     if (!fresh.approved) {
@@ -116,7 +128,7 @@ export class RobotDecisionService {
       entry.stage = RobotDecisionStage.AWAITING_CHAIRMAN;
       return entry;
     }
-    return this.authorizeWithProtocol(entry, fresh, chairman);
+    return this.authorizeWithProtocol(entry, fresh, chairman, limits);
   }
 
   /** Председатель, делегировавший подпись протоколов этого типа, и его ключ; null — ждать председателя. */
@@ -137,7 +149,8 @@ export class RobotDecisionService {
   private async authorizeWithProtocol(
     entry: RobotDecisionDomainEntity,
     decision: DecisionRow,
-    chairman: { username: string; wif: string; permission: string }
+    chairman: { username: string; wif: string; permission: string },
+    limits: RobotLimits
   ): Promise<RobotDecisionDomainEntity> {
     entry.stage = RobotDecisionStage.AWAITING_PROTOCOL;
     const registryId = Cooperative.Document.decisionTypesRegistry[entry.decision_type]?.protocol_registry_id;
@@ -146,10 +159,13 @@ export class RobotDecisionService {
         `Тип решения ${entry.decision_type} не описан в реестре решений совета — автоматизировать его нельзя`
       );
 
-    const generated = await this.documents.generate({
-      data: this.protocolData(registryId, entry.coopname, decision),
-      options: { lang: 'ru' },
-    });
+    const generated = await this.generateProtocol(
+      {
+        data: this.protocolData(registryId, entry.coopname, decision),
+        options: { lang: 'ru' },
+      },
+      limits
+    );
     const signed = await new Classes.Document(chairman.wif).signDocument(generated as any, chairman.username, 1);
     const document = this.toChain.convertSignedDocumentToBlockchainFormat(signed as any);
 
@@ -159,6 +175,43 @@ export class RobotDecisionService {
     entry.stage = RobotDecisionStage.EXECUTED;
     this.logger.info(`Решение ${entry.decision_id} (${entry.decision_type}) утверждено и исполнено роботом, транзакция ${txId}`);
     return entry;
+  }
+
+  /**
+   * Протокол с пережиданием индекса голосов. Фабрика берёт голоса из истории
+   * действий, а голоса робота только что ушли в цепь: парсер кладёт их в индекс
+   * спустя десятки миллисекунд, и первая сборка протокола падает «голоса не
+   * найдены». Короткий переспрос внутри прохода вместо общего повтора: иначе
+   * каждое решение у стойки выдачи стоило лишнего прохода робота, а порт
+   * отвечал инициатору «pending».
+   */
+  private async generateProtocol(
+    request: Parameters<IDocumentPort['generate']>[0],
+    limits: RobotLimits
+  ): Promise<Awaited<ReturnType<IDocumentPort['generate']>>> {
+    for (let attempt = 1; ; attempt++) {
+      try {
+        return await this.documents.generate(request);
+      } catch (e) {
+        if (attempt >= limits.index_lag_attempts || !RobotDecisionService.isVotesNotIndexedYet(e)) throw e;
+        await new Promise((resolve) => setTimeout(resolve, limits.index_lag_pause_ms));
+      }
+    }
+  }
+
+  /**
+   * Отказ фабрики «голосов нет в истории действий». Генератор контроллера
+   * заворачивает его в общую «Ошибка при генерации документа» и оставляет
+   * исходную ошибку в `cause`, поэтому проверяется вся цепочка причин.
+   */
+  static isVotesNotIndexedYet(error: unknown): boolean {
+    let current: unknown = error;
+    for (let depth = 0; current && depth < 5; depth++) {
+      const message = (current as { message?: unknown }).message;
+      if (typeof message === 'string' && message.startsWith(VOTES_NOT_INDEXED_PREFIX)) return true;
+      current = (current as { cause?: unknown }).cause;
+    }
+    return false;
   }
 
   /**

@@ -96,7 +96,12 @@ export class GeneratorInfrastructureService implements GeneratorPort, OnModuleIn
       return new DocumentDomainEntity(generated);
     } catch (error) {
       console.error('Ошибка при генерации документа:', error);
-      throw new HttpApiError(httpStatus.BAD_REQUEST, 'Ошибка при генерации документа');
+      // Исходная ошибка фабрики остаётся причиной: по ней вызывающий различает
+      // отказы (робот совета так узнаёт отставание индекса голосов). Свойство
+      // неперечисляемое — в ответы API и сериализацию ошибки оно не попадает.
+      const wrapped = new HttpApiError(httpStatus.BAD_REQUEST, 'Ошибка при генерации документа');
+      Object.defineProperty(wrapped, 'cause', { value: error, enumerable: false, configurable: true, writable: true });
+      throw wrapped;
     }
   }
 }

@@ -50,6 +50,8 @@ export class RobotWatchdogService {
     return {
       max_attempts: Math.max(1, Number(config.max_attempts ?? 5)),
       retry_backoff_sec: Math.max(1, Number(config.retry_backoff_sec ?? 5)),
+      index_lag_attempts: Math.max(1, Number(config.index_lag_attempts ?? 10)),
+      index_lag_pause_ms: Math.max(0, Number(config.index_lag_pause_ms ?? 300)),
     };
   }
 
