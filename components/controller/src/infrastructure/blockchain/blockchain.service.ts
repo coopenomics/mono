@@ -131,10 +131,15 @@ export class BlockchainService implements BlockchainPort {
   }
 
   public async transact(actionOrActions: any | any[], broadcast = true): Promise<TransactResult> {
+    // Сессия фиксируется в момент вызова, до первого await. Сервис — одиночка,
+    // и вызывающие делают `initialize(); transact()` подряд; пока здесь
+    // ждётся ABI, параллельный запрос с другим подписантом успевал вызвать
+    // `initialize()` и подменить ключ, которым уйдёт эта транзакция.
+    const session = this.session;
     if (Array.isArray(actionOrActions)) {
-      return this.sendActions(actionOrActions, broadcast);
+      return this.sendActions(session, actionOrActions, broadcast);
     } else {
-      return this.sendAction(actionOrActions, broadcast);
+      return this.sendAction(session, actionOrActions, broadcast);
     }
   }
 
@@ -143,19 +148,19 @@ export class BlockchainService implements BlockchainPort {
     return Action.from(action, abi);
   }
 
-  private async sendAction(action: any, broadcast = true): Promise<TransactResult> {
+  private async sendAction(session: Session, action: any, broadcast = true): Promise<TransactResult> {
     const formedAction = await this.formActionFromAbi(action);
-    return await this.session.transact({ action: formedAction }, { broadcast });
+    return await session.transact({ action: formedAction }, { broadcast });
   }
 
-  private async sendActions(actions: any[], broadcast = true): Promise<TransactResult> {
+  private async sendActions(session: Session, actions: any[], broadcast = true): Promise<TransactResult> {
     const data: Action[] = [];
     for (const action of actions) {
       const formedAction = await this.formActionFromAbi(action);
       data.push(formedAction);
     }
 
-    return await this.session.transact({ actions: data }, { broadcast });
+    return await session.transact({ actions: data }, { broadcast });
   }
 
   public async getAllRows<T = any>(code: string, scope: string, tableName: string): Promise<any[]> {

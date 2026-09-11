@@ -29,6 +29,7 @@ import { marketplaceBootstrapV19Migration } from './migrations/marketplace-boots
 import { marketplaceBootstrapV20Migration } from './migrations/marketplace-bootstrap-v20.migration';
 import { marketplaceBootstrapV21Migration } from './migrations/marketplace-bootstrap-v21.migration';
 import { marketplaceBootstrapV22Migration } from './migrations/marketplace-bootstrap-v22.migration';
+import { marketplaceBootstrapV23Migration } from './migrations/marketplace-bootstrap-v23.migration';
 
 export const marketplaceMigrations: IExtensionSchemaMigration[] = [
   marketplaceBootstrapV1Migration,
@@ -53,4 +54,5 @@ export const marketplaceMigrations: IExtensionSchemaMigration[] = [
   marketplaceBootstrapV20Migration,
   marketplaceBootstrapV21Migration,
   marketplaceBootstrapV22Migration,
+  marketplaceBootstrapV23Migration,
 ];

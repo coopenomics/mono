@@ -120,6 +120,15 @@ describe('Заявление заказчика (submitStatement)', () => {
     expect(m.chainPort.issueStmt).not.toHaveBeenCalled();
   });
 
+  it('повторная подача уже поданного заявления в цепь его снова не шлёт (повтор бандла после частичного сбоя)', async () => {
+    const m = buildMocks({ sagas: [buildSaga({ stage: MarketplaceIssuanceSagaStages.DECISION_PENDING, decision_mode: 'MANUAL', decision_id: '77' })] });
+    const service = buildService(m);
+    stubSignatureChecks(service);
+    const saga = await submit(service);
+    expect(m.chainPort.issueStmt).not.toHaveBeenCalled();
+    expect(saga.stage).toBe(MarketplaceIssuanceSagaStages.DECISION_PENDING);
+  });
+
   it('цепь недоступна — конфликт с причиной, сага остаётся в FACT_FIXED (mkt.iss.break.01)', async () => {
     const m = buildMocks({ sagas: [buildSaga()] });
     m.chainPort.issueStmt.mockRejectedValueOnce(new Error('nodeos unreachable'));

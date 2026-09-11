@@ -19,6 +19,9 @@ import {
   type MarketplaceCanonicalBlockchainPort,
 } from '../../domain/ports/marketplace-canonical-blockchain.port';
 import { computeStockOrderHash } from '../shared/order-hash.util';
+import { mapSettledWithConcurrency } from '../shared/concurrency.util';
+import { MarketplaceExtensionConfigService } from './marketplace-extension-config.service';
+import { defaultConfig } from '../../types';
 import type { MarketplaceIssuanceSagaDomainEntity } from '../../domain/entities/marketplace-issuance-saga.entity';
 import { MarketplaceIssuanceSagaStages } from '../../domain/entities/marketplace-issuance-saga.types';
 import {
@@ -187,6 +190,7 @@ export class MarketplaceStockProposalService {
     private readonly chainPort: MarketplaceCanonicalBlockchainPort,
     @Inject(MARKETPLACE_ISSUANCE_SAGA_REPOSITORY)
     private readonly sagaRepo: MarketplaceIssuanceSagaDomainRepository,
+    private readonly extensionConfig: MarketplaceExtensionConfigService,
     private readonly eventBus: EventEmitter2,
     @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
   ) {
@@ -586,10 +590,17 @@ export class MarketplaceStockProposalService {
       throw error;
     }
 
-    // ── 2) Заявления в цепь: по каждому заказу — сага ──────────────────
-    const order_ids: string[] = [];
-    const sagas: MarketplaceIssuanceSagaDomainEntity[] = [];
-    for (const { order_id, item, fresh } of issuables) {
+    // ── 2) Заявления в цепь: по каждому заказу — сага, параллельно ──────
+    // Позиции идут одновременно, до предела из конфига. Это безопасно: данные
+    // заказов не пересекаются, транзакции подписывает один ключ кооператива и
+    // цепь выстраивает их сама, довзнос по бандлу переведён одним заявлением
+    // выше, а заявление ничего не списывает — движения только на закрывающей
+    // подписи акта. Робот совета ведёт каждое решение своей очередью. По одной
+    // восемь позиций шли 37 с, и браузер обрывал запрос по таймауту.
+    // Создание заказов из остатка выше остаётся последовательным: у него общая
+    // компенсация, частичный сбой там откатывается целиком.
+    const limit = await this.statementParallelism();
+    const settled = await mapSettledWithConcurrency(issuables, limit, async ({ order_id, item, fresh }) => {
       if (fresh) {
         const order = await this.orderRepo.findById(order_id);
         await this.issuanceService.readyIssue({ coopname, order_id, operator_account: proposal.operator_account });
@@ -603,7 +614,7 @@ export class MarketplaceStockProposalService {
           actual_unit_price: item.unit_price,
         });
       }
-      const saga = await this.issuanceService.submitStatement({
+      return this.issuanceService.submitStatement({
         coopname,
         member_account,
         order_id,
@@ -611,9 +622,23 @@ export class MarketplaceStockProposalService {
         // Довзнос по бандлу уже переведён в членский кошелёк выше одним заявлением.
         signed_convert: null,
       });
-      sagas.push(saga);
-      order_ids.push(order_id);
+    });
+
+    // Сбой одной позиции не прерывает остальные: они уже на повестке совета,
+    // сага каждой живёт сама. Бандл принимается, только когда поданы все.
+    const failed = settled
+      .map((result, index) => ({ result, item: issuables[index].item }))
+      .filter((f): f is { result: PromiseRejectedResult; item: MarketplaceStockProposalItem } => f.result.status === 'rejected');
+    if (failed.length === 1) throw failed[0].result.reason;
+    if (failed.length > 1) {
+      const details = failed.map((f) => `«${f.item.product_name}»: ${this.reasonMessage(f.result.reason)}`).join('; ');
+      throw new ConflictException(
+        `Заявления не поданы по ${failed.length} позициям из ${issuables.length} — ${details}. Остальные позиции поданы и ждут решения совета.`
+      );
     }
+    // Порядок — как в бандле, а не в порядке завершения.
+    const sagas = settled.map((r) => (r as PromiseFulfilledResult<MarketplaceIssuanceSagaDomainEntity>).value);
+    const order_ids = issuables.map((i) => i.order_id);
 
     const resolved = await this.proposalRepo.applyResolution(
       proposal.id,
@@ -678,6 +703,18 @@ export class MarketplaceStockProposalService {
         await this.issuanceService.cancelIssuance({ coopname: proposal.coopname, order_id: item.order_id, operator_account: proposal.operator_account });
       }
     }
+  }
+
+  /** Сколько заявлений бандла подаётся в цепь одновременно (конфиг расширения). */
+  private async statementParallelism(): Promise<number> {
+    const fallback = defaultConfig.issuance.parallel_statements;
+    const config = await this.extensionConfig.get().catch(() => null);
+    const value = Number(config?.issuance?.parallel_statements ?? fallback);
+    return Number.isFinite(value) && value >= 1 ? Math.floor(value) : fallback;
+  }
+
+  private reasonMessage(reason: unknown): string {
+    return reason instanceof Error ? reason.message : String(reason);
   }
 
   private async loadProposal(coopname: string, proposal_id: string): Promise<MarketplaceStockProposalDomainEntity> {
