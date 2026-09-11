@@ -136,48 +136,59 @@ export class GraphQLExceptionFilter implements GqlExceptionFilter {
       message = exception.message;
     }
 
+    // Отказ с кодом ниже 500 — штатный ответ сервера на действие клиента, а не
+    // его поломка: истёкшая сессия, нет прав, неверный код из письма, конфликт
+    // параллельной правки, сканер, перебирающий `/.env`. Раньше каждый такой
+    // отказ уходил в журнал ошибок, и за десять дней там набралось 11 тысяч
+    // событий против четырёх настоящих ошибок сервера — одна вкладка с
+    // отозванной сессией дала их почти все. Отказы остаются в логе контроллера
+    // предупреждением: всплеск 401 виден там, а журнал ошибок снова про ошибки.
+    const isExpectedRefusal = statusCode < HttpStatus.INTERNAL_SERVER_ERROR;
+
     // Отправка ошибки в Sentry для отслеживания
-    Sentry.withScope((scope) => {
-      // Добавляем дополнительную информацию в scope
-      scope.setTag('error_type', 'graphql');
-      scope.setTag('status_code', statusCode.toString());
-      scope.setTag('coopname', config.coopname);
+    if (!isExpectedRefusal) {
+      Sentry.withScope((scope) => {
+        // Добавляем дополнительную информацию в scope
+        scope.setTag('error_type', 'graphql');
+        scope.setTag('status_code', statusCode.toString());
+        scope.setTag('coopname', config.coopname);
 
-      if (user?.username) {
-        scope.setUser({ username: user.username });
-      }
+        if (user?.username) {
+          scope.setUser({ username: user.username });
+        }
 
-      if (operationName) {
-        scope.setTag('operation', operationName);
-      }
+        if (operationName) {
+          scope.setTag('operation', operationName);
+        }
 
-      if (fieldName) {
-        scope.setTag('field', fieldName);
-      }
+        if (fieldName) {
+          scope.setTag('field', fieldName);
+        }
 
-      if (path) {
-        scope.setTag('path', path);
-      }
+        if (path) {
+          scope.setTag('path', path);
+        }
 
-      // Добавляем контекст GraphQL запроса
-      scope.setContext('graphql', {
-        operation: operationName,
-        field: fieldName,
-        path: path,
-        locations: locations,
+        // Добавляем контекст GraphQL запроса
+        scope.setContext('graphql', {
+          operation: operationName,
+          field: fieldName,
+          path: path,
+          locations: locations,
+        });
+
+        // Добавляем контекст запроса
+        scope.setContext('request', {
+          username: user?.username || null,
+          operationName: operationName || null,
+          fieldName: fieldName || null,
+          path: path || null,
+        });
+
+        // Отправляем ошибку в Sentry
+        Sentry.captureException(exception);
       });
-
-      // Добавляем контекст запроса
-      scope.setContext('request', {
-        username: user?.username || null,
-        operationName: operationName || null,
-        fieldName: fieldName || null,
-        path: path || null,
-      });
-
-      // Отправляем ошибку в Sentry
-      Sentry.captureException(exception);
-    });
+    }
 
     // Логирование ошибки - используем оригинальное сообщение для детального логирования
     const logMessage = exception instanceof HttpApiError && !exception.isOperational ? originalMessage : message;
@@ -193,7 +204,7 @@ export class GraphQLExceptionFilter implements GqlExceptionFilter {
       locations,
     };
 
-    if (statusCode === HttpStatus.UNAUTHORIZED) {
+    if (isExpectedRefusal) {
       logger.warn(logData);
     } else {
       logger.error(logData);

@@ -160,10 +160,24 @@ export const useNotificationInboxStore = defineStore(namespace, () => {
     }
   }
 
+  /**
+   * Фоновый опрос не имеет права ронять отказ наружу. Обрыв связи на время
+   * обновления узла, отозванная сессия, таймаут — всё это раньше уходило
+   * необработанным отказом промиса раз в полминуты и было главным источником
+   * «Failed to fetch» и безымянных «[object Object]» в журнале ошибок браузера.
+   * Счётчик просто остаётся прежним до следующего удачного опроса; потерю
+   * сессии обрабатывает SDK сам (увод на вход), ему этот отказ не нужен.
+   */
+  function pollUnreadCount(): void {
+    refreshUnreadCount().catch((error) => {
+      console.warn('Не удалось обновить счётчик уведомлений:', error);
+    });
+  }
+
   function startPolling(): void {
     if (pollTimer) return;
-    void refreshUnreadCount();
-    pollTimer = setInterval(() => void refreshUnreadCount(), POLL_INTERVAL_MS);
+    pollUnreadCount();
+    pollTimer = setInterval(pollUnreadCount, POLL_INTERVAL_MS);
   }
 
   function stopPolling(): void {
