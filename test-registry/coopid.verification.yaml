@@ -70,6 +70,18 @@ cases:
     test: ~
     status: missing
 
+  - id: cid.ver.side.16
+    level: contract
+    kind: side
+    scenario: >
+      verifyacc пайщику, чей аккаунт заведён при запуске сети — строку аккаунта
+      оплачивает системный аккаунт eosio (на тестнете так у ant и voskhod)
+    expect: >
+      верификация записывается, строку аккаунта оплачивает регистратор; отказа
+      «unprivileged contract cannot increase RAM usage … eosio» нет
+    test: ~
+    status: missing
+
   - id: cid.ver.side.03
     level: contract
     kind: side
