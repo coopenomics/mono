@@ -20,6 +20,7 @@
     :suffix='symbol',
     input-class='amount-input__native',
     @update:model-value='onInput',
+    @focus='onFocus',
     @blur='onBlur'
   )
     template(v-if='showMax && balance != null' #after)
@@ -124,6 +125,19 @@ function clamp(n: number | null): number | null {
   if (props.max != null && n > props.max) return props.max;
   if (props.min != null && n < props.min) return props.min;
   return n;
+}
+
+/**
+ * При входе в поле введённое выделяется целиком: первая набранная цифра
+ * заменяет значение, а не дописывается к нему — иначе к нулю по умолчанию
+ * «1» превращалась в «10». Выделение откладывается на кадр: сразу при фокусе
+ * его снимает отпускание кнопки мыши после клика, ставя курсор.
+ */
+function onFocus(event: Event): void {
+  if (props.readonly || props.disabled) return;
+  const input = event.target;
+  if (!(input instanceof HTMLInputElement)) return;
+  requestAnimationFrame(() => input.select());
 }
 
 function onBlur(): void {
