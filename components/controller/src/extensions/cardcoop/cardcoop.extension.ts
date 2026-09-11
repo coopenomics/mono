@@ -30,7 +30,7 @@ const describeField = (description: DeserializedDescriptionOfExtension): string 
 export const Schema = z.object({
   api_url: z
     .string()
-    .url('Адрес должен быть ссылкой вида https://card.coop')
+    .url('Адрес должен быть ссылкой вида https://id.card.coop')
     .describe(
       describeField({
         label: 'Адрес сети «Карта кооператора»',
@@ -68,7 +68,10 @@ export const Schema = z.object({
 });
 
 export const defaultConfig = {
-  api_url: 'https://card.coop',
+  // Узел сети — id.card.coop. Корень card.coop отдан лендингу: запросы туда
+  // (объявление кооперативов, ключ вебхуков, подключение) получают 404, и с 08.09.2026
+  // установки со старым умолчанием повторяли их впустую каждые пятнадцать минут.
+  api_url: 'https://id.card.coop',
   entry_enabled: true,
   announce_as_operator: false,
 };
