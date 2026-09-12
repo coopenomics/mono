@@ -173,7 +173,7 @@ function inProgressManifest(
     // Факт саги — тело без членского взноса; карточка везде показывает то,
     // что заплатил заказчик, поэтому доводим до полной суммы, как в строках
     // «к выдаче».
-    cost: `${formatAsset2Digits(costWithFee(x.order, Number.parseFloat(String(x.saga.fact.fact_cost)) || 0))} ₽`,
+    cost: `${formatAsset2Digits(costWithFee(x.order, Number.parseFloat(String(x.saga.fact.fact_cost)) || 0).toFixed(4))} ₽`,
     note: x.saga.last_error ?? undefined,
   }));
 }
