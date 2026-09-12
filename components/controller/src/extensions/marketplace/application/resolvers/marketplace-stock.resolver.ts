@@ -45,6 +45,7 @@ import {
 } from '../dto/marketplace-stock.dto';
 import { MarketplaceOrderDTO, toMarketplaceOrderDTO } from '../dto/marketplace-order.dto';
 import type { MarketplaceStockProposalStatus } from '../../domain/entities/marketplace-stock-proposal.types';
+import type { MarketplaceStockProposalDomainEntity } from '../../domain/entities/marketplace-stock-proposal.entity';
 import { toMarketplaceIssuanceSagaDTO } from '../dto/marketplace-issuance-saga.dto';
 
 /**
@@ -198,7 +199,7 @@ export class MarketplaceStockResolver {
         actual_unit_price: i.actual_unit_price,
       })),
     });
-    return toMarketplaceStockProposalDTO(proposal);
+    return this.toProposalDTO(proposal);
   }
 
   @Mutation(() => MarketplaceStockProposalDTO, {
@@ -216,7 +217,7 @@ export class MarketplaceStockResolver {
       data.proposal_id,
       member.username
     );
-    return toMarketplaceStockProposalDTO(proposal);
+    return this.toProposalDTO(proposal);
   }
 
   @Query(() => MarketplaceStockAcceptPayloadDTO, {
@@ -274,7 +275,7 @@ export class MarketplaceStockResolver {
       { order_lines: data.order_lines, signed_convert: data.signed_convert ?? null }
     );
     const dto = new MarketplaceStockProposalAcceptResultDTO();
-    dto.proposal = toMarketplaceStockProposalDTO(result.proposal);
+    dto.proposal = await this.toProposalDTO(result.proposal);
     dto.order_ids = result.order_ids;
     dto.sagas = result.sagas.map(toMarketplaceIssuanceSagaDTO);
     return dto;
@@ -295,7 +296,7 @@ export class MarketplaceStockResolver {
       data.proposal_id,
       member.username
     );
-    return toMarketplaceStockProposalDTO(proposal);
+    return this.toProposalDTO(proposal);
   }
 
   @Mutation(() => MarketplaceOrderDTO, {
@@ -343,17 +344,37 @@ export class MarketplaceStockResolver {
         braname: branames,
         status: statuses,
       });
-      return list.map(toMarketplaceStockProposalDTO);
+      return this.toProposalDTOs(list);
     }
     const list = await this.proposalService.listProposals({
       coopname: platformSettings().coopname,
       member_account: member.username,
       status: statuses,
     });
-    return list.map(toMarketplaceStockProposalDTO);
+    return this.toProposalDTOs(list);
   }
 
   // ── private ──────────────────────────────────────────────────────────
+
+  /**
+   * Бандл в ответе клиенту: позиции дополняются заказанным — количеством и
+   * суммой резерва по заказу. Пайщику у стойки этого не хватало: он видел
+   * только факт к выдаче и не понимал, что вернётся в кошелёк при недопоставке.
+   */
+  private async toProposalDTO(
+    proposal: MarketplaceStockProposalDomainEntity
+  ): Promise<MarketplaceStockProposalDTO> {
+    const [dto] = await this.toProposalDTOs([proposal]);
+    return dto;
+  }
+
+  /** Тот же ответ для списка бандлов — заказы читаются одним батчем. */
+  private async toProposalDTOs(
+    list: MarketplaceStockProposalDomainEntity[]
+  ): Promise<MarketplaceStockProposalDTO[]> {
+    const ordered = await this.proposalService.loadOrderedTotals(list);
+    return list.map((proposal) => toMarketplaceStockProposalDTO(proposal, ordered));
+  }
 
   /**
    * Ownership-скоупинг по КУ (ответственность резолвера, не матрицы): роль с

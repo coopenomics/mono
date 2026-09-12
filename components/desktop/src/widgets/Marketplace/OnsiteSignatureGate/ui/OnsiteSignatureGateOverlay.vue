@@ -5,7 +5,12 @@ import { VerticalStepper, type StepperStep } from 'src/shared/ui/domain';
 import { useSystemStore } from 'src/entities/System/model';
 import { useSessionStore } from 'src/entities/Session';
 import { useMarketplaceKUDetailsStore } from 'src/entities/MarketplaceKUDetails';
-import { type ReceptionGroup, getMembershipFeePercent, applyMembershipFee } from 'src/shared/lib/marketplace';
+import {
+  type ReceptionGroup,
+  getMembershipFeePercent,
+  applyMembershipFee,
+  computeIssuanceDiff,
+} from 'src/shared/lib/marketplace';
 import { marketplaceOrderSaleUnitLabel, marketplaceSaleUnitLabel } from 'src/shared/lib/consts/marketplace-units';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import type { MarketplaceAplReceptionView } from 'src/entities/MarketplaceAplReception';
@@ -149,6 +154,37 @@ function proposalFeeAmount(p: { total_cost: string }): string {
 function proposalTotalWithFee(p: { total_cost: string }): string {
   return applyMembershipFee(Number(p.total_cost), feePercent.value).toFixed(4);
 }
+
+/**
+ * Что станет с зарезервированными деньгами: разница между суммой заказа
+ * (резерв) и фактом к выдаче. Меньше факта — остаток вернётся в кошелёк
+ * «Стола заказов», больше — разницу доберут с паевого. Считается только по
+ * строкам существующих заказов: у докладки со склада резерва ещё нет, заказ
+ * родится на этой же подписи.
+ */
+function proposalDiff(p: {
+  items: Array<{
+    quantity: number;
+    unit_price: string;
+    order_id?: string | null;
+    ordered_total_cost?: string | null;
+  }>;
+}): { refund: number; surcharge: number } {
+  const lines = p.items
+    .filter((i) => i.order_id && i.ordered_total_cost != null)
+    .map((i) => ({
+      orderedTotal: Number(i.ordered_total_cost),
+      factTotal: Number(proposalLineCost(i)),
+    }));
+  return computeIssuanceDiff(lines, feePercent.value);
+}
+
+/** Разница по каждому бандлу — считаем один раз на отрисовку, а не в разметке. */
+const proposalDiffs = computed<Record<string, { refund: number; surcharge: number }>>(() => {
+  const out: Record<string, { refund: number; surcharge: number }> = {};
+  for (const p of proposalTasks.value) out[p.id] = proposalDiff(p);
+  return out;
+});
 
 function receptionLineQuantity(l: { quantity: number; unit: string; packageSize: number | null }): string {
   return marketplaceOrderSaleUnitLabel(l.quantity, l.unit, l.packageSize);
@@ -325,6 +361,10 @@ BaseDialog(
             span.onsite-gate__name Получение в пункте выдачи
             span.onsite-gate__sub Одно нажатие: заявление о выдаче уходит совету, после его решения устройство само подпишет акт
 
+      p.onsite-gate__hint
+        | Деньги за заказ уже зарезервированы при оформлении. За то, что получаете сейчас,
+        |  они зачтутся, а разница вернётся в кошелёк «Стола заказов».
+
       table.onsite-gate__table
         thead
           tr
@@ -338,7 +378,7 @@ BaseDialog(
             td.num {{ formatAsset2Digits(proposalLineCost(i)) }} ₽
         tfoot
           tr(v-if='feePercent > 0')
-            td Себестоимость
+            td Стоимость полученного
             td.num
             td.num {{ formatAsset2Digits(p.total_cost) }} ₽
           tr(v-if='feePercent > 0')
@@ -346,9 +386,19 @@ BaseDialog(
             td.num
             td.num {{ formatAsset2Digits(proposalFeeAmount(p)) }} ₽
           tr
-            td К оплате
+            td Итого за полученное
             td.num
             td.num {{ formatAsset2Digits(proposalTotalWithFee(p)) }} ₽
+          //- Недополученное возвращается пайщику, перебор добирается с паевого —
+          //- те же суммы, что оператор видит в окне открытия выдачи.
+          tr(v-if='proposalDiffs[p.id]?.refund')
+            td Вернётся в кошелёк Стола заказов
+            td.num
+            td.num {{ formatAsset2Digits(proposalDiffs[p.id].refund.toFixed(4)) }} ₽
+          tr(v-if='proposalDiffs[p.id]?.surcharge')
+            td Доплата спишется с паевого взноса
+            td.num
+            td.num {{ formatAsset2Digits(proposalDiffs[p.id].surcharge.toFixed(4)) }} ₽
           //- Членский взнос покрывается остатком внутреннего членского кошелька;
           //- недостающее — по заявлению о переводе, которое подписывается тем же нажатием.
           tr(v-if='proposalConverts[p.id]')
@@ -473,6 +523,13 @@ BaseDialog(
   &__sub {
     font-size: var(--p-fs-meta, 12px);
     color: var(--p-ink-3);
+  }
+
+  &__hint {
+    margin: 0 0 var(--p-2, 8px);
+    font-size: var(--p-fs-body-sm, 13px);
+    line-height: var(--p-lh-body-sm, 1.5);
+    color: var(--p-ink-2);
   }
 
   &__table {

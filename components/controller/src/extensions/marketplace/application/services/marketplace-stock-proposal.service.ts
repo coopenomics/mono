@@ -692,6 +692,30 @@ export class MarketplaceStockProposalService {
     return this.proposalRepo.list(filter);
   }
 
+  /**
+   * Заказанное по позициям бандлов: количество и сумма резерва заказа. Нужно
+   * пайщику у стойки — он должен видеть, что зарезервировано при заказе и
+   * сколько вернётся в кошелёк, если получает меньше. Читается из самих
+   * заказов одним батчем: снапшот в бандле хранит факт к выдаче, а не резерв.
+   * Докладка со склада заказа ещё не имеет — её позиции в карту не попадают.
+   */
+  async loadOrderedTotals(
+    proposals: MarketplaceStockProposalDomainEntity[]
+  ): Promise<Map<string, { quantity: number; total_cost: string }>> {
+    const ids = [
+      ...new Set(
+        proposals.flatMap((p) => p.items.map((i) => i.order_id).filter((id): id is string => !!id))
+      ),
+    ];
+    const result = new Map<string, { quantity: number; total_cost: string }>();
+    if (ids.length === 0) return result;
+    const orders = await this.orderRepo.findByIds(ids);
+    for (const order of orders) {
+      result.set(order.id, { quantity: order.quantity, total_cost: order.total_cost });
+    }
+    return result;
+  }
+
   // ── private ──────────────────────────────────────────────────────────
 
   /** Саги, не дошедшие до заявления, снимаются вместе с бандлом — без цепи. */

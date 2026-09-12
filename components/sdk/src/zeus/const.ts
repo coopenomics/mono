@@ -6707,6 +6707,8 @@ export const ReturnTypes: Record<string,any> = {
 		offer_id:"String",
 		order_hash:"String",
 		order_id:"String",
+		ordered_quantity:"Float",
+		ordered_total_cost:"String",
 		package_label:"String",
 		package_size:"Float",
 		product_name:"String",

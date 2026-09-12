@@ -369,6 +369,20 @@ export class MarketplaceStockProposalItemDTO {
 
   @Field(() => String, { nullable: true, description: 'order_hash заказа или будущего заказа из остатка.' })
   order_hash!: string | null;
+
+  @Field(() => Float, {
+    nullable: true,
+    description:
+      'Сколько пайщик заказывал по этой позиции. Пусто у докладки со склада — заказа ещё нет, и сравнивать не с чем.',
+  })
+  ordered_quantity!: number | null;
+
+  @Field(() => String, {
+    nullable: true,
+    description:
+      'Сумма, зарезервированная при заказе этой позиции. Разница с фактической стоимостью возвращается пайщику в кошелёк «Стола заказов».',
+  })
+  ordered_total_cost!: string | null;
 }
 
 @ObjectType('MarketplaceStockProposal')
@@ -418,8 +432,20 @@ export class MarketplaceStockProposalAcceptResultDTO {
   sagas!: MarketplaceIssuanceSagaDTO[];
 }
 
+/**
+ * Заказанное по позиции бандла: количество и сумма резерва. Заполняется по
+ * существующим заказам (`order_id`) на чтении — снапшот в самом бандле для
+ * этого не годится: оператор мог переформировать бандл, а сумма резерва живёт
+ * в заказе.
+ */
+export type MarketplaceStockProposalOrderedTotals = ReadonlyMap<
+  string,
+  { quantity: number; total_cost: string }
+>;
+
 export function toMarketplaceStockProposalDTO(
-  e: MarketplaceStockProposalDomainEntity
+  e: MarketplaceStockProposalDomainEntity,
+  ordered?: MarketplaceStockProposalOrderedTotals
 ): MarketplaceStockProposalDTO {
   const dto = new MarketplaceStockProposalDTO();
   dto.id = e.id;
@@ -436,6 +462,9 @@ export function toMarketplaceStockProposalDTO(
     item.package_size = i.package_size ?? 0;
     item.order_id = i.order_id ?? null;
     item.order_hash = i.order_hash ?? null;
+    const orderedTotals = i.order_id ? ordered?.get(i.order_id) : undefined;
+    item.ordered_quantity = orderedTotals?.quantity ?? null;
+    item.ordered_total_cost = orderedTotals?.total_cost ?? null;
     item.package_label =
       i.package_size && i.unit_of_measure
         ? `упак. ${String(i.package_size).replace('.', ',')} ${marketplaceOrderUnitLabel(i.unit_of_measure)}`
