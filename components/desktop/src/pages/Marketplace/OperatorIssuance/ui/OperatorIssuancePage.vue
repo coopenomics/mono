@@ -115,16 +115,25 @@ function costWithFee(o: MarketplaceOrderIssuanceView, costWithoutFee: number): n
   return full || costWithoutFee;
 }
 
-function factOf(o: MarketplaceOrderIssuanceView): { qty: number; ordered: number; total: number } {
+function factOf(
+  o: MarketplaceOrderIssuanceView,
+  saga?: MarketplaceIssuanceSagaView,
+): { qty: number; ordered: number; total: number } {
   const ordered = Number.parseFloat(String(o.quantity ?? '0')) || 0;
   const orderedTotal = Number.parseFloat(String(o.total_cost ?? '0')) || 0;
   const orderedTotalWithFee = Number.parseFloat(String(o.total_cost_with_fee ?? '0')) || 0;
+  const warehouseQty = Math.min(ordered, o.warehouse_quantity ?? ordered);
   if (o.status === 'READY_TO_RECEIVE') {
-    const qty = o.issuance_fact?.actual_quantity ?? ordered;
-    const factCost = Number.parseFloat(String(o.issuance_fact?.fact_cost ?? orderedTotal)) || 0;
+    // Факт открытой выдачи сперва живёт в саге и только с подписью заявления
+    // заказчика закрепляется в заказе. Пока подписи нет, заказ читать нечего —
+    // без саги карточка показывала заказанное и теряла пометку недопоставки
+    // (заказ 10, принято 9 — после открытия выдачи писала «10 шт»).
+    const fact = o.issuance_fact ?? saga?.fact ?? null;
+    const qty = fact?.actual_quantity ?? warehouseQty;
+    const factCost = Number.parseFloat(String(fact?.fact_cost ?? orderedTotal)) || 0;
     return { qty, ordered, total: costWithFee(o, factCost) };
   }
-  const qty = Math.min(ordered, o.warehouse_quantity ?? ordered);
+  const qty = warehouseQty;
   // Цена выводится делением суммы заказа на его базовое количество, поэтому
   // она за базовую единицу — и умножается на базовое же количество. Фасовка
   // здесь не участвует (канон единицы отпуска — README расширения).
@@ -161,7 +170,10 @@ function inProgressManifest(
       unit: x.order.unit_of_measure,
       packageSize: x.order.package_size ?? null,
     }),
-    cost: `${formatAsset2Digits(x.saga.fact.fact_cost)} ₽`,
+    // Факт саги — тело без членского взноса; карточка везде показывает то,
+    // что заплатил заказчик, поэтому доводим до полной суммы, как в строках
+    // «к выдаче».
+    cost: `${formatAsset2Digits(costWithFee(x.order, Number.parseFloat(String(x.saga.fact.fact_cost)) || 0))} ₽`,
     note: x.saga.last_error ?? undefined,
   }));
 }
@@ -175,7 +187,7 @@ function mergeLines(orders: MarketplaceOrderIssuanceView[]): IssuanceLine[] {
   const map = new Map<string, IssuanceLine>();
   for (const o of orders) {
     const name = o.product_name || 'Товар по предложению';
-    const { qty, ordered, total } = factOf(o);
+    const { qty, ordered, total } = factOf(o, sagaByOrder(o.id));
     const unitPrice = ordered
       ? (Number.parseFloat(String(o.total_cost ?? '0')) || 0) / ordered
       : total;
@@ -255,7 +267,12 @@ const groups = computed<IssuanceGroup[]>(() => {
       inProgress,
       // Итог — по факту строк (склад/акт), не по заказанному: при недопоставке
       // карточка не должна обещать сумму, которой нет на складе.
-      total: [...toIssueLines, ...inProgress.map((x) => ({ total: x.saga.fact.fact_cost }))]
+      total: [
+        ...toIssueLines,
+        ...inProgress.map((x) => ({
+          total: String(costWithFee(x.order, Number.parseFloat(String(x.saga.fact.fact_cost)) || 0)),
+        })),
+      ]
         .reduce((a, l) => a + Number.parseFloat(l.total), 0)
         .toFixed(4),
       count: orders.length,
