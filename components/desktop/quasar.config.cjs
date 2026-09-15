@@ -281,6 +281,7 @@ module.exports = configure(function (ctx) {
         'generateConfig', // middleware для генерации config.js с переменными окружения
         'dynamicManifest', // динамический /manifest.json с именем коопа из env (пер-кооп установочник)
         'version', // self-report версии ноды (/version) для оповещения об обновлении
+        'sessionContext', // кто запросил документ: по cookie сессии — аккаунт и стол пайщика до рендера
         'render', // keep this as last one
       ],
 

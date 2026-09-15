@@ -1,11 +1,12 @@
-import { BadRequestException, Body, Controller, HttpCode, Post, Req, UseFilters, UseGuards } from '@nestjs/common';
-import type { Request } from 'express';
+import { BadRequestException, Body, Controller, HttpCode, Post, Req, UseFilters, UseGuards, Res } from '@nestjs/common';
+import type { Request, Response } from 'express';
 import { AuthV2ExceptionFilter } from '../exceptions/auth-v2-exception.filter';
 import { AuthRateLimit } from '../rate-limit/auth-rate-limit.decorator';
 import { AuthRateLimitGuard } from '../rate-limit/auth-rate-limit.guard';
 import { LOGIN_IP_RULE } from '../rate-limit/auth-rate-limit.types';
 import { LoginTwoFactorService } from './login-two-factor.service';
 import type { SecondFactorConfirmResult } from './login-two-factor.service';
+import { setSessionCookie } from '../session-cookie/session-cookie';
 
 interface ConfirmBody {
   challenge_token?: string;
@@ -34,11 +35,18 @@ export class LoginTwoFactorController {
   @UseGuards(AuthRateLimitGuard)
   // per-IP: аккаунт зашит в server-side состоянии challenge, до хендлера не извлекаем.
   @AuthRateLimit({ ip: LOGIN_IP_RULE })
-  async confirm(@Body() body: ConfirmBody, @Req() req: Request): Promise<SecondFactorConfirmResult> {
+  async confirm(
+    @Body() body: ConfirmBody,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response
+  ): Promise<SecondFactorConfirmResult> {
     if (!body?.challenge_token || !body?.code) {
       throw new BadRequestException('Требуются challenge_token и code');
     }
-    return this.service.confirm({ token: body.challenge_token, code: body.code, ip: req.ip ?? null });
+    const result = await this.service.confirm({ token: body.challenge_token, code: body.code, ip: req.ip ?? null });
+    // Второй фактор пройден, токены выданы — cookie сессии для серверного рендера.
+    setSessionCookie(req, res, (result as { access_token?: string }).access_token);
+    return result;
   }
 
   @Post('resend')

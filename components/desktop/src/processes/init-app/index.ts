@@ -10,6 +10,8 @@ import { setupNavigationGuard } from '../navigation-guard-setup';
 import { useInitExtensionsProcess } from 'src/processes/init-installed-extensions';
 import { applyThemeFromStorage } from 'src/shared/lib/utils';
 import { useSessionStore } from 'src/entities/Session';
+import { ensureSessionCookie } from 'src/entities/Session/lib/ensureSessionCookie';
+import { useGlobalStore } from 'src/shared/store';
 import { LocalStorage } from 'quasar';
 
 // Проверка, работаем ли мы на сервере (SSR)
@@ -28,7 +30,21 @@ function bootrace(stage: string): void {
   console.log(`[BOOTRACE] ${ts} initApp: ${stage}`);
 }
 
-export async function useInitAppProcess(router: Router) {
+/** Ответ SSR-middleware `sessionContext`: кто запросил документ. */
+interface ServerSessionContext {
+  status: 'guest' | 'active' | 'expired' | 'unknown';
+  username?: string;
+  account?: unknown;
+  desktop?: unknown;
+}
+
+function readServerSession(ssrContext: unknown): ServerSessionContext | null {
+  const locals = (ssrContext as { res?: { locals?: { coopSession?: ServerSessionContext } } } | null | undefined)?.res
+    ?.locals;
+  return locals?.coopSession ?? null;
+}
+
+export async function useInitAppProcess(router: Router, ssrContext?: unknown) {
   bootrace('start');
   applyThemeFromStorage();
   const system = useSystemStore();
@@ -79,6 +95,30 @@ export async function useInitAppProcess(router: Router) {
   // только после ручного вкл/выкл расширения (EnableButton зовёт loadDesktop
   // уже авторизованным). session.init идемпотентен (guard hasCreditials) —
   // повторный вызов внутри init-wallet станет no-op.
+  // Серверный рендер: личность и данные пришли из SSR-middleware по cookie
+  // сессии — кладём их в сторы и не ходим за гостевым столом. Клиент после
+  // гидрации получит стол и аккаунт пайщика уже в состоянии, а ключи и токены
+  // восстановит сам в `session.init()`.
+  const serverSession = isServer ? readServerSession(ssrContext) : null;
+  if (serverSession?.status === 'active' && serverSession.username) {
+    session.applyServerSession({
+      username: serverSession.username,
+      account: (serverSession.account as Parameters<typeof session.applyServerSession>[0]['account']) ?? null,
+    });
+    if (serverSession.desktop) {
+      desktops.applyServerDesktop(
+        serverSession.desktop as Parameters<typeof desktops.applyServerDesktop>[0],
+        serverSession.username,
+      );
+    }
+    bootrace('server session applied');
+  } else if (serverSession?.status === 'expired') {
+    session.markServerSessionExpired();
+    bootrace('server session expired');
+  } else if (serverSession) {
+    session.setServerSessionStatus(serverSession.status === 'unknown' ? 'unknown' : 'guest');
+  }
+
   try {
     await session.init();
   } catch (error) {
@@ -106,8 +146,15 @@ export async function useInitAppProcess(router: Router) {
   }
 
   try {
-  await desktops.loadDesktop();
-  bootrace('loadDesktop OK');
+    // Стол уже пришёл с сервера для этого пайщика (или гидратирован на клиенте
+    // из серверного состояния) — повторный запрос не нужен и вреден: во время
+    // обрыва связи он привозил гостевой стол поверх настоящего.
+    if (desktops.currentDesktop && desktops.loadedForUsername && desktops.loadedForUsername === session.username) {
+      bootrace('desktop from server — skip loadDesktop');
+    } else {
+      await desktops.loadDesktop();
+      bootrace('loadDesktop OK');
+    }
   } catch (error) {
     bootrace('loadDesktop FAIL');
     console.warn('Failed to load desktop configuration:', error);
@@ -118,8 +165,19 @@ export async function useInitAppProcess(router: Router) {
   desktops.registerWorkspaceMenus(router);
   bootrace(`registerWorkspaceMenus done (routes=${router.getRoutes().length})`);
 
-  await useInitWalletProcess().run();
-  bootrace('initWallet done');
+  // На сервере кошелёк и контекст пайщика не грузим: аккаунт уже пришёл из
+  // SSR-middleware, а запросы от имени пайщика сервер делать не может — у него
+  // нет токенов, только cookie сессии.
+  if (!isServer) {
+    await useInitWalletProcess().run();
+    bootrace('initWallet done');
+    // Сессия в браузере есть, а серверный рендер пайщика не узнал: у сессии нет
+    // cookie (начата до её появления). Ставим её один раз, следующий заход
+    // сервер уже соберёт для пайщика. Ответ не ждём — на рендер он не влияет.
+    if (session.isAuth && session.serverSessionStatus !== 'active') {
+      void ensureSessionCookie(useGlobalStore().tokens?.access?.token ?? null);
+    }
+  }
 
   // Выбираем authorized-рабочий стол только если пайщик принят советом
   // (status='active'). На промежуточных статусах оставляем дефолтный
@@ -131,7 +189,11 @@ export async function useInitAppProcess(router: Router) {
   useBranchOverlayProcess();
   useExitOverlayProcess();
 
-  setupNavigationGuard(router);
+  // На сервере гвард получает ответ документа: 401/403 ставятся им же.
+  setupNavigationGuard(
+    router,
+    isServer ? ((ssrContext as { res?: { statusCode?: number } } | null | undefined)?.res ?? null) : null,
+  );
   bootrace('navigationGuard installed');
 
   // Бэкенд вернулся после паузы (dev-рестарт, апгрейд): данные, от которых
