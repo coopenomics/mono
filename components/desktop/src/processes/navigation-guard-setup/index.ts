@@ -14,7 +14,23 @@ function getRedirectUrl(router: Router, to: any): string {
   return '';
 }
 
-export function setupNavigationGuard(router: Router) {
+const isServer = typeof window === 'undefined';
+
+/**
+ * Ответ документа при серверном рендере. Корневой компонент рисует страницы
+ * только после монтирования в браузере, поэтому сервер отдаёт оболочку — но код
+ * ответа он обязан отдать честный: 401, когда вместо запрошенной страницы будет
+ * вход, и 403, когда прав нет. Решение принимает этот же гвард на сервере, по
+ * данным SSR-middleware (cookie сессии → аккаунт и стол).
+ */
+export interface ServerResponseLike {
+  statusCode?: number;
+}
+
+export function setupNavigationGuard(router: Router, serverResponse?: ServerResponseLike | null) {
+  const answer = (code: number): void => {
+    if (isServer && serverResponse) serverResponse.statusCode = code;
+  };
   const desktops = useDesktopStore();
   const session = useSessionStore();
   const systemStore = useSystemStore();
@@ -111,7 +127,9 @@ export function setupNavigationGuard(router: Router) {
     // могли не приехать, и гвард принимал «не загружено» за «нет»: уводил на
     // главную, на регистрацию, на «404», на «Недостаточно прав доступа».
     // Поэтому сначала дожидаемся данных, а решаем уже по ним.
-    if (session.isAuth && !hasAccessData()) {
+    // На сервере данных больше не станет: всё, что известно о пайщике, пришло
+    // из SSR-middleware, а запросов от его имени сервер делать не может.
+    if (!isServer && session.isAuth && !hasAccessData()) {
       await reloadAccessData();
     }
 
@@ -161,6 +179,7 @@ export function setupNavigationGuard(router: Router) {
         LocalStorage.set('redirectAfterLogin', redirectUrl);
       }
       // Перенаправляем на страницу входа
+      answer(401);
       next({ name: 'login-redirect', params: { coopname: systemStore.info.coopname } });
       return;
     }
@@ -198,9 +217,9 @@ export function setupNavigationGuard(router: Router) {
     // живых правах хуже).
     if (session.isAuth) {
       const now = Date.now();
-      const force = now - lastForcedReloadAt >= FORCED_RELOAD_COOLDOWN_MS;
+      const force = !isServer && now - lastForcedReloadAt >= FORCED_RELOAD_COOLDOWN_MS;
       if (force) lastForcedReloadAt = now;
-      if (force || !hasAccessData()) {
+      if (!isServer && (force || !hasAccessData())) {
         await reloadAccessData(force);
       }
       if (desktops.hasRouteAccess(matchedNames, to.meta)) {
@@ -229,6 +248,7 @@ export function setupNavigationGuard(router: Router) {
       return;
     }
 
+    answer(403);
     next({ name: 'permissionDenied', query: to.query });
   });
 

@@ -19,6 +19,10 @@
 import { useRouter } from 'vue-router';
 import { useDesktopStore } from 'src/entities/Desktop/model';
 import { useSessionStore } from 'src/entities/Session';
+import { setSsrStatus } from 'src/shared/lib/ssr/setSsrStatus';
+
+// Отказ в доступе при серверном рендере уходит честным 403.
+setSsrStatus(403);
 
 const router = useRouter();
 const desktops = useDesktopStore();

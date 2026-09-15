@@ -7,6 +7,10 @@ AuthCard(:max-width='600', :title='title', :subtitle='subtitle')
 import { LoginForm } from 'src/features/User/LoginUser/ui/LoginForm';
 import { useLoginStepHeading } from 'src/features/User/LoginUser';
 import { AuthCard } from 'src/shared/ui/domain/AuthCard';
+import { setSsrStatus } from 'src/shared/lib/ssr/setSsrStatus';
+
+// Страница входа вместо запрошенной при серверном рендере — честный 401.
+setSsrStatus(401);
 
 const { step, title, subtitle } = useLoginStepHeading({
   title: 'Пожалуйста, войдите, чтобы продолжить',

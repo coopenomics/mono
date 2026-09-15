@@ -96,6 +96,13 @@ export const useSessionStore = defineStore('session', (): ISessionStore => {
   const systemStore = useSystemStore();
   const isAuth = ref(false);
   const loadComplete = ref(false);
+  // Личность пришла с серверного рендера (cookie сессии → аккаунт), а не из
+  // восстановления ключей в браузере. Флаг живёт до первого `init()` на клиенте:
+  // ключи и токены есть только в браузере, их надо поднять как обычно.
+  const hydratedFromServer = ref(false);
+  // Сервер увидел cookie сессии, но сессия завершена или истекла: страница
+  // рендерится как «войдите», а не как гостевая.
+  const serverSessionExpired = ref(false);
   const currentUserAccount = ref<IAccount | undefined>();
 
   const session = ref();
@@ -385,7 +392,36 @@ export const useSessionStore = defineStore('session', (): ISessionStore => {
     globalStore.logout();
   };
 
+  /** Серверный рендер опознал пайщика по cookie: кладём личность и аккаунт в стор до рендера. */
+  const applyServerSession = (input: { username: string; account?: IAccount | null }): void => {
+    isAuth.value = true;
+    coopIdAccount.value = input.username;
+    if (input.account) currentUserAccount.value = input.account;
+    loadComplete.value = true;
+    hydratedFromServer.value = true;
+  };
+
+  const markServerSessionExpired = (): void => {
+    serverSessionExpired.value = true;
+  };
+
   const init = async () => {
+    // На клиенте после гидрации личность известна, но ключей и токенов в памяти
+    // нет — они живут только в браузере. Снимаем серверную отметку и
+    // восстанавливаем сессию обычным путём; аккаунт при этом остаётся.
+    if (hydratedFromServer.value && typeof window !== 'undefined') {
+      hydratedFromServer.value = false;
+      isAuth.value = false;
+      coopIdAccount.value = '';
+    }
+    // Сервер видел cookie сессии, но сессия завершена или отозвана. Остатки
+    // ключей и токенов в браузере уже никого не откроют — забываем устройство,
+    // иначе кабинет считал бы себя вошедшим и получал отказ на каждом запросе.
+    if (serverSessionExpired.value && typeof window !== 'undefined') {
+      serverSessionExpired.value = false;
+      await close();
+      return;
+    }
     // Сессия CoopID уже установлена — восстанавливать нечего, и трогать её нельзя.
     // Ниже идёт восстановление с нуля, и легаси-ветка в нём присваивает `isAuth`
     // результат проверки легаси-ключа, которого у входа по паролю нет — живая
@@ -508,6 +544,10 @@ export const useSessionStore = defineStore('session', (): ISessionStore => {
 
   return {
     isAuth,
+    hydratedFromServer,
+    serverSessionExpired,
+    applyServerSession,
+    markServerSessionExpired,
     init,
     session,
     establishCoopIdSession,
