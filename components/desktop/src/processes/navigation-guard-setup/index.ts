@@ -95,6 +95,14 @@ export function setupNavigationGuard(router: Router, serverResponse?: ServerResp
       }
     }
 
+    // Адреса нет — код 404 ставит гвард: страницы на сервере не рендерятся,
+    // и сама страница статус выставить не может.
+    if (to.name === 'NotFound') {
+      answer(404);
+      next();
+      return;
+    }
+
     // Проверка авторизации для маршрутов, требующих входа
     if (to.meta?.requiresAuth && !session.isAuth) {
       // Сохраняем целевой URL для редиректа после входа
