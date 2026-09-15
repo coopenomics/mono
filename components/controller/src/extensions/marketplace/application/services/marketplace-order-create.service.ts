@@ -7,7 +7,14 @@ import { LOGGER_PORT, type ILoggerPort,
 import { computeOrderHash } from '../shared/order-hash.util';
 import { toQuantityAsset } from '../shared/quantity.util';
 import { calcCostAmount } from '../shared/cost.util';
-import { packageDeltaOfSaleUnit, resolveSaleUnit, saleUnitShortfall } from '../shared/packaging.util';
+import { normalizeChainTx } from '../shared/chain-tx.util';
+import {
+  packageDeltaOfSaleUnit,
+  resolveSaleUnit,
+  saleUnitShortfall,
+  type OfferPackageDelta,
+  type ResolvedSaleUnit,
+} from '../shared/packaging.util';
 import {
   MARKETPLACE_NEW_ORDER_FOR_SUPPLIER_EVENT,
   type MarketplaceNewOrderForSupplierEvent,
@@ -33,6 +40,8 @@ import {
   type MarketplaceCanonicalBlockchainPort,
 } from '../../domain/ports/marketplace-canonical-blockchain.port';
 import type { MarketplaceOrderDomainEntity } from '../../domain/entities/marketplace-order.entity';
+import type { MarketplaceOfferDomainEntity } from '../../domain/entities/marketplace-offer.entity';
+import type { MarketContract } from 'cooptypes';
 import {
   MarketplaceOrderStatuses,
   type MarketplaceOrderCreateTxSnapshot,
@@ -79,6 +88,24 @@ export interface MarketplaceOrderCreateInputDto {
 export interface MarketplaceOrderCreateResult {
   order: MarketplaceOrderDomainEntity;
   tx_snapshot: MarketplaceOrderCreateTxSnapshot;
+}
+
+/**
+ * Строка заказа, прошедшая проверки и бронь остатка, но ещё не проведённая
+ * цепью. `action` — параметры `marketplace::createorder`; остальное нужно,
+ * чтобы после блока записать заказ или откатить бронь.
+ */
+export interface MarketplaceOrderPreparedLine {
+  input: MarketplaceOrderCreateInputDto;
+  offer: MarketplaceOfferDomainEntity;
+  resolved: ResolvedSaleUnit;
+  packageDelta: OfferPackageDelta | undefined;
+  order_hash: string;
+  offer_hash: string;
+  /** Сумма заказа той же формулой, что у контракта, без валюты. */
+  total_cost: string;
+  warranty_period_secs: number;
+  action: MarketContract.Actions.CreateOrder.ICreateOrder;
 }
 
 /**
@@ -143,7 +170,39 @@ export class MarketplaceOrderCreateService {
     this.logger.setContext(MarketplaceOrderCreateService.name);
   }
 
+  /**
+   * Одиночный заказ (покарточный поток): подготовка, своя транзакция,
+   * завершение. Оформление корзины пользуется теми же шагами, но отправляет
+   * строки одной транзакцией (см. `MarketplaceCheckoutService`).
+   */
   async execute(input: MarketplaceOrderCreateInputDto): Promise<MarketplaceOrderCreateResult> {
+    const prepared = await this.prepare(input);
+
+    // ── 4. Chain submit createorder с compensating-rollback ────────
+    let result: { tx_hash: string; block_num: number };
+    try {
+      const tx = await this.chainPort.createOrder(prepared.action);
+      // fail-fast: без tx_hash запись заказа в базу сделает audit-trail фантомным.
+      result = normalizeChainTx(tx, 'Создание заказа: цепь не вернула tx_hash. Повторите попытку.');
+    } catch (error: any) {
+      this.logger.error(
+        `MarketplaceOrderCreateService: chain submit createorder fail (compensating rollback counter) — ${error.message}`,
+        error.stack
+      );
+      await this.rollback(prepared);
+      rethrowChainError(error);
+    }
+
+    return this.finalize(prepared, result!);
+  }
+
+  /**
+   * Шаги до цепи: проверки предложения и количества, производные поля заказа
+   * и бронь счётчика остатка. После подготовки строка либо уходит в цепь и
+   * завершается `finalize`, либо откатывается `rollback` — бронь без одного
+   * из двух исходов расходится с каталогом.
+   */
+  async prepare(input: MarketplaceOrderCreateInputDto): Promise<MarketplaceOrderPreparedLine> {
     this.validateInput(input);
 
     // ── 1. Guard: Offer existence + ACTIVE + quantity_available ────
@@ -189,11 +248,16 @@ export class MarketplaceOrderCreateService {
       `MarketplaceOrderCreateService: counter onOrderBlocked OK (offer=${offer.id}, qty=${resolved.baseQuantity}, available=${offerBeforeBlock.quantity_available}, blocked=${offerBeforeBlock.quantity_blocked})`
     );
 
-    // ── 4. Chain submit createorder с compensating-rollback ────────
-    let txHash: string;
-    let appliedBlock: number;
-    try {
-      const tx = await this.chainPort.createOrder({
+    return {
+      input,
+      offer,
+      resolved,
+      packageDelta,
+      order_hash,
+      offer_hash,
+      total_cost: total_cost_amount,
+      warranty_period_secs,
+      action: {
         coopname: input.coopname,
         orderer: input.orderer_account,
         order_hash,
@@ -205,33 +269,36 @@ export class MarketplaceOrderCreateService {
         package_size: package_size_asset,
         warranty_period_secs,
         batch_hash: MarketplaceOrderCreateService.ZERO_HASH,
-      });
-      const result = this.normalizeTxResult(tx);
-      txHash = result.tx_hash;
-      appliedBlock = result.block_num;
-    } catch (error: any) {
+      },
+    };
+  }
+
+  /** Цепь отказала — бронь счётчика возвращается в каталог. */
+  async rollback(prepared: MarketplaceOrderPreparedLine): Promise<void> {
+    try {
+      await this.offerCounters.onOrderRolledBack(prepared.offer.id, prepared.resolved.baseQuantity, prepared.packageDelta);
+    } catch (compErr: any) {
+      // Counter rollback fail на compensating-path — критическая
+      // несогласованность; alert + manual reconciliation.
       this.logger.error(
-        `MarketplaceOrderCreateService: chain submit createorder fail (compensating rollback counter) — ${error.message}`,
-        error.stack
+        `MarketplaceOrderCreateService: compensating onOrderRolledBack тоже упал (offer=${prepared.offer.id}, qty=${prepared.input.quantity}): ${compErr.message}. РУЧНОЙ ФИКС counter offer!`,
+        compErr.stack
       );
-      try {
-        await this.offerCounters.onOrderRolledBack(offer.id, resolved.baseQuantity, packageDelta);
-      } catch (compErr: any) {
-        // Counter rollback fail на compensating-path — критическая
-        // несогласованность; alert + manual reconciliation.
-        this.logger.error(
-          `MarketplaceOrderCreateService: compensating onOrderRolledBack тоже упал (offer=${offer.id}, qty=${input.quantity}): ${compErr.message}. РУЧНОЙ ФИКС counter offer!`,
-          compErr.stack
-        );
-      }
-      rethrowChainError(error);
     }
+  }
+
+  /** Цепь провела заказ — запись в базу со снимком транзакции и уведомление поставщика. */
+  async finalize(
+    prepared: MarketplaceOrderPreparedLine,
+    tx: { tx_hash: string; block_num: number }
+  ): Promise<MarketplaceOrderCreateResult> {
+    const { input, offer, resolved, order_hash, offer_hash, warranty_period_secs } = prepared;
 
     // ── 5. Persist PG row Order с tx snapshot ──────────────────────
-    const locked_amount = total_cost_amount;
+    const locked_amount = prepared.total_cost;
     const create_tx: MarketplaceOrderCreateTxSnapshot = {
-      tx_hash: txHash!,
-      block_num: appliedBlock!,
+      tx_hash: tx.tx_hash,
+      block_num: tx.block_num,
       locked_amount,
       signed_at: new Date().toISOString(),
     };
@@ -260,7 +327,7 @@ export class MarketplaceOrderCreateService {
     });
 
     this.logger.log(
-      `MarketplaceOrderCreateService: Order ${order.id} (hash=${order_hash}) создан для ${input.orderer_account}; offer=${offer.id}, qty=${input.quantity}, total=${locked_amount}; tx=${txHash}`
+      `MarketplaceOrderCreateService: Order ${order.id} (hash=${order_hash}) создан для ${input.orderer_account}; offer=${offer.id}, qty=${input.quantity}, total=${locked_amount}; tx=${tx.tx_hash}`
     );
 
     // Карта уведомлений (пробел A): уведомляем поставщика о новом заказе ПОСЛЕ
@@ -351,42 +418,6 @@ export class MarketplaceOrderCreateService {
   private formatAsset(price_per_unit: string): string {
     const priceFloat = Number.parseFloat(price_per_unit);
     return `${priceFloat.toFixed(this.assetDecimals)} ${this.assetSymbol}`;
-  }
-
-  private normalizeTxResult(tx: unknown): { tx_hash: string; block_num: number } {
-    // wharfkit @1.6.x TransactResult: после `session.transact(..., { broadcast: true })`
-    // nodeos JSON-ответ лежит в `tx.response.transaction_id` (не в
-    // `.transaction.id` — это `ResolvedTransaction` без `.id`-поля).
-    // Fallback'и для совместимости с другими версиями session-API:
-    // `.resolved.transaction.id` и плоский `.transaction.id` (см. также
-    // `extractTxHash` в apl-reception / return-claim / issuance сервисах).
-    const t = tx as {
-      response?: { transaction_id?: string; processed?: { id?: string; block_num?: number } };
-      resolved?: { transaction?: { id?: string | { toString?: () => string } } };
-      transaction?: { id?: string | { toString?: () => string } };
-    };
-    const stringifyId = (v?: string | { toString?: () => string }): string | undefined => {
-      if (typeof v === 'string') return v;
-      if (typeof v?.toString === 'function') {
-        const s = v.toString();
-        return s && s !== '[object Object]' ? s : undefined;
-      }
-      return undefined;
-    };
-    const tx_hash =
-      t?.response?.transaction_id ??
-      t?.response?.processed?.id ??
-      stringifyId(t?.resolved?.transaction?.id) ??
-      stringifyId(t?.transaction?.id);
-    if (!tx_hash) {
-      // fail-fast: цепь приняла createorder, но не вернула tx_hash —
-      // запись Order в БД без tx_hash сделает audit-trail фантомным.
-      throw new BadRequestException(
-        'Создание заказа: цепь не вернула tx_hash. Повторите попытку.'
-      );
-    }
-    const block_num = t?.response?.processed?.block_num ?? 0;
-    return { tx_hash, block_num };
   }
 }
 

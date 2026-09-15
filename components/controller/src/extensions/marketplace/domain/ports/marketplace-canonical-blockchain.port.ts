@@ -21,8 +21,36 @@ import type { InnerTransactResult } from '@coopenomics/innercoop';
  * Stories Эпика 7 → submRetrn / aprRetRem / rejRetRem / accRetrn / rejRetrn / handBack.
  * Stories Эпика 8 → propWroff / execWroff / declWroff.
  */
+/** Действие заказа в транзакции оформления корзины. */
+export enum MarketplaceCheckoutOrderActionKind {
+  /** Заказ у поставщика — `marketplace::createorder`. */
+  CREATE_ORDER = 'createorder',
+  /** Заказ из остатка склада кооператива — `marketplace::stockorder`. */
+  STOCK_ORDER = 'stockorder',
+}
+
+export type MarketplaceCheckoutOrderAction =
+  | { kind: MarketplaceCheckoutOrderActionKind.CREATE_ORDER; data: MarketContract.Actions.CreateOrder.ICreateOrder }
+  | { kind: MarketplaceCheckoutOrderActionKind.STOCK_ORDER; data: MarketContract.Actions.StockOrder.IStockOrder };
+
+/**
+ * Оформление корзины одной транзакцией: перевод по заявлению 1110 (если
+ * кошельков программы не хватило) и заказы всех строк в порядке плана.
+ * Цепь проводит действия вместе или откатывает все — частичного оформления
+ * и зависшего перевода не бывает (решение владельца 15.09.2026).
+ */
+export interface MarketplaceCheckoutChainInput {
+  coopname: string;
+  /** Перевод в членский кошелёк — первым действием; null, если переводить нечего. */
+  convert: MarketContract.Actions.Convert.IConvert | null;
+  orders: MarketplaceCheckoutOrderAction[];
+}
+
 export interface MarketplaceCanonicalBlockchainPort {
   createOrder(data: MarketContract.Actions.CreateOrder.ICreateOrder): Promise<InnerTransactResult>;
+
+  /** Перевод по заявлению и заказы всех строк корзины одной транзакцией. */
+  checkout(data: MarketplaceCheckoutChainInput): Promise<InnerTransactResult>;
 
   /**
    * requirement 76: заказ из обезличенного остатка склада кооператива.
@@ -39,8 +67,9 @@ export interface MarketplaceCanonicalBlockchainPort {
 
   /**
    * Перевод паевого взноса во внутренний членский кошелёк «Стола заказов» по
-   * заявлению 1110 — отдельная транзакция до заказа, только когда кошелька не
-   * хватает (o.mkt.conv с Цифрового кошелька). Сумма адресуется заказам
+   * заявлению 1110 — только когда кошелька не хватает (o.mkt.conv с Цифрового
+   * кошелька). Оформление корзины шлёт его первым действием общей транзакции
+   * (`checkout`); отдельным вызовом пользуются потоки с одним заказом. Сумма адресуется заказам
    * (`targets`): на каждый заказ идёт своя операция с его хэшем как
    * `process_hash`, поэтому перевод виден первой операцией нитки того заказа,
    * который оплачивает. Заявление публикуется в реестр документов отдельным

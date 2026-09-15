@@ -12,6 +12,12 @@ title: Заказ пайщика — оформление, приём и отк�
 # расширение не должно знать, чем именно пишется лог. Сменились только тип
 # параметра и его DI-токен; поведение сервисов и набор случаев не менялись.
 
+# Правка 2026-09-15 (C28-42): корзина оформляется одной транзакцией — перевод
+# по заявлению 1110 и заказы всех строк проходят или откатываются вместе.
+# Сервисы создания заказа и заказа из остатка разделены на подготовку
+# (проверки, бронь остатка), отправку и завершение; оформление собирает
+# подготовленные строки в одну транзакцию через порт цепи `checkout`.
+
 # Правка 2026-08-20 (верификация личности, 105-28): display-сервис заказов
 # опционально подмешивает вердикт верификации получателя
 # (withOrdererVerification → orderer_verification_passed) для лент выдачи.
@@ -403,3 +409,46 @@ cases:
       w.mkt.member, невыданное тело — на свободный паевой
     test: components/boot/src/tests/marketplace-money.test.ts
     status: written
+
+  # ── Оформление корзины одной транзакцией (решение владельца 15.09.2026) ──
+  - id: mkt.order.happy.05
+    level: backend
+    kind: happy
+    scenario: >
+      Корзина из заказа у поставщика и заказа из остатка склада, кошельков программы не хватает —
+      подписано заявление о переводе
+    expect: >
+      в цепь уходит одна транзакция: перевод первым действием с суммами по каждому заказу, затем
+      заказы в порядке корзины; после блока оба заказа записаны, строки убраны из корзины
+    test: components/controller/src/extensions/marketplace/application/services/marketplace-checkout.service.spec.ts
+    status: passing
+
+  - id: mkt.order.break.02
+    level: backend
+    kind: break
+    scenario: Цепь отказала в одном из заказов общей транзакции
+    expect: >
+      отказ всего оформления: брони остатка сняты по каждой строке, ни один заказ не записан,
+      корзина не тронута, перевод в членский кошелёк не проведён (откатился вместе с заказами)
+    test: components/controller/src/extensions/marketplace/application/services/marketplace-checkout.service.spec.ts
+    status: passing
+
+  - id: mkt.order.side.38
+    level: backend
+    kind: side
+    scenario: Подписано заявление о переводе, а одна строка корзины не прошла подготовку (нет остатка)
+    expect: >
+      оформление не запущено целиком — перевод адресован заказу, которого не будет; брони
+      остальных строк сняты, заказчику названа позиция и причина
+    test: components/controller/src/extensions/marketplace/application/services/marketplace-checkout.service.spec.ts
+    status: passing
+
+  - id: mkt.order.side.39
+    level: backend
+    kind: side
+    scenario: Заявления нет (кошельков программы хватает), одна строка не прошла подготовку
+    expect: >
+      остальные строки оформляются одной транзакцией без перевода, непрошедшая остаётся в
+      корзине с причиной; если не прошла ни одна — транзакция не отправляется
+    test: components/controller/src/extensions/marketplace/application/services/marketplace-checkout.service.spec.ts
+    status: passing

@@ -17,8 +17,11 @@ import {
   releasePackagesForPositions,
   resolveSaleUnit,
   saleUnitShortfall,
+  type OfferPackageDelta,
+  type ResolvedSaleUnit,
 } from '../shared/packaging.util';
 import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
+import type { MarketContract } from 'cooptypes';
 import {
   MARKETPLACE_ASSET_CONFIG,
   type MarketplaceAssetConfig,
@@ -104,6 +107,25 @@ export interface MarketplaceStockOrderCreateInput {
 export interface MarketplaceStockOrderCreateResult {
   order: MarketplaceOrderDomainEntity;
   tx_hash: string;
+}
+
+/**
+ * Строка заказа из остатка после проверок и брони счётчика, до проводки цепью.
+ * `action` — параметры `marketplace::stockorder`.
+ */
+export interface MarketplaceStockOrderPreparedLine {
+  input: MarketplaceStockOrderCreateInput;
+  offer: MarketplaceOfferDomainEntity;
+  /** Участок, на складе которого лежит остаток, — он же участок выдачи. */
+  stock_braname: string;
+  resolved: ResolvedSaleUnit;
+  packageDelta: OfferPackageDelta | undefined;
+  order_hash: string;
+  offer_hash: string;
+  /** Сумма заказа без валюты. */
+  total_cost: string;
+  warranty_period_secs: number;
+  action: MarketContract.Actions.StockOrder.IStockOrder;
 }
 
 /**
@@ -449,9 +471,41 @@ export class MarketplaceStockService {
    * Заказ из остатка кооператива: chain `stockorder` (Order сразу acceptcoop,
    * средства блокируются из членского кошелька на акцепте) + резерв позиций.
    */
+  /**
+   * Одиночный заказ из остатка: подготовка, своя транзакция, завершение.
+   * Оформление корзины пользуется теми же шагами, отправляя строки одной
+   * транзакцией (см. `MarketplaceCheckoutService`).
+   */
   async createStockOrder(
     input: MarketplaceStockOrderCreateInput
   ): Promise<MarketplaceStockOrderCreateResult> {
+    const prepared = await this.prepareStockOrder(input);
+
+    let txHash: string;
+    try {
+      const tx = await this.chainPort.stockOrder(prepared.action);
+      txHash = normalizeChainTxHash(
+        tx,
+        'Заказ из остатка: цепь не вернула tx_hash. Повторите попытку.'
+      );
+    } catch (error: any) {
+      this.logger.error(
+        `createStockOrder: chain stockorder fail (rollback counter) — ${error.message}`,
+        error.stack
+      );
+      await this.rollbackStockOrder(prepared);
+      rethrowChainError(error);
+    }
+
+    return this.finalizeStockOrder(prepared, txHash!);
+  }
+
+  /**
+   * Шаги до цепи: проверки предложения остатка и количества, производные поля
+   * и бронь счётчика. Дальше строка либо завершается `finalizeStockOrder`,
+   * либо откатывается `rollbackStockOrder`.
+   */
+  async prepareStockOrder(input: MarketplaceStockOrderCreateInput): Promise<MarketplaceStockOrderPreparedLine> {
     if (!(input.quantity > 0)) {
       throw new BadRequestException('Количество должно быть больше нуля.');
     }
@@ -486,15 +540,23 @@ export class MarketplaceStockService {
     const warranty_period_secs = offer.warranty_days * 86_400;
 
     // Паевая модель: внутренний членский кошелёк первым (взнос и тело), остаток
-    // тела — со свободного паевого «Стола заказов»; недостающее пайщик перевёл
-    // заранее действием convert. При нехватке контракт откажет с суммами.
+    // тела — со свободного паевого «Стола заказов»; недостающее пайщик переводит
+    // действием convert в той же транзакции. При нехватке контракт откажет с суммами.
 
     // Optimistic counter ДО chain submit (как в createOrder поставщика).
     await this.offerCounters.onOrderBlocked(offer.id, resolved.baseQuantity, packageDelta);
 
-    let txHash: string;
-    try {
-      const tx = await this.chainPort.stockOrder({
+    return {
+      input,
+      offer,
+      stock_braname: offer.stock_braname,
+      resolved,
+      packageDelta,
+      order_hash,
+      offer_hash,
+      total_cost,
+      warranty_period_secs,
+      action: {
         coopname: input.coopname,
         orderer: input.orderer_account,
         order_hash,
@@ -505,28 +567,29 @@ export class MarketplaceStockService {
         package_size: package_size_asset,
         warranty_period_secs,
         batch_hash: MarketplaceStockService.ZERO_HASH,
-      });
-      txHash = normalizeChainTxHash(
-        tx,
-        'Заказ из остатка: цепь не вернула tx_hash. Повторите попытку.'
-      );
-    } catch (error: any) {
-      this.logger.error(
-        `createStockOrder: chain stockorder fail (rollback counter) — ${error.message}`,
-        error.stack
-      );
-      try {
-        await this.offerCounters.onOrderRolledBack(offer.id, resolved.baseQuantity, packageDelta);
-      } catch (compErr: any) {
-        this.logger.error(
-          `createStockOrder: compensating onOrderRolledBack упал (offer=${offer.id}): ${compErr.message}. РУЧНОЙ ФИКС counter!`
-        );
-      }
-      rethrowChainError(error);
-    }
+      },
+    };
+  }
 
+  /** Цепь отказала — бронь счётчика возвращается в каталог. */
+  async rollbackStockOrder(prepared: MarketplaceStockOrderPreparedLine): Promise<void> {
+    try {
+      await this.offerCounters.onOrderRolledBack(prepared.offer.id, prepared.resolved.baseQuantity, prepared.packageDelta);
+    } catch (compErr: any) {
+      this.logger.error(
+        `createStockOrder: compensating onOrderRolledBack упал (offer=${prepared.offer.id}): ${compErr.message}. РУЧНОЙ ФИКС counter!`
+      );
+    }
+  }
+
+  /** Цепь провела заказ — запись в базу и резерв позиций склада под него. */
+  async finalizeStockOrder(
+    prepared: MarketplaceStockOrderPreparedLine,
+    txHash: string
+  ): Promise<MarketplaceStockOrderCreateResult> {
+    const { input, offer, resolved, packageDelta, order_hash, offer_hash, total_cost, warranty_period_secs } = prepared;
     const create_tx: MarketplaceOrderCreateTxSnapshot = {
-      tx_hash: txHash!,
+      tx_hash: txHash,
       block_num: 0,
       locked_amount: total_cost,
       signed_at: new Date().toISOString(),
@@ -539,7 +602,7 @@ export class MarketplaceStockService {
       offer_id: offer.id,
       offer_hash,
       supplier_account: input.coopname, // продавец — кооператив (маркер stock-ордера)
-      delivery_braname: offer.stock_braname,
+      delivery_braname: prepared.stock_braname,
       quantity: resolved.baseQuantity,
       unit_of_measure: offer.unit_of_measure,
       price_per_unit: resolved.unitPrice,
@@ -583,9 +646,9 @@ export class MarketplaceStockService {
     }
 
     this.logger.log(
-      `Stock-order ${order.id} (hash=${order_hash}) создан для ${input.orderer_account}: «${offer.product_name}» ×${input.quantity} со склада КУ ${offer.stock_braname}; tx=${txHash!}`
+      `Stock-order ${order.id} (hash=${order_hash}) создан для ${input.orderer_account}: «${offer.product_name}» ×${input.quantity} со склада КУ ${prepared.stock_braname}; tx=${txHash}`
     );
-    return { order, tx_hash: txHash! };
+    return { order, tx_hash: txHash };
   }
 
   /**

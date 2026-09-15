@@ -1,11 +1,16 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { BranchContract, Ledger2Contract, MarketContract, SovietContract, type Interfaces } from 'cooptypes';
 import httpStatus from 'http-status';
-import type { MarketplaceCanonicalBlockchainPort } from '../../domain/ports/marketplace-canonical-blockchain.port';
+import {
+  MarketplaceCheckoutOrderActionKind,
+  type MarketplaceCanonicalBlockchainPort,
+  type MarketplaceCheckoutChainInput,
+} from '../../domain/ports/marketplace-canonical-blockchain.port';
 import { HttpApiError } from '@coopenomics/extension-kit';
 import { VAULT_PORT, type IVaultPort,
   CHAIN_PORT,
   type IChainPort,
+  type InnerChainAction,
   type InnerTransactResult,
 } from '@coopenomics/innercoop';
 
@@ -451,6 +456,41 @@ export class MarketplaceCanonicalBlockchainAdapter implements MarketplaceCanonic
 
   async convert(data: MarketContract.Actions.Convert.IConvert): Promise<InnerTransactResult> {
     return this.submitAsCoop(data.coopname, MarketContract.contractName.production, MarketContract.Actions.Convert.actionName, data, 'convert');
+  }
+
+  async checkout(input: MarketplaceCheckoutChainInput): Promise<InnerTransactResult> {
+    const wif = await this.vaultDomainService.getWif(input.coopname);
+    if (!wif) {
+      throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ кооператива для submit оформления корзины');
+    }
+    const asCoop = (name: string, data: Record<string, any>): InnerChainAction => ({
+      account: MarketContract.contractName.production,
+      name,
+      authorization: [{ actor: input.coopname, permission: 'active' }],
+      data,
+    });
+    // Порядок действий в транзакции сохраняется: перевод первым, поэтому
+    // членского кошелька хватает уже первому заказу, а операция перевода
+    // остаётся первой в нитке того заказа, который оплачивает.
+    const actions: InnerChainAction[] = [];
+    if (input.convert) {
+      actions.push(asCoop(MarketContract.Actions.Convert.actionName, input.convert));
+    }
+    for (const order of input.orders) {
+      actions.push(
+        asCoop(
+          order.kind === MarketplaceCheckoutOrderActionKind.STOCK_ORDER
+            ? MarketContract.Actions.StockOrder.actionName
+            : MarketContract.Actions.CreateOrder.actionName,
+          order.data
+        )
+      );
+    }
+    if (actions.length === 0) {
+      throw new HttpApiError(httpStatus.BAD_REQUEST, 'Оформление корзины: нет действий для отправки в цепь');
+    }
+    this.blockchainService.initialize(input.coopname, wif);
+    return await this.blockchainService.transact(actions);
   }
 
   async handBack(data: MarketContract.Actions.HandBack.IHandBack): Promise<InnerTransactResult> {
