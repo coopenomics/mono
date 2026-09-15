@@ -2,7 +2,6 @@ import { Router } from 'vue-router';
 import { useSessionStore } from 'src/entities/Session';
 import { useDesktopStore } from 'src/entities/Desktop/model';
 import { useSystemStore } from 'src/entities/System/model';
-import { useAccountStore } from 'src/entities/Account/model';
 import { LocalStorage } from 'quasar';
 import { Zeus } from '@coopenomics/sdk';
 
@@ -34,7 +33,6 @@ export function setupNavigationGuard(router: Router, serverResponse?: ServerResp
   const desktops = useDesktopStore();
   const session = useSessionStore();
   const systemStore = useSystemStore();
-  const account = useAccountStore();
 
   // Данные, из которых выводятся права: аккаунт (роль) и рабочий стол (гранты).
   const desktopFresh = () =>
@@ -45,48 +43,6 @@ export function setupNavigationGuard(router: Router, serverResponse?: ServerResp
   // Аккаунт известен — можно судить о статусе пайщика. Пока он не загружен,
   // «не активен» и «неизвестно» — разные вещи, и переадресовывать по второму нельзя.
   const accountKnown = () => Boolean(session.currentUserAccount);
-
-  // Однократная дозагрузка; параллельные переходы делят один промис.
-  // `force` перечитывает стол и аккаунт, даже если они «есть»: стол мог приехать
-  // гостевым во время обрыва связи и числиться свежим, а аккаунт — настоящим уже
-  // после обрыва. По отдельности оба выглядят загруженными, вместе дают ложный
-  // отказ. Ошибка одного запроса не отменяет результат другого (allSettled).
-  let reloading: Promise<void> | null = null;
-  const reloadAccessData = (force = false): Promise<void> => {
-    if (!reloading) {
-      reloading = (async () => {
-        try {
-          await session.init();
-          const needAccount = force || !session.currentUserAccount;
-          const needDesktop = force || !desktopFresh();
-          const [accountResult, desktopResult] = await Promise.allSettled([
-            needAccount && session.username
-              ? account.getAccount(session.username)
-              : Promise.resolve(undefined),
-            needDesktop ? desktops.loadDesktop() : Promise.resolve(),
-          ]);
-          if (accountResult.status === 'fulfilled' && accountResult.value) {
-            session.setCurrentUserAccount(accountResult.value);
-          }
-          for (const result of [accountResult, desktopResult]) {
-            if (result.status === 'rejected') {
-              console.warn('[guard] дозагрузка прав не удалась:', result.reason);
-            }
-          }
-        } catch (e) {
-          console.warn('[guard] дозагрузка прав не удалась:', e);
-        } finally {
-          reloading = null;
-        }
-      })();
-    }
-    return reloading;
-  };
-
-  // Принудительная перечитка — не чаще раза в интервал: пайщик без прав, кликающий
-  // по закрытой странице, не должен слать два запроса на каждый клик.
-  const FORCED_RELOAD_COOLDOWN_MS = 15_000;
-  let lastForcedReloadAt = 0;
 
   router.beforeEach(async (to, from, next) => {
     // если требуется установка
@@ -103,36 +59,6 @@ export function setupNavigationGuard(router: Router, serverResponse?: ServerResp
       next({ name: 'install', params: { coopname: systemStore.info.coopname }, query: to.query });
       return;
     }
-    // Если пользователь авторизован, но данные еще не загружены полностью
-    if (session.isAuth && !session.loadComplete) {
-      console.log('Waiting for user data to load...');
-
-      // Ждем завершения загрузки данных пользователя
-      let attempts = 0;
-      const maxAttempts = 50; // 5 секунд максимум
-
-      while (!session.loadComplete && attempts < maxAttempts) {
-        await new Promise((resolve) => setTimeout(resolve, 100));
-        attempts++;
-      }
-
-      if (attempts >= maxAttempts) {
-        session.loadComplete = true;
-        console.warn('User data loading timeout');
-      }
-    }
-
-    // Решения ниже (главная, статус пайщика, права на страницу) опираются на
-    // аккаунт и рабочий стол. На холодном старте или после обрыва связи они
-    // могли не приехать, и гвард принимал «не загружено» за «нет»: уводил на
-    // главную, на регистрацию, на «404», на «Недостаточно прав доступа».
-    // Поэтому сначала дожидаемся данных, а решаем уже по ним.
-    // На сервере данных больше не станет: всё, что известно о пайщике, пришло
-    // из SSR-middleware, а запросов от его имени сервер делать не может.
-    if (!isServer && session.isAuth && !hasAccessData()) {
-      await reloadAccessData();
-    }
-
     // редирект с index
     if (to.name === 'index') {
       // Только пайщики со status='active' попадают на свой дашборд.
@@ -208,31 +134,15 @@ export function setupNavigationGuard(router: Router, serverResponse?: ServerResp
       return;
     }
 
-    // «Прав нет» ≠ «права неизвестны». Роль (chairman/member) живёт в
-    // currentUserAccount, гранты столов — в currentDesktop; оба грузятся на старте
-    // без ретрая, и любой из них мог приехать гостевым или не приехать вовсе, если
-    // бэкенд в этот момент перезапускался или связь рвалась. Перед отказом
-    // перечитываем оба принудительно и перепроверяем; если бэкенд всё ещё лежит —
-    // пропускаем (fail-open: отказ всё равно даст резолвер, а ложный отказ при
-    // живых правах хуже).
-    if (session.isAuth) {
-      const now = Date.now();
-      const force = !isServer && now - lastForcedReloadAt >= FORCED_RELOAD_COOLDOWN_MS;
-      if (force) lastForcedReloadAt = now;
-      if (!isServer && (force || !hasAccessData())) {
-        await reloadAccessData(force);
-      }
-      if (desktops.hasRouteAccess(matchedNames, to.meta)) {
-        next();
-        return;
-      }
-      if (!hasAccessData()) {
-        console.warn(
-          '[guard] права пользователя недоступны (бэкенд молчит) — пропускаем без проверки',
-        );
-        next();
-        return;
-      }
+    // Права проверяются по тому, что есть в памяти. На холодном старте аккаунт
+    // и стол приходят из серверного рендера по cookie сессии, дальше живут в
+    // сторах; сетевых дозагрузок и ожиданий здесь нет. Если данных о правах
+    // всё же нет (сервер пайщика не узнал, а клиентская загрузка сорвалась),
+    // отказывать нечем — пропускаем, отказ даст резолвер.
+    if (session.isAuth && !hasAccessData()) {
+      console.warn('[guard] права пайщика неизвестны — пропускаем, отказ даст сервер');
+      next();
+      return;
     }
 
     // Права на страницу нет — но у стола может быть шлюз (`meta.gate`), на
