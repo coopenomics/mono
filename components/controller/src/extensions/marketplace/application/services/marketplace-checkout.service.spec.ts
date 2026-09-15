@@ -77,7 +77,7 @@ describe('MarketplaceCheckoutService — одна транзакция на вс
       verifySigned: jest.fn(() => ({ hash: 'doc-1110' })),
       availableUnits: jest.fn(async () => 1_000_000_0000n),
     };
-    const chainPort = { checkout: jest.fn(async () => txOk) };
+    const chainPort = { checkout: jest.fn(async (_input: unknown) => txOk) };
     const logger = { setContext: jest.fn(), log: jest.fn(), warn: jest.fn(), error: jest.fn(), debug: jest.fn() };
 
     const service = new MarketplaceCheckoutService(
