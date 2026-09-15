@@ -103,6 +103,9 @@ export const useSessionStore = defineStore('session', (): ISessionStore => {
   // Сервер увидел cookie сессии, но сессия завершена или истекла: страница
   // рендерится как «войдите», а не как гостевая.
   const serverSessionExpired = ref(false);
+  // Что серверный рендер знал о пайщике: гидратируется на клиент, чтобы тот
+  // понял, узнал ли его сервер (и нужно ли поставить cookie сессии).
+  const serverSessionStatus = ref<'guest' | 'active' | 'expired' | 'unknown' | null>(null);
   const currentUserAccount = ref<IAccount | undefined>();
 
   const session = ref();
@@ -399,10 +402,16 @@ export const useSessionStore = defineStore('session', (): ISessionStore => {
     if (input.account) currentUserAccount.value = input.account;
     loadComplete.value = true;
     hydratedFromServer.value = true;
+    serverSessionStatus.value = 'active';
   };
 
   const markServerSessionExpired = (): void => {
     serverSessionExpired.value = true;
+    serverSessionStatus.value = 'expired';
+  };
+
+  const setServerSessionStatus = (status: 'guest' | 'unknown'): void => {
+    serverSessionStatus.value = status;
   };
 
   const init = async () => {
@@ -546,8 +555,10 @@ export const useSessionStore = defineStore('session', (): ISessionStore => {
     isAuth,
     hydratedFromServer,
     serverSessionExpired,
+    serverSessionStatus,
     applyServerSession,
     markServerSessionExpired,
+    setServerSessionStatus,
     init,
     session,
     establishCoopIdSession,

@@ -37,6 +37,11 @@ export function sessionIdFromAccessToken(accessToken: string | null | undefined)
 export function setSessionCookie(req: Request, res: Response, accessToken: string | null | undefined): void {
   const sid = sessionIdFromAccessToken(accessToken);
   if (!sid) return;
+  setSessionCookieBySid(req, res, sid);
+}
+
+/** То же по уже известному идентификатору сессии (например, из проверенного bearer-токена). */
+export function setSessionCookieBySid(req: Request, res: Response, sid: string): void {
   res.cookie(SESSION_COOKIE_NAME, sid, {
     httpOnly: true,
     secure: isSecure(req),

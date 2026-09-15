@@ -10,6 +10,8 @@ import { setupNavigationGuard } from '../navigation-guard-setup';
 import { useInitExtensionsProcess } from 'src/processes/init-installed-extensions';
 import { applyThemeFromStorage } from 'src/shared/lib/utils';
 import { useSessionStore } from 'src/entities/Session';
+import { ensureSessionCookie } from 'src/entities/Session/lib/ensureSessionCookie';
+import { useGlobalStore } from 'src/shared/store';
 import { LocalStorage } from 'quasar';
 
 // Проверка, работаем ли мы на сервере (SSR)
@@ -113,6 +115,8 @@ export async function useInitAppProcess(router: Router, ssrContext?: unknown) {
   } else if (serverSession?.status === 'expired') {
     session.markServerSessionExpired();
     bootrace('server session expired');
+  } else if (serverSession) {
+    session.setServerSessionStatus(serverSession.status === 'unknown' ? 'unknown' : 'guest');
   }
 
   try {
@@ -167,6 +171,12 @@ export async function useInitAppProcess(router: Router, ssrContext?: unknown) {
   if (!isServer) {
     await useInitWalletProcess().run();
     bootrace('initWallet done');
+    // Сессия в браузере есть, а серверный рендер пайщика не узнал: у сессии нет
+    // cookie (начата до её появления). Ставим её один раз, следующий заход
+    // сервер уже соберёт для пайщика. Ответ не ждём — на рендер он не влияет.
+    if (session.isAuth && session.serverSessionStatus !== 'active') {
+      void ensureSessionCookie(useGlobalStore().tokens?.access?.token ?? null);
+    }
   }
 
   // Выбираем authorized-рабочий стол только если пайщик принят советом
