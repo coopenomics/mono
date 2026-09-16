@@ -29,6 +29,8 @@ export class AgreementResolver {
     name: 'agreements',
     description: 'Получение списка соглашений с фильтрацией и пагинацией',
   })
+  @UseGuards(GqlJwtAuthGuard, RolesGuard)
+  @AuthRoles(['chairman', 'member'])
   async getAgreements(
     @Args('filter', { nullable: true }) filter?: AgreementFilterInput,
     @Args('options', { nullable: true }) options?: PaginationInputDTO

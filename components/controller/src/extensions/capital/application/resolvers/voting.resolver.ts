@@ -94,6 +94,7 @@ export class VotingResolver {
     name: 'capitalVotes',
     description: 'Получение списка голосов кооператива с фильтрацией',
   })
+  @UseGuards(GqlJwtAuthGuard)
   async getVotes(
     @Args('filter', { nullable: true }) filter?: VoteFilterInputDTO,
     @Args('options', { nullable: true }) options?: PaginationInputDTO
@@ -109,6 +110,7 @@ export class VotingResolver {
     description: 'Получение голоса по внутреннему ID базы данных',
     nullable: true,
   })
+  @UseGuards(GqlJwtAuthGuard)
   async getVote(@Args('data') data: GetVoteInputDTO): Promise<VoteOutputDTO | null> {
     return await this.votingService.getVoteById(data._id);
   }

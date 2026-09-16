@@ -42,6 +42,7 @@ export class ExpensesManagementResolver {
     name: 'capitalExpenses',
     description: 'Получение списка расходов кооператива с фильтрацией',
   })
+  @UseGuards(GqlJwtAuthGuard)
   async getExpenses(
     @Args('filter', { nullable: true }) filter?: ExpenseFilterInputDTO,
     @Args('options', { nullable: true }) options?: PaginationInputDTO
@@ -57,6 +58,7 @@ export class ExpensesManagementResolver {
     description: 'Получение расхода по внутреннему ID базы данных',
     nullable: true,
   })
+  @UseGuards(GqlJwtAuthGuard)
   async getExpense(@Args('data') data: GetExpenseInputDTO): Promise<ExpenseOutputDTO | null> {
     return await this.expensesManagementService.getExpenseById(data);
   }

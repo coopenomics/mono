@@ -1,7 +1,7 @@
 import { ObjectType, Field, Int, Float } from '@nestjs/graphql';
 import { ExpenseStatus } from '../../../domain/enums/expense-status.enum';
 import { BaseOutputDTO } from '@coopenomics/extension-kit/sync';
-import { DocumentAggregateDTO } from '@coopenomics/extension-kit';
+import { AuthRoles, DocumentAggregateDTO } from '@coopenomics/extension-kit';
 
 /**
  * GraphQL Output DTO для сущности Expense
@@ -86,21 +86,26 @@ export class ExpenseOutputDTO extends BaseOutputDTO {
   })
   spended_at?: string;
 
+  // Текст документа несёт личные данные и в цепь не пишется — его видят
+  // совет и владелец записи; суммы остаются открытыми, они есть в блокчейне.
   @Field(() => DocumentAggregateDTO, {
     nullable: true,
     description: 'Служебная записка о расходе',
   })
+  @AuthRoles(['chairman', 'member'], { self: ['username'] })
   expense_statement!: DocumentAggregateDTO | null;
 
   @Field(() => DocumentAggregateDTO, {
     nullable: true,
     description: 'Одобренная записка',
   })
+  @AuthRoles(['chairman', 'member'], { self: ['username'] })
   approved_statement!: DocumentAggregateDTO | null;
 
   @Field(() => DocumentAggregateDTO, {
     nullable: true,
     description: 'Авторизация расхода',
   })
+  @AuthRoles(['chairman', 'member'], { self: ['username'] })
   authorization!: DocumentAggregateDTO | null;
 }

@@ -3,7 +3,7 @@ import { ContributorStatus } from '../../../domain/enums/contributor-status.enum
 import { BaseOutputDTO } from '@coopenomics/extension-kit/sync';
 import { ContributorDocumentParametersDTO } from './contributor-document-parameters.dto';
 import { CapitalProgramWalletDTO } from './capital-program-wallet.dto';
-import { DocumentAggregateDTO } from '@coopenomics/extension-kit';
+import { AuthRoles, DocumentAggregateDTO } from '@coopenomics/extension-kit';
 
 /**
  * GraphQL Output DTO для сущности Contributor
@@ -140,10 +140,13 @@ export class ContributorOutputDTO extends BaseOutputDTO {
   })
   last_energy_update?: string;
 
+  // Текст документа несёт личные данные и в цепь не пишется — его видят
+  // совет и владелец записи; суммы остаются открытыми, они есть в блокчейне.
   @Field(() => DocumentAggregateDTO, {
     description: 'Контракт участника',
     nullable: true,
   })
+  @AuthRoles(['chairman', 'member'], { self: ['username'] })
   contract?: DocumentAggregateDTO | null;
 
   @Field(() => [String], {
