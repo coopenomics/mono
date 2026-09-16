@@ -103,10 +103,17 @@ function stepClass(key: string): Record<string, boolean> {
   background: var(--p-canvas);
 }
 
-/* ── Панель ── */
+/* ── Панель ──
+ * Липнет к верху окна и не выше него: при длинном шаге (заявление на проверку)
+ * прокручивается только рабочая область, а ссылка внизу панели остаётся на виду,
+ * а не уезжает в самый низ страницы (замечание владельца 16.09.2026). Если панель
+ * сама выше окна, прокручивается внутри себя.
+ */
 .auth-split__pane {
-  position: relative;
-  overflow: hidden;
+  position: sticky;
+  top: 0;
+  height: 100dvh;
+  overflow: hidden auto;
   display: flex;
   flex-direction: column;
   padding: var(--p-8, 40px);
@@ -343,6 +350,9 @@ function stepClass(key: string): Record<string, boolean> {
     grid-template-columns: minmax(0, 1fr);
   }
   .auth-split__pane {
+    position: relative;
+    height: auto;
+    overflow: hidden;
     padding: var(--p-5, 20px);
     gap: var(--p-4, 16px);
   }
