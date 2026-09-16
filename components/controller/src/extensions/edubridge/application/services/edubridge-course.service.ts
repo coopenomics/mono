@@ -124,10 +124,13 @@ export class EdubridgeCourseService {
     const course = await this.get(coopname, input.id);
     await this.validate(coopname, input);
     const previous = course.image;
+    // Прежнюю привязку запоминаем до присваивания: после него сравнивать уже не с чем.
+    const previousRef = course.external_ref;
     const image = await this.resolveImage(coopname, actor, input.image, previous);
     Object.assign(course, this.fields(input), { image });
     // Привязка к площадке изменилась — прежняя сверка больше не действительна.
-    if (input.external_ref !== undefined && input.external_ref !== course.external_ref) {
+    // Сравнивается уже нормализованное значение: пробелы по краям — не смена привязки.
+    if (course.external_ref !== previousRef) {
       course.external_title_seen = null;
       course.external_checked_at = null;
     }

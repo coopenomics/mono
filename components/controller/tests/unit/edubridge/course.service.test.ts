@@ -114,6 +114,16 @@ describe('EdubridgeCourseService — конструктор курса', () => {
     expect(course.external_title_seen).toBeNull();
     expect(course.external_checked_at).toBeNull();
   });
+
+  it('та же привязка (пусть и с пробелами по краям) сверку не сбрасывает', async () => {
+    const { service, courses } = make();
+    const checkedAt = new Date('2026-09-01');
+    courses.findById.mockResolvedValueOnce({ id: 'C1', external_ref: COURSE_UUID, external_title_seen: 'Тестовый курс [coop]', external_checked_at: checkedAt, status: EduCourseStatus.DRAFT });
+    const course = await service.update('voskhod', 'ant', { ...base, id: 'C1', external_ref: ` ${COURSE_UUID} ` });
+    expect(course.external_ref).toBe(COURSE_UUID);
+    expect(course.external_title_seen).toBe('Тестовый курс [coop]');
+    expect(course.external_checked_at).toBe(checkedAt);
+  });
 });
 
 describe('EdubridgeCourseService — обложка курса', () => {
