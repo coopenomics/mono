@@ -18,6 +18,13 @@ export const onboardingExtensionOf = (owner: string): string =>
 
 const R = Cooperative.Registry;
 
+/**
+ * Оператор платформы. Оферту о присоединении к платформе (50) утверждает его
+ * совет, остальные кооперативы её только принимают при подключении — в их
+ * реестре шаблонов её нет. Имя задано в контрактах (`_provider`).
+ */
+export const PLATFORM_PROVIDER_COOPNAME = 'voskhod';
+
 const core = (
   registry_id: number,
   kind: InnerDocumentDeclaration['kind'],
@@ -69,3 +76,11 @@ export const CORE_DOCUMENT_DECLARATIONS: InnerDocumentDeclaration[] = [
   core(R.FreeDecision.registry_id, 'service', 98),
   core(R.ReturnByMoneyDecision.registry_id, 'service', 99),
 ];
+
+const PROVIDER_ONLY_DOCUMENTS = new Set<number>([R.CoopenomicsAgreement.registry_id]);
+
+/** Базовый набор для конкретного кооператива: документы оператора платформы видит только он сам. */
+export const coreDocumentDeclarationsFor = (coopname: string): InnerDocumentDeclaration[] =>
+  coopname === PLATFORM_PROVIDER_COOPNAME
+    ? CORE_DOCUMENT_DECLARATIONS
+    : CORE_DOCUMENT_DECLARATIONS.filter((d) => !PROVIDER_ONLY_DOCUMENTS.has(d.registry_id));

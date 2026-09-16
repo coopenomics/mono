@@ -1,6 +1,13 @@
 import type { InnerDocumentDeclaration } from '@coopenomics/innercoop';
 import { DocumentDeclarationsRegistryService } from '~/domain/document-approval/services/document-declarations-registry.service';
-import { CORE_DOCUMENT_DECLARATIONS, CORE_DOCUMENTS_OWNER } from '~/domain/document-approval/constants/core-document-declarations';
+import {
+  CORE_DOCUMENT_DECLARATIONS,
+  CORE_DOCUMENTS_OWNER,
+  coreDocumentDeclarationsFor,
+} from '~/domain/document-approval/constants/core-document-declarations';
+import { Cooperative } from 'cooptypes';
+
+jest.mock('~/config/config', () => ({ __esModule: true, default: { coopname: 'voskhod' } }));
 
 const logger = { setContext: jest.fn(), info: jest.fn(), warn: jest.fn() } as any;
 
@@ -69,5 +76,12 @@ describe('DocumentDeclarationsRegistryService', () => {
     await registry.onModuleInit();
     const forms = registry.getByBundle(CORE_DOCUMENTS_OWNER, 'participant_application').map((d) => d.registry_id);
     expect(forms).toEqual([100, 101]);
+  });
+
+  it('оферту о присоединении к платформе объявляет только оператор платформы', () => {
+    const offer = Cooperative.Registry.CoopenomicsAgreement.registry_id;
+    expect(coreDocumentDeclarationsFor('voskhod').some((d) => d.registry_id === offer)).toBe(true);
+    expect(coreDocumentDeclarationsFor('sosedi').some((d) => d.registry_id === offer)).toBe(false);
+    expect(coreDocumentDeclarationsFor('sosedi')).toHaveLength(CORE_DOCUMENT_DECLARATIONS.length - 1);
   });
 });

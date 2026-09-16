@@ -4,7 +4,8 @@ import { EXTENSION_APP_TERMINATE_EVENT, type ExtensionAppTerminatePayload } from
 import type { IDocumentDeclarationPort, InnerDocumentDeclaration } from '@coopenomics/innercoop';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 import type { DocumentDeclarationQueryPort } from '../ports/document-declaration-query.port';
-import { CORE_DOCUMENT_DECLARATIONS, CORE_DOCUMENTS_OWNER } from '../constants/core-document-declarations';
+import config from '~/config/config';
+import { CORE_DOCUMENTS_OWNER, coreDocumentDeclarationsFor } from '../constants/core-document-declarations';
 
 /**
  * Реестр шаблонов кооператива: декларации документов ядра и установленных
@@ -32,7 +33,7 @@ export class DocumentDeclarationsRegistryService
   }
 
   async onModuleInit(): Promise<void> {
-    await this.registerDocuments(CORE_DOCUMENT_DECLARATIONS);
+    await this.registerDocuments(coreDocumentDeclarationsFor(config.coopname));
   }
 
   public async registerDocuments(declarations: InnerDocumentDeclaration[]): Promise<void> {
