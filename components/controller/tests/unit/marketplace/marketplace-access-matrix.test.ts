@@ -33,6 +33,15 @@ describe('marketplaceAccessMatrix', () => {
     expect(marketplaceAccessMatrix.orderer.Offer).toContain('read');
   });
 
+  it('operator читает предложения, но не модерирует их', () => {
+    // Карточка предложения открывается со склада участка: оператору нужно
+    // видеть, что именно он выдаёт. Правка и модерация остаются у председателя.
+    expect(marketplaceAccessMatrix.operator.Offer).toContain('read');
+    expect(marketplaceAccessMatrix.operator.Offer).not.toContain('moderate');
+    expect(canAccess(['operator'], 'Offer', 'read')).toBe(true);
+    expect(canAccess(['operator'], 'Offer', 'moderate')).toBe(false);
+  });
+
   it('admin имеет KU:manage и Vitrine:manage', () => {
     expect(marketplaceAccessMatrix.admin.KU).toContain('manage');
     expect(marketplaceAccessMatrix.admin.Vitrine).toContain('manage');

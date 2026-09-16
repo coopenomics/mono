@@ -1,0 +1,137 @@
+feature: cardcoop.card-page
+title: Карта кооператора в столе кооператива (Story 7.4)
+
+# Главный вход в выпуск карты: человек уже аутентифицирован в кооперативе, и ему
+# остаётся один переход. Без этой страницы действующие пайщики карту фактически
+# не начнут выпускать.
+#
+# Ключевое решение: состояние берётся из СОБСТВЕННОГО журнала расширения, а не
+# запросом в сеть. Стол обязан работать, когда card.coop недоступен (NFR-3), а
+# кооператив и так знает всё, что нужно показать: он сам выдавал свидетельство и
+# сам принимал уведомление о связи.
+#
+# Номер карты приезжает в уведомлении о связи (правка на стороне card.coop):
+# человек называет вслух номер, а не идентификатор вида `3f2504e0-…`.
+#
+# Один и тот же адрес и для выпуска, и для входа в кабинет: у кого карты нет —
+# выпустит, у кого есть — попадёт к себе. Второй адрес означал бы второе место,
+# где можно ошибиться.
+
+sources:
+  backend:
+    - components/controller/src/extensions/cardcoop/application/cardcoop-card.service.ts
+    - components/controller/src/extensions/cardcoop/application/cardcoop-card.resolver.ts
+    - components/controller/src/extensions/cardcoop/application/dto/**
+  ui:
+    - components/desktop/src/pages/User/CardcoopPage/**
+    - components/desktop/src/entities/CardcoopCard/**
+    - components/desktop/src/pages/Registrator/SignUp/EmailInput.vue
+
+cases:
+  - id: cc.card.happy.01
+    level: backend
+    kind: happy
+    scenario: >
+      У пайщика есть карта, свидетельство о членстве принято сетью.
+    expect: >
+      стол показывает номер карты, состояние «членство подтверждено» и дату
+      вступления, о которой сам же и свидетельствовал
+    test: components/controller/tests/unit/cardcoop/cardcoop-card.test.ts
+    status: passing
+
+  - id: cc.card.happy.02
+    level: backend
+    kind: happy
+    scenario: >
+      Карты у пайщика нет.
+    expect: >
+      стол зовёт её выпустить; адрес выпуска собран из настроек расширения и
+      имени кооператива, руками нигде не вписывается
+    test: components/controller/tests/unit/cardcoop/cardcoop-card.test.ts
+    status: passing
+
+  - id: cc.card.side.01
+    level: backend
+    kind: side
+    scenario: >
+      Свидетельство ещё не доехало до сети (запись в «ожидании»).
+    expect: >
+      карта всё равно показана выпущенной — запись журнала появляется по
+      уведомлению о связи, значит карта у человека уже есть
+    test: components/controller/tests/unit/cardcoop/cardcoop-card.test.ts
+    status: passing
+
+  - id: cc.card.side.02
+    level: backend
+    kind: side
+    scenario: >
+      Членство прекращено после выхода пайщика из кооператива.
+    expect: >
+      дата вступления не показывается: она относится к прекращённому членству
+    test: components/controller/tests/unit/cardcoop/cardcoop-card.test.ts
+    status: passing
+
+  - id: cc.card.side.03
+    level: backend
+    kind: side
+    scenario: >
+      Запись заведена до того, как сеть начала присылать номер карты.
+    expect: >
+      номера нет, но членство по-прежнему подтверждено — состояние от этого не
+      страдает
+    test: components/controller/tests/unit/cardcoop/cardcoop-card.test.ts
+    status: passing
+
+  - id: cc.card.side.04
+    level: backend
+    kind: side
+    scenario: >
+      В уведомлении о связи приехал номер карты.
+    expect: >
+      номер сохраняется в журнале и дописывается даже к уже подтверждённому
+      членству — повторное уведомление единственный случай, когда он приезжает
+    test: components/controller/tests/unit/cardcoop/cardcoop-link-webhook.test.ts
+    status: passing
+
+  - id: cc.card.ui.01
+    level: ui
+    kind: happy
+    scenario: >
+      Пайщик открывает раздел «Карта кооператора» в своём столе.
+    expect: >
+      Страница с отступами, как у профиля (владелец 03.09.2026). Без карты — пустое
+      состояние с объяснением и кнопка «Выпустить карту кооператора» в шапке; с картой —
+      слева изображение членского билета сети (как в кабинете card.coop: номер, держатель
+      из анкеты, кооператив), справа строки: номер четырьмя блоками с копированием,
+      членство чипом по значению перечисления SDK (Active/Pending/Revoked/Rejected —
+      строчные ключи давали «Состояние неизвестно»), дата вступления как ДД.ММ.ГГГГ без
+      времени, сеть карт. Ниже карточка «Что даёт карта» тремя пунктами: вход в другие
+      кооперативы, быстрое вступление, сервисы вокруг кооперации. Кнопка «Открыть карту»
+      в шапке; повторного заголовка и подсказки нет; переход в сеть — в новой вкладке
+    test: ''
+    status: missing
+
+  - id: cc.card.ui.02
+    level: ui
+    kind: side
+    scenario: >
+      Раздел «Карта кооператора» в столе пайщика (пайщик и председатель).
+    expect: >
+      Вкладка стоит после «Удостоверения» у всех ролей стола пайщика. Маршрут заведён в
+      extensions/participant/install.ts — единственном сборщике стола; манифесты
+      src/desktops/* мёртвые, и карта, объявленная только там, не показывалась никому
+      (владелец 02.09.2026)
+    test: ''
+    status: missing
+
+  - id: cc.card.side.05
+    level: backend
+    kind: side
+    scenario: >
+      Карта связана кандидатом при вступлении, свидетельства ещё нет.
+    expect: >
+      стол показывает карту выпущенной и без даты вступления — говорить человеку
+      «карта не выпущена» неправда, он её выпустил и связал
+    test: components/controller/tests/unit/cardcoop/cardcoop-card.test.ts
+    status: passing
+

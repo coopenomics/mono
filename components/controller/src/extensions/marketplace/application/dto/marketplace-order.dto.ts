@@ -171,6 +171,14 @@ export class MarketplaceOrderDTO {
   })
   public readonly package_size!: number;
 
+  @Field(() => String, {
+    nullable: true,
+    description:
+      'Упаковка каталога предложения, которой оформлен заказ; пусто — отпуск по мере ' +
+      'либо заказ до учёта остатка по упаковкам.',
+  })
+  public readonly package_id!: string | null;
+
   @Field(() => Float, {
     nullable: true,
     description:
@@ -226,6 +234,14 @@ export class MarketplaceOrderDTO {
       'Заказчик платит total_cost + membership_fee; пусто — заказ ещё не подтверждён блокчейном.',
   })
   public readonly membership_fee!: string | null;
+
+  @Field(() => String, {
+    nullable: true,
+    description:
+      'Принятая стоимость по акту приёмки: сколько кооператив должен поставщику за этот заказ. ' +
+      'Пусто — имущество ещё не принято.',
+  })
+  public readonly accepted_cost!: string | null;
 
   @Field(() => String, {
     description:
@@ -291,7 +307,7 @@ export class MarketplaceOrderDTO {
 
   @Field(() => MarketplaceOrderIssuanceFactSnapshotDTO, {
     nullable: true,
-    description: 'Фактическая выдача после финальной подписи заказчика (заполняется на ПВЗ).',
+    description: 'Фактическая выдача: факт фиксируется оператором у стойки и закрепляется заявлением заказчика.',
   })
   public readonly issuance_fact!: MarketplaceOrderIssuanceFactSnapshotDTO | null;
 
@@ -305,40 +321,24 @@ export class MarketplaceOrderDTO {
 
   @Field(() => Date, {
     nullable: true,
-    description: 'Когда председатель кооперативного участка открыл выдачу первой подписью.',
+    description: 'Когда заказчик подписал заявление о возврате паевого взноса имуществом (выдача начата).',
   })
-  public readonly chairman_signed_at!: Date | null;
-
+  public readonly issue_statement_at!: Date | null;
   @Field(() => String, {
     nullable: true,
-    description: 'Учётная запись председателя, открывшего выдачу первой подписью.',
+    description: 'Номер решения совета о возврате паевого взноса имуществом по этому заказу.',
   })
-  public readonly chairman_account!: string | null;
-
+  public readonly issue_decision_id!: string | null;
   @Field(() => String, {
     nullable: true,
-    description: 'Хэш транзакции открытия выдачи в блокчейне.',
-  })
-  public readonly signiss1_tx_hash!: string | null;
-
-  @Field(() => Date, {
-    nullable: true,
-    description: 'Когда заказчик поставил финальную подпись на акте выдачи.',
-  })
-  public readonly orderer_signed_at!: Date | null;
-
-  @Field(() => String, {
-    nullable: true,
-    description: 'Учётная запись стороны кооператива, поставившей подпись вместе с заказчиком.',
+    description: 'Учётная запись стороны кооператива, закрывшей выдачу второй подписью акта.',
   })
   public readonly delivery_signer_account!: string | null;
-
   @Field(() => String, {
     nullable: true,
-    description: 'Хэш транзакции финальной подписи выдачи в блокчейне.',
+    description: 'Хэш закрывающей транзакции выдачи в блокчейне.',
   })
-  public readonly signiss2_tx_hash!: string | null;
-
+  public readonly issue_closed_tx_hash!: string | null;
   @Field(() => Date, { description: 'Когда запись о заказе создана в системе.' })
   public readonly created_at!: Date;
 
@@ -407,6 +407,10 @@ export function toMarketplaceOrderCreateTxSnapshotDTO(
  * найдены — поля остаются null, клиент показывает запасной вид.
  */
 export interface MarketplaceOrderDisplayFields {
+  /** Предложение заказа — по нему открывается карточка имущества со склада. */
+  offer_id?: string | null;
+  /** Категория предложения — фильтр склада по разделам каталога. */
+  category_id?: number | null;
   product_name?: string | null;
   image_url?: string | null;
   unit_of_measure?: MarketplaceUnitOfMeasureEnum | null;
@@ -463,6 +467,7 @@ export function toMarketplaceOrderDTO(
     delivery_point_lng: display?.delivery_point_lng ?? null,
     quantity: o.quantity,
     package_size: o.package_size,
+    package_id: o.package_id,
     warehouse_quantity: display?.warehouse_quantity ?? null,
     warehouse_locations: display?.warehouse_locations ?? null,
     warehouse_arrival_price: display?.warehouse_arrival_price ?? null,
@@ -471,6 +476,7 @@ export function toMarketplaceOrderDTO(
     price_per_unit: o.price_per_unit,
     total_cost: o.total_cost,
     membership_fee: o.membership_fee,
+    accepted_cost: o.accepted_cost ?? null,
     total_cost_with_fee: sumOrderAmounts(o.total_cost, o.membership_fee),
     cycle_id: o.cycle_id,
     checkout_id: o.checkout_id,
@@ -494,12 +500,10 @@ export function toMarketplaceOrderDTO(
         })
       : null,
     is_ready_announced: o.is_ready_announced,
-    chairman_signed_at: o.chairman_signed_at,
-    chairman_account: o.chairman_account,
-    signiss1_tx_hash: o.signiss1_tx_hash,
-    orderer_signed_at: o.orderer_signed_at,
+    issue_statement_at: o.issue_statement_at,
+    issue_decision_id: o.issue_decision_id,
     delivery_signer_account: o.delivery_signer_account,
-    signiss2_tx_hash: o.signiss2_tx_hash,
+    issue_closed_tx_hash: o.issue_closed_tx_hash,
     created_at: o.created_at,
     updated_at: o.updated_at,
   });

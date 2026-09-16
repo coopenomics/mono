@@ -156,6 +156,27 @@ export function NotifyAlert(
   });
 }
 
+// Тост потери связи при переходе: кусок кода страницы не загрузился. Без
+// действия — короткое «пробуем ещё раз» (роутер повторяет переход сам), с
+// действием — висит до решения пользователя. `group` не даёт стопке одинаковых
+// тостов расти при серии провалов.
+export function ConnectionLostAlert(onRetry?: () => void): void {
+  Notify.create({
+    message: 'Нет связи с сервером',
+    caption: onRetry
+      ? 'Страница не загрузилась. Проверьте подключение и попробуйте ещё раз.'
+      : 'Страница не загрузилась. Пробуем открыть её ещё раз…',
+    type: 'warning',
+    icon: 'wifi_off',
+    position: POSITION,
+    timeout: onRetry ? 0 : TIMEOUT_INFO + 3000,
+    group: 'connection-lost',
+    actions: onRetry
+      ? [{ label: 'Повторить', noDismiss: false, handler: onRetry }, CLOSE_ACTION]
+      : [CLOSE_ACTION],
+  });
+}
+
 // Тост обновления приложения. Правый нижний угол (там же, где все тосты),
 // timeout 0 (не исчезает сам): пользователь сам решает «Обновить»/«Позже».
 export function UpdateAlert(onApply: () => void, onDismiss?: () => void): void {

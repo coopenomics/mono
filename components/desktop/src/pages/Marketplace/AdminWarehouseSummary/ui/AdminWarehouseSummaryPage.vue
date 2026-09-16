@@ -1,35 +1,62 @@
 <script lang="ts" setup>
+/**
+ * Стол администратора → «Склад»: что лежит на пунктах выдачи кооператива.
+ *
+ * Страница только читает: приёмку, выдачу и списание ведут на столах ПВЗ.
+ * Сверху — короткая сводка (сколько позиций, единиц, участков, просрочки и
+ * непромаркированного), ниже — таблица с поиском и фильтрами. Строка
+ * открывает предложение, по которому имущество попало на склад, — тем же
+ * оверлеем, что и реестры предложений и заказов.
+ *
+ * Рейтинг позиций по обороту переехал на «Экономику»: это денежный срез за
+ * период, а не состояние полок.
+ */
 import { computed, onMounted, ref } from 'vue'
 import { debounce } from 'quasar'
 import { Zeus } from '@coopenomics/sdk'
 import { FailAlert } from 'src/shared/api'
-import { EmptyState, TableSkeleton } from 'src/shared/ui/base'
-import type { TableSkeletonColumn } from 'src/shared/ui/base'
+import { useSystemStore } from 'src/entities/System/model'
 import { PageHint } from 'src/shared/ui/domain'
 import { marketplaceOrderUnitLabel } from 'src/shared/lib/consts/marketplace-units'
 import { useMarketplaceRealtime } from 'src/shared/lib/marketplace'
+import { useQueryOverlay } from 'src/shared/lib/navigation'
+import { OfferRegistryOverlay } from 'src/widgets/Marketplace/OfferRegistryOverlay'
 import {
   WarehouseSummaryGrid,
   type WarehouseRow,
 } from 'src/widgets/Marketplace/WarehouseSummaryGrid'
+import { fetchCategoryNames } from 'src/entities/MarketplaceOffer'
 import { listInventory, type MarketplaceInventoryItemView } from 'src/entities/MarketplaceInventory'
 
-const tab = ref<'warehouse' | 'flow'>('warehouse')
+const { info } = useSystemStore()
+const offerOverlay = useQueryOverlay('offer')
+
 const items = ref<MarketplaceInventoryItemView[]>([])
-const loading = ref(false)
+const categoryNames = ref<Record<number, string>>({})
+// true до первого запроса: иначе первый кадр до загрузки показывает пустое
+// состояние вместо каркаса, и первая загрузка неотличима от пустого списка.
+const loading = ref(true)
 
 async function load(): Promise<void> {
   loading.value = true
   try {
     items.value = await listInventory()
   } catch (e) {
-    FailAlert(e, 'Не удалось загрузить сводный склад')
+    FailAlert(e, 'Не удалось загрузить склад')
   } finally {
     loading.value = false
   }
 }
 
-// Realtime вместо кнопки «Обновить»: сводку двигают приёмки (акт →
+async function loadCategories(): Promise<void> {
+  try {
+    categoryNames.value = await fetchCategoryNames()
+  } catch {
+    // Справочник категорий не критичен: без него фильтр покажет номера.
+  }
+}
+
+// Realtime вместо кнопки «Обновить»: склад двигают приёмки (акт →
 // ACCEPTED_TO_COOP), выдачи (заказ → RECEIVED) и исполненные списания.
 // Председатель получает служебный канал персонала КУ по праву admin —
 // сигналы всех участков приходят без фильтра.
@@ -48,50 +75,87 @@ useMarketplaceRealtime(
 
 onMounted(() => {
   void load()
+  void loadCategories()
 })
 
-// Расход со склада = имущество, физически покинувшее КУ: выдано пайщику (ISSUED)
-// либо списано (WRITTEN_OFF). Остаток = приход − расход. Приход = всё, что когда-
-// либо оприходовано на КУ (любой статус — каждая запись склада это одна приёмка).
-function isOutgoing(status: MarketplaceInventoryItemView['status']): boolean {
+// Имущество на складе — то, что физически лежит на участке: принятое,
+// промаркированное и возвращённое. Выданное пайщику и списанное со склада
+// ушло, но остаётся в приходе и в своей колонке расхода.
+function isOnWarehouse(status: MarketplaceInventoryItemView['status']): boolean {
   return (
-    status === Zeus.MarketplaceInventoryStatus.ISSUED ||
-    status === Zeus.MarketplaceInventoryStatus.WRITTEN_OFF
+    status === Zeus.MarketplaceInventoryStatus.RECEIVED ||
+    status === Zeus.MarketplaceInventoryStatus.LABELED ||
+    status === Zeus.MarketplaceInventoryStatus.RETURNED
   )
 }
 
 interface Bucket {
   key: string
+  offerId: string | null
   title: string
+  categoryId: number | null
   pvzName: string | null
   pvzAddress: string | null
   pvzBraname: string
   unit: string
   incoming: number
-  outgoing: number
+  issued: number
+  writtenOff: number
+  expiryAt: number | null
+  unlabeled: number
 }
 
-// Группируем по паре (пункт выдачи × позиция): на сводном складе кооператива одна
-// и та же позиция может лежать на разных КУ — это разные строки склада.
+/** Дата в миллисекундах; пусто и мусор — null. */
+function timeOf(value: unknown): number | null {
+  if (value === null || value === undefined) return null
+  const t = new Date(String(value)).getTime()
+  return Number.isFinite(t) ? t : null
+}
+
+/** Пустая строка сводки по позиции участка — реквизиты берём из первой наклейки. */
+function emptyBucket(key: string, row: MarketplaceInventoryItemView): Bucket {
+  return {
+    key,
+    offerId: row.offer_id ?? null,
+    title: row.product_name_snapshot,
+    categoryId: row.category_id ?? null,
+    pvzName: row.delivery_point_name ?? null,
+    pvzAddress: row.delivery_point_address ?? null,
+    pvzBraname: row.braname,
+    unit: marketplaceOrderUnitLabel(row.unit_of_measure),
+    incoming: 0,
+    issued: 0,
+    writtenOff: 0,
+    expiryAt: null,
+    unlabeled: 0,
+  }
+}
+
+/** Добавляем в сводку одну наклейку склада. */
+function addToBucket(b: Bucket, row: MarketplaceInventoryItemView): void {
+  b.incoming += row.quantity_per_label
+  if (row.status === Zeus.MarketplaceInventoryStatus.ISSUED) b.issued += row.quantity_per_label
+  if (row.status === Zeus.MarketplaceInventoryStatus.WRITTEN_OFF) {
+    b.writtenOff += row.quantity_per_label
+  }
+  if (!isOnWarehouse(row.status)) return
+  // Из лежащего на полке берём ближайший срок годности: по нему участок
+  // списывает просрочку, и он же тревожит администратора первым.
+  const expiry = timeOf(row.expiry_date)
+  if (expiry !== null && (b.expiryAt === null || expiry < b.expiryAt)) b.expiryAt = expiry
+  if (!row.barcode_value) b.unlabeled += row.quantity_per_label
+}
+
+// Группируем по паре (пункт выдачи × позиция): на складе кооператива одна и та
+// же позиция может лежать на разных КУ — это разные строки. Позиции одного
+// предложения сводим по нему, без предложения — по наименованию товара.
 const buckets = computed<Bucket[]>(() => {
   const map = new Map<string, Bucket>()
   for (const row of items.value) {
-    const k = `${row.braname}::${row.product_name_snapshot}`
-    const b =
-      map.get(k) ??
-      ({
-        key: k,
-        title: row.product_name_snapshot,
-        pvzName: row.delivery_point_name ?? null,
-        pvzAddress: row.delivery_point_address ?? null,
-        pvzBraname: row.braname,
-        unit: marketplaceOrderUnitLabel(row.unit_of_measure),
-        incoming: 0,
-        outgoing: 0,
-      } satisfies Bucket)
-    b.incoming += row.quantity_per_label
-    if (isOutgoing(row.status)) b.outgoing += row.quantity_per_label
-    map.set(k, b)
+    const key = `${row.braname}::${row.offer_id ?? row.product_name_snapshot}`
+    const bucket = map.get(key) ?? emptyBucket(key, row)
+    addToBucket(bucket, row)
+    map.set(key, bucket)
   }
   return [...map.values()]
 })
@@ -99,97 +163,87 @@ const buckets = computed<Bucket[]>(() => {
 const warehouseRows = computed<WarehouseRow[]>(() =>
   buckets.value.map((b) => ({
     key: b.key,
+    offerId: b.offerId,
     title: b.title,
+    categoryId: b.categoryId,
+    categoryName: b.categoryId != null ? (categoryNames.value[b.categoryId] ?? null) : null,
     pvzName: b.pvzName,
     pvzAddress: b.pvzAddress,
     pvzBraname: b.pvzBraname,
     unit: b.unit,
     incoming: b.incoming,
-    outgoing: b.outgoing,
-    balance: b.incoming - b.outgoing,
+    issued: b.issued,
+    writtenOff: b.writtenOff,
+    balance: b.incoming - b.issued - b.writtenOff,
+    expiryAt: b.expiryAt,
+    unlabeled: b.unlabeled,
   })),
 )
 
-// Топ позиций по обороту: те же пары (позиция × КУ), отсортированные по объёму
-// прошедшего через склад имущества. Аналитический срез — какие позиции на каких
-// пунктах выдачи дают основной оборот.
-const topRows = computed(() =>
-  [...buckets.value]
-    .map((b) => ({
-      key: b.key,
-      title: b.title,
-      pvzName: b.pvzName?.trim() || b.pvzBraname,
-      pvzAddress: b.pvzAddress,
-      unit: b.unit,
-      turnover: b.incoming,
-    }))
-    .sort((a, b) => b.turnover - a.turnover)
-    .slice(0, 10),
-)
+interface WarehouseStat {
+  key: string
+  label: string
+  value: number
+  /** Значение подсвечивается красным, когда оно больше нуля. */
+  alarm?: boolean
+}
 
-// Колонки скелетона вкладки «Топ позиций» — повторяют шапку реальной таблицы.
-const topSkeletonColumns: TableSkeletonColumn[] = [
-  { label: '№', class: 'col-rank' },
-  { label: 'Позиция', class: 'col-product' },
-  { label: 'Пункт выдачи', class: 'col-pvz' },
-  { label: 'Оборот, ед.', class: 'col-num' },
-]
+/** Короткая сводка склада — то, на что администратор смотрит первым делом. */
+const stats = computed<WarehouseStat[]>(() => {
+  const rows = warehouseRows.value
+  const inStock = rows.filter((r) => r.balance > 0)
+  const now = Date.now()
+  return [
+    { key: 'positions', label: 'Позиций на складе', value: inStock.length },
+    {
+      key: 'units',
+      label: 'Единиц на остатке',
+      value: inStock.reduce((sum, r) => sum + r.balance, 0),
+    },
+    {
+      key: 'points',
+      label: 'Пунктов выдачи',
+      value: new Set(inStock.map((r) => r.pvzBraname)).size,
+    },
+    {
+      key: 'expired',
+      label: 'Позиций с истёкшим сроком',
+      value: inStock.filter((r) => r.expiryAt !== null && r.expiryAt < now).length,
+      alarm: true,
+    },
+    {
+      key: 'unlabeled',
+      label: 'Единиц без штрих-кода',
+      value: inStock.reduce((sum, r) => sum + r.unlabeled, 0),
+    },
+  ]
+})
+
+// Строка ведёт на предложение, по которому имущество попало на склад: с него
+// видно поставщика, цену, упаковку и участки поставки.
+function onRowClick(row: WarehouseRow): void {
+  if (!row.offerId) return
+  offerOverlay.open(row.offerId)
+}
 </script>
 
 <template lang="pug">
-q-page.warehouse-summary(role='region', aria-label='Сводный склад кооператива')
+q-page.warehouse-summary(role='region', aria-label='Склад кооператива')
   PageHint(storage-key='mp:admin-warehouse-summary:banner-dismissed')
-    | Сводный обзор склада и оборота по всем пунктам выдачи кооператива. Только для
-    | чтения — операции выполняются на столах ПВЗ.
+    | Склад кооператива: что принято, выдано и списано по каждому пункту выдачи.
+    | Только для чтения — операции выполняются на столах ПВЗ. Нажмите на
+    | наименование, чтобы открыть предложение, по которому имущество пришло.
 
-  q-tabs.warehouse-summary__tabs(
-    v-model='tab',
-    dense,
-    align='left',
-    active-color='primary',
-    indicator-color='primary',
-    narrow-indicator,
-    no-caps
-  )
-    q-tab(name='warehouse', label='Сводный склад')
-    q-tab(name='flow', label='Топ позиций по обороту')
+  .warehouse-summary__stats
+    .warehouse-summary__stat(v-for='s in stats', :key='s.key')
+      .warehouse-summary__stat-label {{ s.label }}
+      .warehouse-summary__stat-value(
+        :class='s.alarm && s.value > 0 ? "warehouse-summary__stat-value--alarm" : ""'
+      ) {{ s.value }}
 
-  q-separator
+  WarehouseSummaryGrid(:rows='warehouseRows', :loading='loading', @row-click='onRowClick')
 
-  q-tab-panels.warehouse-summary__panels(v-model='tab', animated, keep-alive)
-    q-tab-panel.q-px-none(name='warehouse')
-      WarehouseSummaryGrid(:rows='warehouseRows', :loading='loading')
-
-    q-tab-panel.q-px-none(name='flow')
-      TableSkeleton(v-if='loading && !topRows.length', :columns='topSkeletonColumns')
-
-      .table-wrap(v-else-if='topRows.length')
-        .table-scroll
-          table.table.warehouse-summary__top
-            thead
-              tr
-                th.col-rank №
-                th.col-product Позиция
-                th.col-pvz Пункт выдачи
-                th.col-num Оборот, ед.
-            tbody
-              tr(v-for='(row, i) in topRows', :key='row.key')
-                td.col-rank {{ i + 1 }}
-                td.col-product.warehouse-summary__product {{ row.title }}
-                td.col-pvz
-                  .warehouse-summary__pvz
-                    span.warehouse-summary__pvz-name {{ row.pvzName }}
-                    span.warehouse-summary__pvz-addr(v-if='row.pvzAddress') {{ row.pvzAddress }}
-                td.col-num
-                  strong {{ row.turnover }}×{{ row.unit }}
-
-      EmptyState(
-        v-else,
-        title='Оборота пока нет',
-        body='Здесь появится рейтинг позиций по объёму, прошедшему через пункты выдачи.'
-      )
-        template(#icon)
-          q-icon(name='leaderboard', size='48px')
+  OfferRegistryOverlay(:coopname='info.coopname', from='warehouse')
 </template>
 
 <style scoped lang="scss">
@@ -198,50 +252,38 @@ q-page.warehouse-summary(role='region', aria-label='Сводный склад к
   display: flex;
   flex-direction: column;
   gap: var(--p-4, 16px);
-}
 
-.table-scroll {
-  overflow-x: auto;
-}
+  &__stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--p-3, 12px);
+  }
 
-.warehouse-summary__top {
-  table-layout: fixed;
-  min-width: 760px;
-}
+  &__stat {
+    flex: 1 1 160px;
+    min-width: 150px;
+    border: 1px solid var(--p-line);
+    border-radius: var(--p-r-md, 12px);
+    background: var(--p-surface);
+    padding: var(--p-3, 12px) var(--p-4, 16px);
+  }
 
-.col-rank {
-  width: 48px;
-  text-align: right;
-}
-.col-product {
-  width: 280px;
-}
-.col-pvz {
-  width: 320px;
-}
-.col-num {
-  width: 132px;
-  text-align: right;
-  white-space: nowrap;
-}
+  &__stat-label {
+    color: var(--p-ink-3);
+    font-size: var(--p-fs-meta, 12px);
+  }
 
-.warehouse-summary__product {
-  overflow-wrap: anywhere;
-}
+  &__stat-value {
+    margin-top: var(--p-1, 4px);
+    color: var(--p-ink);
+    font-size: var(--p-fs-h2, 20px);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
 
-.warehouse-summary__pvz {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-.warehouse-summary__pvz-name {
-  font-weight: 600;
-  overflow-wrap: anywhere;
-}
-.warehouse-summary__pvz-addr {
-  color: var(--p-ink-3);
-  font-size: var(--p-fs-body-sm, 13px);
-  overflow-wrap: anywhere;
+  &__stat-value--alarm {
+    color: var(--p-neg);
+  }
 }
 
 @media (max-width: 768px) {

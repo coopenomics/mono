@@ -26,6 +26,8 @@ import {
   MarketplaceCheckoutCartInputDTO,
   MarketplaceCheckoutResultDTO,
   MarketplaceCheckoutSignableLineDTO,
+  MarketplaceCheckoutPreviewDTO,
+  MarketplaceConvertPayloadDTO,
 } from '../dto/marketplace-checkout.dto';
 /**
  * Эпик 16: корзина заказчика — точка оформления заказа. Все операции
@@ -126,35 +128,31 @@ export class MarketplaceCartResolver {
     });
   }
 
-  @Query(() => [MarketplaceCheckoutSignableLineDTO], {
+  @Query(() => MarketplaceCheckoutPreviewDTO, {
     name: 'marketplaceCheckoutSignablePayloads',
     description:
-      'Заявления о конвертации паевого взноса к подписи — по одному на каждую позицию корзины. ' +
-      'Подписанные заявления возвращаются строками lines в marketplaceCheckoutCart.',
+      'Превью оформления: по каждой позиции корзины — идентификатор будущего заказа и суммы по частям (два кошелька ' +
+      'программы оплачивают каждый свою часть: членский взнос — членский кошелёк, тело — свободный паевой «Стола заказов») ' +
+      'и заявление 1110 о переводе недостающего с Цифрового кошелька — к подписи заказчиком; если переводить нечего, null.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
   @RequireMarketplaceAccess('Cart', 'manage:own')
   async marketplaceCheckoutSignablePayloads(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember
-  ): Promise<MarketplaceCheckoutSignableLineDTO[]> {
-    const lines = await this.checkoutService.getSignablePayloads({
+  ): Promise<MarketplaceCheckoutPreviewDTO> {
+    const preview = await this.checkoutService.getSignablePayloads({
       coopname: platformSettings().coopname,
       orderer_account: member.username,
     });
-    return lines.map((l) => {
-      const document = new GeneratedDocumentDTO();
-      document.full_title = l.document.full_title;
-      document.html = l.document.html;
-      document.hash = l.document.hash;
-      document.meta = l.document.meta;
-      document.binary = l.document.binary;
-      return new MarketplaceCheckoutSignableLineDTO({
-        offer_id: l.offer_id,
-        package_id: l.package_id,
-        order_hash: l.order_hash,
-        amount: l.amount,
-        document,
-      });
+    return new MarketplaceCheckoutPreviewDTO({
+      lines: preview.lines.map((l) => new MarketplaceCheckoutSignableLineDTO(l)),
+      convert: preview.convert
+        ? new MarketplaceConvertPayloadDTO({
+            amount: preview.convert.amount,
+            membership_fee: preview.convert.membership_fee,
+            document: new GeneratedDocumentDTO(preview.convert.document),
+          })
+        : null,
     });
   }
 
@@ -163,7 +161,8 @@ export class MarketplaceCartResolver {
     description:
       'Оформить заказ из корзины: предвалидация баланса, построчное создание заказов с общим ' +
       'идентификатором заказа и КУ; непрошедший остаток остаётся в корзине для повтора. ' +
-      'Каждая позиция сопровождается подписанным заявлением о конвертации паевого взноса (lines).',
+      'Строки lines — из превью; signed_convert — подписанное заявление 1110, если превью его вернуло: перевод недостающей суммы ' +
+      'выполняется отдельной транзакцией до заказов.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
   @RequireMarketplaceAccess('Cart', 'manage:own')
@@ -173,7 +172,7 @@ export class MarketplaceCartResolver {
   ): Promise<MarketplaceCheckoutResultDTO> {
     return this.checkoutService.execute(
       { coopname: platformSettings().coopname, orderer_account: member.username },
-      { checkout_id: input?.checkout_id ?? null, lines: input?.lines ?? null }
+      { checkout_id: input?.checkout_id ?? null, lines: input?.lines ?? null, signed_convert: input?.signed_convert ?? null }
     );
   }
 

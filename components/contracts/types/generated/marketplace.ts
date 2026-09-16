@@ -49,10 +49,15 @@ export interface IConfirmwroff {
   memo: IDocument2
 }
 
+export interface IConvertTarget {
+  order_hash: IChecksum256
+  amount: IAsset
+}
+
 export interface IConvert {
   coopname: IName
   orderer: IName
-  amount: IAsset
+  targets: IConvertTarget[]
   convert_statement: IDocument2
 }
 

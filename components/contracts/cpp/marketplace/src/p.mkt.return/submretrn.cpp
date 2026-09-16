@@ -1,5 +1,6 @@
 /**
- * @brief Пайщик подаёт заявление на гарантийный возврат (Story 7.1, p.mkt.return).
+ * @brief Пайщик подаёт рекламацию — Заявление о гарантийном возврате
+ * имущества (registry 1106) со своей подписью (Story 7.1, p.mkt.return).
  *
  * Без ledger2-операций. Создаётся return_request в pending_review;
  * order.return_request_id ставится для двусторонней связи. Привязка к
@@ -41,6 +42,9 @@ void marketplace::submretrn(eosio::name coopname,
   auto o = Marketplace::get_order_by_hash_or_fail(coopname, original_order_hash);
   eosio::check(o.orderer == orderer,
                "Вы не заказчик исходного заказа");
+  // Вышедший или выходящий пайщик возврат не открывает: паевой и взнос по
+  // решению совета пришли бы на заблокированный аккаунт (задача 99D-16).
+  get_active_participant_or_fail(coopname, orderer);
   eosio::check(o.status == OrderStatus::RECEIVED,
                "Возврат возможен только по выданному заказу");
   eosio::check(o.return_request_id == 0,
@@ -58,7 +62,7 @@ void marketplace::submretrn(eosio::name coopname,
                "Гарантийный срок по заказу истёк");
 
   // Стоимость возвращаемого имущества считается от ФАКТА выдачи, а не от цены
-  // заказа: оператор мог скорректировать цену на месте (signiss2 берёт факт из
+  // заказа: оператор мог скорректировать цену на месте (issueact2 берёт факт из
   // акта выдачи), и заказчик заплатил именно `o.fact_cost`. Расчёт от
   // `o.unit_price` вернул бы сумму, отличную от уплаченной, и разошёлся бы с
   // суммой в подписанном заявлении. Доля возвращаемого количества берётся той
@@ -73,14 +77,14 @@ void marketplace::submretrn(eosio::name coopname,
   // взнос, иначе гарантийный возврат обходился бы ему в размер взноса.
   //
   // База — взнос, фактически принятый кооперативом на выдаче: при недовыдаче
-  // signiss2 пересчитал его пропорционально факту (излишек уже вернулся
+  // issueact2 пересчитал его пропорционально факту (излишек уже вернулся
   // пайщику через o.mkt.refund), поэтому здесь берём ту же пропорцию, а затем
   // масштабируем по доле возвращаемого количества. При возврате всего
   // выданного количества доля равна принятому взносу целиком.
   const eosio::asset locked_fee = Marketplace::get_order_membership_fee(o);
   eosio::asset fee_refund = eosio::asset(0, _root_govern_symbol);
   if (locked_fee.amount > 0 && o.total_cost.amount > 0) {
-    // Ровно та же пропорция, что применил signiss2 при финализации взноса, —
+    // Ровно та же пропорция, что применил issueact2 при финализации взноса, —
     // возвращаем не больше и не меньше принятого участком.
     const eosio::asset accepted_fee =
         Marketplace::pro_rata(locked_fee, o.fact_cost.amount, o.total_cost.amount);
@@ -90,7 +94,7 @@ void marketplace::submretrn(eosio::name coopname,
 
   // Создание return_request entity
   return_requests_index requests(_marketplace, coopname.value);
-  uint64_t request_id = requests.available_primary_key();
+  const uint64_t request_id = Marketplace::next_return_request_id(coopname);
   requests.emplace(_marketplace, [&](auto& r) {
     r.id                    = request_id;
     r.hash                  = request_hash;
@@ -120,5 +124,5 @@ void marketplace::submretrn(eosio::name coopname,
   // версия), rejretrn/rejretrem → newdeclined.
   Action::send<newsubmitted_interface>(_soviet, "newsubmitted"_n, _marketplace,
                                        coopname, orderer, "submretrn"_n,
-                                       o.hash, statement);
+                                       o.hash, statement, uint64_t(0));
 }

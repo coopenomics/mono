@@ -1,12 +1,18 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue';
+import { useFirstLoad } from 'src/shared/lib/composables';
 import { debounce } from 'quasar';
 import { SuccessAlert, FailAlert } from 'src/shared/api';
-import { useMarketplaceRealtime, getMembershipFeePercent } from 'src/shared/lib/marketplace';
+import {
+  useMarketplaceRealtime,
+  getMembershipFeePercent,
+  marketplaceCardPackages,
+  offerCardUnitCost,
+  offerCardUnitLabel,
+} from 'src/shared/lib/marketplace';
 import { useRoute, useRouter } from 'vue-router';
 import { useSystemStore } from 'src/entities/System/model';
 import { useHeaderActions } from 'src/shared/hooks';
-import { marketplaceOrderUnitLabel } from 'src/shared/lib/consts';
 import { marketplaceOfferImageUrls } from 'src/shared/lib/utils';
 import { BaseButton, EmptyState } from 'src/shared/ui/base';
 import { FilterBar, PageHint } from 'src/shared/ui/domain';
@@ -71,7 +77,11 @@ const { registerAction } = useHeaderActions();
 const items = ref<MarketplaceOfferView[]>([]);
 const totalPages = ref(0);
 const currentPage = ref(1);
-const loading = ref(false);
+// true до первого запроса: иначе первый кадр до загрузки показывает пустое
+// состояние вместо скелетона, и первая загрузка неотличима от пустого списка.
+const loading = ref(true);
+/** Пустое состояние и каркас — по первой загрузке; дочитка обновляет молча. */
+const firstLoad = useFirstLoad(loading);
 const statusFilter = ref<MarketplaceOfferStatusView | null>(null);
 const search = ref('');
 // Поставщик видит крупно свою цену; ниже — сколько заплатит заказчик
@@ -80,7 +90,7 @@ const feePercent = ref(0);
 
 // Скелетон показываем только на первичной загрузке (список ещё пуст). При
 // polling'е данные обновляются молча — без дёргания спиннером.
-const showSkeleton = computed(() => loading.value && items.value.length === 0);
+const showSkeleton = computed(() => firstLoad.value);
 
 // Фильтр статусов = канон-меню `.tabbar`. `slug` — стабильный ключ в URL
 // (`?status=moderation`), чтобы на любой фильтр можно было перейти ссылкой.
@@ -154,8 +164,9 @@ const cards = computed<OfferCard[]>(() =>
     // сразу уменьшается). Повторно вычитать `quantity_blocked` нельзя —
     // это двойное списание (100 опубликовал, заказали 1 → показывало 98).
     remainUnits: o.unlimited_flag ? undefined : o.quantity_available,
-    unitCost: parseFloat(o.price_per_unit) || 0,
-    unitLabel: marketplaceOrderUnitLabel(o.unit_of_measure),
+    unitCost: offerCardUnitCost(o),
+    unitLabel: offerCardUnitLabel(o),
+    packages: marketplaceCardPackages(o.packages, o.unit_of_measure, o.unlimited_flag),
     status: STATUS_TO_CARD[o.status],
     domainStatus: o.status,
     rejectReason: o.reject_reason ?? null,
@@ -285,7 +296,7 @@ q-page.my-offers(role="region", aria-label="Мои предложения")
         CatalogOfferCardSkeleton
 
     EmptyState(
-      v-if="!loading && filtered.length === 0",
+      v-if="!firstLoad && filtered.length === 0",
       title="Нет предложений в этом фильтре",
       body="Если у вас нет ни одного предложения — создайте первое на странице «Создать предложение»."
     )

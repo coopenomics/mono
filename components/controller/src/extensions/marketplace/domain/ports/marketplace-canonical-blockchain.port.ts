@@ -1,4 +1,4 @@
-import type { BranchContract, Ledger2Contract, MarketContract } from 'cooptypes';
+import type { BranchContract, Interfaces, Ledger2Contract, MarketContract, SovietContract } from 'cooptypes';
 import type { InnerTransactResult } from '@coopenomics/innercoop';
 
 /**
@@ -17,37 +17,66 @@ import type { InnerTransactResult } from '@coopenomics/innercoop';
  *  - Story 4.3 → expireOrder (cron-driven)
  *  - Story 4.5 → acceptOrder / declineOrder
  *
- * Stories Эпика 5/6 → signSupp / signChair / signIss1 / signIss2.
- * Stories Эпика 7 → submRetrn / aprRetRem / rejRetRem / accRetrn / rejRetrn.
+ * Stories Эпика 5/6 → signSupp / signChair; выдача (компонент 68) → readyIssue / issueStmt / issueAct1 / issueAct2 / cancelIssue.
+ * Stories Эпика 7 → submRetrn / aprRetRem / rejRetRem / accRetrn / rejRetrn / handBack.
  * Stories Эпика 8 → propWroff / execWroff / declWroff.
  */
+/** Действие заказа в транзакции оформления корзины. */
+export enum MarketplaceCheckoutOrderActionKind {
+  /** Заказ у поставщика — `marketplace::createorder`. */
+  CREATE_ORDER = 'createorder',
+  /** Заказ из остатка склада кооператива — `marketplace::stockorder`. */
+  STOCK_ORDER = 'stockorder',
+}
+
+export type MarketplaceCheckoutOrderAction =
+  | { kind: MarketplaceCheckoutOrderActionKind.CREATE_ORDER; data: MarketContract.Actions.CreateOrder.ICreateOrder }
+  | { kind: MarketplaceCheckoutOrderActionKind.STOCK_ORDER; data: MarketContract.Actions.StockOrder.IStockOrder };
+
+/**
+ * Оформление корзины одной транзакцией: перевод по заявлению 1110 (если
+ * кошельков программы не хватило) и заказы всех строк в порядке плана.
+ * Цепь проводит действия вместе или откатывает все — частичного оформления
+ * и зависшего перевода не бывает (решение владельца 15.09.2026).
+ */
+export interface MarketplaceCheckoutChainInput {
+  coopname: string;
+  /** Перевод в членский кошелёк — первым действием; null, если переводить нечего. */
+  convert: MarketContract.Actions.Convert.IConvert | null;
+  orders: MarketplaceCheckoutOrderAction[];
+}
+
 export interface MarketplaceCanonicalBlockchainPort {
   createOrder(data: MarketContract.Actions.CreateOrder.ICreateOrder): Promise<InnerTransactResult>;
+
+  /** Перевод по заявлению и заказы всех строк корзины одной транзакцией. */
+  checkout(data: MarketplaceCheckoutChainInput): Promise<InnerTransactResult>;
 
   /**
    * requirement 76: заказ из обезличенного остатка склада кооператива.
    * Продавец — сам кооператив (offerer == coopname на цепи); Order рождается
    * сразу в `acceptcoop` (имущество уже на счёте 10 после первичной приёмки)
-   * и идёт только через выдачу signiss1/signiss2. Фондируется из членских
-   * средств пайщика: o.mkt.lockm (тело, w.mkt.member → w.mkt.order) + o.mkt.lockmf
-   * (взнос, w.mkt.member → w.mkt.fee). Паевой пополняет членский кошелёк заранее
-   * отдельным действием `convert`.
+   * и идёт только через выдачу по саге (заявление → совет → акт). Фондируется
+   * из свободного паевого пайщика: o.mkt.lockp (тело, w.mkt.share → w.mkt.order)
+   * и o.mkt.fee (взнос, w.mkt.member → w.mkt.fee); недостающая часть взноса
+   * приходит заранее переводом по заявлению 1110 (o.mkt.conv).
    *
    * Авторизация — кооператив (`require_auth(coopname)`).
    */
   stockOrder(data: MarketContract.Actions.StockOrder.IStockOrder): Promise<InnerTransactResult>;
 
   /**
-   * requirement 76: конвертация паевого взноса пайщика в членский кошелёк
-   * «Стола заказов» (o.mkt.conv: TRANSFER w.wal.share → w.mkt.member). Пополняет
-   * членские средства под заказ из остатка (`stockOrder` фондируется только из
-   * членских). Подписанное Заявление о конвертации публикуется в реестр
-   * документов. Выполняется перед `stockOrder`, когда членских средств не
-   * хватает (на всю сумму либо на дельту превышения над высвобождённым).
-   *
-   * Авторизация — кооператив (`require_auth(coopname)`).
+   * Перевод паевого взноса во внутренний членский кошелёк «Стола заказов» по
+   * заявлению 1110 — только когда кошелька не хватает (o.mkt.conv с Цифрового
+   * кошелька). Оформление корзины шлёт его первым действием общей транзакции
+   * (`checkout`); отдельным вызовом пользуются потоки с одним заказом. Сумма адресуется заказам
+   * (`targets`): на каждый заказ идёт своя операция с его хэшем как
+   * `process_hash`, поэтому перевод виден первой операцией нитки того заказа,
+   * который оплачивает. Заявление публикуется в реестр документов отдельным
+   * пакетом — оно одно на всё оформление.
    */
   convert(data: MarketContract.Actions.Convert.IConvert): Promise<InnerTransactResult>;
+
 
   /**
    * requirement 76 (вопрос 4): списание уценки по заказу из остатка после
@@ -164,39 +193,7 @@ export interface MarketplaceCanonicalBlockchainPort {
    */
   payOut(data: MarketContract.Actions.PayOut.IPayout): Promise<InnerTransactResult>;
 
-  /**
-   * Story 6.1 / FR21: председатель КУ выдачи открывает выдачу первой
-   * подписью АПП-выдачи. Без ledger2-операций. Per-Order: статус
-   * `accepted_to_coop → ready_to_receive`, `current_warehouse_braname`
-   * приравнивается `delivery_braname` (фиксация логистической передачи
-   * на склад выдачи). Сохраняется `issue_act_signiss1` в Order row.
-   *
-   * Авторизация — кооператив (`require_auth(coopname)`); C++ проверяет,
-   * что `signer` уполномочен для `delivery_braname` (председатель /
-   * trustee / trusted).
-   */
-  signIss1(data: MarketContract.Actions.SignIss1.ISignIss1): Promise<InnerTransactResult>;
 
-  /**
-   * Story 6.3 / FR24: заказчик закрывает выдачу финальной подписью.
-   * Per-Order транзакция:
-   *
-   *   1. Корректирующие операции (если факт ≠ заказ):
-   *      - actual < ordered: `o.mkt.unlock(ordered_cost - fact_cost)` —
-   *        снятие разницы резерва на `w.wal.member.available`.
-   *      - actual > ordered: `o.mkt.lock(diff)` — добор разницы с паевого
-   *        (TRANSFER w.wal.share → w.mkt.order, Дт 80 / Кт 86); при
-   *        нехватке средств транзакция фейлится (L6 guard, FR25).
-   *   2. Выдача: `o.mkt.consum(fact_cost)` — BURN w.mkt.order, Дт 86 / Кт 10.
-   *
-   * Статус Order'а: `ready_to_receive → received`; заполняются
-   * `actual_quantity`, `fact_cost`, `issue_act_signiss2`, `warranty_until`.
-   *
-   * Авторизация — кооператив (`require_auth(coopname)`); C++ проверяет
-   * `orderer == order.orderer` и авторизацию `delivery_signer` для
-   * `delivery_braname`. Подписи в `act.signatures` — `{delivery_signer, orderer}`.
-   */
-  signIss2(data: MarketContract.Actions.SignIss2.ISignIss2): Promise<InnerTransactResult>;
 
   /**
    * Story 7.1 / FR29: пайщик подаёт заявление на гарантийный возврат.
@@ -294,6 +291,44 @@ export interface MarketplaceCanonicalBlockchainPort {
   // ── Экономика КУ (requirement b6): членский взнос и распределение ────
 
   /** Единая ставка членского взноса кооператива (администратор). */
+  // ── Паевая модель: выдача по заявлению, протоколу совета и акту (компонент 68) ──
+
+  /** Оператор участка выдачи отметил поступление имущества: acceptcoop → readyrecv. */
+  readyIssue(data: MarketContract.Actions.ReadyIssue.IReadyIssue): Promise<InnerTransactResult>;
+  /** Заявление 1113 заказчика: readyrecv → issuepend + повестка совета mktissue. */
+  issueStmt(data: MarketContract.Actions.IssueStmt.IIssueStmt): Promise<InnerTransactResult>;
+  /** Первая подпись акта 1115 заказчиком: issueauth → issueact1. */
+  issueAct1(data: MarketContract.Actions.IssueAct1.IIssueAct1): Promise<InnerTransactResult>;
+  /** Закрывающая подпись акта председателем участка: issueact1 → received, все движения выдачи. */
+  issueAct2(data: MarketContract.Actions.IssueAct2.IIssueAct2): Promise<InnerTransactResult>;
+  /** Отмена начатой выдачи оператором: issueauth / issueact1 → readyrecv. */
+  cancelIssue(data: MarketContract.Actions.CancelIssue.ICancelIssue): Promise<InnerTransactResult>;
+  /** Оператор выдал имущество обратно после отказа совета или по истечении срока ожидания. */
+  handBack(data: MarketContract.Actions.HandBack.IHandBack): Promise<InnerTransactResult>;
+
+  /**
+   * Довнесение членского взноса по возврату, ждавшему пополнения общего
+   * кошелька участка (`feepend → ∅`, задача 99D-15). Зовёт крон повтора.
+   */
+  payRetFee(data: MarketContract.Actions.PayRetFee.IPayRetFee): Promise<InnerTransactResult>;
+
+  /**
+   * Заявление на возврат на цепи по хэшу — null, если запись уже стёрта.
+   * Читается сразу после обратного вызова совета: по статусу `feepend` бэкенд
+   * узнаёт, что взнос ждёт пополнения кошелька участка.
+   */
+  findReturnRequestByHash(coopname: string, request_hash: string): Promise<Interfaces.Marketplace.IReturnRequest | null>;
+
+  // ── p.mkt.claim — гарантийная претензия поставщику (99D-13) ──
+  /** Поставщик признал претензию: o.mkt.admit, долг к удержанию из выплат. Несогласие в цепь не пишется. */
+  admitClaim(data: MarketContract.Actions.AdmitClaim.IAdmitClaim): Promise<InnerTransactResult>;
+  /**
+   * Решение совета по хэшу повестки (order_hash / request_hash) — источник
+   * номера решения для протокола и журнала саги. `null` — повестка ещё не
+   * материализована в цепи.
+   */
+  findCouncilDecisionByHash(coopname: string, hash: string): Promise<SovietContract.Tables.Decisions.IDecision | null>;
+
   setFee(data: MarketContract.Actions.SetFee.ISetFee): Promise<InnerTransactResult>;
 
   /** Ручное распределение средств общего кошелька КУ по весам (branch::distribute; председатель). */
@@ -305,8 +340,6 @@ export interface MarketplaceCanonicalBlockchainPort {
   /** Исключение участника из распределения (branch::delweight). */
   delWeight(data: BranchContract.Actions.DelWeight.IDelweight): Promise<InnerTransactResult>;
 
-  /** Перевод персональных средств доверенного в членский кошелёк «Стола заказов» (branch::convert). */
-  convertBranchFunds(data: BranchContract.Actions.Convert.IConvert): Promise<InnerTransactResult>;
 
   /** Заявка на материальную помощь доверенного (branch::createaid → gateway). */
   createAid(data: BranchContract.Actions.CreateAid.ICreateaid): Promise<InnerTransactResult>;

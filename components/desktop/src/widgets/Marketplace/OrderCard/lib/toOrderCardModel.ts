@@ -1,6 +1,6 @@
 import { Queries } from '@coopenomics/sdk';
 import { marketplaceOrderSaleUnit } from 'src/shared/lib/consts/marketplace-units';
-import type { Order, OrderStatus } from '../OrderCard.vue';
+import type { Order, OrderStatus } from '../OrderCard.types';
 import { orderStatusDisplay } from './orderStatusDisplay';
 
 /**
@@ -25,6 +25,9 @@ const STATUS_TO_CARD: Record<DomainOrderStatus, OrderStatus> = {
   SUPPLY_PREPARED: 'in-delivery',
   ACCEPTED_TO_COOP: 'in-delivery',
   READY_TO_RECEIVE: 'ready-to-issue',
+  ISSUE_PENDING: 'ready-to-issue',
+  ISSUE_AUTHORIZED: 'ready-to-issue',
+  ISSUE_ACT1: 'ready-to-issue',
   RECEIVED: 'issued',
   RETURNED: 'returned',
   CANCELLED_BY_ORDERER: 'cancelled',

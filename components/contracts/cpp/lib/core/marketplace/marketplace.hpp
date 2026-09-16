@@ -127,6 +127,38 @@ inline void update_order(eosio::name coopname, uint64_t order_id, const std::fun
   orders.modify(it, _marketplace, [&](auto& o) { fn(o); });
 }
 
+/// Денежное расширение строки заказа, если в нём действительно сумма.
+/// Расширения сериализуются по порядку: когда контракт записывает более
+/// позднее поле, все предыдущие ложатся пустым asset без символа ("0 "). Это
+/// не сумма, а отсутствие данных — сравнение или вычитание с ним цепь
+/// отвергает («comparison of assets with different symbols»), так 11.09.2026
+/// на тестнете встали выдача прежних заказов и выплаты поставщикам.
+/// value_or(def) у binary_extension не помечен const — читаем через
+/// has_value()/value().
+inline std::optional<eosio::asset> get_asset_extension(const eosio::binary_extension<eosio::asset>& ext) {
+  if (!ext.has_value() || ext.value().symbol.raw() == 0) return std::nullopt;
+  return ext.value();
+}
+
+/// Принятая стоимость заказа — база долга поставщику (Дт 10 / Кт 76 на
+/// приёмке, Дт 76 / Кт 51 на выплате). У заказов, принятых до появления поля,
+/// суммы нет: тогда берётся `fact_cost`, как читалось раньше.
+inline eosio::asset get_accepted_cost(const order& o) {
+  return get_asset_extension(o.accepted_cost).value_or(o.fact_cost);
+}
+
+/// Долг поставщика, уже удержанный при инициации выплаты; без суммы — ноль.
+inline eosio::asset get_payout_withheld(const order& o) {
+  return get_asset_extension(o.payout_withheld).value_or(eosio::asset(0, _root_govern_symbol));
+}
+
+/// Выплата поставщику по заказу ещё не завершена: заказ нельзя стирать —
+/// обратные вызовы шлюза (`payconfirm` / `paydecline`) и повторная инициация
+/// ищут его по хэшу (задача 99D-14).
+inline bool is_supplier_settlement_open(const order& o) {
+  return o.payout_status != OrderPayoutStatus::COMPLETED;
+}
+
 // Терминал жизненного цикла: запись стирается из RAM, история процесса
 // остаётся в журнале действий (blockchain_actions парсера).
 inline void erase_order(eosio::name coopname, uint64_t order_id) {
@@ -137,6 +169,27 @@ inline void erase_order(eosio::name coopname, uint64_t order_id) {
 }
 
 // ── Return requests ─────────────────────────────────────────────────────
+
+/// Номер новой заявки на возврат. Ноль не выдаётся: в заказе
+/// `return_request_id == 0` означает «возврата по заказу не было», а
+/// `available_primary_key` на пустой таблице (заявки стираются терминалами)
+/// возвращает ноль — тогда по такому заказу открывался бы второй возврат, а
+/// `closeorder` не видел бы открытой заявки (задача 99D-16).
+inline uint64_t next_return_request_id(eosio::name coopname) {
+  return_requests_index requests(_marketplace, coopname.value);
+  const uint64_t id = requests.available_primary_key();
+  return id == 0 ? 1 : id;
+}
+
+/// По заказу есть незакрытая заявка на возврат. Номера стёртых заявок
+/// выдаются заново, поэтому заявка с номером из заказа относится к нему,
+/// только если совпадает хэш заказа.
+inline bool has_open_return_request(eosio::name coopname, const order& o) {
+  if (o.return_request_id == 0) return false;
+  return_requests_index requests(_marketplace, coopname.value);
+  auto it = requests.find(o.return_request_id);
+  return it != requests.end() && it->original_order_hash == o.hash;
+}
 
 inline std::optional<return_request> get_return_request_by_hash(eosio::name coopname,
                                                                  const checksum256& request_hash) {
@@ -220,6 +273,33 @@ inline void erase_writeoff_proposal(eosio::name coopname, uint64_t proposal_id) 
   proposals.erase(it);
 }
 
+// ── Warranty claims (претензии поставщику, p.mkt.claim) ─────────────────
+
+inline std::optional<warranty_claim> get_claim_by_hash(eosio::name coopname,
+                                                       const checksum256& claim_hash) {
+  warranty_claims_index claims(_marketplace, coopname.value);
+  auto idx = claims.get_index<"byhash"_n>();
+  auto it = idx.find(claim_hash);
+  if (it == idx.end()) return std::nullopt;
+  return *it;
+}
+
+inline warranty_claim get_claim_by_hash_or_fail(eosio::name coopname,
+                                                const checksum256& claim_hash,
+                                                const std::string& msg = "Гарантийная претензия поставщику не найдена по хэшу") {
+  auto c = get_claim_by_hash(coopname, claim_hash);
+  eosio::check(c.has_value(), msg);
+  return *c;
+}
+
+inline void update_claim(eosio::name coopname, uint64_t claim_id,
+                         const std::function<void(warranty_claim&)>& fn) {
+  warranty_claims_index claims(_marketplace, coopname.value);
+  auto it = claims.find(claim_id);
+  eosio::check(it != claims.end(), "Гарантийная претензия не найдена по id");
+  claims.modify(it, _marketplace, [&](auto& c) { fn(c); });
+}
+
 // ── Cross-contract read: ledger2 wallet/userwallet balances ─────────────
 //
 // Используется в createorder для guard'а Locked Decision L6 (без отрицательного
@@ -277,9 +357,73 @@ inline eosio::asset get_order_membership_fee(const order& o) {
   return o.membership_fee;
 }
 
+/// Членский взнос участка под заказ идёт только с внутреннего членского
+/// кошелька программы w.mkt.member (уточнение владельца 06.09.2026: членские
+/// средства, вернувшиеся при отменах и гарантийных возвратах, оплачивают
+/// только членские взносы следующих заказов; тело заказа всегда паевое).
+/// Недостающую часть взноса пайщик заранее перевёл действием convert по
+/// заявлению 1110 — здесь кошелька обязано хватать на взнос целиком.
+inline void require_member_fee(eosio::name coopname, eosio::name orderer,
+                               const eosio::asset& membership_fee) {
+  if (membership_fee.amount <= 0) return;
+  auto member = get_user_wallet_balance(coopname, ledger2_wallets::MARKETPLACE_MEMBER_FUND, orderer);
+  eosio::check(member.available >= membership_fee,
+               std::string{"Недостаточно членских средств Стола заказов на членский взнос участка: требуется "} +
+                 membership_fee.to_string() + ", доступно " + member.available.to_string() +
+                 ". Сначала подайте заявление о переводе паевого взноса в программу.");
+}
+
+/// Паевое тело заказа (и доплата по факту) фондируется двумя паевыми кошельками
+/// каждым в свою очередь: сначала свободный паевой «Стола заказов» w.mkt.share
+/// (туда возвращаются паевые средства при отменах, недовыдачах и гарантийных
+/// возвратах), остаток — с главного паевого Цифрового кошелька w.wal.share.
+/// Обе части ложатся одним паевым резервом w.mkt.order (o.mkt.lockp и
+/// o.mkt.lock, без проводок — все кошельки на 80). При нехватке — отказ.
+inline void lock_order_body(eosio::name coopname, uint64_t order_id, eosio::name orderer,
+                            const checksum256& order_hash, const eosio::asset& body,
+                            const std::string& program_memo, const std::string& wallet_memo) {
+  if (body.amount <= 0) return;
+  auto program = get_user_wallet_balance(coopname, ledger2_wallets::MARKETPLACE_SHARE_FUND, orderer);
+  const eosio::asset from_program = program.available >= body ? body : program.available;
+  const eosio::asset from_wallet  = body - from_program;
+  if (from_wallet.amount > 0) {
+    auto wallet = get_user_wallet_balance(coopname, ledger2_wallets::SHARE_FUND_PAY, orderer);
+    eosio::check(wallet.available >= from_wallet,
+                 std::string{"Недостаточно паевых средств для заказа: требуется с Цифрового кошелька "} +
+                   from_wallet.to_string() + ", доступно " + wallet.available.to_string() +
+                   " (свободный паевой Стола заказов " + program.available.to_string() + " уже учтён)");
+  }
+  if (from_program.amount > 0) {
+    Ledger2::apply(_marketplace, coopname,
+                   operations::marketplace::LOCK_FROM_SHARE,
+                   processes::marketplace::SUPPLY,
+                   from_program, orderer, order_hash, program_memo);
+  }
+  if (from_wallet.amount > 0) {
+    Ledger2::apply(_marketplace, coopname,
+                   operations::marketplace::LOCK_ORDER,
+                   processes::marketplace::SUPPLY,
+                   from_wallet, orderer, order_hash, wallet_memo);
+  }
+}
+
+/// Списание членского взноса участка под заказ с внутреннего членского кошелька
+/// (o.mkt.fee, w.mkt.member → w.mkt.fee); no-op для нулевого взноса.
+inline void lock_membership_fee(eosio::name coopname, uint64_t order_id,
+                                eosio::name orderer, const checksum256& order_hash,
+                                const eosio::asset& fee, const std::string& memo) {
+  if (fee.amount <= 0) return;
+  Ledger2::apply(_marketplace, coopname,
+                 operations::marketplace::MEMBERSHIP_FEE_LOCK,
+                 processes::marketplace::SUPPLY,
+                 fee, orderer, order_hash, memo);
+}
+
 /// Полный возврат членского взноса заказа на членский кошелёк «Стола
-/// заказов» (o.mkt.refund) при отмене/отклонении/истечении; no-op для
-/// заказов без взноса. Частичный возврат при недовыдаче — в signiss2.
+/// заказов» w.mkt.member (o.mkt.refund) при отмене/отклонении/истечении; no-op
+/// для заказов без взноса. Частичный возврат при недовыдаче — в issueact2.
+/// Членский остаётся членским: обратно в паевой не транслируется, идёт в
+/// зачёт следующего заказа.
 inline void refund_membership_fee_if_any(eosio::name coopname, const order& o) {
   const eosio::asset fee = get_order_membership_fee(o);
   if (fee.amount <= 0) return;
@@ -290,8 +434,8 @@ inline void refund_membership_fee_if_any(eosio::name coopname, const order& o) {
                  Marketplace::Memo::get_membership_fee_refund_memo(o.id));
 }
 
-/// Полный возврат резерва заказа и членского взноса на членский «Стола
-/// заказов» (бесплатная отмена: до акцепта поставщиком либо заказ из остатка
+/// Полный возврат резерва заказа на свободный паевой «Стола заказов» и
+/// сторно членского взноса (бесплатная отмена: до акцепта поставщиком либо заказ из остатка
 /// кооператива — поставщика и его риска нет).
 inline void refund_order_full(eosio::name coopname, const order& o) {
   Ledger2::apply(_marketplace, coopname,
@@ -306,6 +450,17 @@ inline void refund_order_full(eosio::name coopname, const order& o) {
 /// Hard-code (определяется Положением целевой потребительской программы).
 inline constexpr uint64_t REFUSAL_PENALTY_PERCENT = 50;
 
+/// Снятие документов начатой выдачи с заказа (отказ совета, отмена оператором):
+/// заявление, протокол и обе подписи акта очищаются, факт возвращается к заказу.
+inline void clear_issue_documents(order& o) {
+  o.issue_statement.emplace(document2{});
+  o.issue_protocol.emplace(document2{});
+  o.issue_act1      = document2{};
+  o.issue_act2      = document2{};
+  o.actual_quantity = o.quantity;
+  o.fact_cost       = o.total_cost;
+}
+
 /// Удерживаемая часть суммы (округление вниз — остаток в пользу пайщика).
 inline eosio::asset refusal_penalty_share(const eosio::asset& base) {
   return calc_membership_fee(base, REFUSAL_PENALTY_PERCENT);
@@ -315,9 +470,10 @@ inline eosio::asset refusal_penalty_share(const eosio::asset& base) {
 /// Тело заказа и членский взнос делятся пополам — удержанная половина уходит
 /// в общий кошелёк КУ выдачи (тело — транзитом через пул взносов o.mkt.penalty,
 /// затем единым Branch::accrue вместе с удержанной половиной взноса), вторая
-/// половина возвращается пайщику на членский «Стола заказов». Имущество
+/// половина возвращается пайщику на свободный паевой «Стола заказов». Имущество
 /// остаётся на складе КУ (без движения по счёту 10) — кооператив несёт риск
-/// уже оплаченной поставки, под который и держится удержание.
+/// уже оплаченной поставки, под который и держится удержание. Долг поставщику
+/// (Кт 76 с приёмки) удержание не трогает: он гасится выплатой своим чередом.
 inline void retain_refusal_penalty(eosio::name coopname, const order& o) {
   // ── Тело заказа 50/50 ──
   const eosio::asset penalty_body = refusal_penalty_share(o.total_cost);
@@ -360,6 +516,60 @@ inline void retain_refusal_penalty(eosio::name coopname, const order& o) {
                    to_common, processes::marketplace::SUPPLY, o.hash,
                    Marketplace::Memo::get_refusal_penalty_distribute_memo(o.id));
   }
+}
+
+// ── Факты Стола заказов для других контрактов (shared-слой, задача 99D-16) ──
+// Код других контрактов таблиц marketplace напрямую не читает: участок,
+// выход пайщика и прочие проверки спрашивают Стол заказов только этими методами.
+
+/// Участок занят Столом заказов: он участок выдачи или приёмки хотя бы одного
+/// заказа (пока по заказу открыта заявка на возврат, заказ тоже жив).
+inline bool has_orders_at_branch(eosio::name coopname, eosio::name braname) {
+  orders_index orders(_marketplace, coopname.value);
+  auto by_delivery = orders.get_index<"bydelivbra"_n>();
+  if (by_delivery.find(braname.value) != by_delivery.end()) return true;
+  auto by_accept = orders.get_index<"byacceptbra"_n>();
+  return by_accept.find(braname.value) != by_accept.end();
+}
+
+/// Выход пайщика не оставит в Столе заказов незавершённого: резерв под заказы
+/// вернётся только выдачей или отменой (решение владельца, задача 99D-15), а
+/// решение совета по открытой заявке на возврат зачислило бы паевой и взнос на
+/// заблокированный аккаунт (задача 99D-16).
+inline void check_member_can_exit(eosio::name coopname, eosio::name username) {
+  const eosio::asset reserve =
+      get_user_wallet_balance(coopname, ledger2_wallets::MARKETPLACE_ORDER_LOCK, username).available;
+  eosio::check(reserve.amount == 0,
+               "Выход из кооператива невозможен: под заказы Стола заказов зарезервировано " +
+                 reserve.to_string() + " — завершите или отмените заказы");
+
+  return_requests_index requests(_marketplace, coopname.value);
+  auto by_orderer = requests.get_index<"byorderer"_n>();
+  eosio::check(by_orderer.find(username.value) == by_orderer.end(),
+               "Выход из кооператива невозможен: открыто заявление на гарантийный возврат в Столе заказов — дождитесь его рассмотрения");
+}
+
+/// Выход состоялся: остаток членского кошелька программы не возвращается и в
+/// паевой не транслируется — через пул взносов (o.mkt.exfee) уходит в общий
+/// кошелёк участка, к которому прикреплён пайщик (o.brn.common). Пайщик без
+/// участка или участок удалён — остаток остаётся в пуле. `actor` — контракт,
+/// проводящий выход (его разрешение подписывает операции).
+inline void settle_member_fund_on_exit(eosio::name actor, eosio::name coopname,
+                                       eosio::name username, const checksum256& exit_hash) {
+  const eosio::asset balance =
+      get_user_wallet_balance(coopname, ledger2_wallets::MARKETPLACE_MEMBER_FUND, username).available;
+  if (balance.amount <= 0) return;
+
+  Ledger2::apply(actor, coopname, operations::marketplace::EXIT_FEE_TO_POOL,
+                 processes::wallet::WITHDRAW, balance, username, exit_hash,
+                 "Остаток членского кошелька Стола заказов в пул взносов при выходе, username=" +
+                   username.to_string());
+
+  const auto braname = ::get_participant_branch(coopname, username);
+  if (!braname.has_value() || !Branch::exists(coopname, *braname)) return;
+  Branch::accrue(actor, coopname, *braname, balance, processes::wallet::WITHDRAW, exit_hash,
+                 "Остаток членского кошелька Стола заказов в общий кошелёк участка при выходе, username=" +
+                   username.to_string());
 }
 
 } // namespace Marketplace

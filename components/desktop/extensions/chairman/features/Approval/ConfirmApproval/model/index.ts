@@ -1,13 +1,12 @@
 import { useApprovalStore } from 'app/extensions/chairman/entities/Approval/model';
 import { api } from '../api';
 import type { IConfirmApprovalOutput } from '../api';
-import { useSignDocument } from 'src/shared/lib/document/model/entity';
+import { signDocument } from 'src/shared/lib/document';
 import { useSessionStore } from 'src/entities/Session/model';
 import type { IDocumentAggregate, ISignedDocument2 } from 'src/entities/Document/model';
 
 export function useConfirmApproval() {
   const store = useApprovalStore();
-  const { signDocument } = useSignDocument();
   const { username } = useSessionStore();
 
   const confirmApproval = async ( coopname: string, approvalHash: string, approved_document?: IDocumentAggregate ): Promise<IConfirmApprovalOutput> => {

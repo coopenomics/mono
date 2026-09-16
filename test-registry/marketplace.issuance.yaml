@@ -1,10 +1,15 @@
 feature: marketplace.issuance
-title: Выдача заказа на пункте выдачи — открытие по коду, подписи оператора и заказчика
+title: Выдача заказа на пункте выдачи — заявление пайщика, решение совета, акт и закрывающая подпись оператора
 
-# Слайс от готового к получению заказа до подтверждения получения заказчиком.
-# Порядок подписей по решению L1 проекта: при выдаче первым подписывает
-# председатель участка (оператор), финальную подпись ставит заказчик — то есть
-# зеркально приёмке, где финальная подпись у председателя.
+# Слайс от готового к получению заказа до закрытия выдачи (паевая модель,
+# компонент 68, 2026-09-06). Оператор фиксирует факт у стойки без подписи;
+# пайщик одним нажатием подписывает Заявление о возврате паевого взноса
+# имуществом (1113), контракт ставит его на повестку совета; совет решает —
+# робот по прямому вызову (секунды у стойки) либо люди (сколь угодно долго,
+# пайщик в спокойном ожидании); по протоколу (1114) формируется Акт (1115):
+# первую подпись ставит пайщик, закрывающую — оператор, и только тут идут
+# движения по средствам: выдача Дт 80 / Кт 10, недовыдача и излишек взноса
+# возвращаются на свободный паевой «Стола заказов» (w.mkt.share).
 
 #
 # Правка 2026-08-09 (FC1-4): сервисы слайса получают журнал через `ILoggerPort`
@@ -22,12 +27,22 @@ title: Выдача заказа на пункте выдачи — открыт
 
 sources:
   contract:
-    - components/contracts/cpp/marketplace/src/p.mkt.supply/signiss2.cpp
+    - components/contracts/cpp/marketplace/src/p.mkt.supply/readyissue.cpp
+    - components/contracts/cpp/marketplace/src/p.mkt.supply/issuestmt.cpp
+    - components/contracts/cpp/marketplace/src/p.mkt.supply/onmktisauth.cpp
+    - components/contracts/cpp/marketplace/src/p.mkt.supply/onmktisdecl.cpp
+    - components/contracts/cpp/marketplace/src/p.mkt.supply/issueact1.cpp
+    - components/contracts/cpp/marketplace/src/p.mkt.supply/issueact2.cpp
+    - components/contracts/cpp/marketplace/src/p.mkt.supply/cancelissue.cpp
     - components/contracts/cpp/branch/src/accrue.cpp
   backend:
     - components/controller/src/extensions/marketplace/application/services/marketplace-issuance*.ts
+    - components/controller/src/extensions/marketplace/application/services/marketplace-stock-proposal.service.ts
+    - components/controller/src/extensions/marketplace/domain/entities/marketplace-issuance-saga*.ts
+    - components/innercoop/src/cross-plugin-ports/soviet-robot.port.ts
   ui:
     - components/desktop/src/pages/Marketplace/OperatorIssuance/**
+    - components/desktop/src/widgets/Marketplace/OnsiteSignatureGate/**
     - components/desktop/src/pages/Marketplace/OrdererReceiveCode/**
     - components/desktop/src/pages/Marketplace/OrdererOrderDetail/**
 
@@ -36,43 +51,53 @@ cases:
     level: ui
     kind: happy
     scenario: >
-      Оператор открывает выдачу по коду получателя, сверяет имущество и подписывает акт выдачи.
+      Оператор начинает выдачу по коду получателя, сверяет имущество и фиксирует факт.
     expect: >
-      выдача открывается только по коду пайщика; после подписи акт уходит заказчику на подтверждение
-    test: components/docs-harness/scenarios/marketplace/operator/issuance-open.mjs
-    status: passing
+      выдача начинается только по коду пайщика; после отправки пайщику уходит заявление на подпись
+    test: ~ # было: components/docs-harness/scenarios/marketplace/operator/issuance-open.mjs
+    status: missing
+    # Паевая модель (компонент 68, 2026-09-06): подписи оператора при открытии
+    # выдачи больше нет — пайщик подписывает заявление, совет решает, пайщик
+    # подписывает акт, стол оператора закрывает выдачу сам. Сценарий harness
+    # переписать под новый путь; до этого — pending.
+
 
   - id: mkt.iss.happy.02
     level: ui
     kind: happy
     scenario: >
-      Заказчик видит выданный заказ в «Моих заказах» после подписи оператора
+      Заказчик видит выданный заказ в «Моих заказах» после закрывающей подписи оператора
     expect: статус «Получен», сохранены количество, сумма и пункт выдачи
-    test: components/docs-harness/scenarios/marketplace/orderer/ready-to-receive.mjs
-    status: passing
+    test: ~ # было: components/docs-harness/scenarios/marketplace/orderer/ready-to-receive.mjs
+    status: missing
+    # Паевая модель (компонент 68, 2026-09-06): подписи оператора при открытии
+    # выдачи больше нет — пайщик подписывает заявление, совет решает, пайщик
+    # подписывает акт, стол оператора закрывает выдачу сам. Сценарий harness
+    # переписать под новый путь; до этого — pending.
+
 
   - id: mkt.iss.side.01
     level: ui
     kind: side
-    scenario: Оператор пытается открыть выдачу без кода получателя
-    expect: выдача не открывается
+    scenario: Оператор пытается начать выдачу без кода получателя
+    expect: выдача не начинается
     test: components/docs-harness/scenarios/marketplace/operator/issuance-no-code.mjs
     status: passing
 
   - id: mkt.iss.side.02
     level: backend
     kind: side
-    scenario: Код получателя принадлежит другому пайщику, а не тому, чей заказ
-    expect: отказ — выдать чужой заказ нельзя
+    scenario: Заявление или акт по заказу подписывает другой пайщик, а не его владелец
+    expect: отказ — чужую выдачу двигать нельзя, на цепь ничего не уходит
     test: components/controller/tests/unit/marketplace/marketplace-issuance-ownership.test.ts
     status: passing
 
   - id: mkt.iss.side.03
     level: backend
     kind: side
-    scenario: Оператор указывает к выдаче больше единиц, чем принято на складе
-    expect: отказ — выдать больше принятого нельзя
-    test: components/controller/src/extensions/marketplace/application/services/marketplace-issuance.service.spec.ts
+    scenario: Оператор фиксирует к выдаче больше единиц, чем принято на складе
+    expect: отказ — выдать больше принятого нельзя, сага не рождается
+    test: components/controller/tests/unit/marketplace/marketplace-issuance-saga.test.ts
     status: passing
 
   - id: mkt.iss.side.04
@@ -93,17 +118,17 @@ cases:
   - id: mkt.iss.side.05
     level: backend
     kind: side
-    scenario: Повторная подпись акта выдачи оператором
-    expect: повторная подпись не создаёт второй акт
-    test: components/controller/src/extensions/marketplace/application/services/marketplace-issuance.service.spec.ts
+    scenario: Повторная фиксация факта по заказу, выдача которого уже идёт
+    expect: отказ — вторая сага не рождается; закрытие уже закрытой выдачи — no-op
+    test: components/controller/tests/unit/marketplace/marketplace-issuance-saga.test.ts
     status: passing
 
   - id: mkt.iss.side.06
     level: backend
     kind: side
-    scenario: Заказчик подтверждает получение по акту, который ему не адресован
+    scenario: Заказчик подписывает акт, который ему не адресован
     expect: отказ доступа
-    test: components/controller/src/extensions/marketplace/application/services/marketplace-issuance.service.spec.ts
+    test: components/controller/tests/unit/marketplace/marketplace-issuance-saga.test.ts
     status: passing
 
   - id: mkt.iss.side.07
@@ -113,8 +138,13 @@ cases:
       Оператор правит факт выдачи — количество и цену — и сверяет пересчёт денег
     expect: >
       снижение цены уменьшает итог к оплате, повышение увеличивает; количество сверх принятого обрезается до принятого; снятая позиция даёт нулевой итог без возврата (остаётся на складе), а нулевое количество у оставленной позиции показывает всю сумму как возврат в кошелёк Стола заказов
-    test: components/docs-harness/scenarios/marketplace/operator/issuance-correction.mjs
-    status: passing
+    test: ~ # было: components/docs-harness/scenarios/marketplace/operator/issuance-correction.mjs
+    status: missing
+    # Паевая модель (компонент 68, 2026-09-06): подписи оператора при открытии
+    # выдачи больше нет — пайщик подписывает заявление, совет решает, пайщик
+    # подписывает акт, стол оператора закрывает выдачу сам. Сценарий harness
+    # переписать под новый путь; до этого — pending.
+
     # Сценарий уходит из диалога без подписи: подписанный акт переопределил бы
     # количество и сумму заказа, а от них считаются возврат и остаток склада —
     # вся ветка после выдачи поехала бы на других числах. Проверяется расчёт,
@@ -129,9 +159,9 @@ cases:
   - id: mkt.iss.break.01
     level: backend
     kind: break
-    scenario: Цепь недоступна в момент подписи акта выдачи
-    expect: акт не считается подписанным, повторная попытка возможна
-    test: components/controller/src/extensions/marketplace/application/services/marketplace-issuance.service.spec.ts
+    scenario: Цепь недоступна в момент подписи заявления или закрывающей подписи акта
+    expect: сага не двигается, причина сохранена, повторная попытка возможна; имущество не передаётся
+    test: components/controller/tests/unit/marketplace/marketplace-issuance-saga.test.ts
     status: passing
 
   - id: mkt.iss.happy.03
@@ -141,8 +171,13 @@ cases:
       После выдачи оператор видит заказ в истории участка, а поток выдач пуст.
     expect: >
       выданный заказ сохранён в истории с составом и суммой; очередь выдач не содержит завершённых
-    test: components/docs-harness/scenarios/marketplace/operator/issuance-finalize.mjs
-    status: passing
+    test: ~ # было: components/docs-harness/scenarios/marketplace/operator/issuance-finalize.mjs
+    status: missing
+    # Паевая модель (компонент 68, 2026-09-06): подписи оператора при открытии
+    # выдачи больше нет — пайщик подписывает заявление, совет решает, пайщик
+    # подписывает акт, стол оператора закрывает выдачу сам. Сценарий harness
+    # переписать под новый путь; до этого — pending.
+
 
   - id: mkt.iss.ui.01
     level: ui
@@ -160,11 +195,11 @@ cases:
     level: contract
     kind: happy
     scenario: >
-      Оператор подписывает акт выдачи и кладёт его в бандл, пайщица
-      контрподписывает — связка signiss1+signiss2 уходит на цепь.
+      Оператор фиксирует факт бандлом, пайщица подписывает заявление, совет
+      решает, пайщица подписывает акт, оператор закрывает выдачу.
     expect: >
-      выданное списывается по ЦЕНЕ ПРИБЫТИЯ (o.mkt.consum, Дт 86 / Кт 10), а не
-      по цене продажи
+      выданное списывается по ЦЕНЕ ПРИБЫТИЯ (o.mkt.consum, Дт 80 / Кт 10 —
+      возврат паевого взноса имуществом), а не по цене продажи
     test: components/boot/src/tests/marketplace-money.test.ts
     status: passing
 
@@ -174,8 +209,8 @@ cases:
     scenario: >
       Выдано меньше заказанного (три единицы из четырёх).
     expect: >
-      невыданный остаток резерва возвращается заказчице на членский «Стола
-      заказов» (o.mkt.unlock) ровно на разницу заказа и факта
+      невыданный остаток резерва возвращается заказчице на свободный паевой
+      «Стола заказов» (o.mkt.unlock → w.mkt.share) ровно на разницу заказа и факта
     test: components/boot/src/tests/marketplace-money.test.ts
     status: passing
 
@@ -236,3 +271,226 @@ cases:
       проводок и ни одной лишней
     test: components/boot/src/tests/marketplace-money.test.ts
     status: passing
+
+  # ── Паевая модель: сага выдачи и режим ожидания решения совета (99D-7) ───
+
+  - id: mkt.iss.happy.40
+    level: backend
+    kind: happy
+    scenario: >
+      Пайщик подписал заявление; робот решений совета настроен и решает у стойки
+    expect: >
+      заявление в цепи, номер решения дочитан, робот вызван напрямую по номеру
+      решения; обратный вызов совета доводит сагу до акта в том же ответе —
+      пайщик подписывает акт без второго нажатия
+    test: components/controller/tests/unit/marketplace/marketplace-issuance-saga.test.ts
+    status: passing
+
+  - id: mkt.iss.side.40
+    level: backend
+    kind: side
+    scenario: >
+      Робот не настроен либо ответил «вручную» (нет кворума, крупная сумма)
+    expect: >
+      сага остаётся в ожидании решения без блокировки ответа; пайщик в спокойном
+      режиме — ничего подписывать не нужно; решение людей приходит обратным
+      вызовом совета, акт формируется, уходит push «подпишите акт»
+    test: components/controller/tests/unit/marketplace/marketplace-issuance-saga.test.ts
+    status: passing
+
+  - id: mkt.iss.side.41
+    level: backend
+    kind: side
+    scenario: Совет отказал по заявлению
+    expect: >
+      сага закрыта отказом, заказ снова «готов к выдаче», паевой взнос остаётся
+      на месте — движений по средствам нет
+    test: components/controller/tests/unit/marketplace/marketplace-issuance-saga.test.ts
+    status: passing
+
+  - id: mkt.iss.side.42
+    level: backend
+    kind: side
+    scenario: Оператор снимает выдачу, пока совет рассматривает заявление
+    expect: отказ — снять можно до заявления или после ответа совета
+    test: components/controller/tests/unit/marketplace/marketplace-issuance-saga.test.ts
+    status: passing
+
+  - id: mkt.iss.side.43
+    level: backend
+    kind: side
+    scenario: >
+      Оператор закрывает выдачу актом, в котором подпись заказчика утеряна или
+      подменена, либо без своей подписи
+    expect: отказ — закрывающая подпись ставится поверх подписи заказчика
+    test: components/controller/tests/unit/marketplace/marketplace-issuance-saga.test.ts
+    status: passing
+
+# Правка 2026-09-06 (99D-7, вечернее решение владельца): довзнос членского
+# взноса при факте больше заказа берётся с внутреннего членского кошелька;
+# если его не хватает, пайщик подписывает заявление 1110 на недостающее
+# (недостающая часть довзноса), перевод идёт отдельной транзакцией convert
+# до заявления о выдаче; доплата тела — со свободного паевого без заявления.
+
+  - id: mkt.iss.side.44
+    level: backend
+    kind: side
+    scenario: >
+      Факт меньше или равен заказу; факт больше заказа при достаточном членском кошельке;
+      факт больше заказа при пустом кошельке — с заявлением 1110 и без него
+    expect: >
+      заявление к подписи только в последнем случае — на недостающую часть довзноса по
+      пропорции контракта; без него подача отвергается до цепи; с ним сначала convert со
+      свободного паевого, затем issuestmt без документа
+    test: components/controller/tests/unit/marketplace/marketplace-convert-statement.test.ts
+    status: written
+
+  # ── Счётчики предложения на выдаче (08.09.2026) ─────────────────────────
+  # До этого заблокированное заказом висело в предложении вечно, а выданное
+  # оставалось нулём: предложение показывало выданное как «в заказах», а у
+  # заказа из остатка освобождённый резерв не возвращался в каталог.
+  - id: mkt.iss.side.45
+    level: backend
+    kind: side
+    scenario: >
+      Закрытие выдачи по заказу поставщика: заказано 10, привезли 9, выдано 8 — одна единица
+      ушла в обезличенный остаток кооператива, одну поставщик не привёз
+    expect: >
+      из предложения поставщика выбывает принятое кооперативом (9): ушедшее в остаток уже оплачено
+      и продаётся кооперативом; недопоставка (1) возвращается поставщику в свободное — этот товар
+      остался у него. Полная поставка не возвращает ничего
+    test: components/controller/tests/unit/marketplace/marketplace-issuance-remainder.test.ts
+    status: passing
+
+  - id: mkt.iss.side.46
+    level: backend
+    kind: side
+    scenario: >
+      Закрытие выдачи по заказу из остатка кооператива: зарезервировано 10, выдано 7,
+      3 освобождены обратно на склад
+    expect: >
+      выданное становится выданным (7), освобождённый резерв возвращается в свободное того же
+      предложения (3) — позиции остались опубликованными
+    test: components/controller/tests/unit/marketplace/marketplace-issuance-remainder.test.ts
+    status: passing
+
+  - id: mkt.iss.side.47
+    level: backend
+    kind: side
+    scenario: Закрытие выдачи при отпуске упаковкой и сбой счётчика предложения
+    expect: >
+      движение идёт и по упаковке заказа целыми упаковками; сбой счётчика пишется в лог
+      и выдачу не роняет — закрывающий акт уже принят цепью
+    test: components/controller/tests/unit/marketplace/marketplace-issuance-remainder.test.ts
+    status: passing
+
+# 2026-09-08: остаток по упаковкам — в докладке со склада (`marketplace-stock-proposal.service.ts`)
+# нехватка сверяется по выбранной упаковке, а не по базовым единицам предложения остатка;
+# набор случаев выдачи не менялся, гард докладки — mkt.stock.side.10.
+# 2026-09-08: счётчики предложения на выдаче — `marketplace-issuance.service.ts`
+# (`settleOfferCounters`) переводит заблокированное в выданное, у заказа из остатка
+# возвращает освобождённый резерв в свободное.
+
+# 2026-09-10 (решение владельца): цену при выдаче можно только снизить. Потолок
+# за единицу отпуска — цена прибытия из акта приёмки (у заказа из остатка — цена
+# заказа); снижение по заказу поставщика выбывает уценкой `markdown`
+# (Дт 91 / Кт 10), как у остатка. Контракт: `issuestmt` не пускает сумму выдачи
+# выше принятой стоимости, `markdown` принимает заказ поставщика с потолком по
+# принятой стоимости.
+
+  - id: mkt.iss.side.48
+    level: backend
+    kind: side
+    scenario: >
+      Оператор у стойки ставит цену выше цены прибытия — по заказу поставщика, в том числе
+      когда цена прибытия ниже цены заказа, и по заказу из остатка выше цены заказа
+    expect: >
+      отказ «цену при выдаче можно только снизить» с потолком, заявление не формируется;
+      без цены прибытия на складе потолок — цена заказа; снижение принимается
+    test: components/controller/tests/unit/marketplace/marketplace-issuance-price-ceiling.test.ts
+    status: written   # прогон не подтверждён локально — гоняет CI
+
+  - id: mkt.iss.side.49
+    level: backend
+    kind: side
+    scenario: >
+      Закрытие выдачи заказа поставщика дешевле цены приёмки: полностью, с недовыдачей,
+      при отпуске упаковкой; без цены прибытия на складе
+    expect: >
+      разница стоимости прибытия ВЫДАННОГО и суммы выдачи уходит уценкой; по цене прибытия
+      уценки нет; упаковки считаются по цене за упаковку; без цены прибытия уценка не шлётся
+    test: components/controller/tests/unit/marketplace/marketplace-issuance-price-ceiling.test.ts
+    status: written   # прогон не подтверждён локально — гоняет CI
+
+  - id: mkt.iss.side.50
+    level: contract
+    kind: side
+    scenario: >
+      Заявление о выдаче по заказу поставщика на сумму выше принятой стоимости; по заказу из
+      остатка — с ценой выше цены заказа
+    expect: отказ контракта «цену при выдаче можно только снизить», заказ остаётся готовым к выдаче
+    test: components/boot/src/tests/marketplace-refusal-markdown.test.ts
+    status: written   # стенд не прогонялся; ветка заказа из остатка (цена выше цены заказа) сценарием не покрыта
+
+  - id: mkt.iss.side.51
+    level: contract
+    kind: side
+    scenario: >
+      Уценка по заказу поставщика после выдачи; уценка, которая вместе с суммой выдачи
+      превышает принятую стоимость
+    expect: >
+      уценка проходит проводкой Дт 91 / Кт 10 один раз; превышение принятой стоимости отклоняется
+    test: components/boot/src/tests/marketplace-refusal-markdown.test.ts
+    status: written   # стенд не прогонялся; потолок уценки по принятой стоимости сценарием не покрыт — бэкенд шлёт уценку сам сразу после выдачи
+
+# 2026-09-10 (задача 99D-15): уценка, не дошедшая до цепи, больше не теряется —
+# сумма пишется в проекцию до отправки, крон повторяет `markdown`, а закрытие
+# заказа ждёт её проведения; бандл у стойки проверяет строки до сохранения.
+
+  - id: mkt.iss.side.52
+    level: backend
+    kind: side
+    scenario: Отправка уценки в цепь при закрытии выдачи не прошла.
+    expect: >
+      сумма уценки записана в проекцию заказа; крон повторяет списание на ту же
+      сумму, пока цепь не отзеркалит проведённую уценку; закрытие такого
+      заказа по выходу гарантии откладывается
+    test: components/controller/tests/unit/marketplace/marketplace-chain-retry-cron.test.ts
+    status: written   # прогон не подтверждён локально — гоняет CI; ветка отложенного закрытия покрыта только кодом крона закрытия
+
+  - id: mkt.iss.side.53
+    level: backend
+    kind: side
+    scenario: Оператор формирует бандл выдачи, у одной строки цена выше потолка либо на складе нет принятого.
+    expect: бандл не сохраняется, ошибка возвращается оператору; пустого бандла без саг не остаётся
+    test: ~
+    status: missing   # сервис бандла без юнит-обвязки; проверка вынесена в issuance.assertFactAllowed и зовётся до сохранения
+
+  - id: mkt.iss.side.54
+    level: backend
+    kind: side
+    scenario: >
+      Пайщик подписывает бандл выдачи из нескольких позиций; одна или несколько
+      позиций не приняты цепью.
+    expect: >
+      заявления подаются одновременно не больше предела из конфига расширения
+      (issuance.parallel_statements, по умолчанию 4); сбой позиции не прерывает
+      остальные; ошибка возвращается после всех, по нескольким сбоям — с числом
+      и названиями позиций; бандл не принимается; порядок саг в ответе — как в бандле
+    test: components/controller/tests/unit/marketplace/marketplace-stock-finalize-parallel.test.ts
+    status: written   # прогон — CI на полигоне ci/tests
+
+  - id: mkt.iss.side.55
+    level: ui
+    kind: side
+    scenario: >
+      Пайщик у стойки подписывает бандл выдачи, в котором получено меньше
+      заказанного (заказ 10, к выдаче 9); отдельно — случай выдачи больше
+      заказанного и случай докладки со склада без прежнего заказа.
+    expect: >
+      в окне подписи показаны стоимость полученного, наценка и итог за
+      полученное вместо «К оплате»; при недополучении строкой выведено, сколько
+      вернётся в кошелёк Стола заказов, при переборе — доплата с паевого; по
+      докладке со склада ни возврата, ни доплаты не показывается
+    test: ~
+    status: missing   # проверяется владельцем на стенде; сценарий harness не заведён

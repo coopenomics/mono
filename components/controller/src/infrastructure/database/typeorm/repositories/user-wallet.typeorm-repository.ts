@@ -10,6 +10,20 @@ import { BaseBlockchainRepository, EntityVersioningService } from '@coopenomics/
 import type { IUserWalletBlockchainData } from '~/domain/wallet/interfaces/user-wallet-blockchain.interface';
 import type { IUserWalletDatabaseData } from '~/domain/wallet/interfaces/user-wallet-database.interface';
 
+/**
+ * Репозиторий L3 кошельков (`ledger2::userwallets`).
+ *
+ * Контракт стирает строку кошелька, когда баланс доходит до нуля, а копия в
+ * базе остаётся с `present = false` и последним ненулевым остатком — она
+ * нужна версионированию и откату форков. Для прикладного кода такой строки
+ * нет: пайщик без записи в цепи держит на кошельке ноль. Поэтому все
+ * прикладные выборки отдают только живые строки (`present = true`);
+ * отсутствие строки читатели трактуют как нулевой остаток.
+ *
+ * Прецедент 14.09.2026: планировщик оформления прочитал надгробие членского
+ * кошелька с 81 RUB, недосчитал заявление о переводе ровно на эту сумму, и
+ * контракт отказал в заказе «требуется 600, доступно 519».
+ */
 @Injectable()
 export class UserWalletTypeormRepository
   extends BaseBlockchainRepository<UserWalletDomainEntity, UserWalletTypeormEntity>
@@ -47,14 +61,14 @@ export class UserWalletTypeormRepository
     username: string
   ): Promise<UserWalletDomainEntity | null> {
     const entity = await this.repository.findOne({
-      where: { coopname, wallet_name, username },
+      where: { coopname, wallet_name, username, present: true },
     });
     return entity ? UserWalletMapper.toDomain(entity) : null;
   }
 
   async findByUsername(coopname: string, username: string): Promise<UserWalletDomainEntity[]> {
     const entities = await this.repository.find({
-      where: { coopname, username },
+      where: { coopname, username, present: true },
       order: { wallet_name: 'ASC' },
     });
     return entities.map(UserWalletMapper.toDomain);
@@ -62,7 +76,7 @@ export class UserWalletTypeormRepository
 
   async findByWallet(coopname: string, wallet_name: string): Promise<UserWalletDomainEntity[]> {
     const entities = await this.repository.find({
-      where: { coopname, wallet_name },
+      where: { coopname, wallet_name, present: true },
       order: { username: 'ASC' },
     });
     return entities.map(UserWalletMapper.toDomain);
@@ -70,7 +84,7 @@ export class UserWalletTypeormRepository
 
   async findByCoopname(coopname: string): Promise<UserWalletDomainEntity[]> {
     const entities = await this.repository.find({
-      where: { coopname },
+      where: { coopname, present: true },
       order: { wallet_name: 'ASC', username: 'ASC' },
     });
     return entities.map(UserWalletMapper.toDomain);

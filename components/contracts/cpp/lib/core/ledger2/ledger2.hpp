@@ -54,4 +54,19 @@ public:
       std::make_tuple(coopname, actor, operation_code, process_type, amount, username, process_hash, memo)
     ).send();
   }
+
+  /**
+   * @brief Доступный остаток на USER_SHARED-кошельке по пайщику (или по
+   * участку — у w.brn.common разрез по braname). Единственная точка чтения
+   * `ledger2::userwallets` для других контрактов: код контракта чужую таблицу
+   * напрямую не открывает (задача 99D-16). Нет записи — ноль.
+   */
+  static inline eosio::asset get_user_available(eosio::name coopname,
+                                                eosio::name wallet_name,
+                                                eosio::name username) {
+    userwallets_index user_wallets(_ledger2, coopname.value);
+    auto idx = user_wallets.get_index<"byuserwallet"_n>();
+    auto it = idx.find(combine_ids(wallet_name.value, username.value));
+    return it == idx.end() ? eosio::asset(0, _root_govern_symbol) : it->available;
+  }
 };

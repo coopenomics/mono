@@ -1,27 +1,40 @@
 <script lang="ts" setup>
-import { ref, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useSessionStore } from 'src/entities/Session';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { DigitalDocument } from 'src/shared/lib/document';
-import { BaseButton, BaseDialog } from 'src/shared/ui/base';
+import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
+import { BaseButton, BaseDialog, BaseInput } from 'src/shared/ui/base';
 import { Loader } from 'src/shared/ui/Loader';
 import {
+  cancelWriteoffDraft,
+  createWriteoffDraft,
   getWriteoffStatementSignablePayload,
   submitWriteoffDraft,
+  type MarketplaceWriteoffCandidateView,
   type MarketplaceWriteoffProposalView,
   type MarketplaceWriteoffStatementDocumentView,
 } from '../api';
 
 /**
- * Эпик 8: диалог подписания Заявления о списании скоропорта (registry
- * 1106). Председатель смотрит preview-документ, подписывает приватным
- * ключом, и отправляет в backend. Backend сам выполняет propwroff +
- * soviet::createagenda(mktwroff), переводит проект из DRAFT в ON_AGENDA.
+ * Эпик 8: отправка списания скоропорта в совет — два шага в одном окне.
+ *
+ * Шаг первый: причина списания. Она одна на всю подборку и обязательна —
+ * бэкенд её не угадывает (2026-07-29: угаданный дефолт молча уходил в
+ * документы как заявленная причина). Раньше поле висело на самой странице
+ * над таблицей и мозолило глаза всё время, хотя нужно один раз на отправку.
+ *
+ * Шаг второй: Заявление 1106 — председатель читает документ и подписывает
+ * ключом. Дальше бэкенд сам выполняет propwroff + повестку совета и переводит
+ * проект из черновика на повестку.
  */
 
 const props = defineProps<{
   modelValue: boolean;
-  draft: MarketplaceWriteoffProposalView;
+  /** Выбранные на складах позиции — из них собирается проект списания. */
+  items: MarketplaceWriteoffCandidateView[];
+  /** Висящий черновик прошлой попытки: снимается перед сбором нового. */
+  openDraft?: MarketplaceWriteoffProposalView | null;
 }>();
 const emit = defineEmits<{
   (e: 'update:modelValue', value: boolean): void;
@@ -30,41 +43,72 @@ const emit = defineEmits<{
 
 const session = useSessionStore();
 
+const reason = ref('');
+const draft = ref<MarketplaceWriteoffProposalView | null>(null);
 const previewDoc = ref<MarketplaceWriteoffStatementDocumentView | null>(null);
 const loading = ref(false);
 const submitting = ref(false);
 
-// immediate: диалог может смонтироваться уже открытым (modelValue=true задаётся
-// одновременно с появлением draft) — без immediate watch не сработал бы и
-// документ не загрузился бы (пустой экран без кнопок).
-watch(
-  () => props.modelValue,
-  async (open) => {
-    if (!open) {
-      previewDoc.value = null;
-      return;
-    }
-    loading.value = true;
-    try {
-      previewDoc.value = await getWriteoffStatementSignablePayload({ draft_id: props.draft.id });
-    } catch (e) {
-      FailAlert(e, 'Не удалось сформировать Заявление о списании');
-      emit('update:modelValue', false);
-    } finally {
-      loading.value = false;
-    }
-  },
-  { immediate: true },
+const totalAmount = computed(() =>
+  props.items.reduce((sum, c) => sum + (Number.parseFloat(c.amount) || 0), 0),
 );
 
+const reasonValid = computed(() => reason.value.trim().length > 0);
+
+// Каждое открытие начинается с чистого листа: причина прошлой отправки к новой
+// подборке отношения не имеет. Закрыли окно, не подписав, — собранный черновик
+// снимаем сразу: иначе он висел бы до следующей отправки и держал позиции,
+// которые председатель уже передумал списывать.
+watch(
+  () => props.modelValue,
+  (open) => {
+    if (open) return;
+    const abandoned = draft.value;
+    reason.value = '';
+    draft.value = null;
+    previewDoc.value = null;
+    if (abandoned) void cancelWriteoffDraft(abandoned.id).catch(() => undefined);
+  },
+);
+
+/** Шаг 1 → 2: собрать проект из выбора и показать Заявление к подписи. */
+async function buildStatement(): Promise<void> {
+  if (!reasonValid.value || loading.value) return;
+  loading.value = true;
+  try {
+    // Снимаем возможный висящий черновик (от прерванной подписи или
+    // крон-сервиса), чтобы собрать свежий ровно из текущего выбора — один
+    // черновик за раз.
+    if (props.openDraft) await cancelWriteoffDraft(props.openDraft.id);
+
+    const created = await createWriteoffDraft({
+      items: props.items.map((c) => ({
+        braname: c.braname,
+        asset_title: c.asset_title,
+        quantity: c.quantity,
+        amount: c.amount,
+        reason: reason.value.trim(),
+        // Агрегат партий: одна строка Заявления покрывает все партии товара.
+        inventory_ids: c.inventory_ids,
+      })),
+    });
+    draft.value = created;
+    previewDoc.value = await getWriteoffStatementSignablePayload({ draft_id: created.id });
+  } catch (e) {
+    FailAlert(e, 'Не удалось сформировать Заявление о списании');
+  } finally {
+    loading.value = false;
+  }
+}
+
 async function signAndSubmit(): Promise<void> {
-  if (!previewDoc.value) return;
+  if (!previewDoc.value || !draft.value) return;
   submitting.value = true;
   try {
     const digital = new DigitalDocument(previewDoc.value);
     const signed = await digital.sign(session.username);
     await submitWriteoffDraft({
-      draft_id: props.draft.id,
+      draft_id: draft.value.id,
       signed_statement: signed,
     });
     SuccessAlert('Проект отправлен в совет');
@@ -81,14 +125,27 @@ async function signAndSubmit(): Promise<void> {
 <template lang="pug">
 BaseDialog(
   :model-value="modelValue",
-  title="Подписание Заявления о списании скоропорта",
-  maximized,
+  :title="previewDoc ? 'Заявление о списании' : 'Отправка списания в совет'",
+  :maximized="!!previewDoc",
+  :size="previewDoc ? undefined : 'sm'",
   :close-on-backdrop="false",
   @update:model-value="(v) => emit('update:modelValue', v)"
 )
   Loader(v-if="loading", text="Формируем Заявление…")
 
-  template(v-else-if="previewDoc")
+  //- Шаг 1: причина списания — одна на всю подборку.
+  .submit-council__reason(v-else-if="!previewDoc")
+    .t-muted
+      | Выбрано позиций: {{ items.length }} на сумму {{ formatAsset2Digits(String(totalAmount)) }}.
+      | Причина попадёт в Заявление и в протокол совета.
+    BaseInput(
+      v-model="reason",
+      label="Причина списания",
+      placeholder="Например: истёк срок годности, порча, использование",
+      autofocus
+    )
+
+  template(v-else)
     .t-muted.submit-council__intro
       | Подписав это Заявление, вы выносите на повестку совета вопрос о списании имущества со складов кооперативных участков. Совет рассматривает проект и подписывает Протокол списания.
     //- Документ — листом фиксированной ширины (как остальные документы), на
@@ -102,12 +159,19 @@ BaseDialog(
       //- eslint-disable-next-line vue/no-v-html
       .submit-council__doc(v-html="previewDoc.html")
 
-  template(#footer, v-if="previewDoc")
+  template(#footer)
     BaseButton(variant="secondary", @click="emit('update:modelValue', false)") Отмена
-    BaseButton(variant="primary", :loading="submitting", @click="signAndSubmit")
+    BaseButton(
+      v-if="!previewDoc",
+      variant="primary",
+      :disabled="!reasonValid",
+      :loading="loading",
+      @click="buildStatement"
+    ) Далее
+    BaseButton(v-else, variant="primary", :loading="submitting", @click="signAndSubmit")
       template(#icon-left)
         q-icon(name="draw", size="18px")
-      | Подписать и отправить в совет
+      | Подписать
 </template>
 
 <style lang="scss" scoped>
@@ -127,6 +191,12 @@ BaseDialog(
 
   &__intro {
     margin-bottom: var(--p-4, 16px);
+  }
+
+  &__reason {
+    display: flex;
+    flex-direction: column;
+    gap: var(--p-3, 12px);
   }
 
   // Лист документа: ограничен по ширине и центрирован (как страница А4),

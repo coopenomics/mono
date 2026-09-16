@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue';
+import { useFirstLoad } from 'src/shared/lib/composables';
 import { debounce, Dialog } from 'quasar';
 import { useRoute, useRouter } from 'vue-router';
 import { FailAlert, NotifyAlert } from 'src/shared/api';
@@ -12,6 +13,7 @@ import { BaseCard, BaseButton, BaseChip, BaseDialog, EmptyState } from 'src/shar
 import { DepositButton } from 'src/features/Wallet/DepositToWallet';
 import { KUHeaderBar } from 'src/widgets/Marketplace/KUHeaderBar';
 import { marketplaceOrderUnitLabel } from 'src/shared/lib/consts';
+import { formatAssetsInText } from 'src/shared/lib/utils/formatAsset2Digits';
 import {
   useMarketplaceRealtime,
   getMembershipFeePercent,
@@ -25,9 +27,10 @@ import {
  *
  * Корзина — точка оформления: позиции (одна корзина — один КУ), правка
  * количества, удаление, агрегаты. «Оформить заказ» вызывает
- * `marketplaceCheckoutCart` → построчно создаёт заказы под общим checkout_id на
- * текущий КУ. Частичный сбой НЕ откатывает прошедшее: непрошедшие позиции
- * (failed_lines) остаются в корзине, их можно повторить тем же checkout_id.
+ * `marketplaceCheckoutCart` → создаёт заказы под общим checkout_id на текущий
+ * КУ одной транзакцией вместе с переводом по заявлению: отказ цепи откатывает
+ * всё и показывается ошибкой. Позиции, которые оформить нельзя, в транзакцию
+ * не входят и остаются в корзине (failed_lines) для повтора тем же checkout_id.
  *
  * Раскладка — две колонки: слева список позиций (миниатюра, имя, степпер
  * количества, сумма строки), справа липкая карточка-сводка «Ваш заказ» с итогом
@@ -37,6 +40,8 @@ const route = useRoute();
 const router = useRouter();
 const system = useSystemStore();
 const cartStore = useMarketplaceCartStore();
+/** Каркас — только на первой загрузке; дочитка обновляет молча. */
+const firstLoad = useFirstLoad(() => cartStore.loading);
 
 const coopname = computed(() => String(route.params.coopname ?? ''));
 
@@ -183,7 +188,11 @@ async function onCheckout(): Promise<void> {
     });
   } catch (e) {
     if (isInsufficientFunds(e)) {
-      insufficientMessage.value = e instanceof Error ? e.message : String(e);
+      // Суммы в тексте ошибки приходят из цепи в сыром виде «1300.0000 RUB» —
+      // прогоняем через тот же форматтер, что и тосты ошибок.
+      insufficientMessage.value = formatAssetsInText(
+        e instanceof Error ? e.message : String(e),
+      );
       insufficientOpen.value = true;
       return;
     }
@@ -249,7 +258,7 @@ q-page.mp-cart.mp-role-orderer(role="region", aria-label="Корзина Сто�
   KUHeaderBar(:coopname="coopname")
 
   //- Канон: первичная загрузка — скелетон-строки позиций, не перекрывающий спиннер.
-  BaseCard.mp-cart__skel(v-if="cartStore.loading && !cartStore.cart")
+  BaseCard.mp-cart__skel(v-if="firstLoad && !cartStore.cart")
     .mp-cart__skel-line(v-for="n in 4", :key="`skel-${n}`")
       .skel.mp-cart__skel-thumb
       .mp-cart__skel-text
@@ -296,19 +305,19 @@ q-page.mp-cart.mp-role-orderer(role="region", aria-label="Корзина Сто�
             )
               template(#icon-left)
                 q-icon(name="remove")
-            .mp-cart__qty-val
-              //- Inline-ввод: не стандартный outlined-input, а часть степпера —
-              //- правка цифр прямо в числе, кламп к остатку на предложении.
-              input.mp-cart__qty-input(
-                type="text",
-                inputmode="numeric",
-                :value="it.quantity",
-                :disabled="cartStore.mutating",
-                aria-label="Количество",
-                @change="onQtyInput(it, $event)",
-                @keyup.enter="blurOnEnter"
-              )
-              span.mp-cart__qty-unit × {{ saleUnitLabel(it) }}
+            //- Inline-ввод: не стандартный outlined-input, а часть степпера —
+            //- правка цифр прямо в числе, кламп к остатку на предложении. Что
+            //- считается штукой (упаковка, литр), написано строкой выше, у цены:
+            //- вторая такая же подпись под числом только загромождала строку.
+            input.mp-cart__qty-input(
+              type="text",
+              inputmode="numeric",
+              :value="it.quantity",
+              :disabled="cartStore.mutating",
+              aria-label="Количество",
+              @change="onQtyInput(it, $event)",
+              @keyup.enter="blurOnEnter"
+            )
             BaseButton(
               variant="ghost",
               icon-only,
@@ -369,8 +378,8 @@ q-page.mp-cart.mp-role-orderer(role="region", aria-label="Корзина Сто�
     .mp-cart__insufficient
       p.mp-cart__insufficient-text {{ insufficientMessage }}
       p.mp-cart__insufficient-hint
-        | Внесите паевой взнос — деньги попадут в кошелёк, и заказ можно будет
-        | оформить тем же составом. Корзина сохранится.
+        | Внесите паевой взнос — деньги попадут в главный кошелёк, и заказ можно
+        | будет оформить тем же составом. Корзина сохранится.
     template(#footer)
       BaseButton(variant="ghost", @click="insufficientOpen = false") Закрыть
       DepositButton
@@ -490,26 +499,21 @@ q-page.mp-cart.mp-role-orderer(role="region", aria-label="Корзина Сто�
     margin-top: var(--p-1, 4px);
   }
 
-  // Степпер количества: фиксированной ширины, не прыгает.
+  // Степпер количества — один собранный элемент в рамке: минус, число, плюс.
+  // Раньше это были три отдельные кнопки, разъезжавшиеся по ширине строки.
   &__qty {
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    gap: var(--p-1, 4px);
     flex-shrink: 0;
-  }
-
-  &__qty-val {
-    min-width: 48px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    line-height: 1.1;
+    border: 1px solid var(--p-line);
+    border-radius: var(--p-r-pill, 999px);
+    padding: 2px;
   }
 
   // Поле прямого ввода — без рамок/фона, выглядит как число степпера, но
   // редактируемое. Так не «прыгает» и не ломает строку, как outlined-input.
   &__qty-input {
-    width: 48px;
+    width: 44px;
     border: none;
     background: transparent;
     text-align: center;
@@ -528,11 +532,6 @@ q-page.mp-cart.mp-role-orderer(role="region", aria-label="Корзина Сто�
     &:disabled {
       color: var(--p-ink-2);
     }
-  }
-
-  &__qty-unit {
-    font-size: var(--p-fs-meta);
-    color: var(--p-ink-3);
   }
 
   &__sum {
@@ -618,13 +617,53 @@ q-page.mp-cart.mp-role-orderer(role="region", aria-label="Корзина Сто�
   }
 
   @media (max-width: 768px) {
+    // Узкий экран: верхний ряд — снимок, название и цена во всю ширину;
+    // нижний — степпер слева, сумма и удаление справа. Одной строкой это не
+    // помещается: название с ценой сжимались в колонку шириной в слово.
     &__line {
-      flex-wrap: wrap;
+      display: grid;
+      grid-template-columns: 64px minmax(0, 1fr) auto;
+      grid-template-areas:
+        'thumb info info'
+        'qty   sum  del';
+      align-items: start;
+      gap: var(--p-3, 12px);
+      padding: var(--p-4, 16px) 0;
     }
 
+    &__thumb {
+      grid-area: thumb;
+      width: 64px;
+      height: 64px;
+    }
+
+    &__info {
+      grid-area: info;
+      align-self: center;
+    }
+
+    // Удаление уехало в нижний ряд, к сумме: в верхнем оно отнимало ширину у
+    // названия и цены, и «упак. 0,5 л, пластик» переносилось на вторую строку
+    // из-за кнопки, которая нужна раз в жизни позиции.
+    &__del {
+      grid-area: del;
+      align-self: center;
+      justify-self: end;
+    }
+
+    &__qty {
+      grid-area: qty;
+      justify-self: start;
+    }
+
+    // Сумма позиции — на одной линии со степпером и тем же кеглем, что итог
+    // заказа: это главное число строки.
     &__sum {
+      grid-area: sum;
       width: auto;
-      text-align: left;
+      align-self: center;
+      text-align: right;
+      font-size: var(--p-fs-h3, 18px);
     }
 
     &__summary {

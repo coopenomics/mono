@@ -1,6 +1,7 @@
 import { initExtensionsInPostgres, initSystemStatus } from '../postgres-init'
 import { installExtraData, installInitialData, startInfra } from './infra'
 import { startCoop } from './cooperative'
+import { installRobotPreset } from './robot-preset'
 
 export async function boot() {
   const blockchain = await startInfra()
@@ -42,4 +43,13 @@ export async function bootExtra() {
 
   console.log('Инициализируем extensions в PostgreSQL')
   await initExtensionsInPostgres() // Инициализирует таблицу extensions с данными capital
+
+  // Совет из пяти человек означает пять входов в кабинет на каждое решение.
+  // Робот снимает это со стенда целиком: приём пайщика, выдача имущества и
+  // отмена сделки по гарантийному возврату проходят без людей — весь совет
+  // вместе с председателем голосует сразу, протоколы подписывает робот.
+  // Разрешения, ключи и само расширение готовятся здесь: стенд считает решения
+  // сам. В обычной загрузке расширения нет — председатель ставит его из каталога.
+  console.log('Предустанавливаем робота решений совета')
+  await installRobotPreset(blockchain)
 }

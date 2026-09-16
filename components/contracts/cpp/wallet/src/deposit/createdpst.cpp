@@ -4,7 +4,7 @@ void wallet::createdpst(eosio::name coopname, eosio::name username, checksum256 
   Wallet::validate_asset(quantity);
   
   auto cooperative = get_cooperative_or_fail(coopname);
-  auto participant = get_participant_or_fail(coopname, username);
+  auto participant = get_active_participant_or_fail(coopname, username);
   
   Wallet::deposits_index deposits(_wallet, coopname.value);
   auto id = get_global_id_in_scope(_wallet, coopname, "deposits"_n);

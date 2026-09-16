@@ -1,7 +1,7 @@
-import { Resolver, Mutation, Query, Args } from '@nestjs/graphql';
-import { UseGuards } from '@nestjs/common';
+import { Resolver, Mutation, Query, Args, Subscription } from '@nestjs/graphql';
+import { ForbiddenException, Inject, UseGuards } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
-import { GqlJwtAuthGuard, RolesGuard, ActiveUserStatusGuard, AuthRoles, createPaginationResult, PaginationResult, PaginationInputDTO, GenerateDocumentOptionsInputDTO, GeneratedDocumentDTO } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, RolesGuard, ActiveUserStatusGuard, AuthRoles, CurrentUser, createPaginationResult, PaginationResult, PaginationInputDTO, GenerateDocumentOptionsInputDTO, GeneratedDocumentDTO } from '@coopenomics/extension-kit';
 import { WalletService } from '../services/wallet.service';
 import { ReturnByMoneyGenerateDocumentInputDTO } from '~/application/document/documents-dto/return-by-money-statement.dto';
 import { ReturnByMoneyDecisionGenerateDocumentInputDTO } from '~/application/document/documents-dto/return-by-money-decision.dto';
@@ -12,6 +12,11 @@ import { GatewayPaymentDTO } from '../../gateway/dto/gateway-payment.dto';
 import { ProgramWalletDTO } from '../dto/program-wallet.dto';
 import { ProgramWalletFilterInputDTO } from '../dto/program-wallet-filter-input.dto';
 import { UserWalletDTO } from '../dto/user-wallet.dto';
+import { WalletChangedEventDTO, WalletEventsInputDTO } from '../dto/wallet-event.dto';
+import { walletEventsTopic } from '../services/wallet-events.service';
+import type { PubSub } from 'graphql-subscriptions';
+import { PUB_SUB } from '~/infrastructure/pubsub/pubsub.module';
+import config from '~/config/config';
 // Пагинированные результаты для программных кошельков
 const paginatedProgramWalletsResult = createPaginationResult(ProgramWalletDTO, 'ProgramWallets');
 
@@ -21,7 +26,35 @@ const paginatedProgramWalletsResult = createPaginationResult(ProgramWalletDTO, '
  */
 @Resolver()
 export class WalletResolver {
-  constructor(private readonly walletService: WalletService) {}
+  constructor(
+    private readonly walletService: WalletService,
+    @Inject(PUB_SUB) private readonly pubSub: PubSub
+  ) {}
+
+  /**
+   * Поток изменений кошельков пайщика: сигнал приходит с дельтой цепи, клиент
+   * по нему дочитывает остаток. Топик персональный и выводится из токена
+   * соединения — чужой кошелёк подписчику не отдаётся, аргумент `coopname`
+   * только сверяется с кооперативом узла.
+   */
+  @Subscription(() => WalletChangedEventDTO, {
+    name: 'walletEvents',
+    description: 'Изменения кошельков пайщика: сигнал к дочитке остатка.',
+    resolve: (payload: { walletEvents: WalletChangedEventDTO }) => payload.walletEvents,
+  })
+  walletEvents(
+    @CurrentUser() user: { username?: string },
+    @Args('input') input: WalletEventsInputDTO
+  ): AsyncIterator<{ walletEvents: WalletChangedEventDTO }> {
+    if (input.coopname !== config.coopname) {
+      throw new ForbiddenException('Подписка доступна только в рамках своего кооператива.');
+    }
+    const username = user?.username;
+    if (!username) {
+      throw new ForbiddenException('Подписка доступна только пайщику своего кооператива.');
+    }
+    return this.pubSub.asyncIterator(walletEventsTopic(config.coopname, username));
+  }
 
   /**
    * Mutation: Генерация документа заявления на возврат паевого взноса (900)

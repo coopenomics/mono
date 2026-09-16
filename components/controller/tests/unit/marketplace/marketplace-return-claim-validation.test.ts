@@ -31,6 +31,7 @@ function makeService() {
     { symbol: 'RUB', decimals: 4 } as never,
     { buildDocumentAggregate: jest.fn() } as never,
     { putImage: jest.fn() } as never,
+    { issueFromReturnClaim: jest.fn().mockResolvedValue(null) } as never,
     { emit: jest.fn() } as never,
     { setContext: jest.fn(), info: jest.fn(), warn: jest.fn(), error: jest.fn() } as never
   );

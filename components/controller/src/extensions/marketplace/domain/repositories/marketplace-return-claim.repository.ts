@@ -29,7 +29,7 @@ export interface MarketplaceReturnClaimCreateInput {
   /** Возвращаемая доля членского взноса — вместе с fact_cost даёт полную сумму возврата. */
   fee_refund: string;
   photos: MarketplaceReturnClaimPhoto[];
-  /** Подписанное пайщиком заявление (1104) — для последующей со-подписи председателем. */
+  /** Подписанная пайщиком рекламация — Заявление о гарантийном возврате имущества (1106). */
   statement: ISignedDocument | null;
   submretrn_tx_hash: string;
   status: MarketplaceReturnClaimStatus;
@@ -40,6 +40,22 @@ export interface MarketplaceReturnClaimApplyDecisionInput {
   decision_entry: MarketplaceReturnClaimDecisionLogEntry;
   on_site_inspection?: MarketplaceReturnClaimOnSiteInspection;
   ledger_snapshot?: MarketplaceReturnClaimLedgerSnapshot;
+  /** Заявление оператора участка в совет об отмене сделки (1116) — после приёма имущества у стойки. */
+  cancel_statement?: ISignedDocument;
+  /** Рекламация пайщика (1106) со второй подписью оператора — тот же документ, дополненный подписью. */
+  statement?: ISignedDocument;
+  accepted_at?: Date;
+  council_protocol?: ISignedDocument | null;
+}
+
+/** Поля совета, дописываемые без смены статуса (номер решения, режим, ошибка). */
+export interface MarketplaceReturnClaimCouncilPatch {
+  council_decision_id?: string | null;
+  council_decision_mode?: 'ROBOT' | 'MANUAL' | null;
+  /** Взнос ждёт пополнения общего кошелька участка (задача 99D-15); null — снять ожидание. */
+  fee_refund_pending_at?: Date | null;
+  /** Запись в журнал решений вместе с патчем (взнос ждёт / взнос довнесён). */
+  decision_entry?: MarketplaceReturnClaimDecisionLogEntry;
 }
 
 export interface MarketplaceReturnClaimDomainRepository {
@@ -85,4 +101,30 @@ export interface MarketplaceReturnClaimDomainRepository {
     id: string,
     input: MarketplaceReturnClaimApplyDecisionInput
   ): Promise<MarketplaceReturnClaimDomainEntity>;
+
+  /**
+   * Атомарный переход «из ожидаемого статуса»: null — заявление уже ушло из
+   * `from` (гонка обратного вызова совета и сторожа).
+   */
+  transition(
+    id: string,
+    from: MarketplaceReturnClaimStatus,
+    input: MarketplaceReturnClaimApplyDecisionInput
+  ): Promise<MarketplaceReturnClaimDomainEntity | null>;
+
+  /** Дописать поля совета без смены статуса. */
+  patchCouncil(id: string, patch: MarketplaceReturnClaimCouncilPatch): Promise<MarketplaceReturnClaimDomainEntity>;
+
+  /**
+   * Заявления, у которых членский взнос ждёт пополнения общего кошелька
+   * участка (задача 99D-15) — кандидаты крона на повтор `payretfee`.
+   */
+  listFeeRefundPending(coopname: string, limit?: number): Promise<MarketplaceReturnClaimDomainEntity[]>;
+
+  /** Заявления в заданных статусах по кооперативу (для сторожа ожидания совета). */
+  listByStatus(
+    coopname: string,
+    status: MarketplaceReturnClaimStatus | MarketplaceReturnClaimStatus[],
+    limit?: number
+  ): Promise<MarketplaceReturnClaimDomainEntity[]>;
 }

@@ -1,7 +1,9 @@
-import { BadRequestException, Body, Controller, HttpCode, Post, UseFilters } from '@nestjs/common';
+import { BadRequestException, Body, Controller, HttpCode, Post, Req, Res, UseFilters } from '@nestjs/common';
+import type { Request, Response } from 'express';
 import { AuthV2ExceptionFilter } from '../exceptions/auth-v2-exception.filter';
 import { RefreshService } from './refresh.service';
 import type { RefreshResult } from './refresh.service';
+import { setSessionCookie } from '../session-cookie/session-cookie';
 
 interface RefreshBody {
   refresh_token?: string;
@@ -20,9 +22,16 @@ export class RefreshController {
 
   @Post()
   @HttpCode(200)
-  async refresh(@Body() body: RefreshBody): Promise<RefreshResult> {
+  async refresh(
+    @Body() body: RefreshBody,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response
+  ): Promise<RefreshResult> {
     const refreshToken = body?.refresh_token;
     if (!refreshToken) throw new BadRequestException('Требуется refresh_token');
-    return this.refreshService.refresh(refreshToken);
+    const result = await this.refreshService.refresh(refreshToken);
+    // Личность сессии при обновлении не меняется — продлеваем cookie на новый срок.
+    setSessionCookie(req, res, result.access_token);
+    return result;
   }
 }

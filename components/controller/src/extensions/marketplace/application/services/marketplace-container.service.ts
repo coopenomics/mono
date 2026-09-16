@@ -169,9 +169,13 @@ export class MarketplaceContainerService {
     return [];
   }
 
+  /**
+   * Боксы кооператива. `branames` не задан — без ограничения по участкам (так
+   * реестр стола администратора видит тару всего кооператива).
+   */
   async list(
     coopname: string,
-    branames: string | string[],
+    branames?: string | string[],
     options?: Omit<MarketplaceContainerListFilter, 'coopname' | 'braname'>
   ): Promise<MarketplaceContainerDomainEntity[]> {
     return this.containerRepo.list({ coopname, braname: branames, ...options });

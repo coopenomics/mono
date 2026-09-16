@@ -12,6 +12,12 @@ title: Заказ пайщика — оформление, приём и отк�
 # расширение не должно знать, чем именно пишется лог. Сменились только тип
 # параметра и его DI-токен; поведение сервисов и набор случаев не менялись.
 
+# Правка 2026-09-15 (C28-42): корзина оформляется одной транзакцией — перевод
+# по заявлению 1110 и заказы всех строк проходят или откатываются вместе.
+# Сервисы создания заказа и заказа из остатка разделены на подготовку
+# (проверки, бронь остатка), отправку и завершение; оформление собирает
+# подготовленные строки в одну транзакцию через порт цепи `checkout`.
+
 # Правка 2026-08-20 (верификация личности, 105-28): display-сервис заказов
 # опционально подмешивает вердикт верификации получателя
 # (withOrdererVerification → orderer_verification_passed) для лент выдачи.
@@ -20,6 +26,8 @@ title: Заказ пайщика — оформление, приём и отк�
 sources:
   backend:
     - components/controller/src/extensions/marketplace/application/services/marketplace-order-create.service.ts
+    - components/controller/src/extensions/marketplace/application/services/marketplace-checkout.service.ts
+    - components/controller/src/extensions/marketplace/application/services/marketplace-convert.service.ts
     - components/controller/src/extensions/marketplace/application/services/marketplace-order-cancel.service.ts
     - components/controller/src/extensions/marketplace/application/services/marketplace-order-supplier-action.service.ts
     - components/controller/src/extensions/marketplace/application/services/marketplace-order-display.service.ts
@@ -114,7 +122,8 @@ cases:
     scenario: >
       Заказ упаковками: количество трактуется как число упаковок, базовое количество считается через содержимое упаковки.
     expect: >
-      остаток проверяется по базовому количеству, а не по числу упаковок; цена берётся за упаковку
+      на цепь и в счётчики предложения уходит базовое количество, в счётчик упаковки — число упаковок;
+      в заказе сохраняется упаковка; цена берётся за упаковку
     test: components/controller/src/extensions/marketplace/application/services/marketplace-order-create.service.spec.ts
     status: passing
 
@@ -267,4 +276,179 @@ cases:
       список заказов участка со статусами непуст после прогона цепочки заказа;
       карточка заказа открывается по клику
     test: components/docs-harness/scenarios/marketplace/operator/orders-history.mjs
+    status: passing
+
+# 2026-09-06 (паевая модель, компонент 68): оформление без документов — паевой
+# резерв ставит контракт; в «Моих заказах» новые статусы выдачи ISSUE_PENDING /
+# ISSUE_AUTHORIZED / ISSUE_ACT1 и обновление по событию саги. Случаи не менялись.
+
+# Правка 2026-09-06 (99D-4/99D-7, решение владельца вечером того же дня):
+# членская часть модели остаётся для взноса кооперативного участка. Заявление
+# 1110 возвращено: «прошу перевести с баланса моего Цифрового кошелька на
+# баланс ЦПП «Стол заказов» N, из них членский взнос M», где M — взнос за
+# вычетом остатка внутреннего членского кошелька `w.mkt.member`, N — тело
+# плюс M. Членские средства от отмен и возвратов идут только на взносы
+# следующих заказов, тело всегда паевое, смешанных заказов нет. Перевод M —
+# отдельная транзакция `convert` до заказа. Контракт: `createorder` /
+# `stockorder` без документа, требуют покрытого взноса; операции
+# o.mkt.conv/convp, сторно взноса — на членский кошелёк. Раскладка таблиц
+# совместима со строками членской модели (акт 1115 в прежних слотах,
+# заявление и протокол — binary_extension в хвосте).
+
+  - id: mkt.order.side.30
+    level: backend
+    kind: side
+    scenario: >
+      План по строкам корзины: членского кошелька нет, хватает на часть взноса, хватает на
+      весь взнос; несколько строк; ставка взноса нулевая
+    expect: >
+      взнос покрывается остатком кошелька в порядке проведения строк, недостающее переводится
+      в членский, тело всегда с паевого; сумма заявления — тело плюс недостающая часть взноса
+    test: components/controller/tests/unit/marketplace/marketplace-convert-statement.test.ts
+    status: written
+
+  - id: mkt.order.side.31
+    level: backend
+    kind: side
+    scenario: >
+      Превью формирует заявление 1110 (тело плюс взнос за вычетом остатка кошелька); членский
+      кошелёк ещё не заведён у пайщика
+    expect: >
+      в мете — якорь, сумма, членская часть и источник, ничего лишнего; незаведённый кошелёк
+      считается пустым
+    test: components/controller/tests/unit/marketplace/marketplace-convert-statement.test.ts
+    status: written
+
+  - id: mkt.order.side.32
+    level: backend
+    kind: side
+    scenario: >
+      Оформление с заявлением 1110, которого нет, которое подписано на другое оформление,
+      с разошедшейся недостающей суммой или членской частью (баланс кошелька изменился
+      с превью), либо чужой подписью; и полностью сошедшееся
+    expect: >
+      отказ «обновите оформление» до отправки в цепь, с обеими суммами при расхождении;
+      сошедшееся заявление превращается в document2 для действия convert
+    test: components/controller/tests/unit/marketplace/marketplace-convert-statement.test.ts
+    status: written
+
+  - id: mkt.order.side.33
+    level: contract
+    kind: side
+    scenario: >
+      createorder при членском кошельке, которого не хватает на взнос участка (заявление
+      о переводе не подано)
+    expect: >
+      контракт отвергает с подсказкой сначала подать заявление; движений по средствам нет
+    test: components/boot/src/tests/marketplace-convert.test.ts
+    status: written
+
+  - id: mkt.order.side.34
+    level: contract
+    kind: happy
+    scenario: >
+      Членского кошелька на взнос не хватает: превью приносит заявление 1110 на тело плюс
+      недостающую часть взноса, пайщица подписывает, оформление проводит перевод и заказ
+    expect: >
+      членская часть заявления — взнос за вычетом остатка кошелька, текст — только слова
+      владельца; o.mkt.conv ровно на членскую часть первой операцией нитки заказа (отдельной
+      нитки по хешу заявления нет); там же o.mkt.fee на весь взнос с членского кошелька и
+      o.mkt.lock на всё тело паевым резервом
+    test: components/boot/src/tests/marketplace-convert.test.ts
+    status: written
+
+  - id: mkt.order.side.35
+    level: backend
+    kind: side
+    scenario: >
+      Остаток по упаковкам: заказчик просит пять бутылок по 0,5 л, свободных бутылок этого
+      объёма три, хотя литров у предложения хватает
+    expect: >
+      отказ «Доступно только 3 упак.» до счётчиков и до цепи; заказ по мере по-прежнему
+      сверяется с остатком в базовых единицах
+    test: components/controller/src/extensions/marketplace/application/services/marketplace-order-create.service.spec.ts
+    status: passing
+
+  - id: mkt.order.side.36
+    level: backend
+    kind: side
+    scenario: >
+      Помощники остатка по упаковкам: сумма по упаковкам в базовых единицах, нехватка по
+      упаковке и по мере, упаковка заказа для счётчиков, снятие позиций склада с витрины остатка
+    expect: >
+      9,5 л из 3 × 0,5 и 8 × 1; нехватка считается по упаковке; заказ без упаковки до счётчика
+      упаковки не доходит; снятие уменьшает упаковку по содержимому не ниже нуля
+    test: components/controller/src/extensions/marketplace/application/shared/packaging.util.spec.ts
+    status: passing
+
+  - id: mkt.order.side.37
+    level: backend
+    kind: side
+    scenario: >
+      Отказ заказчика после приёмки имущества на склад кооператива (статус «принято кооперативом»):
+      принято всё; принята часть; заказ до склада не дошёл; склад недоступен
+    expect: >
+      принятое кооперативом выбывает из предложения поставщика — оно уже оплачено и продаётся
+      кооперативом; в свободное возвращается только непоставленное; принятое имущество переходит в
+      обезличенный остаток КУ — ждать его больше некому. До склада заказ не дошёл или склад
+      недоступен — возвращается весь объём и склад не трогается, как при обычной отмене
+    test: components/controller/src/extensions/marketplace/application/services/marketplace-order-cancel.service.spec.ts
+    status: passing
+
+  - id: mkt.order.happy.04
+    level: contract
+    kind: happy
+    scenario: >
+      Пайщица оформляет заказ: если членского кошелька не хватает, превью отдаёт заявление
+      1110 на недостающую сумму, она подписывает его один раз, перевод и заказ проходят
+    expect: >
+      перевод ровно на членскую часть (w.wal.share → w.mkt.member) идёт первой операцией
+      нитки заказа — тип процесса один, значит и идентификатор один; там же взнос с членского
+      кошелька (o.mkt.fee) и тело паевым резервом (o.mkt.lock), других проводок кроме
+      Дт 80 / Кт 86 перевода нет; при недовыдаче излишек взноса возвращается на
+      w.mkt.member, невыданное тело — на свободный паевой
+    test: components/boot/src/tests/marketplace-money.test.ts
+    status: written
+
+  # ── Оформление корзины одной транзакцией (решение владельца 15.09.2026) ──
+  - id: mkt.order.happy.05
+    level: backend
+    kind: happy
+    scenario: >
+      Корзина из заказа у поставщика и заказа из остатка склада, кошельков программы не хватает —
+      подписано заявление о переводе
+    expect: >
+      в цепь уходит одна транзакция: перевод первым действием с суммами по каждому заказу, затем
+      заказы в порядке корзины; после блока оба заказа записаны, строки убраны из корзины
+    test: components/controller/src/extensions/marketplace/application/services/marketplace-checkout.service.spec.ts
+    status: passing
+
+  - id: mkt.order.break.02
+    level: backend
+    kind: break
+    scenario: Цепь отказала в одном из заказов общей транзакции
+    expect: >
+      отказ всего оформления: брони остатка сняты по каждой строке, ни один заказ не записан,
+      корзина не тронута, перевод в членский кошелёк не проведён (откатился вместе с заказами)
+    test: components/controller/src/extensions/marketplace/application/services/marketplace-checkout.service.spec.ts
+    status: passing
+
+  - id: mkt.order.side.38
+    level: backend
+    kind: side
+    scenario: Подписано заявление о переводе, а одна строка корзины не прошла подготовку (нет остатка)
+    expect: >
+      оформление не запущено целиком — перевод адресован заказу, которого не будет; брони
+      остальных строк сняты, заказчику названа позиция и причина
+    test: components/controller/src/extensions/marketplace/application/services/marketplace-checkout.service.spec.ts
+    status: passing
+
+  - id: mkt.order.side.39
+    level: backend
+    kind: side
+    scenario: Заявления нет (кошельков программы хватает), одна строка не прошла подготовку
+    expect: >
+      остальные строки оформляются одной транзакцией без перевода, непрошедшая остаётся в
+      корзине с причиной; если не прошла ни одна — транзакция не отправляется
+    test: components/controller/src/extensions/marketplace/application/services/marketplace-checkout.service.spec.ts
     status: passing

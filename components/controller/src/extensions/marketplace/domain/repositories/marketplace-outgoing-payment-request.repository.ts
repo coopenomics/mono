@@ -16,6 +16,8 @@ export interface MarketplaceOutgoingPaymentRequestCreateInput {
   purpose: string;
   /** Маскированные реквизиты получателя на момент создания выплаты. */
   payout_destination?: string | null;
+  /** Часть выплаты, удержанная в счёт признанного гарантийного долга поставщика (99D-13). */
+  withheld_amount?: string | null;
   payout_tx_hash?: string | null;
   core_payment_id?: string | null;
 }

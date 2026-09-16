@@ -20,18 +20,12 @@ export function computeStockOrderHash(coopname: string, orderer: string, offer_i
     .digest('hex');
 }
 
+
 /**
- * Анкер единого Заявления о конвертации под одно принятие предложения/докладки:
- * детерминированный SHA256(coopname|orderer|convert|proposal_id) — без nonce,
- * чтобы backend на акцепте пересчитал его и сверил с подписанным заявлением.
- * Одно заявление на весь дефицит вместо документа на каждую строку.
+ * Якорь заявления 1110 о переводе паевого взноса в программу: у оформления
+ * корзины — по корзине, у бандла у стойки — по бандлу, у доплаты по факту —
+ * хеш заказа. Без nonce: превью и оформление обязаны сойтись по якорю.
  */
-export function computeConvertAnchorHash(
-  coopname: string,
-  orderer: string,
-  proposal_id: string
-): string {
-  return createHash('sha256')
-    .update(`${coopname}|${orderer}|convert|${proposal_id}`)
-    .digest('hex');
+export function computeConvertAnchorHash(coopname: string, orderer: string, key: string): string {
+  return createHash('sha256').update(`${coopname}|${orderer}|convert|${key}`).digest('hex');
 }

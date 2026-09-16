@@ -1,9 +1,8 @@
 <script lang="ts" setup>
 import { computed, ref, watch } from 'vue';
-import { Classes } from '@coopenomics/sdk';
 import { useGlobalStore } from 'src/shared/store';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
-import { signingKeyOrAlert } from 'src/shared/lib/utils/signingKey';
+import { signDocument } from 'src/shared/lib/document';
 import { BaseButton, BaseCard, BaseInput } from 'src/shared/ui/base';
 import { FileUploader, type FileUploaderError } from 'src/shared/ui/domain';
 import { TakeoverDialog } from 'src/widgets/Marketplace/TakeoverDialog';
@@ -171,13 +170,9 @@ async function confirm(): Promise<void> {
     FailAlert(new Error('Заявление ещё формируется, подождите.'));
     return;
   }
-  const wifKey = await signingKeyOrAlert('Не удалось получить ключ для подписи');
-  if (!wifKey) return;
-
   submitting.value = true;
   try {
-    const signer = new Classes.Document(wifKey);
-    const signed = await signer.signDocument(signableDocument.value, globalStore.username, 1);
+    const signed = await signDocument(signableDocument.value, globalStore.username, 1);
     const photos: ReturnClaimPhotoUploadInput[] = await Promise.all(
       selectedFiles.value.map(async (file) => ({
         base64: await fileToBase64(file),

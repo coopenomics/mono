@@ -1,6 +1,13 @@
 import pc from 'picocolors'
 
-/** SDK при GraphQL-ошибках бросает массив объектов `{ message }`, не `Error` — String() даёт «[object Object]». */
+/**
+ * Текст пойманного значения для вывода человеку.
+ *
+ * SDK при отказе сервера бросает `GraphQLResponseError` — обычный `Error`, чей
+ * `message` уже склеен из сообщений сервера. Ветки ниже для массива и голого
+ * объекта оставлены: так бросали старые сборки SDK, и так могут бросать чужие
+ * библиотеки; `String()` для них даёт «[object Object]».
+ */
 export function formatThrownValue(e: unknown): string {
   if (e instanceof Error) {
     return e.message

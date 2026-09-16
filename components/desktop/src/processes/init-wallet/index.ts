@@ -61,27 +61,11 @@ export function useInitWalletProcess() {
         );
       }
 
-      const errorMessage = extractGraphQLErrorMessages(e);
-
-      if (
-        !isTimeout &&
-        (errorMessage.includes('Пользователь с указанным JWT не найден') ||
-          errorMessage.includes('jwt') ||
-          errorMessage.includes('token') ||
-          errorMessage.includes('авторизац'))
-      ) {
-        console.warn(
-          'Обнаружена ошибка авторизации при инициализации, выполняем автоматический logout',
-        );
-
-        session.close();
-        await desktops.setWorkspaceChanging(false);
-
-        setTimeout(() => {
-          window.location.reload();
-        }, 100);
-
-        return;
+      // Отказ авторизации здесь больше не трактуется как «выйти и перезагрузить»:
+      // судьбу сессии решает сервер при следующем рендере по cookie — истёкшую
+      // он объявит сам, и клиент её закроет. Ошибка только в журнал.
+      if (!isTimeout) {
+        console.warn('Контекст пайщика не загружен:', extractGraphQLErrorMessages(e));
       }
 
       session.loadComplete = true;

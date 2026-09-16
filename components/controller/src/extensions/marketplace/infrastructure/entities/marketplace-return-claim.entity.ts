@@ -18,10 +18,11 @@ import type {
 import type { ISignedDocument } from '@coopenomics/innercoop';
 
 /**
- * Эпик 7: TypeORM-сущность заявления на гарантийный возврат. Один Order
- * имеет максимум одно активное заявление (PENDING_CHAIRMAN_REVIEW либо
- * APPROVED_FOR_VISIT); финализированные заявления (ACCEPTED_AT_VISIT /
- * REJECTED_REMOTELY / REJECTED_AT_VISIT) хранятся в архиве.
+ * Эпик 7 + компонент 68: TypeORM-сущность заявления на гарантийный возврат.
+ * Один Order имеет максимум одно активное заявление (PENDING_CHAIRMAN_REVIEW /
+ * APPROVED_FOR_VISIT / PENDING_COUNCIL / DECLINED_BY_COUNCIL); финализированные
+ * (ACCEPTED_BY_COUNCIL / HANDED_BACK / REJECTED_REMOTELY / REJECTED_AT_VISIT)
+ * хранятся в архиве.
  *
  * Hot-path индексы:
  *   - `(coopname, request_hash)` unique — двусторонняя сверка с on-chain
@@ -35,7 +36,7 @@ import type { ISignedDocument } from '@coopenomics/innercoop';
 @Index('IDX_marketplace_return_claim_request_hash_unique', ['coopname', 'request_hash'], { unique: true })
 @Index('IDX_marketplace_return_claim_order_active', ['coopname', 'order_id'], {
   unique: true,
-  where: "status IN ('PENDING_CHAIRMAN_REVIEW', 'APPROVED_FOR_VISIT')",
+  where: "status IN ('PENDING_CHAIRMAN_REVIEW', 'APPROVED_FOR_VISIT', 'PENDING_COUNCIL', 'DECLINED_BY_COUNCIL')",
 })
 @Index(['coopname', 'delivery_braname', 'status'])
 @Index(['coopname', 'orderer_account', 'status'])
@@ -97,6 +98,22 @@ export class MarketplaceReturnClaimEntity {
   @Column({ type: 'jsonb', nullable: true })
   public statement!: ISignedDocument | null;
 
+  /** Заявление оператора участка в совет об отмене сделки (1116) — после приёма имущества у стойки. */
+  @Column({ type: 'jsonb', nullable: true })
+  public cancel_statement!: ISignedDocument | null;
+
+  @Column({ type: 'varchar', length: 32, nullable: true })
+  public council_decision_id!: string | null;
+
+  @Column({ type: 'varchar', length: 8, nullable: true })
+  public council_decision_mode!: 'ROBOT' | 'MANUAL' | null;
+
+  @Column({ type: 'jsonb', nullable: true })
+  public council_protocol!: ISignedDocument | null;
+
+  @Column({ type: 'timestamptz', nullable: true })
+  public accepted_at!: Date | null;
+
   @Column({ type: 'varchar', length: 128 })
   public submretrn_tx_hash!: string;
 
@@ -108,6 +125,14 @@ export class MarketplaceReturnClaimEntity {
 
   @Column({ type: 'jsonb', nullable: true })
   public ledger_snapshot!: MarketplaceReturnClaimLedgerSnapshot | null;
+
+  /**
+   * Совет отменил сделку, а общий кошелёк участка был уже распределён:
+   * членский взнос ждёт пополнения кошелька (заявка на цепи в `feepend`,
+   * задача 99D-15). Крон повторяет `payretfee`; null — взнос не ждёт.
+   */
+  @Column({ type: 'timestamptz', nullable: true })
+  public fee_refund_pending_at!: Date | null;
 
   @CreateDateColumn({ type: 'timestamptz' })
   public created_at!: Date;

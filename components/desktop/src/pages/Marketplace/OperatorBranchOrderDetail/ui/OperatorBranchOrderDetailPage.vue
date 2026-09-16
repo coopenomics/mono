@@ -16,8 +16,30 @@ const router = useRouter();
 const coopname = computed(() => String(route.params.coopname ?? ''));
 const orderId = computed(() => String(route.params.orderId ?? ''));
 
+/**
+ * Откуда заказ открыли — по пометке `?from=`. Подпись кнопки и запасной
+ * маршрут обязаны совпадать с реальным возвратом: из «Экономики участка»
+ * кнопка «К заказам участка» уводила туда, где человек не был.
+ */
+const BACK_TARGETS: Record<string, { label: string; name: string }> = {
+  orders: { label: 'К заказам участка', name: 'marketplace-pvz-orders' },
+  economy: { label: 'К экономике участка', name: 'marketplace-pvz-economy' },
+};
+
+const backTarget = computed<{ label: string; name: string }>(() => {
+  const from = BACK_TARGETS[String(route.query.from ?? '')];
+  if (from) return from;
+  // Без пометки страницу открывает реестр заказов участка — он и остаётся
+  // запасным маршрутом при заходе по прямой ссылке.
+  return { label: 'К заказам участка', name: 'marketplace-pvz-orders' };
+});
+
+// Реальный переход — router.back(): история совпадает с тем, откуда пришли, и
+// возвращает страницу в том же состоянии (вкладка, прокрутка, фильтры).
+// Прямой заход по ссылке истории не имеет — тогда ведём по запасному маршруту.
 function goBack(): void {
-  void router.push({ name: 'marketplace-pvz-orders', params: { coopname: coopname.value } });
+  if (window.history.length > 1) router.back();
+  else void router.push({ name: backTarget.value.name, params: { coopname: coopname.value } });
 }
 </script>
 
@@ -26,7 +48,7 @@ q-page.operator-order-detail
   BaseButton.operator-order-detail__back(variant="ghost", size="sm", @click="goBack")
     template(#icon-left)
       q-icon(name="arrow_back", size="16px")
-    | К заказам участка
+    | {{ backTarget.label }}
 
   OrderRegistryDetail(
     :coopname="coopname",

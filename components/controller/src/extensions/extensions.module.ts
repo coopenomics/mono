@@ -14,6 +14,8 @@ import { MarketplaceExtensionModule } from './marketplace/marketplace-extension.
 import { EdubridgeExtensionModule } from './edubridge/edubridge-extension.module';
 import { ExpensesExtensionModule } from './expenses/expenses-extension.module';
 import { KuExtensionModule } from './ku/ku-extension.module';
+import { CardcoopExtensionModule } from './cardcoop/cardcoop-extension.module';
+import { SovietRobotExtensionModule } from './soviet-robot/soviet-robot-extension.module';
 
 @Module({})
 export class ExtensionsModule {
@@ -38,6 +40,8 @@ export class ExtensionsModule {
         EdubridgeExtensionModule,
         ExpensesExtensionModule,
         KuExtensionModule,
+        CardcoopExtensionModule,
+        SovietRobotExtensionModule,
       ],
       providers: [],
       // Экспортируем все модули расширений, чтобы их провайдеры были доступны
@@ -58,6 +62,8 @@ export class ExtensionsModule {
         EdubridgeExtensionModule,
         ExpensesExtensionModule,
         KuExtensionModule,
+        CardcoopExtensionModule,
+        SovietRobotExtensionModule,
       ],
     };
   }

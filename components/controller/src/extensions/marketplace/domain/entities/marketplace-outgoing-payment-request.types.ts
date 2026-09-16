@@ -42,6 +42,8 @@ export interface MarketplaceOutgoingPaymentRequestProps {
   purpose: string;
   /** Куда уходит выплата — маскированные реквизиты на момент создания. */
   payout_destination: string | null;
+  /** Удержано в счёт признанного гарантийного долга поставщика; сумма к переводу = amount. */
+  withheld_amount: string;
   status: MarketplaceOutgoingPaymentRequestStatus;
   /** Заполняется на переходе → COMPLETED. */
   completed_at: Date | null;

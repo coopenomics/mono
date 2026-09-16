@@ -29,6 +29,7 @@ import { useContributorStore } from 'app/extensions/capital/entities/Contributor
 import { useConfigStore } from 'app/extensions/capital/entities/Config/model';
 import { useFavoritesStore } from 'app/extensions/capital/entities/Favorite';
 import { useSessionStore } from 'src/entities/Session';
+import { FailAlert } from 'src/shared/api/alerts';
 import { useSystemStore } from 'src/entities/System/model';
 import { CapitalOnboardingCard } from 'app/extensions/capital/features/Onboarding/ui';
 import { useCapitalOnboarding } from 'app/extensions/capital/features/Onboarding/model';
@@ -149,14 +150,24 @@ const redirectToRegistration = () => {
 };
 
 onMounted(async () => {
-  // Загружаем данные пользователя
-  await contributorStore.loadSelf({username: session.username});
+  // Отказ сервера здесь раньше уходил из onMounted необработанным: в журнал
+  // ошибок — безымянным «Object captured as exception», а пайщику — вечным
+  // «Загрузка данных участника...». Теперь он видит причину, стол открывается,
+  // а на регистрацию по недогруженным данным не уводим.
+  try {
+    // Загружаем данные пользователя
+    await contributorStore.loadSelf({username: session.username});
 
-  // Загружаем конфигурацию контракта
-  await configStore.loadState({coopname: system.info.coopname});
+    // Загружаем конфигурацию контракта
+    await configStore.loadState({coopname: system.info.coopname});
 
-  // Загружаем состояние онбординга
-  await loadState();
+    // Загружаем состояние онбординга
+    await loadState();
+  } catch (e) {
+    FailAlert(e);
+    isLoading.value = false;
+    return;
+  }
 
   // Избранное — не блокирует вход на стол
   favoritesStore

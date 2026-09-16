@@ -3,6 +3,7 @@ import { Module } from '@nestjs/common';
 import { PassportModule } from '@nestjs/passport';
 import { JwtModule } from '@nestjs/jwt';
 import { JwtAuthStrategy } from './strategies/jwt.strategy';
+import { SessionAliveService } from './services/session-alive.service';
 import { HttpJwtAuthGuard } from '@coopenomics/extension-kit';
 import { AuthResolver } from './resolvers/auth.resolver';
 import { AuthService } from './services/auth.service';
@@ -35,7 +36,7 @@ import config from '~/config/config';
     // Подтверждение почты кодом (запрос и проверка кода из письма).
     EmailVerificationModule,
   ],
-  providers: [JwtAuthStrategy, HttpJwtAuthGuard, AuthInteractor, AuthResolver, AuthService],
+  providers: [SessionAliveService, JwtAuthStrategy, HttpJwtAuthGuard, AuthInteractor, AuthResolver, AuthService],
   exports: [PassportModule, JwtModule, HttpJwtAuthGuard],
 })
 export class AuthModule {}

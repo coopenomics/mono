@@ -23,8 +23,18 @@ const initialAccountState: IGeneratedAccount = {
   public_key: '',
 };
 
+/**
+ * Форма ведёт все три анкеты сразу: переключение типа субъекта не должно
+ * стирать уже введённое, поэтому в состоянии блоки заданы всегда. В самом
+ * `IUserData` они опциональны — там это вход мутаций, где приезжает ровно
+ * один блок. Отсюда отдельный тип состояния: без него присвоение полей
+ * анкеты не проходит проверку типов, ведь блок формально может отсутствовать.
+ */
+type IUserDataState = IUserData &
+  Required<Pick<IUserData, 'entrepreneur_data' | 'individual_data' | 'organization_data'>>;
+
 // Начальное состояние для userData
-const initialUserDataState: IUserData = {
+const initialUserDataState: IUserDataState = {
   type: null,
   individual_data: {
     first_name: '',
@@ -114,6 +124,81 @@ const initialAgreementsState = {
   user: false,
   self_paid: false,
 };
+/** Строка из значения профиля карты кооператора: не строка — пустая строка. */
+const cardcoopText = (value: unknown): string => (typeof value === 'string' ? value : '');
+
+/** Вложенный блок профиля (`details`, `represented_by`): блока может не быть — тогда пустой. */
+const cardcoopBlock = (value: unknown): Record<string, unknown> =>
+  value !== null && typeof value === 'object' ? (value as Record<string, unknown>) : {};
+
+/**
+ * Ветка переноса для физлица. Вынесена из applyCardcoopProfile: три ветки
+ * анкеты независимы и читаются каждая отдельно.
+ */
+const fillIndividualFromCardcoop = (
+  individual: NonNullable<IUserData['individual_data']>,
+  profile: Record<string, unknown>,
+): void => {
+  Object.assign(individual, {
+    first_name: cardcoopText(profile.first_name),
+    last_name: cardcoopText(profile.last_name),
+    middle_name: cardcoopText(profile.middle_name),
+    birthdate: cardcoopText(profile.birthdate),
+    full_address: cardcoopText(profile.full_address),
+    phone: cardcoopText(profile.phone),
+  });
+};
+
+/** Ветка переноса для ИП: анкета плюс реквизиты (ИНН, ОГРНИП). */
+const fillEntrepreneurFromCardcoop = (
+  entrepreneur: NonNullable<IUserData['entrepreneur_data']>,
+  profile: Record<string, unknown>,
+): void => {
+  Object.assign(entrepreneur, {
+    first_name: cardcoopText(profile.first_name),
+    last_name: cardcoopText(profile.last_name),
+    middle_name: cardcoopText(profile.middle_name),
+    birthdate: cardcoopText(profile.birthdate),
+    phone: cardcoopText(profile.phone),
+    city: cardcoopText(profile.city),
+    full_address: cardcoopText(profile.full_address),
+  });
+  const details = cardcoopBlock(profile.details);
+  Object.assign(entrepreneur.details, {
+    inn: cardcoopText(details.inn),
+    ogrn: cardcoopText(details.ogrn),
+  });
+};
+
+/** Ветка переноса для организации: анкета, представитель и реквизиты. */
+const fillOrganizationFromCardcoop = (
+  organization: NonNullable<IUserData['organization_data']>,
+  profile: Record<string, unknown>,
+): void => {
+  Object.assign(organization, {
+    short_name: cardcoopText(profile.short_name),
+    full_name: cardcoopText(profile.full_name),
+    city: cardcoopText(profile.city),
+    full_address: cardcoopText(profile.full_address),
+    fact_address: cardcoopText(profile.fact_address),
+    phone: cardcoopText(profile.phone),
+  });
+  const representative = cardcoopBlock(profile.represented_by);
+  Object.assign(organization.represented_by, {
+    first_name: cardcoopText(representative.first_name),
+    last_name: cardcoopText(representative.last_name),
+    middle_name: cardcoopText(representative.middle_name),
+    position: cardcoopText(representative.position),
+    based_on: cardcoopText(representative.based_on),
+  });
+  const details = cardcoopBlock(profile.details);
+  Object.assign(organization.details, {
+    inn: cardcoopText(details.inn),
+    ogrn: cardcoopText(details.ogrn),
+    kpp: cardcoopText(details.kpp),
+  });
+};
+
 export const useRegistratorStore = defineStore(
   namespace,
   () => {
@@ -316,6 +401,42 @@ export const useRegistratorStore = defineStore(
       state.userAgreement = structuredClone(initialDocumentState);
     };
 
+    /**
+     * Предзаполняет анкету вступления данными, перенесёнными по карте кооператора (story 9.3).
+     *
+     * Данные пришли от кооператива, где человека уже верифицировали, и проверены подписью
+     * его заверенного ключа. Человек всё равно проходит форму и видит каждое поле:
+     * перенос избавляет от перепечатывания, а не от проверки.
+     *
+     * Поля кладутся только совпадающие по смыслу: чего в нашей форме нет (паспорт, почта в
+     * анкете), то не кладётся; чего не было в анкете — остаётся пустым и вводится руками.
+     */
+    const applyCardcoopProfile = (subjectType: string, profile: Record<string, any>): void => {
+      if (typeof profile.email === 'string' && profile.email) state.email = profile.email;
+
+      // Блоки анкеты в IUserData необязательны, поэтому перед записью берём блок
+      // в локальную переменную и проверяем его наличие.
+      if (subjectType === 'individual') {
+        state.userData.type = 'individual';
+        const individual = state.userData.individual_data;
+        if (individual) fillIndividualFromCardcoop(individual, profile);
+        return;
+      }
+
+      if (subjectType === 'entrepreneur') {
+        state.userData.type = 'entrepreneur';
+        const entrepreneur = state.userData.entrepreneur_data;
+        if (entrepreneur) fillEntrepreneurFromCardcoop(entrepreneur, profile);
+        return;
+      }
+
+      if (subjectType === 'organization') {
+        state.userData.type = 'organization';
+        const organization = state.userData.organization_data;
+        if (organization) fillOrganizationFromCardcoop(organization, profile);
+      }
+    };
+
     return {
       state,
       steps,
@@ -330,6 +451,7 @@ export const useRegistratorStore = defineStore(
       isStep,
       clearUserData,
       resetConsents,
+      applyCardcoopProfile,
       addUserState,
       isBranched,
     };

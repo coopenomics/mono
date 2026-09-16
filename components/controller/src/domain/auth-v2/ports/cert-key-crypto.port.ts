@@ -27,6 +27,15 @@ export interface ICertKeyCrypto {
   /** Ключ цепи → объект подписи Node, которым подписывается удостоверение. */
   toSigningKey(privateKey: string): KeyObject;
 
+  /**
+   * Подписывает байты ключом цепи и возвращает подпись в формате цепи (`SIG_K1_…`).
+   *
+   * Отдельно от {@link toSigningKey}: тот отдаёт объект подписи Node, которым
+   * удостоверение подписывается в формате JWS, а здесь нужна подпись в формате
+   * самой цепи — её проверяют по признанному ключу из `ano::endorsements`.
+   */
+  signChainMessage(privateKey: string, message: Uint8Array): string;
+
   /** Приводит публичный ключ к единому виду — записи цепи бывают в двух форматах. */
   normalizePublicKey(publicKey: string): string;
 }

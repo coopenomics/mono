@@ -1,0 +1,95 @@
+feature: marketplace.payouts
+title: Выплаты поставщикам — лента совета и разворот одной выплаты
+
+# Слайс от заведённой выплаты до её разворота на столе совета: лента выплат по
+# всему кооперативу (Payment:read:all), поиск по человеческому имени получателя
+# и карточка, отвечающая на вопрос «за что заплатили» — предмет поставки,
+# состояние заказа и подтверждение оплаты (запись в реестре кассира плюс
+# проводка в цепи).
+#
+# Проведение и отказ выплаты — работа кассира в общем столе кооператива
+# (расширение gateway). Здесь только чтение: marketplace отзеркаливает статусы
+# из цепи и показывает их совету.
+
+sources:
+  backend:
+    - components/controller/src/extensions/marketplace/application/resolvers/marketplace-outgoing-payment.resolver.ts
+    - components/controller/src/extensions/marketplace/application/dto/marketplace-outgoing-payment.dto.ts
+    - components/controller/src/extensions/marketplace/application/services/marketplace-payout-sync*.ts
+  ui:
+    - components/desktop/src/pages/Marketplace/BoardPayoutsReadonly/**
+
+cases:
+  - id: mkt.payouts.happy.01
+    level: backend
+    kind: happy
+    scenario: >
+      Совет открывает выплату, у которой есть и заказ, и платёж в реестре кассира.
+    expect: >
+      разворот собирает три источника: реквизиты выплаты, предмет поставки с
+      состоянием заказа и статус кассирского платежа; платёж ищется по
+      order_hash — marketplace заводит его именно с этим payment_hash
+    test: components/controller/tests/unit/marketplace/marketplace-outgoing-payment-detail.test.ts
+    status: passing
+
+  - id: mkt.payouts.side.01
+    level: backend
+    kind: side
+    scenario: >
+      Запрошен идентификатор выплаты другого кооператива.
+    expect: >
+      ответ null, заказ и кассирский порт не опрашиваются — чужой идентификатор
+      не должен подтверждаться ни ответом, ни отказом по праву
+    test: components/controller/tests/unit/marketplace/marketplace-outgoing-payment-detail.test.ts
+    status: passing
+
+  - id: mkt.payouts.side.02
+    level: backend
+    kind: side
+    scenario: >
+      Выплаты с таким идентификатором нет вовсе.
+    expect: ответ null
+    test: components/controller/tests/unit/marketplace/marketplace-outgoing-payment-detail.test.ts
+    status: passing
+
+  - id: mkt.payouts.side.03
+    level: backend
+    kind: side
+    scenario: >
+      Заказ, за который платили, не нашёлся.
+    expect: >
+      разворот отдаётся без предмета поставки (order = null) — выплата и её
+      реквизиты совету видны в любом случае
+    test: components/controller/tests/unit/marketplace/marketplace-outgoing-payment-detail.test.ts
+    status: passing
+
+  - id: mkt.payouts.break.01
+    level: backend
+    kind: break
+    scenario: >
+      Кассирский порт недоступен в момент открытия выплаты.
+    expect: >
+      разворот остаётся живым, core_payment пуст — marketplace-статус
+      самодостаточен, отказ соседнего стола не должен гасить карточку
+    test: components/controller/tests/unit/marketplace/marketplace-outgoing-payment-detail.test.ts
+    status: passing
+
+  - id: mkt.payouts.side.04
+    level: backend
+    kind: side
+    scenario: >
+      Выплата заведена, но платёж кассиру ещё не создан (core_payment_id пуст).
+    expect: core_payment = null, разворот отдаётся
+    test: components/controller/tests/unit/marketplace/marketplace-outgoing-payment-detail.test.ts
+    status: passing
+
+  - id: mkt.payouts.side.05
+    level: ui
+    kind: side
+    scenario: >
+      В ленте выплат совет ищет поставщика по фамилии, а у одного из получателей
+      имя в профиле не заполнено.
+    expect: >
+      колонка показывает ФИО или наименование организации, для незаполненного
+      профиля — логин аккаунта; поиск идёт по имени, не по логину
+    status: missing

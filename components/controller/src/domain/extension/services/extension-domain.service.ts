@@ -2,8 +2,10 @@
 
 import { Injectable, BadRequestException, Inject } from '@nestjs/common';
 import { EXTENSION_REPOSITORY, ExtensionDomainRepository, ExtensionDomainEntity } from '@coopenomics/extension-kit';
+import { isExtensionAvailable } from '@coopenomics/extension-kit';
 import { AppRegistry } from '~/extensions/extensions.registry';
 import { defaultConfig as builtinDefaultConfig } from '~/extensions/builtin/builtin-extension.module';
+import appConfig from '~/config/config';
 
 @Injectable()
 export class ExtensionDomainService<TConfig = any> {
@@ -59,6 +61,11 @@ export class ExtensionDomainService<TConfig = any> {
   getDefaultApps(): Partial<ExtensionDomainEntity>[] {
     const fromRegistry = Object.entries(AppRegistry)
       .filter(([, extension]) => extension.defaults)
+      // Доступность сети обязана действовать и здесь. Ручную установку она уже закрывает
+      // (`assertInstallable`), а состав по умолчанию шёл мимо неё: расширение, не открытое
+      // для основной сети, приезжало бы в неё само и включённым — то есть запрет обходился
+      // бы ровно тем механизмом, который должен ему подчиняться.
+      .filter(([, extension]) => isExtensionAvailable(extension.availability, appConfig.blockchain.is_mainnet))
       .map(([name, extension]) => ({
         name,
         enabled: extension.defaults!.enabled,

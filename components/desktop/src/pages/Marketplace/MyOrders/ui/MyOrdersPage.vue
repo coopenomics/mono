@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue';
+import { useFirstLoad } from 'src/shared/lib/composables';
 import { useRoute, useRouter } from 'vue-router';
 import { debounce } from 'quasar';
 import { FailAlert } from 'src/shared/api';
@@ -45,7 +46,11 @@ const items = ref<MarketplaceOrderView[]>([]);
 const totalCount = ref(0);
 const totalPages = ref(0);
 const currentPage = ref(1);
-const loading = ref(false);
+// true до первого запроса: иначе первый кадр до загрузки показывает пустое
+// состояние вместо скелетона, и первая загрузка неотличима от пустого списка.
+const loading = ref(true);
+/** Скелетон — только на первой загрузке; дочитка обновляет молча. */
+const firstLoad = useFirstLoad(loading);
 const activeKey = ref('all');
 
 const hasMore = computed(() => currentPage.value < totalPages.value);
@@ -76,7 +81,7 @@ const FILTERS: Array<{ key: string; label: string; statuses: MarketplaceOrderSta
   {
     key: 'in-progress',
     label: 'В работе',
-    statuses: ['ACCEPTED', 'SUPPLY_PREPARED', 'ACCEPTED_TO_COOP'],
+    statuses: ['ACCEPTED', 'SUPPLY_PREPARED', 'ACCEPTED_TO_COOP', 'READY_TO_RECEIVE', 'ISSUE_PENDING', 'ISSUE_AUTHORIZED', 'ISSUE_ACT1'],
   },
   { key: 'received', label: 'Получены', statuses: ['RECEIVED'] },
   {
@@ -164,7 +169,7 @@ function groupByCheckout(list: MarketplaceOrderView[]): OrderGroup[] {
  * Story 16.x: получение группируется ПО ПУНКТУ ВЫДАЧИ (КУ), слежение — по
  * корзине. Поездка за товаром — единица по пункту, не по корзине: на один КУ
  * заказчик приезжает разом и подписывает всё готовое одной сессией (бэкенд так
- * и делает — `signiss2` циклом по партии пункта). Поэтому готовые к выдаче
+ * и делает — бандл выдачи по партии пункта, заявления одним нажатием). Поэтому готовые к выдаче
  * позиции одного КУ (>=2 шт.) сводятся в ОДНУ карточку-партию с ОДНОЙ кнопкой
  * «Подписать и получить всё»; внутренние карточки — readonly (без своих кнопок).
  *
@@ -272,7 +277,10 @@ const reloadLive = debounce(() => {
   void load(currentPage.value, false);
 }, 400);
 useMarketplaceRealtime(
-  { MarketplaceOrderStatusChangedEvent: () => reloadLive() },
+  {
+    MarketplaceOrderStatusChangedEvent: () => reloadLive(),
+    MarketplaceIssuanceSagaUpdatedEvent: () => reloadLive(),
+  },
   { onResync: () => reloadLive() }
 );
 </script>
@@ -296,10 +304,10 @@ q-page.orders(role="region", aria-label="Мои заказы")
   PageTabs.orders__tabs(:tabs="tabs", :active-key="activeKey", @select="onSelectTab")
 
   //- Канон загрузки: скелетон на первичной загрузке, не пустой экран.
-  CardListSkeleton(v-if="loading && !items.length", :count="3")
+  CardListSkeleton(v-if="firstLoad", :count="3")
 
   EmptyState(
-    v-if="!items.length && !loading",
+    v-if="!items.length && !firstLoad",
     title="У вас пока нет заказов",
     body="Перейдите в каталог, чтобы оформить первый заказ."
   )
@@ -357,15 +365,6 @@ q-page.orders(role="region", aria-label="Мои заказы")
   display: flex;
   flex-direction: column;
   gap: var(--p-4, 16px);
-
-  // Канон-tabbar тянется во всю ширину; в странице с боковыми отступами
-  // убираем его внутренний горизонтальный паддинг, чтобы вкладки шли от края.
-  &__tabs {
-    margin: 0 calc(-1 * var(--p-6, 24px));
-    :deep(.tabbar__tabs) {
-      padding: 0 var(--p-6, 24px);
-    }
-  }
 
   // Список строк на всю ширину (OrderCard layout="row"), не сетка плиток:
   // сверху вниз — от самого нового к самому старому, порядок читается

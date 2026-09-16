@@ -141,8 +141,17 @@ export class ChatCoopExtension extends BaseExtensionModule {
 
       this.extension = extensionData;
 
-      // Выполняем логин администратора при инициализации
-      await this.matrixApiService.loginAdmin();
+      // Вход администратора при старте — проверка, а не условие запуска. Matrix
+      // перезапускается вместе с узлом и может ответить на несколько секунд
+      // позже контроллера; раньше такой отказ ронял запуск расширения, и чат
+      // оставался выключенным до следующего рестарта. Каждый вызов Matrix
+      // входит заново сам (loginAdmin кэширует токен), отложенная настройка
+      // ниже повторит попытку через десять секунд.
+      await this.matrixApiService.loginAdmin().catch((error) => {
+        this.logger.warn(
+          `Matrix не принял вход администратора при старте, вход повторится при первом обращении: ${error?.message ?? error}`
+        );
+      });
 
       // Отложенная инициализация (MongoDB/Generator могут быть ещё не готовы)
       setTimeout(async () => {

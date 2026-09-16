@@ -1,12 +1,20 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue';
+import { useFirstLoad } from 'src/shared/lib/composables';
 import { debounce } from 'quasar';
-import { useRoute, useRouter } from 'vue-router';
 import { FailAlert } from 'src/shared/api';
+import { useSystemStore } from 'src/entities/System/model';
+import { useQueryOverlay } from 'src/shared/lib/navigation';
+import { OfferRegistryOverlay } from 'src/widgets/Marketplace/OfferRegistryOverlay';
 import { fetchCategories } from '../../MarketplaceCatalog/api';
-import { marketplaceOrderUnitLabel } from 'src/shared/lib/consts';
 import { marketplaceOfferImageUrls } from 'src/shared/lib/utils';
-import { useMarketplaceRealtime, getMembershipFeePercent } from 'src/shared/lib/marketplace';
+import {
+  useMarketplaceRealtime,
+  getMembershipFeePercent,
+  marketplaceCardPackages,
+  offerCardUnitCost,
+  offerCardUnitLabel,
+} from 'src/shared/lib/marketplace';
 import { BaseButton, CardListSkeleton, EmptyState } from 'src/shared/ui/base';
 import { PageHint } from 'src/shared/ui/domain';
 import {
@@ -32,12 +40,16 @@ import {
 
 const PAGE_SIZE = 24;
 
-const route = useRoute();
-const router = useRouter();
+const { info } = useSystemStore();
+const offerOverlay = useQueryOverlay('offer');
 
 const items = ref<MarketplacePendingOfferView[]>([]);
 const total = ref(0);
-const loading = ref(false);
+// true до первого запроса: иначе первый кадр до загрузки показывает пустое
+// состояние вместо скелетона, и первая загрузка неотличима от пустого списка.
+const loading = ref(true);
+/** Пустое состояние и каркас — по первой загрузке; дочитка обновляет молча. */
+const firstLoad = useFirstLoad(loading);
 const currentPage = ref(1);
 // Модератор — как поставщик и администратор — видит цену с учётом членского
 // взноса (это то, что реально заплатит заказчик); заказчику в каталоге эта
@@ -75,22 +87,23 @@ function toCatalogOffer(offer: MarketplacePendingOfferView): CatalogOffer {
     description: offer.description ?? undefined,
     images: marketplaceOfferImageUrls(offer.images),
     remainUnits: offer.unlimited_flag ? undefined : offer.quantity_available,
-    unitCost: offer.price_per_unit,
-    unitLabel: marketplaceOrderUnitLabel(offer.unit_of_measure),
+    // При отпуске упаковкой цена и остаток показываются по упаковкам: модератор
+    // проверяет ту же карточку, что увидит заказчик.
+    unitCost: offerCardUnitCost(offer),
+    unitLabel: offerCardUnitLabel(offer),
+    packages: marketplaceCardPackages(offer.packages, offer.unit_of_measure, offer.unlimited_flag),
     status: 'moderation',
     category: categoryName(offer) ?? undefined,
     supplierName: offer.supplier_name ?? offer.supplier_account ?? undefined,
   };
 }
 
-// Клик по карточке → полная карточка предложения на столе администратора
-// (read-only маршрут, без перехода на стол заказчика). Модератор видит полное
-// описание, участки поставки с объёмами и гарантию — то, что в карточке скрыто.
+// Клик по карточке → карточка предложения оверлеем поверх очереди: очередь и
+// прокрутка ленты остаются на месте, решение принимается прямо в оверлее.
+// Модератор видит полное описание, участки поставки с объёмами и гарантию —
+// то, что в карточке скрыто; полная страница — по кнопке в оверлее.
 function goToDetail(offer: MarketplacePendingOfferView): void {
-  void router.push({
-    name: 'marketplace-admin-offer-detail',
-    params: { coopname: String(route.params.coopname ?? ''), offerId: offer.id },
-  });
+  offerOverlay.open(offer.id);
 }
 
 async function loadCategories(): Promise<void> {
@@ -162,10 +175,10 @@ q-page.moderation(role="region", aria-label="Модерация предложе
       | На модерации: {{ total }}
 
   //- Канон загрузки: скелетон, а не спиннер поверх.
-  CardListSkeleton(v-if="loading && items.length === 0", :count="3")
+  CardListSkeleton(v-if="firstLoad", :count="3")
 
   EmptyState(
-    v-if="!loading && items.length === 0",
+    v-if="!firstLoad && items.length === 0",
     title="Очередь модерации пуста",
     body="Все предложения поставщиков рассмотрены."
   )
@@ -206,6 +219,13 @@ q-page.moderation(role="region", aria-label="Модерация предложе
     template(#loading)
       .row.justify-center.q-my-md
         q-spinner(color="primary", size="2em")
+
+  OfferRegistryOverlay(
+    :coopname="info.coopname",
+    moderatable,
+    from="moderation",
+    @moderated="reloadLive"
+  )
 </template>
 
 <style scoped lang="scss">

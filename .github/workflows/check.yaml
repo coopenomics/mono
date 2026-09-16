@@ -36,7 +36,8 @@ name: Check
 # их нет — триггер всё равно не срабатывал ни разу.
 on:
   push:
-    branches: [testnet, main]
+    # ci/tests — ветка-полигон: полный вердикт по рабочей ветке до слияния.
+    branches: [testnet, main, ci/tests]
   workflow_call:
   workflow_dispatch:
 

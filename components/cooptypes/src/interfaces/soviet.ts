@@ -115,15 +115,25 @@ export interface IAuthorize {
   chairman: IName
   decision_id: IUint64
   document: IDocument2
+  permission: IName
+}
+
+/** Правило повтора: по какому типу решения и за кем член совета повторяет голос */
+export interface IFollowRule {
+  decision_type: IName
+  follow: IName
 }
 
 export interface IAutomate {
   coopname: IName
   board_id: IUint64
   member: IName
-  action_type: IName
-  provider: IName
-  encrypted_private_key: string
+  permission_name: IName
+  vote_types: IName[]
+  follow_rules: IFollowRule[]
+  authorize_types: IName[]
+  limit: IAsset
+  expires_at: ITimePointSec
 }
 
 export interface IAutomator {
@@ -131,9 +141,14 @@ export interface IAutomator {
   coopname: IName
   board_id: IUint64
   member: IName
-  action_type: IName
   permission_name: IName
-  encrypted_private_key: string
+  vote_types: IName[]
+  follow_rules: IFollowRule[]
+  authorize_types: IName[]
+  limit: IAsset
+  expires_at: ITimePointSec
+  created_at: ITimePointSec
+  updated_at: ITimePointSec
 }
 
 export interface IAutosigner {
@@ -357,7 +372,6 @@ export interface IDisautomate {
   coopname: IName
   board_id: IUint64
   member: IName
-  automation_id: IUint64
 }
 
 export interface IDocument {
@@ -496,6 +510,7 @@ export interface INewsubmitted {
   action: IName
   package: IChecksum256
   document: IDocument2
+  decision_id: IUint64
 }
 
 export interface IOpenprogwall {
@@ -665,6 +680,7 @@ export interface IVoteagainst {
   signed_hash: IChecksum256
   signature: ISignature
   public_key: IPublicKey
+  permission: IName
 }
 
 export interface IVotefor {
@@ -676,6 +692,7 @@ export interface IVotefor {
   signed_hash: IChecksum256
   signature: ISignature
   public_key: IPublicKey
+  permission: IName
 }
 
 export interface IWithdraw {

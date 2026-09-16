@@ -49,7 +49,6 @@ export function isExtensionAvailable(availability: ExtensionAvailability, isMain
  * презентационные данные в домен.
  */
 export interface IRegistryExtension {
-  is_builtin: boolean; // расширение встроенное
   availability: ExtensionAvailability; // в каких сетях разрешено ставить
   is_internal: boolean; // расширение внутреннее
   desktops?: IDesktopConfig[]; // столы, которые предоставляет расширение

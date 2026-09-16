@@ -84,10 +84,10 @@ export async function phase04(): Promise<void> {
         currency: 'RUB',
         card_number: '',
         bank_name: 'ПАО Сбербанк',
-        details: { bik: '044525225', corr: '30101810400000000225', kpp: '773643001' },
+        details: { bik: '044525225', corr: '30101810400000000225' },
       },
     })
-    await generator.close?.()
+    await generator.disconnect()
 
     const supplierClient = Client.create({
       api_url: process.env.CONTROLLER_GRAPHQL_URL || 'http://127.0.0.1:2998/v1/graphql',

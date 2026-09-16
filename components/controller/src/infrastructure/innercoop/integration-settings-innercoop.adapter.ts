@@ -13,6 +13,9 @@ const ALLOWED_INTEGRATIONS: Readonly<Record<string, readonly string[]>> = {
   chatcoop: ['matrix', 'openai', 'livekit', 'union'],
   marketplace: ['geocoder'],
   capital: ['github'],
+  // Реквизиты клиента card.coop в CoopID: расширение доносит их в реестр сети подписанным
+  // документом (story 7.6) — это единственная сторона, у которой они существуют.
+  cardcoop: ['cardcoop_client'],
 };
 
 /** Настройки служб контура. Ключи и адреса задаются при развёртывании. */
@@ -23,6 +26,7 @@ const INTEGRATION_SETTINGS: Readonly<Record<string, unknown>> = {
   union: config.union,
   geocoder: config.geocoder,
   github: config.github,
+  cardcoop_client: config.cardcoop_client,
 };
 
 /**

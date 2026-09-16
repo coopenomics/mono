@@ -30,7 +30,10 @@ export function extractGraphQLErrorMessages(error: unknown): string {
     return error.map((err: any) => err.message || 'Неизвестная ошибка').join('; ');
   }
 
-  // Обрабатываем, если это объект с полем `errors` (например, Apollo Client)
+  // Объект с полем `errors`: так устроен GraphQLResponseError из SDK (исходный
+  // список ошибок сервера лежит в `errors`, `message` — те же тексты через «; »),
+  // так же выглядит ответ Apollo Client. Через эту ветку идут FailAlert и все,
+  // кто показывает текст отказа сервера.
   const errors = (error as any).errors;
   if (Array.isArray(errors)) {
     return errors.map((err: any) => err.message || 'Неизвестная ошибка').join('; ');

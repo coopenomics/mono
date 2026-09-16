@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
-import { signingKeyOrAlert } from 'src/shared/lib/utils/signingKey';
+import { ensureSigningUnlocked } from 'src/shared/lib/document';
 import { BaseButton, BaseChip, BaseDialog } from 'src/shared/ui/base';
 import { ActDialogLayout } from 'src/widgets/Marketplace/ActDialogLayout';
 import { useMarketplaceKUDetailsStore } from 'src/entities/MarketplaceKUDetails';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
-import { marketplaceOrderSaleUnit } from 'src/shared/lib/consts/marketplace-units';
+import { marketplaceOrderSaleUnitLabel } from 'src/shared/lib/consts/marketplace-units';
 import { useActsPreview, type ReceptionGroup } from 'src/shared/lib/marketplace';
 import {
   fetchSupplierSignablePayloads,
@@ -56,8 +56,7 @@ const variantLabel = computed(() =>
 const deliveriesCount = computed(() => props.group?.receptions.length ?? 0);
 
 function lineQuantityLabel(l: { quantity: number; unit: string; packageSize: number | null }): string {
-  const saleUnit = marketplaceOrderSaleUnit(l.quantity, l.unit, l.packageSize);
-  return `${saleUnit.units}×${saleUnit.unitLabel}`;
+  return marketplaceOrderSaleUnitLabel(l.quantity, l.unit, l.packageSize);
 }
 
 // Снятые оператором при приёмке позиции (факт = 0) — некондиция. Подписывая
@@ -118,8 +117,8 @@ async function loadPreview(): Promise<void> {
 async function confirm(): Promise<void> {
   if (!props.group || !props.group.receptions.length) return;
 
-  const wif = await signingKeyOrAlert('Не удалось получить ключ поставщика для подписи');
-  if (!wif) return;
+  // Акты подписываются параллельно — ключ отпираем один раз до старта.
+  if (!(await ensureSigningUnlocked('Не удалось получить ключ поставщика для подписи'))) return;
 
   signing.value = true;
   done.value = 0;
@@ -129,7 +128,6 @@ async function confirm(): Promise<void> {
     // кнопки, ошибки/успех алертим здесь.
     const { errors } = await signReceptionGroupAsSupplier(
       props.group.receptions,
-      wif,
       (d) => {
         done.value = d;
       },
@@ -188,7 +186,7 @@ BaseDialog(
 
     template(v-if="!showActs")
       .sign-apl__section-head(v-if="hasRejected && hasAccepted") Принимается
-      table.sign-apl__table(v-if="hasAccepted")
+      table.act-table(v-if="hasAccepted")
         thead
           tr
             th Товар
@@ -309,35 +307,9 @@ BaseDialog(
     font-variant-numeric: tabular-nums;
   }
 
-  &__table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: var(--p-fs-body-sm, 13px);
-
-    th,
-    td {
-      padding: var(--p-2, 8px);
-      border-bottom: 1px solid var(--p-line);
-      text-align: left;
-      color: var(--p-ink);
-    }
-
-    th {
-      color: var(--p-ink-2);
-      font-weight: 600;
-    }
-
-    .num {
-      text-align: right;
-      font-variant-numeric: tabular-nums;
-    }
-
-    tfoot td {
-      font-weight: 600;
-      border-bottom: none;
-    }
-  }
-
+  // Состав поставки — накладной в рамке, как на карточках у оператора: одна и
+  // та же поставка выглядит одинаково по обе стороны подписи (просьба
+  // владельца 2026-09-09). Количество идёт упаковками, как принимали.
   &__preview {
     position: relative;
     min-height: 120px;

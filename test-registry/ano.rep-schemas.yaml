@@ -1,0 +1,55 @@
+feature: ano.rep-schemas
+title: Реестр версий схемы весов репутации в контракте ano
+
+# Схема весов — норма начислений платформы сообщества (проект 62 blago,
+# задача A1C-5): полный JSON каждой версии лежит в цепи, версии только растут,
+# публикует только АНО. Живые прогоны действий — на девнете вместе со
+# schema:sync (задача A1C-6 репозитория reputation), отсюда статусы missing.
+
+sources:
+  contract:
+    - components/contracts/cpp/ano/src/pubrepschema.cpp
+    - components/contracts/cpp/lib/domain/table_ano_repschemas.hpp
+
+cases:
+  - id: ano.repsch.happy.01
+    level: contract
+    kind: happy
+    scenario: АНО публикует версию 1, затем версию 2 (pubrepschema)
+    expect: >
+      обе записи в repschemas с полным JSON и датой публикации; действующая —
+      с наибольшим номером
+    test: ~
+    status: missing
+
+  - id: ano.repsch.break.01
+    level: contract
+    kind: break
+    scenario: pubrepschema вызывает не-АНО аккаунт
+    expect: отказ авторизации — владелец единой схемы сети только АНО
+    test: ~
+    status: missing
+
+  - id: ano.repsch.break.02
+    level: contract
+    kind: break
+    scenario: повторная публикация уже занятой версии (ретрай schema:sync)
+    expect: отказ «версия уже занята» — ретраи публикации безопасны
+    test: ~
+    status: missing
+
+  - id: ano.repsch.break.03
+    level: contract
+    kind: break
+    scenario: публикация с пропуском номера (после 1 сразу 3)
+    expect: отказ «версии растут без пропусков»
+    test: ~
+    status: missing
+
+  - id: ano.repsch.break.04
+    level: contract
+    kind: break
+    scenario: пустой документ; документ больше MAX_SCHEMA_SIZE
+    expect: оба отказа — таблица норм не место произвольным вложениям
+    test: ~
+    status: missing

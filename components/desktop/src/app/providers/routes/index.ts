@@ -4,6 +4,7 @@ import index from 'src/pages/index.vue';
 import { BlankPage } from 'src/pages/Blank';
 import { PermissionDenied } from 'src/pages/PermissionDenied';
 import { SignUpPage } from 'src/pages/Registrator/SignUp';
+import { CardcoopEntryPage } from 'src/pages/Registrator/CardcoopEntry';
 import { SignInPage } from 'src/pages/Registrator/SignIn';
 import { RouteRecordRaw } from 'vue-router';
 import { InstallCooperativePage } from 'src/pages/Union/InstallCooperative';
@@ -174,6 +175,21 @@ const baseRoutes: RouteRecordRaw[] = [
           widget: {
             title: 'Приглашение',
             hideHeader: true,
+          },
+        },
+      },
+      {
+        path: ':coopname/auth/cardcoop-entry',
+        name: 'cardcoop-entry',
+        component: CardcoopEntryPage,
+        children: [],
+        meta: {
+          title: 'Вход по карте',
+          icon: 'fa-solid fa-id-card',
+          widget: {
+            title: 'Вход по карте',
+            hideHeader: true,
+            hideFooter: true,
           },
         },
       },

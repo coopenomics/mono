@@ -33,6 +33,9 @@ const GATE_EVENT_TYPES = new Set<MarketplaceRealtimeEvent['__typename']>([
   // гейте немедленно; разрешение (принял/отозвано) — закрывает его.
   'MarketplaceStockProposalCreatedEvent',
   'MarketplaceStockProposalResolvedEvent',
+  // Сага выдачи (паевая модель): совет решил — у пайщика появился акт на
+  // подпись; закрытие оператором — гейт закрывается.
+  'MarketplaceIssuanceSagaUpdatedEvent',
 ]);
 
 /** Схлопывает шквал open при флапающем бэкенде (рестарт/checkout ветки). */
@@ -50,6 +53,12 @@ export function createMarketplaceEventsSubscription(): RealtimeSubscription {
         { variables: { input: { coopname } } },
       );
 
+      // Жив ли сокет. graphql-ws переподключается сам, и пока это удаётся,
+      // канал считается живым; после обрыва до следующего `opened` события к
+      // нам не идут — это и есть сигнал ядру, что пора поднимать подписку
+      // заново, а состояние пока держится на дочитке.
+      let alive = false;
+
       let catchUpTimer: ReturnType<typeof setTimeout> | null = null;
       const scheduleCatchUp = (reason: string) => {
         if (catchUpTimer) clearTimeout(catchUpTimer);
@@ -63,6 +72,8 @@ export function createMarketplaceEventsSubscription(): RealtimeSubscription {
       // Сигнал пришёл → раздаём по типу: гейт дочитывает своё состояние,
       // каталожные события уходят подписанным страницам через диспетчер.
       stream.on((payload) => {
+        // Пришло событие — значит сокет на связи.
+        alive = true;
         const event = (payload as Subscriptions.Marketplace.Events.IOutput | undefined)
           ?.marketplaceEvents;
         if (!event) return;
@@ -75,17 +86,21 @@ export function createMarketplaceEventsSubscription(): RealtimeSubscription {
       // graphql-ws сам реконнектит; catch-up debounce'им — иначе при дрожащем
       // бэкенде каждый open → шквал refresh и вкладка встаёт.
       stream.open(() => {
+        alive = true;
         scheduleCatchUp('ws-реконнект');
       });
 
       // Транзиентная ошибка ws — реконнект отрабатывает сам, гасить не нужно,
       // но логируем: если сыпется ошибками — подписка по факту НЕ работает.
       stream.error((err: unknown) => {
+        alive = false;
         console.warn('[OnsiteGate] ⚠ ПОДПИСКА: ws-ошибка (реконнект сам)', err);
       });
 
       return {
+        isAlive: () => alive,
         close: () => {
+          alive = false;
           if (catchUpTimer) {
             clearTimeout(catchUpTimer);
             catchUpTimer = null;

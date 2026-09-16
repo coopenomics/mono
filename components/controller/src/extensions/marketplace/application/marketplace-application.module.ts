@@ -131,7 +131,10 @@ import {
   MarketplaceAidCouncilSyncService,
   MARKETPLACE_AID_COUNCIL_SYNC_SERVICE,
 } from './services/marketplace-aid-council-sync.service';
-import { MarketplaceOutgoingPaymentResolver } from './resolvers/marketplace-outgoing-payment.resolver';
+import {
+  MarketplaceOutgoingPaymentFieldsResolver,
+  MarketplaceOutgoingPaymentResolver,
+} from './resolvers/marketplace-outgoing-payment.resolver';
 import { MarketplaceSupplierSettingsResolver } from './resolvers/marketplace-supplier-settings.resolver';
 import {
   MarketplaceSupplierSettingsService,
@@ -143,13 +146,19 @@ import {
   MARKETPLACE_ISSUANCE_SERVICE,
 } from './services/marketplace-issuance.service';
 import { MarketplaceIssuanceResolver } from './resolvers/marketplace-issuance.resolver';
-// Эпик 7 — гарантийный возврат (compensating forward)
+import { MarketplaceIssuanceSyncService } from './services/marketplace-issuance-sync.service';
+// Эпик 7 + компонент 68 — гарантийный возврат через решение совета
 import {
   MarketplaceReturnClaimService,
   MARKETPLACE_RETURN_CLAIM_SERVICE,
 } from './services/marketplace-return-claim.service';
 import { MarketplaceReturnClaimImagesService } from './services/marketplace-return-claim-images.service';
 import { MarketplaceReturnClaimResolver } from './resolvers/marketplace-return-claim.resolver';
+import { MarketplaceReturnClaimSyncService } from './services/marketplace-return-claim-sync.service';
+// Компонент 68 / 99D-13 — гарантийная претензия поставщику
+import { MarketplaceSupplierClaimService, MARKETPLACE_SUPPLIER_CLAIM_SERVICE } from './services/marketplace-supplier-claim.service';
+import { MarketplaceSupplierClaimSyncService } from './services/marketplace-supplier-claim-sync.service';
+import { MarketplaceSupplierClaimResolver } from './resolvers/marketplace-supplier-claim.resolver';
 import { bucketProvidersFor } from '@coopenomics/extension-kit';
 import { FILE_STORAGE_PORT } from '@coopenomics/innercoop';
 // Эпик 8 — списание скоропорта через решение совета
@@ -161,6 +170,16 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { MarketplaceInventoryEntity } from '../infrastructure/entities/marketplace-inventory.entity';
 // Конечный жизненный цикл заказов: крон-закрытие выданных после гарантии
 import { MarketplaceOrderCloseCronService } from './services/marketplace-order-close-cron.service';
+// Задача 99D-15: повтор уценки и инициации выплаты, не дошедших до цепи
+import { MarketplaceChainRetryCronService } from './services/marketplace-chain-retry-cron.service';
+// Задача 99D-16: закрытие заказов, не привезённых за 48 часов после принятия
+import { MarketplaceUndeliveredOrderCronService } from './services/marketplace-undelivered-order-cron.service';
+// Задача 99D-14: сверка инвариантов учёта (счёт 76 и остальные) по часам и по запросу
+import {
+  MarketplaceLedgerInvariantsService,
+  MARKETPLACE_LEDGER_INVARIANTS_SERVICE,
+} from './services/marketplace-ledger-invariants.service';
+import { MarketplaceLedgerInvariantsResolver } from './resolvers/marketplace-ledger-invariants.resolver';
 import { MarketplaceOrderEntity } from '../infrastructure/entities/marketplace-order.entity';
 // Эпик 16 — корзина и заказ-агрегат
 import { MarketplaceCartResolver } from './resolvers/marketplace-cart.resolver';
@@ -172,6 +191,10 @@ import {
   MarketplaceCheckoutService,
   MARKETPLACE_CHECKOUT_SERVICE,
 } from './services/marketplace-checkout.service';
+import {
+  MarketplaceConvertService,
+  MARKETPLACE_CONVERT_SERVICE,
+} from './services/marketplace-convert.service';
 // Фаза 2: realtime-подписка marketplace (GraphQL subscription поверх graphql-ws).
 import { MarketplaceEventsResolver } from './resolvers/marketplace-events.resolver';
 import { MarketplaceRealtimeBridge } from './realtime/marketplace-realtime.bridge';
@@ -248,9 +271,11 @@ import { MarketplaceRealtimeBridge } from './realtime/marketplace-realtime.bridg
     MarketplaceEconomyResolver,
     MarketplaceAplReceptionResolver,
     MarketplaceOutgoingPaymentResolver,
+    MarketplaceOutgoingPaymentFieldsResolver,
     MarketplaceSupplierSettingsResolver,
     MarketplaceIssuanceResolver,
     MarketplaceReturnClaimResolver,
+    MarketplaceSupplierClaimResolver,
     // Эпик 16 — корзина заказчика
     MarketplaceCartResolver,
     // Фаза 2 — realtime-подписка персонального канала пайщика + мост из
@@ -409,12 +434,14 @@ import { MarketplaceRealtimeBridge } from './realtime/marketplace-realtime.bridg
     // Слушает per-contract event-bus, отправка через Novu без обратного
     // влияния на основной flow (INV-12: emit после save в PG).
     MarketplaceNotificationService,
-    // Story 6.1 / 6.3 / 6.4 — выдача пайщику с двойной подписью АПП
-    // (signiss1 + signiss2) и тремя ветками сверки факт vs заказ.
+    // Компонент 68 — выдача пайщику как возврат паевого взноса имуществом:
+    // сага заявление → решение совета (робот / люди) → акт → закрывающая
+    // подпись оператора; слушатель обратных вызовов совета и сторож саги.
     {
       provide: MARKETPLACE_ISSUANCE_SERVICE,
       useClass: MarketplaceIssuanceService,
     },
+    MarketplaceIssuanceSyncService,
     {
       provide: MARKETPLACE_STOCK_SERVICE,
       useClass: MarketplaceStockService,
@@ -432,13 +459,23 @@ import { MarketplaceRealtimeBridge } from './realtime/marketplace-realtime.bridg
     },
     MarketplaceStockProposalService,
     MarketplaceIssuanceService,
-    // Эпик 7 — гарантийный возврат (compensating forward к o.mkt.consum).
+    // Эпик 7 + компонент 68 — гарантийный возврат: приём имущества у стойки →
+    // повестка совета → откат движений по решению; слушатель и сторож.
     {
       provide: MARKETPLACE_RETURN_CLAIM_SERVICE,
       useClass: MarketplaceReturnClaimService,
     },
     MarketplaceReturnClaimService,
     MarketplaceReturnClaimImagesService,
+    MarketplaceReturnClaimSyncService,
+    // Компонент 68 / 99D-13 — претензии поставщику: выставление по решению совета,
+    // ответ поставщика, автоприём по сроку, удержание из выплат.
+    {
+      provide: MARKETPLACE_SUPPLIER_CLAIM_SERVICE,
+      useClass: MarketplaceSupplierClaimService,
+    },
+    MarketplaceSupplierClaimService,
+    MarketplaceSupplierClaimSyncService,
     // Эпик 8 — списание скоропорта
     MarketplaceWriteoffService,
     MarketplaceWriteoffCronService,
@@ -446,6 +483,16 @@ import { MarketplaceRealtimeBridge } from './realtime/marketplace-realtime.bridg
     MarketplaceWriteoffResolver,
     // Конечный жизненный цикл заказов: закрытие выданных после гарантии
     MarketplaceOrderCloseCronService,
+    // Задача 99D-15: повтор уценки и инициации выплаты, не дошедших до цепи
+    MarketplaceChainRetryCronService,
+    // Задача 99D-16: закрытие непоставленных заказов по сроку
+    MarketplaceUndeliveredOrderCronService,
+    // Задача 99D-14: инварианты учёта Стола заказов
+    {
+      provide: MARKETPLACE_LEDGER_INVARIANTS_SERVICE,
+      useClass: MarketplaceLedgerInvariantsService,
+    },
+    MarketplaceLedgerInvariantsResolver,
     // Эпик 16 — корзина заказчика
     {
       provide: MARKETPLACE_CART_SERVICE,
@@ -457,6 +504,12 @@ import { MarketplaceRealtimeBridge } from './realtime/marketplace-realtime.bridg
       useClass: MarketplaceCheckoutService,
     },
     MarketplaceCheckoutService,
+    // Паевая модель: заявление о конвертации паевого в членский на взнос участка
+    {
+      provide: MARKETPLACE_CONVERT_SERVICE,
+      useClass: MarketplaceConvertService,
+    },
+    MarketplaceConvertService,
   ],
   exports: [
     // Экспортируем сервисы для использования в других модулях
@@ -509,8 +562,10 @@ import { MarketplaceRealtimeBridge } from './realtime/marketplace-realtime.bridg
     MarketplaceWarehouseSettingsService,
     MarketplaceAplReceptionResolver,
     MarketplaceOutgoingPaymentResolver,
+    MarketplaceOutgoingPaymentFieldsResolver,
     MarketplaceIssuanceResolver,
     MarketplaceReturnClaimResolver,
+    MarketplaceSupplierClaimResolver,
 
     // Экспортируем сервисы Story 4.1 для использования в follow-up Stories Эпика 4
     MARKETPLACE_ORDER_CREATE_SERVICE,
@@ -550,6 +605,8 @@ import { MarketplaceRealtimeBridge } from './realtime/marketplace-realtime.bridg
     // Эпик 7
     MARKETPLACE_RETURN_CLAIM_SERVICE,
     MarketplaceReturnClaimService,
+    MARKETPLACE_SUPPLIER_CLAIM_SERVICE,
+    MarketplaceSupplierClaimService,
     // Эпик 8
     MarketplaceWriteoffService,
     MarketplaceWriteoffResolver,
@@ -558,6 +615,8 @@ import { MarketplaceRealtimeBridge } from './realtime/marketplace-realtime.bridg
     MarketplaceCartService,
     MARKETPLACE_CHECKOUT_SERVICE,
     MarketplaceCheckoutService,
+    MARKETPLACE_CONVERT_SERVICE,
+    MarketplaceConvertService,
     MarketplaceCartResolver,
   ],
 })

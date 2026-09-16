@@ -2,14 +2,12 @@ import { Field, Float, InputType, Int, ObjectType } from '@nestjs/graphql';
 import { IsArray, IsOptional, IsString, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 import { GeneratedDocumentDTO } from '@coopenomics/extension-kit';
-import { MarketplaceConvertStatementSignedInputDTO } from '../documents-dto/marketplace-convert-statement-document.dto';
 import { MarketplaceOrderDTO } from './marketplace-order.dto';
 import { MarketplaceCartDTO } from './marketplace-cart.dto';
+import { MarketplaceConvertStatementSignedInputDTO } from '../documents-dto/marketplace-convert-statement-document.dto';
 
 @InputType('MarketplaceCheckoutSignedLineInput', {
-  description:
-    'Подписанное заявление о конвертации паевого взноса по одной позиции корзины ' +
-    '(из превью marketplaceCheckoutSignablePayloads).',
+  description: 'Строка оформления по одной позиции корзины (из превью marketplaceCheckoutSignablePayloads).',
 })
 export class MarketplaceCheckoutSignedLineInputDTO {
   @Field(() => String, { description: 'Идентификатор предложения позиции корзины.' })
@@ -25,17 +23,10 @@ export class MarketplaceCheckoutSignedLineInputDTO {
   public readonly package_id?: string | null;
 
   @Field(() => String, {
-    description: 'order_hash будущего заказа — тот же, что в мете заявления.',
+    description: 'order_hash будущего заказа из превью.',
   })
   @IsString()
   public readonly order_hash!: string;
-
-  @Field(() => MarketplaceConvertStatementSignedInputDTO, {
-    description: 'Подписанное заказчиком заявление о конвертации паевого взноса.',
-  })
-  @ValidateNested()
-  @Type(() => MarketplaceConvertStatementSignedInputDTO)
-  public readonly signed_statement!: MarketplaceConvertStatementSignedInputDTO;
 }
 
 @InputType('MarketplaceCheckoutCartInput', {
@@ -55,20 +46,50 @@ export class MarketplaceCheckoutCartInputDTO {
 
   @Field(() => [MarketplaceCheckoutSignedLineInputDTO], {
     nullable: true,
-    description:
-      'Подписанные заявления о конвертации паевого взноса — по одному на каждую позицию корзины.',
+    description: 'Строки оформления из превью — по одной на каждую позицию корзины (order_hash будущего заказа).',
   })
   @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => MarketplaceCheckoutSignedLineInputDTO)
   public readonly lines?: MarketplaceCheckoutSignedLineInputDTO[] | null;
+
+  @Field(() => MarketplaceConvertStatementSignedInputDTO, {
+    nullable: true,
+    description:
+      'Подписанное заказчиком заявление 1110 из превью о переводе паевого взноса с Цифрового кошелька в программу — ' +
+      'если превью его вернуло.',
+  })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => MarketplaceConvertStatementSignedInputDTO)
+  public readonly signed_convert?: MarketplaceConvertStatementSignedInputDTO | null;
+}
+
+@ObjectType('MarketplaceConvertPayload', {
+  description:
+    'Заявление 1110 к подписи: сумма перевода с Цифрового кошелька (недостающая часть тела сверх свободного паевого и ' +
+    'недостающая часть взноса сверх членского кошелька) и членская часть в ней.',
+})
+export class MarketplaceConvertPayloadDTO {
+  @Field(() => String, { description: 'Сумма перевода с Цифрового кошелька: недостающие части тела и взноса, с валютой.' })
+  public readonly amount!: string;
+
+  @Field(() => String, { description: 'Членская часть перевода (взнос минус остаток членского кошелька) — уходит в членский кошелёк действием convert, с валютой.' })
+  public readonly membership_fee!: string;
+
+  @Field(() => GeneratedDocumentDTO, { description: 'Заявление к подписи.' })
+  public readonly document!: GeneratedDocumentDTO;
+
+  constructor(init: Partial<MarketplaceConvertPayloadDTO>) {
+    Object.assign(this, init);
+  }
 }
 
 @ObjectType('MarketplaceCheckoutSignableLine', {
   description:
-    'Заявление о конвертации паевого взноса к подписи по одной позиции корзины: ' +
-    'подписывается заказчиком и возвращается в marketplaceCheckoutCart строкой lines.',
+    'Превью строки оформления: идентификатор будущего заказа и суммы по частям — что покрыто кошельками программы ' +
+    '(членский взнос — членским, тело — свободным паевым «Стола заказов») и что уйдёт с Цифрового кошелька по заявлению.',
 })
 export class MarketplaceCheckoutSignableLineDTO {
   @Field(() => String, { description: 'Идентификатор предложения позиции корзины.' })
@@ -80,20 +101,40 @@ export class MarketplaceCheckoutSignableLineDTO {
   })
   public readonly package_id!: string | null;
 
-  @Field(() => String, { description: 'order_hash будущего заказа (зашит в мету заявления).' })
+  @Field(() => String, { description: 'order_hash будущего заказа.' })
   public readonly order_hash!: string;
 
-  @Field(() => String, {
-    description: 'Сумма конвертации (стоимость позиции + членский взнос), с валютой.',
-  })
+  @Field(() => String, { description: 'Стоимость позиции с членским взносом участка, с валютой.' })
   public readonly amount!: string;
 
-  @Field(() => GeneratedDocumentDTO, {
-    description: 'Сгенерированное заявление о конвертации для подписи.',
-  })
-  public readonly document!: GeneratedDocumentDTO;
+  @Field(() => String, { description: 'Членский взнос кооперативного участка по позиции, с валютой.' })
+  public readonly membership_fee!: string;
+
+  @Field(() => String, { description: 'Часть членского взноса, покрытая остатком внутреннего членского кошелька, с валютой.' })
+  public readonly from_member!: string;
+
+  @Field(() => String, { description: 'Часть тела, покрытая остатком свободного паевого «Стола заказов», с валютой.' })
+  public readonly from_program!: string;
+
+  @Field(() => String, { description: 'Уходит с Цифрового кошелька по заявлению: остаток тела и недостающая часть взноса, с валютой.' })
+  public readonly from_wallet!: string;
 
   constructor(init: Partial<MarketplaceCheckoutSignableLineDTO>) {
+    Object.assign(this, init);
+  }
+}
+
+@ObjectType('MarketplaceCheckoutPreview', {
+  description: 'Превью оформления корзины: строки по позициям и заявление 1110 к подписи (null — переводить нечего).',
+})
+export class MarketplaceCheckoutPreviewDTO {
+  @Field(() => [MarketplaceCheckoutSignableLineDTO])
+  public readonly lines!: MarketplaceCheckoutSignableLineDTO[];
+
+  @Field(() => MarketplaceConvertPayloadDTO, { nullable: true, description: 'Заявление о переводе паевого взноса в программу; null — переводить нечего, подпись не нужна.' })
+  public readonly convert!: MarketplaceConvertPayloadDTO | null;
+
+  constructor(init: Partial<MarketplaceCheckoutPreviewDTO>) {
     Object.assign(this, init);
   }
 }

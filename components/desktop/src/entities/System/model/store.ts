@@ -99,6 +99,14 @@ export const useSystemStore = defineStore(namespace, (): ISystemStore => {
     try {
       syncState.value = await api.loadNodeSyncState();
     } catch (error) {
+      // Прерванный запрос — не ответ узла. Так рвётся таймер SDK, когда вкладка
+      // вернулась из фона: браузер отложил будильники и разом их спустил. Узел
+      // при этом здоров, и закрывать стол «Техническим обслуживанием» нельзя —
+      // оставляем прежнее состояние, следующий опрос ответит по существу.
+      if ((error as { name?: string } | null)?.name === 'AbortError') {
+        console.warn('Опрос состояния узла прерван (таймер), состояние не меняем');
+        return;
+      }
       console.warn('Не удалось получить состояние синхронизации узла:', error);
       syncState.value = {
         ...(syncState.value ?? {}),

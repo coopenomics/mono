@@ -5,11 +5,11 @@ import { Cooperative } from 'cooptypes';
 import { SignedDigitalDocumentInputDTO, MetaDocumentInputDTO, GenerateMetaDocumentInputDTO, ExcludeCommonProps } from '@coopenomics/extension-kit';
 
 /**
- * Подписываемая форма заявления пайщика о гарантийном возврате имущества
- * по ЦПП «Стол заказов» (registry_id=1104, `MarketplaceReturnStatement`).
- *
- * Лежит рядом с 1102 «Акт приёма-передачи» и 1103 «ТТН» в Marketplace по
- * системе членских взносов. Не путать с registry_id=800 — тот документ
+ * Подписываемая форма рекламации пайщика — Заявления о гарантийном возврате
+ * имущества по ЦПП «Стол заказов» (registry_id=1106, `MarketplaceReturnStatement`).
+ * Пайщик подписывает при подаче (`submretrn`); больше подписей от него не
+ * требуется — у стойки оператор подписывает своё заявление в совет об отмене
+ * сделки (1116, отдельный DTO). Не путать с registry_id=800 — тот документ
  * принадлежит старой системе клиринга и сохранён отдельно как есть.
  *
  * Поле `request.hash` дублирует якорный хеш on-chain `return_request.hash`

@@ -7,8 +7,18 @@
  * в самих тестах, иначе «денежное место проверено» означало бы «хелпер сам себя
  * проверил». Шаги повторяют путь desktop'а один в один, включая двухподписные
  * акты (первая подпись id=1, вторая — id=2 поверх агрегата).
+ *
+ * Паевая модель (компонент 68): кошельки программы оплачивают каждый свою
+ * часть (членский — взнос, свободный паевой — тело); на недостающее превью
+ * приносит заявление 1110 — пайщик подписывает его один раз, перевод идёт
+ * отдельной транзакцией до заказов; выдача — сага: факт оператора → заявление
+ * пайщика (1113) → решение совета (робот, если он делегирован по `mktissue`,
+ * иначе голосуем советом через `processDecision`) → акт пайщика (1115) → закрывающая подпись
+ * оператора.
  */
-import { gqlAs, signAs, type Who } from './chainHelpers'
+import type Blockchain from '../../blockchain'
+import { processDecision } from '../soviet/processDecision'
+import { type Who, gqlAs, signAs } from './chainHelpers'
 
 export interface OfferLike {
   id: string
@@ -36,13 +46,15 @@ export async function pickOffer(
       && o.delivery_points.some((p: any) => p.braname === braname),
   )
   const offer = (preferName && candidates.find(o => o.product_name === preferName)) || candidates[0]
-  if (!offer) throw new Error(`на стенде нет активного предложения ${supplierAccount} с поставкой на КУ «${braname}»`)
+  if (!offer)
+    throw new Error(`на стенде нет активного предложения ${supplierAccount} с поставкой на КУ «${braname}»`)
   return offer
 }
 
 /**
- * Оформление заказа пайщиком: корзина → подпись Заявления о конвертации
- * паевого взноса по позиции → оформление корзины.
+ * Оформление заказа пайщиком: корзина → превью → оформление корзины.
+ * Заявление 1110 из превью (если членского кошелька не хватает) подписываем
+ * ключом пайщика один раз, как это делает desktop.
  */
 export async function placeOrder(args: {
   token: string
@@ -59,26 +71,24 @@ export async function placeOrder(args: {
   })
 
   const sp: any = await gqlAs(token, `query{
-    marketplaceCheckoutSignablePayloads{ offer_id package_id order_hash amount document{ full_title html hash meta binary } }
+    marketplaceCheckoutSignablePayloads{
+      lines{ offer_id package_id order_hash amount membership_fee from_member from_program from_wallet }
+      convert{ amount membership_fee document{ full_title html hash meta binary } }
+    }
   }`)
-  const payloads = sp.marketplaceCheckoutSignablePayloads as any[]
-  if (!payloads.length) throw new Error('по позиции корзины не пришло заявление к подписи')
+  const preview = sp.marketplaceCheckoutSignablePayloads
+  if (!preview.lines.length)
+    throw new Error('по позиции корзины не пришло превью оформления')
 
-  const lines: any[] = []
-  for (const p of payloads) {
-    lines.push({
-      offer_id: p.offer_id,
-      package_id: p.package_id,
-      order_hash: p.order_hash,
-      signed_statement: await signAs(who.wif, p.document, who.account, 1),
-    })
-  }
+  const lines = preview.lines.map((p: any) => ({ offer_id: p.offer_id, package_id: p.package_id, order_hash: p.order_hash }))
+  const signed_convert = preview.convert ? await signAs(who.wif, preview.convert.document, who.account, 1) : null
 
   const co: any = await gqlAs(token, `mutation($i:MarketplaceCheckoutCartInput){
     marketplaceCheckoutCart(input:$i){ fully_completed created_orders{ id status } failed_lines{ reason } }
-  }`, { i: { lines } })
+  }`, { i: { lines, signed_convert } })
   const result = co.marketplaceCheckoutCart
-  if (!result.fully_completed) throw new Error(`оформление не прошло целиком: ${JSON.stringify(result.failed_lines)}`)
+  if (!result.fully_completed)
+    throw new Error(`оформление не прошло целиком: ${JSON.stringify(result.failed_lines)}`)
 
   const orderId = result.created_orders[0].id as string
   const ord: any = await gqlAs(token, 'query($i:MarketplaceGetOrderInput!){ marketplaceGetOrder(input:$i){ id order_hash } }', {
@@ -123,7 +133,8 @@ export async function acceptToCoop(args: {
   // Экспресс-приёмка забирает все ожидающие заявки поставщика на этом КУ —
   // берём акт, в котором лежит нужный заказ.
   const apl = receptions.find(r => r.fact_quantity_per_order.some((f: any) => f.order_id === orderId))
-  if (!apl) throw new Error('экспресс-приёмка не включила заказ')
+  if (!apl)
+    throw new Error('экспресс-приёмка не включила заказ')
 
   const sp: any = await gqlAs(supplierToken, `query($d:MarketplaceAplReceptionByIdInput!){
     marketplaceAplReceptionSupplierSignablePayloads(data:$d){ full_title html hash meta binary }
@@ -166,12 +177,36 @@ export async function labelInventory(operatorToken: string, orderId: string): Pr
   }
 }
 
+const SAGA_FIELDS = 'id order_id order_hash stage decision_mode decision_id awaits_member_signature awaits_operator_close awaits_council last_error'
+
+async function sagaOf(token: string, orderId: string): Promise<any> {
+  const d: any = await gqlAs(token, `query($d:MarketplaceIssuanceOrderInput!){ marketplaceIssuanceSaga(data:$d){ ${SAGA_FIELDS} } }`, {
+    d: { order_id: orderId },
+  })
+  return d.marketplaceIssuanceSaga
+}
+
+async function waitForSaga(token: string, orderId: string, pred: (s: any) => boolean, timeoutMs = 120_000): Promise<any> {
+  const deadline = Date.now() + timeoutMs
+  let last: any = null
+  while (Date.now() < deadline) {
+    last = await sagaOf(token, orderId)
+    if (last && pred(last))
+      return last
+    await new Promise(r => setTimeout(r, 1_500))
+  }
+  throw new Error(`сага выдачи заказа ${orderId} не дошла до ожидаемого этапа: ${JSON.stringify(last)}`)
+}
+
 /**
- * Выдача заказа единым бандлом: оператор подписывает АПП-выдачи (signiss1) и
- * кладёт его в предложение, пайщик контрподписывает (signiss2) — только тогда
- * связка уходит на цепь.
+ * Выдача заказа (паевая модель): оператор собирает бандл с фактом, пайщик
+ * одним нажатием подписывает заявление о возврате паевого взноса имуществом,
+ * совет решает (на стенде — голосованием членов совета, `blockchain` нужен
+ * именно для этого), пайщик подписывает акт, оператор ставит закрывающую
+ * подпись — только тут идут движения по средствам.
  */
 export async function issueOrder(args: {
+  blockchain: Blockchain
   operatorToken: string
   operator: Who
   memberToken: string
@@ -180,69 +215,77 @@ export async function issueOrder(args: {
   braname: string
   actualQuantity: number
   actualUnitPrice: number
-}): Promise<{ proposalId: string, convertRequired: boolean, orderIds: string[] }> {
-  const { operatorToken, operator, memberToken, member, orderId, braname, actualQuantity, actualUnitPrice } = args
+}): Promise<{ proposalId: string, decisionId: number, orderIds: string[] }> {
+  const { blockchain, operatorToken, operator, memberToken, member, orderId, braname, actualQuantity, actualUnitPrice } = args
 
   await labelInventory(operatorToken, orderId)
 
-  const op: any = await gqlAs(operatorToken, `query($d:MarketplaceIssueActPayloadInput!){
-    marketplaceIssueActChairmanSignablePayload(data:$d){ full_title html hash meta binary }
-  }`, { d: { order_id: orderId, actual_quantity: actualQuantity, actual_unit_price: actualUnitPrice.toFixed(4) } })
-  const signiss1 = await signAs(operator.wif, op.marketplaceIssueActChairmanSignablePayload, operator.account, 1)
-
+  // 1) Бандл с фактом — подписей оператора нет.
   const prop: any = await gqlAs(operatorToken, `mutation($d:MarketplaceCreateStockProposalInput!){
     marketplaceCreateStockProposal(data:$d){ id status member_account braname total_cost }
   }`, {
     d: {
       braname,
       member_account: member.account,
-      order_items: [{
-        order_id: orderId,
-        actual_quantity: actualQuantity,
-        actual_unit_price: actualUnitPrice.toFixed(4),
-        signiss1_act: signiss1,
-      }],
+      order_items: [{ order_id: orderId, actual_quantity: actualQuantity, actual_unit_price: actualUnitPrice.toFixed(4) }],
     },
   })
   const proposalId = prop.marketplaceCreateStockProposal.id as string
 
+  // 2) Пайщик подписывает заявления по строкам — одно нажатие.
   const pay: any = await gqlAs(memberToken, `query($d:MarketplaceResolveStockProposalInput!){
     marketplaceStockProposalSignablePayloads(data:$d){
-      convert_amount member_amount
-      convert_document{ full_title html hash meta binary }
-      order_lines{
-        order_hash
-        signiss1_aggregate{
-          hash
-          rawDocument{ full_title html hash meta binary }
-          document{ version hash doc_hash meta_hash meta signatures{ id signer public_key signature signed_at signed_hash meta } }
-        }
-      }
+      order_lines{ offer_id order_id order_hash statement{ full_title html hash meta binary } }
+      convert{ amount membership_fee document{ full_title html hash meta binary } }
     }
   }`, { d: { proposal_id: proposalId } })
-  const accept = pay.marketplaceStockProposalSignablePayloads
-
+  const payload = pay.marketplaceStockProposalSignablePayloads
   const orderLines: any[] = []
-  for (const l of accept.order_lines as any[]) {
-    orderLines.push({
-      order_hash: l.order_hash,
-      signed_signiss2_act: await signAs(
-        member.wif, l.signiss1_aggregate.rawDocument, member.account, 2, [l.signiss1_aggregate.document],
-      ),
+  for (const l of payload.order_lines as any[]) {
+    orderLines.push({ order_hash: l.order_hash, signed_statement: await signAs(member.wif, l.statement, member.account, 1) })
+  }
+  // Членского кошелька не хватило на бандл — одно заявление 1110 на бандл.
+  const signedConvert = payload.convert ? await signAs(member.wif, payload.convert.document, member.account, 1) : null
+  const fin: any = await gqlAs(memberToken, `mutation($d:MarketplaceFinalizeStockIssuanceInput!){
+    marketplaceFinalizeStockIssuance(data:$d){ proposal{ id status } order_ids sagas{ ${SAGA_FIELDS} } }
+  }`, { d: { proposal_id: proposalId, order_lines: orderLines, signed_convert: signedConvert } })
+  const orderIds = fin.marketplaceFinalizeStockIssuance.order_ids as string[]
+
+  // 3) Совет: робота на стенде нет — сага в ожидании; голосуем членами совета.
+  const pending = await waitForSaga(memberToken, orderId, s => Boolean(s.decision_id) || s.awaits_member_signature)
+  const decisionId = Number(pending.decision_id)
+  if (!pending.awaits_member_signature) {
+    // Если на стенде включён робот с делегированным `mktissue`, он может
+    // успеть утвердить решение между чтением саги и голосованием — тогда
+    // голосование отбивается цепью, а сага всё равно дойдёт до акта.
+    await processDecision(blockchain, decisionId).catch((e: any) => {
+      console.warn(`processDecision(${decisionId}) отбит: ${e?.message ?? e} — возможно, решение уже принял робот`)
     })
   }
+  await waitForSaga(memberToken, orderId, s => s.awaits_member_signature)
 
-  const signedConvert = accept.convert_document
-    ? await signAs(member.wif, accept.convert_document, member.account, 1)
-    : null
+  // 4) Акт пайщика — первая подпись.
+  const actPl: any = await gqlAs(memberToken, `query($d:MarketplaceIssuanceOrderInput!){
+    marketplaceIssuanceActPayload(data:$d){ full_title html hash meta binary }
+  }`, { d: { order_id: orderId } })
+  await gqlAs(memberToken, `mutation($d:MarketplaceSignIssuanceActInput!){
+    marketplaceSignIssuanceAct(data:$d){ ${SAGA_FIELDS} }
+  }`, { d: { order_id: orderId, signed_act: await signAs(member.wif, actPl.marketplaceIssuanceActPayload, member.account, 1) } })
 
-  const fin: any = await gqlAs(memberToken, `mutation($d:MarketplaceFinalizeStockIssuanceInput!){
-    marketplaceFinalizeStockIssuance(data:$d){ proposal{ id status } order_ids }
-  }`, { d: { proposal_id: proposalId, order_lines: orderLines, signed_convert: signedConvert } })
+  // 5) Закрывающая подпись оператора поверх подписи пайщика.
+  const closePl: any = await gqlAs(operatorToken, `query($d:MarketplaceIssuanceOrderInput!){
+    marketplaceIssuanceClosePayload(data:$d){
+      act_aggregate{
+        hash
+        rawDocument{ full_title html hash meta binary }
+        document{ version hash doc_hash meta_hash meta signatures{ id signer public_key signature signed_at signed_hash meta } }
+      }
+    }
+  }`, { d: { order_id: orderId } })
+  const agg = closePl.marketplaceIssuanceClosePayload.act_aggregate
+  await gqlAs(operatorToken, `mutation($d:MarketplaceSignIssuanceActInput!){
+    marketplaceCloseIssuance(data:$d){ ${SAGA_FIELDS} }
+  }`, { d: { order_id: orderId, signed_act: await signAs(operator.wif, agg.rawDocument, operator.account, 2, [agg.document]) } })
 
-  return {
-    proposalId,
-    convertRequired: Boolean(accept.convert_document),
-    orderIds: fin.marketplaceFinalizeStockIssuance.order_ids as string[],
-  }
+  return { proposalId, decisionId, orderIds }
 }

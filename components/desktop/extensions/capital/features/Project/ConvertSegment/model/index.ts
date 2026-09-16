@@ -1,6 +1,6 @@
 import type { Mutations } from '@coopenomics/sdk';
 import { api } from '../api';
-import { useSignDocument } from 'src/shared/lib/document/model/entity';
+import { signDocument } from 'src/shared/lib/document';
 import { useSessionStore } from 'src/entities/Session/model';
 import { useSystemStore } from 'src/entities/System/model';
 import { formatToAsset } from 'src/shared/lib/utils/formatToAsset';
@@ -10,7 +10,6 @@ export type IConvertSegmentInput =
   Mutations.Capital.ConvertSegment.IInput['data'];
 
 export function useConvertSegment() {
-  const { signDocument } = useSignDocument();
   const { username } = useSessionStore();
   const { governSymbol, governPrecision } = useSystemStore();
   const resultStore = useResultStore();

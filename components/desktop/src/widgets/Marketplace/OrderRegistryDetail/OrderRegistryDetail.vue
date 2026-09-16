@@ -14,7 +14,7 @@ import { computed, ref, watch } from 'vue';
 import { FailAlert } from 'src/shared/api';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { marketplaceOrderSaleUnit } from 'src/shared/lib/consts/marketplace-units';
-import { BaseBadge, BaseButton, BaseCard, EmptyState } from 'src/shared/ui/base';
+import { BaseBadge, BaseButton, BaseCard, CardListSkeleton, EmptyState } from 'src/shared/ui/base';
 import { EntityIdBadge } from 'src/shared/ui';
 import { ActivityTimeline, DataRow, type ActivityEvent } from 'src/shared/ui/domain';
 import { ProcessDetailCard } from 'src/widgets/Process/ProcessDetailCard';
@@ -109,12 +109,15 @@ const events = computed<ActivityEvent[]>(() => {
   if (o.accepted_at) {
     ev.push({ id: 'accepted', type: 'update', icon: 'inventory_2', title: 'Поставщик принял заказ', actor: supplierTitle.value, date: formatDate(o.accepted_at) });
   }
-  if (o.chairman_signed_at) {
-    ev.push({ id: 'chairman', type: 'sign', title: 'Принят кооперативом (АПП приёмки)', date: formatDate(o.chairman_signed_at) });
+  // Веха выдачи — момент, когда заказчик подписал заявление о возврате паевого
+  // взноса имуществом: с него начинается решение совета и акт. Прежние отметки
+  // подписей председателя и заказчика жили в членской модели и вместе с ней
+  // сняты, отдельного времени приёмки у заказа больше нет.
+  if (o.issue_statement_at) {
+    ev.push({ id: 'issue-statement', type: 'sign', title: 'Заказчик подписал заявление о выдаче', actor: ordererTitle.value, date: formatDate(o.issue_statement_at) });
   }
-  const issued = o.orderer_signed_at ?? o.received_at;
-  if (issued) {
-    ev.push({ id: 'issued', type: 'sign', title: 'Получен заказчиком (АПП выдачи)', actor: ordererTitle.value, date: formatDate(issued) });
+  if (o.received_at) {
+    ev.push({ id: 'issued', type: 'sign', title: 'Получен заказчиком по акту', actor: ordererTitle.value, date: formatDate(o.received_at) });
   }
   if (o.cancelled_at) {
     ev.push({ id: 'cancelled', type: 'reject', title: orderStatusDisplay(o.status).label, description: o.last_status_reason || undefined, date: formatDate(o.cancelled_at) });
@@ -132,8 +135,9 @@ function goToOffer(): void {
 
 <template lang="pug">
 .order-registry-detail(role="region", aria-label="Заказ")
-  q-inner-loading(:showing="loading && !order")
-    q-spinner(color="primary", size="2em")
+  //- Канон: каркас, а не спиннер поверх пустоты — по кружку не видно, что
+  //- именно грузится и сколько там будет содержимого.
+  CardListSkeleton(v-if="loading && !order", :count="2")
 
   EmptyState(
     v-if="notFound && !loading",

@@ -62,7 +62,6 @@ const options = computed<BaseSelectOption[]>(() =>
   border: 1px solid var(--p-line);
   border-radius: var(--p-r-md, 8px);
   background: var(--p-surface-2);
-  margin-bottom: var(--p-4, 16px);
 
   &__icon {
     color: var(--p-ink-3);

@@ -18,6 +18,9 @@ interface IVoteSignature {
  */
 export type IVoteData = SovietContract.Actions.Decisions.VoteFor.IVoteForDecision
 
+/** Действие голосования: контракт привязывает хэш подписи к нему, чтобы голос «за» нельзя было переиспользовать как «против». */
+export type VoteAction = 'votefor' | 'voteagainst'
+
 /**
  * Класс для управления и подписания голосов членов совета с использованием WIF-ключа.
  *
@@ -56,25 +59,44 @@ export class Vote {
   }
 
   /**
+   * Секунды эпохи для времени подписи в формате EOSIO (без зоны — всегда UTC).
+   */
+  private static signedAtSeconds(signed_at: string): number {
+    const iso = /(Z|[+-]\d{2}:?\d{2})$/.test(signed_at) ? signed_at : `${signed_at}Z`
+    return Math.floor(Date.parse(iso) / 1000)
+  }
+
+  /**
+   * Хэш, который подписывает член совета: «<действие>:<кооператив>:<номер решения>:<секунды подписи>».
+   * Ровно так же его считает контракт soviet (Automation::vote_digest), поэтому подпись
+   * привязана к конкретному голосу и не переиспользуется для другого решения или знака голоса.
+   */
+  public static async buildVoteDigest(action: VoteAction, coopname: string, decision_id: number | string, signed_at: string): Promise<string> {
+    const seconds = Vote.signedAtSeconds(signed_at)
+    return await Crypto.sha256(`${action}:${coopname}:${decision_id}:${seconds}`)
+  }
+
+  /**
    * Создает подпись для голосования
    *
+   * @param action Действие голосования (votefor / voteagainst)
+   * @param coopname Имя кооператива
    * @param decision_id ID решения
    * @returns Объект подписи голосования
    */
-  private async signVote(decision_id: number): Promise<IVoteSignature> {
+  private async signVote(action: VoteAction, coopname: string, decision_id: number): Promise<IVoteSignature> {
     if (!this.wif)
       throw new Error('Ключ не установлен, выполните вызов метода setWif перед подписью голоса')
 
     // Версия используемого стандарта подписи
     const version = '1.0.0'
 
-    // Текущая дата в формате EOSIO
-    const now = new Date()
-    const signed_at = now.toISOString().split('.')[0]
+    // Текущая дата в формате EOSIO, с точностью до секунды — ровно то, что попадёт в цепь
+    const seconds = Math.floor(Date.now() / 1000)
+    const signed_at = new Date(seconds * 1000).toISOString().split('.')[0]
 
-    // Создаем signed_hash из decision_id и timestamp
-    // В реальных условиях здесь должна быть более сложная логика формирования хэша
-    const signed_hash = await Crypto.sha256(String(decision_id) + signed_at)
+    // Хэш привязан к действию, кооперативу, решению и времени подписи
+    const signed_hash = await Vote.buildVoteDigest(action, coopname, decision_id, signed_at)
 
     // Подписываем хэш
     const signature = this.wif.signDigest(signed_hash)
@@ -100,10 +122,11 @@ export class Vote {
    * @param coopname Имя кооператива
    * @param username Имя пользователя (члена совета)
    * @param decision_id ID решения
+   * @param permission Разрешение аккаунта, которому принадлежит ключ подписи: active — ручной голос, иное — разрешение робота
    * @returns Объект с параметрами для вызова транзакции votefor
    */
-  public async voteFor(coopname: string, username: string, decision_id: number): Promise<IVoteData> {
-    const voteSignature = await this.signVote(decision_id)
+  public async voteFor(coopname: string, username: string, decision_id: number, permission: string = 'active'): Promise<IVoteData> {
+    const voteSignature = await this.signVote('votefor', coopname, decision_id)
 
     return {
       version: voteSignature.version,
@@ -114,6 +137,7 @@ export class Vote {
       signed_hash: voteSignature.signed_hash,
       signature: voteSignature.signature,
       public_key: voteSignature.public_key,
+      permission,
     }
   }
 
@@ -123,10 +147,11 @@ export class Vote {
    * @param coopname Имя кооператива
    * @param username Имя пользователя (члена совета)
    * @param decision_id ID решения
+   * @param permission Разрешение аккаунта, которому принадлежит ключ подписи: active — ручной голос, иное — разрешение робота
    * @returns Объект с параметрами для вызова транзакции voteagainst
    */
-  public async voteAgainst(coopname: string, username: string, decision_id: number): Promise<IVoteData> {
-    const voteSignature = await this.signVote(decision_id)
+  public async voteAgainst(coopname: string, username: string, decision_id: number, permission: string = 'active'): Promise<IVoteData> {
+    const voteSignature = await this.signVote('voteagainst', coopname, decision_id)
 
     return {
       version: voteSignature.version,
@@ -137,6 +162,7 @@ export class Vote {
       signed_hash: voteSignature.signed_hash,
       signature: voteSignature.signature,
       public_key: voteSignature.public_key,
+      permission,
     }
   }
 
@@ -174,9 +200,10 @@ export class Vote {
    * Асинхронная версия метода проверки подписи голоса, которая также проверяет корректность signedHash.
    *
    * @param data Объект с данными голосования
+   * @param action Действие голосования, к которому привязан хэш (по умолчанию votefor)
    * @returns Promise<boolean>, который разрешается в true если подпись валидна, иначе false
    */
-  public static async validateVoteWithHashCheck(data: IVoteData): Promise<boolean> {
+  public static async validateVoteWithHashCheck(data: IVoteData, action: VoteAction = 'votefor'): Promise<boolean> {
     try {
       // Проверка версии
       if (data.version !== '1.0.0') {
@@ -189,9 +216,9 @@ export class Vote {
         return false
       }
 
-      // Проверка корректности signedHash
-      const calculatedSignedHash = await Crypto.sha256(String(data.decision_id) + data.signed_at)
-      if (calculatedSignedHash !== data.signed_hash) {
+      // Проверка корректности signedHash: хэш привязан к действию, кооперативу, решению и времени
+      const calculatedSignedHash = await Vote.buildVoteDigest(action, data.coopname, data.decision_id, data.signed_at)
+      if (calculatedSignedHash.toLowerCase() !== String(data.signed_hash).toLowerCase()) {
         return false
       }
 

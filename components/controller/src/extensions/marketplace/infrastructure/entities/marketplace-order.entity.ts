@@ -16,7 +16,6 @@ import {
   type MarketplaceUnitOfMeasure,
 } from '../../domain/entities/marketplace-offer.types';
 import { numericQuantityTransformer } from './numeric-quantity.transformer';
-import type { ISignedDocument } from '@coopenomics/innercoop';
 
 /**
  * Story 4.1: TypeORM-сущность Order'а Стола заказов. Зеркало
@@ -96,6 +95,15 @@ export class MarketplaceOrderEntity {
    */
   @Column({ type: 'numeric', precision: 18, scale: 3, default: 0, transformer: numericQuantityTransformer })
   public package_size!: number;
+
+  /**
+   * Упаковка каталога предложения, которой оформлен заказ (остаток по
+   * упаковкам): по ней счётчик упаковки возвращает штуки при отмене и откате.
+   * NULL — отпуск по мере либо заказ до появления поля; миграция V2.5.7
+   * дозаполняет старые заказы по содержимому упаковки.
+   */
+  @Column({ type: 'varchar', length: 64, nullable: true })
+  public package_id!: string | null;
 
   @Column({ type: 'numeric', precision: 24, scale: 4 })
   public total_cost!: string;
@@ -180,28 +188,22 @@ export class MarketplaceOrderEntity {
   @Column({ type: 'timestamptz', nullable: true })
   public ready_announced_at!: Date | null;
 
+  // ── Паевая модель: выдача по заявлению, протоколу совета и акту (компонент 68) ──
+
+  /** Момент подписи заявления о возврате паевого взноса имуществом (`issuestmt`). */
   @Column({ type: 'timestamptz', nullable: true })
-  public chairman_signed_at!: Date | null;
+  public issue_statement_at!: Date | null;
 
-  @Column({ type: 'varchar', length: 13, nullable: true })
-  public chairman_account!: string | null;
+  /** Номер решения совета по выдаче (soviet.decisions). */
+  @Column({ type: 'varchar', length: 32, nullable: true })
+  public issue_decision_id!: string | null;
 
-  @Column({ type: 'varchar', length: 64, nullable: true })
-  public signiss1_tx_hash!: string | null;
-
-  @Column({ type: 'jsonb', nullable: true })
-  public issue_act_signiss1_document!: ISignedDocument | null;
-
-  // ── Story 6.3 / FR24 — финальная подпись заказчика (signiss2) ──────────
-
-  @Column({ type: 'timestamptz', nullable: true })
-  public orderer_signed_at!: Date | null;
-
+  /** Сторона кооператива, закрывшая выдачу второй подписью акта (`issueact2`). */
   @Column({ type: 'varchar', length: 13, nullable: true })
   public delivery_signer_account!: string | null;
 
   @Column({ type: 'varchar', length: 64, nullable: true })
-  public signiss2_tx_hash!: string | null;
+  public issue_closed_tx_hash!: string | null;
 
   // ── On-chain mirror (поля от syncer'а через `marketplace::orders` row) ──
 
@@ -223,6 +225,30 @@ export class MarketplaceOrderEntity {
    */
   @Column({ type: 'numeric', precision: 24, scale: 4, nullable: true })
   public membership_fee!: string | null;
+
+  /**
+   * Принятая стоимость по закрывающей подписи акта приёмки — on-chain mirror
+   * `accepted_cost` (задача 99D-14). Null до приёмки и у заказов, принятых до
+   * появления поля на контракте.
+   */
+  @Column({ type: 'numeric', precision: 24, scale: 4, nullable: true })
+  public accepted_cost!: string | null;
+
+  /** Состояние выплаты поставщику — on-chain mirror `payout_status`. Null до первой sync-дельты. */
+  @Column({ type: 'varchar', length: 12, nullable: true })
+  public payout_status!: string | null;
+
+  /** Списанная уценка — on-chain mirror `markdown_cost`. Null до первой sync-дельты. */
+  @Column({ type: 'numeric', precision: 24, scale: 4, nullable: true })
+  public markdown_cost!: string | null;
+
+  /**
+   * Уценка, рассчитанная бэкендом при закрытии выдачи и ожидающая проведения
+   * на цепи (задача 99D-15). Backend-only: крон повторяет `markdown`, пока
+   * `markdown_cost` на цепи пуст; закрытие заказа до этого откладывается.
+   */
+  @Column({ type: 'numeric', precision: 24, scale: 4, nullable: true })
+  public markdown_due!: string | null;
 
   @CreateDateColumn({ type: 'timestamptz' })
   public created_at!: Date;

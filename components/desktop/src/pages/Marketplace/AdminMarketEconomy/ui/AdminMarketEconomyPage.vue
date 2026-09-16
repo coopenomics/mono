@@ -3,6 +3,12 @@ import { computed, onMounted, ref } from 'vue'
 import { FailAlert, SuccessAlert } from 'src/shared/api'
 import { BaseButton, BaseDialog } from 'src/shared/ui/base'
 import { AmountInput, PageHint } from 'src/shared/ui/domain'
+import { TurnoverTop } from 'src/widgets/Marketplace/TurnoverTop'
+import { listInventory, type MarketplaceInventoryItemView } from 'src/entities/MarketplaceInventory'
+import {
+  fetchOrdersForTurnover,
+  type MarketplaceOrderListView,
+} from 'src/entities/MarketplaceOrder'
 import { getEconomyConfig, setMembershipFee } from '../api'
 
 /**
@@ -57,8 +63,39 @@ async function onSave(): Promise<void> {
   }
 }
 
+// ─── Топ позиций по обороту ───
+// Оборот считает общий раздел (виджет TurnoverTop) — тот же, что на
+// «Экономике участка»: приход по приёмкам склада, выдача по исполненным
+// заказам. Страница отвечает только за то, чьи данные в него положить: здесь
+// это весь кооператив.
+
+const periodDays = ref<number>(30)
+const inventory = ref<MarketplaceInventoryItemView[]>([])
+const orders = ref<MarketplaceOrderListView[]>([])
+const turnoverLoading = ref(true)
+
+/** Сколько исполненных заказов забираем под свод: хвост старше периода не нужен. */
+const TURNOVER_ORDERS_LIMIT = 500
+
+async function loadTurnover(): Promise<void> {
+  turnoverLoading.value = true
+  try {
+    const [inventoryRows, orderRows] = await Promise.all([
+      listInventory(),
+      fetchOrdersForTurnover({ limit: TURNOVER_ORDERS_LIMIT }),
+    ])
+    inventory.value = inventoryRows
+    orders.value = orderRows
+  } catch (e) {
+    FailAlert(e, 'Не удалось загрузить оборот')
+  } finally {
+    turnoverLoading.value = false
+  }
+}
+
 onMounted(() => {
   void load()
+  void loadTurnover()
 })
 </script>
 
@@ -88,6 +125,13 @@ q-page.admin-economy
       template(#icon-left)
         q-icon(name='edit', size='16px')
       | Изменить
+
+  TurnoverTop(
+    v-model='periodDays',
+    :inventory='inventory',
+    :orders='orders',
+    :loading='turnoverLoading'
+  )
 
   BaseDialog(v-model='dialogOpen', title='Наценка', size='sm')
     p.admin-economy__dialog-hint
@@ -169,6 +213,47 @@ q-page.admin-economy
 
   &__edit {
     flex-shrink: 0;
+  }
+
+  &__section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--p-3, 12px);
+  }
+
+  &__section-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: var(--p-3, 12px);
+  }
+
+  &__period {
+    width: 200px;
+  }
+
+  &__section-note {
+    color: var(--p-ink-3);
+    font-size: var(--p-fs-body-sm, 13px);
+    line-height: var(--p-lh-body-sm, 1.5);
+  }
+
+  &__pvz {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  &__pvz-name {
+    font-weight: 600;
+    overflow-wrap: anywhere;
+  }
+
+  &__pvz-addr {
+    color: var(--p-ink-3);
+    font-size: var(--p-fs-body-sm, 13px);
+    overflow-wrap: anywhere;
   }
 
   &__dialog-hint {

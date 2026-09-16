@@ -23,8 +23,9 @@ export const Schema: JSONSchemaType<Model> = {
     program: CommonProgramSchema,
     order_hash: { type: 'string' },
     amount: { type: 'string' },
+    membership_fee: { type: 'string' },
   },
-  required: ['meta', 'coop', 'vars', 'user', 'program', 'order_hash', 'amount'],
+  required: ['meta', 'coop', 'vars', 'user', 'program', 'order_hash', 'amount', 'membership_fee'],
   additionalProperties: true,
 }
 

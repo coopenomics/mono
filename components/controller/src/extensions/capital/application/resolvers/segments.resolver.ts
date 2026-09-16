@@ -36,8 +36,13 @@ export class SegmentsResolver {
     // Запрос ПО КОНКРЕТНОМУ ПРОЕКТУ не трогаем: на нём стоят все рабочие
     // виджеты (голосование, состав участников, подача результата), и они
     // должны работать у любого участника проекта.
+    //
+    // Свои доли по всем проектам — тоже не сводный список: их показывает
+    // пайщику страница результатов («мои доли»), и отказ на неё приходил
+    // каждому рядовому участнику, открывшему страницу.
     const isBoardMember = currentUser?.role === 'chairman' || currentUser?.role === 'member';
-    if (!filter?.project_hash && !isBoardMember) {
+    const isOwnShares = Boolean(filter?.username) && filter?.username === currentUser?.username;
+    if (!filter?.project_hash && !isBoardMember && !isOwnShares) {
       throw new ForbiddenException(
         'Сводный список долей кооператива доступен только совету. Укажите проект в фильтре.'
       );

@@ -36,6 +36,7 @@ q-btn(
           type='number',
           :min='1',
           label='Сумма возврата',
+          :hint='availableHint',
           :rules='quantityRules'
         )
           template(#append)
@@ -92,9 +93,30 @@ const { info } = useSystemStore();
 const session = useSessionStore();
 const { processReturnByMoney } = useReturnByMoney();
 
+// Вернуть можно не больше собственного остатка на паевом кошельке — ровно его
+// цепь и сверяет. Раньше форма принимала любую сумму: пайщик вводил больше,
+// чем у него есть, подписывал заявление и получал отказ с текстом контракта.
+// Остаток не загрузился — не блокируем: окончательно сумму проверит цепь.
+const availableToReturn = computed<number | null>(() => {
+  const share = walletStore.user_wallets.find((w) => w.wallet_name === 'w.wal.share');
+  if (!share?.available) return null;
+  const amount = Number.parseFloat(share.available);
+  return Number.isFinite(amount) ? amount : null;
+});
+
+const availableHint = computed(() =>
+  availableToReturn.value === null
+    ? undefined
+    : `Доступно к возврату: ${availableToReturn.value} ${currency.value}`,
+);
+
 // Правила валидации для суммы
 const quantityRules = [
   (val: number) => val > 0 || 'Сумма должна быть положительной',
+  (val: number) =>
+    availableToReturn.value === null ||
+    val <= availableToReturn.value ||
+    'Сумма больше доступного остатка паевого взноса',
 ];
 
 // Опции методов платежа
@@ -111,6 +133,7 @@ const isFormValid = computed(() => {
   return (
     quantity.value >= 0 &&
     quantity.value > 0 &&
+    (availableToReturn.value === null || quantity.value <= availableToReturn.value) &&
     selectedMethod.value !== null &&
     !isSubmitting.value
   );

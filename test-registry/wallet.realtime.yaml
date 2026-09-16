@@ -1,0 +1,86 @@
+feature: wallet.realtime
+title: Кошелёк пайщика — событийное обновление остатка
+
+# Остаток кошелька живёт в цепи; узел узнаёт об изменении из дельты таблицы
+# `ledger2::userwallets` и публикует сигнал в персональный топик пайщика.
+# Клиент по сигналу дочитывает остаток запросом — payload сумм не несёт.
+#
+# До этого карточка пайщика перечитывала кошелёк только по собственному поводу,
+# и пополнение появлялось позже уведомления о приёме платежа.
+
+sources:
+  backend:
+    - components/controller/src/application/wallet/services/wallet-events.service.ts
+    - components/controller/src/application/wallet/dto/wallet-event.dto.ts
+  ui:
+    - components/desktop/src/entities/Wallet/model/walletEventsSubscription.ts
+
+cases:
+  - id: wallet.realtime.happy.01
+    level: backend
+    kind: happy
+    scenario: >
+      Пришла дельта таблицы кошельков своего кооператива с именем пайщика.
+    expect: >
+      сигнал уходит в персональный топик пайщика и несёт только адресные поля
+      (кооператив, пайщик, имя кошелька)
+    test: components/controller/tests/unit/wallet/wallet-events.service.test.ts
+    status: passing
+
+  - id: wallet.realtime.side.01
+    level: backend
+    kind: side
+    scenario: Сумм в сигнале нет.
+    expect: >
+      payload не содержит остатка и блокировки — клиент дочитывает
+      авторитетное состояние запросом, иначе две дороги к одному числу разойдутся
+    test: components/controller/tests/unit/wallet/wallet-events.service.test.ts
+    status: passing
+
+  - id: wallet.realtime.side.02
+    level: backend
+    kind: side
+    scenario: Дельта пришла по чужому кооперативу.
+    expect: сигнал не публикуется
+    test: components/controller/tests/unit/wallet/wallet-events.service.test.ts
+    status: passing
+
+  - id: wallet.realtime.side.03
+    level: backend
+    kind: side
+    scenario: Строка кошелька снята (present = false).
+    expect: >
+      сигнал не публикуется — остаток нулевой и его покажет обычная дочитка,
+      а `value` у снятой строки пуст
+    test: components/controller/tests/unit/wallet/wallet-events.service.test.ts
+    status: passing
+
+  - id: wallet.realtime.side.04
+    level: backend
+    kind: side
+    scenario: В дельте нет имени пайщика.
+    expect: сигнал не публикуется — адресовать его некому
+    test: components/controller/tests/unit/wallet/wallet-events.service.test.ts
+    status: passing
+
+  - id: wallet.realtime.break.01
+    level: backend
+    kind: break
+    scenario: >
+      Подписку открывает соединение без пайщика в токене либо с чужим
+      кооперативом в аргументе.
+    expect: >
+      отказ по праву; топик выводится из токена соединения, клиент выбрать его
+      не может
+    decision_needed: false
+    status: missing
+
+  - id: wallet.realtime.side.05
+    level: ui
+    kind: side
+    scenario: >
+      Пайщик пополняет кошелёк, сокет в это время был оборван и восстановился.
+    expect: >
+      на реконнекте клиент дочитывает остаток и показывает актуальную сумму —
+      пропущенные за время обрыва сигналы не теряются
+    status: missing

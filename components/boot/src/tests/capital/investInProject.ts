@@ -129,6 +129,11 @@ export async function investInProject(
   console.log('▶ Кошелек пользователя (благорост):', finalUserWallet)
   console.log('▶ Кошелек программы (благорост):', finalProgramWallet)
 
+  // Кошелёк пайщика обязан существовать после инвестиции: если его нет,
+  // средства никуда не легли и сравнивать балансы не с чем.
+  if (!finalUserWallet)
+    throw new Error(`Кошелёк пайщика ${investor} в программе ${capitalProgramId} не найден после инвестиции`)
+
   // Проверка изменения балансов
   expect(parseFloat(finalUserWallet.blocked)).toBeCloseTo(parseFloat(prevUserWallet.blocked) + parseFloat(investAmount), 1)
   expect(parseFloat(finalProgramWallet.blocked)).toBeCloseTo(parseFloat(prevProgramWallet.blocked) + parseFloat(investAmount), 1)

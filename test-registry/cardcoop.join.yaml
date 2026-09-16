@@ -1,0 +1,127 @@
+feature: cardcoop.join
+title: Связь карты при вступлении и выпуск свидетельства по приёму (Story 7.5)
+
+# Вступающий приходит со своей картой ещё на этапе регистрации — и это цель, а не
+# случайность: вторая карта обнулила бы накопленное участие (PRD 4.3).
+#
+# Но свидетельствовать о членстве в этот момент нечего: совет ещё не решил, а в
+# цепи нет даты приёма, на которую документ обязан опираться. Поэтому связь
+# ЖДЁТ, а выпуск происходит по записи цепи о приёме — inline-действию
+# `soviet::addpartcpnt`, которым заканчивается и приём кандидата советом
+# (`registrator::confirmreg`), и импорт действующего пайщика оператором
+# (`registrator::adduser`). Слушать сами команды регистратора значило бы
+# перечислять пути приёма и однажды пропустить новый; у `confirmreg` вдобавок
+# нет `username` в данных — только хэш регистрации.
+#
+# До этой истории такая связь молча терялась: дата приёма отсутствовала, выпуск
+# падал с ошибкой, и повторить его было некому.
+#
+# Шаг в потоке вступления необязателен по построению: отказ ничего не ломает,
+# связать карту можно и позже, из стола пайщика.
+
+sources:
+  backend:
+    - components/controller/src/extensions/cardcoop/membership/join-events.service.ts
+    - components/controller/src/extensions/cardcoop/infrastructure/entities/cardcoop-pending-link.typeorm-entity.ts
+  ui:
+    - components/desktop/src/pages/Registrator/SignUp/EmailInput.vue
+    - components/desktop/src/pages/Registrator/CardcoopEntry/**
+    - components/desktop/src/entities/Registrator/model/store.ts
+
+cases:
+  - id: cc.join.happy.01
+    level: backend
+    kind: happy
+    scenario: >
+      Кандидат связал карту до приёма: в цепи даты вступления ещё нет.
+    expect: >
+      связь запоминается, а не теряется; свидетельство не выпускается — совет
+      ещё не принял решения
+    test: components/controller/tests/unit/cardcoop/cardcoop-link-webhook.test.ts
+    status: passing
+
+  - id: cc.join.happy.02
+    level: backend
+    kind: happy
+    scenario: >
+      Цепь записала приём пайщика (`adduser`).
+    expect: >
+      по ожидавшей связи выпускается свидетельство с датой приёма из самого
+      действия — именно её потом проверяет третья сторона
+    test: components/controller/tests/unit/cardcoop/cardcoop-join-events.test.ts
+    status: passing
+
+  - id: cc.join.side.01
+    level: backend
+    kind: side
+    scenario: >
+      Принят пайщик, который карту не связывал.
+    expect: >
+      ничего не происходит и в журнал не пишется: так вступает большинство, и шум
+      на каждом приёме мешал бы разбирать настоящие сбои
+    test: components/controller/tests/unit/cardcoop/cardcoop-join-events.test.ts
+    status: passing
+
+  - id: cc.join.side.02
+    level: backend
+    kind: side
+    scenario: >
+      Приём пайщика в чужой кооператив.
+    expect: >
+      игнорируется — свидетельствовать о чужом пайщике мы не вправе
+    test: components/controller/tests/unit/cardcoop/cardcoop-join-events.test.ts
+    status: passing
+
+  - id: cc.join.break.01
+    level: backend
+    kind: break
+    scenario: >
+      Сеть недоступна в момент приёма пайщика.
+    expect: >
+      обработка события не падает, ошибка уходит в журнал; связь остаётся
+      ожидающей и не теряется
+    test: components/controller/tests/unit/cardcoop/cardcoop-join-events.test.ts
+    status: passing
+
+  - id: cc.join.ui.01
+    level: ui
+    kind: happy
+    scenario: >
+      Вступающий открывает регистрацию в кооперативе, подключённом к сети карт (03.09.2026).
+    expect: >
+      на ПЕРВОМ шаге, рядом с почтой, стоит «Зарегистрироваться по карте кооператора» — она
+      уводит на card.coop, откуда анкета переносится из кооператива-источника и остаётся
+      проверить данные и подписать заявление. Кнопка появляется только когда расширение
+      установлено. Отдельного шага «У меня есть карта кооператора» в середине пути больше нет:
+      предлагать карту после того, как человек ввёл всё руками, поздно — связать её можно
+      из раздела «Карта кооператора» в столе
+    test: ''
+    status: missing
+
+  - id: cc.join.side.03
+    level: backend
+    kind: side
+    scenario: >
+      Время приёма в действии цепи пришло без указания зоны (`time_point_sec`).
+    expect: >
+      читается как UTC, а не как местное время сервера: поздним вечером ошибка
+      зоны сдвинула бы дату приёма в свидетельстве на сутки
+    test: components/controller/tests/unit/cardcoop/cardcoop-join-events.test.ts
+    status: passing
+
+  - id: cc.join.ui.02
+    level: ui
+    kind: side
+    scenario: Страница входа по карте в столе кооператива (03.09.2026)
+    expect: >
+      Собрана канонными компонентами: AuthCard, BaseBanner нужного вида (info/warn/pos) и
+      BaseButton одной колонкой с ровным зазором. Самодельных .banner и .skel на странице
+      нет — они выбивались из вёрстки остальных форм входа. Номер карты в подзаголовке
+      разбивается по четыре только из цифр: сеть отдаёт его уже с пробелами, и повторная
+      разбивка сдвигала группы («9830 449 6 65 75 9 722»). Ожидание ответа сети —
+      q-skeleton той же формы, что и будущий экран. Цветных полос на экране нет: карточка
+      входа — волосяная рамка без тени и без accent-стрипа, баннер — мягкая заливка без
+      рельса слева (запрет канона, владелец 03.09.2026). Между баннером и кнопками есть
+      зазор: его даёт колонка с gap в теле AuthCard, иначе баннер упирался в кнопку
+    test: ''
+    status: missing

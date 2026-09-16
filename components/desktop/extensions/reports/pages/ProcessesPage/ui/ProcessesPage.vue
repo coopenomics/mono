@@ -1,6 +1,6 @@
 <template lang="pug">
-div.page-shell
-  q-card.q-mt-md(flat)
+div.processes-page
+  q-card(flat)
     q-card-section
       .row.q-gutter-sm.items-center.q-mb-sm(v-if='filters.processType || filters.username || filters.processHash')
         q-chip(
@@ -8,7 +8,7 @@ div.page-shell
           removable
           color='primary'
           text-color='white'
-          icon='fa-solid fa-gears'
+          icon='account_tree'
           @remove='clearProcessTypeFilter'
         ) {{ processTypeLabel(filters.processType) }}
         q-chip(
@@ -16,7 +16,7 @@ div.page-shell
           removable
           color='primary'
           text-color='white'
-          icon='fa-solid fa-user'
+          icon='person'
           @remove='clearUsernameFilter'
         ) Пайщик {{ fioCache.get(filters.username) || filters.username }}
         q-chip(
@@ -24,7 +24,7 @@ div.page-shell
           removable
           color='primary'
           text-color='white'
-          icon='fa-solid fa-fingerprint'
+          icon='fingerprint'
           class='font-monospace'
           @remove='clearProcessHashFilter'
         ) Процесс {{ filters.processHash.slice(0, 8) }}
@@ -52,11 +52,11 @@ div.page-shell
           @keyup.enter='applyUsernameFilter'
         )
           template(#append)
-            q-icon.cursor-pointer(name='fa-solid fa-magnifying-glass' @click='applyUsernameFilter')
+            q-icon.cursor-pointer(name='search' @click='applyUsernameFilter')
         q-btn.col-md-auto(
           v-if='hasAnyFilter'
           flat
-          icon='fa-solid fa-rotate'
+          icon='refresh'
           label='Сбросить'
           @click='resetFilters'
         )
@@ -69,7 +69,7 @@ div.page-shell
       :columns='columns'
       row-key='processHash'
       :loading='loading'
-      :pagination='pagination'
+      v-model:pagination='pagination'
       :rows-per-page-options='[25, 50, 100, 200]'
       :no-data-label='"Процессы не найдены"'
       @request='onRequest'
@@ -106,6 +106,7 @@ div.page-shell
               label='КУ'
             )
               q-tooltip Кооперативный участок
+          q-td.text-right.font-monospace {{ formatProcessAmount(props.row.amount) }}
           q-td {{ formatDate(props.row.firstSeenAt) }}
           q-td {{ formatDate(props.row.lastSeenAt) }}
 
@@ -134,6 +135,7 @@ div.page-shell
               .col
                 .text-caption.text-grey-6 {{ formatDate(props.row.lastSeenAt) }}
                 .text-body2.text-weight-medium {{ processTypeLabel(props.row.processType) }}
+              .col-auto.text-body2.font-monospace(v-if='props.row.amount') {{ formatProcessAmount(props.row.amount) }}
               .col-12.text-caption.text-grey-7
                 | {{ isBranch(props.row.username) ? 'Участок' : 'Пайщик' }}: {{ subjectName(props.row.username) }}
               .col-12.row.q-gutter-xs.q-mt-xs.items-center
@@ -157,6 +159,7 @@ import { useProcessStore, type IProcessSummary } from 'src/entities/Process'
 import { useFioCache } from 'src/shared/lib/account/useFioCache'
 import { ProcessDetailCard } from 'src/widgets/Process/ProcessDetailCard'
 import {
+  formatProcessAmount,
   processChipBg,
   processChipText,
   processTypeLabel,
@@ -238,6 +241,7 @@ const columns = [
   { name: 'processType', align: 'left' as const, label: 'Тип процесса', field: 'processType' },
   { name: 'processHash', align: 'left' as const, label: 'ID процесса', field: 'processHash' },
   { name: 'username', align: 'left' as const, label: 'Пайщик', field: 'username' },
+  { name: 'amount', align: 'right' as const, label: 'Сумма', field: 'amount' },
   { name: 'firstSeenAt', align: 'left' as const, label: 'Создан', field: 'firstSeenAt' },
   { name: 'lastSeenAt', align: 'left' as const, label: 'Последнее событие', field: 'lastSeenAt' },
 ]
@@ -374,6 +378,13 @@ onMounted(async () => {
 </script>
 
 <style scoped>
+/* Поле страницы — как в соседних реестрах операций и проводок. */
+.processes-page {
+  padding: var(--p-6, 24px);
+}
+@media (max-width: 768px) {
+  .processes-page { padding: var(--p-4, 16px); }
+}
 .font-monospace {
   font-family: 'JetBrains Mono', 'Courier New', monospace;
   letter-spacing: 0.03em;
@@ -381,7 +392,7 @@ onMounted(async () => {
 /* Реестр — обзорный список: гасим подсветку строки при наведении (canon-правило
    .q-table tbody tr:hover) и в основной таблице, и во вложенных таблицах
    детализации (операции/проводки) — мигание при наведении мешает. */
-.page-shell :deep(.q-table tbody tr:hover) {
+.processes-page :deep(.q-table tbody tr:hover) {
   background: transparent;
 }
 </style>

@@ -50,7 +50,8 @@
     username,
     "selectbranch"_n,
     hash,
-    document
+    document,
+    uint64_t(0)
   );
   
   // отправляем документ в принятый реестр

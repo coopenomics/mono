@@ -62,11 +62,14 @@ function shortHash(v: string): string {
 
 // Подписи статусов гарантийного возврата — канон ReturnClaimDetailsDialog.
 const RETURN_STATUS_LABEL: Record<string, string> = {
-  PENDING_CHAIRMAN_REVIEW: 'На рассмотрении председателя',
-  APPROVED_FOR_VISIT: 'Очный визит одобрен',
-  ACCEPTED_AT_VISIT: 'Возврат принят',
+  PENDING_CHAIRMAN_REVIEW: 'На рассмотрении оператора',
+  APPROVED_FOR_VISIT: 'Приглашение на участок',
   REJECTED_REMOTELY: 'Отказано удалённо',
   REJECTED_AT_VISIT: 'Отказано на месте',
+  PENDING_COUNCIL: 'Имущество принято — ждём решение совета',
+  ACCEPTED_BY_COUNCIL: 'Совет принял — паевой взнос восстановлен',
+  DECLINED_BY_COUNCIL: 'Совет отказал — имущество ждёт пайщика',
+  HANDED_BACK: 'Имущество выдано обратно',
 }
 const statusLabel = computed(() => {
   const raw = field('status')

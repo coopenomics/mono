@@ -24,7 +24,7 @@
  *   w.reg.* — Регистрация (минимальный паевой, вступительные)
  *   w.sov.* — Совет-level фонды (целевое финансирование, использованные паевые)
  *   w.cap.* — Программы паевого фонда (Благорост, Генератор) и займы
- *   w.mkt.* — Маркетплейс (резервы заказов и членских взносов, выплаты поставщикам)
+ *   w.mkt.* — Стол заказов (паевой резерв под заказ, свободный паевой программы, пул членских взносов участка, выплаты поставщикам)
  *   w.brn.* — Экономика кооперативного участка (персональные кошельки доверенных, общий кошелёк КУ)
  *
  * Sentinel `eosio::name{}` (пустое имя, value=0) — «кошелёк вне системы»
@@ -69,17 +69,21 @@ struct ledger2_wallets {
   static constexpr eosio::name PREIMP_FUND          = "w.cap.preimp"_n;  ///< Первичный учёт РИД-взносов до перехода на электронный учёт (USER_SHARED; o.cap.preimp / o.cap.drppre)
   static constexpr eosio::name PROGRAM_EXPENSE_POOL = "w.cap.pgexp"_n;   ///< Пул программных расходов ЦПП «Благорост» (COOPERATIVE) — кооперативный кошелёк, из которого шасси expense оплачивает СЗ; пополняется topupprogexp (o.cap.pgtop), паевые L3-кошельки пайщиков (w.cap.blago) при расходах не трогаются
 
-  // marketplace — резерв под Order + членский «Стола заказов» + выплаты
-  static constexpr eosio::name MARKETPLACE_ORDER_LOCK = "w.mkt.order"_n;   ///< ЦПП «Стол Заказов» — резерв средств пайщика под конкретный Order (USER_SHARED). TRANSFER w.wal.share → w.mkt.order на createorder (Дт 80 / Кт 86); обратный TRANSFER на w.mkt.member при cancel/decline/expire (без проводки); BURN с w.mkt.order на signiss2 (Дт 86 / Кт 10).
-  static constexpr eosio::name MARKETPLACE_MEMBER_FUND = "w.mkt.member"_n; ///< ЦПП «Стол Заказов» — членский кошелёк пайщика программы (USER_SHARED, счёт 86). Сюда возвращается остаток резерва при отмене/недовыдаче и гарантийном возврате; сюда же конвертируется паевой взнос (o.mkt.conv) при доплате по факту — списание под заказ идёт ИМЕННО с членского программы, не с паевого напрямую.
-  static constexpr eosio::name SUPPLIER_PAYMENTS      = "w.mkt.payout"_n;  ///< Выплаты поставщикам (sink PAYOUT, COOPERATIVE)
-  static constexpr eosio::name MARKETPLACE_FEE_POOL   = "w.mkt.fee"_n;     ///< Резерв членских взносов «Стола заказов» под заказы (COOPERATIVE-пул, по образцу w.wal.wpend — per-Order разрез держит поле Order.membership_fee). TRANSFER w.wal.share → w.mkt.fee на createorder/stockorder (Дт 80 / Кт 86, o.mkt.fee); возврат неиспользованной части на w.mkt.member (o.mkt.refund, без проводки); при финализации заказа 100% факта взноса зачисляется в общий кошелёк КУ (branch::accrue → o.brn.common).
+  // marketplace — паевая модель «Стола заказов»: резерв под Order + свободный паевой программы + выплаты
+  static constexpr eosio::name MARKETPLACE_ORDER_LOCK = "w.mkt.order"_n;   ///< ЦПП «Стол Заказов» — паевой резерв пайщика под конкретный Order (USER_SHARED, счёт 80). TRANSFER w.wal.share → w.mkt.order на createorder (без проводки); обратный TRANSFER на w.mkt.share при cancel/decline/expire и недовыдаче; BURN с w.mkt.order на issueact2 (Дт 80 / Кт 10 — возврат паевого взноса имуществом).
+  static constexpr eosio::name MARKETPLACE_SHARE_FUND = "w.mkt.share"_n;   ///< ЦПП «Стол Заказов» — свободный паевой пайщика в программе (USER_SHARED, счёт 80). Сюда возвращается остаток резерва при отмене/недовыдаче и гарантийном возврате; отсюда в первую очередь фондируется тело любого заказа и доплата по факту (o.mkt.lockp), остаток тела — с w.wal.share (o.mkt.lock); в общий паевой не выводится (действия пайщика нет; консолидация o.mkt.recall только при выходе из кооператива).
+  static constexpr eosio::name MARKETPLACE_MEMBER_FUND = "w.mkt.member"_n; ///< ЦПП «Стол Заказов» — внутренний членский кошелёк пайщика в программе (USER_SHARED, счёт 86). Пополняется действием convert по Заявлению 1110 на недостающую часть взноса (o.mkt.conv с w.wal.share) и сторно взноса при отмене, недовыдаче и гарантийном возврате (o.mkt.refund). Расходуется только на членские взносы участка под следующие заказы (o.mkt.fee → w.mkt.fee); тело заказа из него не оплачивается. Членский: обратно в паевой не транслируется.
+  static constexpr eosio::name SUPPLIER_PAYMENTS      = "w.mkt.payout"_n;  ///< DEPRECATED 2026-09-10 (задача 99D-16): исторический накопитель выплат поставщикам. Оставлен в реестре для исторического L2-баланса; новые операции его не трогают — выплата списывает обязательство с w.mkt.topay.
+  static constexpr eosio::name MARKETPLACE_SUPPLIER_PAYABLE = "w.mkt.topay"_n; ///< Сумма к оплате поставщику за принятое имущество (USER_SHARED по поставщику, счёт 76 — обязательство кооператива). Пополняется приёмкой (o.mkt.purch, Дт 10 / Кт 76); уменьшается выплатой (o.mkt.payout, Дт 76 / Кт 51) и зачётом удержанного гарантийного долга (o.mkt.offset, без проводки — вместе с o.mkt.deduct на w.mkt.debt). Остаток по поставщику равен его кредитовому сальдо 76 без чтения истории (задача 99D-16).
+  static constexpr eosio::name MARKETPLACE_CLAIM_PENDING = "w.mkt.claim"_n;  ///< Непризнанные гарантийные претензии поставщику (USER_SHARED по поставщику, без проводки — до признания претензия не актив). ISSUE по решению совета об отмене сделки (o.mkt.claim); по умолчанию поставщик не согласен и сумма лежит здесь как основание для иска; при признании уходит TRANSFER на w.mkt.debt (o.mkt.admit).
+  static constexpr eosio::name MARKETPLACE_SUPPLIER_DEBT = "w.mkt.debt"_n;   ///< Признанный гарантийный долг поставщика (USER_SHARED по поставщику, счёт 76 — дебиторка поставщика). Пополняется o.mkt.admit (Дт 76 / Кт 91); гасится удержанием из следующих выплат поставщику — BURN o.mkt.deduct в нитке заказа (без проводки: обязательство и дебиторка на одном счёте 76 сворачиваются).
+  static constexpr eosio::name MARKETPLACE_FEE_POOL   = "w.mkt.fee"_n;     ///< Резерв членских взносов «Стола заказов» под заказы (COOPERATIVE-пул, по образцу w.wal.wpend — per-Order разрез держит поле Order.membership_fee). TRANSFER w.mkt.member → w.mkt.fee на createorder / stockorder и при довзносе по факту (o.mkt.fee, без проводки — оба на 86); сторно неиспользованной части на w.mkt.member (o.mkt.refund, без проводки); при закрытии выдачи 100% факта взноса зачисляется в общий кошелёк КУ (branch::accrue → o.brn.common).
 
   // edubridge — ЦПП «Образование» (приложение «Образовательный мост»)
   static constexpr eosio::name EDU_MEMBER_FEE        = "w.edu.member"_n;  ///< ЦПП «Образование» — членский взнос пайщика за доступ к курсу (USER_SHARED, счёт 86). Пополняется конвертацией паевого по заявлению (o.edu.conv, Дт 80 / Кт 86); расход на доступ к курсу фиксируется подпиской (opensub/extendsub) без отдельной операции по кошельку.
 
   // branch — экономика кооперативного участка (requirement b6 «Экономика КУ», раунд 5: приоритет общего кошелька)
-  static constexpr eosio::name BRANCH_PERSONAL        = "w.brn.person"_n;  ///< Персональный кошелёк доверенного/председателя КУ (USER_SHARED по доверенному, счёт 86). Пополняется ручным распределением председателя КУ из общего кошелька (o.brn.release + o.brn.person); расходуется на материальную помощь (o.brn.aid) или переводом в членский кошелёк «Стола заказов» (o.brn.conv).
+  static constexpr eosio::name BRANCH_PERSONAL        = "w.brn.person"_n;  ///< Персональный кошелёк доверенного/председателя КУ (USER_SHARED по доверенному, счёт 86). Пополняется ручным распределением председателя КУ из общего кошелька (o.brn.release + o.brn.person); расходуется на материальную помощь (o.brn.aid).
   static constexpr eosio::name BRANCH_COMMON          = "w.brn.common"_n;  ///< Общий кошелёк членских взносов кооперативного участка (USER_SHARED с разрезом по braname КУ, счёт 86). Принимает 100% членского взноса при финализации заказа (o.brn.common); далее — ручное распределение доверенным (o.brn.release), оплата расходов КУ (o.brn.spend), закупка впрок. Плановый резерв расходов (30 дней) контролирует бэкенд.
   static constexpr eosio::name BRANCH_DISTRIBUTION_POOL = "w.brn.pool"_n;  ///< Транзитный пул ручного распределения КУ (COOPERATIVE; баланс нулевой вне транзакции). Нужен из-за инварианта walletop «один username на обе стороны»: прямой TRANSFER w.brn.common (разрез по braname) → w.brn.person (разрез по доверенному) невозможен; двухходовка o.brn.release (username = braname) + o.brn.person (username = доверенный) внутри одной транзакции распределения.
   static constexpr eosio::name BRANCH_EXPENSE_POOL    = "w.brn.expns"_n;  ///< Пул расходов кооперативного участка (COOPERATIVE) — источник средств шасси расходов для КУ. Наполняется под конкретный расход при создании служебной записки (o.brn.expfnd, username = braname), расходуется прямой оплатой по реквизитам (o.brn.spend) либо выдачей аванса под отчёт (o.brn.expadv); неизрасходованный остаток возвращается в общий кошелёк участка (o.brn.expunf). Транзит нужен и по существу (видно, сколько средств участка отдано под расходы), и технически: шасси расходов требует COOPERATIVE-пул, а w.brn.common ведёт L3-разрез по braname.
@@ -118,16 +122,20 @@ struct Ledger2WalletMeta {
   WalletKind       kind;
 };
 
-inline constexpr std::array<Ledger2WalletMeta, 27> LEDGER2_WALLET_REGISTRY = {{
-  // USER_SHARED (12) — L3-разрез по пайщику (у w.brn.common — по braname КУ)
+inline constexpr std::array<Ledger2WalletMeta, 31> LEDGER2_WALLET_REGISTRY = {{
+  // USER_SHARED (16) — L3-разрез по пайщику (у w.brn.common — по braname КУ)
   { ledger2_wallets::MIN_SHARE_FUND,        "Минимальный паевой взнос",                                 WalletKind::USER_SHARED },
   { ledger2_wallets::SHARE_FUND_PAY,        "Паевой взнос пайщика",                                     WalletKind::USER_SHARED },
   { ledger2_wallets::CK_MEMBER,             "ЦК — членская часть пайщика",                              WalletKind::USER_SHARED },
   { ledger2_wallets::BLAGOROST_FUND,        "ЦПП «Благорост» — единый кошелёк программы у пайщика",     WalletKind::USER_SHARED },
   { ledger2_wallets::PREIMP_FUND,           "Первичный учёт РИД-взносов до перехода на электронный учёт", WalletKind::USER_SHARED },
-  { ledger2_wallets::MARKETPLACE_ORDER_LOCK,"ЦПП «Стол Заказов» — резерв под заказ у пайщика",         WalletKind::USER_SHARED },
-  { ledger2_wallets::MARKETPLACE_MEMBER_FUND,"ЦПП «Стол Заказов» — членский кошелёк пайщика программы",  WalletKind::USER_SHARED },
-  { ledger2_wallets::BRANCH_PERSONAL,       "Персональный кошелёк доверенного кооперативного участка",   WalletKind::USER_SHARED },
+  { ledger2_wallets::MARKETPLACE_ORDER_LOCK,"ЦПП «Стол Заказов» — паевой резерв под заказ у пайщика",  WalletKind::USER_SHARED },
+  { ledger2_wallets::MARKETPLACE_SHARE_FUND,"ЦПП «Стол Заказов» — свободный паевой пайщика в программе", WalletKind::USER_SHARED },
+  { ledger2_wallets::MARKETPLACE_MEMBER_FUND,"ЦПП «Стол Заказов» — членский взнос пайщика в программе", WalletKind::USER_SHARED },
+  { ledger2_wallets::MARKETPLACE_CLAIM_PENDING,"ЦПП «Стол Заказов» — непризнанные гарантийные претензии поставщику", WalletKind::USER_SHARED },
+  { ledger2_wallets::MARKETPLACE_SUPPLIER_DEBT,"ЦПП «Стол Заказов» — признанный гарантийный долг поставщика к удержанию", WalletKind::USER_SHARED },
+  { ledger2_wallets::MARKETPLACE_SUPPLIER_PAYABLE,"ЦПП «Стол Заказов» — к оплате поставщику за принятое имущество", WalletKind::USER_SHARED },
+  { ledger2_wallets::BRANCH_PERSONAL,      "Персональный кошелёк доверенного кооперативного участка",   WalletKind::USER_SHARED },
   { ledger2_wallets::BRANCH_COMMON,         "Общий кошелёк членских взносов кооперативного участка",     WalletKind::USER_SHARED },
   { ledger2_wallets::ADVANCE_HOLD,          "Подотчётные средства пайщика",                             WalletKind::USER_SHARED },
   { ledger2_wallets::REGISTRATION_PENDING,  "Регистрационный взнос в ожидании решения совета",          WalletKind::USER_SHARED },
@@ -265,7 +273,7 @@ struct Ledger2WalletProgramMapping {
   uint64_t    required_program_id; // 0 = исключение (без проверки)
 };
 
-inline constexpr std::array<Ledger2WalletProgramMapping, 13> LEDGER2_USER_SHARED_PROGRAM_MAPPING = {{
+inline constexpr std::array<Ledger2WalletProgramMapping, 17> LEDGER2_USER_SHARED_PROGRAM_MAPPING = {{
   { ledger2_wallets::MIN_SHARE_FUND,         0 /* w.reg.minshr — без проверки */    },
   { ledger2_wallets::SHARE_FUND_PAY,         1 /* ЦК */                              },
   { ledger2_wallets::CK_MEMBER,              1 /* ЦК */                              },
@@ -273,7 +281,11 @@ inline constexpr std::array<Ledger2WalletProgramMapping, 13> LEDGER2_USER_SHARED
   { ledger2_wallets::GENERATOR_FUND,         3 /* Генератор */                       },
   { ledger2_wallets::PREIMP_FUND,            0 /* w.cap.preimp — РИД-учёт до перехода на электронный учёт, без проверки */ },
   { ledger2_wallets::MARKETPLACE_ORDER_LOCK, 2 /* Marketplace */                    },
-  { ledger2_wallets::MARKETPLACE_MEMBER_FUND,2 /* Marketplace */                    },
+  { ledger2_wallets::MARKETPLACE_SHARE_FUND, 2 /* Marketplace */                    },
+  { ledger2_wallets::MARKETPLACE_MEMBER_FUND, 2 /* Marketplace */                   },
+  { ledger2_wallets::MARKETPLACE_CLAIM_PENDING, 0 /* w.mkt.claim — контрагент по договору поставки, не участник программы; без проверки */ },
+  { ledger2_wallets::MARKETPLACE_SUPPLIER_DEBT, 0 /* w.mkt.debt — то же */ },
+  { ledger2_wallets::MARKETPLACE_SUPPLIER_PAYABLE, 0 /* w.mkt.topay — то же: обязательство перед контрагентом */ },
   { ledger2_wallets::BRANCH_PERSONAL,        0 /* w.brn.person — распределение назначает председатель КУ, программное соглашение не требуется */ },
   { ledger2_wallets::BRANCH_COMMON,          0 /* w.brn.common — L3-разрез по braname КУ (не по пайщику), без проверки */ },
   { ledger2_wallets::ADVANCE_HOLD,           0 /* w.exp.adv — подотчёт пайщика по СЗ; программа-источник проверена контрактом expense, повторная gate не нужна */ },
@@ -296,9 +308,10 @@ inline constexpr std::array<Ledger2WalletProgramMapping, 13> LEDGER2_USER_SHARED
  * Состав — только паевые/возвратные USER_SHARED-кошельки:
  *   w.reg.minshr — минимальный паевой взнос;
  *   w.wal.share  — целевой паевой взнос (ЦК);
- *   w.cap.blago  — паевой взнос в ЦПП «Благорост».
+ *   w.cap.blago  — паевой взнос в ЦПП «Благорост»;
+ *   w.mkt.share  — свободный паевой в ЦПП «Стол заказов» (паевая модель).
  *
- * НЕ входят: w.wal.member (членский — невозвратный), w.exp.adv (подотчёт под
+ * НЕ входят: w.wal.member и w.mkt.member (членские — невозвратные), w.exp.adv (подотчёт под
  * расход), w.cap.gen (Генератор — COOPERATIVE, без L3-разреза по пайщику),
  * w.cap.preimp (пред-импорт-учёт РИД).
  *
@@ -306,10 +319,11 @@ inline constexpr std::array<Ledger2WalletProgramMapping, 13> LEDGER2_USER_SHARED
  * на `w.wal.share` в `Registrator::consolidate_share_to_main` (exit_helpers.hpp)
  * — иначе runtime упадёт с явным сообщением (защита от тихой потери средств).
  */
-inline constexpr std::array<eosio::name, 3> LEDGER2_EXIT_REFUND_WALLETS = {{
+inline constexpr std::array<eosio::name, 4> LEDGER2_EXIT_REFUND_WALLETS = {{
   ledger2_wallets::MIN_SHARE_FUND,
   ledger2_wallets::SHARE_FUND_PAY,
   ledger2_wallets::BLAGOROST_FUND,
+  ledger2_wallets::MARKETPLACE_SHARE_FUND,
 }};
 
 /**

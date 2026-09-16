@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { MarketplaceOrderDomainEntity } from '../../domain/entities/marketplace-order.entity';
 import { MarketplaceOrderEntity } from '../entities/marketplace-order.entity';
+import type { MarketplaceOrderPayoutStatus } from '../../domain/entities/marketplace-order.types';
 
 /**
  * Row → domain. TypeORM `bigint` колонки приходят как string —
@@ -23,8 +24,13 @@ export class MarketplaceOrderMapper {
       unit_of_measure: row.unit_of_measure,
       price_per_unit: row.price_per_unit,
       package_size: row.package_size ?? 0,
+      package_id: row.package_id ?? null,
       total_cost: row.total_cost,
       membership_fee: row.membership_fee ?? null,
+      accepted_cost: row.accepted_cost ?? null,
+      payout_status: (row.payout_status as MarketplaceOrderPayoutStatus | null) ?? null,
+      markdown_cost: row.markdown_cost,
+      markdown_due: row.markdown_due,
       cycle_id: row.cycle_id,
       checkout_id: row.checkout_id ?? null,
       shipment_id: row.shipment_id ?? null,
@@ -40,13 +46,10 @@ export class MarketplaceOrderMapper {
       current_warehouse_braname: row.current_warehouse_braname,
       issuance_fact: row.issuance_fact,
       ready_announced_at: row.ready_announced_at,
-      chairman_signed_at: row.chairman_signed_at,
-      chairman_account: row.chairman_account,
-      signiss1_tx_hash: row.signiss1_tx_hash,
-      issue_act_signiss1_document: row.issue_act_signiss1_document,
-      orderer_signed_at: row.orderer_signed_at,
+      issue_statement_at: row.issue_statement_at,
+      issue_decision_id: row.issue_decision_id,
       delivery_signer_account: row.delivery_signer_account,
-      signiss2_tx_hash: row.signiss2_tx_hash,
+      issue_closed_tx_hash: row.issue_closed_tx_hash,
       on_chain_id: row.on_chain_id,
       on_chain_block_num:
         row.on_chain_block_num === null || row.on_chain_block_num === undefined

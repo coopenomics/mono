@@ -197,26 +197,31 @@ export async function phase01(): Promise<void> {
 
     // 5. Протокол решения. Фабрика читает голоса через индекс парсера, который
     //    отстаёт на 1-2 блока после votefor — отсюда retry, а не одна попытка.
-    let protocol: Record<string, unknown> | null = null
+    // Тип протокола берём у самого signDocument — так документ проходит
+    // от генерации до подписи без потери формы.
+    let protocol: Parameters<typeof client.Document.signDocument>[0] | null = null
     let lastErr: unknown = null
     for (let attempt = 1; attempt <= 6; attempt++) {
       await new Promise(r => setTimeout(r, attempt === 1 ? 1500 : 2000))
       try {
-        const gen = await client.Mutation(Mutations.Documents.GenerateDocument.mutation, {
-          variables: {
-            input: {
-              data: {
-                coopname: COOPNAME,
-                username: CHAIRMAN,
-                registry_id: FREE_DECISION_REGISTRY_ID,
-                decision_id: decision.id,
-                project_id: decision.project_id,
-                lang: 'ru',
+        const { [Mutations.Documents.GenerateDocument.name]: generated } = await client.Mutation(
+          Mutations.Documents.GenerateDocument.mutation,
+          {
+            variables: {
+              input: {
+                data: {
+                  coopname: COOPNAME,
+                  username: CHAIRMAN,
+                  registry_id: FREE_DECISION_REGISTRY_ID,
+                  decision_id: decision.id,
+                  project_id: decision.project_id,
+                  lang: 'ru',
+                },
               },
-            },
-          } as Mutations.Documents.GenerateDocument.IInput,
-        }) as Record<string, Record<string, unknown>>
-        protocol = gen[Mutations.Documents.GenerateDocument.name]
+            } as Mutations.Documents.GenerateDocument.IInput,
+          },
+        )
+        protocol = generated
         break
       }
       catch (e) {
@@ -228,7 +233,7 @@ export async function phase01(): Promise<void> {
 
     // 6. Подпись протокола и исполнение решения.
     const signedRaw = await client.Document.signDocument(
-      protocol as Parameters<typeof client.Document.signDocument>[0],
+      protocol,
       CHAIRMAN, // без явного подписанта signatures[].signer=undefined и authorize падает
     )
     const signed = {

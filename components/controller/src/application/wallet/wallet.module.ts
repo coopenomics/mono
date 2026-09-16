@@ -5,6 +5,7 @@ import { WalletInteractor } from './interactors/wallet.interactor';
 import { WalletNotificationService } from './services/wallet-notification.service';
 import { ProgramWalletSyncService } from './services/program-wallet-sync.service';
 import { ProgramWalletInitService } from './services/program-wallet-init.service';
+import { WalletEventsService } from './services/wallet-events.service';
 import { UserDomainModule } from '~/domain/user/user-domain.module';
 import { AccountInfrastructureModule } from '~/infrastructure/account/account-infrastructure.module';
 import { GatewayModule } from '~/application/gateway/gateway.module';
@@ -30,6 +31,7 @@ import { WALLET_DOMAIN_PORT } from '~/domain/wallet/ports/wallet-domain.port';
     WalletNotificationService,
     ProgramWalletSyncService,
     ProgramWalletInitService,
+    WalletEventsService,
     {
       provide: WALLET_DOMAIN_PORT,
       useClass: WalletDomainAdapter,

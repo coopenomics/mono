@@ -22,7 +22,7 @@
   eosio::check(type == "free"_n || type == "createbranch"_n, "Недопустимый тип решения");
 
   get_cooperative_or_fail(coopname);
-  get_participant_or_fail(coopname, initiator);
+  get_active_participant_or_fail(coopname, initiator);
 
   decision_index decisions(_branch, coopname.value);
   auto idx = decisions.get_index<"byhash"_n>();

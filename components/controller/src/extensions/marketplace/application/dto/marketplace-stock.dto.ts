@@ -11,11 +11,13 @@ import {
   ValidateNested,
 } from 'class-validator';
 import type { MarketplaceStockProposalDomainEntity } from '../../domain/entities/marketplace-stock-proposal.entity';
-import { GeneratedDocumentDTO, DocumentAggregateDTO } from '@coopenomics/extension-kit';
+import { GeneratedDocumentDTO } from '@coopenomics/extension-kit';
 import { MarketplaceUnitOfMeasureEnum } from './marketplace-offer.dto';
 import { marketplaceOrderUnitLabel } from '../shared/unit-label.util';
+import { MarketplaceShareReturnStatementSignedInputDTO } from '../documents-dto/marketplace-share-return-statement-document.dto';
 import { MarketplaceConvertStatementSignedInputDTO } from '../documents-dto/marketplace-convert-statement-document.dto';
-import { MarketplaceIssueActSignedDocumentInputDTO } from '../documents-dto/marketplace-issue-act-document.dto';
+import { MarketplaceConvertPayloadDTO } from './marketplace-checkout.dto';
+import { MarketplaceIssuanceSagaDTO } from './marketplace-issuance-saga.dto';
 
 export enum MarketplaceStockProposalStatusEnum {
   PROPOSED = 'PROPOSED',
@@ -144,10 +146,6 @@ export class MarketplaceStockIssuanceOperatorLineDTO {
   @Field(() => Float, { description: 'Содержимое упаковки в базовой единице (0 — отпуск по мере).' })
   package_size!: number;
 
-  @Field(() => GeneratedDocumentDTO, {
-    description: 'Акт приёма-передачи к подписи оператором КУ (первая подпись).',
-  })
-  signiss1_document!: GeneratedDocumentDTO;
 }
 
 @InputType('MarketplaceCreateStockProposalLineInput')
@@ -178,12 +176,6 @@ export class MarketplaceCreateStockProposalLineInputDTO {
   @IsNotEmpty()
   order_hash!: string;
 
-  @Field(() => MarketplaceIssueActSignedDocumentInputDTO, {
-    description: 'Акт приёма-передачи, подписанный оператором КУ первой подписью.',
-  })
-  @ValidateNested()
-  @Type(() => MarketplaceIssueActSignedDocumentInputDTO)
-  signiss1_act!: MarketplaceIssueActSignedDocumentInputDTO;
 }
 
 @InputType('MarketplaceCreateOrderProposalLineInput')
@@ -203,12 +195,6 @@ export class MarketplaceCreateOrderProposalLineInputDTO {
   @IsNotEmpty()
   actual_unit_price!: string;
 
-  @Field(() => MarketplaceIssueActSignedDocumentInputDTO, {
-    description: 'Акт приёма-передачи, подписанный оператором КУ первой подписью.',
-  })
-  @ValidateNested()
-  @Type(() => MarketplaceIssueActSignedDocumentInputDTO)
-  signiss1_act!: MarketplaceIssueActSignedDocumentInputDTO;
 }
 
 @InputType('MarketplaceCreateStockProposalInput')
@@ -225,7 +211,7 @@ export class MarketplaceCreateStockProposalInputDTO {
 
   @Field(() => [MarketplaceCreateStockProposalLineInputDTO], {
     nullable: true,
-    description: 'Строки докладки со склада: order_hash и подпись оператора (signiss1).',
+    description: 'Строки докладки со склада: order_hash из подготовки (заказ родится на подписи пайщика).',
   })
   @IsOptional()
   @IsArray()
@@ -235,7 +221,7 @@ export class MarketplaceCreateStockProposalInputDTO {
 
   @Field(() => [MarketplaceCreateOrderProposalLineInputDTO], {
     nullable: true,
-    description: 'Строки уже существующих заказов пайщика к выдаче (подпись оператора signiss1).',
+    description: 'Строки уже существующих заказов пайщика к выдаче: факт (количество, цена), сверенный оператором.',
   })
   @IsOptional()
   @IsArray()
@@ -257,45 +243,35 @@ export class MarketplaceStockAcceptOrderLineDTO {
   @Field(() => String, { description: 'Идентификатор предложения позиции.' })
   public readonly offer_id!: string;
 
-  @Field(() => String, { description: 'order_hash будущего заказа из остатка.' })
+  @Field(() => String, {
+    nullable: true,
+    description: 'Существующий заказ пайщика, выдаваемый этим бандлом. Пусто — докладка со склада (заказ родится на подписи).',
+  })
+  public readonly order_id!: string | null;
+
+  @Field(() => String, { description: 'order_hash заказа (для докладки — будущего заказа из остатка).' })
   public readonly order_hash!: string;
 
-  @Field(() => DocumentAggregateDTO, {
+  @Field(() => GeneratedDocumentDTO, {
     description:
-      'Акт приёма-передачи, уже подписанный оператором КУ. Пайщик накладывает свою подпись поверх (получение).',
+      'Заявление о возврате паевого взноса имуществом по строке — к подписи пайщиком. Совет принимает решение по нему.',
   })
-  public readonly signiss1_aggregate!: DocumentAggregateDTO;
+  public readonly statement!: GeneratedDocumentDTO;
 }
 
 @ObjectType('MarketplaceStockAcceptPayload')
 export class MarketplaceStockAcceptPayloadDTO {
   @Field(() => [MarketplaceStockAcceptOrderLineDTO], {
-    description: 'Строки-заказы к созданию — вернуть их в принятии предложения.',
+    description: 'Строки бандла с заявлениями к подписи — вернуть их подписанными в marketplaceFinalizeStockIssuance.',
   })
   public readonly order_lines!: MarketplaceStockAcceptOrderLineDTO[];
 
-  @Field(() => String, {
-    description: 'Сколько спишется с уже внесённых членских средств «Стола заказов» (доплата с членского).',
-  })
-  public readonly member_amount!: string;
-
-  @Field(() => String, {
+  @Field(() => MarketplaceConvertPayloadDTO, {
     nullable: true,
-    description: 'Сумма доплаты с паевого через конвертацию. Пусто — членских средств хватает, доплаты с паевого нет.',
+    description:
+      'Заявление 1110 о переводе недостающего с Цифрового кошелька на весь бандл — только если кошельков программы на тела и взносы не хватает.',
   })
-  public readonly convert_amount?: string | null;
-
-  @Field(() => String, {
-    nullable: true,
-    description: 'Идентификатор Заявления о конвертации (для подписи).',
-  })
-  public readonly convert_hash?: string | null;
-
-  @Field(() => GeneratedDocumentDTO, {
-    nullable: true,
-    description: 'Единое Заявление о конвертации к подписи. Пусто — подписывать нечего (доплаты нет).',
-  })
-  public readonly convert_document?: GeneratedDocumentDTO | null;
+  public readonly convert!: MarketplaceConvertPayloadDTO | null;
 }
 
 @InputType('MarketplaceStockFinalizeLineInput')
@@ -305,18 +281,18 @@ export class MarketplaceStockFinalizeLineInputDTO {
   @IsNotEmpty()
   public readonly order_hash!: string;
 
-  @Field(() => MarketplaceIssueActSignedDocumentInputDTO, {
-    description: 'Акт приёма-передачи, контрподписанный пайщиком (подпись получения).',
+  @Field(() => MarketplaceShareReturnStatementSignedInputDTO, {
+    description: 'Заявление о возврате паевого взноса имуществом, подписанное пайщиком.',
   })
   @ValidateNested()
-  @Type(() => MarketplaceIssueActSignedDocumentInputDTO)
-  public readonly signed_signiss2_act!: MarketplaceIssueActSignedDocumentInputDTO;
+  @Type(() => MarketplaceShareReturnStatementSignedInputDTO)
+  public readonly signed_statement!: MarketplaceShareReturnStatementSignedInputDTO;
 }
 
 @InputType('MarketplaceFinalizeStockIssuanceInput')
 export class MarketplaceFinalizeStockIssuanceInputDTO extends MarketplaceResolveStockProposalInputDTO {
   @Field(() => [MarketplaceStockFinalizeLineInputDTO], {
-    description: 'Строки докладки с подписью получения (signiss2) из marketplaceStockProposalSignablePayloads.',
+    description: 'Строки бандла с подписанными заявлениями из marketplaceStockProposalSignablePayloads.',
   })
   @IsArray()
   @ArrayNotEmpty()
@@ -326,8 +302,7 @@ export class MarketplaceFinalizeStockIssuanceInputDTO extends MarketplaceResolve
 
   @Field(() => MarketplaceConvertStatementSignedInputDTO, {
     nullable: true,
-    description:
-      'Единое подписанное Заявление о конвертации на всю сумму доплаты с паевого. Не передаётся, когда членских средств хватает.',
+    description: 'Подписанное заявление 1110 на бандл — только если payloads его вернули.',
   })
   @IsOptional()
   @ValidateNested()
@@ -388,6 +363,26 @@ export class MarketplaceStockProposalItemDTO {
 
   @Field(() => String, { nullable: true, description: 'Подпись единицы отпуска («упак. 0,5 л»), пусто — базовая единица.' })
   package_label!: string | null;
+
+  @Field(() => String, { nullable: true, description: 'Существующий заказ пайщика в бандле. Пусто — докладка со склада.' })
+  order_id!: string | null;
+
+  @Field(() => String, { nullable: true, description: 'order_hash заказа или будущего заказа из остатка.' })
+  order_hash!: string | null;
+
+  @Field(() => Float, {
+    nullable: true,
+    description:
+      'Сколько пайщик заказывал по этой позиции. Пусто у докладки со склада — заказа ещё нет, и сравнивать не с чем.',
+  })
+  ordered_quantity!: number | null;
+
+  @Field(() => String, {
+    nullable: true,
+    description:
+      'Сумма, зарезервированная при заказе этой позиции. Разница с фактической стоимостью возвращается пайщику в кошелёк «Стола заказов».',
+  })
+  ordered_total_cost!: string | null;
 }
 
 @ObjectType('MarketplaceStockProposal')
@@ -428,12 +423,29 @@ export class MarketplaceStockProposalAcceptResultDTO {
   @Field(() => MarketplaceStockProposalDTO)
   proposal!: MarketplaceStockProposalDTO;
 
-  @Field(() => [String], { description: 'Созданные заказы со склада кооператива.' })
+  @Field(() => [String], { description: 'Заказы бандла, по которым поданы заявления (созданные из остатка и существующие).' })
   order_ids!: string[];
+
+  @Field(() => [MarketplaceIssuanceSagaDTO], {
+    description: 'Ход выдачи по каждому заказу бандла — этап после ответа робота решений совета либо режим ожидания.',
+  })
+  sagas!: MarketplaceIssuanceSagaDTO[];
 }
 
+/**
+ * Заказанное по позиции бандла: количество и сумма резерва. Заполняется по
+ * существующим заказам (`order_id`) на чтении — снапшот в самом бандле для
+ * этого не годится: оператор мог переформировать бандл, а сумма резерва живёт
+ * в заказе.
+ */
+export type MarketplaceStockProposalOrderedTotals = ReadonlyMap<
+  string,
+  { quantity: number; total_cost: string }
+>;
+
 export function toMarketplaceStockProposalDTO(
-  e: MarketplaceStockProposalDomainEntity
+  e: MarketplaceStockProposalDomainEntity,
+  ordered?: MarketplaceStockProposalOrderedTotals
 ): MarketplaceStockProposalDTO {
   const dto = new MarketplaceStockProposalDTO();
   dto.id = e.id;
@@ -448,6 +460,11 @@ export function toMarketplaceStockProposalDTO(
     item.product_name = i.product_name;
     item.unit_of_measure = i.unit_of_measure ?? null;
     item.package_size = i.package_size ?? 0;
+    item.order_id = i.order_id ?? null;
+    item.order_hash = i.order_hash ?? null;
+    const orderedTotals = i.order_id ? ordered?.get(i.order_id) : undefined;
+    item.ordered_quantity = orderedTotals?.quantity ?? null;
+    item.ordered_total_cost = orderedTotals?.total_cost ?? null;
     item.package_label =
       i.package_size && i.unit_of_measure
         ? `упак. ${String(i.package_size).replace('.', ',')} ${marketplaceOrderUnitLabel(i.unit_of_measure)}`

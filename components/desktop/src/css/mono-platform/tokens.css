@@ -215,5 +215,7 @@
   /* Layout */
   --p-rail-w: 248px;
   --p-topbar-h: 56px;
+  /* Полоса вкладок раздела под шапкой (см. .tabbar и .page-tabs-host) */
+  --p-tabbar-h: 52px;
 }
 

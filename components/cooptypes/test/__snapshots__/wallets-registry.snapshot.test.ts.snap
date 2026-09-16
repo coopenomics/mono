@@ -40,7 +40,27 @@ exports[`ledger2 wallets registry (generated from C++) > LEDGER2_USER_SHARED_PRO
   {
     "program_label": "Marketplace",
     "required_program_id": 2,
+    "wallet_name": "w.mkt.share",
+  },
+  {
+    "program_label": "Marketplace",
+    "required_program_id": 2,
     "wallet_name": "w.mkt.member",
+  },
+  {
+    "program_label": null,
+    "required_program_id": 0,
+    "wallet_name": "w.mkt.claim",
+  },
+  {
+    "program_label": null,
+    "required_program_id": 0,
+    "wallet_name": "w.mkt.debt",
+  },
+  {
+    "program_label": null,
+    "required_program_id": 0,
+    "wallet_name": "w.mkt.topay",
   },
   {
     "program_label": null,
@@ -98,14 +118,34 @@ exports[`ledger2 wallets registry (generated from C++) > LEDGER2_WALLET_REGISTRY
     "name": "w.cap.preimp",
   },
   {
-    "human_name": "ЦПП «Стол Заказов» — резерв под заказ у пайщика",
+    "human_name": "ЦПП «Стол Заказов» — паевой резерв под заказ у пайщика",
     "kind": "USER_SHARED",
     "name": "w.mkt.order",
   },
   {
-    "human_name": "ЦПП «Стол Заказов» — членский кошелёк пайщика программы",
+    "human_name": "ЦПП «Стол Заказов» — свободный паевой пайщика в программе",
+    "kind": "USER_SHARED",
+    "name": "w.mkt.share",
+  },
+  {
+    "human_name": "ЦПП «Стол Заказов» — членский взнос пайщика в программе",
     "kind": "USER_SHARED",
     "name": "w.mkt.member",
+  },
+  {
+    "human_name": "ЦПП «Стол Заказов» — непризнанные гарантийные претензии поставщику",
+    "kind": "USER_SHARED",
+    "name": "w.mkt.claim",
+  },
+  {
+    "human_name": "ЦПП «Стол Заказов» — признанный гарантийный долг поставщика к удержанию",
+    "kind": "USER_SHARED",
+    "name": "w.mkt.debt",
+  },
+  {
+    "human_name": "ЦПП «Стол Заказов» — к оплате поставщику за принятое имущество",
+    "kind": "USER_SHARED",
+    "name": "w.mkt.topay",
   },
   {
     "human_name": "Персональный кошелёк доверенного кооперативного участка",

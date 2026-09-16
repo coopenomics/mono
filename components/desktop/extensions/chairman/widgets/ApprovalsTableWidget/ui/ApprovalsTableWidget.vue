@@ -6,6 +6,7 @@ div
     row-key='approval_hash',
     :loading='loading',
     :pagination='pagination',
+    @update:pagination='onPaginationUpdate',
     @request='onRequest',
     binary-state-sort,
     flat,
@@ -80,6 +81,7 @@ interface Props {
     rowsPerPage: number;
     sortBy: string;
     descending: boolean;
+    rowsNumber?: number;
   };
 }
 
@@ -211,5 +213,12 @@ watch(() => props.approvals, (newApprovals) => {
 // Обработчик запроса пагинации
 const onRequest = (props: { pagination: any }) => {
   emit('request', props);
+};
+
+// q-table читает проп pagination только при слушателе update:pagination, иначе
+// берёт копию, снятую при монтировании, — счётчик в подвале застывал на нуле.
+// В серверном режиме само событие не приходит, смена страницы идёт через request.
+const onPaginationUpdate = (pagination: any) => {
+  emit('request', { pagination });
 };
 </script>

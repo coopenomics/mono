@@ -84,6 +84,7 @@ const rawCandidateSelector = {
   braname: true,
   branch_name: true,
   asset_title: true,
+  origin: true,
   unit_of_measure: true,
   package_size: true,
   quantity: true,

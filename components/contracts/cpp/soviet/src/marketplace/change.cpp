@@ -68,7 +68,8 @@ void soviet::change(eosio::name coopname, eosio::name parent_username, eosio::na
     product_contributor,
     _product_contribution_action,
     hash,
-    change -> contribute_product_statement
+    change -> contribute_product_statement,
+    decision_id_1
   );
   
   // Вызов для второго решения
@@ -81,7 +82,8 @@ void soviet::change(eosio::name coopname, eosio::name parent_username, eosio::na
     money_contributor,
     _product_return_action,
     hash,
-    change -> return_product_statement
+    change -> return_product_statement,
+    decision_id_2
   );
 
 };

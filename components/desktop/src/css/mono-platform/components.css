@@ -5,6 +5,14 @@
 /* ---- Reset & base ---- */
 * { box-sizing: border-box; }
 html, body { margin: 0; padding: 0; }
+/* Место под вертикальную полосу прокрутки держится всегда. Открытый диалог
+   запрещает прокрутку страницы, полоса исчезает — и без этого правила вся
+   страница на её ширину прыгает вбок, а внизу проступает горизонтальная
+   полоса (жалоба 2026-09-14). */
+html { scrollbar-gutter: stable; }
+/* Пока диалог открыт, странице ехать вбок незачем: прокрутка живёт внутри
+   самого диалога. */
+body.q-body--prevent-scroll { overflow-x: hidden; }
 body {
   font-family: var(--p-sans);
   font-size: var(--p-fs-body);
@@ -479,7 +487,7 @@ body {
 }
 .table tbody tr:last-child td { border-bottom: 0; }
 .table tbody tr { transition: background var(--p-dur-fast); }
-.table tbody tr:hover { background: var(--p-surface-2); }
+.table tbody tr:hover { background: var(--p-primary-soft); }
 .table .col-num { text-align: right; font-variant-numeric: tabular-nums; }
 .table .col-action { width: 1%; text-align: right; }
 .table .doc-type {
@@ -567,6 +575,12 @@ body {
    документ. Без этого шапка не могла уехать при прокрутке (reveal у q-header
    реагирует только на скролл окна), а вложенный скролл внутри скролла ловил
    инерцию и заставлял ленту дрожать под пальцем.
+
+   ОБЯЗАТЕЛЬНОЕ УСЛОВИЕ: внутри оболочки должен быть свой контейнер прокрутки
+   (`.column.flex-1.min-h-0` + `overflow: auto` на ленте). Без него содержимое
+   выше экрана просто обрезается и прокрутить страницу нечем — так было на трёх
+   реестрах Стола бухгалтера, где класс стоял с тех пор, когда он ещё ничего не
+   значил. Не нужна фиксация каркаса — оболочку не ставить вовсе.
    ------------------------------------------------------------------- */
 .page-shell {
   height: calc(100vh - var(--p-topbar-h));
@@ -587,12 +601,80 @@ body {
    action buttons ("Совершить взнос", "Получить возврат", "Фильтр", …).
    Use INSTEAD of page-head__actions when the page has sub-pages.
    ------------------------------------------------------------------- */
+/* Место для поднятой полосы вкладок: она рендерится в каркасе над содержимым
+   страницы, поэтому идёт во всю ширину окна и не зависит от боковых отступов
+   страницы. Хост прозрачен для раскладки: липкая полоса держится только в
+   пределах своего родителя, а обёртка высотой ровно с полосу не оставляла ей
+   места — вкладки уезжали вместе со страницей. С `display: contents` полоса
+   для раскладки — прямой ребёнок контейнера страниц и липнет под шапкой на всю
+   её высоту; пустой хост при этом ничего не занимает. */
+.page-tabs-host {
+  display: contents;
+}
+/* Quasar задаёт странице минимальную высоту «окно минус шапка» (инлайн-стилем)
+   и про полосу вкладок над ней не знает: страница во весь экран плюс полоса
+   сверху давали вертикальную прокрутку даже на пустом экране — ровно на высоту
+   полосы. Полоса меряет свою фактическую высоту и кладёт в --p-tabs-host-h
+   (см. useHoistedTabsHeight), а страница на неё укорачивается. Запасное
+   значение — токен высоты полосы, а не ноль: с нулём любая осечка публикации
+   молча возвращала прокрутку.
+
+   Условия два, и это намеренно. Первое — признак, который ставит сама полоса
+   при подъёме: он не зависит от того, как она вложена в каркас. Второе — по
+   структуре, на случай отключённого сценария с признаком.
+
+   В структурном условии полосу ищем внутри хоста, а не прямым потомком:
+   `display: contents` убирает хост из раскладки, но не из дерева документа —
+   селекторы по-прежнему видят вложенность. */
+.q-page-container.has-hoisted-tabs > .q-page,
+.q-page-container:has(> .page-tabs-host > .tabbar) > .q-page {
+  min-height: calc(100dvh - var(--p-topbar-h) - var(--p-tabs-host-h, var(--p-tabbar-h))) !important;
+}
+
+/* Состав поставки в диалогах подписи — накладная в рамке. Один класс на обе
+   стороны подписи: поставщик и оператор подписывают одну и ту же поставку и
+   обязаны видеть её одинаково, вплоть до строк по упаковкам (просьба владельца
+   2026-09-09). Раньше стиль лежал двумя копиями в самих диалогах и разошёлся. */
+.act-table {
+  width: 100%;
+  border-collapse: collapse;
+  border: 1px solid var(--p-line);
+  border-radius: var(--p-r-sm);
+  overflow: hidden;
+  font-size: var(--p-fs-body-sm);
+}
+.act-table th,
+.act-table td {
+  padding: var(--p-2) var(--p-3);
+  text-align: left;
+  color: var(--p-ink);
+}
+.act-table thead th {
+  background: var(--p-surface-2);
+  border-bottom: 1px solid var(--p-line);
+  font-size: var(--p-fs-meta);
+  font-weight: 400;
+  letter-spacing: var(--p-ls-eyebrow);
+  text-transform: uppercase;
+  color: var(--p-ink-3);
+}
+.act-table tbody td { border-top: 1px solid var(--p-line); }
+.act-table tbody tr:first-child td { border-top: none; }
+.act-table .num { text-align: right; font-variant-numeric: tabular-nums; }
+/* Итог — главная величина акта: отбит линией и крупнее строк состава. */
+.act-table tfoot td {
+  border-top: 1px solid var(--p-line);
+  background: var(--p-surface-2);
+  font-weight: 700;
+}
+.act-table tfoot .num:last-child { font-size: var(--p-fs-h3); }
+
 .tabbar {
   display: flex;
   align-items: stretch;
   border-bottom: 1px solid var(--p-line);
   background: var(--p-canvas);
-  min-height: 52px;
+  min-height: var(--p-tabbar-h);
   /* Полоса табов липнет под шапкой и остаётся на виду всю прокрутку: это
      основная навигация раздела, уезжать вместе с контентом ей незачем.
      Отступ сверху равен высоте шапки — ровно под ней. */

@@ -134,6 +134,22 @@ async function initMap() {
   }
 }
 
+/**
+ * Вид метки на карте. Выбранный участок — крупная зелёная «капля», остальные —
+ * маленькие синие точки, недействующие — серые. Раньше вид не менялся вовсе:
+ * человек нажимал точку, внизу подставлялось название, а какая из точек
+ * выбрана, на карте видно не было.
+ */
+function placemarkPreset(pvz: IMarketplaceKUDetails): string {
+  if (pvz.coreBraname === props.selectedBraname) return 'islands#darkGreenIcon'
+  return pvz.status === 'INACTIVE' ? 'islands#grayDotIcon' : 'islands#blueDotIcon'
+}
+
+/** Выбранная метка идёт поверх соседних — иначе крупная «капля» прячется за точками. */
+function placemarkZIndex(pvz: IMarketplaceKUDetails): number {
+  return pvz.coreBraname === props.selectedBraname ? 1000 : 100
+}
+
 function syncPlacemarks(ymaps: any) {
   if (!mapInstance) return
   placemarks.forEach((pm) => mapInstance.geoObjects.remove(pm))
@@ -145,7 +161,7 @@ function syncPlacemarks(ymaps: any) {
         balloonContent: `<strong>${displayName(pvz)}</strong><br>${pvz.addressFull ?? ''}`,
         hintContent: displayName(pvz),
       },
-      { preset: pvz.status === 'INACTIVE' ? 'islands#grayDotIcon' : 'islands#blueDotIcon' }
+      { preset: placemarkPreset(pvz), zIndex: placemarkZIndex(pvz) }
     )
     pm.events.add('click', () => emit('select', pvz))
     mapInstance.geoObjects.add(pm)
@@ -168,6 +184,20 @@ watch(
     if (mapInstance && window.ymaps) syncPlacemarks(window.ymaps)
   },
   { deep: true }
+)
+
+// Смена выбора перекрашивает метки на месте, без пересоздания: полная
+// пересборка сбрасывала бы открытый балун и дёргала карту.
+watch(
+  () => props.selectedBraname,
+  () => {
+    for (const pvz of visibleItems.value) {
+      const pm = placemarks.get(pvz.coreBraname)
+      if (!pm) continue
+      pm.options.set('preset', placemarkPreset(pvz))
+      pm.options.set('zIndex', placemarkZIndex(pvz))
+    }
+  }
 )
 
 onMounted(() => {
@@ -210,9 +240,15 @@ onBeforeUnmount(() => {
   @media (max-width: $breakpoint-sm-max) {
     grid-template-columns: 1fr;
 
+    // Список идёт первым, карта под ним: на узком экране карта сверху занимала
+    // весь первый экран, и человек не догадывался, что участок можно просто
+    // выбрать из списка — искал по карте, хотя участков всего несколько.
+    &__list {
+      max-height: 45vh;
+    }
+
     &__map {
       min-height: 320px;
-      order: -1;
     }
   }
 }

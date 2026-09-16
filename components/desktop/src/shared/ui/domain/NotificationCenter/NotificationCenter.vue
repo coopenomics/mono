@@ -38,11 +38,9 @@
               @keydown.enter.prevent="emit('open', n.id)",
               @keydown.space.prevent="emit('open', n.id)"
             )
-              BaseBadge.notification-center__item-bullet(
-                v-if='!n.read',
-                variant='accent',
-                :dot='true'
-              )
+              //- Маркер непрочитанного — канон-точка `.status__dot` (components.css),
+              //- окрашенная токеном темы.
+              span.status__dot.notification-center__item-bullet(v-if='!n.read', aria-hidden='true')
               span.notification-center__item-bullet-spacer(v-else)
               .notification-center__item-body
                 .notification-center__item-title {{ n.title }}
@@ -61,7 +59,6 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
-import { BaseBadge } from 'src/shared/ui/base/BaseBadge';
 import { EmptyState } from 'src/shared/ui/base/EmptyState';
 import type {
   NotificationCategory,
@@ -221,6 +218,30 @@ function plural(n: number, one: string, few: string, many: string): string {
   height: 340px;
   max-height: 60vh;
   overflow-y: auto;
+  overscroll-behavior: contain;
+  /* Системный скроллбар широкий и светлый: он ложился поверх строки и срезал
+     правый край текста — список выглядел обрезанным справа. Тонкая полоса в
+     цвете темы плюс постоянный жёлоб (панель не дёргается, когда уведомлений
+     мало и прокрутки нет). */
+  scrollbar-width: thin;
+  scrollbar-color: var(--p-line-2) transparent;
+  scrollbar-gutter: stable;
+}
+.notification-center__body::-webkit-scrollbar {
+  width: 8px;
+}
+.notification-center__body::-webkit-scrollbar-track {
+  background: transparent;
+}
+.notification-center__body::-webkit-scrollbar-thumb {
+  background: var(--p-line-2);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  border-radius: var(--p-r-pill, 999px);
+}
+.notification-center__body:hover::-webkit-scrollbar-thumb {
+  background: var(--p-ink-4);
+  background-clip: padding-box;
 }
 
 .notification-center__empty {
@@ -269,7 +290,13 @@ function plural(n: number, one: string, few: string, many: string): string {
   border-top: 1px solid var(--p-line);
 }
 
+/* Заголовок категории липнет к верху списка: при прокрутке видно, к чему
+   относится строка, и он не наезжает на неё прозрачным фоном. */
 .notification-center__group-title {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--p-surface);
   padding: var(--p-2, 8px) var(--p-4, 16px) var(--p-1, 4px);
   font-size: var(--p-fs-caption, 12px);
   font-weight: 600;
@@ -307,21 +334,22 @@ function plural(n: number, one: string, few: string, many: string): string {
   border-top: 1px solid var(--p-line-1);
 }
 
-/* Непрочитанные выделяем подложкой + левым акцент-баром: на тёмной теме одна
-   разница в цвете текста + точка тонули в фоне панели. primary-soft/-line дают
-   видимый тон в обеих темах, не ухудшая светлую. */
+/* Непрочитанные выделяем мягкой заливкой: она видна в обеих темах и не
+   ухудшает светлую. Цветного рельса слева нет — канон запрещает полосу на
+   карточке (решение владельца 03.09.2026): смысл несут заливка и цвет точки. */
 .notification-center__item.is-unread {
   background: var(--p-primary-soft);
-  box-shadow: inset 3px 0 0 var(--p-primary);
 }
 .notification-center__item.is-unread:hover,
 .notification-center__item.is-unread:focus-visible {
   background: var(--p-primary-line);
 }
 
+/* Размеры/форму точка берёт у канон-класса .status__dot, здесь — только цвет
+   и посадка по первой строке заголовка. */
 .notification-center__item-bullet {
   margin-top: 6px;
-  flex: 0 0 auto;
+  background: var(--p-primary);
 }
 .notification-center__item-bullet-spacer {
   display: inline-block;
@@ -375,9 +403,11 @@ function plural(n: number, one: string, few: string, many: string): string {
   color: var(--p-ink-3);
 }
 
-/* Шеврон deep-link'а: приглушён, прижат к правому краю по центру строки. */
+/* Шеврон deep-link'а: приглушён, прижат к правому краю на уровне заголовка —
+   у длинного уведомления он висел посреди текста. */
 .notification-center__item-go {
-  align-self: center;
+  align-self: flex-start;
+  margin-top: 2px;
   margin-left: auto;
   color: var(--p-ink-3);
   flex-shrink: 0;

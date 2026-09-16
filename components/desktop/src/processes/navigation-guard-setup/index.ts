@@ -2,7 +2,6 @@ import { Router } from 'vue-router';
 import { useSessionStore } from 'src/entities/Session';
 import { useDesktopStore } from 'src/entities/Desktop/model';
 import { useSystemStore } from 'src/entities/System/model';
-import { useAccountStore } from 'src/entities/Account/model';
 import { LocalStorage } from 'quasar';
 import { Zeus } from '@coopenomics/sdk';
 
@@ -14,11 +13,26 @@ function getRedirectUrl(router: Router, to: any): string {
   return '';
 }
 
-export function setupNavigationGuard(router: Router) {
+const isServer = typeof window === 'undefined';
+
+/**
+ * Ответ документа при серверном рендере. Корневой компонент рисует страницы
+ * только после монтирования в браузере, поэтому сервер отдаёт оболочку — но код
+ * ответа он обязан отдать честный: 401, когда вместо запрошенной страницы будет
+ * вход, и 403, когда прав нет. Решение принимает этот же гвард на сервере, по
+ * данным SSR-middleware (cookie сессии → аккаунт и стол).
+ */
+export interface ServerResponseLike {
+  statusCode?: number;
+}
+
+export function setupNavigationGuard(router: Router, serverResponse?: ServerResponseLike | null) {
+  const answer = (code: number): void => {
+    if (isServer && serverResponse) serverResponse.statusCode = code;
+  };
   const desktops = useDesktopStore();
   const session = useSessionStore();
   const systemStore = useSystemStore();
-  const account = useAccountStore();
 
   // Данные, из которых выводятся права: аккаунт (роль) и рабочий стол (гранты).
   const desktopFresh = () =>
@@ -26,30 +40,9 @@ export function setupNavigationGuard(router: Router) {
     desktops.loadedForUsername === session.username;
   const hasAccessData = () =>
     Boolean(session.currentUserAccount) && desktopFresh();
-
-  // Однократная дозагрузка; параллельные переходы делят один промис.
-  let reloading: Promise<void> | null = null;
-  const reloadAccessData = (): Promise<void> => {
-    if (!reloading) {
-      reloading = (async () => {
-        try {
-          await session.init();
-          const [acc] = await Promise.all([
-            session.currentUserAccount
-              ? Promise.resolve(undefined)
-              : account.getAccount(session.username),
-            desktopFresh() ? Promise.resolve() : desktops.loadDesktop(),
-          ]);
-          if (acc) session.setCurrentUserAccount(acc);
-        } catch (e) {
-          console.warn('[guard] дозагрузка прав не удалась:', e);
-        } finally {
-          reloading = null;
-        }
-      })();
-    }
-    return reloading;
-  };
+  // Аккаунт известен — можно судить о статусе пайщика. Пока он не загружен,
+  // «не активен» и «неизвестно» — разные вещи, и переадресовывать по второму нельзя.
+  const accountKnown = () => Boolean(session.currentUserAccount);
 
   router.beforeEach(async (to, from, next) => {
     // если требуется установка
@@ -66,25 +59,6 @@ export function setupNavigationGuard(router: Router) {
       next({ name: 'install', params: { coopname: systemStore.info.coopname }, query: to.query });
       return;
     }
-    // Если пользователь авторизован, но данные еще не загружены полностью
-    if (session.isAuth && !session.loadComplete) {
-      console.log('Waiting for user data to load...');
-
-      // Ждем завершения загрузки данных пользователя
-      let attempts = 0;
-      const maxAttempts = 50; // 5 секунд максимум
-
-      while (!session.loadComplete && attempts < maxAttempts) {
-        await new Promise((resolve) => setTimeout(resolve, 100));
-        attempts++;
-      }
-
-      if (attempts >= maxAttempts) {
-        session.loadComplete = true;
-        console.warn('User data loading timeout');
-      }
-    }
-
     // редирект с index
     if (to.name === 'index') {
       // Только пайщики со status='active' попадают на свой дашборд.
@@ -100,6 +74,11 @@ export function setupNavigationGuard(router: Router) {
         const defaultPageRoute = desktops.getDefaultPageRoute();
         if (defaultPageRoute) {
           next(defaultPageRoute);
+        } else if (!desktopFresh()) {
+          // Стол не загружен — страницы по умолчанию нет не потому, что её нет,
+          // а потому что не из чего выбирать. Остаёмся на главной, а не на «404».
+          console.warn('[guard] рабочий стол не загружен — главная без перенаправления');
+          next();
         } else {
           next({ name: 'somethingBad' });
         }
@@ -116,6 +95,14 @@ export function setupNavigationGuard(router: Router) {
       }
     }
 
+    // Адреса нет — код 404 ставит гвард: страницы на сервере не рендерятся,
+    // и сама страница статус выставить не может.
+    if (to.name === 'NotFound') {
+      answer(404);
+      next();
+      return;
+    }
+
     // Проверка авторизации для маршрутов, требующих входа
     if (to.meta?.requiresAuth && !session.isAuth) {
       // Сохраняем целевой URL для редиректа после входа
@@ -126,6 +113,7 @@ export function setupNavigationGuard(router: Router) {
         LocalStorage.set('redirectAfterLogin', redirectUrl);
       }
       // Перенаправляем на страницу входа
+      answer(401);
       next({ name: 'login-redirect', params: { coopname: systemStore.info.coopname } });
       return;
     }
@@ -137,6 +125,7 @@ export function setupNavigationGuard(router: Router) {
     if (
       to.meta?.requiresAuth &&
       session.isAuth &&
+      accountKnown() &&
       !session.isFullyActive &&
       !(typeof to.path === 'string' && to.path.includes('/auth/'))
     ) {
@@ -153,27 +142,15 @@ export function setupNavigationGuard(router: Router) {
       return;
     }
 
-    // «Прав нет» ≠ «права неизвестны». Роль (chairman/member) живёт в
-    // currentUserAccount, гранты столов — в currentDesktop; оба грузятся одним
-    // запросом на старте без ретрая. Если бэкенд в этот момент перезапускался
-    // (dev-рестарт, апгрейд), запросы падали молча: аккаунт пуст → роль 'user',
-    // стол пуст → grants нет — и авторизованного председателя уносило на
-    // «Недостаточно прав доступа». Здесь пробуем дозагрузить данные один раз
-    // и перепроверить; если бэкенд всё ещё лежит — пропускаем (fail-open:
-    // отказ всё равно даст резолвер, а ложный отказ при живых правах хуже).
+    // Права проверяются по тому, что есть в памяти. На холодном старте аккаунт
+    // и стол приходят из серверного рендера по cookie сессии, дальше живут в
+    // сторах; сетевых дозагрузок и ожиданий здесь нет. Если данных о правах
+    // всё же нет (сервер пайщика не узнал, а клиентская загрузка сорвалась),
+    // отказывать нечем — пропускаем, отказ даст резолвер.
     if (session.isAuth && !hasAccessData()) {
-      await reloadAccessData();
-      if (desktops.hasRouteAccess(matchedNames, to.meta)) {
-        next();
-        return;
-      }
-      if (!hasAccessData()) {
-        console.warn(
-          '[guard] права пользователя недоступны (бэкенд молчит) — пропускаем без проверки',
-        );
-        next();
-        return;
-      }
+      console.warn('[guard] права пайщика неизвестны — пропускаем, отказ даст сервер');
+      next();
+      return;
     }
 
     // Права на страницу нет — но у стола может быть шлюз (`meta.gate`), на
@@ -189,6 +166,7 @@ export function setupNavigationGuard(router: Router) {
       return;
     }
 
+    answer(403);
     next({ name: 'permissionDenied', query: to.query });
   });
 

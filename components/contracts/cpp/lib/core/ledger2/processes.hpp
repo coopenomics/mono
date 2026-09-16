@@ -28,6 +28,7 @@
  *                                       o.mkt.payout + o.mkt.consum
  *   - processes::marketplace::RETURN  ← o.mkt.return
  *   - processes::marketplace::WRITEOFF ← o.mkt.wroff
+ *   - processes::marketplace::CLAIM    ← o.mkt.claim + o.mkt.admit
  *
  * Одноактовые процессы: `capital::IMPORT`, `capital::PROPERTY`,
  * `capital::INVEST`, `soviet::AXN_CONVERT` (process_type совпадает с
@@ -74,11 +75,12 @@ namespace processes {
     inline constexpr eosio::name SUPPLY    = "p.mkt.supply"_n;   ///< Прямая поставка-приобретение имущества (5 операций: o.mkt.lock + o.mkt.unlock + o.mkt.purch + o.mkt.payout + o.mkt.consum).
     inline constexpr eosio::name RETURN    = "p.mkt.return"_n;   ///< Гарантийный возврат имущества пайщиком — compensating forward к o.mkt.consum (o.mkt.return).
     inline constexpr eosio::name WRITEOFF  = "p.mkt.wroff"_n;    ///< Утилизация скоропорта со склада КУ (o.mkt.wroff, по протоколу совета).
+    inline constexpr eosio::name CLAIM     = "p.mkt.claim"_n;    ///< Гарантийная претензия поставщику по отменённой советом сделке (o.mkt.claim → o.mkt.admit; несогласие в цепь не пишется); удержание долга из выплат — o.mkt.deduct в нитке заказа.
   }
 
   // branch — экономика кооперативного участка (requirement b6)
   namespace branch {
-    inline constexpr eosio::name FEES  = "p.brn.fees"_n;  ///< Членские взносы КУ: зачисление в общий кошелёк при финализации заказа (o.brn.common), ручное распределение председателем (o.brn.release + o.brn.person) и использование персональных средств доверенным (o.brn.conv).
+    inline constexpr eosio::name FEES  = "p.brn.fees"_n;  ///< Членские взносы КУ: зачисление в общий кошелёк при финализации заказа (o.brn.common), ручное распределение председателем (o.brn.release + o.brn.person).
     inline constexpr eosio::name AID   = "p.brn.aid"_n;   ///< Материальная помощь доверенному КУ из его персонального кошелька (o.brn.aid; заявление → выплата кассиром).
     inline constexpr eosio::name SPEND = "p.brn.spend"_n; ///< Оплата расхода КУ из общего кошелька (o.brn.spend; команда председателя → выплата кассиром по реквизитам). Плановый реестр расходов и резерв 30 дней ведёт бэкенд.
   }
@@ -133,7 +135,7 @@ static constexpr eosio::name PROCESS_REGISTRY[] = {
   capital::IMPORT,       capital::INVEST,      capital::DEBT,
   capital::RID,          capital::PROPERTY,    capital::PREIMP,
   capital::WTHCAP,       capital::PGEXP,
-  marketplace::SUPPLY,   marketplace::RETURN,  marketplace::WRITEOFF,
+  marketplace::SUPPLY,   marketplace::RETURN,  marketplace::WRITEOFF, marketplace::CLAIM,
   branch::FEES,          branch::AID,          branch::SPEND,
   expense::PROPOSAL,
   edubridge::ACCESS,     edubridge::RID,       edubridge::TEACH,

@@ -66,6 +66,7 @@ import { AgreementModule } from './application/agreement/agreement.module';
 import { ParticipantModule } from './application/participant/participant.module';
 import { AgendaModule } from './application/agenda/agenda.module';
 import { DesktopModule } from './application/desktop/desktop.module';
+import { SsrContextModule } from './application/ssr-context/ssr-context.module';
 import { ExtensionGrantsModule } from './application/desktop/extension-grants.registry';
 import { ExtensionGrantsFilterModule } from './application/desktop/extension-grants-filter.registry';
 import { MeetModule } from './application/meet/meet.module';
@@ -174,6 +175,7 @@ import { MarketplaceCardsModule } from './extensions/marketplace-cards/marketpla
     ExtensionGrantsModule,
     ExtensionGrantsFilterModule,
     DesktopModule,
+    SsrContextModule,
     BranchModule,
     LoggerModule,
     PaymentMethodModule,

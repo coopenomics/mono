@@ -38,7 +38,10 @@ name: Tests
 # не дожидаясь релиза.
 on:
   push:
-    branches: [dev, ci/tests]
+    # Только полигон: рабочая ветка пушится в ci/tests и там получает вердикт
+    # до слияния. Прогон на каждый коммит в dev дублировал бы тот же код
+    # (снято 2026-09-08 по решению владельца).
+    branches: [ci/tests]
   workflow_call:
   workflow_dispatch:
 

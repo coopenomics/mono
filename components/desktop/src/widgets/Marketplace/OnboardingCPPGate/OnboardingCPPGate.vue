@@ -39,15 +39,7 @@ BaseCard.mp-onboarding-gate
 <script setup lang="ts">
 import { computed, reactive, type PropType } from 'vue'
 import { BaseCard, BaseButton, BaseCheckbox, BaseChip } from 'src/shared/ui/base'
-
-export interface CPPDocument {
-  id: string
-  title: string
-  description?: string
-  url?: string
-  required?: boolean
-  locked?: boolean
-}
+import type { CPPDocument } from './OnboardingCPPGate.types'
 
 const props = defineProps({
   title: { type: String, required: true },

@@ -1,4 +1,5 @@
-import { Classes, Mutations, Queries, type Types } from '@coopenomics/sdk';
+import { Mutations, Queries, type Types } from '@coopenomics/sdk';
+import { signDocument } from 'src/shared/lib/document';
 import { client } from 'src/shared/api/client';
 
 /**
@@ -90,10 +91,8 @@ export interface SignReceptionsSupplierResult {
  */
 export async function signReceptionGroupAsSupplier(
   receptions: Pick<MarketplaceAplReceptionView, 'id' | 'offerer_account'>[],
-  wif: string,
   onProgress?: (done: number) => void,
 ): Promise<SignReceptionsSupplierResult> {
-  const signer = new Classes.Document(wif);
   let done = 0;
   const errors: { receptionId: string; error: unknown }[] = [];
   await Promise.all(
@@ -102,7 +101,7 @@ export async function signReceptionGroupAsSupplier(
         const payloads = await fetchSupplierSignablePayloads(r.id);
         const signed_documents: SignedDocumentInput[] = [];
         for (const payload of payloads) {
-          const signed = await signer.signDocument(payload, r.offerer_account, 1);
+          const signed = await signDocument(payload, r.offerer_account, 1);
           signed_documents.push(signed);
         }
         // Пустой список payload = все позиции акта сняты оператором при приёмке

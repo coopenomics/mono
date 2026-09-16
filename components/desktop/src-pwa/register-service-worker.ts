@@ -143,11 +143,21 @@ if (!shouldRegisterSW) {
     }
   };
 
+  // Проверка обновления, которая не роняет отказ наружу. Браузер отклоняет
+  // `update()`, если регистрацию успели снять или она в переходном состоянии
+  // (вкладка из фона, параллельный деплой, Firefox Mobile), — это не ошибка
+  // приложения: следующая проверка при возврате на вкладку пройдёт штатно.
+  const safeUpdate = (registration: ServiceWorkerRegistration): void => {
+    registration.update().catch((error: unknown) => {
+      if (isVerbose) console.warn('Проверка обновления Service Worker пропущена:', error);
+    });
+  };
+
   // Функция для проверки доступности обновления
   const checkForUpdate = function () {
     if (registrationInstance) {
       if (isVerbose) console.log('Проверяем обновления...');
-      registrationInstance.update();
+      safeUpdate(registrationInstance);
     } else {
       if (isVerbose) console.log('Service Worker не зарегистрирован');
     }
@@ -187,14 +197,14 @@ if (!shouldRegisterSW) {
         console.log('Service Worker зарегистрирован:', registration);
 
       // Сразу после регистрации ищем новый SW (холодный заход после деплоя).
-      void registration.update();
+      safeUpdate(registration);
 
       // Проверяем обновления только при фокусе окна
       let updateInterval: ReturnType<typeof setTimeout> | null = null;
 
       const checkForUpdates = () => {
         if (document.visibilityState === 'visible') {
-          void registration.update();
+          safeUpdate(registration);
         }
       };
 

@@ -48,7 +48,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, onMounted } from 'vue';
+import { computed, ref, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import type { RouteRecordRaw } from 'vue-router';
 import { Zeus } from '@coopenomics/sdk';
@@ -70,6 +70,7 @@ import { useMenuSubItemsReader } from 'src/shared/hooks/useMenuSubItems';
 import { RailUserCard } from 'src/shared/ui/domain/RailUserCard';
 import { WorkspaceSwitcher } from 'src/widgets/Desktop/WorkspaceSwitcher';
 import { useUpdateWatch } from 'src/entities/AppVersion/model';
+import { useMarketplaceCartStore } from 'src/entities/MarketplaceCart';
 
 const router = useRouter();
 const updateWatch = useUpdateWatch();
@@ -81,6 +82,7 @@ const walletStore = useWalletStore();
 const actionsStore = useActionsStore();
 const palette = useCommandPaletteStore();
 const { subItemsFor } = useMenuSubItemsReader();
+const cartStore = useMarketplaceCartStore();
 
 // --- Адаптер: activeSecondLevelRoutes → RailItem[] -------------------------
 
@@ -126,6 +128,13 @@ interface MenuMeta {
   conditions?: string;
   hidden?: boolean;
   action?: string;
+  /**
+   * Раздел, которому принадлежит скрытая страница: имя маршрута пункта меню.
+   * Страница заказа или предложения живёт отдельным маршрутом рядом с реестром,
+   * а не внутри него, поэтому по `matched` меню её разделу не находит и гасит
+   * подсветку целиком — оператор видел пустое меню и не понимал, где он.
+   */
+  menuKey?: string;
 }
 
 const filteredRoutes = computed<RouteRecordRaw[]>(() => {
@@ -142,17 +151,48 @@ const filteredRoutes = computed<RouteRecordRaw[]>(() => {
   });
 });
 
+/**
+ * Счётчики на пунктах меню. Корзина заказчика раньше висела отдельной кнопкой
+ * в шапке каталога и занимала место рядом с кошельком; число позиций живёт
+ * теперь прямо на пункте меню, куда заказчик и идёт за корзиной.
+ */
+const CART_ROUTE = 'marketplace-cart';
+
+function badgeFor(routeName: string): string | number | undefined {
+  if (routeName !== CART_ROUTE) return undefined;
+  return cartStore.positionsCount || undefined;
+}
+
 const railItems = computed<RailItem[]>(() =>
   filteredRoutes.value.map((r) => {
     const meta = (r.meta ?? {}) as MenuMeta;
     const children = subItemsFor(String(r.name));
+    const badge = badgeFor(String(r.name));
     return {
       key: String(r.name),
       label: meta.title ?? String(r.name),
       icon: meta.icon,
+      ...(badge !== undefined ? { badge } : {}),
       ...(children.length ? { children } : {}),
     };
   }),
+);
+
+/**
+ * Корзину подтягиваем, как только в меню появился её пункт: раньше это делала
+ * кнопка в шапке каталога, и до захода в каталог число было неизвестно.
+ * На столах без корзины запрос не уходит.
+ */
+const cartInMenu = computed(() =>
+  filteredRoutes.value.some((r) => String(r.name) === CART_ROUTE),
+);
+
+watch(
+  cartInMenu,
+  (present) => {
+    if (present) void cartStore.load().catch(() => undefined);
+  },
+  { immediate: true },
 );
 
 // --- Активный пункт через router -------------------------------------------
@@ -165,6 +205,14 @@ const activeKey = computed<string | undefined>(() => {
   for (const r of filteredRoutes.value) {
     if (r.name === currentName) return String(r.name);
     if (current.matched.some((m) => m.name === r.name)) return String(r.name);
+  }
+
+  // Скрытая страница раздела (карточка заказа, предложения, возврата) — она
+  // сиблинг реестра, а не его потомок, поэтому подсвечиваем раздел по явному
+  // указанию `menuKey`.
+  const menuKey = (current.meta as MenuMeta | undefined)?.menuKey;
+  if (menuKey && filteredRoutes.value.some((r) => String(r.name) === menuKey)) {
+    return menuKey;
   }
   return undefined;
 });

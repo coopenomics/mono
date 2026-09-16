@@ -12,10 +12,10 @@ import { useMarketplaceKUDetailsStore } from 'src/entities/MarketplaceKUDetails'
 // иначе тип стирается при компиляции → ReferenceError в шаблоне.
 import { GeocodeStatus, KuDetailsStatus } from 'src/entities/MarketplaceKUDetails'
 import type { IMarketplaceKUDetails } from 'src/entities/MarketplaceKUDetails'
-import { BaseBadge, BaseButton, BaseDialog, EmptyState, TableSkeleton } from 'src/shared/ui/base'
-import type { BaseBadgeVariant, TableSkeletonColumn } from 'src/shared/ui/base'
+import { BaseBadge, BaseButton, BaseDialog, BaseTable, EmptyState } from 'src/shared/ui/base'
+import type { BaseBadgeVariant, BaseTableColumn } from 'src/shared/ui/base'
 import { IdentityCell, PageHint } from 'src/shared/ui/domain'
-import { useDataPoller } from 'src/shared/lib/composables'
+import { useDataPoller, useFirstLoad } from 'src/shared/lib/composables'
 import { useMarketplaceRealtime } from 'src/shared/lib/marketplace'
 // Map экспортируется как `Map` — импортируем под алиасом, чтобы не затенять
 // глобальный `Map` (используется в `rows`).
@@ -43,7 +43,11 @@ const kuStore = useMarketplaceKUDetailsStore()
 const coopname = computed(() => String(route.params.coopname ?? ''))
 const isChairman = computed(() => session.isChairman ?? false)
 
-const loading = ref(false)
+// true до первого запроса: иначе первый кадр до загрузки показывает пустое
+// состояние вместо скелетона, и первая загрузка неотличима от пустого списка.
+const loading = ref(true)
+/** Скелетон — только на первой загрузке; дочитка обновляет молча. */
+const firstLoad = useFirstLoad(loading)
 // Ручной перезапуск геокода — показываем лоадер на кнопке, пока мутация идёт.
 const geocodingBranames = ref<Set<string>>(new Set())
 
@@ -127,13 +131,22 @@ function isGeocodePending(row: IssuancePointRow): boolean {
   )
 }
 
-const skeletonColumns: TableSkeletonColumn[] = [
-  { label: 'Участок', cell: 'text', class: 'col-ku', cellWidth: '220px' },
-  { label: 'Город', cell: 'text', class: 'col-city', cellWidth: '120px' },
-  { label: 'Адрес', cell: 'text', class: 'col-address', cellWidth: '280px' },
-  { label: 'Статус', cell: 'badge', class: 'col-status', cellWidth: '150px' },
-  { label: 'Геокод', cell: 'badge', class: 'col-geo', cellWidth: '180px' },
-  { label: 'Действия', class: 'col-action', cell: 'icon', cellWidth: '190px' },
+/**
+ * Ключ строки. Строки каркаса загрузки — пустышки без участка, поэтому лезть
+ * в `branch` напрямую нельзя: таблица зовёт ключ и для них, и страница падала
+ * целиком (белый экран на «Пунктах выдачи», 14.09.2026).
+ */
+function pointRowKey(row: IssuancePointRow): string {
+  return row.branch?.braname ?? ''
+}
+
+const columns: BaseTableColumn<IssuancePointRow>[] = [
+  { key: 'ku', label: 'Участок', width: '240px', sortable: true, field: (row) => branchName(row) },
+  { key: 'city', label: 'Город', width: '140px', sortable: true, field: (row) => row.branch.city ?? '' },
+  { key: 'address', label: 'Адрес', width: '300px', field: (row) => addressOf(row) },
+  { key: 'status', label: 'Статус', width: '160px', sortable: true, field: (row) => statusOf(row).label },
+  { key: 'geo', label: 'Геокод', width: '190px' },
+  { key: 'actions', label: 'Действия', width: '200px' },
 ]
 
 async function load(): Promise<void> {
@@ -239,116 +252,109 @@ q-page.admin-pvz
     | Адрес геокодируется автоматически для карты.
 
   .admin-pvz__toolbar
-    .admin-pvz__counter(v-if='!loading && rows.length')
+    .admin-pvz__counter(v-if='!firstLoad && rows.length')
       | Подключено пунктов выдачи: {{ connectedCount }} из {{ rows.length }}
 
-  TableSkeleton(
-    v-if='loading && !rows.length',
-    :columns='skeletonColumns',
-    :rows='5',
-    min-width='1140px'
+  BaseTable(
+    v-if='loading || rows.length',
+    :columns='columns',
+    :rows='rows',
+    :row-key='pointRowKey',
+    hover,
+    :loading='loading',
+    min-width='1230px',
+    sort-by='ku'
   )
-  .table-wrap(v-else-if='rows.length')
-    .table-scroll
-      table.table
-        thead
-          tr
-            th.col-ku Участок
-            th.col-city Город
-            th.col-address Адрес
-            th.col-status Статус
-            th.col-geo Геокод
-            th.col-action Действия
-        tbody
-          tr(v-for='row in rows', :key='row.branch.braname')
-            td.col-ku
-              IdentityCell(
-                :account-name='row.branch.braname',
-                :full-name='branchName(row)'
-              )
-            td.col-city {{ row.branch.city || '—' }}
-            td.col-address.admin-pvz__address {{ addressOf(row) }}
-            td.col-status
-              BaseBadge(:variant='statusOf(row).variant') {{ statusOf(row).label }}
-            td.col-geo
-              .admin-pvz__geo(v-if='row.details')
-                BaseBadge.admin-pvz__geo-badge(
-                  :variant='GEOCODE_LABEL[row.details.geocodeStatus].variant'
-                )
-                  q-spinner.admin-pvz__geo-spinner(
-                    v-if='isGeocodePending(row)',
-                    color='inherit',
-                    size='14px'
-                  )
-                  span {{ GEOCODE_LABEL[row.details.geocodeStatus].label }}
-                  q-tooltip(
-                    v-if='row.details.geocodeStatus === GeocodeStatus.FAILED && row.details.geocodeErrorMessage'
-                  ) {{ row.details.geocodeErrorMessage }}
-                BaseButton(
-                  v-if='hasCoords(row)',
-                  variant='ghost',
-                  icon-only,
-                  size='sm',
-                  aria-label='Открыть карту',
-                  @click='openMap(row)'
-                )
-                  template(#icon-left)
-                    q-icon(name='map', size='18px')
-              span.admin-pvz__dash(v-else) —
-            td.col-action
-              template(v-if='isChairman')
-                BaseButton(
-                  v-if='!row.details',
-                  variant='primary',
-                  size='sm',
-                  @click='openAdd(row.branch)'
-                )
-                  template(#icon-left)
-                    q-icon(name='add_location_alt', size='16px')
-                  | Сделать ПВЗ
-                .admin-pvz__actions(v-else)
-                  BaseButton(
-                    variant='ghost',
-                    icon-only,
-                    size='sm',
-                    aria-label='Изменить',
-                    @click='openEdit(row)'
-                  )
-                    template(#icon-left)
-                      q-icon(name='edit', size='18px')
-                  BaseButton(
-                    v-if='row.details.geocodeStatus !== GeocodeStatus.OK',
-                    variant='ghost',
-                    icon-only,
-                    size='sm',
-                    aria-label='Определить координаты',
-                    :loading='isGeocodingRow(row)',
-                    :disabled='isGeocodingRow(row)',
-                    @click='retryGeocode(row)'
-                  )
-                    template(#icon-left)
-                      q-icon(name='my_location', size='18px')
-                  BaseButton(
-                    v-if='row.details.status === KuDetailsStatus.ACTIVE',
-                    variant='ghost',
-                    icon-only,
-                    size='sm',
-                    aria-label='Деактивировать',
-                    @click='setStatus(row, KuDetailsStatus.INACTIVE)'
-                  )
-                    template(#icon-left)
-                      q-icon(name='block', size='18px')
-                  BaseButton(
-                    v-else,
-                    variant='ghost',
-                    icon-only,
-                    size='sm',
-                    aria-label='Активировать',
-                    @click='setStatus(row, KuDetailsStatus.ACTIVE)'
-                  )
-                    template(#icon-left)
-                      q-icon(name='check_circle', size='18px')
-              span.admin-pvz__dash(v-else) —
+    template(#cell-ku='{ row }')
+      IdentityCell(
+        :account-name='row.branch.braname',
+        :full-name='branchName(row)'
+      )
+    template(#cell-city='{ row }')
+      | {{ row.branch.city || '—' }}
+    template(#cell-address='{ row }')
+      .admin-pvz__address {{ addressOf(row) }}
+    template(#cell-status='{ row }')
+      BaseBadge(:variant='statusOf(row).variant') {{ statusOf(row).label }}
+    template(#cell-geo='{ row }')
+      .admin-pvz__geo(v-if='row.details')
+        BaseBadge.admin-pvz__geo-badge(
+          :variant='GEOCODE_LABEL[row.details.geocodeStatus].variant'
+        )
+          q-spinner.admin-pvz__geo-spinner(
+            v-if='isGeocodePending(row)',
+            color='inherit',
+            size='14px'
+          )
+          span {{ GEOCODE_LABEL[row.details.geocodeStatus].label }}
+          q-tooltip(
+            v-if='row.details.geocodeStatus === GeocodeStatus.FAILED && row.details.geocodeErrorMessage'
+          ) {{ row.details.geocodeErrorMessage }}
+        BaseButton(
+          v-if='hasCoords(row)',
+          variant='ghost',
+          icon-only,
+          size='sm',
+          aria-label='Открыть карту',
+          @click='openMap(row)'
+        )
+          template(#icon-left)
+            q-icon(name='map', size='18px')
+      span.admin-pvz__dash(v-else) —
+    template(#cell-actions='{ row }')
+      template(v-if='isChairman')
+        BaseButton(
+          v-if='!row.details',
+          variant='primary',
+          size='sm',
+          @click='openAdd(row.branch)'
+        )
+          template(#icon-left)
+            q-icon(name='add_location_alt', size='16px')
+          | Сделать ПВЗ
+        .admin-pvz__actions(v-else)
+          BaseButton(
+            variant='ghost',
+            icon-only,
+            size='sm',
+            aria-label='Изменить',
+            @click='openEdit(row)'
+          )
+            template(#icon-left)
+              q-icon(name='edit', size='18px')
+          BaseButton(
+            v-if='row.details.geocodeStatus !== GeocodeStatus.OK',
+            variant='ghost',
+            icon-only,
+            size='sm',
+            aria-label='Определить координаты',
+            :loading='isGeocodingRow(row)',
+            :disabled='isGeocodingRow(row)',
+            @click='retryGeocode(row)'
+          )
+            template(#icon-left)
+              q-icon(name='my_location', size='18px')
+          BaseButton(
+            v-if='row.details.status === KuDetailsStatus.ACTIVE',
+            variant='ghost',
+            icon-only,
+            size='sm',
+            aria-label='Деактивировать',
+            @click='setStatus(row, KuDetailsStatus.INACTIVE)'
+          )
+            template(#icon-left)
+              q-icon(name='block', size='18px')
+          BaseButton(
+            v-else,
+            variant='ghost',
+            icon-only,
+            size='sm',
+            aria-label='Активировать',
+            @click='setStatus(row, KuDetailsStatus.ACTIVE)'
+          )
+            template(#icon-left)
+              q-icon(name='check_circle', size='18px')
+      span.admin-pvz__dash(v-else) —
 
   EmptyState(
     v-else,

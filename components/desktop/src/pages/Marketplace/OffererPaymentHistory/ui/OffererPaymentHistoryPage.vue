@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue';
+import { useFirstLoad } from 'src/shared/lib/composables';
 import { debounce } from 'quasar';
 import { useRouter } from 'vue-router';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
@@ -102,7 +103,11 @@ function goToRequisites(): void {
 
 // ── история выплат ──
 const items = ref<MarketplaceOutgoingPaymentRequestView[]>([]);
-const loading = ref(false);
+// true до первого запроса: иначе первый кадр до загрузки показывает пустое
+// состояние вместо скелетона, и первая загрузка неотличима от пустого списка.
+const loading = ref(true);
+/** Скелетон — только на первой загрузке; дочитка обновляет молча. */
+const firstLoad = useFirstLoad(loading);
 
 // Статус выплаты (PENDING/COMPLETED/DECLINED) → метка + canon-вариант бейджа.
 const PAYMENT_STATUS: Record<string, { label: string; variant: BaseBadgeVariant }> = {
@@ -182,7 +187,7 @@ q-page.offerer-payments
   //- ───────── История выплат ─────────
   //- Карточки, не таблица: на узких экранах таблица уезжала в горизонтальный
   //- скролл и дёргалась — карточки мотаются просто вниз.
-  CardListSkeleton(v-if='loading && !items.length', :count='4')
+  CardListSkeleton(v-if='firstLoad', :count='4')
   .payout-list(v-else-if='items.length')
     BaseCard(v-for='row in items', :key='row.id')
       .payout-card
@@ -193,6 +198,9 @@ q-page.offerer-payments
         .payout-card__row(v-if='row.payout_destination')
           q-icon(name='account_balance', size='14px')
           span {{ row.payout_destination }}
+        .payout-card__row(v-if='Number(row.withheld_amount) > 0')
+          q-icon(name='request_quote', size='14px')
+          span Удержано в счёт гарантийного долга: {{ formatAsset2Digits(`${row.withheld_amount} ${row.symbol}`) }}
         .payout-card__purpose(v-if='row.purpose') {{ row.purpose }}
         .payout-card__decline(v-if='row.decline_reason') Причина отказа: {{ row.decline_reason }}
 

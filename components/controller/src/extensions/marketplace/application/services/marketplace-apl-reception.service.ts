@@ -7,7 +7,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { LOGGER_PORT, type ILoggerPort, DOCUMENT_PORT, type IDocumentPort, type InnerGeneratedDocument, type InnerDocumentAggregate } from '@coopenomics/innercoop';
+import { LOGGER_PORT, type ILoggerPort, DOCUMENT_PORT, type IDocumentPort, type InnerGeneratedDocument, type InnerDocumentAggregate, USER_WALLET_PORT, type IUserWalletPort } from '@coopenomics/innercoop';
 import {
   MARKETPLACE_APL_RECEPTION_STATUS_CHANGED_EVENT,
   MARKETPLACE_APL_SUPPLIER_SIGN_REQUEST_EVENT,
@@ -40,6 +40,7 @@ import {
   MARKETPLACE_OUTGOING_PAYMENT_REQUEST_REPOSITORY,
   type MarketplaceOutgoingPaymentRequestDomainRepository,
 } from '../../domain/repositories/marketplace-outgoing-payment-request.repository';
+import type { MarketplaceOutgoingPaymentRequestDomainEntity } from '../../domain/entities/marketplace-outgoing-payment-request.entity';
 import {
   MARKETPLACE_OFFER_REPOSITORY,
   type MarketplaceOfferDomainRepository,
@@ -244,7 +245,8 @@ export interface MarketplaceExpressPickupCandidate {
  *      Здесь — backend-only переход в ACCEPTED_TO_COOP; Order'ы группы
  *      переводятся в ACCEPTED_TO_COOP, Shipment → ACCEPTED_TO_COOP.
  *      offerer_counters.onOrderRolledBack/onOrderConsumed не дёргаем —
- *      consumed-переход выполняется на выдаче (Эпик 6).
+ *      consumed-переход выполняется на выдаче, при закрывающей подписи
+ *      (`MarketplaceIssuanceService.settleOfferCounters`).
  *
  * Edge-case (Story 5.4 «поставщик не подписывает»): АПП остаётся в
  * PENDING_SUPPLIER_SIGN. MVP не автоматизирует разрешение; кооператив
@@ -285,6 +287,7 @@ export class MarketplaceAplReceptionService {
     @Inject(MARKETPLACE_ORDER_SUPPLIER_ACTION_SERVICE)
     private readonly supplierActionService: MarketplaceOrderSupplierActionService,
     @Inject(DOCUMENT_PORT) private readonly documentPort: IDocumentPort,
+    @Inject(USER_WALLET_PORT) private readonly userWallets: IUserWalletPort,
     private readonly eventBus: EventEmitter2,
     @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
   ) {
@@ -1009,9 +1012,7 @@ export class MarketplaceAplReceptionService {
     allOrders: MarketplaceOrderDomainEntity[],
     orderHashByOrderId: Map<string, string>
   ): Promise<void> {
-    const factByOrderId = new Map(
-      reception.fact_quantity_per_order.map((f) => [f.order_id, f.fact_quantity])
-    );
+    const factByOrderId = new Map(reception.fact_quantity_per_order.map((f) => [f.order_id, f]));
     const groupOrders = allOrders.filter((o) => o.delivery_braname === reception.braname);
 
     // Реквизиты поставщика резолвятся один раз на всю группу: снапшот на
@@ -1049,6 +1050,11 @@ export class MarketplaceAplReceptionService {
       supplier?.contract_date ?? null
     );
 
+    // Признанный гарантийный долг поставщика (99D-13) удерживается из выплат:
+    // контракт `payout` уменьшает перевод на остаток долга, проекция должна
+    // показывать ту же сумму. Остаток списывается по заказам в порядке обхода.
+    let debtLeft = await this.supplierAdmittedDebt(reception.coopname, reception.offerer_account);
+
     for (const order of groupOrders) {
       const orderHash = orderHashByOrderId.get(order.id);
       if (!orderHash) {
@@ -1057,17 +1063,18 @@ export class MarketplaceAplReceptionService {
         );
         continue;
       }
-      const factQuantity = factByOrderId.get(order.id) ?? order.quantity;
-      // Цена заказа — за единицу отпуска (при упаковочном отпуске за упаковку),
-      // поэтому сумма выплаты считается общей формулой, а не произведением на
-      // базовое количество.
-      const amount = calcCostAmount({
-        quantity: factQuantity,
-        unit: order.unit_of_measure,
-        unitPrice: order.price_per_unit,
-        packageSize: order.package_size,
-        decimals: this.assetConfig.decimals,
-      });
+      // Сумма выплаты — принятая стоимость по акту: то же количество и та же
+      // цена, что ушли в закрывающую подпись приёмки и в проводку Дт 10 / Кт 76.
+      // Цена заказа здесь не годится: оператор мог принять со скидкой, и
+      // контракт тогда проведёт выплату на одну сумму, а кассир переведёт
+      // другую (задача 99D-14).
+      const amount = this.factEntryAmount(factByOrderId.get(order.id), order);
+
+      const full = Number.parseFloat(amount);
+      const withheldNum = Math.min(debtLeft, full);
+      debtLeft = Math.max(0, debtLeft - withheldNum);
+      const withheld = withheldNum.toFixed(this.assetConfig.decimals);
+      const toPay = (full - withheldNum).toFixed(this.assetConfig.decimals);
 
       await this.initiatePayoutForOrder({
         coopname: reception.coopname,
@@ -1075,10 +1082,23 @@ export class MarketplaceAplReceptionService {
         order_id: order.id,
         apl_reception_id: reception.id,
         payee_account: reception.offerer_account,
-        amount,
+        amount: toPay,
+        withheld_amount: withheld,
         purpose,
         payout_method: payoutMethod,
       });
+    }
+  }
+
+  /** Остаток признанного гарантийного долга поставщика (`w.mkt.debt`) из PG-кеша кошельков; нет записи — 0. */
+  private async supplierAdmittedDebt(coopname: string, supplier: string): Promise<number> {
+    try {
+      const row = await this.userWallets.findByWalletAndUsername(coopname, 'w.mkt.debt', supplier);
+      const num = Number.parseFloat(String(row?.available ?? '0').split(' ')[0]);
+      return Number.isFinite(num) && num > 0 ? num : 0;
+    } catch (err) {
+      this.logger.warn(`initiatePayouts: остаток долга поставщика ${supplier} не прочитан (${(err as Error).message}) — считаю 0.`);
+      return 0;
     }
   }
 
@@ -1089,13 +1109,14 @@ export class MarketplaceAplReceptionService {
     apl_reception_id: string;
     payee_account: string;
     amount: string;
+    withheld_amount: string;
     purpose: string;
     payout_method: InnerPaymentMethod | null;
   }): Promise<void> {
     const payoutDestination = input.payout_method
       ? formatPayoutDestination(input.payout_method)
       : null;
-    let projection;
+    let projection: MarketplaceOutgoingPaymentRequestDomainEntity;
     try {
       projection = await this.paymentRepo.createIfNotExists({
         coopname: input.coopname,
@@ -1104,6 +1125,7 @@ export class MarketplaceAplReceptionService {
         apl_reception_id: input.apl_reception_id,
         payee_account: input.payee_account,
         amount: input.amount,
+        withheld_amount: input.withheld_amount,
         symbol: this.assetConfig.symbol,
         purpose: input.purpose,
         payout_destination: payoutDestination,
@@ -1114,61 +1136,118 @@ export class MarketplaceAplReceptionService {
       );
       return;
     }
+    await this.deliverPayout(projection, input.payout_method, { createCorePayment: true, submitChain: true });
+  }
 
-    if (!projection.core_payment_id) {
+  /**
+   * Повтор доставки выплаты по уже созданной проекции (крон, задача 99D-15):
+   * платёж в общем реестре кооператива, если его ещё нет, и `marketplace::payout`,
+   * если цепь его ещё не приняла. Какие шаги нужны, решает вызывающий по
+   * состоянию проекции и зеркала заказа; реквизиты поставщика резолвятся
+   * заново — снапшот в проекции маскирован и для платежа не годится.
+   */
+  async redeliverPayout(
+    projection: MarketplaceOutgoingPaymentRequestDomainEntity,
+    steps: { createCorePayment: boolean; submitChain: boolean }
+  ): Promise<void> {
+    let payoutMethod: InnerPaymentMethod | null = null;
+    if (steps.createCorePayment && !projection.core_payment_id) {
       try {
-        // payment_hash обязан совпадать с on-chain gateway::outcomes.outcome_hash,
-        // который marketplace::payout регистрирует как сам order_hash. Иначе
-        // кассирский gateway::outcomplete ищет объект выплаты по другому хэшу и
-        // падает с «Объект возврата не существует с указанным хэшем».
-        // Снапшот реквизитов поставщика — кассир видит банк/счёт/назначение
-        // прямо в развороте платежа общего реестра (как у обычного withdraw).
-        const corePayment = await this.coreGateway.createSystemOutgoingPayment({
-          coopname: input.coopname,
-          username: input.payee_account,
-          quantity: Number.parseFloat(input.amount),
-          symbol: this.assetConfig.symbol,
-          memo: input.purpose,
-          related_extension: 'marketplace',
-          related_entity_id: projection.id,
-          payment_hash: input.order_hash,
-          payment_method_id: input.payout_method?.method_id,
-          payment_details: input.payout_method
-            ? {
-                data: input.payout_method.data,
-                amount_plus_fee: input.amount,
-                amount_without_fee: input.amount,
-                fee_amount: '0',
-                fee_percent: 0,
-                fact_fee_percent: 0,
-                tolerance_percent: 0,
-              }
-            : undefined,
-        });
-        if (corePayment.id) {
-          await this.paymentRepo.applyCorePaymentId(
-            input.coopname,
-            input.order_hash,
-            corePayment.id
-          );
-        }
+        payoutMethod = await this.supplierSettings.resolvePayoutMethod(projection.coopname, projection.payee_account);
       } catch (err: any) {
         this.logger.warn(
-          `initiatePayouts: core createSystemOutgoingPayment для order ${input.order_id} упал: ${err.message}; кассирский стол core не увидит выплату до повторной попытки.`
+          `redeliverPayout: резолв реквизитов поставщика ${projection.payee_account} упал: ${err.message}; платёж создаётся без реквизитов.`
         );
       }
     }
+    await this.deliverPayout(projection, payoutMethod, steps);
+  }
 
+  /**
+   * Довоз выплаты до кассы и до цепи. Обе части best-effort: сбой пишется в
+   * журнал, проекция остаётся PENDING, и крон повторяет недостающий шаг.
+   */
+  private async deliverPayout(
+    projection: MarketplaceOutgoingPaymentRequestDomainEntity,
+    payoutMethod: InnerPaymentMethod | null,
+    steps: { createCorePayment: boolean; submitChain: boolean }
+  ): Promise<void> {
+    // Долг покрыл всю выплату: банковского перевода нет, контракт в `payout`
+    // сразу проводит удержание и закрывает выплату — платёж кассиру не нужен.
+    const nothingToPay = Number.parseFloat(projection.amount) <= 0;
+    if (steps.createCorePayment && !projection.core_payment_id && !nothingToPay) {
+      await this.createCorePayment(projection, payoutMethod);
+    }
+    if (!steps.submitChain) return;
     try {
-      await this.chainPort.payOut({
-        coopname: input.coopname,
-        order_hash: input.order_hash,
+      const tx = await this.chainPort.payOut({
+        coopname: projection.coopname,
+        order_hash: projection.order_hash,
       });
+      if (nothingToPay) await this.completeWithheldPayout(projection.coopname, projection.order_hash, tx);
     } catch (err: any) {
       this.logger.warn(
-        `initiatePayouts: on-chain payOut для order ${input.order_id} упал: ${err.message}; projection остаётся PENDING, gateway::outcomes не создан. Требуется retry.`
+        `initiatePayouts: on-chain payOut для order ${projection.order_id} упал: ${err.message}; projection остаётся PENDING, gateway::outcomes не создан — повтор по расписанию.`
       );
     }
+  }
+
+  /**
+   * Платёж поставщику в общем реестре кооператива — его видит кассир.
+   * payment_hash обязан совпадать с on-chain gateway::outcomes.outcome_hash,
+   * который marketplace::payout регистрирует как сам order_hash. Иначе
+   * кассирский gateway::outcomplete ищет объект выплаты по другому хэшу и
+   * падает с «Объект возврата не существует с указанным хэшем».
+   * Снапшот реквизитов поставщика — кассир видит банк/счёт/назначение
+   * прямо в развороте платежа общего реестра (как у обычного withdraw).
+   */
+  private async createCorePayment(
+    projection: MarketplaceOutgoingPaymentRequestDomainEntity,
+    payoutMethod: InnerPaymentMethod | null
+  ): Promise<void> {
+    try {
+      const corePayment = await this.coreGateway.createSystemOutgoingPayment({
+        coopname: projection.coopname,
+        username: projection.payee_account,
+        quantity: Number.parseFloat(projection.amount),
+        symbol: this.assetConfig.symbol,
+        memo: projection.purpose,
+        related_extension: 'marketplace',
+        related_entity_id: projection.id,
+        payment_hash: projection.order_hash,
+        payment_method_id: payoutMethod?.method_id,
+        payment_details: payoutMethod
+          ? {
+              data: payoutMethod.data,
+              amount_plus_fee: projection.amount,
+              amount_without_fee: projection.amount,
+              fee_amount: '0',
+              fee_percent: 0,
+              fact_fee_percent: 0,
+              tolerance_percent: 0,
+            }
+          : undefined,
+      });
+      if (corePayment.id) {
+        await this.paymentRepo.applyCorePaymentId(projection.coopname, projection.order_hash, corePayment.id);
+      }
+    } catch (err: any) {
+      this.logger.warn(
+        `initiatePayouts: core createSystemOutgoingPayment для order ${projection.order_id} упал: ${err.message}; кассирский стол core не увидит выплату до повтора по расписанию.`
+      );
+    }
+  }
+
+  /**
+   * Долг покрыл всю выплату: контракт закрыл её удержанием в той же транзакции,
+   * `payconfirm` не придёт — проекция закрывается здесь.
+   */
+  private async completeWithheldPayout(coopname: string, order_hash: string, tx: unknown): Promise<void> {
+    const txId = (tx as { response?: { transaction_id?: string } } | undefined)?.response?.transaction_id ?? null;
+    await this.paymentRepo.applyCompletion(coopname, order_hash, {
+      completed_at: new Date(),
+      payout_tx_hash: txId,
+    });
   }
 
   // ── private ──
@@ -1765,19 +1844,29 @@ export class MarketplaceAplReceptionService {
     for (const entry of fact) {
       const order = byId.get(entry.order_id);
       if (!order) continue;
-      // Цена — за единицу отпуска: при отпуске упаковкой это цена упаковки, и
-      // умножать её на базовое количество нельзя (сумма занижалась в разы).
-      amounts.push(
-        calcCostAmount({
-          quantity: entry.fact_quantity,
-          unit: order.unit_of_measure,
-          unitPrice: entry.fact_unit_price ?? order.price_per_unit,
-          packageSize: order.package_size,
-          decimals: this.assetConfig.decimals,
-        })
-      );
+      amounts.push(this.factEntryAmount(entry, order));
     }
     return sumMoney(amounts, this.assetConfig.decimals);
+  }
+
+  /**
+   * Принятая стоимость позиции акта: фактическое количество по фактической
+   * цене приёмки (без записи в акте — заказанное по цене заказа). Одна формула
+   * для итога акта, суммы выплаты поставщику и того, что контракт проводит на
+   * `signchair`: цена — за единицу отпуска, при отпуске упаковкой это цена
+   * упаковки, и умножать её на базовое количество нельзя.
+   */
+  private factEntryAmount(
+    entry: MarketplaceAplReceptionFactQuantityEntry | undefined,
+    order: MarketplaceOrderDomainEntity
+  ): string {
+    return calcCostAmount({
+      quantity: entry?.fact_quantity ?? order.quantity,
+      unit: order.unit_of_measure,
+      unitPrice: entry?.fact_unit_price ?? order.price_per_unit,
+      packageSize: order.package_size,
+      decimals: this.assetConfig.decimals,
+    });
   }
 
   private formatAsset(value: string): string {

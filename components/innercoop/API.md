@@ -79,6 +79,12 @@
 
 - `Symbol.for('Innercoop.CrossPlugin.CoopCalendarEventNotification')`
 
+## COOP_CREDENTIAL_PORT
+
+`const` · core-ports
+
+- `Symbol.for('Innercoop.CorePort.CoopCredential')`
+
 ## COOPERATIVE_VARS_PORT
 
 `const` · core-ports
@@ -294,6 +300,15 @@
 - `notifyEventCreated(input: InnerCoopCalendarEventNotificationInput): Promise<void>`
 - `notifyEventUpdated(input: InnerCoopCalendarEventNotificationInput): Promise<void>`
 
+## ICoopCredentialPort
+
+`interface` · core-ports
+
+- `signWithCertKey(message: Uint8Array): Promise<string>`
+- `getTrustChain(): Promise<InnerEndorsementCredential[]>`
+- `getChainId(): Promise<string>`
+- `getPermissionKey(account: string, permission: string): Promise<string | null>`
+
 ## ICooperativeVarsPort
 
 `interface` · core-ports
@@ -429,6 +444,7 @@
 
 - `getHistory(filter: InnerLedger2HistoryFilter): Promise<InnerLedger2HistoryResult>`
 - `getAccounts(coopname: string): Promise<InnerLedger2Account[]>`
+- `getWallets(coopname: string): Promise<InnerLedger2Wallet[]>`
 
 ## ILoggerPort
 
@@ -809,6 +825,12 @@
 - `original_found: boolean`
 - `hash_matches: boolean`
 - `signatures_valid: boolean`
+
+## InnerEndorsementCredential
+
+`type` · core-ports
+
+- `string`
 
 ## InnerEnsureProgramParams
 
@@ -1191,6 +1213,14 @@
 - `memo?: string | null`
 - `parentApplyGlobalSequence?: string | null`
 - `createdAt: Date`
+
+## InnerLedger2Wallet
+
+`interface` · core-ports
+
+- `id: string`
+- `name: string`
+- `available: string`
 
 ## InnerLogMeta
 
@@ -1660,6 +1690,30 @@
 - `position: string`
 - `based_on: string`
 
+## InnerRobotDecisionOutcome
+
+`type` · cross-plugin-ports
+
+- `| 'authorized' | 'declined' | 'pending' | 'manual' | 'failed'`
+
+## InnerRobotDecisionRequest
+
+`interface` · cross-plugin-ports
+
+- `coopname: string`
+- `decision_id: number`
+- `decision_type: string`
+- `decision_hash: string`
+- `username: string`
+
+## InnerRobotDecisionResult
+
+`interface` · cross-plugin-ports
+
+- `outcome: InnerRobotDecisionOutcome`
+- `tx_hash?: string`
+- `detail?: string`
+
 ## InnerRoomMessageKind
 
 `type` · cross-plugin-ports
@@ -2005,6 +2059,13 @@
 
 - `{ version: string`
 
+## ISovietRobotPort
+
+`interface` · cross-plugin-ports
+
+- `isEnabled(): Promise<boolean>`
+- `requestDecision(input: InnerRobotDecisionRequest): Promise<InnerRobotDecisionResult>`
+
 ## IUserCertificatePort
 
 `interface` · core-ports
@@ -2289,6 +2350,12 @@
 `const` · core-ports
 
 - `Symbol.for('Innercoop.CorePort.SecretCipher')`
+
+## SOVIET_ROBOT_PORT
+
+`const` · cross-plugin-ports
+
+- `Symbol.for('Innercoop.CrossPlugin.SovietRobot')`
 
 ## TrackingRule
 

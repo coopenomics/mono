@@ -1,8 +1,9 @@
 <script lang="ts" setup>
 import { computed } from 'vue';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
-import { marketplaceOrderSaleUnit } from 'src/shared/lib/consts/marketplace-units';
-import { BaseDialog, BaseBadge, BaseCard } from 'src/shared/ui/base';
+import { marketplaceOrderSaleUnitLabel } from 'src/shared/lib/consts/marketplace-units';
+import { BaseDialog, BaseBadge, BaseCard, BaseTable } from 'src/shared/ui/base';
+import type { BaseTableColumn } from 'src/shared/ui/base';
 import { DataRow } from 'src/shared/ui/domain/DataRow';
 import { ActivityTimeline } from 'src/shared/ui/domain/ActivityTimeline';
 import type { ActivityEvent, ActivityEventType } from 'src/shared/ui/domain/ActivityTimeline';
@@ -18,8 +19,7 @@ const emit = defineEmits<{
 }>();
 
 function itemQuantityLabel(it: { quantity: string; unit_of_measure?: string | null; package_size?: number | null }): string {
-  const saleUnit = marketplaceOrderSaleUnit(Number.parseFloat(it.quantity) || 0, it.unit_of_measure, it.package_size);
-  return `${saleUnit.units}×${saleUnit.unitLabel}`;
+  return marketplaceOrderSaleUnitLabel(Number.parseFloat(it.quantity) || 0, it.unit_of_measure, it.package_size);
 }
 
 function fmtDate(value: string | null | undefined): string {
@@ -91,6 +91,22 @@ const LOG_TYPES: Record<string, ActivityEventType> = {
 const title = computed(() => proposalTitle(props.proposal));
 
 // Журнал → канонический ActivityTimeline (новые события сверху).
+type WriteoffProposalItem = MarketplaceWriteoffProposalView['items'][number];
+
+const itemColumns: BaseTableColumn<WriteoffProposalItem>[] = [
+  { key: 'branch', label: 'Пункт выдачи', width: '220px' },
+  { key: 'asset', label: 'Наименование', width: '260px', field: 'asset_title' },
+  { key: 'quantity', label: 'Кол-во', width: '130px', numeric: true },
+  { key: 'amount', label: 'Сумма', width: '130px', numeric: true },
+  { key: 'reason', label: 'Причина', width: '240px', field: 'reason' },
+  { key: 'status', label: 'Статус', width: '140px' },
+];
+
+/** У позиции проекта своего идентификатора нет — ключ собираем из участка и товара. */
+function itemRowKey(item: WriteoffProposalItem): string {
+  return `${item.braname}:${item.asset_title}:${item.reason}`;
+}
+
 const journalEvents = computed<ActivityEvent[]>(() =>
   (props.proposal.decision_log ?? []).map((entry, idx) => ({
     id: String(idx),
@@ -116,28 +132,20 @@ BaseDialog(
       DataRow(label="Решение совета", :value="councilOutcome(proposal.status)")
 
     BaseCard(title="Позиции к списанию")
-      .table-wrap
-        .table-scroll
-          table.table
-            thead
-              tr
-                th №
-                th Кооп. участок
-                th Наименование
-                th.col-num Кол-во
-                th.col-num Сумма
-                th Причина
-                th Статус
-            tbody
-              tr(v-for="(it, idx) in proposal.items", :key="idx")
-                td {{ idx + 1 }}
-                td {{ it.branch_name || it.braname }}
-                td {{ it.asset_title }}
-                td.col-num {{ itemQuantityLabel(it) }}
-                td.col-num {{ formatAsset2Digits(it.amount) }}
-                td {{ it.reason }}
-                td
-                  BaseBadge(:variant="it.executed ? 'pos' : 'neutral'") {{ it.executed ? 'Списано' : 'Ожидает' }}
+      BaseTable(
+        :columns="itemColumns",
+        :rows="proposal.items",
+        :row-key="itemRowKey",
+        min-width="900px"
+      )
+        template(#cell-branch="{ row }")
+          | {{ row.branch_name || row.braname }}
+        template(#cell-quantity="{ row }")
+          | {{ itemQuantityLabel(row) }}
+        template(#cell-amount="{ row }")
+          | {{ formatAsset2Digits(row.amount) }}
+        template(#cell-status="{ row }")
+          BaseBadge(:variant="row.executed ? 'pos' : 'neutral'") {{ row.executed ? 'Списано' : 'Ожидает' }}
 
     BaseCard(v-if="proposal.reject_reason", title="Причина отказа совета")
       .text-body2 {{ proposal.reject_reason }}

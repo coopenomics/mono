@@ -242,7 +242,8 @@ export async function phase07(): Promise<void> {
       log('parser не индексировал проект за 60с — продолжаем без current state')
     } catch (e) {
       // GraphQL «Проект не найден» — ждём parser. Любая иная ошибка — break.
-      const raw = JSON.stringify(e).toLowerCase()
+      // SDK бросает Error: его message в JSON.stringify не попадает, берём явно.
+      const raw = `${e instanceof Error ? e.message : ''} ${JSON.stringify(e)}`.toLowerCase()
       if (raw.includes('не найден') && attempt < 29) {
         if (attempt % 5 === 0) log(`parser ещё не догнал createproject — ждём 2с (${attempt + 1}/30)`)
         await new Promise((r) => setTimeout(r, 2000))

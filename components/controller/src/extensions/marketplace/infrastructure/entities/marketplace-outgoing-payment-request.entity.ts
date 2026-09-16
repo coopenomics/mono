@@ -58,6 +58,10 @@ export class MarketplaceOutgoingPaymentRequestEntity {
   @Column({ type: 'varchar', length: 200, nullable: true })
   public payout_destination!: string | null;
 
+  /** Удержано в счёт признанного гарантийного долга поставщика (99D-13); `amount` — сумма к переводу. */
+  @Column({ type: 'numeric', precision: 24, scale: 4, default: 0 })
+  public withheld_amount!: string;
+
   @Column({ type: 'varchar', length: 32 })
   public status!: MarketplaceOutgoingPaymentRequestStatus;
 

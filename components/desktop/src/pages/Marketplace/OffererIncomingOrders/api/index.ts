@@ -72,20 +72,40 @@ export async function declineOrdersBatch(order_ids: string[], reason: string): P
   });
 }
 
-/**
- * Эпик 15: карта минимального объёма поставки на каждый КУ оферты —
- * `${offer_id}::${braname}` → min_supply_volume. Источник — собственные оферты
- * поставщика (`marketplaceListMyOffers`, поле delivery_points). min задаётся
- * поставщиком при публикации оферты; на столе входящих он служит ЦЕЛЬЮ сбора
- * партии-накопителя (не порогом — принять партию можно и меньшего объёма).
- */
-export async function fetchSupplierMinVolumeMap(): Promise<Map<string, number>> {
+/** Упаковка предложения в справочнике поставщика: подпись и содержимое. */
+export interface SupplierPackageMeta {
+  size: number;
+  package_type: string | null;
+}
+
+/** Справочники по собственным предложениям поставщика — один запрос на оба. */
+export interface SupplierOfferMeta {
+  /**
+   * Минимальный объём поставки на каждый КУ оферты: `${offer_id}::${braname}`
+   * → min_supply_volume. Задаётся поставщиком при публикации оферты; на столе
+   * входящих служит ЦЕЛЬЮ сбора партии-накопителя (не порогом — принять партию
+   * можно и меньшего объёма).
+   */
+  minVolume: Map<string, number>;
+  /**
+   * Упаковки предложений по их идентификатору. Нужны, чтобы разобрать партию
+   * по таре: заказ несёт только `package_id` и содержимое упаковки, а название
+   * тары («стекло», «пластик») живёт в каталоге предложения.
+   */
+  packages: Map<string, SupplierPackageMeta>;
+}
+
+export async function fetchSupplierOfferMeta(): Promise<SupplierOfferMeta> {
   const page = await fetchMyOffers({ page: 1, limit: 500, sortBy: 'updated_at', sortOrder: 'DESC' });
-  const map = new Map<string, number>();
+  const minVolume = new Map<string, number>();
+  const packages = new Map<string, SupplierPackageMeta>();
   for (const offer of page.items) {
     for (const dp of offer.delivery_points ?? []) {
-      map.set(`${offer.id}::${dp.braname}`, dp.min_supply_volume);
+      minVolume.set(`${offer.id}::${dp.braname}`, dp.min_supply_volume);
+    }
+    for (const pkg of offer.packages ?? []) {
+      packages.set(pkg.id, { size: pkg.size, package_type: pkg.package_type ?? null });
     }
   }
-  return map;
+  return { minVolume, packages };
 }

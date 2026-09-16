@@ -100,7 +100,10 @@ export function useOfferModeration(opts: UseOfferModerationOptions = {}) {
       },
       ok: { label: 'Сохранить', color: 'primary', unelevated: true, noCaps: true },
       cancel: { label: 'Отмена', flat: true, noCaps: true },
-      persistent: true,
+      // Окно закрывается нажатием мимо него: правка срока — мелкая и
+      // необязательная, держать её на экране силой незачем (решение
+      // владельца 14.09.2026). Одобрение и отказ остаются настойчивыми:
+      // там решение по чужому предложению, и случайный промах его отменил бы.
     }).onOk(async (days: string) => {
       settingWarranty.value.add(offer.id);
       try {

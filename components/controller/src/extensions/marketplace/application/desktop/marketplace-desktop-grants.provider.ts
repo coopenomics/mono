@@ -92,7 +92,15 @@ export class MarketplaceDesktopGrantsProvider
 
     const onboarded = Boolean(ctx.config?.coopAcceptance?.accepted);
     if (!onboarded) {
-      return coreRoles.includes('Chairman') ? ['Extension:configure'] : [];
+      // `Onboarding:coop` — маркер видимости страницы подключения ЦПП. Он
+      // живёт ровно до принятия Советом обоих документов: страница
+      // одноразовая, и висеть в меню кооператива, который уже подключён, ей
+      // незачем (решение владельца 14.09.2026). `Extension:configure` после
+      // подключения приходит обычным правом администратора — на нём страницу
+      // держать нельзя, она бы не исчезла никогда.
+      return coreRoles.includes('Chairman')
+        ? ['Extension:configure', 'Onboarding:coop']
+        : [];
     }
 
     const [isOfferer, isKuChairman] = await Promise.all([

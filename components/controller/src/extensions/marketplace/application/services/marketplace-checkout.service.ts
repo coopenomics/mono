@@ -1,10 +1,8 @@
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import { randomUUID } from 'crypto';
-import { Cooperative, type MarketContract } from 'cooptypes';
-import { LOGGER_PORT, type ILoggerPort, DOCUMENT_PORT, type IDocumentPort, type InnerGeneratedDocument } from '@coopenomics/innercoop';
-import { SignedDigitalDocumentInputDTO } from '@coopenomics/extension-kit';
+import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import type { MarketplaceCheckoutSignedLineInputDTO } from '../dto/marketplace-checkout.dto';
-import { computeOrderHash, computeStockOrderHash } from '../shared/order-hash.util';
+import { computeConvertAnchorHash, computeOrderHash, computeStockOrderHash } from '../shared/order-hash.util';
 import { resolveSaleUnit } from '../shared/packaging.util';
 import {
   MARKETPLACE_ECONOMY_SERVICE,
@@ -23,10 +21,6 @@ import {
   MarketplaceStockService,
   MARKETPLACE_STOCK_SERVICE,
 } from './marketplace-stock.service';
-import {
-  MARKETPLACE_ASSET_CONFIG,
-  type MarketplaceAssetConfig,
-} from './marketplace-asset.config';
 import type { MarketplaceOfferDomainEntity } from '../../domain/entities/marketplace-offer.entity';
 import {
   MARKETPLACE_ORDER_CREATE_SERVICE,
@@ -41,7 +35,24 @@ import {
   MarketplaceCheckoutFailedLineDTO,
   MarketplaceCheckoutResultDTO,
 } from '../dto/marketplace-checkout.dto';
-import { USER_WALLET_PORT, type IUserWalletPort } from '@coopenomics/innercoop';
+import type { InnerGeneratedDocument } from '@coopenomics/innercoop';
+import {
+  MARKETPLACE_CONVERT_SERVICE,
+  MAIN_SHARE_WALLET,
+  MarketplaceConvertService,
+  type FundingLinePlan,
+} from './marketplace-convert.service';
+import type { MarketplaceConvertStatementSignedInputDTO } from '../documents-dto/marketplace-convert-statement-document.dto';
+import { rethrowChainError } from '@coopenomics/extension-kit';
+import type { MarketContract } from 'cooptypes';
+import {
+  MARKETPLACE_CANONICAL_BLOCKCHAIN_PORT,
+  MarketplaceCheckoutOrderActionKind,
+  type MarketplaceCanonicalBlockchainPort,
+} from '../../domain/ports/marketplace-canonical-blockchain.port';
+import type { MarketplaceOrderPreparedLine } from './marketplace-order-create.service';
+import type { MarketplaceStockOrderPreparedLine } from './marketplace-stock.service';
+import { normalizeChainTx } from '../shared/chain-tx.util';
 
 export const MARKETPLACE_CHECKOUT_SERVICE = Symbol('MARKETPLACE_CHECKOUT_SERVICE');
 
@@ -59,34 +70,77 @@ interface CheckoutPayableLine {
   offer: MarketplaceOfferDomainEntity;
 }
 
-/** Заявление о конвертации к подписи по одной позиции корзины. */
+/** Строка превью оформления по одной позиции корзины: суммы к списанию по частям. */
 export interface MarketplaceCheckoutSignableLine {
   offer_id: string;
   package_id: string | null;
   order_hash: string;
+  /** Стоимость позиции с членским взносом участка, с валютой. */
   amount: string;
+  /** Членский взнос участка по позиции, с валютой. */
+  membership_fee: string;
+  /** Часть взноса, покрытая остатком внутреннего членского кошелька, с валютой. */
+  from_member: string;
+  /** Часть тела, покрытая остатком свободного паевого «Стола заказов», с валютой. */
+  from_program: string;
+  /** Уходит с Цифрового кошелька по заявлению: остаток тела и недостающая часть взноса, с валютой. */
+  from_wallet: string;
+}
+
+/** Заявление 1110 к подписи — только когда кошельков программы на заказ не хватает. */
+export interface MarketplaceConvertPayload {
+  /** Сумма перевода с Цифрового кошелька: недостающая часть тела плюс недостающая часть взноса, с валютой. */
+  amount: string;
+  /** Членская часть — взнос за вычетом остатка членского кошелька, уходит в членский кошелёк действием convert, с валютой. */
+  membership_fee: string;
   document: InnerGeneratedDocument;
 }
 
-/** Кошельки, из которых createorder тянет средства под резерв заказа. */
-const SPENDABLE_WALLETS: ReadonlyArray<string> = ['w.wal.share', 'w.wal.member'];
+export interface MarketplaceCheckoutPreview {
+  lines: MarketplaceCheckoutSignableLine[];
+  convert: MarketplaceConvertPayload | null;
+}
+
+/** Строка оформления с планом фондирования в минимальных единицах валюты. */
+interface CheckoutPlannedLine {
+  line: CheckoutPayableLine;
+  order_hash: string;
+  plan: FundingLinePlan;
+}
+
+/** Строка корзины, готовая к отправке: бронь остатка сделана, параметры действия собраны. */
+type PreparedCheckoutLine =
+  | { kind: MarketplaceCheckoutOrderActionKind.CREATE_ORDER; line: CheckoutPayableLine; order: MarketplaceOrderPreparedLine }
+  | { kind: MarketplaceCheckoutOrderActionKind.STOCK_ORDER; line: CheckoutPayableLine; stock: MarketplaceStockOrderPreparedLine };
+
+interface CheckoutPlan {
+  lines: CheckoutPlannedLine[];
+  /** Членская часть перевода — параметр действия convert. */
+  fee_convert_units: bigint;
+  /** Сумма заявления с Цифрового кошелька: тела сверх свободного паевого плюс недостающие части взносов. */
+  transfer_units: bigint;
+}
 
 /**
  * Эпик 16 (Story 16.2): оформление заказа из корзины.
  *
- * Решение 2026-06-02: НЕ одна блокчейн-транзакция (лимит времени вычисления
- * блока не вместит большую корзину; ёмкость плавает от нагрузки сети).
- * Поэтому:
- *   1. backend предвалидирует достаточность баланса под всю корзину —
- *      при недостатке заказ не запускается (без частичного списания);
- *   2. при достаточном балансе позиции проводятся ПОСТРОЧНО (существующая
- *      логика Order + блокировки Эпика 4) с общим `checkout_id` и КУ;
- *   3. частичный сбой НЕ откатывает заказ целиком — прошедшие позиции
- *      заказаны и убираются из корзины; непрошедший остаток остаётся в
- *      корзине, повтор — в рамках того же `checkout_id`.
+ * Решение владельца 15.09.2026: корзина оформляется ОДНОЙ транзакцией —
+ * перевод по заявлению 1110 (если кошельков программы не хватило) и заказы
+ * всех строк. Цепь проводит их вместе или откатывает все: частичного
+ * оформления и зависшего в членском кошельке перевода не бывает (прежнее
+ * построчное оформление от 2026-06-02 оставляло перевод проведённым, когда
+ * контракт отказывал в заказе). Замер на стенде: перевод 60–140 мс, заказ
+ * 7–31 мс при лимите 2 с на транзакцию у боевых нод.
  *
- * Надёжный ретрай блокчейн-транзакций до завершения — общая системная
- * задача кооператива, вне scope (см. issue эпика).
+ * Порядок:
+ *   1. позиции, которые оформить нельзя (сняты, не возят на КУ), в
+ *      транзакцию не входят — остаются в корзине и сообщаются заказчику;
+ *   2. остальные строки готовятся по одной: проверки, бронь остатка в
+ *      каталоге; строка, не прошедшая подготовку, тоже остаётся в корзине;
+ *   3. подготовленные строки уходят в цепь одной транзакцией; отказ цепи
+ *      снимает брони всех строк и возвращается заказчику ошибкой — корзина
+ *      не тронута;
+ *   4. после блока заказы записываются в базу, строки убираются из корзины.
  */
 @Injectable()
 export class MarketplaceCheckoutService {
@@ -101,26 +155,26 @@ export class MarketplaceCheckoutService {
     private readonly stockService: MarketplaceStockService,
     @Inject(MARKETPLACE_CART_SERVICE)
     private readonly cartService: MarketplaceCartService,
-    @Inject(USER_WALLET_PORT)
-    private readonly walletRepo: IUserWalletPort,
-    @Inject(MARKETPLACE_ASSET_CONFIG)
-    private readonly assetConfig: MarketplaceAssetConfig,
     @Inject(MARKETPLACE_ECONOMY_SERVICE)
     private readonly economyService: MarketplaceEconomyService,
-    @Inject(DOCUMENT_PORT) private readonly documentPort: IDocumentPort,
+    @Inject(MARKETPLACE_CONVERT_SERVICE)
+    private readonly convertService: MarketplaceConvertService,
+    @Inject(MARKETPLACE_CANONICAL_BLOCKCHAIN_PORT)
+    private readonly chainPort: MarketplaceCanonicalBlockchainPort,
     @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
   ) {
     this.logger.setContext(MarketplaceCheckoutService.name);
   }
 
   /**
-   * Заявления о конвертации паевого взноса к подписи — по одному на каждую
-   * оформляемую позицию корзины. order_hash будущего заказа рождается здесь
-   * и зашивается в мету заявления; клиент подписывает каждое заявление и
-   * возвращает их в `execute` строками `lines` — контракт публикует документ
-   * в реестр самостоятельным пакетом при создании заказа.
+   * Превью оформления. Паевая модель: два кошелька программы оплачивают каждый
+   * свою часть — членский взнос позиции покрывается остатком внутреннего
+   * членского кошелька, тело — остатком свободного паевого «Стола заказов»
+   * (туда возвращаются средства при отменах и возвратах). Заявление 1110 — на
+   * то, чего в них не хватило, с Цифрового кошелька; клиент подписывает его
+   * один раз на всё оформление; если переводить нечего, заявления нет.
    */
-  async getSignablePayloads(scope: CheckoutScope): Promise<MarketplaceCheckoutSignableLine[]> {
+  async getSignablePayloads(scope: CheckoutScope): Promise<MarketplaceCheckoutPreview> {
     const cart = await this.cartRepo.getOrCreate(scope.coopname, scope.orderer_account);
     if (cart.is_empty) {
       throw new BadRequestException('Корзина пуста — оформлять нечего.');
@@ -133,32 +187,41 @@ export class MarketplaceCheckoutService {
     const { payable } = this.splitCartLines(cart.items, cart.delivery_braname, offers);
 
     const feePercent = await this.economyService.getMembershipFeeContractPercent(scope.coopname);
-    const result: MarketplaceCheckoutSignableLine[] = [];
-    for (const line of payable) {
-      const order_hash = line.offer.stock_braname
-        ? computeStockOrderHash(scope.coopname, scope.orderer_account, line.offer_id)
-        : computeOrderHash(scope.coopname, scope.orderer_account, line.offer_id);
-      const amount = this.lineAmount(line, feePercent);
-      const action: Cooperative.Registry.MarketplaceConvertStatement.Action = {
-        registry_id: Cooperative.Registry.MarketplaceConvertStatement.registry_id,
-        coopname: scope.coopname,
-        username: scope.orderer_account,
-        lang: 'ru',
-        order_hash,
-        amount,
-        // Тело сохраняется в стор: реестр документов пересобирает агрегат
-        // по doc_hash (rawDocument), preview-режим оставил бы запись пустой.
-        skip_save: false,
-      };
-      const document = await this.documentPort.generate({ data: action });
-      result.push({ offer_id: line.offer_id, package_id: line.package_id || null, order_hash, amount, document });
-    }
-    return result;
+    const planned = await this.planLines(scope, payable, feePercent, null);
+    const lines = planned.lines.map((p) => ({
+      offer_id: p.line.offer_id,
+      package_id: p.line.package_id || null,
+      order_hash: p.order_hash,
+      amount: this.economyService.unitsToAsset(p.plan.body_units + p.plan.fee_units),
+      membership_fee: this.economyService.unitsToAsset(p.plan.fee_units),
+      from_member: this.economyService.unitsToAsset(p.plan.fee_member_units),
+      from_program: this.economyService.unitsToAsset(p.plan.body_program_units),
+      from_wallet: this.economyService.unitsToAsset(p.plan.body_wallet_units + p.plan.fee_convert_units),
+    }));
+    const convert =
+      planned.transfer_units > 0n
+        ? {
+            amount: this.economyService.unitsToAsset(planned.transfer_units),
+            membership_fee: this.economyService.unitsToAsset(planned.fee_convert_units),
+            document: await this.convertService.generateStatement({
+              coopname: scope.coopname,
+              username: scope.orderer_account,
+              anchor_hash: this.convertAnchor(scope, cart.id),
+              amount_units: planned.transfer_units,
+              fee_units: planned.fee_convert_units,
+            }),
+          }
+        : null;
+    return { lines, convert };
   }
 
   async execute(
     scope: CheckoutScope,
-    input: { checkout_id?: string | null; lines?: MarketplaceCheckoutSignedLineInputDTO[] | null }
+    input: {
+      checkout_id?: string | null;
+      lines?: MarketplaceCheckoutSignedLineInputDTO[] | null;
+      signed_convert?: MarketplaceConvertStatementSignedInputDTO | null;
+    }
   ): Promise<MarketplaceCheckoutResultDTO> {
     const cart = await this.cartRepo.getOrCreate(scope.coopname, scope.orderer_account);
     if (cart.is_empty) {
@@ -172,90 +235,76 @@ export class MarketplaceCheckoutService {
     const offers = await this.offerRepo.findByIds(cart.items.map((i) => i.offer_id));
     const { payable, failed } = this.splitCartLines(cart.items, deliveryBraname, offers);
 
-    const feePercent = await this.economyService.getMembershipFeeContractPercent(scope.coopname);
-
-    // Предвалидация баланса под всю оформляемую корзину (без частичного
-    // списания) — вместе с членским взносом, как этого требует контракт.
-    const totalNeeded = payable.reduce(
-      (sum, l) => sum + this.parseAmount(this.lineAmount(l, feePercent)),
-      0
-    );
-    if (payable.length > 0) {
-      const available = await this.spendableBalance(scope.coopname, scope.orderer_account);
-      if (totalNeeded - available > 1e-6) {
-        throw new BadRequestException(
-          `Недостаточно средств для оформления: нужно ${this.formatAsset(totalNeeded)}, доступно ${this.formatAsset(available)}. ` +
-            'Заказ не запущен — пополните счёт или уберите часть позиций.'
-        );
-      }
-    }
-
     // Ключ строки — (offer_id, package_id): один оффер может идти разными
     // упаковками, поэтому offer_id недостаточно (Эпик 18).
     const lineKey = (offer_id: string, package_id: string | null | undefined): string =>
       `${offer_id}|${package_id ?? ''}`;
-    const signedByLine = new Map(
-      (input.lines ?? []).map((l) => [lineKey(l.offer_id, l.package_id), l])
+    const orderHashByLine = new Map(
+      (input.lines ?? []).map((l) => [lineKey(l.offer_id, l.package_id), l.order_hash])
     );
+
+    const feePercent = await this.economyService.getMembershipFeeContractPercent(scope.coopname);
+    // План по свежему балансу членского кошелька: недостающая сумма обязана
+    // совпасть с подписанным заявлением, иначе оформление повторяется.
+    const planned = await this.planLines(scope, payable, feePercent, orderHashByLine);
+
+    // Предвалидация баланса под всю оформляемую корзину (без частичного
+    // списания): с Цифрового кошелька уходит сумма заявления — тела сверх
+    // свободного паевого программы и недостающие части взносов.
+    if (planned.lines.length > 0) {
+      await this.assertSpendable(scope, MAIN_SHARE_WALLET, planned.transfer_units, 'Цифровом кошельке');
+    }
+
+    // ── Заявление 1110: перевод в членский кошелёк идёт первым действием общей транзакции ──
+    let convert: MarketContract.Actions.Convert.IConvert | null = null;
+    if (planned.transfer_units > 0n) {
+      const convert_statement = this.convertService.verifySigned(
+        input.signed_convert,
+        { anchor_hash: this.convertAnchor(scope, cart.id), amount_units: planned.transfer_units, fee_units: planned.fee_convert_units },
+        scope.orderer_account
+      );
+      // Разбивка по заказам: контракт эмитит o.mkt.conv на каждый заказ с его
+      // хэшем как process_hash, поэтому перевод ложится первой операцией
+      // нитки того заказа, который оплачивает, а не заводит нитку без анкера.
+      convert = {
+        coopname: scope.coopname,
+        orderer: scope.orderer_account,
+        targets: planned.lines
+          .filter((p) => p.plan.fee_convert_units > 0n)
+          .map((p) => ({
+            order_hash: p.order_hash,
+            amount: this.economyService.unitsToAsset(p.plan.fee_convert_units),
+          })),
+        convert_statement,
+      };
+    }
+
     const checkoutId = input.checkout_id ?? randomUUID();
 
-    // Построчное оформление: прошедшее остаётся заказанным даже при сбое
-    // на последующих строках (без отката заказа целиком).
-    const createdDTOs: MarketplaceOrderDTO[] = [];
-    const succeededOfferIds: string[] = [];
-    for (const line of payable) {
+    // ── Подготовка строк: проверки и бронь остатка, без цепи ──
+    // Строка, не прошедшая подготовку, остаётся в корзине с причиной; в
+    // транзакцию входят только подготовленные.
+    const prepared: PreparedCheckoutLine[] = [];
+    for (const p of planned.lines) {
+      const line = p.line;
       try {
-        // Заявление о конвертации паевого взноса — обязательный спутник
-        // каждой строки: контракт требует подписанный документ и публикует
-        // его в реестр. Несовпадение суммы/якоря — позиция не оформляется,
-        // заявление нужно переподписать (цены могли измениться).
-        const signedLine = signedByLine.get(lineKey(line.offer_id, line.package_id));
-        if (!signedLine) {
-          throw new BadRequestException(
-            'Нет подписанного заявления о конвертации паевого взноса — обновите оформление.'
-          );
-        }
-        const meta = signedLine.signed_statement.meta;
-        if (
-          meta.registry_id !== Cooperative.Registry.MarketplaceConvertStatement.registry_id ||
-          meta.order_hash !== signedLine.order_hash
-        ) {
-          throw new BadRequestException(
-            'Заявление о конвертации подписано для другого заказа — обновите оформление.'
-          );
-        }
-        const expectedAmount = this.lineAmount(line, feePercent);
-        if (meta.amount !== expectedAmount) {
-          throw new BadRequestException(
-            `Сумма позиции изменилась (в заявлении ${meta.amount}, к оплате ${expectedAmount}) — обновите оформление.`
-          );
-        }
-        const convert_statement = new SignedDigitalDocumentInputDTO(
-          signedLine.signed_statement
-        ).toDocument() as MarketContract.Actions.CreateOrder.ICreateOrder['convert_statement'];
-
         // requirement 76 (remote-докладка): строка с предложением кооператива
         // со склада оформляется заказом из остатка — без цикла поставки,
         // имущество уже на складе выбранного КУ.
         if (line.offer.stock_braname) {
-          const res = await this.stockService.createStockOrder({
+          const stock = await this.stockService.prepareStockOrder({
             coopname: scope.coopname,
             orderer_account: scope.orderer_account,
             offer_id: line.offer_id,
             quantity: line.quantity,
             package_id: line.package_id || null,
             checkout_id: checkoutId,
-            order_hash: signedLine.order_hash,
-            // Заказ из остатка из членских: паевой конвертируется на сумму строки
-            // отдельным действием перед заказом (см. createStockOrder).
-            convert_statement,
-            convert_amount: expectedAmount,
+            order_hash: p.order_hash,
           });
-          createdDTOs.push(toMarketplaceOrderDTO(res.order));
-          succeededOfferIds.push(line.offer_id);
+          prepared.push({ kind: MarketplaceCheckoutOrderActionKind.STOCK_ORDER, line, stock });
           continue;
         }
-        const res = await this.orderCreateService.execute({
+        const order = await this.orderCreateService.prepare({
           coopname: scope.coopname,
           orderer_account: scope.orderer_account,
           offer_id: line.offer_id,
@@ -263,14 +312,12 @@ export class MarketplaceCheckoutService {
           package_id: line.package_id || null,
           delivery_braname: deliveryBraname,
           checkout_id: checkoutId,
-          order_hash: signedLine.order_hash,
-          convert_statement,
+          order_hash: p.order_hash,
         });
-        createdDTOs.push(toMarketplaceOrderDTO(res.order));
-        succeededOfferIds.push(line.offer_id);
+        prepared.push({ kind: MarketplaceCheckoutOrderActionKind.CREATE_ORDER, line, order });
       } catch (error: any) {
         this.logger.warn(
-          `MarketplaceCheckoutService: строка не оформлена (offer=${line.offer_id}, qty=${line.quantity}, checkout=${checkoutId}): ${error.message}`
+          `MarketplaceCheckoutService: строка не подготовлена (offer=${line.offer_id}, qty=${line.quantity}, checkout=${checkoutId}): ${error.message}`
         );
         failed.push(
           new MarketplaceCheckoutFailedLineDTO({
@@ -280,6 +327,80 @@ export class MarketplaceCheckoutService {
             reason: error?.message ?? 'Не удалось оформить позицию.',
           })
         );
+      }
+    }
+
+    // Заявление подписано под полный набор строк: перевод адресован каждому
+    // заказу по его хэшу, и заказ, который не состоится, оставил бы перевод
+    // без адресата, а сумму документа — без соответствия операциям. Поэтому
+    // с заявлением оформляется либо всё, либо ничего; без заявления
+    // непрошедшие строки просто остаются в корзине.
+    if (convert && failed.length > 0) {
+      for (const p of prepared) {
+        if (p.kind === MarketplaceCheckoutOrderActionKind.STOCK_ORDER) await this.stockService.rollbackStockOrder(p.stock);
+        else await this.orderCreateService.rollback(p.order);
+      }
+      const reasons = failed.map((f) => `«${f.product_name ?? f.offer_id}»: ${f.reason}`).join('; ');
+      throw new BadRequestException(
+        `Оформление не запущено — не все позиции корзины можно заказать (${reasons}). ` +
+          'Уберите их из корзины и подпишите заявление заново.'
+      );
+    }
+
+    // ── Одна транзакция на всё оформление ──
+    // Перевод без заказов не отправляется: он адресуется строкам, а строк нет.
+    const createdDTOs: MarketplaceOrderDTO[] = [];
+    const succeededOfferIds: string[] = [];
+    if (prepared.length > 0) {
+      let tx: { tx_hash: string; block_num: number };
+      try {
+        const result = await this.chainPort.checkout({
+          coopname: scope.coopname,
+          convert,
+          orders: prepared.map((p) =>
+            p.kind === MarketplaceCheckoutOrderActionKind.STOCK_ORDER
+              ? { kind: p.kind, data: p.stock.action }
+              : { kind: p.kind, data: p.order.action }
+          ),
+        });
+        tx = normalizeChainTx(result, 'Оформление корзины: цепь не вернула tx_hash. Повторите попытку.');
+      } catch (error: any) {
+        this.logger.error(
+          `MarketplaceCheckoutService: цепь отказала в оформлении checkout=${checkoutId} (${prepared.length} строк) — снимаю брони: ${error.message}`
+        );
+        // Отказ любой строки — отказ всего оформления: цепь ничего не провела,
+        // брони остатка возвращаются в каталог по каждой строке.
+        for (const p of prepared) {
+          if (p.kind === MarketplaceCheckoutOrderActionKind.STOCK_ORDER) await this.stockService.rollbackStockOrder(p.stock);
+          else await this.orderCreateService.rollback(p.order);
+        }
+        rethrowChainError(error);
+      }
+
+      // Цепь провела всё — записываем заказы. Сбой записи одной строки не
+      // отменяет транзакцию: заказ уже в цепи, строка сообщается заказчику и
+      // остаётся в корзине для повтора тем же checkout_id.
+      for (const p of prepared) {
+        try {
+          const order =
+            p.kind === MarketplaceCheckoutOrderActionKind.STOCK_ORDER
+              ? (await this.stockService.finalizeStockOrder(p.stock, tx!.tx_hash)).order
+              : (await this.orderCreateService.finalize(p.order, tx!)).order;
+          createdDTOs.push(toMarketplaceOrderDTO(order));
+          succeededOfferIds.push(p.line.offer_id);
+        } catch (error: any) {
+          this.logger.error(
+            `MarketplaceCheckoutService: заказ проведён цепью, но не записан (offer=${p.line.offer_id}, checkout=${checkoutId}, tx=${tx!.tx_hash}): ${error.message}`
+          );
+          failed.push(
+            new MarketplaceCheckoutFailedLineDTO({
+              offer_id: p.line.offer_id,
+              product_name: p.line.offer.product_name,
+              quantity: p.line.quantity,
+              reason: error?.message ?? 'Заказ проведён, но не записан — обратитесь к администратору.',
+            })
+          );
+        }
       }
     }
 
@@ -308,19 +429,64 @@ export class MarketplaceCheckoutService {
   /**
    * Разделяет позиции корзины на оформляемые (активны + возятся на КУ) и
    * заведомо непрошедшие (неактивны/сняты/не возят) — последние не
-   * запускаются, но сообщаются заказчику. Общая логика превью заявлений
-   * о конвертации и самого оформления: наборы строк должны совпадать.
+   * запускаются, но сообщаются заказчику. Общая логика превью и самого
+   * оформления: наборы строк должны совпадать.
    */
+  /** Якорь заявления 1110 оформления корзины — по корзине, без nonce. */
+  private convertAnchor(scope: CheckoutScope, cartId: string): string {
+    return computeConvertAnchorHash(scope.coopname, scope.orderer_account, `cart:${cartId}`);
+  }
+
   /**
-   * Стоимость позиции к оплате (тело + членский взнос) с учётом способа отпуска
-   * (Эпик 18): по мере — цена базовой единицы × количество; упаковкой — цена
-   * упаковки × число упаковок. Единый расчёт для превью, проверки баланса и
-   * оформления — суммы обязаны совпадать.
+   * План оформления по строкам: тело позиции с учётом способа отпуска
+   * (Эпик 18: по мере — цена базовой единицы × количество; упаковкой — цена
+   * упаковки × число упаковок), членский взнос участка той же формулой, что
+   * контракт, и раскладка по кошелькам в порядке проведения — взнос с
+   * внутреннего членского кошелька, тело со свободного паевого программы,
+   * нехватка каждой части — с Цифрового кошелька по заявлению.
+   * order_hash берётся из строк превью (в нём случайный nonce), иначе
+   * рождается здесь. Единый расчёт для превью, проверки баланса и
+   * оформления — суммы обязаны совпадать побитово.
    */
-  private lineAmount(line: CheckoutPayableLine, feePercent: number): string {
-    const r = resolveSaleUnit(line.offer, line.quantity, line.package_id || null);
-    const saleUnitCount = r.packageSize > 0 ? r.packageCount! : r.baseQuantity;
-    return this.economyService.convertAmountForLine(r.unitPrice, saleUnitCount, feePercent);
+  private async planLines(
+    scope: CheckoutScope,
+    payable: CheckoutPayableLine[],
+    feePercent: number,
+    orderHashByLine: Map<string, string> | null
+  ): Promise<CheckoutPlan> {
+    const inputs = payable.map((line) => {
+      const r = resolveSaleUnit(line.offer, line.quantity, line.package_id || null);
+      const saleUnitCount = r.packageSize > 0 ? r.packageCount! : r.baseQuantity;
+      const body_units = this.economyService.lineBodyUnits(r.unitPrice, saleUnitCount);
+      return { body_units, fee_units: this.economyService.membershipFeeUnits(body_units, feePercent) };
+    });
+    const balances =
+      payable.length > 0
+        ? await this.convertService.programBalances(scope.coopname, scope.orderer_account)
+        : { member: 0n, share: 0n };
+    const funding = this.convertService.planFunding(balances, inputs);
+    const lines: CheckoutPlannedLine[] = payable.map((line, i) => ({
+      line,
+      order_hash:
+        orderHashByLine?.get(`${line.offer_id}|${line.package_id || ''}`) ??
+        (line.offer.stock_braname
+          ? computeStockOrderHash(scope.coopname, scope.orderer_account, line.offer_id)
+          : computeOrderHash(scope.coopname, scope.orderer_account, line.offer_id)),
+      plan: funding.lines[i]!,
+    }));
+    return { lines, fee_convert_units: funding.fee_convert_units, transfer_units: funding.transfer_units };
+  }
+
+  /** Достаточность паевого кошелька под сумму. */
+  private async assertSpendable(scope: CheckoutScope, wallet_name: string, needed: bigint, walletLabel: string): Promise<void> {
+    if (needed <= 0n) return;
+    const available = await this.convertService.availableUnits(scope.coopname, scope.orderer_account, wallet_name);
+    if (needed > available) {
+      throw new BadRequestException(
+        `Недостаточно средств на ${walletLabel} для оформления: нужно ${this.economyService.unitsToAsset(needed)}, доступно ${this.economyService.unitsToAsset(available)}. ` +
+          'Заказ не запущен — пополните главный кошелёк или уберите часть позиций.'
+      );
+    }
   }
 
   private splitCartLines(
@@ -360,29 +526,4 @@ export class MarketplaceCheckoutService {
     return { payable, failed };
   }
 
-  /** Доступно к расходу = available(w.wal.share) + available(w.wal.member). */
-  private async spendableBalance(coopname: string, username: string): Promise<number> {
-    const rows = await this.walletRepo.findByUsername(coopname, username);
-    return SPENDABLE_WALLETS.reduce((sum, name) => {
-      const row = rows.find((r) => r.wallet_name === name);
-      return sum + this.parseAmount(row?.available);
-    }, 0);
-  }
-
-  /** asset-строка («1000.0000 RUB») или число → float; пусто/невалид → 0. */
-  private parseAmount(value: string | null | undefined): number {
-    if (!value) return 0;
-    const n = Number.parseFloat(value);
-    return Number.isNaN(n) ? 0 : n;
-  }
-
-  /**
-   * Число → asset-строка с символом валюты («300.0000 RUB»). Символ обязателен:
-   * фронт переформатирует суммы в тексте ошибки только при наличии тикера
-   * (regex `\d+\.\d{3,}\s+[A-Z]{3,7}` → «300,00 RUB»). Без символа сумма
-   * показалась бы сырой.
-   */
-  private formatAsset(value: number): string {
-    return `${value.toFixed(this.assetConfig.decimals)} ${this.assetConfig.symbol}`;
-  }
 }

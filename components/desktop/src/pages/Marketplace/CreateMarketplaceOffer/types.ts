@@ -35,6 +35,8 @@ export interface MarketplaceOfferPackageForm {
   package_type: string;
   /** Упаковка по умолчанию (для витрины). */
   is_default: boolean;
+  /** Сколько упаковок этого вида свободно к заказу — остаток ведётся на упаковке. */
+  quantity_available: number | null;
 }
 
 /**
@@ -104,7 +106,10 @@ export interface MarketplaceCreateOfferPayload {
     /** Вид упаковки (тара) — обязателен при отпуске упаковкой. */
     package_type: string;
     is_default?: boolean;
+    /** Свободно упаковок этого вида; null при отпуске без ограничения. */
+    quantity_available?: number | null;
   }>;
+  /** Остаток в базовых единицах при отпуске по мере; при отпуске упаковкой — null, остаток на упаковках. */
   quantity_available: number | null;
   unlimited_flag: boolean;
   delivery_points: MarketplaceOfferDeliveryPoint[];
@@ -155,6 +160,8 @@ export interface MarketplaceOfferEditPrefill {
     /** Пусто у предложений, заведённых до появления поля — тара не названа. */
     package_type: string | null;
     is_default: boolean;
+    /** Свободно упаковок этого вида. */
+    quantity_available: number;
   }>;
   quantity_available: number;
   unlimited_flag: boolean;

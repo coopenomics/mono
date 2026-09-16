@@ -299,6 +299,13 @@ jobs:
           docker tag "$IMAGE:$CONTRACTS_TAG" "$IMAGE:$CONTRACTS_TAG-$SHORT_SHA"
           dpush "$IMAGE:$CONTRACTS_TAG-$SHORT_SHA"
 
+          # Тег версии релиза: деплой берёт образ по нему, как и контейнеры.
+          # Плавающий тег ветки зеркала реестра на узлах кешируют и отдают
+          # прошлый релиз даже при принудительном pull — 11.09.2026 так
+          # v2026.9.11-3 оставил на тестнете контракты предыдущего релиза.
+          docker tag "$IMAGE:$CONTRACTS_TAG" "$IMAGE:$TAG_NAME"
+          dpush "$IMAGE:$TAG_NAME"
+
           if [ -n "$CONTRACTS_EXTRA" ]; then
             docker tag "$IMAGE:$CONTRACTS_TAG" "$IMAGE:$CONTRACTS_EXTRA"
             dpush "$IMAGE:$CONTRACTS_EXTRA"
@@ -344,6 +351,13 @@ jobs:
 
           docker tag "$IMAGE:$CONTRACTS_TAG" "$IMAGE:$CONTRACTS_TAG-$SHORT_SHA"
           dpush "$IMAGE:$CONTRACTS_TAG-$SHORT_SHA"
+
+          # Тег версии релиза: деплой берёт образ по нему, как и контейнеры.
+          # Плавающий тег ветки зеркала реестра на узлах кешируют и отдают
+          # прошлый релиз даже при принудительном pull — 11.09.2026 так
+          # v2026.9.11-3 оставил на тестнете контракты предыдущего релиза.
+          docker tag "$IMAGE:$CONTRACTS_TAG" "$IMAGE:$TAG_NAME"
+          dpush "$IMAGE:$TAG_NAME"
 
           if [ -n "$CONTRACTS_EXTRA" ]; then
             docker tag "$IMAGE:$CONTRACTS_TAG" "$IMAGE:$CONTRACTS_EXTRA"

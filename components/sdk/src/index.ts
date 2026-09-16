@@ -3,6 +3,7 @@ import { Bytes, Checksum256, PrivateKey } from '@wharfkit/session'
 import WebSocket from 'isomorphic-ws'
 
 import * as Classes from './classes'
+import { type GraphQLErrorItem, graphQLErrorsFromBody, GraphQLResponseError } from './errors'
 import * as Mutations from './mutations'
 import { wsSubscription, type WsSubscriptionApi } from './utils/wsSubscription'
 import { type GraphQLResponse, Thunder, ZeusScalars } from './zeus/index'
@@ -10,7 +11,23 @@ import { type GraphQLResponse, Thunder, ZeusScalars } from './zeus/index'
 /** Таймаут HTTP GraphQL — без него при мёртвом бэкенде fetch висит и копит запросы. */
 const HTTP_TIMEOUT_MS = 30_000
 
+/**
+ * Ошибка провайдера access-токена, после которой запрос отправлять нельзя
+ * (см. `Client.prepareAuthorization`). Провайдер выставляет `abortRequest`, SDK
+ * пробрасывает такую ошибку вызывающему коду вместо отправки запроса со старым
+ * заголовком.
+ */
+export interface AccessTokenUnavailableError extends Error {
+  abortRequest: true
+}
+
+function isAbortRequestError(error: unknown): error is AccessTokenUnavailableError {
+  return typeof error === 'object' && error !== null
+    && (error as { abortRequest?: unknown }).abortRequest === true
+}
+
 export * as Classes from './classes'
+export { type GraphQLErrorItem, GraphQLResponseError } from './errors'
 export * as Mutations from './mutations'
 export * as Queries from './queries'
 export * as Selectors from './selectors'
@@ -55,6 +72,8 @@ export class Client {
   private thunder: ReturnType<typeof Thunder>
   /** Shared graphql-ws транспорт — не создавать на каждый доступ к getter. */
   private subscriptionApi: WsSubscriptionApi | null = null
+  /** Извещение приложения о том, что сервер больше не признаёт наш доступ. */
+  private authLostHandler?: () => void
   private static scalars = ZeusScalars({
     DateTime: {
       decode: (e: unknown) => new Date(e as string), // Преобразует строку в объект Date
@@ -138,6 +157,39 @@ export class Client {
   }
 
   /**
+   * Кого звать, когда сервер сказал, что доступа больше нет.
+   *
+   * Без такого извещения каждый вызов разбирается с отказом сам, а фоновые —
+   * счётчик уведомлений, статус членства — не разбираются вовсе: они молча
+   * падают по кругу. Пайщик `pgrzosdeyuwg` 08.09.2026 просидел так несколько
+   * часов: раз в минуту два отказа в логах сервера, а в кабинете ни ошибки, ни
+   * возврата на вход — только исчезнувший кошелёк и предложение вступить в
+   * пайщики. Обработчик ставит приложение, SDK лишь сообщает факт.
+   */
+  public setAuthLostHandler(handler?: () => void): void {
+    this.authLostHandler = handler
+  }
+
+  /**
+   * Опознать в ответе потерю доступа. Отдельного кода у платформы нет, признак —
+   * текст: «Сессия завершена, требуется повторная авторизация» сервер отдаёт
+   * ровно в одном месте, когда сессия токена отозвана.
+   *
+   * Голое «Unauthorized» потерей доступа НЕ считается: так отвечает страж любому
+   * запросу без токена — а их шлют и гость на странице регистрации, и стол, чьи
+   * запросы ушли раньше, чем приложение узнало о входе. Реагировать на них
+   * перезагрузкой значило бы гонять гостя по кругу. Поэтому два условия сразу:
+   * запрос ушёл с bearer (доступ БЫЛ), и сервер сказал, что сессии больше нет.
+   */
+  private reportAuthLoss(errors: unknown, hadToken: boolean): void {
+    if (!this.authLostHandler || !hadToken)
+      return
+    const text = JSON.stringify(errors ?? '')
+    if (/Сессия завершена/i.test(text))
+      this.authLostHandler()
+  }
+
+  /**
    * Установка токена авторизации.
    * @param token Токен для заголовков Authorization.
    */
@@ -156,6 +208,42 @@ export class Client {
    */
   public setAccessTokenProvider(provider?: () => Promise<string>): void {
     this.accessTokenProvider = provider
+  }
+
+  /**
+   * Готовит заголовок Authorization к запросу.
+   *
+   * Провайдер токена может отказать по двум разным причинам, и SDK их различает:
+   * - нет активной CoopID-сессии — запрос уходит с тем, что уже есть в заголовках
+   *   (legacy-токен из setToken/login, если был), итоговую авторизацию решает сервер;
+   * - токен есть, но обновить его нельзя (сеть) — провайдер помечает ошибку
+   *   `abortRequest`, и запрос не отправляется вовсе. Со старым заголовком он бы
+   *   не упал, а получил бы ответ как для гостя: бэкенд на негодный токен молча
+   *   понижает права, и клиент принимал бы гостевой ответ за свой.
+   * @returns true — запрос уйдёт от имени пользователя, false — гостем.
+   */
+  private async prepareAuthorization(): Promise<boolean> {
+    if (this.accessTokenProvider) {
+      try {
+        this.currentHeaders.Authorization = `Bearer ${await this.accessTokenProvider()}`
+        return true
+      }
+      catch (error) {
+        if (isAbortRequestError(error))
+          throw error
+      }
+    }
+    return Boolean(this.currentHeaders.Authorization)
+  }
+
+  /**
+   * Проверяет без запроса, что следующий запрос уйдёт от имени пользователя.
+   * Нужен там, где гостевой ответ неотличим от отказа (рабочий стол с грантами):
+   * вызывающий код помечает результат именем пользователя только при `true`.
+   * @throws как перед запросом — ошибка провайдера с `abortRequest`.
+   */
+  public async ensureAccessToken(): Promise<boolean> {
+    return this.prepareAuthorization()
   }
 
   /**
@@ -251,16 +339,7 @@ export class Client {
    */
   private createThunder(baseUrl: string) {
     return Thunder(async (query, variables) => {
-      if (this.accessTokenProvider) {
-        try {
-          this.currentHeaders.Authorization = `Bearer ${await this.accessTokenProvider()}`
-        }
-        catch {
-          // Нет активной CoopID-сессии или refresh не удался — отправляем запрос с тем,
-          // что уже есть в заголовках (legacy-токен из setToken/login, если был). Итоговую
-          // авторизацию решает сервер; перехватывать здесь не нужно.
-        }
-      }
+      const hadToken = await this.prepareAuthorization()
       const controller = typeof AbortController !== 'undefined' ? new AbortController() : null
       const timeoutId = controller
         ? setTimeout(() => controller.abort(), HTTP_TIMEOUT_MS)
@@ -277,32 +356,38 @@ export class Client {
           signal: controller?.signal,
         })
 
+        // Отказ уходит наружу настоящей ошибкой (см. GraphQLResponseError): сырой
+        // массив или тело ответа без `message` и стека журнал ошибок показывал как
+        // «[object Object]». Исходный список сервера сохранён в `errors`.
         if (!response.ok) {
-          return new Promise((resolve, reject) => {
-            response
-              .text()
-              .then((text) => {
-                try {
-                  reject(JSON.parse(text))
-                }
-                catch {
-                  reject(text)
-                }
-              })
-              .catch(reject)
-          })
+          const text = await response.text()
+          let body: unknown = text
+          try {
+            body = JSON.parse(text)
+          }
+          catch {
+            // тело не JSON — прокси или сервер ответили текстом, он и станет сообщением
+          }
+          const errors = graphQLErrorsFromBody(body, response.status)
+          this.reportAuthLoss(errors, hadToken)
+          throw new GraphQLResponseError(errors, { response: body, status: response.status })
         }
 
         const json = (await response.json()) as GraphQLResponse
 
         if (json.errors) {
-          throw json.errors
+          this.reportAuthLoss(json.errors, hadToken)
+          throw new GraphQLResponseError(json.errors as GraphQLErrorItem[], {
+            response: json,
+            status: response.status,
+          })
         }
 
         return json.data
       }
       finally {
-        if (timeoutId) clearTimeout(timeoutId)
+        if (timeoutId)
+          clearTimeout(timeoutId)
       }
     }, { scalars: Client.scalars })
   }

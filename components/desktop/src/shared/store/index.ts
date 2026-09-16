@@ -169,11 +169,23 @@ export const useGlobalStore = defineStore('global', (): IGlobalStore => {
    * PIN-код. Отпирание попутно продлевает получасовой отсчёт — как и любая другая
    * подпись.
    */
+  // Отпирание, которое идёт прямо сейчас. Акты подписываются параллельно, и
+  // без общего промиса каждая подпись поднимала бы своё окно PIN-кода, а
+  // ответ доставался последнему — остальные зависали.
+  let unlockInFlight: Promise<void> | null = null;
+
   const ensureSigningKey = async (): Promise<string> => {
     // Одним условием, а не ранним `return` на заполненном ключе: после раннего
     // выхода TypeScript считает ключ навсегда пустым и не верит, что отпирание
     // его вернуло (тип схлопывается в never).
-    if (!wif.value && unlockProvider) await unlockProvider();
+    if (!wif.value && unlockProvider) {
+      if (!unlockInFlight) {
+        unlockInFlight = unlockProvider().finally(() => {
+          unlockInFlight = null;
+        });
+      }
+      await unlockInFlight;
+    }
     if (!wif.value) throw new Error('Приватный ключ не установлен');
     return wif.value.toString();
   };

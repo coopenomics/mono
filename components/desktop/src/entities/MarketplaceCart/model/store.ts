@@ -1,9 +1,8 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
-import { Classes } from '@coopenomics/sdk'
-import { useGlobalStore } from 'src/shared/store'
+import { signDocument } from 'src/shared/lib/document'
 import { useSessionStore } from 'src/entities/Session'
-import { api, type ICheckoutSignedLine } from '../api'
+import { api, type ICheckoutSignedConvert, type ICheckoutSignedLine } from '../api'
 import type { IMarketplaceCart, IMarketplaceCartItem, IMarketplaceCheckoutResult } from './types'
 
 const namespace = 'marketplaceCartStore'
@@ -106,33 +105,31 @@ export const useMarketplaceCartStore = defineStore(namespace, () => {
   }
 
   /**
-   * Оформление = подпись заявлений о конвертации паевого взноса (по одному на
-   * позицию, программно ключом пайщика) + сама мутация оформления. Заявления
-   * публикуются контрактом в реестр документов при создании заказов.
+   * Оформление = одна мутация по строкам превью. Паевая модель: внутренний
+   * членский кошелёк «Стола заказов» расходуется первым — на взнос участка и
+   * тело; если его не хватает, превью приносит заявление 1110 о переводе
+   * недостающей суммы с Цифрового кошелька в программу — оно подписывается
+   * ключом сессии (запертый кошелёк — PIN) один раз на всё оформление, и
+   * бэкенд проводит перевод отдельной транзакцией до заказов. Хватает —
+   * подписывать нечего.
    */
   async function checkout(checkout_id?: string): Promise<IMarketplaceCheckoutResult> {
     checkingOut.value = true
     try {
-      // Заперт кошелёк — спросит PIN-код, а не уронит оформление заказа.
-      const wifKey = await useGlobalStore().ensureSigningKey()
-
-      // Имя подписанта берём из сессии: в контуре удостоверения глобальный стор
-      // пуст, и сессия сама подставляет аккаунт из хранилища ключей.
-      const username = useSessionStore().username
-      const payloads = await api.getCheckoutSignablePayloads()
-      const signer = new Classes.Document(wifKey)
-      const lines: ICheckoutSignedLine[] = []
-      for (const p of payloads) {
-        const signed = await signer.signDocument(p.document, username, 1)
-        lines.push({
-          offer_id: p.offer_id,
-          package_id: p.package_id,
-          order_hash: p.order_hash,
-          signed_statement: signed as ICheckoutSignedLine['signed_statement'],
-        })
+      const preview = await api.getCheckoutSignablePayloads()
+      const lines: ICheckoutSignedLine[] = preview.lines.map((p) => ({
+        offer_id: p.offer_id,
+        package_id: p.package_id,
+        order_hash: p.order_hash,
+      }))
+      let signed_convert: ICheckoutSignedConvert | null = null
+      if (preview.convert) {
+        // Подпись только когда есть что подписывать — иначе PIN-код не спрашиваем.
+        const username = useSessionStore().username
+        signed_convert = (await signDocument(preview.convert.document, username, 1)) as ICheckoutSignedConvert
       }
 
-      const result = await api.checkout(checkout_id, lines)
+      const result = await api.checkout(checkout_id, lines, signed_convert)
       // Сервер вернул корзину с непрошедшим остатком — синхронизируем состояние.
       cart.value = result.cart
       lastCheckout.value = result

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
+import { useFirstLoad } from 'src/shared/lib/composables';
 import { date } from 'quasar';
 import {
   BaseBadge,
@@ -7,14 +8,14 @@ import {
   BaseCard,
   BaseDialog,
   BaseInput,
+  BaseTable,
   EmptyState,
-  TableSkeleton,
-  type TableSkeletonColumn,
+  type BaseTableColumn,
 } from 'src/shared/ui/base';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { floorDecimalString } from 'src/shared/lib/utils/floorDecimalString';
-import { marketplaceOrderSaleUnit } from 'src/shared/lib/consts/marketplace-units';
+import { marketplaceOrderSaleUnitLabel } from 'src/shared/lib/consts/marketplace-units';
 import { useMarketplaceRealtime } from 'src/shared/lib/marketplace';
 import {
   listStock,
@@ -37,16 +38,21 @@ const emit = defineEmits<{ (e: 'count', value: number): void }>();
 
 const items = ref<MarketplaceInventoryItemView[]>([]);
 const loading = ref(true);
+/** Скелетон — только на первой загрузке; дочитка обновляет молча. */
+const firstLoad = useFirstLoad(loading);
 const selected = ref<Set<string>>(new Set());
 watch(items, (v) => emit('count', v.length), { immediate: true });
 
-const skeletonColumns: TableSkeletonColumn[] = [
-  { cell: 'icon', width: '40px' },
-  { label: 'Товар', cell: 'text' },
-  { label: 'Кол-во', class: 'num', cell: 'text', cellWidth: '80px' },
-  { label: 'Цена прибытия', class: 'num', cell: 'text', cellWidth: '100px' },
-  { label: 'Годен до', cell: 'text', cellWidth: '100px' },
-  { label: 'Состояние', cell: 'badge' },
+// Выбор ведём своей колонкой, а не галочками таблицы: зарезервированную под
+// заказ позицию выбирать нельзя, и встроенный выбор таблицы такого различия
+// не делает.
+const columns: BaseTableColumn<MarketplaceInventoryItemView>[] = [
+  { key: 'pick', label: '', width: '56px' },
+  { key: 'product', label: 'Товар', width: '280px', sortable: true, field: 'product_name_snapshot' },
+  { key: 'quantity', label: 'Кол-во', width: '130px', numeric: true },
+  { key: 'price', label: 'Цена прибытия', width: '160px', numeric: true },
+  { key: 'expiry', label: 'Годен до', width: '130px', nowrap: true },
+  { key: 'state', label: 'Состояние', width: '170px' },
 ];
 
 const publishDialogOpen = ref(false);
@@ -91,7 +97,14 @@ const STATE_BADGE: Record<StockState, { label: string; variant: 'neutral' | 'pos
   reserved: { label: 'Зарезервирована', variant: 'info' },
 };
 
+function isWarrantyReturn(i: MarketplaceInventoryItemView): boolean {
+  return i.origin === 'WARRANTY_RETURN';
+}
+
 const selectedItems = computed(() => items.value.filter((i) => selected.value.has(i.id)));
+// Возвращённое по гарантии публикуется как обычный остаток, но оператор обязан
+// понимать, что выставляет на витрину имущество, по которому была рекламация.
+const selectedWarrantyReturns = computed(() => selectedItems.value.filter(isWarrantyReturn));
 const selectedFree = computed(() => selectedItems.value.filter((i) => stateOf(i) === 'free'));
 const selectedPublished = computed(() =>
   selectedItems.value.filter((i) => stateOf(i) === 'published'),
@@ -105,8 +118,7 @@ function toggle(id: string): void {
 }
 
 function quantityLabel(i: MarketplaceInventoryItemView): string {
-  const saleUnit = marketplaceOrderSaleUnit(i.quantity_per_label, i.unit_of_measure, i.package_size);
-  return `${saleUnit.units}×${saleUnit.unitLabel}`;
+  return marketplaceOrderSaleUnitLabel(i.quantity_per_label, i.unit_of_measure, i.package_size);
 }
 
 function expiryLabel(i: MarketplaceInventoryItemView): string {
@@ -158,14 +170,8 @@ async function unpublishSelected(): Promise<void> {
 </script>
 
 <template lang="pug">
-TableSkeleton(
-  v-if='loading && !items.length',
-  :columns='skeletonColumns',
-  :rows='4'
-)
-
 EmptyState(
-  v-else-if='!items.length',
+  v-if='!firstLoad && !items.length',
   title='Остатков нет',
   body='Здесь появятся обезличенные позиции склада после недовыдач и отказов от получения.'
 )
@@ -193,33 +199,33 @@ BaseCard.coop-stock(v-else)
         @click='openPublishDialog'
       ) Опубликовать ({{ selectedFree.length }})
 
-  .table-wrap
-    .table-scroll
-      table.table
-        thead
-          tr
-            th
-            th Товар
-            th.num Кол-во
-            th.num Цена прибытия
-            th Годен до
-            th Состояние
-        tbody
-          tr(v-for='i in items', :key='i.id')
-            td
-              q-checkbox(
-                :model-value='selected.has(i.id)',
-                :disable='stateOf(i) === "reserved"',
-                dense,
-                @update:model-value='toggle(i.id)'
-              )
-            td {{ i.product_name_snapshot }}
-            td.num {{ quantityLabel(i) }}
-            td.num {{ i.arrival_price ? formatAsset2Digits(i.arrival_price) + ' ₽' : '—' }}
-            td {{ expiryLabel(i) }}
-            td
-              BaseBadge(:variant='STATE_BADGE[stateOf(i)].variant', size='sm')
-                | {{ STATE_BADGE[stateOf(i)].label }}
+  BaseTable(
+    :columns='columns',
+    :rows='items',
+    row-key='id',
+    hover,
+    min-width='930px',
+    sort-by='product'
+  )
+    template(#cell-pick='{ row }')
+      q-checkbox(
+        :model-value='selected.has(row.id)',
+        :disable='stateOf(row) === "reserved"',
+        dense,
+        @update:model-value='toggle(row.id)'
+      )
+    template(#cell-product='{ row }')
+      | {{ row.product_name_snapshot }}
+      BaseBadge.q-ml-sm(v-if='isWarrantyReturn(row)', variant='warn', size='sm') Гарантийный возврат
+    template(#cell-quantity='{ row }')
+      | {{ quantityLabel(row) }}
+    template(#cell-price='{ row }')
+      | {{ row.arrival_price ? formatAsset2Digits(row.arrival_price) + ' ₽' : '—' }}
+    template(#cell-expiry='{ row }')
+      | {{ expiryLabel(row) }}
+    template(#cell-state='{ row }')
+      BaseBadge(:variant='STATE_BADGE[stateOf(row)].variant', size='sm')
+        | {{ STATE_BADGE[stateOf(row)].label }}
 
 BaseDialog(
   v-model='publishDialogOpen',
@@ -230,6 +236,12 @@ BaseDialog(
       | Выбранные позиции станут предложением от кооператива с мгновенной
       | выдачей со склада. База цены — цена прибытия; укажите меньшую,
       | чтобы продать с уценкой.
+    .banner.banner--warn(v-if='selectedWarrantyReturns.length')
+      q-icon.banner__icon(name='assignment_return', size='18px')
+      .banner__body
+        | Среди выбранного — имущество, возвращённое пайщиком по гарантии
+        | ({{ selectedWarrantyReturns.length }} поз.). Убедитесь, что оно пригодно к выдаче,
+        | прежде чем публиковать.
     BaseInput(
       v-model='publishPrice',
       label='Цена за единицу, ₽',

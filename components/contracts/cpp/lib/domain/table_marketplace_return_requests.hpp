@@ -2,6 +2,7 @@
 
 #include <eosio/asset.hpp>
 #include <eosio/crypto.hpp>
+#include <eosio/binary_extension.hpp>
 #include <eosio/eosio.hpp>
 #include <string>
 #include <vector>
@@ -27,6 +28,9 @@ using namespace eosio;
 namespace ReturnStatus {
   inline constexpr eosio::name PENDING_REVIEW       = "pendrev"_n;
   inline constexpr eosio::name APPROVED_FOR_VISIT   = "approvvisit"_n;
+  inline constexpr eosio::name RETURN_PENDING       = "retpend"_n;     ///< имущество принято оператором, ждём решение совета
+  inline constexpr eosio::name RETURN_DECLINED      = "retdecl"_n;     ///< совет отказал, имущество ждёт заказчика на участке
+  inline constexpr eosio::name FEE_PENDING          = "feepend"_n;     ///< совет «за», имущество и паевой возвращены; взнос ждёт пополнения общего кошелька участка (payretfee)
 }
 
 /**
@@ -52,13 +56,14 @@ namespace ReturnStatus {
  * (Story 7.1, AR32). Реальные изображения off-chain в file-storage (PR #359);
  * on-chain — только ссылки (hash для дедупликации + URL восстанавливает backend).
  *
- * `statement` — заявление пайщика на возврат (его подпись с submretrn).
- * При принятии возврата (accretrn) председатель накладывает на тот же
- * документ вторую подпись (канон двухподписных актов — без регенерации);
- * со-подписанная версия фиксируется аргументом действия в журнале, запись
- * при этом стирается. Отдельных документов решения председателя нет:
- * удалённое рассмотрение и отказы — процедурные действия с текстовой
- * причиной в аргументе действия.
+ * `statement` — рекламация пайщика: Заявление о гарантийном возврате
+ * имущества (1106) с его подписью (submretrn). `cancel_statement` —
+ * Заявление оператора участка в совет об отмене сделки (1116) с подписью
+ * оператора, принявшего имущество (accretrn); оно же — документ повестки
+ * совета. Пайщик ничего не вносит: по решению совета сделка отменяется и
+ * взносы восстанавливаются обратными операциями (задача 99D-12). Удалённое
+ * рассмотрение и отказы — процедурные действия с текстовой причиной в
+ * аргументе действия.
  */
 struct [[eosio::table, eosio::contract(MARKETPLACE)]] return_request {
   uint64_t id;
@@ -88,7 +93,16 @@ struct [[eosio::table, eosio::contract(MARKETPLACE)]] return_request {
   std::vector<checksum256> photos;                            ///< хеши файлов в bucket'е stol-zakazov:images
 
   eosio::name status = ReturnStatus::PENDING_REVIEW;
-  document2 statement;                                        ///< заявление пайщика (его подпись)
+  document2 statement;                                        ///< рекламация пайщика — Заявление о гарантийном возврате имущества (1106), его подпись
+  /// Момент приёма имущества оператором (accretrn). Выдача обратно до решения
+  /// совета не допускается, поэтому срока ожидания от него больше не считается
+  /// (задача 99D-16). binary_extension: у заявок, созданных
+  /// до паевой модели, значения нет — читать через value_or(time_point_sec(0)).
+  eosio::binary_extension<time_point_sec> accepted_at;
+  /// Заявление оператора участка в совет об отмене сделки (1116) с подписью
+  /// оператора, принявшего имущество (accretrn). binary_extension: у заявок,
+  /// принятых до задачи 99D-12, значения нет.
+  eosio::binary_extension<document2> cancel_statement;
 
   // Timestamp'ы submretrn/aprretrem/rejretrem/accretrn/rejretrn — на бэкенде
   // из blockchain_actions[at]. В контракте никаких guard'ов по датам нет.

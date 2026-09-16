@@ -71,8 +71,22 @@ export interface IWarehouseConfig {
   posting_on_reception_required: boolean;
 }
 
+/**
+ * Выдача из бандла у стойки: сколько заявлений о возврате паевого взноса
+ * имуществом подаётся в цепь одновременно. Позиции бандла не пересекаются по
+ * данным, цепь сама выстраивает транзакции, поэтому их можно вести параллельно;
+ * последовательная подача восьми позиций занимала 37 с и не укладывалась в
+ * таймаут запроса. Предел нужен, чтобы большой бандл не нагружал узел и
+ * робота совета разом.
+ */
+export interface IIssuanceConfig {
+  parallel_statements: number;
+}
+
 // Конфигурация для расширения marketplace
 export interface IConfig {
+  // Выдача из бандла: одновременность подачи заявлений.
+  issuance: IIssuanceConfig;
   // Story 1.9: статус принятия положения ЦПП Советом кооператива (системное
   // состояние, скрыто из формы установки).
   coopAcceptance: ICoopAcceptanceConfig;
@@ -85,6 +99,9 @@ export interface IConfig {
 
 // Дефолтные параметры конфигурации
 export const defaultConfig: IConfig = {
+  issuance: {
+    parallel_statements: 4,
+  },
   coopAcceptance: {
     accepted: false,
     document_registry_id: 0,
@@ -105,6 +122,29 @@ export const defaultConfig: IConfig = {
 // Схема валидации конфигурации. Описания полей (label/note) — на русском, для
 // формы установки расширения; системное состояние ЦПП скрыто (`visible: false`).
 export const Schema = z.object({
+  issuance: z
+    .object({
+      parallel_statements: z
+        .number()
+        .int()
+        .min(1)
+        .max(16)
+        .default(4)
+        .describe(
+          describeField({
+            label: 'Одновременно подаваемых заявлений при выдаче',
+            note: 'Сколько позиций бандла выдачи отправляются в цепь и на решение совета одновременно. Больше — быстрее выдача большого бандла, но выше разовая нагрузка на узел.',
+            rules: ['val >= 1', 'val <= 16'],
+          })
+        ),
+    })
+    .default({ parallel_statements: 4 })
+    .describe(
+      describeField({
+        label: 'Выдача имущества',
+        note: 'Настройки выдачи имущества из бандла у стойки.',
+      })
+    ),
   coopAcceptance: z
     .object({
       accepted: z.boolean().default(false),

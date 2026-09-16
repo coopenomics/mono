@@ -231,6 +231,11 @@ export class MarketplaceInventoryResolver {
       dto.package_size = display?.package_size ?? null;
       dto.delivery_point_name = display?.delivery_point_name ?? null;
       dto.delivery_point_address = display?.delivery_point_address ?? null;
+      // Предложение и категория — из того же батча по заказам. Позиция,
+      // опубликованную кооперативом остатком, ссылается на своё предложение
+      // (published_offer_id), обычная — на предложение исходного заказа.
+      dto.offer_id = item.published_offer_id ?? display?.offer_id ?? null;
+      dto.category_id = display?.category_id ?? null;
       return dto;
     });
   }

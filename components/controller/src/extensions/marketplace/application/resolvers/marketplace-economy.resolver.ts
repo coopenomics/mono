@@ -22,7 +22,6 @@ import {
   MarketplaceAidDTO,
   MarketplaceBranchEconomyDTO,
   MarketplaceBranchWalletOperationDTO,
-  MarketplaceConvertBranchFundsInputDTO,
   MarketplaceCreateAidInputDTO,
   MarketplaceDeleteTrusteeWeightInputDTO,
   MarketplaceDistributeBranchFundsInputDTO,
@@ -241,20 +240,6 @@ export class MarketplaceEconomyResolver {
     };
   }
 
-  @Mutation(() => Boolean, {
-    name: 'marketplaceConvertBranchFunds',
-    description:
-      'Перевести персональные членские средства в членский кошелёк «Стола заказов» — для заказа имущества как обычный пайщик.',
-  })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('Economy', 'use:own')
-  async marketplaceConvertBranchFunds(
-    @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
-    @Args('data') data: MarketplaceConvertBranchFundsInputDTO
-  ): Promise<boolean> {
-    await this.economyService.convertBranchFunds(platformSettings().coopname, member.username, data.amount);
-    return true;
-  }
 
   @Query(() => GeneratedDocumentDTO, {
     name: 'marketplaceAidStatementSignablePayload',

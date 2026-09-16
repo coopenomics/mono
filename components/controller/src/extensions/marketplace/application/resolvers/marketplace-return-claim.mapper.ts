@@ -4,6 +4,7 @@ import type {
   MarketplaceReturnClaimOnSiteInspection,
   MarketplaceReturnClaimPhoto,
 } from '../../domain/entities/marketplace-return-claim.types';
+import { MarketplaceReturnClaimDecisionModeEnum } from '../dto/marketplace-return-claim.dto';
 import type {
   MarketplaceReturnClaimDTO,
   MarketplaceReturnClaimDecisionEntryDTO,
@@ -71,12 +72,15 @@ export async function toMarketplaceReturnClaimDTO(
     decision_log: claim.decision_log.map((entry) => toDecisionEntryDTO(entry, chairmanNames, branchNames)),
     on_site_inspection: inspection,
     ledger_snapshot: claim.ledger_snapshot ? toLedgerSnapshotDTO(claim.ledger_snapshot) : null,
+    council_decision_id: claim.council_decision_id,
+    council_decision_mode: (claim.council_decision_mode as MarketplaceReturnClaimDecisionModeEnum | null) ?? null,
+    accepted_at: claim.accepted_at,
     created_at: claim.created_at,
     updated_at: claim.updated_at,
   };
 }
 
-async function toPhotoDTO(
+export async function toPhotoDTO(
   photo: MarketplaceReturnClaimPhoto,
   urlResolver: (bucket_key: string) => Promise<string>
 ): Promise<MarketplaceReturnClaimPhotoDTO> {
@@ -91,7 +95,7 @@ async function toPhotoDTO(
   };
 }
 
-function toDecisionEntryDTO(
+export function toDecisionEntryDTO(
   entry: MarketplaceReturnClaimDecisionLogEntry,
   chairmanNames?: Map<string, string | null>,
   branchNames?: Map<string, string | null>

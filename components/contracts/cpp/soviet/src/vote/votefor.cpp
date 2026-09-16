@@ -15,16 +15,23 @@ void add_vote_for(eosio::name coopname, eosio::name username, uint64_t decision_
 
 /**
  * @brief Голосование за решение совета
- * Позволяет члену совета голосовать за конкретное решение.
- * После голосования рассчитывается, превысило ли количество голосов "за" заданный процент консенсуса.
- * @param version Версия протокола
+ *
+ * Член совета голосует «за» по конкретному решению. Подпись голоса ставится над хэшем,
+ * привязанным к этому голосу (см. Automation::vote_digest), а ключ подписи обязан
+ * принадлежать указанному разрешению аккаунта члена совета: active — ручной голос,
+ * иное разрешение — голос робота по включённой автоматизации. Транзакцию подаёт либо
+ * сам член совета, либо кооператив (робот).
+ * После голосования рассчитывается, превысило ли количество голосов «за» порог консенсуса.
+ *
+ * @param version Версия протокола подписи голоса
  * @param coopname Наименование кооператива
  * @param username Наименование члена совета, голосующего за решение
  * @param decision_id Идентификатор решения для голосования
  * @param signed_at Время подписи
- * @param signed_hash Подписанный хеш
+ * @param signed_hash Подписанный хэш (привязан к действию, кооперативу, решению и времени)
  * @param signature Подпись
- * @param public_key Публичный ключ
+ * @param public_key Публичный ключ подписи
+ * @param permission Разрешение аккаунта члена совета, которому принадлежит ключ подписи
  * @ingroup public_actions
  * @ingroup public_soviet_actions
 
@@ -38,7 +45,8 @@ void soviet::votefor(
   eosio::time_point_sec signed_at,
   checksum256 signed_hash,
   eosio::signature signature,
-  eosio::public_key public_key
+  eosio::public_key public_key,
+  eosio::name permission
 ) { 
   if (!has_auth(username)) {
     require_auth(coopname);
@@ -46,13 +54,7 @@ void soviet::votefor(
     require_auth(username);
   }
   eosio::check(version == "1.0.0", "Неверная версия");
-  
-  // Проверка соответствия ID решения
-  // eosio::check(signed_at <= eosio::current_time_point(), "Время подписи не может быть в будущем");
-  
-  // Проверка подписи
-  assert_recover_key(signed_hash, signature, public_key);
-  
+
   // Ищем решение по ID
   decisions_index decisions(_soviet, coopname.value);
   auto decision = decisions.find(decision_id);
@@ -62,6 +64,16 @@ void soviet::votefor(
   eosio::check(board.is_voting_member(username), "У вас нет права голоса");
   
   decision->check_for_any_vote_exist(username); 
+
+  // Хэш голоса привязан к действию, кооперативу, решению и времени подписи:
+  // подпись нельзя переиспользовать для другого решения или голоса «против».
+  eosio::check(signed_hash == Automation::vote_digest("votefor"_n, coopname, decision_id, signed_at),
+               "Подписанный хэш не соответствует голосу за это решение");
+
+  // Ключ подписи принадлежит разрешению аккаунта члена совета; для разрешения робота —
+  // ещё и включена автоматизация по типу решения.
+  Automation::verify_member_signature(coopname, username, permission, decision->type, Automation::Kind::vote,
+                                      signed_hash, signature, public_key);
 
   auto [votes_for_count, votes_against_count] = decision->get_votes_count();
 
@@ -75,4 +87,3 @@ void soviet::votefor(
 
   add_vote_for(coopname, username, decision->id, approved);
 };
-

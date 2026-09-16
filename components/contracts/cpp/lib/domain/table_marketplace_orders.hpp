@@ -2,6 +2,7 @@
 
 #include <eosio/asset.hpp>
 #include <eosio/crypto.hpp>
+#include <eosio/binary_extension.hpp>
 #include <eosio/eosio.hpp>
 #include <string>
 
@@ -19,8 +20,14 @@ using namespace eosio;
  * Граф: ∅ → active → терминал-отмена (cancelorder | expireorder | declineorder
  *                    стирают запись из RAM — статуса «отменён» в таблице нет,
  *                    история в журнале действий)
- *                  → accepted → supply_prepared → accepted_to_coop
- *                                               → ready_to_receive → received
+ *                  → accepted → supplyprep → acceptcoop → readyrecv
+ *                  acceptcoop → refused (отказ пайщика после приёмки при
+ *                    незавершённой выплате поставщику: заказ живёт до
+ *                    подтверждения кассира, payconfirm стирает его сам)
+ *                  → issuepend → issueauth → issueact1 → received
+ *                  (паевая модель: заявление → протокол совета → акт первой
+ *                  подписью заказчика → закрывающая подпись председателя;
+ *                  onmktisdecl и cancelissue возвращают в readyrecv)
  *
  * Источник правды — `p.mkt.supply.standard.yaml` секция `states:`.
  *
@@ -36,7 +43,11 @@ namespace OrderStatus {
   inline constexpr eosio::name SUPPLY_PREPARED  = "supplyprep"_n;
   inline constexpr eosio::name ACCEPTED_TO_COOP = "acceptcoop"_n;
   inline constexpr eosio::name READY_TO_RECEIVE = "readyrecv"_n;
+  inline constexpr eosio::name ISSUE_PENDING    = "issuepend"_n;   ///< заявление о возврате паевого взноса имуществом подано, ждём решение совета
+  inline constexpr eosio::name ISSUE_AUTHORIZED = "issueauth"_n;   ///< протокол совета получен, ждём первую подпись акта заказчиком
+  inline constexpr eosio::name ISSUE_ACT1       = "issueact1"_n;   ///< акт подписан заказчиком, ждём закрывающую подпись председателя участка
   inline constexpr eosio::name RECEIVED         = "received"_n;
+  inline constexpr eosio::name REFUSED          = "refused"_n;     ///< пайщик отказался после приёмки, долг поставщику ещё не погашен: запись ждёт payconfirm и стирается им
 }
 
 /**
@@ -47,9 +58,9 @@ namespace OrderStatus {
  * Допустимые переходы:
  *   none → pending             — `marketplace::payout` отправил inline в gateway.
  *   pending → completed        — gateway::outcomplete → callback `payconfirm`.
- *                                Здесь применяется o.mkt.payout (Дт 86 / Кт 51).
+ *                                Здесь применяется o.mkt.payout (Дт 76 / Кт 51).
  *   pending → declined         — gateway::outdecline → callback `paydecline`.
- *                                Без ledger-движения; обязательство Кт 86 остаётся.
+ *                                Без ledger-движения; обязательство Кт 76 остаётся.
  *   declined → pending         — повторная попытка `marketplace::payout` после
  *                                исправления реквизитов кассиром.
  */
@@ -59,6 +70,26 @@ namespace OrderPayoutStatus {
   inline constexpr eosio::name COMPLETED = "completed"_n;
   inline constexpr eosio::name DECLINED  = "declined"_n;
 }
+
+/**
+ * @brief Адресат перевода по Заявлению 1110: заказ и его доля перевода.
+ *
+ * Заявление подписывается одно на всё оформление, а нитка процесса ведётся по
+ * заказу — поэтому действие `convert` принимает разбивку суммы по заказам и
+ * эмитит `o.mkt.conv` отдельной операцией на каждый, с `process_hash =
+ * order_hash`. Так перевод становится первой операцией процесса поставки того
+ * заказа, который он оплачивает, и не заводит собственной нитки без анкера
+ * (уточнение владельца 08.09.2026: тип процесса один — идентификатор обязан
+ * совпадать).
+ *
+ * `order_hash` — тот же хэш, с которым заказ затем создаётся в `createorder`
+ * или `stockorder`; заказа на момент перевода ещё нет, поэтому существование
+ * записи не проверяется.
+ */
+struct convert_target {
+  checksum256  order_hash;                                    ///< Хэш заказа, который оплачивает эта часть перевода
+  eosio::asset amount = asset(0, _root_govern_symbol);        ///< Членская часть перевода под этот заказ
+};
 
 /**
  * @brief On-chain Order — анкер процесса p.mkt.supply.
@@ -77,13 +108,13 @@ namespace OrderPayoutStatus {
  *
  * Точки контракта:
  *  - `delivery_braname` — КУ выдачи имущества пайщику; задаётся пайщиком на
- *    createorder и неизменна. Источник проверки signiss1/signiss2/p.mkt.return.
+ *    createorder и неизменна. Источник проверки readyissue/issueact2/p.mkt.return.
  *  - `accept_braname`   — КУ приёмки от поставщика; заполняется на signsupp
  *    как параметр action'а (поставщик указывает, в какой КУ сдаёт партию).
  *    Источник проверки signchair.
  *  - `current_warehouse_braname` — текущая точка хранения имущества по этому
  *    Order'у. Заполняется на signchair (= `accept_braname`, имущество на
- *    приёмном складе) и обновляется на signiss1 (= `delivery_braname`, готово
+ *    приёмном складе) и обновляется на readyissue (= `delivery_braname`, готово
  *    к выдаче — фиксирует факт логистической передачи). Бездокументарно —
  *    промежуточные перемещения по заготовочным КУ контрактом не подписываются;
  *    точка хранения переходит «скачком» в момент готовности к выдаче.
@@ -103,10 +134,13 @@ namespace OrderPayoutStatus {
  * Order'ов в UI. Все per-batch операции на on-chain делаются per-Order
  * (backend проходит циклом по orders батча) — векторов order'ов в action'ах нет.
  *
- * `actual_quantity` / `fact_cost` заполняются на signiss2 (Story 6.2/6.3).
- * До signiss2 равны соответственно `quantity` / `total_cost`.
+ * `actual_quantity` / `fact_cost` — факт выдачи: фиксируются заявлением
+ * `issuestmt`, от них идут движения `issueact2` и расчёт гарантийного возврата.
+ * До заявления равны `quantity` / `total_cost`; `signchair` временно кладёт
+ * сюда факт приёмки. Принятая стоимость живёт отдельно в `accepted_cost` —
+ * выплата поставщику считается только от неё (задача 99D-14).
  *
- * `warranty_until` — рассчитывается в signiss2 как `now() + warranty_period_secs`
+ * `warranty_until` — рассчитывается в issueact2 как `now() + warranty_period_secs`
  * (period приходит с Offer'а через backend; в `submretrn` валидируется только это поле).
  */
 struct [[eosio::table, eosio::contract(MARKETPLACE)]] order {
@@ -117,27 +151,31 @@ struct [[eosio::table, eosio::contract(MARKETPLACE)]] order {
   eosio::name offerer;                                        ///< пайщик-поставщик из Offer'а (для acceptorder/declineorder/signsupp guard'а)
   checksum256 offer_hash;                                     ///< ссылка на Offer (off-chain в backend)
 
-  eosio::name delivery_braname;                               ///< КУ выдачи (выбран пайщиком на createorder); проверка signiss1/signiss2/p.mkt.return через Branch::is_user_authorized
+  eosio::name delivery_braname;                               ///< КУ выдачи (выбран пайщиком на createorder); проверка readyissue/issueact2/p.mkt.return через Branch::is_user_authorized
   eosio::name accept_braname;                                 ///< КУ приёмки от поставщика (заполняется на signsupp); проверка signchair через Branch::is_user_authorized
-  eosio::name current_warehouse_braname;                      ///< текущая точка хранения; signchair: = accept_braname; signiss1: = delivery_braname (фиксация готовности к выдаче)
+  eosio::name current_warehouse_braname;                      ///< текущая точка хранения; signchair: = accept_braname; readyissue: = delivery_braname (фиксация готовности к выдаче)
 
   eosio::asset quantity = asset(0, _unit_piece);              ///< заказанное количество (asset с символом единицы KG/LTR/PCS, Эпик 17)
-  eosio::asset actual_quantity = asset(0, _unit_piece);       ///< фактически выданное (signiss2); до signiss2 == quantity
+  eosio::asset actual_quantity = asset(0, _unit_piece);       ///< фактически выданное (issueact2); до issueact2 == quantity
   eosio::asset package_size = asset(0, _unit_piece);          ///< Эпик 18: содержимое упаковки в базовой единице. 0 = отпуск по мере (unit_price за базовую единицу); >0 = упаковкой (unit_price за упаковку, quantity/actual_quantity кратны package_size)
   eosio::asset unit_price = asset(0, _root_govern_symbol);    ///< цена за единицу отпуска: за базовую единицу (кг/литр/штуку) при package_size==0, либо за упаковку при package_size>0
   eosio::asset total_cost = asset(0, _root_govern_symbol);    ///< quantity * unit_price / 10^precision (заблокированная сумма)
-  eosio::asset fact_cost  = asset(0, _root_govern_symbol);    ///< actual_quantity * unit_price / 10^precision (после signiss2)
+  eosio::asset fact_cost  = asset(0, _root_govern_symbol);    ///< actual_quantity * unit_price / 10^precision (после issueact2)
 
   uint32_t warranty_period_secs = 0;                          ///< из Offer'а — для submretrn гард'а
-  time_point_sec warranty_until = time_point_sec(0);          ///< now() + warranty_period_secs (заполняется в signiss2)
+  time_point_sec warranty_until = time_point_sec(0);          ///< now() + warranty_period_secs (заполняется в issueact2)
 
   eosio::name status = OrderStatus::ACTIVE;                   ///< canonical статус
   checksum256 batch_hash;                                     ///< opaque ссылка на consolidated request (off-chain)
 
   document2 acceptance_act_signsupp;                          ///< АПП приёмки — первая подпись поставщика (signsupp)
   document2 acceptance_act_signchair;                         ///< АПП приёмки — финальная подпись председателя приёмного КУ (signchair)
-  document2 issue_act_signiss1;                               ///< АПП выдачи — первая подпись председателя КУ выдачи (signiss1)
-  document2 issue_act_signiss2;                               ///< АПП выдачи — финальная подпись заказчика (signiss2)
+  // Раскладка совместима со строками членской модели на живых стендах: два
+  // слота document2 прежних актов выдачи (issue_act_signiss1/2) заняты актом
+  // 1115 (первая и закрывающая подписи), а заявление и протокол добавлены в
+  // хвост как binary_extension — старые строки читаются без миграции.
+  document2 issue_act1;                                       ///< Акт приёма-передачи (1115) — первая подпись заказчика (issueact1); слот прежнего issue_act_signiss1
+  document2 issue_act2;                                       ///< Акт приёма-передачи (1115) — закрывающая подпись председателя участка выдачи (issueact2); слот прежнего issue_act_signiss2
 
   eosio::name payout_status = OrderPayoutStatus::NONE;        ///< Locked Decision L12 — состояние выплаты поставщику через gateway (см. namespace OrderPayoutStatus)
   std::string payout_decline_reason;                          ///< Заполняется только при payout_status == DECLINED (текст причины из gateway::outdecline)
@@ -162,6 +200,26 @@ struct [[eosio::table, eosio::contract(MARKETPLACE)]] order {
    * Ноль — взнос не начислялся.
    */
   eosio::asset membership_fee = asset(0, _root_govern_symbol);
+
+  /// Заявление о возврате паевого взноса имуществом (1113) — подпись заказчика
+  /// (issuestmt). binary_extension: у строк, созданных до паевой модели, значения
+  /// нет — читать через value_or(document2{}).
+  eosio::binary_extension<document2> issue_statement;
+  /// Протокол решения совета о возврате паевого взноса имуществом (1114) — из
+  /// обратного вызова onmktisauth. binary_extension, как и issue_statement.
+  eosio::binary_extension<document2> issue_protocol;
+  /// Часть выплаты поставщику, удержанная в счёт его признанного гарантийного
+  /// долга (w.mkt.debt) при инициации выплаты (`payout`); по подтверждению
+  /// кассира (`payconfirm`) на неё ставится o.mkt.deduct. binary_extension:
+  /// у прежних заказов значения нет — читать через value_or(asset(0, …)).
+  eosio::binary_extension<eosio::asset> payout_withheld;
+  /// Принятая стоимость по закрывающей подписи акта приёмки (`signchair`):
+  /// основание Дт 10 / Кт 76 и единственная база суммы выплаты поставщику
+  /// (`payout` / `payconfirm`). Заявление о выдаче её не трогает — `fact_cost`
+  /// перезаписывается фактом выдачи, а долг поставщику от выдачи не зависит
+  /// (задача 99D-14). binary_extension: у заказов, принятых до этого поля,
+  /// значения нет — читать через `Marketplace::get_accepted_cost`.
+  eosio::binary_extension<eosio::asset> accepted_cost;
 
   // Все timestamp'ы переходов состояний (createorder/accepted/received_to_coop/
   // ready/received/cancelled) восстанавливаются на бэкенде из blockchain_actions[at]

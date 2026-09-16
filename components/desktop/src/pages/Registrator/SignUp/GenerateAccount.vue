@@ -133,6 +133,9 @@ const setAccount = async () => {
       cooperativeDisplayName: system.cooperativeDisplayName,
     });
 
+    // Шага «У меня есть карта» здесь больше нет: карта нужна ДО анкеты, чтобы перенести
+    // её данные, и предлагается на первом шаге вместе с почтой (владелец 03.09.2026).
+    // Кто регистрировался почтой — свяжет карту позже, из раздела «Карта кооператора».
     if (store.isBranched) store.goTo('SelectBranch');
     else store.goTo('ReadStatement');
   } catch (e: any) {

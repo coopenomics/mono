@@ -1,38 +1,14 @@
 /**
- * @brief Заказ имущества из обезличенного остатка склада кооператива
- * (requirement 76 «Склад кооператива на КУ», p.mkt.supply).
+ * @brief Заказ из обезличенного остатка склада кооператива (паевая модель,
+ * компонент 68). Продавец — сам кооператив (`offerer == coopname`), имущество
+ * уже на счёте 10 после ранее закрытых приёмок, поэтому заказ создаётся сразу
+ * в `acceptcoop` и идёт только через выдачу (readyissue → issuestmt → … →
+ * issueact2). Этапы поставки и выплата поставщику для него не существуют.
  *
- * Продавец — сам кооператив: имущество уже принято на склад по ранее
- * закрытым АПП приёмки (числится на счёте 10 после o.mkt.purch) и
- * перепредлагается пайщикам после недовыдачи / отказа от излишка.
- * Поэтому Order создаётся сразу в статусе `acceptcoop` — этапы поставки
- * (acceptorder / signsupp / signchair) и выплата поставщику (payout)
- * для него не существуют: дальше работает только штатная выдача
- * signiss1 → signiss2 (o.mkt.consum, Дт 86 / Кт 10).
- *
- * Маркер заказа из остатка — `order.offerer == coopname` (кооператив-продавец).
- * По нему `cancelorder` разрешает отмену в `acceptcoop` (откат оператора
- * до своей подписи), а `payout` отклоняет попытку выплаты.
- *
- * Фондируется ВСЕГДА из членского кошелька «Стола заказов» пайщика начисто
- * (без паевого), две ledger2-операции (оба кошелька на 86, без проводок):
- *  - `o.mkt.lockm`  (TRANSFER w.mkt.member → w.mkt.order  на total_cost) — тело;
- *  - `o.mkt.lockmf` (TRANSFER w.mkt.member → w.mkt.fee    на взнос)      — взнос.
- * Паевой взнос пополняет членский кошелёк ЗАРАНЕЕ отдельным действием `convert`
- * (Заявление о конвертации). При замене непоставленного на свободный остаток
- * высвобожденные отменой средства уже лежат в w.mkt.member — заказ создаётся
- * без конвертации и без доплаты с паевого.
- *
- * Guards (зеркало createorder + специфика остатка):
- *  - quantity > 0; unit_price > 0 в _root_govern_symbol (цена публикации
- *    остатка: цена прибытия либо уценка — requirement 76, решение 12).
- *  - Order с таким hash ещё не создан (idempotency).
- *  - Заказчик — активный пайщик кооператива.
- *  - `delivery_braname` существует: КУ, на складе которого лежит остаток;
- *    он же — КУ выдачи (`accept_braname` и `current_warehouse_braname`
- *    равны ему: имущество уже на месте, логистики нет).
- *  - w.mkt.member.available заказчика >= total_cost + взнос (членских средств
- *    должно хватать; недостающее конвертируется заранее через `convert`).
+ * Фондируется как обычный заказ: взнос участка — с внутреннего членского
+ * кошелька (o.mkt.fee), тело — сначала со свободного паевого «Стола заказов»
+ * (o.mkt.lockp), остаток с главного паевого Цифрового кошелька (o.mkt.lock).
+ * Недостающее пайщик заранее перевёл действием `convert` по заявлению 1110.
  *
  * @ingroup public_marketplace_actions
  */
@@ -60,8 +36,8 @@ void marketplace::stockorder(eosio::name coopname,
   eosio::check(!Marketplace::get_order_by_hash(coopname, order_hash).has_value(),
                "Заказ с таким идентификатором уже создан");
 
-  // Заказчик — активный пайщик кооператива (бросает если не найден / blocked)
-  get_participant_or_fail(coopname, orderer);
+  // Заказчик — действующий пайщик без начатого выхода
+  get_active_participant_or_fail(coopname, orderer);
 
   // КУ, на складе которого лежит остаток; он же — КУ выдачи
   get_branch_or_fail(coopname, delivery_braname);
@@ -75,20 +51,17 @@ void marketplace::stockorder(eosio::name coopname,
   const eosio::asset membership_fee = Marketplace::calc_membership_fee(
       total_cost, Marketplace::get_membership_fee_percent(coopname));
 
-  // ── Достаточность ЧЛЕНСКИХ средств: w.mkt.member.available >= тело + взнос ──
-  //    Заказ из остатка фондируется только из членского кошелька; если средств
-  //    не хватает, пайщик сперва пополняет его действием `convert` (с паевого).
-  const eosio::asset required_total = total_cost + membership_fee;
-  auto bal_member = Marketplace::get_user_wallet_balance(
-      coopname, ledger2_wallets::MARKETPLACE_MEMBER_FUND, orderer);
-  eosio::check(bal_member.available >= required_total,
-               std::string{"Недостаточно членских средств «Стола заказов» для заказа из остатка: требуется "} +
-                 required_total.to_string() +
-                 (membership_fee.amount > 0
-                      ? " (включая членский взнос " + membership_fee.to_string() + ")"
-                      : "") +
-                 ", доступно " + bal_member.available.to_string() +
-                 ". Сперва переведите паевой в членский (конвертация).");
+  // ── Членского кошелька обязано хватать на взнос; тело — паевыми кошельками ──
+  Marketplace::require_member_fee(coopname, orderer, membership_fee);
+  {
+    auto program = Marketplace::get_user_wallet_balance(coopname, ledger2_wallets::MARKETPLACE_SHARE_FUND, orderer);
+    auto wallet  = Marketplace::get_user_wallet_balance(coopname, ledger2_wallets::SHARE_FUND_PAY, orderer);
+    eosio::check(program.available + wallet.available >= total_cost,
+                 std::string{"Недостаточно паевых средств для заказа из остатка: требуется "} + total_cost.to_string() +
+                   ", доступно " + (program.available + wallet.available).to_string() +
+                   " (свободный паевой Стола заказов " + program.available.to_string() +
+                   " и Цифровой кошелёк " + wallet.available.to_string() + ")");
+  }
 
   // ── Создание Order entity сразу в acceptcoop ─────────────────────────
   orders_index orders(_marketplace, coopname.value);
@@ -107,11 +80,11 @@ void marketplace::stockorder(eosio::name coopname,
     o.current_warehouse_braname = delivery_braname;
 
     o.quantity        = quantity;
-    o.actual_quantity = quantity;          // до signiss2 == quantity
+    o.actual_quantity = quantity;          // до issuestmt == quantity
     o.package_size    = package_size;      // Эпик 18: 0 = по мере, >0 = упаковкой
     o.unit_price      = unit_price;
     o.total_cost      = total_cost;
-    o.fact_cost       = total_cost;        // до signiss2 == total_cost
+    o.fact_cost       = total_cost;        // до issuestmt == total_cost
 
     o.warranty_period_secs = warranty_period_secs;
 
@@ -122,21 +95,11 @@ void marketplace::stockorder(eosio::name coopname,
     o.markdown_cost  = eosio::asset(0, _root_govern_symbol);
     o.membership_fee = membership_fee;
   });
-
-  // ── o.mkt.lockm: тело — TRANSFER w.mkt.member → w.mkt.order (без Dr/Cr) ──
-  Ledger2::apply(_marketplace, coopname,
-                 operations::marketplace::LOCK_FROM_MEMBER,
-                 processes::marketplace::SUPPLY,
-                 total_cost, orderer, order_hash,
-                 Marketplace::Memo::get_stock_order_block_memo(new_id));
-
-  // ── o.mkt.lockmf: членский взнос — TRANSFER w.mkt.member → w.mkt.fee
-  //    (без Dr/Cr, оба на 86); ставка зафиксирована в Order.membership_fee ──
-  if (membership_fee.amount > 0) {
-    Ledger2::apply(_marketplace, coopname,
-                   operations::marketplace::LOCK_FEE_FROM_MEMBER,
-                   processes::marketplace::SUPPLY,
-                   membership_fee, orderer, order_hash,
-                   Marketplace::Memo::get_membership_fee_lock_memo(new_id));
-  }
+  // ── o.mkt.fee: взнос с внутреннего членского кошелька (внутри 86) ──
+  Marketplace::lock_membership_fee(coopname, new_id, orderer, order_hash, membership_fee,
+                                   Marketplace::Memo::get_membership_fee_lock_memo(new_id));
+  // ── тело: o.mkt.lockp со свободного паевого программы, остаток o.mkt.lock с ЦК ──
+  Marketplace::lock_order_body(coopname, new_id, orderer, order_hash, total_cost,
+                               Marketplace::Memo::get_stock_order_block_memo(new_id),
+                               Marketplace::Memo::get_create_order_block_memo(new_id));
 }

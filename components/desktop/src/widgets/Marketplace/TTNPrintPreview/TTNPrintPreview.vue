@@ -54,7 +54,7 @@
 
       <div class="mp-ttn__section-title">1. Товарный раздел (заполняется грузоотправителем)</div>
 
-      <table class="mp-ttn__items">
+      <BaseMarkupTable class="mp-ttn__items" separator="cell" flat>
         <thead>
           <tr>
             <th>№</th>
@@ -92,7 +92,7 @@
             <td class="text-right"><strong>{{ formatPrice(total) }}</strong></td>
           </tr>
         </tfoot>
-      </table>
+      </BaseMarkupTable>
 
       <div class="mp-ttn__total-line">
         Всего мест (коробок): <strong>{{ totalBoxes != null ? totalBoxes : '—' }}</strong>
@@ -125,54 +125,9 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch, type PropType } from 'vue'
 import QRCode from 'qrcode'
-import { BaseButton } from 'src/shared/ui/base'
+import { BaseButton, BaseMarkupTable } from 'src/shared/ui/base'
 import { SuccessAlert } from 'src/shared/api'
-
-export interface TTNItem {
-  sku: string
-  title: string
-  qty: number
-  unit: string
-  price: number
-  /** Штук имущества в одной коробке (экспедиторская упаковка партии). */
-  unitsPerBox?: number
-  /** Коробок в строке = ceil(qty / unitsPerBox). */
-  boxes?: number
-}
-
-export interface TTNData {
-  number: string
-  date: string | Date
-  /** Грузоотправитель — поставщик (орг-или-ФИО, не braname). */
-  supplier: string
-  /** Грузополучатель / ПВЗ — название КУ. */
-  recipient: string
-  /** Адрес КУ-получателя — «куда везти». */
-  recipientAddress?: string
-  /** Перевозчик: ФИО экспедитора (подписант ТТН). */
-  expeditorName?: string
-  /** Телефон экспедитора. */
-  expeditorPhone?: string
-  /** Госномер ТС. */
-  vehicleNumber?: string
-  /** Адрес погрузки (склад поставщика). */
-  loadingAddress?: string
-  /** Дата погрузки. */
-  loadingDatetime?: string
-  /** Расчётная дата доставки на КУ. */
-  deliveryEstimate?: string
-  items: TTNItem[]
-  /** Оператор/председатель КУ — подпись приёмки (заполняется на месте, от руки). */
-  acceptedBy?: string
-  /**
-   * Код приёмки партии (shipment-bound handoff-токен). Печатается на ТТН как QR:
-   * оператор КУ сканирует его и принимает СТРОГО состав этой партии (экспедитор
-   * не пайщик — приёмка по накладной, а не по аккаунту).
-   */
-  qrValue?: string
-  /** Тот же код текстом — для ручного ввода оператором без камеры. */
-  qrCode?: string
-}
+import type { TTNData } from './TTNPrintPreview.types'
 
 const props = defineProps({
   data: { type: Object as PropType<TTNData>, required: true },
@@ -296,8 +251,12 @@ const PRINT_CSS = `
   .mp-ttn__party-lbl { flex: 0 0 42mm; color: #555; }
   .mp-ttn__party-val { flex: 1; font-weight: 600; }
   .mp-ttn__section-title { font-size: 9.5pt; font-weight: 700; margin-bottom: 1.5mm; }
-  .mp-ttn__items { width: 100%; border-collapse: collapse; font-size: 9pt; margin-bottom: 3mm; }
-  .mp-ttn__items th, .mp-ttn__items td { border: 1px solid #111; padding: 1.5mm 2mm; text-align: center; }
+  /* Товарный раздел рисует канон-обёртка (q-markup-table): в печатном
+     документе Quasar-стилей нет, поэтому вид листа полностью задаётся здесь,
+     а класс висит на обёртке — сама таблица её потомок. */
+  .mp-ttn__items { font-size: 9pt; margin-bottom: 3mm; background: transparent; box-shadow: none; overflow: visible; }
+  .mp-ttn__items table { width: 100%; border-collapse: collapse; }
+  .mp-ttn__items th, .mp-ttn__items td { border: 1px solid #111; padding: 1.5mm 2mm; text-align: center; height: auto; }
   .mp-ttn__items th { background: #f0f0f0; font-weight: 600; }
   .mp-ttn__items .mp-ttn__cell-name { text-align: left; }
   .mp-ttn__items .mp-ttn__foot-label { text-align: left; font-weight: 600; }
@@ -481,22 +440,36 @@ function download() {
     margin-bottom: 1.5mm;
   }
 
+  // Товарный раздел — канон-обёртка над q-markup-table. Лист печатный, поэтому
+  // отступы и рамки ячеек задаёт сам документ: предпросмотр обязан выглядеть
+  // ровно так же, как бумага, а не как экранная таблица платформы.
   &__items {
-    width: 100%;
-    border-collapse: collapse;
     font-size: 9pt;
     margin-bottom: 3mm;
+    background: transparent;
 
-    th, td {
+    :deep(table) {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    :deep(th),
+    :deep(td) {
       border: 1px solid #111;
       padding: 1.5mm 2mm;
       text-align: center;
+      height: auto;
+      font-size: 9pt;
+      color: #111;
     }
-    th { background: #f0f0f0; font-weight: 600; }
+    :deep(th) {
+      background: #f0f0f0;
+      font-weight: 600;
+    }
 
-    .text-right { text-align: right; }
-    .mp-ttn__cell-name { text-align: left; }
-    .mp-ttn__foot-label { text-align: left; font-weight: 600; }
+    :deep(.text-right) { text-align: right; }
+    :deep(.mp-ttn__cell-name) { text-align: left; }
+    :deep(.mp-ttn__foot-label) { text-align: left; font-weight: 600; }
   }
 
   &__total-line {

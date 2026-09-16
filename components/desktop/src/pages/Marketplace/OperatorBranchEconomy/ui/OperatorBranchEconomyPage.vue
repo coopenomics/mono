@@ -1,17 +1,26 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useFirstLoad } from 'src/shared/lib/composables'
+import { useRoute } from 'vue-router'
 import { Zeus } from '@coopenomics/sdk'
 import { FailAlert, SuccessAlert } from 'src/shared/api'
 import { useSessionStore } from 'src/entities/Session'
 import { OperatorBranchBar, useOperatorBranchStore } from 'src/entities/OperatorBranch'
 import { DigitalDocument } from 'src/shared/lib/document'
-import { BaseBadge, BaseButton, BaseCard, BaseDialog, BaseInput, BaseSelect, EmptyState, TableSkeleton } from 'src/shared/ui/base'
-import type { BaseBadgeVariant, TableSkeletonColumn } from 'src/shared/ui/base'
+import { BaseBadge, BaseButton, BaseCard, BaseDialog, BaseInput, BaseSelect, BaseTable, EmptyState } from 'src/shared/ui/base'
+import type { BaseBadgeVariant, BaseTableColumn } from 'src/shared/ui/base'
 import { AmountInput, PageHint, WalletCard } from 'src/shared/ui/domain'
 import { ExpenseCreateDialog, type ExpenseCreatePayload } from 'src/shared/ui/domain/ExpenseCreateDialog'
 import { PaymentMethodSelect } from 'src/shared/ui/domain/PaymentMethodSelect'
 import { PageTabs, type PageTab } from 'src/shared/ui/layout'
+import { TurnoverTop } from 'src/widgets/Marketplace/TurnoverTop'
+import { OrderRegistryOverlay } from 'src/widgets/Marketplace/OrderRegistryOverlay'
+import { useQueryOverlay } from 'src/shared/lib/navigation'
+import { listInventory, type MarketplaceInventoryItemView } from 'src/entities/MarketplaceInventory'
+import {
+  fetchOrdersForTurnover,
+  type MarketplaceOrderListView,
+} from 'src/entities/MarketplaceOrder'
 import { formatDateToLocalTimezone } from 'src/shared/lib/utils/dates'
 import { formatAsset2Digits } from 'src/shared/lib/utils'
 import { operationLabel, formatProcessAmount } from 'src/shared/lib/ledger2'
@@ -23,7 +32,6 @@ import {
   type MarketplaceBranchEconomyView,
   type MarketplaceBranchWalletHistoryView,
   type MarketplacePersonalWalletHistoryView,
-  convertBranchFunds,
   createAid,
   createBranchExpense,
   type ICreateBranchExpenseInput,
@@ -45,10 +53,10 @@ import {
  * Стол ПВЗ → «Экономика участка» (requirement b6, раунд 5 — приоритет
  * общего кошелька). Зоны:
  *
- *  1. «Мои средства» — персональный кошелёк членских средств текущего
- *     оператора: перевод в членский кошелёк Стола заказов (заказы себе)
- *     либо материальная помощь (заявление → решение совета → выплата
- *     кассиром). НДФЛ кооператив удерживает сам: заявление подаётся на
+ *  1. «Мои средства» — персональный кошелёк распределённых средств
+ *     текущего оператора: материальная помощь (заявление → решение совета →
+ *     выплата кассиром). Перевода в Стол заказов нет — в паевой модели заказы
+ *     оплачиваются паевым взносом из Кошелька. НДФЛ кооператив удерживает сам: заявление подаётся на
  *     сумму до налога, на счёт приходит остаток.
  *  2. «Общий кошелёк участка» — сюда приходит 100% членских взносов
  *     исполненных заказов; показатели «Резерв на 30 дней» и «Доступно к
@@ -62,7 +70,7 @@ import {
  */
 
 const route = useRoute()
-const router = useRouter()
+const orderOverlay = useQueryOverlay('order')
 const session = useSessionStore()
 const store = useOperatorBranchStore()
 
@@ -74,6 +82,8 @@ const isBranchTrustee = computed(
 )
 
 const loading = ref(true)
+/** Скелетон — только на первой загрузке; дочитка обновляет молча. */
+const firstLoad = useFirstLoad(loading)
 const economy = ref<MarketplaceBranchEconomyView | null>(null)
 const plans = ref<ExpensePlanView[]>([])
 const personalBalance = ref('')
@@ -83,26 +93,69 @@ const personalWalletHistory = ref<MarketplacePersonalWalletHistoryView['items']>
 
 // ─── Табы страницы (requirement — переверстка без изменения логики) ───
 
-const activeKey = ref<'wallet' | 'expenses' | 'distribution' | 'personal'>('wallet')
+const activeKey = ref<'wallet' | 'turnover' | 'expenses' | 'distribution' | 'personal'>('wallet')
 
 const tabs = computed<PageTab[]>(() => [
   { key: 'wallet', label: 'Кошелёк участка' },
+  { key: 'turnover', label: 'Оборот' },
   { key: 'expenses', label: 'Плановые расходы', count: plans.value.length || undefined },
   { key: 'distribution', label: 'Распределение', count: economy.value?.weights.length || undefined },
   { key: 'personal', label: 'Мои средства' },
 ])
 
+// ─── Оборот участка ───
+// Тот же раздел, что на «Экономике» кооператива, только данные своего участка:
+// сколько имущества принято на склад и на какую сумму, сколько выдано
+// пайщикам и сколько участок заработал наценкой.
+const turnoverPeriodDays = ref<number>(30)
+const turnoverInventory = ref<MarketplaceInventoryItemView[]>([])
+const turnoverOrders = ref<MarketplaceOrderListView[]>([])
+const turnoverLoading = ref(true)
+
+/** Сколько исполненных заказов забираем под свод: хвост старше периода не нужен. */
+const TURNOVER_ORDERS_LIMIT = 500
+
+async function loadTurnover(): Promise<void> {
+  if (!braname.value) return
+  turnoverLoading.value = true
+  try {
+    const [inventoryRows, orderRows] = await Promise.all([
+      listInventory({ braname: braname.value }),
+      fetchOrdersForTurnover({ braname: braname.value, limit: TURNOVER_ORDERS_LIMIT }),
+    ])
+    turnoverInventory.value = inventoryRows
+    turnoverOrders.value = orderRows
+  } catch (e) {
+    FailAlert(e, 'Не удалось загрузить оборот участка')
+  } finally {
+    turnoverLoading.value = false
+  }
+}
+
 function onSelectTab(tab: PageTab): void {
   activeKey.value = tab.key as typeof activeKey.value
 }
 
-// Переход из движения кошелька прямо на страницу заказа участка — там
-// состояние, документы и операции процесса поставки.
+// Заказ из движения кошелька раскрывается оверлеем прямо здесь: экономика
+// остаётся на месте со своей вкладкой и прокруткой, а на полную страницу
+// уводит кнопка «Открыть заказ» внутри оверлея — уход по нажатию на ссылку
+// сбрасывал оператора на другой раздел, и было непонятно, где он оказался.
 function goToOrder(orderId: string): void {
-  void router.push({
-    name: 'marketplace-pvz-order-detail',
-    params: { coopname: coopname.value, orderId },
-  })
+  orderOverlay.open(orderId)
+}
+
+/**
+ * Заказ стоит не за каждым движением: взносы и распределения приходят и без
+ * него. Поэтому нажатие работает построчно — там, где заказ есть, а не кнопкой
+ * в ячейке назначения: кнопка отнимала место у текста и заставляла целиться в
+ * неё вместо строки.
+ */
+function hasOrder(row: WalletHistoryRow): boolean {
+  return Boolean(row.order_id)
+}
+
+function openHistoryOrder(row: WalletHistoryRow): void {
+  if (row.order_id) goToOrder(row.order_id)
 }
 
 function assetAmount(asset: string): number {
@@ -171,9 +224,13 @@ async function loadAll(): Promise<void> {
 onMounted(async () => {
   await store.ensureLoaded(coopname.value)
   void loadAll()
+  void loadTurnover()
 })
 
-watch(braname, () => void loadAll())
+watch(braname, () => {
+  void loadAll()
+  void loadTurnover()
+})
 
 // ─── Ручное распределение из общего кошелька (председатель КУ) ───
 
@@ -203,21 +260,25 @@ async function onDistribute(): Promise<void> {
 
 // ─── Движения по общему кошельку (ledger2 через inter-порт) ───
 
-const historyColumns = computed<TableSkeletonColumn[]>(() => [
-  { label: 'Дата' },
-  { label: 'Операция' },
-  { label: 'Сумма', class: 'col-num' },
-  { label: 'Назначение' },
-])
+type WalletHistoryRow = MarketplaceBranchWalletHistoryView['items'][number]
+
+const historyColumns: BaseTableColumn<WalletHistoryRow>[] = [
+  { key: 'date', label: 'Дата', width: '170px', nowrap: true },
+  { key: 'operation', label: 'Операция', width: '260px' },
+  { key: 'amount', label: 'Сумма', width: '150px', numeric: true },
+  { key: 'memo', label: 'Назначение', width: '320px' },
+]
 
 // ─── Плановые расходы участка (оффчейн-реестр; резерв 30 дней) ───
 
-const planColumns = computed<TableSkeletonColumn[]>(() => [
-  { label: 'Назначение' },
-  { label: 'Сумма', class: 'col-num' },
-  { label: 'Срок' },
-  { label: 'Реквизиты' },
-  ...(store.isOperator ? [{ label: '', class: 'col-action', cell: 'icon' as const }] : []),
+const planColumns = computed<BaseTableColumn<ExpensePlanView>[]>(() => [
+  { key: 'title', label: 'Назначение', width: '260px', sortable: true, field: 'title' },
+  { key: 'amount', label: 'Сумма', width: '150px', numeric: true },
+  { key: 'due', label: 'Срок', width: '190px' },
+  { key: 'payto', label: 'Реквизиты', width: '240px', field: 'pay_to' },
+  ...(store.isOperator
+    ? [{ key: 'actions', label: '', width: '220px' } as BaseTableColumn<ExpensePlanView>]
+    : []),
 ])
 
 // Приоритетов у расхода нет: всё, что заведено в реестр, подлежит оплате.
@@ -355,13 +416,26 @@ async function onDeletePlan(plan: ExpensePlanView): Promise<void> {
 
 // ─── Веса участников (председатель КУ) ───
 
-const weightColumns = computed<TableSkeletonColumn[]>(() => [
-  { label: 'Участник' },
-  { label: 'Вес', class: 'col-num' },
-  { label: 'Доля', class: 'col-num' },
-  { label: 'На кошельке', class: 'col-num' },
-  ...(isBranchTrustee.value ? [{ label: '', class: 'col-action', cell: 'icon' as const }] : []),
+type BranchWeightRow = NonNullable<typeof economy.value>['weights'][number]
+
+const weightColumns = computed<BaseTableColumn<BranchWeightRow>[]>(() => [
+  { key: 'member', label: 'Участник', width: '260px' },
+  { key: 'weight', label: 'Вес', width: '130px', numeric: true },
+  { key: 'share', label: 'Доля', width: '120px', numeric: true },
+  { key: 'balance', label: 'На кошельке', width: '160px', numeric: true },
+  ...(isBranchTrustee.value
+    ? [{ key: 'actions', label: '', width: '110px' } as BaseTableColumn<BranchWeightRow>]
+    : []),
 ])
+
+type PersonalHistoryRow = MarketplacePersonalWalletHistoryView['items'][number]
+
+const personalHistoryColumns: BaseTableColumn<PersonalHistoryRow>[] = [
+  { key: 'date', label: 'Дата', width: '170px', nowrap: true },
+  { key: 'operation', label: 'Операция', width: '280px' },
+  { key: 'amount', label: 'Сумма', width: '150px', numeric: true },
+  { key: 'status', label: 'Статус', width: '140px' },
+]
 
 // Кандидаты в распределение — операторы участка, ещё не имеющие веса.
 const weightCandidates = computed(() => {
@@ -442,14 +516,11 @@ async function onDeleteWeight(username: string): Promise<void> {
 // Остальные документы кооператива подписываются так же.
 
 const getFundsOpen = ref(false)
-const convertPart = ref<number | null>(null)
 const aidPart = ref<number | null>(null)
 const aidPaymentMethodId = ref<string | null>(null)
 const getFundsSubmitting = ref(false)
 
-const getFundsTotal = computed(
-  () => (Number(convertPart.value) || 0) + (Number(aidPart.value) || 0)
-)
+const getFundsTotal = computed(() => Number(aidPart.value) || 0)
 const getFundsOverBalance = computed(
   () => getFundsTotal.value > assetAmount(personalBalance.value)
 )
@@ -461,70 +532,43 @@ const aidTax = computed(() => ndflTax(aidGross.value))
 const aidNet = computed(() => ndflNet(aidGross.value))
 
 function openGetFundsDialog(): void {
-  convertPart.value = null
   aidPart.value = null
   aidPaymentMethodId.value = null
   getFundsOpen.value = true
 }
 
 /**
- * Получение целиком одним действием: если в сумме есть материальная помощь —
- * заявление генерируется, подписывается и подаётся здесь же, вместе с
- * переводом в Стол заказов. Разносить операции по шагам нельзя: одна уже
- * совершена, вторая ещё нет, а окно можно закрыть между ними.
+ * Получение средств = материальная помощь: заявление генерируется,
+ * подписывается и подаётся здесь же; совет решает, кассир выплачивает.
  */
 async function onGetFunds(): Promise<void> {
-  const convert = Number(convertPart.value) || 0
   const aid = Number(aidPart.value) || 0
-  if (convert <= 0 && aid <= 0) return
+  if (aid <= 0) return
   if (getFundsOverBalance.value) return
-  if (aid > 0 && !aidPaymentMethodId.value) {
+  if (!aidPaymentMethodId.value) {
     FailAlert(new Error('Выберите реквизиты'), 'Для материальной помощи укажите реквизиты получения')
     return
   }
+  if (!braname.value) return
 
   getFundsSubmitting.value = true
-  let aidDone = false
   try {
-    if (aid > 0 && braname.value && aidPaymentMethodId.value) {
-      const doc = await getAidStatementSignablePayload({ braname: braname.value, amount: aid })
-      const signed = await new DigitalDocument(doc).sign(session.username)
-      const aidHash = (doc.meta as { aid_hash?: string })?.aid_hash
-      if (!aidHash) throw new Error('В заявлении нет идентификатора заявки')
-      await createAid({
-        braname: braname.value,
-        amount: aid,
-        aid_hash: aidHash,
-        statement: signed,
-        payment_method_id: aidPaymentMethodId.value,
-      })
-      aidDone = true
-    }
-    if (convert > 0) {
-      await convertBranchFunds({ amount: convert })
-    }
-    SuccessAlert(
-      aid > 0 && convert > 0
-        ? 'Заявление подано на рассмотрение совета, остальное переведено в кошелёк Стола заказов'
-        : aid > 0
-          ? 'Заявление подано на рассмотрение совета — выплата после его решения'
-          : 'Средства переведены в кошелёк Стола заказов',
-    )
+    const doc = await getAidStatementSignablePayload({ braname: braname.value, amount: aid })
+    const signed = await new DigitalDocument(doc).sign(session.username)
+    const aidHash = (doc.meta as { aid_hash?: string })?.aid_hash
+    if (!aidHash) throw new Error('В заявлении нет идентификатора заявки')
+    await createAid({
+      braname: braname.value,
+      amount: aid,
+      aid_hash: aidHash,
+      statement: signed,
+      payment_method_id: aidPaymentMethodId.value,
+    })
+    SuccessAlert('Заявление подано на рассмотрение совета — выплата после его решения')
     getFundsOpen.value = false
     await loadAll()
   } catch (e) {
-    // Заявление уже подано, а перевод не прошёл — говорим об этом прямо, иначе
-    // председатель повторит всё сразу и подаст второе заявление.
-    FailAlert(
-      e,
-      aidDone
-        ? 'Заявление подано, но перевод в Стол заказов не прошёл — повторите его отдельно'
-        : 'Не удалось выполнить получение средств',
-    )
-    if (aidDone) {
-      getFundsOpen.value = false
-      await loadAll()
-    }
+    FailAlert(e, 'Не удалось подать заявление о материальной помощи')
   } finally {
     getFundsSubmitting.value = false
   }
@@ -598,39 +642,41 @@ q-page.economy
       .economy__section
         .economy__section-title Движения по кошельку
 
-        TableSkeleton(v-if='loading && !walletHistory.length', :columns='historyColumns')
+        BaseTable(
+          v-if='firstLoad || walletHistory.length',
+          :columns='historyColumns',
+          :rows='walletHistory',
+          row-key='global_sequence',
+          :loading='firstLoad',
+          min-width='900px',
+          :clickable-rows='hasOrder',
+          @row-click='openHistoryOrder'
+        )
+          template(#cell-date='{ row }')
+            span.t-mono {{ formatDateToLocalTimezone(row.created_at, 'DD.MM.YYYY HH:mm') }}
+          template(#cell-operation='{ row }')
+            | {{ operationLabel({ operationCode: row.operation_code, action: 'apply' }) }}
+          template(#cell-amount='{ row }')
+            span.t-mono {{ formatProcessAmount(row.quantity) }}
+          template(#cell-memo='{ row }')
+            | {{ row.memo || '—' }}
 
-        .table-wrap(v-if='walletHistory.length')
-          .table-scroll
-            table.table
-              thead
-                tr
-                  th Дата
-                  th Операция
-                  th.col-num Сумма
-                  th Назначение
-              tbody
-                tr(v-for='op in walletHistory', :key='op.global_sequence')
-                  td.t-mono {{ formatDateToLocalTimezone(op.created_at, 'DD.MM.YYYY HH:mm') }}
-                  td {{ operationLabel({ operationCode: op.operation_code, action: 'apply' }) }}
-                  td.col-num.t-mono {{ formatProcessAmount(op.quantity) }}
-                  td.economy__memo
-                    span {{ op.memo || '—' }}
-                    BaseButton(
-                      v-if='op.order_id',
-                      variant='ghost',
-                      size='sm',
-                      @click='goToOrder(op.order_id)'
-                    )
-                      template(#icon-left)
-                        q-icon(name='open_in_new', size='14px')
-                      | Заказ
-
-        .banner.banner--info(v-else-if='!loading')
+        .banner.banner--info(v-else)
           q-icon.banner__icon(name='info', size='18px')
           .banner__body Движений по общему кошельку пока не было.
 
     //- Плановые расходы участка
+    //- Оборот участка: тот же раздел, что на «Экономике» кооператива. Колонка
+    //- пункта выдачи не нужна — участок здесь один.
+    template(v-if='activeKey === "turnover"')
+      TurnoverTop(
+        v-model='turnoverPeriodDays',
+        :inventory='turnoverInventory',
+        :orders='turnoverOrders',
+        :loading='turnoverLoading',
+        :show-branch='false'
+      )
+
     template(v-if='activeKey === "expenses"')
       .economy__cards
         WalletCard(
@@ -653,29 +699,27 @@ q-page.economy
         )
 
       .economy__section
-        TableSkeleton(v-if='loading && !economy', :columns='planColumns')
-
-        .table-wrap(v-if='plans.length')
-          .table-scroll
-            table.table
-              thead
-                tr
-                  th Назначение
-                  th.col-num Сумма
-                  th Срок
-                  th Реквизиты
-                  th.col-action(v-if='store.isOperator')
-              tbody
-                tr(v-for='plan in plans', :key='plan.id')
-                  td.economy__name {{ plan.title }}
-                  td.col-num.t-mono {{ formatAsset2Digits(plan.amount) }}
-                  td
-                    .economy__due(:class='{ "economy__due--overdue": isPlanOverdue(plan) }') {{ planDueLabel(plan) }}
-                    .economy__due-note(v-if='planRecurrenceLabel(plan)')
-                      q-icon(name='autorenew', size='14px')
-                      | {{ planRecurrenceLabel(plan) }}
-                  td.economy__payto {{ plan.pay_to }}
-                  td.col-action(v-if='store.isOperator')
+        BaseTable(
+          v-if='firstLoad || plans.length',
+          :columns='planColumns',
+          :rows='plans',
+          row-key='id',
+          :loading='firstLoad',
+          min-width='960px',
+          sort-by='title'
+        )
+          template(#cell-title='{ row: plan }')
+            .economy__name {{ plan.title }}
+          template(#cell-amount='{ row: plan }')
+            span.t-mono {{ formatAsset2Digits(plan.amount) }}
+          template(#cell-due='{ row: plan }')
+            .economy__due(:class='{ "economy__due--overdue": isPlanOverdue(plan) }') {{ planDueLabel(plan) }}
+            .economy__due-note(v-if='planRecurrenceLabel(plan)')
+              q-icon(name='autorenew', size='14px')
+              | {{ planRecurrenceLabel(plan) }}
+          template(#cell-payto='{ row: plan }')
+            .economy__payto {{ plan.pay_to }}
+          template(#cell-actions='{ row: plan }')
                     .economy__row-actions
                       BaseBadge(v-if='plan.paid_at', variant='pos') Оплачен
                       BaseBadge(v-else-if='plan.proposal_hash', variant='info') На рассмотрении совета
@@ -699,7 +743,7 @@ q-page.economy
                                 q-item-section Удалить расход
 
         EmptyState(
-          v-else-if='economy && !plans.length',
+          v-else-if='economy',
           title='Плановых расходов нет',
           body='Весь общий кошелёк доступен распределению. Добавьте предстоящую трату участка, чтобы система удерживала под неё резерв.'
         )
@@ -709,46 +753,43 @@ q-page.economy
     //- Распределение членских взносов — участники (веса) + ручная команда «Распределить»
     template(v-if='activeKey === "distribution"')
       .economy__section
-        TableSkeleton(v-if='loading && !economy', :columns='weightColumns')
+        BaseTable(
+          v-if='firstLoad || (economy && economy.weights.length)',
+          :columns='weightColumns',
+          :rows='economy ? economy.weights : []',
+          row-key='username',
+          :loading='firstLoad',
+          min-width='830px'
+        )
+          template(#cell-member='{ row: w }')
+            .economy__name {{ nameByUsername[w.username] || w.username }}
+          template(#cell-weight='{ row: w }')
+            input.economy__weight-input(
+              v-if='isBranchTrustee',
+              type='number',
+              min='1',
+              :value='editWeights[w.username] ?? w.weight',
+              @input='onWeightInput(w.username, $event)',
+              @change='onUpdateWeight(w.username)'
+            )
+            template(v-else) {{ w.weight }}
+          template(#cell-share='{ row: w }')
+            | {{ w.share_percent.toFixed(1) }} %
+          template(#cell-balance='{ row: w }')
+            span.t-mono {{ formatAsset2Digits(w.personal_balance) }}
+          template(#cell-actions='{ row: w }')
+            BaseButton(
+              variant='ghost',
+              icon-only,
+              size='sm',
+              aria-label='Исключить из распределения',
+              :disabled='weightSaving',
+              @click='onDeleteWeight(w.username)'
+            )
+              template(#icon-left)
+                q-icon(name='person_remove', size='18px')
 
-        .table-wrap(v-if='economy && economy.weights.length')
-          .table-scroll
-            table.table
-              thead
-                tr
-                  th Участник
-                  th.col-num Вес
-                  th.col-num Доля
-                  th.col-num На кошельке
-                  th.col-action(v-if='isBranchTrustee')
-              tbody
-                tr(v-for='w in economy.weights', :key='w.username')
-                  td.economy__name {{ nameByUsername[w.username] || w.username }}
-                  td.col-num
-                    template(v-if='isBranchTrustee')
-                      input.economy__weight-input(
-                        type='number',
-                        min='1',
-                        :value='editWeights[w.username] ?? w.weight',
-                        @input='onWeightInput(w.username, $event)',
-                        @change='onUpdateWeight(w.username)'
-                      )
-                    template(v-else) {{ w.weight }}
-                  td.col-num {{ w.share_percent.toFixed(1) }} %
-                  td.col-num.t-mono {{ formatAsset2Digits(w.personal_balance) }}
-                  td.col-action(v-if='isBranchTrustee')
-                    BaseButton(
-                      variant='ghost',
-                      icon-only,
-                      size='sm',
-                      aria-label='Исключить из распределения',
-                      :disabled='weightSaving',
-                      @click='onDeleteWeight(w.username)'
-                    )
-                      template(#icon-left)
-                        q-icon(name='person_remove', size='18px')
-
-        .banner.banner--info(v-else-if='economy && !economy.weights.length')
+        .banner.banner--info(v-else-if='economy')
           q-icon.banner__icon(name='info', size='18px')
           .banner__body
             | Веса распределения не настроены. Назначьте веса участникам, чтобы
@@ -807,25 +848,23 @@ q-page.economy
       //- Список однородный, поэтому таблица, как у общего кошелька участка.
       .economy__section(v-if='personalWalletHistory.length')
         .economy__section-title История
-        .table-wrap
-          .table-scroll
-            table.table
-              thead
-                tr
-                  th Дата
-                  th Операция
-                  th.col-num Сумма
-                  th.col-action Статус
-              tbody
-                tr(v-for='op in personalWalletHistory', :key='op.global_sequence')
-                  td.t-mono {{ formatDateToLocalTimezone(op.created_at, 'DD.MM.YYYY HH:mm') }}
-                  td {{ operationLabel({ operationCode: op.operation_code, action: 'apply' }) }}
-                  td.col-num.t-mono {{ formatProcessAmount(op.quantity) }}
-                  td.col-action
-                    BaseBadge(variant='pos') Выполнено
+        BaseTable(
+          :columns='personalHistoryColumns',
+          :rows='personalWalletHistory',
+          row-key='global_sequence',
+          min-width='780px'
+        )
+          template(#cell-date='{ row: op }')
+            span.t-mono {{ formatDateToLocalTimezone(op.created_at, 'DD.MM.YYYY HH:mm') }}
+          template(#cell-operation='{ row: op }')
+            | {{ operationLabel({ operationCode: op.operation_code, action: 'apply' }) }}
+          template(#cell-amount='{ row: op }')
+            span.t-mono {{ formatProcessAmount(op.quantity) }}
+          template(#cell-status)
+            BaseBadge(variant='pos') Выполнено
 
       EmptyState(
-        v-if='!loading && !aids.length && !personalWalletHistory.length',
+        v-if='!firstLoad && !aids.length && !personalWalletHistory.length',
         title='Получений ещё не было',
         body='Нажмите «Получить», чтобы перевести свободные средства в Стол заказов или запросить материальную помощь.'
       )
@@ -896,18 +935,10 @@ q-page.economy
   )
     .economy__dialog-body
       p
-        | Разделите сумму между переводом в Стол заказов и материальной
-        | помощью — её вы получаете по заявлению, которое рассматривает
+        | Материальную помощь вы получаете по заявлению, которое рассматривает
         | совет; после одобрения кассир переводит деньги на выбранные
         | реквизиты. Налог на доходы кооператив удерживает сам: на счёт придёт
         | сумма за вычетом налога.
-      AmountInput(
-        v-model='convertPart',
-        label='В Стол заказов',
-        :symbol='assetSymbol(personalBalance)',
-        :precision='2',
-        :min='0'
-      )
       AmountInput(
         v-model='aidPart',
         label='Материальной помощью',
@@ -958,6 +989,13 @@ q-page.economy
         :disabled='getFundsTotal <= 0 || getFundsOverBalance',
         @click='onGetFunds'
       ) Получить
+
+  //- Заказ из движения кошелька — оверлеем поверх экономики (`?order=<id>`).
+  OrderRegistryOverlay(
+    :coopname='coopname',
+    full-page-route-name='marketplace-pvz-order-detail',
+    from='economy'
+  )
 </template>
 
 <style scoped lang="scss">

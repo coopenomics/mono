@@ -32,18 +32,7 @@
 
 <script setup lang="ts">
 import { type PropType } from 'vue'
-
-export type WalletEntryKind = 'deposit' | 'block' | 'unblock' | 'charge' | 'refund' | 'payout'
-
-export interface WalletEntry {
-  id: string | number
-  at: string | Date
-  kind: WalletEntryKind
-  amount: number
-  title: string
-  note?: string
-  orderId?: string | number
-}
+import type { WalletEntryKind, WalletEntry } from './WalletTimeline.types'
 
 defineProps({
   entries: { type: Array as PropType<WalletEntry[]>, required: true },

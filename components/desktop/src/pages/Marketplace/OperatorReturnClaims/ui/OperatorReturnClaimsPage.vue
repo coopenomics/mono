@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref, watch } from 'vue';
+import { useFirstLoad } from 'src/shared/lib/composables';
 import { debounce } from 'quasar';
 import { useRoute, useRouter } from 'vue-router';
 import { Zeus } from '@coopenomics/sdk';
@@ -10,7 +11,7 @@ import { PageHint } from 'src/shared/ui/domain';
 import { PageTabs, type PageTab } from 'src/shared/ui/layout';
 import { ScannerDialog } from 'src/widgets/Marketplace/ScannerDialog';
 import { useMarketplaceRealtime, decodeReturnClaimCode } from 'src/shared/lib/marketplace';
-import { marketplaceOrderSaleUnit } from 'src/shared/lib/consts/marketplace-units';
+import { marketplaceOrderSaleUnitLabel } from 'src/shared/lib/consts/marketplace-units';
 import { formatAsset2Digits } from 'src/shared/lib/utils';
 import { returnClaimStatusLabel, returnClaimStatusVariant } from '../../OrdererReturnClaims';
 import { listReturnClaimsByBraname, type MarketplaceReturnClaimView } from '../api';
@@ -41,12 +42,14 @@ const coopname = computed(() => String(route.params.coopname ?? ''));
 const braname = computed(() => store.activeBraname ?? '');
 const items = ref<MarketplaceReturnClaimView[]>([]);
 const loading = ref(true);
+/** Скелетон — только на первой загрузке; дочитка обновляет молча. */
+const firstLoad = useFirstLoad(loading);
 
 const onSiteDialog = ref(false);
 const scanDialogOpen = ref(false);
 const selectedClaim = ref<MarketplaceReturnClaimView | null>(null);
 
-const activeKey = ref<'all' | 'pending' | 'approved' | 'archive'>('all');
+const activeKey = ref<'all' | 'pending' | 'approved' | 'council' | 'archive'>('all');
 
 const pendingClaims = computed(() =>
   items.value.filter((c) => c.status === Zeus.MarketplaceReturnClaimStatus.PENDING_CHAIRMAN_REVIEW),
@@ -54,10 +57,20 @@ const pendingClaims = computed(() =>
 const approvedClaims = computed(() =>
   items.value.filter((c) => c.status === Zeus.MarketplaceReturnClaimStatus.APPROVED_FOR_VISIT),
 );
+// Имущество на участке: ждём решение совета либо совет отказал и пайщик
+// должен забрать имущество (оператор выдаёт обратно).
+const councilClaims = computed(() =>
+  items.value.filter(
+    (c) =>
+      c.status === Zeus.MarketplaceReturnClaimStatus.PENDING_COUNCIL ||
+      c.status === Zeus.MarketplaceReturnClaimStatus.DECLINED_BY_COUNCIL,
+  ),
+);
 const archiveClaims = computed(() =>
   items.value.filter(
     (c) =>
-      c.status === Zeus.MarketplaceReturnClaimStatus.ACCEPTED_AT_VISIT ||
+      c.status === Zeus.MarketplaceReturnClaimStatus.ACCEPTED_BY_COUNCIL ||
+      c.status === Zeus.MarketplaceReturnClaimStatus.HANDED_BACK ||
       c.status === Zeus.MarketplaceReturnClaimStatus.REJECTED_REMOTELY ||
       c.status === Zeus.MarketplaceReturnClaimStatus.REJECTED_AT_VISIT,
   ),
@@ -67,6 +80,7 @@ const tabs = computed<PageTab[]>(() => [
   { key: 'all', label: 'Все', count: items.value.length },
   { key: 'pending', label: 'Ждут рассмотрения', count: pendingClaims.value.length },
   { key: 'approved', label: 'Ожидают визита', count: approvedClaims.value.length },
+  { key: 'council', label: 'Имущество на участке', count: councilClaims.value.length },
   { key: 'archive', label: 'Архив', count: archiveClaims.value.length },
 ]);
 
@@ -76,6 +90,8 @@ const visibleClaims = computed(() => {
       return pendingClaims.value;
     case 'approved':
       return approvedClaims.value;
+    case 'council':
+      return councilClaims.value;
     case 'archive':
       return archiveClaims.value;
     default:
@@ -131,8 +147,7 @@ function onQrScanned(code: string): void {
 }
 
 function claimQuantityLabel(c: MarketplaceReturnClaimView): string {
-  const saleUnit = marketplaceOrderSaleUnit(c.actual_quantity, c.unit_of_measure, c.package_size);
-  return `${saleUnit.units}×${saleUnit.unitLabel}`;
+  return marketplaceOrderSaleUnitLabel(c.actual_quantity, c.unit_of_measure, c.package_size);
 }
 
 function onDecided(): void {
@@ -190,7 +205,7 @@ q-page.returns(role='region', aria-label='Гарантийные возврат�
     PageTabs(:tabs='tabs', :active-key='activeKey', @select='onSelectTab')
 
     //- Канон загрузки: скелетон вместо мелькающих заглушек «пусто» на первичной загрузке.
-    CardListSkeleton(v-if='loading && !items.length', :count='2')
+    CardListSkeleton(v-if='firstLoad', :count='2')
 
     EmptyState(
       v-else-if='!visibleClaims.length',

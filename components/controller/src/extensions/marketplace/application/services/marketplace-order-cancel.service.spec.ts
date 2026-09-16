@@ -4,6 +4,7 @@ import type { MarketplaceOrderDomainEntity } from '../../domain/entities/marketp
 import type { MarketplaceOrderDomainRepository } from '../../domain/repositories/marketplace-order.repository';
 import type { MarketplaceOfferCountersService } from './marketplace-offer-counters.service';
 import type { MarketplaceCanonicalBlockchainPort } from '../../domain/ports/marketplace-canonical-blockchain.port';
+import type { MarketplaceInventoryDomainRepository } from '../../domain/repositories/marketplace-inventory.repository';
 
 function buildOrder(overrides: Partial<MarketplaceOrderDomainEntity> = {}): MarketplaceOrderDomainEntity {
   return {
@@ -14,6 +15,8 @@ function buildOrder(overrides: Partial<MarketplaceOrderDomainEntity> = {}): Mark
     offer_id: 'offer-1',
     supplier_account: 'supplier1',
     quantity: 5,
+    package_size: 0,
+    package_id: null,
     price_per_unit: '150.0000',
     total_cost: '750.0000',
     cycle_type: 'collective',
@@ -35,7 +38,14 @@ function buildMocks() {
 
   const offerCounters: jest.Mocked<MarketplaceOfferCountersService> = {
     onOrderUnblocked: jest.fn().mockResolvedValue({} as any),
+    onOrderConsumed: jest.fn().mockResolvedValue({} as any),
   } as unknown as jest.Mocked<MarketplaceOfferCountersService>;
+
+  // По умолчанию до склада заказ не дошёл — имущество у поставщика.
+  const inventoryRepo: jest.Mocked<MarketplaceInventoryDomainRepository> = {
+    sumOnWarehouseByOrders: jest.fn().mockResolvedValue(new Map()),
+    detachRemainderToStock: jest.fn().mockResolvedValue(0),
+  } as unknown as jest.Mocked<MarketplaceInventoryDomainRepository>;
 
   const chainPort: jest.Mocked<MarketplaceCanonicalBlockchainPort> = {
     cancelOrder: jest.fn().mockResolvedValue({
@@ -51,7 +61,7 @@ function buildMocks() {
     warn: jest.fn(),
   } as any;
 
-  return { orderRepo, offerCounters, chainPort, logger };
+  return { orderRepo, inventoryRepo, offerCounters, chainPort, logger };
 }
 
 describe('MarketplaceOrderCancelService', () => {
@@ -62,6 +72,7 @@ describe('MarketplaceOrderCancelService', () => {
     mocks = buildMocks();
     service = new MarketplaceOrderCancelService(
       mocks.orderRepo,
+      mocks.inventoryRepo,
       mocks.offerCounters,
       mocks.chainPort,
       mocks.logger
@@ -82,7 +93,7 @@ describe('MarketplaceOrderCancelService', () => {
       orderer: 'orderer1',
       order_hash: 'h-order-1',
     });
-    expect(mocks.offerCounters.onOrderUnblocked).toHaveBeenCalledWith('offer-1', 5);
+    expect(mocks.offerCounters.onOrderUnblocked).toHaveBeenCalledWith('offer-1', 5, undefined);
     expect(mocks.orderRepo.applyStatusTransition).toHaveBeenCalledWith(
       'order-1',
       'CANCELLED_BY_ORDERER',
@@ -191,3 +202,93 @@ describe('MarketplaceOrderCancelService', () => {
     expect(mocks.logger.warn).toHaveBeenCalled();
   });
 });
+
+/**
+ * Отказ после приёмки: принятое кооперативом уже оплачено поставщику и
+ * продаётся дальше кооперативом, поэтому возвращать его в предложение
+ * поставщика нельзя — иначе одно и то же имущество стоит в каталоге дважды.
+ */
+describe('MarketplaceOrderCancelService — отказ после приёмки на склад', () => {
+  let mocks: ReturnType<typeof buildMocks>;
+  let service: MarketplaceOrderCancelService;
+
+  beforeEach(() => {
+    mocks = buildMocks();
+    service = new MarketplaceOrderCancelService(
+      mocks.orderRepo,
+      mocks.inventoryRepo,
+      mocks.offerCounters,
+      mocks.chainPort,
+      mocks.logger
+    );
+  });
+
+  const cancel = () =>
+    service.execute({
+      coopname: 'voskhod',
+      orderer_account: 'orderer1',
+      order_id: 'order-1',
+    } as any);
+
+  it('имущество принято целиком — поставщику не возвращается ничего, объём выбывает', async () => {
+    mocks.orderRepo.findById.mockResolvedValue(buildOrder({ status: 'ACCEPTED_TO_COOP' }));
+    mocks.inventoryRepo.sumOnWarehouseByOrders.mockResolvedValue(new Map([['order-1', 5]]));
+
+    await cancel();
+    expect(mocks.offerCounters.onOrderConsumed).toHaveBeenCalledWith('offer-1', 5, undefined);
+    expect(mocks.offerCounters.onOrderUnblocked).not.toHaveBeenCalled();
+  });
+
+  it('принятое имущество уходит в обезличенный остаток КУ — ждать его больше некому', async () => {
+    mocks.orderRepo.findById.mockResolvedValue(buildOrder({ status: 'ACCEPTED_TO_COOP' }));
+    mocks.inventoryRepo.sumOnWarehouseByOrders.mockResolvedValue(new Map([['order-1', 5]]));
+
+    await cancel();
+    // Ноль выданного = «выдавать некому, снять адресность со всего»; иначе
+    // позиция висит адресной за мёртвым заказом и выпадает из оборота.
+    expect(mocks.inventoryRepo.detachRemainderToStock).toHaveBeenCalledWith('voskhod', 'order-1', 0, '150.0000');
+  });
+
+  it('до склада заказ не дошёл — адресность снимать не с чего, склад не трогаем', async () => {
+    mocks.orderRepo.findById.mockResolvedValue(buildOrder({ status: 'ACCEPTED' }));
+
+    await cancel();
+    expect(mocks.inventoryRepo.detachRemainderToStock).not.toHaveBeenCalled();
+  });
+
+  it('сбой склада не срывает отмену — цепь её уже приняла', async () => {
+    mocks.orderRepo.findById.mockResolvedValue(buildOrder({ status: 'ACCEPTED_TO_COOP' }));
+    mocks.inventoryRepo.sumOnWarehouseByOrders.mockResolvedValue(new Map([['order-1', 5]]));
+    mocks.inventoryRepo.detachRemainderToStock.mockRejectedValue(new Error('склад недоступен'));
+
+    await expect(cancel()).resolves.toBeDefined();
+    expect(mocks.logger.warn).toHaveBeenCalledWith(expect.stringContaining('склад недоступен'));
+  });
+
+  it('привезли не всё — недопоставка возвращается поставщику, принятое выбывает', async () => {
+    mocks.orderRepo.findById.mockResolvedValue(buildOrder({ status: 'ACCEPTED_TO_COOP' }));
+    mocks.inventoryRepo.sumOnWarehouseByOrders.mockResolvedValue(new Map([['order-1', 3]]));
+
+    await cancel();
+    expect(mocks.offerCounters.onOrderConsumed).toHaveBeenCalledWith('offer-1', 3, undefined);
+    expect(mocks.offerCounters.onOrderUnblocked).toHaveBeenCalledWith('offer-1', 2, undefined);
+  });
+
+  it('до склада заказ не дошёл — возвращается весь объём, как при обычной отмене', async () => {
+    mocks.orderRepo.findById.mockResolvedValue(buildOrder({ status: 'ACCEPTED' }));
+
+    await cancel();
+    expect(mocks.offerCounters.onOrderUnblocked).toHaveBeenCalledWith('offer-1', 5, undefined);
+    expect(mocks.offerCounters.onOrderConsumed).not.toHaveBeenCalled();
+  });
+
+  it('склад недоступен — считаем, что имущество к кооперативу не поступало, и возвращаем всё', async () => {
+    mocks.orderRepo.findById.mockResolvedValue(buildOrder({ status: 'ACCEPTED_TO_COOP' }));
+    mocks.inventoryRepo.sumOnWarehouseByOrders.mockRejectedValue(new Error('склад недоступен'));
+
+    await cancel();
+    expect(mocks.offerCounters.onOrderUnblocked).toHaveBeenCalledWith('offer-1', 5, undefined);
+    expect(mocks.logger.warn).toHaveBeenCalledWith(expect.stringContaining('склад недоступен'));
+  });
+});
+

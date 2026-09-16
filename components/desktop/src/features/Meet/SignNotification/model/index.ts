@@ -3,7 +3,7 @@ import { SuccessAlert, FailAlert } from 'src/shared/api'
 import { ref, computed } from 'vue'
 import { client } from 'src/shared/api/client'
 import { Mutations } from '@coopenomics/sdk'
-import { useSignDocument } from 'src/shared/lib/document/model/entity'
+import { signDocument } from 'src/shared/lib/document'
 import { useSessionStore } from 'src/entities/Session'
 
 export type IGenerateNotificationInput = Mutations.Meet.GenerateAnnualGeneralMeetNotificationDocument.IInput['data']
@@ -100,7 +100,6 @@ export function useSignNotification() {
       })
 
       // Подписываем документ
-      const { signDocument } = useSignDocument()
       const signedDocument = await signDocument(generatedDocument, params.username)
       console.log('signedDocument', signedDocument)
 

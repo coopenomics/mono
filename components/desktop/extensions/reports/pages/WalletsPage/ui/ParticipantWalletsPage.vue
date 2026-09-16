@@ -1,5 +1,5 @@
 <template lang="pug">
-div.page-shell
+div.participant-wallets-page
   q-card(flat)
     q-table.full-height.pw-table(
       flat

@@ -48,17 +48,23 @@ RUN pnpm install --frozen-lockfile --filter "@coopenomics/boot..." --ignore-scri
 # свой bundle с inlined workspace-deps.
 RUN pnpm --filter "@coopenomics/boot..." build
 
-# Workspace-deps inline'ятся в bundle, их транзитивные npm-deps factory
-# (handlebars/ajv/mongodb/...) мерджим в boot.deps — нужны в runtime.
-# Cooptypes type-only — его @typescript-eslint/parser в runtime не
-# нужен и конфликтует с eslint v9 в boot.devDeps по peer-spec'ам.
-# Удаляем сами workspace-spec'и (npm install не понимает workspace:*).
+# Workspace-deps inline'ятся в bundle, их транзитивные npm-deps (handlebars/
+# ajv/mongodb у factory, wharfkit/graphql/ws у sdk) мерджим в boot.deps —
+# нужны в runtime. Cooptypes type-only — его @typescript-eslint/parser в
+# runtime не нужен и конфликтует с eslint v9 в boot.devDeps по peer-spec'ам.
+# Сами workspace-spec'и снимаем ПО ПРИЗНАКУ, а не по списку имён: npm не
+# понимает `workspace:*` и валит сборку образа с EUNSUPPORTEDPROTOCOL, а
+# список имён устаревает молча — так было, когда boot объявил зависимость
+# от sdk и образ упал, хотя пакеты собрались.
 RUN node -e "const fs=require('fs'); \
-  const boot=JSON.parse(fs.readFileSync('components/boot/package.json','utf8')); \
-  const factory=JSON.parse(fs.readFileSync('components/factory/package.json','utf8')); \
-  boot.dependencies = { ...factory.dependencies, ...boot.dependencies }; \
-  delete boot.dependencies['cooptypes']; \
-  delete boot.dependencies['@coopenomics/factory']; \
+  const read=(p)=>JSON.parse(fs.readFileSync(p,'utf8')); \
+  const boot=read('components/boot/package.json'); \
+  const factory=read('components/factory/package.json'); \
+  const sdk=read('components/sdk/package.json'); \
+  boot.dependencies = { ...factory.dependencies, ...sdk.dependencies, ...boot.dependencies }; \
+  for (const name of Object.keys(boot.dependencies)) { \
+    if (String(boot.dependencies[name]).startsWith('workspace:')) delete boot.dependencies[name]; \
+  } \
   fs.writeFileSync('components/boot/package.json', JSON.stringify(boot, null, 2));"
 
 # ─── Stage 2: contracts ───────────────────────────────────────────────

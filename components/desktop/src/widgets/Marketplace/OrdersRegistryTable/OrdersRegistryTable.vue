@@ -14,21 +14,17 @@
  */
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { marketplaceOrderSaleUnit } from 'src/shared/lib/consts/marketplace-units';
-import { BaseBadge, EmptyState } from 'src/shared/ui/base';
+import { BaseBadge, BaseTable, EmptyState, TablePager } from 'src/shared/ui/base';
+import type { BaseTableColumn } from 'src/shared/ui/base';
 import { EntityIdBadge } from 'src/shared/ui';
 import { orderStatusDisplay } from 'src/widgets/Marketplace/OrderCard';
-import {
-  ALL_ORDER_REGISTRY_STATUSES,
-  type OrderRegistryStatusView,
-  type OrderRegistryView,
-} from './lib/types';
+import type { OrderRegistryView } from './lib/types';
 
 const props = withDefaults(
   defineProps<{
     items: OrderRegistryView[];
     loading: boolean;
     pagination: { page: number; rowsPerPage: number; rowsNumber: number };
-    statusFilter: OrderRegistryStatusView[];
     /** Ссылка «открыть предложение» — скрыта, если у роли нет права Offer:read (стол ПВЗ). */
     showOfferLink?: boolean;
   }>(),
@@ -36,22 +32,27 @@ const props = withDefaults(
 );
 
 const emit = defineEmits<{
-  (e: 'update:statusFilter', value: OrderRegistryStatusView[]): void;
   (e: 'request', value: { pagination: { page: number; rowsPerPage: number; rowsNumber?: number } }): void;
   (e: 'offer-click', offerId: string): void;
   (e: 'order-click', orderId: string): void;
 }>();
 
-const columns = [
-  { name: 'status', align: 'left' as const, label: 'Статус', field: 'status' },
-  { name: 'order', align: 'left' as const, label: 'Заказ', field: 'id' },
-  { name: 'product', align: 'left' as const, label: 'Товар', field: 'product_name' },
-  { name: 'orderer', align: 'left' as const, label: 'Заказчик', field: 'orderer_name' },
-  { name: 'supplier', align: 'left' as const, label: 'Поставщик', field: 'supplier_name' },
-  { name: 'quantity', align: 'right' as const, label: 'Кол-во', field: 'quantity' },
-  { name: 'total', align: 'right' as const, label: 'Сумма', field: 'total_cost' },
-  { name: 'created', align: 'left' as const, label: 'Создан', field: 'created_at' },
-  { name: 'open', align: 'right' as const, label: '', field: 'open', sortable: false },
+// Сортировки в колонках нет намеренно: страница реестра серверная, и щелчок
+// по заголовку отсортировал бы только текущие пятьдесят строк, притворившись
+// сортировкой всего реестра.
+// Сумма стоит третьей, сразу за состоянием и номером: в хвосте строки она
+// уезжала за край и терялась, хотя в реестре это первое, о чём спрашивают.
+// Состоянию хватает 150px — подписи в него укладываются, а высвобожденное
+// место уходит товару и участникам сделки.
+const columns: BaseTableColumn<OrderRegistryView>[] = [
+  { key: 'status', label: 'Статус', width: '150px' },
+  { key: 'order', label: 'Заказ', width: '110px' },
+  { key: 'total', label: 'Сумма', width: '130px', numeric: true },
+  { key: 'product', label: 'Товар', width: '220px' },
+  { key: 'quantity', label: 'Кол-во', width: '110px', numeric: true },
+  { key: 'orderer', label: 'Заказчик', width: '170px' },
+  { key: 'supplier', label: 'Поставщик', width: '170px' },
+  { key: 'created', label: 'Создан', width: '150px', nowrap: true },
 ];
 
 function statusLabel(s: string): string {
@@ -59,20 +60,6 @@ function statusLabel(s: string): string {
 }
 function statusVariant(s: string) {
   return orderStatusDisplay(s).variant;
-}
-
-function isStatusActive(s: OrderRegistryStatusView): boolean {
-  return props.statusFilter.includes(s);
-}
-function toggleStatus(s: OrderRegistryStatusView): void {
-  emit(
-    'update:statusFilter',
-    isStatusActive(s) ? props.statusFilter.filter((x) => x !== s) : [...props.statusFilter, s]
-  );
-}
-function resetFilters(): void {
-  if (!props.statusFilter.length) return;
-  emit('update:statusFilter', []);
 }
 
 function shortId(id: string | null | undefined): string {
@@ -116,82 +103,75 @@ function openOrder(o: OrderRegistryView): void {
   emit('order-click', o.id);
 }
 
-function onRequest(requestProps: { pagination: { page: number; rowsPerPage: number; rowsNumber?: number } }): void {
-  emit('request', requestProps);
+// Реестр листается страницами на бэкенде: подвал показывает диапазон и
+// переключает страницы, а строки по-прежнему приносит экран.
+function goToPage(page: number): void {
+  emit('request', {
+    pagination: {
+      page,
+      rowsPerPage: props.pagination.rowsPerPage,
+      rowsNumber: props.pagination.rowsNumber,
+    },
+  });
 }
 </script>
 
 <template lang="pug">
 .orders-registry(role="region", aria-label="Реестр заказов")
-  .orders-registry__chips(role="group", aria-label="Фильтр по статусу")
-    .chip(
-      v-for="s in ALL_ORDER_REGISTRY_STATUSES",
-      :key="s",
-      :class="isStatusActive(s) ? 'chip--accent' : 'chip--neutral'",
-      role="button",
-      tabindex="0",
-      @click="toggleStatus(s)",
-      @keydown.enter="toggleStatus(s)"
-    ) {{ statusLabel(s) }}
-    .chip.chip--reset(
-      v-if="props.statusFilter.length",
-      role="button",
-      tabindex="0",
-      @click="resetFilters",
-      @keydown.enter="resetFilters"
-    )
-      q-icon(name="close", size="14px")
-      | Сбросить
-
-  q-card.q-mt-md(flat)
-    q-table.full-height(
-      flat,
-      :rows="props.items",
-      :columns="columns",
-      row-key="id",
-      :loading="props.loading",
-      :pagination="props.pagination",
-      :rows-per-page-options="[25, 50, 100, 200]",
-      no-data-label="Заказы не найдены",
-      @request="onRequest"
-    )
-      template(#body="scope")
-        q-tr.orders-registry__row(
-          :key="`ord_${scope.row.id}`",
-          :props="scope",
-          @click="openOrder(scope.row)"
+  BaseTable(
+    v-if="props.loading || props.items.length",
+    :columns="columns",
+    :rows="props.items",
+    row-key="id",
+    :loading="props.loading",
+    min-width="1210px",
+    clickable-rows,
+    @row-click="openOrder"
+  )
+    template(#cell-status="{ row }")
+      BaseBadge(:variant="statusVariant(row.status)") {{ statusLabel(row.status) }}
+    template(#cell-order="{ row }")
+      //- Нажатие по идентификатору копирует его и не открывает заказ: строка
+      //- для этого целиком нажимается, а копия часто нужна отдельно.
+      span(@click.stop)
+        EntityIdBadge(:rawId="shortId(row.id)", copy-on-click)
+    template(#cell-product="{ row }")
+      .orders-registry__product
+        span {{ row.product_name || 'Товар по предложению' }}
+        q-icon.orders-registry__offer(
+          v-if="props.showOfferLink && row.offer_id",
+          name="open_in_new",
+          size="16px",
+          @click.stop="goToOffer(row)"
         )
-          q-td
-            BaseBadge(:variant="statusVariant(scope.row.status)") {{ statusLabel(scope.row.status) }}
-          q-td(@click.stop)
-            EntityIdBadge(:rawId="shortId(scope.row.id)", copy-on-click)
-          q-td
-            .row.items-center.no-wrap.q-gutter-xs
-              span {{ scope.row.product_name || 'Товар по предложению' }}
-              q-icon.cursor-pointer.text-primary(
-                v-if="props.showOfferLink && scope.row.offer_id",
-                name="open_in_new",
-                size="16px",
-                @click.stop="goToOffer(scope.row)"
-              )
-                q-tooltip Открыть предложение
-          q-td {{ ordererTitle(scope.row) }}
-          q-td {{ supplierTitle(scope.row) }}
-          q-td.text-right {{ unitLabel(scope.row) }}
-          q-td.text-right.font-monospace {{ formatTotalWithFee(scope.row) }}
-          q-td {{ formatDate(scope.row.created_at) }}
-          q-td.text-right(auto-width)
-            q-icon.orders-registry__open(name="chevron_right", size="20px")
-              q-tooltip Открыть заказ
+          q-tooltip Открыть предложение
+    template(#cell-orderer="{ row }")
+      | {{ ordererTitle(row) }}
+    template(#cell-supplier="{ row }")
+      | {{ supplierTitle(row) }}
+    template(#cell-quantity="{ row }")
+      | {{ unitLabel(row) }}
+    template(#cell-total="{ row }")
+      | {{ formatTotalWithFee(row) }}
+    template(#cell-created="{ row }")
+      | {{ formatDate(row.created_at) }}
 
-      template(#no-data)
-        .orders-registry__nodata
-          EmptyState(
-            title="Заказов нет",
-            body="Заказов по выбранным фильтрам не найдено."
-          )
-            template(#icon)
-              q-icon(name="receipt_long", size="48px")
+    template(#footer)
+      TablePager(
+        label="Заказы",
+        :page="props.pagination.page",
+        :rows-per-page="props.pagination.rowsPerPage",
+        :rows-number="props.pagination.rowsNumber",
+        @update:page="goToPage"
+      )
+
+  EmptyState(
+    v-else,
+    title="Заказов нет",
+    body="Заказов по выбранным фильтрам не найдено."
+  )
+    template(#icon)
+      q-icon(name="receipt_long", size="48px")
 </template>
 
 <style scoped lang="scss">
@@ -200,41 +180,18 @@ function onRequest(requestProps: { pagination: { page: number; rowsPerPage: numb
   flex-direction: column;
   gap: var(--p-4, 16px);
 
-  &__nodata {
-    width: 100%;
-    display: flex;
-    justify-content: center;
+  &__product {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--p-1, 4px);
   }
 
-  &__chips {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--p-2, 8px);
-
-    .chip {
-      cursor: pointer;
-      user-select: none;
-      height: 28px;
-      padding: 0 12px;
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-    }
-  }
-
-  // Строка открывает страницу заказа — подсветка при наведении и курсор
-  // показывают, что она кликабельна.
-  :deep(.orders-registry__row) {
+  // Переход на предложение — отдельная цель внутри строки, поэтому и цвет у
+  // него свой: строка целиком открывает заказ.
+  &__offer {
+    color: var(--p-primary);
     cursor: pointer;
   }
 
-  &__open {
-    color: var(--p-ink-3);
-  }
-}
-
-.font-monospace {
-  font-family: 'JetBrains Mono', 'Courier New', monospace;
-  letter-spacing: 0.03em;
 }
 </style>

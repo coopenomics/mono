@@ -5,16 +5,14 @@ import { Zeus } from '@coopenomics/sdk';
 import { FailAlert } from 'src/shared/api';
 import { useMarketplaceRealtime } from 'src/shared/lib/marketplace';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
-import { marketplaceOrderSaleUnit } from 'src/shared/lib/consts/marketplace-units';
+import { marketplaceOrderSaleUnitLabel } from 'src/shared/lib/consts/marketplace-units';
 import { useRoute, useRouter } from 'vue-router';
-import { BaseBadge, BaseButton, BaseCard, BaseInput, CardListSkeleton, EmptyState } from 'src/shared/ui/base';
-import type { BaseBadgeVariant } from 'src/shared/ui/base';
+import { BaseBadge, BaseButton, BaseTable, EmptyState } from 'src/shared/ui/base';
+import type { BaseBadgeVariant, BaseTableColumn } from 'src/shared/ui/base';
 import { PageHint } from 'src/shared/ui/domain';
 import { PageTabs, type PageTab } from 'src/shared/ui/layout';
 import { useQueryOverlay } from 'src/shared/lib/navigation';
 import {
-  cancelWriteoffDraft,
-  createWriteoffDraft,
   getOpenWriteoffDraft,
   listWriteoffCandidates,
   listWriteoffProposals,
@@ -40,14 +38,14 @@ import WriteoffProposalDetailsDialog from './WriteoffProposalDetailsDialog.vue';
 const draft = ref<MarketplaceWriteoffProposalView | null>(null);
 const inCouncil = ref<MarketplaceWriteoffProposalView[]>([]);
 const archive = ref<MarketplaceWriteoffProposalView[]>([]);
-const loading = ref(false);
+// true до первого запроса: иначе первый кадр до загрузки показывает пустое
+// состояние вместо скелетона, и первая загрузка неотличима от пустого списка.
+const loading = ref(true);
 
 // Имущество на складах: председатель выделяет позиции, указывает причину и
 // сразу отправляет в совет.
 const candidates = ref<MarketplaceWriteoffCandidateView[]>([]);
 const selectedCandidates = ref<MarketplaceWriteoffCandidateView[]>([]);
-const writeoffReason = ref('');
-const preparing = ref(false);
 
 const activeKey = ref<'candidates' | 'council' | 'archive'>('candidates');
 const tabs = computed<PageTab[]>(() => [
@@ -64,13 +62,20 @@ const proposalsList = computed(() =>
   activeKey.value === 'archive' ? archive.value : inCouncil.value,
 );
 
-const candidateColumns = [
-  { name: 'branch_name', align: 'left' as const, label: 'Кооп. участок', field: 'branch_name' },
-  { name: 'asset_title', align: 'left' as const, label: 'Наименование', field: 'asset_title' },
-  { name: 'quantity', align: 'right' as const, label: 'Кол-во', field: 'quantity' },
-  { name: 'state', align: 'left' as const, label: 'Состояние', field: 'is_expired' },
-  { name: 'expiry_date', align: 'left' as const, label: 'Годен до', field: 'expiry_date' },
-  { name: 'amount', align: 'right' as const, label: 'Сумма', field: 'amount' },
+const candidateColumns: BaseTableColumn<MarketplaceWriteoffCandidateView>[] = [
+  { key: 'asset_title', label: 'Наименование', width: '260px', sortable: true, field: 'asset_title' },
+  { key: 'branch_name', label: 'Пункт выдачи', width: '220px', sortable: true, field: 'branch_name' },
+  { key: 'quantity', label: 'Кол-во', width: '140px', numeric: true },
+  { key: 'state', label: 'Состояние', width: '200px' },
+  { key: 'expiry_date', label: 'Годен до', width: '130px', nowrap: true, sortable: true, field: 'expiry_date' },
+  { key: 'amount', label: 'Сумма', width: '140px', numeric: true, sortable: true, field: (row) => Number.parseFloat(row.amount) || 0 },
+];
+
+const proposalColumns: BaseTableColumn<MarketplaceWriteoffProposalView>[] = [
+  { key: 'title', label: 'Проект', width: '320px' },
+  { key: 'total', label: 'Сумма', width: '150px', numeric: true },
+  { key: 'status', label: 'Статус', width: '260px' },
+  { key: 'date', label: 'Дата', width: '130px', nowrap: true },
 ];
 
 const submitDialogOpen = ref(false);
@@ -128,58 +133,31 @@ async function load(): Promise<void> {
 }
 
 function candidateQuantityLabel(c: MarketplaceWriteoffCandidateView): string {
-  const saleUnit = marketplaceOrderSaleUnit(Number.parseFloat(c.quantity) || 0, c.unit_of_measure, c.package_size);
-  return `${saleUnit.units}×${saleUnit.unitLabel}`;
+  return marketplaceOrderSaleUnitLabel(Number.parseFloat(c.quantity) || 0, c.unit_of_measure, c.package_size);
 }
 
 function hasAmount(c: MarketplaceWriteoffCandidateView): boolean {
   return Number.parseFloat(c.amount) > 0;
 }
 
-// Один шаг: выделил имущество + указал причину → собираем черновик под
-// капотом и сразу открываем подпись Заявления для отправки в совет. Причина
-// обязательна и едина для всей подборки — backend её не угадывает (см. историю
-// 2026-07-29: угаданный дефолт молча уходил в документы как заявленная причина).
-async function signAndSend(): Promise<void> {
-  const picked = selectedCandidates.value.filter(hasAmount);
-  if (picked.length === 0) {
+/** Позиции без известной стоимости списывать нечем — их в проект не берём. */
+const picked = computed(() => selectedCandidates.value.filter(hasAmount));
+
+const pickedAmount = computed(() =>
+  picked.value.reduce((sum, c) => sum + (Number.parseFloat(c.amount) || 0), 0),
+);
+
+// Выделил имущество → окно отправки: там причина списания (одна на подборку) и
+// подпись Заявления. Черновик собирается внутри окна и наружу не показывается.
+function openSubmit(): void {
+  if (picked.value.length === 0) {
     FailAlert(
       new Error('Нет позиций с известной стоимостью'),
       'Выделите позиции с ненулевой суммой списания',
     );
     return;
   }
-  const reason = writeoffReason.value.trim();
-  if (!reason) {
-    FailAlert(new Error('Не указана причина списания'), 'Укажите причину списания');
-    return;
-  }
-  preparing.value = true;
-  try {
-    // Снимаем возможный висящий черновик (от прерванной подписи или крон-сервиса),
-    // чтобы собрать свежий ровно из текущего выбора — один черновик за раз.
-    if (draft.value) {
-      await cancelWriteoffDraft(draft.value.id);
-      draft.value = null;
-    }
-    const created = await createWriteoffDraft({
-      items: picked.map((c) => ({
-        braname: c.braname,
-        asset_title: c.asset_title,
-        quantity: c.quantity,
-        amount: c.amount,
-        reason,
-        // Агрегат партий: одна строка Заявления покрывает все партии товара.
-        inventory_ids: c.inventory_ids,
-      })),
-    });
-    draft.value = created;
-    submitDialogOpen.value = true;
-  } catch (e) {
-    FailAlert(e, 'Не удалось подготовить проект к отправке в совет');
-  } finally {
-    preparing.value = false;
-  }
+  submitDialogOpen.value = true;
 }
 
 function openDetails(proposal: MarketplaceWriteoffProposalView): void {
@@ -271,7 +249,6 @@ function candidateStateVariant(c: MarketplaceWriteoffCandidateView): BaseBadgeVa
 function onDraftSubmitted(): void {
   draft.value = null;
   selectedCandidates.value = [];
-  writeoffReason.value = '';
   activeKey.value = 'council';
   void load();
 }
@@ -298,98 +275,110 @@ q-page.writeoffs(role="region", aria-label="Списания скоропорт�
     | Выделите имущество на складах к списанию, укажите причину и одной кнопкой подпишите Заявление — проект сразу выносится на повестку совета. Совет утверждает списание протоколом, после чего оператор участка подтверждает выбытие со склада.
 
   //- Главное действие страницы — в шапку (канон: CTA в топбаре). Только на
-  //- вкладке «Кандидаты»: собрать проект из выбора и открыть подпись.
+  //- вкладке «Кандидаты»: открыть окно отправки по текущему выбору.
   Teleport(to="#header-actions-host", defer)
     BaseButton(
       v-if="activeKey === 'candidates'",
       variant="primary",
       size="sm",
-      :disabled="selectedCandidates.length === 0",
-      :loading="preparing",
-      @click="signAndSend"
+      :disabled="picked.length === 0",
+      @click="openSubmit"
     )
       template(#icon-left)
-        q-icon(name="draw", size="18px")
-      | Подписать и отправить в совет{{ selectedCandidates.length ? ` (${selectedCandidates.length})` : '' }}
+        q-icon(name="send", size="18px")
+      | Отправить{{ picked.length ? ` (${picked.length})` : '' }}
 
   PageTabs(:tabs="tabs", :active-key="activeKey", @select="onSelectTab")
 
-  //- Вкладка «Кандидаты»: имущество на складах + причина списания.
-  BaseCard(v-if="activeKey === 'candidates'")
-    .t-muted «Просрочен» — первоочередные кандидаты; «Без гарантии» — можно списать вручную сразу (порча, использование); «Годен» — ещё в сроке гарантии, возврат возможен.
-    BaseInput.q-mt-sm(
-      v-model="writeoffReason",
-      label="Причина списания",
-      placeholder="Например: истёк срок годности, порча, использование",
-      :disabled="selectedCandidates.length === 0"
-    )
-    q-table.full-width.q-mt-sm(
-      flat,
-      :rows="candidates",
+  //- Вкладка «Кандидаты»: имущество на складах. Причину списания спрашивает
+  //- окно отправки — на странице ей делать нечего, она нужна раз на подборку.
+  template(v-if="activeKey === 'candidates'")
+    BaseTable(
+      v-if="loading || candidates.length",
       :columns="candidateColumns",
+      :rows="candidates",
       row-key="key",
+      hover,
+      sticky-header,
       selection="multiple",
       v-model:selected="selectedCandidates",
       :loading="loading",
-      :rows-per-page-options="[0]",
-      hide-bottom,
-      no-data-label="Позиций на складах не найдено"
+      min-width="1040px",
+      sort-by="expiry_date"
     )
-      template(#body-cell-quantity="props")
-        q-td.text-right(:props="props")
-          div {{ candidateQuantityLabel(props.row) }}
-          .t-muted.t-sm(v-if="props.row.lots_count > 1") из {{ props.row.lots_count }} партий
-      template(#body-cell-state="props")
-        q-td(:props="props")
-          BaseBadge(:variant="candidateStateVariant(props.row)") {{ candidateStateLabel(props.row) }}
-      template(#body-cell-expiry_date="props")
-        q-td(:props="props") {{ props.row.expiry_date ? formatDate(props.row.expiry_date) : 'Без гарантии' }}
-      template(#body-cell-amount="props")
-        q-td.text-right(:props="props") {{ formatAsset2Digits(props.row.amount) }}
+      template(#cell-asset_title="{ row }")
+        .writeoffs__title {{ row.asset_title }}
+        .t-muted.t-sm(v-if="row.lots_count > 1") {{ row.lots_count }} партии на складе
+      template(#cell-quantity="{ row }")
+        | {{ candidateQuantityLabel(row) }}
+      template(#cell-state="{ row }")
+        .writeoffs__state
+          BaseBadge(:variant="candidateStateVariant(row)") {{ candidateStateLabel(row) }}
+          BaseBadge(v-if="row.origin === 'WARRANTY_RETURN'", variant="warn") Гарантийный возврат
+      template(#cell-expiry_date="{ row }")
+        | {{ row.expiry_date ? formatDate(row.expiry_date) : '—' }}
+      template(#cell-amount="{ row }")
+        | {{ formatAsset2Digits(row.amount) }}
+      template(#footer)
+        .writeoffs__foot
+          span Позиций на складах: {{ candidates.length }}
+          span(v-if="picked.length")
+            | Выбрано {{ picked.length }} на сумму {{ formatAsset2Digits(String(pickedAmount)) }}
+
+    EmptyState(
+      v-else,
+      title="Списывать нечего",
+      body="На складах участков нет имущества, которое можно вынести на списание."
+    )
+      template(#icon)
+        q-icon(name="inventory_2", size="48px")
 
   //- Вкладки «На повестке» / «Архив»: общая лента проектов списания.
   template(v-else)
-    CardListSkeleton(v-if="loading && !proposalsList.length", :count="3")
+    BaseTable(
+      v-if="loading || proposalsList.length",
+      :columns="proposalColumns",
+      :rows="proposalsList",
+      row-key="id",
+      hover,
+      :loading="loading",
+      min-width="860px",
+      clickable-rows,
+      @row-click="openDetails"
+    )
+      template(#cell-title="{ row }")
+        .writeoffs__title {{ proposalTitle(row) }}
+        .t-muted.t-sm {{ positionsLabel(row.items.length) }}
+        .t-muted.t-sm(v-if="row.reject_reason") Причина отказа: {{ row.reject_reason }}
+      template(#cell-total="{ row }")
+        | {{ formatAsset2Digits(row.total_amount) }}
+      template(#cell-status="{ row }")
+        .writeoffs__state
+          BaseBadge(:variant="statusVariant(row.status)") {{ humanStatus(row.status) }}
+          BaseButton(
+            v-if="row.status === 'PENDING_CONFIRMATION'",
+            variant="ghost",
+            size="sm",
+            @click.stop="goToWarehouseWriteoffs"
+          )
+            template(#icon-left)
+              q-icon(name="inventory_2", size="16px")
+            | Подтвердить на складе
+      template(#cell-date="{ row }")
+        | {{ formatDate(proposalDate(row)) }}
+
     EmptyState(
-      v-else-if="!proposalsList.length",
+      v-else,
       :title="activeKey === 'council' ? 'Нет проектов на повестке' : 'Архив пуст'",
       :body="activeKey === 'council' ? 'Выделите имущество на вкладке «Кандидаты» и отправьте проект в совет.' : 'Здесь появятся исполненные и отклонённые проекты списания.'"
     )
       template(#icon)
         q-icon(name="inventory_2", size="48px")
-    .table-wrap(v-else)
-      .table-scroll
-        table.table
-          thead
-            tr
-              th Проект
-              th.col-num Сумма
-              th Статус
-              th Дата
-          tbody
-            tr.writeoffs__row(v-for="p in proposalsList", :key="p.id", @click="openDetails(p)")
-              td
-                .writeoffs__title {{ proposalTitle(p) }}
-                .t-muted {{ positionsLabel(p.items.length) }}
-                .t-muted(v-if="p.reject_reason") Причина отказа: {{ p.reject_reason }}
-              td.col-num {{ formatAsset2Digits(p.total_amount) }}
-              td
-                BaseBadge(:variant="statusVariant(p.status)") {{ humanStatus(p.status) }}
-                BaseButton.writeoffs__go-warehouse(
-                  v-if="p.status === 'PENDING_CONFIRMATION'",
-                  variant="ghost",
-                  size="sm",
-                  @click.stop="goToWarehouseWriteoffs"
-                )
-                  template(#icon-left)
-                    q-icon(name="inventory_2", size="16px")
-                  | Подтвердить на складе
-              td {{ formatDate(proposalDate(p)) }}
 
   SubmitToCouncilDialog(
-    v-if="draft",
     v-model="submitDialogOpen",
-    :draft="draft",
+    :items="picked",
+    :open-draft="draft",
     @submitted="onDraftSubmitted"
   )
   WriteoffProposalDetailsDialog(
@@ -413,10 +402,24 @@ q-page.writeoffs(role="region", aria-label="Списания скоропорт�
   &__title {
     font-weight: 600;
     color: var(--p-ink);
+    overflow-wrap: anywhere;
   }
 
-  &__go-warehouse {
-    margin-top: var(--p-1, 4px);
+  //- Состояние и пометки идут столбиком: в строку они не помещаются и
+  //- расталкивают колонку.
+  &__state {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--p-1, 4px);
+  }
+
+  &__foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--p-3, 12px);
+    width: 100%;
   }
 }
 

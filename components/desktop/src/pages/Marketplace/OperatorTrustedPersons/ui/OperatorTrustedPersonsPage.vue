@@ -5,8 +5,8 @@ import { FailAlert, SuccessAlert } from 'src/shared/api'
 import { useSessionStore } from 'src/entities/Session'
 import { OperatorBranchBar, useOperatorBranchStore } from 'src/entities/OperatorBranch'
 import { useManageTrusted } from 'src/features/Branch/ManageTrusted'
-import { BaseBadge, BaseButton, BaseDialog, EmptyState, TableSkeleton } from 'src/shared/ui/base'
-import type { BaseBadgeVariant, TableSkeletonColumn } from 'src/shared/ui/base'
+import { BaseBadge, BaseButton, BaseDialog, BaseTable, EmptyState } from 'src/shared/ui/base'
+import type { BaseBadgeVariant, BaseTableColumn } from 'src/shared/ui/base'
 import { PageHint } from 'src/shared/ui/domain'
 import { UserSearchSelector } from 'src/shared/ui'
 
@@ -29,12 +29,15 @@ const { addTrusted, deleteTrusted } = useManageTrusted()
 const coopname = computed(() => String(route.params.coopname ?? ''))
 const canManage = computed(() => session.isChairman ?? false)
 
-// Колонки скелетона повторяют шапку таблицы (колонка действий — только когда есть права).
-const skeletonColumns = computed<TableSkeletonColumn[]>(() => [
-  { label: 'Лицо' },
-  { label: 'Аккаунт', class: 'col-acc' },
-  { label: 'Роль', class: 'col-role', cell: 'badge' },
-  ...(canManage.value ? [{ label: 'Действия', class: 'col-action', cell: 'icon' as const }] : []),
+// Колонка действий появляется только у председателя: снимать доверенных может
+// он один, а пустой столбец у остальных только съедал бы ширину.
+const columns = computed<BaseTableColumn<PersonRow>[]>(() => [
+  { key: 'name', label: 'Лицо', width: '320px', sortable: true, field: 'name' },
+  { key: 'account', label: 'Аккаунт', width: '200px', sortable: true, field: 'username' },
+  { key: 'role', label: 'Роль', width: '190px', sortable: true, field: 'isTrustee' },
+  ...(canManage.value
+    ? [{ key: 'actions', label: 'Действия', width: '130px' } as BaseTableColumn<PersonRow>]
+    : []),
 ])
 
 const active = computed(() => store.activeBranch)
@@ -174,40 +177,37 @@ q-page.trusted
       .banner__body
         | Список доверенных лиц участка доступен председателю кооператива.
 
-    //- Канон загрузки: скелетон-таблица на первичной загрузке, не пустой экран.
-    TableSkeleton(v-if='!store.loaded && !rows.length', :columns='skeletonColumns')
-
     .trusted__counter(v-if='rows.length')
       | Доверенных лиц: {{ trustedCount }}
 
-    .table-wrap(v-if='rows.length')
-      .table-scroll
-        table.table
-          thead
-            tr
-              th Лицо
-              th.col-acc Аккаунт
-              th.col-role Роль
-              th.col-action(v-if='canManage') Действия
-          tbody
-            tr(v-for='row in rows', :key='row.username')
-              td.trusted__name {{ row.name }}
-              td.col-acc
-                span.trusted__acc {{ row.username }}
-              td.col-role
-                BaseBadge(:variant='roleBadge(row).variant') {{ roleBadge(row).label }}
-              td.col-action(v-if='canManage')
-                BaseButton(
-                  v-if='!row.isTrustee',
-                  variant='ghost',
-                  icon-only,
-                  size='sm',
-                  aria-label='Снять доверенное лицо',
-                  @click='askRemove(row)'
-                )
-                  template(#icon-left)
-                    q-icon(name='person_remove', size='18px')
-                span.trusted__dash(v-else) —
+    BaseTable(
+      v-if='!store.loaded || rows.length',
+      :columns='columns',
+      :rows='rows',
+      row-key='username',
+      hover,
+      :loading='!store.loaded',
+      min-width='860px',
+      sort-by='role'
+    )
+      template(#cell-name='{ row }')
+        .trusted__name {{ row.name }}
+      template(#cell-account='{ row }')
+        span.trusted__acc {{ row.username }}
+      template(#cell-role='{ row }')
+        BaseBadge(:variant='roleBadge(row).variant') {{ roleBadge(row).label }}
+      template(#cell-actions='{ row }')
+        BaseButton(
+          v-if='!row.isTrustee',
+          variant='ghost',
+          icon-only,
+          size='sm',
+          aria-label='Снять доверенное лицо',
+          @click='askRemove(row)'
+        )
+          template(#icon-left)
+            q-icon(name='person_remove', size='18px')
+        span.trusted__dash(v-else) —
 
     EmptyState(
       v-else-if='store.loaded && branch',

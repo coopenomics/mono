@@ -6,7 +6,6 @@ import type {
 } from '../entities/marketplace-order.types';
 import type { MarketplaceUnitOfMeasure } from '../entities/marketplace-offer.types';
 import type { IBlockchainSyncRepository } from '@coopenomics/extension-kit/sync';
-import type { ISignedDocument } from '@coopenomics/innercoop';
 import type { PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
 
 export const MARKETPLACE_ORDER_REPOSITORY = Symbol('MARKETPLACE_ORDER_REPOSITORY');
@@ -24,6 +23,8 @@ export interface MarketplaceOrderCreateInput {
   price_per_unit: string;
   /** Содержимое упаковки в базовой единице (Эпик 18); 0 = отпуск по мере. */
   package_size: number;
+  /** Упаковка каталога, которой оформлен заказ; null — по мере. */
+  package_id: string | null;
   total_cost: string;
   cycle_id: string | null;
   /** Грань «заказ заказчика» (Эпик 16): общий id строк одного оформления на один КУ. */
@@ -166,53 +167,84 @@ export interface MarketplaceOrderDomainRepository
    */
   findByCycleId(coopname: string, cycle_id: string): Promise<MarketplaceOrderDomainEntity[]>;
 
+  /**
+   * Заказы с незавершённым расчётом с поставщиком (задача 99D-14): имущество
+   * принято (`accepted_cost` зеркалится с цепи; у заказов, принятых до
+   * появления поля, — по статусу после приёмки), запись ещё жива на цепи, а
+   * выплата не подтверждена кассиром. Заказы из остатка кооператива не
+   * входят — поставщика и выплаты у них нет.
+   */
+  listOpenSupplierSettlements(coopname: string): Promise<MarketplaceOrderDomainEntity[]>;
+
+  /**
+   * Уценка, рассчитанная при закрытии выдачи и ожидающая проведения на цепи
+   * (задача 99D-15). Пишется до отправки `markdown`; снимается кроном, когда
+   * цепь отзеркалила `markdown_cost`, либо явно.
+   */
+  applyMarkdownDue(id: string, markdown_due: string | null): Promise<MarketplaceOrderDomainEntity>;
+
+  /**
+   * Выданные заказы, у которых уценка рассчитана (`markdown_due` > 0), а на
+   * цепи ещё не проведена (`markdown_cost` пуст) и запись жива, — кандидаты на
+   * повтор `markdown` кроном.
+   */
+  listMarkdownPending(coopname: string, limit: number): Promise<MarketplaceOrderDomainEntity[]>;
+
+  /**
+   * Заказы, принятые поставщиком не позже `accepted_before` и так и не
+   * привезённые (статус ACCEPTED, запись на цепи жива), — кандидаты на
+   * закрытие по сроку непоставки (задача 99D-16).
+   */
+  listUndelivered(coopname: string, accepted_before: Date, limit: number): Promise<MarketplaceOrderDomainEntity[]>;
+
   // ── Story 6.1 / 6.3: выдача пайщику на КУ ─────────────────────────
 
   /**
-   * Story 6.1: применяет первую подпись АПП-выдачи (председатель КУ открыл
-   * выдачу). Переводит Order ACCEPTED_TO_COOP → READY_TO_RECEIVE и
-   * заполняет `current_warehouse_braname` (= delivery_braname),
-   * `chairman_signed_at`, `chairman_account`, `signiss1_tx_hash`,
-   * `issuance_fact` (факт зафиксирован оператором при открытии).
+   * Паевая модель: оператор отметил поступление имущества на участок выдачи
+   * (`readyissue`). ACCEPTED_TO_COOP → READY_TO_RECEIVE, `current_warehouse_braname`
+   * = участок выдачи, `ready_announced_at = now()` (момент, когда заказчику
+   * ушло «приходите»).
    */
-  applyIssuanceOpened(
+  applyReadyIssue(id: string, patch: { current_warehouse_braname: string }): Promise<MarketplaceOrderDomainEntity>;
+
+  /**
+   * Заказчик подписал заявление о возврате паевого взноса имуществом
+   * (`issuestmt`): READY_TO_RECEIVE → ISSUE_PENDING, факт закреплён.
+   */
+  applyIssuanceStatement(
     id: string,
-    patch: {
-      chairman_account: string;
-      signiss1_tx_hash: string;
-      current_warehouse_braname: string;
-      issuance_fact: MarketplaceOrderIssuanceFactSnapshot;
-      issue_act_signiss1_document: ISignedDocument;
-    }
+    patch: { issuance_fact: MarketplaceOrderIssuanceFactSnapshot }
   ): Promise<MarketplaceOrderDomainEntity>;
 
-  /**
-   * Оператор КУ выдачи объявил заказ готовым к выдаче («Объявить выдачу»).
-   * Проставляет `ready_announced_at = now()`, статус НЕ меняет (остаётся
-   * ACCEPTED_TO_COOP). Backend-only сигнал, ортогональный подписям.
-   */
-  applyReadyAnnounced(id: string): Promise<MarketplaceOrderDomainEntity>;
+  /** Решение совета получено (`onmktisauth`): ISSUE_PENDING → ISSUE_AUTHORIZED, номер решения. */
+  applyIssuanceAuthorized(id: string, patch: { issue_decision_id: string | null }): Promise<MarketplaceOrderDomainEntity>;
+
+  /** Первая подпись акта заказчиком (`issueact1`): ISSUE_AUTHORIZED → ISSUE_ACT1. */
+  applyIssuanceAct1(id: string): Promise<MarketplaceOrderDomainEntity>;
 
   /**
-   * Story 6.3: применяет финальную подпись АПП-выдачи (заказчик получил
-   * имущество). Переводит Order READY_TO_RECEIVE → RECEIVED и заполняет
-   * `issuance_fact`, `orderer_signed_at`, `delivery_signer_account`,
-   * `signiss2_tx_hash`, `warranty_until` (если warranty_period_secs > 0).
+   * Закрывающая подпись акта председателем участка (`issueact2`):
+   * ISSUE_ACT1 → RECEIVED, гарантийное окно, сторона кооператива, tx.
    */
-  applyIssuanceFinalized(
+  applyIssuanceClosed(
     id: string,
     patch: {
       delivery_signer_account: string;
-      signiss2_tx_hash: string;
+      issue_closed_tx_hash: string;
       issuance_fact: MarketplaceOrderIssuanceFactSnapshot;
       warranty_until: Date | null;
     }
   ): Promise<MarketplaceOrderDomainEntity>;
 
   /**
-   * Story 6.1: ленты выдачи для operator-стола. Возвращает Order'ы в
-   * статусах ACCEPTED_TO_COOP (ожидают открытия) и READY_TO_RECEIVE
-   * (ожидают финальной подписи заказчика) по конкретному КУ выдачи.
+   * Отказ совета или отмена выдачи оператором: обратно в READY_TO_RECEIVE,
+   * факт и номер решения снимаются.
+   */
+  applyIssuanceReset(id: string): Promise<MarketplaceOrderDomainEntity>;
+
+  /**
+   * Ленты выдачи для стола оператора: заказы от приёма кооперативом до
+   * закрытия выдачи (ACCEPTED_TO_COOP, READY_TO_RECEIVE, ISSUE_*) по КУ выдачи.
    */
   listForIssuanceByBraname(
     coopname: string,

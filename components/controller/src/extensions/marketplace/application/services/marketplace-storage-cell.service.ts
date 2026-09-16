@@ -134,9 +134,13 @@ export class MarketplaceStorageCellService {
     return this.cellRepo.createGrid(inputs);
   }
 
+  /**
+   * Ячейки склада. `branames` не задан — без ограничения по участкам (так
+   * реестр стола администратора видит сетку всего кооператива).
+   */
   async list(
     coopname: string,
-    branames: string | string[],
+    branames?: string | string[],
     options?: { is_active?: boolean }
   ): Promise<MarketplaceStorageCellDomainEntity[]> {
     return this.cellRepo.list({ coopname, braname: branames, is_active: options?.is_active });

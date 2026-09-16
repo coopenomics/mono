@@ -59,8 +59,7 @@
 
 <script setup lang="ts">
 import { computed, useId, type PropType } from 'vue'
-
-export type TakeoverKind = 'info' | 'success' | 'warning' | 'danger'
+import type { TakeoverKind } from './TakeoverDialog.types'
 
 const props = defineProps({
   modelValue: { type: Boolean, default: false },

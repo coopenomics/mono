@@ -126,10 +126,11 @@ export async function phase15(): Promise<void> {
     variables: {
       data: {
         coopname: COOPNAME,
+        master: CHAIRMAN,
         project_hash: COMPONENT_HASH,
-        plan_hours: 160,
-        hour_cost: '1500.0000 RUB',
-        plan_other_expenses: '0.0000 RUB',
+        plan_creators_hours: 160,
+        plan_hour_cost: '1500.0000 RUB',
+        plan_expenses: '0.0000 RUB',
       },
     } as Mutations.Capital.SetPlan.IInput,
   }).catch((e: any) => log(`SetPlan: ${e.message?.slice(0, 100) ?? e}`))

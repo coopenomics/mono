@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref, watch } from 'vue';
+import { useFirstLoad } from 'src/shared/lib/composables';
 import { debounce } from 'quasar';
 import { useRoute, useRouter } from 'vue-router';
 import { Zeus } from '@coopenomics/sdk';
@@ -10,10 +11,8 @@ import type { BaseBadgeVariant } from 'src/shared/ui/base';
 import { AccountBadge, PageHint } from 'src/shared/ui/domain';
 import { ActDialogLayout } from 'src/widgets/Marketplace/ActDialogLayout';
 import { ScannerDialog } from 'src/widgets/Marketplace/ScannerDialog';
-import {
-  marketplaceOrderSaleUnit,
-  marketplaceSaleUnitLabel,
-} from 'src/shared/lib/consts/marketplace-units';
+import { GoodsManifest, type GoodsManifestLine } from 'src/widgets/Marketplace/GoodsManifest';
+import { marketplaceOrderSaleUnitLabel, marketplaceSaleUnitLabel } from 'src/shared/lib/consts/marketplace-units';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { formatDateToLocalTimezone } from 'src/shared/lib/utils/dates';
 import {
@@ -75,6 +74,8 @@ const expressCandidates = ref<MarketplaceExpressPickupCandidateView[]>([]);
 // проваливания): грузим единицы поставщиков, чьи партии/самовывоз ждут приёмки.
 const ordersByOfferer = ref<Record<string, MarketplaceSupplierPickupOrderView[]>>({});
 const loading = ref(true);
+/** Скелетон — только на первой загрузке; дочитка обновляет молча. */
+const firstLoad = useFirstLoad(loading);
 
 // Партии, прибывшие на КУ и ожидающие создания акта приёмки: статус
 // SUPPLY_PREPARED (после создания акта партия уходит в RECEPTION_IN_PROGRESS).
@@ -255,14 +256,31 @@ const unitsPerBoxByOrder = computed(() => {
 });
 
 function lineQuantityLabel(l: { quantity: number; unit: string; packageSize: number | null }): string {
-  const saleUnit = marketplaceOrderSaleUnit(l.quantity, l.unit, l.packageSize);
-  return `${saleUnit.units}×${saleUnit.unitLabel}`;
+  return marketplaceOrderSaleUnitLabel(l.quantity, l.unit, l.packageSize);
+}
+
+/**
+ * Строки поставки → накладная виджета. Подходит и строкам акта (без коробок),
+ * и ожидаемым поставкам: коробки экспедитора — пометкой к количеству.
+ */
+function manifestLines(
+  lines: Array<{ key: string; productName: string; unit: string; packageSize: number | null; quantity: number; boxes?: number }>,
+): GoodsManifestLine[] {
+  return lines.map((l) => ({
+    key: l.key,
+    name: l.productName,
+    quantity: lineQuantityLabel(l),
+    quantityNote: l.boxes ? `${l.boxes} кор.` : undefined,
+  }));
 }
 
 function aggregateLines(orders: MarketplaceSupplierPickupOrderView[]): DeliveryLine[] {
   const map = new Map<string, DeliveryLine>();
   for (const o of orders) {
-    const key = `${o.product_name ?? ''}|${o.unit_of_measure ?? ''}`;
+    // Тара — часть ключа: оператор принимает и раскладывает упаковками, и «10
+    // упак. 0,5 л» рядом с «10 упак. 1 л» должны остаться разными строками.
+    // Слитые в одну, они превращались в безликое «15 л» (жалоба 2026-09-09).
+    const key = `${o.product_name ?? ''}|${o.unit_of_measure ?? ''}|${o.package_size ?? 0}`;
     const qty = Number(o.quantity) || 0;
     const per = unitsPerBoxByOrder.value.get(o.id);
     const boxes = per && per > 0 ? Math.ceil(qty / per) : 0;
@@ -270,7 +288,6 @@ function aggregateLines(orders: MarketplaceSupplierPickupOrderView[]): DeliveryL
     if (ex) {
       ex.quantity += qty;
       ex.boxes += boxes;
-      if (ex.packageSize !== (o.package_size ?? null)) ex.packageSize = null;
     } else
       map.set(key, {
         key,
@@ -281,7 +298,10 @@ function aggregateLines(orders: MarketplaceSupplierPickupOrderView[]): DeliveryL
         boxes,
       });
   }
-  return [...map.values()];
+  // Крупная тара выше мелкой — строки одного товара читаются как накладная.
+  return [...map.values()].sort((a, b) =>
+    a.productName === b.productName ? (b.packageSize ?? 0) - (a.packageSize ?? 0) : 0,
+  );
 }
 
 // Единый список ожидаемых поставок, АГРЕГИРОВАННЫЙ ПО ПОСТАВЩИКУ: один поставщик
@@ -763,7 +783,7 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
     //- Канон загрузки: пока грузим и данных ещё нет — скелетон, НЕ мелькающая
     //- заглушка «Поставок пока нет» (она и появлялась на полсекунды раньше карточек).
     CardListSkeleton(
-      v-if='loading && !expectedDeliveries.length && !receptionGroups.length',
+      v-if='firstLoad',
       :count='2'
     )
 
@@ -788,10 +808,7 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
         .reception__card-badges
           BaseBadge(:variant='statusVariant(g.status)') {{ statusLabel(g.status) }}
           BaseBadge(variant='neutral') {{ variantLabel(g.variant) }}
-        ul.reception__card-items(v-if='g.lines.length')
-          li.reception__card-item(v-for='l in g.lines', :key='l.key')
-            span.reception__card-prod {{ l.productName }}
-            span.reception__card-qty {{ lineQuantityLabel(l) }}
+        GoodsManifest(v-if='g.lines.length', title='В поставке', :lines='manifestLines(g.lines)')
         .reception__card-stamps(v-if='g.createdAt || g.supplierSignedAt')
           .reception__card-stamp(v-if='g.createdAt')
             q-icon(name='inventory_2', size='14px')
@@ -833,12 +850,7 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
         .reception__card-badges
           BaseBadge(variant='info') Ожидает приёмки
           BaseBadge(v-for='m in d.deliveryLabels', :key='m', variant='neutral') {{ m }}
-        ul.reception__card-items(v-if='d.lines.length')
-          li.reception__card-item(v-for='l in d.lines', :key='l.key')
-            span.reception__card-prod {{ l.productName }}
-            span.reception__card-qty
-              | {{ lineQuantityLabel(l) }}
-              span.reception__card-boxes(v-if='l.boxes')  · {{ l.boxes }} кор.
+        GoodsManifest(v-if='d.lines.length', title='Привезёт', :lines='manifestLines(d.lines)')
         .reception__card-stamps
           .reception__card-stamp(v-if='d.formedAt')
             q-icon(name='inventory_2', size='14px')
@@ -1044,35 +1056,20 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
   }
 
   &__card-summary-label {
-    font-size: var(--p-fs-body-sm, 13px);
-    color: var(--p-ink-2);
+    font-size: var(--p-fs-meta, 12px);
+    letter-spacing: var(--p-ls-eyebrow, 0.08em);
+    text-transform: uppercase;
+    color: var(--p-ink-3);
   }
 
+  // Сумма — главная величина карточки, поэтому крупнее строк состава.
   &__card-amount {
     flex: 0 0 auto;
-    font-family: var(--p-mono);
-    font-weight: 600;
+    font-size: var(--p-fs-h2, 18px);
+    font-weight: 700;
+    letter-spacing: var(--p-ls-h2, -0.012em);
     color: var(--p-ink);
     font-variant-numeric: tabular-nums;
-  }
-
-  &__card-items {
-    margin: 0;
-    padding: var(--p-3, 12px);
-    list-style: none;
-    display: flex;
-    flex-direction: column;
-    gap: var(--p-2, 8px);
-    background: var(--p-surface-2);
-    border-radius: var(--p-r-sm, 8px);
-  }
-
-  &__card-item {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: var(--p-3, 12px);
-    font-size: var(--p-fs-body-sm, 13px);
   }
 
   // Бейджи статуса/способа доставки — отдельной строкой под именем (раньше
@@ -1083,23 +1080,6 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
     flex-wrap: wrap;
     align-items: center;
     gap: var(--p-2, 8px);
-  }
-
-  &__card-prod {
-    color: var(--p-ink);
-    overflow-wrap: anywhere;
-  }
-
-  &__card-qty {
-    flex: 0 0 auto;
-    color: var(--p-ink);
-    font-weight: 500;
-    font-variant-numeric: tabular-nums;
-  }
-
-  &__card-boxes {
-    color: var(--p-ink-3);
-    font-weight: 400;
   }
 
   &__card-foot {

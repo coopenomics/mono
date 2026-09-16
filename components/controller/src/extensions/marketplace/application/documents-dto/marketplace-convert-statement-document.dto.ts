@@ -5,27 +5,30 @@ import { Cooperative } from 'cooptypes';
 import { SignedDigitalDocumentInputDTO, MetaDocumentInputDTO, GenerateMetaDocumentInputDTO, ExcludeCommonProps } from '@coopenomics/extension-kit';
 
 /**
- * Подписываемая форма заявления пайщика о конвертации паевого взноса в
- * членский взнос по ЦПП «Стол заказов» (registry_id=1110,
- * `MarketplaceConvertStatement`).
- *
- * Генерируется на оформлении заказа по одному на каждый Order (сумма =
- * стоимость заказа + членский взнос) и уходит on-chain параметром
- * `convert_statement` действий `marketplace::createorder` /
- * `marketplace::stockorder`; контракт публикует его в реестр документов
- * самостоятельным пакетом (package = hash заявления).
+ * Подписываемая форма заявления 1110 о переводе паевого взноса в ЦПП «Стол
+ * заказов» (`MarketplaceConvertStatement`): «прошу перевести с баланса моего
+ * Цифрового кошелька на баланс ЦПП «Стол заказов» N, из них членский взнос M».
+ * Пишется только на недостающую сумму — то, чего не хватает на внутреннем
+ * членском кошельке программы, — и уходит on-chain параметром
+ * `convert_statement` действия `marketplace::convert` отдельной транзакцией
+ * до заказа; контракт переводит членскую часть и публикует заявление в реестр
+ * документов самостоятельным пакетом.
  */
 type action = Cooperative.Registry.MarketplaceConvertStatement.Action;
 
 @InputType('BaseMarketplaceConvertStatementMetaDocumentInput')
 class BaseMarketplaceConvertStatementMetaDocumentInputDTO implements ExcludeCommonProps<action> {
-  @Field({ description: 'Канонический order_hash заказа, под который конвертируется взнос.' })
+  @Field({ description: 'Якорь заявления: хеш оформления, бандла или заказа, к которому относится перевод.' })
   @IsString()
   order_hash!: string;
 
-  @Field({ description: 'Сумма конвертации (стоимость заказа + членский взнос), с валютой.' })
+  @Field({ description: 'Сумма перевода с Цифрового кошелька: недостающая часть тела плюс членская часть, с валютой.' })
   @IsString()
   amount!: string;
+
+  @Field({ description: 'Членская часть суммы (взнос минус остаток членского кошелька) — переводится действием convert, с валютой.' })
+  @IsString()
+  membership_fee!: string;
 
   @Field({
     description: 'Сформировать документ без сохранения (preview-режим).',
@@ -57,7 +60,7 @@ export class MarketplaceConvertStatementSignedMetaDocumentInputDTO
 @InputType('MarketplaceConvertStatementSignedInput')
 export class MarketplaceConvertStatementSignedInputDTO extends SignedDigitalDocumentInputDTO {
   @Field(() => MarketplaceConvertStatementSignedMetaDocumentInputDTO, {
-    description: 'Метаданные подписанного заявления о конвертации паевого взноса.',
+    description: 'Метаданные подписанного заявления о конвертации паевого взноса в членский.',
   })
   @ValidateNested()
   @Type(() => MarketplaceConvertStatementSignedMetaDocumentInputDTO)

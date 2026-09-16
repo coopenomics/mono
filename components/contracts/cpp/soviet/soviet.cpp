@@ -22,6 +22,7 @@
 #include "src/approve/createapprv.cpp"
 #include "src/approve/declineapprv.cpp"
 
+#include "src/automator/automation.hpp"
 #include "src/automator/automate.cpp"
 #include "src/automator/disautomate.cpp"
 

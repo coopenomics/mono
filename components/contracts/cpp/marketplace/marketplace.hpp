@@ -23,15 +23,21 @@ using namespace Marketplace;
 /**
  * \ingroup public_contracts
  *
- * @brief Контракт `marketplace` — кооперативный «Стол заказов» в режиме
- * членских взносов.
+ * @brief Контракт `marketplace` — кооперативный «Стол заказов» в паевой
+ * модели (компонент 68, решение владельца 06.09.2026): пайщик вносит паевой
+ * взнос под заказ, кооператив закупает имущество, пайщик получает его как
+ * возврат паевого взноса по заявлению, протоколу совета и акту.
  *
  * Реализует canonical actions трёх процессов из YAML-стандартов:
- *  - **p.mkt.supply** (13 actions): createorder, stockorder, cancelorder,
- *    expireorder, acceptorder, declineorder, signsupp, signchair, signiss1,
- *    signiss2, closeorder, markdown, setfee.
- *  - **p.mkt.return** (5 actions): submretrn, aprretrem, rejretrem, accretrn,
- *    rejretrn.
+ *  - **p.mkt.supply**: createorder, stockorder, cancelorder, expireorder,
+ *    acceptorder, declineorder, signsupp, signchair, payout, payconfirm,
+ *    paydecline, readyissue, issuestmt, onmktisauth, onmktisdecl, issueact1,
+ *    issueact2, cancelissue, closeorder, markdown, setfee.
+ *  - **p.mkt.return**: submretrn, aprretrem, rejretrem, accretrn, onmktrtauth,
+ *    onmktrtdecl, handback, rejretrn.
+ *  - **p.mkt.claim** (1 action): admitclaim — гарантийная претензия
+ *    поставщику, выставляемая контрактом в onmktrtauth; по умолчанию поставщик
+ *    не согласен и ничего не делает, признание переводит сумму в долг.
  *  - **p.mkt.wroff** (4 actions): propwroff, execwroff, onmktwoauth, onmktwodecl.
  *    Cписание скоропорта идёт через канонический паттерн «решение совета»:
  *    backend подписывает Заявление о списании (registry 1106) ключом
@@ -82,10 +88,12 @@ public:
 
   /**
    * @brief Заказчик размещает заказ на товар из каталога (Story 4.1).
-   * Один шаг ledger2: o.mkt.lock (TRANSFER w.wal.share → w.mkt.order).
-   * `convert_statement` — подписанное заказчиком заявление о конвертации
-   * паевого взноса в членский по программе «Стол заказов»; публикуется в
-   * реестр документов отдельным пакетом (package = hash заявления).
+   * Паевая модель: два кошелька программы оплачивают каждый свою часть —
+   * членский взнос участка с внутреннего членского кошелька w.mkt.member
+   * (o.mkt.fee), тело со свободного паевого w.mkt.share (o.mkt.lockp), остаток
+   * тела с главного паевого w.wal.share (o.mkt.lock). Заявления здесь нет:
+   * недостающее пайщик заранее перевёл действием `convert` по заявлению 1110;
+   * членского кошелька обязано хватать на взнос целиком.
    * @ingroup public_marketplace_actions
    */
   [[eosio::action]] void createorder(eosio::name coopname,
@@ -98,22 +106,38 @@ public:
                                       eosio::asset unit_price,
                                       eosio::asset package_size,
                                       uint32_t warranty_period_secs,
-                                      checksum256 batch_hash,
-                                      document2 convert_statement);
+                                      checksum256 batch_hash);
+
+  /**
+   * @brief Перевод паевого взноса во внутренний членский кошелёк «Стола
+   * заказов» по Заявлению 1110 — отдельная транзакция до заказа. Заявление
+   * пишется на недостающее в кошельках программы: «прошу перевести с баланса
+   * моего Цифрового кошелька на баланс ЦПП «Стол заказов» N, из них членский
+   * взнос M» (M — взнос за вычетом остатка членского кошелька, N — недостающая
+   * часть тела сверх свободного паевого программы плюс M); по кошелькам здесь
+   * двигается только членская часть M: o.mkt.conv (w.wal.share → w.mkt.member,
+   * Дт 80 / Кт 86). Сумма приходит разбитой по заказам (`targets`), и на
+   * каждый заказ эмитится своя операция с `process_hash = order_hash` —
+   * перевод идёт первым шагом нитки того заказа, который оплачивает. Пустой
+   * `targets` (или нулевые суммы) — действие только публикует заявление.
+   * @ingroup public_marketplace_actions
+   */
+  [[eosio::action]] void convert(eosio::name coopname,
+                                 eosio::name orderer,
+                                 std::vector<convert_target> targets,
+                                 document2 convert_statement);
 
   /**
    * @brief Заказ из обезличенного остатка склада кооператива (requirement 76).
    * Продавец — сам кооператив (`offerer == coopname`), имущество уже на
    * счёте 10 после ранее закрытых приёмок, поэтому Order создаётся сразу в
-   * `acceptcoop` и идёт только через выдачу signiss1/signiss2. Этапы поставки
-   * и выплата поставщику для такого заказа не существуют.
+   * `acceptcoop` и идёт только через выдачу (readyissue → issuestmt → … →
+   * issueact2). Этапы поставки и выплата поставщику для такого заказа не
+   * существуют.
    *
-   * Заказ из остатка ВСЕГДА фондируется из членского кошелька «Стола заказов»
-   * пайщика начисто (без паевого): o.mkt.lockm (тело, w.mkt.member → w.mkt.order)
-   * + o.mkt.lockmf (взнос, w.mkt.member → w.mkt.fee). Паевой пополняет членский
-   * кошелёк заранее отдельным действием `convert` (Заявление о конвертации). При
-   * замене непоставленного на свободный остаток высвобожденные отменой средства
-   * уже лежат в w.mkt.member — заказ создаётся без конвертации и доплаты.
+   * Заказ из остатка фондируется как обычный заказ: взнос с членского
+   * кошелька (o.mkt.fee), тело со свободного паевого «Стола заказов»
+   * (o.mkt.lockp), остаток с главного паевого (o.mkt.lock).
    * @ingroup public_marketplace_actions
    */
   [[eosio::action]] void stockorder(eosio::name coopname,
@@ -128,26 +152,9 @@ public:
                                      checksum256 batch_hash);
 
   /**
-   * @brief Конвертация паевого взноса пайщика в членский кошелёк «Стола
-   * заказов» (requirement 76, заказ из остатка из членских средств).
-   * Один шаг ledger2: o.mkt.conv (TRANSFER w.wal.share → w.mkt.member,
-   * Дт 80 / Кт 86). `convert_statement` — подписанное заказчиком Заявление о
-   * конвертации (шаблон 1110), публикуется в реестр документов отдельным
-   * пакетом (package = hash заявления). Выполняется перед `stockorder`, когда
-   * членских средств пайщика не хватает на заказ из остатка (на полную сумму
-   * или только на дельту превышения над высвобождённым при замене).
-   * @ingroup public_marketplace_actions
-   */
-  [[eosio::action]] void convert(eosio::name coopname,
-                                 eosio::name orderer,
-                                 eosio::asset amount,
-                                 document2 convert_statement);
-
-  /**
    * @brief Заказчик отменяет заказ до акцепта (Story 4.4). Триггерит o.mkt.unlock.
    * Заказ из остатка кооператива (offerer == coopname) отменяется и в
-   * `acceptcoop` — до первой подписи акта выдачи (откат оператора,
-   * requirement 76 решение 11).
+   * `acceptcoop` / `readyrecv` — пока выдача не начата заявлением.
    * @ingroup public_marketplace_actions
    */
   [[eosio::action]] void cancelorder(eosio::name coopname,
@@ -155,9 +162,10 @@ public:
                                       checksum256 order_hash);
 
   /**
-   * @brief Backend закрывает Order по таймауту цикла отсечки (Story 4.3).
-   * Per-Order: o.mkt.unlock + статус active → cancelled. Backend вычисляет
-   * threshold по batch'у вне контракта; для каждого истёкшего Order'а
+   * @brief Backend закрывает Order по сроку: не набранный к концу цикла
+   * отсечки (active) либо принятый поставщиком и не привезённый за 48 часов
+   * от акцепта (accepted). Полный возврат резерва и членского взноса без
+   * удержания, запись стирается. Сроки считает бэкенд; для каждого заказа
    * вызывается отдельный `expireorder`.
    * @ingroup public_marketplace_actions
    */
@@ -230,10 +238,13 @@ public:
    * @brief Инициация исходящей выплаты поставщику через контракт gateway по
    * одному Order'у (E11 техдолг 598-16, Locked Decision L12). Per-Order:
    * inline-вызов `gateway::createoutpay` с callback'ами на `payconfirm` /
-   * `paydecline`. Ledger2-операция o.mkt.payout (Дт 86 / Кт 51) применяется
-   * НЕ здесь, а в callback'е `payconfirm` после действия кассира. Статус
-   * Order'а не меняется; защита от двойного запроса — через
-   * `order.payout_status` (NONE/DECLINED → PENDING).
+   * `paydecline`. Ledger2-операция o.mkt.payout (Дт 76 / Кт 51) применяется
+   * НЕ здесь, а в callback'е `payconfirm` после действия кассира. Признанный
+   * гарантийный долг поставщика удерживается здесь же: o.mkt.deduct (BURN
+   * w.mkt.debt) на остаток долга в пределах принятой стоимости, перевод
+   * регистрируется на разницу (задача 99D-15). Статус Order'а не меняется;
+   * защита от двойного запроса — через `order.payout_status`
+   * (NONE/DECLINED → PENDING).
    * @ingroup public_marketplace_actions
    */
   [[eosio::action]] void payout(eosio::name coopname,
@@ -242,8 +253,10 @@ public:
   /**
    * @brief Callback от gateway::outcomplete — кассир подтвердил
    * банковский перевод поставщику (E11 техдолг 598-16, Locked Decision L12).
-   * Здесь применяется o.mkt.payout (Дт 86 / Кт 51) и `payout_status`
-   * переходит PENDING → COMPLETED. Авторизация: `_gateway`. `outcome_hash`
+   * Здесь применяется o.mkt.payout (Дт 76 / Кт 51) на принятую стоимость
+   * `accepted_cost` за вычетом удержания, проведённого при инициации
+   * (`payout_withheld`); заказ в статусе `refused` стирается; иначе
+   * `payout_status` переходит PENDING → COMPLETED. Авторизация: `_gateway`. `outcome_hash`
    * совпадает с `order.hash` (так задано при `payout`).
    * @ingroup public_marketplace_actions
    */
@@ -253,7 +266,7 @@ public:
   /**
    * @brief Callback от gateway::outdecline — кассир отметил, что
    * банковский перевод не состоялся (E11 техдолг 598-16, Locked Decision L12).
-   * Ledger2-операция НЕ применяется; обязательство Кт 86 остаётся открытым.
+   * Ledger2-операция НЕ применяется; обязательство Кт 76 остаётся открытым.
    * `payout_status` PENDING → DECLINED; `payout_decline_reason` сохраняется.
    * Авторизация: `_gateway`.
    * @ingroup public_marketplace_actions
@@ -261,6 +274,21 @@ public:
   [[eosio::action]] void paydecline(eosio::name coopname,
                                      checksum256 outcome_hash,
                                      std::string reason);
+
+  // ── p.mkt.claim ── гарантийная претензия поставщику (задача 99D-13) ───────
+
+  /**
+   * @brief Поставщик признал гарантийную претензию: `pending → admitted`,
+   * o.mkt.admit (TRANSFER w.mkt.claim → w.mkt.debt, Дт 76 / Кт 91). Признанная
+   * сумма гасится удержанием из следующих выплат поставщику (`payout`).
+   * Несогласие действия в цепи не имеет: сумма остаётся на кошельке
+   * непризнанных претензий как основание для иска.
+   * Авторизация: кооператив; `supplier` обязан совпасть с поставщиком претензии.
+   * @ingroup public_marketplace_actions
+   */
+  [[eosio::action]] void admitclaim(eosio::name coopname,
+                                     eosio::name supplier,
+                                     checksum256 claim_hash);
 
   /**
    * @brief Списание уценки по заказу из остатка кооператива (requirement 76).
@@ -277,34 +305,6 @@ public:
                                    eosio::asset amount);
 
   /**
-   * @brief Председатель КУ выдачи открывает выдачу первой подписью АПП-выдачи
-   * (Story 6.1). Без ledger2-операций — статус ready_to_receive. Авторизация:
-   * подписант ∈ branches[o.delivery_braname].
-   * @ingroup public_marketplace_actions
-   */
-  [[eosio::action]] void signiss1(eosio::name coopname,
-                                   eosio::name signer,
-                                   checksum256 order_hash,
-                                   document2 act);
-
-  /**
-   * @brief Заказчик ставит финальную подпись АПП-выдачи (Story 6.3).
-   * Per-Order с поддержкой actual_quantity ≠ ordered (Story 6.2).
-   * Atomic: [o.mkt.unlock на разницу если actual<ordered |
-   *          o.mkt.lock на разницу если actual>ordered]
-   *         + o.mkt.consum.
-   * Подпись акта: orderer + любой авторизованный из branches[o.delivery_braname].
-   * @ingroup public_marketplace_actions
-   */
-  [[eosio::action]] void signiss2(eosio::name coopname,
-                                   eosio::name orderer,
-                                   checksum256 order_hash,
-                                   eosio::asset actual_quantity,
-                                   eosio::asset actual_unit_price,
-                                   eosio::name delivery_signer,
-                                   document2 act);
-
-  /**
    * @brief Установка единой ставки членского взноса «Стола заказов»
    * (requirement b6). Одна ставка на весь кооператив (HUNDR_PERCENTS = 100%);
    * задаёт администратор. Применяется к новым заказам; в созданных заказах
@@ -313,6 +313,88 @@ public:
    */
   [[eosio::action]] void setfee(eosio::name coopname,
                                  uint64_t membership_fee_percent);
+
+  // ── p.mkt.supply: выдача по заявлению, протоколу совета и акту (паевая модель) ──
+  /**
+   * @brief Оператор участка выдачи отмечает поступление имущества по заказу на
+   * свой участок: `acceptcoop → readyrecv`, `current_warehouse_braname` =
+   * участок выдачи. Подписи и документов нет — заказчику уходит уведомление,
+   * что заказ можно забирать. Заменяет прежнюю первую подпись акта (readyissue).
+   * @ingroup public_marketplace_actions
+   */
+  [[eosio::action]] void readyissue(eosio::name coopname,
+                                     eosio::name signer,
+                                     checksum256 order_hash);
+  /**
+   * @brief Заказчик на пункте выдачи подписывает Заявление о возврате паевого
+   * взноса имуществом (1113) на фактический состав после сверки:
+   * `readyrecv → issuepend`. Факт (количество, цена) фиксируется в заказе;
+   * тем же действием контракт инлайн ставит повестку совета
+   * (`soviet::createagenda`, тип `mktissue`, hash = order_hash, обратные
+   * вызовы onmktisauth / onmktisdecl). Движений по средствам нет; при факте
+   * больше заказа заранее проверяется, что на доплату хватает паевых
+   * кошельков (свободный паевой программы плюс Цифровой кошелёк), а на
+   * довзнос участка — внутреннего членского кошелька.
+   * @ingroup public_marketplace_actions
+   */
+  [[eosio::action]] void issuestmt(eosio::name coopname,
+                                    eosio::name orderer,
+                                    checksum256 order_hash,
+                                    eosio::asset actual_quantity,
+                                    eosio::asset actual_unit_price,
+                                    document2 statement,
+                                    std::string meta);
+  /**
+   * @brief Обратный вызов совета: решение о возврате паевого взноса имуществом
+   * принято — `issuepend → issueauth`, Протокол (1114) сохраняется в заказе.
+   * Единственно допустимая авторизация — `_soviet`.
+   * @ingroup public_marketplace_actions
+   */
+  [[eosio::action]] void onmktisauth(eosio::name coopname,
+                                      checksum256 hash,
+                                      document2 authorization);
+  /**
+   * @brief Обратный вызов совета: отказ по заявлению либо просрочка повестки —
+   * `issuepend → readyrecv`, документы выдачи снимаются, факт возвращается к
+   * заказу. Движений по средствам нет.
+   * @ingroup public_marketplace_actions
+   */
+  [[eosio::action]] void onmktisdecl(eosio::name coopname,
+                                      checksum256 hash,
+                                      std::string reason);
+  /**
+   * @brief Первая подпись Акта приёма-передачи (1115) заказчиком во исполнение
+   * протокола совета: `issueauth → issueact1`. Без движений по средствам.
+   * @ingroup public_marketplace_actions
+   */
+  [[eosio::action]] void issueact1(eosio::name coopname,
+                                    eosio::name orderer,
+                                    checksum256 order_hash,
+                                    document2 act);
+  /**
+   * @brief Закрывающая подпись Акта приёма-передачи председателем (доверенным,
+   * оператором) участка выдачи: `issueact1 → received`. Только здесь идут
+   * движения: корректировка по факту (o.mkt.unlock при факте меньше,
+   * o.mkt.lockp / o.mkt.lock при факте больше), возврат паевого взноса имуществом
+   * o.mkt.consum (Дт 80 / Кт 10) на фактическую сумму, пересчёт членского
+   * взноса участка (o.mkt.refund / o.mkt.fee с членского кошелька) и зачисление его участку
+   * (branch::accrue). Открывается гарантийное окно; акт публикуется в реестре
+   * документов пакетом процесса заказа.
+   * @ingroup public_marketplace_actions
+   */
+  [[eosio::action]] void issueact2(eosio::name coopname,
+                                    eosio::name delivery_signer,
+                                    checksum256 order_hash,
+                                    document2 act);
+  /**
+   * @brief Оператор участка отменяет начатую выдачу: из `issueauth` /
+   * `issueact1` обратно в `readyrecv`; документы выдачи снимаются, резерв не
+   * трогается. Из `issuepend` отмена невозможна — повестка совета открыта.
+   * @ingroup public_marketplace_actions
+   */
+  [[eosio::action]] void cancelissue(eosio::name coopname,
+                                      eosio::name signer,
+                                      checksum256 order_hash);
 
   // ── p.mkt.return ─────────────────────────────────────────────────────
 
@@ -352,10 +434,13 @@ public:
                                     std::string reason);
 
   /**
-   * @brief Председатель принимает возврат на очном осмотре (Story 7.4).
-   * Один шаг: o.mkt.return (compensating forward к o.mkt.consum). Председатель
-   * накладывает вторую подпись на заявление пайщика (`statement` несёт обе
-   * подписи — пайщика и председателя), отдельного документа решения нет.
+   * @brief Оператор участка принимает имущество у стойки (паевая модель):
+   * `approvvisit → retpend`. Оператор подписывает Заявление в совет об отмене
+   * сделки (1116; `statement` — только его подпись) и тем же действием
+   * контракт ставит повестку совета (`soviet::createagenda`, тип `mktretrn`,
+   * hash = request_hash, обратные вызовы onmktrtauth / onmktrtdecl).
+   * Движений по средствам нет — баланс заказчика восстанавливается только по
+   * решению совета.
    * Авторизация: подписант ∈ branches[braname].
    * @ingroup public_marketplace_actions
    */
@@ -363,7 +448,9 @@ public:
                                    eosio::name signer,
                                    eosio::name braname,
                                    checksum256 request_hash,
-                                   document2 statement);
+                                   document2 statement,
+                                   std::string meta,
+                                   document2 reclamation);
 
   /**
    * @brief Председатель отказывает на очном осмотре (Story 7.3).
@@ -375,6 +462,50 @@ public:
                                    eosio::name braname,
                                    checksum256 request_hash,
                                    std::string reason);
+
+  /**
+   * @brief Обратный вызов совета: сделка отменена, имущество на складе —
+   * `retpend → ∅`. Одной транзакцией: o.mkt.return (ISSUE w.mkt.share,
+   * Дт 10 / Кт 80), возврат членского взноса участка из общего кошелька
+   * (branch::retfee) и его сторно заказчику (o.mkt.refund). Запись заявки
+   * стирается; протокол (1117) уходит в пакет документов заказа через
+   * контракт soviet. Единственно допустимая авторизация — `_soviet`.
+   * @ingroup public_marketplace_actions
+   */
+  [[eosio::action]] void onmktrtauth(eosio::name coopname,
+                                      checksum256 hash,
+                                      document2 authorization);
+  /**
+   * @brief Обратный вызов совета: отказ в отмене сделки — `retpend →
+   * retdecl`. Имущество остаётся на участке и ждёт заказчика; движений нет.
+   * @ingroup public_marketplace_actions
+   */
+  [[eosio::action]] void onmktrtdecl(eosio::name coopname,
+                                      checksum256 hash,
+                                      std::string reason);
+  /**
+   * @brief Оператор участка выдал имущество заказчику обратно после отказа
+   * совета (`retdecl`); пока повестка открыта, выдача обратно недоступна.
+   * Документа нет — имущество участок юридически
+   * не принимал. Запись заявки стирается, заказ остаётся выданным с прежним
+   * гарантийным окном. Авторизация: подписант ∈ branches[braname].
+   * @ingroup public_marketplace_actions
+   */
+  [[eosio::action]] void handback(eosio::name coopname,
+                                   eosio::name signer,
+                                   eosio::name braname,
+                                   checksum256 request_hash);
+
+  /**
+   * @brief Довнесение членского взноса по гарантийному возврату, ждавшему
+   * пополнения общего кошелька участка: `feepend → ∅` (задача 99D-15).
+   * o.brn.retfee (общий кошелёк участка → пул взносов) и o.mkt.refund (пул →
+   * членский кошелёк программы заказчика). Участок — из заказа. Зовёт бэкенд
+   * по расписанию, пока `branch::retfee` не пройдёт. Авторизация: кооператив.
+   * @ingroup public_marketplace_actions
+   */
+  [[eosio::action]] void payretfee(eosio::name coopname,
+                                    checksum256 request_hash);
 
   // ── p.mkt.wroff ──────────────────────────────────────────────────────
 
@@ -460,7 +591,7 @@ public:
    *
    * Эффект:
    *  - Ledger2::apply(o.mkt.wroff) по каждой неисполненной позиции с этим
-   *    `braname` (Дт 86 / Кт 10), как в `execwroff`.
+   *    `braname` (Дт 91 / Кт 10), как в `execwroff`.
    *  - Служебная записка `memo` публикуется в реестр документов
    *    (`make_complete_document`, package = proposal_hash).
    *  - Позиции КУ помечаются executed; когда исполнены все позиции проекта,
@@ -483,8 +614,13 @@ public:
   // ── service ──────────────────────────────────────────────────────────
 
   /**
-   * @brief Заглушка миграции — donor-таблиц нет, мигрировать нечего.
-   * Оставлена для совместимости с CMake-build и прежним ABI.
+   * @brief Перенос открытых обязательств перед поставщиками на кошелёк к
+   * оплате `w.mkt.topay` (задача 99D-16). По каждому поставщику считает
+   * непогашенное по принятым заказам без завершённой выплаты (принятая
+   * стоимость минус удержанное при инициации) и начисляет только разницу с
+   * текущим остатком кошелька (o.mig.topay) — повторный запуск ничего не
+   * удваивает. Обходит все кооперативы; вызывается при установке контракта,
+   * как `migrate` остальных контрактов. Авторизация: `_marketplace`.
    * @ingroup public_marketplace_actions
    */
   [[eosio::action]] void migrate();

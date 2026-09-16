@@ -67,15 +67,19 @@ export const marketplaceCheckoutResultSelector = Selector('MarketplaceCheckoutRe
 )
 
 /**
- * Заявление о конвертации паевого взноса к подписи по позиции корзины /
- * строке предложения со склада (подписывается заказчиком при оформлении).
+ * Строка превью оформления по позиции корзины: суммы по частям — что покрыто
+ * кошельками программы (членский взнос — членским, тело — свободным паевым
+ * «Стола заказов») и что уйдёт с Цифрового кошелька по заявлению.
  */
 const rawCheckoutSignableLineSelector = {
   offer_id: true,
   package_id: true,
   order_hash: true,
   amount: true,
-  document: rawDocumentSelector,
+  membership_fee: true,
+  from_member: true,
+  from_program: true,
+  from_wallet: true,
 }
 
 const _validateSignableLine: MakeAllFieldsRequired<ValueTypes['MarketplaceCheckoutSignableLine']> =
@@ -83,4 +87,30 @@ const _validateSignableLine: MakeAllFieldsRequired<ValueTypes['MarketplaceChecko
 
 export const marketplaceCheckoutSignableLineSelector = Selector('MarketplaceCheckoutSignableLine')(
   rawCheckoutSignableLineSelector
+)
+
+/**
+ * Заявление 1110 к подписи — сумма перевода с Цифрового кошелька (то, чего не
+ * хватило в кошельках программы) и её членская часть; null — переводить нечего.
+ */
+export const rawConvertPayloadSelector = {
+  amount: true,
+  membership_fee: true,
+  document: rawDocumentSelector,
+}
+
+const _validateConvertPayload: MakeAllFieldsRequired<ValueTypes['MarketplaceConvertPayload']> =
+  rawConvertPayloadSelector
+
+/** Превью оформления: строки и, если нужно, заявление 1110. */
+const rawCheckoutPreviewSelector = {
+  lines: rawCheckoutSignableLineSelector,
+  convert: rawConvertPayloadSelector,
+}
+
+const _validateCheckoutPreview: MakeAllFieldsRequired<ValueTypes['MarketplaceCheckoutPreview']> =
+  rawCheckoutPreviewSelector
+
+export const marketplaceCheckoutPreviewSelector = Selector('MarketplaceCheckoutPreview')(
+  rawCheckoutPreviewSelector
 )

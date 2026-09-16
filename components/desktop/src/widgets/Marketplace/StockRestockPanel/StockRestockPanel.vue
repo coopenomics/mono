@@ -1,11 +1,9 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
-import { Classes, Queries, Zeus } from '@coopenomics/sdk';
+import { Queries, Zeus } from '@coopenomics/sdk';
 import { client } from 'src/shared/api/client';
-import { useGlobalStore } from 'src/shared/store';
 import { BaseBadge, BaseButton, BaseSelect } from 'src/shared/ui/base';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
-import { signingKeyOrAlert } from 'src/shared/lib/utils/signingKey';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { marketplaceOrderUnitLabel, MarketplaceSaleForm, type MarketplaceUnitOfMeasure } from 'src/shared/lib/consts';
 import { useMarketplaceRealtime, saleQuantityStep, quantizeSaleQuantity } from 'src/shared/lib/marketplace';
@@ -17,7 +15,6 @@ import {
   type MarketplaceStockProposalView,
 } from 'src/pages/Marketplace/OperatorIssuance/api';
 
-const globalStore = useGlobalStore();
 
 /**
  * Докладка у стойки выдачи (requirement 76): оператор накидывает пайщику
@@ -37,6 +34,8 @@ interface CoopStockPackage {
   price: string;
   label: string | null;
   is_default: boolean;
+  /** Свободно упаковок этого вида — остаток ведётся на упаковке. */
+  quantity_available: number;
 }
 
 type CoopStockOffer = {
@@ -93,9 +92,8 @@ function unitPrice(offer: CoopStockOffer): string {
 // Максимум в единице отпуска (упаковки при упаковке, иначе базовые единицы).
 function maxQty(offer: CoopStockOffer): number {
   if (!isPackaged(offer)) return offer.quantity_available;
-  const pkg = selectedPackage(offer);
-  if (!pkg || pkg.size <= 0) return 0;
-  return Math.floor(offer.quantity_available / pkg.size);
+  // Остаток по упаковкам: сколько свободно именно этой упаковки.
+  return selectedPackage(offer)?.quantity_available ?? 0;
 }
 
 function ensureDefaultPackage(offer: CoopStockOffer): void {
@@ -163,18 +161,12 @@ function bump(offer: CoopStockOffer, sign: 1 | -1): void {
 }
 
 async function sendProposal(): Promise<void> {
-  const wifKey = await signingKeyOrAlert('Не удалось получить ключ для подписи');
-  if (!wifKey) {
-    return;
-  }
   sending.value = true;
   try {
     // Двухфазно (канон — см. IssueActOpenDialog.vue): сначала бэк готовит по
-    // каждой строке order_hash + акт приёма-передачи (signiss1_document),
-    // затем оператор подписывает его локально своим ключом (первая подпись
-    // АПП-выдачи) — и только с готовой подписью бандл уходит на создание
-    // предложения. До подписи пайщика в блокчейне ничего не происходит.
-    const docSigner = new Classes.Document(wifKey);
+    // каждой строке order_hash и снапшоты, затем бандл уходит на создание
+    // предложения. Оператор ничего не подписывает — его подпись закрывающая,
+    // после акта пайщика. До подписи пайщика в блокчейне ничего не происходит.
     const payloads = await getStockIssuancePayloads({
       braname: props.braname,
       member_account: props.memberAccount,
@@ -184,15 +176,12 @@ async function sendProposal(): Promise<void> {
         package_id: l.package_id,
       })),
     });
-    const items = await Promise.all(
-      payloads.map(async (p) => ({
-        offer_id: p.offer_id,
-        quantity: p.quantity,
-        package_id: p.package_id,
-        order_hash: p.order_hash,
-        signiss1_act: await docSigner.signDocument(p.signiss1_document, globalStore.username, 1),
-      })),
-    );
+    const items = payloads.map((p) => ({
+      offer_id: p.offer_id,
+      quantity: p.quantity,
+      package_id: p.package_id,
+      order_hash: p.order_hash,
+    }));
     await createStockProposal({
       braname: props.braname,
       member_account: props.memberAccount,

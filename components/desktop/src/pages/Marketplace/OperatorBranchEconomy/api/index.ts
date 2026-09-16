@@ -141,15 +141,6 @@ export async function deleteTrusteeWeight(data: IDeleteTrusteeWeightInput): Prom
 
 // ─── Персональные средства ───
 
-export type IConvertBranchFundsInput = Mutations.Marketplace.ConvertBranchFunds.IInput['data'];
-
-export async function convertBranchFunds(data: IConvertBranchFundsInput): Promise<boolean> {
-  const { [Mutations.Marketplace.ConvertBranchFunds.name]: result } = await client.Mutation(
-    Mutations.Marketplace.ConvertBranchFunds.mutation,
-    { variables: { data } },
-  );
-  return Boolean(result);
-}
 
 export type IAidStatementPayloadInput =
   Queries.Marketplace.AidStatementSignablePayload.IInput['data'];

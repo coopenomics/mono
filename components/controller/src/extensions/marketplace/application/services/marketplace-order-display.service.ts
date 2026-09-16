@@ -195,6 +195,8 @@ export class MarketplaceOrderDisplayService {
         }
       }
       result.set(order.id, {
+        offer_id: order.offer_id,
+        category_id: offer?.category_id ?? null,
         product_name: offer?.product_name ?? null,
         image_url: offer ? (imageUrlByOfferId.get(offer.id) ?? null) : null,
         unit_of_measure: offer?.unit_of_measure ?? null,

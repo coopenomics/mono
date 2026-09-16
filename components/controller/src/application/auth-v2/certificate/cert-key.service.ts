@@ -240,6 +240,25 @@ export class CertKeyService implements OnApplicationBootstrap {
     return this.crypto.toSigningKey(wif);
   }
 
+  /**
+   * Подписывает байты ключом заверения в формате цепи (`SIG_K1_…`).
+   *
+   * Ключ при этом наружу не отдаётся: подписывает сервис, а вызывающий получает
+   * только подпись. Так подписываются документы, которые кооператив выпускает во
+   * внешнюю сеть и которые проверяются по его признанному ключу из
+   * `ano::endorsements` — например, подтверждение членства для карты кооператора.
+   *
+   * @param message — канонический байтовый образ документа; подпись накрывает
+   *   ровно эти байты, канонизация — забота вызывающего.
+   * @returns Подпись `SIG_K1_…`.
+   * @throws Error Если ключа заверения нет ни в секрете поставки, ни в хранилище.
+   */
+  async signChainMessage(message: Uint8Array): Promise<string> {
+    const wif = await this.loadStoredKey();
+    if (!wif) throw new Error('Ключ заверения не найден: ни секрета поставки, ни собственного выпуска');
+    return this.crypto.signChainMessage(wif, message);
+  }
+
   /** Публичная часть ключа заверения — для витрины в кабинете. `null`, если ключа нет. */
   async publicKey(): Promise<string | null> {
     const wif = await this.loadStoredKey();

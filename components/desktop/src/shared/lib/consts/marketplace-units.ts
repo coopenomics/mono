@@ -128,3 +128,19 @@ export function marketplaceOrderSaleUnit(
   }
   return { units: Number(trimNumber(quantity)), unitLabel: baseLabel };
 }
+
+/**
+ * Количество в единицах отпуска строкой: «15 л» по мере, «10 упак. 0,5 л»
+ * упаковкой. Без знака умножения между числом и единицей — это количество
+ * товара, а не произведение (просьба владельца 2026-09-09: «15×л» читалось как
+ * формула). Одна подпись на все столы: она встречалась полутора десятками
+ * копий, и знак пришлось бы убирать в каждой.
+ */
+export function marketplaceOrderSaleUnitLabel(
+  quantity: number,
+  unit: string | null | undefined,
+  packageSize: number | null | undefined,
+): string {
+  const saleUnit = marketplaceOrderSaleUnit(quantity, unit, packageSize);
+  return `${saleUnit.units} ${saleUnit.unitLabel}`;
+}

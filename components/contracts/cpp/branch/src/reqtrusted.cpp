@@ -19,7 +19,7 @@
   verify_document_or_fail(application);
   verify_document_or_fail(authority);
 
-  get_participant_or_fail(coopname, username);
+  get_active_participant_or_fail(coopname, username);
 
   auto br = get_branch_or_fail(coopname, braname);
   eosio::check(br.trustee != username, "Председатель участка не может быть доверенным лицом");

@@ -3,7 +3,7 @@
  *
  * Покрывают двухуровневый онбординг-гейт:
  *   (L1 кооператив) пока coopAcceptance.accepted !== true → у председателя
- *      только ['Extension:configure'], у прочих [].
+ *      только ['Extension:configure', 'Onboarding:coop'], у прочих [].
  *   (L3 пайщик-заказчик) после принятия ЦПП orderer-права выдаются только при
  *      ДВУХ независимых фактах — подписана персональная оферта
  *      (requires_gate=false, могло случиться ещё на L2 при регистрации) И
@@ -83,14 +83,14 @@ describe('MarketplaceDesktopGrantsProvider', () => {
   });
 
   describe('L1: ЦПП ещё не принята кооперативом', () => {
-    it('председатель → только Extension:configure', async () => {
+    it('председатель → настройка расширения и маркер страницы подключения', async () => {
       const { provider } = makeProvider({});
       const grants = await provider.resolveGrants({
         ...baseCtx,
         userRole: 'chairman',
         config: { coopAcceptance: { accepted: false } },
       });
-      expect(grants).toEqual(['Extension:configure']);
+      expect(grants).toEqual(['Extension:configure', 'Onboarding:coop']);
     });
 
     it('обычный пайщик → []', async () => {
@@ -164,6 +164,9 @@ describe('MarketplaceDesktopGrantsProvider', () => {
       expect(grants).toContain('Order:read:all');
       expect(grants).toContain('Whitelist:manage');
       expect(grants).toContain('Extension:configure');
+      // Страница подключения ЦПП после принятия исчезает: маркер её видимости
+      // живёт только до подключения.
+      expect(grants).not.toContain('Onboarding:coop');
       // маркер онбординга выдан (orderer-роль гейтится)
       expect(grants).toContain('Onboarding:orderer');
       // orderer-эксклюзивное рабочее право (оформление заказа) под гейтом:

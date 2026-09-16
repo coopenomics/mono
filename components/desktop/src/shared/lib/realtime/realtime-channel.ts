@@ -19,6 +19,12 @@ import { useGlobalStore } from 'src/shared/store';
 
 export interface RealtimeHandle {
   close: () => void;
+  /**
+   * Жив ли канал подписки. Подписка сообщает это сама: сокет может молчать
+   * после обрыва, и тогда дочитка по таймеру — единственный источник событий.
+   * Не реализовано — считаем живым (старые подписки ничего не теряют).
+   */
+  isAlive?: () => boolean;
 }
 
 export interface RealtimeSubscription {
@@ -46,8 +52,18 @@ const SAFETY_RESYNC_MS = 60_000;
 const RESYNC_DEBOUNCE_MS = 1_500;
 let resyncTimer: ReturnType<typeof setTimeout> | null = null;
 
+/**
+ * Признак авторизации. По умолчанию — ключ в памяти (легаси-вход по ключу);
+ * App подменяет его признаком сессии. Ключ сессии CoopID запирается PIN-кодом
+ * по простою и после перезагрузки страницы, и это не выход из кабинета: пайщик
+ * авторизован, запросы уходят с токеном, — а канал прежде закрывал подписки и
+ * переставал дочитывать состояние, и гейт подписи у стойки молчал, пока пайщик
+ * не подпишет что-нибудь сам (инцидент 2026-09-07: бандл выдачи не всплыл).
+ */
+let authProvider: () => boolean = () => Boolean(useGlobalStore().wif);
+
 function isAuthed(): boolean {
-  return Boolean(useGlobalStore().wif);
+  return authProvider();
 }
 
 function isForeground(): boolean {
@@ -90,6 +106,38 @@ function closeAll(): void {
   [...handles.keys()].forEach(closeSub);
 }
 
+/**
+ * Переоткрыть подписки, чей сокет больше не живёт.
+ *
+ * Обрыв сам по себе не страшен — graphql-ws переподключается. Страшно, когда
+ * он сдался: события тогда идут мимо, а состояние держится только на дочитке
+ * раз в минуту. Поэтому на возврате вкладки и на появлении сети канал
+ * поднимаем заново (инцидент 14.09.2026: подписка умерла после серии
+ * перезапусков бэкенда и молчала до перезагрузки страницы).
+ */
+const REOPEN_COOLDOWN_MS = 15_000;
+let lastReopenAt = 0;
+
+function reopenDeadSubscriptions(reason: string): void {
+  if (!isAuthed() || !isForeground() || isBrowserOffline()) return;
+
+  const dead = [...handles.entries()].filter(([, handle]) => handle.isAlive?.() === false);
+  if (!dead.length) return;
+
+  // Частые переоткрытия сами по себе — нагрузка: пока идут попытки
+  // переподключения, канал честно мёртв, и дёргать его каждую секунду незачем.
+  const now = Date.now();
+  if (now - lastReopenAt < REOPEN_COOLDOWN_MS) return;
+  lastReopenAt = now;
+
+  for (const [id] of dead) {
+    console.warn(`[realtime] канал «${id}» закрыт — переоткрываем (${reason})`);
+    closeSub(id);
+    const sub = subscriptions.get(id);
+    if (sub) openSub(sub);
+  }
+}
+
 function resyncActive(reason: string): void {
   if (!isAuthed() || !isForeground()) return;
   // Мёртвая сеть / рестарт бэкенда без сети — не плодим HTTP catch-up.
@@ -100,7 +148,16 @@ function resyncActive(reason: string): void {
     resyncTimer = null;
     if (!isAuthed() || !isForeground() || isBrowserOffline()) return;
     subscriptions.forEach((sub) => {
-      if (handles.has(sub.id)) void sub.resync(reason);
+      const handle = handles.get(sub.id);
+      if (!handle) return;
+      // Видно в консоли, на чём держится обновление: пока сокет мёртв,
+      // состояние приходит только этой дочиткой.
+      if (handle.isAlive?.() === false) {
+        console.warn(
+          `[realtime] канал «${sub.id}» не на связи — состояние обновляется опросом (${reason})`,
+        );
+      }
+      void sub.resync(reason);
     });
   }, RESYNC_DEBOUNCE_MS);
 }
@@ -121,12 +178,13 @@ export function registerRealtimeSubscription(sub: RealtimeSubscription): void {
  * подписки по факту авторизации и навешивает catch-up на возврат активности +
  * страховочный таймер от «зомби-сокета».
  */
-export function startRealtimeChannel(): void {
+export function startRealtimeChannel(opts?: { isAuthed?: () => boolean }): void {
   // Канал чисто клиентский (ws + таймеры). На сервере SSR App.setup тоже
   // исполняется — там стартовать нечего.
   if (typeof window === 'undefined') return;
   if (installed) return;
   installed = true;
+  if (opts?.isAuthed) authProvider = opts.isAuthed;
 
   // Авто-открытие/закрытие по состоянию авторизации.
   watch(
@@ -141,11 +199,24 @@ export function startRealtimeChannel(): void {
   // Возврат вкладки/приложения в активность → немедленная дочитка состояния.
   if (typeof document !== 'undefined') {
     document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'visible') resyncActive('POLL (возврат вкладки)');
+      if (document.visibilityState !== 'visible') return;
+      reopenDeadSubscriptions('возврат вкладки');
+      resyncActive('POLL (возврат вкладки)');
+    });
+  }
+
+  // Сеть вернулась — поднимаем канал сразу, не дожидаясь возврата вкладки.
+  if (typeof window !== 'undefined') {
+    window.addEventListener('online', () => {
+      reopenDeadSubscriptions('сеть вернулась');
+      resyncActive('POLL (сеть вернулась)');
     });
   }
 
   // Страховка от зомби-сокета (ws «жив», но публикацию пропустил). Это НЕ
   // возврат к частому поллингу — при здоровом канале дочитка ничего не меняет.
-  setInterval(() => resyncActive('POLL (страховка 60с)'), SAFETY_RESYNC_MS);
+  setInterval(() => {
+    reopenDeadSubscriptions('страховка');
+    resyncActive('POLL (страховка 60с)');
+  }, SAFETY_RESYNC_MS);
 }

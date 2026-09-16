@@ -53,7 +53,9 @@ export class MarketplaceStorageCellResolver {
       branameFilter = ownBranames;
     }
 
-    const cells = await this.storageCellService.list(coopname, branameFilter ?? [], {
+    // Без выбранного участка фильтра по участкам нет вовсе: пустой список
+    // дал бы `braname IN ()` и пустую сетку у стола администратора.
+    const cells = await this.storageCellService.list(coopname, branameFilter, {
       is_active: data?.is_active,
     });
     return cells.map(toMarketplaceStorageCellDTO);

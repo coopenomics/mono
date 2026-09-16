@@ -22,6 +22,8 @@ import { OperatorReceptionPage } from 'src/pages/Marketplace/OperatorReception'
 import { OffererSupplyPreparationPage } from 'src/pages/Marketplace/OffererSupplyPreparation'
 import { OffererShipPartyPage } from 'src/pages/Marketplace/OffererShipParty'
 import { OffererPaymentHistoryPage } from 'src/pages/Marketplace/OffererPaymentHistory'
+import { OffererWarrantyClaimsPage } from 'src/pages/Marketplace/OffererWarrantyClaims'
+import { OffererWarrantyClaimDetailPage } from 'src/pages/Marketplace/OffererWarrantyClaimDetail'
 import { AdminWriteoffsPage } from 'src/pages/Marketplace/AdminWriteoffs'
 import { ChairmanModerationPage } from 'src/pages/Marketplace/ChairmanModeration'
 import { AdminOrdersPage } from 'src/pages/Marketplace/AdminOrders'
@@ -183,6 +185,9 @@ export default async function (): Promise<IWorkspaceConfig[]> {
                 requiresAuth: true,
                 agreements: agreementsBase,
                 hidden: true,
+                // Меню подсвечивает раздел, из которого страница открыта: она
+                // сиблинг реестра, и без этого подсветка гасла целиком.
+                menuKey: 'marketplace-catalog',
               },
               children: [],
             },
@@ -268,6 +273,9 @@ export default async function (): Promise<IWorkspaceConfig[]> {
                 requiresAuth: true,
                 agreements: agreementsBase,
                 hidden: true,
+                // Меню подсвечивает раздел, из которого страница открыта: она
+                // сиблинг реестра, и без этого подсветка гасла целиком.
+                menuKey: 'marketplace-my-orders',
               },
               children: [],
             },
@@ -417,6 +425,38 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             // одной кнопки отдельный экран со своим списком значило заставлять
             // поставщика сверять два списка одних и тех же заказов.
             {
+              // 99D-13: гарантийные претензии поставщику — перед «Выплатами»,
+              // потому что признанная претензия уменьшает следующие выплаты.
+              path: 'claims',
+              name: 'marketplace-supplier-claims',
+              component: markRaw(OffererWarrantyClaimsPage),
+              meta: {
+                title: 'Гарантийные возвраты',
+                icon: 'fa-solid fa-rotate-left',
+                requires: 'Offer:create:own',
+                requiresAuth: true,
+                agreements: agreementsBase,
+              },
+              children: [],
+            },
+            {
+              path: 'claims/:claimId',
+              name: 'marketplace-supplier-claim-detail',
+              component: markRaw(OffererWarrantyClaimDetailPage),
+              meta: {
+                title: 'Гарантийная претензия',
+                icon: 'fa-solid fa-rotate-left',
+                requires: 'Offer:create:own',
+                requiresAuth: true,
+                hidden: true,
+                // Меню подсвечивает раздел, из которого страница открыта: она
+                // сиблинг реестра, и без этого подсветка гасла целиком.
+                menuKey: 'marketplace-supplier-claims',
+                agreements: agreementsBase,
+              },
+              children: [],
+            },
+            {
               // Эпик 5 / Story 5.9: offerer-стол «Выплаты». Настройка
               // «выплаты получаю на…» (реквизиты ядра) + история выплат
               // MarketplaceOutgoingPaymentRequest по закрытым актам приёмки.
@@ -544,6 +584,9 @@ export default async function (): Promise<IWorkspaceConfig[]> {
                 requiresAuth: true,
                 agreements: agreementsBase,
                 hidden: true,
+                // Меню подсвечивает раздел, из которого страница открыта: она
+                // сиблинг реестра, и без этого подсветка гасла целиком.
+                menuKey: 'marketplace-pvz-returns',
               },
               children: [],
             },
@@ -616,6 +659,9 @@ export default async function (): Promise<IWorkspaceConfig[]> {
                 requiresAuth: true,
                 agreements: agreementsBase,
                 hidden: true,
+                // Меню подсвечивает раздел, из которого страница открыта: она
+                // сиблинг реестра, и без этого подсветка гасла целиком.
+                menuKey: 'marketplace-pvz-orders',
               },
               children: [],
             },
@@ -695,21 +741,22 @@ export default async function (): Promise<IWorkspaceConfig[]> {
                 requiresAuth: true,
                 agreements: agreementsBase,
                 hidden: true,
+                // Меню подсвечивает раздел, из которого страница открыта: она
+                // сиблинг реестра, и без этого подсветка гасла целиком.
+                menuKey: 'marketplace-admin-orders',
               },
               children: [],
             },
             {
-              // Реестр поставщиков: модель работы, договор (номер + дата),
-              // статус допуска. Администратор видит реестр и добавляет поставщика
-              // напрямую (`Supplier:manage`); одобрение/отклонение заявок —
-              // действие председателя (кнопки в строке видны только ему).
-              path: 'suppliers',
-              name: 'marketplace-suppliers',
-              component: markRaw(SupplierRegistryPage),
+              // Эпик 3 / Story 3.6: admin-стол модерации offer'ов. Виден совету
+              // и председателю (`Order:read:all` есть у board_readonly и admin).
+              path: 'moderation',
+              name: 'marketplace-moderation',
+              component: markRaw(ChairmanModerationPage),
               meta: {
-                title: 'Реестр поставщиков',
-                icon: 'storefront',
-                requires: 'Supplier:manage',
+                title: 'Модерация',
+                icon: 'fa-solid fa-clipboard-check',
+                requires: 'Order:read:all',
                 requiresAuth: true,
                 agreements: agreementsBase,
               },
@@ -734,21 +781,6 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               children: [],
             },
             {
-              // Эпик 3 / Story 3.6: admin-стол модерации offer'ов. Виден совету
-              // и председателю (`Order:read:all` есть у board_readonly и admin).
-              path: 'moderation',
-              name: 'marketplace-moderation',
-              component: markRaw(ChairmanModerationPage),
-              meta: {
-                title: 'Модерация',
-                icon: 'fa-solid fa-clipboard-check',
-                requires: 'Order:read:all',
-                requiresAuth: true,
-                agreements: agreementsBase,
-              },
-              children: [],
-            },
-            {
               // Эпик 15: полная карточка предложения для модератора —
               // открывается по клику на карточку в «Модерации». Та же
               // страница, что и в каталоге, но на столе администратора
@@ -765,79 +797,41 @@ export default async function (): Promise<IWorkspaceConfig[]> {
                 requiresAuth: true,
                 agreements: agreementsBase,
                 hidden: true,
+                // Меню подсвечивает раздел, из которого страница открыта: она
+                // сиблинг реестра, и без этого подсветка гасла целиком.
+                menuKey: 'marketplace-admin-offers',
                 readonly: true,
               },
               children: [],
             },
             {
-              // Эпик 3 / Story 3.x: chairman-настройка whitelist'а категорий.
-              // Только председатель (`Whitelist:manage` есть лишь у admin).
-              path: 'economy',
-              name: 'marketplace-admin-economy',
-              component: markRaw(AdminMarketEconomyPage),
+              // Реестр поставщиков: модель работы, договор (номер + дата),
+              // статус допуска. Администратор видит реестр и добавляет поставщика
+              // напрямую (`Supplier:manage`); одобрение/отклонение заявок —
+              // действие председателя (кнопки в строке видны только ему).
+              path: 'suppliers',
+              name: 'marketplace-suppliers',
+              component: markRaw(SupplierRegistryPage),
               meta: {
-                title: 'Экономика',
-                icon: 'percent',
-                requires: 'Economy:set-fee',
+                title: 'Реестр поставщиков',
+                icon: 'storefront',
+                requires: 'Supplier:manage',
                 requiresAuth: true,
                 agreements: agreementsBase,
               },
               children: [],
             },
             {
-              path: 'category-whitelist',
-              name: 'marketplace-category-whitelist',
-              component: markRaw(ChairmanCategoryWhitelistPage),
-              meta: {
-                title: 'Доступные категории',
-                icon: 'fa-solid fa-filter',
-                requires: 'Whitelist:manage',
-                requiresAuth: true,
-                agreements: agreementsBase,
-              },
-              children: [],
-            },
-            {
-              // Эпик 2: admin-стол «Пункты выдачи заказов». Председатель
-              // подключает кооперативные участки (core) как ПВЗ Стола заказов
-              // (адрес/контакты/режим работы + геокодинг) и управляет их
-              // статусом. Видна совету и председателю (`Order:read:all`);
-              // управляющие действия внутри — только председателю (isChairman),
-              // что совпадает с бэкенд-авторизацией мутаций (chairman-only).
-              path: 'issuance-points',
-              name: 'marketplace-issuance-points',
-              component: markRaw(AdminIssuancePointsPage),
-              meta: {
-                title: 'Пункты выдачи заказов',
-                icon: 'pin_drop',
-                requires: 'Order:read:all',
-                requiresAuth: true,
-                agreements: agreementsBase,
-              },
-              children: [],
-            },
-            {
-              // Эпик 8 / Story 8.7: admin-стол списания скоропорта.
-              path: 'writeoffs',
-              name: 'marketplace-writeoffs',
-              component: markRaw(AdminWriteoffsPage),
-              meta: {
-                title: 'Списания скоропорта',
-                icon: 'fa-solid fa-trash-can-arrow-up',
-                requires: 'Order:read:all',
-                requiresAuth: true,
-                agreements: agreementsBase,
-              },
-              children: [],
-            },
-            {
-              // Эпик 9 / Story 9.2: admin-стол сводного склада кооператива.
+              // Эпик 9 / Story 9.2: admin-стол склада кооператива — что лежит
+              // на пунктах выдачи. «Сводный склад» переименован в «Склад»
+              // (решение владельца 13.09.2026): сводный он и так, а слово
+              // только удлиняло пункт меню.
               path: 'warehouse-summary',
               name: 'marketplace-warehouse-summary',
               component: markRaw(AdminWarehouseSummaryPage),
               meta: {
-                title: 'Сводный склад',
-                icon: 'fa-solid fa-warehouse',
+                title: 'Склад',
+                icon: 'warehouse',
                 requires: 'Order:read:all',
                 requiresAuth: true,
                 agreements: agreementsBase,
@@ -863,14 +857,75 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               children: [],
             },
             {
+              // Эпик 8 / Story 8.7: admin-стол списания скоропорта.
+              path: 'writeoffs',
+              name: 'marketplace-writeoffs',
+              component: markRaw(AdminWriteoffsPage),
+              meta: {
+                title: 'Списания скоропорта',
+                icon: 'fa-solid fa-trash-can-arrow-up',
+                requires: 'Order:read:all',
+                requiresAuth: true,
+                agreements: agreementsBase,
+              },
+              children: [],
+            },
+            {
+              // Эпик 3 / Story 3.x: chairman-настройка whitelist'а категорий.
+              // Только председатель (`Whitelist:manage` есть лишь у admin).
+              path: 'economy',
+              name: 'marketplace-admin-economy',
+              component: markRaw(AdminMarketEconomyPage),
+              meta: {
+                title: 'Экономика',
+                icon: 'percent',
+                requires: 'Economy:set-fee',
+                requiresAuth: true,
+                agreements: agreementsBase,
+              },
+              children: [],
+            },
+            {
               // Эпик 5 / Story 5.x: read-only лента выплат поставщикам для совета.
               path: 'payouts',
               name: 'marketplace-board-payouts',
               component: markRaw(BoardPayoutsReadonlyPage),
               meta: {
-                title: 'Выплаты — совет',
+                title: 'Выплаты поставщикам',
                 icon: 'fa-solid fa-coins',
                 requires: 'Order:read:all',
+                requiresAuth: true,
+                agreements: agreementsBase,
+              },
+              children: [],
+            },
+            {
+              // Эпик 2: admin-стол «Пункты выдачи заказов». Председатель
+              // подключает кооперативные участки (core) как ПВЗ Стола заказов
+              // (адрес/контакты/режим работы + геокодинг) и управляет их
+              // статусом. Видна совету и председателю (`Order:read:all`);
+              // управляющие действия внутри — только председателю (isChairman),
+              // что совпадает с бэкенд-авторизацией мутаций (chairman-only).
+              path: 'issuance-points',
+              name: 'marketplace-issuance-points',
+              component: markRaw(AdminIssuancePointsPage),
+              meta: {
+                title: 'Пункты выдачи заказов',
+                icon: 'pin_drop',
+                requires: 'Order:read:all',
+                requiresAuth: true,
+                agreements: agreementsBase,
+              },
+              children: [],
+            },
+            {
+              path: 'category-whitelist',
+              name: 'marketplace-category-whitelist',
+              component: markRaw(ChairmanCategoryWhitelistPage),
+              meta: {
+                title: 'Доступные категории',
+                icon: 'fa-solid fa-filter',
+                requires: 'Whitelist:manage',
                 requiresAuth: true,
                 agreements: agreementsBase,
               },
@@ -911,8 +966,10 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               component: markRaw(OnboardingCoopAcceptCppPage),
               meta: {
                 title: 'Подключение ЦПП',
-                icon: 'fa-solid fa-handshake',
-                requires: 'Extension:configure',
+                icon: 'handshake',
+                // Маркер видимости выдаётся только пока ЦПП не принята
+                // Советом: после подключения страница из меню уходит.
+                requires: 'Onboarding:coop',
                 requiresAuth: true,
                 agreements: agreementsBase,
               },
@@ -927,14 +984,25 @@ export default async function (): Promise<IWorkspaceConfig[]> {
 
 /**
  * Кошельки, которые «Стол заказов» приносит на стол пайщика (путь B).
- * Членский кошелёк программы (`w.mkt.member`) — туда зачисляются возвратные
- * членские средства стола заказов. Главный членский ЦК (`w.wal.member`) и
- * резерв под заказ (`w.mkt.order`) здесь НЕ показываем.
+ * Свободный паевой программы (`w.mkt.share`) — сюда возвращается паевой
+ * взнос после выдачи, отказов и гарантийного возврата; отсюда резервируется
+ * следующий заказ; в Кошелёк не отзывается. Членский
+ * кошелёк программы (`w.mkt.member`) — сюда по заявлению о конвертации
+ * переходит членский взнос участка и сюда же возвращается неиспользованная
+ * его часть; остаток зачитывается при следующем заказе, обратно в паевой не
+ * переводится. Паевой резерв под заказ (`w.mkt.order`) здесь НЕ показываем.
  */
 export const walletCards: DesktopWalletCard[] = [
   {
+    wallet_name: 'w.mkt.share',
+    label: 'Свободный паевой',
+    description: 'Стол заказов',
+    accent: 'wallet',
+    icon: 'savings',
+  },
+  {
     wallet_name: 'w.mkt.member',
-    label: 'Членский кошелёк',
+    label: 'Членский взнос',
     description: 'Стол заказов',
     accent: 'wallet',
     icon: 'card_membership',

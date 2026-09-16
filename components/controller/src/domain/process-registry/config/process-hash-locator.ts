@@ -171,6 +171,7 @@ export const PROCESS_HASH_LOCATOR: Readonly<Record<string, HashLocation[]>> = Ob
   'p.mkt.supply': [{ code: 'marketplace', table: 'orders',      field: 'hash' }],
   'p.mkt.return': [{ code: 'marketplace', table: 'retrequests', field: 'hash' }],
   'p.mkt.wroff':  [{ code: 'marketplace', table: 'wroffprops',  field: 'hash' }],
+  'p.mkt.claim':  [{ code: 'marketplace', table: 'claims',      field: 'hash' }],
 
   // edubridge — ЦПП «Образование». Две entity-таблицы из
   // contracts/cpp/lib/domain/table_edubridge_*.hpp:

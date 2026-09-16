@@ -1,11 +1,11 @@
 import type {
   MarketplaceOrderCreateTxSnapshot,
   MarketplaceOrderIssuanceFactSnapshot,
+  MarketplaceOrderPayoutStatus,
   MarketplaceOrderProps,
   MarketplaceOrderStatus,
 } from './marketplace-order.types';
 import type { MarketplaceUnitOfMeasure } from './marketplace-offer.types';
-import type { ISignedDocument } from '@coopenomics/innercoop';
 import type { IBlockchainSynchronizable } from '@coopenomics/extension-kit/sync';
 
 /**
@@ -39,9 +39,19 @@ export class MarketplaceOrderDomainEntity implements IBlockchainSynchronizable {
   public readonly price_per_unit: string;
   /** Содержимое упаковки в базовой единице (Эпик 18); 0 = отпуск по мере. */
   public readonly package_size: number;
+  /** Упаковка каталога, которой оформлен заказ; null — по мере или заказ до учёта по упаковкам. */
+  public readonly package_id: string | null;
   public readonly total_cost: string;
   /** Членский взнос, включённый в стоимость заказа — on-chain mirror (см. MarketplaceOrderProps). */
   public membership_fee: string | null;
+  /** Принятая стоимость по акту приёмки (on-chain mirror `accepted_cost`, задача 99D-14). */
+  public accepted_cost: string | null;
+  /** Состояние выплаты поставщику (on-chain mirror `payout_status`). */
+  public payout_status: MarketplaceOrderPayoutStatus | null;
+  /** Списанная уценка (on-chain mirror `markdown_cost`); null до первой sync-дельты. */
+  public markdown_cost: string | null;
+  /** Уценка, рассчитанная бэкендом при выдаче и ожидающая проведения на цепи (задача 99D-15). */
+  public markdown_due: string | null;
   public readonly cycle_id: string | null;
   /** Грань «заказ заказчика» (Эпик 16): общий id строк одного оформления на один КУ; null = legacy покарточный заказ. */
   public readonly checkout_id: string | null;
@@ -73,15 +83,13 @@ export class MarketplaceOrderDomainEntity implements IBlockchainSynchronizable {
    * кабинете загорается «Готово к выдаче». null — ещё не объявлено.
    */
   public ready_announced_at: Date | null;
-  /** Story 6.1 / FR21: момент открытия выдачи председателем КУ (`signiss1`). */
-  public chairman_signed_at: Date | null;
-  public chairman_account: string | null;
-  public signiss1_tx_hash: string | null;
-  public issue_act_signiss1_document: ISignedDocument | null;
-  /** Story 6.3 / FR24: момент финальной подписи заказчика (`signiss2`). */
-  public orderer_signed_at: Date | null;
+  /** Паевая модель: момент подписи заявления о возврате паевого взноса имуществом (`issuestmt`). */
+  public issue_statement_at: Date | null;
+  /** Номер решения совета по выдаче. */
+  public issue_decision_id: string | null;
+  /** Сторона кооператива, закрывшая выдачу (`issueact2`). */
   public delivery_signer_account: string | null;
-  public signiss2_tx_hash: string | null;
+  public issue_closed_tx_hash: string | null;
   public on_chain_id: string | null;
   public on_chain_block_num: number | null;
   public on_chain_present: boolean;
@@ -106,8 +114,13 @@ export class MarketplaceOrderDomainEntity implements IBlockchainSynchronizable {
     this.unit_of_measure = props.unit_of_measure;
     this.price_per_unit = props.price_per_unit;
     this.package_size = props.package_size;
+    this.package_id = props.package_id ?? null;
     this.total_cost = props.total_cost;
     this.membership_fee = props.membership_fee;
+    this.accepted_cost = props.accepted_cost ?? null;
+    this.payout_status = props.payout_status ?? null;
+    this.markdown_cost = props.markdown_cost ?? null;
+    this.markdown_due = props.markdown_due ?? null;
     this.cycle_id = props.cycle_id;
     this.checkout_id = props.checkout_id;
     this.shipment_id = props.shipment_id;
@@ -123,13 +136,10 @@ export class MarketplaceOrderDomainEntity implements IBlockchainSynchronizable {
     this.current_warehouse_braname = props.current_warehouse_braname;
     this.issuance_fact = props.issuance_fact;
     this.ready_announced_at = props.ready_announced_at;
-    this.chairman_signed_at = props.chairman_signed_at;
-    this.chairman_account = props.chairman_account;
-    this.signiss1_tx_hash = props.signiss1_tx_hash;
-    this.issue_act_signiss1_document = props.issue_act_signiss1_document;
-    this.orderer_signed_at = props.orderer_signed_at;
+    this.issue_statement_at = props.issue_statement_at;
+    this.issue_decision_id = props.issue_decision_id;
     this.delivery_signer_account = props.delivery_signer_account;
-    this.signiss2_tx_hash = props.signiss2_tx_hash;
+    this.issue_closed_tx_hash = props.issue_closed_tx_hash;
     this.on_chain_id = props.on_chain_id;
     this.on_chain_block_num = props.on_chain_block_num;
     this.on_chain_present = props.on_chain_present;
@@ -177,6 +187,13 @@ export class MarketplaceOrderDomainEntity implements IBlockchainSynchronizable {
     // membership_fee — immutable on-chain snapshot (контракт пишет его один
     // раз при createorder), безусловный overwrite идемпотентен.
     this.membership_fee = blockchainData.membership_fee;
+    // accepted_cost пишет только закрывающая подпись приёмки и дальше не
+    // меняет; payout_status идёт вперёд по своей машине состояний — обе
+    // величины зеркалятся безусловно, как и membership_fee.
+    this.accepted_cost = blockchainData.accepted_cost;
+    this.payout_status = blockchainData.payout_status;
+    // markdown_cost пишет только `markdown` и один раз — зеркалится безусловно.
+    this.markdown_cost = blockchainData.markdown_cost ?? null;
     // Forward-only guard. Backend опережает цепь на нескольких переходах
     // «прямого пути»: cycle-hook / синтез индивидуальной заявки переводят
     // Order в ACCEPTED_PENDING_SUPPLIER(_INDIVIDUAL) и далее ACCEPTED /
@@ -247,15 +264,19 @@ export class MarketplaceOrderDomainEntity implements IBlockchainSynchronizable {
       this.status === 'ACCEPTED' ||
       this.status === 'SUPPLY_PREPARED' ||
       this.status === 'ACCEPTED_TO_COOP' ||
-      this.status === 'READY_TO_RECEIVE'
+      this.status === 'READY_TO_RECEIVE' ||
+      this.status === 'ISSUE_PENDING' ||
+      this.status === 'ISSUE_AUTHORIZED' ||
+      this.status === 'ISSUE_ACT1'
     );
   }
 
   /**
-   * Story 6.1: ожидает первой подписи председателя КУ (открытие выдачи).
+   * Паевая модель: имущество принято кооперативом, но на участок выдачи ещё не
+   * поступило (оператор не отметил `readyissue`).
    */
-  public get awaits_chairman_issue_open(): boolean {
-    return this.status === 'ACCEPTED_TO_COOP' && this.chairman_signed_at === null;
+  public get awaits_ready_issue(): boolean {
+    return this.status === 'ACCEPTED_TO_COOP';
   }
 
   /**
@@ -267,11 +288,13 @@ export class MarketplaceOrderDomainEntity implements IBlockchainSynchronizable {
     return this.ready_announced_at !== null;
   }
 
-  /**
-   * Story 6.3: ожидает финальной подписи заказчика (получение имущества).
-   */
-  public get awaits_orderer_issue_final(): boolean {
-    return this.status === 'READY_TO_RECEIVE' && this.orderer_signed_at === null;
+  /** Паевая модель: выдача начата заявлением и ещё не закрыта (сага в работе). */
+  public get is_issuance_in_progress(): boolean {
+    return (
+      this.status === 'ISSUE_PENDING' ||
+      this.status === 'ISSUE_AUTHORIZED' ||
+      this.status === 'ISSUE_ACT1'
+    );
   }
 
   /**
@@ -310,4 +333,10 @@ export interface MarketplaceOrderBlockchainData {
   status: MarketplaceOrderStatus;
   /** Членский взнос из on-chain `order` row (requirement b6), null — старая строка без поля. */
   membership_fee: string | null;
+  /** Принятая стоимость по акту приёмки (`accepted_cost`, задача 99D-14); null — до приёмки или старая строка. */
+  accepted_cost: string | null;
+  /** Состояние выплаты поставщику (`payout_status`). */
+  payout_status: MarketplaceOrderPayoutStatus | null;
+  /** Списанная уценка (`markdown_cost`); «0.0000», пока уценка не проведена. */
+  markdown_cost?: string | null;
 }

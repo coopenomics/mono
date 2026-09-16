@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
+import { useFirstLoad } from 'src/shared/lib/composables'
 import { debounce } from 'quasar'
 import { useRoute } from 'vue-router'
 import { Zeus } from '@coopenomics/sdk'
@@ -81,6 +82,8 @@ const placementEnabled = computed(() => branchStore.addressedStorageEnabled)
 
 const items = ref<MarketplaceInventoryItemView[]>([])
 const loading = ref(true)
+/** Скелетон — только на первой загрузке; дочитка обновляет молча. */
+const firstLoad = useFirstLoad(loading)
 
 const RECEIVED = Zeus.MarketplaceInventoryStatus.RECEIVED
 const LABELED = Zeus.MarketplaceInventoryStatus.LABELED
@@ -137,6 +140,18 @@ function itemsInCell(cellId: string): MarketplaceInventoryItemView[] {
 const inboxItems = computed(() =>
   boardItems.value.filter((i) => !i.container_id && !i.cell_id).filter(matchesItem),
 )
+
+/**
+ * Подпись пустой колонки «Поступило». Различает три причины пустоты: на склад
+ * ещё ничего не привозили, всё привезённое уже разложено, либо поиск ничего не
+ * нашёл. Раньше пустой склад целиком подменял доску заглушкой, и оператор не
+ * мог подготовить ячейки заранее.
+ */
+const inboxEmptyLabel = computed(() => {
+  if (!boardItems.value.length) return 'Пока ничего не поступало'
+  if (!placementEnabled.value) return 'Ничего не найдено'
+  return 'Всё разложено'
+})
 
 function containersInCell(cellId: string): MarketplaceContainerView[] {
   return storage.activeContainers.filter((c) => c.cell_id === cellId)
@@ -652,8 +667,14 @@ function addLevelDown(): void {
 }
 
 /** Первая ячейка пустого склада — A-01, дальше сетка растёт плюсами. */
+/**
+ * Стартовая сетка: три секции по три яруса. Одна ячейка A-01, с которой
+ * начинали раньше, выглядела на карте случайной точкой и всё равно требовала
+ * достраивания вручную; девять ячеек сразу дают узнаваемый склад, который
+ * правится по месту — секции переименовываются, лишнее снимается.
+ */
 function startGrid(): void {
-  void growGrid(['A'], 1, 1)
+  void growGrid(['A', 'B', 'C'], 1, 3)
 }
 
 // ─── Пересборка сетки: переименование секции и разбор координат ──
@@ -897,16 +918,11 @@ onMounted(async () => {
         | (боксы и ячейки) выключено в настройках расширения.
 
     //- Канон загрузки: скелетон, а не спиннер.
-    CardListSkeleton(v-if='loading && !items.length', :count='3')
+    CardListSkeleton(v-if='firstLoad', :count='3')
 
-    EmptyState(
-      v-else-if='!boardItems.length',
-      title='На складе пусто',
-      body='Здесь появятся принятые позиции — после приёмки партии на столе «Ожидаемые поставки».'
-    )
-      template(#icon)
-        q-icon(name='inventory_2', size='48px')
-
+    //- Пустой склад доску не прячет: ячейки и боксы заводят заранее, до первой
+    //- поставки, — иначе оператору негде подготовить место (просьба владельца
+    //- 2026-09-09). Пустота показывается внутри колонок, а не вместо карты.
     template(v-else)
       //- `field-flush` снимает у поля резерв строки под сообщение об ошибке:
       //- здесь ошибок не бывает, а резерв поднимал поле относительно
@@ -939,7 +955,7 @@ onMounted(async () => {
 
           .place__col-body
             .place__empty-drop(v-if='!inboxItems.length')
-              | {{ placementEnabled ? 'Всё разложено' : 'Ничего не найдено' }}
+              | {{ inboxEmptyLabel }}
 
             .place__card(
               v-for='item in inboxItems',
@@ -980,6 +996,8 @@ onMounted(async () => {
                               @click='movePlacement(item, parsePlacementValue(opt.value))'
                             )
                               q-item-section {{ opt.label }}
+                              q-item-section(v-if='opt.caption', side)
+                                q-item-label(caption) {{ opt.caption }}
                             q-separator
                           q-item(
                             v-if='canRedistribute(item)',
@@ -1011,15 +1029,15 @@ onMounted(async () => {
           EmptyState(
             v-if='!storage.activeCells.length',
             title='Сетка склада не заведена',
-            body='Опишите склад координатами: секции по горизонтали, ярусы по вертикали. Тогда место находится адресом, а не перебором. Начните с первой ячейки — дальше сетка достраивается плюсами по краям карты.'
+            body='Начните с трёх секций по три яруса — дальше правьте по месту.'
           )
             template(#icon)
               q-icon(name='grid_view', size='48px')
             template(#action)
               BaseButton(variant='primary', size='sm', :loading='growing', @click='startGrid')
                 template(#icon-left)
-                  q-icon(name='add', size='16px')
-                | Завести ячейку A-01
+                  q-icon(name='grid_view', size='16px')
+                | Завести стартовую сетку
 
           EmptyState(
             v-else-if='!visibleSections.length',
@@ -1378,16 +1396,19 @@ onMounted(async () => {
     gap: var(--p-2, 8px);
   }
 
+  // Строка фильтров стоит на тех же колонках, что и раскладка под ней: поиск
+  // ровно над «Поступило», переключатель — над картой. Поле шире колонки
+  // читалось как сбой вёрстки — край поиска не совпадал ни с чем.
   &__filters {
     display: flex;
     align-items: center;
-    gap: var(--p-4, 16px);
+    gap: var(--p-3, 12px);
     flex-wrap: wrap;
   }
 
   &__search {
-    max-width: 420px;
-    width: 100%;
+    flex: 0 0 300px;
+    max-width: 100%;
   }
 
   // Слева — «Поступило» фиксированной ширины, справа — сетка на всё остальное.
@@ -1511,6 +1532,13 @@ onMounted(async () => {
   }
 
   // ─── Координатная сетка ───
+  // Пустое состояние карты стоит по центру свободной области и не жмётся к
+  // краям: подсказка про адресный склад уже сказана баннером выше, здесь нужен
+  // только повод завести сетку (просьба владельца 2026-09-09).
+  &__grid-wrap :deep(.empty) {
+    padding: var(--p-8, 48px) var(--p-6, 24px);
+  }
+
   &__grid-wrap {
     flex: 1 1 480px;
     min-width: 0;
@@ -1588,19 +1616,37 @@ onMounted(async () => {
 
   &__grid-grow td {
     text-align: center;
-    padding: var(--p-1, 4px);
+  }
+
+  // Ячейки с кнопками наращивания — без собственных отступов, кнопка занимает
+  // их целиком. Отступы приходят от Quasar правилом для крайних колонок
+  // плотной таблицы (`.q-table--dense .q-table th:first-child`), поэтому сброс
+  // идёт от класса самой карты: иначе он проигрывает по весу и подложка кнопки
+  // отстаёт от границ ячейки (жалоба 2026-09-09).
+  &__grid :deep(.place__grid-grow th),
+  &__grid :deep(.place__grid-grow td),
+  &__grid :deep(th.place__grid-add),
+  &__grid :deep(td.place__grid-add) {
+    padding: 0;
+  }
+
+  // Строка наращивания низкая: это служебная полоса карты, а не ярус, и
+  // растягивать её на высоту ячейки склада незачем — кнопка тогда висела в
+  // пустоте, прижатая к верхнему краю.
+  &__grid :deep(.place__grid-grow th),
+  &__grid :deep(.place__grid-grow td) {
+    height: 44px;
   }
 
   // Кнопка наращивания занимает ячейку целиком: попасть по иконке 18px в
   // ячейке шириной с палец не получалось, и добавление выглядело как
-  // «нажал — ничего не произошло».
+  // «нажал — ничего не произошло». Углы прямые — кнопка и есть ячейка карты,
+  // скруглённая подложка внутри прямоугольной ячейки читалась как зазор.
   &__grow-btn {
     width: 100%;
-    min-height: 40px;
-  }
-
-  &__grid-grow th {
-    padding: 0;
+    height: 100%;
+    min-height: 44px;
+    border-radius: 0;
   }
 
   &__grid-level {
@@ -1875,7 +1921,8 @@ onMounted(async () => {
   .place {
     padding: var(--p-4, 16px);
 
-    &__inbox {
+    &__inbox,
+    &__search {
       flex-basis: 100%;
     }
   }

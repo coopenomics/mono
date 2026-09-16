@@ -1,7 +1,11 @@
 <template>
-  <!-- Горизонтальная строка (списки вроде «Мои заказы»): вся сводка заказа в
-       один ряд на всю ширину — так порядок сверху вниз читается однозначно,
-       без «квадратиков» в сетке, где непонятно, что новее. -->
+  <!-- Строка списка «Мои заказы». Четыре зоны, каждая отвечает на свой
+       вопрос: миниатюра с названием, номером и пунктом выдачи — «что и
+       куда»; сумма с количеством под ней — «сколько»; бейдж с полосой сбора
+       партии — «в каком состоянии». На широком экране зоны стоят в ряд, на
+       узком — те же зоны перестраиваются в два яруса: состояние встаёт под
+       номером, рядом с миниатюрой, а сумма с количеством уходят в нижнюю
+       строку-чек. Разметка одна, раскладку меняет только сетка. -->
   <div
     v-if="layout === 'row'"
     class="order-row"
@@ -9,37 +13,56 @@
     @click="onCardClick"
   >
     <div class="order-row__thumb">
-      <q-img v-if="order.imageUrl" :src="order.imageUrl" ratio="1" class="order-row__thumb-img" />
+      <!-- fit=contain: товар виден целиком. Обрезка по квадрату резала
+           вертикальные снимки — от бутылки оставалась середина. -->
+      <q-img v-if="order.imageUrl" :src="order.imageUrl" ratio="1" fit="contain" class="order-row__thumb-img" />
       <div v-else class="order-row__thumb-empty">
         <q-icon name="image" size="20px" />
       </div>
     </div>
 
-    <div class="order-row__main">
+    <div class="order-row__ident">
       <div class="order-row__title">{{ order.title }}</div>
-      <div class="order-row__sub">
+      <div class="order-row__meta">
         <span class="order-row__num">№&nbsp;{{ order.shortId ?? order.id }}</span>
         <span class="order-row__sep" aria-hidden="true">·</span>
         <span>{{ formatDate(order.createdAt) }}</span>
       </div>
+      <!-- Пункт выдачи — строкой под номером, а не отдельной ячейкой: это
+           часть ответа «что за заказ», как адрес в чеке. Значок карты стоит
+           сразу за адресом, не уплывает к правому краю карточки. -->
+      <div
+        v-if="order.pvzName || order.pvz"
+        class="order-row__pvz"
+        :class="{ 'order-row__pvz--mappable': hasMap }"
+        @click.stop="hasMap && emit('map', order)"
+      >
+        <q-icon name="place" size="14px" class="order-row__pvz-icon" />
+        <span v-if="order.pvzName" class="order-row__pvz-name">{{ order.pvzName }}</span>
+        <span v-if="order.pvz" class="order-row__pvz-addr">{{ order.pvz }}</span>
+        <q-icon v-if="hasMap" name="map" size="14px" class="order-row__pvz-map" />
+      </div>
     </div>
 
-    <!-- Отдельный флекс-элемент строки (не внутри __main) — центрируется по
-         высоте всей строки через align-items:center, а не жмётся к верху
-         вровень с заголовком. Полоса сбора партии — под статусом, в том же
-         столбце (жалоба 2026-08-02): бейдж, под ним узкая полоса, под ней
-         подпись с процентом — примерно той же ширины, что и сам бейдж. -->
-    <div class="order-row__status-col">
+    <div class="order-row__money">
+      <div class="order-row__sum">{{ formatPrice(order.totalCost) }}</div>
+      <div class="order-row__qty">{{ order.units }}&nbsp;{{ order.unitLabel ?? 'ед.' }}</div>
+      <div v-if="order.feeNote" class="order-row__fee-note">{{ order.feeNote }}</div>
+    </div>
+
+    <div class="order-row__state">
       <BaseBadge :variant="order.statusVariant" class="order-row__status">
         {{ order.statusLabel }}
       </BaseBadge>
-
+      <!-- Сбор партии живёт под бейджем: полоса объясняет состояние «ожидает
+           сборки», поэтому ходит вместе с ним, а не отдельной балкой на всю
+           ширину карточки. -->
       <div v-if="order.progress !== undefined" class="order-row__progress">
         <q-linear-progress
           class="order-row__progress-bar"
           :value="order.progress"
           rounded
-          size="4px"
+          size="3px"
           color="primary"
           track-color="grey-3"
         />
@@ -50,31 +73,6 @@
           </q-icon>
         </div>
       </div>
-    </div>
-
-    <div class="order-row__fact order-row__fact--qty">
-      <div class="order-row__fact-label">Кол-во</div>
-      <div class="order-row__fact-value">{{ order.units }}×{{ order.unitLabel ?? 'ед.' }}</div>
-    </div>
-
-    <div class="order-row__fact order-row__fact--money">
-      <div class="order-row__fact-label">Сумма</div>
-      <div class="order-row__fact-value order-row__fact-value--money">{{ formatPrice(order.totalCost) }}</div>
-      <div v-if="order.feeNote" class="order-row__fee-note">{{ order.feeNote }}</div>
-    </div>
-
-    <div
-      v-if="order.pvzName || order.pvz"
-      class="order-row__pvz"
-      :class="{ 'order-row__pvz--mappable': hasMap }"
-      @click.stop="hasMap && emit('map', order)"
-    >
-      <q-icon name="place" size="16px" class="order-row__pvz-icon" />
-      <div class="order-row__pvz-text">
-        <div v-if="order.pvzName" class="order-row__pvz-name">{{ order.pvzName }}</div>
-        <div v-if="order.pvz" class="order-row__pvz-addr">{{ order.pvz }}</div>
-      </div>
-      <q-icon v-if="hasMap" name="map" size="14px" class="order-row__pvz-map" />
     </div>
 
     <div v-if="actionsForRole.length || $slots.actions" class="order-row__actions" @click.stop>
@@ -139,7 +137,7 @@
       </div>
       <div class="order-card__fact">
         <div class="order-card__fact-label">Кол-во</div>
-        <div class="order-card__fact-value">{{ order.units }}×{{ order.unitLabel ?? 'ед.' }}</div>
+        <div class="order-card__fact-value">{{ order.units }} {{ order.unitLabel ?? 'ед.' }}</div>
       </div>
     </div>
 
@@ -176,61 +174,7 @@
 <script setup lang="ts">
 import { computed, type PropType } from 'vue'
 import { BaseCard, BaseBadge, BaseButton } from 'src/shared/ui/base'
-import type { BaseBadgeVariant } from 'src/shared/ui/base'
-
-export type OrderStatus =
-  | 'draft'
-  | 'placed'
-  | 'paid'
-  | 'in-delivery'
-  | 'arrived-at-pvz'
-  | 'ready-to-issue'
-  | 'issued'
-  | 'cancelled'
-  | 'dispute'
-  | 'returned'
-
-export type OrderRole = 'orderer' | 'offerer' | 'operator' | 'admin'
-
-export interface Order {
-  id: string | number
-  shortId?: string
-  title: string
-  /** Обложка товара (первое изображение предложения); нет — показываем плейсхолдер. */
-  imageUrl?: string
-  units: number
-  unitLabel?: string
-  totalCost: number
-  /**
-   * Пояснение под суммой (requirement b6) — например «С учётом взноса
-   * пайщика: 1 300 ₽» на столе поставщика, где `totalCost` — его
-   * себестоимость без взноса. Заказчику не показывается — там `totalCost`
-   * уже включает взнос.
-   */
-  feeNote?: string
-  /**
-   * Заполнение сборки партии до минимального объёма поставки, 0..1.
-   * `undefined` — полосу не показывать (заказ вне стадии сбора: уже принят,
-   * без коллективного минимума, и т.п.) — раньше это был отдельный экран
-   * «Коллективный заказ», слитый сюда (жалоба 2026-08-02).
-   */
-  progress?: number
-  /** Card-status — управляет набором действий per-role (ACTIONS_PER_ROLE). */
-  status: OrderStatus
-  /** Человекочитаемая подпись доменного статуса для бейджа (из orderStatusDisplay). */
-  statusLabel: string
-  /** Вариант бейджа доменного статуса. */
-  statusVariant: BaseBadgeVariant
-  createdAt: string | Date
-  /** Наименование пункта выдачи (кооперативного участка) — основная строка ПВЗ. */
-  pvzName?: string
-  /** Адрес пункта выдачи — вторичная строка под наименованием. */
-  pvz?: string
-  /** Широта ПВЗ — если задана вместе с pvzLng, блок адреса открывает карту. */
-  pvzLat?: number
-  /** Долгота ПВЗ. */
-  pvzLng?: number
-}
+import type { OrderStatus, OrderRole, Order } from './OrderCard.types'
 
 interface OrderAction {
   key: string
@@ -538,13 +482,18 @@ function formatPrice(v: number) {
   }
 }
 
-// Строчная раскладка (layout="row"): вся сводка заказа в один ряд на всю
-// ширину списка. Тот же hairline-border/no-shadow инвариант, что и у карточки.
+// Строчная раскладка (layout="row"). Сетка с именованными зонами: на широком
+// экране один ряд «товар · сумма · состояние», на узком те же зоны становятся
+// двумя ярусами. Ширины зон фиксированы там, где важна колонность списка
+// (сумма над суммой, бейдж над бейджем), и тянется только зона товара.
 .order-row {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: var(--p-3, 12px) var(--p-6, 24px);
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  grid-template-areas:
+    'thumb ident money state'
+    'actions actions actions actions';
+  column-gap: var(--p-6, 24px);
+  align-items: start;
   padding: var(--p-4, 16px) var(--p-5, 20px);
   border: 1px solid var(--p-line);
   border-radius: var(--p-r-md, 12px);
@@ -559,9 +508,9 @@ function formatPrice(v: number) {
     }
   }
 
-  // Миниатюра товара — фиксированный квадрат слева, как в корзине/каталоге.
+  // Миниатюра товара — фиксированный квадрат, как в корзине и каталоге.
   &__thumb {
-    flex: 0 0 56px;
+    grid-area: thumb;
     width: 56px;
     height: 56px;
     border-radius: var(--p-r-sm, 8px);
@@ -583,52 +532,31 @@ function formatPrice(v: number) {
     color: var(--p-ink-3);
   }
 
-  // Заголовок + номер/дата — тянется, отдаёт место остальным колонкам первым.
-  &__main {
-    flex: 1 1 260px;
+  // Зона товара: название, номер с датой, пункт выдачи. Единственная, что
+  // тянется, — отдаёт место остальным первой.
+  &__ident {
+    grid-area: ident;
     min-width: 0;
+    // Миниатюра 56px, текст в три строки чуть ниже — крохотный сдвиг вниз
+    // выравнивает заголовок по верхней кромке картинки оптически.
+    padding-top: 1px;
   }
 
   &__title {
-    min-width: 0;
     font-size: var(--p-fs-h3, 15px);
     font-weight: 600;
     letter-spacing: var(--p-ls-h3, -0.01em);
+    line-height: var(--p-lh-h3, 1.3);
     color: var(--p-ink);
     overflow-wrap: anywhere;
   }
 
-  // Прямой ребёнок .order-row (не внутри __main) — align-items:center строки
-  // центрирует его по всей высоте, а не вровень с верхней строкой заголовка.
-  // Статус и полоса сбора партии — один столбец: бейдж сверху, под ним узкая
-  // полоса с подписью (жалоба 2026-08-02: раньше полоса жила отдельной
-  // полноширинной строкой снизу карточки — теперь встроена под статус).
-  //
-  // Ширина фиксированная, содержимое прижато вправо: у одного заказа под
-  // бейджем есть полоса сбора партии, у другого нет, и на auto-ширине колонка
-  // «дышала» от строки к строке — следом ехали кол-во, сумма и адрес, список
-  // расплывался (жалоба 2026-08-07). Фиксированная колонка держит их в столбик:
-  // сумма над суммой, количество над количеством.
-  &__status-col {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    text-align: right;
-    gap: 6px;
-    flex: 0 0 200px;
-    min-width: 0;
-  }
-
-  &__status {
-    white-space: nowrap;
-  }
-
-  &__sub {
+  &__meta {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     gap: var(--p-1, 4px) var(--p-2, 8px);
-    margin-top: var(--p-1, 4px);
+    margin-top: 2px;
     font-size: var(--p-fs-body-sm, 13px);
     color: var(--p-ink-3);
   }
@@ -642,9 +570,107 @@ function formatPrice(v: number) {
     color: var(--p-ink-3);
   }
 
-  // Узкая полоса под бейджем статуса; подпись — в одну строку, обычным
-  // регистром (капс с трекингом на этой ширине переносился на две строки и
-  // сбивал ритм рядом с бейджем — жалоба 2026-08-02).
+  // Пункт выдачи — одна строка: значок, имя участка, адрес, значок карты.
+  // Всё в потоке текста, ничего не прижато к краю карточки.
+  &__pvz {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 2px var(--p-2, 8px);
+    margin-top: var(--p-2, 8px);
+    font-size: var(--p-fs-body-sm, 13px);
+    min-width: 0;
+
+    &--mappable {
+      cursor: pointer;
+
+      .order-row__pvz-addr {
+        color: var(--p-primary);
+      }
+
+      &:hover .order-row__pvz-addr,
+      &:hover .order-row__pvz-map {
+        color: var(--p-primary-hover);
+      }
+    }
+  }
+
+  &__pvz-icon {
+    color: var(--p-ink-3);
+    flex-shrink: 0;
+  }
+
+  &__pvz-name {
+    color: var(--p-ink);
+    overflow-wrap: anywhere;
+  }
+
+  &__pvz-addr {
+    color: var(--p-ink-3);
+    overflow-wrap: anywhere;
+  }
+
+  &__pvz-map {
+    color: var(--p-primary);
+    flex-shrink: 0;
+  }
+
+  // Зона «сколько»: сумма — герой, под ней количество как подпись. Ширина
+  // зафиксирована, текст прижат вправо: «650 ₽» и «1 300 ₽» в соседних
+  // строках встают в один столбец.
+  &__money {
+    grid-area: money;
+    min-width: 120px;
+    text-align: right;
+    // Опускаем на высоту строки заголовка: сумма стоит на одной линии с
+    // названием товара, а не на волосок выше.
+    padding-top: 1px;
+  }
+
+  &__sum {
+    font-size: var(--p-fs-h2, 18px);
+    font-weight: 700;
+    letter-spacing: var(--p-ls-h2, -0.01em);
+    line-height: var(--p-lh-h3, 1.3);
+    color: var(--p-ink);
+    font-feature-settings: 'tnum' 1;
+    white-space: nowrap;
+  }
+
+  &__qty {
+    margin-top: 2px;
+    font-size: var(--p-fs-body-sm, 13px);
+    color: var(--p-ink-2);
+    white-space: nowrap;
+  }
+
+  // Пояснение поставщику про цену для заказчика — переносится внутри своей
+  // зоны, не расталкивает соседей.
+  &__fee-note {
+    margin-top: 2px;
+    max-width: 200px;
+    font-size: var(--p-fs-body-sm, 12px);
+    color: var(--p-ink-3);
+  }
+
+  // Зона состояния: бейдж, под ним полоса сбора партии той же ширины.
+  // Ширина фиксирована — у одного заказа полоса есть, у другого нет, и на
+  // авто-ширине столбец «дышал» бы от строки к строке.
+  &__state {
+    grid-area: state;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: var(--p-2, 8px);
+    width: 200px;
+    // Бейдж по вертикали центрируется относительно строки заголовка.
+    padding-top: 1px;
+  }
+
+  &__status {
+    white-space: nowrap;
+  }
+
   &__progress {
     display: flex;
     flex-direction: column;
@@ -672,114 +698,71 @@ function formatPrice(v: number) {
     cursor: help;
   }
 
-  // Кол-во/Сумма — колонки фиксированной ширины, не тянутся и не подстраиваются
-  // под длину числа: иначе «780 ₽» и «1 300 ₽» дают разный отступ, и соседние
-  // строки списка стоят вразнобой.
-  &__fact {
-    flex: 0 0 auto;
-    min-width: 0;
-  }
-
-  &__fact--qty {
-    flex-basis: 120px;
-  }
-
-  // Шире, чем кол-во: под суммой у поставщика идёт пояснение про цену для
-  // заказчика — на узкой колонке оно рвётся на три строки.
-  &__fact--money {
-    flex-basis: 160px;
-  }
-
-  &__fact-label {
-    font-size: var(--p-fs-eyebrow, 11px);
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    color: var(--p-ink-3);
-    margin-bottom: 2px;
-  }
-
-  &__fact-value {
-    font-size: var(--p-fs-body, 14px);
-    color: var(--p-ink);
-    white-space: nowrap;
-
-    &--money {
-      font-weight: 700;
-      font-feature-settings: 'tnum' 1;
-    }
-  }
-
-  // Без nowrap: колонка суммы фиксированной ширины, и длинное пояснение должно
-  // переноситься внутри неё, а не вылезать на соседнюю.
-  &__fee-note {
-    font-size: var(--p-fs-body-sm, 12px);
-    color: var(--p-ink-3);
-    margin-top: 2px;
-  }
-
-  // ПВЗ — своя колонка, тянется меньше, чем заголовок, но больше фактов.
-  &__pvz {
-    display: flex;
-    align-items: flex-start;
-    gap: var(--p-2, 8px);
-    flex: 1 1 200px;
-    min-width: 0;
-
-    &--mappable {
-      cursor: pointer;
-      border-radius: var(--p-r-sm, 8px);
-      margin: calc(-1 * var(--p-2, 8px));
-      padding: var(--p-2, 8px);
-      transition: background 0.15s ease;
-
-      &:hover {
-        background: var(--p-surface-2);
-      }
-
-      .order-row__pvz-addr {
-        color: var(--p-primary);
-      }
-    }
-  }
-
-  &__pvz-icon {
-    color: var(--p-ink-3);
-    flex-shrink: 0;
-    margin-top: 1px;
-  }
-
-  &__pvz-text {
-    display: flex;
-    flex-direction: column;
-    min-width: 0;
-  }
-
-  &__pvz-name {
-    font-size: var(--p-fs-body-sm, 13px);
-    color: var(--p-ink);
-    overflow-wrap: anywhere;
-  }
-
-  &__pvz-addr {
-    font-size: var(--p-fs-body-sm, 13px);
-    color: var(--p-ink-3);
-    overflow-wrap: anywhere;
-  }
-
-  &__pvz-map {
-    color: var(--p-primary);
-    flex-shrink: 0;
-    align-self: center;
-  }
-
   &__actions {
+    grid-area: actions;
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     justify-content: flex-end;
     gap: var(--p-2, 8px);
-    flex: 0 0 auto;
-    margin-left: auto;
+    margin-top: var(--p-3, 12px);
+    padding-top: var(--p-3, 12px);
+    border-top: 1px solid var(--p-line);
+  }
+
+  // Узкий экран: два яруса. Вверху миниатюра, рядом с ней название, номер,
+  // пункт выдачи и под ними состояние с полосой. Внизу — строка-чек:
+  // количество слева, сумма справа, отбита волосяной линией.
+  @media (max-width: 760px) {
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-areas:
+      'thumb ident'
+      'thumb state'
+      'money money'
+      'actions actions';
+    column-gap: var(--p-4, 16px);
+    padding: var(--p-4, 16px);
+
+    &__state {
+      width: auto;
+      align-items: flex-start;
+      margin-top: var(--p-2, 8px);
+      padding-top: 0;
+    }
+
+    &__progress {
+      align-items: flex-start;
+      max-width: 220px;
+    }
+
+    &__money {
+      display: flex;
+      flex-direction: row-reverse;
+      justify-content: space-between;
+      align-items: baseline;
+      flex-wrap: wrap;
+      gap: 2px var(--p-3, 12px);
+      min-width: 0;
+      margin-top: var(--p-3, 12px);
+      padding-top: var(--p-3, 12px);
+      border-top: 1px solid var(--p-line);
+      text-align: left;
+    }
+
+    &__qty {
+      margin-top: 0;
+      white-space: normal;
+    }
+
+    &__fee-note {
+      flex: 1 1 100%;
+      max-width: none;
+      text-align: right;
+    }
+
+    &__actions {
+      justify-content: flex-start;
+    }
   }
 }
 </style>

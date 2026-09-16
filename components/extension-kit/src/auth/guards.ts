@@ -36,10 +36,25 @@ export class GqlJwtAuthGuard extends AuthGuard('jwt') {
   }
 }
 
+/** В запросе есть заголовок Authorization — клиент представился, а не пришёл гостем. */
+function hasAuthorizationHeader(headers: Record<string, any> | undefined): boolean {
+  const value = headers?.authorization ?? headers?.Authorization;
+  return typeof value === 'string' && value.trim().length > 0;
+}
+
 /**
- * Опциональный JWT-гард для GraphQL: НЕ бросает при отсутствии или невалидности
- * токена, оставляет `request.user` пустым. Для запросов, доступных и гостю,
- * и пайщику, где состав ответа зависит от того, кто спрашивает.
+ * Опциональный JWT-гард для GraphQL: для запросов, доступных и гостю, и пайщику,
+ * где состав ответа зависит от того, кто спрашивает.
+ *
+ * Различает два случая, которые раньше сливались в один:
+ * - заголовка Authorization нет — гость, `request.user` пустой, запрос идёт дальше;
+ * - заголовок есть, но токен негоден (истёк, подделан, сессия завершена) — отказ.
+ *
+ * Молчаливое понижение до гостя здесь вредно: клиент, который представился,
+ * получал ответ «для незнакомца» с кодом 200 и принимал его за свой. Так рабочий
+ * стол приезжал без единого права, и пайщика уводило на «Недостаточно прав
+ * доступа». Отказ клиент умеет обрабатывать — обновить токен или войти заново;
+ * гостевой ответ он от настоящего отличить не может.
  */
 @Injectable()
 export class OptionalGqlJwtAuthGuard extends AuthGuard('jwt') {
@@ -48,10 +63,22 @@ export class OptionalGqlJwtAuthGuard extends AuthGuard('jwt') {
     return ctx.getContext().req;
   }
 
-  // passport бросает на отсутствии/невалидном токене — гасим в null,
-  // запрос продолжается как гостевой.
-  handleRequest(_err: any, user: any) {
-    return user ?? null;
+  handleRequest(err: any, user: any, _info: any, context: ExecutionContext) {
+    if (user) {
+      return user;
+    }
+    if (!hasAuthorizationHeader(this.getRequest(context)?.headers)) {
+      return null;
+    }
+    if (err instanceof Error) {
+      // Отказ стратегии (сессия завершена, пайщик не найден) — отдаём как есть,
+      // формулировку клиент распознаёт.
+      throw err;
+    }
+    // Истёкший или испорченный токен passport отказом не считает — только «нет
+    // пользователя». Формулировка та же, что у стратегии: клиент узнаёт потерю
+    // доступа по слову «авторизац» и сам уводит на вход.
+    throw new UnauthorizedException('Сессия завершена, требуется повторная авторизация');
   }
 }
 

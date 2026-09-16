@@ -51,6 +51,12 @@ const props = defineProps<{
   showOfferLink?: boolean;
   /** Маршрут полной страницы заказа своего стола; без него кнопки нет */
   fullPageRouteName?: string;
+  /**
+   * Пометка места, откуда заказ открыли: полная страница по ней называет
+   * кнопку возврата и знает запасной маршрут. Без пометки страница вернёт в
+   * свой реестр — это верно для реестра, но не для экономики участка.
+   */
+  from?: string;
 }>();
 
 const emit = defineEmits<{
@@ -65,6 +71,7 @@ function openFullPage(): void {
   void router.push({
     name: props.fullPageRouteName,
     params: { coopname: props.coopname, orderId: overlay.value.value },
+    ...(props.from ? { query: { from: props.from } } : {}),
   });
 }
 </script>

@@ -335,6 +335,15 @@ export const AllTypesProps: Record<string,any> = {
 	CapitalTopupProgramExpenseInput:{
 
 	},
+	CardcoopAttestationState: "enum" as const,
+	CardcoopEntryInput:{
+
+	},
+	CardcoopEntryOutcome: "enum" as const,
+	CardcoopEntryStatus: "enum" as const,
+	CardcoopRequestEntryDisclosureInput:{
+
+	},
 	CategoryTypeInput:{
 
 	},
@@ -1087,7 +1096,8 @@ export const AllTypesProps: Record<string,any> = {
 	},
 	MarketplaceAcceptReturnAtVisitInput:{
 		inspection_photos:"MarketplaceReturnClaimPhotoUploadInput",
-		signed_statement:"MarketplaceReturnStatementSignedInput"
+		signed_reclamation:"MarketplaceReturnStatementSignedInput",
+		signed_statement:"MarketplaceReturnCancelStatementSignedInput"
 	},
 	MarketplaceAddSupplierInput:{
 		model:"MarketplaceSupplierModel"
@@ -1095,11 +1105,11 @@ export const AllTypesProps: Record<string,any> = {
 	MarketplaceAddToCartInput:{
 
 	},
-	MarketplaceAidStage: "enum" as const,
-	MarketplaceAidStatementSignablePayloadInput:{
+	MarketplaceAdmitSupplierClaimInput:{
 
 	},
-	MarketplaceAnnounceOrderReadyInput:{
+	MarketplaceAidStage: "enum" as const,
+	MarketplaceAidStatementSignablePayloadInput:{
 
 	},
 	MarketplaceAplReceptionByIdInput:{
@@ -1143,10 +1153,11 @@ export const AllTypesProps: Record<string,any> = {
 	},
 	MarketplaceCartItemBlocker: "enum" as const,
 	MarketplaceCheckoutCartInput:{
-		lines:"MarketplaceCheckoutSignedLineInput"
+		lines:"MarketplaceCheckoutSignedLineInput",
+		signed_convert:"MarketplaceConvertStatementSignedInput"
 	},
 	MarketplaceCheckoutSignedLineInput:{
-		signed_statement:"MarketplaceConvertStatementSignedInput"
+
 	},
 	MarketplaceClearInventoryLabelInput:{
 
@@ -1155,9 +1166,6 @@ export const AllTypesProps: Record<string,any> = {
 		signed_memo:"SignedDigitalDocumentInput"
 	},
 	MarketplaceConsolidatedRequestStatus: "enum" as const,
-	MarketplaceConvertBranchFundsInput:{
-
-	},
 	MarketplaceConvertStatementSignedInput:{
 		meta:"MarketplaceConvertStatementSignedMetaDocumentInput",
 		signatures:"SignatureInfoInput"
@@ -1189,7 +1197,7 @@ export const AllTypesProps: Record<string,any> = {
 		unit_of_measure:"MarketplaceUnitOfMeasure"
 	},
 	MarketplaceCreateOrderProposalLineInput:{
-		signiss1_act:"MarketplaceIssueActSignedDocumentInput"
+
 	},
 	MarketplaceCreateReturnClaimInput:{
 		defect_category:"MarketplaceReturnClaimDefectCategory",
@@ -1204,7 +1212,7 @@ export const AllTypesProps: Record<string,any> = {
 		order_items:"MarketplaceCreateOrderProposalLineInput"
 	},
 	MarketplaceCreateStockProposalLineInput:{
-		signiss1_act:"MarketplaceIssueActSignedDocumentInput"
+
 	},
 	MarketplaceCreateStorageCellInput:{
 
@@ -1234,6 +1242,9 @@ export const AllTypesProps: Record<string,any> = {
 		order_lines:"MarketplaceStockFinalizeLineInput",
 		signed_convert:"MarketplaceConvertStatementSignedInput"
 	},
+	MarketplaceFixIssuanceFactInput:{
+
+	},
 	MarketplaceGenerateInventoryLabelInput:{
 		format:"MarketplaceBarcodeFormat"
 	},
@@ -1244,21 +1255,20 @@ export const AllTypesProps: Record<string,any> = {
 	MarketplaceGetShipmentInput:{
 
 	},
+	MarketplaceHandBackReturnInput:{
+
+	},
+	MarketplaceInventoryOrigin: "enum" as const,
 	MarketplaceInventoryOwnership: "enum" as const,
 	MarketplaceInventorySplitEntryInput:{
 
 	},
 	MarketplaceInventoryStatus: "enum" as const,
-	MarketplaceIssueActPayloadInput:{
+	MarketplaceIssuanceDecisionMode: "enum" as const,
+	MarketplaceIssuanceOrderInput:{
 
 	},
-	MarketplaceIssueActSignedDocumentInput:{
-		meta:"MarketplaceIssueActSignedMetaDocumentInput",
-		signatures:"SignatureInfoInput"
-	},
-	MarketplaceIssueActSignedMetaDocumentInput:{
-
-	},
+	MarketplaceIssuanceSagaStage: "enum" as const,
 	MarketplaceKUStatus: "enum" as const,
 	MarketplaceListAidsInput:{
 
@@ -1280,6 +1290,9 @@ export const AllTypesProps: Record<string,any> = {
 	},
 	MarketplaceListInventoryInput:{
 		statuses:"MarketplaceInventoryStatus"
+	},
+	MarketplaceListIssuanceSagasInput:{
+
 	},
 	MarketplaceListIssuancesByBranameInput:{
 
@@ -1340,6 +1353,9 @@ export const AllTypesProps: Record<string,any> = {
 	MarketplacePublishStockInput:{
 
 	},
+	MarketplaceReadyIssueInput:{
+
+	},
 	MarketplaceRejectOfferInput:{
 
 	},
@@ -1370,6 +1386,14 @@ export const AllTypesProps: Record<string,any> = {
 	MarketplaceRetireStorageCellsInput:{
 
 	},
+	MarketplaceReturnCancelStatementSignedInput:{
+		meta:"MarketplaceReturnCancelStatementSignedMetaDocumentInput",
+		signatures:"SignatureInfoInput"
+	},
+	MarketplaceReturnCancelStatementSignedMetaDocumentInput:{
+
+	},
+	MarketplaceReturnClaimDecisionMode: "enum" as const,
 	MarketplaceReturnClaimDefectCategory: "enum" as const,
 	MarketplaceReturnClaimExpectedResolution: "enum" as const,
 	MarketplaceReturnClaimPhotoUploadInput:{
@@ -1405,6 +1429,20 @@ export const AllTypesProps: Record<string,any> = {
 	MarketplaceSetTrusteeWeightInput:{
 
 	},
+	MarketplaceShareReturnActSignedInput:{
+		meta:"MarketplaceShareReturnActSignedMetaDocumentInput",
+		signatures:"SignatureInfoInput"
+	},
+	MarketplaceShareReturnActSignedMetaDocumentInput:{
+
+	},
+	MarketplaceShareReturnStatementSignedInput:{
+		meta:"MarketplaceShareReturnStatementSignedMetaDocumentInput",
+		signatures:"SignatureInfoInput"
+	},
+	MarketplaceShareReturnStatementSignedMetaDocumentInput:{
+
+	},
 	MarketplaceShipmentDeliveryVariant: "enum" as const,
 	MarketplaceShipmentGroupInput:{
 		delivery_variant:"MarketplaceShipmentDeliveryVariant",
@@ -1421,6 +1459,13 @@ export const AllTypesProps: Record<string,any> = {
 		placements:"MarketplaceAplReceptionPlacementInput",
 		signed_documents:"MarketplaceAplReceptionSignedDocumentInput"
 	},
+	MarketplaceSignIssuanceActInput:{
+		signed_act:"MarketplaceShareReturnActSignedInput"
+	},
+	MarketplaceSignIssuanceStatementInput:{
+		signed_convert:"MarketplaceConvertStatementSignedInput",
+		signed_statement:"MarketplaceShareReturnStatementSignedInput"
+	},
 	MarketplaceSignOnboardingOfferInput:{
 		document:"SignedDigitalDocumentInput"
 	},
@@ -1428,7 +1473,7 @@ export const AllTypesProps: Record<string,any> = {
 		splits:"MarketplaceInventorySplitEntryInput"
 	},
 	MarketplaceStockFinalizeLineInput:{
-		signed_signiss2_act:"MarketplaceIssueActSignedDocumentInput"
+		signed_statement:"MarketplaceShareReturnStatementSignedInput"
 	},
 	MarketplaceStockIssuancePrepareInput:{
 		items:"MarketplaceStockProposalItemInput"
@@ -1440,6 +1485,7 @@ export const AllTypesProps: Record<string,any> = {
 	MarketplaceSubmitWriteoffDraftInput:{
 		signed_statement:"SignedDigitalDocumentInput"
 	},
+	MarketplaceSupplierClaimStatus: "enum" as const,
 	MarketplaceSupplierMemberInput:{
 
 	},
@@ -1850,6 +1896,12 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		capitalUpdateStory:{
 			data:"UpdateStoryInput"
+		},
+		cardcoopRequestEntryDisclosure:{
+			data:"CardcoopRequestEntryDisclosureInput"
+		},
+		cardcoopTakeEntryProfile:{
+			data:"CardcoopEntryInput"
 		},
 		chairmanConfirmApprove:{
 			data:"ConfirmApproveInput"
@@ -2269,8 +2321,8 @@ export const AllTypesProps: Record<string,any> = {
 		marketplaceAddToCart:{
 			input:"MarketplaceAddToCartInput"
 		},
-		marketplaceAnnounceOrderReady:{
-			data:"MarketplaceAnnounceOrderReadyInput"
+		marketplaceAdmitSupplierClaim:{
+			data:"MarketplaceAdmitSupplierClaimInput"
 		},
 		marketplaceApproveOffer:{
 			input:"MarketplaceApproveOfferInput"
@@ -2290,6 +2342,9 @@ export const AllTypesProps: Record<string,any> = {
 		marketplaceCancelAplReception:{
 			data:"MarketplaceAplReceptionByIdInput"
 		},
+		marketplaceCancelIssuance:{
+			data:"MarketplaceIssuanceOrderInput"
+		},
 		marketplaceCancelOrder:{
 			input:"MarketplaceCancelOrderInput"
 		},
@@ -2308,11 +2363,11 @@ export const AllTypesProps: Record<string,any> = {
 		marketplaceClearInventoryLabel:{
 			data:"MarketplaceClearInventoryLabelInput"
 		},
+		marketplaceCloseIssuance:{
+			data:"MarketplaceSignIssuanceActInput"
+		},
 		marketplaceConfirmWriteoff:{
 			data:"MarketplaceConfirmWriteoffInput"
-		},
-		marketplaceConvertBranchFunds:{
-			data:"MarketplaceConvertBranchFundsInput"
 		},
 		marketplaceCreateAid:{
 			data:"MarketplaceCreateAidInput"
@@ -2380,14 +2435,23 @@ export const AllTypesProps: Record<string,any> = {
 		marketplaceFinalizeStockIssuance:{
 			data:"MarketplaceFinalizeStockIssuanceInput"
 		},
+		marketplaceFixIssuanceFact:{
+			data:"MarketplaceFixIssuanceFactInput"
+		},
 		marketplaceGenerateInventoryLabel:{
 			data:"MarketplaceGenerateInventoryLabelInput"
+		},
+		marketplaceHandBackReturn:{
+			data:"MarketplaceHandBackReturnInput"
 		},
 		marketplaceMoveContainer:{
 			data:"MarketplaceMoveContainerInput"
 		},
 		marketplacePublishStock:{
 			data:"MarketplacePublishStockInput"
+		},
+		marketplaceReadyIssue:{
+			data:"MarketplaceReadyIssueInput"
 		},
 		marketplaceRejectOffer:{
 			input:"MarketplaceRejectOfferInput"
@@ -2451,6 +2515,12 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		marketplaceSignAplReceptionAsSupplier:{
 			data:"MarketplaceSignAplReceptionInput"
+		},
+		marketplaceSignIssuanceAct:{
+			data:"MarketplaceSignIssuanceActInput"
+		},
+		marketplaceSignIssuanceStatement:{
+			data:"MarketplaceSignIssuanceStatementInput"
 		},
 		marketplaceSignOnboardingOffer:{
 			input:"MarketplaceSignOnboardingOfferInput"
@@ -2589,6 +2659,12 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		signBySecretaryOnAnnualGeneralMeet:{
 			data:"SignBySecretaryOnAnnualGeneralMeetInput"
+		},
+		sovietRobotDelegateKey:{
+			data:"RobotDelegateKeyInput"
+		},
+		sovietRobotRetryDecision:{
+			data:"RobotRetryDecisionInput"
 		},
 		startInstall:{
 			data:"StartInstallInput"
@@ -2943,6 +3019,9 @@ export const AllTypesProps: Record<string,any> = {
 			filter:"VoteFilter",
 			options:"PaginationInput"
 		},
+		cardcoopEntry:{
+			data:"CardcoopEntryInput"
+		},
 		chairmanApproval:{
 
 		},
@@ -3246,6 +3325,9 @@ export const AllTypesProps: Record<string,any> = {
 		marketplaceGetOrder:{
 			input:"MarketplaceGetOrderInput"
 		},
+		marketplaceGetOutgoingPayment:{
+
+		},
 		marketplaceGetPersonalWalletHistory:{
 			options:"PaginationInput"
 		},
@@ -3270,8 +3352,20 @@ export const AllTypesProps: Record<string,any> = {
 		marketplaceGetUserRequests:{
 			data:"GetUserRequestsInput"
 		},
-		marketplaceIssueActChairmanSignablePayload:{
-			data:"MarketplaceIssueActPayloadInput"
+		marketplaceIssuanceActPayload:{
+			data:"MarketplaceIssuanceOrderInput"
+		},
+		marketplaceIssuanceClosePayload:{
+			data:"MarketplaceIssuanceOrderInput"
+		},
+		marketplaceIssuanceConvertPayload:{
+			data:"MarketplaceIssuanceOrderInput"
+		},
+		marketplaceIssuanceSaga:{
+			data:"MarketplaceIssuanceOrderInput"
+		},
+		marketplaceIssuanceStatementPayload:{
+			data:"MarketplaceIssuanceOrderInput"
 		},
 		marketplaceListAids:{
 			data:"MarketplaceListAidsInput"
@@ -3308,6 +3402,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		marketplaceListInventory:{
 			data:"MarketplaceListInventoryInput"
+		},
+		marketplaceListIssuanceSagas:{
+			data:"MarketplaceListIssuanceSagasInput"
 		},
 		marketplaceListIssuancesByBraname:{
 			data:"MarketplaceListIssuancesByBranameInput"
@@ -3393,6 +3490,9 @@ export const AllTypesProps: Record<string,any> = {
 		marketplaceStockProposalSignablePayloads:{
 			data:"MarketplaceResolveStockProposalInput"
 		},
+		marketplaceSupplierClaim:{
+
+		},
 		marketplaceValidateAttributeValues:{
 			input:"ValidateAttributeValuesInput"
 		},
@@ -3435,6 +3535,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		searchPrivateAccounts:{
 			data:"SearchPrivateAccountsInput"
+		},
+		sovietRobotJournal:{
+			options:"PaginationInput"
 		},
 		validateReportEdits:{
 			reportType:"ReportType"
@@ -3579,6 +3682,14 @@ export const AllTypesProps: Record<string,any> = {
 	RevokeSessionInput:{
 
 	},
+	RobotDecisionStage: "enum" as const,
+	RobotDelegateKeyInput:{
+
+	},
+	RobotRetryDecisionInput:{
+
+	},
+	RobotVoteMode: "enum" as const,
 	RoomMessageKind: "enum" as const,
 	SaveCapitalProgramDocDataInput:{
 
@@ -3718,6 +3829,9 @@ export const AllTypesProps: Record<string,any> = {
 	Subscription:{
 		marketplaceEvents:{
 			input:"MarketplaceEventsInput"
+		},
+		walletEvents:{
+			input:"WalletEventsInput"
 		}
 	},
 	SystemStatus: "enum" as const,
@@ -3845,6 +3959,9 @@ export const AllTypesProps: Record<string,any> = {
 		ballot:"BranchMeetingBallotSignedDocumentInput",
 		votes:"KuVoteItemInput"
 	},
+	WalletEventsInput:{
+
+	},
 	WalmoveInput:{
 
 	},
@@ -3876,10 +3993,6 @@ export const AllTypesProps: Record<string,any> = {
 }
 
 export const ReturnTypes: Record<string,any> = {
-	auth:{
-		roles:"String",
-		self:"String"
-	},
 	AccessGrant:{
 		action:"String",
 		resource:"String"
@@ -5175,6 +5288,31 @@ export const ReturnTypes: Record<string,any> = {
 		label:"WaveLabel",
 		value:"Float"
 	},
+	CardcoopEntry:{
+		cardNumber:"String",
+		id:"String",
+		memberships:"CardcoopEntryMembership",
+		networkUrl:"String",
+		outcome:"CardcoopEntryOutcome",
+		status:"CardcoopEntryStatus",
+		username:"String"
+	},
+	CardcoopEntryMembership:{
+		coopname:"String",
+		displayName:"String",
+		memberSince:"String"
+	},
+	CardcoopEntryProfile:{
+		profile:"JSON",
+		subjectType:"String"
+	},
+	CardcoopMyCard:{
+		cardNumber:"String",
+		enterUrl:"String",
+		issued:"Boolean",
+		memberSince:"String",
+		state:"CardcoopAttestationState"
+	},
 	Category:{
 		coopname:"String",
 		description:"String",
@@ -5743,7 +5881,6 @@ export const ReturnTypes: Record<string,any> = {
 		image:"String",
 		instructions:"String",
 		is_available:"Boolean",
-		is_builtin:"Boolean",
 		is_installed:"Boolean",
 		is_internal:"Boolean",
 		name:"String",
@@ -6267,6 +6404,10 @@ export const ReturnTypes: Record<string,any> = {
 		quantity:"Float",
 		reason:"String"
 	},
+	MarketplaceCheckoutPreview:{
+		convert:"MarketplaceConvertPayload",
+		lines:"MarketplaceCheckoutSignableLine"
+	},
 	MarketplaceCheckoutResult:{
 		cart:"MarketplaceCart",
 		checkout_id:"String",
@@ -6277,7 +6418,10 @@ export const ReturnTypes: Record<string,any> = {
 	},
 	MarketplaceCheckoutSignableLine:{
 		amount:"String",
-		document:"GeneratedDocument",
+		from_member:"String",
+		from_program:"String",
+		from_wallet:"String",
+		membership_fee:"String",
 		offer_id:"String",
 		order_hash:"String",
 		package_id:"String"
@@ -6325,6 +6469,11 @@ export const ReturnTypes: Record<string,any> = {
 		volume_m3:"String",
 		width_cm:"Int"
 	},
+	MarketplaceConvertPayload:{
+		amount:"String",
+		document:"GeneratedDocument",
+		membership_fee:"String"
+	},
 	MarketplaceCppStatus:{
 		accepted_at:"String",
 		accepted_by_board_decision_id:"String",
@@ -6367,6 +6516,7 @@ export const ReturnTypes: Record<string,any> = {
 	},
 	MarketplaceEvent:{
 		"...on MarketplaceAplReceptionStatusChangedEvent":"MarketplaceAplReceptionStatusChangedEvent",
+		"...on MarketplaceIssuanceSagaUpdatedEvent":"MarketplaceIssuanceSagaUpdatedEvent",
 		"...on MarketplaceOfferModerationEvent":"MarketplaceOfferModerationEvent",
 		"...on MarketplaceOfferPublishedEvent":"MarketplaceOfferPublishedEvent",
 		"...on MarketplaceOfferStockChangedEvent":"MarketplaceOfferStockChangedEvent",
@@ -6391,6 +6541,7 @@ export const ReturnTypes: Record<string,any> = {
 		barcode_format:"MarketplaceBarcodeFormat",
 		barcode_value:"String",
 		braname:"String",
+		category_id:"Int",
 		cell_id:"String",
 		container_id:"String",
 		coopname:"String",
@@ -6401,9 +6552,11 @@ export const ReturnTypes: Record<string,any> = {
 		id:"String",
 		labeled_at:"DateTime",
 		labeled_by_operator_account:"String",
+		offer_id:"String",
 		order_id:"String",
 		orderer_account_snapshot:"String",
 		orderer_name:"String",
+		origin:"MarketplaceInventoryOrigin",
 		ownership:"MarketplaceInventoryOwnership",
 		package_size:"Float",
 		product_name_snapshot:"String",
@@ -6412,6 +6565,7 @@ export const ReturnTypes: Record<string,any> = {
 		received_at:"DateTime",
 		received_by_operator_account:"String",
 		reserved_order_id:"String",
+		return_claim_id:"String",
 		shipment_id:"String",
 		status:"MarketplaceInventoryStatus",
 		unit_of_measure:"MarketplaceUnitOfMeasure",
@@ -6419,6 +6573,53 @@ export const ReturnTypes: Record<string,any> = {
 	},
 	MarketplaceInventoryMutationResult:{
 		inventory:"MarketplaceInventoryItem"
+	},
+	MarketplaceIssuanceClosePayload:{
+		act_aggregate:"DocumentAggregate",
+		saga:"MarketplaceIssuanceSaga"
+	},
+	MarketplaceIssuanceFact:{
+		actual_quantity:"Float",
+		actual_unit_price:"String",
+		fact_cost:"String"
+	},
+	MarketplaceIssuanceSaga:{
+		act1_document:"SignedDigitalDocument",
+		act2_document:"SignedDigitalDocument",
+		awaits_council:"Boolean",
+		awaits_member_signature:"Boolean",
+		awaits_operator_close:"Boolean",
+		braname:"String",
+		closed_at:"DateTime",
+		created_at:"DateTime",
+		decided_at:"DateTime",
+		decision_id:"String",
+		decision_mode:"MarketplaceIssuanceDecisionMode",
+		fact:"MarketplaceIssuanceFact",
+		id:"ID",
+		last_error:"String",
+		member_account:"String",
+		operator_account:"String",
+		order_hash:"String",
+		order_id:"String",
+		proposal_id:"String",
+		protocol_document:"SignedDigitalDocument",
+		stage:"MarketplaceIssuanceSagaStage",
+		statement_document:"SignedDigitalDocument",
+		updated_at:"DateTime"
+	},
+	MarketplaceIssuanceSagaUpdatedEvent:{
+		braname:"String",
+		decision_mode:"String",
+		order_hash:"String",
+		order_id:"String",
+		proposal_id:"String",
+		saga_id:"String",
+		stage:"String"
+	},
+	MarketplaceIssuanceStatementPayload:{
+		saga:"MarketplaceIssuanceSaga",
+		statement:"GeneratedDocument"
 	},
 	MarketplaceKUDetails:{
 		addressFull:"String",
@@ -6437,6 +6638,18 @@ export const ReturnTypes: Record<string,any> = {
 		status:"MarketplaceKUStatus",
 		updatedAt:"DateTime",
 		workingHours:"WorkingHours"
+	},
+	MarketplaceLedgerInvariant:{
+		actual:"String",
+		details:"MarketplaceLedgerInvariantDetail",
+		expected:"String",
+		invariant:"String",
+		ok:"Boolean",
+		violation:"String"
+	},
+	MarketplaceLedgerInvariantDetail:{
+		message:"String",
+		process_hash:"String"
 	},
 	MarketplaceMemberWallet:{
 		coopname:"String",
@@ -6510,8 +6723,15 @@ export const ReturnTypes: Record<string,any> = {
 		label:"String",
 		package_type:"String",
 		price:"String",
+		quantity_available:"Float",
+		quantity_blocked:"Float",
+		quantity_consumed:"Float",
 		size:"Float",
 		sort_order:"Int"
+	},
+	MarketplaceOfferPackageStock:{
+		package_id:"String",
+		quantity_available:"Float"
 	},
 	MarketplaceOfferPaginationResult:{
 		currentPage:"Int",
@@ -6525,6 +6745,7 @@ export const ReturnTypes: Record<string,any> = {
 	},
 	MarketplaceOfferStockChangedEvent:{
 		offer_id:"String",
+		packages:"MarketplaceOfferPackageStock",
 		quantity_available:"Float",
 		unlimited_flag:"Boolean"
 	},
@@ -6537,10 +6758,9 @@ export const ReturnTypes: Record<string,any> = {
 	},
 	MarketplaceOrder:{
 		accepted_at:"DateTime",
+		accepted_cost:"String",
 		blocked_at:"DateTime",
 		cancelled_at:"DateTime",
-		chairman_account:"String",
-		chairman_signed_at:"DateTime",
 		checkout_id:"String",
 		coopname:"String",
 		create_tx:"MarketplaceOrderCreateTxSnapshot",
@@ -6559,6 +6779,9 @@ export const ReturnTypes: Record<string,any> = {
 		image_url:"String",
 		is_ready_announced:"Boolean",
 		issuance_fact:"MarketplaceOrderIssuanceFactSnapshot",
+		issue_closed_tx_hash:"String",
+		issue_decision_id:"String",
+		issue_statement_at:"DateTime",
 		last_status_reason:"String",
 		membership_fee:"String",
 		offer_hash:"String",
@@ -6566,16 +6789,14 @@ export const ReturnTypes: Record<string,any> = {
 		order_hash:"String",
 		orderer_account:"String",
 		orderer_name:"String",
-		orderer_signed_at:"DateTime",
 		orderer_verification_passed:"Boolean",
+		package_id:"String",
 		package_size:"Float",
 		price_per_unit:"String",
 		product_name:"String",
 		quantity:"Float",
 		received_at:"DateTime",
 		shipment_id:"String",
-		signiss1_tx_hash:"String",
-		signiss2_tx_hash:"String",
 		status:"MarketplaceOrderStatus",
 		supplier_account:"String",
 		supplier_name:"String",
@@ -6617,6 +6838,33 @@ export const ReturnTypes: Record<string,any> = {
 		previous_status:"MarketplaceOrderStatus",
 		status:"MarketplaceOrderStatus"
 	},
+	MarketplaceOutgoingPaymentCoreRecord:{
+		completed_at:"DateTime",
+		created_at:"DateTime",
+		id:"String",
+		memo:"String",
+		message:"String",
+		quantity:"Float",
+		status:"PaymentStatus",
+		symbol:"String"
+	},
+	MarketplaceOutgoingPaymentDetail:{
+		core_payment:"MarketplaceOutgoingPaymentCoreRecord",
+		order:"MarketplaceOutgoingPaymentOrderSummary",
+		payment:"MarketplaceOutgoingPaymentRequest"
+	},
+	MarketplaceOutgoingPaymentOrderSummary:{
+		accepted_cost:"String",
+		delivery_point_name:"String",
+		id:"String",
+		orderer_name:"String",
+		price_per_unit:"String",
+		product_name:"String",
+		quantity:"Float",
+		status:"MarketplaceOrderStatus",
+		total_cost:"String",
+		unit_of_measure:"String"
+	},
 	MarketplaceOutgoingPaymentRequest:{
 		amount:"String",
 		apl_reception_id:"String",
@@ -6629,12 +6877,14 @@ export const ReturnTypes: Record<string,any> = {
 		order_hash:"String",
 		order_id:"String",
 		payee_account:"String",
+		payee_name:"String",
 		payout_destination:"String",
 		payout_tx_hash:"String",
 		purpose:"String",
 		status:"MarketplaceOutgoingPaymentRequestStatus",
 		symbol:"String",
-		updated_at:"DateTime"
+		updated_at:"DateTime",
+		withheld_amount:"String"
 	},
 	MarketplacePaymentStatusChangedEvent:{
 		payment_request_id:"String",
@@ -6745,9 +6995,16 @@ export const ReturnTypes: Record<string,any> = {
 		requestsByCategory:"MarketplaceCategoryRequestCount",
 		totalRequests:"Int"
 	},
+	MarketplaceReturnAcceptancePayload:{
+		cancel_statement:"GeneratedDocument",
+		reclamation:"DocumentAggregate"
+	},
 	MarketplaceReturnClaim:{
+		accepted_at:"DateTime",
 		actual_quantity:"Float",
 		coopname:"String",
+		council_decision_id:"String",
+		council_decision_mode:"MarketplaceReturnClaimDecisionMode",
 		created_at:"DateTime",
 		decision_log:"MarketplaceReturnClaimDecisionEntry",
 		defect_category:"MarketplaceReturnClaimDefectCategory",
@@ -6845,13 +7102,11 @@ export const ReturnTypes: Record<string,any> = {
 	MarketplaceStockAcceptOrderLine:{
 		offer_id:"String",
 		order_hash:"String",
-		signiss1_aggregate:"DocumentAggregate"
+		order_id:"String",
+		statement:"GeneratedDocument"
 	},
 	MarketplaceStockAcceptPayload:{
-		convert_amount:"String",
-		convert_document:"GeneratedDocument",
-		convert_hash:"String",
-		member_amount:"String",
+		convert:"MarketplaceConvertPayload",
 		order_lines:"MarketplaceStockAcceptOrderLine"
 	},
 	MarketplaceStockIssuanceOperatorLine:{
@@ -6861,7 +7116,6 @@ export const ReturnTypes: Record<string,any> = {
 		package_size:"Float",
 		product_name:"String",
 		quantity:"Float",
-		signiss1_document:"GeneratedDocument",
 		unit_price:"String"
 	},
 	MarketplaceStockProposal:{
@@ -6878,7 +7132,8 @@ export const ReturnTypes: Record<string,any> = {
 	},
 	MarketplaceStockProposalAcceptResult:{
 		order_ids:"String",
-		proposal:"MarketplaceStockProposal"
+		proposal:"MarketplaceStockProposal",
+		sagas:"MarketplaceIssuanceSaga"
 	},
 	MarketplaceStockProposalCreatedEvent:{
 		braname:"String",
@@ -6886,6 +7141,10 @@ export const ReturnTypes: Record<string,any> = {
 	},
 	MarketplaceStockProposalItem:{
 		offer_id:"String",
+		order_hash:"String",
+		order_id:"String",
+		ordered_quantity:"Float",
+		ordered_total_cost:"String",
 		package_label:"String",
 		package_size:"Float",
 		product_name:"String",
@@ -6924,6 +7183,52 @@ export const ReturnTypes: Record<string,any> = {
 		cycle_id:"String",
 		orders:"MarketplaceOrder",
 		tx_hashes:"String"
+	},
+	MarketplaceSupplierClaim:{
+		actual_quantity:"Float",
+		amount:"String",
+		branch_contacts:"MarketplaceSupplierClaimBranchContacts",
+		claim_hash:"String",
+		coopname:"String",
+		created_at:"DateTime",
+		decided_at:"DateTime",
+		delivery_braname:"String",
+		delivery_branch_name:"String",
+		history:"MarketplaceReturnClaimDecisionEntry",
+		id:"String",
+		inspection_result:"String",
+		issued_at:"DateTime",
+		order_hash:"String",
+		order_id:"String",
+		orderer_account:"String",
+		orderer_name:"String",
+		package_size:"Float",
+		photos:"MarketplaceReturnClaimPhoto",
+		product_name:"String",
+		reason_text:"String",
+		reclamation:"DocumentAggregate",
+		return_claim_id:"String",
+		status:"MarketplaceSupplierClaimStatus",
+		supplier_account:"String",
+		unit_of_measure:"MarketplaceUnitOfMeasure",
+		updated_at:"DateTime"
+	},
+	MarketplaceSupplierClaimBranchContacts:{
+		address:"String",
+		email:"String",
+		name:"String",
+		operator_account:"String",
+		operator_name:"String",
+		phone:"String"
+	},
+	MarketplaceSupplierClaimResult:{
+		claim:"MarketplaceSupplierClaim",
+		tx_hash:"String"
+	},
+	MarketplaceSupplierClaimSummary:{
+		admitted_debt:"String",
+		not_admitted_total:"String",
+		symbol:"String"
 	},
 	MarketplaceSupplierPaymentSettings:{
 		has_payout_method:"Boolean",
@@ -6971,6 +7276,7 @@ export const ReturnTypes: Record<string,any> = {
 		is_expired:"Boolean",
 		key:"String",
 		lots_count:"Int",
+		origin:"MarketplaceInventoryOrigin",
 		package_size:"Float",
 		quantity:"String",
 		unit_of_measure:"MarketplaceUnitOfMeasure"
@@ -7258,6 +7564,8 @@ export const ReturnTypes: Record<string,any> = {
 		capitalUpdateMeasure:"CapitalMeasure",
 		capitalUpdateProcessTemplate:"ProcessTemplate",
 		capitalUpdateStory:"CapitalStory",
+		cardcoopRequestEntryDisclosure:"CardcoopEntry",
+		cardcoopTakeEntryProfile:"CardcoopEntryProfile",
 		chairmanConfirmApprove:"Approval",
 		chairmanDeclineApprove:"Approval",
 		chatcoopCreateAccount:"Boolean",
@@ -7389,13 +7697,14 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceAddAvailableCategoryTypes:"MarketplaceAvailableCategory",
 		marketplaceAddSupplier:"MarketplaceSupplier",
 		marketplaceAddToCart:"MarketplaceCart",
-		marketplaceAnnounceOrderReady:"MarketplaceOrder",
+		marketplaceAdmitSupplierClaim:"MarketplaceSupplierClaimResult",
 		marketplaceApproveOffer:"MarketplaceOffer",
 		marketplaceApproveReturnVisit:"MarketplaceReturnClaimResult",
 		marketplaceApproveSupplier:"MarketplaceSupplier",
 		marketplaceAssignInventoryPlacement:"MarketplaceInventoryMutationResult",
 		marketplaceBindInventoryBarcode:"MarketplaceInventoryMutationResult",
 		marketplaceCancelAplReception:"MarketplaceAplReceptionResult",
+		marketplaceCancelIssuance:"MarketplaceIssuanceSaga",
 		marketplaceCancelOrder:"MarketplaceCancelOrderResult",
 		marketplaceCancelStockOrder:"MarketplaceOrder",
 		marketplaceCancelStockProposal:"MarketplaceStockProposal",
@@ -7404,8 +7713,8 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceClearAvailableCategories:"Boolean",
 		marketplaceClearCart:"MarketplaceCart",
 		marketplaceClearInventoryLabel:"MarketplaceInventoryMutationResult",
+		marketplaceCloseIssuance:"MarketplaceIssuanceSaga",
 		marketplaceConfirmWriteoff:"MarketplaceWriteoffProposal",
-		marketplaceConvertBranchFunds:"Boolean",
 		marketplaceCreateAid:"Boolean",
 		marketplaceCreateAplReception:"MarketplaceAplReceptionResult",
 		marketplaceCreateBranchExpense:"String",
@@ -7428,9 +7737,12 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceDetailKU:"MarketplaceKUDetails",
 		marketplaceDistributeBranchFunds:"Boolean",
 		marketplaceFinalizeStockIssuance:"MarketplaceStockProposalAcceptResult",
+		marketplaceFixIssuanceFact:"MarketplaceIssuanceStatementPayload",
 		marketplaceGenerateInventoryLabel:"MarketplaceInventoryMutationResult",
+		marketplaceHandBackReturn:"MarketplaceReturnClaimResult",
 		marketplaceMoveContainer:"MarketplaceContainer",
 		marketplacePublishStock:"MarketplaceOffer",
+		marketplaceReadyIssue:"MarketplaceOrder",
 		marketplaceRejectOffer:"MarketplaceOffer",
 		marketplaceRejectReturnAtVisit:"MarketplaceReturnClaimResult",
 		marketplaceRejectReturnRemote:"MarketplaceReturnClaimResult",
@@ -7452,6 +7764,8 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceSetTrusteeWeight:"Boolean",
 		marketplaceSignAplReceptionAsChairman:"MarketplaceAplReceptionResult",
 		marketplaceSignAplReceptionAsSupplier:"MarketplaceAplReceptionResult",
+		marketplaceSignIssuanceAct:"MarketplaceIssuanceSaga",
+		marketplaceSignIssuanceStatement:"MarketplaceIssuanceSaga",
 		marketplaceSignOnboardingOffer:"MarketplaceOnboardingState",
 		marketplaceSplitInventory:"MarketplaceInventoryMutationResult",
 		marketplaceSubmitWriteoffDraft:"MarketplaceWriteoffProposal",
@@ -7500,6 +7814,9 @@ export const ReturnTypes: Record<string,any> = {
 		setWif:"Boolean",
 		signByPresiderOnAnnualGeneralMeet:"MeetAggregate",
 		signBySecretaryOnAnnualGeneralMeet:"MeetAggregate",
+		sovietRobotDelegateKey:"RobotKeyStatus",
+		sovietRobotRetryDecision:"RobotDecision",
+		sovietRobotRevokeKey:"Boolean",
 		startInstall:"StartInstallResult",
 		startResetKey:"Boolean",
 		submitExpenseReport:"Transaction",
@@ -7798,6 +8115,12 @@ export const ReturnTypes: Record<string,any> = {
 		totalCount:"Int",
 		totalPages:"Int"
 	},
+	PaginatedRobotDecisionsPaginationResult:{
+		currentPage:"Int",
+		items:"RobotDecision",
+		totalCount:"Int",
+		totalPages:"Int"
+	},
 	ParticipantAccess:{
 		grants:"AccessGrant",
 		sets:"String"
@@ -8009,9 +8332,11 @@ export const ReturnTypes: Record<string,any> = {
 		title:"String"
 	},
 	ProcessSummary:{
+		amount:"String",
 		coopname:"String",
 		firstSeenAt:"DateTime",
 		lastSeenAt:"DateTime",
+		memo:"String",
 		processHash:"String",
 		processType:"String",
 		username:"String"
@@ -8168,6 +8493,9 @@ export const ReturnTypes: Record<string,any> = {
 		capitalTimeStats:"CapitalTimeStats",
 		capitalVote:"CapitalVote",
 		capitalVotes:"PaginatedCapitalVotesPaginationResult",
+		cardcoopEntry:"CardcoopEntry",
+		cardcoopEntryAvailable:"Boolean",
+		cardcoopMyCard:"CardcoopMyCard",
 		chairmanApproval:"Approval",
 		chairmanApprovals:"PaginatedChairmanApprovalsPaginationResult",
 		chatcoopCheckUsernameAvailability:"Boolean",
@@ -8294,7 +8622,7 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceCategoryAttributes:"MarketplaceAttribute",
 		marketplaceCategoryAttributesGrouped:"MarketplaceAttributeGroup",
 		marketplaceCategoryOfferCounts:"MarketplaceCategoryOfferCount",
-		marketplaceCheckoutSignablePayloads:"MarketplaceCheckoutSignableLine",
+		marketplaceCheckoutSignablePayloads:"MarketplaceCheckoutPreview",
 		marketplaceCppStatus:"MarketplaceCppStatus",
 		marketplaceDefaultVitrine:"MarketplaceVitrine",
 		marketplaceFindPotentialMatches:"MarketplaceRequest",
@@ -8312,6 +8640,7 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceGetEconomyConfig:"MarketplaceEconomyConfig",
 		marketplaceGetOffer:"MarketplaceOffer",
 		marketplaceGetOrder:"MarketplaceOrder",
+		marketplaceGetOutgoingPayment:"MarketplaceOutgoingPaymentDetail",
 		marketplaceGetPersonalEconomy:"MarketplacePersonalEconomy",
 		marketplaceGetPersonalWalletHistory:"MarketplaceBranchWalletHistoryPaginationResult",
 		marketplaceGetProductTypeById:"MarketplaceProductType",
@@ -8323,7 +8652,12 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceGetShipment:"MarketplaceShipment",
 		marketplaceGetSupplierPaymentSettings:"MarketplaceSupplierPaymentSettings",
 		marketplaceGetUserRequests:"MarketplaceRequest",
-		marketplaceIssueActChairmanSignablePayload:"GeneratedDocument",
+		marketplaceIssuanceActPayload:"GeneratedDocument",
+		marketplaceIssuanceClosePayload:"MarketplaceIssuanceClosePayload",
+		marketplaceIssuanceConvertPayload:"GeneratedDocument",
+		marketplaceIssuanceSaga:"MarketplaceIssuanceSaga",
+		marketplaceIssuanceStatementPayload:"GeneratedDocument",
+		marketplaceLedgerInvariants:"MarketplaceLedgerInvariant",
 		marketplaceListAids:"MarketplaceAid",
 		marketplaceListAllOffers:"MarketplaceOfferPaginationResult",
 		marketplaceListAllOrders:"MarketplaceOrderPaginationResult",
@@ -8339,6 +8673,7 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceListCoopCategories:"MarketplaceCategory",
 		marketplaceListExpressPickupsByBraname:"MarketplaceExpressPickupCandidate",
 		marketplaceListInventory:"MarketplaceInventoryItem",
+		marketplaceListIssuanceSagas:"MarketplaceIssuanceSaga",
 		marketplaceListIssuancesByBraname:"MarketplaceOrder",
 		marketplaceListKUDetails:"MarketplaceKUDetails",
 		marketplaceListModerationLog:"MarketplaceModerationLogEntry",
@@ -8354,6 +8689,7 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceListStock:"MarketplaceInventoryItem",
 		marketplaceListStockProposals:"MarketplaceStockProposal",
 		marketplaceListStorageCells:"MarketplaceStorageCell",
+		marketplaceListSupplierClaims:"MarketplaceSupplierClaim",
 		marketplaceListSupplierOrders:"MarketplaceOrderPaginationResult",
 		marketplaceListSupplierPickupOrders:"MarketplaceOrder",
 		marketplaceListSuppliers:"MarketplaceSupplier",
@@ -8367,13 +8703,15 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceRequiredAttributes:"MarketplaceAttribute",
 		marketplaceResolveContainerByCode:"MarketplaceContainer",
 		marketplaceReturnClaim:"MarketplaceReturnClaim",
-		marketplaceReturnClaimChairmanSignablePayload:"DocumentAggregate",
+		marketplaceReturnClaimChairmanSignablePayload:"MarketplaceReturnAcceptancePayload",
 		marketplaceReturnClaimSignablePayload:"GeneratedDocument",
 		marketplaceSearchAttributes:"MarketplaceAttribute",
 		marketplaceSearchDictionaryValues:"MarketplaceDictionaryValue",
 		marketplaceSearchRequests:"MarketplaceRequest",
 		marketplaceStockIssuancePayloads:"MarketplaceStockIssuanceOperatorLine",
 		marketplaceStockProposalSignablePayloads:"MarketplaceStockAcceptPayload",
+		marketplaceSupplierClaim:"MarketplaceSupplierClaim",
+		marketplaceSupplierClaimSummary:"MarketplaceSupplierClaimSummary",
 		marketplaceValidateAttributeValues:"MarketplaceAttributeValidation",
 		marketplaceWhoAmI:"MarketplaceCurrentMember",
 		marketplaceWriteoffPendingConfirmations:"MarketplaceWriteoffConfirmationGroup",
@@ -8390,6 +8728,11 @@ export const ReturnTypes: Record<string,any> = {
 		processes:"ProcessSummaryPaginationResult",
 		searchDocuments:"SearchResult",
 		searchPrivateAccounts:"PrivateAccountSearchResult",
+		sovietRobotCouncil:"RobotCouncil",
+		sovietRobotJournal:"PaginatedRobotDecisionsPaginationResult",
+		sovietRobotKeyStatus:"RobotKeyStatus",
+		sovietRobotKeys:"RobotKeyStatus",
+		sovietRobotRegistry:"RobotDecisionType",
 		validateReportEdits:"FieldError",
 		verificationReviewPhotos:"VerificationReviewPhoto",
 		verificationReviews:"VerificationReview"
@@ -8563,6 +8906,92 @@ export const ReturnTypes: Record<string,any> = {
 	RevokedSessionsResult:{
 		revoked:"Int"
 	},
+	RobotChairmanDelegation:{
+		delegated:"Boolean",
+		has_key:"Boolean",
+		username:"String"
+	},
+	RobotCouncil:{
+		board_id:"Int",
+		chairman:"String",
+		members:"RobotCouncilMember",
+		required_votes:"Int"
+	},
+	RobotCouncilMember:{
+		full_name:"String",
+		is_voting:"Boolean",
+		position:"String",
+		position_title:"String",
+		username:"String"
+	},
+	RobotDecision:{
+		attempts:"Int",
+		coopname:"String",
+		created_at:"DateTime",
+		decision_hash:"String",
+		decision_id:"Int",
+		decision_type:"String",
+		id:"String",
+		last_error:"String",
+		next_attempt_at:"DateTime",
+		protocol_hash:"String",
+		stage:"RobotDecisionStage",
+		tx_hashes:"String",
+		updated_at:"DateTime",
+		username:"String",
+		votes:"RobotVoteRecord",
+		waiting_for:"String"
+	},
+	RobotDecisionType:{
+		chairman:"RobotChairmanDelegation",
+		description:"String",
+		my_authorize:"Boolean",
+		my_follow:"String",
+		my_mode:"RobotVoteMode",
+		my_vote:"Boolean",
+		protocol_registry_id:"Int",
+		title:"String",
+		type:"String",
+		vote_quorum:"RobotQuorum",
+		voters:"RobotVoter",
+		warnings:"String"
+	},
+	RobotFollowGroup:{
+		count:"Int",
+		follow:"String"
+	},
+	RobotKeyStatus:{
+		chain_has_permission:"Boolean",
+		chain_key_matches:"Boolean",
+		has_key:"Boolean",
+		member:"String",
+		permission_name:"String",
+		public_key:"String",
+		updated_at:"DateTime"
+	},
+	RobotQuorum:{
+		delegated_count:"Int",
+		follow_groups:"RobotFollowGroup",
+		reachable:"Boolean",
+		reached:"Boolean",
+		required_count:"Int",
+		total_members:"Int"
+	},
+	RobotVoteRecord:{
+		at:"String",
+		member:"String",
+		permission:"String",
+		tx_id:"String"
+	},
+	RobotVoter:{
+		expires_at:"String",
+		follow:"String",
+		has_key:"Boolean",
+		limit:"String",
+		member:"String",
+		mode:"RobotVoteMode",
+		permission_name:"String"
+	},
 	SbpAccount:{
 		phone:"String"
 	},
@@ -8624,7 +9053,8 @@ export const ReturnTypes: Record<string,any> = {
 	},
 	Subscription:{
 		marketplaceEvents:"MarketplaceEvent",
-		nodeSyncState:"NodeSyncState"
+		nodeSyncState:"NodeSyncState",
+		walletEvents:"WalletChangedEvent"
 	},
 	SubscriptionStatsDto:{
 		active:"Int",
@@ -8768,6 +9198,11 @@ export const ReturnTypes: Record<string,any> = {
 	WaitWeight:{
 		wait_sec:"Int",
 		weight:"Int"
+	},
+	WalletChangedEvent:{
+		coopname:"String",
+		username:"String",
+		wallet_name:"String"
 	},
 	WebPushSubscriptionDto:{
 		authKey:"String",

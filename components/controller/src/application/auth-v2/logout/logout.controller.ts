@@ -1,6 +1,7 @@
 import { Body, Controller, HttpCode, Post, Req, Res } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { LogoutService } from './logout.service';
+import { clearSessionCookie } from '../session-cookie/session-cookie';
 
 const BINDING_COOKIE_NAME = 'coop_session_binding';
 
@@ -29,5 +30,6 @@ export class LogoutController {
     });
 
     res.clearCookie(BINDING_COOKIE_NAME, { httpOnly: true, secure: true, sameSite: 'strict', path: '/' });
+    clearSessionCookie(req, res);
   }
 }

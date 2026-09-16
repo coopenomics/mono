@@ -1,9 +1,15 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue';
+import { useFirstLoad } from 'src/shared/lib/composables';
 import { debounce } from 'quasar';
 import { useRoute, useRouter } from 'vue-router';
 import { FailAlert } from 'src/shared/api';
-import { useMarketplaceRealtime } from 'src/shared/lib/marketplace';
+import {
+  useMarketplaceRealtime,
+  marketplaceAvailablePackages,
+  offerCardUnitCost,
+  offerCardUnitLabel,
+} from 'src/shared/lib/marketplace';
 import {
   CatalogOfferCard,
   CatalogOfferCardSkeleton,
@@ -13,10 +19,8 @@ import {
 import { BaseButton, EmptyState } from 'src/shared/ui/base';
 import { PageTabs, type PageTab } from 'src/shared/ui/layout';
 import { KUHeaderBar } from 'src/widgets/Marketplace/KUHeaderBar';
-import { CartHeaderButton } from 'src/widgets/Marketplace/CartHeaderButton';
 import { WalletHeaderButton } from 'src/widgets/Marketplace/WalletHeaderButton';
 import { useMarketplaceCartStore } from 'src/entities/MarketplaceCart';
-import { marketplaceOrderUnitLabel } from 'src/shared/lib/consts';
 import { marketplaceOfferImageUrls } from 'src/shared/lib/utils';
 import { getMembershipFeePercent } from 'src/shared/lib/marketplace';
 import {
@@ -54,7 +58,12 @@ const categories = ref<MarketplaceCategoryView[]>([]);
 const counts = ref<Map<number, number>>(new Map());
 const items = ref<MarketplaceOfferView[]>([]);
 const total = ref(0);
-const loading = ref(false);
+// true до первого запроса витрины: перед ним страница ждёт корзину и категории,
+// и с `false` в это время на экране стояло «Ничего не найдено», а скелетон
+// появлялся только потом — первая загрузка была неотличима от пустой витрины.
+const loading = ref(true);
+/** Пустое состояние и каркас — по первой загрузке; дочитка обновляет молча. */
+const firstLoad = useFirstLoad(loading);
 // Кол-во скелетон-карточек на первичной загрузке витрины.
 const SKELETON_COUNT = 8;
 const selectedCategoryId = ref<number>(ALL_KEY);
@@ -123,14 +132,31 @@ function referencePriceNote(_offer: MarketplaceOfferView): string | undefined {
 function toCatalogOffer(offer: MarketplaceOfferView): CatalogOffer {
   const isEmpty = !offer.unlimited_flag && offer.quantity_available <= 0;
   const status: CatalogOfferStatus = isEmpty ? 'sold-out' : 'published';
+  // Заказчику показываем только ту тару, которую он может взять: пустая
+  // упаковка в карточке обещает товар, а в окне «В корзину» упирается в
+  // «Доступно: 0». Крупная цена тоже считается по доступной таре — иначе
+  // карточка называет цену литровой бутылки, которой на складе нет.
+  const availableOffer = {
+    ...offer,
+    packages: marketplaceAvailablePackages(offer.packages, offer.unlimited_flag),
+  };
+  // Основная доступная тара задаёт и цену, и остаток: карточка говорит «130 ₽
+  // за упак. 0,5 л — 90 упак.», а весь перечень тары заказчик выбирает в окне
+  // «В корзину» или на странице предложения (решение владельца 14.09.2026).
+  const mainPackage =
+    availableOffer.packages.find((p) => p.is_default) ?? availableOffer.packages[0] ?? null;
   return {
     id: offer.id,
     title: offer.product_name,
     description: offer.description ?? undefined,
     images: marketplaceOfferImageUrls(offer.images),
-    remainUnits: offer.unlimited_flag ? undefined : offer.quantity_available,
-    unitCost: offer.price_per_unit,
-    unitLabel: marketplaceOrderUnitLabel(offer.unit_of_measure),
+    remainUnits: offer.unlimited_flag
+      ? undefined
+      : mainPackage
+        ? mainPackage.quantity_available
+        : offer.quantity_available,
+    unitCost: offerCardUnitCost(availableOffer),
+    unitLabel: offerCardUnitLabel(availableOffer),
     referenceNote: referencePriceNote(offer),
     status,
     category: categoryNameById.value[offer.category_id] ?? undefined,
@@ -141,7 +167,14 @@ function toCatalogOffer(offer: MarketplaceOfferView): CatalogOffer {
 }
 
 function canOrder(offer: MarketplaceOfferView): boolean {
-  return offer.unlimited_flag || offer.quantity_available > 0;
+  if (offer.unlimited_flag) return true;
+  if (offer.quantity_available <= 0) return false;
+  // Отпуск упаковкой: остаток ведётся на каждой таре, и общий котёл литров
+  // ничего не решает — если свободных упаковок нет, заказывать нечего.
+  if (offer.packages?.length) {
+    return marketplaceAvailablePackages(offer.packages, false).length > 0;
+  }
+  return true;
 }
 
 async function loadCategories(): Promise<void> {
@@ -279,7 +312,13 @@ onMounted(async () => {
   } catch {
     // Без корзины currentBraname=null → витрина покажется целиком.
   }
-  await loadCategories();
+  // Сбой категорий не должен оставить витрину в каркасе: загрузка страницы
+  // идёт в любом случае и завершает первую загрузку.
+  try {
+    await loadCategories();
+  } catch (e) {
+    FailAlert(e);
+  }
   await loadPage(false);
 });
 
@@ -288,11 +327,23 @@ onMounted(async () => {
 // мельтешения (частое событие). Новый оффер / catch-up → ненавязчивое обновление
 // с сохранением уже загруженной глубины (НЕ сброс на первую страницу — иначе
 // страховочный resync раз в 60с дёргал бы прокрутку у листающего пайщика).
-function patchOfferStock(offerId: string, quantityAvailable: number, unlimited: boolean): void {
+function patchOfferStock(
+  offerId: string,
+  quantityAvailable: number,
+  unlimited: boolean,
+  packages: ReadonlyArray<{ package_id: string; quantity_available: number }>,
+): void {
   const item = items.value.find((o) => o.id === offerId);
   if (!item) return; // оффер не на текущей вкладке/в загруженном диапазоне — пропуск
   item.quantity_available = quantityAvailable;
   item.unlimited_flag = unlimited;
+  // Остаток по упаковкам: диалог «В корзину» ограничивает ввод остатком
+  // выбранной упаковки, поэтому обновляем и его. До перезапуска dev-сервера
+  // предсобранный SDK поля ещё не запрашивает — тогда списка нет.
+  for (const p of packages ?? []) {
+    const pkg = item.packages.find((x) => x.id === p.package_id);
+    if (pkg) pkg.quantity_available = p.quantity_available;
+  }
 }
 
 async function refreshCatalogLiveNow(): Promise<void> {
@@ -334,7 +385,7 @@ const refreshCatalogLive = debounce(() => {
 useMarketplaceRealtime(
   {
     MarketplaceOfferStockChangedEvent: (e) =>
-      patchOfferStock(e.offer_id, e.quantity_available, e.unlimited_flag),
+      patchOfferStock(e.offer_id, e.quantity_available, e.unlimited_flag, e.packages),
     MarketplaceOfferPublishedEvent: () => refreshCatalogLive(),
   },
   { onResync: () => refreshCatalogLive() }
@@ -348,9 +399,8 @@ q-page.catalog(role="region", aria-label="Каталог Стола заказо
   //- приходилось уходить на стол пайщика).
   WalletHeaderButton(:coopname="coopname")
 
-  //- Индикатор корзины в шапке стола (Story 16.1) — общий header-виджет,
-  //- переиспользуется и на странице предложения.
-  CartHeaderButton(:coopname="coopname")
+  //- Корзина из шапки убрана: число позиций показывает пункт меню «Корзина»,
+  //- туда заказчик и идёт (решение владельца 14.09.2026).
 
   //- Бар пункта выдачи (КУ всегда на виду). Инфо-баннер убран — назначение
   //- каталога очевидно из контекста.
@@ -376,26 +426,29 @@ q-page.catalog(role="region", aria-label="Каталог Стола заказо
           q-icon(name="swap_vert", size="18px")
         span.catalog__sort-label {{ currentSortLabel }}
         q-icon(name="arrow_drop_down", size="18px")
-        q-menu(anchor="bottom right", self="top right")
-          q-list(dense, style="min-width: 180px")
-            q-item(
-              v-for="opt in sortOptions",
-              :key="opt.value",
-              clickable,
-              v-close-popup,
-              :active="opt.value === sort",
-              @click="onSortChange(opt.value)"
-            )
-              q-item-section {{ opt.label }}
+        //- Меню — отдельным слотом кнопки: иначе Quasar считает триггером
+        //- только подпись, и меню открывается через раз.
+        template(#menu)
+          q-menu(anchor="bottom right", self="top right")
+            q-list(dense, style="min-width: 180px")
+              q-item(
+                v-for="opt in sortOptions",
+                :key="opt.value",
+                clickable,
+                v-close-popup,
+                :active="opt.value === sort",
+                @click="onSortChange(opt.value)"
+              )
+                q-item-section {{ opt.label }}
 
   //- Канон: на первичной загрузке — скелетон-сетка карточек, не перекрывающий
   //- спиннер. Polling обновляет молча.
-  .row.q-col-gutter-md(v-if="loading && items.length === 0")
+  .row.q-col-gutter-md(v-if="firstLoad")
     .col-12.col-sm-6.col-md-4.col-lg-3(v-for="n in SKELETON_COUNT", :key="`skel-${n}`")
       CatalogOfferCardSkeleton
 
   EmptyState(
-    v-if="!loading && items.length === 0",
+    v-if="!firstLoad && items.length === 0",
     title="Ничего не найдено",
     :body="emptyBody"
   )
@@ -440,7 +493,6 @@ q-page.catalog(role="region", aria-label="Каталог Стола заказо
   // Канон-`.tabbar` тянется во всю ширину; гасим его внутренний горизонтальный
   // паддинг, чтобы вкладки шли от края страницы (у страницы свои отступы).
   &__tabs {
-    margin: 0 calc(-1 * var(--p-6, 24px));
 
     :deep(.tabbar__tabs) {
       padding: 0 var(--p-6, 24px);

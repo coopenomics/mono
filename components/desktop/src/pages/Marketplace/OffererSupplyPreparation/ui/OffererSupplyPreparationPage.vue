@@ -1,16 +1,17 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue';
+import { useFirstLoad } from 'src/shared/lib/composables';
 import { debounce } from 'quasar';
 import { useRoute } from 'vue-router';
 import { FailAlert } from 'src/shared/api';
 import { useSessionStore } from 'src/entities/Session';
-import { BaseBadge, BaseButton, BaseDialog, EmptyState, TableSkeleton } from 'src/shared/ui/base';
-import type { BaseBadgeVariant, TableSkeletonColumn } from 'src/shared/ui/base';
+import { BaseBadge, BaseButton, BaseDialog, BaseTable, EmptyState } from 'src/shared/ui/base';
+import type { BaseBadgeVariant, BaseTableColumn } from 'src/shared/ui/base';
 import { PageHint } from 'src/shared/ui/domain';
 import { EntityIdBadge } from 'src/shared/ui/EntityIdBadge';
 import { useMarketplaceKUDetailsStore } from 'src/entities/MarketplaceKUDetails';
-import { HandoffCodeDialog } from 'src/widgets/Marketplace/HandoffCode';
-import { HandoffTokenKind, useMarketplaceRealtime } from 'src/shared/lib/marketplace';
+import { useMarketplaceRealtime } from 'src/shared/lib/marketplace';
+import { ShipmentDetailsDrawer } from 'src/widgets/Marketplace/ShipmentDetailsDrawer';
 import { formatAsset2Digits } from 'src/shared/lib/utils';
 import { TTNPrintPreview, type TTNData } from 'src/widgets/Marketplace/TTNPrintPreview';
 import { listShipments, type MarketplaceShipmentView } from '../api';
@@ -61,7 +62,13 @@ const shipments = ref<MarketplaceShipmentView[]>([]);
 const acceptedOrders = ref<MarketplaceOrderView[]>([]);
 // Заказы сформированных партий (статус SUPPLY_PREPARED) — источник состава ТТН.
 const preparedOrders = ref<MarketplaceOrderView[]>([]);
-const loading = ref(false);
+// Заказы стола целиком — из них панель партии отбирает её состав по shipment_id.
+const shipmentOrders = ref<MarketplaceOrderView[]>([]);
+// true до первого запроса: иначе первый кадр до загрузки показывает пустое
+// состояние вместо скелетона, и первая загрузка неотличима от пустого списка.
+const loading = ref(true);
+/** Скелетон — только на первой загрузке; дочитка обновляет молча. */
+const firstLoad = useFirstLoad(loading);
 
 // Есть ли акцептованные заказы (привязанные к заявке), из которых можно
 // сформировать партию — управляет доступностью глобальной кнопки.
@@ -71,7 +78,7 @@ const hasFormable = computed(() => acceptedOrders.value.some((o) => o.cycle_id))
 // (как на остальных столах). Текст зависит от того, есть ли уже принятые заказы,
 // готовые к формированию: если есть — зовём нажать «Сформировать партию»,
 // если нет — отправляем принимать заказы во «Входящих».
-const showEmpty = computed(() => !loading.value && shipments.value.length === 0);
+const showEmpty = computed(() => !firstLoad.value && shipments.value.length === 0);
 
 const emptyState = computed(() =>
   hasFormable.value
@@ -88,22 +95,31 @@ const emptyState = computed(() =>
 // Диалог формирования партии — глобальный, открывается из шапки.
 const dialogOpen = ref(false);
 
-// Story 14.3: один account-bound код на весь стол. Поставщик показывает его
-// оператору приёмки — тот резолвит аккаунт против ленты своего КУ и принимает
-// разом всё привезённое. Тот же код вынесен явным пунктом меню «Отгрузить
-// партию»; здесь — быстрый доступ диалогом из шапки (общий HandoffCodeDialog).
-const myCodeDialogOpen = ref(false);
+// Партия открывается боковой панелью: в таблице видны только цикл, участок и
+// сумма, а понять, что и кому едет, по ним нельзя. Код передачи на ПВЗ из
+// шапки убран — он живёт отдельным пунктом меню «Отгрузить партию», и здесь
+// только мешал главному действию стола (решение владельца 14.09.2026).
+const detailsShipment = ref<MarketplaceShipmentView | null>(null);
+const detailsOpen = ref(false);
+
+function openDetails(row: MarketplaceShipmentView): void {
+  detailsShipment.value = row;
+  detailsOpen.value = true;
+}
 
 // Печать ТТН — только для Варианта Б (экспедитор), пока партия не принята:
 // состав берётся из заказов SUPPLY_PREPARED этой партии.
 const ttnDialogOpen = ref(false);
 const ttnData = ref<TTNData | null>(null);
 
+/**
+ * Накладная есть у всякой партии, которую везёт экспедитор, и нужна она не
+ * только до отгрузки: по ней сверяются при приёмке и к ней возвращаются
+ * потом. Поэтому смотреть и печатать её можно на любом статусе — состав
+ * берётся из заказов партии, которые стол грузит целиком.
+ */
 function canPrintTtn(row: MarketplaceShipmentView): boolean {
-  return (
-    isExpeditor(row.delivery_variant) &&
-    (row.status === 'SUPPLY_PREPARED' || row.status === 'RECEPTION_IN_PROGRESS')
-  );
+  return isExpeditor(row.delivery_variant);
 }
 
 function openTtn(row: MarketplaceShipmentView): void {
@@ -165,28 +181,36 @@ function nextStep(row: MarketplaceShipmentView): string {
   }
 }
 
-// Колонки скелетона повторяют шапку реальной таблицы — каркас не дёргается.
-const skeletonColumns: TableSkeletonColumn[] = [
-  { label: 'Цикл', class: 'col-id', cell: 'badge' },
-  { label: 'КУ', cell: 'text' },
-  { label: 'Вариант', cell: 'text', cellWidth: '120px' },
-  { label: 'Статус', cell: 'badge' },
-  { label: 'Сумма', class: 'col-num', cell: 'text', cellWidth: '80px' },
-  { label: 'ТТН', cell: 'text', cellWidth: '90px' },
+// Ширины подобраны так, чтобы накладная помещалась на экран без прокрутки
+// вбок: участок и статус ужаты, «следующий шаг» переехал в панель партии —
+// длинной фразой он и раздувал колонку статуса.
+const columns: BaseTableColumn<MarketplaceShipmentView>[] = [
+  { key: 'cycle', label: 'Партия', width: '130px' },
+  { key: 'ku', label: 'Пункт выдачи', width: '210px', sortable: true, field: (row) => kuName(row.braname) },
+  { key: 'variant', label: 'Доставка', width: '150px', sortable: true, field: (row) => deliveryVariantLabel(row.delivery_variant) },
+  { key: 'status', label: 'Статус', width: '160px', sortable: true, field: 'status' },
+  { key: 'amount', label: 'Сумма', width: '130px', numeric: true, sortable: true, field: (row) => Number.parseFloat(row.total_amount) || 0 },
+  { key: 'ttn', label: 'Накладная', width: '150px' },
 ];
 
 async function load(): Promise<void> {
   loading.value = true;
   try {
-    const [shipmentsResult, ordersResult, preparedResult] = await Promise.all([
+    const [shipmentsResult, ordersResult, shipmentOrdersResult] = await Promise.all([
       listShipments(),
       fetchSupplierOrders({ statuses: ['ACCEPTED'], limit: PAGE_SIZE }),
-      fetchSupplierOrders({ statuses: ['SUPPLY_PREPARED'], limit: PAGE_SIZE }),
+      // Заказы, попавшие в партии: собранные к отгрузке нужны для ТТН, а
+      // принятые кооперативом и выданные — чтобы состав открытой партии не
+      // пропадал после приёмки на участке.
+      fetchSupplierOrders({ limit: PAGE_SIZE }),
       kuStore.load({ coopname: coopname.value, onlyActive: false }),
     ]);
     shipments.value = shipmentsResult;
     acceptedOrders.value = ordersResult.items;
-    preparedOrders.value = preparedResult.items;
+    shipmentOrders.value = shipmentOrdersResult.items;
+    preparedOrders.value = shipmentOrdersResult.items.filter(
+      (o) => o.status === 'SUPPLY_PREPARED',
+    );
   } catch (e) {
     FailAlert(e, 'Не удалось загрузить партии');
   } finally {
@@ -224,65 +248,51 @@ q-page.offerer-supply
       template(#icon-left)
         q-icon(name='local_shipping', size='16px')
       | Сформировать партию
-    BaseButton(variant='secondary', size='sm', :disabled='!session.username', @click='myCodeDialogOpen = true')
-      template(#icon-left)
-        q-icon(name='qr_code_2', size='16px')
-      | Мой код для ПВЗ
 
   PageHint(storage-key='mp:offerer-supply:banner-dismissed')
     | Нажмите «Сформировать партию» в шапке: выберите способ доставки (самовывоз
-    | или экспедитор по ТТН), кооперативный участок и перенесите в партию заказы,
-    | которые реально грузите. Невыбранное останется акцептованным для следующей
-    | партии. Сформированные партии и их следующий шаг — ниже.
+    | или экспедитор по накладной), пункт выдачи и перенесите в партию заказы,
+    | которые реально грузите. Невыбранное останется принятым и дождётся
+    | следующей партии. Нажмите на партию в списке, чтобы увидеть её состав,
+    | реквизиты доставки и что делать дальше.
 
-  TableSkeleton(
-    v-if='loading && !shipments.length',
-    :columns='skeletonColumns',
-    :rows='6',
-    min-width="1140px"
+  BaseTable(
+    v-if='firstLoad || shipments.length',
+    :columns='columns',
+    :rows='shipments',
+    row-key='id',
+    :loading='loading',
+    min-width='930px',
+    sort-by='ku',
+    clickable-rows,
+    @row-click='openDetails'
   )
-
-  //- Сформированные партии — основной список стола.
-  template(v-if='shipments.length')
-    .offerer-supply__section-title Сформированные партии
-    .table-wrap
-      .table-scroll
-        table.table
-          thead
-            tr
-              th.col-id Цикл
-              th.col-ku КУ
-              th.col-variant Вариант
-              th.col-status Статус
-              th.col-num Сумма
-              th.col-ttn ТТН
-          tbody
-            tr(v-for='row in shipments', :key='row.id')
-              td.col-id
-                EntityIdBadge(
-                  v-if='row.cycle_id',
-                  :raw-id='String(row.cycle_id).slice(0, 8)',
-                  :copy-value='row.cycle_id',
-                  copy-on-click
-                )
-                span(v-else) —
-              td.col-ku
-                .offerer-supply__ku-text
-                  .offerer-supply__ku-name {{ kuName(row.braname) }}
-                  .offerer-supply__ku-addr(v-if='kuAddr(row.braname)') {{ kuAddr(row.braname) }}
-              td.col-variant {{ deliveryVariantLabel(row.delivery_variant) }}
-              td.col-status
-                BaseBadge(:variant='statusOf(row.status).variant') {{ statusOf(row.status).label }}
-                .offerer-supply__next(v-if='nextStep(row)') {{ nextStep(row) }}
-              td.col-num {{ formatAsset2Digits(row.total_amount) }} ₽
-              td.col-ttn
-                .offerer-supply__ttn-cell(v-if='canPrintTtn(row)')
-                  span.offerer-supply__ttn-num(v-if='row.ttn_number') {{ row.ttn_number }}
-                  BaseButton(variant='ghost', size='sm', @click='openTtn(row)')
-                    template(#icon-left)
-                      q-icon(name='print', size='16px')
-                    | ТТН
-                span(v-else) {{ row.ttn_number || '—' }}
+    template(#cell-cycle='{ row }')
+      EntityIdBadge(
+        v-if='row.cycle_id',
+        :raw-id='String(row.cycle_id).slice(0, 8)',
+        :copy-value='row.cycle_id',
+        copy-on-click
+      )
+      span(v-else) —
+    template(#cell-ku='{ row }')
+      .offerer-supply__ku-text
+        .offerer-supply__ku-name {{ kuName(row.braname) }}
+        .offerer-supply__ku-addr(v-if='kuAddr(row.braname)') {{ kuAddr(row.braname) }}
+    template(#cell-variant='{ row }')
+      | {{ deliveryVariantLabel(row.delivery_variant) }}
+    template(#cell-status='{ row }')
+      BaseBadge(:variant='statusOf(row.status).variant') {{ statusOf(row.status).label }}
+    template(#cell-amount='{ row }')
+      | {{ formatAsset2Digits(row.total_amount) }} ₽
+    template(#cell-ttn='{ row }')
+      .offerer-supply__ttn-cell(v-if='canPrintTtn(row)')
+        span.offerer-supply__ttn-num(v-if='row.ttn_number') {{ row.ttn_number }}
+        BaseButton(variant='ghost', size='sm', @click.stop='openTtn(row)')
+          template(#icon-left)
+            q-icon(name='print', size='16px')
+          | Открыть
+      span(v-else) —
 
   //- Placeholder держит центр пустой области (flex-grow), как на других столах.
   .offerer-supply__empty(v-if='showEmpty')
@@ -299,7 +309,20 @@ q-page.offerer-supply
     @created='onCreated'
   )
 
-  HandoffCodeDialog(v-model='myCodeDialogOpen', :coopname='coopname', :kind='HandoffTokenKind.Pickup')
+  ShipmentDetailsDrawer(
+    v-model='detailsOpen',
+    :shipment='detailsShipment',
+    :orders='shipmentOrders',
+    :loading='loading',
+    :branch-name='detailsShipment ? kuName(detailsShipment.braname) : ""',
+    :branch-address='detailsShipment ? kuAddr(detailsShipment.braname) : ""',
+    :status-label='detailsShipment ? statusOf(detailsShipment.status).label : ""',
+    :status-variant='detailsShipment ? statusOf(detailsShipment.status).variant : "neutral"',
+    :delivery-label='detailsShipment ? deliveryVariantLabel(detailsShipment.delivery_variant) : ""',
+    :next-step='detailsShipment ? nextStep(detailsShipment) : ""',
+    :can-print-ttn='detailsShipment ? canPrintTtn(detailsShipment) : false',
+    @print-ttn='openTtn'
+  )
 
   BaseDialog(v-model='ttnDialogOpen', title='Товарно-транспортная накладная', maximized)
     TTNPrintPreview(v-if='ttnData', :data='ttnData')
@@ -328,12 +351,6 @@ q-page.offerer-supply
     justify-content: flex-end;
   }
 
-  &__section-title {
-    font-size: var(--p-fs-h3, 15px);
-    font-weight: 600;
-    color: var(--p-ink);
-    margin-top: var(--p-2, 8px);
-  }
 
   &__formation {
     display: grid;
@@ -378,6 +395,8 @@ q-page.offerer-supply
     flex-shrink: 0;
   }
 
+  // Строка открывает партию — курсор показывает это до нажатия.
+
   &__ku-text {
     flex: 1 1 auto;
     min-width: 0;
@@ -411,12 +430,6 @@ q-page.offerer-supply
   }
 
   // Подсказка «следующий шаг» под бейджем статуса — мелкая, второстепенная.
-  &__next {
-    margin-top: var(--p-1, 4px);
-    font-size: var(--p-fs-body-sm, 13px);
-    line-height: 1.3;
-    color: var(--p-ink-3);
-  }
 
   &__ttn-cell {
     display: flex;
@@ -440,35 +453,6 @@ q-page.offerer-supply
 .table-scroll {
   overflow-x: auto;
 }
-// Глобальный канон (.table{min-width:0!important}) снимает локальный min-width —
-// без !important колонка КУ без явной ширины схлопывалась в буквы-столбиком.
-// Сумма ширин = min-width: при нехватке места скролл в .table-scroll, не сжатие.
-.table {
-  table-layout: fixed !important;
-  min-width: 1140px !important;
-}
-.col-id {
-  width: 150px;
-  font-family: var(--font-mono);
-}
-.col-ku {
-  width: 280px;
-}
-.col-variant {
-  width: 160px;
-}
-.col-status {
-  width: 280px;
-}
-.col-num {
-  width: 120px;
-  text-align: right;
-  font-variant-numeric: tabular-nums;
-}
-.col-ttn {
-  width: 150px;
-}
-
 @media (max-width: 768px) {
   .offerer-supply {
     padding: var(--p-4, 16px);

@@ -5,6 +5,7 @@ import type {
   MarketplaceInventoryOwnership,
   MarketplaceInventoryPlacement,
   MarketplaceInventoryStatus,
+  MarketplaceInventoryOrigin,
 } from '../entities/marketplace-inventory.types';
 import type { MarketplaceUnitOfMeasure } from '../entities/marketplace-offer.types';
 
@@ -42,6 +43,10 @@ export interface MarketplaceInventoryCreateInput {
   package_size?: number;
   /** Базовая единица измерения имущества (штука/килограмм/литр). */
   unit_of_measure?: MarketplaceUnitOfMeasure;
+  /** Происхождение позиции: приёмка (дефолт) либо гарантийный возврат пайщика (99D-13). */
+  origin?: MarketplaceInventoryOrigin;
+  /** Заявление на гарантийный возврат — для позиций с origin WARRANTY_RETURN. */
+  return_claim_id?: string | null;
 }
 
 /** Наложение штрих-кода на существующую позицию (RECEIVED → LABELED). */
@@ -91,6 +96,8 @@ export interface MarketplaceInventoryListFilter {
 export interface MarketplaceWriteoffCandidate {
   inventory_id: string;
   braname: string;
+  /** Происхождение партии: приёмка либо гарантийный возврат пайщика. */
+  origin: MarketplaceInventoryOrigin;
   asset_title: string;
   quantity: number;
   arrival_price: string | null;

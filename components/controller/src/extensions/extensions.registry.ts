@@ -16,13 +16,17 @@ import { ReportsExtensionModule } from './reports/reports-extension.module';
 import { MarketplaceExtensionModule, MarketplaceExtension } from './marketplace/marketplace-extension.module';
 import { Schema as MarketplaceSchema } from './marketplace/types';
 import { KuExtensionModule, KuExtension, Schema as KuSchema } from './ku/ku-extension.module';
+import { CardcoopExtensionModule, CardcoopExtension, Schema as CardcoopSchema } from './cardcoop/cardcoop-extension.module';
+import { SovietRobotExtensionModule, SovietRobotExtension, Schema as SovietRobotSchema } from './soviet-robot/soviet-robot-extension.module';
 
 import { capitalEntities } from './capital/capital.entities';
+import { cardcoopEntities } from './cardcoop/cardcoop.entities';
 import { chairmanEntities } from './chairman/chairman.entities';
 import { chatcoopEntities } from './chatcoop/chatcoop.entities';
 import { expensesEntities } from './expenses/expenses.entities';
 import { kuEntities } from './ku/ku.entities';
 import { marketplaceEntities } from './marketplace/marketplace.entities';
+import { sovietRobotEntities } from './soviet-robot/soviet-robot.entities';
 import { reportsEntities } from './reports/reports.entities';
 
 import { chatcoopMigrations } from './chatcoop/chatcoop.migrations';
@@ -31,6 +35,7 @@ import { powerupMigrations } from './powerup/powerup.migrations';
 
 import { builtinPorts } from './builtin/builtin.ports';
 import { capitalPorts } from './capital/capital.ports';
+import { cardcoopPorts } from './cardcoop/cardcoop.ports';
 import { chairmanPorts } from './chairman/chairman.ports';
 import { chatcoopPorts } from './chatcoop/chatcoop.ports';
 import { kuPorts } from './ku/ku.ports';
@@ -39,6 +44,7 @@ import { EdubridgeExtensionModule, EdubridgeExtension } from './edubridge/edubri
 import { Schema as EdubridgeSchema } from './edubridge/types';
 import { edubridgeEntities } from './edubridge/edubridge.entities';
 import { edubridgePorts } from './edubridge/edubridge.ports';
+import { sovietRobotPorts } from './soviet-robot/soviet-robot.ports';
 import { participantPorts } from './participant/participant.ports';
 import { powerupPorts } from './powerup/powerup.ports';
 import { qrpayPorts } from './qrpay/qrpay.ports';
@@ -47,6 +53,7 @@ import { sberpollPorts } from './sberpoll/sberpoll.ports';
 import { yookassaPorts } from './yookassa/yookassa.ports';
 
 import { defaultConfig as builtinDefaultConfig } from './builtin/builtin-extension.module';
+import { defaultConfig as cardcoopDefaultConfig } from './cardcoop/cardcoop-extension.module';
 import { defaultConfig as chairmanDefaultConfig } from './chairman/chairman-extension.module';
 import { defaultConfig as powerupDefaultConfig } from './powerup/powerup-extension.module';
 import { defaultConfig as qrpayDefaultConfig } from './qrpay/qrpay-extension.module';
@@ -82,8 +89,37 @@ function getInstructionsContent(dirPath: string): Promise<string> {
  * Ключ — это name расширения, значение — объект IRegistryExtension.
  */
 export const AppRegistry: INamedExtension = {
+  robot: {
+    is_internal: true,
+    availability: ExtensionAvailability.EVERYWHERE,
+    desktops: [
+      {
+        name: 'robot',
+        title: 'Робот совета',
+        icon: 'smart_toy',
+      },
+    ],
+    title: 'Робот совета',
+    description:
+      'Принимает типовые решения совета автоматически по правилам, которые члены совета задали заранее: голосует и подписывает протоколы ключами делегированных разрешений.',
+    image: 'https://i.ibb.co/Q3NmVvzN/Chat-GPT-Image-10-2025-20-40-44.png',
+    class: SovietRobotExtensionModule,
+    extensionClass: SovietRobotExtension,
+    entities: sovietRobotEntities,
+    ports: sovietRobotPorts,
+    schema: SovietRobotSchema,
+    // `defaults` намеренно нет: расширение ставит председатель из каталога, как
+    // любое приложение. Запись `defaults` означала бы установку в каждом новом
+    // кооперативе — с `enabled: false` это выглядело как «установлен, но
+    // выключен» и требовало объяснений вместо честного «не установлен».
+    tags: ['стол', 'совет', 'автоматизация'],
+    readme: getReadmeContent('./soviet-robot'),
+    instructions: getInstructionsContent('./soviet-robot'),
+    get is_desktop() {
+      return !!this.desktops && this.desktops.length > 0;
+    },
+  },
   soviet: {
-    is_builtin: true,
     is_internal: true,
     availability: ExtensionAvailability.EVERYWHERE,
     desktops: [
@@ -109,7 +145,6 @@ export const AppRegistry: INamedExtension = {
     },
   },
   capital: {
-    is_builtin: false,
     is_internal: true,
     availability: ExtensionAvailability.EVERYWHERE,
     desktops: [
@@ -135,7 +170,6 @@ export const AppRegistry: INamedExtension = {
     },
   },
   chairman: {
-    is_builtin: true,
     is_internal: true,
     availability: ExtensionAvailability.EVERYWHERE,
     desktops: [
@@ -162,7 +196,6 @@ export const AppRegistry: INamedExtension = {
     },
   },
   trustee: {
-    is_builtin: true,
     is_internal: true,
     availability: ExtensionAvailability.EVERYWHERE,
     desktops: [
@@ -188,7 +221,6 @@ export const AppRegistry: INamedExtension = {
     },
   },
   participant: {
-    is_builtin: true,
     is_internal: true,
     availability: ExtensionAvailability.EVERYWHERE,
     desktops: [
@@ -214,7 +246,6 @@ export const AppRegistry: INamedExtension = {
     },
   },
   powerup: {
-    is_builtin: false,
     is_internal: true,
     availability: ExtensionAvailability.EVERYWHERE,
     desktops: [
@@ -241,7 +272,6 @@ export const AppRegistry: INamedExtension = {
     },
   },
   yookassa: {
-    is_builtin: false,
     is_internal: true,
     availability: ExtensionAvailability.NOWHERE,
     desktops: undefined, // Это не desktop расширение
@@ -267,8 +297,33 @@ export const AppRegistry: INamedExtension = {
       return !!this.desktops && this.desktops.length > 0;
     },
   },
+  cardcoop: {
+    is_internal: true,
+    availability: ExtensionAvailability.EVERYWHERE,
+    desktops: undefined, // Это не desktop расширение
+    title: 'Карта кооператора',
+    description:
+      'Подтверждение членства пайщика в сети «Карта кооператора»: кооператив свидетельствует участие, карта живёт в сети.',
+    image: 'https://i.ibb.co/Y7pByhp/QR-Code-3.png',
+    class: CardcoopExtensionModule,
+    extensionClass: CardcoopExtension,
+    // Кооператив получает его сразу и включённым, как стол совета: карта кооператора — часть
+    // членства, а не дополнение к нему. Сеть карт открыта для основной сети 08.09.2026
+    // (решение владельца): боевой узел работает на id.card.coop, обкатка прошла на тестовом
+    // контуре. До этого доступность держала `NON_MAINNET_ONLY`, и кооперативы основной сети
+    // расширения не получали вовсе — раздел в кабинете был, а записи установки не было.
+    defaults: { enabled: true, config: cardcoopDefaultConfig },
+    entities: cardcoopEntities,
+    ports: cardcoopPorts,
+    schema: CardcoopSchema,
+    tags: ['членство'],
+    readme: getReadmeContent('./cardcoop'),
+    instructions: getInstructionsContent('./cardcoop'),
+    get is_desktop() {
+      return !!this.desktops && this.desktops.length > 0;
+    },
+  },
   sberpoll: {
-    is_builtin: false,
     is_internal: true,
     availability: ExtensionAvailability.NOWHERE,
     desktops: undefined, // Это не desktop расширение
@@ -288,7 +343,6 @@ export const AppRegistry: INamedExtension = {
     },
   },
   qrpay: {
-    is_builtin: false,
     is_internal: true,
     availability: ExtensionAvailability.EVERYWHERE,
     desktops: undefined, // Это не desktop расширение
@@ -308,7 +362,6 @@ export const AppRegistry: INamedExtension = {
     },
   },
   chatcoop: {
-    is_builtin: false,
     is_internal: true,
     availability: ExtensionAvailability.EVERYWHERE,
     desktops: [
@@ -335,7 +388,6 @@ export const AppRegistry: INamedExtension = {
     },
   },
   reports: {
-    is_builtin: true,
     is_internal: true,
     availability: ExtensionAvailability.EVERYWHERE,
     desktops: [
@@ -362,7 +414,6 @@ export const AppRegistry: INamedExtension = {
     },
   },
   market: {
-    is_builtin: false,
     is_internal: true,
     // Обкатка Стола заказов идёт на тестовом контуре; в основной сети приложение
     // остаётся закрытым, пока здесь не поставят EVERYWHERE.

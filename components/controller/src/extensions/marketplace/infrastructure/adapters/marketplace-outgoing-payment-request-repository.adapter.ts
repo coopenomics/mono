@@ -38,6 +38,7 @@ export class MarketplaceOutgoingPaymentRequestRepositoryAdapter
       symbol: input.symbol,
       purpose: input.purpose,
       payout_destination: input.payout_destination ?? null,
+      withheld_amount: input.withheld_amount ?? '0',
       status: MarketplaceOutgoingPaymentRequestStatuses.PENDING,
       completed_at: null,
       decline_reason: null,

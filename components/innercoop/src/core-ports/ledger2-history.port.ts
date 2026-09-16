@@ -86,6 +86,19 @@ export interface InnerLedger2Account {
   [key: string]: any;
 }
 
+/**
+ * Общекооперативный кошелёк ledger2 с текущим остатком. Кошельки пайщиков
+ * (доли в общих кошельках) сюда не входят — они у `IUserWalletPort`.
+ */
+export interface InnerLedger2Wallet {
+  /** eosio::name-идентификатор `w.<contract>.<waltype>`. */
+  id: string;
+  /** Название кошелька по-русски. */
+  name: string;
+  /** Доступный остаток — строка с символом токена, как в цепи. */
+  available: string;
+}
+
 export interface ILedger2HistoryPort {
   getHistory(filter: InnerLedger2HistoryFilter): Promise<InnerLedger2HistoryResult>;
 
@@ -96,6 +109,9 @@ export interface ILedger2HistoryPort {
    * валютам; потребитель, которому нужен итог, суммирует их сам.
    */
   getAccounts(coopname: string): Promise<InnerLedger2Account[]>;
+
+  /** Общекооперативные кошельки с остатками — для сверки учёта расширением. */
+  getWallets(coopname: string): Promise<InnerLedger2Wallet[]>;
 }
 
 // ─── DI-токен ──────────────────────────────────────────────────────────────────

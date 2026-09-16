@@ -1,5 +1,7 @@
 #pragma once
 
+#include <optional>
+
 #include <eosio/asset.hpp>
 #include <eosio/binary_extension.hpp>
 #include <eosio/eosio.hpp>
@@ -46,3 +48,15 @@ typedef eosio::multi_index<
     eosio::indexed_by<"createdat"_n, eosio::const_mem_fun<participant, uint64_t, &participant::by_created_at>>,
     eosio::indexed_by<"bybranch"_n, eosio::const_mem_fun<participant, uint64_t, &participant::by_braname>>>
     participants_index;
+
+/// Кооперативный участок, к которому прикреплён пайщик; пусто — пайщик не
+/// найден или ни к какому участку не прикреплён. Общее чтение таблицы
+/// пайщиков совета для других контрактов (задача 99D-16).
+inline std::optional<eosio::name> get_participant_branch(eosio::name coopname, eosio::name username) {
+  participants_index participants(_soviet, coopname.value);
+  auto it = participants.find(username.value);
+  if (it == participants.end() || !it->braname.has_value()) return std::nullopt;
+  const eosio::name braname = it->braname.value();
+  if (braname == eosio::name{}) return std::nullopt;
+  return braname;
+}

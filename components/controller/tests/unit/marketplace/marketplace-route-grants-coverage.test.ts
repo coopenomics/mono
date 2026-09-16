@@ -21,8 +21,13 @@ import type { MarketplaceRole } from '~/extensions/marketplace/application/membe
 // Путь от tests/unit/marketplace/ до расширения desktop в монорепе.
 const INSTALL_TS = join(__dirname, '../../../../desktop/extensions/market/install.ts');
 
-/** Гранты-маркеры онбординга выдаются вне матрицы — гейтами провайдера. */
-const GRANTS_OUTSIDE_MATRIX = ['Onboarding:orderer', 'Onboarding:offerer'];
+/**
+ * Гранты-маркеры онбординга выдаются вне матрицы — гейтами провайдера.
+ * `Onboarding:coop` живёт только до принятия ЦПП Советом: им держится
+ * видимость одноразовой страницы подключения, которая после подключения
+ * обязана исчезнуть из меню.
+ */
+const GRANTS_OUTSIDE_MATRIX = ['Onboarding:orderer', 'Onboarding:offerer', 'Onboarding:coop'];
 
 function routeGrants(): string[] {
   const src = readFileSync(INSTALL_TS, 'utf8');

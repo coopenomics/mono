@@ -54,7 +54,7 @@ const TOO_MANY_RECOVERY = {
  * `POST /coop/recovery/request` принимает email и всегда отвечает `202` —
  * существование адреса наружу не раскрывается (анти-enumeration). Письмо с
  * одноразовой ссылкой уходит только реально зарегистрированному пайщику с
- * подтверждённым email. Rate-limit 3/час по email и по IP (`MAGIC_LINK_RULE`,
+ * подтверждённым email. Rate-limit 10/час по email и по IP (`MAGIC_LINK_RULE`,
  * NFR10); превышение → `429 TooManyRecoveryAttempts` (отдельный код — AC
  * различает его и общий `too_many_attempts` контура входа).
  */

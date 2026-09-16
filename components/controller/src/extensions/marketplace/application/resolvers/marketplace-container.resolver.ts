@@ -53,7 +53,10 @@ export class MarketplaceContainerResolver {
     description: 'Заведение типа боксов с габаритами и объёмом.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('Container', 'manage:own-KU')
+  // Типы тары — общий справочник кооператива: габариты одинаковы на всех
+  // участках, а по объёму считается перевозка боксов между ними. Заводит их
+  // председатель на своём столе; участок берёт готовый тип при заведении боксов.
+  @RequireMarketplaceAccess('Container', 'manage:types')
   async marketplaceCreateContainerType(
     @Args('data') data: MarketplaceCreateContainerTypeInputDTO
   ): Promise<MarketplaceContainerTypeDTO> {
@@ -89,7 +92,10 @@ export class MarketplaceContainerResolver {
       branameFilter = own;
     }
 
-    const containers = await this.containerService.list(coopname, branameFilter ?? [], {
+    // Пустой список участков означал бы `braname IN ()` — реестр стола
+    // администратора (право read:all, участок не выбран) оставался пустым,
+    // хотя тара в кооперативе есть. Без фильтра передаём undefined.
+    const containers = await this.containerService.list(coopname, branameFilter, {
       is_active: data?.is_active,
       container_type_id: data?.container_type_id,
       unplaced_only: data?.unplaced_only,

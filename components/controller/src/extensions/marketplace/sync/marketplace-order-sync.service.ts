@@ -10,6 +10,7 @@ import {
   type MarketplaceOrderDomainRepository,
 } from '../domain/repositories/marketplace-order.repository';
 import { MarketplaceOrderDeltaMapper } from '../infrastructure/mappers/marketplace-order-delta.mapper';
+import { packageDeltaOfOrder } from '../application/shared/packaging.util';
 import {
   MARKETPLACE_OFFER_COUNTERS_SERVICE,
   MarketplaceOfferCountersService,
@@ -137,7 +138,7 @@ export class MarketplaceOrderSyncService
     );
     for (const order of affectedEntities) {
       try {
-        await this.offerCounters.onOrderRolledBack(order.offer_id, order.quantity);
+        await this.offerCounters.onOrderRolledBack(order.offer_id, order.quantity, packageDeltaOfOrder(order));
       } catch (error: any) {
         this.logger.error(
           `MarketplaceOrderSyncService.afterFork: не удалось вернуть счётчик для заказа ${order.id} (offer ${order.offer_id}, qty ${order.quantity}): ${error.message}`,

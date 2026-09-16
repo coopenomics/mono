@@ -18,23 +18,6 @@ namespace Registrator {
 using namespace eosio;
 
 /**
- * @brief Доступный L3-баланс пайщика на USER_SHARED-кошельке ledger2.
- *
- * Возвращает available (без blocked) пары `(wallet_name, username)` из таблицы
- * userwallets контракта ledger2. Если записи нет — нулевая сумма в базовой
- * валюте управления.
- */
-inline asset get_user_wallet_available(name coopname, name wallet_name, name username) {
-  userwallets_index userwallets(_ledger2, coopname.value);
-  auto idx = userwallets.get_index<"byuserwallet"_n>();
-  auto it = idx.find(combine_ids(wallet_name.value, username.value));
-  if (it == idx.end()) {
-    return asset(0, _root_govern_symbol);
-  }
-  return it->available;
-}
-
-/**
  * @brief Консолидация доступного паевого кошелька пайщика на главный
  * (`w.wal.share`) перед резервом возврата при выходе.
  *
@@ -55,6 +38,8 @@ inline void consolidate_share_to_main(name coopname, name username, name wallet_
     op = operations::registrator::MOVE_MINSHARE;       // w.reg.minshr → w.wal.share
   } else if (wallet_name == ledger2_wallets::BLAGOROST_FUND) {
     op = operations::capital::WITHDRAW_FROM_CAPITAL;   // w.cap.blago  → w.wal.share
+  } else if (wallet_name == ledger2_wallets::MARKETPLACE_SHARE_FUND) {
+    op = operations::marketplace::RECALL_SHARE;        // w.mkt.share  → w.wal.share
   } else {
     eosio::check(false,
       std::string{"Нет операции консолидации паевого кошелька "} + wallet_name.to_string() +
@@ -72,6 +57,10 @@ inline void consolidate_share_to_main(name coopname, name username, name wallet_
   Ledger2::apply(_registrator, coopname, op, processes::wallet::WITHDRAW,
                  amount, username, exit_hash, memo);
 }
+
+// Проверки программ перед выходом и закрытие их членских кошельков при
+// состоявшемся выходе — в shared-слое (lib/core/registrator/exit.hpp): код
+// контракта чужих таблиц не читает (задача 99D-16).
 
 /**
  * @brief Финализация выхода: удаление пайщика из реестра совета и блокировка

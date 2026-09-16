@@ -5,7 +5,7 @@ import { client } from 'src/shared/api/client';
 import { BaseDialog, BaseButton, BaseBadge, BaseSelect } from 'src/shared/ui/base';
 import { FailAlert } from 'src/shared/api';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
-import { marketplaceOrderSaleUnit, marketplaceOrderUnitLabel } from 'src/shared/lib/consts/marketplace-units';
+import { marketplaceOrderSaleUnitLabel, marketplaceOrderUnitLabel } from 'src/shared/lib/consts/marketplace-units';
 import { MarketplaceSaleForm } from 'src/shared/lib/consts';
 
 /**
@@ -36,6 +36,8 @@ interface CoopStockPackage {
   price: string;
   label: string | null;
   is_default: boolean;
+  /** Свободно упаковок этого вида — остаток ведётся на упаковке. */
+  quantity_available: number;
 }
 
 type CoopStockOffer = {
@@ -97,9 +99,8 @@ function unitPrice(offer: CoopStockOffer): string {
 /** Потолок набора в единицах отпуска — целых упаковок на складе. */
 function maxQty(offer: CoopStockOffer): number {
   if (!isPackaged(offer)) return offer.quantity_available;
-  const pkg = selectedPackage(offer);
-  if (!pkg || pkg.size <= 0) return 0;
-  return Math.floor(offer.quantity_available / pkg.size);
+  // Остаток по упаковкам: сколько свободно именно этой упаковки.
+  return selectedPackage(offer)?.quantity_available ?? 0;
 }
 
 function packageOptions(offer: CoopStockOffer): Array<{ value: string; label: string }> {
@@ -143,8 +144,7 @@ async function loadOffers(): Promise<void> {
 
 function availableLabel(o: CoopStockOffer): string {
   const size = selectedPackage(o)?.size ?? o.stock_package_size;
-  const saleUnit = marketplaceOrderSaleUnit(o.quantity_available, o.unit_of_measure, size);
-  return `свободно ${saleUnit.units}×${saleUnit.unitLabel}`;
+  return `свободно ${marketplaceOrderSaleUnitLabel(o.quantity_available, o.unit_of_measure, size)}`;
 }
 
 function bump(offer: CoopStockOffer, delta: number): void {

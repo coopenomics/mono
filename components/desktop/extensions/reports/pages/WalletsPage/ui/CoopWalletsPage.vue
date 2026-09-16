@@ -1,5 +1,5 @@
 <template lang="pug">
-div.page-shell
+div.coop-wallets-page
   q-card(flat)
     q-table.full-height(
       flat

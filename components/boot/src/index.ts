@@ -74,6 +74,27 @@ program
     }
   })
 
+// Активация протокольных фич на работающей цепи: свежий boot включает их
+// при genesis, а уже поднятому стенду новую фичу (например, интринзик
+// assert_recover_key_account для робота решений совета) иначе не дать.
+// Уже активированные пропускаются, ключ — eosio из EOSIO_PRV_KEY.
+program
+  .command('activate-features')
+  .description('Activate protocol features from config on a running chain (already active are skipped)')
+  .action(async () => {
+    try {
+      const { default: Blockchain } = await import('./blockchain')
+      const { default: config } = await import('./configs')
+      const blockchain = new Blockchain(config.network, config.private_keys)
+      for (const feature of config.features)
+        await blockchain.activateFeature(feature)
+      process.exit(0)
+    }
+    catch (error) {
+      console.error('Failed to activate features:', error)
+      process.exit(1)
+    }
+  })
 // Команда для получения списка контейнеров
 program
   .command('stop')

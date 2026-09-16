@@ -1,5 +1,6 @@
 import { registerRealtimeSubscription } from 'src/shared/lib/realtime';
 import { createNodeSyncSubscription } from 'src/entities/System/model/nodeSyncSubscription';
+import { createWalletEventsSubscription } from 'src/entities/Wallet/model/walletEventsSubscription';
 
 /**
  * Регистрация ПЛАТФОРМЕННЫХ realtime-подписок в универсальный канал ядра.
@@ -13,4 +14,5 @@ export function registerCoreRealtimeSubscriptions(): void {
   if (registered) return;
   registered = true;
   registerRealtimeSubscription(createNodeSyncSubscription());
+  registerRealtimeSubscription(createWalletEventsSubscription());
 }

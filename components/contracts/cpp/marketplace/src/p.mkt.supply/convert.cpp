@@ -1,65 +1,75 @@
 /**
- * @brief Конвертация паевого взноса пайщика в членский кошелёк «Стола заказов»
- *        (requirement 76, заказ из остатка из членских средств).
+ * @brief Перевод паевого взноса пайщика во внутренний членский кошелёк
+ *        «Стола заказов» по Заявлению 1110 (паевая модель, уточнения владельца
+ *        06–07.09.2026). Первое действие транзакции оформления, перед
+ *        заказами, которые оплачивает. Заявление пишется на
+ *        то, чего не хватило в кошельках программы: «прошу перевести с баланса
+ *        моего Цифрового кошелька на баланс ЦПП «Стол заказов» N, из них
+ *        членский взнос M», где M — взнос за вычетом остатка членского
+ *        кошелька, N — недостающая часть тела (сверх свободного паевого
+ *        программы) плюс M. Здесь двигается только членская часть M — паевая
+ *        часть тела уйдёт своим путём при createorder / stockorder.
  *
- * Заказ из остатка (`stockorder`) фондируется ВСЕГДА из членского кошелька
- * пайщика начисто. Этот action — отдельный шаг пополнения членского кошелька
- * с паевого: пайщик подаёт Заявление о конвертации (шаблон 1110) с просьбой
- * транслировать паевой взнос с программы «Цифровой кошелёк» в программу
- * «Стол заказов». Зеркало `capital::convertsegm` в Благорост.
+ * Заявление одно на всё оформление, а нитка процесса ведётся по заказу,
+ * поэтому сумма приходит разбитой по заказам (`targets`) и на каждый заказ
+ * эмитится своя `o.mkt.conv` с `process_hash = order_hash` (TRANSFER
+ * w.wal.share → w.mkt.member, Дт 80 / Кт 86). Перевод
+ * становится первой операцией нитки того заказа, который оплачивает: своей
+ * нитки без анкера он больше не заводит (уточнение владельца 08.09.2026).
+ * Пустой `targets` — действие только публикует заявление.
  *
- * Одна ledger2-операция:
- *  - `o.mkt.conv` (TRANSFER w.wal.share → w.mkt.member, Дт 80 / Кт 86) —
- *    паевой переходит в целевое финансирование на членский кошелёк программы.
- *
- * Когда вызывается (оркестрация на backend, всё в одной транзакции с `stockorder`):
- *  - докладка у стойки / обычный заказ из остатка, когда членских средств не
- *    хватает: конвертируется вся требуемая сумма;
- *  - замена непоставленного на свободный остаток, когда замена дороже
- *    высвобожденного отменой бюджета: конвертируется только дельта превышения
- *    (в рамках высвобожденного доплаты с паевого нет).
- *
- * Guards:
- *  - amount > 0 в _root_govern_symbol; подпись Заявления валидна (orderer).
- *  - Заказчик — активный пайщик кооператива.
- *  - w.wal.share.available заказчика >= amount.
+ * Guards: суммы адресатов ≥ 0 в _root_govern_symbol; заявление подписано
+ * заказчиком; заказчик — активный пайщик; на Цифровом кошельке достаточно
+ * паевого на всю сумму перевода.
  *
  * @ingroup public_marketplace_actions
  */
 void marketplace::convert(eosio::name coopname,
                           eosio::name orderer,
-                          eosio::asset amount,
+                          std::vector<convert_target> targets,
                           document2 convert_statement) {
   require_auth(coopname);
 
-  // ── Валидация параметров и подписи Заявления ────────────────────────
-  eosio::check(amount.is_valid() && amount.amount > 0,
-               "Сумма конвертации должна быть больше нуля");
-  eosio::check(amount.symbol == _root_govern_symbol,
-               "Некорректный символ валюты в сумме конвертации");
   eosio::check(!is_empty_document(convert_statement),
-               "Отсутствует заявление о конвертации паевого взноса");
+               "Отсутствует заявление о переводе паевого взноса в программу");
   verify_document_or_fail(convert_statement, { orderer });
 
-  // Заказчик — активный пайщик кооператива (бросает если не найден / blocked)
-  get_participant_or_fail(coopname, orderer);
+  get_active_participant_or_fail(coopname, orderer);
 
-  // ── Достаточность паевого: w.wal.share.available >= amount ───────────
-  auto bal_share = Marketplace::get_user_wallet_balance(
-      coopname, ledger2_wallets::SHARE_FUND_PAY, orderer);
-  eosio::check(bal_share.available >= amount,
-               std::string{"Недостаточно паевых средств для конвертации: требуется "} +
-                 amount.to_string() + ", доступно " + bal_share.available.to_string());
+  // Общая сумма перевода — сумма долей заказов; проверяется одним чтением
+  // баланса, чтобы частичного списания не случилось при нехватке на последней.
+  eosio::asset total(0, _root_govern_symbol);
+  for (const auto& target : targets) {
+    eosio::check(target.amount.is_valid() && target.amount.amount >= 0,
+                 "Некорректная сумма перевода в членский кошелёк");
+    eosio::check(target.amount.symbol == _root_govern_symbol,
+                 "Некорректный символ валюты в сумме перевода");
+    // Пустой хэш увёл бы операцию в нитку без анкера — ровно то, ради чего
+    // адресация и вводилась; сумма без заказа смысла не имеет.
+    eosio::check(target.amount.amount == 0 || target.order_hash != checksum256{},
+                 "Не указан заказ, который оплачивает перевод в членский кошелёк");
+    total += target.amount;
+  }
 
-  // ── o.mkt.conv: TRANSFER w.wal.share → w.mkt.member (Дт 80 / Кт 86) ──
-  Ledger2::apply(_marketplace, coopname,
-                 operations::marketplace::CONVERT_TO_MKT_MEMBER,
-                 processes::marketplace::SUPPLY,
-                 amount, orderer, convert_statement.hash,
-                 Marketplace::Memo::get_convert_to_member_memo());
+  if (total.amount > 0) {
+    auto bal = Marketplace::get_user_wallet_balance(coopname, ledger2_wallets::SHARE_FUND_PAY, orderer);
+    eosio::check(bal.available >= total,
+                 std::string{"Недостаточно паевых средств для перевода в членский кошелёк: требуется "} +
+                   total.to_string() + ", доступно " + bal.available.to_string());
 
-  // Заявление о конвертации публикуется в реестр документов отдельным
-  // самостоятельным пакетом (package = hash самого заявления).
+    for (const auto& target : targets) {
+      if (target.amount.amount == 0) continue;
+      Ledger2::apply(_marketplace, coopname,
+                     operations::marketplace::CONVERT_TO_MEMBER,
+                     processes::marketplace::SUPPLY,
+                     target.amount, orderer, target.order_hash,
+                     Marketplace::Memo::get_convert_to_member_memo());
+    }
+  }
+
+  // Заявление публикуется в реестр документов самостоятельным пакетом
+  // (package = hash заявления): оно одно на всё оформление и может оплачивать
+  // сразу несколько заказов, тогда как нитка процесса ведётся по одному.
   Soviet::make_complete_document(_marketplace, coopname, orderer,
                                  "convert"_n,
                                  convert_statement.hash, convert_statement);

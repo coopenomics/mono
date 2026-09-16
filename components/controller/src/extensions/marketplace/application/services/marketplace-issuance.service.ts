@@ -5,23 +5,34 @@ import {
   Inject,
   Injectable,
   NotFoundException,
+  Optional,
 } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { Cooperative, type MarketContract } from 'cooptypes';
+import { Cooperative, SovietContract, type MarketContract } from 'cooptypes';
 import { PublicKey, Signature } from '@wharfkit/antelope';
-import http from 'http-status';
-import { LOGGER_PORT, type ILoggerPort, DOCUMENT_PORT, type IDocumentPort, type InnerGeneratedDocument, VERIFICATION_PORT, type IVerificationPort } from '@coopenomics/innercoop';
 import {
-  MARKETPLACE_ASSET_CONFIG,
-  type MarketplaceAssetConfig,
-} from './marketplace-asset.config';
-import type { ISignedDocument } from '@coopenomics/innercoop';
-import type { MarketplaceIssueActSignedDocumentInputDTO } from '../documents-dto/marketplace-issue-act-document.dto';
-import { SignedDigitalDocumentInputDTO, HttpApiError } from '@coopenomics/extension-kit';
+  LOGGER_PORT,
+  type ILoggerPort,
+  DOCUMENT_PORT,
+  type IDocumentPort,
+  type InnerGeneratedDocument,
+  type InnerDocumentAggregate,
+  VERIFICATION_PORT,
+  type IVerificationPort,
+  SOVIET_ROBOT_PORT,
+  type ISovietRobotPort,
+  type ISignedDocument,
+} from '@coopenomics/innercoop';
+import { SignedDigitalDocumentInputDTO } from '@coopenomics/extension-kit';
+import { MARKETPLACE_ASSET_CONFIG, type MarketplaceAssetConfig } from './marketplace-asset.config';
 import {
   MARKETPLACE_ORDER_REPOSITORY,
   type MarketplaceOrderDomainRepository,
 } from '../../domain/repositories/marketplace-order.repository';
+import {
+  MARKETPLACE_ISSUANCE_SAGA_REPOSITORY,
+  type MarketplaceIssuanceSagaDomainRepository,
+} from '../../domain/repositories/marketplace-issuance-saga.repository';
 import {
   MARKETPLACE_CANONICAL_BLOCKCHAIN_PORT,
   type MarketplaceCanonicalBlockchainPort,
@@ -37,301 +48,175 @@ import {
 import { computeActNumber } from '../shared/act-number.util';
 import { marketplaceOrderUnitLabel } from '../shared/unit-label.util';
 import { presentSaleUnit } from '../shared/packaging.util';
+import { orderPackageDelta, splitBlockedByReceived } from '../shared/offer-settlement.util';
 import { calcCostAmount, compareMoney } from '../shared/cost.util';
 import { isStockOrder } from '../shared/order-kind.util';
+import {
+  MARKETPLACE_OFFER_COUNTERS_SERVICE,
+  MarketplaceOfferCountersService,
+} from './marketplace-offer-counters.service';
 import { MARKETPLACE_ISSUE_ACTION_CODE } from '../shared/verification-action.const';
-import type { MarketplaceUnitOfMeasure } from '../../domain/entities/marketplace-offer.types';
 import { toQuantityAsset } from '../shared/quantity.util';
+import { findInlineActionData } from '../shared/chain-trace.util';
 import type { MarketplaceOrderDomainEntity } from '../../domain/entities/marketplace-order.entity';
 import type { MarketplaceOrderIssuanceFactSnapshot } from '../../domain/entities/marketplace-order.types';
+import type { MarketplaceIssuanceSagaDomainEntity } from '../../domain/entities/marketplace-issuance-saga.entity';
 import {
+  MarketplaceIssuanceSagaStages,
+  type MarketplaceIssuanceDecisionMode,
+  type MarketplaceIssuanceSagaFact,
+  type MarketplaceIssuanceSagaStage,
+} from '../../domain/entities/marketplace-issuance-saga.types';
+import {
+  MARKETPLACE_ISSUANCE_DECIDED_OFFLINE_EVENT,
+  MARKETPLACE_ISSUANCE_SAGA_UPDATED_EVENT,
   MARKETPLACE_ORDER_READY_TO_RECEIVE_EVENT,
+  type MarketplaceIssuanceDecidedOfflineEvent,
+  type MarketplaceIssuanceSagaUpdatedEvent,
   type MarketplaceOrderReadyToReceiveEvent,
 } from '../events/marketplace-notification.events';
+import type { MarketplaceShareReturnStatementSignedInputDTO } from '../documents-dto/marketplace-share-return-statement-document.dto';
+import type { MarketplaceConvertStatementSignedInputDTO } from '../documents-dto/marketplace-convert-statement-document.dto';
+import { MARKETPLACE_CONVERT_SERVICE, MarketplaceConvertService } from './marketplace-convert.service';
+import { MARKETPLACE_ECONOMY_SERVICE, MarketplaceEconomyService } from './marketplace-economy.service';
+import type { MarketplaceShareReturnActSignedInputDTO } from '../documents-dto/marketplace-share-return-act-document.dto';
 
-export interface MarketplaceOpenIssuanceInput {
+export interface MarketplaceIssuanceFixFactInput {
   coopname: string;
-  chairman_account: string;
+  operator_account: string;
   order_id: string;
+  /** Бандл у стойки, если выдача идёт в его составе. */
+  proposal_id?: string | null;
   actual_quantity: number;
-  /** Скорректированная оператором цена за единицу (бэйр-десятичная строка). */
   actual_unit_price: string;
-  signed_document: MarketplaceIssueActSignedDocumentInputDTO;
 }
 
-export interface MarketplaceFinalizeIssuanceInput {
+export interface MarketplaceIssuanceSubmitStatementInput {
   coopname: string;
-  orderer_account: string;
+  member_account: string;
   order_id: string;
-  signed_document: MarketplaceIssueActSignedDocumentInputDTO;
+  signed_statement: MarketplaceShareReturnStatementSignedInputDTO;
+  /**
+   * Заявление 1110 на доплату по факту: при факте больше заказа и нехватке
+   * внутреннего членского кошелька на довзнос участка. Перевод членской части
+   * идёт отдельной транзакцией `convert` до заявления о выдаче. Нужно только
+   * когда `getConvertSignablePayload` вернул документ.
+   */
+  signed_convert?: MarketplaceConvertStatementSignedInputDTO | null;
 }
 
-export interface MarketplaceIssuanceResult {
-  order: MarketplaceOrderDomainEntity;
-  tx_hash: string;
+/** Доплата по факту (факт больше заказа), в минимальных единицах. */
+export interface MarketplaceIssuanceFeeTopUp {
+  /** Доплата тела: факт минус заказ; 0 — факт не больше заказа. */
+  body_topup_units: bigint;
+  /** Недостающий взнос участка сверх зафиксированного в заказе; 0 — довзноса нет. */
+  topup_units: bigint;
+  /** Полный взнос участка по факту выдачи. */
+  fact_fee_units: bigint;
 }
+
+export interface MarketplaceIssuanceSignAct1Input {
+  coopname: string;
+  member_account: string;
+  order_id: string;
+  signed_act: MarketplaceShareReturnActSignedInputDTO;
+}
+
+export interface MarketplaceIssuanceCloseInput {
+  coopname: string;
+  operator_account: string;
+  order_id: string;
+  signed_act: MarketplaceShareReturnActSignedInputDTO;
+}
+
+/** Сколько ждать робота решений совета у стойки, прежде чем отпустить мутацию в режим ожидания. */
+const ROBOT_WAIT_MS = 12_000;
+/** Сколько ждать материализации решения в цепи после issuestmt (парсер и узел). */
+const DECISION_LOOKUP_ATTEMPTS = 6;
+const DECISION_LOOKUP_DELAY_MS = 700;
 
 /**
- * Story 6.1 / 6.3 (Эпик 6, FR21-FR25): state machine выдачи имущества
- * пайщику на ПВЗ с двойной подписью АПП-выдачи и тремя ветками сверки
- * фактического количества с заказом.
+ * Выдача имущества в паевой модели (компонент 68, задачи 99D-6/99D-7).
  *
- * Flow:
+ * Путь: оператор фиксирует факт у стойки (`fixFact`) → заказчик одним
+ * нажатием подписывает Заявление 1113 (`submitStatement` → `issuestmt` +
+ * повестка совета) → совет решает: робот решений совета по прямому вызову
+ * порта либо люди в повестке → обратный вызов `onmktisauth` приносит
+ * протокол 1114, бэкенд формирует Акт 1115 (`onCouncilAuthorized`) →
+ * устройство заказчика подписывает акт первой подписью без нового нажатия
+ * (`signAct1` → `issueact1`) → устройство оператора ставит закрывающую
+ * подпись (`closeIssuance` → `issueact2`), и только тут идут движения по
+ * средствам и складу.
  *
- *  1. `openIssuance(order_id, actual_quantity, chairman_signed_document)` —
- *     оператор КУ сверяет привезённое имущество с заказом и фиксирует
- *     фактическое количество (`actual_quantity`) прямо при открытии выдачи;
- *     председатель КУ подписывает акт с этим количеством. Backend верифицирует
- *     подпись, сохраняет снапшот фактической выдачи (`issuance_fact`),
- *     отправляет on-chain `signiss1`, переводит Order
- *     ACCEPTED_TO_COOP → READY_TO_RECEIVE и эмитит push заказчику
- *     `marketplace-order-ready` (FR22).
+ * Сагу ведёт бэкенд: одна запись на заказ, этапы идемпотентны, при обрыве
+ * связи у пайщика процесс продолжается до точки, где нужна его подпись;
+ * при возвращении в приложение экран открывается на текущем этапе.
  *
- *  2. `finalizeIssuance(order_id, signed_document)` — заказчик закрывает
- *     выдачу финальной подписью в своём кабинете на своём устройстве: он
- *     лишь подтверждает уже сформированный акт, факт не редактирует.
- *     `actual_quantity` и `delivery_signer` backend берёт из заказа
- *     (зафиксированы оператором при открытии). Backend верифицирует обе
- *     подписи в `signed_document.signatures`, отправляет on-chain `signiss2`
- *     с этим `actual_quantity` — C++ контракт сам исполняет корректирующие
- *     операции (`o.mkt.unlock` если actual<ordered / `o.mkt.lock` если
- *     actual>ordered, FR23) и `o.mkt.consum` (BURN w.mkt.order, Дт 86 /
- *     Кт 10, FR24). Order переводится READY_TO_RECEIVE → RECEIVED.
- *
- * При расхождении фактического количества с заказом и нехватке средств
- * пайщика на доплату (`actual > заказ`, L6 guard) транзакция `signiss2`
- * фейлится на цепи, backend пробрасывает ошибку клиенту с человеческим
- * сообщением (FR25).
+ * Режим ожидания решения: если робот не установлен, выключен или не смог
+ * набрать кворум делегировавших, сага остаётся в DECISION_PENDING сколько
+ * потребуется (решение совета может приниматься часами), пайщик получает
+ * уведомление, когда совет решит, и подписывает акт с любого места; выдача
+ * закрывается при его следующем визите на участок.
  */
 @Injectable()
 export class MarketplaceIssuanceService {
   constructor(
     @Inject(MARKETPLACE_ORDER_REPOSITORY)
     private readonly orderRepo: MarketplaceOrderDomainRepository,
+    @Inject(MARKETPLACE_ISSUANCE_SAGA_REPOSITORY)
+    private readonly sagaRepo: MarketplaceIssuanceSagaDomainRepository,
     @Inject(MARKETPLACE_INVENTORY_REPOSITORY)
     private readonly inventoryRepo: MarketplaceInventoryDomainRepository,
     @Inject(MARKETPLACE_OFFER_REPOSITORY)
     private readonly offerRepo: MarketplaceOfferDomainRepository,
+    @Inject(MARKETPLACE_OFFER_COUNTERS_SERVICE)
+    private readonly offerCounters: MarketplaceOfferCountersService,
     @Inject(MARKETPLACE_CANONICAL_BLOCKCHAIN_PORT)
     private readonly chainPort: MarketplaceCanonicalBlockchainPort,
     @Inject(MARKETPLACE_ASSET_CONFIG)
     private readonly assetConfig: MarketplaceAssetConfig,
     @Inject(DOCUMENT_PORT) private readonly documentPort: IDocumentPort,
+    @Inject(MARKETPLACE_CONVERT_SERVICE) private readonly convertService: MarketplaceConvertService,
+    @Inject(MARKETPLACE_ECONOMY_SERVICE) private readonly economyService: MarketplaceEconomyService,
     @Inject(VERIFICATION_PORT) private readonly verificationPort: IVerificationPort,
+    @Optional()
+    @Inject(SOVIET_ROBOT_PORT)
+    private readonly robotPort: ISovietRobotPort | null | undefined,
     private readonly eventBus: EventEmitter2,
     @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
   ) {
     this.logger.setContext(MarketplaceIssuanceService.name);
   }
 
-  /**
-   * Preview-документ для подписания председателем КУ (первая подпись АПП
-   * выдачи). Рендерится через factory под registry_id=1102. Клиент
-   * подписывает hash приватным ключом председателя и возвращает результат
-   * в `openIssuance`.
-   */
-  async getOpenIssuanceSignablePayload(
-    coopname: string,
-    order_id: string,
-    chairman_account: string,
-    actual_quantity?: number,
-    actual_unit_price?: string
-  ): Promise<InnerGeneratedDocument> {
-    const order = await this.loadOrder(coopname, order_id);
-    if (order.status !== 'ACCEPTED_TO_COOP') {
-      throw new ConflictException(
-        `Заказ в статусе «${order.status}», открытие выдачи недопустимо.`
-      );
-    }
-    // Оператор сверяет факт при открытии: акт формируется на фактически
-    // выдаваемое количество и цену. Дефолт и потолок — принятое на склад
-    // (не заказ!): выдать больше физического остатка нельзя, и акт на большее
-    // даже не формируем.
-    const available = await this.loadAvailableOnWarehouse(order);
-    this.assertWithinWarehouse(order, actual_quantity ?? null, available);
-    const fact_quantity =
-      actual_quantity && actual_quantity > 0
-        ? actual_quantity
-        : Math.min(order.quantity, available);
-    const fact_unit_price =
-      actual_unit_price && Number.parseFloat(actual_unit_price) > 0
-        ? actual_unit_price
-        : order.price_per_unit;
-    return this.generateIssueActDocument({
-      order,
-      transmitter: chairman_account,
-      actual_quantity: fact_quantity,
-      actual_unit_price: fact_unit_price,
-    });
-  }
+  // ── Готовность к выдаче ──────────────────────────────────────────────
 
   /**
-   * Гейт верификации личности (105-28): имущество выдаётся только получателю,
-   * чья личность подтверждена требуемым уровнем (правило кооператива для
-   * действия выдачи; по умолчанию passport_onsite — сверка паспорта на КУ).
+   * Оператор участка выдачи отмечает поступление имущества по заказу:
+   * `readyissue` в цепи (acceptcoop → readyrecv, без подписи), заказчику —
+   * push «приходите заберите». Идемпотентно: заказ уже в readyrecv — no-op.
    */
-  private async assertRecipientVerified(ordererAccount: string): Promise<void> {
-    const verification = await this.verificationPort.checkRequired(
-      ordererAccount,
-      MARKETPLACE_ISSUE_ACTION_CODE
-    );
-    if (!verification.passed) {
-      throw new ConflictException(
-        'Выдача невозможна: получатель не прошёл верификацию личности. Сверьте паспорт пайщика, подтвердите его личность и повторите открытие выдачи.'
-      );
-    }
-  }
-
-  async openIssuance(input: MarketplaceOpenIssuanceInput): Promise<MarketplaceIssuanceResult> {
+  async readyIssue(input: { coopname: string; order_id: string; operator_account: string }): Promise<MarketplaceOrderDomainEntity> {
     const order = await this.loadOrder(input.coopname, input.order_id);
+    if (order.status === 'READY_TO_RECEIVE') return order;
     if (order.status !== 'ACCEPTED_TO_COOP') {
-      throw new ConflictException(
-        `Заказ в статусе «${order.status}», открытие выдачи недопустимо.`
-      );
+      throw new ConflictException(`Заказ в статусе «${order.status}» — отметить готовность к выдаче нельзя.`);
     }
-    if (order.chairman_signed_at !== null) {
-      throw new ConflictException('Первая подпись выдачи уже зафиксирована для этого заказа.');
-    }
-    if (input.actual_quantity <= 0) {
-      throw new BadRequestException('Фактическое количество должно быть больше нуля.');
-    }
-    if (Number.parseFloat(input.actual_unit_price) <= 0) {
-      throw new BadRequestException('Фактическая цена за единицу должна быть больше нуля.');
-    }
-
-    // Гейт верификации личности (105-28) — до подписи акта: председатель/
-    // оператор сперва верифицирует пайщика, затем открывает выдачу.
-    await this.assertRecipientVerified(order.orderer_account);
-
-    // Гард склада: выдать можно только то, что физически принято на склад КУ
-    // по этому заказу и ещё не выдано. Без него акт подписывался на заказанное
-    // количество при недопоставке (инцидент 2026-06-09: заказ 10, принято 5,
-    // выдано «10»).
-    const available = await this.loadAvailableOnWarehouse(order);
-    this.assertWithinWarehouse(order, input.actual_quantity, available);
-
-    // Заказ из остатка: цена публикации уже не выше цены прибытия (только
-    // уценка) — повышение цены на выдаче открыло бы «наценку», под которую
-    // нет доходной проводки (requirement 76, вопрос 4).
-    if (
-      isStockOrder(order) &&
-      Number.parseFloat(input.actual_unit_price) > Number.parseFloat(order.price_per_unit) + 1e-9
-    ) {
-      throw new ConflictException(
-        'По заказу со склада кооператива цену при выдаче можно только снизить.'
-      );
-    }
-
-    this.verifyDocumentSignature(input.signed_document);
-
-    // Факт (кол-во + цена) фиксируется оператором при открытии выдачи и
-    // сохраняется на заказе; финальная подпись заказчика берёт его из снапшота,
-    // а не редактирует.
-    const factSnapshot = this.buildIssuanceFactSnapshot(
-      order,
-      input.actual_quantity,
-      input.actual_unit_price
-    );
-
-    const act = new SignedDigitalDocumentInputDTO(input.signed_document).toDocument() as MarketContract.Actions.SignIss1.ISignIss1['act'];
-
-    let tx;
-    try {
-      tx = await this.chainPort.signIss1({
-        coopname: order.coopname,
-        signer: input.chairman_account,
-        order_hash: order.order_hash,
-        act,
-      });
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      this.logger.warn(
-        `Открытие выдачи order ${order.id}: on-chain signiss1 упал (${message}); статус не меняется, повторите подпись.`
-      );
-      throw new ConflictException(
-        `Открытие выдачи на цепи не выполнено: ${message}. Повторите подписание.`
-      );
-    }
-
-    const txHash = this.extractTxHash(tx);
-    if (!txHash) {
-      // Если on-chain ответ не содержит хэша, мы не сможем восстановить
-      // tx по запросу аудитора; синтетический hash 'signiss1-<uuid>' попадёт
-      // в audit-trail как несуществующий — лучше отдать ошибку и повторить.
-      throw new ConflictException(
-        `Не получен tx_hash от блокчейна для open issuance order ${order.id}. Повторите подписание.`
-      );
-    }
-    const updated = await this.orderRepo.applyIssuanceOpened(order.id, {
-      chairman_account: input.chairman_account,
-      signiss1_tx_hash: txHash,
-      current_warehouse_braname: order.delivery_braname,
-      // факт зафиксирован оператором при открытии — сохраняем снапшот, чтобы
-      // финальная подпись заказчика взяла actual_quantity отсюда.
-      issuance_fact: factSnapshot,
-      // канон 2-подписи: сохраняем подписанный председателем документ, чтобы
-      // заказчик получил его как DocumentAggregate и наложил вторую подпись.
-      issue_act_signiss1_document:
-        input.signed_document as unknown as ISignedDocument,
-    });
-
-    this.logger.log(
-      `Выдача order ${order.id} открыта председателем ${input.chairman_account} (tx=${txHash}); статус READY_TO_RECEIVE.`
-    );
-
-    // Push «заказ готов на ПВЗ» здесь НЕ эмитим: открытие выдачи происходит,
-    // когда заказчик уже стоит у стойки (в бандл-модели signiss1 уходит на цепь
-    // при контрподписи получения). Уведомление «приходите заберите» отправляет
-    // announceReady — заранее, до прихода. См. MARKETPLACE_ORDER_READY_TO_RECEIVE_EVENT.
-    return { order: updated, tx_hash: txHash };
-  }
-
-  /**
-   * Оператор КУ выдачи вручную объявляет заказ готовым к выдаче («Объявить
-   * выдачу» на столе ПВЗ) — ДО прихода заказчика. Это единственная точка, где
-   * заказчику уходит push «приходите заберите» и в его кабинете загорается
-   * «Готово к выдаче».
-   *
-   * Backend-only сигнал, ортогональный подписям: on-chain статус остаётся
-   * ACCEPTED_TO_COOP (проводок нет), поэтому инварианты бандла
-   * (`awaits_chairman_issue_open`) и последующая выдача (signiss1/signiss2)
-   * не затрагиваются. Идемпотентно — повторный вызов не шлёт push дважды.
-   */
-  async announceReady(input: {
-    coopname: string;
-    order_id: string;
-    operator_account: string;
-  }): Promise<MarketplaceOrderDomainEntity> {
-    const order = await this.loadOrder(input.coopname, input.order_id);
-
-    // Уже объявлено — тихий no-op без повторного push (двойной клик оператора,
-    // гонка realtime-обновления стола).
-    if (order.ready_announced_at !== null) {
-      return order;
-    }
-    if (order.status !== 'ACCEPTED_TO_COOP') {
-      throw new ConflictException(
-        `Заказ в статусе «${order.status}» — объявить готовность к выдаче нельзя.`
-      );
-    }
-    if (order.chairman_signed_at !== null) {
-      throw new ConflictException('Выдача по заказу уже открыта.');
-    }
-
-    // Объявлять готовым можно только то, что физически принято на склад КУ:
-    // иначе заказчик придёт на пустой пункт.
     const available = await this.loadAvailableOnWarehouse(order);
     if (available <= 0) {
-      throw new ConflictException(
-        'По заказу ещё ничего не принято на склад пункта выдачи — объявить готовность нельзя.'
-      );
+      throw new ConflictException('По заказу ещё ничего не принято на склад пункта выдачи — объявить готовность нельзя.');
     }
-
-    const updated = await this.orderRepo.applyReadyAnnounced(order.id);
-    this.logger.log(
-      `Заказ ${order.id} объявлен готовым к выдаче оператором ${input.operator_account}.`
-    );
-
+    let tx;
+    try {
+      tx = await this.chainPort.readyIssue({
+        coopname: order.coopname,
+        signer: input.operator_account,
+        order_hash: order.order_hash,
+      });
+    } catch (err) {
+      throw new ConflictException(`Готовность к выдаче не отмечена в цепи: ${this.errMessage(err)}.`);
+    }
+    void this.extractTxHash(tx);
+    const updated = await this.orderRepo.applyReadyIssue(order.id, { current_warehouse_braname: order.delivery_braname });
     const event: MarketplaceOrderReadyToReceiveEvent = {
       coopname: updated.coopname,
       order_id: updated.id,
@@ -340,371 +225,776 @@ export class MarketplaceIssuanceService {
       braname: updated.delivery_braname,
     };
     this.eventBus.emit(MARKETPLACE_ORDER_READY_TO_RECEIVE_EVENT, event);
-
     return updated;
   }
 
-  async finalizeIssuance(
-    input: MarketplaceFinalizeIssuanceInput
-  ): Promise<MarketplaceIssuanceResult> {
-    const order = await this.loadOrder(input.coopname, input.order_id);
-    // Канон выдачи: финальную подпись заказчик ставит сам в своём кабинете на
-    // своём устройстве своим ключом. Авторизуем по самой подписи, а не по JWT
-    // submitter'а: закрывающую подпись акта обязан нести ключ заказчика-владельца
-    // заказа. Криптовалидность всех подписей проверяется ниже в
-    // verifyDocumentSignature; submitter уже ограничен RoleGuard'ом
-    // 'Issuance','sign:final'.
-    const ordererSigned = (input.signed_document.signatures ?? []).some(
-      (sig) => sig.signer === order.orderer_account
-    );
-    if (!ordererSigned) {
-      throw new ForbiddenException(
-        'Финальная подпись акта выдачи должна быть выполнена ключом заказчика-владельца заказа.'
-      );
-    }
-    if (order.status !== 'READY_TO_RECEIVE') {
-      throw new ConflictException(
-        `Заказ в статусе «${order.status}», финальная подпись выдачи недопустима.`
-      );
-    }
-    if (order.orderer_signed_at !== null) {
-      throw new ConflictException(
-        'Финальная подпись выдачи уже зафиксирована для этого заказа.'
-      );
-    }
-    // Факт зафиксирован оператором при открытии выдачи (issuance_fact); сторона
-    // кооператива — председатель, открывший выдачу (chairman_account). Заказчик
-    // ничего из этого не передаёт и не редактирует.
-    const actual_quantity = order.issuance_fact?.actual_quantity;
-    if (!actual_quantity || actual_quantity <= 0) {
-      throw new ConflictException(
-        `Заказ ${order.id}: фактическое количество не зафиксировано при открытии выдачи — финализация недоступна.`
-      );
-    }
-    const delivery_signer = order.chairman_account;
-    if (!delivery_signer) {
-      throw new ConflictException(
-        `Заказ ${order.id}: не найден председатель, открывший выдачу — финализация недоступна.`
-      );
-    }
-    // Цена за единицу тоже зафиксирована при открытии (оператор мог изменить её).
-    const fact_unit_price = order.issuance_fact?.fact_unit_price ?? order.price_per_unit;
+  // ── Этап 0: факт у стойки ─────────────────────────────────────────────
 
-    this.verifyDocumentSignature(input.signed_document);
+  /**
+   * Оператор сверил состав и зафиксировал факт (количество, цена). Подписи нет;
+   * сага рождается в FACT_FIXED, заказчику уходит сигнал «подпишите заявление».
+   * Возвращает сагу и сформированное Заявление 1113 к подписи.
+   */
+  async fixFact(input: MarketplaceIssuanceFixFactInput): Promise<{ saga: MarketplaceIssuanceSagaDomainEntity; statement: InnerGeneratedDocument }> {
+    const order = await this.validateFact(input);
 
-    const act = new SignedDigitalDocumentInputDTO(input.signed_document).toDocument() as MarketContract.Actions.SignIss2.ISignIss2['act'];
-
-    let tx;
-    try {
-      tx = await this.chainPort.signIss2({
-        coopname: order.coopname,
-        orderer: order.orderer_account,
-        order_hash: order.order_hash,
-        actual_quantity: toQuantityAsset(actual_quantity, order.unit_of_measure),
-        actual_unit_price: this.formatAsset(fact_unit_price),
-        delivery_signer,
-        act,
-      });
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      this.logger.warn(
-        `Финальная подпись выдачи order ${order.id}: on-chain signiss2 упал (${message}); статус не меняется, повторите подпись.`
-      );
-      throw new ConflictException(
-        `Финальная подпись выдачи на цепи не выполнена: ${message}. Повторите подписание.`
-      );
-    }
-
-    const txHash = this.extractTxHash(tx);
-    if (!txHash) {
-      throw new ConflictException(
-        `Не получен tx_hash от блокчейна для finalize issuance order ${order.id}. Повторите подписание.`
-      );
-    }
-    const factSnapshot =
-      order.issuance_fact ?? this.buildIssuanceFactSnapshot(order, actual_quantity, fact_unit_price);
-    const warrantyUntil =
-      order.warranty_period_secs > 0
-        ? new Date(Date.now() + order.warranty_period_secs * 1000)
-        : null;
-
-    const updated = await this.orderRepo.applyIssuanceFinalized(order.id, {
-      delivery_signer_account: delivery_signer,
-      signiss2_tx_hash: txHash,
-      issuance_fact: factSnapshot,
-      warranty_until: warrantyUntil,
+    const fact = this.buildFact(order, input.actual_quantity, input.actual_unit_price);
+    const saga = await this.sagaRepo.createOrReuse({
+      coopname: order.coopname,
+      order_id: order.id,
+      order_hash: order.order_hash,
+      proposal_id: input.proposal_id ?? null,
+      member_account: order.orderer_account,
+      operator_account: input.operator_account,
+      braname: order.delivery_braname,
+      fact,
     });
-
-    // Выдача завершена — имущество ушло пайщику: выданное помечаем ISSUED,
-    // а невостребованная дельта (выдано меньше принятого) переходит в
-    // обезличенный остаток склада КУ (requirement 76) — собственность
-    // кооператива, доступная к перепредложению пайщикам после публикации.
-    // Best-effort: на сводный учёт это не должно ронять закрытие выдачи.
-    try {
-      if (isStockOrder(order)) {
-        // Заказ из остатка: выданное — ISSUED, невыданный резерв возвращается
-        // в свободный опубликованный остаток.
-        const { released, issued_arrival_cost } = await this.inventoryRepo.finalizeReservedIssue(
-          order.coopname,
-          order.id,
-          actual_quantity,
-          order.price_per_unit
-        );
-        this.logger.log(
-          `Выдача stock-order ${order.id}: выдано ${actual_quantity}, возвращено в остаток ${released} ед.`
-        );
-        // requirement 76 (вопрос 4): уценка — разница между стоимостью прибытия
-        // выданного и фактической суммой — выбывает со счёта 10 в прочие
-        // расходы (o.mkt.loss, Дт 91 / Кт 10). Вместе с o.mkt.consum даёт
-        // выбытие по полной стоимости прибытия: на складе ничего не зависает.
-        // Погашение накопленного на 91 (Дт 86 / Кт 91) — отдельный будущий
-        // процесс по образцу списания скоропорта.
-        await this.submitMarkdownLoss(order, issued_arrival_cost, factSnapshot.fact_cost);
-      } else {
-        // Цена прибытия = цена заказа (закупочная при приёмке); если приёмка
-        // прошла по скорректированной цене, оператор уточнит цену публикации.
-        const detached = await this.inventoryRepo.detachRemainderToStock(
-          order.coopname,
-          order.id,
-          actual_quantity,
-          order.price_per_unit
-        );
-        this.logger.log(
-          `Выдача order ${order.id}: выдано ${actual_quantity}, в обезличенный остаток КУ ушло ${detached} ед.`
-        );
-      }
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      this.logger.warn(
-        `Выдача order ${order.id}: не удалось закрыть складские позиции (${message}); склад покажет их как остаток до ручной сверки.`
-      );
+    if (saga.stage !== MarketplaceIssuanceSagaStages.FACT_FIXED) {
+      throw new ConflictException(`Выдача по заказу уже начата (этап «${saga.stage}») — дождитесь её завершения или отмените.`);
     }
-
-    this.logger.log(
-      `Выдача order ${order.id} завершена: actual_quantity=${actual_quantity}, diff=${factSnapshot.diff_state}, fact_cost=${factSnapshot.fact_cost} (tx=${txHash}).`
-    );
-
-    return { order: updated, tx_hash: txHash };
-  }
-
-  // ── private ──
-
-  /**
-   * Списание уценки по заказу из остатка (chain `markdown`, o.mkt.loss).
-   * Best-effort: сбой не роняет закрытие выдачи — расход дослать можно
-   * повторным вызовом (на цепи guard идемпотентности по заказу).
-   */
-  private async submitMarkdownLoss(
-    order: MarketplaceOrderDomainEntity,
-    issued_arrival_cost: string,
-    fact_cost: string
-  ): Promise<void> {
-    const delta = Number.parseFloat(issued_arrival_cost) - Number.parseFloat(fact_cost);
-    const minStep = 10 ** -this.assetConfig.decimals;
-    if (!Number.isFinite(delta) || delta < minStep) return;
-    try {
-      await this.chainPort.markdown({
-        coopname: order.coopname,
-        order_hash: order.order_hash,
-        amount: this.formatAsset(delta.toFixed(this.assetConfig.decimals)),
-      });
-      this.logger.log(
-        `Stock-order ${order.id}: уценка ${delta.toFixed(this.assetConfig.decimals)} списана в прочие расходы (o.mkt.loss, Дт 91 / Кт 10).`
-      );
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      this.logger.warn(
-        `Stock-order ${order.id}: списание уценки не прошло (${message}); на счёте 10 осталась разница ${delta.toFixed(this.assetConfig.decimals)} — дослать вручную повторным markdown.`
-      );
-    }
-  }
-
-  /** Принято на склад КУ по заказу и ещё не выдано (Σ RECEIVED/LABELED). */
-  private async loadAvailableOnWarehouse(
-    order: MarketplaceOrderDomainEntity
-  ): Promise<number> {
-    const sums = isStockOrder(order)
-      ? await this.inventoryRepo.sumReservedByOrders(order.coopname, [order.id])
-      : await this.inventoryRepo.sumOnWarehouseByOrders(order.coopname, [order.id]);
-    return sums.get(order.id) ?? 0;
+    const statement = await this.generateStatementDocument(order, saga.fact);
+    this.emitSagaUpdated(saga);
+    return { saga, statement };
   }
 
   /**
-   * Инвариант выдачи: со склада нельзя выдать больше, чем физически принято
-   * по заказу. Применяется и к превью акта (его нельзя сформировать на
-   * большее), и к самой мутации открытия выдачи.
+   * Все проверки факта без побочных эффектов: бандл у стойки проверяет свои
+   * строки ДО того, как сохранить себя, — иначе отказ по одной строке (цена
+   * выше потолка, нет остатка на складе) оставлял бы пустой бандл без саг.
    */
-  private assertWithinWarehouse(
-    order: MarketplaceOrderDomainEntity,
-    requested_quantity: number | null,
-    available: number
-  ): void {
-    if (available <= 0) {
-      throw new ConflictException(
-        `По заказу ${order.id} нет принятого на склад имущества — выдача недоступна до приёмки поставки.`
-      );
-    }
-    if (requested_quantity !== null && requested_quantity > available) {
-      throw new ConflictException(
-        `Нельзя выдать больше, чем принято на склад: доступно ${available}, запрошено ${requested_quantity}.`
-      );
-    }
+  async assertFactAllowed(input: MarketplaceIssuanceFixFactInput): Promise<void> {
+    await this.validateFact(input);
   }
 
-  private async loadOrder(
-    coopname: string,
-    order_id: string
-  ): Promise<MarketplaceOrderDomainEntity> {
-    const order = await this.orderRepo.findById(order_id);
-    if (!order || order.coopname !== coopname) {
-      throw new NotFoundException(`Заказ ${order_id} не найден.`);
+  /** Заказ, по которому факт допустим: статус, количество, цена, личность получателя, остаток на складе, потолок цены. */
+  private async validateFact(input: MarketplaceIssuanceFixFactInput): Promise<MarketplaceOrderDomainEntity> {
+    const order = await this.loadOrder(input.coopname, input.order_id);
+    if (order.status !== 'READY_TO_RECEIVE' && order.status !== 'ACCEPTED_TO_COOP') {
+      throw new ConflictException(`Заказ в статусе «${order.status}» — выдача недоступна.`);
+    }
+    if (!(input.actual_quantity > 0)) throw new BadRequestException('Фактическое количество должно быть больше нуля.');
+    if (!(Number.parseFloat(input.actual_unit_price) > 0)) throw new BadRequestException('Фактическая цена за единицу должна быть больше нуля.');
+
+    // Гейт верификации личности (105-28): имущество выдаётся только получателю с
+    // подтверждённой личностью — сверка паспорта до подписи заявления.
+    await this.assertRecipientVerified(order.orderer_account);
+
+    // Выдать можно только принятое на склад по этому заказу и ещё не выданное.
+    const available = await this.loadAvailableOnWarehouse(order);
+    this.assertWithinWarehouse(order, input.actual_quantity, available);
+
+    // Цену при выдаче можно только снизить (решение владельца 10.09.2026):
+    // имущество числится на складе по цене прибытия, снижение выбывает
+    // уценкой после выдачи, а для повышения доходной проводки в модели нет.
+    const priceCeiling = await this.issuePriceCeiling(order);
+    if (compareMoney(input.actual_unit_price, priceCeiling, this.assetConfig.decimals) > 0) {
+      throw new ConflictException(
+        `Цену при выдаче можно только снизить: не выше ${priceCeiling} ₽ за единицу отпуска — по этой цене имущество числится на складе.`
+      );
     }
     return order;
   }
 
-  private async generateIssueActDocument(input: {
-    order: MarketplaceOrderDomainEntity;
-    transmitter: string;
-    actual_quantity: number;
-    actual_unit_price?: string;
-  }): Promise<InnerGeneratedDocument> {
-    const unit_price = input.actual_unit_price ?? input.order.price_per_unit;
-    // Артикул/наименование/единица — из оферты заказа: акт выдачи несёт ИМЕННО
-    // заказ заказчика (его СКУ, кол-во и стоимость), а не заглушку фабрики.
-    const offer = await this.offerRepo.findById(input.order.offer_id);
-    return this.buildIssueActDocument({
-      coopname: input.order.coopname,
-      orderer_account: input.order.orderer_account,
-      order_id: input.order.id,
-      order_hash: input.order.order_hash,
-      delivery_braname: input.order.delivery_braname,
-      supplier_account: input.order.supplier_account,
-      offer_id: input.order.offer_id,
-      product_title: offer?.product_name ?? 'Товар по предложению',
-      unit_of_measurement: offer
-        ? marketplaceOrderUnitLabel(offer.unit_of_measure)
-        : '',
-      unit_of_measure: offer?.unit_of_measure,
-      package_size: input.order.package_size,
-      transmitter: input.transmitter,
-      actual_quantity: input.actual_quantity,
-      unit_price,
-    });
+  /** Заявление 1113 к подписи по живой саге (повторное открытие экрана пайщика). */
+  async getStatementSignablePayload(coopname: string, order_id: string, member_account: string): Promise<InnerGeneratedDocument> {
+    const order = await this.loadOrder(coopname, order_id);
+    this.assertOrderer(order, member_account);
+    const saga = await this.requireSaga(coopname, order.id);
+    if (saga.stage !== MarketplaceIssuanceSagaStages.FACT_FIXED) {
+      throw new ConflictException('Заявление уже подписано — следующий шаг за советом или актом.');
+    }
+    return this.generateStatementDocument(order, saga.fact);
   }
 
   /**
-   * АПП-выдачи (registry 1105) для строки докладки со склада — заказа ещё нет,
-   * поэтому поля берутся из оффера остатка и детерминированного order_hash.
-   * Оператор КУ подписывает этот документ первой подписью (signiss1) при
-   * формировании бандла; пайщик контрподписывает его (signiss2) одной кнопкой.
-   * supplier_account = coopname (продавец — кооператив, маркер stock-заказа).
+   * Довзнос членского взноса по факту: при факте больше заказа взнос участка
+   * пересчитывается пропорционально (та же формула, что `pro_rata` контракта,
+   * с округлением к ближайшему), и недостающее сверх зафиксированного в
+   * заказе доплачивается с членского кошелька программы на закрывающей подписи.
    */
-  async generateStockIssueActDocument(input: {
+  feeTopUp(order: MarketplaceOrderDomainEntity, fact: MarketplaceIssuanceSagaFact): MarketplaceIssuanceFeeTopUp {
+    const total = this.economyService.assetToUnits(order.total_cost);
+    const factCost = this.economyService.assetToUnits(fact.fact_cost);
+    const locked = order.membership_fee ? this.economyService.assetToUnits(order.membership_fee) : 0n;
+    if (total <= 0n || factCost <= total) {
+      return { body_topup_units: 0n, topup_units: 0n, fact_fee_units: locked };
+    }
+    const body_topup_units = factCost - total;
+    if (locked <= 0n) {
+      return { body_topup_units, topup_units: 0n, fact_fee_units: 0n };
+    }
+    const factFee = (locked * factCost + total / 2n) / total;
+    return { body_topup_units, topup_units: factFee > locked ? factFee - locked : 0n, fact_fee_units: factFee };
+  }
+
+  /** Доплата по факту для заказа в саге на этапе «факт зафиксирован» (для плана бандла у стойки). */
+  async getFeeTopUp(coopname: string, order_id: string, member_account: string): Promise<MarketplaceIssuanceFeeTopUp> {
+    const order = await this.loadOrder(coopname, order_id);
+    this.assertOrderer(order, member_account);
+    const saga = await this.requireSaga(coopname, order.id);
+    if (saga.stage !== MarketplaceIssuanceSagaStages.FACT_FIXED) return { body_topup_units: 0n, topup_units: 0n, fact_fee_units: 0n };
+    return this.feeTopUp(order, saga.fact);
+  }
+
+  /**
+   * Заявление 1110 на доплату по факту к подписи заказчиком — только если
+   * факт больше заказа и кошельков программы не хватает: свободного паевого на
+   * доплату тела, членского на довзнос участка; иначе null и подпись не
+   * требуется. Сумма — недостающее с Цифрового кошелька.
+   */
+  async getConvertSignablePayload(coopname: string, order_id: string, member_account: string): Promise<InnerGeneratedDocument | null> {
+    const order = await this.loadOrder(coopname, order_id);
+    this.assertOrderer(order, member_account);
+    const saga = await this.requireSaga(coopname, order.id);
+    if (saga.stage !== MarketplaceIssuanceSagaStages.FACT_FIXED) return null;
+    const plan = await this.topUpPlan(coopname, order, saga.fact);
+    if (!plan) return null;
+    return this.convertService.generateStatement({
+      coopname,
+      username: order.orderer_account,
+      anchor_hash: order.order_hash,
+      amount_units: plan.amount_units,
+      fee_units: plan.fee_units,
+    });
+  }
+
+  /** Недостающее на доплату по факту: null — кошельков программы хватает или факт не больше заказа. */
+  private async topUpPlan(
+    coopname: string,
+    order: MarketplaceOrderDomainEntity,
+    fact: MarketplaceIssuanceSagaFact
+  ): Promise<{ amount_units: bigint; fee_units: bigint } | null> {
+    const topUp = this.feeTopUp(order, fact);
+    if (topUp.body_topup_units <= 0n && topUp.topup_units <= 0n) return null;
+    const balances = await this.convertService.programBalances(coopname, order.orderer_account);
+    const plan = this.convertService.planFunding(balances, [{ body_units: topUp.body_topup_units, fee_units: topUp.topup_units }]);
+    if (plan.transfer_units <= 0n) return null;
+    return { amount_units: plan.transfer_units, fee_units: plan.fee_convert_units };
+  }
+
+  // ── Этап 1: заявление ────────────────────────────────────────────────
+
+  /**
+   * Заказчик подписал Заявление 1113: `issuestmt` в цепи (повестка совета
+   * ставится контрактом инлайн), сага → DECISION_PENDING с номером решения,
+   * робот решений совета вызывается напрямую и ждётся у стойки до
+   * ROBOT_WAIT_MS. Возвращает сагу на актуальном этапе: если совет успел
+   * решить, в ней уже есть протокол и акт к подписи.
+   */
+  async submitStatement(input: MarketplaceIssuanceSubmitStatementInput): Promise<MarketplaceIssuanceSagaDomainEntity> {
+    const order = await this.loadOrder(input.coopname, input.order_id);
+    this.assertOrderer(order, input.member_account);
+    let saga = await this.requireSaga(input.coopname, order.id);
+
+    // Идемпотентность: повтор мутации после обрыва связи возвращает сагу как есть.
+    if (saga.stage !== MarketplaceIssuanceSagaStages.FACT_FIXED) {
+      return this.settleAfterRobot(saga);
+    }
+    if (order.status !== 'READY_TO_RECEIVE') {
+      throw new ConflictException(`Заказ в статусе «${order.status}» — подписать заявление нельзя.`);
+    }
+
+    this.assertStatementMatchesFact(input.signed_statement, order, saga);
+    await this.transferMembershipPart(input, order, saga);
+
+    const statement = new SignedDigitalDocumentInputDTO(input.signed_statement).toDocument() as MarketContract.Actions.IssueStmt.IIssueStmt['statement'];
+    let tx;
+    try {
+      tx = await this.chainPort.issueStmt({
+        coopname: order.coopname,
+        orderer: order.orderer_account,
+        order_hash: order.order_hash,
+        actual_quantity: toQuantityAsset(saga.fact.actual_quantity, order.unit_of_measure),
+        actual_unit_price: this.formatAsset(saga.fact.actual_unit_price),
+        statement,
+        meta: '',
+      });
+    } catch (err) {
+      const message = this.errMessage(err);
+      await this.sagaRepo.update(saga.id, { last_error: message });
+      throw new ConflictException(`Заявление не принято цепью: ${message}. Повторите подписание.`);
+    }
+    const txHash = this.extractTxHash(tx);
+    // Номер решения — из трассы транзакции инициатора (инлайн `soviet::newsubmitted`,
+    // L20): без ожидания парсера. Не нашли — дочитаем из таблицы решений ниже.
+    const tracedDecisionId = this.decisionIdFromTrace(tx);
+    const moved = await this.sagaRepo.transition(saga.id, MarketplaceIssuanceSagaStages.FACT_FIXED, {
+      stage: tracedDecisionId ? MarketplaceIssuanceSagaStages.DECISION_PENDING : MarketplaceIssuanceSagaStages.STATEMENT_SIGNED,
+      decision_id: tracedDecisionId,
+      statement_document: input.signed_statement as unknown as ISignedDocument,
+      tx_hashes: { ...saga.tx_hashes, issuestmt: txHash },
+      last_error: null,
+    });
+    saga = moved ?? (await this.requireSaga(input.coopname, order.id));
+    await this.orderRepo.applyIssuanceStatement(order.id, { issuance_fact: this.toFactSnapshot(order, saga.fact) });
+    this.emitSagaUpdated(saga);
+
+    saga = await this.attachDecision(saga);
+    return this.settleAfterRobot(saga);
+  }
+
+  /**
+   * Сверяет подписанное Заявление 1113 с заказом и зафиксированным фактом:
+   * реестр документа, привязка к заказу, сумма и подпись заказчика. Вынесено
+   * из `submitStatement` — это входной контроль подписи, а не шаг сценария.
+   */
+  private assertStatementMatchesFact(
+    signed_statement: MarketplaceShareReturnStatementSignedInputDTO,
+    order: MarketplaceOrderDomainEntity,
+    saga: MarketplaceIssuanceSagaDomainEntity
+  ): void {
+    const meta = signed_statement.meta;
+    if (
+      meta.registry_id !== Cooperative.Registry.MarketplaceShareReturnStatement.registry_id ||
+      meta.order_hash !== order.order_hash
+    ) {
+      throw new BadRequestException('Заявление подписано для другого заказа — обновите экран выдачи.');
+    }
+    if (compareMoney(String(meta.total_amount), saga.fact.fact_cost, this.assetConfig.decimals) !== 0) {
+      throw new BadRequestException('Состав в заявлении не совпадает с зафиксированным оператором — обновите экран выдачи.');
+    }
+    this.verifyDocumentSignature(signed_statement, order.orderer_account);
+  }
+
+  /**
+   * Доплата по факту сверх кошельков программы: заявление 1110 на недостающее
+   * с Цифрового кошелька и перевод членской части отдельной транзакцией до
+   * заявления о выдаче — контракт на issuestmt проверит, что средств хватает
+   * (тело добирается с Цифрового кошелька на закрывающей подписи). Вынесено из
+   * `submitStatement`: ветка нужна только когда факт больше заказа.
+   */
+  private async transferMembershipPart(
+    input: MarketplaceIssuanceSubmitStatementInput,
+    order: MarketplaceOrderDomainEntity,
+    saga: MarketplaceIssuanceSagaDomainEntity
+  ): Promise<void> {
+    const topUp = await this.topUpPlan(input.coopname, order, saga.fact);
+    if (!topUp) return;
+    const convert_statement = this.convertService.verifySigned(
+      input.signed_convert,
+      { anchor_hash: order.order_hash, amount_units: topUp.amount_units, fee_units: topUp.fee_units },
+      order.orderer_account
+    );
+    try {
+      await this.chainPort.convert({
+        coopname: order.coopname,
+        orderer: order.orderer_account,
+        // Доплата по факту адресуется своему заказу: o.mkt.conv ложится в нитку
+        // этого заказа, а не заводит отдельную нитку по хэшу заявления.
+        targets: [{ order_hash: order.order_hash, amount: this.economyService.unitsToAsset(topUp.fee_units) }],
+        convert_statement,
+      });
+    } catch (err) {
+      const message = this.errMessage(err);
+      await this.sagaRepo.update(saga.id, { last_error: message });
+      throw new ConflictException(`Перевод в членский кошелёк не принят цепью: ${message}. Повторите подписание.`);
+    }
+  }
+
+  /**
+   * Номер решения совета по заявлению: читается из цепи по хэшу повестки
+   * (= order_hash) с короткими повторами — узел материализует строку в тот
+   * же блок, но чтение через парсер может отставать на секунду-другую.
+   * Сага → DECISION_PENDING. Без номера остаёмся в STATEMENT_SIGNED: сторож
+   * дочитает позже.
+   */
+  async attachDecision(saga: MarketplaceIssuanceSagaDomainEntity): Promise<MarketplaceIssuanceSagaDomainEntity> {
+    if (saga.stage !== MarketplaceIssuanceSagaStages.STATEMENT_SIGNED) return saga;
+    for (let i = 0; i < DECISION_LOOKUP_ATTEMPTS; i++) {
+      const decision = await this.chainPort.findCouncilDecisionByHash(saga.coopname, saga.order_hash).catch(() => null);
+      if (decision) {
+        const moved = await this.sagaRepo.transition(saga.id, MarketplaceIssuanceSagaStages.STATEMENT_SIGNED, {
+          stage: MarketplaceIssuanceSagaStages.DECISION_PENDING,
+          decision_id: String(decision.id),
+        });
+        if (moved) {
+          this.emitSagaUpdated(moved);
+          return moved;
+        }
+        return (await this.sagaRepo.findById(saga.id)) ?? saga;
+      }
+      await this.sleep(DECISION_LOOKUP_DELAY_MS);
+    }
+    this.logger.warn(`Сага ${saga.id}: решение совета по заявлению ещё не видно в цепи — дочитает сторож.`);
+    return saga;
+  }
+
+  /**
+   * Прямой рычаг робота: просим принять решение сейчас и ждём у стойки. Исход
+   * «утверждено» доводится обратным вызовом контракта через парсер — ждём,
+   * пока слушатель переведёт сагу в DECISION_AUTHORIZED, чтобы вернуть акт к
+   * подписи в том же ответе. Иначе сага остаётся в ожидании: пайщик увидит
+   * спокойный экран, а уведомление придёт, когда совет решит.
+   */
+  private async settleAfterRobot(saga: MarketplaceIssuanceSagaDomainEntity): Promise<MarketplaceIssuanceSagaDomainEntity> {
+    if (saga.stage !== MarketplaceIssuanceSagaStages.DECISION_PENDING || !saga.decision_id) return saga;
+    const mode = await this.requestRobot(saga);
+    if (mode !== 'ROBOT') return (await this.sagaRepo.findById(saga.id)) ?? saga;
+    return this.waitForStage(saga.id, [MarketplaceIssuanceSagaStages.DECISION_AUTHORIZED, MarketplaceIssuanceSagaStages.DECLINED], ROBOT_WAIT_MS);
+  }
+
+  /** Вызов робота; возвращает режим принятия решения, записанный в сагу. */
+  async requestRobot(saga: MarketplaceIssuanceSagaDomainEntity): Promise<MarketplaceIssuanceDecisionMode> {
+    if (!saga.decision_id) return saga.decision_mode;
+    let mode: MarketplaceIssuanceDecisionMode = 'MANUAL';
+    let detail: string | null = null;
+    if (this.robotPort) {
+      try {
+        const enabled = await this.robotPort.isEnabled();
+        if (enabled) {
+          const result = await this.robotPort.requestDecision({
+            coopname: saga.coopname,
+            decision_id: Number(saga.decision_id),
+            decision_type: 'mktissue',
+            decision_hash: saga.order_hash,
+            username: saga.member_account,
+          });
+          // Ждём у стойки только когда робот сам довёл решение (протокол в
+          // цепи, обратный вызов уже в пути). «pending» (нет кворума, ждём
+          // людей), «manual» (робот выключен) и «failed» — режим ожидания
+          // людей: пайщик уходит, push придёт с решением.
+          mode = result.outcome === 'authorized' || result.outcome === 'declined' ? 'ROBOT' : 'MANUAL';
+          detail = result.detail ?? null;
+          this.logger.log(`Сага ${saga.id}: робот решений совета ответил «${result.outcome}»${detail ? ` (${detail})` : ''}.`);
+        }
+      } catch (err) {
+        // Робот упал — это его сторожу; для пайщика это режим ожидания людей.
+        detail = this.errMessage(err);
+        this.logger.warn(`Сага ${saga.id}: вызов робота решений совета не удался (${detail}); ждём решение людей.`);
+        mode = 'MANUAL';
+      }
+    }
+    await this.sagaRepo.update(saga.id, { decision_mode: mode, last_error: detail });
+    return mode;
+  }
+
+  // ── Этап 2: решение совета (обратные вызовы контракта) ───────────────
+
+  /**
+   * `onmktisauth`: протокол получен. Сага → DECISION_AUTHORIZED, номер решения
+   * из меты протокола, Акт 1115 сформирован и сохранён в сторе (исходник для
+   * агрегата). Заказчику — сигнал (устройство подписывает акт само) и, если
+   * решение шло вручную, push «подпишите акт».
+   */
+  async onCouncilAuthorized(input: { coopname: string; order_hash: string; protocol: ISignedDocument | null }): Promise<void> {
+    const saga = await this.sagaRepo.findByOrderHash(input.coopname, input.order_hash);
+    if (!saga) {
+      this.logger.warn(`onmktisauth: сага по заказу ${input.order_hash} не найдена — решение совета без начатой выдачи.`);
+      return;
+    }
+    if (saga.stage !== MarketplaceIssuanceSagaStages.STATEMENT_SIGNED && saga.stage !== MarketplaceIssuanceSagaStages.DECISION_PENDING) {
+      this.logger.debug(`onmktisauth: сага ${saga.id} уже на этапе ${saga.stage} — повторный вызов пропущен.`);
+      return;
+    }
+    const order = await this.loadOrder(input.coopname, saga.order_id);
+    const decisionId = saga.decision_id ?? this.decisionIdFromProtocol(input.protocol);
+    const act = await this.generateActDocument(order, saga, decisionId ?? '0');
+    const moved = await this.sagaRepo.transition(saga.id, [MarketplaceIssuanceSagaStages.STATEMENT_SIGNED, MarketplaceIssuanceSagaStages.DECISION_PENDING], {
+      stage: MarketplaceIssuanceSagaStages.DECISION_AUTHORIZED,
+      protocol_document: input.protocol,
+      decision_id: decisionId,
+      act_document_hash: act.hash,
+      decided_at: new Date(),
+      last_error: null,
+    });
+    if (!moved) return;
+    await this.orderRepo.applyIssuanceAuthorized(order.id, { issue_decision_id: decisionId });
+    this.emitSagaUpdated(moved);
+    if (moved.decision_mode !== 'ROBOT') {
+      const event: MarketplaceIssuanceDecidedOfflineEvent = {
+        coopname: order.coopname,
+        order_id: order.id,
+        order_hash: order.order_hash,
+        orderer_account: order.orderer_account,
+        braname: order.delivery_braname,
+        authorized: true,
+      };
+      this.eventBus.emit(MARKETPLACE_ISSUANCE_DECIDED_OFFLINE_EVENT, event);
+    }
+    this.logger.log(`Сага ${saga.id}: совет решил (№${decisionId ?? '?'}), акт ${act.hash} сформирован — ждём подпись заказчика.`);
+  }
+
+  /** `onmktisdecl`: совет отказал. Сага → DECLINED, заказ обратно в «готов к выдаче». */
+  async onCouncilDeclined(input: { coopname: string; order_hash: string; reason: string }): Promise<void> {
+    const saga = await this.sagaRepo.findByOrderHash(input.coopname, input.order_hash);
+    if (!saga || !saga.awaits_council) return;
+    const moved = await this.sagaRepo.transition(saga.id, [MarketplaceIssuanceSagaStages.STATEMENT_SIGNED, MarketplaceIssuanceSagaStages.DECISION_PENDING], {
+      stage: MarketplaceIssuanceSagaStages.DECLINED,
+      last_error: input.reason,
+      decided_at: new Date(),
+    });
+    if (!moved) return;
+    const order = await this.orderRepo.applyIssuanceReset(saga.order_id);
+    this.emitSagaUpdated(moved);
+    const event: MarketplaceIssuanceDecidedOfflineEvent = {
+      coopname: order.coopname,
+      order_id: order.id,
+      order_hash: order.order_hash,
+      orderer_account: order.orderer_account,
+      braname: order.delivery_braname,
+      authorized: false,
+    };
+    this.eventBus.emit(MARKETPLACE_ISSUANCE_DECIDED_OFFLINE_EVENT, event);
+    this.logger.log(`Сага ${saga.id}: совет отказал (${input.reason}); заказ ${order.id} снова готов к выдаче.`);
+  }
+
+  // ── Этап 3: акт, первая подпись заказчика ─────────────────────────────
+
+  /** Акт 1115 к первой подписи заказчика (исходник из стора по хэшу). */
+  async getActSignablePayload(coopname: string, order_id: string, member_account: string): Promise<InnerGeneratedDocument> {
+    const order = await this.loadOrder(coopname, order_id);
+    this.assertOrderer(order, member_account);
+    const saga = await this.requireSaga(coopname, order.id);
+    if (saga.stage !== MarketplaceIssuanceSagaStages.DECISION_AUTHORIZED) {
+      throw new ConflictException(saga.awaits_council ? 'Совет ещё не принял решение по заявлению.' : `Акт на этом этапе («${saga.stage}») подписывать не нужно.`);
+    }
+    const stored = saga.act_document_hash ? await this.documentPort.getByHash(saga.act_document_hash) : null;
+    if (stored) return stored;
+    const regenerated = await this.generateActDocument(order, saga, saga.decision_id ?? '0');
+    await this.sagaRepo.update(saga.id, { act_document_hash: regenerated.hash });
+    return regenerated;
+  }
+
+  async signAct1(input: MarketplaceIssuanceSignAct1Input): Promise<MarketplaceIssuanceSagaDomainEntity> {
+    const order = await this.loadOrder(input.coopname, input.order_id);
+    this.assertOrderer(order, input.member_account);
+    const saga = await this.requireSaga(input.coopname, order.id);
+    if (saga.stage === MarketplaceIssuanceSagaStages.ACT1_SIGNED || saga.stage === MarketplaceIssuanceSagaStages.CLOSED) return saga;
+    if (saga.stage !== MarketplaceIssuanceSagaStages.DECISION_AUTHORIZED) {
+      throw new ConflictException(saga.awaits_council ? 'Совет ещё не принял решение по заявлению.' : `Выдача на этапе «${saga.stage}» — акт подписывать нельзя.`);
+    }
+    this.assertActMatchesSaga(input.signed_act, order, saga);
+    const act = new SignedDigitalDocumentInputDTO(input.signed_act).toDocument() as MarketContract.Actions.IssueAct1.IIssueAct1['act'];
+    let tx;
+    try {
+      tx = await this.chainPort.issueAct1({ coopname: order.coopname, orderer: order.orderer_account, order_hash: order.order_hash, act });
+    } catch (err) {
+      const message = this.errMessage(err);
+      await this.sagaRepo.update(saga.id, { last_error: message });
+      throw new ConflictException(`Подпись акта не принята цепью: ${message}. Повторите подписание.`);
+    }
+    const txHash = this.extractTxHash(tx);
+    const moved = await this.sagaRepo.transition(saga.id, MarketplaceIssuanceSagaStages.DECISION_AUTHORIZED, {
+      stage: MarketplaceIssuanceSagaStages.ACT1_SIGNED,
+      act1_document: input.signed_act as unknown as ISignedDocument,
+      tx_hashes: { ...saga.tx_hashes, issueact1: txHash },
+      last_error: null,
+    });
+    const result = moved ?? (await this.requireSaga(input.coopname, order.id));
+    await this.orderRepo.applyIssuanceAct1(order.id);
+    this.emitSagaUpdated(result);
+    return result;
+  }
+
+  /**
+   * Сверяет подписанный Акт 1115 с заказом и актом, выданным к подписи:
+   * реестр документа, привязка к заказу, совпадение исходника и подпись
+   * заказчика. Вынесено из `signAct1` — входной контроль подписи.
+   */
+  private assertActMatchesSaga(
+    signed_act: MarketplaceShareReturnActSignedInputDTO,
+    order: MarketplaceOrderDomainEntity,
+    saga: MarketplaceIssuanceSagaDomainEntity
+  ): void {
+    const meta = signed_act.meta;
+    if (meta.registry_id !== Cooperative.Registry.MarketplaceShareReturnAct.registry_id || meta.order_hash !== order.order_hash) {
+      throw new BadRequestException('Акт подписан для другого заказа — обновите экран.');
+    }
+    if (saga.act_document_hash && signed_act.doc_hash !== saga.act_document_hash) {
+      throw new ForbiddenException('Подписанный акт не совпадает с выданным к подписи — подпись отклонена.');
+    }
+    this.verifyDocumentSignature(signed_act, order.orderer_account);
+  }
+
+  // ── Этап 4: закрывающая подпись оператора ─────────────────────────────
+
+  /** Агрегат акта с первой подписью заказчика — оператор накладывает вторую. */
+  async getCloseSignablePayload(coopname: string, order_id: string): Promise<InnerDocumentAggregate> {
+    const order = await this.loadOrder(coopname, order_id);
+    const saga = await this.requireSaga(coopname, order.id);
+    if (saga.stage !== MarketplaceIssuanceSagaStages.ACT1_SIGNED || !saga.act1_document) {
+      throw new ConflictException('Акт ещё не подписан заказчиком — закрывать нечего.');
+    }
+    const aggregate = await this.documentPort.buildAggregate(saga.act1_document);
+    if (!aggregate) throw new ConflictException('Исходник акта не найден в сторе документов — переформируйте выдачу.');
+    return aggregate;
+  }
+
+  /**
+   * Закрывающая подпись председателя, доверенного или оператора участка:
+   * `issueact2` — единственная точка движений по средствам. После успеха —
+   * складской учёт (выданное ISSUED, остаток в обезличенный склад, уценка для
+   * заказа из остатка), сага CLOSED, заказ RECEIVED. Имущество передаётся
+   * заказчику после этого ответа.
+   */
+  async closeIssuance(input: MarketplaceIssuanceCloseInput): Promise<MarketplaceIssuanceSagaDomainEntity> {
+    const order = await this.loadOrder(input.coopname, input.order_id);
+    const saga = await this.requireSaga(input.coopname, order.id);
+    if (saga.stage === MarketplaceIssuanceSagaStages.CLOSED) return saga;
+    if (saga.stage !== MarketplaceIssuanceSagaStages.ACT1_SIGNED || !saga.act1_document) {
+      throw new ConflictException('Акт ещё не подписан заказчиком — закрыть выдачу нельзя.');
+    }
+    const sub = input.signed_act as unknown as ISignedDocument;
+    this.assertClosingActMatches(sub, saga.act1_document, input);
+
+    const act = new SignedDigitalDocumentInputDTO(input.signed_act).toDocument() as MarketContract.Actions.IssueAct2.IIssueAct2['act'];
+    let tx;
+    try {
+      tx = await this.chainPort.issueAct2({ coopname: order.coopname, delivery_signer: input.operator_account, order_hash: order.order_hash, act });
+    } catch (err) {
+      const message = this.errMessage(err);
+      await this.sagaRepo.update(saga.id, { last_error: message });
+      throw new ConflictException(`Закрытие выдачи не принято цепью: ${message}. Имущество не передавайте, повторите закрытие.`);
+    }
+    const txHash = this.extractTxHash(tx);
+    const factSnapshot = this.toFactSnapshot(order, saga.fact);
+    const warrantyUntil = order.warranty_period_secs > 0 ? new Date(Date.now() + order.warranty_period_secs * 1000) : null;
+    await this.orderRepo.applyIssuanceClosed(order.id, {
+      delivery_signer_account: input.operator_account,
+      issue_closed_tx_hash: txHash,
+      issuance_fact: factSnapshot,
+      warranty_until: warrantyUntil,
+    });
+    const moved = await this.sagaRepo.transition(saga.id, MarketplaceIssuanceSagaStages.ACT1_SIGNED, {
+      stage: MarketplaceIssuanceSagaStages.CLOSED,
+      act2_document: sub,
+      tx_hashes: { ...saga.tx_hashes, issueact2: txHash },
+      closed_at: new Date(),
+      last_error: null,
+    });
+    const result = moved ?? (await this.requireSaga(input.coopname, order.id));
+    await this.settleWarehouse(order, saga.fact);
+    this.emitSagaUpdated(result);
+    this.logger.log(`Выдача заказа ${order.id} закрыта оператором ${input.operator_account} (tx=${txHash}): факт ${saga.fact.actual_quantity}, сумма ${saga.fact.fact_cost}.`);
+    return result;
+  }
+
+  /**
+   * Сверяет закрывающую подпись с актом заказчика: тот же документ, подпись
+   * заказчика на месте и не подменена, есть подпись закрывающего оператора,
+   * все подписи криптографически верны. Вынесено из `closeIssuance` — это
+   * входной контроль подписи перед единственной точкой движений по средствам.
+   */
+  private assertClosingActMatches(
+    submitted: ISignedDocument,
+    stored: ISignedDocument,
+    input: MarketplaceIssuanceCloseInput
+  ): void {
+    if (submitted.doc_hash !== stored.doc_hash || submitted.meta_hash !== stored.meta_hash) {
+      throw new ForbiddenException('Подписанный акт не совпадает с актом заказчика — подпись отклонена.');
+    }
+    const memberSig = stored.signatures?.[0];
+    const memberPreserved = !!memberSig && submitted.signatures.some((s) => s.signer === memberSig.signer && s.signature === memberSig.signature);
+    if (!memberPreserved) throw new ForbiddenException('Подпись заказчика на акте утеряна или подменена — подпись отклонена.');
+    if (!submitted.signatures.some((s) => s.signer === input.operator_account)) {
+      throw new ForbiddenException('Закрывающую подпись должен поставить оператор, закрывающий выдачу.');
+    }
+    this.verifyDocumentSignature(input.signed_act, input.operator_account);
+  }
+
+  /** Оператор отменяет начатую выдачу: `cancelissue`, сага CANCELLED, заказ снова готов к выдаче. */
+  async cancelIssuance(input: { coopname: string; order_id: string; operator_account: string }): Promise<MarketplaceIssuanceSagaDomainEntity> {
+    const order = await this.loadOrder(input.coopname, input.order_id);
+    const saga = await this.requireSaga(input.coopname, order.id);
+    if (!saga.is_active) return saga;
+    if (saga.awaits_council) {
+      throw new ConflictException('Совет ещё рассматривает заявление — отменить выдачу можно после его ответа.');
+    }
+    if (saga.stage !== MarketplaceIssuanceSagaStages.FACT_FIXED) {
+      try {
+        await this.chainPort.cancelIssue({ coopname: order.coopname, signer: input.operator_account, order_hash: order.order_hash });
+      } catch (err) {
+        throw new ConflictException(`Отмена выдачи не принята цепью: ${this.errMessage(err)}.`);
+      }
+    }
+    const moved = await this.sagaRepo.transition(saga.id, [MarketplaceIssuanceSagaStages.FACT_FIXED, MarketplaceIssuanceSagaStages.DECISION_AUTHORIZED, MarketplaceIssuanceSagaStages.ACT1_SIGNED], {
+      stage: MarketplaceIssuanceSagaStages.CANCELLED,
+      closed_at: new Date(),
+    });
+    const result = moved ?? (await this.requireSaga(input.coopname, order.id));
+    if (order.status !== 'READY_TO_RECEIVE') await this.orderRepo.applyIssuanceReset(order.id);
+    this.emitSagaUpdated(result);
+    return result;
+  }
+
+  // ── Чтение ───────────────────────────────────────────────────────────
+
+  async getSagaByOrder(coopname: string, order_id: string): Promise<MarketplaceIssuanceSagaDomainEntity | null> {
+    return this.sagaRepo.findActiveByOrderId(coopname, order_id) ?? this.sagaRepo.findByOrderHash(coopname, (await this.loadOrder(coopname, order_id)).order_hash);
+  }
+
+  async listSagas(filter: { coopname: string; member_account?: string; braname?: string | string[]; proposal_id?: string; active_only?: boolean }): Promise<MarketplaceIssuanceSagaDomainEntity[]> {
+    return this.sagaRepo.list(filter);
+  }
+
+  /**
+   * Сторож: дожимает саги, зависшие между этапами. STATEMENT_SIGNED без номера
+   * решения — дочитать решение; DECISION_PENDING — повторно позвать робота
+   * (не чаще раза в проход); DECISION_AUTHORIZED без акта — сформировать.
+   */
+  async watchdogTick(coopname: string, olderThan: Date, limit = 20): Promise<void> {
+    const stale = await this.sagaRepo.findStale(coopname, [MarketplaceIssuanceSagaStages.STATEMENT_SIGNED, MarketplaceIssuanceSagaStages.DECISION_PENDING, MarketplaceIssuanceSagaStages.DECISION_AUTHORIZED], olderThan, limit);
+    for (const saga of stale) {
+      try {
+        if (saga.stage === MarketplaceIssuanceSagaStages.STATEMENT_SIGNED) {
+          await this.watchdogAttachDecision(saga);
+        } else if (saga.stage === MarketplaceIssuanceSagaStages.DECISION_PENDING) {
+          await this.watchdogPushDecision(coopname, saga);
+        } else if (saga.stage === MarketplaceIssuanceSagaStages.DECISION_AUTHORIZED && !saga.act_document_hash) {
+          await this.watchdogBuildAct(coopname, saga);
+        }
+      } catch (err) {
+        this.logger.warn(`Сторож выдачи: сага ${saga.id} не дожата (${this.errMessage(err)}).`);
+        await this.sagaRepo.update(saga.id, { last_error: this.errMessage(err), attempts: saga.attempts + 1 });
+      }
+    }
+  }
+
+  /** Сторож на STATEMENT_SIGNED: дочитать номер решения и позвать робота, если решение появилось. */
+  private async watchdogAttachDecision(saga: MarketplaceIssuanceSagaDomainEntity): Promise<void> {
+    const decided = await this.attachDecision(saga);
+    if (decided.stage === MarketplaceIssuanceSagaStages.DECISION_PENDING) await this.requestRobot(decided);
+  }
+
+  /**
+   * Сторож на DECISION_PENDING: повторно позвать робота, а если робот не ведёт
+   * решение или попытки исчерпаны — сверить решение с цепью. Вынесено из
+   * `watchdogTick`, чтобы ветки сторожа не вкладывались одна в другую.
+   */
+  private async watchdogPushDecision(coopname: string, saga: MarketplaceIssuanceSagaDomainEntity): Promise<void> {
+    if (saga.decision_mode === 'ROBOT' && saga.attempts < 5) {
+      await this.sagaRepo.update(saga.id, { attempts: saga.attempts + 1 });
+      await this.requestRobot(saga);
+      return;
+    }
+    // Решение могло пройти мимо слушателя (перезапуск): сверяемся с цепью.
+    const decision = saga.decision_id ? null : await this.chainPort.findCouncilDecisionByHash(coopname, saga.order_hash).catch(() => null);
+    if (decision?.authorized) await this.onCouncilAuthorized({ coopname, order_hash: saga.order_hash, protocol: decision.authorization as unknown as ISignedDocument });
+    else await this.sagaRepo.update(saga.id, { attempts: saga.attempts + 1 });
+  }
+
+  /** Сторож на DECISION_AUTHORIZED без акта: сформировать Акт 1115 и запомнить его хэш. */
+  private async watchdogBuildAct(coopname: string, saga: MarketplaceIssuanceSagaDomainEntity): Promise<void> {
+    const order = await this.loadOrder(coopname, saga.order_id);
+    const act = await this.generateActDocument(order, saga, saga.decision_id ?? '0');
+    await this.sagaRepo.update(saga.id, { act_document_hash: act.hash });
+  }
+
+  // ── Документы ────────────────────────────────────────────────────────
+
+  /**
+   * Заявление 1113 для строки докладки со склада: заказа ещё нет (он родится
+   * на подписи пайщика по детерминированному order_hash), поэтому документ
+   * строится из оффера и факта строки. Факт считается той же формулой, что и
+   * для существующего заказа — суммы обязаны совпасть с сагой, которая
+   * появится после создания заказа.
+   */
+  async generateStatementPreview(input: {
     coopname: string;
     orderer_account: string;
     order_hash: string;
     braname: string;
-    transmitter: string;
     offer_id: string;
     product_title: string;
-    /** Готовый ярлык единицы заказа (фасовки) — строит вызывающая сторона из оферты. */
-    unit_of_measurement: string;
-    /** Эпик 18: базовая единица оффера — для упаковочной презентации акта. */
-    unit_of_measure?: MarketplaceUnitOfMeasure;
-    /** Эпик 18: содержимое упаковки в базовой единице; 0/undefined = по мере. */
-    package_size?: number;
-    /** Количество в БАЗОВОЙ единице (не число упаковок) — как и у обычного заказа. */
-    quantity: number;
-    unit_price: string;
+    unit_of_measure: MarketplaceOrderDomainEntity['unit_of_measure'];
+    package_size: number;
+    /** Количество в БАЗОВОЙ единице. */
+    actual_quantity: number;
+    actual_unit_price: string;
   }): Promise<InnerGeneratedDocument> {
-    return this.buildIssueActDocument({
+    const decimals = this.assetConfig.decimals;
+    const unit_cost = Number.parseFloat(input.actual_unit_price).toFixed(decimals);
+    const total_amount = calcCostAmount({
+      quantity: input.actual_quantity,
+      unit: input.unit_of_measure,
+      unitPrice: unit_cost,
+      packageSize: input.package_size,
+      decimals,
+    });
+    const unit = presentSaleUnit(input.actual_quantity, input.unit_of_measure, input.package_size);
+    const action: Cooperative.Registry.MarketplaceShareReturnStatement.Action = {
+      registry_id: Cooperative.Registry.MarketplaceShareReturnStatement.registry_id,
       coopname: input.coopname,
-      orderer_account: input.orderer_account,
-      // Заказа ещё нет — человеко-номер акта берём из order_hash; на цепи
-      // документ привязывается к заказу по order_hash (package=order_hash).
+      username: input.orderer_account,
+      lang: 'ru',
       order_id: computeActNumber(input.order_hash),
       order_hash: input.order_hash,
-      delivery_braname: input.braname,
-      supplier_account: input.coopname,
-      offer_id: input.offer_id,
+      braname: input.braname,
+      sku: input.offer_id,
       product_title: input.product_title,
-      unit_of_measurement: input.unit_of_measurement,
-      unit_of_measure: input.unit_of_measure,
-      package_size: input.package_size,
-      transmitter: input.transmitter,
-      actual_quantity: input.quantity,
-      unit_price: input.unit_price,
-    });
-  }
-
-  private async buildIssueActDocument(p: {
-    coopname: string;
-    orderer_account: string;
-    order_id: string;
-    order_hash: string;
-    delivery_braname: string;
-    supplier_account: string;
-    offer_id: string;
-    product_title: string;
-    /** Ярлык базовой единицы (fallback для отпуска по мере/остатка). */
-    unit_of_measurement: string;
-    /** Эпик 18: базовая единица оффера — для упаковочной презентации акта. */
-    unit_of_measure?: MarketplaceUnitOfMeasure;
-    /** Эпик 18: содержимое упаковки в базовой единице; 0/undefined = по мере. */
-    package_size?: number;
-    transmitter: string;
-    actual_quantity: number;
-    unit_price: string;
-  }): Promise<InnerGeneratedDocument> {
-    // Эпик 18: акт ведётся в единицах отпуска. По мере — количество в базовой
-    // единице, цена за базовую единицу. Упаковкой — количество = число упаковок,
-    // единица = «упак. 0,5 л», цена = за упаковку; сумма считается от числа
-    // упаковок (иначе на некруглой упаковке разъезжается копейка).
-    const packageSize = p.package_size ?? 0;
-    const pres = p.unit_of_measure
-      ? presentSaleUnit(p.actual_quantity, p.unit_of_measure, packageSize)
-      : { units: p.actual_quantity, unitLabel: p.unit_of_measurement };
-    const total_amount = (pres.units * Number.parseFloat(p.unit_price)).toFixed(4);
-    const action: Cooperative.Registry.MarketplaceAplIssuance.Action = {
-      registry_id: Cooperative.Registry.MarketplaceAplIssuance.registry_id,
-      coopname: p.coopname,
-      username: p.orderer_account,
-      order_id: p.order_id,
-      order_hash: p.order_hash,
-      reception_id: p.order_id,
-      act_id: computeActNumber(p.order_hash),
-      transmitter: p.transmitter,
-      braname: p.delivery_braname,
-      accept_braname: p.delivery_braname,
-      fact_quantity: pres.units,
+      unit_of_measurement: unit.unitLabel || marketplaceOrderUnitLabel(input.unit_of_measure),
+      fact_quantity: unit.units,
+      unit_cost,
       total_amount,
-      supplier_account: p.supplier_account,
-      sku: p.offer_id,
-      product_title: p.product_title,
-      unit_of_measurement: pres.unitLabel,
-      unit_cost: p.unit_price,
       currency: this.assetConfig.symbol,
-      // false: тело акта выдачи сохраняется в стор документов, чтобы заказчик
-      // мог получить исходник по doc_hash через buildDocumentAggregate и
-      // наложить вторую подпись поверх подписи председателя (канон 2-подписи).
       skip_save: false,
     };
     return this.documentPort.generate({ data: action });
   }
 
-  private buildIssuanceFactSnapshot(
-    order: MarketplaceOrderDomainEntity,
-    actual_quantity: number,
-    actual_unit_price: string
-  ): MarketplaceOrderIssuanceFactSnapshot {
+  private async generateStatementDocument(order: MarketplaceOrderDomainEntity, fact: MarketplaceIssuanceSagaFact): Promise<InnerGeneratedDocument> {
+    const offer = await this.offerRepo.findById(order.offer_id);
+    const unit = presentSaleUnit(fact.actual_quantity, order.unit_of_measure, order.package_size);
+    const action: Cooperative.Registry.MarketplaceShareReturnStatement.Action = {
+      registry_id: Cooperative.Registry.MarketplaceShareReturnStatement.registry_id,
+      coopname: order.coopname,
+      username: order.orderer_account,
+      lang: 'ru',
+      order_id: order.id,
+      order_hash: order.order_hash,
+      braname: order.delivery_braname,
+      sku: order.offer_id,
+      product_title: offer?.product_name ?? 'Товар по предложению',
+      unit_of_measurement: unit.unitLabel || (offer ? marketplaceOrderUnitLabel(offer.unit_of_measure) : ''),
+      fact_quantity: unit.units,
+      unit_cost: fact.actual_unit_price,
+      total_amount: fact.fact_cost,
+      currency: this.assetConfig.symbol,
+      // Тело сохраняется в стор: заявление уходит в повестку совета, а
+      // протокол и акт строятся из его меты (робот и рабочий стол совета).
+      skip_save: false,
+    };
+    return this.documentPort.generate({ data: action });
+  }
+
+  private async generateActDocument(order: MarketplaceOrderDomainEntity, saga: MarketplaceIssuanceSagaDomainEntity, decision_id: string): Promise<InnerGeneratedDocument> {
+    const offer = await this.offerRepo.findById(order.offer_id);
+    const unit = presentSaleUnit(saga.fact.actual_quantity, order.unit_of_measure, order.package_size);
+    const action: Cooperative.Registry.MarketplaceShareReturnAct.Action = {
+      registry_id: Cooperative.Registry.MarketplaceShareReturnAct.registry_id,
+      coopname: order.coopname,
+      username: order.orderer_account,
+      lang: 'ru',
+      order_id: order.id,
+      order_hash: order.order_hash,
+      decision_id: Number(decision_id) || 0,
+      act_id: computeActNumber(order.order_hash),
+      transmitter: saga.operator_account,
+      braname: order.delivery_braname,
+      sku: order.offer_id,
+      product_title: offer?.product_name ?? 'Товар по предложению',
+      unit_of_measurement: unit.unitLabel || (offer ? marketplaceOrderUnitLabel(offer.unit_of_measure) : ''),
+      fact_quantity: unit.units,
+      unit_cost: saga.fact.actual_unit_price,
+      total_amount: saga.fact.fact_cost,
+      currency: this.assetConfig.symbol,
+      // Исходник в сторе: заказчик подписывает его первым, оператор берёт
+      // агрегат по doc_hash и накладывает закрывающую подпись без регенерации.
+      skip_save: false,
+    };
+    return this.documentPort.generate({ data: action });
+  }
+
+  // ── Вспомогательное ──────────────────────────────────────────────────
+
+  /**
+   * Факт выдачи: `actual_quantity` — в БАЗОВОЙ единице, при отпуске упаковкой
+   * `actual_unit_price` — цена ЗА УПАКОВКУ (канон единицы отпуска). Сумму
+   * считает общая формула `calcCostAmount` — та же, что применит контракт.
+   */
+  private buildFact(order: MarketplaceOrderDomainEntity, actual_quantity: number, actual_unit_price: string): MarketplaceIssuanceSagaFact {
     const decimals = this.assetConfig.decimals;
-    const unitPrice = Number.parseFloat(actual_unit_price);
-    const fact_unit_price = unitPrice.toFixed(decimals);
-    // Эпик 18: actual_quantity — в БАЗОВОЙ единице, а при отпуске упаковкой
-    // actual_unit_price — цена ЗА УПАКОВКУ (см. resolveSaleUnit). Сумму считает
-    // общая формула `calcCostAmount` — та же, что применит контракт в signiss2:
-    // упаковкой сумма берётся от числа упаковок, по мере — от базового
-    // количества, оба случая целочисленно.
+    const fact_unit_price = Number.parseFloat(actual_unit_price).toFixed(decimals);
     const fact_cost = calcCostAmount({
       quantity: actual_quantity,
       unit: order.unit_of_measure,
@@ -712,49 +1002,290 @@ export class MarketplaceIssuanceService {
       packageSize: order.package_size,
       decimals,
     });
-    // diff_state по СТОИМОСТИ (цена могла измениться, не только количество):
-    // именно стоимость определяет ветку возврата/доплаты в signiss2.
-    const comparison = compareMoney(fact_cost, order.total_cost, decimals);
-    let diff_state: MarketplaceOrderIssuanceFactSnapshot['diff_state'];
-    if (comparison === 0) diff_state = 'equal';
-    else if (comparison < 0) diff_state = 'less';
-    else diff_state = 'more';
-    return { actual_quantity, fact_unit_price, fact_cost, diff_state };
+    return { actual_quantity, actual_unit_price: fact_unit_price, fact_cost };
   }
 
-  private formatAsset(value: string): string {
-    const amount = Number.parseFloat(value);
-    return `${amount.toFixed(this.assetConfig.decimals)} ${this.assetConfig.symbol}`;
+  /** diff_state — по стоимости: именно она определяет ветку возврата/доплаты на issueact2. */
+  private toFactSnapshot(order: MarketplaceOrderDomainEntity, fact: MarketplaceIssuanceSagaFact): MarketplaceOrderIssuanceFactSnapshot {
+    const cmp = compareMoney(fact.fact_cost, order.total_cost, this.assetConfig.decimals);
+    return {
+      actual_quantity: fact.actual_quantity,
+      fact_unit_price: fact.actual_unit_price,
+      fact_cost: fact.fact_cost,
+      diff_state: cmp === 0 ? 'equal' : cmp < 0 ? 'less' : 'more',
+    };
   }
 
-  private verifyDocumentSignature(document: ISignedDocument): void {
-    if (!document.signatures || document.signatures.length === 0) {
-      throw new HttpApiError(http.BAD_REQUEST, 'Документ не подписан: signatures пуст.');
-    }
-    for (const sig of document.signatures) {
-      const publicKey = PublicKey.from(sig.public_key);
-      const signature = Signature.from(sig.signature);
-      const verified = signature.verifyDigest(sig.signed_hash, publicKey);
-      if (!verified) {
-        throw new HttpApiError(http.BAD_REQUEST, 'Недействительная подпись акта выдачи.');
+  /** Складской учёт после закрытия выдачи — best-effort, не роняет закрытие. */
+  private async settleWarehouse(order: MarketplaceOrderDomainEntity, fact: MarketplaceIssuanceSagaFact): Promise<void> {
+    // Принятое кооперативом считаем ДО складского итога: он переводит позиции
+    // в выданные и в обезличенный остаток, после него принятого по заказу на
+    // складе уже не видно.
+    const receivedByCoop = isStockOrder(order) ? order.quantity : await this.receivedOnWarehouse(order);
+    let releasedToStock = 0;
+    try {
+      if (isStockOrder(order)) {
+        const { released, issued_arrival_cost } = await this.inventoryRepo.finalizeReservedIssue(order.coopname, order.id, fact.actual_quantity, order.price_per_unit);
+        releasedToStock = released;
+        this.logger.log(`Выдача stock-order ${order.id}: выдано ${fact.actual_quantity}, возвращено в остаток ${released} ед.`);
+        await this.submitMarkdownLoss(order, issued_arrival_cost, fact.fact_cost);
+      } else {
+        // Цену прибытия читаем до отделения остатка: после него позиции заказа
+        // перестают быть адресными, и выборка по заказу их уже не найдёт.
+        const arrivalPrice = await this.arrivalPriceOf(order);
+        const detached = await this.inventoryRepo.detachRemainderToStock(order.coopname, order.id, fact.actual_quantity, order.price_per_unit);
+        this.logger.log(`Выдача order ${order.id}: выдано ${fact.actual_quantity}, в обезличенный остаток КУ ушло ${detached} ед.`);
+        // Выдано дешевле цены приёмки (брак внутри упаковки отражён ценой) —
+        // разница выбывает уценкой, иначе она зависла бы на счёте 10.
+        if (arrivalPrice) {
+          const issuedArrivalCost = this.buildFact(order, fact.actual_quantity, arrivalPrice).fact_cost;
+          await this.submitMarkdownLoss(order, issuedArrivalCost, fact.fact_cost);
+        }
       }
+    } catch (err) {
+      this.logger.warn(`Выдача order ${order.id}: не удалось закрыть складские позиции (${this.errMessage(err)}); склад покажет их как остаток до ручной сверки.`);
+    }
+    await this.settleOfferCounters(order, receivedByCoop, releasedToStock);
+  }
+
+  /**
+   * Сколько имущества по заказу поставщик реально передал кооперативу. Чтение
+   * склада не должно ронять выдачу: при сбое считаем, что привезли всё
+   * заказанное — тогда счётчики ведут себя как прежде и заблокированное не
+   * зависает.
+   */
+  private async receivedOnWarehouse(order: MarketplaceOrderDomainEntity): Promise<number> {
+    try {
+      return await this.loadAvailableOnWarehouse(order);
+    } catch (err) {
+      this.logger.warn(
+        `Выдача order ${order.id}: не удалось прочитать принятое на склад (${this.errMessage(err)}); считаю поставку полной.`
+      );
+      return order.quantity;
     }
   }
 
+  /**
+   * Заблокированное заказом уходит из предложения на выдаче: до этого шага
+   * `quantity_blocked` висел бы вечно, а `quantity_consumed` навсегда
+   * оставался нулём — предложение показывало бы выданное как «в заказах».
+   *
+   * Что выбывает, а что возвращается, решает одно правило (см.
+   * `splitBlockedByReceived`): у поставщика выбывает ровно принятое
+   * кооперативом, недопоставленное возвращается ему в свободное — этого
+   * имущества кооператив не получал, оно так и стоит у поставщика. Невыданный
+   * пайщику излишек поставщику не возвращается: он уже оплачен и продаётся
+   * предложением кооператива.
+   *
+   * У заказа из остатка кооператива недопоставки не бывает — имущество уже на
+   * его складе; там возвращается освобождённый резерв, который остался
+   * опубликованным в том же предложении.
+   *
+   * Best-effort, как и складской итог: цепь уже приняла закрывающий акт, и
+   * ронять выдачу из-за счётчика витрины нельзя.
+   */
+  private async settleOfferCounters(
+    order: MarketplaceOrderDomainEntity,
+    receivedByCoop: number,
+    released: number
+  ): Promise<void> {
+    const split = splitBlockedByReceived(order.quantity, receivedByCoop);
+    const consumed = Math.max(0, split.consumed - released);
+    const returned = Number((split.returned + released).toFixed(6));
+    try {
+      if (consumed > 0) {
+        await this.offerCounters.onOrderConsumed(order.offer_id, consumed, orderPackageDelta(order, consumed));
+      }
+      if (returned > 0) {
+        await this.offerCounters.onOrderUnblocked(order.offer_id, returned, orderPackageDelta(order, returned));
+      }
+    } catch (err) {
+      this.logger.warn(
+        `Выдача order ${order.id}: счётчики предложения ${order.offer_id} не сошлись (${this.errMessage(err)}); заблокированное останется висеть до ручной сверки.`
+      );
+    }
+  }
+
+  /**
+   * Уценка по заказу (chain `markdown`, o.mkt.loss). Сумма сначала пишется в
+   * проекцию (`markdown_due`), потом уходит в цепь: сбой отправки не теряет
+   * её — крон повторяет `markdown`, пока цепь не отзеркалит `markdown_cost`,
+   * а закрытие заказа до этого откладывается (задача 99D-15).
+   */
+  private async submitMarkdownLoss(order: MarketplaceOrderDomainEntity, issued_arrival_cost: string, fact_cost: string): Promise<void> {
+    const delta = Number.parseFloat(issued_arrival_cost) - Number.parseFloat(fact_cost);
+    const minStep = 10 ** -this.assetConfig.decimals;
+    if (!Number.isFinite(delta) || delta < minStep) return;
+    const amount = delta.toFixed(this.assetConfig.decimals);
+    try {
+      await this.orderRepo.applyMarkdownDue(order.id, amount);
+    } catch (err) {
+      this.logger.warn(`Заказ ${order.id}: уценка ${amount} не записана в проекцию (${this.errMessage(err)}); повтор по расписанию её не увидит.`);
+    }
+    try {
+      await this.chainPort.markdown({ coopname: order.coopname, order_hash: order.order_hash, amount: this.formatAsset(amount) });
+    } catch (err) {
+      this.logger.warn(`Заказ ${order.id}: списание уценки не прошло (${this.errMessage(err)}); повтор по расписанию.`);
+    }
+  }
+
+  private async assertRecipientVerified(ordererAccount: string): Promise<void> {
+    const verification = await this.verificationPort.checkRequired(ordererAccount, MARKETPLACE_ISSUE_ACTION_CODE);
+    if (!verification.passed) {
+      throw new ConflictException('Выдача невозможна: получатель не прошёл верификацию личности. Сверьте паспорт пайщика, подтвердите его личность и повторите.');
+    }
+  }
+
+  /**
+   * Потолок цены выдачи за единицу отпуска. Заказ из остатка — цена заказа
+   * (сама публикация остатка не выше цены прибытия). Заказ поставщика — цена
+   * прибытия из акта приёмки, по ней имущество числится на счёте 10; без
+   * позиций с ценой прибытия — цена заказа.
+   */
+  private async issuePriceCeiling(order: MarketplaceOrderDomainEntity): Promise<string> {
+    if (isStockOrder(order)) return order.price_per_unit;
+    return (await this.arrivalPriceOf(order)) ?? order.price_per_unit;
+  }
+
+  /** Цена прибытия адресных позиций заказа на складе; нет позиций с ценой — null. */
+  private async arrivalPriceOf(order: MarketplaceOrderDomainEntity): Promise<string | null> {
+    const prices = await this.inventoryRepo.arrivalPriceOnWarehouseByOrders(order.coopname, [order.id]);
+    return prices.get(order.id) ?? null;
+  }
+
+  private async loadAvailableOnWarehouse(order: MarketplaceOrderDomainEntity): Promise<number> {
+    const sums = isStockOrder(order)
+      ? await this.inventoryRepo.sumReservedByOrders(order.coopname, [order.id])
+      : await this.inventoryRepo.sumOnWarehouseByOrders(order.coopname, [order.id]);
+    return sums.get(order.id) ?? 0;
+  }
+
+  private assertWithinWarehouse(order: MarketplaceOrderDomainEntity, requested: number, available: number): void {
+    if (available <= 0) throw new ConflictException(`По заказу ${order.id} нет принятого на склад имущества — выдача недоступна до приёмки поставки.`);
+    if (requested > available) throw new ConflictException(`Нельзя выдать больше, чем принято на склад: доступно ${available}, запрошено ${requested}.`);
+  }
+
+  private async loadOrder(coopname: string, order_id: string): Promise<MarketplaceOrderDomainEntity> {
+    const order = await this.orderRepo.findById(order_id);
+    if (!order || order.coopname !== coopname) throw new NotFoundException(`Заказ ${order_id} не найден.`);
+    return order;
+  }
+
+  private async requireSaga(coopname: string, order_id: string): Promise<MarketplaceIssuanceSagaDomainEntity> {
+    const saga = await this.sagaRepo.findActiveByOrderId(coopname, order_id);
+    if (!saga) throw new ConflictException('Выдача по заказу не начата — оператор должен зафиксировать факт у стойки.');
+    return saga;
+  }
+
+  private assertOrderer(order: MarketplaceOrderDomainEntity, member_account: string): void {
+    if (order.orderer_account !== member_account) throw new ForbiddenException('Заказ принадлежит другому пайщику.');
+  }
+
+  /** Номер решения из инлайн-действия `soviet::newsubmitted` в трассе транзакции. */
+  private decisionIdFromTrace(tx: unknown): string | null {
+    try {
+      const data = findInlineActionData<{ decision_id?: unknown }>(tx, 'newsubmitted', SovietContract.contractName.production);
+      const id = data?.decision_id;
+      return id !== undefined && id !== null && Number(id) > 0 ? String(id) : null;
+    } catch {
+      return null;
+    }
+  }
+
+  private decisionIdFromProtocol(protocol: ISignedDocument | null): string | null {
+    try {
+      const raw = (protocol as any)?.meta;
+      const meta = typeof raw === 'string' ? JSON.parse(raw) : raw;
+      const id = meta?.decision_id;
+      return id !== undefined && id !== null ? String(id) : null;
+    } catch {
+      return null;
+    }
+  }
+
+  private async waitForStage(saga_id: string, stages: MarketplaceIssuanceSagaStage[], timeoutMs: number): Promise<MarketplaceIssuanceSagaDomainEntity> {
+    const deadline = Date.now() + timeoutMs;
+    let last = await this.sagaRepo.findById(saga_id);
+    while (last && !stages.includes(last.stage) && Date.now() < deadline) {
+      await this.sleep(500);
+      last = await this.sagaRepo.findById(saga_id);
+    }
+    if (!last) throw new NotFoundException('Сага выдачи не найдена.');
+    return last;
+  }
+
+  private emitSagaUpdated(saga: MarketplaceIssuanceSagaDomainEntity): void {
+    const event: MarketplaceIssuanceSagaUpdatedEvent = {
+      coopname: saga.coopname,
+      saga_id: saga.id,
+      order_id: saga.order_id,
+      order_hash: saga.order_hash,
+      proposal_id: saga.proposal_id,
+      member_account: saga.member_account,
+      braname: saga.braname,
+      stage: saga.stage,
+      decision_mode: saga.decision_mode,
+    };
+    this.eventBus.emit(MARKETPLACE_ISSUANCE_SAGA_UPDATED_EVENT, event);
+  }
+
+  /** Крипто-проверка подписей: каждая подпись — валидная подпись своего signed_hash. */
+  private verifyDocumentSignature(
+    doc: { signatures: Array<{ signer: string; public_key: string; signature: string; signed_hash: string }> },
+    expectedSigner: string
+  ): void {
+    const signatures = doc.signatures ?? [];
+    if (!signatures.some((s) => s.signer === expectedSigner)) {
+      throw new ForbiddenException(`Документ должен быть подписан учётной записью ${expectedSigner}.`);
+    }
+    for (const sig of signatures) {
+      let ok = false;
+      try {
+        ok = Signature.from(sig.signature).verifyDigest(sig.signed_hash, PublicKey.from(sig.public_key));
+      } catch {
+        ok = false;
+      }
+      if (!ok) throw new ForbiddenException(`Подпись ${sig.signer} не прошла проверку.`);
+    }
+  }
+
+  /**
+   * Хеш транзакции из ответа цепи. Форма ответа зависит от пути: у nodeos он
+   * лежит в `response.transaction_id`, у собранной транзакции — в
+   * `resolved.transaction.id`, у части адаптеров — в `transaction.id`. Разбор
+   * такой же, как в приёмке имущества; читать одно поле нельзя — на другом
+   * пути сага падала бы на пустом хеше при успешно отправленной транзакции.
+   */
   private extractTxHash(tx: unknown): string {
     const candidate = tx as
       | {
           response?: { transaction_id?: string };
           resolved?: { transaction?: { id?: string } };
           transaction?: { id?: string };
+          transaction_id?: string;
+          id?: string;
         }
       | undefined;
-    return (
+    const hash =
       candidate?.response?.transaction_id ??
       candidate?.resolved?.transaction?.id ??
       candidate?.transaction?.id ??
-      ''
-    );
+      candidate?.transaction_id ??
+      candidate?.id;
+    if (!hash) throw new ConflictException('Не получен tx_hash от блокчейна — повторите действие.');
+    return String(hash);
+  }
+
+  private formatAsset(amount: string | number): string {
+    return `${Number.parseFloat(String(amount)).toFixed(this.assetConfig.decimals)} ${this.assetConfig.symbol}`;
+  }
+
+  private errMessage(err: unknown): string {
+    return err instanceof Error ? err.message : String(err);
+  }
+
+  private sleep(ms: number): Promise<void> {
+    return new Promise((r) => setTimeout(r, ms));
   }
 }
 

@@ -15,6 +15,7 @@ import {
   REGISTRATION_OFFER_FILTER_REGISTRY_PORT,
   DOCUMENT_PORT,
   EXPENSE_CHASSIS_PORT,
+  SOVIET_ROBOT_PORT,
   EXTENSION_CONFIG_PORT,
   FREE_DECISION_PORT,
   LEDGER2_HISTORY_PORT,
@@ -48,6 +49,7 @@ import {
   USER_DIRECTORY_PORT,
   USER_WALLET_PORT,
   VAULT_PORT,
+  COOP_CREDENTIAL_PORT,
   PROJECT_COMMUNICATION_ARTIFACTS_PORT,
 } from '@coopenomics/innercoop';
 import { RedisModule } from '~/infrastructure/redis/redis.module';
@@ -110,6 +112,7 @@ import {
   OrganizationInnercoopAdapter,
   IndividualInnercoopAdapter,
 } from '~/infrastructure/innercoop/party-card-innercoop.adapter';
+import { CoopCredentialInnercoopAdapter } from '~/infrastructure/innercoop/coop-credential-innercoop.adapter';
 import { GatewayInfrastructureModule } from '~/infrastructure/gateway/gateway-infrastructure.module';
 import { GatewayModule } from '~/application/gateway/gateway.module';
 import { NotificationModule } from '~/application/notification/notification.module';
@@ -119,6 +122,8 @@ import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 import { ChatCoopExtensionModule } from './chatcoop/chatcoop-extension.module';
 import { CapitalExtensionModule } from './capital/capital-extension.module';
 import { ExpensesExtensionModule } from './expenses/expenses-extension.module';
+import { SovietRobotExtensionModule } from '~/extensions/soviet-robot/soviet-robot-extension.module';
+import { SovietRobotInnercoopAdapter } from '~/extensions/soviet-robot/application/adapters/soviet-robot-innercoop.adapter';
 import { Ledger2Module } from '~/application/ledger2/ledger2.module';
 import { ChatcoopInnercoopProjectCommunicationArtifactsAdapter } from './chatcoop/infrastructure/innercoop/chatcoop-innercoop-project-communication-artifacts.adapter';
 import { ChatcoopInnercoopMatrixRoomMessagingAdapter } from './chatcoop/infrastructure/innercoop/chatcoop-innercoop-matrix-room-messaging.adapter';
@@ -144,6 +149,7 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
     CapitalExtensionModule,
     ChatCoopExtensionModule,
     ExpensesExtensionModule,
+    SovietRobotExtensionModule,
     Ledger2Module,
     RedisModule,
     SystemDomainModule,
@@ -204,6 +210,7 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
     ExtensionConfigInnercoopAdapter,
     ChainResourcesInnercoopAdapter,
     OrganizationInnercoopAdapter,
+    CoopCredentialInnercoopAdapter,
     IndividualInnercoopAdapter,
     {
       provide: PROJECT_COMMUNICATION_ARTIFACTS_PORT,
@@ -224,6 +231,13 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
     {
       provide: EXPENSE_CHASSIS_PORT,
       useExisting: ExpensesInnercoopExpenseChassisAdapter,
+    },
+    {
+      // Робот решений совета: Стол заказов зовёт его напрямую по номеру
+      // решения и ждёт ответ у стойки; без установленного расширения адаптер
+      // отвечает «вручную», и сага уходит в спокойное ожидание решения людей.
+      provide: SOVIET_ROBOT_PORT,
+      useExisting: SovietRobotInnercoopAdapter,
     },
     {
       provide: LEDGER2_HISTORY_PORT,
@@ -316,6 +330,10 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
     {
       provide: VAULT_PORT,
       useExisting: VaultInnercoopAdapter,
+    },
+    {
+      provide: COOP_CREDENTIAL_PORT,
+      useExisting: CoopCredentialInnercoopAdapter,
     },
     {
       provide: BRANCH_PORT,
@@ -425,6 +443,7 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
   ],
   exports: [
     PROJECT_COMMUNICATION_ARTIFACTS_PORT,
+    SOVIET_ROBOT_PORT,
     MATRIX_ROOM_MESSAGING_PORT,
     CHATCOOP_CALENDAR_PORT,
     PROJECT_CAPITAL_CLEARANCE_PORT,
@@ -449,6 +468,7 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
     PROGRAM_WALLET_PORT,
     USER_WALLET_PORT,
     VAULT_PORT,
+    COOP_CREDENTIAL_PORT,
     BRANCH_PORT,
     CHAIN_PORT,
     SECRET_CIPHER_PORT,

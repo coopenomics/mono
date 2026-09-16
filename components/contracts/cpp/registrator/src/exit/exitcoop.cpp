@@ -20,6 +20,10 @@ void registrator::exitcoop(eosio::name coopname, eosio::name username, checksum2
   // выйти может только действующий пайщик (не заблокированный)
   get_participant_or_fail(coopname, username);
 
+  // Программы не должны держать незавершённого: резерв под заказы, открытые
+  // заявки на возврат (задачи 99D-15, 99D-16) — проверки в shared-слое.
+  Core::Registrator::check_member_can_exit(coopname, username);
+
   // повторная подача запрещена — у пайщика может быть только один процесс выхода
   Registrator::exits_index exits(_registrator, coopname.value);
   auto existing = exits.find(username.value);
