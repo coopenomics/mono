@@ -81,12 +81,12 @@ describe('EdubridgeCourseService — конструктор курса', () => {
 
   it('platformCourses: курсы школы с их группами; для других носителей — пусто', async () => {
     const { service } = make();
-    const list = await service.platformCourses(EduAccessCarrier.SKILLSPACE);
+    const list = await service.platformCourses('voskhod', EduAccessCarrier.SKILLSPACE);
     expect(list).toEqual([
       { id: COURSE_UUID, name: 'Тестовый курс [coop]', groups: [{ id: GROUP_UUID, name: 'Группа А' }] },
       { id: 'aaaaaaaa-0000-4000-8000-000000000001', name: 'Другой', groups: [] },
     ]);
-    expect(await service.platformCourses(EduAccessCarrier.GETCOURSE)).toEqual([]);
+    expect(await service.platformCourses('voskhod', EduAccessCarrier.GETCOURSE)).toEqual([]);
   });
 
   it('преподаватель без договора УХД — отказ с именем', async () => {
