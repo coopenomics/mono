@@ -1,9 +1,9 @@
 <template>
   <AuthSplit
     :eyebrow="coopTitle"
-    title="С возвращением"
-    lead="Личный кабинет пайщика: приложения целевых потребительских программ и общие собрания пайщиков кооператива."
-    quote="Общее собрание пайщиков — высший орган управления кооперативом."
+    :title="LOGIN_PANE.title"
+    :lead="LOGIN_PANE.lead"
+    :quote="LOGIN_PANE.quote"
     step-eyebrow="Вход"
     :heading="title"
     :text="subtitle"
@@ -24,7 +24,7 @@
 <script lang="ts" setup>
 import { computed } from 'vue';
 import { LoginForm } from 'src/features/User/LoginUser/ui/LoginForm';
-import { useLoginStepHeading } from 'src/features/User/LoginUser';
+import { LOGIN_PANE, useLoginStepHeading } from 'src/features/User/LoginUser';
 import { useSystemStore } from 'src/entities/System/model';
 import { AuthSplit } from 'src/shared/ui/layout/AuthSplit';
 

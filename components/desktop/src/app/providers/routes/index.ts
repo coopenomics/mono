@@ -65,6 +65,7 @@ const baseRoutes: RouteRecordRaw[] = [
         component: CoopidFlowPage,
         children: [],
         meta: {
+          authSplit: true,
           title: 'Вход',
           icon: 'login',
           requiresAuth: false,
@@ -149,6 +150,7 @@ const baseRoutes: RouteRecordRaw[] = [
         component: NotMePage,
         children: [],
         meta: {
+          authSplit: true,
           title: 'Защита аккаунта',
           icon: 'security',
           widget: {
@@ -227,6 +229,7 @@ const baseRoutes: RouteRecordRaw[] = [
         name: 'login-redirect',
         component: LoginRedirectPage,
         meta: {
+          authSplit: true,
           layout: 'default',
           title: 'Вход для доступа к содержимому',
           icon: 'fa-solid fa-lock',

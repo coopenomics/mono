@@ -1,6 +1,15 @@
 <template lang="pug">
 .not-me-page
-  AuthCard(title='Это не я', subtitle='Защита аккаунта')
+  AuthSplit(
+    :eyebrow='coopTitle',
+    title='Защита аккаунта',
+    lead='Ссылка из письма о входе с нового устройства завершает все сессии аккаунта.',
+    quote='Ссылка одноразовая и живёт ограниченное время.',
+    step-eyebrow='Защита аккаунта',
+    heading='Это не я'
+  )
+    template(#actions)
+      AuthActions
     .not-me__body
       template(v-if='state === "pending"')
         q-spinner(size='28px', color='primary')
@@ -18,14 +27,15 @@
         p.not-me__text {{ errorMessage }}
         p.not-me__hint Ссылка одноразовая и живёт ограниченное время. Если сессии не завершились — войдите и завершите их на странице настроек.
 
-    template(#footer)
-      BaseButton(variant='primary', @click='goToSignIn') Войти
+    BaseButton(v-if='state !== "pending"', variant='primary', block, @click='goToSignIn') Войти
 </template>
 
 <script lang="ts" setup>
-import { onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { AuthCard } from 'src/shared/ui/domain/AuthCard';
+import { AuthSplit } from 'src/shared/ui/layout/AuthSplit';
+import { AuthActions } from 'src/widgets/Registrator/AuthActions';
+import { useSystemStore } from 'src/entities/System/model';
 import { BaseButton } from 'src/shared/ui/base/BaseButton';
 import { env } from 'src/shared/config';
 
@@ -38,6 +48,8 @@ import { env } from 'src/shared/config';
 
 const route = useRoute();
 const router = useRouter();
+const systemStore = useSystemStore();
+const coopTitle = computed(() => systemStore.cooperativeDisplayName);
 
 const state = ref<'pending' | 'done' | 'error'>('pending');
 const revoked = ref(0);
@@ -71,19 +83,13 @@ function goToSignIn(): void {
 
 <style scoped>
 .not-me-page {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: var(--p-6);
-  min-height: 100%;
+  min-height: inherit;
 }
 .not-me__body {
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: flex-start;
   gap: var(--p-3);
-  text-align: center;
-  padding: var(--p-4) 0;
 }
 .not-me__text {
   margin: 0;
