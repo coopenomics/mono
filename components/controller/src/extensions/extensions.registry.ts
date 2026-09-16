@@ -467,7 +467,6 @@ export const AppRegistry: INamedExtension = {
     },
   },
   edubridge: {
-    is_builtin: false,
     is_internal: true,
     // Обкатка на тестовом контуре; в основной сети — после приёмки MVP.
     availability: ExtensionAvailability.NON_MAINNET_ONLY,
