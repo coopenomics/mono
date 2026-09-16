@@ -4,7 +4,7 @@
  * Покрывают (после фикса персонализации оферты):
  *   (a) оферта регистрируется на ПЕРСОНАЛЬНЫЙ инстанс
  *       MARKETPLACE_OFFER_INSTANCE_REGISTRY_ID (1102.MarketplaceOffer), НЕ на
- *       шаблоне 1101.MarketplaceOfferTemplate; applicable_account_types пустой
+ *       бланке 1102.MarketplaceOffer (двойник 1101 выведен); applicable_account_types пустой
  *       (подтягивается только через программу); функция возвращает true.
  *   (b) если instance_registry_id занулить (ЦПП не активирована) → port не
  *       вызывается, функция возвращает false.

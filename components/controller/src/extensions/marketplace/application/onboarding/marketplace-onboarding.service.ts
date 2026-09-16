@@ -11,7 +11,7 @@ import type { ISignedDocument } from '@coopenomics/innercoop';
 
 import {
   MARKETPLACE_AGREEMENT_TYPE,
-  MARKETPLACE_OFFER_TEMPLATE_REGISTRY_ID,
+  MARKETPLACE_OFFER_INSTANCE_REGISTRY_ID,
 } from '../../constants/marketplace-agreement-ids';
 import { MarketplaceOnboardingSource, MarketplaceOnboardingStateDTO } from '../dto/marketplace-onboarding-state.dto';
 import { platformSettings } from '@coopenomics/extension-kit';
@@ -47,7 +47,7 @@ export class MarketplaceOnboardingService {
   }
 
   async getOnboardingState(username: string): Promise<MarketplaceOnboardingStateDTO> {
-    const templateRegistryId = MARKETPLACE_OFFER_TEMPLATE_REGISTRY_ID;
+    const templateRegistryId = MARKETPLACE_OFFER_INSTANCE_REGISTRY_ID;
 
     if (templateRegistryId <= 0) {
       // Шаблона оферты нет — подписывать нечего. Это состояние кооператива:
@@ -126,7 +126,7 @@ export class MarketplaceOnboardingService {
     username: string;
     document: ISignedDocument;
   }): Promise<InnerTransactResult> {
-    if (MARKETPLACE_OFFER_TEMPLATE_REGISTRY_ID <= 0) {
+    if (MARKETPLACE_OFFER_INSTANCE_REGISTRY_ID <= 0) {
       throw new BadRequestException(
         'ЦПП «Стол заказов» ещё не активирована (Story 1.7 не выполнена): подписание оферты невозможно'
       );

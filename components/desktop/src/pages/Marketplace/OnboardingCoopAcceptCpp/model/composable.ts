@@ -18,7 +18,7 @@ import {
  *
  * Два документа утверждаются Советом по очереди (free-decision):
  *  1. Положение ЦПП «Стол заказов»   — cooptypes 1100.MarketplaceProgramTemplate;
- *  2. Шаблон публичной оферты ЦПП     — cooptypes 1101.MarketplaceOfferTemplate.
+ *  2. Шаблон публичной оферты ЦПП     — бланк cooptypes 1102.MarketplaceOfferTemplate.
  *
  * Статус каждого шага приходит с бэкенда (`done`/`hash`) и обновляется по
  * РЕАЛЬНОМУ ончейн-решению совета. Когда оба шага done — расширение

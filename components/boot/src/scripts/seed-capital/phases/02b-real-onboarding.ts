@@ -69,11 +69,11 @@ const STEPS: IStep[] = [
   },
   {
     id: 'generation_contract_template',
-    registry_id: 997,
+    registry_id: 1001,
     doneFlag: 'generation_contract_template_done',
     hashFlag: 'onboarding_generation_contract_template_hash',
-    title: 'Шаблон договора участия в хозяйственной деятельности',
-    question: 'О утверждении шаблона договора участия в хозяйственной деятельности',
+    title: 'Договор участия в хозяйственной деятельности',
+    question: 'О утверждении формы договора участия в хозяйственной деятельности',
   },
   {
     id: 'blagorost_program',
@@ -85,7 +85,7 @@ const STEPS: IStep[] = [
   },
   {
     id: 'generator_offer_template',
-    registry_id: 995,
+    registry_id: 996,
     doneFlag: 'generator_offer_template_done',
     hashFlag: 'onboarding_generator_offer_template_hash',
     title: 'Шаблон пользовательского соглашения (оферты) по участию в целевой потребительской программе "ГЕНЕРАТОР"',
@@ -93,7 +93,7 @@ const STEPS: IStep[] = [
   },
   {
     id: 'blagorost_offer_template',
-    registry_id: 999,
+    registry_id: 1000,
     doneFlag: 'blagorost_offer_template_done',
     hashFlag: 'onboarding_blagorost_offer_template_hash',
     title: 'Пользовательское соглашение (оферта) по ЦПП «БЛАГОРОСТ»',
@@ -165,23 +165,16 @@ export async function phase02b(): Promise<void> {
       continue
     }
 
-    // 2. Сгенерировать фабричный документ (положение или оферта).
-    log(`[${step.id}] фабрика documentRegistry=${step.registry_id}`)
-    const docResp = await client.Mutation(
-      Mutations.Documents.GenerateDocument.mutation,
+    // 2. Бланк рабочего документа из фабрики утверждений — тот же текст, что
+    //    уйдёт в решение совета (шаблоны-двойники 995/997/999 выведены).
+    log(`[${step.id}] бланк documentRegistry=${step.registry_id}`)
+    const blankResp = await client.Query(
+      Queries.DocumentApprovals.DocumentTemplateBlank.query,
       {
-        variables: {
-          input: {
-            data: {
-              coopname: COOPNAME,
-              username: CHAIRMAN,
-              registry_id: step.registry_id,
-            },
-          },
-        } as Mutations.Documents.GenerateDocument.IInput,
-      },
-    ) as Record<string, { hash: string, html: string, full_title: string }>
-    const generatedDoc = docResp[Mutations.Documents.GenerateDocument.name]
+        variables: { coopname: COOPNAME, registry_id: step.registry_id, edition: 'Current' },
+      } as unknown as Queries.DocumentApprovals.DocumentTemplateBlank.IInput,
+    ) as Record<string, { text_hash: string, html: string, title: string }>
+    const generatedDoc = blankResp[Queries.DocumentApprovals.DocumentTemplateBlank.name]
 
     // 3. Завершить шаг адаптации — controller сам propose-ит решение совета на цепочке.
     log(`[${step.id}] CompleteOnboardingStep`)

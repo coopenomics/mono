@@ -16,6 +16,7 @@ sources:
     - components/contracts/cpp/soviet/src/agreement/sndagreement.cpp
     - components/contracts/cpp/wallet/src/agreement/signagree.cpp
   backend:
+    - components/factory/src/Templates/registry.ts
     - components/factory/src/Factory/index.ts
     - components/factory/src/Services/Templator/index.ts
     - components/controller/src/domain/document-approval/**
@@ -349,4 +350,20 @@ cases:
     scenario: Реестр шаблонов кооператива, не являющегося оператором платформы
     expect: оферта о присоединении к платформе (50) в реестре отсутствует — её утверждает совет оператора, остальные кооперативы её только принимают
     test: components/controller/tests/unit/document-approval/document-declarations-registry.test.ts
+    status: written
+
+  - id: doc.appr.happy.20
+    level: backend
+    kind: happy
+    scenario: Бланк оферты ЦПП (Благорост, Генератор) для совета с хэшем параметров программы
+    expect: параметры программы подставлены из приватных данных по хэшу, поля пайщика и дата — прочерк; без хэша параметры остаются прочерком
+    test: components/factory/test/blagorost.test.ts
+    status: written
+
+  - id: doc.appr.side.20
+    level: backend
+    kind: side
+    scenario: Шаблоны-двойники «для утверждения» (995, 997, 999, 1101) выведены из реестра
+    expect: генератор их не знает, синхронизатор шаблонов записи в сети не трогает и сообщает о них как «в сети, но не в реестре»; рабочие документы 996, 1000, 1001, 1102 собираются как прежде
+    test: components/factory/test/documents-1000-plus.test.ts
     status: written

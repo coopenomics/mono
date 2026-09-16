@@ -173,13 +173,10 @@ export class Generator implements IGenerator {
 
       // ЦПП ГЕНЕРАТОР
       [Actions.GeneratorProgramTemplate.Template.registry_id]: new Actions.GeneratorProgramTemplate.Factory(this.storage), // 994
-      [Actions.GeneratorOfferTemplate.Template.registry_id]: new Actions.GeneratorOfferTemplate.Factory(this.storage), // 995
       [Actions.GeneratorOffer.Template.registry_id]: new Actions.GeneratorOffer.Factory(this.storage), // 996
 
       // ЦПП БЛАГОРОСТ
-      [Actions.GenerationContractTemplate.Template.registry_id]: new Actions.GenerationContractTemplate.Factory(this.storage), // 997
       [Actions.BlagorostProgramTemplate.Template.registry_id]: new Actions.BlagorostProgramTemplate.Factory(this.storage), // 998
-      [Actions.BlagorostOfferTemplate.Template.registry_id]: new Actions.BlagorostOfferTemplate.Factory(this.storage), // 999
       [Actions.BlagorostOffer.Template.registry_id]: new Actions.BlagorostOffer.Factory(this.storage), // 1000
 
       [Actions.GenerationContract.Template.registry_id]: new Actions.GenerationContract.Factory(this.storage), // 1001
@@ -223,7 +220,6 @@ export class Generator implements IGenerator {
 
       // Marketplace (Стол заказов) — Эпик 1: онбординг ЦПП
       [Actions.MarketplaceProgramTemplate.Template.registry_id]: new Actions.MarketplaceProgramTemplate.Factory(this.storage), // 1100 — Положение ЦПП
-      [Actions.MarketplaceOfferTemplate.Template.registry_id]: new Actions.MarketplaceOfferTemplate.Factory(this.storage), // 1101
       [Actions.MarketplaceOffer.Template.registry_id]: new Actions.MarketplaceOffer.Factory(this.storage), // 1102
 
       // Marketplace (Стол заказов) — Эпик 5

@@ -45,9 +45,7 @@ const FREE_DECISION_REGISTRY_ID = Cooperative.Registry.FreeDecision.registry_id
 
 // registry_id документов шагов. Источник — desktop
 // pages/Marketplace/OnboardingCoopAcceptCpp/model/composable.ts (STEP_REGISTRY):
-// именно эти документы рендерит интерфейс. В комментарии бэкендового
-// register-marketplace-onboarding-steps.ts указаны 1099/1100 — это устаревшая
-// подпись, фабрики для 1099 не существует вовсе.
+// именно эти документы показывает интерфейс как бланк фабрики утверждений.
 const STEP_DOCS: Record<string, { registry_id: number, title: string, question: string }> = {
   marketplace_provision: {
     registry_id: 1100,
@@ -55,8 +53,8 @@ const STEP_DOCS: Record<string, { registry_id: number, title: string, question: 
     question: 'Об утверждении Положения о целевой потребительской программе «Стол заказов»',
   },
   marketplace_offer_template: {
-    registry_id: 1101,
-    title: 'Шаблон публичной оферты ЦПП «Стол заказов»',
+    registry_id: 1102,
+    title: 'Публичная оферта ЦПП «Стол заказов»',
     question: 'Об утверждении шаблона публичной оферты по присоединению пайщиков к ЦПП «Стол заказов»',
   },
 }
@@ -138,13 +136,13 @@ export async function phase01(): Promise<void> {
     else {
 
     // 1. Фабричный документ шага.
-    log(`[${step.step_key}] фабрика registry_id=${doc.registry_id}`)
-    const docResp = await client.Mutation(Mutations.Documents.GenerateDocument.mutation, {
-      variables: {
-        input: { data: { coopname: COOPNAME, username: CHAIRMAN, registry_id: doc.registry_id } },
-      } as Mutations.Documents.GenerateDocument.IInput,
-    }) as Record<string, { hash: string, html: string, full_title: string }>
-    const generated = docResp[Mutations.Documents.GenerateDocument.name]
+    // Бланк рабочего документа из фабрики утверждений — тот же текст, что уйдёт
+    // в решение совета (шаблон-двойник оферты 1101 выведен).
+    log(`[${step.step_key}] бланк registry_id=${doc.registry_id}`)
+    const blankResp = await client.Query(Queries.DocumentApprovals.DocumentTemplateBlank.query, {
+      variables: { coopname: COOPNAME, registry_id: doc.registry_id, edition: 'Current' },
+    } as unknown as Queries.DocumentApprovals.DocumentTemplateBlank.IInput) as Record<string, { text_hash: string, html: string, title: string }>
+    const generated = blankResp[Queries.DocumentApprovals.DocumentTemplateBlank.name]
 
     // 2. Публикация проекта решения совета.
     log(`[${step.step_key}] completeExtensionOnboardingStep`)

@@ -173,7 +173,7 @@ export class MarketplaceExtension extends BaseExtensionModule {
    * тот же, через который Capital регистрирует свои оферты. Записи реестра
    * автоматически зачищаются при `EXTENSION_APP_TERMINATE_EVENT`.
    *
-   * Пока `MARKETPLACE_OFFER_TEMPLATE_REGISTRY_ID` остаётся placeholder'ом
+   * Пока `MARKETPLACE_OFFER_INSTANCE_REGISTRY_ID` остаётся placeholder'ом
    * (Story 1.7 не выполнена) — функция возвращает false, регистрация
    * пропускается с info-логом; SignUp не предлагает оферту marketplace.
    */
@@ -184,7 +184,7 @@ export class MarketplaceExtension extends BaseExtensionModule {
         this.logger.info('[MARKETPLACE.REGISTRY] зарегистрирована 1 оферта marketplace');
       } else {
         this.logger.info(
-          '[MARKETPLACE.REGISTRY] MARKETPLACE_OFFER_TEMPLATE_REGISTRY_ID не задан (Story 1.7 не выполнена) — оферта не регистрируется'
+          '[MARKETPLACE.REGISTRY] MARKETPLACE_OFFER_INSTANCE_REGISTRY_ID не задан (Story 1.7 не выполнена) — оферта не регистрируется'
         );
       }
     } catch (error: unknown) {

@@ -20,14 +20,11 @@ export * as ReturnByMoneyDecision from './901.ReturnByMoneyDecision'
 
 export * as GeneratorProgramTemplate from './994.GeneratorProgramTemplate'
 // Двойник «для утверждения» оферты 996: совет утверждает рабочую оферту в бланке (фабрика утверждений, компонент 66). Не объявлять в реестре шаблонов кооператива; остаётся для переизготовления старых документов.
-export * as GeneratorOfferTemplate from './995.GeneratorOfferTemplate'
 export * as GeneratorOffer from './996.GeneratorOffer'
 export * as BlagorostOffer from './1000.BlagorostOffer'
 export * as BlagorostProgramTemplate from './998.BlagorostProgramTemplate'
 // Двойник «для утверждения» оферты 1000: совет утверждает рабочую оферту в бланке. Не объявлять; остаётся для старых документов.
-export * as BlagorostOfferTemplate from './999.BlagorostOfferTemplate'
 // Двойник «для утверждения» договора 1001: совет утверждает рабочий договор в бланке. Не объявлять; остаётся для старых документов.
-export * as GenerationContractTemplate from './997.GenerationContractTemplate'
 export * as GenerationContract from './1001.GenerationContract'
 export * as ProjectGenerationContract from './1002.ProjectGenerationContract'
 export * as ComponentGenerationContract from './1003.ComponentGenerationContract'
@@ -71,7 +68,6 @@ export * as CapitalizationToMainWalletConvertStatement from './1090.Capitalizati
 // Положение ЦПП «Стол заказов» (онбординг — первый документ, утверждаемый Советом)
 export * as MarketplaceProgramTemplate from './1100.MarketplaceProgramTemplate'
 // Двойник «для утверждения» оферты 1102: совет утверждает рабочую оферту в бланке. Не объявлять; остаётся для старых документов.
-export * as MarketplaceOfferTemplate from './1101.MarketplaceOfferTemplate'
 export * as MarketplaceOffer from './1102.MarketplaceOffer'
 export * as MarketplaceTransportNote from './1103.MarketplaceTransportNote'
 export * as MarketplaceAplReception from './1104.MarketplaceAplReception'
@@ -110,3 +106,11 @@ export * as BranchTrustedLiabilityAgreement from './327.BranchTrustedLiabilityAg
 export * as BranchTrusteeLiabilityAgreement from './328.BranchTrusteeLiabilityAgreement'
 export * as BranchTrusteePowerOfAttorney from './329.BranchTrusteePowerOfAttorney'
 export * as BranchTrustedPowerOfAttorney from './330.BranchTrustedPowerOfAttorney'
+
+/**
+ * Выведенные номера реестра (16.09.2026): 995, 997, 999, 1101 — шаблоны-двойники
+ * «для утверждения советом» оферт Генератора, Благороста, Стола заказов и договора
+ * Генерации. Совет утверждает рабочий документ (996, 1001, 1000, 1102) в виде
+ * бланка: те же шаблон и переводы, поля пайщика и события — прочерком. Номера
+ * не переиспользовать: в действующих сетях их записи остаются.
+ */

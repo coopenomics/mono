@@ -71,13 +71,9 @@ import * as BranchTrusteePowerOfAttorney from './329.BranchTrusteePowerOfAttorne
 import * as BranchTrustedPowerOfAttorney from './330.BranchTrustedPowerOfAttorney'
 
 import * as BlagorostProgramTemplate from './998.BlagorostProgramTemplate'
-import * as BlagorostOfferTemplate from './999.BlagorostOfferTemplate'
-import * as GenerationContractTemplate from './997.GenerationContractTemplate'
-import * as GeneratorOfferTemplate from './995.GeneratorOfferTemplate'
 import * as GeneratorOffer from './996.GeneratorOffer'
 import * as GeneratorProgramTemplate from './994.GeneratorProgramTemplate'
 import * as BlagorostOffer from './1000.BlagorostOffer'
-import * as MarketplaceOfferTemplate from './1101.MarketplaceOfferTemplate'
 import * as MarketplaceOffer from './1102.MarketplaceOffer'
 import * as MarketplaceTransportNote from './1103.MarketplaceTransportNote'
 import * as MarketplaceAplReception from './1104.MarketplaceAplReception'
@@ -128,11 +124,8 @@ export const Registry = {
   900: ReturnByMoney,
   901: ReturnByMoneyDecision,
   994: GeneratorProgramTemplate,
-  995: GeneratorOfferTemplate,
   996: GeneratorOffer,
-  997: GenerationContractTemplate,
   998: BlagorostProgramTemplate,
-  999: BlagorostOfferTemplate,
   1000: BlagorostOffer,
   1001: GenerationContract,
   1002: ProjectGenerationContract,
@@ -160,7 +153,6 @@ export const Registry = {
   1080: GenerationConvertStatement,
   1090: CapitalizationToMainWalletConvertStatement,
   1100: MarketplaceProgramTemplate,
-  1101: MarketplaceOfferTemplate,
   1102: MarketplaceOffer,
   1103: MarketplaceTransportNote,
   1104: MarketplaceAplReception,
