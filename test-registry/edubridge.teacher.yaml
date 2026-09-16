@@ -23,6 +23,9 @@ sources:
     - components/controller/src/extensions/edubridge/infrastructure/entities/edubridge-teacher-assignment.entity.ts
     - components/controller/src/extensions/edubridge/application/resolvers/edubridge-teacher.resolver.ts
     - components/controller/src/extensions/edubridge/application/dto/edu-teacher.dto.ts
+    - components/cooptypes/src/cooperative/registry/3005.EducationParticipationContractTemplate/**
+    - components/cooptypes/src/cooperative/registry/3006.EducationParticipationContract/**
+    - components/factory/src/Actions/3006.EducationParticipationContract.ts
   ui:
     - components/desktop/extensions/edubridge/pages/TeacherAssignmentsPage/**
     - components/desktop/extensions/edubridge/pages/TeacherContributionsPage/**
@@ -114,3 +117,11 @@ cases:
     expect: "После подписи председателя без перезагрузки статусы обновляются по данным сервера."
     test: ~
     status: missing
+  - id: edu.teacher.doc.01
+    level: backend
+    kind: happy
+    scenario: "Рыба договора УХД (3005) и экземпляр (3006) генерируются фабрикой по редакции владельца «Договор УХД_Преподаватели_ПВ»: 9 разделов, 12 терминов, реквизиты сторон и Дополнительные условия по ответственному хранению Имущества."
+    expect: "Текст разделов 1–9 и Дополнительных условий в рыбе и экземпляре совпадает дословно; экземпляр подставляет номер, дату, протокол утверждения рыбы и пайщика без незаполненных мест; рыба — прочерками; повторная генерация даёт тот же хэш."
+    test: components/factory/test/education-contract.test.ts
+    status: written
+
