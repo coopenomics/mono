@@ -1,8 +1,16 @@
 <template>
-  <AuthCard
+  <AuthSplit
+    :eyebrow="coopTitle"
     title="Восстановление доступа"
-    subtitle="Введите электронную почту — пришлём ссылку для восстановления"
+    lead="Пришлём на почту ссылку — по ней вы зададите новый пароль и войдёте в кабинет."
+    quote="Ссылка действует пять минут и открывается один раз."
+    step-eyebrow="Восстановление"
+    heading="Куда прислать ссылку"
+    text="Введите электронную почту, на которую зарегистрирован аккаунт."
   >
+    <template v-if="$slots['pane-foot']" #pane-foot>
+      <slot name="pane-foot" />
+    </template>
     <BaseBanner v-if="sent" variant="pos">
       Если этот адрес зарегистрирован, мы отправили на него ссылку для восстановления
       доступа. Откройте письмо и перейдите по ссылке — она действует 5 минут.
@@ -26,21 +34,24 @@
         Отправить ссылку
       </BaseButton>
     </BaseForm>
-    <template v-if="$slots.footer" #footer>
+    <template v-if="$slots.footer" #foot>
       <slot name="footer" />
     </template>
-  </AuthCard>
+  </AuthSplit>
 </template>
 
 <script lang="ts" setup>
 import { computed, ref } from 'vue';
 import { useCreateUser } from 'src/features/User/CreateUser';
 import { useRecoverAccess } from 'src/features/User/RecoverAccess';
+import { useSystemStore } from 'src/entities/System/model';
 import { FailAlert } from 'src/shared/api';
-import { AuthCard } from 'src/shared/ui/domain/AuthCard';
+import { AuthSplit } from 'src/shared/ui/layout/AuthSplit';
 
 const { requestRecovery } = useRecoverAccess();
 const { emailIsValid } = useCreateUser();
+const systemStore = useSystemStore();
+const coopTitle = computed(() => systemStore.cooperativeDisplayName);
 
 const email = ref('');
 const loading = ref(false);

@@ -4,7 +4,11 @@
     :account="account"
     :loading="loading"
     @submit="onSubmit"
-  />
+  >
+    <template #footer>
+      <a class="auth-link" href="#" @click.prevent="goToSignIn">Вернуться ко входу</a>
+    </template>
+  </ResetKeyForm>
 </template>
 
 <script setup lang="ts">
@@ -33,6 +37,10 @@ const account = ref<IGeneratedAccount | null>(
 );
 
 const loading = ref(false);
+
+function goToSignIn(): void {
+  void router.push({ name: 'signin' });
+}
 
 async function onSubmit(): Promise<void> {
   if (!account.value || !token.value) return;
