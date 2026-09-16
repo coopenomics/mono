@@ -91,3 +91,21 @@ export interface IUpversion {
   username: IName
   registry_id: IUint64
 }
+
+export interface IApprove {
+  coopname: IName
+  username: IName
+  registry_id: IUint64
+  version: IUint64
+  decision_id: IUint64
+  approved_at: string
+  text_hash: string
+}
+
+export interface IDraftapproval {
+  registry_id: IUint64
+  version: IUint64
+  decision_id: IUint64
+  approved_at: string
+  text_hash: string
+}
