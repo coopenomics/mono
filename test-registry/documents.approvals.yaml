@@ -1,0 +1,103 @@
+feature: documents.approvals
+title: Фабрика утверждений документов — утверждённые советом редакции шаблонов
+
+# Совет кооператива утверждает редакцию шаблона документа решением; пока
+# утверждения нет, пайщикам предъявляется и в подпись пишется последняя
+# утверждённая редакция, а не текущая редакция сети. Утверждение живёт в цепи
+# (draft::approvals, область кооператива), текст шаблона по кооперативам не
+# дублируется. Реестр шаблонов кооператива собирается из деклараций ядра и
+# установленных приложений. Архитектура — компонент 66 проекта 13 (blago),
+# задачи A3D-1 … A3D-13.
+
+sources:
+  contract:
+    - components/contracts/cpp/draft/**
+    - components/contracts/cpp/lib/domain/table_draft_approvals.hpp
+    - components/contracts/cpp/soviet/src/agreement/sndagreement.cpp
+    - components/contracts/cpp/wallet/src/agreement/signagree.cpp
+  backend:
+    - components/controller/src/domain/document-approval/**
+    - components/controller/src/extensions/capital/application/onboarding/register-capital-documents.ts
+    - components/controller/src/extensions/marketplace/application/onboarding/register-marketplace-documents.ts
+    - components/innercoop/src/core-ports/document-declaration.port.ts
+
+cases:
+  - id: doc.appr.happy.01
+    level: contract
+    kind: happy
+    scenario: Кооператив утверждает текущую редакцию шаблона решением совета
+    expect: в approvals кооператива строка с номером редакции, решения и датой; повторное утверждение обновляет строку
+    test: components/boot/src/tests/adjust/probe-draft-approve.ts
+    status: passing
+
+  - id: doc.appr.side.01
+    level: contract
+    kind: side
+    scenario: Утверждается редакция, не совпадающая с текущей в сети, или несуществующий шаблон, или без номера решения
+    expect: отказ с понятным сообщением, строка не создаётся
+    test: components/boot/src/tests/adjust/probe-draft-approve.ts
+    status: passing
+
+  - id: doc.appr.side.02
+    level: contract
+    kind: side
+    scenario: Утверждение отправлено в область самого контракта draft, а не кооператива
+    expect: отказ
+    test: components/boot/src/tests/adjust/probe-draft-approve.ts
+    status: passing
+
+  - id: doc.appr.happy.02
+    level: contract
+    kind: happy
+    scenario: Оператор поднял редакцию в сети, совет кооператива её ещё не утвердил; пайщик подписывает соглашение (sndagreement и signagree)
+    expect: в подпись записана утверждённая редакция, а не текущая редакция сети
+    test: components/boot/src/tests/adjust/probe-effective-version.ts
+    status: passing
+
+  - id: doc.appr.happy.03
+    level: contract
+    kind: happy
+    scenario: Совет утвердил новую редакцию; пайщик переподписывает
+    expect: в подпись записана новая редакция
+    test: components/boot/src/tests/adjust/probe-effective-version.ts
+    status: passing
+
+  - id: doc.appr.side.03
+    level: contract
+    kind: side
+    scenario: У кооператива нет строки утверждения (переходный режим до миграции)
+    expect: в подпись пишется текущая редакция сети, как прежде
+    test: components/boot/src/tests/adjust/probe-effective-version.ts
+    status: passing
+
+  - id: doc.appr.happy.04
+    level: backend
+    kind: happy
+    scenario: Ядро при старте объявляет базовый набор документов; расширение объявляет свои документы при запуске
+    expect: реестр шаблонов кооператива содержит ядро и документы установленных приложений, ядро первым
+    test: components/controller/tests/unit/document-approval/document-declarations-registry.test.ts
+    status: written
+
+  - id: doc.appr.side.04
+    level: backend
+    kind: side
+    scenario: Расширение остановлено
+    expect: его декларации сняты, документы ядра остаются
+    test: components/controller/tests/unit/document-approval/document-declarations-registry.test.ts
+    status: written
+
+  - id: doc.appr.side.05
+    level: backend
+    kind: side
+    scenario: Один шаблон объявляют два расширения
+    expect: ошибка конфигурации на старте, второй владелец отвергнут
+    test: components/controller/tests/unit/document-approval/document-declarations-registry.test.ts
+    status: written
+
+  - id: doc.appr.side.06
+    level: backend
+    kind: side
+    scenario: Расширение перезапустилось и объявило тот же шаблон заново
+    expect: запись заменена, дублей нет
+    test: components/controller/tests/unit/document-approval/document-declarations-registry.test.ts
+    status: written

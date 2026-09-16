@@ -9,7 +9,7 @@
 экспорта, исчезнувший метод, новый обязательный параметр требуют major, а
 снятое старое — периода устаревания не меньше одного minor (INV-009).
 
-Всего экспортов: 267.
+Всего экспортов: 272.
 
 ## ACCOUNT_PORT
 
@@ -143,6 +143,12 @@
 `const` · hooks
 
 - `Symbol.for('Innercoop.CorePort.DesktopGrantsRegistry')`
+
+## DOCUMENT_DECLARATION_PORT
+
+`const` · core-ports
+
+- `Symbol.for('Innercoop.CorePort.DocumentDeclaration')`
 
 ## DOCUMENT_PORT
 
@@ -344,6 +350,13 @@
 `interface` · hooks
 
 - `register(provider: IDesktopGrantsHook): void`
+
+## IDocumentDeclarationPort
+
+`interface` · core-ports
+
+- `registerDocuments(declarations: InnerDocumentDeclaration[]): Promise<void>`
+- `unregisterByExtension(extension_name: string): Promise<void>`
 
 ## IDocumentPort
 
@@ -787,6 +800,31 @@
 - `hash: string`
 - `document: ISignedDocument & Record<string, any>`
 - `rawDocument?: InnerGeneratedDocument`
+
+## InnerDocumentApproval
+
+`type` · core-ports
+
+- `'required' | 'none'`
+
+## InnerDocumentDeclaration
+
+`interface` · core-ports
+
+- `extension_name: string`
+- `registry_id: number`
+- `kind: InnerDocumentKind`
+- `approval: InnerDocumentApproval`
+- `bundle?: string`
+- `vars_field?: string`
+- `title?: string`
+- `order: number`
+
+## InnerDocumentKind
+
+`type` · core-ports
+
+- `'agreement' | 'provision' | 'form' | 'service'`
 
 ## InnerDocumentValidation
 

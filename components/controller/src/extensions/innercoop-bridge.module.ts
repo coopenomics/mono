@@ -23,6 +23,7 @@ import {
   MESSAGE_CHANNEL_PORT,
   MUTATION_LOG_PORT,
   ONBOARDING_STEP_REGISTRY_PORT,
+  DOCUMENT_DECLARATION_PORT,
   NOTIFICATION_PORT,
   PAYMENT_PORT,
   INDIVIDUAL_PORT,
@@ -80,6 +81,7 @@ import { WalletModule } from '~/application/wallet/wallet.module';
 import { VaultInnercoopAdapter } from '~/infrastructure/innercoop/vault-innercoop.adapter';
 import { VaultDomainModule } from '~/domain/vault/vault-domain.module';
 import { OnboardingStepsRegistryService } from '~/domain/onboarding/services/onboarding-steps-registry.service';
+import { DocumentDeclarationsRegistryService } from '~/domain/document-approval/services/document-declarations-registry.service';
 import { BranchInnercoopAdapter } from '~/infrastructure/innercoop/branch-innercoop.adapter';
 import { ChainInnercoopAdapter } from '~/infrastructure/innercoop/chain-innercoop.adapter';
 import { SecretCipherInnercoopAdapter } from '~/infrastructure/innercoop/secret-cipher-innercoop.adapter';
@@ -419,6 +421,12 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
       useExisting: OnboardingStepsRegistryService,
     },
     {
+      // Реестр шаблонов кооператива: расширения объявляют документы сюда,
+      // `DocumentApprovalDomainModule` глобальный — сервис виден отсюда.
+      provide: DOCUMENT_DECLARATION_PORT,
+      useExisting: DocumentDeclarationsRegistryService,
+    },
+    {
       provide: ORGANIZATION_PORT,
       useExisting: OrganizationInnercoopAdapter,
     },
@@ -475,6 +483,7 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
     REGISTRATION_REGISTRY_PORT,
     REGISTRATION_DOCUMENT_PARAMETERS_REGISTRY_PORT,
     ONBOARDING_STEP_REGISTRY_PORT,
+    DOCUMENT_DECLARATION_PORT,
     ORGANIZATION_PORT,
     INDIVIDUAL_PORT,
   ],

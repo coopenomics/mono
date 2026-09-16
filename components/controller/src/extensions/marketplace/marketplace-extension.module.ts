@@ -17,8 +17,9 @@ import { Cooperative } from 'cooptypes';
 import { MARKETPLACE_AGREEMENT_TYPE } from './constants/marketplace-agreement-ids';
 import { registerMarketplaceInAgreementRegistry } from './application/registration/register-marketplace-in-agreement-registry';
 import { registerMarketplaceOnboardingSteps } from './application/onboarding/register-marketplace-onboarding-steps';
+import { registerMarketplaceDocuments } from './application/onboarding/register-marketplace-documents';
 import { MarketplaceUdataParametersAdapter } from './application/registration/marketplace-udata-parameters.adapter';
-import { ONBOARDING_STEP_REGISTRY_PORT, ONBOARDING_COMPLETED_EVENT, type IOnboardingStepRegistryPort } from '@coopenomics/innercoop';
+import { ONBOARDING_STEP_REGISTRY_PORT, ONBOARDING_COMPLETED_EVENT, type IOnboardingStepRegistryPort, DOCUMENT_DECLARATION_PORT, type IDocumentDeclarationPort } from '@coopenomics/innercoop';
 
 /**
  * Optional-инжектируемый порт файлового хранилища. Имя расширения marketplace
@@ -41,6 +42,8 @@ export class MarketplaceExtension extends BaseExtensionModule {
     private readonly agreementRegistrationPort: IRegistrationRegistryPort,
     @Inject(ONBOARDING_STEP_REGISTRY_PORT)
     private readonly onboardingStepRegistration: IOnboardingStepRegistryPort,
+    @Inject(DOCUMENT_DECLARATION_PORT)
+    private readonly documentDeclarations: IDocumentDeclarationPort,
     @Inject(COUNCIL_PORT) private readonly council: ICouncilPort,
     @Optional()
     @Inject(MARKETPLACE_FILE_STORAGE_PORT)
@@ -77,6 +80,7 @@ export class MarketplaceExtension extends BaseExtensionModule {
     // (free-decision → tracking-rule → DecisionTrackedEvent → _done →
     // ONBOARDING_COMPLETED → restartApp) делает generic-слой.
     registerMarketplaceOnboardingSteps(this.onboardingStepRegistration);
+    await registerMarketplaceDocuments(this.documentDeclarations);
 
     // Свести L1-состояние из платформенного онбординга: если совет утвердил оба
     // документа (оба onboarding_*_done=true проставлены generic-слушателем по

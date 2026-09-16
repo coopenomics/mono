@@ -14,7 +14,7 @@ import { LOGGER_PORT, type ILoggerPort,
   type IIntegrationSettingsPort,
 } from '@coopenomics/innercoop';
 import { z } from 'zod';
-import { ONBOARDING_STEP_REGISTRY_PORT, type IOnboardingStepRegistryPort } from '@coopenomics/innercoop';
+import { ONBOARDING_STEP_REGISTRY_PORT, type IOnboardingStepRegistryPort, DOCUMENT_DECLARATION_PORT, type IDocumentDeclarationPort } from '@coopenomics/innercoop';
 import { type DeserializedDescriptionOfExtension } from '@coopenomics/extension-kit';
 
 // Функция для проверки и сериализации FieldDescription
@@ -301,6 +301,7 @@ import {
   GENERATOR_AGREEMENT_TYPE,
 } from './constants/capital-agreement-ids';
 import { registerCapitalOnboardingSteps } from './application/onboarding/register-capital-onboarding-steps';
+import { registerCapitalDocuments } from './application/onboarding/register-capital-documents';
 
 // Репозитории
 import { ProjectTypeormRepository } from './infrastructure/repositories/project.typeorm-repository';
@@ -517,6 +518,8 @@ export class CapitalExtension extends BaseExtensionModule {
     @Inject(INTEGRATION_SETTINGS_PORT) private readonly integrations: IIntegrationSettingsPort,
     @Inject(ONBOARDING_STEP_REGISTRY_PORT)
     private readonly onboardingStepRegistration: IOnboardingStepRegistryPort,
+    @Inject(DOCUMENT_DECLARATION_PORT)
+    private readonly documentDeclarations: IDocumentDeclarationPort,
     @Inject(COUNCIL_PORT) private readonly council: ICouncilPort
   ) {
     super();
@@ -731,7 +734,8 @@ export class CapitalExtension extends BaseExtensionModule {
     // Регистрация шагов онбординга capital в платформенном реестре
     try {
       registerCapitalOnboardingSteps(this.onboardingStepRegistration);
-      this.logger.log('[CAPITAL.ONBOARDING] зарегистрировано 5 шагов онбординга capital');
+      await registerCapitalDocuments(this.documentDeclarations);
+      this.logger.log('[CAPITAL.ONBOARDING] зарегистрировано 5 шагов онбординга capital и документы реестра шаблонов');
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);
       const stack = error instanceof Error ? error.stack : undefined;
