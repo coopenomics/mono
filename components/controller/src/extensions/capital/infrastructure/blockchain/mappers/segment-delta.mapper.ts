@@ -41,11 +41,13 @@ export class SegmentDeltaMapper extends AbstractBlockchainDeltaMapper<ISegmentBl
    * Извлечение ID сущности из дельты
    */
   extractSyncValue(delta: IDelta): string {
-    if (!delta.value || !delta.value[SegmentDomainEntity.getSyncKey()]) {
-      throw new Error(`Delta has no value: table=${delta.table}, key=${SegmentDomainEntity.getSyncKey()}`);
+    const key = SegmentDomainEntity.getSyncKey();
+    if (!delta.value || delta.value[key] === undefined || delta.value[key] === null) {
+      throw new Error(`Delta has no value: table=${delta.table}, key=${key}`);
     }
 
-    return delta.value[SegmentDomainEntity.getSyncKey()];
+    // Ключ — числовой id: парсер отдаёт его числом, а поиск записи ждёт строку.
+    return String(delta.value[key]);
   }
 
   /**
