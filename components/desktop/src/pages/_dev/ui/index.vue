@@ -765,9 +765,35 @@
         <h2 class="dev-ui__sect-title">Карточка аутентификации (AuthCard)</h2>
         <p class="dev-ui__sect-sub">
           Композит из <code>.card</code> + center-aligned head + footer-slot.
-          Используется на страницах входа / восстановления / приглашения.
-          AuthLayout — обёртка для full-page центрирования с тоглом темы.
+          Остался у приглашения, входа по карте и потоков CoopID. Вход,
+          восстановление и вступление с 16.09.2026 живут в <code>AuthSplit</code>
+          (ниже): тёмная панель слева с шагами или цитатой, форма справа; на
+          экране уже 1024px панель сворачивается в шапку с полосой прогресса.
         </p>
+      </div>
+      <div class="dev-ui__stage dev-ui__stage--bleed">
+        <AuthSplit
+          eyebrow="ПК ВОСХОД"
+          title="Вступление в пайщики"
+          lead="Семь коротких шагов: заявление, подпись и взнос. Обычно занимает десять минут."
+          :steps="authSplitSteps"
+          active-key="email"
+          :completed-keys="[]"
+          step-eyebrow="Шаг 1 из 7"
+          heading="Электронная почта"
+          text="На неё придёт код подтверждения, а после вступления — уведомления кооператива."
+        >
+          <template #pane-foot>
+            Уже пайщик? <a href="#" class="auth-link">Войти</a>
+          </template>
+          <BaseForm>
+            <BaseInput label="Электронная почта" type="email" placeholder="name@example.ru" />
+            <BaseButton variant="primary" block type="submit">Продолжить</BaseButton>
+          </BaseForm>
+          <template #foot>
+            <a href="#" class="auth-link">Начать с начала</a>
+          </template>
+        </AuthSplit>
       </div>
       <div class="dev-ui__stage">
         <AuthCard
@@ -1400,6 +1426,7 @@ import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue';
 import { Dark } from 'quasar';
 import { AppDrawer } from 'src/shared/ui/layout/AppDrawer';
 import { AppHeader } from 'src/shared/ui/layout/AppHeader';
+import { AuthSplit } from 'src/shared/ui/layout/AuthSplit';
 import { PageHead } from 'src/shared/ui/layout/PageHead';
 import { PageTabs } from 'src/shared/ui/layout/PageTabs';
 import { RailUserCard } from 'src/shared/ui/domain/RailUserCard';
@@ -1420,6 +1447,16 @@ import { LostKey } from 'src/widgets/Registrator/LostKey';
 import { ResetKeyForm } from 'src/widgets/Registrator/ResetKey';
 import { useCreateUser } from 'src/features/User/CreateUser';
 import type { RailItem, RailSection } from 'src/shared/ui/layout/AppDrawer';
+
+const authSplitSteps = [
+  { key: 'email', label: 'Электронная почта' },
+  { key: 'data', label: 'Заявление' },
+  { key: 'password', label: 'Пароль для входа' },
+  { key: 'branch', label: 'Кооперативный участок' },
+  { key: 'read', label: 'Проверка заявления' },
+  { key: 'sign', label: 'Подпись' },
+  { key: 'pay', label: 'Вступительный взнос' },
+];
 import type { PageTab } from 'src/shared/ui/layout/PageTabs';
 import type { IGeneratedAccount } from 'src/shared/lib/types/user';
 import type { ContactItem } from 'src/shared/ui/domain/ContactSheet';
@@ -2142,6 +2179,12 @@ function showNotifyWithAvatarToast(): void {
   border: 1px solid var(--p-line);
   border-radius: var(--p-r-md);
   padding: 24px;
+}
+/* Сцена без внутренних отступов — для полноэкранных оболочек (AuthSplit). */
+.dev-ui__stage--bleed {
+  padding: 0;
+  overflow: hidden;
+  min-height: 560px;
 }
 
 .dev-ui__data-stack {
