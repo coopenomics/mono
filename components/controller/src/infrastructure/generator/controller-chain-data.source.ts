@@ -6,6 +6,7 @@ import { TypeOrmDraftRegistryRepository } from '~/infrastructure/database/typeor
 import { BlockchainActionHistoryService } from '~/domain/parser/services/blockchain-action-history.service';
 import { BlockchainService } from '~/infrastructure/blockchain/blockchain.service';
 import { isHexHash } from '~/shared/sql/hex-value.util';
+import { EffectiveTemplateBlockResolver } from './effective-template-block.resolver';
 
 /**
  * Данные цепи для фабрики документов — из собственной базы узла.
@@ -25,7 +26,8 @@ export class ControllerChainDataSource implements IChainDataSource {
     private readonly dataSource: DataSource,
     private readonly draftRegistry: TypeOrmDraftRegistryRepository,
     private readonly actionHistory: BlockchainActionHistoryService,
-    private readonly blockchainService: BlockchainService
+    private readonly blockchainService: BlockchainService,
+    private readonly effectiveBlock: EffectiveTemplateBlockResolver
   ) {}
 
   async getTableRows<T = any>(query: ITableQuery): Promise<T[]> {
@@ -64,13 +66,18 @@ export class ControllerChainDataSource implements IChainDataSource {
       const registryId = query.filter?.['registry_id'];
       if (registryId === undefined) return null;
 
-      const template = await this.draftRegistry.findTemplateAt(String(registryId), query.block_num);
+      // Без номера блока читается не текущее состояние сети, а редакция,
+      // утверждённая советом кооператива (см. EffectiveTemplateBlockResolver).
+      // Явный блок — пересборка подписанного документа — важнее.
+      const blockNum = query.block_num ?? (await this.effectiveBlock.resolve(String(registryId)));
+      const template = await this.draftRegistry.findTemplateAt(String(registryId), blockNum);
       return template ? ([template] as T[]) : ([] as T[]);
     }
 
     if (query.table === DraftContract.Tables.Translations.tableName) {
       const draftId = query.filter?.['draft_id'];
       if (draftId === undefined) return null;
+      const blockNum = query.block_num ?? (await this.effectiveBlock.resolve(String(draftId)));
 
       // Языки заранее не известны — берём все версии этого шаблона на нужный
       // блок и оставляем по одной свежей записи на язык.
@@ -80,7 +87,7 @@ export class ControllerChainDataSource implements IChainDataSource {
           WHERE draft_id = $1::bigint
             AND ($2::bigint IS NULL OR block_num <= $2::bigint)
           ORDER BY lang, block_num DESC`,
-        [String(draftId), query.block_num ?? null]
+        [String(draftId), blockNum ?? null]
       );
 
       return rows.map((r: { value: unknown }) => r.value) as T[];

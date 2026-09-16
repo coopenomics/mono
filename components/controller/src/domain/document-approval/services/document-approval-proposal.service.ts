@@ -16,6 +16,7 @@ import config from '~/config/config';
 import { sha256 } from '~/utils/sha256';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 import { DocumentDomainService } from '~/domain/document/services/document-domain.service';
+import { BLOCKCHAIN_PORT, type BlockchainPort } from '~/domain/common/ports/blockchain.port';
 import { DRAFT_BLOCKCHAIN_PORT, type DraftBlockchainPort } from '~/domain/common/ports/draft-blockchain.port';
 import { SOVIET_BLOCKCHAIN_PORT, type SovietBlockchainPort } from '~/domain/common/ports/soviet-blockchain.port';
 import type { ActionDomainInterface } from '~/domain/parser/interfaces/action-domain.interface';
@@ -97,6 +98,8 @@ export class DocumentApprovalProposalService {
     private readonly draftChain: DraftBlockchainPort,
     @Inject(SOVIET_BLOCKCHAIN_PORT)
     private readonly sovietChain: SovietBlockchainPort,
+    @Inject(BLOCKCHAIN_PORT)
+    private readonly blockchain: BlockchainPort,
     private readonly documents: DocumentDomainService,
     private readonly eventEmitter: EventEmitter2,
     private readonly logger: WinstonLoggerService
@@ -262,8 +265,11 @@ export class DocumentApprovalProposalService {
    * базу не пишется. Хэш текста уходит в решение и затем в строку утверждения.
    */
   private async renderBlank(coopname: string, template: DocumentTemplateView): Promise<RenderedBlank> {
+    // Совету показывают утверждаемую редакцию — текущий текст сети. Без явного
+    // блока источник данных подставил бы утверждённую редакцию, то есть старую.
+    const head = Number((await this.blockchain.getInfo()).head_block_num);
     const document = await this.documents.generateDocument({
-      data: { coopname, username: coopname, registry_id: template.registry_id },
+      data: { coopname, username: coopname, registry_id: template.registry_id, block_num: head },
       options: { skip_save: true, skip_pdf: true, blank_signer: true },
     });
     return {

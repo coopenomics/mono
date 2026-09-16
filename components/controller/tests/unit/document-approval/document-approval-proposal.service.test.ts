@@ -54,6 +54,7 @@ function build(templates: DocumentTemplateView[]) {
   } as any;
   const draftChain = { approveDraft: jest.fn(async () => ({})) } as any;
   const sovietChain = { getDecisions: jest.fn(async () => [{ id: 55, hash: 'hash1' }]) } as any;
+  const blockchain = { getInfo: jest.fn(async () => ({ head_block_num: 12345 })) } as any;
   const documents = {
     generateDocument: jest.fn(async ({ data }: any) => ({ html: `<p>текст ${data.registry_id}</p>`, meta: { title: `Документ ${data.registry_id}` } })),
   } as any;
@@ -65,6 +66,7 @@ function build(templates: DocumentTemplateView[]) {
     tracking,
     draftChain,
     sovietChain,
+    blockchain,
     documents,
     eventEmitter,
     logger
@@ -79,7 +81,7 @@ describe('DocumentApprovalProposalService.propose', () => {
     await service.propose({ coopname: 'voskhod', registry_ids: [3], username: 'ant' });
 
     expect(documents.generateDocument).toHaveBeenCalledWith({
-      data: { coopname: 'voskhod', username: 'voskhod', registry_id: 3 },
+      data: { coopname: 'voskhod', username: 'voskhod', registry_id: 3, block_num: 12345 },
       options: { skip_save: true, skip_pdf: true, blank_signer: true },
     });
     const project = freeDecision.createProjectOfFreeDecision.mock.calls[0][0];

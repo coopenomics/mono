@@ -20,6 +20,9 @@ sources:
     - components/controller/src/application/document-approval/**
     - components/controller/src/domain/common/ports/draft-blockchain.port.ts
     - components/controller/src/infrastructure/blockchain/adapters/draft-blockchain.adapter.ts
+    - components/controller/src/infrastructure/generator/effective-template-block.resolver.ts
+    - components/controller/src/infrastructure/generator/controller-chain-data.source.ts
+    - components/controller/src/infrastructure/database/typeorm/repositories/typeorm-draft-registry.repository.ts
     - components/controller/src/extensions/capital/application/onboarding/register-capital-documents.ts
     - components/controller/src/extensions/marketplace/application/onboarding/register-marketplace-documents.ts
     - components/innercoop/src/core-ports/document-declaration.port.ts
@@ -190,5 +193,37 @@ cases:
     kind: break
     scenario: Запись утверждения в цепь не прошла с первого раза
     expect: повтор с журналом; решение совета не теряется
+    test: ~
+    status: missing
+
+  - id: doc.appr.happy.10
+    level: backend
+    kind: happy
+    scenario: Генератор собирает документ для кооператива, у которого утверждённая редакция ниже редакции в сети
+    expect: текст и переводы берутся на последнем блоке утверждённой редакции; правки без смены номера в ней доезжают, смысловые изменения новой редакции — нет
+    test: components/controller/tests/unit/document-approval/effective-template-block.resolver.test.ts
+    status: written
+
+  - id: doc.appr.side.12
+    level: backend
+    kind: side
+    scenario: Утверждения нет, утверждённая редакция равна сетевой или истории редакции в реестре узла нет
+    expect: читается текущее состояние сети, генерация не падает
+    test: components/controller/tests/unit/document-approval/effective-template-block.resolver.test.ts
+    status: written
+
+  - id: doc.appr.side.13
+    level: backend
+    kind: side
+    scenario: Бланк для проекта решения совета собирается при утверждённой старой редакции
+    expect: совету показывают утверждаемую (текущую) редакцию, а не утверждённую — генерация идёт на текущем блоке
+    test: components/controller/tests/unit/document-approval/document-approval-proposal.service.test.ts
+    status: written
+
+  - id: doc.appr.side.14
+    level: backend
+    kind: side
+    scenario: Пересборка ранее подписанного документа по блоку подписи
+    expect: явный блок подписи важнее утверждённой редакции, документ собирается прежним текстом
     test: ~
     status: missing
