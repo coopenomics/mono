@@ -25,6 +25,7 @@ import { DocumentApprovalRequirement, DocumentApprovalState } from '../enums/doc
 import type { DocumentTemplateView } from '../interfaces/document-template-view.interface';
 import { DocumentApprovalStateService } from './document-approval-state.service';
 import { nowChainTimePoint, toChainTimePoint } from './decision-date';
+import { onboardingExtensionOf } from '../constants/core-document-declarations';
 
 /** Метка правила отслеживания, заведённого фабрикой утверждений. */
 export const DOCUMENT_APPROVAL_RULE_KIND = 'document_approval';
@@ -44,6 +45,11 @@ export interface ProposeDocumentApprovalInput {
   registry_ids: number[];
   username: string;
   title?: string;
+  /**
+   * Шаг подключения расширения, который закрывает это решение. Без него шаг
+   * выводится из пакета: документы ядра ведёт расширение `chairman`.
+   */
+  onboarding?: { extension: string; step: string };
 }
 
 interface RuleMetadata {
@@ -112,26 +118,12 @@ export class DocumentApprovalProposalService {
    * ничего не создаёт и возвращает текущее состояние.
    */
   public async propose(input: ProposeDocumentApprovalInput): Promise<DocumentTemplateView[]> {
-    if (input.coopname !== config.coopname) {
-      throw new BadRequestException('Указанное имя аккаунта кооператива не обслуживается здесь');
-    }
-    const registry_ids = [...new Set(input.registry_ids)];
-    if (registry_ids.length === 0) throw new BadRequestException('Не указаны документы для утверждения');
-
-    const templates = await this.state.getTemplates(input.coopname);
-    const selected = registry_ids.map((id) => this.pickTemplate(templates, id));
-
-    const alreadyPending = selected.filter((t) => t.state === DocumentApprovalState.Pending);
+    const { selected, alreadyPending } = await this.selectTemplates(input);
     if (alreadyPending.length > 0) {
       this.logger.info(
         `Документы ${alreadyPending.map((t) => t.registry_id).join(', ')} уже в повестке — повторное вынесение пропущено`
       );
       return selected;
-    }
-
-    const extension = selected[0]!.extension_name;
-    if (selected.some((t) => t.extension_name !== extension)) {
-      throw new BadRequestException('Одним решением утверждаются документы одного приложения');
     }
 
     const blanks: RenderedBlank[] = [];
@@ -141,23 +133,12 @@ export class DocumentApprovalProposalService {
 
     const hash = await this.publishProject(input, selected, blanks);
     const decision_id = await this.lookupDecisionId(input.coopname, hash);
-
-    const bundle = selected.every((t) => t.bundle === selected[0]!.bundle) ? selected[0]!.bundle : null;
-    const metadata: RuleMetadata = {
-      kind: DOCUMENT_APPROVAL_RULE_KIND,
-      extension,
-      registry_ids: selected.map((t) => t.registry_id),
-      versions: Object.fromEntries(selected.map((t) => [String(t.registry_id), t.current_version as number])),
-      text_hashes: Object.fromEntries(blanks.map((b) => [String(b.registry_id), b.text_hash])),
-      bundle,
-      ...(decision_id ? { decision_id } : {}),
-      ...(bundle ? { onboarding_step: bundle } : {}),
-    };
+    const metadata = buildRuleMetadata(input, selected, blanks, decision_id);
 
     await this.tracking.registerTrackingRule({
       hash,
       event_type: DecisionEventType.SOVIET_DECISION,
-      vars_field: this.sharedVarsField(selected),
+      vars_field: sharedVarsField(selected),
       metadata,
     });
 
@@ -165,7 +146,27 @@ export class DocumentApprovalProposalService {
       `Редакции документов ${metadata.registry_ids.join(', ')} вынесены на совет: hash=${hash}, decision_id=${decision_id ?? '—'}`
     );
 
-    return this.state.getTemplates(input.coopname).then((all) => all.filter((t) => registry_ids.includes(t.registry_id)));
+    const ids = new Set(metadata.registry_ids);
+    return (await this.state.getTemplates(input.coopname)).filter((t) => ids.has(t.registry_id));
+  }
+
+  /** Проверяет вход и находит документы; все они обязаны быть одного приложения. */
+  private async selectTemplates(
+    input: ProposeDocumentApprovalInput
+  ): Promise<{ selected: DocumentTemplateView[]; alreadyPending: DocumentTemplateView[] }> {
+    if (input.coopname !== config.coopname) {
+      throw new BadRequestException('Указанное имя аккаунта кооператива не обслуживается здесь');
+    }
+    const registry_ids = [...new Set(input.registry_ids)];
+    if (registry_ids.length === 0) throw new BadRequestException('Не указаны документы для утверждения');
+
+    const templates = await this.state.getTemplates(input.coopname);
+    const selected = registry_ids.map((id) => this.pickTemplate(templates, id));
+    const extension = selected[0]!.extension_name;
+    if (selected.some((t) => t.extension_name !== extension)) {
+      throw new BadRequestException('Одним решением утверждаются документы одного приложения');
+    }
+    return { selected, alreadyPending: selected.filter((t) => t.state === DocumentApprovalState.Pending) };
   }
 
   /**
@@ -252,12 +253,6 @@ export class DocumentApprovalProposalService {
       throw new BadRequestException(`Редакция документа ${registry_id} уже утверждена советом`);
     }
     return template;
-  }
-
-  /** Поле `vars` для реквизитов протокола: одно на пакет, иначе не пишем. */
-  private sharedVarsField(selected: DocumentTemplateView[]): string {
-    const fields = new Set(selected.map((t) => t.vars_field).filter((f): f is string => Boolean(f)));
-    return fields.size === 1 ? [...fields][0]! : '';
   }
 
   /**
@@ -378,6 +373,38 @@ export class DocumentApprovalProposalService {
       }
     }
   }
+}
+
+/** Поле `vars` для реквизитов протокола: одно на пакет, иначе не пишем. */
+function sharedVarsField(selected: DocumentTemplateView[]): string {
+  const fields = new Set(selected.map((t) => t.vars_field).filter((f): f is string => Boolean(f)));
+  return fields.size === 1 ? [...fields][0]! : '';
+}
+
+/**
+ * Правило отслеживания: что утверждается и какой шаг подключения закрывает
+ * решение. Слушатели онбординга закрывают шаг по паре (расширение шага, ключ
+ * шага): документы ядра ведёт расширение `chairman`, у остальных шаг = пакет.
+ */
+function buildRuleMetadata(
+  input: ProposeDocumentApprovalInput,
+  selected: DocumentTemplateView[],
+  blanks: RenderedBlank[],
+  decision_id: number | undefined
+): RuleMetadata {
+  const extension = selected[0]!.extension_name;
+  const bundle = selected.every((t) => t.bundle === selected[0]!.bundle) ? selected[0]!.bundle : null;
+  const onboarding = input.onboarding ?? (bundle ? { extension: onboardingExtensionOf(extension), step: bundle } : null);
+  return {
+    kind: DOCUMENT_APPROVAL_RULE_KIND,
+    extension: onboarding?.extension ?? extension,
+    registry_ids: selected.map((t) => t.registry_id),
+    versions: Object.fromEntries(selected.map((t) => [String(t.registry_id), t.current_version as number])),
+    text_hashes: Object.fromEntries(blanks.map((b) => [String(b.registry_id), b.text_hash])),
+    bundle,
+    ...(decision_id ? { decision_id } : {}),
+    ...(onboarding ? { onboarding_step: onboarding.step } : {}),
+  };
 }
 
 function buildTitle(selected: DocumentTemplateView[], blanks: RenderedBlank[]): string {

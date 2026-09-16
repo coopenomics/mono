@@ -27,6 +27,7 @@
 | `COOPERATIVE_VARS_PORT` | `ICooperativeVarsPort` (1)<br><sub>core-ports/cooperative-vars.port.ts</sub> | `CooperativeVarsInnercoopAdapter` | chairman, chatcoop | Реквизиты кооператива, которому принадлежит контур: как он называется и как его называть в текстах. |
 | `COUNCIL_PORT` | `ICouncilPort` (5)<br><sub>core-ports/council.port.ts</sub> | `CouncilInnercoopAdapter` | capital, chairman, marketplace | Совет кооператива: решения и типовые соглашения. |
 | `DECISION_TRACKING_PORT` | `IDecisionTrackingPort` (7)<br><sub>core-ports/decision-tracking.port.ts</sub> | `DecisionTrackingAdapter` | capital, chairman | Отслеживание решений: расширение регистрирует правило «когда примут решение с этим хэшем — обновить такое-то поле параметров кооператива», и дальше ядро следит само. |
+| `DOCUMENT_APPROVAL_PORT` | `IDocumentApprovalPort` (2)<br><sub>core-ports/document-approval.port.ts</sub> | `DocumentApprovalOnboardingAdapter` | capital, chairman | Фабрика утверждений документов — для шагов подключения расширений. |
 | `DOCUMENT_DECLARATION_PORT` | `IDocumentDeclarationPort` (2)<br><sub>core-ports/document-declaration.port.ts</sub> | `DocumentDeclarationsRegistryService` | capital, marketplace | Декларация документов приложения — какие шаблоны реестра документов оно использует в кооперативе и какие из них совет обязан утверждать. |
 | `DOCUMENT_PORT` | `IDocumentPort` (5)<br><sub>core-ports/document.port.ts</sub> | `DocumentInnercoopAdapter` | capital, chairman, expenses, ku, marketplace, soviet-robot | Реестр документов кооператива: сгенерировать документ по шаблону, найти его по хэшу, собрать агрегат вокруг подписанного документа, сохранить приватную часть. |
 | `EXTENSION_CONFIG_PORT` | `IExtensionConfigPort` (1)<br><sub>core-ports/extension-config.port.ts</sub> | `ExtensionConfigInnercoopAdapter` | marketplace, soviet-robot | Настройка установленного расширения. |
@@ -84,4 +85,4 @@
 | `DESKTOP_GRANTS_REGISTRY_PORT` | `IDesktopGrantsRegistryPort` (1)<br><sub>hooks/desktop-grants.hook.ts</sub> | `ExtensionGrantsRegistry` | marketplace, soviet-robot | Права пайщика на рабочем столе расширения. |
 | `REGISTRATION_DOCUMENT_PARAMETERS_REGISTRY_PORT` | `IRegistrationDocumentParametersRegistryPort` (2)<br><sub>hooks/registration-document-parameters.hook.ts</sub> | `RegistrationDocumentParametersRegistry` | capital, marketplace | Параметры оферты, которые расширение выдаёт вступающему пайщику. |
 
-Всего портов: 52.
+Всего портов: 53.

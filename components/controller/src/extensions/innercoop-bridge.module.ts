@@ -24,6 +24,7 @@ import {
   MUTATION_LOG_PORT,
   ONBOARDING_STEP_REGISTRY_PORT,
   DOCUMENT_DECLARATION_PORT,
+  DOCUMENT_APPROVAL_PORT,
   NOTIFICATION_PORT,
   PAYMENT_PORT,
   INDIVIDUAL_PORT,
@@ -82,6 +83,7 @@ import { VaultInnercoopAdapter } from '~/infrastructure/innercoop/vault-innercoo
 import { VaultDomainModule } from '~/domain/vault/vault-domain.module';
 import { OnboardingStepsRegistryService } from '~/domain/onboarding/services/onboarding-steps-registry.service';
 import { DocumentDeclarationsRegistryService } from '~/domain/document-approval/services/document-declarations-registry.service';
+import { DocumentApprovalOnboardingAdapter } from '~/domain/document-approval/services/document-approval-onboarding.adapter';
 import { BranchInnercoopAdapter } from '~/infrastructure/innercoop/branch-innercoop.adapter';
 import { ChainInnercoopAdapter } from '~/infrastructure/innercoop/chain-innercoop.adapter';
 import { SecretCipherInnercoopAdapter } from '~/infrastructure/innercoop/secret-cipher-innercoop.adapter';
@@ -427,6 +429,11 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
       useExisting: DocumentDeclarationsRegistryService,
     },
     {
+      // Шаги подключения расширений поверх фабрики утверждений.
+      provide: DOCUMENT_APPROVAL_PORT,
+      useExisting: DocumentApprovalOnboardingAdapter,
+    },
+    {
       provide: ORGANIZATION_PORT,
       useExisting: OrganizationInnercoopAdapter,
     },
@@ -484,6 +491,7 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
     REGISTRATION_DOCUMENT_PARAMETERS_REGISTRY_PORT,
     ONBOARDING_STEP_REGISTRY_PORT,
     DOCUMENT_DECLARATION_PORT,
+    DOCUMENT_APPROVAL_PORT,
     ORGANIZATION_PORT,
     INDIVIDUAL_PORT,
   ],

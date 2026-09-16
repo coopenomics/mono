@@ -1,0 +1,42 @@
+/**
+ * Фабрика утверждений документов — для шагов подключения расширений.
+ *
+ * Шаг подключения (положение ЦПП, шаблон оферты, формы заявлений) — это
+ * первое утверждение документов советом. Расширение не заводит своё решение
+ * совета с текстом из собственной копии шаблона: оно просит фабрику вынести
+ * на совет документы шага, а та собирает проект решения из текста в цепи и
+ * после решения фиксирует утверждение. Состояние шага выводится из
+ * утверждений, а не только из флага в настройке расширения.
+ */
+
+export interface InnerProposeOnboardingStepInput {
+  /** Расширение, чей шаг выносится; базовый набор ядра ведёт расширение `chairman`. */
+  extension_name: string;
+  /** Ключ шага; совпадает с ключом пакета документов в декларации. */
+  step_key: string;
+  /** Кто выносит — председатель. */
+  username: string;
+  title?: string;
+}
+
+export interface InnerOnboardingStepProposal {
+  /** Хэш проекта решения в повестке; `null`, когда выносить нечего. */
+  hash: string | null;
+  /** Документы шага, попавшие в решение. */
+  registry_ids: number[];
+  /** Все документы шага уже утверждены — шаг закрыт без нового решения. */
+  approved: boolean;
+}
+
+export interface IDocumentApprovalPort {
+  /**
+   * Вынести документы шага на совет. Возвращает `null`, если у шага нет
+   * объявленных документов (шаг не про документы: вступление в союз, общее
+   * собрание) — тогда расширение ведёт шаг своим путём.
+   */
+  proposeOnboardingStep(input: InnerProposeOnboardingStepInput): Promise<InnerOnboardingStepProposal | null>;
+  /** Все документы шага, требующие утверждения, имеют утверждённую редакцию. */
+  isStepApproved(extension_name: string, step_key: string): Promise<boolean>;
+}
+
+export const DOCUMENT_APPROVAL_PORT = Symbol.for('Innercoop.CorePort.DocumentApproval');

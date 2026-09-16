@@ -3,6 +3,7 @@ import { DocumentDeclarationsRegistryService } from './services/document-declara
 import { DocumentApprovalStateService } from './services/document-approval-state.service';
 import { DocumentApprovalProposalService } from './services/document-approval-proposal.service';
 import { DocumentApprovalNotificationService } from './services/document-approval-notification.service';
+import { DocumentApprovalOnboardingAdapter } from './services/document-approval-onboarding.adapter';
 import { DocumentDomainModule } from '~/domain/document/document.module';
 import { DOCUMENT_DECLARATION_QUERY_PORT } from './ports/document-declaration-query.port';
 
@@ -24,12 +25,14 @@ import { DOCUMENT_DECLARATION_QUERY_PORT } from './ports/document-declaration-qu
     DocumentApprovalStateService,
     DocumentApprovalProposalService,
     DocumentApprovalNotificationService,
+    DocumentApprovalOnboardingAdapter,
   ],
   exports: [
     DocumentDeclarationsRegistryService,
     DOCUMENT_DECLARATION_QUERY_PORT,
     DocumentApprovalStateService,
     DocumentApprovalProposalService,
+    DocumentApprovalOnboardingAdapter,
   ],
 })
 export class DocumentApprovalDomainModule {}

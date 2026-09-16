@@ -25,6 +25,7 @@ sources:
     - components/controller/src/infrastructure/database/typeorm/repositories/typeorm-draft-registry.repository.ts
     - components/controller/src/extensions/capital/application/onboarding/register-capital-documents.ts
     - components/controller/src/extensions/marketplace/application/onboarding/register-marketplace-documents.ts
+    - components/innercoop/src/core-ports/document-approval.port.ts
     - components/innercoop/src/core-ports/document-declaration.port.ts
     - components/notifications/src/workflows/document-edition-available/**
     - components/notifications/src/workflows/document-approval-declined/**
@@ -297,3 +298,27 @@ cases:
     expect: видит состояния и открывает бланки, кнопки «Вынести на совет» нет
     test: ~
     status: missing
+
+  - id: doc.appr.happy.16
+    level: backend
+    kind: happy
+    scenario: Председатель проходит шаг подключения приложения из его карточки
+    expect: шаг с объявленными документами уходит на совет через фабрику одним решением с текстом из цепи; шаги без документов (вступление в союз, собрание) идут прежним путём
+    test: components/controller/tests/unit/document-approval/document-approval-onboarding.adapter.test.ts
+    status: written
+
+  - id: doc.appr.happy.17
+    level: backend
+    kind: happy
+    scenario: Документы шага утверждены с вкладки «Шаблоны документов», минуя карточку
+    expect: карточка подключения показывает шаг пройденным без нового решения
+    test: components/controller/tests/unit/document-approval/document-approval-onboarding.adapter.test.ts
+    status: written
+
+  - id: doc.appr.side.18
+    level: backend
+    kind: side
+    scenario: Шаг закрывается только когда утверждены все документы пакета; повторное прохождение шага при документах в повестке
+    expect: частично утверждённый пакет не закрывает шаг; повторное прохождение возвращает хэш повестки без нового решения
+    test: components/controller/tests/unit/document-approval/document-approval-onboarding.adapter.test.ts
+    status: written

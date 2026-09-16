@@ -4,6 +4,18 @@ import { Cooperative } from 'cooptypes';
 /** Имя, под которым ядро объявляет базовый набор документов кооператива. */
 export const CORE_DOCUMENTS_OWNER = 'core';
 
+/**
+ * Расширение, которое ведёт шаги подключения по документам ядра: базовый
+ * набор объявлен ядром под именем `core`, а шаги для него — у `chairman`.
+ */
+export const CORE_STEPS_EXTENSION = 'chairman';
+
+export const documentsOwnerOf = (extension_name: string): string =>
+  extension_name === CORE_STEPS_EXTENSION ? CORE_DOCUMENTS_OWNER : extension_name;
+
+export const onboardingExtensionOf = (owner: string): string =>
+  owner === CORE_DOCUMENTS_OWNER ? CORE_STEPS_EXTENSION : owner;
+
 const R = Cooperative.Registry;
 
 const core = (
