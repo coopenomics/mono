@@ -9,6 +9,12 @@
     :text="subtitle"
     :size="mode === 'save-key' ? 'md' : 'sm'"
   >
+    <template v-if="$slots.actions" #actions>
+      <slot name="actions" />
+    </template>
+    <template v-if="$slots['pane-foot']" #pane-foot>
+      <slot name="pane-foot" />
+    </template>
     <!-- Шаг ожидания письма -->
     <template v-if="mode === 'check-mail'">
       <BaseBanner variant="info">

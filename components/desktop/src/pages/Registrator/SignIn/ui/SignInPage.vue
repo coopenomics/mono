@@ -1,6 +1,9 @@
 <template>
   <div v-if="!registeredAndloggedIn" class="signin-page">
     <SignIn>
+      <template #actions>
+        <AuthActions />
+      </template>
       <template #pane-foot>
         Ещё не пайщик?
         <a class="auth-link" href="#" @click.prevent="goToSignUp">Вступить в кооператив</a>
@@ -19,6 +22,7 @@ import { useRouter } from 'vue-router';
 import { useSessionStore } from 'src/entities/Session';
 import { useRegistratorStore } from 'src/entities/Registrator';
 import { SignIn } from 'src/widgets/Registrator/SignIn';
+import { AuthActions } from 'src/widgets/Registrator/AuthActions';
 
 const router = useRouter();
 const session = useSessionStore();

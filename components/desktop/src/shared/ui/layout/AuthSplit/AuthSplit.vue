@@ -40,6 +40,12 @@
       slot(name='pane-foot')
 
   section.auth-split__work
+    //- Действия экрана: кнопка встречного пути (вход ↔ регистрация) из слота и
+    //- переключатель темы. Общей шапки на этих экранах нет.
+    .auth-split__actions
+      slot(name='actions')
+      ThemeToggle(as-button)
+
     .auth-split__work-inner
       header.auth-split__heading(v-if='stepEyebrow || heading || text || $slots.heading')
         slot(name='heading')
@@ -52,14 +58,20 @@
 
       .auth-split__foot(v-if='$slots.foot')
         slot(name='foot')
+
+    //- Реквизиты кооператива — внизу рабочей области вместо общего футера.
+    ContactsFooter.auth-split__legal(v-if='legalText', :text='legalText')
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, inject, ref } from 'vue';
 import logoSvg from 'src/assets/logo.svg?raw';
-import type { AuthSplitProps } from './AuthSplit.types';
+import { ThemeToggle } from 'src/shared/ui/base/ThemeToggle';
+import { ContactsFooter } from 'src/shared/ui/Footer';
+import { AUTH_LEGAL_TEXT, type AuthSplitProps } from './AuthSplit.types';
 
 const props = defineProps<AuthSplitProps>();
+const legalText = inject(AUTH_LEGAL_TEXT, ref(''));
 
 const activeIndex = computed(() => {
   const steps = props.steps ?? [];
@@ -239,9 +251,24 @@ function stepClass(key: string): Record<string, boolean> {
 
 /* ── Рабочая область ── */
 .auth-split__work {
+  position: relative;
   display: flex;
   flex-direction: column;
   padding: var(--p-9, 56px) var(--p-10, 72px);
+}
+.auth-split__actions {
+  position: absolute;
+  top: var(--p-3, 12px);
+  right: var(--p-4, 16px);
+  display: flex;
+  align-items: center;
+  gap: var(--p-2, 8px);
+  z-index: 2;
+}
+.auth-split__legal {
+  margin-top: var(--p-8, 40px);
+  padding-top: var(--p-4, 16px);
+  border-top: 1px solid var(--p-line);
 }
 .auth-split__work-inner {
   width: 100%;
@@ -376,7 +403,20 @@ function stepClass(key: string): Record<string, boolean> {
     padding-top: 0;
   }
   .auth-split__work {
+    position: static;
     padding: var(--p-6, 24px) var(--p-5, 20px) var(--p-8, 40px);
+  }
+  /* Действия уходят в правый верхний угол тёмной панели — общей шапки нет. */
+  .auth-split {
+    position: relative;
+  }
+  .auth-split__actions {
+    top: var(--p-3, 12px);
+    right: var(--p-3, 12px);
+    color: var(--p-pane-ink);
+  }
+  .auth-split__pane-head {
+    padding-right: 140px;
   }
   .auth-split__work-inner,
   .auth-split--md .auth-split__work-inner,

@@ -5,6 +5,9 @@
     :loading="loading"
     @submit="onSubmit"
   >
+    <template #actions>
+      <AuthActions />
+    </template>
     <template #footer>
       <a class="auth-link" href="#" @click.prevent="goToSignIn">Вернуться ко входу</a>
     </template>
@@ -19,6 +22,7 @@ import { useResetKey } from 'src/features/User/ResetKey/model';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import type { IGeneratedAccount } from 'src/shared/lib/types/user';
 import ResetKeyForm from './ResetKeyForm.vue';
+import { AuthActions } from 'src/widgets/Registrator/AuthActions';
 
 const route = useRoute();
 const router = useRouter();

@@ -1,3 +1,8 @@
+import type { InjectionKey, Ref } from 'vue';
+
+/** Реквизиты кооператива для подвала рабочей области; поставляет layout. */
+export const AUTH_LEGAL_TEXT: InjectionKey<Ref<string>> = Symbol('auth-split-legal-text');
+
 export interface AuthSplitStep {
   key: string;
   label: string;

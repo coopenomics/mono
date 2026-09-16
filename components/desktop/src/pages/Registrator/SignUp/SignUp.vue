@@ -15,6 +15,9 @@
     :heading='workHeading',
     size='lg'
   )
+    template(#actions)
+      AuthActions
+
     template(#pane-foot)
       | Уже пайщик?
       |
@@ -54,9 +57,6 @@
       WaitingRegistration
 
       Welcome
-
-    template(v-if='!isRegistrationClosed && !cabinetEntry', #foot)
-      a.auth-link.signup-page__restart(href='#', @click.prevent='out') Начать с начала
 </template>
 
 <script lang="ts" setup>
@@ -72,10 +72,10 @@ import WaitingRegistration from './WaitingRegistration.vue';
 import SelectBranch from './SelectBranch.vue';
 import Welcome from './Welcome.vue';
 import { AuthSplit } from 'src/shared/ui/layout/AuthSplit';
+import { AuthActions } from 'src/widgets/Registrator/AuthActions';
 import { EmptyState } from 'src/shared/ui/base/EmptyState';
 
 import { useRegistratorStore } from 'src/entities/Registrator';
-import { useLogoutUser } from 'src/features/User/Logout';
 import { useSessionStore } from 'src/entities/Session';
 import { useAccountStore } from 'src/entities/Account';
 import { useAgreementStore } from 'src/entities/Agreement';
@@ -171,12 +171,6 @@ const goToCabinet = (): void => {
       ? { name: authorized, params: { coopname: info.coopname } }
       : { name: 'index', params: { coopname: info.coopname } },
   );
-};
-
-const out = async () => {
-  const { logout } = await useLogoutUser();
-  await logout();
-  window.location.reload();
 };
 
 /**
@@ -388,10 +382,6 @@ const isBranched = computed(() => info.cooperator_account.is_branched);
 <style scoped>
 .signup-page {
   min-height: inherit;
-}
-.signup-page__restart {
-  color: var(--p-ink-3);
-  border-bottom-color: var(--p-line-2);
 }
 .signup-page__closed {
   padding: var(--p-4, 16px) 0;

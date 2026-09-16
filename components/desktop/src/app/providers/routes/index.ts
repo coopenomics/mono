@@ -81,6 +81,8 @@ const baseRoutes: RouteRecordRaw[] = [
         component: SignInPage,
         children: [],
         meta: {
+          // Экран живёт в оболочке AuthSplit: без общей шапки и футера, панель до верха.
+          authSplit: true,
           title: 'Вход',
           icon: 'fa-solid fa-sign-in-alt',
           widget: {
@@ -96,6 +98,8 @@ const baseRoutes: RouteRecordRaw[] = [
         component: LostKeyPage,
         children: [],
         meta: {
+          // Экран живёт в оболочке AuthSplit: без общей шапки и футера, панель до верха.
+          authSplit: true,
           title: 'Восстановление ключа',
           icon: 'fa-solid fa-key',
           widget: {
@@ -110,6 +114,8 @@ const baseRoutes: RouteRecordRaw[] = [
         component: ResetKeyPage,
         children: [],
         meta: {
+          // Экран живёт в оболочке AuthSplit: без общей шапки и футера, панель до верха.
+          authSplit: true,
           title: 'Сброс ключа',
           icon: 'fa-solid fa-key',
           widget: {
@@ -125,6 +131,8 @@ const baseRoutes: RouteRecordRaw[] = [
         component: RecoverRequestPage,
         children: [],
         meta: {
+          // Экран живёт в оболочке AuthSplit: без общей шапки и футера, панель до верха.
+          authSplit: true,
           title: 'Восстановление доступа',
           icon: 'key',
           widget: {
@@ -156,6 +164,8 @@ const baseRoutes: RouteRecordRaw[] = [
         component: RecoverConfirmPage,
         children: [],
         meta: {
+          // Экран живёт в оболочке AuthSplit: без общей шапки и футера, панель до верха.
+          authSplit: true,
           title: 'Восстановление доступа',
           icon: 'key',
           widget: {
@@ -199,6 +209,8 @@ const baseRoutes: RouteRecordRaw[] = [
         component: SignUpPage,
         children: [],
         meta: {
+          // Экран живёт в оболочке AuthSplit: без общей шапки и футера, панель до верха.
+          authSplit: true,
           title: 'Регистрация',
           icon: 'fa-solid fa-user-plus',
           widget: {

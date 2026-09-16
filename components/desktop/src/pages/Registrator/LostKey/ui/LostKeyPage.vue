@@ -1,6 +1,9 @@
 <template>
   <div class="lostkey-page">
     <LostKey>
+      <template #actions>
+        <AuthActions />
+      </template>
       <template #pane-foot>
         Вспомнили ключ?
         <a class="auth-link" href="#" @click.prevent="goToSignIn">Войти</a>
@@ -15,6 +18,7 @@
 <script lang="ts" setup>
 import { useRoute, useRouter } from 'vue-router';
 import { LostKey } from 'src/widgets/Registrator/LostKey/ui';
+import { AuthActions } from 'src/widgets/Registrator/AuthActions';
 
 const router = useRouter();
 const route = useRoute();

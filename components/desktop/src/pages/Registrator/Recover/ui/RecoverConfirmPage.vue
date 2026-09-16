@@ -1,6 +1,9 @@
 <template>
   <div class="recover-page">
     <RecoverConfirm :token="token" :coopname="coopname">
+      <template #actions>
+        <AuthActions />
+      </template>
       <template #pane-foot>
         Вспомнили пароль?
         <a class="auth-link" href="#" @click.prevent="goToSignIn">Войти</a>
@@ -16,6 +19,7 @@
 import { computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { RecoverConfirm } from 'src/widgets/Registrator/Recover/ui';
+import { AuthActions } from 'src/widgets/Registrator/AuthActions';
 
 const router = useRouter();
 const route = useRoute();
