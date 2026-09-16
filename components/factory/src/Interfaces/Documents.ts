@@ -61,6 +61,8 @@ export interface IGenerateBlank {
   registry_id: number
   block_num?: number
   lang?: string
+  /** Хэш параметров документа (`doc_data`): без него параметры программы в бланке — прочерк. */
+  doc_data_hash?: string
 }
 
 export interface IGeneratedBlank {

@@ -306,7 +306,12 @@ export class DocumentApprovalProposalService {
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       this.logger.info(`Документ ${registry_id} без данных события не собирается (${message}) — собираю бланк формы с прочерками`);
-      const blank = await this.documents.generateBlank({ coopname, registry_id, ...(block_num ? { block_num } : {}) });
+      const blank = await this.documents.generateBlank({
+        coopname,
+        registry_id,
+        ...(block_num ? { block_num } : {}),
+        ...(doc_data_hash ? { doc_data_hash } : {}),
+      });
       return { registry_id, title: blank.title || template.title, html: blank.html, text_hash: sha256(blank.html) };
     }
   }

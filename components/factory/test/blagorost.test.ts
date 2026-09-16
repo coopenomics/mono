@@ -1,4 +1,4 @@
-import { beforeAll, describe, it } from 'vitest'
+import { beforeAll, describe, expect, it } from 'vitest'
 import { Cooperative } from 'cooptypes'
 import { Generator } from '../src'
 import { testDocumentGeneration } from './utils/testDocument'
@@ -42,23 +42,18 @@ describe('тест генератора документов ЦПП БЛАГОР
     })
   })
 
-  // Документ 999 - Шаблон публичной оферты (без шапки)
-  it('генерируем шаблон публичной оферты по ЦПП БЛАГОРОСТ', async () => {
-    // Добавляем данные протокола для документа 998
-    await generator.update('vars', { coopname: 'voskhod' }, {
-      blagorost_program: {
-        protocol_number: '01-12-2024',
-        protocol_day_month_year: '01 декабря 2024 г.',
-      },
-    })
-
-    await testDocumentGeneration({
-      registry_id: 999,
+  // Бланк оферты 1000 для совета: двойник 999 выведен. Тот же шаблон и
+  // переводы, параметры программы по хэшу подставлены, поля пайщика — прочерк.
+  it('собираем бланк публичной оферты по ЦПП БЛАГОРОСТ с параметрами программы', async () => {
+    const blank = await generator.generateBlank({
+      registry_id: 1000,
       coopname: 'voskhod',
-      username: 'ant',
-      lang: 'ru',
       doc_data_hash: capitalProgramDocDataHash,
     })
+    expect(blank.html).toContain('______')
+    expect(blank.meta.created_at).toBe('______')
+    const param = Object.values(capitalProgramPrivateData).find(v => typeof v === 'string' && v.length > 8) as string
+    expect(blank.html).toContain(param)
   })
 
   // Документ 1000 - Публичная оферта для пайщика (с шапкой)

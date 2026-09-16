@@ -96,10 +96,11 @@ export abstract class DocFactory<T extends IGenerate> {
    * когда её открыли, и отпечаток её текста устойчив.
    */
   async generateBlank(data: IGenerateBlank): Promise<IGeneratedBlank> {
-    const { template, coop, vars } = await this.resolveParallel({
+    const { template, coop, vars, docData } = await this.resolveParallel({
       template: () => this.getTemplate<unknown>(DraftContract.contractName.production, data.registry_id, data.block_num),
       coop: () => this.getCooperative(data.coopname, data.block_num),
       vars: () => this.getVars(data.coopname, data.block_num),
+      docData: () => this.loadDocData<Record<string, unknown>>(data),
     })
 
     const meta: IMetaDocument = await this.getMeta({
@@ -122,7 +123,10 @@ export abstract class DocFactory<T extends IGenerate> {
     // отличаются только реквизиты подписанта. Бланк собирается для физлица:
     // это основная форма, иначе документ с ветвлением остался бы пустым.
     const subject = knownKeys.includes('type') ? { type: 'individual' } : {}
-    const html = new PDFService().renderBlankHtml(template.context, { ...subject, meta: blankMeta, coop, vars }, translation, knownKeys)
+    // Параметры программы (условия ЦПП) совет утверждает вместе с текстом:
+    // по хэшу они подставляются в бланк, без хэша остаются прочерком.
+    const params = docData ? { doc_data: docData } : {}
+    const html = new PDFService().renderBlankHtml(template.context, { ...subject, ...params, meta: blankMeta, coop, vars }, translation, knownKeys)
 
     return { title: template.title, html, meta: blankMeta }
   }
