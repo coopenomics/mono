@@ -207,8 +207,9 @@ export class DecisionTrackingAdapter implements IDecisionTrackingPort, OnModuleI
       return;
     }
 
-    // Обновляем vars
-    if (decision_id && decision_date) {
+    // Обновляем vars. Пакет форм без общего поля vars реквизиты протокола не
+    // пишет — иначе появилось бы поле с пустым именем.
+    if (decision_id && decision_date && rule.vars_field) {
       await this.updateVars(rule.vars_field, decision_id, decision_date);
     }
 
