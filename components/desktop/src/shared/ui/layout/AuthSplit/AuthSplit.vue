@@ -6,38 +6,41 @@
 .auth-split(:class='`auth-split--${size ?? "sm"}`')
   aside.auth-split__pane
     span.auth-split__mark(v-html='logoSvg', aria-hidden='true')
-    .auth-split__pane-head
-      .auth-split__brand
-        span.auth-split__brand-logo(v-html='logoSvg', aria-hidden='true')
-        span.auth-split__eyebrow(v-if='eyebrow') {{ eyebrow }}
-      h1.auth-split__title {{ title }}
-      p.auth-split__lead(v-if='lead') {{ lead }}
+    //- Прокручивается только содержимое: водяной знак вылезает за низ панели и,
+    //- будь он внутри прокрутки, добавлял бы ей лишнюю высоту.
+    .auth-split__pane-scroll
+      .auth-split__pane-head
+        .auth-split__brand
+          span.auth-split__brand-logo(v-html='logoSvg', aria-hidden='true')
+          span.auth-split__eyebrow(v-if='eyebrow') {{ eyebrow }}
+        h1.auth-split__title {{ title }}
+        p.auth-split__lead(v-if='lead') {{ lead }}
 
-    //- Шаги: на широком экране — список, на узком — полоса прогресса с текущим шагом.
-    template(v-if='steps && steps.length')
-      ol.auth-split__steps
-        li.auth-split__step(
-          v-for='(step, index) in steps',
-          :key='step.key',
-          :class='stepClass(step.key)'
-        )
-          span.auth-split__step-n
-            q-icon(v-if='isCompleted(step.key)', name='check', size='14px')
-            template(v-else) {{ index + 1 }}
-          span.auth-split__step-label {{ step.label }}
-      .auth-split__progress(role='progressbar', :aria-valuenow='activeIndex + 1', :aria-valuemax='steps.length')
-        .auth-split__progress-text
-          span Шаг {{ activeIndex + 1 }} из {{ steps.length }}
-          span.auth-split__progress-label(v-if='activeStep') {{ activeStep.label }}
-        .auth-split__progress-bar
-          i(v-for='step in steps', :key='step.key', :class='stepClass(step.key)')
+      //- Шаги: на широком экране — список, на узком — полоса прогресса с текущим шагом.
+      template(v-if='steps && steps.length')
+        ol.auth-split__steps
+          li.auth-split__step(
+            v-for='(step, index) in steps',
+            :key='step.key',
+            :class='stepClass(step.key)'
+          )
+            span.auth-split__step-n
+              q-icon(v-if='isCompleted(step.key)', name='check', size='14px')
+              template(v-else) {{ index + 1 }}
+            span.auth-split__step-label {{ step.label }}
+        .auth-split__progress(role='progressbar', :aria-valuenow='activeIndex + 1', :aria-valuemax='steps.length')
+          .auth-split__progress-text
+            span Шаг {{ activeIndex + 1 }} из {{ steps.length }}
+            span.auth-split__progress-label(v-if='activeStep') {{ activeStep.label }}
+          .auth-split__progress-bar
+            i(v-for='step in steps', :key='step.key', :class='stepClass(step.key)')
 
-    p.auth-split__quote(v-else-if='quote') {{ quote }}
+      p.auth-split__quote(v-else-if='quote') {{ quote }}
 
-    slot(name='pane')
+      slot(name='pane')
 
-    .auth-split__pane-foot(v-if='$slots["pane-foot"]')
-      slot(name='pane-foot')
+      .auth-split__pane-foot(v-if='$slots["pane-foot"]')
+        slot(name='pane-foot')
 
   section.auth-split__work
     //- Действия экрана: кнопка встречного пути (вход ↔ регистрация) из слота и
@@ -113,7 +116,7 @@ function stepClass(key: string): Record<string, boolean> {
   position: sticky;
   top: 0;
   height: 100dvh;
-  overflow: hidden auto;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
   padding: var(--p-8, 40px);
@@ -132,6 +135,15 @@ function stepClass(key: string): Record<string, boolean> {
   display: block;
   width: 100%;
   height: auto;
+}
+.auth-split__pane-scroll {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden auto;
 }
 .auth-split__pane-head {
   position: relative;
@@ -354,6 +366,10 @@ function stepClass(key: string): Record<string, boolean> {
     height: auto;
     overflow: hidden;
     padding: var(--p-5, 20px);
+  }
+  .auth-split__pane-scroll {
+    flex: none;
+    overflow: visible;
     gap: var(--p-4, 16px);
   }
   .auth-split__mark {
