@@ -193,7 +193,7 @@ export class AccountSecurityResolver {
     description: 'Подтверждение входа у пайщика: подключено ли приложение-аутентификатор (председателю)',
   })
   @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
+  @AuthRoles(['chairman'], { allowSelf: false })
   async getParticipantLoginSecurity(
     @Args('data', { type: () => ResetParticipantTwoFactorInputDTO }) data: ResetParticipantTwoFactorInputDTO,
   ): Promise<ParticipantLoginSecurityDTO> {
@@ -207,7 +207,7 @@ export class AccountSecurityResolver {
     description: 'Снять приложение-аутентификатор у пайщика (только председатель совета)',
   })
   @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
+  @AuthRoles(['chairman'], { allowSelf: false })
   async resetParticipantTwoFactor(
     @Args('data', { type: () => ResetParticipantTwoFactorInputDTO }) data: ResetParticipantTwoFactorInputDTO,
     @CurrentUser() user: ICurrentUser,
