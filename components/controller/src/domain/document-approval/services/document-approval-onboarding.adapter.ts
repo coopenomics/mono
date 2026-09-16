@@ -42,9 +42,10 @@ export class DocumentApprovalOnboardingAdapter implements IDocumentApprovalPort 
       return { hash: pending.pending_hash, registry_ids: stepTemplates.map((t) => t.registry_id), approved: false };
     }
 
-    const waiting = stepTemplates.filter(
-      (t) => t.state === DocumentApprovalState.NotApproved || t.state === DocumentApprovalState.Outdated
-    );
+    // Шаг подключения закрывается первым утверждением: документ с прежней
+    // утверждённой редакцией шаг не держит — новую редакцию выносят со вкладки
+    // «Шаблоны документов», а не из карточки подключения.
+    const waiting = stepTemplates.filter((t) => t.state === DocumentApprovalState.NotApproved);
     if (waiting.length === 0) {
       return { hash: null, registry_ids: stepTemplates.map((t) => t.registry_id), approved: true };
     }
