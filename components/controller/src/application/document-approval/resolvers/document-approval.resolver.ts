@@ -58,9 +58,15 @@ export class DocumentApprovalResolver {
   async documentTemplateBlank(
     @Args('coopname', { type: () => String }) coopname: string,
     @Args('registry_id', { type: () => Int }) registry_id: number,
-    @Args('edition', { type: () => DocumentTemplateEdition }) edition: DocumentTemplateEdition
+    @Args('edition', { type: () => DocumentTemplateEdition }) edition: DocumentTemplateEdition,
+    @Args('doc_data_hash', {
+      type: () => String,
+      nullable: true,
+      description: 'Хэш приватных параметров документа, если шаблон их требует (параметры ЦПП)',
+    })
+    doc_data_hash?: string | null
   ): Promise<DocumentTemplateBlankDTO> {
-    return this.proposalService.renderBlankHtml(coopname, registry_id, edition);
+    return this.proposalService.renderBlankHtml(coopname, registry_id, edition, doc_data_hash ?? undefined);
   }
 
   @Mutation(() => [DocumentTemplateDTO], {

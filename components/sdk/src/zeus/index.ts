@@ -6619,6 +6619,32 @@ export type ValueTypes = {
 }>;
 	/** Требуется ли решение совета, чтобы редакция документа действовала в кооперативе */
 ["DocumentApprovalRequirement"]:DocumentApprovalRequirement;
+	["DocumentApprovalSeedItem"]: AliasType<{
+	/** Дата протокола из настроек кооператива */
+	protocol_day_month_year?:boolean | `@${string}`,
+	/** Номер протокола из настроек кооператива */
+	protocol_number?:boolean | `@${string}`,
+	/** Номер шаблона в реестре документов */
+	registry_id?:boolean | `@${string}`,
+	/** Название документа */
+	title?:boolean | `@${string}`,
+	/** Поле настроек, откуда взяты реквизиты */
+	vars_field?:boolean | `@${string}`,
+	/** Редакция в сети, которая будет записана утверждённой */
+	version?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on DocumentApprovalSeedItem']?: Omit<ValueTypes["DocumentApprovalSeedItem"], "...on DocumentApprovalSeedItem">
+}>;
+	["DocumentApprovalSeedResult"]: AliasType<{
+	/** Сколько утверждений записано в цепь */
+	applied?:boolean | `@${string}`,
+	/** Документы, по которым запись не удалась */
+	failed?:boolean | `@${string}`,
+	/** Сколько документов было в плане */
+	planned?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on DocumentApprovalSeedResult']?: Omit<ValueTypes["DocumentApprovalSeedResult"], "...on DocumentApprovalSeedResult">
+}>;
 	/** Состояние документа в кооперативе относительно редакции в сети */
 ["DocumentApprovalState"]:DocumentApprovalState;
 	/** Род документа: соглашение пайщика, положение, форма или служебный документ */
@@ -12525,6 +12551,7 @@ addBranchWhitelist?: [{	data: ValueTypes["AddBranchWhitelistInput"] | Variable<a
 addParticipant?: [{	data: ValueTypes["AddParticipantInput"] | Variable<any, string>},ValueTypes["Account"]],
 addPaymentMethod?: [{	data: ValueTypes["AddPaymentMethodInput"] | Variable<any, string>},ValueTypes["PaymentMethod"]],
 addTrustedAccount?: [{	data: ValueTypes["AddTrustedAccountInput"] | Variable<any, string>},ValueTypes["Branch"]],
+applyDocumentApprovalsSeed?: [{	coopname: string | Variable<any, string>},ValueTypes["DocumentApprovalSeedResult"]],
 approveVerification?: [{	data: ValueTypes["ApproveVerificationInput"] | Variable<any, string>},ValueTypes["VerificationReview"]],
 archiveProductCard?: [{	id: string | Variable<any, string>},boolean | `@${string}`],
 assignCapabilitySet?: [{	data: ValueTypes["AssignCapabilitySetInput"] | Variable<any, string>},boolean | `@${string}`],
@@ -14497,7 +14524,9 @@ chatcoopListUtcDatesWithNewRoomMessages?: [{	data: ValueTypes["ListUtcDatesWithN
 checkReportReadiness?: [{	reportType: ValueTypes["ReportType"] | Variable<any, string>},ValueTypes["ReportReadinessView"]],
 cooperativeAgreements?: [{	coopname: string | Variable<any, string>},ValueTypes["CoopAgreement"]],
 cooperativePrograms?: [{	coopname: string | Variable<any, string>},ValueTypes["CooperativeProgram"]],
-documentTemplateBlank?: [{	coopname: string | Variable<any, string>,	edition: ValueTypes["DocumentTemplateEdition"] | Variable<any, string>,	registry_id: number | Variable<any, string>},ValueTypes["DocumentTemplateBlank"]],
+documentApprovalsSeedPlan?: [{	coopname: string | Variable<any, string>},ValueTypes["DocumentApprovalSeedItem"]],
+documentTemplateBlank?: [{	coopname: string | Variable<any, string>,	/** Хэш приватных параметров документа, если шаблон их требует (параметры ЦПП) */
+	doc_data_hash?: string | undefined | null | Variable<any, string>,	edition: ValueTypes["DocumentTemplateEdition"] | Variable<any, string>,	registry_id: number | Variable<any, string>},ValueTypes["DocumentTemplateBlank"]],
 documentTemplates?: [{	coopname: string | Variable<any, string>},ValueTypes["DocumentTemplate"]],
 documentTemplatesAttention?: [{	coopname: string | Variable<any, string>},boolean | `@${string}`],
 expenseFile?: [{	id: number | Variable<any, string>},ValueTypes["ExpenseFile"]],
@@ -22410,6 +22439,30 @@ export type ResolverInputTypes = {
 }>;
 	/** Требуется ли решение совета, чтобы редакция документа действовала в кооперативе */
 ["DocumentApprovalRequirement"]:DocumentApprovalRequirement;
+	["DocumentApprovalSeedItem"]: AliasType<{
+	/** Дата протокола из настроек кооператива */
+	protocol_day_month_year?:boolean | `@${string}`,
+	/** Номер протокола из настроек кооператива */
+	protocol_number?:boolean | `@${string}`,
+	/** Номер шаблона в реестре документов */
+	registry_id?:boolean | `@${string}`,
+	/** Название документа */
+	title?:boolean | `@${string}`,
+	/** Поле настроек, откуда взяты реквизиты */
+	vars_field?:boolean | `@${string}`,
+	/** Редакция в сети, которая будет записана утверждённой */
+	version?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["DocumentApprovalSeedResult"]: AliasType<{
+	/** Сколько утверждений записано в цепь */
+	applied?:boolean | `@${string}`,
+	/** Документы, по которым запись не удалась */
+	failed?:boolean | `@${string}`,
+	/** Сколько документов было в плане */
+	planned?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
 	/** Состояние документа в кооперативе относительно редакции в сети */
 ["DocumentApprovalState"]:DocumentApprovalState;
 	/** Род документа: соглашение пайщика, положение, форма или служебный документ */
@@ -28137,6 +28190,7 @@ addBranchWhitelist?: [{	data: ResolverInputTypes["AddBranchWhitelistInput"]},Res
 addParticipant?: [{	data: ResolverInputTypes["AddParticipantInput"]},ResolverInputTypes["Account"]],
 addPaymentMethod?: [{	data: ResolverInputTypes["AddPaymentMethodInput"]},ResolverInputTypes["PaymentMethod"]],
 addTrustedAccount?: [{	data: ResolverInputTypes["AddTrustedAccountInput"]},ResolverInputTypes["Branch"]],
+applyDocumentApprovalsSeed?: [{	coopname: string},ResolverInputTypes["DocumentApprovalSeedResult"]],
 approveVerification?: [{	data: ResolverInputTypes["ApproveVerificationInput"]},ResolverInputTypes["VerificationReview"]],
 archiveProductCard?: [{	id: string},boolean | `@${string}`],
 assignCapabilitySet?: [{	data: ResolverInputTypes["AssignCapabilitySetInput"]},boolean | `@${string}`],
@@ -30035,7 +30089,9 @@ chatcoopListUtcDatesWithNewRoomMessages?: [{	data: ResolverInputTypes["ListUtcDa
 checkReportReadiness?: [{	reportType: ResolverInputTypes["ReportType"]},ResolverInputTypes["ReportReadinessView"]],
 cooperativeAgreements?: [{	coopname: string},ResolverInputTypes["CoopAgreement"]],
 cooperativePrograms?: [{	coopname: string},ResolverInputTypes["CooperativeProgram"]],
-documentTemplateBlank?: [{	coopname: string,	edition: ResolverInputTypes["DocumentTemplateEdition"],	registry_id: number},ResolverInputTypes["DocumentTemplateBlank"]],
+documentApprovalsSeedPlan?: [{	coopname: string},ResolverInputTypes["DocumentApprovalSeedItem"]],
+documentTemplateBlank?: [{	coopname: string,	/** Хэш приватных параметров документа, если шаблон их требует (параметры ЦПП) */
+	doc_data_hash?: string | undefined | null,	edition: ResolverInputTypes["DocumentTemplateEdition"],	registry_id: number},ResolverInputTypes["DocumentTemplateBlank"]],
 documentTemplates?: [{	coopname: string},ResolverInputTypes["DocumentTemplate"]],
 documentTemplatesAttention?: [{	coopname: string},boolean | `@${string}`],
 expenseFile?: [{	id: number},ResolverInputTypes["ExpenseFile"]],
@@ -37732,6 +37788,28 @@ export type ModelTypes = {
 	rawDocument?: ModelTypes["GeneratedDocument"] | undefined | null
 };
 	["DocumentApprovalRequirement"]:DocumentApprovalRequirement;
+	["DocumentApprovalSeedItem"]: {
+		/** Дата протокола из настроек кооператива */
+	protocol_day_month_year: string,
+	/** Номер протокола из настроек кооператива */
+	protocol_number: string,
+	/** Номер шаблона в реестре документов */
+	registry_id: number,
+	/** Название документа */
+	title: string,
+	/** Поле настроек, откуда взяты реквизиты */
+	vars_field: string,
+	/** Редакция в сети, которая будет записана утверждённой */
+	version: number
+};
+	["DocumentApprovalSeedResult"]: {
+		/** Сколько утверждений записано в цепь */
+	applied: number,
+	/** Документы, по которым запись не удалась */
+	failed: Array<number>,
+	/** Сколько документов было в плане */
+	planned: number
+};
 	["DocumentApprovalState"]:DocumentApprovalState;
 	["DocumentKind"]:DocumentKind;
 	/** Комплексный объект папки цифрового документа с агрегатами, который включает в себя заявление, решение, акты и связанные документы */
@@ -43208,6 +43286,8 @@ export type ModelTypes = {
 	addPaymentMethod: ModelTypes["PaymentMethod"],
 	/** Добавить доверенное лицо кооперативного участка */
 	addTrustedAccount: ModelTypes["Branch"],
+	/** Записать в цепь утверждения из прежних настроек кооператива по плану переноса */
+	applyDocumentApprovalsSeed: ModelTypes["DocumentApprovalSeedResult"],
 	/** Совет подтвердил сверку личности; снимки удаляются */
 	approveVerification: ModelTypes["VerificationReview"],
 	/** Архивировать карточку */
@@ -45408,6 +45488,8 @@ export type ModelTypes = {
 	cooperativeAgreements: Array<ModelTypes["CoopAgreement"]>,
 	/** Целевые потребительские программы кооператива (id, тип, активность, draft_id) */
 	cooperativePrograms: Array<ModelTypes["CooperativeProgram"]>,
+	/** Перенос утверждений из прежних настроек кооператива: какие документы получат утверждение текущей редакции и по какому протоколу (без записи в цепь) */
+	documentApprovalsSeedPlan: Array<ModelTypes["DocumentApprovalSeedItem"]>,
 	/** Бланк документа без данных субъекта: утверждённая советом редакция или текущая редакция сети */
 	documentTemplateBlank: ModelTypes["DocumentTemplateBlank"],
 	/** Реестр шаблонов документов кооператива с утверждёнными и доступными редакциями */
@@ -53438,6 +53520,32 @@ export type GraphQLTypes = {
 };
 	/** Требуется ли решение совета, чтобы редакция документа действовала в кооперативе */
 ["DocumentApprovalRequirement"]: DocumentApprovalRequirement;
+	["DocumentApprovalSeedItem"]: {
+	__typename: "DocumentApprovalSeedItem",
+	/** Дата протокола из настроек кооператива */
+	protocol_day_month_year: string,
+	/** Номер протокола из настроек кооператива */
+	protocol_number: string,
+	/** Номер шаблона в реестре документов */
+	registry_id: number,
+	/** Название документа */
+	title: string,
+	/** Поле настроек, откуда взяты реквизиты */
+	vars_field: string,
+	/** Редакция в сети, которая будет записана утверждённой */
+	version: number,
+	['...on DocumentApprovalSeedItem']: Omit<GraphQLTypes["DocumentApprovalSeedItem"], "...on DocumentApprovalSeedItem">
+};
+	["DocumentApprovalSeedResult"]: {
+	__typename: "DocumentApprovalSeedResult",
+	/** Сколько утверждений записано в цепь */
+	applied: number,
+	/** Документы, по которым запись не удалась */
+	failed: Array<number>,
+	/** Сколько документов было в плане */
+	planned: number,
+	['...on DocumentApprovalSeedResult']: Omit<GraphQLTypes["DocumentApprovalSeedResult"], "...on DocumentApprovalSeedResult">
+};
 	/** Состояние документа в кооперативе относительно редакции в сети */
 ["DocumentApprovalState"]: DocumentApprovalState;
 	/** Род документа: соглашение пайщика, положение, форма или служебный документ */
@@ -59351,6 +59459,8 @@ export type GraphQLTypes = {
 	addPaymentMethod: GraphQLTypes["PaymentMethod"],
 	/** Добавить доверенное лицо кооперативного участка */
 	addTrustedAccount: GraphQLTypes["Branch"],
+	/** Записать в цепь утверждения из прежних настроек кооператива по плану переноса */
+	applyDocumentApprovalsSeed: GraphQLTypes["DocumentApprovalSeedResult"],
 	/** Совет подтвердил сверку личности; снимки удаляются */
 	approveVerification: GraphQLTypes["VerificationReview"],
 	/** Архивировать карточку */
@@ -61730,6 +61840,8 @@ export type GraphQLTypes = {
 	cooperativeAgreements: Array<GraphQLTypes["CoopAgreement"]>,
 	/** Целевые потребительские программы кооператива (id, тип, активность, draft_id) */
 	cooperativePrograms: Array<GraphQLTypes["CooperativeProgram"]>,
+	/** Перенос утверждений из прежних настроек кооператива: какие документы получат утверждение текущей редакции и по какому протоколу (без записи в цепь) */
+	documentApprovalsSeedPlan: Array<GraphQLTypes["DocumentApprovalSeedItem"]>,
 	/** Бланк документа без данных субъекта: утверждённая советом редакция или текущая редакция сети */
 	documentTemplateBlank: GraphQLTypes["DocumentTemplateBlank"],
 	/** Реестр шаблонов документов кооператива с утверждёнными и доступными редакциями */

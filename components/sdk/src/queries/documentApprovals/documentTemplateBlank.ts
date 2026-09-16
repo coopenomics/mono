@@ -10,6 +10,7 @@ export const query = Selector('Query')({
       coopname: $('coopname', 'String!'),
       registry_id: $('registry_id', 'Int!'),
       edition: $('edition', 'DocumentTemplateEdition!'),
+      doc_data_hash: $('doc_data_hash', 'String'),
     },
     rawDocumentTemplateBlankSelector,
   ],
@@ -24,6 +25,8 @@ export interface IInput {
   coopname: string
   registry_id: number
   edition: ModelTypes['DocumentTemplateEdition']
+  /** Хэш приватных параметров документа, если шаблон их требует. */
+  doc_data_hash?: string | null
 }
 
 export type IOutput = InputType<GraphQLTypes['Query'], typeof query>

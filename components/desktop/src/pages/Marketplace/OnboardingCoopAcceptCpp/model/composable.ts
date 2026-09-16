@@ -27,9 +27,11 @@ import {
  */
 
 // step_key (бэкенд) → registry_id рендерящегося документа
+// Шаг → рабочий документ, который совет утверждает в бланке. Двойник оферты
+// 1101 выведен: совет утверждает саму оферту 1102 (фабрика утверждений).
 const stepToRegistryId: Record<string, number> = {
   marketplace_provision: 1100,
-  marketplace_offer_template: 1101,
+  marketplace_offer_template: 1102,
 };
 
 interface StepMeta {
@@ -133,9 +135,8 @@ export const useMarketplaceOnboarding = () => {
       await systemStore.loadSystemInfo();
       onboardingState.value = await fetchOnboardingState();
 
-      // Заранее рендерим HTML обоих документов (registry 1100 + 1101).
+      // Заранее рендерим бланки обоих документов (registry 1100 + 1102).
       const coopname = systemStore.info?.coopname || '';
-      const username = sessionStore.username;
       const entries = await Promise.all(
         STEP_META.map(async (meta) => {
           try {
@@ -143,7 +144,7 @@ export const useMarketplaceOnboarding = () => {
             if (typeof registryId !== 'number') {
               return [meta.id, ''] as const;
             }
-            const doc = await generateDocument(coopname, username, registryId);
+            const doc = await generateDocument(coopname, registryId);
             return [meta.id, doc.html] as const;
           } catch {
             return [meta.id, ''] as const;

@@ -33,6 +33,8 @@ sources:
   ui:
     - components/desktop/src/pages/Cooperative/DocumentTemplates/**
     - components/desktop/src/pages/Cooperative/ListOfDocuments/ListOfDocumentsPage.vue
+    - components/desktop/extensions/capital/features/Onboarding/model/composable.ts
+    - components/desktop/src/pages/Marketplace/OnboardingCoopAcceptCpp/api/index.ts
 
 cases:
   - id: doc.appr.happy.01
@@ -322,3 +324,11 @@ cases:
     expect: частично утверждённый пакет не закрывает шаг; повторное прохождение возвращает хэш повестки без нового решения
     test: components/controller/tests/unit/document-approval/document-approval-onboarding.adapter.test.ts
     status: written
+
+  - id: doc.appr.happy.18
+    level: ui
+    kind: happy
+    scenario: Карточки подключения Капитала и Стола заказов показывают документ шага
+    expect: показывается бланк рабочего документа (оферта 996/1000/1102, договор 1001, положения 994/998/1100) из фабрики утверждений, а не шаблон-двойник; текст совпадает с тем, что уйдёт в решение совета
+    test: ~
+    status: missing

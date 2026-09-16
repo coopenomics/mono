@@ -269,14 +269,15 @@ export class DocumentApprovalProposalService {
   public async renderBlankHtml(
     coopname: string,
     registry_id: number,
-    edition: 'approved' | 'current'
+    edition: 'approved' | 'current',
+    doc_data_hash?: string
   ): Promise<{ registry_id: number; title: string; html: string; text_hash: string }> {
     const template = (await this.state.getTemplates(coopname)).find((t) => t.registry_id === registry_id);
     if (!template) throw new BadRequestException(`Документ ${registry_id} не объявлен ни одним установленным приложением`);
-    if (edition === 'current') return this.renderBlank(coopname, template);
+    if (edition === 'current') return this.renderBlank(coopname, template, doc_data_hash);
 
     const document = await this.documents.generateDocument({
-      data: { coopname, username: coopname, registry_id },
+      data: { coopname, username: coopname, registry_id, ...(doc_data_hash ? { doc_data_hash } : {}) },
       options: { skip_save: true, skip_pdf: true, blank_signer: true },
     });
     return { registry_id, title: document.meta?.title || template.title, html: document.html, text_hash: sha256(document.html) };

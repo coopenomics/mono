@@ -1478,6 +1478,9 @@ export const AllTypesProps: Record<string,any> = {
 		addTrustedAccount:{
 			data:"AddTrustedAccountInput"
 		},
+		applyDocumentApprovalsSeed:{
+
+		},
 		approveVerification:{
 			data:"ApproveVerificationInput"
 		},
@@ -2891,6 +2894,9 @@ export const AllTypesProps: Record<string,any> = {
 
 		},
 		cooperativePrograms:{
+
+		},
+		documentApprovalsSeedPlan:{
 
 		},
 		documentTemplateBlank:{
@@ -5361,6 +5367,19 @@ export const ReturnTypes: Record<string,any> = {
 		hash:"String",
 		rawDocument:"GeneratedDocument"
 	},
+	DocumentApprovalSeedItem:{
+		protocol_day_month_year:"String",
+		protocol_number:"String",
+		registry_id:"Int",
+		title:"String",
+		vars_field:"String",
+		version:"Int"
+	},
+	DocumentApprovalSeedResult:{
+		applied:"Int",
+		failed:"Int",
+		planned:"Int"
+	},
 	DocumentPackageAggregate:{
 		acts:"ActDetailAggregate",
 		decision:"DecisionDetailAggregate",
@@ -7111,6 +7130,7 @@ export const ReturnTypes: Record<string,any> = {
 		addParticipant:"Account",
 		addPaymentMethod:"PaymentMethod",
 		addTrustedAccount:"Branch",
+		applyDocumentApprovalsSeed:"DocumentApprovalSeedResult",
 		approveVerification:"VerificationReview",
 		archiveProductCard:"Boolean",
 		assignCapabilitySet:"Boolean",
@@ -8124,6 +8144,7 @@ export const ReturnTypes: Record<string,any> = {
 		checkReportReadiness:"ReportReadinessView",
 		cooperativeAgreements:"CoopAgreement",
 		cooperativePrograms:"CooperativeProgram",
+		documentApprovalsSeedPlan:"DocumentApprovalSeedItem",
 		documentTemplateBlank:"DocumentTemplateBlank",
 		documentTemplates:"DocumentTemplate",
 		documentTemplatesAttention:"Int",
