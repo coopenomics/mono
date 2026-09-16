@@ -1,10 +1,5 @@
 <template lang="pug">
-div
-  q-step(
-    :name='store.steps.GenerateAccount',
-    title='Установите пароль для входа',
-    :done='store.isStepDone("GenerateAccount")'
-  )
+div(v-show='store.isStep("GenerateAccount")')
     .generate
       //- Ключ доступа больше не показывается и не выдаётся на руки: он создаётся
       //- здесь же, шифруется этим паролем и хранится в защищённом хранилище

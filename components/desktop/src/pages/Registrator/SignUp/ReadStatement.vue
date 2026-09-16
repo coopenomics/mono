@@ -1,10 +1,5 @@
 <template lang='pug'>
-div
-  q-step(
-    :name='registratorStore.steps.ReadStatement',
-    title='Ознакомьтесь с заполненным заявлением на вступление в кооператив',
-    :done='registratorStore.isStepDone("ReadStatement")'
-  )
+div(v-show='registratorStore.isStep("ReadStatement")')
 
     //- p Прочитайте заявление и примите положения
     div(v-if='isLoading').full-width.text-center.q-mt-lg.q-mb-lg
@@ -38,7 +33,7 @@ div
 
     .row.q-gutter-md.q-mt-lg.q-mb-lg(v-if='!isLoading')
       BaseButton(variant='ghost', @click='back')
-        i.fa.fa-arrow-left
+        q-icon(name='arrow_back')
         span.q-ml-md назад
 
       BaseButton(

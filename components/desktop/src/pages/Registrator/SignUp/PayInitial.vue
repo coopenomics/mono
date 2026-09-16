@@ -1,9 +1,5 @@
 <template lang="pug">
-q-step(
-  :name='store.steps.PayInitial',
-  title='Оплатите вступительный взнос',
-  :done='store.isStepDone("PayInitial")'
-)
+div(v-show='store.isStep("PayInitial")')
 
   Loader(v-if="isCreatingPayment" text="готовим данные для приёма взносов")
   div(v-else-if='payment?.payment_details?.amount_without_fee').q-pa-sm
