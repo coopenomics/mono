@@ -41,10 +41,13 @@ describe('MigrationService', () => {
     return { service, blockchainPort, userDomainService, authentikAdmin, vault, sessions };
   }
 
-  const input = { email: 'a@e.com', timestamp: TS, signature: SIG, newPassword: 'Strong#Pass1' };
+  const input = { email: 'a@e.com', timestamp: TS, signature: SIG, newPassword: 'Strong#Pass1', vaultBlob: BLOB };
 
-  it('happy path без ротации: верифицирует подпись и ставит пароль; сообщение биндит ts + sha256(пароль)', async () => {
+  it('happy path без ротации: верифицирует подпись, кладёт блоб текущего ключа до пароля; сообщение биндит ts + sha256(пароль)', async () => {
     const { service, blockchainPort, authentikAdmin, vault } = deps();
+    const calls: string[] = [];
+    vault.store.mockImplementation(async () => { calls.push('vault'); });
+    authentikAdmin.setPassword.mockImplementation(async () => { calls.push('password'); });
     const result = await service.migrate({ ...input });
 
     const pwHash = createHash('sha256').update('Strong#Pass1', 'utf8').digest('hex');
@@ -53,8 +56,18 @@ describe('MigrationService', () => {
     expect(authentikAdmin.ensureUser).toHaveBeenCalledWith({ username: 'ant', email: 'a@e.com', name: 'ant' });
     expect(authentikAdmin.setPassword).toHaveBeenCalledWith(42, 'Strong#Pass1');
     expect(blockchainPort.changeKey).not.toHaveBeenCalled();
-    expect(vault.store).not.toHaveBeenCalled();
+    expect(vault.store).toHaveBeenCalledWith({ subject_type: 'participant', subject_id: 'ant' }, BLOB);
+    expect(calls).toEqual(['vault', 'password']);
     expect(result).toEqual({ username: 'ant', rotated: false });
+  });
+
+  it('без vault-блоба (клиент старой версии) отвергается до любых записей', async () => {
+    const { service, authentikAdmin, vault } = deps();
+    await expect(service.migrate({ ...input, vaultBlob: undefined })).rejects.toMatchObject({
+      code: AuthV2ErrorCode.ChainVerificationFailed,
+    });
+    expect(vault.store).not.toHaveBeenCalled();
+    expect(authentikAdmin.setPassword).not.toHaveBeenCalled();
   });
 
   it('ротация: сообщение биндит pk; порядок vault → changekey → revokeAll', async () => {
@@ -102,7 +115,7 @@ describe('MigrationService', () => {
 
   it('ротация без vault-блоба отвергается до любых записей', async () => {
     const { service, authentikAdmin } = deps();
-    await expect(service.migrate({ ...input, newPublicKey: NEW_KEY })).rejects.toMatchObject({
+    await expect(service.migrate({ ...input, newPublicKey: NEW_KEY, vaultBlob: undefined })).rejects.toMatchObject({
       code: AuthV2ErrorCode.ChainVerificationFailed,
     });
     expect(authentikAdmin.setPassword).not.toHaveBeenCalled();

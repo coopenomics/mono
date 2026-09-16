@@ -1,4 +1,4 @@
-import type { EncryptedVaultBlob, VaultSubject } from '../vault/types'
+import type { EncryptedVaultBlob } from '../vault/types'
 import type { StorageAdapter } from './storage-adapter'
 /**
  * Кошелёк (Story 2.2): разблокировка после логина, доступ к публичному «виду»
@@ -7,8 +7,7 @@ import type { StorageAdapter } from './storage-adapter'
  * Desktop-кошелёк переезжает на этот модуль (миграция — Эпик 7).
  */
 import { AuthV2Error, AuthV2ErrorCode, notImplemented } from '../errors'
-import { decryptPrivateKey, encryptPrivateKey } from '../vault/encrypt'
-import { saveLocalVault } from './local-vault'
+import { decryptPrivateKey } from '../vault/encrypt'
 import { clearPinProtected, DEFAULT_PIN, hasPinProtected, loadPinProtected, savePinProtected } from './pin'
 import { currentView, isUnlocked, readUnlockedKey, storeUnlocked, wipeKeystore } from './storage'
 
@@ -55,51 +54,6 @@ export async function fetchVaultBlob(apiUrl: string, subjectId: string): Promise
   if (!res.ok)
     throw new AuthV2Error(AuthV2ErrorCode.NetworkError, `Не удалось получить vault (HTTP ${res.status})`)
   return res.json() as Promise<EncryptedVaultBlob>
-}
-
-/**
- * POST зашифрованного blob'а на контроллер (Story 11.3, `POST /coop/vault`, 201).
- * Тело — blob + плоские `subject_type`/`subject_id` (контракт `StoreVaultDto`).
- * Сервер только сохраняет шифр и расшифровать его не может (type-ban в 2.1).
- */
-export async function storeVaultBlob(apiUrl: string, subject: VaultSubject, blob: EncryptedVaultBlob): Promise<void> {
-  let res: Response
-  try {
-    res = await fetch(`${apiUrl.replace(/\/$/, '')}/coop/vault`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ ...blob, subject_type: subject.subject_type, subject_id: subject.subject_id }),
-    })
-  }
-  catch (e) {
-    throw new AuthV2Error(AuthV2ErrorCode.NetworkError, `Сеть недоступна при сохранении vault: ${e instanceof Error ? e.message : e}`)
-  }
-  if (!res.ok)
-    throw new AuthV2Error(AuthV2ErrorCode.NetworkError, `Не удалось сохранить vault (HTTP ${res.status})`)
-}
-
-interface SaveToVaultParams {
-  apiUrl: string
-  account: string
-  privateKey: string
-  password: string
-  /** Если задано — дополнительно сохранить локальную копию зашифрованного blob'а. */
-  storage?: StorageAdapter
-}
-
-/**
- * Шифрует приватный ключ паролём (Argon2id+AES-256-GCM, AAD=субъект) и сохраняет
- * vault: на сервере (обязательно) и локально (если передан `storage`). Возвращает
- * зашифрованный blob. Приватный ключ наружу/на сервер не уходит — только шифр.
- * Используется миграцией «ключ→пароль» (Story 11.4) и сменой пароля.
- */
-export async function saveToVault(params: SaveToVaultParams): Promise<EncryptedVaultBlob> {
-  const subject: VaultSubject = { subject_type: 'participant', subject_id: params.account }
-  const blob = await encryptPrivateKey(params.privateKey, params.password, subject)
-  await storeVaultBlob(params.apiUrl, subject, blob)
-  if (params.storage)
-    await saveLocalVault(params.storage, params.account, blob)
-  return blob
 }
 
 interface UnlockParams {

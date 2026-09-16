@@ -108,6 +108,12 @@ export class MigrationService {
     const rotate = !!input.newPublicKey;
     if (rotate && !input.vaultBlob)
       throw new AuthV2Error(AuthV2ErrorCode.ChainVerificationFailed, 'Ротация без vault-блоба невозможна: новому ключу негде жить');
+    // Блоб едет в запросе и без ротации: записать его отдельно без доказательства
+    // владения ключом нельзя (открытая запись позволяла перезаписать чужой блоб).
+    // Отказ — до любых записей, чтобы клиент старой версии не оставил пайщика с
+    // паролем, но без блоба.
+    if (!input.vaultBlob)
+      throw new AuthV2Error(AuthV2ErrorCode.ChainVerificationFailed, 'Миграция без vault-блоба невозможна — обновите страницу');
 
     // 1. email → пайщик. Несуществующий email и неверный ключ дают ОДНУ ошибку
     //    (InvalidCredentials) — без enumeration существования аккаунта.
@@ -164,6 +170,11 @@ export class MigrationService {
         throw new AuthV2Error(AuthV2ErrorCode.InvalidCredentials, 'Неверный email, ключ или подпись');
       }
     }
+
+    // 4.5. без ротации блоб хранит ТЕКУЩИЙ ключ — кладём его до пароля: пароль
+    //      без блоба не открывает ничего, а повтор миграции просто перезапишет блоб.
+    if (!rotate)
+      await this.vault.store({ subject_type: 'participant', subject_id: user.username }, input.vaultBlob as EncryptedVaultBlob);
 
     // 5. provisioning authentik + установка пароля (Story 11.1). Пароль прозрачно
     //    уходит в authentik (единственный store паролей) и не логируется здесь.
