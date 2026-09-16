@@ -16,7 +16,7 @@
  * Если фоллоуап story введёт source-маркер `'registration_flow'`, кейс
  * расширится — сейчас он эквивалентен «подпись есть» (см. Story 1.4 DTO).
  */
-import { MARKETPLACE_OFFER_TEMPLATE_REGISTRY_ID } from '~/extensions/marketplace/constants/marketplace-agreement-ids';
+import { MARKETPLACE_OFFER_INSTANCE_REGISTRY_ID } from '~/extensions/marketplace/constants/marketplace-agreement-ids';
 import { MarketplaceOnboardingService } from '~/extensions/marketplace/application/onboarding/marketplace-onboarding.service';
 
 import { MarketplaceOnboardingSource } from '~/extensions/marketplace/application/dto/marketplace-onboarding-state.dto';
@@ -63,7 +63,7 @@ describe('L2 онбординг (Story 1.11) — scenario: подпись чер
 
     expect(state.requires_gate).toBe(false);
     expect(state.source).toBe(MarketplaceOnboardingSource.AGREEMENT_SIGNED);
-    expect(state.template_registry_id).toBe(MARKETPLACE_OFFER_TEMPLATE_REGISTRY_ID);
+    expect(state.template_registry_id).toBe(MARKETPLACE_OFFER_INSTANCE_REGISTRY_ID);
     expect(state.completed_at).toBe(SIGNED_AT);
   });
 

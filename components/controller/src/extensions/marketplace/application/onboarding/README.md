@@ -45,7 +45,7 @@ flow обеспечивается:
 
 См. **Story 1.4**. `MarketplaceOnboardingService.getOnboardingState(username)`:
 
-- `MARKETPLACE_OFFER_TEMPLATE_REGISTRY_ID ≤ 0` → `{requires_gate:false,
+- `MARKETPLACE_OFFER_INSTANCE_REGISTRY_ID ≤ 0` → `{requires_gate:false,
   source:'not_configured'}` — расширение ещё не настроено платформой.
 - Подпись есть в `AgreementRepository.findByUsername` с
   `type='marketplace'` + `draft_id=1100` → `{requires_gate:false,
