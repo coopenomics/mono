@@ -6,6 +6,7 @@
 #include "document_core.hpp"
 #include "table_draft_drafts.hpp"
 #include "table_draft_translations.hpp"
+#include "table_draft_approvals.hpp"
 
 // accounts (registrator)
 #include "account_payer.hpp"

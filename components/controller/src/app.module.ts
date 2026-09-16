@@ -46,6 +46,7 @@ import { ParserDomainModule } from './domain/parser/parser-domain.module';
 import { SettingsInfrastructureModule } from './infrastructure/settings/settings-infrastructure.module';
 import { RegistrationDomainModule } from './domain/registration/registration-domain.module';
 import { OnboardingDomainModule } from './domain/onboarding/onboarding-domain.module';
+import { DocumentApprovalDomainModule } from './domain/document-approval/document-approval-domain.module';
 import { TokenDomainModule } from './domain/token/token-domain.module';
 import { MutationLogDomainModule } from './domain/mutation-log/mutation-log-domain.module';
 
@@ -84,6 +85,7 @@ import { SettingsApplicationModule } from './application/settings/settings.modul
 import { RegistrationModule } from './application/registration/registration.module';
 import { MembershipExitModule } from './application/membership-exit/membership-exit.module';
 import { OnboardingApplicationModule } from './application/onboarding/onboarding-application.module';
+import { DocumentApprovalApplicationModule } from './application/document-approval/document-approval-application.module';
 import { SearchModule } from './application/search/search.module';
 import { SignedDocumentsModule } from './application/signed-documents/signed-documents.module';
 import { MutationLoggingInterceptor } from './application/common/interceptors/mutation-logging.interceptor';
@@ -144,6 +146,7 @@ import { MarketplaceCardsModule } from './extensions/marketplace-cards/marketpla
     AuthV2Module,
     RegistrationDomainModule,
     OnboardingDomainModule,
+    DocumentApprovalDomainModule,
     AgendaDomainModule,
     AccountDomainModule,
     AccountInfrastructureModule,
@@ -199,6 +202,7 @@ import { MarketplaceCardsModule } from './extensions/marketplace-cards/marketpla
     RegistrationModule,
     MembershipExitModule,
     OnboardingApplicationModule,
+    DocumentApprovalApplicationModule,
     SearchModule,
     SignedDocumentsModule,
     // Marketplace extensions

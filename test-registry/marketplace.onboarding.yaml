@@ -16,6 +16,11 @@ title: Онбординг Стола заказов — приём ЦПП коо
 # Переименование 2026-08-09 (FC1-3): `MarketplacePlugin`/`MarketplacePluginModule`
 # стали `MarketplaceExtension`/`MarketplaceExtensionModule`, локальные `plugin*`
 # — `extension*`. Только имена; поведение и набор случаев не менялись.
+#
+# Фабрика утверждений документов 2026-09-16 (A3D-3, компонент 66 проекта 13):
+# рядом с шагами онбординга расширение объявляет свои документы в реестре
+# шаблонов кооператива (`register-marketplace-documents.ts`). Шаги и их
+# случаи не менялись; случаи деклараций — в реестре documents.approvals.
 
 sources:
   backend:

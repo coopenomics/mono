@@ -73,7 +73,7 @@
 ## Marketplace как пример (Эпик 12)
 
 - Шаги: `marketplace_provision` (Положение, registry **1107.MarketplaceProgramTemplate**) и
-  `marketplace_offer_template` (Оферта-шаблон, registry **1100.MarketplaceOfferTemplate**).
+  `marketplace_offer_template` (Оферта-шаблон, registry **1102.MarketplaceOffer**, бланк рабочей оферты; двойник 1101 выведен).
   Регистрация: `extensions/marketplace/application/onboarding/register-marketplace-onboarding-steps.ts`.
 - L1-флаг: `MarketplacePlugin.initialize()` → `syncCoopAcceptanceFromOnboarding()` выставляет
   `config.coopAcceptance.accepted=true`, когда оба `onboarding_marketplace_*_done`. Этот флаг

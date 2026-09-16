@@ -9,7 +9,7 @@
 экспорта, исчезнувший метод, новый обязательный параметр требуют major, а
 снятое старое — периода устаревания не меньше одного minor (INV-009).
 
-Всего экспортов: 267.
+Всего экспортов: 276.
 
 ## ACCOUNT_PORT
 
@@ -143,6 +143,18 @@
 `const` · hooks
 
 - `Symbol.for('Innercoop.CorePort.DesktopGrantsRegistry')`
+
+## DOCUMENT_APPROVAL_PORT
+
+`const` · core-ports
+
+- `Symbol.for('Innercoop.CorePort.DocumentApproval')`
+
+## DOCUMENT_DECLARATION_PORT
+
+`const` · core-ports
+
+- `Symbol.for('Innercoop.CorePort.DocumentDeclaration')`
 
 ## DOCUMENT_PORT
 
@@ -344,6 +356,20 @@
 `interface` · hooks
 
 - `register(provider: IDesktopGrantsHook): void`
+
+## IDocumentApprovalPort
+
+`interface` · core-ports
+
+- `proposeOnboardingStep(input: InnerProposeOnboardingStepInput): Promise<InnerOnboardingStepProposal | null>`
+- `isStepApproved(extension_name: string, step_key: string): Promise<boolean>`
+
+## IDocumentDeclarationPort
+
+`interface` · core-ports
+
+- `registerDocuments(declarations: InnerDocumentDeclaration[]): Promise<void>`
+- `unregisterByExtension(extension_name: string): Promise<void>`
 
 ## IDocumentPort
 
@@ -787,6 +813,31 @@
 - `hash: string`
 - `document: ISignedDocument & Record<string, any>`
 - `rawDocument?: InnerGeneratedDocument`
+
+## InnerDocumentApproval
+
+`type` · core-ports
+
+- `'required' | 'none'`
+
+## InnerDocumentDeclaration
+
+`interface` · core-ports
+
+- `extension_name: string`
+- `registry_id: number`
+- `kind: InnerDocumentKind`
+- `approval: InnerDocumentApproval`
+- `bundle?: string`
+- `vars_field?: string`
+- `title?: string`
+- `order: number`
+
+## InnerDocumentKind
+
+`type` · core-ports
+
+- `'agreement' | 'provision' | 'form' | 'service'`
 
 ## InnerDocumentValidation
 
@@ -1368,6 +1419,14 @@
 - `default_title?: string`
 - `order: number`
 
+## InnerOnboardingStepProposal
+
+`interface` · core-ports
+
+- `hash: string | null`
+- `registry_ids: number[]`
+- `approved: boolean`
+
 ## InnerOrganization
 
 `interface` · core-ports
@@ -1636,6 +1695,16 @@
 
 - `matrixRoomId: string`
 - `displayLabel: string`
+
+## InnerProposeOnboardingStepInput
+
+`interface` · core-ports
+
+- `extension_name: string`
+- `step_key: string`
+- `username: string`
+- `title?: string`
+- `doc_data_hash?: string`
 
 ## InnerPublishProjectFreeDecisionInput
 

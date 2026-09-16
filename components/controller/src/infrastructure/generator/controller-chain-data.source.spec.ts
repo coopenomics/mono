@@ -21,7 +21,9 @@ describe('ControllerChainDataSource', () => {
     { query } as any,
     { findTemplateAt } as any,
     { find: actionsFind } as any,
-    { getInfo } as any
+    { getInfo } as any,
+    // Утверждённых редакций в этих пробах нет: читается текущее состояние.
+    { resolve: jest.fn(async () => undefined) } as any
   );
 
   beforeEach(() => {

@@ -8,6 +8,7 @@ import { Cooperative } from 'cooptypes';
 import type { ISignedDocument } from '@coopenomics/innercoop';
 import { IDecisionTrackingPort, DECISION_TRACKING_PORT, DecisionEventType } from '@coopenomics/innercoop';
 import { IFreeDecisionPort, FREE_DECISION_PORT } from '@coopenomics/innercoop';
+import { IDocumentApprovalPort, DOCUMENT_APPROVAL_PORT } from '@coopenomics/innercoop';
 import { computeOnboardingExpiresAt } from '@coopenomics/extension-kit';
 
 type OnboardingFlagKey =
@@ -33,7 +34,8 @@ export class CapitalOnboardingService {
   constructor(
     @Inject(EXTENSION_REPOSITORY) private readonly extensionRepository: ExtensionDomainRepository<IConfig>,
     @Inject(FREE_DECISION_PORT) private readonly freeDecisionPort: IFreeDecisionPort,
-    @Inject(DECISION_TRACKING_PORT) private readonly decisionTrackingPort: IDecisionTrackingPort
+    @Inject(DECISION_TRACKING_PORT) private readonly decisionTrackingPort: IDecisionTrackingPort,
+    @Inject(DOCUMENT_APPROVAL_PORT) private readonly documentApprovals: IDocumentApprovalPort
   ) {}
 
   private mapStepToFlag(step: CapitalOnboardingStepEnum): OnboardingFlagKey {
@@ -165,7 +167,22 @@ export class CapitalOnboardingService {
 
   public async getState(): Promise<CapitalOnboardingStateDTO> {
     const extension = await this.loadExtension();
-    return this.buildState(extension.config);
+    const state = this.buildState(extension.config);
+    // Документы могли утвердить с вкладки «Шаблоны документов» — шаг закрыт
+    // утверждением в цепи, даже если флаг в настройке ещё не проставлен.
+    const documentSteps: Array<[CapitalOnboardingStepEnum, keyof CapitalOnboardingStateDTO]> = [
+      [CapitalOnboardingStepEnum.generator_program_template, 'generator_program_template_done'],
+      [CapitalOnboardingStepEnum.generation_contract_template, 'generation_contract_template_done'],
+      [CapitalOnboardingStepEnum.generator_offer_template, 'generator_offer_template_done'],
+      [CapitalOnboardingStepEnum.blagorost_program, 'blagorost_provision_done'],
+      [CapitalOnboardingStepEnum.blagorost_offer_template, 'blagorost_offer_template_done'],
+    ];
+    for (const [step, key] of documentSteps) {
+      if (!state[key] && (await this.documentApprovals.isStepApproved('capital', this.mapStepToVarsField(step)))) {
+        Object.assign(state, { [key]: true });
+      }
+    }
+    return state;
   }
 
   public async saveProgramDocDataHash(docDataHash: string): Promise<CapitalOnboardingStateDTO> {
@@ -183,6 +200,32 @@ export class CapitalOnboardingService {
     return this.buildState(updated.config as CapitalOnboardingConfig);
   }
 
+  /**
+   * Шаги про документы ведёт фабрика утверждений: проект решения собирается
+   * из текста шаблона в цепи, утверждение после решения фиксируется в цепи.
+   * `null` — у шага нет документов, он идёт прежним путём.
+   */
+  private async completeViaFactory(
+    step: CapitalOnboardingStepEnum,
+    flagKey: OnboardingFlagKey,
+    hashKey: OnboardingHashKey,
+    username: string,
+    title?: string,
+    doc_data_hash?: string
+  ): Promise<CapitalOnboardingStateDTO | null> {
+    const viaFactory = await this.documentApprovals.proposeOnboardingStep({
+      extension_name: 'capital',
+      step_key: this.mapStepToVarsField(step),
+      username,
+      title,
+      doc_data_hash,
+    });
+    if (!viaFactory) return null;
+    const patch = (viaFactory.approved ? { [flagKey]: true } : { [hashKey]: viaFactory.hash ?? '' }) as Partial<CapitalOnboardingConfig>;
+    const updated = await this.extensionRepository.patchConfig('capital', patch);
+    return this.buildState(updated.config as CapitalOnboardingConfig);
+  }
+
   public async completeStep(data: CapitalOnboardingStepInputDTO, username: string): Promise<CapitalOnboardingStateDTO> {
     const extension = await this.loadExtension();
     const flagKey = this.mapStepToFlag(data.step);
@@ -192,6 +235,46 @@ export class CapitalOnboardingService {
     if (extension.config[flagKey]) {
       return this.buildState(extension.config);
     }
+
+    const viaFactory = await this.completeViaFactory(
+      data.step,
+      flagKey,
+      hashKey,
+      username,
+      normalizedTitle,
+      extension.config.capital_program_doc_data_hash || undefined
+    );
+    if (viaFactory) return viaFactory;
+
+    const { project_id, hash: publishedHash, updated } = await this.publishLegacyStep(data, hashKey, username, normalizedTitle);
+
+    // Регистрируем правило отслеживания в фабрике
+    const varsField = this.mapStepToVarsField(data.step);
+
+    await this.decisionTrackingPort.registerTrackingRule({
+      hash: publishedHash,
+      event_type: DecisionEventType.SOVIET_DECISION,
+      vars_field: varsField,
+      metadata: {
+        onboarding_step: data.step,
+        project_id,
+        extension: 'capital',
+      },
+    });
+
+    return this.buildState(updated.config as CapitalOnboardingConfig);
+  }
+
+  /**
+   * Прежний путь шага без документов: проект свободного решения с текстом из
+   * карточки, публикация в повестку, хэш в настройке расширения.
+   */
+  private async publishLegacyStep(
+    data: CapitalOnboardingStepInputDTO,
+    hashKey: OnboardingHashKey,
+    username: string,
+    normalizedTitle?: string
+  ): Promise<{ project_id: string; hash: string; updated: ExtensionDomainEntity<CapitalOnboardingConfig> }> {
     const project_id = uuid();
     const actor = username;
 
@@ -238,20 +321,6 @@ export class CapitalOnboardingService {
       [hashKey]: generatedDoc.hash,
     } as Partial<CapitalOnboardingConfig>);
 
-    // Регистрируем правило отслеживания в фабрике
-    const varsField = this.mapStepToVarsField(data.step);
-
-    await this.decisionTrackingPort.registerTrackingRule({
-      hash: generatedDoc.hash,
-      event_type: DecisionEventType.SOVIET_DECISION,
-      vars_field: varsField,
-      metadata: {
-        onboarding_step: data.step,
-        project_id,
-        extension: 'capital',
-      },
-    });
-
-    return this.buildState(updated.config as CapitalOnboardingConfig);
+    return { project_id, hash: generatedDoc.hash, updated };
   }
 }

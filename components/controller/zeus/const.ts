@@ -613,6 +613,10 @@ export const AllTypesProps: Record<string,any> = {
 
 	},
 	DocumentAction: "enum" as const,
+	DocumentApprovalRequirement: "enum" as const,
+	DocumentApprovalState: "enum" as const,
+	DocumentKind: "enum" as const,
+	DocumentTemplateEdition: "enum" as const,
 	EditBranchInput:{
 
 	},
@@ -1473,6 +1477,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		addTrustedAccount:{
 			data:"AddTrustedAccountInput"
+		},
+		applyDocumentApprovalsSeed:{
+
 		},
 		approveVerification:{
 			data:"ApproveVerificationInput"
@@ -2394,6 +2401,9 @@ export const AllTypesProps: Record<string,any> = {
 		processConvertToAxonStatement:{
 			data:"ProcessConvertToAxonStatementInput"
 		},
+		proposeDocumentApproval:{
+			data:"ProposeDocumentApprovalInput"
+		},
 		publishProductCard:{
 
 		},
@@ -2661,6 +2671,9 @@ export const AllTypesProps: Record<string,any> = {
 	},
 	ProjectPriority: "enum" as const,
 	ProjectStatus: "enum" as const,
+	ProposeDocumentApprovalInput:{
+
+	},
 	PublishProjectFreeDecisionInput:{
 		document:"ProjectFreeDecisionSignedDocumentInput"
 	},
@@ -2881,6 +2894,18 @@ export const AllTypesProps: Record<string,any> = {
 
 		},
 		cooperativePrograms:{
+
+		},
+		documentApprovalsSeedPlan:{
+
+		},
+		documentTemplateBlank:{
+			edition:"DocumentTemplateEdition"
+		},
+		documentTemplates:{
+
+		},
+		documentTemplatesAttention:{
 
 		},
 		expenseFile:{
@@ -5342,11 +5367,46 @@ export const ReturnTypes: Record<string,any> = {
 		hash:"String",
 		rawDocument:"GeneratedDocument"
 	},
+	DocumentApprovalSeedItem:{
+		protocol_day_month_year:"String",
+		protocol_number:"String",
+		registry_id:"Int",
+		title:"String",
+		vars_field:"String",
+		version:"Int"
+	},
+	DocumentApprovalSeedResult:{
+		applied:"Int",
+		failed:"Int",
+		planned:"Int"
+	},
 	DocumentPackageAggregate:{
 		acts:"ActDetailAggregate",
 		decision:"DecisionDetailAggregate",
 		links:"DocumentAggregate",
 		statement:"StatementDetailAggregate"
+	},
+	DocumentTemplate:{
+		approval:"DocumentApprovalRequirement",
+		approved_at:"String",
+		approved_decision_id:"Int",
+		approved_version:"Int",
+		bundle:"String",
+		current_version:"Int",
+		effective_version:"Int",
+		extension_name:"String",
+		kind:"DocumentKind",
+		order:"Int",
+		pending_hash:"String",
+		registry_id:"Int",
+		state:"DocumentApprovalState",
+		title:"String"
+	},
+	DocumentTemplateBlank:{
+		html:"String",
+		registry_id:"Int",
+		text_hash:"String",
+		title:"String"
 	},
 	DocumentsAggregatePaginationResult:{
 		currentPage:"Int",
@@ -7070,6 +7130,7 @@ export const ReturnTypes: Record<string,any> = {
 		addParticipant:"Account",
 		addPaymentMethod:"PaymentMethod",
 		addTrustedAccount:"Branch",
+		applyDocumentApprovalsSeed:"DocumentApprovalSeedResult",
 		approveVerification:"VerificationReview",
 		archiveProductCard:"Boolean",
 		assignCapabilitySet:"Boolean",
@@ -7363,6 +7424,7 @@ export const ReturnTypes: Record<string,any> = {
 		payExpenseItem:"Transaction",
 		payWithheldTax:"String",
 		processConvertToAxonStatement:"Boolean",
+		proposeDocumentApproval:"DocumentTemplate",
 		publishProductCard:"Boolean",
 		publishProjectOfFreeDecision:"AgendaWithDocuments",
 		refresh:"RegisteredAccount",
@@ -8082,6 +8144,10 @@ export const ReturnTypes: Record<string,any> = {
 		checkReportReadiness:"ReportReadinessView",
 		cooperativeAgreements:"CoopAgreement",
 		cooperativePrograms:"CooperativeProgram",
+		documentApprovalsSeedPlan:"DocumentApprovalSeedItem",
+		documentTemplateBlank:"DocumentTemplateBlank",
+		documentTemplates:"DocumentTemplate",
+		documentTemplatesAttention:"Int",
 		expenseFile:"ExpenseFile",
 		expenseFilesByItem:"ExpenseFile",
 		expenseFilesByProposal:"ExpenseFile",

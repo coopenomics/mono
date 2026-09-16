@@ -18,7 +18,7 @@ import { ONBOARDING_STEP_REGISTRY_PORT, ONBOARDING_COMPLETED_EVENT, type IOnboar
  *
  * Два документа онбординга (порядок отображения = порядок утверждения Советом):
  *  1. Положение ЦПП «Стол заказов»  (cooptypes 1099.MarketplaceProgramTemplate);
- *  2. Шаблон публичной оферты ЦПП    (cooptypes 1100.MarketplaceOfferTemplate),
+ *  2. Шаблон публичной оферты ЦПП    (cooptypes 1102.MarketplaceOffer, бланк рабочей оферты),
  *     который затем подписывает пайщик при вступлении (L2) либо на столе (L3).
  *
  * Marketplace НЕ входит в LEGACY_EXTENSIONS_WITH_OWN_LISTENER, поэтому его

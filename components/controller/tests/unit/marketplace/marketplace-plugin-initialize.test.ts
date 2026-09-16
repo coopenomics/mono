@@ -40,6 +40,13 @@ const makeOnboardingPort = () =>
     unregisterStepsByExtension: jest.fn(),
   } as any);
 
+/** Реестр шаблонов кооператива: расширение объявляет в него свои документы при старте. */
+const makeDocumentsPort = () =>
+  ({
+    registerDocuments: jest.fn().mockResolvedValue(undefined),
+    unregisterByExtension: jest.fn().mockResolvedValue(undefined),
+  } as any);
+
 /**
  * Расширение при старте открывает свою программу ЦПП в цепи. По умолчанию мок
  * отвечает «программа уже открыта» — тестам этого сьюта важны только логи
@@ -54,7 +61,7 @@ describe('MarketplaceExtension.initialize', () => {
   it('пишет info о fallback и продолжает install, если file-storage не подключён', async () => {
     const logger = makeLogger();
     const repo = makeRepo();
-    const extension = new MarketplaceExtension(repo, logger, makeAgreementPort(), makeOnboardingPort(), makeSovietPort(), null);
+    const extension = new MarketplaceExtension(repo, logger, makeAgreementPort(), makeOnboardingPort(), makeDocumentsPort(), makeSovietPort(), null);
 
     await extension.initialize();
 
@@ -71,7 +78,7 @@ describe('MarketplaceExtension.initialize', () => {
     const logger = makeLogger();
     const repo = makeRepo();
     const fileStorage = { ensureBucket: jest.fn().mockResolvedValue(undefined) };
-    const extension = new MarketplaceExtension(repo, logger, makeAgreementPort(), makeOnboardingPort(), makeSovietPort(), fileStorage);
+    const extension = new MarketplaceExtension(repo, logger, makeAgreementPort(), makeOnboardingPort(), makeDocumentsPort(), makeSovietPort(), fileStorage);
 
     await extension.initialize();
 
@@ -85,13 +92,13 @@ describe('MarketplaceExtension.initialize', () => {
   it('бросает «Конфиг не найден» если в БД нет записи market', async () => {
     const logger = makeLogger();
     const repo = makeRepo(null);
-    const extension = new MarketplaceExtension(repo, logger, makeAgreementPort(), makeOnboardingPort(), makeSovietPort(), null);
+    const extension = new MarketplaceExtension(repo, logger, makeAgreementPort(), makeOnboardingPort(), makeDocumentsPort(), makeSovietPort(), null);
 
     await expect(extension.initialize()).rejects.toThrow('Конфиг не найден');
   });
 
   it('расширение зарегистрировано под именем `market` (совпадает с ключом AppRegistry)', () => {
-    const extension = new MarketplaceExtension(makeRepo(), makeLogger(), makeAgreementPort(), makeOnboardingPort(), makeSovietPort(), null);
+    const extension = new MarketplaceExtension(makeRepo(), makeLogger(), makeAgreementPort(), makeOnboardingPort(), makeDocumentsPort(), makeSovietPort(), null);
     expect(extension.name).toBe('market');
   });
 });

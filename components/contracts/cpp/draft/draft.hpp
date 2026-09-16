@@ -70,6 +70,9 @@ public:
 
   [[eosio::action]] void upversion(eosio::name scope, eosio::name username, uint64_t registry_id);
 
+  [[eosio::action]] void approve(eosio::name coopname, eosio::name username, uint64_t registry_id, uint64_t version,
+      uint64_t decision_id, eosio::time_point_sec approved_at, eosio::checksum256 text_hash);
+
   struct [[eosio::table, eosio::contract(DRAFT)]] counts : counts_base {};
   
     

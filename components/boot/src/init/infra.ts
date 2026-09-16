@@ -16,6 +16,7 @@ import { initUsersInPostgres, initVaultInPostgres } from '../postgres-init'
 import { CooperativeClass } from './cooperative'
 import { signProgramAgreement } from './sign-program-agreement'
 import { syncDrafts } from './drafts'
+import { seedDocumentApprovals } from './document-approvals'
 import { fakeDocument } from '../tests/shared/fakeDocument'
 import { walletDraftId, walletProgramId } from '../tests/capital/consts'
 
@@ -331,6 +332,10 @@ export async function installInitialData(blockchain: Blockchain, isExtended = fa
       },
     )
   }
+
+  // Совет локального кооператива «утвердил» документы с реквизитами из vars —
+  // иначе фабрика утверждений не предъявит пайщикам ни одного соглашения.
+  await seedDocumentApprovals(blockchain, 'voskhod', vars)
 
   try {
     await mongoose.connection.collection('sync').deleteMany({})

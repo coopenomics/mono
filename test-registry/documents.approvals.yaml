@@ -1,0 +1,369 @@
+feature: documents.approvals
+title: Фабрика утверждений документов — утверждённые советом редакции шаблонов
+
+# Совет кооператива утверждает редакцию шаблона документа решением; пока
+# утверждения нет, пайщикам предъявляется и в подпись пишется последняя
+# утверждённая редакция, а не текущая редакция сети. Утверждение живёт в цепи
+# (draft::approvals, область кооператива), текст шаблона по кооперативам не
+# дублируется. Реестр шаблонов кооператива собирается из деклараций ядра и
+# установленных приложений. Архитектура — компонент 66 проекта 13 (blago),
+# задачи A3D-1 … A3D-13.
+
+sources:
+  contract:
+    - components/contracts/cpp/draft/**
+    - components/contracts/cpp/lib/domain/table_draft_approvals.hpp
+    - components/contracts/cpp/soviet/src/agreement/sndagreement.cpp
+    - components/contracts/cpp/wallet/src/agreement/signagree.cpp
+  backend:
+    - components/factory/src/Templates/registry.ts
+    - components/factory/src/Factory/index.ts
+    - components/factory/src/Services/Templator/index.ts
+    - components/controller/src/domain/document-approval/**
+    - components/controller/src/application/document-approval/**
+    - components/controller/src/domain/common/ports/draft-blockchain.port.ts
+    - components/controller/src/infrastructure/blockchain/adapters/draft-blockchain.adapter.ts
+    - components/controller/src/infrastructure/generator/effective-template-block.resolver.ts
+    - components/controller/src/infrastructure/generator/controller-chain-data.source.ts
+    - components/controller/src/infrastructure/database/typeorm/repositories/typeorm-draft-registry.repository.ts
+    - components/controller/src/extensions/capital/application/onboarding/register-capital-documents.ts
+    - components/controller/src/extensions/marketplace/application/onboarding/register-marketplace-documents.ts
+    - components/innercoop/src/core-ports/document-approval.port.ts
+    - components/innercoop/src/core-ports/document-declaration.port.ts
+    - components/notifications/src/workflows/document-edition-available/**
+    - components/notifications/src/workflows/document-approval-declined/**
+    - components/notifications/src/workflows/document-edition-reminder/**
+  ui:
+    - components/desktop/src/pages/Cooperative/DocumentTemplates/**
+    - components/desktop/src/pages/Cooperative/ListOfDocuments/ListOfDocumentsPage.vue
+    - components/desktop/extensions/capital/features/Onboarding/model/composable.ts
+    - components/desktop/src/pages/Marketplace/OnboardingCoopAcceptCpp/api/index.ts
+
+cases:
+  - id: doc.appr.happy.01
+    level: contract
+    kind: happy
+    scenario: Кооператив утверждает текущую редакцию шаблона решением совета
+    expect: в approvals кооператива строка с номером редакции, решения и датой; повторное утверждение обновляет строку
+    test: components/boot/src/tests/adjust/probe-draft-approve.ts
+    status: passing
+
+  - id: doc.appr.side.01
+    level: contract
+    kind: side
+    scenario: Утверждается редакция, не совпадающая с текущей в сети, или несуществующий шаблон; номер решения 0 допустим для переноса утверждений из прежних настроек
+    expect: отказ с понятным сообщением, строка не создаётся
+    test: components/boot/src/tests/adjust/probe-draft-approve.ts
+    status: passing
+
+  - id: doc.appr.side.02
+    level: contract
+    kind: side
+    scenario: Утверждение отправлено в область самого контракта draft, а не кооператива
+    expect: отказ
+    test: components/boot/src/tests/adjust/probe-draft-approve.ts
+    status: passing
+
+  - id: doc.appr.happy.02
+    level: contract
+    kind: happy
+    scenario: Оператор поднял редакцию в сети, совет кооператива её ещё не утвердил; пайщик подписывает соглашение (sndagreement и signagree)
+    expect: в подпись записана утверждённая редакция, а не текущая редакция сети
+    test: components/boot/src/tests/adjust/probe-effective-version.ts
+    status: passing
+
+  - id: doc.appr.happy.03
+    level: contract
+    kind: happy
+    scenario: Совет утвердил новую редакцию; пайщик переподписывает
+    expect: в подпись записана новая редакция
+    test: components/boot/src/tests/adjust/probe-effective-version.ts
+    status: passing
+
+  - id: doc.appr.side.03
+    level: contract
+    kind: side
+    scenario: У кооператива нет строки утверждения (переходный режим до миграции)
+    expect: в подпись пишется текущая редакция сети, как прежде
+    test: components/boot/src/tests/adjust/probe-effective-version.ts
+    status: passing
+
+  - id: doc.appr.happy.04
+    level: backend
+    kind: happy
+    scenario: Ядро при старте объявляет базовый набор документов; расширение объявляет свои документы при запуске
+    expect: реестр шаблонов кооператива содержит ядро и документы установленных приложений, ядро первым
+    test: components/controller/tests/unit/document-approval/document-declarations-registry.test.ts
+    status: written
+
+  - id: doc.appr.side.04
+    level: backend
+    kind: side
+    scenario: Расширение остановлено
+    expect: его декларации сняты, документы ядра остаются
+    test: components/controller/tests/unit/document-approval/document-declarations-registry.test.ts
+    status: written
+
+  - id: doc.appr.side.05
+    level: backend
+    kind: side
+    scenario: Один шаблон объявляют два расширения
+    expect: ошибка конфигурации на старте, второй владелец отвергнут
+    test: components/controller/tests/unit/document-approval/document-declarations-registry.test.ts
+    status: written
+
+  - id: doc.appr.side.06
+    level: backend
+    kind: side
+    scenario: Расширение перезапустилось и объявило тот же шаблон заново
+    expect: запись заменена, дублей нет
+    test: components/controller/tests/unit/document-approval/document-declarations-registry.test.ts
+    status: written
+
+  - id: doc.appr.happy.05
+    level: backend
+    kind: happy
+    scenario: Совет запрашивает реестр шаблонов кооператива
+    expect: по каждому документу видны редакция в сети, утверждённая редакция с номером и датой решения, состояние not_required / not_approved / pending / approved / outdated
+    test: components/controller/tests/unit/document-approval/document-approval-state.service.test.ts
+    status: written
+
+  - id: doc.appr.happy.06
+    level: backend
+    kind: happy
+    scenario: Запрос шаблонов соглашений для рабочего стола
+    expect: версия шаблона — утверждённая кооперативом, без утверждения текущая; переподписание запрашивается только после решения совета
+    test: components/controller/tests/unit/document-approval/document-approval-state.service.test.ts
+    status: written
+
+  - id: doc.appr.side.07
+    level: backend
+    kind: side
+    scenario: Все переходы состояния документа, включая проект в повестке при устаревшей редакции и отсутствие шаблона в цепи
+    expect: pending побеждает outdated и not_approved; отсутствие шаблона при наличии утверждения — approved
+    test: components/controller/tests/unit/document-approval/compute-document-state.test.ts
+    status: written
+
+  - id: doc.appr.side.08
+    level: backend
+    kind: side
+    scenario: Состояние запрашивают часто, события контракта draft приходят редко
+    expect: таблицы цепи читаются один раз до события upversion/editdraft/approve или истечения TTL
+    test: components/controller/tests/unit/document-approval/document-approval-state.service.test.ts
+    status: written
+
+  - id: doc.appr.happy.07
+    level: backend
+    kind: happy
+    scenario: Председатель выносит редакцию документа на совет
+    expect: бланк утверждаемой редакции собран из цепи без субъекта, в проекте решения текст и хэш текста, правило отслеживания хранит документы, редакции, хэши и номер решения
+    test: components/controller/tests/unit/document-approval/document-approval-proposal.service.test.ts
+    status: written
+
+  - id: doc.appr.happy.08
+    level: backend
+    kind: happy
+    scenario: Пакет документов выносится одним решением
+    expect: одна публикация повестки, одно правило на все документы; без общего поля vars реквизиты протокола не пишутся
+    test: components/controller/tests/unit/document-approval/document-approval-proposal.service.test.ts
+    status: written
+
+  - id: doc.appr.happy.09
+    level: backend
+    kind: happy
+    scenario: Совет принял решение об утверждении
+    expect: для каждого документа правила в цепь записано утверждение с редакцией, номером и датой решения, хэшем текста
+    test: components/controller/tests/unit/document-approval/document-approval-proposal.service.test.ts
+    status: written
+
+  - id: doc.appr.side.09
+    level: backend
+    kind: side
+    scenario: Повторное вынесение документа, который уже в повестке
+    expect: новый проект решения не создаётся, возвращается текущее состояние
+    test: components/controller/tests/unit/document-approval/document-approval-proposal.service.test.ts
+    status: written
+
+  - id: doc.appr.side.10
+    level: backend
+    kind: side
+    scenario: Вынесение уже утверждённой редакции, служебного документа, документов разных приложений одним решением или чужого кооператива
+    expect: отказ с понятным сообщением
+    test: components/controller/tests/unit/document-approval/document-approval-proposal.service.test.ts
+    status: written
+
+  - id: doc.appr.side.11
+    level: backend
+    kind: side
+    scenario: Совет отклонил решение или оно снято как просроченное
+    expect: правило отслеживания снято, документ возвращается в прежнее состояние, публикуется событие для уведомления председателя; чужие решения не трогаются
+    test: components/controller/tests/unit/document-approval/document-approval-proposal.service.test.ts
+    status: written
+
+  - id: doc.appr.break.01
+    level: backend
+    kind: break
+    scenario: Запись утверждения в цепь не прошла с первого раза
+    expect: повтор с журналом; решение совета не теряется
+    test: ~
+    status: missing
+
+  - id: doc.appr.happy.10
+    level: backend
+    kind: happy
+    scenario: Генератор собирает документ для кооператива, у которого утверждённая редакция ниже редакции в сети
+    expect: текст и переводы берутся на последнем блоке утверждённой редакции; правки без смены номера в ней доезжают, смысловые изменения новой редакции — нет
+    test: components/controller/tests/unit/document-approval/effective-template-block.resolver.test.ts
+    status: written
+
+  - id: doc.appr.side.12
+    level: backend
+    kind: side
+    scenario: Утверждения нет, утверждённая редакция равна сетевой или истории редакции в реестре узла нет
+    expect: читается текущее состояние сети, генерация не падает
+    test: components/controller/tests/unit/document-approval/effective-template-block.resolver.test.ts
+    status: written
+
+  - id: doc.appr.side.13
+    level: backend
+    kind: side
+    scenario: Бланк для проекта решения совета собирается при утверждённой старой редакции
+    expect: совету показывают утверждаемую (текущую) редакцию, а не утверждённую — генерация идёт на текущем блоке
+    test: components/controller/tests/unit/document-approval/document-approval-proposal.service.test.ts
+    status: written
+
+  - id: doc.appr.side.14
+    level: backend
+    kind: side
+    scenario: Пересборка ранее подписанного документа по блоку подписи
+    expect: явный блок подписи важнее утверждённой редакции, документ собирается прежним текстом
+    test: ~
+    status: missing
+
+  - id: doc.appr.happy.11
+    level: backend
+    kind: happy
+    scenario: Оператор поднял редакцию документа, объявленного в кооперативе
+    expect: председатель получает уведомление с названием документа, номером редакции и ссылкой на вкладку «Шаблоны документов»
+    test: components/controller/tests/unit/document-approval/document-approval-notification.service.test.ts
+    status: written
+
+  - id: doc.appr.happy.12
+    level: backend
+    kind: happy
+    scenario: Совет отклонил утверждение или решение снято как просроченное
+    expect: председатель получает уведомление с названиями документов и причиной
+    test: components/controller/tests/unit/document-approval/document-approval-notification.service.test.ts
+    status: written
+
+  - id: doc.appr.happy.13
+    level: backend
+    kind: happy
+    scenario: Периодическое напоминание о документах без утверждённой текущей редакции
+    expect: одно напоминание с числом и названиями документов; когда всё утверждено — молчание
+    test: components/controller/tests/unit/document-approval/document-approval-notification.service.test.ts
+    status: written
+
+  - id: doc.appr.side.15
+    level: backend
+    kind: side
+    scenario: Поднята редакция шаблона, не объявленного ни одним приложением кооператива, либо в области кооператива, а не сети
+    expect: уведомления нет
+    test: components/controller/tests/unit/document-approval/document-approval-notification.service.test.ts
+    status: written
+
+  - id: doc.appr.side.16
+    level: backend
+    kind: side
+    scenario: У кооператива нет председателя или у него нет подписки на уведомления
+    expect: предупреждение в журнале, ошибки нет
+    test: components/controller/tests/unit/document-approval/document-approval-notification.service.test.ts
+    status: written
+
+  - id: doc.appr.happy.14
+    level: ui
+    kind: happy
+    scenario: Председатель открывает вкладку «Шаблоны документов» в реестре документов
+    expect: документы сгруппированы по приложениям; у каждого видны утверждённая редакция с протоколом, редакция в сети и состояние; на вкладке счётчик документов, ждущих совета
+    test: ~
+    status: missing
+
+  - id: doc.appr.happy.15
+    level: ui
+    kind: happy
+    scenario: Председатель выносит устаревший документ на совет с вкладки шаблонов
+    expect: документ переходит в состояние «В повестке», кнопка ведёт в повестку совета; пакет форм уходит одним решением
+    test: ~
+    status: missing
+
+  - id: doc.appr.side.17
+    level: ui
+    kind: side
+    scenario: Член совета без прав председателя открывает вкладку
+    expect: видит состояния и открывает бланки, кнопки «Вынести на совет» нет
+    test: ~
+    status: missing
+
+  - id: doc.appr.happy.16
+    level: backend
+    kind: happy
+    scenario: Председатель проходит шаг подключения приложения из его карточки
+    expect: шаг с объявленными документами уходит на совет через фабрику одним решением с текстом из цепи; шаги без документов (вступление в союз, собрание) идут прежним путём
+    test: components/controller/tests/unit/document-approval/document-approval-onboarding.adapter.test.ts
+    status: written
+
+  - id: doc.appr.happy.17
+    level: backend
+    kind: happy
+    scenario: Документы шага утверждены с вкладки «Шаблоны документов», минуя карточку
+    expect: карточка подключения показывает шаг пройденным без нового решения
+    test: components/controller/tests/unit/document-approval/document-approval-onboarding.adapter.test.ts
+    status: written
+
+  - id: doc.appr.side.18
+    level: backend
+    kind: side
+    scenario: Шаг закрывается только когда утверждены все документы пакета; повторное прохождение шага при документах в повестке
+    expect: частично утверждённый пакет не закрывает шаг; повторное прохождение возвращает хэш повестки без нового решения
+    test: components/controller/tests/unit/document-approval/document-approval-onboarding.adapter.test.ts
+    status: written
+
+  - id: doc.appr.happy.18
+    level: ui
+    kind: happy
+    scenario: Карточки подключения Капитала и Стола заказов показывают документ шага
+    expect: показывается бланк рабочего документа (оферта 996/1000/1102, договор 1001, положения 994/998/1100) из фабрики утверждений, а не шаблон-двойник; текст совпадает с тем, что уйдёт в решение совета
+    test: ~
+    status: missing
+
+  - id: doc.appr.happy.19
+    level: backend
+    kind: happy
+    scenario: На совет выносится форма, которую без данных события своя фабрика не собирает (заявление на возврат, заявление на выход, формы Стола заказов)
+    expect: в решение уходит сама форма — бланк того же шаблона из цепи с реквизитами кооператива и прочерками на месте данных события (для физлица); хэш решения и строки утверждения — от текста бланка; хэш вместо текста в решение не попадает
+    test: components/controller/tests/unit/document-approval/document-approval-proposal.service.test.ts
+    status: written
+
+  - id: doc.appr.side.19
+    level: backend
+    kind: side
+    scenario: Реестр шаблонов кооператива, не являющегося оператором платформы
+    expect: оферта о присоединении к платформе (50) в реестре отсутствует — её утверждает совет оператора, остальные кооперативы её только принимают
+    test: components/controller/tests/unit/document-approval/document-declarations-registry.test.ts
+    status: written
+
+  - id: doc.appr.happy.20
+    level: backend
+    kind: happy
+    scenario: Бланк оферты ЦПП (Благорост, Генератор) для совета с хэшем параметров программы
+    expect: параметры программы подставлены из приватных данных по хэшу, поля пайщика и дата — прочерк; без хэша параметры остаются прочерком
+    test: components/factory/test/blagorost.test.ts
+    status: written
+
+  - id: doc.appr.side.20
+    level: backend
+    kind: side
+    scenario: Шаблоны-двойники «для утверждения» (995, 997, 999, 1101) выведены из реестра
+    expect: генератор их не знает, синхронизатор шаблонов записи в сети не трогает и сообщает о них как «в сети, но не в реестре»; рабочие документы 996, 1000, 1001, 1102 собираются как прежде
+    test: components/factory/test/documents-1000-plus.test.ts
+    status: written

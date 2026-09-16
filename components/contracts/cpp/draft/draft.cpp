@@ -10,6 +10,7 @@
 #include "src/editdraft.cpp"
 #include "src/edittrans.cpp"
 #include "src/upversion.cpp"
+#include "src/approve.cpp"
 
 using namespace eosio;
 

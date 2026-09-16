@@ -6,7 +6,7 @@
  * из `UserAgreementRepository` (НЕ из `agreements3`/`AgreementRepository`).
  *
  * Покрывают:
- *   (a) MARKETPLACE_OFFER_TEMPLATE_REGISTRY_ID = 0 → not_configured;
+ *   (a) MARKETPLACE_OFFER_INSTANCE_REGISTRY_ID = 0 → not_configured;
  *   (b) ЦПП не настроена как программа (нет коагримента / program_id<=0)
  *       → not_configured (гейтить нечем);
  *   (c) пайщик подписал программу → requires_gate=false, source=agreement_signed,
@@ -71,7 +71,7 @@ describe('MarketplaceOnboardingService.getOnboardingState', () => {
       MARKETPLACE_EXTENSION_NAME: 'market',
       MARKETPLACE_OFFER_AGREEMENT_ID: 'marketplace_offer',
       MARKETPLACE_AGREEMENT_TYPE: 'marketplace',
-      MARKETPLACE_OFFER_TEMPLATE_REGISTRY_ID: 0,
+      MARKETPLACE_OFFER_INSTANCE_REGISTRY_ID: 0,
     }));
     const { MarketplaceOnboardingService } = await import(
       '~/extensions/marketplace/application/onboarding/marketplace-onboarding.service'
