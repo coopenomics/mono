@@ -1,7 +1,6 @@
 import { computed, ref, watch } from 'vue';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { useSystemStore } from 'src/entities/System/model';
-import { useSessionStore } from 'src/entities/Session';
 import { useDesktopStore } from 'src/entities/Desktop/model';
 import type {
   ICouncilOnboardingConfig,
@@ -65,7 +64,6 @@ const STEP_META: StepMeta[] = [
 
 export const useMarketplaceOnboarding = () => {
   const systemStore = useSystemStore();
-  const sessionStore = useSessionStore();
   const desktopStore = useDesktopStore();
 
   const onboardingState = ref<MarketplaceOnboardingState | null>(null);

@@ -1,7 +1,6 @@
 import { computed, ref } from 'vue';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { useSystemStore } from 'src/entities/System/model';
-import { useSessionStore } from 'src/entities/Session';
 import { api, type CapitalOnboardingState } from '../api';
 import { Mutations, Queries, Zeus } from '@coopenomics/sdk';
 import type { ICouncilOnboardingConfig, ICouncilOnboardingStep } from 'src/shared/ui/CouncilOnboarding';
@@ -23,7 +22,6 @@ const currentGeneratedDoc = ref<GeneratedDocument | null>(null);
 
 export const useCapitalOnboarding = () => {
   const systemStore = useSystemStore();
-  const sessionStore = useSessionStore();
 
   // Шаг → рабочий документ, который совет утверждает в бланке. Шаблоны-двойники
   // «для утверждения» (995, 997, 999) выведены: их тексты расходились с теми,
