@@ -30,6 +30,9 @@
   if (braname) {
     auto branch = get_branch_or_fail(coopname, braname);
     eosio::check(branch.is_user_authorized(verificator), "Верификацию проводит председатель кооперативного участка или его доверенное лицо");
+    // Свою личность на участке не сверяют: председатель участка и доверенное
+    // лицо выдали бы себе уровень сами. Их сверяет совет кооператива.
+    eosio::check(verificator != username, "Свою личность на участке не сверяют — её подтверждает совет кооператива");
   } else {
     check_auth_or_fail(_registrator, coopname, verificator, "verifyacc"_n);
   }

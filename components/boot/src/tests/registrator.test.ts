@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { GatewayContract, RegistratorContract, SovietContract } from 'cooptypes'
+import { BranchContract, GatewayContract, RegistratorContract, SovietContract } from 'cooptypes'
 import { sha256 } from 'eosjs/dist/eosjs-key-conversions'
 import Blockchain from '../blockchain'
 import config from '../configs'
@@ -53,5 +53,46 @@ describe('тест Registrator', () => {
     const tester2 = generateRandomUsername()
 
     await registerUser(blockchain, coopname, tester2)
+  })
+})
+
+async function transactAsCoop(coopname: string, account: string, name: string, data: unknown) {
+  return blockchain.api.transact({
+    actions: [{ account, name, authorization: [{ actor: coopname, permission: 'active' }], data }],
+  }, { blocksBehind: 3, expireSeconds: 30 })
+}
+
+function verifyOnBranch(coopname: string, braname: string, verificator: string, username: string) {
+  const data: RegistratorContract.Actions.VerifyAccount.IVerifyAccount = {
+    coopname,
+    braname,
+    verificator,
+    username,
+    procedure: 'passport',
+  }
+  return transactAsCoop(coopname, RegistratorContract.contractName.production, RegistratorContract.Actions.VerifyAccount.actionName, data)
+}
+
+describe('верификация по паспорту на кооперативном участке', () => {
+  const coopname = 'voskhod'
+  const trustee = generateRandomUsername()
+  const participant = generateRandomUsername()
+  const braname = generateRandomUsername()
+
+  beforeAll(async () => {
+    await registerUser(blockchain, coopname, trustee)
+    await registerUser(blockchain, coopname, participant)
+    const data: BranchContract.Actions.CreateBranch.ICreateBranch = { coopname, braname, trustee }
+    await transactAsCoop(coopname, BranchContract.contractName.production, BranchContract.Actions.CreateBranch.actionName, data)
+  }, 500_000)
+
+  it('председатель участка не сверяет свою личность', async () => {
+    await expect(verifyOnBranch(coopname, braname, trustee, trustee))
+      .rejects
+      .toThrow('Свою личность на участке не сверяют')
+  })
+
+  it('председатель участка сверяет другого пайщика', async () => {
+    await verifyOnBranch(coopname, braname, trustee, participant)
   })
 })
