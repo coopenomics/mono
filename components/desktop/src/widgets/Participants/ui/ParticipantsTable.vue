@@ -57,8 +57,12 @@ q-table.participants-table(
           @verification-changed='emit("verification-changed")'
         )
 
+  //- Ключ обязателен: грид-режим Quasar рендерит карточки без ключа, и Vue
+  //- сопоставлял их по позиции — после смены страницы или фильтра карточка
+  //- показывала шапку нового пайщика, а форма внутри — данные прежнего.
   template(#item='props')
     ParticipantCard(
+      :key='props.row.username',
       :participant='props.row',
       :expanded='expanded.get(props.row.username)',
       :naming='naming',

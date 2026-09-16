@@ -27,18 +27,24 @@
   //- пайщику, потерявшему устройство с кодами.
   ResetTwoFactorAction(:participant='participant')
 
+  //- Формы копируют данные один раз при создании — ключ по аккаунту
+  //- пересоздаёт их при смене пайщика, иначе в форме остаются чужие данные,
+  //- а сохранение записало бы их в аккаунт текущего пайщика.
   EditableIndividualCard(
     v-if="individualParticipantData"
+    :key="participant.username"
     :participantData="individualParticipantData"
     @update="onUpdate"
   )
   EditableEntrepreneurCard(
     v-if="entrepreneurParticipantData"
+    :key="participant.username"
     :participantData="entrepreneurParticipantData"
     @update="onUpdate"
   )
   EditableOrganizationCard(
     v-if="organizationParticipantData"
+    :key="participant.username"
     :participantData="organizationParticipantData"
     @update="onUpdate"
   )
