@@ -7,6 +7,7 @@ import {
 import { toChainTimePoint } from '~/domain/document-approval/services/decision-date';
 import { DocumentApprovalRequirement, DocumentApprovalState, DocumentKind } from '~/domain/document-approval/enums/document-approval.enums';
 import type { DocumentTemplateView } from '~/domain/document-approval/interfaces/document-template-view.interface';
+import { sha256 } from '~/utils/sha256';
 
 jest.mock('~/config/config', () => ({ __esModule: true, default: { coopname: 'voskhod' } }));
 
@@ -57,6 +58,7 @@ function build(templates: DocumentTemplateView[]) {
   const blockchain = { getInfo: jest.fn(async () => ({ head_block_num: 12345 })) } as any;
   const documents = {
     generateDocument: jest.fn(async ({ data }: any) => ({ html: `<p>текст ${data.registry_id}</p>`, meta: { title: `Документ ${data.registry_id}` } })),
+    generateBlank: jest.fn(async ({ registry_id }: any) => ({ title: `Форма ${registry_id}`, html: `<p>бланк ${registry_id}: ______</p>`, meta: {} })),
   } as any;
   const eventEmitter = { emit: jest.fn() } as any;
   const service = new DocumentApprovalProposalService(
@@ -206,17 +208,28 @@ describe('toChainTimePoint', () => {
   });
 });
 
-describe('DocumentApprovalProposalService: бланк не собирается', () => {
-  it('в решение уходит хэш текста шаблона из цепи, вынесение не падает', async () => {
-    const { service, documents, freeDecision, tracking } = build([template(998, { extension_name: 'capital', bundle: 'blagorost_program', vars_field: 'blagorost_program', kind: DocumentKind.Provision })]);
-    documents.generateDocument.mockRejectedValueOnce(new Error('нет параметров ЦПП'));
-    (service as any).state.getCurrentTextHash = jest.fn(async () => 'd'.repeat(64));
+describe('DocumentApprovalProposalService: документ без данных события', () => {
+  it('в решение уходит бланк формы с прочерками, а не хэш; хэш утверждения — от текста бланка', async () => {
+    const { service, documents, freeDecision, tracking } = build([template(900, { bundle: 'core_forms', vars_field: undefined, kind: DocumentKind.Form })]);
+    documents.generateDocument.mockRejectedValueOnce(new Error('Платежный метод с ID undefined не найден'));
 
-    await service.propose({ coopname: 'voskhod', registry_ids: [998], username: 'ant' });
+    await service.propose({ coopname: 'voskhod', registry_ids: [900], username: 'ant' });
 
+    expect(documents.generateBlank).toHaveBeenCalledWith({ coopname: 'voskhod', registry_id: 900, block_num: 12345 });
     const project = freeDecision.createProjectOfFreeDecision.mock.calls[0][0];
-    expect(project.decision).toContain('d'.repeat(64));
-    expect(project.decision).toContain('реестре шаблонов');
-    expect(tracking.registerTrackingRule.mock.calls[0][0].metadata.text_hashes).toEqual({ '998': 'd'.repeat(64) });
+    expect(project.decision).toContain('<p>бланк 900: ______</p>');
+    expect(project.decision).not.toContain('реестре шаблонов');
+    expect(tracking.registerTrackingRule.mock.calls[0][0].metadata.text_hashes).toEqual({ '900': sha256('<p>бланк 900: ______</p>') });
+  });
+
+  it('бланк утверждённой редакции собирается без явного блока — источник данных подставит её сам', async () => {
+    const { service, documents } = build([template(900, { bundle: 'core_forms', vars_field: undefined, kind: DocumentKind.Form })]);
+    documents.generateDocument.mockRejectedValueOnce(new Error('Пользователь не найден'));
+
+    const blank = await service.renderBlankHtml('voskhod', 900, 'approved');
+
+    expect(documents.generateBlank).toHaveBeenCalledWith({ coopname: 'voskhod', registry_id: 900 });
+    expect(blank.html).toContain('______');
+    expect(blank.title).toBe('Форма 900');
   });
 });

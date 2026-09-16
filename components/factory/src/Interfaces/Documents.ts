@@ -50,3 +50,21 @@ export interface IMetaDocumentPartial extends Partial<IMetaDocument> {
 export type IGenerate = Cooperative.Document.IGenerate
 
 export type IGenerationOptions = Cooperative.Document.IGenerationOptions
+
+/**
+ * Вход сборки бланка: документ без данных события — только шаблон из цепи и
+ * реквизиты кооператива. Без `block_num` редакцию шаблона выбирает источник
+ * данных (утверждённую), с ним — редакция на указанном блоке.
+ */
+export interface IGenerateBlank {
+  coopname: string
+  registry_id: number
+  block_num?: number
+  lang?: string
+}
+
+export interface IGeneratedBlank {
+  title: string
+  html: string
+  meta: IMetaDocument
+}

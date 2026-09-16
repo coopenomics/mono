@@ -16,6 +16,8 @@ sources:
     - components/contracts/cpp/soviet/src/agreement/sndagreement.cpp
     - components/contracts/cpp/wallet/src/agreement/signagree.cpp
   backend:
+    - components/factory/src/Factory/index.ts
+    - components/factory/src/Services/Templator/index.ts
     - components/controller/src/domain/document-approval/**
     - components/controller/src/application/document-approval/**
     - components/controller/src/domain/common/ports/draft-blockchain.port.ts
@@ -332,3 +334,19 @@ cases:
     expect: показывается бланк рабочего документа (оферта 996/1000/1102, договор 1001, положения 994/998/1100) из фабрики утверждений, а не шаблон-двойник; текст совпадает с тем, что уйдёт в решение совета
     test: ~
     status: missing
+
+  - id: doc.appr.happy.19
+    level: backend
+    kind: happy
+    scenario: На совет выносится форма, которую без данных события своя фабрика не собирает (заявление на возврат, заявление на выход, формы Стола заказов)
+    expect: в решение уходит сама форма — бланк того же шаблона из цепи с реквизитами кооператива и прочерками на месте данных события (для физлица); хэш решения и строки утверждения — от текста бланка; хэш вместо текста в решение не попадает
+    test: components/controller/tests/unit/document-approval/document-approval-proposal.service.test.ts
+    status: written
+
+  - id: doc.appr.side.19
+    level: backend
+    kind: side
+    scenario: Реестр шаблонов кооператива, не являющегося оператором платформы
+    expect: оферта о присоединении к платформе (50) в реестре отсутствует — её утверждает совет оператора, остальные кооперативы её только принимают
+    test: components/controller/tests/unit/document-approval/document-declarations-registry.test.ts
+    status: written

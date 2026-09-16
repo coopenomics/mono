@@ -130,7 +130,7 @@ export class DocumentApprovalProposalService {
 
     const blanks: RenderedBlank[] = [];
     for (const template of selected) {
-      blanks.push(await this.renderBlankOrDigest(input, template));
+      blanks.push(await this.renderBlank(input.coopname, template, 'current', input.doc_data_hash));
     }
 
     const hash = await this.publishProject(input, selected, blanks);
@@ -258,67 +258,57 @@ export class DocumentApprovalProposalService {
   }
 
   /**
-   * Бланк утверждаемой редакции: текущий текст сети без субъекта, без PDF, в
-   * базу не пишется. Хэш текста уходит в решение и затем в строку утверждения.
-   */
-  /**
-   * Бланк документа для просмотра из реестра шаблонов: утверждённая редакция
-   * (без явного блока источник данных подставит её сам) или текущая редакция
-   * сети — та, что предлагается совету.
+   * Бланк документа для просмотра из реестра шаблонов и для решения совета:
+   * утверждённая редакция (без явного блока источник данных подставит её сам)
+   * или текущая редакция сети — та, что предлагается совету.
    */
   public async renderBlankHtml(
     coopname: string,
     registry_id: number,
     edition: 'approved' | 'current',
     doc_data_hash?: string
-  ): Promise<{ registry_id: number; title: string; html: string; text_hash: string }> {
+  ): Promise<RenderedBlank> {
     const template = (await this.state.getTemplates(coopname)).find((t) => t.registry_id === registry_id);
     if (!template) throw new BadRequestException(`Документ ${registry_id} не объявлен ни одним установленным приложением`);
-    if (edition === 'current') return this.renderBlank(coopname, template, doc_data_hash);
-
-    const document = await this.documents.generateDocument({
-      data: { coopname, username: coopname, registry_id, ...(doc_data_hash ? { doc_data_hash } : {}) },
-      options: { skip_save: true, skip_pdf: true, blank_signer: true },
-    });
-    return { registry_id, title: document.meta?.title || template.title, html: document.html, text_hash: sha256(document.html) };
+    return this.renderBlank(coopname, template, edition, doc_data_hash);
   }
 
   /**
-   * Бланк для решения совета. Если бланк не собирается (форма требует данных
-   * события, которых у совета нет), в решение уходят название, редакция и
-   * хэш текста шаблона из цепи — текст можно открыть в реестре шаблонов.
+   * Совет голосует за текст, поэтому в решение всегда уходит сама форма.
+   * Сначала документ собирается своей фабрикой без подписанта — так положения
+   * и соглашения получают реквизиты и параметры программы. Формам нужны данные
+   * события (пайщик, суммы, платёж), которых у совета нет: тогда собирается
+   * бланк того же шаблона с прочерками на месте этих полей. Хэш решения и
+   * строки утверждения — от того текста, который увидел совет.
    */
-  private async renderBlankOrDigest(input: ProposeDocumentApprovalInput, template: DocumentTemplateView): Promise<RenderedBlank> {
+  private async renderBlank(
+    coopname: string,
+    template: DocumentTemplateView,
+    edition: 'approved' | 'current',
+    doc_data_hash?: string
+  ): Promise<RenderedBlank> {
+    // Утверждаемая редакция — текущий текст сети на голове цепи. Без явного
+    // блока источник данных подставил бы утверждённую редакцию, то есть старую.
+    const block_num = edition === 'current' ? Number((await this.blockchain.getInfo()).head_block_num) : undefined;
+    const registry_id = template.registry_id;
     try {
-      return await this.renderBlank(input.coopname, template, input.doc_data_hash);
+      const document = await this.documents.generateDocument({
+        data: {
+          coopname,
+          username: coopname,
+          registry_id,
+          ...(block_num ? { block_num } : {}),
+          ...(doc_data_hash ? { doc_data_hash } : {}),
+        },
+        options: { skip_save: true, skip_pdf: true, blank_signer: true },
+      });
+      return { registry_id, title: document.meta?.title || template.title, html: document.html, text_hash: sha256(document.html) };
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      this.logger.warn(`Бланк документа ${template.registry_id} не собран (${message}) — в решение уходит хэш текста шаблона`);
-      const text_hash = (await this.state.getCurrentTextHash(template.registry_id)) ?? sha256('');
-      return { registry_id: template.registry_id, title: template.title, html: '', text_hash };
+      this.logger.info(`Документ ${registry_id} без данных события не собирается (${message}) — собираю бланк формы с прочерками`);
+      const blank = await this.documents.generateBlank({ coopname, registry_id, ...(block_num ? { block_num } : {}) });
+      return { registry_id, title: blank.title || template.title, html: blank.html, text_hash: sha256(blank.html) };
     }
-  }
-
-  private async renderBlank(coopname: string, template: DocumentTemplateView, doc_data_hash?: string): Promise<RenderedBlank> {
-    // Совету показывают утверждаемую редакцию — текущий текст сети. Без явного
-    // блока источник данных подставил бы утверждённую редакцию, то есть старую.
-    const head = Number((await this.blockchain.getInfo()).head_block_num);
-    const document = await this.documents.generateDocument({
-      data: {
-        coopname,
-        username: coopname,
-        registry_id: template.registry_id,
-        block_num: head,
-        ...(doc_data_hash ? { doc_data_hash } : {}),
-      },
-      options: { skip_save: true, skip_pdf: true, blank_signer: true },
-    });
-    return {
-      registry_id: template.registry_id,
-      title: document.meta?.title || template.title,
-      html: document.html,
-      text_hash: sha256(document.html),
-    };
   }
 
   private async publishProject(
@@ -451,8 +441,8 @@ function buildDecision(selected: DocumentTemplateView[], blanks: RenderedBlank[]
   return blanks
     .map((blank, i) => {
       const template = selected[i]!;
-      const head = `Утвердить редакцию № ${template.current_version} документа «${blank.title}» (хэш текста ${blank.text_hash}) и применять её в кооперативе с даты настоящего решения.`;
-      return blank.html ? `<p>${head}</p>\n${blank.html}` : `<p>${head} Текст редакции доступен в реестре шаблонов документов кооператива.</p>`;
+      const head = `Утвердить редакцию № ${template.current_version} документа «${blank.title}» в следующей форме (хэш текста ${blank.text_hash}) и применять её в кооперативе с даты настоящего решения.`;
+      return `<p>${head}</p>\n${blank.html}`;
     })
     .join('\n<hr/>\n');
 }

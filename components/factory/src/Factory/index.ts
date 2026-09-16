@@ -5,8 +5,9 @@ import { DraftContract, SovietContract } from 'cooptypes'
 import type { IBankAccount, ICombinedData, IGeneratedDocument, IMetaDocument, IMetaDocumentPartial, ITemplate, ITranslations, externalDataTypes } from '../Interfaces'
 import type { MongoDBConnector } from '../Services/Databazor'
 import { type ExternalEntrepreneurData, type ExternalIndividualData, type ExternalOrganizationData, type IVars, Individual, type InternalProjectData, Organization, PaymentMethod, Project, Vars } from '../Models'
-import type { IGenerate, IGenerationOptions } from '../Interfaces/Documents'
+import type { IGenerate, IGenerateBlank, IGeneratedBlank, IGenerationOptions } from '../Interfaces/Documents'
 import { PDFService } from '../Services/Generator'
+import { BLANK_PLACEHOLDER } from '../Services/Templator'
 import { DocDataService } from '../Services/DocData'
 import packageJson from '../../package.json'
 import { Validator } from '../Services/Validator'
@@ -84,6 +85,46 @@ export abstract class DocFactory<T extends IGenerate> {
       result[key as keyof T] = values[index]
     })
     return result
+  }
+
+  /**
+   * Бланк документа: шаблон из цепи с реквизитами кооператива, а всё, что
+   * известно только в момент события (пайщик, суммы, платёжные данные), —
+   * прочерком. Совет утверждает форму документа, а не его экземпляр, и форма
+   * любого документа реестра собирается одним и тем же путём — без данных,
+   * которых у совета нет. Дата бланка тоже прочерк: форма не зависит от дня,
+   * когда её открыли, и отпечаток её текста устойчив.
+   */
+  async generateBlank(data: IGenerateBlank): Promise<IGeneratedBlank> {
+    const { template, coop, vars } = await this.resolveParallel({
+      template: () => this.getTemplate<unknown>(DraftContract.contractName.production, data.registry_id, data.block_num),
+      coop: () => this.getCooperative(data.coopname, data.block_num),
+      vars: () => this.getVars(data.coopname, data.block_num),
+    })
+
+    const meta: IMetaDocument = await this.getMeta({
+      title: template.title,
+      coopname: data.coopname,
+      username: data.coopname,
+      registry_id: data.registry_id,
+      ...(data.block_num ? { block_num: data.block_num } : {}),
+      ...(data.lang ? { lang: data.lang } : {}),
+    })
+    const blankMeta: IMetaDocument = { ...meta, created_at: BLANK_PLACEHOLDER }
+
+    const model = template.model as unknown as { properties?: Record<string, unknown> } | undefined
+    const knownKeys = Object.keys(model?.properties ?? {})
+    const translation = template.translations[blankMeta.lang]
+    if (!translation)
+      throw new Error(`Перевод шаблона ${data.registry_id} на язык ${blankMeta.lang} не найден`)
+
+    // Форма заявления ветвится по типу пайщика: физлицо, ИП, организация —
+    // отличаются только реквизиты подписанта. Бланк собирается для физлица:
+    // это основная форма, иначе документ с ветвлением остался бы пустым.
+    const subject = knownKeys.includes('type') ? { type: 'individual' } : {}
+    const html = new PDFService().renderBlankHtml(template.context, { ...subject, meta: blankMeta, coop, vars }, translation, knownKeys)
+
+    return { title: template.title, html, meta: blankMeta }
   }
 
   async validate(combinedData: ICombinedData, schema: any) {

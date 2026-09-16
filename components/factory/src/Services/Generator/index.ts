@@ -8,7 +8,7 @@ import { PDFDocument } from 'pdf-lib'
 import moment from 'moment-timezone'
 import { v4 as uuidv4 } from 'uuid'
 import type { IGeneratedDocument, IMetaDocument, ITranslations } from '../../Interfaces'
-import { TemplateEngine } from '../Templator'
+import { BlankTemplateEngine, TemplateEngine } from '../Templator'
 import { calculateSha256 } from '../../Utils/calculateSHA'
 
 const weasyPrintVersion = '67' // ВАЖНО: держать в синхроне с controller/Dockerfile (pip install WeasyPrint==X) и мета-данными каждого документа
@@ -253,6 +253,19 @@ export class PDFService implements IPDFService {
     const templateEngine = new TemplateEngine(translation)
 
     return templateEngine.renderTemplate(template, combinedVars)
+  }
+
+  /**
+   * Бланк: тот же шаблон и переводы, но поля без данных печатаются прочерком.
+   * `knownKeys` — верхний уровень модели шаблона.
+   */
+  public renderBlankHtml(
+    template: string,
+    combinedVars: Record<string, unknown>,
+    translation: ITranslations,
+    knownKeys: string[],
+  ): string {
+    return new BlankTemplateEngine(translation).renderBlank(template, combinedVars, knownKeys)
   }
 
   public async generateDocument(

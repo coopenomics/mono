@@ -4,7 +4,7 @@ import httpStatus from 'http-status';
 import { DocumentDomainEntity } from '~/domain/document/entity/document-domain.entity';
 import type { GenerateDocumentDomainInterfaceWithOptions } from '~/domain/document/interfaces/generate-document-domain-with-options.interface';
 import { GeneratorPort } from '~/domain/document/ports/generator.port';
-import { Generator, type ISearchResult } from '@coopenomics/factory';
+import { Generator, type IGenerateBlank, type IGeneratedBlank, type ISearchResult } from '@coopenomics/factory';
 import type { Cooperative } from 'cooptypes';
 import config from '~/config/config';
 import { HttpApiError } from '@coopenomics/extension-kit';
@@ -38,6 +38,17 @@ export class GeneratorInfrastructureService implements GeneratorPort, OnModuleIn
     options?: Cooperative.Document.IGenerationOptions
   ): Promise<Cooperative.Document.IGeneratedDocument> {
     return await this.generator.generate(data, options);
+  }
+
+  async generateBlank(data: IGenerateBlank): Promise<IGeneratedBlank> {
+    try {
+      return await this.generator.generateBlank(data);
+    } catch (error) {
+      console.error('Ошибка при сборке бланка документа:', error);
+      const wrapped = new HttpApiError(httpStatus.BAD_REQUEST, 'Ошибка при сборке бланка документа');
+      Object.defineProperty(wrapped, 'cause', { value: error, enumerable: false, configurable: true, writable: true });
+      throw wrapped;
+    }
   }
 
   async getDocument(query: {

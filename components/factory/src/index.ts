@@ -6,7 +6,7 @@ export * from './Schema'
 import type { Filter, InsertOneResult, UpdateResult } from 'mongodb'
 import type { Cooperative as CooperativeModel } from 'cooptypes'
 import type { IFilterDocuments, IGeneratedDocument, Numbers, externalDataTypes, externalDataTypesArrays, internalFilterTypes } from './Interfaces'
-import type { IGenerate, IGenerationOptions } from './Interfaces/Documents'
+import type { IGenerate, IGenerateBlank, IGeneratedBlank, IGenerationOptions } from './Interfaces/Documents'
 import * as Actions from './Actions'
 
 import { DocDataService, type ISearchResult, MongoDBConnector, SearchService } from './Services/Databazor'
@@ -41,6 +41,8 @@ export interface IGenerator {
   connect: (mongoUri: string) => Promise<void>
   disconnect: () => Promise<void>
   generate: (data: IGenerate, options?: IGenerationOptions) => Promise<IGeneratedDocument>
+  /** Бланк документа без данных события: поля, для которых нет данных, — прочерком. */
+  generateBlank: (data: IGenerateBlank) => Promise<IGeneratedBlank>
   getDocument: (filter: Filter<IFilterDocuments>) => Promise<IGeneratedDocument>
 
   /**
@@ -267,6 +269,15 @@ export class Generator implements IGenerator {
 
     // синтезируем документ
     return await factory.generateDocument(data, options)
+  }
+
+  async generateBlank(data: IGenerateBlank): Promise<IGeneratedBlank> {
+    const factory = this.factories[data.registry_id as Numbers]
+
+    if (!factory)
+      throw new Error(`Фабрика для документа #${data.registry_id} не найдена.`)
+
+    return await factory.generateBlank(data)
   }
 
   async getDocument(filter: Filter<IFilterDocuments>): Promise<IGeneratedDocument> {
