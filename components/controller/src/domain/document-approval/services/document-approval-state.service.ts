@@ -8,6 +8,7 @@ import { DOCUMENT_DECLARATION_QUERY_PORT, type DocumentDeclarationQueryPort } fr
 import type { DocumentTemplateView } from '../interfaces/document-template-view.interface';
 import { DocumentApprovalRequirement, DocumentApprovalState, type DocumentKind } from '../enums/document-approval.enums';
 import { computeDocumentState } from './compute-document-state';
+import { sha256 } from '~/utils/sha256';
 
 /** Сколько живёт снимок таблиц цепи, если события парсера не пришли раньше. */
 const CHAIN_CACHE_TTL_MS = 60_000;
@@ -16,6 +17,8 @@ interface DraftRow {
   registry_id: number;
   version: number;
   title: string;
+  /** Хэш текущего текста шаблона — для строки утверждения при переносе. */
+  context_hash: string;
 }
 
 interface ApprovalRow {
@@ -92,6 +95,11 @@ export class DocumentApprovalStateService {
     return result;
   }
 
+  /** Хэш текущего текста шаблона в сети; `null`, если шаблона нет. */
+  public async getCurrentTextHash(registry_id: number): Promise<string | null> {
+    return (await this.loadDrafts()).get(registry_id)?.context_hash ?? null;
+  }
+
   /** Обязательные документы приложения, у которых есть хотя бы одна утверждённая редакция. */
   public async isExtensionApproved(coopname: string, extension_name: string): Promise<boolean> {
     const templates = await this.getTemplates(coopname);
@@ -115,6 +123,7 @@ export class DocumentApprovalStateService {
         registry_id: Number(row.registry_id),
         version: Number(row.version),
         title: String(row.title ?? ''),
+        context_hash: sha256(String(row.context ?? '')),
       });
     }
     this.draftsCache = { value: map, expires_at: Date.now() + CHAIN_CACHE_TTL_MS };

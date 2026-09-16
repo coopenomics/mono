@@ -205,3 +205,18 @@ describe('toChainTimePoint', () => {
     expect(toChainTimePoint(undefined)).toBeNull();
   });
 });
+
+describe('DocumentApprovalProposalService: бланк не собирается', () => {
+  it('в решение уходит хэш текста шаблона из цепи, вынесение не падает', async () => {
+    const { service, documents, freeDecision, tracking } = build([template(998, { extension_name: 'capital', bundle: 'blagorost_program', vars_field: 'blagorost_program', kind: DocumentKind.Provision })]);
+    documents.generateDocument.mockRejectedValueOnce(new Error('нет параметров ЦПП'));
+    (service as any).state.getCurrentTextHash = jest.fn(async () => 'd'.repeat(64));
+
+    await service.propose({ coopname: 'voskhod', registry_ids: [998], username: 'ant' });
+
+    const project = freeDecision.createProjectOfFreeDecision.mock.calls[0][0];
+    expect(project.decision).toContain('d'.repeat(64));
+    expect(project.decision).toContain('реестре шаблонов');
+    expect(tracking.registerTrackingRule.mock.calls[0][0].metadata.text_hashes).toEqual({ '998': 'd'.repeat(64) });
+  });
+});

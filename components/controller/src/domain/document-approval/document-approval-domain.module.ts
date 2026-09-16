@@ -4,6 +4,8 @@ import { DocumentApprovalStateService } from './services/document-approval-state
 import { DocumentApprovalProposalService } from './services/document-approval-proposal.service';
 import { DocumentApprovalNotificationService } from './services/document-approval-notification.service';
 import { DocumentApprovalOnboardingAdapter } from './services/document-approval-onboarding.adapter';
+import { DocumentApprovalSeedService } from './services/document-approval-seed.service';
+import { SystemInfrastructureModule } from '~/infrastructure/system/system-infrastructure.module';
 import { DocumentDomainModule } from '~/domain/document/document.module';
 import { DOCUMENT_DECLARATION_QUERY_PORT } from './ports/document-declaration-query.port';
 
@@ -15,7 +17,7 @@ import { DOCUMENT_DECLARATION_QUERY_PORT } from './ports/document-declaration-qu
  */
 @Global()
 @Module({
-  imports: [DocumentDomainModule],
+  imports: [DocumentDomainModule, SystemInfrastructureModule],
   providers: [
     DocumentDeclarationsRegistryService,
     {
@@ -26,6 +28,7 @@ import { DOCUMENT_DECLARATION_QUERY_PORT } from './ports/document-declaration-qu
     DocumentApprovalProposalService,
     DocumentApprovalNotificationService,
     DocumentApprovalOnboardingAdapter,
+    DocumentApprovalSeedService,
   ],
   exports: [
     DocumentDeclarationsRegistryService,
@@ -33,6 +36,7 @@ import { DOCUMENT_DECLARATION_QUERY_PORT } from './ports/document-declaration-qu
     DocumentApprovalStateService,
     DocumentApprovalProposalService,
     DocumentApprovalOnboardingAdapter,
+    DocumentApprovalSeedService,
   ],
 })
 export class DocumentApprovalDomainModule {}

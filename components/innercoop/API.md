@@ -1704,6 +1704,7 @@
 - `step_key: string`
 - `username: string`
 - `title?: string`
+- `doc_data_hash?: string`
 
 ## InnerPublishProjectFreeDecisionInput
 

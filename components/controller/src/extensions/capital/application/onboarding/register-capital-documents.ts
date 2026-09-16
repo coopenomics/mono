@@ -21,8 +21,9 @@ const doc = (
 /**
  * Документы Капитала в реестре шаблонов кооператива.
  *
- * Положения и оферты наследуют ключи шагов онбординга (`blagorost_provision`,
- * `generator_offer_template`, …): реквизиты протокола пишутся в те же поля
+ * Положения и оферты наследуют ключи шагов онбординга в том виде, в каком их
+ * пишет карточка подключения Капитала (`generator_program`, `blagorost_program`,
+ * `generator_offer_template`, …): реквизиты протокола ложатся в те же поля
  * `vars`, что подставляют шаблоны. Шаблоны-двойники «для утверждения» (995,
  * 997, 999) не объявляются: совет утверждает рабочий документ в бланке, а
  * поле `vars` сохраняет прежнее имя, чтобы тексты оферт не менять.
@@ -30,10 +31,10 @@ const doc = (
 export async function registerCapitalDocuments(port: IDocumentDeclarationPort): Promise<void> {
   await port.unregisterByExtension(EXTENSION);
   await port.registerDocuments([
-    doc(R.GeneratorProgramTemplate.registry_id, 'provision', 10, { bundle: 'generator_program_template', vars_field: 'generator_program_template' }),
+    doc(R.GeneratorProgramTemplate.registry_id, 'provision', 10, { bundle: 'generator_program', vars_field: 'generator_program' }),
     doc(R.GenerationContract.registry_id, 'form', 20, { bundle: 'generation_contract_template', vars_field: 'generation_contract_template' }),
     doc(R.GeneratorOffer.registry_id, 'agreement', 30, { bundle: 'generator_offer_template', vars_field: 'generator_offer_template' }),
-    doc(R.BlagorostProgramTemplate.registry_id, 'provision', 40, { bundle: 'blagorost_provision', vars_field: 'blagorost_provision' }),
+    doc(R.BlagorostProgramTemplate.registry_id, 'provision', 40, { bundle: 'blagorost_program', vars_field: 'blagorost_program' }),
     doc(R.BlagorostOffer.registry_id, 'agreement', 50, { bundle: 'blagorost_offer_template', vars_field: 'blagorost_offer_template' }),
 
     doc(R.ProjectGenerationContract.registry_id, 'form', 60, { bundle: 'capital_forms' }),

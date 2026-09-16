@@ -17,6 +17,11 @@ export interface InnerProposeOnboardingStepInput {
   /** Кто выносит — председатель. */
   username: string;
   title?: string;
+  /**
+   * Хэш приватных параметров документов (например, параметров ЦПП Капитала):
+   * без него бланк положения не собирается, и совет не увидит текста.
+   */
+  doc_data_hash?: string;
 }
 
 export interface InnerOnboardingStepProposal {

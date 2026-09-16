@@ -50,6 +50,8 @@ export interface ProposeDocumentApprovalInput {
    * выводится из пакета: документы ядра ведёт расширение `chairman`.
    */
   onboarding?: { extension: string; step: string };
+  /** Хэш приватных параметров документов, если шаблон их требует (параметры ЦПП). */
+  doc_data_hash?: string;
 }
 
 interface RuleMetadata {
@@ -128,7 +130,7 @@ export class DocumentApprovalProposalService {
 
     const blanks: RenderedBlank[] = [];
     for (const template of selected) {
-      blanks.push(await this.renderBlank(input.coopname, template));
+      blanks.push(await this.renderBlankOrDigest(input, template));
     }
 
     const hash = await this.publishProject(input, selected, blanks);
@@ -280,12 +282,34 @@ export class DocumentApprovalProposalService {
     return { registry_id, title: document.meta?.title || template.title, html: document.html, text_hash: sha256(document.html) };
   }
 
-  private async renderBlank(coopname: string, template: DocumentTemplateView): Promise<RenderedBlank> {
+  /**
+   * Бланк для решения совета. Если бланк не собирается (форма требует данных
+   * события, которых у совета нет), в решение уходят название, редакция и
+   * хэш текста шаблона из цепи — текст можно открыть в реестре шаблонов.
+   */
+  private async renderBlankOrDigest(input: ProposeDocumentApprovalInput, template: DocumentTemplateView): Promise<RenderedBlank> {
+    try {
+      return await this.renderBlank(input.coopname, template, input.doc_data_hash);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.warn(`Бланк документа ${template.registry_id} не собран (${message}) — в решение уходит хэш текста шаблона`);
+      const text_hash = (await this.state.getCurrentTextHash(template.registry_id)) ?? sha256('');
+      return { registry_id: template.registry_id, title: template.title, html: '', text_hash };
+    }
+  }
+
+  private async renderBlank(coopname: string, template: DocumentTemplateView, doc_data_hash?: string): Promise<RenderedBlank> {
     // Совету показывают утверждаемую редакцию — текущий текст сети. Без явного
     // блока источник данных подставил бы утверждённую редакцию, то есть старую.
     const head = Number((await this.blockchain.getInfo()).head_block_num);
     const document = await this.documents.generateDocument({
-      data: { coopname, username: coopname, registry_id: template.registry_id, block_num: head },
+      data: {
+        coopname,
+        username: coopname,
+        registry_id: template.registry_id,
+        block_num: head,
+        ...(doc_data_hash ? { doc_data_hash } : {}),
+      },
       options: { skip_save: true, skip_pdf: true, blank_signer: true },
     });
     return {
@@ -427,7 +451,7 @@ function buildDecision(selected: DocumentTemplateView[], blanks: RenderedBlank[]
     .map((blank, i) => {
       const template = selected[i]!;
       const head = `Утвердить редакцию № ${template.current_version} документа «${blank.title}» (хэш текста ${blank.text_hash}) и применять её в кооперативе с даты настоящего решения.`;
-      return `<p>${head}</p>\n${blank.html}`;
+      return blank.html ? `<p>${head}</p>\n${blank.html}` : `<p>${head} Текст редакции доступен в реестре шаблонов документов кооператива.</p>`;
     })
     .join('\n<hr/>\n');
 }

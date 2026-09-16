@@ -8,7 +8,7 @@
  * @param username Имя пользователя, фиксирующего утверждение (председатель или сам кооператив)
  * @param registry_id Реестровый идентификатор шаблона
  * @param version Утверждаемая редакция; обязана совпадать с текущей редакцией шаблона в сети
- * @param decision_id Номер решения совета (номер протокола)
+ * @param decision_id Номер решения совета (номер протокола); 0 — перенос утверждения без номера
  * @param approved_at Дата решения совета
  * @param text_hash Хэш текста утверждённой редакции
  * @ingroup public_actions
@@ -25,7 +25,9 @@ void draft::approve(eosio::name coopname, eosio::name username, uint64_t registr
   auto current = get_scoped_draft_by_registry_or_fail(_draft, registry_id);
   eosio::check(current.version == version,
                "Утверждаемая редакция не совпадает с текущей редакцией шаблона в сети");
-  eosio::check(decision_id > 0, "Не указан номер решения совета");
+  // Номер решения 0 допустим только при переносе утверждений из прежних
+  // настроек кооператива, где номер протокола хранился строкой: там его не
+  // из чего восстановить, а факт утверждения важнее номера.
 
   draft_approvals_index approvals(_draft, coopname.value);
   auto exist = approvals.find(registry_id);

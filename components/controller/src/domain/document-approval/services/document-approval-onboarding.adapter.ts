@@ -54,6 +54,7 @@ export class DocumentApprovalOnboardingAdapter implements IDocumentApprovalPort 
       registry_ids: waiting.map((t) => t.registry_id),
       username: input.username,
       title: input.title,
+      doc_data_hash: input.doc_data_hash,
       onboarding: { extension: input.extension_name, step: input.step_key },
     });
     const hash = result.find((t) => t.pending_hash)?.pending_hash ?? null;

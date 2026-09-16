@@ -8,6 +8,8 @@ import { DocumentApprovalProposalService } from '~/domain/document-approval/serv
 import { DocumentTemplateDTO } from '../dto/document-template.dto';
 import { ProposeDocumentApprovalInputDTO } from '../dto/propose-document-approval.input';
 import { DocumentTemplateBlankDTO, DocumentTemplateEdition } from '../dto/document-template-blank.dto';
+import { DocumentApprovalSeedItemDTO, DocumentApprovalSeedResultDTO } from '../dto/document-approval-seed.dto';
+import { DocumentApprovalSeedService } from '~/domain/document-approval/services/document-approval-seed.service';
 
 /**
  * Реестр шаблонов документов кооператива для стола совета: состав документов
@@ -18,7 +20,8 @@ import { DocumentTemplateBlankDTO, DocumentTemplateEdition } from '../dto/docume
 export class DocumentApprovalResolver {
   constructor(
     private readonly stateService: DocumentApprovalStateService,
-    private readonly proposalService: DocumentApprovalProposalService
+    private readonly proposalService: DocumentApprovalProposalService,
+    private readonly seedService: DocumentApprovalSeedService
   ) {}
 
   @Query(() => [DocumentTemplateDTO], {
@@ -77,5 +80,26 @@ export class DocumentApprovalResolver {
       title: data.title,
       username: currentUser.username,
     });
+  }
+
+  @Query(() => [DocumentApprovalSeedItemDTO], {
+    name: 'documentApprovalsSeedPlan',
+    description:
+      'Перенос утверждений из прежних настроек кооператива: какие документы получат утверждение текущей редакции и по какому протоколу (без записи в цепь)',
+  })
+  @UseGuards(GqlJwtAuthGuard, RolesGuard)
+  @AuthRoles(['chairman', 'member'])
+  async documentApprovalsSeedPlan(@Args('coopname', { type: () => String }) coopname: string): Promise<DocumentApprovalSeedItemDTO[]> {
+    return this.seedService.plan(coopname);
+  }
+
+  @Mutation(() => DocumentApprovalSeedResultDTO, {
+    name: 'applyDocumentApprovalsSeed',
+    description: 'Записать в цепь утверждения из прежних настроек кооператива по плану переноса',
+  })
+  @UseGuards(GqlJwtAuthGuard, RolesGuard)
+  @AuthRoles(['chairman'])
+  async applyDocumentApprovalsSeed(@Args('coopname', { type: () => String }) coopname: string): Promise<DocumentApprovalSeedResultDTO> {
+    return this.seedService.apply(coopname);
   }
 }

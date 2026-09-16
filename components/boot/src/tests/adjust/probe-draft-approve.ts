@@ -66,7 +66,11 @@ async function main() {
 
   await expectFail('неверная редакция', { ...base, version: version + 1 }, 'не совпадает с текущей редакцией')
   await expectFail('несуществующий шаблон', { ...base, registry_id: 999_999 }, 'Шаблон документа не найден')
-  await expectFail('нулевой номер решения', { ...base, decision_id: 0 }, 'Не указан номер решения')
+  // Номер решения 0 — перенос утверждения из прежних настроек без номера протокола.
+  await approve({ ...base, decision_id: 0, text_hash: generateRandomSHA256() });
+  [row] = await blockchain.getTableRows('draft', COOP, 'approvals', 1, String(REGISTRY_ID), String(REGISTRY_ID))
+  console.log(`${row && Number(row.decision_id) === 0 ? 'ok  ' : 'FAIL'} утверждение без номера решения (перенос) принято`)
+  await approve({ ...base, decision_id: 778, text_hash: generateRandomSHA256() });
   await expectFail('область draft', { ...base, coopname: 'draft', username: 'draft' }, 'области кооператива')
 
   const all = await blockchain.getTableRows('draft', COOP, 'approvals', 100)

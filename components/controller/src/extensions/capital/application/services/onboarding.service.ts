@@ -210,13 +210,15 @@ export class CapitalOnboardingService {
     flagKey: OnboardingFlagKey,
     hashKey: OnboardingHashKey,
     username: string,
-    title?: string
+    title?: string,
+    doc_data_hash?: string
   ): Promise<CapitalOnboardingStateDTO | null> {
     const viaFactory = await this.documentApprovals.proposeOnboardingStep({
       extension_name: 'capital',
       step_key: this.mapStepToVarsField(step),
       username,
       title,
+      doc_data_hash,
     });
     if (!viaFactory) return null;
     const patch = (viaFactory.approved ? { [flagKey]: true } : { [hashKey]: viaFactory.hash ?? '' }) as Partial<CapitalOnboardingConfig>;
@@ -234,9 +236,45 @@ export class CapitalOnboardingService {
       return this.buildState(extension.config);
     }
 
-    const viaFactory = await this.completeViaFactory(data.step, flagKey, hashKey, username, normalizedTitle);
+    const viaFactory = await this.completeViaFactory(
+      data.step,
+      flagKey,
+      hashKey,
+      username,
+      normalizedTitle,
+      extension.config.capital_program_doc_data_hash || undefined
+    );
     if (viaFactory) return viaFactory;
 
+    const { project_id, hash: publishedHash, updated } = await this.publishLegacyStep(data, hashKey, username, normalizedTitle);
+
+    // Регистрируем правило отслеживания в фабрике
+    const varsField = this.mapStepToVarsField(data.step);
+
+    await this.decisionTrackingPort.registerTrackingRule({
+      hash: publishedHash,
+      event_type: DecisionEventType.SOVIET_DECISION,
+      vars_field: varsField,
+      metadata: {
+        onboarding_step: data.step,
+        project_id,
+        extension: 'capital',
+      },
+    });
+
+    return this.buildState(updated.config as CapitalOnboardingConfig);
+  }
+
+  /**
+   * Прежний путь шага без документов: проект свободного решения с текстом из
+   * карточки, публикация в повестку, хэш в настройке расширения.
+   */
+  private async publishLegacyStep(
+    data: CapitalOnboardingStepInputDTO,
+    hashKey: OnboardingHashKey,
+    username: string,
+    normalizedTitle?: string
+  ): Promise<{ project_id: string; hash: string; updated: ExtensionDomainEntity<CapitalOnboardingConfig> }> {
     const project_id = uuid();
     const actor = username;
 
@@ -283,20 +321,6 @@ export class CapitalOnboardingService {
       [hashKey]: generatedDoc.hash,
     } as Partial<CapitalOnboardingConfig>);
 
-    // Регистрируем правило отслеживания в фабрике
-    const varsField = this.mapStepToVarsField(data.step);
-
-    await this.decisionTrackingPort.registerTrackingRule({
-      hash: generatedDoc.hash,
-      event_type: DecisionEventType.SOVIET_DECISION,
-      vars_field: varsField,
-      metadata: {
-        onboarding_step: data.step,
-        project_id,
-        extension: 'capital',
-      },
-    });
-
-    return this.buildState(updated.config as CapitalOnboardingConfig);
+    return { project_id, hash: generatedDoc.hash, updated };
   }
 }
