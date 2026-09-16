@@ -4,6 +4,7 @@ import { GqlExecutionContext } from '@nestjs/graphql';
 import { AuthGuard } from '@nestjs/passport';
 import type { Observable } from 'rxjs';
 import { hasServerSecret } from './server-secret';
+import { ROLES_DENY_SELF_KEY } from './decorators';
 
 /** JWT-гард для GraphQL. При валидном `server-secret` проверка не выполняется. */
 @Injectable()
@@ -106,7 +107,8 @@ export class HttpJwtAuthGuard extends AuthGuard('jwt') {
  * 1. Валидный `server-secret` — доступ разрешён.
  * 2. Роли не заданы — доступ открыт.
  * 3. Пользователь обращается к своим ресурсам (`username` вложенный в `data`/`filter`
- *    либо плоским аргументом совпадает с `user.username`) — разрешено.
+ *    либо плоским аргументом совпадает с `user.username`) — разрешено, если
+ *    операция не объявила `AuthRoles(..., { allowSelf: false })`.
  * 4. У пользователя есть одна из разрешённых ролей — разрешено.
  * 5. Иначе — отказ.
  */
@@ -137,9 +139,12 @@ export class RolesGuard implements CanActivate {
     const data = args.data;
     const filter = args.filter;
 
-    if ((data && data.username && user.username === data.username) ||
+    const denySelf = this.reflector.get<boolean>(ROLES_DENY_SELF_KEY, context.getHandler()) === true;
+
+    if (!denySelf && (
+        (data && data.username && user.username === data.username) ||
         (filter && filter.username && user.username === filter.username) ||
-        (args.username && user.username === args.username)) {
+        (args.username && user.username === args.username))) {
       return true;
     }
 

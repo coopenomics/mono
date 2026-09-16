@@ -123,7 +123,7 @@ export class AccountResolver {
       'Обновить аккаунт в системе провайдера. Обновление аккаунта пользователя производится по username. Мутация позволяет изменить приватные данные пользователя, а также, адрес электронной почты в MONO. Использовать мутацию может только председатель совета.',
   })
   @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
+  @AuthRoles(['chairman'], { allowSelf: false })
   async updateAccount(
     @Args('data', { type: () => UpdateAccountInputDTO })
     data: UpdateAccountInputDTO

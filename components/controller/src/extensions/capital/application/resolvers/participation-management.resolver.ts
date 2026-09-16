@@ -54,7 +54,7 @@ export class ParticipationManagementResolver {
     description: 'Импорт участника в CAPITAL контракт',
   })
   @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
+  @AuthRoles(['chairman'], { allowSelf: false })
   async importCapitalContributor(
     @Args('data', { type: () => ImportContributorInputDTO }) data: ImportContributorInputDTO
   ): Promise<TransactionDTO> {

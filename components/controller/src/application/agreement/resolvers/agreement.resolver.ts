@@ -172,7 +172,7 @@ export class AgreementResolver {
   })
   @Throttle({ default: { limit: 10, ttl: 60000 } })
   @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @AuthRoles(['chairman', 'member'], { allowSelf: false })
   async confirmAgreement(
     @Args('data', { type: () => ConfirmAgreementInputDTO }) data: ConfirmAgreementInputDTO
   ): Promise<TransactionDTO> {
@@ -185,7 +185,7 @@ export class AgreementResolver {
   })
   @Throttle({ default: { limit: 10, ttl: 60000 } })
   @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @AuthRoles(['chairman', 'member'], { allowSelf: false })
   async declineAgreement(
     @Args('data', { type: () => DeclineAgreementInputDTO }) data: DeclineAgreementInputDTO
   ): Promise<TransactionDTO> {
