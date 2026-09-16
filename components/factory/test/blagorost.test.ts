@@ -17,6 +17,15 @@ describe('тест генератора документов ЦПП БЛАГОР
     const { hash } = await generator.saveDocData(capitalProgramPrivateData, 998)
     capitalProgramDocDataHash = hash
 
+    // Оферта 1000 печатает реквизиты протокола об утверждении Положения:
+    // без них её фабрика отказывает.
+    await generator.update('vars', { coopname: 'voskhod' }, {
+      blagorost_program: {
+        protocol_number: '01-12-2024',
+        protocol_day_month_year: '01 декабря 2024 г.',
+      },
+    })
+
     const udataRecords = [
       { key: Cooperative.Model.UdataKey.BLAGOROST_AGREEMENT_NUMBER, value: 'БЛ-001/2024' },
       { key: Cooperative.Model.UdataKey.BLAGOROST_AGREEMENT_CREATED_AT, value: '2024-06-15T10:00:00.000Z' },
@@ -52,8 +61,8 @@ describe('тест генератора документов ЦПП БЛАГОР
     })
     expect(blank.html).toContain('______')
     expect(blank.meta.created_at).toBe('______')
-    const param = Object.values(capitalProgramPrivateData).find(v => typeof v === 'string' && v.length > 8) as string
-    expect(blank.html).toContain(param)
+    // Параметр, который оферта печатает из doc_data (см. шаблон 1000).
+    expect(blank.html).toContain(capitalProgramPrivateData.blagorost_goal_reason)
   })
 
   // Документ 1000 - Публичная оферта для пайщика (с шапкой)
