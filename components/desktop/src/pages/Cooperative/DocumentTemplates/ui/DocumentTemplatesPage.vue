@@ -21,54 +21,60 @@ q-page.document-templates
       BaseTable(:columns='columns', :rows='group.rows', row-key='registry_id')
         template(#cell-title='{ row }')
           .document-templates__title
-            span {{ row.title }}
+            span.text-weight-medium {{ row.title }}
             span.t-sm.t-muted {{ KIND_LABEL[row.kind] ?? row.kind }}{{ row.bundle && row.kind === DocumentKind.Form ? ' · пакет «' + bundleLabel(row.bundle) + '»' : '' }}
         template(#cell-approved='{ row }')
-          template(v-if='row.approved_version')
-            div № {{ row.approved_version }}
-            .t-sm.t-muted протокол № {{ row.approved_decision_id }} от {{ formatApprovedAt(row.approved_at) }}
-          span.t-muted(v-else) ______
+          .document-templates__edition(v-if='row.approved_version')
+            span Редакция № {{ row.approved_version }}
+            span.t-sm.t-muted протокол № {{ row.approved_decision_id }} от {{ formatApprovedAt(row.approved_at) }}
+          span.t-sm.t-muted(v-else-if='row.state === DocumentApprovalState.NotRequired') утверждение не требуется
+          span.t-sm.t-muted(v-else) ещё не утверждалась
         template(#cell-current_version='{ row }')
-          span(v-if='row.current_version') № {{ row.current_version }}
-          span.t-muted(v-else) ______
+          span(v-if='row.current_version') Редакция № {{ row.current_version }}
+          span.t-sm.t-muted(v-else) нет в сети
         template(#cell-state='{ row }')
           BaseBadge(:variant='stateView(row).variant') {{ stateView(row).label }}
         template(#cell-actions='{ row }')
           .document-templates__actions
             BaseButton(
               v-if='row.approved_version',
-              variant='ghost',
+              variant='secondary',
               size='sm',
               :loading='opening === row.registry_id + ":approved"',
               @click='openBlank(row, DocumentTemplateEdition.Approved)'
-            ) Утверждённая
+            )
+              template(#icon-left)
+                q-icon.q-mr-xs(name='verified', size='16px')
+              | Утверждённая
             BaseButton(
-              v-if='row.current_version && row.state !== DocumentApprovalState.Approved && row.state !== DocumentApprovalState.NotRequired',
-              variant='ghost',
+              v-if='showsCurrent(row)',
+              variant='secondary',
               size='sm',
               :loading='opening === row.registry_id + ":current"',
               @click='openBlank(row, DocumentTemplateEdition.Current)'
-            ) Новая редакция
-            BaseButton(
-              v-if='row.current_version && (row.state === DocumentApprovalState.Approved || row.state === DocumentApprovalState.NotRequired) && !row.approved_version',
-              variant='ghost',
-              size='sm',
-              :loading='opening === row.registry_id + ":current"',
-              @click='openBlank(row, DocumentTemplateEdition.Current)'
-            ) Открыть
+            )
+              template(#icon-left)
+                q-icon.q-mr-xs(name='description', size='16px')
+              | {{ currentLabel(row) }}
             BaseButton(
               v-if='row.state === DocumentApprovalState.Pending',
-              variant='ghost',
+              variant='secondary',
               size='sm',
               @click='goToAgenda'
-            ) В повестке
+            )
+              template(#icon-left)
+                q-icon.q-mr-xs(name='how_to_vote', size='16px')
+              | К повестке
             BaseButton(
               v-if='session.isChairman && needsCouncil(row)',
               variant='primary',
               size='sm',
               :loading='proposing === row.registry_id',
               @click='propose(row)'
-            ) {{ proposeLabel(row) }}
+            )
+              template(#icon-left)
+                q-icon.q-mr-xs(name='gavel', size='16px')
+              | {{ proposeLabel(row) }}
 
   BaseDialog(v-model='viewer.open', :title='viewer.title', maximized)
     DocumentHtmlReader(v-if='viewer.html', :html='viewer.html')
@@ -117,11 +123,22 @@ const viewer = reactive({ open: false, title: '', html: '', text_hash: '' });
 
 const columns: BaseTableColumn<IDocumentTemplate>[] = [
   { key: 'title', label: 'Документ' },
-  { key: 'approved', label: 'Утверждённая редакция', width: '220px' },
-  { key: 'current_version', label: 'В сети', width: '90px', nowrap: true },
+  { key: 'approved', label: 'Утверждена советом', width: '230px' },
+  { key: 'current_version', label: 'Выпущена оператором', width: '170px', nowrap: true },
   { key: 'state', label: 'Состояние', width: '150px', nowrap: true },
-  { key: 'actions', label: '', align: 'right', width: '360px' },
+  { key: 'actions', label: 'Действия', align: 'right', nowrap: true },
 ];
+
+/** Текущую редакцию сети показываем, пока она не совпала с утверждённой, — и для документов без утверждения. */
+const showsCurrent = (row: IDocumentTemplate): boolean =>
+  Boolean(row.current_version) &&
+  (row.state !== DocumentApprovalState.Approved || !row.approved_version);
+
+const currentLabel = (row: IDocumentTemplate): string => {
+  if (row.state === DocumentApprovalState.Outdated) return `Новая редакция № ${row.current_version}`;
+  if (row.state === DocumentApprovalState.Pending) return 'На рассмотрении';
+  return 'Открыть текст';
+};
 
 /** Документы по владельцам: базовый набор кооператива первым, дальше приложения. */
 const groups = computed(() => {
@@ -209,6 +226,11 @@ onMounted(load);
 
 <style lang="scss" scoped>
 .document-templates__title {
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-1);
+}
+.document-templates__edition {
   display: flex;
   flex-direction: column;
   gap: var(--p-1);
