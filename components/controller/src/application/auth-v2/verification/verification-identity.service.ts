@@ -33,7 +33,7 @@ export class VerificationIdentityService {
   ) {}
 
   async getForVerification(actor: VerificationActor, username: string): Promise<ParticipantIdentityForVerificationDTO> {
-    await this.verificationAuthorityService.assertMayVerify(actor);
+    await this.verificationAuthorityService.assertMayVerify(actor, username);
 
     const participant = await this.accountDomainService.getParticipantAccount(config.coopname, username);
     if (!participant) throw new NotFoundException('Пайщик не найден в кооперативе');

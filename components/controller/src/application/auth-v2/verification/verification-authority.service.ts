@@ -31,12 +31,20 @@ export class VerificationAuthorityService {
     @Inject(BRANCH_BLOCKCHAIN_PORT) private readonly branchBlockchainPort: BranchBlockchainPort,
   ) {}
 
-  async assertMayVerify(actor: VerificationActor): Promise<void> {
+  /**
+   * @param target — чью личность сверяют. На участке свою личность не сверяют:
+   *   председатель участка и доверенное лицо выдали бы себе уровень сами.
+   */
+  async assertMayVerify(actor: VerificationActor, target?: string): Promise<void> {
     if (!actor.braname) {
       if (actor.role !== CHAIRMAN_ROLE) {
         throw new ForbiddenException('Подтверждать личность от имени совета вправе председатель совета');
       }
       return;
+    }
+
+    if (target && target === actor.username) {
+      throw new ForbiddenException('Свою личность на участке не сверяют — её подтверждает председатель совета');
     }
 
     const branch = await this.branchBlockchainPort.getBranch(config.coopname, actor.braname);
