@@ -354,8 +354,8 @@ importers:
         specifier: workspace:*
         version: link:../notifications
       '@coopenomics/parser2':
-        specifier: ^1.8.2
-        version: 1.8.2
+        specifier: ^1.9.0
+        version: 1.9.0
       '@coopenomics/provider-client':
         specifier: 2025.11.12-alpha-1
         version: 2025.11.12-alpha-1
@@ -2944,11 +2944,11 @@ packages:
     resolution: {integrity: sha512-Ir+AOibqzrIsL6ajt3Rz3LskB7OiMVHqltZmspbW/TJuTVuyOMirVqAkjfY6JISiLHgyNqicAC8AyHHGzNd/dA==}
     engines: {node: '>=0.1.90'}
 
-  '@coopenomics/coopos-ship-reader@0.3.1':
-    resolution: {integrity: sha512-qaCdEy72do/mje/YNCiZLvGHzcVbwIXjesKLJdm9Q0rGFxFSBwfbHv45G2hjUmc36NAhzh2a+blULRk5m/pSgA==}
+  '@coopenomics/coopos-ship-reader@0.4.0':
+    resolution: {integrity: sha512-Dq16zdDWZzKvmu7jAx01QcbnncT/UAxlHZ7XUlnXy42PYj+zJaZGto8+ZNoQ7nokofHOv1kWpeRTUfnYYCVCYw==}
 
-  '@coopenomics/parser2@1.8.2':
-    resolution: {integrity: sha512-hsY0mww/CcBSP6t+vwgMkM6NxAUs6Sb55iSbdm4tfIuYB2ak9mL1KHXAeLhi3WVZFs8IrFWh6SEWasyOo3c6hA==}
+  '@coopenomics/parser2@1.9.0':
+    resolution: {integrity: sha512-9XKWslu5frjipGhbwgotBbcZciojEXQAaC1qLEFy8vmdRKpZdi8wA10eIbDA/k1/i8C7s3qMxaLfMD975bwuGw==}
     hasBin: true
 
   '@coopenomics/provider-client@2025.11.12-alpha-1':
@@ -21689,7 +21689,7 @@ snapshots:
 
   '@colors/colors@1.6.0': {}
 
-  '@coopenomics/coopos-ship-reader@0.3.1':
+  '@coopenomics/coopos-ship-reader@0.4.0':
     dependencies:
       '@wharfkit/antelope': 1.2.0
       ws: 8.20.0
@@ -21697,9 +21697,9 @@ snapshots:
       - bufferutil
       - utf-8-validate
 
-  '@coopenomics/parser2@1.8.2':
+  '@coopenomics/parser2@1.9.0':
     dependencies:
-      '@coopenomics/coopos-ship-reader': 0.3.1
+      '@coopenomics/coopos-ship-reader': 0.4.0
       '@wharfkit/antelope': 1.2.0
       ajv: 8.18.0
       commander: 12.1.0
