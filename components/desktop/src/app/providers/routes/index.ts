@@ -180,6 +180,7 @@ const baseRoutes: RouteRecordRaw[] = [
         component: InvitePage,
         children: [],
         meta: {
+          authSplit: true,
           title: 'Приглашение',
           icon: 'fa-solid fa-envelope',
           widget: {
@@ -194,6 +195,7 @@ const baseRoutes: RouteRecordRaw[] = [
         component: CardcoopEntryPage,
         children: [],
         meta: {
+          authSplit: true,
           title: 'Вход по карте',
           icon: 'fa-solid fa-id-card',
           widget: {
