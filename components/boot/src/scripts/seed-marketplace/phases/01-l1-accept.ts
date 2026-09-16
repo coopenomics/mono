@@ -140,8 +140,12 @@ export async function phase01(): Promise<void> {
     // в решение совета (шаблон-двойник оферты 1101 выведен).
     log(`[${step.step_key}] бланк registry_id=${doc.registry_id}`)
     const blankResp = await client.Query(Queries.DocumentApprovals.DocumentTemplateBlank.query, {
-      variables: { coopname: COOPNAME, registry_id: doc.registry_id, edition: 'Current' },
-    } as unknown as Queries.DocumentApprovals.DocumentTemplateBlank.IInput) as Record<string, { text_hash: string, html: string, title: string }>
+      variables: {
+        coopname: COOPNAME,
+        registry_id: doc.registry_id,
+        edition: 'Current',
+      } as unknown as Queries.DocumentApprovals.DocumentTemplateBlank.IInput,
+    }) as Record<string, { text_hash: string, html: string, title: string }>
     const generated = blankResp[Queries.DocumentApprovals.DocumentTemplateBlank.name]
 
     // 2. Публикация проекта решения совета.

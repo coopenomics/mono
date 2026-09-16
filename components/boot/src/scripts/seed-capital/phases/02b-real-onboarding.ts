@@ -171,8 +171,12 @@ export async function phase02b(): Promise<void> {
     const blankResp = await client.Query(
       Queries.DocumentApprovals.DocumentTemplateBlank.query,
       {
-        variables: { coopname: COOPNAME, registry_id: step.registry_id, edition: 'Current' },
-      } as unknown as Queries.DocumentApprovals.DocumentTemplateBlank.IInput,
+        variables: {
+          coopname: COOPNAME,
+          registry_id: step.registry_id,
+          edition: 'Current',
+        } as unknown as Queries.DocumentApprovals.DocumentTemplateBlank.IInput,
+      },
     ) as Record<string, { text_hash: string, html: string, title: string }>
     const generatedDoc = blankResp[Queries.DocumentApprovals.DocumentTemplateBlank.name]
 
