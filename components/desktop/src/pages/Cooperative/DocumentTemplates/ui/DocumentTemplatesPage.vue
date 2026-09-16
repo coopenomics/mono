@@ -77,7 +77,10 @@ q-page.document-templates
               | {{ proposeLabel(row) }}
 
   BaseDialog(v-model='viewer.open', :title='viewer.title', maximized)
-    DocumentHtmlReader(v-if='viewer.html', :html='viewer.html')
+    //- Бланк показывается тем же компонентом, что и подписанные документы в
+    //- реестре: стили шаблона живут в shadow DOM, как в PDF. Хэшей и подписей
+    //- у бланка нет — агрегат минимальный, блок подписей скрыт.
+    BaseDocument(v-if='viewerAggregate', :document-aggregate='viewerAggregate')
     .t-sm.t-muted.q-mt-md(v-if='viewer.text_hash')
       | Хэш текста:&nbsp;
       span.t-mono-sm {{ viewer.text_hash }}
@@ -88,7 +91,8 @@ import { computed, onMounted, reactive, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { BaseBadge, BaseButton, BaseCard, BaseDialog, BaseTable, EmptyState } from 'src/shared/ui/base';
 import type { BaseTableColumn } from 'src/shared/ui/base/BaseTable/BaseTable.types';
-import { DocumentHtmlReader } from 'src/shared/ui/DocumentHtmlReader';
+import { BaseDocument } from 'src/shared/ui/BaseDocument';
+import type { IDocumentAggregate } from 'src/entities/Document/model';
 import { useFirstLoad } from 'src/shared/lib/composables';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { useSystemStore } from 'src/entities/System/model';
@@ -120,6 +124,11 @@ const proposing = ref<number | null>(null);
 const opening = ref<string | null>(null);
 
 const viewer = reactive({ open: false, title: '', html: '', text_hash: '' });
+const viewerAggregate = computed(() =>
+  viewer.html
+    ? ({ rawDocument: { html: viewer.html, meta: { title: viewer.title } }, document: { doc_hash: '', signatures: [] } } as unknown as IDocumentAggregate)
+    : null,
+);
 
 const columns: BaseTableColumn<IDocumentTemplate>[] = [
   { key: 'title', label: 'Документ' },
