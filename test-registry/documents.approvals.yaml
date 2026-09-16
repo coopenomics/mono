@@ -29,6 +29,9 @@ sources:
     - components/notifications/src/workflows/document-edition-available/**
     - components/notifications/src/workflows/document-approval-declined/**
     - components/notifications/src/workflows/document-edition-reminder/**
+  ui:
+    - components/desktop/src/pages/Cooperative/DocumentTemplates/**
+    - components/desktop/src/pages/Cooperative/ListOfDocuments/ListOfDocumentsPage.vue
 
 cases:
   - id: doc.appr.happy.01
@@ -270,3 +273,27 @@ cases:
     expect: предупреждение в журнале, ошибки нет
     test: components/controller/tests/unit/document-approval/document-approval-notification.service.test.ts
     status: written
+
+  - id: doc.appr.happy.14
+    level: ui
+    kind: happy
+    scenario: Председатель открывает вкладку «Шаблоны документов» в реестре документов
+    expect: документы сгруппированы по приложениям; у каждого видны утверждённая редакция с протоколом, редакция в сети и состояние; на вкладке счётчик документов, ждущих совета
+    test: ~
+    status: missing
+
+  - id: doc.appr.happy.15
+    level: ui
+    kind: happy
+    scenario: Председатель выносит устаревший документ на совет с вкладки шаблонов
+    expect: документ переходит в состояние «В повестке», кнопка ведёт в повестку совета; пакет форм уходит одним решением
+    test: ~
+    status: missing
+
+  - id: doc.appr.side.17
+    level: ui
+    kind: side
+    scenario: Член совета без прав председателя открывает вкладку
+    expect: видит состояния и открывает бланки, кнопки «Вынести на совет» нет
+    test: ~
+    status: missing

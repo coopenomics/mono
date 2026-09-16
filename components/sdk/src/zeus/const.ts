@@ -613,6 +613,10 @@ export const AllTypesProps: Record<string,any> = {
 
 	},
 	DocumentAction: "enum" as const,
+	DocumentApprovalRequirement: "enum" as const,
+	DocumentApprovalState: "enum" as const,
+	DocumentKind: "enum" as const,
+	DocumentTemplateEdition: "enum" as const,
 	EditBranchInput:{
 
 	},
@@ -2394,6 +2398,9 @@ export const AllTypesProps: Record<string,any> = {
 		processConvertToAxonStatement:{
 			data:"ProcessConvertToAxonStatementInput"
 		},
+		proposeDocumentApproval:{
+			data:"ProposeDocumentApprovalInput"
+		},
 		publishProductCard:{
 
 		},
@@ -2661,6 +2668,9 @@ export const AllTypesProps: Record<string,any> = {
 	},
 	ProjectPriority: "enum" as const,
 	ProjectStatus: "enum" as const,
+	ProposeDocumentApprovalInput:{
+
+	},
 	PublishProjectFreeDecisionInput:{
 		document:"ProjectFreeDecisionSignedDocumentInput"
 	},
@@ -2881,6 +2891,15 @@ export const AllTypesProps: Record<string,any> = {
 
 		},
 		cooperativePrograms:{
+
+		},
+		documentTemplateBlank:{
+			edition:"DocumentTemplateEdition"
+		},
+		documentTemplates:{
+
+		},
+		documentTemplatesAttention:{
 
 		},
 		expenseFile:{
@@ -5348,6 +5367,28 @@ export const ReturnTypes: Record<string,any> = {
 		links:"DocumentAggregate",
 		statement:"StatementDetailAggregate"
 	},
+	DocumentTemplate:{
+		approval:"DocumentApprovalRequirement",
+		approved_at:"String",
+		approved_decision_id:"Int",
+		approved_version:"Int",
+		bundle:"String",
+		current_version:"Int",
+		effective_version:"Int",
+		extension_name:"String",
+		kind:"DocumentKind",
+		order:"Int",
+		pending_hash:"String",
+		registry_id:"Int",
+		state:"DocumentApprovalState",
+		title:"String"
+	},
+	DocumentTemplateBlank:{
+		html:"String",
+		registry_id:"Int",
+		text_hash:"String",
+		title:"String"
+	},
 	DocumentsAggregatePaginationResult:{
 		currentPage:"Int",
 		items:"DocumentPackageAggregate",
@@ -7363,6 +7404,7 @@ export const ReturnTypes: Record<string,any> = {
 		payExpenseItem:"Transaction",
 		payWithheldTax:"String",
 		processConvertToAxonStatement:"Boolean",
+		proposeDocumentApproval:"DocumentTemplate",
 		publishProductCard:"Boolean",
 		publishProjectOfFreeDecision:"AgendaWithDocuments",
 		refresh:"RegisteredAccount",
@@ -8082,6 +8124,9 @@ export const ReturnTypes: Record<string,any> = {
 		checkReportReadiness:"ReportReadinessView",
 		cooperativeAgreements:"CoopAgreement",
 		cooperativePrograms:"CooperativeProgram",
+		documentTemplateBlank:"DocumentTemplateBlank",
+		documentTemplates:"DocumentTemplate",
+		documentTemplatesAttention:"Int",
 		expenseFile:"ExpenseFile",
 		expenseFilesByItem:"ExpenseFile",
 		expenseFilesByProposal:"ExpenseFile",

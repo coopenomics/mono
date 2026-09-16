@@ -6617,6 +6617,12 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on DocumentAggregate']?: Omit<ValueTypes["DocumentAggregate"], "...on DocumentAggregate">
 }>;
+	/** Требуется ли решение совета, чтобы редакция документа действовала в кооперативе */
+["DocumentApprovalRequirement"]:DocumentApprovalRequirement;
+	/** Состояние документа в кооперативе относительно редакции в сети */
+["DocumentApprovalState"]:DocumentApprovalState;
+	/** Род документа: соглашение пайщика, положение, форма или служебный документ */
+["DocumentKind"]:DocumentKind;
 	/** Комплексный объект папки цифрового документа с агрегатами, который включает в себя заявление, решение, акты и связанные документы */
 ["DocumentPackageAggregate"]: AliasType<{
 	/** Массив объект(ов) актов с агрегатами, относящихся к заявлению */
@@ -6630,6 +6636,52 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on DocumentPackageAggregate']?: Omit<ValueTypes["DocumentPackageAggregate"], "...on DocumentPackageAggregate">
 }>;
+	["DocumentTemplate"]: AliasType<{
+	/** Требуется ли утверждение советом */
+	approval?:boolean | `@${string}`,
+	/** Дата решения совета об утверждении */
+	approved_at?:boolean | `@${string}`,
+	/** Номер решения совета об утверждении */
+	approved_decision_id?:boolean | `@${string}`,
+	/** Редакция, утверждённая советом кооператива */
+	approved_version?:boolean | `@${string}`,
+	/** Пакет: документы одного пакета утверждаются одним решением */
+	bundle?:boolean | `@${string}`,
+	/** Редакция шаблона в сети */
+	current_version?:boolean | `@${string}`,
+	/** Редакция, которую кооператив предъявляет пайщикам */
+	effective_version?:boolean | `@${string}`,
+	/** Приложение, использующее документ; базовый набор кооператива — core */
+	extension_name?:boolean | `@${string}`,
+	/** Род документа */
+	kind?:boolean | `@${string}`,
+	/** Порядок в списке приложения */
+	order?:boolean | `@${string}`,
+	/** Хэш проекта решения в повестке совета, если документ вынесен на утверждение */
+	pending_hash?:boolean | `@${string}`,
+	/** Номер шаблона в реестре документов */
+	registry_id?:boolean | `@${string}`,
+	/** Состояние документа в кооперативе */
+	state?:boolean | `@${string}`,
+	/** Название документа */
+	title?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on DocumentTemplate']?: Omit<ValueTypes["DocumentTemplate"], "...on DocumentTemplate">
+}>;
+	["DocumentTemplateBlank"]: AliasType<{
+	/** Текст документа в HTML */
+	html?:boolean | `@${string}`,
+	/** Номер шаблона в реестре документов */
+	registry_id?:boolean | `@${string}`,
+	/** Хэш текста */
+	text_hash?:boolean | `@${string}`,
+	/** Название документа */
+	title?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on DocumentTemplateBlank']?: Omit<ValueTypes["DocumentTemplateBlank"], "...on DocumentTemplateBlank">
+}>;
+	/** Редакция документа для просмотра: утверждённая советом кооператива или текущая в сети */
+["DocumentTemplateEdition"]:DocumentTemplateEdition;
 	["DocumentsAggregatePaginationResult"]: AliasType<{
 	/** Текущая страница */
 	currentPage?:boolean | `@${string}`,
@@ -12770,6 +12822,7 @@ overspendExpenseItem?: [{	data: ValueTypes["OverspendExpenseItemInput"] | Variab
 payExpenseItem?: [{	data: ValueTypes["PayExpenseItemInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 payWithheldTax?: [{	data: ValueTypes["PayWithheldTaxInput"] | Variable<any, string>},boolean | `@${string}`],
 processConvertToAxonStatement?: [{	data: ValueTypes["ProcessConvertToAxonStatementInput"] | Variable<any, string>},boolean | `@${string}`],
+proposeDocumentApproval?: [{	data: ValueTypes["ProposeDocumentApprovalInput"] | Variable<any, string>},ValueTypes["DocumentTemplate"]],
 publishProductCard?: [{	id: string | Variable<any, string>},boolean | `@${string}`],
 publishProjectOfFreeDecision?: [{	data: ValueTypes["PublishProjectFreeDecisionInput"] | Variable<any, string>},ValueTypes["AgendaWithDocuments"]],
 refresh?: [{	data: ValueTypes["RefreshInput"] | Variable<any, string>},ValueTypes["RegisteredAccount"]],
@@ -14279,6 +14332,14 @@ walmoveWallets?: [{	input: ValueTypes["WalmoveInput"] | Variable<any, string>},V
 ["ProjectPriority"]:ProjectPriority;
 	/** Статусы проекта в системе CAPITAL */
 ["ProjectStatus"]:ProjectStatus;
+	["ProposeDocumentApprovalInput"]: {
+	/** Имя аккаунта кооператива */
+	coopname: string | Variable<any, string>,
+	/** Документы, выносимые на совет одним решением: один документ или пакет одного приложения */
+	registry_ids: Array<number> | Variable<any, string>,
+	/** Заголовок вопроса повестки; по умолчанию собирается из названий документов */
+	title?: string | undefined | null | Variable<any, string>
+};
 	["ProviderSubscription"]: AliasType<{
 	/** Дата создания */
 	created_at?:boolean | `@${string}`,
@@ -14436,6 +14497,9 @@ chatcoopListUtcDatesWithNewRoomMessages?: [{	data: ValueTypes["ListUtcDatesWithN
 checkReportReadiness?: [{	reportType: ValueTypes["ReportType"] | Variable<any, string>},ValueTypes["ReportReadinessView"]],
 cooperativeAgreements?: [{	coopname: string | Variable<any, string>},ValueTypes["CoopAgreement"]],
 cooperativePrograms?: [{	coopname: string | Variable<any, string>},ValueTypes["CooperativeProgram"]],
+documentTemplateBlank?: [{	coopname: string | Variable<any, string>,	edition: ValueTypes["DocumentTemplateEdition"] | Variable<any, string>,	registry_id: number | Variable<any, string>},ValueTypes["DocumentTemplateBlank"]],
+documentTemplates?: [{	coopname: string | Variable<any, string>},ValueTypes["DocumentTemplate"]],
+documentTemplatesAttention?: [{	coopname: string | Variable<any, string>},boolean | `@${string}`],
 expenseFile?: [{	id: number | Variable<any, string>},ValueTypes["ExpenseFile"]],
 expenseFilesByItem?: [{	coopname: string | Variable<any, string>,	item_hash: string | Variable<any, string>,	proposal_hash: string | Variable<any, string>},ValueTypes["ExpenseFile"]],
 expenseFilesByProposal?: [{	coopname: string | Variable<any, string>,	proposal_hash: string | Variable<any, string>},ValueTypes["ExpenseFile"]],
@@ -22344,6 +22408,12 @@ export type ResolverInputTypes = {
 	rawDocument?:ResolverInputTypes["GeneratedDocument"],
 		__typename?: boolean | `@${string}`
 }>;
+	/** Требуется ли решение совета, чтобы редакция документа действовала в кооперативе */
+["DocumentApprovalRequirement"]:DocumentApprovalRequirement;
+	/** Состояние документа в кооперативе относительно редакции в сети */
+["DocumentApprovalState"]:DocumentApprovalState;
+	/** Род документа: соглашение пайщика, положение, форма или служебный документ */
+["DocumentKind"]:DocumentKind;
 	/** Комплексный объект папки цифрового документа с агрегатами, который включает в себя заявление, решение, акты и связанные документы */
 ["DocumentPackageAggregate"]: AliasType<{
 	/** Массив объект(ов) актов с агрегатами, относящихся к заявлению */
@@ -22356,6 +22426,50 @@ export type ResolverInputTypes = {
 	statement?:ResolverInputTypes["StatementDetailAggregate"],
 		__typename?: boolean | `@${string}`
 }>;
+	["DocumentTemplate"]: AliasType<{
+	/** Требуется ли утверждение советом */
+	approval?:boolean | `@${string}`,
+	/** Дата решения совета об утверждении */
+	approved_at?:boolean | `@${string}`,
+	/** Номер решения совета об утверждении */
+	approved_decision_id?:boolean | `@${string}`,
+	/** Редакция, утверждённая советом кооператива */
+	approved_version?:boolean | `@${string}`,
+	/** Пакет: документы одного пакета утверждаются одним решением */
+	bundle?:boolean | `@${string}`,
+	/** Редакция шаблона в сети */
+	current_version?:boolean | `@${string}`,
+	/** Редакция, которую кооператив предъявляет пайщикам */
+	effective_version?:boolean | `@${string}`,
+	/** Приложение, использующее документ; базовый набор кооператива — core */
+	extension_name?:boolean | `@${string}`,
+	/** Род документа */
+	kind?:boolean | `@${string}`,
+	/** Порядок в списке приложения */
+	order?:boolean | `@${string}`,
+	/** Хэш проекта решения в повестке совета, если документ вынесен на утверждение */
+	pending_hash?:boolean | `@${string}`,
+	/** Номер шаблона в реестре документов */
+	registry_id?:boolean | `@${string}`,
+	/** Состояние документа в кооперативе */
+	state?:boolean | `@${string}`,
+	/** Название документа */
+	title?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["DocumentTemplateBlank"]: AliasType<{
+	/** Текст документа в HTML */
+	html?:boolean | `@${string}`,
+	/** Номер шаблона в реестре документов */
+	registry_id?:boolean | `@${string}`,
+	/** Хэш текста */
+	text_hash?:boolean | `@${string}`,
+	/** Название документа */
+	title?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Редакция документа для просмотра: утверждённая советом кооператива или текущая в сети */
+["DocumentTemplateEdition"]:DocumentTemplateEdition;
 	["DocumentsAggregatePaginationResult"]: AliasType<{
 	/** Текущая страница */
 	currentPage?:boolean | `@${string}`,
@@ -28320,6 +28434,7 @@ overspendExpenseItem?: [{	data: ResolverInputTypes["OverspendExpenseItemInput"]}
 payExpenseItem?: [{	data: ResolverInputTypes["PayExpenseItemInput"]},ResolverInputTypes["Transaction"]],
 payWithheldTax?: [{	data: ResolverInputTypes["PayWithheldTaxInput"]},boolean | `@${string}`],
 processConvertToAxonStatement?: [{	data: ResolverInputTypes["ProcessConvertToAxonStatementInput"]},boolean | `@${string}`],
+proposeDocumentApproval?: [{	data: ResolverInputTypes["ProposeDocumentApprovalInput"]},ResolverInputTypes["DocumentTemplate"]],
 publishProductCard?: [{	id: string},boolean | `@${string}`],
 publishProjectOfFreeDecision?: [{	data: ResolverInputTypes["PublishProjectFreeDecisionInput"]},ResolverInputTypes["AgendaWithDocuments"]],
 refresh?: [{	data: ResolverInputTypes["RefreshInput"]},ResolverInputTypes["RegisteredAccount"]],
@@ -29758,6 +29873,14 @@ walmoveWallets?: [{	input: ResolverInputTypes["WalmoveInput"]},ResolverInputType
 ["ProjectPriority"]:ProjectPriority;
 	/** Статусы проекта в системе CAPITAL */
 ["ProjectStatus"]:ProjectStatus;
+	["ProposeDocumentApprovalInput"]: {
+	/** Имя аккаунта кооператива */
+	coopname: string,
+	/** Документы, выносимые на совет одним решением: один документ или пакет одного приложения */
+	registry_ids: Array<number>,
+	/** Заголовок вопроса повестки; по умолчанию собирается из названий документов */
+	title?: string | undefined | null
+};
 	["ProviderSubscription"]: AliasType<{
 	/** Дата создания */
 	created_at?:boolean | `@${string}`,
@@ -29912,6 +30035,9 @@ chatcoopListUtcDatesWithNewRoomMessages?: [{	data: ResolverInputTypes["ListUtcDa
 checkReportReadiness?: [{	reportType: ResolverInputTypes["ReportType"]},ResolverInputTypes["ReportReadinessView"]],
 cooperativeAgreements?: [{	coopname: string},ResolverInputTypes["CoopAgreement"]],
 cooperativePrograms?: [{	coopname: string},ResolverInputTypes["CooperativeProgram"]],
+documentTemplateBlank?: [{	coopname: string,	edition: ResolverInputTypes["DocumentTemplateEdition"],	registry_id: number},ResolverInputTypes["DocumentTemplateBlank"]],
+documentTemplates?: [{	coopname: string},ResolverInputTypes["DocumentTemplate"]],
+documentTemplatesAttention?: [{	coopname: string},boolean | `@${string}`],
 expenseFile?: [{	id: number},ResolverInputTypes["ExpenseFile"]],
 expenseFilesByItem?: [{	coopname: string,	item_hash: string,	proposal_hash: string},ResolverInputTypes["ExpenseFile"]],
 expenseFilesByProposal?: [{	coopname: string,	proposal_hash: string},ResolverInputTypes["ExpenseFile"]],
@@ -37605,6 +37731,9 @@ export type ModelTypes = {
 	hash: string,
 	rawDocument?: ModelTypes["GeneratedDocument"] | undefined | null
 };
+	["DocumentApprovalRequirement"]:DocumentApprovalRequirement;
+	["DocumentApprovalState"]:DocumentApprovalState;
+	["DocumentKind"]:DocumentKind;
 	/** Комплексный объект папки цифрового документа с агрегатами, который включает в себя заявление, решение, акты и связанные документы */
 ["DocumentPackageAggregate"]: {
 		/** Массив объект(ов) актов с агрегатами, относящихся к заявлению */
@@ -37616,6 +37745,47 @@ export type ModelTypes = {
 	/** Объект цифрового документа заявления с агрегатом */
 	statement?: ModelTypes["StatementDetailAggregate"] | undefined | null
 };
+	["DocumentTemplate"]: {
+		/** Требуется ли утверждение советом */
+	approval: ModelTypes["DocumentApprovalRequirement"],
+	/** Дата решения совета об утверждении */
+	approved_at?: string | undefined | null,
+	/** Номер решения совета об утверждении */
+	approved_decision_id?: number | undefined | null,
+	/** Редакция, утверждённая советом кооператива */
+	approved_version?: number | undefined | null,
+	/** Пакет: документы одного пакета утверждаются одним решением */
+	bundle?: string | undefined | null,
+	/** Редакция шаблона в сети */
+	current_version?: number | undefined | null,
+	/** Редакция, которую кооператив предъявляет пайщикам */
+	effective_version?: number | undefined | null,
+	/** Приложение, использующее документ; базовый набор кооператива — core */
+	extension_name: string,
+	/** Род документа */
+	kind: ModelTypes["DocumentKind"],
+	/** Порядок в списке приложения */
+	order: number,
+	/** Хэш проекта решения в повестке совета, если документ вынесен на утверждение */
+	pending_hash?: string | undefined | null,
+	/** Номер шаблона в реестре документов */
+	registry_id: number,
+	/** Состояние документа в кооперативе */
+	state: ModelTypes["DocumentApprovalState"],
+	/** Название документа */
+	title: string
+};
+	["DocumentTemplateBlank"]: {
+		/** Текст документа в HTML */
+	html: string,
+	/** Номер шаблона в реестре документов */
+	registry_id: number,
+	/** Хэш текста */
+	text_hash: string,
+	/** Название документа */
+	title: string
+};
+	["DocumentTemplateEdition"]:DocumentTemplateEdition;
 	["DocumentsAggregatePaginationResult"]: {
 		/** Текущая страница */
 	currentPage: number,
@@ -43624,6 +43794,8 @@ export type ModelTypes = {
 	payWithheldTax: string,
 	/** Обрабатывает подписанное заявление на конвертацию и выполняет блокчейн-транзакцию */
 	processConvertToAxonStatement: boolean,
+	/** Вынести редакцию документа или пакет документов на утверждение совета: проект решения с текстом редакции публикуется в повестку */
+	proposeDocumentApproval: Array<ModelTypes["DocumentTemplate"]>,
 	/** Опубликовать карточку */
 	publishProductCard: boolean,
 	/** Опубликовать предложенную повестку и проект решения для голосования совета. Возвращает созданный пункт повестки (или null, если он ещё не проиндексирован) для немедленного отображения на фронте. */
@@ -45012,6 +45184,14 @@ export type ModelTypes = {
 };
 	["ProjectPriority"]:ProjectPriority;
 	["ProjectStatus"]:ProjectStatus;
+	["ProposeDocumentApprovalInput"]: {
+	/** Имя аккаунта кооператива */
+	coopname: string,
+	/** Документы, выносимые на совет одним решением: один документ или пакет одного приложения */
+	registry_ids: Array<number>,
+	/** Заголовок вопроса повестки; по умолчанию собирается из названий документов */
+	title?: string | undefined | null
+};
 	["ProviderSubscription"]: {
 		/** Дата создания */
 	created_at: string,
@@ -45228,6 +45408,12 @@ export type ModelTypes = {
 	cooperativeAgreements: Array<ModelTypes["CoopAgreement"]>,
 	/** Целевые потребительские программы кооператива (id, тип, активность, draft_id) */
 	cooperativePrograms: Array<ModelTypes["CooperativeProgram"]>,
+	/** Бланк документа без данных субъекта: утверждённая советом редакция или текущая редакция сети */
+	documentTemplateBlank: ModelTypes["DocumentTemplateBlank"],
+	/** Реестр шаблонов документов кооператива с утверждёнными и доступными редакциями */
+	documentTemplates: Array<ModelTypes["DocumentTemplate"]>,
+	/** Сколько документов кооператива ждут решения совета: без утверждённой редакции или с устаревшей */
+	documentTemplatesAttention: number,
 	/** Получить запись о файле + свежий короткоживущий read-URL. */
 	expenseFile: ModelTypes["ExpenseFile"],
 	/** Список файлов строки расхода (без read-URL — запрос отдельно по id). */
@@ -53250,6 +53436,12 @@ export type GraphQLTypes = {
 	rawDocument?: GraphQLTypes["GeneratedDocument"] | undefined | null,
 	['...on DocumentAggregate']: Omit<GraphQLTypes["DocumentAggregate"], "...on DocumentAggregate">
 };
+	/** Требуется ли решение совета, чтобы редакция документа действовала в кооперативе */
+["DocumentApprovalRequirement"]: DocumentApprovalRequirement;
+	/** Состояние документа в кооперативе относительно редакции в сети */
+["DocumentApprovalState"]: DocumentApprovalState;
+	/** Род документа: соглашение пайщика, положение, форма или служебный документ */
+["DocumentKind"]: DocumentKind;
 	/** Комплексный объект папки цифрового документа с агрегатами, который включает в себя заявление, решение, акты и связанные документы */
 ["DocumentPackageAggregate"]: {
 	__typename: "DocumentPackageAggregate",
@@ -53263,6 +53455,52 @@ export type GraphQLTypes = {
 	statement?: GraphQLTypes["StatementDetailAggregate"] | undefined | null,
 	['...on DocumentPackageAggregate']: Omit<GraphQLTypes["DocumentPackageAggregate"], "...on DocumentPackageAggregate">
 };
+	["DocumentTemplate"]: {
+	__typename: "DocumentTemplate",
+	/** Требуется ли утверждение советом */
+	approval: GraphQLTypes["DocumentApprovalRequirement"],
+	/** Дата решения совета об утверждении */
+	approved_at?: string | undefined | null,
+	/** Номер решения совета об утверждении */
+	approved_decision_id?: number | undefined | null,
+	/** Редакция, утверждённая советом кооператива */
+	approved_version?: number | undefined | null,
+	/** Пакет: документы одного пакета утверждаются одним решением */
+	bundle?: string | undefined | null,
+	/** Редакция шаблона в сети */
+	current_version?: number | undefined | null,
+	/** Редакция, которую кооператив предъявляет пайщикам */
+	effective_version?: number | undefined | null,
+	/** Приложение, использующее документ; базовый набор кооператива — core */
+	extension_name: string,
+	/** Род документа */
+	kind: GraphQLTypes["DocumentKind"],
+	/** Порядок в списке приложения */
+	order: number,
+	/** Хэш проекта решения в повестке совета, если документ вынесен на утверждение */
+	pending_hash?: string | undefined | null,
+	/** Номер шаблона в реестре документов */
+	registry_id: number,
+	/** Состояние документа в кооперативе */
+	state: GraphQLTypes["DocumentApprovalState"],
+	/** Название документа */
+	title: string,
+	['...on DocumentTemplate']: Omit<GraphQLTypes["DocumentTemplate"], "...on DocumentTemplate">
+};
+	["DocumentTemplateBlank"]: {
+	__typename: "DocumentTemplateBlank",
+	/** Текст документа в HTML */
+	html: string,
+	/** Номер шаблона в реестре документов */
+	registry_id: number,
+	/** Хэш текста */
+	text_hash: string,
+	/** Название документа */
+	title: string,
+	['...on DocumentTemplateBlank']: Omit<GraphQLTypes["DocumentTemplateBlank"], "...on DocumentTemplateBlank">
+};
+	/** Редакция документа для просмотра: утверждённая советом кооператива или текущая в сети */
+["DocumentTemplateEdition"]: DocumentTemplateEdition;
 	["DocumentsAggregatePaginationResult"]: {
 	__typename: "DocumentsAggregatePaginationResult",
 	/** Текущая страница */
@@ -59699,6 +59937,8 @@ export type GraphQLTypes = {
 	payWithheldTax: string,
 	/** Обрабатывает подписанное заявление на конвертацию и выполняет блокчейн-транзакцию */
 	processConvertToAxonStatement: boolean,
+	/** Вынести редакцию документа или пакет документов на утверждение совета: проект решения с текстом редакции публикуется в повестку */
+	proposeDocumentApproval: Array<GraphQLTypes["DocumentTemplate"]>,
 	/** Опубликовать карточку */
 	publishProductCard: boolean,
 	/** Опубликовать предложенную повестку и проект решения для голосования совета. Возвращает созданный пункт повестки (или null, если он ещё не проиндексирован) для немедленного отображения на фронте. */
@@ -61259,6 +61499,14 @@ export type GraphQLTypes = {
 ["ProjectPriority"]: ProjectPriority;
 	/** Статусы проекта в системе CAPITAL */
 ["ProjectStatus"]: ProjectStatus;
+	["ProposeDocumentApprovalInput"]: {
+		/** Имя аккаунта кооператива */
+	coopname: string,
+	/** Документы, выносимые на совет одним решением: один документ или пакет одного приложения */
+	registry_ids: Array<number>,
+	/** Заголовок вопроса повестки; по умолчанию собирается из названий документов */
+	title?: string | undefined | null
+};
 	["ProviderSubscription"]: {
 	__typename: "ProviderSubscription",
 	/** Дата создания */
@@ -61482,6 +61730,12 @@ export type GraphQLTypes = {
 	cooperativeAgreements: Array<GraphQLTypes["CoopAgreement"]>,
 	/** Целевые потребительские программы кооператива (id, тип, активность, draft_id) */
 	cooperativePrograms: Array<GraphQLTypes["CooperativeProgram"]>,
+	/** Бланк документа без данных субъекта: утверждённая советом редакция или текущая редакция сети */
+	documentTemplateBlank: GraphQLTypes["DocumentTemplateBlank"],
+	/** Реестр шаблонов документов кооператива с утверждёнными и доступными редакциями */
+	documentTemplates: Array<GraphQLTypes["DocumentTemplate"]>,
+	/** Сколько документов кооператива ждут решения совета: без утверждённой редакции или с устаревшей */
+	documentTemplatesAttention: number,
 	/** Получить запись о файле + свежий короткоживущий read-URL. */
 	expenseFile: GraphQLTypes["ExpenseFile"],
 	/** Список файлов строки расхода (без read-URL — запрос отдельно по id). */
@@ -64326,6 +64580,31 @@ export enum DocumentAction {
 	REGCOOP = "REGCOOP",
 	WITHDRAW = "WITHDRAW"
 }
+/** Требуется ли решение совета, чтобы редакция документа действовала в кооперативе */
+export enum DocumentApprovalRequirement {
+	None = "None",
+	Required = "Required"
+}
+/** Состояние документа в кооперативе относительно редакции в сети */
+export enum DocumentApprovalState {
+	Approved = "Approved",
+	NotApproved = "NotApproved",
+	NotRequired = "NotRequired",
+	Outdated = "Outdated",
+	Pending = "Pending"
+}
+/** Род документа: соглашение пайщика, положение, форма или служебный документ */
+export enum DocumentKind {
+	Agreement = "Agreement",
+	Form = "Form",
+	Provision = "Provision",
+	Service = "Service"
+}
+/** Редакция документа для просмотра: утверждённая советом кооператива или текущая в сети */
+export enum DocumentTemplateEdition {
+	Approved = "Approved",
+	Current = "Current"
+}
 /** Тип первичного файла расхода. */
 export enum ExpenseFileKind {
 	CLOSING_DOC = "CLOSING_DOC",
@@ -65303,6 +65582,10 @@ type ZEUS_VARIABLES = {
 	["DeliveryType"]: ValueTypes["DeliveryType"];
 	["DeltaFiltersInput"]: ValueTypes["DeltaFiltersInput"];
 	["DocumentAction"]: ValueTypes["DocumentAction"];
+	["DocumentApprovalRequirement"]: ValueTypes["DocumentApprovalRequirement"];
+	["DocumentApprovalState"]: ValueTypes["DocumentApprovalState"];
+	["DocumentKind"]: ValueTypes["DocumentKind"];
+	["DocumentTemplateEdition"]: ValueTypes["DocumentTemplateEdition"];
 	["EditBranchInput"]: ValueTypes["EditBranchInput"];
 	["EditContributorInput"]: ValueTypes["EditContributorInput"];
 	["EditProjectInput"]: ValueTypes["EditProjectInput"];
@@ -65660,6 +65943,7 @@ type ZEUS_VARIABLES = {
 	["ProjectGenerationContractGenerateDocumentInput"]: ValueTypes["ProjectGenerationContractGenerateDocumentInput"];
 	["ProjectPriority"]: ValueTypes["ProjectPriority"];
 	["ProjectStatus"]: ValueTypes["ProjectStatus"];
+	["ProposeDocumentApprovalInput"]: ValueTypes["ProposeDocumentApprovalInput"];
 	["PublishProjectFreeDecisionInput"]: ValueTypes["PublishProjectFreeDecisionInput"];
 	["PushResultInput"]: ValueTypes["PushResultInput"];
 	["RecoveryStrategy"]: ValueTypes["RecoveryStrategy"];

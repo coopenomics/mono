@@ -264,6 +264,27 @@ export class DocumentApprovalProposalService {
    * Бланк утверждаемой редакции: текущий текст сети без субъекта, без PDF, в
    * базу не пишется. Хэш текста уходит в решение и затем в строку утверждения.
    */
+  /**
+   * Бланк документа для просмотра из реестра шаблонов: утверждённая редакция
+   * (без явного блока источник данных подставит её сам) или текущая редакция
+   * сети — та, что предлагается совету.
+   */
+  public async renderBlankHtml(
+    coopname: string,
+    registry_id: number,
+    edition: 'approved' | 'current'
+  ): Promise<{ registry_id: number; title: string; html: string; text_hash: string }> {
+    const template = (await this.state.getTemplates(coopname)).find((t) => t.registry_id === registry_id);
+    if (!template) throw new BadRequestException(`Документ ${registry_id} не объявлен ни одним установленным приложением`);
+    if (edition === 'current') return this.renderBlank(coopname, template);
+
+    const document = await this.documents.generateDocument({
+      data: { coopname, username: coopname, registry_id },
+      options: { skip_save: true, skip_pdf: true, blank_signer: true },
+    });
+    return { registry_id, title: document.meta?.title || template.title, html: document.html, text_hash: sha256(document.html) };
+  }
+
   private async renderBlank(coopname: string, template: DocumentTemplateView): Promise<RenderedBlank> {
     // Совету показывают утверждаемую редакцию — текущий текст сети. Без явного
     // блока источник данных подставил бы утверждённую редакцию, то есть старую.

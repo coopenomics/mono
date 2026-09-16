@@ -7,6 +7,7 @@ import { DocumentApprovalRequirement, DocumentApprovalState } from '~/domain/doc
 import { DocumentApprovalProposalService } from '~/domain/document-approval/services/document-approval-proposal.service';
 import { DocumentTemplateDTO } from '../dto/document-template.dto';
 import { ProposeDocumentApprovalInputDTO } from '../dto/propose-document-approval.input';
+import { DocumentTemplateBlankDTO, DocumentTemplateEdition } from '../dto/document-template-blank.dto';
 
 /**
  * Реестр шаблонов документов кооператива для стола совета: состав документов
@@ -43,6 +44,20 @@ export class DocumentApprovalResolver {
         t.approval === DocumentApprovalRequirement.Required &&
         (t.state === DocumentApprovalState.Outdated || t.state === DocumentApprovalState.NotApproved)
     ).length;
+  }
+
+  @Query(() => DocumentTemplateBlankDTO, {
+    name: 'documentTemplateBlank',
+    description: 'Бланк документа без данных субъекта: утверждённая советом редакция или текущая редакция сети',
+  })
+  @UseGuards(GqlJwtAuthGuard, RolesGuard)
+  @AuthRoles(['chairman', 'member'])
+  async documentTemplateBlank(
+    @Args('coopname', { type: () => String }) coopname: string,
+    @Args('registry_id', { type: () => Int }) registry_id: number,
+    @Args('edition', { type: () => DocumentTemplateEdition }) edition: DocumentTemplateEdition
+  ): Promise<DocumentTemplateBlankDTO> {
+    return this.proposalService.renderBlankHtml(coopname, registry_id, edition);
   }
 
   @Mutation(() => [DocumentTemplateDTO], {
