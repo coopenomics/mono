@@ -100,10 +100,10 @@ describe('DocumentApprovalProposalService.propose', () => {
     expect(rule.metadata.onboarding_step).toBe('privacy_agreement');
   });
 
-  it('пакет из двух документов уходит одним решением; общего поля vars нет — реквизиты протокола не пишутся', async () => {
+  it('пакет из двух документов уходит одним решением; поля vars разные — реквизиты протокола не пишутся', async () => {
     const { service, freeDecision, tracking } = build([
       template(100, { bundle: 'participant_application', vars_field: 'participant_application', kind: DocumentKind.Form, current_version: 7, approved_version: null, state: DocumentApprovalState.NotApproved }),
-      template(101, { bundle: 'participant_application', vars_field: null, kind: DocumentKind.Form, current_version: 4, approved_version: null, state: DocumentApprovalState.NotApproved }),
+      template(101, { bundle: 'participant_application', vars_field: 'other_field', kind: DocumentKind.Form, current_version: 4, approved_version: null, state: DocumentApprovalState.NotApproved }),
     ]);
 
     await service.propose({ coopname: 'voskhod', registry_ids: [100, 101], username: 'ant' });

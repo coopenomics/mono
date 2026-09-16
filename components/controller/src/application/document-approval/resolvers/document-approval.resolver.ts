@@ -1,8 +1,9 @@
 import { UseGuards } from '@nestjs/common';
-import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
+import { Args, Int, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { AuthRoles, CurrentUser, GqlJwtAuthGuard, RolesGuard } from '@coopenomics/extension-kit';
 import type { IMonoAccount } from '@coopenomics/innercoop';
 import { DocumentApprovalStateService } from '~/domain/document-approval/services/document-approval-state.service';
+import { DocumentApprovalRequirement, DocumentApprovalState } from '~/domain/document-approval/enums/document-approval.enums';
 import { DocumentApprovalProposalService } from '~/domain/document-approval/services/document-approval-proposal.service';
 import { DocumentTemplateDTO } from '../dto/document-template.dto';
 import { ProposeDocumentApprovalInputDTO } from '../dto/propose-document-approval.input';
@@ -27,6 +28,21 @@ export class DocumentApprovalResolver {
   @AuthRoles(['chairman', 'member'])
   async documentTemplates(@Args('coopname', { type: () => String }) coopname: string): Promise<DocumentTemplateDTO[]> {
     return this.stateService.getTemplates(coopname);
+  }
+
+  @Query(() => Int, {
+    name: 'documentTemplatesAttention',
+    description: 'Сколько документов кооператива ждут решения совета: без утверждённой редакции или с устаревшей',
+  })
+  @UseGuards(GqlJwtAuthGuard, RolesGuard)
+  @AuthRoles(['chairman', 'member'])
+  async documentTemplatesAttention(@Args('coopname', { type: () => String }) coopname: string): Promise<number> {
+    const templates = await this.stateService.getTemplates(coopname);
+    return templates.filter(
+      (t) =>
+        t.approval === DocumentApprovalRequirement.Required &&
+        (t.state === DocumentApprovalState.Outdated || t.state === DocumentApprovalState.NotApproved)
+    ).length;
   }
 
   @Mutation(() => [DocumentTemplateDTO], {

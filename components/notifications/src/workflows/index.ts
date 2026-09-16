@@ -26,6 +26,9 @@ import { workflow as emailVerificationWorkflow } from './email-verification';
 import { workflow as membershipExitConfirmationWorkflow } from './membership-exit-confirmation';
 import { workflow as serverProvisionedWorkflow } from './server-provisioned';
 import { workflow as decisionExpiredWorkflow } from './decision-expired';
+import { workflow as documentEditionAvailableWorkflow } from './document-edition-available';
+import { workflow as documentApprovalDeclinedWorkflow } from './document-approval-declined';
+import { workflow as documentEditionReminderWorkflow } from './document-edition-reminder';
 import { workflow as endorsementExpiringWorkflow } from './endorsement-expiring';
 import { workflow as chatcoopCalendarEventCreatedWorkflow } from './chatcoop-calendar-event-created';
 import { workflow as chatcoopCalendarEventUpdatedWorkflow } from './chatcoop-calendar-event-updated';
@@ -88,6 +91,9 @@ export * as EmailVerification from './email-verification';
 export * as MembershipExitConfirmation from './membership-exit-confirmation';
 export * as ServerProvisioned from './server-provisioned';
 export * as DecisionExpired from './decision-expired';
+export * as DocumentEditionAvailable from './document-edition-available';
+export * as DocumentApprovalDeclined from './document-approval-declined';
+export * as DocumentEditionReminder from './document-edition-reminder';
 export * as EndorsementExpiring from './endorsement-expiring';
 export * as ChatCoopCalendarEventCreated from './chatcoop-calendar-event-created';
 export * as ChatCoopCalendarEventUpdated from './chatcoop-calendar-event-updated';
@@ -147,6 +153,9 @@ export const allWorkflows: WorkflowDefinition[] = [
   membershipExitConfirmationWorkflow,
   serverProvisionedWorkflow,
   decisionExpiredWorkflow,
+  documentEditionAvailableWorkflow,
+  documentApprovalDeclinedWorkflow,
+  documentEditionReminderWorkflow,
   endorsementExpiringWorkflow,
   chatcoopCalendarEventCreatedWorkflow,
   chatcoopCalendarEventUpdatedWorkflow,

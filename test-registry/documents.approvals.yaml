@@ -26,6 +26,9 @@ sources:
     - components/controller/src/extensions/capital/application/onboarding/register-capital-documents.ts
     - components/controller/src/extensions/marketplace/application/onboarding/register-marketplace-documents.ts
     - components/innercoop/src/core-ports/document-declaration.port.ts
+    - components/notifications/src/workflows/document-edition-available/**
+    - components/notifications/src/workflows/document-approval-declined/**
+    - components/notifications/src/workflows/document-edition-reminder/**
 
 cases:
   - id: doc.appr.happy.01
@@ -227,3 +230,43 @@ cases:
     expect: явный блок подписи важнее утверждённой редакции, документ собирается прежним текстом
     test: ~
     status: missing
+
+  - id: doc.appr.happy.11
+    level: backend
+    kind: happy
+    scenario: Оператор поднял редакцию документа, объявленного в кооперативе
+    expect: председатель получает уведомление с названием документа, номером редакции и ссылкой на вкладку «Шаблоны документов»
+    test: components/controller/tests/unit/document-approval/document-approval-notification.service.test.ts
+    status: written
+
+  - id: doc.appr.happy.12
+    level: backend
+    kind: happy
+    scenario: Совет отклонил утверждение или решение снято как просроченное
+    expect: председатель получает уведомление с названиями документов и причиной
+    test: components/controller/tests/unit/document-approval/document-approval-notification.service.test.ts
+    status: written
+
+  - id: doc.appr.happy.13
+    level: backend
+    kind: happy
+    scenario: Периодическое напоминание о документах без утверждённой текущей редакции
+    expect: одно напоминание с числом и названиями документов; когда всё утверждено — молчание
+    test: components/controller/tests/unit/document-approval/document-approval-notification.service.test.ts
+    status: written
+
+  - id: doc.appr.side.15
+    level: backend
+    kind: side
+    scenario: Поднята редакция шаблона, не объявленного ни одним приложением кооператива, либо в области кооператива, а не сети
+    expect: уведомления нет
+    test: components/controller/tests/unit/document-approval/document-approval-notification.service.test.ts
+    status: written
+
+  - id: doc.appr.side.16
+    level: backend
+    kind: side
+    scenario: У кооператива нет председателя или у него нет подписки на уведомления
+    expect: предупреждение в журнале, ошибки нет
+    test: components/controller/tests/unit/document-approval/document-approval-notification.service.test.ts
+    status: written

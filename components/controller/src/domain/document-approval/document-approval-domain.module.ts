@@ -2,6 +2,7 @@ import { Global, Module } from '@nestjs/common';
 import { DocumentDeclarationsRegistryService } from './services/document-declarations-registry.service';
 import { DocumentApprovalStateService } from './services/document-approval-state.service';
 import { DocumentApprovalProposalService } from './services/document-approval-proposal.service';
+import { DocumentApprovalNotificationService } from './services/document-approval-notification.service';
 import { DocumentDomainModule } from '~/domain/document/document.module';
 import { DOCUMENT_DECLARATION_QUERY_PORT } from './ports/document-declaration-query.port';
 
@@ -22,6 +23,7 @@ import { DOCUMENT_DECLARATION_QUERY_PORT } from './ports/document-declaration-qu
     },
     DocumentApprovalStateService,
     DocumentApprovalProposalService,
+    DocumentApprovalNotificationService,
   ],
   exports: [
     DocumentDeclarationsRegistryService,
