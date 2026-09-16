@@ -22,6 +22,11 @@ import type { Cooperative } from 'cooptypes';
 import { ORGANIZATION_REPOSITORY, OrganizationRepository } from '~/domain/common/repositories/organization.repository';
 import { INDIVIDUAL_REPOSITORY, IndividualRepository } from '~/domain/common/repositories/individual.repository';
 import type { PassportDataDomainInterface } from '~/domain/common/interfaces/passport-data-domain.interface';
+import {
+  ACCOUNT_PASSPORT_CHANGED_EVENT,
+  isSamePassport,
+  type AccountPassportChangedEvent,
+} from '~/domain/account/interfaces/account-passport-changed.event';
 import { ENTREPRENEUR_REPOSITORY, EntrepreneurRepository } from '~/domain/common/repositories/entrepreneur.repository';
 import {
   SEARCH_PRIVATE_ACCOUNTS_REPOSITORY,
@@ -147,11 +152,18 @@ export class AccountInteractor {
     }
   }
 
-  async updateAccount(data: UpdateAccountDomainInterface): Promise<AccountDomainEntity> {
+  async updateAccount(data: UpdateAccountDomainInterface, actor: string): Promise<AccountDomainEntity> {
     this.logger.log(`Начало обновления аккаунта ${data.username}`);
 
     let user;
     if (data.individual_data) {
+      // Сверка подтверждала прежний паспорт — при его смене снимаем её до записи.
+      const previous = await this.individualRepository.findByUsername(data.username).catch(() => null);
+      if (previous && !isSamePassport(previous.passport, data.individual_data.passport)) {
+        const event: AccountPassportChangedEvent = { username: data.username, actor };
+        await this.eventsService.emitAsync(ACCOUNT_PASSPORT_CHANGED_EVENT, event);
+      }
+
       const email = normalizeUserEmail(data.individual_data.email);
       user = await this.userRepository.updateByUsername(data.username, { email });
       if (!user) throw new HttpApiError(httpStatus.NOT_FOUND, 'Пользователь не найден');

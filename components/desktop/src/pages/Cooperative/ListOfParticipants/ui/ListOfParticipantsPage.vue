@@ -181,6 +181,9 @@ const update = (
       account.private_account.organization_data = newData as IOrganizationData;
       break;
   }
+  // Смена паспорта снимает сверку на сервере — перечитываем реестр и журнал,
+  // чтобы бейдж верификации не показывал прежний уровень.
+  void onVerificationChanged();
 };
 </script>
 

@@ -126,9 +126,10 @@ export class AccountResolver {
   @AuthRoles(['chairman'], { allowSelf: false })
   async updateAccount(
     @Args('data', { type: () => UpdateAccountInputDTO })
-    data: UpdateAccountInputDTO
+    data: UpdateAccountInputDTO,
+    @CurrentUser() currentUser: IMonoAccount
   ): Promise<AccountDTO> {
-    return await this.accountService.updateAccount(data);
+    return await this.accountService.updateAccount(data, currentUser.username);
   }
 
   @Mutation(() => AccountDTO, {
