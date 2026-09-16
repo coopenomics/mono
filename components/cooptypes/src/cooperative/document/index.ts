@@ -2,6 +2,7 @@ import type { SovietContract } from '../../contracts'
 import type { IAction, IExtendedAction } from '../blockchain'
 
 export * from './decisionTypesRegistry'
+export * from './approvals'
 // export * from './documentsRegistry'
 export interface IGenerationOptions {
   skip_save?: boolean

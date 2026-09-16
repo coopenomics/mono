@@ -1,5 +1,6 @@
 import { Global, Module } from '@nestjs/common';
 import { DocumentDeclarationsRegistryService } from './services/document-declarations-registry.service';
+import { DocumentApprovalStateService } from './services/document-approval-state.service';
 import { DOCUMENT_DECLARATION_QUERY_PORT } from './ports/document-declaration-query.port';
 
 /**
@@ -16,7 +17,8 @@ import { DOCUMENT_DECLARATION_QUERY_PORT } from './ports/document-declaration-qu
       provide: DOCUMENT_DECLARATION_QUERY_PORT,
       useExisting: DocumentDeclarationsRegistryService,
     },
+    DocumentApprovalStateService,
   ],
-  exports: [DocumentDeclarationsRegistryService, DOCUMENT_DECLARATION_QUERY_PORT],
+  exports: [DocumentDeclarationsRegistryService, DOCUMENT_DECLARATION_QUERY_PORT, DocumentApprovalStateService],
 })
 export class DocumentApprovalDomainModule {}

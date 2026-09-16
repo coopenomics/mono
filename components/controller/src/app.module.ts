@@ -85,6 +85,7 @@ import { SettingsApplicationModule } from './application/settings/settings.modul
 import { RegistrationModule } from './application/registration/registration.module';
 import { MembershipExitModule } from './application/membership-exit/membership-exit.module';
 import { OnboardingApplicationModule } from './application/onboarding/onboarding-application.module';
+import { DocumentApprovalApplicationModule } from './application/document-approval/document-approval-application.module';
 import { SearchModule } from './application/search/search.module';
 import { SignedDocumentsModule } from './application/signed-documents/signed-documents.module';
 import { MutationLoggingInterceptor } from './application/common/interceptors/mutation-logging.interceptor';
@@ -201,6 +202,7 @@ import { MarketplaceCardsModule } from './extensions/marketplace-cards/marketpla
     RegistrationModule,
     MembershipExitModule,
     OnboardingApplicationModule,
+    DocumentApprovalApplicationModule,
     SearchModule,
     SignedDocumentsModule,
     // Marketplace extensions

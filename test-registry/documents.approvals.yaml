@@ -17,6 +17,7 @@ sources:
     - components/contracts/cpp/wallet/src/agreement/signagree.cpp
   backend:
     - components/controller/src/domain/document-approval/**
+    - components/controller/src/application/document-approval/**
     - components/controller/src/extensions/capital/application/onboarding/register-capital-documents.ts
     - components/controller/src/extensions/marketplace/application/onboarding/register-marketplace-documents.ts
     - components/innercoop/src/core-ports/document-declaration.port.ts
@@ -100,4 +101,36 @@ cases:
     scenario: Расширение перезапустилось и объявило тот же шаблон заново
     expect: запись заменена, дублей нет
     test: components/controller/tests/unit/document-approval/document-declarations-registry.test.ts
+    status: written
+
+  - id: doc.appr.happy.05
+    level: backend
+    kind: happy
+    scenario: Совет запрашивает реестр шаблонов кооператива
+    expect: по каждому документу видны редакция в сети, утверждённая редакция с номером и датой решения, состояние not_required / not_approved / pending / approved / outdated
+    test: components/controller/tests/unit/document-approval/document-approval-state.service.test.ts
+    status: written
+
+  - id: doc.appr.happy.06
+    level: backend
+    kind: happy
+    scenario: Запрос шаблонов соглашений для рабочего стола
+    expect: версия шаблона — утверждённая кооперативом, без утверждения текущая; переподписание запрашивается только после решения совета
+    test: components/controller/tests/unit/document-approval/document-approval-state.service.test.ts
+    status: written
+
+  - id: doc.appr.side.07
+    level: backend
+    kind: side
+    scenario: Все переходы состояния документа, включая проект в повестке при устаревшей редакции и отсутствие шаблона в цепи
+    expect: pending побеждает outdated и not_approved; отсутствие шаблона при наличии утверждения — approved
+    test: components/controller/tests/unit/document-approval/compute-document-state.test.ts
+    status: written
+
+  - id: doc.appr.side.08
+    level: backend
+    kind: side
+    scenario: Состояние запрашивают часто, события контракта draft приходят редко
+    expect: таблицы цепи читаются один раз до события upversion/editdraft/approve или истечения TTL
+    test: components/controller/tests/unit/document-approval/document-approval-state.service.test.ts
     status: written
