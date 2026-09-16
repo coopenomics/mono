@@ -54,6 +54,9 @@ export class AccountResolver {
     name: 'getAccounts',
     description: 'Получить сводную информацию о аккаунтах системы',
   })
+  // Директива @auth корневые запросы не проверяет — без гардов реестр с
+  // паспортными данными отдавался любому анонимному запросу.
+  @UseGuards(GqlJwtAuthGuard, RolesGuard)
   @AuthRoles(['chairman', 'member'])
   async getAccounts(
     @Args('data', { type: () => GetAccountsInputDTO, nullable: true }) data?: GetAccountsInputDTO,
