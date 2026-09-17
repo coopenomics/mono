@@ -76,10 +76,8 @@ const joinDate = (row: IAccount): string => {
 <style lang="scss" scoped>
 .participant-card {
   width: 100%;
-  /* Отступ между карточками вешаем на саму карточку (внутри grid-item):
-     virtual-scroll меряет высоту контента и учитывает этот margin, тогда как
-     margin на самом .q-table__grid-item он игнорирует. */
-  margin-bottom: 10px;
+  /* Отступ между карточками списка на телефоне. */
+  margin-bottom: var(--p-3, 12px);
   background: var(--p-surface);
   border: 1px solid var(--p-line);
   border-radius: var(--p-r-lg, 16px);

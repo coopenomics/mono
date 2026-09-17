@@ -1,59 +1,54 @@
 <template lang="pug">
 div
-  q-table.participants-table(
-    flat,
-    :grid='isMobile',
-    :rows='accounts',
-    :columns='columns',
-    row-key='username',
-    :pagination='pagination',
-    virtual-scroll,
-    :virtual-scroll-item-size='48',
-    :rows-per-page-options='[10]',
-    :loading='loading',
-    :no-data-label='"У кооператива нет пайщиков"'
-  )
-    template(#header='props')
-      q-tr(:props='props')
-        q-th(v-for='col in props.cols', :key='col.name', :props='props') {{ col.label }}
-        q-th(auto-width)
+  //- Компьютер: канон-таблица. Строка открывает данные пайщика в правом
+  //- дроуэре, «Подробнее» — явная подсказка, что это можно. Все пайщики
+  //- кооператива уже загружены страницей, поэтому показываем их целиком с
+  //- сортировкой, без нарезки на страницы.
+  template(v-if='!isMobile')
+    BaseTable(
+      v-if='firstLoad || accounts.length',
+      :columns='columns',
+      :rows='accounts',
+      row-key='username',
+      :loading='loading',
+      :skeleton-rows='8',
+      clickable-rows,
+      sticky-header,
+      max-height='70vh',
+      min-width='960px',
+      sort-by='created_at',
+      descending,
+      @row-click='openDetails'
+    )
+      template(#cell-status='{ row }')
+        BaseBadge(:variant='getAccountStatusBadge(row).variant') {{ getAccountStatusBadge(row).label }}
 
-    //- Строка открывает данные пайщика в правом дроуэре (канон вместо
-    //- раскрывающихся строк); «Подробнее» — явная подсказка, что это можно.
-    template(#body='props')
-      q-tr.participants-table__row(:key='props.row.username', :props='props', @click='openDetails(props.row)')
-        q-td(
-          style='max-width: 150px; word-wrap: break-word; white-space: normal'
-        ) {{ getName(props.row) }}
-        q-td {{ props.row.username }}
+      template(#cell-verification='{ row }')
+        BaseBadge(:variant='verificationCell(row).variant') {{ verificationCell(row).short }}
+          q-tooltip {{ verificationCell(row).tooltip }}
 
-        q-td {{ props.row.provider_account?.email || 'Не указан' }}
+      template(#cell-actions='{ row }')
+        BaseButton(variant='ghost', size='sm', @click.stop='openDetails(row)')
+          q-icon.q-mr-xs(name='open_in_new', size='16px')
+          | Подробнее
 
-        q-td {{ joinDate(props.row) }}
+    EmptyState(v-else, title='Пайщиков не найдено', body='Под выбранный фильтр никто не подходит, или в кооперативе пока нет пайщиков.')
+      template(#icon)
+        q-icon(name='groups', size='32px')
 
-        q-td
-          .participants-table__status
-            BaseBadge(:variant='getAccountStatusBadge(props.row).variant') {{ getAccountStatusBadge(props.row).label }}
-
-        q-td
-          .participants-table__verification
-            BaseBadge(:variant='verificationCell(props.row).variant') {{ verificationCell(props.row).short }}
-              q-tooltip {{ verificationCell(props.row).tooltip }}
-
-        q-td(auto-width)
-          BaseButton(variant='ghost', size='sm', @click.stop='openDetails(props.row)')
-            q-icon.q-mr-xs(name='open_in_new', size='16px')
-            | Подробнее
-
-    //- Ключ обязателен: грид-режим Quasar рендерит карточки без ключа, и Vue
-    //- сопоставлял их по позиции — после смены страницы или фильтра карточка
-    //- показывала шапку нового пайщика.
-    template(#item='props')
+  //- Телефон: карточки; каждая открывает тот же дроуэр во весь экран.
+  template(v-else)
+    CardListSkeleton(v-if='firstLoad', :count='4')
+    .participants-list(v-else-if='accounts.length')
       ParticipantCard(
-        :key='props.row.username',
-        :participant='props.row',
-        @open='openDetails(props.row)'
+        v-for='account in accounts',
+        :key='account.username',
+        :participant='account',
+        @open='openDetails(account)'
       )
+    EmptyState(v-else, title='Пайщиков не найдено', body='Под выбранный фильтр никто не подходит, или в кооперативе пока нет пайщиков.')
+      template(#icon)
+        q-icon(name='groups', size='32px')
 
   //- Данные пайщика: верификация, сброс второго фактора, сведения при
   //- вступлении, редактируемая анкета. На телефоне дроуэр во весь экран.
@@ -78,9 +73,16 @@ import { useWindowSize } from 'src/shared/hooks';
 import moment from 'src/shared/lib/utils/dates/moment';
 import { ParticipantCard, ParticipantDetails } from '.';
 import { getName } from 'src/shared/lib/utils';
-import { BaseButton } from 'src/shared/ui/base/BaseButton';
-import { BaseBadge } from 'src/shared/ui/base/BaseBadge';
+import {
+  BaseBadge,
+  BaseButton,
+  BaseTable,
+  CardListSkeleton,
+  EmptyState,
+  type BaseTableColumn,
+} from 'src/shared/ui/base';
 import { DetailsDrawer } from 'src/shared/ui/domain';
+import { useFirstLoad } from 'src/shared/lib/composables';
 import { getAccountStatusBadge } from 'src/entities/Account';
 import {
   highestVerificationLevel,
@@ -123,52 +125,53 @@ const selectedUsername = ref<string | null>(null);
 const selected = computed(() =>
   props.accounts.find((account) => account.username === selectedUsername.value) ?? null,
 );
-const pagination = ref({ rowsPerPage: 10 });
 const { isMobile } = useWindowSize();
 
+// Каркас и пустое состояние — только по первой загрузке: повторные дочитки
+// (после правки анкеты, верификации) идут молча, без мерцания.
+const firstLoad = useFirstLoad(() => props.loading);
+
+// Дата вступления для сортировки: та же, что в ячейке, но числом.
+const joinTimestamp = (row: IAccount): number => {
+  const raw = row.participant_account?.created_at || row.user_account?.registered_at;
+  return raw ? moment(String(raw)).valueOf() : 0;
+};
+
 // Колонки таблицы
-const columns: any[] = [
+const columns: BaseTableColumn<IAccount>[] = [
+  { key: 'name', label: 'ФИО / Наименование', field: (row) => getName(row), sortable: true },
+  { key: 'username', label: 'Аккаунт', field: 'username', width: '140px', nowrap: true, sortable: true },
   {
-    name: 'name',
-    align: 'left',
-    label: 'ФИО / Наименование',
-    field: 'name',
-    sortable: true,
-  },
-  {
-    name: 'username',
-    align: 'left',
-    label: 'Аккаунт',
-    field: 'username',
-    sortable: true,
-  },
-  {
-    name: 'email',
-    align: 'left',
+    key: 'email',
     label: 'Email',
-    field: 'email',
+    field: (row) => row.provider_account?.email || 'Не указан',
+    width: '220px',
     sortable: true,
   },
   {
-    name: 'created_at',
-    align: 'left',
+    key: 'created_at',
     label: 'Дата вступления',
-    field: 'created_at',
+    field: (row) => joinDate(row),
+    width: '160px',
+    nowrap: true,
     sortable: true,
+    sort: (_a, _b, rowA, rowB) => joinTimestamp(rowA) - joinTimestamp(rowB),
   },
   {
-    name: 'status',
-    align: 'left',
+    key: 'status',
     label: 'Статус',
-    field: 'status',
+    field: (row) => getAccountStatusBadge(row).label,
+    width: '200px',
     sortable: true,
   },
   {
-    name: 'verification',
-    align: 'left',
+    key: 'verification',
     label: 'Верификация',
-    field: 'verification',
+    field: (row) => verificationCell(row).short,
+    width: '170px',
+    sortable: true,
   },
+  { key: 'actions', label: '', width: '140px', align: 'right' },
 ];
 
 // Ячейка верификации: показываем один уровень — самый высокий из достигнутых
@@ -220,28 +223,10 @@ const onUpdate = (
 </script>
 
 <style>
-.participants-table__status {
+/* Телефон: карточки столбиком, отступ задаёт сама .participant-card. */
+.participants-list {
   display: flex;
-  align-items: center;
-  gap: var(--p-2, 8px);
+  flex-direction: column;
 }
 
-.participants-table__verification {
-  display: flex;
-  align-items: center;
-  gap: var(--p-1);
-  flex-wrap: wrap;
-}
-
-/* Грид-режим (мобайл): карточки во всю ширину. Вертикальный отступ задаёт
-   сама .participant-card (margin-bottom) — его virtual-scroll учитывает,
-   тогда как margin/padding на grid-item игнорируется. */
-.participants-table .q-table__grid-item {
-  width: 100%;
-  padding: 0;
-}
-
-.participants-table__row {
-  cursor: pointer;
-}
 </style>
