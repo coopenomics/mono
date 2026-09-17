@@ -244,7 +244,13 @@ export class CapitalOnboardingEventsService {
    * Маппинг шага онбординга в ключ флага конфигурации
    */
   private mapStepToFlag(step: string): keyof IConfig | null {
+    // Ключ — имя поля vars, под которым шаг отслеживается (см. mapStepToVarsField
+    // в onboarding.service.ts), а не имя шага. У Положения «Генератора» они
+    // расходятся: поле vars — `generator_program`. Пока здесь стояло только имя
+    // шага, решение совета по этому положению не засчитывалось, L1 оставался
+    // незавершённым, и программы capital не попадали во вступление.
     const mapping: Record<string, keyof IConfig> = {
+      generator_program: 'onboarding_generator_program_template_done',
       generator_program_template: 'onboarding_generator_program_template_done',
       generation_contract_template: 'onboarding_generation_contract_template_done',
       generator_offer_template: 'onboarding_generator_offer_template_done',
