@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue';
+import { sanitizeDocumentHtml } from 'src/shared/lib/utils';
 import { FailAlert, NotifyAlert } from 'src/shared/api';
 import { useRouter } from 'vue-router';
 import { KUSelector } from 'src/widgets/Marketplace/KUSelector';
@@ -351,7 +352,7 @@ q-page.mp-role-orderer.mp-member-cpp(role="region", aria-label="Подключе
     .mp-member-cpp__offer-body
       Loader(v-if="offerLoading", text="Генерируем оферту…")
       //- eslint-disable-next-line vue/no-v-html
-      div(v-else, v-html="offerHtml").statement
+      div(v-else, v-html="sanitizeDocumentHtml(offerHtml)").statement
     template(#footer)
       BaseButton(variant="ghost", @click="offerDialogOpen = false") Закрыть
       BaseButton(variant="primary", :disabled="offerLoading", @click="confirmOfferRead") Прочитал(а), согласен(на)

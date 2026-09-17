@@ -1,0 +1,48 @@
+feature: desktop.document-html-display
+title: Показ документа в кабинете — очистка разметки
+
+# Документ собирается из данных пайщика, а автоэкранирование в шаблонах
+# выключено намеренно (часть данных кооператива приходит с разметкой). Значит
+# имя, адрес или название организации с угловыми скобками приезжают в кабинет
+# разметкой, и до 17.09.2026 десять мест показывали её как свою: заявление при
+# вступлении, список документов на подпись, проект решения совета и шесть
+# диалогов Стола заказов. Профиль очистки намеренно широкий — документу нужны
+# <style>, таблицы и выравнивание, иначе изменился бы вид уже подписанных
+# документов. Задача C28-74.
+#
+# Тестового окружения у кабинета нет (в package.json «No test specified»),
+# поэтому автоматических случаев здесь нет. Поведение проверено пробой на шести
+# настоящих отрендеренных документах: текст, блоки стилей, картинки подписей и
+# инлайн-стили совпали до и после очистки, скрипт и onerror вырезаны.
+
+sources:
+  ui:
+    - components/desktop/src/shared/lib/utils/sanitizeDocumentHtml.ts
+    - components/desktop/src/shared/lib/utils/parseLinks.ts
+    - components/desktop/src/shared/ui/DocumentHtmlReader/DocumentHtmlReader.vue
+    - components/desktop/src/shared/ui/domain/DocumentPreview/DocumentPreview.vue
+
+cases:
+  - id: desktop.dochtml.break.01
+    level: ui
+    kind: break
+    scenario: в анкетных данных пайщика разметка со скриптом, документ открыт в кабинете
+    expect: скрипт не выполняется, текст документа виден как текст
+    test: ~
+    status: missing
+
+  - id: desktop.dochtml.happy.01
+    level: ui
+    kind: happy
+    scenario: обычный документ со своей вёрсткой — таблицы, выравнивание, <style>
+    expect: вид не отличается от прежнего, подпись-картинка на месте
+    test: ~
+    status: missing
+
+  - id: desktop.dochtml.break.02
+    level: ui
+    kind: break
+    scenario: в тексте вопроса повестки собрания угловые скобки
+    expect: показываются как текст; ссылки и переносы строк работают по-прежнему
+    test: ~
+    status: missing

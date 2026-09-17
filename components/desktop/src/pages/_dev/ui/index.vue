@@ -1080,8 +1080,9 @@
         <span class="dev-ui__sect-num">30</span>
         <h2 class="dev-ui__sect-title">Превью документа (DocumentPreview)</h2>
         <p class="dev-ui__sect-sub">
-          HTML/PDF/IMAGE/TXT. HTML прогоняется через DOMPurify (можно отключить
-          <code>:sanitize="false"</code>). <code>loading</code> и
+          HTML/PDF/IMAGE/TXT. HTML всегда очищается; у документа со своей
+          вёрсткой — <code>profile="document"</code>, тогда сохраняются
+          <code>&lt;style&gt;</code> и таблицы. <code>loading</code> и
           <code>error</code> — стейты сверху.
         </p>
       </div>

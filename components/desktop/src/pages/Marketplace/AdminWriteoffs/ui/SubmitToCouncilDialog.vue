@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { computed, ref, watch } from 'vue';
+import { sanitizeDocumentHtml } from 'src/shared/lib/utils';
 import { useSessionStore } from 'src/entities/Session';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { DigitalDocument } from 'src/shared/lib/document';
@@ -157,7 +158,7 @@ BaseDialog(
     //- из DocumentHtmlReader; и никакого нормализатора, который ломает pre-wrap.
     .submit-council__sheet
       //- eslint-disable-next-line vue/no-v-html
-      .submit-council__doc(v-html="previewDoc.html")
+      .submit-council__doc(v-html="sanitizeDocumentHtml(previewDoc.html)")
 
   template(#footer)
     BaseButton(variant="secondary", @click="emit('update:modelValue', false)") Отмена
