@@ -5263,18 +5263,6 @@ export type ValueTypes = {
 	/** Системное имя кооператива-источника */
 	from_coopname: string | Variable<any, string>
 };
-	["Category"]: AliasType<{
-	coopname?:boolean | `@${string}`,
-	description?:boolean | `@${string}`,
-	icon?:boolean | `@${string}`,
-	id?:boolean | `@${string}`,
-	is_active?:boolean | `@${string}`,
-	name?:boolean | `@${string}`,
-	parent_id?:boolean | `@${string}`,
-	sort_order?:boolean | `@${string}`,
-		__typename?: boolean | `@${string}`,
-	['...on Category']?: Omit<ValueTypes["Category"], "...on Category">
-}>;
 	["CategoryTypeInput"]: {
 	/** ID категории */
 	categoryId: number | Variable<any, string>,
@@ -5561,7 +5549,6 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on ContactsDTO']?: Omit<ValueTypes["ContactsDTO"], "...on ContactsDTO">
 }>;
-	["ContributionType"]:ContributionType;
 	/** Параметры документов участника из UData */
 ["ContributorDocumentParameters"]: AliasType<{
 	/** Дата создания соглашения благороста */
@@ -5799,13 +5786,6 @@ export type ValueTypes = {
 	short_name: string | Variable<any, string>,
 	/** Имя аккаунта уполномоченного (председателя) кооперативного участка */
 	trustee: string | Variable<any, string>
-};
-	["CreateCategoryInput"]: {
-	description?: string | undefined | null | Variable<any, string>,
-	icon?: string | undefined | null | Variable<any, string>,
-	name: string | Variable<any, string>,
-	parent_id?: string | undefined | null | Variable<any, string>,
-	sort_order?: number | undefined | null | Variable<any, string>
 };
 	["CreateChatCoopCalendarEventInput"]: {
 	description?: string | undefined | null | Variable<any, string>,
@@ -6091,23 +6071,6 @@ export type ValueTypes = {
 	description?: string | undefined | null | Variable<any, string>,
 	project_hash: string | Variable<any, string>,
 	title: string | Variable<any, string>
-};
-	["CreateProductCardInput"]: {
-	braname?: string | undefined | null | Variable<any, string>,
-	cancellation_fee_amount?: string | undefined | null | Variable<any, string>,
-	category_id?: string | undefined | null | Variable<any, string>,
-	contribution_type: ValueTypes["ContributionType"] | Variable<any, string>,
-	delivery_type: ValueTypes["DeliveryType"] | Variable<any, string>,
-	description: string | Variable<any, string>,
-	images?: Array<string> | undefined | null | Variable<any, string>,
-	membership_fee_amount?: string | undefined | null | Variable<any, string>,
-	min_units?: number | undefined | null | Variable<any, string>,
-	product_lifecycle_secs: number | Variable<any, string>,
-	title: string | Variable<any, string>,
-	type: ValueTypes["ProductCardType"] | Variable<any, string>,
-	unit_cost: string | Variable<any, string>,
-	units: number | Variable<any, string>,
-	warranty_period_secs: number | Variable<any, string>
 };
 	["CreateProgramInvestInput"]: {
 	/** Сумма инвестиции */
@@ -6538,7 +6501,6 @@ export type ValueTypes = {
 	/** Имя аккаунта доверонного лица, у которого отзывается право подписи за председателя кооперативного участка */
 	trusted: string | Variable<any, string>
 };
-	["DeliveryType"]:DeliveryType;
 	["Delta"]: AliasType<{
 	/** ID блока */
 	block_id?:boolean | `@${string}`,
@@ -12576,7 +12538,6 @@ addPaymentMethod?: [{	data: ValueTypes["AddPaymentMethodInput"] | Variable<any, 
 addTrustedAccount?: [{	data: ValueTypes["AddTrustedAccountInput"] | Variable<any, string>},ValueTypes["Branch"]],
 applyDocumentApprovalsSeed?: [{	coopname: string | Variable<any, string>},ValueTypes["DocumentApprovalSeedResult"]],
 approveVerification?: [{	data: ValueTypes["ApproveVerificationInput"] | Variable<any, string>},ValueTypes["VerificationReview"]],
-archiveProductCard?: [{	id: string | Variable<any, string>},boolean | `@${string}`],
 assignCapabilitySet?: [{	data: ValueTypes["AssignCapabilitySetInput"] | Variable<any, string>},boolean | `@${string}`],
 authorizeDecision?: [{	data: ValueTypes["AuthorizeDecisionInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 authorizeForceRecovery?: [{	data: ValueTypes["AuthorizeForceRecoveryInput"] | Variable<any, string>},ValueTypes["ForceRecoveryAuthorization"]],
@@ -12698,13 +12659,11 @@ confirmEmailVerification?: [{	data: ValueTypes["ConfirmEmailVerificationInputDTO
 confirmMembershipExit?: [{	token: string | Variable<any, string>},ValueTypes["MembershipExitResult"]],
 createAnnualGeneralMeet?: [{	data: ValueTypes["CreateAnnualGeneralMeetInput"] | Variable<any, string>},ValueTypes["MeetAggregate"]],
 createBranch?: [{	data: ValueTypes["CreateBranchInput"] | Variable<any, string>},ValueTypes["Branch"]],
-createCategory?: [{	data: ValueTypes["CreateCategoryInput"] | Variable<any, string>},ValueTypes["Category"]],
 createDepositPayment?: [{	data: ValueTypes["CreateDepositPaymentInput"] | Variable<any, string>},ValueTypes["GatewayPayment"]],
 createExpensePlan?: [{	data: ValueTypes["CreateExpensePlanInput"] | Variable<any, string>},ValueTypes["ExpensePlan"]],
 createExpenseProposal?: [{	data: ValueTypes["CreateExpenseProposalInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 createInitialPayment?: [{	data: ValueTypes["CreateInitialPaymentInput"] | Variable<any, string>},ValueTypes["GatewayPayment"]],
 createMembershipExit?: [{	data: ValueTypes["CreateMembershipExitInput"] | Variable<any, string>},ValueTypes["MembershipExitResult"]],
-createProductCard?: [{	data: ValueTypes["CreateProductCardInput"] | Variable<any, string>},ValueTypes["ProductCard"]],
 createProjectOfFreeDecision?: [{	data: ValueTypes["CreateProjectFreeDecisionInput"] | Variable<any, string>},ValueTypes["CreatedProjectFreeDecision"]],
 createWebPushSubscription?: [{	data: ValueTypes["CreateSubscriptionInput"] | Variable<any, string>},ValueTypes["CreateSubscriptionResponse"]],
 createWithdraw?: [{	data: ValueTypes["CreateWithdrawInput"] | Variable<any, string>},ValueTypes["CreateWithdrawResponse"]],
@@ -12714,10 +12673,8 @@ declineDecision?: [{	data: ValueTypes["DeclineDecisionInput"] | Variable<any, st
 deleteAccount?: [{	data: ValueTypes["DeleteAccountInput"] | Variable<any, string>},boolean | `@${string}`],
 deleteBranch?: [{	data: ValueTypes["DeleteBranchInput"] | Variable<any, string>},boolean | `@${string}`],
 deleteBranchWhitelist?: [{	data: ValueTypes["DeleteBranchWhitelistInput"] | Variable<any, string>},ValueTypes["Branch"]],
-deleteCategory?: [{	id: string | Variable<any, string>},boolean | `@${string}`],
 deleteExpensePlan?: [{	data: ValueTypes["DeleteExpensePlanInput"] | Variable<any, string>},boolean | `@${string}`],
 deletePaymentMethod?: [{	data: ValueTypes["DeletePaymentMethodInput"] | Variable<any, string>},boolean | `@${string}`],
-deleteProductCard?: [{	id: string | Variable<any, string>},boolean | `@${string}`],
 deleteReportDraft?: [{	id: string | Variable<any, string>},boolean | `@${string}`],
 deleteTrustedAccount?: [{	data: ValueTypes["DeleteTrustedAccountInput"] | Variable<any, string>},ValueTypes["Branch"]],
 disableTwoFactor?: [{	data: ValueTypes["TwoFactorCodeInput"] | Variable<any, string>},boolean | `@${string}`],
@@ -12872,7 +12829,6 @@ payExpenseItem?: [{	data: ValueTypes["PayExpenseItemInput"] | Variable<any, stri
 payWithheldTax?: [{	data: ValueTypes["PayWithheldTaxInput"] | Variable<any, string>},boolean | `@${string}`],
 processConvertToAxonStatement?: [{	data: ValueTypes["ProcessConvertToAxonStatementInput"] | Variable<any, string>},boolean | `@${string}`],
 proposeDocumentApproval?: [{	data: ValueTypes["ProposeDocumentApprovalInput"] | Variable<any, string>},ValueTypes["DocumentTemplate"]],
-publishProductCard?: [{	id: string | Variable<any, string>},boolean | `@${string}`],
 publishProjectOfFreeDecision?: [{	data: ValueTypes["PublishProjectFreeDecisionInput"] | Variable<any, string>},ValueTypes["AgendaWithDocuments"]],
 refresh?: [{	data: ValueTypes["RefreshInput"] | Variable<any, string>},ValueTypes["RegisteredAccount"]],
 registerAccount?: [{	data: ValueTypes["RegisterAccountInput"] | Variable<any, string>},ValueTypes["RegisteredAccount"]],
@@ -14151,32 +14107,6 @@ walmoveWallets?: [{	input: ValueTypes["WalmoveInput"] | Variable<any, string>},V
 	toBlock?: number | undefined | null | Variable<any, string>,
 	username?: string | undefined | null | Variable<any, string>
 };
-	["ProductCard"]: AliasType<{
-	braname?:boolean | `@${string}`,
-	cancellation_fee_amount?:boolean | `@${string}`,
-	category_id?:boolean | `@${string}`,
-	contribution_type?:boolean | `@${string}`,
-	coopname?:boolean | `@${string}`,
-	created_at?:boolean | `@${string}`,
-	delivery_type?:boolean | `@${string}`,
-	description?:boolean | `@${string}`,
-	id?:boolean | `@${string}`,
-	images?:boolean | `@${string}`,
-	membership_fee_amount?:boolean | `@${string}`,
-	product_lifecycle_secs?:boolean | `@${string}`,
-	status?:boolean | `@${string}`,
-	title?:boolean | `@${string}`,
-	type?:boolean | `@${string}`,
-	unit_cost?:boolean | `@${string}`,
-	units?:boolean | `@${string}`,
-	updated_at?:boolean | `@${string}`,
-	username?:boolean | `@${string}`,
-	warranty_period_secs?:boolean | `@${string}`,
-		__typename?: boolean | `@${string}`,
-	['...on ProductCard']?: Omit<ValueTypes["ProductCard"], "...on ProductCard">
-}>;
-	["ProductCardStatus"]:ProductCardStatus;
-	["ProductCardType"]:ProductCardType;
 	["ProgramCapitalizationMoneyInvestStatementGenerateDocumentInput"]: {
 	/** Сумма инвестирования в программу (актив) */
 	amount: string | Variable<any, string>,
@@ -14573,8 +14503,6 @@ getCapitalIssueLogs?: [{	data: ValueTypes["GetCapitalIssueLogsInput"] | Variable
 	/** Получить состояние онбординга capital */
 	getCapitalOnboardingState?:ValueTypes["CapitalOnboardingState"],
 getCapitalProjectLogs?: [{	data: ValueTypes["GetCapitalLogsInput"] | Variable<any, string>},ValueTypes["PaginatedCapitalLogsPaginationResult"]],
-	/** Получить дерево категорий */
-	getCategories?:ValueTypes["Category"],
 	/** Получить состояние онбординга председателя */
 	getChairmanOnboardingState?:ValueTypes["ChairmanOnboardingState"],
 getCriticalActionAuditTrail?: [{	target_id: string | Variable<any, string>},ValueTypes["CriticalActionAuditEntry"]],
@@ -14604,8 +14532,6 @@ getMeets?: [{	data: ValueTypes["GetMeetsInput"] | Variable<any, string>},ValueTy
 	getMyAccess?:ValueTypes["ParticipantAccess"],
 	/** Получить удостоверение текущего пайщика */
 	getMyCertificate?:ValueTypes["ParticipantCertificate"],
-	/** Мои карточки */
-	getMyProductCards?:ValueTypes["ProductCard"],
 	/** Насколько узел кооператива отстал от цепи. Пусто, пока состояние не измерено */
 	getNodeSyncState?:ValueTypes["NodeSyncState"],
 getNotification?: [{	id: string | Variable<any, string>},ValueTypes["NotificationDetail"]],
@@ -14614,8 +14540,6 @@ getParticipantCapabilitySets?: [{	username: string | Variable<any, string>},Valu
 getParticipantLoginSecurity?: [{	data: ValueTypes["ResetParticipantTwoFactorInput"] | Variable<any, string>},ValueTypes["ParticipantLoginSecurity"]],
 getPaymentMethods?: [{	data?: ValueTypes["GetPaymentMethodsInput"] | undefined | null | Variable<any, string>},ValueTypes["PaymentMethodPaginationResult"]],
 getPayments?: [{	data?: ValueTypes["PaymentFiltersInput"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedGatewayPaymentsPaginationResult"]],
-getProductCard?: [{	id: string | Variable<any, string>},ValueTypes["ProductCard"]],
-getProductCards?: [{	category_id?: string | undefined | null | Variable<any, string>,	limit?: number | undefined | null | Variable<any, string>,	page?: number | undefined | null | Variable<any, string>,	search?: string | undefined | null | Variable<any, string>,	status?: ValueTypes["ProductCardStatus"] | undefined | null | Variable<any, string>,	type?: ValueTypes["ProductCardType"] | undefined | null | Variable<any, string>},ValueTypes["ProductCard"]],
 getProgramWallet?: [{	filter: ValueTypes["ProgramWalletFilterInput"] | Variable<any, string>},ValueTypes["ProgramWallet"]],
 getProgramWallets?: [{	filter?: ValueTypes["ProgramWalletFilterInput"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["ProgramWalletsPaginationResult"]],
 getProviderSubscriptionById?: [{	id: number | Variable<any, string>},ValueTypes["ProviderSubscription"]],
@@ -21152,17 +21076,6 @@ export type ResolverInputTypes = {
 	/** Системное имя кооператива-источника */
 	from_coopname: string
 };
-	["Category"]: AliasType<{
-	coopname?:boolean | `@${string}`,
-	description?:boolean | `@${string}`,
-	icon?:boolean | `@${string}`,
-	id?:boolean | `@${string}`,
-	is_active?:boolean | `@${string}`,
-	name?:boolean | `@${string}`,
-	parent_id?:boolean | `@${string}`,
-	sort_order?:boolean | `@${string}`,
-		__typename?: boolean | `@${string}`
-}>;
 	["CategoryTypeInput"]: {
 	/** ID категории */
 	categoryId: number,
@@ -21439,7 +21352,6 @@ export type ResolverInputTypes = {
 	phone?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
-	["ContributionType"]:ContributionType;
 	/** Параметры документов участника из UData */
 ["ContributorDocumentParameters"]: AliasType<{
 	/** Дата создания соглашения благороста */
@@ -21673,13 +21585,6 @@ export type ResolverInputTypes = {
 	short_name: string,
 	/** Имя аккаунта уполномоченного (председателя) кооперативного участка */
 	trustee: string
-};
-	["CreateCategoryInput"]: {
-	description?: string | undefined | null,
-	icon?: string | undefined | null,
-	name: string,
-	parent_id?: string | undefined | null,
-	sort_order?: number | undefined | null
 };
 	["CreateChatCoopCalendarEventInput"]: {
 	description?: string | undefined | null,
@@ -21965,23 +21870,6 @@ export type ResolverInputTypes = {
 	description?: string | undefined | null,
 	project_hash: string,
 	title: string
-};
-	["CreateProductCardInput"]: {
-	braname?: string | undefined | null,
-	cancellation_fee_amount?: string | undefined | null,
-	category_id?: string | undefined | null,
-	contribution_type: ResolverInputTypes["ContributionType"],
-	delivery_type: ResolverInputTypes["DeliveryType"],
-	description: string,
-	images?: Array<string> | undefined | null,
-	membership_fee_amount?: string | undefined | null,
-	min_units?: number | undefined | null,
-	product_lifecycle_secs: number,
-	title: string,
-	type: ResolverInputTypes["ProductCardType"],
-	unit_cost: string,
-	units: number,
-	warranty_period_secs: number
 };
 	["CreateProgramInvestInput"]: {
 	/** Сумма инвестиции */
@@ -22404,7 +22292,6 @@ export type ResolverInputTypes = {
 	/** Имя аккаунта доверонного лица, у которого отзывается право подписи за председателя кооперативного участка */
 	trusted: string
 };
-	["DeliveryType"]:DeliveryType;
 	["Delta"]: AliasType<{
 	/** ID блока */
 	block_id?:boolean | `@${string}`,
@@ -28256,7 +28143,6 @@ addPaymentMethod?: [{	data: ResolverInputTypes["AddPaymentMethodInput"]},Resolve
 addTrustedAccount?: [{	data: ResolverInputTypes["AddTrustedAccountInput"]},ResolverInputTypes["Branch"]],
 applyDocumentApprovalsSeed?: [{	coopname: string},ResolverInputTypes["DocumentApprovalSeedResult"]],
 approveVerification?: [{	data: ResolverInputTypes["ApproveVerificationInput"]},ResolverInputTypes["VerificationReview"]],
-archiveProductCard?: [{	id: string},boolean | `@${string}`],
 assignCapabilitySet?: [{	data: ResolverInputTypes["AssignCapabilitySetInput"]},boolean | `@${string}`],
 authorizeDecision?: [{	data: ResolverInputTypes["AuthorizeDecisionInput"]},ResolverInputTypes["Transaction"]],
 authorizeForceRecovery?: [{	data: ResolverInputTypes["AuthorizeForceRecoveryInput"]},ResolverInputTypes["ForceRecoveryAuthorization"]],
@@ -28378,13 +28264,11 @@ confirmEmailVerification?: [{	data: ResolverInputTypes["ConfirmEmailVerification
 confirmMembershipExit?: [{	token: string},ResolverInputTypes["MembershipExitResult"]],
 createAnnualGeneralMeet?: [{	data: ResolverInputTypes["CreateAnnualGeneralMeetInput"]},ResolverInputTypes["MeetAggregate"]],
 createBranch?: [{	data: ResolverInputTypes["CreateBranchInput"]},ResolverInputTypes["Branch"]],
-createCategory?: [{	data: ResolverInputTypes["CreateCategoryInput"]},ResolverInputTypes["Category"]],
 createDepositPayment?: [{	data: ResolverInputTypes["CreateDepositPaymentInput"]},ResolverInputTypes["GatewayPayment"]],
 createExpensePlan?: [{	data: ResolverInputTypes["CreateExpensePlanInput"]},ResolverInputTypes["ExpensePlan"]],
 createExpenseProposal?: [{	data: ResolverInputTypes["CreateExpenseProposalInput"]},ResolverInputTypes["Transaction"]],
 createInitialPayment?: [{	data: ResolverInputTypes["CreateInitialPaymentInput"]},ResolverInputTypes["GatewayPayment"]],
 createMembershipExit?: [{	data: ResolverInputTypes["CreateMembershipExitInput"]},ResolverInputTypes["MembershipExitResult"]],
-createProductCard?: [{	data: ResolverInputTypes["CreateProductCardInput"]},ResolverInputTypes["ProductCard"]],
 createProjectOfFreeDecision?: [{	data: ResolverInputTypes["CreateProjectFreeDecisionInput"]},ResolverInputTypes["CreatedProjectFreeDecision"]],
 createWebPushSubscription?: [{	data: ResolverInputTypes["CreateSubscriptionInput"]},ResolverInputTypes["CreateSubscriptionResponse"]],
 createWithdraw?: [{	data: ResolverInputTypes["CreateWithdrawInput"]},ResolverInputTypes["CreateWithdrawResponse"]],
@@ -28394,10 +28278,8 @@ declineDecision?: [{	data: ResolverInputTypes["DeclineDecisionInput"]},ResolverI
 deleteAccount?: [{	data: ResolverInputTypes["DeleteAccountInput"]},boolean | `@${string}`],
 deleteBranch?: [{	data: ResolverInputTypes["DeleteBranchInput"]},boolean | `@${string}`],
 deleteBranchWhitelist?: [{	data: ResolverInputTypes["DeleteBranchWhitelistInput"]},ResolverInputTypes["Branch"]],
-deleteCategory?: [{	id: string},boolean | `@${string}`],
 deleteExpensePlan?: [{	data: ResolverInputTypes["DeleteExpensePlanInput"]},boolean | `@${string}`],
 deletePaymentMethod?: [{	data: ResolverInputTypes["DeletePaymentMethodInput"]},boolean | `@${string}`],
-deleteProductCard?: [{	id: string},boolean | `@${string}`],
 deleteReportDraft?: [{	id: string},boolean | `@${string}`],
 deleteTrustedAccount?: [{	data: ResolverInputTypes["DeleteTrustedAccountInput"]},ResolverInputTypes["Branch"]],
 disableTwoFactor?: [{	data: ResolverInputTypes["TwoFactorCodeInput"]},boolean | `@${string}`],
@@ -28552,7 +28434,6 @@ payExpenseItem?: [{	data: ResolverInputTypes["PayExpenseItemInput"]},ResolverInp
 payWithheldTax?: [{	data: ResolverInputTypes["PayWithheldTaxInput"]},boolean | `@${string}`],
 processConvertToAxonStatement?: [{	data: ResolverInputTypes["ProcessConvertToAxonStatementInput"]},boolean | `@${string}`],
 proposeDocumentApproval?: [{	data: ResolverInputTypes["ProposeDocumentApprovalInput"]},ResolverInputTypes["DocumentTemplate"]],
-publishProductCard?: [{	id: string},boolean | `@${string}`],
 publishProjectOfFreeDecision?: [{	data: ResolverInputTypes["PublishProjectFreeDecisionInput"]},ResolverInputTypes["AgendaWithDocuments"]],
 refresh?: [{	data: ResolverInputTypes["RefreshInput"]},ResolverInputTypes["RegisteredAccount"]],
 registerAccount?: [{	data: ResolverInputTypes["RegisterAccountInput"]},ResolverInputTypes["RegisteredAccount"]],
@@ -29763,31 +29644,6 @@ walmoveWallets?: [{	input: ResolverInputTypes["WalmoveInput"]},ResolverInputType
 	toBlock?: number | undefined | null,
 	username?: string | undefined | null
 };
-	["ProductCard"]: AliasType<{
-	braname?:boolean | `@${string}`,
-	cancellation_fee_amount?:boolean | `@${string}`,
-	category_id?:boolean | `@${string}`,
-	contribution_type?:boolean | `@${string}`,
-	coopname?:boolean | `@${string}`,
-	created_at?:boolean | `@${string}`,
-	delivery_type?:boolean | `@${string}`,
-	description?:boolean | `@${string}`,
-	id?:boolean | `@${string}`,
-	images?:boolean | `@${string}`,
-	membership_fee_amount?:boolean | `@${string}`,
-	product_lifecycle_secs?:boolean | `@${string}`,
-	status?:boolean | `@${string}`,
-	title?:boolean | `@${string}`,
-	type?:boolean | `@${string}`,
-	unit_cost?:boolean | `@${string}`,
-	units?:boolean | `@${string}`,
-	updated_at?:boolean | `@${string}`,
-	username?:boolean | `@${string}`,
-	warranty_period_secs?:boolean | `@${string}`,
-		__typename?: boolean | `@${string}`
-}>;
-	["ProductCardStatus"]:ProductCardStatus;
-	["ProductCardType"]:ProductCardType;
 	["ProgramCapitalizationMoneyInvestStatementGenerateDocumentInput"]: {
 	/** Сумма инвестирования в программу (актив) */
 	amount: string,
@@ -30179,8 +30035,6 @@ getCapitalIssueLogs?: [{	data: ResolverInputTypes["GetCapitalIssueLogsInput"],	o
 	/** Получить состояние онбординга capital */
 	getCapitalOnboardingState?:ResolverInputTypes["CapitalOnboardingState"],
 getCapitalProjectLogs?: [{	data: ResolverInputTypes["GetCapitalLogsInput"]},ResolverInputTypes["PaginatedCapitalLogsPaginationResult"]],
-	/** Получить дерево категорий */
-	getCategories?:ResolverInputTypes["Category"],
 	/** Получить состояние онбординга председателя */
 	getChairmanOnboardingState?:ResolverInputTypes["ChairmanOnboardingState"],
 getCriticalActionAuditTrail?: [{	target_id: string},ResolverInputTypes["CriticalActionAuditEntry"]],
@@ -30210,8 +30064,6 @@ getMeets?: [{	data: ResolverInputTypes["GetMeetsInput"]},ResolverInputTypes["Mee
 	getMyAccess?:ResolverInputTypes["ParticipantAccess"],
 	/** Получить удостоверение текущего пайщика */
 	getMyCertificate?:ResolverInputTypes["ParticipantCertificate"],
-	/** Мои карточки */
-	getMyProductCards?:ResolverInputTypes["ProductCard"],
 	/** Насколько узел кооператива отстал от цепи. Пусто, пока состояние не измерено */
 	getNodeSyncState?:ResolverInputTypes["NodeSyncState"],
 getNotification?: [{	id: string},ResolverInputTypes["NotificationDetail"]],
@@ -30220,8 +30072,6 @@ getParticipantCapabilitySets?: [{	username: string},ResolverInputTypes["Capabili
 getParticipantLoginSecurity?: [{	data: ResolverInputTypes["ResetParticipantTwoFactorInput"]},ResolverInputTypes["ParticipantLoginSecurity"]],
 getPaymentMethods?: [{	data?: ResolverInputTypes["GetPaymentMethodsInput"] | undefined | null},ResolverInputTypes["PaymentMethodPaginationResult"]],
 getPayments?: [{	data?: ResolverInputTypes["PaymentFiltersInput"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedGatewayPaymentsPaginationResult"]],
-getProductCard?: [{	id: string},ResolverInputTypes["ProductCard"]],
-getProductCards?: [{	category_id?: string | undefined | null,	limit?: number | undefined | null,	page?: number | undefined | null,	search?: string | undefined | null,	status?: ResolverInputTypes["ProductCardStatus"] | undefined | null,	type?: ResolverInputTypes["ProductCardType"] | undefined | null},ResolverInputTypes["ProductCard"]],
 getProgramWallet?: [{	filter: ResolverInputTypes["ProgramWalletFilterInput"]},ResolverInputTypes["ProgramWallet"]],
 getProgramWallets?: [{	filter?: ResolverInputTypes["ProgramWalletFilterInput"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["ProgramWalletsPaginationResult"]],
 getProviderSubscriptionById?: [{	id: number},ResolverInputTypes["ProviderSubscription"]],
@@ -36576,16 +36426,6 @@ export type ModelTypes = {
 	/** Системное имя кооператива-источника */
 	from_coopname: string
 };
-	["Category"]: {
-		coopname: string,
-	description?: string | undefined | null,
-	icon?: string | undefined | null,
-	id: string,
-	is_active: boolean,
-	name: string,
-	parent_id?: string | undefined | null,
-	sort_order: number
-};
 	["CategoryTypeInput"]: {
 	/** ID категории */
 	categoryId: number,
@@ -36851,7 +36691,6 @@ export type ModelTypes = {
 	full_name: string,
 	phone: string
 };
-	["ContributionType"]:ContributionType;
 	/** Параметры документов участника из UData */
 ["ContributorDocumentParameters"]: {
 		/** Дата создания соглашения благороста */
@@ -37079,13 +36918,6 @@ export type ModelTypes = {
 	short_name: string,
 	/** Имя аккаунта уполномоченного (председателя) кооперативного участка */
 	trustee: string
-};
-	["CreateCategoryInput"]: {
-	description?: string | undefined | null,
-	icon?: string | undefined | null,
-	name: string,
-	parent_id?: string | undefined | null,
-	sort_order?: number | undefined | null
 };
 	["CreateChatCoopCalendarEventInput"]: {
 	description?: string | undefined | null,
@@ -37371,23 +37203,6 @@ export type ModelTypes = {
 	description?: string | undefined | null,
 	project_hash: string,
 	title: string
-};
-	["CreateProductCardInput"]: {
-	braname?: string | undefined | null,
-	cancellation_fee_amount?: string | undefined | null,
-	category_id?: string | undefined | null,
-	contribution_type: ModelTypes["ContributionType"],
-	delivery_type: ModelTypes["DeliveryType"],
-	description: string,
-	images?: Array<string> | undefined | null,
-	membership_fee_amount?: string | undefined | null,
-	min_units?: number | undefined | null,
-	product_lifecycle_secs: number,
-	title: string,
-	type: ModelTypes["ProductCardType"],
-	unit_cost: string,
-	units: number,
-	warranty_period_secs: number
 };
 	["CreateProgramInvestInput"]: {
 	/** Сумма инвестиции */
@@ -37798,7 +37613,6 @@ export type ModelTypes = {
 	/** Имя аккаунта доверонного лица, у которого отзывается право подписи за председателя кооперативного участка */
 	trusted: string
 };
-	["DeliveryType"]:DeliveryType;
 	["Delta"]: {
 		/** ID блока */
 	block_id: string,
@@ -43392,8 +43206,6 @@ export type ModelTypes = {
 	applyDocumentApprovalsSeed: ModelTypes["DocumentApprovalSeedResult"],
 	/** Совет подтвердил сверку личности; снимки удаляются */
 	approveVerification: ModelTypes["VerificationReview"],
-	/** Архивировать карточку */
-	archiveProductCard: boolean,
 	/** Назначить пайщику набор возможностей (управляет председатель) */
 	assignCapabilitySet: boolean,
 	/** Утвердить и исполнить решение совета */
@@ -43634,8 +43446,6 @@ export type ModelTypes = {
 	createAnnualGeneralMeet: ModelTypes["MeetAggregate"],
 	/** Создать кооперативный участок */
 	createBranch: ModelTypes["Branch"],
-	/** Создать категорию (админ) */
-	createCategory: ModelTypes["Category"],
 	/** Создание объекта паевого платежа производится мутацией createDepositPayment. Выполнение мутации возвращает идентификатор платежа и данные для его совершения в зависимости от выбранного платежного провайдера. */
 	createDepositPayment: ModelTypes["GatewayPayment"],
 	/** Добавить плановый расход: сумма, срок, назначение и реквизиты оплаты. Для регулярной траты указывается периодичность — следующий экземпляр появляется в реестре автоматически. Планы кооперативного участка ведёт его председатель. */
@@ -43646,8 +43456,6 @@ export type ModelTypes = {
 	createInitialPayment: ModelTypes["GatewayPayment"],
 	/** Подать подписанное заявление на выход из кооператива. Запускает рассмотрение советом и последующий возврат паевого взноса. */
 	createMembershipExit: ModelTypes["MembershipExitResult"],
-	/** Создать карточку товара/услуги */
-	createProductCard: ModelTypes["ProductCard"],
 	/** Создать повестку дня и проект решения, и сохранить в хранилище для дальнейшей генерации документа и его публикации */
 	createProjectOfFreeDecision: ModelTypes["CreatedProjectFreeDecision"],
 	/** Создать веб-пуш подписку для пользователя */
@@ -43666,14 +43474,10 @@ export type ModelTypes = {
 	deleteBranch: boolean,
 	/** Удалить пайщика из белого списка приватного кооперативного участка */
 	deleteBranchWhitelist: ModelTypes["Branch"],
-	/** Удалить категорию (админ) */
-	deleteCategory: boolean,
 	/** Удалить плановый расход (например, оплаченный вне системы или отменённый). Планы кооперативного участка ведёт его председатель. */
 	deleteExpensePlan: boolean,
 	/** Удалить метод оплаты */
 	deletePaymentMethod: boolean,
-	/** Удалить черновик карточки */
-	deleteProductCard: boolean,
 	/** Удалить черновик по id (только владелец) */
 	deleteReportDraft: boolean,
 	/** Удалить доверенное лицо кооперативного участка */
@@ -43976,8 +43780,6 @@ export type ModelTypes = {
 	processConvertToAxonStatement: boolean,
 	/** Вынести редакцию документа или пакет документов на утверждение совета: проект решения с текстом редакции публикуется в повестку */
 	proposeDocumentApproval: Array<ModelTypes["DocumentTemplate"]>,
-	/** Опубликовать карточку */
-	publishProductCard: boolean,
 	/** Опубликовать предложенную повестку и проект решения для голосования совета. Возвращает созданный пункт повестки (или null, если он ещё не проиндексирован) для немедленного отображения на фронте. */
 	publishProjectOfFreeDecision?: ModelTypes["AgendaWithDocuments"] | undefined | null,
 	/** Обновить токен доступа аккаунта */
@@ -45144,30 +44946,6 @@ export type ModelTypes = {
 	toBlock?: number | undefined | null,
 	username?: string | undefined | null
 };
-	["ProductCard"]: {
-		braname?: string | undefined | null,
-	cancellation_fee_amount?: string | undefined | null,
-	category_id?: string | undefined | null,
-	contribution_type: ModelTypes["ContributionType"],
-	coopname: string,
-	created_at: ModelTypes["DateTime"],
-	delivery_type: ModelTypes["DeliveryType"],
-	description: string,
-	id: string,
-	images: Array<string>,
-	membership_fee_amount?: string | undefined | null,
-	product_lifecycle_secs: number,
-	status: ModelTypes["ProductCardStatus"],
-	title: string,
-	type: ModelTypes["ProductCardType"],
-	unit_cost: string,
-	units: number,
-	updated_at: ModelTypes["DateTime"],
-	username: string,
-	warranty_period_secs: number
-};
-	["ProductCardStatus"]:ProductCardStatus;
-	["ProductCardType"]:ProductCardType;
 	["ProgramCapitalizationMoneyInvestStatementGenerateDocumentInput"]: {
 	/** Сумма инвестирования в программу (актив) */
 	amount: string,
@@ -45632,8 +45410,6 @@ export type ModelTypes = {
 	getCapitalOnboardingState: ModelTypes["CapitalOnboardingState"],
 	/** Получить логи событий по проекту с фильтрацией и пагинацией */
 	getCapitalProjectLogs: ModelTypes["PaginatedCapitalLogsPaginationResult"],
-	/** Получить дерево категорий */
-	getCategories: Array<ModelTypes["Category"]>,
 	/** Получить состояние онбординга председателя */
 	getChairmanOnboardingState: ModelTypes["ChairmanOnboardingState"],
 	/** Audit-trail критических действий, затрагивающих пайщика (для контролирующего органа) */
@@ -45679,8 +45455,6 @@ export type ModelTypes = {
 	getMyAccess: ModelTypes["ParticipantAccess"],
 	/** Получить удостоверение текущего пайщика */
 	getMyCertificate: ModelTypes["ParticipantCertificate"],
-	/** Мои карточки */
-	getMyProductCards: Array<ModelTypes["ProductCard"]>,
 	/** Насколько узел кооператива отстал от цепи. Пусто, пока состояние не измерено */
 	getNodeSyncState?: ModelTypes["NodeSyncState"] | undefined | null,
 	/** Детализация одного уведомления с историей попыток доставки */
@@ -45695,10 +45469,6 @@ export type ModelTypes = {
 	getPaymentMethods: ModelTypes["PaymentMethodPaginationResult"],
 	/** Получить список платежей с возможностью фильтрации по типу, статусу и направлению. */
 	getPayments: ModelTypes["PaginatedGatewayPaymentsPaginationResult"],
-	/** Получить карточку по ID */
-	getProductCard?: ModelTypes["ProductCard"] | undefined | null,
-	/** Получить карточки товаров/услуг */
-	getProductCards: Array<ModelTypes["ProductCard"]>,
 	/** Получить один программный кошелек по фильтру */
 	getProgramWallet?: ModelTypes["ProgramWallet"] | undefined | null,
 	/** Получить список программных кошельков с фильтрацией и пагинацией */
@@ -52284,18 +52054,6 @@ export type GraphQLTypes = {
 	/** Системное имя кооператива-источника */
 	from_coopname: string
 };
-	["Category"]: {
-	__typename: "Category",
-	coopname: string,
-	description?: string | undefined | null,
-	icon?: string | undefined | null,
-	id: string,
-	is_active: boolean,
-	name: string,
-	parent_id?: string | undefined | null,
-	sort_order: number,
-	['...on Category']: Omit<GraphQLTypes["Category"], "...on Category">
-};
 	["CategoryTypeInput"]: {
 		/** ID категории */
 	categoryId: number,
@@ -52582,7 +52340,6 @@ export type GraphQLTypes = {
 	phone: string,
 	['...on ContactsDTO']: Omit<GraphQLTypes["ContactsDTO"], "...on ContactsDTO">
 };
-	["ContributionType"]: ContributionType;
 	/** Параметры документов участника из UData */
 ["ContributorDocumentParameters"]: {
 	__typename: "ContributorDocumentParameters",
@@ -52820,13 +52577,6 @@ export type GraphQLTypes = {
 	short_name: string,
 	/** Имя аккаунта уполномоченного (председателя) кооперативного участка */
 	trustee: string
-};
-	["CreateCategoryInput"]: {
-		description?: string | undefined | null,
-	icon?: string | undefined | null,
-	name: string,
-	parent_id?: string | undefined | null,
-	sort_order?: number | undefined | null
 };
 	["CreateChatCoopCalendarEventInput"]: {
 		description?: string | undefined | null,
@@ -53112,23 +52862,6 @@ export type GraphQLTypes = {
 		description?: string | undefined | null,
 	project_hash: string,
 	title: string
-};
-	["CreateProductCardInput"]: {
-		braname?: string | undefined | null,
-	cancellation_fee_amount?: string | undefined | null,
-	category_id?: string | undefined | null,
-	contribution_type: GraphQLTypes["ContributionType"],
-	delivery_type: GraphQLTypes["DeliveryType"],
-	description: string,
-	images?: Array<string> | undefined | null,
-	membership_fee_amount?: string | undefined | null,
-	min_units?: number | undefined | null,
-	product_lifecycle_secs: number,
-	title: string,
-	type: GraphQLTypes["ProductCardType"],
-	unit_cost: string,
-	units: number,
-	warranty_period_secs: number
 };
 	["CreateProgramInvestInput"]: {
 		/** Сумма инвестиции */
@@ -53559,7 +53292,6 @@ export type GraphQLTypes = {
 	/** Имя аккаунта доверонного лица, у которого отзывается право подписи за председателя кооперативного участка */
 	trusted: string
 };
-	["DeliveryType"]: DeliveryType;
 	["Delta"]: {
 	__typename: "Delta",
 	/** ID блока */
@@ -59606,8 +59338,6 @@ export type GraphQLTypes = {
 	applyDocumentApprovalsSeed: GraphQLTypes["DocumentApprovalSeedResult"],
 	/** Совет подтвердил сверку личности; снимки удаляются */
 	approveVerification: GraphQLTypes["VerificationReview"],
-	/** Архивировать карточку */
-	archiveProductCard: boolean,
 	/** Назначить пайщику набор возможностей (управляет председатель) */
 	assignCapabilitySet: boolean,
 	/** Утвердить и исполнить решение совета */
@@ -59848,8 +59578,6 @@ export type GraphQLTypes = {
 	createAnnualGeneralMeet: GraphQLTypes["MeetAggregate"],
 	/** Создать кооперативный участок */
 	createBranch: GraphQLTypes["Branch"],
-	/** Создать категорию (админ) */
-	createCategory: GraphQLTypes["Category"],
 	/** Создание объекта паевого платежа производится мутацией createDepositPayment. Выполнение мутации возвращает идентификатор платежа и данные для его совершения в зависимости от выбранного платежного провайдера. */
 	createDepositPayment: GraphQLTypes["GatewayPayment"],
 	/** Добавить плановый расход: сумма, срок, назначение и реквизиты оплаты. Для регулярной траты указывается периодичность — следующий экземпляр появляется в реестре автоматически. Планы кооперативного участка ведёт его председатель. */
@@ -59860,8 +59588,6 @@ export type GraphQLTypes = {
 	createInitialPayment: GraphQLTypes["GatewayPayment"],
 	/** Подать подписанное заявление на выход из кооператива. Запускает рассмотрение советом и последующий возврат паевого взноса. */
 	createMembershipExit: GraphQLTypes["MembershipExitResult"],
-	/** Создать карточку товара/услуги */
-	createProductCard: GraphQLTypes["ProductCard"],
 	/** Создать повестку дня и проект решения, и сохранить в хранилище для дальнейшей генерации документа и его публикации */
 	createProjectOfFreeDecision: GraphQLTypes["CreatedProjectFreeDecision"],
 	/** Создать веб-пуш подписку для пользователя */
@@ -59880,14 +59606,10 @@ export type GraphQLTypes = {
 	deleteBranch: boolean,
 	/** Удалить пайщика из белого списка приватного кооперативного участка */
 	deleteBranchWhitelist: GraphQLTypes["Branch"],
-	/** Удалить категорию (админ) */
-	deleteCategory: boolean,
 	/** Удалить плановый расход (например, оплаченный вне системы или отменённый). Планы кооперативного участка ведёт его председатель. */
 	deleteExpensePlan: boolean,
 	/** Удалить метод оплаты */
 	deletePaymentMethod: boolean,
-	/** Удалить черновик карточки */
-	deleteProductCard: boolean,
 	/** Удалить черновик по id (только владелец) */
 	deleteReportDraft: boolean,
 	/** Удалить доверенное лицо кооперативного участка */
@@ -60190,8 +59912,6 @@ export type GraphQLTypes = {
 	processConvertToAxonStatement: boolean,
 	/** Вынести редакцию документа или пакет документов на утверждение совета: проект решения с текстом редакции публикуется в повестку */
 	proposeDocumentApproval: Array<GraphQLTypes["DocumentTemplate"]>,
-	/** Опубликовать карточку */
-	publishProductCard: boolean,
 	/** Опубликовать предложенную повестку и проект решения для голосования совета. Возвращает созданный пункт повестки (или null, если он ещё не проиндексирован) для немедленного отображения на фронте. */
 	publishProjectOfFreeDecision?: GraphQLTypes["AgendaWithDocuments"] | undefined | null,
 	/** Обновить токен доступа аккаунта */
@@ -61520,32 +61240,6 @@ export type GraphQLTypes = {
 	toBlock?: number | undefined | null,
 	username?: string | undefined | null
 };
-	["ProductCard"]: {
-	__typename: "ProductCard",
-	braname?: string | undefined | null,
-	cancellation_fee_amount?: string | undefined | null,
-	category_id?: string | undefined | null,
-	contribution_type: GraphQLTypes["ContributionType"],
-	coopname: string,
-	created_at: GraphQLTypes["DateTime"],
-	delivery_type: GraphQLTypes["DeliveryType"],
-	description: string,
-	id: string,
-	images: Array<string>,
-	membership_fee_amount?: string | undefined | null,
-	product_lifecycle_secs: number,
-	status: GraphQLTypes["ProductCardStatus"],
-	title: string,
-	type: GraphQLTypes["ProductCardType"],
-	unit_cost: string,
-	units: number,
-	updated_at: GraphQLTypes["DateTime"],
-	username: string,
-	warranty_period_secs: number,
-	['...on ProductCard']: Omit<GraphQLTypes["ProductCard"], "...on ProductCard">
-};
-	["ProductCardStatus"]: ProductCardStatus;
-	["ProductCardType"]: ProductCardType;
 	["ProgramCapitalizationMoneyInvestStatementGenerateDocumentInput"]: {
 		/** Сумма инвестирования в программу (актив) */
 	amount: string,
@@ -62025,8 +61719,6 @@ export type GraphQLTypes = {
 	getCapitalOnboardingState: GraphQLTypes["CapitalOnboardingState"],
 	/** Получить логи событий по проекту с фильтрацией и пагинацией */
 	getCapitalProjectLogs: GraphQLTypes["PaginatedCapitalLogsPaginationResult"],
-	/** Получить дерево категорий */
-	getCategories: Array<GraphQLTypes["Category"]>,
 	/** Получить состояние онбординга председателя */
 	getChairmanOnboardingState: GraphQLTypes["ChairmanOnboardingState"],
 	/** Audit-trail критических действий, затрагивающих пайщика (для контролирующего органа) */
@@ -62072,8 +61764,6 @@ export type GraphQLTypes = {
 	getMyAccess: GraphQLTypes["ParticipantAccess"],
 	/** Получить удостоверение текущего пайщика */
 	getMyCertificate: GraphQLTypes["ParticipantCertificate"],
-	/** Мои карточки */
-	getMyProductCards: Array<GraphQLTypes["ProductCard"]>,
 	/** Насколько узел кооператива отстал от цепи. Пусто, пока состояние не измерено */
 	getNodeSyncState?: GraphQLTypes["NodeSyncState"] | undefined | null,
 	/** Детализация одного уведомления с историей попыток доставки */
@@ -62088,10 +61778,6 @@ export type GraphQLTypes = {
 	getPaymentMethods: GraphQLTypes["PaymentMethodPaginationResult"],
 	/** Получить список платежей с возможностью фильтрации по типу, статусу и направлению. */
 	getPayments: GraphQLTypes["PaginatedGatewayPaymentsPaginationResult"],
-	/** Получить карточку по ID */
-	getProductCard?: GraphQLTypes["ProductCard"] | undefined | null,
-	/** Получить карточки товаров/услуг */
-	getProductCards: Array<GraphQLTypes["ProductCard"]>,
 	/** Получить один программный кошелек по фильтру */
 	getProgramWallet?: GraphQLTypes["ProgramWallet"] | undefined | null,
 	/** Получить список программных кошельков с фильтрацией и пагинацией */
@@ -64798,10 +64484,6 @@ export enum CommitStatus {
 	DECLINED = "DECLINED",
 	UNDEFINED = "UNDEFINED"
 }
-export enum ContributionType {
-	MEMBER = "MEMBER",
-	SHARE = "SHARE"
-}
 /** Статус участника в системе CAPITAL */
 export enum ContributorStatus {
 	ACTIVE = "ACTIVE",
@@ -64843,10 +64525,6 @@ export enum DebtStatus {
 	PENDING = "PENDING",
 	SETTLED = "SETTLED",
 	UNDEFINED = "UNDEFINED"
-}
-export enum DeliveryType {
-	EXTERNAL = "EXTERNAL",
-	INTERNAL = "INTERNAL"
 }
 /** Типы действий для документов кооператива */
 export enum DocumentAction {
@@ -65440,16 +65118,6 @@ export enum ProcessTemplateStatus {
 	ARCHIVED = "ARCHIVED",
 	DRAFT = "DRAFT"
 }
-export enum ProductCardStatus {
-	ARCHIVED = "ARCHIVED",
-	DRAFT = "DRAFT",
-	MODERATION = "MODERATION",
-	PUBLISHED = "PUBLISHED"
-}
-export enum ProductCardType {
-	OFFER = "OFFER",
-	ORDER = "ORDER"
-}
 /** Ключ выбранной программы регистрации */
 export enum ProgramKey {
 	CAPITALIZATION = "CAPITALIZATION",
@@ -65788,7 +65456,6 @@ type ZEUS_VARIABLES = {
 	["ConfirmAgreementInput"]: ValueTypes["ConfirmAgreementInput"];
 	["ConfirmApproveInput"]: ValueTypes["ConfirmApproveInput"];
 	["ConfirmEmailVerificationInputDTO"]: ValueTypes["ConfirmEmailVerificationInputDTO"];
-	["ContributionType"]: ValueTypes["ContributionType"];
 	["ContributorStatus"]: ValueTypes["ContributorStatus"];
 	["ConvertSegmentInput"]: ValueTypes["ConvertSegmentInput"];
 	["ConvertToAxonStatementGenerateDocumentInput"]: ValueTypes["ConvertToAxonStatementGenerateDocumentInput"];
@@ -65798,7 +65465,6 @@ type ZEUS_VARIABLES = {
 	["CreateAnnualGeneralMeetInput"]: ValueTypes["CreateAnnualGeneralMeetInput"];
 	["CreateBranchExpenseInput"]: ValueTypes["CreateBranchExpenseInput"];
 	["CreateBranchInput"]: ValueTypes["CreateBranchInput"];
-	["CreateCategoryInput"]: ValueTypes["CreateCategoryInput"];
 	["CreateChatCoopCalendarEventInput"]: ValueTypes["CreateChatCoopCalendarEventInput"];
 	["CreateCommitInput"]: ValueTypes["CreateCommitInput"];
 	["CreateComponentMetricInput"]: ValueTypes["CreateComponentMetricInput"];
@@ -65819,7 +65485,6 @@ type ZEUS_VARIABLES = {
 	["CreateMembershipExitInput"]: ValueTypes["CreateMembershipExitInput"];
 	["CreateOrganizationDataInput"]: ValueTypes["CreateOrganizationDataInput"];
 	["CreateProcessTemplateInput"]: ValueTypes["CreateProcessTemplateInput"];
-	["CreateProductCardInput"]: ValueTypes["CreateProductCardInput"];
 	["CreateProgramInvestInput"]: ValueTypes["CreateProgramInvestInput"];
 	["CreateProgramPropertyInput"]: ValueTypes["CreateProgramPropertyInput"];
 	["CreateProjectFreeDecisionInput"]: ValueTypes["CreateProjectFreeDecisionInput"];
@@ -65853,7 +65518,6 @@ type ZEUS_VARIABLES = {
 	["DeletePaymentMethodInput"]: ValueTypes["DeletePaymentMethodInput"];
 	["DeleteProjectInput"]: ValueTypes["DeleteProjectInput"];
 	["DeleteTrustedAccountInput"]: ValueTypes["DeleteTrustedAccountInput"];
-	["DeliveryType"]: ValueTypes["DeliveryType"];
 	["DeltaFiltersInput"]: ValueTypes["DeltaFiltersInput"];
 	["DocumentAction"]: ValueTypes["DocumentAction"];
 	["DocumentApprovalRequirement"]: ValueTypes["DocumentApprovalRequirement"];
@@ -66204,8 +65868,6 @@ type ZEUS_VARIABLES = {
 	["ProcessStepTemplateInput"]: ValueTypes["ProcessStepTemplateInput"];
 	["ProcessTemplateStatus"]: ValueTypes["ProcessTemplateStatus"];
 	["ProcessesFilter"]: ValueTypes["ProcessesFilter"];
-	["ProductCardStatus"]: ValueTypes["ProductCardStatus"];
-	["ProductCardType"]: ValueTypes["ProductCardType"];
 	["ProgramCapitalizationMoneyInvestStatementGenerateDocumentInput"]: ValueTypes["ProgramCapitalizationMoneyInvestStatementGenerateDocumentInput"];
 	["ProgramCapitalizationMoneyInvestStatementSignedDocumentInput"]: ValueTypes["ProgramCapitalizationMoneyInvestStatementSignedDocumentInput"];
 	["ProgramCapitalizationMoneyInvestStatementSignedMetaDocumentInput"]: ValueTypes["ProgramCapitalizationMoneyInvestStatementSignedMetaDocumentInput"];

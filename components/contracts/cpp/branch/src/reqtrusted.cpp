@@ -18,6 +18,9 @@
 
   verify_document_or_fail(application);
   verify_document_or_fail(authority);
+  // Заявление и доверенность подписывает сам кандидат в доверенные лица.
+  verify_signer_keys_or_fail(application, username);
+  verify_signer_keys_or_fail(authority, username);
 
   get_active_participant_or_fail(coopname, username);
 

@@ -48,11 +48,16 @@ void marketplace::accretrn(eosio::name coopname,
   eosio::check(!is_empty_document(statement),
                "Приём имущества требует заявления оператора об отмене сделки с его подписью");
   verify_document_or_fail(statement, { signer });
+  // Заявление подписывает тот, кто его подаёт. Транзакцию шлёт кооператив, поэтому ключ сверяется с аккаунтом.
+  verify_signer_keys_or_fail(statement, signer);
   eosio::check(!is_empty_document(reclamation),
                "Приём имущества требует рекламации пайщика со второй подписью оператора");
   eosio::check(reclamation.hash == r.statement.hash,
                "Рекламация со второй подписью обязана быть тем же документом, что подал пайщик");
   verify_document_or_fail(reclamation, { r.orderer, signer });
+  // Обе подписи под претензией сделаны ключами своих аккаунтов. Транзакцию шлёт кооператив, поэтому ключ сверяется с аккаунтом.
+  verify_signer_keys_or_fail(reclamation, r.orderer);
+  verify_signer_keys_or_fail(reclamation, signer);
 
   const auto now = eosio::time_point_sec(eosio::current_time_point().sec_since_epoch());
   Marketplace::update_return_request(coopname, r.id, [&](auto& upd) {

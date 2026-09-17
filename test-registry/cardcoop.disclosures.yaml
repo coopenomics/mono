@@ -187,3 +187,17 @@ cases:
       этом не читаются
     test: components/controller/tests/unit/cardcoop/cardcoop-disclosure.test.ts
     status: passing
+
+  - id: cc.disclose.side.09
+    level: backend
+    kind: side
+    scenario: >
+      Чужой узел стучится в ручку раскрытия чаще объявленного предела
+      (тридцать обращений в минуту с адреса).
+    expect: >
+      лишние обращения получают отказ по частоте, до чтения карточки дело не
+      доходит. Предел объявлен на самой ручке, а считает его общий ограничитель
+      контура — до 17.09.2026 он стоял только здесь и больше нигде
+    test: components/controller/tests/unit/graphql/gql-throttler-guard.test.ts
+    status: passing
+

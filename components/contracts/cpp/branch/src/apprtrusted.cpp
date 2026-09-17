@@ -22,6 +22,15 @@
   auto req = get_trustreq_or_fail(coopname, hash);
 
   auto br = get_branch_or_fail(coopname, req.braname);
+
+  // Под обоими документами стоят подписи кандидата в доверенные лица и
+  // председателя участка, который его принимает. Сверка с ключами их аккаунтов
+  // нужна потому, что транзакцию шлёт кооператив: иначе доверенным лицом
+  // участка можно было бы стать по документу, подписанному чужим ключом.
+  verify_signer_keys_or_fail(countersigned, req.username);
+  verify_signer_keys_or_fail(countersigned, br.trustee);
+  verify_signer_keys_or_fail(countersigned_authority, req.username);
+  verify_signer_keys_or_fail(countersigned_authority, br.trustee);
   eosio::check(!br.is_account_in_trusted(req.username), "Пайщик уже является доверенным лицом участка");
   eosio::check(br.trusted.size() < 3, "Достигнут предел доверенных лиц участка (не более трёх)");
 

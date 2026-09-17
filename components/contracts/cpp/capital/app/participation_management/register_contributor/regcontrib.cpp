@@ -28,9 +28,12 @@ void capital::regcontrib(eosio::name coopname, eosio::name username, checksum256
     contract_for_send = contract.value();
     // проверяем, что договор подписан пайщиком
     verify_document_or_fail(contract_for_send, {username});
+    // …и подписан ключом его аккаунта: транзакцию шлёт кооператив.
+    verify_signer_keys_or_fail(contract_for_send, username);
   }
 
   verify_document_or_fail(storage_agreement, {username});
+  verify_signer_keys_or_fail(storage_agreement, username);
 
   // Programный optional-документ считаем «приложенным» только если есть значение
   // и непустой хэш. Пустой/отсутствующий → пропускаем (verify+signagree не шлём).
@@ -41,9 +44,11 @@ void capital::regcontrib(eosio::name coopname, eosio::name username, checksum256
 
   if (has_blagorost_agreement) {
     verify_document_or_fail(blagorost_agreement.value(), {username});
+    verify_signer_keys_or_fail(blagorost_agreement.value(), username);
   }
   if (has_generator_agreement) {
     verify_document_or_fail(generator_agreement.value(), {username});
+    verify_signer_keys_or_fail(generator_agreement.value(), username);
   }
   
   Wallet::validate_asset(rate_per_hour);

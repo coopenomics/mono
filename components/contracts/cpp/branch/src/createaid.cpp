@@ -52,6 +52,8 @@
 
   get_active_participant_or_fail(coopname, username);
   verify_document_or_fail(statement, { username });
+  // Заявление о помощи подписывает сам пайщик.
+  verify_signer_keys_or_fail(statement, username);
 
   // Материальная помощь выплачивается из средств, распределённых на участнике
   // реестра распределения участка, — получателем может быть только доверенное

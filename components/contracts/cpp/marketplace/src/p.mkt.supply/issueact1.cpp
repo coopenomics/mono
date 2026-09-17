@@ -29,6 +29,8 @@ void marketplace::issueact1(eosio::name coopname,
                "Первая подпись акта выдачи уже зафиксирована");
   eosio::check(!is_empty_document(act), "Отсутствует акт приёма-передачи");
   verify_document_or_fail(act, { orderer });
+  // Акт подписан ключом аккаунта заказчика. Транзакцию шлёт кооператив, поэтому ключ сверяется с аккаунтом.
+  verify_signer_keys_or_fail(act, orderer);
 
   Marketplace::update_order(coopname, o.id, [&](auto& upd) {
     upd.status     = OrderStatus::ISSUE_ACT1;

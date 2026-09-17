@@ -6,6 +6,8 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerModule } from '@nestjs/throttler';
+import { APP_GUARD } from '@nestjs/core';
+import { GqlThrottlerGuard } from './infrastructure/graphql/gql-throttler.guard';
 import { PrometheusModule } from '@willsoto/nestjs-prometheus';
 import { PlatformMetricsModule } from '~/application/metrics/platform-metrics.module';
 
@@ -90,7 +92,6 @@ import { SearchModule } from './application/search/search.module';
 import { SignedDocumentsModule } from './application/signed-documents/signed-documents.module';
 import { MutationLoggingInterceptor } from './application/common/interceptors/mutation-logging.interceptor';
 import { MarketplaceExtensionModule } from './extensions/marketplace/marketplace-extension.module';
-import { MarketplaceCardsModule } from './extensions/marketplace-cards/marketplace-cards.module';
 
 @Module({
   imports: [
@@ -207,12 +208,18 @@ import { MarketplaceCardsModule } from './extensions/marketplace-cards/marketpla
     SignedDocumentsModule,
     // Marketplace extensions
     MarketplaceExtensionModule,
-    MarketplaceCardsModule,
   ],
   providers: [
     {
       provide: 'MutationLoggingInterceptor',
       useClass: MutationLoggingInterceptor,
+    },
+    // Ограничитель частоты для операций с `@Throttle`. Глобально — иначе его
+    // пришлось бы вписывать в два десятка резолверов и забывать в новых; сам
+    // guard пропускает всё, где лимит не объявлен явно.
+    {
+      provide: APP_GUARD,
+      useClass: GqlThrottlerGuard,
     },
   ],
   exports: [],

@@ -400,7 +400,6 @@ export const AllTypesProps: Record<string,any> = {
 	ConfirmEmailVerificationInputDTO:{
 
 	},
-	ContributionType: "enum" as const,
 	ContributorStatus: "enum" as const,
 	ConvertSegmentInput:{
 		convert_statement:"SignedDigitalDocumentInput"
@@ -427,9 +426,6 @@ export const AllTypesProps: Record<string,any> = {
 		statement:"ExpenseProposalStatementSignedDocumentInput"
 	},
 	CreateBranchInput:{
-
-	},
-	CreateCategoryInput:{
 
 	},
 	CreateChatCoopCalendarEventInput:{
@@ -507,11 +503,6 @@ export const AllTypesProps: Record<string,any> = {
 	},
 	CreateProcessTemplateInput:{
 
-	},
-	CreateProductCardInput:{
-		contribution_type:"ContributionType",
-		delivery_type:"DeliveryType",
-		type:"ProductCardType"
 	},
 	CreateProgramInvestInput:{
 		statement:"ProgramCapitalizationMoneyInvestStatementSignedDocumentInput"
@@ -605,7 +596,6 @@ export const AllTypesProps: Record<string,any> = {
 	DeleteTrustedAccountInput:{
 
 	},
-	DeliveryType: "enum" as const,
 	DeltaFiltersInput:{
 
 	},
@@ -1484,9 +1474,6 @@ export const AllTypesProps: Record<string,any> = {
 		approveVerification:{
 			data:"ApproveVerificationInput"
 		},
-		archiveProductCard:{
-
-		},
 		assignCapabilitySet:{
 			data:"AssignCapabilitySetInput"
 		},
@@ -1866,9 +1853,6 @@ export const AllTypesProps: Record<string,any> = {
 		createBranch:{
 			data:"CreateBranchInput"
 		},
-		createCategory:{
-			data:"CreateCategoryInput"
-		},
 		createDepositPayment:{
 			data:"CreateDepositPaymentInput"
 		},
@@ -1883,9 +1867,6 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		createMembershipExit:{
 			data:"CreateMembershipExitInput"
-		},
-		createProductCard:{
-			data:"CreateProductCardInput"
 		},
 		createProjectOfFreeDecision:{
 			data:"CreateProjectFreeDecisionInput"
@@ -1914,17 +1895,11 @@ export const AllTypesProps: Record<string,any> = {
 		deleteBranchWhitelist:{
 			data:"DeleteBranchWhitelistInput"
 		},
-		deleteCategory:{
-
-		},
 		deleteExpensePlan:{
 			data:"DeleteExpensePlanInput"
 		},
 		deletePaymentMethod:{
 			data:"DeletePaymentMethodInput"
-		},
-		deleteProductCard:{
-
 		},
 		deleteReportDraft:{
 
@@ -2401,9 +2376,6 @@ export const AllTypesProps: Record<string,any> = {
 		proposeDocumentApproval:{
 			data:"ProposeDocumentApprovalInput"
 		},
-		publishProductCard:{
-
-		},
 		publishProjectOfFreeDecision:{
 			data:"PublishProjectFreeDecisionInput"
 		},
@@ -2636,8 +2608,6 @@ export const AllTypesProps: Record<string,any> = {
 	ProcessesFilter:{
 
 	},
-	ProductCardStatus: "enum" as const,
-	ProductCardType: "enum" as const,
 	ProgramCapitalizationMoneyInvestStatementGenerateDocumentInput:{
 
 	},
@@ -3023,13 +2993,6 @@ export const AllTypesProps: Record<string,any> = {
 		getPayments:{
 			data:"PaymentFiltersInput",
 			options:"PaginationInput"
-		},
-		getProductCard:{
-
-		},
-		getProductCards:{
-			status:"ProductCardStatus",
-			type:"ProductCardType"
 		},
 		getProgramWallet:{
 			filter:"ProgramWalletFilterInput"
@@ -5147,16 +5110,6 @@ export const ReturnTypes: Record<string,any> = {
 		memberSince:"String",
 		state:"CardcoopAttestationState"
 	},
-	Category:{
-		coopname:"String",
-		description:"String",
-		icon:"String",
-		id:"String",
-		is_active:"Boolean",
-		name:"String",
-		parent_id:"String",
-		sort_order:"Int"
-	},
 	ChairmanOnboardingState:{
 		general_meet_done:"Boolean",
 		onboarding_expire_at:"String",
@@ -7145,7 +7098,6 @@ export const ReturnTypes: Record<string,any> = {
 		addTrustedAccount:"Branch",
 		applyDocumentApprovalsSeed:"DocumentApprovalSeedResult",
 		approveVerification:"VerificationReview",
-		archiveProductCard:"Boolean",
 		assignCapabilitySet:"Boolean",
 		authorizeDecision:"Transaction",
 		authorizeForceRecovery:"ForceRecoveryAuthorization",
@@ -7266,13 +7218,11 @@ export const ReturnTypes: Record<string,any> = {
 		confirmMembershipExit:"MembershipExitResult",
 		createAnnualGeneralMeet:"MeetAggregate",
 		createBranch:"Branch",
-		createCategory:"Category",
 		createDepositPayment:"GatewayPayment",
 		createExpensePlan:"ExpensePlan",
 		createExpenseProposal:"Transaction",
 		createInitialPayment:"GatewayPayment",
 		createMembershipExit:"MembershipExitResult",
-		createProductCard:"ProductCard",
 		createProjectOfFreeDecision:"CreatedProjectFreeDecision",
 		createWebPushSubscription:"CreateSubscriptionResponse",
 		createWithdraw:"CreateWithdrawResponse",
@@ -7282,10 +7232,8 @@ export const ReturnTypes: Record<string,any> = {
 		deleteAccount:"Boolean",
 		deleteBranch:"Boolean",
 		deleteBranchWhitelist:"Branch",
-		deleteCategory:"Boolean",
 		deleteExpensePlan:"Boolean",
 		deletePaymentMethod:"Boolean",
-		deleteProductCard:"Boolean",
 		deleteReportDraft:"Boolean",
 		deleteTrustedAccount:"Branch",
 		disableTwoFactor:"Boolean",
@@ -7437,7 +7385,6 @@ export const ReturnTypes: Record<string,any> = {
 		payWithheldTax:"String",
 		processConvertToAxonStatement:"Boolean",
 		proposeDocumentApproval:"DocumentTemplate",
-		publishProductCard:"Boolean",
 		publishProjectOfFreeDecision:"AgendaWithDocuments",
 		refresh:"RegisteredAccount",
 		registerAccount:"RegisteredAccount",
@@ -8013,28 +7960,6 @@ export const ReturnTypes: Record<string,any> = {
 		process_hash:"String",
 		process_type:"String"
 	},
-	ProductCard:{
-		braname:"String",
-		cancellation_fee_amount:"String",
-		category_id:"String",
-		contribution_type:"ContributionType",
-		coopname:"String",
-		created_at:"DateTime",
-		delivery_type:"DeliveryType",
-		description:"String",
-		id:"String",
-		images:"String",
-		membership_fee_amount:"String",
-		product_lifecycle_secs:"Int",
-		status:"ProductCardStatus",
-		title:"String",
-		type:"ProductCardType",
-		unit_cost:"String",
-		units:"Int",
-		updated_at:"DateTime",
-		username:"String",
-		warranty_period_secs:"Int"
-	},
 	ProgramWallet:{
 		agreement_id:"ID",
 		available:"String",
@@ -8178,7 +8103,6 @@ export const ReturnTypes: Record<string,any> = {
 		getCapitalIssueLogs:"PaginatedCapitalLogsPaginationResult",
 		getCapitalOnboardingState:"CapitalOnboardingState",
 		getCapitalProjectLogs:"PaginatedCapitalLogsPaginationResult",
-		getCategories:"Category",
 		getChairmanOnboardingState:"ChairmanOnboardingState",
 		getCriticalActionAuditTrail:"CriticalActionAuditEntry",
 		getCurrentInstance:"CurrentInstanceDTO",
@@ -8202,7 +8126,6 @@ export const ReturnTypes: Record<string,any> = {
 		getMeets:"MeetAggregate",
 		getMyAccess:"ParticipantAccess",
 		getMyCertificate:"ParticipantCertificate",
-		getMyProductCards:"ProductCard",
 		getNodeSyncState:"NodeSyncState",
 		getNotification:"NotificationDetail",
 		getNotifications:"NotificationPaginationResult",
@@ -8210,8 +8133,6 @@ export const ReturnTypes: Record<string,any> = {
 		getParticipantLoginSecurity:"ParticipantLoginSecurity",
 		getPaymentMethods:"PaymentMethodPaginationResult",
 		getPayments:"PaginatedGatewayPaymentsPaginationResult",
-		getProductCard:"ProductCard",
-		getProductCards:"ProductCard",
 		getProgramWallet:"ProgramWallet",
 		getProgramWallets:"ProgramWalletsPaginationResult",
 		getProviderSubscriptionById:"ProviderSubscription",

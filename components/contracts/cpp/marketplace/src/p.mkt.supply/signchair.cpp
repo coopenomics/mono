@@ -62,6 +62,9 @@ void marketplace::signchair(eosio::name coopname,
                "Подписант не уполномочен подписывать акты приёмки данного кооперативного участка");
 
   verify_document_or_fail(act, { o.offerer, signer });
+  // Обе подписи под актом приёмки сделаны ключами своих аккаунтов. Транзакцию шлёт кооператив, поэтому ключ сверяется с аккаунтом.
+  verify_signer_keys_or_fail(act, o.offerer);
+  verify_signer_keys_or_fail(act, signer);
 
   // Итоговая стоимость к получению поставщиком — от скорректированного факта.
   // При упаковочном отпуске actual_unit_price — скорректированная цена упаковки.

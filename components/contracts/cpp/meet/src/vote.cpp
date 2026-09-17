@@ -29,6 +29,9 @@ void meet::vote(name coopname, checksum256 hash, name username, document2 ballot
     require_auth(coopname);
     
     verify_document_or_fail(ballot);
+    // Бюллетень подписывает сам голосующий: иначе чужим ключом можно было бы
+    // проголосовать за пайщика — транзакцию во всех случаях шлёт кооператив.
+    verify_signer_keys_or_fail(ballot, username);
     
     // Получаем объект собрания
     auto meet_opt = get_meet(coopname, hash);

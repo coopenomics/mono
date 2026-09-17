@@ -294,3 +294,18 @@ cases:
 # `onmktrtauth` под тем же `p.mkt.return`; `exit_helpers` — свободный паевой
 # Стола заказов (`w.mkt.share`) отзывается при выходе как `o.mkt.recall`.
 # Набор случаев не менялся.
+
+  - id: l2.naming.sign.01
+    level: contract
+    kind: break
+    scenario: >
+      Документ подан с подписью, где рядом с именем пайщика стоит чужой ключ
+      (приём возврата).
+    expect: >
+      отказ «Public key does not belong to account»: подпись сверяется с ключом
+      аккаунта подписанта. Транзакции шлёт кооператив, поэтому до 17.09.2026
+      любой ключ рядом с чужим именем проходил как подпись этого человека.
+      Механизм общий для всех контрактов (`verify_signer_keys_or_fail`) и
+      проверен на самом коротком пути — заявлении о вступлении
+    test: components/boot/src/tests/document-signature.test.ts
+    status: passing

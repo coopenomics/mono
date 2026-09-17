@@ -25,6 +25,8 @@ void capital::createpgexp(name coopname, checksum256 expense_hash, name creator,
   require_auth(coopname);
 
   verify_document_or_fail(statement, {creator});
+  // Записку на расход программы подписывает её автор. Транзакцию шлёт кооператив, поэтому ключ сверяется с аккаунтом.
+  verify_signer_keys_or_fail(statement, creator);
   eosio::check(!items.empty(), "Программный расход должен содержать хотя бы один item");
 
   // Сумма расхода — сумма planned_amount всех items.

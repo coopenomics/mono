@@ -53,6 +53,9 @@
   
   // Проверяем подпись документа
   verify_document_or_fail(statement);
+  // Заявление о вступлении подписывает сам кандидат: транзакцию шлёт кооператив,
+  // и без сверки ключа с аккаунтом чужой подписью можно было бы вступить за другого.
+  verify_signer_keys_or_fail(statement, username);
   
   Registrator::candidates_index candidates(_registrator, coopname.value);
   auto candidate = candidates.find(username.value);

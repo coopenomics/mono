@@ -24,6 +24,8 @@ void capital::createexpnse(eosio::name coopname, checksum256 expense_hash, check
   require_auth(coopname);
   
   verify_document_or_fail(statement);
+  // Заявление о расходе подписывает тот, от чьего имени оно подано. Транзакцию шлёт кооператив, поэтому ключ сверяется с аккаунтом.
+  verify_signer_keys_or_fail(statement, creator);
   
   Wallet::validate_asset(amount);
   

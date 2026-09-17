@@ -21,6 +21,9 @@
   auto dec = get_decision_or_fail(coopname, hash);
   eosio::check(dec.status == "voting"_n, "Решение не находится в стадии голосования");
 
+  // Протокол собрания участка подписан ключом его председателя.
+  verify_signer_keys_or_fail(protocol, dec.chairman);
+
   // Кворум: число поданных бюллетеней не меньше минимального
   eosio::check(dec.signed_ballots >= MIN_DECISION_QUORUM, "Не набран минимальный кворум собрания");
 

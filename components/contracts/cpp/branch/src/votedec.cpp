@@ -16,6 +16,8 @@
   check_auth_or_fail(_branch, coopname, coopname, "votedec"_n);
 
   verify_document_or_fail(ballot);
+  // Бюллетень подписан ключом самого голосующего.
+  verify_signer_keys_or_fail(ballot, username);
 
   auto dec = get_decision_or_fail(coopname, hash);
   eosio::check(dec.status == "voting"_n, "Голосование не открыто");

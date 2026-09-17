@@ -48,6 +48,9 @@ void marketplace::issueact2(eosio::name coopname,
                "Подписант со стороны кооператива не уполномочен подписывать акты выдачи данного кооперативного участка");
   eosio::check(!is_empty_document(act), "Отсутствует акт приёма-передачи");
   verify_document_or_fail(act, { o.orderer, delivery_signer });
+  // Обе подписи под актом выдачи сделаны ключами своих аккаунтов. Транзакцию шлёт кооператив, поэтому ключ сверяется с аккаунтом.
+  verify_signer_keys_or_fail(act, o.orderer);
+  verify_signer_keys_or_fail(act, delivery_signer);
 
   const eosio::asset fact_cost = o.fact_cost;
   eosio::check(fact_cost.amount > 0,

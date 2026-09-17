@@ -18,6 +18,9 @@
   check_auth_or_fail(_branch, coopname, coopname, "createdec"_n);
 
   verify_document_or_fail(proposal);
+  // Предложение о собрании участка подписывает его организатор: транзакцию
+  // шлёт кооператив, и без сверки ключа собрание созывалось бы от чужого имени.
+  verify_signer_keys_or_fail(proposal, initiator);
 
   eosio::check(type == "free"_n || type == "createbranch"_n, "Недопустимый тип решения");
 
