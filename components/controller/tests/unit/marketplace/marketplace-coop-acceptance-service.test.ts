@@ -68,19 +68,19 @@ describe('MarketplaceCoopAcceptanceService', () => {
     const service = new MarketplaceCoopAcceptanceService(repo, makeLogger());
 
     const status = await service.accept({
-      document_registry_id: 1101,
+      document_registry_id: 1102,
       accepted_by_board_decision_id: 'board-decision-42',
       accepted_at: '2026-05-14T12:00:00Z',
     });
 
     expect(status.status).toBe('active');
-    expect(status.document_registry_id).toBe(1101);
+    expect(status.document_registry_id).toBe(1102);
     expect(status.accepted_at).toBe('2026-05-14T12:00:00Z');
     expect(status.accepted_by_board_decision_id).toBe('board-decision-42');
     expect(repo.patchConfig).toHaveBeenCalledTimes(1);
     expect(repo._state.config.coopAcceptance).toEqual({
       accepted: true,
-      document_registry_id: 1101,
+      document_registry_id: 1102,
       accepted_at: '2026-05-14T12:00:00Z',
       accepted_by_board_decision_id: 'board-decision-42',
     });
@@ -157,7 +157,7 @@ describe('MarketplaceCoopAcceptanceService.accept: дата принятия', (
 
     await expect(
       service.accept({
-        document_registry_id: 1101,
+        document_registry_id: 1102,
         accepted_by_board_decision_id: 'board-decision-42',
         accepted_at: 'вчера',
       })
@@ -172,7 +172,7 @@ describe('MarketplaceCoopAcceptanceService.accept: дата принятия', (
 
     await expect(
       service.accept({
-        document_registry_id: 1101,
+        document_registry_id: 1102,
         accepted_by_board_decision_id: 'board-decision-42',
         accepted_at: future,
       })
@@ -186,7 +186,7 @@ describe('MarketplaceCoopAcceptanceService.accept: дата принятия', (
     const skewed = new Date(Date.now() + 30 * 1000).toISOString();
 
     const status = await service.accept({
-      document_registry_id: 1101,
+      document_registry_id: 1102,
       accepted_by_board_decision_id: 'board-decision-42',
       accepted_at: skewed,
     });
