@@ -270,3 +270,16 @@ cases:
       заново, а не получает залипший отказ
     test: components/controller/tests/unit/capital/artifact-and-communication-access.test.ts
     status: passing
+
+  - id: cap.artacc.show.01
+    level: backend
+    kind: break
+    scenario: >
+      Описание проекта, задачи или заметка к звонку отправлены прямо в API со
+      скриптом, минуя редактор кабинета.
+    expect: >
+      исполняемое вырезано при записи: очистка стоит на сервере, а не только в
+      браузере. Разметка, таблицы и схемы BPMN остаются нетронутыми. Общее
+      описание — platform.user-input-markup, задача C28-74
+    test: components/cooptypes/test/sanitize-editor-text.test.ts
+    status: passing

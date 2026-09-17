@@ -17,6 +17,7 @@ import { ProjectOutputDTO } from '../dto/project_management/project.dto';
 import { ProjectFilterInputDTO } from '../dto/property_management/project-filter.input';
 import { PaginationInputDTO, PaginationResult,
   platformSettings,
+  sanitizeUserText,
 } from '@coopenomics/extension-kit';
 import { ProjectMapperService } from './project-mapper.service';
 import type { IMonoAccount } from '@coopenomics/innercoop';
@@ -49,8 +50,19 @@ export class ProjectManagementService {
   /**
    * Создание проекта в CAPITAL контракте
    */
+
+  /**
+   * Описание и приглашение пишет человек в редакторе, но принимает их мутация:
+   * очистка в браузере ничего не значит для запроса, отправленного прямо в API
+   * или из командной строки. Правило мягкое — разметка и таблицы в описании
+   * остаются нетронутыми, уходит только исполняемое.
+   */
+  private withCleanText<T extends { description?: string; invite?: string }>(data: T): T {
+    return { ...data, description: sanitizeUserText(data.description), invite: sanitizeUserText(data.invite) };
+  }
+
   async createProject(data: CreateProjectInputDTO, currentUser: IMonoAccount): Promise<InnerTransactResult> {
-    return await this.projectManagementInteractor.createProject(data, currentUser);
+    return await this.projectManagementInteractor.createProject(this.withCleanText(data), currentUser);
   }
 
   /**
@@ -60,7 +72,7 @@ export class ProjectManagementService {
     data: CreateProjectInputDTO,
     currentUser: IMonoAccount
   ): Promise<ProjectOutputDTO> {
-    const project = await this.projectManagementInteractor.createLocalProject(data, currentUser);
+    const project = await this.projectManagementInteractor.createLocalProject(this.withCleanText(data), currentUser);
     return await this.projectMapperService.mapToDTO(project, currentUser);
   }
 
@@ -79,7 +91,7 @@ export class ProjectManagementService {
       }
     }
 
-    return await this.projectManagementInteractor.editProject(data, currentUser.username);
+    return await this.projectManagementInteractor.editProject(this.withCleanText(data), currentUser.username);
   }
 
   /**

@@ -1,6 +1,6 @@
 import { Resolver, Query, Mutation, Args } from '@nestjs/graphql';
 import { UseGuards, Logger } from '@nestjs/common';
-import { GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser, sanitizeUserText } from '@coopenomics/extension-kit';
 import type { IMonoAccount } from '@coopenomics/innercoop';
 import { TranscriptionManagementService } from '../../domain/services/transcription-management.service';
 import { MatrixApiService } from '../services/matrix-api.service';
@@ -188,7 +188,9 @@ export class TranscriptionResolver {
     if (existing) {
       await this.access.assertCanReadRoom(currentUser, existing.transcription.matrixRoomId);
     }
-    const updated = await this.transcriptionService.updateTranscriptionMemo(data.id, data.memo);
+    // Заметку пишет человек в редакторе, но принимает её мутация: очистка в
+    // браузере ничего не значит для запроса, отправленного прямо в API.
+    const updated = await this.transcriptionService.updateTranscriptionMemo(data.id, sanitizeUserText(data.memo));
     return this.toCallTranscriptionResponse(updated);
   }
 }
