@@ -17,6 +17,11 @@ class Resolver {
   councilAction(): void {
     return undefined;
   }
+
+  @AuthRoles([])
+  selfOnly(): void {
+    return undefined;
+  }
 }
 
 function contextFor(handler: (...args: any[]) => unknown, args: Record<string, unknown>, user: { username: string; role: string }): any {
@@ -45,6 +50,13 @@ describe('RolesGuard: самообход по username', () => {
       const ctx = contextFor(Resolver.prototype.councilAction, args, participant);
       expect(() => guard.canActivate(ctx)).toThrow('Недостаточно прав доступа');
     }
+  });
+
+  it('пустой список ролей — действие только от своего имени, даже для председателя', () => {
+    expect(guard.canActivate(contextFor(Resolver.prototype.selfOnly, { data: { username: 'bob' } }, participant))).toBe(true);
+    expect(() => guard.canActivate(contextFor(Resolver.prototype.selfOnly, { data: { username: 'bob' } }, chairman))).toThrow(
+      'Недостаточно прав доступа',
+    );
   });
 
   it('allowSelf: false — роль по-прежнему открывает доступ, в том числе к себе', () => {

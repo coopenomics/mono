@@ -20,7 +20,9 @@ export class PropertyManagementResolver {
     description: 'Создание проектного имущественного взноса в CAPITAL контракте',
   })
   @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['participant'])
+  // Только от своего имени: ролей нет, RolesGuard пускает по совпадению
+  // data.username с текущим пайщиком (роли «participant» в кооперативе нет).
+  @AuthRoles([])
   async createCapitalProjectProperty(
     @Args('data', { type: () => CreateProjectPropertyInputDTO }) data: CreateProjectPropertyInputDTO
   ): Promise<TransactionDTO> {
@@ -36,7 +38,9 @@ export class PropertyManagementResolver {
     description: 'Создание программного имущественного взноса в CAPITAL контракте',
   })
   @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['participant'])
+  // Только от своего имени: ролей нет, RolesGuard пускает по совпадению
+  // data.username с текущим пайщиком (роли «participant» в кооперативе нет).
+  @AuthRoles([])
   async createCapitalProgramProperty(
     @Args('data', { type: () => CreateProgramPropertyInputDTO }) data: CreateProgramPropertyInputDTO
   ): Promise<TransactionDTO> {

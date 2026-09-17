@@ -25,7 +25,9 @@ export class DebtManagementResolver {
     description: 'Получение ссуды в CAPITAL контракте',
   })
   @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['participant'])
+  // Только от своего имени: ролей нет, RolesGuard пускает по совпадению
+  // data.username с текущим пайщиком (роли «participant» в кооперативе нет).
+  @AuthRoles([])
   async createCapitalDebt(
     @Args('data', { type: () => CreateDebtInputDTO }) data: CreateDebtInputDTO
   ): Promise<TransactionDTO> {

@@ -40,9 +40,7 @@ export class ComponentMetricResolver {
 
   @Mutation(() => MeasureOutputDTO, {
     name: 'capitalCreateMeasure',
-    description:
-      'Устарело: справочник мер централизован, создание только через миграции. Мутация всегда отклоняется.',
-    deprecationReason: 'Справочник мер централизован — создание через миграции',
+    description: 'Добавить меру в справочник кооператива; мера с тем же названием и единицей не дублируется — она возвращается (из архива — восстанавливается) с выбранным типом ряда',
   })
   @UseGuards(GqlJwtAuthGuard, RolesGuard)
   @AuthRoles(['chairman'])

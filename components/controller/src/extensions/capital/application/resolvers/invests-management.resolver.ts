@@ -34,7 +34,9 @@ export class InvestsManagementResolver {
     description: 'Инвестирование в проект CAPITAL контракта',
   })
   @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['participant'])
+  // Только от своего имени: ролей нет, RolesGuard пускает по совпадению
+  // data.username с текущим пайщиком (роли «participant» в кооперативе нет).
+  @AuthRoles([])
   async createCapitalProjectInvest(
     @Args('data', { type: () => CreateProjectInvestInputDTO }) data: CreateProjectInvestInputDTO,
     @CurrentUser() currentUser: IMonoAccount
@@ -51,7 +53,9 @@ export class InvestsManagementResolver {
     description: 'Инвестирование в программу благорост (денежная программная инвестиция)',
   })
   @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['participant'])
+  // Только от своего имени: ролей нет, RolesGuard пускает по совпадению
+  // data.username с текущим пайщиком (роли «participant» в кооперативе нет).
+  @AuthRoles([])
   async createCapitalProgramInvest(
     @Args('data', { type: () => CreateProgramInvestInputDTO }) data: CreateProgramInvestInputDTO,
     @CurrentUser() currentUser: IMonoAccount
