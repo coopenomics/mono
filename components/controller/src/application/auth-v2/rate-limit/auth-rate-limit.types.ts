@@ -50,6 +50,12 @@ export interface AuthRateLimitConfig {
    * `TooManyRecoveryAttempts` — AC различает его и общий лимит контура входа.
    */
   error?: { code: AuthV2ErrorCode; message: string };
+  /**
+   * Отдельное пространство счётчиков. Без него все эндпоинты считают попытки в
+   * общих ключах `ip`/`account`, и чужие обращения (вход, чтение блоба)
+   * расходуют лимит этого эндпоинта.
+   */
+  scope?: string;
 }
 
 /** Ключ метаданных, под которым `@AuthRateLimit` кладёт конфиг для guard'а. */

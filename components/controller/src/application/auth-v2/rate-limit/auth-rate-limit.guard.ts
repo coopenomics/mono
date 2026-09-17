@@ -61,12 +61,13 @@ export class AuthRateLimitGuard implements CanActivate {
     const ip = req.ip ?? 'unknown';
 
     // Собираем активные ключи: per-IP всегда; per-account — только если извлекаем.
+    const scoped = (name: string) => (config.scope ? `${config.scope}:${name}` : name);
     const checks: Array<{ name: string; tracker: string; rule: RateLimitRule }> = [
-      { name: 'ip', tracker: ip, rule: config.ip },
+      { name: scoped('ip'), tracker: ip, rule: config.ip },
     ];
     if (config.account) {
       const accountId = config.account.key(req);
-      if (accountId) checks.push({ name: 'account', tracker: accountId, rule: config.account });
+      if (accountId) checks.push({ name: scoped('account'), tracker: accountId, rule: config.account });
     }
 
     let exceeded = false;

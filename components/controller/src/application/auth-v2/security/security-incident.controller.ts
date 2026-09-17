@@ -1,6 +1,9 @@
-import { Controller, Param, Post, Req, UseFilters } from '@nestjs/common';
+import { Controller, Param, Post, Req, UseFilters, UseGuards } from '@nestjs/common';
 import type { Request } from 'express';
 import { AuthV2ExceptionFilter } from '../exceptions/auth-v2-exception.filter';
+import { AuthRateLimit } from '../rate-limit/auth-rate-limit.decorator';
+import { AuthRateLimitGuard } from '../rate-limit/auth-rate-limit.guard';
+import { MAGIC_LINK_RULE } from '../rate-limit/auth-rate-limit.types';
 import { SecurityIncidentService } from './security-incident.service';
 
 /**
@@ -18,6 +21,11 @@ export class SecurityIncidentController {
   constructor(private readonly incidents: SecurityIncidentService) {}
 
   @Post('not-me/:token')
+  // Токен в ссылке длинный, но перебор без ограничения ничем не сдерживался:
+  // 10 обращений в час с одного адреса хватает на повторный клик из письма;
+  // счётчик свой — вход и чтение блоба его не расходуют.
+  @UseGuards(AuthRateLimitGuard)
+  @AuthRateLimit({ ip: MAGIC_LINK_RULE, scope: 'security-not-me' })
   async notMeOneClick(@Param('token') token: string, @Req() req: Request): Promise<{ revoked: number }> {
     return this.incidents.reportByToken(token, req.ip ?? null);
   }

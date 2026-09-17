@@ -47,6 +47,16 @@ describe('AuthRateLimitGuard (Story 9.1)', () => {
     expect(increment).toHaveBeenCalledWith('ant', LOGIN_ACCOUNT_RULE.ttl, LOGIN_ACCOUNT_RULE.limit, LOGIN_ACCOUNT_RULE.ttl, 'account');
   });
 
+  it('scope уводит счётчики в своё пространство — чужие эндпоинты его не расходуют', async () => {
+    const increment = jest.fn().mockResolvedValue(record(1));
+    const config: AuthRateLimitConfig = { ...TWO_KEY, scope: 'security-not-me' };
+    const { guard } = makeGuard(config, increment);
+    const ctx = makeContext(config, { ip: '1.2.3.4', params: { subject_id: 'ant' } });
+    await expect(guard.canActivate(ctx)).resolves.toBe(true);
+    expect(increment).toHaveBeenCalledWith('1.2.3.4', LOGIN_IP_RULE.ttl, LOGIN_IP_RULE.limit, LOGIN_IP_RULE.ttl, 'security-not-me:ip');
+    expect(increment).toHaveBeenCalledWith('ant', LOGIN_ACCOUNT_RULE.ttl, LOGIN_ACCOUNT_RULE.limit, LOGIN_ACCOUNT_RULE.ttl, 'security-not-me:account');
+  });
+
   it('превышение IP-лимита → 429 TooManyAttempts', async () => {
     const increment = jest.fn().mockResolvedValue(record(LOGIN_IP_RULE.limit + 1));
     const { guard } = makeGuard({ ip: LOGIN_IP_RULE }, increment);
