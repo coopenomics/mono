@@ -1177,6 +1177,8 @@ export type ValueTypes = {
 }>;
 	/** Тип аккаунта пользователя в системе */
 ["AccountType"]:AccountType;
+	/** Отбор реестра пайщиков по уровню верификации */
+["AccountVerificationFilter"]:AccountVerificationFilter;
 	["AccountsPaginationResult"]: AliasType<{
 	/** Текущая страница */
 	currentPage?:boolean | `@${string}`,
@@ -7775,7 +7777,9 @@ export type ValueTypes = {
 	username: string | Variable<any, string>
 };
 	["GetAccountsInput"]: {
-	role?: string | undefined | null | Variable<any, string>
+	role?: string | undefined | null | Variable<any, string>,
+	/** Отбор по уровню верификации: паспорт сверен, не сверен, нет ни одного уровня */
+	verification?: ValueTypes["AccountVerificationFilter"] | undefined | null | Variable<any, string>
 };
 	["GetBranchesInput"]: {
 	/** Фильтр по имени аккаунта кооперативного участка */
@@ -17088,6 +17092,8 @@ export type ResolverInputTypes = {
 }>;
 	/** Тип аккаунта пользователя в системе */
 ["AccountType"]:AccountType;
+	/** Отбор реестра пайщиков по уровню верификации */
+["AccountVerificationFilter"]:AccountVerificationFilter;
 	["AccountsPaginationResult"]: AliasType<{
 	/** Текущая страница */
 	currentPage?:boolean | `@${string}`,
@@ -23530,7 +23536,9 @@ export type ResolverInputTypes = {
 	username: string
 };
 	["GetAccountsInput"]: {
-	role?: string | undefined | null
+	role?: string | undefined | null,
+	/** Отбор по уровню верификации: паспорт сверен, не сверен, нет ни одного уровня */
+	verification?: ResolverInputTypes["AccountVerificationFilter"] | undefined | null
 };
 	["GetBranchesInput"]: {
 	/** Фильтр по имени аккаунта кооперативного участка */
@@ -32547,6 +32555,7 @@ export type ModelTypes = {
 	last_seen_at: string
 };
 	["AccountType"]:AccountType;
+	["AccountVerificationFilter"]:AccountVerificationFilter;
 	["AccountsPaginationResult"]: {
 		/** Текущая страница */
 	currentPage: number,
@@ -38800,7 +38809,9 @@ export type ModelTypes = {
 	username: string
 };
 	["GetAccountsInput"]: {
-	role?: string | undefined | null
+	role?: string | undefined | null,
+	/** Отбор по уровню верификации: паспорт сверен, не сверен, нет ни одного уровня */
+	verification?: ModelTypes["AccountVerificationFilter"] | undefined | null
 };
 	["GetBranchesInput"]: {
 	/** Фильтр по имени аккаунта кооперативного участка */
@@ -47968,6 +47979,8 @@ export type GraphQLTypes = {
 };
 	/** Тип аккаунта пользователя в системе */
 ["AccountType"]: AccountType;
+	/** Отбор реестра пайщиков по уровню верификации */
+["AccountVerificationFilter"]: AccountVerificationFilter;
 	["AccountsPaginationResult"]: {
 	__typename: "AccountsPaginationResult",
 	/** Текущая страница */
@@ -54566,7 +54579,9 @@ export type GraphQLTypes = {
 	username: string
 };
 	["GetAccountsInput"]: {
-		role?: string | undefined | null
+		role?: string | undefined | null,
+	/** Отбор по уровню верификации: паспорт сверен, не сверен, нет ни одного уровня */
+	verification?: GraphQLTypes["AccountVerificationFilter"] | undefined | null
 };
 	["GetBranchesInput"]: {
 		/** Фильтр по имени аккаунта кооперативного участка */
@@ -64380,6 +64395,12 @@ export enum AccountType {
 	individual = "individual",
 	organization = "organization"
 }
+/** Отбор реестра пайщиков по уровню верификации */
+export enum AccountVerificationFilter {
+	NONE = "NONE",
+	NO_PASSPORT = "NO_PASSPORT",
+	PASSPORT = "PASSPORT"
+}
 /** Статус соглашения в системе кооператива */
 export enum AgreementStatus {
 	CONFIRMED = "CONFIRMED",
@@ -65326,6 +65347,7 @@ export enum ZeroReportSignerType {
 type ZEUS_VARIABLES = {
 	["AccountKind"]: ValueTypes["AccountKind"];
 	["AccountType"]: ValueTypes["AccountType"];
+	["AccountVerificationFilter"]: ValueTypes["AccountVerificationFilter"];
 	["ActionFiltersInput"]: ValueTypes["ActionFiltersInput"];
 	["AddAuthorInput"]: ValueTypes["AddAuthorInput"];
 	["AddAvailableCategoriesInput"]: ValueTypes["AddAvailableCategoriesInput"];

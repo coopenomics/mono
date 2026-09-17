@@ -1,9 +1,8 @@
 <template lang="pug">
 div
   //- Компьютер: канон-таблица. Строка открывает данные пайщика в правом
-  //- дроуэре, «Подробнее» — явная подсказка, что это можно. Все пайщики
-  //- кооператива уже загружены страницей, поэтому показываем их целиком с
-  //- сортировкой, без нарезки на страницы.
+  //- дроуэре, «Подробнее» — явная подсказка, что это можно. Страницы и отбор
+  //- делает сервер; порядок — сначала новые.
   template(v-if='!isMobile')
     BaseTable(
       v-if='firstLoad || accounts.length',
@@ -15,9 +14,7 @@ div
       clickable-rows,
       sticky-header,
       max-height='70vh',
-      min-width='960px',
-      sort-by='created_at',
-      descending,
+      min-width='1300px',
       @row-click='openDetails'
     )
       template(#cell-status='{ row }')
@@ -32,6 +29,15 @@ div
           q-icon.q-mr-xs(name='open_in_new', size='16px')
           | Подробнее
 
+      template(v-if='showPager', #footer)
+        TablePager(
+          label='Пайщики',
+          :page='pagination.page',
+          :rows-per-page='pagination.rowsPerPage',
+          :rows-number='pagination.rowsNumber',
+          @update:page='(page) => emit("update:page", page)'
+        )
+
     EmptyState(v-else, title='Пайщиков не найдено', body='Под выбранный фильтр никто не подходит, или в кооперативе пока нет пайщиков.')
       template(#icon)
         q-icon(name='groups', size='32px')
@@ -45,6 +51,14 @@ div
         :key='account.username',
         :participant='account',
         @open='openDetails(account)'
+      )
+      TablePager(
+        v-if='showPager',
+        label='Пайщики',
+        :page='pagination.page',
+        :rows-per-page='pagination.rowsPerPage',
+        :rows-number='pagination.rowsNumber',
+        @update:page='(page) => emit("update:page", page)'
       )
     EmptyState(v-else, title='Пайщиков не найдено', body='Под выбранный фильтр никто не подходит, или в кооперативе пока нет пайщиков.')
       template(#icon)
@@ -79,6 +93,7 @@ import {
   BaseTable,
   CardListSkeleton,
   EmptyState,
+  TablePager,
   type BaseTableColumn,
 } from 'src/shared/ui/base';
 import { DetailsDrawer } from 'src/shared/ui/domain';
@@ -104,11 +119,14 @@ const props = defineProps<{
   loading: boolean;
   /** Как называть верификатора и участок в подписи уровня. */
   naming?: VerificationNaming;
+  /** Текущая страница реестра; число строк всего знает сервер. */
+  pagination: { page: number; rowsPerPage: number; rowsNumber: number };
 }>();
 
 // Emits
 const emit = defineEmits<{
   (e: 'verification-changed'): void;
+  (e: 'update:page', page: number): void;
   (
     e: 'update',
     account: IAccount,
@@ -122,8 +140,13 @@ const emit = defineEmits<{
 // должен показывать уже обновлённые данные.
 const detailsOpen = ref(false);
 const selectedUsername = ref<string | null>(null);
-const selected = computed(() =>
-  props.accounts.find((account) => account.username === selectedUsername.value) ?? null,
+// Снимок на момент открытия — на случай, если пайщика нет в текущей странице
+// (переключили страницу или отбор, не закрыв дроуэр).
+const selectedSnapshot = ref<IAccount | null>(null);
+const selected = computed(
+  () =>
+    props.accounts.find((account) => account.username === selectedUsername.value) ??
+    selectedSnapshot.value,
 );
 const { isMobile } = useWindowSize();
 
@@ -131,46 +154,25 @@ const { isMobile } = useWindowSize();
 // (после правки анкеты, верификации) идут молча, без мерцания.
 const firstLoad = useFirstLoad(() => props.loading);
 
-// Дата вступления для сортировки: та же, что в ячейке, но числом.
-const joinTimestamp = (row: IAccount): number => {
-  const raw = row.participant_account?.created_at || row.user_account?.registered_at;
-  return raw ? moment(String(raw)).valueOf() : 0;
-};
+// Переключатель страниц нужен, только когда пайщиков больше одной страницы.
+const showPager = computed(() => props.pagination.rowsNumber > props.pagination.rowsPerPage);
 
-// Колонки таблицы
+// Колонки таблицы. Сортировки по заголовку нет: реестр приходит страницами, и
+// сортировка одной страницы вводила бы в заблуждение. Сумма заданных ширин
+// (1040px) меньше min-width таблицы (1300px) — остаток достаётся колонке ФИО;
+// без этого запаса она схлопывалась в ноль и буквы шли столбиком.
 const columns: BaseTableColumn<IAccount>[] = [
-  { key: 'name', label: 'ФИО / Наименование', field: (row) => getName(row), sortable: true },
-  { key: 'username', label: 'Аккаунт', field: 'username', width: '140px', nowrap: true, sortable: true },
+  { key: 'name', label: 'ФИО / Наименование', field: (row) => getName(row) },
+  { key: 'username', label: 'Аккаунт', field: 'username', width: '140px', nowrap: true },
   {
     key: 'email',
     label: 'Email',
     field: (row) => row.provider_account?.email || 'Не указан',
     width: '220px',
-    sortable: true,
   },
-  {
-    key: 'created_at',
-    label: 'Дата вступления',
-    field: (row) => joinDate(row),
-    width: '160px',
-    nowrap: true,
-    sortable: true,
-    sort: (_a, _b, rowA, rowB) => joinTimestamp(rowA) - joinTimestamp(rowB),
-  },
-  {
-    key: 'status',
-    label: 'Статус',
-    field: (row) => getAccountStatusBadge(row).label,
-    width: '200px',
-    sortable: true,
-  },
-  {
-    key: 'verification',
-    label: 'Верификация',
-    field: (row) => verificationCell(row).short,
-    width: '170px',
-    sortable: true,
-  },
+  { key: 'created_at', label: 'Дата вступления', field: (row) => joinDate(row), width: '170px', nowrap: true },
+  { key: 'status', label: 'Статус', field: (row) => getAccountStatusBadge(row).label, width: '200px' },
+  { key: 'verification', label: 'Верификация', field: (row) => verificationCell(row).short, width: '170px' },
   { key: 'actions', label: '', width: '140px', align: 'right' },
 ];
 
@@ -211,6 +213,7 @@ const joinDate = (row: IAccount): string => {
 // События
 const openDetails = (account: IAccount) => {
   selectedUsername.value = account.username;
+  selectedSnapshot.value = account;
   detailsOpen.value = true;
 };
 

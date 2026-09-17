@@ -13,8 +13,10 @@ q-page.participants-page
       v-model='filterValues'
     )
     ParticipantsTable(
-      :accounts='filteredAccounts',
+      :accounts='accountStore.accounts.items',
       :loading='onLoading',
+      :pagination='pagination',
+      @update:page='goToPage',
       :naming='verificationNaming',
       @update='update',
       @verification-changed='onVerificationChanged'
@@ -29,9 +31,9 @@ q-page.participants-page
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, reactive, computed, onMounted, watch } from 'vue';
 import { FilterBar, type FilterDefinition, type FilterValues } from 'src/shared/ui/domain/FilterBar';
-import { participantVerificationView, type VerificationNaming } from 'src/shared/lib/verification';
+import type { VerificationNaming } from 'src/shared/lib/verification';
 import { useBranchStore } from 'src/entities/Branch/model';
 import { useSystemStore } from 'src/entities/System/model';
 import { getName } from 'src/shared/lib/utils';
@@ -50,6 +52,7 @@ import {
   type IIndividualData,
   type IOrganizationData,
   type IEntrepreneurData,
+  type IGetAccounts,
 } from 'src/entities/Account/types';
 
 const accountStore = useAccountStore();
@@ -61,8 +64,33 @@ const onLoading = ref(false);
 // Подписи уровней верификации — человеческими именами: кто сверил личность
 // и на каком участке. Служебные account-id и имена участков в цепи остаются
 // запасным вариантом, когда человеческого имени нет.
+//
+// Реестр приходит страницами, и сверявший (председатель, доверенное лицо
+// участка) может оказаться на другой странице. Поэтому имена берём из
+// загруженной страницы, а недостающие дочитываем по одному и запоминаем.
+const knownNames = reactive(new Map<string, string>());
+const requestedNames = new Set<string>();
+const resolveName = (username: string): string => {
+  const known = knownNames.get(username);
+  if (known !== undefined) return known;
+  if (username && !requestedNames.has(username)) {
+    requestedNames.add(username);
+    void accountStore
+      .fetchAccount(username)
+      .then((account) => knownNames.set(username, account ? getName(account) : ''))
+      .catch(() => knownNames.set(username, ''));
+  }
+  return '';
+};
+watch(
+  () => accountStore.accounts.items,
+  (items) => {
+    for (const account of items) knownNames.set(account.username, getName(account));
+  },
+  { immediate: true },
+);
+
 const verificationNaming = computed((): VerificationNaming => {
-  const names = new Map(accountStore.accounts.items.map((account) => [account.username, getName(account)]));
   const branches = new Map(
     branchStore.publicBranches.map((branch) => [
       branch.braname,
@@ -70,7 +98,7 @@ const verificationNaming = computed((): VerificationNaming => {
     ]),
   );
   return {
-    attestorName: (username: string) => names.get(username) || '',
+    attestorName: resolveName,
     branchName: (braname: string) => branches.get(braname) || '',
   };
 });
@@ -91,18 +119,23 @@ const verificationFilterDefs: FilterDefinition[] = [
   },
 ];
 const filterValues = ref<FilterValues>({});
-const filteredAccounts = computed(() => {
-  const selected = filterValues.value.verification;
-  const items = accountStore.accounts.items;
-  if (!selected) return items;
-  return items.filter((account) => {
-    const types = participantVerificationView(account).map((level) => level.type);
-    if (selected === 'no_passport') return !types.includes('passport_onsite');
-    if (selected === 'passport') return types.includes('passport_onsite');
-    if (selected === 'none') return types.length === 0;
-    return true;
-  });
-});
+
+// Отбор по верификации и постраничность делает сервер: уровни верификации
+// живут в цепи, и отбирать их на одной загруженной странице было бы неверно.
+const VERIFICATION_FILTER = {
+  no_passport: 'NO_PASSPORT',
+  passport: 'PASSPORT',
+  none: 'NONE',
+} as const;
+type AccountsInput = NonNullable<IGetAccounts['data']>;
+
+const PAGE_SIZE = 20;
+const page = ref(1);
+const pagination = computed(() => ({
+  page: page.value,
+  rowsPerPage: PAGE_SIZE,
+  rowsNumber: accountStore.accounts.totalCount,
+}));
 
 // Вторая вкладка — журнал верификаций: что, когда и кем сверено. Совету он
 // нужен как рабочая очередь: сверки с участков ждут его решения.
@@ -111,7 +144,7 @@ const journalRef = ref<InstanceType<typeof VerificationsJournal> | null>(null);
 // Журнал верификаций читает и решает только председатель совета — остальным
 // сервер откажет, и вкладка была бы кнопкой в никуда.
 const tabs = computed((): PageTab[] => [
-  { key: 'participants', label: 'Пайщики', count: accountStore.accounts.items.length },
+  { key: 'participants', label: 'Пайщики', count: accountStore.accounts.totalCount },
   ...(session.isChairman ? [{ key: 'verifications', label: 'Верификации' }] : []),
 ]);
 
@@ -141,8 +174,11 @@ onMounted(() => {
 const loadParticipants = async () => {
   try {
     onLoading.value = true;
+    const selected = filterValues.value.verification as keyof typeof VERIFICATION_FILTER | undefined;
+    const verification = selected ? VERIFICATION_FILTER[selected] : undefined;
     await accountStore.getAccounts({
-      options: { page: 1, limit: 1000, sortOrder: 'DESC' },
+      data: (verification ? { verification } : {}) as AccountsInput,
+      options: { page: page.value, limit: PAGE_SIZE, sortOrder: 'DESC' },
     });
     // Названия участков нужны только для подписи «где сверили» — грузим их
     // один раз и не роняем реестр, если участков в кооперативе нет.
@@ -155,6 +191,21 @@ const loadParticipants = async () => {
     onLoading.value = false;
   }
 };
+
+const goToPage = (next: number) => {
+  page.value = next;
+  void loadParticipants();
+};
+
+// Сменили отбор — показываем его с первой страницы.
+watch(
+  () => filterValues.value.verification,
+  () => {
+    page.value = 1;
+    void loadParticipants();
+  },
+);
+
 loadParticipants();
 
 const update = (

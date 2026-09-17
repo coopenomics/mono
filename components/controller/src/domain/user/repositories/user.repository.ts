@@ -105,6 +105,9 @@ export interface UserRepository {
     options?: PaginationInputDomainInterface
   ): Promise<PaginationResultDomainInterface<UserDomainEntity>>;
 
+  /** Имена аккаунтов пользователей (с отбором по роли) — без загрузки записей. */
+  findUsernames(filter?: Pick<UserFilterInputDomainInterface, 'role'>): Promise<string[]>;
+
   /**
    * Находит пользователей без subscriber_id для синхронизации уведомлений
    * @param limit - ограничение количества результатов

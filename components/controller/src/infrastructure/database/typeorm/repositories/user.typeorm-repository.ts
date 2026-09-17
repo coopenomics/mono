@@ -261,6 +261,11 @@ export class UserTypeormRepository implements UserRepository {
       if (filter.created_to) {
         queryBuilder.andWhere('user.created_at <= :created_to', { created_to: filter.created_to });
       }
+      if (filter.usernames) {
+        // Пустой отбор — пустой результат, а не «все»: IN () в SQL недопустим.
+        if (filter.usernames.length === 0) queryBuilder.andWhere('1 = 0');
+        else queryBuilder.andWhere('user.username IN (:...usernames)', { usernames: filter.usernames });
+      }
     }
 
     // Применяем пагинацию
@@ -287,6 +292,13 @@ export class UserTypeormRepository implements UserRepository {
       totalPages: Math.ceil(total / limit),
       totalCount: total,
     };
+  }
+
+  async findUsernames(filter?: Pick<UserFilterInputDomainInterface, 'role'>): Promise<string[]> {
+    const queryBuilder = this.repository.createQueryBuilder('user').select('user.username', 'username');
+    if (filter?.role) queryBuilder.andWhere('user.role = :role', { role: filter.role });
+    const rows = await queryBuilder.getRawMany<{ username: string }>();
+    return rows.map((row) => row.username);
   }
 
   /**

@@ -3,6 +3,7 @@
 export const AllTypesProps: Record<string,any> = {
 	AccountKind: "enum" as const,
 	AccountType: "enum" as const,
+	AccountVerificationFilter: "enum" as const,
 	ActionFiltersInput:{
 
 	},
@@ -736,7 +737,7 @@ export const AllTypesProps: Record<string,any> = {
 
 	},
 	GetAccountsInput:{
-
+		verification:"AccountVerificationFilter"
 	},
 	GetBranchesInput:{
 
