@@ -19,7 +19,7 @@
               size='20px',
               @click='toggle(item.key)'
             )
-        BaseDocument.q-mt-sm(v-if='isOpen(item.key)', :documentAggregate='item.aggregate')
+        BaseDocument.complex-document__doc.q-mt-sm(v-if='isOpen(item.key)', :documentAggregate='item.aggregate')
 
     //- Развёрнутый вид: все документы пакета текстом подряд.
     template(v-else)
@@ -51,13 +51,13 @@ interface IPackageItem {
   row: DocumentRowDoc
 }
 
+// Отметку «Подписано» строке не ставим: в пакете решения подписано всё.
 const toRow = (aggregate: IDocumentAggregate, fallbackTitle: string): DocumentRowDoc => {
   const meta = (aggregate.rawDocument?.meta ?? {}) as { title?: string; created_at?: string }
   return {
     type: 'html',
     title: meta.title || fallbackTitle,
     date: meta.created_at,
-    status: aggregate.document?.doc_hash ? 'signed' : undefined,
   }
 }
 
@@ -91,6 +91,11 @@ const toggle = (key: string): void => {
 <style lang="scss" scoped>
 .complex-document__item + .complex-document__item {
   margin-top: var(--p-2, 8px);
+}
+/* Раскрытый документ в узком контейнере: без полей в 50px, которые документ
+   держит для отдельной страницы, — текст на всю ширину. */
+.complex-document__doc.dynamic-padding {
+  padding: var(--p-3, 12px) !important;
 }
 .complex-document__chevron {
   color: var(--p-ink-2);
