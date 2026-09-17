@@ -150,15 +150,22 @@ onMounted(() => {
 
 /**
  * Вступление, начатое до появления анкет (или до включения приложения, которое
- * анкету требует), могло уйти дальше шага «Сведения о себе». Сервер такое
+ * анкету требует либо добавляет вторую программу), могло уйти дальше выбора
+ * программы и шага «Сведения о себе». Сервер такое
  * заявление без ответов не примет — возвращаем человека на анкету заранее, а не
  * показываем отказ на подписи. Касается только шагов до подписи включительно:
  * подписанное заявление сервер уже принял.
  */
 const returnToUnansweredIntake = async (): Promise<void> => {
-  if (store.step <= steps.IntakeStep || store.step > steps.SignStatement) return;
+  if (store.step <= steps.SelectProgram || store.step > steps.SignStatement) return;
   await registratorStore.loadAvailablePrograms();
-  if (registratorStore.requiresIntake && !registratorStore.isIntakeComplete) {
+  // Программ стало несколько, а выбора нет (прежний был сделан системой, когда
+  // программа была единственной) — выбирать должен человек.
+  if (registratorStore.requiresProgramSelection && !store.selectedProgramKey) {
+    store.step = steps.SelectProgram;
+    return;
+  }
+  if (store.step > steps.IntakeStep && registratorStore.requiresIntake && !registratorStore.isIntakeComplete) {
     store.step = steps.IntakeStep;
   }
 };

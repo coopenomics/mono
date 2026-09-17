@@ -44,6 +44,7 @@ const programs = computed(() => registratorStore.availablePrograms);
 
 const selectProgram = (key: string) => {
   registratorStore.state.selectedProgramKey = key;
+  registratorStore.state.programAutoSelected = false;
 };
 </script>
 

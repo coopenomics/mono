@@ -214,6 +214,10 @@ export const useRegistratorStore = defineStore(
       email: '',
       selectedBranch: '',
       selectedProgramKey: '',
+      // Программу выбрал не человек, а система — она была единственной. Если
+      // позже программ станет больше (совет подключил ещё одно приложение), такой
+      // выбор сбрасывается: человек должен выбрать сам, а не унаследовать.
+      programAutoSelected: false,
       // Ответы на анкеты вступления: идентификатор анкеты → значения полей.
       intakeAnswers: {} as Record<string, Record<string, unknown>>,
       account: structuredClone(initialAccountState),
@@ -319,10 +323,13 @@ export const useRegistratorStore = defineStore(
       // больше не доступна (сменили тип аккаунта) или программ нет вовсе.
       if (availablePrograms.value.length === 1) {
         state.selectedProgramKey = availablePrograms.value[0].key;
+        state.programAutoSelected = true;
       } else if (
+        state.programAutoSelected ||
         !availablePrograms.value.some((p) => p.key === state.selectedProgramKey)
       ) {
         state.selectedProgramKey = '';
+        state.programAutoSelected = false;
       }
     };
 
@@ -393,7 +400,11 @@ export const useRegistratorStore = defineStore(
     };
 
     const next = () => {
-      const target = visibleStepIndices.value.find((i) => i > state.step);
+      // Учётка уже создана — шаг пароля вперёд не проходим повторно: сюда
+      // попадают те, кого вернули к выбору программы или к анкете.
+      const target = visibleStepIndices.value.find(
+        (i) => i > state.step && !(i === steps.GenerateAccount && state.accountCreated),
+      );
       if (target !== undefined) state.step = target;
     };
 
@@ -444,6 +455,7 @@ export const useRegistratorStore = defineStore(
       state.step = 1;
       state.selectedBranch = '';
       state.selectedProgramKey = '';
+      state.programAutoSelected = false;
       state.intakeAnswers = {};
       availablePrograms.value = [];
       commonIntakeForms.value = [];
