@@ -34,6 +34,15 @@ export const COVER_LETTER_NOTE =
 
 export const COVER_LETTER_MIN_LENGTH = 200;
 export const COVER_LETTER_MAX_LENGTH = 4000;
+/** Высота поля письма до ввода: сразу видно, что ждут развёрнутый ответ. */
+export const COVER_LETTER_MIN_ROWS = 6;
+
+export const RESUME_URL_LABEL = 'Ссылка на резюме';
+
+export const RESUME_URL_NOTE =
+  'Необязательно. Если резюме или портфолио опубликованы (hh.ru, LinkedIn, GitHub, личный сайт, облачный диск), вставьте ссылку.';
+
+export const RESUME_URL_MAX_LENGTH = 500;
 
 export const GeneratorIntakeSchema = z.object({
   cover_letter: z
@@ -46,7 +55,21 @@ export const GeneratorIntakeSchema = z.object({
         note: COVER_LETTER_NOTE,
         minLength: COVER_LETTER_MIN_LENGTH,
         maxLength: COVER_LETTER_MAX_LENGTH,
-        maxRows: 12,
+        minRows: COVER_LETTER_MIN_ROWS,
+      })
+    ),
+  // Файл резюме сейчас не принимаем: загрузка при вступлении — отдельная
+  // механика (она же понадобится для уставных документов организаций).
+  resume_url: z
+    .string()
+    .url()
+    .max(RESUME_URL_MAX_LENGTH)
+    .optional()
+    .describe(
+      describeField({
+        label: RESUME_URL_LABEL,
+        note: RESUME_URL_NOTE,
+        maxLength: RESUME_URL_MAX_LENGTH,
       })
     ),
 });

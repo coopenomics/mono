@@ -14,6 +14,7 @@ export interface IIntakeFieldDescription {
   minLength?: number;
   maxLength?: number;
   maxRows?: number;
+  minRows?: number;
   visible?: boolean;
 }
 
@@ -21,6 +22,7 @@ export interface IIntakeSchemaProperty {
   type?: string;
   description?: IIntakeFieldDescription;
   enum?: unknown[];
+  format?: string;
   minLength?: number;
   maxLength?: number;
   properties?: Record<string, IIntakeSchemaProperty>;
@@ -47,11 +49,26 @@ function lengthProblems(label: string, property: IIntakeSchemaProperty, value: s
   return problems;
 }
 
+/** Ссылка годится, только если это адрес сайта: http или https. */
+export function isWebLink(value: string): boolean {
+  try {
+    const url = new URL(value.trim());
+    return (url.protocol === 'http:' || url.protocol === 'https:') && Boolean(url.hostname);
+  } catch {
+    return false;
+  }
+}
+
+function stringProblems(label: string, property: IIntakeSchemaProperty, value: string): string[] {
+  if (property.format === 'uri' && !isWebLink(value)) return [`${label}: нужна ссылка вида https://…`];
+  return lengthProblems(label, property, value);
+}
+
 function fieldProblems(name: string, property: IIntakeSchemaProperty, value: unknown, required: boolean): string[] {
   const label = property.description?.label ?? name;
   if (!isFilled(value)) return required ? [`${label}: заполните поле`] : [];
   if (property.type === 'object') return intakeFormProblems(property, value as Record<string, unknown>);
-  return typeof value === 'string' ? lengthProblems(label, property, value) : [];
+  return typeof value === 'string' ? stringProblems(label, property, value) : [];
 }
 
 /** Замечания к ответам на анкету; пусто — можно идти дальше. */

@@ -12,6 +12,7 @@ export type ISchemaProperty = {
   properties?: ISchemaProperty;
   items?: ISchemaProperty; // для массивов
   enum?: any[]; // если поле использует перечисления
+  format?: string; // формат строки из Zod (`uri` у z.string().url())
   additionalProperties?: boolean;
 };
 

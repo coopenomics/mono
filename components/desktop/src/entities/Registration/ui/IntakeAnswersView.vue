@@ -12,14 +12,20 @@
       :align='row.multiline ? "vertical" : "horizontal"'
     )
       template(#value-override)
-        span.intake-answers__value(:class='{ "intake-answers__value--multiline": row.multiline }') {{ row.value }}
+        a.intake-answers__value(
+          v-if='row.link',
+          :href='row.value',
+          target='_blank',
+          rel='noopener noreferrer nofollow'
+        ) {{ row.value }}
+        span.intake-answers__value(v-else, :class='{ "intake-answers__value--multiline": row.multiline }') {{ row.value }}
     .intake-answers__date.t-sm.t-muted Подано {{ formatDate(answer.submitted_at) }}
 </template>
 
 <script setup lang="ts">
 import { date } from 'quasar';
 import { DataRow } from 'src/shared/ui/domain/DataRow';
-import type { IIntakeSchema, IIntakeSchemaProperty } from 'src/shared/lib/intake-schema';
+import { isWebLink, type IIntakeSchema, type IIntakeSchemaProperty } from 'src/shared/lib/intake-schema';
 import type { ICandidateIntakeAnswer } from '../model';
 
 const props = defineProps<{
@@ -31,6 +37,8 @@ interface IAnswerRow {
   label: string;
   value: string;
   multiline: boolean;
+  /** Ссылку из анкеты показываем ссылкой, но только на сайт (http/https). */
+  link: boolean;
 }
 
 const display = (value: unknown): string => {
@@ -39,32 +47,38 @@ const display = (value: unknown): string => {
   return String(value);
 };
 
+const isEmpty = (value: unknown): boolean => value === null || value === undefined || value === '';
+
+const isMultiline = (property: IIntakeSchemaProperty, value: unknown): boolean =>
+  Boolean(property.description?.maxRows || property.description?.minRows) || String(value).includes('\n');
+
+/** Ссылку из анкеты показываем ссылкой, но только на сайт (http/https). */
+const isLink = (property: IIntakeSchemaProperty, value: unknown): boolean =>
+  property.format === 'uri' && typeof value === 'string' && isWebLink(value);
+
+const scalarRow = (key: string, label: string, property: IIntakeSchemaProperty, value: unknown): IAnswerRow => ({
+  key,
+  label,
+  value: display(value),
+  multiline: isMultiline(property, value),
+  link: isLink(property, value),
+});
+
 /** Поля анкеты в порядке схемы; вложенный объект разворачивается с составной подписью. */
 const collectRows = (
   properties: Record<string, IIntakeSchemaProperty>,
   values: Record<string, unknown>,
   prefix = '',
-): IAnswerRow[] => {
-  const rows: IAnswerRow[] = [];
-  for (const [name, property] of Object.entries(properties)) {
+): IAnswerRow[] =>
+  Object.entries(properties).flatMap(([name, property]) => {
     const value = values?.[name];
-    if (value === null || value === undefined || value === '') continue;
+    if (isEmpty(value)) return [];
     const label = `${prefix}${property.description?.label ?? name}`;
-
-    if (property.type === 'object' && property.properties && typeof value === 'object') {
-      rows.push(...collectRows(property.properties, value as Record<string, unknown>, `${label} — `));
-      continue;
-    }
-
-    rows.push({
-      key: `${prefix}${name}`,
-      label,
-      value: display(value),
-      multiline: Boolean(property.description?.maxRows) || String(value).includes('\n'),
-    });
-  }
-  return rows;
-};
+    const nested = property.type === 'object' && property.properties && typeof value === 'object';
+    return nested
+      ? collectRows(property.properties!, value as Record<string, unknown>, `${label} — `)
+      : [scalarRow(`${prefix}${name}`, label, property, value)];
+  });
 
 const rowsOf = (answer: ICandidateIntakeAnswer): IAnswerRow[] => {
   const schema = (answer.json_schema ?? {}) as IIntakeSchema;
@@ -74,8 +88,8 @@ const rowsOf = (answer: ICandidateIntakeAnswer): IAnswerRow[] => {
   // Значения, которых в снимке схемы нет, всё равно показываем — под именем поля.
   const known = new Set(Object.keys(schema.properties ?? {}));
   for (const [name, value] of Object.entries(values)) {
-    if (known.has(name) || value === null || value === undefined || value === '') continue;
-    rows.push({ key: name, label: name, value: display(value), multiline: false });
+    if (known.has(name) || isEmpty(value)) continue;
+    rows.push({ key: name, label: name, value: display(value), multiline: false, link: false });
   }
   return rows;
 };

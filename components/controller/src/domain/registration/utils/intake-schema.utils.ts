@@ -87,7 +87,20 @@ export function normalizeIntakeSchema(formId: string, schema: IntakeJsonSchema):
 
 const isEmpty = (value: unknown): boolean => value === null || value === undefined || value === '';
 
+/** Ссылка годится, только если это адрес сайта: http или https. */
+function isWebLink(value: string): boolean {
+  try {
+    const url = new URL(value);
+    return (url.protocol === 'http:' || url.protocol === 'https:') && Boolean(url.hostname);
+  } catch {
+    return false;
+  }
+}
+
 function checkString(property: IntakeJsonSchemaProperty, value: string): string | undefined {
+  if (property.format === 'uri' && !isWebLink(value)) {
+    return 'нужна ссылка вида https://…';
+  }
   if (typeof property.minLength === 'number' && value.length < property.minLength) {
     return `не короче ${property.minLength} символов`;
   }

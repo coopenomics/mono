@@ -246,6 +246,19 @@ div.settings-form
       componentProps.counter = true;
     }
 
+    if (property.format === 'uri') {
+      rules.push((val: unknown) => {
+        const text = String(val ?? '').trim();
+        if (!text) return true;
+        try {
+          const url = new URL(text);
+          return ['http:', 'https:'].includes(url.protocol) || 'Нужна ссылка вида https://…';
+        } catch {
+          return 'Нужна ссылка вида https://…';
+        }
+      });
+    }
+
     componentProps.rules = rules
 
     // Добавляем маску и другие настройки, если они указаны
@@ -276,11 +289,22 @@ div.settings-form
       } else {
         componentProps.type = 'text';  // Поле для строк
       }
-      // Проверка на многосстрочный ввод
-      if (property.description?.maxRows) {
+      // Ссылка: мобильная клавиатура с «/» и «.com», проверка адреса ниже.
+      if (property.format === 'uri') {
+        componentProps.type = 'url';
+        componentProps.inputmode = 'url';
+      }
+      // Многострочный ввод. Поле растёт вместе с текстом, но не бывает ниже
+      // `minRows` строк: иначе пустое поле выглядит однострочным, и не видно,
+      // что ждут развёрнутый ответ. У Quasar с autogrow атрибут rows не работает
+      // (высота пересчитывается по содержимому), поэтому держим её min-height.
+      const minRows = property.description?.minRows;
+      if (property.description?.maxRows || minRows) {
         componentProps.type = 'textarea';
-        componentProps.autogrow = true; // Автоматический рост поля при вводе
-        componentProps.rows = property.description?.maxRows; // Установка максимального количества строк
+        componentProps.autogrow = true;
+        if (minRows) {
+          componentProps.inputStyle = { minHeight: `calc(${minRows} * var(--p-lh-body, 1.55) * 1em)` };
+        }
       }
     }
 

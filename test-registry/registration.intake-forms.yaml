@@ -116,6 +116,14 @@ cases:
     test: components/controller/tests/unit/capital/generator-intake-schema.test.ts
     status: written
 
+  - id: reg.intake.side.14
+    level: backend
+    kind: side
+    scenario: необязательная ссылка на резюме в анкете «Генератора» — пусто, ссылка на сайт, не ссылка (адрес без протокола, текст, javascript:, ftp:, mailto:), слишком длинная
+    expect: пустое поле не мешает; ссылка http/https принимается обрезанной; остальное — замечание «нужна ссылка вида https://…» или о длине
+    test: components/controller/tests/unit/capital/generator-intake-schema.test.ts
+    status: written
+
   - id: reg.intake.side.09
     level: backend
     kind: side
