@@ -197,18 +197,18 @@ describe('анкеты вступления: проверка ответов', (
 
   it('нет ответа на обязательную анкету', () => {
     const { problems, answers } = checkIntakeAnswers(required, undefined);
-    expect(problems).toEqual(['Не заполнена анкета «Письмо»']);
+    expect(problems).toEqual(['Письмо: не заполнена']);
     expect(answers).toEqual({});
   });
 
   it('короткий текст — замечание с подписью поля и сообщением схемы', () => {
     const { problems } = checkIntakeAnswers(required, [{ form_id: 'letter', values: { cover_letter: '  мало  ' } }]);
-    expect(problems).toEqual(['Анкета «Письмо»: Сопроводительное письмо — не короче 20 символов']);
+    expect(problems).toEqual(['Письмо — Сопроводительное письмо: не короче 20 символов']);
   });
 
   it('пустой ответ — замечание об обязательном поле', () => {
     const { problems } = checkIntakeAnswers(required, [{ form_id: 'letter', values: {} }]);
-    expect(problems).toEqual(['Анкета «Письмо»: Сопроводительное письмо — заполните поле']);
+    expect(problems).toEqual(['Письмо — Сопроводительное письмо: заполните поле']);
   });
 
   it('анкета, которой заявителю не положено, — замечание', () => {
@@ -216,7 +216,7 @@ describe('анкеты вступления: проверка ответов', (
       { form_id: 'letter', values: { cover_letter: letter } },
       { form_id: 'stranger', values: {} },
     ]);
-    expect(problems).toEqual(['Анкеты не предусмотрены для этой заявки: stranger']);
+    expect(problems).toEqual(['Для этой заявки не предусмотрены анкеты: stranger']);
     expect(answers).toEqual({});
   });
 

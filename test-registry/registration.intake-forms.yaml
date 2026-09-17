@@ -72,7 +72,7 @@ cases:
     level: backend
     kind: side
     scenario: заявитель не приложил ответ на обязательную анкету
-    expect: замечание «Не заполнена анкета «…»», ответы не сохраняются
+    expect: "замечание «<заголовок анкеты>: не заполнена», ответы не сохраняются"
     test: components/controller/tests/unit/registration/intake-forms.test.ts
     status: written
 
@@ -88,7 +88,7 @@ cases:
     level: backend
     kind: side
     scenario: клиент прислал анкету, не положенную этому заявителю (другая программа, выдуманный id)
-    expect: замечание «Анкеты не предусмотрены для этой заявки», ответы не сохраняются
+    expect: замечание «Для этой заявки не предусмотрены анкеты», ответы не сохраняются
     test: components/controller/tests/unit/registration/intake-forms.test.ts
     status: written
 

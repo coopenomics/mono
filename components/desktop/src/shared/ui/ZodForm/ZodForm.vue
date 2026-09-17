@@ -269,6 +269,11 @@ div.settings-form
       }
     }
 
+    // Заполнитель пустого поля: пример ответа или формата.
+    if (property.description?.placeholder) {
+      componentProps.placeholder = property.description.placeholder;
+    }
+
     // Поддержка readonly
     if (property.description?.readonly) {
       componentProps.readonly = true;

@@ -39,7 +39,12 @@ export const COVER_LETTER_MAX_LENGTH = 4000;
 /** Высота поля письма до ввода: сразу видно, что ждут развёрнутый ответ. */
 export const COVER_LETTER_MIN_ROWS = 6;
 
+export const COVER_LETTER_PLACEHOLDER =
+  'Начните писать: чем вы занимаетесь, что умеете и над чем хотите работать в программе…';
+
 export const RESUME_URL_LABEL = 'Ссылка на резюме';
+
+export const RESUME_URL_PLACEHOLDER = 'https://';
 
 export const RESUME_URL_NOTE =
   'Необязательно, но желательно. Если резюме или портфолио опубликованы (hh.ru, LinkedIn, GitHub, личный сайт, облачный диск), вставьте ссылку.';
@@ -58,6 +63,7 @@ export const GeneratorIntakeSchema = z.object({
         minLength: COVER_LETTER_MIN_LENGTH,
         maxLength: COVER_LETTER_MAX_LENGTH,
         minRows: COVER_LETTER_MIN_ROWS,
+        placeholder: COVER_LETTER_PLACEHOLDER,
       })
     ),
   // Файл резюме сейчас не принимаем: загрузка при вступлении — отдельная
@@ -72,6 +78,7 @@ export const GeneratorIntakeSchema = z.object({
         label: RESUME_URL_LABEL,
         note: RESUME_URL_NOTE,
         maxLength: RESUME_URL_MAX_LENGTH,
+        placeholder: RESUME_URL_PLACEHOLDER,
       })
     ),
 });

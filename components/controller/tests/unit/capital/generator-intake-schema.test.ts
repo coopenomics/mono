@@ -32,6 +32,9 @@ describe('анкета «Генератора»: сопроводительно�
     const resume = (schema.properties as any).resume_url;
     expect(resume.description.label).toBe(RESUME_URL_LABEL);
     expect(resume.format).toBe('uri');
+    // Пустые поля не выглядят пустыми: у обоих есть заполнитель.
+    expect((schema.properties as any).cover_letter.description.placeholder).toBeTruthy();
+    expect(resume.description.placeholder).toBe('https://');
   });
 
   it('без письма и с письмом из одних пробелов — «заполните поле»', () => {

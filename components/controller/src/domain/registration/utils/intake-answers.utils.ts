@@ -16,13 +16,15 @@ function checkForm(
   answer: IntakeFormAnswerDomainInterface | undefined,
   submittedAt: string
 ): { stored?: CandidateIntakeAnswerDomainInterface; problems: string[] } {
-  if (!answer) return { problems: [`Не заполнена анкета «${form.title}»`] };
+  // Заголовок анкеты сам говорит, что это анкета («Анкета программы …»),
+  // поэтому в сообщении его не оборачиваем словом «анкета» ещё раз.
+  if (!answer) return { problems: [`${form.title}: не заполнена`] };
 
   const { data, issues } = validateIntakeValues(form.json_schema, answer.values);
   if (issues.length > 0) {
     return {
       problems: issues.map(
-        (issue) => `Анкета «${form.title}»: ${intakeFieldLabel(form.json_schema, issue.path)} — ${issue.message}`
+        (issue) => `${form.title} — ${intakeFieldLabel(form.json_schema, issue.path)}: ${issue.message}`
       ),
     };
   }
@@ -57,7 +59,7 @@ export function checkIntakeAnswers(
 
   const unknown = given.filter((answer) => !requiredForms.some((form) => form.id === answer.form_id));
   if (unknown.length > 0) {
-    problems.push(`Анкеты не предусмотрены для этой заявки: ${unknown.map((answer) => answer.form_id).join(', ')}`);
+    problems.push(`Для этой заявки не предусмотрены анкеты: ${unknown.map((answer) => answer.form_id).join(', ')}`);
   }
 
   for (const form of requiredForms) {
