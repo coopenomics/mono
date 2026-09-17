@@ -3038,6 +3038,9 @@ export const AllTypesProps: Record<string,any> = {
 		getPublicProvision:{
 			data:"GetPublicProvisionInput"
 		},
+		getCandidateIntake:{
+
+		},
 		getRegistrationAgreements:{
 			account_type:"AccountType"
 		},
@@ -3379,9 +3382,13 @@ export const AllTypesProps: Record<string,any> = {
 	RegisterContributorInput:{
 		contract:"GenerationContractSignedDocumentInput"
 	},
+	IntakeFormAnswerInput:{
+		values:"JSON"
+	},
 	RegisterParticipantInput:{
 		blagorost_offer:"SignedDigitalDocumentInput",
 		generator_offer:"SignedDigitalDocumentInput",
+		intake_answers:"IntakeFormAnswerInput",
 		marketplace_offer:"SignedDigitalDocumentInput",
 		privacy_agreement:"SignedDigitalDocumentInput",
 		program_key:"ProgramKey",
@@ -4177,6 +4184,18 @@ export const ReturnTypes: Record<string,any> = {
 	CallTranscriptionWithSegments:{
 		segments:"TranscriptionSegment",
 		transcription:"CallTranscription"
+	},
+	CandidateIntake:{
+		answers:"CandidateIntakeAnswer",
+		program_key:"String",
+		username:"String"
+	},
+	CandidateIntakeAnswer:{
+		form_id:"String",
+		json_schema:"JSON",
+		submitted_at:"DateTime",
+		title:"String",
+		values:"JSON"
 	},
 	Candidate:{
 		braname:"String",
@@ -8198,6 +8217,7 @@ export const ReturnTypes: Record<string,any> = {
 		getProviderSubscriptions:"ProviderSubscription",
 		getPublicProvision:"PublicProvision",
 		getRecoveryStrategy:"RecoveryStrategy",
+		getCandidateIntake:"CandidateIntake",
 		getRegistrationAgreements:"RegistrationAgreement",
 		getRegistrationConfig:"RegistrationConfig",
 		getReport:"GeneratedReport",
@@ -8380,8 +8400,16 @@ export const ReturnTypes: Record<string,any> = {
 		title:"String"
 	},
 	RegistrationConfig:{
+		intake_forms:"RegistrationIntakeForm",
 		programs:"RegistrationProgram",
 		requires_selection:"Boolean"
+	},
+	RegistrationIntakeForm:{
+		description:"String",
+		id:"String",
+		order:"Int",
+		schema:"JSON",
+		title:"String"
 	},
 	RegistrationPayment:{
 		hash:"String",
@@ -8394,6 +8422,7 @@ export const ReturnTypes: Record<string,any> = {
 		applicable_account_types:"AccountType",
 		description:"String",
 		image_url:"String",
+		intake_forms:"RegistrationIntakeForm",
 		key:"String",
 		order:"Int",
 		requirements:"String",

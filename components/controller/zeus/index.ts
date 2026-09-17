@@ -2974,6 +2974,29 @@ export type ValueTypes = {
 	/** Причина отмены */
 	reason: string | Variable<any, string>
 };
+	["CandidateIntake"]: AliasType<{
+	/** Ответы на анкеты вступления */
+	answers?:ValueTypes["CandidateIntakeAnswer"],
+	/** Программа, выбранная при вступлении */
+	program_key?:boolean | `@${string}`,
+	username?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on CandidateIntake']?: Omit<ValueTypes["CandidateIntake"], "...on CandidateIntake">
+}>;
+	["CandidateIntakeAnswer"]: AliasType<{
+	/** Идентификатор анкеты */
+	form_id?:boolean | `@${string}`,
+	/** JSON Schema полей анкеты на момент подачи */
+	json_schema?:boolean | `@${string}`,
+	/** Когда заявитель подал ответы */
+	submitted_at?:boolean | `@${string}`,
+	/** Заголовок анкеты на момент подачи */
+	title?:boolean | `@${string}`,
+	/** Значения полей: имя поля → значение */
+	values?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on CandidateIntakeAnswer']?: Omit<ValueTypes["CandidateIntakeAnswer"], "...on CandidateIntakeAnswer">
+}>;
 	["Candidate"]: AliasType<{
 	braname?:boolean | `@${string}`,
 	coopname?:boolean | `@${string}`,
@@ -14590,6 +14613,7 @@ getProviderSubscriptionById?: [{	id: number | Variable<any, string>},ValueTypes[
 getPublicProvision?: [{	data: ValueTypes["GetPublicProvisionInput"] | Variable<any, string>},ValueTypes["PublicProvision"]],
 	/** Текущая стратегия восстановления доступа пайщика */
 	getRecoveryStrategy?:boolean | `@${string}`,
+getCandidateIntake?: [{	username: string | Variable<any, string>},ValueTypes["CandidateIntake"]],
 getRegistrationAgreements?: [{	account_type: ValueTypes["AccountType"] | Variable<any, string>,	coopname: string | Variable<any, string>,	program_key?: string | undefined | null | Variable<any, string>},ValueTypes["RegistrationAgreement"]],
 getRegistrationConfig?: [{	account_type: ValueTypes["AccountType"] | Variable<any, string>,	coopname: string | Variable<any, string>},ValueTypes["RegistrationConfig"]],
 getReport?: [{	id: string | Variable<any, string>},ValueTypes["GeneratedReport"]],
@@ -14876,6 +14900,12 @@ verificationReviews?: [{	data?: ValueTypes["VerificationReviewsInput"] | undefin
 	/** Имя пользователя */
 	username: string | Variable<any, string>
 };
+	["IntakeFormAnswerInput"]: {
+	/** Идентификатор анкеты из конфигурации регистрации */
+	form_id: string | Variable<any, string>,
+	/** Значения полей анкеты: имя поля → значение */
+	values: ValueTypes["JSON"] | Variable<any, string>
+};
 	["RegisterParticipantInput"]: {
 	/** Подписанный документ соглашения по благороста (опционально, только если требуется) */
 	blagorost_offer?: ValueTypes["SignedDigitalDocumentInput"] | undefined | null | Variable<any, string>,
@@ -14883,6 +14913,8 @@ verificationReviews?: [{	data?: ValueTypes["VerificationReviewsInput"] | undefin
 	braname?: string | undefined | null | Variable<any, string>,
 	/** Подписанный документ оферты по программе "Генератор" (опционально, только для программы generation) */
 	generator_offer?: ValueTypes["SignedDigitalDocumentInput"] | undefined | null | Variable<any, string>,
+	/** Ответы на анкеты вступления, которые объявили расширения для выбранной программы и типа аккаунта */
+	intake_answers?: Array<ValueTypes["IntakeFormAnswerInput"]> | undefined | null | Variable<any, string>,
 	/** Подписанная оферта по целевой потребительской программе «Стол заказов» (опционально, только для программы marketplace) */
 	marketplace_offer?: ValueTypes["SignedDigitalDocumentInput"] | undefined | null | Variable<any, string>,
 	/** Подписанный документ политики конфиденциальности от пайщика */
@@ -14934,12 +14966,28 @@ verificationReviews?: [{	data?: ValueTypes["VerificationReviewsInput"] | undefin
 	['...on RegistrationAgreement']?: Omit<ValueTypes["RegistrationAgreement"], "...on RegistrationAgreement">
 }>;
 	["RegistrationConfig"]: AliasType<{
+	/** Анкеты, которые заполняет любой заявитель этого типа аккаунта, независимо от программы */
+	intake_forms?:ValueTypes["RegistrationIntakeForm"],
 	/** Доступные программы */
 	programs?:ValueTypes["RegistrationProgram"],
 	/** Нужен ли выбор программы */
 	requires_selection?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
 	['...on RegistrationConfig']?: Omit<ValueTypes["RegistrationConfig"], "...on RegistrationConfig">
+}>;
+	["RegistrationIntakeForm"]: AliasType<{
+	/** Пояснение над полями: зачем кооперативу эти сведения */
+	description?:boolean | `@${string}`,
+	/** Идентификатор анкеты */
+	id?:boolean | `@${string}`,
+	/** Порядок отображения */
+	order?:boolean | `@${string}`,
+	/** JSON Schema полей анкеты */
+	schema?:boolean | `@${string}`,
+	/** Заголовок анкеты */
+	title?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on RegistrationIntakeForm']?: Omit<ValueTypes["RegistrationIntakeForm"], "...on RegistrationIntakeForm">
 }>;
 	["RegistrationPayment"]: AliasType<{
 	/** Хэш платежа */
@@ -14962,6 +15010,8 @@ verificationReviews?: [{	data?: ValueTypes["VerificationReviewsInput"] | undefin
 	description?:boolean | `@${string}`,
 	/** URL изображения (опционально) */
 	image_url?:boolean | `@${string}`,
+	/** Анкеты, которые заявитель заполняет, выбрав программу */
+	intake_forms?:ValueTypes["RegistrationIntakeForm"],
 	/** Уникальный ключ программы */
 	key?:boolean | `@${string}`,
 	/** Порядок отображения */
@@ -18875,6 +18925,27 @@ export type ResolverInputTypes = {
 	/** Причина отмены */
 	reason: string
 };
+	["CandidateIntake"]: AliasType<{
+	/** Ответы на анкеты вступления */
+	answers?:ResolverInputTypes["CandidateIntakeAnswer"],
+	/** Программа, выбранная при вступлении */
+	program_key?:boolean | `@${string}`,
+	username?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["CandidateIntakeAnswer"]: AliasType<{
+	/** Идентификатор анкеты */
+	form_id?:boolean | `@${string}`,
+	/** JSON Schema полей анкеты на момент подачи */
+	json_schema?:boolean | `@${string}`,
+	/** Когда заявитель подал ответы */
+	submitted_at?:boolean | `@${string}`,
+	/** Заголовок анкеты на момент подачи */
+	title?:boolean | `@${string}`,
+	/** Значения полей: имя поля → значение */
+	values?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
 	["Candidate"]: AliasType<{
 	braname?:boolean | `@${string}`,
 	coopname?:boolean | `@${string}`,
@@ -30144,6 +30215,7 @@ getProviderSubscriptionById?: [{	id: number},ResolverInputTypes["ProviderSubscri
 getPublicProvision?: [{	data: ResolverInputTypes["GetPublicProvisionInput"]},ResolverInputTypes["PublicProvision"]],
 	/** Текущая стратегия восстановления доступа пайщика */
 	getRecoveryStrategy?:boolean | `@${string}`,
+getCandidateIntake?: [{	username: string},ResolverInputTypes["CandidateIntake"]],
 getRegistrationAgreements?: [{	account_type: ResolverInputTypes["AccountType"],	coopname: string,	program_key?: string | undefined | null},ResolverInputTypes["RegistrationAgreement"]],
 getRegistrationConfig?: [{	account_type: ResolverInputTypes["AccountType"],	coopname: string},ResolverInputTypes["RegistrationConfig"]],
 getReport?: [{	id: string},ResolverInputTypes["GeneratedReport"]],
@@ -30427,6 +30499,12 @@ verificationReviews?: [{	data?: ResolverInputTypes["VerificationReviewsInput"] |
 	/** Имя пользователя */
 	username: string
 };
+	["IntakeFormAnswerInput"]: {
+	/** Идентификатор анкеты из конфигурации регистрации */
+	form_id: string,
+	/** Значения полей анкеты: имя поля → значение */
+	values: ResolverInputTypes["JSON"]
+};
 	["RegisterParticipantInput"]: {
 	/** Подписанный документ соглашения по благороста (опционально, только если требуется) */
 	blagorost_offer?: ResolverInputTypes["SignedDigitalDocumentInput"] | undefined | null,
@@ -30434,6 +30512,8 @@ verificationReviews?: [{	data?: ResolverInputTypes["VerificationReviewsInput"] |
 	braname?: string | undefined | null,
 	/** Подписанный документ оферты по программе "Генератор" (опционально, только для программы generation) */
 	generator_offer?: ResolverInputTypes["SignedDigitalDocumentInput"] | undefined | null,
+	/** Ответы на анкеты вступления, которые объявили расширения для выбранной программы и типа аккаунта */
+	intake_answers?: Array<ResolverInputTypes["IntakeFormAnswerInput"]> | undefined | null,
 	/** Подписанная оферта по целевой потребительской программе «Стол заказов» (опционально, только для программы marketplace) */
 	marketplace_offer?: ResolverInputTypes["SignedDigitalDocumentInput"] | undefined | null,
 	/** Подписанный документ политики конфиденциальности от пайщика */
@@ -30483,10 +30563,25 @@ verificationReviews?: [{	data?: ResolverInputTypes["VerificationReviewsInput"] |
 		__typename?: boolean | `@${string}`
 }>;
 	["RegistrationConfig"]: AliasType<{
+	/** Анкеты, которые заполняет любой заявитель этого типа аккаунта, независимо от программы */
+	intake_forms?:ResolverInputTypes["RegistrationIntakeForm"],
 	/** Доступные программы */
 	programs?:ResolverInputTypes["RegistrationProgram"],
 	/** Нужен ли выбор программы */
 	requires_selection?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["RegistrationIntakeForm"]: AliasType<{
+	/** Пояснение над полями: зачем кооперативу эти сведения */
+	description?:boolean | `@${string}`,
+	/** Идентификатор анкеты */
+	id?:boolean | `@${string}`,
+	/** Порядок отображения */
+	order?:boolean | `@${string}`,
+	/** JSON Schema полей анкеты */
+	schema?:boolean | `@${string}`,
+	/** Заголовок анкеты */
+	title?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
 	["RegistrationPayment"]: AliasType<{
@@ -30509,6 +30604,8 @@ verificationReviews?: [{	data?: ResolverInputTypes["VerificationReviewsInput"] |
 	description?:boolean | `@${string}`,
 	/** URL изображения (опционально) */
 	image_url?:boolean | `@${string}`,
+	/** Анкеты, которые заявитель заполняет, выбрав программу */
+	intake_forms?:ResolverInputTypes["RegistrationIntakeForm"],
 	/** Уникальный ключ программы */
 	key?:boolean | `@${string}`,
 	/** Порядок отображения */
@@ -34320,6 +34417,25 @@ export type ModelTypes = {
 	hash: string,
 	/** Причина отмены */
 	reason: string
+};
+	["CandidateIntake"]: {
+		/** Ответы на анкеты вступления */
+	answers: Array<ModelTypes["CandidateIntakeAnswer"]>,
+	/** Программа, выбранная при вступлении */
+	program_key?: string | undefined | null,
+	username: string
+};
+	["CandidateIntakeAnswer"]: {
+		/** Идентификатор анкеты */
+	form_id: string,
+	/** JSON Schema полей анкеты на момент подачи */
+	json_schema: ModelTypes["JSON"],
+	/** Когда заявитель подал ответы */
+	submitted_at: ModelTypes["DateTime"],
+	/** Заголовок анкеты на момент подачи */
+	title: string,
+	/** Значения полей: имя поля → значение */
+	values: ModelTypes["JSON"]
 };
 	["Candidate"]: {
 		braname?: string | undefined | null,
@@ -45575,6 +45691,8 @@ export type ModelTypes = {
 	getPublicProvision: ModelTypes["PublicProvision"],
 	/** Текущая стратегия восстановления доступа пайщика */
 	getRecoveryStrategy: ModelTypes["RecoveryStrategy"],
+	/** Программа вступления и ответы заявителя на анкеты, объявленные расширениями. Доступно председателю и членам совета. */
+	getCandidateIntake: ModelTypes["CandidateIntake"],
 	/** Получить список оферт для регистрации пайщика заданного типа аккаунта и (опционально) программы. Сливает базовые платформенные оферты с теми, что зарегистрировали расширения. */
 	getRegistrationAgreements: Array<ModelTypes["RegistrationAgreement"]>,
 	/** Получить конфигурацию программ регистрации для кооператива */
@@ -45956,6 +46074,12 @@ export type ModelTypes = {
 	/** Имя пользователя */
 	username: string
 };
+	["IntakeFormAnswerInput"]: {
+	/** Идентификатор анкеты из конфигурации регистрации */
+	form_id: string,
+	/** Значения полей анкеты: имя поля → значение */
+	values: ModelTypes["JSON"]
+};
 	["RegisterParticipantInput"]: {
 	/** Подписанный документ соглашения по благороста (опционально, только если требуется) */
 	blagorost_offer?: ModelTypes["SignedDigitalDocumentInput"] | undefined | null,
@@ -45963,6 +46087,8 @@ export type ModelTypes = {
 	braname?: string | undefined | null,
 	/** Подписанный документ оферты по программе "Генератор" (опционально, только для программы generation) */
 	generator_offer?: ModelTypes["SignedDigitalDocumentInput"] | undefined | null,
+	/** Ответы на анкеты вступления, которые объявили расширения для выбранной программы и типа аккаунта */
+	intake_answers?: Array<ModelTypes["IntakeFormAnswerInput"]> | undefined | null,
 	/** Подписанная оферта по целевой потребительской программе «Стол заказов» (опционально, только для программы marketplace) */
 	marketplace_offer?: ModelTypes["SignedDigitalDocumentInput"] | undefined | null,
 	/** Подписанный документ политики конфиденциальности от пайщика */
@@ -46010,10 +46136,24 @@ export type ModelTypes = {
 	title: string
 };
 	["RegistrationConfig"]: {
-		/** Доступные программы */
+		/** Анкеты, которые заполняет любой заявитель этого типа аккаунта, независимо от программы */
+	intake_forms: Array<ModelTypes["RegistrationIntakeForm"]>,
+	/** Доступные программы */
 	programs: Array<ModelTypes["RegistrationProgram"]>,
 	/** Нужен ли выбор программы */
 	requires_selection: boolean
+};
+	["RegistrationIntakeForm"]: {
+		/** Пояснение над полями: зачем кооперативу эти сведения */
+	description?: string | undefined | null,
+	/** Идентификатор анкеты */
+	id: string,
+	/** Порядок отображения */
+	order: number,
+	/** JSON Schema полей анкеты */
+	schema: ModelTypes["JSON"],
+	/** Заголовок анкеты */
+	title: string
 };
 	["RegistrationPayment"]: {
 		/** Хэш платежа */
@@ -46034,6 +46174,8 @@ export type ModelTypes = {
 	description: string,
 	/** URL изображения (опционально) */
 	image_url?: string | undefined | null,
+	/** Анкеты, которые заявитель заполняет, выбрав программу */
+	intake_forms: Array<ModelTypes["RegistrationIntakeForm"]>,
 	/** Уникальный ключ программы */
 	key: string,
 	/** Порядок отображения */
@@ -49840,6 +49982,29 @@ export type GraphQLTypes = {
 	hash: string,
 	/** Причина отмены */
 	reason: string
+};
+	["CandidateIntake"]: {
+	__typename: "CandidateIntake",
+	/** Ответы на анкеты вступления */
+	answers: Array<GraphQLTypes["CandidateIntakeAnswer"]>,
+	/** Программа, выбранная при вступлении */
+	program_key?: string | undefined | null,
+	username: string,
+	['...on CandidateIntake']: Omit<GraphQLTypes["CandidateIntake"], "...on CandidateIntake">
+};
+	["CandidateIntakeAnswer"]: {
+	__typename: "CandidateIntakeAnswer",
+	/** Идентификатор анкеты */
+	form_id: string,
+	/** JSON Schema полей анкеты на момент подачи */
+	json_schema: GraphQLTypes["JSON"],
+	/** Когда заявитель подал ответы */
+	submitted_at: GraphQLTypes["DateTime"],
+	/** Заголовок анкеты на момент подачи */
+	title: string,
+	/** Значения полей: имя поля → значение */
+	values: GraphQLTypes["JSON"],
+	['...on CandidateIntakeAnswer']: Omit<GraphQLTypes["CandidateIntakeAnswer"], "...on CandidateIntakeAnswer">
 };
 	["Candidate"]: {
 	__typename: "Candidate",
@@ -61915,6 +62080,8 @@ export type GraphQLTypes = {
 	getPublicProvision: GraphQLTypes["PublicProvision"],
 	/** Текущая стратегия восстановления доступа пайщика */
 	getRecoveryStrategy: GraphQLTypes["RecoveryStrategy"],
+	/** Программа вступления и ответы заявителя на анкеты, объявленные расширениями. Доступно председателю и членам совета. */
+	getCandidateIntake: GraphQLTypes["CandidateIntake"],
 	/** Получить список оферт для регистрации пайщика заданного типа аккаунта и (опционально) программы. Сливает базовые платформенные оферты с теми, что зарегистрировали расширения. */
 	getRegistrationAgreements: Array<GraphQLTypes["RegistrationAgreement"]>,
 	/** Получить конфигурацию программ регистрации для кооператива */
@@ -62302,6 +62469,12 @@ export type GraphQLTypes = {
 	/** Имя пользователя */
 	username: string
 };
+	["IntakeFormAnswerInput"]: {
+		/** Идентификатор анкеты из конфигурации регистрации */
+	form_id: string,
+	/** Значения полей анкеты: имя поля → значение */
+	values: GraphQLTypes["JSON"]
+};
 	["RegisterParticipantInput"]: {
 		/** Подписанный документ соглашения по благороста (опционально, только если требуется) */
 	blagorost_offer?: GraphQLTypes["SignedDigitalDocumentInput"] | undefined | null,
@@ -62309,6 +62482,8 @@ export type GraphQLTypes = {
 	braname?: string | undefined | null,
 	/** Подписанный документ оферты по программе "Генератор" (опционально, только для программы generation) */
 	generator_offer?: GraphQLTypes["SignedDigitalDocumentInput"] | undefined | null,
+	/** Ответы на анкеты вступления, которые объявили расширения для выбранной программы и типа аккаунта */
+	intake_answers?: Array<GraphQLTypes["IntakeFormAnswerInput"]> | undefined | null,
 	/** Подписанная оферта по целевой потребительской программе «Стол заказов» (опционально, только для программы marketplace) */
 	marketplace_offer?: GraphQLTypes["SignedDigitalDocumentInput"] | undefined | null,
 	/** Подписанный документ политики конфиденциальности от пайщика */
@@ -62361,11 +62536,27 @@ export type GraphQLTypes = {
 };
 	["RegistrationConfig"]: {
 	__typename: "RegistrationConfig",
+	/** Анкеты, которые заполняет любой заявитель этого типа аккаунта, независимо от программы */
+	intake_forms: Array<GraphQLTypes["RegistrationIntakeForm"]>,
 	/** Доступные программы */
 	programs: Array<GraphQLTypes["RegistrationProgram"]>,
 	/** Нужен ли выбор программы */
 	requires_selection: boolean,
 	['...on RegistrationConfig']: Omit<GraphQLTypes["RegistrationConfig"], "...on RegistrationConfig">
+};
+	["RegistrationIntakeForm"]: {
+	__typename: "RegistrationIntakeForm",
+	/** Пояснение над полями: зачем кооперативу эти сведения */
+	description?: string | undefined | null,
+	/** Идентификатор анкеты */
+	id: string,
+	/** Порядок отображения */
+	order: number,
+	/** JSON Schema полей анкеты */
+	schema: GraphQLTypes["JSON"],
+	/** Заголовок анкеты */
+	title: string,
+	['...on RegistrationIntakeForm']: Omit<GraphQLTypes["RegistrationIntakeForm"], "...on RegistrationIntakeForm">
 };
 	["RegistrationPayment"]: {
 	__typename: "RegistrationPayment",
@@ -62389,6 +62580,8 @@ export type GraphQLTypes = {
 	description: string,
 	/** URL изображения (опционально) */
 	image_url?: string | undefined | null,
+	/** Анкеты, которые заявитель заполняет, выбрав программу */
+	intake_forms: Array<GraphQLTypes["RegistrationIntakeForm"]>,
 	/** Уникальный ключ программы */
 	key: string,
 	/** Порядок отображения */
@@ -66017,6 +66210,7 @@ type ZEUS_VARIABLES = {
 	["RefreshSegmentInput"]: ValueTypes["RefreshSegmentInput"];
 	["RegisterAccountInput"]: ValueTypes["RegisterAccountInput"];
 	["RegisterContributorInput"]: ValueTypes["RegisterContributorInput"];
+	["IntakeFormAnswerInput"]: ValueTypes["IntakeFormAnswerInput"];
 	["RegisterParticipantInput"]: ValueTypes["RegisterParticipantInput"];
 	["RejectVerificationInput"]: ValueTypes["RejectVerificationInput"];
 	["RemoveAvailableCategoriesInput"]: ValueTypes["RemoveAvailableCategoriesInput"];

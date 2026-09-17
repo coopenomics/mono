@@ -2,6 +2,19 @@ import { ISignedDocument } from '@coopenomics/innercoop';
 import { ProgramKey, CandidateStatus } from '~/domain/registration/enum';
 
 /**
+ * Ответ заявителя на анкету вступления. Заголовок и схема хранятся снимком:
+ * совет должен читать ответы с подписями полей и после того, как расширение
+ * выключили или поменяли анкету.
+ */
+export interface CandidateIntakeAnswerDomainInterface {
+  values: Record<string, unknown>;
+  title: string;
+  json_schema: Record<string, unknown>;
+  extension_name: string;
+  submitted_at: string;
+}
+
+/**
  * Домен-интерфейс кандидата в пайщики
  */
 export interface CandidateDomainInterface {
@@ -25,6 +38,8 @@ export interface CandidateDomainInterface {
   };
   /** Подписанные оферты расширений по agreement_id из AgreementRegistry. */
   program_agreements?: Record<string, ISignedDocument>;
+  /** Ответы на анкеты вступления по идентификатору анкеты. */
+  intake_answers?: Record<string, CandidateIntakeAnswerDomainInterface>;
   registration_hash: string;
   referer?: string;
   public_key: string;

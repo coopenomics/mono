@@ -12,6 +12,8 @@ import { ContributorDomainEntity } from '../../domain/entities/contributor.entit
 import { ContributorStatus } from '../../domain/enums/contributor-status.enum';
 import { ONBOARDING_COMPLETED_EVENT, type InnerOnboardingCompletedPayload } from '@coopenomics/innercoop';
 import { generateRandomHash } from '@coopenomics/extension-kit';
+import { GENERATOR_INTAKE_FORM_ID } from '../../constants/capital-agreement-ids';
+import type { GeneratorIntakeAnswer } from '../registration/generator-intake.schema';
 
 @Injectable()
 export class CapitalOnboardingEventsService {
@@ -98,6 +100,10 @@ export class CapitalOnboardingEventsService {
   async handleParticipantRegistered(event: InnerParticipantRegisteredEvent): Promise<void> {
     const { username, program_key, blagorost_offer_hash, generator_offer_hash } = event;
 
+    // Сопроводительное письмо из анкеты «Генератора» становится описанием
+    // участника — тем же полем, которое он потом правит на рабочем столе.
+    const coverLetter = program_key === ProgramKey.GENERATION ? this.extractCoverLetter(event) : undefined;
+
     this.logger.info(`Получено событие регистрации участника: ${username}, program_key: ${program_key}, coopname: ${platformSettings().coopname}`);
 
     // Создаем Contributor только если указана программа (для кооперативов, поддерживающих CAPITAL)
@@ -156,6 +162,13 @@ export class CapitalOnboardingEventsService {
           this.logger.info(`Обновлен generator_offer_hash для Contributor ${username}: ${actualGeneratorOfferHash}`);
         }
 
+        // Уже написанное участником описание письмом не затираем.
+        if (coverLetter && !existingContributor.about?.trim()) {
+          existingContributor.about = coverLetter;
+          needsUpdate = true;
+          this.logger.info(`Сопроводительное письмо перенесено в описание Contributor ${username}`);
+        }
+
         if (needsUpdate) {
           await this.contributorRepository.update(existingContributor);
         }
@@ -196,6 +209,7 @@ export class CapitalOnboardingEventsService {
         generation_contract_hash: undefined,
         storage_agreement_hash: undefined,
         blagorost_agreement_hash: undefined,
+        about: coverLetter ?? '',
       };
 
       this.logger.info(`Создаем Contributor с данными:`, contributorData);
@@ -210,6 +224,13 @@ export class CapitalOnboardingEventsService {
       const errorObj = error as Error;
       this.logger.error(`Ошибка при создании Contributor для участника ${username}: ${errorObj.message}`, errorObj.stack);
     }
+  }
+
+  /** Текст письма из ответа на анкету «Генератора»; нет ответа — undefined. */
+  private extractCoverLetter(event: InnerParticipantRegisteredEvent): string | undefined {
+    const answer = event.intake_answers?.[GENERATOR_INTAKE_FORM_ID] as Partial<GeneratorIntakeAnswer> | undefined;
+    const letter = typeof answer?.cover_letter === 'string' ? answer.cover_letter.trim() : '';
+    return letter || undefined;
   }
 
   /**

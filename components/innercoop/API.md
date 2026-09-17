@@ -9,7 +9,7 @@
 экспорта, исчезнувший метод, новый обязательный параметр требуют major, а
 снятое старое — периода устаревания не меньше одного minor (INV-009).
 
-Всего экспортов: 276.
+Всего экспортов: 279.
 
 ## ACCOUNT_PORT
 
@@ -1173,6 +1173,39 @@
 - `email: string`
 - `passport?: InnerPassport`
 
+## InnerIntakeFormRegistration
+
+`interface` · core-ports
+
+- `id: string`
+- `extension_name: string`
+- `title: string`
+- `description?: string`
+- `schema: InnerIntakeJsonSchema`
+- `applicable_account_types: InnerAccountType[]`
+- `order: number`
+
+## InnerIntakeJsonSchema
+
+`interface` · core-ports
+
+- `properties?: Record<string, InnerIntakeJsonSchemaProperty>`
+
+## InnerIntakeJsonSchemaProperty
+
+`interface` · core-ports
+
+- `type?: string`
+- `description?: unknown`
+- `enum?: unknown[]`
+- `minLength?: number`
+- `maxLength?: number`
+- `minimum?: number`
+- `maximum?: number`
+- `properties?: Record<string, InnerIntakeJsonSchemaProperty>`
+- `required?: string[]`
+- `[key: string]: unknown`
+
 ## InnerKeyPermission
 
 `enum` · core-ports
@@ -1510,6 +1543,7 @@
 - `account_type: string`
 - `blagorost_offer_hash?: string`
 - `generator_offer_hash?: string`
+- `intake_answers?: Record<string, Record<string, unknown>>`
 
 ## InnerPassport
 
@@ -1656,6 +1690,7 @@
 - `requirements?: string`
 - `applicable_account_types: InnerAccountType[]`
 - `agreement_ids: string[]`
+- `intake_form_ids?: string[]`
 - `order: number`
 - `extension_name: string`
 
@@ -2042,6 +2077,8 @@
 - `unregisterAgreement(id: string, extensionName: string): void`
 - `registerProgram(spec: InnerProgramRegistration): void`
 - `unregisterProgram(key: string, extensionName: string): void`
+- `registerIntakeForm(spec: InnerIntakeFormRegistration): void`
+- `unregisterIntakeForm(id: string, extensionName: string): void`
 
 ## ISecretCipherPort
 

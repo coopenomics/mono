@@ -45,6 +45,7 @@ export class TypeOrmCandidateRepository implements CandidateRepository {
     candidate.meta = data.meta;
     candidate.program_key = data.program_key;
     candidate.program_agreements = data.program_agreements ?? {};
+    candidate.intake_answers = data.intake_answers ?? {};
 
     const createdEntity = await this.candidateRepository.save(candidate);
     return this.mapToDomainEntity(createdEntity);
@@ -77,6 +78,12 @@ export class TypeOrmCandidateRepository implements CandidateRepository {
         ...(candidate.program_agreements ?? {}),
         ...data.program_agreements,
       };
+    }
+
+    // Ответы на анкеты заменяются целиком: повторная подача заявления — это
+    // новый набор ответов, а не дополнение прежнего.
+    if (data.intake_answers) {
+      candidate.intake_answers = data.intake_answers;
     }
 
     const updatedEntity = await this.candidateRepository.save(candidate);
@@ -189,6 +196,7 @@ export class TypeOrmCandidateRepository implements CandidateRepository {
       meta: entity.meta,
       program_key: entity.program_key as ProgramKey | undefined,
       program_agreements: entity.program_agreements ?? {},
+      intake_answers: entity.intake_answers ?? {},
     };
   }
 }

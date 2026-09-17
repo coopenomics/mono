@@ -56,8 +56,10 @@
     .question-card__doc(v-show='expanded')
       ComplexDocument(:documents='agenda.documents')
 
+      //- Дополнение монтируем при первом раскрытии: оно может ходить на сервер,
+      //- а карточек в повестке много. Раскрыв однажды, больше не размонтируем.
       component(
-        v-if='infoComponent',
+        v-if='infoComponent && wasExpanded',
         :is='infoComponent',
         :agenda='agenda'
       )
@@ -117,8 +119,10 @@ const isRejected = computed(() => {
 
 // Состояние раскрытия — локальное для каждой карточки.
 const expanded = ref(false);
+const wasExpanded = ref(false);
 const toggleExpand = () => {
   expanded.value = !expanded.value;
+  if (expanded.value) wasExpanded.value = true;
 };
 
 // Копирование идентификатора вопроса по клику на плашку с номером.

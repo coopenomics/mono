@@ -1,6 +1,13 @@
 import type { ISignedDocument } from '@coopenomics/innercoop';
 import { ProgramKey } from '~/domain/registration/enum';
 
+/** Ответ заявителя на одну анкету вступления. */
+export interface IntakeFormAnswerDomainInterface {
+  form_id: string;
+  /** Значения полей анкеты: имя поля → значение. Проверяются схемой анкеты. */
+  values: Record<string, unknown>;
+}
+
 export interface RegisterParticipantDomainInterface {
   username: string;
   braname?: string;
@@ -17,4 +24,6 @@ export interface RegisterParticipantDomainInterface {
   marketplace_offer?: ISignedDocument;
   /** Ключ выбранной программы регистрации */
   program_key?: ProgramKey;
+  /** Ответы на анкеты вступления, объявленные расширениями */
+  intake_answers?: IntakeFormAnswerDomainInterface[];
 }
