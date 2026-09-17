@@ -77,7 +77,7 @@ const resolveName = (username: string): string => {
     requestedNames.add(username);
     void accountStore
       .fetchAccount(username)
-      .then((account) => knownNames.set(username, account ? getName(account) : ''))
+      .then((account) => knownNames.set(username, (account && getName(account)) || ''))
       .catch(() => knownNames.set(username, ''));
   }
   return '';
@@ -85,7 +85,7 @@ const resolveName = (username: string): string => {
 watch(
   () => accountStore.accounts.items,
   (items) => {
-    for (const account of items) knownNames.set(account.username, getName(account));
+    for (const account of items) knownNames.set(account.username, getName(account) || '');
   },
   { immediate: true },
 );
