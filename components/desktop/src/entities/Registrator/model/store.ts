@@ -8,11 +8,17 @@ import type { IDocument, ISignatureInfo } from 'src/shared/lib/types/document';
 import { Zeus, Queries } from '@coopenomics/sdk';
 import { client } from 'src/shared/api/client';
 import type { IInitialPaymentOrder } from 'src/shared/lib/types/payments';
+import { intakeFormProblems } from 'src/shared/lib/intake-schema';
 
 // Программа участия в регистрации — тип берётся напрямую из SDK-выдачи
 // getRegistrationConfig, не переописывается.
 type IRegistrationProgram =
   Queries.System.GetRegistrationConfig.IOutput['getRegistrationConfig']['programs'][number];
+
+// Анкета вступления, которую объявило расширение (или ядро) для программы
+// либо типа аккаунта. Поля описаны JSON Schema — их рисует общая форма ZodForm.
+export type IRegistrationIntakeForm =
+  Queries.System.GetRegistrationConfig.IOutput['getRegistrationConfig']['intake_forms'][number];
 
 const namespace = 'registrator';
 
@@ -208,6 +214,8 @@ export const useRegistratorStore = defineStore(
       email: '',
       selectedBranch: '',
       selectedProgramKey: '',
+      // Ответы на анкеты вступления: идентификатор анкеты → значения полей.
+      intakeAnswers: {} as Record<string, Record<string, unknown>>,
       account: structuredClone(initialAccountState),
       userData: structuredClone(initialUserDataState),
       signature: '',
@@ -236,6 +244,7 @@ export const useRegistratorStore = defineStore(
       'EmailInput',
       'SetUserData',
       'SelectProgram',
+      'IntakeStep',
       'GenerateAccount',
       'SelectBranch',
       'ReadStatement',
@@ -247,13 +256,20 @@ export const useRegistratorStore = defineStore(
 
     type StepName = (typeof stepNames)[number];
 
-    const steps = stepNames.reduce(
-      (acc, step, index) => {
-        acc[step] = index + 1; // Индексы начинаются с 1
-        return acc;
-      },
-      {} as Record<StepName, number>,
-    );
+    // Номер шага хранится в persist'е, поэтому у прежних шагов он меняться не
+    // должен: иначе человек, начавший вступление до обновления, окажется на
+    // другом шаге. Шаг анкеты добавлен позже и встаёт между соседями дробным
+    // номером — сравнения и сортировка по номерам работают как прежде.
+    const LATE_STEPS: Partial<Record<StepName, number>> = { IntakeStep: 3.5 };
+    const steps = stepNames
+      .filter((step) => LATE_STEPS[step] === undefined)
+      .reduce(
+        (acc, step, index) => {
+          acc[step] = index + 1; // Индексы начинаются с 1
+          return acc;
+        },
+        { ...LATE_STEPS } as Record<StepName, number>,
+      );
 
     const system = useSystemStore();
     const isBranched = computed(
@@ -267,6 +283,10 @@ export const useRegistratorStore = defineStore(
     // установлены и активированы в кооперативе.
     const availablePrograms = ref<IRegistrationProgram[]>([]);
 
+    // Анкеты, общие для типа аккаунта (не зависят от программы). Анкеты
+    // программы приходят внутри неё самой.
+    const commonIntakeForms = ref<IRegistrationIntakeForm[]>([]);
+
     // Подтягиваем программы под выбранный тип аккаунта. Вызывается из шага
     // SetUserData при переходе дальше — чтобы шаг SelectProgram уже знал,
     // показываться ему или нет (см. requiresProgramSelection / filteredSteps).
@@ -274,6 +294,7 @@ export const useRegistratorStore = defineStore(
       const accountType = state.userData.type;
       if (!accountType || !system.info?.coopname) {
         availablePrograms.value = [];
+        commonIntakeForms.value = [];
         state.selectedProgramKey = '';
         return;
       }
@@ -286,9 +307,11 @@ export const useRegistratorStore = defineStore(
             },
           });
         availablePrograms.value = config.programs ?? [];
+        commonIntakeForms.value = config.intake_forms ?? [];
       } catch (e) {
         console.error('Ошибка загрузки программ участия:', e);
         availablePrograms.value = [];
+        commonIntakeForms.value = [];
       }
       // Единственная программа — выбор не требуется, шаг скрыт, но программу
       // всё равно привязываем к пайщику (преселект). Иначе сохраняем уже
@@ -308,10 +331,46 @@ export const useRegistratorStore = defineStore(
       () => availablePrograms.value.length > 1,
     );
 
+    // Анкеты, которые заполняет этот заявитель: общие для типа аккаунта плюс
+    // анкеты выбранной программы. Что именно требовать, решает бэкенд — тот же
+    // набор он сверит при приёме заявления.
+    const intakeForms = computed<IRegistrationIntakeForm[]>(() => {
+      const program = availablePrograms.value.find((p) => p.key === state.selectedProgramKey);
+      const byId = new Map<string, IRegistrationIntakeForm>();
+      for (const form of [...commonIntakeForms.value, ...(program?.intake_forms ?? [])]) {
+        byId.set(form.id, form);
+      }
+      return Array.from(byId.values()).sort((a, b) => a.order - b.order);
+    });
+
+    const requiresIntake = computed(() => intakeForms.value.length > 0);
+
+    // Все анкеты заполнены так, что сервер их примет (обязательность и длина).
+    const isIntakeComplete = computed(() =>
+      intakeForms.value.every(
+        (form) => intakeFormProblems(form.schema, state.intakeAnswers[form.id]).length === 0,
+      ),
+    );
+
+    // Ответы для отправки: только по анкетам текущего набора. Ответы на анкеты
+    // другой программы (человек вернулся и передумал) на сервер не уходят.
+    // Незаполненные необязательные поля (null) отбрасываются.
+    const intakeAnswersForSubmit = computed(() =>
+      intakeForms.value.map((form) => ({
+        form_id: form.id,
+        values: Object.fromEntries(
+          Object.entries(state.intakeAnswers[form.id] ?? {}).filter(
+            ([, value]) => value !== null && value !== undefined && value !== '',
+          ),
+        ),
+      })),
+    );
+
     const filteredSteps = computed(() =>
       stepNames.filter((step) => {
         if (step === 'SelectBranch' && !isBranched.value) return false;
         if (step === 'SelectProgram' && !requiresProgramSelection.value) return false;
+        if (step === 'IntakeStep' && !requiresIntake.value) return false;
         return true;
       }),
     );
@@ -385,7 +444,9 @@ export const useRegistratorStore = defineStore(
       state.step = 1;
       state.selectedBranch = '';
       state.selectedProgramKey = '';
+      state.intakeAnswers = {};
       availablePrograms.value = [];
+      commonIntakeForms.value = [];
       state.email = '';
       state.emailVerified = false;
       state.account = structuredClone(initialAccountState);
@@ -443,6 +504,11 @@ export const useRegistratorStore = defineStore(
       filteredSteps,
       availablePrograms,
       requiresProgramSelection,
+      commonIntakeForms,
+      intakeForms,
+      requiresIntake,
+      isIntakeComplete,
+      intakeAnswersForSubmit,
       loadAvailablePrograms,
       next,
       prev,

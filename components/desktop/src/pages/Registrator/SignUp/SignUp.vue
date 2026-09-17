@@ -44,6 +44,8 @@
 
       SelectProgram(v-if='registratorStore.requiresProgramSelection')
 
+      IntakeStep(v-if='registratorStore.requiresIntake')
+
       GenerateAccount
 
       SelectBranch(v-if='isBranched')
@@ -65,6 +67,7 @@ import EmailInput from './EmailInput.vue';
 import GenerateAccount from './GenerateAccount.vue';
 import SetUserData from './SetUserData.vue';
 import SelectProgram from './SelectProgram.vue';
+import IntakeStep from './IntakeStep.vue';
 import SignStatement from './SignStatement.vue';
 import ReadStatement from './ReadStatement.vue';
 import PayInitial from './PayInitial.vue';
@@ -142,7 +145,23 @@ onMounted(() => {
       return;
     }
   }
+  void returnToUnansweredIntake();
 });
+
+/**
+ * Вступление, начатое до появления анкет (или до включения приложения, которое
+ * анкету требует), могло уйти дальше шага «Сведения о себе». Сервер такое
+ * заявление без ответов не примет — возвращаем человека на анкету заранее, а не
+ * показываем отказ на подписи. Касается только шагов до подписи включительно:
+ * подписанное заявление сервер уже принял.
+ */
+const returnToUnansweredIntake = async (): Promise<void> => {
+  if (store.step <= steps.IntakeStep || store.step > steps.SignStatement) return;
+  await registratorStore.loadAvailablePrograms();
+  if (registratorStore.requiresIntake && !registratorStore.isIntakeComplete) {
+    store.step = steps.IntakeStep;
+  }
+};
 
 // Догружаем cooperativeAgreements, когда system_info прорастёт.
 // До этого onMounted мог отработать на пустом info.coopname.
@@ -232,6 +251,7 @@ const STEP_TEXT: Record<StepName, { label: string; heading: string }> = {
   EmailInput: { label: 'Электронная почта', heading: 'Электронная почта' },
   SetUserData: { label: 'Заявление', heading: 'Заявление на вступление' },
   SelectProgram: { label: 'Программа участия', heading: 'Программа участия' },
+  IntakeStep: { label: 'Сведения о себе', heading: 'Расскажите о себе' },
   GenerateAccount: { label: 'Пароль для входа', heading: 'Пароль для входа' },
   SelectBranch: { label: 'Кооперативный участок', heading: 'Кооперативный участок' },
   ReadStatement: { label: 'Проверка заявления', heading: 'Проверьте заявление' },

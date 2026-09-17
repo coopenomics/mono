@@ -3,7 +3,10 @@ import { decisionFactory } from 'src/shared/lib/decision-factory';
 import { DigitalDocument } from 'src/shared/lib/document';
 import { useSystemStore } from 'src/entities/System/model';
 import { useGenerateFreeDecision } from 'src/features/FreeDecision/GenerateDecision';
-import { useGenerateParticipantApplicationDecision } from 'src/features/Decision/ParticipantApplication';
+import {
+  ParticipantIntakeInfo,
+  useGenerateParticipantApplicationDecision,
+} from 'src/features/Decision/ParticipantApplication';
 import { useGenerateSovietDecisionOnAnnualMeet } from 'src/features/Meet/GenerateSovietDecision/model';
 import { useGenerateReturnByMoneyDecision } from 'src/features/Wallet/GenerateReturnByMoneyDecision';
 import { useGenerateEstablishmentDecision } from 'src/features/Ku/GenerateEstablishmentDecision';
@@ -72,6 +75,9 @@ export function registerBaseDecisionHandlers() {
         decision_id,
       });
     },
+    // Рядом с заявлением совет видит, что заявитель рассказал о себе в анкетах
+    // вступления (сопроводительное письмо и т.п.).
+    infoComponent: ParticipantIntakeInfo,
   });
 
   // Обработчик для AnnualGeneralMeetingSovietDecision (решение совета о годовом собрании)

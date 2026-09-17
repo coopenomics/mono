@@ -219,17 +219,31 @@ div.settings-form
 
     let rules = parseRules(property.description?.rules || []);
 
+    // Обязательность берём из самой схемы (`required` у объекта): так её
+    // объявляет Zod, отдельного признака в описании поля нет.
+    if (props.schema.required?.includes(propertyName)) {
+      rules.unshift((val: unknown) => {
+        const filled = typeof val === 'string' ? val.trim() !== '' : val !== null && val !== undefined;
+        return filled || 'Заполните поле';
+      });
+    }
+
     const minLength = property.description?.minLength;
     const maxLength = property.description?.maxLength;
 
+    // Незаполненное поле хранится как null — длину считаем от пустой строки,
+    // иначе правило падает с TypeError раньше, чем успевает что-то сказать.
+    const lengthOf = (val: unknown) => String(val ?? '').trim().length;
+
     if (typeof minLength === 'number') {
-      rules.push((val: string) => val.length >= minLength || `Минимальная длина: ${minLength}`);
+      rules.push((val: unknown) => lengthOf(val) >= minLength || `Минимальная длина: ${minLength}`);
       componentProps.minLength = minLength;
     }
 
     if (typeof maxLength === 'number') {
-      rules.push((val: string) => val.length <= maxLength || `Максимальная длина: ${maxLength}`);
+      rules.push((val: unknown) => lengthOf(val) <= maxLength || `Максимальная длина: ${maxLength}`);
       componentProps.maxLength = maxLength;
+      componentProps.counter = true;
     }
 
     componentProps.rules = rules
