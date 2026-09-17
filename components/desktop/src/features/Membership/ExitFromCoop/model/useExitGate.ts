@@ -60,6 +60,15 @@ export function useExitGate() {
    * планируемого платежа, пока совет не зафиксировал итог).
    */
   async function loadExitStatus(): Promise<void> {
+    // При серверной отрисовке сессия поднимается из cookie, поэтому пайщик
+    // считается авторизованным, а токена доступа у запроса нет — он живёт в
+    // браузере. Такой запрос сервер отвергал, и статус всё равно приходилось
+    // перечитывать после гидрации.
+    if (typeof window === 'undefined') {
+      loaded.value = true;
+      return;
+    }
+
     if (!session.isAuth || !session.username || !coopnameReady()) {
       exitStatus.value = null;
       previewTotal.value = null;
