@@ -22,7 +22,9 @@ function describeField(description: DeserializedDescriptionOfExtension): string 
   return JSON.stringify(description);
 }
 
-export const GENERATOR_INTAKE_TITLE = 'Сопроводительное письмо';
+// Заголовок анкеты виден, только когда анкет у заявителя несколько, — он
+// различает их между собой и не должен повторять подпись поля.
+export const GENERATOR_INTAKE_TITLE = 'Анкета программы «Генератор»';
 
 export const GENERATOR_INTAKE_DESCRIPTION =
   'Совету кооператива важно понимать, кто вступает в программу «Генератор». Ответьте своими словами.';
@@ -40,7 +42,7 @@ export const COVER_LETTER_MIN_ROWS = 6;
 export const RESUME_URL_LABEL = 'Ссылка на резюме';
 
 export const RESUME_URL_NOTE =
-  'Необязательно. Если резюме или портфолио опубликованы (hh.ru, LinkedIn, GitHub, личный сайт, облачный диск), вставьте ссылку.';
+  'Необязательно, но желательно. Если резюме или портфолио опубликованы (hh.ru, LinkedIn, GitHub, личный сайт, облачный диск), вставьте ссылку.';
 
 export const RESUME_URL_MAX_LENGTH = 500;
 

@@ -4,7 +4,7 @@
 //- читаются и после того, как расширение выключили или поменяли анкету.
 .intake-answers
   section.intake-answers__form(v-for='answer in answers', :key='answer.form_id')
-    .intake-answers__title(v-if='showTitle(answer)') {{ answer.title }}
+    .intake-answers__title(v-if='showTitle()') {{ answer.title }}
     DataRow(
       v-for='row in rowsOf(answer)',
       :key='row.key',
@@ -94,11 +94,9 @@ const rowsOf = (answer: ICandidateIntakeAnswer): IAnswerRow[] => {
   return rows;
 };
 
-// Заголовок анкеты лишний, когда она одна и её единственное поле названо так же.
-const showTitle = (answer: ICandidateIntakeAnswer): boolean => {
-  const rows = rowsOf(answer);
-  return props.answers.length > 1 || rows.length !== 1 || rows[0].label !== answer.title;
-};
+// Заголовок анкеты нужен, только когда анкет несколько: одну озаглавливает
+// сам блок («Сведения от заявителя»), а у полей свои подписи.
+const showTitle = (): boolean => props.answers.length > 1;
 
 const formatDate = (value: unknown): string => date.formatDate(String(value), 'DD.MM.YYYY HH:mm');
 </script>

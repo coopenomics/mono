@@ -2,9 +2,10 @@
 div(v-show='store.isStep("IntakeStep")')
   .intake
     section.intake__form(v-for='form in store.intakeForms', :key='form.id')
-      //- Заголовок анкеты повторять не нужно, когда она одна и состоит из одного
-      //- поля: его подпись и пояснение уже всё говорят.
-      h3.intake__title(v-if='showFormTitle(form)') {{ form.title }}
+      //- Одну анкету шаг уже озаглавил («Расскажите о себе»), а у полей свои
+      //- подписи — заголовок анкеты дублировал бы их. Нужен он, только когда
+      //- анкет несколько и их надо различать.
+      h3.intake__title(v-if='store.intakeForms.length > 1') {{ form.title }}
       p.intake__lead(v-if='form.description') {{ form.description }}
 
       ZodForm(
@@ -22,7 +23,7 @@ div(v-show='store.isStep("IntakeStep")')
 </template>
 
 <script lang="ts" setup>
-import { useRegistratorStore, type IRegistrationIntakeForm } from 'src/entities/Registrator';
+import { useRegistratorStore } from 'src/entities/Registrator';
 import type { IExtensionConfigSchema } from 'src/entities/Extension/model';
 import { BaseButton } from 'src/shared/ui/base/BaseButton';
 import { ZodForm } from 'src/shared/ui/ZodForm';
@@ -35,11 +36,6 @@ import { ZodForm } from 'src/shared/ui/ZodForm';
 const store = useRegistratorStore();
 
 const asFormSchema = (schema: unknown) => schema as IExtensionConfigSchema;
-
-const showFormTitle = (form: IRegistrationIntakeForm): boolean => {
-  const fields = Object.keys((form.schema as { properties?: object })?.properties ?? {});
-  return store.intakeForms.length > 1 || fields.length > 1;
-};
 
 const setAnswers = (formId: string, values: Record<string, unknown>) => {
   store.state.intakeAnswers = { ...store.state.intakeAnswers, [formId]: values };
