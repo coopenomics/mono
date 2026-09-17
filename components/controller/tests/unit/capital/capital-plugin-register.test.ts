@@ -40,6 +40,8 @@ function makePortStub() {
     unregisterAgreement: jest.fn(),
     registerProgram: jest.fn(),
     unregisterProgram: jest.fn(),
+    registerIntakeForm: jest.fn(),
+    unregisterIntakeForm: jest.fn(),
   };
 }
 
@@ -63,6 +65,7 @@ describe('registerCapitalInAgreementRegistry', () => {
     expect(ok).toBe(false);
     expect(port.registerAgreement).not.toHaveBeenCalled();
     expect(port.registerProgram).not.toHaveBeenCalled();
+    expect(port.registerIntakeForm).not.toHaveBeenCalled();
   });
 
   it('регистрирует 2 оферты и 2 программы когда все 5 _done = true', () => {
@@ -100,9 +103,24 @@ describe('registerCapitalInAgreementRegistry', () => {
       expect.objectContaining({
         key: 'GENERATION',
         agreement_ids: ['generator_offer'],
+        intake_form_ids: ['generator_cover_letter'],
         extension_name: 'capital',
       })
     );
+
+    // Анкета с сопроводительным письмом — только у «Генератора» (C28-73).
+    expect(port.registerIntakeForm).toHaveBeenCalledTimes(1);
+    expect(port.registerIntakeForm).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 'generator_cover_letter',
+        extension_name: 'capital',
+        applicable_account_types: [],
+      })
+    );
+    const capitalization = port.registerProgram.mock.calls
+      .map(([spec]: [any]) => spec)
+      .find((spec: any) => spec.key === 'CAPITALIZATION');
+    expect(capitalization.intake_form_ids).toBeUndefined();
 
     expect(port.registerProgram).toHaveBeenCalledWith(
       expect.objectContaining({
