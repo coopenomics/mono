@@ -7,7 +7,6 @@ import { ComponentMetricOutputDTO } from '../dto/metrics/component-metric.dto';
 import { MeasureOutputDTO } from '../dto/metrics/measure.dto';
 import { CreateComponentMetricInputDTO } from '../dto/metrics/create-component-metric-input.dto';
 import { UpdateComponentMetricInputDTO } from '../dto/metrics/update-component-metric-input.dto';
-import { CreateMeasureInputDTO } from '../dto/metrics/create-measure-input.dto';
 import { UpdateMeasureInputDTO } from '../dto/metrics/update-measure-input.dto';
 import { GetMeasuresInputDTO } from '../dto/metrics/get-measures-input.dto';
 import { ArchiveComponentMetricInputDTO } from '../dto/metrics/archive-component-metric-input.dto';
@@ -37,19 +36,6 @@ const paginatedMetricContributionsResult = createPaginationResult(
 @Resolver()
 export class ComponentMetricResolver {
   constructor(private readonly componentMetricService: ComponentMetricService) {}
-
-  @Mutation(() => MeasureOutputDTO, {
-    name: 'capitalCreateMeasure',
-    description: 'Добавить меру в справочник кооператива; мера с тем же названием и единицей не дублируется — она возвращается (из архива — восстанавливается) с выбранным типом ряда',
-  })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
-  async createMeasure(
-    @Args('data', { type: () => CreateMeasureInputDTO }) data: CreateMeasureInputDTO,
-    @CurrentUser() currentUser: IMonoAccount
-  ): Promise<MeasureOutputDTO> {
-    return this.componentMetricService.createMeasure(data, currentUser);
-  }
 
   @Mutation(() => MeasureOutputDTO, {
     name: 'capitalUpdateMeasure',

@@ -6030,16 +6030,6 @@ export type ValueTypes = {
 	password: string | Variable<any, string>,
 	username: string | Variable<any, string>
 };
-	["CreateMeasureInput"]: {
-	/** Имя аккаунта кооператива */
-	coopname: string | Variable<any, string>,
-	/** Режим ряда; по умолчанию скорость */
-	series_mode?: ValueTypes["MetricSeriesMode"] | undefined | null | Variable<any, string>,
-	/** Название меры */
-	title: string | Variable<any, string>,
-	/** Единица измерения */
-	unit: string | Variable<any, string>
-};
 	["CreateMembershipExitInput"]: {
 	/** Имя аккаунта кооператива */
 	coopname: string | Variable<any, string>,
@@ -12577,7 +12567,6 @@ capitalCreateDebt?: [{	data: ValueTypes["CreateDebtInput"] | Variable<any, strin
 capitalCreateExpense?: [{	data: ValueTypes["CreateExpenseInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 capitalCreateIssue?: [{	data: ValueTypes["CreateIssueInput"] | Variable<any, string>},ValueTypes["CapitalIssue"]],
 capitalCreateLocalProject?: [{	data: ValueTypes["CreateProjectInput"] | Variable<any, string>},ValueTypes["CapitalProject"]],
-capitalCreateMeasure?: [{	data: ValueTypes["CreateMeasureInput"] | Variable<any, string>},ValueTypes["CapitalMeasure"]],
 capitalCreateProcessTemplate?: [{	data: ValueTypes["CreateProcessTemplateInput"] | Variable<any, string>},ValueTypes["ProcessTemplate"]],
 capitalCreateProgramExpense?: [{	data: ValueTypes["CapitalCreateProgramExpenseInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 capitalCreateProgramInvest?: [{	data: ValueTypes["CreateProgramInvestInput"] | Variable<any, string>},ValueTypes["Transaction"]],
@@ -21863,16 +21852,6 @@ export type ResolverInputTypes = {
 	password: string,
 	username: string
 };
-	["CreateMeasureInput"]: {
-	/** Имя аккаунта кооператива */
-	coopname: string,
-	/** Режим ряда; по умолчанию скорость */
-	series_mode?: ResolverInputTypes["MetricSeriesMode"] | undefined | null,
-	/** Название меры */
-	title: string,
-	/** Единица измерения */
-	unit: string
-};
 	["CreateMembershipExitInput"]: {
 	/** Имя аккаунта кооператива */
 	coopname: string,
@@ -28216,7 +28195,6 @@ capitalCreateDebt?: [{	data: ResolverInputTypes["CreateDebtInput"]},ResolverInpu
 capitalCreateExpense?: [{	data: ResolverInputTypes["CreateExpenseInput"]},ResolverInputTypes["Transaction"]],
 capitalCreateIssue?: [{	data: ResolverInputTypes["CreateIssueInput"]},ResolverInputTypes["CapitalIssue"]],
 capitalCreateLocalProject?: [{	data: ResolverInputTypes["CreateProjectInput"]},ResolverInputTypes["CapitalProject"]],
-capitalCreateMeasure?: [{	data: ResolverInputTypes["CreateMeasureInput"]},ResolverInputTypes["CapitalMeasure"]],
 capitalCreateProcessTemplate?: [{	data: ResolverInputTypes["CreateProcessTemplateInput"]},ResolverInputTypes["ProcessTemplate"]],
 capitalCreateProgramExpense?: [{	data: ResolverInputTypes["CapitalCreateProgramExpenseInput"]},ResolverInputTypes["Transaction"]],
 capitalCreateProgramInvest?: [{	data: ResolverInputTypes["CreateProgramInvestInput"]},ResolverInputTypes["Transaction"]],
@@ -37231,16 +37209,6 @@ export type ModelTypes = {
 	password: string,
 	username: string
 };
-	["CreateMeasureInput"]: {
-	/** Имя аккаунта кооператива */
-	coopname: string,
-	/** Режим ряда; по умолчанию скорость */
-	series_mode?: ModelTypes["MetricSeriesMode"] | undefined | null,
-	/** Название меры */
-	title: string,
-	/** Единица измерения */
-	unit: string
-};
 	["CreateMembershipExitInput"]: {
 	/** Имя аккаунта кооператива */
 	coopname: string,
@@ -43338,8 +43306,6 @@ export type ModelTypes = {
 	capitalCreateIssue: ModelTypes["CapitalIssue"],
 	/** Создание персонального проекта или компонента без публикации в блокчейн */
 	capitalCreateLocalProject: ModelTypes["CapitalProject"],
-	/** Устарело: справочник мер централизован, создание только через миграции. Мутация всегда отклоняется. */
-	capitalCreateMeasure: ModelTypes["CapitalMeasure"],
 	/** Создание шаблона процесса */
 	capitalCreateProcessTemplate: ModelTypes["ProcessTemplate"],
 	/** Создание программного расхода капитала через шасси expense. */
@@ -52931,16 +52897,6 @@ export type GraphQLTypes = {
 		password: string,
 	username: string
 };
-	["CreateMeasureInput"]: {
-		/** Имя аккаунта кооператива */
-	coopname: string,
-	/** Режим ряда; по умолчанию скорость */
-	series_mode?: GraphQLTypes["MetricSeriesMode"] | undefined | null,
-	/** Название меры */
-	title: string,
-	/** Единица измерения */
-	unit: string
-};
 	["CreateMembershipExitInput"]: {
 		/** Имя аккаунта кооператива */
 	coopname: string,
@@ -59511,8 +59467,6 @@ export type GraphQLTypes = {
 	capitalCreateIssue: GraphQLTypes["CapitalIssue"],
 	/** Создание персонального проекта или компонента без публикации в блокчейн */
 	capitalCreateLocalProject: GraphQLTypes["CapitalProject"],
-	/** Устарело: справочник мер централизован, создание только через миграции. Мутация всегда отклоняется. */
-	capitalCreateMeasure: GraphQLTypes["CapitalMeasure"],
 	/** Создание шаблона процесса */
 	capitalCreateProcessTemplate: GraphQLTypes["ProcessTemplate"],
 	/** Создание программного расхода капитала через шасси expense. */
@@ -65653,7 +65607,6 @@ type ZEUS_VARIABLES = {
 	["CreateIssueInput"]: ValueTypes["CreateIssueInput"];
 	["CreateKuDecisionInput"]: ValueTypes["CreateKuDecisionInput"];
 	["CreateMatrixAccountInputDTO"]: ValueTypes["CreateMatrixAccountInputDTO"];
-	["CreateMeasureInput"]: ValueTypes["CreateMeasureInput"];
 	["CreateMembershipExitInput"]: ValueTypes["CreateMembershipExitInput"];
 	["CreateOrganizationDataInput"]: ValueTypes["CreateOrganizationDataInput"];
 	["CreateProcessTemplateInput"]: ValueTypes["CreateProcessTemplateInput"];

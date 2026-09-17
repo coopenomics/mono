@@ -496,9 +496,6 @@ export const AllTypesProps: Record<string,any> = {
 	CreateMatrixAccountInputDTO:{
 
 	},
-	CreateMeasureInput:{
-		series_mode:"MetricSeriesMode"
-	},
 	CreateMembershipExitInput:{
 		statement:"MembershipExitApplicationSignedDocumentInput"
 	},
@@ -1555,9 +1552,6 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		capitalCreateLocalProject:{
 			data:"CreateProjectInput"
-		},
-		capitalCreateMeasure:{
-			data:"CreateMeasureInput"
 		},
 		capitalCreateProcessTemplate:{
 			data:"CreateProcessTemplateInput"
@@ -7156,7 +7150,6 @@ export const ReturnTypes: Record<string,any> = {
 		capitalCreateExpense:"Transaction",
 		capitalCreateIssue:"CapitalIssue",
 		capitalCreateLocalProject:"CapitalProject",
-		capitalCreateMeasure:"CapitalMeasure",
 		capitalCreateProcessTemplate:"ProcessTemplate",
 		capitalCreateProgramExpense:"Transaction",
 		capitalCreateProgramInvest:"Transaction",

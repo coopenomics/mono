@@ -34,7 +34,6 @@ import type { IMonoAccount } from '@coopenomics/innercoop';
 import type { ProjectDomainEntity } from '../../domain/entities/project.entity';
 import type { CreateComponentMetricInputDTO } from '../dto/metrics/create-component-metric-input.dto';
 import type { UpdateComponentMetricInputDTO } from '../dto/metrics/update-component-metric-input.dto';
-import type { CreateMeasureInputDTO } from '../dto/metrics/create-measure-input.dto';
 import type { UpdateMeasureInputDTO } from '../dto/metrics/update-measure-input.dto';
 import type { SetIssueMetricBindingsInputDTO } from '../dto/metrics/set-issue-metric-bindings-input.dto';
 import type { LogMetricContributionInputDTO } from '../dto/metrics/log-metric-contribution-input.dto';
@@ -89,20 +88,6 @@ export class ComponentMetricService {
     private readonly issueRepository: IssueRepository,
     private readonly permissionsService: PermissionsService
   ) {}
-
-  async createMeasure(
-    data: CreateMeasureInputDTO,
-    currentUser: IMonoAccount
-  ): Promise<MeasureOutputDTO> {
-    const measure = await this.findOrCreateMeasure(
-      data.coopname,
-      data.title,
-      data.unit,
-      data.series_mode,
-      currentUser
-    );
-    return this.toMeasureOutput(measure);
-  }
 
   async updateMeasure(
     data: UpdateMeasureInputDTO,
