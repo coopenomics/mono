@@ -1,0 +1,165 @@
+feature: registration.intake-forms
+title: Анкеты при вступлении — сведения о заявителе по схемам расширений
+
+# Расширение объявляет анкету (Zod-схема с описанием полей, как у своих
+# настроек) в реестре регистрации ядра и привязывает её к программе участия.
+# Заявитель, выбравший программу, видит шаг «Сведения о себе»; ядро не принимает
+# заявление, пока ответы не проходят схему. Ответы хранятся у кандидата вместе
+# со снимком заголовка и схемы и читаются советом в вопросе о приёме и в реестре
+# пайщиков. Первая анкета — сопроводительное письмо программы «Генератор».
+#
+# Правила: что заполнять, решает реестр на сервере, а не клиент (лишняя анкета —
+# такой же отказ, как незаполненная); ответы не подписываются и в цепь не идут;
+# выключение расширения снимает анкету, но уже поданные ответы остаются читаемыми.
+
+sources:
+  backend:
+    - components/innercoop/src/core-ports/registration.port.ts
+    - components/controller/src/domain/registration/utils/intake-*.ts
+    - components/controller/src/domain/registration/services/agreement-registry.service.ts
+    - components/controller/src/domain/registration/services/agreement-configuration.service.ts
+    - components/controller/src/application/registration/dto/candidate-intake.dto.ts
+    - components/controller/src/extensions/capital/application/registration/generator-intake.schema.ts
+    - components/controller/src/extensions/capital/application/registration/register-capital-in-agreement-registry.ts
+  ui:
+    - components/desktop/src/pages/Registrator/SignUp/IntakeStep.vue
+    - components/desktop/src/shared/lib/intake-schema/**
+    - components/desktop/src/entities/Registration/ui/**
+    - components/desktop/src/features/Decision/ParticipantApplication/ui/**
+
+cases:
+  - id: reg.intake.happy.01
+    level: backend
+    kind: happy
+    scenario: расширение регистрирует анкету с описанными полями
+    expect: в реестре анкета с JSON Schema, описание поля разобрано в объект, обязательные поля перечислены
+    test: components/controller/tests/unit/registration/intake-forms.test.ts
+    status: written
+
+  - id: reg.intake.happy.02
+    level: backend
+    kind: happy
+    scenario: заявитель программы с анкетой подаёт корректные ответы
+    expect: замечаний нет; значения обрезаны схемой, лишние ключи отброшены, сохранён снимок заголовка и схемы
+    test: components/controller/tests/unit/registration/intake-forms.test.ts
+    status: written
+
+  - id: reg.intake.happy.03
+    level: backend
+    kind: happy
+    scenario: сборка анкет для заявителя — общие по типу аккаунта плюс анкеты выбранной программы
+    expect: программа несёт свои анкеты, общие идут отдельно, дублей нет, владелец-расширение наружу не раскрыт
+    test: components/controller/tests/unit/registration/intake-forms.test.ts
+    status: written
+
+  - id: reg.intake.side.01
+    level: backend
+    kind: side
+    scenario: анкета без полей или с полем без подписи
+    expect: регистрация анкеты отклонена на старте расширения, в реестр она не попадает
+    test: components/controller/tests/unit/registration/intake-forms.test.ts
+    status: written
+
+  - id: reg.intake.side.02
+    level: backend
+    kind: side
+    scenario: второе расширение регистрирует анкету с уже занятым идентификатором; владелец повторяет регистрацию
+    expect: чужому — ConflictException; владельцу — перезапись без дубля
+    test: components/controller/tests/unit/registration/intake-forms.test.ts
+    status: written
+
+  - id: reg.intake.side.03
+    level: backend
+    kind: side
+    scenario: заявитель не приложил ответ на обязательную анкету
+    expect: замечание «Не заполнена анкета «…»», ответы не сохраняются
+    test: components/controller/tests/unit/registration/intake-forms.test.ts
+    status: written
+
+  - id: reg.intake.side.04
+    level: backend
+    kind: side
+    scenario: ответ не проходит схему (короткий текст, пустое обязательное поле)
+    expect: замечание с подписью поля из схемы и русским сообщением расширения
+    test: components/controller/tests/unit/registration/intake-forms.test.ts
+    status: written
+
+  - id: reg.intake.side.05
+    level: backend
+    kind: side
+    scenario: клиент прислал анкету, не положенную этому заявителю (другая программа, выдуманный id)
+    expect: замечание «Анкеты не предусмотрены для этой заявки», ответы не сохраняются
+    test: components/controller/tests/unit/registration/intake-forms.test.ts
+    status: written
+
+  - id: reg.intake.side.06
+    level: backend
+    kind: side
+    scenario: анкета с пустым списком типов аккаунта и программа без анкет
+    expect: анкета приходит только через программу; заявителю другой программы она не требуется
+    test: components/controller/tests/unit/registration/intake-forms.test.ts
+    status: written
+
+  - id: reg.intake.side.07
+    level: backend
+    kind: side
+    scenario: расширение остановлено
+    expect: его анкеты сняты с реестра, анкеты других расширений остались
+    test: components/controller/tests/unit/registration/intake-forms.test.ts
+    status: written
+
+  - id: reg.intake.side.08
+    level: backend
+    kind: side
+    scenario: сопроводительное письмо «Генератора» на границах длины (минимум−1, минимум, максимум, максимум+1, пробелы по краям)
+    expect: проходят только значения в границах после обрезки пробелов; сообщения по-русски
+    test: components/controller/tests/unit/capital/generator-intake-schema.test.ts
+    status: written
+
+  - id: reg.intake.side.09
+    level: backend
+    kind: side
+    scenario: capital регистрирует программы при завершённом и незавершённом L1
+    expect: анкета письма объявлена только при завершённом L1 и привязана только к «Генератору»
+    test: components/controller/tests/unit/capital/capital-plugin-register.test.ts
+    status: written
+
+  - id: reg.intake.side.10
+    level: backend
+    kind: side
+    scenario: registerParticipant целиком — отказ 400 без письма, сохранение ответов у кандидата, письмо в событии participant::registered и в описании участника capital
+    expect: заявление без письма не принимается; после приёма письмо в candidates.intake_answers и в contributor.about (непустое описание не затирается)
+    test: ~
+    status: missing
+
+  - id: reg.intake.side.11
+    level: backend
+    kind: side
+    scenario: getCandidateIntake запрашивает не председатель и не член совета
+    expect: отказ по ролям; ответы заявителя посторонним не отдаются
+    test: ~
+    status: missing
+
+  - id: reg.intake.happy.04
+    level: ui
+    kind: happy
+    scenario: заявитель выбирает «Генератор», пишет письмо, проходит вступление; совет раскрывает вопрос о приёме
+    expect: шаг «Сведения о себе» показан, короткий текст не пускает дальше; письмо видно совету в повестке и в развёрнутой строке реестра пайщиков
+    test: ~
+    status: missing
+
+  - id: reg.intake.side.12
+    level: ui
+    kind: side
+    scenario: заявитель выбирает «Благорост» либо в кооперативе нет приложений с анкетами
+    expect: шага «Сведения о себе» нет, вступление идёт как прежде
+    test: ~
+    status: missing
+
+  - id: reg.intake.side.13
+    level: ui
+    kind: side
+    scenario: вступление начато до появления анкеты и ушло дальше шага сведений
+    expect: при возврате на страницу человека ведут на анкету, а не показывают отказ сервера на подписи; шаг пароля повторно не проходится
+    test: ~
+    status: missing

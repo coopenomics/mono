@@ -1,8 +1,13 @@
 import { Field, InputType, registerEnumType } from '@nestjs/graphql';
-import { IsNotEmpty, IsOptional, IsString, ValidateNested } from 'class-validator';
+import { IsArray, IsNotEmpty, IsObject, IsOptional, IsString, ValidateNested } from 'class-validator';
+import { Type } from 'class-transformer';
+import { GraphQLJSON } from 'graphql-type-json';
 import { ParticipantApplicationSignedDocumentInputDTO } from '../../document/documents-dto/participant-application-document.dto';
 import { SignedDigitalDocumentInputDTO } from '@coopenomics/extension-kit';
-import type { RegisterParticipantDomainInterface } from '~/domain/participant/interfaces/register-participant-domain.interface';
+import type {
+  IntakeFormAnswerDomainInterface,
+  RegisterParticipantDomainInterface,
+} from '~/domain/participant/interfaces/register-participant-domain.interface';
 import { ProgramKey } from '~/domain/registration/enum';
 
 // Регистрируем enum для GraphQL
@@ -10,6 +15,18 @@ registerEnumType(ProgramKey, {
   name: 'ProgramKey',
   description: 'Ключ выбранной программы регистрации',
 });
+
+@InputType('IntakeFormAnswerInput')
+export class IntakeFormAnswerInputDTO implements IntakeFormAnswerDomainInterface {
+  @Field({ description: 'Идентификатор анкеты из конфигурации регистрации' })
+  @IsNotEmpty({ message: 'Поле "form_id" обязательно для заполнения.' })
+  @IsString()
+  form_id!: string;
+
+  @Field(() => GraphQLJSON, { description: 'Значения полей анкеты: имя поля → значение' })
+  @IsObject({ message: 'Поле "values" должно быть объектом.' })
+  values!: Record<string, unknown>;
+}
 
 @InputType('RegisterParticipantInput')
 export class RegisterParticipantInputDTO implements RegisterParticipantDomainInterface {
@@ -85,4 +102,14 @@ export class RegisterParticipantInputDTO implements RegisterParticipantDomainInt
   @Field(() => ProgramKey, { description: 'Ключ выбранной программы регистрации', nullable: true })
   @IsOptional()
   program_key?: ProgramKey;
+
+  @Field(() => [IntakeFormAnswerInputDTO], {
+    description: 'Ответы на анкеты вступления, которые объявили расширения для выбранной программы и типа аккаунта',
+    nullable: true,
+  })
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => IntakeFormAnswerInputDTO)
+  @IsOptional()
+  intake_answers?: IntakeFormAnswerInputDTO[];
 }

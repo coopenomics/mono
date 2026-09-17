@@ -18,4 +18,9 @@ export interface InnerParticipantRegisteredEvent {
   account_type: string;
   blagorost_offer_hash?: string;
   generator_offer_hash?: string;
+  /**
+   * Ответы на анкеты вступления: идентификатор анкеты → значения полей.
+   * Структуру своей анкеты расширение знает само — ядро отдаёт их как есть.
+   */
+  intake_answers?: Record<string, Record<string, unknown>>;
 }

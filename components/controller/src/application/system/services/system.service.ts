@@ -118,6 +118,7 @@ export class SystemService {
     return new RegistrationConfigDTO({
       requires_selection: programs.length > 1,
       programs,
+      intake_forms: this.agreementConfigService.getIntakeFormsForAccountType(accountType),
     });
   }
 }

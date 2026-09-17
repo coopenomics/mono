@@ -1,5 +1,6 @@
 import { Column, CreateDateColumn, Entity, PrimaryColumn } from 'typeorm';
 import type { ISignedDocument } from '@coopenomics/innercoop';
+import type { CandidateIntakeAnswerDomainInterface } from '~/domain/account/interfaces/candidate-domain.interface';
 
 @Entity('candidates')
 export class CandidateEntity {
@@ -48,6 +49,10 @@ export class CandidateEntity {
   /** Generic map agreement_id → signed document (marketplace и следующие расширения). */
   @Column('jsonb', { nullable: false, default: {} })
   program_agreements!: Record<string, ISignedDocument>;
+
+  /** Ответы на анкеты вступления: form_id → значения и снимок схемы. */
+  @Column('jsonb', { nullable: false, default: {} })
+  intake_answers!: Record<string, CandidateIntakeAnswerDomainInterface>;
 
   @Column({ nullable: true })
   program_key?: string;
