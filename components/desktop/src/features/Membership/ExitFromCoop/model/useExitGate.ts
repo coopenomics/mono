@@ -20,6 +20,14 @@ export function useExitGate() {
   const { info } = useSystemStore();
   const session = useSessionStore();
 
+  /**
+   * Имя кооператива обязательно во всех трёх обращениях ниже. При серверной
+   * отрисовке сведения о системе приходят позже сессии, и без этой проверки
+   * запрос уходил без обязательной переменной: сервер отвергал его на разборе,
+   * а кабинет молча оставался без статуса выхода.
+   */
+  const coopnameReady = (): boolean => Boolean(info.coopname);
+
   // Активный выход → блокируем кабинет.
   const isExitActive = computed(() => !!exitStatus.value);
 
@@ -37,7 +45,7 @@ export function useExitGate() {
    * После отмены кабинет разблокируется.
    */
   async function cancelExit(): Promise<void> {
-    if (!session.username) return;
+    if (!session.username || !coopnameReady()) return;
     await client.Mutation(Mutations.MembershipExit.CancelMembershipExit.mutation, {
       variables: {
         coopname: info.coopname,
@@ -52,7 +60,7 @@ export function useExitGate() {
    * планируемого платежа, пока совет не зафиксировал итог).
    */
   async function loadExitStatus(): Promise<void> {
-    if (!session.isAuth || !session.username) {
+    if (!session.isAuth || !session.username || !coopnameReady()) {
       exitStatus.value = null;
       previewTotal.value = null;
       loaded.value = true;
@@ -86,6 +94,8 @@ export function useExitGate() {
   }
 
   async function loadPreview(): Promise<void> {
+    if (!coopnameReady()) return;
+
     try {
       const {
         [Queries.MembershipExit.MembershipExitReturnPreview.name]: preview,
