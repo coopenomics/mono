@@ -54,15 +54,17 @@
 
   q-slide-transition
     .question-card__doc(v-show='expanded')
-      ComplexDocument(:documents='agenda.documents')
-
-      //- Дополнение монтируем при первом раскрытии: оно может ходить на сервер,
-      //- а карточек в повестке много. Раскрыв однажды, больше не размонтируем.
+      //- Дополнительные сведения по вопросу (например, что заявитель рассказал о
+      //- себе) — первыми: ради них карточку и открывают. Монтируем при первом
+      //- раскрытии: блок может ходить на сервер, а карточек в повестке много.
       component(
         v-if='infoComponent && wasExpanded',
         :is='infoComponent',
         :agenda='agenda'
       )
+
+      //- Документы пакета — строками, каждый раскрывается по нажатию.
+      ComplexDocument(:documents='agenda.documents', collapsible)
 </template>
 
 <script setup lang="ts">

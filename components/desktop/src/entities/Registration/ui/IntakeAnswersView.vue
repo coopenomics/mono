@@ -64,26 +64,43 @@ const scalarRow = (key: string, label: string, property: IIntakeSchemaProperty, 
   link: isLink(property, value),
 });
 
-/** Поля анкеты в порядке схемы; вложенный объект разворачивается с составной подписью. */
+/**
+ * Поля анкеты: сначала обязательные, затем остальные, внутри групп — в порядке
+ * схемы. Порядок ключей снимка схемы база не хранит (jsonb упорядочивает их
+ * по-своему), а главное в анкете — обязательные ответы, их и показываем первыми.
+ */
+const orderedFields = (
+  properties: Record<string, IIntakeSchemaProperty>,
+  required: string[] = [],
+): Array<[string, IIntakeSchemaProperty]> => {
+  const entries = Object.entries(properties);
+  return [
+    ...entries.filter(([name]) => required.includes(name)),
+    ...entries.filter(([name]) => !required.includes(name)),
+  ];
+};
+
+/** Вложенный объект разворачивается с составной подписью. */
 const collectRows = (
   properties: Record<string, IIntakeSchemaProperty>,
   values: Record<string, unknown>,
   prefix = '',
+  required: string[] = [],
 ): IAnswerRow[] =>
-  Object.entries(properties).flatMap(([name, property]) => {
+  orderedFields(properties, required).flatMap(([name, property]) => {
     const value = values?.[name];
     if (isEmpty(value)) return [];
     const label = `${prefix}${property.description?.label ?? name}`;
     const nested = property.type === 'object' && property.properties && typeof value === 'object';
     return nested
-      ? collectRows(property.properties!, value as Record<string, unknown>, `${label} — `)
+      ? collectRows(property.properties!, value as Record<string, unknown>, `${label} — `, property.required)
       : [scalarRow(`${prefix}${name}`, label, property, value)];
   });
 
 const rowsOf = (answer: ICandidateIntakeAnswer): IAnswerRow[] => {
   const schema = (answer.json_schema ?? {}) as IIntakeSchema;
   const values = (answer.values ?? {}) as Record<string, unknown>;
-  const rows = collectRows(schema.properties ?? {}, values);
+  const rows = collectRows(schema.properties ?? {}, values, '', schema.required);
 
   // Значения, которых в снимке схемы нет, всё равно показываем — под именем поля.
   const known = new Set(Object.keys(schema.properties ?? {}));
