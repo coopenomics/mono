@@ -43,7 +43,7 @@ div
       div.q-pa-sm.rounded-borders(style="max-height: 400px; overflow-y: auto;")
         div(v-if="currentPreset") {{ currentPreset.decisionPrefix }}
         div(v-if="currentPreset").q-mt-md
-        DocumentHtmlReader(:html="generatedDocument.html" :sanitize="false")
+        DocumentHtmlReader(:html="generatedDocument.html" profile="document")
       div.q-mt-sm.text-caption.text-grey-6
         strong {{ generatedDocument.full_title }}
 

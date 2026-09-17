@@ -588,3 +588,16 @@ cases:
       проверен на самом коротком пути — заявлении о вступлении
     test: components/boot/src/tests/document-signature.test.ts
     status: passing
+
+  - id: cap.rid.show.01
+    level: ui
+    kind: break
+    scenario: >
+      Документ результата открыт в кабинете, а в описании проекта или задачи,
+      из которых он собран, есть исполняемая разметка.
+    expect: >
+      разметка не выполняется; вид документа (таблицы, выравнивание,
+      собственный стиль) сохраняется. Общее описание —
+      desktop.document-html-display, задача C28-74
+    test: ~
+    status: missing
