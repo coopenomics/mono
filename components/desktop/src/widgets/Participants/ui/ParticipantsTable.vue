@@ -1,84 +1,86 @@
 <template lang="pug">
-q-table.participants-table(
-  flat,
-  :grid='isMobile',
-  :rows='accounts',
-  :columns='columns',
-  row-key='username',
-  :pagination='pagination',
-  virtual-scroll,
-  :virtual-scroll-item-size='48',
-  :rows-per-page-options='[10]',
-  :loading='loading',
-  :no-data-label='"У кооператива нет пайщиков"'
-)
-  template(#header='props')
-    q-tr(:props='props')
-      q-th(auto-width)
-      q-th(v-for='col in props.cols', :key='col.name', :props='props') {{ col.label }}
+div
+  q-table.participants-table(
+    flat,
+    :grid='isMobile',
+    :rows='accounts',
+    :columns='columns',
+    row-key='username',
+    :pagination='pagination',
+    virtual-scroll,
+    :virtual-scroll-item-size='48',
+    :rows-per-page-options='[10]',
+    :loading='loading',
+    :no-data-label='"У кооператива нет пайщиков"'
+  )
+    template(#header='props')
+      q-tr(:props='props')
+        q-th(v-for='col in props.cols', :key='col.name', :props='props') {{ col.label }}
+        q-th(auto-width)
 
-  template(#body='props')
-    q-tr(:key='`m_${props.row.username}`', :props='props')
-      q-td(auto-width)
-        ExpandToggleButton(
-          :expanded='expanded.get(props.row.username)',
-          @click='onToggleExpand(props.row.username)'
-        )
+    //- Строка открывает данные пайщика в правом дроуэре (канон вместо
+    //- раскрывающихся строк); «Подробнее» — явная подсказка, что это можно.
+    template(#body='props')
+      q-tr.participants-table__row(:key='props.row.username', :props='props', @click='openDetails(props.row)')
+        q-td(
+          style='max-width: 150px; word-wrap: break-word; white-space: normal'
+        ) {{ getName(props.row) }}
+        q-td {{ props.row.username }}
 
-      q-td(
-        style='max-width: 150px; word-wrap: break-word; white-space: normal'
-      ) {{ getName(props.row) }}
-      q-td {{ props.row.username }}
+        q-td {{ props.row.provider_account?.email || 'Не указан' }}
 
-      q-td {{ props.row.provider_account?.email || 'Не указан' }}
+        q-td {{ joinDate(props.row) }}
 
-      q-td {{ joinDate(props.row) }}
+        q-td
+          .participants-table__status
+            BaseBadge(:variant='getAccountStatusBadge(props.row).variant') {{ getAccountStatusBadge(props.row).label }}
 
-      q-td
-        .participants-table__status
-          BaseBadge(:variant='getAccountStatusBadge(props.row).variant') {{ getAccountStatusBadge(props.row).label }}
+        q-td
+          .participants-table__verification
+            BaseBadge(:variant='verificationCell(props.row).variant') {{ verificationCell(props.row).short }}
+              q-tooltip {{ verificationCell(props.row).tooltip }}
 
-      q-td
-        .participants-table__verification
-          BaseBadge(:variant='verificationCell(props.row).variant') {{ verificationCell(props.row).short }}
-            q-tooltip {{ verificationCell(props.row).tooltip }}
+        q-td(auto-width)
+          BaseButton(variant='ghost', size='sm', @click.stop='openDetails(props.row)')
+            q-icon.q-mr-xs(name='open_in_new', size='16px')
+            | Подробнее
 
-    q-tr.q-virtual-scroll--with-prev.no-hover(
-      no-hover,
-      v-if='expanded.get(props.row.username)',
-      :key='`e_${props.row.username}`',
-      :props='props'
-    )
-      q-td.no-hover(colspan='100%' style="padding: 0px !important;")
-        ParticipantDetails(
-          :participant='props.row',
-          :naming='naming',
-          @update='(newData) => onUpdate(props.row, newData)',
-          @verification-changed='emit("verification-changed")'
-        )
+    //- Ключ обязателен: грид-режим Quasar рендерит карточки без ключа, и Vue
+    //- сопоставлял их по позиции — после смены страницы или фильтра карточка
+    //- показывала шапку нового пайщика.
+    template(#item='props')
+      ParticipantCard(
+        :key='props.row.username',
+        :participant='props.row',
+        @open='openDetails(props.row)'
+      )
 
-  //- Ключ обязателен: грид-режим Quasar рендерит карточки без ключа, и Vue
-  //- сопоставлял их по позиции — после смены страницы или фильтра карточка
-  //- показывала шапку нового пайщика, а форма внутри — данные прежнего.
-  template(#item='props')
-    ParticipantCard(
-      :key='props.row.username',
-      :participant='props.row',
-      :expanded='expanded.get(props.row.username)',
+  //- Данные пайщика: верификация, сброс второго фактора, сведения при
+  //- вступлении, редактируемая анкета. На телефоне дроуэр во весь экран.
+  DetailsDrawer(
+    v-model='detailsOpen',
+    :title='selected ? getName(selected) : "Пайщик"',
+    :width='640'
+  )
+    ParticipantDetails(
+      v-if='selected',
+      :key='selected.username',
+      :participant='selected',
       :naming='naming',
-      @toggle-expand='() => onToggleExpand(props.row.username)',
-      @update='onUpdate',
+      @update='(newData) => onUpdate(selected, newData)',
       @verification-changed='emit("verification-changed")'
     )
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue';
+import { computed, ref } from 'vue';
 import { useWindowSize } from 'src/shared/hooks';
 import moment from 'src/shared/lib/utils/dates/moment';
 import { ParticipantCard, ParticipantDetails } from '.';
 import { getName } from 'src/shared/lib/utils';
-import { ExpandToggleButton } from 'src/shared/ui/ExpandToggleButton';
+import { BaseButton } from 'src/shared/ui/base/BaseButton';
+import { BaseBadge } from 'src/shared/ui/base/BaseBadge';
+import { DetailsDrawer } from 'src/shared/ui/domain';
 import { getAccountStatusBadge } from 'src/entities/Account';
 import {
   highestVerificationLevel,
@@ -104,7 +106,6 @@ const props = defineProps<{
 
 // Emits
 const emit = defineEmits<{
-  (e: 'toggle-expand', id: string): void;
   (e: 'verification-changed'): void;
   (
     e: 'update',
@@ -114,7 +115,14 @@ const emit = defineEmits<{
 }>();
 
 // Локальное состояние
-const expanded = reactive(new Map<string, boolean>());
+// Открытый в дроуэре пайщик. Храним имя аккаунта, а запись берём из свежего
+// списка: после правки анкеты или верификации список перечитывается, и дроуэр
+// должен показывать уже обновлённые данные.
+const detailsOpen = ref(false);
+const selectedUsername = ref<string | null>(null);
+const selected = computed(() =>
+  props.accounts.find((account) => account.username === selectedUsername.value) ?? null,
+);
 const pagination = ref({ rowsPerPage: 10 });
 const { isMobile } = useWindowSize();
 
@@ -198,16 +206,16 @@ const joinDate = (row: IAccount): string => {
 };
 
 // События
-const onToggleExpand = (id: string) => {
-  expanded.set(id, !expanded.get(id));
-  emit('toggle-expand', id);
+const openDetails = (account: IAccount) => {
+  selectedUsername.value = account.username;
+  detailsOpen.value = true;
 };
 
 const onUpdate = (
-  account: IAccount,
+  account: IAccount | null,
   newData: IIndividualData | IOrganizationData | IEntrepreneurData,
 ) => {
-  emit('update', account, newData);
+  if (account) emit('update', account, newData);
 };
 </script>
 
@@ -233,12 +241,7 @@ const onUpdate = (
   padding: 0;
 }
 
-.no-hover.q-tr--hover,
-.no-hover.q-table__tr--hover,
-.no-hover:hover,
-.no-hover:focus {
-  background: transparent !important;
-  box-shadow: none !important;
-  cursor: default !important;
+.participants-table__row {
+  cursor: pointer;
 }
 </style>

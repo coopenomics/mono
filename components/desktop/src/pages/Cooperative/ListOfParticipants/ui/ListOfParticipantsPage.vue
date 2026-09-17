@@ -16,7 +16,6 @@ q-page.participants-page
       :accounts='filteredAccounts',
       :loading='onLoading',
       :naming='verificationNaming',
-      @toggle-expand='toggleExpand',
       @update='update',
       @verification-changed='onVerificationChanged'
     )
@@ -30,7 +29,7 @@ q-page.participants-page
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { FilterBar, type FilterDefinition, type FilterValues } from 'src/shared/ui/domain/FilterBar';
 import { participantVerificationView, type VerificationNaming } from 'src/shared/lib/verification';
 import { useBranchStore } from 'src/entities/Branch/model';
@@ -104,7 +103,6 @@ const filteredAccounts = computed(() => {
     return true;
   });
 });
-const expanded = reactive(new Map<string, boolean>());
 
 // Вторая вкладка — журнал верификаций: что, когда и кем сверено. Совету он
 // нужен как рабочая очередь: сверки с участков ждут его решения.
@@ -139,10 +137,6 @@ onMounted(() => {
     order: 2,
   });
 });
-
-const toggleExpand = (id: string) => {
-  expanded.set(id, !expanded.get(id));
-};
 
 const loadParticipants = async () => {
   try {
