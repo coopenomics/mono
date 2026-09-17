@@ -520,7 +520,8 @@ export class CapitalExtension extends BaseExtensionModule {
     private readonly onboardingStepRegistration: IOnboardingStepRegistryPort,
     @Inject(DOCUMENT_DECLARATION_PORT)
     private readonly documentDeclarations: IDocumentDeclarationPort,
-    @Inject(COUNCIL_PORT) private readonly council: ICouncilPort
+    @Inject(COUNCIL_PORT) private readonly council: ICouncilPort,
+    private readonly onboardingService: CapitalOnboardingService
   ) {
     super();
     this.logger.setContext(CapitalExtension.name);
@@ -763,9 +764,21 @@ export class CapitalExtension extends BaseExtensionModule {
         return hash;
       };
 
+      // Отметки шагов сверяем с утверждениями в цепи до проверки: решение совета
+      // могло пройти мимо приёмника (контроллер не работал, документ утвердили со
+      // вкладки «Шаблоны документов»). Иначе подключение выглядит завершённым, а
+      // программ во вступлении нет.
+      let registryConfig = extensionConfig as IConfig;
+      try {
+        registryConfig = (await this.onboardingService.reconcileFlags()) as IConfig;
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : String(error);
+        this.logger.warn(`[CAPITAL.REGISTRY] не удалось сверить отметки шагов с цепью: ${message}`);
+      }
+
       const registered = registerCapitalInAgreementRegistry(
         this.agreementRegistrationPort,
-        extensionConfig as IConfig,
+        registryConfig,
         resolveCapitalProgramDocDataHash
       );
       if (registered) {

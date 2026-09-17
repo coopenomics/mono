@@ -179,10 +179,18 @@ export class ChairmanOnboardingService {
     const state = this.buildState(extension.config);
     // Документы могли утвердить с вкладки «Шаблоны документов» — шаг закрыт
     // утверждением в цепи, даже если флаг в настройке ещё не проставлен.
+    //
+    // Отметку дописываем в настройку, а не только показываем шаг закрытым: по
+    // отметкам определяется, завершено ли подключение кооператива.
+    const healed: Partial<Record<OnboardingFlagKey, boolean>> = {};
     for (const [step, key] of CHAIRMAN_DOCUMENT_STEPS) {
       if (!state[key] && (await this.documentApprovals.isStepApproved('chairman', this.mapStepToVarsField(step)))) {
         Object.assign(state, { [key]: true });
+        healed[this.mapStepToFlag(step)] = true;
       }
+    }
+    if (Object.keys(healed).length > 0) {
+      await this.extensionRepository.patchConfig('chairman', healed as Partial<IConfig>);
     }
     return state;
   }

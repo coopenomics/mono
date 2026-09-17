@@ -3,6 +3,8 @@ import { BaseExtensionModule, EXTENSION_REPOSITORY, type ExtensionDomainReposito
   platformSettings,
 } from '@coopenomics/extension-kit';
 import { LOGGER_PORT, type ILoggerPort,
+  DOCUMENT_APPROVAL_PORT,
+  type IDocumentApprovalPort,
   COUNCIL_PORT,
   type ICouncilPort,
   REGISTRATION_REGISTRY_PORT,
@@ -29,6 +31,9 @@ import { ONBOARDING_STEP_REGISTRY_PORT, ONBOARDING_COMPLETED_EVENT, type IOnboar
  */
 export const MARKETPLACE_FILE_STORAGE_PORT = Symbol('MARKETPLACE_FILE_STORAGE_PORT');
 
+/** Шаги подключения ЦПП советом; ключ шага = пакет документов = поле vars. */
+const MARKETPLACE_L1_STEPS = ['marketplace_provision', 'marketplace_offer_template'] as const;
+
 export interface IMarketplaceFileStoragePort {
   ensureBucket(bucketName: string): Promise<void>;
 }
@@ -45,6 +50,7 @@ export class MarketplaceExtension extends BaseExtensionModule {
     @Inject(DOCUMENT_DECLARATION_PORT)
     private readonly documentDeclarations: IDocumentDeclarationPort,
     @Inject(COUNCIL_PORT) private readonly council: ICouncilPort,
+    @Inject(DOCUMENT_APPROVAL_PORT) private readonly documentApprovals: IDocumentApprovalPort,
     @Optional()
     @Inject(MARKETPLACE_FILE_STORAGE_PORT)
     private readonly fileStorage: IMarketplaceFileStoragePort | null = null
@@ -135,11 +141,37 @@ export class MarketplaceExtension extends BaseExtensionModule {
    * `onboarding_marketplace_*_done`. Так состояние расширения меняется СТРОГО по
    * реально отреканному ончейн-решению совета, без stub-кнопки.
    */
-  private async syncCoopAcceptanceFromOnboarding(): Promise<void> {
+  /**
+   * Дописывает отметки шагов по утверждениям в цепи. Ставит их приёмник решения
+   * совета, но решение может пройти мимо него (контроллер не работал, документ
+   * утвердили со вкладки «Шаблоны документов»). Источник правды — утверждение в
+   * цепи; без сверки подключение выглядело бы принятым, оставаясь незавершённым.
+   */
+  private async reconcileOnboardingFlags(): Promise<void> {
     const cfg = this.extension.config as unknown as Record<string, unknown>;
-    const allStepsDone =
-      Boolean(cfg.onboarding_marketplace_provision_done) &&
-      Boolean(cfg.onboarding_marketplace_offer_template_done);
+    const patch: Record<string, boolean> = {};
+    try {
+      for (const step of MARKETPLACE_L1_STEPS) {
+        if (cfg[`onboarding_${step}_done`]) continue;
+        if (await this.documentApprovals.isStepApproved(this.name, step)) patch[`onboarding_${step}_done`] = true;
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.warn(`[MARKETPLACE.L1] не удалось сверить отметки шагов с цепью: ${message}`);
+      return;
+    }
+    if (Object.keys(patch).length === 0) return;
+
+    const merged = await this.extensionRepository.patchConfig(this.name, patch as unknown as Partial<IConfig>);
+    this.extension = { ...this.extension, config: merge({}, defaultConfig, merged.config) };
+    this.logger.warn(`[MARKETPLACE.L1] отметки шагов дописаны по утверждениям в цепи: ${Object.keys(patch).join(', ')}`);
+  }
+
+  private async syncCoopAcceptanceFromOnboarding(): Promise<void> {
+    await this.reconcileOnboardingFlags();
+
+    const cfg = this.extension.config as unknown as Record<string, unknown>;
+    const allStepsDone = MARKETPLACE_L1_STEPS.every((step) => Boolean(cfg[`onboarding_${step}_done`]));
 
     if (!allStepsDone) return;
     if (this.extension.config.coopAcceptance?.accepted) return;
@@ -178,6 +210,13 @@ export class MarketplaceExtension extends BaseExtensionModule {
    * пропускается с info-логом; SignUp не предлагает оферту marketplace.
    */
   private registerInAgreementRegistry(): void {
+    // Программу предлагаем вступающим только после того, как совет утвердил
+    // положение и оферту ЦПП: иначе человек подписывает оферту программы,
+    // которую кооператив ещё не принял.
+    if (!this.extension.config.coopAcceptance?.accepted) {
+      this.logger.info('[MARKETPLACE.REGISTRY] подключение ЦПП советом не завершено — программа во вступлении не предлагается');
+      return;
+    }
     try {
       const registered = registerMarketplaceInAgreementRegistry(this.agreementRegistrationPort);
       if (registered) {

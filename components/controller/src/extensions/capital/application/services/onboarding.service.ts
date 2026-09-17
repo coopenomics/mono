@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { v4 as uuid } from 'uuid';
 import { EXTENSION_REPOSITORY, ExtensionDomainRepository, platformSettings } from '@coopenomics/extension-kit';
 import type { ExtensionDomainEntity } from '@coopenomics/extension-kit';
@@ -9,6 +10,7 @@ import type { ISignedDocument } from '@coopenomics/innercoop';
 import { IDecisionTrackingPort, DECISION_TRACKING_PORT, DecisionEventType } from '@coopenomics/innercoop';
 import { IFreeDecisionPort, FREE_DECISION_PORT } from '@coopenomics/innercoop';
 import { IDocumentApprovalPort, DOCUMENT_APPROVAL_PORT } from '@coopenomics/innercoop';
+import { LOGGER_PORT, type ILoggerPort, ONBOARDING_COMPLETED_EVENT } from '@coopenomics/innercoop';
 import { computeOnboardingExpiresAt } from '@coopenomics/extension-kit';
 
 type OnboardingFlagKey =
@@ -35,7 +37,9 @@ export class CapitalOnboardingService {
     @Inject(EXTENSION_REPOSITORY) private readonly extensionRepository: ExtensionDomainRepository<IConfig>,
     @Inject(FREE_DECISION_PORT) private readonly freeDecisionPort: IFreeDecisionPort,
     @Inject(DECISION_TRACKING_PORT) private readonly decisionTrackingPort: IDecisionTrackingPort,
-    @Inject(DOCUMENT_APPROVAL_PORT) private readonly documentApprovals: IDocumentApprovalPort
+    @Inject(DOCUMENT_APPROVAL_PORT) private readonly documentApprovals: IDocumentApprovalPort,
+    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort,
+    private readonly eventEmitter: EventEmitter2
   ) {}
 
   private mapStepToFlag(step: CapitalOnboardingStepEnum): OnboardingFlagKey {
@@ -165,24 +169,47 @@ export class CapitalOnboardingService {
     };
   }
 
-  public async getState(): Promise<CapitalOnboardingStateDTO> {
+  /**
+   * Сводит отметки шагов с утверждениями в цепи и дописывает недостающие.
+   *
+   * Отметка в настройке расширения — то, по чему capital решает, завершено ли
+   * подключение и пора ли предлагать свои программы вступающим. Ставит её
+   * приёмник решения совета, но решение может пройти мимо него: документ
+   * утвердили со вкладки «Шаблоны документов», пока контроллер не работал, или
+   * приёмник не узнал ключ шага. Тогда карточка подключения показывает «всё
+   * принято», а программ во вступлении нет. Источник правды — утверждение в
+   * цепи, поэтому отметка дописывается здесь же, а не только рисуется.
+   */
+  public async reconcileFlags(): Promise<ExtensionDomainEntity<IConfig>['config']> {
     const extension = await this.loadExtension();
-    const state = this.buildState(extension.config);
-    // Документы могли утвердить с вкладки «Шаблоны документов» — шаг закрыт
-    // утверждением в цепи, даже если флаг в настройке ещё не проставлен.
-    const documentSteps: Array<[CapitalOnboardingStepEnum, keyof CapitalOnboardingStateDTO]> = [
-      [CapitalOnboardingStepEnum.generator_program_template, 'generator_program_template_done'],
-      [CapitalOnboardingStepEnum.generation_contract_template, 'generation_contract_template_done'],
-      [CapitalOnboardingStepEnum.generator_offer_template, 'generator_offer_template_done'],
-      [CapitalOnboardingStepEnum.blagorost_program, 'blagorost_provision_done'],
-      [CapitalOnboardingStepEnum.blagorost_offer_template, 'blagorost_offer_template_done'],
-    ];
-    for (const [step, key] of documentSteps) {
-      if (!state[key] && (await this.documentApprovals.isStepApproved('capital', this.mapStepToVarsField(step)))) {
-        Object.assign(state, { [key]: true });
+    const patch: Partial<Record<OnboardingFlagKey, boolean>> = {};
+
+    for (const step of Object.values(CapitalOnboardingStepEnum)) {
+      const flagKey = this.mapStepToFlag(step);
+      if (extension.config[flagKey]) continue;
+      if (await this.documentApprovals.isStepApproved('capital', this.mapStepToVarsField(step))) {
+        patch[flagKey] = true;
       }
     }
-    return state;
+
+    if (Object.keys(patch).length === 0) return extension.config;
+
+    const updated = await this.extensionRepository.patchConfig('capital', patch as Partial<CapitalOnboardingConfig>);
+    this.logger.warn(
+      `[CAPITAL.ONBOARDING] отметки шагов дописаны по утверждениям в цепи: ${Object.keys(patch).join(', ')}`
+    );
+
+    // Дописана последняя отметка — подключение завершено; расширение
+    // перезапустится и зарегистрирует свои программы во вступлении.
+    const allDone = Object.values(CapitalOnboardingStepEnum).every((step) => Boolean(updated.config[this.mapStepToFlag(step)]));
+    if (allDone) {
+      this.eventEmitter.emit(ONBOARDING_COMPLETED_EVENT, { extension_name: 'capital' });
+    }
+    return updated.config;
+  }
+
+  public async getState(): Promise<CapitalOnboardingStateDTO> {
+    return this.buildState((await this.reconcileFlags()) as CapitalOnboardingConfig);
   }
 
   public async saveProgramDocDataHash(docDataHash: string): Promise<CapitalOnboardingStateDTO> {

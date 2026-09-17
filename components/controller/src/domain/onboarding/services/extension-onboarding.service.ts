@@ -1,4 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { ONBOARDING_COMPLETED_EVENT } from '@coopenomics/innercoop';
 import { v4 as uuid } from 'uuid';
 import { Cooperative } from 'cooptypes';
 import {
@@ -72,7 +74,8 @@ export class ExtensionOnboardingService {
     private readonly decisionTrackingPort: IDecisionTrackingPort,
     @Inject(ONBOARDING_STEP_QUERY_PORT)
     private readonly stepsRegistry: OnboardingStepQueryPort,
-    private readonly documentApprovals: DocumentApprovalOnboardingAdapter
+    private readonly documentApprovals: DocumentApprovalOnboardingAdapter,
+    private readonly eventEmitter: EventEmitter2
   ) {}
 
   private async loadExtension(extension_name: string) {
@@ -101,6 +104,21 @@ export class ExtensionOnboardingService {
     return { ...extension, config: extensionConfig };
   }
 
+  /**
+   * Дописывает отметки шагов, закрытых утверждением в цепи. Если дописана
+   * последняя — подключение завершено: расширение перезапустится и доделает то,
+   * что ждало решения совета.
+   */
+  private async persistHealedFlags(
+    extension_name: string,
+    healed: Record<string, boolean>,
+    allDone: boolean
+  ): Promise<void> {
+    if (Object.keys(healed).length === 0) return;
+    await this.extensionRepository.patchConfig(extension_name, healed);
+    if (allDone) this.eventEmitter.emit(ONBOARDING_COMPLETED_EVENT, { extension_name });
+  }
+
   public async getState(
     extension_name: string
   ): Promise<IExtensionOnboardingState> {
@@ -109,11 +127,16 @@ export class ExtensionOnboardingService {
 
     // Шаг про документы считается пройденным и по утверждениям в цепи:
     // документы могли утвердить с вкладки «Шаблоны документов», минуя карточку.
+    //
+    // Отметку в настройке при этом дописываем, а не только показываем шаг
+    // закрытым: по отметкам расширение решает, завершено ли подключение. Иначе
+    // карточка говорит «всё принято», а расширение остаётся неподключённым.
     const steps: IExtensionOnboardingStepState[] = [];
+    const healed: Record<string, boolean> = {};
     for (const spec of specs) {
-      const done =
-        Boolean(extension.config[doneKey(spec.step_key)]) ||
-        (await this.documentApprovals.isStepApproved(extension_name, spec.step_key));
+      const flagged = Boolean(extension.config[doneKey(spec.step_key)]);
+      const done = flagged || (await this.documentApprovals.isStepApproved(extension_name, spec.step_key));
+      if (done && !flagged) healed[doneKey(spec.step_key)] = true;
       steps.push({
         step_key: spec.step_key,
         done,
@@ -122,6 +145,8 @@ export class ExtensionOnboardingService {
         default_title: spec.default_title ?? null,
       });
     }
+
+    await this.persistHealedFlags(extension_name, healed, steps.every((s) => s.done));
 
     return {
       extension_name,
