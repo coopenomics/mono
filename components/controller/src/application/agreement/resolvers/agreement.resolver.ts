@@ -1,7 +1,8 @@
 import { Resolver, Mutation, Args, Query } from '@nestjs/graphql';
-import { GqlJwtAuthGuard, RolesGuard, AuthRoles, createPaginationResult, PaginationInputDTO, PaginationResult, GenerateDocumentOptionsInputDTO, GeneratedDocumentDTO, TransactionDTO, GenerateDocumentInputDTO } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser, createPaginationResult, PaginationInputDTO, PaginationResult, GenerateDocumentOptionsInputDTO, GeneratedDocumentDTO, TransactionDTO, GenerateDocumentInputDTO } from '@coopenomics/extension-kit';
 import { UseGuards } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
+import type { IMonoAccount } from '@coopenomics/innercoop';
 import { AgreementService } from '../services/agreement.service';
 import { AgreementDTO } from '../dto/agreement.dto';
 import { AgreementFilterInput } from '../dto/agreement-filter.input';
@@ -161,9 +162,10 @@ export class AgreementResolver {
   @Throttle({ default: { limit: 5, ttl: 60000 } })
   @UseGuards(GqlJwtAuthGuard, RolesGuard)
   async sendAgreement(
-    @Args('data', { type: () => SendAgreementInputDTO }) data: SendAgreementInputDTO
+    @Args('data', { type: () => SendAgreementInputDTO }) data: SendAgreementInputDTO,
+    @CurrentUser() currentUser: IMonoAccount
   ): Promise<TransactionDTO> {
-    return this.agreementService.sendAgreement(data);
+    return this.agreementService.sendAgreement(data, currentUser);
   }
 
   @Mutation(() => TransactionDTO, {

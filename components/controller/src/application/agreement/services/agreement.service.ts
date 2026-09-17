@@ -268,8 +268,8 @@ export class AgreementService {
     return await this.agreementInteractor.generateUserAgreement(data, options);
   }
 
-  public async sendAgreement(data: SendAgreementInputDTO): Promise<TransactionDTO> {
-    const result = await this.agreementInteractor.sendAgreement(data);
+  public async sendAgreement(data: SendAgreementInputDTO, actor: { username: string; role: string }): Promise<TransactionDTO> {
+    const result = await this.agreementInteractor.sendAgreement(data, actor);
     return result as TransactionDTO;
   }
 

@@ -23,6 +23,9 @@
   }
   
   verify_document_or_fail(document);
+  // Подпись от имени пайщика — только его ключом: транзакцию подписывает
+  // кооператив, и подделанная подпись иначе прошла бы.
+  verify_signer_keys_or_fail(document, username);
   
   auto coagreement = get_coagreement_or_fail(coopname, agreement_type);
 
