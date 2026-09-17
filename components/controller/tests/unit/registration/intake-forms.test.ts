@@ -176,7 +176,12 @@ describe('анкеты вступления: сборка для заявите�
       'letter',
     ]);
     expect(config.getRequiredIntakeForms(AccountType.individual).map((f) => f.id)).toEqual(['common']);
-    expect(config.getRequiredIntakeForms(AccountType.organization, 'GENERATION').map((f) => f.id)).toEqual(['letter']);
+    // Анкеты программы идут с ней независимо от типа аккаунта — обе перечислены в её intake_form_ids.
+    expect(config.getRequiredIntakeForms(AccountType.organization, 'GENERATION').map((f) => f.id)).toEqual([
+      'common',
+      'letter',
+    ]);
+    expect(config.getRequiredIntakeForms(AccountType.organization).map((f) => f.id)).toEqual([]);
   });
 });
 
