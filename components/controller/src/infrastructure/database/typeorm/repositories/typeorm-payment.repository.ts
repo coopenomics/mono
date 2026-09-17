@@ -144,7 +144,9 @@ export class TypeOrmPaymentRepository implements PaymentRepository {
     }
 
     if (filters.username) {
-      queryBuilder.andWhere('payment.username ILIKE :username', { username: `%${filters.username}%` });
+      // Точное совпадение: фильтр по username — это выдача «платежей пайщика»,
+      // и подстрока отдавала вместе с ними чужие (ant → giant, antonov…).
+      queryBuilder.andWhere('payment.username = :username', { username: filters.username });
     }
 
     if (filters.status) {
