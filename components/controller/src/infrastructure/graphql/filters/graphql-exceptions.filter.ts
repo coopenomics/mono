@@ -19,6 +19,10 @@ export class GraphQLExceptionFilter implements GqlExceptionFilter {
     let operationName;
     let fieldName;
     let path;
+    // Чьи данные спрашивали. В отказе по правам это главный вопрос: без имени
+    // нельзя отличить «стучались к чужому» от «клиент отправил запрос про себя,
+    // не подставив имя» — а выглядят эти случаи одинаково.
+    let requestedUsername: string | undefined;
     let locations: Array<{ line: number; column: number }> = [];
 
     // Получаем информацию в зависимости от типа контекста
@@ -26,6 +30,9 @@ export class GraphQLExceptionFilter implements GqlExceptionFilter {
       const gqlContext = GqlExecutionContext.create(host);
       const context = gqlContext.getContext();
       user = context?.req?.user;
+
+      const args = gqlContext.getArgs<Record<string, any>>();
+      requestedUsername = args?.data?.username ?? args?.filter?.username ?? args?.username;
 
       const info = gqlContext.getInfo();
       operationName = info?.operation?.name?.value;
@@ -98,6 +105,7 @@ export class GraphQLExceptionFilter implements GqlExceptionFilter {
         statusCode,
         stack: exception.stack,
         username: user?.username || null,
+        requested_username: requestedUsername ?? null,
         operation: operationName || null,
         field: fieldName || null,
         path: path || null,
@@ -117,6 +125,7 @@ export class GraphQLExceptionFilter implements GqlExceptionFilter {
         statusCode,
         stack: exception.stack,
         username: user?.username || null,
+        requested_username: requestedUsername ?? null,
         operation: operationName || null,
         field: fieldName || null,
         path: path || null,
@@ -180,6 +189,7 @@ export class GraphQLExceptionFilter implements GqlExceptionFilter {
         // Добавляем контекст запроса
         scope.setContext('request', {
           username: user?.username || null,
+          requested_username: requestedUsername ?? null,
           operationName: operationName || null,
           fieldName: fieldName || null,
           path: path || null,
@@ -198,6 +208,7 @@ export class GraphQLExceptionFilter implements GqlExceptionFilter {
       statusCode,
       stack: exception.stack,
       username: user?.username || null,
+      requested_username: requestedUsername ?? null,
       operation: operationName || null,
       field: fieldName || null,
       path: path || null,

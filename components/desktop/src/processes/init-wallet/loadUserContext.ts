@@ -40,6 +40,11 @@ export async function loadUserContext(): Promise<void> {
   const { info } = useSystemStore();
   const account = useAccountStore();
 
+  // Без имени пайщика грузить нечего: запрос «про себя» с пустым именем сервер
+  // считает обращением к чужим данным и отказывает («Недостаточно прав доступа»).
+  // Сюда заходят и в момент, когда токен уже установлен, а сессия ещё не поднята.
+  if (!session.username) return;
+
   const userAccount = await account.getAccount(session.username);
   if (userAccount) {
     session.setCurrentUserAccount(userAccount);

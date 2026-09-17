@@ -170,6 +170,10 @@ export const useWalletStore = defineStore(namespace, (): IWalletStore => {
   }
 
   const loadUserWallet = async (params: ILoadUserWallet) => {
+    // Имя пайщика обязательно: с пустым именем шесть запросов ниже уходят как
+    // обращение к чужим данным и получают отказ вместо пустого ответа.
+    if (!params.username || !params.coopname) return;
+
     const [depositsRes, withdrawsRes, programWalletsRes, methodsRes, agreementsRes, userWalletsRes] =
       await Promise.allSettled([
         api.loadUserDepositsData(params),
