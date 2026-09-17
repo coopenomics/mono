@@ -18,7 +18,8 @@ const username = computed(() => props.agenda.table?.username ?? '');
 </script>
 
 <style scoped>
+/* Отступы задаёт контейнер подробностей вопроса. */
 .participant-intake-info {
-  padding: var(--p-4, 16px) var(--p-5, 20px);
+  padding: 0;
 }
 </style>
