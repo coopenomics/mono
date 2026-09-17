@@ -1,8 +1,8 @@
 <template lang="pug">
 div
   //- Компьютер: канон-таблица. Строка открывает данные пайщика в правом
-  //- дроуэре, «Подробнее» — явная подсказка, что это можно. Страницы и отбор
-  //- делает сервер; порядок — сначала новые.
+  //- дроуэре, «Подробнее» — явная подсказка, что это можно. Страницы, отбор и
+  //- сортировку по дате вступления делает сервер.
   template(v-if='!isMobile')
     BaseTable(
       v-if='firstLoad || accounts.length',
@@ -15,6 +15,10 @@ div
       sticky-header,
       max-height='70vh',
       min-width='1300px',
+      server-sort,
+      sort-by='created_at',
+      :descending='sortDescending',
+      @sort='(sort) => emit("sort", sort.descending)',
       @row-click='openDetails'
     )
       template(#cell-status='{ row }')
@@ -121,12 +125,15 @@ const props = defineProps<{
   naming?: VerificationNaming;
   /** Текущая страница реестра; число строк всего знает сервер. */
   pagination: { page: number; rowsPerPage: number; rowsNumber: number };
+  /** Сортировка по дате вступления: сначала новые (true) или старые. */
+  sortDescending: boolean;
 }>();
 
 // Emits
 const emit = defineEmits<{
   (e: 'verification-changed'): void;
   (e: 'update:page', page: number): void;
+  (e: 'sort', descending: boolean): void;
   (
     e: 'update',
     account: IAccount,
@@ -157,9 +164,10 @@ const firstLoad = useFirstLoad(() => props.loading);
 // Переключатель страниц нужен, только когда пайщиков больше одной страницы.
 const showPager = computed(() => props.pagination.rowsNumber > props.pagination.rowsPerPage);
 
-// Колонки таблицы. Сортировки по заголовку нет: реестр приходит страницами, и
-// сортировка одной страницы вводила бы в заблуждение. Сумма заданных ширин
-// (1040px) меньше min-width таблицы (1300px) — остаток достаётся колонке ФИО;
+// Колонки таблицы. Сортируется только дата вступления, и сортирует её сервер:
+// реестр приходит страницами, сортировка одной страницы вводила бы в
+// заблуждение, а остальные поля в базе узла не лежат. Сумма заданных ширин
+// (1060px) меньше min-width таблицы (1300px) — остаток достаётся колонке ФИО;
 // без этого запаса она схлопывалась в ноль и буквы шли столбиком.
 const columns: BaseTableColumn<IAccount>[] = [
   { key: 'name', label: 'ФИО / Наименование', field: (row) => getName(row) },
@@ -170,7 +178,14 @@ const columns: BaseTableColumn<IAccount>[] = [
     field: (row) => row.provider_account?.email || 'Не указан',
     width: '220px',
   },
-  { key: 'created_at', label: 'Дата вступления', field: (row) => joinDate(row), width: '170px', nowrap: true },
+  {
+    key: 'created_at',
+    label: 'Дата вступления',
+    field: (row) => joinDate(row),
+    width: '190px',
+    nowrap: true,
+    sortable: true,
+  },
   { key: 'status', label: 'Статус', field: (row) => getAccountStatusBadge(row).label, width: '200px' },
   { key: 'verification', label: 'Верификация', field: (row) => verificationCell(row).short, width: '170px' },
   { key: 'actions', label: '', width: '140px', align: 'right' },

@@ -105,6 +105,12 @@ export interface UserRepository {
     options?: PaginationInputDomainInterface
   ): Promise<PaginationResultDomainInterface<UserDomainEntity>>;
 
+  /** Записать дату вступления (принятия советом); повторная запись не меняет уже известную дату. */
+  setJoinedAt(username: string, joinedAt: Date): Promise<void>;
+
+  /** Аккаунты, у которых дата вступления ещё не записана. */
+  findUsernamesWithoutJoinedAt(): Promise<string[]>;
+
   /** Имена аккаунтов пользователей (с отбором по роли) — без загрузки записей. */
   findUsernames(filter?: Pick<UserFilterInputDomainInterface, 'role'>): Promise<string[]>;
 

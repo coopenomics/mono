@@ -60,6 +60,15 @@ export class UserEntity implements UserDomainInterface {
   @Column({ type: 'varchar', length: 50, nullable: true })
   legacy_mongo_id?: string;
 
+  /**
+   * Когда совет принял пайщика (время блока soviet::addpartcpnt). Сама дата
+   * живёт в цепи; здесь её копия, чтобы реестр пайщиков сортировался на
+   * сервере. Пусто у тех, кого ещё не приняли.
+   */
+  @Index()
+  @Column({ type: 'timestamptz', nullable: true })
+  joined_at?: Date | null;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt!: Date;
 

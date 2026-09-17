@@ -20,6 +20,9 @@ import { normalizeUserEmail } from '~/utils/normalize-user-email';
  * Реализация репозитория пользователей на базе TypeORM
  * Адаптер между доменным слоем и инфраструктурой базы данных
  */
+/** Колонки, по которым реестр пользователей разрешено сортировать с клиента. */
+const USER_SORTABLE_FIELDS = new Set(['created_at', 'username', 'email', 'status', 'type', 'role']);
+
 @Injectable()
 export class UserTypeormRepository implements UserRepository {
   constructor(
@@ -275,10 +278,18 @@ export class UserTypeormRepository implements UserRepository {
 
     queryBuilder.skip(skip).take(limit);
 
-    // Применяем сортировку
-    if (options?.sortBy) {
-      const [field, direction] = options.sortBy.split(':');
-      const orderDirection = direction === 'desc' ? 'DESC' : 'ASC';
+    // Применяем сортировку. Поле берётся только из разрешённых: имя колонки
+    // подставляется в SQL как есть, и произвольная строка от клиента туда
+    // попадать не должна.
+    const [field, direction] = (options?.sortBy ?? '').split(':');
+    const orderDirection = direction === 'asc' ? 'ASC' : 'DESC';
+    if (field === 'joined_at') {
+      // Ещё не принятые (даты нет) — самые свежие заявки: при «сначала новые»
+      // они сверху, при «сначала старые» внизу. Внутри — по дате регистрации.
+      queryBuilder
+        .orderBy('user.joined_at', orderDirection, orderDirection === 'DESC' ? 'NULLS FIRST' : 'NULLS LAST')
+        .addOrderBy('user.created_at', orderDirection);
+    } else if (field && USER_SORTABLE_FIELDS.has(field)) {
       queryBuilder.orderBy(`user.${field}`, orderDirection);
     } else {
       queryBuilder.orderBy('user.created_at', 'DESC');
@@ -292,6 +303,24 @@ export class UserTypeormRepository implements UserRepository {
       totalPages: Math.ceil(total / limit),
       totalCount: total,
     };
+  }
+
+  async setJoinedAt(username: string, joinedAt: Date): Promise<void> {
+    await this.repository
+      .createQueryBuilder()
+      .update(UserEntity)
+      .set({ joined_at: joinedAt })
+      .where('username = :username AND joined_at IS NULL', { username })
+      .execute();
+  }
+
+  async findUsernamesWithoutJoinedAt(): Promise<string[]> {
+    const rows = await this.repository
+      .createQueryBuilder('user')
+      .select('user.username', 'username')
+      .where('user.joined_at IS NULL')
+      .getRawMany<{ username: string }>();
+    return rows.map((row) => row.username);
   }
 
   async findUsernames(filter?: Pick<UserFilterInputDomainInterface, 'role'>): Promise<string[]> {

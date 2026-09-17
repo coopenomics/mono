@@ -16,7 +16,9 @@ q-page.participants-page
       :accounts='accountStore.accounts.items',
       :loading='onLoading',
       :pagination='pagination',
+      :sort-descending='sortDescending',
       @update:page='goToPage',
+      @sort='changeSort',
       :naming='verificationNaming',
       @update='update',
       @verification-changed='onVerificationChanged'
@@ -131,6 +133,9 @@ type AccountsInput = NonNullable<IGetAccounts['data']>;
 
 const PAGE_SIZE = 20;
 const page = ref(1);
+// Сортировка по дате вступления (на сервере): сначала новые. Ещё не принятые
+// советом — без даты — при этом порядке идут первыми.
+const sortDescending = ref(true);
 const pagination = computed(() => ({
   page: page.value,
   rowsPerPage: PAGE_SIZE,
@@ -178,7 +183,12 @@ const loadParticipants = async () => {
     const verification = selected ? VERIFICATION_FILTER[selected] : undefined;
     await accountStore.getAccounts({
       data: (verification ? { verification } : {}) as AccountsInput,
-      options: { page: page.value, limit: PAGE_SIZE, sortOrder: 'DESC' },
+      options: {
+        page: page.value,
+        limit: PAGE_SIZE,
+        sortBy: `joined_at:${sortDescending.value ? 'desc' : 'asc'}`,
+        sortOrder: sortDescending.value ? 'DESC' : 'ASC',
+      },
     });
     // Названия участков нужны только для подписи «где сверили» — грузим их
     // один раз и не роняем реестр, если участков в кооперативе нет.
@@ -190,6 +200,12 @@ const loadParticipants = async () => {
   } finally {
     onLoading.value = false;
   }
+};
+
+const changeSort = (descending: boolean) => {
+  sortDescending.value = descending;
+  page.value = 1;
+  void loadParticipants();
 };
 
 const goToPage = (next: number) => {
