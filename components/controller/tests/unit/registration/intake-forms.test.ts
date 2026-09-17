@@ -29,7 +29,9 @@ function makeLoggerStub() {
 const describeField = (d: Record<string, unknown>) => JSON.stringify(d);
 
 // Расширение описывает анкету Zod-схемой, а через порт отдаёт данные — JSON Schema.
-const toSchema = (zod: z.ZodTypeAny) => zodToJsonSchema(zod, { $refStrategy: 'none' }) as any;
+// Типы zod у конвертера и у контроллера расходятся по версиям — сужаем сигнатуру.
+const convert = zodToJsonSchema as unknown as (schema: unknown, options: { $refStrategy: 'none' }) => any;
+const toSchema = (zod: unknown) => convert(zod, { $refStrategy: 'none' });
 
 const LetterSchema = toSchema(
   z.object({

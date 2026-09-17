@@ -4,21 +4,17 @@
  * Проверяется тот путь, которым анкета работает на деле: Zod-схема расширения →
  * JSON Schema через порт → приведение и проверка ответа в ядре.
  */
-import zodToJsonSchema from 'zod-to-json-schema';
 import {
   COVER_LETTER_LABEL,
   COVER_LETTER_MAX_LENGTH,
   COVER_LETTER_MIN_LENGTH,
-  GeneratorIntakeSchema,
+  generatorIntakeJsonSchema,
 } from '~/extensions/capital/application/registration/generator-intake.schema';
 import { normalizeIntakeSchema, validateIntakeValues } from '~/domain/registration/utils/intake-schema.utils';
 
 const text = (length: number) => 'я'.repeat(length);
 
-const schema = normalizeIntakeSchema(
-  'generator_cover_letter',
-  zodToJsonSchema(GeneratorIntakeSchema, { $refStrategy: 'none' }) as any
-);
+const schema = normalizeIntakeSchema('generator_cover_letter', generatorIntakeJsonSchema());
 
 const check = (cover_letter?: string) => validateIntakeValues(schema, { cover_letter });
 

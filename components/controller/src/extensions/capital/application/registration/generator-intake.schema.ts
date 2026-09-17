@@ -1,4 +1,6 @@
 import { z } from 'zod';
+import zodToJsonSchema from 'zod-to-json-schema';
+import type { InnerIntakeJsonSchema } from '@coopenomics/innercoop';
 import type { DeserializedDescriptionOfExtension } from '@coopenomics/extension-kit';
 
 /**
@@ -50,3 +52,16 @@ export const GeneratorIntakeSchema = z.object({
 });
 
 export type GeneratorIntakeAnswer = z.infer<typeof GeneratorIntakeSchema>;
+
+// Типы zod у `zod-to-json-schema` и у контроллера расходятся по версиям, и
+// компилятор на живой схеме уходит в бесконечную развёртку (TS2589). Сама
+// функция работает с любой Zod-схемой — сужаем только её типовую сигнатуру.
+const toJsonSchema = zodToJsonSchema as unknown as (
+  schema: unknown,
+  options: { $refStrategy: 'none' }
+) => InnerIntakeJsonSchema;
+
+/** Анкета в том виде, в каком она уходит в ядро через порт, — данными. */
+export function generatorIntakeJsonSchema(): InnerIntakeJsonSchema {
+  return toJsonSchema(GeneratorIntakeSchema, { $refStrategy: 'none' });
+}

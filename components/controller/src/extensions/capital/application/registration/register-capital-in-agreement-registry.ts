@@ -1,5 +1,4 @@
 import { Cooperative } from 'cooptypes';
-import zodToJsonSchema from 'zod-to-json-schema';
 import {
   BLAGOROST_AGREEMENT_TYPE,
   BLAGOROST_OFFER_AGREEMENT_ID,
@@ -13,11 +12,10 @@ import {
 import {
   GENERATOR_INTAKE_DESCRIPTION,
   GENERATOR_INTAKE_TITLE,
-  GeneratorIntakeSchema,
+  generatorIntakeJsonSchema,
 } from './generator-intake.schema';
 import type { IConfig } from '../../capital-extension.module';
 import { type IRegistrationRegistryPort,
-  type InnerIntakeJsonSchema,
   InnerAccountType,
 } from '@coopenomics/innercoop';
 
@@ -34,7 +32,7 @@ function registerGeneratorIntakeForm(port: IRegistrationRegistryPort): void {
     extension_name: CAPITAL_EXTENSION_NAME,
     title: GENERATOR_INTAKE_TITLE,
     description: GENERATOR_INTAKE_DESCRIPTION,
-    schema: zodToJsonSchema(GeneratorIntakeSchema, { $refStrategy: 'none' }) as InnerIntakeJsonSchema,
+    schema: generatorIntakeJsonSchema(),
     applicable_account_types: [],
     order: 1,
   });
