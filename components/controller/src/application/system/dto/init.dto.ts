@@ -1,5 +1,5 @@
 import { Field, InputType } from '@nestjs/graphql';
-import { IsBoolean, IsOptional, ValidateNested } from 'class-validator';
+import { IsBoolean, IsOptional, IsString, ValidateNested } from 'class-validator';
 import { CreateInitOrganizationDataInputDTO } from '~/application/account/dto/create-organization-data-input.dto';
 
 @InputType('Init')
@@ -18,4 +18,12 @@ export class InitDTO {
   @IsBoolean()
   @IsOptional()
   is_server_init?: boolean;
+
+  @Field(() => String, {
+    nullable: true,
+    description: 'Код установки, выданный startInstall владельцу ключа кооператива. Не нужен только провайдеру с межсервисным секретом.',
+  })
+  @IsOptional()
+  @IsString()
+  install_code?: string;
 }

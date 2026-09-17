@@ -44,7 +44,8 @@ export class DebtManagementResolver {
     name: 'capitalDebts',
     description: 'Получение списка долгов кооператива с фильтрацией',
   })
-  @UseGuards(GqlJwtAuthGuard)
+  @UseGuards(GqlJwtAuthGuard, RolesGuard)
+  @AuthRoles(['chairman', 'member', 'user'])
   async getDebts(
     @Args('filter', { nullable: true }) filter?: DebtFilterInputDTO,
     @Args('options', { nullable: true }) options?: PaginationInputDTO
@@ -60,7 +61,8 @@ export class DebtManagementResolver {
     description: 'Получение долга по внутреннему ID базы данных',
     nullable: true,
   })
-  @UseGuards(GqlJwtAuthGuard)
+  @UseGuards(GqlJwtAuthGuard, RolesGuard)
+  @AuthRoles(['chairman', 'member', 'user'])
   async getDebt(@Args('data') data: GetDebtInputDTO): Promise<DebtOutputDTO | null> {
     return await this.debtManagementService.getDebtById(data._id);
   }

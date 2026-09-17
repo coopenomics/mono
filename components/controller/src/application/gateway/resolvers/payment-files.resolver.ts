@@ -36,8 +36,11 @@ export class PaymentFilesResolver {
   })
   @UseGuards(GqlJwtAuthGuard, RolesGuard)
   @AuthRoles(['chairman', 'member', 'user'])
-  async getPaymentFile(@Args('id', { type: () => Int }) id: number): Promise<PaymentFileOutputDTO> {
-    const { data, readUrl } = await this.paymentFiles.getReadUrl(id);
+  async getPaymentFile(
+    @Args('id', { type: () => Int }) id: number,
+    @CurrentUser() user: IMonoAccount
+  ): Promise<PaymentFileOutputDTO> {
+    const { data, readUrl } = await this.paymentFiles.getReadUrl(id, user);
     return PaymentFileOutputDTO.fromDomain(data, readUrl);
   }
 
@@ -49,9 +52,10 @@ export class PaymentFilesResolver {
   @AuthRoles(['chairman', 'member', 'user'])
   async listByPayment(
     @Args('coopname', { type: () => String }) coopname: string,
-    @Args('payment_hash', { type: () => String }) paymentHash: string
+    @Args('payment_hash', { type: () => String }) paymentHash: string,
+    @CurrentUser() user: IMonoAccount
   ): Promise<PaymentFileOutputDTO[]> {
-    const items = await this.paymentFiles.listByPayment(coopname, paymentHash);
+    const items = await this.paymentFiles.listByPayment(coopname, paymentHash, user);
     return items.map((d) => PaymentFileOutputDTO.fromDomain(d));
   }
 }

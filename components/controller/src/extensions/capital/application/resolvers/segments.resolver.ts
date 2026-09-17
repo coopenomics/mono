@@ -23,7 +23,8 @@ export class SegmentsResolver {
     name: 'capitalSegments',
     description: 'Получение списка сегментов кооператива с фильтрацией и пагинацией',
   })
-  @UseGuards(GqlJwtAuthGuard)
+  @UseGuards(GqlJwtAuthGuard, RolesGuard)
+  @AuthRoles(['chairman', 'member', 'user'])
   async getSegments(
     @CurrentUser() currentUser: IMonoAccount,
     @Args('filter', { nullable: true }) filter?: SegmentFilterInputDTO,
@@ -59,7 +60,8 @@ export class SegmentsResolver {
     description: 'Получение одного сегмента кооператива по фильтрам',
     nullable: true,
   })
-  @UseGuards(GqlJwtAuthGuard)
+  @UseGuards(GqlJwtAuthGuard, RolesGuard)
+  @AuthRoles(['chairman', 'member', 'user'])
   async getSegment(@Args('filter', { nullable: true }) filter?: SegmentFilterInputDTO): Promise<SegmentOutputDTO | null> {
     return await this.segmentsService.getSegment(filter);
   }

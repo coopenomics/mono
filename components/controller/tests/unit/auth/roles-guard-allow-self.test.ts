@@ -3,6 +3,10 @@
  * аргументах — он сам. Для полномочий совета, где `username` — адресат действия,
  * это отключается `AuthRoles(..., { allowSelf: false })`: иначе пайщик
  * подтверждал бы своё соглашение или импортировал себе вклад сам.
+ *
+ * Роль `user` в списке ролей — принятый пайщик: учётная запись в статусе
+ * вступления или исключения по ней не проходит, кроме операций с
+ * `anyStatus: true`.
  */
 import { Reflector } from '@nestjs/core';
 import { AuthRoles, RolesGuard } from '@coopenomics/extension-kit';
@@ -22,9 +26,19 @@ class Resolver {
   selfOnly(): void {
     return undefined;
   }
+
+  @AuthRoles(['chairman', 'member', 'user'])
+  participantsRead(): void {
+    return undefined;
+  }
+
+  @AuthRoles(['chairman', 'member', 'user'], { anyStatus: true })
+  inboxRead(): void {
+    return undefined;
+  }
 }
 
-function contextFor(handler: (...args: any[]) => unknown, args: Record<string, unknown>, user: { username: string; role: string }): any {
+function contextFor(handler: (...args: any[]) => unknown, args: Record<string, unknown>, user: { username: string; role: string; status?: string }): any {
   const context: any = {
     getHandler: () => handler,
     getClass: () => Resolver,
@@ -62,5 +76,35 @@ describe('RolesGuard: самообход по username', () => {
   it('allowSelf: false — роль по-прежнему открывает доступ, в том числе к себе', () => {
     const ctx = contextFor(Resolver.prototype.councilAction, { data: { username: 'ant' } }, chairman);
     expect(guard.canActivate(ctx)).toBe(true);
+  });
+
+  describe('роль user — только принятый пайщик', () => {
+    const active = { username: 'bob', role: 'user', status: 'active' };
+    const candidate = { username: 'eve', role: 'user', status: 'created' };
+    const excluded = { username: 'kim', role: 'user', status: 'refunded' };
+
+    it('принятый пайщик проходит по роли', () => {
+      expect(guard.canActivate(contextFor(Resolver.prototype.participantsRead, {}, active))).toBe(true);
+    });
+
+    it('кандидат и исключённый по роли не проходят', () => {
+      for (const user of [candidate, excluded]) {
+        expect(() => guard.canActivate(contextFor(Resolver.prototype.participantsRead, {}, user))).toThrow(
+          'Доступ только для пайщиков кооператива',
+        );
+      }
+    });
+
+    it('кандидат по-прежнему действует за себя через самообход', () => {
+      expect(guard.canActivate(contextFor(Resolver.prototype.participantsRead, { data: { username: 'eve' } }, candidate))).toBe(true);
+    });
+
+    it('anyStatus: true — кандидат проходит по роли', () => {
+      expect(guard.canActivate(contextFor(Resolver.prototype.inboxRead, {}, candidate))).toBe(true);
+    });
+
+    it('совет проходит по роли в любом статусе', () => {
+      expect(guard.canActivate(contextFor(Resolver.prototype.participantsRead, {}, { username: 'ant', role: 'member', status: 'registered' }))).toBe(true);
+    });
   });
 });

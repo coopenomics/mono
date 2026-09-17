@@ -181,6 +181,11 @@ export class KuResolver {
 
   // ───────────────────────────────────────────────────────────────────────────
   // Генерация документов
+  //
+  // Документы печатают паспортные данные того, чьё имя стоит в `username`,
+  // поэтому пайщик генерирует их только за себя (самообход `RolesGuard`),
+  // а за другого — совет. Роль `user` в списке открыла бы чужой паспорт
+  // любому вошедшему.
   // ───────────────────────────────────────────────────────────────────────────
 
   @Mutation(() => GeneratedDocumentDTO, {
@@ -188,7 +193,7 @@ export class KuResolver {
     description: 'Сгенерировать предложение повестки собрания пайщиков участка',
   })
   @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['user', 'member', 'chairman'])
+  @AuthRoles(['chairman', 'member'])
   async kuGenerateMeetingProposal(
     @Args('data', { type: () => BranchMeetingProposalGenerateDocumentInputDTO })
     data: BranchMeetingProposalGenerateDocumentInputDTO,
@@ -202,7 +207,7 @@ export class KuResolver {
     description: 'Сгенерировать бюллетень голосования на собрании участка',
   })
   @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['user', 'member', 'chairman'])
+  @AuthRoles(['chairman', 'member'])
   async kuGenerateMeetingBallot(
     @Args('data', { type: () => BranchMeetingBallotGenerateDocumentInputDTO })
     data: BranchMeetingBallotGenerateDocumentInputDTO,
@@ -216,7 +221,7 @@ export class KuResolver {
     description: 'Сгенерировать протокол решения собрания пайщиков участка',
   })
   @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['user', 'member', 'chairman'])
+  @AuthRoles(['chairman', 'member'])
   async kuGenerateMeetingDecision(
     @Args('data', { type: () => BranchMeetingDecisionGenerateDocumentInputDTO })
     data: BranchMeetingDecisionGenerateDocumentInputDTO,
@@ -230,7 +235,7 @@ export class KuResolver {
     description: 'Сгенерировать заявление председателя собрания в совет об учреждении участка',
   })
   @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['user', 'member', 'chairman'])
+  @AuthRoles(['chairman', 'member'])
   async kuGenerateEstablishmentPetition(
     @Args('data', { type: () => BranchEstablishmentPetitionGenerateDocumentInputDTO })
     data: BranchEstablishmentPetitionGenerateDocumentInputDTO,
@@ -258,7 +263,7 @@ export class KuResolver {
     description: 'Сгенерировать заявление о приёме доверенным лицом участка',
   })
   @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['user', 'member', 'chairman'])
+  @AuthRoles(['chairman', 'member'])
   async kuGenerateTrustedStatement(
     @Args('data', { type: () => BranchTrustedStatementGenerateDocumentInputDTO })
     data: BranchTrustedStatementGenerateDocumentInputDTO,
@@ -272,7 +277,7 @@ export class KuResolver {
     description: 'Сгенерировать договор о полной индивидуальной материальной ответственности доверенного лица кооперативного участка',
   })
   @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['user', 'member', 'chairman'])
+  @AuthRoles(['chairman', 'member'])
   async kuGenerateTrustedLiabilityAgreement(
     @Args('data', { type: () => BranchTrustedLiabilityAgreementGenerateDocumentInputDTO })
     data: BranchTrustedLiabilityAgreementGenerateDocumentInputDTO,
@@ -286,7 +291,7 @@ export class KuResolver {
     description: 'Сгенерировать договор о полной индивидуальной материальной ответственности председателя кооперативного участка',
   })
   @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['user', 'member', 'chairman'])
+  @AuthRoles(['chairman', 'member'])
   async kuGenerateTrusteeLiabilityAgreement(
     @Args('data', { type: () => BranchTrusteeLiabilityAgreementGenerateDocumentInputDTO })
     data: BranchTrusteeLiabilityAgreementGenerateDocumentInputDTO,
@@ -300,7 +305,7 @@ export class KuResolver {
     description: 'Сгенерировать доверенность председателю кооперативного участка',
   })
   @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['user', 'member', 'chairman'])
+  @AuthRoles(['chairman', 'member'])
   async kuGenerateTrusteePowerOfAttorney(
     @Args('data', { type: () => BranchTrusteePowerOfAttorneyGenerateDocumentInputDTO })
     data: BranchTrusteePowerOfAttorneyGenerateDocumentInputDTO,
@@ -314,7 +319,7 @@ export class KuResolver {
     description: 'Сгенерировать доверенность доверенному лицу кооперативного участка',
   })
   @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['user', 'member', 'chairman'])
+  @AuthRoles(['chairman', 'member'])
   async kuGenerateTrustedPowerOfAttorney(
     @Args('data', { type: () => BranchTrustedPowerOfAttorneyGenerateDocumentInputDTO })
     data: BranchTrustedPowerOfAttorneyGenerateDocumentInputDTO,

@@ -1,8 +1,6 @@
 import { Args, Query, Resolver } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
-import { GqlJwtAuthGuard, CurrentUser, createPaginationResult, PaginationInputDTO, PaginationResult,
-  CandidateFilterInputDTO,
-} from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, CurrentUser, createPaginationResult, PaginationInputDTO, PaginationResult, CandidateFilterInputDTO, RolesGuard, AuthRoles } from '@coopenomics/extension-kit';
 import { IMonoAccount } from '@coopenomics/innercoop';
 import { CapitalCandidateOutputDTO } from '../dto/capital-candidate-output.dto';
 import { CapitalRegistrationService } from '../services/capital-registration.service';
@@ -17,7 +15,8 @@ export class CapitalRegistrationResolver {
     name: 'capitalCandidates',
     description: 'Получение списка кандидатов расширения CAPITAL с обогащенными данными',
   })
-  @UseGuards(GqlJwtAuthGuard)
+  @UseGuards(GqlJwtAuthGuard, RolesGuard)
+  @AuthRoles(['chairman', 'member', 'user'])
   async getCapitalCandidates(
     @CurrentUser() currentUser: IMonoAccount,
     @Args('filter', { nullable: true }) filter?: CandidateFilterInputDTO,

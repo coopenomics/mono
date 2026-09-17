@@ -392,7 +392,7 @@ export class GenerationResolver {
   })
   @Throttle({ default: { limit: 3, ttl: 60000 } })
   @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member', 'user'])
+  @AuthRoles(['chairman', 'member'])
   async generateProgramMoneyInvestStatement(
     @Args('data', { type: () => ProgramCapitalizationMoneyInvestStatementGenerateDocumentInputDTO })
     data: ProgramCapitalizationMoneyInvestStatementGenerateDocumentInputDTO,

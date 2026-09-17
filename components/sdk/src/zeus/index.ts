@@ -2974,6 +2974,25 @@ export type ValueTypes = {
 	/** Причина отмены */
 	reason: string | Variable<any, string>
 };
+	["Candidate"]: AliasType<{
+	braname?:boolean | `@${string}`,
+	coopname?:boolean | `@${string}`,
+	created_at?:boolean | `@${string}`,
+	program_key?:boolean | `@${string}`,
+	public_key?:boolean | `@${string}`,
+	referer?:boolean | `@${string}`,
+	referer_display_name?:boolean | `@${string}`,
+	registered_at?:boolean | `@${string}`,
+	status?:boolean | `@${string}`,
+	type?:boolean | `@${string}`,
+	username?:boolean | `@${string}`,
+	username_display_name?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on Candidate']?: Omit<ValueTypes["Candidate"], "...on Candidate">
+}>;
+	["CandidateFilterInput"]: {
+	referer?: string | undefined | null | Variable<any, string>
+};
 	["CandidateIntake"]: AliasType<{
 	/** Ответы на анкеты вступления */
 	answers?:ValueTypes["CandidateIntakeAnswer"],
@@ -2997,25 +3016,6 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on CandidateIntakeAnswer']?: Omit<ValueTypes["CandidateIntakeAnswer"], "...on CandidateIntakeAnswer">
 }>;
-	["Candidate"]: AliasType<{
-	braname?:boolean | `@${string}`,
-	coopname?:boolean | `@${string}`,
-	created_at?:boolean | `@${string}`,
-	program_key?:boolean | `@${string}`,
-	public_key?:boolean | `@${string}`,
-	referer?:boolean | `@${string}`,
-	referer_display_name?:boolean | `@${string}`,
-	registered_at?:boolean | `@${string}`,
-	status?:boolean | `@${string}`,
-	type?:boolean | `@${string}`,
-	username?:boolean | `@${string}`,
-	username_display_name?:boolean | `@${string}`,
-		__typename?: boolean | `@${string}`,
-	['...on Candidate']?: Omit<ValueTypes["Candidate"], "...on Candidate">
-}>;
-	["CandidateFilterInput"]: {
-	referer?: string | undefined | null | Variable<any, string>
-};
 	["CandidateStatus"]:CandidateStatus;
 	["CapabilitySet"]: AliasType<{
 	/** true — платформенный набор; false — кооперативный кастомный */
@@ -8223,6 +8223,8 @@ export type ValueTypes = {
 	['...on IndividualCertificate']?: Omit<ValueTypes["IndividualCertificate"], "...on IndividualCertificate">
 }>;
 	["Init"]: {
+	/** Код установки, выданный startInstall владельцу ключа кооператива. Не нужен только провайдеру с межсервисным секретом. */
+	install_code?: string | undefined | null | Variable<any, string>,
 	/** Признак того, что инициализация выполняется со стороны провайдера. При true coopback ставит init_by_server=true (org_data становится readonly для пользовательского визарда). Поле передаёт provider в callInitSystemMutation. */
 	is_server_init?: boolean | undefined | null | Variable<any, string>,
 	/** Объект организации кооператива, которая обслуживает данный экземпляр программного обеспечения MONO */
@@ -8237,6 +8239,8 @@ export type ValueTypes = {
 	target_id: string | Variable<any, string>
 };
 	["Install"]: {
+	/** Код установки, выданный startInstall владельцу ключа кооператива. Без него совет установить нельзя. */
+	install_code?: string | undefined | null | Variable<any, string>,
 	soviet: Array<ValueTypes["SovietMemberInput"]> | Variable<any, string>,
 	vars: ValueTypes["SetVarsInput"] | Variable<any, string>
 };
@@ -8252,6 +8256,12 @@ export type ValueTypes = {
 }>;
 	/** Статусы жизненного цикла инстанса кооператива */
 ["InstanceStatus"]:InstanceStatus;
+	["IntakeFormAnswerInput"]: {
+	/** Идентификатор анкеты из конфигурации регистрации */
+	form_id: string | Variable<any, string>,
+	/** Значения полей анкеты: имя поля → значение */
+	values: ValueTypes["JSON"] | Variable<any, string>
+};
 	/** Статусы инвестиции в системе CAPITAL */
 ["InvestStatus"]:InvestStatus;
 	["IssueMetricBindingItemInput"]: {
@@ -14556,6 +14566,7 @@ getActions?: [{	filters?: ValueTypes["ActionFiltersInput"] | undefined | null | 
 	/** Получить список доступных типов отчётов */
 	getAvailableReports?:ValueTypes["AvailableReport"],
 getBranches?: [{	data: ValueTypes["GetBranchesInput"] | Variable<any, string>},ValueTypes["Branch"]],
+getCandidateIntake?: [{	username: string | Variable<any, string>},ValueTypes["CandidateIntake"]],
 	/** Каталог наборов возможностей с правами, которые они открывают */
 	getCapabilitySets?:ValueTypes["CapabilitySet"],
 getCapitalIssueLogs?: [{	data: ValueTypes["GetCapitalIssueLogsInput"] | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedCapitalLogsPaginationResult"]],
@@ -14613,7 +14624,6 @@ getProviderSubscriptionById?: [{	id: number | Variable<any, string>},ValueTypes[
 getPublicProvision?: [{	data: ValueTypes["GetPublicProvisionInput"] | Variable<any, string>},ValueTypes["PublicProvision"]],
 	/** Текущая стратегия восстановления доступа пайщика */
 	getRecoveryStrategy?:boolean | `@${string}`,
-getCandidateIntake?: [{	username: string | Variable<any, string>},ValueTypes["CandidateIntake"]],
 getRegistrationAgreements?: [{	account_type: ValueTypes["AccountType"] | Variable<any, string>,	coopname: string | Variable<any, string>,	program_key?: string | undefined | null | Variable<any, string>},ValueTypes["RegistrationAgreement"]],
 getRegistrationConfig?: [{	account_type: ValueTypes["AccountType"] | Variable<any, string>,	coopname: string | Variable<any, string>},ValueTypes["RegistrationConfig"]],
 getReport?: [{	id: string | Variable<any, string>},ValueTypes["GeneratedReport"]],
@@ -14899,12 +14909,6 @@ verificationReviews?: [{	data?: ValueTypes["VerificationReviewsInput"] | undefin
 	rate_per_hour?: string | undefined | null | Variable<any, string>,
 	/** Имя пользователя */
 	username: string | Variable<any, string>
-};
-	["IntakeFormAnswerInput"]: {
-	/** Идентификатор анкеты из конфигурации регистрации */
-	form_id: string | Variable<any, string>,
-	/** Значения полей анкеты: имя поля → значение */
-	values: ValueTypes["JSON"] | Variable<any, string>
 };
 	["RegisterParticipantInput"]: {
 	/** Подписанный документ соглашения по благороста (опционально, только если требуется) */
@@ -18925,6 +18929,24 @@ export type ResolverInputTypes = {
 	/** Причина отмены */
 	reason: string
 };
+	["Candidate"]: AliasType<{
+	braname?:boolean | `@${string}`,
+	coopname?:boolean | `@${string}`,
+	created_at?:boolean | `@${string}`,
+	program_key?:boolean | `@${string}`,
+	public_key?:boolean | `@${string}`,
+	referer?:boolean | `@${string}`,
+	referer_display_name?:boolean | `@${string}`,
+	registered_at?:boolean | `@${string}`,
+	status?:boolean | `@${string}`,
+	type?:boolean | `@${string}`,
+	username?:boolean | `@${string}`,
+	username_display_name?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["CandidateFilterInput"]: {
+	referer?: string | undefined | null
+};
 	["CandidateIntake"]: AliasType<{
 	/** Ответы на анкеты вступления */
 	answers?:ResolverInputTypes["CandidateIntakeAnswer"],
@@ -18946,24 +18968,6 @@ export type ResolverInputTypes = {
 	values?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
-	["Candidate"]: AliasType<{
-	braname?:boolean | `@${string}`,
-	coopname?:boolean | `@${string}`,
-	created_at?:boolean | `@${string}`,
-	program_key?:boolean | `@${string}`,
-	public_key?:boolean | `@${string}`,
-	referer?:boolean | `@${string}`,
-	referer_display_name?:boolean | `@${string}`,
-	registered_at?:boolean | `@${string}`,
-	status?:boolean | `@${string}`,
-	type?:boolean | `@${string}`,
-	username?:boolean | `@${string}`,
-	username_display_name?:boolean | `@${string}`,
-		__typename?: boolean | `@${string}`
-}>;
-	["CandidateFilterInput"]: {
-	referer?: string | undefined | null
-};
 	["CandidateStatus"]:CandidateStatus;
 	["CapabilitySet"]: AliasType<{
 	/** true — платформенный набор; false — кооперативный кастомный */
@@ -24045,6 +24049,8 @@ export type ResolverInputTypes = {
 		__typename?: boolean | `@${string}`
 }>;
 	["Init"]: {
+	/** Код установки, выданный startInstall владельцу ключа кооператива. Не нужен только провайдеру с межсервисным секретом. */
+	install_code?: string | undefined | null,
 	/** Признак того, что инициализация выполняется со стороны провайдера. При true coopback ставит init_by_server=true (org_data становится readonly для пользовательского визарда). Поле передаёт provider в callInitSystemMutation. */
 	is_server_init?: boolean | undefined | null,
 	/** Объект организации кооператива, которая обслуживает данный экземпляр программного обеспечения MONO */
@@ -24059,6 +24065,8 @@ export type ResolverInputTypes = {
 	target_id: string
 };
 	["Install"]: {
+	/** Код установки, выданный startInstall владельцу ключа кооператива. Без него совет установить нельзя. */
+	install_code?: string | undefined | null,
 	soviet: Array<ResolverInputTypes["SovietMemberInput"]>,
 	vars: ResolverInputTypes["SetVarsInput"]
 };
@@ -24073,6 +24081,12 @@ export type ResolverInputTypes = {
 }>;
 	/** Статусы жизненного цикла инстанса кооператива */
 ["InstanceStatus"]:InstanceStatus;
+	["IntakeFormAnswerInput"]: {
+	/** Идентификатор анкеты из конфигурации регистрации */
+	form_id: string,
+	/** Значения полей анкеты: имя поля → значение */
+	values: ResolverInputTypes["JSON"]
+};
 	/** Статусы инвестиции в системе CAPITAL */
 ["InvestStatus"]:InvestStatus;
 	["IssueMetricBindingItemInput"]: {
@@ -30158,6 +30172,7 @@ getActions?: [{	filters?: ResolverInputTypes["ActionFiltersInput"] | undefined |
 	/** Получить список доступных типов отчётов */
 	getAvailableReports?:ResolverInputTypes["AvailableReport"],
 getBranches?: [{	data: ResolverInputTypes["GetBranchesInput"]},ResolverInputTypes["Branch"]],
+getCandidateIntake?: [{	username: string},ResolverInputTypes["CandidateIntake"]],
 	/** Каталог наборов возможностей с правами, которые они открывают */
 	getCapabilitySets?:ResolverInputTypes["CapabilitySet"],
 getCapitalIssueLogs?: [{	data: ResolverInputTypes["GetCapitalIssueLogsInput"],	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedCapitalLogsPaginationResult"]],
@@ -30215,7 +30230,6 @@ getProviderSubscriptionById?: [{	id: number},ResolverInputTypes["ProviderSubscri
 getPublicProvision?: [{	data: ResolverInputTypes["GetPublicProvisionInput"]},ResolverInputTypes["PublicProvision"]],
 	/** Текущая стратегия восстановления доступа пайщика */
 	getRecoveryStrategy?:boolean | `@${string}`,
-getCandidateIntake?: [{	username: string},ResolverInputTypes["CandidateIntake"]],
 getRegistrationAgreements?: [{	account_type: ResolverInputTypes["AccountType"],	coopname: string,	program_key?: string | undefined | null},ResolverInputTypes["RegistrationAgreement"]],
 getRegistrationConfig?: [{	account_type: ResolverInputTypes["AccountType"],	coopname: string},ResolverInputTypes["RegistrationConfig"]],
 getReport?: [{	id: string},ResolverInputTypes["GeneratedReport"]],
@@ -30498,12 +30512,6 @@ verificationReviews?: [{	data?: ResolverInputTypes["VerificationReviewsInput"] |
 	rate_per_hour?: string | undefined | null,
 	/** Имя пользователя */
 	username: string
-};
-	["IntakeFormAnswerInput"]: {
-	/** Идентификатор анкеты из конфигурации регистрации */
-	form_id: string,
-	/** Значения полей анкеты: имя поля → значение */
-	values: ResolverInputTypes["JSON"]
 };
 	["RegisterParticipantInput"]: {
 	/** Подписанный документ соглашения по благороста (опционально, только если требуется) */
@@ -34418,6 +34426,23 @@ export type ModelTypes = {
 	/** Причина отмены */
 	reason: string
 };
+	["Candidate"]: {
+		braname?: string | undefined | null,
+	coopname: string,
+	created_at: ModelTypes["DateTime"],
+	program_key?: string | undefined | null,
+	public_key: string,
+	referer?: string | undefined | null,
+	referer_display_name?: string | undefined | null,
+	registered_at?: ModelTypes["DateTime"] | undefined | null,
+	status: ModelTypes["CandidateStatus"],
+	type: string,
+	username: string,
+	username_display_name?: string | undefined | null
+};
+	["CandidateFilterInput"]: {
+	referer?: string | undefined | null
+};
 	["CandidateIntake"]: {
 		/** Ответы на анкеты вступления */
 	answers: Array<ModelTypes["CandidateIntakeAnswer"]>,
@@ -34436,23 +34461,6 @@ export type ModelTypes = {
 	title: string,
 	/** Значения полей: имя поля → значение */
 	values: ModelTypes["JSON"]
-};
-	["Candidate"]: {
-		braname?: string | undefined | null,
-	coopname: string,
-	created_at: ModelTypes["DateTime"],
-	program_key?: string | undefined | null,
-	public_key: string,
-	referer?: string | undefined | null,
-	referer_display_name?: string | undefined | null,
-	registered_at?: ModelTypes["DateTime"] | undefined | null,
-	status: ModelTypes["CandidateStatus"],
-	type: string,
-	username: string,
-	username_display_name?: string | undefined | null
-};
-	["CandidateFilterInput"]: {
-	referer?: string | undefined | null
 };
 	["CandidateStatus"]:CandidateStatus;
 	["CapabilitySet"]: {
@@ -39380,6 +39388,8 @@ export type ModelTypes = {
 	username: string
 };
 	["Init"]: {
+	/** Код установки, выданный startInstall владельцу ключа кооператива. Не нужен только провайдеру с межсервисным секретом. */
+	install_code?: string | undefined | null,
 	/** Признак того, что инициализация выполняется со стороны провайдера. При true coopback ставит init_by_server=true (org_data становится readonly для пользовательского визарда). Поле передаёт provider в callInitSystemMutation. */
 	is_server_init?: boolean | undefined | null,
 	/** Объект организации кооператива, которая обслуживает данный экземпляр программного обеспечения MONO */
@@ -39394,6 +39404,8 @@ export type ModelTypes = {
 	target_id: string
 };
 	["Install"]: {
+	/** Код установки, выданный startInstall владельцу ключа кооператива. Без него совет установить нельзя. */
+	install_code?: string | undefined | null,
 	soviet: Array<ModelTypes["SovietMemberInput"]>,
 	vars: ModelTypes["SetVarsInput"]
 };
@@ -39406,6 +39418,12 @@ export type ModelTypes = {
 	organization_data?: ModelTypes["OrganizationWithBankAccount"] | undefined | null
 };
 	["InstanceStatus"]:InstanceStatus;
+	["IntakeFormAnswerInput"]: {
+	/** Идентификатор анкеты из конфигурации регистрации */
+	form_id: string,
+	/** Значения полей анкеты: имя поля → значение */
+	values: ModelTypes["JSON"]
+};
 	["InvestStatus"]:InvestStatus;
 	["IssueMetricBindingItemInput"]: {
 	/** Плановый вклад (может быть отрицательным) */
@@ -45604,6 +45622,8 @@ export type ModelTypes = {
 	getAvailableReports: Array<ModelTypes["AvailableReport"]>,
 	/** Получить список кооперативных участков */
 	getBranches: Array<ModelTypes["Branch"]>,
+	/** Программа вступления и ответы заявителя на анкеты, объявленные расширениями. Доступно председателю и членам совета. */
+	getCandidateIntake: ModelTypes["CandidateIntake"],
 	/** Каталог наборов возможностей с правами, которые они открывают */
 	getCapabilitySets: Array<ModelTypes["CapabilitySet"]>,
 	/** Получить логи событий по задаче */
@@ -45691,8 +45711,6 @@ export type ModelTypes = {
 	getPublicProvision: ModelTypes["PublicProvision"],
 	/** Текущая стратегия восстановления доступа пайщика */
 	getRecoveryStrategy: ModelTypes["RecoveryStrategy"],
-	/** Программа вступления и ответы заявителя на анкеты, объявленные расширениями. Доступно председателю и членам совета. */
-	getCandidateIntake: ModelTypes["CandidateIntake"],
 	/** Получить список оферт для регистрации пайщика заданного типа аккаунта и (опционально) программы. Сливает базовые платформенные оферты с теми, что зарегистрировали расширения. */
 	getRegistrationAgreements: Array<ModelTypes["RegistrationAgreement"]>,
 	/** Получить конфигурацию программ регистрации для кооператива */
@@ -46073,12 +46091,6 @@ export type ModelTypes = {
 	rate_per_hour?: string | undefined | null,
 	/** Имя пользователя */
 	username: string
-};
-	["IntakeFormAnswerInput"]: {
-	/** Идентификатор анкеты из конфигурации регистрации */
-	form_id: string,
-	/** Значения полей анкеты: имя поля → значение */
-	values: ModelTypes["JSON"]
 };
 	["RegisterParticipantInput"]: {
 	/** Подписанный документ соглашения по благороста (опционально, только если требуется) */
@@ -49983,6 +49995,25 @@ export type GraphQLTypes = {
 	/** Причина отмены */
 	reason: string
 };
+	["Candidate"]: {
+	__typename: "Candidate",
+	braname?: string | undefined | null,
+	coopname: string,
+	created_at: GraphQLTypes["DateTime"],
+	program_key?: string | undefined | null,
+	public_key: string,
+	referer?: string | undefined | null,
+	referer_display_name?: string | undefined | null,
+	registered_at?: GraphQLTypes["DateTime"] | undefined | null,
+	status: GraphQLTypes["CandidateStatus"],
+	type: string,
+	username: string,
+	username_display_name?: string | undefined | null,
+	['...on Candidate']: Omit<GraphQLTypes["Candidate"], "...on Candidate">
+};
+	["CandidateFilterInput"]: {
+		referer?: string | undefined | null
+};
 	["CandidateIntake"]: {
 	__typename: "CandidateIntake",
 	/** Ответы на анкеты вступления */
@@ -50005,25 +50036,6 @@ export type GraphQLTypes = {
 	/** Значения полей: имя поля → значение */
 	values: GraphQLTypes["JSON"],
 	['...on CandidateIntakeAnswer']: Omit<GraphQLTypes["CandidateIntakeAnswer"], "...on CandidateIntakeAnswer">
-};
-	["Candidate"]: {
-	__typename: "Candidate",
-	braname?: string | undefined | null,
-	coopname: string,
-	created_at: GraphQLTypes["DateTime"],
-	program_key?: string | undefined | null,
-	public_key: string,
-	referer?: string | undefined | null,
-	referer_display_name?: string | undefined | null,
-	registered_at?: GraphQLTypes["DateTime"] | undefined | null,
-	status: GraphQLTypes["CandidateStatus"],
-	type: string,
-	username: string,
-	username_display_name?: string | undefined | null,
-	['...on Candidate']: Omit<GraphQLTypes["Candidate"], "...on Candidate">
-};
-	["CandidateFilterInput"]: {
-		referer?: string | undefined | null
 };
 	["CandidateStatus"]: CandidateStatus;
 	["CapabilitySet"]: {
@@ -55232,7 +55244,9 @@ export type GraphQLTypes = {
 	['...on IndividualCertificate']: Omit<GraphQLTypes["IndividualCertificate"], "...on IndividualCertificate">
 };
 	["Init"]: {
-		/** Признак того, что инициализация выполняется со стороны провайдера. При true coopback ставит init_by_server=true (org_data становится readonly для пользовательского визарда). Поле передаёт provider в callInitSystemMutation. */
+		/** Код установки, выданный startInstall владельцу ключа кооператива. Не нужен только провайдеру с межсервисным секретом. */
+	install_code?: string | undefined | null,
+	/** Признак того, что инициализация выполняется со стороны провайдера. При true coopback ставит init_by_server=true (org_data становится readonly для пользовательского визарда). Поле передаёт provider в callInitSystemMutation. */
 	is_server_init?: boolean | undefined | null,
 	/** Объект организации кооператива, которая обслуживает данный экземпляр программного обеспечения MONO */
 	organization_data: GraphQLTypes["CreateInitOrganizationDataInput"]
@@ -55246,7 +55260,9 @@ export type GraphQLTypes = {
 	target_id: string
 };
 	["Install"]: {
-		soviet: Array<GraphQLTypes["SovietMemberInput"]>,
+		/** Код установки, выданный startInstall владельцу ключа кооператива. Без него совет установить нельзя. */
+	install_code?: string | undefined | null,
+	soviet: Array<GraphQLTypes["SovietMemberInput"]>,
 	vars: GraphQLTypes["SetVarsInput"]
 };
 	["InstallationStatus"]: {
@@ -55261,6 +55277,12 @@ export type GraphQLTypes = {
 };
 	/** Статусы жизненного цикла инстанса кооператива */
 ["InstanceStatus"]: InstanceStatus;
+	["IntakeFormAnswerInput"]: {
+		/** Идентификатор анкеты из конфигурации регистрации */
+	form_id: string,
+	/** Значения полей анкеты: имя поля → значение */
+	values: GraphQLTypes["JSON"]
+};
 	/** Статусы инвестиции в системе CAPITAL */
 ["InvestStatus"]: InvestStatus;
 	["IssueMetricBindingItemInput"]: {
@@ -61993,6 +62015,8 @@ export type GraphQLTypes = {
 	getAvailableReports: Array<GraphQLTypes["AvailableReport"]>,
 	/** Получить список кооперативных участков */
 	getBranches: Array<GraphQLTypes["Branch"]>,
+	/** Программа вступления и ответы заявителя на анкеты, объявленные расширениями. Доступно председателю и членам совета. */
+	getCandidateIntake: GraphQLTypes["CandidateIntake"],
 	/** Каталог наборов возможностей с правами, которые они открывают */
 	getCapabilitySets: Array<GraphQLTypes["CapabilitySet"]>,
 	/** Получить логи событий по задаче */
@@ -62080,8 +62104,6 @@ export type GraphQLTypes = {
 	getPublicProvision: GraphQLTypes["PublicProvision"],
 	/** Текущая стратегия восстановления доступа пайщика */
 	getRecoveryStrategy: GraphQLTypes["RecoveryStrategy"],
-	/** Программа вступления и ответы заявителя на анкеты, объявленные расширениями. Доступно председателю и членам совета. */
-	getCandidateIntake: GraphQLTypes["CandidateIntake"],
 	/** Получить список оферт для регистрации пайщика заданного типа аккаунта и (опционально) программы. Сливает базовые платформенные оферты с теми, что зарегистрировали расширения. */
 	getRegistrationAgreements: Array<GraphQLTypes["RegistrationAgreement"]>,
 	/** Получить конфигурацию программ регистрации для кооператива */
@@ -62468,12 +62490,6 @@ export type GraphQLTypes = {
 	rate_per_hour?: string | undefined | null,
 	/** Имя пользователя */
 	username: string
-};
-	["IntakeFormAnswerInput"]: {
-		/** Идентификатор анкеты из конфигурации регистрации */
-	form_id: string,
-	/** Значения полей анкеты: имя поля → значение */
-	values: GraphQLTypes["JSON"]
 };
 	["RegisterParticipantInput"]: {
 		/** Подписанный документ соглашения по благороста (опционально, только если требуется) */
@@ -65947,6 +65963,7 @@ type ZEUS_VARIABLES = {
 	["InitiateCriticalActionInput"]: ValueTypes["InitiateCriticalActionInput"];
 	["Install"]: ValueTypes["Install"];
 	["InstanceStatus"]: ValueTypes["InstanceStatus"];
+	["IntakeFormAnswerInput"]: ValueTypes["IntakeFormAnswerInput"];
 	["InvestStatus"]: ValueTypes["InvestStatus"];
 	["IssueMetricBindingItemInput"]: ValueTypes["IssueMetricBindingItemInput"];
 	["IssuePriority"]: ValueTypes["IssuePriority"];
@@ -66210,7 +66227,6 @@ type ZEUS_VARIABLES = {
 	["RefreshSegmentInput"]: ValueTypes["RefreshSegmentInput"];
 	["RegisterAccountInput"]: ValueTypes["RegisterAccountInput"];
 	["RegisterContributorInput"]: ValueTypes["RegisterContributorInput"];
-	["IntakeFormAnswerInput"]: ValueTypes["IntakeFormAnswerInput"];
 	["RegisterParticipantInput"]: ValueTypes["RegisterParticipantInput"];
 	["RejectVerificationInput"]: ValueTypes["RejectVerificationInput"];
 	["RemoveAvailableCategoriesInput"]: ValueTypes["RemoveAvailableCategoriesInput"];

@@ -922,6 +922,9 @@ export const AllTypesProps: Record<string,any> = {
 		vars:"SetVarsInput"
 	},
 	InstanceStatus: "enum" as const,
+	IntakeFormAnswerInput:{
+		values:"JSON"
+	},
 	InvestStatus: "enum" as const,
 	IssueMetricBindingItemInput:{
 
@@ -2937,6 +2940,9 @@ export const AllTypesProps: Record<string,any> = {
 		getBranches:{
 			data:"GetBranchesInput"
 		},
+		getCandidateIntake:{
+
+		},
 		getCapitalIssueLogs:{
 			data:"GetCapitalIssueLogsInput",
 			options:"PaginationInput"
@@ -3037,9 +3043,6 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		getPublicProvision:{
 			data:"GetPublicProvisionInput"
-		},
-		getCandidateIntake:{
-
 		},
 		getRegistrationAgreements:{
 			account_type:"AccountType"
@@ -3381,9 +3384,6 @@ export const AllTypesProps: Record<string,any> = {
 	},
 	RegisterContributorInput:{
 		contract:"GenerationContractSignedDocumentInput"
-	},
-	IntakeFormAnswerInput:{
-		values:"JSON"
 	},
 	RegisterParticipantInput:{
 		blagorost_offer:"SignedDigitalDocumentInput",
@@ -4185,18 +4185,6 @@ export const ReturnTypes: Record<string,any> = {
 		segments:"TranscriptionSegment",
 		transcription:"CallTranscription"
 	},
-	CandidateIntake:{
-		answers:"CandidateIntakeAnswer",
-		program_key:"String",
-		username:"String"
-	},
-	CandidateIntakeAnswer:{
-		form_id:"String",
-		json_schema:"JSON",
-		submitted_at:"DateTime",
-		title:"String",
-		values:"JSON"
-	},
 	Candidate:{
 		braname:"String",
 		coopname:"String",
@@ -4210,6 +4198,18 @@ export const ReturnTypes: Record<string,any> = {
 		type:"String",
 		username:"String",
 		username_display_name:"String"
+	},
+	CandidateIntake:{
+		answers:"CandidateIntakeAnswer",
+		program_key:"String",
+		username:"String"
+	},
+	CandidateIntakeAnswer:{
+		form_id:"String",
+		json_schema:"JSON",
+		submitted_at:"DateTime",
+		title:"String",
+		values:"JSON"
 	},
 	CapabilitySet:{
 		builtin:"Boolean",
@@ -8173,6 +8173,7 @@ export const ReturnTypes: Record<string,any> = {
 		getAgenda:"AgendaWithDocuments",
 		getAvailableReports:"AvailableReport",
 		getBranches:"Branch",
+		getCandidateIntake:"CandidateIntake",
 		getCapabilitySets:"CapabilitySet",
 		getCapitalIssueLogs:"PaginatedCapitalLogsPaginationResult",
 		getCapitalOnboardingState:"CapitalOnboardingState",
@@ -8217,7 +8218,6 @@ export const ReturnTypes: Record<string,any> = {
 		getProviderSubscriptions:"ProviderSubscription",
 		getPublicProvision:"PublicProvision",
 		getRecoveryStrategy:"RecoveryStrategy",
-		getCandidateIntake:"CandidateIntake",
 		getRegistrationAgreements:"RegistrationAgreement",
 		getRegistrationConfig:"RegistrationConfig",
 		getReport:"GeneratedReport",

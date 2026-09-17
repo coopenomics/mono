@@ -10,6 +10,10 @@ import { FreeDecisionGenerateDocumentInputDTO } from '../../document/documents-d
 import { FreeDecisionService } from '../services/free-decision.service';
 import { AgendaWithDocumentsDTO } from '~/application/agenda/dto/agenda-with-documents.dto';
 
+// Свободная повестка — инструмент совета: вопрос ставит председатель или
+// член совета. Самообход здесь отключён намеренно: `username` в проекте —
+// от чьего имени вопрос, и по нему любой вошедший вносил бы вопросы в
+// повестку совета от себя.
 @Resolver()
 export class FreeDecisionResolver {
   constructor(private readonly freeDecisionService: FreeDecisionService) {}
@@ -20,7 +24,7 @@ export class FreeDecisionResolver {
   })
   @Throttle({ default: { limit: 3, ttl: 60000 } })
   @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @AuthRoles(['chairman', 'member'], { allowSelf: false })
   async generateProjectOfFreeDecision(
     @Args('data', { type: () => ProjectFreeDecisionGenerateDocumentInputDTO })
     data: ProjectFreeDecisionGenerateDocumentInputDTO,
@@ -53,7 +57,7 @@ export class FreeDecisionResolver {
       'Опубликовать предложенную повестку и проект решения для голосования совета. Возвращает созданный пункт повестки (или null, если он ещё не проиндексирован) для немедленного отображения на фронте.',
   })
   @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @AuthRoles(['chairman', 'member'], { allowSelf: false })
   async publishProjectOfFreeDecision(
     @Args('data', { type: () => PublishProjectFreeDecisionInputDTO })
     data: PublishProjectFreeDecisionInputDTO
@@ -67,7 +71,7 @@ export class FreeDecisionResolver {
       'Создать повестку дня и проект решения, и сохранить в хранилище для дальнейшей генерации документа и его публикации',
   })
   @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @AuthRoles(['chairman', 'member'], { allowSelf: false })
   async createProjectOfFreeDecision(
     @Args('data', { type: () => CreateProjectFreeDecisionInputDTO })
     data: CreateProjectFreeDecisionInputDTO

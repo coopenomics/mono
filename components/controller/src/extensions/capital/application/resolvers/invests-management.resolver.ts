@@ -117,7 +117,8 @@ export class InvestsManagementResolver {
     name: 'capitalInvests',
     description: 'Получение списка инвестиций кооператива с фильтрацией',
   })
-  @UseGuards(GqlJwtAuthGuard)
+  @UseGuards(GqlJwtAuthGuard, RolesGuard)
+  @AuthRoles(['chairman', 'member', 'user'])
   async getInvests(
     @Args('filter', { nullable: true }) filter?: InvestFilterInputDTO,
     @Args('options', { nullable: true }) options?: PaginationInputDTO
@@ -133,7 +134,8 @@ export class InvestsManagementResolver {
     description: 'Получение инвестиции по внутреннему ID базы данных',
     nullable: true,
   })
-  @UseGuards(GqlJwtAuthGuard)
+  @UseGuards(GqlJwtAuthGuard, RolesGuard)
+  @AuthRoles(['chairman', 'member', 'user'])
   async getInvest(@Args('data') data: GetInvestInputDTO): Promise<InvestOutputDTO | null> {
     return await this.investsManagementService.getInvestById(data._id);
   }

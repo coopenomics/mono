@@ -119,7 +119,8 @@ export class ProjectManagementResolver {
     name: 'capitalSetPlan',
     description: 'Установка плана проекта в CAPITAL контракте',
   })
-  @UseGuards(GqlJwtAuthGuard)
+  @UseGuards(GqlJwtAuthGuard, RolesGuard)
+  @AuthRoles(['chairman', 'member', 'user'])
   async setCapitalPlan(
     @Args('data', { type: () => SetPlanInputDTO }) data: SetPlanInputDTO,
     @CurrentUser() currentUser?: IMonoAccount
@@ -135,7 +136,8 @@ export class ProjectManagementResolver {
     name: 'capitalSetProjectPriority',
     description: 'Установка приоритета проекта или компонента (хранится только в базе данных)',
   })
-  @UseGuards(GqlJwtAuthGuard)
+  @UseGuards(GqlJwtAuthGuard, RolesGuard)
+  @AuthRoles(['chairman', 'member', 'user'])
   async setCapitalProjectPriority(
     @Args('data', { type: () => SetCapitalProjectPriorityInputDTO }) data: SetCapitalProjectPriorityInputDTO,
     @CurrentUser() currentUser?: IMonoAccount
@@ -150,7 +152,8 @@ export class ProjectManagementResolver {
     name: 'capitalSetProjectDevelopmentRepositoryUrl',
     description: 'Сохранение URL репозитория разработки проекта/компонента (только БД)',
   })
-  @UseGuards(GqlJwtAuthGuard)
+  @UseGuards(GqlJwtAuthGuard, RolesGuard)
+  @AuthRoles(['chairman', 'member', 'user'])
   async setCapitalProjectDevelopmentRepositoryUrl(
     @Args('data', { type: () => SetCapitalProjectDevelopmentRepositoryUrlInputDTO }) data: SetCapitalProjectDevelopmentRepositoryUrlInputDTO,
     @CurrentUser() currentUser?: IMonoAccount
@@ -269,7 +272,8 @@ export class ProjectManagementResolver {
     name: 'capitalProjects',
     description: 'Получение списка проектов кооператива с фильтрацией и компонентами',
   })
-  @UseGuards(GqlJwtAuthGuard)
+  @UseGuards(GqlJwtAuthGuard, RolesGuard)
+  @AuthRoles(['chairman', 'member', 'user'])
   async getProjects(
     @Args('filter', { nullable: true }) filter?: ProjectFilterInputDTO,
     @Args('options', { nullable: true }) options?: PaginationInputDTO,
@@ -286,7 +290,8 @@ export class ProjectManagementResolver {
     description: 'Получение проекта по хешу с компонентами',
     nullable: true,
   })
-  @UseGuards(GqlJwtAuthGuard)
+  @UseGuards(GqlJwtAuthGuard, RolesGuard)
+  @AuthRoles(['chairman', 'member', 'user'])
   async getProject(
     @Args('data') data: GetProjectInputDTO,
     @CurrentUser() currentUser?: IMonoAccount
@@ -302,7 +307,8 @@ export class ProjectManagementResolver {
     description: 'Получение проекта с полными отношениями по хешу проекта',
     nullable: true,
   })
-  @UseGuards(GqlJwtAuthGuard)
+  @UseGuards(GqlJwtAuthGuard, RolesGuard)
+  @AuthRoles(['chairman', 'member', 'user'])
   async getProjectWithRelations(
     @Args('data') data: GetProjectWithRelationsInputDTO,
     @CurrentUser() currentUser?: IMonoAccount

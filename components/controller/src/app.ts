@@ -15,6 +15,13 @@ if (config.env !== 'test') {
   app.use(morgan.errorHandler);
 }
 
+// Приложение стоит за nginx (receiver → внутренний nginx), а на контуре ещё и
+// за L7, который затирает X-Forwarded-For адресом клиента. Без доверия к
+// цепочке `req.ip` — адрес соседнего контейнера, и все лимиты «по IP»
+// (вход, восстановление, ссылки из писем, регистрация) считают всех
+// пользователей кооператива одним клиентом.
+app.set('trust proxy', true);
+
 // set security HTTP headers
 app.use(helmet({ hsts: false }));
 

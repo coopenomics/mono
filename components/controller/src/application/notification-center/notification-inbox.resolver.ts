@@ -27,7 +27,7 @@ export class NotificationInboxResolver {
     description: 'Лента личного инбокса текущего пользователя',
   })
   @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member', 'user'])
+  @AuthRoles(['chairman', 'member', 'user'], { anyStatus: true })
   async getInboxNotifications(
     @CurrentUser() user: IMonoAccount,
     @Args('coopname') coopname: string,
@@ -41,7 +41,7 @@ export class NotificationInboxResolver {
     description: 'Число непрочитанных уведомлений в инбоксе (бейдж на колоколе)',
   })
   @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member', 'user'])
+  @AuthRoles(['chairman', 'member', 'user'], { anyStatus: true })
   async getUnreadNotificationsCount(
     @CurrentUser() user: IMonoAccount,
     @Args('coopname') coopname: string
@@ -55,7 +55,7 @@ export class NotificationInboxResolver {
     description: 'Отметить уведомление инбокса прочитанным',
   })
   @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member', 'user'])
+  @AuthRoles(['chairman', 'member', 'user'], { anyStatus: true })
   async markNotificationRead(
     @CurrentUser() user: IMonoAccount,
     @Args('id') id: string
@@ -68,7 +68,7 @@ export class NotificationInboxResolver {
     description: 'Отметить все уведомления инбокса прочитанными',
   })
   @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member', 'user'])
+  @AuthRoles(['chairman', 'member', 'user'], { anyStatus: true })
   async markAllNotificationsRead(
     @CurrentUser() user: IMonoAccount,
     @Args('coopname') coopname: string

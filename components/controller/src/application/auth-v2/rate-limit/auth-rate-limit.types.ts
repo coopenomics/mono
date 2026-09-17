@@ -81,6 +81,14 @@ export const LOGIN_ACCOUNT_RULE: RateLimitRule = { limit: 5, ttl: RATE_LIMIT_WIN
  */
 export const MAGIC_LINK_RULE: RateLimitRule = { limit: 10, ttl: RATE_LIMIT_WINDOW_1H };
 
+/**
+ * Регистрация учётной записи: 20 с одного адреса в час. Мутация открыта и
+ * сразу выдаёт токен, так что без порога один адрес заводил бы учётные
+ * записи тысячами. Двадцати хватает и семье за одним роутером, и участку,
+ * где вступают с одного компьютера.
+ */
+export const REGISTER_ACCOUNT_IP_RULE: RateLimitRule = { limit: 20, ttl: RATE_LIMIT_WINDOW_1H };
+
 // --- Нарастающая блокировка (Story 3.12, NFR13) ---
 
 /**

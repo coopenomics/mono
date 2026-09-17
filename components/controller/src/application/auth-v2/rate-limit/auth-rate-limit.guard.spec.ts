@@ -18,6 +18,19 @@ function makeContext(config: AuthRateLimitConfig | undefined, req: { ip?: string
   } as unknown as ExecutionContext;
 }
 
+/** Контекст GraphQL-резолвера: запрос лежит третьим аргументом, `switchToHttp` отдал бы root. */
+function makeGqlContext(req: { ip?: string }): ExecutionContext {
+  const args = [undefined, {}, { req }, {}];
+  return {
+    getHandler: () => () => undefined,
+    getClass: () => class {},
+    getType: () => 'graphql',
+    getArgs: () => args,
+    getArgByIndex: (i: number) => args[i],
+    switchToHttp: () => ({ getRequest: () => undefined }),
+  } as unknown as ExecutionContext;
+}
+
 function makeGuard(config: AuthRateLimitConfig | undefined, increment: jest.Mock) {
   const reflector = { getAllAndOverride: jest.fn().mockReturnValue(config) } as unknown as Reflector;
   const storage = { increment } as unknown as ThrottlerStorage;
@@ -55,6 +68,14 @@ describe('AuthRateLimitGuard (Story 9.1)', () => {
     await expect(guard.canActivate(ctx)).resolves.toBe(true);
     expect(increment).toHaveBeenCalledWith('1.2.3.4', LOGIN_IP_RULE.ttl, LOGIN_IP_RULE.limit, LOGIN_IP_RULE.ttl, 'security-not-me:ip');
     expect(increment).toHaveBeenCalledWith('ant', LOGIN_ACCOUNT_RULE.ttl, LOGIN_ACCOUNT_RULE.limit, LOGIN_ACCOUNT_RULE.ttl, 'security-not-me:account');
+  });
+
+  it('в GraphQL-контексте адрес берётся из запроса резолвера', async () => {
+    const increment = jest.fn().mockResolvedValue(record(1));
+    const config: AuthRateLimitConfig = { ip: LOGIN_IP_RULE, scope: 'register-account' };
+    const { guard } = makeGuard(config, increment);
+    await expect(guard.canActivate(makeGqlContext({ ip: '5.6.7.8' }))).resolves.toBe(true);
+    expect(increment).toHaveBeenCalledWith('5.6.7.8', LOGIN_IP_RULE.ttl, LOGIN_IP_RULE.limit, LOGIN_IP_RULE.ttl, 'register-account:ip');
   });
 
   it('превышение IP-лимита → 429 TooManyAttempts', async () => {

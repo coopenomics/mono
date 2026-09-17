@@ -33,13 +33,16 @@ export class ExpenseMutationsResolver {
 
   /**
    * Контракт проверяет только статус/механику строки, но не личность
-   * отчитывающегося — поэтому отчёт по чужому авансу отсекается здесь:
-   * пайщик может отчитаться только по своей строке, совет — по любой.
+   * отчитывающегося — транзакцию подписывает кооператив. Поэтому отчёт и
+   * возврат по чужому авансу отсекаются здесь: пайщик распоряжается только
+   * своей строкой, совет — любой. Без этой проверки любой вошедший списывал
+   * бы подотчёт с чужого аванса «возвратом», не возвращая денег.
    */
-  private async assertCanReportItem(
+  private async assertOwnsItem(
     user: IMonoAccount,
     proposalHash: string,
-    itemHash: string
+    itemHash: string,
+    denied: string
   ): Promise<void> {
     if (user.role === 'chairman' || user.role === 'member') return;
     const proposal = await this.expensesManagement.getProposalByHash(proposalHash);
@@ -47,21 +50,23 @@ export class ExpenseMutationsResolver {
       (i) => i.item_hash?.toLowerCase() === itemHash.toLowerCase()
     );
     if (!item || item.recipient !== user.username) {
-      throw new ForbiddenException('Отчитаться по авансу может только его получатель');
+      throw new ForbiddenException(denied);
     }
   }
 
   // Записку на расход оформляет не только совет: расход кооперативного
-  // участка подаёт его председатель — обычный пайщик. Сама по себе генерация
-  // прав не даёт (это рендер документа для подписи), а право подать расход
-  // проверяет расширение-инициатор при отправке на цепь.
+  // участка подаёт его председатель — обычный пайщик, и он проходит через
+  // самообход `RolesGuard` со своим `username`. Роль `user` здесь не ставится
+  // намеренно: документ печатает паспортные данные заявителя, и с ролью любой
+  // вошедший получал бы их по чужому имени. Право подать расход проверяет
+  // расширение-инициатор при отправке на цепь.
   @Mutation(() => GeneratedDocumentDTO, {
     name: 'generateExpenseProposalStatementDocument',
     description: 'Сгенерировать документ СЗ-заявления (registry 2010) для последующей подписи.',
   })
   @Throttle({ default: { limit: 3, ttl: 60000 } })
   @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member', 'user'])
+  @AuthRoles(['chairman', 'member'])
   async generateExpenseProposalStatementDocument(
     @Args('data', { type: () => ExpenseProposalStatementGenerateDocumentInputDTO })
     data: ExpenseProposalStatementGenerateDocumentInputDTO,
@@ -128,7 +133,7 @@ export class ExpenseMutationsResolver {
     @Args('data', { type: () => ReportExpenseItemInputDTO }) data: ReportExpenseItemInputDTO,
     @CurrentUser() user: IMonoAccount
   ): Promise<ExpenseReportResultDTO> {
-    await this.assertCanReportItem(user, data.proposal_hash, data.item_hash);
+    await this.assertOwnsItem(user, data.proposal_hash, data.item_hash, 'Отчитаться по авансу может только его получатель');
     return this.expensesMutations.reportExpenseItem(data);
   }
 
@@ -139,8 +144,10 @@ export class ExpenseMutationsResolver {
   @UseGuards(GqlJwtAuthGuard, RolesGuard)
   @AuthRoles(['chairman', 'member', 'user'])
   async returnExpenseItem(
-    @Args('data', { type: () => ReturnExpenseItemInputDTO }) data: ReturnExpenseItemInputDTO
+    @Args('data', { type: () => ReturnExpenseItemInputDTO }) data: ReturnExpenseItemInputDTO,
+    @CurrentUser() user: IMonoAccount
   ): Promise<TransactionDTO> {
+    await this.assertOwnsItem(user, data.proposal_hash, data.item_hash, 'Вернуть остаток аванса может только его получатель');
     return this.expensesMutations.returnExpenseItem(data);
   }
 
