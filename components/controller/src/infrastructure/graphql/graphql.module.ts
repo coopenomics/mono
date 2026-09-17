@@ -47,6 +47,25 @@ const authDirective = new GraphQLDirective({
   },
 });
 
+/**
+ * Что за операция дала ошибку разбора. Раньше это пытались достать из запроса
+ * (`context.req.body`), но третьего аргумента у `formatError` в Apollo 4 нет:
+ * в журнал шли `operation: null` и `operationType: "unknown"` — по ним нельзя
+ * было понять, кто из клиентов шлёт негодный запрос. Имя берётся из самого
+ * документа, на который ссылается ошибка; переменные не трогаем — в них
+ * персональные данные.
+ */
+function describeOperation(error: unknown): { operation: string | null; operationType: string } {
+  const body = (error as GraphQLError)?.nodes?.[0]?.loc?.source?.body;
+  if (!body) return { operation: null, operationType: 'unknown' };
+
+  const match = body.match(/\b(query|mutation|subscription)\b[^{(]*/);
+  if (!match) return { operation: null, operationType: 'query' }; // сокращённая форма `{ ... }`
+
+  const name = match[0].slice(match[1].length).trim().split(/[\s(]/)[0];
+  return { operationType: match[1], operation: name || null };
+}
+
 @Global()
 @Module({
   imports: [
@@ -145,11 +164,7 @@ const authDirective = new GraphQLDirective({
 
         // Логирование GraphQL ошибок (только validation ошибки, execution ошибки логируются в GraphQLExceptionFilter)
         if (extensions.code !== 401 && !formattedError.extensions?.isExecutionError) {
-          // Извлекаем информацию о типе операции из запроса
-          const queryText = context?.req?.body?.query || '';
-          const operationType = queryText.trim().startsWith('mutation') ? 'mutation' :
-                               queryText.trim().startsWith('query') ? 'query' :
-                               queryText.trim().startsWith('subscription') ? 'subscription' : 'unknown';
+          const { operation, operationType } = describeOperation(error);
 
           logger.error({
             message: `GraphQL Error: ${message}`,
@@ -157,10 +172,9 @@ const authDirective = new GraphQLDirective({
             extensions,
             locations: formattedError.locations,
             path: formattedError.path,
-            username: context?.req?.user?.username || null,
-            operation: context?.req?.body?.operationName || null,
+            operation,
             operationType,
-            // Не показываем полный запрос, только тип операции
+            // Не показываем полный запрос, только имя и тип операции
           });
         }
 
