@@ -10,8 +10,10 @@
     .col-12.col-md-7
       BaseCard(variant="default" title="Преподаватель")
         //- Фотография одна на пайщика: она же стоит в удостоверении пайщика.
-        AvatarUpload.q-mb-md(:name="fullName || username" :src="avatarUrl" @changed="onAvatarChanged")
-        IdentityCell(:account-name="username" :full-name="fullName" copyable)
+        //- Загрузка открывается наведением на кружок, рядом с ним — ФИО и учётное имя.
+        IdentityPanel(:identity="identity" flat)
+          template(#avatar)
+            AvatarUpload(:name="fullName || username" :src="avatarUrl" size="xl" @changed="onAvatarChanged")
         q-separator.q-my-md
         DataRow(label="Курсов ведётся" :value="String(activeAssignments)")
         DataRow(label="Назначений всего" :value="String(assignments.length)")
@@ -50,7 +52,7 @@ import { AvatarUpload } from 'src/features/User/Avatar';
 import { getName } from 'src/shared/lib/utils/account';
 import { asDateInput, asText } from 'src/shared/lib/utils';
 import { BaseBadge, BaseCard, CardListSkeleton } from 'src/shared/ui/base';
-import { DataRow, IdentityCell, PageHint } from 'src/shared/ui/domain';
+import { DataRow, IdentityPanel, PageHint, type Identity } from 'src/shared/ui/domain';
 import { ASSIGNMENT_STATUS_LABELS, fetchMyAssignments, fetchMyContract, type IAssignment, type IContract } from '../../entities/Teacher';
 
 /**
@@ -81,6 +83,11 @@ function onAvatarChanged(url: string | null): void {
   uploadedAvatar.value = url;
 }
 const fullName = computed(() => (session.currentUserAccount ? getName(session.currentUserAccount) : ''));
+const identity = computed<Identity>(() => ({
+  fullName: fullName.value || username.value,
+  accountName: username.value,
+  avatar: avatarUrl.value ?? undefined,
+}));
 const contractStatus = computed(
   () => CONTRACT_STATUS_LABELS[contract.value?.status ?? ''] ?? { label: contract.value?.status ?? '', variant: 'neutral' as const },
 );

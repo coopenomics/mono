@@ -1,10 +1,14 @@
 <template lang="pug">
 .identity-panel(:class='[compact ? "identity-panel--compact" : "identity-panel--full", { "identity-panel--flat": flat }]')
-  Avatar.identity-panel__avatar(
-    :name='identity.fullName',
-    :src='identity.avatar',
-    :size='compact ? "sm" : "lg"'
-  )
+  //- Кружок отдаётся наружу слотом: на своём профиле на его место встаёт узел
+  //- загрузки фотографии, и человек меняет снимок там же, где его видит.
+  .identity-panel__avatar
+    slot(name='avatar')
+      Avatar(
+        :name='identity.fullName',
+        :src='identity.avatar',
+        :size='compact ? "sm" : "lg"'
+      )
   template(v-if='compact')
     h3.identity-panel__name {{ identity.fullName }}
     AccountBadge(
@@ -104,6 +108,8 @@ const hasFullMeta = computed((): boolean => {
 }
 
 .identity-panel__avatar {
+  display: flex;
+  align-items: center;
   flex-shrink: 0;
 }
 

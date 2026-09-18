@@ -841,18 +841,24 @@ body {
 /* ---- Avatar -----------------------------------------------------------
    Initials avatar with sizes; supports an img child for photos. Used in
    tables, sidebars, person cards, and council member lists.
+
+   Кружок с инициалами — первое, что видно о человеке, поэтому он взят в цвета
+   платформы: мягкая заливка от primary к accent, буквы тёмным оттенком primary
+   и тонкое кольцо по краю. Серая заливка делала из него пустое место.
    --------------------------------------------------------------------- */
 .avatar {
   display: grid; place-items: center;
   border-radius: 50%;
-  background: var(--p-surface-3);
-  color: var(--p-ink-1);
-  font-weight: 600;
-  letter-spacing: 0.02em;
+  background: linear-gradient(145deg, var(--p-primary-soft), var(--p-accent-soft));
+  color: var(--p-primary-strong);
+  box-shadow: inset 0 0 0 1px var(--p-primary-line);
+  font-weight: 650;
+  letter-spacing: 0.04em;
   flex-shrink: 0;
   overflow: hidden;
   width: 36px; height: 36px;
   font-size: 12px;
+  user-select: none;
 }
 .avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .avatar--xs { width: 24px; height: 24px; font-size: 10px; }
