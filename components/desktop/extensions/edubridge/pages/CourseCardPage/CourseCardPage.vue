@@ -39,7 +39,7 @@
       v-model="subscribeOpen"
       :learners="learners"
       :courses="course ? [course] : []"
-      :locked-course-id="course?.id ?? null"
+      :locked-course-id="asText(course?.id) || null"
       @learner-added="onLearnerAdded"
       @subscribed="onSubscribed"
     )
@@ -48,6 +48,7 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import { asText } from 'src/shared/lib/utils';
 import { FailAlert } from 'src/shared/api';
 import { useDesktopStore } from 'src/entities/Desktop/model';
 import { useSessionStore } from 'src/entities/Session';

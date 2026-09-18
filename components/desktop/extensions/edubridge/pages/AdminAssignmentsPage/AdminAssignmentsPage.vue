@@ -167,14 +167,14 @@ async function onCreate(): Promise<void> {
 }
 async function onClose(a: IAssignment): Promise<void> {
   try {
-    const updated = await closeAssignment(a.id);
+    const updated = await closeAssignment(asText(a.id));
     assignments.value = assignments.value.map((x) => (x.id === updated.id ? { ...x, status: updated.status } : x));
   } catch (e) {
     FailAlert(e);
   }
 }
 async function onAccept(c: IContribution): Promise<void> {
-  busyId.value = c.id;
+  busyId.value = asText(c.id);
   try {
     const updated = await acceptContributionAsChairman(c);
     contributions.value = contributions.value.map((x) => (x.id === updated.id ? updated : x));
@@ -194,7 +194,7 @@ async function onDecline(): Promise<void> {
   if (!declineTarget.value) return;
   busy.value = true;
   try {
-    const updated = await declineContribution(declineTarget.value.id, declineReason.value.trim());
+    const updated = await declineContribution(asText(declineTarget.value.id), declineReason.value.trim());
     contributions.value = contributions.value.map((x) => (x.id === updated.id ? updated : x));
     declineOpen.value = false;
   } catch (e) {

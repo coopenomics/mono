@@ -74,7 +74,7 @@ async function load(): Promise<void> {
 async function onRetry(t: IAccessTask): Promise<void> {
   busy.value = asText(t.id);
   try {
-    const updated = await retryTask(t.id);
+    const updated = await retryTask(asText(t.id));
     items.value = items.value.map((x) => (asText(x.id) === asText(updated.id) ? updated : x));
     SuccessAlert('Задача возвращена в очередь');
   } catch (e) {

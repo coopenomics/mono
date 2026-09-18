@@ -26,7 +26,7 @@
         v-model="credentialValues[f.key]"
         :label="f.label"
         :type="f.secret ? 'password' : 'text'"
-        :hint="f.is_set ? `${f.note ? f.note + '. ' : ''}Задано — оставьте пустым, чтобы не менять` : f.note"
+        :hint="f.is_set ? `${f.note ? f.note + '. ' : ''}Задано — оставьте пустым, чтобы не менять` : (f.note ?? undefined)"
         :required="!f.is_set"
         mono
       )
@@ -39,6 +39,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
 import { Zeus } from '@coopenomics/sdk';
+import { asDateInput } from 'src/shared/lib/utils';
 import { useFirstLoad } from 'src/shared/lib/composables';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { BaseBadge, BaseButton, BaseCard, BaseDialog, BaseForm, BaseInput, CardListSkeleton } from 'src/shared/ui/base';
@@ -62,7 +63,10 @@ const credentialValues = ref<Record<string, string>>({});
 const savingCredentials = ref(false);
 
 const carrierLabel = (c: string) => CARRIER_LABELS[c] ?? c;
-const formatDateTime = (v: string | Date) => new Date(v).toLocaleString('ru-RU');
+const formatDateTime = (v: unknown) => {
+  const input = asDateInput(v);
+  return input ? new Date(input).toLocaleString('ru-RU') : '______';
+};
 function stateOf(c: IConnector): { label: string; variant: 'pos' | 'neg' | 'warn' | 'neutral' } {
   if (c.credential_fields.length && !c.configured) return { label: 'Не настроена', variant: 'warn' };
   if (!c.enabled) return { label: 'Выключена', variant: 'neutral' };

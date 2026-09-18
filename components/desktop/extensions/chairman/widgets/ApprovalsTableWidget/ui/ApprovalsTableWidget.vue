@@ -57,9 +57,23 @@ div
 
   BaseDialog(v-model="confirmOpen" :title="confirmTitle" size="sm")
     p {{ confirmText }}
+    //- Причину отказа видит тот, кому отказали: она приходит к нему в стол.
+    BaseInput.q-mt-sm(
+      v-if="confirmKind === 'decline'"
+      v-model="declineReason"
+      label="Причина отказа"
+      type="textarea"
+      :rows="2"
+      required
+    )
     template(#footer)
       BaseButton(variant="ghost" :disabled="bulkBusy || singleBusy" @click="confirmOpen = false") Отменить
-      BaseButton(:variant="confirmKind === 'approve' ? 'primary' : 'secondary'" :loading="bulkBusy || singleBusy" @click="runConfirmed") {{ confirmKind === 'approve' ? 'Одобрить' : 'Отклонить' }}
+      BaseButton(
+        :variant="confirmKind === 'approve' ? 'primary' : 'secondary'"
+        :disabled="confirmKind === 'decline' && !declineReason.trim()"
+        :loading="bulkBusy || singleBusy"
+        @click="runConfirmed"
+      ) {{ confirmKind === 'approve' ? 'Одобрить' : 'Отклонить' }}
 </template>
 
 <script lang="ts" setup>
@@ -73,7 +87,7 @@ import { useDeclineApproval } from 'app/extensions/chairman/features/Approval/De
 import { get_approval_action_label, is_approval_declinable } from 'app/extensions/chairman/shared';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { useFioCache } from 'src/shared/lib/account/useFioCache';
-import { BaseBadge, BaseButton, BaseDialog, BaseTable, EmptyState, TablePager, type BaseTableColumn } from 'src/shared/ui/base';
+import { BaseBadge, BaseButton, BaseDialog, BaseInput, BaseTable, EmptyState, TablePager, type BaseTableColumn } from 'src/shared/ui/base';
 import { ComplexDocument } from 'src/shared/ui/ComplexDocument';
 import { DataRow, DetailsDrawer, IdentityCell } from 'src/shared/ui/domain';
 
@@ -115,6 +129,7 @@ const current = ref<Approval | null>(null);
 const confirmOpen = ref(false);
 const confirmKind = ref<'approve' | 'decline'>('approve');
 const confirmScope = ref<'single' | 'bulk'>('single');
+const declineReason = ref('');
 const bulkBusy = ref(false);
 const singleBusy = ref(false);
 
@@ -142,12 +157,14 @@ function openDetails(row: Approval): void {
 }
 
 function askSingle(kind: 'approve' | 'decline'): void {
+  declineReason.value = '';
   confirmKind.value = kind;
   confirmScope.value = 'single';
   confirmOpen.value = true;
 }
 
 function askBulk(kind: 'approve' | 'decline'): void {
+  declineReason.value = '';
   confirmKind.value = kind;
   confirmScope.value = 'bulk';
   confirmOpen.value = true;
@@ -158,7 +175,7 @@ async function decide(a: Approval, kind: 'approve' | 'decline'): Promise<void> {
   if (kind === 'approve') {
     await confirmApproval(a.coopname, a.approval_hash, a.document);
   } else {
-    await declineApproval({ coopname: a.coopname, approval_hash: a.approval_hash.toLowerCase() });
+    await declineApproval({ coopname: a.coopname, approval_hash: a.approval_hash.toLowerCase(), reason: declineReason.value.trim() });
   }
 }
 

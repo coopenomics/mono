@@ -18,6 +18,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import { asDateInput } from 'src/shared/lib/utils';
 import { FailAlert } from 'src/shared/api';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { BaseButton, BaseCard, CardListSkeleton } from 'src/shared/ui/base';
@@ -27,7 +28,10 @@ import { fetchMySettlement, type ISettlement } from '../../entities/Teacher';
 const route = useRoute();
 const router = useRouter();
 const settlement = ref<ISettlement | null>(null);
-const formatDate = (v: string | Date) => new Date(v).toLocaleDateString('ru-RU');
+const formatDate = (v: unknown) => {
+  const input = asDateInput(v);
+  return input ? new Date(input).toLocaleDateString('ru-RU') : '______';
+};
 
 function goToWallet(): void {
   void router.push({ name: 'wallet', params: { coopname: route.params.coopname } });

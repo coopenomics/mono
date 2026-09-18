@@ -34,7 +34,7 @@ BaseDialog(:model-value="modelValue" title="Получить доступ" size=
 import { computed, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { Zeus } from '@coopenomics/sdk';
-import { asText } from 'src/shared/lib/utils';
+import { asDateInput, asText } from 'src/shared/lib/utils';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { BaseBanner, BaseButton, BaseDialog, BaseSelect } from 'src/shared/ui/base';
@@ -82,8 +82,9 @@ const courseOptions = computed(() => props.courses.map((c) => ({ value: asText(c
 const periodOptions = Object.entries(PERIOD_LABELS).map(([value, label]) => ({ value, label }));
 const courseTitle = computed(() => props.courses.find((c) => c.id === courseId.value)?.title ?? '');
 
-function formatDate(value: string | Date): string {
-  return new Date(value).toLocaleDateString('ru-RU');
+function formatDate(value: unknown): string {
+  const input = asDateInput(value);
+  return input ? new Date(input).toLocaleDateString('ru-RU') : '______';
 }
 
 watch([learnerId, courseId, period], async () => {
