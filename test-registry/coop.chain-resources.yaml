@@ -1,0 +1,132 @@
+feature: coop.chain-resources
+title: Аренда вычислительных ресурсов кооператива и отказы узла цепи
+
+# Цепь берёт плату ресурсами (процессорное время, полоса, оперативная память) за
+# каждое действие. Расширение «Аренда ресурсов» раз в минуту сверяет
+# использование с порогом и, когда порог превышен, покупает дневную квоту за
+# системный токен кооператива. Журнал аренды показывает пайщику эти пополнения.
+#
+# Инцидент 16–18.09.2026. На аккаунте `voskhod` кончился системный токен, и
+# транзакция `eosio::powerup` начала падать с «overdrawn balance». Отказ
+# проглатывался уровнем `info`, наружу не выходил, поэтому:
+#   — в журнал аренды ложилась запись о пополнении, которого не было;
+#   — ежедневная задача отмечала пополнение выполненным и сутки не повторяла;
+#   — попытка повторялась каждую минуту: 3 235 одинаковых отказов за двое суток.
+# Отдельно: ответ узла на отказ нигде не сохранялся, и отказ 500 при подписи
+# решения совета 17.09.2026 разобрать было нечем — `session.transact` оставляет
+# от ответа цепи одну строку подробностей без кода исключения.
+#
+# Теперь: запись в журнале появляется только после принятой транзакции и несёт
+# её идентификатор; отказ поднимается наверх и отодвигает следующую попытку;
+# ответ узла разбирается единым перехватчиком в точке отправки и уходит в журнал
+# ошибок целиком; ресурсы и остаток токена отдаются метриками.
+
+sources:
+  backend:
+    - components/controller/src/extensions/powerup/powerup-extension.module.ts
+    - components/controller/src/infrastructure/blockchain/blockchain.service.ts
+    - components/controller/src/application/metrics/platform-metrics.service.ts
+    - components/sdk/src/utils/chainFetch.ts
+  ui:
+    - components/desktop/extensions/powerup/widgets/PowerupLogItem/**
+    - components/desktop/src/shared/lib/chain/**
+
+cases:
+  - id: coop.res.happy.01
+    level: backend
+    kind: happy
+    scenario: >
+      использование ресурсов выше порога, на аккаунте есть системный токен —
+      расширение покупает дневную квоту
+    expect: >
+      в журнале аренды одна запись с суммой квоты и идентификатором транзакции;
+      ресурсы в записи — состояние ПОСЛЕ пополнения
+    test: components/controller/tests/unit/extension/powerup-extension.test.ts
+    status: passing
+
+  - id: coop.res.break.01
+    level: backend
+    kind: break
+    scenario: цепь отклонила пополнение («overdrawn balance»)
+    expect: >
+      записи в журнале аренды нет, отказ виден уровнем `error`. Прежде журнал
+      рапортовал об успехе на каждую неудачную попытку
+    test: components/controller/tests/unit/extension/powerup-extension.test.ts
+    status: passing
+
+  - id: coop.res.side.01
+    level: backend
+    kind: side
+    scenario: причина отказа не устранена, минутная проверка идёт дальше
+    expect: >
+      следующая попытка отодвигается (пауза удваивается до часа), цепь не
+      получает одинаковую транзакцию каждую минуту, ошибка пишется один раз
+    test: components/controller/tests/unit/extension/powerup-extension.test.ts
+    status: passing
+
+  - id: coop.res.side.02
+    level: backend
+    kind: side
+    scenario: ежедневное пополнение не прошло
+    expect: >
+      дата последнего пополнения не обновляется — иначе сутки никто не повторит
+      попытку, а журнал расширения покажет пополнение, которого не было
+    test: components/controller/tests/unit/extension/powerup-extension.test.ts
+    status: passing
+
+  - id: coop.res.side.03
+    level: backend
+    kind: side
+    scenario: использование ресурсов ниже порога
+    expect: пополнения нет, записи в журнале нет
+    test: components/controller/tests/unit/extension/powerup-extension.test.ts
+    status: passing
+
+  - id: coop.res.side.04
+    level: backend
+    kind: side
+    scenario: >
+      узел ответил отказом на отправку транзакции (ассерт контракта, нехватка
+      средств, отклонение)
+    expect: >
+      в журнал уходит разобранный ответ узла целиком — путь, код HTTP, код и имя
+      исключения цепи, подробности и тело; событие заводится в журнале ошибок
+    test: ~
+    status: missing
+    decision_needed: false
+
+  - id: coop.res.side.05
+    level: backend
+    kind: side
+    scenario: >
+      узел срезал транзакцию лимитом процессорного времени (3080004 и соседние
+      коды группы) — она повторяется сама
+    expect: >
+      отказ виден в журнале уровнем `warn` и НЕ заводит событие в журнале ошибок:
+      иначе каждый пик нагрузки выглядел бы поломкой кабинета
+    test: ~
+    status: missing
+    decision_needed: false
+
+  - id: coop.res.side.06
+    level: backend
+    kind: side
+    scenario: метрики ресурсов аккаунта кооператива
+    expect: >
+      отдаются занятая и доступная память, процессорное время, полоса и остаток
+      системного токена; недоступный узел не обнуляет остальные показатели тика
+    test: ~
+    status: missing
+    decision_needed: false
+
+  - id: coop.res.side.07
+    level: ui
+    kind: side
+    scenario: карточка записи журнала аренды
+    expect: >
+      процессорное время показано временем, полоса — байтами (прежде обе
+      величины печатались байтами, и час процессорного времени выглядел как
+      «36 ГБ»); видна транзакция пополнения
+    test: ~
+    status: missing
+    decision_needed: false

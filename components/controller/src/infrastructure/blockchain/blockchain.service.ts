@@ -9,13 +9,15 @@ import config from '~/config/config';
 import { BlockchainPort } from '~/domain/common/ports/blockchain.port';
 import type { ActiveKeysQuorum, EndorsementRecord, ServedCooperative } from '~/domain/common/ports/blockchain.port';
 import { RpcPool } from './rpc-pool.service';
-import { retryOnChainExhaustion } from './chain-retry';
+import { CHAIN_EXHAUSTION_CODES, retryOnChainExhaustion } from './chain-retry';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 import type { GetInfoResult } from '~/types/shared/blockchain.types';
 import type { BlockchainAccountInterface } from '~/types/shared';
 import { VaultDomainService, VAULT_DOMAIN_SERVICE } from '~/domain/vault/services/vault-domain.service';
 import { Inject } from '@nestjs/common';
 import { normalizeAbiFloats } from './abi-float.normalizer';
+import { type ChainFailure, createChainFetch, describeChainFailure } from '@coopenomics/sdk';
+import * as Sentry from '@sentry/nestjs';
 
 /**
  * Индекс реестра кооперативов «по оператору». Третий по счёту после первичного:
@@ -74,16 +76,63 @@ export class BlockchainService implements BlockchainPort {
   ) {}
 
   public initialize(username: string, wif: string): void {
-    this.session = new Session({
-      actor: username,
-      permission: 'active',
-      chain: {
-        id: config.blockchain.id,
-        // write-путь идёт на текущий здоровый узел пула (Story 9.4); TaPoS-ссылка и
-        // broadcast попадают на один узел (sticky), не размазываются round-robin.
-        url: this.rpcPool.activeUrl(),
+    this.session = new Session(
+      {
+        actor: username,
+        permission: 'active',
+        chain: {
+          id: config.blockchain.id,
+          // write-путь идёт на текущий здоровый узел пула (Story 9.4); TaPoS-ссылка и
+          // broadcast попадают на один узел (sticky), не размазываются round-robin.
+          url: this.rpcPool.activeUrl(),
+        },
+        walletPlugin: new WalletPluginPrivateKey(PrivateKey.fromString(wif)),
       },
-      walletPlugin: new WalletPluginPrivateKey(PrivateKey.fromString(wif)),
+      {
+        // Ответ узла разбирается здесь и только здесь: дальше по стеку
+        // `session.transact` подменяет ошибку цепи на первую строку подробностей,
+        // и ни кода, ни имени исключения уже не остаётся.
+        fetch: createChainFetch((failure) => this.recordChainFailure(failure, username)),
+      }
+    );
+  }
+
+  /**
+   * Единая запись отказа цепи: журнал контура и журнал ошибок (GlitchTip).
+   *
+   * Сюда попадает любой неуспешный ответ узла на любой запрос сессии — отправку
+   * транзакции, чтение ABI, TaPoS. До этого перехвата отказ доезжал до вызывающего
+   * строкой без кода, а тело ответа не сохранялось нигде: 17.09.2026 отказ 500 на
+   * подписи решения совета восстановить по логам не удалось.
+   */
+  private recordChainFailure(failure: ChainFailure, actor: string): void {
+    // Транзакция, срезанная лимитом CPU/NET, в блок не попадает и повторяется
+    // сама (`retryOnChainExhaustion`). Это не отказ операции, а пик нагрузки:
+    // в журнале он нужен, в журнале ошибок — нет, иначе каждая попытка повтора
+    // станет там отдельным событием.
+    const isExhaustion = failure.code !== undefined && CHAIN_EXHAUSTION_CODES.has(failure.code);
+    if (isExhaustion) {
+      this.logger.warn(`Узел цепи не принял транзакцию по лимиту: ${describeChainFailure(failure)}`, { actor });
+      return;
+    }
+
+    this.logger.error(`Узел цепи отказал: ${describeChainFailure(failure)}`, {
+      actor,
+      chain_path: failure.path,
+      chain_http_status: failure.httpStatus,
+      chain_error_code: failure.code,
+      chain_error_name: failure.name,
+      chain_details: failure.details,
+      chain_response: failure.raw,
+    });
+
+    Sentry.captureException(new Error(`Узел цепи отказал: ${describeChainFailure(failure)}`), {
+      tags: {
+        chain_path: failure.path,
+        chain_error_code: failure.code ? String(failure.code) : 'unknown',
+        chain_error_name: failure.name ?? 'unknown',
+      },
+      extra: { actor, http_status: failure.httpStatus, details: failure.details, response: failure.raw },
     });
   }
 
@@ -497,7 +546,17 @@ export class BlockchainService implements BlockchainPort {
     await this.transact(actions);
   }
 
-  public async powerUp(username: string, quantity: string): Promise<void> {
+  /**
+   * Пополнение вычислительных ресурсов аккаунта. Возвращает идентификатор
+   * транзакции — по нему пополнение можно найти в цепи.
+   *
+   * Отказ не глушится: раньше он писался уровнем `info` и наружу не уходил,
+   * из-за чего расширение `powerup` считало выполненным пополнение, которого
+   * не было, и писало запись в журнал аренды на каждую неудачную попытку
+   * (инцидент 16–18.09.2026: 3 235 отказов «overdrawn balance» подряд, журнал
+   * при этом рапортовал об успехе).
+   */
+  public async powerUp(username: string, quantity: string): Promise<string> {
     // Инициализируем сессию перед транзакцией
     const wif = await this.vaultDomainService.getWif(username);
     if (!wif) throw new Error(`Не найден приватный ключ для аккаунта ${username}`);
@@ -526,11 +585,8 @@ export class BlockchainService implements BlockchainPort {
       },
     ];
 
-    try {
-      await this.transact(actions);
-    } catch (error) {
-      this.logger.info('Предупреждение при выполнении транзакции powerup:', String(error));
-    }
+    const result = await this.transact(actions);
+    return String(result.response?.transaction_id ?? result.resolved?.transaction.id ?? '');
   }
 
   public async addUser(data: RegistratorContract.Actions.AddUser.IAddUser): Promise<void> {

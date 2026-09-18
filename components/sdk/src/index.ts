@@ -37,6 +37,8 @@ export * as Types from './types'
 
 export * as Zeus from './zeus/index'
 
+export { type ChainFailure, createChainFetch, describeChainFailure } from './utils/chainFetch'
+
 if (typeof globalThis.WebSocket === 'undefined') {
   globalThis.WebSocket = WebSocket as any
 }
