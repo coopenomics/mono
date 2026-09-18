@@ -5,7 +5,7 @@
 
   BaseInput.q-mb-md(v-model="search" label="Поиск по ФИО или учётному имени" type="search" clearable @update:model-value="debouncedLoad")
 
-  BaseTable(v-if="loading || rows.length" :columns="columns" :rows="rows" row-key="username" :loading="loading && !rows.length" hover min-width="760px")
+  BaseTable(v-if="loading || rows.length" :columns="columns" :rows="rows" row-key="username" :loading="firstLoad" hover min-width="760px")
     template(#cell-member="{ row }")
       IdentityCell(:account-name="row.username" :full-name="row.display_name || null")
     template(#cell-access="{ row }")
@@ -14,7 +14,7 @@
       BaseBadge(v-else variant="neutral") нет подписок
     template(#cell-actions="{ row }")
       BaseButton(variant="secondary" size="sm" :loading="opening === row.username" @click="open(row)") Открыть
-  EmptyState(v-if="!loading && !rows.length" :title="search ? 'Никого не нашлось' : 'Пайщиков пока нет'" :body="search ? 'Попробуйте другую фамилию или учётное имя.' : 'Как только кто-то добавит обучающегося, он появится здесь.'")
+  EmptyState(v-if="!firstLoad" :title="search ? 'Никого не нашлось' : 'Пайщиков пока нет'" :body="search ? 'Попробуйте другую фамилию или учётное имя.' : 'Как только кто-то добавит обучающегося, он появится здесь.'")
     template(#icon)
       q-icon(name="groups" size="32px")
 
@@ -55,6 +55,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
 import { debounce } from 'quasar';
+import { useFirstLoad } from 'src/shared/lib/composables';
 import { FailAlert } from 'src/shared/api';
 import { BaseBadge, BaseButton, BaseInput, BaseTable, EmptyState, type BaseTableColumn } from 'src/shared/ui/base';
 import { DataRow, DetailsDrawer, IdentityCell, PageHint } from 'src/shared/ui/domain';
@@ -71,6 +72,7 @@ const search = ref('');
 const rows = ref<IMemberRow[]>([]);
 const card = ref<IMemberCard | null>(null);
 const loading = ref(false);
+const firstLoad = useFirstLoad(loading);
 const opening = ref<string | null>(null);
 const drawerOpen = ref(false);
 

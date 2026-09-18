@@ -5,7 +5,7 @@
     | площадка выдаёт доступ к курсу. Записать обучающегося на курс можно на странице «Мои подписки».
 
   BaseCard(variant="default" title="Обучающиеся")
-    CardListSkeleton(v-if="loading && !learners.length" :count="2")
+    CardListSkeleton(v-if="firstLoad" :count="2")
     EmptyState(v-else-if="!learners.length" title="Обучающихся пока нет" body="Добавьте первого обучающегося — себя или ребёнка.")
       template(#icon)
         q-icon(name="family_restroom" size="32px")
@@ -30,6 +30,7 @@
 
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
+import { useFirstLoad } from 'src/shared/lib/composables';
 import { FailAlert } from 'src/shared/api';
 import { useHeaderActions } from 'src/shared/hooks';
 import { BaseButton, BaseCard, BaseChip, BaseDialog, CardListSkeleton, EmptyState } from 'src/shared/ui/base';
@@ -47,6 +48,7 @@ const { registerAction } = useHeaderActions();
 
 const learners = ref<ILearner[]>([]);
 const loading = ref(false);
+const firstLoad = useFirstLoad(loading);
 const learnerDialogOpen = ref(false);
 const editingLearner = ref<ILearner | null>(null);
 

@@ -5,7 +5,7 @@
       q-icon(name="arrow_back" size="16px")
     | К реестру курсов
 
-  CardListSkeleton(v-if="loading && !course" :count="1")
+  CardListSkeleton(v-if="firstLoad" :count="1")
 
   EmptyState(v-else-if="!course" title="Курс не найден" body="Возможно, курс удалён из реестра.")
     template(#icon)
@@ -15,12 +15,10 @@
     .col-12.col-md-8
       BaseCard(variant="default")
         template(#head)
-          div
-            .row.items-center.q-gutter-sm.q-mb-sm
-              BaseBadge(:variant="status.variant") {{ status.label }}
-              BaseChip(variant="neutral" size="sm") {{ course.subject }}
-              BaseChip(variant="neutral" size="sm") {{ course.grade }}
-            .text-h6.text-weight-semibold {{ course.title }}
+          .row.items-center.q-gutter-sm
+            BaseBadge(:variant="status.variant") {{ status.label }}
+            BaseChip(variant="neutral" size="sm") {{ course.subject }}
+            BaseChip(variant="neutral" size="sm") {{ course.grade }}
         .edu-course-admin__cover.q-mb-md
           q-img(v-if="course.image_url" :src="course.image_url" :ratio="21 / 9" fit="cover" no-spinner)
           .edu-course-admin__placeholder(v-else)
@@ -66,6 +64,7 @@
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { Zeus } from '@coopenomics/sdk';
+import { useFirstLoad } from 'src/shared/lib/composables';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { useDesktopStore } from 'src/entities/Desktop/model';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
@@ -85,6 +84,7 @@ const desktopStore = useDesktopStore();
 
 const course = ref<ICourse | null>(null);
 const loading = ref(true);
+const firstLoad = useFirstLoad(loading);
 const busy = ref(false);
 const editOpen = ref(false);
 

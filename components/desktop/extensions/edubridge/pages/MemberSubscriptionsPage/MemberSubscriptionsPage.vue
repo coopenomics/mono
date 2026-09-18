@@ -5,7 +5,7 @@
     | из паевого по заявлению о конвертации, доступ на площадке выдаётся автоматически. Здесь — что оплачено и до какого числа.
 
   BaseCard(variant="default" title="Мои подписки")
-    BaseTable(v-if="loading || enrollments.length" :columns="columns" :rows="enrollments" row-key="id" :loading="loading && !enrollments.length" min-width="820px")
+    BaseTable(v-if="loading || enrollments.length" :columns="columns" :rows="enrollments" row-key="id" :loading="firstLoad" min-width="820px")
       template(#cell-learner="{ row }") {{ learnerName(row.learner_id) }}
       template(#cell-period="{ row }") {{ periodLabel(row.period) }}
       template(#cell-paid_until="{ row }") {{ row.paid_until ? formatDate(row.paid_until) : '______' }}
@@ -34,6 +34,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import { useFirstLoad } from 'src/shared/lib/composables';
 import { FailAlert } from 'src/shared/api';
 import { BaseBadge, BaseButton, BaseCard, BaseTable, EmptyState, type BaseTableColumn } from 'src/shared/ui/base';
 import { PageHint } from 'src/shared/ui/domain';
@@ -61,6 +62,7 @@ const learners = ref<ILearner[]>([]);
 const enrollments = ref<IEnrollment[]>([]);
 const courses = ref<ICatalogCourse[]>([]);
 const loading = ref(false);
+const firstLoad = useFirstLoad(loading);
 const extendOpen = ref(false);
 const lockedCourseId = ref<string | null>(null);
 

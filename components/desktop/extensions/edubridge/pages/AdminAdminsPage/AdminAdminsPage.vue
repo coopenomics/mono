@@ -3,7 +3,7 @@
   PageHint.q-mb-md(storage-key="edu:admin-admins:banner-dismissed")
     | Администраторы ведут курсы, назначения, реестры и очередь. Контакты пайщиков и ключи площадок им не видны.
 
-  BaseTable(v-if="loading || items.length" :columns="columns" :rows="items" row-key="id" :loading="loading && !items.length" min-width="720px")
+  BaseTable(v-if="loading || items.length" :columns="columns" :rows="items" row-key="id" :loading="firstLoad" min-width="720px")
     template(#cell-admin="{ row }")
       IdentityCell(:account-name="row.username" :full-name="row.display_name || null")
     template(#cell-appointed_by="{ row }")
@@ -11,7 +11,7 @@
     template(#cell-created_at="{ row }") {{ formatDate(row.created_at) }}
     template(#cell-actions="{ row }")
       BaseButton(variant="ghost" size="sm" :loading="busyDismiss === row.id" @click="onDismiss(row)") Снять
-  EmptyState(v-if="!loading && !items.length" title="Администраторов нет" body="Председатель ведёт приложение сам. Назначить администратора можно кнопкой в правом верхнем углу.")
+  EmptyState(v-if="!firstLoad" title="Администраторов нет" body="Председатель ведёт приложение сам. Назначить администратора можно кнопкой в правом верхнем углу.")
     template(#icon)
       q-icon(name="admin_panel_settings" size="32px")
 
@@ -25,6 +25,7 @@
 
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
+import { useFirstLoad } from 'src/shared/lib/composables';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { useHeaderActions } from 'src/shared/hooks';
 import { BaseButton, BaseDialog, BaseTable, EmptyState, type BaseTableColumn } from 'src/shared/ui/base';
@@ -38,6 +39,7 @@ const { registerAction } = useHeaderActions();
 
 const items = ref<IAdmin[]>([]);
 const loading = ref(false);
+const firstLoad = useFirstLoad(loading);
 const busy = ref(false);
 const busyDismiss = ref<string | null>(null);
 const dialogOpen = ref(false);

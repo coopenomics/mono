@@ -6,7 +6,7 @@
 
   FilterBar.q-mb-md(hide-search :filters="filters" :model-value="filterValues" @update:model-value="onFilters" @reset="onFilters({})")
 
-  CardListSkeleton(v-if="loading && !items.length" :count="6")
+  CardListSkeleton(v-if="firstLoad" :count="6")
 
   EmptyState(
     v-else-if="!items.length"
@@ -27,6 +27,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import { useFirstLoad } from 'src/shared/lib/composables';
 import { FailAlert } from 'src/shared/api';
 import { BaseButton, CardListSkeleton, EmptyState } from 'src/shared/ui/base';
 import { FilterBar, PageHint, type FilterDefinition, type FilterValues } from 'src/shared/ui/domain';
@@ -48,6 +49,7 @@ const subject = ref<string | null>(null);
 const grade = ref<string | null>(null);
 const items = ref<ICatalogCourse[]>([]);
 const loading = ref(false);
+const firstLoad = useFirstLoad(loading);
 const currentPage = ref(1);
 const totalPages = ref(0);
 

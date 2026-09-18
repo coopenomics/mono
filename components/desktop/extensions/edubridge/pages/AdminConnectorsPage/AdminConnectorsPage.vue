@@ -3,7 +3,7 @@
   PageHint.q-mb-md(storage-key="edu:admin-connectors:banner-dismissed")
     | Площадки — носители доступа. Ключи подключения задаются здесь и хранятся зашифрованными; видны они только вам,
     | администраторам недоступны. После смены ключей площадка проверяется заново.
-  CardListSkeleton(v-if="loading && !items.length" :count="3")
+  CardListSkeleton(v-if="firstLoad" :count="3")
   .row.q-col-gutter-md(v-else)
     .col-12.col-md-6.col-xl-4(v-for="c in items" :key="c.carrier")
       BaseCard.edu-connector(variant="default" :title="carrierLabel(c.carrier)")
@@ -39,6 +39,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
 import { Zeus } from '@coopenomics/sdk';
+import { useFirstLoad } from 'src/shared/lib/composables';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { BaseBadge, BaseButton, BaseCard, BaseDialog, BaseForm, BaseInput, CardListSkeleton } from 'src/shared/ui/base';
 import { DataRow, PageHint } from 'src/shared/ui/domain';
@@ -53,6 +54,7 @@ import { HEALTH_LABELS, checkConnector, fetchConnectors, setConnectorCredentials
  */
 const items = ref<IConnector[]>([]);
 const loading = ref(false);
+const firstLoad = useFirstLoad(loading);
 const busy = ref<string | null>(null);
 const credentialsOpen = ref(false);
 const editing = ref<IConnector | null>(null);

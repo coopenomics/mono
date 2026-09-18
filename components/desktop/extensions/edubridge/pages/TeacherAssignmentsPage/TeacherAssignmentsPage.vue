@@ -13,14 +13,14 @@
       q-icon(name="verified")
     | Договор № {{ contract.contract_number }} подписан вами {{ formatDate(contract.signed_at) }}{{ contract.approved_at ? ` и председателем ${formatDate(contract.approved_at)}` : '' }}.
 
-  BaseTable(v-if="loading || assignments.length" :columns="columns" :rows="assignments" row-key="id" :loading="loading && !assignments.length" min-width="960px")
+  BaseTable(v-if="loading || assignments.length" :columns="columns" :rows="assignments" row-key="id" :loading="firstLoad" min-width="960px")
     template(#cell-period="{ row }") {{ row.period_from }} — {{ row.period_to }}
     template(#cell-status="{ row }")
       BaseBadge(:variant="statusOf(row.status).variant") {{ statusOf(row.status).label }}
       .t-muted.t-sm(v-if="row.decline_reason") {{ row.decline_reason }}
     template(#cell-actions="{ row }")
       BaseButton(v-if="canSignAnnex(row)" variant="primary" size="sm" :loading="busy === row.id" @click="onSignAnnex(row)") {{ row.status === Zeus.EduAssignmentStatus.DECLINED ? 'Подписать заново' : 'Подписать приложение' }}
-  EmptyState(v-if="!loading && !assignments.length" title="Назначений пока нет" body="Администратор ещё не назначил вам курс.")
+  EmptyState(v-if="!firstLoad" title="Назначений пока нет" body="Администратор ещё не назначил вам курс.")
     template(#icon)
       q-icon(name="assignment" size="32px")
 </template>
@@ -28,6 +28,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
 import { Zeus } from '@coopenomics/sdk';
+import { useFirstLoad } from 'src/shared/lib/composables';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { BaseBadge, BaseBanner, BaseButton, BaseTable, EmptyState, type BaseTableColumn } from 'src/shared/ui/base';
 import { PageHint } from 'src/shared/ui/domain';
@@ -37,6 +38,7 @@ import { ASSIGNMENT_STATUS_LABELS, fetchMyAssignments, fetchMyContract, signAnne
 const contract = ref<IContract | null>(null);
 const assignments = ref<IAssignment[]>([]);
 const loading = ref(false);
+const firstLoad = useFirstLoad(loading);
 const busy = ref<string | null>(null);
 
 const columns: BaseTableColumn<IAssignment>[] = [

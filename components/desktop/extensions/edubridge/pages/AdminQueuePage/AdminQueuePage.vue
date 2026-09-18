@@ -4,14 +4,14 @@
     | Очередь выдачи и отзыва доступа на площадках. Задачи повторяются сами; «требует вмешательства» — площадка отказала
     | или курс рассогласован: разберитесь с причиной и нажмите «Повторить». Выдать доступ в обход взноса нельзя.
   PageTabs.q-mb-md(:tabs="tabs" :active-key="tab" @select="(t) => (tab = t.key)")
-  BaseTable(v-if="loading || items.length" :columns="columns" :rows="items" row-key="id" :loading="loading && !items.length" min-width="860px")
+  BaseTable(v-if="loading || items.length" :columns="columns" :rows="items" row-key="id" :loading="firstLoad" min-width="860px")
     template(#cell-kind="{ row }") {{ kindOf(row.kind) }}
     template(#cell-status="{ row }")
       BaseBadge(:variant="statusOf(row.status).variant") {{ statusOf(row.status).label }}
-    template(#cell-next_attempt_at="{ row }") {{ row.status === Zeus.EduAccessTaskStatus.PENDING ? formatDateTime(row.next_attempt_at) : '—' }}
+    template(#cell-next_attempt_at="{ row }") {{ row.status === Zeus.EduAccessTaskStatus.PENDING ? formatDateTime(row.next_attempt_at) : '______' }}
     template(#cell-actions="{ row }")
       BaseButton(v-if="row.status === Zeus.EduAccessTaskStatus.NEEDS_ATTENTION || row.status === Zeus.EduAccessTaskStatus.FAILED" variant="secondary" size="sm" :loading="busy === row.id" @click="onRetry(row)") Повторить
-  EmptyState(v-if="!loading && !items.length" title="Очередь пуста" body="Все задачи выполнены.")
+  EmptyState(v-if="!firstLoad" title="Очередь пуста" body="Все задачи выполнены.")
     template(#icon)
       q-icon(name="task_alt" size="32px")
 </template>
@@ -19,6 +19,7 @@
 <script setup lang="ts">
 import { onMounted, ref, watch } from 'vue';
 import { Zeus } from '@coopenomics/sdk';
+import { useFirstLoad } from 'src/shared/lib/composables';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { BaseBadge, BaseButton, BaseTable, EmptyState, type BaseTableColumn } from 'src/shared/ui/base';
 import { PageHint } from 'src/shared/ui/domain';
@@ -33,6 +34,7 @@ const tabs: PageTab[] = [
 const tab = ref('attention');
 const items = ref<IAccessTask[]>([]);
 const loading = ref(false);
+const firstLoad = useFirstLoad(loading);
 const busy = ref<string | null>(null);
 
 const columns: BaseTableColumn<IAccessTask>[] = [

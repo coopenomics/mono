@@ -4,7 +4,7 @@
     | Паевой взнос результатами работы: укажите тип результата, ссылки на материалы и сумму, подпишите заявление —
     | совет рассмотрит его. После решения совета подпишите акт приёма-передачи: сумма поступит в ваш кошелёк правом требования.
 
-  BaseTable(v-if="loading || items.length" :columns="columns" :rows="items" row-key="id" :loading="loading && !items.length" min-width="900px")
+  BaseTable(v-if="loading || items.length" :columns="columns" :rows="items" row-key="id" :loading="firstLoad" min-width="900px")
     template(#cell-rid_type="{ row }") {{ ridType(row.rid_type) }}
     template(#cell-amount="{ row }") {{ formatAsset2Digits(row.amount) }}
     template(#cell-status="{ row }")
@@ -13,7 +13,7 @@
     template(#cell-actions="{ row }")
       BaseButton(v-if="row.status === Zeus.EduContributionStatus.DRAFT" variant="primary" size="sm" :loading="busy === row.id" @click="onSubmit(row)") Подписать заявление
       BaseButton(v-else-if="row.status === Zeus.EduContributionStatus.COUNCIL_APPROVED" variant="primary" size="sm" :loading="busy === row.id" @click="onSignAct(row)") Подписать акт
-  EmptyState(v-if="!loading && !items.length" title="Взносов пока нет" body="Подготовьте взнос кнопкой в правом верхнем углу.")
+  EmptyState(v-if="!firstLoad" title="Взносов пока нет" body="Подготовьте взнос кнопкой в правом верхнем углу.")
     template(#icon)
       q-icon(name="workspace_premium" size="32px")
 
@@ -33,6 +33,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue';
 import { Zeus } from '@coopenomics/sdk';
+import { useFirstLoad } from 'src/shared/lib/composables';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { useHeaderActions } from 'src/shared/hooks';
 import { useSystemStore } from 'src/entities/System/model';
@@ -61,6 +62,7 @@ const symbol = computed(() => system.governSymbol);
 const items = ref<IContribution[]>([]);
 const assignments = ref<IAssignment[]>([]);
 const loading = ref(false);
+const firstLoad = useFirstLoad(loading);
 const busy = ref<string | null>(null);
 const dialogOpen = ref(false);
 const form = reactive<IContributionDraftInput>({ assignment_id: '', rid_type: Zeus.EduRidType.LESSON_RECORDING, links: [], description: '', amount: '' });

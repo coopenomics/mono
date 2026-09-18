@@ -10,7 +10,7 @@
         template(v-else)
           DataRow(label="Принято взносов на сумму" :value="formatAsset2Digits(settlement.accepted_total)")
           DataRow(label="Доступно в главном кошельке" :value="formatAsset2Digits(settlement.available)")
-          DataRow(label="Последний принятый взнос" :value="settlement.last_accepted_at ? formatDate(settlement.last_accepted_at) : '—'")
+          DataRow(label="Последний принятый взнос" :value="settlement.last_accepted_at ? formatDate(settlement.last_accepted_at) : '______'")
           .q-mt-md
             BaseButton(variant="primary" @click="goToWallet") Получить возврат в кошельке
 </template>

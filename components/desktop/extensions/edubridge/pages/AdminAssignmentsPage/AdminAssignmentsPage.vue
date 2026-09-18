@@ -8,7 +8,7 @@
   .t-sm.t-muted.q-mb-md(v-else) Взнос появляется, когда преподаватель подаёт результат работы по действующему назначению со своего стола; решение принимает совет в повестке, здесь — подпись акта и отклонение с причиной.
 
   template(v-if="tab === 'assignments'")
-    BaseTable(v-if="loading || assignments.length" :columns="assignmentColumns" :rows="assignments" row-key="id" :loading="loading && !assignments.length" min-width="760px")
+    BaseTable(v-if="loading || assignments.length" :columns="assignmentColumns" :rows="assignments" row-key="id" :loading="firstLoad" min-width="760px")
       template(#cell-teacher_username="{ row }")
         IdentityCell(:account-name="row.teacher_username" :full-name="teacherName(row.teacher_username)")
       template(#cell-period="{ row }") {{ row.period_from }} — {{ row.period_to }}
@@ -16,12 +16,12 @@
         BaseBadge(:variant="assignmentStatusOf(row.status).variant") {{ assignmentStatusOf(row.status).label }}
       template(#cell-actions="{ row }")
         BaseButton(v-if="row.status !== 'closed'" variant="ghost" size="sm" @click="onClose(row)") Закрыть
-    EmptyState(v-if="!loading && !assignments.length" title="Назначений нет" body="Добавьте назначение кнопкой в правом верхнем углу.")
+    EmptyState(v-if="!firstLoad" title="Назначений нет" body="Добавьте назначение кнопкой в правом верхнем углу.")
       template(#icon)
         q-icon(name="assignment_ind" size="32px")
 
   template(v-else)
-    BaseTable(v-if="loading || contributions.length" :columns="contributionColumns" :rows="contributions" row-key="id" :loading="loading && !contributions.length" min-width="860px")
+    BaseTable(v-if="loading || contributions.length" :columns="contributionColumns" :rows="contributions" row-key="id" :loading="firstLoad" min-width="860px")
       template(#cell-teacher_username="{ row }")
         IdentityCell(:account-name="row.teacher_username" :full-name="teacherName(row.teacher_username)")
       template(#cell-rid_type="{ row }") {{ ridType(row.rid_type) }}
@@ -32,7 +32,7 @@
         .row.no-wrap.justify-end.q-gutter-xs
           BaseButton(v-if="row.status === Zeus.EduContributionStatus.ACT_SIGNED" variant="primary" size="sm" :loading="busyId === row.id" @click="onAccept(row)") Подписать акт
           BaseButton(v-if="canDecline(row)" variant="ghost" size="sm" @click="openDecline(row)") Отклонить
-    EmptyState(v-if="!loading && !contributions.length" title="Взносов нет")
+    EmptyState(v-if="!firstLoad" title="Взносов нет")
       template(#icon)
         q-icon(name="workspace_premium" size="32px")
 
@@ -64,6 +64,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue';
 import { Zeus } from '@coopenomics/sdk';
+import { useFirstLoad } from 'src/shared/lib/composables';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { useHeaderActions } from 'src/shared/hooks';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
@@ -98,6 +99,7 @@ const contributions = ref<IContribution[]>([]);
 const courses = ref<ICourse[]>([]);
 const teachers = ref<ITeacherOption[]>([]);
 const loading = ref(false);
+const firstLoad = useFirstLoad(loading);
 const busy = ref(false);
 const busyId = ref<string | null>(null);
 const createOpen = ref(false);

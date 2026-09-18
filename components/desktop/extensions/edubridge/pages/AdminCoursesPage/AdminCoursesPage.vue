@@ -4,12 +4,12 @@
     | Курсы кооператива. Добавьте курс, привяжите его к курсу на площадке и опубликуйте —
     | опубликованные курсы видны в каталоге всем посетителям.
 
-  CardListSkeleton(v-if="loading && !items.length" :count="3")
+  CardListSkeleton(v-if="firstLoad" :count="3")
   .row.q-col-gutter-md(v-else-if="items.length")
     .col-12.col-sm-6.col-md-4(v-for="course in items" :key="course.id")
       AdminCourseCard(:course="course" @open="openCourse(course.id)")
 
-  EmptyState(v-if="!loading && !items.length" title="Курсов пока нет" body="Добавьте первый курс кнопкой в правом верхнем углу.")
+  EmptyState(v-if="!firstLoad" title="Курсов пока нет" body="Добавьте первый курс кнопкой в правом верхнем углу.")
     template(#icon)
       q-icon(name="library_books" size="40px")
 
@@ -20,6 +20,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import { useFirstLoad } from 'src/shared/lib/composables';
 import { FailAlert } from 'src/shared/api';
 import { useHeaderActions } from 'src/shared/hooks';
 import { BaseDialog, CardListSkeleton, EmptyState } from 'src/shared/ui/base';
@@ -40,6 +41,7 @@ const { registerAction } = useHeaderActions();
 
 const items = ref<ICourse[]>([]);
 const loading = ref(false);
+const firstLoad = useFirstLoad(loading);
 const dialogOpen = ref(false);
 const editing = ref<ICourse | null>(null);
 

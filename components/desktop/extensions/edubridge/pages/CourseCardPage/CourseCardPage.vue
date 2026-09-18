@@ -14,10 +14,9 @@
         BaseCard(variant="default")
           template(#head)
             div
-              .row.q-gutter-xs.q-mb-sm
+              .row.q-gutter-xs
                 BaseChip(variant="neutral" size="sm") {{ course.subject }}
                 BaseChip(variant="neutral" size="sm") {{ course.grade }}
-              .text-h5.text-weight-semibold {{ course.title }}
           .text-body1.edu-course__text(v-if="course.description") {{ course.description }}
           .t-muted(v-else) Описание курса появится позже.
           q-separator.q-my-md
