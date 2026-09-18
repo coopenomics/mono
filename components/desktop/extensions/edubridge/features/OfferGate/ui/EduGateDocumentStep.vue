@@ -16,7 +16,7 @@
   template(v-else)
     //- Документ разворачивается целиком, как на подключении «Благороста»: сначала читают, потом соглашаются.
     .edu-gate-step__doc
-      DocumentHtmlReader(:html="html" :sanitize="false")
+      DocumentHtmlReader(:html="html" profile="document")
     BaseCheckbox.q-mt-md(:model-value="agreed" block :disabled="busy" @update:model-value="(v) => (agreed = v)")
       | {{ agreeLabel }}
     .row.justify-end.q-mt-md

@@ -5,6 +5,7 @@ import {
   AdminAdminsPage,
   AdminAssignmentsPage,
   AdminConnectorsPage,
+  AdminCoursePage,
   AdminCoursesPage,
   AdminMembersPage,
   AdminQueuePage,
@@ -68,6 +69,7 @@ function adminWorkspace(): IWorkspaceConfig {
   return workspace('edubridge', 'Стол администратора', 'admin_panel_settings', 'edubridge-admin-courses', [
     memberPage('configure', 'edubridge-configure', ConfigurePage, { title: 'Подключение', icon: 'settings', requires: 'Extension:configure', gate: true }),
     memberPage('courses', 'edubridge-admin-courses', AdminCoursesPage, { title: 'Курсы', icon: 'library_books', requires: 'EduCourse:manage' }),
+    memberPage('courses/:id', 'edubridge-admin-course', AdminCoursePage, { title: 'Курс', icon: 'library_books', requires: 'EduCourse:manage', hidden: true }),
     memberPage('teachers', 'edubridge-admin-assignments', AdminAssignmentsPage, { title: 'Преподаватели', icon: 'co_present', requires: 'EduAssignment:manage' }),
     memberPage('members', 'edubridge-admin-registry', AdminMembersPage, { title: 'Реестр пайщиков', icon: 'groups', requires: 'EduRegistry:read' }),
     memberPage('queue', 'edubridge-admin-queue', AdminQueuePage, { title: 'Очередь выдачи', icon: 'pending_actions', requires: 'EduQueue:read' }),

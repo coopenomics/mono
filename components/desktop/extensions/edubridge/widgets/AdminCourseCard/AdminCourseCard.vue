@@ -1,5 +1,5 @@
 <template lang="pug">
-BaseCard.edu-admin-course(variant="default")
+BaseCard.edu-admin-course(variant="default" role="link" tabindex="0" @click="emit('open')" @keydown.enter="emit('open')")
   .edu-admin-course__media
     q-img(v-if="course.image_url" :src="course.image_url" :ratio="2 / 1" fit="cover" no-spinner)
     .edu-admin-course__placeholder(v-else)
@@ -10,9 +10,6 @@ BaseCard.edu-admin-course(variant="default")
     BaseChip(variant="neutral" size="sm") {{ course.grade }}
   .text-subtitle2.text-weight-medium.q-mt-sm.ellipsis-2-lines {{ course.title }}
   .edu-admin-course__rows.q-mt-sm
-    .row.items-center.no-wrap.t-sm.t-muted
-      q-icon.q-mr-xs(name="hub" size="16px")
-      span {{ carrierLabel }}
     .row.items-center.no-wrap.t-sm.t-muted(v-if="course.teacher_usernames.length")
       q-icon.q-mr-xs(name="co_present" size="16px")
       span.t-mono.ellipsis {{ course.teacher_usernames.join(', ') }}
@@ -26,37 +23,34 @@ BaseCard.edu-admin-course(variant="default")
     div
       .t-sm.t-muted в год
       .text-subtitle2.t-mono {{ formatAsset2Digits(course.fee_year) }}
-  .row.items-center.justify-end.q-gutter-xs.q-mt-md
-    BaseButton(variant="ghost" size="sm" icon-only aria-label="Изменить" @click="emit('edit')")
-      template(#icon-left)
-        q-icon(name="edit" size="18px")
-    BaseButton(v-if="published" variant="ghost" size="sm" :loading="busy" @click="emit('unpublish')") Снять с публикации
-    BaseButton(v-else variant="secondary" size="sm" :loading="busy" @click="emit('publish')") Опубликовать
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue';
-import { Zeus } from '@coopenomics/sdk';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
-import { BaseBadge, BaseButton, BaseCard, BaseChip } from 'src/shared/ui/base';
-import { CARRIER_LABELS, COURSE_STATUS_LABELS, type ICourse } from '../../entities/Course';
+import { BaseBadge, BaseCard, BaseChip } from 'src/shared/ui/base';
+import { COURSE_STATUS_LABELS, type ICourse } from '../../entities/Course';
 
 /**
- * Курс глазами администратора: обложка со статусом, привязка к площадке,
- * преподаватели, взносы и действия. Карточка вместо таблицы — у таблицы
- * действия уезжали за край экрана.
+ * Курс в реестре администратора: обложка со статусом, преподаватели,
+ * расписание и взносы. Карточка — только витрина и вход на страницу курса:
+ * управление (правка, публикация) живёт там, а не под каждой карточкой.
+ * Площадку здесь не показываем — это внутренняя привязка, она на странице.
  */
-const props = defineProps<{ course: ICourse; busy?: boolean }>();
-const emit = defineEmits<{ edit: []; publish: []; unpublish: [] }>();
+const props = defineProps<{ course: ICourse }>();
+const emit = defineEmits<{ open: [] }>();
 
 const status = computed(() => COURSE_STATUS_LABELS[props.course.status] ?? { label: props.course.status, variant: 'neutral' as const });
-const published = computed(() => props.course.status === Zeus.EduCourseStatus.PUBLISHED);
-const carrierLabel = computed(() => CARRIER_LABELS[props.course.carrier] ?? props.course.carrier);
 </script>
 
 <style scoped>
 .edu-admin-course {
   height: 100%;
+  cursor: pointer;
+}
+.edu-admin-course:focus-visible {
+  outline: none;
+  box-shadow: var(--p-focus-ring);
 }
 .edu-admin-course__media {
   position: relative;

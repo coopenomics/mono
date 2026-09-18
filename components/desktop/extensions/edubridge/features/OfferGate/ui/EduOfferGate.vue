@@ -59,6 +59,10 @@ const route = useRoute();
 const router = useRouter();
 const desktopStore = useDesktopStore();
 
+/** Ожидание подписи: до 20 секунд с полусекундным шагом — столько идёт блок цепи и его разбор. */
+const OFFER_WAIT_ATTEMPTS = 40;
+const OFFER_WAIT_INTERVAL_MS = 500;
+
 const state = ref<IEduOnboardingState | null>(null);
 const contract = ref<IContract | null>(null);
 const offerDoc = ref<DigitalDocument | null>(null);
@@ -115,8 +119,21 @@ function stepProps(key: string) {
     },
     sign: async () => {
       state.value = await signOffer(props.kind, offerDoc.value ?? undefined);
+      // Подпись уходит в цепь, а признак в состоянии появляется из зеркала —
+      // это занимает секунду-другую. Без ожидания шаг оставался открытым, а
+      // следующий отвечал «сначала подпишите оферту».
+      await waitForOffer();
     },
   };
+}
+
+/** Ждём, пока подпись оферты доедет из цепи в состояние подключения. */
+async function waitForOffer(): Promise<void> {
+  for (let attempt = 0; attempt < OFFER_WAIT_ATTEMPTS && !offerSigned.value; attempt++) {
+    await new Promise((resolve) => setTimeout(resolve, OFFER_WAIT_INTERVAL_MS));
+    state.value = await fetchOnboardingState();
+  }
+  if (isTeacher.value && offerSigned.value && !contract.value) contract.value = await fetchMyContract();
 }
 
 async function load(): Promise<void> {

@@ -7,13 +7,7 @@
   CardListSkeleton(v-if="loading && !items.length" :count="3")
   .row.q-col-gutter-md(v-else-if="items.length")
     .col-12.col-sm-6.col-md-4(v-for="course in items" :key="course.id")
-      AdminCourseCard(
-        :course="course"
-        :busy="busyId === course.id"
-        @edit="edit(course)"
-        @publish="setStatus(course, Zeus.EduCourseStatus.PUBLISHED)"
-        @unpublish="setStatus(course, Zeus.EduCourseStatus.DRAFT)"
-      )
+      AdminCourseCard(:course="course" @open="openCourse(course.id)")
 
   EmptyState(v-if="!loading && !items.length" title="Курсов пока нет" body="Добавьте первый курс кнопкой в правом верхнем углу.")
     template(#icon)
@@ -25,22 +19,27 @@
 
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
-import { Zeus } from '@coopenomics/sdk';
-import { FailAlert, SuccessAlert } from 'src/shared/api';
+import { useRoute, useRouter } from 'vue-router';
+import { FailAlert } from 'src/shared/api';
 import { useHeaderActions } from 'src/shared/hooks';
 import { BaseDialog, CardListSkeleton, EmptyState } from 'src/shared/ui/base';
 import { PageHint } from 'src/shared/ui/domain';
-import { fetchCourses, setCourseStatus, type ICourse } from '../../entities/Course';
+import { fetchCourses, type ICourse } from '../../entities/Course';
 import { AdminCourseCard } from '../../widgets/AdminCourseCard';
 import { CourseForm } from '../../widgets/CourseForm';
 import AddCourseHeaderButton from './AddCourseHeaderButton.vue';
 
-/** Управление курсами — владелец и администратор (EduCourse:manage). Курсы — карточками, как в каталоге. */
+/**
+ * Реестр курсов — владелец и администратор (EduCourse:manage). Курсы карточками,
+ * как в каталоге; карточка открывает страницу курса, где собрано управление.
+ * Здесь остаётся только создание нового курса кнопкой в шапке.
+ */
+const route = useRoute();
+const router = useRouter();
 const { registerAction } = useHeaderActions();
 
 const items = ref<ICourse[]>([]);
 const loading = ref(false);
-const busyId = ref<string | null>(null);
 const dialogOpen = ref(false);
 const editing = ref<ICourse | null>(null);
 
@@ -61,9 +60,8 @@ function add(): void {
   dialogOpen.value = true;
 }
 
-function edit(course: ICourse): void {
-  editing.value = course;
-  dialogOpen.value = true;
+function openCourse(id: string): void {
+  void router.push({ name: 'edubridge-admin-course', params: { coopname: route.params.coopname, id } });
 }
 
 function onSaved(course: ICourse): void {
@@ -71,19 +69,6 @@ function onSaved(course: ICourse): void {
   if (i >= 0) items.value[i] = course;
   else items.value.push(course);
   dialogOpen.value = false;
-}
-
-async function setStatus(course: ICourse, status: ICourse['status']): Promise<void> {
-  busyId.value = course.id;
-  try {
-    const updated = await setCourseStatus({ id: course.id, status });
-    onSaved(updated);
-    SuccessAlert(status === Zeus.EduCourseStatus.PUBLISHED ? 'Курс опубликован' : 'Курс снят с публикации');
-  } catch (e) {
-    FailAlert(e);
-  } finally {
-    busyId.value = null;
-  }
 }
 
 onMounted(() => {
