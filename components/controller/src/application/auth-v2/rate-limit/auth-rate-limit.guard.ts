@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import { type CanActivate, type ExecutionContext, Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
+import { GqlExecutionContext } from '@nestjs/graphql';
 import type { ThrottlerStorage } from '@nestjs/throttler';
 import type { Request } from 'express';
 import appConfig from '~/config/config';
@@ -57,16 +58,22 @@ export class AuthRateLimitGuard implements CanActivate {
     // работает как прежде; `test` тоже не трогаем — на нём стоят юнит-тесты guard'а.
     if (appConfig.env === 'development') return true;
 
-    const req = context.switchToHttp().getRequest<Request>();
-    const ip = req.ip ?? 'unknown';
+    // Guard стоит и на REST-ручках, и на GraphQL-мутациях (регистрация): у
+    // GraphQL запрос лежит в контексте резолвера, `switchToHttp` отдал бы root.
+    const req =
+      context.getType?.<'http' | 'graphql'>() === 'graphql'
+        ? GqlExecutionContext.create(context).getContext<{ req: Request }>().req
+        : context.switchToHttp().getRequest<Request>();
+    const ip = req?.ip ?? 'unknown';
 
     // Собираем активные ключи: per-IP всегда; per-account — только если извлекаем.
+    const scoped = (name: string) => (config.scope ? `${config.scope}:${name}` : name);
     const checks: Array<{ name: string; tracker: string; rule: RateLimitRule }> = [
-      { name: 'ip', tracker: ip, rule: config.ip },
+      { name: scoped('ip'), tracker: ip, rule: config.ip },
     ];
     if (config.account) {
       const accountId = config.account.key(req);
-      if (accountId) checks.push({ name: 'account', tracker: accountId, rule: config.account });
+      if (accountId) checks.push({ name: scoped('account'), tracker: accountId, rule: config.account });
     }
 
     let exceeded = false;

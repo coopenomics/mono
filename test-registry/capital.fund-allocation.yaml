@@ -575,6 +575,20 @@ cases:
     test: ~
     status: missing
 
+  - id: cap.alloc.break.31
+    level: backend
+    kind: break
+    scenario: >
+      Учётная запись в статусе вступления или исключённый пайщик запрашивает
+      реестр вложений (`capitalInvests`, `capitalInvest`).
+    expect: >
+      отказ «Доступ только для пайщиков кооператива»: реестр видят принятые
+      пайщики и совет. До 17.09.2026 хватало любого токена — он выдаётся при
+      регистрации учётной записи, до приёма советом. Правило общее для роли
+      `user` в RolesGuard (extension-kit)
+    test: components/controller/tests/unit/auth/roles-guard-allow-self.test.ts
+    status: passing
+
   - id: cap.alloc.ui.90
     level: ui
     kind: side

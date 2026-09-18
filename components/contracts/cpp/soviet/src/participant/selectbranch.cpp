@@ -15,6 +15,8 @@
   require_auth(coopname);
   
   verify_document_or_fail(document);
+  // Заявление о выборе участка подписывает сам пайщик.
+  verify_signer_keys_or_fail(document, username);
   auto target_branch = get_branch_or_fail(coopname, braname);
 
   // приватный кооперативный участок может выбрать только аккаунт из белого списка участка;

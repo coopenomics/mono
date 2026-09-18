@@ -48,7 +48,7 @@ describe('VerificationIdentityService', () => {
   it('отдаёт паспорт целиком тому, кто вправе сверять', async () => {
     const identity = await service.getForVerification(OPERATOR, 'zoe');
 
-    expect(authority.assertMayVerify).toHaveBeenCalledWith(OPERATOR);
+    expect(authority.assertMayVerify).toHaveBeenCalledWith(OPERATOR, 'zoe');
     expect(identity).toMatchObject({
       full_name: 'Иванов Иван Иванович',
       birthdate: '1990-04-01',

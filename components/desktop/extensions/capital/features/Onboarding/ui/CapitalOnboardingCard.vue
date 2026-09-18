@@ -78,7 +78,7 @@ div.capital-onboarding.q-pa-md
           span Проект решения
         div.q-mt-sm
           div(v-if='currentStep.decisionPrefix') {{ currentStep.decisionPrefix }}
-          DocumentHtmlReader(:html='currentGeneratedDoc.html' :sanitize='false')
+          DocumentHtmlReader(:html='currentGeneratedDoc.html' profile='document')
         div.t-caption.text-grey-6.q-mt-sm
           strong {{ currentGeneratedDoc.full_title }}
 

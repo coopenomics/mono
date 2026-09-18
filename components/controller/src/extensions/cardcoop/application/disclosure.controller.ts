@@ -13,8 +13,7 @@
  * веб-сервера — то есть согласие человека жило бы дольше положенных ему минут.
  */
 import { Body, Controller, ForbiddenException, HttpCode, HttpStatus, Inject, Post } from '@nestjs/common';
-import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
-import { UseGuards } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import { CardcoopExtension } from '../cardcoop.extension';
 import { CardcoopDisclosureService } from '../disclosure/disclosure.service';
@@ -49,10 +48,11 @@ export class CardcoopDisclosureController {
    */
   @Post('disclosures')
   @HttpCode(HttpStatus.OK)
-  @UseGuards(ThrottlerGuard)
-  // Имя `default` — то, под которым зарегистрирован единственный ограничитель контура
-  // (`ThrottlerModule.forRoot` без имени). Придуманное имя молча не применилось бы: guard
-  // ищет переопределение по имени настроенного ограничителя и на незнакомое не смотрит.
+  // Guard не указывается: ограничитель частоты стоит глобально (`GqlThrottlerGuard`),
+  // и он же обслуживает REST-ручки. Имя `default` — то, под которым зарегистрирован
+  // единственный ограничитель контура (`ThrottlerModule.forRoot` без имени). Придуманное
+  // имя молча не применилось бы: guard ищет переопределение по имени настроенного
+  // ограничителя и на незнакомое не смотрит.
   @Throttle({ default: { limit: 30, ttl: 60_000 } })
   async disclose(@Body() body: DiscloseRequest): Promise<CardcoopDisclosureEnvelope> {
     try {

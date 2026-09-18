@@ -13,11 +13,12 @@
         :text='doc.link_text'
       )
         // eslint-disable-next-line vue/no-v-html
-        div(v-html='doc.document.html').q-mb-lg
+        div(v-html='sanitizeDocumentHtml(doc.document.html)').q-mb-lg
 </template>
 
 <script lang="ts" setup>
 import { ReadAgreementDialog } from 'src/features/Agreementer/ReadAgreementDialog'
+import { sanitizeDocumentHtml } from 'src/shared/lib/utils'
 import type { ISigningDocument } from '../model/types'
 
 defineProps<{

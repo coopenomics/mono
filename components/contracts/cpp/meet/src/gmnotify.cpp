@@ -15,6 +15,8 @@ void meet::gmnotify(name coopname, checksum256 hash, name username, document2 no
 
     // Проверяем документ уведомления
     verify_document_or_fail(notification);
+    // Уведомление подписывает тот, от чьего имени оно подано.
+    verify_signer_keys_or_fail(notification, username);
 
     // Получаем собрание по хэшу
     Meet::meets_index genmeets(_meet, coopname.value);

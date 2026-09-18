@@ -21,6 +21,8 @@ void capital::createwthd3(name coopname, name username, checksum256 withdraw_has
   require_auth(coopname);
 
   verify_document_or_fail(return_statement);
+  // Заявление на возврат из программы подписывает сам пайщик. Транзакцию шлёт кооператив, поэтому ключ сверяется с аккаунтом.
+  verify_signer_keys_or_fail(return_statement, username);
 
   // Проверяем, что у пользователя есть баланс в программе благороста
   eosio::asset share_balance = Capital::Core::get_capital_program_user_share_balance(coopname, username);

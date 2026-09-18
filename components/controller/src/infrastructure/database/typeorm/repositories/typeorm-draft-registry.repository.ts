@@ -66,6 +66,25 @@ export class TypeOrmDraftRegistryRepository {
     return row?.value ?? null;
   }
 
+  /**
+   * Последний блок, на котором шаблон ещё имел указанную редакцию.
+   *
+   * Нужен фабрике утверждений: кооператив, не утвердивший новую редакцию,
+   * читает текст утверждённой на этом блоке — с правками без смены номера, но
+   * без смысловых изменений следующей редакции.
+   */
+  async findLastBlockOfVersion(registryId: string | number, version: number): Promise<number | null> {
+    const row = await this.templates
+      .createQueryBuilder('t')
+      .select('t.block_num', 'block_num')
+      .where('t.registry_id = :registryId', { registryId: String(registryId) })
+      .andWhere("(t.value->>'version')::bigint = :version", { version })
+      .orderBy('t.block_num', 'DESC')
+      .limit(1)
+      .getRawOne<{ block_num: string | number }>();
+    return row ? Number(row.block_num) : null;
+  }
+
   /** Перевод шаблона на указанный язык, действовавший на указанном блоке. */
   async findTranslationAt(draftId: string | number, lang: string, blockNum?: number): Promise<any | null> {
     const qb = this.translations

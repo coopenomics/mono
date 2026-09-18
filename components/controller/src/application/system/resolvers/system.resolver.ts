@@ -1,4 +1,5 @@
-import { Resolver, Query, Mutation, Args } from '@nestjs/graphql';
+import { Resolver, Query, Mutation, Args, Context } from '@nestjs/graphql';
+import { UseGuards } from '@nestjs/common';
 import { SystemInfoDTO } from '../dto/system.dto';
 import { SystemService } from '../services/system.service';
 import { InstallDTO } from '../dto/install.dto';
@@ -10,7 +11,7 @@ import { StartInstallInputDTO } from '../dto/start-install-input.dto';
 import { StartInstallResultDTO } from '../dto/start-install-result.dto';
 import { GetInstallationStatusInputDTO, InstallationStatusDTO } from '../dto/installation-status.dto';
 import { RegistrationConfigDTO } from '../dto/registration-config.dto';
-import { AuthRoles } from '@coopenomics/extension-kit';
+import { AuthRoles, GqlJwtAuthGuard, RolesGuard, hasServerSecret } from '@coopenomics/extension-kit';
 import { AccountType } from '~/application/account/enum/account-type.enum';
 
 @Resolver(() => SystemInfoDTO)
@@ -51,6 +52,7 @@ export class SystemResolver {
     name: 'updateSystem',
     description: 'Обновить параметры системы',
   })
+  @UseGuards(GqlJwtAuthGuard, RolesGuard)
   @AuthRoles(['chairman'])
   async update(
     @Args('data', { type: () => UpdateDTO })
@@ -65,9 +67,10 @@ export class SystemResolver {
   })
   async install(
     @Args('data', { type: () => InstallDTO })
-    data: InstallDTO
+    data: InstallDTO,
+    @Context() ctx: { req?: { headers?: Record<string, unknown> } }
   ): Promise<SystemInfoDTO> {
-    return this.systemService.install(data);
+    return this.systemService.install(data, hasServerSecret(ctx?.req?.headers));
   }
 
   @Mutation(() => SystemInfoDTO, {
@@ -76,9 +79,10 @@ export class SystemResolver {
   })
   async init(
     @Args('data', { type: () => InitDTO })
-    data: InitDTO
+    data: InitDTO,
+    @Context() ctx: { req?: { headers?: Record<string, unknown> } }
   ): Promise<SystemInfoDTO> {
-    return this.systemService.init(data);
+    return this.systemService.init(data, hasServerSecret(ctx?.req?.headers));
   }
 
   @Mutation(() => Boolean, {
@@ -97,6 +101,7 @@ export class SystemResolver {
     name: 'updateSettings',
     description: 'Обновить настройки системы (рабочие столы и маршруты по умолчанию)',
   })
+  @UseGuards(GqlJwtAuthGuard, RolesGuard)
   @AuthRoles(['chairman'])
   async updateSettings(
     @Args('data', { type: () => UpdateSettingsInputDTO })

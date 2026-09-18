@@ -1,16 +1,11 @@
 <template lang='pug'>
-div
-  q-step(
-    :name='registratorStore.steps.ReadStatement',
-    title='Ознакомьтесь с заполненным заявлением на вступление в кооператив',
-    :done='registratorStore.isStepDone("ReadStatement")'
-  )
+div(v-show='registratorStore.isStep("ReadStatement")')
 
     //- p Прочитайте заявление и примите положения
     div(v-if='isLoading').full-width.text-center.q-mt-lg.q-mb-lg
       Loader(:text='loadingText')
     // eslint-disable-next-line vue/no-v-html
-    div(ref='statementDiv' v-if='!isLoading' v-html='html').statement
+    div(ref='statementDiv' v-if='!isLoading' v-html='safeHtml').statement
 
     .agreements(v-if='!isLoading')
       //- Динамические галочки из конфигурации
@@ -28,7 +23,7 @@ div
             :text='doc.link_text'
           )
             // eslint-disable-next-line vue/no-v-html
-            div(v-html='doc.document.html').q-mb-lg
+            div(v-html='sanitizeDocumentHtml(doc.document.html)').q-mb-lg
 
       //- Устав кооператива (всегда показывается)
       BaseCheckbox(block v-model='registratorStore.state.agreements.ustav')
@@ -38,7 +33,7 @@ div
 
     .row.q-gutter-md.q-mt-lg.q-mb-lg(v-if='!isLoading')
       BaseButton(variant='ghost', @click='back')
-        i.fa.fa-arrow-left
+        q-icon(name='arrow_back')
         span.q-ml-md назад
 
       BaseButton(
@@ -59,6 +54,7 @@ import { BaseCheckbox } from 'src/shared/ui/base/BaseCheckbox';
 import { useRegistratorStore } from 'src/entities/Registrator'
 import { useRegistrationStore } from 'src/entities/Registration'
 import { useSystemStore } from 'src/entities/System/model'
+import { sanitizeDocumentHtml } from 'src/shared/lib/utils'
 
 const registratorStore = useRegistratorStore()
 const registrationStore = useRegistrationStore()
@@ -75,6 +71,7 @@ const agreeWithAll = computed(() => {
 })
 
 const html = ref()
+const safeHtml = computed(() => sanitizeDocumentHtml(html.value))
 const isLoading = ref(false)
 const isGenerating = ref(false)
 const loadingText = ref('Загружаем документы...')

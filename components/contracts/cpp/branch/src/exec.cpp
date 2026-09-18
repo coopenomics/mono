@@ -24,6 +24,13 @@
   eosio::check(dec.type == "createbranch"_n, "Исполнение доступно только для решения о создании участка");
   eosio::check(dec.status == "approved"_n, "Решение не утверждено председателем");
 
+  // Ходатайство об учреждении участка, соглашение об ответственности и
+  // доверенность подписывает избранный председатель участка. Транзакцию шлёт
+  // кооператив, поэтому ключ подписи сверяется с его аккаунтом.
+  verify_signer_keys_or_fail(petition, dec.chairman);
+  verify_signer_keys_or_fail(liability, dec.chairman);
+  verify_signer_keys_or_fail(authority, dec.chairman);
+
   decision_index decisions(_branch, coopname.value);
   auto itr = decisions.find(dec.id);
   decisions.modify(itr, coopname, [&](auto &d) {

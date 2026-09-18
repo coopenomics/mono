@@ -1,6 +1,5 @@
 <template lang='pug'>
-div
-  q-step(:name='store.steps.EmailInput', title='Введите электронную почту', :done="store.isStepDone('EmailInput')")
+div(v-show='store.isStep("EmailInput")')
     //- Шаг состоит из двух фаз: ввод адреса и подтверждение кодом из письма.
     //- Отдельным шагом подтверждение делать нельзя — номера шагов лежат в
     //- persist'е стора у всех, кто уже идёт по регистрации, и вставка сдвинула
@@ -190,7 +189,7 @@ function onVerified(): void {
 .email-input__divider-word {
   position: relative;
   padding: 0 var(--p-3);
-  background: var(--p-surface);
+  background: var(--p-canvas);
 }
 
 .email-input__note {

@@ -39,8 +39,8 @@ export class GatewayResolver {
     description:
       'Управление статусом платежа осущствляется мутацией setPaymentStatus. При переходе платежа в статус PAID вызывается эффект в блокчейне, который завершает операцию автоматическим переводом платежа в статус COMPLETED. При установке статуса REFUNDED запускается процесс отмены платежа в блокчейне. Остальные статусы не приводят к эффектам в блокчейне.',
   })
-  @UseGuards(GqlJwtAuthGuard)
-  @AuthRoles(['chairman', 'member'])
+  @UseGuards(GqlJwtAuthGuard, RolesGuard)
+  @AuthRoles(['chairman', 'member'], { allowSelf: false })
   async setPaymentStatus(
     @Args('data', { type: () => SetPaymentStatusInputDTO }) data: SetPaymentStatusInputDTO
   ): Promise<GatewayPaymentDTO> {

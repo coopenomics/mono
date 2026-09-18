@@ -163,3 +163,17 @@ cases:
     test: ~
     status: missing
 
+  - id: cap.pginv.sign.01
+    level: contract
+    kind: break
+    scenario: >
+      Документ подан с подписью, где рядом с именем пайщика стоит чужой ключ
+      (вложение в программу).
+    expect: >
+      отказ «Public key does not belong to account»: подпись сверяется с ключом
+      аккаунта подписанта. Транзакции шлёт кооператив, поэтому до 17.09.2026
+      любой ключ рядом с чужим именем проходил как подпись этого человека.
+      Механизм общий для всех контрактов (`verify_signer_keys_or_fail`) и
+      проверен на самом коротком пути — заявлении о вступлении
+    test: components/boot/src/tests/document-signature.test.ts
+    status: passing

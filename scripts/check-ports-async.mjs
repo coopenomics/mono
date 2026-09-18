@@ -57,6 +57,8 @@ const KNOWN_SYNC = {
   'IRegistrationRegistryPort.unregisterAgreement': 'реестр оферт вступления',
   'IRegistrationRegistryPort.registerProgram': 'реестр программ вступления, передаются данные',
   'IRegistrationRegistryPort.unregisterProgram': 'реестр программ вступления',
+  'IRegistrationRegistryPort.registerIntakeForm': 'реестр анкет вступления, передаются данные (JSON Schema)',
+  'IRegistrationRegistryPort.unregisterIntakeForm': 'реестр анкет вступления',
   'IChainPort.initialize': 'передача ключа подписи; по сети ключ не отдаём — приём меняется целиком',
   'IDesktopGrantsRegistryPort.register': 'см. долг по объектам с методами',
   'IRegistrationDocumentParametersRegistryPort.registerProgramHook': 'см. долг по объектам с методами',

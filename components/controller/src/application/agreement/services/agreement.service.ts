@@ -22,6 +22,7 @@ import { AgreementTemplateDTO } from '../dto/agreement-template.dto';
 import { CooperativeProgramDTO } from '../dto/cooperative-program.dto';
 import { PaginationInputDomainInterface } from '~/domain/common/interfaces/pagination.interface';
 import { DocumentAggregationService } from '~/domain/document/services/document-aggregation.service';
+import { DocumentApprovalStateService } from '~/domain/document-approval/services/document-approval-state.service';
 import { SendAgreementInputDTO } from '../dto/send-agreement-input.dto';
 import { ConfirmAgreementInputDTO } from '../dto/confirm-agreement-input.dto';
 import { DeclineAgreementInputDTO } from '../dto/decline-agreement-input.dto';
@@ -39,7 +40,8 @@ export class AgreementService {
     private readonly sovietBlockchainPort: SovietBlockchainPort,
     @Inject(BLOCKCHAIN_PORT)
     private readonly blockchainPort: BlockchainPort,
-    private readonly documentAggregationService: DocumentAggregationService
+    private readonly documentAggregationService: DocumentAggregationService,
+    private readonly documentApprovalState: DocumentApprovalStateService
   ) {}
 
   /**
@@ -80,7 +82,7 @@ export class AgreementService {
    * сравнения версии подписи пайщика с актуальной версией шаблона.
    */
   async getAgreementTemplates(coopname: string): Promise<AgreementTemplateDTO[]> {
-    const [globalRows, coopRows] = await Promise.all([
+    const [globalRows, coopRows, effectiveVersions] = await Promise.all([
       this.blockchainPort.getAllRows(
         DraftContract.contractName.production,
         DraftContract.contractName.production,
@@ -91,10 +93,14 @@ export class AgreementService {
         coopname,
         DraftContract.Tables.Drafts.tableName
       ),
+      this.documentApprovalState.getEffectiveVersions(coopname),
     ]);
+    // Версия шаблона для кооператива — утверждённая его советом, а не текущая
+    // в сети: рабочий стол сравнивает её с версией подписи пайщика и просит
+    // переподписать только после решения совета.
     return [...globalRows, ...coopRows].map((r: any) => ({
       registry_id: Number(r.registry_id),
-      version: Number(r.version),
+      version: effectiveVersions.get(Number(r.registry_id)) ?? Number(r.version),
       default_translation_id: Number(r.default_translation_id),
       title: String(r.title ?? ''),
       description: String(r.description ?? ''),
@@ -262,8 +268,8 @@ export class AgreementService {
     return await this.agreementInteractor.generateUserAgreement(data, options);
   }
 
-  public async sendAgreement(data: SendAgreementInputDTO): Promise<TransactionDTO> {
-    const result = await this.agreementInteractor.sendAgreement(data);
+  public async sendAgreement(data: SendAgreementInputDTO, actor: { username: string; role: string }): Promise<TransactionDTO> {
+    const result = await this.agreementInteractor.sendAgreement(data, actor);
     return result as TransactionDTO;
   }
 

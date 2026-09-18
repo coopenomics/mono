@@ -37,6 +37,8 @@ void capital::convertsegm(eosio::name coopname, eosio::name username,
   // Проверяем подпись заявления о трансляции паевого взноса (шаблон 1080).
   // Без этого on-chain принял бы любую сконструированную document2 без валидной подписи.
   verify_document_or_fail(convert_statement, {username});
+  // Заявление о переводе доли подписывает сам пайщик. Транзакцию шлёт кооператив, поэтому ключ сверяется с аккаунтом.
+  verify_signer_keys_or_fail(convert_statement, username);
 
   // Получаем сегмент пайщика
   auto segment = Capital::Segments::get_segment_or_fail(coopname, project_hash, username,

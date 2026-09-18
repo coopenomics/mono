@@ -219,17 +219,44 @@ div.settings-form
 
     let rules = parseRules(property.description?.rules || []);
 
+    // Обязательность берём из самой схемы (`required` у объекта): так её
+    // объявляет Zod, отдельного признака в описании поля нет.
+    if (props.schema.required?.includes(propertyName)) {
+      rules.unshift((val: unknown) => {
+        const filled = typeof val === 'string' ? val.trim() !== '' : val !== null && val !== undefined;
+        return filled || 'Заполните поле';
+      });
+    }
+
     const minLength = property.description?.minLength;
     const maxLength = property.description?.maxLength;
 
+    // Незаполненное поле хранится как null — длину считаем от пустой строки,
+    // иначе правило падает с TypeError раньше, чем успевает что-то сказать.
+    const lengthOf = (val: unknown) => String(val ?? '').trim().length;
+
     if (typeof minLength === 'number') {
-      rules.push((val: string) => val.length >= minLength || `Минимальная длина: ${minLength}`);
+      rules.push((val: unknown) => lengthOf(val) >= minLength || `Минимальная длина: ${minLength}`);
       componentProps.minLength = minLength;
     }
 
     if (typeof maxLength === 'number') {
-      rules.push((val: string) => val.length <= maxLength || `Максимальная длина: ${maxLength}`);
+      rules.push((val: unknown) => lengthOf(val) <= maxLength || `Максимальная длина: ${maxLength}`);
       componentProps.maxLength = maxLength;
+      componentProps.counter = true;
+    }
+
+    if (property.format === 'uri') {
+      rules.push((val: unknown) => {
+        const text = String(val ?? '').trim();
+        if (!text) return true;
+        try {
+          const url = new URL(text);
+          return ['http:', 'https:'].includes(url.protocol) || 'Нужна ссылка вида https://…';
+        } catch {
+          return 'Нужна ссылка вида https://…';
+        }
+      });
     }
 
     componentProps.rules = rules
@@ -240,6 +267,11 @@ div.settings-form
       if (property.description?.fillMask !== undefined) {
         componentProps.fillMask = property.description.fillMask;
       }
+    }
+
+    // Заполнитель пустого поля: пример ответа или формата.
+    if (property.description?.placeholder) {
+      componentProps.placeholder = property.description.placeholder;
     }
 
     // Поддержка readonly
@@ -262,11 +294,22 @@ div.settings-form
       } else {
         componentProps.type = 'text';  // Поле для строк
       }
-      // Проверка на многосстрочный ввод
-      if (property.description?.maxRows) {
+      // Ссылка: мобильная клавиатура с «/» и «.com», проверка адреса ниже.
+      if (property.format === 'uri') {
+        componentProps.type = 'url';
+        componentProps.inputmode = 'url';
+      }
+      // Многострочный ввод. Поле растёт вместе с текстом, но не бывает ниже
+      // `minRows` строк: иначе пустое поле выглядит однострочным, и не видно,
+      // что ждут развёрнутый ответ. У Quasar с autogrow атрибут rows не работает
+      // (высота пересчитывается по содержимому), поэтому держим её min-height.
+      const minRows = property.description?.minRows;
+      if (property.description?.maxRows || minRows) {
         componentProps.type = 'textarea';
-        componentProps.autogrow = true; // Автоматический рост поля при вводе
-        componentProps.rows = property.description?.maxRows; // Установка максимального количества строк
+        componentProps.autogrow = true;
+        if (minRows) {
+          componentProps.inputStyle = { minHeight: `calc(${minRows} * var(--p-lh-body, 1.55) * 1em)` };
+        }
       }
     }
 

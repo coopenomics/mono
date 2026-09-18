@@ -1,10 +1,5 @@
 <template lang="pug">
-div
-  q-step(
-    :name='store.steps.SetUserData',
-    title='Заполните форму заявления на вступление',
-    :done='store.isStepDone("SetUserData")'
-  )
+div(v-show='store.isStep("SetUserData")')
     UserDataForm(
       v-model:userData='store.state.userData',
       @type-selected='onTypeSelected',
@@ -25,7 +20,7 @@ div
 
         .row.q-gutter-md.q-mt-lg.q-mb-lg
           BaseButton(variant='ghost', @click='store.prev()')
-            i.fa.fa-arrow-left
+            q-icon(name='arrow_back')
             span.q-ml-md назад
 
           BaseButton(

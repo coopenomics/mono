@@ -26,6 +26,8 @@ export * from './program-agreement.port';
 export * from './vault.port';
 export * from './coop-credential.port';
 export * from './onboarding.port';
+export * from './document-declaration.port';
+export * from './document-approval.port';
 export * from './branch.port';
 export * from './registration.port';
 export * from './chain.port';

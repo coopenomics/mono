@@ -54,6 +54,21 @@ void verify_document_or_fail(
   }
 }
 
+/**
+ * Подписи, сделанные от имени @p signer, поставлены ключом его разрешения
+ * @p permission. `verify_document_or_fail` сверяет подпись только с ключом,
+ * приложенным к ней, — без этой проверки чужим ключом можно подписать документ
+ * от имени пайщика. Подписи других подписантов (заверение кооператива и т.п.)
+ * не трогаются; наличие подписи @p signer здесь не требуется.
+ */
+void verify_signer_keys_or_fail(const document2 &doc, name signer, name permission = "active"_n) {
+  for (const auto &sig : doc.signatures) {
+    if (sig.signer == signer) {
+      assert_recover_key_account(sig.signed_hash, sig.signature, sig.public_key, signer, permission);
+    }
+  }
+}
+
 bool is_empty_document(const document2 &doc) {
   return doc.hash == checksum256{};
 }

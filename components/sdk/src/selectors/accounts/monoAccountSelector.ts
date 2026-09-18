@@ -16,6 +16,7 @@ export const rawMonoAccountSelector = {
   username: true,
   subscriber_id: true,
   subscriber_hash: true,
+  created_at: true,
 }
 
 // Проверка валидности

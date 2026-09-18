@@ -54,10 +54,10 @@
             .rid-doc__diff(
               v-for='(block, idx) in parsed.diffHtmlBlocks',
               :key='idx',
-              v-html='block'
+              v-html='sanitizeDocumentHtml(block)'
             )
         template(v-else)
-          .rid-doc__html(v-html='parsed.html')
+          .rid-doc__html(v-html='sanitizeDocumentHtml(parsed.html)')
 
       footer.rid-doc__footer
         span.t-meta Документ сформирован в ЦПП «Благорост»
@@ -78,6 +78,7 @@ import { useContributorStore } from 'app/extensions/capital/entities/Contributor
 import { useProjectStore } from 'app/extensions/capital/entities/Project/model';
 import { useSystemStore } from 'src/entities/System/model';
 import { Editor } from 'src/shared/ui/Editor';
+import { sanitizeDocumentHtml } from 'src/shared/lib/utils';
 import { parseCapitalResultData, type ParsedResultData } from 'app/extensions/capital/shared/lib/resultDocumentPayload';
 
 interface Props {

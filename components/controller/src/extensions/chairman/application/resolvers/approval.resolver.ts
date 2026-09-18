@@ -27,6 +27,8 @@ export class ApprovalResolver {
     name: 'chairmanApprovals',
     description: 'Получение списка одобрений председателя совета с фильтрацией',
   })
+  @UseGuards(GqlJwtAuthGuard, RolesGuard)
+  @AuthRoles(['chairman', 'member'])
   async getApprovals(
     @Args('filter', { nullable: true }) filter?: ApprovalFilterInput,
     @Args('options', { nullable: true }) options?: PaginationInputDTO
@@ -53,6 +55,8 @@ export class ApprovalResolver {
     description: 'Получение одобрения по внутреннему ID базы данных',
     nullable: true,
   })
+  @UseGuards(GqlJwtAuthGuard, RolesGuard)
+  @AuthRoles(['chairman', 'member'])
   async getApproval(@Args('id') id: string): Promise<ApprovalDTO | null> {
     return await this.approvalService.getApprovalById(id);
   }

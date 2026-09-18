@@ -1,6 +1,28 @@
 <template lang="pug">
+//- Вступление в двухпанельной оболочке (решение владельца 16.09.2026): шаги живут в
+//- тёмной панели слева, справа — только текущий. Сами шаги остаются смонтированными
+//- все сразу и показывают себя по v-show, как прежде в q-stepper: их наблюдатели за
+//- номером шага, опросы оплаты и решения совета рассчитаны на это.
 .signup-page
-  AuthCard.signup-page__card(:max-width='720', title='Вступить в пайщики')
+  AuthSplit(
+    :eyebrow='coopTitle',
+    title='Вступление в пайщики',
+    :lead='paneLead',
+    :steps='paneSteps',
+    :active-key='activeStepKey',
+    :completed-keys='completedStepKeys',
+    :step-eyebrow='workEyebrow',
+    :heading='workHeading',
+    size='lg'
+  )
+    template(#actions)
+      AuthActions
+
+    template(#pane-foot)
+      | Уже пайщик?
+      |
+      a.auth-link(href='#', @click.prevent='goToSignIn') Войти
+
     template(v-if='isRegistrationClosed')
       EmptyState.signup-page__closed(
         title='Регистрация временно недоступна',
@@ -15,19 +37,14 @@
       p.signup-page__enter-title {{ cabinetEntryTitle }}
       p.signup-page__enter-caption {{ cabinetEntryCaption }}
 
-    q-stepper.signup-page__stepper(
-      v-else,
-      v-model='store.step',
-      vertical,
-      animated,
-      flat,
-      done-color='primary'
-    )
+    template(v-else)
       EmailInput
 
       SetUserData
 
       SelectProgram(v-if='registratorStore.requiresProgramSelection')
+
+      IntakeStep(v-if='registratorStore.requiresIntake')
 
       GenerateAccount
 
@@ -41,8 +58,7 @@
 
       WaitingRegistration
 
-  .signup-page__restart(v-if='!isRegistrationClosed && !cabinetEntry')
-    q-btn(@click='out', dense, size='sm', flat color='grey') начать с начала
+      Welcome
 </template>
 
 <script lang="ts" setup>
@@ -51,16 +67,18 @@ import EmailInput from './EmailInput.vue';
 import GenerateAccount from './GenerateAccount.vue';
 import SetUserData from './SetUserData.vue';
 import SelectProgram from './SelectProgram.vue';
+import IntakeStep from './IntakeStep.vue';
 import SignStatement from './SignStatement.vue';
 import ReadStatement from './ReadStatement.vue';
 import PayInitial from './PayInitial.vue';
 import WaitingRegistration from './WaitingRegistration.vue';
 import SelectBranch from './SelectBranch.vue';
-import { AuthCard } from 'src/shared/ui/domain/AuthCard';
+import Welcome from './Welcome.vue';
+import { AuthSplit } from 'src/shared/ui/layout/AuthSplit';
+import { AuthActions } from 'src/widgets/Registrator/AuthActions';
 import { EmptyState } from 'src/shared/ui/base/EmptyState';
 
 import { useRegistratorStore } from 'src/entities/Registrator';
-import { useLogoutUser } from 'src/features/User/Logout';
 import { useSessionStore } from 'src/entities/Session';
 import { useAccountStore } from 'src/entities/Account';
 import { useAgreementStore } from 'src/entities/Agreement';
@@ -85,6 +103,7 @@ const system = useSystemStore();
 const { info } = system;
 
 const isRegistrationClosed = computed(() => info.settings?.is_registration_open === false);
+
 
 // Диалог разрешения уведомлений
 const { showDialog } = useNotificationPermissionDialog();
@@ -126,7 +145,30 @@ onMounted(() => {
       return;
     }
   }
+  void returnToUnansweredIntake();
 });
+
+/**
+ * Вступление, начатое до появления анкет (или до включения приложения, которое
+ * анкету требует либо добавляет вторую программу), могло уйти дальше выбора
+ * программы и шага «Сведения о себе». Сервер такое
+ * заявление без ответов не примет — возвращаем человека на анкету заранее, а не
+ * показываем отказ на подписи. Касается только шагов до подписи включительно:
+ * подписанное заявление сервер уже принял.
+ */
+const returnToUnansweredIntake = async (): Promise<void> => {
+  if (store.step <= steps.SelectProgram || store.step > steps.SignStatement) return;
+  await registratorStore.loadAvailablePrograms();
+  // Программ стало несколько, а выбора нет (прежний был сделан системой, когда
+  // программа была единственной) — выбирать должен человек.
+  if (registratorStore.requiresProgramSelection && !store.selectedProgramKey) {
+    store.step = steps.SelectProgram;
+    return;
+  }
+  if (store.step > steps.IntakeStep && registratorStore.requiresIntake && !registratorStore.isIntakeComplete) {
+    store.step = steps.IntakeStep;
+  }
+};
 
 // Догружаем cooperativeAgreements, когда system_info прорастёт.
 // До этого onMounted мог отработать на пустом info.coopname.
@@ -155,12 +197,6 @@ const goToCabinet = (): void => {
       ? { name: authorized, params: { coopname: info.coopname } }
       : { name: 'index', params: { coopname: info.coopname } },
   );
-};
-
-const out = async () => {
-  const { logout } = await useLogoutUser();
-  await logout();
-  window.location.reload();
 };
 
 /**
@@ -207,6 +243,63 @@ const cabinetEntryCaption = computed(() => {
       return 'Открываем кабинет.';
   }
 });
+
+const coopTitle = computed(() => system.cooperativeDisplayName);
+
+type StepName = keyof typeof steps;
+
+/**
+ * Подписи шагов для панели и заголовки рабочей области. Раньше заголовки жили в
+ * каждом шаге (`q-step title=`); теперь шаг показывает только своё содержимое, а
+ * где он в пути и как называется — говорит оболочка. Welcome в панели не значится:
+ * это итог, а не шаг.
+ */
+const STEP_TEXT: Record<StepName, { label: string; heading: string }> = {
+  EmailInput: { label: 'Электронная почта', heading: 'Электронная почта' },
+  SetUserData: { label: 'Заявление', heading: 'Заявление на вступление' },
+  SelectProgram: { label: 'Программа участия', heading: 'Программа участия' },
+  IntakeStep: { label: 'Сведения о себе', heading: 'Расскажите о себе' },
+  GenerateAccount: { label: 'Пароль для входа', heading: 'Пароль для входа' },
+  SelectBranch: { label: 'Кооперативный участок', heading: 'Кооперативный участок' },
+  ReadStatement: { label: 'Проверка заявления', heading: 'Проверьте заявление' },
+  SignStatement: { label: 'Подпись', heading: 'Подпишите заявление' },
+  PayInitial: { label: 'Вступительный взнос', heading: 'Вступительный взнос' },
+  WaitingRegistration: { label: 'Решение совета', heading: 'Решение совета' },
+  Welcome: { label: 'Добро пожаловать', heading: 'Добро пожаловать' },
+};
+
+const visibleStepNames = computed(() => registratorStore.filteredSteps as readonly StepName[]);
+const paneStepNames = computed(() => visibleStepNames.value.filter((name) => name !== 'Welcome'));
+const paneSteps = computed(() =>
+  paneStepNames.value.map((name) => ({ key: name, label: STEP_TEXT[name].label })),
+);
+const activeStepName = computed<StepName>(
+  () => (visibleStepNames.value.find((name) => steps[name] === store.step) ?? 'EmailInput'),
+);
+const activeStepKey = computed(() => activeStepName.value);
+const completedStepKeys = computed(() =>
+  paneStepNames.value.filter((name) => steps[name] < store.step),
+);
+const paneLead = computed(() => {
+  const n = paneStepNames.value.length;
+  return `${n} коротких шагов: заявление, подпись и взнос. Обычно занимает десять минут.`;
+});
+const workEyebrow = computed(() => {
+  if (cabinetEntry.value) return 'Приём завершён';
+  if (activeStepName.value === 'Welcome') return 'Готово';
+  const idx = paneStepNames.value.indexOf(activeStepName.value);
+  return idx >= 0 ? `Шаг ${idx + 1} из ${paneStepNames.value.length}` : '';
+});
+const workHeading = computed(() => {
+  if (isRegistrationClosed.value) return 'Регистрация закрыта';
+  if (cabinetEntry.value) return cabinetEntryTitle.value;
+  if (activeStepName.value === 'Welcome') return `Добро пожаловать в ${coopTitle.value}`;
+  return STEP_TEXT[activeStepName.value].heading;
+});
+
+const goToSignIn = (): void => {
+  void router.push({ name: 'signin', params: { coopname: info.coopname } });
+};
 
 let cabinetEntryTimer: ReturnType<typeof setTimeout> | null = null;
 let cabinetEntryRunning = false;
@@ -315,38 +408,7 @@ const isBranched = computed(() => info.cooperator_account.is_branched);
 
 <style scoped>
 .signup-page {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: var(--p-6, 24px);
-  min-height: 100%;
-}
-.signup-page__card {
-  width: 100%;
-}
-/* Canon-стайлинг q-stepper внутри AuthCard: убираем собственный фон
-   и тень q-stepper'а, чтобы он не «карточка в карточке» на тёмной теме —
-   AuthCard уже даёт surface + shadow. */
-.signup-page__stepper {
-  background: transparent;
-  box-shadow: none;
-  padding: 0;
-}
-.signup-page__stepper :deep(.q-stepper__nav) {
-  padding: 0;
-}
-.signup-page__stepper :deep(.q-stepper__step-inner) {
-  background: transparent;
-}
-.signup-page__stepper :deep(.q-stepper__dot:before),
-.signup-page__stepper :deep(.q-stepper__dot:after),
-.signup-page__stepper :deep(.q-stepper__line:before),
-.signup-page__stepper :deep(.q-stepper__line:after) {
-  background: var(--p-line);
-}
-.signup-page__restart {
-  margin-top: var(--p-4, 16px);
-  text-align: center;
+  min-height: inherit;
 }
 .signup-page__closed {
   padding: var(--p-4, 16px) 0;

@@ -56,6 +56,8 @@ void marketplace::issuestmt(eosio::name coopname,
   eosio::check(!is_empty_document(statement),
                "Отсутствует заявление о возврате паевого взноса имуществом");
   verify_document_or_fail(statement, { orderer });
+  // Заявление подписывает сам заказчик. Транзакцию шлёт кооператив, поэтому ключ сверяется с аккаунтом.
+  verify_signer_keys_or_fail(statement, orderer);
 
   const eosio::asset fact_cost =
       Marketplace::calc_cost(actual_quantity, actual_unit_price, o.package_size);

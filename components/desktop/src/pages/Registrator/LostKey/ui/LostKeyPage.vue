@@ -1,29 +1,37 @@
 <template>
   <div class="lostkey-page">
     <LostKey>
+      <template #actions>
+        <AuthActions />
+      </template>
+      <template #pane-foot>
+        Вспомнили ключ?
+        <a class="auth-link" href="#" @click.prevent="goToSignIn">Войти</a>
+      </template>
       <template #footer>
-        <BaseButton variant="ghost" size="sm" @click="goBack">Назад</BaseButton>
+        <a class="auth-link" href="#" @click.prevent="goBack">Назад</a>
       </template>
     </LostKey>
   </div>
 </template>
 
 <script lang="ts" setup>
-import { useRouter } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import { LostKey } from 'src/widgets/Registrator/LostKey/ui';
+import { AuthActions } from 'src/widgets/Registrator/AuthActions';
 
 const router = useRouter();
+const route = useRoute();
 function goBack(): void {
   router.go(-1);
+}
+function goToSignIn(): void {
+  void router.push({ name: 'signin', params: { coopname: route.params.coopname } });
 }
 </script>
 
 <style scoped>
 .lostkey-page {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: var(--p-6, 24px);
-  min-height: 100%;
+  min-height: inherit;
 }
 </style>

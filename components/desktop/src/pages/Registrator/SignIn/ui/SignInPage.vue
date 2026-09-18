@@ -1,13 +1,16 @@
 <template>
   <div v-if="!registeredAndloggedIn" class="signin-page">
     <SignIn>
+      <template #actions>
+        <AuthActions />
+      </template>
+      <template #pane-foot>
+        Ещё не пайщик?
+        <a class="auth-link" href="#" @click.prevent="goToSignUp">Вступить в кооператив</a>
+      </template>
       <template #footer>
-        <BaseButton variant="ghost" size="sm" @click="goToLostKey">
-          Потеряли ключ?
-        </BaseButton>
-        <BaseButton variant="ghost" size="sm" @click="goToSignUp">
-          Нет аккаунта?
-        </BaseButton>
+        <a class="auth-link" href="#" @click.prevent="goToLostKey">Потеряли ключ?</a>
+        <a class="auth-link" href="#" @click.prevent="goToSignUp">Нет аккаунта?</a>
       </template>
     </SignIn>
   </div>
@@ -19,6 +22,7 @@ import { useRouter } from 'vue-router';
 import { useSessionStore } from 'src/entities/Session';
 import { useRegistratorStore } from 'src/entities/Registrator';
 import { SignIn } from 'src/widgets/Registrator/SignIn';
+import { AuthActions } from 'src/widgets/Registrator/AuthActions';
 
 const router = useRouter();
 const session = useSessionStore();
@@ -39,10 +43,6 @@ function goToSignUp(): void {
 
 <style scoped>
 .signin-page {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: var(--p-6, 24px);
-  min-height: 100%;
+  min-height: inherit;
 }
 </style>

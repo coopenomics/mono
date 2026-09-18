@@ -78,6 +78,9 @@ void expense::createexp(name coopname, name username,
   }
 
   verify_document_or_fail(statement, {username});
+  // Записку на расход подписывает тот, от чьего имени она подана: транзакцию
+  // шлёт кооператив, и подпись чужим ключом иначе прошла бы как своя.
+  verify_signer_keys_or_fail(statement, username);
   eosio::check(!items.empty(), "СЗ должен содержать хотя бы один item");
   eosio::check(ledger2_is_known_wallet(source_wallet),
                "source_wallet не найден в LEDGER2_WALLET_REGISTRY");

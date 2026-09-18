@@ -34,6 +34,9 @@ void registrator::exitcoop(eosio::name coopname, eosio::name username, checksum2
 
   // проверяем подпись заявления о выходе
   verify_document_or_fail(statement);
+  // Подпись пайщика под заявлением сделана ключом его аккаунта: транзакцию шлёт
+  // кооператив, и иначе выход можно было бы оформить за пайщика чужим ключом.
+  verify_signer_keys_or_fail(statement, username);
 
   exits.emplace(coopname, [&](auto &e) {
     e.username = username;

@@ -14,6 +14,7 @@ export * from './parseLinks';
 export * from './dates';
 export * from './markdown';
 export * from './sanitizeEditorMarkdown';
+export * from './sanitizeDocumentHtml';
 export * from './generateInitials';
 export * from './sameHash';
 export * from './formatContributorName';

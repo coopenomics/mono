@@ -38,11 +38,13 @@ export class VoteDeltaMapper extends AbstractBlockchainDeltaMapper<IVoteBlockcha
    * Извлечение ID сущности из дельты
    */
   extractSyncValue(delta: IDelta): string {
-    if (!delta.value || !delta.value[this.extractSyncKey()]) {
-      throw new Error(`Delta has no value: table=${delta.table}, key=${this.extractSyncKey()}`);
+    const key = this.extractSyncKey();
+    if (!delta.value || delta.value[key] === undefined || delta.value[key] === null) {
+      throw new Error(`Delta has no value: table=${delta.table}, key=${key}`);
     }
 
-    return delta.value[this.extractSyncKey()];
+    // Ключ — числовой id: парсер отдаёт его числом, а поиск записи ждёт строку.
+    return String(delta.value[key]);
   }
 
   /**

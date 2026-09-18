@@ -17,6 +17,9 @@ import { DeleteAccountInputDTO } from '../dto/delete-account-input.dto';
 import { SearchPrivateAccountsInputDTO } from '../dto/search-private-accounts-input.dto';
 import { PrivateAccountSearchResultDTO } from '../dto/search-private-accounts-result.dto';
 import { IMonoAccount } from '@coopenomics/innercoop';
+import { AuthRateLimitGuard } from '~/application/auth-v2/rate-limit/auth-rate-limit.guard';
+import { AuthRateLimit } from '~/application/auth-v2/rate-limit/auth-rate-limit.decorator';
+import { REGISTER_ACCOUNT_IP_RULE } from '~/application/auth-v2/rate-limit/auth-rate-limit.types';
 
 export const AccountsPaginationResult = createPaginationResult(AccountDTO, 'Accounts');
 
@@ -54,6 +57,9 @@ export class AccountResolver {
     name: 'getAccounts',
     description: 'Получить сводную информацию о аккаунтах системы',
   })
+  // Директива @auth корневые запросы не проверяет — без гардов реестр с
+  // паспортными данными отдавался любому анонимному запросу.
+  @UseGuards(GqlJwtAuthGuard, RolesGuard)
   @AuthRoles(['chairman', 'member'])
   async getAccounts(
     @Args('data', { type: () => GetAccountsInputDTO, nullable: true }) data?: GetAccountsInputDTO,
@@ -75,12 +81,15 @@ export class AccountResolver {
     return this.accountService.searchPrivateAccounts(data);
   }
 
+  // Регистрация открыта без входа и выдаёт токен, поэтому единственный порог
+  // здесь — частота с одного адреса. `@Throttle` из nest-throttler не ставится:
+  // глобального ThrottlerGuard в приложении нет, и декоратор ничего не делает.
   @Mutation(() => RegisteredAccountDTO, {
     name: 'registerAccount',
     description: 'Зарегистрировать аккаунт пользователя в системе',
   })
-  //TODO:
-  // @UseGuards(GqlJwtAuthGuard, RolesGuard)
+  @UseGuards(AuthRateLimitGuard)
+  @AuthRateLimit({ ip: REGISTER_ACCOUNT_IP_RULE, scope: 'register-account' })
   async registerAccount(
     @Args('data', { type: () => RegisterAccountInputDTO })
     data: RegisterAccountInputDTO
@@ -120,12 +129,13 @@ export class AccountResolver {
       'Обновить аккаунт в системе провайдера. Обновление аккаунта пользователя производится по username. Мутация позволяет изменить приватные данные пользователя, а также, адрес электронной почты в MONO. Использовать мутацию может только председатель совета.',
   })
   @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
+  @AuthRoles(['chairman'], { allowSelf: false })
   async updateAccount(
     @Args('data', { type: () => UpdateAccountInputDTO })
-    data: UpdateAccountInputDTO
+    data: UpdateAccountInputDTO,
+    @CurrentUser() currentUser: IMonoAccount
   ): Promise<AccountDTO> {
-    return await this.accountService.updateAccount(data);
+    return await this.accountService.updateAccount(data, currentUser.username);
   }
 
   @Mutation(() => AccountDTO, {

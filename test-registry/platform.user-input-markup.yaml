@@ -1,0 +1,70 @@
+feature: platform.user-input-markup
+title: Разметка во вводе пайщика — запрет в анкете, очистка в описаниях
+
+# Данные пайщика подставляются в документ, а шаблоны собираются с выключенным
+# автоэкранированием (часть данных кооператива приходит с разметкой). Значит
+# фамилия или адрес с угловыми скобками сами становятся разметкой и уезжают в
+# подписываемый документ, в реестр и на стол совета.
+#
+# До 17.09.2026 сервер не проверял здесь ничего: браузерное правило покрывало
+# одни ФИО, а мутация принимала любую строку. Отдельно — описания проектов и
+# задач: их чистил только редактор в браузере, поэтому запрос напрямую в API
+# (или из blago-cli) клал в базу произвольную разметку.
+#
+# Два разных правила по существу. В анкете угловых скобок не должно быть вовсе
+# — там имя, адрес и реквизиты. В описании они законны: там живут таблицы,
+# разметка и схемы BPMN, поэтому текст только очищается от исполняемого.
+# Задача C28-74.
+
+sources:
+  backend:
+    - components/controller/src/shared/validators/no-markup.decorator.ts
+    - components/controller/src/application/account/dto/*.ts
+    - components/controller/src/application/branch/dto/create-branch-input.dto.ts
+    - components/controller/src/application/branch/dto/edit-branch-input.dto.ts
+    - components/controller/src/application/payment-method/dto/bank-account*.ts
+    - components/cooptypes/src/common/text/index.ts
+    - components/extension-kit/src/utils/user-text.utils.ts
+
+cases:
+  - id: platform.input.happy.01
+    level: backend
+    kind: happy
+    scenario: обычная анкета физлица, предпринимателя и организации
+    expect: принимается; привычные знаки (дефис, апостроф, дробь в адресе) не мешают
+    test: components/controller/tests/unit/account/anketa-no-markup.test.ts
+    status: passing
+
+  - id: platform.input.break.01
+    level: backend
+    kind: break
+    scenario: угловые скобки в фамилии или адресе пайщика
+    expect: отказ — иначе разметка уедет в подписываемый документ
+    test: components/controller/tests/unit/account/anketa-no-markup.test.ts
+    status: passing
+
+  - id: platform.input.break.02
+    level: backend
+    kind: break
+    scenario: разметка во вложенных данных — паспорт, банковские реквизиты, представитель организации
+    expect: отказ; вложенные объекты проверяются наравне с верхним уровнем
+    test: components/controller/tests/unit/account/anketa-no-markup.test.ts
+    status: passing
+
+  - id: platform.input.break.03
+    level: backend
+    kind: break
+    scenario: >
+      описание проекта или задачи со скриптом, встраиваемой рамкой или
+      ссылкой со схемой javascript
+    expect: исполняемое вырезано при записи, а не только в редакторе
+    test: components/cooptypes/test/sanitize-editor-text.test.ts
+    status: passing
+
+  - id: platform.input.happy.02
+    level: backend
+    kind: happy
+    scenario: описание с таблицей, разметкой, схемой BPMN и примером кода в блоке
+    expect: сохраняется как введено — очистка не портит уже написанное
+    test: components/cooptypes/test/sanitize-editor-text.test.ts
+    status: passing

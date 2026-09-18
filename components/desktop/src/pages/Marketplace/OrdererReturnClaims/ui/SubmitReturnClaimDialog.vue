@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { computed, ref, watch } from 'vue';
+import { sanitizeDocumentHtml } from 'src/shared/lib/utils';
 import { useGlobalStore } from 'src/shared/store';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { signDocument } from 'src/shared/lib/document';
@@ -286,7 +287,7 @@ TakeoverDialog(
               q-spinner(color="primary" size="32px")
               span Формирую предварительное заявление…
           BaseCard.mp-return-submit__preview(v-else-if="previewHtml")
-            div(v-html="previewHtml")
+            div(v-html="sanitizeDocumentHtml(previewHtml)")
           BaseCard.mp-return-submit__preview-card(v-else)
             .t-muted Не удалось сформировать предварительный документ.
           .row.q-mt-md

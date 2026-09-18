@@ -32,7 +32,10 @@ export class PaymentMethodResolver {
     name: 'addPaymentMethod',
     description: 'Добавить метод оплаты (банковский счёт или СБП)',
   })
+  // Свои реквизиты пайщик ведёт сам (RolesGuard пускает по совпадению
+  // username), чужие и кооперативные — только председатель.
   @UseGuards(GqlJwtAuthGuard, RolesGuard)
+  @AuthRoles(['chairman'])
   async addPaymentMethod(
     @Args('data', { type: () => AddPaymentMethodInputDTO }) data: AddPaymentMethodInputDTO
   ): Promise<PaymentMethodDTO> {
@@ -41,6 +44,7 @@ export class PaymentMethodResolver {
 
   @Mutation(() => PaymentMethodDTO, { name: 'updateBankAccount', description: 'Обновить банковский счёт' })
   @UseGuards(GqlJwtAuthGuard, RolesGuard)
+  @AuthRoles(['chairman'])
   async updateBankAccount(
     @Args('data', { type: () => UpdateBankAccountInputDTO }) data: UpdateBankAccountInputDTO
   ): Promise<PaymentMethodDTO> {
@@ -49,6 +53,7 @@ export class PaymentMethodResolver {
 
   @Mutation(() => Boolean, { name: 'deletePaymentMethod', description: 'Удалить метод оплаты' })
   @UseGuards(GqlJwtAuthGuard, RolesGuard)
+  @AuthRoles(['chairman'])
   async deletePaymentMethod(
     @Args('data', { type: () => DeletePaymentMethodDTO }) data: DeletePaymentMethodDTO
   ): Promise<boolean> {

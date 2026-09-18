@@ -36,6 +36,9 @@ void meet::signbypresid(name coopname, name username, checksum256 hash, document
     
     // Проверяем документ
     verify_document_or_fail(presider_decision, {meet_record.secretary, meet_record.presider});
+    // Обе подписи под протоколом сделаны ключами своих аккаунтов.
+    verify_signer_keys_or_fail(presider_decision, meet_record.secretary);
+    verify_signer_keys_or_fail(presider_decision, meet_record.presider);
 
     // Сформируем данные об итогах голосования по каждому вопросу
     Meet::questions_index questions(_meet, coopname.value);

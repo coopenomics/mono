@@ -18,6 +18,7 @@
       'base-table--selectable': selectionMode !== 'none',
     }"
     :table-row-class-fn="rowClassFn"
+    :sort-method="serverSort ? keepServerOrder : undefined"
     :style="tableStyle"
     @row-click="onRowClick"
   >
@@ -79,7 +80,12 @@ const props = withDefaults(defineProps<BaseTableProps<T>>(), {
 const emit = defineEmits<{
   'update:selected': [rows: T[]];
   'row-click': [row: T];
+  /** Только при `serverSort`: пользователь сменил сортировку по заголовку. */
+  sort: [sort: { sortBy: string; descending: boolean }];
 }>();
+
+/** При серверной сортировке строки уже пришли в нужном порядке. */
+const keepServerOrder = (rows: readonly T[]): readonly T[] => rows;
 
 /**
  * Нажатие по строке. Каркас не кликается (там пустышки), и без признака
@@ -178,6 +184,16 @@ const pagination = ref({
   // не нарезкой уже полученного списка.
   rowsPerPage: 0,
 });
+
+// Смена сортировки по заголовку при серверной сортировке уходит экрану.
+watch(
+  () => [pagination.value.sortBy, pagination.value.descending] as const,
+  ([sortBy, descending], [prevSortBy, prevDescending]) => {
+    if (!props.serverSort) return;
+    if (sortBy === prevSortBy && descending === prevDescending) return;
+    emit('sort', { sortBy: sortBy ?? '', descending: Boolean(descending) });
+  },
+);
 
 watch(
   () => [props.sortBy, props.descending],

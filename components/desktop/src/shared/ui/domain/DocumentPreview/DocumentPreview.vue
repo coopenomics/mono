@@ -29,11 +29,12 @@
 import { computed } from 'vue';
 import DOMPurify from 'dompurify';
 import { BaseBanner } from 'src/shared/ui/base/BaseBanner';
+import { sanitizeDocumentHtml } from 'src/shared/lib/utils';
 import type { DocumentPreviewProps } from './DocumentPreview.types';
 
 const props = withDefaults(defineProps<DocumentPreviewProps>(), {
   loading: false,
-  sanitize: true,
+  profile: 'strict',
   height: '480px',
 });
 
@@ -44,7 +45,7 @@ const containerStyle = computed(() => ({
 const safeHtml = computed((): string => {
   const raw = props.document.html;
   if (!raw) return '';
-  return props.sanitize ? DOMPurify.sanitize(raw) : raw;
+  return props.profile === 'document' ? sanitizeDocumentHtml(raw) : DOMPurify.sanitize(raw);
 });
 </script>
 

@@ -19,6 +19,8 @@ void capital::approveexpns(name coopname, name approver, checksum256 expense_has
   require_auth(coopname);
 
   verify_document_or_fail(approved_statement);
+  // Согласие подписано ключом аккаунта одобряющего. Транзакцию шлёт кооператив, поэтому ключ сверяется с аккаунтом.
+  verify_signer_keys_or_fail(approved_statement, approver);
   
   // Получаем расход и проверяем его статус
   auto expense = Capital::Expenses::get_expense_or_fail(coopname, expense_hash);

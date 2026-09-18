@@ -40,7 +40,9 @@ export const useInstallCooperative = (): {
         }
       : data;
 
-    return await api.initSystem(payload);
+    // Код установки получен на шаге с ключом кооператива: сервер без него
+    // данные организации не примет — установка открыта без входа.
+    return await api.initSystem({ ...payload, install_code: store.install_code });
   }
 
   async function getInstallationStatus(installCode: string): Promise<IGetInstallationStatusOutput> {
@@ -66,7 +68,8 @@ export const useInstallCooperative = (): {
 
     const installData: IInstallInput = {
       soviet,
-      vars: store.vars
+      vars: store.vars,
+      install_code: store.install_code,
     };
 
     return await api.install(installData);

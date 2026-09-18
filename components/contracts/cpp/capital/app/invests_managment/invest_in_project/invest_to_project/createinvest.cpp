@@ -26,6 +26,8 @@
   require_auth(coopname);
   
   verify_document_or_fail(statement, {username});
+  // Заявление о вложении в проект подписывает сам пайщик. Транзакцию шлёт кооператив, поэтому ключ сверяется с аккаунтом.
+  verify_signer_keys_or_fail(statement, username);
 
   // Проверяем существование проекта
   Wallet::validate_asset(amount);

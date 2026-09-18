@@ -229,6 +229,20 @@ const envVarsSchema = z.object({
    */
   BLOCKCHAIN_ARCHIVE_RETENTION_CRON: z.string().default('0 * * * *'),
   /**
+   * Фабрика утверждений документов: напоминание председателю о редакциях,
+   * ждущих решения совета. По умолчанию — по понедельникам в 9 утра.
+   */
+  DOCUMENT_APPROVAL_REMINDER_ENABLED: z
+    .string()
+    .default('true')
+    .transform((val) => val === 'true'),
+  DOCUMENT_APPROVAL_REMINDER_CRON: z.string().default('0 9 * * 1'),
+  /** Перенос утверждений из настроек кооператива в цепь при старте узла (идемпотентен). */
+  DOCUMENT_APPROVAL_SEED_ON_START: z
+    .string()
+    .default('true')
+    .transform((val) => val === 'true'),
+  /**
    * Story 6.5: при `true` mapper-fail (mapDeltaToBlockchainData → null) перестаёт
    * быть silent loss и поднимается `UnsupportedContractVersionError` из
    * `AbstractEntitySyncService.processDelta`. Парсер не ACK'ает delta — DLQ
@@ -525,6 +539,11 @@ export default {
       // useNewUrlParser: true,
       // useUnifiedTopology: true,
     },
+  },
+  document_approval: {
+    reminder_enabled: envVars.data.DOCUMENT_APPROVAL_REMINDER_ENABLED,
+    reminder_cron: envVars.data.DOCUMENT_APPROVAL_REMINDER_CRON,
+    seed_on_start: envVars.data.DOCUMENT_APPROVAL_SEED_ON_START,
   },
   jwt: {
     secret: envVars.data.JWT_SECRET,

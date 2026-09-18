@@ -33,6 +33,8 @@ void meet::signbysecr(name coopname, name username, checksum256 hash, document2 
 
     // Проверяем документ
     verify_document_or_fail(secretary_decision, {meet_record.secretary});
+    // Протокол подписан ключом самого секретаря собрания.
+    verify_signer_keys_or_fail(secretary_decision, meet_record.secretary);
 
     // Обновляем запись в таблице, сохраняя решение секретаря
     Meet::meets_index genmeets(_meet, coopname.value);

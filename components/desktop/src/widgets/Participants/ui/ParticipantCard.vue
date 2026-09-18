@@ -1,6 +1,7 @@
 <template lang="pug">
 .participant-card
-  .participant-card__head(@click='$emit("toggle-expand")')
+  //- Карточка открывает данные пайщика в правом дроуэре (во весь экран).
+  .participant-card__head(@click='emit("open")')
     .participant-card__top
       .participant-card__avatar
         q-icon(name='person', size='20px')
@@ -20,10 +21,7 @@
           q-icon.participant-card__field-icon(name='mail', size='14px')
             q-tooltip Email
           span.participant-card__field-text {{ participant.provider_account?.email || 'Email не указан' }}
-      q-icon.participant-card__chevron(
-        :name='expanded ? "expand_less" : "expand_more"',
-        size='20px'
-      )
+      q-icon.participant-card__chevron(name='chevron_right', size='20px')
     //- Статус, дата и удаление — отдельной строкой под идентификацией, чтобы
     //- широкий бейдж («Ожидает решения совета») не сжимал имя/аккаунт/email
     //- до пары букв на узком экране.
@@ -33,44 +31,21 @@
       .participant-card__meta-right
         span.participant-card__date {{ joinDate(participant) }}
 
-  q-slide-transition
-    .participant-card__body(v-show='expanded')
-      ParticipantDetails(
-        :participant='participant',
-        :naming='naming',
-        @update='onUpdate',
-        @verification-changed='emit("verification-changed")'
-      )
 </template>
 
 <script setup lang="ts">
 import { copyToClipboard, Notify } from 'quasar';
 import moment from 'src/shared/lib/utils/dates/moment';
-import ParticipantDetails from './ParticipantDetails.vue';
 import { getName } from 'src/shared/lib/utils';
 import { getAccountStatusBadge } from 'src/entities/Account';
-import type { VerificationNaming } from 'src/shared/lib/verification';
-import {
-  type IAccount,
-  type IIndividualData,
-  type IOrganizationData,
-  type IEntrepreneurData,
-} from 'src/entities/Account/types';
+import type { IAccount } from 'src/entities/Account/types';
 
-const props = defineProps<{
+defineProps<{
   participant: IAccount;
-  expanded?: boolean;
-  /** Как называть верификатора и участок в подписи уровня. */
-  naming?: VerificationNaming;
 }>();
 
 const emit = defineEmits<{
-  'toggle-expand': [];
-  'verification-changed': [];
-  update: [
-    participant: IAccount,
-    newData: IIndividualData | IOrganizationData | IEntrepreneurData,
-  ];
+  open: [];
 }>();
 
 async function copyText(text: string): Promise<void> {
@@ -84,9 +59,17 @@ async function copyText(text: string): Promise<void> {
 }
 
 // Форматирование даты
-const formatDate = (date?: string) => {
-  if (!date) return 'Дата не указана';
-  const formatted = moment(date).format('DD.MM.YY');
+// Дата приходит из SDK и строкой (ISO), и объектом Date, а тип у неё в схеме
+// неизвестный. `String(date)` на объекте даёт «Wed Jan 15 2025 …» — moment
+// такой вид не разбирает, ругается в консоль и уходит в разбор силами
+// браузера. Поэтому значение отдаём как есть, приводя тип на месте.
+const asDateInput = (value: unknown): string | Date | undefined =>
+  value instanceof Date || typeof value === 'string' ? value : undefined;
+
+const formatDate = (date?: unknown) => {
+  const input = asDateInput(date);
+  if (!input) return 'Дата не указана';
+  const formatted = moment(input).format('DD.MM.YY');
   return formatted === 'Invalid date' ? 'Дата не указана' : formatted;
 };
 
@@ -94,23 +77,15 @@ const formatDate = (date?: string) => {
 // фолбэк на дату регистрации аккаунта on-chain (user_account.registered_at).
 const joinDate = (row: IAccount): string => {
   const raw = row.participant_account?.created_at || row.user_account?.registered_at;
-  return formatDate(raw ? String(raw) : undefined);
-};
-
-const onUpdate = (
-  newData: IIndividualData | IOrganizationData | IEntrepreneurData,
-) => {
-  emit('update', props.participant, newData);
+  return formatDate(raw);
 };
 </script>
 
 <style lang="scss" scoped>
 .participant-card {
   width: 100%;
-  /* Отступ между карточками вешаем на саму карточку (внутри grid-item):
-     virtual-scroll меряет высоту контента и учитывает этот margin, тогда как
-     margin на самом .q-table__grid-item он игнорирует. */
-  margin-bottom: 10px;
+  /* Отступ между карточками списка на телефоне. */
+  margin-bottom: var(--p-3, 12px);
   background: var(--p-surface);
   border: 1px solid var(--p-line);
   border-radius: var(--p-r-lg, 16px);
@@ -157,7 +132,7 @@ const onUpdate = (
 }
 /* Имя/аккаунт/email обрезаются «…» в одну строку, а не рассыпаются в столбик
    по буквам, когда бейдж «Активный пайщик» съедает ширину meta-колонки.
-   Полные значения видны в раскрытой карточке (ParticipantDetails). */
+   Полные значения видны в дроуэре с данными пайщика (ParticipantDetails). */
 .participant-card__name {
   font-size: var(--p-fs-h3, 15px);
   font-weight: 600;
@@ -226,9 +201,5 @@ const onUpdate = (
   align-self: flex-start;
   margin-top: 2px;
   color: var(--p-ink-3);
-}
-
-.participant-card__body {
-  border-top: 1px solid var(--p-line);
 }
 </style>

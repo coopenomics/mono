@@ -17,6 +17,8 @@
 void capital::approvereg(eosio::name coopname, eosio::name username, checksum256 contributor_hash, document2 contract) {
   name payer = check_auth_and_get_payer_or_fail(contracts_whitelist);
   verify_document_or_fail(contract);
+  // Договор подписан ключом аккаунта того, кто его утверждает.
+  verify_signer_keys_or_fail(contract, username);
   
   auto exist = Capital::Contributors::get_contributor_by_hash(coopname, contributor_hash);
   eosio::check(exist.has_value(), "Пайщик не обладает подписанным договором УХД");

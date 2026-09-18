@@ -452,3 +452,17 @@ cases:
       корзине с причиной; если не прошла ни одна — транзакция не отправляется
     test: components/controller/src/extensions/marketplace/application/services/marketplace-checkout.service.spec.ts
     status: passing
+
+  - id: mkt.order.show.01
+    level: ui
+    kind: break
+    scenario: >
+      Акт приёма-передачи открыт поставщиком в кабинете, а в анкетных данных пайщика
+      или в названии организации есть разметка.
+    expect: >
+      разметка показывается как текст и не выполняется. Документ собирается с
+      выключенным автоэкранированием намеренно, поэтому очистка стоит при
+      показе; вид документа (таблицы, выравнивание, собственный <style>) не
+      меняется. Общее описание — desktop.document-html-display, задача C28-74
+    test: ~
+    status: missing

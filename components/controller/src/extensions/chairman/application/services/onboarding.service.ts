@@ -13,6 +13,7 @@ import type { ISignedDocument } from '@coopenomics/innercoop';
 import { MEET_PORT, IMeetPort } from '@coopenomics/innercoop';
 import { IDecisionTrackingPort, DECISION_TRACKING_PORT, DecisionEventType } from '@coopenomics/innercoop';
 import { IFreeDecisionPort, FREE_DECISION_PORT } from '@coopenomics/innercoop';
+import { IDocumentApprovalPort, DOCUMENT_APPROVAL_PORT } from '@coopenomics/innercoop';
 
 type OnboardingFlagKey =
   | 'onboarding_wallet_agreement_done'
@@ -23,13 +24,23 @@ type OnboardingFlagKey =
   | 'onboarding_voskhod_membership_done'
   | 'onboarding_general_meet_done';
 
+/** Шаги подключения, закрываемые утверждением документов ядра. */
+const CHAIRMAN_DOCUMENT_STEPS: Array<[ChairmanOnboardingAgendaStepEnum, keyof ChairmanOnboardingStateDTO]> = [
+  [ChairmanOnboardingAgendaStepEnum.wallet_agreement, 'wallet_agreement_done'],
+  [ChairmanOnboardingAgendaStepEnum.signature_agreement, 'signature_agreement_done'],
+  [ChairmanOnboardingAgendaStepEnum.privacy_agreement, 'privacy_agreement_done'],
+  [ChairmanOnboardingAgendaStepEnum.user_agreement, 'user_agreement_done'],
+  [ChairmanOnboardingAgendaStepEnum.participant_application, 'participant_application_done'],
+];
+
 @Injectable()
 export class ChairmanOnboardingService {
   constructor(
     @Inject(EXTENSION_REPOSITORY) private readonly extensionRepository: ExtensionDomainRepository<IConfig>,
     @Inject(FREE_DECISION_PORT) private readonly freeDecisionPort: IFreeDecisionPort,
     @Inject(MEET_PORT) private readonly meetDataPort: IMeetPort,
-    @Inject(DECISION_TRACKING_PORT) private readonly decisionTrackingPort: IDecisionTrackingPort
+    @Inject(DECISION_TRACKING_PORT) private readonly decisionTrackingPort: IDecisionTrackingPort,
+    @Inject(DOCUMENT_APPROVAL_PORT) private readonly documentApprovals: IDocumentApprovalPort
   ) {}
 
   private mapStepToFlag(step: ChairmanOnboardingAgendaStepEnum): OnboardingFlagKey {
@@ -118,6 +129,30 @@ export class ChairmanOnboardingService {
     return extension;
   }
 
+  /**
+   * Шаги про документы ведёт фабрика утверждений: проект решения собирается
+   * из текста шаблона в цепи, утверждение после решения фиксируется в цепи.
+   * `null` — у шага нет документов, он идёт прежним путём.
+   */
+  private async completeViaFactory(
+    step: ChairmanOnboardingAgendaStepEnum,
+    flagKey: OnboardingFlagKey,
+    hashKey: keyof IConfig,
+    username: string,
+    title?: string
+  ): Promise<ChairmanOnboardingStateDTO | null> {
+    const viaFactory = await this.documentApprovals.proposeOnboardingStep({
+      extension_name: 'chairman',
+      step_key: this.mapStepToVarsField(step),
+      username,
+      title,
+    });
+    if (!viaFactory) return null;
+    const patch = (viaFactory.approved ? { [flagKey]: true } : { [hashKey]: viaFactory.hash ?? '' }) as Partial<IConfig>;
+    const updated = await this.extensionRepository.patchConfig('chairman', patch);
+    return this.buildState(updated.config);
+  }
+
   private buildState(config: IConfig): ChairmanOnboardingStateDTO {
     return {
       wallet_agreement_done: !!config.onboarding_wallet_agreement_done,
@@ -141,7 +176,23 @@ export class ChairmanOnboardingService {
 
   public async getState(): Promise<ChairmanOnboardingStateDTO> {
     const extension = await this.loadExtension();
-    return this.buildState(extension.config);
+    const state = this.buildState(extension.config);
+    // Документы могли утвердить с вкладки «Шаблоны документов» — шаг закрыт
+    // утверждением в цепи, даже если флаг в настройке ещё не проставлен.
+    //
+    // Отметку дописываем в настройку, а не только показываем шаг закрытым: по
+    // отметкам определяется, завершено ли подключение кооператива.
+    const healed: Partial<Record<OnboardingFlagKey, boolean>> = {};
+    for (const [step, key] of CHAIRMAN_DOCUMENT_STEPS) {
+      if (!state[key] && (await this.documentApprovals.isStepApproved('chairman', this.mapStepToVarsField(step)))) {
+        Object.assign(state, { [key]: true });
+        healed[this.mapStepToFlag(step)] = true;
+      }
+    }
+    if (Object.keys(healed).length > 0) {
+      await this.extensionRepository.patchConfig('chairman', healed as Partial<IConfig>);
+    }
+    return state;
   }
 
   public async completeAgendaStep(
@@ -156,6 +207,39 @@ export class ChairmanOnboardingService {
     if ((extension.config as any)[flagKey]) {
       return this.buildState(extension.config);
     }
+
+    const viaFactory = await this.completeViaFactory(data.step, flagKey, hashKey, username, normalizedTitle);
+    if (viaFactory) return viaFactory;
+
+    const { project_id, hash: publishedHash, updated } = await this.publishLegacyStep(data, hashKey, username, normalizedTitle);
+
+    // Регистрируем правило отслеживания в фабрике
+    const varsField = this.mapStepToVarsField(data.step);
+
+    await this.decisionTrackingPort.registerTrackingRule({
+      hash: publishedHash,
+      event_type: DecisionEventType.SOVIET_DECISION,
+      vars_field: varsField,
+      metadata: {
+        onboarding_step: data.step,
+        project_id,
+        extension: 'chairman',
+      },
+    });
+
+    return this.buildState(updated.config);
+  }
+
+  /**
+   * Прежний путь шага без документов: проект свободного решения с текстом из
+   * карточки, публикация в повестку, хэш в настройке расширения.
+   */
+  private async publishLegacyStep(
+    data: ChairmanOnboardingAgendaInputDTO,
+    hashKey: keyof IConfig,
+    username: string,
+    normalizedTitle?: string
+  ): Promise<{ project_id: string; hash: string; updated: ExtensionDomainEntity<IConfig> }> {
     const project_id = uuid();
     const actor = username;
 
@@ -203,21 +287,7 @@ export class ChairmanOnboardingService {
       [hashKey]: generatedDoc.hash,
     } as Partial<IConfig>);
 
-    // Регистрируем правило отслеживания в фабрике
-    const varsField = this.mapStepToVarsField(data.step);
-
-    await this.decisionTrackingPort.registerTrackingRule({
-      hash: generatedDoc.hash,
-      event_type: DecisionEventType.SOVIET_DECISION,
-      vars_field: varsField,
-      metadata: {
-        onboarding_step: data.step,
-        project_id,
-        extension: 'chairman',
-      },
-    });
-
-    return this.buildState(updated.config);
+    return { project_id, hash: generatedDoc.hash, updated };
   }
 
   // Сохраняем hash общего собрания, флаг закроется после newresolved

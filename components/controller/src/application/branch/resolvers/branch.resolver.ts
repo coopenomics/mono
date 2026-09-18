@@ -133,7 +133,7 @@ export class BranchResolver {
     description: 'Сгенерировать документ, подтверждающий выбор кооперативного участка',
   })
   @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member', 'user'])
+  @AuthRoles(['chairman', 'member'])
   async generateSelectBranchDocument(
     @Args('data', { type: () => SelectBranchGenerateDocumentInputDTO }) data: SelectBranchGenerateDocumentInputDTO,
     @Args('options', { type: () => GenerateDocumentOptionsInputDTO, nullable: true })

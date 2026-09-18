@@ -1,9 +1,20 @@
 <template>
-  <AuthCard
-    :title="title"
-    :subtitle="subtitle"
-    :max-width="mode === 'save-key' ? 560 : 480"
+  <AuthSplit
+    :eyebrow="coopTitle"
+    title="Перевыпуск ключа"
+    lead="Новый ключ доступа создаётся в вашем браузере и заменяет утерянный."
+    quote="Ключ подписывает документы от вашего имени — храните его в менеджере паролей."
+    step-eyebrow="Перевыпуск ключа"
+    :heading="title"
+    :text="subtitle"
+    :size="mode === 'save-key' ? 'md' : 'sm'"
   >
+    <template v-if="$slots.actions" #actions>
+      <slot name="actions" />
+    </template>
+    <template v-if="$slots['pane-foot']" #pane-foot>
+      <slot name="pane-foot" />
+    </template>
     <!-- Шаг ожидания письма -->
     <template v-if="mode === 'check-mail'">
       <BaseBanner variant="info">
@@ -43,12 +54,7 @@
         </BaseButton>
       </div>
 
-      <q-checkbox
-        v-model="iSave"
-        class="rk-form__confirm"
-        label="Я сохранил ключ"
-        color="primary"
-      />
+      <BaseCheckbox v-model="iSave" class="rk-form__confirm" label="Я сохранил ключ" />
 
       <BaseButton
         variant="primary"
@@ -66,13 +72,18 @@
         Не удалось сгенерировать ключ. Обновите страницу и попробуйте снова.
       </BaseBanner>
     </template>
-  </AuthCard>
+    <template v-if="$slots.footer" #foot>
+      <slot name="footer" />
+    </template>
+  </AuthSplit>
 </template>
 
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { copyToClipboard, Notify } from 'quasar';
-import { AuthCard } from 'src/shared/ui/domain/AuthCard';
+import { AuthSplit } from 'src/shared/ui/layout/AuthSplit';
+import { BaseCheckbox } from 'src/shared/ui/base/BaseCheckbox';
+import { useSystemStore } from 'src/entities/System/model';
 import type { ResetKeyFormProps } from './ResetKeyForm.types';
 
 const props = withDefaults(defineProps<ResetKeyFormProps>(), {
@@ -84,6 +95,9 @@ const emit = defineEmits<{
   copy: [];
   submit: [];
 }>();
+
+const systemStore = useSystemStore();
+const coopTitle = computed(() => systemStore.cooperativeDisplayName);
 
 const copied = ref(false);
 const iSave = ref(false);
@@ -141,11 +155,8 @@ function submit(): void {
 .rk-form__copy {
   display: flex;
   justify-content: flex-end;
-  margin-top: -8px;
-  margin-bottom: var(--p-2, 8px);
 }
 .rk-form__confirm {
-  margin: var(--p-2, 8px) 0;
   color: var(--p-ink);
 }
 </style>

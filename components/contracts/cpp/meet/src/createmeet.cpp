@@ -19,6 +19,9 @@ void meet::createmeet(name coopname, checksum256 hash, eosio::name initiator, na
   require_auth(coopname);
   
   verify_document_or_fail(proposal);
+  // Предложение о созыве подписывает инициатор: транзакцию шлёт кооператив,
+  // и без сверки ключа собрание можно было бы созвать от чужого имени.
+  verify_signer_keys_or_fail(proposal, initiator);
   
   auto exist = get_meet(coopname, hash);
   eosio::check(!exist.has_value(), "Объект общего собрания с указанным идентификатором уже существует");

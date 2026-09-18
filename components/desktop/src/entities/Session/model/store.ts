@@ -24,8 +24,20 @@ import { useSystemStore } from 'src/entities/System/model';
 import { WalletPluginCoopId } from '../lib/walletPluginCoopId';
 import { createCoopIdStorage } from '../lib/coopidStorage';
 
+/** Состояние серверной сессии по cookie: гость, действующая, истёкшая, неизвестно. */
+type ServerSessionStatus = 'guest' | 'active' | 'expired' | 'unknown' | null;
+
 interface ISessionStore {
   isAuth: Ref<boolean>;
+  /** Сессия поднята с сервера по cookie (серверный рендер узнал пайщика). */
+  hydratedFromServer: Ref<boolean>;
+  /** Сервер ответил, что сессия истекла: локальный вход надо снять. */
+  serverSessionExpired: Ref<boolean>;
+  serverSessionStatus: Ref<ServerSessionStatus>;
+  /** Применить сессию, полученную с сервера: имя пайщика и, если есть, аккаунт. */
+  applyServerSession: (input: { username: string; account?: IAccount | null }) => void;
+  markServerSessionExpired: () => void;
+  setServerSessionStatus: (status: 'guest' | 'unknown') => void;
   username: ComputedRef<string>;
   displayName: ComputedRef<string>;
   init: () => Promise<void>;
@@ -105,7 +117,7 @@ export const useSessionStore = defineStore('session', (): ISessionStore => {
   const serverSessionExpired = ref(false);
   // Что серверный рендер знал о пайщике: гидратируется на клиент, чтобы тот
   // понял, узнал ли его сервер (и нужно ли поставить cookie сессии).
-  const serverSessionStatus = ref<'guest' | 'active' | 'expired' | 'unknown' | null>(null);
+  const serverSessionStatus = ref<ServerSessionStatus>(null);
   const currentUserAccount = ref<IAccount | undefined>();
 
   const session = ref();

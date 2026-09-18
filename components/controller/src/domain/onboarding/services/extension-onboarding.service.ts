@@ -1,4 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { ONBOARDING_COMPLETED_EVENT } from '@coopenomics/innercoop';
 import { v4 as uuid } from 'uuid';
 import { Cooperative } from 'cooptypes';
 import {
@@ -15,6 +17,7 @@ import type { IExtensionOnboardingStepSpec } from '../dto/extension-onboarding-s
 import config from '~/config/config';
 import { DECISION_TRACKING_PORT, IDecisionTrackingPort, DecisionEventType } from '@coopenomics/innercoop';
 import { FREE_DECISION_PORT, IFreeDecisionPort } from '@coopenomics/innercoop';
+import { DocumentApprovalOnboardingAdapter } from '~/domain/document-approval/services/document-approval-onboarding.adapter';
 
 export interface IExtensionOnboardingStepState {
   step_key: string;
@@ -70,7 +73,9 @@ export class ExtensionOnboardingService {
     @Inject(DECISION_TRACKING_PORT)
     private readonly decisionTrackingPort: IDecisionTrackingPort,
     @Inject(ONBOARDING_STEP_QUERY_PORT)
-    private readonly stepsRegistry: OnboardingStepQueryPort
+    private readonly stepsRegistry: OnboardingStepQueryPort,
+    private readonly documentApprovals: DocumentApprovalOnboardingAdapter,
+    private readonly eventEmitter: EventEmitter2
   ) {}
 
   private async loadExtension(extension_name: string) {
@@ -99,20 +104,49 @@ export class ExtensionOnboardingService {
     return { ...extension, config: extensionConfig };
   }
 
+  /**
+   * Дописывает отметки шагов, закрытых утверждением в цепи. Если дописана
+   * последняя — подключение завершено: расширение перезапустится и доделает то,
+   * что ждало решения совета.
+   */
+  private async persistHealedFlags(
+    extension_name: string,
+    healed: Record<string, boolean>,
+    allDone: boolean
+  ): Promise<void> {
+    if (Object.keys(healed).length === 0) return;
+    await this.extensionRepository.patchConfig(extension_name, healed);
+    if (allDone) this.eventEmitter.emit(ONBOARDING_COMPLETED_EVENT, { extension_name });
+  }
+
   public async getState(
     extension_name: string
   ): Promise<IExtensionOnboardingState> {
     const extension = await this.loadExtension(extension_name);
     const specs = this.stepsRegistry.getStepsByExtension(extension_name);
 
-    const steps: IExtensionOnboardingStepState[] = specs.map((spec) => ({
-      step_key: spec.step_key,
-      done: Boolean(extension.config[doneKey(spec.step_key)]),
-      hash:
-        (extension.config[hashKey(spec.step_key)] as string | undefined) || null,
-      order: spec.order,
-      default_title: spec.default_title ?? null,
-    }));
+    // Шаг про документы считается пройденным и по утверждениям в цепи:
+    // документы могли утвердить с вкладки «Шаблоны документов», минуя карточку.
+    //
+    // Отметку в настройке при этом дописываем, а не только показываем шаг
+    // закрытым: по отметкам расширение решает, завершено ли подключение. Иначе
+    // карточка говорит «всё принято», а расширение остаётся неподключённым.
+    const steps: IExtensionOnboardingStepState[] = [];
+    const healed: Record<string, boolean> = {};
+    for (const spec of specs) {
+      const flagged = Boolean(extension.config[doneKey(spec.step_key)]);
+      const done = flagged || (await this.documentApprovals.isStepApproved(extension_name, spec.step_key));
+      if (done && !flagged) healed[doneKey(spec.step_key)] = true;
+      steps.push({
+        step_key: spec.step_key,
+        done,
+        hash: (extension.config[hashKey(spec.step_key)] as string | undefined) || null,
+        order: spec.order,
+        default_title: spec.default_title ?? null,
+      });
+    }
+
+    await this.persistHealedFlags(extension_name, healed, steps.every((s) => s.done));
 
     return {
       extension_name,
@@ -174,6 +208,9 @@ export class ExtensionOnboardingService {
     input: ICompleteExtensionOnboardingStepInput,
     username: string
   ): Promise<string> {
+    const viaFactory = await this.runFactoryGenerator(spec, input, username);
+    if (viaFactory !== null) return viaFactory;
+
     if (!input.question || !input.decision) {
       throw new Error(
         `Шаг ${spec.extension_name}/${spec.step_key} (generator='free_decision') требует question и decision`
@@ -235,6 +272,29 @@ export class ExtensionOnboardingService {
     });
 
     return generatedDoc.hash;
+  }
+
+  /**
+   * Шаг с объявленными документами ведёт фабрика утверждений: проект решения
+   * собирается из текста в цепи, после решения утверждение фиксируется в цепи.
+   * Текст из карточки не используется. `null` — у шага нет документов.
+   */
+  private async runFactoryGenerator(
+    spec: IExtensionOnboardingStepSpec,
+    input: ICompleteExtensionOnboardingStepInput,
+    username: string
+  ): Promise<string | null> {
+    const viaFactory = await this.documentApprovals.proposeOnboardingStep({
+      extension_name: spec.extension_name,
+      step_key: spec.step_key,
+      username,
+      title: input.title,
+    });
+    if (!viaFactory) return null;
+    if (viaFactory.approved) {
+      await this.extensionRepository.patchConfig(spec.extension_name, { [doneKey(spec.step_key)]: true });
+    }
+    return viaFactory.hash ?? '';
   }
 
   private async runMeetGenerator(

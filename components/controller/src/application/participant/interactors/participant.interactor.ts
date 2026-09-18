@@ -11,6 +11,7 @@ import { UserDomainService, USER_DOMAIN_SERVICE } from '~/domain/user/services/u
 import { TokenApplicationService } from '~/application/token/services/token-application.service';
 import type { RegisterParticipantDomainInterface } from '~/domain/participant/interfaces/register-participant-domain.interface';
 import { CANDIDATE_REPOSITORY, CandidateRepository } from '~/domain/account/repository/candidate.repository';
+import { checkIntakeAnswers } from '~/domain/registration/utils/intake-answers.utils';
 import { userStatus } from '~/types/user.types';
 import { normalizeUserEmail } from '~/utils/normalize-user-email';
 import { sha256 } from '~/utils/sha256';
@@ -177,6 +178,17 @@ export class ParticipantInteractor {
       );
     }
 
+    // ПРОВЕРКА 2а: анкеты вступления. Что заполнять, решает реестр на сервере,
+    // а не клиент: без ответа, проходящего схему расширения, заявка не принимается.
+    const intakeCheck = checkIntakeAnswers(
+      this.agreementConfigurationService.getRequiredIntakeForms(candidate.type as AccountType, data.program_key),
+      data.intake_answers
+    );
+    if (intakeCheck.problems.length > 0) {
+      throw new HttpApiError(http.BAD_REQUEST, intakeCheck.problems.join('; '));
+    }
+    const intakeAnswers = intakeCheck.answers;
+
     // ПРОВЕРКА 3: Валидируем все собранные документы с проверкой оригиналов в базе
     const validationResults = await this.documentValidationService.validateRegistrationDocuments(documentsToValidate);
 
@@ -258,6 +270,7 @@ export class ParticipantInteractor {
       braname: data.braname,
       program_key: data.program_key,
       meta: JSON.stringify(candidateMeta),
+      intake_answers: intakeAnswers,
     });
 
     // Обновляем статус пользователя
@@ -285,6 +298,9 @@ export class ParticipantInteractor {
       braname: data.braname,
       account_type: candidate.type,
       ...offerHashes, // Передаем хэши оферт
+      intake_answers: Object.fromEntries(
+        Object.entries(intakeAnswers).map(([formId, answer]) => [formId, answer.values])
+      ),
     });
 
     this.logger.log(`Успешно зарегистрированы документы для кандидата ${data.username}`);

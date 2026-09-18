@@ -36,6 +36,8 @@ void meet::restartmeet(name coopname, checksum256 hash, checksum256 new_hash, do
 
     // Проверяем документ нового предложения
     verify_document_or_fail(newproposal);
+    // Созыв повторного собрания подписывает инициатор прежнего.
+    verify_signer_keys_or_fail(newproposal, meet_record.initiator);
 
     // Обновляем запись собрания
     Meet::meets_index genmeets(_meet, coopname.value);

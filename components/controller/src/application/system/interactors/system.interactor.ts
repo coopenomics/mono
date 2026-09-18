@@ -1,4 +1,4 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { ForbiddenException, Inject, Injectable, Logger } from '@nestjs/common';
 import { SYSTEM_BLOCKCHAIN_PORT, SystemBlockchainPort } from '~/domain/system/interfaces/system-blockchain.port';
 import { SystemInfoDomainEntity } from '~/domain/system/entities/systeminfo-domain.entity';
 import config from '~/config/config';
@@ -102,6 +102,19 @@ export class SystemInteractor {
       install_code: installCode,
       coopname: config.coopname,
     };
+  }
+
+  /**
+   * Установка совета и данных организации до активации кооператива открыта
+   * без входа — учётных записей ещё нет. Единственное, что отличает владельца
+   * от постороннего, — код установки: его выдаёт `startInstall` тому, кто
+   * показал ключ кооператива. Провайдер с межсервисным секретом кода не имеет.
+   */
+  async assertInstallCode(code: string | undefined, trusted: boolean): Promise<void> {
+    if (trusted) return;
+    if (!code || !(await this.monoStatusRepository.validateInstallCode(code))) {
+      throw new ForbiddenException('Неверный или истекший код установки — начните установку заново с ключа кооператива');
+    }
   }
 
   async getInstallationStatus(data: GetInstallationStatusInputDomainInterface): Promise<InstallationStatusDomainInterface> {

@@ -172,6 +172,12 @@ export function useCreateUser() {
       data.marketplace_offer = marketplaceDoc.signed_document;
     }
 
+    // Ответы на анкеты вступления — только по анкетам, положенным этому
+    // заявителю; сервер сверит их со своим реестром и схемами расширений.
+    if (registratorStore.requiresIntake) {
+      data.intake_answers = registratorStore.intakeAnswersForSubmit;
+    }
+
     await api.sendStatement(data);
   }
 

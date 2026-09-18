@@ -27,7 +27,7 @@ export class ExpenseFilesResolver {
     @Args('data', { type: () => UploadExpenseFileInputDTO }) data: UploadExpenseFileInputDTO,
     @CurrentUser() user: IMonoAccount
   ): Promise<ExpenseFileOutputDTO> {
-    const { data: saved, readUrl } = await this.expenseFiles.uploadFile(data, user.username);
+    const { data: saved, readUrl } = await this.expenseFiles.uploadFile(data, user);
     return ExpenseFileOutputDTO.fromDomain(saved, readUrl);
   }
 
@@ -37,8 +37,11 @@ export class ExpenseFilesResolver {
   })
   @UseGuards(GqlJwtAuthGuard, RolesGuard)
   @AuthRoles(['chairman', 'member', 'user'])
-  async getExpenseFile(@Args('id', { type: () => Int }) id: number): Promise<ExpenseFileOutputDTO> {
-    const { data, readUrl } = await this.expenseFiles.getReadUrl(id);
+  async getExpenseFile(
+    @Args('id', { type: () => Int }) id: number,
+    @CurrentUser() user: IMonoAccount
+  ): Promise<ExpenseFileOutputDTO> {
+    const { data, readUrl } = await this.expenseFiles.getReadUrl(id, user);
     return ExpenseFileOutputDTO.fromDomain(data, readUrl);
   }
 
@@ -50,9 +53,10 @@ export class ExpenseFilesResolver {
   @AuthRoles(['chairman', 'member', 'user'])
   async listByProposal(
     @Args('coopname', { type: () => String }) coopname: string,
-    @Args('proposal_hash', { type: () => String }) proposalHash: string
+    @Args('proposal_hash', { type: () => String }) proposalHash: string,
+    @CurrentUser() user: IMonoAccount
   ): Promise<ExpenseFileOutputDTO[]> {
-    const items = await this.expenseFiles.listByProposal(coopname, proposalHash);
+    const items = await this.expenseFiles.listByProposal(coopname, proposalHash, user);
     return items.map((d) => ExpenseFileOutputDTO.fromDomain(d));
   }
 
@@ -65,9 +69,10 @@ export class ExpenseFilesResolver {
   async listByItem(
     @Args('coopname', { type: () => String }) coopname: string,
     @Args('proposal_hash', { type: () => String }) proposalHash: string,
-    @Args('item_hash', { type: () => String }) itemHash: string
+    @Args('item_hash', { type: () => String }) itemHash: string,
+    @CurrentUser() user: IMonoAccount
   ): Promise<ExpenseFileOutputDTO[]> {
-    const items = await this.expenseFiles.listByItem(coopname, proposalHash, itemHash);
+    const items = await this.expenseFiles.listByItem(coopname, proposalHash, itemHash, user);
     return items.map((d) => ExpenseFileOutputDTO.fromDomain(d));
   }
 }

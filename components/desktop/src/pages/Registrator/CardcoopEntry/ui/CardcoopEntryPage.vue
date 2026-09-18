@@ -1,6 +1,17 @@
 <template>
   <div class="cardcoop-entry-page">
-    <AuthCard :title="title" :subtitle="subtitle">
+    <AuthSplit
+      :eyebrow="coopTitle"
+      title="Карта кооператора"
+      lead="Карта опознаёт вас в сети кооперативов и переносит анкету туда, куда вы вступаете."
+      quote="Анкета передаётся с вашего согласия и напрямую, минуя сеть."
+      step-eyebrow="Вход по карте"
+      :heading="title"
+      :text="subtitle"
+    >
+      <template #actions>
+        <AuthActions />
+      </template>
       <!-- Ошибка входа: человек передумал на card.coop либо обмен не удался -->
       <template v-if="failed">
         <BaseBanner variant="info">
@@ -121,7 +132,7 @@
           </div>
         </template>
       </template>
-    </AuthCard>
+    </AuthSplit>
   </div>
 </template>
 
@@ -132,7 +143,9 @@ import { Queries, Mutations, Zeus } from '@coopenomics/sdk';
 import { client } from 'src/shared/api/client';
 import { FailAlert } from 'src/shared/api';
 import { useRegistratorStore } from 'src/entities/Registrator';
-import { AuthCard } from 'src/shared/ui/domain/AuthCard';
+import { AuthSplit } from 'src/shared/ui/layout/AuthSplit';
+import { AuthActions } from 'src/widgets/Registrator/AuthActions';
+import { useSystemStore } from 'src/entities/System/model';
 import { BaseBanner, BaseButton } from 'src/shared/ui/base';
 
 /**
@@ -156,6 +169,8 @@ const taking = ref(false);
 /** Сессия не найдена или истекла: показываем то же, что и при сорванном входе. */
 const gone = ref(false);
 
+const systemStore = useSystemStore();
+const coopTitle = computed(() => systemStore.cooperativeDisplayName);
 const entryId = computed(() => String(route.query.entry ?? ''));
 const failed = computed(() => Boolean(route.query.error) || !entryId.value || gone.value);
 
@@ -312,11 +327,7 @@ onUnmounted(() => stopPolling());
 
 <style scoped>
 .cardcoop-entry-page {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: var(--p-6);
-  min-height: 100%;
+  min-height: inherit;
 }
 
 .cardcoop-entry-page__sources {

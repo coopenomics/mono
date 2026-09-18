@@ -35,6 +35,8 @@ export class ContractManagementResolver {
     description: 'Получение полного состояния CAPITAL контракта кооператива',
     nullable: true,
   })
+  @UseGuards(GqlJwtAuthGuard, RolesGuard)
+  @AuthRoles(['chairman', 'member', 'user'])
   async getCapitalState(@Args('data') data: GetCapitalConfigInputDTO): Promise<StateOutputDTO | null> {
     const result = await this.contractManagementService.getState(data);
     return result;

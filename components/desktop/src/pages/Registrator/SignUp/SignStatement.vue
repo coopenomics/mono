@@ -1,10 +1,5 @@
 <template lang="pug">
-div
-  q-step(
-    :name='store.steps.SignStatement',
-    title='Подпишите заявление на вступление',
-    :done='store.isStepDone("SignStatement")'
-  )
+div(v-show='store.isStep("SignStatement")')
     div(v-if='onSign')
       Loader(:text='loadingText')
 
@@ -18,7 +13,7 @@ div
         p.signature-hint Оставьте собственноручную подпись в рамке
       .row.q-gutter-md.q-mt-lg.q-mb-lg
         BaseButton(variant='ghost', @click='store.prev()')
-          i.fa.fa-arrow-left
+          q-icon(name='arrow_back')
           span.q-ml-md назад
 
         BaseButton(variant='ghost', @click='clearCanvas') очистить

@@ -18,12 +18,15 @@ import { MembershipExitDTO } from '../dto/membership-exit.dto';
 export class MembershipExitResolver {
   constructor(private readonly membershipExitService: MembershipExitService) {}
 
+  // Заявление печатает адрес, дату рождения и телефон выходящего, поэтому
+  // за себя его генерирует сам пайщик (самообход `RolesGuard`), за другого — совет.
   @Mutation(() => GeneratedDocumentDTO, {
     name: 'generateMembershipExitApplication',
     description: 'Сгенерировать документ заявления о выходе из кооператива.',
   })
   @Throttle({ default: { limit: 3, ttl: 60000 } })
-  @UseGuards(GqlJwtAuthGuard)
+  @UseGuards(GqlJwtAuthGuard, RolesGuard)
+  @AuthRoles(['chairman', 'member'])
   async generateMembershipExitApplication(
     @Args('data', { type: () => MembershipExitApplicationGenerateDocumentInputDTO })
     data: MembershipExitApplicationGenerateDocumentInputDTO,

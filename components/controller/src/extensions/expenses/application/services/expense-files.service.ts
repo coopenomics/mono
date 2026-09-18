@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Inject,
   Injectable,
   NotFoundException,
@@ -15,8 +16,12 @@ import {
 import type { IExpenseFileDatabaseData } from '../../domain/interfaces/expense-file-database.interface';
 import { EXPENSES_BUCKET } from '../../constants/expenses-bucket';
 import { UploadExpenseFileInputDTO } from '../dto/upload-expense-file.input';
-import { PAYMENT_PORT, type IPaymentPort } from '@coopenomics/innercoop';
+import { PAYMENT_PORT, type IPaymentPort, type IMonoAccount } from '@coopenomics/innercoop';
 import { InjectBucket, UseBucket } from '@coopenomics/extension-kit';
+import {
+  EXPENSE_PROPOSAL_REPOSITORY,
+  type ExpenseProposalRepository,
+} from '../../domain/repositories/expense-proposal.repository';
 
 const EXTENSION_BY_MIME: Record<string, string> = {
   'image/jpeg': 'jpg',
@@ -39,13 +44,36 @@ export class ExpenseFilesService {
   constructor(
     @InjectBucket() private readonly bucket: InnerFileStorageBucket,
     @Inject(EXPENSE_FILE_REPOSITORY) private readonly files: ExpenseFileRepository,
-    @Inject(PAYMENT_PORT) private readonly payments: IPaymentPort
+    @Inject(PAYMENT_PORT) private readonly payments: IPaymentPort,
+    @Inject(EXPENSE_PROPOSAL_REPOSITORY) private readonly proposals: ExpenseProposalRepository
   ) {}
+
+  /**
+   * Кому доступны файлы сметы: совету, подавшему смету и получателю строки
+   * (для файла уровня сметы — любому её получателю). Роль в guard'е этого
+   * не различает: по ней проходит любой принятый пайщик, а платёжки и чеки
+   * чужого расхода ему не принадлежат.
+   */
+  private async assertMayAccess(user: IMonoAccount, proposalHash: string, itemHash: string | null): Promise<void> {
+    if (user.role === 'chairman' || user.role === 'member') return;
+    const proposal = await this.proposals.findByProposalHash(proposalHash.toLowerCase());
+    if (proposal) {
+      if (proposal.username === user.username) return;
+      const items = proposal.items ?? [];
+      const own = itemHash
+        ? items.some((i) => i.item_hash?.toLowerCase() === itemHash.toLowerCase() && i.recipient === user.username)
+        : items.some((i) => i.recipient === user.username);
+      if (own) return;
+    }
+    throw new ForbiddenException('Файлы расхода доступны совету, подавшему смету и получателю строки');
+  }
 
   async uploadFile(
     input: UploadExpenseFileInputDTO,
-    uploadedByUsername: string
+    user: IMonoAccount
   ): Promise<{ data: IExpenseFileDatabaseData; readUrl: string }> {
+    await this.assertMayAccess(user, input.proposal_hash, input.item_hash ?? null);
+    const uploadedByUsername = user.username;
     const body = Buffer.from(input.content_base64, 'base64');
     if (body.byteLength !== input.size_bytes) {
       throw new BadRequestException(
@@ -117,22 +145,26 @@ export class ExpenseFilesService {
     });
   }
 
-  async getReadUrl(fileId: number): Promise<{ data: IExpenseFileDatabaseData; readUrl: string }> {
+  async getReadUrl(fileId: number, user: IMonoAccount): Promise<{ data: IExpenseFileDatabaseData; readUrl: string }> {
     const file = await this.files.findById(fileId);
     if (!file) throw new NotFoundException(`Файл расхода #${fileId} не найден.`);
+    await this.assertMayAccess(user, file.proposal_hash, file.item_hash ?? null);
     const readUrl = await this.bucket.getReadUrl(file.storage_key);
     return { data: file, readUrl };
   }
 
-  async listByProposal(coopname: string, proposalHash: string): Promise<IExpenseFileDatabaseData[]> {
+  async listByProposal(coopname: string, proposalHash: string, user: IMonoAccount): Promise<IExpenseFileDatabaseData[]> {
+    await this.assertMayAccess(user, proposalHash, null);
     return this.files.findByProposal(coopname, proposalHash.toLowerCase());
   }
 
   async listByItem(
     coopname: string,
     proposalHash: string,
-    itemHash: string
+    itemHash: string,
+    user: IMonoAccount
   ): Promise<IExpenseFileDatabaseData[]> {
+    await this.assertMayAccess(user, proposalHash, itemHash);
     return this.files.findByItem(coopname, proposalHash.toLowerCase(), itemHash.toLowerCase());
   }
 

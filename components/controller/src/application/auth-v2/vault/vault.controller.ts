@@ -1,31 +1,20 @@
-import { Body, Controller, Get, HttpCode, NotFoundException, Param, Post, UseFilters, UseGuards } from '@nestjs/common';
-import type { EncryptedVaultBlob, VaultSubjectType } from '~/domain/auth-v2/vault/vault.types';
+import { Controller, Get, NotFoundException, Param, UseFilters, UseGuards } from '@nestjs/common';
+import type { EncryptedVaultBlob } from '~/domain/auth-v2/vault/vault.types';
 import { AuthV2ExceptionFilter } from '../exceptions/auth-v2-exception.filter';
 import { AuthRateLimit } from '../rate-limit/auth-rate-limit.decorator';
 import { AuthRateLimitGuard } from '../rate-limit/auth-rate-limit.guard';
 import { LOGIN_IP_RULE } from '../rate-limit/auth-rate-limit.types';
 import { VaultService } from './vault.service';
 
-interface StoreVaultDto extends EncryptedVaultBlob {
-  subject_type: VaultSubjectType;
-  subject_id: string;
-}
-
 /**
- * REST-приём зашифрованного блоба от клиента (Story 2.1). Тело уже зашифровано
- * на клиенте — сервер только сохраняет. Авторизация bearer/grant — Эпик 6 (CASL);
- * на этапе 2.1 эндпоинт принимает blob как есть (write-only, без чтения секретов).
+ * Чтение зашифрованного блоба пайщика. Запись здесь не принимается: без
+ * доказательства владения ключом открытый POST позволял перезаписать чужой
+ * блоб. Блоб пишут только потоки, проверившие подпись ключом, — миграция
+ * (`POST /coop/migration`) и восстановление доступа.
  */
 @Controller('coop/vault')
 export class VaultController {
   constructor(private readonly vault: VaultService) {}
-
-  @Post()
-  @HttpCode(201)
-  async store(@Body() dto: StoreVaultDto): Promise<void> {
-    const { subject_type, subject_id, ...blob } = dto;
-    await this.vault.store({ subject_type, subject_id }, blob);
-  }
 
   /**
    * Отдаёт ТОЛЬКО зашифрованный blob пайщика (Story 2.2): SDK расшифровывает его

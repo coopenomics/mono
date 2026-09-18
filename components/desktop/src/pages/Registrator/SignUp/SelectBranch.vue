@@ -1,17 +1,12 @@
 <template lang="pug">
-div(v-if="store")
-  q-step(
-    :name="store.steps.SelectBranch"
-    title="Выберите кооперативный участок"
-    :done="store.isStepDone('SelectBranch')"
-  )
+div(v-if='store', v-show='store.isStep("SelectBranch")')
     BranchSelector(
       v-model:selectedBranch="store.state.selectedBranch"
       :branches="branches"
     )
     .row.q-gutter-md.q-mt-lg.q-mb-lg
       BaseButton(variant='ghost', @click='store.prev()')
-        i.fa.fa-arrow-left
+        q-icon(name='arrow_back')
         span.q-ml-md назад
 
       BaseButton(

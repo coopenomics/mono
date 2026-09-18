@@ -62,7 +62,8 @@ export class ProcessResolver {
     name: 'capitalGetProcessTemplates',
     description: 'Получение шаблонов процессов для проекта',
   })
-  @UseGuards(GqlJwtAuthGuard)
+  @UseGuards(GqlJwtAuthGuard, RolesGuard)
+  @AuthRoles(['chairman', 'member', 'user'])
   async getProcessTemplates(
     @Args('project_hash', { nullable: true }) projectHash?: string,
   ): Promise<ProcessTemplateDTO[]> {
@@ -77,7 +78,8 @@ export class ProcessResolver {
     description: 'Получение шаблона процесса по ID',
     nullable: true,
   })
-  @UseGuards(GqlJwtAuthGuard)
+  @UseGuards(GqlJwtAuthGuard, RolesGuard)
+  @AuthRoles(['chairman', 'member', 'user'])
   async getProcessTemplate(
     @Args('id') id: string,
   ): Promise<ProcessTemplateDTO | null> {
@@ -120,7 +122,8 @@ export class ProcessResolver {
     name: 'capitalGetProcessInstances',
     description: 'Получение экземпляров процессов для проекта',
   })
-  @UseGuards(GqlJwtAuthGuard)
+  @UseGuards(GqlJwtAuthGuard, RolesGuard)
+  @AuthRoles(['chairman', 'member', 'user'])
   async getProcessInstances(
     @Args('project_hash') projectHash: string,
   ): Promise<ProcessInstanceDTO[]> {
@@ -132,7 +135,8 @@ export class ProcessResolver {
     description: 'Получение экземпляра процесса по ID',
     nullable: true,
   })
-  @UseGuards(GqlJwtAuthGuard)
+  @UseGuards(GqlJwtAuthGuard, RolesGuard)
+  @AuthRoles(['chairman', 'member', 'user'])
   async getProcessInstance(
     @Args('id') id: string,
   ): Promise<ProcessInstanceDTO | null> {

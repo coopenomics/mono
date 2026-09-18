@@ -1,8 +1,19 @@
 <template>
-  <AuthCard
+  <AuthSplit
+    :eyebrow="coopTitle"
     title="Восстановление доступа"
-    subtitle="Подтвердите смену ключа и задайте новый пароль"
+    lead="Задайте новый пароль — ключ доступа перевыпустится, и вы сразу войдёте в кабинет."
+    quote="Старый пароль и ключ перестанут действовать после подтверждения."
+    step-eyebrow="Восстановление"
+    heading="Новый пароль"
+    text="Подтвердите смену ключа и задайте пароль для входа."
   >
+    <template v-if="$slots.actions" #actions>
+      <slot name="actions" />
+    </template>
+    <template v-if="$slots['pane-foot']" #pane-foot>
+      <slot name="pane-foot" />
+    </template>
     <div v-if="finishing" class="recover-confirm__finishing">
       <q-spinner size="2em" color="primary" />
       <span class="recover-confirm__label">Входим…</span>
@@ -46,10 +57,10 @@
         Восстановить доступ
       </BaseButton>
     </BaseForm>
-    <template v-if="$slots.footer" #footer>
+    <template v-if="$slots.footer" #foot>
       <slot name="footer" />
     </template>
-  </AuthCard>
+  </AuthSplit>
 </template>
 
 <script lang="ts" setup>
@@ -61,7 +72,8 @@ import { useDesktopStore } from 'src/entities/Desktop/model';
 import { loadUserContext } from 'src/processes/init-wallet/loadUserContext';
 import { useSessionStore } from 'src/entities/Session';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
-import { AuthCard } from 'src/shared/ui/domain/AuthCard';
+import { AuthSplit } from 'src/shared/ui/layout/AuthSplit';
+import { useSystemStore } from 'src/entities/System/model';
 import { BaseBanner } from 'src/shared/ui/base/BaseBanner';
 import { OtpInput } from 'src/shared/ui/domain/OtpInput';
 
@@ -73,6 +85,8 @@ const props = defineProps<{
 }>();
 
 const router = useRouter();
+const systemStore = useSystemStore();
+const coopTitle = computed(() => systemStore.cooperativeDisplayName);
 const { confirmRecovery, loadRecoveryContext } = useRecoverAccess();
 
 // Почту и необходимость второго фактора отдаёт сервер по токену ссылки: пайщик их

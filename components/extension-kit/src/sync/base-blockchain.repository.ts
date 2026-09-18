@@ -59,7 +59,9 @@ export abstract class BaseBlockchainRepository<
    * Найти сущность по кастомному ключу синхронизации
    */
   async findBySyncKey(syncKey: string, syncValue: string): Promise<TDomainEntity | null> {
-    const whereCondition = { [syncKey]: syncValue.toLowerCase() } as any;
+    // Числовые ключи (id) приходят из дельт числом — приводим к строке, иначе
+    // синхронизация таких таблиц падала на toLowerCase.
+    const whereCondition = { [syncKey]: String(syncValue).toLowerCase() } as any;
     const entity = await this.repository.findOne({
       where: whereCondition,
     });
@@ -112,7 +114,7 @@ export abstract class BaseBlockchainRepository<
         present: present,
         _created_at: now,
         _updated_at: now,
-        [syncKey]: syncValue.toLowerCase(), // ключ синхронизации
+        [syncKey]: String(syncValue).toLowerCase(), // ключ синхронизации
       };
 
       const newEntity = this.createDomainEntity(minimalDatabaseData, blockchainData);

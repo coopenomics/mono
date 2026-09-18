@@ -15,7 +15,7 @@ import { LOGGER_PORT, type ILoggerPort,
   type IIntegrationSettingsPort,
 } from '@coopenomics/innercoop';
 import { z } from 'zod';
-import { ONBOARDING_STEP_REGISTRY_PORT, type IOnboardingStepRegistryPort } from '@coopenomics/innercoop';
+import { ONBOARDING_STEP_REGISTRY_PORT, type IOnboardingStepRegistryPort, DOCUMENT_DECLARATION_PORT, type IDocumentDeclarationPort } from '@coopenomics/innercoop';
 import { type DeserializedDescriptionOfExtension } from '@coopenomics/extension-kit';
 
 // Функция для проверки и сериализации FieldDescription
@@ -302,6 +302,7 @@ import {
   GENERATOR_AGREEMENT_TYPE,
 } from './constants/capital-agreement-ids';
 import { registerCapitalOnboardingSteps } from './application/onboarding/register-capital-onboarding-steps';
+import { registerCapitalDocuments } from './application/onboarding/register-capital-documents';
 
 // Репозитории
 import { ProjectTypeormRepository } from './infrastructure/repositories/project.typeorm-repository';
@@ -518,7 +519,10 @@ export class CapitalExtension extends BaseExtensionModule {
     @Inject(INTEGRATION_SETTINGS_PORT) private readonly integrations: IIntegrationSettingsPort,
     @Inject(ONBOARDING_STEP_REGISTRY_PORT)
     private readonly onboardingStepRegistration: IOnboardingStepRegistryPort,
-    @Inject(COUNCIL_PORT) private readonly council: ICouncilPort
+    @Inject(DOCUMENT_DECLARATION_PORT)
+    private readonly documentDeclarations: IDocumentDeclarationPort,
+    @Inject(COUNCIL_PORT) private readonly council: ICouncilPort,
+    private readonly onboardingService: CapitalOnboardingService
   ) {
     super();
     this.logger.setContext(CapitalExtension.name);
@@ -732,7 +736,8 @@ export class CapitalExtension extends BaseExtensionModule {
     // Регистрация шагов онбординга capital в платформенном реестре
     try {
       registerCapitalOnboardingSteps(this.onboardingStepRegistration);
-      this.logger.log('[CAPITAL.ONBOARDING] зарегистрировано 5 шагов онбординга capital');
+      await registerCapitalDocuments(this.documentDeclarations);
+      this.logger.log('[CAPITAL.ONBOARDING] зарегистрировано 5 шагов онбординга capital и документы реестра шаблонов');
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);
       const stack = error instanceof Error ? error.stack : undefined;
@@ -760,9 +765,21 @@ export class CapitalExtension extends BaseExtensionModule {
         return hash;
       };
 
+      // Отметки шагов сверяем с утверждениями в цепи до проверки: решение совета
+      // могло пройти мимо приёмника (контроллер не работал, документ утвердили со
+      // вкладки «Шаблоны документов»). Иначе подключение выглядит завершённым, а
+      // программ во вступлении нет.
+      let registryConfig = extensionConfig as IConfig;
+      try {
+        registryConfig = (await this.onboardingService.reconcileFlags()) as IConfig;
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : String(error);
+        this.logger.warn(`[CAPITAL.REGISTRY] не удалось сверить отметки шагов с цепью: ${message}`);
+      }
+
       const registered = registerCapitalInAgreementRegistry(
         this.agreementRegistrationPort,
-        extensionConfig as IConfig,
+        registryConfig,
         resolveCapitalProgramDocDataHash
       );
       if (registered) {

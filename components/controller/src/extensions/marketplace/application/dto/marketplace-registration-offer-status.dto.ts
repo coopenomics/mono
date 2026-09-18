@@ -6,7 +6,7 @@ import { Field, Int, ObjectType } from '@nestjs/graphql';
  * Источник правды — core `AgreementQueryPort.getAgreementById(MARKETPLACE_OFFER_AGREEMENT_ID)`:
  * запись появляется когда `MarketplaceExtension.initialize()` (Story 1.2)
  * вызвал `port.registerAgreement` — это происходит автоматически при
- * установке/restart-е расширения, если `MARKETPLACE_OFFER_TEMPLATE_REGISTRY_ID > 0`
+ * установке/restart-е расширения, если `MARKETPLACE_OFFER_INSTANCE_REGISTRY_ID > 0`
  * (Story 1.7 наполнила).
  *
  * AC PRD говорит про per-cooperative `coop_registration_offers_registry` —

@@ -1,6 +1,16 @@
 <template lang="pug">
 .coopid-flow-page
-  AuthCard(:title='title', :subtitle='subtitle', :max-width='480')
+  AuthSplit(
+    :eyebrow='coopTitle',
+    title='Карта кооператора',
+    lead='Сеть карт просит кооператив опознать своего пайщика: шаги входа ведёт CoopID, стол их показывает.',
+    quote='Аутентификация целиком остаётся у CoopID — стол только спрашивает очередной шаг.',
+    step-eyebrow='Вход по карте кооператора',
+    :heading='title',
+    :text='subtitle'
+  )
+    template(#actions)
+      AuthActions
     template(v-if='runner.state.value === FlowState.Starting')
       p.flow-stage__lead Открываем вход…
 
@@ -73,7 +83,8 @@
 import { computed, onMounted, ref, shallowRef, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useSystemStore } from 'src/entities/System/model';
-import { AuthCard } from 'src/shared/ui/domain';
+import { AuthSplit } from 'src/shared/ui/layout/AuthSplit';
+import { AuthActions } from 'src/widgets/Registrator/AuthActions';
 import { BaseBanner, BaseButton } from 'src/shared/ui/base';
 import { FlowStage, hasIdpSession } from 'src/shared/api/authentik-flow';
 import { FlowState, createFlowRunner, type FlowRunner } from 'src/features/CoopidFlow/model/flow-runner';
@@ -92,6 +103,7 @@ import {
 const route = useRoute();
 const router = useRouter();
 const system = useSystemStore();
+const coopTitle = computed(() => system.cooperativeDisplayName);
 
 const slug = computed(() => String(route.params.slug ?? ''));
 const next = computed(() => (typeof route.query.next === 'string' ? route.query.next : ''));
@@ -132,8 +144,7 @@ const title = computed(() => {
  */
 const subtitle = computed(() => {
   if (current.value?.component === FlowStage.Consent) return '';
-  const coop = system.cooperativeDisplayName;
-  return coop ? `Вход по карте кооператора · ${coop}` : 'Вход по карте кооператора';
+  return 'Кооператив опознаёт вас по шагам CoopID — так вход по карте выглядит иначе, чем обычный.';
 });
 
 const KNOWN = new Set<string>(Object.values(FlowStage));
@@ -170,11 +181,7 @@ watch(slug, begin);
 
 <style lang="scss">
 .coopid-flow-page {
-  display: flex;
-  align-items: flex-start;
-  justify-content: center;
-  padding: var(--p-6, 24px);
-  min-height: 100vh;
+  min-height: inherit;
 }
 
 /* Общие элементы экранов стадий — одним местом, чтобы стадии не расходились. */

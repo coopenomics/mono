@@ -15,6 +15,13 @@ if (config.env !== 'test') {
   app.use(morgan.errorHandler);
 }
 
+// Приложение стоит за nginx (receiver → внутренний nginx), а на контуре ещё и
+// за L7, который затирает X-Forwarded-For адресом клиента. Без доверия к
+// цепочке `req.ip` — адрес соседнего контейнера, и все лимиты «по IP»
+// (вход, восстановление, ссылки из писем, регистрация) считают всех
+// пользователей кооператива одним клиентом.
+app.set('trust proxy', true);
+
 // set security HTTP headers
 app.use(helmet({ hsts: false }));
 
@@ -23,7 +30,18 @@ app.use(helmet({ hsts: false }));
 // Стола заказов до 8×10 МБ, фото гарантийного возврата до 10×10 МБ): base64
 // раздувает бинарь в ~1.37×, поэтому ~160 МБ. nginx (playbooks) держит ту же
 // планку client_max_body_size 160M.
-app.use(express.json({ limit: '160mb' }));
+app.use(
+  express.json({
+    limit: '160mb',
+    // Подпись вебхука LiveKit покрывает хэш тела как оно пришло — сохраняем
+    // его только для этого адреса, остальным запросам копия не нужна.
+    verify: (req, _res, buf) => {
+      if (req.url?.includes('/extensions/chatcoop/livekit-webhook')) {
+        (req as typeof req & { rawBody?: string }).rawBody = buf.toString('utf8');
+      }
+    },
+  })
+);
 
 // parse urlencoded request body
 app.use(express.urlencoded({ extended: true, limit: '160mb' }));

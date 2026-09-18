@@ -1,6 +1,6 @@
 import { Resolver, Query, Args } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
-import { GqlJwtAuthGuard, CurrentUser, createPaginationResult, PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, CurrentUser, createPaginationResult, PaginationInputDTO, PaginationResult, RolesGuard, AuthRoles } from '@coopenomics/extension-kit';
 import type { IMonoAccount } from '@coopenomics/innercoop';
 import { LogInteractor } from '../use-cases/log.interactor';
 import { LogOutputDTO } from '../dto/logs/log.dto';
@@ -13,7 +13,7 @@ const paginatedLogsResult = createPaginationResult(LogOutputDTO, 'PaginatedCapit
  * GraphQL резолвер для работы с логами событий
  */
 @Resolver(() => LogOutputDTO)
-@UseGuards(GqlJwtAuthGuard)
+@UseGuards(GqlJwtAuthGuard, RolesGuard)
 export class LogResolver {
   constructor(private readonly logInteractor: LogInteractor) {}
 
@@ -24,6 +24,7 @@ export class LogResolver {
     name: 'getCapitalProjectLogs',
     description: 'Получить логи событий по проекту с фильтрацией и пагинацией',
   })
+  @AuthRoles(['chairman', 'member', 'user'])
   async getLogs(
     @Args('data') data: GetLogsInputDTO,
     @CurrentUser() currentUser: IMonoAccount
@@ -38,6 +39,7 @@ export class LogResolver {
     name: 'getCapitalIssueLogs',
     description: 'Получить логи событий по задаче',
   })
+  @AuthRoles(['chairman', 'member', 'user'])
   async getIssueLogs(
     @Args('data') data: GetIssueLogsInputDTO,
     @Args('options', { nullable: true }) options?: PaginationInputDTO,

@@ -1,47 +1,104 @@
 <template lang="pug">
 .row.justify-center
-  div.documents-gap.col-md-10.col-xs-12
-    // Отображение основного документа с агрегатом
-    BaseDocument(
-      v-if="documentData.statement && documentData.statement.documentAggregate"
-      :documentAggregate="documentData.statement.documentAggregate"
-    ).q-mt-md
+  //- Строками пакет показывают в узких контейнерах (дроуэр) — на всю ширину.
+  div.documents-gap.col-xs-12(:class='{ "col-md-10": !collapsible }')
+    //- Свёрнутый вид: каждый документ пакета — строка, текст документа
+    //- открывается по нажатию и рисуется только тогда. Нужен там, где пакет
+    //- смотрят бегло (повестка совета): пять длинных документов подряд
+    //- превращали карточку вопроса в бесконечную ленту.
+    template(v-if='collapsible')
+      .complex-document__item(v-for='item in items', :key='item.key')
+        DocumentRow(
+          :document='item.row',
+          :class='{ "complex-document__row--open": isOpen(item.key) }',
+          @open='toggle(item.key)'
+        )
+          template(#actions)
+            q-icon.complex-document__chevron(
+              :name='isOpen(item.key) ? "expand_less" : "expand_more"',
+              size='20px',
+              @click='toggle(item.key)'
+            )
+        BaseDocument.complex-document__doc.q-mt-sm(v-if='isOpen(item.key)', :documentAggregate='item.aggregate')
 
-    // Отображение документа решения с агрегатом
-    BaseDocument(
-      v-if="documentData.decision && documentData.decision.documentAggregate"
-      :documentAggregate="documentData.decision.documentAggregate"
-    ).q-mt-md
-
-    // Отображение связанных документов из агрегата
-    div(v-if="documentData.links.length > 0 && documentData.statement")
-      div(
-        v-for="linkedDoc, index in documentData.links"
-        v-bind:key="index"
-      ).documents-gap
-        BaseDocument(
-          :documentAggregate="linkedDoc"
-        ).q-mt-md
-
-
+    //- Развёрнутый вид: все документы пакета текстом подряд.
+    template(v-else)
+      BaseDocument.q-mt-md(v-for='item in items', :key='item.key', :documentAggregate='item.aggregate')
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { BaseDocument } from '../BaseDocument';
+import { DocumentRow, type DocumentRowDoc } from 'src/shared/ui/domain/DocumentRow';
 import type { IDocumentPackageAggregate } from 'src/entities/Document/model/types'
+import type { IDocumentAggregate } from 'src/entities/Document/model'
 
 const props = defineProps({
   documents: {
     type: Object as () => IDocumentPackageAggregate,
     required: true
   },
+  /** Показывать документы строками и раскрывать по одному. */
+  collapsible: {
+    type: Boolean,
+    default: false,
+  },
 })
 
-// Просто используем документы как есть
-const documentData = computed(() => props.documents)
+interface IPackageItem {
+  key: string
+  aggregate: IDocumentAggregate
+  row: DocumentRowDoc
+}
+
+// Отметку «Подписано» строке не ставим: в пакете решения подписано всё.
+const toRow = (aggregate: IDocumentAggregate, fallbackTitle: string): DocumentRowDoc => {
+  const meta = (aggregate.rawDocument?.meta ?? {}) as { title?: string; created_at?: string }
+  return {
+    type: 'html',
+    title: meta.title || fallbackTitle,
+    date: meta.created_at,
+  }
+}
+
+// Порядок прежний: заявление, решение, затем связанные документы — и последние
+// только при наличии заявления, как было.
+const items = computed<IPackageItem[]>(() => {
+  const pack = props.documents
+  const list: IPackageItem[] = []
+  const statement = pack.statement?.documentAggregate
+  const decision = pack.decision?.documentAggregate
+  if (statement) list.push({ key: 'statement', aggregate: statement, row: toRow(statement, 'Заявление') })
+  if (decision) list.push({ key: 'decision', aggregate: decision, row: toRow(decision, 'Решение') })
+  if (pack.statement) {
+    pack.links.forEach((linked, index) => {
+      list.push({ key: `link-${index}`, aggregate: linked, row: toRow(linked, 'Документ') })
+    })
+  }
+  return list
+})
+
+const opened = ref<Set<string>>(new Set())
+const isOpen = (key: string): boolean => opened.value.has(key)
+const toggle = (key: string): void => {
+  const next = new Set(opened.value)
+  if (next.has(key)) next.delete(key)
+  else next.add(key)
+  opened.value = next
+}
 </script>
 
 <style lang="scss" scoped>
-
+.complex-document__item + .complex-document__item {
+  margin-top: var(--p-2, 8px);
+}
+/* Раскрытый документ в узком контейнере: без полей в 50px, которые документ
+   держит для отдельной страницы, — текст на всю ширину. */
+.complex-document__doc.dynamic-padding {
+  padding: var(--p-3, 12px) !important;
+}
+.complex-document__chevron {
+  color: var(--p-ink-2);
+  cursor: pointer;
+}
 </style>

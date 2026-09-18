@@ -17,13 +17,10 @@ export * as ReturnByMoneyDecision from './901.ReturnByMoneyDecision'
 
 // Документы ЦПП ГЕНЕРАТОР
 export * as GeneratorProgramTemplate from './994.GeneratorProgramTemplate'
-export * as GeneratorOfferTemplate from './995.GeneratorOfferTemplate'
 export * as GeneratorOffer from './996.GeneratorOffer'
 
 // Документы ЦПП БЛАГОРОСТ
 export * as BlagorostProgramTemplate from './998.BlagorostProgramTemplate'
-export * as GenerationContractTemplate from './997.GenerationContractTemplate'
-export * as BlagorostOfferTemplate from './999.BlagorostOfferTemplate'
 export * as BlagorostOffer from './1000.BlagorostOffer'
 export * as GenerationContract from './1001.GenerationContract'
 export * as ProjectGenerationContract from './1002.ProjectGenerationContract'
@@ -67,7 +64,6 @@ export * as SosediAgreement from './699.SosediAgreement'
 
 // Marketplace (Стол заказов) — Эпик 1 (онбординг ЦПП)
 export * as MarketplaceProgramTemplate from './1100.MarketplaceProgramTemplate'
-export * as MarketplaceOfferTemplate from './1101.MarketplaceOfferTemplate'
 export * as MarketplaceOffer from './1102.MarketplaceOffer'
 
 // Marketplace (Стол заказов) — Эпик 5

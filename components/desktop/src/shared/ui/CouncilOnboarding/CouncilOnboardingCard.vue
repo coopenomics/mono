@@ -95,7 +95,7 @@ q-card.council-onboarding(flat, :class="{ 'council-onboarding--loading': loading
       span Проект решения
     div.q-mt-sm.q-pa-sm.rounded-borders
       div(v-if="dialogDecisionPrefix") {{ dialogDecisionPrefix }}
-      DocumentHtmlReader(v-if="dialogDecision" :html="dialogDecision" :sanitize="false")
+      DocumentHtmlReader(v-if="dialogDecision" :html="dialogDecision" profile="document")
 
     template(#footer)
       BaseButton(variant='ghost' :disabled='submitting' @click='closeDialog') Отмена

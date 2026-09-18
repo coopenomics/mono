@@ -381,3 +381,19 @@ cases:
     test: components/controller/tests/unit/capital/segments-role.test.ts
     status: passing
 
+  - id: cap.contrib.break.18
+    level: backend
+    kind: break
+    scenario: >
+      Учётная запись, которую совет ещё не принял (статус вступления) или уже
+      исключил, запрашивает доли и участников проекта.
+    expect: >
+      отказ «Доступ только для пайщиков кооператива»: списки «Капитала» видят
+      принятые пайщики и совет. До 17.09.2026 хватало любого токена, а токен
+      выдаётся уже при регистрации учётной записи — ФИО участников читал
+      кто угодно с улицы. Правило — общее для роли `user` в RolesGuard
+      (extension-kit); свои доли по имени кандидат по-прежнему получает
+      через самообход
+    test: components/controller/tests/unit/auth/roles-guard-allow-self.test.ts
+    status: passing
+

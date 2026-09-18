@@ -233,6 +233,7 @@ export class AccountDomainService {
           is_email_verified: user.is_email_verified,
           subscriber_id: user.subscriber_id,
           subscriber_hash: user.subscriber_hash,
+          created_at: user.createdAt?.toISOString(),
         } as IMonoAccount)
       : null;
 

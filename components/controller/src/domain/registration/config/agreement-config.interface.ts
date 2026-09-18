@@ -108,7 +108,22 @@ export interface IRegistrationProgram {
   /** Список ID соглашений, которые требуются для этой программы */
   agreement_ids: string[];
 
+  /** Анкеты, которые заявитель заполняет, выбрав эту программу */
+  intake_forms: IRegistrationIntakeForm[];
+
   /** Порядок отображения */
   order: number;
 }
 
+/**
+ * Анкета вступления в форме, готовой к показу заявителю: схема уже переведена
+ * в JSON Schema, владелец-расширение наружу не раскрывается.
+ */
+export interface IRegistrationIntakeForm {
+  id: string;
+  title: string;
+  description?: string;
+  /** JSON Schema полей анкеты — тот же вид, что у схемы настроек расширения. */
+  schema: Record<string, unknown>;
+  order: number;
+}

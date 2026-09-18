@@ -8,6 +8,7 @@ import { ListOfParticipantsPage } from 'src/pages/Cooperative/ListOfParticipants
 // import { PersonnelPage } from 'src/pages/Cooperative/Personnel';
 import { ListOfDocumentsPage } from 'src/pages/Cooperative/ListOfDocuments';
 import { DocumentDetailsPage } from 'src/pages/Cooperative/DocumentDetails';
+import { DocumentTemplatesPage } from 'src/pages/Cooperative/DocumentTemplates';
 import { PaymentsPage } from 'src/pages/Cooperative/Payments';
 import { ListOfMeetsPage } from 'src/pages/Cooperative/ListOfMeets';
 import { MeetDetailsPage } from 'src/pages/Cooperative/MeetDetails';
@@ -73,6 +74,19 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               roles: ['chairman', 'member'],
             },
             children: [
+              {
+                // Вкладка реестра: шаблоны документов кооператива, их редакции и
+                // утверждение советом (фабрика утверждений документов). Стоит
+                // раньше `:hash`, иначе слово «templates» примется за хэш.
+                path: 'templates',
+                name: 'document-templates',
+                component: markRaw(DocumentTemplatesPage),
+                meta: {
+                  title: 'Шаблоны документов',
+                  roles: ['chairman', 'member'],
+                  hidden: true,
+                },
+              },
               {
                 // Отдельная страница документа (deep-link из поиска и реестра).
                 path: ':hash',

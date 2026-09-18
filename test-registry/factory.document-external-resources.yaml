@@ -1,0 +1,40 @@
+feature: factory.document-external-resources
+title: Документ не ходит наружу при сборке PDF
+
+# Шаблоны документов собираются с выключенным автоэкранированием (это
+# осознанно: часть данных кооператива приходит с разметкой), поэтому имя,
+# адрес или название организации с угловыми скобками становятся разметкой.
+# Пока сборщик PDF загружал всё, на что ссылается разметка, такая ссылка
+# означала сразу две вещи: file:// вкладывал в подписанный документ файл
+# контейнера, http:// заставлял сервер сходить во внутреннюю сеть от своего
+# имени. Разрешён только data: — так приезжает собственноручная подпись
+# пайщика, она едет внутри самого документа. Задача C28-74.
+
+sources:
+  backend:
+    - components/factory/src/Services/Generator/index.ts
+
+cases:
+  - id: factory.docext.break.01
+    level: backend
+    kind: break
+    scenario: в документе ссылки на сетевой адрес — картинка, фон, @import
+    expect: ни одного обращения по сети; документ собирается без этих ресурсов
+    test: components/factory/test/pdf-external-resources.test.ts
+    status: passing
+
+  - id: factory.docext.break.02
+    level: backend
+    kind: break
+    scenario: в документе ссылка file:// на файл контейнера
+    expect: файл в готовый PDF не попадает — вес документа не растёт на его размер
+    test: components/factory/test/pdf-external-resources.test.ts
+    status: passing
+
+  - id: factory.docext.happy.01
+    level: backend
+    kind: happy
+    scenario: собственноручная подпись приезжает внутри документа как data:-картинка
+    expect: подпись по-прежнему рисуется, вид документа не меняется
+    test: components/factory/test/pdf-external-resources.test.ts
+    status: passing

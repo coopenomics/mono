@@ -3067,3 +3067,15 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .auto-avatar--animated:hover .ring-seg { animation: none; }
 }
+
+/* ── Ссылки на экранах входа и вступления (AuthSplit): текстовая ссылка без
+   кнопочной рамки; внутри тёмной панели цвет задаёт сама панель. ── */
+.auth-link {
+  color: var(--p-primary);
+  text-decoration: none;
+  border-bottom: 1px solid var(--p-primary-line);
+  transition: border-color var(--p-dur-fast) var(--p-ease-standard);
+}
+.auth-link:hover {
+  border-bottom-color: var(--p-primary);
+}

@@ -9,7 +9,7 @@
 экспорта, исчезнувший метод, новый обязательный параметр требуют major, а
 снятое старое — периода устаревания не меньше одного minor (INV-009).
 
-Всего экспортов: 276.
+Всего экспортов: 288.
 
 ## ACCOUNT_PORT
 
@@ -149,6 +149,18 @@
 `const` · hooks
 
 - `Symbol.for('Innercoop.CorePort.DesktopGrantsRegistry')`
+
+## DOCUMENT_APPROVAL_PORT
+
+`const` · core-ports
+
+- `Symbol.for('Innercoop.CorePort.DocumentApproval')`
+
+## DOCUMENT_DECLARATION_PORT
+
+`const` · core-ports
+
+- `Symbol.for('Innercoop.CorePort.DocumentDeclaration')`
 
 ## DOCUMENT_PORT
 
@@ -365,6 +377,20 @@
 
 - `register(provider: IDesktopGrantsHook): void`
 
+## IDocumentApprovalPort
+
+`interface` · core-ports
+
+- `proposeOnboardingStep(input: InnerProposeOnboardingStepInput): Promise<InnerOnboardingStepProposal | null>`
+- `isStepApproved(extension_name: string, step_key: string): Promise<boolean>`
+
+## IDocumentDeclarationPort
+
+`interface` · core-ports
+
+- `registerDocuments(declarations: InnerDocumentDeclaration[]): Promise<void>`
+- `unregisterByExtension(extension_name: string): Promise<void>`
+
 ## IDocumentPort
 
 `interface` · core-ports
@@ -521,6 +547,7 @@
 - `initial_order?: string`
 - `subscriber_id: string`
 - `subscriber_hash: string`
+- `created_at?: string`
 
 ## IMutationLogPort
 
@@ -814,6 +841,31 @@
 - `hash: string`
 - `document: ISignedDocument & Record<string, any>`
 - `rawDocument?: InnerGeneratedDocument`
+
+## InnerDocumentApproval
+
+`type` · core-ports
+
+- `'required' | 'none'`
+
+## InnerDocumentDeclaration
+
+`interface` · core-ports
+
+- `extension_name: string`
+- `registry_id: number`
+- `kind: InnerDocumentKind`
+- `approval: InnerDocumentApproval`
+- `bundle?: string`
+- `vars_field?: string`
+- `title?: string`
+- `order: number`
+
+## InnerDocumentKind
+
+`type` · core-ports
+
+- `'agreement' | 'provision' | 'form' | 'service'`
 
 ## InnerDocumentValidation
 
@@ -1149,6 +1201,39 @@
 - `email: string`
 - `passport?: InnerPassport`
 
+## InnerIntakeFormRegistration
+
+`interface` · core-ports
+
+- `id: string`
+- `extension_name: string`
+- `title: string`
+- `description?: string`
+- `schema: InnerIntakeJsonSchema`
+- `applicable_account_types: InnerAccountType[]`
+- `order: number`
+
+## InnerIntakeJsonSchema
+
+`interface` · core-ports
+
+- `properties?: Record<string, InnerIntakeJsonSchemaProperty>`
+
+## InnerIntakeJsonSchemaProperty
+
+`interface` · core-ports
+
+- `type?: string`
+- `description?: unknown`
+- `enum?: unknown[]`
+- `minLength?: number`
+- `maxLength?: number`
+- `minimum?: number`
+- `maximum?: number`
+- `properties?: Record<string, InnerIntakeJsonSchemaProperty>`
+- `required?: string[]`
+- `[key: string]: unknown`
+
 ## InnerKeyPermission
 
 `enum` · core-ports
@@ -1395,6 +1480,14 @@
 - `default_title?: string`
 - `order: number`
 
+## InnerOnboardingStepProposal
+
+`interface` · core-ports
+
+- `hash: string | null`
+- `registry_ids: number[]`
+- `approved: boolean`
+
 ## InnerOrganization
 
 `interface` · core-ports
@@ -1478,6 +1571,7 @@
 - `account_type: string`
 - `blagorost_offer_hash?: string`
 - `generator_offer_hash?: string`
+- `intake_answers?: Record<string, Record<string, unknown>>`
 
 ## InnerPassport
 
@@ -1624,6 +1718,7 @@
 - `requirements?: string`
 - `applicable_account_types: InnerAccountType[]`
 - `agreement_ids: string[]`
+- `intake_form_ids?: string[]`
 - `order: number`
 - `extension_name: string`
 
@@ -1663,6 +1758,16 @@
 
 - `matrixRoomId: string`
 - `displayLabel: string`
+
+## InnerProposeOnboardingStepInput
+
+`interface` · core-ports
+
+- `extension_name: string`
+- `step_key: string`
+- `username: string`
+- `title?: string`
+- `doc_data_hash?: string`
 
 ## InnerPublishProjectFreeDecisionInput
 
@@ -2033,6 +2138,8 @@
 - `unregisterAgreement(id: string, extensionName: string): void`
 - `registerProgram(spec: InnerProgramRegistration): void`
 - `unregisterProgram(key: string, extensionName: string): void`
+- `registerIntakeForm(spec: InnerIntakeFormRegistration): void`
+- `unregisterIntakeForm(id: string, extensionName: string): void`
 
 ## ISecretCipherPort
 

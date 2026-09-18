@@ -1,10 +1,15 @@
 <template>
   <div class="recover-page">
     <RecoverRequest>
+      <template #actions>
+        <AuthActions />
+      </template>
+      <template #pane-foot>
+        Вспомнили пароль?
+        <a class="auth-link" href="#" @click.prevent="goToSignIn">Войти</a>
+      </template>
       <template #footer>
-        <BaseButton variant="ghost" size="sm" @click="goToSignIn">
-          Вернуться ко входу
-        </BaseButton>
+        <a class="auth-link" href="#" @click.prevent="goToSignIn">Вернуться ко входу</a>
       </template>
     </RecoverRequest>
   </div>
@@ -13,6 +18,7 @@
 <script lang="ts" setup>
 import { useRoute, useRouter } from 'vue-router';
 import { RecoverRequest } from 'src/widgets/Registrator/Recover/ui';
+import { AuthActions } from 'src/widgets/Registrator/AuthActions';
 
 const router = useRouter();
 const route = useRoute();
@@ -24,10 +30,6 @@ function goToSignIn(): void {
 
 <style scoped>
 .recover-page {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: var(--p-6, 24px);
-  min-height: 100%;
+  min-height: inherit;
 }
 </style>

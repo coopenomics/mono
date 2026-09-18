@@ -13,6 +13,7 @@ export * as Decisions from './decisions'
 export * as Documents from './documents'
 /** Образовательный мост: каталог курсов, подписки, преподаватели */
 export * as Edubridge from './edubridge'
+export * as DocumentApprovals from './documentApprovals'
 export * as Expense from './expense'
 export * as Expenses from './expenses'
 export * as Extensions from './extensions'

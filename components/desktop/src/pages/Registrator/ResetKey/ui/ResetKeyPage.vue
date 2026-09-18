@@ -1,9 +1,14 @@
 <template lang="pug">
-.row.justify-center.q-pa-sm
-  .col-md-5.col-sm-6.col-xs-12
-    ResetKey.q-mt-lg
-
+.resetkey-page
+  ResetKey
 </template>
+
 <script lang="ts" setup>
 import { ResetKey } from 'src/widgets/Registrator/ResetKey';
 </script>
+
+<style scoped>
+.resetkey-page {
+  min-height: inherit;
+}
+</style>

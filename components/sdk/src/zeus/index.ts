@@ -1177,6 +1177,8 @@ export type ValueTypes = {
 }>;
 	/** Тип аккаунта пользователя в системе */
 ["AccountType"]:AccountType;
+	/** Отбор реестра пайщиков по уровню верификации */
+["AccountVerificationFilter"]:AccountVerificationFilter;
 	["AccountsPaginationResult"]: AliasType<{
 	/** Текущая страница */
 	currentPage?:boolean | `@${string}`,
@@ -2999,6 +3001,29 @@ export type ValueTypes = {
 	["CandidateFilterInput"]: {
 	referer?: string | undefined | null | Variable<any, string>
 };
+	["CandidateIntake"]: AliasType<{
+	/** Ответы на анкеты вступления */
+	answers?:ValueTypes["CandidateIntakeAnswer"],
+	/** Программа, выбранная при вступлении */
+	program_key?:boolean | `@${string}`,
+	username?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on CandidateIntake']?: Omit<ValueTypes["CandidateIntake"], "...on CandidateIntake">
+}>;
+	["CandidateIntakeAnswer"]: AliasType<{
+	/** Идентификатор анкеты */
+	form_id?:boolean | `@${string}`,
+	/** JSON Schema полей анкеты на момент подачи */
+	json_schema?:boolean | `@${string}`,
+	/** Когда заявитель подал ответы */
+	submitted_at?:boolean | `@${string}`,
+	/** Заголовок анкеты на момент подачи */
+	title?:boolean | `@${string}`,
+	/** Значения полей: имя поля → значение */
+	values?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on CandidateIntakeAnswer']?: Omit<ValueTypes["CandidateIntakeAnswer"], "...on CandidateIntakeAnswer">
+}>;
 	["CandidateStatus"]:CandidateStatus;
 	["CapabilitySet"]: AliasType<{
 	/** true — платформенный набор; false — кооперативный кастомный */
@@ -3319,7 +3344,9 @@ export type ValueTypes = {
 	block_num?:boolean | `@${string}`,
 	/** Статус из блокчейна */
 	blockchain_status?:boolean | `@${string}`,
-	/** Контракт участника */
+	/** Контракт участника
+
+Требуемые роли: chairman, member.  */
 	contract?:ValueTypes["DocumentAggregate"],
 	/** Вклад как автор */
 	contributed_as_author?:boolean | `@${string}`,
@@ -3490,9 +3517,13 @@ export type ValueTypes = {
 	_updated_at?:boolean | `@${string}`,
 	/** Сумма долга */
 	amount?:boolean | `@${string}`,
-	/** Одобренное заявление */
+	/** Одобренное заявление
+
+Требуемые роли: chairman, member.  */
 	approved_statement?:ValueTypes["DocumentAggregate"],
-	/** Протокол решения совета */
+	/** Протокол решения совета
+
+Требуемые роли: chairman, member.  */
 	authorization?:ValueTypes["DocumentAggregate"],
 	/** Номер блока последнего обновления */
 	block_num?:boolean | `@${string}`,
@@ -3512,7 +3543,9 @@ export type ValueTypes = {
 	project_hash?:boolean | `@${string}`,
 	/** Дата погашения */
 	repaid_at?:boolean | `@${string}`,
-	/** Заявление на получение ссуды */
+	/** Заявление на получение ссуды
+
+Требуемые роли: chairman, member.  */
 	statement?:ValueTypes["DocumentAggregate"],
 	/** Статус долга */
 	status?:boolean | `@${string}`,
@@ -3531,9 +3564,13 @@ export type ValueTypes = {
 	_updated_at?:boolean | `@${string}`,
 	/** Сумма расхода */
 	amount?:boolean | `@${string}`,
-	/** Одобренная записка */
+	/** Одобренная записка
+
+Требуемые роли: chairman, member.  */
 	approved_statement?:ValueTypes["DocumentAggregate"],
-	/** Авторизация расхода */
+	/** Авторизация расхода
+
+Требуемые роли: chairman, member.  */
 	authorization?:ValueTypes["DocumentAggregate"],
 	/** Номер блока последнего обновления */
 	block_num?:boolean | `@${string}`,
@@ -3545,7 +3582,9 @@ export type ValueTypes = {
 	description?:boolean | `@${string}`,
 	/** Хеш расхода */
 	expense_hash?:boolean | `@${string}`,
-	/** Служебная записка о расходе */
+	/** Служебная записка о расходе
+
+Требуемые роли: chairman, member.  */
 	expense_statement?:ValueTypes["DocumentAggregate"],
 	/** ID фонда */
 	fund_id?:boolean | `@${string}`,
@@ -5246,18 +5285,6 @@ export type ValueTypes = {
 	/** Системное имя кооператива-источника */
 	from_coopname: string | Variable<any, string>
 };
-	["Category"]: AliasType<{
-	coopname?:boolean | `@${string}`,
-	description?:boolean | `@${string}`,
-	icon?:boolean | `@${string}`,
-	id?:boolean | `@${string}`,
-	is_active?:boolean | `@${string}`,
-	name?:boolean | `@${string}`,
-	parent_id?:boolean | `@${string}`,
-	sort_order?:boolean | `@${string}`,
-		__typename?: boolean | `@${string}`,
-	['...on Category']?: Omit<ValueTypes["Category"], "...on Category">
-}>;
 	["CategoryTypeInput"]: {
 	/** ID категории */
 	categoryId: number | Variable<any, string>,
@@ -5544,7 +5571,6 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on ContactsDTO']?: Omit<ValueTypes["ContactsDTO"], "...on ContactsDTO">
 }>;
-	["ContributionType"]:ContributionType;
 	/** Параметры документов участника из UData */
 ["ContributorDocumentParameters"]: AliasType<{
 	/** Дата создания соглашения благороста */
@@ -5782,13 +5808,6 @@ export type ValueTypes = {
 	short_name: string | Variable<any, string>,
 	/** Имя аккаунта уполномоченного (председателя) кооперативного участка */
 	trustee: string | Variable<any, string>
-};
-	["CreateCategoryInput"]: {
-	description?: string | undefined | null | Variable<any, string>,
-	icon?: string | undefined | null | Variable<any, string>,
-	name: string | Variable<any, string>,
-	parent_id?: string | undefined | null | Variable<any, string>,
-	sort_order?: number | undefined | null | Variable<any, string>
 };
 	["CreateChatCoopCalendarEventInput"]: {
 	description?: string | undefined | null | Variable<any, string>,
@@ -6036,16 +6055,6 @@ export type ValueTypes = {
 	password: string | Variable<any, string>,
 	username: string | Variable<any, string>
 };
-	["CreateMeasureInput"]: {
-	/** Имя аккаунта кооператива */
-	coopname: string | Variable<any, string>,
-	/** Режим ряда; по умолчанию скорость */
-	series_mode?: ValueTypes["MetricSeriesMode"] | undefined | null | Variable<any, string>,
-	/** Название меры */
-	title: string | Variable<any, string>,
-	/** Единица измерения */
-	unit: string | Variable<any, string>
-};
 	["CreateMembershipExitInput"]: {
 	/** Имя аккаунта кооператива */
 	coopname: string | Variable<any, string>,
@@ -6084,23 +6093,6 @@ export type ValueTypes = {
 	description?: string | undefined | null | Variable<any, string>,
 	project_hash: string | Variable<any, string>,
 	title: string | Variable<any, string>
-};
-	["CreateProductCardInput"]: {
-	braname?: string | undefined | null | Variable<any, string>,
-	cancellation_fee_amount?: string | undefined | null | Variable<any, string>,
-	category_id?: string | undefined | null | Variable<any, string>,
-	contribution_type: ValueTypes["ContributionType"] | Variable<any, string>,
-	delivery_type: ValueTypes["DeliveryType"] | Variable<any, string>,
-	description: string | Variable<any, string>,
-	images?: Array<string> | undefined | null | Variable<any, string>,
-	membership_fee_amount?: string | undefined | null | Variable<any, string>,
-	min_units?: number | undefined | null | Variable<any, string>,
-	product_lifecycle_secs: number | Variable<any, string>,
-	title: string | Variable<any, string>,
-	type: ValueTypes["ProductCardType"] | Variable<any, string>,
-	unit_cost: string | Variable<any, string>,
-	units: number | Variable<any, string>,
-	warranty_period_secs: number | Variable<any, string>
 };
 	["CreateProgramInvestInput"]: {
 	/** Сумма инвестиции */
@@ -6531,7 +6523,6 @@ export type ValueTypes = {
 	/** Имя аккаунта доверонного лица, у которого отзывается право подписи за председателя кооперативного участка */
 	trusted: string | Variable<any, string>
 };
-	["DeliveryType"]:DeliveryType;
 	["Delta"]: AliasType<{
 	/** ID блока */
 	block_id?:boolean | `@${string}`,
@@ -6623,6 +6614,38 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on DocumentAggregate']?: Omit<ValueTypes["DocumentAggregate"], "...on DocumentAggregate">
 }>;
+	/** Требуется ли решение совета, чтобы редакция документа действовала в кооперативе */
+["DocumentApprovalRequirement"]:DocumentApprovalRequirement;
+	["DocumentApprovalSeedItem"]: AliasType<{
+	/** Дата протокола из настроек кооператива */
+	protocol_day_month_year?:boolean | `@${string}`,
+	/** Номер протокола из настроек кооператива */
+	protocol_number?:boolean | `@${string}`,
+	/** Номер шаблона в реестре документов */
+	registry_id?:boolean | `@${string}`,
+	/** Название документа */
+	title?:boolean | `@${string}`,
+	/** Поле настроек, откуда взяты реквизиты */
+	vars_field?:boolean | `@${string}`,
+	/** Редакция в сети, которая будет записана утверждённой */
+	version?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on DocumentApprovalSeedItem']?: Omit<ValueTypes["DocumentApprovalSeedItem"], "...on DocumentApprovalSeedItem">
+}>;
+	["DocumentApprovalSeedResult"]: AliasType<{
+	/** Сколько утверждений записано в цепь */
+	applied?:boolean | `@${string}`,
+	/** Документы, по которым запись не удалась */
+	failed?:boolean | `@${string}`,
+	/** Сколько документов было в плане */
+	planned?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on DocumentApprovalSeedResult']?: Omit<ValueTypes["DocumentApprovalSeedResult"], "...on DocumentApprovalSeedResult">
+}>;
+	/** Состояние документа в кооперативе относительно редакции в сети */
+["DocumentApprovalState"]:DocumentApprovalState;
+	/** Род документа: соглашение пайщика, положение, форма или служебный документ */
+["DocumentKind"]:DocumentKind;
 	/** Комплексный объект папки цифрового документа с агрегатами, который включает в себя заявление, решение, акты и связанные документы */
 ["DocumentPackageAggregate"]: AliasType<{
 	/** Массив объект(ов) актов с агрегатами, относящихся к заявлению */
@@ -6636,6 +6659,52 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on DocumentPackageAggregate']?: Omit<ValueTypes["DocumentPackageAggregate"], "...on DocumentPackageAggregate">
 }>;
+	["DocumentTemplate"]: AliasType<{
+	/** Требуется ли утверждение советом */
+	approval?:boolean | `@${string}`,
+	/** Дата решения совета об утверждении */
+	approved_at?:boolean | `@${string}`,
+	/** Номер решения совета об утверждении */
+	approved_decision_id?:boolean | `@${string}`,
+	/** Редакция, утверждённая советом кооператива */
+	approved_version?:boolean | `@${string}`,
+	/** Пакет: документы одного пакета утверждаются одним решением */
+	bundle?:boolean | `@${string}`,
+	/** Редакция шаблона в сети */
+	current_version?:boolean | `@${string}`,
+	/** Редакция, которую кооператив предъявляет пайщикам */
+	effective_version?:boolean | `@${string}`,
+	/** Приложение, использующее документ; базовый набор кооператива — core */
+	extension_name?:boolean | `@${string}`,
+	/** Род документа */
+	kind?:boolean | `@${string}`,
+	/** Порядок в списке приложения */
+	order?:boolean | `@${string}`,
+	/** Хэш проекта решения в повестке совета, если документ вынесен на утверждение */
+	pending_hash?:boolean | `@${string}`,
+	/** Номер шаблона в реестре документов */
+	registry_id?:boolean | `@${string}`,
+	/** Состояние документа в кооперативе */
+	state?:boolean | `@${string}`,
+	/** Название документа */
+	title?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on DocumentTemplate']?: Omit<ValueTypes["DocumentTemplate"], "...on DocumentTemplate">
+}>;
+	["DocumentTemplateBlank"]: AliasType<{
+	/** Текст документа в HTML */
+	html?:boolean | `@${string}`,
+	/** Номер шаблона в реестре документов */
+	registry_id?:boolean | `@${string}`,
+	/** Хэш текста */
+	text_hash?:boolean | `@${string}`,
+	/** Название документа */
+	title?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on DocumentTemplateBlank']?: Omit<ValueTypes["DocumentTemplateBlank"], "...on DocumentTemplateBlank">
+}>;
+	/** Редакция документа для просмотра: утверждённая советом кооператива или текущая в сети */
+["DocumentTemplateEdition"]:DocumentTemplateEdition;
 	["DocumentsAggregatePaginationResult"]: AliasType<{
 	/** Текущая страница */
 	currentPage?:boolean | `@${string}`,
@@ -8323,7 +8392,9 @@ export type ValueTypes = {
 	username: string | Variable<any, string>
 };
 	["GetAccountsInput"]: {
-	role?: string | undefined | null | Variable<any, string>
+	role?: string | undefined | null | Variable<any, string>,
+	/** Отбор по уровню верификации: паспорт сверен, не сверен, нет ни одного уровня */
+	verification?: ValueTypes["AccountVerificationFilter"] | undefined | null | Variable<any, string>
 };
 	["GetBranchesInput"]: {
 	/** Фильтр по имени аккаунта кооперативного участка */
@@ -8733,6 +8804,8 @@ export type ValueTypes = {
 	['...on IndividualCertificate']?: Omit<ValueTypes["IndividualCertificate"], "...on IndividualCertificate">
 }>;
 	["Init"]: {
+	/** Код установки, выданный startInstall владельцу ключа кооператива. Не нужен только провайдеру с межсервисным секретом. */
+	install_code?: string | undefined | null | Variable<any, string>,
 	/** Признак того, что инициализация выполняется со стороны провайдера. При true coopback ставит init_by_server=true (org_data становится readonly для пользовательского визарда). Поле передаёт provider в callInitSystemMutation. */
 	is_server_init?: boolean | undefined | null | Variable<any, string>,
 	/** Объект организации кооператива, которая обслуживает данный экземпляр программного обеспечения MONO */
@@ -8747,6 +8820,8 @@ export type ValueTypes = {
 	target_id: string | Variable<any, string>
 };
 	["Install"]: {
+	/** Код установки, выданный startInstall владельцу ключа кооператива. Без него совет установить нельзя. */
+	install_code?: string | undefined | null | Variable<any, string>,
 	soviet: Array<ValueTypes["SovietMemberInput"]> | Variable<any, string>,
 	vars: ValueTypes["SetVarsInput"] | Variable<any, string>
 };
@@ -8762,6 +8837,12 @@ export type ValueTypes = {
 }>;
 	/** Статусы жизненного цикла инстанса кооператива */
 ["InstanceStatus"]:InstanceStatus;
+	["IntakeFormAnswerInput"]: {
+	/** Идентификатор анкеты из конфигурации регистрации */
+	form_id: string | Variable<any, string>,
+	/** Значения полей анкеты: имя поля → значение */
+	values: ValueTypes["JSON"] | Variable<any, string>
+};
 	/** Статусы инвестиции в системе CAPITAL */
 ["InvestStatus"]:InvestStatus;
 	["IssueMetricBindingItemInput"]: {
@@ -13031,6 +13112,8 @@ export type ValueTypes = {
 	['...on MissingRequisiteField']?: Omit<ValueTypes["MissingRequisiteField"], "...on MissingRequisiteField">
 }>;
 	["MonoAccount"]: AliasType<{
+	/** Когда запись о человеке появилась на узле кооператива (заявка подана или её завёл председатель) */
+	created_at?:boolean | `@${string}`,
 	/** Электронная почта пользователя */
 	email?:boolean | `@${string}`,
 	/** Есть ли у пользователя аккаунт */
@@ -13074,8 +13157,8 @@ addBranchWhitelist?: [{	data: ValueTypes["AddBranchWhitelistInput"] | Variable<a
 addParticipant?: [{	data: ValueTypes["AddParticipantInput"] | Variable<any, string>},ValueTypes["Account"]],
 addPaymentMethod?: [{	data: ValueTypes["AddPaymentMethodInput"] | Variable<any, string>},ValueTypes["PaymentMethod"]],
 addTrustedAccount?: [{	data: ValueTypes["AddTrustedAccountInput"] | Variable<any, string>},ValueTypes["Branch"]],
+applyDocumentApprovalsSeed?: [{	coopname: string | Variable<any, string>},ValueTypes["DocumentApprovalSeedResult"]],
 approveVerification?: [{	data: ValueTypes["ApproveVerificationInput"] | Variable<any, string>},ValueTypes["VerificationReview"]],
-archiveProductCard?: [{	id: string | Variable<any, string>},boolean | `@${string}`],
 assignCapabilitySet?: [{	data: ValueTypes["AssignCapabilitySetInput"] | Variable<any, string>},boolean | `@${string}`],
 authorizeDecision?: [{	data: ValueTypes["AuthorizeDecisionInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 authorizeForceRecovery?: [{	data: ValueTypes["AuthorizeForceRecoveryInput"] | Variable<any, string>},ValueTypes["ForceRecoveryAuthorization"]],
@@ -13099,7 +13182,6 @@ capitalCreateDebt?: [{	data: ValueTypes["CreateDebtInput"] | Variable<any, strin
 capitalCreateExpense?: [{	data: ValueTypes["CreateExpenseInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 capitalCreateIssue?: [{	data: ValueTypes["CreateIssueInput"] | Variable<any, string>},ValueTypes["CapitalIssue"]],
 capitalCreateLocalProject?: [{	data: ValueTypes["CreateProjectInput"] | Variable<any, string>},ValueTypes["CapitalProject"]],
-capitalCreateMeasure?: [{	data: ValueTypes["CreateMeasureInput"] | Variable<any, string>},ValueTypes["CapitalMeasure"]],
 capitalCreateProcessTemplate?: [{	data: ValueTypes["CreateProcessTemplateInput"] | Variable<any, string>},ValueTypes["ProcessTemplate"]],
 capitalCreateProgramExpense?: [{	data: ValueTypes["CapitalCreateProgramExpenseInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 capitalCreateProgramInvest?: [{	data: ValueTypes["CreateProgramInvestInput"] | Variable<any, string>},ValueTypes["Transaction"]],
@@ -13200,13 +13282,11 @@ confirmEmailVerification?: [{	data: ValueTypes["ConfirmEmailVerificationInputDTO
 confirmMembershipExit?: [{	token: string | Variable<any, string>},ValueTypes["MembershipExitResult"]],
 createAnnualGeneralMeet?: [{	data: ValueTypes["CreateAnnualGeneralMeetInput"] | Variable<any, string>},ValueTypes["MeetAggregate"]],
 createBranch?: [{	data: ValueTypes["CreateBranchInput"] | Variable<any, string>},ValueTypes["Branch"]],
-createCategory?: [{	data: ValueTypes["CreateCategoryInput"] | Variable<any, string>},ValueTypes["Category"]],
 createDepositPayment?: [{	data: ValueTypes["CreateDepositPaymentInput"] | Variable<any, string>},ValueTypes["GatewayPayment"]],
 createExpensePlan?: [{	data: ValueTypes["CreateExpensePlanInput"] | Variable<any, string>},ValueTypes["ExpensePlan"]],
 createExpenseProposal?: [{	data: ValueTypes["CreateExpenseProposalInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 createInitialPayment?: [{	data: ValueTypes["CreateInitialPaymentInput"] | Variable<any, string>},ValueTypes["GatewayPayment"]],
 createMembershipExit?: [{	data: ValueTypes["CreateMembershipExitInput"] | Variable<any, string>},ValueTypes["MembershipExitResult"]],
-createProductCard?: [{	data: ValueTypes["CreateProductCardInput"] | Variable<any, string>},ValueTypes["ProductCard"]],
 createProjectOfFreeDecision?: [{	data: ValueTypes["CreateProjectFreeDecisionInput"] | Variable<any, string>},ValueTypes["CreatedProjectFreeDecision"]],
 createWebPushSubscription?: [{	data: ValueTypes["CreateSubscriptionInput"] | Variable<any, string>},ValueTypes["CreateSubscriptionResponse"]],
 createWithdraw?: [{	data: ValueTypes["CreateWithdrawInput"] | Variable<any, string>},ValueTypes["CreateWithdrawResponse"]],
@@ -13216,10 +13296,8 @@ declineDecision?: [{	data: ValueTypes["DeclineDecisionInput"] | Variable<any, st
 deleteAccount?: [{	data: ValueTypes["DeleteAccountInput"] | Variable<any, string>},boolean | `@${string}`],
 deleteBranch?: [{	data: ValueTypes["DeleteBranchInput"] | Variable<any, string>},boolean | `@${string}`],
 deleteBranchWhitelist?: [{	data: ValueTypes["DeleteBranchWhitelistInput"] | Variable<any, string>},ValueTypes["Branch"]],
-deleteCategory?: [{	id: string | Variable<any, string>},boolean | `@${string}`],
 deleteExpensePlan?: [{	data: ValueTypes["DeleteExpensePlanInput"] | Variable<any, string>},boolean | `@${string}`],
 deletePaymentMethod?: [{	data: ValueTypes["DeletePaymentMethodInput"] | Variable<any, string>},boolean | `@${string}`],
-deleteProductCard?: [{	id: string | Variable<any, string>},boolean | `@${string}`],
 deleteReportDraft?: [{	id: string | Variable<any, string>},boolean | `@${string}`],
 deleteTrustedAccount?: [{	data: ValueTypes["DeleteTrustedAccountInput"] | Variable<any, string>},ValueTypes["Branch"]],
 disableTwoFactor?: [{	data: ValueTypes["TwoFactorCodeInput"] | Variable<any, string>},boolean | `@${string}`],
@@ -13401,7 +13479,7 @@ overspendExpenseItem?: [{	data: ValueTypes["OverspendExpenseItemInput"] | Variab
 payExpenseItem?: [{	data: ValueTypes["PayExpenseItemInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 payWithheldTax?: [{	data: ValueTypes["PayWithheldTaxInput"] | Variable<any, string>},boolean | `@${string}`],
 processConvertToAxonStatement?: [{	data: ValueTypes["ProcessConvertToAxonStatementInput"] | Variable<any, string>},boolean | `@${string}`],
-publishProductCard?: [{	id: string | Variable<any, string>},boolean | `@${string}`],
+proposeDocumentApproval?: [{	data: ValueTypes["ProposeDocumentApprovalInput"] | Variable<any, string>},ValueTypes["DocumentTemplate"]],
 publishProjectOfFreeDecision?: [{	data: ValueTypes["PublishProjectFreeDecisionInput"] | Variable<any, string>},ValueTypes["AgendaWithDocuments"]],
 refresh?: [{	data: ValueTypes["RefreshInput"] | Variable<any, string>},ValueTypes["RegisteredAccount"]],
 registerAccount?: [{	data: ValueTypes["RegisterAccountInput"] | Variable<any, string>},ValueTypes["RegisteredAccount"]],
@@ -14706,32 +14784,6 @@ walmoveWallets?: [{	input: ValueTypes["WalmoveInput"] | Variable<any, string>},V
 	toBlock?: number | undefined | null | Variable<any, string>,
 	username?: string | undefined | null | Variable<any, string>
 };
-	["ProductCard"]: AliasType<{
-	braname?:boolean | `@${string}`,
-	cancellation_fee_amount?:boolean | `@${string}`,
-	category_id?:boolean | `@${string}`,
-	contribution_type?:boolean | `@${string}`,
-	coopname?:boolean | `@${string}`,
-	created_at?:boolean | `@${string}`,
-	delivery_type?:boolean | `@${string}`,
-	description?:boolean | `@${string}`,
-	id?:boolean | `@${string}`,
-	images?:boolean | `@${string}`,
-	membership_fee_amount?:boolean | `@${string}`,
-	product_lifecycle_secs?:boolean | `@${string}`,
-	status?:boolean | `@${string}`,
-	title?:boolean | `@${string}`,
-	type?:boolean | `@${string}`,
-	unit_cost?:boolean | `@${string}`,
-	units?:boolean | `@${string}`,
-	updated_at?:boolean | `@${string}`,
-	username?:boolean | `@${string}`,
-	warranty_period_secs?:boolean | `@${string}`,
-		__typename?: boolean | `@${string}`,
-	['...on ProductCard']?: Omit<ValueTypes["ProductCard"], "...on ProductCard">
-}>;
-	["ProductCardStatus"]:ProductCardStatus;
-	["ProductCardType"]:ProductCardType;
 	["ProgramCapitalizationMoneyInvestStatementGenerateDocumentInput"]: {
 	/** Сумма инвестирования в программу (актив) */
 	amount: string | Variable<any, string>,
@@ -14936,6 +14988,14 @@ walmoveWallets?: [{	input: ValueTypes["WalmoveInput"] | Variable<any, string>},V
 ["ProjectPriority"]:ProjectPriority;
 	/** Статусы проекта в системе CAPITAL */
 ["ProjectStatus"]:ProjectStatus;
+	["ProposeDocumentApprovalInput"]: {
+	/** Имя аккаунта кооператива */
+	coopname: string | Variable<any, string>,
+	/** Документы, выносимые на совет одним решением: один документ или пакет одного приложения */
+	registry_ids: Array<number> | Variable<any, string>,
+	/** Заголовок вопроса повестки; по умолчанию собирается из названий документов */
+	title?: string | undefined | null | Variable<any, string>
+};
 	["ProviderSubscription"]: AliasType<{
 	/** Дата создания */
 	created_at?:boolean | `@${string}`,
@@ -15105,6 +15165,11 @@ chatcoopListUtcDatesWithNewRoomMessages?: [{	data: ValueTypes["ListUtcDatesWithN
 checkReportReadiness?: [{	reportType: ValueTypes["ReportType"] | Variable<any, string>},ValueTypes["ReportReadinessView"]],
 cooperativeAgreements?: [{	coopname: string | Variable<any, string>},ValueTypes["CoopAgreement"]],
 cooperativePrograms?: [{	coopname: string | Variable<any, string>},ValueTypes["CooperativeProgram"]],
+documentApprovalsSeedPlan?: [{	coopname: string | Variable<any, string>},ValueTypes["DocumentApprovalSeedItem"]],
+documentTemplateBlank?: [{	coopname: string | Variable<any, string>,	/** Хэш приватных параметров документа, если шаблон их требует (параметры ЦПП) */
+	doc_data_hash?: string | undefined | null | Variable<any, string>,	edition: ValueTypes["DocumentTemplateEdition"] | Variable<any, string>,	registry_id: number | Variable<any, string>},ValueTypes["DocumentTemplateBlank"]],
+documentTemplates?: [{	coopname: string | Variable<any, string>},ValueTypes["DocumentTemplate"]],
+documentTemplatesAttention?: [{	coopname: string | Variable<any, string>},boolean | `@${string}`],
 edubridgeActSignablePayload?: [{	contribution_id: ValueTypes["ID"] | Variable<any, string>},ValueTypes["DocumentAggregate"]],
 	/** Администраторы приложения */
 	edubridgeAdmins?:ValueTypes["EduAdmin"],
@@ -15160,6 +15225,7 @@ getActions?: [{	filters?: ValueTypes["ActionFiltersInput"] | undefined | null | 
 Требуемые роли: chairman.  */
 	getAvailableReports?:ValueTypes["AvailableReport"],
 getBranches?: [{	data: ValueTypes["GetBranchesInput"] | Variable<any, string>},ValueTypes["Branch"]],
+getCandidateIntake?: [{	username: string | Variable<any, string>},ValueTypes["CandidateIntake"]],
 	/** Каталог наборов возможностей с правами, которые они открывают */
 	getCapabilitySets?:ValueTypes["CapabilitySet"],
 getCapitalIssueLogs?: [{	data: ValueTypes["GetCapitalIssueLogsInput"] | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedCapitalLogsPaginationResult"]],
@@ -15168,8 +15234,6 @@ getCapitalIssueLogs?: [{	data: ValueTypes["GetCapitalIssueLogsInput"] | Variable
 Требуемые роли: chairman, member, user.  */
 	getCapitalOnboardingState?:ValueTypes["CapitalOnboardingState"],
 getCapitalProjectLogs?: [{	data: ValueTypes["GetCapitalLogsInput"] | Variable<any, string>},ValueTypes["PaginatedCapitalLogsPaginationResult"]],
-	/** Получить дерево категорий */
-	getCategories?:ValueTypes["Category"],
 	/** Получить состояние онбординга председателя
 
 Требуемые роли: chairman.  */
@@ -15203,8 +15267,6 @@ getMeets?: [{	data: ValueTypes["GetMeetsInput"] | Variable<any, string>},ValueTy
 	getMyAccess?:ValueTypes["ParticipantAccess"],
 	/** Получить удостоверение текущего пайщика */
 	getMyCertificate?:ValueTypes["ParticipantCertificate"],
-	/** Мои карточки */
-	getMyProductCards?:ValueTypes["ProductCard"],
 	/** Насколько узел кооператива отстал от цепи. Пусто, пока состояние не измерено */
 	getNodeSyncState?:ValueTypes["NodeSyncState"],
 getNotification?: [{	id: string | Variable<any, string>},ValueTypes["NotificationDetail"]],
@@ -15213,8 +15275,6 @@ getParticipantCapabilitySets?: [{	username: string | Variable<any, string>},Valu
 getParticipantLoginSecurity?: [{	data: ValueTypes["ResetParticipantTwoFactorInput"] | Variable<any, string>},ValueTypes["ParticipantLoginSecurity"]],
 getPaymentMethods?: [{	data?: ValueTypes["GetPaymentMethodsInput"] | undefined | null | Variable<any, string>},ValueTypes["PaymentMethodPaginationResult"]],
 getPayments?: [{	data?: ValueTypes["PaymentFiltersInput"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedGatewayPaymentsPaginationResult"]],
-getProductCard?: [{	id: string | Variable<any, string>},ValueTypes["ProductCard"]],
-getProductCards?: [{	category_id?: string | undefined | null | Variable<any, string>,	limit?: number | undefined | null | Variable<any, string>,	page?: number | undefined | null | Variable<any, string>,	search?: string | undefined | null | Variable<any, string>,	status?: ValueTypes["ProductCardStatus"] | undefined | null | Variable<any, string>,	type?: ValueTypes["ProductCardType"] | undefined | null | Variable<any, string>},ValueTypes["ProductCard"]],
 getProgramWallet?: [{	filter: ValueTypes["ProgramWalletFilterInput"] | Variable<any, string>},ValueTypes["ProgramWallet"]],
 getProgramWallets?: [{	filter?: ValueTypes["ProgramWalletFilterInput"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["ProgramWalletsPaginationResult"]],
 getProviderSubscriptionById?: [{	id: number | Variable<any, string>},ValueTypes["ProviderSubscription"]],
@@ -15540,6 +15600,8 @@ verificationReviews?: [{	data?: ValueTypes["VerificationReviewsInput"] | undefin
 	braname?: string | undefined | null | Variable<any, string>,
 	/** Подписанный документ оферты по программе "Генератор" (опционально, только для программы generation) */
 	generator_offer?: ValueTypes["SignedDigitalDocumentInput"] | undefined | null | Variable<any, string>,
+	/** Ответы на анкеты вступления, которые объявили расширения для выбранной программы и типа аккаунта */
+	intake_answers?: Array<ValueTypes["IntakeFormAnswerInput"]> | undefined | null | Variable<any, string>,
 	/** Подписанная оферта по целевой потребительской программе «Стол заказов» (опционально, только для программы marketplace) */
 	marketplace_offer?: ValueTypes["SignedDigitalDocumentInput"] | undefined | null | Variable<any, string>,
 	/** Подписанный документ политики конфиденциальности от пайщика */
@@ -15591,12 +15653,28 @@ verificationReviews?: [{	data?: ValueTypes["VerificationReviewsInput"] | undefin
 	['...on RegistrationAgreement']?: Omit<ValueTypes["RegistrationAgreement"], "...on RegistrationAgreement">
 }>;
 	["RegistrationConfig"]: AliasType<{
+	/** Анкеты, которые заполняет любой заявитель этого типа аккаунта, независимо от программы */
+	intake_forms?:ValueTypes["RegistrationIntakeForm"],
 	/** Доступные программы */
 	programs?:ValueTypes["RegistrationProgram"],
 	/** Нужен ли выбор программы */
 	requires_selection?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
 	['...on RegistrationConfig']?: Omit<ValueTypes["RegistrationConfig"], "...on RegistrationConfig">
+}>;
+	["RegistrationIntakeForm"]: AliasType<{
+	/** Пояснение над полями: зачем кооперативу эти сведения */
+	description?:boolean | `@${string}`,
+	/** Идентификатор анкеты */
+	id?:boolean | `@${string}`,
+	/** Порядок отображения */
+	order?:boolean | `@${string}`,
+	/** JSON Schema полей анкеты */
+	schema?:boolean | `@${string}`,
+	/** Заголовок анкеты */
+	title?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on RegistrationIntakeForm']?: Omit<ValueTypes["RegistrationIntakeForm"], "...on RegistrationIntakeForm">
 }>;
 	["RegistrationPayment"]: AliasType<{
 	/** Хэш платежа */
@@ -15619,6 +15697,8 @@ verificationReviews?: [{	data?: ValueTypes["VerificationReviewsInput"] | undefin
 	description?:boolean | `@${string}`,
 	/** URL изображения (опционально) */
 	image_url?:boolean | `@${string}`,
+	/** Анкеты, которые заявитель заполняет, выбрав программу */
+	intake_forms?:ValueTypes["RegistrationIntakeForm"],
 	/** Уникальный ключ программы */
 	key?:boolean | `@${string}`,
 	/** Порядок отображения */
@@ -17767,6 +17847,8 @@ export type ResolverInputTypes = {
 }>;
 	/** Тип аккаунта пользователя в системе */
 ["AccountType"]:AccountType;
+	/** Отбор реестра пайщиков по уровню верификации */
+["AccountVerificationFilter"]:AccountVerificationFilter;
 	["AccountsPaginationResult"]: AliasType<{
 	/** Текущая страница */
 	currentPage?:boolean | `@${string}`,
@@ -19556,6 +19638,27 @@ export type ResolverInputTypes = {
 	["CandidateFilterInput"]: {
 	referer?: string | undefined | null
 };
+	["CandidateIntake"]: AliasType<{
+	/** Ответы на анкеты вступления */
+	answers?:ResolverInputTypes["CandidateIntakeAnswer"],
+	/** Программа, выбранная при вступлении */
+	program_key?:boolean | `@${string}`,
+	username?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["CandidateIntakeAnswer"]: AliasType<{
+	/** Идентификатор анкеты */
+	form_id?:boolean | `@${string}`,
+	/** JSON Schema полей анкеты на момент подачи */
+	json_schema?:boolean | `@${string}`,
+	/** Когда заявитель подал ответы */
+	submitted_at?:boolean | `@${string}`,
+	/** Заголовок анкеты на момент подачи */
+	title?:boolean | `@${string}`,
+	/** Значения полей: имя поля → значение */
+	values?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
 	["CandidateStatus"]:CandidateStatus;
 	["CapabilitySet"]: AliasType<{
 	/** true — платформенный набор; false — кооперативный кастомный */
@@ -19867,7 +19970,9 @@ export type ResolverInputTypes = {
 	block_num?:boolean | `@${string}`,
 	/** Статус из блокчейна */
 	blockchain_status?:boolean | `@${string}`,
-	/** Контракт участника */
+	/** Контракт участника
+
+Требуемые роли: chairman, member.  */
 	contract?:ResolverInputTypes["DocumentAggregate"],
 	/** Вклад как автор */
 	contributed_as_author?:boolean | `@${string}`,
@@ -20035,9 +20140,13 @@ export type ResolverInputTypes = {
 	_updated_at?:boolean | `@${string}`,
 	/** Сумма долга */
 	amount?:boolean | `@${string}`,
-	/** Одобренное заявление */
+	/** Одобренное заявление
+
+Требуемые роли: chairman, member.  */
 	approved_statement?:ResolverInputTypes["DocumentAggregate"],
-	/** Протокол решения совета */
+	/** Протокол решения совета
+
+Требуемые роли: chairman, member.  */
 	authorization?:ResolverInputTypes["DocumentAggregate"],
 	/** Номер блока последнего обновления */
 	block_num?:boolean | `@${string}`,
@@ -20057,7 +20166,9 @@ export type ResolverInputTypes = {
 	project_hash?:boolean | `@${string}`,
 	/** Дата погашения */
 	repaid_at?:boolean | `@${string}`,
-	/** Заявление на получение ссуды */
+	/** Заявление на получение ссуды
+
+Требуемые роли: chairman, member.  */
 	statement?:ResolverInputTypes["DocumentAggregate"],
 	/** Статус долга */
 	status?:boolean | `@${string}`,
@@ -20075,9 +20186,13 @@ export type ResolverInputTypes = {
 	_updated_at?:boolean | `@${string}`,
 	/** Сумма расхода */
 	amount?:boolean | `@${string}`,
-	/** Одобренная записка */
+	/** Одобренная записка
+
+Требуемые роли: chairman, member.  */
 	approved_statement?:ResolverInputTypes["DocumentAggregate"],
-	/** Авторизация расхода */
+	/** Авторизация расхода
+
+Требуемые роли: chairman, member.  */
 	authorization?:ResolverInputTypes["DocumentAggregate"],
 	/** Номер блока последнего обновления */
 	block_num?:boolean | `@${string}`,
@@ -20089,7 +20204,9 @@ export type ResolverInputTypes = {
 	description?:boolean | `@${string}`,
 	/** Хеш расхода */
 	expense_hash?:boolean | `@${string}`,
-	/** Служебная записка о расходе */
+	/** Служебная записка о расходе
+
+Требуемые роли: chairman, member.  */
 	expense_statement?:ResolverInputTypes["DocumentAggregate"],
 	/** ID фонда */
 	fund_id?:boolean | `@${string}`,
@@ -21740,17 +21857,6 @@ export type ResolverInputTypes = {
 	/** Системное имя кооператива-источника */
 	from_coopname: string
 };
-	["Category"]: AliasType<{
-	coopname?:boolean | `@${string}`,
-	description?:boolean | `@${string}`,
-	icon?:boolean | `@${string}`,
-	id?:boolean | `@${string}`,
-	is_active?:boolean | `@${string}`,
-	name?:boolean | `@${string}`,
-	parent_id?:boolean | `@${string}`,
-	sort_order?:boolean | `@${string}`,
-		__typename?: boolean | `@${string}`
-}>;
 	["CategoryTypeInput"]: {
 	/** ID категории */
 	categoryId: number,
@@ -22027,7 +22133,6 @@ export type ResolverInputTypes = {
 	phone?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
-	["ContributionType"]:ContributionType;
 	/** Параметры документов участника из UData */
 ["ContributorDocumentParameters"]: AliasType<{
 	/** Дата создания соглашения благороста */
@@ -22261,13 +22366,6 @@ export type ResolverInputTypes = {
 	short_name: string,
 	/** Имя аккаунта уполномоченного (председателя) кооперативного участка */
 	trustee: string
-};
-	["CreateCategoryInput"]: {
-	description?: string | undefined | null,
-	icon?: string | undefined | null,
-	name: string,
-	parent_id?: string | undefined | null,
-	sort_order?: number | undefined | null
 };
 	["CreateChatCoopCalendarEventInput"]: {
 	description?: string | undefined | null,
@@ -22515,16 +22613,6 @@ export type ResolverInputTypes = {
 	password: string,
 	username: string
 };
-	["CreateMeasureInput"]: {
-	/** Имя аккаунта кооператива */
-	coopname: string,
-	/** Режим ряда; по умолчанию скорость */
-	series_mode?: ResolverInputTypes["MetricSeriesMode"] | undefined | null,
-	/** Название меры */
-	title: string,
-	/** Единица измерения */
-	unit: string
-};
 	["CreateMembershipExitInput"]: {
 	/** Имя аккаунта кооператива */
 	coopname: string,
@@ -22563,23 +22651,6 @@ export type ResolverInputTypes = {
 	description?: string | undefined | null,
 	project_hash: string,
 	title: string
-};
-	["CreateProductCardInput"]: {
-	braname?: string | undefined | null,
-	cancellation_fee_amount?: string | undefined | null,
-	category_id?: string | undefined | null,
-	contribution_type: ResolverInputTypes["ContributionType"],
-	delivery_type: ResolverInputTypes["DeliveryType"],
-	description: string,
-	images?: Array<string> | undefined | null,
-	membership_fee_amount?: string | undefined | null,
-	min_units?: number | undefined | null,
-	product_lifecycle_secs: number,
-	title: string,
-	type: ResolverInputTypes["ProductCardType"],
-	unit_cost: string,
-	units: number,
-	warranty_period_secs: number
 };
 	["CreateProgramInvestInput"]: {
 	/** Сумма инвестиции */
@@ -23002,7 +23073,6 @@ export type ResolverInputTypes = {
 	/** Имя аккаунта доверонного лица, у которого отзывается право подписи за председателя кооперативного участка */
 	trusted: string
 };
-	["DeliveryType"]:DeliveryType;
 	["Delta"]: AliasType<{
 	/** ID блока */
 	block_id?:boolean | `@${string}`,
@@ -23089,6 +23159,36 @@ export type ResolverInputTypes = {
 	rawDocument?:ResolverInputTypes["GeneratedDocument"],
 		__typename?: boolean | `@${string}`
 }>;
+	/** Требуется ли решение совета, чтобы редакция документа действовала в кооперативе */
+["DocumentApprovalRequirement"]:DocumentApprovalRequirement;
+	["DocumentApprovalSeedItem"]: AliasType<{
+	/** Дата протокола из настроек кооператива */
+	protocol_day_month_year?:boolean | `@${string}`,
+	/** Номер протокола из настроек кооператива */
+	protocol_number?:boolean | `@${string}`,
+	/** Номер шаблона в реестре документов */
+	registry_id?:boolean | `@${string}`,
+	/** Название документа */
+	title?:boolean | `@${string}`,
+	/** Поле настроек, откуда взяты реквизиты */
+	vars_field?:boolean | `@${string}`,
+	/** Редакция в сети, которая будет записана утверждённой */
+	version?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["DocumentApprovalSeedResult"]: AliasType<{
+	/** Сколько утверждений записано в цепь */
+	applied?:boolean | `@${string}`,
+	/** Документы, по которым запись не удалась */
+	failed?:boolean | `@${string}`,
+	/** Сколько документов было в плане */
+	planned?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Состояние документа в кооперативе относительно редакции в сети */
+["DocumentApprovalState"]:DocumentApprovalState;
+	/** Род документа: соглашение пайщика, положение, форма или служебный документ */
+["DocumentKind"]:DocumentKind;
 	/** Комплексный объект папки цифрового документа с агрегатами, который включает в себя заявление, решение, акты и связанные документы */
 ["DocumentPackageAggregate"]: AliasType<{
 	/** Массив объект(ов) актов с агрегатами, относящихся к заявлению */
@@ -23101,6 +23201,50 @@ export type ResolverInputTypes = {
 	statement?:ResolverInputTypes["StatementDetailAggregate"],
 		__typename?: boolean | `@${string}`
 }>;
+	["DocumentTemplate"]: AliasType<{
+	/** Требуется ли утверждение советом */
+	approval?:boolean | `@${string}`,
+	/** Дата решения совета об утверждении */
+	approved_at?:boolean | `@${string}`,
+	/** Номер решения совета об утверждении */
+	approved_decision_id?:boolean | `@${string}`,
+	/** Редакция, утверждённая советом кооператива */
+	approved_version?:boolean | `@${string}`,
+	/** Пакет: документы одного пакета утверждаются одним решением */
+	bundle?:boolean | `@${string}`,
+	/** Редакция шаблона в сети */
+	current_version?:boolean | `@${string}`,
+	/** Редакция, которую кооператив предъявляет пайщикам */
+	effective_version?:boolean | `@${string}`,
+	/** Приложение, использующее документ; базовый набор кооператива — core */
+	extension_name?:boolean | `@${string}`,
+	/** Род документа */
+	kind?:boolean | `@${string}`,
+	/** Порядок в списке приложения */
+	order?:boolean | `@${string}`,
+	/** Хэш проекта решения в повестке совета, если документ вынесен на утверждение */
+	pending_hash?:boolean | `@${string}`,
+	/** Номер шаблона в реестре документов */
+	registry_id?:boolean | `@${string}`,
+	/** Состояние документа в кооперативе */
+	state?:boolean | `@${string}`,
+	/** Название документа */
+	title?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["DocumentTemplateBlank"]: AliasType<{
+	/** Текст документа в HTML */
+	html?:boolean | `@${string}`,
+	/** Номер шаблона в реестре документов */
+	registry_id?:boolean | `@${string}`,
+	/** Хэш текста */
+	text_hash?:boolean | `@${string}`,
+	/** Название документа */
+	title?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Редакция документа для просмотра: утверждённая советом кооператива или текущая в сети */
+["DocumentTemplateEdition"]:DocumentTemplateEdition;
 	["DocumentsAggregatePaginationResult"]: AliasType<{
 	/** Текущая страница */
 	currentPage?:boolean | `@${string}`,
@@ -24741,7 +24885,9 @@ export type ResolverInputTypes = {
 	username: string
 };
 	["GetAccountsInput"]: {
-	role?: string | undefined | null
+	role?: string | undefined | null,
+	/** Отбор по уровню верификации: паспорт сверен, не сверен, нет ни одного уровня */
+	verification?: ResolverInputTypes["AccountVerificationFilter"] | undefined | null
 };
 	["GetBranchesInput"]: {
 	/** Фильтр по имени аккаунта кооперативного участка */
@@ -25147,6 +25293,8 @@ export type ResolverInputTypes = {
 		__typename?: boolean | `@${string}`
 }>;
 	["Init"]: {
+	/** Код установки, выданный startInstall владельцу ключа кооператива. Не нужен только провайдеру с межсервисным секретом. */
+	install_code?: string | undefined | null,
 	/** Признак того, что инициализация выполняется со стороны провайдера. При true coopback ставит init_by_server=true (org_data становится readonly для пользовательского визарда). Поле передаёт provider в callInitSystemMutation. */
 	is_server_init?: boolean | undefined | null,
 	/** Объект организации кооператива, которая обслуживает данный экземпляр программного обеспечения MONO */
@@ -25161,6 +25309,8 @@ export type ResolverInputTypes = {
 	target_id: string
 };
 	["Install"]: {
+	/** Код установки, выданный startInstall владельцу ключа кооператива. Без него совет установить нельзя. */
+	install_code?: string | undefined | null,
 	soviet: Array<ResolverInputTypes["SovietMemberInput"]>,
 	vars: ResolverInputTypes["SetVarsInput"]
 };
@@ -25175,6 +25325,12 @@ export type ResolverInputTypes = {
 }>;
 	/** Статусы жизненного цикла инстанса кооператива */
 ["InstanceStatus"]:InstanceStatus;
+	["IntakeFormAnswerInput"]: {
+	/** Идентификатор анкеты из конфигурации регистрации */
+	form_id: string,
+	/** Значения полей анкеты: имя поля → значение */
+	values: ResolverInputTypes["JSON"]
+};
 	/** Статусы инвестиции в системе CAPITAL */
 ["InvestStatus"]:InvestStatus;
 	["IssueMetricBindingItemInput"]: {
@@ -29300,6 +29456,8 @@ export type ResolverInputTypes = {
 		__typename?: boolean | `@${string}`
 }>;
 	["MonoAccount"]: AliasType<{
+	/** Когда запись о человеке появилась на узле кооператива (заявка подана или её завёл председатель) */
+	created_at?:boolean | `@${string}`,
 	/** Электронная почта пользователя */
 	email?:boolean | `@${string}`,
 	/** Есть ли у пользователя аккаунт */
@@ -29342,8 +29500,8 @@ addBranchWhitelist?: [{	data: ResolverInputTypes["AddBranchWhitelistInput"]},Res
 addParticipant?: [{	data: ResolverInputTypes["AddParticipantInput"]},ResolverInputTypes["Account"]],
 addPaymentMethod?: [{	data: ResolverInputTypes["AddPaymentMethodInput"]},ResolverInputTypes["PaymentMethod"]],
 addTrustedAccount?: [{	data: ResolverInputTypes["AddTrustedAccountInput"]},ResolverInputTypes["Branch"]],
+applyDocumentApprovalsSeed?: [{	coopname: string},ResolverInputTypes["DocumentApprovalSeedResult"]],
 approveVerification?: [{	data: ResolverInputTypes["ApproveVerificationInput"]},ResolverInputTypes["VerificationReview"]],
-archiveProductCard?: [{	id: string},boolean | `@${string}`],
 assignCapabilitySet?: [{	data: ResolverInputTypes["AssignCapabilitySetInput"]},boolean | `@${string}`],
 authorizeDecision?: [{	data: ResolverInputTypes["AuthorizeDecisionInput"]},ResolverInputTypes["Transaction"]],
 authorizeForceRecovery?: [{	data: ResolverInputTypes["AuthorizeForceRecoveryInput"]},ResolverInputTypes["ForceRecoveryAuthorization"]],
@@ -29367,7 +29525,6 @@ capitalCreateDebt?: [{	data: ResolverInputTypes["CreateDebtInput"]},ResolverInpu
 capitalCreateExpense?: [{	data: ResolverInputTypes["CreateExpenseInput"]},ResolverInputTypes["Transaction"]],
 capitalCreateIssue?: [{	data: ResolverInputTypes["CreateIssueInput"]},ResolverInputTypes["CapitalIssue"]],
 capitalCreateLocalProject?: [{	data: ResolverInputTypes["CreateProjectInput"]},ResolverInputTypes["CapitalProject"]],
-capitalCreateMeasure?: [{	data: ResolverInputTypes["CreateMeasureInput"]},ResolverInputTypes["CapitalMeasure"]],
 capitalCreateProcessTemplate?: [{	data: ResolverInputTypes["CreateProcessTemplateInput"]},ResolverInputTypes["ProcessTemplate"]],
 capitalCreateProgramExpense?: [{	data: ResolverInputTypes["CapitalCreateProgramExpenseInput"]},ResolverInputTypes["Transaction"]],
 capitalCreateProgramInvest?: [{	data: ResolverInputTypes["CreateProgramInvestInput"]},ResolverInputTypes["Transaction"]],
@@ -29468,13 +29625,11 @@ confirmEmailVerification?: [{	data: ResolverInputTypes["ConfirmEmailVerification
 confirmMembershipExit?: [{	token: string},ResolverInputTypes["MembershipExitResult"]],
 createAnnualGeneralMeet?: [{	data: ResolverInputTypes["CreateAnnualGeneralMeetInput"]},ResolverInputTypes["MeetAggregate"]],
 createBranch?: [{	data: ResolverInputTypes["CreateBranchInput"]},ResolverInputTypes["Branch"]],
-createCategory?: [{	data: ResolverInputTypes["CreateCategoryInput"]},ResolverInputTypes["Category"]],
 createDepositPayment?: [{	data: ResolverInputTypes["CreateDepositPaymentInput"]},ResolverInputTypes["GatewayPayment"]],
 createExpensePlan?: [{	data: ResolverInputTypes["CreateExpensePlanInput"]},ResolverInputTypes["ExpensePlan"]],
 createExpenseProposal?: [{	data: ResolverInputTypes["CreateExpenseProposalInput"]},ResolverInputTypes["Transaction"]],
 createInitialPayment?: [{	data: ResolverInputTypes["CreateInitialPaymentInput"]},ResolverInputTypes["GatewayPayment"]],
 createMembershipExit?: [{	data: ResolverInputTypes["CreateMembershipExitInput"]},ResolverInputTypes["MembershipExitResult"]],
-createProductCard?: [{	data: ResolverInputTypes["CreateProductCardInput"]},ResolverInputTypes["ProductCard"]],
 createProjectOfFreeDecision?: [{	data: ResolverInputTypes["CreateProjectFreeDecisionInput"]},ResolverInputTypes["CreatedProjectFreeDecision"]],
 createWebPushSubscription?: [{	data: ResolverInputTypes["CreateSubscriptionInput"]},ResolverInputTypes["CreateSubscriptionResponse"]],
 createWithdraw?: [{	data: ResolverInputTypes["CreateWithdrawInput"]},ResolverInputTypes["CreateWithdrawResponse"]],
@@ -29484,10 +29639,8 @@ declineDecision?: [{	data: ResolverInputTypes["DeclineDecisionInput"]},ResolverI
 deleteAccount?: [{	data: ResolverInputTypes["DeleteAccountInput"]},boolean | `@${string}`],
 deleteBranch?: [{	data: ResolverInputTypes["DeleteBranchInput"]},boolean | `@${string}`],
 deleteBranchWhitelist?: [{	data: ResolverInputTypes["DeleteBranchWhitelistInput"]},ResolverInputTypes["Branch"]],
-deleteCategory?: [{	id: string},boolean | `@${string}`],
 deleteExpensePlan?: [{	data: ResolverInputTypes["DeleteExpensePlanInput"]},boolean | `@${string}`],
 deletePaymentMethod?: [{	data: ResolverInputTypes["DeletePaymentMethodInput"]},boolean | `@${string}`],
-deleteProductCard?: [{	id: string},boolean | `@${string}`],
 deleteReportDraft?: [{	id: string},boolean | `@${string}`],
 deleteTrustedAccount?: [{	data: ResolverInputTypes["DeleteTrustedAccountInput"]},ResolverInputTypes["Branch"]],
 disableTwoFactor?: [{	data: ResolverInputTypes["TwoFactorCodeInput"]},boolean | `@${string}`],
@@ -29669,7 +29822,7 @@ overspendExpenseItem?: [{	data: ResolverInputTypes["OverspendExpenseItemInput"]}
 payExpenseItem?: [{	data: ResolverInputTypes["PayExpenseItemInput"]},ResolverInputTypes["Transaction"]],
 payWithheldTax?: [{	data: ResolverInputTypes["PayWithheldTaxInput"]},boolean | `@${string}`],
 processConvertToAxonStatement?: [{	data: ResolverInputTypes["ProcessConvertToAxonStatementInput"]},boolean | `@${string}`],
-publishProductCard?: [{	id: string},boolean | `@${string}`],
+proposeDocumentApproval?: [{	data: ResolverInputTypes["ProposeDocumentApprovalInput"]},ResolverInputTypes["DocumentTemplate"]],
 publishProjectOfFreeDecision?: [{	data: ResolverInputTypes["PublishProjectFreeDecisionInput"]},ResolverInputTypes["AgendaWithDocuments"]],
 refresh?: [{	data: ResolverInputTypes["RefreshInput"]},ResolverInputTypes["RegisteredAccount"]],
 registerAccount?: [{	data: ResolverInputTypes["RegisterAccountInput"]},ResolverInputTypes["RegisteredAccount"]],
@@ -30904,31 +31057,6 @@ walmoveWallets?: [{	input: ResolverInputTypes["WalmoveInput"]},ResolverInputType
 	toBlock?: number | undefined | null,
 	username?: string | undefined | null
 };
-	["ProductCard"]: AliasType<{
-	braname?:boolean | `@${string}`,
-	cancellation_fee_amount?:boolean | `@${string}`,
-	category_id?:boolean | `@${string}`,
-	contribution_type?:boolean | `@${string}`,
-	coopname?:boolean | `@${string}`,
-	created_at?:boolean | `@${string}`,
-	delivery_type?:boolean | `@${string}`,
-	description?:boolean | `@${string}`,
-	id?:boolean | `@${string}`,
-	images?:boolean | `@${string}`,
-	membership_fee_amount?:boolean | `@${string}`,
-	product_lifecycle_secs?:boolean | `@${string}`,
-	status?:boolean | `@${string}`,
-	title?:boolean | `@${string}`,
-	type?:boolean | `@${string}`,
-	unit_cost?:boolean | `@${string}`,
-	units?:boolean | `@${string}`,
-	updated_at?:boolean | `@${string}`,
-	username?:boolean | `@${string}`,
-	warranty_period_secs?:boolean | `@${string}`,
-		__typename?: boolean | `@${string}`
-}>;
-	["ProductCardStatus"]:ProductCardStatus;
-	["ProductCardType"]:ProductCardType;
 	["ProgramCapitalizationMoneyInvestStatementGenerateDocumentInput"]: {
 	/** Сумма инвестирования в программу (актив) */
 	amount: string,
@@ -31131,6 +31259,14 @@ walmoveWallets?: [{	input: ResolverInputTypes["WalmoveInput"]},ResolverInputType
 ["ProjectPriority"]:ProjectPriority;
 	/** Статусы проекта в системе CAPITAL */
 ["ProjectStatus"]:ProjectStatus;
+	["ProposeDocumentApprovalInput"]: {
+	/** Имя аккаунта кооператива */
+	coopname: string,
+	/** Документы, выносимые на совет одним решением: один документ или пакет одного приложения */
+	registry_ids: Array<number>,
+	/** Заголовок вопроса повестки; по умолчанию собирается из названий документов */
+	title?: string | undefined | null
+};
 	["ProviderSubscription"]: AliasType<{
 	/** Дата создания */
 	created_at?:boolean | `@${string}`,
@@ -31297,6 +31433,11 @@ chatcoopListUtcDatesWithNewRoomMessages?: [{	data: ResolverInputTypes["ListUtcDa
 checkReportReadiness?: [{	reportType: ResolverInputTypes["ReportType"]},ResolverInputTypes["ReportReadinessView"]],
 cooperativeAgreements?: [{	coopname: string},ResolverInputTypes["CoopAgreement"]],
 cooperativePrograms?: [{	coopname: string},ResolverInputTypes["CooperativeProgram"]],
+documentApprovalsSeedPlan?: [{	coopname: string},ResolverInputTypes["DocumentApprovalSeedItem"]],
+documentTemplateBlank?: [{	coopname: string,	/** Хэш приватных параметров документа, если шаблон их требует (параметры ЦПП) */
+	doc_data_hash?: string | undefined | null,	edition: ResolverInputTypes["DocumentTemplateEdition"],	registry_id: number},ResolverInputTypes["DocumentTemplateBlank"]],
+documentTemplates?: [{	coopname: string},ResolverInputTypes["DocumentTemplate"]],
+documentTemplatesAttention?: [{	coopname: string},boolean | `@${string}`],
 edubridgeActSignablePayload?: [{	contribution_id: ResolverInputTypes["ID"]},ResolverInputTypes["DocumentAggregate"]],
 	/** Администраторы приложения */
 	edubridgeAdmins?:ResolverInputTypes["EduAdmin"],
@@ -31352,6 +31493,7 @@ getActions?: [{	filters?: ResolverInputTypes["ActionFiltersInput"] | undefined |
 Требуемые роли: chairman.  */
 	getAvailableReports?:ResolverInputTypes["AvailableReport"],
 getBranches?: [{	data: ResolverInputTypes["GetBranchesInput"]},ResolverInputTypes["Branch"]],
+getCandidateIntake?: [{	username: string},ResolverInputTypes["CandidateIntake"]],
 	/** Каталог наборов возможностей с правами, которые они открывают */
 	getCapabilitySets?:ResolverInputTypes["CapabilitySet"],
 getCapitalIssueLogs?: [{	data: ResolverInputTypes["GetCapitalIssueLogsInput"],	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedCapitalLogsPaginationResult"]],
@@ -31360,8 +31502,6 @@ getCapitalIssueLogs?: [{	data: ResolverInputTypes["GetCapitalIssueLogsInput"],	o
 Требуемые роли: chairman, member, user.  */
 	getCapitalOnboardingState?:ResolverInputTypes["CapitalOnboardingState"],
 getCapitalProjectLogs?: [{	data: ResolverInputTypes["GetCapitalLogsInput"]},ResolverInputTypes["PaginatedCapitalLogsPaginationResult"]],
-	/** Получить дерево категорий */
-	getCategories?:ResolverInputTypes["Category"],
 	/** Получить состояние онбординга председателя
 
 Требуемые роли: chairman.  */
@@ -31395,8 +31535,6 @@ getMeets?: [{	data: ResolverInputTypes["GetMeetsInput"]},ResolverInputTypes["Mee
 	getMyAccess?:ResolverInputTypes["ParticipantAccess"],
 	/** Получить удостоверение текущего пайщика */
 	getMyCertificate?:ResolverInputTypes["ParticipantCertificate"],
-	/** Мои карточки */
-	getMyProductCards?:ResolverInputTypes["ProductCard"],
 	/** Насколько узел кооператива отстал от цепи. Пусто, пока состояние не измерено */
 	getNodeSyncState?:ResolverInputTypes["NodeSyncState"],
 getNotification?: [{	id: string},ResolverInputTypes["NotificationDetail"]],
@@ -31405,8 +31543,6 @@ getParticipantCapabilitySets?: [{	username: string},ResolverInputTypes["Capabili
 getParticipantLoginSecurity?: [{	data: ResolverInputTypes["ResetParticipantTwoFactorInput"]},ResolverInputTypes["ParticipantLoginSecurity"]],
 getPaymentMethods?: [{	data?: ResolverInputTypes["GetPaymentMethodsInput"] | undefined | null},ResolverInputTypes["PaymentMethodPaginationResult"]],
 getPayments?: [{	data?: ResolverInputTypes["PaymentFiltersInput"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedGatewayPaymentsPaginationResult"]],
-getProductCard?: [{	id: string},ResolverInputTypes["ProductCard"]],
-getProductCards?: [{	category_id?: string | undefined | null,	limit?: number | undefined | null,	page?: number | undefined | null,	search?: string | undefined | null,	status?: ResolverInputTypes["ProductCardStatus"] | undefined | null,	type?: ResolverInputTypes["ProductCardType"] | undefined | null},ResolverInputTypes["ProductCard"]],
 getProgramWallet?: [{	filter: ResolverInputTypes["ProgramWalletFilterInput"]},ResolverInputTypes["ProgramWallet"]],
 getProgramWallets?: [{	filter?: ResolverInputTypes["ProgramWalletFilterInput"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["ProgramWalletsPaginationResult"]],
 getProviderSubscriptionById?: [{	id: number},ResolverInputTypes["ProviderSubscription"]],
@@ -31729,6 +31865,8 @@ verificationReviews?: [{	data?: ResolverInputTypes["VerificationReviewsInput"] |
 	braname?: string | undefined | null,
 	/** Подписанный документ оферты по программе "Генератор" (опционально, только для программы generation) */
 	generator_offer?: ResolverInputTypes["SignedDigitalDocumentInput"] | undefined | null,
+	/** Ответы на анкеты вступления, которые объявили расширения для выбранной программы и типа аккаунта */
+	intake_answers?: Array<ResolverInputTypes["IntakeFormAnswerInput"]> | undefined | null,
 	/** Подписанная оферта по целевой потребительской программе «Стол заказов» (опционально, только для программы marketplace) */
 	marketplace_offer?: ResolverInputTypes["SignedDigitalDocumentInput"] | undefined | null,
 	/** Подписанный документ политики конфиденциальности от пайщика */
@@ -31778,10 +31916,25 @@ verificationReviews?: [{	data?: ResolverInputTypes["VerificationReviewsInput"] |
 		__typename?: boolean | `@${string}`
 }>;
 	["RegistrationConfig"]: AliasType<{
+	/** Анкеты, которые заполняет любой заявитель этого типа аккаунта, независимо от программы */
+	intake_forms?:ResolverInputTypes["RegistrationIntakeForm"],
 	/** Доступные программы */
 	programs?:ResolverInputTypes["RegistrationProgram"],
 	/** Нужен ли выбор программы */
 	requires_selection?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["RegistrationIntakeForm"]: AliasType<{
+	/** Пояснение над полями: зачем кооперативу эти сведения */
+	description?:boolean | `@${string}`,
+	/** Идентификатор анкеты */
+	id?:boolean | `@${string}`,
+	/** Порядок отображения */
+	order?:boolean | `@${string}`,
+	/** JSON Schema полей анкеты */
+	schema?:boolean | `@${string}`,
+	/** Заголовок анкеты */
+	title?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
 	["RegistrationPayment"]: AliasType<{
@@ -31804,6 +31957,8 @@ verificationReviews?: [{	data?: ResolverInputTypes["VerificationReviewsInput"] |
 	description?:boolean | `@${string}`,
 	/** URL изображения (опционально) */
 	image_url?:boolean | `@${string}`,
+	/** Анкеты, которые заявитель заполняет, выбрав программу */
+	intake_forms?:ResolverInputTypes["RegistrationIntakeForm"],
 	/** Уникальный ключ программы */
 	key?:boolean | `@${string}`,
 	/** Порядок отображения */
@@ -33887,6 +34042,7 @@ export type ModelTypes = {
 	last_seen_at: string
 };
 	["AccountType"]:AccountType;
+	["AccountVerificationFilter"]:AccountVerificationFilter;
 	["AccountsPaginationResult"]: {
 		/** Текущая страница */
 	currentPage: number,
@@ -35639,6 +35795,25 @@ export type ModelTypes = {
 	["CandidateFilterInput"]: {
 	referer?: string | undefined | null
 };
+	["CandidateIntake"]: {
+		/** Ответы на анкеты вступления */
+	answers: Array<ModelTypes["CandidateIntakeAnswer"]>,
+	/** Программа, выбранная при вступлении */
+	program_key?: string | undefined | null,
+	username: string
+};
+	["CandidateIntakeAnswer"]: {
+		/** Идентификатор анкеты */
+	form_id: string,
+	/** JSON Schema полей анкеты на момент подачи */
+	json_schema: ModelTypes["JSON"],
+	/** Когда заявитель подал ответы */
+	submitted_at: ModelTypes["DateTime"],
+	/** Заголовок анкеты на момент подачи */
+	title: string,
+	/** Значения полей: имя поля → значение */
+	values: ModelTypes["JSON"]
+};
 	["CandidateStatus"]:CandidateStatus;
 	["CapabilitySet"]: {
 		/** true — платформенный набор; false — кооперативный кастомный */
@@ -35939,7 +36114,9 @@ export type ModelTypes = {
 	block_num?: number | undefined | null,
 	/** Статус из блокчейна */
 	blockchain_status?: string | undefined | null,
-	/** Контракт участника */
+	/** Контракт участника
+
+Требуемые роли: chairman, member.  */
 	contract?: ModelTypes["DocumentAggregate"] | undefined | null,
 	/** Вклад как автор */
 	contributed_as_author?: string | undefined | null,
@@ -36104,9 +36281,13 @@ export type ModelTypes = {
 	_updated_at: ModelTypes["DateTime"],
 	/** Сумма долга */
 	amount?: number | undefined | null,
-	/** Одобренное заявление */
+	/** Одобренное заявление
+
+Требуемые роли: chairman, member.  */
 	approved_statement?: ModelTypes["DocumentAggregate"] | undefined | null,
-	/** Протокол решения совета */
+	/** Протокол решения совета
+
+Требуемые роли: chairman, member.  */
 	authorization?: ModelTypes["DocumentAggregate"] | undefined | null,
 	/** Номер блока последнего обновления */
 	block_num?: number | undefined | null,
@@ -36126,7 +36307,9 @@ export type ModelTypes = {
 	project_hash?: string | undefined | null,
 	/** Дата погашения */
 	repaid_at?: string | undefined | null,
-	/** Заявление на получение ссуды */
+	/** Заявление на получение ссуды
+
+Требуемые роли: chairman, member.  */
 	statement?: ModelTypes["DocumentAggregate"] | undefined | null,
 	/** Статус долга */
 	status: ModelTypes["DebtStatus"],
@@ -36143,9 +36326,13 @@ export type ModelTypes = {
 	_updated_at: ModelTypes["DateTime"],
 	/** Сумма расхода */
 	amount?: string | undefined | null,
-	/** Одобренная записка */
+	/** Одобренная записка
+
+Требуемые роли: chairman, member.  */
 	approved_statement?: ModelTypes["DocumentAggregate"] | undefined | null,
-	/** Авторизация расхода */
+	/** Авторизация расхода
+
+Требуемые роли: chairman, member.  */
 	authorization?: ModelTypes["DocumentAggregate"] | undefined | null,
 	/** Номер блока последнего обновления */
 	block_num?: number | undefined | null,
@@ -36157,7 +36344,9 @@ export type ModelTypes = {
 	description?: string | undefined | null,
 	/** Хеш расхода */
 	expense_hash: string,
-	/** Служебная записка о расходе */
+	/** Служебная записка о расходе
+
+Требуемые роли: chairman, member.  */
 	expense_statement?: ModelTypes["DocumentAggregate"] | undefined | null,
 	/** ID фонда */
 	fund_id?: number | undefined | null,
@@ -37753,16 +37942,6 @@ export type ModelTypes = {
 	/** Системное имя кооператива-источника */
 	from_coopname: string
 };
-	["Category"]: {
-		coopname: string,
-	description?: string | undefined | null,
-	icon?: string | undefined | null,
-	id: string,
-	is_active: boolean,
-	name: string,
-	parent_id?: string | undefined | null,
-	sort_order: number
-};
 	["CategoryTypeInput"]: {
 	/** ID категории */
 	categoryId: number,
@@ -38028,7 +38207,6 @@ export type ModelTypes = {
 	full_name: string,
 	phone: string
 };
-	["ContributionType"]:ContributionType;
 	/** Параметры документов участника из UData */
 ["ContributorDocumentParameters"]: {
 		/** Дата создания соглашения благороста */
@@ -38256,13 +38434,6 @@ export type ModelTypes = {
 	short_name: string,
 	/** Имя аккаунта уполномоченного (председателя) кооперативного участка */
 	trustee: string
-};
-	["CreateCategoryInput"]: {
-	description?: string | undefined | null,
-	icon?: string | undefined | null,
-	name: string,
-	parent_id?: string | undefined | null,
-	sort_order?: number | undefined | null
 };
 	["CreateChatCoopCalendarEventInput"]: {
 	description?: string | undefined | null,
@@ -38510,16 +38681,6 @@ export type ModelTypes = {
 	password: string,
 	username: string
 };
-	["CreateMeasureInput"]: {
-	/** Имя аккаунта кооператива */
-	coopname: string,
-	/** Режим ряда; по умолчанию скорость */
-	series_mode?: ModelTypes["MetricSeriesMode"] | undefined | null,
-	/** Название меры */
-	title: string,
-	/** Единица измерения */
-	unit: string
-};
 	["CreateMembershipExitInput"]: {
 	/** Имя аккаунта кооператива */
 	coopname: string,
@@ -38558,23 +38719,6 @@ export type ModelTypes = {
 	description?: string | undefined | null,
 	project_hash: string,
 	title: string
-};
-	["CreateProductCardInput"]: {
-	braname?: string | undefined | null,
-	cancellation_fee_amount?: string | undefined | null,
-	category_id?: string | undefined | null,
-	contribution_type: ModelTypes["ContributionType"],
-	delivery_type: ModelTypes["DeliveryType"],
-	description: string,
-	images?: Array<string> | undefined | null,
-	membership_fee_amount?: string | undefined | null,
-	min_units?: number | undefined | null,
-	product_lifecycle_secs: number,
-	title: string,
-	type: ModelTypes["ProductCardType"],
-	unit_cost: string,
-	units: number,
-	warranty_period_secs: number
 };
 	["CreateProgramInvestInput"]: {
 	/** Сумма инвестиции */
@@ -38985,7 +39129,6 @@ export type ModelTypes = {
 	/** Имя аккаунта доверонного лица, у которого отзывается право подписи за председателя кооперативного участка */
 	trusted: string
 };
-	["DeliveryType"]:DeliveryType;
 	["Delta"]: {
 		/** ID блока */
 	block_id: string,
@@ -39066,6 +39209,31 @@ export type ModelTypes = {
 	hash: string,
 	rawDocument?: ModelTypes["GeneratedDocument"] | undefined | null
 };
+	["DocumentApprovalRequirement"]:DocumentApprovalRequirement;
+	["DocumentApprovalSeedItem"]: {
+		/** Дата протокола из настроек кооператива */
+	protocol_day_month_year: string,
+	/** Номер протокола из настроек кооператива */
+	protocol_number: string,
+	/** Номер шаблона в реестре документов */
+	registry_id: number,
+	/** Название документа */
+	title: string,
+	/** Поле настроек, откуда взяты реквизиты */
+	vars_field: string,
+	/** Редакция в сети, которая будет записана утверждённой */
+	version: number
+};
+	["DocumentApprovalSeedResult"]: {
+		/** Сколько утверждений записано в цепь */
+	applied: number,
+	/** Документы, по которым запись не удалась */
+	failed: Array<number>,
+	/** Сколько документов было в плане */
+	planned: number
+};
+	["DocumentApprovalState"]:DocumentApprovalState;
+	["DocumentKind"]:DocumentKind;
 	/** Комплексный объект папки цифрового документа с агрегатами, который включает в себя заявление, решение, акты и связанные документы */
 ["DocumentPackageAggregate"]: {
 		/** Массив объект(ов) актов с агрегатами, относящихся к заявлению */
@@ -39077,6 +39245,47 @@ export type ModelTypes = {
 	/** Объект цифрового документа заявления с агрегатом */
 	statement?: ModelTypes["StatementDetailAggregate"] | undefined | null
 };
+	["DocumentTemplate"]: {
+		/** Требуется ли утверждение советом */
+	approval: ModelTypes["DocumentApprovalRequirement"],
+	/** Дата решения совета об утверждении */
+	approved_at?: string | undefined | null,
+	/** Номер решения совета об утверждении */
+	approved_decision_id?: number | undefined | null,
+	/** Редакция, утверждённая советом кооператива */
+	approved_version?: number | undefined | null,
+	/** Пакет: документы одного пакета утверждаются одним решением */
+	bundle?: string | undefined | null,
+	/** Редакция шаблона в сети */
+	current_version?: number | undefined | null,
+	/** Редакция, которую кооператив предъявляет пайщикам */
+	effective_version?: number | undefined | null,
+	/** Приложение, использующее документ; базовый набор кооператива — core */
+	extension_name: string,
+	/** Род документа */
+	kind: ModelTypes["DocumentKind"],
+	/** Порядок в списке приложения */
+	order: number,
+	/** Хэш проекта решения в повестке совета, если документ вынесен на утверждение */
+	pending_hash?: string | undefined | null,
+	/** Номер шаблона в реестре документов */
+	registry_id: number,
+	/** Состояние документа в кооперативе */
+	state: ModelTypes["DocumentApprovalState"],
+	/** Название документа */
+	title: string
+};
+	["DocumentTemplateBlank"]: {
+		/** Текст документа в HTML */
+	html: string,
+	/** Номер шаблона в реестре документов */
+	registry_id: number,
+	/** Хэш текста */
+	text_hash: string,
+	/** Название документа */
+	title: string
+};
+	["DocumentTemplateEdition"]:DocumentTemplateEdition;
 	["DocumentsAggregatePaginationResult"]: {
 		/** Текущая страница */
 	currentPage: number,
@@ -40644,7 +40853,9 @@ export type ModelTypes = {
 	username: string
 };
 	["GetAccountsInput"]: {
-	role?: string | undefined | null
+	role?: string | undefined | null,
+	/** Отбор по уровню верификации: паспорт сверен, не сверен, нет ни одного уровня */
+	verification?: ModelTypes["AccountVerificationFilter"] | undefined | null
 };
 	["GetBranchesInput"]: {
 	/** Фильтр по имени аккаунта кооперативного участка */
@@ -41046,6 +41257,8 @@ export type ModelTypes = {
 	username: string
 };
 	["Init"]: {
+	/** Код установки, выданный startInstall владельцу ключа кооператива. Не нужен только провайдеру с межсервисным секретом. */
+	install_code?: string | undefined | null,
 	/** Признак того, что инициализация выполняется со стороны провайдера. При true coopback ставит init_by_server=true (org_data становится readonly для пользовательского визарда). Поле передаёт provider в callInitSystemMutation. */
 	is_server_init?: boolean | undefined | null,
 	/** Объект организации кооператива, которая обслуживает данный экземпляр программного обеспечения MONO */
@@ -41060,6 +41273,8 @@ export type ModelTypes = {
 	target_id: string
 };
 	["Install"]: {
+	/** Код установки, выданный startInstall владельцу ключа кооператива. Без него совет установить нельзя. */
+	install_code?: string | undefined | null,
 	soviet: Array<ModelTypes["SovietMemberInput"]>,
 	vars: ModelTypes["SetVarsInput"]
 };
@@ -41072,6 +41287,12 @@ export type ModelTypes = {
 	organization_data?: ModelTypes["OrganizationWithBankAccount"] | undefined | null
 };
 	["InstanceStatus"]:InstanceStatus;
+	["IntakeFormAnswerInput"]: {
+	/** Идентификатор анкеты из конфигурации регистрации */
+	form_id: string,
+	/** Значения полей анкеты: имя поля → значение */
+	values: ModelTypes["JSON"]
+};
 	["InvestStatus"]:InvestStatus;
 	["IssueMetricBindingItemInput"]: {
 	/** Плановый вклад (может быть отрицательным) */
@@ -44990,7 +45211,9 @@ export type ModelTypes = {
 	source: ModelTypes["RequisiteSource"]
 };
 	["MonoAccount"]: {
-		/** Электронная почта пользователя */
+		/** Когда запись о человеке появилась на узле кооператива (заявка подана или её завёл председатель) */
+	created_at?: string | undefined | null,
+	/** Электронная почта пользователя */
 	email: string,
 	/** Есть ли у пользователя аккаунт */
 	has_account: boolean,
@@ -45036,18 +45259,20 @@ export type ModelTypes = {
 
 Требуемые роли: chairman, member.  */
 	addParticipant: ModelTypes["Account"],
-	/** Добавить метод оплаты (банковский счёт или СБП) */
+	/** Добавить метод оплаты (банковский счёт или СБП)
+
+Требуемые роли: chairman.  */
 	addPaymentMethod: ModelTypes["PaymentMethod"],
 	/** Добавить доверенное лицо кооперативного участка
 
 Требуемые роли: chairman.  */
 	addTrustedAccount: ModelTypes["Branch"],
+	/** Записать в цепь утверждения из прежних настроек кооператива по плану переноса
+
+Требуемые роли: chairman.  */
+	applyDocumentApprovalsSeed: ModelTypes["DocumentApprovalSeedResult"],
 	/** Совет подтвердил сверку личности; снимки удаляются */
 	approveVerification: ModelTypes["VerificationReview"],
-	/** Архивировать карточку
-
-Требуемые роли: chairman, member, user.  */
-	archiveProductCard: boolean,
 	/** Назначить пайщику набор возможностей (управляет председатель) */
 	assignCapabilitySet: boolean,
 	/** Утвердить и исполнить решение совета
@@ -45120,7 +45345,7 @@ export type ModelTypes = {
 	capitalCreateCycle: ModelTypes["CapitalCycle"],
 	/** Получение ссуды в CAPITAL контракте
 
-Требуемые роли: participant.  */
+Требуемые роли: .  */
 	capitalCreateDebt: ModelTypes["Transaction"],
 	/** Создание расхода в CAPITAL контракте
 
@@ -45134,10 +45359,6 @@ export type ModelTypes = {
 
 Требуемые роли: chairman, member, user.  */
 	capitalCreateLocalProject: ModelTypes["CapitalProject"],
-	/** Устарело: справочник мер централизован, создание только через миграции. Мутация всегда отклоняется.
-
-Требуемые роли: chairman.  */
-	capitalCreateMeasure: ModelTypes["CapitalMeasure"],
 	/** Создание шаблона процесса
 
 Требуемые роли: chairman, member.  */
@@ -45148,11 +45369,11 @@ export type ModelTypes = {
 	capitalCreateProgramExpense: ModelTypes["Transaction"],
 	/** Инвестирование в программу благорост (денежная программная инвестиция)
 
-Требуемые роли: participant.  */
+Требуемые роли: .  */
 	capitalCreateProgramInvest: ModelTypes["Transaction"],
 	/** Создание программного имущественного взноса в CAPITAL контракте
 
-Требуемые роли: participant.  */
+Требуемые роли: .  */
 	capitalCreateProgramProperty: ModelTypes["Transaction"],
 	/** Создание проекта в CAPITAL контракте
 
@@ -45160,11 +45381,11 @@ export type ModelTypes = {
 	capitalCreateProject: ModelTypes["Transaction"],
 	/** Инвестирование в проект CAPITAL контракта
 
-Требуемые роли: participant.  */
+Требуемые роли: .  */
 	capitalCreateProjectInvest: ModelTypes["Transaction"],
 	/** Создание проектного имущественного взноса в CAPITAL контракте
 
-Требуемые роли: participant.  */
+Требуемые роли: .  */
 	capitalCreateProjectProperty: ModelTypes["Transaction"],
 	/** Создание истории в CAPITAL контракте
 
@@ -45280,7 +45501,7 @@ export type ModelTypes = {
 	capitalGenerateGetLoanStatement: ModelTypes["GeneratedDocument"],
 	/** Сгенерировать заявление об инвестировании в программу благороста (без привязки к проекту)
 
-Требуемые роли: chairman, member, user.  */
+Требуемые роли: chairman, member.  */
 	capitalGenerateProgramMoneyInvestStatement: ModelTypes["GeneratedDocument"],
 	/** Сгенерировать документ приложения к договору участия для проекта
 
@@ -45366,11 +45587,17 @@ export type ModelTypes = {
 
 Требуемые роли: chairman.  */
 	capitalSetMaster: ModelTypes["Transaction"],
-	/** Установка плана проекта в CAPITAL контракте */
+	/** Установка плана проекта в CAPITAL контракте
+
+Требуемые роли: chairman, member, user.  */
 	capitalSetPlan: ModelTypes["CapitalProject"],
-	/** Сохранение URL репозитория разработки проекта/компонента (только БД) */
+	/** Сохранение URL репозитория разработки проекта/компонента (только БД)
+
+Требуемые роли: chairman, member, user.  */
 	capitalSetProjectDevelopmentRepositoryUrl: ModelTypes["CapitalProject"],
-	/** Установка приоритета проекта или компонента (хранится только в базе данных) */
+	/** Установка приоритета проекта или компонента (хранится только в базе данных)
+
+Требуемые роли: chairman, member, user.  */
 	capitalSetProjectPriority: ModelTypes["CapitalProject"],
 	/** Подписание акта о вкладе результатов председателем
 
@@ -45510,15 +45737,13 @@ export type ModelTypes = {
 
 Требуемые роли: chairman.  */
 	createBranch: ModelTypes["Branch"],
-	/** Создать категорию (админ)
-
-Требуемые роли: chairman.  */
-	createCategory: ModelTypes["Category"],
 	/** Создание объекта паевого платежа производится мутацией createDepositPayment. Выполнение мутации возвращает идентификатор платежа и данные для его совершения в зависимости от выбранного платежного провайдера.
 
 Требуемые роли: chairman, member.  */
 	createDepositPayment: ModelTypes["GatewayPayment"],
-	/** Добавить плановый расход: сумма, срок, назначение и реквизиты оплаты. Для регулярной траты указывается периодичность — следующий экземпляр появляется в реестре автоматически. Планы кооперативного участка ведёт его председатель. */
+	/** Добавить плановый расход: сумма, срок, назначение и реквизиты оплаты. Для регулярной траты указывается периодичность — следующий экземпляр появляется в реестре автоматически. Планы кооперативного участка ведёт его председатель.
+
+Требуемые роли: chairman, member, user.  */
 	createExpensePlan: ModelTypes["ExpensePlan"],
 	/** Подать СЗ-расход (создать смету с подписью пайщика/председателя).
 
@@ -45530,10 +45755,6 @@ export type ModelTypes = {
 	createInitialPayment: ModelTypes["GatewayPayment"],
 	/** Подать подписанное заявление на выход из кооператива. Запускает рассмотрение советом и последующий возврат паевого взноса. */
 	createMembershipExit: ModelTypes["MembershipExitResult"],
-	/** Создать карточку товара/услуги
-
-Требуемые роли: chairman, member, user.  */
-	createProductCard: ModelTypes["ProductCard"],
 	/** Создать повестку дня и проект решения, и сохранить в хранилище для дальнейшей генерации документа и его публикации
 
 Требуемые роли: chairman, member.  */
@@ -45570,18 +45791,14 @@ export type ModelTypes = {
 
 Требуемые роли: chairman.  */
 	deleteBranchWhitelist: ModelTypes["Branch"],
-	/** Удалить категорию (админ)
-
-Требуемые роли: chairman.  */
-	deleteCategory: boolean,
-	/** Удалить плановый расход (например, оплаченный вне системы или отменённый). Планы кооперативного участка ведёт его председатель. */
-	deleteExpensePlan: boolean,
-	/** Удалить метод оплаты */
-	deletePaymentMethod: boolean,
-	/** Удалить черновик карточки
+	/** Удалить плановый расход (например, оплаченный вне системы или отменённый). Планы кооперативного участка ведёт его председатель.
 
 Требуемые роли: chairman, member, user.  */
-	deleteProductCard: boolean,
+	deleteExpensePlan: boolean,
+	/** Удалить метод оплаты
+
+Требуемые роли: chairman.  */
+	deletePaymentMethod: boolean,
 	/** Удалить черновик по id (только владелец)
 
 Требуемые роли: chairman.  */
@@ -45678,13 +45895,15 @@ export type ModelTypes = {
 	generateExpenseProposalDecisionDocument: ModelTypes["GeneratedDocument"],
 	/** Сгенерировать документ СЗ-заявления (registry 2010) для последующей подписи.
 
-Требуемые роли: chairman, member, user.  */
+Требуемые роли: chairman, member.  */
 	generateExpenseProposalStatementDocument: ModelTypes["GeneratedDocument"],
 	/** Сгенерировать протокол решения по предложенной повестке
 
 Требуемые роли: chairman, member.  */
 	generateFreeDecision: ModelTypes["GeneratedDocument"],
-	/** Сгенерировать документ заявления о выходе из кооператива. */
+	/** Сгенерировать документ заявления о выходе из кооператива.
+
+Требуемые роли: chairman, member.  */
 	generateMembershipExitApplication: ModelTypes["GeneratedDocument"],
 	/** Сгенерировать документ решения собрания совета о выходе пайщика.
 
@@ -45724,7 +45943,7 @@ export type ModelTypes = {
 	generateReturnByMoneyStatementDocument: ModelTypes["GeneratedDocument"],
 	/** Сгенерировать документ, подтверждающий выбор кооперативного участка
 
-Требуемые роли: chairman, member, user.  */
+Требуемые роли: chairman, member.  */
 	generateSelectBranchDocument: ModelTypes["GeneratedDocument"],
 	/** Сгенерировать документ соглашения о порядка и правилах использования простой электронной подписи.
 
@@ -45782,39 +46001,39 @@ export type ModelTypes = {
 	kuGenerateEstablishmentDecision: ModelTypes["GeneratedDocument"],
 	/** Сгенерировать заявление председателя собрания в совет об учреждении участка
 
-Требуемые роли: user, member, chairman.  */
+Требуемые роли: chairman, member.  */
 	kuGenerateEstablishmentPetition: ModelTypes["GeneratedDocument"],
 	/** Сгенерировать бюллетень голосования на собрании участка
 
-Требуемые роли: user, member, chairman.  */
+Требуемые роли: chairman, member.  */
 	kuGenerateMeetingBallot: ModelTypes["GeneratedDocument"],
 	/** Сгенерировать протокол решения собрания пайщиков участка
 
-Требуемые роли: user, member, chairman.  */
+Требуемые роли: chairman, member.  */
 	kuGenerateMeetingDecision: ModelTypes["GeneratedDocument"],
 	/** Сгенерировать предложение повестки собрания пайщиков участка
 
-Требуемые роли: user, member, chairman.  */
+Требуемые роли: chairman, member.  */
 	kuGenerateMeetingProposal: ModelTypes["GeneratedDocument"],
 	/** Сгенерировать договор о полной индивидуальной материальной ответственности доверенного лица кооперативного участка
 
-Требуемые роли: user, member, chairman.  */
+Требуемые роли: chairman, member.  */
 	kuGenerateTrustedLiabilityAgreement: ModelTypes["GeneratedDocument"],
 	/** Сгенерировать доверенность доверенному лицу кооперативного участка
 
-Требуемые роли: user, member, chairman.  */
+Требуемые роли: chairman, member.  */
 	kuGenerateTrustedPowerOfAttorney: ModelTypes["GeneratedDocument"],
 	/** Сгенерировать заявление о приёме доверенным лицом участка
 
-Требуемые роли: user, member, chairman.  */
+Требуемые роли: chairman, member.  */
 	kuGenerateTrustedStatement: ModelTypes["GeneratedDocument"],
 	/** Сгенерировать договор о полной индивидуальной материальной ответственности председателя кооперативного участка
 
-Требуемые роли: user, member, chairman.  */
+Требуемые роли: chairman, member.  */
 	kuGenerateTrusteeLiabilityAgreement: ModelTypes["GeneratedDocument"],
 	/** Сгенерировать доверенность председателю кооперативного участка
 
-Требуемые роли: user, member, chairman.  */
+Требуемые роли: chairman, member.  */
 	kuGenerateTrusteePowerOfAttorney: ModelTypes["GeneratedDocument"],
 	/** Присоединиться к собранию пайщиков кооперативного участка
 
@@ -46066,10 +46285,10 @@ export type ModelTypes = {
 
 Требуемые роли: member, chairman.  */
 	processConvertToAxonStatement: boolean,
-	/** Опубликовать карточку
+	/** Вынести редакцию документа или пакет документов на утверждение совета: проект решения с текстом редакции публикуется в повестку
 
-Требуемые роли: chairman, member, user.  */
-	publishProductCard: boolean,
+Требуемые роли: chairman.  */
+	proposeDocumentApproval: Array<ModelTypes["DocumentTemplate"]>,
 	/** Опубликовать предложенную повестку и проект решения для голосования совета. Возвращает созданный пункт повестки (или null, если он ещё не проиндексирован) для немедленного отображения на фронте.
 
 Требуемые роли: chairman, member.  */
@@ -46194,7 +46413,9 @@ export type ModelTypes = {
 
 Требуемые роли: chairman.  */
 	updateAccount: ModelTypes["Account"],
-	/** Обновить банковский счёт */
+	/** Обновить банковский счёт
+
+Требуемые роли: chairman.  */
 	updateBankAccount: ModelTypes["PaymentMethod"],
 	/** Обновить расширение
 
@@ -47314,30 +47535,6 @@ export type ModelTypes = {
 	toBlock?: number | undefined | null,
 	username?: string | undefined | null
 };
-	["ProductCard"]: {
-		braname?: string | undefined | null,
-	cancellation_fee_amount?: string | undefined | null,
-	category_id?: string | undefined | null,
-	contribution_type: ModelTypes["ContributionType"],
-	coopname: string,
-	created_at: ModelTypes["DateTime"],
-	delivery_type: ModelTypes["DeliveryType"],
-	description: string,
-	id: string,
-	images: Array<string>,
-	membership_fee_amount?: string | undefined | null,
-	product_lifecycle_secs: number,
-	status: ModelTypes["ProductCardStatus"],
-	title: string,
-	type: ModelTypes["ProductCardType"],
-	unit_cost: string,
-	units: number,
-	updated_at: ModelTypes["DateTime"],
-	username: string,
-	warranty_period_secs: number
-};
-	["ProductCardStatus"]:ProductCardStatus;
-	["ProductCardType"]:ProductCardType;
 	["ProgramCapitalizationMoneyInvestStatementGenerateDocumentInput"]: {
 	/** Сумма инвестирования в программу (актив) */
 	amount: string,
@@ -47534,6 +47731,14 @@ export type ModelTypes = {
 };
 	["ProjectPriority"]:ProjectPriority;
 	["ProjectStatus"]:ProjectStatus;
+	["ProposeDocumentApprovalInput"]: {
+	/** Имя аккаунта кооператива */
+	coopname: string,
+	/** Документы, выносимые на совет одним решением: один документ или пакет одного приложения */
+	registry_ids: Array<number>,
+	/** Заголовок вопроса повестки; по умолчанию собирается из названий документов */
+	title?: string | undefined | null
+};
 	["ProviderSubscription"]: {
 		/** Дата создания */
 	created_at: string,
@@ -47608,7 +47813,9 @@ export type ModelTypes = {
 	["Query"]: {
 		/** Шаблоны документов соглашений (глобальные draft + per-coop) объединённые */
 	agreementTemplates: Array<ModelTypes["AgreementTemplate"]>,
-	/** Получение списка соглашений с фильтрацией и пагинацией */
+	/** Получение списка соглашений с фильтрацией и пагинацией
+
+Требуемые роли: chairman, member.  */
 	agreements: ModelTypes["PaginatedAgreementsPaginationResult"],
 	/** Построить предзаполненные edits для формы: дефолты (ledger2 + реквизиты + корректировки), с наложением dirty-полей существующего черновика (если он есть).
 
@@ -47616,7 +47823,9 @@ export type ModelTypes = {
 	buildInitialReportEdits: ModelTypes["BuildInitialReportEdits"],
 	/** Получение списка кандидатов с пагинацией, отсортированных по дате регистрации */
 	candidates: ModelTypes["PaginatedCandidatesPaginationResult"],
-	/** Получение списка кандидатов расширения CAPITAL с обогащенными данными */
+	/** Получение списка кандидатов расширения CAPITAL с обогащенными данными
+
+Требуемые роли: chairman, member, user.  */
 	capitalCandidates: ModelTypes["PaginatedCapitalCandidatesPaginationResult"],
 	/** Получение коммита по хэшу
 
@@ -47630,9 +47839,13 @@ export type ModelTypes = {
 
 Требуемые роли: chairman, member, user.  */
 	capitalComponentMetrics: Array<ModelTypes["CapitalComponentMetric"]>,
-	/** Получение участника по ID, имени пользователя или хешу участника */
+	/** Получение участника по ID, имени пользователя или хешу участника
+
+Требуемые роли: chairman, member, user.  */
 	capitalContributor?: ModelTypes["CapitalContributor"] | undefined | null,
-	/** Получение списка участников кооператива с фильтрацией */
+	/** Получение списка участников кооператива с фильтрацией
+
+Требуемые роли: chairman, member, user.  */
 	capitalContributors: ModelTypes["PaginatedCapitalContributorsPaginationResult"],
 	/** Получение списка циклов кооператива с фильтрацией
 
@@ -47642,13 +47855,21 @@ export type ModelTypes = {
 
 Требуемые роли: chairman.  */
 	capitalDeallocationLimit: ModelTypes["CapitalDeallocationLimit"],
-	/** Получение долга по внутреннему ID базы данных */
+	/** Получение долга по внутреннему ID базы данных
+
+Требуемые роли: chairman, member, user.  */
 	capitalDebt?: ModelTypes["CapitalDebt"] | undefined | null,
-	/** Получение списка долгов кооператива с фильтрацией */
+	/** Получение списка долгов кооператива с фильтрацией
+
+Требуемые роли: chairman, member, user.  */
 	capitalDebts: ModelTypes["PaginatedCapitalDebtsPaginationResult"],
-	/** Получение расхода по внутреннему ID базы данных */
+	/** Получение расхода по внутреннему ID базы данных
+
+Требуемые роли: chairman, member, user.  */
 	capitalExpense?: ModelTypes["CapitalExpense"] | undefined | null,
-	/** Получение списка расходов кооператива с фильтрацией */
+	/** Получение списка расходов кооператива с фильтрацией
+
+Требуемые роли: chairman, member, user.  */
 	capitalExpenses: ModelTypes["PaginatedCapitalExpensesPaginationResult"],
 	/** Список избранного пользователя с актуальными наименованиями
 
@@ -47666,17 +47887,29 @@ export type ModelTypes = {
 
 Требуемые роли: chairman, member, user.  */
 	capitalGetOpenTimer?: ModelTypes["CapitalTimerSession"] | undefined | null,
-	/** Получение экземпляра процесса по ID */
+	/** Получение экземпляра процесса по ID
+
+Требуемые роли: chairman, member, user.  */
 	capitalGetProcessInstance?: ModelTypes["ProcessInstance"] | undefined | null,
-	/** Получение экземпляров процессов для проекта */
+	/** Получение экземпляров процессов для проекта
+
+Требуемые роли: chairman, member, user.  */
 	capitalGetProcessInstances: Array<ModelTypes["ProcessInstance"]>,
-	/** Получение шаблона процесса по ID */
+	/** Получение шаблона процесса по ID
+
+Требуемые роли: chairman, member, user.  */
 	capitalGetProcessTemplate?: ModelTypes["ProcessTemplate"] | undefined | null,
-	/** Получение шаблонов процессов для проекта */
+	/** Получение шаблонов процессов для проекта
+
+Требуемые роли: chairman, member, user.  */
 	capitalGetProcessTemplates: Array<ModelTypes["ProcessTemplate"]>,
-	/** Получение инвестиции по внутреннему ID базы данных */
+	/** Получение инвестиции по внутреннему ID базы данных
+
+Требуемые роли: chairman, member, user.  */
 	capitalInvest?: ModelTypes["CapitalInvest"] | undefined | null,
-	/** Получение списка инвестиций кооператива с фильтрацией */
+	/** Получение списка инвестиций кооператива с фильтрацией
+
+Требуемые роли: chairman, member, user.  */
 	capitalInvests: ModelTypes["PaginatedCapitalInvestsPaginationResult"],
 	/** Получение задачи по хэшу
 
@@ -47722,11 +47955,17 @@ export type ModelTypes = {
 
 Требуемые роли: chairman, member.  */
 	capitalProgramExpenses: ModelTypes["PaginatedCapitalProgramExpensesPaginationResult"],
-	/** Получение проекта по хешу с компонентами */
+	/** Получение проекта по хешу с компонентами
+
+Требуемые роли: chairman, member, user.  */
 	capitalProject?: ModelTypes["CapitalProject"] | undefined | null,
-	/** Получение проекта с полными отношениями по хешу проекта */
+	/** Получение проекта с полными отношениями по хешу проекта
+
+Требуемые роли: chairman, member, user.  */
 	capitalProjectWithRelations?: ModelTypes["CapitalProject"] | undefined | null,
-	/** Получение списка проектов кооператива с фильтрацией и компонентами */
+	/** Получение списка проектов кооператива с фильтрацией и компонентами
+
+Требуемые роли: chairman, member, user.  */
 	capitalProjects: ModelTypes["PaginatedCapitalProjectsPaginationResult"],
 	/** Получение результата по внутреннему ID базы данных
 
@@ -47736,11 +47975,17 @@ export type ModelTypes = {
 
 Требуемые роли: chairman, member, user.  */
 	capitalResults: ModelTypes["PaginatedCapitalResultsPaginationResult"],
-	/** Получение одного сегмента кооператива по фильтрам */
+	/** Получение одного сегмента кооператива по фильтрам
+
+Требуемые роли: chairman, member, user.  */
 	capitalSegment?: ModelTypes["CapitalSegment"] | undefined | null,
-	/** Получение списка сегментов кооператива с фильтрацией и пагинацией */
+	/** Получение списка сегментов кооператива с фильтрацией и пагинацией
+
+Требуемые роли: chairman, member, user.  */
 	capitalSegments: ModelTypes["PaginatedCapitalSegmentsPaginationResult"],
-	/** Получение полного состояния CAPITAL контракта кооператива */
+	/** Получение полного состояния CAPITAL контракта кооператива
+
+Требуемые роли: chairman, member, user.  */
 	capitalState?: ModelTypes["CapitalState"] | undefined | null,
 	/** Получение списка историй кооператива с фильтрацией
 
@@ -47762,9 +48007,13 @@ export type ModelTypes = {
 
 Требуемые роли: chairman, member, user. Исключение: доступ разрешен, если `data.username` совпадает с `username` текущего пользователя. */
 	capitalTimeStats: ModelTypes["CapitalTimeStats"],
-	/** Получение голоса по внутреннему ID базы данных */
+	/** Получение голоса по внутреннему ID базы данных
+
+Требуемые роли: chairman, member, user.  */
 	capitalVote?: ModelTypes["CapitalVote"] | undefined | null,
-	/** Получение списка голосов кооператива с фильтрацией */
+	/** Получение списка голосов кооператива с фильтрацией
+
+Требуемые роли: chairman, member, user.  */
 	capitalVotes: ModelTypes["PaginatedCapitalVotesPaginationResult"],
 	/** Сессия входа по карте кооператора: кто вошёл и на каком шаге быстрая регистрация */
 	cardcoopEntry: ModelTypes["CardcoopEntry"],
@@ -47774,9 +48023,13 @@ export type ModelTypes = {
 
 Требуемые роли: chairman, member, user.  */
 	cardcoopMyCard: ModelTypes["CardcoopMyCard"],
-	/** Получение одобрения по внутреннему ID базы данных */
+	/** Получение одобрения по внутреннему ID базы данных
+
+Требуемые роли: chairman, member.  */
 	chairmanApproval?: ModelTypes["Approval"] | undefined | null,
-	/** Получение списка одобрений председателя совета с фильтрацией */
+	/** Получение списка одобрений председателя совета с фильтрацией
+
+Требуемые роли: chairman, member.  */
 	chairmanApprovals: ModelTypes["PaginatedChairmanApprovalsPaginationResult"],
 	/** Проверяет доступность Matrix username
 
@@ -47834,6 +48087,22 @@ export type ModelTypes = {
 	cooperativeAgreements: Array<ModelTypes["CoopAgreement"]>,
 	/** Целевые потребительские программы кооператива (id, тип, активность, draft_id) */
 	cooperativePrograms: Array<ModelTypes["CooperativeProgram"]>,
+	/** Перенос утверждений из прежних настроек кооператива: какие документы получат утверждение текущей редакции и по какому протоколу (без записи в цепь)
+
+Требуемые роли: chairman, member.  */
+	documentApprovalsSeedPlan: Array<ModelTypes["DocumentApprovalSeedItem"]>,
+	/** Бланк документа без данных субъекта: утверждённая советом редакция или текущая редакция сети
+
+Требуемые роли: chairman, member.  */
+	documentTemplateBlank: ModelTypes["DocumentTemplateBlank"],
+	/** Реестр шаблонов документов кооператива с утверждёнными и доступными редакциями
+
+Требуемые роли: chairman, member.  */
+	documentTemplates: Array<ModelTypes["DocumentTemplate"]>,
+	/** Сколько документов кооператива ждут решения совета: без утверждённой редакции или с устаревшей
+
+Требуемые роли: chairman, member.  */
+	documentTemplatesAttention: number,
 	/** Акт с подписью преподавателя для второй подписи председателя (тот же документ) */
 	edubridgeActSignablePayload: ModelTypes["DocumentAggregate"],
 	/** Администраторы приложения */
@@ -47930,18 +48199,24 @@ export type ModelTypes = {
 	getAvailableReports: Array<ModelTypes["AvailableReport"]>,
 	/** Получить список кооперативных участков */
 	getBranches: Array<ModelTypes["Branch"]>,
+	/** Программа вступления и ответы заявителя на анкеты, объявленные расширениями. Доступно председателю и членам совета.
+
+Требуемые роли: chairman, member.  */
+	getCandidateIntake: ModelTypes["CandidateIntake"],
 	/** Каталог наборов возможностей с правами, которые они открывают */
 	getCapabilitySets: Array<ModelTypes["CapabilitySet"]>,
-	/** Получить логи событий по задаче */
+	/** Получить логи событий по задаче
+
+Требуемые роли: chairman, member, user.  */
 	getCapitalIssueLogs: ModelTypes["PaginatedCapitalLogsPaginationResult"],
 	/** Получить состояние онбординга capital
 
 Требуемые роли: chairman, member, user.  */
 	getCapitalOnboardingState: ModelTypes["CapitalOnboardingState"],
-	/** Получить логи событий по проекту с фильтрацией и пагинацией */
+	/** Получить логи событий по проекту с фильтрацией и пагинацией
+
+Требуемые роли: chairman, member, user.  */
 	getCapitalProjectLogs: ModelTypes["PaginatedCapitalLogsPaginationResult"],
-	/** Получить дерево категорий */
-	getCategories: Array<ModelTypes["Category"]>,
 	/** Получить состояние онбординга председателя
 
 Требуемые роли: chairman.  */
@@ -48022,8 +48297,6 @@ export type ModelTypes = {
 	getMyAccess: ModelTypes["ParticipantAccess"],
 	/** Получить удостоверение текущего пайщика */
 	getMyCertificate: ModelTypes["ParticipantCertificate"],
-	/** Мои карточки */
-	getMyProductCards: Array<ModelTypes["ProductCard"]>,
 	/** Насколько узел кооператива отстал от цепи. Пусто, пока состояние не измерено */
 	getNodeSyncState?: ModelTypes["NodeSyncState"] | undefined | null,
 	/** Детализация одного уведомления с историей попыток доставки
@@ -48048,10 +48321,6 @@ export type ModelTypes = {
 
 Требуемые роли: chairman, member. Исключение: доступ разрешен, если `data.username` совпадает с `username` текущего пользователя. */
 	getPayments: ModelTypes["PaginatedGatewayPaymentsPaginationResult"],
-	/** Получить карточку по ID */
-	getProductCard?: ModelTypes["ProductCard"] | undefined | null,
-	/** Получить карточки товаров/услуг */
-	getProductCards: Array<ModelTypes["ProductCard"]>,
 	/** Получить один программный кошелек по фильтру
 
 Требуемые роли: chairman, member.  */
@@ -48140,7 +48409,9 @@ export type ModelTypes = {
 
 Требуемые роли: user, member, chairman.  */
 	kuTrustRequests: ModelTypes["PaginatedKuTrustRequestsPaginationResult"],
-	/** Плановые расходы кооператива: предстоящие траты с суммой, сроком и реквизитами. Неоплаченные расходы со сроком в ближайшие 30 дней образуют резерв средств, недоступный другим использованиям. */
+	/** Плановые расходы кооператива: предстоящие траты с суммой, сроком и реквизитами. Неоплаченные расходы со сроком в ближайшие 30 дней образуют резерв средств, недоступный другим использованиям.
+
+Требуемые роли: chairman, member, user.  */
 	listExpensePlans: Array<ModelTypes["ExpensePlan"]>,
 	/** Список черновиков форм отчётов текущего пользователя (с опциональной фильтрацией)
 
@@ -48532,6 +48803,8 @@ export type ModelTypes = {
 	braname?: string | undefined | null,
 	/** Подписанный документ оферты по программе "Генератор" (опционально, только для программы generation) */
 	generator_offer?: ModelTypes["SignedDigitalDocumentInput"] | undefined | null,
+	/** Ответы на анкеты вступления, которые объявили расширения для выбранной программы и типа аккаунта */
+	intake_answers?: Array<ModelTypes["IntakeFormAnswerInput"]> | undefined | null,
 	/** Подписанная оферта по целевой потребительской программе «Стол заказов» (опционально, только для программы marketplace) */
 	marketplace_offer?: ModelTypes["SignedDigitalDocumentInput"] | undefined | null,
 	/** Подписанный документ политики конфиденциальности от пайщика */
@@ -48579,10 +48852,24 @@ export type ModelTypes = {
 	title: string
 };
 	["RegistrationConfig"]: {
-		/** Доступные программы */
+		/** Анкеты, которые заполняет любой заявитель этого типа аккаунта, независимо от программы */
+	intake_forms: Array<ModelTypes["RegistrationIntakeForm"]>,
+	/** Доступные программы */
 	programs: Array<ModelTypes["RegistrationProgram"]>,
 	/** Нужен ли выбор программы */
 	requires_selection: boolean
+};
+	["RegistrationIntakeForm"]: {
+		/** Пояснение над полями: зачем кооперативу эти сведения */
+	description?: string | undefined | null,
+	/** Идентификатор анкеты */
+	id: string,
+	/** Порядок отображения */
+	order: number,
+	/** JSON Schema полей анкеты */
+	schema: ModelTypes["JSON"],
+	/** Заголовок анкеты */
+	title: string
 };
 	["RegistrationPayment"]: {
 		/** Хэш платежа */
@@ -48603,6 +48890,8 @@ export type ModelTypes = {
 	description: string,
 	/** URL изображения (опционально) */
 	image_url?: string | undefined | null,
+	/** Анкеты, которые заявитель заполняет, выбрав программу */
+	intake_forms: Array<ModelTypes["RegistrationIntakeForm"]>,
 	/** Уникальный ключ программы */
 	key: string,
 	/** Порядок отображения */
@@ -50613,6 +50902,8 @@ export type GraphQLTypes = {
 };
 	/** Тип аккаунта пользователя в системе */
 ["AccountType"]: AccountType;
+	/** Отбор реестра пайщиков по уровню верификации */
+["AccountVerificationFilter"]: AccountVerificationFilter;
 	["AccountsPaginationResult"]: {
 	__typename: "AccountsPaginationResult",
 	/** Текущая страница */
@@ -52435,6 +52726,29 @@ export type GraphQLTypes = {
 	["CandidateFilterInput"]: {
 		referer?: string | undefined | null
 };
+	["CandidateIntake"]: {
+	__typename: "CandidateIntake",
+	/** Ответы на анкеты вступления */
+	answers: Array<GraphQLTypes["CandidateIntakeAnswer"]>,
+	/** Программа, выбранная при вступлении */
+	program_key?: string | undefined | null,
+	username: string,
+	['...on CandidateIntake']: Omit<GraphQLTypes["CandidateIntake"], "...on CandidateIntake">
+};
+	["CandidateIntakeAnswer"]: {
+	__typename: "CandidateIntakeAnswer",
+	/** Идентификатор анкеты */
+	form_id: string,
+	/** JSON Schema полей анкеты на момент подачи */
+	json_schema: GraphQLTypes["JSON"],
+	/** Когда заявитель подал ответы */
+	submitted_at: GraphQLTypes["DateTime"],
+	/** Заголовок анкеты на момент подачи */
+	title: string,
+	/** Значения полей: имя поля → значение */
+	values: GraphQLTypes["JSON"],
+	['...on CandidateIntakeAnswer']: Omit<GraphQLTypes["CandidateIntakeAnswer"], "...on CandidateIntakeAnswer">
+};
 	["CandidateStatus"]: CandidateStatus;
 	["CapabilitySet"]: {
 	__typename: "CapabilitySet",
@@ -52756,7 +53070,9 @@ export type GraphQLTypes = {
 	block_num?: number | undefined | null,
 	/** Статус из блокчейна */
 	blockchain_status?: string | undefined | null,
-	/** Контракт участника */
+	/** Контракт участника
+
+Требуемые роли: chairman, member.  */
 	contract?: GraphQLTypes["DocumentAggregate"] | undefined | null,
 	/** Вклад как автор */
 	contributed_as_author?: string | undefined | null,
@@ -52927,9 +53243,13 @@ export type GraphQLTypes = {
 	_updated_at: GraphQLTypes["DateTime"],
 	/** Сумма долга */
 	amount?: number | undefined | null,
-	/** Одобренное заявление */
+	/** Одобренное заявление
+
+Требуемые роли: chairman, member.  */
 	approved_statement?: GraphQLTypes["DocumentAggregate"] | undefined | null,
-	/** Протокол решения совета */
+	/** Протокол решения совета
+
+Требуемые роли: chairman, member.  */
 	authorization?: GraphQLTypes["DocumentAggregate"] | undefined | null,
 	/** Номер блока последнего обновления */
 	block_num?: number | undefined | null,
@@ -52949,7 +53269,9 @@ export type GraphQLTypes = {
 	project_hash?: string | undefined | null,
 	/** Дата погашения */
 	repaid_at?: string | undefined | null,
-	/** Заявление на получение ссуды */
+	/** Заявление на получение ссуды
+
+Требуемые роли: chairman, member.  */
 	statement?: GraphQLTypes["DocumentAggregate"] | undefined | null,
 	/** Статус долга */
 	status: GraphQLTypes["DebtStatus"],
@@ -52968,9 +53290,13 @@ export type GraphQLTypes = {
 	_updated_at: GraphQLTypes["DateTime"],
 	/** Сумма расхода */
 	amount?: string | undefined | null,
-	/** Одобренная записка */
+	/** Одобренная записка
+
+Требуемые роли: chairman, member.  */
 	approved_statement?: GraphQLTypes["DocumentAggregate"] | undefined | null,
-	/** Авторизация расхода */
+	/** Авторизация расхода
+
+Требуемые роли: chairman, member.  */
 	authorization?: GraphQLTypes["DocumentAggregate"] | undefined | null,
 	/** Номер блока последнего обновления */
 	block_num?: number | undefined | null,
@@ -52982,7 +53308,9 @@ export type GraphQLTypes = {
 	description?: string | undefined | null,
 	/** Хеш расхода */
 	expense_hash: string,
-	/** Служебная записка о расходе */
+	/** Служебная записка о расходе
+
+Требуемые роли: chairman, member.  */
 	expense_statement?: GraphQLTypes["DocumentAggregate"] | undefined | null,
 	/** ID фонда */
 	fund_id?: number | undefined | null,
@@ -54682,18 +55010,6 @@ export type GraphQLTypes = {
 	/** Системное имя кооператива-источника */
 	from_coopname: string
 };
-	["Category"]: {
-	__typename: "Category",
-	coopname: string,
-	description?: string | undefined | null,
-	icon?: string | undefined | null,
-	id: string,
-	is_active: boolean,
-	name: string,
-	parent_id?: string | undefined | null,
-	sort_order: number,
-	['...on Category']: Omit<GraphQLTypes["Category"], "...on Category">
-};
 	["CategoryTypeInput"]: {
 		/** ID категории */
 	categoryId: number,
@@ -54980,7 +55296,6 @@ export type GraphQLTypes = {
 	phone: string,
 	['...on ContactsDTO']: Omit<GraphQLTypes["ContactsDTO"], "...on ContactsDTO">
 };
-	["ContributionType"]: ContributionType;
 	/** Параметры документов участника из UData */
 ["ContributorDocumentParameters"]: {
 	__typename: "ContributorDocumentParameters",
@@ -55218,13 +55533,6 @@ export type GraphQLTypes = {
 	short_name: string,
 	/** Имя аккаунта уполномоченного (председателя) кооперативного участка */
 	trustee: string
-};
-	["CreateCategoryInput"]: {
-		description?: string | undefined | null,
-	icon?: string | undefined | null,
-	name: string,
-	parent_id?: string | undefined | null,
-	sort_order?: number | undefined | null
 };
 	["CreateChatCoopCalendarEventInput"]: {
 		description?: string | undefined | null,
@@ -55472,16 +55780,6 @@ export type GraphQLTypes = {
 		password: string,
 	username: string
 };
-	["CreateMeasureInput"]: {
-		/** Имя аккаунта кооператива */
-	coopname: string,
-	/** Режим ряда; по умолчанию скорость */
-	series_mode?: GraphQLTypes["MetricSeriesMode"] | undefined | null,
-	/** Название меры */
-	title: string,
-	/** Единица измерения */
-	unit: string
-};
 	["CreateMembershipExitInput"]: {
 		/** Имя аккаунта кооператива */
 	coopname: string,
@@ -55520,23 +55818,6 @@ export type GraphQLTypes = {
 		description?: string | undefined | null,
 	project_hash: string,
 	title: string
-};
-	["CreateProductCardInput"]: {
-		braname?: string | undefined | null,
-	cancellation_fee_amount?: string | undefined | null,
-	category_id?: string | undefined | null,
-	contribution_type: GraphQLTypes["ContributionType"],
-	delivery_type: GraphQLTypes["DeliveryType"],
-	description: string,
-	images?: Array<string> | undefined | null,
-	membership_fee_amount?: string | undefined | null,
-	min_units?: number | undefined | null,
-	product_lifecycle_secs: number,
-	title: string,
-	type: GraphQLTypes["ProductCardType"],
-	unit_cost: string,
-	units: number,
-	warranty_period_secs: number
 };
 	["CreateProgramInvestInput"]: {
 		/** Сумма инвестиции */
@@ -55967,7 +56248,6 @@ export type GraphQLTypes = {
 	/** Имя аккаунта доверонного лица, у которого отзывается право подписи за председателя кооперативного участка */
 	trusted: string
 };
-	["DeliveryType"]: DeliveryType;
 	["Delta"]: {
 	__typename: "Delta",
 	/** ID блока */
@@ -56059,6 +56339,38 @@ export type GraphQLTypes = {
 	rawDocument?: GraphQLTypes["GeneratedDocument"] | undefined | null,
 	['...on DocumentAggregate']: Omit<GraphQLTypes["DocumentAggregate"], "...on DocumentAggregate">
 };
+	/** Требуется ли решение совета, чтобы редакция документа действовала в кооперативе */
+["DocumentApprovalRequirement"]: DocumentApprovalRequirement;
+	["DocumentApprovalSeedItem"]: {
+	__typename: "DocumentApprovalSeedItem",
+	/** Дата протокола из настроек кооператива */
+	protocol_day_month_year: string,
+	/** Номер протокола из настроек кооператива */
+	protocol_number: string,
+	/** Номер шаблона в реестре документов */
+	registry_id: number,
+	/** Название документа */
+	title: string,
+	/** Поле настроек, откуда взяты реквизиты */
+	vars_field: string,
+	/** Редакция в сети, которая будет записана утверждённой */
+	version: number,
+	['...on DocumentApprovalSeedItem']: Omit<GraphQLTypes["DocumentApprovalSeedItem"], "...on DocumentApprovalSeedItem">
+};
+	["DocumentApprovalSeedResult"]: {
+	__typename: "DocumentApprovalSeedResult",
+	/** Сколько утверждений записано в цепь */
+	applied: number,
+	/** Документы, по которым запись не удалась */
+	failed: Array<number>,
+	/** Сколько документов было в плане */
+	planned: number,
+	['...on DocumentApprovalSeedResult']: Omit<GraphQLTypes["DocumentApprovalSeedResult"], "...on DocumentApprovalSeedResult">
+};
+	/** Состояние документа в кооперативе относительно редакции в сети */
+["DocumentApprovalState"]: DocumentApprovalState;
+	/** Род документа: соглашение пайщика, положение, форма или служебный документ */
+["DocumentKind"]: DocumentKind;
 	/** Комплексный объект папки цифрового документа с агрегатами, который включает в себя заявление, решение, акты и связанные документы */
 ["DocumentPackageAggregate"]: {
 	__typename: "DocumentPackageAggregate",
@@ -56072,6 +56384,52 @@ export type GraphQLTypes = {
 	statement?: GraphQLTypes["StatementDetailAggregate"] | undefined | null,
 	['...on DocumentPackageAggregate']: Omit<GraphQLTypes["DocumentPackageAggregate"], "...on DocumentPackageAggregate">
 };
+	["DocumentTemplate"]: {
+	__typename: "DocumentTemplate",
+	/** Требуется ли утверждение советом */
+	approval: GraphQLTypes["DocumentApprovalRequirement"],
+	/** Дата решения совета об утверждении */
+	approved_at?: string | undefined | null,
+	/** Номер решения совета об утверждении */
+	approved_decision_id?: number | undefined | null,
+	/** Редакция, утверждённая советом кооператива */
+	approved_version?: number | undefined | null,
+	/** Пакет: документы одного пакета утверждаются одним решением */
+	bundle?: string | undefined | null,
+	/** Редакция шаблона в сети */
+	current_version?: number | undefined | null,
+	/** Редакция, которую кооператив предъявляет пайщикам */
+	effective_version?: number | undefined | null,
+	/** Приложение, использующее документ; базовый набор кооператива — core */
+	extension_name: string,
+	/** Род документа */
+	kind: GraphQLTypes["DocumentKind"],
+	/** Порядок в списке приложения */
+	order: number,
+	/** Хэш проекта решения в повестке совета, если документ вынесен на утверждение */
+	pending_hash?: string | undefined | null,
+	/** Номер шаблона в реестре документов */
+	registry_id: number,
+	/** Состояние документа в кооперативе */
+	state: GraphQLTypes["DocumentApprovalState"],
+	/** Название документа */
+	title: string,
+	['...on DocumentTemplate']: Omit<GraphQLTypes["DocumentTemplate"], "...on DocumentTemplate">
+};
+	["DocumentTemplateBlank"]: {
+	__typename: "DocumentTemplateBlank",
+	/** Текст документа в HTML */
+	html: string,
+	/** Номер шаблона в реестре документов */
+	registry_id: number,
+	/** Хэш текста */
+	text_hash: string,
+	/** Название документа */
+	title: string,
+	['...on DocumentTemplateBlank']: Omit<GraphQLTypes["DocumentTemplateBlank"], "...on DocumentTemplateBlank">
+};
+	/** Редакция документа для просмотра: утверждённая советом кооператива или текущая в сети */
+["DocumentTemplateEdition"]: DocumentTemplateEdition;
 	["DocumentsAggregatePaginationResult"]: {
 	__typename: "DocumentsAggregatePaginationResult",
 	/** Текущая страница */
@@ -57759,7 +58117,9 @@ export type GraphQLTypes = {
 	username: string
 };
 	["GetAccountsInput"]: {
-		role?: string | undefined | null
+		role?: string | undefined | null,
+	/** Отбор по уровню верификации: паспорт сверен, не сверен, нет ни одного уровня */
+	verification?: GraphQLTypes["AccountVerificationFilter"] | undefined | null
 };
 	["GetBranchesInput"]: {
 		/** Фильтр по имени аккаунта кооперативного участка */
@@ -58169,7 +58529,9 @@ export type GraphQLTypes = {
 	['...on IndividualCertificate']: Omit<GraphQLTypes["IndividualCertificate"], "...on IndividualCertificate">
 };
 	["Init"]: {
-		/** Признак того, что инициализация выполняется со стороны провайдера. При true coopback ставит init_by_server=true (org_data становится readonly для пользовательского визарда). Поле передаёт provider в callInitSystemMutation. */
+		/** Код установки, выданный startInstall владельцу ключа кооператива. Не нужен только провайдеру с межсервисным секретом. */
+	install_code?: string | undefined | null,
+	/** Признак того, что инициализация выполняется со стороны провайдера. При true coopback ставит init_by_server=true (org_data становится readonly для пользовательского визарда). Поле передаёт provider в callInitSystemMutation. */
 	is_server_init?: boolean | undefined | null,
 	/** Объект организации кооператива, которая обслуживает данный экземпляр программного обеспечения MONO */
 	organization_data: GraphQLTypes["CreateInitOrganizationDataInput"]
@@ -58183,7 +58545,9 @@ export type GraphQLTypes = {
 	target_id: string
 };
 	["Install"]: {
-		soviet: Array<GraphQLTypes["SovietMemberInput"]>,
+		/** Код установки, выданный startInstall владельцу ключа кооператива. Без него совет установить нельзя. */
+	install_code?: string | undefined | null,
+	soviet: Array<GraphQLTypes["SovietMemberInput"]>,
 	vars: GraphQLTypes["SetVarsInput"]
 };
 	["InstallationStatus"]: {
@@ -58198,6 +58562,12 @@ export type GraphQLTypes = {
 };
 	/** Статусы жизненного цикла инстанса кооператива */
 ["InstanceStatus"]: InstanceStatus;
+	["IntakeFormAnswerInput"]: {
+		/** Идентификатор анкеты из конфигурации регистрации */
+	form_id: string,
+	/** Значения полей анкеты: имя поля → значение */
+	values: GraphQLTypes["JSON"]
+};
 	/** Статусы инвестиции в системе CAPITAL */
 ["InvestStatus"]: InvestStatus;
 	["IssueMetricBindingItemInput"]: {
@@ -62469,6 +62839,8 @@ export type GraphQLTypes = {
 };
 	["MonoAccount"]: {
 	__typename: "MonoAccount",
+	/** Когда запись о человеке появилась на узле кооператива (заявка подана или её завёл председатель) */
+	created_at?: string | undefined | null,
 	/** Электронная почта пользователя */
 	email: string,
 	/** Есть ли у пользователя аккаунт */
@@ -62517,18 +62889,20 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman, member.  */
 	addParticipant: GraphQLTypes["Account"],
-	/** Добавить метод оплаты (банковский счёт или СБП) */
+	/** Добавить метод оплаты (банковский счёт или СБП)
+
+Требуемые роли: chairman.  */
 	addPaymentMethod: GraphQLTypes["PaymentMethod"],
 	/** Добавить доверенное лицо кооперативного участка
 
 Требуемые роли: chairman.  */
 	addTrustedAccount: GraphQLTypes["Branch"],
+	/** Записать в цепь утверждения из прежних настроек кооператива по плану переноса
+
+Требуемые роли: chairman.  */
+	applyDocumentApprovalsSeed: GraphQLTypes["DocumentApprovalSeedResult"],
 	/** Совет подтвердил сверку личности; снимки удаляются */
 	approveVerification: GraphQLTypes["VerificationReview"],
-	/** Архивировать карточку
-
-Требуемые роли: chairman, member, user.  */
-	archiveProductCard: boolean,
 	/** Назначить пайщику набор возможностей (управляет председатель) */
 	assignCapabilitySet: boolean,
 	/** Утвердить и исполнить решение совета
@@ -62601,7 +62975,7 @@ export type GraphQLTypes = {
 	capitalCreateCycle: GraphQLTypes["CapitalCycle"],
 	/** Получение ссуды в CAPITAL контракте
 
-Требуемые роли: participant.  */
+Требуемые роли: .  */
 	capitalCreateDebt: GraphQLTypes["Transaction"],
 	/** Создание расхода в CAPITAL контракте
 
@@ -62615,10 +62989,6 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman, member, user.  */
 	capitalCreateLocalProject: GraphQLTypes["CapitalProject"],
-	/** Устарело: справочник мер централизован, создание только через миграции. Мутация всегда отклоняется.
-
-Требуемые роли: chairman.  */
-	capitalCreateMeasure: GraphQLTypes["CapitalMeasure"],
 	/** Создание шаблона процесса
 
 Требуемые роли: chairman, member.  */
@@ -62629,11 +62999,11 @@ export type GraphQLTypes = {
 	capitalCreateProgramExpense: GraphQLTypes["Transaction"],
 	/** Инвестирование в программу благорост (денежная программная инвестиция)
 
-Требуемые роли: participant.  */
+Требуемые роли: .  */
 	capitalCreateProgramInvest: GraphQLTypes["Transaction"],
 	/** Создание программного имущественного взноса в CAPITAL контракте
 
-Требуемые роли: participant.  */
+Требуемые роли: .  */
 	capitalCreateProgramProperty: GraphQLTypes["Transaction"],
 	/** Создание проекта в CAPITAL контракте
 
@@ -62641,11 +63011,11 @@ export type GraphQLTypes = {
 	capitalCreateProject: GraphQLTypes["Transaction"],
 	/** Инвестирование в проект CAPITAL контракта
 
-Требуемые роли: participant.  */
+Требуемые роли: .  */
 	capitalCreateProjectInvest: GraphQLTypes["Transaction"],
 	/** Создание проектного имущественного взноса в CAPITAL контракте
 
-Требуемые роли: participant.  */
+Требуемые роли: .  */
 	capitalCreateProjectProperty: GraphQLTypes["Transaction"],
 	/** Создание истории в CAPITAL контракте
 
@@ -62761,7 +63131,7 @@ export type GraphQLTypes = {
 	capitalGenerateGetLoanStatement: GraphQLTypes["GeneratedDocument"],
 	/** Сгенерировать заявление об инвестировании в программу благороста (без привязки к проекту)
 
-Требуемые роли: chairman, member, user.  */
+Требуемые роли: chairman, member.  */
 	capitalGenerateProgramMoneyInvestStatement: GraphQLTypes["GeneratedDocument"],
 	/** Сгенерировать документ приложения к договору участия для проекта
 
@@ -62847,11 +63217,17 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman.  */
 	capitalSetMaster: GraphQLTypes["Transaction"],
-	/** Установка плана проекта в CAPITAL контракте */
+	/** Установка плана проекта в CAPITAL контракте
+
+Требуемые роли: chairman, member, user.  */
 	capitalSetPlan: GraphQLTypes["CapitalProject"],
-	/** Сохранение URL репозитория разработки проекта/компонента (только БД) */
+	/** Сохранение URL репозитория разработки проекта/компонента (только БД)
+
+Требуемые роли: chairman, member, user.  */
 	capitalSetProjectDevelopmentRepositoryUrl: GraphQLTypes["CapitalProject"],
-	/** Установка приоритета проекта или компонента (хранится только в базе данных) */
+	/** Установка приоритета проекта или компонента (хранится только в базе данных)
+
+Требуемые роли: chairman, member, user.  */
 	capitalSetProjectPriority: GraphQLTypes["CapitalProject"],
 	/** Подписание акта о вкладе результатов председателем
 
@@ -62991,15 +63367,13 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman.  */
 	createBranch: GraphQLTypes["Branch"],
-	/** Создать категорию (админ)
-
-Требуемые роли: chairman.  */
-	createCategory: GraphQLTypes["Category"],
 	/** Создание объекта паевого платежа производится мутацией createDepositPayment. Выполнение мутации возвращает идентификатор платежа и данные для его совершения в зависимости от выбранного платежного провайдера.
 
 Требуемые роли: chairman, member.  */
 	createDepositPayment: GraphQLTypes["GatewayPayment"],
-	/** Добавить плановый расход: сумма, срок, назначение и реквизиты оплаты. Для регулярной траты указывается периодичность — следующий экземпляр появляется в реестре автоматически. Планы кооперативного участка ведёт его председатель. */
+	/** Добавить плановый расход: сумма, срок, назначение и реквизиты оплаты. Для регулярной траты указывается периодичность — следующий экземпляр появляется в реестре автоматически. Планы кооперативного участка ведёт его председатель.
+
+Требуемые роли: chairman, member, user.  */
 	createExpensePlan: GraphQLTypes["ExpensePlan"],
 	/** Подать СЗ-расход (создать смету с подписью пайщика/председателя).
 
@@ -63011,10 +63385,6 @@ export type GraphQLTypes = {
 	createInitialPayment: GraphQLTypes["GatewayPayment"],
 	/** Подать подписанное заявление на выход из кооператива. Запускает рассмотрение советом и последующий возврат паевого взноса. */
 	createMembershipExit: GraphQLTypes["MembershipExitResult"],
-	/** Создать карточку товара/услуги
-
-Требуемые роли: chairman, member, user.  */
-	createProductCard: GraphQLTypes["ProductCard"],
 	/** Создать повестку дня и проект решения, и сохранить в хранилище для дальнейшей генерации документа и его публикации
 
 Требуемые роли: chairman, member.  */
@@ -63051,18 +63421,14 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman.  */
 	deleteBranchWhitelist: GraphQLTypes["Branch"],
-	/** Удалить категорию (админ)
-
-Требуемые роли: chairman.  */
-	deleteCategory: boolean,
-	/** Удалить плановый расход (например, оплаченный вне системы или отменённый). Планы кооперативного участка ведёт его председатель. */
-	deleteExpensePlan: boolean,
-	/** Удалить метод оплаты */
-	deletePaymentMethod: boolean,
-	/** Удалить черновик карточки
+	/** Удалить плановый расход (например, оплаченный вне системы или отменённый). Планы кооперативного участка ведёт его председатель.
 
 Требуемые роли: chairman, member, user.  */
-	deleteProductCard: boolean,
+	deleteExpensePlan: boolean,
+	/** Удалить метод оплаты
+
+Требуемые роли: chairman.  */
+	deletePaymentMethod: boolean,
 	/** Удалить черновик по id (только владелец)
 
 Требуемые роли: chairman.  */
@@ -63159,13 +63525,15 @@ export type GraphQLTypes = {
 	generateExpenseProposalDecisionDocument: GraphQLTypes["GeneratedDocument"],
 	/** Сгенерировать документ СЗ-заявления (registry 2010) для последующей подписи.
 
-Требуемые роли: chairman, member, user.  */
+Требуемые роли: chairman, member.  */
 	generateExpenseProposalStatementDocument: GraphQLTypes["GeneratedDocument"],
 	/** Сгенерировать протокол решения по предложенной повестке
 
 Требуемые роли: chairman, member.  */
 	generateFreeDecision: GraphQLTypes["GeneratedDocument"],
-	/** Сгенерировать документ заявления о выходе из кооператива. */
+	/** Сгенерировать документ заявления о выходе из кооператива.
+
+Требуемые роли: chairman, member.  */
 	generateMembershipExitApplication: GraphQLTypes["GeneratedDocument"],
 	/** Сгенерировать документ решения собрания совета о выходе пайщика.
 
@@ -63205,7 +63573,7 @@ export type GraphQLTypes = {
 	generateReturnByMoneyStatementDocument: GraphQLTypes["GeneratedDocument"],
 	/** Сгенерировать документ, подтверждающий выбор кооперативного участка
 
-Требуемые роли: chairman, member, user.  */
+Требуемые роли: chairman, member.  */
 	generateSelectBranchDocument: GraphQLTypes["GeneratedDocument"],
 	/** Сгенерировать документ соглашения о порядка и правилах использования простой электронной подписи.
 
@@ -63263,39 +63631,39 @@ export type GraphQLTypes = {
 	kuGenerateEstablishmentDecision: GraphQLTypes["GeneratedDocument"],
 	/** Сгенерировать заявление председателя собрания в совет об учреждении участка
 
-Требуемые роли: user, member, chairman.  */
+Требуемые роли: chairman, member.  */
 	kuGenerateEstablishmentPetition: GraphQLTypes["GeneratedDocument"],
 	/** Сгенерировать бюллетень голосования на собрании участка
 
-Требуемые роли: user, member, chairman.  */
+Требуемые роли: chairman, member.  */
 	kuGenerateMeetingBallot: GraphQLTypes["GeneratedDocument"],
 	/** Сгенерировать протокол решения собрания пайщиков участка
 
-Требуемые роли: user, member, chairman.  */
+Требуемые роли: chairman, member.  */
 	kuGenerateMeetingDecision: GraphQLTypes["GeneratedDocument"],
 	/** Сгенерировать предложение повестки собрания пайщиков участка
 
-Требуемые роли: user, member, chairman.  */
+Требуемые роли: chairman, member.  */
 	kuGenerateMeetingProposal: GraphQLTypes["GeneratedDocument"],
 	/** Сгенерировать договор о полной индивидуальной материальной ответственности доверенного лица кооперативного участка
 
-Требуемые роли: user, member, chairman.  */
+Требуемые роли: chairman, member.  */
 	kuGenerateTrustedLiabilityAgreement: GraphQLTypes["GeneratedDocument"],
 	/** Сгенерировать доверенность доверенному лицу кооперативного участка
 
-Требуемые роли: user, member, chairman.  */
+Требуемые роли: chairman, member.  */
 	kuGenerateTrustedPowerOfAttorney: GraphQLTypes["GeneratedDocument"],
 	/** Сгенерировать заявление о приёме доверенным лицом участка
 
-Требуемые роли: user, member, chairman.  */
+Требуемые роли: chairman, member.  */
 	kuGenerateTrustedStatement: GraphQLTypes["GeneratedDocument"],
 	/** Сгенерировать договор о полной индивидуальной материальной ответственности председателя кооперативного участка
 
-Требуемые роли: user, member, chairman.  */
+Требуемые роли: chairman, member.  */
 	kuGenerateTrusteeLiabilityAgreement: GraphQLTypes["GeneratedDocument"],
 	/** Сгенерировать доверенность председателю кооперативного участка
 
-Требуемые роли: user, member, chairman.  */
+Требуемые роли: chairman, member.  */
 	kuGenerateTrusteePowerOfAttorney: GraphQLTypes["GeneratedDocument"],
 	/** Присоединиться к собранию пайщиков кооперативного участка
 
@@ -63547,10 +63915,10 @@ export type GraphQLTypes = {
 
 Требуемые роли: member, chairman.  */
 	processConvertToAxonStatement: boolean,
-	/** Опубликовать карточку
+	/** Вынести редакцию документа или пакет документов на утверждение совета: проект решения с текстом редакции публикуется в повестку
 
-Требуемые роли: chairman, member, user.  */
-	publishProductCard: boolean,
+Требуемые роли: chairman.  */
+	proposeDocumentApproval: Array<GraphQLTypes["DocumentTemplate"]>,
 	/** Опубликовать предложенную повестку и проект решения для голосования совета. Возвращает созданный пункт повестки (или null, если он ещё не проиндексирован) для немедленного отображения на фронте.
 
 Требуемые роли: chairman, member.  */
@@ -63675,7 +64043,9 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman.  */
 	updateAccount: GraphQLTypes["Account"],
-	/** Обновить банковский счёт */
+	/** Обновить банковский счёт
+
+Требуемые роли: chairman.  */
 	updateBankAccount: GraphQLTypes["PaymentMethod"],
 	/** Обновить расширение
 
@@ -64961,32 +65331,6 @@ export type GraphQLTypes = {
 	toBlock?: number | undefined | null,
 	username?: string | undefined | null
 };
-	["ProductCard"]: {
-	__typename: "ProductCard",
-	braname?: string | undefined | null,
-	cancellation_fee_amount?: string | undefined | null,
-	category_id?: string | undefined | null,
-	contribution_type: GraphQLTypes["ContributionType"],
-	coopname: string,
-	created_at: GraphQLTypes["DateTime"],
-	delivery_type: GraphQLTypes["DeliveryType"],
-	description: string,
-	id: string,
-	images: Array<string>,
-	membership_fee_amount?: string | undefined | null,
-	product_lifecycle_secs: number,
-	status: GraphQLTypes["ProductCardStatus"],
-	title: string,
-	type: GraphQLTypes["ProductCardType"],
-	unit_cost: string,
-	units: number,
-	updated_at: GraphQLTypes["DateTime"],
-	username: string,
-	warranty_period_secs: number,
-	['...on ProductCard']: Omit<GraphQLTypes["ProductCard"], "...on ProductCard">
-};
-	["ProductCardStatus"]: ProductCardStatus;
-	["ProductCardType"]: ProductCardType;
 	["ProgramCapitalizationMoneyInvestStatementGenerateDocumentInput"]: {
 		/** Сумма инвестирования в программу (актив) */
 	amount: string,
@@ -65191,6 +65535,14 @@ export type GraphQLTypes = {
 ["ProjectPriority"]: ProjectPriority;
 	/** Статусы проекта в системе CAPITAL */
 ["ProjectStatus"]: ProjectStatus;
+	["ProposeDocumentApprovalInput"]: {
+		/** Имя аккаунта кооператива */
+	coopname: string,
+	/** Документы, выносимые на совет одним решением: один документ или пакет одного приложения */
+	registry_ids: Array<number>,
+	/** Заголовок вопроса повестки; по умолчанию собирается из названий документов */
+	title?: string | undefined | null
+};
 	["ProviderSubscription"]: {
 	__typename: "ProviderSubscription",
 	/** Дата создания */
@@ -65272,7 +65624,9 @@ export type GraphQLTypes = {
 	__typename: "Query",
 	/** Шаблоны документов соглашений (глобальные draft + per-coop) объединённые */
 	agreementTemplates: Array<GraphQLTypes["AgreementTemplate"]>,
-	/** Получение списка соглашений с фильтрацией и пагинацией */
+	/** Получение списка соглашений с фильтрацией и пагинацией
+
+Требуемые роли: chairman, member.  */
 	agreements: GraphQLTypes["PaginatedAgreementsPaginationResult"],
 	/** Построить предзаполненные edits для формы: дефолты (ledger2 + реквизиты + корректировки), с наложением dirty-полей существующего черновика (если он есть).
 
@@ -65280,7 +65634,9 @@ export type GraphQLTypes = {
 	buildInitialReportEdits: GraphQLTypes["BuildInitialReportEdits"],
 	/** Получение списка кандидатов с пагинацией, отсортированных по дате регистрации */
 	candidates: GraphQLTypes["PaginatedCandidatesPaginationResult"],
-	/** Получение списка кандидатов расширения CAPITAL с обогащенными данными */
+	/** Получение списка кандидатов расширения CAPITAL с обогащенными данными
+
+Требуемые роли: chairman, member, user.  */
 	capitalCandidates: GraphQLTypes["PaginatedCapitalCandidatesPaginationResult"],
 	/** Получение коммита по хэшу
 
@@ -65294,9 +65650,13 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman, member, user.  */
 	capitalComponentMetrics: Array<GraphQLTypes["CapitalComponentMetric"]>,
-	/** Получение участника по ID, имени пользователя или хешу участника */
+	/** Получение участника по ID, имени пользователя или хешу участника
+
+Требуемые роли: chairman, member, user.  */
 	capitalContributor?: GraphQLTypes["CapitalContributor"] | undefined | null,
-	/** Получение списка участников кооператива с фильтрацией */
+	/** Получение списка участников кооператива с фильтрацией
+
+Требуемые роли: chairman, member, user.  */
 	capitalContributors: GraphQLTypes["PaginatedCapitalContributorsPaginationResult"],
 	/** Получение списка циклов кооператива с фильтрацией
 
@@ -65306,13 +65666,21 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman.  */
 	capitalDeallocationLimit: GraphQLTypes["CapitalDeallocationLimit"],
-	/** Получение долга по внутреннему ID базы данных */
+	/** Получение долга по внутреннему ID базы данных
+
+Требуемые роли: chairman, member, user.  */
 	capitalDebt?: GraphQLTypes["CapitalDebt"] | undefined | null,
-	/** Получение списка долгов кооператива с фильтрацией */
+	/** Получение списка долгов кооператива с фильтрацией
+
+Требуемые роли: chairman, member, user.  */
 	capitalDebts: GraphQLTypes["PaginatedCapitalDebtsPaginationResult"],
-	/** Получение расхода по внутреннему ID базы данных */
+	/** Получение расхода по внутреннему ID базы данных
+
+Требуемые роли: chairman, member, user.  */
 	capitalExpense?: GraphQLTypes["CapitalExpense"] | undefined | null,
-	/** Получение списка расходов кооператива с фильтрацией */
+	/** Получение списка расходов кооператива с фильтрацией
+
+Требуемые роли: chairman, member, user.  */
 	capitalExpenses: GraphQLTypes["PaginatedCapitalExpensesPaginationResult"],
 	/** Список избранного пользователя с актуальными наименованиями
 
@@ -65330,17 +65698,29 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman, member, user.  */
 	capitalGetOpenTimer?: GraphQLTypes["CapitalTimerSession"] | undefined | null,
-	/** Получение экземпляра процесса по ID */
+	/** Получение экземпляра процесса по ID
+
+Требуемые роли: chairman, member, user.  */
 	capitalGetProcessInstance?: GraphQLTypes["ProcessInstance"] | undefined | null,
-	/** Получение экземпляров процессов для проекта */
+	/** Получение экземпляров процессов для проекта
+
+Требуемые роли: chairman, member, user.  */
 	capitalGetProcessInstances: Array<GraphQLTypes["ProcessInstance"]>,
-	/** Получение шаблона процесса по ID */
+	/** Получение шаблона процесса по ID
+
+Требуемые роли: chairman, member, user.  */
 	capitalGetProcessTemplate?: GraphQLTypes["ProcessTemplate"] | undefined | null,
-	/** Получение шаблонов процессов для проекта */
+	/** Получение шаблонов процессов для проекта
+
+Требуемые роли: chairman, member, user.  */
 	capitalGetProcessTemplates: Array<GraphQLTypes["ProcessTemplate"]>,
-	/** Получение инвестиции по внутреннему ID базы данных */
+	/** Получение инвестиции по внутреннему ID базы данных
+
+Требуемые роли: chairman, member, user.  */
 	capitalInvest?: GraphQLTypes["CapitalInvest"] | undefined | null,
-	/** Получение списка инвестиций кооператива с фильтрацией */
+	/** Получение списка инвестиций кооператива с фильтрацией
+
+Требуемые роли: chairman, member, user.  */
 	capitalInvests: GraphQLTypes["PaginatedCapitalInvestsPaginationResult"],
 	/** Получение задачи по хэшу
 
@@ -65386,11 +65766,17 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman, member.  */
 	capitalProgramExpenses: GraphQLTypes["PaginatedCapitalProgramExpensesPaginationResult"],
-	/** Получение проекта по хешу с компонентами */
+	/** Получение проекта по хешу с компонентами
+
+Требуемые роли: chairman, member, user.  */
 	capitalProject?: GraphQLTypes["CapitalProject"] | undefined | null,
-	/** Получение проекта с полными отношениями по хешу проекта */
+	/** Получение проекта с полными отношениями по хешу проекта
+
+Требуемые роли: chairman, member, user.  */
 	capitalProjectWithRelations?: GraphQLTypes["CapitalProject"] | undefined | null,
-	/** Получение списка проектов кооператива с фильтрацией и компонентами */
+	/** Получение списка проектов кооператива с фильтрацией и компонентами
+
+Требуемые роли: chairman, member, user.  */
 	capitalProjects: GraphQLTypes["PaginatedCapitalProjectsPaginationResult"],
 	/** Получение результата по внутреннему ID базы данных
 
@@ -65400,11 +65786,17 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman, member, user.  */
 	capitalResults: GraphQLTypes["PaginatedCapitalResultsPaginationResult"],
-	/** Получение одного сегмента кооператива по фильтрам */
+	/** Получение одного сегмента кооператива по фильтрам
+
+Требуемые роли: chairman, member, user.  */
 	capitalSegment?: GraphQLTypes["CapitalSegment"] | undefined | null,
-	/** Получение списка сегментов кооператива с фильтрацией и пагинацией */
+	/** Получение списка сегментов кооператива с фильтрацией и пагинацией
+
+Требуемые роли: chairman, member, user.  */
 	capitalSegments: GraphQLTypes["PaginatedCapitalSegmentsPaginationResult"],
-	/** Получение полного состояния CAPITAL контракта кооператива */
+	/** Получение полного состояния CAPITAL контракта кооператива
+
+Требуемые роли: chairman, member, user.  */
 	capitalState?: GraphQLTypes["CapitalState"] | undefined | null,
 	/** Получение списка историй кооператива с фильтрацией
 
@@ -65426,9 +65818,13 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman, member, user. Исключение: доступ разрешен, если `data.username` совпадает с `username` текущего пользователя. */
 	capitalTimeStats: GraphQLTypes["CapitalTimeStats"],
-	/** Получение голоса по внутреннему ID базы данных */
+	/** Получение голоса по внутреннему ID базы данных
+
+Требуемые роли: chairman, member, user.  */
 	capitalVote?: GraphQLTypes["CapitalVote"] | undefined | null,
-	/** Получение списка голосов кооператива с фильтрацией */
+	/** Получение списка голосов кооператива с фильтрацией
+
+Требуемые роли: chairman, member, user.  */
 	capitalVotes: GraphQLTypes["PaginatedCapitalVotesPaginationResult"],
 	/** Сессия входа по карте кооператора: кто вошёл и на каком шаге быстрая регистрация */
 	cardcoopEntry: GraphQLTypes["CardcoopEntry"],
@@ -65438,9 +65834,13 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman, member, user.  */
 	cardcoopMyCard: GraphQLTypes["CardcoopMyCard"],
-	/** Получение одобрения по внутреннему ID базы данных */
+	/** Получение одобрения по внутреннему ID базы данных
+
+Требуемые роли: chairman, member.  */
 	chairmanApproval?: GraphQLTypes["Approval"] | undefined | null,
-	/** Получение списка одобрений председателя совета с фильтрацией */
+	/** Получение списка одобрений председателя совета с фильтрацией
+
+Требуемые роли: chairman, member.  */
 	chairmanApprovals: GraphQLTypes["PaginatedChairmanApprovalsPaginationResult"],
 	/** Проверяет доступность Matrix username
 
@@ -65498,6 +65898,22 @@ export type GraphQLTypes = {
 	cooperativeAgreements: Array<GraphQLTypes["CoopAgreement"]>,
 	/** Целевые потребительские программы кооператива (id, тип, активность, draft_id) */
 	cooperativePrograms: Array<GraphQLTypes["CooperativeProgram"]>,
+	/** Перенос утверждений из прежних настроек кооператива: какие документы получат утверждение текущей редакции и по какому протоколу (без записи в цепь)
+
+Требуемые роли: chairman, member.  */
+	documentApprovalsSeedPlan: Array<GraphQLTypes["DocumentApprovalSeedItem"]>,
+	/** Бланк документа без данных субъекта: утверждённая советом редакция или текущая редакция сети
+
+Требуемые роли: chairman, member.  */
+	documentTemplateBlank: GraphQLTypes["DocumentTemplateBlank"],
+	/** Реестр шаблонов документов кооператива с утверждёнными и доступными редакциями
+
+Требуемые роли: chairman, member.  */
+	documentTemplates: Array<GraphQLTypes["DocumentTemplate"]>,
+	/** Сколько документов кооператива ждут решения совета: без утверждённой редакции или с устаревшей
+
+Требуемые роли: chairman, member.  */
+	documentTemplatesAttention: number,
 	/** Акт с подписью преподавателя для второй подписи председателя (тот же документ) */
 	edubridgeActSignablePayload: GraphQLTypes["DocumentAggregate"],
 	/** Администраторы приложения */
@@ -65594,18 +66010,24 @@ export type GraphQLTypes = {
 	getAvailableReports: Array<GraphQLTypes["AvailableReport"]>,
 	/** Получить список кооперативных участков */
 	getBranches: Array<GraphQLTypes["Branch"]>,
+	/** Программа вступления и ответы заявителя на анкеты, объявленные расширениями. Доступно председателю и членам совета.
+
+Требуемые роли: chairman, member.  */
+	getCandidateIntake: GraphQLTypes["CandidateIntake"],
 	/** Каталог наборов возможностей с правами, которые они открывают */
 	getCapabilitySets: Array<GraphQLTypes["CapabilitySet"]>,
-	/** Получить логи событий по задаче */
+	/** Получить логи событий по задаче
+
+Требуемые роли: chairman, member, user.  */
 	getCapitalIssueLogs: GraphQLTypes["PaginatedCapitalLogsPaginationResult"],
 	/** Получить состояние онбординга capital
 
 Требуемые роли: chairman, member, user.  */
 	getCapitalOnboardingState: GraphQLTypes["CapitalOnboardingState"],
-	/** Получить логи событий по проекту с фильтрацией и пагинацией */
+	/** Получить логи событий по проекту с фильтрацией и пагинацией
+
+Требуемые роли: chairman, member, user.  */
 	getCapitalProjectLogs: GraphQLTypes["PaginatedCapitalLogsPaginationResult"],
-	/** Получить дерево категорий */
-	getCategories: Array<GraphQLTypes["Category"]>,
 	/** Получить состояние онбординга председателя
 
 Требуемые роли: chairman.  */
@@ -65686,8 +66108,6 @@ export type GraphQLTypes = {
 	getMyAccess: GraphQLTypes["ParticipantAccess"],
 	/** Получить удостоверение текущего пайщика */
 	getMyCertificate: GraphQLTypes["ParticipantCertificate"],
-	/** Мои карточки */
-	getMyProductCards: Array<GraphQLTypes["ProductCard"]>,
 	/** Насколько узел кооператива отстал от цепи. Пусто, пока состояние не измерено */
 	getNodeSyncState?: GraphQLTypes["NodeSyncState"] | undefined | null,
 	/** Детализация одного уведомления с историей попыток доставки
@@ -65712,10 +66132,6 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman, member. Исключение: доступ разрешен, если `data.username` совпадает с `username` текущего пользователя. */
 	getPayments: GraphQLTypes["PaginatedGatewayPaymentsPaginationResult"],
-	/** Получить карточку по ID */
-	getProductCard?: GraphQLTypes["ProductCard"] | undefined | null,
-	/** Получить карточки товаров/услуг */
-	getProductCards: Array<GraphQLTypes["ProductCard"]>,
 	/** Получить один программный кошелек по фильтру
 
 Требуемые роли: chairman, member.  */
@@ -65804,7 +66220,9 @@ export type GraphQLTypes = {
 
 Требуемые роли: user, member, chairman.  */
 	kuTrustRequests: GraphQLTypes["PaginatedKuTrustRequestsPaginationResult"],
-	/** Плановые расходы кооператива: предстоящие траты с суммой, сроком и реквизитами. Неоплаченные расходы со сроком в ближайшие 30 дней образуют резерв средств, недоступный другим использованиям. */
+	/** Плановые расходы кооператива: предстоящие траты с суммой, сроком и реквизитами. Неоплаченные расходы со сроком в ближайшие 30 дней образуют резерв средств, недоступный другим использованиям.
+
+Требуемые роли: chairman, member, user.  */
 	listExpensePlans: Array<GraphQLTypes["ExpensePlan"]>,
 	/** Список черновиков форм отчётов текущего пользователя (с опциональной фильтрацией)
 
@@ -66202,6 +66620,8 @@ export type GraphQLTypes = {
 	braname?: string | undefined | null,
 	/** Подписанный документ оферты по программе "Генератор" (опционально, только для программы generation) */
 	generator_offer?: GraphQLTypes["SignedDigitalDocumentInput"] | undefined | null,
+	/** Ответы на анкеты вступления, которые объявили расширения для выбранной программы и типа аккаунта */
+	intake_answers?: Array<GraphQLTypes["IntakeFormAnswerInput"]> | undefined | null,
 	/** Подписанная оферта по целевой потребительской программе «Стол заказов» (опционально, только для программы marketplace) */
 	marketplace_offer?: GraphQLTypes["SignedDigitalDocumentInput"] | undefined | null,
 	/** Подписанный документ политики конфиденциальности от пайщика */
@@ -66254,11 +66674,27 @@ export type GraphQLTypes = {
 };
 	["RegistrationConfig"]: {
 	__typename: "RegistrationConfig",
+	/** Анкеты, которые заполняет любой заявитель этого типа аккаунта, независимо от программы */
+	intake_forms: Array<GraphQLTypes["RegistrationIntakeForm"]>,
 	/** Доступные программы */
 	programs: Array<GraphQLTypes["RegistrationProgram"]>,
 	/** Нужен ли выбор программы */
 	requires_selection: boolean,
 	['...on RegistrationConfig']: Omit<GraphQLTypes["RegistrationConfig"], "...on RegistrationConfig">
+};
+	["RegistrationIntakeForm"]: {
+	__typename: "RegistrationIntakeForm",
+	/** Пояснение над полями: зачем кооперативу эти сведения */
+	description?: string | undefined | null,
+	/** Идентификатор анкеты */
+	id: string,
+	/** Порядок отображения */
+	order: number,
+	/** JSON Schema полей анкеты */
+	schema: GraphQLTypes["JSON"],
+	/** Заголовок анкеты */
+	title: string,
+	['...on RegistrationIntakeForm']: Omit<GraphQLTypes["RegistrationIntakeForm"], "...on RegistrationIntakeForm">
 };
 	["RegistrationPayment"]: {
 	__typename: "RegistrationPayment",
@@ -66282,6 +66718,8 @@ export type GraphQLTypes = {
 	description: string,
 	/** URL изображения (опционально) */
 	image_url?: string | undefined | null,
+	/** Анкеты, которые заявитель заполняет, выбрав программу */
+	intake_forms: Array<GraphQLTypes["RegistrationIntakeForm"]>,
 	/** Уникальный ключ программы */
 	key: string,
 	/** Порядок отображения */
@@ -68378,6 +68816,12 @@ export enum AccountType {
 	individual = "individual",
 	organization = "organization"
 }
+/** Отбор реестра пайщиков по уровню верификации */
+export enum AccountVerificationFilter {
+	NONE = "NONE",
+	NO_PASSPORT = "NO_PASSPORT",
+	PASSPORT = "PASSPORT"
+}
 /** Статус соглашения в системе кооператива */
 export enum AgreementStatus {
 	CONFIRMED = "CONFIRMED",
@@ -68482,10 +68926,6 @@ export enum CommitStatus {
 	DECLINED = "DECLINED",
 	UNDEFINED = "UNDEFINED"
 }
-export enum ContributionType {
-	MEMBER = "MEMBER",
-	SHARE = "SHARE"
-}
 /** Статус участника в системе CAPITAL */
 export enum ContributorStatus {
 	ACTIVE = "ACTIVE",
@@ -68528,16 +68968,37 @@ export enum DebtStatus {
 	SETTLED = "SETTLED",
 	UNDEFINED = "UNDEFINED"
 }
-export enum DeliveryType {
-	EXTERNAL = "EXTERNAL",
-	INTERNAL = "INTERNAL"
-}
 /** Типы действий для документов кооператива */
 export enum DocumentAction {
 	CONTRIBUTE = "CONTRIBUTE",
 	JOINCOOP = "JOINCOOP",
 	REGCOOP = "REGCOOP",
 	WITHDRAW = "WITHDRAW"
+}
+/** Требуется ли решение совета, чтобы редакция документа действовала в кооперативе */
+export enum DocumentApprovalRequirement {
+	None = "None",
+	Required = "Required"
+}
+/** Состояние документа в кооперативе относительно редакции в сети */
+export enum DocumentApprovalState {
+	Approved = "Approved",
+	NotApproved = "NotApproved",
+	NotRequired = "NotRequired",
+	Outdated = "Outdated",
+	Pending = "Pending"
+}
+/** Род документа: соглашение пайщика, положение, форма или служебный документ */
+export enum DocumentKind {
+	Agreement = "Agreement",
+	Form = "Form",
+	Provision = "Provision",
+	Service = "Service"
+}
+/** Редакция документа для просмотра: утверждённая советом кооператива или текущая в сети */
+export enum DocumentTemplateEdition {
+	Approved = "Approved",
+	Current = "Current"
 }
 /** Носитель доступа к курсу (площадка или очный формат) */
 export enum EduAccessCarrier {
@@ -69207,16 +69668,6 @@ export enum ProcessTemplateStatus {
 	ARCHIVED = "ARCHIVED",
 	DRAFT = "DRAFT"
 }
-export enum ProductCardStatus {
-	ARCHIVED = "ARCHIVED",
-	DRAFT = "DRAFT",
-	MODERATION = "MODERATION",
-	PUBLISHED = "PUBLISHED"
-}
-export enum ProductCardType {
-	OFFER = "OFFER",
-	ORDER = "ORDER"
-}
 /** Ключ выбранной программы регистрации */
 export enum ProgramKey {
 	CAPITALIZATION = "CAPITALIZATION",
@@ -69427,6 +69878,7 @@ export enum ZeroReportSignerType {
 type ZEUS_VARIABLES = {
 	["AccountKind"]: ValueTypes["AccountKind"];
 	["AccountType"]: ValueTypes["AccountType"];
+	["AccountVerificationFilter"]: ValueTypes["AccountVerificationFilter"];
 	["ActionFiltersInput"]: ValueTypes["ActionFiltersInput"];
 	["AddAuthorInput"]: ValueTypes["AddAuthorInput"];
 	["AddAvailableCategoriesInput"]: ValueTypes["AddAvailableCategoriesInput"];
@@ -69557,7 +70009,6 @@ type ZEUS_VARIABLES = {
 	["ConfirmAgreementInput"]: ValueTypes["ConfirmAgreementInput"];
 	["ConfirmApproveInput"]: ValueTypes["ConfirmApproveInput"];
 	["ConfirmEmailVerificationInputDTO"]: ValueTypes["ConfirmEmailVerificationInputDTO"];
-	["ContributionType"]: ValueTypes["ContributionType"];
 	["ContributorStatus"]: ValueTypes["ContributorStatus"];
 	["ConvertSegmentInput"]: ValueTypes["ConvertSegmentInput"];
 	["ConvertToAxonStatementGenerateDocumentInput"]: ValueTypes["ConvertToAxonStatementGenerateDocumentInput"];
@@ -69567,7 +70018,6 @@ type ZEUS_VARIABLES = {
 	["CreateAnnualGeneralMeetInput"]: ValueTypes["CreateAnnualGeneralMeetInput"];
 	["CreateBranchExpenseInput"]: ValueTypes["CreateBranchExpenseInput"];
 	["CreateBranchInput"]: ValueTypes["CreateBranchInput"];
-	["CreateCategoryInput"]: ValueTypes["CreateCategoryInput"];
 	["CreateChatCoopCalendarEventInput"]: ValueTypes["CreateChatCoopCalendarEventInput"];
 	["CreateCommitInput"]: ValueTypes["CreateCommitInput"];
 	["CreateComponentMetricInput"]: ValueTypes["CreateComponentMetricInput"];
@@ -69585,11 +70035,9 @@ type ZEUS_VARIABLES = {
 	["CreateIssueInput"]: ValueTypes["CreateIssueInput"];
 	["CreateKuDecisionInput"]: ValueTypes["CreateKuDecisionInput"];
 	["CreateMatrixAccountInputDTO"]: ValueTypes["CreateMatrixAccountInputDTO"];
-	["CreateMeasureInput"]: ValueTypes["CreateMeasureInput"];
 	["CreateMembershipExitInput"]: ValueTypes["CreateMembershipExitInput"];
 	["CreateOrganizationDataInput"]: ValueTypes["CreateOrganizationDataInput"];
 	["CreateProcessTemplateInput"]: ValueTypes["CreateProcessTemplateInput"];
-	["CreateProductCardInput"]: ValueTypes["CreateProductCardInput"];
 	["CreateProgramInvestInput"]: ValueTypes["CreateProgramInvestInput"];
 	["CreateProgramPropertyInput"]: ValueTypes["CreateProgramPropertyInput"];
 	["CreateProjectFreeDecisionInput"]: ValueTypes["CreateProjectFreeDecisionInput"];
@@ -69623,9 +70071,12 @@ type ZEUS_VARIABLES = {
 	["DeletePaymentMethodInput"]: ValueTypes["DeletePaymentMethodInput"];
 	["DeleteProjectInput"]: ValueTypes["DeleteProjectInput"];
 	["DeleteTrustedAccountInput"]: ValueTypes["DeleteTrustedAccountInput"];
-	["DeliveryType"]: ValueTypes["DeliveryType"];
 	["DeltaFiltersInput"]: ValueTypes["DeltaFiltersInput"];
 	["DocumentAction"]: ValueTypes["DocumentAction"];
+	["DocumentApprovalRequirement"]: ValueTypes["DocumentApprovalRequirement"];
+	["DocumentApprovalState"]: ValueTypes["DocumentApprovalState"];
+	["DocumentKind"]: ValueTypes["DocumentKind"];
+	["DocumentTemplateEdition"]: ValueTypes["DocumentTemplateEdition"];
 	["EditBranchInput"]: ValueTypes["EditBranchInput"];
 	["EditContributorInput"]: ValueTypes["EditContributorInput"];
 	["EditProjectInput"]: ValueTypes["EditProjectInput"];
@@ -69770,6 +70221,7 @@ type ZEUS_VARIABLES = {
 	["InitiateCriticalActionInput"]: ValueTypes["InitiateCriticalActionInput"];
 	["Install"]: ValueTypes["Install"];
 	["InstanceStatus"]: ValueTypes["InstanceStatus"];
+	["IntakeFormAnswerInput"]: ValueTypes["IntakeFormAnswerInput"];
 	["InvestStatus"]: ValueTypes["InvestStatus"];
 	["IssueMetricBindingItemInput"]: ValueTypes["IssueMetricBindingItemInput"];
 	["IssuePriority"]: ValueTypes["IssuePriority"];
@@ -70010,8 +70462,6 @@ type ZEUS_VARIABLES = {
 	["ProcessStepTemplateInput"]: ValueTypes["ProcessStepTemplateInput"];
 	["ProcessTemplateStatus"]: ValueTypes["ProcessTemplateStatus"];
 	["ProcessesFilter"]: ValueTypes["ProcessesFilter"];
-	["ProductCardStatus"]: ValueTypes["ProductCardStatus"];
-	["ProductCardType"]: ValueTypes["ProductCardType"];
 	["ProgramCapitalizationMoneyInvestStatementGenerateDocumentInput"]: ValueTypes["ProgramCapitalizationMoneyInvestStatementGenerateDocumentInput"];
 	["ProgramCapitalizationMoneyInvestStatementSignedDocumentInput"]: ValueTypes["ProgramCapitalizationMoneyInvestStatementSignedDocumentInput"];
 	["ProgramCapitalizationMoneyInvestStatementSignedMetaDocumentInput"]: ValueTypes["ProgramCapitalizationMoneyInvestStatementSignedMetaDocumentInput"];
@@ -70024,6 +70474,7 @@ type ZEUS_VARIABLES = {
 	["ProjectGenerationContractGenerateDocumentInput"]: ValueTypes["ProjectGenerationContractGenerateDocumentInput"];
 	["ProjectPriority"]: ValueTypes["ProjectPriority"];
 	["ProjectStatus"]: ValueTypes["ProjectStatus"];
+	["ProposeDocumentApprovalInput"]: ValueTypes["ProposeDocumentApprovalInput"];
 	["PublishProjectFreeDecisionInput"]: ValueTypes["PublishProjectFreeDecisionInput"];
 	["PushResultInput"]: ValueTypes["PushResultInput"];
 	["RecoveryStrategy"]: ValueTypes["RecoveryStrategy"];

@@ -137,8 +137,21 @@ export class YookassaExtension extends IPNProvider {
   public tolerance_percent = 0; /// (0.0005%) < Допустимая погрешность приёма платежей
   public fee_percent = 3.5; ///%
 
-  public async handleIPN(request: IIpnRequest): Promise<void> {
+  public async handleIPN(notice: IIpnRequest): Promise<void> {
+    // Уведомления ЮKassa не подписаны — тело мог прислать кто угодно. Верим
+    // только самой ЮKassa: запрашиваем платёж по id своим ключом магазина и
+    // дальше работаем с её ответом. Сбой запроса — ошибка обработчика, и
+    // ЮKassa повторит уведомление.
+    const request = await this.verifyNotice(notice);
     const { event } = request;
+
+    // Незавершённый платёж ничего не меняет и в журнал не пишется: иначе
+    // ранняя запись по этому id отбросила бы настоящее уведомление об оплате
+    // как «уже обработанное».
+    if (event !== 'payment.succeeded' && event !== 'payment.failed') {
+      this.logger.info('Платёж ЮKassa ещё не завершён — уведомление пропущено', { source: 'handleIPN', requestId: request.object.id, event });
+      return;
+    }
 
     const exist = await this.noticeLog.find({ data: { object: { id: request.object.id } } });
 
@@ -244,6 +257,44 @@ export class YookassaExtension extends IPNProvider {
     } else {
       this.logger.warn('IPN уже обработан', { source: 'handleIPN', requestId: request.object.id });
     }
+  }
+
+  /**
+   * Уведомление, пересобранное из платежа, полученного у ЮKassa. Событие
+   * выводится из фактического статуса: `succeeded` — оплачен, `canceled` —
+   * отменён; прочие статусы изменений не несут.
+   */
+  private async verifyNotice(notice: IIpnRequest): Promise<IIpnRequest> {
+    const id = notice?.object?.id;
+    if (!id || typeof id !== 'string') throw new Error('Уведомление ЮKassa без идентификатора платежа');
+
+    const checkout = new YooCheckout({
+      shopId: this.extension.config.client,
+      secretKey: this.extension.config.secret,
+    });
+    const actual = await checkout.getPayment(id);
+    if (!actual || actual.id !== id) throw new Error(`ЮKassa не подтвердила платёж ${id}`);
+
+    const event =
+      actual.status === 'succeeded' ? 'payment.succeeded' : actual.status === 'canceled' ? 'payment.failed' : `payment.${actual.status}`;
+    if (event !== notice.event) {
+      this.logger.warn('Событие уведомления ЮKassa не совпало со статусом платежа', {
+        source: 'handleIPN',
+        requestId: id,
+        notice: notice.event,
+        actual: actual.status,
+      });
+    }
+
+    return {
+      ...notice,
+      event,
+      object: {
+        ...(actual as unknown as IIpnRequest['object']),
+        income_amount: (actual.income_amount ?? { value: '0', currency: actual.amount?.currency ?? '' }) as IIpnRequest['object']['income_amount'],
+        metadata: (actual.metadata ?? {}) as IIpnRequest['object']['metadata'],
+      },
+    };
   }
 
   public async createPayment(hash: string): Promise<PaymentDetails> {

@@ -4,6 +4,17 @@ import { GqlExecutionContext } from '@nestjs/graphql';
 import { AuthGuard } from '@nestjs/passport';
 import type { Observable } from 'rxjs';
 import { hasServerSecret } from './server-secret';
+import { ROLES_ANY_STATUS_KEY, ROLES_DENY_SELF_KEY } from './decorators';
+
+/**
+ * Статус пайщика, дающий доступ. Литерал, а не enum домена: каркас расширения
+ * не зависит от доменных пакетов (INV-007), а в JWT статус и так приезжает строкой.
+ * Доменный источник значения — `MonoAccountStatus.Active` в ядре.
+ */
+const ACTIVE_USER_STATUS = 'active';
+
+/** Роль обычного пайщика: доступ по ней получает только принятый советом. */
+const PARTICIPANT_ROLE = 'user';
 
 /** JWT-гард для GraphQL. При валидном `server-secret` проверка не выполняется. */
 @Injectable()
@@ -106,8 +117,14 @@ export class HttpJwtAuthGuard extends AuthGuard('jwt') {
  * 1. Валидный `server-secret` — доступ разрешён.
  * 2. Роли не заданы — доступ открыт.
  * 3. Пользователь обращается к своим ресурсам (`username` вложенный в `data`/`filter`
- *    либо плоским аргументом совпадает с `user.username`) — разрешено.
- * 4. У пользователя есть одна из разрешённых ролей — разрешено.
+ *    либо плоским аргументом совпадает с `user.username`) — разрешено, если
+ *    операция не объявила `AuthRoles(..., { allowSelf: false })`.
+ * 4. У пользователя есть одна из разрешённых ролей — разрешено. Роль `user`
+ *    при этом означает принятого пайщика: учётная запись в статусе вступления
+ *    или исключения по ней не проходит (если операция не объявила
+ *    `AuthRoles(..., { anyStatus: true })`). Совет по своей роли проходит в
+ *    любом статусе: членов совета, заведённых при установке, цепь в
+ *    `active` не переводит.
  * 5. Иначе — отказ.
  */
 @Injectable()
@@ -137,26 +154,26 @@ export class RolesGuard implements CanActivate {
     const data = args.data;
     const filter = args.filter;
 
-    if ((data && data.username && user.username === data.username) ||
+    const denySelf = this.reflector.get<boolean>(ROLES_DENY_SELF_KEY, context.getHandler()) === true;
+
+    if (!denySelf && (
+        (data && data.username && user.username === data.username) ||
         (filter && filter.username && user.username === filter.username) ||
-        (args.username && user.username === args.username)) {
+        (args.username && user.username === args.username))) {
       return true;
     }
 
     if (allowedRoles.includes(user.role)) {
+      const anyStatus = this.reflector.get<boolean>(ROLES_ANY_STATUS_KEY, context.getHandler()) === true;
+      if (user.role === PARTICIPANT_ROLE && !anyStatus && user.status !== ACTIVE_USER_STATUS) {
+        throw new ForbiddenException('Доступ только для пайщиков кооператива');
+      }
       return true;
     }
 
     throw new UnauthorizedException(`Недостаточно прав доступа`);
   }
 }
-
-/**
- * Статус пайщика, дающий доступ. Литерал, а не enum домена: каркас расширения
- * не зависит от доменных пакетов (INV-007), а в JWT статус и так приезжает строкой.
- * Доменный источник значения — `MonoAccountStatus.Active` в ядре.
- */
-const ACTIVE_USER_STATUS = 'active';
 
 /**
  * Разрешает доступ только пайщикам в статусе `active`.

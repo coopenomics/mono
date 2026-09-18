@@ -4,6 +4,7 @@ import { GqlJwtAuthGuard, RolesGuard, AuthRoles, createPaginationResult, Paginat
 import { Throttle } from '@nestjs/throttler';
 import { CandidateOutputDTO } from '../dto/candidate.dto';
 import { CandidateFilterInputDTO } from '../dto/candidate-filter.dto';
+import { CandidateIntakeDTO } from '../dto/candidate-intake.dto';
 import { RegistrationService } from '../services/registration.service';
 import { GenerateRegistrationDocumentsInputDTO } from '../dto/generate-registration-documents-input.dto';
 import { GenerateRegistrationDocumentsOutputDTO } from '../dto/generate-registration-documents-output.dto';
@@ -41,6 +42,23 @@ export class RegistrationResolver {
     @Args('options', { nullable: true }) options?: PaginationInputDTO
   ): Promise<PaginationResult<CandidateOutputDTO>> {
     return await this.registrationService.getCandidates(currentUser, filter, options);
+  }
+
+  /**
+   * Сведения заявителя о себе. Читает их тот, кто решает о приёме и ведёт
+   * реестр пайщиков, — председатель и члены совета.
+   */
+  @Query(() => CandidateIntakeDTO, {
+    name: 'getCandidateIntake',
+    description:
+      'Программа вступления и ответы заявителя на анкеты, объявленные расширениями. Доступно председателю и членам совета.',
+  })
+  @UseGuards(GqlJwtAuthGuard, RolesGuard)
+  @AuthRoles(['chairman', 'member'])
+  async getCandidateIntake(
+    @Args('username', { type: () => String }) username: string
+  ): Promise<CandidateIntakeDTO> {
+    return this.registrationService.getCandidateIntake(username);
   }
 
   /**

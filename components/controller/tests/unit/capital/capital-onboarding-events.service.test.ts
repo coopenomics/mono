@@ -82,6 +82,30 @@ describe('CapitalOnboardingEventsService.handleDecisionTracked', () => {
     });
   });
 
+  // Шаг, прошедший через фабрику утверждений документов, приходит под именем
+  // поля vars (`generator_program`), а не под именем шага. Пока слушатель знал
+  // только имя шага, решение совета по Положению «Генератора» не засчитывалось:
+  // L1 оставался незавершённым, и программы capital не попадали во вступление
+  // (стенд 17.09.2026 — заявителю молча досталась единственная программа).
+  it('засчитывает Положение «Генератора» под именем поля vars и завершает L1', async () => {
+    const repo = makeRepoStub({
+      onboarding_generator_program_template_done: false,
+      onboarding_generation_contract_template_done: true,
+      onboarding_generator_offer_template_done: true,
+      onboarding_blagorost_provision_done: true,
+      onboarding_blagorost_offer_template_done: true,
+    });
+    const emitter = makeEmitterStub();
+    const service = makeService(repo, emitter);
+
+    await service.handleDecisionTracked(trackedEvent('generator_program'));
+
+    expect(repo.patchConfig).toHaveBeenCalledWith('capital', {
+      onboarding_generator_program_template_done: true,
+    });
+    expect(emitter.emit).toHaveBeenCalledWith(ONBOARDING_COMPLETED_EVENT, { extension_name: 'capital' });
+  });
+
   it('НЕ эмиттит, если ставится не последний _done (остался хотя бы один false)', async () => {
     const repo = makeRepoStub({
       onboarding_generator_program_template_done: false,

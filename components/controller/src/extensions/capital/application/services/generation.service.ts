@@ -73,7 +73,7 @@ import { ContentEntityType } from '../../domain/enums/content-entity-type.enum';
 import { ContentRevisionOrigin } from '../../domain/enums/content-revision-origin.enum';
 import type { IMonoAccount } from '@coopenomics/innercoop';
 import { MATRIX_ROOM_MESSAGING_PORT, PROJECT_COMMUNICATION_ARTIFACTS_PORT, type IMatrixRoomMessagingPort, type IProjectCommunicationArtifactsPort, DOCUMENT_PORT, type IDocumentPort } from '@coopenomics/innercoop';
-import { generateUniqueHash } from '@coopenomics/extension-kit';
+import { generateUniqueHash, sanitizeUserText } from '@coopenomics/extension-kit';
 
 /**
  * Сервис уровня приложения для генерации в CAPITAL
@@ -289,6 +289,11 @@ export class GenerationService {
     ) {
       description = normalizeBpmnStoryDescription(description, contentFormat) ?? description;
     }
+
+    // Описание пишет человек в редакторе, но принимает его мутация: очистка в
+    // браузере ничего не значит для запроса, отправленного прямо в API.
+    // Правило мягкое — разметка, таблицы и схемы BPMN остаются нетронутыми.
+    description = sanitizeUserText(description);
 
     // Создаем данные для доменной сущности
     const storyDatabaseData: IStoryDatabaseData = {
@@ -606,6 +611,7 @@ export class GenerationService {
       } else {
         nextDescription = data.description;
       }
+      nextDescription = sanitizeUserText(nextDescription);
     }
 
     // Серверное слияние с параллельными правками + новая редакция (см. ContentRevisionService)
@@ -952,7 +958,7 @@ export class GenerationService {
       issue_hash: issueHash,
       coopname: data.coopname,
       title: data.title,
-      description: data.description,
+      description: sanitizeUserText(data.description),
       priority: data.priority || IssuePriority.MEDIUM,
       status: data.status || IssueStatus.BACKLOG,
       estimate: data.estimate ?? 0,
@@ -1260,7 +1266,7 @@ export class GenerationService {
       origin: data.origin ?? ContentRevisionOrigin.WEB,
       base_rev: data.base_rev,
       restored_from_rev: opts?.restored_from_rev,
-      incoming: { title: data.title, description: data.description },
+      incoming: { title: data.title, description: sanitizeUserText(data.description) },
     });
     // Создаем обновленные данные для доменной сущности
     const updatedIssueDatabaseData: IIssueDatabaseData = {

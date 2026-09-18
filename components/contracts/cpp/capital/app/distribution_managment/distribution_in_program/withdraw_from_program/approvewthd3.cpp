@@ -17,6 +17,8 @@ void capital::approvewthd3(name coopname, name approver, checksum256 withdraw_ha
   require_auth(coopname);
   
   verify_document_or_fail(approved_return_statement);
+  // Согласие подписано ключом аккаунта одобряющего. Транзакцию шлёт кооператив, поэтому ключ сверяется с аккаунтом.
+  verify_signer_keys_or_fail(approved_return_statement, approver);
   
   auto exist_withdraw = Capital::get_program_withdraw(coopname, withdraw_hash);
   eosio::check(exist_withdraw.has_value(), "Объект возврата не найден");

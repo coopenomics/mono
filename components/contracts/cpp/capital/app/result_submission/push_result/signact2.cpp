@@ -41,6 +41,9 @@ void capital::signact2(eosio::name coopname, eosio::name chairman, checksum256 r
 
   // Проверяем документ
   verify_document_or_fail(act, { result->username, real_chairman });
+  // Обе подписи под актом сделаны ключами своих аккаунтов: участника и председателя.
+  verify_signer_keys_or_fail(act, result->username);
+  verify_signer_keys_or_fail(act, real_chairman);
 
   // Устанавливаем второй акт
   Capital::Results::set_result_act2(coopname, result -> id, act);

@@ -2,10 +2,15 @@ import { Inject, Injectable } from '@nestjs/common';
 import { REGISTRATION_AGREEMENTS_CONFIG } from '../config/registration-agreements.config';
 import type {
   IAgreementConfigItem,
+  IRegistrationIntakeForm,
   IRegistrationProgram,
 } from '../config/agreement-config.interface';
 import { AccountType } from '~/application/account/enum/account-type.enum';
-import { AgreementRegistryService, AGREEMENT_REGISTRY_SERVICE } from './agreement-registry.service';
+import {
+  AgreementRegistryService,
+  AGREEMENT_REGISTRY_SERVICE,
+  type RegisteredIntakeForm,
+} from './agreement-registry.service';
 import type { AgreementRegistrationSpec } from '../dto/agreement-registration-spec.dto';
 import type { ProgramRegistrationSpec } from '../dto/program-registration-spec.dto';
 import { CooperativeConfigService } from './cooperative-config.service';
@@ -65,7 +70,20 @@ export class AgreementConfigurationService {
       requirements: spec.requirements,
       applicable_account_types: spec.applicable_account_types,
       agreement_ids: spec.agreement_ids,
+      intake_forms: this.agreementRegistry
+        .listIntakeFormsForProgram(spec.key)
+        .map((form) => this.intakeFormToConfig(form)),
       order: spec.order,
+    };
+  }
+
+  private intakeFormToConfig(form: RegisteredIntakeForm): IRegistrationIntakeForm {
+    return {
+      id: form.id,
+      title: form.title,
+      description: form.description,
+      schema: form.json_schema,
+      order: form.order,
     };
   }
 
@@ -203,5 +221,30 @@ export class AgreementConfigurationService {
       coopname,
     });
     return agreements.map((spec) => this.specToConfigItem(spec));
+  }
+
+  /**
+   * Анкеты, которые обязан заполнить заявитель: общие для его типа аккаунта
+   * плюс анкеты выбранной программы. Возвращает записи реестра вместе со
+   * схемой — по ней же интерактор проверяет ответы.
+   */
+  getRequiredIntakeForms(accountType: AccountType, programKey?: string): RegisteredIntakeForm[] {
+    const forms = new Map<string, RegisteredIntakeForm>();
+    for (const form of this.agreementRegistry.listIntakeFormsForAccountType(accountType)) {
+      forms.set(form.id, form);
+    }
+    if (programKey) {
+      for (const form of this.agreementRegistry.listIntakeFormsForProgram(programKey)) {
+        forms.set(form.id, form);
+      }
+    }
+    return Array.from(forms.values()).sort((a, b) => a.order - b.order);
+  }
+
+  /** Анкеты, общие для типа аккаунта, — в форме для показа заявителю. */
+  getIntakeFormsForAccountType(accountType: AccountType): IRegistrationIntakeForm[] {
+    return this.agreementRegistry
+      .listIntakeFormsForAccountType(accountType)
+      .map((form) => this.intakeFormToConfig(form));
   }
 }

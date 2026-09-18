@@ -3,12 +3,14 @@ import { Global, Module } from '@nestjs/common';
 import { GeneratorInfrastructureService } from './generator.service';
 import { GENERATOR_PORT } from '~/domain/document/ports/generator.port';
 import { ControllerChainDataSource } from './controller-chain-data.source';
+import { EffectiveTemplateBlockResolver } from './effective-template-block.resolver';
 import { BlockchainModule } from '~/infrastructure/blockchain/blockchain.module';
 
 @Global()
 @Module({
   imports: [BlockchainModule],
   providers: [
+    EffectiveTemplateBlockResolver,
     ControllerChainDataSource,
     GeneratorInfrastructureService,
     {

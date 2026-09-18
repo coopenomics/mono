@@ -111,7 +111,7 @@ OnboardingCompletionCelebration(
           q-icon(name="fa-solid fa-gavel" size="16px")
           span Проект решения
         .agenda-dialog__decision
-          DocumentHtmlReader(:html="agendaDialog.decision" :sanitize="false")
+          DocumentHtmlReader(:html="agendaDialog.decision" profile="document")
 
     template(#footer)
       BaseButton(

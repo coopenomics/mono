@@ -65,6 +65,7 @@ const baseRoutes: RouteRecordRaw[] = [
         component: CoopidFlowPage,
         children: [],
         meta: {
+          authSplit: true,
           title: 'Вход',
           icon: 'login',
           requiresAuth: false,
@@ -81,6 +82,8 @@ const baseRoutes: RouteRecordRaw[] = [
         component: SignInPage,
         children: [],
         meta: {
+          // Экран живёт в оболочке AuthSplit: без общей шапки и футера, панель до верха.
+          authSplit: true,
           title: 'Вход',
           icon: 'fa-solid fa-sign-in-alt',
           widget: {
@@ -96,6 +99,8 @@ const baseRoutes: RouteRecordRaw[] = [
         component: LostKeyPage,
         children: [],
         meta: {
+          // Экран живёт в оболочке AuthSplit: без общей шапки и футера, панель до верха.
+          authSplit: true,
           title: 'Восстановление ключа',
           icon: 'fa-solid fa-key',
           widget: {
@@ -110,6 +115,8 @@ const baseRoutes: RouteRecordRaw[] = [
         component: ResetKeyPage,
         children: [],
         meta: {
+          // Экран живёт в оболочке AuthSplit: без общей шапки и футера, панель до верха.
+          authSplit: true,
           title: 'Сброс ключа',
           icon: 'fa-solid fa-key',
           widget: {
@@ -125,6 +132,8 @@ const baseRoutes: RouteRecordRaw[] = [
         component: RecoverRequestPage,
         children: [],
         meta: {
+          // Экран живёт в оболочке AuthSplit: без общей шапки и футера, панель до верха.
+          authSplit: true,
           title: 'Восстановление доступа',
           icon: 'key',
           widget: {
@@ -141,6 +150,7 @@ const baseRoutes: RouteRecordRaw[] = [
         component: NotMePage,
         children: [],
         meta: {
+          authSplit: true,
           title: 'Защита аккаунта',
           icon: 'security',
           widget: {
@@ -156,6 +166,8 @@ const baseRoutes: RouteRecordRaw[] = [
         component: RecoverConfirmPage,
         children: [],
         meta: {
+          // Экран живёт в оболочке AuthSplit: без общей шапки и футера, панель до верха.
+          authSplit: true,
           title: 'Восстановление доступа',
           icon: 'key',
           widget: {
@@ -170,6 +182,7 @@ const baseRoutes: RouteRecordRaw[] = [
         component: InvitePage,
         children: [],
         meta: {
+          authSplit: true,
           title: 'Приглашение',
           icon: 'fa-solid fa-envelope',
           widget: {
@@ -184,6 +197,7 @@ const baseRoutes: RouteRecordRaw[] = [
         component: CardcoopEntryPage,
         children: [],
         meta: {
+          authSplit: true,
           title: 'Вход по карте',
           icon: 'fa-solid fa-id-card',
           widget: {
@@ -199,6 +213,8 @@ const baseRoutes: RouteRecordRaw[] = [
         component: SignUpPage,
         children: [],
         meta: {
+          // Экран живёт в оболочке AuthSplit: без общей шапки и футера, панель до верха.
+          authSplit: true,
           title: 'Регистрация',
           icon: 'fa-solid fa-user-plus',
           widget: {
@@ -213,6 +229,7 @@ const baseRoutes: RouteRecordRaw[] = [
         name: 'login-redirect',
         component: LoginRedirectPage,
         meta: {
+          authSplit: true,
           layout: 'default',
           title: 'Вход для доступа к содержимому',
           icon: 'fa-solid fa-lock',

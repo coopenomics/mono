@@ -39,6 +39,8 @@ void marketplace::signsupp(eosio::name coopname,
   get_branch_or_fail(coopname, accept_braname);
 
   verify_document_or_fail(act, { offerer });
+  // Акт приёмки подписывает сам поставщик. Транзакцию шлёт кооператив, поэтому ключ сверяется с аккаунтом.
+  verify_signer_keys_or_fail(act, offerer);
 
   Marketplace::update_order(coopname, o.id, [&](auto& upd) {
     upd.status = OrderStatus::SUPPLY_PREPARED;

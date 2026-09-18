@@ -1,4 +1,4 @@
-import { Mutations, Queries } from '@coopenomics/sdk';
+import { Mutations, Queries, Zeus } from '@coopenomics/sdk';
 import { client } from 'src/shared/api/client';
 
 /**
@@ -10,7 +10,7 @@ import { client } from 'src/shared/api/client';
  *    `completeExtensionOnboardingStep` — backend создаёт проект решения совета,
  *    публикует его и регистрирует tracking-rule; по реальному ончейн-принятию
  *    решения состояние шага становится done автоматически.
- *  - HTML каждого документа рендерится через `generateDocument` (registry_id).
+ *  - бланк каждого документа берётся из фабрики утверждений (`documentTemplateBlank`).
  */
 
 export const MARKETPLACE_EXTENSION_NAME = 'market';
@@ -48,19 +48,17 @@ export interface GeneratedDocument {
 
 export async function generateDocument(
   coopname: string,
-  username: string,
   registry_id: number,
 ): Promise<GeneratedDocument> {
-  const input: Mutations.Documents.GenerateDocument.IInput = {
-    input: { data: { coopname, username, registry_id } },
-  };
-  const { [Mutations.Documents.GenerateDocument.name]: result } =
-    await client.Mutation(Mutations.Documents.GenerateDocument.mutation, {
-      variables: input,
-    });
+  // Бланк текущей редакции из фабрики утверждений — тот же текст, что уйдёт
+  // в решение совета.
+  const { [Queries.DocumentApprovals.DocumentTemplateBlank.name]: blank } = await client.Query(
+    Queries.DocumentApprovals.DocumentTemplateBlank.query,
+    { variables: { coopname, registry_id, edition: Zeus.DocumentTemplateEdition.Current } },
+  );
   return {
-    hash: result?.hash || '',
-    html: result?.html || '',
-    full_title: result?.full_title || '',
+    hash: blank?.text_hash || '',
+    html: blank?.html || '',
+    full_title: blank?.title || '',
   };
 }

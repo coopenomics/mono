@@ -54,7 +54,7 @@ export class ParticipationManagementResolver {
     description: 'Импорт участника в CAPITAL контракт',
   })
   @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
+  @AuthRoles(['chairman'], { allowSelf: false })
   async importCapitalContributor(
     @Args('data', { type: () => ImportContributorInputDTO }) data: ImportContributorInputDTO
   ): Promise<TransactionDTO> {
@@ -103,6 +103,8 @@ export class ParticipationManagementResolver {
     name: 'capitalContributors',
     description: 'Получение списка участников кооператива с фильтрацией',
   })
+  @UseGuards(GqlJwtAuthGuard, RolesGuard)
+  @AuthRoles(['chairman', 'member', 'user'])
   async getContributors(
     @Args('filter', { nullable: true }) filter?: ContributorFilterInputDTO,
     @Args('options', { nullable: true }) options?: PaginationInputDTO
@@ -118,6 +120,8 @@ export class ParticipationManagementResolver {
     description: 'Получение участника по ID, имени пользователя или хешу участника',
     nullable: true,
   })
+  @UseGuards(GqlJwtAuthGuard, RolesGuard)
+  @AuthRoles(['chairman', 'member', 'user'])
   async getContributor(@Args('data') data: GetContributorInputDTO): Promise<ContributorOutputDTO | null> {
     return await this.participationManagementService.getContributorByCriteria({
       _id: data._id,

@@ -51,7 +51,7 @@ module.exports = configure(function (ctx) {
     // https://v2.quasar.dev/quasar-cli-vite/boot-files
     // `hmr-guard` идёт первым: он должен встать раньше, чем страница начнёт
     // грузить остальное, иначе первые же сообщения об обновлении пройдут мимо.
-    boot: ['hmr-guard', 'widget', 'coopid', 'init', 'axios', 'sentry', 'network', 'chatwoot', 'theme', 'ui', 'haptics', 'pwa-update'],
+    boot: ['ssr-errors', 'hmr-guard', 'widget', 'coopid', 'init', 'axios', 'sentry', 'network', 'chatwoot', 'theme', 'ui', 'haptics', 'pwa-update'],
 
     // https://v2.quasar.dev/quasar-cli-vite/quasar-config-js#css
     css: [

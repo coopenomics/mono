@@ -61,6 +61,9 @@
 
   // Документ должен иметь хотя бы одну валидную подпись.
   verify_document_or_fail(document);
+  // Подпись от имени пайщика — только ключом его аккаунта: действие подписывает
+  // кооператив или системный контракт, и подделанная подпись иначе прошла бы.
+  verify_signer_keys_or_fail(document, username);
 
   // Если у программы задан draft_id — действующая подпись должна быть на тот же draft.
   if (program.draft_id > 0) {
@@ -68,11 +71,11 @@
                  "draft_id соглашения не совпадает с draft_id программы");
   }
 
-  // Получаем версию шаблона из реестра drafts (если draft_id задан).
+  // Редакция подписи — утверждённая советом кооператива (draft::approvals),
+  // а не текущая редакция сети; без строки утверждения — текущая, как прежде.
   uint16_t version = 0;
   if (draft_id > 0) {
-    auto draft = get_scoped_draft_by_registry_or_fail(_draft, draft_id);
-    version = static_cast<uint16_t>(draft.version);
+    version = static_cast<uint16_t>(get_effective_draft_version(coopname, draft_id));
   }
 
   Wallet::users_index users(_wallet, coopname.value);

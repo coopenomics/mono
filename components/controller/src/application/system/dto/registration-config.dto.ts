@@ -1,7 +1,48 @@
 import { ObjectType, Field, Int } from '@nestjs/graphql';
 import { IsString, IsBoolean, IsNumber, IsArray, IsOptional } from 'class-validator';
 import { AccountType } from '~/application/account/enum/account-type.enum';
-import type { IRegistrationProgram } from '~/domain/registration/config/agreement-config.interface';
+import { GraphQLJSON } from 'graphql-type-json';
+import type {
+  IRegistrationIntakeForm,
+  IRegistrationProgram,
+} from '~/domain/registration/config/agreement-config.interface';
+
+/**
+ * Анкета, которую заявитель заполняет при вступлении. Поля описаны JSON Schema
+ * в том же виде, что схема настроек расширения, — их рисует та же форма.
+ */
+@ObjectType('RegistrationIntakeForm')
+export class RegistrationIntakeFormDTO {
+  @Field({ description: 'Идентификатор анкеты' })
+  @IsString()
+  id!: string;
+
+  @Field({ description: 'Заголовок анкеты' })
+  @IsString()
+  title!: string;
+
+  @Field({ nullable: true, description: 'Пояснение над полями: зачем кооперативу эти сведения' })
+  @IsString()
+  @IsOptional()
+  description?: string;
+
+  @Field(() => GraphQLJSON, { description: 'JSON Schema полей анкеты' })
+  schema!: Record<string, unknown>;
+
+  @Field(() => Int, { description: 'Порядок отображения' })
+  @IsNumber()
+  order!: number;
+
+  constructor(data?: IRegistrationIntakeForm) {
+    if (data) {
+      this.id = data.id;
+      this.title = data.title;
+      this.description = data.description;
+      this.schema = data.schema;
+      this.order = data.order;
+    }
+  }
+}
 
 /**
  * DTO для описания программы регистрации
@@ -38,6 +79,12 @@ export class RegistrationProgramDTO {
   @IsNumber()
   order!: number;
 
+  @Field(() => [RegistrationIntakeFormDTO], {
+    description: 'Анкеты, которые заявитель заполняет, выбрав программу',
+  })
+  @IsArray()
+  intake_forms!: RegistrationIntakeFormDTO[];
+
   constructor(data?: IRegistrationProgram) {
     if (data) {
       this.key = data.key;
@@ -47,6 +94,7 @@ export class RegistrationProgramDTO {
       this.requirements = data.requirements;
       this.applicable_account_types = data.applicable_account_types;
       this.order = data.order;
+      this.intake_forms = (data.intake_forms ?? []).map((form) => new RegistrationIntakeFormDTO(form));
     }
   }
 }
@@ -64,10 +112,21 @@ export class RegistrationConfigDTO {
   @IsArray()
   programs!: RegistrationProgramDTO[];
 
-  constructor(data?: { requires_selection: boolean; programs: IRegistrationProgram[] }) {
+  @Field(() => [RegistrationIntakeFormDTO], {
+    description: 'Анкеты, которые заполняет любой заявитель этого типа аккаунта, независимо от программы',
+  })
+  @IsArray()
+  intake_forms!: RegistrationIntakeFormDTO[];
+
+  constructor(data?: {
+    requires_selection: boolean;
+    programs: IRegistrationProgram[];
+    intake_forms?: IRegistrationIntakeForm[];
+  }) {
     if (data) {
       this.requires_selection = data.requires_selection;
       this.programs = data.programs.map((p) => new RegistrationProgramDTO(p));
+      this.intake_forms = (data.intake_forms ?? []).map((form) => new RegistrationIntakeFormDTO(form));
     }
   }
 }

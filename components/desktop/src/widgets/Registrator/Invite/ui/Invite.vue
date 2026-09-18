@@ -1,58 +1,54 @@
 <template lang="pug">
-AuthCard.invite(
-  v-if='token',
-  :max-width='480',
-  title='Сохраните ключ',
-  subtitle='Новый приватный ключ доступа и цифровой подписи сгенерирован для вас'
-)
-  p.invite__instruction
-    | Подтвердите, что надёжно сохранили ключ. Рекомендуем хранить его в
-    | бесплатном менеджере паролей, например
-    a.q-ml-xs.invite__link(href='https://bitwarden.com/download', target='_blank') Bitwarden
-    | .
-
-  BaseBanner.invite__hint(variant='info')
-    | При первом входе по этому ключу мы предложим задать пароль — дальше будете
-    | входить им, а ключ останется запасным способом восстановления доступа.
-
-  .invite__key(v-if='account && account.private_key')
-    .invite__key-head
-      span.invite__key-label Приватный ключ
-      q-btn(
-        flat,
-        dense,
-        round,
-        size='sm',
-        color='primary',
-        icon='content_copy',
-        aria-label='Скопировать ключ',
-        @click='copyMnemonic'
-      )
-        q-tooltip Скопировать
-    code.invite__key-value {{ account.private_key }}
-
-  q-checkbox.invite__confirm(v-model='i_save', label='Я сохранил ключ', dense)
-
-  BaseButton.invite__submit(
-    variant='primary',
-    block,
-    :disabled='!i_save',
-    :loading='loading',
-    @click='finish'
-  ) Установить ключ
-
-AuthCard.invite(
-  v-else,
-  :max-width='480',
+AuthSplit.invite(
+  :eyebrow='coopTitle',
   title='Приглашение',
-  subtitle='Вы получили приглашение на подключение к кооперативу'
+  lead='Кооператив выпустил для вас ключ доступа и цифровой подписи.',
+  quote='Ключ подписывает документы от вашего имени — храните его в менеджере паролей.',
+  step-eyebrow='Приглашение',
+  :heading='token ? "Сохраните ключ" : "Ссылка из письма"',
+  :text='token ? "Новый приватный ключ сгенерирован прямо в вашем браузере." : "Вы получили приглашение на подключение к кооперативу."'
 )
-  p.invite__instruction
-    | Чтобы продолжить, перейдите по персональной ссылке из письма-приглашения.
-    | В ней содержится одноразовый код, по которому для вас будет выпущен ключ
-    | доступа.
-  .invite__actions
-    BaseButton(variant='ghost', @click='goToSignin') Перейти ко входу
+  template(#actions)
+    AuthActions
+
+  template(v-if='token')
+    p.invite__instruction
+      | Подтвердите, что надёжно сохранили ключ. Рекомендуем хранить его в
+      | бесплатном менеджере паролей, например
+      a.q-ml-xs.invite__link(href='https://bitwarden.com/download', target='_blank') Bitwarden
+      | .
+
+    BaseBanner(variant='info')
+      | При первом входе по этому ключу мы предложим задать пароль — дальше будете
+      | входить им, а ключ останется запасным способом восстановления доступа.
+
+    .invite__key(v-if='account && account.private_key')
+      .invite__key-head
+        span.invite__key-label Приватный ключ
+        BaseButton(variant='ghost', size='sm', aria-label='Скопировать ключ', @click='copyMnemonic')
+          template(#icon-left)
+            q-icon(name='content_copy')
+          | Копировать
+      code.invite__key-value {{ account.private_key }}
+
+    BaseCheckbox(v-model='i_save', label='Я сохранил ключ')
+
+    BaseButton(
+      variant='primary',
+      block,
+      :disabled='!i_save',
+      :loading='loading',
+      @click='finish'
+    ) Установить ключ
+
+  template(v-else)
+    p.invite__instruction
+      | Чтобы продолжить, перейдите по персональной ссылке из письма-приглашения.
+      | В ней содержится одноразовый код, по которому для вас будет выпущен ключ
+      | доступа.
+
+  template(#foot)
+    a.auth-link(href='#', @click.prevent='goToSignin') Перейти ко входу
 </template>
 
 <script lang="ts" setup>
@@ -61,14 +57,19 @@ import { useCreateUser } from 'src/features/User/CreateUser';
 import { useResetKey } from 'src/features/User/ResetKey/model';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { type IGeneratedAccount } from 'src/shared/lib/types/user';
-import { AuthCard } from 'src/shared/ui/domain/AuthCard';
+import { AuthSplit } from 'src/shared/ui/layout/AuthSplit';
+import { AuthActions } from 'src/widgets/Registrator/AuthActions';
 import { BaseBanner } from 'src/shared/ui/base/BaseBanner';
 import { BaseButton } from 'src/shared/ui/base/BaseButton';
-import { ref } from 'vue';
+import { BaseCheckbox } from 'src/shared/ui/base/BaseCheckbox';
+import { useSystemStore } from 'src/entities/System/model';
+import { computed, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
 const route = useRoute();
 const router = useRouter();
+const systemStore = useSystemStore();
+const coopTitle = computed(() => systemStore.cooperativeDisplayName);
 
 const { generateAccount } = useCreateUser();
 const account = ref<IGeneratedAccount | undefined>();
@@ -125,7 +126,7 @@ const finish = async () => {
   color: var(--p-ink-2);
   font-size: var(--p-fs-body-sm, 13px);
   line-height: var(--p-lh-body, 1.55);
-  margin: 0 0 var(--p-4, 16px);
+  margin: 0;
 }
 .invite__link {
   color: var(--p-primary);
@@ -138,7 +139,6 @@ const finish = async () => {
 /* Ключ — выделенная панель, а не readonly-инпут (у того dashed-рамка
    и обрезка значения). Панель показывает ключ целиком и даёт ему вес. */
 .invite__key {
-  margin-bottom: var(--p-4, 16px);
   padding: var(--p-3, 12px) var(--p-4, 16px);
   background: var(--p-surface-2);
   border: 1px solid var(--p-line);
@@ -165,13 +165,5 @@ const finish = async () => {
   line-height: 1.5;
   color: var(--p-ink);
   word-break: break-all;
-}
-.invite__confirm {
-  display: flex;
-  margin-bottom: var(--p-4, 16px);
-}
-.invite__actions {
-  display: flex;
-  justify-content: center;
 }
 </style>

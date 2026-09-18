@@ -9,6 +9,7 @@ import { TokenApplicationModule } from '~/application/token/token-application.mo
 import { EventsInfrastructureModule } from '~/infrastructure/events/events.module';
 import { AuthV2InfrastructureModule } from '~/infrastructure/auth-v2/auth-v2-infrastructure.module';
 import { EmailVerificationModule } from '~/application/auth/email-verification/email-verification.module';
+import { AuthRateLimitGuard } from '~/application/auth-v2/rate-limit/auth-rate-limit.guard';
 
 @Module({
   imports: [
@@ -24,7 +25,10 @@ import { EmailVerificationModule } from '~/application/auth/email-verification/e
     EmailVerificationModule,
   ],
   controllers: [],
-  providers: [AccountInteractor, AccountService, AccountResolver, RegistrationDeclineListener],
+  // Лимит на регистрацию: guard из auth-v2 нужен здесь как провайдер модуля —
+  // его хранилище (RATE_LIMIT_STORAGE) даёт AuthV2InfrastructureModule выше,
+  // а сам AuthV2Module сюда не импортируется (цикл через AccountInfrastructureModule).
+  providers: [AccountInteractor, AccountService, AccountResolver, RegistrationDeclineListener, AuthRateLimitGuard],
   exports: [AccountInteractor, AccountService],
 })
 export class AccountModule {}

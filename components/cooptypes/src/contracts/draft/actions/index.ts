@@ -4,6 +4,7 @@ export * as DeleteDraft from './deleteDraft'
 export * as CreateTranslation from './createTranslation'
 export * as EditTranslation from './editTranslation'
 export * as UpVersion from './upVersion'
+export * as Approve from './approve'
 
 /**
  * Имя действия

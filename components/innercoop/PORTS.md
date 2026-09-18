@@ -27,6 +27,8 @@
 | `COOPERATIVE_VARS_PORT` | `ICooperativeVarsPort` (1)<br><sub>core-ports/cooperative-vars.port.ts</sub> | `CooperativeVarsInnercoopAdapter` | chairman, chatcoop | Реквизиты кооператива, которому принадлежит контур: как он называется и как его называть в текстах. |
 | `COUNCIL_PORT` | `ICouncilPort` (5)<br><sub>core-ports/council.port.ts</sub> | `CouncilInnercoopAdapter` | capital, chairman, edubridge, marketplace | Совет кооператива: решения и типовые соглашения. |
 | `DECISION_TRACKING_PORT` | `IDecisionTrackingPort` (7)<br><sub>core-ports/decision-tracking.port.ts</sub> | `DecisionTrackingAdapter` | capital, chairman, edubridge | Отслеживание решений: расширение регистрирует правило «когда примут решение с этим хэшем — обновить такое-то поле параметров кооператива», и дальше ядро следит само. |
+| `DOCUMENT_APPROVAL_PORT` | `IDocumentApprovalPort` (2)<br><sub>core-ports/document-approval.port.ts</sub> | `DocumentApprovalOnboardingAdapter` | capital, chairman, marketplace | Фабрика утверждений документов — для шагов подключения расширений. |
+| `DOCUMENT_DECLARATION_PORT` | `IDocumentDeclarationPort` (2)<br><sub>core-ports/document-declaration.port.ts</sub> | `DocumentDeclarationsRegistryService` | capital, marketplace | Декларация документов приложения — какие шаблоны реестра документов оно использует в кооперативе и какие из них совет обязан утверждать. |
 | `DOCUMENT_PORT` | `IDocumentPort` (5)<br><sub>core-ports/document.port.ts</sub> | `DocumentInnercoopAdapter` | capital, chairman, edubridge, expenses, ku, marketplace, soviet-robot | Реестр документов кооператива: сгенерировать документ по шаблону, найти его по хэшу, собрать агрегат вокруг подписанного документа, сохранить приватную часть. |
 | `EXTENSION_CONFIG_PORT` | `IExtensionConfigPort` (1)<br><sub>core-ports/extension-config.port.ts</sub> | `ExtensionConfigInnercoopAdapter` | edubridge, marketplace, soviet-robot | Настройка установленного расширения. |
 | `EXTENSION_DATABASE_PORT` | `IExtensionDatabasePort` (1)<br><sub>core-ports/extension-database.port.ts</sub> | `ExtensionDatabaseInnercoopAdapter` | marketplace | Отдельная база расширения. |
@@ -50,7 +52,7 @@
 | `PAYMENT_PORT` | `IPaymentPort` (4)<br><sub>core-ports/payment.port.ts</sub> | `PaymentInnercoopAdapter` | expenses, qrpay, sberpoll, yookassa | Платежи кооператива: найти по хэшу, завести новый, обновить состояние. |
 | `PROGRAM_AGREEMENT_PORT` | `IProgramAgreementPort` (2)<br><sub>core-ports/program-agreement.port.ts</sub> | `ProgramAgreementInnercoopAdapter` | edubridge, marketplace | Подписание пайщиком соглашения об участии в целевой программе. |
 | `REALTIME_CHANNEL_PORT` | `IRealtimeChannelPort` (2)<br><sub>core-ports/realtime.port.ts</sub> | `RealtimeChannelInnercoopAdapter` | marketplace | Шина событий реального времени — то, из чего кормятся подписки клиента. |
-| `REGISTRATION_REGISTRY_PORT` | `IRegistrationRegistryPort` (4)<br><sub>core-ports/registration.port.ts</sub> | `AgreementRegistryService` | capital, edubridge*, marketplace* | Оферты и программы участия, которые расширение предлагает вступающему пайщику. |
+| `REGISTRATION_REGISTRY_PORT` | `IRegistrationRegistryPort` (6)<br><sub>core-ports/registration.port.ts</sub> | `AgreementRegistryService` | capital, edubridge*, marketplace* | Оферты и программы участия, которые расширение предлагает вступающему пайщику. |
 | `SECRET_CIPHER_PORT` | `ISecretCipherPort` (2)<br><sub>core-ports/secret-cipher.port.ts</sub> | `SecretCipherInnercoopAdapter` | capital, chatcoop, edubridge, soviet-robot | Шифрование секретов расширения. |
 | `USER_CERTIFICATE_PORT` | `IUserCertificatePort` (1)<br><sub>core-ports/user-certificate.port.ts</sub> | `UserCertificateInnercoopAdapter` | edubridge, marketplace | Сертификат пайщика — как его подписывать в документах и показывать в интерфейсе. |
 | `USER_DATA_PORT` | `IUserDataPort` (5)<br><sub>core-ports/user-data.port.ts</sub> | `UserDataInnercoopAdapter` | capital, edubridge, marketplace | Пользовательские данные пайщика — записи «ключ→значение» в разрезе кооператива. |
@@ -85,4 +87,4 @@
 | `REGISTRATION_DOCUMENT_PARAMETERS_REGISTRY_PORT` | `IRegistrationDocumentParametersRegistryPort` (3)<br><sub>hooks/registration-document-parameters.hook.ts</sub> | `RegistrationDocumentParametersRegistry` | capital, edubridge, marketplace | Параметры оферты, которые расширение выдаёт вступающему пайщику. |
 | `REGISTRATION_OFFER_FILTER_REGISTRY_PORT` | `IRegistrationOfferFilterRegistryPort` (2)<br><sub>hooks/registration-offer-filter.hook.ts</sub> | `ExtensionOfferFilterRegistry` | edubridge | Сужение витрины вступления: какие программы и оферты ЧУЖИХ расширений предлагать вступающему пайщику. |
 
-Всего портов: 53.
+Всего портов: 55.

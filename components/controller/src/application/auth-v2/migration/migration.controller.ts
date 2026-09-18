@@ -25,8 +25,9 @@ interface MigrateBody {
  *
  * С `new_public_key` + `vault` выполняется ротация ключа: подпись биндит новый
  * pubkey (см. canonicalMigrationMessage), сервер сохраняет блоб и гасит старый
- * ключ через `registrator::changekey`. Без них — старое поведение: шифрование
- * текущего WIF в vault делает клиент после успеха (SDK `migrate`).
+ * ключ через `registrator::changekey`. Без ротации `vault` несёт текущий ключ под
+ * новым паролём — сервер сохраняет его сам после проверки подписи; отдельной
+ * записи vault нет.
  */
 @Controller('coop/migration')
 @UseFilters(AuthV2ExceptionFilter)
@@ -54,7 +55,7 @@ export class MigrationController {
     if (newPublicKey && !vaultBlob)
       throw new BadRequestException('Ротация требует зашифрованный vault-блоб с новым ключом');
 
-    // username возвращается клиенту как subject_id vault'а (SDK saveToVault).
+    // username возвращается клиенту для локальной копии vault (SDK migrate).
     return this.migration.migrate({ email, timestamp, signature, newPassword, newPublicKey, vaultBlob, ip: req.ip ?? null });
   }
 }

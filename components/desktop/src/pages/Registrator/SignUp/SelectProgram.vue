@@ -1,10 +1,5 @@
 <template lang="pug">
-div
-  q-step(
-    :name='registratorStore.steps.SelectProgram',
-    title='Выберите программу участия',
-    :done='registratorStore.isStepDone("SelectProgram")'
-  )
+div(v-show='registratorStore.isStep("SelectProgram")')
     .programs(v-if='programs.length > 0')
       p.programs__hint Выберите программу, в которой вы хотите участвовать
       .programs__list
@@ -24,7 +19,7 @@ div
 
     .row.q-gutter-md.q-mt-lg.q-mb-lg
       BaseButton(variant='ghost', @click='registratorStore.prev()')
-        i.fa.fa-arrow-left
+        q-icon(name='arrow_back')
         span.q-ml-md назад
 
       BaseButton(
@@ -49,6 +44,7 @@ const programs = computed(() => registratorStore.availablePrograms);
 
 const selectProgram = (key: string) => {
   registratorStore.state.selectedProgramKey = key;
+  registratorStore.state.programAutoSelected = false;
 };
 </script>
 

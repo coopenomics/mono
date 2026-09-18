@@ -76,7 +76,7 @@ export class VerificationResolver {
     @Args('data') data: VerifyParticipantOnsiteInputDTO,
   ): Promise<ParticipantVerificationDTO[]> {
     const actor = { username: user.username, role: user.role, braname: data.braname };
-    await this.verificationAuthorityService.assertMayVerify(actor);
+    await this.verificationAuthorityService.assertMayVerify(actor, data.username);
     return this.verificationOnsiteService.verifyOnsite({
       actor,
       username: data.username,

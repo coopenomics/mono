@@ -26,6 +26,9 @@ void soviet::confirmapprv(eosio::name coopname, eosio::name username, checksum25
 
    if (approved_document.has_value()) {
       verify_document_or_fail(approved_document.value(), { chairman });
+      // Согласие председателя подписано ключом его аккаунта. Робот совета сюда не
+      // ходит (он шлёт только голоса и протокол), поэтому разрешение обычное.
+      verify_signer_keys_or_fail(approved_document.value(), chairman);
    } else {
       eosio::check(is_empty_document(itr -> document), "Пустой документ может быть принят только для пустого заявления");
    }

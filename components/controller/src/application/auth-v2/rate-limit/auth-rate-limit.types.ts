@@ -50,6 +50,12 @@ export interface AuthRateLimitConfig {
    * `TooManyRecoveryAttempts` — AC различает его и общий лимит контура входа.
    */
   error?: { code: AuthV2ErrorCode; message: string };
+  /**
+   * Отдельное пространство счётчиков. Без него все эндпоинты считают попытки в
+   * общих ключах `ip`/`account`, и чужие обращения (вход, чтение блоба)
+   * расходуют лимит этого эндпоинта.
+   */
+  scope?: string;
 }
 
 /** Ключ метаданных, под которым `@AuthRateLimit` кладёт конфиг для guard'а. */
@@ -74,6 +80,14 @@ export const LOGIN_ACCOUNT_RULE: RateLimitRule = { limit: 5, ttl: RATE_LIMIT_WIN
  * на его собственный адрес, а ссылка одноразовая.
  */
 export const MAGIC_LINK_RULE: RateLimitRule = { limit: 10, ttl: RATE_LIMIT_WINDOW_1H };
+
+/**
+ * Регистрация учётной записи: 20 с одного адреса в час. Мутация открыта и
+ * сразу выдаёт токен, так что без порога один адрес заводил бы учётные
+ * записи тысячами. Двадцати хватает и семье за одним роутером, и участку,
+ * где вступают с одного компьютера.
+ */
+export const REGISTER_ACCOUNT_IP_RULE: RateLimitRule = { limit: 20, ttl: RATE_LIMIT_WINDOW_1H };
 
 // --- Нарастающая блокировка (Story 3.12, NFR13) ---
 

@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { ref, watch } from 'vue';
+import { sanitizeDocumentHtml } from 'src/shared/lib/utils';
 import { useSessionStore } from 'src/entities/Session';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { DigitalDocument } from 'src/shared/lib/document';
@@ -93,7 +94,7 @@ BaseDialog(
     //- не режем: длинный документ прокручивается вместе с телом диалога.
     .confirm-writeoff__sheet
       //- eslint-disable-next-line vue/no-v-html
-      .confirm-writeoff__doc(v-html="previewDoc.html")
+      .confirm-writeoff__doc(v-html="sanitizeDocumentHtml(previewDoc.html)")
 
   template(#footer, v-if="previewDoc")
     BaseButton(variant="secondary", @click="emit('update:modelValue', false)") Отмена

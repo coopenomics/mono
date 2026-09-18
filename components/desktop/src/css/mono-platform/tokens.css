@@ -78,6 +78,19 @@
   --p-rail-item-active-fg:  #0f766e;
   --p-rail-rail-color:#0f766e;
 
+  /* — Auth pane (тёмная панель экранов входа и вступления; решение владельца
+     16.09.2026, вариант «Сплит»). Единственная цветная поверхность канона:
+     графит с акцентом teal, одинаковый в обеих темах. — */
+  --p-pane-bg:          #0d0d0f;
+  --p-pane-ink:         #fafafa;
+  --p-pane-ink-2:       rgba(250, 250, 250, 0.62);
+  --p-pane-ink-3:       rgba(250, 250, 250, 0.40);
+  --p-pane-line:        rgba(255, 255, 255, 0.14);
+  --p-pane-accent:      #2dd4bf;
+  --p-pane-accent-soft: rgba(45, 212, 191, 0.12);
+  --p-pane-accent-ink:  #04231f;
+  --p-pane-mark:        rgba(45, 212, 191, 0.08);
+
   color-scheme: light;
 }
 
@@ -149,6 +162,17 @@
   --p-rail-item-active-bg:  rgba(45, 212, 191, 0.12);
   --p-rail-item-active-fg:  #5eead4;
   --p-rail-rail-color:#2dd4bf;
+
+  /* — Auth pane: в тёмной теме чуть светлее канваса, чтобы читалась граница — */
+  --p-pane-bg:          #141416;
+  --p-pane-ink:         #fafafa;
+  --p-pane-ink-2:       rgba(250, 250, 250, 0.62);
+  --p-pane-ink-3:       rgba(250, 250, 250, 0.40);
+  --p-pane-line:        rgba(255, 255, 255, 0.14);
+  --p-pane-accent:      #2dd4bf;
+  --p-pane-accent-soft: rgba(45, 212, 191, 0.12);
+  --p-pane-accent-ink:  #04231f;
+  --p-pane-mark:        rgba(45, 212, 191, 0.08);
 
   color-scheme: dark;
 }

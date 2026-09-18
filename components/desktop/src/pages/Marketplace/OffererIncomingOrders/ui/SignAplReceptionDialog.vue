@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
+import { sanitizeDocumentHtml } from 'src/shared/lib/utils';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { ensureSigningUnlocked } from 'src/shared/lib/document';
 import { BaseButton, BaseChip, BaseDialog } from 'src/shared/ui/base';
@@ -219,7 +220,7 @@ BaseDialog(
     .sign-apl__preview(v-else)
       q-inner-loading(:showing="previewLoading")
         q-spinner(size="28px")
-      div(v-if="previewHtml", v-html="previewHtml")
+      div(v-if="previewHtml", v-html="sanitizeDocumentHtml(previewHtml)")
 
   template(#footer)
     BaseButton(variant="ghost", :disabled="signing", @click="cancel") Отмена

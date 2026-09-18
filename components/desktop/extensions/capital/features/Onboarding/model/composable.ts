@@ -1,9 +1,8 @@
 import { computed, ref } from 'vue';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { useSystemStore } from 'src/entities/System/model';
-import { useSessionStore } from 'src/entities/Session';
 import { api, type CapitalOnboardingState } from '../api';
-import { Mutations } from '@coopenomics/sdk';
+import { Mutations, Queries, Zeus } from '@coopenomics/sdk';
 import type { ICouncilOnboardingConfig, ICouncilOnboardingStep } from 'src/shared/ui/CouncilOnboarding';
 import { client } from 'src/shared/api/client';
 
@@ -23,23 +22,24 @@ const currentGeneratedDoc = ref<GeneratedDocument | null>(null);
 
 export const useCapitalOnboarding = () => {
   const systemStore = useSystemStore();
-  const sessionStore = useSessionStore();
 
-  // Маппинг шагов на registry_id
+  // Шаг → рабочий документ, который совет утверждает в бланке. Шаблоны-двойники
+  // «для утверждения» (995, 997, 999) выведены: их тексты расходились с теми,
+  // что подписывает пайщик (фабрика утверждений, компонент 66).
   const stepToRegistryId: Record<CapitalOnboardingStepId, number> = {
     'generator_program_template': 994,
-    'generation_contract_template': 997,
-    'generator_offer_template': 995,
+    'generation_contract_template': 1001,
+    'generator_offer_template': 996,
     'blagorost_program': 998,
-    'blagorost_offer_template': 999,
+    'blagorost_offer_template': 1000,
   };
-  const capitalProgramDocDataRegistryIds = new Set([994, 995, 998, 999]);
+  const capitalProgramDocDataRegistryIds = new Set([994, 996, 998, 1000]);
 
   const isCapitalOnboardingStepId = (stepId: string): stepId is CapitalOnboardingStepId => {
     return stepId in stepToRegistryId;
   };
 
-  // Генерация документа для шага
+  // Бланк текущей редакции документа — тот же текст, что уйдёт в решение совета.
   const generateDocument = async (step: ICouncilOnboardingStep): Promise<GeneratedDocument> => {
     try {
       generatingDocument.value = true;
@@ -53,32 +53,26 @@ export const useCapitalOnboarding = () => {
         throw new Error('Сначала заполните параметры документов ЦПП и сформируйте предпросмотр');
       }
 
-      const generateDocInput: Mutations.Documents.GenerateDocument.IInput = {
-        input: {
-          data: {
-            coopname: systemStore.info?.coopname || '',
-            username: sessionStore.username,
-            registry_id,
-            ...(docDataHash && capitalProgramDocDataRegistryIds.has(registry_id) ? { doc_data_hash: docDataHash } : {}),
-          },
-        },
-      };
-
-      const { [Mutations.Documents.GenerateDocument.name]: result } = await client.Mutation(
-        Mutations.Documents.GenerateDocument.mutation,
+      const { [Queries.DocumentApprovals.DocumentTemplateBlank.name]: blank } = await client.Query(
+        Queries.DocumentApprovals.DocumentTemplateBlank.query,
         {
-          variables: generateDocInput,
+          variables: {
+            coopname: systemStore.info?.coopname || '',
+            registry_id,
+            edition: Zeus.DocumentTemplateEdition.Current,
+            doc_data_hash: capitalProgramDocDataRegistryIds.has(registry_id) ? docDataHash : undefined,
+          },
         }
       );
 
-      if (!result?.html) {
+      if (!blank?.html) {
         throw new Error('Документ не был сгенерирован');
       }
 
       return {
-        hash: result.hash || '',
-        html: result.html || '',
-        full_title: result.full_title || '',
+        hash: blank.text_hash || '',
+        html: blank.html || '',
+        full_title: blank.title || '',
       };
     } finally {
       generatingDocument.value = false;

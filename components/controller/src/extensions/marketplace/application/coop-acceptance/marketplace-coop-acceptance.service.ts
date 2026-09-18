@@ -139,7 +139,7 @@ export class MarketplaceCoopAcceptanceService {
           this.logger.info('[MARKETPLACE.L1] оферта re-registered в core AgreementRegistry');
         } else {
           this.logger.warn(
-            '[MARKETPLACE.L1] re-register пропущен (MARKETPLACE_OFFER_TEMPLATE_REGISTRY_ID = 0)'
+            '[MARKETPLACE.L1] re-register пропущен (MARKETPLACE_OFFER_INSTANCE_REGISTRY_ID = 0)'
           );
         }
       } catch (error) {

@@ -25,7 +25,9 @@ export class DebtManagementResolver {
     description: 'Получение ссуды в CAPITAL контракте',
   })
   @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['participant'])
+  // Только от своего имени: ролей нет, RolesGuard пускает по совпадению
+  // data.username с текущим пайщиком (роли «participant» в кооперативе нет).
+  @AuthRoles([])
   async createCapitalDebt(
     @Args('data', { type: () => CreateDebtInputDTO }) data: CreateDebtInputDTO
   ): Promise<TransactionDTO> {
@@ -42,6 +44,8 @@ export class DebtManagementResolver {
     name: 'capitalDebts',
     description: 'Получение списка долгов кооператива с фильтрацией',
   })
+  @UseGuards(GqlJwtAuthGuard, RolesGuard)
+  @AuthRoles(['chairman', 'member', 'user'])
   async getDebts(
     @Args('filter', { nullable: true }) filter?: DebtFilterInputDTO,
     @Args('options', { nullable: true }) options?: PaginationInputDTO
@@ -57,6 +61,8 @@ export class DebtManagementResolver {
     description: 'Получение долга по внутреннему ID базы данных',
     nullable: true,
   })
+  @UseGuards(GqlJwtAuthGuard, RolesGuard)
+  @AuthRoles(['chairman', 'member', 'user'])
   async getDebt(@Args('data') data: GetDebtInputDTO): Promise<DebtOutputDTO | null> {
     return await this.debtManagementService.getDebtById(data._id);
   }

@@ -1,8 +1,19 @@
 <template>
-  <AuthCard
+  <AuthSplit
+    :eyebrow="coopTitle"
     title="Перевыпуск ключа"
-    subtitle="Введите электронную почту для восстановления доступа"
+    lead="Новый ключ доступа создаётся в вашем браузере и заменяет утерянный."
+    quote="Ключ подписывает документы от вашего имени — храните его в менеджере паролей."
+    step-eyebrow="Перевыпуск ключа"
+    heading="Куда прислать ссылку"
+    text="Введите электронную почту, на которую зарегистрирован аккаунт."
   >
+    <template v-if="$slots.actions" #actions>
+      <slot name="actions" />
+    </template>
+    <template v-if="$slots['pane-foot']" #pane-foot>
+      <slot name="pane-foot" />
+    </template>
     <BaseForm :loading="loading" :error="errorMessage" @submit="submit">
       <BaseInput
         v-model="email"
@@ -22,10 +33,10 @@
         Продолжить
       </BaseButton>
     </BaseForm>
-    <template v-if="$slots.footer" #footer>
+    <template v-if="$slots.footer" #foot>
       <slot name="footer" />
     </template>
-  </AuthCard>
+  </AuthSplit>
 </template>
 
 <script lang="ts" setup>
@@ -33,12 +44,15 @@ import { computed, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useCreateUser } from 'src/features/User/CreateUser';
 import { useLostKey } from 'src/features/User/LostKey/model';
+import { useSystemStore } from 'src/entities/System/model';
 import { FailAlert } from 'src/shared/api';
-import { AuthCard } from 'src/shared/ui/domain/AuthCard';
+import { AuthSplit } from 'src/shared/ui/layout/AuthSplit';
 
 const router = useRouter();
 const { startResetKey } = useLostKey();
 const { emailIsValid } = useCreateUser();
+const systemStore = useSystemStore();
+const coopTitle = computed(() => systemStore.cooperativeDisplayName);
 
 const email = ref('');
 const loading = ref(false);

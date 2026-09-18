@@ -8,7 +8,7 @@ import { PDFDocument } from 'pdf-lib'
 import moment from 'moment-timezone'
 import { v4 as uuidv4 } from 'uuid'
 import type { IGeneratedDocument, IMetaDocument, ITranslations } from '../../Interfaces'
-import { TemplateEngine } from '../Templator'
+import { BlankTemplateEngine, TemplateEngine } from '../Templator'
 import { calculateSha256 } from '../../Utils/calculateSHA'
 
 const weasyPrintVersion = '67' // ВАЖНО: держать в синхроне с controller/Dockerfile (pip install WeasyPrint==X) и мета-данными каждого документа
@@ -28,9 +28,23 @@ const weasyPrintVersion = '67' // ВАЖНО: держать в синхроне
 // Протокол: в stdin воркера пишем "<htmlPath>\t<pdfPath>\n", читаем из stdout
 // строку "OK" (успех) или "ERR <traceback>" (ошибка). Бинарь PDF не гоним
 // через пайп — обмениваемся путями к временным файлам (надёжно, без фрейминга).
+//
+// Наружу воркер не ходит вовсе (url_fetcher ниже). Документ собирается из
+// данных пайщика, а автоэкранирование в шаблонах выключено намеренно: имя или
+// адрес с угловыми скобками становятся разметкой. Штатный загрузчик
+// WeasyPrint по такой ссылке сходит куда скажут — `file://` вложит в PDF файл
+// контейнера, `http://` уйдёт во внутреннюю сеть от имени сервера. Терять
+// нечего: подпись приезжает внутри документа как `data:`-картинка, шрифт в
+// образе системный, других ресурсов в шаблонах реестра нет.
 const PY_WORKER_LOOP = `
 import sys, traceback
-from weasyprint import HTML
+from weasyprint import HTML, default_url_fetcher
+
+def inline_only_fetcher(url, *args, **kwargs):
+    if url.startswith("data:"):
+        return default_url_fetcher(url, *args, **kwargs)
+    raise ValueError("external resource is not allowed in documents: " + url[:200])
+
 sys.stdout.write("READY\\n"); sys.stdout.flush()
 for line in sys.stdin:
     line = line.rstrip("\\n")
@@ -38,7 +52,7 @@ for line in sys.stdin:
         continue
     try:
         in_path, out_path = line.split("\\t")
-        HTML(filename=in_path).write_pdf(out_path)
+        HTML(filename=in_path, url_fetcher=inline_only_fetcher).write_pdf(out_path)
         sys.stdout.write("OK\\n")
     except Exception:
         sys.stdout.write("ERR " + traceback.format_exc().replace("\\n", " | ") + "\\n")
@@ -253,6 +267,19 @@ export class PDFService implements IPDFService {
     const templateEngine = new TemplateEngine(translation)
 
     return templateEngine.renderTemplate(template, combinedVars)
+  }
+
+  /**
+   * Бланк: тот же шаблон и переводы, но поля без данных печатаются прочерком.
+   * `knownKeys` — верхний уровень модели шаблона.
+   */
+  public renderBlankHtml(
+    template: string,
+    combinedVars: Record<string, unknown>,
+    translation: ITranslations,
+    knownKeys: string[],
+  ): string {
+    return new BlankTemplateEngine(translation).renderBlank(template, combinedVars, knownKeys)
   }
 
   public async generateDocument(

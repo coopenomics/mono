@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
+import { sanitizeDocumentHtml } from 'src/shared/lib/utils';
 import { useRoute } from 'vue-router';
 import { useGlobalStore } from 'src/shared/store';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
@@ -791,7 +792,7 @@ BaseDialog(
         .sign-apl__preview-skel(v-if="previewLoading && !previewHtml")
           .skel.skel--title
           .skel.skel--text(v-for="n in 8", :key="n")
-        div(v-else-if="previewHtml", v-html="previewHtml")
+        div(v-else-if="previewHtml", v-html="sanitizeDocumentHtml(previewHtml)")
 
     //- ─────────────── Шаг 2: оприходование ───────────────
     //- Раскладка и маркировка — одно действие: расфасовал по боксам, тут же

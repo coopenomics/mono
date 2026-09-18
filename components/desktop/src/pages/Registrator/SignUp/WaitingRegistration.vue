@@ -1,10 +1,5 @@
 <template lang="pug">
-div
-  q-step(
-    :name='store.steps.WaitingRegistration',
-    :title='stepTitle',
-    :done='store.isStepDone("WaitingRegistration")'
-  )
+div(v-show='store.isStep("WaitingRegistration")')
     //- Совет отказал (declinereg). Возврат идёт в два шага:
     //-  1) PROCESSING — исходящий платёж кассой ещё не проведён: кнопки нет,
     //-     ждём завершения возврата;
@@ -114,12 +109,6 @@ const isCouncilDeclined = computed(
 
 // Унаследованная ветка технической ошибки по блокчейн-аккаунту пользователя.
 const isFailed = computed(() => session.userAccount?.status === 'failed' && !isDeclined.value);
-
-const stepTitle = computed(() => {
-  if (isCouncilRefundPending.value || isCouncilDeclined.value) return 'Совет отказал в приёме';
-  if (isDeclined.value) return 'Платёж не принят';
-  return 'Получите решение совета о приёме Вас в пайщики кооператива';
-});
 
 const retryPayment = () => {
   store.state.is_paid = false;

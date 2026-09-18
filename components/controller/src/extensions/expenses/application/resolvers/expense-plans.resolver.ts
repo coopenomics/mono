@@ -1,6 +1,6 @@
 import { Inject, Injectable, UseGuards } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
-import { GqlJwtAuthGuard, CurrentUser, platformSettings } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, CurrentUser, platformSettings, RolesGuard, AuthRoles } from '@coopenomics/extension-kit';
 import type { IMonoAccount } from '@coopenomics/innercoop';
 import {
   EXPENSE_PLANS_SERVICE,
@@ -34,7 +34,8 @@ export class ExpensePlansResolver {
     description:
       'Плановые расходы кооператива: предстоящие траты с суммой, сроком и реквизитами. Неоплаченные расходы со сроком в ближайшие 30 дней образуют резерв средств, недоступный другим использованиям.',
   })
-  @UseGuards(GqlJwtAuthGuard)
+  @UseGuards(GqlJwtAuthGuard, RolesGuard)
+  @AuthRoles(['chairman', 'member', 'user'])
   async listExpensePlans(
     @Args('data', { nullable: true }) data?: ListExpensePlansInputDTO
   ): Promise<ExpensePlanDTO[]> {
@@ -47,7 +48,8 @@ export class ExpensePlansResolver {
     description:
       'Добавить плановый расход: сумма, срок, назначение и реквизиты оплаты. Для регулярной траты указывается периодичность — следующий экземпляр появляется в реестре автоматически. Планы кооперативного участка ведёт его председатель.',
   })
-  @UseGuards(GqlJwtAuthGuard)
+  @UseGuards(GqlJwtAuthGuard, RolesGuard)
+  @AuthRoles(['chairman', 'member', 'user'])
   async createExpensePlan(
     @CurrentUser() currentUser: IMonoAccount,
     @Args('data') data: CreateExpensePlanInputDTO
@@ -68,7 +70,8 @@ export class ExpensePlansResolver {
     description:
       'Удалить плановый расход (например, оплаченный вне системы или отменённый). Планы кооперативного участка ведёт его председатель.',
   })
-  @UseGuards(GqlJwtAuthGuard)
+  @UseGuards(GqlJwtAuthGuard, RolesGuard)
+  @AuthRoles(['chairman', 'member', 'user'])
   async deleteExpensePlan(
     @CurrentUser() currentUser: IMonoAccount,
     @Args('data') data: DeleteExpensePlanInputDTO

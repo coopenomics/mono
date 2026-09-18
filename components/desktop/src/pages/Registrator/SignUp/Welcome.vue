@@ -1,26 +1,18 @@
 <template lang="pug">
-div
-  q-step(
-    :name="store.steps.Welcome"
-    :title="'Добро пожаловать в ' + coopTitle"
-    :done="store.isStepDone('Welcome')"
-  )
+div(v-show='store.isStep("Welcome")')
 
     p Совет кооператива {{ coopTitle }} принял положительное решение о приёме Вас в пайщики, выдал удостоверение и создал цифровой кошелёк для Вас.
 
     div.q-mt-lg
-      q-btn(
-        color="primary"
-        label="Открыть кошелёк"
-        @click="next"
-      ).q-mt-lg.q-mb-lg
-  </template>
+      BaseButton(variant='primary', @click='next') Открыть кошелёк
+</template>
 
 <script lang="ts" setup>
 import { computed } from 'vue'
 import { useRouter } from 'vue-router';
 import { useRegistratorStore } from 'src/entities/Registrator';
 import { env } from 'src/shared/config';
+import { BaseButton } from 'src/shared/ui/base/BaseButton';
 
 const router = useRouter()
 const store = useRegistratorStore()

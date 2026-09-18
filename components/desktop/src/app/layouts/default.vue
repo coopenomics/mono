@@ -1,6 +1,8 @@
 <template lang="pug">
 q-layout(view='lHh LpR fff')
-  Header(:showDrawer='showDrawer', @toggle-left-drawer='toggleLeftDrawer')
+  //- Экраны входа и вступления (AuthSplit) рисуют бренд, действия и реквизиты
+  //- сами: общая шапка дублировала название кооператива, а футер обрезал панель.
+  Header(v-if='!isAuthSplit', :showDrawer='showDrawer', @toggle-left-drawer='toggleLeftDrawer')
 
   //- Левый дровер: .rail внутри LeftDrawerMenu сам рисует canon-границу
   //- (border-right из var(--p-line)) — q-drawer bordered убран, чтобы
@@ -46,7 +48,7 @@ q-layout(view='lHh LpR fff')
     template(v-for='action in rightDrawerActions', :key='action.id')
       component(:is='action.component', v-bind='action.props')
 
-  q-footer(v-if='!loggedIn && system.info.system_status !== Zeus.SystemStatus.install && system.info.system_status !== Zeus.SystemStatus.initialized', :class='headerClass', bordered)
+  q-footer(v-if='!loggedIn && !isAuthSplit && system.info.system_status !== Zeus.SystemStatus.install && system.info.system_status !== Zeus.SystemStatus.initialized', :class='headerClass', bordered)
     ContactsFooter(:text='footerText')
 
   q-page-container
@@ -78,7 +80,7 @@ q-layout(view='lHh LpR fff')
 
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, provide } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import type { RouteRecordRaw } from 'vue-router';
 import { storeToRefs } from 'pinia';
 import { Header } from 'src/widgets/Header/CommonHeader';
@@ -98,6 +100,7 @@ import { usePWAThemeColor } from 'src/shared/lib/composables/usePWAThemeColor';
 import { useRightDrawerReader } from 'src/shared/hooks/useRightDrawer';
 import { WindowLoader } from 'src/shared/ui/Loader';
 import { PAGE_TABS_HOST } from 'src/shared/ui/layout/PageTabs';
+import { AUTH_LEGAL_TEXT } from 'src/shared/ui/layout/AuthSplit';
 import { Zeus } from '@coopenomics/sdk';
 
 // Каркас объявляет, что место для поднятой полосы вкладок здесь есть. Страницы
@@ -106,6 +109,7 @@ import { Zeus } from '@coopenomics/sdk';
 provide(PAGE_TABS_HOST, true);
 
 const router = useRouter();
+const route = useRoute();
 const desktop = useDesktopStore();
 const system = useSystemStore();
 const session = useSessionStore();
@@ -128,6 +132,10 @@ const {
   toggleLeftDrawer,
   toggleRightDrawer,
 } = useDefaultLayoutLogic();
+
+const isAuthSplit = computed(() => route.meta.authSplit === true);
+// Реквизиты кооператива на экранах AuthSplit рисуются внутри рабочей области.
+provide(AUTH_LEGAL_TEXT, footerText);
 
 const buttonStyle = computed(() => ({
   width: isMobile.value ? '45px' : '56px',

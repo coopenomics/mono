@@ -8,10 +8,20 @@ import {
 } from '@coopenomics/extension-kit';
 import type { AgreementRegistrationSpec } from '../dto/agreement-registration-spec.dto';
 import type { ProgramRegistrationSpec } from '../dto/program-registration-spec.dto';
+import type { IntakeFormRegistrationSpec } from '../dto/intake-form-registration-spec.dto';
+import { normalizeIntakeSchema, type IntakeJsonSchema } from '../utils/intake-schema.utils';
 import type { AgreementRegistrationPort } from '../ports/agreement-registration.port';
 
 /**
- * In-memory реестр оферт и программ, наполняемый расширениями
+ * Анкета в реестре: то, что объявило расширение, плюс схема, приведённая к
+ * виду для формы и проверки ответов.
+ */
+export interface RegisteredIntakeForm extends IntakeFormRegistrationSpec {
+  json_schema: IntakeJsonSchema;
+}
+
+/**
+ * In-memory реестр оферт, программ и анкет вступления, наполняемый расширениями
  * через AgreementRegistrationPort в lifecycle initialize(config).
  *
  * Tear-down автоматический: подписан на EXTENSION_APP_TERMINATE_EVENT —
@@ -26,6 +36,7 @@ import type { AgreementRegistrationPort } from '../ports/agreement-registration.
 export class AgreementRegistryService implements AgreementRegistrationPort {
   private readonly agreementMap = new Map<string, AgreementRegistrationSpec>();
   private readonly programMap = new Map<string, ProgramRegistrationSpec>();
+  private readonly intakeFormMap = new Map<string, RegisteredIntakeForm>();
 
   constructor(private readonly logger: WinstonLoggerService) {
     this.logger.setContext(AgreementRegistryService.name);
@@ -84,6 +95,36 @@ export class AgreementRegistryService implements AgreementRegistrationPort {
   }
 
   /**
+   * Анкета вступления. Схема проверяется и приводится к рабочему виду сразу при
+   * регистрации: до перерегистрации она не меняется, а кривая анкета должна
+   * упасть на старте расширения, а не у вступающего.
+   */
+  registerIntakeForm(spec: IntakeFormRegistrationSpec): void {
+    const existing = this.intakeFormMap.get(spec.id);
+    if (existing && existing.extension_name !== spec.extension_name) {
+      throw new ConflictException(
+        `Intake form id "${spec.id}" уже зарегистрирована расширением "${existing.extension_name}", ` +
+          `повторная регистрация из "${spec.extension_name}" отклонена`
+      );
+    }
+    this.intakeFormMap.set(spec.id, { ...spec, json_schema: normalizeIntakeSchema(spec.id, spec.schema) });
+    this.logger.debug(`[REGISTRY] register intake form ${spec.id} от ${spec.extension_name}`);
+  }
+
+  unregisterIntakeForm(id: string, extension_name: string): void {
+    const existing = this.intakeFormMap.get(id);
+    if (!existing) return;
+    if (existing.extension_name !== extension_name) {
+      this.logger.warn(
+        `[REGISTRY] попытка ${extension_name} снять чужую анкету ${id} (владелец ${existing.extension_name}) проигнорирована`
+      );
+      return;
+    }
+    this.intakeFormMap.delete(id);
+    this.logger.debug(`[REGISTRY] unregister intake form ${id} от ${extension_name}`);
+  }
+
+  /**
    * Реестр чистит свои записи при остановке расширения.
    * Слушатель — обязательный hook tear-down порта (раздел 4.2 req 44).
    */
@@ -103,9 +144,16 @@ export class AgreementRegistryService implements AgreementRegistrationPort {
         removedPrograms.push(key);
       }
     }
-    if (removedAgreements.length || removedPrograms.length) {
+    const removedIntakeForms: string[] = [];
+    for (const [id, spec] of this.intakeFormMap.entries()) {
+      if (spec.extension_name === payload.appName) {
+        this.intakeFormMap.delete(id);
+        removedIntakeForms.push(id);
+      }
+    }
+    if (removedAgreements.length || removedPrograms.length || removedIntakeForms.length) {
       this.logger.info(
-        `[REGISTRY] terminate ${payload.appName}: снято ${removedAgreements.length} оферт, ${removedPrograms.length} программ`
+        `[REGISTRY] terminate ${payload.appName}: снято ${removedAgreements.length} оферт, ${removedPrograms.length} программ, ${removedIntakeForms.length} анкет`
       );
     }
   }
@@ -169,6 +217,35 @@ export class AgreementRegistryService implements AgreementRegistrationPort {
     return program.agreement_ids
       .map((id) => this.getAgreement(id))
       .filter((spec): spec is AgreementRegistrationSpec => spec !== null);
+  }
+
+  getIntakeForm(id: string): RegisteredIntakeForm | null {
+    return this.intakeFormMap.get(id) ?? null;
+  }
+
+  /** Все анкеты, отсортированные по order. */
+  listIntakeForms(): RegisteredIntakeForm[] {
+    return Array.from(this.intakeFormMap.values()).sort((a, b) => a.order - b.order);
+  }
+
+  /**
+   * Анкеты, которые заполняет любой заявитель этого типа аккаунта. Анкета с
+   * пустым applicable_account_types сюда не попадает — она идёт через программу.
+   */
+  listIntakeFormsForAccountType(accountType: AccountType): RegisteredIntakeForm[] {
+    return this.listIntakeForms().filter((spec) => spec.applicable_account_types.includes(accountType));
+  }
+
+  /**
+   * Анкеты программы в порядке её intake_form_ids; незарегистрированные
+   * пропускаются (защита от рассинхрона).
+   */
+  listIntakeFormsForProgram(programKey: string): RegisteredIntakeForm[] {
+    const program = this.getProgram(programKey);
+    if (!program) return [];
+    return (program.intake_form_ids ?? [])
+      .map((id) => this.getIntakeForm(id))
+      .filter((spec): spec is RegisteredIntakeForm => spec !== null);
   }
 }
 

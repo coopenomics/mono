@@ -33,6 +33,8 @@ void marketplace::convert(eosio::name coopname,
   eosio::check(!is_empty_document(convert_statement),
                "Отсутствует заявление о переводе паевого взноса в программу");
   verify_document_or_fail(convert_statement, { orderer });
+  // Заявление о переводе подписывает сам заказчик. Транзакцию шлёт кооператив, поэтому ключ сверяется с аккаунтом.
+  verify_signer_keys_or_fail(convert_statement, orderer);
 
   get_active_participant_or_fail(coopname, orderer);
 
