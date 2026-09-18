@@ -13,7 +13,7 @@
     template(#cell-actions="{ row }")
       BaseButton(v-if="row.status === Zeus.EduContributionStatus.DRAFT" variant="primary" size="sm" :loading="busy === row.id" @click="onSubmit(row)") Подписать заявление
       BaseButton(v-else-if="row.status === Zeus.EduContributionStatus.COUNCIL_APPROVED" variant="primary" size="sm" :loading="busy === row.id" @click="onSignAct(row)") Подписать акт
-  EmptyState(v-if="!firstLoad" title="Взносов пока нет" body="Подготовьте взнос кнопкой в правом верхнем углу.")
+  EmptyState(v-if="!firstLoad && !items.length" title="Взносов пока нет" body="Подготовьте взнос кнопкой в правом верхнем углу.")
     template(#icon)
       q-icon(name="workspace_premium" size="32px")
 

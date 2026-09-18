@@ -16,7 +16,7 @@
         BaseBadge(:variant="assignmentStatusOf(row.status).variant") {{ assignmentStatusOf(row.status).label }}
       template(#cell-actions="{ row }")
         BaseButton(v-if="row.status !== 'closed'" variant="ghost" size="sm" @click="onClose(row)") Закрыть
-    EmptyState(v-if="!firstLoad" title="Назначений нет" body="Добавьте назначение кнопкой в правом верхнем углу.")
+    EmptyState(v-if="!firstLoad && !assignments.length" title="Назначений нет" body="Добавьте назначение кнопкой в правом верхнем углу.")
       template(#icon)
         q-icon(name="assignment_ind" size="32px")
 
@@ -32,7 +32,7 @@
         .row.no-wrap.justify-end.q-gutter-xs
           BaseButton(v-if="row.status === Zeus.EduContributionStatus.ACT_SIGNED" variant="primary" size="sm" :loading="busyId === row.id" @click="onAccept(row)") Подписать акт
           BaseButton(v-if="canDecline(row)" variant="ghost" size="sm" @click="openDecline(row)") Отклонить
-    EmptyState(v-if="!firstLoad" title="Взносов нет")
+    EmptyState(v-if="!firstLoad && !contributions.length" title="Взносов нет")
       template(#icon)
         q-icon(name="workspace_premium" size="32px")
 

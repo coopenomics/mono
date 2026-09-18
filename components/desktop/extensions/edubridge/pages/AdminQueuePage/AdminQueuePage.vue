@@ -11,7 +11,7 @@
     template(#cell-next_attempt_at="{ row }") {{ row.status === Zeus.EduAccessTaskStatus.PENDING ? formatDateTime(row.next_attempt_at) : '______' }}
     template(#cell-actions="{ row }")
       BaseButton(v-if="row.status === Zeus.EduAccessTaskStatus.NEEDS_ATTENTION || row.status === Zeus.EduAccessTaskStatus.FAILED" variant="secondary" size="sm" :loading="busy === row.id" @click="onRetry(row)") Повторить
-  EmptyState(v-if="!firstLoad" title="Очередь пуста" body="Все задачи выполнены.")
+  EmptyState(v-if="!firstLoad && !items.length" title="Очередь пуста" body="Все задачи выполнены.")
     template(#icon)
       q-icon(name="task_alt" size="32px")
 </template>

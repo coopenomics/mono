@@ -14,7 +14,7 @@
       BaseBadge(v-else variant="neutral") нет подписок
     template(#cell-actions="{ row }")
       BaseButton(variant="secondary" size="sm" :loading="opening === row.username" @click="open(row)") Открыть
-  EmptyState(v-if="!firstLoad" :title="search ? 'Никого не нашлось' : 'Пайщиков пока нет'" :body="search ? 'Попробуйте другую фамилию или учётное имя.' : 'Как только кто-то добавит обучающегося, он появится здесь.'")
+  EmptyState(v-if="!firstLoad && !rows.length" :title="search ? 'Никого не нашлось' : 'Пайщиков пока нет'" :body="search ? 'Попробуйте другую фамилию или учётное имя.' : 'Как только кто-то добавит обучающегося, он появится здесь.'")
     template(#icon)
       q-icon(name="groups" size="32px")
 

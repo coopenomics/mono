@@ -11,10 +11,7 @@
       | Кооператив ещё не завершил подключение ЦПП «Образование» — подписать оферту пока нельзя.
       | Обратитесь к председателю.
 
-    BaseBanner(v-else-if="!activeStep" variant="pos")
-      template(#icon)
-        q-icon(name="check_circle")
-      | Подключение завершено. Стол открыт — переходим.
+    CardListSkeleton(v-else-if="!activeStep" :count="1")
 
     template(v-else)
       VerticalStepper(v-if="steps.length > 1" :steps="steps" :active-key="activeStep.key" :completed="completedKeys")
@@ -62,6 +59,8 @@ const desktopStore = useDesktopStore();
 /** Ожидание подписи: до 20 секунд с полусекундным шагом — столько идёт блок цепи и его разбор. */
 const OFFER_WAIT_ATTEMPTS = 40;
 const OFFER_WAIT_INTERVAL_MS = 500;
+/** Столько же ждём, пока стол перестанет выдавать право на шлюз подключения. */
+const DESK_WAIT_ATTEMPTS = 20;
 
 const state = ref<IEduOnboardingState | null>(null);
 const contract = ref<IContract | null>(null);
@@ -152,8 +151,19 @@ async function onSigned(key: string): Promise<void> {
   if (!activeStep.value) await goToDesk();
 }
 
+/**
+ * Уходим на рабочую страницу, когда стол перестал выдавать право на шлюз:
+ * пункт «Подключение» рисуется по этому праву, и без ожидания он оставался
+ * в меню до следующего захода на страницу.
+ */
 async function goToDesk(): Promise<void> {
-  await desktopStore.loadDesktop();
+  const workspace = isTeacher.value ? 'edubridge-teacher' : 'edubridge-member';
+  const gateGrant = isTeacher.value ? 'Onboarding:teacher' : 'Onboarding:learner';
+  for (let attempt = 0; attempt < DESK_WAIT_ATTEMPTS; attempt++) {
+    await desktopStore.loadDesktop();
+    if (!desktopStore.hasGrant(workspace, gateGrant)) break;
+    await new Promise((resolve) => setTimeout(resolve, OFFER_WAIT_INTERVAL_MS));
+  }
   void router.replace({ name: props.targetRoute, params: { coopname: route.params.coopname } });
 }
 

@@ -9,7 +9,7 @@
     .col-12.col-sm-6.col-md-4(v-for="course in items" :key="course.id")
       AdminCourseCard(:course="course" @open="openCourse(course.id)")
 
-  EmptyState(v-if="!firstLoad" title="Курсов пока нет" body="Добавьте первый курс кнопкой в правом верхнем углу.")
+  EmptyState(v-if="!firstLoad && !items.length" title="Курсов пока нет" body="Добавьте первый курс кнопкой в правом верхнем углу.")
     template(#icon)
       q-icon(name="library_books" size="40px")
 

@@ -7,6 +7,7 @@ export { MemberOnboardingPage } from './MemberOnboardingPage';
 export { MemberLearnersPage } from './MemberLearnersPage';
 export { MemberSubscriptionsPage } from './MemberSubscriptionsPage';
 export { TeacherOnboardingPage } from './TeacherOnboardingPage';
+export { TeacherProfilePage } from './TeacherProfilePage';
 export { TeacherAssignmentsPage } from './TeacherAssignmentsPage';
 export { TeacherContributionsPage } from './TeacherContributionsPage';
 export { TeacherSettlementPage } from './TeacherSettlementPage';

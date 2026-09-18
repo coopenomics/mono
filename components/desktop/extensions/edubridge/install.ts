@@ -18,6 +18,7 @@ import {
   TeacherAssignmentsPage,
   TeacherContributionsPage,
   TeacherOnboardingPage,
+  TeacherProfilePage,
   TeacherSettlementPage,
 } from './pages';
 
@@ -92,8 +93,9 @@ function parentWorkspace(): IWorkspaceConfig {
 
 /** «Стол преподавателя»: назначения, взносы результатами работы, расчёт. */
 function teacherWorkspace(): IWorkspaceConfig {
-  return workspace('edubridge-teacher', 'Стол преподавателя', 'co_present', 'edubridge-assignments', [
+  return workspace('edubridge-teacher', 'Стол преподавателя', 'co_present', 'edubridge-teacher-profile', [
     memberPage('onboarding', 'edubridge-teacher-onboarding', TeacherOnboardingPage, { title: 'Подключение', icon: 'how_to_reg', requires: 'Onboarding:teacher', gate: true }),
+    memberPage('profile', 'edubridge-teacher-profile', TeacherProfilePage, { title: 'Профиль', icon: 'badge', requires: 'EduAssignment:read:own' }),
     memberPage('assignments', 'edubridge-assignments', TeacherAssignmentsPage, { title: 'Назначения', icon: 'assignment', requires: 'EduAssignment:read:own' }),
     memberPage('contributions', 'edubridge-contributions', TeacherContributionsPage, { title: 'Взносы результатами работы', icon: 'workspace_premium', requires: 'EduContribution:read:own' }),
     memberPage('settlement', 'edubridge-settlement', TeacherSettlementPage, { title: 'Расчёт', icon: 'account_balance_wallet', requires: 'EduTeacherWallet:read:own' }),

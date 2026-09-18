@@ -11,7 +11,7 @@
     template(#cell-created_at="{ row }") {{ formatDate(row.created_at) }}
     template(#cell-actions="{ row }")
       BaseButton(variant="ghost" size="sm" :loading="busyDismiss === row.id" @click="onDismiss(row)") Снять
-  EmptyState(v-if="!firstLoad" title="Администраторов нет" body="Председатель ведёт приложение сам. Назначить администратора можно кнопкой в правом верхнем углу.")
+  EmptyState(v-if="!firstLoad && !items.length" title="Администраторов нет" body="Председатель ведёт приложение сам. Назначить администратора можно кнопкой в правом верхнем углу.")
     template(#icon)
       q-icon(name="admin_panel_settings" size="32px")
 
