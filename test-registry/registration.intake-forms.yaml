@@ -18,6 +18,7 @@ sources:
     - components/controller/src/domain/registration/utils/intake-*.ts
     - components/controller/src/domain/registration/services/agreement-registry.service.ts
     - components/controller/src/domain/registration/services/agreement-configuration.service.ts
+    - components/controller/src/domain/registration/services/extension-offer-filter.registry.ts
     - components/controller/src/application/registration/dto/candidate-intake.dto.ts
     - components/controller/src/extensions/capital/application/registration/generator-intake.schema.ts
     - components/controller/src/extensions/capital/application/registration/register-capital-in-agreement-registry.ts
@@ -171,3 +172,12 @@ cases:
     expect: при возврате на страницу человека ведут на анкету, а не показывают отказ сервера на подписи; шаг пароля повторно не проходится
     test: ~
     status: missing
+
+  - id: reg.intake.side.15
+    level: backend
+    kind: side
+    scenario: "Программа участия скрыта фильтром витрины вступления (сужающая политика расширения): заявитель запрашивает список программ и анкету."
+    expect: "Программы нет в выдаче вместе с её анкетой — шаг «Сведения о себе» не предлагается; ответы по скрытой программе ядро не принимает. Витрину сужают только чужие фильтры, собственные программы расширения-владельца остаются."
+    test: components/controller/tests/unit/registration/extension-offer-filter.registry.test.ts
+    status: written
+
