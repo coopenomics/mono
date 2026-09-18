@@ -29,7 +29,14 @@ export function createWalletEventsSubscription(): RealtimeSubscription {
         { variables: { input: { coopname } } },
       );
 
+      // Жив ли сокет. Ядро переоткрывает подписку, только если она сама
+      // сообщает, что мертва: без этого признака подписка считалась живой
+      // всегда, и после обрыва остаток кошелька обновлялся лишь дочиткой раз в
+      // минуту — до перезагрузки страницы (инцидент 17.09.2026).
+      let alive = false;
+
       stream.on((payload) => {
+        alive = true;
         const event = (payload as Subscriptions.Wallet.WalletEvents.IOutput | undefined)
           ?.walletEvents;
         if (!event) return;
@@ -38,17 +45,23 @@ export function createWalletEventsSubscription(): RealtimeSubscription {
 
       // Пока сокет молчал, остаток мог измениться — дочитываем на реконнекте.
       stream.open(() => {
+        alive = true;
         void reloadWallet();
       });
 
       stream.error((err: unknown) => {
+        alive = false;
         console.warn('[wallet] ws-ошибка подписки (реконнект сам)', err);
       });
 
       // Транспорт подписок общий с расширениями, поэтому закрываем только свой
       // сокет: `disposeSubscriptions()` оборвал бы и чужие.
       return {
-        close: () => stream.ws.close(),
+        isAlive: () => alive,
+        close: () => {
+          alive = false;
+          stream.ws.close();
+        },
       };
     },
     resync() {
