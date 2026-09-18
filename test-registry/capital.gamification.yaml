@@ -20,6 +20,8 @@ sources:
   contract:
     - components/contracts/cpp/capital/domain/core/gamification/**
     - components/contracts/cpp/capital/app/invests_managment/invest_in_program/invest_to_program/createpinv.cpp
+  backend:
+    - components/controller/src/extensions/capital/infrastructure/services/gamification-scheduler.service.ts
   ui:
     - components/desktop/extensions/capital/widgets/ContributorGamificationWidget/**
 
@@ -117,6 +119,47 @@ cases:
       настроенного
     test: ~
     status: missing
+
+  # ── Планировщик обновления энергии ────────────────────────────────────────
+
+  - id: cap.gam.happy.02
+    level: backend
+    kind: happy
+    scenario: >
+      ежесуточное обновление энергии участников кооператива
+    expect: >
+      действие цепи вызывается только для участников с активным договором УХД
+    test: components/controller/tests/unit/capital/gamification-scheduler.service.test.ts
+    status: passing
+
+  - id: cap.gam.break.02
+    level: backend
+    kind: break
+    scenario: >
+      у участника договор УХД в цепи не активен (импортирован, одобрен, но не
+      активирован)
+    expect: >
+      планировщик его пропускает. Прежде он брал всех, кроме явно неактивных, и
+      каждые сутки получал от цепи ассерт «Договор УХД с пайщиком не активен» на
+      одном и том же человеке (11 одинаковых ошибок за неделю 11–18.09.2026)
+    test: components/controller/tests/unit/capital/gamification-scheduler.service.test.ts
+    status: passing
+
+  - id: cap.gam.side.09
+    level: backend
+    kind: side
+    scenario: участник другого кооператива в общей выборке
+    expect: не обновляется — планировщик работает только по своему кооперативу
+    test: components/controller/tests/unit/capital/gamification-scheduler.service.test.ts
+    status: passing
+
+  - id: cap.gam.side.10
+    level: backend
+    kind: side
+    scenario: цепь отклонила обновление одного участника
+    expect: остальные участники обновляются, цикл не прерывается
+    test: components/controller/tests/unit/capital/gamification-scheduler.service.test.ts
+    status: passing
 
   # ── Уровень UI ────────────────────────────────────────────────────────────
 
