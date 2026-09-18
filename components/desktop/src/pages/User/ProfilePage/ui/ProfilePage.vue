@@ -17,8 +17,7 @@
             AvatarUpload(
               :name='identity.fullName',
               :src='avatarUrl',
-              size='xl',
-              @changed='onAvatarChanged'
+              size='xl'
             )
 
         //- Строки удостоверения оформлены одинаково, как везде на странице: слева
@@ -454,14 +453,9 @@ const role = computed(() => {
 });
 
 // Шапка-удостоверение: имя/наименование пайщика (с пометкой ИП) + роль.
-// Фотография приходит с аккаунтом; после замены показываем новую сразу, не
-// дожидаясь перезагрузки страницы.
-const uploadedAvatar = ref<string | null | undefined>(undefined);
-const avatarUrl = computed(() => (uploadedAvatar.value !== undefined ? uploadedAvatar.value : session.currentUserAccount?.avatar_url ?? null));
-
-function onAvatarChanged(url: string | null): void {
-  uploadedAvatar.value = url;
-}
+// Фотография приходит с аккаунтом и правится прямо в нём, поэтому замена видна
+// сразу и здесь, и на столах расширений.
+const avatarUrl = computed(() => session.currentUserAccount?.avatar_url ?? null);
 
 const identity = computed<Identity>(() => ({
   fullName: (isIP.value ? 'ИП ' : '') + (displayName.value || ''),

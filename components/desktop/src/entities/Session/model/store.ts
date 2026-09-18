@@ -84,6 +84,8 @@ interface ISessionStore {
   // Добавляю данные текущего пользователя
   currentUserAccount: Ref<IAccount | undefined>;
   setCurrentUserAccount: (account: IAccount | undefined) => void;
+  /** Ссылка на фотографию пайщика после её замены — снимок читают все столы. */
+  setAvatarUrl: (url: string | null) => void;
   clearAccount: () => void;
   // Computed свойства для текущего пользователя
   isRegistrationComplete: ComputedRef<boolean>;
@@ -374,6 +376,16 @@ export const useSessionStore = defineStore('session', (): ISessionStore => {
     currentUserAccount.value = account;
   };
 
+  /**
+   * Смена фотографии правит запись аккаунта в сторе: столы читают снимок
+   * оттуда, и без этого новая фотография держалась до ухода со страницы, а
+   * потом снова уступала место инициалам.
+   */
+  const setAvatarUrl = (url: string | null): void => {
+    if (!currentUserAccount.value) return;
+    currentUserAccount.value = { ...currentUserAccount.value, avatar_url: url };
+  };
+
   const clearAccount = () => {
     setCurrentUserAccount(undefined);
   };
@@ -594,6 +606,7 @@ export const useSessionStore = defineStore('session', (): ISessionStore => {
     loadComplete,
     currentUserAccount,
     setCurrentUserAccount,
+    setAvatarUrl,
     clearAccount,
     isRegistrationComplete,
     isFullyActive,

@@ -23,6 +23,48 @@ import { normalizeUserEmail } from '~/utils/normalize-user-email';
 /** Колонки, по которым реестр пользователей разрешено сортировать с клиента. */
 const USER_SORTABLE_FIELDS = new Set(['created_at', 'username', 'email', 'status', 'type', 'role']);
 
+/**
+ * Поля аккаунта, доступные обновлению.
+ *
+ * Список объявлен `Record` по ключам интерфейса, поэтому новое поле обязано
+ * попасть сюда — иначе компилятор не соберёт репозиторий. Прежде перечисление
+ * шло строками в двух методах подряд: добавленная фотография пайщика в них не
+ * попала, обновление тихо проходило мимо базы, и снимок пропадал при первом же
+ * переходе на другую страницу.
+ */
+const UPDATABLE_USER_FIELDS: Record<keyof UpdateUserInputDomainInterface, true> = {
+  username: true,
+  status: true,
+  message: true,
+  is_registered: true,
+  has_account: true,
+  type: true,
+  public_key: true,
+  referer: true,
+  email: true,
+  role: true,
+  is_email_verified: true,
+  subscriber_id: true,
+  subscriber_hash: true,
+  avatar_key: true,
+  avatar_mime: true,
+};
+
+/** Доменные поля → колонки записи: пустые значения пропускаются, адрес почты приводится к общему виду. */
+function toUserEntityUpdate(updates: UpdateUserInputDomainInterface): Partial<UserEntity> {
+  const data: Partial<UserEntity> = {};
+  for (const field of Object.keys(UPDATABLE_USER_FIELDS) as (keyof UpdateUserInputDomainInterface)[]) {
+    const value = updates[field];
+    if (value === undefined) continue;
+    if (field === 'email') {
+      data.email = value === null || value === '' ? (value as string) : normalizeUserEmail(value as string);
+      continue;
+    }
+    (data as Record<string, unknown>)[field] = value;
+  }
+  return data;
+}
+
 @Injectable()
 export class UserTypeormRepository implements UserRepository {
   constructor(
@@ -135,23 +177,13 @@ export class UserTypeormRepository implements UserRepository {
    * Обновляет пользователя по имени пользователя
    */
   async updateByUsername(username: string, updates: UpdateUserInputDomainInterface): Promise<UserDomainEntity | null> {
-    const updateData: Partial<UserEntity> = {};
-
-    if (updates.username !== undefined) updateData.username = updates.username;
-    if (updates.status !== undefined) updateData.status = updates.status;
-    if (updates.message !== undefined) updateData.message = updates.message;
-    if (updates.is_registered !== undefined) updateData.is_registered = updates.is_registered;
-    if (updates.has_account !== undefined) updateData.has_account = updates.has_account;
-    if (updates.type !== undefined) updateData.type = updates.type;
-    if (updates.public_key !== undefined) updateData.public_key = updates.public_key;
-    if (updates.referer !== undefined) updateData.referer = updates.referer;
-    if (updates.email !== undefined)
-      updateData.email =
-        updates.email === null || updates.email === '' ? updates.email : normalizeUserEmail(updates.email);
-    if (updates.role !== undefined) updateData.role = updates.role;
-    if (updates.is_email_verified !== undefined) updateData.is_email_verified = updates.is_email_verified;
-    if (updates.subscriber_id !== undefined) updateData.subscriber_id = updates.subscriber_id;
-    if (updates.subscriber_hash !== undefined) updateData.subscriber_hash = updates.subscriber_hash;
+    const updateData = toUserEntityUpdate(updates);
+    // Обновление без единого поля базе отдавать нечего: TypeORM на пустом наборе
+    // падает, а звать его ради ничего незачем — отдаём запись как есть.
+    if (!Object.keys(updateData).length) {
+      const current = await this.repository.findOne({ where: { username } });
+      return current ? current.toDomainEntity() : null;
+    }
 
     const result = await this.repository.update({ username }, updateData);
 
@@ -172,23 +204,11 @@ export class UserTypeormRepository implements UserRepository {
    * Обновляет пользователя по ID
    */
   async updateById(id: string, updates: UpdateUserInputDomainInterface): Promise<UserDomainEntity | null> {
-    const updateData: Partial<UserEntity> = {};
-
-    if (updates.username !== undefined) updateData.username = updates.username;
-    if (updates.status !== undefined) updateData.status = updates.status;
-    if (updates.message !== undefined) updateData.message = updates.message;
-    if (updates.is_registered !== undefined) updateData.is_registered = updates.is_registered;
-    if (updates.has_account !== undefined) updateData.has_account = updates.has_account;
-    if (updates.type !== undefined) updateData.type = updates.type;
-    if (updates.public_key !== undefined) updateData.public_key = updates.public_key;
-    if (updates.referer !== undefined) updateData.referer = updates.referer;
-    if (updates.email !== undefined)
-      updateData.email =
-        updates.email === null || updates.email === '' ? updates.email : normalizeUserEmail(updates.email);
-    if (updates.role !== undefined) updateData.role = updates.role;
-    if (updates.is_email_verified !== undefined) updateData.is_email_verified = updates.is_email_verified;
-    if (updates.subscriber_id !== undefined) updateData.subscriber_id = updates.subscriber_id;
-    if (updates.subscriber_hash !== undefined) updateData.subscriber_hash = updates.subscriber_hash;
+    const updateData = toUserEntityUpdate(updates);
+    if (!Object.keys(updateData).length) {
+      const current = await this.repository.findOne({ where: { id } });
+      return current ? current.toDomainEntity() : null;
+    }
 
     const result = await this.repository.update(id, updateData);
 

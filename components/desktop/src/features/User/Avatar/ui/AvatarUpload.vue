@@ -22,6 +22,7 @@ button.avatar-upload(
 <script setup lang="ts">
 import { ref } from 'vue';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
+import { useSessionStore } from 'src/entities/Session';
 import { fileToBase64 } from 'src/shared/lib/utils';
 import { Avatar, type AvatarSize } from 'src/shared/ui/base';
 import { removeAvatar, uploadAvatar } from '../api';
@@ -43,6 +44,7 @@ const props = withDefaults(defineProps<{ name: string; src?: string | null; size
 });
 const emit = defineEmits<{ changed: [url: string | null] }>();
 
+const session = useSessionStore();
 const fileInput = ref<HTMLInputElement | null>(null);
 const busy = ref(false);
 
@@ -67,6 +69,9 @@ async function onPicked(event: Event): Promise<void> {
   busy.value = true;
   try {
     const url = await uploadAvatar({ content_base64: await fileToBase64(file), mime_type: file.type });
+    // Снимок кладётся в аккаунт сессии: столы читают его оттуда и показывают
+    // новую фотографию сразу, без перезагрузки кабинета.
+    session.setAvatarUrl(url);
     SuccessAlert('Фотография обновлена');
     emit('changed', url);
   } catch (e) {
@@ -80,6 +85,7 @@ async function remove(): Promise<void> {
   busy.value = true;
   try {
     await removeAvatar();
+    session.setAvatarUrl(null);
     SuccessAlert('Фотография убрана');
     emit('changed', null);
   } catch (e) {

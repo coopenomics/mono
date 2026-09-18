@@ -14,6 +14,7 @@ sources:
     - components/controller/src/application/account/dto/upload-avatar-input.dto.ts
     - components/controller/src/domain/user/constants/avatar-bucket.ts
     - components/innercoop/src/core-ports/user-avatar.port.ts
+    - components/controller/src/infrastructure/database/typeorm/repositories/user.typeorm-repository.ts
   ui:
     - components/desktop/src/features/User/Avatar/**
     - components/desktop/src/pages/User/ProfilePage/**
@@ -54,6 +55,13 @@ cases:
     scenario: Ссылки пачкой для реестра; часть пайщиков без фотографии.
     expect: Повторы схлопываются, безфотографийные в выдачу не попадают.
     test: components/controller/tests/unit/account/user-avatar.service.test.ts
+    status: written
+  - id: avatar.break.03
+    level: backend
+    kind: break
+    scenario: Ключ фотографии доходит до записи аккаунта, а снятие очищает поля.
+    expect: Репозиторий переносит avatar_key и avatar_mime в колонки; обновление без полей до базы не доходит.
+    test: components/controller/tests/unit/account/user-repository-update.test.ts
     status: written
   - id: avatar.break.02
     level: backend

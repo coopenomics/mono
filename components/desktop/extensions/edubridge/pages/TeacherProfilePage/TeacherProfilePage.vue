@@ -13,7 +13,7 @@
         //- Загрузка открывается наведением на кружок, рядом с ним — ФИО и учётное имя.
         IdentityPanel(:identity="identity" flat)
           template(#avatar)
-            AvatarUpload(:name="fullName || username" :src="avatarUrl" size="xl" @changed="onAvatarChanged")
+            AvatarUpload(:name="fullName || username" :src="avatarUrl" size="xl")
         q-separator.q-my-md
         DataRow(label="Курсов ведётся" :value="String(activeAssignments)")
         DataRow(label="Назначений всего" :value="String(assignments.length)")
@@ -75,13 +75,8 @@ const loading = ref(true);
 const firstLoad = useFirstLoad(loading);
 
 const username = computed(() => session.username ?? '');
-// Заменённую фотографию показываем сразу, не дожидаясь перезагрузки стола.
-const uploadedAvatar = ref<string | null | undefined>(undefined);
-const avatarUrl = computed(() => (uploadedAvatar.value !== undefined ? uploadedAvatar.value : session.currentUserAccount?.avatar_url ?? null));
-
-function onAvatarChanged(url: string | null): void {
-  uploadedAvatar.value = url;
-}
+// Фотография живёт в аккаунте сессии: заменённая здесь видна и в удостоверении.
+const avatarUrl = computed(() => session.currentUserAccount?.avatar_url ?? null);
 const fullName = computed(() => (session.currentUserAccount ? getName(session.currentUserAccount) : ''));
 const identity = computed<Identity>(() => ({
   fullName: fullName.value || username.value,
