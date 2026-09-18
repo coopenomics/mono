@@ -225,11 +225,17 @@ const verificationCell = (row: IAccount) => {
 };
 
 // Форматирование даты
-// Дата приходит из SDK и строкой (ISO), и объектом Date. `String(date)` на
-// объекте даёт «Wed Jan 15 2025 …» — moment такой вид не разбирает, ругается в
-// консоль и уходит в разбор силами браузера. Поэтому значение отдаём как есть.
-const formatDate = (date?: string | Date | null) =>
-  date ? moment(date).format('DD.MM.YY HH:mm:ss') : '';
+// Дата приходит из SDK и строкой (ISO), и объектом Date, а тип у неё в схеме
+// неизвестный. `String(date)` на объекте даёт «Wed Jan 15 2025 …» — moment
+// такой вид не разбирает, ругается в консоль и уходит в разбор силами
+// браузера. Поэтому значение отдаём как есть, приводя тип на месте.
+const asDateInput = (value: unknown): string | Date | undefined =>
+  value instanceof Date || typeof value === 'string' ? value : undefined;
+
+const formatDate = (date?: unknown) => {
+  const input = asDateInput(date);
+  return input ? moment(input).format('DD.MM.YY HH:mm:ss') : '';
+};
 
 // Дата вступления: дата приёма советом (participant_account.created_at). У вышедших
 // пайщик-запись стёрта (delpartcpnt) — фолбэк на дату регистрации аккаунта on-chain

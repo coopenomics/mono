@@ -59,11 +59,17 @@ async function copyText(text: string): Promise<void> {
 }
 
 // Форматирование даты
-// Значение отдаём moment как есть: `String(Date)` даёт вид, который moment не
-// разбирает (предупреждение в консоли и разбор силами браузера).
-const formatDate = (date?: string | Date | null) => {
-  if (!date) return 'Дата не указана';
-  const formatted = moment(date).format('DD.MM.YY');
+// Дата приходит из SDK и строкой (ISO), и объектом Date, а тип у неё в схеме
+// неизвестный. `String(date)` на объекте даёт «Wed Jan 15 2025 …» — moment
+// такой вид не разбирает, ругается в консоль и уходит в разбор силами
+// браузера. Поэтому значение отдаём как есть, приводя тип на месте.
+const asDateInput = (value: unknown): string | Date | undefined =>
+  value instanceof Date || typeof value === 'string' ? value : undefined;
+
+const formatDate = (date?: unknown) => {
+  const input = asDateInput(date);
+  if (!input) return 'Дата не указана';
+  const formatted = moment(input).format('DD.MM.YY');
   return formatted === 'Invalid date' ? 'Дата не указана' : formatted;
 };
 
