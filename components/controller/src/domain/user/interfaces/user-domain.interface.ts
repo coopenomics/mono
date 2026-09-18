@@ -19,6 +19,9 @@ export interface UserDomainInterface {
   subscriber_id: string;
   subscriber_hash: string;
   legacy_mongo_id?: string;
+  /** Ключ фотографии в хранилище и её тип; пусто — фотографии нет. */
+  avatar_key?: string | null;
+  avatar_mime?: string | null;
   createdAt?: Date;
   updatedAt?: Date;
 }

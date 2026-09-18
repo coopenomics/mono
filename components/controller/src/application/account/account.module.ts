@@ -10,6 +10,9 @@ import { EventsInfrastructureModule } from '~/infrastructure/events/events.modul
 import { AuthV2InfrastructureModule } from '~/infrastructure/auth-v2/auth-v2-infrastructure.module';
 import { EmailVerificationModule } from '~/application/auth/email-verification/email-verification.module';
 import { AuthRateLimitGuard } from '~/application/auth-v2/rate-limit/auth-rate-limit.guard';
+import { FILE_STORAGE_PORT } from '@coopenomics/innercoop';
+import { bucketProvidersFor } from '@coopenomics/extension-kit';
+import { UserAvatarService } from './services/user-avatar.service';
 
 @Module({
   imports: [
@@ -28,7 +31,16 @@ import { AuthRateLimitGuard } from '~/application/auth-v2/rate-limit/auth-rate-l
   // Лимит на регистрацию: guard из auth-v2 нужен здесь как провайдер модуля —
   // его хранилище (RATE_LIMIT_STORAGE) даёт AuthV2InfrastructureModule выше,
   // а сам AuthV2Module сюда не импортируется (цикл через AccountInfrastructureModule).
-  providers: [AccountInteractor, AccountService, AccountResolver, RegistrationDeclineListener, AuthRateLimitGuard],
-  exports: [AccountInteractor, AccountService],
+  providers: [
+    AccountInteractor,
+    AccountService,
+    AccountResolver,
+    RegistrationDeclineListener,
+    AuthRateLimitGuard,
+    UserAvatarService,
+    // Бакет фотографий пайщиков создаётся по объявлению `@UseBucket` сервиса.
+    ...bucketProvidersFor(FILE_STORAGE_PORT, [UserAvatarService]),
+  ],
+  exports: [AccountInteractor, AccountService, UserAvatarService],
 })
 export class AccountModule {}

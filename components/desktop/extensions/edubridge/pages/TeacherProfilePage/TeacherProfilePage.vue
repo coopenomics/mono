@@ -9,6 +9,8 @@
   .row.q-col-gutter-md(v-else)
     .col-12.col-md-7
       BaseCard(variant="default" title="Преподаватель")
+        //- Фотография одна на пайщика: она же стоит в удостоверении пайщика.
+        AvatarUpload.q-mb-md(:name="fullName" :src="avatarUrl" @changed="onAvatarChanged")
         IdentityCell(:account-name="username" :full-name="fullName" copyable)
         q-separator.q-my-md
         DataRow(label="Курсов ведётся" :value="String(activeAssignments)")
@@ -44,6 +46,7 @@ import { Zeus } from '@coopenomics/sdk';
 import { useFirstLoad } from 'src/shared/lib/composables';
 import { FailAlert } from 'src/shared/api';
 import { useSessionStore } from 'src/entities/Session';
+import { AvatarUpload } from 'src/features/User/Avatar';
 import { getName } from 'src/shared/lib/utils/account';
 import { BaseBadge, BaseCard, CardListSkeleton } from 'src/shared/ui/base';
 import { DataRow, IdentityCell, PageHint } from 'src/shared/ui/domain';
@@ -69,6 +72,13 @@ const loading = ref(true);
 const firstLoad = useFirstLoad(loading);
 
 const username = computed(() => session.username ?? '');
+// Заменённую фотографию показываем сразу, не дожидаясь перезагрузки стола.
+const uploadedAvatar = ref<string | null | undefined>(undefined);
+const avatarUrl = computed(() => (uploadedAvatar.value !== undefined ? uploadedAvatar.value : session.currentUserAccount?.avatar_url ?? null));
+
+function onAvatarChanged(url: string | null): void {
+  uploadedAvatar.value = url;
+}
 const fullName = computed(() => (session.currentUserAccount ? getName(session.currentUserAccount) : ''));
 const contractStatus = computed(
   () => CONTRACT_STATUS_LABELS[contract.value?.status ?? ''] ?? { label: contract.value?.status ?? '', variant: 'neutral' as const },

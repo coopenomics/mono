@@ -46,6 +46,7 @@ import {
   REGISTRATION_DOCUMENT_PARAMETERS_REGISTRY_PORT,
   SECRET_CIPHER_PORT,
   USER_DATA_PORT,
+  USER_AVATAR_PORT,
   USER_CERTIFICATE_PORT,
   VERIFICATION_PORT,
   USER_DIRECTORY_PORT,
@@ -61,6 +62,8 @@ import { CooperativeVarsInnercoopAdapter } from '~/infrastructure/innercoop/coop
 import { DocumentInnercoopAdapter } from '~/infrastructure/innercoop/document-innercoop.adapter';
 import { AccountInnercoopAdapter } from '~/infrastructure/innercoop/account-innercoop.adapter';
 import { AccountInfrastructureModule } from '~/infrastructure/account/account-infrastructure.module';
+import { AccountModule } from '~/application/account/account.module';
+import { UserAvatarService } from '~/application/account/services/user-avatar.service';
 import { NotificationCenterModule } from '~/application/notification-center/notification-center.module';
 import { MeetInfrastructureModule } from '~/infrastructure/meet/meet-infrastructure.module';
 import { MeetDataAdapter } from '~/infrastructure/meet/meet-data.adapter';
@@ -160,6 +163,8 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
     DocumentDomainModule,
     DocumentModule,
     AccountInfrastructureModule,
+    // Фотография пайщика: расширения берут её через порт, своей копии не держат.
+    AccountModule,
     NotificationCenterModule,
     NotificationModule,
     MeetInfrastructureModule,
@@ -384,6 +389,10 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
       useExisting: CandidateInnercoopAdapter,
     },
     {
+      provide: USER_AVATAR_PORT,
+      useExisting: UserAvatarService,
+    },
+    {
       provide: USER_CERTIFICATE_PORT,
       useExisting: UserCertificateInnercoopAdapter,
     },
@@ -495,6 +504,7 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
     PROGRAM_AGREEMENT_PORT,
     MUTATION_LOG_PORT,
     CANDIDATE_PORT,
+    USER_AVATAR_PORT,
     USER_CERTIFICATE_PORT,
     VERIFICATION_PORT,
     AGREEMENT_CATALOG_PORT,

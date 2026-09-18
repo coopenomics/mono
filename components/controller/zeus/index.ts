@@ -1118,6 +1118,8 @@ export type ValueTypes = {
 	["Account"]: AliasType<{
 	/** Вид аккаунта: пайщик, кооперативный участок, кооператив или нераспознанный. Позволяет единообразно отображать субъект во всех реестрах — например, пометить кооперативный участок, а не принять его за организацию-пайщика. */
 	account_kind?:boolean | `@${string}`,
+	/** Ссылка на фотографию пайщика. Пусто — фотографии нет, показываются инициалы. */
+	avatar_url?:boolean | `@${string}`,
 	/** объект аккаунта в блокчейне содержит системную информацию, такую как публичные ключи доступа, доступные вычислительные ресурсы, информация об установленном смарт-контракте, и т.д. и т.п. Это системный уровень обслуживания, где у каждого пайщика есть аккаунт, но не каждый аккаунт может быть пайщиком в каком-либо кооперативе. Все смарт-контракты устанавливаются и исполняются на этом уровне. */
 	blockchain_account?:ValueTypes["BlockchainAccount"],
 	/** Установлен ли у аккаунта пароль входа. Пока пароль не установлен, действует вход по ключу доступа; после установки вход возможен только по email и паролю. */
@@ -13485,6 +13487,8 @@ refresh?: [{	data: ValueTypes["RefreshInput"] | Variable<any, string>},ValueType
 registerAccount?: [{	data: ValueTypes["RegisterAccountInput"] | Variable<any, string>},ValueTypes["RegisteredAccount"]],
 registerParticipant?: [{	data: ValueTypes["RegisterParticipantInput"] | Variable<any, string>},ValueTypes["Account"]],
 rejectVerification?: [{	data: ValueTypes["RejectVerificationInput"] | Variable<any, string>},ValueTypes["VerificationReview"]],
+	/** Снять фотографию пайщика — в удостоверении снова будут инициалы. */
+	removeAvatar?:boolean | `@${string}`,
 reportExpenseItem?: [{	data: ValueTypes["ReportExpenseItemInput"] | Variable<any, string>},ValueTypes["ExpenseReportResult"]],
 reportNotMe?: [{	data: ValueTypes["ReportNotMeInput"] | Variable<any, string>},ValueTypes["RevokedSessionsResult"]],
 requestEmailVerification?: [{	data: ValueTypes["RequestEmailVerificationInputDTO"] | Variable<any, string>},ValueTypes["EmailVerificationRequestDTO"]],
@@ -13531,6 +13535,7 @@ updateExtension?: [{	data: ValueTypes["ExtensionInput"] | Variable<any, string>}
 updateReportRequisites?: [{	input: ValueTypes["UpdateReportRequisitesInput"] | Variable<any, string>},ValueTypes["ReportRequisitesView"]],
 updateSettings?: [{	data: ValueTypes["UpdateSettingsInput"] | Variable<any, string>},ValueTypes["Settings"]],
 updateSystem?: [{	data: ValueTypes["Update"] | Variable<any, string>},ValueTypes["SystemInfo"]],
+uploadAvatar?: [{	data: ValueTypes["UploadAvatarInput"] | Variable<any, string>},boolean | `@${string}`],
 uploadExpenseFile?: [{	data: ValueTypes["UploadExpenseFileInput"] | Variable<any, string>},ValueTypes["ExpenseFile"]],
 uploadPaymentProof?: [{	data: ValueTypes["UploadPaymentProofInput"] | Variable<any, string>},ValueTypes["PaymentFile"]],
 verifyEmail?: [{	data: ValueTypes["VerifyEmailInputDTO"] | Variable<any, string>},boolean | `@${string}`],
@@ -17272,6 +17277,12 @@ walletEvents?: [{	input: ValueTypes["WalletEventsInput"] | Variable<any, string>
 	/** Название истории */
 	title?: string | undefined | null | Variable<any, string>
 };
+	["UploadAvatarInput"]: {
+	/** Содержимое файла в base64 */
+	content_base64: string | Variable<any, string>,
+	/** Тип файла: image/jpeg, image/png или image/webp */
+	mime_type: string | Variable<any, string>
+};
 	["UploadExpenseFileInput"]: {
 	/** SHA-256 содержимого, hex-lowercase (64 hex-символа). */
 	checksum_sha256: string | Variable<any, string>,
@@ -17792,6 +17803,8 @@ export type ResolverInputTypes = {
 	["Account"]: AliasType<{
 	/** Вид аккаунта: пайщик, кооперативный участок, кооператив или нераспознанный. Позволяет единообразно отображать субъект во всех реестрах — например, пометить кооперативный участок, а не принять его за организацию-пайщика. */
 	account_kind?:boolean | `@${string}`,
+	/** Ссылка на фотографию пайщика. Пусто — фотографии нет, показываются инициалы. */
+	avatar_url?:boolean | `@${string}`,
 	/** объект аккаунта в блокчейне содержит системную информацию, такую как публичные ключи доступа, доступные вычислительные ресурсы, информация об установленном смарт-контракте, и т.д. и т.п. Это системный уровень обслуживания, где у каждого пайщика есть аккаунт, но не каждый аккаунт может быть пайщиком в каком-либо кооперативе. Все смарт-контракты устанавливаются и исполняются на этом уровне. */
 	blockchain_account?:ResolverInputTypes["BlockchainAccount"],
 	/** Установлен ли у аккаунта пароль входа. Пока пароль не установлен, действует вход по ключу доступа; после установки вход возможен только по email и паролю. */
@@ -29828,6 +29841,8 @@ refresh?: [{	data: ResolverInputTypes["RefreshInput"]},ResolverInputTypes["Regis
 registerAccount?: [{	data: ResolverInputTypes["RegisterAccountInput"]},ResolverInputTypes["RegisteredAccount"]],
 registerParticipant?: [{	data: ResolverInputTypes["RegisterParticipantInput"]},ResolverInputTypes["Account"]],
 rejectVerification?: [{	data: ResolverInputTypes["RejectVerificationInput"]},ResolverInputTypes["VerificationReview"]],
+	/** Снять фотографию пайщика — в удостоверении снова будут инициалы. */
+	removeAvatar?:boolean | `@${string}`,
 reportExpenseItem?: [{	data: ResolverInputTypes["ReportExpenseItemInput"]},ResolverInputTypes["ExpenseReportResult"]],
 reportNotMe?: [{	data: ResolverInputTypes["ReportNotMeInput"]},ResolverInputTypes["RevokedSessionsResult"]],
 requestEmailVerification?: [{	data: ResolverInputTypes["RequestEmailVerificationInputDTO"]},ResolverInputTypes["EmailVerificationRequestDTO"]],
@@ -29874,6 +29889,7 @@ updateExtension?: [{	data: ResolverInputTypes["ExtensionInput"]},ResolverInputTy
 updateReportRequisites?: [{	input: ResolverInputTypes["UpdateReportRequisitesInput"]},ResolverInputTypes["ReportRequisitesView"]],
 updateSettings?: [{	data: ResolverInputTypes["UpdateSettingsInput"]},ResolverInputTypes["Settings"]],
 updateSystem?: [{	data: ResolverInputTypes["Update"]},ResolverInputTypes["SystemInfo"]],
+uploadAvatar?: [{	data: ResolverInputTypes["UploadAvatarInput"]},boolean | `@${string}`],
 uploadExpenseFile?: [{	data: ResolverInputTypes["UploadExpenseFileInput"]},ResolverInputTypes["ExpenseFile"]],
 uploadPaymentProof?: [{	data: ResolverInputTypes["UploadPaymentProofInput"]},ResolverInputTypes["PaymentFile"]],
 verifyEmail?: [{	data: ResolverInputTypes["VerifyEmailInputDTO"]},boolean | `@${string}`],
@@ -33486,6 +33502,12 @@ walletEvents?: [{	input: ResolverInputTypes["WalletEventsInput"]},ResolverInputT
 	/** Название истории */
 	title?: string | undefined | null
 };
+	["UploadAvatarInput"]: {
+	/** Содержимое файла в base64 */
+	content_base64: string,
+	/** Тип файла: image/jpeg, image/png или image/webp */
+	mime_type: string
+};
 	["UploadExpenseFileInput"]: {
 	/** SHA-256 содержимого, hex-lowercase (64 hex-символа). */
 	checksum_sha256: string,
@@ -33993,6 +34015,8 @@ export type ModelTypes = {
 	["Account"]: {
 		/** Вид аккаунта: пайщик, кооперативный участок, кооператив или нераспознанный. Позволяет единообразно отображать субъект во всех реестрах — например, пометить кооперативный участок, а не принять его за организацию-пайщика. */
 	account_kind: ModelTypes["AccountKind"],
+	/** Ссылка на фотографию пайщика. Пусто — фотографии нет, показываются инициалы. */
+	avatar_url?: string | undefined | null,
 	/** объект аккаунта в блокчейне содержит системную информацию, такую как публичные ключи доступа, доступные вычислительные ресурсы, информация об установленном смарт-контракте, и т.д. и т.п. Это системный уровень обслуживания, где у каждого пайщика есть аккаунт, но не каждый аккаунт может быть пайщиком в каком-либо кооперативе. Все смарт-контракты устанавливаются и исполняются на этом уровне. */
 	blockchain_account?: ModelTypes["BlockchainAccount"] | undefined | null,
 	/** Установлен ли у аккаунта пароль входа. Пока пароль не установлен, действует вход по ключу доступа; после установки вход возможен только по email и паролю. */
@@ -46303,6 +46327,8 @@ export type ModelTypes = {
 	registerParticipant: ModelTypes["Account"],
 	/** Совет отклонил сверку личности; верификация отзывается, и выдача снова закрыта */
 	rejectVerification: ModelTypes["VerificationReview"],
+	/** Снять фотографию пайщика — в удостоверении снова будут инициалы. */
+	removeAvatar: boolean,
 	/** Отчитаться по строке-авансу: при совпадении факта с авансом — закрыть позицию; при недо-/перерасходе — завести платёжку расчёта разницы.
 
 Требуемые роли: chairman, member, user.  */
@@ -46433,6 +46459,8 @@ export type ModelTypes = {
 
 Требуемые роли: chairman.  */
 	updateSystem: ModelTypes["SystemInfo"],
+	/** Загрузить фотографию пайщика. Возвращает ссылку на неё; прежняя фотография заменяется. */
+	uploadAvatar: string,
 	/** Загрузить первичный файл расхода (платёжка/чек/возврат) в бакет expenses:files.
 
 Требуемые роли: chairman, member, user.  */
@@ -50361,6 +50389,12 @@ export type ModelTypes = {
 	/** Название истории */
 	title?: string | undefined | null
 };
+	["UploadAvatarInput"]: {
+	/** Содержимое файла в base64 */
+	content_base64: string,
+	/** Тип файла: image/jpeg, image/png или image/webp */
+	mime_type: string
+};
 	["UploadExpenseFileInput"]: {
 	/** SHA-256 содержимого, hex-lowercase (64 hex-символа). */
 	checksum_sha256: string,
@@ -50844,6 +50878,8 @@ export type GraphQLTypes = {
 	__typename: "Account",
 	/** Вид аккаунта: пайщик, кооперативный участок, кооператив или нераспознанный. Позволяет единообразно отображать субъект во всех реестрах — например, пометить кооперативный участок, а не принять его за организацию-пайщика. */
 	account_kind: GraphQLTypes["AccountKind"],
+	/** Ссылка на фотографию пайщика. Пусто — фотографии нет, показываются инициалы. */
+	avatar_url?: string | undefined | null,
 	/** объект аккаунта в блокчейне содержит системную информацию, такую как публичные ключи доступа, доступные вычислительные ресурсы, информация об установленном смарт-контракте, и т.д. и т.п. Это системный уровень обслуживания, где у каждого пайщика есть аккаунт, но не каждый аккаунт может быть пайщиком в каком-либо кооперативе. Все смарт-контракты устанавливаются и исполняются на этом уровне. */
 	blockchain_account?: GraphQLTypes["BlockchainAccount"] | undefined | null,
 	/** Установлен ли у аккаунта пароль входа. Пока пароль не установлен, действует вход по ключу доступа; после установки вход возможен только по email и паролю. */
@@ -63933,6 +63969,8 @@ export type GraphQLTypes = {
 	registerParticipant: GraphQLTypes["Account"],
 	/** Совет отклонил сверку личности; верификация отзывается, и выдача снова закрыта */
 	rejectVerification: GraphQLTypes["VerificationReview"],
+	/** Снять фотографию пайщика — в удостоверении снова будут инициалы. */
+	removeAvatar: boolean,
 	/** Отчитаться по строке-авансу: при совпадении факта с авансом — закрыть позицию; при недо-/перерасходе — завести платёжку расчёта разницы.
 
 Требуемые роли: chairman, member, user.  */
@@ -64063,6 +64101,8 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman.  */
 	updateSystem: GraphQLTypes["SystemInfo"],
+	/** Загрузить фотографию пайщика. Возвращает ссылку на неё; прежняя фотография заменяется. */
+	uploadAvatar: string,
 	/** Загрузить первичный файл расхода (платёжка/чек/возврат) в бакет expenses:files.
 
 Требуемые роли: chairman, member, user.  */
@@ -68294,6 +68334,12 @@ export type GraphQLTypes = {
 	/** Название истории */
 	title?: string | undefined | null
 };
+	["UploadAvatarInput"]: {
+		/** Содержимое файла в base64 */
+	content_base64: string,
+	/** Тип файла: image/jpeg, image/png или image/webp */
+	mime_type: string
+};
 	["UploadExpenseFileInput"]: {
 		/** SHA-256 содержимого, hex-lowercase (64 hex-символа). */
 	checksum_sha256: string,
@@ -70593,6 +70639,7 @@ type ZEUS_VARIABLES = {
 	["UpdateReportRequisitesInput"]: ValueTypes["UpdateReportRequisitesInput"];
 	["UpdateSettingsInput"]: ValueTypes["UpdateSettingsInput"];
 	["UpdateStoryInput"]: ValueTypes["UpdateStoryInput"];
+	["UploadAvatarInput"]: ValueTypes["UploadAvatarInput"];
 	["UploadExpenseFileInput"]: ValueTypes["UploadExpenseFileInput"];
 	["UploadPaymentProofInput"]: ValueTypes["UploadPaymentProofInput"];
 	["UserStatus"]: ValueTypes["UserStatus"];

@@ -11,6 +11,14 @@
       .cert__main
         IdentityPanel.cert__person(:identity='identity', flat)
 
+        //- Фотография заменяет инициалы в кружке — здесь же её и меняют.
+        //- Снимок один на пайщика: заменённый на столе расширения виден и тут.
+        AvatarUpload.cert__avatar(
+          :name='identity.fullName',
+          :src='avatarUrl',
+          @changed='onAvatarChanged'
+        )
+
         //- Строки удостоверения оформлены одинаково, как везде на странице: слева
         //- подпись, справа значение. Раньше цепочка и уровень были самодельными
         //- блоками и выбивались из общего строя.
@@ -203,6 +211,7 @@ import type {
 } from 'src/shared/lib/types/user/IUserData';
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useDisplayName } from 'src/shared/lib/composables/useDisplayName';
+import { AvatarUpload } from 'src/features/User/Avatar';
 import { IdentityPanel } from 'src/shared/ui/domain/IdentityPanel';
 import type { Identity } from 'src/shared/ui/domain/IdentityPanel';
 import { DataRow } from 'src/shared/ui/domain/DataRow';
@@ -443,9 +452,19 @@ const role = computed(() => {
 });
 
 // Шапка-удостоверение: имя/наименование пайщика (с пометкой ИП) + роль.
+// Фотография приходит с аккаунтом; после замены показываем новую сразу, не
+// дожидаясь перезагрузки страницы.
+const uploadedAvatar = ref<string | null | undefined>(undefined);
+const avatarUrl = computed(() => (uploadedAvatar.value !== undefined ? uploadedAvatar.value : session.currentUserAccount?.avatar_url ?? null));
+
+function onAvatarChanged(url: string | null): void {
+  uploadedAvatar.value = url;
+}
+
 const identity = computed<Identity>(() => ({
   fullName: (isIP.value ? 'ИП ' : '') + (displayName.value || ''),
   role: role.value,
+  avatar: avatarUrl.value ?? undefined,
 }));
 
 // Публичный ключ из блокчейн-аккаунта

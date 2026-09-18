@@ -1,0 +1,71 @@
+feature: platform.user-avatar
+title: Фотография пайщика — удостоверение и столы расширений
+
+# Фотография одна на аккаунт и живёт в ядре: пайщик загружает её в удостоверении
+# пайщика либо на столе расширения (профиль преподавателя), а показывается она
+# всюду, где платформа рисует человека. Файл лежит в бакете `core:avatars`, в
+# аккаунте остаётся ключ; ссылка на показ подписывается заново при каждом
+# запросе. Расширения берут ссылку через порт USER_AVATAR_PORT и своей копии
+# файла не держат.
+
+sources:
+  backend:
+    - components/controller/src/application/account/services/user-avatar.service.ts
+    - components/controller/src/application/account/dto/upload-avatar-input.dto.ts
+    - components/controller/src/domain/user/constants/avatar-bucket.ts
+    - components/innercoop/src/core-ports/user-avatar.port.ts
+  ui:
+    - components/desktop/src/features/User/Avatar/**
+    - components/desktop/src/pages/User/ProfilePage/**
+    - components/desktop/extensions/edubridge/pages/TeacherProfilePage/**
+
+cases:
+  - id: avatar.happy.01
+    level: backend
+    kind: happy
+    scenario: Пайщик загружает фотографию; ключ объекта строится по содержимому файла.
+    expect: Файл уходит в бакет, в аккаунте остаётся ключ вида avatars/<пайщик>/<sha256>.<расширение>, наружу возвращается ссылка.
+    test: components/controller/tests/unit/account/user-avatar.service.test.ts
+    status: written
+  - id: avatar.side.01
+    level: backend
+    kind: side
+    scenario: Пайщик заменяет фотографию; повторно загружает тот же снимок.
+    expect: Прежний файл удаляется; при том же содержимом ключ прежний и удаления не происходит.
+    test: components/controller/tests/unit/account/user-avatar.service.test.ts
+    status: written
+  - id: avatar.break.01
+    level: backend
+    kind: break
+    scenario: Файл чужого типа (PDF) либо больше пяти мегабайт.
+    expect: Отказ с понятным текстом до обращения к хранилищу.
+    test: components/controller/tests/unit/account/user-avatar.service.test.ts
+    status: written
+  - id: avatar.side.02
+    level: backend
+    kind: side
+    scenario: Уборка прежнего файла не удалась (объекта уже нет в хранилище).
+    expect: Загрузка не падает — новый снимок уже записан в аккаунт.
+    test: components/controller/tests/unit/account/user-avatar.service.test.ts
+    status: written
+  - id: avatar.side.03
+    level: backend
+    kind: side
+    scenario: Ссылки пачкой для реестра; часть пайщиков без фотографии.
+    expect: Повторы схлопываются, безфотографийные в выдачу не попадают.
+    test: components/controller/tests/unit/account/user-avatar.service.test.ts
+    status: written
+  - id: avatar.break.02
+    level: backend
+    kind: break
+    scenario: Пайщик пробует поменять фотографию другому пайщику.
+    expect: Своё имя берётся из сессии — чужой аккаунт мутацией не затрагивается.
+    test: ~
+    status: missing
+  - id: avatar.ui.01
+    level: ui
+    kind: happy
+    scenario: Загрузка в удостоверении пайщика и на столе преподавателя.
+    expect: Снимок заменяет инициалы сразу после загрузки; загруженный на столе виден в удостоверении и наоборот; «Убрать» возвращает инициалы.
+    test: ~
+    status: missing

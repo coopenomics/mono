@@ -2682,6 +2682,9 @@ export const AllTypesProps: Record<string,any> = {
 		updateSystem:{
 			data:"Update"
 		},
+		uploadAvatar:{
+			data:"UploadAvatarInput"
+		},
 		uploadExpenseFile:{
 			data:"UploadExpenseFileInput"
 		},
@@ -3898,6 +3901,9 @@ export const AllTypesProps: Record<string,any> = {
 		origin:"CapitalContentRevisionOrigin",
 		status:"StoryStatus"
 	},
+	UploadAvatarInput:{
+
+	},
 	UploadExpenseFileInput:{
 		kind:"ExpenseFileKind"
 	},
@@ -3989,6 +3995,7 @@ export const ReturnTypes: Record<string,any> = {
 	},
 	Account:{
 		account_kind:"AccountKind",
+		avatar_url:"String",
 		blockchain_account:"BlockchainAccount",
 		has_password:"Boolean",
 		participant_account:"ParticipantAccount",
@@ -7811,6 +7818,7 @@ export const ReturnTypes: Record<string,any> = {
 		registerAccount:"RegisteredAccount",
 		registerParticipant:"Account",
 		rejectVerification:"VerificationReview",
+		removeAvatar:"Boolean",
 		reportExpenseItem:"ExpenseReportResult",
 		reportNotMe:"RevokedSessionsResult",
 		requestEmailVerification:"EmailVerificationRequestDTO",
@@ -7852,6 +7860,7 @@ export const ReturnTypes: Record<string,any> = {
 		updateReportRequisites:"ReportRequisitesView",
 		updateSettings:"Settings",
 		updateSystem:"SystemInfo",
+		uploadAvatar:"String",
 		uploadExpenseFile:"ExpenseFile",
 		uploadPaymentProof:"PaymentFile",
 		verifyEmail:"Boolean",

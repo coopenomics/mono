@@ -3,6 +3,8 @@ import { Inject } from '@nestjs/common';
 import { VAULT_REPOSITORY } from '~/domain/auth-v2/vault/vault-repository.port';
 import type { IVaultRepository } from '~/domain/auth-v2/vault/vault-repository.port';
 import { AccountService } from '../services/account.service';
+import { UserAvatarService } from '../services/user-avatar.service';
+import { UploadAvatarInputDTO } from '../dto/upload-avatar-input.dto';
 import { AccountDTO } from '../dto/account.dto';
 import { GetAccountInputDTO } from '../dto/get-account-input.dto';
 import { UseGuards } from '@nestjs/common';
@@ -27,8 +29,17 @@ export const AccountsPaginationResult = createPaginationResult(AccountDTO, 'Acco
 export class AccountResolver {
   constructor(
     private readonly accountService: AccountService,
+    private readonly avatars: UserAvatarService,
     @Inject(VAULT_REPOSITORY) private readonly vaultRepo: IVaultRepository
   ) {}
+
+  @ResolveField('avatar_url', () => String, {
+    nullable: true,
+    description: 'Ссылка на фотографию пайщика. Пусто — фотографии нет, показываются инициалы.',
+  })
+  async avatarUrl(@Parent() account: AccountDTO): Promise<string | null> {
+    return this.avatars.getAvatarUrl(account.username);
+  }
 
   @ResolveField('has_password', () => Boolean, {
     description:
@@ -84,6 +95,25 @@ export class AccountResolver {
   // Регистрация открыта без входа и выдаёт токен, поэтому единственный порог
   // здесь — частота с одного адреса. `@Throttle` из nest-throttler не ставится:
   // глобального ThrottlerGuard в приложении нет, и декоратор ничего не делает.
+  @Mutation(() => String, {
+    description: 'Загрузить фотографию пайщика. Возвращает ссылку на неё; прежняя фотография заменяется.',
+  })
+  @UseGuards(GqlJwtAuthGuard)
+  async uploadAvatar(
+    @Args('data') data: UploadAvatarInputDTO,
+    @CurrentUser() user: IMonoAccount
+  ): Promise<string> {
+    // Свою фотографию пайщик меняет сам — чужую не трогает: имя берём из сессии.
+    return this.avatars.upload(user.username, data.content_base64, data.mime_type);
+  }
+
+  @Mutation(() => Boolean, { description: 'Снять фотографию пайщика — в удостоверении снова будут инициалы.' })
+  @UseGuards(GqlJwtAuthGuard)
+  async removeAvatar(@CurrentUser() user: IMonoAccount): Promise<boolean> {
+    await this.avatars.remove(user.username);
+    return true;
+  }
+
   @Mutation(() => RegisteredAccountDTO, {
     name: 'registerAccount',
     description: 'Зарегистрировать аккаунт пользователя в системе',

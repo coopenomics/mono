@@ -17,4 +17,6 @@ export interface UpdateUserInputDomainInterface {
   is_email_verified?: boolean;
   subscriber_id?: string;
   subscriber_hash?: string;
+  avatar_key?: string | null;
+  avatar_mime?: string | null;
 }

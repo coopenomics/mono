@@ -61,6 +61,18 @@ export class UserEntity implements UserDomainInterface {
   legacy_mongo_id?: string;
 
   /**
+   * Фотография пайщика: ключ объекта в хранилище и его тип. Сам файл лежит в
+   * бакете `core:avatars`, здесь только ссылка на него — ссылка на показ
+   * подписывается заново при каждом запросе.
+   */
+  @Column({ type: 'text', nullable: true })
+  avatar_key!: string | null;
+
+  @Column({ type: 'varchar', length: 40, nullable: true })
+  avatar_mime!: string | null;
+
+
+  /**
    * Когда совет принял пайщика (время блока soviet::addpartcpnt). Сама дата
    * живёт в цепи; здесь её копия, чтобы реестр пайщиков сортировался на
    * сервере. Пусто у тех, кого ещё не приняли.
@@ -118,7 +130,9 @@ export class UserEntity implements UserDomainInterface {
       this.subscriber_hash,
       this.legacy_mongo_id,
       this.createdAt,
-      this.updatedAt
+      this.updatedAt,
+      this.avatar_key,
+      this.avatar_mime
     );
   }
 

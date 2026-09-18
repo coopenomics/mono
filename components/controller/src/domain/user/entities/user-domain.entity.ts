@@ -22,7 +22,10 @@ export class UserDomainEntity {
     public readonly subscriber_hash: string,
     public readonly legacy_mongo_id?: string,
     public readonly createdAt?: Date,
-    public readonly updatedAt?: Date
+    public readonly updatedAt?: Date,
+    /** Фотография пайщика: ключ объекта в хранилище и его тип. */
+    public readonly avatar_key?: string | null,
+    public readonly avatar_mime?: string | null
   ) {}
 
   /**

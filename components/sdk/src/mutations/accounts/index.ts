@@ -66,3 +66,9 @@ export * as SaveMyPassport from './saveMyPassport'
 
 /** Откатить собственную незавершённую регистрацию к редактированию данных (снимает заморозку профиля/e-mail, сбрасывает заявление и непринятый вступительный платёж). Доступно до отправки регистрации в блокчейн. */
 export * as ResetRegistration from './resetRegistration'
+
+/** Загрузить фотографию пайщика — она показывается в удостоверении и на столах расширений */
+export * as UploadAvatar from './uploadAvatar'
+
+/** Снять фотографию пайщика: в удостоверении остаются инициалы */
+export * as RemoveAvatar from './removeAvatar'

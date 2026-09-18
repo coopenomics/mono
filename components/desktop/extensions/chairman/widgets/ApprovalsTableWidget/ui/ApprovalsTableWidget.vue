@@ -34,7 +34,7 @@ div
         @update:page="(page) => emit('update:page', page)"
       )
 
-  EmptyState(v-if="!loading && !approvals.length" title="Запросов нет" body="Здесь появятся документы, ждущие подписи председателя.")
+  EmptyState(v-if="!loading && !approvals.length" title="Запросов нет" body="Здесь появятся документы на подпись председателя.")
     template(#icon)
       q-icon(name="inbox" size="32px")
 
