@@ -10,23 +10,21 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, onMounted, onBeforeUnmount } from 'vue';
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import { useSystemStore } from 'src/entities/System/model';
+import { useSessionStore } from 'src/entities/Session';
 import { FailAlert } from 'src/shared/api';
 import { ContributorsListWidget } from 'app/extensions/capital/widgets/ContributorsListWidget';
-// Кнопки «Добавить» / «Импорт из CSV» временно скрыты — методы могут понадобиться позже
-// import { ImportContributorsButton } from 'app/extensions/capital/widgets/ImportContributorsButton';
-// import { ImportContributorButton } from 'app/extensions/capital/features/Contributor/ImportContributor';
+import { ImportContributorButton } from 'app/extensions/capital/features/Contributor/ImportContributor';
 import { useContributorStore } from 'app/extensions/capital/entities/Contributor/model';
 import { useDataPoller } from 'src/shared/lib/composables';
 import { POLL_INTERVALS } from 'src/shared/lib/consts';
-// import { useHeaderActions } from 'src/shared/hooks';
-// import { useSessionStore } from 'src/entities/Session';
-// import { markRaw, computed } from 'vue';
+import { useHeaderActions } from 'src/shared/hooks';
 
 const contributorStore = useContributorStore();
-const { info } = useSystemStore();
-// const sessionStore = useSessionStore();
+const systemStore = useSystemStore();
+const sessionStore = useSessionStore();
+const { registerAction } = useHeaderActions();
 
 const loading = ref(false);
 
@@ -38,32 +36,21 @@ const pagination = ref({
   rowsNumber: 0,
 });
 
-// Временно скрыто: регистрация кнопок «Добавить» / «Импорт из CSV» в шапке
-// const menuButtons = computed(() => {
-//   if (!sessionStore.isChairman) {
-//     return [];
-//   }
-//   return [
-//     {
-//       id: 'import-contributor-menu',
-//       component: markRaw(ImportContributorButton),
-//       order: 1,
-//     },
-//     {
-//       id: 'import-contributors-menu',
-//       component: markRaw(ImportContributorsButton),
-//       order: 2,
-//     },
-//   ];
-// });
-// const { registerAction: registerHeaderAction, clearActions } = useHeaderActions();
+// Массовый импорт из CSV (ImportContributorsButton) остаётся скрытым.
+//
+// Кнопка «Добавить» нужна только председателю «Восхода»: там реестр Благороста
+// заполняют руками по прежним договорам. В остальных кооперативах участник
+// заводит себя сам через регистрацию.
+const canAddContributor = computed(
+  () => sessionStore.isChairman && systemStore.info.coopname === 'voskhod',
+);
 
 const loadContributors = async () => {
   loading.value = true;
   try {
     await contributorStore.loadContributors({
       filter: {
-        coopname: info.coopname,
+        coopname: systemStore.info.coopname,
       },
       options: {
         page: pagination.value.page,
@@ -101,7 +88,7 @@ const reloadContributors = async () => {
   try {
     await contributorStore.loadContributors({
       filter: {
-        coopname: info.coopname,
+        coopname: systemStore.info.coopname,
       },
       options: {
         page: pagination.value.page,
@@ -122,14 +109,19 @@ const { start: startContributorsPoll, stop: stopContributorsPoll } = useDataPoll
 );
 
 onMounted(async () => {
+  if (canAddContributor.value) {
+    registerAction({
+      id: 'add-contributor',
+      component: ImportContributorButton,
+      order: 1,
+    });
+  }
   await loadContributors();
   startContributorsPoll();
-  // menuButtons.value.forEach((button) => registerHeaderAction(button));
 });
 
 onBeforeUnmount(() => {
   stopContributorsPoll();
-  // clearActions();
 });
 </script>
 
