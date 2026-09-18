@@ -35,7 +35,7 @@ export class EdubridgeAdminRepository {
   }
 
   /**
-   * Реестр пайщиков приложения: агрегаты по обучающимся и подпискам.
+   * Ученики приложения: агрегаты по обучающимся и подпискам.
    * Подзапросы берут кооператив параметром, а не `l.coopname`: колонка не в
    * GROUP BY, и Postgres отвечал «Subquery uses ungrouped column l.coopname».
    */

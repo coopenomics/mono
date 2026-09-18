@@ -1,20 +1,29 @@
 <template lang="pug">
 .q-pa-md
   PageHint.q-mb-md(storage-key="edu:admin-members:banner-dismissed")
-    | Реестр пайщиков приложения: обучающиеся, подписки и состояние выдачи. Контакты обучающихся видит только председатель.
+    | Ученики приложения: у каждого свои обучающиеся, подписки и выдача доступа на площадке.
+    | Красная метка в строке означает, что выдача застряла и ждёт вас — откройте ученика и нажмите «Повторить».
+    | Контакты обучающихся видит только председатель.
 
   BaseInput.q-mb-md(v-model="search" label="Поиск по ФИО или учётному имени" type="search" clearable @update:model-value="debouncedLoad")
 
-  BaseTable(v-if="loading || rows.length" :columns="columns" :rows="rows" row-key="username" :loading="firstLoad" hover min-width="760px")
+  BaseTable(
+    v-if="loading || rows.length"
+    :columns="columns"
+    :rows="rows"
+    row-key="username"
+    :loading="firstLoad"
+    :clickable-rows="true"
+    min-width="680px"
+    @row-click="open"
+  )
     template(#cell-member="{ row }")
       IdentityCell(:account-name="row.username" :full-name="row.display_name || null")
     template(#cell-access="{ row }")
-      BaseBadge(v-if="row.attention_count" variant="warn") застряло: {{ row.attention_count }}
+      BaseBadge(v-if="row.attention_count" variant="neg") застряло: {{ row.attention_count }}
       BaseBadge(v-else-if="row.active_enrollments" variant="pos") выдан
       BaseBadge(v-else variant="neutral") нет подписок
-    template(#cell-actions="{ row }")
-      BaseButton(variant="secondary" size="sm" :loading="opening === row.username" @click="open(row)") Открыть
-  EmptyState(v-if="!firstLoad && !rows.length" :title="search ? 'Никого не нашлось' : 'Пайщиков пока нет'" :body="search ? 'Попробуйте другую фамилию или учётное имя.' : 'Как только кто-то добавит обучающегося, он появится здесь.'")
+  EmptyState(v-if="!firstLoad && !rows.length" :title="search ? 'Никого не нашлось' : 'Учеников пока нет'" :body="search ? 'Попробуйте другую фамилию или учётное имя.' : 'Ученик появляется здесь, когда добавит обучающегося.'")
     template(#icon)
       q-icon(name="groups" size="32px")
 
@@ -22,7 +31,7 @@
     template(v-if="card")
       .edu-member__section
         .edu-member__head
-          .text-subtitle2 Пайщик
+          .text-subtitle2 Ученик
         DataRow(label="Учётное имя" :value="card.username" mono copyable)
         DataRow(label="Обучающихся" :value="card.learners.length")
         DataRow(label="Подписок" :value="card.enrollments.length")
@@ -42,47 +51,55 @@
           template(#cell-access_state="{ row }")
             BaseBadge(:variant="accessOf(row.access_state).variant") {{ accessOf(row.access_state).label }}
 
+      //- Выдача доступа: обычные задачи повторяются сами, поэтому в списке
+      //- показываются те, что встали и ждут человека, — и повторяются отсюда же.
       .edu-member__section
         .edu-member__head
-          .text-subtitle2 Задачи выдачи
+          .text-subtitle2 Выдача доступа
         .t-sm.t-muted(v-if="!card.tasks.length") Задач выдачи нет.
-        BaseTable(v-else :columns="taskColumns" :rows="card.tasks" row-key="id" min-width="480px")
+        BaseTable(v-else :columns="taskColumns" :rows="card.tasks" row-key="id" min-width="520px")
           template(#cell-kind="{ row }") {{ kindOf(row.kind) }}
           template(#cell-status="{ row }")
             BaseBadge(:variant="taskStatusOf(row.status).variant") {{ taskStatusOf(row.status).label }}
+          template(#cell-actions="{ row }")
+            BaseButton(v-if="needsHand(row)" variant="secondary" size="sm" :loading="retrying === asText(row.id)" @click="onRetry(row)") Повторить
 </template>
 
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
 import { debounce } from 'quasar';
+import { Zeus } from '@coopenomics/sdk';
 import { asText } from 'src/shared/lib/utils';
 import { useFirstLoad } from 'src/shared/lib/composables';
-import { FailAlert } from 'src/shared/api';
+import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { BaseBadge, BaseButton, BaseInput, BaseTable, EmptyState, type BaseTableColumn } from 'src/shared/ui/base';
 import { DataRow, DetailsDrawer, IdentityCell, PageHint } from 'src/shared/ui/domain';
 import { ACCESS_STATE_LABELS } from '../../entities/Learner';
-import { TASK_KIND_LABELS, TASK_STATUS_LABELS, fetchMemberCard, fetchMembers, type IMemberCard, type IMemberRow } from '../../entities/Admin';
+import { TASK_KIND_LABELS, TASK_STATUS_LABELS, fetchMemberCard, fetchMembers, retryTask, type IMemberCard, type IMemberRow } from '../../entities/Admin';
 
 /**
- * Реестр пайщиков приложения: строка — ФИО и учётное имя (IdentityCell, как во
- * всех реестрах), счётчики и состояние выдачи; сводная карточка открывается
- * боковой панелью. Поиск — по ФИО и учётному имени, ФИО отдаёт бэкенд из
- * сертификата пайщика.
+ * Ученики приложения: пайщик, который оформляет подписки, и его обучающиеся —
+ * дети или он сам. Строка — ФИО и учётное имя (IdentityCell, как во всех
+ * реестрах), счётчики и состояние выдачи; карточка открывается нажатием на
+ * строку и держит обучающихся, подписки и выдачу доступа вместе.
+ *
+ * Отдельного реестра очереди выдачи нет: задачи повторяются сами, а застрявшие
+ * видны красной меткой прямо здесь — администратору важен ученик, у которого
+ * доступ не открылся, а не список задач в отрыве от людей.
  */
 const search = ref('');
 const rows = ref<IMemberRow[]>([]);
 const card = ref<IMemberCard | null>(null);
 const loading = ref(false);
 const firstLoad = useFirstLoad(loading);
-const opening = ref<string | null>(null);
 const drawerOpen = ref(false);
+const retrying = ref<string | null>(null);
 
 const columns: BaseTableColumn<IMemberRow>[] = [
-  { key: 'member', label: 'Пайщик' },
+  { key: 'member', label: 'Ученик' },
   { key: 'learners_count', label: 'Обучающихся', numeric: true, width: '130px' },
   { key: 'active_enrollments', label: 'Подписок', numeric: true, width: '110px' },
-  { key: 'access', label: 'Выдача доступа', width: '160px' },
-  { key: 'actions', label: '', align: 'right', width: '120px' },
+  { key: 'access', label: 'Выдача доступа', width: '170px' },
 ];
 const enrollmentColumns: BaseTableColumn<IMemberCard['enrollments'][number]>[] = [
   { key: 'course_title', label: 'Курс' },
@@ -93,7 +110,12 @@ const taskColumns: BaseTableColumn<IMemberCard['tasks'][number]>[] = [
   { key: 'kind', label: 'Задача', width: '100px' },
   { key: 'status', label: 'Состояние', width: '180px' },
   { key: 'last_error', label: 'Последняя ошибка' },
+  { key: 'actions', label: '', align: 'right', width: '130px' },
 ];
+
+/** Задача встала: сама больше не повторится, нужен человек. */
+const NEEDS_HAND = new Set<string>([Zeus.EduAccessTaskStatus.NEEDS_ATTENTION, Zeus.EduAccessTaskStatus.FAILED]);
+const needsHand = (t: IMemberCard['tasks'][number]) => NEEDS_HAND.has(t.status);
 const accessOf = (s: string) => ACCESS_STATE_LABELS[s] ?? { label: s, variant: 'neutral' as const };
 const taskStatusOf = (s: string) => TASK_STATUS_LABELS[s] ?? { label: s, variant: 'neutral' as const };
 const kindOf = (k: string) => TASK_KIND_LABELS[k] ?? k;
@@ -112,14 +134,27 @@ async function load(): Promise<void> {
 const debouncedLoad = debounce(load, 300);
 
 async function open(row: IMemberRow): Promise<void> {
-  opening.value = row.username;
   try {
     card.value = await fetchMemberCard(row.username);
     drawerOpen.value = true;
   } catch (e) {
     FailAlert(e);
+  }
+}
+
+/** Повтор выдачи: задача уходит в работу, карточка и метка в строке обновляются. */
+async function onRetry(task: IMemberCard['tasks'][number]): Promise<void> {
+  const id = asText(task.id);
+  retrying.value = id;
+  try {
+    await retryTask(id);
+    SuccessAlert('Выдача поставлена в работу');
+    if (card.value) card.value = await fetchMemberCard(card.value.username);
+    await load();
+  } catch (e) {
+    FailAlert(e);
   } finally {
-    opening.value = null;
+    retrying.value = null;
   }
 }
 

@@ -8,7 +8,6 @@ import {
   AdminCoursePage,
   AdminCoursesPage,
   AdminMembersPage,
-  AdminQueuePage,
   AdminTeachersPage,
   CatalogPage,
   ConfigurePage,
@@ -28,8 +27,10 @@ import {
  *
  *   edubridge          — «Стол администратора»: владелец и администратор в одном
  *                        рабочем месте; часть страниц шире у владельца (площадки,
- *                        администраторы, подключение). Курсы, преподаватели, реестр
- *                        пайщиков, очередь выдачи.
+ *                        администраторы, подключение). Курсы, преподаватели, ученики,
+ *                        взносы преподавателей. Очередь выдачи отдельной страницей не
+ *                        показывается: застрявшая выдача видна у ученика, там же её
+ *                        и повторяют.
  *   edubridge-member   — «Стол ученика»: каталог курсов (открыт гостю после
  *                        подключения ЦПП советом — витрина до вступления, как каталог
  *                        в «Столе заказчика»), обучающиеся и отдельно подписки.
@@ -79,8 +80,7 @@ function adminWorkspace(): IWorkspaceConfig {
     memberPage('courses/:id', 'edubridge-admin-course', AdminCoursePage, { title: 'Курс', icon: 'library_books', requires: 'EduCourse:manage', hidden: true, menuKey: 'edubridge-admin-courses' }),
     memberPage('teachers', 'edubridge-admin-teachers', AdminTeachersPage, { title: 'Преподаватели', icon: 'co_present', requires: 'EduAssignment:manage' }),
     memberPage('contributions', 'edubridge-admin-contributions', AdminContributionsPage, { title: 'Взносы преподавателей', icon: 'workspace_premium', requires: 'EduContribution:decide' }),
-    memberPage('members', 'edubridge-admin-registry', AdminMembersPage, { title: 'Реестр пайщиков', icon: 'groups', requires: 'EduRegistry:read' }),
-    memberPage('queue', 'edubridge-admin-queue', AdminQueuePage, { title: 'Очередь выдачи', icon: 'pending_actions', requires: 'EduQueue:read' }),
+    memberPage('members', 'edubridge-admin-registry', AdminMembersPage, { title: 'Ученики', icon: 'groups', requires: 'EduRegistry:read' }),
     memberPage('platforms', 'edubridge-admin-connectors', AdminConnectorsPage, { title: 'Площадки', icon: 'hub', requires: 'EduConnector:manage' }),
     memberPage('admins', 'edubridge-admin-admins', AdminAdminsPage, { title: 'Администраторы', icon: 'admin_panel_settings', requires: 'EduAdmin:manage' }),
   ]);

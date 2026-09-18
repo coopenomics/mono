@@ -32,7 +32,7 @@ const coop = () => platformSettings().coopname;
 export class EdubridgeAdminResolver {
   constructor(private readonly admin: EdubridgeAdminService) {}
 
-  @Query(() => [EduMemberRowDTO], { name: 'edubridgeMembers', description: 'Реестр пайщиков приложения' })
+  @Query(() => [EduMemberRowDTO], { name: 'edubridgeMembers', description: 'Ученики приложения: у каждого свои обучающиеся и подписки' })
   @UseGuards(GqlJwtAuthGuard, EdubridgeAccessGuard)
   @RequireEduAccess('EduRegistry', 'read')
   edubridgeMembers(@Args('search', { type: () => String, nullable: true }) search?: string): Promise<EduMemberRowDTO[]> {

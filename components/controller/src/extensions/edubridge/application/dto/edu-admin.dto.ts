@@ -7,7 +7,7 @@ import { EduEnrollmentDTO } from './edu-enrollment.dto';
 import { EduLearnerDTO } from './edu-learner.dto';
 import './edu-enums.registration';
 
-/** Строка реестра пайщиков приложения. Контакт пайщика — только владельцу (резолвер вырезает по гранту). */
+/** Строка реестра учеников: пайщик, который оформляет подписки. Контакт — только владельцу (резолвер вырезает по гранту). */
 @ObjectType('EduMemberRow')
 export class EduMemberRowDTO {
   @Field(() => String, { description: 'Учётное имя пайщика' }) username!: string;

@@ -33,7 +33,7 @@ export class EdubridgeAdminService {
     private readonly credentials: EdubridgeConnectorCredentialsStore
   ) {}
 
-  /** Реестр пайщиков с ФИО; поиск — по ФИО или учётному имени. */
+  /** Ученики с ФИО; поиск — по ФИО или учётному имени. */
   async members(coopname: string, search?: string): Promise<EduMemberRowDTO[]> {
     const rows = await this.admins.memberRows(coopname);
     const names = await this.names.displayNames(rows.map((r) => r.username));

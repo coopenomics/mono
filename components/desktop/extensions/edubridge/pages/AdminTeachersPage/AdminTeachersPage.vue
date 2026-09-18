@@ -2,8 +2,8 @@
 .q-pa-md
   PageHint.q-mb-md(storage-key="edu:admin-teachers:banner-dismissed")
     | Преподаватели кооператива — пайщики с подписанным договором участия в хозяйственной деятельности.
-    | Откройте карточку, чтобы посмотреть договор и назначить курс: назначение действует, когда приложение
-    | к договору подписали преподаватель и председатель совета.
+    | Нажмите на строку, чтобы открыть карточку с договором и назначениями: назначение действует, когда
+    | приложение к договору подписали преподаватель и председатель совета.
 
   BaseTable(
     v-if="loading || teachers.length"
@@ -11,7 +11,8 @@
     :rows="teachers"
     row-key="username"
     :loading="firstLoad"
-    min-width="720px"
+    :clickable-rows="true"
+    min-width="620px"
     @row-click="openCard"
   )
     template(#cell-teacher="{ row }")
@@ -129,10 +130,11 @@ const tabs: PageTab[] = [
 
 const form = reactive<IAssignmentInput>({ teacher_username: '', course_id: '', schedule: '', expected_result: '', period_from: '', period_to: '' });
 
+// Номер договора — длинный ключ, в полосе он занимает место и ничего не решает:
+// его читают внутри карточки, когда нужен именно он.
 const columns: BaseTableColumn<ITeacher>[] = [
-  { key: 'teacher', label: 'Преподаватель', width: '260px' },
-  { key: 'contract_number', label: 'Договор', width: '190px', nowrap: true },
-  { key: 'contract_status', label: 'Состояние договора', width: '200px' },
+  { key: 'teacher', label: 'Преподаватель' },
+  { key: 'contract_status', label: 'Договор', width: '210px' },
   { key: 'assignments', label: 'Назначений', width: '130px', nowrap: true },
   { key: 'signed_at', label: 'Подписан', width: '130px', nowrap: true },
 ];

@@ -12,7 +12,6 @@ export { TeacherAssignmentsPage } from './TeacherAssignmentsPage';
 export { TeacherContributionsPage } from './TeacherContributionsPage';
 export { TeacherSettlementPage } from './TeacherSettlementPage';
 export { AdminMembersPage } from './AdminMembersPage';
-export { AdminQueuePage } from './AdminQueuePage';
 export { AdminConnectorsPage } from './AdminConnectorsPage';
 export { AdminTeachersPage } from './AdminTeachersPage';
 export { AdminContributionsPage } from './AdminContributionsPage';
