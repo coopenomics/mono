@@ -3,12 +3,13 @@ import { agreementsBase } from 'src/shared/lib/consts/workspaces';
 import type { IWorkspaceConfig, IWorkspaceRoute, IWorkspaceRouteMeta } from 'src/shared/lib/types/workspace';
 import {
   AdminAdminsPage,
-  AdminAssignmentsPage,
   AdminConnectorsPage,
+  AdminContributionsPage,
   AdminCoursePage,
   AdminCoursesPage,
   AdminMembersPage,
   AdminQueuePage,
+  AdminTeachersPage,
   CatalogPage,
   ConfigurePage,
   CourseCardPage,
@@ -41,8 +42,13 @@ import {
  * Страницы с `gate: true` — шлюзы онбординга: показываются, пока не подписаны
  * оферта (и договор УХД у преподавателя).
  */
-/** Что страница объявляет о себе: подпись, иконка и право стола; шлюз и скрытость — по месту. */
-type PageMeta = Pick<IWorkspaceRouteMeta, 'title' | 'icon' | 'requires' | 'gate' | 'hidden'> & { requires: string };
+/**
+ * Что страница объявляет о себе: подпись, иконка и право стола; шлюз, скрытость
+ * и `menuKey` — по месту. `menuKey` держит подсветку раздела на скрытой странице:
+ * карточка курса — сосед реестра, а не его потомок, и без указания пункт меню
+ * гас, пока администратор смотрел курс.
+ */
+type PageMeta = Pick<IWorkspaceRouteMeta, 'title' | 'icon' | 'requires' | 'gate' | 'hidden' | 'menuKey'> & { requires: string };
 
 /** Страница для гостя: без входа и соглашений. */
 function publicPage(path: string, name: string, component: Component, meta: PageMeta & IWorkspaceRouteMeta): IWorkspaceRoute {
@@ -70,8 +76,9 @@ function adminWorkspace(): IWorkspaceConfig {
   return workspace('edubridge', 'Стол администратора', 'admin_panel_settings', 'edubridge-admin-courses', [
     memberPage('configure', 'edubridge-configure', ConfigurePage, { title: 'Подключение', icon: 'settings', requires: 'Extension:configure', gate: true }),
     memberPage('courses', 'edubridge-admin-courses', AdminCoursesPage, { title: 'Курсы', icon: 'library_books', requires: 'EduCourse:manage' }),
-    memberPage('courses/:id', 'edubridge-admin-course', AdminCoursePage, { title: 'Курс', icon: 'library_books', requires: 'EduCourse:manage', hidden: true }),
-    memberPage('teachers', 'edubridge-admin-assignments', AdminAssignmentsPage, { title: 'Преподаватели', icon: 'co_present', requires: 'EduAssignment:manage' }),
+    memberPage('courses/:id', 'edubridge-admin-course', AdminCoursePage, { title: 'Курс', icon: 'library_books', requires: 'EduCourse:manage', hidden: true, menuKey: 'edubridge-admin-courses' }),
+    memberPage('teachers', 'edubridge-admin-teachers', AdminTeachersPage, { title: 'Преподаватели', icon: 'co_present', requires: 'EduAssignment:manage' }),
+    memberPage('contributions', 'edubridge-admin-contributions', AdminContributionsPage, { title: 'Взносы преподавателей', icon: 'workspace_premium', requires: 'EduContribution:decide' }),
     memberPage('members', 'edubridge-admin-registry', AdminMembersPage, { title: 'Реестр пайщиков', icon: 'groups', requires: 'EduRegistry:read' }),
     memberPage('queue', 'edubridge-admin-queue', AdminQueuePage, { title: 'Очередь выдачи', icon: 'pending_actions', requires: 'EduQueue:read' }),
     memberPage('platforms', 'edubridge-admin-connectors', AdminConnectorsPage, { title: 'Площадки', icon: 'hub', requires: 'EduConnector:manage' }),
@@ -84,7 +91,7 @@ function adminWorkspace(): IWorkspaceConfig {
 function parentWorkspace(): IWorkspaceConfig {
   return workspace('edubridge-member', 'Стол ученика', 'family_restroom', 'edubridge-catalog', [
     publicPage('catalog', 'edubridge-catalog', CatalogPage, { title: 'Каталог курсов', icon: 'school', requires: 'EduCatalog:read' }),
-    publicPage('catalog/:id', 'edubridge-catalog-course', CourseCardPage, { title: 'Курс', icon: 'school', requires: 'EduCatalog:read', hidden: true }),
+    publicPage('catalog/:id', 'edubridge-catalog-course', CourseCardPage, { title: 'Курс', icon: 'school', requires: 'EduCatalog:read', hidden: true, menuKey: 'edubridge-catalog' }),
     memberPage('onboarding', 'edubridge-member-onboarding', MemberOnboardingPage, { title: 'Подключение', icon: 'how_to_reg', requires: 'Onboarding:learner', gate: true }),
     memberPage('learners', 'edubridge-learners', MemberLearnersPage, { title: 'Обучающиеся', icon: 'family_restroom', requires: 'EduLearner:read:own' }),
     memberPage('subscriptions', 'edubridge-subscriptions', MemberSubscriptionsPage, { title: 'Мои подписки', icon: 'card_membership', requires: 'EduEnrollment:read:own' }),

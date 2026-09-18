@@ -5762,6 +5762,17 @@ export const ReturnTypes: Record<string,any> = {
 		shortfall:"String",
 		sub_hash:"String"
 	},
+	EduTeacher:{
+		approved_at:"DateTime",
+		assignments_active:"Float",
+		assignments_total:"Float",
+		avatar_url:"String",
+		contract_number:"String",
+		contract_status:"EduContractStatus",
+		display_name:"String",
+		signed_at:"DateTime",
+		username:"String"
+	},
 	EduTeacherContract:{
 		approved_at:"DateTime",
 		contract_hash:"String",
@@ -8550,6 +8561,7 @@ export const ReturnTypes: Record<string,any> = {
 		edubridgeQueue:"EduAccessTask",
 		edubridgeQuote:"EduQuote",
 		edubridgeTeacherOptions:"EduTeacherOption",
+		edubridgeTeachers:"EduTeacher",
 		expenseFile:"ExpenseFile",
 		expenseFilesByItem:"ExpenseFile",
 		expenseFilesByProposal:"ExpenseFile",

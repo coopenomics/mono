@@ -7284,6 +7284,28 @@ export type ValueTypes = {
 	/** Период */
 	period: ValueTypes["EduEnrollmentPeriod"] | Variable<any, string>
 };
+	["EduTeacher"]: AliasType<{
+	/** Договор подписан председателем совета */
+	approved_at?:boolean | `@${string}`,
+	/** Назначений действует */
+	assignments_active?:boolean | `@${string}`,
+	/** Назначений всего */
+	assignments_total?:boolean | `@${string}`,
+	/** Фотография пайщика */
+	avatar_url?:boolean | `@${string}`,
+	/** Номер договора участия в хозяйственной деятельности */
+	contract_number?:boolean | `@${string}`,
+	/** Состояние договора */
+	contract_status?:boolean | `@${string}`,
+	/** Фамилия, имя и отчество */
+	display_name?:boolean | `@${string}`,
+	/** Договор подписан преподавателем */
+	signed_at?:boolean | `@${string}`,
+	/** Учётное имя */
+	username?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on EduTeacher']?: Omit<ValueTypes["EduTeacher"], "...on EduTeacher">
+}>;
 	["EduTeacherContract"]: AliasType<{
 	/** Подписан председателем совета */
 	approved_at?:boolean | `@${string}`,
@@ -15211,6 +15233,8 @@ edubridgeQueue?: [{	filter?: ValueTypes["EduQueueFilterInput"] | undefined | nul
 edubridgeQuote?: [{	data: ValueTypes["EduQuoteInput"] | Variable<any, string>},ValueTypes["EduQuote"]],
 	/** Преподаватели, которых можно назначить на курс */
 	edubridgeTeacherOptions?:ValueTypes["EduTeacherOption"],
+	/** Преподаватели кооператива с договором и числом назначений */
+	edubridgeTeachers?:ValueTypes["EduTeacher"],
 expenseFile?: [{	id: number | Variable<any, string>},ValueTypes["ExpenseFile"]],
 expenseFilesByItem?: [{	coopname: string | Variable<any, string>,	item_hash: string | Variable<any, string>,	proposal_hash: string | Variable<any, string>},ValueTypes["ExpenseFile"]],
 expenseFilesByProposal?: [{	coopname: string | Variable<any, string>,	proposal_hash: string | Variable<any, string>},ValueTypes["ExpenseFile"]],
@@ -23816,6 +23840,27 @@ export type ResolverInputTypes = {
 	/** Период */
 	period: ResolverInputTypes["EduEnrollmentPeriod"]
 };
+	["EduTeacher"]: AliasType<{
+	/** Договор подписан председателем совета */
+	approved_at?:boolean | `@${string}`,
+	/** Назначений действует */
+	assignments_active?:boolean | `@${string}`,
+	/** Назначений всего */
+	assignments_total?:boolean | `@${string}`,
+	/** Фотография пайщика */
+	avatar_url?:boolean | `@${string}`,
+	/** Номер договора участия в хозяйственной деятельности */
+	contract_number?:boolean | `@${string}`,
+	/** Состояние договора */
+	contract_status?:boolean | `@${string}`,
+	/** Фамилия, имя и отчество */
+	display_name?:boolean | `@${string}`,
+	/** Договор подписан преподавателем */
+	signed_at?:boolean | `@${string}`,
+	/** Учётное имя */
+	username?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
 	["EduTeacherContract"]: AliasType<{
 	/** Подписан председателем совета */
 	approved_at?:boolean | `@${string}`,
@@ -31490,6 +31535,8 @@ edubridgeQueue?: [{	filter?: ResolverInputTypes["EduQueueFilterInput"] | undefin
 edubridgeQuote?: [{	data: ResolverInputTypes["EduQuoteInput"]},ResolverInputTypes["EduQuote"]],
 	/** Преподаватели, которых можно назначить на курс */
 	edubridgeTeacherOptions?:ResolverInputTypes["EduTeacherOption"],
+	/** Преподаватели кооператива с договором и числом назначений */
+	edubridgeTeachers?:ResolverInputTypes["EduTeacher"],
 expenseFile?: [{	id: number},ResolverInputTypes["ExpenseFile"]],
 expenseFilesByItem?: [{	coopname: string,	item_hash: string,	proposal_hash: string},ResolverInputTypes["ExpenseFile"]],
 expenseFilesByProposal?: [{	coopname: string,	proposal_hash: string},ResolverInputTypes["ExpenseFile"]],
@@ -39832,6 +39879,26 @@ export type ModelTypes = {
 	learner_id: ModelTypes["ID"],
 	/** Период */
 	period: ModelTypes["EduEnrollmentPeriod"]
+};
+	["EduTeacher"]: {
+		/** Договор подписан председателем совета */
+	approved_at?: ModelTypes["DateTime"] | undefined | null,
+	/** Назначений действует */
+	assignments_active: number,
+	/** Назначений всего */
+	assignments_total: number,
+	/** Фотография пайщика */
+	avatar_url?: string | undefined | null,
+	/** Номер договора участия в хозяйственной деятельности */
+	contract_number: string,
+	/** Состояние договора */
+	contract_status: ModelTypes["EduContractStatus"],
+	/** Фамилия, имя и отчество */
+	display_name: string,
+	/** Договор подписан преподавателем */
+	signed_at: ModelTypes["DateTime"],
+	/** Учётное имя */
+	username: string
 };
 	["EduTeacherContract"]: {
 		/** Подписан председателем совета */
@@ -48177,6 +48244,8 @@ export type ModelTypes = {
 	edubridgeQuote: ModelTypes["EduQuote"],
 	/** Преподаватели, которых можно назначить на курс */
 	edubridgeTeacherOptions: Array<ModelTypes["EduTeacherOption"]>,
+	/** Преподаватели кооператива с договором и числом назначений */
+	edubridgeTeachers: Array<ModelTypes["EduTeacher"]>,
 	/** Получить запись о файле + свежий короткоживущий read-URL.
 
 Требуемые роли: chairman, member, user.  */
@@ -57042,6 +57111,28 @@ export type GraphQLTypes = {
 	learner_id: GraphQLTypes["ID"],
 	/** Период */
 	period: GraphQLTypes["EduEnrollmentPeriod"]
+};
+	["EduTeacher"]: {
+	__typename: "EduTeacher",
+	/** Договор подписан председателем совета */
+	approved_at?: GraphQLTypes["DateTime"] | undefined | null,
+	/** Назначений действует */
+	assignments_active: number,
+	/** Назначений всего */
+	assignments_total: number,
+	/** Фотография пайщика */
+	avatar_url?: string | undefined | null,
+	/** Номер договора участия в хозяйственной деятельности */
+	contract_number: string,
+	/** Состояние договора */
+	contract_status: GraphQLTypes["EduContractStatus"],
+	/** Фамилия, имя и отчество */
+	display_name: string,
+	/** Договор подписан преподавателем */
+	signed_at: GraphQLTypes["DateTime"],
+	/** Учётное имя */
+	username: string,
+	['...on EduTeacher']: Omit<GraphQLTypes["EduTeacher"], "...on EduTeacher">
 };
 	["EduTeacherContract"]: {
 	__typename: "EduTeacherContract",
@@ -66000,6 +66091,8 @@ export type GraphQLTypes = {
 	edubridgeQuote: GraphQLTypes["EduQuote"],
 	/** Преподаватели, которых можно назначить на курс */
 	edubridgeTeacherOptions: Array<GraphQLTypes["EduTeacherOption"]>,
+	/** Преподаватели кооператива с договором и числом назначений */
+	edubridgeTeachers: Array<GraphQLTypes["EduTeacher"]>,
 	/** Получить запись о файле + свежий короткоживущий read-URL.
 
 Требуемые роли: chairman, member, user.  */

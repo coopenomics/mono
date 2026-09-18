@@ -14,5 +14,6 @@ export { TeacherSettlementPage } from './TeacherSettlementPage';
 export { AdminMembersPage } from './AdminMembersPage';
 export { AdminQueuePage } from './AdminQueuePage';
 export { AdminConnectorsPage } from './AdminConnectorsPage';
-export { AdminAssignmentsPage } from './AdminAssignmentsPage';
+export { AdminTeachersPage } from './AdminTeachersPage';
+export { AdminContributionsPage } from './AdminContributionsPage';
 export { AdminAdminsPage } from './AdminAdminsPage';

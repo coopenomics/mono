@@ -2,7 +2,7 @@
   <q-badge
     :color="resolvedColor"
     :text-color="resolvedTextColor"
-    :class="['base-badge', `base-badge--${variant}`, { 'base-badge--dot': dot, 'base-badge--on-media': onMedia }]"
+    :class="['base-badge', `base-badge--${variant}`, { 'base-badge--dot': dot }]"
   >
     <slot v-if="!dot" />
   </q-badge>
@@ -15,7 +15,6 @@ import type { BaseBadgeProps } from './BaseBadge.types';
 const props = withDefaults(defineProps<BaseBadgeProps>(), {
   variant: 'neutral',
   dot: false,
-  onMedia: false,
 });
 
 const variantToQuasarColor: Record<NonNullable<BaseBadgeProps['variant']>, string | undefined> = {
@@ -41,11 +40,6 @@ const resolvedTextColor = computed(() =>
   white-space: nowrap;
   flex-shrink: 0;
   max-width: 100%;
-}
-.base-badge.base-badge--on-media {
-  background: rgba(15, 23, 24, 0.72);
-  color: #fff;
-  backdrop-filter: blur(6px);
 }
 .base-badge--dot {
   width: 8px;

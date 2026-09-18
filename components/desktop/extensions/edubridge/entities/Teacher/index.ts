@@ -7,6 +7,7 @@ import { DigitalDocument } from 'src/shared/lib/document';
 import { useGlobalStore } from 'src/shared/store';
 
 export type IContract = NonNullable<Queries.Edubridge.MyContract.IOutput['edubridgeMyContract']>;
+export type ITeacher = Queries.Edubridge.Teachers.IOutput['edubridgeTeachers'][number];
 export type IAssignment = Queries.Edubridge.MyAssignments.IOutput['edubridgeMyAssignments'][number];
 export type IContribution = Queries.Edubridge.MyContributions.IOutput['edubridgeMyContributions'][number];
 export type ISettlement = Queries.Edubridge.MySettlement.IOutput['edubridgeMySettlement'];
@@ -60,6 +61,7 @@ export const fetchMyAssignments = () => q<IAssignment[]>(Queries.Edubridge.MyAss
 export const fetchMyContributions = () => q<IContribution[]>(Queries.Edubridge.MyContributions.query, Queries.Edubridge.MyContributions.name);
 export const fetchMySettlement = () => q<ISettlement>(Queries.Edubridge.MySettlement.query, Queries.Edubridge.MySettlement.name);
 export const fetchAssignments = () => q<IAssignment[]>(Queries.Edubridge.Assignments.query, Queries.Edubridge.Assignments.name);
+export const fetchTeachers = () => q<ITeacher[]>(Queries.Edubridge.Teachers.query, Queries.Edubridge.Teachers.name);
 export const fetchContributions = () => q<IContribution[]>(Queries.Edubridge.Contributions.query, Queries.Edubridge.Contributions.name);
 export const draftContribution = (data: IContributionDraftInput) => m<IContribution>(Mutations.Edubridge.DraftContribution.mutation, Mutations.Edubridge.DraftContribution.name, { data });
 export const createAssignment = (data: IAssignmentInput) => m<IAssignment>(Mutations.Edubridge.CreateAssignment.mutation, Mutations.Edubridge.CreateAssignment.name, { data });

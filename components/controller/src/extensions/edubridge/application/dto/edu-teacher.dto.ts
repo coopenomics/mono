@@ -38,6 +38,20 @@ export class EduTeacherContractDTO {
   }
 }
 
+/** Преподаватель кооператива: кто он, его договор и сколько за ним закреплено курсов. */
+@ObjectType('EduTeacher')
+export class EduTeacherDTO {
+  @Field(() => String, { description: 'Учётное имя' }) username!: string;
+  @Field(() => String, { description: 'Фамилия, имя и отчество' }) display_name!: string;
+  @Field(() => String, { nullable: true, description: 'Фотография пайщика' }) avatar_url!: string | null;
+  @Field(() => String, { description: 'Номер договора участия в хозяйственной деятельности' }) contract_number!: string;
+  @Field(() => EduContractStatus, { description: 'Состояние договора' }) contract_status!: EduContractStatus;
+  @Field(() => Date, { description: 'Договор подписан преподавателем' }) signed_at!: Date;
+  @Field(() => Date, { nullable: true, description: 'Договор подписан председателем совета' }) approved_at!: Date | null;
+  @Field(() => Number, { description: 'Назначений всего' }) assignments_total!: number;
+  @Field(() => Number, { description: 'Назначений действует' }) assignments_active!: number;
+}
+
 @ObjectType('EduAssignment')
 export class EduAssignmentDTO {
   @Field(() => ID) id!: string;

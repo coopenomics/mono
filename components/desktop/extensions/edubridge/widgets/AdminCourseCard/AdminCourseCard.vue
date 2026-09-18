@@ -4,12 +4,12 @@ BaseCard.edu-admin-course(variant="default" role="link" tabindex="0" @click="emi
     q-img(v-if="course.image_url" :src="course.image_url" :ratio="2 / 1" fit="cover" no-spinner)
     .edu-admin-course__placeholder(v-else)
       q-icon(name="image" size="32px")
-    //- Метка состояния лежит на обложке, поэтому идёт на плотной подложке:
-    //- мягкая заливка растворялась на светлых снимках.
-    BaseBadge.edu-admin-course__status(:variant="status.variant" on-media) {{ status.label }}
-  .row.q-gutter-xs
+  //- Состояние курса стоит под обложкой, справа от предмета и класса: поверх
+  //- снимка метка спорила с картинкой и терялась на светлых кадрах.
+  .edu-admin-course__tags
     BaseChip(variant="neutral" size="sm") {{ course.subject }}
     BaseChip(variant="neutral" size="sm") {{ course.grade }}
+    BaseBadge.edu-admin-course__status(:variant="status.variant") {{ status.label }}
   .text-subtitle2.text-weight-medium.q-mt-sm.ellipsis-2-lines {{ course.title }}
   .edu-admin-course__rows.q-mt-sm
     .row.items-center.no-wrap.t-sm.t-muted(v-if="course.teacher_usernames.length")
@@ -68,10 +68,14 @@ const status = computed(() => COURSE_STATUS_LABELS[props.course.status] ?? { lab
   justify-content: center;
   color: var(--p-ink-3);
 }
+.edu-admin-course__tags {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--p-2);
+}
 .edu-admin-course__status {
-  position: absolute;
-  top: var(--p-3);
-  left: var(--p-3);
+  margin-left: auto;
 }
 .edu-admin-course__rows {
   display: flex;

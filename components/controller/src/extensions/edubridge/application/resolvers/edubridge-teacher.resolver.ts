@@ -15,6 +15,7 @@ import {
   EduSignContractInputDTO,
   EduSubmitContributionInputDTO,
   EduTeacherContractDTO,
+  EduTeacherDTO,
   EduTeacherSettlementDTO,
 } from '../dto/edu-teacher.dto';
 import { EdubridgeAccessGuard } from '../guards/edubridge-access.guard';
@@ -119,6 +120,13 @@ export class EdubridgeTeacherResolver {
   }
 
   // ── Администратор / владелец ──────────────────────────────────────────────
+  @Query(() => [EduTeacherDTO], { name: 'edubridgeTeachers', description: 'Преподаватели кооператива с договором и числом назначений' })
+  @UseGuards(GqlJwtAuthGuard, EdubridgeAccessGuard)
+  @RequireEduAccess('EduAssignment', 'read:all')
+  edubridgeTeachers(): Promise<EduTeacherDTO[]> {
+    return this.teachers.listTeachers(coop());
+  }
+
   @Query(() => [EduAssignmentDTO], { name: 'edubridgeAssignments', description: 'Назначения преподавателей кооператива' })
   @UseGuards(GqlJwtAuthGuard, EdubridgeAccessGuard)
   @RequireEduAccess('EduAssignment', 'read:all')

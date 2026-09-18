@@ -10,6 +10,7 @@ import {
   DecisionTrackedEvent,
   FREE_DECISION_PORT,
   LOGGER_PORT,
+  USER_AVATAR_PORT,
   USER_WALLET_PORT,
   type IDecisionTrackingPort,
   type IDocumentPort,
@@ -18,6 +19,7 @@ import {
   type InnerDocumentAggregate,
   type InnerGeneratedDocument,
   type ISignedDocument,
+  type IUserAvatarPort,
   type IUserWalletPort,
 } from '@coopenomics/innercoop';
 import { EduAssignmentStatus, EduContractStatus, EduContributionStatus } from '../../domain/enums';
@@ -25,7 +27,8 @@ import { EDUBRIDGE_CHAIN_PORT, type EdubridgeChainPort } from '../../domain/port
 import type { EdubridgeContributionEntity, EdubridgeTeacherAssignmentEntity, EdubridgeTeacherContractEntity } from '../../infrastructure/entities';
 import { EdubridgeCourseRepository } from '../../infrastructure/repositories/edubridge-course.repository';
 import { EdubridgeTeacherRepository } from '../../infrastructure/repositories/edubridge-teacher.repository';
-import type { EduAssignmentInputDTO, EduContributionDraftInputDTO, EduTeacherSettlementDTO } from '../dto/edu-teacher.dto';
+import type { EduAssignmentInputDTO, EduContributionDraftInputDTO, EduTeacherDTO, EduTeacherSettlementDTO } from '../dto/edu-teacher.dto';
+import { EdubridgeNamesService } from '../membership/edubridge-names.service';
 import {
   EDUBRIDGE_ANNEX_DECIDED_EVENT,
   EDUBRIDGE_CONTRACT_DECIDED_EVENT,
@@ -60,6 +63,8 @@ export class EdubridgeTeacherService {
     @Inject(FREE_DECISION_PORT) private readonly freeDecisions: IFreeDecisionPort,
     @Inject(DECISION_TRACKING_PORT) private readonly tracking: IDecisionTrackingPort,
     @Inject(USER_WALLET_PORT) private readonly wallets: IUserWalletPort,
+    @Inject(USER_AVATAR_PORT) private readonly avatars: IUserAvatarPort,
+    private readonly names: EdubridgeNamesService,
     @Inject(LOGGER_PORT) private readonly logger: ILoggerPort,
     private readonly events: EventEmitter2
   ) {
@@ -130,6 +135,36 @@ export class EdubridgeTeacherService {
   }
 
   // ── Назначения ─────────────────────────────────────────────────────────────
+  /**
+   * Преподаватели кооператива — все, кто подписал договор участия в
+   * хозяйственной деятельности, вместе с состоянием договора и числом
+   * назначений. Имя и фотография берутся у ядра через порты: своей копии
+   * персональных данных расширение не держит.
+   */
+  async listTeachers(coopname: string): Promise<EduTeacherDTO[]> {
+    const contracts = await this.teachers.listContracts(coopname);
+    const usernames = contracts.map((c) => c.teacher_username);
+    const [names, avatars, assignments] = await Promise.all([
+      this.names.displayNames(usernames),
+      this.avatars.getAvatarUrls(usernames),
+      this.teachers.listAssignments(coopname),
+    ]);
+    return contracts.map((c) => {
+      const own = assignments.filter((a) => a.teacher_username === c.teacher_username);
+      return {
+        username: c.teacher_username,
+        display_name: names.get(c.teacher_username) ?? '',
+        avatar_url: avatars.get(c.teacher_username) ?? null,
+        contract_number: c.contract_number,
+        contract_status: c.status,
+        signed_at: c.signed_at,
+        approved_at: c.approved_at ?? null,
+        assignments_total: own.length,
+        assignments_active: own.filter((a) => a.status === EduAssignmentStatus.ACTIVE).length,
+      };
+    });
+  }
+
   async listAssignments(coopname: string, teacher?: string) {
     const rows = await this.teachers.listAssignments(coopname, teacher ? { teacher } : {});
     return Promise.all(rows.map(async (a) => ({ assignment: a, course: await this.courses.findById(coopname, a.course_id) })));

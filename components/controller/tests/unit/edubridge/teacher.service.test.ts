@@ -19,6 +19,7 @@ function make(opts: { contract?: boolean | EduContractStatus; assignmentStatus?:
   };
   const teachers = {
     findContract: jest.fn(async () => contractState.current),
+    listContracts: jest.fn(async () => (contractState.current ? [contractState.current] : [])),
     saveContract: jest.fn(async (d: any) => { contractState.current = { ...d }; return contractState.current; }),
     findAssignment: jest.fn(async () => assignment),
     findAssignmentByAnnexHash: jest.fn(async (_c: string, h: string) => (assignment.annex_hash === h.toLowerCase() ? assignment : null)),
@@ -47,9 +48,12 @@ function make(opts: { contract?: boolean | EduContractStatus; assignmentStatus?:
   } as any;
   const tracking = { registerTrackingRule: jest.fn(async () => ({})) } as any;
   const wallets = { findByWalletAndUsername: jest.fn(async () => ({ available: '7000.0000 RUB' })) } as any;
+  // Имя и фотография приходят из ядра портами — расширение своей копии не держит.
+  const avatars = { getAvatarUrl: jest.fn(async () => null), getAvatarUrls: jest.fn(async () => new Map([['teach', '/backend/avatar.jpg']])) } as any;
+  const names = { displayName: jest.fn(async () => 'Иванов Иван Иванович'), displayNames: jest.fn(async () => new Map([['teach', 'Иванов Иван Иванович']])) } as any;
   const events = { emit: jest.fn() } as any;
-  const service = new EdubridgeTeacherService(teachers, courses, chain, documents, freeDecisions, tracking, wallets, logger, events);
-  return { service, teachers, chain, documents, freeDecisions, tracking, store, assignment };
+  const service = new EdubridgeTeacherService(teachers, courses, chain, documents, freeDecisions, tracking, wallets, avatars, names, logger, events);
+  return { service, teachers, chain, documents, freeDecisions, tracking, store, assignment, avatars, names };
 }
 
 const draft = { assignment_id: 'A1', rid_type: EduRidType.LESSON_RECORDING, links: ['https://x/1'], amount: '5000.0000 RUB' };
@@ -212,5 +216,40 @@ describe('EdubridgeTeacherService', () => {
     const s = await service.settlement('voskhod', 'teach');
     expect(s.accepted_total).toBe('5000.0000 RUB');
     expect(s.available).toBe('7000.0000 RUB');
+  });
+});
+
+describe('EdubridgeTeacherService — преподаватели кооператива', () => {
+  it('список собирается по договорам: имя и фотография из ядра, назначения посчитаны', async () => {
+    const { service } = make();
+    const [teacher] = await service.listTeachers('voskhod');
+    expect(teacher).toMatchObject({
+      username: 'teach',
+      display_name: 'Иванов Иван Иванович',
+      avatar_url: '/backend/avatar.jpg',
+      contract_number: 'N1',
+      contract_status: EduContractStatus.ACTIVE,
+      assignments_total: 1,
+      assignments_active: 1,
+    });
+  });
+
+  it('закрытое назначение в число действующих не идёт', async () => {
+    const { service } = make({ assignmentStatus: EduAssignmentStatus.CLOSED });
+    const [teacher] = await service.listTeachers('voskhod');
+    expect(teacher).toMatchObject({ assignments_total: 1, assignments_active: 0 });
+  });
+
+  it('без подписанных договоров список пуст', async () => {
+    const { service } = make({ contract: false });
+    await expect(service.listTeachers('voskhod')).resolves.toEqual([]);
+  });
+
+  it('пайщик без сертификата остаётся с учётным именем, фотографии может не быть', async () => {
+    const { service, names, avatars } = make();
+    names.displayNames.mockResolvedValueOnce(new Map());
+    avatars.getAvatarUrls.mockResolvedValueOnce(new Map());
+    const [teacher] = await service.listTeachers('voskhod');
+    expect(teacher).toMatchObject({ display_name: '', avatar_url: null });
   });
 });
