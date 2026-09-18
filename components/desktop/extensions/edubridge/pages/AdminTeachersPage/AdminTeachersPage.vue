@@ -59,7 +59,7 @@
             q-item-section(side)
               .row.items-center.q-gutter-sm
                 BaseBadge(:variant="assignmentStatusOf(a.status).variant") {{ assignmentStatusOf(a.status).label }}
-                BaseButton(v-if="a.status !== 'closed'" variant="ghost" size="sm" @click="onClose(a)") Закрыть
+                BaseButton(v-if="a.status !== Zeus.EduAssignmentStatus.CLOSED" variant="ghost" size="sm" @click="onClose(a)") Закрыть
         .t-muted.t-sm.q-mb-md(v-else) Курсы за преподавателем пока не закреплены.
 
         BaseButton(v-if="!assignFormOpen" variant="secondary" size="sm" @click="openAssignForm")
