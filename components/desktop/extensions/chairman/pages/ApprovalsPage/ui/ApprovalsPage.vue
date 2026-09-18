@@ -1,29 +1,20 @@
 <template lang="pug">
-.approvals-page
-  q-card(flat)
-
-    // Фильтры
-    q-card-section
-      .row.q-gutter-md
-        q-select(
-          v-model='filters.statuses'
-          :options='statusOptions'
-          label='Статус'
-          placeholder='без фильтра'
-          dense
-          outlined
-          color="primary"
-          @update:model-value='onFiltersChange'
-          style="width: 250px"
-        )
-
-    // Таблица одобрений
-    ApprovalsTableWidget(
-      :approvals='approvalStore.approvals?.items || []',
-      :loading='loading',
-      :pagination='pagination',
-      @request='onRequest'
+.q-pa-md
+  FilterBar.q-mb-md
+    BaseSelect(
+      v-model="statusFilter"
+      label="Состояние"
+      :options="statusOptions"
+      style="width: 240px"
+      @update:model-value="onFiltersChange"
     )
+
+  ApprovalsTableWidget(
+    :approvals="approvalStore.approvals?.items || []"
+    :loading="loading"
+    :pagination="pagination"
+    @update:page="onPageChange"
+  )
 </template>
 
 <script lang="ts" setup>
@@ -31,6 +22,8 @@ import { ref, onMounted, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { FailAlert } from 'src/shared/api';
 import { ApprovalsTableWidget } from 'app/extensions/chairman/widgets/ApprovalsTableWidget/ui';
+import { BaseSelect } from 'src/shared/ui/base';
+import { FilterBar } from 'src/shared/ui/domain';
 import { useApprovalStore } from 'app/extensions/chairman/entities/Approval/model';
 
 import { Zeus } from '@coopenomics/sdk';
@@ -40,17 +33,14 @@ const route = useRoute();
 
 const loading = ref(false);
 
-// Фильтры
-const filters = ref({
-  statuses: { label: 'Ожидает', value: Zeus.ApprovalStatus.PENDING },
-});
+// Фильтр по состоянию: по умолчанию показываем то, что ждёт решения.
+const statusFilter = ref<string | null>(Zeus.ApprovalStatus.PENDING);
 
-// Опции статусов
 const statusOptions = [
-  { label: 'Все статусы', value: null},
-  { label: 'Ожидает', value: Zeus.ApprovalStatus.PENDING},
-  { label: 'Одобрено', value: Zeus.ApprovalStatus.APPROVED},
-  { label: 'Отклонено', value: Zeus.ApprovalStatus.DECLINED},
+  { label: 'Все состояния', value: null },
+  { label: 'Ожидает', value: Zeus.ApprovalStatus.PENDING },
+  { label: 'Одобрено', value: Zeus.ApprovalStatus.APPROVED },
+  { label: 'Отклонено', value: Zeus.ApprovalStatus.DECLINED },
 ];
 
 // Пагинация
@@ -72,7 +62,7 @@ const loadApprovals = async () => {
     const data = {
       filter: {
         coopname,
-        statuses: filters.value.statuses.value !== null ? [filters.value.statuses.value] : undefined,
+        statuses: statusFilter.value ? [statusFilter.value as Zeus.ApprovalStatus] : undefined,
       },
       options: {
         page: pagination.value.page,
@@ -100,9 +90,9 @@ const onFiltersChange = () => {
   loadApprovals();
 };
 
-// Обработчик запроса пагинации
-const onRequest = (props: { pagination: any }) => {
-  pagination.value = props.pagination;
+// Листание: страницы считает сервер, экран только просит нужную.
+const onPageChange = (page: number) => {
+  pagination.value.page = page;
   loadApprovals();
 };
 

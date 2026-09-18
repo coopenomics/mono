@@ -56,7 +56,7 @@ import { ASSIGNMENT_STATUS_LABELS, fetchMyAssignments, fetchMyContract, type IAs
  * назначений. Учётное имя отсюда администратор указывает при назначении на курс.
  */
 const CONTRACT_STATUS_LABELS: Record<string, { label: string; variant: 'pos' | 'warn' | 'neg' | 'neutral' }> = {
-  [Zeus.EduContractStatus.PENDING_APPROVAL]: { label: 'Ждёт подписи председателя', variant: 'warn' },
+  [Zeus.EduContractStatus.PENDING_APPROVAL]: { label: 'Ждёт председателя', variant: 'warn' },
   [Zeus.EduContractStatus.ACTIVE]: { label: 'Действует', variant: 'pos' },
   [Zeus.EduContractStatus.DECLINED]: { label: 'Председатель отказал', variant: 'neg' },
 };

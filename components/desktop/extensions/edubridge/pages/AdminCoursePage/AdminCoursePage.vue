@@ -53,7 +53,7 @@
         q-list(v-if="course.teacher_usernames.length" separator)
           q-item(v-for="username in course.teacher_usernames" :key="username")
             q-item-section
-              IdentityCell(:username="username")
+              IdentityCell(:account-name="username")
         .t-muted.t-sm(v-else) Преподаватели не назначены — назначения оформляются на странице «Преподаватели».
 
   BaseDialog(v-model="editOpen" title="Изменить курс" size="lg")

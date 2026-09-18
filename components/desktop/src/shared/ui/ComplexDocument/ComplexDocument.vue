@@ -36,7 +36,17 @@ import type { IDocumentAggregate } from 'src/entities/Document/model'
 const props = defineProps({
   documents: {
     type: Object as () => IDocumentPackageAggregate,
-    required: true
+    required: false,
+    default: undefined,
+  },
+  /**
+   * Одиночный документ вместо пакета: у запроса одобрения документ один, а
+   * показывать его нужно так же — строкой с раскрытием, а не особой вёрсткой.
+   */
+  document: {
+    type: Object as () => IDocumentAggregate,
+    required: false,
+    default: undefined,
   },
   /** Показывать документы строками и раскрывать по одному. */
   collapsible: {
@@ -64,8 +74,10 @@ const toRow = (aggregate: IDocumentAggregate, fallbackTitle: string): DocumentRo
 // Порядок прежний: заявление, решение, затем связанные документы — и последние
 // только при наличии заявления, как было.
 const items = computed<IPackageItem[]>(() => {
+  if (props.document) return [{ key: 'single', aggregate: props.document, row: toRow(props.document, 'Документ') }]
   const pack = props.documents
   const list: IPackageItem[] = []
+  if (!pack) return list
   const statement = pack.statement?.documentAggregate
   const decision = pack.decision?.documentAggregate
   if (statement) list.push({ key: 'statement', aggregate: statement, row: toRow(statement, 'Заявление') })

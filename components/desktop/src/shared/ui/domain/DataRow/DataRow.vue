@@ -104,6 +104,9 @@ async function onCopy(): Promise<void> {
 .data-row__value {
   display: inline-flex;
   align-items: center;
+  /* Длинное значение (бейдж состояния, имя площадки) в узкой колонке иначе
+     выходит за край карточки — переносим на следующую строку целиком. */
+  flex-wrap: wrap;
   gap: var(--p-2, 8px);
   min-width: 0;
   color: var(--p-ink);
