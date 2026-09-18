@@ -34,6 +34,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import { asText } from 'src/shared/lib/utils';
 import { useFirstLoad } from 'src/shared/lib/composables';
 import { FailAlert } from 'src/shared/api';
 import { BaseBadge, BaseButton, BaseCard, BaseTable, EmptyState, type BaseTableColumn } from 'src/shared/ui/base';
@@ -110,7 +111,7 @@ function goToCatalog(): void {
 }
 
 function extend(row: IEnrollment): void {
-  lockedCourseId.value = row.course_id;
+  lockedCourseId.value = asText(row.course_id);
   extendOpen.value = true;
 }
 function onLearnerAdded(l: ILearner): void {

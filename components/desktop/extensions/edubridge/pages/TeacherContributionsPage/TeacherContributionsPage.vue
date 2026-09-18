@@ -37,7 +37,7 @@ import { useFirstLoad } from 'src/shared/lib/composables';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { useHeaderActions } from 'src/shared/hooks';
 import { useSystemStore } from 'src/entities/System/model';
-import { formatToAsset } from 'src/shared/lib/utils';
+import { asText, formatToAsset } from 'src/shared/lib/utils';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { BaseBadge, BaseButton, BaseDialog, BaseForm, BaseInput, BaseSelect, BaseTable, EmptyState, type BaseTableColumn } from 'src/shared/ui/base';
 import { PageHint } from 'src/shared/ui/domain';
@@ -78,7 +78,7 @@ const columns: BaseTableColumn<IContribution>[] = [
 ];
 const ridType = (t: string) => RID_TYPE_LABELS[t] ?? t;
 const statusOf = (s: string) => CONTRIBUTION_STATUS_LABELS[s] ?? { label: s, variant: 'neutral' as const };
-const assignmentOptions = computed(() => assignments.value.filter((a) => a.status === Zeus.EduAssignmentStatus.ACTIVE).map((a) => ({ value: a.id, label: `${a.course_title} (${a.period_from} — ${a.period_to})` })));
+const assignmentOptions = computed(() => assignments.value.filter((a) => a.status === Zeus.EduAssignmentStatus.ACTIVE).map((a) => ({ value: asText(a.id), label: `${a.course_title} (${a.period_from} — ${a.period_to})` })));
 const ridTypeOptions = Object.entries(RID_TYPE_LABELS).map(([value, label]) => ({ value, label }));
 
 async function load(): Promise<void> {
@@ -117,7 +117,7 @@ async function onDraft(): Promise<void> {
 }
 
 async function onSubmit(c: IContribution): Promise<void> {
-  busy.value = c.id;
+  busy.value = asText(c.id);
   try {
     replace(await submitContribution(c));
     SuccessAlert('Заявление подписано, проект решения направлен совету');
@@ -129,7 +129,7 @@ async function onSubmit(c: IContribution): Promise<void> {
 }
 
 async function onSignAct(c: IContribution): Promise<void> {
-  busy.value = c.id;
+  busy.value = asText(c.id);
   try {
     replace(await signAct(c));
     SuccessAlert('Акт подписан — ждём подпись председателя');

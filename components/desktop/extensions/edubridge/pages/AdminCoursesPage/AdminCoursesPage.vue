@@ -6,8 +6,8 @@
 
   CardListSkeleton(v-if="firstLoad" :count="3")
   .row.q-col-gutter-md(v-else-if="items.length")
-    .col-12.col-sm-6.col-md-4(v-for="course in items" :key="course.id")
-      AdminCourseCard(:course="course" @open="openCourse(course.id)")
+    .col-12.col-sm-6.col-md-4(v-for="course in items" :key="asText(course.id)")
+      AdminCourseCard(:course="course" @open="openCourse(asText(course.id))")
 
   EmptyState(v-if="!firstLoad && !items.length" title="Курсов пока нет" body="Добавьте первый курс кнопкой в правом верхнем углу.")
     template(#icon)
@@ -20,6 +20,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import { asText } from 'src/shared/lib/utils';
 import { useFirstLoad } from 'src/shared/lib/composables';
 import { FailAlert } from 'src/shared/api';
 import { useHeaderActions } from 'src/shared/hooks';

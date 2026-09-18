@@ -10,7 +10,7 @@
     .col-12.col-md-7
       BaseCard(variant="default" title="Преподаватель")
         //- Фотография одна на пайщика: она же стоит в удостоверении пайщика.
-        AvatarUpload.q-mb-md(:name="fullName" :src="avatarUrl" @changed="onAvatarChanged")
+        AvatarUpload.q-mb-md(:name="fullName || username" :src="avatarUrl" @changed="onAvatarChanged")
         IdentityCell(:account-name="username" :full-name="fullName" copyable)
         q-separator.q-my-md
         DataRow(label="Курсов ведётся" :value="String(activeAssignments)")
@@ -18,7 +18,7 @@
 
       BaseCard.q-mt-md(variant="default" title="Курсы")
         q-list(v-if="assignments.length" separator)
-          q-item(v-for="a in assignments" :key="a.id")
+          q-item(v-for="a in assignments" :key="asText(a.id)")
             q-item-section
               .text-weight-medium {{ a.course_title }}
               .t-muted.t-sm {{ a.period_from }} — {{ a.period_to }}
@@ -48,6 +48,7 @@ import { FailAlert } from 'src/shared/api';
 import { useSessionStore } from 'src/entities/Session';
 import { AvatarUpload } from 'src/features/User/Avatar';
 import { getName } from 'src/shared/lib/utils/account';
+import { asDateInput, asText } from 'src/shared/lib/utils';
 import { BaseBadge, BaseCard, CardListSkeleton } from 'src/shared/ui/base';
 import { DataRow, IdentityCell, PageHint } from 'src/shared/ui/domain';
 import { ASSIGNMENT_STATUS_LABELS, fetchMyAssignments, fetchMyContract, type IAssignment, type IContract } from '../../entities/Teacher';
@@ -88,7 +89,10 @@ const declined = computed(() => contract.value?.status === Zeus.EduContractStatu
 const activeAssignments = computed(() => assignments.value.filter((a) => a.status === Zeus.EduAssignmentStatus.ACTIVE).length);
 
 const statusOf = (s: string) => ASSIGNMENT_STATUS_LABELS[s] ?? { label: s, variant: 'neutral' as const };
-const formatDate = (v: string | Date) => new Date(v).toLocaleDateString('ru-RU');
+const formatDate = (v: unknown) => {
+  const input = asDateInput(v);
+  return input ? new Date(input).toLocaleDateString('ru-RU') : '______';
+};
 
 async function load(): Promise<void> {
   loading.value = true;

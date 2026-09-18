@@ -34,6 +34,7 @@ BaseDialog(:model-value="modelValue" title="Получить доступ" size=
 import { computed, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { Zeus } from '@coopenomics/sdk';
+import { asText } from 'src/shared/lib/utils';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { BaseBanner, BaseButton, BaseDialog, BaseSelect } from 'src/shared/ui/base';
@@ -76,8 +77,8 @@ const quote = ref<IQuote | null>(null);
 const busy = ref(false);
 const statement = ref<DigitalDocument | null>(null);
 
-const learnerOptions = computed(() => pool.value.map((l) => ({ value: l.id, label: l.is_self ? `${l.display_name} (я)` : l.display_name })));
-const courseOptions = computed(() => props.courses.map((c) => ({ value: c.id, label: `${c.title} · ${c.subject}, ${c.grade}` })));
+const learnerOptions = computed(() => pool.value.map((l) => ({ value: asText(l.id), label: l.is_self ? `${l.display_name} (я)` : l.display_name })));
+const courseOptions = computed(() => props.courses.map((c) => ({ value: asText(c.id), label: `${c.title} · ${c.subject}, ${c.grade}` })));
 const periodOptions = Object.entries(PERIOD_LABELS).map(([value, label]) => ({ value, label }));
 const courseTitle = computed(() => props.courses.find((c) => c.id === courseId.value)?.title ?? '');
 
@@ -105,8 +106,8 @@ watch(
 
 /** Обучающийся по умолчанию — сам пайщик: так подписка на себя оформляется в два клика. */
 function pickDefaultLearner(): void {
-  if (learnerId.value && pool.value.some((l) => l.id === learnerId.value)) return;
-  learnerId.value = (pool.value.find((l) => l.is_self) ?? pool.value[0])?.id ?? null;
+  if (learnerId.value && pool.value.some((l) => asText(l.id) === learnerId.value)) return;
+  learnerId.value = asText((pool.value.find((l) => l.is_self) ?? pool.value[0])?.id) || null;
 }
 
 watch(
@@ -128,8 +129,8 @@ watch(
 
 /** Обучающийся, заведённый прямо в диалоге: сразу выбран и отдан странице, чтобы список не расходился. */
 function onLearnerAdded(learner: ILearner): void {
-  pool.value = [...pool.value.filter((l) => l.id !== learner.id), learner];
-  learnerId.value = learner.id;
+  pool.value = [...pool.value.filter((l) => asText(l.id) !== asText(learner.id)), learner];
+  learnerId.value = asText(learner.id);
   learnerFormOpen.value = false;
   emit('learner-added', learner);
 }

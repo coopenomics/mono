@@ -25,6 +25,7 @@
 
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
+import { asText } from 'src/shared/lib/utils';
 import { useFirstLoad } from 'src/shared/lib/composables';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { useHeaderActions } from 'src/shared/hooks';
@@ -82,7 +83,7 @@ async function onAppoint(): Promise<void> {
   }
 }
 async function onDismiss(a: IAdmin): Promise<void> {
-  busyDismiss.value = a.id;
+  busyDismiss.value = asText(a.id);
   try {
     await dismissAdmin(a.username);
     items.value = items.value.filter((x) => x.id !== a.id);

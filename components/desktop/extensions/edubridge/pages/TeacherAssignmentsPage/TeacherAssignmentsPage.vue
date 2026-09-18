@@ -19,6 +19,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
 import { Zeus } from '@coopenomics/sdk';
+import { asText } from 'src/shared/lib/utils';
 import { useFirstLoad } from 'src/shared/lib/composables';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { BaseBadge, BaseButton, BaseTable, EmptyState, type BaseTableColumn } from 'src/shared/ui/base';
@@ -59,7 +60,7 @@ async function load(): Promise<void> {
 
 async function onSignAnnex(a: IAssignment): Promise<void> {
   if (!contract.value) return;
-  busy.value = a.id;
+  busy.value = asText(a.id);
   try {
     const updated = await signAnnex(a, contract.value.contract_number);
     assignments.value = assignments.value.map((x) => (x.id === updated.id ? updated : x));

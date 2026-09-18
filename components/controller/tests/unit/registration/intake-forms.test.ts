@@ -158,7 +158,7 @@ describe('анкеты вступления: реестр', () => {
 describe('анкеты вступления: сборка для заявителя', () => {
   it('программа несёт свои анкеты, общие идут отдельно и не дублируются', () => {
     const registry = new AgreementRegistryService(makeLoggerStub());
-    const config = new AgreementConfigurationService({ getDefaultAdditionalAgreements: () => [] } as any, registry);
+    const config = new AgreementConfigurationService({ getDefaultAdditionalAgreements: () => [] } as any, registry, { narrowPrograms: (items: unknown[]) => items, narrowAgreements: (items: unknown[]) => items } as any);
 
     registry.registerIntakeForm(makeForm());
     registry.registerIntakeForm(

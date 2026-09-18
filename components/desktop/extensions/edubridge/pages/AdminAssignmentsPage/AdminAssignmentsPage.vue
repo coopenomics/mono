@@ -64,6 +64,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue';
 import { Zeus } from '@coopenomics/sdk';
+import { asText } from 'src/shared/lib/utils';
 import { useFirstLoad } from 'src/shared/lib/composables';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { useHeaderActions } from 'src/shared/hooks';
@@ -123,7 +124,7 @@ const contributionColumns: BaseTableColumn<IContribution>[] = [
   { key: 'status', label: 'Состояние', width: '170px' },
   { key: 'actions', label: '', align: 'right', width: '120px' },
 ];
-const courseOptions = computed(() => courses.value.map((c) => ({ value: c.id, label: `${c.title} · ${c.subject}, ${c.grade}` })));
+const courseOptions = computed(() => courses.value.map((c) => ({ value: asText(c.id), label: `${c.title} · ${c.subject}, ${c.grade}` })));
 const teacherOptions = computed(() => teachers.value.map((t) => ({ value: t.username, label: `${t.display_name || t.username} · договор № ${t.contract_number}` })));
 // ФИО известны для преподавателей с договором; остальным показываем учётное имя.
 const teacherName = (username: string) => teachers.value.find((t) => t.username === username)?.display_name || null;

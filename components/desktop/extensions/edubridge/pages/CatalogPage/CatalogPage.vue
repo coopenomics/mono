@@ -17,8 +17,8 @@
       q-icon(name="school" size="40px")
 
   .row.q-col-gutter-md(v-else)
-    .col-12.col-sm-6.col-md-4(v-for="course in items" :key="course.id")
-      CourseCard(:course="course" @open="openCourse(course.id)")
+    .col-12.col-sm-6.col-md-4(v-for="course in items" :key="asText(course.id)")
+      CourseCard(:course="course" @open="openCourse(asText(course.id))")
 
   .row.justify-center.q-mt-lg(v-if="hasMore")
     BaseButton(variant="secondary" :loading="loading" @click="loadMore") Показать ещё
@@ -27,6 +27,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import { asText } from 'src/shared/lib/utils';
 import { useFirstLoad } from 'src/shared/lib/composables';
 import { FailAlert } from 'src/shared/api';
 import { BaseButton, CardListSkeleton, EmptyState } from 'src/shared/ui/base';

@@ -9,7 +9,7 @@
 экспорта, исчезнувший метод, новый обязательный параметр требуют major, а
 снятое старое — периода устаревания не меньше одного minor (INV-009).
 
-Всего экспортов: 288.
+Всего экспортов: 290.
 
 ## ACCOUNT_PORT
 
@@ -2173,6 +2173,13 @@
 - `isEnabled(): Promise<boolean>`
 - `requestDecision(input: InnerRobotDecisionRequest): Promise<InnerRobotDecisionResult>`
 
+## IUserAvatarPort
+
+`interface` · core-ports
+
+- `getAvatarUrl(username: string): Promise<string | null>`
+- `getAvatarUrls(usernames: string[]): Promise<Map<string, string>>`
+
 ## IUserCertificatePort
 
 `interface` · core-ports
@@ -2475,6 +2482,12 @@
 - `metadata: Record<string, any>`
 - `active: boolean`
 - `created_at: Date`
+
+## USER_AVATAR_PORT
+
+`const` · core-ports
+
+- `Symbol.for('Innercoop.CorePort.UserAvatar')`
 
 ## USER_CERTIFICATE_PORT
 

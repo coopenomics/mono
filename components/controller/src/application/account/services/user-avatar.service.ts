@@ -57,9 +57,12 @@ export class UserAvatarService implements IUserAvatarPort {
   /** Снять фотографию: в удостоверении снова остаются инициалы. */
   async remove(username: string): Promise<void> {
     const user = await this.users.findByUsername(username);
-    if (!user?.avatar_key) return;
+    // Ключ запоминаем до обновления: запись аккаунта может быть тем же объектом,
+    // и после очистки читать из неё уже нечего.
+    const key = user?.avatar_key;
+    if (!key) return;
     await this.users.updateByUsername(username, { avatar_key: null, avatar_mime: null });
-    await this.deleteQuietly(user.avatar_key);
+    await this.deleteQuietly(key);
   }
 
   async getAvatarUrl(username: string): Promise<string | null> {

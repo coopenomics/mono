@@ -12,7 +12,7 @@
       template(#action)
         BaseButton.q-mt-md(variant="primary" @click="addLearnerOpen()") Добавить обучающегося
     q-list(v-else separator)
-      q-item(v-for="l in learners" :key="l.id")
+      q-item(v-for="l in learners" :key="asText(l.id)")
         q-item-section
           .text-weight-medium {{ l.display_name }}
             BaseChip.q-ml-sm(v-if="l.is_self" variant="neutral" size="sm") я
@@ -30,6 +30,7 @@
 
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
+import { asText } from 'src/shared/lib/utils';
 import { useFirstLoad } from 'src/shared/lib/composables';
 import { FailAlert } from 'src/shared/api';
 import { useHeaderActions } from 'src/shared/hooks';

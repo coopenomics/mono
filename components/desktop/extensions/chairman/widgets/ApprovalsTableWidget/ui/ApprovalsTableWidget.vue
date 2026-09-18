@@ -65,6 +65,9 @@ div
 <script lang="ts" setup>
 import { computed, ref, watch, type Ref } from 'vue';
 import type { IApproval } from 'app/extensions/chairman/entities/Approval/model/types';
+
+/** Элемент реестра: в выдаче SDK тип допускает пустоту, в списке её нет. */
+type Approval = NonNullable<IApproval>;
 import { useConfirmApproval } from 'app/extensions/chairman/features/Approval/ConfirmApproval';
 import { useDeclineApproval } from 'app/extensions/chairman/features/Approval/DeclineApproval';
 import { get_approval_action_label, is_approval_declinable } from 'app/extensions/chairman/shared';
@@ -80,7 +83,7 @@ import { DataRow, DetailsDrawer, IdentityCell } from 'src/shared/ui/domain';
  * правую панель, а одинаковые решения принимаются пачкой по отметкам.
  */
 interface Props {
-  approvals: IApproval[];
+  approvals: Approval[];
   loading?: boolean;
   /** Страницы считает сервер — экран отдаёт номер и общее число. */
   pagination?: { page: number; rowsPerPage: number; rowsNumber: number };
@@ -95,7 +98,7 @@ const STATUS_LABELS: Record<string, { label: string; variant: 'pos' | 'warn' | '
   DECLINED: { label: 'Отклонено', variant: 'neg' },
 };
 
-const columns: BaseTableColumn<IApproval>[] = [
+const columns: BaseTableColumn<Approval>[] = [
   { key: 'username', label: 'Пайщик', width: '260px' },
   { key: 'action', label: 'Действие' },
   { key: 'status', label: 'Состояние', width: '140px', nowrap: true },
@@ -106,9 +109,9 @@ const { fioCache, enrichFio } = useFioCache();
 const { confirmApproval } = useConfirmApproval();
 const { declineApproval } = useDeclineApproval();
 
-const selected = ref<IApproval[]>([]);
+const selected = ref<Approval[]>([]);
 const detailsOpen = ref(false);
-const current = ref<IApproval | null>(null);
+const current = ref<Approval | null>(null);
 const confirmOpen = ref(false);
 const confirmKind = ref<'approve' | 'decline'>('approve');
 const confirmScope = ref<'single' | 'bulk'>('single');
@@ -125,11 +128,15 @@ const confirmText = computed(() => {
 });
 
 const statusOf = (s: string) => STATUS_LABELS[s] ?? { label: s, variant: 'neutral' as const };
-const actionLabel = (a: IApproval) => get_approval_action_label(a.callback_contract, a.callback_action_approve);
-const declinable = (a: IApproval) => is_approval_declinable(a.callback_contract, a.callback_action_approve);
-const formatDate = (date: string) => new Date(date).toLocaleDateString('ru-RU');
+const actionLabel = (a: Approval) => get_approval_action_label(a.callback_contract, a.callback_action_approve);
+const declinable = (a: Approval) => is_approval_declinable(a.callback_contract, a.callback_action_approve);
+// Дата приходит из SDK и строкой, и объектом, а тип у неё в схеме неизвестный.
+const formatDate = (date: unknown) => {
+  if (date instanceof Date) return date.toLocaleDateString('ru-RU');
+  return typeof date === 'string' ? new Date(date).toLocaleDateString('ru-RU') : '______';
+};
 
-function openDetails(row: IApproval): void {
+function openDetails(row: Approval): void {
   current.value = row;
   detailsOpen.value = true;
 }
@@ -147,7 +154,7 @@ function askBulk(kind: 'approve' | 'decline'): void {
 }
 
 /** Одно решение по одному запросу: одобрение подписывает документ второй подписью. */
-async function decide(a: IApproval, kind: 'approve' | 'decline'): Promise<void> {
+async function decide(a: Approval, kind: 'approve' | 'decline'): Promise<void> {
   if (kind === 'approve') {
     await confirmApproval(a.coopname, a.approval_hash, a.document);
   } else {
@@ -156,7 +163,7 @@ async function decide(a: IApproval, kind: 'approve' | 'decline'): Promise<void> 
 }
 
 /** Что решаем и по каким запросам — берётся из того, как открыли подтверждение. */
-function pendingScope(): { items: IApproval[]; busy: Ref<boolean> } {
+function pendingScope(): { items: Approval[]; busy: Ref<boolean> } {
   if (confirmScope.value === 'bulk') return { items: [...selectedPending.value], busy: bulkBusy };
   return { items: current.value ? [current.value] : [], busy: singleBusy };
 }

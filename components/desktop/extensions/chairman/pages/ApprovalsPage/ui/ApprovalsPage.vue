@@ -34,10 +34,10 @@ const route = useRoute();
 const loading = ref(false);
 
 // Фильтр по состоянию: по умолчанию показываем то, что ждёт решения.
-const statusFilter = ref<string | null>(Zeus.ApprovalStatus.PENDING);
+const statusFilter = ref<string>(Zeus.ApprovalStatus.PENDING);
 
 const statusOptions = [
-  { label: 'Все состояния', value: null },
+  { label: 'Все состояния', value: '' },
   { label: 'Ожидает', value: Zeus.ApprovalStatus.PENDING },
   { label: 'Одобрено', value: Zeus.ApprovalStatus.APPROVED },
   { label: 'Отклонено', value: Zeus.ApprovalStatus.DECLINED },

@@ -47,7 +47,7 @@
         DataRow(label="Направление" :value="directionLabel")
         DataRow(label="Площадка" :value="carrierLabel")
         DataRow(v-if="course.external_ref" label="Курс на площадке" :value="course.external_ref" mono copyable)
-        DataRow(v-if="course.external_title_seen" label="Название на площадке" :value="course.external_title_seen" :hint="checkedHint")
+        DataRow(v-if="course.external_title_seen" label="Название на площадке" :value="course.external_title_seen")
 
       BaseCard.q-mt-md(variant="default" title="Преподаватели")
         q-list(v-if="course.teacher_usernames.length" separator)
@@ -92,9 +92,6 @@ const status = computed(() => COURSE_STATUS_LABELS[course.value?.status ?? ''] ?
 const published = computed(() => course.value?.status === Zeus.EduCourseStatus.PUBLISHED);
 const carrierLabel = computed(() => CARRIER_LABELS[course.value?.carrier ?? ''] ?? course.value?.carrier ?? '______');
 const directionLabel = computed(() => DIRECTION_LABELS[course.value?.direction ?? ''] ?? course.value?.direction ?? '______');
-const checkedHint = computed(() =>
-  course.value?.external_checked_at ? `Сверено с площадкой ${new Date(course.value.external_checked_at as string).toLocaleDateString('ru-RU')}` : undefined,
-);
 
 function goBack(): void {
   void router.push({ name: 'edubridge-admin-courses', params: { coopname: route.params.coopname } });

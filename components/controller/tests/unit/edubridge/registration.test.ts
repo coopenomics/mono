@@ -5,7 +5,14 @@ import { EdubridgeRoleFactsAdapter } from '~/extensions/edubridge/application/me
 
 describe('registerEdubridgeInAgreementRegistry', () => {
   it('регистрирует две оферты и две программы, оферты только через программы', () => {
-    const port = { registerAgreement: jest.fn(), registerProgram: jest.fn(), unregisterAgreement: jest.fn(), unregisterProgram: jest.fn() };
+    const port = {
+      registerAgreement: jest.fn(),
+      registerProgram: jest.fn(),
+      unregisterAgreement: jest.fn(),
+      unregisterProgram: jest.fn(),
+      registerIntakeForm: jest.fn(),
+      unregisterIntakeForm: jest.fn(),
+    };
     registerEdubridgeInAgreementRegistry(port);
     expect(port.registerAgreement).toHaveBeenCalledTimes(2);
     expect(port.registerProgram).toHaveBeenCalledTimes(2);

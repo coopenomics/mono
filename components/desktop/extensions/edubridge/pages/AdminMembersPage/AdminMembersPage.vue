@@ -31,7 +31,7 @@
         .edu-member__head
           .text-subtitle2 Обучающиеся
         .t-sm.t-muted(v-if="!card.learners.length") Обучающихся нет.
-        DataRow(v-for="l in card.learners" :key="l.id" :label="l.display_name" :value="l.recipient_value ?? 'контакт скрыт'" mono)
+        DataRow(v-for="l in card.learners" :key="asText(l.id)" :label="l.display_name" :value="l.recipient_value ?? 'контакт скрыт'" mono)
 
       .edu-member__section
         .edu-member__head
@@ -55,6 +55,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
 import { debounce } from 'quasar';
+import { asText } from 'src/shared/lib/utils';
 import { useFirstLoad } from 'src/shared/lib/composables';
 import { FailAlert } from 'src/shared/api';
 import { BaseBadge, BaseButton, BaseInput, BaseTable, EmptyState, type BaseTableColumn } from 'src/shared/ui/base';

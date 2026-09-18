@@ -19,6 +19,7 @@
 <script setup lang="ts">
 import { onMounted, ref, watch } from 'vue';
 import { Zeus } from '@coopenomics/sdk';
+import { asDateInput, asText } from 'src/shared/lib/utils';
 import { useFirstLoad } from 'src/shared/lib/composables';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { BaseBadge, BaseButton, BaseTable, EmptyState, type BaseTableColumn } from 'src/shared/ui/base';
@@ -48,7 +49,10 @@ const columns: BaseTableColumn<IAccessTask>[] = [
 ];
 const statusOf = (s: string) => TASK_STATUS_LABELS[s] ?? { label: s, variant: 'neutral' as const };
 const kindOf = (k: string) => TASK_KIND_LABELS[k] ?? k;
-const formatDateTime = (v: string | Date) => new Date(v).toLocaleString('ru-RU');
+const formatDateTime = (v: unknown) => {
+  const input = asDateInput(v);
+  return input ? new Date(input).toLocaleString('ru-RU') : '______';
+};
 
 async function load(): Promise<void> {
   loading.value = true;
@@ -68,10 +72,10 @@ async function load(): Promise<void> {
 }
 
 async function onRetry(t: IAccessTask): Promise<void> {
-  busy.value = t.id;
+  busy.value = asText(t.id);
   try {
     const updated = await retryTask(t.id);
-    items.value = items.value.map((x) => (x.id === updated.id ? updated : x));
+    items.value = items.value.map((x) => (asText(x.id) === asText(updated.id) ? updated : x));
     SuccessAlert('Задача возвращена в очередь');
   } catch (e) {
     FailAlert(e);
