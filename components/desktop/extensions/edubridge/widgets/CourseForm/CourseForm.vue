@@ -1,5 +1,5 @@
 <template lang="pug">
-BaseForm(:loading="loading" :error="error" @submit="submit")
+BaseForm(ref="formEl" :loading="loading" :error="error" @submit="submit")
   .row.q-col-gutter-md
     .col-12
       BaseInput(v-model="form.title" label="Название курса" required)
@@ -15,28 +15,23 @@ BaseForm(:loading="loading" :error="error" @submit="submit")
       BaseInput(v-model="form.syllabus" label="Учебная программа" type="textarea" :rows="5" autogrow)
     .col-12
       .t-sm.t-muted.q-mb-xs Обложка курса
-      .row.q-col-gutter-md.items-start
-        .col-12.col-md-5
-          .edu-course-form__preview
-            q-img(v-if="previewUrl" :src="previewUrl" :ratio="16 / 9" fit="cover" no-spinner)
-            .edu-course-form__placeholder(v-else)
-              q-icon(name="image" size="32px")
-              .t-sm.q-mt-xs Без обложки
-          BaseButton.q-mt-sm(v-if="previewUrl" variant="ghost" size="sm" type="button" @click="removeImage") Убрать обложку
-        .col-12.col-md-7
-          FileUploader(
-            :model-value="imageFile"
-            :accept="COURSE_IMAGE_ACCEPT"
-            :max-size="COURSE_IMAGE_MAX_BYTES"
-            title="Загрузить обложку"
-            hint="JPEG, PNG или WEBP до 10 МБ. Показывается в каталоге и на странице курса."
-            @update:model-value="onImagePicked"
-            @error="onImageError"
-          )
+      //- Обложка занимает всю ширину: выбранный снимок виден в тех же пропорциях,
+      //- что и в каталоге, а замена с удалением открываются наведением на него.
+      //- Раньше половину формы держала зона загрузки, а сама обложка ютилась рядом.
+      .edu-course-form__cover(v-if="previewUrl")
+        q-img(:src="previewUrl" :ratio="21 / 9" fit="cover" no-spinner)
+        .edu-course-form__cover-actions
+          BaseButton(variant="secondary" size="sm" type="button" @click="pickImage") Заменить
+          BaseButton(variant="ghost" size="sm" type="button" @click="removeImage") Убрать
+      .edu-course-form__picker(v-else role="button" tabindex="0" @click="pickImage" @keydown.enter="pickImage")
+        q-icon(name="add_photo_alternate" size="24px")
+        .t-sm.text-weight-medium Загрузить обложку
+        .t-meta.t-muted JPEG, PNG или WEBP до 10 МБ
+      input.edu-course-form__file(ref="fileInput" type="file" :accept="COURSE_IMAGE_ACCEPT" @change="onFilePicked")
     .col-12.col-md-6
-      BaseInput(v-model="feeMonth" label="Членский взнос в месяц" type="number" :suffix="symbol" required)
+      BaseInput(v-model="feeMonth" label="Взнос в месяц" type="number" :suffix="symbol" required)
     .col-12.col-md-6
-      BaseInput(v-model="feeYear" label="Членский взнос в год" type="number" :suffix="symbol" required)
+      BaseInput(v-model="feeYear" label="Взнос в год" type="number" :suffix="symbol" required)
     .col-12.col-md-6
       BaseSelect(v-model="form.direction" label="Тип направления (внутренний)" :options="directionOptions" required)
     .col-12.col-md-6
@@ -64,29 +59,31 @@ BaseForm(:loading="loading" :error="error" @submit="submit")
     .col-12(v-else-if="isPlatform")
       BaseInput(v-model="form.external_ref" label="Идентификатор курса на площадке" mono :hint="externalRefHint" required)
 
+    //- Назначенные преподаватели идут списком имён, а выбор — одной строкой под
+    //- ним. Прежде подпись раздела и подпись поля повторяли друг друга, а имена
+    //- стояли сбоку учётными метками.
     .col-12
-      .t-sm.t-muted.q-mb-xs {{ teacherLabel }}
-      .row.q-col-gutter-sm.items-start
-        .col-12.col-md-6
-          BaseSelect(
-            :model-value="null"
-            label="Добавить преподавателя"
-            :options="teacherOptions"
-            :disabled="!teacherOptions.length"
-            :hint="teacherHint"
-            searchable
-            @update:model-value="addTeacher"
-          )
-        .col-12.col-md-6
-          .row.q-gutter-xs(v-if="form.teacher_usernames.length")
-            .col-auto(v-for="t in form.teacher_usernames" :key="t")
-              BaseChip(variant="neutral" size="sm")
-                span.t-mono {{ t }}
-                BaseButton.q-ml-xs(variant="ghost" size="sm" icon-only type="button" :aria-label="`Убрать ${t}`" @click="removeTeacher(t)")
-                  template(#icon-left)
-                    q-icon(name="close" size="14px")
-          .t-sm.t-muted(v-else) Преподаватели пока не назначены — курс можно сохранить и назначить их позже.
-  template(#footer)
+      q-separator.q-mb-md
+      .text-subtitle2.q-mb-sm Преподаватели курса
+      q-list.q-mb-sm(v-if="form.teacher_usernames.length" separator)
+        q-item(v-for="t in form.teacher_usernames" :key="t")
+          q-item-section
+            IdentityCell(:account-name="t" :full-name="teacherName(t)")
+          q-item-section(side)
+            BaseButton(variant="ghost" size="sm" icon-only type="button" :aria-label="`Убрать ${teacherName(t) || t}`" @click="removeTeacher(t)")
+              template(#icon-left)
+                q-icon(name="close" size="16px")
+      .t-sm.t-muted.q-mb-sm(v-else) Курс можно сохранить и назначить преподавателей позже.
+      BaseSelect(
+        :model-value="null"
+        label="Назначить преподавателя"
+        :options="teacherOptions"
+        :disabled="!teacherOptions.length"
+        :hint="teacherHint"
+        searchable
+        @update:model-value="addTeacher"
+      )
+  template(v-if="!hideFooter" #footer)
     .row.justify-end.q-gutter-sm
       BaseButton(variant="ghost" type="button" :disabled="loading" @click="emit('cancel')") Отменить
       BaseButton(variant="primary" type="submit" :loading="loading") {{ course ? 'Сохранить' : 'Добавить курс' }}
@@ -98,8 +95,8 @@ import { Zeus } from '@coopenomics/sdk';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { useSystemStore } from 'src/entities/System/model';
 import { fileToBase64, formatToAsset } from 'src/shared/lib/utils';
-import { BaseButton, BaseChip, BaseForm, BaseInput, BaseSelect } from 'src/shared/ui/base';
-import { FileUploader, type FileUploaderError } from 'src/shared/ui/domain';
+import { BaseButton, BaseForm, BaseInput, BaseSelect } from 'src/shared/ui/base';
+import { IdentityCell } from 'src/shared/ui/domain';
 import {
   CARRIER_LABELS,
   CARRIERS_BY_DIRECTION,
@@ -125,8 +122,12 @@ import {
  * Обложка уходит base64 внутри той же мутации, как изображения товара в
  * «Столе заказов»; без изменений поле не передаётся, снятая — `null`.
  */
-const props = defineProps<{ course?: ICourse | null }>();
-const emit = defineEmits<{ saved: [course: ICourse]; cancel: [] }>();
+const props = defineProps<{
+  course?: ICourse | null;
+  /** Кнопки живут снаружи — так форма ложится в правую панель с прибитым низом. */
+  hideFooter?: boolean;
+}>();
+const emit = defineEmits<{ saved: [course: ICourse]; cancel: []; busy: [value: boolean] }>();
 
 const system = useSystemStore();
 const symbol = computed(() => system.governSymbol);
@@ -161,16 +162,27 @@ function releaseObjectUrl(): void {
   if (objectUrl.value) URL.revokeObjectURL(objectUrl.value);
   objectUrl.value = null;
 }
-function onImagePicked(value: File | File[] | null): void {
-  const file = Array.isArray(value) ? (value[0] ?? null) : value;
+const fileInput = ref<HTMLInputElement | null>(null);
+
+function pickImage(): void {
+  fileInput.value?.click();
+}
+
+function onFilePicked(event: Event): void {
+  const input = event.target as HTMLInputElement;
+  const file = input.files?.[0] ?? null;
+  input.value = '';
+  if (!file) return;
+  if (file.size > COURSE_IMAGE_MAX_BYTES) {
+    FailAlert(new Error(`Обложка больше ${Math.round(COURSE_IMAGE_MAX_BYTES / (1024 * 1024))} МБ — выберите файл поменьше`));
+    return;
+  }
   releaseObjectUrl();
   imageFile.value = file;
   imageRemoved.value = false;
-  if (file) objectUrl.value = URL.createObjectURL(file);
+  objectUrl.value = URL.createObjectURL(file);
 }
-function onImageError(e: FileUploaderError): void {
-  FailAlert(new Error(e.message));
-}
+
 function removeImage(): void {
   releaseObjectUrl();
   imageFile.value = null;
@@ -273,12 +285,14 @@ watch(isPlatform, (platform) => {
   if (!platform) form.external_ref = '';
 });
 
+// В списке — имя человека и номер его договора: учётное имя администратору
+// ничего не говорит, а договор отличает однофамильцев.
 const teacherOptions = computed(() =>
   teachers.value
     .filter((t) => !form.teacher_usernames.includes(t.username))
-    .map((t) => ({ value: t.username, label: `${t.username} · договор № ${t.contract_number}` })),
+    .map((t) => ({ value: t.username, label: `${t.display_name || t.username} · договор № ${t.contract_number}` })),
 );
-const teacherLabel = computed(() => (form.teacher_usernames.length > 1 ? 'Преподаватели' : 'Преподаватель'));
+const teacherName = (username: string) => teachers.value.find((t) => t.username === username)?.display_name || null;
 const teacherHint = computed(() =>
   teachers.value.length
     ? 'Пайщики с подписанным договором участия в хозяйственной деятельности'
@@ -297,6 +311,7 @@ function removeTeacher(username: string): void {
 async function submit(): Promise<void> {
   error.value = '';
   loading.value = true;
+  emit('busy', true);
   try {
     const data: ICreateCourseInput = {
       ...form,
@@ -312,8 +327,20 @@ async function submit(): Promise<void> {
     FailAlert(e);
   } finally {
     loading.value = false;
+    emit('busy', false);
   }
 }
+
+// Правая панель держит кнопки у нижнего края и сама зовёт отправку формы —
+// поля при этом проверяются так же, как при отправке изнутри.
+const formEl = ref<InstanceType<typeof BaseForm> | null>(null);
+
+async function requestSubmit(): Promise<void> {
+  if (!(await formEl.value?.validate())) return;
+  await submit();
+}
+
+defineExpose({ submit: requestSubmit });
 
 onMounted(async () => {
   try {
@@ -325,18 +352,49 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.edu-course-form__preview {
+.edu-course-form__cover {
+  position: relative;
   border: 1px solid var(--p-line);
   border-radius: var(--p-r-md);
   overflow: hidden;
   background: var(--p-surface-2);
 }
-.edu-course-form__placeholder {
-  aspect-ratio: 16 / 9;
+/* Действия всплывают поверх снимка и не занимают места, пока не нужны. */
+.edu-course-form__cover-actions {
+  position: absolute;
+  inset: auto 0 0 0;
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--p-2);
+  padding: var(--p-2);
+  background: linear-gradient(to top, rgba(15, 23, 24, 0.72), transparent);
+  opacity: 0;
+  transition: opacity 0.16s ease;
+}
+.edu-course-form__cover:hover .edu-course-form__cover-actions,
+.edu-course-form__cover:focus-within .edu-course-form__cover-actions {
+  opacity: 1;
+}
+.edu-course-form__picker {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  color: var(--p-ink-3);
+  gap: var(--p-1);
+  padding: var(--p-5) var(--p-4);
+  border: 1px dashed var(--p-line-2, var(--p-line));
+  border-radius: var(--p-r-md);
+  color: var(--p-ink-2);
+  cursor: pointer;
+  transition: border-color 0.16s ease, color 0.16s ease;
+}
+.edu-course-form__picker:hover,
+.edu-course-form__picker:focus-visible {
+  border-color: var(--p-primary-line);
+  color: var(--p-primary);
+  outline: none;
+}
+.edu-course-form__file {
+  display: none;
 }
 </style>

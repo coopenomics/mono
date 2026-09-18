@@ -1,5 +1,5 @@
 <template>
-  <q-form class="base-form" @submit.prevent="onSubmit">
+  <q-form ref="formEl" class="base-form" @submit.prevent="onSubmit">
     <BaseBanner v-if="error" variant="neg" role="alert">
       {{ error }}
     </BaseBanner>
@@ -13,6 +13,8 @@
 </template>
 
 <script setup lang="ts">
+import { ref } from 'vue';
+import type { QForm } from 'quasar';
 import { BaseBanner } from '../BaseBanner';
 import type { BaseFormProps } from './BaseForm.types';
 
@@ -28,6 +30,19 @@ function onSubmit(e: Event): void {
   if (props.loading) return;
   emit('submit', e);
 }
+
+const formEl = ref<QForm | null>(null);
+
+/**
+ * Проверка полей наружу: кнопка отправки живёт вне формы, когда форма стоит в
+ * правой панели с прибитым низом. Без этого обязательные поля не проверялись —
+ * отправка шла мимо самой формы.
+ */
+async function validate(): Promise<boolean> {
+  return (await formEl.value?.validate()) ?? true;
+}
+
+defineExpose({ validate });
 </script>
 
 <style scoped>

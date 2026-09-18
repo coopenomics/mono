@@ -28,8 +28,8 @@
         BaseCard.edu-course__terms(variant="default" title="Условия участия")
           DataRow(label="Расписание" :value="course.schedule || '______'")
           DataRow(:label="course.teacher_usernames.length > 1 ? 'Преподаватели' : 'Преподаватель'" :value="course.teacher_usernames.join(', ') || '______'" mono)
-          DataRow(label="Членский взнос в месяц" :value="formatAsset2Digits(course.fee_month)" mono)
-          DataRow(label="Членский взнос в год" :value="formatAsset2Digits(course.fee_year)" mono)
+          DataRow(label="Взнос в месяц" :value="formatAsset2Digits(course.fee_month)" mono)
+          DataRow(label="Взнос в год" :value="formatAsset2Digits(course.fee_year)" mono)
           .q-mt-md
             BaseButton(variant="primary" block @click="getAccess") Получить доступ
           .t-muted.t-sm.q-mt-sm(v-if="!session.isAuth")

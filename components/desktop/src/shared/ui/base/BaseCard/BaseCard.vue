@@ -28,6 +28,13 @@ const hasHead = computed(() => !!(props.title || props.subtitle || slots.head ||
 </script>
 
 <style scoped>
+/* Содержимое карточки объявлено контейнером: строки «подпись — значение» внутри
+   смотрят на ширину карточки, а не окна, и в узкой боковой колонке ставят
+   значение под подписью. Без этого сумма в колонке условий ломалась по знакам
+   («1 000 ,00 RUB»), хотя окно было широким. */
+.base-card__body {
+  container-type: inline-size;
+}
 .base-card--flat {
   border: 0;
   background: var(--p-surface-2);

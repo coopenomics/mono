@@ -15,7 +15,9 @@
     .col-12.col-md-8
       BaseCard(variant="default")
         template(#head)
-          .row.items-center.q-gutter-sm
+          //- Метки идут одной строкой и по одной высоте: состояние курса и его
+          //- предмет с классом читаются вместе, а не уступами.
+          .edu-course-admin__tags
             BaseBadge(:variant="status.variant") {{ status.label }}
             BaseChip(variant="neutral" size="sm") {{ course.subject }}
             BaseChip(variant="neutral" size="sm") {{ course.grade }}
@@ -33,14 +35,14 @@
     .col-12.col-md-4
       BaseCard.edu-course-admin__side(variant="default" title="Управление")
         .column.q-gutter-sm
-          BaseButton(variant="secondary" block @click="editOpen = true") Изменить курс
+          BaseButton(variant="primary" block @click="editOpen = true") Изменить курс
           BaseButton(v-if="published" variant="ghost" block :loading="busy" @click="setStatus(Zeus.EduCourseStatus.DRAFT)") Снять с публикации
-          BaseButton(v-else variant="primary" block :loading="busy" @click="setStatus(Zeus.EduCourseStatus.PUBLISHED)") Опубликовать
+          BaseButton(v-else variant="secondary" block :loading="busy" @click="setStatus(Zeus.EduCourseStatus.PUBLISHED)") Опубликовать
         .t-muted.t-meta.q-mt-sm {{ published ? 'Курс виден в каталоге всем посетителям.' : 'Черновик виден только на этом столе.' }}
 
       BaseCard.q-mt-md(variant="default" title="Условия участия")
-        DataRow(label="Членский взнос в месяц" :value="formatAsset2Digits(course.fee_month)" mono)
-        DataRow(label="Членский взнос в год" :value="formatAsset2Digits(course.fee_year)" mono)
+        DataRow(label="Взнос в месяц" :value="formatAsset2Digits(course.fee_month)" mono)
+        DataRow(label="Взнос в год" :value="formatAsset2Digits(course.fee_year)" mono)
         DataRow(label="Расписание" :value="course.schedule || '______'")
 
       BaseCard.q-mt-md(variant="default" title="Выдача доступа")
@@ -53,23 +55,30 @@
         q-list(v-if="course.teacher_usernames.length" separator)
           q-item(v-for="username in course.teacher_usernames" :key="username")
             q-item-section
-              IdentityCell(:account-name="username")
+              IdentityCell(:account-name="username" :full-name="fioCache.get(username) || null")
         .t-muted.t-sm(v-else) Преподаватели не назначены — назначения оформляются на странице «Преподаватели».
 
-  BaseDialog(v-model="editOpen" title="Изменить курс" size="lg")
-    CourseForm(:course="course" @saved="onSaved" @cancel="editOpen = false")
+  //- Правка курса идёт в правой панели: так стол остаётся на виду, а форма
+  //- открывается и закрывается на месте — общий порядок платформы.
+  DetailsDrawer(v-model="editOpen" title="Изменить курс" :width="720")
+    CourseForm(ref="formRef" :course="course" hide-footer @saved="onSaved" @busy="(v) => (saving = v)")
+    template(#footer)
+      .row.justify-end.q-gutter-sm
+        BaseButton(variant="ghost" :disabled="saving" @click="editOpen = false") Отменить
+        BaseButton(variant="primary" :loading="saving" @click="submitForm") Сохранить
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { Zeus } from '@coopenomics/sdk';
 import { useFirstLoad } from 'src/shared/lib/composables';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { useDesktopStore } from 'src/entities/Desktop/model';
+import { useFioCache } from 'src/shared/lib/account/useFioCache';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
-import { BaseBadge, BaseButton, BaseCard, BaseChip, BaseDialog, CardListSkeleton, EmptyState } from 'src/shared/ui/base';
-import { DataRow, IdentityCell } from 'src/shared/ui/domain';
+import { BaseBadge, BaseButton, BaseCard, BaseChip, CardListSkeleton, EmptyState } from 'src/shared/ui/base';
+import { DataRow, DetailsDrawer, IdentityCell } from 'src/shared/ui/domain';
 import { CARRIER_LABELS, COURSE_STATUS_LABELS, DIRECTION_LABELS, fetchCourse, setCourseStatus, type ICourse } from '../../entities/Course';
 import { CourseForm } from '../../widgets/CourseForm';
 
@@ -81,12 +90,15 @@ import { CourseForm } from '../../widgets/CourseForm';
 const route = useRoute();
 const router = useRouter();
 const desktopStore = useDesktopStore();
+const { fioCache, enrichFio } = useFioCache();
 
 const course = ref<ICourse | null>(null);
 const loading = ref(true);
 const firstLoad = useFirstLoad(loading);
 const busy = ref(false);
+const saving = ref(false);
 const editOpen = ref(false);
+const formRef = ref<InstanceType<typeof CourseForm> | null>(null);
 
 const status = computed(() => COURSE_STATUS_LABELS[course.value?.status ?? ''] ?? { label: course.value?.status ?? '', variant: 'neutral' as const });
 const published = computed(() => course.value?.status === Zeus.EduCourseStatus.PUBLISHED);
@@ -95,6 +107,10 @@ const directionLabel = computed(() => DIRECTION_LABELS[course.value?.direction ?
 
 function goBack(): void {
   void router.push({ name: 'edubridge-admin-courses', params: { coopname: route.params.coopname } });
+}
+
+function submitForm(): void {
+  void formRef.value?.submit();
 }
 
 async function load(): Promise<void> {
@@ -108,6 +124,15 @@ async function load(): Promise<void> {
     loading.value = false;
   }
 }
+
+// Преподаватели в списке — по ФИО: учётное имя остаётся подписью под ним.
+watch(
+  () => course.value?.teacher_usernames,
+  (list) => {
+    if (list?.length) void enrichFio(list);
+  },
+  { immediate: true },
+);
 
 function onSaved(updated: ICourse): void {
   course.value = updated;
@@ -136,6 +161,12 @@ onBeforeUnmount(() => desktopStore.clearPageTitleOverride());
 .edu-course-admin__back {
   align-self: flex-start;
   margin-bottom: var(--p-3);
+}
+.edu-course-admin__tags {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--p-2);
 }
 .edu-course-admin__cover {
   border-radius: var(--p-r-lg);

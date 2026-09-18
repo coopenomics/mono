@@ -4,7 +4,9 @@ BaseCard.edu-admin-course(variant="default" role="link" tabindex="0" @click="emi
     q-img(v-if="course.image_url" :src="course.image_url" :ratio="2 / 1" fit="cover" no-spinner)
     .edu-admin-course__placeholder(v-else)
       q-icon(name="image" size="32px")
-    BaseBadge.edu-admin-course__status(:variant="status.variant") {{ status.label }}
+    //- Метка состояния лежит на обложке, поэтому идёт на плотной подложке:
+    //- мягкая заливка растворялась на светлых снимках.
+    BaseBadge.edu-admin-course__status(:variant="status.variant" on-media) {{ status.label }}
   .row.q-gutter-xs
     BaseChip(variant="neutral" size="sm") {{ course.subject }}
     BaseChip(variant="neutral" size="sm") {{ course.grade }}
