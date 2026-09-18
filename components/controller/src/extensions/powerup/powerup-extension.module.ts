@@ -118,6 +118,12 @@ export type IConfig = z.infer<typeof Schema>;
 export interface ILog {
   type: 'daily' | 'now';
   amount: string;
+  /**
+   * Идентификатор транзакции пополнения. Журнал аренды ведётся по факту: запись
+   * появляется только тогда, когда цепь приняла транзакцию, и по этому
+   * идентификатору пополнение можно найти в цепи.
+   */
+  trx_id?: string;
   resources: {
     username: string;
     ram_usage: any;
@@ -127,9 +133,24 @@ export interface ILog {
   };
 }
 
+/** С какой паузы начинается отход после первого отказа пополнения. */
+const RETRY_BACKOFF_START_MS = 5 * 60 * 1000;
+/** Дальше пауза удваивается, но не растёт больше часа. */
+const RETRY_BACKOFF_MAX_MS = 60 * 60 * 1000;
+
 export class PowerupExtension extends BaseExtensionModule implements OnModuleDestroy {
   private dailyCronJob: cron.ScheduledTask | null = null;
   private resourceCronJob: cron.ScheduledTask | null = null;
+
+  /**
+   * Отход после отказа пополнения. Проверка ресурсов идёт каждую минуту, и
+   * пока причина отказа не устранена (нет системного токена, ассерт цепи),
+   * минутный цикл бьётся в ту же стену: за двое суток инцидента 16.09.2026
+   * набралось 3 235 одинаковых отказов. Пауза растёт вдвое с каждой неудачей,
+   * а первая ошибка серии пишется уровнем `error` — чтобы её было видно.
+   */
+  private failureStreak = 0;
+  private nextAttemptAt = 0;
 
   constructor(
     @Inject(EXTENSION_REPOSITORY) private readonly extensionRepository: ExtensionDomainRepository<IConfig>,
@@ -211,8 +232,13 @@ export class PowerupExtension extends BaseExtensionModule implements OnModuleDes
         throw new Error('Аккаунт не найден');
       }
 
-      await this.blockchainPort.powerUp(username, quantity);
+      const trx_id = await this.blockchainPort.powerUp(username, quantity);
+      this.onReplenishmentSucceeded();
 
+      // Дата последнего пополнения ставится только после того, как цепь приняла
+      // транзакцию: иначе отказ выглядел бы выполненным пополнением и сутки
+      // никто бы не повторил попытку.
+      //
       // read-modify-write по СВЕЖЕМУ config: daily-cron держит in-memory снимок
       // `this.extension` с момента boot, а update() заменяет весь config JSONB
       // целиком. Перезапись устаревшего снимка стёрла бы поля, записанные за
@@ -226,19 +252,24 @@ export class PowerupExtension extends BaseExtensionModule implements OnModuleDes
       await this.extensionRepository.update({ name: this.name, config: nextConfig });
       this.extension = { ...this.extension, config: nextConfig };
 
+      // Ресурсы читаем после пополнения — в журнале должно стоять то состояние,
+      // к которому пополнение привело, а не то, что было до него.
+      const updatedAccount = (await this.blockchainPort.getAccount(username)) ?? account;
+
       await this.log({
         type: 'daily',
         amount: quantity,
+        trx_id,
         resources: {
-          username: account.account_name,
-          ram_usage: account.ram_usage,
-          ram_quota: account.ram_quota,
-          net_limit: account.net_limit,
-          cpu_limit: account.cpu_limit,
+          username: updatedAccount.account_name,
+          ram_usage: updatedAccount.ram_usage,
+          ram_quota: updatedAccount.ram_quota,
+          net_limit: updatedAccount.net_limit,
+          cpu_limit: updatedAccount.cpu_limit,
         },
       });
     } catch (error) {
-      this.logger.info('Предупреждение при выполнении ежедневного пополнения:', error as Error);
+      this.onReplenishmentFailed('ежедневное пополнение', error);
     }
   }
 
@@ -246,8 +277,44 @@ export class PowerupExtension extends BaseExtensionModule implements OnModuleDes
     await this.logExtensionRepository.push(this.name, action);
   }
 
+  /**
+   * Пополнение прошло: серия отказов закончилась, следующая проверка ресурсов
+   * идёт по обычному расписанию.
+   */
+  private onReplenishmentSucceeded() {
+    if (this.failureStreak > 0) {
+      this.logger.info(`Пополнение ресурсов прошло после ${this.failureStreak} неудачных попыток`);
+    }
+    this.failureStreak = 0;
+    this.nextAttemptAt = 0;
+  }
+
+  /**
+   * Пополнение не прошло: записи в журнал аренды не будет, а следующая попытка
+   * отодвигается — пока причина не устранена, повтор каждую минуту ничего не
+   * меняет и только засыпает журнал одинаковыми строками.
+   */
+  private onReplenishmentFailed(what: string, error: unknown) {
+    this.failureStreak += 1;
+    const backoffMs = Math.min(RETRY_BACKOFF_START_MS * 2 ** (this.failureStreak - 1), RETRY_BACKOFF_MAX_MS);
+    this.nextAttemptAt = Date.now() + backoffMs;
+
+    const message = `Не удалось выполнить ${what} ресурсов кооператива (попытка ${this.failureStreak}), следующая попытка через ${Math.round(backoffMs / 60000)} мин`;
+
+    // Первый отказ серии — заметный; дальше причина та же, и повторять её
+    // уровнем `error` незачем.
+    if (this.failureStreak === 1) {
+      this.logger.error(message, error instanceof Error ? error : String(error));
+    } else {
+      this.logger.warn(`${message}: ${String(error)}`);
+    }
+  }
+
   // Задача проверки и пополнения ресурсов
   private async runTask() {
+    // Отход после отказа: пока пауза не вышла, цепь не трогаем.
+    if (this.nextAttemptAt > Date.now()) return;
+
     try {
       // Получаем имя пользователя из окружения или другой конфигурации
       const username = platformSettings().coopname;
@@ -293,7 +360,8 @@ export class PowerupExtension extends BaseExtensionModule implements OnModuleDes
       if (needPowerUp) {
         // Выполняем пополнение ресурсов на сумму ежедневной аренды
         const quantity = this.getQuantity(this.extension.config.dailyPackageSize);
-        await this.blockchainPort.powerUp(username, quantity);
+        const trx_id = await this.blockchainPort.powerUp(username, quantity);
+        this.onReplenishmentSucceeded();
 
         // Получаем актуальные данные после пополнения для логирования
         const updatedAccount = await this.blockchainPort.getAccount(username);
@@ -302,9 +370,12 @@ export class PowerupExtension extends BaseExtensionModule implements OnModuleDes
           throw new Error('Аккаунт не найден');
         }
 
+        // Журнал аренды ведётся по факту: строка появляется только после того,
+        // как цепь приняла транзакцию.
         await this.log({
           type: 'now',
           amount: quantity,
+          trx_id,
           resources: {
             username: updatedAccount.account_name,
             ram_usage: updatedAccount.ram_usage,
@@ -315,7 +386,7 @@ export class PowerupExtension extends BaseExtensionModule implements OnModuleDes
         });
       }
     } catch (error) {
-      this.logger.info('Предупреждение при проверке и пополнении ресурсов:', error as Error);
+      this.onReplenishmentFailed('пополнение', error);
     }
   }
 }

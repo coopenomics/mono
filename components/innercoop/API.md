@@ -275,7 +275,7 @@
 `interface` · core-ports
 
 - `getAccount(username: string): Promise<InnerChainAccountResources | null>`
-- `powerUp(username: string, quantity: string): Promise<void>`
+- `powerUp(username: string, quantity: string): Promise<string>`
 
 ## IChatCoopCalendarPort
 
