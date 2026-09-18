@@ -4,6 +4,8 @@ import { Counter, Gauge, register as globalRegistry, type Registry } from 'prom-
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 import { PLATFORM_METRICS_PORT, type PlatformMetricsPort } from '~/domain/metrics/ports/platform-metrics.port';
 import { USER_ACTIVITY_PORT, type UserActivityPort } from '~/domain/metrics/ports/user-activity.port';
+import { BLOCKCHAIN_PORT, type BlockchainPort } from '~/domain/common/ports/blockchain.port';
+import config from '~/config/config';
 
 /**
  * Как часто пересчитывать снимок. Полминуты недостаточно, а раз в минуту —
@@ -31,6 +33,15 @@ function ensureCounter(registry: Registry, config: { name: string; help: string;
   const existing = registry.getSingleMetric(config.name);
   if (existing) return existing as Counter<string>;
   return new Counter({ labelNames: [], ...config, registers: [registry] });
+}
+
+/**
+ * Число из ответа цепи. Величины ресурсов приходят строками, остаток токена —
+ * строкой вида `967.0000 AXON`; всё, что числом не стало, идёт в метрику нулём.
+ */
+function toNumber(value: unknown): number {
+  const parsed = parseFloat(String(value ?? '0'));
+  return Number.isFinite(parsed) ? parsed : 0;
 }
 
 /** Состояние синхронизации в виде, не завязанном на DTO модуля system. */
@@ -76,13 +87,22 @@ export class PlatformMetricsService {
   private readonly parserCursorAge: Gauge<string>;
   private readonly parserSynced: Gauge<string>;
 
+  private readonly accountRamUsed: Gauge<string>;
+  private readonly accountRamQuota: Gauge<string>;
+  private readonly accountCpuUsed: Gauge<string>;
+  private readonly accountCpuMax: Gauge<string>;
+  private readonly accountNetUsed: Gauge<string>;
+  private readonly accountNetMax: Gauge<string>;
+  private readonly accountBalance: Gauge<string>;
+
   private readonly collectErrors: Counter<string>;
   private readonly lastSuccess: Gauge<string>;
 
   constructor(
     private readonly logger: WinstonLoggerService,
     @Inject(PLATFORM_METRICS_PORT) private readonly snapshot: PlatformMetricsPort,
-    @Inject(USER_ACTIVITY_PORT) private readonly activity: UserActivityPort
+    @Inject(USER_ACTIVITY_PORT) private readonly activity: UserActivityPort,
+    @Inject(BLOCKCHAIN_PORT) private readonly blockchain: BlockchainPort
   ) {
     this.logger.setContext(PlatformMetricsService.name);
 
@@ -145,6 +165,40 @@ export class PlatformMetricsService {
       help: 'Узел у головы цепи: 1 — да, 0 — отстаёт или связи нет',
     });
 
+    // Ресурсы аккаунта кооператива. Цепь берёт плату ресурсами за каждое
+    // действие, и когда они кончаются, отказывают операции пайщиков — а увидеть
+    // это было нечем: 16–18.09.2026 аккаунт `voskhod` двое суток не мог
+    // пополнить ресурсы (нет системного токена), и единственным следом были
+    // строки в логе. Оба конца истории здесь: сколько занято и на что покупать.
+    this.accountRamUsed = ensureGauge(globalRegistry, {
+      name: 'coop_account_ram_used_bytes',
+      help: 'Занято оперативной памяти в цепи аккаунтом кооператива',
+    });
+    this.accountRamQuota = ensureGauge(globalRegistry, {
+      name: 'coop_account_ram_quota_bytes',
+      help: 'Квота оперативной памяти аккаунта кооператива в цепи',
+    });
+    this.accountCpuUsed = ensureGauge(globalRegistry, {
+      name: 'coop_account_cpu_used_microseconds',
+      help: 'Израсходовано процессорного времени аккаунтом кооператива за текущее окно',
+    });
+    this.accountCpuMax = ensureGauge(globalRegistry, {
+      name: 'coop_account_cpu_max_microseconds',
+      help: 'Доступное аккаунту кооператива процессорное время за окно',
+    });
+    this.accountNetUsed = ensureGauge(globalRegistry, {
+      name: 'coop_account_net_used_bytes',
+      help: 'Израсходовано полосы аккаунтом кооператива за текущее окно',
+    });
+    this.accountNetMax = ensureGauge(globalRegistry, {
+      name: 'coop_account_net_max_bytes',
+      help: 'Доступная аккаунту кооператива полоса за окно',
+    });
+    this.accountBalance = ensureGauge(globalRegistry, {
+      name: 'coop_account_system_token_balance',
+      help: 'Остаток системного токена на аккаунте кооператива — им оплачивается аренда ресурсов',
+    });
+
     this.collectErrors = ensureCounter(globalRegistry, {
       name: 'coop_platform_metrics_collect_errors_total',
       help: 'Число неудачных пересчётов прикладных метрик',
@@ -159,6 +213,10 @@ export class PlatformMetricsService {
   async refresh(): Promise<void> {
     try {
       const [snapshot, active] = await Promise.all([this.snapshot.collect(), this.collectActivity()]);
+
+      // Ресурсы аккаунта читаются отдельно и своих ошибок наружу не выпускают:
+      // недоступный узел не должен обнулять остальные показатели тика.
+      await this.refreshAccountResources();
 
       // reset() перед записью обязателен для метрик С МЕТКАМИ. Статус, по
       // которому строк не осталось, из выборки просто пропадает, а prom-client
@@ -219,6 +277,31 @@ export class PlatformMetricsService {
       this.parserSynced.set(state.status === 'SYNCED' ? 1 : 0);
     } catch (error: any) {
       this.logger.warn(`Метрика состояния узла не записана: ${error?.message}`);
+    }
+  }
+
+  /**
+   * Ресурсы и остаток системного токена на аккаунте кооператива.
+   *
+   * Значения берутся из `get_account` — того же ответа цепи, по которому
+   * расширение `powerup` решает, пора ли пополнять. Остаток приходит строкой
+   * вида `967.0000 AXON`; в метрику идёт число, символ — свойство контура и в
+   * метке не нужен.
+   */
+  private async refreshAccountResources(): Promise<void> {
+    try {
+      const account = await this.blockchain.getAccount(config.coopname);
+      if (!account) return;
+
+      this.accountRamUsed.set(toNumber(account.ram_usage));
+      this.accountRamQuota.set(toNumber(account.ram_quota));
+      this.accountCpuUsed.set(toNumber(account.cpu_limit?.used));
+      this.accountCpuMax.set(toNumber(account.cpu_limit?.max));
+      this.accountNetUsed.set(toNumber(account.net_limit?.used));
+      this.accountNetMax.set(toNumber(account.net_limit?.max));
+      this.accountBalance.set(toNumber(account.core_liquid_balance));
+    } catch (error: any) {
+      this.logger.warn(`Ресурсы аккаунта кооператива не прочитаны: ${error?.message}`);
     }
   }
 
