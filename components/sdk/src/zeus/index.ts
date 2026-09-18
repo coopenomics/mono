@@ -12497,6 +12497,8 @@ export type ValueTypes = {
 	['...on MissingRequisiteField']?: Omit<ValueTypes["MissingRequisiteField"], "...on MissingRequisiteField">
 }>;
 	["MonoAccount"]: AliasType<{
+	/** Когда запись о человеке появилась на узле кооператива (заявка подана или её завёл председатель) */
+	created_at?:boolean | `@${string}`,
 	/** Электронная почта пользователя */
 	email?:boolean | `@${string}`,
 	/** Есть ли у пользователя аккаунт */
@@ -28107,6 +28109,8 @@ export type ResolverInputTypes = {
 		__typename?: boolean | `@${string}`
 }>;
 	["MonoAccount"]: AliasType<{
+	/** Когда запись о человеке появилась на узле кооператива (заявка подана или её завёл председатель) */
+	created_at?:boolean | `@${string}`,
 	/** Электронная почта пользователя */
 	email?:boolean | `@${string}`,
 	/** Есть ли у пользователя аккаунт */
@@ -43167,7 +43171,9 @@ export type ModelTypes = {
 	source: ModelTypes["RequisiteSource"]
 };
 	["MonoAccount"]: {
-		/** Электронная почта пользователя */
+		/** Когда запись о человеке появилась на узле кооператива (заявка подана или её завёл председатель) */
+	created_at?: string | undefined | null,
+	/** Электронная почта пользователя */
 	email: string,
 	/** Есть ли у пользователя аккаунт */
 	has_account: boolean,
@@ -59301,6 +59307,8 @@ export type GraphQLTypes = {
 };
 	["MonoAccount"]: {
 	__typename: "MonoAccount",
+	/** Когда запись о человеке появилась на узле кооператива (заявка подана или её завёл председатель) */
+	created_at?: string | undefined | null,
 	/** Электронная почта пользователя */
 	email: string,
 	/** Есть ли у пользователя аккаунт */

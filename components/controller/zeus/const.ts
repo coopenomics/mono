@@ -7076,6 +7076,7 @@ export const ReturnTypes: Record<string,any> = {
 		source:"RequisiteSource"
 	},
 	MonoAccount:{
+		created_at:"String",
 		email:"String",
 		has_account:"Boolean",
 		initial_order:"String",

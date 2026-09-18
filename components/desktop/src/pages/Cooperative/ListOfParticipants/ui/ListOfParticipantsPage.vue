@@ -16,6 +16,7 @@ q-page.participants-page
       :accounts='accountStore.accounts.items',
       :loading='onLoading',
       :pagination='pagination',
+      :sort-by='sortBy',
       :sort-descending='sortDescending',
       @update:page='goToPage',
       @sort='changeSort',
@@ -133,8 +134,11 @@ type AccountsInput = NonNullable<IGetAccounts['data']>;
 
 const PAGE_SIZE = 20;
 const page = ref(1);
-// Сортировка по дате вступления (на сервере): сначала новые. Ещё не принятые
-// советом — без даты — при этом порядке идут первыми.
+// Сортировка на сервере. По умолчанию — по дате добавления записи: она есть у
+// каждого, в отличие от даты вступления, которую ставит решение совета. Реестр
+// сортируется только по датам: остальные поля в базе узла не лежат.
+const SORT_FIELDS: Record<string, string> = { created_at: 'created_at', joined_at: 'joined_at' };
+const sortBy = ref('created_at');
 const sortDescending = ref(true);
 const pagination = computed(() => ({
   page: page.value,
@@ -186,7 +190,7 @@ const loadParticipants = async () => {
       options: {
         page: page.value,
         limit: PAGE_SIZE,
-        sortBy: `joined_at:${sortDescending.value ? 'desc' : 'asc'}`,
+        sortBy: `${SORT_FIELDS[sortBy.value] ?? 'created_at'}:${sortDescending.value ? 'desc' : 'asc'}`,
         sortOrder: sortDescending.value ? 'DESC' : 'ASC',
       },
     });
@@ -202,8 +206,9 @@ const loadParticipants = async () => {
   }
 };
 
-const changeSort = (descending: boolean) => {
-  sortDescending.value = descending;
+const changeSort = (sort: { sortBy: string; descending: boolean }) => {
+  sortBy.value = SORT_FIELDS[sort.sortBy] ? sort.sortBy : 'created_at';
+  sortDescending.value = sort.descending;
   page.value = 1;
   void loadParticipants();
 };

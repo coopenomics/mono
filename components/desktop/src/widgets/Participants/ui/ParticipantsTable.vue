@@ -14,11 +14,11 @@ div
       clickable-rows,
       sticky-header,
       max-height='70vh',
-      min-width='1300px',
+      min-width='1460px',
       server-sort,
-      sort-by='created_at',
+      :sort-by='sortBy',
       :descending='sortDescending',
-      @sort='(sort) => emit("sort", sort.descending)',
+      @sort='(sort) => emit("sort", sort)',
       @row-click='openDetails'
     )
       template(#cell-status='{ row }')
@@ -125,7 +125,9 @@ const props = defineProps<{
   naming?: VerificationNaming;
   /** Текущая страница реестра; число строк всего знает сервер. */
   pagination: { page: number; rowsPerPage: number; rowsNumber: number };
-  /** Сортировка по дате вступления: сначала новые (true) или старые. */
+  /** Колонка сортировки: `created_at` (добавлен) или `joined_at` (вступил). */
+  sortBy: string;
+  /** Сначала новые (true) или сначала старые. */
   sortDescending: boolean;
 }>();
 
@@ -133,7 +135,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: 'verification-changed'): void;
   (e: 'update:page', page: number): void;
-  (e: 'sort', descending: boolean): void;
+  (e: 'sort', sort: { sortBy: string; descending: boolean }): void;
   (
     e: 'update',
     account: IAccount,
@@ -164,11 +166,13 @@ const firstLoad = useFirstLoad(() => props.loading);
 // Переключатель страниц нужен, только когда пайщиков больше одной страницы.
 const showPager = computed(() => props.pagination.rowsNumber > props.pagination.rowsPerPage);
 
-// Колонки таблицы. Сортируется только дата вступления, и сортирует её сервер:
-// реестр приходит страницами, сортировка одной страницы вводила бы в
-// заблуждение, а остальные поля в базе узла не лежат. Сумма заданных ширин
-// (1060px) меньше min-width таблицы (1300px) — остаток достаётся колонке ФИО;
-// без этого запаса она схлопывалась в ноль и буквы шли столбиком.
+// Колонки таблицы. Даты две, и они о разном: «Добавлен» — когда запись о
+// человеке появилась на узле (есть у всех), «Вступил» — когда его принял совет
+// (у заявок ещё нет). Сортируют обе на сервере: реестр приходит страницами, и
+// сортировка одной страницы вводила бы в заблуждение. Остальные поля в базе
+// узла не лежат, по ним сортировки нет. Сумма заданных ширин (1200px) меньше
+// min-width таблицы (1460px) — остаток достаётся колонке ФИО; без этого запаса
+// она схлопывалась в ноль и буквы шли столбиком.
 const columns: BaseTableColumn<IAccount>[] = [
   { key: 'name', label: 'ФИО / Наименование', field: (row) => getName(row) },
   { key: 'username', label: 'Аккаунт', field: 'username', width: '140px', nowrap: true },
@@ -180,6 +184,14 @@ const columns: BaseTableColumn<IAccount>[] = [
   },
   {
     key: 'created_at',
+    label: 'Добавлен',
+    field: (row) => addedDate(row),
+    width: '170px',
+    nowrap: true,
+    sortable: true,
+  },
+  {
+    key: 'joined_at',
     label: 'Дата вступления',
     field: (row) => joinDate(row),
     width: '190px',
@@ -219,6 +231,13 @@ const formatDate = (date?: string) =>
 // Дата вступления: дата приёма советом (participant_account.created_at). У вышедших
 // пайщик-запись стёрта (delpartcpnt) — фолбэк на дату регистрации аккаунта on-chain
 // (user_account.registered_at), чтобы не показывать «отсутствует».
+// Когда запись о человеке появилась на узле: у заявок это дата подачи, у
+// заведённых председателем — дата заведения. Есть у всех.
+const addedDate = (row: IAccount): string => {
+  const raw = row.provider_account?.created_at;
+  return raw ? formatDate(String(raw)) : 'отсутствует';
+};
+
 const joinDate = (row: IAccount): string => {
   const raw = row.participant_account?.created_at || row.user_account?.registered_at;
   const f = formatDate(raw ? String(raw) : undefined);

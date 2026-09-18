@@ -527,6 +527,7 @@
 - `initial_order?: string`
 - `subscriber_id: string`
 - `subscriber_hash: string`
+- `created_at?: string`
 
 ## IMutationLogPort
 
