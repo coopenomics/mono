@@ -59,7 +59,9 @@ async function copyText(text: string): Promise<void> {
 }
 
 // Форматирование даты
-const formatDate = (date?: string) => {
+// Значение отдаём moment как есть: `String(Date)` даёт вид, который moment не
+// разбирает (предупреждение в консоли и разбор силами браузера).
+const formatDate = (date?: string | Date | null) => {
   if (!date) return 'Дата не указана';
   const formatted = moment(date).format('DD.MM.YY');
   return formatted === 'Invalid date' ? 'Дата не указана' : formatted;
@@ -69,7 +71,7 @@ const formatDate = (date?: string) => {
 // фолбэк на дату регистрации аккаунта on-chain (user_account.registered_at).
 const joinDate = (row: IAccount): string => {
   const raw = row.participant_account?.created_at || row.user_account?.registered_at;
-  return formatDate(raw ? String(raw) : undefined);
+  return formatDate(raw);
 };
 </script>
 

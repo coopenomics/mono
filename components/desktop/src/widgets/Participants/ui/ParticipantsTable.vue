@@ -225,7 +225,10 @@ const verificationCell = (row: IAccount) => {
 };
 
 // Форматирование даты
-const formatDate = (date?: string) =>
+// Дата приходит из SDK и строкой (ISO), и объектом Date. `String(date)` на
+// объекте даёт «Wed Jan 15 2025 …» — moment такой вид не разбирает, ругается в
+// консоль и уходит в разбор силами браузера. Поэтому значение отдаём как есть.
+const formatDate = (date?: string | Date | null) =>
   date ? moment(date).format('DD.MM.YY HH:mm:ss') : '';
 
 // Дата вступления: дата приёма советом (participant_account.created_at). У вышедших
@@ -235,12 +238,12 @@ const formatDate = (date?: string) =>
 // заведённых председателем — дата заведения. Есть у всех.
 const addedDate = (row: IAccount): string => {
   const raw = row.provider_account?.created_at;
-  return raw ? formatDate(String(raw)) : 'отсутствует';
+  return raw ? formatDate(raw) : 'отсутствует';
 };
 
 const joinDate = (row: IAccount): string => {
   const raw = row.participant_account?.created_at || row.user_account?.registered_at;
-  const f = formatDate(raw ? String(raw) : undefined);
+  const f = formatDate(raw);
   return f === '' ? 'отсутствует' : f;
 };
 

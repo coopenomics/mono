@@ -115,7 +115,9 @@ const rowsOf = (answer: ICandidateIntakeAnswer): IAnswerRow[] => {
 // сам блок («Сведения от заявителя»), а у полей свои подписи.
 const showTitle = (): boolean => props.answers.length > 1;
 
-const formatDate = (value: unknown): string => date.formatDate(String(value), 'DD.MM.YYYY HH:mm');
+// Дата подачи приходит объектом Date; `String(value)` ломает разбор.
+const formatDate = (value: unknown): string =>
+  date.formatDate(value instanceof Date ? value : String(value), 'DD.MM.YYYY HH:mm');
 </script>
 
 <style scoped>
