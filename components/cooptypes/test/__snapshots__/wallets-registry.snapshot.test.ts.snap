@@ -168,6 +168,16 @@ exports[`ledger2 wallets registry (generated from C++) > LEDGER2_WALLET_REGISTRY
     "name": "w.reg.pend",
   },
   {
+    "human_name": "Пул расходов ЦПП «Образование»",
+    "kind": "COOPERATIVE",
+    "name": "w.edu.expns",
+  },
+  {
+    "human_name": "Фонд ЦПП «Образование»",
+    "kind": "COOPERATIVE",
+    "name": "w.edu.fund",
+  },
+  {
     "human_name": "ЦПП «Образование» — членский взнос пайщика за доступ к курсу",
     "kind": "USER_SHARED",
     "name": "w.edu.member",
