@@ -6959,6 +6959,8 @@ export type ValueTypes = {
 	decline_reason?:boolean | `@${string}`,
 	/** Описание результата */
 	description?:boolean | `@${string}`,
+	/** До какой даты заявление держится гарантийным сроком */
+	hold_until?:boolean | `@${string}`,
 	id?:boolean | `@${string}`,
 	/** Ссылки на внешние хранилища */
 	links?:boolean | `@${string}`,
@@ -6974,18 +6976,6 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on EduContribution']?: Omit<ValueTypes["EduContribution"], "...on EduContribution">
 }>;
-	["EduContributionDraftInput"]: {
-	/** Сумма паевого взноса («5000.0000 RUB») */
-	amount: string | Variable<any, string>,
-	/** Назначение */
-	assignment_id: ValueTypes["ID"] | Variable<any, string>,
-	/** Описание */
-	description?: string | undefined | null | Variable<any, string>,
-	/** Ссылки на внешние хранилища */
-	links: Array<string> | Variable<any, string>,
-	/** Тип результата */
-	rid_type: ValueTypes["EduRidType"] | Variable<any, string>
-};
 	/** Состояние взноса результатами работы */
 ["EduContributionStatus"]:EduContributionStatus;
 	["EduCourse"]: AliasType<{
@@ -7007,6 +6997,8 @@ export type ValueTypes = {
 	fee_year?:boolean | `@${string}`,
 	/** Класс */
 	grade?:boolean | `@${string}`,
+	/** Гарантийный срок на материалы занятия, дней */
+	guarantee_days?:boolean | `@${string}`,
 	/** Идентификатор курса */
 	id?:boolean | `@${string}`,
 	image_url?:boolean | `@${string}`,
@@ -7112,6 +7104,8 @@ export type ValueTypes = {
 	external_ref?: string | undefined | null | Variable<any, string>,
 	/** Класс */
 	grade: string | Variable<any, string>,
+	/** Гарантийный срок на материалы занятия, дней */
+	guarantee_days?: number | undefined | null | Variable<any, string>,
 	/** Обложка курса: новое изображение (base64, ≤ 10 МБ, JPEG/PNG/WEBP), прежнее (bucket_key) или null — убрать */
 	image?: ValueTypes["EduCourseImageUploadInput"] | undefined | null | Variable<any, string>,
 	/** Длительность занятия, минут */
@@ -7327,6 +7321,41 @@ export type ValueTypes = {
 	/** Почта / Telegram / код пропуска */
 	recipient_value: string | Variable<any, string>
 };
+	["EduLesson"]: AliasType<{
+	/** Взнос, оформленный по занятию */
+	contribution_id?:boolean | `@${string}`,
+	/** Курс */
+	course_id?:boolean | `@${string}`,
+	/** Название курса */
+	course_title?:boolean | `@${string}`,
+	/** Длительность, минут */
+	duration_minutes?:boolean | `@${string}`,
+	/** Когда проведено */
+	held_at?:boolean | `@${string}`,
+	id?:boolean | `@${string}`,
+	/** Номер занятия в программе */
+	lesson_number?:boolean | `@${string}`,
+	/** Материалы занятия */
+	materials?:boolean | `@${string}`,
+	/** Тема занятия */
+	topic?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on EduLesson']?: Omit<ValueTypes["EduLesson"], "...on EduLesson">
+}>;
+	["EduLessonReportInput"]: {
+	/** Назначение, по которому проведено занятие */
+	assignment_id: ValueTypes["ID"] | Variable<any, string>,
+	/** Длительность занятия, минут; без значения — из расписания курса */
+	duration_minutes?: number | undefined | null | Variable<any, string>,
+	/** Когда проведено (по умолчанию — сейчас) */
+	held_at?: string | undefined | null | Variable<any, string>,
+	/** Номер занятия в программе курса */
+	lesson_number: number | Variable<any, string>,
+	/** Материалы занятия — ссылки на записи, конспекты, задания */
+	materials: Array<string> | Variable<any, string>,
+	/** Тема занятия */
+	topic?: string | undefined | null | Variable<any, string>
+};
 	["EduMemberCard"]: AliasType<{
 	/** ФИО пайщика */
 	display_name?:boolean | `@${string}`,
@@ -7469,6 +7498,12 @@ export type ValueTypes = {
 }>;
 	["EduRetryTaskInput"]: {
 	task_id: ValueTypes["ID"] | Variable<any, string>
+};
+	["EduRevokeContributionInput"]: {
+	/** Взнос, заявление по которому держится */
+	contribution_id: ValueTypes["ID"] | Variable<any, string>,
+	/** Подтверждённая рекламация — основание снятия */
+	reason: string | Variable<any, string>
 };
 	/** Тип результата интеллектуальной деятельности */
 ["EduRidType"]:EduRidType;
@@ -7613,6 +7648,8 @@ export type ValueTypes = {
 	external_ref?: string | undefined | null | Variable<any, string>,
 	/** Класс */
 	grade: string | Variable<any, string>,
+	/** Гарантийный срок на материалы занятия, дней */
+	guarantee_days?: number | undefined | null | Variable<any, string>,
 	/** Идентификатор курса */
 	id: ValueTypes["ID"] | Variable<any, string>,
 	/** Обложка курса: новое изображение (base64, ≤ 10 МБ, JPEG/PNG/WEBP), прежнее (bucket_key) или null — убрать */
@@ -13605,9 +13642,10 @@ edubridgeCreateCourse?: [{	data: ValueTypes["EduCourseInput"] | Variable<any, st
 edubridgeCreateExpense?: [{	data: ValueTypes["EduCreateExpenseInput"] | Variable<any, string>},boolean | `@${string}`],
 edubridgeDeclineContribution?: [{	data: ValueTypes["EduDeclineContributionInput"] | Variable<any, string>},ValueTypes["EduContribution"]],
 edubridgeDismissAdmin?: [{	data: ValueTypes["EduAdminInput"] | Variable<any, string>},boolean | `@${string}`],
-edubridgeDraftContribution?: [{	data: ValueTypes["EduContributionDraftInput"] | Variable<any, string>},ValueTypes["EduContribution"]],
 edubridgeRemoveLearner?: [{	id: ValueTypes["ID"] | Variable<any, string>},boolean | `@${string}`],
+edubridgeReportLesson?: [{	data: ValueTypes["EduLessonReportInput"] | Variable<any, string>},ValueTypes["EduLesson"]],
 edubridgeRetryTask?: [{	data: ValueTypes["EduRetryTaskInput"] | Variable<any, string>},ValueTypes["EduAccessTask"]],
+edubridgeRevokeContribution?: [{	data: ValueTypes["EduRevokeContributionInput"] | Variable<any, string>},ValueTypes["EduContribution"]],
 edubridgeRidAct?: [{	contribution_id: ValueTypes["ID"] | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 edubridgeRidStatement?: [{	contribution_id: ValueTypes["ID"] | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 edubridgeSetConnectorCredentials?: [{	data: ValueTypes["EduSetConnectorCredentialsInput"] | Variable<any, string>},ValueTypes["EduConnectorBinding"]],
@@ -15512,6 +15550,8 @@ edubridgeMembers?: [{	search?: string | undefined | null | Variable<any, string>
 	edubridgeMyEnrollments?:ValueTypes["EduEnrollment"],
 	/** Мои обучающиеся */
 	edubridgeMyLearners?:ValueTypes["EduLearner"],
+	/** Мои проведённые занятия */
+	edubridgeMyLessons?:ValueTypes["EduLesson"],
 	/** Мой расчёт: принятые взносы и доступное к возврату */
 	edubridgeMySettlement?:ValueTypes["EduTeacherSettlement"],
 	/** Подписаны ли оферты родителя-слушателя и преподавателя */
@@ -23817,6 +23857,8 @@ export type ResolverInputTypes = {
 	decline_reason?:boolean | `@${string}`,
 	/** Описание результата */
 	description?:boolean | `@${string}`,
+	/** До какой даты заявление держится гарантийным сроком */
+	hold_until?:boolean | `@${string}`,
 	id?:boolean | `@${string}`,
 	/** Ссылки на внешние хранилища */
 	links?:boolean | `@${string}`,
@@ -23831,18 +23873,6 @@ export type ResolverInputTypes = {
 	teacher_username?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
-	["EduContributionDraftInput"]: {
-	/** Сумма паевого взноса («5000.0000 RUB») */
-	amount: string,
-	/** Назначение */
-	assignment_id: ResolverInputTypes["ID"],
-	/** Описание */
-	description?: string | undefined | null,
-	/** Ссылки на внешние хранилища */
-	links: Array<string>,
-	/** Тип результата */
-	rid_type: ResolverInputTypes["EduRidType"]
-};
 	/** Состояние взноса результатами работы */
 ["EduContributionStatus"]:EduContributionStatus;
 	["EduCourse"]: AliasType<{
@@ -23864,6 +23894,8 @@ export type ResolverInputTypes = {
 	fee_year?:boolean | `@${string}`,
 	/** Класс */
 	grade?:boolean | `@${string}`,
+	/** Гарантийный срок на материалы занятия, дней */
+	guarantee_days?:boolean | `@${string}`,
 	/** Идентификатор курса */
 	id?:boolean | `@${string}`,
 	image_url?:boolean | `@${string}`,
@@ -23966,6 +23998,8 @@ export type ResolverInputTypes = {
 	external_ref?: string | undefined | null,
 	/** Класс */
 	grade: string,
+	/** Гарантийный срок на материалы занятия, дней */
+	guarantee_days?: number | undefined | null,
 	/** Обложка курса: новое изображение (base64, ≤ 10 МБ, JPEG/PNG/WEBP), прежнее (bucket_key) или null — убрать */
 	image?: ResolverInputTypes["EduCourseImageUploadInput"] | undefined | null,
 	/** Длительность занятия, минут */
@@ -24174,6 +24208,40 @@ export type ResolverInputTypes = {
 	/** Почта / Telegram / код пропуска */
 	recipient_value: string
 };
+	["EduLesson"]: AliasType<{
+	/** Взнос, оформленный по занятию */
+	contribution_id?:boolean | `@${string}`,
+	/** Курс */
+	course_id?:boolean | `@${string}`,
+	/** Название курса */
+	course_title?:boolean | `@${string}`,
+	/** Длительность, минут */
+	duration_minutes?:boolean | `@${string}`,
+	/** Когда проведено */
+	held_at?:boolean | `@${string}`,
+	id?:boolean | `@${string}`,
+	/** Номер занятия в программе */
+	lesson_number?:boolean | `@${string}`,
+	/** Материалы занятия */
+	materials?:boolean | `@${string}`,
+	/** Тема занятия */
+	topic?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["EduLessonReportInput"]: {
+	/** Назначение, по которому проведено занятие */
+	assignment_id: ResolverInputTypes["ID"],
+	/** Длительность занятия, минут; без значения — из расписания курса */
+	duration_minutes?: number | undefined | null,
+	/** Когда проведено (по умолчанию — сейчас) */
+	held_at?: string | undefined | null,
+	/** Номер занятия в программе курса */
+	lesson_number: number,
+	/** Материалы занятия — ссылки на записи, конспекты, задания */
+	materials: Array<string>,
+	/** Тема занятия */
+	topic?: string | undefined | null
+};
 	["EduMemberCard"]: AliasType<{
 	/** ФИО пайщика */
 	display_name?:boolean | `@${string}`,
@@ -24306,6 +24374,12 @@ export type ResolverInputTypes = {
 }>;
 	["EduRetryTaskInput"]: {
 	task_id: ResolverInputTypes["ID"]
+};
+	["EduRevokeContributionInput"]: {
+	/** Взнос, заявление по которому держится */
+	contribution_id: ResolverInputTypes["ID"],
+	/** Подтверждённая рекламация — основание снятия */
+	reason: string
 };
 	/** Тип результата интеллектуальной деятельности */
 ["EduRidType"]:EduRidType;
@@ -24446,6 +24520,8 @@ export type ResolverInputTypes = {
 	external_ref?: string | undefined | null,
 	/** Класс */
 	grade: string,
+	/** Гарантийный срок на материалы занятия, дней */
+	guarantee_days?: number | undefined | null,
 	/** Идентификатор курса */
 	id: ResolverInputTypes["ID"],
 	/** Обложка курса: новое изображение (base64, ≤ 10 МБ, JPEG/PNG/WEBP), прежнее (bucket_key) или null — убрать */
@@ -30263,9 +30339,10 @@ edubridgeCreateCourse?: [{	data: ResolverInputTypes["EduCourseInput"]},ResolverI
 edubridgeCreateExpense?: [{	data: ResolverInputTypes["EduCreateExpenseInput"]},boolean | `@${string}`],
 edubridgeDeclineContribution?: [{	data: ResolverInputTypes["EduDeclineContributionInput"]},ResolverInputTypes["EduContribution"]],
 edubridgeDismissAdmin?: [{	data: ResolverInputTypes["EduAdminInput"]},boolean | `@${string}`],
-edubridgeDraftContribution?: [{	data: ResolverInputTypes["EduContributionDraftInput"]},ResolverInputTypes["EduContribution"]],
 edubridgeRemoveLearner?: [{	id: ResolverInputTypes["ID"]},boolean | `@${string}`],
+edubridgeReportLesson?: [{	data: ResolverInputTypes["EduLessonReportInput"]},ResolverInputTypes["EduLesson"]],
 edubridgeRetryTask?: [{	data: ResolverInputTypes["EduRetryTaskInput"]},ResolverInputTypes["EduAccessTask"]],
+edubridgeRevokeContribution?: [{	data: ResolverInputTypes["EduRevokeContributionInput"]},ResolverInputTypes["EduContribution"]],
 edubridgeRidAct?: [{	contribution_id: ResolverInputTypes["ID"]},ResolverInputTypes["GeneratedDocument"]],
 edubridgeRidStatement?: [{	contribution_id: ResolverInputTypes["ID"]},ResolverInputTypes["GeneratedDocument"]],
 edubridgeSetConnectorCredentials?: [{	data: ResolverInputTypes["EduSetConnectorCredentialsInput"]},ResolverInputTypes["EduConnectorBinding"]],
@@ -32094,6 +32171,8 @@ edubridgeMembers?: [{	search?: string | undefined | null},ResolverInputTypes["Ed
 	edubridgeMyEnrollments?:ResolverInputTypes["EduEnrollment"],
 	/** Мои обучающиеся */
 	edubridgeMyLearners?:ResolverInputTypes["EduLearner"],
+	/** Мои проведённые занятия */
+	edubridgeMyLessons?:ResolverInputTypes["EduLesson"],
 	/** Мой расчёт: принятые взносы и доступное к возврату */
 	edubridgeMySettlement?:ResolverInputTypes["EduTeacherSettlement"],
 	/** Подписаны ли оферты родителя-слушателя и преподавателя */
@@ -40157,6 +40236,8 @@ export type ModelTypes = {
 	decline_reason?: string | undefined | null,
 	/** Описание результата */
 	description: string,
+	/** До какой даты заявление держится гарантийным сроком */
+	hold_until?: ModelTypes["DateTime"] | undefined | null,
 	id: ModelTypes["ID"],
 	/** Ссылки на внешние хранилища */
 	links: Array<string>,
@@ -40169,18 +40250,6 @@ export type ModelTypes = {
 	status: ModelTypes["EduContributionStatus"],
 	/** Преподаватель */
 	teacher_username: string
-};
-	["EduContributionDraftInput"]: {
-	/** Сумма паевого взноса («5000.0000 RUB») */
-	amount: string,
-	/** Назначение */
-	assignment_id: ModelTypes["ID"],
-	/** Описание */
-	description?: string | undefined | null,
-	/** Ссылки на внешние хранилища */
-	links: Array<string>,
-	/** Тип результата */
-	rid_type: ModelTypes["EduRidType"]
 };
 	["EduContributionStatus"]:EduContributionStatus;
 	["EduCourse"]: {
@@ -40202,6 +40271,8 @@ export type ModelTypes = {
 	fee_year: string,
 	/** Класс */
 	grade: string,
+	/** Гарантийный срок на материалы занятия, дней */
+	guarantee_days: number,
 	/** Идентификатор курса */
 	id: ModelTypes["ID"],
 	image_url?: string | undefined | null,
@@ -40300,6 +40371,8 @@ export type ModelTypes = {
 	external_ref?: string | undefined | null,
 	/** Класс */
 	grade: string,
+	/** Гарантийный срок на материалы занятия, дней */
+	guarantee_days?: number | undefined | null,
 	/** Обложка курса: новое изображение (base64, ≤ 10 МБ, JPEG/PNG/WEBP), прежнее (bucket_key) или null — убрать */
 	image?: ModelTypes["EduCourseImageUploadInput"] | undefined | null,
 	/** Длительность занятия, минут */
@@ -40498,6 +40571,39 @@ export type ModelTypes = {
 	/** Почта / Telegram / код пропуска */
 	recipient_value: string
 };
+	["EduLesson"]: {
+		/** Взнос, оформленный по занятию */
+	contribution_id?: ModelTypes["ID"] | undefined | null,
+	/** Курс */
+	course_id: ModelTypes["ID"],
+	/** Название курса */
+	course_title: string,
+	/** Длительность, минут */
+	duration_minutes: number,
+	/** Когда проведено */
+	held_at: ModelTypes["DateTime"],
+	id: ModelTypes["ID"],
+	/** Номер занятия в программе */
+	lesson_number: number,
+	/** Материалы занятия */
+	materials: Array<string>,
+	/** Тема занятия */
+	topic: string
+};
+	["EduLessonReportInput"]: {
+	/** Назначение, по которому проведено занятие */
+	assignment_id: ModelTypes["ID"],
+	/** Длительность занятия, минут; без значения — из расписания курса */
+	duration_minutes?: number | undefined | null,
+	/** Когда проведено (по умолчанию — сейчас) */
+	held_at?: string | undefined | null,
+	/** Номер занятия в программе курса */
+	lesson_number: number,
+	/** Материалы занятия — ссылки на записи, конспекты, задания */
+	materials: Array<string>,
+	/** Тема занятия */
+	topic?: string | undefined | null
+};
 	["EduMemberCard"]: {
 		/** ФИО пайщика */
 	display_name: string,
@@ -40617,6 +40723,12 @@ export type ModelTypes = {
 };
 	["EduRetryTaskInput"]: {
 	task_id: ModelTypes["ID"]
+};
+	["EduRevokeContributionInput"]: {
+	/** Взнос, заявление по которому держится */
+	contribution_id: ModelTypes["ID"],
+	/** Подтверждённая рекламация — основание снятия */
+	reason: string
 };
 	["EduRidType"]:EduRidType;
 	["EduSetConnectorCredentialsInput"]: {
@@ -40752,6 +40864,8 @@ export type ModelTypes = {
 	external_ref?: string | undefined | null,
 	/** Класс */
 	grade: string,
+	/** Гарантийный срок на материалы занятия, дней */
+	guarantee_days?: number | undefined | null,
 	/** Идентификатор курса */
 	id: ModelTypes["ID"],
 	/** Обложка курса: новое изображение (base64, ≤ 10 МБ, JPEG/PNG/WEBP), прежнее (bucket_key) или null — убрать */
@@ -46747,12 +46861,14 @@ export type ModelTypes = {
 	edubridgeDeclineContribution: ModelTypes["EduContribution"],
 	/** Снять администратора */
 	edubridgeDismissAdmin: boolean,
-	/** Подготовить взнос РИД (черновик) */
-	edubridgeDraftContribution: ModelTypes["EduContribution"],
 	/** Удалить обучающегося без действующих подписок */
 	edubridgeRemoveLearner: boolean,
+	/** Отчитаться о проведённом занятии: материалы и взнос по ставке часа */
+	edubridgeReportLesson: ModelTypes["EduLesson"],
 	/** Повторить задачу выдачи/отзыва доступа */
 	edubridgeRetryTask: ModelTypes["EduAccessTask"],
+	/** Снять удерживаемое заявление по подтверждённой рекламации */
+	edubridgeRevokeContribution: ModelTypes["EduContribution"],
 	/** Сформировать акт приёма-передачи для подписи (после решения совета) */
 	edubridgeRidAct: ModelTypes["GeneratedDocument"],
 	/** Сформировать заявление о паевом взносе РИД для подписи */
@@ -49077,6 +49193,8 @@ export type ModelTypes = {
 	edubridgeMyEnrollments: Array<ModelTypes["EduEnrollment"]>,
 	/** Мои обучающиеся */
 	edubridgeMyLearners: Array<ModelTypes["EduLearner"]>,
+	/** Мои проведённые занятия */
+	edubridgeMyLessons: Array<ModelTypes["EduLesson"]>,
 	/** Мой расчёт: принятые взносы и доступное к возврату */
 	edubridgeMySettlement: ModelTypes["EduTeacherSettlement"],
 	/** Подписаны ли оферты родителя-слушателя и преподавателя */
@@ -57637,6 +57755,8 @@ export type GraphQLTypes = {
 	decline_reason?: string | undefined | null,
 	/** Описание результата */
 	description: string,
+	/** До какой даты заявление держится гарантийным сроком */
+	hold_until?: GraphQLTypes["DateTime"] | undefined | null,
 	id: GraphQLTypes["ID"],
 	/** Ссылки на внешние хранилища */
 	links: Array<string>,
@@ -57650,18 +57770,6 @@ export type GraphQLTypes = {
 	/** Преподаватель */
 	teacher_username: string,
 	['...on EduContribution']: Omit<GraphQLTypes["EduContribution"], "...on EduContribution">
-};
-	["EduContributionDraftInput"]: {
-		/** Сумма паевого взноса («5000.0000 RUB») */
-	amount: string,
-	/** Назначение */
-	assignment_id: GraphQLTypes["ID"],
-	/** Описание */
-	description?: string | undefined | null,
-	/** Ссылки на внешние хранилища */
-	links: Array<string>,
-	/** Тип результата */
-	rid_type: GraphQLTypes["EduRidType"]
 };
 	/** Состояние взноса результатами работы */
 ["EduContributionStatus"]: EduContributionStatus;
@@ -57685,6 +57793,8 @@ export type GraphQLTypes = {
 	fee_year: string,
 	/** Класс */
 	grade: string,
+	/** Гарантийный срок на материалы занятия, дней */
+	guarantee_days: number,
 	/** Идентификатор курса */
 	id: GraphQLTypes["ID"],
 	image_url?: string | undefined | null,
@@ -57789,6 +57899,8 @@ export type GraphQLTypes = {
 	external_ref?: string | undefined | null,
 	/** Класс */
 	grade: string,
+	/** Гарантийный срок на материалы занятия, дней */
+	guarantee_days?: number | undefined | null,
 	/** Обложка курса: новое изображение (base64, ≤ 10 МБ, JPEG/PNG/WEBP), прежнее (bucket_key) или null — убрать */
 	image?: GraphQLTypes["EduCourseImageUploadInput"] | undefined | null,
 	/** Длительность занятия, минут */
@@ -58004,6 +58116,41 @@ export type GraphQLTypes = {
 	/** Почта / Telegram / код пропуска */
 	recipient_value: string
 };
+	["EduLesson"]: {
+	__typename: "EduLesson",
+	/** Взнос, оформленный по занятию */
+	contribution_id?: GraphQLTypes["ID"] | undefined | null,
+	/** Курс */
+	course_id: GraphQLTypes["ID"],
+	/** Название курса */
+	course_title: string,
+	/** Длительность, минут */
+	duration_minutes: number,
+	/** Когда проведено */
+	held_at: GraphQLTypes["DateTime"],
+	id: GraphQLTypes["ID"],
+	/** Номер занятия в программе */
+	lesson_number: number,
+	/** Материалы занятия */
+	materials: Array<string>,
+	/** Тема занятия */
+	topic: string,
+	['...on EduLesson']: Omit<GraphQLTypes["EduLesson"], "...on EduLesson">
+};
+	["EduLessonReportInput"]: {
+		/** Назначение, по которому проведено занятие */
+	assignment_id: GraphQLTypes["ID"],
+	/** Длительность занятия, минут; без значения — из расписания курса */
+	duration_minutes?: number | undefined | null,
+	/** Когда проведено (по умолчанию — сейчас) */
+	held_at?: string | undefined | null,
+	/** Номер занятия в программе курса */
+	lesson_number: number,
+	/** Материалы занятия — ссылки на записи, конспекты, задания */
+	materials: Array<string>,
+	/** Тема занятия */
+	topic?: string | undefined | null
+};
 	["EduMemberCard"]: {
 	__typename: "EduMemberCard",
 	/** ФИО пайщика */
@@ -58146,6 +58293,12 @@ export type GraphQLTypes = {
 };
 	["EduRetryTaskInput"]: {
 		task_id: GraphQLTypes["ID"]
+};
+	["EduRevokeContributionInput"]: {
+		/** Взнос, заявление по которому держится */
+	contribution_id: GraphQLTypes["ID"],
+	/** Подтверждённая рекламация — основание снятия */
+	reason: string
 };
 	/** Тип результата интеллектуальной деятельности */
 ["EduRidType"]: EduRidType;
@@ -58290,6 +58443,8 @@ export type GraphQLTypes = {
 	external_ref?: string | undefined | null,
 	/** Класс */
 	grade: string,
+	/** Гарантийный срок на материалы занятия, дней */
+	guarantee_days?: number | undefined | null,
 	/** Идентификатор курса */
 	id: GraphQLTypes["ID"],
 	/** Обложка курса: новое изображение (base64, ≤ 10 МБ, JPEG/PNG/WEBP), прежнее (bucket_key) или null — убрать */
@@ -64711,12 +64866,14 @@ export type GraphQLTypes = {
 	edubridgeDeclineContribution: GraphQLTypes["EduContribution"],
 	/** Снять администратора */
 	edubridgeDismissAdmin: boolean,
-	/** Подготовить взнос РИД (черновик) */
-	edubridgeDraftContribution: GraphQLTypes["EduContribution"],
 	/** Удалить обучающегося без действующих подписок */
 	edubridgeRemoveLearner: boolean,
+	/** Отчитаться о проведённом занятии: материалы и взнос по ставке часа */
+	edubridgeReportLesson: GraphQLTypes["EduLesson"],
 	/** Повторить задачу выдачи/отзыва доступа */
 	edubridgeRetryTask: GraphQLTypes["EduAccessTask"],
+	/** Снять удерживаемое заявление по подтверждённой рекламации */
+	edubridgeRevokeContribution: GraphQLTypes["EduContribution"],
 	/** Сформировать акт приёма-передачи для подписи (после решения совета) */
 	edubridgeRidAct: GraphQLTypes["GeneratedDocument"],
 	/** Сформировать заявление о паевом взносе РИД для подписи */
@@ -67224,6 +67381,8 @@ export type GraphQLTypes = {
 	edubridgeMyEnrollments: Array<GraphQLTypes["EduEnrollment"]>,
 	/** Мои обучающиеся */
 	edubridgeMyLearners: Array<GraphQLTypes["EduLearner"]>,
+	/** Мои проведённые занятия */
+	edubridgeMyLessons: Array<GraphQLTypes["EduLesson"]>,
 	/** Мой расчёт: принятые взносы и доступное к возврату */
 	edubridgeMySettlement: GraphQLTypes["EduTeacherSettlement"],
 	/** Подписаны ли оферты родителя-слушателя и преподавателя */
@@ -70345,6 +70504,7 @@ export enum EduContributionStatus {
 	COUNCIL_APPROVED = "COUNCIL_APPROVED",
 	DECLINED = "DECLINED",
 	DRAFT = "DRAFT",
+	HELD = "HELD",
 	SUBMITTED = "SUBMITTED"
 }
 /** Тип направления курса (внутренний признак) */
@@ -71381,7 +71541,6 @@ type ZEUS_VARIABLES = {
 	["EduConnectorCredentialInput"]: ValueTypes["EduConnectorCredentialInput"];
 	["EduConnectorHealth"]: ValueTypes["EduConnectorHealth"];
 	["EduContractStatus"]: ValueTypes["EduContractStatus"];
-	["EduContributionDraftInput"]: ValueTypes["EduContributionDraftInput"];
 	["EduContributionStatus"]: ValueTypes["EduContributionStatus"];
 	["EduCourseDirection"]: ValueTypes["EduCourseDirection"];
 	["EduCourseEconomyInput"]: ValueTypes["EduCourseEconomyInput"];
@@ -71395,12 +71554,14 @@ type ZEUS_VARIABLES = {
 	["EduEnrollmentStatus"]: ValueTypes["EduEnrollmentStatus"];
 	["EduExpenseItemInput"]: ValueTypes["EduExpenseItemInput"];
 	["EduLearnerInput"]: ValueTypes["EduLearnerInput"];
+	["EduLessonReportInput"]: ValueTypes["EduLessonReportInput"];
 	["EduOfferKind"]: ValueTypes["EduOfferKind"];
 	["EduOnboardingSource"]: ValueTypes["EduOnboardingSource"];
 	["EduQueueFilterInput"]: ValueTypes["EduQueueFilterInput"];
 	["EduQuoteInput"]: ValueTypes["EduQuoteInput"];
 	["EduRecipientType"]: ValueTypes["EduRecipientType"];
 	["EduRetryTaskInput"]: ValueTypes["EduRetryTaskInput"];
+	["EduRevokeContributionInput"]: ValueTypes["EduRevokeContributionInput"];
 	["EduRidType"]: ValueTypes["EduRidType"];
 	["EduSetConnectorCredentialsInput"]: ValueTypes["EduSetConnectorCredentialsInput"];
 	["EduSetConnectorEnabledInput"]: ValueTypes["EduSetConnectorEnabledInput"];

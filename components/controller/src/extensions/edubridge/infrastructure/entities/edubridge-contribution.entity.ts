@@ -41,6 +41,22 @@ export class EdubridgeContributionEntity {
   @Column({ type: 'varchar', length: 64, nullable: true })
   public statement_hash!: string | null;
 
+  /**
+   * Подписанное заявление целиком: преподаватель подписывает его один раз
+   * вместе с отчётом, а в совет оно уходит по истечении гарантийного срока —
+   * повторных действий от него это не требует.
+   */
+  @Column({ type: 'jsonb', nullable: true })
+  public statement_document!: Record<string, unknown> | null;
+
+  /** До какой даты заявление держится расширением; null — гарантийного срока нет. */
+  @Column({ type: 'timestamptz', nullable: true })
+  public hold_until!: Date | null;
+
+  /** Занятие, по которому оформлен взнос; null — взнос вне журнала занятий. */
+  @Column({ type: 'uuid', nullable: true })
+  public lesson_id!: string | null;
+
   @Column({ type: 'varchar', length: 64, nullable: true })
   public decision_hash!: string | null;
 

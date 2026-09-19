@@ -18,6 +18,7 @@ import {
   MemberSubscriptionsPage,
   TeacherAssignmentsPage,
   TeacherContributionsPage,
+  TeacherLessonsPage,
   TeacherOnboardingPage,
   TeacherProfilePage,
   TeacherSettlementPage,
@@ -106,6 +107,7 @@ function teacherWorkspace(): IWorkspaceConfig {
     memberPage('onboarding', 'edubridge-teacher-onboarding', TeacherOnboardingPage, { title: 'Подключение', icon: 'how_to_reg', requires: 'Onboarding:teacher', gate: true }),
     memberPage('profile', 'edubridge-teacher-profile', TeacherProfilePage, { title: 'Профиль', icon: 'badge', requires: 'EduAssignment:read:own' }),
     memberPage('assignments', 'edubridge-assignments', TeacherAssignmentsPage, { title: 'Назначения', icon: 'assignment', requires: 'EduAssignment:read:own' }),
+    memberPage('lessons', 'edubridge-lessons', TeacherLessonsPage, { title: 'Занятия', icon: 'event_available', requires: 'EduContribution:create:own' }),
     memberPage('contributions', 'edubridge-contributions', TeacherContributionsPage, { title: 'Взносы результатами работы', icon: 'workspace_premium', requires: 'EduContribution:read:own' }),
     memberPage('settlement', 'edubridge-settlement', TeacherSettlementPage, { title: 'Расчёт', icon: 'account_balance_wallet', requires: 'EduTeacherWallet:read:own' }),
   ]);

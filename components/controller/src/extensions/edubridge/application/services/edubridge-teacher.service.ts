@@ -22,12 +22,24 @@ import {
   type IUserAvatarPort,
   type IUserWalletPort,
 } from '@coopenomics/innercoop';
-import { EduAssignmentStatus, EduContractStatus, EduContributionStatus } from '../../domain/enums';
+import { EduAssignmentStatus, EduContractStatus, EduContributionStatus, EduRidType } from '../../domain/enums';
 import { EDUBRIDGE_CHAIN_PORT, type EdubridgeChainPort } from '../../domain/ports/edubridge-chain.port';
-import type { EdubridgeContributionEntity, EdubridgeTeacherAssignmentEntity, EdubridgeTeacherContractEntity } from '../../infrastructure/entities';
+import type {
+  EdubridgeContributionEntity,
+  EdubridgeLessonEntity,
+  EdubridgeTeacherAssignmentEntity,
+  EdubridgeTeacherContractEntity,
+} from '../../infrastructure/entities';
 import { EdubridgeCourseRepository } from '../../infrastructure/repositories/edubridge-course.repository';
+import { EdubridgeLessonRepository } from '../../infrastructure/repositories/edubridge-lesson.repository';
+import { costOfHours } from '../../domain/economy/course-fee.calculator';
 import { EdubridgeTeacherRepository } from '../../infrastructure/repositories/edubridge-teacher.repository';
-import type { EduAssignmentInputDTO, EduContributionDraftInputDTO, EduTeacherDTO, EduTeacherSettlementDTO } from '../dto/edu-teacher.dto';
+import type {
+  EduAssignmentInputDTO,
+  EduLessonReportInputDTO,
+  EduTeacherDTO,
+  EduTeacherSettlementDTO,
+} from '../dto/edu-teacher.dto';
 import { EdubridgeNamesService } from '../membership/edubridge-names.service';
 import {
   EDUBRIDGE_ANNEX_DECIDED_EVENT,
@@ -58,6 +70,7 @@ export class EdubridgeTeacherService {
   constructor(
     private readonly teachers: EdubridgeTeacherRepository,
     private readonly courses: EdubridgeCourseRepository,
+    private readonly lessons: EdubridgeLessonRepository,
     @Inject(EDUBRIDGE_CHAIN_PORT) private readonly chain: EdubridgeChainPort,
     @Inject(DOCUMENT_PORT) private readonly documents: IDocumentPort,
     @Inject(FREE_DECISION_PORT) private readonly freeDecisions: IFreeDecisionPort,
@@ -264,24 +277,94 @@ export class EdubridgeTeacherService {
     return this.teachers.listContributions(coopname, { teacher, statuses });
   }
 
-  async draftContribution(coopname: string, teacher: string, input: EduContributionDraftInputDTO): Promise<EdubridgeContributionEntity> {
-    await this.requireContract(coopname, teacher);
-    const a = await this.teachers.findAssignment(coopname, input.assignment_id);
-    if (!a || a.teacher_username !== teacher) throw new NotFoundException('Назначение не найдено');
-    if (a.status !== EduAssignmentStatus.ACTIVE) throw new BadRequestException('Назначение не активно — подпишите приложение к договору');
-    const ridHash = createHash('sha256').update(`${coopname}|${teacher}|${a.id}|${randomUUID()}`).digest('hex');
-    const entity = this.teachers.createContribution({
-      coopname,
-      teacher_username: teacher,
-      assignment_id: a.id,
-      rid_hash: ridHash,
-      rid_type: input.rid_type,
-      links: input.links.map((l) => l.trim()).filter(Boolean),
-      description: input.description ?? '',
-      amount: input.amount,
-      status: EduContributionStatus.DRAFT,
-    });
-    return this.teachers.saveContribution(entity);
+  /**
+   * Отчёт преподавателя после занятия. Работа овеществляется материалами:
+   * записью, конспектом, заданиями. Сумма взноса не вводится руками — она
+   * равна часам занятия по ставке преподавателя, поэтому оплата ученика и
+   * начисление преподавателю считаются от одного и того же.
+   */
+  async reportLesson(coopname: string, teacher: string, input: EduLessonReportInputDTO): Promise<EdubridgeLessonEntity> {
+    const { contract, assignment: a, course } = await this.lessonContext(coopname, teacher, input);
+    const duration = input.duration_minutes ?? course.lesson_minutes;
+    const amount = costOfHours(contract.hourly_rate, duration / 60);
+
+    const lesson = await this.lessons.save(
+      this.lessons.create({
+        coopname,
+        teacher_username: teacher,
+        course_id: course.id,
+        assignment_id: a.id,
+        lesson_number: input.lesson_number,
+        held_at: input.held_at ? new Date(input.held_at) : new Date(),
+        duration_minutes: duration,
+        materials: input.materials.map((m) => m.trim()).filter(Boolean),
+        topic: input.topic ?? '',
+      })
+    );
+
+    const ridHash = createHash('sha256').update(`${coopname}|${teacher}|${lesson.id}`).digest('hex');
+    const contribution = await this.teachers.saveContribution(
+      this.teachers.createContribution({
+        coopname,
+        teacher_username: teacher,
+        assignment_id: a.id,
+        rid_hash: ridHash,
+        rid_type: EduRidType.LESSON_RECORDING,
+        links: lesson.materials,
+        description: lesson.topic || `Занятие № ${lesson.lesson_number} курса «${course.title}»`,
+        amount,
+        lesson_id: lesson.id,
+        // Гарантийный срок идёт от занятия: до его истечения заявление держит
+        // расширение, а в совет отправляет само.
+        hold_until: new Date(lesson.held_at.getTime() + course.guarantee_days * 24 * 60 * 60 * 1000),
+        status: EduContributionStatus.DRAFT,
+      })
+    );
+
+    lesson.contribution_id = contribution.id;
+    const saved = await this.lessons.save(lesson);
+    this.logger.info(
+      `[EDU.LESSON] ${teacher}: занятие № ${lesson.lesson_number} курса ${course.id}, взнос ${amount} держится до ${contribution.hold_until?.toISOString()}`
+    );
+    return saved;
+  }
+
+  /**
+   * Что нужно для отчёта о занятии: действующий договор, активное назначение и
+   * курс с планом занятий. Занятие вне плана и повторный отчёт отклоняются до
+   * записи в журнал.
+   */
+  private async lessonContext(coopname: string, teacher: string, input: EduLessonReportInputDTO) {
+    const contract = await this.requireContract(coopname, teacher);
+    const assignment = await this.teachers.findAssignment(coopname, input.assignment_id);
+    if (!assignment || assignment.teacher_username !== teacher) throw new NotFoundException('Назначение не найдено');
+    if (assignment.status !== EduAssignmentStatus.ACTIVE) {
+      throw new BadRequestException('Назначение не активно — подпишите приложение к договору');
+    }
+
+    const course = await this.courses.findById(coopname, assignment.course_id);
+    if (!course) throw new NotFoundException('Курс не найден');
+    if (input.lesson_number < 1 || input.lesson_number > course.lessons_total) {
+      throw new BadRequestException(`Занятие вне плана курса: в программе ${course.lessons_total} занятий`);
+    }
+    if (await this.lessons.findByNumber(coopname, course.id, input.lesson_number)) {
+      throw new BadRequestException(`Отчёт по занятию № ${input.lesson_number} уже подан`);
+    }
+    return { contract, assignment, course };
+  }
+
+  /** Названия курсов по идентификаторам — журнал занятий показывает их, а не ключи. */
+  async courseTitles(coopname: string, courseIds: string[]): Promise<Map<string, string>> {
+    const unique = [...new Set(courseIds)];
+    const entries = await Promise.all(
+      unique.map(async (id): Promise<[string, string]> => [id, (await this.courses.findById(coopname, id))?.title ?? ''])
+    );
+    return new Map(entries);
+  }
+
+  /** Журнал занятий преподавателя — что проведено и на какую сумму оформлено. */
+  listLessons(coopname: string, teacher: string): Promise<EdubridgeLessonEntity[]> {
+    return this.lessons.findByTeacher(coopname, teacher);
   }
 
   /** Заявление (3008) без подписи — для ознакомления и подписи на фронте. */
@@ -307,6 +390,32 @@ export class EdubridgeTeacherService {
     const c = await this.ownContribution(coopname, teacher, contributionId);
     if (c.status !== EduContributionStatus.DRAFT) throw new BadRequestException('Взнос уже подан');
 
+    // Гарантийный срок материалов ещё идёт: подписанное заявление держится
+    // здесь и уходит в совет само по истечении срока. Преподаватель подписывает
+    // один раз — повторных действий от него это не требует.
+    if (c.hold_until && c.hold_until > new Date()) {
+      c.statement_hash = document.hash.toLowerCase();
+      c.statement_document = document as unknown as Record<string, unknown>;
+      c.status = EduContributionStatus.HELD;
+      const held = await this.teachers.saveContribution(c);
+      this.logger.info(`[EDU.RID] заявление ${c.rid_hash} принято и держится до ${c.hold_until.toISOString()}`);
+      return held;
+    }
+
+    return this.publishContribution(coopname, teacher, c, document);
+  }
+
+  /**
+   * Отправка заявления в совет: взнос в цепи и проект решения. Вызывается
+   * сразу, когда гарантийного срока нет, и очередью отложенных заявлений — когда
+   * срок истёк.
+   */
+  async publishContribution(
+    coopname: string,
+    teacher: string,
+    c: EdubridgeContributionEntity,
+    document: ISignedDocument
+  ): Promise<EdubridgeContributionEntity> {
     await this.chain.submitRid({
       coopname,
       username: teacher,
@@ -351,6 +460,43 @@ export class EdubridgeTeacherService {
     this.events.emit(EDUBRIDGE_CONTRIBUTION_SUBMITTED_EVENT, { coopname, contribution_id: saved.id, teacher_username: teacher });
     this.logger.info(`[EDU.RID] взнос ${c.rid_hash} подан, проект решения ${project.hash}`);
     return saved;
+  }
+
+  /**
+   * Подтверждённая рекламация в гарантийный срок: заявление снимается, взнос
+   * не оформляется, материал остаётся за преподавателем. После отправки в
+   * совет снимать уже нечего — там решение принимает совет.
+   */
+  async revokeHeldContribution(coopname: string, contributionId: string, reason: string): Promise<EdubridgeContributionEntity> {
+    const c = await this.teachers.findContribution(coopname, contributionId);
+    if (!c) throw new NotFoundException('Взнос не найден');
+    if (c.status !== EduContributionStatus.HELD && c.status !== EduContributionStatus.DRAFT) {
+      throw new BadRequestException('Заявление уже отправлено в совет — снять его нельзя');
+    }
+    c.status = EduContributionStatus.DECLINED;
+    c.decline_reason = reason;
+    const saved = await this.teachers.saveContribution(c);
+    this.logger.info(`[EDU.RID] заявление ${c.rid_hash} снято по рекламации: ${reason}`);
+    return saved;
+  }
+
+  /** Заявления, у которых гарантийный срок истёк — их отправляет очередь. */
+  async publishDueContributions(coopname: string): Promise<number> {
+    const due = await this.teachers.findHeldDue(coopname, new Date());
+    let published = 0;
+    for (const c of due) {
+      if (!c.statement_document) {
+        this.logger.warn(`[EDU.RID] заявление ${c.rid_hash} держится без подписанного экземпляра — пропускаем`);
+        continue;
+      }
+      try {
+        await this.publishContribution(coopname, c.teacher_username, c, c.statement_document as unknown as ISignedDocument);
+        published += 1;
+      } catch (e) {
+        this.logger.error(`[EDU.RID] не удалось отправить заявление ${c.rid_hash}: ${(e as Error)?.message ?? e}`);
+      }
+    }
+    return published;
   }
 
   /** Совет принял решение: ждём акт преподавателя. */

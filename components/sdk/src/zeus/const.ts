@@ -636,9 +636,6 @@ export const AllTypesProps: Record<string,any> = {
 	},
 	EduConnectorHealth: "enum" as const,
 	EduContractStatus: "enum" as const,
-	EduContributionDraftInput:{
-		rid_type:"EduRidType"
-	},
 	EduContributionStatus: "enum" as const,
 	EduCourseDirection: "enum" as const,
 	EduCourseEconomyInput:{
@@ -672,6 +669,9 @@ export const AllTypesProps: Record<string,any> = {
 	EduLearnerInput:{
 		recipient_type:"EduRecipientType"
 	},
+	EduLessonReportInput:{
+
+	},
 	EduOfferKind: "enum" as const,
 	EduOnboardingSource: "enum" as const,
 	EduQueueFilterInput:{
@@ -682,6 +682,9 @@ export const AllTypesProps: Record<string,any> = {
 	},
 	EduRecipientType: "enum" as const,
 	EduRetryTaskInput:{
+
+	},
+	EduRevokeContributionInput:{
 
 	},
 	EduRidType: "enum" as const,
@@ -2068,14 +2071,17 @@ export const AllTypesProps: Record<string,any> = {
 		edubridgeDismissAdmin:{
 			data:"EduAdminInput"
 		},
-		edubridgeDraftContribution:{
-			data:"EduContributionDraftInput"
-		},
 		edubridgeRemoveLearner:{
 
 		},
+		edubridgeReportLesson:{
+			data:"EduLessonReportInput"
+		},
 		edubridgeRetryTask:{
 			data:"EduRetryTaskInput"
+		},
+		edubridgeRevokeContribution:{
+			data:"EduRevokeContributionInput"
 		},
 		edubridgeRidAct:{
 
@@ -5720,6 +5726,7 @@ export const ReturnTypes: Record<string,any> = {
 		decision_hash:"String",
 		decline_reason:"String",
 		description:"String",
+		hold_until:"DateTime",
 		id:"ID",
 		links:"String",
 		rid_hash:"String",
@@ -5738,6 +5745,7 @@ export const ReturnTypes: Record<string,any> = {
 		fee_month:"String",
 		fee_year:"String",
 		grade:"String",
+		guarantee_days:"Int",
 		id:"ID",
 		image_url:"String",
 		lesson_minutes:"Int",
@@ -5837,6 +5845,17 @@ export const ReturnTypes: Record<string,any> = {
 		is_self:"Boolean",
 		recipient_type:"EduRecipientType",
 		recipient_value:"String"
+	},
+	EduLesson:{
+		contribution_id:"ID",
+		course_id:"ID",
+		course_title:"String",
+		duration_minutes:"Int",
+		held_at:"DateTime",
+		id:"ID",
+		lesson_number:"Int",
+		materials:"String",
+		topic:"String"
 	},
 	EduMemberCard:{
 		display_name:"String",
@@ -7805,9 +7824,10 @@ export const ReturnTypes: Record<string,any> = {
 		edubridgeCreateExpense:"String",
 		edubridgeDeclineContribution:"EduContribution",
 		edubridgeDismissAdmin:"Boolean",
-		edubridgeDraftContribution:"EduContribution",
 		edubridgeRemoveLearner:"Boolean",
+		edubridgeReportLesson:"EduLesson",
 		edubridgeRetryTask:"EduAccessTask",
+		edubridgeRevokeContribution:"EduContribution",
 		edubridgeRidAct:"GeneratedDocument",
 		edubridgeRidStatement:"GeneratedDocument",
 		edubridgeSetConnectorCredentials:"EduConnectorBinding",
@@ -8711,6 +8731,7 @@ export const ReturnTypes: Record<string,any> = {
 		edubridgeMyContributions:"EduContribution",
 		edubridgeMyEnrollments:"EduEnrollment",
 		edubridgeMyLearners:"EduLearner",
+		edubridgeMyLessons:"EduLesson",
 		edubridgeMySettlement:"EduTeacherSettlement",
 		edubridgeOnboardingState:"EduOnboardingState",
 		edubridgePlatformCourses:"EduPlatformCourse",

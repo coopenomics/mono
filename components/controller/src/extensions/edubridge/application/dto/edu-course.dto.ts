@@ -104,6 +104,9 @@ export class EduCourseDTO extends EduCatalogCourseDTO {
   @Field(() => Float, { description: 'Скидка за годовой объём, проценты' })
   year_discount_percent!: number;
 
+  @Field(() => Int, { description: 'Гарантийный срок на материалы занятия, дней' })
+  guarantee_days!: number;
+
   @Field(() => EduCourseStatus, { description: 'Состояние курса' })
   status!: EduCourseStatus;
 
@@ -124,6 +127,7 @@ export class EduCourseDTO extends EduCatalogCourseDTO {
     this.external_title_seen = e.external_title_seen;
     this.planned_hourly_rate = e.planned_hourly_rate;
     this.year_discount_percent = e.year_discount_bp / 100;
+    this.guarantee_days = e.guarantee_days;
     this.status = e.status;
     this.sort_order = e.sort_order;
     this.created_at = e.created_at;
@@ -255,6 +259,13 @@ export class EduCourseInputDTO {
   @Field(() => String, { description: 'Плановая ставка часа по программе («1000.0000 RUB»)' })
   @Matches(ASSET_PATTERN, { message: 'Ставка должна быть в формате «1000.0000 RUB»' })
   planned_hourly_rate!: string;
+
+  @Field(() => Int, { nullable: true, description: 'Гарантийный срок на материалы занятия, дней' })
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(365)
+  guarantee_days?: number;
 
   @Field(() => String, { nullable: true, description: 'Дата активации курса (YYYY-MM-DD); пусто — дата ещё не назначена' })
   @IsOptional()

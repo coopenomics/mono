@@ -24,6 +24,7 @@ const _validateAssignment: MakeAllFieldsRequired<ValueTypes['EduAssignment']> = 
 export const eduAssignmentSelector = Selector('EduAssignment')(rawAssignmentSelector)
 
 const rawContributionSelector = {
+  hold_until: true,
   id: true,
   teacher_username: true,
   assignment_id: true,
@@ -47,3 +48,17 @@ export const eduContributionSelector = Selector('EduContribution')(rawContributi
 const rawSettlementSelector = { accepted_total: true, available: true, last_accepted_at: true }
 const _validateSettlement: MakeAllFieldsRequired<ValueTypes['EduTeacherSettlement']> = rawSettlementSelector
 export const eduTeacherSettlementSelector = Selector('EduTeacherSettlement')(rawSettlementSelector)
+
+const rawLessonSelector = {
+  id: true,
+  course_id: true,
+  course_title: true,
+  lesson_number: true,
+  topic: true,
+  held_at: true,
+  duration_minutes: true,
+  materials: true,
+  contribution_id: true,
+}
+const _validateLesson: MakeAllFieldsRequired<ValueTypes['EduLesson']> = rawLessonSelector
+export const eduLessonSelector = Selector('EduLesson')(rawLessonSelector)

@@ -141,3 +141,38 @@ cases:
     test: components/factory/test/education-contract.test.ts
     status: written
 
+  - id: edu.teach.happy.07
+    level: backend
+    kind: happy
+    scenario: Преподаватель отчитывается о проведённом занятии материалами.
+    expect: Взнос равен часам занятия по ставке преподавателя; заявление держится гарантийный срок курса.
+    test: components/controller/tests/unit/edubridge/teacher.service.test.ts
+    status: passing
+  - id: edu.teach.break.04
+    level: backend
+    kind: break
+    scenario: Отчёт по занятию вне плана курса и повторный отчёт по тому же занятию.
+    expect: Отказ в обоих случаях — журнал ведётся по программе курса.
+    test: components/controller/tests/unit/edubridge/teacher.service.test.ts
+    status: passing
+  - id: edu.teach.side.07
+    level: backend
+    kind: side
+    scenario: Подписанное заявление в гарантийный срок.
+    expect: В совет не уходит, держится расширением; по истечении срока отправляется очередью само.
+    test: components/controller/tests/unit/edubridge/teacher.service.test.ts
+    status: passing
+  - id: edu.teach.side.08
+    level: backend
+    kind: side
+    scenario: Подтверждённая рекламация в гарантийный срок.
+    expect: Заявление снимается с причиной, взнос не оформляется.
+    test: components/controller/tests/unit/edubridge/teacher.service.test.ts
+    status: passing
+  - id: edu.teach.ui.03
+    level: ui
+    kind: happy
+    scenario: "Стол преподавателя — страница «Занятия»: отчёт с материалами, журнал проведённых; на странице взносов виден гарантийный срок."
+    expect: Произвольная сумма взноса недоступна, номер занятия подставляется следующим.
+    test: ~
+    status: missing

@@ -5,5 +5,6 @@ export { EdubridgeAccessTaskEntity } from './edubridge-access-task.entity';
 export { EdubridgeConnectorBindingEntity } from './edubridge-connector-binding.entity';
 export { EdubridgeTeacherAssignmentEntity } from './edubridge-teacher-assignment.entity';
 export { EdubridgeContributionEntity } from './edubridge-contribution.entity';
+export { EdubridgeLessonEntity } from './edubridge-lesson.entity';
 export { EdubridgeAdminEntity } from './edubridge-admin.entity';
 export { EdubridgeTeacherContractEntity } from './edubridge-teacher-contract.entity';

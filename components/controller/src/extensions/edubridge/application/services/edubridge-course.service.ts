@@ -21,6 +21,9 @@ import { EdubridgeNamesService } from '../membership/edubridge-names.service';
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+/** Гарантийный срок материалов занятия по умолчанию — две недели. */
+const DEFAULT_GUARANTEE_DAYS = 14;
+
 /** Параметры расчёта взноса из формы курса. */
 function economyParams(input: EduCourseInputDTO): EduCourseEconomyInputDTO {
   return {
@@ -229,18 +232,26 @@ export class EdubridgeCourseService {
       syllabus: input.syllabus ?? '',
       schedule: input.schedule ?? '',
       teacher_usernames: input.teacher_usernames ?? [],
-      lessons_per_month: input.lessons_per_month,
-      lessons_total: input.lessons_total,
-      lesson_minutes: input.lesson_minutes,
-      planned_hourly_rate: input.planned_hourly_rate,
-      starts_at: input.starts_at || null,
-      year_discount_bp: Math.round((input.year_discount_percent ?? 0) * 100),
-      fee_month: fee.fee_month,
-      fee_year: fee.fee_year,
+      ...economyFields(input, fee),
       direction: input.direction,
       carrier: input.carrier,
       external_ref: platform ? (input.external_ref ?? '').trim() : '',
       sort_order: input.sort_order ?? 0,
     };
   }
+}
+
+/** Экономика курса: расписание, ставка, гарантия и посчитанные взносы. */
+function economyFields(input: EduCourseInputDTO, fee: { fee_month: string; fee_year: string }): Partial<EdubridgeCourseEntity> {
+  return {
+    lessons_per_month: input.lessons_per_month,
+    lessons_total: input.lessons_total,
+    lesson_minutes: input.lesson_minutes,
+    planned_hourly_rate: input.planned_hourly_rate,
+    starts_at: input.starts_at || null,
+    guarantee_days: input.guarantee_days ?? DEFAULT_GUARANTEE_DAYS,
+    year_discount_bp: Math.round((input.year_discount_percent ?? 0) * 100),
+    fee_month: fee.fee_month,
+    fee_year: fee.fee_year,
+  };
 }

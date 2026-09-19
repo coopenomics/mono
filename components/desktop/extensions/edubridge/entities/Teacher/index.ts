@@ -11,7 +11,8 @@ export type ITeacher = Queries.Edubridge.Teachers.IOutput['edubridgeTeachers'][n
 export type IAssignment = Queries.Edubridge.MyAssignments.IOutput['edubridgeMyAssignments'][number];
 export type IContribution = Queries.Edubridge.MyContributions.IOutput['edubridgeMyContributions'][number];
 export type ISettlement = Queries.Edubridge.MySettlement.IOutput['edubridgeMySettlement'];
-export type IContributionDraftInput = Mutations.Edubridge.DraftContribution.IInput['data'];
+export type ILesson = Queries.Edubridge.MyLessons.IOutput['edubridgeMyLessons'][number];
+export type ILessonReportInput = Mutations.Edubridge.ReportLesson.IInput['data'];
 export type IAssignmentInput = Mutations.Edubridge.CreateAssignment.IInput['data'];
 
 // Ключи — имена enum'ов схемы (`Zeus.*`): именно их отдаёт и принимает GraphQL.
@@ -25,6 +26,7 @@ export const RID_TYPE_LABELS: Record<string, string> = {
 
 export const CONTRIBUTION_STATUS_LABELS: Record<string, { label: string; variant: 'pos' | 'neg' | 'warn' | 'info' | 'neutral' }> = {
   [Zeus.EduContributionStatus.DRAFT]: { label: 'Черновик', variant: 'neutral' },
+  [Zeus.EduContributionStatus.HELD]: { label: 'Гарантийный срок', variant: 'warn' },
   [Zeus.EduContributionStatus.SUBMITTED]: { label: 'На рассмотрении совета', variant: 'info' },
   [Zeus.EduContributionStatus.COUNCIL_APPROVED]: { label: 'Ждёт подписи акта', variant: 'warn' },
   [Zeus.EduContributionStatus.ACT_SIGNED]: { label: 'Ждёт подписи председателя', variant: 'info' },
@@ -59,11 +61,14 @@ async function m<T>(mutation: any, name: string, variables: Record<string, unkno
 export const fetchMyContract = () => q<IContract | null>(Queries.Edubridge.MyContract.query, Queries.Edubridge.MyContract.name);
 export const fetchMyAssignments = () => q<IAssignment[]>(Queries.Edubridge.MyAssignments.query, Queries.Edubridge.MyAssignments.name);
 export const fetchMyContributions = () => q<IContribution[]>(Queries.Edubridge.MyContributions.query, Queries.Edubridge.MyContributions.name);
+export const fetchMyLessons = () => q<ILesson[]>(Queries.Edubridge.MyLessons.query, Queries.Edubridge.MyLessons.name);
+export const reportLesson = (data: ILessonReportInput) => m<ILesson>(Mutations.Edubridge.ReportLesson.mutation, Mutations.Edubridge.ReportLesson.name, { data });
+export const revokeContribution = (data: { contribution_id: string; reason: string }) =>
+  m<IContribution>(Mutations.Edubridge.RevokeContribution.mutation, Mutations.Edubridge.RevokeContribution.name, { data });
 export const fetchMySettlement = () => q<ISettlement>(Queries.Edubridge.MySettlement.query, Queries.Edubridge.MySettlement.name);
 export const fetchAssignments = () => q<IAssignment[]>(Queries.Edubridge.Assignments.query, Queries.Edubridge.Assignments.name);
 export const fetchTeachers = () => q<ITeacher[]>(Queries.Edubridge.Teachers.query, Queries.Edubridge.Teachers.name);
 export const fetchContributions = () => q<IContribution[]>(Queries.Edubridge.Contributions.query, Queries.Edubridge.Contributions.name);
-export const draftContribution = (data: IContributionDraftInput) => m<IContribution>(Mutations.Edubridge.DraftContribution.mutation, Mutations.Edubridge.DraftContribution.name, { data });
 export const createAssignment = (data: IAssignmentInput) => m<IAssignment>(Mutations.Edubridge.CreateAssignment.mutation, Mutations.Edubridge.CreateAssignment.name, { data });
 export const closeAssignment = (id: string) => m<IAssignment>(Mutations.Edubridge.CloseAssignment.mutation, Mutations.Edubridge.CloseAssignment.name, { id });
 export const declineContribution = (contribution_id: string, reason: string) =>

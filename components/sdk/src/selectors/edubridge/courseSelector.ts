@@ -38,6 +38,7 @@ const rawCourseSelector = {
   external_title_seen: true,
   planned_hourly_rate: true,
   year_discount_percent: true,
+  guarantee_days: true,
   status: true,
   sort_order: true,
   created_at: true,

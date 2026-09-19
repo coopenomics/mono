@@ -15,11 +15,22 @@
     template(#cell-actions="{ row }")
       .row.no-wrap.justify-end.q-gutter-xs
         BaseButton(v-if="row.status === Zeus.EduContributionStatus.ACT_SIGNED" variant="primary" size="sm" :loading="busyId === row.id" @click="onAccept(row)") Подписать акт
+        BaseButton(v-if="row.status === Zeus.EduContributionStatus.HELD" variant="ghost" size="sm" @click="openRevoke(row)") Снять по рекламации
         BaseButton(v-if="canDecline(row)" variant="ghost" size="sm" @click="openDecline(row)") Отклонить
 
   EmptyState(v-if="!firstLoad && !contributions.length" title="Взносов нет" body="Взнос появляется, когда преподаватель подаёт результат работы по действующему назначению.")
     template(#icon)
       q-icon(name="workspace_premium" size="32px")
+
+  //- Подтверждённая рекламация в гарантийный срок: заявление снимается до
+  //- совета, материал остаётся за преподавателем.
+  BaseDialog(v-model="revokeOpen" title="Снять заявление по рекламации" size="sm")
+    BaseForm(:loading="busy" @submit="onRevoke")
+      BaseInput(v-model="revokeReason" label="Подтверждённая рекламация" type="textarea" :rows="3" required)
+      template(#footer)
+        .row.justify-end.q-gutter-sm
+          BaseButton(variant="ghost" type="button" @click="revokeOpen = false") Отменить
+          BaseButton(variant="danger" type="submit" :loading="busy") Снять заявление
 
   BaseDialog(v-model="declineOpen" title="Отклонить взнос" size="sm")
     BaseForm(:loading="busy" @submit="onDecline")
@@ -45,6 +56,7 @@ import {
   acceptContributionAsChairman,
   declineContribution,
   fetchContributions,
+  revokeContribution,
   fetchTeachers,
   type IContribution,
   type ITeacher,
@@ -65,6 +77,9 @@ const busyId = ref<string | null>(null);
 const declineOpen = ref(false);
 const declineTarget = ref<IContribution | null>(null);
 const declineReason = ref('');
+const revokeOpen = ref(false);
+const revokeTarget = ref<IContribution | null>(null);
+const revokeReason = ref('');
 
 const columns: BaseTableColumn<IContribution>[] = [
   { key: 'teacher_username', label: 'Преподаватель', width: '240px' },
@@ -105,6 +120,27 @@ async function onAccept(c: IContribution): Promise<void> {
     FailAlert(e);
   } finally {
     busyId.value = null;
+  }
+}
+
+function openRevoke(c: IContribution): void {
+  revokeTarget.value = c;
+  revokeReason.value = '';
+  revokeOpen.value = true;
+}
+
+async function onRevoke(): Promise<void> {
+  if (!revokeTarget.value) return;
+  busy.value = true;
+  try {
+    const updated = await revokeContribution({ contribution_id: asText(revokeTarget.value.id), reason: revokeReason.value.trim() });
+    contributions.value = contributions.value.map((x) => (x.id === updated.id ? updated : x));
+    revokeOpen.value = false;
+    SuccessAlert('Заявление снято — взнос не оформляется');
+  } catch (e) {
+    FailAlert(e);
+  } finally {
+    busy.value = false;
   }
 }
 

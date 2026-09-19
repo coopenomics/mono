@@ -64,6 +64,18 @@ export class EdubridgeTeacherRepository {
     return this.contributions.findOne({ where: { rid_hash: ridHash.toLowerCase() } });
   }
 
+  /** Заявления, которые пора отправить в совет: гарантийный срок истёк. */
+  findHeldDue(coopname: string, now: Date, limit = 50): Promise<EdubridgeContributionEntity[]> {
+    return this.contributions
+      .createQueryBuilder('c')
+      .where('c.coopname = :coopname', { coopname })
+      .andWhere('c.status = :status', { status: EduContributionStatus.HELD })
+      .andWhere('c.hold_until <= :now', { now })
+      .orderBy('c.hold_until', 'ASC')
+      .take(limit)
+      .getMany();
+  }
+
   findContributionByProjectHash(hash: string): Promise<EdubridgeContributionEntity | null> {
     return this.contributions.findOne({ where: { council_project_hash: hash.toLowerCase() } });
   }

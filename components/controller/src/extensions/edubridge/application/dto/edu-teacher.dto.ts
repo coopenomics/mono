@@ -3,7 +3,12 @@ import { IsArray, IsDateString, IsEnum, IsInt, IsOptional, IsString, IsUUID, Len
 import { Type } from 'class-transformer';
 import { SignedDigitalDocumentInputDTO } from '@coopenomics/extension-kit';
 import { EduAssignmentStatus, EduContractStatus, EduContributionStatus, EduRidType } from '../../domain/enums';
-import type { EdubridgeContributionEntity, EdubridgeTeacherAssignmentEntity, EdubridgeTeacherContractEntity } from '../../infrastructure/entities';
+import type {
+  EdubridgeContributionEntity,
+  EdubridgeLessonEntity,
+  EdubridgeTeacherAssignmentEntity,
+  EdubridgeTeacherContractEntity,
+} from '../../infrastructure/entities';
 import './edu-enums.registration';
 
 const ASSET_PATTERN = /^\d+\.\d{4} [A-Z]{1,7}$/;
@@ -120,6 +125,7 @@ export class EduSignContractInputDTO {
 
 @ObjectType('EduContribution')
 export class EduContributionDTO {
+  @Field(() => Date, { nullable: true, description: 'До какой даты заявление держится гарантийным сроком' }) hold_until!: Date | null;
   @Field(() => ID) id!: string;
   @Field(() => String, { description: 'Преподаватель' }) teacher_username!: string;
   @Field(() => ID, { description: 'Назначение' }) assignment_id!: string;
@@ -142,18 +148,9 @@ export class EduContributionDTO {
       id: e.id, teacher_username: e.teacher_username, assignment_id: e.assignment_id, rid_hash: e.rid_hash, rid_type: e.rid_type,
       links: e.links ?? [], description: e.description, amount: e.amount, status: e.status, statement_hash: e.statement_hash,
       decision_hash: e.decision_hash, act_hash: e.act_hash, decline_reason: e.decline_reason, council_decision_id: e.council_decision_id,
-      decided_at: e.decided_at, created_at: e.created_at,
+      decided_at: e.decided_at, created_at: e.created_at, hold_until: e.hold_until,
     });
   }
-}
-
-@InputType('EduContributionDraftInput')
-export class EduContributionDraftInputDTO {
-  @Field(() => ID, { description: 'Назначение' }) @IsUUID() assignment_id!: string;
-  @Field(() => EduRidType, { description: 'Тип результата' }) @IsEnum(EduRidType) rid_type!: EduRidType;
-  @Field(() => [String], { description: 'Ссылки на внешние хранилища' }) @IsArray() links!: string[];
-  @Field(() => String, { nullable: true, description: 'Описание' }) @IsOptional() @IsString() description?: string;
-  @Field(() => String, { description: 'Сумма паевого взноса («5000.0000 RUB»)' }) @Matches(ASSET_PATTERN) amount!: string;
 }
 
 @InputType('EduSubmitContributionInput')
@@ -189,4 +186,78 @@ export class EduTeacherSettlementDTO {
   @Field(() => String, { description: 'Принято советом взносов РИД на сумму' }) accepted_total!: string;
   @Field(() => String, { description: 'Доступно в главном паевом кошельке (право требования)' }) available!: string;
   @Field(() => Date, { nullable: true, description: 'Дата последнего принятого взноса' }) last_accepted_at!: Date | null;
+}
+
+/** Отчёт преподавателя после занятия: что провёл и какими материалами это подтверждается. */
+@InputType('EduLessonReportInput')
+export class EduLessonReportInputDTO {
+  @Field(() => ID, { description: 'Назначение, по которому проведено занятие' })
+  @IsUUID()
+  assignment_id!: string;
+
+  @Field(() => Int, { description: 'Номер занятия в программе курса' })
+  @IsInt()
+  @Min(1)
+  @Max(2000)
+  lesson_number!: number;
+
+  @Field(() => [String], { description: 'Материалы занятия — ссылки на записи, конспекты, задания' })
+  @IsArray()
+  @IsString({ each: true })
+  materials!: string[];
+
+  @Field(() => String, { nullable: true, description: 'Тема занятия' })
+  @IsOptional()
+  @IsString()
+  topic?: string;
+
+  @Field(() => String, { nullable: true, description: 'Когда проведено (по умолчанию — сейчас)' })
+  @IsOptional()
+  @IsDateString()
+  held_at?: string;
+
+  @Field(() => Int, { nullable: true, description: 'Длительность занятия, минут; без значения — из расписания курса' })
+  @IsOptional()
+  @IsInt()
+  @Min(5)
+  @Max(480)
+  duration_minutes?: number;
+}
+
+/** Проведённое занятие в журнале курса. */
+@ObjectType('EduLesson')
+export class EduLessonDTO {
+  @Field(() => ID) id!: string;
+  @Field(() => ID, { description: 'Курс' }) course_id!: string;
+  @Field(() => String, { description: 'Название курса' }) course_title!: string;
+  @Field(() => Int, { description: 'Номер занятия в программе' }) lesson_number!: number;
+  @Field(() => String, { description: 'Тема занятия' }) topic!: string;
+  @Field(() => Date, { description: 'Когда проведено' }) held_at!: Date;
+  @Field(() => Int, { description: 'Длительность, минут' }) duration_minutes!: number;
+  @Field(() => [String], { description: 'Материалы занятия' }) materials!: string[];
+  @Field(() => ID, { nullable: true, description: 'Взнос, оформленный по занятию' }) contribution_id!: string | null;
+
+  constructor(e: EdubridgeLessonEntity, courseTitle: string) {
+    this.id = e.id;
+    this.course_id = e.course_id;
+    this.course_title = courseTitle;
+    this.lesson_number = e.lesson_number;
+    this.topic = e.topic;
+    this.held_at = e.held_at;
+    this.duration_minutes = e.duration_minutes;
+    this.materials = e.materials ?? [];
+    this.contribution_id = e.contribution_id;
+  }
+}
+
+@InputType('EduRevokeContributionInput')
+export class EduRevokeContributionInputDTO {
+  @Field(() => ID, { description: 'Взнос, заявление по которому держится' })
+  @IsUUID()
+  contribution_id!: string;
+
+  @Field(() => String, { description: 'Подтверждённая рекламация — основание снятия' })
+  @IsString()
+  @Length(1, 2000)
+  reason!: string;
 }

@@ -42,6 +42,13 @@ BaseForm(ref="formEl" :loading="loading" :error="error" @submit="submit")
       BaseInput(v-model="lessonMinutes" label="Занятие, минут" type="number" required)
     .col-6.col-md-3
       BaseInput(v-model="plannedRate" label="Ставка часа" type="number" :suffix="symbol" required)
+    .col-6.col-md-3
+      BaseInput(
+        v-model="guaranteeDays"
+        label="Гарантия, дней"
+        type="number"
+        hint="Столько держится заявление преподавателя о взносе"
+      )
     .col-12.col-md-6
       BaseInput(
         v-model="form.starts_at"
@@ -185,6 +192,7 @@ const form = reactive<ICreateCourseInput & { teacher_usernames: string[] }>({
   planned_hourly_rate: '',
   year_discount_percent: 0,
   starts_at: null,
+  guarantee_days: 14,
   direction: Zeus.EduCourseDirection.ONLINE_PLATFORM,
   carrier: Zeus.EduAccessCarrier.SKILLSPACE,
   external_ref: '',
@@ -239,6 +247,7 @@ const lessonsPerMonth = ref('8');
 const lessonsTotal = ref('64');
 const lessonMinutes = ref('60');
 const plannedRate = ref('');
+const guaranteeDays = ref('14');
 const yearDiscount = ref('0');
 
 /** Расчёт взноса считает сервер: та же арифметика, что при сохранении курса. */
@@ -321,6 +330,7 @@ watch(
     lessonsTotal.value = String(c.lessons_total);
     lessonMinutes.value = String(c.lesson_minutes);
     plannedRate.value = fromAsset(c.planned_hourly_rate);
+    guaranteeDays.value = String(c.guarantee_days);
     yearDiscount.value = String(c.year_discount_percent);
     releaseObjectUrl();
     imageFile.value = null;
@@ -407,6 +417,7 @@ async function submit(): Promise<void> {
       ...form,
       image: await imagePayload(),
       external_ref: isPlatform.value ? form.external_ref : '',
+      guarantee_days: Number(guaranteeDays.value || 0),
       ...economyParams.value,
     };
     const saved = props.course ? await updateCourse({ ...data, id: props.course.id }) : await createCourse(data);

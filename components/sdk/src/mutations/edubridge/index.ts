@@ -2,6 +2,10 @@
 export * as CreateCourse from './createCourse'
 /** Изменить курс */
 export * as UpdateCourse from './updateCourse'
+/** Отчитаться о проведённом занятии */
+export * as ReportLesson from './reportLesson'
+/** Снять удерживаемое заявление по рекламации */
+export * as RevokeContribution from './revokeContribution'
 /** Отменить подписку с возвратом членского взноса */
 export * as CancelEnrollment from './cancelEnrollment'
 /** Отменить курс по недобору */
@@ -30,8 +34,6 @@ export * as Subscribe from './subscribe'
 export * as SignContract from './signContract'
 /** Подписать приложение к договору по курсу */
 export * as SignAnnex from './signAnnex'
-/** Подготовить взнос РИД */
-export * as DraftContribution from './draftContribution'
 /** Заявление о паевом взносе РИД для подписи */
 export * as RidStatement from './ridStatement'
 /** Подать взнос РИД */

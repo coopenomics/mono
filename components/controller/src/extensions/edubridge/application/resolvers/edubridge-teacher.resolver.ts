@@ -8,7 +8,6 @@ import {
   EduAssignmentDTO,
   EduAssignmentInputDTO,
   EduContributionDTO,
-  EduContributionDraftInputDTO,
   EduDeclineContributionInputDTO,
   EduSignActInputDTO,
   EduSignAnnexInputDTO,
@@ -16,6 +15,9 @@ import {
   EduSubmitContributionInputDTO,
   EduTeacherContractDTO,
   EduTeacherDTO,
+  EduLessonDTO,
+  EduLessonReportInputDTO,
+  EduRevokeContributionInputDTO,
   EduTeacherSettlementDTO,
 } from '../dto/edu-teacher.dto';
 import { EdubridgeAccessGuard } from '../guards/edubridge-access.guard';
@@ -79,11 +81,29 @@ export class EdubridgeTeacherResolver {
     return (await this.teachers.listContributions(coop(), m.username as string)).map((c) => new EduContributionDTO(c));
   }
 
-  @Mutation(() => EduContributionDTO, { name: 'edubridgeDraftContribution', description: 'Подготовить взнос РИД (черновик)' })
+  @Query(() => [EduLessonDTO], { name: 'edubridgeMyLessons', description: 'Мои проведённые занятия' })
+  @UseGuards(GqlJwtAuthGuard, EdubridgeAccessGuard)
+  @RequireEduAccess('EduAssignment', 'read:own')
+  async edubridgeMyLessons(@CurrentEduMember() m: IEdubridgeMembership): Promise<EduLessonDTO[]> {
+    const lessons = await this.teachers.listLessons(coop(), m.username as string);
+    const titles = await this.teachers.courseTitles(coop(), lessons.map((l) => l.course_id));
+    return lessons.map((l) => new EduLessonDTO(l, titles.get(l.course_id) ?? ''));
+  }
+
+  @Mutation(() => EduLessonDTO, { name: 'edubridgeReportLesson', description: 'Отчитаться о проведённом занятии: материалы и взнос по ставке часа' })
   @UseGuards(GqlJwtAuthGuard, EdubridgeAccessGuard)
   @RequireEduAccess('EduContribution', 'create:own')
-  async edubridgeDraftContribution(@CurrentEduMember() m: IEdubridgeMembership, @Args('data') data: EduContributionDraftInputDTO): Promise<EduContributionDTO> {
-    return new EduContributionDTO(await this.teachers.draftContribution(coop(), m.username as string, data));
+  async edubridgeReportLesson(@CurrentEduMember() m: IEdubridgeMembership, @Args('data') data: EduLessonReportInputDTO): Promise<EduLessonDTO> {
+    const lesson = await this.teachers.reportLesson(coop(), m.username as string, data);
+    const titles = await this.teachers.courseTitles(coop(), [lesson.course_id]);
+    return new EduLessonDTO(lesson, titles.get(lesson.course_id) ?? '');
+  }
+
+  @Mutation(() => EduContributionDTO, { name: 'edubridgeRevokeContribution', description: 'Снять удерживаемое заявление по подтверждённой рекламации' })
+  @UseGuards(GqlJwtAuthGuard, EdubridgeAccessGuard)
+  @RequireEduAccess('EduContribution', 'decide')
+  async edubridgeRevokeContribution(@Args('data') data: EduRevokeContributionInputDTO): Promise<EduContributionDTO> {
+    return new EduContributionDTO(await this.teachers.revokeHeldContribution(coop(), data.contribution_id, data.reason));
   }
 
   @Mutation(() => GeneratedDocumentDTO, { name: 'edubridgeRidStatement', description: 'Сформировать заявление о паевом взносе РИД для подписи' })

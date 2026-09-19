@@ -84,6 +84,14 @@ export class EdubridgeCourseEntity {
   @Column({ type: 'date', nullable: true })
   public starts_at!: string | null;
 
+  /**
+   * Гарантийный срок на материалы занятия, дней. Заявление преподавателя о
+   * паевом взносе держится этот срок и уходит в совет само; подтверждённая
+   * рекламация за это время снимает его. У каждого курса срок свой.
+   */
+  @Column({ type: 'int', default: 14 })
+  public guarantee_days!: number;
+
   /** Скидка за годовой объём, базисные пункты (100 = 1%); ограничена наценкой кооператива. */
   @Column({ type: 'int', default: 0 })
   public year_discount_bp!: number;

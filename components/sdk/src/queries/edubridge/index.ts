@@ -37,6 +37,8 @@ export * as Quote from './quote'
 export * as MyContract from './myContract'
 /** Мои назначения */
 export * as MyAssignments from './myAssignments'
+/** Мои проведённые занятия */
+export * as MyLessons from './myLessons'
 /** Мои взносы результатами работы */
 export * as MyContributions from './myContributions'
 /** Мой расчёт */

@@ -17,6 +17,7 @@ import { EdubridgeCourseRepository } from '../infrastructure/repositories/edubri
 import { EdubridgeEnrollmentRepository } from '../infrastructure/repositories/edubridge-enrollment.repository';
 import { EdubridgeLearnerRepository } from '../infrastructure/repositories/edubridge-learner.repository';
 import { EdubridgeTeacherRepository } from '../infrastructure/repositories/edubridge-teacher.repository';
+import { EdubridgeLessonRepository } from '../infrastructure/repositories/edubridge-lesson.repository';
 import { EdubridgeAdminRepository } from '../infrastructure/repositories/edubridge-admin.repository';
 import { EDUBRIDGE_CHAIN_PORT } from '../domain/ports/edubridge-chain.port';
 import { EdubridgeConfigHolder } from './config/edubridge-config.holder';
@@ -39,6 +40,7 @@ import { EdubridgeMemberResolver } from './resolvers/edubridge-member.resolver';
 import { EdubridgeAccessOutboxService } from './services/edubridge-access-outbox.service';
 import { EdubridgeExpiryWorker } from './workers/edubridge-expiry.worker';
 import { EdubridgeOutboxWorker } from './workers/edubridge-outbox.worker';
+import { EdubridgeHoldWorker } from './workers/edubridge-hold.worker';
 import { EdubridgeOnboardingResolver } from './resolvers/edubridge-onboarding.resolver';
 import { EdubridgeAdminResolver } from './resolvers/edubridge-admin.resolver';
 import { EdubridgeEconomyResolver } from './resolvers/edubridge-economy.resolver';
@@ -73,6 +75,7 @@ import { EdubridgeCatalogCourseFieldsResolver, EdubridgeCourseFieldsResolver } f
     EdubridgeEnrollmentRepository,
     EdubridgeAccessTaskRepository,
     EdubridgeTeacherRepository,
+    EdubridgeLessonRepository,
     EdubridgeAdminRepository,
     EdubridgeConnectorBindingRepository,
     { provide: EDUBRIDGE_CHAIN_PORT, useClass: EdubridgeChainAdapter },
@@ -105,6 +108,7 @@ import { EdubridgeCatalogCourseFieldsResolver, EdubridgeCourseFieldsResolver } f
     // Воркеры и слушатели
     EdubridgeOutboxWorker,
     EdubridgeExpiryWorker,
+    EdubridgeHoldWorker,
     EdubridgeAccessListener,
     EdubridgeApprovalListener,
     EdubridgeMembershipExitListener,
