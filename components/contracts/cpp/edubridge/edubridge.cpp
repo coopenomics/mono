@@ -8,6 +8,8 @@
 #include "src/p.edu.access/convert.cpp"
 #include "src/p.edu.access/opensub.cpp"
 #include "src/p.edu.access/chargefee.cpp"
+#include "src/p.edu.access/cancelsub.cpp"
+#include "src/p.edu.access/retshare.cpp"
 #include "src/p.edu.spend/createexp.cpp"
 #include "src/p.edu.spend/onexpdone.cpp"
 #include "src/p.edu.access/extendsub.cpp"

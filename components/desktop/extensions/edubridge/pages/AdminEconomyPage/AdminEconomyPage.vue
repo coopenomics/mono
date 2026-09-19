@@ -192,7 +192,7 @@ const expenseRows = computed<ExpenseProposalListRow[]>(() =>
     status: e.status,
     total_planned: e.total_planned,
     creator_name: e.creator_name,
-    created_at: asDateInput(e.created_at) ?? undefined,
+    created_at: toIso(e.created_at),
   })),
 );
 const movements = computed<IFundMovement[]>(() => fund.value?.movements ?? []);
@@ -210,6 +210,12 @@ const columns: BaseTableColumn<ITeacher>[] = [
   { key: 'assignments', label: 'Назначений', width: '130px', nowrap: true },
   { key: 'actions', label: '', align: 'right', width: '180px' },
 ];
+
+/** Список шасси ждёт дату строкой — приводим к ней раз и навсегда. */
+const toIso = (v: unknown): string | undefined => {
+  const input = asDateInput(v);
+  return input ? new Date(input).toISOString() : undefined;
+};
 
 const formatDate = (v: unknown) => {
   const input = asDateInput(v);

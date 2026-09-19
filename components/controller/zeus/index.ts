@@ -6883,6 +6883,8 @@ export type ValueTypes = {
 	lessons_total?:boolean | `@${string}`,
 	/** Расписание занятий */
 	schedule?:boolean | `@${string}`,
+	/** Дата активации курса — с неё начинаются занятия */
+	starts_at?:boolean | `@${string}`,
 	/** Предмет */
 	subject?:boolean | `@${string}`,
 	/** Учебная программа */
@@ -7020,6 +7022,8 @@ export type ValueTypes = {
 	schedule?:boolean | `@${string}`,
 	/** Порядок в каталоге */
 	sort_order?:boolean | `@${string}`,
+	/** Дата активации курса — с неё начинаются занятия */
+	starts_at?:boolean | `@${string}`,
 	/** Состояние курса */
 	status?:boolean | `@${string}`,
 	/** Предмет */
@@ -7122,6 +7126,8 @@ export type ValueTypes = {
 	schedule?: string | undefined | null | Variable<any, string>,
 	/** Порядок в каталоге */
 	sort_order?: number | undefined | null | Variable<any, string>,
+	/** Дата активации курса (YYYY-MM-DD); пусто — дата ещё не назначена */
+	starts_at?: string | undefined | null | Variable<any, string>,
 	/** Предмет */
 	subject: string | Variable<any, string>,
 	/** Учебная программа */
@@ -7183,6 +7189,8 @@ export type ValueTypes = {
 	["EduEnrollment"]: AliasType<{
 	/** Состояние доступа на площадке */
 	access_state?:boolean | `@${string}`,
+	/** Когда подписка отменена */
+	cancelled_at?:boolean | `@${string}`,
 	/** Курс */
 	course_id?:boolean | `@${string}`,
 	/** Название курса */
@@ -7191,10 +7199,16 @@ export type ValueTypes = {
 	id?:boolean | `@${string}`,
 	/** Обучающийся */
 	learner_id?:boolean | `@${string}`,
+	/** Уплаченный взнос за период */
+	paid_amount?:boolean | `@${string}`,
 	/** Оплачено до */
 	paid_until?:boolean | `@${string}`,
 	/** Период членского взноса */
 	period?:boolean | `@${string}`,
+	/** Основание возврата по Положению ЦПП */
+	refund_reason?:boolean | `@${string}`,
+	/** Возвращено при отмене */
+	refunded_amount?:boolean | `@${string}`,
 	/** Состояние подписки */
 	status?:boolean | `@${string}`,
 	/** Ключ подписки в цепи */
@@ -7437,6 +7451,22 @@ export type ValueTypes = {
 };
 	/** Как доставляется пропуск обучающемуся */
 ["EduRecipientType"]:EduRecipientType;
+	["EduRefundPreview"]: AliasType<{
+	/** Занятий оплачено периодом */
+	lessons_paid?:boolean | `@${string}`,
+	/** Занятий прошло к моменту отмены */
+	lessons_used?:boolean | `@${string}`,
+	/** Основание возврата по Положению ЦПП */
+	reason?:boolean | `@${string}`,
+	/** Сколько вернётся ученику */
+	refund?:boolean | `@${string}`,
+	/** Возврат идёт сразу на паевой */
+	to_share?:boolean | `@${string}`,
+	/** Сколько остаётся в фонде программы */
+	withheld?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on EduRefundPreview']?: Omit<ValueTypes["EduRefundPreview"], "...on EduRefundPreview">
+}>;
 	["EduRetryTaskInput"]: {
 	task_id: ValueTypes["ID"] | Variable<any, string>
 };
@@ -7599,6 +7629,8 @@ export type ValueTypes = {
 	schedule?: string | undefined | null | Variable<any, string>,
 	/** Порядок в каталоге */
 	sort_order?: number | undefined | null | Variable<any, string>,
+	/** Дата активации курса (YYYY-MM-DD); пусто — дата ещё не назначена */
+	starts_at?: string | undefined | null | Variable<any, string>,
 	/** Предмет */
 	subject: string | Variable<any, string>,
 	/** Учебная программа */
@@ -13563,6 +13595,8 @@ editBranch?: [{	data: ValueTypes["EditBranchInput"] | Variable<any, string>},Val
 edubridgeAcceptContribution?: [{	data: ValueTypes["EduAcceptContributionInput"] | Variable<any, string>},ValueTypes["EduContribution"]],
 edubridgeAddLearner?: [{	data: ValueTypes["EduLearnerInput"] | Variable<any, string>},ValueTypes["EduLearner"]],
 edubridgeAppointAdmin?: [{	data: ValueTypes["EduAdminInput"] | Variable<any, string>},ValueTypes["EduAdmin"]],
+edubridgeCancelCourseUnderfilled?: [{	course_id: ValueTypes["ID"] | Variable<any, string>},boolean | `@${string}`],
+edubridgeCancelEnrollment?: [{	enrollment_id: ValueTypes["ID"] | Variable<any, string>},ValueTypes["EduEnrollment"]],
 edubridgeCheckConnector?: [{	carrier: ValueTypes["EduAccessCarrier"] | Variable<any, string>},ValueTypes["EduConnectorBinding"]],
 edubridgeCloseAssignment?: [{	id: ValueTypes["ID"] | Variable<any, string>},ValueTypes["EduAssignment"]],
 edubridgeConvertStatement?: [{	data: ValueTypes["EduQuoteInput"] | Variable<any, string>},ValueTypes["GeneratedDocument"]],
@@ -15487,6 +15521,7 @@ edubridgePlatformCourses?: [{	carrier: ValueTypes["EduAccessCarrier"] | Variable
 	edubridgeProgramFund?:ValueTypes["EduProgramFund"],
 edubridgeQueue?: [{	filter?: ValueTypes["EduQueueFilterInput"] | undefined | null | Variable<any, string>},ValueTypes["EduAccessTask"]],
 edubridgeQuote?: [{	data: ValueTypes["EduQuoteInput"] | Variable<any, string>},ValueTypes["EduQuote"]],
+edubridgeRefundPreview?: [{	enrollment_id: ValueTypes["ID"] | Variable<any, string>},ValueTypes["EduRefundPreview"]],
 	/** Преподаватели, которых можно назначить на курс */
 	edubridgeTeacherOptions?:ValueTypes["EduTeacherOption"],
 	/** Преподаватели кооператива с договором и числом назначений */
@@ -23710,6 +23745,8 @@ export type ResolverInputTypes = {
 	lessons_total?:boolean | `@${string}`,
 	/** Расписание занятий */
 	schedule?:boolean | `@${string}`,
+	/** Дата активации курса — с неё начинаются занятия */
+	starts_at?:boolean | `@${string}`,
 	/** Предмет */
 	subject?:boolean | `@${string}`,
 	/** Учебная программа */
@@ -23842,6 +23879,8 @@ export type ResolverInputTypes = {
 	schedule?:boolean | `@${string}`,
 	/** Порядок в каталоге */
 	sort_order?:boolean | `@${string}`,
+	/** Дата активации курса — с неё начинаются занятия */
+	starts_at?:boolean | `@${string}`,
 	/** Состояние курса */
 	status?:boolean | `@${string}`,
 	/** Предмет */
@@ -23941,6 +23980,8 @@ export type ResolverInputTypes = {
 	schedule?: string | undefined | null,
 	/** Порядок в каталоге */
 	sort_order?: number | undefined | null,
+	/** Дата активации курса (YYYY-MM-DD); пусто — дата ещё не назначена */
+	starts_at?: string | undefined | null,
 	/** Предмет */
 	subject: string,
 	/** Учебная программа */
@@ -24000,6 +24041,8 @@ export type ResolverInputTypes = {
 	["EduEnrollment"]: AliasType<{
 	/** Состояние доступа на площадке */
 	access_state?:boolean | `@${string}`,
+	/** Когда подписка отменена */
+	cancelled_at?:boolean | `@${string}`,
 	/** Курс */
 	course_id?:boolean | `@${string}`,
 	/** Название курса */
@@ -24008,10 +24051,16 @@ export type ResolverInputTypes = {
 	id?:boolean | `@${string}`,
 	/** Обучающийся */
 	learner_id?:boolean | `@${string}`,
+	/** Уплаченный взнос за период */
+	paid_amount?:boolean | `@${string}`,
 	/** Оплачено до */
 	paid_until?:boolean | `@${string}`,
 	/** Период членского взноса */
 	period?:boolean | `@${string}`,
+	/** Основание возврата по Положению ЦПП */
+	refund_reason?:boolean | `@${string}`,
+	/** Возвращено при отмене */
+	refunded_amount?:boolean | `@${string}`,
 	/** Состояние подписки */
 	status?:boolean | `@${string}`,
 	/** Ключ подписки в цепи */
@@ -24240,6 +24289,21 @@ export type ResolverInputTypes = {
 };
 	/** Как доставляется пропуск обучающемуся */
 ["EduRecipientType"]:EduRecipientType;
+	["EduRefundPreview"]: AliasType<{
+	/** Занятий оплачено периодом */
+	lessons_paid?:boolean | `@${string}`,
+	/** Занятий прошло к моменту отмены */
+	lessons_used?:boolean | `@${string}`,
+	/** Основание возврата по Положению ЦПП */
+	reason?:boolean | `@${string}`,
+	/** Сколько вернётся ученику */
+	refund?:boolean | `@${string}`,
+	/** Возврат идёт сразу на паевой */
+	to_share?:boolean | `@${string}`,
+	/** Сколько остаётся в фонде программы */
+	withheld?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
 	["EduRetryTaskInput"]: {
 	task_id: ResolverInputTypes["ID"]
 };
@@ -24398,6 +24462,8 @@ export type ResolverInputTypes = {
 	schedule?: string | undefined | null,
 	/** Порядок в каталоге */
 	sort_order?: number | undefined | null,
+	/** Дата активации курса (YYYY-MM-DD); пусто — дата ещё не назначена */
+	starts_at?: string | undefined | null,
 	/** Предмет */
 	subject: string,
 	/** Учебная программа */
@@ -30187,6 +30253,8 @@ editBranch?: [{	data: ResolverInputTypes["EditBranchInput"]},ResolverInputTypes[
 edubridgeAcceptContribution?: [{	data: ResolverInputTypes["EduAcceptContributionInput"]},ResolverInputTypes["EduContribution"]],
 edubridgeAddLearner?: [{	data: ResolverInputTypes["EduLearnerInput"]},ResolverInputTypes["EduLearner"]],
 edubridgeAppointAdmin?: [{	data: ResolverInputTypes["EduAdminInput"]},ResolverInputTypes["EduAdmin"]],
+edubridgeCancelCourseUnderfilled?: [{	course_id: ResolverInputTypes["ID"]},boolean | `@${string}`],
+edubridgeCancelEnrollment?: [{	enrollment_id: ResolverInputTypes["ID"]},ResolverInputTypes["EduEnrollment"]],
 edubridgeCheckConnector?: [{	carrier: ResolverInputTypes["EduAccessCarrier"]},ResolverInputTypes["EduConnectorBinding"]],
 edubridgeCloseAssignment?: [{	id: ResolverInputTypes["ID"]},ResolverInputTypes["EduAssignment"]],
 edubridgeConvertStatement?: [{	data: ResolverInputTypes["EduQuoteInput"]},ResolverInputTypes["GeneratedDocument"]],
@@ -32035,6 +32103,7 @@ edubridgePlatformCourses?: [{	carrier: ResolverInputTypes["EduAccessCarrier"]},R
 	edubridgeProgramFund?:ResolverInputTypes["EduProgramFund"],
 edubridgeQueue?: [{	filter?: ResolverInputTypes["EduQueueFilterInput"] | undefined | null},ResolverInputTypes["EduAccessTask"]],
 edubridgeQuote?: [{	data: ResolverInputTypes["EduQuoteInput"]},ResolverInputTypes["EduQuote"]],
+edubridgeRefundPreview?: [{	enrollment_id: ResolverInputTypes["ID"]},ResolverInputTypes["EduRefundPreview"]],
 	/** Преподаватели, которых можно назначить на курс */
 	edubridgeTeacherOptions?:ResolverInputTypes["EduTeacherOption"],
 	/** Преподаватели кооператива с договором и числом назначений */
@@ -40022,6 +40091,8 @@ export type ModelTypes = {
 	lessons_total: number,
 	/** Расписание занятий */
 	schedule: string,
+	/** Дата активации курса — с неё начинаются занятия */
+	starts_at?: string | undefined | null,
 	/** Предмет */
 	subject: string,
 	/** Учебная программа */
@@ -40146,6 +40217,8 @@ export type ModelTypes = {
 	schedule: string,
 	/** Порядок в каталоге */
 	sort_order: number,
+	/** Дата активации курса — с неё начинаются занятия */
+	starts_at?: string | undefined | null,
 	/** Состояние курса */
 	status: ModelTypes["EduCourseStatus"],
 	/** Предмет */
@@ -40241,6 +40314,8 @@ export type ModelTypes = {
 	schedule?: string | undefined | null,
 	/** Порядок в каталоге */
 	sort_order?: number | undefined | null,
+	/** Дата активации курса (YYYY-MM-DD); пусто — дата ещё не назначена */
+	starts_at?: string | undefined | null,
 	/** Предмет */
 	subject: string,
 	/** Учебная программа */
@@ -40297,6 +40372,8 @@ export type ModelTypes = {
 	["EduEnrollment"]: {
 		/** Состояние доступа на площадке */
 	access_state: ModelTypes["EduAccessState"],
+	/** Когда подписка отменена */
+	cancelled_at?: ModelTypes["DateTime"] | undefined | null,
 	/** Курс */
 	course_id: ModelTypes["ID"],
 	/** Название курса */
@@ -40305,10 +40382,16 @@ export type ModelTypes = {
 	id: ModelTypes["ID"],
 	/** Обучающийся */
 	learner_id: ModelTypes["ID"],
+	/** Уплаченный взнос за период */
+	paid_amount: string,
 	/** Оплачено до */
 	paid_until?: ModelTypes["DateTime"] | undefined | null,
 	/** Период членского взноса */
 	period: ModelTypes["EduEnrollmentPeriod"],
+	/** Основание возврата по Положению ЦПП */
+	refund_reason?: string | undefined | null,
+	/** Возвращено при отмене */
+	refunded_amount?: string | undefined | null,
 	/** Состояние подписки */
 	status: ModelTypes["EduEnrollmentStatus"],
 	/** Ключ подписки в цепи */
@@ -40518,6 +40601,20 @@ export type ModelTypes = {
 	period: ModelTypes["EduEnrollmentPeriod"]
 };
 	["EduRecipientType"]:EduRecipientType;
+	["EduRefundPreview"]: {
+		/** Занятий оплачено периодом */
+	lessons_paid: number,
+	/** Занятий прошло к моменту отмены */
+	lessons_used: number,
+	/** Основание возврата по Положению ЦПП */
+	reason: string,
+	/** Сколько вернётся ученику */
+	refund: string,
+	/** Возврат идёт сразу на паевой */
+	to_share: boolean,
+	/** Сколько остаётся в фонде программы */
+	withheld: string
+};
 	["EduRetryTaskInput"]: {
 	task_id: ModelTypes["ID"]
 };
@@ -40671,6 +40768,8 @@ export type ModelTypes = {
 	schedule?: string | undefined | null,
 	/** Порядок в каталоге */
 	sort_order?: number | undefined | null,
+	/** Дата активации курса (YYYY-MM-DD); пусто — дата ещё не назначена */
+	starts_at?: string | undefined | null,
 	/** Предмет */
 	subject: string,
 	/** Учебная программа */
@@ -46628,6 +46727,10 @@ export type ModelTypes = {
 	edubridgeAddLearner: ModelTypes["EduLearner"],
 	/** Назначить администратора */
 	edubridgeAppointAdmin: ModelTypes["EduAdmin"],
+	/** Отменить курс по недобору: подписки закрываются, взносы возвращаются участникам на паевой */
+	edubridgeCancelCourseUnderfilled: number,
+	/** Отменить подписку с возвратом членского взноса по Положению ЦПП */
+	edubridgeCancelEnrollment: ModelTypes["EduEnrollment"],
 	/** Проверить площадку сейчас */
 	edubridgeCheckConnector: ModelTypes["EduConnectorBinding"],
 	/** Закрыть назначение */
@@ -48986,6 +49089,8 @@ export type ModelTypes = {
 	edubridgeQueue: Array<ModelTypes["EduAccessTask"]>,
 	/** Сумма взноса за период и хватает ли паевого */
 	edubridgeQuote: ModelTypes["EduQuote"],
+	/** Что вернут при отмене подписки */
+	edubridgeRefundPreview: ModelTypes["EduRefundPreview"],
 	/** Преподаватели, которых можно назначить на курс */
 	edubridgeTeacherOptions: Array<ModelTypes["EduTeacherOption"]>,
 	/** Преподаватели кооператива с договором и числом назначений */
@@ -57456,6 +57561,8 @@ export type GraphQLTypes = {
 	lessons_total: number,
 	/** Расписание занятий */
 	schedule: string,
+	/** Дата активации курса — с неё начинаются занятия */
+	starts_at?: string | undefined | null,
 	/** Предмет */
 	subject: string,
 	/** Учебная программа */
@@ -57593,6 +57700,8 @@ export type GraphQLTypes = {
 	schedule: string,
 	/** Порядок в каталоге */
 	sort_order: number,
+	/** Дата активации курса — с неё начинаются занятия */
+	starts_at?: string | undefined | null,
 	/** Состояние курса */
 	status: GraphQLTypes["EduCourseStatus"],
 	/** Предмет */
@@ -57694,6 +57803,8 @@ export type GraphQLTypes = {
 	schedule?: string | undefined | null,
 	/** Порядок в каталоге */
 	sort_order?: number | undefined | null,
+	/** Дата активации курса (YYYY-MM-DD); пусто — дата ещё не назначена */
+	starts_at?: string | undefined | null,
 	/** Предмет */
 	subject: string,
 	/** Учебная программа */
@@ -57756,6 +57867,8 @@ export type GraphQLTypes = {
 	__typename: "EduEnrollment",
 	/** Состояние доступа на площадке */
 	access_state: GraphQLTypes["EduAccessState"],
+	/** Когда подписка отменена */
+	cancelled_at?: GraphQLTypes["DateTime"] | undefined | null,
 	/** Курс */
 	course_id: GraphQLTypes["ID"],
 	/** Название курса */
@@ -57764,10 +57877,16 @@ export type GraphQLTypes = {
 	id: GraphQLTypes["ID"],
 	/** Обучающийся */
 	learner_id: GraphQLTypes["ID"],
+	/** Уплаченный взнос за период */
+	paid_amount: string,
 	/** Оплачено до */
 	paid_until?: GraphQLTypes["DateTime"] | undefined | null,
 	/** Период членского взноса */
 	period: GraphQLTypes["EduEnrollmentPeriod"],
+	/** Основание возврата по Положению ЦПП */
+	refund_reason?: string | undefined | null,
+	/** Возвращено при отмене */
+	refunded_amount?: string | undefined | null,
 	/** Состояние подписки */
 	status: GraphQLTypes["EduEnrollmentStatus"],
 	/** Ключ подписки в цепи */
@@ -58009,6 +58128,22 @@ export type GraphQLTypes = {
 };
 	/** Как доставляется пропуск обучающемуся */
 ["EduRecipientType"]: EduRecipientType;
+	["EduRefundPreview"]: {
+	__typename: "EduRefundPreview",
+	/** Занятий оплачено периодом */
+	lessons_paid: number,
+	/** Занятий прошло к моменту отмены */
+	lessons_used: number,
+	/** Основание возврата по Положению ЦПП */
+	reason: string,
+	/** Сколько вернётся ученику */
+	refund: string,
+	/** Возврат идёт сразу на паевой */
+	to_share: boolean,
+	/** Сколько остаётся в фонде программы */
+	withheld: string,
+	['...on EduRefundPreview']: Omit<GraphQLTypes["EduRefundPreview"], "...on EduRefundPreview">
+};
 	["EduRetryTaskInput"]: {
 		task_id: GraphQLTypes["ID"]
 };
@@ -58171,6 +58306,8 @@ export type GraphQLTypes = {
 	schedule?: string | undefined | null,
 	/** Порядок в каталоге */
 	sort_order?: number | undefined | null,
+	/** Дата активации курса (YYYY-MM-DD); пусто — дата ещё не назначена */
+	starts_at?: string | undefined | null,
 	/** Предмет */
 	subject: string,
 	/** Учебная программа */
@@ -64554,6 +64691,10 @@ export type GraphQLTypes = {
 	edubridgeAddLearner: GraphQLTypes["EduLearner"],
 	/** Назначить администратора */
 	edubridgeAppointAdmin: GraphQLTypes["EduAdmin"],
+	/** Отменить курс по недобору: подписки закрываются, взносы возвращаются участникам на паевой */
+	edubridgeCancelCourseUnderfilled: number,
+	/** Отменить подписку с возвратом членского взноса по Положению ЦПП */
+	edubridgeCancelEnrollment: GraphQLTypes["EduEnrollment"],
 	/** Проверить площадку сейчас */
 	edubridgeCheckConnector: GraphQLTypes["EduConnectorBinding"],
 	/** Закрыть назначение */
@@ -67095,6 +67236,8 @@ export type GraphQLTypes = {
 	edubridgeQueue: Array<GraphQLTypes["EduAccessTask"]>,
 	/** Сумма взноса за период и хватает ли паевого */
 	edubridgeQuote: GraphQLTypes["EduQuote"],
+	/** Что вернут при отмене подписки */
+	edubridgeRefundPreview: GraphQLTypes["EduRefundPreview"],
 	/** Преподаватели, которых можно назначить на курс */
 	edubridgeTeacherOptions: Array<GraphQLTypes["EduTeacherOption"]>,
 	/** Преподаватели кооператива с договором и числом назначений */
@@ -70224,6 +70367,7 @@ export enum EduEnrollmentPeriod {
 /** Состояние подписки обучающегося на курс */
 export enum EduEnrollmentStatus {
 	ACTIVE = "ACTIVE",
+	CANCELLED = "CANCELLED",
 	EXPIRED = "EXPIRED",
 	PENDING = "PENDING",
 	REVOKED = "REVOKED"

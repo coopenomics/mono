@@ -80,6 +80,21 @@ export interface IChargefee {
   amount: IAsset
 }
 
+export interface ICancelsub {
+  coopname: IName
+  username: IName
+  sub_hash: IChecksum256
+  refund: IAsset
+  to_share: boolean
+}
+
+export interface IRetshare {
+  coopname: IName
+  username: IName
+  amount: IAsset
+  statement: IDocument2
+}
+
 export interface IOpensub {
   coopname: IName
   username: IName

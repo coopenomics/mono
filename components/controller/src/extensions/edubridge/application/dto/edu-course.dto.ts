@@ -1,5 +1,5 @@
 import { Field, Float, ID, InputType, Int, ObjectType } from '@nestjs/graphql';
-import { ArrayUnique, IsArray, IsEnum, IsInt, IsNotEmpty, IsNumber, IsOptional, IsString, IsUUID, Length, Matches, Max, Min, ValidateNested } from 'class-validator';
+import { ArrayUnique, IsArray, IsDateString, IsEnum, IsInt, IsNotEmpty, IsNumber, IsOptional, IsString, IsUUID, Length, Matches, Max, Min, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 import { createPaginationResult } from '@coopenomics/extension-kit';
 import { EduAccessCarrier, EduCourseDirection, EduCourseStatus } from '../../domain/enums';
@@ -55,6 +55,9 @@ export class EduCatalogCourseDTO {
   @Field(() => Int, { description: 'Длительность занятия, минут' })
   lesson_minutes!: number;
 
+  @Field(() => String, { nullable: true, description: 'Дата активации курса — с неё начинаются занятия' })
+  starts_at!: string | null;
+
   @Field(() => String, { description: 'Членский взнос за месяц' })
   fee_month!: string;
 
@@ -74,6 +77,7 @@ export class EduCatalogCourseDTO {
     this.lessons_per_month = e.lessons_per_month;
     this.lessons_total = e.lessons_total;
     this.lesson_minutes = e.lesson_minutes;
+    this.starts_at = e.starts_at;
     this.fee_month = e.fee_month;
     this.fee_year = e.fee_year;
   }
@@ -251,6 +255,11 @@ export class EduCourseInputDTO {
   @Field(() => String, { description: 'Плановая ставка часа по программе («1000.0000 RUB»)' })
   @Matches(ASSET_PATTERN, { message: 'Ставка должна быть в формате «1000.0000 RUB»' })
   planned_hourly_rate!: string;
+
+  @Field(() => String, { nullable: true, description: 'Дата активации курса (YYYY-MM-DD); пусто — дата ещё не назначена' })
+  @IsOptional()
+  @IsDateString()
+  starts_at?: string | null;
 
   @Field(() => Float, { nullable: true, description: 'Скидка за годовой объём, проценты' })
   @IsOptional()

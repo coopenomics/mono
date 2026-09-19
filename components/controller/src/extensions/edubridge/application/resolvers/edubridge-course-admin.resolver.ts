@@ -1,5 +1,5 @@
 import { Injectable, UseGuards } from '@nestjs/common';
-import { Args, ID, Mutation, Query, Resolver } from '@nestjs/graphql';
+import { Args, ID, Int, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { GqlJwtAuthGuard, PaginationInputDTO, platformSettings, type PaginationResult } from '@coopenomics/extension-kit';
 import { RequireEduAccess } from '../decorators/edubridge-access.decorator';
 import {
@@ -16,13 +16,17 @@ import { CurrentEduMember } from '../decorators/current-edu-member.decorator';
 import { EdubridgeAccessGuard } from '../guards/edubridge-access.guard';
 import type { IEdubridgeMembership } from '../membership/edubridge-membership.service';
 import { EdubridgeCourseService } from '../services/edubridge-course.service';
+import { EdubridgeEnrollmentService } from '../services/edubridge-enrollment.service';
 import { EduAccessCarrier } from '../../domain/enums';
 
 /** Управление курсами — владелец и администратор. */
 @Resolver()
 @Injectable()
 export class EdubridgeCourseAdminResolver {
-  constructor(private readonly courses: EdubridgeCourseService) {}
+  constructor(
+    private readonly courses: EdubridgeCourseService,
+    private readonly enrollments: EdubridgeEnrollmentService
+  ) {}
 
   @Query(() => PaginatedEduCoursesDTO, { name: 'edubridgeCourses', description: 'Курсы кооператива во всех состояниях' })
   @UseGuards(GqlJwtAuthGuard, EdubridgeAccessGuard)
@@ -68,6 +72,17 @@ export class EdubridgeCourseAdminResolver {
   @RequireEduAccess('EduCourse', 'manage')
   async edubridgeUpdateCourse(@CurrentEduMember() m: IEdubridgeMembership, @Args('data') data: EduUpdateCourseInputDTO): Promise<EduCourseDTO> {
     return new EduCourseDTO(await this.courses.update(platformSettings().coopname, m.username as string, data));
+  }
+
+  @Mutation(() => Int, {
+    name: 'edubridgeCancelCourseUnderfilled',
+    description: 'Отменить курс по недобору: подписки закрываются, взносы возвращаются участникам на паевой',
+  })
+  @UseGuards(GqlJwtAuthGuard, EdubridgeAccessGuard)
+  @RequireEduAccess('EduCourse', 'manage')
+  async edubridgeCancelCourseUnderfilled(@Args('course_id', { type: () => ID }) courseId: string): Promise<number> {
+    const cancelled = await this.enrollments.cancelCourse(platformSettings().coopname, courseId);
+    return cancelled.length;
   }
 
   @Mutation(() => EduCourseDTO, { name: 'edubridgeSetCourseStatus', description: 'Опубликовать, снять с публикации или архивировать курс' })

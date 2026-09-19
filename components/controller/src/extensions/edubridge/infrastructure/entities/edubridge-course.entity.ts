@@ -76,6 +76,14 @@ export class EdubridgeCourseEntity {
   @Column({ type: 'varchar', length: 64, default: '0.0000 RUB' })
   public planned_hourly_rate!: string;
 
+  /**
+   * Дата активации курса — с неё начинаются занятия. До неё подписка считается
+   * неактивированной: ученик отменяет её с полным возвратом. Администратор
+   * может сдвинуть дату вперёд, пока группа не набрана.
+   */
+  @Column({ type: 'date', nullable: true })
+  public starts_at!: string | null;
+
   /** Скидка за годовой объём, базисные пункты (100 = 1%); ограничена наценкой кооператива. */
   @Column({ type: 'int', default: 0 })
   public year_discount_bp!: number;

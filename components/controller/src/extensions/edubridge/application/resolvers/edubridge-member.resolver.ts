@@ -5,6 +5,7 @@ import { CurrentEduMember } from '../decorators/current-edu-member.decorator';
 import { RequireEduAccess } from '../decorators/edubridge-access.decorator';
 import {
   EduEnrollmentDTO,
+  EduRefundPreviewDTO,
   EduQuoteDTO,
   EduQuoteInputDTO,
   EduSubscribeInputDTO,
@@ -75,6 +76,27 @@ export class EdubridgeMemberResolver {
   @RequireEduAccess('EduEnrollment', 'create:own')
   async edubridgeConvertStatement(@CurrentEduMember() m: IEdubridgeMembership, @Args('data') data: EduQuoteInputDTO): Promise<GeneratedDocumentDTO> {
     return new GeneratedDocumentDTO(await this.enrollments.statement(coop(), m.username as string, data.learner_id, data.course_id, data.period));
+  }
+
+  @Query(() => EduRefundPreviewDTO, { name: 'edubridgeRefundPreview', description: 'Что вернут при отмене подписки' })
+  @UseGuards(GqlJwtAuthGuard, EdubridgeAccessGuard)
+  @RequireEduAccess('EduEnrollment', 'read:own')
+  edubridgeRefundPreview(
+    @CurrentEduMember() m: IEdubridgeMembership,
+    @Args('enrollment_id', { type: () => ID }) id: string
+  ): Promise<EduRefundPreviewDTO> {
+    return this.enrollments.refundPreview(coop(), m.username as string, id);
+  }
+
+  @Mutation(() => EduEnrollmentDTO, { name: 'edubridgeCancelEnrollment', description: 'Отменить подписку с возвратом членского взноса по Положению ЦПП' })
+  @UseGuards(GqlJwtAuthGuard, EdubridgeAccessGuard)
+  @RequireEduAccess('EduEnrollment', 'create:own')
+  async edubridgeCancelEnrollment(
+    @CurrentEduMember() m: IEdubridgeMembership,
+    @Args('enrollment_id', { type: () => ID }) id: string
+  ): Promise<EduEnrollmentDTO> {
+    const saved = await this.enrollments.cancel(coop(), m.username as string, id);
+    return new EduEnrollmentDTO(saved, await this.enrollments.courseOf(saved));
   }
 
   @Mutation(() => EduEnrollmentDTO, { name: 'edubridgeSubscribe', description: 'Получить доступ: конвертировать паевой в членский и открыть/продлить подписку' })

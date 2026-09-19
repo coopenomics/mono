@@ -2038,6 +2038,12 @@ export const AllTypesProps: Record<string,any> = {
 		edubridgeAppointAdmin:{
 			data:"EduAdminInput"
 		},
+		edubridgeCancelCourseUnderfilled:{
+
+		},
+		edubridgeCancelEnrollment:{
+
+		},
 		edubridgeCheckConnector:{
 			carrier:"EduAccessCarrier"
 		},
@@ -3121,6 +3127,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		edubridgeQuote:{
 			data:"EduQuoteInput"
+		},
+		edubridgeRefundPreview:{
+
 		},
 		expenseFile:{
 
@@ -5675,6 +5684,7 @@ export const ReturnTypes: Record<string,any> = {
 		lessons_per_month:"Int",
 		lessons_total:"Int",
 		schedule:"String",
+		starts_at:"String",
 		subject:"String",
 		syllabus:"String",
 		teacher_usernames:"String",
@@ -5736,6 +5746,7 @@ export const ReturnTypes: Record<string,any> = {
 		planned_hourly_rate:"String",
 		schedule:"String",
 		sort_order:"Int",
+		starts_at:"String",
 		status:"EduCourseStatus",
 		subject:"String",
 		syllabus:"String",
@@ -5776,12 +5787,16 @@ export const ReturnTypes: Record<string,any> = {
 	},
 	EduEnrollment:{
 		access_state:"EduAccessState",
+		cancelled_at:"DateTime",
 		course_id:"ID",
 		course_title:"String",
 		id:"ID",
 		learner_id:"ID",
+		paid_amount:"String",
 		paid_until:"DateTime",
 		period:"EduEnrollmentPeriod",
+		refund_reason:"String",
+		refunded_amount:"String",
 		status:"EduEnrollmentStatus",
 		sub_hash:"String"
 	},
@@ -5877,6 +5892,14 @@ export const ReturnTypes: Record<string,any> = {
 		paid_until:"DateTime",
 		shortfall:"String",
 		sub_hash:"String"
+	},
+	EduRefundPreview:{
+		lessons_paid:"Int",
+		lessons_used:"Int",
+		reason:"String",
+		refund:"String",
+		to_share:"Boolean",
+		withheld:"String"
 	},
 	EduTeacher:{
 		approved_at:"DateTime",
@@ -7772,6 +7795,8 @@ export const ReturnTypes: Record<string,any> = {
 		edubridgeAcceptContribution:"EduContribution",
 		edubridgeAddLearner:"EduLearner",
 		edubridgeAppointAdmin:"EduAdmin",
+		edubridgeCancelCourseUnderfilled:"Int",
+		edubridgeCancelEnrollment:"EduEnrollment",
 		edubridgeCheckConnector:"EduConnectorBinding",
 		edubridgeCloseAssignment:"EduAssignment",
 		edubridgeConvertStatement:"GeneratedDocument",
@@ -8692,6 +8717,7 @@ export const ReturnTypes: Record<string,any> = {
 		edubridgeProgramFund:"EduProgramFund",
 		edubridgeQueue:"EduAccessTask",
 		edubridgeQuote:"EduQuote",
+		edubridgeRefundPreview:"EduRefundPreview",
 		edubridgeTeacherOptions:"EduTeacherOption",
 		edubridgeTeachers:"EduTeacher",
 		expenseFile:"ExpenseFile",

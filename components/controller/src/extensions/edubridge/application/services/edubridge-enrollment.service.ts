@@ -13,12 +13,14 @@ import {
   type IUserWalletPort,
 } from '@coopenomics/innercoop';
 import { EduAccessState, EduCourseStatus, EduEnrollmentPeriod, EduEnrollmentStatus } from '../../domain/enums';
+import { calculateRefund, monthsOfPeriod, type RefundCalculation } from '../../domain/economy/refund.calculator';
 import { EDUBRIDGE_CHAIN_PORT, type EdubridgeChainPort } from '../../domain/ports/edubridge-chain.port';
 import type { EdubridgeCourseEntity, EdubridgeEnrollmentEntity, EdubridgeLearnerEntity } from '../../infrastructure/entities';
 import { EdubridgeCourseRepository } from '../../infrastructure/repositories/edubridge-course.repository';
 import { EdubridgeEnrollmentRepository } from '../../infrastructure/repositories/edubridge-enrollment.repository';
 import type { EduQuoteDTO } from '../dto/edu-enrollment.dto';
 import {
+  EDUBRIDGE_ENROLLMENT_CANCELLED_EVENT,
   EDUBRIDGE_ENROLLMENT_EXTENDED_EVENT,
   EDUBRIDGE_ENROLLMENT_OPENED_EVENT,
   type IEduEnrollmentEventPayload,
@@ -178,6 +180,7 @@ export class EdubridgeEnrollmentService {
       });
     entity.period = period;
     entity.paid_until = plan.paidUntil;
+    entity.paid_amount = plan.amount;
     entity.status = EduEnrollmentStatus.ACTIVE;
     entity.statement_hash = document.hash.toLowerCase();
     entity.expiry_notified_at = null;
@@ -194,6 +197,96 @@ export class EdubridgeEnrollmentService {
     };
     this.events.emit(plan.isExtension ? EDUBRIDGE_ENROLLMENT_EXTENDED_EVENT : EDUBRIDGE_ENROLLMENT_OPENED_EVENT, payload);
     return saved;
+  }
+
+  /**
+   * Отмена подписки учеником. До активации курса возвращается полная
+   * стоимость, после — половина остатка за вычетом использованного: так
+   * написано в Положении ЦПП, и граница проходит ровно по дате активации.
+   * Возврат идёт на кошелёк ЦПП, откуда его можно пустить на другую подписку
+   * или вернуть в паевой по заявлению.
+   */
+  async cancel(coopname: string, member: string, enrollmentId: string): Promise<EdubridgeEnrollmentEntity> {
+    const enrollment = await this.enrollments.findById(coopname, enrollmentId);
+    if (!enrollment || enrollment.member_username !== member) throw new NotFoundException('Подписка не найдена');
+    return this.cancelOne(coopname, enrollment, false);
+  }
+
+  /**
+   * Отмена курса по недобору: кооператив не открыл группу и отменяет своё
+   * решение, поэтому взнос возвращается целиком и сразу на паевой — заявления
+   * от учеников это не требует. Пока занятия не начались: после первого
+   * занятия отменять нечего, есть отказ от подписки.
+   */
+  async cancelCourse(coopname: string, courseId: string): Promise<EdubridgeEnrollmentEntity[]> {
+    const course = await this.courses.findById(coopname, courseId);
+    if (!course) throw new NotFoundException('Курс не найден');
+    if (course.starts_at && new Date(course.starts_at) <= new Date()) {
+      throw new BadRequestException('Занятия по курсу уже начались — отмена по недобору невозможна');
+    }
+    const active = (await this.enrollments.findByCourse(coopname, courseId)).filter((e) => isCancellable(e));
+    const cancelled: EdubridgeEnrollmentEntity[] = [];
+    for (const enrollment of active) cancelled.push(await this.cancelOne(coopname, enrollment, true));
+    this.logger.info(`[EDU.SUB] курс ${courseId} отменён по недобору: возвращено подписок ${cancelled.length}`);
+    return cancelled;
+  }
+
+  /** Общая часть отмены: расчёт по Положению, движение в цепи, закрытие записи. */
+  private async cancelOne(coopname: string, enrollment: EdubridgeEnrollmentEntity, underfilled: boolean): Promise<EdubridgeEnrollmentEntity> {
+    if (!isCancellable(enrollment)) throw new BadRequestException('Подписка уже отменена или закрыта');
+    const course = await this.courses.findById(coopname, enrollment.course_id);
+    if (!course) throw new NotFoundException('Курс не найден');
+
+    const refund = this.refundFor(enrollment, course, underfilled);
+    await this.chain.cancelSubscription({
+      coopname,
+      username: enrollment.member_username,
+      sub_hash: enrollment.sub_hash,
+      refund: refund.refund,
+      to_share: refund.to_share,
+    } as never);
+
+    enrollment.status = EduEnrollmentStatus.CANCELLED;
+    enrollment.cancelled_at = new Date();
+    enrollment.refunded_amount = refund.refund;
+    enrollment.refund_reason = refund.reason;
+    const saved = await this.enrollments.save(enrollment);
+
+    const payload: IEduEnrollmentEventPayload = {
+      coopname,
+      enrollment_id: saved.id,
+      learner_id: saved.learner_id,
+      course_id: saved.course_id,
+      member_username: saved.member_username,
+      trx_id: saved.sub_hash,
+    };
+    this.events.emit(EDUBRIDGE_ENROLLMENT_CANCELLED_EVENT, payload);
+    this.logger.info(
+      `[EDU.SUB] подписка ${saved.sub_hash} отменена (${refund.reason}): возврат ${refund.refund}, удержано ${refund.withheld}`
+    );
+    return saved;
+  }
+
+  /** Что вернут при отмене — стол показывает это до нажатия кнопки. */
+  async refundPreview(coopname: string, member: string, enrollmentId: string): Promise<RefundCalculation> {
+    const enrollment = await this.enrollments.findById(coopname, enrollmentId);
+    if (!enrollment || enrollment.member_username !== member) throw new NotFoundException('Подписка не найдена');
+    const course = await this.courses.findById(coopname, enrollment.course_id);
+    if (!course) throw new NotFoundException('Курс не найден');
+    return this.refundFor(enrollment, course, false);
+  }
+
+  /** Сумма возврата по Положению ЦПП — её же показывает стол до отмены. */
+  refundFor(enrollment: EdubridgeEnrollmentEntity, course: EdubridgeCourseEntity, underfilled: boolean): RefundCalculation {
+    return calculateRefund({
+      paid_amount: enrollment.paid_amount,
+      lessons_per_month: course.lessons_per_month,
+      lessons_total: course.lessons_total,
+      months_paid: monthsOfPeriod(enrollment.period === EduEnrollmentPeriod.YEAR ? 'year' : 'month'),
+      starts_at: course.starts_at ? new Date(course.starts_at) : null,
+      now: new Date(),
+      underfilled,
+    });
   }
 
   /** `extendsub` для действующей связки, `opensub` — для новой; время цепи без миллисекунд и зоны. */
@@ -222,4 +315,9 @@ export class EdubridgeEnrollmentService {
     const n = Number.parseFloat(row?.available ?? '0');
     return `${(Number.isNaN(n) ? 0 : n).toFixed(4)} ${symbol}`;
   }
+}
+
+/** Отменить можно действующую подписку; истёкшую, отозванную и уже отменённую — нет. */
+function isCancellable(e: EdubridgeEnrollmentEntity): boolean {
+  return e.status === EduEnrollmentStatus.ACTIVE || e.status === EduEnrollmentStatus.PENDING;
 }

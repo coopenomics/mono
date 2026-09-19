@@ -41,6 +41,22 @@ export class EdubridgeEnrollmentEntity {
   @Column({ type: 'enum', enum: EduAccessState, default: EduAccessState.NONE })
   public access_state!: EduAccessState;
 
+  /** Уплаченный взнос за текущий период — от него считается возврат при отмене. */
+  @Column({ type: 'varchar', length: 64, default: '0.0000 RUB' })
+  public paid_amount!: string;
+
+  /** Когда подписка отменена; null — действует или истекла сама. */
+  @Column({ type: 'timestamptz', nullable: true })
+  public cancelled_at!: Date | null;
+
+  /** Сколько вернули ученику при отмене. */
+  @Column({ type: 'varchar', length: 64, nullable: true })
+  public refunded_amount!: string | null;
+
+  /** Основание возврата по Положению ЦПП: до активации, по недобору, отказ в ходе подписки. */
+  @Column({ type: 'varchar', length: 32, nullable: true })
+  public refund_reason!: string | null;
+
   /** Хеш последнего заявления о конвертации (док. 3011), lowercase. */
   @Column({ type: 'varchar', length: 64, nullable: true })
   public statement_hash!: string | null;

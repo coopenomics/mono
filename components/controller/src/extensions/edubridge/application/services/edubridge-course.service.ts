@@ -138,6 +138,14 @@ export class EdubridgeCourseService {
   async update(coopname: string, actor: string, input: EduUpdateCourseInputDTO): Promise<EdubridgeCourseEntity> {
     const course = await this.get(coopname, input.id);
     await this.validate(coopname, input);
+    // Занятия начались — дату активации можно только сдвигать вперёд: от неё
+    // считается использованное при отказе от подписки.
+    if (course.starts_at && new Date(course.starts_at) <= new Date()) {
+      const next = input.starts_at ? new Date(input.starts_at) : null;
+      if (!next || next < new Date(course.starts_at)) {
+        throw new BadRequestException('Занятия уже начались: дату активации можно только сдвинуть вперёд');
+      }
+    }
     const fee = await this.economy.feeForCourse(economyParams(input));
     const previous = course.image;
     // Прежнюю привязку запоминаем до присваивания: после него сравнивать уже не с чем.
@@ -225,6 +233,7 @@ export class EdubridgeCourseService {
       lessons_total: input.lessons_total,
       lesson_minutes: input.lesson_minutes,
       planned_hourly_rate: input.planned_hourly_rate,
+      starts_at: input.starts_at || null,
       year_discount_bp: Math.round((input.year_discount_percent ?? 0) * 100),
       fee_month: fee.fee_month,
       fee_year: fee.fee_year,

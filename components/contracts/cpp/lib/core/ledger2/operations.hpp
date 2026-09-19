@@ -121,6 +121,8 @@ namespace operations {
   namespace edubridge {
     inline constexpr eosio::name CONVERT_TO_EDU_MEMBER = "o.edu.conv"_n;  ///< Конвертация паевого взноса в членский взнос ЦПП «Образование» по заявлению пайщика (TRANSFER w.wal.share → w.edu.member, Dr 80 / Cr 86). Зеркало o.mkt.conv: единственный путь паевой→членский в программе.
     inline constexpr eosio::name COLLECT_EDU_FEE       = "o.edu.fee"_n;   ///< Списание членского взноса ученика в фонд программы при открытии и продлении подписки (TRANSFER w.edu.member → w.edu.fund, без Dr/Cr — оба на 86). Образец — o.mkt.fee «Стола заказов»; основание — Положение ЦПП «Образование», п. 4.2.2: стоимость подписки уходит в распоряжение общества.
+    inline constexpr eosio::name REFUND_FEE            = "o.edu.refund"_n; ///< Возврат членского взноса ученику из фонда программы (TRANSFER w.edu.fund → w.edu.member, без Dr/Cr — оба на 86). Основания в Положении ЦПП: отмена до активации курса — полная стоимость, отмена по недобору — полная, отказ в ходе подписки — половина остаточной стоимости.
+    inline constexpr eosio::name RETURN_TO_SHARE       = "o.edu.retshr"_n; ///< Перевод членского взноса программы обратно в паевой (TRANSFER w.edu.member → w.wal.share, Dr 86 / Cr 80). Точная инверсия o.edu.conv: возврат по недобору идёт на паевой сразу, остаток кошелька ЦПП — по заявлению ученика с согласованием кооператива.
     inline constexpr eosio::name EXPENSE_FUND          = "o.edu.expfnd"_n; ///< Выделение средств программы под расход (TRANSFER w.edu.fund → w.edu.expns, без Dr/Cr — внутри 86). Выполняется при создании служебной записки: сумма расхода уходит из фонда в пул расходов программы.
     inline constexpr eosio::name EXPENSE_UNFUND        = "o.edu.expunf"_n; ///< Возврат неизрасходованного из пула расходов программы в фонд (TRANSFER w.edu.expns → w.edu.fund, без Dr/Cr — внутри 86). Совет отклонил расход либо расход закрыт на сумму меньше запланированной.
     inline constexpr eosio::name EXPENSE_SPEND         = "o.edu.spend"_n;  ///< Прямая оплата расхода программы по реквизитам получателя (BURN с w.edu.expns, Dr 86 / Cr 51 — выплата с расчётного счёта после подтверждения кассиром). Роль `direct` в наборе шасси расходов программы.
@@ -548,6 +550,24 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
     ledger2_wallets::EDU_MEMBER_FEE, ledger2_wallets::EDU_PROGRAM_FUND,
     0, 0,
     "Членский взнос за курс в фонд ЦПП «Образование»" },
+
+  // 12e^a. p.edu.access: Возврат членского взноса ученику из фонда программы
+  //      (TRANSFER w.edu.fund → w.edu.member, без Dr/Cr — оба на 86).
+  //      Основания — Положение ЦПП «Образование»: отмена до активации курса,
+  //      отмена по недобору, отказ в ходе подписки (половина остатка).
+  { operations::edubridge::REFUND_FEE, processes::edubridge::ACCESS, WalletOp::TRANSFER,
+    ledger2_wallets::EDU_PROGRAM_FUND, ledger2_wallets::EDU_MEMBER_FEE,
+    0, 0,
+    "Возврат членского взноса по ЦПП «Образование»" },
+
+  // 12e^b. p.edu.access: Перевод членского взноса программы обратно в паевой
+  //      (TRANSFER w.edu.member → w.wal.share, Dr 86 / Cr 80). Инверсия
+  //      o.edu.conv: отмена по недобору возвращает взнос на паевой сразу,
+  //      остаток кошелька ЦПП — по заявлению ученика.
+  { operations::edubridge::RETURN_TO_SHARE, processes::edubridge::ACCESS, WalletOp::TRANSFER,
+    ledger2_wallets::EDU_MEMBER_FEE, ledger2_wallets::SHARE_FUND_PAY,
+    ledger2_accounts::TARGET_RECEIPTS, ledger2_accounts::SHARE_FUND,
+    "Возврат членского взноса ЦПП «Образование» в паевой" },
 
   // 12e³. p.edu.spend: Выделение средств программы под расход
   //      (TRANSFER w.edu.fund → w.edu.expns, без Dr/Cr — внутри 86).

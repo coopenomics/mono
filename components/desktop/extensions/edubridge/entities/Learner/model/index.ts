@@ -6,6 +6,7 @@ export type IQuote = Queries.Edubridge.Quote.IOutput['edubridgeQuote'];
 export type ILearnerInput = Mutations.Edubridge.AddLearner.IInput['data'];
 export type IUpdateLearnerInput = Mutations.Edubridge.UpdateLearner.IInput['data'];
 export type IQuoteInput = Queries.Edubridge.Quote.IInput['data'];
+export type IRefundPreview = Queries.Edubridge.RefundPreview.IOutput['edubridgeRefundPreview'];
 
 // Ключи — имена enum'ов схемы (`Zeus.*`): именно их отдаёт и принимает GraphQL.
 export const RECIPIENT_LABELS: Record<string, string> = {
@@ -32,4 +33,12 @@ export const ENROLLMENT_STATUS_LABELS: Record<string, { label: string; variant: 
   [Zeus.EduEnrollmentStatus.ACTIVE]: { label: 'Действует', variant: 'pos' },
   [Zeus.EduEnrollmentStatus.EXPIRED]: { label: 'Истекла', variant: 'neutral' },
   [Zeus.EduEnrollmentStatus.REVOKED]: { label: 'Отозвана', variant: 'neg' },
+  [Zeus.EduEnrollmentStatus.CANCELLED]: { label: 'Отменена', variant: 'neutral' },
+};
+
+/** Основания возврата по Положению ЦПП — языком ученика. */
+export const REFUND_REASON_LABELS: Record<string, string> = {
+  before_start: 'Отмена до начала занятий — взнос возвращён полностью',
+  underfilled: 'Курс отменён по недобору — взнос возвращён на паевой',
+  refusal: 'Отказ в ходе подписки — возвращена половина остатка',
 };

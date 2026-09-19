@@ -23,7 +23,21 @@ const _validateTask: MakeAllFieldsRequired<ValueTypes['EduAccessTask']> = rawTas
 export const eduAccessTaskSelector = Selector('EduAccessTask')(rawTaskSelector)
 
 const rawLearnerSelector = { id: true, display_name: true, recipient_type: true, recipient_value: true, is_self: true, created_at: true }
-const rawEnrollmentSelector = { id: true, learner_id: true, course_id: true, course_title: true, period: true, paid_until: true, status: true, access_state: true, sub_hash: true }
+const rawEnrollmentSelector = {
+  id: true,
+  learner_id: true,
+  course_id: true,
+  course_title: true,
+  period: true,
+  paid_until: true,
+  status: true,
+  access_state: true,
+  sub_hash: true,
+  paid_amount: true,
+  refunded_amount: true,
+  refund_reason: true,
+  cancelled_at: true,
+}
 const rawMemberCardSelector = { username: true, display_name: true, learners: rawLearnerSelector, enrollments: rawEnrollmentSelector, tasks: rawTaskSelector }
 const _validateMemberCard: MakeAllFieldsRequired<ValueTypes['EduMemberCard']> = rawMemberCardSelector
 export const eduMemberCardSelector = Selector('EduMemberCard')(rawMemberCardSelector)

@@ -38,11 +38,14 @@
           BaseButton(variant="primary" block @click="editOpen = true") Изменить курс
           BaseButton(v-if="published" variant="ghost" block :loading="busy" @click="setStatus(Zeus.EduCourseStatus.DRAFT)") Снять с публикации
           BaseButton(v-else variant="secondary" block :loading="busy" @click="setStatus(Zeus.EduCourseStatus.PUBLISHED)") Опубликовать
+          BaseButton(v-if="!started" variant="ghost" block :loading="cancelling" @click="cancelUnderfilled") Отменить по недобору
         .t-muted.t-meta.q-mt-sm {{ published ? 'Курс виден в каталоге всем посетителям.' : 'Черновик виден только на этом столе.' }}
+        .t-muted.t-meta.q-mt-xs(v-if="!started") Отмена закрывает подписки участников и возвращает их взносы на паевой.
 
       BaseCard.q-mt-md(variant="default" title="Условия участия")
         DataRow(label="Взнос в месяц" :value="formatAsset2Digits(course.fee_month)" mono)
         DataRow(label="Взнос в год" :value="formatAsset2Digits(course.fee_year)" mono)
+        DataRow(label="Начало занятий" :value="course.starts_at ? formatDate(course.starts_at) : '______'")
         DataRow(label="Занятий в месяц" :value="String(course.lessons_per_month)")
         DataRow(label="Занятий в программе" :value="String(course.lessons_total)")
         DataRow(label="Занятие" :value="`${course.lesson_minutes} минут`")
@@ -95,7 +98,15 @@ import { useFioCache } from 'src/shared/lib/account/useFioCache';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { BaseBadge, BaseBanner, BaseButton, BaseCard, BaseChip, CardListSkeleton, EmptyState } from 'src/shared/ui/base';
 import { DataRow, DetailsDrawer, IdentityCell } from 'src/shared/ui/domain';
-import { CARRIER_LABELS, COURSE_STATUS_LABELS, DIRECTION_LABELS, fetchCourse, setCourseStatus, type ICourse } from '../../entities/Course';
+import {
+  CARRIER_LABELS,
+  COURSE_STATUS_LABELS,
+  DIRECTION_LABELS,
+  cancelCourseUnderfilled,
+  fetchCourse,
+  setCourseStatus,
+  type ICourse,
+} from '../../entities/Course';
 import { fetchCourseEconomy, type ICourseEconomy } from '../../entities/Economy';
 import { CourseForm } from '../../widgets/CourseForm';
 
@@ -117,6 +128,11 @@ const saving = ref(false);
 const editOpen = ref(false);
 const formRef = ref<InstanceType<typeof CourseForm> | null>(null);
 const economy = ref<ICourseEconomy | null>(null);
+const cancelling = ref(false);
+// Пока занятия не начались, набор можно отменить: после первого занятия у
+// участников остаётся отказ от подписки, а не отмена курса.
+const started = computed(() => Boolean(course.value?.starts_at) && new Date(String(course.value?.starts_at)) <= new Date());
+const formatDate = (v: unknown) => (v ? new Date(String(v)).toLocaleDateString('ru-RU') : '______');
 
 const status = computed(() => COURSE_STATUS_LABELS[course.value?.status ?? ''] ?? { label: course.value?.status ?? '', variant: 'neutral' as const });
 const published = computed(() => course.value?.status === Zeus.EduCourseStatus.PUBLISHED);
@@ -162,6 +178,19 @@ async function onSaved(updated: ICourse): Promise<void> {
     economy.value = await fetchCourseEconomy(asText(updated.id));
   } catch (e) {
     FailAlert(e);
+  }
+}
+
+async function cancelUnderfilled(): Promise<void> {
+  if (!course.value) return;
+  cancelling.value = true;
+  try {
+    const count = await cancelCourseUnderfilled(asText(course.value.id));
+    SuccessAlert(count > 0 ? `Курс отменён, возвращено подписок: ${count}` : 'Курс отменён — подписок не было');
+  } catch (e) {
+    FailAlert(e);
+  } finally {
+    cancelling.value = false;
   }
 }
 

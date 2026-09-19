@@ -14,12 +14,30 @@
       template(#cell-access_state="{ row }")
         BaseBadge(:variant="accessOf(row.access_state).variant") {{ accessOf(row.access_state).label }}
       template(#cell-actions="{ row }")
-        BaseButton(variant="secondary" size="sm" @click="extend(row)") Продлить
+        .row.no-wrap.justify-end.q-gutter-xs
+          BaseButton(v-if="isActive(row)" variant="secondary" size="sm" @click="extend(row)") Продлить
+          BaseButton(v-if="isActive(row)" variant="ghost" size="sm" @click="openCancel(row)") Отменить
+          .t-meta.t-muted(v-else-if="row.refund_reason") {{ refundReason(row.refund_reason) }}
     EmptyState(v-else title="Подписок пока нет" body="Выберите курс в каталоге и нажмите «Получить доступ».")
       template(#icon)
         q-icon(name="school" size="32px")
       template(#action)
         BaseButton.q-mt-md(variant="primary" @click="goToCatalog") Перейти в каталог
+
+  //- Отмена подписки: сумма возврата считается по Положению ЦПП на сервере,
+  //- поэтому ученик видит её до нажатия, а не после.
+  BaseDialog(v-model="cancelOpen" title="Отменить подписку" size="sm")
+    .t-sm.t-muted.q-mb-md(v-if="cancelTarget") {{ cancelTarget.course_title }}
+    CardListSkeleton(v-if="!refund" :count="1")
+    template(v-else)
+      DataRow(label="Уплачено" :value="formatAsset2Digits(cancelTarget?.paid_amount ?? '')")
+      DataRow(label="Занятий прошло" :value="`${refund.lessons_used} из ${refund.lessons_paid}`")
+      DataRow(label="Вернётся" :value="formatAsset2Digits(refund.refund)")
+      DataRow(label="Останется программе" :value="formatAsset2Digits(refund.withheld)")
+      .t-sm.t-muted.q-mt-sm {{ refundReason(refund.reason) }}
+    .row.justify-end.q-gutter-sm.q-mt-md
+      BaseButton(variant="ghost" :disabled="cancelBusy" @click="cancelOpen = false") Закрыть
+      BaseButton(variant="danger" :loading="cancelBusy" :disabled="!refund" @click="confirmCancel") Отменить подписку
 
   SubscribeDialog(
     v-model="extendOpen"
@@ -34,20 +52,26 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import { Zeus } from '@coopenomics/sdk';
 import { asText } from 'src/shared/lib/utils';
 import { useFirstLoad } from 'src/shared/lib/composables';
-import { FailAlert } from 'src/shared/api';
-import { BaseBadge, BaseButton, BaseCard, BaseTable, EmptyState, type BaseTableColumn } from 'src/shared/ui/base';
-import { PageHint } from 'src/shared/ui/domain';
+import { FailAlert, SuccessAlert } from 'src/shared/api';
+import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
+import { BaseBadge, BaseButton, BaseCard, BaseDialog, BaseTable, CardListSkeleton, EmptyState, type BaseTableColumn } from 'src/shared/ui/base';
+import { DataRow, PageHint } from 'src/shared/ui/domain';
 import { fetchCatalog, type ICatalogCourse } from '../../entities/Course';
 import {
   ACCESS_STATE_LABELS,
   ENROLLMENT_STATUS_LABELS,
   PERIOD_LABELS,
+  REFUND_REASON_LABELS,
+  cancelEnrollment,
   fetchMyEnrollments,
   fetchMyLearners,
+  fetchRefundPreview,
   type IEnrollment,
   type ILearner,
+  type IRefundPreview,
 } from '../../entities/Learner';
 import { SubscribeDialog } from '../../features/Subscribe';
 
@@ -66,6 +90,10 @@ const loading = ref(false);
 const firstLoad = useFirstLoad(loading);
 const extendOpen = ref(false);
 const lockedCourseId = ref<string | null>(null);
+const cancelOpen = ref(false);
+const cancelTarget = ref<IEnrollment | null>(null);
+const refund = ref<IRefundPreview | null>(null);
+const cancelBusy = ref(false);
 
 /**
  * Ширины: колонка курса единственная без фиксированной — она забирает остаток,
@@ -87,6 +115,9 @@ const periodLabel = (p: string) => PERIOD_LABELS[p] ?? p;
 const statusOf = (s: string) => ENROLLMENT_STATUS_LABELS[s] ?? { label: s, variant: 'neutral' as const };
 const accessOf = (s: string) => ACCESS_STATE_LABELS[s] ?? { label: s, variant: 'neutral' as const };
 const formatDate = (v: string | Date) => new Date(v).toLocaleDateString('ru-RU');
+const refundReason = (r: string) => REFUND_REASON_LABELS[r] ?? r;
+const isActive = (row: IEnrollment) =>
+  row.status === Zeus.EduEnrollmentStatus.ACTIVE || row.status === Zeus.EduEnrollmentStatus.PENDING;
 
 async function load(): Promise<void> {
   loading.value = true;
@@ -114,6 +145,33 @@ function extend(row: IEnrollment): void {
   lockedCourseId.value = asText(row.course_id);
   extendOpen.value = true;
 }
+async function openCancel(row: IEnrollment): Promise<void> {
+  cancelTarget.value = row;
+  refund.value = null;
+  cancelOpen.value = true;
+  try {
+    refund.value = await fetchRefundPreview(asText(row.id));
+  } catch (e) {
+    FailAlert(e);
+    cancelOpen.value = false;
+  }
+}
+
+async function confirmCancel(): Promise<void> {
+  if (!cancelTarget.value) return;
+  cancelBusy.value = true;
+  try {
+    const updated = await cancelEnrollment(asText(cancelTarget.value.id));
+    enrollments.value = enrollments.value.map((e) => (e.id === updated.id ? updated : e));
+    cancelOpen.value = false;
+    SuccessAlert(`Подписка отменена, возврат ${formatAsset2Digits(updated.refunded_amount ?? '')}`);
+  } catch (e) {
+    FailAlert(e);
+  } finally {
+    cancelBusy.value = false;
+  }
+}
+
 function onLearnerAdded(l: ILearner): void {
   const i = learners.value.findIndex((x) => x.id === l.id);
   if (i >= 0) learners.value[i] = l;

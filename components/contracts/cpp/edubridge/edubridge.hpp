@@ -104,6 +104,28 @@ public:
                                    checksum256 statement_hash);
 
   /**
+   * @brief Отменить подписку с возвратом членского взноса. Движения ledger2:
+   * o.edu.refund (фонд → кошелёк ЦПП ученика) и, при `to_share`, o.edu.retshr
+   * (кошелёк ЦПП → паевой). Сумму возврата считает кооператив по Положению ЦПП.
+   * @ingroup public_edubridge_actions
+   */
+  [[eosio::action]] void cancelsub(eosio::name coopname,
+                                   eosio::name username,
+                                   checksum256 sub_hash,
+                                   eosio::asset refund,
+                                   bool to_share);
+
+  /**
+   * @brief Вернуть остаток кошелька ЦПП «Образование» в паевой взнос по
+   * заявлению ученика. Один шаг ledger2: o.edu.retshr (Дт 86 / Кт 80).
+   * @ingroup public_edubridge_actions
+   */
+  [[eosio::action]] void retshare(eosio::name coopname,
+                                  eosio::name username,
+                                  eosio::asset amount,
+                                  document2 statement);
+
+  /**
    * @brief Закрыть истёкшую подписку — запись стирается из RAM.
    * @ingroup public_edubridge_actions
    */

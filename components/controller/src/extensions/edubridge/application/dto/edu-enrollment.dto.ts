@@ -1,5 +1,5 @@
-import { Field, ID, InputType, ObjectType } from '@nestjs/graphql';
-import { IsEnum, IsUUID, ValidateNested } from 'class-validator';
+import { Field, ID, InputType, Int, ObjectType } from '@nestjs/graphql';
+import { IsEnum, IsUUID, Matches, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 import { SignedDigitalDocumentInputDTO } from '@coopenomics/extension-kit';
 import { EduAccessState, EduEnrollmentPeriod, EduEnrollmentStatus } from '../../domain/enums';
@@ -36,6 +36,18 @@ export class EduEnrollmentDTO {
   @Field(() => String, { description: 'Ключ подписки в цепи' })
   sub_hash!: string;
 
+  @Field(() => String, { description: 'Уплаченный взнос за период' })
+  paid_amount!: string;
+
+  @Field(() => String, { nullable: true, description: 'Возвращено при отмене' })
+  refunded_amount!: string | null;
+
+  @Field(() => String, { nullable: true, description: 'Основание возврата по Положению ЦПП' })
+  refund_reason!: string | null;
+
+  @Field(() => Date, { nullable: true, description: 'Когда подписка отменена' })
+  cancelled_at!: Date | null;
+
   constructor(e: EdubridgeEnrollmentEntity, course?: EdubridgeCourseEntity | null) {
     this.id = e.id;
     this.learner_id = e.learner_id;
@@ -46,6 +58,10 @@ export class EduEnrollmentDTO {
     this.status = e.status;
     this.access_state = e.access_state;
     this.sub_hash = e.sub_hash;
+    this.paid_amount = e.paid_amount;
+    this.refunded_amount = e.refunded_amount;
+    this.refund_reason = e.refund_reason;
+    this.cancelled_at = e.cancelled_at;
   }
 }
 
@@ -92,6 +108,40 @@ export class EduQuoteDTO {
 @InputType('EduSubscribeInput')
 export class EduSubscribeInputDTO extends EduQuoteInputDTO {
   @Field(() => SignedDigitalDocumentInputDTO, { description: 'Подписанное заявление о конвертации паевого взноса в членский' })
+  @ValidateNested()
+  @Type(() => SignedDigitalDocumentInputDTO)
+  document!: SignedDigitalDocumentInputDTO;
+}
+
+/** Что вернут при отмене подписки — стол показывает это до нажатия. */
+@ObjectType('EduRefundPreview')
+export class EduRefundPreviewDTO {
+  @Field(() => String, { description: 'Основание возврата по Положению ЦПП' })
+  reason!: string;
+
+  @Field(() => String, { description: 'Сколько вернётся ученику' })
+  refund!: string;
+
+  @Field(() => String, { description: 'Сколько остаётся в фонде программы' })
+  withheld!: string;
+
+  @Field(() => Int, { description: 'Занятий оплачено периодом' })
+  lessons_paid!: number;
+
+  @Field(() => Int, { description: 'Занятий прошло к моменту отмены' })
+  lessons_used!: number;
+
+  @Field(() => Boolean, { description: 'Возврат идёт сразу на паевой' })
+  to_share!: boolean;
+}
+
+@InputType('EduReturnToShareInput')
+export class EduReturnToShareInputDTO {
+  @Field(() => String, { description: 'Сумма возврата в паевой («1000.0000 RUB»)' })
+  @Matches(/^\d+\.\d{4} [A-Z]{1,7}$/, { message: 'Сумма должна быть в формате «1000.0000 RUB»' })
+  amount!: string;
+
+  @Field(() => SignedDigitalDocumentInputDTO, { description: 'Подписанное заявление о возврате членского взноса в паевой' })
   @ValidateNested()
   @Type(() => SignedDigitalDocumentInputDTO)
   document!: SignedDigitalDocumentInputDTO;

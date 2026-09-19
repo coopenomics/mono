@@ -44,6 +44,14 @@ BaseForm(ref="formEl" :loading="loading" :error="error" @submit="submit")
       BaseInput(v-model="plannedRate" label="Ставка часа" type="number" :suffix="symbol" required)
     .col-12.col-md-6
       BaseInput(
+        v-model="form.starts_at"
+        label="Дата начала занятий"
+        type="date"
+        stack-label
+        hint="До этой даты ученик отменяет подписку с полным возвратом"
+      )
+    .col-12.col-md-6
+      BaseInput(
         v-model="yearDiscount"
         label="Скидка за год, %"
         type="number"
@@ -176,6 +184,7 @@ const form = reactive<ICreateCourseInput & { teacher_usernames: string[] }>({
   lesson_minutes: 60,
   planned_hourly_rate: '',
   year_discount_percent: 0,
+  starts_at: null,
   direction: Zeus.EduCourseDirection.ONLINE_PLATFORM,
   carrier: Zeus.EduAccessCarrier.SKILLSPACE,
   external_ref: '',
@@ -304,6 +313,7 @@ watch(
       teacher_usernames: [...c.teacher_usernames],
       direction: c.direction,
       carrier: c.carrier,
+      starts_at: c.starts_at,
       external_ref: c.external_ref,
       sort_order: c.sort_order,
     });

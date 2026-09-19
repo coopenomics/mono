@@ -14,6 +14,7 @@ const rawCatalogCourseSelector = {
   lessons_per_month: true,
   lessons_total: true,
   lesson_minutes: true,
+  starts_at: true,
   fee_month: true,
   fee_year: true,
 }

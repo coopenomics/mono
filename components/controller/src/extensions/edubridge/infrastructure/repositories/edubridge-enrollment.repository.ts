@@ -20,6 +20,11 @@ export class EdubridgeEnrollmentRepository {
     return this.repo.findOne({ where: { coopname, id } });
   }
 
+  /** Подписки на курс — отмена по недобору идёт сразу по всем участникам. */
+  findByCourse(coopname: string, courseId: string): Promise<EdubridgeEnrollmentEntity[]> {
+    return this.repo.find({ where: { coopname, course_id: courseId }, order: { created_at: 'ASC' } });
+  }
+
   findByPair(coopname: string, learnerId: string, courseId: string): Promise<EdubridgeEnrollmentEntity | null> {
     return this.repo.findOne({ where: { coopname, learner_id: learnerId, course_id: courseId } });
   }

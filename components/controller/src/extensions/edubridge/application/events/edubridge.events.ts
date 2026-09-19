@@ -2,6 +2,7 @@
 export const EDUBRIDGE_ENROLLMENT_OPENED_EVENT = 'edubridge.enrollment.opened';
 export const EDUBRIDGE_ENROLLMENT_EXTENDED_EVENT = 'edubridge.enrollment.extended';
 export const EDUBRIDGE_ENROLLMENT_EXPIRED_EVENT = 'edubridge.enrollment.expired';
+export const EDUBRIDGE_ENROLLMENT_CANCELLED_EVENT = 'edubridge.enrollment.cancelled';
 export const EDUBRIDGE_LEARNER_RECIPIENT_CHANGED_EVENT = 'edubridge.learner.recipient_changed';
 export const EDUBRIDGE_ACCESS_GRANTED_EVENT = 'edubridge.access.granted';
 export const EDUBRIDGE_ACCESS_REVOKED_EVENT = 'edubridge.access.revoked';

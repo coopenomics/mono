@@ -20,6 +20,10 @@ export interface EdubridgeChainPort {
     charge: EdubridgeContract.Actions.Chargefee.IChargefee
   ): Promise<InnerTransactResult>;
   expireSubscription(data: EdubridgeContract.Actions.Expiresub.IExpiresub): Promise<InnerTransactResult>;
+  /** Отмена подписки с возвратом взноса; `to_share` — возврат сразу в паевой. */
+  cancelSubscription(data: EdubridgeContract.Actions.Cancelsub.ICancelsub): Promise<InnerTransactResult>;
+  /** Возврат остатка кошелька программы в паевой по заявлению ученика. */
+  returnToShare(data: EdubridgeContract.Actions.Retshare.IRetshare): Promise<InnerTransactResult>;
   submitRid(data: EdubridgeContract.Actions.Submitrid.ISubmitrid): Promise<InnerTransactResult>;
   acceptRid(data: EdubridgeContract.Actions.Acceptrid.IAcceptrid): Promise<InnerTransactResult>;
   declineRid(data: EdubridgeContract.Actions.Declinerid.IDeclinerid): Promise<InnerTransactResult>;

@@ -116,3 +116,45 @@ cases:
     test: ~
     status: missing
 
+  - id: edu.enroll.happy.06
+    level: backend
+    kind: happy
+    scenario: Ученик отменяет подписку до даты активации курса.
+    expect: Полная стоимость возвращается на кошелёк программы, подписка закрывается, доступ отзывается.
+    test: components/controller/tests/unit/edubridge/enrollment.service.test.ts
+    status: passing
+  - id: edu.enroll.break.03
+    level: backend
+    kind: break
+    scenario: Отмена чужой подписки и повторная отмена уже отменённой.
+    expect: Отказ до обращения в цепь в обоих случаях.
+    test: components/controller/tests/unit/edubridge/enrollment.service.test.ts
+    status: passing
+  - id: edu.enroll.happy.07
+    level: backend
+    kind: happy
+    scenario: Администратор отменяет курс по недобору.
+    expect: Подписки участников закрываются, взносы возвращаются сразу на паевой без заявлений.
+    test: components/controller/tests/unit/edubridge/enrollment.service.test.ts
+    status: passing
+  - id: edu.enroll.side.05
+    level: backend
+    kind: side
+    scenario: Отмена по недобору после начала занятий.
+    expect: Отказ — есть отказ от подписки, а не отмена набора.
+    test: components/controller/tests/unit/edubridge/enrollment.service.test.ts
+    status: passing
+  - id: edu.enroll.happy.08
+    level: backend
+    kind: happy
+    scenario: Отказ в ходе подписки — половина остаточной стоимости по числу проведённых занятий.
+    expect: Граница проходит по дате активации; после последнего занятия возврат нулевой.
+    test: components/controller/tests/unit/edubridge/refund.test.ts
+    status: passing
+  - id: edu.enroll.ui.03
+    level: ui
+    kind: happy
+    scenario: Ученик видит сумму возврата до отмены; администратор отменяет курс по недобору со страницы курса.
+    expect: Суммы через форматтер, основание возврата подписано словами.
+    test: ~
+    status: missing

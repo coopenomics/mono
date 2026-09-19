@@ -2,6 +2,10 @@
 export * as CreateCourse from './createCourse'
 /** Изменить курс */
 export * as UpdateCourse from './updateCourse'
+/** Отменить подписку с возвратом членского взноса */
+export * as CancelEnrollment from './cancelEnrollment'
+/** Отменить курс по недобору */
+export * as CancelCourseUnderfilled from './cancelCourseUnderfilled'
 /** Подать расход программы из фонда */
 export * as CreateExpense from './createExpense'
 /** Задать наценку кооператива */

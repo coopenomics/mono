@@ -6,6 +6,7 @@ import { EduAccessTaskKind, EduEnrollmentStatus, type EduRecipientType } from '.
 import { EdubridgeCourseRepository } from '../../infrastructure/repositories/edubridge-course.repository';
 import { EdubridgeEnrollmentRepository } from '../../infrastructure/repositories/edubridge-enrollment.repository';
 import {
+  EDUBRIDGE_ENROLLMENT_CANCELLED_EVENT,
   EDUBRIDGE_ENROLLMENT_OPENED_EVENT,
   EDUBRIDGE_LEARNER_RECIPIENT_CHANGED_EVENT,
   type IEduEnrollmentEventPayload,
@@ -35,6 +36,22 @@ export class EdubridgeAccessListener {
   @OnEvent(EDUBRIDGE_ENROLLMENT_OPENED_EVENT)
   async onOpened(payload: IEduEnrollmentEventPayload): Promise<void> {
     await this.enqueueGrant(payload.coopname, payload.enrollment_id, payload.trx_id);
+  }
+
+  /** Подписка отменена с возвратом — доступ к курсу закрывается. */
+  @OnEvent(EDUBRIDGE_ENROLLMENT_CANCELLED_EVENT)
+  async onCancelled(payload: IEduEnrollmentEventPayload): Promise<void> {
+    const enrollment = await this.enrollments.findById(payload.coopname, payload.enrollment_id);
+    if (!enrollment) return;
+    const course = await this.courses.findById(payload.coopname, enrollment.course_id);
+    if (!course) return;
+    await this.outbox.enqueue({
+      coopname: payload.coopname,
+      enrollment,
+      kind: EduAccessTaskKind.REVOKE,
+      carrier: course.carrier,
+      trigger: payload.trx_id,
+    });
   }
 
   @OnEvent(chainEvent(EdubridgeContract.Actions.Opensub.actionName))

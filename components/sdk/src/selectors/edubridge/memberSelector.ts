@@ -22,6 +22,10 @@ const rawEnrollmentSelector = {
   status: true,
   access_state: true,
   sub_hash: true,
+  paid_amount: true,
+  refunded_amount: true,
+  refund_reason: true,
+  cancelled_at: true,
 }
 const _validateEnrollment: MakeAllFieldsRequired<ValueTypes['EduEnrollment']> = rawEnrollmentSelector
 export const eduEnrollmentSelector = Selector('EduEnrollment')(rawEnrollmentSelector)
@@ -38,3 +42,13 @@ const rawQuoteSelector = {
 const _validateQuote: MakeAllFieldsRequired<ValueTypes['EduQuote']> = rawQuoteSelector
 export const eduQuoteSelector = Selector('EduQuote')(rawQuoteSelector)
 
+const rawRefundPreviewSelector = {
+  reason: true,
+  refund: true,
+  withheld: true,
+  lessons_paid: true,
+  lessons_used: true,
+  to_share: true,
+}
+const _validateRefundPreview: MakeAllFieldsRequired<ValueTypes['EduRefundPreview']> = rawRefundPreviewSelector
+export const eduRefundPreviewSelector = Selector('EduRefundPreview')(rawRefundPreviewSelector)

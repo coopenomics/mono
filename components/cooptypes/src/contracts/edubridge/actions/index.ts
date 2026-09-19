@@ -19,6 +19,16 @@ export * as Opensub from './opensub'
 export * as Chargefee from './chargefee'
 
 /**
+ * Отмена подписки с возвратом членского взноса.
+ */
+export * as Cancelsub from './cancelsub'
+
+/**
+ * Возврат остатка кошелька программы в паевой взнос.
+ */
+export * as Retshare from './retshare'
+
+/**
  * Продление подписки.
  */
 export * as Extendsub from './extendsub'

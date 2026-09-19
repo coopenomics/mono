@@ -5,18 +5,34 @@ import { EDUBRIDGE_ENROLLMENT_EXTENDED_EVENT, EDUBRIDGE_ENROLLMENT_OPENED_EVENT 
 
 const logger = { setContext: jest.fn(), info: jest.fn(), warn: jest.fn(), error: jest.fn() } as any;
 const learner = { id: 'L1', chain_ref: '7', member_username: 'ant', recipient_type: 'email', recipient_value: 'kid@x.ru' } as any;
-const course = { id: 'C1', chain_ref: '3', title: 'Алгебра', status: EduCourseStatus.PUBLISHED, fee_month: '1000.0000 RUB', fee_year: '10000.0000 RUB' } as any;
+const course = {
+  id: 'C1',
+  chain_ref: '3',
+  title: 'Алгебра',
+  status: EduCourseStatus.PUBLISHED,
+  fee_month: '1000.0000 RUB',
+  fee_year: '10000.0000 RUB',
+  lessons_per_month: 8,
+  lessons_total: 64,
+  lesson_minutes: 60,
+  starts_at: null,
+} as any;
 
-function make(opts: { existing?: any; available?: string } = {}) {
+function make(opts: { existing?: any; available?: string; course?: any } = {}) {
   const saved: any[] = [];
   const enrollments = {
     findByPair: jest.fn(async () => opts.existing ?? null),
+    findById: jest.fn(async () => opts.existing ?? null),
+    findByCourse: jest.fn(async () => (opts.existing ? [opts.existing] : [])),
     create: jest.fn((d: any) => ({ ...d })),
     save: jest.fn(async (e: any) => { saved.push(e); return { ...e, id: e.id ?? 'E1' }; }),
   } as any;
-  const courses = { findById: jest.fn(async () => course) } as any;
+  const courses = { findById: jest.fn(async () => opts.course ?? course) } as any;
   const learnerService = { getOwned: jest.fn(async () => learner) } as any;
-  const chain = { convertAndSubscribe: jest.fn(async () => ({ transaction_id: 'TRX1' })) } as any;
+  const chain = {
+    convertAndSubscribe: jest.fn(async () => ({ transaction_id: 'TRX1' })),
+    cancelSubscription: jest.fn(async () => ({ transaction_id: 'TRX2' })),
+  } as any;
   const documents = { generate: jest.fn(async () => ({ hash: 'ABC', html: '', full_title: '', binary: '', meta: {} })) } as any;
   const wallets = { findByWalletAndUsername: jest.fn(async () => ({ available: opts.available ?? '5000.0000 RUB' })) } as any;
   const events = { emit: jest.fn() } as any;
@@ -83,5 +99,58 @@ describe('EdubridgeEnrollmentService', () => {
     expect(data.course_title).toBe('Алгебра');
     expect(data.period).toBe('month');
     expect(data.amount).toBe('1000.0000 RUB');
+  });
+});
+
+describe('EdubridgeEnrollmentService — отмена подписки', () => {
+  const paid = {
+    id: 'E1',
+    coopname: 'voskhod',
+    member_username: 'ant',
+    learner_id: 'L1',
+    course_id: 'C1',
+    sub_hash: 'aabb',
+    period: EduEnrollmentPeriod.MONTH,
+    paid_amount: '9600.0000 RUB',
+    status: EduEnrollmentStatus.ACTIVE,
+    access_state: EduAccessState.GRANTED,
+  };
+
+  it('до активации курса подписка отменяется с полным возвратом на кошелёк программы', async () => {
+    const { service, chain } = make({ existing: { ...paid } });
+    const saved = await service.cancel('voskhod', 'ant', 'E1');
+    const [payload] = chain.cancelSubscription.mock.calls[0];
+    expect(payload.refund).toBe('9600.0000 RUB');
+    expect(payload.to_share).toBe(false);
+    expect(saved.status).toBe(EduEnrollmentStatus.CANCELLED);
+    expect(saved.refunded_amount).toBe('9600.0000 RUB');
+  });
+
+  it('чужую подписку отменить нельзя', async () => {
+    const { service, chain } = make({ existing: { ...paid, member_username: 'other' } });
+    await expect(service.cancel('voskhod', 'ant', 'E1')).rejects.toThrow(/не найдена/);
+    expect(chain.cancelSubscription).not.toHaveBeenCalled();
+  });
+
+  it('повторная отмена отклоняется', async () => {
+    const { service, chain } = make({ existing: { ...paid, status: EduEnrollmentStatus.CANCELLED } });
+    await expect(service.cancel('voskhod', 'ant', 'E1')).rejects.toThrow(/уже отменена/);
+    expect(chain.cancelSubscription).not.toHaveBeenCalled();
+  });
+
+  it('отмена по недобору закрывает подписки курса и возвращает взносы на паевой', async () => {
+    const { service, chain } = make({ existing: { ...paid } });
+    const cancelled = await service.cancelCourse('voskhod', 'C1');
+    expect(cancelled).toHaveLength(1);
+    const [payload] = chain.cancelSubscription.mock.calls[0];
+    expect(payload.to_share).toBe(true);
+    expect(payload.refund).toBe('9600.0000 RUB');
+  });
+
+  it('отмена по недобору после начала занятий отклоняется', async () => {
+    const started = { ...course, starts_at: '2026-01-01' };
+    const { service, chain } = make({ existing: { ...paid }, course: started });
+    await expect(service.cancelCourse('voskhod', 'C1')).rejects.toThrow(/занятия по курсу уже начались/i);
+    expect(chain.cancelSubscription).not.toHaveBeenCalled();
   });
 });

@@ -67,6 +67,15 @@ export async function updateCourse(data: IUpdateCourseInput) {
   return result;
 }
 
+/** Отмена курса по недобору: подписки закрываются, взносы возвращаются на паевой. */
+export async function cancelCourseUnderfilled(course_id: string) {
+  const { [Mutations.Edubridge.CancelCourseUnderfilled.name]: result } = await client.Mutation(
+    Mutations.Edubridge.CancelCourseUnderfilled.mutation,
+    { variables: { course_id } },
+  );
+  return result;
+}
+
 export async function setCourseStatus(data: ISetCourseStatusInput) {
   const { [Mutations.Edubridge.SetCourseStatus.name]: result } = await client.Mutation(
     Mutations.Edubridge.SetCourseStatus.mutation,

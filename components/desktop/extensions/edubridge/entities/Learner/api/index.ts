@@ -12,6 +12,22 @@ export async function fetchMyEnrollments() {
   return result;
 }
 
+/** Что вернут при отмене подписки — показываем до нажатия. */
+export async function fetchRefundPreview(enrollment_id: string) {
+  const { [Queries.Edubridge.RefundPreview.name]: result } = await client.Query(Queries.Edubridge.RefundPreview.query, {
+    variables: { enrollment_id },
+  });
+  return result;
+}
+
+export async function cancelEnrollment(enrollment_id: string) {
+  const { [Mutations.Edubridge.CancelEnrollment.name]: result } = await client.Mutation(
+    Mutations.Edubridge.CancelEnrollment.mutation,
+    { variables: { enrollment_id } },
+  );
+  return result;
+}
+
 export async function fetchQuote(data: IQuoteInput) {
   const { [Queries.Edubridge.Quote.name]: result } = await client.Query(Queries.Edubridge.Quote.query, { variables: { data } });
   return result;

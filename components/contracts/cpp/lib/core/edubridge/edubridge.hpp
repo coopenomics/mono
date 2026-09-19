@@ -125,6 +125,14 @@ namespace Memo {
     return "Членский взнос за курс по ЦПП «Образование» в распоряжение кооператива";
   }
 
+  inline std::string get_refund_memo() {
+    return "Возврат членского взноса за курс по ЦПП «Образование»";
+  }
+
+  inline std::string get_return_to_share_memo() {
+    return "Возврат членского взноса по ЦПП «Образование» в паевой взнос пайщика";
+  }
+
   inline std::string get_accept_rid_memo(uint64_t rid_id) {
     return "Приём результата интеллектуальной деятельности преподавателя в паевой фонд по заявлению № " +
            std::to_string(rid_id) + " и решению совета";
