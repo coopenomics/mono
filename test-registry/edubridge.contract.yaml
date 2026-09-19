@@ -83,3 +83,17 @@ cases:
     expect: PDF генерируется, AJV-схема проходит, registry_id совпадает с cooptypes.
     test: ~
     status: missing
+  - id: edu.doc.happy.05
+    level: backend
+    kind: happy
+    scenario: Положение о ЦПП «Образование» (3000) генерируется утверждённым текстом.
+    expect: Шесть разделов на месте, условия подписки и возвратов дословны, наименование Общества и председатель подставлены.
+    test: components/factory/test/education-program.test.ts
+    status: passing
+  - id: edu.doc.side.04
+    level: backend
+    kind: side
+    scenario: В шаблоне 3000 не осталось прежней рыбы и незаполненных подстановок.
+    expect: Текста рыбы нет, шаблонных скобок и «undefined» в готовом документе нет.
+    test: components/factory/test/education-program.test.ts
+    status: passing
