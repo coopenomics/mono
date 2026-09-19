@@ -14,7 +14,7 @@ function plainText(html: string): string {
 }
 
 async function generate(): Promise<IGeneratedDocument> {
-  return generator.generate({ registry_id: 3000, coopname: 'voskhod', lang: 'ru' })
+  return generator.generate({ registry_id: 3000, coopname: 'voskhod', username: 'ant', lang: 'ru' })
 }
 
 describe('Положение о ЦПП «Образование»', async () => {
@@ -23,7 +23,7 @@ describe('Положение о ЦПП «Образование»', async () => 
   })
 
   it('генерируется и воспроизводится с тем же хэшем', async () => {
-    await testDocumentGeneration({ registry_id: 3000, coopname: 'voskhod', lang: 'ru' })
+    await testDocumentGeneration({ registry_id: 3000, coopname: 'voskhod', username: 'ant', lang: 'ru' })
   })
 
   it('содержит все шесть разделов утверждённого текста', async () => {
