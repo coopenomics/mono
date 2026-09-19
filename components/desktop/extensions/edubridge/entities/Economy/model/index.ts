@@ -1,6 +1,8 @@
 import type { Mutations, Queries } from '@coopenomics/sdk';
 
 export type IEconomySettings = Queries.Edubridge.EconomySettings.IOutput['edubridgeEconomySettings'];
+export type IProgramFund = Queries.Edubridge.ProgramFund.IOutput['edubridgeProgramFund'];
+export type IFundMovement = IProgramFund['movements'][number];
 export type ICourseFee = Queries.Edubridge.CourseFeePreview.IOutput['edubridgeCourseFeePreview'];
 export type ICourseEconomy = Queries.Edubridge.CourseEconomy.IOutput['edubridgeCourseEconomy'];
 export type ICourseEconomyInput = Queries.Edubridge.CourseFeePreview.IInput['data'];

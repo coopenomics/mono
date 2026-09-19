@@ -17,7 +17,17 @@ const COURSE = {
   fee_year: '115200.0000 RUB',
 } as any;
 
-function make(options: { markup?: number; assignments?: any[]; contracts?: any[]; course?: any } = {}) {
+function make(
+  options: {
+    markup?: number;
+    assignments?: any[];
+    contracts?: any[];
+    course?: any;
+    coopWallets?: any[];
+    memberShares?: any[];
+    history?: any[];
+  } = {}
+) {
   const config = {
     load: jest.fn(async () => ({ markup_percent: options.markup ?? 20 })),
     set: jest.fn(),
@@ -31,7 +41,19 @@ function make(options: { markup?: number; assignments?: any[]; contracts?: any[]
   } as any;
   const names = { displayNames: jest.fn(async (us: string[]) => new Map(us.map((u) => [u, `ФИО ${u}`]))) } as any;
   const extensions = { patchConfig: jest.fn(async (_n: string, patch: any) => ({ config: { markup_percent: patch.markup_percent } })) } as any;
-  return { service: new EdubridgeEconomyService(config, courses, teachers, names, extensions), teachers, extensions, config };
+  const ledger = {
+    getWallets: jest.fn(async () => options.coopWallets ?? [{ id: 'w.edu.fund', name: 'Фонд ЦПП «Образование»', available: '50000.0000 RUB' }]),
+    getHistory: jest.fn(async () => ({ items: options.history ?? [], totalCount: 0, totalPages: 0, currentPage: 1 })),
+    getAccounts: jest.fn(async () => []),
+  } as any;
+  const userWallets = { findByWallet: jest.fn(async () => options.memberShares ?? []) } as any;
+  return {
+    service: new EdubridgeEconomyService(config, courses, teachers, names, extensions, ledger, userWallets),
+    teachers,
+    extensions,
+    config,
+    ledger,
+  };
 }
 
 const params = {
@@ -137,5 +159,37 @@ describe('EdubridgeEconomyService', () => {
     const economy = await service.courseEconomy('voskhod', COURSE_ID);
     expect(economy.actual_cost_month).toBe('8000.0000 RUB');
     expect(economy.over_fee).toBe(false);
+  });
+});
+
+describe('Деньги программы', () => {
+  it('фонд и остатки учеников читаются из разных мест и складываются в картину', async () => {
+    const { service } = make({
+      memberShares: [{ available: '1200.0000 RUB' }, { available: '300.0000 RUB' }],
+      history: [
+        {
+          globalSequence: '101',
+          createdAt: new Date('2026-09-19T10:00:00Z'),
+          operationCode: 'o.edu.fee',
+          quantity: '9600.0000 RUB',
+          username: 'parent',
+          memo: '',
+        },
+      ],
+    });
+    const fund = await service.fund('voskhod');
+    expect(fund.fund_balance).toBe('50000.0000 RUB');
+    expect(fund.members_balance).toBe('1500.0000 RUB');
+    expect(fund.wallets.map((w) => w.id)).toEqual(['w.edu.fund', 'w.edu.member']);
+    expect(fund.movements).toHaveLength(1);
+    expect(fund.movements[0]!.title).toBe('Взнос за курс списан в фонд программы');
+    expect(fund.movements[0]!.username).toBe('parent');
+  });
+
+  it('пустой фонд показывается нулём, а не пропадает из списка', async () => {
+    const { service } = make({ coopWallets: [] });
+    const fund = await service.fund('voskhod');
+    expect(fund.fund_balance).toBe('0.0000 RUB');
+    expect(fund.wallets).toHaveLength(2);
   });
 });

@@ -7,6 +7,12 @@ export async function fetchEconomySettings() {
   return result;
 }
 
+/** Деньги программы: кошельки и лента движения. */
+export async function fetchProgramFund() {
+  const { [Queries.Edubridge.ProgramFund.name]: result } = await client.Query(Queries.Edubridge.ProgramFund.query);
+  return result;
+}
+
 export async function setEconomySettings(data: ISetEconomySettingsInput) {
   const { [Mutations.Edubridge.SetEconomySettings.name]: result } = await client.Mutation(
     Mutations.Edubridge.SetEconomySettings.mutation,

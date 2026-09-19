@@ -87,6 +87,7 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { Zeus } from '@coopenomics/sdk';
+import { asText } from 'src/shared/lib/utils';
 import { useFirstLoad } from 'src/shared/lib/composables';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { useDesktopStore } from 'src/entities/Desktop/model';
@@ -158,7 +159,7 @@ async function onSaved(updated: ICourse): Promise<void> {
   editOpen.value = false;
   // Параметры изменились — расчёт пересобираем, иначе на странице остаётся прежний.
   try {
-    economy.value = await fetchCourseEconomy(updated.id);
+    economy.value = await fetchCourseEconomy(asText(updated.id));
   } catch (e) {
     FailAlert(e);
   }

@@ -83,6 +83,18 @@ public:
                                  checksum256 statement_hash);
 
   /**
+   * @brief Списать членский взнос ученика в фонд программы. Один шаг ledger2:
+   * o.edu.fee (TRANSFER w.edu.member → w.edu.fund, без проводки — оба на 86).
+   * Вызывается при открытии и продлении подписки: стоимость подписки уходит в
+   * распоряжение кооператива (Положение ЦПП «Образование», п. 4.2.2).
+   * @ingroup public_edubridge_actions
+   */
+  [[eosio::action]] void chargefee(eosio::name coopname,
+                                   eosio::name username,
+                                   checksum256 sub_hash,
+                                   eosio::asset amount);
+
+  /**
    * @brief Продлить подписку: новый срок оплаты строго больше прежнего.
    * @ingroup public_edubridge_actions
    */

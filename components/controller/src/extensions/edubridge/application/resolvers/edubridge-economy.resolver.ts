@@ -8,6 +8,7 @@ import {
   EduCourseEconomyInputDTO,
   EduCourseFeeDTO,
   EduEconomySettingsDTO,
+  EduProgramFundDTO,
   EduSetEconomySettingsInputDTO,
   EduSetTeacherRateInputDTO,
 } from '../dto/edu-economy.dto';
@@ -26,6 +27,13 @@ export class EdubridgeEconomyResolver {
   @RequireEduAccess('EduEconomy', 'read')
   edubridgeEconomySettings(): Promise<EduEconomySettingsDTO> {
     return this.economy.settings();
+  }
+
+  @Query(() => EduProgramFundDTO, { name: 'edubridgeProgramFund', description: 'Деньги программы: кошельки и движение средств' })
+  @UseGuards(GqlJwtAuthGuard, EdubridgeAccessGuard)
+  @RequireEduAccess('EduEconomy', 'read')
+  edubridgeProgramFund(): Promise<EduProgramFundDTO> {
+    return this.economy.fund(coop());
   }
 
   @Mutation(() => EduEconomySettingsDTO, { name: 'edubridgeSetEconomySettings', description: 'Задать наценку кооператива' })

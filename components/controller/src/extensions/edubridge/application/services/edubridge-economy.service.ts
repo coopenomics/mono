@@ -1,5 +1,12 @@
 import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common';
-import { EXTENSION_REPOSITORY, type ExtensionDomainRepository } from '@coopenomics/extension-kit';
+import { EXTENSION_REPOSITORY, type ExtensionDomainRepository, platformSettings } from '@coopenomics/extension-kit';
+import {
+  LEDGER2_HISTORY_PORT,
+  USER_WALLET_PORT,
+  type ILedger2HistoryPort,
+  type IUserWalletPort,
+  type InnerLedger2Operation,
+} from '@coopenomics/innercoop';
 import { EDUBRIDGE_EXTENSION_NAME } from '../../constants/edubridge.constants';
 import { EduAssignmentStatus } from '../../domain/enums';
 import { calculateCourseFee, costOfHours, maxYearDiscountPercent, type CourseFeeCalculation } from '../../domain/economy/course-fee.calculator';
@@ -15,7 +22,20 @@ import type {
   EduCourseFeeDTO,
   EduCourseTeacherLoadDTO,
   EduEconomySettingsDTO,
+  EduFundMovementDTO,
+  EduProgramFundDTO,
+  EduProgramWalletDTO,
 } from '../dto/edu-economy.dto';
+
+/** Кошельки программы «Образование» в реестре ledger2. */
+const FUND_WALLET = 'w.edu.fund';
+const MEMBER_WALLET = 'w.edu.member';
+
+/** Операции программы, из которых складывается лента движения средств. */
+const MOVEMENT_OPERATIONS = ['o.edu.conv', 'o.edu.fee'];
+
+/** Сколько движений показывает лента раздела «Экономика». */
+const MOVEMENTS_LIMIT = 50;
 
 /** Базисных пунктов в проценте: скидка хранится целым числом, а показывается процентами. */
 const BP_IN_PERCENT = 100;
@@ -33,8 +53,57 @@ export class EdubridgeEconomyService {
     private readonly courses: EdubridgeCourseRepository,
     private readonly teachers: EdubridgeTeacherRepository,
     private readonly names: EdubridgeNamesService,
-    @Inject(EXTENSION_REPOSITORY) private readonly extensions: ExtensionDomainRepository<IConfig>
+    @Inject(EXTENSION_REPOSITORY) private readonly extensions: ExtensionDomainRepository<IConfig>,
+    @Inject(LEDGER2_HISTORY_PORT) private readonly ledger: ILedger2HistoryPort,
+    @Inject(USER_WALLET_PORT) private readonly userWallets: IUserWalletPort
   ) {}
+
+  /**
+   * Деньги программы: сколько лежит в фонде кооператива, сколько ещё на
+   * кошельках учеников, и чем это движение вызвано. Фонд — кооперативный
+   * кошелёк, членские взносы учеников — доли пайщиков в общем кошельке
+   * программы, поэтому остатки читаются из разных мест.
+   */
+  async fund(coopname: string): Promise<EduProgramFundDTO> {
+    const symbol = platformSettings().blockchain.rootGovernSymbol;
+    const [coopWallets, memberShares, history] = await Promise.all([
+      this.ledger.getWallets(coopname),
+      this.userWallets.findByWallet(coopname, MEMBER_WALLET),
+      this.ledger.getHistory({
+        coopname,
+        actionNames: ['apply'],
+        operationCodes: MOVEMENT_OPERATIONS,
+        limit: MOVEMENTS_LIMIT,
+        sortOrder: 'DESC',
+      }),
+    ]);
+
+    const fund = coopWallets.find((w) => w.id === FUND_WALLET);
+    const fundBalance = fund?.available ?? `0.0000 ${symbol}`;
+    const membersMinor = memberShares.reduce((sum, w) => sum + toMinor(w.available ?? '0.0000'), 0);
+
+    const wallets: EduProgramWalletDTO[] = [
+      {
+        id: FUND_WALLET,
+        name: fund?.name ?? 'Фонд ЦПП «Образование»',
+        available: fundBalance,
+        hint: 'Собранные членские взносы в распоряжении кооператива: из них ведётся обучение и идут возвраты по Положению.',
+      },
+      {
+        id: MEMBER_WALLET,
+        name: 'Членские взносы учеников',
+        available: formatMinor(membersMinor, symbol),
+        hint: 'Внесено учениками, но ещё не списано в фонд: остаток появляется при возврате и до подключения подписки.',
+      },
+    ];
+
+    return {
+      wallets,
+      fund_balance: fundBalance,
+      members_balance: formatMinor(membersMinor, symbol),
+      movements: history.items.map((op) => toMovement(op, symbol)),
+    };
+  }
 
   async settings(): Promise<EduEconomySettingsDTO> {
     const markup = (await this.config.load()).markup_percent;
@@ -150,6 +219,24 @@ export class EdubridgeEconomyService {
   private toFeeDTO(calc: CourseFeeCalculation, markupPercent: number): EduCourseFeeDTO {
     return { ...calc, markup_percent: markupPercent };
   }
+}
+
+/** Подписи движений — языком выписки, без кодов операций. */
+const MOVEMENT_TITLES: Record<string, { title: string; direction: string }> = {
+  'o.edu.conv': { title: 'Ученик внёс членский взнос', direction: 'in' },
+  'o.edu.fee': { title: 'Взнос за курс списан в фонд программы', direction: 'in' },
+};
+
+function toMovement(op: InnerLedger2Operation, symbol: string): EduFundMovementDTO {
+  const known = MOVEMENT_TITLES[op.operationCode ?? ''] ?? { title: op.memo ?? 'Движение средств', direction: 'in' };
+  return {
+    id: op.globalSequence,
+    at: op.createdAt,
+    title: known.title,
+    amount: op.quantity ?? `0.0000 ${symbol}`,
+    username: op.username ?? null,
+    direction: known.direction,
+  };
 }
 
 function symbolOf(asset: string): string {

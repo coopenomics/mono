@@ -13,6 +13,7 @@ sources:
     - components/controller/src/extensions/edubridge/application/services/edubridge-economy.service.ts
     - components/controller/src/extensions/edubridge/application/resolvers/edubridge-economy.resolver.ts
     - components/controller/src/extensions/edubridge/application/dto/edu-economy.dto.ts
+    - components/contracts/cpp/edubridge/src/p.edu.access/chargefee.cpp
   ui:
     - components/desktop/extensions/edubridge/pages/AdminEconomyPage/**
     - components/desktop/extensions/edubridge/widgets/CourseForm/**
@@ -88,3 +89,24 @@ cases:
     expect: Суммы через форматтер, предельная скидка подсказана, произвольный ввод взноса недоступен.
     test: ~
     status: missing
+  - id: edu.econ.happy.05
+    level: backend
+    kind: happy
+    scenario: Раздел «Экономика» показывает фонд программы, остатки на кошельках учеников и ленту движения.
+    expect: Остаток фонда из кооперативного кошелька, взносы учеников — суммой долей; движения подписаны языком выписки.
+    test: components/controller/tests/unit/edubridge/economy.service.test.ts
+    status: passing
+  - id: edu.econ.side.04
+    level: backend
+    kind: side
+    scenario: Фонд пуст — кошелька в реестре ещё нет.
+    expect: Показывается ноль, кошелёк из списка не исчезает.
+    test: components/controller/tests/unit/edubridge/economy.service.test.ts
+    status: passing
+  - id: edu.econ.happy.06
+    level: backend
+    kind: happy
+    scenario: Подписка на курс — конвертация, открытие подписки и списание взноса в фонд одной транзакцией.
+    expect: Сумма списания равна взносу за период, привязка к ключу подписки и плательщику.
+    test: components/controller/tests/unit/edubridge/enrollment.service.test.ts
+    status: passing

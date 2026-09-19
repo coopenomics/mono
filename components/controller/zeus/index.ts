@@ -7197,6 +7197,22 @@ export type ValueTypes = {
 ["EduEnrollmentPeriod"]:EduEnrollmentPeriod;
 	/** Состояние подписки обучающегося на курс */
 ["EduEnrollmentStatus"]:EduEnrollmentStatus;
+	["EduFundMovement"]: AliasType<{
+	/** Сумма */
+	amount?:boolean | `@${string}`,
+	/** Когда */
+	at?:boolean | `@${string}`,
+	/** Направление: приход в фонд или расход из него */
+	direction?:boolean | `@${string}`,
+	/** Номер движения */
+	id?:boolean | `@${string}`,
+	/** Что произошло */
+	title?:boolean | `@${string}`,
+	/** Пайщик, к которому относится движение */
+	username?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on EduFundMovement']?: Omit<ValueTypes["EduFundMovement"], "...on EduFundMovement">
+}>;
 	["EduLearner"]: AliasType<{
 	/** Добавлен */
 	created_at?:boolean | `@${string}`,
@@ -7290,6 +7306,30 @@ export type ValueTypes = {
 	name?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
 	['...on EduPlatformGroup']?: Omit<ValueTypes["EduPlatformGroup"], "...on EduPlatformGroup">
+}>;
+	["EduProgramFund"]: AliasType<{
+	/** Остаток фонда программы */
+	fund_balance?:boolean | `@${string}`,
+	/** Членские взносы на кошельках учеников — ещё не списаны в фонд */
+	members_balance?:boolean | `@${string}`,
+	/** Последние движения средств программы */
+	movements?:ValueTypes["EduFundMovement"],
+	/** Кошельки программы с остатками */
+	wallets?:ValueTypes["EduProgramWallet"],
+		__typename?: boolean | `@${string}`,
+	['...on EduProgramFund']?: Omit<ValueTypes["EduProgramFund"], "...on EduProgramFund">
+}>;
+	["EduProgramWallet"]: AliasType<{
+	/** Остаток */
+	available?:boolean | `@${string}`,
+	/** Что это за средства и откуда они берутся */
+	hint?:boolean | `@${string}`,
+	/** Идентификатор кошелька */
+	id?:boolean | `@${string}`,
+	/** Название кошелька */
+	name?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on EduProgramWallet']?: Omit<ValueTypes["EduProgramWallet"], "...on EduProgramWallet">
 }>;
 	["EduQueueFilterInput"]: {
 	/** Состояния задач */
@@ -15355,6 +15395,8 @@ edubridgeMembers?: [{	search?: string | undefined | null | Variable<any, string>
 	/** Подписаны ли оферты родителя-слушателя и преподавателя */
 	edubridgeOnboardingState?:ValueTypes["EduOnboardingState"],
 edubridgePlatformCourses?: [{	carrier: ValueTypes["EduAccessCarrier"] | Variable<any, string>},ValueTypes["EduPlatformCourse"]],
+	/** Деньги программы: кошельки и движение средств */
+	edubridgeProgramFund?:ValueTypes["EduProgramFund"],
 edubridgeQueue?: [{	filter?: ValueTypes["EduQueueFilterInput"] | undefined | null | Variable<any, string>},ValueTypes["EduAccessTask"]],
 edubridgeQuote?: [{	data: ValueTypes["EduQuoteInput"] | Variable<any, string>},ValueTypes["EduQuote"]],
 	/** Преподаватели, которых можно назначить на курс */
@@ -23883,6 +23925,21 @@ export type ResolverInputTypes = {
 ["EduEnrollmentPeriod"]:EduEnrollmentPeriod;
 	/** Состояние подписки обучающегося на курс */
 ["EduEnrollmentStatus"]:EduEnrollmentStatus;
+	["EduFundMovement"]: AliasType<{
+	/** Сумма */
+	amount?:boolean | `@${string}`,
+	/** Когда */
+	at?:boolean | `@${string}`,
+	/** Направление: приход в фонд или расход из него */
+	direction?:boolean | `@${string}`,
+	/** Номер движения */
+	id?:boolean | `@${string}`,
+	/** Что произошло */
+	title?:boolean | `@${string}`,
+	/** Пайщик, к которому относится движение */
+	username?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
 	["EduLearner"]: AliasType<{
 	/** Добавлен */
 	created_at?:boolean | `@${string}`,
@@ -23967,6 +24024,28 @@ export type ResolverInputTypes = {
 	/** Идентификатор группы на площадке */
 	id?:boolean | `@${string}`,
 	/** Название группы */
+	name?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["EduProgramFund"]: AliasType<{
+	/** Остаток фонда программы */
+	fund_balance?:boolean | `@${string}`,
+	/** Членские взносы на кошельках учеников — ещё не списаны в фонд */
+	members_balance?:boolean | `@${string}`,
+	/** Последние движения средств программы */
+	movements?:ResolverInputTypes["EduFundMovement"],
+	/** Кошельки программы с остатками */
+	wallets?:ResolverInputTypes["EduProgramWallet"],
+		__typename?: boolean | `@${string}`
+}>;
+	["EduProgramWallet"]: AliasType<{
+	/** Остаток */
+	available?:boolean | `@${string}`,
+	/** Что это за средства и откуда они берутся */
+	hint?:boolean | `@${string}`,
+	/** Идентификатор кошелька */
+	id?:boolean | `@${string}`,
+	/** Название кошелька */
 	name?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
@@ -31779,6 +31858,8 @@ edubridgeMembers?: [{	search?: string | undefined | null},ResolverInputTypes["Ed
 	/** Подписаны ли оферты родителя-слушателя и преподавателя */
 	edubridgeOnboardingState?:ResolverInputTypes["EduOnboardingState"],
 edubridgePlatformCourses?: [{	carrier: ResolverInputTypes["EduAccessCarrier"]},ResolverInputTypes["EduPlatformCourse"]],
+	/** Деньги программы: кошельки и движение средств */
+	edubridgeProgramFund?:ResolverInputTypes["EduProgramFund"],
 edubridgeQueue?: [{	filter?: ResolverInputTypes["EduQueueFilterInput"] | undefined | null},ResolverInputTypes["EduAccessTask"]],
 edubridgeQuote?: [{	data: ResolverInputTypes["EduQuoteInput"]},ResolverInputTypes["EduQuote"]],
 	/** Преподаватели, которых можно назначить на курс */
@@ -40053,6 +40134,20 @@ export type ModelTypes = {
 };
 	["EduEnrollmentPeriod"]:EduEnrollmentPeriod;
 	["EduEnrollmentStatus"]:EduEnrollmentStatus;
+	["EduFundMovement"]: {
+		/** Сумма */
+	amount: string,
+	/** Когда */
+	at: ModelTypes["DateTime"],
+	/** Направление: приход в фонд или расход из него */
+	direction: string,
+	/** Номер движения */
+	id: string,
+	/** Что произошло */
+	title: string,
+	/** Пайщик, к которому относится движение */
+	username?: string | undefined | null
+};
 	["EduLearner"]: {
 		/** Добавлен */
 	created_at: ModelTypes["DateTime"],
@@ -40129,6 +40224,26 @@ export type ModelTypes = {
 		/** Идентификатор группы на площадке */
 	id: string,
 	/** Название группы */
+	name: string
+};
+	["EduProgramFund"]: {
+		/** Остаток фонда программы */
+	fund_balance: string,
+	/** Членские взносы на кошельках учеников — ещё не списаны в фонд */
+	members_balance: string,
+	/** Последние движения средств программы */
+	movements: Array<ModelTypes["EduFundMovement"]>,
+	/** Кошельки программы с остатками */
+	wallets: Array<ModelTypes["EduProgramWallet"]>
+};
+	["EduProgramWallet"]: {
+		/** Остаток */
+	available: string,
+	/** Что это за средства и откуда они берутся */
+	hint: string,
+	/** Идентификатор кошелька */
+	id: string,
+	/** Название кошелька */
 	name: string
 };
 	["EduQueueFilterInput"]: {
@@ -48608,6 +48723,8 @@ export type ModelTypes = {
 	edubridgeOnboardingState: ModelTypes["EduOnboardingState"],
 	/** Курсы и группы на площадке кооператива — для привязки курса каталога */
 	edubridgePlatformCourses: Array<ModelTypes["EduPlatformCourse"]>,
+	/** Деньги программы: кошельки и движение средств */
+	edubridgeProgramFund: ModelTypes["EduProgramFund"],
 	/** Очередь выдачи доступа и застрявшие задачи */
 	edubridgeQueue: Array<ModelTypes["EduAccessTask"]>,
 	/** Сумма взноса за период и хватает ли паевого */
@@ -57395,6 +57512,22 @@ export type GraphQLTypes = {
 ["EduEnrollmentPeriod"]: EduEnrollmentPeriod;
 	/** Состояние подписки обучающегося на курс */
 ["EduEnrollmentStatus"]: EduEnrollmentStatus;
+	["EduFundMovement"]: {
+	__typename: "EduFundMovement",
+	/** Сумма */
+	amount: string,
+	/** Когда */
+	at: GraphQLTypes["DateTime"],
+	/** Направление: приход в фонд или расход из него */
+	direction: string,
+	/** Номер движения */
+	id: string,
+	/** Что произошло */
+	title: string,
+	/** Пайщик, к которому относится движение */
+	username?: string | undefined | null,
+	['...on EduFundMovement']: Omit<GraphQLTypes["EduFundMovement"], "...on EduFundMovement">
+};
 	["EduLearner"]: {
 	__typename: "EduLearner",
 	/** Добавлен */
@@ -57488,6 +57621,30 @@ export type GraphQLTypes = {
 	/** Название группы */
 	name: string,
 	['...on EduPlatformGroup']: Omit<GraphQLTypes["EduPlatformGroup"], "...on EduPlatformGroup">
+};
+	["EduProgramFund"]: {
+	__typename: "EduProgramFund",
+	/** Остаток фонда программы */
+	fund_balance: string,
+	/** Членские взносы на кошельках учеников — ещё не списаны в фонд */
+	members_balance: string,
+	/** Последние движения средств программы */
+	movements: Array<GraphQLTypes["EduFundMovement"]>,
+	/** Кошельки программы с остатками */
+	wallets: Array<GraphQLTypes["EduProgramWallet"]>,
+	['...on EduProgramFund']: Omit<GraphQLTypes["EduProgramFund"], "...on EduProgramFund">
+};
+	["EduProgramWallet"]: {
+	__typename: "EduProgramWallet",
+	/** Остаток */
+	available: string,
+	/** Что это за средства и откуда они берутся */
+	hint: string,
+	/** Идентификатор кошелька */
+	id: string,
+	/** Название кошелька */
+	name: string,
+	['...on EduProgramWallet']: Omit<GraphQLTypes["EduProgramWallet"], "...on EduProgramWallet">
 };
 	["EduQueueFilterInput"]: {
 		/** Состояния задач */
@@ -66585,6 +66742,8 @@ export type GraphQLTypes = {
 	edubridgeOnboardingState: GraphQLTypes["EduOnboardingState"],
 	/** Курсы и группы на площадке кооператива — для привязки курса каталога */
 	edubridgePlatformCourses: Array<GraphQLTypes["EduPlatformCourse"]>,
+	/** Деньги программы: кошельки и движение средств */
+	edubridgeProgramFund: GraphQLTypes["EduProgramFund"],
 	/** Очередь выдачи доступа и застрявшие задачи */
 	edubridgeQueue: Array<GraphQLTypes["EduAccessTask"]>,
 	/** Сумма взноса за период и хватает ли паевого */

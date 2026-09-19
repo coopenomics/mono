@@ -10,6 +10,8 @@ export * as Courses from './courses'
 export * as Course from './course'
 /** Наценка кооператива и предельная скидка за год */
 export * as EconomySettings from './economySettings'
+/** Деньги программы: кошельки и движение средств */
+export * as ProgramFund from './programFund'
 /** Расчёт взноса по параметрам курса — до сохранения */
 export * as CourseFeePreview from './courseFeePreview'
 /** Экономика курса: план и факт по преподавателям */

@@ -120,6 +120,7 @@ namespace operations {
   // edubridge — ЦПП «Образование» (приложение «Образовательный мост»).
   namespace edubridge {
     inline constexpr eosio::name CONVERT_TO_EDU_MEMBER = "o.edu.conv"_n;  ///< Конвертация паевого взноса в членский взнос ЦПП «Образование» по заявлению пайщика (TRANSFER w.wal.share → w.edu.member, Dr 80 / Cr 86). Зеркало o.mkt.conv: единственный путь паевой→членский в программе.
+    inline constexpr eosio::name COLLECT_EDU_FEE       = "o.edu.fee"_n;   ///< Списание членского взноса ученика в фонд программы при открытии и продлении подписки (TRANSFER w.edu.member → w.edu.fund, без Dr/Cr — оба на 86). Образец — o.mkt.fee «Стола заказов»; основание — Положение ЦПП «Образование», п. 4.2.2: стоимость подписки уходит в распоряжение общества.
     inline constexpr eosio::name ACCEPT_EDU_RID        = "o.edu.rid"_n;   ///< Приём результата интеллектуальной деятельности преподавателя в паевой фонд по решению совета и акту (ISSUE → w.wal.share, Dr 04 / Cr 80). Эталон — o.cap.import; возврат — штатным createwthd.
   }
 
@@ -531,6 +532,15 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
     ledger2_wallets::SHARE_FUND_PAY, ledger2_wallets::EDU_MEMBER_FEE,
     ledger2_accounts::SHARE_FUND, ledger2_accounts::TARGET_RECEIPTS,
     "Конвертация паевого в членский взнос по ЦПП «Образование»" },
+
+  // 12e². p.edu.access: Списание членского взноса ученика в фонд программы при
+  //      открытии и продлении подписки (TRANSFER w.edu.member → w.edu.fund,
+  //      без Dr/Cr — оба на 86). Зеркало o.mkt.fee: собранные взносы переходят
+  //      в распоряжение общества и оттуда идут на расходы программы и возвраты.
+  { operations::edubridge::COLLECT_EDU_FEE, processes::edubridge::ACCESS, WalletOp::TRANSFER,
+    ledger2_wallets::EDU_MEMBER_FEE, ledger2_wallets::EDU_PROGRAM_FUND,
+    0, 0,
+    "Членский взнос за курс в фонд ЦПП «Образование»" },
 
   // 12f. p.edu.rid: Приём РИД преподавателя в паевой фонд (ISSUE → w.wal.share,
   //      Dr 04 / Cr 80). Эталон — o.cap.import (РИД как НМА, поэтому Dr 04).

@@ -7,6 +7,7 @@
 // ── p.edu.access (4 actions) ─── доступ к курсу ────────────────────────
 #include "src/p.edu.access/convert.cpp"
 #include "src/p.edu.access/opensub.cpp"
+#include "src/p.edu.access/chargefee.cpp"
 #include "src/p.edu.access/extendsub.cpp"
 #include "src/p.edu.access/expiresub.cpp"
 

@@ -159,8 +159,11 @@ export class EdubridgeEnrollmentService {
 
     const convert = { coopname, username: member, amount: plan.amount, statement: document };
     const subscribe = this.subscribeAction(coopname, member, plan, period, document);
+    // Взнос уходит в фонд программы той же транзакцией: по Положению ЦПП
+    // стоимость подписки поступает в распоряжение кооператива сразу.
+    const charge = { coopname, username: member, sub_hash: plan.subHash, amount: plan.amount };
 
-    const result = await this.chain.convertAndSubscribe(convert as never, subscribe as never);
+    const result = await this.chain.convertAndSubscribe(convert as never, subscribe as never, charge as never);
     const trxId = String((result as { transaction_id?: string })?.transaction_id ?? document.hash);
     this.logger.info(`[EDU.SUB] ${member}: ${plan.isExtension ? 'extendsub' : 'opensub'} ${plan.subHash} до ${plan.paidUntil.toISOString()} (trx ${trxId})`);
 

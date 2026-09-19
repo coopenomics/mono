@@ -151,3 +151,57 @@ export class EduSetAssignmentLoadInputDTO {
   @Max(20_000)
   minutes_per_month!: number;
 }
+
+/** Кошелёк программы с остатком. */
+@ObjectType('EduProgramWallet')
+export class EduProgramWalletDTO {
+  @Field(() => String, { description: 'Идентификатор кошелька' })
+  id!: string;
+
+  @Field(() => String, { description: 'Название кошелька' })
+  name!: string;
+
+  @Field(() => String, { description: 'Остаток' })
+  available!: string;
+
+  @Field(() => String, { description: 'Что это за средства и откуда они берутся' })
+  hint!: string;
+}
+
+/** Движение средств программы — одна строка ленты. */
+@ObjectType('EduFundMovement')
+export class EduFundMovementDTO {
+  @Field(() => String, { description: 'Номер движения' })
+  id!: string;
+
+  @Field(() => Date, { description: 'Когда' })
+  at!: Date;
+
+  @Field(() => String, { description: 'Что произошло' })
+  title!: string;
+
+  @Field(() => String, { description: 'Сумма' })
+  amount!: string;
+
+  @Field(() => String, { nullable: true, description: 'Пайщик, к которому относится движение' })
+  username!: string | null;
+
+  @Field(() => String, { description: 'Направление: приход в фонд или расход из него' })
+  direction!: string;
+}
+
+/** Деньги программы: кошельки и лента движения. */
+@ObjectType('EduProgramFund')
+export class EduProgramFundDTO {
+  @Field(() => [EduProgramWalletDTO], { description: 'Кошельки программы с остатками' })
+  wallets!: EduProgramWalletDTO[];
+
+  @Field(() => String, { description: 'Остаток фонда программы' })
+  fund_balance!: string;
+
+  @Field(() => String, { description: 'Членские взносы на кошельках учеников — ещё не списаны в фонд' })
+  members_balance!: string;
+
+  @Field(() => [EduFundMovementDTO], { description: 'Последние движения средств программы' })
+  movements!: EduFundMovementDTO[];
+}

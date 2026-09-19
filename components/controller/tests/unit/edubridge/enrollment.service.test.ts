@@ -46,8 +46,13 @@ describe('EdubridgeEnrollmentService', () => {
   it('новая подписка: convert + opensub одной транзакцией, статус ACTIVE, доступ PENDING, событие opened', async () => {
     const { service, chain, events } = make({ available: '20000.0000 RUB' });
     const saved = await service.subscribe('voskhod', 'ant', 'L1', 'C1', EduEnrollmentPeriod.YEAR, doc);
-    const [convert, sub] = chain.convertAndSubscribe.mock.calls[0];
+    const [convert, sub, charge] = chain.convertAndSubscribe.mock.calls[0];
     expect(convert.amount).toBe('10000.0000 RUB');
+    // Взнос уходит в фонд той же транзакцией: стоимость подписки поступает
+    // в распоряжение кооператива сразу (Положение ЦПП, п. 4.2.2).
+    expect(charge.amount).toBe('10000.0000 RUB');
+    expect(charge.sub_hash).toBe(sub.data.sub_hash);
+    expect(charge.username).toBe('ant');
     expect(sub.kind).toBe('open');
     expect(sub.data.learner_id).toBe(7);
     expect(sub.data.period).toBe('year');

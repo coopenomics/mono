@@ -294,6 +294,11 @@ export const LEDGER2_OPERATION_REGISTRY: readonly OperationMeta[] = [
     debit: 80, credit: 86,
     human_name: 'Конвертация паевого в членский взнос по ЦПП «Образование»' },
 
+  { code: 'o.edu.fee',     process_type: 'p.edu.access',  contract: 'edubridge',
+    name: 'COLLECT_EDU_FEE', wallet_op: 'TRANSFER', wallet_from: 'w.edu.member', wallet_to: 'w.edu.fund',
+    debit: null, credit: null,
+    human_name: 'Членский взнос за курс в фонд ЦПП «Образование»' },
+
   { code: 'o.edu.rid',     process_type: 'p.edu.rid',     contract: 'edubridge',
     name: 'ACCEPT_EDU_RID', wallet_op: 'ISSUE', wallet_from: null, wallet_to: 'w.wal.share',
     debit: 4, credit: 80,

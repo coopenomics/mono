@@ -5771,6 +5771,14 @@ export const ReturnTypes: Record<string,any> = {
 		status:"EduEnrollmentStatus",
 		sub_hash:"String"
 	},
+	EduFundMovement:{
+		amount:"String",
+		at:"DateTime",
+		direction:"String",
+		id:"String",
+		title:"String",
+		username:"String"
+	},
 	EduLearner:{
 		created_at:"DateTime",
 		display_name:"String",
@@ -5810,6 +5818,18 @@ export const ReturnTypes: Record<string,any> = {
 		name:"String"
 	},
 	EduPlatformGroup:{
+		id:"String",
+		name:"String"
+	},
+	EduProgramFund:{
+		fund_balance:"String",
+		members_balance:"String",
+		movements:"EduFundMovement",
+		wallets:"EduProgramWallet"
+	},
+	EduProgramWallet:{
+		available:"String",
+		hint:"String",
 		id:"String",
 		name:"String"
 	},
@@ -8625,6 +8645,7 @@ export const ReturnTypes: Record<string,any> = {
 		edubridgeMySettlement:"EduTeacherSettlement",
 		edubridgeOnboardingState:"EduOnboardingState",
 		edubridgePlatformCourses:"EduPlatformCourse",
+		edubridgeProgramFund:"EduProgramFund",
 		edubridgeQueue:"EduAccessTask",
 		edubridgeQuote:"EduQuote",
 		edubridgeTeacherOptions:"EduTeacherOption",

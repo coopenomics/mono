@@ -52,7 +52,8 @@ export class EdubridgeChainAdapter implements EdubridgeChainPort {
     convert: EdubridgeContract.Actions.Convert.IConvert,
     subscribe:
       | { kind: 'open'; data: EdubridgeContract.Actions.Opensub.IOpensub }
-      | { kind: 'extend'; data: EdubridgeContract.Actions.Extendsub.IExtendsub }
+      | { kind: 'extend'; data: EdubridgeContract.Actions.Extendsub.IExtendsub },
+    charge: EdubridgeContract.Actions.Chargefee.IChargefee
   ): Promise<InnerTransactResult> {
     await this.prepare(convert.coopname);
     const second =
@@ -62,6 +63,9 @@ export class EdubridgeChainAdapter implements EdubridgeChainPort {
     return this.chain.transact([
       this.action(EdubridgeContract.Actions.Convert.actionName, convert as unknown as Record<string, unknown>, convert.coopname),
       second,
+      // Списание в фонд идёт последним: подписка к этому моменту существует,
+      // и контракт связывает взнос с ней.
+      this.action(EdubridgeContract.Actions.Chargefee.actionName, charge as unknown as Record<string, unknown>, convert.coopname),
     ]);
   }
 

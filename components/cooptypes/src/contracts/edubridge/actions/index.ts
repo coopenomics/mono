@@ -14,6 +14,11 @@ export * as Convert from './convert'
 export * as Opensub from './opensub'
 
 /**
+ * Списание членского взноса в фонд программы: o.edu.fee.
+ */
+export * as Chargefee from './chargefee'
+
+/**
  * Продление подписки.
  */
 export * as Extendsub from './extendsub'

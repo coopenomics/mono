@@ -41,3 +41,30 @@ const rawCourseEconomySelector = {
 }
 const _validateEconomy: MakeAllFieldsRequired<ValueTypes['EduCourseEconomy']> = rawCourseEconomySelector
 export const eduCourseEconomySelector = Selector('EduCourseEconomy')(rawCourseEconomySelector)
+
+const rawProgramWalletSelector = {
+  id: true,
+  name: true,
+  available: true,
+  hint: true,
+}
+const _validateWallet: MakeAllFieldsRequired<ValueTypes['EduProgramWallet']> = rawProgramWalletSelector
+
+const rawFundMovementSelector = {
+  id: true,
+  at: true,
+  title: true,
+  amount: true,
+  username: true,
+  direction: true,
+}
+const _validateMovement: MakeAllFieldsRequired<ValueTypes['EduFundMovement']> = rawFundMovementSelector
+
+const rawProgramFundSelector = {
+  wallets: rawProgramWalletSelector,
+  fund_balance: true,
+  members_balance: true,
+  movements: rawFundMovementSelector,
+}
+const _validateFund: MakeAllFieldsRequired<ValueTypes['EduProgramFund']> = rawProgramFundSelector
+export const eduProgramFundSelector = Selector('EduProgramFund')(rawProgramFundSelector)

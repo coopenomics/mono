@@ -6,12 +6,18 @@ import type { InnerTransactResult } from '@coopenomics/innercoop';
  * действий проходит одной транзакцией — либо целиком, либо никак.
  */
 export interface EdubridgeChainPort {
-  /** Конвертация паевого в членский + открытие/продление подписки — одной транзакцией. */
+  /**
+   * Конвертация паевого в членский, подписка и списание взноса в фонд
+   * программы — одной транзакцией. Взнос уходит в распоряжение кооператива
+   * сразу при подключении подписки (Положение ЦПП, п. 4.2.2), поэтому три
+   * действия проходят вместе либо не проходят вовсе.
+   */
   convertAndSubscribe(
     convert: EdubridgeContract.Actions.Convert.IConvert,
     subscribe:
       | { kind: 'open'; data: EdubridgeContract.Actions.Opensub.IOpensub }
-      | { kind: 'extend'; data: EdubridgeContract.Actions.Extendsub.IExtendsub }
+      | { kind: 'extend'; data: EdubridgeContract.Actions.Extendsub.IExtendsub },
+    charge: EdubridgeContract.Actions.Chargefee.IChargefee
   ): Promise<InnerTransactResult>;
   expireSubscription(data: EdubridgeContract.Actions.Expiresub.IExpiresub): Promise<InnerTransactResult>;
   submitRid(data: EdubridgeContract.Actions.Submitrid.ISubmitrid): Promise<InnerTransactResult>;

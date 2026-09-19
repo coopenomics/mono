@@ -49,7 +49,6 @@ BaseForm(ref="formEl" :loading="loading" :error="error" @submit="submit")
         type="number"
         :hint="discountHint"
         :error="discountError"
-        error-message="Скидка больше наценки — годовой взнос опустится ниже себестоимости"
       )
     .col-12.col-md-6
       BaseCard(v-if="fee" size="sm")
@@ -235,7 +234,11 @@ const yearDiscount = ref('0');
 
 /** Расчёт взноса считает сервер: та же арифметика, что при сохранении курса. */
 const fee = ref<ICourseFee | null>(null);
-const discountError = computed(() => Boolean(fee.value) && Number(yearDiscount.value || 0) > (fee.value?.max_year_discount_percent ?? 0));
+const discountError = computed(() =>
+  fee.value && Number(yearDiscount.value || 0) > fee.value.max_year_discount_percent
+    ? 'Скидка больше наценки — годовой взнос опустится ниже себестоимости'
+    : '',
+);
 const discountHint = computed(() =>
   fee.value ? `Предельная скидка при наценке ${fee.value.markup_percent}% — ${fee.value.max_year_discount_percent}%` : 'Скидка за годовой объём',
 );

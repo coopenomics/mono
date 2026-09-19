@@ -44,6 +44,13 @@ export interface IConvert {
   statement: IDocument2
 }
 
+export interface IChargefee {
+  coopname: IName
+  username: IName
+  sub_hash: IChecksum256
+  amount: IAsset
+}
+
 export interface IOpensub {
   coopname: IName
   username: IName
