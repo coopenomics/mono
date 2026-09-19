@@ -24,6 +24,14 @@ export class EdubridgeTeacherContractEntity {
   @Column({ type: 'varchar', length: 32 })
   public contract_number!: string;
 
+  /**
+   * Ставка часа преподавателя («1000.0000 RUB»): по ней считается себестоимость
+   * курса и взнос за проведённое занятие. Преподаватель называет её при
+   * подключении, дальше правит только администратор — в документы она не попадает.
+   */
+  @Column({ type: 'varchar', length: 64, default: '0.0000 RUB' })
+  public hourly_rate!: string;
+
   @Column({ type: 'enum', enum: EduContractStatus, default: EduContractStatus.PENDING_APPROVAL })
   public status!: EduContractStatus;
 

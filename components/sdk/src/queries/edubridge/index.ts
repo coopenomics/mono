@@ -8,6 +8,12 @@ export * as CatalogSubjects from './catalogSubjects'
 export * as Courses from './courses'
 /** Курс со служебными полями */
 export * as Course from './course'
+/** Наценка кооператива и предельная скидка за год */
+export * as EconomySettings from './economySettings'
+/** Расчёт взноса по параметрам курса — до сохранения */
+export * as CourseFeePreview from './courseFeePreview'
+/** Экономика курса: план и факт по преподавателям */
+export * as CourseEconomy from './courseEconomy'
 /** Преподаватели, которых можно назначить на курс (с договором УХД) */
 export * as TeacherOptions from './teacherOptions'
 export * as Teachers from './teachers'

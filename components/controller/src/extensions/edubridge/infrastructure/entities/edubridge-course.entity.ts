@@ -54,7 +54,36 @@ export class EdubridgeCourseEntity {
   @Column({ type: 'jsonb', default: () => "'[]'" })
   public teacher_usernames!: string[];
 
-  /** Членский взнос за месяц и за год — asset-строки цепи («1000.0000 RUB»). */
+  /** Занятий в месяц по расписанию курса — основа месячного взноса. */
+  @Column({ type: 'int', default: 0 })
+  public lessons_per_month!: number;
+
+  /**
+   * Занятий во всей программе курса. По ним считается доля использованного
+   * при отказе от подписки и начисление преподавателю за проведённое занятие.
+   */
+  @Column({ type: 'int', default: 0 })
+  public lessons_total!: number;
+
+  /** Длительность занятия, минут: расписание школы кратно минутам, не долям часа. */
+  @Column({ type: 'int', default: 60 })
+  public lesson_minutes!: number;
+
+  /**
+   * Плановая ставка часа по программе — себестоимость курса, пока преподаватели
+   * не названы. Ставки назначенных преподавателей сравниваются с ней как факт с планом.
+   */
+  @Column({ type: 'varchar', length: 64, default: '0.0000 RUB' })
+  public planned_hourly_rate!: string;
+
+  /** Скидка за годовой объём, базисные пункты (100 = 1%); ограничена наценкой кооператива. */
+  @Column({ type: 'int', default: 0 })
+  public year_discount_bp!: number;
+
+  /**
+   * Членский взнос за месяц и за год — asset-строки цепи («1000.0000 RUB»).
+   * Считает их сервер из параметров выше, руками они не задаются.
+   */
   @Column({ type: 'varchar', length: 64 })
   public fee_month!: string;
 

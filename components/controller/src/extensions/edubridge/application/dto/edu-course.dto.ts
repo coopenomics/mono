@@ -1,5 +1,5 @@
-import { Field, ID, InputType, Int, ObjectType } from '@nestjs/graphql';
-import { ArrayUnique, IsArray, IsEnum, IsInt, IsNotEmpty, IsOptional, IsString, IsUUID, Length, Matches, Min, ValidateNested } from 'class-validator';
+import { Field, Float, ID, InputType, Int, ObjectType } from '@nestjs/graphql';
+import { ArrayUnique, IsArray, IsEnum, IsInt, IsNotEmpty, IsNumber, IsOptional, IsString, IsUUID, Length, Matches, Max, Min, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 import { createPaginationResult } from '@coopenomics/extension-kit';
 import { EduAccessCarrier, EduCourseDirection, EduCourseStatus } from '../../domain/enums';
@@ -46,6 +46,15 @@ export class EduCatalogCourseDTO {
   @Field(() => [String], { description: 'Преподаватели курса (учётные имена пайщиков)' })
   teacher_usernames!: string[];
 
+  @Field(() => Int, { description: 'Занятий в месяц по расписанию' })
+  lessons_per_month!: number;
+
+  @Field(() => Int, { description: 'Занятий во всей программе курса' })
+  lessons_total!: number;
+
+  @Field(() => Int, { description: 'Длительность занятия, минут' })
+  lesson_minutes!: number;
+
   @Field(() => String, { description: 'Членский взнос за месяц' })
   fee_month!: string;
 
@@ -62,6 +71,9 @@ export class EduCatalogCourseDTO {
     this.schedule = e.schedule;
     this.image_record = e.image ?? null;
     this.teacher_usernames = e.teacher_usernames ?? [];
+    this.lessons_per_month = e.lessons_per_month;
+    this.lessons_total = e.lessons_total;
+    this.lesson_minutes = e.lesson_minutes;
     this.fee_month = e.fee_month;
     this.fee_year = e.fee_year;
   }
@@ -82,6 +94,12 @@ export class EduCourseDTO extends EduCatalogCourseDTO {
   @Field(() => String, { nullable: true, description: 'Название курса на площадке при последней сверке' })
   external_title_seen!: string | null;
 
+  @Field(() => String, { description: 'Плановая ставка часа по программе' })
+  planned_hourly_rate!: string;
+
+  @Field(() => Float, { description: 'Скидка за годовой объём, проценты' })
+  year_discount_percent!: number;
+
   @Field(() => EduCourseStatus, { description: 'Состояние курса' })
   status!: EduCourseStatus;
 
@@ -100,6 +118,8 @@ export class EduCourseDTO extends EduCatalogCourseDTO {
     this.carrier = e.carrier;
     this.external_ref = e.external_ref;
     this.external_title_seen = e.external_title_seen;
+    this.planned_hourly_rate = e.planned_hourly_rate;
+    this.year_discount_percent = e.year_discount_bp / 100;
     this.status = e.status;
     this.sort_order = e.sort_order;
     this.created_at = e.created_at;
@@ -207,13 +227,37 @@ export class EduCourseInputDTO {
   @IsString({ each: true })
   teacher_usernames?: string[] | null;
 
-  @Field(() => String, { description: 'Членский взнос за месяц («1000.0000 RUB»)' })
-  @Matches(ASSET_PATTERN, { message: 'Сумма должна быть в формате «1000.0000 RUB»' })
-  fee_month!: string;
+  // Взносы за месяц и за год считает сервер: часы занятий по ставке плюс
+  // наценка кооператива. Произвольная сумма курса разошлась бы с обязательствами
+  // перед преподавателями, поэтому во входных данных её нет.
+  @Field(() => Int, { description: 'Занятий в месяц по расписанию' })
+  @IsInt()
+  @Min(1)
+  @Max(62)
+  lessons_per_month!: number;
 
-  @Field(() => String, { description: 'Членский взнос за год («10000.0000 RUB»)' })
-  @Matches(ASSET_PATTERN, { message: 'Сумма должна быть в формате «10000.0000 RUB»' })
-  fee_year!: string;
+  @Field(() => Int, { description: 'Занятий во всей программе курса' })
+  @IsInt()
+  @Min(1)
+  @Max(2000)
+  lessons_total!: number;
+
+  @Field(() => Int, { description: 'Длительность занятия, минут' })
+  @IsInt()
+  @Min(5)
+  @Max(480)
+  lesson_minutes!: number;
+
+  @Field(() => String, { description: 'Плановая ставка часа по программе («1000.0000 RUB»)' })
+  @Matches(ASSET_PATTERN, { message: 'Ставка должна быть в формате «1000.0000 RUB»' })
+  planned_hourly_rate!: string;
+
+  @Field(() => Float, { nullable: true, description: 'Скидка за годовой объём, проценты' })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Max(100)
+  year_discount_percent?: number;
 
   @Field(() => EduCourseDirection, { description: 'Тип направления' })
   @IsEnum(EduCourseDirection)

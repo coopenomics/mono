@@ -23,6 +23,7 @@
           .t-meta.t-muted.t-mono {{ row.username }}
     template(#cell-contract_status="{ row }")
       BaseBadge(:variant="contractStatusOf(row.contract_status).variant") {{ contractStatusOf(row.contract_status).label }}
+    template(#cell-hourly_rate="{ row }") {{ formatAsset2Digits(row.hourly_rate) }}
     template(#cell-assignments="{ row }") {{ row.assignments_active }} из {{ row.assignments_total }}
     template(#cell-signed_at="{ row }") {{ formatDate(row.signed_at) }}
 
@@ -45,6 +46,9 @@
 
       template(v-if="tab === 'contract'")
         DataRow(label="Номер договора" :value="current.contract_number" mono copyable)
+        //- Ставка часа в документы не попадает: она живёт в договоре расширения
+        //- и правится в разделе «Экономика».
+        DataRow(label="Ставка часа" :value="formatAsset2Digits(current.hourly_rate)")
         DataRow(label="Подписан преподавателем" :value="formatDate(current.signed_at)")
         DataRow(label="Подписан председателем" :value="current.approved_at ? formatDate(current.approved_at) : '______'")
         DataRow(label="Назначений действует" :value="String(current.assignments_active)")
@@ -87,6 +91,7 @@
 import { computed, onMounted, reactive, ref } from 'vue';
 import { Zeus } from '@coopenomics/sdk';
 import { asDateInput, asText } from 'src/shared/lib/utils';
+import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { useFirstLoad } from 'src/shared/lib/composables';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { Avatar, BaseBadge, BaseButton, BaseForm, BaseInput, BaseSelect, BaseTable, EmptyState, type BaseTableColumn } from 'src/shared/ui/base';
@@ -135,6 +140,7 @@ const form = reactive<IAssignmentInput>({ teacher_username: '', course_id: '', s
 const columns: BaseTableColumn<ITeacher>[] = [
   { key: 'teacher', label: 'Преподаватель' },
   { key: 'contract_status', label: 'Договор', width: '210px' },
+  { key: 'hourly_rate', label: 'Ставка часа', numeric: true, width: '150px', nowrap: true },
   { key: 'assignments', label: 'Назначений', width: '130px', nowrap: true },
   { key: 'signed_at', label: 'Подписан', width: '130px', nowrap: true },
 ];

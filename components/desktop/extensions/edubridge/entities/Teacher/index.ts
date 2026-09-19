@@ -105,13 +105,20 @@ export async function buildContractDocument(): Promise<IContractDraft> {
   return { document, contract_number };
 }
 
-/** Первая подпись договора — преподавателя; вторую ставит председатель со стола «Запросы одобрений». */
-export async function signContract(prepared?: IContractDraft): Promise<IContract> {
+/**
+ * Первая подпись договора — преподавателя; вторую ставит председатель со стола
+ * «Запросы одобрений». Вместе с договором преподаватель называет ставку часа:
+ * в документ она не входит, но по ней считаются и стоимость курса, и его взнос
+ * за проведённое занятие.
+ */
+export async function signContract(hourly_rate: string, prepared?: IContractDraft): Promise<IContract> {
   const { username } = who();
   const { document, contract_number } = prepared ?? (await buildContractDocument());
   await document.sign(username);
   if (!document.signedDocument) throw new Error('Не удалось подписать договор');
-  return m<IContract>(Mutations.Edubridge.SignContract.mutation, Mutations.Edubridge.SignContract.name, { data: { document: document.signedDocument, contract_number } });
+  return m<IContract>(Mutations.Edubridge.SignContract.mutation, Mutations.Edubridge.SignContract.name, {
+    data: { document: document.signedDocument, contract_number, hourly_rate },
+  });
 }
 
 /** Приложение к договору по курсу (3007). */

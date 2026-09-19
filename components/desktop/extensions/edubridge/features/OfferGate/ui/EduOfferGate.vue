@@ -17,6 +17,15 @@
       VerticalStepper(v-if="steps.length > 1" :steps="steps" :active-key="activeStep.key" :completed="completedKeys")
         template(#active="{ step }")
           EduGateDocumentStep(:key="step.key" v-bind="stepProps(step.key)" @signed="onSigned(step.key)")
+            template(v-if="step.key === 'contract'" #before-agree)
+              BaseInput(
+                v-model="hourlyRate"
+                label="Ставка часа"
+                type="number"
+                :suffix="symbol"
+                hint="Стоимость вашего часа работы. Дальше её меняет администратор кооператива."
+                required
+              )
       EduGateDocumentStep(v-else :key="activeStep.key" v-bind="stepProps(activeStep.key)" @signed="onSigned(activeStep.key)")
 </template>
 
@@ -26,7 +35,9 @@ import { useRoute, useRouter } from 'vue-router';
 import { Zeus } from '@coopenomics/sdk';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { useDesktopStore } from 'src/entities/Desktop/model';
-import { BaseBanner, BaseCard, CardListSkeleton } from 'src/shared/ui/base';
+import { useSystemStore } from 'src/entities/System/model';
+import { formatToAsset } from 'src/shared/lib/utils';
+import { BaseBanner, BaseCard, BaseInput, CardListSkeleton } from 'src/shared/ui/base';
 import { PageHint, VerticalStepper, type StepperStep } from 'src/shared/ui/domain';
 import type { DigitalDocument } from 'src/shared/lib/document';
 import { buildContractDocument, fetchMyContract, signContract, type IContract, type IContractDraft } from '../../../entities/Teacher';
@@ -66,6 +77,11 @@ const state = ref<IEduOnboardingState | null>(null);
 const contract = ref<IContract | null>(null);
 const offerDoc = ref<DigitalDocument | null>(null);
 const contractDraft = ref<IContractDraft | null>(null);
+// Ставка часа называется один раз — при подписании договора; потом её правит
+// администратор в разделе «Экономика».
+const hourlyRate = ref('');
+const system = useSystemStore();
+const symbol = computed(() => system.governSymbol);
 
 const isTeacher = computed(() => props.kind === Zeus.EduOfferKind.TEACHER);
 const offer = computed(() => (isTeacher.value ? state.value?.teacher : state.value?.parent) ?? null);
@@ -102,8 +118,10 @@ function stepProps(key: string) {
         contractDraft.value = await buildContractDocument();
         return contractDraft.value.document.data?.html ?? '';
       },
+      signDisabled: Number(hourlyRate.value) <= 0,
       sign: async () => {
-        contract.value = await signContract(contractDraft.value ?? undefined);
+        const rate = formatToAsset(String(hourlyRate.value).replace(',', '.'), symbol.value);
+        contract.value = await signContract(rate, contractDraft.value ?? undefined);
       },
     };
   }

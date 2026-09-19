@@ -15,4 +15,5 @@ export { AdminMembersPage } from './AdminMembersPage';
 export { AdminConnectorsPage } from './AdminConnectorsPage';
 export { AdminTeachersPage } from './AdminTeachersPage';
 export { AdminContributionsPage } from './AdminContributionsPage';
+export { AdminEconomyPage } from './AdminEconomyPage';
 export { AdminAdminsPage } from './AdminAdminsPage';

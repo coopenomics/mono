@@ -11,6 +11,9 @@ const rawCatalogCourseSelector = {
   schedule: true,
   image_url: true,
   teacher_usernames: true,
+  lessons_per_month: true,
+  lessons_total: true,
+  lesson_minutes: true,
   fee_month: true,
   fee_year: true,
 }
@@ -32,6 +35,8 @@ const rawCourseSelector = {
   carrier: true,
   external_ref: true,
   external_title_seen: true,
+  planned_hourly_rate: true,
+  year_discount_percent: true,
   status: true,
   sort_order: true,
   created_at: true,
@@ -55,6 +60,7 @@ export const eduCatalogSubjectSelector = Selector('EduCatalogSubject')(rawSubjec
 
 const rawTeacherSelector = {
   username: true,
+  hourly_rate: true,
   display_name: true,
   avatar_url: true,
   contract_number: true,

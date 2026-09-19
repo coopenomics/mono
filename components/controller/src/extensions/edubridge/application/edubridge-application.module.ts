@@ -41,6 +41,7 @@ import { EdubridgeExpiryWorker } from './workers/edubridge-expiry.worker';
 import { EdubridgeOutboxWorker } from './workers/edubridge-outbox.worker';
 import { EdubridgeOnboardingResolver } from './resolvers/edubridge-onboarding.resolver';
 import { EdubridgeAdminResolver } from './resolvers/edubridge-admin.resolver';
+import { EdubridgeEconomyResolver } from './resolvers/edubridge-economy.resolver';
 import { EdubridgeTeacherResolver } from './resolvers/edubridge-teacher.resolver';
 import { EdubridgeAdminService } from './services/edubridge-admin.service';
 import { EdubridgeTeacherService } from './services/edubridge-teacher.service';
@@ -48,6 +49,7 @@ import { EdubridgeEnrollmentService } from './services/edubridge-enrollment.serv
 import { EdubridgeLearnerService } from './services/edubridge-learner.service';
 import { EdubridgeOnboardingService } from './services/edubridge-onboarding.service';
 import { EdubridgeCourseService } from './services/edubridge-course.service';
+import { EdubridgeEconomyService } from './services/edubridge-economy.service';
 import { EdubridgeCourseImagesService } from './services/edubridge-course-images.service';
 import { EdubridgeCatalogCourseFieldsResolver, EdubridgeCourseFieldsResolver } from './resolvers/edubridge-course-fields.resolver';
 
@@ -91,6 +93,7 @@ import { EdubridgeCatalogCourseFieldsResolver, EdubridgeCourseFieldsResolver } f
     ...bucketProvidersFor(FILE_STORAGE_PORT, [EdubridgeCourseImagesService]),
     EdubridgeCourseImagesService,
     EdubridgeCourseService,
+    EdubridgeEconomyService,
     EdubridgeOnboardingService,
     EdubridgeLearnerService,
     EdubridgeEnrollmentService,
@@ -109,6 +112,7 @@ import { EdubridgeCatalogCourseFieldsResolver, EdubridgeCourseFieldsResolver } f
     EdubridgeCatalogCourseFieldsResolver,
     EdubridgeCourseFieldsResolver,
     EdubridgeCourseAdminResolver,
+    EdubridgeEconomyResolver,
     EdubridgeOnboardingResolver,
     EdubridgeMemberResolver,
     EdubridgeTeacherResolver,

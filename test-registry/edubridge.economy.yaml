@@ -1,0 +1,90 @@
+feature: edubridge.economy
+title: Образовательный мост — экономика курса и наценка кооператива
+
+# E9 (задача 7DD-12). Стоимость курса складывается снизу: часы занятий по ставке
+# преподавателя дают себестоимость, кооператив добавляет наценку — одну на весь
+# кооператив, как «Стол заказов» добавляет её к цене поставщика. Годовой взнос
+# берётся скидкой за объём, и скидка ограничена наценкой: ниже себестоимости
+# взнос не опускается, иначе обязательства перед преподавателями не покрыть.
+
+sources:
+  backend:
+    - components/controller/src/extensions/edubridge/domain/economy/**
+    - components/controller/src/extensions/edubridge/application/services/edubridge-economy.service.ts
+    - components/controller/src/extensions/edubridge/application/resolvers/edubridge-economy.resolver.ts
+    - components/controller/src/extensions/edubridge/application/dto/edu-economy.dto.ts
+  ui:
+    - components/desktop/extensions/edubridge/pages/AdminEconomyPage/**
+    - components/desktop/extensions/edubridge/widgets/CourseForm/**
+
+cases:
+  - id: edu.econ.happy.01
+    level: backend
+    kind: happy
+    scenario: Курс из восьми занятий по часу при ставке 1000 ₽/ч и наценке 20%.
+    expect: Себестоимость 8000, наценка 1600, взнос за месяц 9600, за год 115200.
+    test: components/controller/tests/unit/edubridge/economy.service.test.ts
+    status: passing
+  - id: edu.econ.happy.02
+    level: backend
+    kind: happy
+    scenario: Занятие в полтора часа — часы считаются из минут расписания.
+    expect: Четыре занятия по 90 минут дают шесть часов и взнос 6000.
+    test: components/controller/tests/unit/edubridge/economy.service.test.ts
+    status: passing
+  - id: edu.econ.happy.03
+    level: backend
+    kind: happy
+    scenario: Наценка задаётся в разделе «Экономика» и действует на весь кооператив.
+    expect: Значение уходит в настройку расширения, предельная скидка пересчитывается.
+    test: components/controller/tests/unit/edubridge/economy.service.test.ts
+    status: passing
+  - id: edu.econ.break.01
+    level: backend
+    kind: break
+    scenario: Годовая скидка больше доли наценки во взносе.
+    expect: Отказ с предельным значением в тексте — годовой взнос иначе ниже себестоимости.
+    test: components/controller/tests/unit/edubridge/economy.service.test.ts
+    status: passing
+  - id: edu.econ.side.01
+    level: backend
+    kind: side
+    scenario: Скидка ровно по пределу.
+    expect: Принимается, годовой взнос не ниже себестоимости года.
+    test: components/controller/tests/unit/edubridge/economy.service.test.ts
+    status: passing
+  - id: edu.econ.side.02
+    level: backend
+    kind: side
+    scenario: Ставка часа назначается пайщику без договора участия в хозяйственной деятельности.
+    expect: Отказ — ставка живёт в договоре преподавателя.
+    test: components/controller/tests/unit/edubridge/economy.service.test.ts
+    status: passing
+  - id: edu.econ.break.02
+    level: backend
+    kind: break
+    scenario: Преподаватель переподписывает договор с другой ставкой после того, как ставка уже названа.
+    expect: Отказ сервера — ставку меняет администратор, а не преподаватель.
+    test: components/controller/tests/unit/edubridge/teacher.service.test.ts
+    status: passing
+  - id: edu.econ.happy.04
+    level: backend
+    kind: happy
+    scenario: План и факт курса по действующим назначениям с разными ставками.
+    expect: Черновое назначение в факт не входит; превышение взноса отмечено признаком.
+    test: components/controller/tests/unit/edubridge/economy.service.test.ts
+    status: passing
+  - id: edu.econ.side.03
+    level: backend
+    kind: side
+    scenario: Курс сохраняется с параметрами занятий, сумма взноса приходит из расчёта.
+    expect: Произвольная сумма во входных данных отсутствует; скидка хранится базисными пунктами.
+    test: components/controller/tests/unit/edubridge/course.service.test.ts
+    status: passing
+  - id: edu.econ.ui.01
+    level: ui
+    kind: happy
+    scenario: Раздел «Экономика» — наценка и ставки часа; конструктор курса показывает расчёт взноса при вводе параметров.
+    expect: Суммы через форматтер, предельная скидка подсказана, произвольный ввод взноса недоступен.
+    test: ~
+    status: missing

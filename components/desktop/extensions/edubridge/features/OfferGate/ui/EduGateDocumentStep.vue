@@ -17,10 +17,14 @@
     //- Документ разворачивается целиком, как на подключении «Благороста»: сначала читают, потом соглашаются.
     .edu-gate-step__doc
       DocumentHtmlReader(:html="html" profile="document")
+    //- Шаг может просить своё: договор преподавателя — ставку часа, по которой
+    //- потом считается и стоимость курса, и его собственный взнос за занятие.
+    .q-mt-md
+      slot(name="before-agree")
     BaseCheckbox.q-mt-md(:model-value="agreed" block :disabled="busy" @update:model-value="(v) => (agreed = v)")
       | {{ agreeLabel }}
     .row.justify-end.q-mt-md
-      BaseButton(variant="primary" :disabled="!agreed" :loading="busy" @click="submit") {{ actionLabel }}
+      BaseButton(variant="primary" :disabled="!agreed || signDisabled" :loading="busy" @click="submit") {{ actionLabel }}
 </template>
 
 <script setup lang="ts">
@@ -46,6 +50,8 @@ const props = defineProps<{
   build: () => Promise<string>;
   /** Подписать сформированный экземпляр и отправить. */
   sign: () => Promise<void>;
+  /** Шаг просит своё значение и пока его нет — подписывать нечего. */
+  signDisabled?: boolean;
 }>();
 const emit = defineEmits<{ signed: [] }>();
 

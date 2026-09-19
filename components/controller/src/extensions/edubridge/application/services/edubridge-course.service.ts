@@ -14,10 +14,23 @@ import type {
   EduTeacherOptionDTO,
   EduUpdateCourseInputDTO,
 } from '../dto/edu-course.dto';
+import type { EduCourseEconomyInputDTO } from '../dto/edu-economy.dto';
 import { EdubridgeCourseImagesService } from './edubridge-course-images.service';
+import { EdubridgeEconomyService } from './edubridge-economy.service';
 import { EdubridgeNamesService } from '../membership/edubridge-names.service';
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** Параметры расчёта взноса из формы курса. */
+function economyParams(input: EduCourseInputDTO): EduCourseEconomyInputDTO {
+  return {
+    lessons_per_month: input.lessons_per_month,
+    lessons_total: input.lessons_total,
+    lesson_minutes: input.lesson_minutes,
+    planned_hourly_rate: input.planned_hourly_rate,
+    year_discount_percent: input.year_discount_percent ?? 0,
+  };
+}
 
 /**
  * Привязка к площадке: у площадок с API идентификатор обязателен, у Skillspace
@@ -41,7 +54,8 @@ export class EdubridgeCourseService {
     private readonly teachers: EdubridgeTeacherRepository,
     private readonly skillspace: SkillspaceConnector,
     private readonly images: EdubridgeCourseImagesService,
-    private readonly names: EdubridgeNamesService
+    private readonly names: EdubridgeNamesService,
+    private readonly economy: EdubridgeEconomyService
   ) {}
 
   /**
@@ -105,10 +119,11 @@ export class EdubridgeCourseService {
 
   async create(coopname: string, actor: string, input: EduCourseInputDTO): Promise<EdubridgeCourseEntity> {
     await this.validate(coopname, input);
+    const fee = await this.economy.feeForCourse(economyParams(input));
     const image = await this.resolveImage(coopname, actor, input.image, null);
     const entity = this.courses.create({
       coopname,
-      ...this.fields(input),
+      ...this.fields(input, fee),
       image,
       status: EduCourseStatus.DRAFT,
     });
@@ -123,11 +138,12 @@ export class EdubridgeCourseService {
   async update(coopname: string, actor: string, input: EduUpdateCourseInputDTO): Promise<EdubridgeCourseEntity> {
     const course = await this.get(coopname, input.id);
     await this.validate(coopname, input);
+    const fee = await this.economy.feeForCourse(economyParams(input));
     const previous = course.image;
     // Прежнюю привязку запоминаем до присваивания: после него сравнивать уже не с чем.
     const previousRef = course.external_ref;
     const image = await this.resolveImage(coopname, actor, input.image, previous);
-    Object.assign(course, this.fields(input), { image });
+    Object.assign(course, this.fields(input, fee), { image });
     // Привязка к площадке изменилась — прежняя сверка больше не действительна.
     // Сравнивается уже нормализованное значение: пробелы по краям — не смена привязки.
     if (course.external_ref !== previousRef) {
@@ -195,7 +211,7 @@ export class EdubridgeCourseService {
     }
   }
 
-  private fields(input: EduCourseInputDTO): Partial<EdubridgeCourseEntity> {
+  private fields(input: EduCourseInputDTO, fee: { fee_month: string; fee_year: string }): Partial<EdubridgeCourseEntity> {
     const platform = PLATFORM_CARRIERS.includes(input.carrier);
     return {
       title: input.title,
@@ -205,8 +221,13 @@ export class EdubridgeCourseService {
       syllabus: input.syllabus ?? '',
       schedule: input.schedule ?? '',
       teacher_usernames: input.teacher_usernames ?? [],
-      fee_month: input.fee_month,
-      fee_year: input.fee_year,
+      lessons_per_month: input.lessons_per_month,
+      lessons_total: input.lessons_total,
+      lesson_minutes: input.lesson_minutes,
+      planned_hourly_rate: input.planned_hourly_rate,
+      year_discount_bp: Math.round((input.year_discount_percent ?? 0) * 100),
+      fee_month: fee.fee_month,
+      fee_year: fee.fee_year,
       direction: input.direction,
       carrier: input.carrier,
       external_ref: platform ? (input.external_ref ?? '').trim() : '',

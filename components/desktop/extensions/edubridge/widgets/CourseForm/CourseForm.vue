@@ -28,10 +28,36 @@ BaseForm(ref="formEl" :loading="loading" :error="error" @submit="submit")
         .t-sm.text-weight-medium Загрузить обложку
         .t-meta.t-muted JPEG, PNG или WEBP до 10 МБ
       input.edu-course-form__file(ref="fileInput" type="file" :accept="COURSE_IMAGE_ACCEPT" @change="onFilePicked")
+    //- Взнос не вводится руками: он складывается из часов занятий по ставке
+    //- преподавателя и наценки кооператива. Так оплата ученика всегда покрывает
+    //- обязательства перед теми, кто курс ведёт.
+    .col-12
+      q-separator.q-mb-md
+      .text-subtitle2.q-mb-sm Стоимость курса
+    .col-6.col-md-3
+      BaseInput(v-model="lessonsPerMonth" label="Занятий в месяц" type="number" required)
+    .col-6.col-md-3
+      BaseInput(v-model="lessonsTotal" label="Занятий в программе" type="number" required)
+    .col-6.col-md-3
+      BaseInput(v-model="lessonMinutes" label="Занятие, минут" type="number" required)
+    .col-6.col-md-3
+      BaseInput(v-model="plannedRate" label="Ставка часа" type="number" :suffix="symbol" required)
     .col-12.col-md-6
-      BaseInput(v-model="feeMonth" label="Взнос в месяц" type="number" :suffix="symbol" required)
+      BaseInput(
+        v-model="yearDiscount"
+        label="Скидка за год, %"
+        type="number"
+        :hint="discountHint"
+        :error="discountError"
+        error-message="Скидка больше наценки — годовой взнос опустится ниже себестоимости"
+      )
     .col-12.col-md-6
-      BaseInput(v-model="feeYear" label="Взнос в год" type="number" :suffix="symbol" required)
+      BaseCard(v-if="fee" size="sm")
+        DataRow(label="Себестоимость в месяц" :value="formatAsset2Digits(fee.cost_month)")
+        DataRow(:label="`Наценка кооператива, ${fee.markup_percent}%`" :value="formatAsset2Digits(fee.markup_month)")
+        DataRow(label="Взнос в месяц" :value="formatAsset2Digits(fee.fee_month)")
+        DataRow(label="Взнос в год" :value="formatAsset2Digits(fee.fee_year)")
+      .t-sm.t-muted(v-else) Заполните параметры занятий — взнос посчитается сам.
     .col-12.col-md-6
       BaseSelect(v-model="form.direction" label="Тип направления (внутренний)" :options="directionOptions" required)
     .col-12.col-md-6
@@ -95,8 +121,10 @@ import { Zeus } from '@coopenomics/sdk';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { useSystemStore } from 'src/entities/System/model';
 import { fileToBase64, formatToAsset } from 'src/shared/lib/utils';
-import { BaseButton, BaseForm, BaseInput, BaseSelect } from 'src/shared/ui/base';
-import { IdentityCell } from 'src/shared/ui/domain';
+import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
+import { BaseButton, BaseCard, BaseForm, BaseInput, BaseSelect } from 'src/shared/ui/base';
+import { DataRow, IdentityCell } from 'src/shared/ui/domain';
+import { fetchCourseFeePreview, type ICourseFee } from '../../entities/Economy';
 import {
   CARRIER_LABELS,
   CARRIERS_BY_DIRECTION,
@@ -144,8 +172,11 @@ const form = reactive<ICreateCourseInput & { teacher_usernames: string[] }>({
   syllabus: '',
   schedule: '',
   teacher_usernames: [],
-  fee_month: '',
-  fee_year: '',
+  lessons_per_month: 8,
+  lessons_total: 64,
+  lesson_minutes: 60,
+  planned_hourly_rate: '',
+  year_discount_percent: 0,
   direction: Zeus.EduCourseDirection.ONLINE_PLATFORM,
   carrier: Zeus.EduAccessCarrier.SKILLSPACE,
   external_ref: '',
@@ -195,9 +226,52 @@ async function imagePayload(): Promise<ICreateCourseInput['image']> {
 }
 onBeforeUnmount(releaseObjectUrl);
 
-// Суммы в поле — числом, в цепь уходят asset-строкой «1000.0000 RUB».
-const feeMonth = ref('');
-const feeYear = ref('');
+// Параметры занятий — числами в полях; ставка уходит asset-строкой «1000.0000 RUB».
+const lessonsPerMonth = ref('8');
+const lessonsTotal = ref('64');
+const lessonMinutes = ref('60');
+const plannedRate = ref('');
+const yearDiscount = ref('0');
+
+/** Расчёт взноса считает сервер: та же арифметика, что при сохранении курса. */
+const fee = ref<ICourseFee | null>(null);
+const discountError = computed(() => Boolean(fee.value) && Number(yearDiscount.value || 0) > (fee.value?.max_year_discount_percent ?? 0));
+const discountHint = computed(() =>
+  fee.value ? `Предельная скидка при наценке ${fee.value.markup_percent}% — ${fee.value.max_year_discount_percent}%` : 'Скидка за годовой объём',
+);
+
+const economyParams = computed(() => ({
+  lessons_per_month: Number(lessonsPerMonth.value || 0),
+  lessons_total: Number(lessonsTotal.value || 0),
+  lesson_minutes: Number(lessonMinutes.value || 0),
+  planned_hourly_rate: toAsset(plannedRate.value || '0'),
+  year_discount_percent: Number(yearDiscount.value || 0),
+}));
+
+let previewTimer: ReturnType<typeof setTimeout> | null = null;
+watch(
+  economyParams,
+  (params) => {
+    if (previewTimer) clearTimeout(previewTimer);
+    // Пока параметры неполные, считать нечего: сервер такой набор отклонит.
+    if (params.lessons_per_month < 1 || params.lessons_total < 1 || params.lesson_minutes < 5) {
+      fee.value = null;
+      return;
+    }
+    previewTimer = setTimeout(async () => {
+      try {
+        fee.value = await fetchCourseFeePreview(params);
+      } catch {
+        // Расчёт — подсказка: отказ сервера здесь не мешает заполнять форму дальше.
+        fee.value = null;
+      }
+    }, 400);
+  },
+  { immediate: true, deep: true },
+);
+onBeforeUnmount(() => {
+  if (previewTimer) clearTimeout(previewTimer);
+});
 
 // Skillspace: привязка выбирается из реестра школы, а не вводится руками —
 // числовой номер из адреса конструктора площадка не знает, а UUID в адресе
@@ -230,8 +304,11 @@ watch(
       external_ref: c.external_ref,
       sort_order: c.sort_order,
     });
-    feeMonth.value = fromAsset(c.fee_month);
-    feeYear.value = fromAsset(c.fee_year);
+    lessonsPerMonth.value = String(c.lessons_per_month);
+    lessonsTotal.value = String(c.lessons_total);
+    lessonMinutes.value = String(c.lesson_minutes);
+    plannedRate.value = fromAsset(c.planned_hourly_rate);
+    yearDiscount.value = String(c.year_discount_percent);
     releaseObjectUrl();
     imageFile.value = null;
     imageRemoved.value = false;
@@ -317,8 +394,7 @@ async function submit(): Promise<void> {
       ...form,
       image: await imagePayload(),
       external_ref: isPlatform.value ? form.external_ref : '',
-      fee_month: toAsset(feeMonth.value),
-      fee_year: toAsset(feeYear.value),
+      ...economyParams.value,
     };
     const saved = props.course ? await updateCourse({ ...data, id: props.course.id }) : await createCourse(data);
     SuccessAlert(props.course ? 'Курс сохранён' : 'Курс добавлен');

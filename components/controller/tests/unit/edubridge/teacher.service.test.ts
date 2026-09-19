@@ -15,7 +15,7 @@ function make(opts: { contract?: boolean | EduContractStatus; assignmentStatus?:
   const assignment = { id: 'A1', coopname: 'voskhod', teacher_username: 'teach', course_id: 'C1', annex_hash: null, decline_reason: '', status: opts.assignmentStatus ?? EduAssignmentStatus.ACTIVE, created_at: new Date('2026-01-01') } as any;
   const store = new Map<string, any>();
   const contractState: { current: any } = {
-    current: opts.contract === false ? null : { coopname: 'voskhod', teacher_username: 'teach', contract_hash: 'h', contract_number: 'N1', status: typeof opts.contract === 'string' ? opts.contract : EduContractStatus.ACTIVE, decline_reason: '', approved_at: null },
+    current: opts.contract === false ? null : { coopname: 'voskhod', teacher_username: 'teach', contract_hash: 'h', contract_number: 'N1', hourly_rate: '1000.0000 RUB', status: typeof opts.contract === 'string' ? opts.contract : EduContractStatus.ACTIVE, decline_reason: '', approved_at: null },
   };
   const teachers = {
     findContract: jest.fn(async () => contractState.current),
@@ -61,7 +61,7 @@ const draft = { assignment_id: 'A1', rid_type: EduRidType.LESSON_RECORDING, link
 describe('EdubridgeTeacherService — договор УХД и приложение через одобрение председателя', () => {
   it('подпись договора преподавателем: signcontract в цепь, статус «ждёт подписи председателя»', async () => {
     const { service, chain } = make({ contract: false });
-    const c = await service.signContract('voskhod', 'teach', signedBy('teach', 'CONTRACT'), 'N-1');
+    const c = await service.signContract('voskhod', 'teach', signedBy('teach', 'CONTRACT'), 'N-1', '1000.0000 RUB');
     expect(chain.signContract).toHaveBeenCalledWith(expect.objectContaining({ username: 'teach', contract_hash: 'CONTRACT' }));
     expect(c.status).toBe(EduContractStatus.PENDING_APPROVAL);
     expect(c.contract_hash).toBe('contract');
@@ -69,7 +69,7 @@ describe('EdubridgeTeacherService — договор УХД и приложен�
 
   it('договор без подписи преподавателя не уходит в цепь', async () => {
     const { service, chain } = make({ contract: false });
-    await expect(service.signContract('voskhod', 'teach', signedBy('someone', 'X'), 'N')).rejects.toThrow(/не подписан преподавателем/);
+    await expect(service.signContract('voskhod', 'teach', signedBy('someone', 'X'), 'N', '1000.0000 RUB')).rejects.toThrow(/не подписан преподавателем/);
     expect(chain.signContract).not.toHaveBeenCalled();
   });
 
@@ -90,15 +90,23 @@ describe('EdubridgeTeacherService — договор УХД и приложен�
     expect(declined.status).toBe(EduContractStatus.DECLINED);
     expect(declined.decline_reason).toBe('Нет квалификации');
 
-    const again = await service.signContract('voskhod', 'teach', signedBy('teach', 'CONTRACT2'), 'N-2');
+    const again = await service.signContract('voskhod', 'teach', signedBy('teach', 'CONTRACT2'), 'N-2', '1000.0000 RUB');
     expect(chain.signContract).toHaveBeenCalledTimes(1);
     expect(again.status).toBe(EduContractStatus.PENDING_APPROVAL);
     expect(again.contract_hash).toBe('contract2');
   });
 
+  it('ставка часа названа один раз: переподписание с другой ставкой отклоняется', async () => {
+    const { service } = make();
+    await service.onContractDeclined('voskhod', 'teach', 'H', 'Нет квалификации');
+    await expect(
+      service.signContract('voskhod', 'teach', signedBy('teach', 'CONTRACT3'), 'N-3', '5000.0000 RUB')
+    ).rejects.toThrow(/её меняет администратор/);
+  });
+
   it('действующий договор повторно не подписывается — возвращается тот же', async () => {
     const { service, chain } = make();
-    const c = await service.signContract('voskhod', 'teach', signedBy('teach', 'NEW'), 'N-9');
+    const c = await service.signContract('voskhod', 'teach', signedBy('teach', 'NEW'), 'N-9', '1000.0000 RUB');
     expect(chain.signContract).not.toHaveBeenCalled();
     expect(c.contract_hash).toBe('h');
   });

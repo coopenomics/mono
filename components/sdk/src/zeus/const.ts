@@ -641,6 +641,9 @@ export const AllTypesProps: Record<string,any> = {
 	},
 	EduContributionStatus: "enum" as const,
 	EduCourseDirection: "enum" as const,
+	EduCourseEconomyInput:{
+
+	},
 	EduCourseImageUploadInput:{
 
 	},
@@ -683,6 +686,12 @@ export const AllTypesProps: Record<string,any> = {
 	},
 	EduSetCourseStatusInput:{
 		status:"EduCourseStatus"
+	},
+	EduSetEconomySettingsInput:{
+
+	},
+	EduSetTeacherRateInput:{
+
 	},
 	EduSignActInput:{
 		document:"SignedDigitalDocumentInput"
@@ -2066,6 +2075,12 @@ export const AllTypesProps: Record<string,any> = {
 		edubridgeSetCourseStatus:{
 			data:"EduSetCourseStatusInput"
 		},
+		edubridgeSetEconomySettings:{
+			data:"EduSetEconomySettingsInput"
+		},
+		edubridgeSetTeacherRate:{
+			data:"EduSetTeacherRateInput"
+		},
 		edubridgeSignAct:{
 			data:"EduSignActInput"
 		},
@@ -3067,6 +3082,12 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		edubridgeCourse:{
 
+		},
+		edubridgeCourseEconomy:{
+
+		},
+		edubridgeCourseFeePreview:{
+			data:"EduCourseEconomyInput"
 		},
 		edubridgeCourses:{
 			filter:"EduCoursesFilterInput",
@@ -5622,6 +5643,7 @@ export const ReturnTypes: Record<string,any> = {
 		decline_reason:"String",
 		expected_result:"String",
 		id:"ID",
+		minutes_per_month:"Int",
 		period_from:"String",
 		period_to:"String",
 		schedule:"String",
@@ -5635,6 +5657,9 @@ export const ReturnTypes: Record<string,any> = {
 		grade:"String",
 		id:"ID",
 		image_url:"String",
+		lesson_minutes:"Int",
+		lessons_per_month:"Int",
+		lessons_total:"Int",
 		schedule:"String",
 		subject:"String",
 		syllabus:"String",
@@ -5691,6 +5716,10 @@ export const ReturnTypes: Record<string,any> = {
 		grade:"String",
 		id:"ID",
 		image_url:"String",
+		lesson_minutes:"Int",
+		lessons_per_month:"Int",
+		lessons_total:"Int",
+		planned_hourly_rate:"String",
 		schedule:"String",
 		sort_order:"Int",
 		status:"EduCourseStatus",
@@ -5698,7 +5727,38 @@ export const ReturnTypes: Record<string,any> = {
 		syllabus:"String",
 		teacher_usernames:"String",
 		title:"String",
-		updated_at:"DateTime"
+		updated_at:"DateTime",
+		year_discount_percent:"Float"
+	},
+	EduCourseEconomy:{
+		actual_cost_month:"String",
+		actual_hours_per_month:"Float",
+		over_fee:"Boolean",
+		plan:"EduCourseFee",
+		teachers:"EduCourseTeacherLoad"
+	},
+	EduCourseFee:{
+		cost_month:"String",
+		cost_year:"String",
+		fee_month:"String",
+		fee_year:"String",
+		fee_year_base:"String",
+		hours_per_month:"Float",
+		markup_month:"String",
+		markup_percent:"Float",
+		max_year_discount_percent:"Float",
+		year_discount_amount:"String"
+	},
+	EduCourseTeacherLoad:{
+		cost_month:"String",
+		display_name:"String",
+		hourly_rate:"String",
+		hours_per_month:"Float",
+		username:"String"
+	},
+	EduEconomySettings:{
+		markup_percent:"Float",
+		max_year_discount_percent:"Float"
 	},
 	EduEnrollment:{
 		access_state:"EduAccessState",
@@ -5770,6 +5830,7 @@ export const ReturnTypes: Record<string,any> = {
 		contract_number:"String",
 		contract_status:"EduContractStatus",
 		display_name:"String",
+		hourly_rate:"String",
 		signed_at:"DateTime",
 		username:"String"
 	},
@@ -5778,6 +5839,7 @@ export const ReturnTypes: Record<string,any> = {
 		contract_hash:"String",
 		contract_number:"String",
 		decline_reason:"String",
+		hourly_rate:"String",
 		signed_at:"DateTime",
 		status:"EduContractStatus"
 	},
@@ -7669,6 +7731,8 @@ export const ReturnTypes: Record<string,any> = {
 		edubridgeSetConnectorCredentials:"EduConnectorBinding",
 		edubridgeSetConnectorEnabled:"EduConnectorBinding",
 		edubridgeSetCourseStatus:"EduCourse",
+		edubridgeSetEconomySettings:"EduEconomySettings",
+		edubridgeSetTeacherRate:"String",
 		edubridgeSignAct:"EduContribution",
 		edubridgeSignAnnex:"EduAssignment",
 		edubridgeSignContract:"EduTeacherContract",
@@ -8547,7 +8611,10 @@ export const ReturnTypes: Record<string,any> = {
 		edubridgeConnectors:"EduConnectorBinding",
 		edubridgeContributions:"EduContribution",
 		edubridgeCourse:"EduCourse",
+		edubridgeCourseEconomy:"EduCourseEconomy",
+		edubridgeCourseFeePreview:"EduCourseFee",
 		edubridgeCourses:"PaginatedEduCoursesPaginationResult",
+		edubridgeEconomySettings:"EduEconomySettings",
 		edubridgeMemberCard:"EduMemberCard",
 		edubridgeMembers:"EduMemberRow",
 		edubridgeMyAssignments:"EduAssignment",

@@ -33,6 +33,13 @@ export class EdubridgeTeacherAssignmentEntity {
   @Column({ type: 'varchar', length: 64, nullable: true })
   public annex_hash!: string | null;
 
+  /**
+   * Нагрузка преподавателя по курсу, часов в месяц. Сумма нагрузок по ставкам
+   * назначенных преподавателей — факт себестоимости против планового расчёта курса.
+   */
+  @Column({ type: 'int', default: 0 })
+  public minutes_per_month!: number;
+
   @Column({ type: 'enum', enum: EduAssignmentStatus, default: EduAssignmentStatus.DRAFT })
   public status!: EduAssignmentStatus;
 

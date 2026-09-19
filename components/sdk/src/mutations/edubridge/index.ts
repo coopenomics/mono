@@ -2,6 +2,10 @@
 export * as CreateCourse from './createCourse'
 /** Изменить курс */
 export * as UpdateCourse from './updateCourse'
+/** Задать наценку кооператива */
+export * as SetEconomySettings from './setEconomySettings'
+/** Задать ставку часа преподавателя */
+export * as SetTeacherRate from './setTeacherRate'
 /** Опубликовать, снять с публикации или архивировать курс */
 export * as SetCourseStatus from './setCourseStatus'
 /** Подписать оферту ЦПП «Образование» со стола */

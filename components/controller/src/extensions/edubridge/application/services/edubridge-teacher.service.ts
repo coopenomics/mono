@@ -82,10 +82,16 @@ export class EdubridgeTeacherService {
    * коллбэку совета (`onContractApproved`). Отклонённый договор подписывается
    * заново — старая запись перезаписывается.
    */
-  async signContract(coopname: string, teacher: string, document: ISignedDocument, number: string) {
+  async signContract(coopname: string, teacher: string, document: ISignedDocument, number: string, hourlyRate: string) {
     const existing = await this.teachers.findContract(coopname, teacher);
     if (existing && existing.status !== EduContractStatus.DECLINED) return existing;
     if (!document.signatures?.some((s) => s.signer === teacher)) throw new BadRequestException('Договор не подписан преподавателем');
+    // Ставку преподаватель называет один раз при подключении. Дальше она
+    // определяет и себестоимость курса, и его собственный взнос за занятие,
+    // поэтому менять её в одиночку он не может — это делает администратор.
+    if (existing && isPositiveRate(existing.hourly_rate) && existing.hourly_rate !== hourlyRate) {
+      throw new BadRequestException('Ставка часа уже задана: её меняет администратор кооператива');
+    }
 
     await this.chain.signContract({ coopname, username: teacher, contract_hash: document.hash, contract: document as never });
     this.logger.info(`[EDU.TEACH] ${teacher}: договор УХД ${document.hash} подписан, ждёт подписи председателя`);
@@ -96,6 +102,7 @@ export class EdubridgeTeacherService {
       teacher_username: teacher,
       contract_hash: document.hash.toLowerCase(),
       contract_number: number,
+      hourly_rate: hourlyRate,
       status: EduContractStatus.PENDING_APPROVAL,
       decline_reason: '',
       approved_at: null,
@@ -153,6 +160,7 @@ export class EdubridgeTeacherService {
       const own = assignments.filter((a) => a.teacher_username === c.teacher_username);
       return {
         username: c.teacher_username,
+        hourly_rate: c.hourly_rate,
         display_name: names.get(c.teacher_username) ?? '',
         avatar_url: avatars.get(c.teacher_username) ?? null,
         contract_number: c.contract_number,
@@ -182,6 +190,8 @@ export class EdubridgeTeacherService {
       expected_result: input.expected_result ?? '',
       period_from: input.period_from,
       period_to: input.period_to,
+      // Нагрузка по умолчанию — всё расписание курса: один преподаватель ведёт его целиком.
+      minutes_per_month: input.minutes_per_month ?? course.lessons_per_month * course.lesson_minutes,
       status: EduAssignmentStatus.DRAFT,
     });
     return this.teachers.saveAssignment(entity);
@@ -489,4 +499,9 @@ export class EdubridgeTeacherService {
   private async chairman(_coopname: string): Promise<string> {
     return platformSettings().coopname; // документы совета формируются от имени кооператива
   }
+}
+
+/** Ставка задана, когда сумма больше нуля: «0.0000 RUB» — ещё не названа. */
+function isPositiveRate(rate: string | null | undefined): boolean {
+  return Number(String(rate ?? '').trim().split(' ')[0] ?? 0) > 0;
 }

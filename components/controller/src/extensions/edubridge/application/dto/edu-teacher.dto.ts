@@ -1,5 +1,5 @@
-import { Field, ID, InputType, ObjectType } from '@nestjs/graphql';
-import { IsArray, IsDateString, IsEnum, IsOptional, IsString, IsUUID, Length, Matches, ValidateNested } from 'class-validator';
+import { Field, ID, InputType, Int, ObjectType } from '@nestjs/graphql';
+import { IsArray, IsDateString, IsEnum, IsInt, IsOptional, IsString, IsUUID, Length, Matches, Max, Min, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 import { SignedDigitalDocumentInputDTO } from '@coopenomics/extension-kit';
 import { EduAssignmentStatus, EduContractStatus, EduContributionStatus, EduRidType } from '../../domain/enums';
@@ -28,7 +28,11 @@ export class EduTeacherContractDTO {
   @Field(() => Date, { nullable: true, description: 'Подписан председателем совета' })
   approved_at!: Date | null;
 
+  @Field(() => String, { description: 'Ставка часа: названа при подключении, дальше её правит администратор' })
+  hourly_rate!: string;
+
   constructor(e: EdubridgeTeacherContractEntity) {
+    this.hourly_rate = e.hourly_rate;
     this.contract_hash = e.contract_hash;
     this.contract_number = e.contract_number;
     this.status = e.status;
@@ -42,6 +46,7 @@ export class EduTeacherContractDTO {
 @ObjectType('EduTeacher')
 export class EduTeacherDTO {
   @Field(() => String, { description: 'Учётное имя' }) username!: string;
+  @Field(() => String, { description: 'Ставка часа преподавателя' }) hourly_rate!: string;
   @Field(() => String, { description: 'Фамилия, имя и отчество' }) display_name!: string;
   @Field(() => String, { nullable: true, description: 'Фотография пайщика' }) avatar_url!: string | null;
   @Field(() => String, { description: 'Номер договора участия в хозяйственной деятельности' }) contract_number!: string;
@@ -63,6 +68,7 @@ export class EduAssignmentDTO {
   @Field(() => String, { description: 'Период сдачи — начало' }) period_from!: string;
   @Field(() => String, { description: 'Период сдачи — конец' }) period_to!: string;
   @Field(() => String, { nullable: true, description: 'Хеш подписанного приложения к договору' }) annex_hash!: string | null;
+  @Field(() => Int, { description: 'Нагрузка преподавателя по курсу, минут в месяц' }) minutes_per_month!: number;
   @Field(() => EduAssignmentStatus, { description: 'Состояние назначения' }) status!: EduAssignmentStatus;
   @Field(() => String, { description: 'Причина отказа председателя в подписи приложения (если отказал)' }) decline_reason!: string;
   @Field(() => Date) created_at!: Date;
@@ -77,6 +83,7 @@ export class EduAssignmentDTO {
     this.period_from = e.period_from;
     this.period_to = e.period_to;
     this.annex_hash = e.annex_hash;
+    this.minutes_per_month = e.minutes_per_month;
     this.status = e.status;
     this.created_at = e.created_at;
   }
@@ -90,6 +97,8 @@ export class EduAssignmentInputDTO {
   @Field(() => String, { nullable: true, description: 'Ожидаемый результат' }) @IsOptional() @IsString() expected_result?: string;
   @Field(() => String, { description: 'Период сдачи — начало (YYYY-MM-DD)' }) @IsDateString() period_from!: string;
   @Field(() => String, { description: 'Период сдачи — конец (YYYY-MM-DD)' }) @IsDateString() period_to!: string;
+  @Field(() => Int, { nullable: true, description: 'Нагрузка преподавателя по курсу, минут в месяц; без значения — вся нагрузка курса' })
+  @IsOptional() @IsInt() @Min(0) @Max(20_000) minutes_per_month?: number;
 }
 
 @InputType('EduSignAnnexInput')
@@ -104,6 +113,9 @@ export class EduSignContractInputDTO {
   @Field(() => SignedDigitalDocumentInputDTO, { description: 'Подписанный договор участия в хозяйственной деятельности (3006)' })
   @ValidateNested() @Type(() => SignedDigitalDocumentInputDTO) document!: SignedDigitalDocumentInputDTO;
   @Field(() => String, { description: 'Номер договора из подписанного экземпляра' }) @IsString() @Length(1, 32) contract_number!: string;
+  @Field(() => String, { description: 'Ставка часа преподавателя («1000.0000 RUB»)' })
+  @Matches(ASSET_PATTERN, { message: 'Ставка должна быть в формате «1000.0000 RUB»' })
+  hourly_rate!: string;
 }
 
 @ObjectType('EduContribution')

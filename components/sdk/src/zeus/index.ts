@@ -6830,6 +6830,8 @@ export type ValueTypes = {
 	/** Ожидаемый результат */
 	expected_result?:boolean | `@${string}`,
 	id?:boolean | `@${string}`,
+	/** Нагрузка преподавателя по курсу, минут в месяц */
+	minutes_per_month?:boolean | `@${string}`,
 	/** Период сдачи — начало */
 	period_from?:boolean | `@${string}`,
 	/** Период сдачи — конец */
@@ -6848,6 +6850,8 @@ export type ValueTypes = {
 	course_id: ValueTypes["ID"] | Variable<any, string>,
 	/** Ожидаемый результат */
 	expected_result?: string | undefined | null | Variable<any, string>,
+	/** Нагрузка преподавателя по курсу, минут в месяц; без значения — вся нагрузка курса */
+	minutes_per_month?: number | undefined | null | Variable<any, string>,
 	/** Период сдачи — начало (YYYY-MM-DD) */
 	period_from: string | Variable<any, string>,
 	/** Период сдачи — конец (YYYY-MM-DD) */
@@ -6871,6 +6875,12 @@ export type ValueTypes = {
 	/** Идентификатор курса */
 	id?:boolean | `@${string}`,
 	image_url?:boolean | `@${string}`,
+	/** Длительность занятия, минут */
+	lesson_minutes?:boolean | `@${string}`,
+	/** Занятий в месяц по расписанию */
+	lessons_per_month?:boolean | `@${string}`,
+	/** Занятий во всей программе курса */
+	lessons_total?:boolean | `@${string}`,
 	/** Расписание занятий */
 	schedule?:boolean | `@${string}`,
 	/** Предмет */
@@ -6998,6 +7008,14 @@ export type ValueTypes = {
 	/** Идентификатор курса */
 	id?:boolean | `@${string}`,
 	image_url?:boolean | `@${string}`,
+	/** Длительность занятия, минут */
+	lesson_minutes?:boolean | `@${string}`,
+	/** Занятий в месяц по расписанию */
+	lessons_per_month?:boolean | `@${string}`,
+	/** Занятий во всей программе курса */
+	lessons_total?:boolean | `@${string}`,
+	/** Плановая ставка часа по программе */
+	planned_hourly_rate?:boolean | `@${string}`,
 	/** Расписание занятий */
 	schedule?:boolean | `@${string}`,
 	/** Порядок в каталоге */
@@ -7014,11 +7032,63 @@ export type ValueTypes = {
 	title?:boolean | `@${string}`,
 	/** Изменён */
 	updated_at?:boolean | `@${string}`,
+	/** Скидка за годовой объём, проценты */
+	year_discount_percent?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
 	['...on EduCourse']?: Omit<ValueTypes["EduCourse"], "...on EduCourse">
 }>;
 	/** Тип направления курса (внутренний признак) */
 ["EduCourseDirection"]:EduCourseDirection;
+	["EduCourseEconomy"]: AliasType<{
+	/** Себестоимость месяца по ставкам назначенных преподавателей */
+	actual_cost_month?:boolean | `@${string}`,
+	/** Часов в месяц, распределённых между преподавателями */
+	actual_hours_per_month?:boolean | `@${string}`,
+	/** Обязательства перед преподавателями превысили собранный взнос */
+	over_fee?:boolean | `@${string}`,
+	/** Плановый расчёт взноса */
+	plan?:ValueTypes["EduCourseFee"],
+	/** Нагрузка назначенных преподавателей */
+	teachers?:ValueTypes["EduCourseTeacherLoad"],
+		__typename?: boolean | `@${string}`,
+	['...on EduCourseEconomy']?: Omit<ValueTypes["EduCourseEconomy"], "...on EduCourseEconomy">
+}>;
+	["EduCourseEconomyInput"]: {
+	/** Длительность занятия, минут */
+	lesson_minutes: number | Variable<any, string>,
+	/** Занятий в месяц по расписанию */
+	lessons_per_month: number | Variable<any, string>,
+	/** Занятий во всей программе курса */
+	lessons_total: number | Variable<any, string>,
+	/** Плановая ставка часа по программе («1000.0000 RUB») */
+	planned_hourly_rate: string | Variable<any, string>,
+	/** Скидка за годовой объём, проценты */
+	year_discount_percent: number | Variable<any, string>
+};
+	["EduCourseFee"]: AliasType<{
+	/** Себестоимость месяца — часы по ставке */
+	cost_month?:boolean | `@${string}`,
+	/** Себестоимость года */
+	cost_year?:boolean | `@${string}`,
+	/** Членский взнос за месяц */
+	fee_month?:boolean | `@${string}`,
+	/** Членский взнос за год */
+	fee_year?:boolean | `@${string}`,
+	/** Взнос за год до скидки */
+	fee_year_base?:boolean | `@${string}`,
+	/** Часов занятий в месяц */
+	hours_per_month?:boolean | `@${string}`,
+	/** Наценка кооператива в сумме за месяц */
+	markup_month?:boolean | `@${string}`,
+	/** Наценка кооператива, проценты */
+	markup_percent?:boolean | `@${string}`,
+	/** Предельная скидка при текущей наценке, проценты */
+	max_year_discount_percent?:boolean | `@${string}`,
+	/** Скидка за годовой объём в сумме */
+	year_discount_amount?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on EduCourseFee']?: Omit<ValueTypes["EduCourseFee"], "...on EduCourseFee">
+}>;
 	["EduCourseImageUploadInput"]: {
 	/** Содержимое нового изображения в base64 */
 	base64?: string | undefined | null | Variable<any, string>,
@@ -7036,14 +7106,18 @@ export type ValueTypes = {
 	direction: ValueTypes["EduCourseDirection"] | Variable<any, string>,
 	/** Идентификатор курса на площадке */
 	external_ref?: string | undefined | null | Variable<any, string>,
-	/** Членский взнос за месяц («1000.0000 RUB») */
-	fee_month: string | Variable<any, string>,
-	/** Членский взнос за год («10000.0000 RUB») */
-	fee_year: string | Variable<any, string>,
 	/** Класс */
 	grade: string | Variable<any, string>,
 	/** Обложка курса: новое изображение (base64, ≤ 10 МБ, JPEG/PNG/WEBP), прежнее (bucket_key) или null — убрать */
 	image?: ValueTypes["EduCourseImageUploadInput"] | undefined | null | Variable<any, string>,
+	/** Длительность занятия, минут */
+	lesson_minutes: number | Variable<any, string>,
+	/** Занятий в месяц по расписанию */
+	lessons_per_month: number | Variable<any, string>,
+	/** Занятий во всей программе курса */
+	lessons_total: number | Variable<any, string>,
+	/** Плановая ставка часа по программе («1000.0000 RUB») */
+	planned_hourly_rate: string | Variable<any, string>,
 	/** Расписание занятий */
 	schedule?: string | undefined | null | Variable<any, string>,
 	/** Порядок в каталоге */
@@ -7055,10 +7129,26 @@ export type ValueTypes = {
 	/** Преподаватели курса — из пайщиков с подписанным договором участия в хозяйственной деятельности */
 	teacher_usernames?: Array<string> | undefined | null | Variable<any, string>,
 	/** Название курса */
-	title: string | Variable<any, string>
+	title: string | Variable<any, string>,
+	/** Скидка за годовой объём, проценты */
+	year_discount_percent?: number | undefined | null | Variable<any, string>
 };
 	/** Состояние курса в каталоге */
 ["EduCourseStatus"]:EduCourseStatus;
+	["EduCourseTeacherLoad"]: AliasType<{
+	/** Стоимость нагрузки за месяц */
+	cost_month?:boolean | `@${string}`,
+	/** Фамилия, имя и отчество */
+	display_name?:boolean | `@${string}`,
+	/** Ставка часа преподавателя */
+	hourly_rate?:boolean | `@${string}`,
+	/** Нагрузка, часов в месяц */
+	hours_per_month?:boolean | `@${string}`,
+	/** Учётное имя */
+	username?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on EduCourseTeacherLoad']?: Omit<ValueTypes["EduCourseTeacherLoad"], "...on EduCourseTeacherLoad">
+}>;
 	["EduCoursesFilterInput"]: {
 	/** Класс */
 	grade?: string | undefined | null | Variable<any, string>,
@@ -7073,6 +7163,14 @@ export type ValueTypes = {
 	/** Причина */
 	reason: string | Variable<any, string>
 };
+	["EduEconomySettings"]: AliasType<{
+	/** Наценка кооператива к себестоимости курса, проценты */
+	markup_percent?:boolean | `@${string}`,
+	/** Предельная скидка за годовой объём при этой наценке, проценты */
+	max_year_discount_percent?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on EduEconomySettings']?: Omit<ValueTypes["EduEconomySettings"], "...on EduEconomySettings">
+}>;
 	["EduEnrollment"]: AliasType<{
 	/** Состояние доступа на площадке */
 	access_state?:boolean | `@${string}`,
@@ -7244,6 +7342,16 @@ export type ValueTypes = {
 	/** Новое состояние */
 	status: ValueTypes["EduCourseStatus"] | Variable<any, string>
 };
+	["EduSetEconomySettingsInput"]: {
+	/** Наценка кооператива к себестоимости курса, проценты */
+	markup_percent: number | Variable<any, string>
+};
+	["EduSetTeacherRateInput"]: {
+	/** Ставка часа («1000.0000 RUB») */
+	hourly_rate: string | Variable<any, string>,
+	/** Преподаватель (учётное имя) */
+	username: string | Variable<any, string>
+};
 	["EduSignActInput"]: {
 	/** Взнос */
 	contribution_id: ValueTypes["ID"] | Variable<any, string>,
@@ -7260,7 +7368,9 @@ export type ValueTypes = {
 	/** Номер договора из подписанного экземпляра */
 	contract_number: string | Variable<any, string>,
 	/** Подписанный договор участия в хозяйственной деятельности (3006) */
-	document: ValueTypes["SignedDigitalDocumentInput"] | Variable<any, string>
+	document: ValueTypes["SignedDigitalDocumentInput"] | Variable<any, string>,
+	/** Ставка часа преподавателя («1000.0000 RUB») */
+	hourly_rate: string | Variable<any, string>
 };
 	["EduSignOfferInput"]: {
 	/** Подписанный пайщиком экземпляр оферты (3002 или 3004) */
@@ -7299,6 +7409,8 @@ export type ValueTypes = {
 	contract_status?:boolean | `@${string}`,
 	/** Фамилия, имя и отчество */
 	display_name?:boolean | `@${string}`,
+	/** Ставка часа преподавателя */
+	hourly_rate?:boolean | `@${string}`,
 	/** Договор подписан преподавателем */
 	signed_at?:boolean | `@${string}`,
 	/** Учётное имя */
@@ -7315,6 +7427,8 @@ export type ValueTypes = {
 	contract_number?:boolean | `@${string}`,
 	/** Причина отказа председателя (если отказал) */
 	decline_reason?:boolean | `@${string}`,
+	/** Ставка часа: названа при подключении, дальше её правит администратор */
+	hourly_rate?:boolean | `@${string}`,
 	/** Подписан преподавателем */
 	signed_at?:boolean | `@${string}`,
 	/** Состояние: ждёт подписи председателя, действует, отклонён */
@@ -7353,16 +7467,20 @@ export type ValueTypes = {
 	direction: ValueTypes["EduCourseDirection"] | Variable<any, string>,
 	/** Идентификатор курса на площадке */
 	external_ref?: string | undefined | null | Variable<any, string>,
-	/** Членский взнос за месяц («1000.0000 RUB») */
-	fee_month: string | Variable<any, string>,
-	/** Членский взнос за год («10000.0000 RUB») */
-	fee_year: string | Variable<any, string>,
 	/** Класс */
 	grade: string | Variable<any, string>,
 	/** Идентификатор курса */
 	id: ValueTypes["ID"] | Variable<any, string>,
 	/** Обложка курса: новое изображение (base64, ≤ 10 МБ, JPEG/PNG/WEBP), прежнее (bucket_key) или null — убрать */
 	image?: ValueTypes["EduCourseImageUploadInput"] | undefined | null | Variable<any, string>,
+	/** Длительность занятия, минут */
+	lesson_minutes: number | Variable<any, string>,
+	/** Занятий в месяц по расписанию */
+	lessons_per_month: number | Variable<any, string>,
+	/** Занятий во всей программе курса */
+	lessons_total: number | Variable<any, string>,
+	/** Плановая ставка часа по программе («1000.0000 RUB») */
+	planned_hourly_rate: string | Variable<any, string>,
 	/** Расписание занятий */
 	schedule?: string | undefined | null | Variable<any, string>,
 	/** Порядок в каталоге */
@@ -7374,7 +7492,9 @@ export type ValueTypes = {
 	/** Преподаватели курса — из пайщиков с подписанным договором участия в хозяйственной деятельности */
 	teacher_usernames?: Array<string> | undefined | null | Variable<any, string>,
 	/** Название курса */
-	title: string | Variable<any, string>
+	title: string | Variable<any, string>,
+	/** Скидка за годовой объём, проценты */
+	year_discount_percent?: number | undefined | null | Variable<any, string>
 };
 	["EduUpdateLearnerInput"]: {
 	/** Имя обучающегося */
@@ -13344,6 +13464,8 @@ edubridgeRidStatement?: [{	contribution_id: ValueTypes["ID"] | Variable<any, str
 edubridgeSetConnectorCredentials?: [{	data: ValueTypes["EduSetConnectorCredentialsInput"] | Variable<any, string>},ValueTypes["EduConnectorBinding"]],
 edubridgeSetConnectorEnabled?: [{	data: ValueTypes["EduSetConnectorEnabledInput"] | Variable<any, string>},ValueTypes["EduConnectorBinding"]],
 edubridgeSetCourseStatus?: [{	data: ValueTypes["EduSetCourseStatusInput"] | Variable<any, string>},ValueTypes["EduCourse"]],
+edubridgeSetEconomySettings?: [{	data: ValueTypes["EduSetEconomySettingsInput"] | Variable<any, string>},ValueTypes["EduEconomySettings"]],
+edubridgeSetTeacherRate?: [{	data: ValueTypes["EduSetTeacherRateInput"] | Variable<any, string>},boolean | `@${string}`],
 edubridgeSignAct?: [{	data: ValueTypes["EduSignActInput"] | Variable<any, string>},ValueTypes["EduContribution"]],
 edubridgeSignAnnex?: [{	data: ValueTypes["EduSignAnnexInput"] | Variable<any, string>},ValueTypes["EduAssignment"]],
 edubridgeSignContract?: [{	data: ValueTypes["EduSignContractInput"] | Variable<any, string>},ValueTypes["EduTeacherContract"]],
@@ -15211,7 +15333,11 @@ edubridgeCatalogCourse?: [{	id: ValueTypes["ID"] | Variable<any, string>},ValueT
 	/** Взносы РИД всех преподавателей */
 	edubridgeContributions?:ValueTypes["EduContribution"],
 edubridgeCourse?: [{	id: ValueTypes["ID"] | Variable<any, string>},ValueTypes["EduCourse"]],
+edubridgeCourseEconomy?: [{	course_id: ValueTypes["ID"] | Variable<any, string>},ValueTypes["EduCourseEconomy"]],
+edubridgeCourseFeePreview?: [{	data: ValueTypes["EduCourseEconomyInput"] | Variable<any, string>},ValueTypes["EduCourseFee"]],
 edubridgeCourses?: [{	filter?: ValueTypes["EduCoursesFilterInput"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedEduCoursesPaginationResult"]],
+	/** Наценка кооператива и предельная скидка за год */
+	edubridgeEconomySettings?:ValueTypes["EduEconomySettings"],
 edubridgeMemberCard?: [{	username: string | Variable<any, string>},ValueTypes["EduMemberCard"]],
 edubridgeMembers?: [{	search?: string | undefined | null | Variable<any, string>},ValueTypes["EduMemberRow"]],
 	/** Мои назначения */
@@ -23402,6 +23528,8 @@ export type ResolverInputTypes = {
 	/** Ожидаемый результат */
 	expected_result?:boolean | `@${string}`,
 	id?:boolean | `@${string}`,
+	/** Нагрузка преподавателя по курсу, минут в месяц */
+	minutes_per_month?:boolean | `@${string}`,
 	/** Период сдачи — начало */
 	period_from?:boolean | `@${string}`,
 	/** Период сдачи — конец */
@@ -23419,6 +23547,8 @@ export type ResolverInputTypes = {
 	course_id: ResolverInputTypes["ID"],
 	/** Ожидаемый результат */
 	expected_result?: string | undefined | null,
+	/** Нагрузка преподавателя по курсу, минут в месяц; без значения — вся нагрузка курса */
+	minutes_per_month?: number | undefined | null,
 	/** Период сдачи — начало (YYYY-MM-DD) */
 	period_from: string,
 	/** Период сдачи — конец (YYYY-MM-DD) */
@@ -23442,6 +23572,12 @@ export type ResolverInputTypes = {
 	/** Идентификатор курса */
 	id?:boolean | `@${string}`,
 	image_url?:boolean | `@${string}`,
+	/** Длительность занятия, минут */
+	lesson_minutes?:boolean | `@${string}`,
+	/** Занятий в месяц по расписанию */
+	lessons_per_month?:boolean | `@${string}`,
+	/** Занятий во всей программе курса */
+	lessons_total?:boolean | `@${string}`,
 	/** Расписание занятий */
 	schedule?:boolean | `@${string}`,
 	/** Предмет */
@@ -23564,6 +23700,14 @@ export type ResolverInputTypes = {
 	/** Идентификатор курса */
 	id?:boolean | `@${string}`,
 	image_url?:boolean | `@${string}`,
+	/** Длительность занятия, минут */
+	lesson_minutes?:boolean | `@${string}`,
+	/** Занятий в месяц по расписанию */
+	lessons_per_month?:boolean | `@${string}`,
+	/** Занятий во всей программе курса */
+	lessons_total?:boolean | `@${string}`,
+	/** Плановая ставка часа по программе */
+	planned_hourly_rate?:boolean | `@${string}`,
 	/** Расписание занятий */
 	schedule?:boolean | `@${string}`,
 	/** Порядок в каталоге */
@@ -23580,10 +23724,60 @@ export type ResolverInputTypes = {
 	title?:boolean | `@${string}`,
 	/** Изменён */
 	updated_at?:boolean | `@${string}`,
+	/** Скидка за годовой объём, проценты */
+	year_discount_percent?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
 	/** Тип направления курса (внутренний признак) */
 ["EduCourseDirection"]:EduCourseDirection;
+	["EduCourseEconomy"]: AliasType<{
+	/** Себестоимость месяца по ставкам назначенных преподавателей */
+	actual_cost_month?:boolean | `@${string}`,
+	/** Часов в месяц, распределённых между преподавателями */
+	actual_hours_per_month?:boolean | `@${string}`,
+	/** Обязательства перед преподавателями превысили собранный взнос */
+	over_fee?:boolean | `@${string}`,
+	/** Плановый расчёт взноса */
+	plan?:ResolverInputTypes["EduCourseFee"],
+	/** Нагрузка назначенных преподавателей */
+	teachers?:ResolverInputTypes["EduCourseTeacherLoad"],
+		__typename?: boolean | `@${string}`
+}>;
+	["EduCourseEconomyInput"]: {
+	/** Длительность занятия, минут */
+	lesson_minutes: number,
+	/** Занятий в месяц по расписанию */
+	lessons_per_month: number,
+	/** Занятий во всей программе курса */
+	lessons_total: number,
+	/** Плановая ставка часа по программе («1000.0000 RUB») */
+	planned_hourly_rate: string,
+	/** Скидка за годовой объём, проценты */
+	year_discount_percent: number
+};
+	["EduCourseFee"]: AliasType<{
+	/** Себестоимость месяца — часы по ставке */
+	cost_month?:boolean | `@${string}`,
+	/** Себестоимость года */
+	cost_year?:boolean | `@${string}`,
+	/** Членский взнос за месяц */
+	fee_month?:boolean | `@${string}`,
+	/** Членский взнос за год */
+	fee_year?:boolean | `@${string}`,
+	/** Взнос за год до скидки */
+	fee_year_base?:boolean | `@${string}`,
+	/** Часов занятий в месяц */
+	hours_per_month?:boolean | `@${string}`,
+	/** Наценка кооператива в сумме за месяц */
+	markup_month?:boolean | `@${string}`,
+	/** Наценка кооператива, проценты */
+	markup_percent?:boolean | `@${string}`,
+	/** Предельная скидка при текущей наценке, проценты */
+	max_year_discount_percent?:boolean | `@${string}`,
+	/** Скидка за годовой объём в сумме */
+	year_discount_amount?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
 	["EduCourseImageUploadInput"]: {
 	/** Содержимое нового изображения в base64 */
 	base64?: string | undefined | null,
@@ -23601,14 +23795,18 @@ export type ResolverInputTypes = {
 	direction: ResolverInputTypes["EduCourseDirection"],
 	/** Идентификатор курса на площадке */
 	external_ref?: string | undefined | null,
-	/** Членский взнос за месяц («1000.0000 RUB») */
-	fee_month: string,
-	/** Членский взнос за год («10000.0000 RUB») */
-	fee_year: string,
 	/** Класс */
 	grade: string,
 	/** Обложка курса: новое изображение (base64, ≤ 10 МБ, JPEG/PNG/WEBP), прежнее (bucket_key) или null — убрать */
 	image?: ResolverInputTypes["EduCourseImageUploadInput"] | undefined | null,
+	/** Длительность занятия, минут */
+	lesson_minutes: number,
+	/** Занятий в месяц по расписанию */
+	lessons_per_month: number,
+	/** Занятий во всей программе курса */
+	lessons_total: number,
+	/** Плановая ставка часа по программе («1000.0000 RUB») */
+	planned_hourly_rate: string,
 	/** Расписание занятий */
 	schedule?: string | undefined | null,
 	/** Порядок в каталоге */
@@ -23620,10 +23818,25 @@ export type ResolverInputTypes = {
 	/** Преподаватели курса — из пайщиков с подписанным договором участия в хозяйственной деятельности */
 	teacher_usernames?: Array<string> | undefined | null,
 	/** Название курса */
-	title: string
+	title: string,
+	/** Скидка за годовой объём, проценты */
+	year_discount_percent?: number | undefined | null
 };
 	/** Состояние курса в каталоге */
 ["EduCourseStatus"]:EduCourseStatus;
+	["EduCourseTeacherLoad"]: AliasType<{
+	/** Стоимость нагрузки за месяц */
+	cost_month?:boolean | `@${string}`,
+	/** Фамилия, имя и отчество */
+	display_name?:boolean | `@${string}`,
+	/** Ставка часа преподавателя */
+	hourly_rate?:boolean | `@${string}`,
+	/** Нагрузка, часов в месяц */
+	hours_per_month?:boolean | `@${string}`,
+	/** Учётное имя */
+	username?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
 	["EduCoursesFilterInput"]: {
 	/** Класс */
 	grade?: string | undefined | null,
@@ -23638,6 +23851,13 @@ export type ResolverInputTypes = {
 	/** Причина */
 	reason: string
 };
+	["EduEconomySettings"]: AliasType<{
+	/** Наценка кооператива к себестоимости курса, проценты */
+	markup_percent?:boolean | `@${string}`,
+	/** Предельная скидка за годовой объём при этой наценке, проценты */
+	max_year_discount_percent?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
 	["EduEnrollment"]: AliasType<{
 	/** Состояние доступа на площадке */
 	access_state?:boolean | `@${string}`,
@@ -23800,6 +24020,16 @@ export type ResolverInputTypes = {
 	/** Новое состояние */
 	status: ResolverInputTypes["EduCourseStatus"]
 };
+	["EduSetEconomySettingsInput"]: {
+	/** Наценка кооператива к себестоимости курса, проценты */
+	markup_percent: number
+};
+	["EduSetTeacherRateInput"]: {
+	/** Ставка часа («1000.0000 RUB») */
+	hourly_rate: string,
+	/** Преподаватель (учётное имя) */
+	username: string
+};
 	["EduSignActInput"]: {
 	/** Взнос */
 	contribution_id: ResolverInputTypes["ID"],
@@ -23816,7 +24046,9 @@ export type ResolverInputTypes = {
 	/** Номер договора из подписанного экземпляра */
 	contract_number: string,
 	/** Подписанный договор участия в хозяйственной деятельности (3006) */
-	document: ResolverInputTypes["SignedDigitalDocumentInput"]
+	document: ResolverInputTypes["SignedDigitalDocumentInput"],
+	/** Ставка часа преподавателя («1000.0000 RUB») */
+	hourly_rate: string
 };
 	["EduSignOfferInput"]: {
 	/** Подписанный пайщиком экземпляр оферты (3002 или 3004) */
@@ -23855,6 +24087,8 @@ export type ResolverInputTypes = {
 	contract_status?:boolean | `@${string}`,
 	/** Фамилия, имя и отчество */
 	display_name?:boolean | `@${string}`,
+	/** Ставка часа преподавателя */
+	hourly_rate?:boolean | `@${string}`,
 	/** Договор подписан преподавателем */
 	signed_at?:boolean | `@${string}`,
 	/** Учётное имя */
@@ -23870,6 +24104,8 @@ export type ResolverInputTypes = {
 	contract_number?:boolean | `@${string}`,
 	/** Причина отказа председателя (если отказал) */
 	decline_reason?:boolean | `@${string}`,
+	/** Ставка часа: названа при подключении, дальше её правит администратор */
+	hourly_rate?:boolean | `@${string}`,
 	/** Подписан преподавателем */
 	signed_at?:boolean | `@${string}`,
 	/** Состояние: ждёт подписи председателя, действует, отклонён */
@@ -23905,16 +24141,20 @@ export type ResolverInputTypes = {
 	direction: ResolverInputTypes["EduCourseDirection"],
 	/** Идентификатор курса на площадке */
 	external_ref?: string | undefined | null,
-	/** Членский взнос за месяц («1000.0000 RUB») */
-	fee_month: string,
-	/** Членский взнос за год («10000.0000 RUB») */
-	fee_year: string,
 	/** Класс */
 	grade: string,
 	/** Идентификатор курса */
 	id: ResolverInputTypes["ID"],
 	/** Обложка курса: новое изображение (base64, ≤ 10 МБ, JPEG/PNG/WEBP), прежнее (bucket_key) или null — убрать */
 	image?: ResolverInputTypes["EduCourseImageUploadInput"] | undefined | null,
+	/** Длительность занятия, минут */
+	lesson_minutes: number,
+	/** Занятий в месяц по расписанию */
+	lessons_per_month: number,
+	/** Занятий во всей программе курса */
+	lessons_total: number,
+	/** Плановая ставка часа по программе («1000.0000 RUB») */
+	planned_hourly_rate: string,
 	/** Расписание занятий */
 	schedule?: string | undefined | null,
 	/** Порядок в каталоге */
@@ -23926,7 +24166,9 @@ export type ResolverInputTypes = {
 	/** Преподаватели курса — из пайщиков с подписанным договором участия в хозяйственной деятельности */
 	teacher_usernames?: Array<string> | undefined | null,
 	/** Название курса */
-	title: string
+	title: string,
+	/** Скидка за годовой объём, проценты */
+	year_discount_percent?: number | undefined | null
 };
 	["EduUpdateLearnerInput"]: {
 	/** Имя обучающегося */
@@ -29721,6 +29963,8 @@ edubridgeRidStatement?: [{	contribution_id: ResolverInputTypes["ID"]},ResolverIn
 edubridgeSetConnectorCredentials?: [{	data: ResolverInputTypes["EduSetConnectorCredentialsInput"]},ResolverInputTypes["EduConnectorBinding"]],
 edubridgeSetConnectorEnabled?: [{	data: ResolverInputTypes["EduSetConnectorEnabledInput"]},ResolverInputTypes["EduConnectorBinding"]],
 edubridgeSetCourseStatus?: [{	data: ResolverInputTypes["EduSetCourseStatusInput"]},ResolverInputTypes["EduCourse"]],
+edubridgeSetEconomySettings?: [{	data: ResolverInputTypes["EduSetEconomySettingsInput"]},ResolverInputTypes["EduEconomySettings"]],
+edubridgeSetTeacherRate?: [{	data: ResolverInputTypes["EduSetTeacherRateInput"]},boolean | `@${string}`],
 edubridgeSignAct?: [{	data: ResolverInputTypes["EduSignActInput"]},ResolverInputTypes["EduContribution"]],
 edubridgeSignAnnex?: [{	data: ResolverInputTypes["EduSignAnnexInput"]},ResolverInputTypes["EduAssignment"]],
 edubridgeSignContract?: [{	data: ResolverInputTypes["EduSignContractInput"]},ResolverInputTypes["EduTeacherContract"]],
@@ -31513,7 +31757,11 @@ edubridgeCatalogCourse?: [{	id: ResolverInputTypes["ID"]},ResolverInputTypes["Ed
 	/** Взносы РИД всех преподавателей */
 	edubridgeContributions?:ResolverInputTypes["EduContribution"],
 edubridgeCourse?: [{	id: ResolverInputTypes["ID"]},ResolverInputTypes["EduCourse"]],
+edubridgeCourseEconomy?: [{	course_id: ResolverInputTypes["ID"]},ResolverInputTypes["EduCourseEconomy"]],
+edubridgeCourseFeePreview?: [{	data: ResolverInputTypes["EduCourseEconomyInput"]},ResolverInputTypes["EduCourseFee"]],
 edubridgeCourses?: [{	filter?: ResolverInputTypes["EduCoursesFilterInput"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedEduCoursesPaginationResult"]],
+	/** Наценка кооператива и предельная скидка за год */
+	edubridgeEconomySettings?:ResolverInputTypes["EduEconomySettings"],
 edubridgeMemberCard?: [{	username: string},ResolverInputTypes["EduMemberCard"]],
 edubridgeMembers?: [{	search?: string | undefined | null},ResolverInputTypes["EduMemberRow"]],
 	/** Мои назначения */
@@ -39470,6 +39718,8 @@ export type ModelTypes = {
 	/** Ожидаемый результат */
 	expected_result: string,
 	id: ModelTypes["ID"],
+	/** Нагрузка преподавателя по курсу, минут в месяц */
+	minutes_per_month: number,
 	/** Период сдачи — начало */
 	period_from: string,
 	/** Период сдачи — конец */
@@ -39486,6 +39736,8 @@ export type ModelTypes = {
 	course_id: ModelTypes["ID"],
 	/** Ожидаемый результат */
 	expected_result?: string | undefined | null,
+	/** Нагрузка преподавателя по курсу, минут в месяц; без значения — вся нагрузка курса */
+	minutes_per_month?: number | undefined | null,
 	/** Период сдачи — начало (YYYY-MM-DD) */
 	period_from: string,
 	/** Период сдачи — конец (YYYY-MM-DD) */
@@ -39508,6 +39760,12 @@ export type ModelTypes = {
 	/** Идентификатор курса */
 	id: ModelTypes["ID"],
 	image_url?: string | undefined | null,
+	/** Длительность занятия, минут */
+	lesson_minutes: number,
+	/** Занятий в месяц по расписанию */
+	lessons_per_month: number,
+	/** Занятий во всей программе курса */
+	lessons_total: number,
 	/** Расписание занятий */
 	schedule: string,
 	/** Предмет */
@@ -39622,6 +39880,14 @@ export type ModelTypes = {
 	/** Идентификатор курса */
 	id: ModelTypes["ID"],
 	image_url?: string | undefined | null,
+	/** Длительность занятия, минут */
+	lesson_minutes: number,
+	/** Занятий в месяц по расписанию */
+	lessons_per_month: number,
+	/** Занятий во всей программе курса */
+	lessons_total: number,
+	/** Плановая ставка часа по программе */
+	planned_hourly_rate: string,
 	/** Расписание занятий */
 	schedule: string,
 	/** Порядок в каталоге */
@@ -39637,9 +39903,57 @@ export type ModelTypes = {
 	/** Название курса */
 	title: string,
 	/** Изменён */
-	updated_at: ModelTypes["DateTime"]
+	updated_at: ModelTypes["DateTime"],
+	/** Скидка за годовой объём, проценты */
+	year_discount_percent: number
 };
 	["EduCourseDirection"]:EduCourseDirection;
+	["EduCourseEconomy"]: {
+		/** Себестоимость месяца по ставкам назначенных преподавателей */
+	actual_cost_month: string,
+	/** Часов в месяц, распределённых между преподавателями */
+	actual_hours_per_month: number,
+	/** Обязательства перед преподавателями превысили собранный взнос */
+	over_fee: boolean,
+	/** Плановый расчёт взноса */
+	plan: ModelTypes["EduCourseFee"],
+	/** Нагрузка назначенных преподавателей */
+	teachers: Array<ModelTypes["EduCourseTeacherLoad"]>
+};
+	["EduCourseEconomyInput"]: {
+	/** Длительность занятия, минут */
+	lesson_minutes: number,
+	/** Занятий в месяц по расписанию */
+	lessons_per_month: number,
+	/** Занятий во всей программе курса */
+	lessons_total: number,
+	/** Плановая ставка часа по программе («1000.0000 RUB») */
+	planned_hourly_rate: string,
+	/** Скидка за годовой объём, проценты */
+	year_discount_percent: number
+};
+	["EduCourseFee"]: {
+		/** Себестоимость месяца — часы по ставке */
+	cost_month: string,
+	/** Себестоимость года */
+	cost_year: string,
+	/** Членский взнос за месяц */
+	fee_month: string,
+	/** Членский взнос за год */
+	fee_year: string,
+	/** Взнос за год до скидки */
+	fee_year_base: string,
+	/** Часов занятий в месяц */
+	hours_per_month: number,
+	/** Наценка кооператива в сумме за месяц */
+	markup_month: string,
+	/** Наценка кооператива, проценты */
+	markup_percent: number,
+	/** Предельная скидка при текущей наценке, проценты */
+	max_year_discount_percent: number,
+	/** Скидка за годовой объём в сумме */
+	year_discount_amount: string
+};
 	["EduCourseImageUploadInput"]: {
 	/** Содержимое нового изображения в base64 */
 	base64?: string | undefined | null,
@@ -39657,14 +39971,18 @@ export type ModelTypes = {
 	direction: ModelTypes["EduCourseDirection"],
 	/** Идентификатор курса на площадке */
 	external_ref?: string | undefined | null,
-	/** Членский взнос за месяц («1000.0000 RUB») */
-	fee_month: string,
-	/** Членский взнос за год («10000.0000 RUB») */
-	fee_year: string,
 	/** Класс */
 	grade: string,
 	/** Обложка курса: новое изображение (base64, ≤ 10 МБ, JPEG/PNG/WEBP), прежнее (bucket_key) или null — убрать */
 	image?: ModelTypes["EduCourseImageUploadInput"] | undefined | null,
+	/** Длительность занятия, минут */
+	lesson_minutes: number,
+	/** Занятий в месяц по расписанию */
+	lessons_per_month: number,
+	/** Занятий во всей программе курса */
+	lessons_total: number,
+	/** Плановая ставка часа по программе («1000.0000 RUB») */
+	planned_hourly_rate: string,
 	/** Расписание занятий */
 	schedule?: string | undefined | null,
 	/** Порядок в каталоге */
@@ -39676,9 +39994,23 @@ export type ModelTypes = {
 	/** Преподаватели курса — из пайщиков с подписанным договором участия в хозяйственной деятельности */
 	teacher_usernames?: Array<string> | undefined | null,
 	/** Название курса */
-	title: string
+	title: string,
+	/** Скидка за годовой объём, проценты */
+	year_discount_percent?: number | undefined | null
 };
 	["EduCourseStatus"]:EduCourseStatus;
+	["EduCourseTeacherLoad"]: {
+		/** Стоимость нагрузки за месяц */
+	cost_month: string,
+	/** Фамилия, имя и отчество */
+	display_name: string,
+	/** Ставка часа преподавателя */
+	hourly_rate: string,
+	/** Нагрузка, часов в месяц */
+	hours_per_month: number,
+	/** Учётное имя */
+	username: string
+};
 	["EduCoursesFilterInput"]: {
 	/** Класс */
 	grade?: string | undefined | null,
@@ -39692,6 +40024,12 @@ export type ModelTypes = {
 	contribution_id: ModelTypes["ID"],
 	/** Причина */
 	reason: string
+};
+	["EduEconomySettings"]: {
+		/** Наценка кооператива к себестоимости курса, проценты */
+	markup_percent: number,
+	/** Предельная скидка за годовой объём при этой наценке, проценты */
+	max_year_discount_percent: number
 };
 	["EduEnrollment"]: {
 		/** Состояние доступа на площадке */
@@ -39840,6 +40178,16 @@ export type ModelTypes = {
 	/** Новое состояние */
 	status: ModelTypes["EduCourseStatus"]
 };
+	["EduSetEconomySettingsInput"]: {
+	/** Наценка кооператива к себестоимости курса, проценты */
+	markup_percent: number
+};
+	["EduSetTeacherRateInput"]: {
+	/** Ставка часа («1000.0000 RUB») */
+	hourly_rate: string,
+	/** Преподаватель (учётное имя) */
+	username: string
+};
 	["EduSignActInput"]: {
 	/** Взнос */
 	contribution_id: ModelTypes["ID"],
@@ -39856,7 +40204,9 @@ export type ModelTypes = {
 	/** Номер договора из подписанного экземпляра */
 	contract_number: string,
 	/** Подписанный договор участия в хозяйственной деятельности (3006) */
-	document: ModelTypes["SignedDigitalDocumentInput"]
+	document: ModelTypes["SignedDigitalDocumentInput"],
+	/** Ставка часа преподавателя («1000.0000 RUB») */
+	hourly_rate: string
 };
 	["EduSignOfferInput"]: {
 	/** Подписанный пайщиком экземпляр оферты (3002 или 3004) */
@@ -39895,6 +40245,8 @@ export type ModelTypes = {
 	contract_status: ModelTypes["EduContractStatus"],
 	/** Фамилия, имя и отчество */
 	display_name: string,
+	/** Ставка часа преподавателя */
+	hourly_rate: string,
 	/** Договор подписан преподавателем */
 	signed_at: ModelTypes["DateTime"],
 	/** Учётное имя */
@@ -39909,6 +40261,8 @@ export type ModelTypes = {
 	contract_number: string,
 	/** Причина отказа председателя (если отказал) */
 	decline_reason: string,
+	/** Ставка часа: названа при подключении, дальше её правит администратор */
+	hourly_rate: string,
 	/** Подписан преподавателем */
 	signed_at: ModelTypes["DateTime"],
 	/** Состояние: ждёт подписи председателя, действует, отклонён */
@@ -39941,16 +40295,20 @@ export type ModelTypes = {
 	direction: ModelTypes["EduCourseDirection"],
 	/** Идентификатор курса на площадке */
 	external_ref?: string | undefined | null,
-	/** Членский взнос за месяц («1000.0000 RUB») */
-	fee_month: string,
-	/** Членский взнос за год («10000.0000 RUB») */
-	fee_year: string,
 	/** Класс */
 	grade: string,
 	/** Идентификатор курса */
 	id: ModelTypes["ID"],
 	/** Обложка курса: новое изображение (base64, ≤ 10 МБ, JPEG/PNG/WEBP), прежнее (bucket_key) или null — убрать */
 	image?: ModelTypes["EduCourseImageUploadInput"] | undefined | null,
+	/** Длительность занятия, минут */
+	lesson_minutes: number,
+	/** Занятий в месяц по расписанию */
+	lessons_per_month: number,
+	/** Занятий во всей программе курса */
+	lessons_total: number,
+	/** Плановая ставка часа по программе («1000.0000 RUB») */
+	planned_hourly_rate: string,
 	/** Расписание занятий */
 	schedule?: string | undefined | null,
 	/** Порядок в каталоге */
@@ -39962,7 +40320,9 @@ export type ModelTypes = {
 	/** Преподаватели курса — из пайщиков с подписанным договором участия в хозяйственной деятельности */
 	teacher_usernames?: Array<string> | undefined | null,
 	/** Название курса */
-	title: string
+	title: string,
+	/** Скидка за годовой объём, проценты */
+	year_discount_percent?: number | undefined | null
 };
 	["EduUpdateLearnerInput"]: {
 	/** Имя обучающегося */
@@ -45940,6 +46300,10 @@ export type ModelTypes = {
 	edubridgeSetConnectorEnabled: ModelTypes["EduConnectorBinding"],
 	/** Опубликовать, снять с публикации или архивировать курс */
 	edubridgeSetCourseStatus: ModelTypes["EduCourse"],
+	/** Задать наценку кооператива */
+	edubridgeSetEconomySettings: ModelTypes["EduEconomySettings"],
+	/** Задать ставку часа преподавателя */
+	edubridgeSetTeacherRate: string,
 	/** Подписать акт приёма-передачи (первая подпись — преподаватель) */
 	edubridgeSignAct: ModelTypes["EduContribution"],
 	/** Подписать приложение к договору по курсу */
@@ -48216,11 +48580,17 @@ export type ModelTypes = {
 	edubridgeContributions: Array<ModelTypes["EduContribution"]>,
 	/** Курс со служебными полями */
 	edubridgeCourse: ModelTypes["EduCourse"],
+	/** Экономика курса: план и факт по назначенным преподавателям */
+	edubridgeCourseEconomy: ModelTypes["EduCourseEconomy"],
+	/** Расчёт взноса по параметрам курса — до сохранения */
+	edubridgeCourseFeePreview: ModelTypes["EduCourseFee"],
 	/** Курсы кооператива во всех состояниях */
 	edubridgeCourses: ModelTypes["PaginatedEduCoursesPaginationResult"],
+	/** Наценка кооператива и предельная скидка за год */
+	edubridgeEconomySettings: ModelTypes["EduEconomySettings"],
 	/** Сводная карточка пайщика: обучающиеся, курсы, оплаты, выдача */
 	edubridgeMemberCard: ModelTypes["EduMemberCard"],
-	/** Реестр пайщиков приложения */
+	/** Ученики приложения: у каждого свои обучающиеся и подписки */
 	edubridgeMembers: Array<ModelTypes["EduMemberRow"]>,
 	/** Мои назначения */
 	edubridgeMyAssignments: Array<ModelTypes["EduAssignment"]>,
@@ -56659,6 +57029,8 @@ export type GraphQLTypes = {
 	/** Ожидаемый результат */
 	expected_result: string,
 	id: GraphQLTypes["ID"],
+	/** Нагрузка преподавателя по курсу, минут в месяц */
+	minutes_per_month: number,
 	/** Период сдачи — начало */
 	period_from: string,
 	/** Период сдачи — конец */
@@ -56676,6 +57048,8 @@ export type GraphQLTypes = {
 	course_id: GraphQLTypes["ID"],
 	/** Ожидаемый результат */
 	expected_result?: string | undefined | null,
+	/** Нагрузка преподавателя по курсу, минут в месяц; без значения — вся нагрузка курса */
+	minutes_per_month?: number | undefined | null,
 	/** Период сдачи — начало (YYYY-MM-DD) */
 	period_from: string,
 	/** Период сдачи — конец (YYYY-MM-DD) */
@@ -56700,6 +57074,12 @@ export type GraphQLTypes = {
 	/** Идентификатор курса */
 	id: GraphQLTypes["ID"],
 	image_url?: string | undefined | null,
+	/** Длительность занятия, минут */
+	lesson_minutes: number,
+	/** Занятий в месяц по расписанию */
+	lessons_per_month: number,
+	/** Занятий во всей программе курса */
+	lessons_total: number,
 	/** Расписание занятий */
 	schedule: string,
 	/** Предмет */
@@ -56827,6 +57207,14 @@ export type GraphQLTypes = {
 	/** Идентификатор курса */
 	id: GraphQLTypes["ID"],
 	image_url?: string | undefined | null,
+	/** Длительность занятия, минут */
+	lesson_minutes: number,
+	/** Занятий в месяц по расписанию */
+	lessons_per_month: number,
+	/** Занятий во всей программе курса */
+	lessons_total: number,
+	/** Плановая ставка часа по программе */
+	planned_hourly_rate: string,
 	/** Расписание занятий */
 	schedule: string,
 	/** Порядок в каталоге */
@@ -56843,10 +57231,62 @@ export type GraphQLTypes = {
 	title: string,
 	/** Изменён */
 	updated_at: GraphQLTypes["DateTime"],
+	/** Скидка за годовой объём, проценты */
+	year_discount_percent: number,
 	['...on EduCourse']: Omit<GraphQLTypes["EduCourse"], "...on EduCourse">
 };
 	/** Тип направления курса (внутренний признак) */
 ["EduCourseDirection"]: EduCourseDirection;
+	["EduCourseEconomy"]: {
+	__typename: "EduCourseEconomy",
+	/** Себестоимость месяца по ставкам назначенных преподавателей */
+	actual_cost_month: string,
+	/** Часов в месяц, распределённых между преподавателями */
+	actual_hours_per_month: number,
+	/** Обязательства перед преподавателями превысили собранный взнос */
+	over_fee: boolean,
+	/** Плановый расчёт взноса */
+	plan: GraphQLTypes["EduCourseFee"],
+	/** Нагрузка назначенных преподавателей */
+	teachers: Array<GraphQLTypes["EduCourseTeacherLoad"]>,
+	['...on EduCourseEconomy']: Omit<GraphQLTypes["EduCourseEconomy"], "...on EduCourseEconomy">
+};
+	["EduCourseEconomyInput"]: {
+		/** Длительность занятия, минут */
+	lesson_minutes: number,
+	/** Занятий в месяц по расписанию */
+	lessons_per_month: number,
+	/** Занятий во всей программе курса */
+	lessons_total: number,
+	/** Плановая ставка часа по программе («1000.0000 RUB») */
+	planned_hourly_rate: string,
+	/** Скидка за годовой объём, проценты */
+	year_discount_percent: number
+};
+	["EduCourseFee"]: {
+	__typename: "EduCourseFee",
+	/** Себестоимость месяца — часы по ставке */
+	cost_month: string,
+	/** Себестоимость года */
+	cost_year: string,
+	/** Членский взнос за месяц */
+	fee_month: string,
+	/** Членский взнос за год */
+	fee_year: string,
+	/** Взнос за год до скидки */
+	fee_year_base: string,
+	/** Часов занятий в месяц */
+	hours_per_month: number,
+	/** Наценка кооператива в сумме за месяц */
+	markup_month: string,
+	/** Наценка кооператива, проценты */
+	markup_percent: number,
+	/** Предельная скидка при текущей наценке, проценты */
+	max_year_discount_percent: number,
+	/** Скидка за годовой объём в сумме */
+	year_discount_amount: string,
+	['...on EduCourseFee']: Omit<GraphQLTypes["EduCourseFee"], "...on EduCourseFee">
+};
 	["EduCourseImageUploadInput"]: {
 		/** Содержимое нового изображения в base64 */
 	base64?: string | undefined | null,
@@ -56864,14 +57304,18 @@ export type GraphQLTypes = {
 	direction: GraphQLTypes["EduCourseDirection"],
 	/** Идентификатор курса на площадке */
 	external_ref?: string | undefined | null,
-	/** Членский взнос за месяц («1000.0000 RUB») */
-	fee_month: string,
-	/** Членский взнос за год («10000.0000 RUB») */
-	fee_year: string,
 	/** Класс */
 	grade: string,
 	/** Обложка курса: новое изображение (base64, ≤ 10 МБ, JPEG/PNG/WEBP), прежнее (bucket_key) или null — убрать */
 	image?: GraphQLTypes["EduCourseImageUploadInput"] | undefined | null,
+	/** Длительность занятия, минут */
+	lesson_minutes: number,
+	/** Занятий в месяц по расписанию */
+	lessons_per_month: number,
+	/** Занятий во всей программе курса */
+	lessons_total: number,
+	/** Плановая ставка часа по программе («1000.0000 RUB») */
+	planned_hourly_rate: string,
 	/** Расписание занятий */
 	schedule?: string | undefined | null,
 	/** Порядок в каталоге */
@@ -56883,10 +57327,26 @@ export type GraphQLTypes = {
 	/** Преподаватели курса — из пайщиков с подписанным договором участия в хозяйственной деятельности */
 	teacher_usernames?: Array<string> | undefined | null,
 	/** Название курса */
-	title: string
+	title: string,
+	/** Скидка за годовой объём, проценты */
+	year_discount_percent?: number | undefined | null
 };
 	/** Состояние курса в каталоге */
 ["EduCourseStatus"]: EduCourseStatus;
+	["EduCourseTeacherLoad"]: {
+	__typename: "EduCourseTeacherLoad",
+	/** Стоимость нагрузки за месяц */
+	cost_month: string,
+	/** Фамилия, имя и отчество */
+	display_name: string,
+	/** Ставка часа преподавателя */
+	hourly_rate: string,
+	/** Нагрузка, часов в месяц */
+	hours_per_month: number,
+	/** Учётное имя */
+	username: string,
+	['...on EduCourseTeacherLoad']: Omit<GraphQLTypes["EduCourseTeacherLoad"], "...on EduCourseTeacherLoad">
+};
 	["EduCoursesFilterInput"]: {
 		/** Класс */
 	grade?: string | undefined | null,
@@ -56900,6 +57360,14 @@ export type GraphQLTypes = {
 	contribution_id: GraphQLTypes["ID"],
 	/** Причина */
 	reason: string
+};
+	["EduEconomySettings"]: {
+	__typename: "EduEconomySettings",
+	/** Наценка кооператива к себестоимости курса, проценты */
+	markup_percent: number,
+	/** Предельная скидка за годовой объём при этой наценке, проценты */
+	max_year_discount_percent: number,
+	['...on EduEconomySettings']: Omit<GraphQLTypes["EduEconomySettings"], "...on EduEconomySettings">
 };
 	["EduEnrollment"]: {
 	__typename: "EduEnrollment",
@@ -57072,6 +57540,16 @@ export type GraphQLTypes = {
 	/** Новое состояние */
 	status: GraphQLTypes["EduCourseStatus"]
 };
+	["EduSetEconomySettingsInput"]: {
+		/** Наценка кооператива к себестоимости курса, проценты */
+	markup_percent: number
+};
+	["EduSetTeacherRateInput"]: {
+		/** Ставка часа («1000.0000 RUB») */
+	hourly_rate: string,
+	/** Преподаватель (учётное имя) */
+	username: string
+};
 	["EduSignActInput"]: {
 		/** Взнос */
 	contribution_id: GraphQLTypes["ID"],
@@ -57088,7 +57566,9 @@ export type GraphQLTypes = {
 		/** Номер договора из подписанного экземпляра */
 	contract_number: string,
 	/** Подписанный договор участия в хозяйственной деятельности (3006) */
-	document: GraphQLTypes["SignedDigitalDocumentInput"]
+	document: GraphQLTypes["SignedDigitalDocumentInput"],
+	/** Ставка часа преподавателя («1000.0000 RUB») */
+	hourly_rate: string
 };
 	["EduSignOfferInput"]: {
 		/** Подписанный пайщиком экземпляр оферты (3002 или 3004) */
@@ -57128,6 +57608,8 @@ export type GraphQLTypes = {
 	contract_status: GraphQLTypes["EduContractStatus"],
 	/** Фамилия, имя и отчество */
 	display_name: string,
+	/** Ставка часа преподавателя */
+	hourly_rate: string,
 	/** Договор подписан преподавателем */
 	signed_at: GraphQLTypes["DateTime"],
 	/** Учётное имя */
@@ -57144,6 +57626,8 @@ export type GraphQLTypes = {
 	contract_number: string,
 	/** Причина отказа председателя (если отказал) */
 	decline_reason: string,
+	/** Ставка часа: названа при подключении, дальше её правит администратор */
+	hourly_rate: string,
 	/** Подписан преподавателем */
 	signed_at: GraphQLTypes["DateTime"],
 	/** Состояние: ждёт подписи председателя, действует, отклонён */
@@ -57181,16 +57665,20 @@ export type GraphQLTypes = {
 	direction: GraphQLTypes["EduCourseDirection"],
 	/** Идентификатор курса на площадке */
 	external_ref?: string | undefined | null,
-	/** Членский взнос за месяц («1000.0000 RUB») */
-	fee_month: string,
-	/** Членский взнос за год («10000.0000 RUB») */
-	fee_year: string,
 	/** Класс */
 	grade: string,
 	/** Идентификатор курса */
 	id: GraphQLTypes["ID"],
 	/** Обложка курса: новое изображение (base64, ≤ 10 МБ, JPEG/PNG/WEBP), прежнее (bucket_key) или null — убрать */
 	image?: GraphQLTypes["EduCourseImageUploadInput"] | undefined | null,
+	/** Длительность занятия, минут */
+	lesson_minutes: number,
+	/** Занятий в месяц по расписанию */
+	lessons_per_month: number,
+	/** Занятий во всей программе курса */
+	lessons_total: number,
+	/** Плановая ставка часа по программе («1000.0000 RUB») */
+	planned_hourly_rate: string,
 	/** Расписание занятий */
 	schedule?: string | undefined | null,
 	/** Порядок в каталоге */
@@ -57202,7 +57690,9 @@ export type GraphQLTypes = {
 	/** Преподаватели курса — из пайщиков с подписанным договором участия в хозяйственной деятельности */
 	teacher_usernames?: Array<string> | undefined | null,
 	/** Название курса */
-	title: string
+	title: string,
+	/** Скидка за годовой объём, проценты */
+	year_discount_percent?: number | undefined | null
 };
 	["EduUpdateLearnerInput"]: {
 		/** Имя обучающегося */
@@ -63606,6 +64096,10 @@ export type GraphQLTypes = {
 	edubridgeSetConnectorEnabled: GraphQLTypes["EduConnectorBinding"],
 	/** Опубликовать, снять с публикации или архивировать курс */
 	edubridgeSetCourseStatus: GraphQLTypes["EduCourse"],
+	/** Задать наценку кооператива */
+	edubridgeSetEconomySettings: GraphQLTypes["EduEconomySettings"],
+	/** Задать ставку часа преподавателя */
+	edubridgeSetTeacherRate: string,
 	/** Подписать акт приёма-передачи (первая подпись — преподаватель) */
 	edubridgeSignAct: GraphQLTypes["EduContribution"],
 	/** Подписать приложение к договору по курсу */
@@ -66063,11 +66557,17 @@ export type GraphQLTypes = {
 	edubridgeContributions: Array<GraphQLTypes["EduContribution"]>,
 	/** Курс со служебными полями */
 	edubridgeCourse: GraphQLTypes["EduCourse"],
+	/** Экономика курса: план и факт по назначенным преподавателям */
+	edubridgeCourseEconomy: GraphQLTypes["EduCourseEconomy"],
+	/** Расчёт взноса по параметрам курса — до сохранения */
+	edubridgeCourseFeePreview: GraphQLTypes["EduCourseFee"],
 	/** Курсы кооператива во всех состояниях */
 	edubridgeCourses: GraphQLTypes["PaginatedEduCoursesPaginationResult"],
+	/** Наценка кооператива и предельная скидка за год */
+	edubridgeEconomySettings: GraphQLTypes["EduEconomySettings"],
 	/** Сводная карточка пайщика: обучающиеся, курсы, оплаты, выдача */
 	edubridgeMemberCard: GraphQLTypes["EduMemberCard"],
-	/** Реестр пайщиков приложения */
+	/** Ученики приложения: у каждого свои обучающиеся и подписки */
 	edubridgeMembers: Array<GraphQLTypes["EduMemberRow"]>,
 	/** Мои назначения */
 	edubridgeMyAssignments: Array<GraphQLTypes["EduAssignment"]>,
@@ -70234,6 +70734,7 @@ type ZEUS_VARIABLES = {
 	["EduContributionDraftInput"]: ValueTypes["EduContributionDraftInput"];
 	["EduContributionStatus"]: ValueTypes["EduContributionStatus"];
 	["EduCourseDirection"]: ValueTypes["EduCourseDirection"];
+	["EduCourseEconomyInput"]: ValueTypes["EduCourseEconomyInput"];
 	["EduCourseImageUploadInput"]: ValueTypes["EduCourseImageUploadInput"];
 	["EduCourseInput"]: ValueTypes["EduCourseInput"];
 	["EduCourseStatus"]: ValueTypes["EduCourseStatus"];
@@ -70252,6 +70753,8 @@ type ZEUS_VARIABLES = {
 	["EduSetConnectorCredentialsInput"]: ValueTypes["EduSetConnectorCredentialsInput"];
 	["EduSetConnectorEnabledInput"]: ValueTypes["EduSetConnectorEnabledInput"];
 	["EduSetCourseStatusInput"]: ValueTypes["EduSetCourseStatusInput"];
+	["EduSetEconomySettingsInput"]: ValueTypes["EduSetEconomySettingsInput"];
+	["EduSetTeacherRateInput"]: ValueTypes["EduSetTeacherRateInput"];
 	["EduSignActInput"]: ValueTypes["EduSignActInput"];
 	["EduSignAnnexInput"]: ValueTypes["EduSignAnnexInput"];
 	["EduSignContractInput"]: ValueTypes["EduSignContractInput"];

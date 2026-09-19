@@ -43,7 +43,22 @@
       BaseCard.q-mt-md(variant="default" title="Условия участия")
         DataRow(label="Взнос в месяц" :value="formatAsset2Digits(course.fee_month)" mono)
         DataRow(label="Взнос в год" :value="formatAsset2Digits(course.fee_year)" mono)
+        DataRow(label="Занятий в месяц" :value="String(course.lessons_per_month)")
+        DataRow(label="Занятий в программе" :value="String(course.lessons_total)")
+        DataRow(label="Занятие" :value="`${course.lesson_minutes} минут`")
         DataRow(label="Расписание" :value="course.schedule || '______'")
+
+      //- Из чего сложился взнос и покрывает ли он обязательства перед теми, кто
+      //- курс ведёт: плановый расчёт против ставок назначенных преподавателей.
+      BaseCard.q-mt-md(v-if="economy" variant="default" title="Экономика курса")
+        DataRow(label="Себестоимость в месяц" :value="formatAsset2Digits(economy.plan.cost_month)" mono)
+        DataRow(:label="`Наценка кооператива, ${economy.plan.markup_percent}%`" :value="formatAsset2Digits(economy.plan.markup_month)" mono)
+        DataRow(label="Ставка часа по программе" :value="formatAsset2Digits(course.planned_hourly_rate)" mono)
+        DataRow(label="По ставкам преподавателей" :value="formatAsset2Digits(economy.actual_cost_month)" mono)
+        BaseBanner.q-mt-sm(v-if="economy.over_fee" variant="warn")
+          template(#icon)
+            q-icon(name="warning_amber")
+          | Обязательства перед преподавателями больше собранного взноса — поднимите ставку часа по программе или пересмотрите нагрузку.
 
       BaseCard.q-mt-md(variant="default" title="Выдача доступа")
         DataRow(label="Направление" :value="directionLabel")
@@ -77,9 +92,10 @@ import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { useDesktopStore } from 'src/entities/Desktop/model';
 import { useFioCache } from 'src/shared/lib/account/useFioCache';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
-import { BaseBadge, BaseButton, BaseCard, BaseChip, CardListSkeleton, EmptyState } from 'src/shared/ui/base';
+import { BaseBadge, BaseBanner, BaseButton, BaseCard, BaseChip, CardListSkeleton, EmptyState } from 'src/shared/ui/base';
 import { DataRow, DetailsDrawer, IdentityCell } from 'src/shared/ui/domain';
 import { CARRIER_LABELS, COURSE_STATUS_LABELS, DIRECTION_LABELS, fetchCourse, setCourseStatus, type ICourse } from '../../entities/Course';
+import { fetchCourseEconomy, type ICourseEconomy } from '../../entities/Economy';
 import { CourseForm } from '../../widgets/CourseForm';
 
 /**
@@ -99,6 +115,7 @@ const busy = ref(false);
 const saving = ref(false);
 const editOpen = ref(false);
 const formRef = ref<InstanceType<typeof CourseForm> | null>(null);
+const economy = ref<ICourseEconomy | null>(null);
 
 const status = computed(() => COURSE_STATUS_LABELS[course.value?.status ?? ''] ?? { label: course.value?.status ?? '', variant: 'neutral' as const });
 const published = computed(() => course.value?.status === Zeus.EduCourseStatus.PUBLISHED);
@@ -118,6 +135,7 @@ async function load(): Promise<void> {
   try {
     course.value = await fetchCourse(String(route.params.id));
     if (course.value) desktopStore.setPageTitleOverride(course.value.title);
+    economy.value = await fetchCourseEconomy(String(route.params.id));
   } catch (e) {
     FailAlert(e);
   } finally {
@@ -134,10 +152,16 @@ watch(
   { immediate: true },
 );
 
-function onSaved(updated: ICourse): void {
+async function onSaved(updated: ICourse): Promise<void> {
   course.value = updated;
   desktopStore.setPageTitleOverride(updated.title);
   editOpen.value = false;
+  // Параметры изменились — расчёт пересобираем, иначе на странице остаётся прежний.
+  try {
+    economy.value = await fetchCourseEconomy(updated.id);
+  } catch (e) {
+    FailAlert(e);
+  }
 }
 
 async function setStatus(next: ICourse['status']): Promise<void> {
