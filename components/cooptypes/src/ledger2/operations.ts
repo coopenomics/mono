@@ -299,6 +299,41 @@ export const LEDGER2_OPERATION_REGISTRY: readonly OperationMeta[] = [
     debit: null, credit: null,
     human_name: 'Членский взнос за курс в фонд ЦПП «Образование»' },
 
+  { code: 'o.edu.expfnd',  process_type: 'p.edu.spend',   contract: 'edubridge',
+    name: 'EXPENSE_FUND', wallet_op: 'TRANSFER', wallet_from: 'w.edu.fund', wallet_to: 'w.edu.expns',
+    debit: null, credit: null,
+    human_name: 'Выделение средств ЦПП «Образование» под расход' },
+
+  { code: 'o.edu.expunf',  process_type: 'p.edu.spend',   contract: 'edubridge',
+    name: 'EXPENSE_UNFUND', wallet_op: 'TRANSFER', wallet_from: 'w.edu.expns', wallet_to: 'w.edu.fund',
+    debit: null, credit: null,
+    human_name: 'Возврат неизрасходованных средств в фонд ЦПП «Образование»' },
+
+  { code: 'o.edu.spend',   process_type: 'p.edu.spend',   contract: 'edubridge',
+    name: 'EXPENSE_SPEND', wallet_op: 'BURN', wallet_from: 'w.edu.expns', wallet_to: null,
+    debit: 86, credit: 51,
+    human_name: 'Прямая оплата расхода ЦПП «Образование» по реквизитам' },
+
+  { code: 'o.edu.expadv',  process_type: 'p.edu.spend',   contract: 'edubridge',
+    name: 'EXPENSE_ADVANCE', wallet_op: 'TRANSFER', wallet_from: 'w.edu.expns', wallet_to: 'w.exp.adv',
+    debit: 86, credit: 51,
+    human_name: 'Выдача аванса под отчёт по расходу ЦПП «Образование»' },
+
+  { code: 'o.edu.exprpt',  process_type: 'p.edu.spend',   contract: 'edubridge',
+    name: 'EXPENSE_REPORT', wallet_op: 'BURN', wallet_from: 'w.exp.adv', wallet_to: null,
+    debit: null, credit: null,
+    human_name: 'Закрытие подотчёта по расходу ЦПП «Образование»' },
+
+  { code: 'o.edu.expret',  process_type: 'p.edu.spend',   contract: 'edubridge',
+    name: 'EXPENSE_RETURN', wallet_op: 'TRANSFER', wallet_from: 'w.exp.adv', wallet_to: 'w.edu.expns',
+    debit: 51, credit: 86,
+    human_name: 'Возврат неиспользованного аванса по расходу ЦПП «Образование»' },
+
+  { code: 'o.edu.expovr',  process_type: 'p.edu.spend',   contract: 'edubridge',
+    name: 'EXPENSE_OVERSPEND', wallet_op: 'TRANSFER', wallet_from: 'w.edu.expns', wallet_to: 'w.exp.adv',
+    debit: 86, credit: 51,
+    human_name: 'Доплата сверх аванса по расходу ЦПП «Образование»' },
+
   { code: 'o.edu.rid',     process_type: 'p.edu.rid',     contract: 'edubridge',
     name: 'ACCEPT_EDU_RID', wallet_op: 'ISSUE', wallet_from: null, wallet_to: 'w.wal.share',
     debit: 4, credit: 80,

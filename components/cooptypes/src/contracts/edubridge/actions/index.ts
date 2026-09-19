@@ -28,6 +28,13 @@ export * as Extendsub from './extendsub'
  */
 export * as Expiresub from './expiresub'
 
+// ── p.edu.spend (расходы программы) ──────────────────────────────────────
+
+/**
+ * Подача расхода программы в шасси расходов: o.edu.expfnd.
+ */
+export * as CreateExp from './createExp'
+
 // ── p.edu.rid (взнос РИД) ────────────────────────────────────────────────
 
 /**

@@ -1,6 +1,10 @@
 import { Injectable, UseGuards } from '@nestjs/common';
 import { Args, ID, Mutation, Query, Resolver } from '@nestjs/graphql';
-import { GqlJwtAuthGuard, platformSettings } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, PaginationInputDTO, platformSettings, type PaginationResult } from '@coopenomics/extension-kit';
+import { CurrentEduMember } from '../decorators/current-edu-member.decorator';
+import type { IEdubridgeMembership } from '../membership/edubridge-membership.service';
+import { EduCreateExpenseInputDTO, EduExpenseDTO, PaginatedEduExpensesDTO } from '../dto/edu-expense.dto';
+import { EdubridgeExpenseService } from '../services/edubridge-expense.service';
 import { RequireEduAccess } from '../decorators/edubridge-access.decorator';
 import { EdubridgeAccessGuard } from '../guards/edubridge-access.guard';
 import {
@@ -20,7 +24,24 @@ const coop = () => platformSettings().coopname;
 @Resolver()
 @Injectable()
 export class EdubridgeEconomyResolver {
-  constructor(private readonly economy: EdubridgeEconomyService) {}
+  constructor(
+    private readonly economy: EdubridgeEconomyService,
+    private readonly expenses: EdubridgeExpenseService
+  ) {}
+
+  @Query(() => PaginatedEduExpensesDTO, { name: 'edubridgeExpenses', description: 'Расходы программы: что оплачивается из фонда' })
+  @UseGuards(GqlJwtAuthGuard, EdubridgeAccessGuard)
+  @RequireEduAccess('EduEconomy', 'read')
+  edubridgeExpenses(@Args('options', { nullable: true }) options?: PaginationInputDTO): Promise<PaginationResult<EduExpenseDTO>> {
+    return this.expenses.list(coop(), options);
+  }
+
+  @Mutation(() => String, { name: 'edubridgeCreateExpense', description: 'Подать расход программы: средства фонда выделяются под расход' })
+  @UseGuards(GqlJwtAuthGuard, EdubridgeAccessGuard)
+  @RequireEduAccess('EduEconomy', 'manage')
+  edubridgeCreateExpense(@CurrentEduMember() m: IEdubridgeMembership, @Args('data') data: EduCreateExpenseInputDTO): Promise<string> {
+    return this.expenses.create(coop(), m.username as string, data);
+  }
 
   @Query(() => EduEconomySettingsDTO, { name: 'edubridgeEconomySettings', description: 'Наценка кооператива и предельная скидка за год' })
   @UseGuards(GqlJwtAuthGuard, EdubridgeAccessGuard)

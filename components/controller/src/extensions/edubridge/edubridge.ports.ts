@@ -13,6 +13,7 @@
 import {
   CHAIN_PORT,
   COUNCIL_PORT,
+  EXPENSE_CHASSIS_PORT,
   DECISION_TRACKING_PORT,
   DOCUMENT_PORT,
   FREE_DECISION_PORT,
@@ -46,6 +47,8 @@ export const edubridgePorts = {
     FREE_DECISION_PORT,
     DESKTOP_GRANTS_FILTER_REGISTRY_PORT,
     DESKTOP_GRANTS_REGISTRY_PORT,
+    // Расходы программы ведёт общее шасси расходов: своего у расширения нет.
+    EXPENSE_CHASSIS_PORT,
     EXTENSION_CONFIG_PORT,
     FILE_STORAGE_PORT,
     // Лента движения средств программы в разделе «Экономика» — журнал ledger2.

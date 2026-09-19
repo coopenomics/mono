@@ -2,6 +2,8 @@
 export * as CreateCourse from './createCourse'
 /** Изменить курс */
 export * as UpdateCourse from './updateCourse'
+/** Подать расход программы из фонда */
+export * as CreateExpense from './createExpense'
 /** Задать наценку кооператива */
 export * as SetEconomySettings from './setEconomySettings'
 /** Задать ставку часа преподавателя */

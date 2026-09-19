@@ -45,6 +45,29 @@
       template(#icon)
         q-icon(name="receipt_long" size="32px")
 
+  template(v-else-if="tab === 'expenses'")
+    .row.justify-end.q-mb-md
+      BaseButton(variant="primary" @click="expenseOpen = true")
+        template(#icon-left)
+          q-icon(name="add" size="18px")
+        | Подать расход
+
+    ExpenseProposalList(
+      :rows="expenseRows"
+      :loading="firstLoad"
+      empty-title="Расходов пока нет"
+      empty-body="Расход оплачивается из фонда программы: подайте служебную записку, решение примет совет."
+    )
+
+    ExpenseCreateDialog(
+      v-model="expenseOpen"
+      title="Расход программы «Образование»"
+      :source-wallet="EDU_EXPENSE_WALLET"
+      draft-key="edu:admin-economy:create-expense:draft"
+      :submit="submitExpense"
+      @created="load"
+    )
+
   template(v-else)
     .row.q-col-gutter-md
       .col-12.col-md-5
@@ -108,12 +131,24 @@ import { computed, onMounted, ref } from 'vue';
 import { useSystemStore } from 'src/entities/System/model';
 import { useFirstLoad } from 'src/shared/lib/composables';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
-import { asDateInput, formatToAsset } from 'src/shared/lib/utils';
+import { asDateInput, asText, formatToAsset } from 'src/shared/lib/utils';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { BaseButton, BaseCard, BaseDialog, BaseForm, BaseInput, BaseTable, EmptyState, type BaseTableColumn } from 'src/shared/ui/base';
 import { DataRow, IdentityCell, PageHint, WalletCard } from 'src/shared/ui/domain';
 import { PageTabs, type PageTab } from 'src/shared/ui/layout';
-import { fetchEconomySettings, fetchProgramFund, setEconomySettings, setTeacherRate, type IFundMovement, type IProgramFund } from '../../entities/Economy';
+import { ExpenseCreateDialog, ExpenseProposalList, type ExpenseCreatePayload, type ExpenseProposalListRow } from 'src/shared/ui/domain';
+import {
+  EDU_EXPENSE_WALLET,
+  createExpense,
+  fetchEconomySettings,
+  fetchExpenses,
+  fetchProgramFund,
+  setEconomySettings,
+  setTeacherRate,
+  type IExpense,
+  type IFundMovement,
+  type IProgramFund,
+} from '../../entities/Economy';
 import { fetchTeachers, type ITeacher } from '../../entities/Teacher';
 
 /**
@@ -138,13 +173,28 @@ const rateTarget = ref<ITeacher | null>(null);
 const rate = ref('');
 const savingRate = ref(false);
 const tab = ref('money');
+const expenses = ref<IExpense[]>([]);
+const expenseOpen = ref(false);
 
 const tabs: PageTab[] = [
   { key: 'money', label: 'Деньги' },
+  { key: 'expenses', label: 'Расходы' },
   { key: 'settings', label: 'Настройки' },
 ];
 
 const wallets = computed(() => fund.value?.wallets ?? []);
+// Список расходов собирает общий виджет шасси: заголовком идёт назначение
+// первой позиции — так расход узнаётся, не раскрывая карточку.
+const expenseRows = computed<ExpenseProposalListRow[]>(() =>
+  expenses.value.map((e) => ({
+    expense_hash: asText(e.expense_hash),
+    title: e.items[0]?.description || 'Расход программы',
+    status: e.status,
+    total_planned: e.total_planned,
+    creator_name: e.creator_name,
+    created_at: asDateInput(e.created_at) ?? undefined,
+  })),
+);
 const movements = computed<IFundMovement[]>(() => fund.value?.movements ?? []);
 
 const movementColumns: BaseTableColumn<IFundMovement>[] = [
@@ -169,11 +219,17 @@ const formatDate = (v: unknown) => {
 async function load(): Promise<void> {
   loading.value = true;
   try {
-    const [settings, list, money] = await Promise.all([fetchEconomySettings(), fetchTeachers(), fetchProgramFund()]);
+    const [settings, list, money, spending] = await Promise.all([
+      fetchEconomySettings(),
+      fetchTeachers(),
+      fetchProgramFund(),
+      fetchExpenses({ page: 1, limit: 50, sortBy: 'createdAt', sortOrder: 'DESC' }),
+    ]);
     markup.value = String(settings.markup_percent);
     maxDiscount.value = settings.max_year_discount_percent;
     teachers.value = list;
     fund.value = money;
+    expenses.value = spending.items;
   } catch (e) {
     FailAlert(e);
   } finally {
@@ -192,6 +248,19 @@ async function onSaveMarkup(): Promise<void> {
   } finally {
     savingMarkup.value = false;
   }
+}
+
+/**
+ * Подача расхода: форму, документ и подпись собирает общий виджет шасси,
+ * расширению остаётся мутация — она выделяет средства фонда под расход и
+ * передаёт записку в шасси.
+ */
+async function submitExpense(payload: ExpenseCreatePayload): Promise<unknown> {
+  return createExpense({
+    expense_hash: payload.expense_hash,
+    items: payload.items,
+    statement: payload.statement,
+  } as never);
 }
 
 function openRate(row: ITeacher): void {

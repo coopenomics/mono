@@ -184,6 +184,9 @@ export const PROCESS_HASH_LOCATOR: Readonly<Record<string, HashLocation[]>> = Ob
   //   - `educontracts.contract_hash` — договор УХД преподавателя; приложения
   //     к нему (`eduannexes.annex_hash`) живут только до подписи председателя.
   'p.edu.teach':  [{ code: 'edubridge', table: 'educontracts', field: 'contract_hash' }],
+  //   - `expenses.hash` — расход программы, поданный в шасси расходов
+  //     (живёт до завершения расхода; onexpdone стирает запись).
+  'p.edu.spend':  [{ code: 'edubridge', table: 'expenses', field: 'hash' }],
 
   // requirement b6 «Экономика КУ».
   // p.brn.fees — распределение членских взносов КУ: ручное распределение

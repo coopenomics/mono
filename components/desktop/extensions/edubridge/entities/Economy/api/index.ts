@@ -1,9 +1,24 @@
 import { Mutations, Queries } from '@coopenomics/sdk';
 import { client } from 'src/shared/api/client';
-import type { ICourseEconomyInput, ISetEconomySettingsInput, ISetTeacherRateInput } from '../model';
+import type { ICourseEconomyInput, ICreateExpenseInput, ISetEconomySettingsInput, ISetTeacherRateInput } from '../model';
 
 export async function fetchEconomySettings() {
   const { [Queries.Edubridge.EconomySettings.name]: result } = await client.Query(Queries.Edubridge.EconomySettings.query);
+  return result;
+}
+
+/** Расходы программы — ведёт общее шасси расходов. */
+export async function fetchExpenses(options?: Queries.Edubridge.Expenses.IInput['options']) {
+  const { [Queries.Edubridge.Expenses.name]: result } = await client.Query(Queries.Edubridge.Expenses.query, {
+    variables: { options },
+  });
+  return result;
+}
+
+export async function createExpense(data: ICreateExpenseInput) {
+  const { [Mutations.Edubridge.CreateExpense.name]: result } = await client.Mutation(Mutations.Edubridge.CreateExpense.mutation, {
+    variables: { data },
+  });
   return result;
 }
 

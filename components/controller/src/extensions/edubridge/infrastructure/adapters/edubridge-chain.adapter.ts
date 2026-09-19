@@ -69,6 +69,13 @@ export class EdubridgeChainAdapter implements EdubridgeChainPort {
     ]);
   }
 
+  async createExpense(data: EdubridgeContract.Actions.CreateExp.ICreateexp): Promise<InnerTransactResult> {
+    await this.prepare(data.coopname);
+    return this.chain.transact(
+      this.action(EdubridgeContract.Actions.CreateExp.actionName, { ...data, statement: this.chainDoc(data.statement) }, data.coopname)
+    );
+  }
+
   async expireSubscription(data: EdubridgeContract.Actions.Expiresub.IExpiresub): Promise<InnerTransactResult> {
     await this.prepare(data.coopname);
     return this.chain.transact(this.action(EdubridgeContract.Actions.Expiresub.actionName, data as unknown as Record<string, unknown>, data.coopname));

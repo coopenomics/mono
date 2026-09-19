@@ -121,6 +121,13 @@ namespace operations {
   namespace edubridge {
     inline constexpr eosio::name CONVERT_TO_EDU_MEMBER = "o.edu.conv"_n;  ///< Конвертация паевого взноса в членский взнос ЦПП «Образование» по заявлению пайщика (TRANSFER w.wal.share → w.edu.member, Dr 80 / Cr 86). Зеркало o.mkt.conv: единственный путь паевой→членский в программе.
     inline constexpr eosio::name COLLECT_EDU_FEE       = "o.edu.fee"_n;   ///< Списание членского взноса ученика в фонд программы при открытии и продлении подписки (TRANSFER w.edu.member → w.edu.fund, без Dr/Cr — оба на 86). Образец — o.mkt.fee «Стола заказов»; основание — Положение ЦПП «Образование», п. 4.2.2: стоимость подписки уходит в распоряжение общества.
+    inline constexpr eosio::name EXPENSE_FUND          = "o.edu.expfnd"_n; ///< Выделение средств программы под расход (TRANSFER w.edu.fund → w.edu.expns, без Dr/Cr — внутри 86). Выполняется при создании служебной записки: сумма расхода уходит из фонда в пул расходов программы.
+    inline constexpr eosio::name EXPENSE_UNFUND        = "o.edu.expunf"_n; ///< Возврат неизрасходованного из пула расходов программы в фонд (TRANSFER w.edu.expns → w.edu.fund, без Dr/Cr — внутри 86). Совет отклонил расход либо расход закрыт на сумму меньше запланированной.
+    inline constexpr eosio::name EXPENSE_SPEND         = "o.edu.spend"_n;  ///< Прямая оплата расхода программы по реквизитам получателя (BURN с w.edu.expns, Dr 86 / Cr 51 — выплата с расчётного счёта после подтверждения кассиром). Роль `direct` в наборе шасси расходов программы.
+    inline constexpr eosio::name EXPENSE_ADVANCE       = "o.edu.expadv"_n; ///< Выдача аванса под отчёт по расходу программы (TRANSFER w.edu.expns → w.exp.adv, Dr 86 / Cr 51; username = получатель аванса). Роль `advance` в наборе шасси расходов программы.
+    inline constexpr eosio::name EXPENSE_REPORT        = "o.edu.exprpt"_n; ///< Закрытие подотчёта по расходу программы отчётом с чеками (BURN с w.exp.adv, без Dr/Cr — проводка сделана при выдаче аванса). Роль `report` в наборе шасси расходов программы.
+    inline constexpr eosio::name EXPENSE_RETURN        = "o.edu.expret"_n; ///< Возврат неиспользованного аванса в пул расходов программы (TRANSFER w.exp.adv → w.edu.expns, Dr 51 / Cr 86 — деньги вернулись на расчётный счёт). Роль `refund` в наборе шасси расходов программы.
+    inline constexpr eosio::name EXPENSE_OVERSPEND     = "o.edu.expovr"_n; ///< Доплата сверх выданного аванса по расходу программы (TRANSFER w.edu.expns → w.exp.adv, Dr 86 / Cr 51). Роль `overspend` в наборе шасси расходов программы.
     inline constexpr eosio::name ACCEPT_EDU_RID        = "o.edu.rid"_n;   ///< Приём результата интеллектуальной деятельности преподавателя в паевой фонд по решению совета и акту (ISSUE → w.wal.share, Dr 04 / Cr 80). Эталон — o.cap.import; возврат — штатным createwthd.
   }
 
@@ -541,6 +548,58 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
     ledger2_wallets::EDU_MEMBER_FEE, ledger2_wallets::EDU_PROGRAM_FUND,
     0, 0,
     "Членский взнос за курс в фонд ЦПП «Образование»" },
+
+  // 12e³. p.edu.spend: Выделение средств программы под расход
+  //      (TRANSFER w.edu.fund → w.edu.expns, без Dr/Cr — внутри 86).
+  //      Выполняется при создании служебной записки: сумма расхода уходит из
+  //      фонда в пул и перестаёт быть свободной.
+  { operations::edubridge::EXPENSE_FUND, processes::edubridge::SPEND, WalletOp::TRANSFER,
+    ledger2_wallets::EDU_PROGRAM_FUND, ledger2_wallets::EDU_EXPENSE_POOL,
+    0, 0,
+    "Выделение средств ЦПП «Образование» под расход" },
+
+  // 12e⁴. p.edu.spend: Возврат неизрасходованного из пула расходов в фонд
+  //      (TRANSFER w.edu.expns → w.edu.fund, без Dr/Cr — внутри 86).
+  { operations::edubridge::EXPENSE_UNFUND, processes::edubridge::SPEND, WalletOp::TRANSFER,
+    ledger2_wallets::EDU_EXPENSE_POOL, ledger2_wallets::EDU_PROGRAM_FUND,
+    0, 0,
+    "Возврат неизрасходованных средств в фонд ЦПП «Образование»" },
+
+  // 12e⁵. p.edu.spend: Прямая оплата расхода программы по реквизитам
+  //      (BURN с w.edu.expns, Dr 86 / Cr 51). Роль `direct` в наборе шасси.
+  { operations::edubridge::EXPENSE_SPEND, processes::edubridge::SPEND, WalletOp::BURN,
+    ledger2_wallets::EDU_EXPENSE_POOL, eosio::name{},
+    ledger2_accounts::TARGET_RECEIPTS, ledger2_accounts::BANK_ACCOUNT,
+    "Прямая оплата расхода ЦПП «Образование» по реквизитам" },
+
+  // 12e⁶. p.edu.spend: Выдача аванса под отчёт по расходу программы
+  //      (TRANSFER w.edu.expns → w.exp.adv, Dr 86 / Cr 51). Роль `advance`.
+  { operations::edubridge::EXPENSE_ADVANCE, processes::edubridge::SPEND, WalletOp::TRANSFER,
+    ledger2_wallets::EDU_EXPENSE_POOL, ledger2_wallets::ADVANCE_HOLD,
+    ledger2_accounts::TARGET_RECEIPTS, ledger2_accounts::BANK_ACCOUNT,
+    "Выдача аванса под отчёт по расходу ЦПП «Образование»" },
+
+  // 12e⁷. p.edu.spend: Закрытие подотчёта отчётом с чеками
+  //      (BURN с w.exp.adv, без Dr/Cr — проводка сделана при выдаче аванса).
+  { operations::edubridge::EXPENSE_REPORT, processes::edubridge::SPEND, WalletOp::BURN,
+    ledger2_wallets::ADVANCE_HOLD, eosio::name{},
+    0, 0,
+    "Закрытие подотчёта по расходу ЦПП «Образование»" },
+
+  // 12e⁸. p.edu.spend: Возврат неиспользованного аванса в пул расходов
+  //      (TRANSFER w.exp.adv → w.edu.expns, Dr 51 / Cr 86).
+  { operations::edubridge::EXPENSE_RETURN, processes::edubridge::SPEND, WalletOp::TRANSFER,
+    ledger2_wallets::ADVANCE_HOLD, ledger2_wallets::EDU_EXPENSE_POOL,
+    ledger2_accounts::BANK_ACCOUNT, ledger2_accounts::TARGET_RECEIPTS,
+    "Возврат неиспользованного аванса по расходу ЦПП «Образование»" },
+
+  // 12e⁹. p.edu.spend: Доплата сверх выданного аванса
+  //      (TRANSFER w.edu.expns → w.exp.adv, Dr 86 / Cr 51); сразу за ней
+  //      шасси закрывает подотчёт отчётом.
+  { operations::edubridge::EXPENSE_OVERSPEND, processes::edubridge::SPEND, WalletOp::TRANSFER,
+    ledger2_wallets::EDU_EXPENSE_POOL, ledger2_wallets::ADVANCE_HOLD,
+    ledger2_accounts::TARGET_RECEIPTS, ledger2_accounts::BANK_ACCOUNT,
+    "Доплата сверх аванса по расходу ЦПП «Образование»" },
 
   // 12f. p.edu.rid: Приём РИД преподавателя в паевой фонд (ISSUE → w.wal.share,
   //      Dr 04 / Cr 80). Эталон — o.cap.import (РИД как НМА, поэтому Dr 04).
@@ -1020,6 +1079,18 @@ static constexpr ExpenseOperationSet EXPENSE_OPERATION_SETS[] = {
   // (o.brn.expfnd) при создании записки; неизрасходованное возвращается туда
   // же (o.brn.expunf). Проводки идут по целевому финансированию участка
   // (Дт 86 / Кт 51), а не по вложениям, как в «Благоросте».
+  // Пул расходов ЦПП «Образование» — source_wallet заполняет
+  // edubridge::createexp при создании служебной записки на расход программы.
+  // Пул наполняется из фонда программы (o.edu.expfnd); неизрасходованное
+  // возвращается туда же (o.edu.expunf). Проводки — по целевому
+  // финансированию программы (Дт 86 / Кт 51), как у кооперативного участка.
+  { ledger2_wallets::EDU_EXPENSE_POOL,
+    operations::edubridge::EXPENSE_ADVANCE,
+    operations::edubridge::EXPENSE_SPEND,
+    operations::edubridge::EXPENSE_REPORT,
+    operations::edubridge::EXPENSE_RETURN,
+    operations::edubridge::EXPENSE_OVERSPEND },
+
   { ledger2_wallets::BRANCH_EXPENSE_POOL,
     operations::branch::EXPENSE_ADVANCE,
     operations::branch::SPEND_COMMON,

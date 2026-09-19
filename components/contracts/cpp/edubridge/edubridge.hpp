@@ -110,6 +110,31 @@ public:
   [[eosio::action]] void expiresub(eosio::name coopname,
                                    checksum256 sub_hash);
 
+  // ── p.edu.spend ──────────────────────────────────────────────────────
+
+  /**
+   * @brief Подать расход программы в шасси расходов. Сумма записки уходит из
+   * фонда программы в пул расходов (o.edu.expfnd), дальше расход ведёт шасси:
+   * решение совета, оплата или аванс под отчёт, отчёт, закрытие.
+   * @ingroup public_edubridge_actions
+   */
+  [[eosio::action]] void createexp(eosio::name coopname,
+                                   eosio::name creator,
+                                   eosio::checksum256 expense_hash,
+                                   std::vector<ExpenseDomain::item> items,
+                                   document2 statement);
+
+  /**
+   * @brief Коллбэк шасси: расход завершён. Неизрасходованный остаток
+   * возвращается в фонд программы (o.edu.expunf), запись стирается.
+   * @ingroup public_edubridge_actions
+   */
+  [[eosio::action]] void onexpdone(eosio::name coopname,
+                                   eosio::checksum256 expense_hash,
+                                   uint8_t status,
+                                   eosio::asset total_actual,
+                                   std::vector<char> data);
+
   // ── p.edu.rid ────────────────────────────────────────────────────────
 
   /**

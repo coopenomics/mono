@@ -7157,6 +7157,15 @@ export type ValueTypes = {
 	/** Предмет */
 	subject?: string | undefined | null | Variable<any, string>
 };
+	/** Подача расхода программы: средства фонда выделяются под расход, а сам расход уходит на решение совета и далее к оплате. */
+["EduCreateExpenseInput"]: {
+	/** Идентификатор расхода */
+	expense_hash: string | Variable<any, string>,
+	/** Позиции расхода */
+	items: Array<ValueTypes["EduExpenseItemInput"]> | Variable<any, string>,
+	/** Подписанная служебная записка на расход */
+	statement: ValueTypes["ExpenseProposalStatementSignedDocumentInput"] | Variable<any, string>
+};
 	["EduDeclineContributionInput"]: {
 	/** Взнос */
 	contribution_id: ValueTypes["ID"] | Variable<any, string>,
@@ -7197,6 +7206,71 @@ export type ValueTypes = {
 ["EduEnrollmentPeriod"]:EduEnrollmentPeriod;
 	/** Состояние подписки обучающегося на курс */
 ["EduEnrollmentStatus"]:EduEnrollmentStatus;
+	["EduExpense"]: AliasType<{
+	/** Подан */
+	created_at?:boolean | `@${string}`,
+	/** Кто подал расход */
+	creator?:boolean | `@${string}`,
+	/** Фамилия, имя и отчество подавшего */
+	creator_name?:boolean | `@${string}`,
+	/** Идентификатор расхода */
+	expense_hash?:boolean | `@${string}`,
+	/** Позиции расхода */
+	items?:ValueTypes["EduExpenseItem"],
+	/** Состояние расхода */
+	status?:boolean | `@${string}`,
+	/** Фактически потрачено */
+	total_actual?:boolean | `@${string}`,
+	/** Выделено под расход */
+	total_planned?:boolean | `@${string}`,
+	/** Изменён */
+	updated_at?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on EduExpense']?: Omit<ValueTypes["EduExpense"], "...on EduExpense">
+}>;
+	["EduExpenseItem"]: AliasType<{
+	/** Фактическая сумма после отчёта */
+	actual_amount?:boolean | `@${string}`,
+	/** Назначение расхода */
+	description?:boolean | `@${string}`,
+	/** Идентификатор позиции */
+	item_hash?:boolean | `@${string}`,
+	/** Способ оплаты */
+	mechanics?:boolean | `@${string}`,
+	/** Планируемая сумма */
+	planned_amount?:boolean | `@${string}`,
+	/** Получатель */
+	recipient?:boolean | `@${string}`,
+	/** Получатель — ФИО пайщика или название организации */
+	recipient_name?:boolean | `@${string}`,
+	/** Тип получателя */
+	recipient_type?:boolean | `@${string}`,
+	/** Состояние позиции */
+	status?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on EduExpenseItem']?: Omit<ValueTypes["EduExpenseItem"], "...on EduExpenseItem">
+}>;
+	/** Позиция расхода программы: кому, сколько и каким способом платим. */
+["EduExpenseItemInput"]: {
+	/** Назначение расхода по этой позиции */
+	description: string | Variable<any, string>,
+	/** Идентификатор позиции расхода */
+	item_hash: string | Variable<any, string>,
+	/** Способ оплаты: аванс под отчёт пайщику либо прямая оплата организации */
+	mechanics: ValueTypes["ExpenseMechanics"] | Variable<any, string>,
+	/** Сохранённые реквизиты пайщика-получателя */
+	payment_method_id?: string | undefined | null | Variable<any, string>,
+	/** Назначение платежа для оплаты по счёту организации */
+	payment_purpose?: string | undefined | null | Variable<any, string>,
+	/** Планируемая сумма позиции */
+	planned_amount: string | Variable<any, string>,
+	/** Пайщик-получатель; для организации — пустая строка */
+	recipient: string | Variable<any, string>,
+	/** Получатель платежа: сам заявитель, другой пайщик или организация */
+	recipient_type: ValueTypes["ExpenseRecipientType"] | Variable<any, string>,
+	/** Реквизиты организации-получателя */
+	requisites?: string | undefined | null | Variable<any, string>
+};
 	["EduFundMovement"]: AliasType<{
 	/** Сумма */
 	amount?:boolean | `@${string}`,
@@ -13494,6 +13568,7 @@ edubridgeCloseAssignment?: [{	id: ValueTypes["ID"] | Variable<any, string>},Valu
 edubridgeConvertStatement?: [{	data: ValueTypes["EduQuoteInput"] | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 edubridgeCreateAssignment?: [{	data: ValueTypes["EduAssignmentInput"] | Variable<any, string>},ValueTypes["EduAssignment"]],
 edubridgeCreateCourse?: [{	data: ValueTypes["EduCourseInput"] | Variable<any, string>},ValueTypes["EduCourse"]],
+edubridgeCreateExpense?: [{	data: ValueTypes["EduCreateExpenseInput"] | Variable<any, string>},boolean | `@${string}`],
 edubridgeDeclineContribution?: [{	data: ValueTypes["EduDeclineContributionInput"] | Variable<any, string>},ValueTypes["EduContribution"]],
 edubridgeDismissAdmin?: [{	data: ValueTypes["EduAdminInput"] | Variable<any, string>},boolean | `@${string}`],
 edubridgeDraftContribution?: [{	data: ValueTypes["EduContributionDraftInput"] | Variable<any, string>},ValueTypes["EduContribution"]],
@@ -14284,6 +14359,18 @@ walmoveWallets?: [{	input: ValueTypes["WalmoveInput"] | Variable<any, string>},V
 	totalPages?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
 	['...on PaginatedEduCoursesPaginationResult']?: Omit<ValueTypes["PaginatedEduCoursesPaginationResult"], "...on PaginatedEduCoursesPaginationResult">
+}>;
+	["PaginatedEduExpensesPaginationResult"]: AliasType<{
+	/** Текущая страница */
+	currentPage?:boolean | `@${string}`,
+	/** Элементы текущей страницы */
+	items?:ValueTypes["EduExpense"],
+	/** Общее количество элементов */
+	totalCount?:boolean | `@${string}`,
+	/** Общее количество страниц */
+	totalPages?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on PaginatedEduExpensesPaginationResult']?: Omit<ValueTypes["PaginatedEduExpensesPaginationResult"], "...on PaginatedEduExpensesPaginationResult">
 }>;
 	["PaginatedExpenseProposalsPaginationResult"]: AliasType<{
 	/** Текущая страница */
@@ -15378,6 +15465,7 @@ edubridgeCourseFeePreview?: [{	data: ValueTypes["EduCourseEconomyInput"] | Varia
 edubridgeCourses?: [{	filter?: ValueTypes["EduCoursesFilterInput"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedEduCoursesPaginationResult"]],
 	/** Наценка кооператива и предельная скидка за год */
 	edubridgeEconomySettings?:ValueTypes["EduEconomySettings"],
+edubridgeExpenses?: [{	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedEduExpensesPaginationResult"]],
 edubridgeMemberCard?: [{	username: string | Variable<any, string>},ValueTypes["EduMemberCard"]],
 edubridgeMembers?: [{	search?: string | undefined | null | Variable<any, string>},ValueTypes["EduMemberRow"]],
 	/** Мои назначения */
@@ -23887,6 +23975,15 @@ export type ResolverInputTypes = {
 	/** Предмет */
 	subject?: string | undefined | null
 };
+	/** Подача расхода программы: средства фонда выделяются под расход, а сам расход уходит на решение совета и далее к оплате. */
+["EduCreateExpenseInput"]: {
+	/** Идентификатор расхода */
+	expense_hash: string,
+	/** Позиции расхода */
+	items: Array<ResolverInputTypes["EduExpenseItemInput"]>,
+	/** Подписанная служебная записка на расход */
+	statement: ResolverInputTypes["ExpenseProposalStatementSignedDocumentInput"]
+};
 	["EduDeclineContributionInput"]: {
 	/** Взнос */
 	contribution_id: ResolverInputTypes["ID"],
@@ -23925,6 +24022,69 @@ export type ResolverInputTypes = {
 ["EduEnrollmentPeriod"]:EduEnrollmentPeriod;
 	/** Состояние подписки обучающегося на курс */
 ["EduEnrollmentStatus"]:EduEnrollmentStatus;
+	["EduExpense"]: AliasType<{
+	/** Подан */
+	created_at?:boolean | `@${string}`,
+	/** Кто подал расход */
+	creator?:boolean | `@${string}`,
+	/** Фамилия, имя и отчество подавшего */
+	creator_name?:boolean | `@${string}`,
+	/** Идентификатор расхода */
+	expense_hash?:boolean | `@${string}`,
+	/** Позиции расхода */
+	items?:ResolverInputTypes["EduExpenseItem"],
+	/** Состояние расхода */
+	status?:boolean | `@${string}`,
+	/** Фактически потрачено */
+	total_actual?:boolean | `@${string}`,
+	/** Выделено под расход */
+	total_planned?:boolean | `@${string}`,
+	/** Изменён */
+	updated_at?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["EduExpenseItem"]: AliasType<{
+	/** Фактическая сумма после отчёта */
+	actual_amount?:boolean | `@${string}`,
+	/** Назначение расхода */
+	description?:boolean | `@${string}`,
+	/** Идентификатор позиции */
+	item_hash?:boolean | `@${string}`,
+	/** Способ оплаты */
+	mechanics?:boolean | `@${string}`,
+	/** Планируемая сумма */
+	planned_amount?:boolean | `@${string}`,
+	/** Получатель */
+	recipient?:boolean | `@${string}`,
+	/** Получатель — ФИО пайщика или название организации */
+	recipient_name?:boolean | `@${string}`,
+	/** Тип получателя */
+	recipient_type?:boolean | `@${string}`,
+	/** Состояние позиции */
+	status?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Позиция расхода программы: кому, сколько и каким способом платим. */
+["EduExpenseItemInput"]: {
+	/** Назначение расхода по этой позиции */
+	description: string,
+	/** Идентификатор позиции расхода */
+	item_hash: string,
+	/** Способ оплаты: аванс под отчёт пайщику либо прямая оплата организации */
+	mechanics: ResolverInputTypes["ExpenseMechanics"],
+	/** Сохранённые реквизиты пайщика-получателя */
+	payment_method_id?: string | undefined | null,
+	/** Назначение платежа для оплаты по счёту организации */
+	payment_purpose?: string | undefined | null,
+	/** Планируемая сумма позиции */
+	planned_amount: string,
+	/** Пайщик-получатель; для организации — пустая строка */
+	recipient: string,
+	/** Получатель платежа: сам заявитель, другой пайщик или организация */
+	recipient_type: ResolverInputTypes["ExpenseRecipientType"],
+	/** Реквизиты организации-получателя */
+	requisites?: string | undefined | null
+};
 	["EduFundMovement"]: AliasType<{
 	/** Сумма */
 	amount?:boolean | `@${string}`,
@@ -30032,6 +30192,7 @@ edubridgeCloseAssignment?: [{	id: ResolverInputTypes["ID"]},ResolverInputTypes["
 edubridgeConvertStatement?: [{	data: ResolverInputTypes["EduQuoteInput"]},ResolverInputTypes["GeneratedDocument"]],
 edubridgeCreateAssignment?: [{	data: ResolverInputTypes["EduAssignmentInput"]},ResolverInputTypes["EduAssignment"]],
 edubridgeCreateCourse?: [{	data: ResolverInputTypes["EduCourseInput"]},ResolverInputTypes["EduCourse"]],
+edubridgeCreateExpense?: [{	data: ResolverInputTypes["EduCreateExpenseInput"]},boolean | `@${string}`],
 edubridgeDeclineContribution?: [{	data: ResolverInputTypes["EduDeclineContributionInput"]},ResolverInputTypes["EduContribution"]],
 edubridgeDismissAdmin?: [{	data: ResolverInputTypes["EduAdminInput"]},boolean | `@${string}`],
 edubridgeDraftContribution?: [{	data: ResolverInputTypes["EduContributionDraftInput"]},ResolverInputTypes["EduContribution"]],
@@ -30781,6 +30942,17 @@ walmoveWallets?: [{	input: ResolverInputTypes["WalmoveInput"]},ResolverInputType
 	currentPage?:boolean | `@${string}`,
 	/** Элементы текущей страницы */
 	items?:ResolverInputTypes["EduCourse"],
+	/** Общее количество элементов */
+	totalCount?:boolean | `@${string}`,
+	/** Общее количество страниц */
+	totalPages?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["PaginatedEduExpensesPaginationResult"]: AliasType<{
+	/** Текущая страница */
+	currentPage?:boolean | `@${string}`,
+	/** Элементы текущей страницы */
+	items?:ResolverInputTypes["EduExpense"],
 	/** Общее количество элементов */
 	totalCount?:boolean | `@${string}`,
 	/** Общее количество страниц */
@@ -31841,6 +32013,7 @@ edubridgeCourseFeePreview?: [{	data: ResolverInputTypes["EduCourseEconomyInput"]
 edubridgeCourses?: [{	filter?: ResolverInputTypes["EduCoursesFilterInput"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedEduCoursesPaginationResult"]],
 	/** Наценка кооператива и предельная скидка за год */
 	edubridgeEconomySettings?:ResolverInputTypes["EduEconomySettings"],
+edubridgeExpenses?: [{	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedEduExpensesPaginationResult"]],
 edubridgeMemberCard?: [{	username: string},ResolverInputTypes["EduMemberCard"]],
 edubridgeMembers?: [{	search?: string | undefined | null},ResolverInputTypes["EduMemberRow"]],
 	/** Мои назначения */
@@ -40100,6 +40273,15 @@ export type ModelTypes = {
 	/** Предмет */
 	subject?: string | undefined | null
 };
+	/** Подача расхода программы: средства фонда выделяются под расход, а сам расход уходит на решение совета и далее к оплате. */
+["EduCreateExpenseInput"]: {
+	/** Идентификатор расхода */
+	expense_hash: string,
+	/** Позиции расхода */
+	items: Array<ModelTypes["EduExpenseItemInput"]>,
+	/** Подписанная служебная записка на расход */
+	statement: ModelTypes["ExpenseProposalStatementSignedDocumentInput"]
+};
 	["EduDeclineContributionInput"]: {
 	/** Взнос */
 	contribution_id: ModelTypes["ID"],
@@ -40134,6 +40316,67 @@ export type ModelTypes = {
 };
 	["EduEnrollmentPeriod"]:EduEnrollmentPeriod;
 	["EduEnrollmentStatus"]:EduEnrollmentStatus;
+	["EduExpense"]: {
+		/** Подан */
+	created_at: ModelTypes["DateTime"],
+	/** Кто подал расход */
+	creator: string,
+	/** Фамилия, имя и отчество подавшего */
+	creator_name: string,
+	/** Идентификатор расхода */
+	expense_hash: ModelTypes["ID"],
+	/** Позиции расхода */
+	items: Array<ModelTypes["EduExpenseItem"]>,
+	/** Состояние расхода */
+	status: ModelTypes["ExpenseProposalStatus"],
+	/** Фактически потрачено */
+	total_actual: string,
+	/** Выделено под расход */
+	total_planned: string,
+	/** Изменён */
+	updated_at: ModelTypes["DateTime"]
+};
+	["EduExpenseItem"]: {
+		/** Фактическая сумма после отчёта */
+	actual_amount: string,
+	/** Назначение расхода */
+	description: string,
+	/** Идентификатор позиции */
+	item_hash: string,
+	/** Способ оплаты */
+	mechanics: ModelTypes["ExpenseMechanics"],
+	/** Планируемая сумма */
+	planned_amount: string,
+	/** Получатель */
+	recipient: string,
+	/** Получатель — ФИО пайщика или название организации */
+	recipient_name: string,
+	/** Тип получателя */
+	recipient_type: ModelTypes["ExpenseRecipientType"],
+	/** Состояние позиции */
+	status: ModelTypes["ExpenseItemStatus"]
+};
+	/** Позиция расхода программы: кому, сколько и каким способом платим. */
+["EduExpenseItemInput"]: {
+	/** Назначение расхода по этой позиции */
+	description: string,
+	/** Идентификатор позиции расхода */
+	item_hash: string,
+	/** Способ оплаты: аванс под отчёт пайщику либо прямая оплата организации */
+	mechanics: ModelTypes["ExpenseMechanics"],
+	/** Сохранённые реквизиты пайщика-получателя */
+	payment_method_id?: string | undefined | null,
+	/** Назначение платежа для оплаты по счёту организации */
+	payment_purpose?: string | undefined | null,
+	/** Планируемая сумма позиции */
+	planned_amount: string,
+	/** Пайщик-получатель; для организации — пустая строка */
+	recipient: string,
+	/** Получатель платежа: сам заявитель, другой пайщик или организация */
+	recipient_type: ModelTypes["ExpenseRecipientType"],
+	/** Реквизиты организации-получателя */
+	requisites?: string | undefined | null
+};
 	["EduFundMovement"]: {
 		/** Сумма */
 	amount: string,
@@ -46395,6 +46638,8 @@ export type ModelTypes = {
 	edubridgeCreateAssignment: ModelTypes["EduAssignment"],
 	/** Добавить курс (черновик) */
 	edubridgeCreateCourse: ModelTypes["EduCourse"],
+	/** Подать расход программы: средства фонда выделяются под расход */
+	edubridgeCreateExpense: string,
 	/** Отклонить взнос РИД с причиной */
 	edubridgeDeclineContribution: ModelTypes["EduContribution"],
 	/** Снять администратора */
@@ -47502,6 +47747,16 @@ export type ModelTypes = {
 	currentPage: number,
 	/** Элементы текущей страницы */
 	items: Array<ModelTypes["EduCourse"]>,
+	/** Общее количество элементов */
+	totalCount: number,
+	/** Общее количество страниц */
+	totalPages: number
+};
+	["PaginatedEduExpensesPaginationResult"]: {
+		/** Текущая страница */
+	currentPage: number,
+	/** Элементы текущей страницы */
+	items: Array<ModelTypes["EduExpense"]>,
 	/** Общее количество элементов */
 	totalCount: number,
 	/** Общее количество страниц */
@@ -48703,6 +48958,8 @@ export type ModelTypes = {
 	edubridgeCourses: ModelTypes["PaginatedEduCoursesPaginationResult"],
 	/** Наценка кооператива и предельная скидка за год */
 	edubridgeEconomySettings: ModelTypes["EduEconomySettings"],
+	/** Расходы программы: что оплачивается из фонда */
+	edubridgeExpenses: ModelTypes["PaginatedEduExpensesPaginationResult"],
 	/** Сводная карточка пайщика: обучающиеся, курсы, оплаты, выдача */
 	edubridgeMemberCard: ModelTypes["EduMemberCard"],
 	/** Ученики приложения: у каждого свои обучающиеся и подписки */
@@ -57472,6 +57729,15 @@ export type GraphQLTypes = {
 	/** Предмет */
 	subject?: string | undefined | null
 };
+	/** Подача расхода программы: средства фонда выделяются под расход, а сам расход уходит на решение совета и далее к оплате. */
+["EduCreateExpenseInput"]: {
+		/** Идентификатор расхода */
+	expense_hash: string,
+	/** Позиции расхода */
+	items: Array<GraphQLTypes["EduExpenseItemInput"]>,
+	/** Подписанная служебная записка на расход */
+	statement: GraphQLTypes["ExpenseProposalStatementSignedDocumentInput"]
+};
 	["EduDeclineContributionInput"]: {
 		/** Взнос */
 	contribution_id: GraphQLTypes["ID"],
@@ -57512,6 +57778,71 @@ export type GraphQLTypes = {
 ["EduEnrollmentPeriod"]: EduEnrollmentPeriod;
 	/** Состояние подписки обучающегося на курс */
 ["EduEnrollmentStatus"]: EduEnrollmentStatus;
+	["EduExpense"]: {
+	__typename: "EduExpense",
+	/** Подан */
+	created_at: GraphQLTypes["DateTime"],
+	/** Кто подал расход */
+	creator: string,
+	/** Фамилия, имя и отчество подавшего */
+	creator_name: string,
+	/** Идентификатор расхода */
+	expense_hash: GraphQLTypes["ID"],
+	/** Позиции расхода */
+	items: Array<GraphQLTypes["EduExpenseItem"]>,
+	/** Состояние расхода */
+	status: GraphQLTypes["ExpenseProposalStatus"],
+	/** Фактически потрачено */
+	total_actual: string,
+	/** Выделено под расход */
+	total_planned: string,
+	/** Изменён */
+	updated_at: GraphQLTypes["DateTime"],
+	['...on EduExpense']: Omit<GraphQLTypes["EduExpense"], "...on EduExpense">
+};
+	["EduExpenseItem"]: {
+	__typename: "EduExpenseItem",
+	/** Фактическая сумма после отчёта */
+	actual_amount: string,
+	/** Назначение расхода */
+	description: string,
+	/** Идентификатор позиции */
+	item_hash: string,
+	/** Способ оплаты */
+	mechanics: GraphQLTypes["ExpenseMechanics"],
+	/** Планируемая сумма */
+	planned_amount: string,
+	/** Получатель */
+	recipient: string,
+	/** Получатель — ФИО пайщика или название организации */
+	recipient_name: string,
+	/** Тип получателя */
+	recipient_type: GraphQLTypes["ExpenseRecipientType"],
+	/** Состояние позиции */
+	status: GraphQLTypes["ExpenseItemStatus"],
+	['...on EduExpenseItem']: Omit<GraphQLTypes["EduExpenseItem"], "...on EduExpenseItem">
+};
+	/** Позиция расхода программы: кому, сколько и каким способом платим. */
+["EduExpenseItemInput"]: {
+		/** Назначение расхода по этой позиции */
+	description: string,
+	/** Идентификатор позиции расхода */
+	item_hash: string,
+	/** Способ оплаты: аванс под отчёт пайщику либо прямая оплата организации */
+	mechanics: GraphQLTypes["ExpenseMechanics"],
+	/** Сохранённые реквизиты пайщика-получателя */
+	payment_method_id?: string | undefined | null,
+	/** Назначение платежа для оплаты по счёту организации */
+	payment_purpose?: string | undefined | null,
+	/** Планируемая сумма позиции */
+	planned_amount: string,
+	/** Пайщик-получатель; для организации — пустая строка */
+	recipient: string,
+	/** Получатель платежа: сам заявитель, другой пайщик или организация */
+	recipient_type: GraphQLTypes["ExpenseRecipientType"],
+	/** Реквизиты организации-получателя */
+	requisites?: string | undefined | null
+};
 	["EduFundMovement"]: {
 	__typename: "EduFundMovement",
 	/** Сумма */
@@ -64233,6 +64564,8 @@ export type GraphQLTypes = {
 	edubridgeCreateAssignment: GraphQLTypes["EduAssignment"],
 	/** Добавить курс (черновик) */
 	edubridgeCreateCourse: GraphQLTypes["EduCourse"],
+	/** Подать расход программы: средства фонда выделяются под расход */
+	edubridgeCreateExpense: string,
 	/** Отклонить взнос РИД с причиной */
 	edubridgeDeclineContribution: GraphQLTypes["EduContribution"],
 	/** Снять администратора */
@@ -65422,6 +65755,18 @@ export type GraphQLTypes = {
 	/** Общее количество страниц */
 	totalPages: number,
 	['...on PaginatedEduCoursesPaginationResult']: Omit<GraphQLTypes["PaginatedEduCoursesPaginationResult"], "...on PaginatedEduCoursesPaginationResult">
+};
+	["PaginatedEduExpensesPaginationResult"]: {
+	__typename: "PaginatedEduExpensesPaginationResult",
+	/** Текущая страница */
+	currentPage: number,
+	/** Элементы текущей страницы */
+	items: Array<GraphQLTypes["EduExpense"]>,
+	/** Общее количество элементов */
+	totalCount: number,
+	/** Общее количество страниц */
+	totalPages: number,
+	['...on PaginatedEduExpensesPaginationResult']: Omit<GraphQLTypes["PaginatedEduExpensesPaginationResult"], "...on PaginatedEduExpensesPaginationResult">
 };
 	["PaginatedExpenseProposalsPaginationResult"]: {
 	__typename: "PaginatedExpenseProposalsPaginationResult",
@@ -66722,6 +67067,8 @@ export type GraphQLTypes = {
 	edubridgeCourses: GraphQLTypes["PaginatedEduCoursesPaginationResult"],
 	/** Наценка кооператива и предельная скидка за год */
 	edubridgeEconomySettings: GraphQLTypes["EduEconomySettings"],
+	/** Расходы программы: что оплачивается из фонда */
+	edubridgeExpenses: GraphQLTypes["PaginatedEduExpensesPaginationResult"],
 	/** Сводная карточка пайщика: обучающиеся, курсы, оплаты, выдача */
 	edubridgeMemberCard: GraphQLTypes["EduMemberCard"],
 	/** Ученики приложения: у каждого свои обучающиеся и подписки */
@@ -70898,9 +71245,11 @@ type ZEUS_VARIABLES = {
 	["EduCourseInput"]: ValueTypes["EduCourseInput"];
 	["EduCourseStatus"]: ValueTypes["EduCourseStatus"];
 	["EduCoursesFilterInput"]: ValueTypes["EduCoursesFilterInput"];
+	["EduCreateExpenseInput"]: ValueTypes["EduCreateExpenseInput"];
 	["EduDeclineContributionInput"]: ValueTypes["EduDeclineContributionInput"];
 	["EduEnrollmentPeriod"]: ValueTypes["EduEnrollmentPeriod"];
 	["EduEnrollmentStatus"]: ValueTypes["EduEnrollmentStatus"];
+	["EduExpenseItemInput"]: ValueTypes["EduExpenseItemInput"];
 	["EduLearnerInput"]: ValueTypes["EduLearnerInput"];
 	["EduOfferKind"]: ValueTypes["EduOfferKind"];
 	["EduOnboardingSource"]: ValueTypes["EduOnboardingSource"];

@@ -44,6 +44,35 @@ export interface IConvert {
   statement: IDocument2
 }
 
+/** Позиция расхода программы: что, кому и на какую сумму. */
+export interface IEduExpenseItem {
+  /** Механика оплаты: 0 — аванс под отчёт, 1 — прямая оплата, 2 — по факту. */
+  mechanics: number
+  /** Получатель: 0 — сам создатель, 1 — другой пайщик, 2 — организация. */
+  recipient_type: number
+  recipient: IName
+  description: string
+  planned_amount: IAsset
+  actual_amount: IAsset
+  status: number
+}
+
+export interface ICreateexp {
+  coopname: IName
+  creator: IName
+  expense_hash: IChecksum256
+  items: IEduExpenseItem[]
+  statement: IDocument2
+}
+
+export interface IOnexpdone {
+  coopname: IName
+  expense_hash: IChecksum256
+  status: number
+  total_actual: IAsset
+  data: string
+}
+
 export interface IChargefee {
   coopname: IName
   username: IName

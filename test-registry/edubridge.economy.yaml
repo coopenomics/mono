@@ -13,6 +13,9 @@ sources:
     - components/controller/src/extensions/edubridge/application/services/edubridge-economy.service.ts
     - components/controller/src/extensions/edubridge/application/resolvers/edubridge-economy.resolver.ts
     - components/controller/src/extensions/edubridge/application/dto/edu-economy.dto.ts
+    - components/controller/src/extensions/edubridge/application/services/edubridge-expense.service.ts
+    - components/controller/src/extensions/edubridge/application/dto/edu-expense.dto.ts
+    - components/contracts/cpp/edubridge/src/p.edu.spend/**
     - components/contracts/cpp/edubridge/src/p.edu.access/chargefee.cpp
   ui:
     - components/desktop/extensions/edubridge/pages/AdminEconomyPage/**
@@ -110,3 +113,31 @@ cases:
     expect: Сумма списания равна взносу за период, привязка к ключу подписки и плательщику.
     test: components/controller/tests/unit/edubridge/enrollment.service.test.ts
     status: passing
+  - id: edu.econ.happy.07
+    level: backend
+    kind: happy
+    scenario: Председатель подаёт расход программы — реквизиты проверяются до цепи, снимок снимается после подачи.
+    expect: Организация уходит на цепь без имени получателя, факт нулевой до отчёта.
+    test: components/controller/tests/unit/edubridge/expense.service.test.ts
+    status: passing
+  - id: edu.econ.break.03
+    level: backend
+    kind: break
+    scenario: Цепь отказала при подаче расхода (в фонде не хватает средств).
+    expect: Снимок реквизитов не снимается — расход не подан.
+    test: components/controller/tests/unit/edubridge/expense.service.test.ts
+    status: passing
+  - id: edu.econ.happy.08
+    level: backend
+    kind: happy
+    scenario: Список расходов программы с состояниями и ФИО.
+    expect: Числовые коды цепи переведены в понятия шасси, имена получателей читаются человеком.
+    test: components/controller/tests/unit/edubridge/expense.service.test.ts
+    status: passing
+  - id: edu.econ.ui.02
+    level: ui
+    kind: happy
+    scenario: "Раздел «Экономика» — вкладка «Расходы»: список расходов и подача служебной записки из фонда программы."
+    expect: Форма и подпись — общий виджет шасси, источник средств — пул расходов программы.
+    test: ~
+    status: missing

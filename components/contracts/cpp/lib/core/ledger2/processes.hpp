@@ -94,6 +94,7 @@ namespace processes {
   namespace edubridge {
     inline constexpr eosio::name ACCESS    = "p.edu.access"_n;   ///< Доступ к курсу: конвертация паевого в членский взнос программы (o.edu.conv) + подписка (opensub/extendsub/expiresub без движений). Анкер процесса — sub_hash.
     inline constexpr eosio::name RID       = "p.edu.rid"_n;      ///< Паевой взнос преподавателя результатом интеллектуальной деятельности: заявление → решение совета → акт (o.edu.rid, одноактовый по средствам). Анкер процесса — rid_hash.
+    inline constexpr eosio::name SPEND     = "p.edu.spend"_n;    ///< Расход средств программы «Образование»: служебная записка на расход из фонда, решение совета, оплата или аванс под отчёт, отчёт. Обслуживает шасси расходов; анкер процесса — expense_hash.
     inline constexpr eosio::name TEACH     = "p.edu.teach"_n;    ///< Участие преподавателя в хозяйственной деятельности: договор УХД и приложения к нему на курс, обе подписи (преподаватель + председатель через одобрение). Движений средств нет. Анкер процесса — contract_hash.
   }
 
@@ -138,7 +139,7 @@ static constexpr eosio::name PROCESS_REGISTRY[] = {
   marketplace::SUPPLY,   marketplace::RETURN,  marketplace::WRITEOFF, marketplace::CLAIM,
   branch::FEES,          branch::AID,          branch::SPEND,
   expense::PROPOSAL,
-  edubridge::ACCESS,     edubridge::RID,       edubridge::TEACH,
+  edubridge::ACCESS,     edubridge::RID,       edubridge::TEACH,     edubridge::SPEND,
   soviet::AXN_CONVERT,   soviet::TAX,
   migration::TRANSIT,
   adjustment::CORRECTION,

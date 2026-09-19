@@ -50,6 +50,7 @@ import { EdubridgeLearnerService } from './services/edubridge-learner.service';
 import { EdubridgeOnboardingService } from './services/edubridge-onboarding.service';
 import { EdubridgeCourseService } from './services/edubridge-course.service';
 import { EdubridgeEconomyService } from './services/edubridge-economy.service';
+import { EdubridgeExpenseService } from './services/edubridge-expense.service';
 import { EdubridgeCourseImagesService } from './services/edubridge-course-images.service';
 import { EdubridgeCatalogCourseFieldsResolver, EdubridgeCourseFieldsResolver } from './resolvers/edubridge-course-fields.resolver';
 
@@ -94,6 +95,7 @@ import { EdubridgeCatalogCourseFieldsResolver, EdubridgeCourseFieldsResolver } f
     EdubridgeCourseImagesService,
     EdubridgeCourseService,
     EdubridgeEconomyService,
+    EdubridgeExpenseService,
     EdubridgeOnboardingService,
     EdubridgeLearnerService,
     EdubridgeEnrollmentService,

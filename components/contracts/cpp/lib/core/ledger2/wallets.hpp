@@ -82,6 +82,7 @@ struct ledger2_wallets {
   // edubridge — ЦПП «Образование» (приложение «Образовательный мост»)
   static constexpr eosio::name EDU_MEMBER_FEE        = "w.edu.member"_n;  ///< ЦПП «Образование» — членский взнос пайщика за доступ к курсу (USER_SHARED, счёт 86). Пополняется конвертацией паевого по заявлению (o.edu.conv, Дт 80 / Кт 86); списывается в фонд программы при открытии и продлении подписки (o.edu.fee, TRANSFER → w.edu.fund) и возвращается ученику по Положению ЦПП.
 
+  static constexpr eosio::name EDU_EXPENSE_POOL      = "w.edu.expns"_n;  ///< Пул расходов ЦПП «Образование» (COOPERATIVE) — источник средств шасси расходов для программы. Наполняется под конкретный расход при создании служебной записки (o.edu.expfnd с w.edu.fund), расходуется прямой оплатой по реквизитам (o.edu.spend) либо выдачей аванса под отчёт (o.edu.expadv); неизрасходованный остаток возвращается в фонд (o.edu.expunf). Транзит тот же, что у кооперативного участка: видно, сколько средств программы отдано под расходы.
   static constexpr eosio::name EDU_PROGRAM_FUND      = "w.edu.fund"_n;    ///< ЦПП «Образование» — фонд программы (COOPERATIVE-пул, счёт 86). Пополняется списанием членского взноса ученика в распоряжение общества при открытии и продлении подписки (o.edu.fee, TRANSFER с w.edu.member, без проводки — оба на 86; Положение ЦПП, п. 4.2.2). Расходуется на программу через шасси расходов по решению совета; из него же идут возвраты ученикам по Положению.
   // branch — экономика кооперативного участка (requirement b6 «Экономика КУ», раунд 5: приоритет общего кошелька)
   static constexpr eosio::name BRANCH_PERSONAL        = "w.brn.person"_n;  ///< Персональный кошелёк доверенного/председателя КУ (USER_SHARED по доверенному, счёт 86). Пополняется ручным распределением председателя КУ из общего кошелька (o.brn.release + o.brn.person); расходуется на материальную помощь (o.brn.aid).
@@ -123,7 +124,7 @@ struct Ledger2WalletMeta {
   WalletKind       kind;
 };
 
-inline constexpr std::array<Ledger2WalletMeta, 32> LEDGER2_WALLET_REGISTRY = {{
+inline constexpr std::array<Ledger2WalletMeta, 33> LEDGER2_WALLET_REGISTRY = {{
   // USER_SHARED (16) — L3-разрез по пайщику (у w.brn.common — по braname КУ)
   { ledger2_wallets::MIN_SHARE_FUND,        "Минимальный паевой взнос",                                 WalletKind::USER_SHARED },
   { ledger2_wallets::SHARE_FUND_PAY,        "Паевой взнос пайщика",                                     WalletKind::USER_SHARED },
@@ -140,6 +141,7 @@ inline constexpr std::array<Ledger2WalletMeta, 32> LEDGER2_WALLET_REGISTRY = {{
   { ledger2_wallets::BRANCH_COMMON,         "Общий кошелёк членских взносов кооперативного участка",     WalletKind::USER_SHARED },
   { ledger2_wallets::ADVANCE_HOLD,          "Подотчётные средства пайщика",                             WalletKind::USER_SHARED },
   { ledger2_wallets::REGISTRATION_PENDING,  "Регистрационный взнос в ожидании решения совета",          WalletKind::USER_SHARED },
+  { ledger2_wallets::EDU_EXPENSE_POOL,       "Пул расходов ЦПП «Образование»",                         WalletKind::COOPERATIVE },
   { ledger2_wallets::EDU_PROGRAM_FUND,       "Фонд ЦПП «Образование»",                                WalletKind::COOPERATIVE },
   { ledger2_wallets::EDU_MEMBER_FEE,        "ЦПП «Образование» — членский взнос пайщика за доступ к курсу", WalletKind::USER_SHARED },
 

@@ -656,11 +656,19 @@ export const AllTypesProps: Record<string,any> = {
 	EduCoursesFilterInput:{
 		status:"EduCourseStatus"
 	},
+	EduCreateExpenseInput:{
+		items:"EduExpenseItemInput",
+		statement:"ExpenseProposalStatementSignedDocumentInput"
+	},
 	EduDeclineContributionInput:{
 
 	},
 	EduEnrollmentPeriod: "enum" as const,
 	EduEnrollmentStatus: "enum" as const,
+	EduExpenseItemInput:{
+		mechanics:"ExpenseMechanics",
+		recipient_type:"ExpenseRecipientType"
+	},
 	EduLearnerInput:{
 		recipient_type:"EduRecipientType"
 	},
@@ -2045,6 +2053,9 @@ export const AllTypesProps: Record<string,any> = {
 		edubridgeCreateCourse:{
 			data:"EduCourseInput"
 		},
+		edubridgeCreateExpense:{
+			data:"EduCreateExpenseInput"
+		},
 		edubridgeDeclineContribution:{
 			data:"EduDeclineContributionInput"
 		},
@@ -3091,6 +3102,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		edubridgeCourses:{
 			filter:"EduCoursesFilterInput",
+			options:"PaginationInput"
+		},
+		edubridgeExpenses:{
 			options:"PaginationInput"
 		},
 		edubridgeMemberCard:{
@@ -5771,6 +5785,28 @@ export const ReturnTypes: Record<string,any> = {
 		status:"EduEnrollmentStatus",
 		sub_hash:"String"
 	},
+	EduExpense:{
+		created_at:"DateTime",
+		creator:"String",
+		creator_name:"String",
+		expense_hash:"ID",
+		items:"EduExpenseItem",
+		status:"ExpenseProposalStatus",
+		total_actual:"String",
+		total_planned:"String",
+		updated_at:"DateTime"
+	},
+	EduExpenseItem:{
+		actual_amount:"String",
+		description:"String",
+		item_hash:"String",
+		mechanics:"ExpenseMechanics",
+		planned_amount:"String",
+		recipient:"String",
+		recipient_name:"String",
+		recipient_type:"ExpenseRecipientType",
+		status:"ExpenseItemStatus"
+	},
 	EduFundMovement:{
 		amount:"String",
 		at:"DateTime",
@@ -7741,6 +7777,7 @@ export const ReturnTypes: Record<string,any> = {
 		edubridgeConvertStatement:"GeneratedDocument",
 		edubridgeCreateAssignment:"EduAssignment",
 		edubridgeCreateCourse:"EduCourse",
+		edubridgeCreateExpense:"String",
 		edubridgeDeclineContribution:"EduContribution",
 		edubridgeDismissAdmin:"Boolean",
 		edubridgeDraftContribution:"EduContribution",
@@ -8212,6 +8249,12 @@ export const ReturnTypes: Record<string,any> = {
 		totalCount:"Int",
 		totalPages:"Int"
 	},
+	PaginatedEduExpensesPaginationResult:{
+		currentPage:"Int",
+		items:"EduExpense",
+		totalCount:"Int",
+		totalPages:"Int"
+	},
 	PaginatedExpenseProposalsPaginationResult:{
 		currentPage:"Int",
 		items:"ExpenseProposal",
@@ -8635,6 +8678,7 @@ export const ReturnTypes: Record<string,any> = {
 		edubridgeCourseFeePreview:"EduCourseFee",
 		edubridgeCourses:"PaginatedEduCoursesPaginationResult",
 		edubridgeEconomySettings:"EduEconomySettings",
+		edubridgeExpenses:"PaginatedEduExpensesPaginationResult",
 		edubridgeMemberCard:"EduMemberCard",
 		edubridgeMembers:"EduMemberRow",
 		edubridgeMyAssignments:"EduAssignment",
