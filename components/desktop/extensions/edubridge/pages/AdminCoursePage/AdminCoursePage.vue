@@ -11,70 +11,80 @@
     template(#icon)
       q-icon(name="search_off" size="40px")
 
-  .row.q-col-gutter-md.q-mt-none(v-else)
-    .col-12.col-md-8
-      BaseCard(variant="default")
-        template(#head)
-          //- Метки идут одной строкой и по одной высоте: состояние курса и его
-          //- предмет с классом читаются вместе, а не уступами.
-          .edu-course-admin__tags
-            BaseBadge(:variant="status.variant") {{ status.label }}
-            BaseChip(variant="neutral" size="sm") {{ course.subject }}
-            BaseChip(variant="neutral" size="sm") {{ course.grade }}
-        .edu-course-admin__cover.q-mb-md
-          q-img(v-if="course.image_url" :src="course.image_url" :ratio="21 / 9" fit="cover" no-spinner)
-          .edu-course-admin__placeholder(v-else)
-            q-icon(name="image" size="40px")
-        .text-body2.edu-course-admin__text(v-if="course.description") {{ course.description }}
-        .t-muted.t-sm(v-else) Описание курса не заполнено — в каталоге его место будет пустым.
-        q-separator.q-my-md
-        .text-subtitle2.q-mb-sm Учебная программа
-        .text-body2.edu-course-admin__text(v-if="course.syllabus") {{ course.syllabus }}
-        .t-muted.t-sm(v-else) Программа не заполнена.
+  template(v-else)
+    //- Шапка: название курса, предмет с классом и состояние — одной строкой,
+    //- рядом действия. Курс узнаётся с первого взгляда, а не по меткам.
+    .edu-course__head
+      .edu-course__head-text
+        .t-eyebrow {{ course.subject }} · {{ course.grade }}
+        .edu-course__title {{ course.title }}
+        .edu-course__facts
+          BaseBadge(:variant="status.variant") {{ status.label }}
+          span.t-sm.t-muted(v-if="course.starts_at") Занятия с {{ formatDate(course.starts_at) }}
+          span.t-sm.t-muted(v-if="course.schedule") {{ course.schedule }}
+      .edu-course__actions
+        BaseButton(variant="primary" @click="editOpen = true") Изменить курс
+        BaseButton(v-if="published" variant="secondary" :loading="busy" @click="setStatus(Zeus.EduCourseStatus.DRAFT)") Снять с публикации
+        BaseButton(v-else variant="secondary" :loading="busy" @click="setStatus(Zeus.EduCourseStatus.PUBLISHED)") Опубликовать
+        //- Отмена набора — решение с последствиями, поэтому она лежит под
+        //- кнопкой «ещё», а не рядом с обычными действиями.
+        BaseButton(v-if="!started" variant="ghost" icon-only aria-label="Ещё действия")
+          template(#icon-left)
+            q-icon(name="more_horiz" size="20px")
+          q-menu(anchor="bottom right" self="top right")
+            q-list.edu-course__menu(dense)
+              q-item(clickable v-close-popup :disable="cancelling" @click="cancelUnderfilled")
+                q-item-section.text-negative Отменить по недобору
 
-    .col-12.col-md-4
-      BaseCard.edu-course-admin__side(variant="default" title="Управление")
-        .column.q-gutter-sm
-          BaseButton(variant="primary" block @click="editOpen = true") Изменить курс
-          BaseButton(v-if="published" variant="ghost" block :loading="busy" @click="setStatus(Zeus.EduCourseStatus.DRAFT)") Снять с публикации
-          BaseButton(v-else variant="secondary" block :loading="busy" @click="setStatus(Zeus.EduCourseStatus.PUBLISHED)") Опубликовать
-          BaseButton(v-if="!started" variant="ghost" block :loading="cancelling" @click="cancelUnderfilled") Отменить по недобору
-        .t-muted.t-meta.q-mt-sm {{ published ? 'Курс виден в каталоге всем посетителям.' : 'Черновик виден только на этом столе.' }}
-        .t-muted.t-meta.q-mt-xs(v-if="!started") Отмена закрывает подписки участников и возвращает их взносы на паевой.
+    .row.q-col-gutter-md
+      .col-12.col-md-8
+        BaseCard(variant="default")
+          .edu-course__cover.q-mb-md(v-if="course.image_url")
+            q-img(:src="course.image_url" :ratio="21 / 9" fit="cover" no-spinner)
+          .text-body2.edu-course__text(v-if="course.description") {{ course.description }}
+          .t-muted.t-sm(v-else) Описание курса не заполнено — в каталоге его место будет пустым.
+          q-separator.q-my-md
+          .text-subtitle2.q-mb-sm Учебная программа
+          .text-body2.edu-course__text(v-if="course.syllabus") {{ course.syllabus }}
+          .t-muted.t-sm(v-else) Программа не заполнена.
 
-      BaseCard.q-mt-md(variant="default" title="Условия участия")
-        DataRow(label="Взнос в месяц" :value="formatAsset2Digits(course.fee_month)" mono)
-        DataRow(label="Взнос в год" :value="formatAsset2Digits(course.fee_year)" mono)
-        DataRow(label="Начало занятий" :value="course.starts_at ? formatDate(course.starts_at) : '______'")
-        DataRow(label="Занятий в месяц" :value="String(course.lessons_per_month)")
-        DataRow(label="Занятий в программе" :value="String(course.lessons_total)")
-        DataRow(label="Занятие" :value="`${course.lesson_minutes} минут`")
-        DataRow(label="Расписание" :value="course.schedule || '______'")
+      .col-12.col-md-4
+        BaseCard(variant="default" title="Условия участия")
+          .edu-course__fees
+            div
+              .t-sm.t-muted в месяц
+              .edu-course__fee.t-num {{ formatAsset2Digits(course.fee_month) }}
+            div
+              .t-sm.t-muted в год
+              .edu-course__fee.t-num {{ formatAsset2Digits(course.fee_year) }}
+          q-separator.q-my-md
+          DataRow(label="Занятий в месяц" :value="String(course.lessons_per_month)")
+          DataRow(label="Занятий в программе" :value="String(course.lessons_total)")
+          DataRow(label="Занятие" :value="`${course.lesson_minutes} минут`")
+          DataRow(label="Гарантия материалов" :value="`${course.guarantee_days} дней`")
 
-      //- Из чего сложился взнос и покрывает ли он обязательства перед теми, кто
-      //- курс ведёт: плановый расчёт против ставок назначенных преподавателей.
-      BaseCard.q-mt-md(v-if="economy" variant="default" title="Экономика курса")
-        DataRow(label="Себестоимость в месяц" :value="formatAsset2Digits(economy.plan.cost_month)" mono)
-        DataRow(:label="`Наценка кооператива, ${economy.plan.markup_percent}%`" :value="formatAsset2Digits(economy.plan.markup_month)" mono)
-        DataRow(label="Ставка часа по программе" :value="formatAsset2Digits(course.planned_hourly_rate)" mono)
-        DataRow(label="По ставкам преподавателей" :value="formatAsset2Digits(economy.actual_cost_month)" mono)
-        BaseBanner.q-mt-sm(v-if="economy.over_fee" variant="warn")
-          template(#icon)
-            q-icon(name="warning_amber")
-          | Обязательства перед преподавателями больше собранного взноса — поднимите ставку часа по программе или пересмотрите нагрузку.
+        //- Из чего сложился взнос и покрывает ли он обязательства перед теми,
+        //- кто курс ведёт: плановый расчёт против ставок преподавателей.
+        BaseCard.q-mt-md(v-if="economy" variant="default" title="Экономика курса")
+          DataRow(label="Себестоимость в месяц" :value="formatAsset2Digits(economy.plan.cost_month)" mono)
+          DataRow(:label="`Наценка, ${economy.plan.markup_percent}%`" :value="formatAsset2Digits(economy.plan.markup_month)" mono)
+          DataRow(label="Ставка часа по программе" :value="formatAsset2Digits(course.planned_hourly_rate)" mono)
+          DataRow(label="По ставкам преподавателей" :value="formatAsset2Digits(economy.actual_cost_month)" mono)
+          BaseBanner.q-mt-sm(v-if="economy.over_fee" variant="warn")
+            template(#icon)
+              q-icon(name="warning_amber")
+            | Обязательства перед преподавателями больше собранного взноса — поднимите ставку часа или пересмотрите нагрузку.
 
-      BaseCard.q-mt-md(variant="default" title="Выдача доступа")
-        DataRow(label="Направление" :value="directionLabel")
-        DataRow(label="Площадка" :value="carrierLabel")
-        DataRow(v-if="course.external_ref" label="Курс на площадке" :value="course.external_ref" mono copyable)
-        DataRow(v-if="course.external_title_seen" label="Название на площадке" :value="course.external_title_seen")
-
-      BaseCard.q-mt-md(variant="default" title="Преподаватели")
-        q-list(v-if="course.teacher_usernames.length" separator)
-          q-item(v-for="username in course.teacher_usernames" :key="username")
-            q-item-section
-              IdentityCell(:account-name="username" :full-name="fioCache.get(username) || null")
-        .t-muted.t-sm(v-else) Преподаватели не назначены — назначения оформляются на странице «Преподаватели».
+        BaseCard.q-mt-md(variant="default" title="Курс ведут")
+          q-list.q-mb-md(v-if="course.teacher_usernames.length" separator)
+            q-item(v-for="username in course.teacher_usernames" :key="username")
+              q-item-section
+                IdentityCell(:account-name="username" :full-name="fioCache.get(username) || null")
+          .t-muted.t-sm.q-mb-md(v-else) Преподаватели не назначены — назначения оформляются на странице «Преподаватели».
+          q-separator.q-mb-md
+          DataRow(label="Направление" :value="directionLabel")
+          DataRow(label="Площадка" :value="carrierLabel")
+          DataRow(v-if="course.external_ref" label="Курс на площадке" :value="course.external_ref" mono copyable)
 
   //- Правка курса идёт в правой панели: так стол остаётся на виду, а форма
   //- открывается и закрывается на месте — общий порядок платформы.
@@ -96,7 +106,7 @@ import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { useDesktopStore } from 'src/entities/Desktop/model';
 import { useFioCache } from 'src/shared/lib/account/useFioCache';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
-import { BaseBadge, BaseBanner, BaseButton, BaseCard, BaseChip, CardListSkeleton, EmptyState } from 'src/shared/ui/base';
+import { BaseBadge, BaseBanner, BaseButton, BaseCard, CardListSkeleton, EmptyState } from 'src/shared/ui/base';
 import { DataRow, DetailsDrawer, IdentityCell } from 'src/shared/ui/domain';
 import {
   CARRIER_LABELS,
@@ -225,26 +235,59 @@ onBeforeUnmount(() => desktopStore.clearPageTitleOverride());
   align-self: flex-start;
   margin-bottom: var(--p-3);
 }
-.edu-course-admin__tags {
+.edu-course__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--p-4);
+  flex-wrap: wrap;
+  margin-bottom: var(--p-4);
+}
+.edu-course__head-text {
+  min-width: 0;
+}
+.edu-course__title {
+  font-size: 26px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  color: var(--p-ink);
+}
+.edu-course__facts {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
   gap: var(--p-2);
+  margin-top: var(--p-2);
 }
-.edu-course-admin__cover {
+.edu-course__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--p-2);
+}
+.edu-course__cover {
   border-radius: var(--p-r-lg);
   overflow: hidden;
   border: 1px solid var(--p-line);
   background: var(--p-surface-2);
 }
-.edu-course-admin__placeholder {
-  aspect-ratio: 21 / 9;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--p-ink-3);
-}
-.edu-course-admin__text {
+.edu-course__text {
   white-space: pre-wrap;
+}
+/* Суммы — главное в карточке условий: крупно, в одну строку, без сжатия. */
+.edu-course__fees {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--p-3);
+}
+.edu-course__fee {
+  font-size: var(--p-fs-h4, 18px);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--p-ink);
+  margin-top: 2px;
+}
+.edu-course__menu {
+  min-width: 220px;
 }
 </style>

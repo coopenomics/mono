@@ -1,55 +1,45 @@
 <template lang="pug">
-BaseForm(ref="formEl" :loading="loading" :error="error" @submit="submit")
-  .row.q-col-gutter-md
-    .col-12
-      BaseInput(v-model="form.title" label="Название курса" required)
-    .col-12.col-md-6
+BaseForm.edu-course-form(ref="formEl" :loading="loading" :error="error" @submit="submit")
+  //- Форма идёт разделами сверху вниз, поля — в одну колонку с подсказкой под
+  //- каждым: так читается, что от чего зависит. Пары коротких полей встают
+  //- рядом только когда места хватает, поэтому подсказки не обрезаются.
+  section.edu-course-form__section
+    .edu-course-form__legend Курс
+    BaseInput(v-model="form.title" label="Название курса" hint="Как курс увидят в каталоге" required)
+    .edu-course-form__pair
       BaseInput(v-model="form.subject" label="Предмет" required)
-    .col-12.col-md-6
       BaseInput(v-model="form.grade" label="Класс" placeholder="7 класс" required)
-    .col-12
-      BaseInput(v-model="form.schedule" label="Расписание" placeholder="Вт, Чт 17:00–18:30")
-    .col-12
-      BaseInput(v-model="form.description" label="Описание" type="textarea" :rows="3" autogrow)
-    .col-12
-      BaseInput(v-model="form.syllabus" label="Учебная программа" type="textarea" :rows="5" autogrow)
-    .col-12
-      .t-sm.t-muted.q-mb-xs Обложка курса
-      //- Обложка занимает всю ширину: выбранный снимок виден в тех же пропорциях,
-      //- что и в каталоге, а замена с удалением открываются наведением на него.
-      //- Раньше половину формы держала зона загрузки, а сама обложка ютилась рядом.
-      .edu-course-form__cover(v-if="previewUrl")
-        q-img(:src="previewUrl" :ratio="21 / 9" fit="cover" no-spinner)
-        .edu-course-form__cover-actions
-          BaseButton(variant="secondary" size="sm" type="button" @click="pickImage") Заменить
-          BaseButton(variant="ghost" size="sm" type="button" @click="removeImage") Убрать
-      .edu-course-form__picker(v-else role="button" tabindex="0" @click="pickImage" @keydown.enter="pickImage")
-        q-icon(name="add_photo_alternate" size="24px")
-        .t-sm.text-weight-medium Загрузить обложку
-        .t-meta.t-muted JPEG, PNG или WEBP до 10 МБ
-      input.edu-course-form__file(ref="fileInput" type="file" :accept="COURSE_IMAGE_ACCEPT" @change="onFilePicked")
-    //- Взнос не вводится руками: он складывается из часов занятий по ставке
-    //- преподавателя и наценки кооператива. Так оплата ученика всегда покрывает
-    //- обязательства перед теми, кто курс ведёт.
-    .col-12
-      q-separator.q-mb-md
-      .text-subtitle2.q-mb-sm Стоимость курса
-    .col-6.col-md-3
-      BaseInput(v-model="lessonsPerMonth" label="Занятий в месяц" type="number" required)
-    .col-6.col-md-3
-      BaseInput(v-model="lessonsTotal" label="Занятий в программе" type="number" required)
-    .col-6.col-md-3
-      BaseInput(v-model="lessonMinutes" label="Занятие, минут" type="number" required)
-    .col-6.col-md-3
-      BaseInput(v-model="plannedRate" label="Ставка часа" type="number" :suffix="symbol" required)
-    .col-6.col-md-3
-      BaseInput(
-        v-model="guaranteeDays"
-        label="Гарантия, дней"
-        type="number"
-        hint="Столько держится заявление преподавателя о взносе"
-      )
-    .col-12.col-md-6
+    BaseInput(v-model="form.schedule" label="Расписание" placeholder="Вт, Чт 17:00–18:30" hint="Дни и время занятий — строкой, как их видит ученик")
+    BaseInput(v-model="form.description" label="Описание" type="textarea" :rows="3" autogrow)
+    BaseInput(v-model="form.syllabus" label="Учебная программа" type="textarea" :rows="5" autogrow)
+
+  section.edu-course-form__section
+    .edu-course-form__legend Обложка
+    //- Обложка во всю ширину: снимок виден в тех же пропорциях, что и в каталоге,
+    //- замена с удалением открываются наведением на него.
+    .edu-course-form__cover(v-if="previewUrl")
+      q-img(:src="previewUrl" :ratio="21 / 9" fit="cover" no-spinner)
+      .edu-course-form__cover-actions
+        BaseButton(variant="secondary" size="sm" type="button" @click="pickImage") Заменить
+        BaseButton(variant="ghost" size="sm" type="button" @click="removeImage") Убрать
+    .edu-course-form__picker(v-else role="button" tabindex="0" @click="pickImage" @keydown.enter="pickImage")
+      q-icon(name="add_photo_alternate" size="24px")
+      .t-sm.text-weight-medium Загрузить обложку
+      .t-meta.t-muted JPEG, PNG или WEBP до 10 МБ
+    input.edu-course-form__file(ref="fileInput" type="file" :accept="COURSE_IMAGE_ACCEPT" @change="onFilePicked")
+
+  //- Взнос не вводится руками: он складывается из часов занятий по ставке
+  //- преподавателя и наценки кооператива. Так оплата ученика покрывает
+  //- обязательства перед теми, кто курс ведёт.
+  section.edu-course-form__section
+    .edu-course-form__legend Стоимость
+    .edu-course-form__pair
+      BaseInput(v-model="lessonsPerMonth" label="Занятий в месяц" type="number" hint="По расписанию курса" required)
+      BaseInput(v-model="lessonMinutes" label="Занятие, минут" type="number" hint="Длительность одного занятия" required)
+    .edu-course-form__pair
+      BaseInput(v-model="lessonsTotal" label="Занятий в программе" type="number" hint="Всего занятий курса" required)
+      BaseInput(v-model="plannedRate" label="Ставка часа" type="number" :suffix="symbol" hint="Плановая ставка преподавателя" required)
+    .edu-course-form__pair
       BaseInput(
         v-model="form.starts_at"
         label="Дата начала занятий"
@@ -57,7 +47,6 @@ BaseForm(ref="formEl" :loading="loading" :error="error" @submit="submit")
         stack-label
         hint="До этой даты ученик отменяет подписку с полным возвратом"
       )
-    .col-12.col-md-6
       BaseInput(
         v-model="yearDiscount"
         label="Скидка за год, %"
@@ -65,64 +54,79 @@ BaseForm(ref="formEl" :loading="loading" :error="error" @submit="submit")
         :hint="discountHint"
         :error="discountError"
       )
-    .col-12.col-md-6
-      BaseCard(v-if="fee" size="sm")
-        DataRow(label="Себестоимость в месяц" :value="formatAsset2Digits(fee.cost_month)")
-        DataRow(:label="`Наценка кооператива, ${fee.markup_percent}%`" :value="formatAsset2Digits(fee.markup_month)")
-        DataRow(label="Взнос в месяц" :value="formatAsset2Digits(fee.fee_month)")
-        DataRow(label="Взнос в год" :value="formatAsset2Digits(fee.fee_year)")
-      .t-sm.t-muted(v-else) Заполните параметры занятий — взнос посчитается сам.
-    .col-12.col-md-6
-      BaseSelect(v-model="form.direction" label="Тип направления (внутренний)" :options="directionOptions" required)
-    .col-12.col-md-6
+    BaseInput(
+      v-model="guaranteeDays"
+      label="Гарантия материалов, дней"
+      type="number"
+      hint="Столько держится заявление преподавателя о взносе за занятие"
+    )
+
+    //- Итог расчёта — отдельной плашкой во всю ширину под полями: он меняется
+    //- на глазах и читается как результат, а не как ещё одно поле.
+    .edu-course-form__total(v-if="fee")
+      .edu-course-form__total-main
+        div
+          .t-sm.t-muted Взнос в месяц
+          .edu-course-form__amount.t-num {{ formatAsset2Digits(fee.fee_month) }}
+        div
+          .t-sm.t-muted Взнос в год
+          .edu-course-form__amount.t-num {{ formatAsset2Digits(fee.fee_year) }}
+      .edu-course-form__total-rows
+        .edu-course-form__total-row
+          span.t-sm.t-muted Себестоимость в месяц
+          span.t-sm.t-num {{ formatAsset2Digits(fee.cost_month) }}
+        .edu-course-form__total-row
+          span.t-sm.t-muted Наценка кооператива, {{ fee.markup_percent }}%
+          span.t-sm.t-num {{ formatAsset2Digits(fee.markup_month) }}
+    .t-sm.t-muted(v-else) Заполните параметры занятий — взнос посчитается сам.
+
+  section.edu-course-form__section
+    .edu-course-form__legend Выдача доступа
+    .edu-course-form__pair
+      BaseSelect(v-model="form.direction" label="Тип направления" :options="directionOptions" hint="Внутренний признак, ученику не виден" required)
       BaseSelect(v-model="form.carrier" label="Носитель доступа" :options="carrierOptions" required)
     template(v-if="isSkillspace")
-      .col-12.col-md-6
-        BaseSelect(
-          v-model="skillspaceCourseId"
-          label="Курс в школе Skillspace"
-          :options="platformCourseOptions"
-          :disabled="!platformCourses.length"
-          :hint="platformCourses.length ? 'Реестр курсов школы по API-ключу кооператива' : 'Реестр школы пуст или ключ Skillspace не задан'"
-          searchable
-          required
-        )
-      .col-12.col-md-6
-        BaseSelect(
-          v-model="skillspaceGroupId"
-          label="Группа курса"
-          :options="platformGroupOptions"
-          :disabled="!platformGroupOptions.length"
-          :hint="platformGroupOptions.length ? 'Без группы обучающийся зачисляется на курс напрямую' : 'У курса нет групп — зачисление на курс напрямую'"
-          clearable
-        )
-    .col-12(v-else-if="isPlatform")
-      BaseInput(v-model="form.external_ref" label="Идентификатор курса на площадке" mono :hint="externalRefHint" required)
-
-    //- Назначенные преподаватели идут списком имён, а выбор — одной строкой под
-    //- ним. Прежде подпись раздела и подпись поля повторяли друг друга, а имена
-    //- стояли сбоку учётными метками.
-    .col-12
-      q-separator.q-mb-md
-      .text-subtitle2.q-mb-sm Преподаватели курса
-      q-list.q-mb-sm(v-if="form.teacher_usernames.length" separator)
-        q-item(v-for="t in form.teacher_usernames" :key="t")
-          q-item-section
-            IdentityCell(:account-name="t" :full-name="teacherName(t)")
-          q-item-section(side)
-            BaseButton(variant="ghost" size="sm" icon-only type="button" :aria-label="`Убрать ${teacherName(t) || t}`" @click="removeTeacher(t)")
-              template(#icon-left)
-                q-icon(name="close" size="16px")
-      .t-sm.t-muted.q-mb-sm(v-else) Курс можно сохранить и назначить преподавателей позже.
       BaseSelect(
-        :model-value="null"
-        label="Назначить преподавателя"
-        :options="teacherOptions"
-        :disabled="!teacherOptions.length"
-        :hint="teacherHint"
+        v-model="skillspaceCourseId"
+        label="Курс в школе Skillspace"
+        :options="platformCourseOptions"
+        :disabled="!platformCourses.length"
+        :hint="platformCourses.length ? 'Реестр курсов школы по API-ключу кооператива' : 'Реестр школы пуст или ключ Skillspace не задан'"
         searchable
-        @update:model-value="addTeacher"
+        required
       )
+      BaseSelect(
+        v-model="skillspaceGroupId"
+        label="Группа курса"
+        :options="platformGroupOptions"
+        :disabled="!platformGroupOptions.length"
+        :hint="platformGroupOptions.length ? 'Без группы обучающийся зачисляется на курс напрямую' : 'У курса нет групп — зачисление на курс напрямую'"
+        clearable
+      )
+    BaseInput(v-else-if="isPlatform" v-model="form.external_ref" label="Идентификатор курса на площадке" mono :hint="externalRefHint" required)
+
+  //- Назначенные преподаватели идут списком имён, а выбор — строкой под ним.
+  section.edu-course-form__section
+    .edu-course-form__legend Преподаватели
+    q-list.edu-course-form__teachers(v-if="form.teacher_usernames.length" separator)
+      q-item(v-for="t in form.teacher_usernames" :key="t")
+        q-item-section
+          IdentityCell(:account-name="t" :full-name="teacherName(t)")
+        q-item-section(side)
+          BaseButton(variant="ghost" size="sm" icon-only type="button" :aria-label="`Убрать ${teacherName(t) || t}`" @click="removeTeacher(t)")
+            template(#icon-left)
+              q-icon(name="close" size="16px")
+    .t-sm.t-muted(v-else) Курс можно сохранить и назначить преподавателей позже.
+    BaseSelect(
+      :model-value="null"
+      label="Назначить преподавателя"
+      :options="teacherOptions"
+      :disabled="!teacherOptions.length"
+      :hint="teacherHint"
+      searchable
+      @update:model-value="addTeacher"
+    )
+
   template(v-if="!hideFooter" #footer)
     .row.justify-end.q-gutter-sm
       BaseButton(variant="ghost" type="button" :disabled="loading" @click="emit('cancel')") Отменить
@@ -136,8 +140,8 @@ import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { useSystemStore } from 'src/entities/System/model';
 import { fileToBase64, formatToAsset } from 'src/shared/lib/utils';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
-import { BaseButton, BaseCard, BaseForm, BaseInput, BaseSelect } from 'src/shared/ui/base';
-import { DataRow, IdentityCell } from 'src/shared/ui/domain';
+import { BaseButton, BaseForm, BaseInput, BaseSelect } from 'src/shared/ui/base';
+import { IdentityCell } from 'src/shared/ui/domain';
 import { fetchCourseFeePreview, type ICourseFee } from '../../entities/Economy';
 import {
   CARRIER_LABELS,
@@ -452,6 +456,37 @@ onMounted(async () => {
 </script>
 
 <style scoped>
+.edu-course-form {
+  display: flex;
+  flex-direction: column;
+}
+/* Раздел формы: поля в одну колонку, между разделами — воздух и линия. */
+.edu-course-form__section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-3);
+  padding: var(--p-5) 0;
+  border-top: 1px solid var(--p-line);
+}
+.edu-course-form__section:first-of-type {
+  padding-top: 0;
+  border-top: none;
+}
+.edu-course-form__legend {
+  font-size: var(--p-fs-body-sm, 13px);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--p-ink-3);
+}
+/* Пара коротких полей встаёт в ряд, только когда хватает ширины: иначе
+   подсказка под одним полем обрезается высотой соседнего. */
+.edu-course-form__pair {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--p-3);
+  align-items: start;
+}
 .edu-course-form__cover {
   position: relative;
   border: 1px solid var(--p-line);
@@ -496,5 +531,44 @@ onMounted(async () => {
 }
 .edu-course-form__file {
   display: none;
+}
+/* Итог расчёта: две главные суммы крупно, слагаемые — строками под ними. */
+.edu-course-form__total {
+  border: 1px solid var(--p-line);
+  border-radius: var(--p-r-md);
+  background: var(--p-surface-2);
+  padding: var(--p-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-3);
+}
+.edu-course-form__total-main {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: var(--p-3);
+}
+.edu-course-form__amount {
+  font-size: var(--p-fs-h4, 18px);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--p-ink);
+  margin-top: 2px;
+}
+.edu-course-form__total-rows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-1);
+  padding-top: var(--p-3);
+  border-top: 1px solid var(--p-line);
+}
+.edu-course-form__total-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--p-3);
+}
+.edu-course-form__teachers {
+  border: 1px solid var(--p-line);
+  border-radius: var(--p-r-md);
 }
 </style>
