@@ -113,6 +113,7 @@ namespace Names {
 
   namespace WalletActions {
     constexpr eosio::name SIGN_AGREEMENT = "signagree"_n;
+    constexpr eosio::name IMPORT_AGREEMENT = "importagree"_n;
   }
 }
 

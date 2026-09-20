@@ -33,4 +33,5 @@ public:
     [[eosio::action]] void signagree(eosio::name coopname, eosio::name username, uint64_t program_id, document2 document, uint64_t draft_id);
     [[eosio::action]] void revokeagree(eosio::name coopname, eosio::name username, uint64_t program_id);
     [[eosio::action]] void migrate3(eosio::name coopname, eosio::name username, uint64_t program_id, checksum256 doc_hash, uint16_t version, uint64_t draft_id, time_point signed_at);
+    [[eosio::action]] void importagree(eosio::name coopname, eosio::name username, uint64_t program_id);
 };
