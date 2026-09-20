@@ -322,6 +322,7 @@ q-dialog(
 
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
+import { useConfirm } from 'src/shared/lib/composables'
 import { useQuasar } from 'quasar'
 import { useRoute, useRouter } from 'vue-router'
 import { Zeus } from '@coopenomics/sdk'
@@ -768,9 +769,11 @@ async function clearDraft(): Promise<void> {
   }
 }
 
+const { confirm } = useConfirm()
+
 async function applyMark(nextMark: CurrentMark, confirmMsg: string): Promise<void> {
   if (!props.reportType || markLoading.value) return
-  if (!window.confirm(confirmMsg)) return
+  if (!(await confirm({ title: 'Подтвердите отметку', message: confirmMsg, confirmLabel: 'Отметить' }))) return
   markLoading.value = true
   try {
     const sdkMark =

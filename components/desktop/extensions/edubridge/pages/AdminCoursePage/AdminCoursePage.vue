@@ -91,7 +91,7 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { Zeus } from '@coopenomics/sdk';
 import { asText } from 'src/shared/lib/utils';
-import { useFirstLoad } from 'src/shared/lib/composables';
+import { useConfirm, useFirstLoad } from 'src/shared/lib/composables';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { useDesktopStore } from 'src/entities/Desktop/model';
 import { useFioCache } from 'src/shared/lib/account/useFioCache';
@@ -119,6 +119,7 @@ const route = useRoute();
 const router = useRouter();
 const desktopStore = useDesktopStore();
 const { fioCache, enrichFio } = useFioCache();
+const { confirm } = useConfirm();
 
 const course = ref<ICourse | null>(null);
 const loading = ref(true);
@@ -183,6 +184,14 @@ async function onSaved(updated: ICourse): Promise<void> {
 
 async function cancelUnderfilled(): Promise<void> {
   if (!course.value) return;
+  const agreed = await confirm({
+    title: 'Отменить курс по недобору?',
+    message: `Подписки участников курса «${course.value.title}» закроются, взносы вернутся им на паевой, доступ к материалам будет отозван.`,
+    note: 'Отменить это решение нельзя — участникам придётся подписаться заново.',
+    confirmLabel: 'Отменить курс',
+    danger: true,
+  });
+  if (!agreed) return;
   cancelling.value = true;
   try {
     const count = await cancelCourseUnderfilled(asText(course.value.id));

@@ -114,6 +114,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { useConfirm } from 'src/shared/lib/composables'
 import { VueFlow } from '@vue-flow/core'
 import { Background } from '@vue-flow/background'
 import { Controls } from '@vue-flow/controls'
@@ -144,6 +145,7 @@ interface ProcessEdgeShape {
   animated?: boolean
 }
 
+const { confirm } = useConfirm()
 const session = useSessionStore()
 const canEdit = computed(() => session.isChairman || session.isMember)
 
@@ -271,7 +273,7 @@ async function activateTemplate() {
 
 async function deleteTemplate() {
   if (!selectedTemplate.value) return
-  if (!confirm('Удалить процесс?')) return
+  if (!(await confirm({ title: 'Удалить процесс?', message: `Описание процесса «${selectedTemplate.value.name}» будет удалено.`, confirmLabel: 'Удалить', danger: true }))) return
   try {
     await processApi.deleteProcessTemplate(selectedTemplate.value.id)
     templates.value = templates.value.filter(t => t.id !== selectedTemplate.value?.id)

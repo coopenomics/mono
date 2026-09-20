@@ -13,6 +13,7 @@
 #include "../lib/index.hpp"
 #include "../lib/core/edubridge/edubridge.hpp"
 #include "../lib/core/ledger2/ledger2.hpp"
+#include "../expense/expense.hpp"   // ExpenseDomain::item / callback_handler — для inline-action в шасси расходов
 
 using namespace eosio;
 using namespace Edubridge;

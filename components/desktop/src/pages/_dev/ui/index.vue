@@ -253,13 +253,18 @@
         <h2 class="dev-ui__sect-title">Диалоги</h2>
         <p class="dev-ui__sect-sub">
           Модальное окно с шапкой, телом и подвалом действий. Telleport в body,
-          закрытие по backdrop и Escape — управляемое через props.
+          закрытие по backdrop и Escape — управляемое через props. Вопрос
+          «вы уверены?» своего диалога не требует: его задаёт
+          <code>useConfirm()</code>, окно на всё приложение одно.
         </p>
       </div>
       <div class="dev-ui__stage">
         <div class="u-row u-row--wrap u-row--gap-4">
           <BaseButton @click="dialogOpen = true">Открыть диалог</BaseButton>
+          <BaseButton variant="secondary" @click="askConfirm">Спросить подтверждение</BaseButton>
+          <BaseButton variant="danger" @click="askDangerConfirm">Разрушительное действие</BaseButton>
         </div>
+        <p v-if="confirmAnswer" class="t-sm t-muted" style="margin: 0">Ответ: {{ confirmAnswer }}</p>
 
         <BaseDialog v-model="dialogOpen" title="Паевой взнос">
           <p class="t-sm t-muted" style="margin: 0">
@@ -1425,6 +1430,7 @@
 import type { BaseTableColumn } from 'src/shared/ui/base';
 import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue';
 import { Dark } from 'quasar';
+import { useConfirm } from 'src/shared/lib/composables';
 import { AppDrawer } from 'src/shared/ui/layout/AppDrawer';
 import { AppHeader } from 'src/shared/ui/layout/AppHeader';
 import { AuthSplit } from 'src/shared/ui/layout/AuthSplit';
@@ -1633,6 +1639,31 @@ const selectPeriod = ref<string | number>('apr-2026');
 
 const dialogOpen = ref(false);
 const dialogAmount = ref('1 000');
+
+// Подтверждение — общее окно платформы: страницы своего диалога «вы уверены?»
+// не заводят, а спрашивают и ждут ответ обычным await.
+const { confirm } = useConfirm();
+const confirmAnswer = ref('');
+
+async function askConfirm(): Promise<void> {
+  const agreed = await confirm({
+    title: 'Опубликовать курс?',
+    message: 'Курс появится в каталоге, пайщики смогут подключить подписку.',
+    confirmLabel: 'Опубликовать',
+  });
+  confirmAnswer.value = agreed ? 'подтверждено' : 'отменено';
+}
+
+async function askDangerConfirm(): Promise<void> {
+  const agreed = await confirm({
+    title: 'Удалить запись?',
+    message: 'Запись исчезнет из реестра.',
+    note: 'Отменить это действие нельзя.',
+    confirmLabel: 'Удалить',
+    danger: true,
+  });
+  confirmAnswer.value = agreed ? 'удалено' : 'отменено';
+}
 
 const formEmail = ref('');
 const formPass = ref('');
