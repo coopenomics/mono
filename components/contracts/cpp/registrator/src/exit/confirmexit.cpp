@@ -1,11 +1,11 @@
 /**
  * @brief Одобрение советом выхода пайщика из кооператива.
  * Совет одобрил заявление о выходе. Контракт сам вычисляет сумму возврата:
- * обходит сет паевых кошельков LEDGER2_EXIT_REFUND_WALLETS (w.reg.minshr +
- * w.wal.share + w.cap.blago), собирает доступный L3-баланс каждого, консолидирует
- * на главный паевой (w.wal.share), резервирует всю сумму (o.wal.wthreq) и создаёт
- * исходящий платёж в gateway. Если возвращать нечего — выход завершается сразу
- * без платежа.
+ * обходит таблицу EXIT_WALLET_POLICY, собирает доступный L3-баланс кошельков,
+ * которые возвращаются пайщику, консолидирует их на главный паевой
+ * (w.wal.share), резервирует всю сумму (o.wal.wthreq) и создаёт исходящий
+ * платёж в gateway. Если возвращать нечего — выход завершается сразу без
+ * платежа.
  * @param coopname Наименование кооператива
  * @param exit_hash Хэш процесса выхода
  * @param authorization Документ-решение совета о выходе
@@ -30,21 +30,29 @@ void registrator::confirmexit(eosio::name coopname, checksum256 exit_hash, docum
   require_recipient(username);
 
   // Контракт сам считает сумму возврата по L3-балансам ledger2 — не доверяем
-  // клиенту. Обходим сет паевых («боевых») кошельков LEDGER2_EXIT_REFUND_WALLETS
-  // (источник истины — wallets.hpp; он же генерируется в cooptypes для
-  // backend-preview, поэтому расчёт на фронте совпадает с этим): аккумулируем
-  // доступный баланс каждого (>0) и тут же консолидируем его на главный паевой
-  // (w.wal.share), чтобы единым платежом вернуть весь паевой через o.wal.*.
-  // Программы могли получить новые обязательства до одобрения — выход ждёт
-  // их завершения (проверки в shared-слое).
+  // клиенту. Обходим таблицу EXIT_WALLET_POLICY (источник истины —
+  // lib/core/ledger2/exit_policy.hpp; она же генерируется в cooptypes для
+  // backend-preview, поэтому расчёт на столе совпадает с этим): аккумулируем
+  // доступный баланс возвращаемых кошельков (>0) и тут же консолидируем его на
+  // главный паевой (w.wal.share), чтобы единым платежом вернуть всё через
+  // o.wal.*. Программы могли получить новые обязательства до одобрения — выход
+  // ждёт их завершения (проверки в shared-слое и остатки кошельков-блокеров).
   Core::Registrator::check_member_can_exit(coopname, username);
 
+  // Выход закрывает участие пайщика в целевых потребительских программах, и
+  // основание для этого — его заявление (registry 190). Без него совет вывел
+  // бы пайщика, оставив соглашения действующими.
+  eosio::check(e->annulment_statement.has_value() || !Core::Registrator::has_program_agreements(coopname, username),
+               "К заявлению на выход не приложено заявление об аннулировании соглашений ЦПП");
+
   eosio::asset total_return = eosio::asset(0, _root_govern_symbol);
-  for (const auto &wallet_name : LEDGER2_EXIT_REFUND_WALLETS) {
-    eosio::asset balance = Ledger2::get_user_available(coopname, wallet_name, username);
+  for (size_t i = 0; i < EXIT_WALLET_POLICY_SIZE; ++i) {
+    const auto &rule = EXIT_WALLET_POLICY[i];
+    if (rule.policy != ExitWalletPolicy::MAIN && rule.policy != ExitWalletPolicy::RETURN_TO_MAIN) continue;
+    eosio::asset balance = Ledger2::get_user_available(coopname, rule.wallet, username);
     if (balance.amount <= 0) continue;
     total_return += balance;
-    Registrator::consolidate_share_to_main(coopname, username, wallet_name, balance, exit_hash);
+    Registrator::consolidate_share_to_main(coopname, username, rule, balance, exit_hash);
   }
 
   exits.modify(e, _soviet, [&](auto &row) {

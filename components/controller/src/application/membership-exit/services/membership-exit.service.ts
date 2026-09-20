@@ -275,10 +275,11 @@ export class MembershipExitService {
   /**
    * Предварительный расчёт суммы возврата паевого взноса при выходе пайщика.
    *
-   * Считается обходом сета паевых кошельков Ledger2.EXIT_REFUND_WALLET_NAMES
-   * (w.reg.minshr + w.wal.share + w.cap.blago) по L3-балансам — тот же сет, что
-   * обходит контракт `confirmexit` при одобрении выхода советом, поэтому preview
-   * совпадает с суммой, которую реально вернёт контракт.
+   * Считается обходом кошельков, которые возвращаются пайщику по таблице
+   * политики выхода (Ledger2.EXIT_REFUND_WALLET_NAMES — зеркало
+   * `EXIT_WALLET_POLICY` контракта), по L3-балансам. Ту же таблицу обходит
+   * `confirmexit` при одобрении выхода советом, поэтому предрасчёт совпадает с
+   * суммой, которую реально вернёт контракт.
    */
   async getReturnPreview(coopname: string, username: string): Promise<MembershipExitReturnPreviewDTO> {
     const wallets = Ledger2.EXIT_REFUND_WALLET_NAMES;

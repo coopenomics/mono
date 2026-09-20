@@ -11,6 +11,7 @@
 #include "accounts.hpp"
 #include "operations.hpp"
 #include "wallets.hpp"
+#include "exit_policy.hpp"
 
 /**
  * @brief Хелпер для вызова ledger2::apply из контрактов-инициаторов.

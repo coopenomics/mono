@@ -532,17 +532,11 @@ inline bool has_orders_at_branch(eosio::name coopname, eosio::name braname) {
   return by_accept.find(braname.value) != by_accept.end();
 }
 
-/// Выход пайщика не оставит в Столе заказов незавершённого: резерв под заказы
-/// вернётся только выдачей или отменой (решение владельца, задача 99D-15), а
-/// решение совета по открытой заявке на возврат зачислило бы паевой и взнос на
-/// заблокированный аккаунт (задача 99D-16).
+/// Выход пайщика не оставит в Столе заказов незавершённого: решение совета по
+/// открытой заявке на возврат зачислило бы паевой и взнос на заблокированный
+/// аккаунт (задача 99D-16). Резерв под заказы держит выход сам по себе —
+/// строкой BLOCKER в таблице EXIT_WALLET_POLICY (задача 99D-15).
 inline void check_member_can_exit(eosio::name coopname, eosio::name username) {
-  const eosio::asset reserve =
-      get_user_wallet_balance(coopname, ledger2_wallets::MARKETPLACE_ORDER_LOCK, username).available;
-  eosio::check(reserve.amount == 0,
-               "Выход из кооператива невозможен: под заказы Стола заказов зарезервировано " +
-                 reserve.to_string() + " — завершите или отмените заказы");
-
   return_requests_index requests(_marketplace, coopname.value);
   auto by_orderer = requests.get_index<"byorderer"_n>();
   eosio::check(by_orderer.find(username.value) == by_orderer.end(),
