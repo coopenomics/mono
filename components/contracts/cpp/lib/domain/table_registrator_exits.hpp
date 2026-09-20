@@ -1,5 +1,7 @@
 #pragma once
 
+#include <eosio/binary_extension.hpp>
+
 #include <optional>
 
 #include <eosio/asset.hpp>
@@ -46,6 +48,10 @@ struct [[eosio::table, eosio::contract(REGISTRATOR)]] exit {
   document2 approved_statement; ///< решение совета о выходе (авторизация)
   checksum256 exit_hash;
   asset quantity;               ///< итоговая сумма возврата (заполняется на confirmexit)
+  /// Заявление об аннулировании соглашений ЦПП (registry 190), приходит
+  /// действием exitagree одной транзакцией с exitcoop. Расширение, а не поле:
+  /// заявления, поданные до появления аннулирования, читаются по-прежнему.
+  eosio::binary_extension<document2> annulment_statement;
 
   uint64_t primary_key() const { return username.value; }
   checksum256 by_hash() const { return exit_hash; }

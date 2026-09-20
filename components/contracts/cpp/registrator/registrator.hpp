@@ -121,6 +121,7 @@ public:
 
   // Выход пайщика из кооператива (возврат паевого взноса) — src/exit/*.cpp
   [[eosio::action]] void exitcoop(eosio::name coopname, eosio::name username, checksum256 exit_hash, document2 statement);
+  [[eosio::action]] void exitagree(eosio::name coopname, eosio::name username, checksum256 exit_hash, document2 annulment);
   [[eosio::action]] void confirmexit(eosio::name coopname, checksum256 exit_hash, document2 authorization);
   [[eosio::action]] void completexit(eosio::name coopname, checksum256 exit_hash);
   [[eosio::action]] void declinexit(eosio::name coopname, checksum256 exit_hash, std::string reason);

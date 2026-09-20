@@ -1,0 +1,124 @@
+feature: membership.exit
+title: Выход пайщика из кооператива с аннулированием соглашений ЦПП
+
+# Компонент 69 «Управление соглашениями ЦПП». Выход собирает средства пайщика
+# по всем программам и возвращает их одним платежом: заявление о выходе (200)
+# и заявление об аннулировании соглашений ЦПП (190) подписываются вместе, совет
+# принимает решение (201), контракт обходит таблицу политики кошельков
+# EXIT_WALLET_POLICY, сводит возвратные остатки на главный паевой и платит через
+# кассу, затем аннулирует соглашения программ.
+#
+# Что возвращается, определяет таблица политики, а не вид взноса: членский взнос
+# ЦПП «Образование» возвратен по п. 4.2.5 его Положения, членский взнос «Стола
+# заказов» остаётся кооперативу. Незакрытый подотчёт и резерв под заказы держат
+# выход.
+
+sources:
+  backend:
+    - components/controller/src/application/membership-exit/**
+    - components/cooptypes/src/cooperative/registry/190.ProgramAgreementsAnnulmentStatement/**
+    - components/cooptypes/src/cooperative/registry/200.ParticipantExitApplication/**
+    - components/cooptypes/src/cooperative/registry/201.DecisionOfParticipantExit/**
+    - components/cooptypes/src/ledger2/wallets.ts
+    - components/factory/src/Actions/190.ProgramAgreementsAnnulmentStatement.ts
+    - components/factory/src/Templates/190.ProgramAgreementsAnnulmentStatement.ts
+  contract:
+    - components/contracts/cpp/lib/core/ledger2/exit_policy.hpp
+    - components/contracts/cpp/lib/core/registrator/exit.hpp
+    - components/contracts/cpp/registrator/src/exit/**
+  ui:
+    - components/desktop/src/features/Membership/ExitFromCoop/**
+    - components/desktop/src/pages/User/MembershipExitConfirmPage/**
+
+cases:
+  - id: exit.doc.happy.01
+    level: backend
+    kind: happy
+    scenario: Заявление 190 у пайщика с двумя программами.
+    expect: Программы печатаются таблицей с датой соглашения и остатками кошельков; итог к переводу — сумма возвратных.
+    test: components/factory/test/program-agreements-annulment.test.ts
+    status: passing
+  - id: exit.doc.happy.02
+    level: backend
+    kind: happy
+    scenario: Кошелёк возвращается либо остаётся кооперативу.
+    expect: У возвратного — отметка о переводе на главный паевой, у остающегося — ссылка на Положение программы.
+    test: components/factory/test/program-agreements-annulment.test.ts
+    status: passing
+  - id: exit.doc.side.01
+    level: backend
+    kind: side
+    scenario: Заявление 190 подписывается без выхода из кооператива (вторая очередь).
+    expect: Связи с заявлением на выход в тексте нет, просьба об аннулировании остаётся.
+    test: components/factory/test/program-agreements-annulment.test.ts
+    status: passing
+  - id: exit.doc.happy.03
+    level: backend
+    kind: happy
+    scenario: Оговорка об отсутствии иных требований и о сумме на день решения совета.
+    expect: Обе формулировки стоят в тексте заявления.
+    test: components/factory/test/program-agreements-annulment.test.ts
+    status: passing
+  - id: exit.wallets.happy.01
+    level: backend
+    kind: happy
+    scenario: Таблица политики кошельков при выходе.
+    expect: Возвращаются минимальный и главный паевой, Благорост, паевой Стола заказов и членский взнос «Образования»; главный паевой ровно один.
+    test: components/cooptypes/test/wallets-registry.snapshot.test.ts
+    status: passing
+  - id: exit.wallets.break.01
+    level: backend
+    kind: break
+    scenario: Новый пользовательский кошелёк завели без строки политики выхода.
+    expect: Сборка контракта падает с указанием добавить строку; генератор cooptypes отказывается собирать зеркало.
+    test: components/cooptypes/test/wallets-registry.snapshot.test.ts
+    status: passing
+  - id: exit.wallets.side.01
+    level: backend
+    kind: side
+    scenario: Членский взнос «Стола заказов» и кошельки-блокеры.
+    expect: Членский взнос остаётся кооперативу; резерв под заказы и незакрытый подотчёт перечислены как держащие выход.
+    test: components/cooptypes/test/wallets-registry.snapshot.test.ts
+    status: passing
+  - id: exit.chain.happy.01
+    level: contract
+    kind: happy
+    scenario: Совет одобрил выход пайщика с остатком на кошельке членских взносов «Образования».
+    expect: "confirmexit сводит остаток на главный паевой операцией o.edu.retshr и включает его в сумму платежа."
+    test: ~
+    status: missing
+  - id: exit.chain.break.01
+    level: contract
+    kind: break
+    scenario: Выход при незакрытом подотчёте либо резерве под заказы.
+    expect: Отказ с причиной из таблицы политики и суммой остатка.
+    test: ~
+    status: missing
+  - id: exit.chain.happy.02
+    level: contract
+    kind: happy
+    scenario: Приём заявления 190 к заявлению на выход и аннулирование соглашений в финале.
+    expect: "exitagree сохраняет документ; confirmexit без него отказывает пайщику с программами; после completexit записи в wallet::users нет."
+    test: ~
+    status: missing
+  - id: exit.chain.side.01
+    level: contract
+    kind: side
+    scenario: Совет отказал либо касса отклонила платёж.
+    expect: Резерв возвращается, соглашения продолжают действовать, пайщик остаётся членом.
+    test: ~
+    status: missing
+  - id: exit.api.happy.01
+    level: backend
+    kind: happy
+    scenario: Подача выхода с двумя документами и предрасчёт по программам.
+    expect: Оба документа уходят одной транзакцией; предрасчёт делит суммы по программам и называет запреты.
+    test: ~
+    status: missing
+  - id: exit.ui.happy.01
+    level: ui
+    kind: happy
+    scenario: Диалог выхода и сводная страница участия в программах.
+    expect: Таблица программ с суммами, два документа под одну подпись, запреты баннером с причинами.
+    test: ~
+    status: missing

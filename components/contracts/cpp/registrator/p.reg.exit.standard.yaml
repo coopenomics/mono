@@ -1,0 +1,366 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Стандарт «Выход пайщика из кооператива» — прекращение членства с возвратом
+# паевых взносов и аннулированием соглашений об участии в целевых
+# потребительских программах.
+#
+# Пайщик подаёт два заявления сразу: о выходе (registry 200) и об аннулировании
+# соглашений ЦПП (registry 190). Совет рассматривает их одной повесткой
+# `leavecoop`. По одобрении контракт собирает средства пайщика по всем
+# программам на главный паевой кошелёк и ставит их на выплату; касса проводит
+# перевод, и только тогда участие прекращается: соглашения аннулируются, пайщик
+# удаляется из реестра совета, аккаунт блокируется.
+#
+# Что именно возвращается, определяет таблица политики кошельков, а не вид
+# взноса: членский взнос ЦПП «Образование» возвратен по п. 4.2.5 её Положения,
+# членский взнос «Стола заказов» остаётся кооперативу.
+#
+# Источники правды в коде:
+#   • cpp/registrator/registrator.hpp                 — действия exitcoop / exitagree / confirmexit / completexit / declinexit
+#   • cpp/registrator/src/exit/exitcoop.cpp           — подача заявления, повестка совета
+#   • cpp/registrator/src/exit/exitagree.cpp          — приём заявления об аннулировании соглашений
+#   • cpp/registrator/src/exit/confirmexit.cpp        — одобрение советом, сбор кошельков, резерв и платёж
+#   • cpp/registrator/src/exit/completexit.cpp        — подтверждение выплаты кассой, финал выхода
+#   • cpp/registrator/src/exit/declinexit.cpp         — отказ совета или кассы, снятие резерва
+#   • cpp/registrator/src/exit/exit_helpers.hpp       — перенос остатков на главный паевой, финализация
+#   • cpp/lib/core/ledger2/exit_policy.hpp            — EXIT_WALLET_POLICY: что выход делает с каждым кошельком
+#   • cpp/lib/core/registrator/exit.hpp               — проверки программ, аннулирование соглашений
+#   • cpp/lib/domain/table_registrator_exits.hpp      — таблица exits
+# ─────────────────────────────────────────────────────────────────────────────
+
+# ── Секция 1. Паспорт ───────────────────────────────────────────────────────
+process_type: p.reg.exit
+id: public_registrator_exit_process
+title: Выход пайщика из кооператива
+slug: exit
+status: proposed
+contract: registrator
+summary: >
+  Пайщик выходит из состава кооператива: подаёт заявление о выходе и заявление
+  об аннулировании соглашений ЦПП, совет рассматривает их одним решением,
+  кооператив собирает его средства по программам на главный паевой кошелёк и
+  выплачивает их на реквизиты пайщика.
+purpose: >
+  «Выход пайщика» прекращает членство и участие во всех целевых потребительских
+  программах разом. Средства пайщика живут на кошельках программ, поэтому
+  возврат собирается по таблице политики кошельков: паевые взносы и возвратные
+  членские идут на главный паевой кошелёк и выплачиваются одним платежом,
+  невозвратные остаются кооперативу по Положениям своих программ.
+  Незавершённые обязательства — резерв под заказы, незакрытый подотчёт,
+  открытая заявка на гарантийный возврат — выход держат: сначала их завершают.
+roles:
+  - member             # пайщик, выходящий из кооператива
+  - soviet             # совет кооператива (рассматривает заявления)
+  - chairman           # председатель / кассир (проводит выплату)
+
+# ── Секция 2. Действия контракта (блокчейн-уровень) ─────────────────────────
+actions:
+  - name: registrator::exitcoop
+    human: Подать заявление о выходе
+    actor: member
+    role: opener
+    purpose: >
+      Действующий пайщик подаёт подписанное заявление о выходе (registry 200).
+      Контракт проверяет, что ни один кошелёк и ни одна программа не держат
+      незавершённого, создаёт запись выхода и ставит повестку совета
+      `leavecoop` с коллбэками confirmexit / declinexit.
+
+  - name: registrator::exitagree
+    human: Приложить заявление об аннулировании соглашений
+    actor: member
+    role: participant
+    purpose: >
+      К поданному заявлению о выходе прикладывается заявление об аннулировании
+      соглашений об участии в целевых потребительских программах (registry 190)
+      — одно на все программы пайщика. Приходит отдельным действием в одной
+      транзакции с exitcoop и попадает в реестр документов: совет видит оба
+      заявления, а аннулирование опирается на подписанное основание.
+
+  - name: registrator::confirmexit
+    human: Одобрить выход советом
+    actor: soviet
+    role: participant
+    purpose: >
+      Совет одобрил выход. Контракт сам считает сумму возврата по L3-балансам
+      ledger2: обходит таблицу EXIT_WALLET_POLICY, переносит остатки
+      возвращаемых кошельков на главный паевой, резервирует всю сумму
+      (o.wal.wthreq) и создаёт исходящий платёж в кассу. Возвращать нечего —
+      выход завершается сразу, без платежа.
+
+  - name: registrator::completexit
+    human: Подтвердить выплату
+    actor: chairman
+    role: closer
+    purpose: >
+      Касса провела перевод пайщику и подтверждает это. Контракт списывает
+      резерв (o.wal.wthcpl, Дт 80 / Кт 51), программы закрывают свои
+      невозвратные кошельки, соглашения ЦПП аннулируются, пайщик удаляется из
+      реестра совета, аккаунт блокируется. Возврата назад нет.
+
+  - name: registrator::declinexit
+    human: Отказать в выходе
+    actor: soviet
+    role: guard
+    purpose: >
+      Совет отказал либо касса отклонила платёж. Резерв возвращается на главный
+      паевой (o.wal.wthdec), запись выхода стирается. Пайщик остаётся членом
+      кооператива, его соглашения продолжают действовать.
+
+# ── Секция 3. Граф состояний ────────────────────────────────────────────────
+entity: "registrator::exit"
+entity_human: "Выход пайщика"
+entity_source: cpp/lib/domain/table_registrator_exits.hpp
+
+states:
+  - name: pending
+    human: Заявление подано
+    description: >
+      Пайщик подал заявление о выходе и заявление об аннулировании соглашений.
+      Повестка `leavecoop` ждёт решения совета. Средства пайщика остаются на
+      кошельках программ и доступны ему до решения.
+    kind: normal
+
+  - name: authorized
+    human: Выход одобрен, деньги зарезервированы
+    description: >
+      Совет одобрил выход. Остатки возвращаемых кошельков собраны на главный
+      паевой и зарезервированы под выплату (w.wal.wpend); касса получила
+      исходящий платёж. Пайщик остаётся членом, пока перевод не проведён.
+    kind: normal
+
+  - name: completed
+    human: Выход состоялся
+    description: >
+      Касса подтвердила перевод. Проводка Дт 80 / Кт 51 закрыла паевой взнос,
+      соглашения ЦПП аннулированы, пайщик удалён из реестра совета, аккаунт
+      заблокирован. Запись выхода стёрта.
+    kind: final
+
+  - name: declined
+    human: Выход отклонён
+    description: >
+      Совет отказал либо касса отклонила платёж. Резерв снят, запись выхода
+      стёрта, членство и соглашения продолжают действовать.
+    kind: final
+
+transitions:
+  - from: none
+    to: pending
+    action: registrator::exitcoop
+    actor: member
+    operations: []
+    guards:
+      - Заявитель — действующий пайщик кооператива.
+      - Заявление о выходе подписано ключом самого пайщика.
+      - Кошельки-блокеры пусты: нет резерва под заказы и незакрытого подотчёта.
+      - Нет открытой заявки на гарантийный возврат в «Столе заказов».
+      - Другого процесса выхода у пайщика нет.
+
+  - from: pending
+    to: pending
+    action: registrator::exitagree
+    actor: member
+    operations: []
+    guards:
+      - Заявление о выходе уже подано и ждёт решения совета.
+      - Заявление об аннулировании подписано ключом самого пайщика.
+      - Второй раз приложить заявление нельзя.
+
+  - from: pending
+    to: authorized
+    action: registrator::confirmexit
+    actor: soviet
+    ledger_code: p.wal.wthdrw
+    operations:
+      - o.reg.mvmin
+      - o.cap.wthcap
+      - o.mkt.recall
+      - o.edu.retshr
+      - o.wal.wthreq
+    guards:
+      - Совет принял положительное решение по повестке `leavecoop`.
+      - Проверки программ и кошельков-блокеров пройдены повторно.
+      - У пайщика с программными соглашениями приложено заявление об аннулировании.
+
+  - from: authorized
+    to: completed
+    action: registrator::completexit
+    actor: chairman
+    ledger_code: p.wal.wthdrw
+    operations:
+      - o.wal.wthcpl
+      - o.mkt.exfee
+    guards:
+      - Касса фактически провела перевод пайщику.
+
+  - from: pending
+    to: declined
+    action: registrator::declinexit
+    actor: soviet
+    operations: []
+    guards:
+      - Совет отказал в выходе.
+
+  - from: authorized
+    to: declined
+    action: registrator::declinexit
+    actor: chairman
+    ledger_code: p.wal.wthdrw
+    operations:
+      - o.wal.wthdec
+    guards:
+      - Касса отклонила исходящий платёж.
+
+# ── Секция 4. Сценарий ──────────────────────────────────────────────────────
+scenario:
+  steps:
+    - step: 1
+      title: Пайщик подаёт заявления
+      actor: member
+      action: registrator::exitcoop
+      description: >
+        Пайщик видит, сколько получит при выходе: суммы разложены по программам,
+        рядом названы кошельки, остатки которых остаются кооперативу. Он
+        подписывает заявление о выходе и заявление об аннулировании соглашений
+        ЦПП, и оба уходят одной транзакцией. Контракт ставит повестку совета.
+      pre:
+        - Пайщик действующий, обязательств по программам нет.
+        - У пайщика заданы платёжные реквизиты для выплаты.
+      post:
+        - Запись выхода в статусе `pending`.
+        - Оба заявления в реестре документов.
+        - Повестка `leavecoop` ждёт решения совета.
+
+    - step: 2
+      title: Совет одобряет выход
+      actor: soviet
+      action: registrator::confirmexit
+      description: >
+        Совет рассматривает оба заявления и одобряет выход. Контракт обходит
+        таблицу политики кошельков: остатки возвращаемых переносит на главный
+        паевой (минимальный паевой, «Благорост», паевой «Стола заказов»,
+        членский взнос «Образования»), затем резервирует всю сумму и поручает
+        кассе выплату. Решение совета (registry 201) фиксируется в реестре.
+      pre:
+        - Запись выхода в статусе `pending`.
+        - Совет проголосовал за.
+      post:
+        - Запись выхода в статусе `authorized`, сумма возврата зафиксирована.
+        - Средства собраны на главном паевом и зарезервированы (w.wal.wpend).
+        - Касса получила исходящий платёж.
+
+    - step: 3
+      title: Касса выплачивает и выход завершается
+      actor: chairman
+      action: registrator::completexit
+      description: >
+        Касса переводит деньги пайщику и подтверждает перевод. Контракт
+        проводит списание (Дт 80 / Кт 51), «Стол заказов» уводит остаток
+        членского кошелька в пул взносов участка, соглашения ЦПП аннулируются,
+        пайщик удаляется из реестра совета, аккаунт блокируется.
+      pre:
+        - Запись выхода в статусе `authorized`.
+        - Касса фактически провела перевод.
+      post:
+        - Паевой взнос списан со счёта, пайщик получил деньги.
+        - Соглашений об участии в программах у пайщика нет.
+        - Аккаунт заблокирован, запись выхода стёрта.
+
+# ── Секция 5. Документы и подписи ───────────────────────────────────────────
+documents:
+  - action: registrator::exitcoop
+    title: Заявление на выход из кооператива
+    registry_id: 200
+    signed_by: [ Пайщик ]
+    stored_in: "registrator::exits.statement"
+
+  - action: registrator::exitagree
+    title: Заявление об аннулировании соглашений об участии в целевых потребительских программах
+    registry_id: 190
+    signed_by: [ Пайщик ]
+    stored_in: "registrator::exits.annulment_statement"
+
+  - action: registrator::confirmexit
+    title: Решение совета о выходе пайщика из кооператива
+    registry_id: 201
+    signed_by: [ Председатель совета ]
+    stored_in: "registrator::exits.approved_statement"
+
+# ── Секция 6. Операции ──────────────────────────────────────────────────────
+# Состав операций зависит от того, на каких кошельках у пайщика есть остаток:
+# обходится таблица EXIT_WALLET_POLICY, и для каждого возвращаемого кошелька
+# применяется его операция переноса на главный паевой. Ниже — все возможные.
+operations:
+  - ledger_code: o.reg.mvmin
+    human_name: Перенос минимального паевого взноса на главный
+    wallet_op: TRANSFER
+    wallet_from: w.reg.minshr
+    wallet_to: w.wal.share
+    amount_ref: userwallet(w.reg.minshr).available
+    triggered_by: registrator::confirmexit
+
+  - ledger_code: o.cap.wthcap
+    human_name: Возврат паевого взноса ЦПП «Благорост» на главный паевой
+    wallet_op: TRANSFER
+    wallet_from: w.cap.blago
+    wallet_to: w.wal.share
+    amount_ref: userwallet(w.cap.blago).available
+    triggered_by: registrator::confirmexit
+
+  - ledger_code: o.mkt.recall
+    human_name: Возврат свободного паевого ЦПП «Стол заказов» на главный паевой
+    wallet_op: TRANSFER
+    wallet_from: w.mkt.share
+    wallet_to: w.wal.share
+    amount_ref: userwallet(w.mkt.share).available
+    triggered_by: registrator::confirmexit
+
+  - ledger_code: o.edu.retshr
+    human_name: Возврат членского взноса ЦПП «Образование» в паевой
+    wallet_op: TRANSFER
+    wallet_from: w.edu.member
+    wallet_to: w.wal.share
+    debit: 86
+    credit: 80
+    amount_ref: userwallet(w.edu.member).available
+    triggered_by: registrator::confirmexit
+    description: >
+      Членский взнос программы возвратен по п. 4.2.5 её Положения: при выходе
+      остаток кошелька программы переводится в паевой взнос пайщика и уходит
+      ему вместе с ним.
+
+  - ledger_code: o.wal.wthreq
+    human_name: Резерв паевого взноса под выплату при выходе
+    wallet_op: TRANSFER
+    wallet_from: w.wal.share
+    wallet_to: w.wal.wpend
+    amount_ref: exit.quantity
+    triggered_by: registrator::confirmexit
+
+  - ledger_code: o.wal.wthcpl
+    human_name: Выплата паевого взноса при выходе
+    wallet_op: BURN
+    wallet_from: w.wal.wpend
+    wallet_to: ''
+    debit: 80
+    credit: 51
+    amount_ref: exit.quantity
+    triggered_by: registrator::completexit
+
+  - ledger_code: o.mkt.exfee
+    human_name: Остаток членского кошелька «Стола заказов» в пул взносов
+    wallet_op: TRANSFER
+    wallet_from: w.mkt.member
+    wallet_to: w.mkt.fee
+    amount_ref: userwallet(w.mkt.member).available
+    triggered_by: registrator::completexit
+    description: >
+      Членский взнос «Стола заказов» его Положением не возвращается: остаток
+      уходит в пул взносов и далее в общий кошелёк участка пайщика.
+
+  - ledger_code: o.wal.wthdec
+    human_name: Снятие резерва при отказе в выходе
+    wallet_op: TRANSFER
+    wallet_from: w.wal.wpend
+    wallet_to: w.wal.share
+    amount_ref: exit.quantity
+    triggered_by: registrator::declinexit
