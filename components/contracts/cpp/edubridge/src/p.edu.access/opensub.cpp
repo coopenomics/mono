@@ -9,7 +9,7 @@
  * Движений средств нет. Анкер процесса p.edu.access — `sub_hash`.
  *
  * Guards:
- *  - period ∈ {month, year};
+ *  - period ∈ {month, course, year};
  *  - sub_hash ещё не занят;
  *  - paid_until в будущем;
  *  - пайщик — активный член кооператива.
@@ -27,7 +27,7 @@ void edubridge::opensub(eosio::name coopname,
   require_auth(coopname);
 
   eosio::check(Edubridge::SubscriptionPeriod::is_valid(period),
-               "Недопустимый период подписки: ожидается month или year");
+               "Недопустимый период подписки: ожидается month или course");
 
   const auto now = eosio::current_time_point();
   eosio::check(paid_until > eosio::time_point_sec(now),

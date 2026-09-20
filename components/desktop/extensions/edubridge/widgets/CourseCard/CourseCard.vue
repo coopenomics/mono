@@ -14,15 +14,23 @@ BaseCard.edu-course-card(variant="default" role="link" tabindex="0" @click="emit
       .edu-course-card__fact(v-if="course.lessons_per_month")
         q-icon(name="event_available" size="16px")
         span.ellipsis {{ lessons }}
+    //- Помесячный взнос — главная строка: столько участник вносит на самом деле.
+    //- Ниже длительность курса и взнос разом, если кооператив его принимает.
     .edu-course-card__fees
       FeeAmount(:value="course.fee_month" size="md" per="в месяц")
-      FeeAmount(:value="course.fee_year" size="sm" per="в год")
+      .edu-course-card__full(v-if="months")
+        span {{ months }}
+        template(v-if="course.fee_course")
+          span ·
+          span за курс разом
+          FeeAmount(:value="course.fee_course" size="sm")
 </template>
 <script setup lang="ts">
 import { computed } from 'vue';
 import { pluralize } from 'src/shared/lib/utils';
 import { BaseCard } from 'src/shared/ui/base';
 import type { ICatalogCourse } from '../../entities/Course';
+import { courseMonthsLabel } from '../../shared/lib/courseMonths';
 import { FeeAmount } from '../../shared/ui/FeeAmount';
 
 /**
@@ -37,6 +45,8 @@ const lessons = computed(() => {
   const n = Number(props.course.lessons_per_month);
   return `${n} ${pluralize(n, ['занятие', 'занятия', 'занятий'])} в месяц по ${props.course.lesson_minutes} мин`;
 });
+
+const months = computed(() => courseMonthsLabel(props.course.course_months));
 </script>
 
 <style scoped>
@@ -110,7 +120,7 @@ const lessons = computed(() => {
   color: var(--p-ink-3);
 }
 /* Взносы — итог карточки: отделены линией и прижаты к низу, чтобы карточки
-   в сетке заканчивались на одной высоте. Месячный взнос крупно, годовой под ним. */
+   в сетке заканчивались на одной высоте. Месячный взнос крупно, длительность и взнос разом под ним. */
 .edu-course-card__fees {
   display: flex;
   flex-direction: column;
@@ -124,5 +134,13 @@ const lessons = computed(() => {
   align-self: stretch;
   border-top: 1px solid var(--p-line);
   margin-bottom: var(--p-3);
+}
+.edu-course-card__full {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 6px;
+  font-size: var(--p-fs-body-sm, 13px);
+  color: var(--p-ink-2);
 }
 </style>

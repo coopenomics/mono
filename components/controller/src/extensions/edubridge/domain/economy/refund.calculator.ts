@@ -36,8 +36,11 @@ export interface RefundParams {
   lessons_per_month: number;
   /** Занятий во всей программе курса. */
   lessons_total: number;
-  /** Годовая подписка оплачивает двенадцать месяцев, месячная — один. */
+  /** Сколько месяцев оплачено взносом: один при помесячном, месяцы курса при взносе разом. */
   months_paid: number;
+  /** С какого дня идёт оплаченный срок. Участник, пришедший в середине курса,
+   *  платил за оставшиеся месяцы — занятия до этого дня ему не засчитываются. */
+  paid_from?: Date | null;
   /** Дата активации курса; `null` — курс ещё не активирован. */
   starts_at: Date | null;
   /** Момент отмены. */
@@ -108,12 +111,17 @@ export function calculateRefund(params: RefundParams): RefundCalculation {
 /** Сколько занятий прошло с активации курса — но не больше оплаченных. */
 function lessonsDone(params: RefundParams, lessonsPaid: number): number {
   if (!params.starts_at || params.now <= params.starts_at) return 0;
-  const days = (params.now.getTime() - params.starts_at.getTime()) / (24 * 60 * 60 * 1000);
+  const from = params.paid_from && params.paid_from > params.starts_at ? params.paid_from : params.starts_at;
+  if (params.now <= from) return 0;
+  const days = (params.now.getTime() - from.getTime()) / (24 * 60 * 60 * 1000);
   const done = Math.floor((days / DAYS_IN_MONTH) * params.lessons_per_month);
   return Math.max(0, Math.min(done, lessonsPaid));
 }
 
-/** Сколько месяцев оплачивает период подписки. */
+/**
+ * Сколько месяцев оплачивает период подписки, открытой до появления взноса
+ * за весь курс: у таких записей число оплаченных месяцев не сохранено.
+ */
 export function monthsOfPeriod(period: 'month' | 'year'): number {
   return period === 'year' ? MONTHS_IN_YEAR : 1;
 }

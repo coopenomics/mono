@@ -44,8 +44,11 @@
           .t-meta Взнос в месяц
           FeeAmount(:value="course.fee_month" size="lg")
         .edu-course__metric
-          .t-meta Взнос в год
-          FeeAmount(:value="course.fee_year" size="lg")
+          .t-meta Взнос за весь курс разом
+          FeeAmount(v-if="course.fee_course" :value="course.fee_course" size="lg")
+          .edu-course__metric-value(v-else)
+            span.edu-course__metric-unit принимается только помесячный
+          .t-meta.t-faint(v-if="course.fee_course && course.course_discount_amount") меньше суммы помесячных на {{ formatAsset2Digits(course.course_discount_amount) }}
         .edu-course__metric
           .t-meta Нагрузка в месяц
           .edu-course__metric-value
@@ -56,6 +59,7 @@
           .edu-course__metric-value
             span.edu-course__metric-num {{ course.lessons_total }}
             span.edu-course__metric-unit {{ pluralize(Number(course.lessons_total), LESSON_FORMS) }}
+          .t-meta.t-faint(v-if="months") курс длится {{ months }}
 
     .row.q-col-gutter-md
       .col-12.col-md-8
@@ -129,6 +133,7 @@ import {
 } from '../../entities/Course';
 import { fetchCourseEconomy, type ICourseEconomy } from '../../entities/Economy';
 import { CourseForm } from '../../widgets/CourseForm';
+import { courseMonthsLabel } from '../../shared/lib/courseMonths';
 import { FeeAmount } from '../../shared/ui/FeeAmount';
 
 /**
@@ -158,6 +163,7 @@ const cancelling = ref(false);
 const started = computed(() => Boolean(course.value?.starts_at) && new Date(String(course.value?.starts_at)) <= new Date());
 const formatDate = (v: unknown) => (v ? new Date(String(v)).toLocaleDateString('ru-RU') : '______');
 
+const months = computed(() => courseMonthsLabel(course.value?.course_months));
 const status = computed(() => COURSE_STATUS_LABELS[course.value?.status ?? ''] ?? { label: course.value?.status ?? '', variant: 'neutral' as const });
 const published = computed(() => course.value?.status === Zeus.EduCourseStatus.PUBLISHED);
 const carrierLabel = computed(() => CARRIER_LABELS[course.value?.carrier ?? ''] ?? course.value?.carrier ?? '______');

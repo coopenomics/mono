@@ -31,7 +31,8 @@ function economyParams(input: EduCourseInputDTO): EduCourseEconomyInputDTO {
     lessons_total: input.lessons_total,
     lesson_minutes: input.lesson_minutes,
     planned_hourly_rate: input.planned_hourly_rate,
-    year_discount_percent: input.year_discount_percent ?? 0,
+    course_payment_enabled: input.course_payment_enabled ?? false,
+    course_discount_percent: input.course_discount_percent ?? 0,
   };
 }
 
@@ -222,7 +223,7 @@ export class EdubridgeCourseService {
     }
   }
 
-  private fields(input: EduCourseInputDTO, fee: { fee_month: string; fee_year: string }): Partial<EdubridgeCourseEntity> {
+  private fields(input: EduCourseInputDTO, fee: { fee_month: string }): Partial<EdubridgeCourseEntity> {
     const platform = PLATFORM_CARRIERS.includes(input.carrier);
     return {
       title: input.title,
@@ -242,7 +243,7 @@ export class EdubridgeCourseService {
 }
 
 /** Экономика курса: расписание, ставка, гарантия и посчитанные взносы. */
-function economyFields(input: EduCourseInputDTO, fee: { fee_month: string; fee_year: string }): Partial<EdubridgeCourseEntity> {
+function economyFields(input: EduCourseInputDTO, fee: { fee_month: string }): Partial<EdubridgeCourseEntity> {
   return {
     lessons_per_month: input.lessons_per_month,
     lessons_total: input.lessons_total,
@@ -250,8 +251,8 @@ function economyFields(input: EduCourseInputDTO, fee: { fee_month: string; fee_y
     planned_hourly_rate: input.planned_hourly_rate,
     starts_at: input.starts_at || null,
     guarantee_days: input.guarantee_days ?? DEFAULT_GUARANTEE_DAYS,
-    year_discount_bp: Math.round((input.year_discount_percent ?? 0) * 100),
+    course_payment_enabled: input.course_payment_enabled ?? false,
+    course_discount_bp: input.course_payment_enabled ? Math.round((input.course_discount_percent ?? 0) * 100) : 0,
     fee_month: fee.fee_month,
-    fee_year: fee.fee_year,
   };
 }

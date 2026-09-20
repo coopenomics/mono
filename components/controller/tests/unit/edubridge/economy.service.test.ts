@@ -1,20 +1,20 @@
-/** Экономика курса: себестоимость из часов по ставке, наценка кооператива, годовая скидка, план и факт. */
+/** Экономика курса: себестоимость из часов по ставке, наценка кооператива, взнос за весь курс разом со скидкой, план и факт. */
 import { EdubridgeEconomyService } from '~/extensions/edubridge/application/services/edubridge-economy.service';
-import { calculateCourseFee, maxYearDiscountPercent } from '~/extensions/edubridge/domain/economy/course-fee.calculator';
+import { calculateCourseFee, courseMonths, feeForMonths, maxCourseDiscountPercent } from '~/extensions/edubridge/domain/economy/course-fee.calculator';
 import { EduAssignmentStatus, EduContractStatus } from '~/extensions/edubridge/domain/enums';
 
 const COURSE_ID = '0cd16d12-6ade-40f2-8830-b0673dde8b9e';
 
-/** Курс: восемь занятий в месяц по часу, плановая ставка 1000 ₽/ч, без годовой скидки. */
+/** Курс: восемь занятий в месяц по часу, плановая ставка 1000 ₽/ч, взнос только помесячный. */
 const COURSE = {
   id: COURSE_ID,
   lessons_per_month: 8,
   lessons_total: 64,
   lesson_minutes: 60,
   planned_hourly_rate: '1000.0000 RUB',
-  year_discount_bp: 0,
+  course_payment_enabled: false,
+  course_discount_bp: 0,
   fee_month: '9600.0000 RUB',
-  fee_year: '115200.0000 RUB',
 } as any;
 
 function make(
@@ -61,41 +61,71 @@ const params = {
   lessons_total: 64,
   lesson_minutes: 60,
   planned_hourly_rate: '1000.0000 RUB',
-  year_discount_percent: 0,
+  course_payment_enabled: true,
+  course_discount_percent: 0,
 };
+
+const base = { lessons_per_month: 8, lessons_total: 64, lesson_hours: 1, hourly_rate: '1000.0000 RUB', markup_percent: 20, course_discount_percent: 0 };
 
 describe('Расчёт взноса курса', () => {
   it('себестоимость — часы по ставке, взнос — с наценкой кооператива', () => {
-    const calc = calculateCourseFee({ lessons_per_month: 8, lesson_hours: 1, hourly_rate: '1000.0000 RUB', markup_percent: 20, year_discount_percent: 0 });
+    const calc = calculateCourseFee(base);
     expect(calc.hours_per_month).toBe(8);
     expect(calc.cost_month).toBe('8000.0000 RUB');
     expect(calc.markup_month).toBe('1600.0000 RUB');
     expect(calc.fee_month).toBe('9600.0000 RUB');
-    expect(calc.fee_year_base).toBe('115200.0000 RUB');
-    expect(calc.fee_year).toBe('115200.0000 RUB');
   });
 
   it('занятие в полтора часа: часы считаются из минут', () => {
-    const calc = calculateCourseFee({ lessons_per_month: 4, lesson_hours: 90 / 60, hourly_rate: '1000.0000 RUB', markup_percent: 0, year_discount_percent: 0 });
+    const calc = calculateCourseFee({ ...base, lessons_per_month: 4, lesson_hours: 90 / 60, markup_percent: 0 });
     expect(calc.hours_per_month).toBe(6);
     expect(calc.fee_month).toBe('6000.0000 RUB');
   });
 
-  it('годовая скидка снимается с двенадцати месяцев', () => {
-    const calc = calculateCourseFee({ lessons_per_month: 8, lesson_hours: 1, hourly_rate: '1000.0000 RUB', markup_percent: 20, year_discount_percent: 10 });
-    expect(calc.year_discount_amount).toBe('11520.0000 RUB');
-    expect(calc.fee_year).toBe('103680.0000 RUB');
+  it('курс длится столько месяцев, сколько занимает программа; неполный месяц — месяц', () => {
+    expect(courseMonths(8, 64)).toBe(8);
+    expect(courseMonths(8, 72)).toBe(9);
+    expect(courseMonths(8, 65)).toBe(9);
+    expect(courseMonths(8, 0)).toBe(0);
+    expect(courseMonths(0, 64)).toBe(0);
+  });
+
+  it('взнос за весь курс — месячный за месяцы курса, а не за двенадцать', () => {
+    const calc = calculateCourseFee(base);
+    expect(calc.course_months).toBe(8);
+    expect(calc.fee_course_base).toBe('76800.0000 RUB');
+    expect(calc.fee_course).toBe('76800.0000 RUB');
+    expect(calc.cost_course).toBe('64000.0000 RUB');
+  });
+
+  it('скидка за взнос разом снимается с суммы помесячных', () => {
+    const calc = calculateCourseFee({ ...base, course_discount_percent: 10 });
+    expect(calc.course_discount_amount).toBe('7680.0000 RUB');
+    expect(calc.fee_course).toBe('69120.0000 RUB');
+  });
+
+  it('пришедший в середине вносит за оставшиеся месяцы с той же скидкой', () => {
+    const rest = feeForMonths('9600.0000 RUB', 3, 10);
+    expect(rest.base).toBe('28800.0000 RUB');
+    expect(rest.discount).toBe('2880.0000 RUB');
+    expect(rest.amount).toBe('25920.0000 RUB');
   });
 
   it('предельная скидка равна доле наценки во взносе и ниже себестоимости не опускает', () => {
-    expect(maxYearDiscountPercent(0)).toBe(0);
-    expect(maxYearDiscountPercent(20)).toBe(16.66);
-    const calc = calculateCourseFee({ lessons_per_month: 8, lesson_hours: 1, hourly_rate: '1000.0000 RUB', markup_percent: 20, year_discount_percent: 16.66 });
-    expect(Number(calc.fee_year.split(' ')[0])).toBeGreaterThanOrEqual(Number(calc.cost_year.split(' ')[0]));
+    expect(maxCourseDiscountPercent(0)).toBe(0);
+    expect(maxCourseDiscountPercent(20)).toBe(16.66);
+    const calc = calculateCourseFee({ ...base, course_discount_percent: 16.66 });
+    expect(Number(calc.fee_course.split(' ')[0])).toBeGreaterThanOrEqual(Number(calc.cost_course.split(' ')[0]));
+  });
+
+  it('курс без конечной программы: взноса за курс нет', () => {
+    const calc = calculateCourseFee({ ...base, lessons_total: 0 });
+    expect(calc.course_months).toBe(0);
+    expect(calc.fee_course).toBe('0.0000 RUB');
   });
 
   it('нулевая ставка даёт нулевой взнос — курс без себестоимости', () => {
-    const calc = calculateCourseFee({ lessons_per_month: 8, lesson_hours: 1, hourly_rate: '0.0000 RUB', markup_percent: 20, year_discount_percent: 0 });
+    const calc = calculateCourseFee({ ...base, hourly_rate: '0.0000 RUB' });
     expect(calc.fee_month).toBe('0.0000 RUB');
   });
 });
@@ -106,19 +136,31 @@ describe('EdubridgeEconomyService', () => {
     const saved = await service.setMarkup(25);
     expect(extensions.patchConfig).toHaveBeenCalledWith('edubridge', { markup_percent: 25 });
     expect(saved.markup_percent).toBe(25);
-    expect(saved.max_year_discount_percent).toBe(20);
+    expect(saved.max_course_discount_percent).toBe(20);
   });
 
   it('скидка больше наценки — отказ с предельным значением в тексте', async () => {
     const { service } = make({ markup: 20 });
-    await expect(service.feeForCourse({ ...params, year_discount_percent: 30 })).rejects.toThrow(/Предельная скидка — 16.66%/);
+    await expect(service.feeForCourse({ ...params, course_discount_percent: 30 })).rejects.toThrow(/Предельная скидка — 16.66%/);
   });
 
   it('скидка ровно по пределу принимается', async () => {
     const { service } = make({ markup: 20 });
-    const fee = await service.feeForCourse({ ...params, year_discount_percent: 16.66 });
+    const fee = await service.feeForCourse({ ...params, course_discount_percent: 16.66 });
     expect(fee.fee_month).toBe('9600.0000 RUB');
-    expect(fee.fee_year).toBe('96007.6800 RUB');
+  });
+
+  it('взнос только помесячный: скидка не проверяется и не действует', async () => {
+    const { service } = make({ markup: 20 });
+    const fee = await service.feeForCourse({ ...params, course_payment_enabled: false, course_discount_percent: 90 });
+    expect(fee.fee_month).toBe('9600.0000 RUB');
+    const preview = await service.preview({ ...params, course_payment_enabled: false, course_discount_percent: 90 });
+    expect(preview.fee_course).toBe(preview.fee_course_base);
+  });
+
+  it('взнос за курс без программы — отказ: считать его не от чего', async () => {
+    const { service } = make({ markup: 20 });
+    await expect(service.feeForCourse({ ...params, lessons_total: 0 })).rejects.toThrow(/укажите, сколько в ней занятий/);
   });
 
   it('ставку часа правит администратор — она пишется в договор преподавателя', async () => {

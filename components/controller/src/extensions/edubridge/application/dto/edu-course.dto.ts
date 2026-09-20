@@ -1,7 +1,8 @@
 import { Field, Float, ID, InputType, Int, ObjectType } from '@nestjs/graphql';
-import { ArrayUnique, IsArray, IsDateString, IsEnum, IsInt, IsNotEmpty, IsNumber, IsOptional, IsString, IsUUID, Length, Matches, Max, Min, ValidateNested } from 'class-validator';
+import { ArrayUnique, IsArray, IsBoolean, IsDateString, IsEnum, IsInt, IsNotEmpty, IsNumber, IsOptional, IsString, IsUUID, Length, Matches, Max, Min, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 import { createPaginationResult } from '@coopenomics/extension-kit';
+import { courseMonths, feeForMonths } from '../../domain/economy/course-fee.calculator';
 import { EduAccessCarrier, EduCourseDirection, EduCourseStatus } from '../../domain/enums';
 import type { EdubridgeCourseEntity } from '../../infrastructure/entities';
 import type { EduCourseImage } from '../../infrastructure/entities/edubridge-course.entity';
@@ -61,8 +62,17 @@ export class EduCatalogCourseDTO {
   @Field(() => String, { description: 'Членский взнос за месяц' })
   fee_month!: string;
 
-  @Field(() => String, { description: 'Членский взнос за год' })
-  fee_year!: string;
+  @Field(() => Int, { description: 'Длительность курса в месяцах; ноль — у курса нет конечной программы' })
+  course_months!: number;
+
+  @Field(() => String, { nullable: true, description: 'Членский взнос за весь курс разом; пусто — принимается только помесячный взнос' })
+  fee_course!: string | null;
+
+  @Field(() => String, { nullable: true, description: 'Сумма помесячных взносов за весь курс — с ней сравнивается взнос разом' })
+  fee_course_base!: string | null;
+
+  @Field(() => String, { nullable: true, description: 'На сколько взнос разом меньше суммы помесячных' })
+  course_discount_amount!: string | null;
 
   constructor(e: EdubridgeCourseEntity) {
     this.id = e.id;
@@ -79,7 +89,12 @@ export class EduCatalogCourseDTO {
     this.lesson_minutes = e.lesson_minutes;
     this.starts_at = e.starts_at;
     this.fee_month = e.fee_month;
-    this.fee_year = e.fee_year;
+    this.course_months = courseMonths(e.lessons_per_month, e.lessons_total);
+    // Взнос разом — месячный за месяцы курса со скидкой; тем же расчётом его берёт подписка.
+    const full = e.course_payment_enabled && this.course_months > 0 ? feeForMonths(e.fee_month, this.course_months, e.course_discount_bp / 100) : null;
+    this.fee_course = full?.amount ?? null;
+    this.fee_course_base = full?.base ?? null;
+    this.course_discount_amount = full?.discount ?? null;
   }
 }
 
@@ -101,8 +116,11 @@ export class EduCourseDTO extends EduCatalogCourseDTO {
   @Field(() => String, { description: 'Плановая ставка часа по программе' })
   planned_hourly_rate!: string;
 
-  @Field(() => Float, { description: 'Скидка за годовой объём, проценты' })
-  year_discount_percent!: number;
+  @Field(() => Boolean, { description: 'Принимает ли кооператив взнос за весь курс разом' })
+  course_payment_enabled!: boolean;
+
+  @Field(() => Float, { description: 'Скидка за взнос разом за весь курс, проценты' })
+  course_discount_percent!: number;
 
   @Field(() => Int, { description: 'Гарантийный срок на материалы занятия, дней' })
   guarantee_days!: number;
@@ -126,7 +144,8 @@ export class EduCourseDTO extends EduCatalogCourseDTO {
     this.external_ref = e.external_ref;
     this.external_title_seen = e.external_title_seen;
     this.planned_hourly_rate = e.planned_hourly_rate;
-    this.year_discount_percent = e.year_discount_bp / 100;
+    this.course_payment_enabled = e.course_payment_enabled;
+    this.course_discount_percent = e.course_discount_bp / 100;
     this.guarantee_days = e.guarantee_days;
     this.status = e.status;
     this.sort_order = e.sort_order;
@@ -235,7 +254,7 @@ export class EduCourseInputDTO {
   @IsString({ each: true })
   teacher_usernames?: string[] | null;
 
-  // Взносы за месяц и за год считает сервер: часы занятий по ставке плюс
+  // Взносы за месяц и за весь курс считает сервер: часы занятий по ставке плюс
   // наценка кооператива. Произвольная сумма курса разошлась бы с обязательствами
   // перед преподавателями, поэтому во входных данных её нет.
   @Field(() => Int, { description: 'Занятий в месяц по расписанию' })
@@ -272,12 +291,17 @@ export class EduCourseInputDTO {
   @IsDateString()
   starts_at?: string | null;
 
-  @Field(() => Float, { nullable: true, description: 'Скидка за годовой объём, проценты' })
+  @Field(() => Boolean, { nullable: true, description: 'Принимать взнос за весь курс разом; иначе взнос только помесячный' })
+  @IsOptional()
+  @IsBoolean()
+  course_payment_enabled?: boolean;
+
+  @Field(() => Float, { nullable: true, description: 'Скидка за взнос разом за весь курс, проценты' })
   @IsOptional()
   @IsNumber()
   @Min(0)
   @Max(100)
-  year_discount_percent?: number;
+  course_discount_percent?: number;
 
   @Field(() => EduCourseDirection, { description: 'Тип направления' })
   @IsEnum(EduCourseDirection)

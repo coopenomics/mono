@@ -28,7 +28,7 @@ cases:
     level: backend
     kind: happy
     scenario: Котировка по периоду; паевого не хватает.
-    expect: amount по fee_month/fee_year, enough=false, shortfall = разница, sub_hash детерминирован.
+    expect: amount по взносу за период, месяцев оплачено — один, enough=false, shortfall = разница, sub_hash детерминирован.
     test: components/controller/tests/unit/edubridge/enrollment.service.test.ts
     status: passing
   - id: edu.enr.break.01
@@ -158,3 +158,31 @@ cases:
     expect: Суммы через форматтер, основание возврата подписано словами.
     test: ~
     status: missing
+  - id: edu.enroll.happy.09
+    level: backend
+    kind: happy
+    scenario: Взнос за весь курс разом до начала занятий.
+    expect: "Одной транзакцией convert + opensub(period=course) + chargefee на сумму помесячных со скидкой; у подписки сохранено число оплаченных месяцев."
+    test: components/controller/tests/unit/edubridge/enrollment.service.test.ts
+    status: passing
+  - id: edu.enroll.side.06
+    level: backend
+    kind: side
+    scenario: Участник приходит в середине курса либо переходит с помесячного взноса на взнос за курс.
+    expect: Взнос — за оставшиеся месяцы с той же скидкой, оплаченный месяц засчитан, срок — до конца курса.
+    test: components/controller/tests/unit/edubridge/enrollment.service.test.ts
+    status: passing
+  - id: edu.enroll.break.05
+    level: backend
+    kind: break
+    scenario: "Взнос за курс: курс оплачен до конца, кооператив принимает только помесячный, у курса нет программы, выбран год."
+    expect: Отказ с понятной причиной в каждом случае; год для новых подписок закрыт.
+    test: components/controller/tests/unit/edubridge/enrollment.service.test.ts
+    status: passing
+  - id: edu.enroll.side.07
+    level: backend
+    kind: side
+    scenario: Отказ от подписки у пришедшего в середине курса.
+    expect: Занятия до его взноса не засчитываются — возврат считается от начала оплаченного срока.
+    test: components/controller/tests/unit/edubridge/refund.test.ts
+    status: passing

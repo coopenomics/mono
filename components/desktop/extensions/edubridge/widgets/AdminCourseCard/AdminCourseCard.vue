@@ -18,14 +18,22 @@ BaseCard.edu-admin-course(variant="default" role="link" tabindex="0" @click="emi
         q-icon(name="co_present" size="16px")
         span.ellipsis(v-if="teachers.length") {{ teachers.join(', ') }}
         span.ellipsis.t-muted(v-else) Преподаватель не назначен
+    //- Помесячный взнос — главная строка: столько участник вносит на самом деле.
+    //- Ниже длительность курса и взнос разом, если кооператив его принимает.
     .edu-admin-course__fees
       FeeAmount(:value="course.fee_month" size="md" per="в месяц")
-      FeeAmount(:value="course.fee_year" size="sm" per="в год")
+      .edu-admin-course__full(v-if="months")
+        span {{ months }}
+        template(v-if="course.fee_course")
+          span ·
+          span за курс разом
+          FeeAmount(:value="course.fee_course" size="sm")
 </template>
 <script setup lang="ts">
 import { computed } from 'vue';
 import { BaseBadge, BaseCard } from 'src/shared/ui/base';
 import { COURSE_STATUS_LABELS, type ICourse } from '../../entities/Course';
+import { courseMonthsLabel } from '../../shared/lib/courseMonths';
 import { FeeAmount } from '../../shared/ui/FeeAmount';
 
 /**
@@ -40,6 +48,8 @@ const emit = defineEmits<{ open: [] }>();
 
 const status = computed(() => COURSE_STATUS_LABELS[props.course.status] ?? { label: props.course.status, variant: 'neutral' as const });
 const teachers = computed(() => props.course.teacher_usernames.map((u) => props.teacherNames?.[u] || u));
+
+const months = computed(() => courseMonthsLabel(props.course.course_months));
 </script>
 
 <style scoped>
@@ -121,7 +131,7 @@ const teachers = computed(() => props.course.teacher_usernames.map((u) => props.
   color: var(--p-ink-3);
 }
 /* Взносы — итог карточки: отделены линией и прижаты к низу, чтобы карточки
-   в сетке заканчивались на одной высоте. Месячный взнос крупно, годовой под ним. */
+   в сетке заканчивались на одной высоте. Месячный взнос крупно, длительность и взнос разом под ним. */
 .edu-admin-course__fees {
   display: flex;
   flex-direction: column;
@@ -135,5 +145,13 @@ const teachers = computed(() => props.course.teacher_usernames.map((u) => props.
   align-self: stretch;
   border-top: 1px solid var(--p-line);
   margin-bottom: var(--p-3);
+}
+.edu-admin-course__full {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 6px;
+  font-size: var(--p-fs-body-sm, 13px);
+  color: var(--p-ink-2);
 }
 </style>

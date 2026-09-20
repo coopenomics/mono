@@ -1,4 +1,4 @@
-/** «Получить доступ»: котировка, продление против открытия, нехватка паевого, одна транзакция convert+opensub. */
+/** «Получить доступ»: котировка, взнос помесячно и разом за весь курс, продление против открытия, нехватка паевого, одна транзакция convert+opensub. */
 import { EdubridgeEnrollmentService } from '~/extensions/edubridge/application/services/edubridge-enrollment.service';
 import { EduAccessState, EduCourseStatus, EduEnrollmentPeriod, EduEnrollmentStatus } from '~/extensions/edubridge/domain/enums';
 import { EDUBRIDGE_ENROLLMENT_EXTENDED_EVENT, EDUBRIDGE_ENROLLMENT_OPENED_EVENT } from '~/extensions/edubridge/application/events/edubridge.events';
@@ -11,7 +11,9 @@ const course = {
   title: 'Алгебра',
   status: EduCourseStatus.PUBLISHED,
   fee_month: '1000.0000 RUB',
-  fee_year: '10000.0000 RUB',
+  // Взнос за весь курс разом принимается, скидка 10%: программа 64 занятия по 8 в месяц — восемь месяцев.
+  course_payment_enabled: true,
+  course_discount_bp: 1000,
   lessons_per_month: 8,
   lessons_total: 64,
   lesson_minutes: 60,
@@ -49,6 +51,8 @@ describe('EdubridgeEnrollmentService', () => {
     expect(q.amount).toBe('1000.0000 RUB');
     expect(q.enough).toBe(false);
     expect(q.shortfall).toBe('500.0000 RUB');
+    expect(q.months).toBe(1);
+    expect(q.discount_amount).toBe('0.0000 RUB');
     expect(q.is_extension).toBe(false);
     expect(q.sub_hash).toBe(EdubridgeEnrollmentService.subHash('voskhod', '7', '3'));
   });
@@ -61,17 +65,20 @@ describe('EdubridgeEnrollmentService', () => {
 
   it('новая подписка: convert + opensub одной транзакцией, статус ACTIVE, доступ PENDING, событие opened', async () => {
     const { service, chain, events } = make({ available: '20000.0000 RUB' });
-    const saved = await service.subscribe('voskhod', 'ant', 'L1', 'C1', EduEnrollmentPeriod.YEAR, doc);
+    const saved = await service.subscribe('voskhod', 'ant', 'L1', 'C1', EduEnrollmentPeriod.COURSE, doc);
     const [convert, sub, charge] = chain.convertAndSubscribe.mock.calls[0];
-    expect(convert.amount).toBe('10000.0000 RUB');
+    // Восемь месяцев по 1000 со скидкой 10%.
+    expect(convert.amount).toBe('7200.0000 RUB');
     // Взнос уходит в фонд той же транзакцией: стоимость подписки поступает
     // в распоряжение кооператива сразу (Положение ЦПП, п. 4.2.2).
-    expect(charge.amount).toBe('10000.0000 RUB');
+    expect(charge.amount).toBe('7200.0000 RUB');
     expect(charge.sub_hash).toBe(sub.data.sub_hash);
     expect(charge.username).toBe('ant');
     expect(sub.kind).toBe('open');
     expect(sub.data.learner_id).toBe(7);
-    expect(sub.data.period).toBe('year');
+    expect(sub.data.period).toBe('course');
+    expect(saved.paid_months).toBe(8);
+    expect(saved.paid_amount).toBe('7200.0000 RUB');
     expect(saved.status).toBe(EduEnrollmentStatus.ACTIVE);
     expect(saved.access_state).toBe(EduAccessState.PENDING);
     expect(saved.statement_hash).toBe('deadbeef');
@@ -89,6 +96,52 @@ describe('EdubridgeEnrollmentService', () => {
     expect(saved.paid_until?.getTime()).toBe(expected.getTime());
     expect(saved.access_state).toBe(EduAccessState.GRANTED);
     expect(events.emit).toHaveBeenCalledWith(EDUBRIDGE_ENROLLMENT_EXTENDED_EVENT, expect.anything());
+  });
+
+  it('взнос за весь курс: пришедший в середине вносит за оставшиеся месяцы, срок — до конца курса', async () => {
+    // Курс начался пять с половиной месяцев назад: из восьми месяцев осталось три (неполный считается месяцем).
+    const startsAt = new Date(); startsAt.setMonth(startsAt.getMonth() - 5); startsAt.setDate(startsAt.getDate() - 10);
+    const { service } = make({ available: '20000.0000 RUB', course: { ...course, starts_at: startsAt } });
+    const q = await service.quote('voskhod', 'ant', 'L1', 'C1', EduEnrollmentPeriod.COURSE);
+    expect(q.months).toBe(3);
+    expect(q.base_amount).toBe('3000.0000 RUB');
+    expect(q.discount_amount).toBe('300.0000 RUB');
+    expect(q.amount).toBe('2700.0000 RUB');
+    const end = new Date(startsAt); end.setMonth(end.getMonth() + 8);
+    expect(q.paid_until.getTime()).toBe(end.getTime());
+  });
+
+  it('взнос за весь курс после помесячного: оплаченный месяц засчитан, взнос — за остаток', async () => {
+    const until = new Date(); until.setMonth(until.getMonth() + 1);
+    const existing = { id: 'E9', status: EduEnrollmentStatus.ACTIVE, paid_until: until, access_state: EduAccessState.GRANTED, learner_id: 'L1', course_id: 'C1', sub_hash: 'x' };
+    const startsAt = new Date(until); startsAt.setMonth(startsAt.getMonth() - 1);
+    const { service } = make({ existing, course: { ...course, starts_at: startsAt } });
+    const q = await service.quote('voskhod', 'ant', 'L1', 'C1', EduEnrollmentPeriod.COURSE);
+    expect(q.is_extension).toBe(true);
+    expect(q.months).toBe(7);
+  });
+
+  it('курс оплачен до конца программы — повторный взнос за курс не принимается', async () => {
+    const startsAt = new Date(); startsAt.setMonth(startsAt.getMonth() - 1);
+    const until = new Date(startsAt); until.setMonth(until.getMonth() + 8);
+    const existing = { id: 'E9', status: EduEnrollmentStatus.ACTIVE, paid_until: until, access_state: EduAccessState.GRANTED, learner_id: 'L1', course_id: 'C1', sub_hash: 'x' };
+    const { service } = make({ existing, course: { ...course, starts_at: startsAt } });
+    await expect(service.quote('voskhod', 'ant', 'L1', 'C1', EduEnrollmentPeriod.COURSE)).rejects.toThrow(/оплачен до конца программы/);
+  });
+
+  it('кооператив принимает только помесячный взнос — взнос за курс отклоняется', async () => {
+    const { service } = make({ course: { ...course, course_payment_enabled: false } });
+    await expect(service.quote('voskhod', 'ant', 'L1', 'C1', EduEnrollmentPeriod.COURSE)).rejects.toThrow(/доступен помесячный взнос/);
+  });
+
+  it('курс без конечной программы — взнос за курс отклоняется', async () => {
+    const { service } = make({ course: { ...course, lessons_total: 0 } });
+    await expect(service.quote('voskhod', 'ant', 'L1', 'C1', EduEnrollmentPeriod.COURSE)).rejects.toThrow(/доступен помесячный взнос/);
+  });
+
+  it('взнос за год больше не оформляется', async () => {
+    const { service } = make();
+    await expect(service.quote('voskhod', 'ant', 'L1', 'C1', EduEnrollmentPeriod.YEAR)).rejects.toThrow(/за год больше не принимается/);
   });
 
   it('заявление о конвертации — документ 3011 с ключом подписки, суммой, курсом и периодом', async () => {

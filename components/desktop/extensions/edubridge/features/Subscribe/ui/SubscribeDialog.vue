@@ -7,10 +7,20 @@ BaseDialog(:model-value="modelValue" title="Получить доступ" size=
           template(#icon-left)
             q-icon(name="add" size="18px")
     BaseSelect(v-model="courseId" label="Курс" :options="courseOptions" :disabled="Boolean(lockedCourseId)" required)
-    BaseSelect(v-model="period" label="Период членского взноса" :options="periodOptions" required)
+
+    //- Два способа внести взнос — рядом, с полными суммами: скидка за взнос
+    //- разом видна как разница в рублях. Второй способ есть не у каждого курса.
+    .edu-subscribe__options(v-if="monthQuote")
+      BaseRadioCard(v-model="period" :value="Zeus.EduEnrollmentPeriod.MONTH" title="Помесячно")
+        FeeAmount(:value="monthQuote.amount" size="md" per="в месяц")
+        template(v-if="courseQuote" #meta)
+          | за {{ monthsLabel }} — {{ formatAsset2Digits(courseQuote.base_amount) }}
+      BaseRadioCard(v-if="courseQuote" v-model="period" :value="Zeus.EduEnrollmentPeriod.COURSE" title="За весь курс разом")
+        FeeAmount(:value="courseQuote.amount" size="md")
+        template(#meta)
+          | за {{ monthsLabel }} · меньше на {{ formatAsset2Digits(courseQuote.discount_amount) }}
 
     template(v-if="quote")
-      DataRow(label="Членский взнос" :value="formatAsset2Digits(quote.amount)")
       DataRow(label="Доступно паевого в главном кошельке" :value="formatAsset2Digits(quote.available)")
       DataRow(:label="quote.is_extension ? 'Будет продлено до' : 'Будет оплачено до'" :value="formatDate(quote.paid_until)")
 
@@ -37,16 +47,19 @@ import { Zeus } from '@coopenomics/sdk';
 import { asDateInput, asText } from 'src/shared/lib/utils';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
-import { BaseBanner, BaseButton, BaseDialog, BaseSelect } from 'src/shared/ui/base';
+import { BaseBanner, BaseButton, BaseDialog, BaseRadioCard, BaseSelect } from 'src/shared/ui/base';
 import { DataRow } from 'src/shared/ui/domain';
 import type { DigitalDocument } from 'src/shared/lib/document';
-import { fetchQuote, PERIOD_LABELS, type IEnrollment, type ILearner, type IQuote } from '../../../entities/Learner';
+import { fetchQuote, type IEnrollment, type ILearner, type IQuote } from '../../../entities/Learner';
 import type { ICatalogCourse } from '../../../entities/Course';
 import { LearnerForm } from '../../../widgets/LearnerForm';
+import { courseMonthsLabel } from '../../../shared/lib/courseMonths';
+import { FeeAmount } from '../../../shared/ui/FeeAmount';
 import { buildConvertStatement, subscribe } from '../api';
 
 /**
- * «Получить доступ»: выбор обучающегося, курса и периода → котировка → при
+ * «Получить доступ»: выбор обучающегося, курса и способа взноса (помесячно
+ * либо разом за весь курс) → котировка → при
  * нехватке паевого — к пополнению средствами ядра; при достатке — кнопка.
  * Заявление о конвертации генерируется и подписывается по нажатию кнопки:
  * галочки и чтения документа здесь нет — это машинерия под капотом, человек
@@ -73,13 +86,16 @@ const learnerFormOpen = ref(false);
 const pool = ref<ILearner[]>([...props.learners]);
 const courseId = ref<string | null>(props.lockedCourseId ?? null);
 const period = ref<Zeus.EduEnrollmentPeriod>(Zeus.EduEnrollmentPeriod.MONTH);
-const quote = ref<IQuote | null>(null);
+/** Котировки обоих способов: участник сравнивает полные суммы до выбора. */
+const monthQuote = ref<IQuote | null>(null);
+const courseQuote = ref<IQuote | null>(null);
+const quote = computed(() => (period.value === Zeus.EduEnrollmentPeriod.COURSE ? courseQuote.value : monthQuote.value));
+const monthsLabel = computed(() => courseMonthsLabel(courseQuote.value?.months));
 const busy = ref(false);
 const statement = ref<DigitalDocument | null>(null);
 
 const learnerOptions = computed(() => pool.value.map((l) => ({ value: asText(l.id), label: l.is_self ? `${l.display_name} (я)` : l.display_name })));
 const courseOptions = computed(() => props.courses.map((c) => ({ value: asText(c.id), label: `${c.title} · ${c.subject}, ${c.grade}` })));
-const periodOptions = Object.entries(PERIOD_LABELS).map(([value, label]) => ({ value, label }));
 const courseTitle = computed(() => props.courses.find((c) => c.id === courseId.value)?.title ?? '');
 
 function formatDate(value: unknown): string {
@@ -87,15 +103,33 @@ function formatDate(value: unknown): string {
   return input ? new Date(input).toLocaleDateString('ru-RU') : '______';
 }
 
-watch([learnerId, courseId, period], async () => {
-  quote.value = null;
+watch([learnerId, courseId], async () => {
+  monthQuote.value = null;
+  courseQuote.value = null;
   statement.value = null;
+  period.value = Zeus.EduEnrollmentPeriod.MONTH;
   if (!learnerId.value || !courseId.value) return;
+  const pair = { learner_id: learnerId.value, course_id: courseId.value };
   try {
-    quote.value = await fetchQuote({ learner_id: learnerId.value, course_id: courseId.value, period: period.value });
+    monthQuote.value = await fetchQuote({ ...pair, period: Zeus.EduEnrollmentPeriod.MONTH });
   } catch (e) {
     FailAlert(e);
+    return;
   }
+  // Взнос разом есть не у каждого курса и не всегда: кооператив может принимать
+  // только помесячный, а курс — быть уже оплаченным до конца. Отказ здесь — не
+  // ошибка, второй способ просто не показывается.
+  if (!props.courses.find((c) => asText(c.id) === courseId.value)?.fee_course) return;
+  try {
+    courseQuote.value = await fetchQuote({ ...pair, period: Zeus.EduEnrollmentPeriod.COURSE });
+  } catch {
+    courseQuote.value = null;
+  }
+});
+
+// Заявление подписано под сумму выбранного способа — при смене способа оно готовится заново.
+watch(period, () => {
+  statement.value = null;
 });
 
 watch(
@@ -164,3 +198,11 @@ async function submit(): Promise<void> {
   }
 }
 </script>
+
+<style scoped>
+.edu-subscribe__options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--p-3);
+}
+</style>

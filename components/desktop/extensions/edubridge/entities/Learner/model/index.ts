@@ -15,8 +15,10 @@ export const RECIPIENT_LABELS: Record<string, string> = {
   [Zeus.EduRecipientType.ONSITE]: 'Очно (код пропуска)',
 };
 
+/** Год — только у подписок, открытых до взноса за весь курс; новые так не оформляются. */
 export const PERIOD_LABELS: Record<string, string> = {
-  [Zeus.EduEnrollmentPeriod.MONTH]: 'Месяц',
+  [Zeus.EduEnrollmentPeriod.MONTH]: 'Помесячно',
+  [Zeus.EduEnrollmentPeriod.COURSE]: 'За весь курс',
   [Zeus.EduEnrollmentPeriod.YEAR]: 'Год',
 };
 

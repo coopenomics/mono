@@ -92,19 +92,21 @@ export class EdubridgeCourseEntity {
   @Column({ type: 'int', default: 14 })
   public guarantee_days!: number;
 
-  /** Скидка за годовой объём, базисные пункты (100 = 1%); ограничена наценкой кооператива. */
+  /** Принимает ли кооператив взнос за весь курс разом; иначе взнос только помесячный. */
+  @Column({ type: 'boolean', default: false })
+  public course_payment_enabled!: boolean;
+
+  /** Скидка за взнос разом за весь курс, базисные пункты (100 = 1%); ограничена наценкой кооператива. */
   @Column({ type: 'int', default: 0 })
-  public year_discount_bp!: number;
+  public course_discount_bp!: number;
 
   /**
-   * Членский взнос за месяц и за год — asset-строки цепи («1000.0000 RUB»).
-   * Считает их сервер из параметров выше, руками они не задаются.
+   * Членский взнос за месяц — asset-строка цепи («1000.0000 RUB»). Считает его
+   * сервер из параметров выше, руками он не задаётся. Взнос за весь курс разом
+   * отдельно не хранится: это месячный за месяцы курса со скидкой.
    */
   @Column({ type: 'varchar', length: 64 })
   public fee_month!: string;
-
-  @Column({ type: 'varchar', length: 64 })
-  public fee_year!: string;
 
   @Column({ type: 'enum', enum: EduCourseDirection, default: EduCourseDirection.ONLINE_PLATFORM })
   public direction!: EduCourseDirection;

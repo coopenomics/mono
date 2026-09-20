@@ -103,7 +103,7 @@ const cancelBusy = ref(false);
 const columns: BaseTableColumn<IEnrollment>[] = [
   { key: 'course_title', label: 'Курс' },
   { key: 'learner', label: 'Обучающийся', width: '140px' },
-  { key: 'period', label: 'Период', width: '90px', nowrap: true },
+  { key: 'period', label: 'Взнос', width: '90px', nowrap: true },
   { key: 'paid_until', label: 'Оплачено до', width: '120px', nowrap: true },
   { key: 'status', label: 'Подписка', width: '120px', nowrap: true },
   { key: 'access_state', label: 'Доступ', width: '130px', nowrap: true },

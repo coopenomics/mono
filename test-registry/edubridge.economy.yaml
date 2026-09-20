@@ -3,9 +3,11 @@ title: Образовательный мост — экономика курса
 
 # E9 (задача 7DD-12). Стоимость курса складывается снизу: часы занятий по ставке
 # преподавателя дают себестоимость, кооператив добавляет наценку — одну на весь
-# кооператив, как «Стол заказов» добавляет её к цене поставщика. Годовой взнос
-# берётся скидкой за объём, и скидка ограничена наценкой: ниже себестоимости
-# взнос не опускается, иначе обязательства перед преподавателями не покрыть.
+# кооператив, как «Стол заказов» добавляет её к цене поставщика. Взнос вносят
+# помесячно либо разом за весь курс (7DD-19): курс длится столько месяцев,
+# сколько занимает программа, и за взнос разом кооператив даёт скидку. Скидка
+# ограничена наценкой: ниже себестоимости взнос не опускается, иначе
+# обязательства перед преподавателями не покрыть.
 
 sources:
   backend:
@@ -26,7 +28,7 @@ cases:
     level: backend
     kind: happy
     scenario: Курс из восьми занятий по часу при ставке 1000 ₽/ч и наценке 20%.
-    expect: Себестоимость 8000, наценка 1600, взнос за месяц 9600, за год 115200.
+    expect: Себестоимость 8000, наценка 1600, взнос за месяц 9600.
     test: components/controller/tests/unit/edubridge/economy.service.test.ts
     status: passing
   - id: edu.econ.happy.02
@@ -46,15 +48,15 @@ cases:
   - id: edu.econ.break.01
     level: backend
     kind: break
-    scenario: Годовая скидка больше доли наценки во взносе.
-    expect: Отказ с предельным значением в тексте — годовой взнос иначе ниже себестоимости.
+    scenario: Скидка за взнос разом больше доли наценки во взносе.
+    expect: Отказ с предельным значением в тексте — взнос за курс иначе ниже себестоимости.
     test: components/controller/tests/unit/edubridge/economy.service.test.ts
     status: passing
   - id: edu.econ.side.01
     level: backend
     kind: side
     scenario: Скидка ровно по пределу.
-    expect: Принимается, годовой взнос не ниже себестоимости года.
+    expect: Принимается, взнос за курс не ниже себестоимости курса.
     test: components/controller/tests/unit/edubridge/economy.service.test.ts
     status: passing
   - id: edu.econ.side.02
@@ -139,5 +141,47 @@ cases:
     kind: happy
     scenario: "Раздел «Экономика» — вкладка «Расходы»: список расходов и подача служебной записки из фонда программы."
     expect: Форма и подпись — общий виджет шасси, источник средств — пул расходов программы.
+    test: ~
+    status: missing
+  - id: edu.econ.happy.09
+    level: backend
+    kind: happy
+    scenario: Программа из 64 занятий по восемь в месяц; 72 и 65 занятий; программа не задана.
+    expect: "Длительность курса 8, 9 и 9 месяцев (неполный месяц — месяц); без программы — ноль, взноса за курс нет."
+    test: components/controller/tests/unit/edubridge/economy.service.test.ts
+    status: passing
+  - id: edu.econ.happy.10
+    level: backend
+    kind: happy
+    scenario: Взнос за весь курс разом при скидке 10%.
+    expect: Сумма помесячных за месяцы курса (76800), скидка 7680, взнос 69120 — не за двенадцать месяцев.
+    test: components/controller/tests/unit/edubridge/economy.service.test.ts
+    status: passing
+  - id: edu.econ.side.05
+    level: backend
+    kind: side
+    scenario: Кооператив принимает только помесячный взнос, в форме осталась скидка.
+    expect: Скидка не проверяется и не действует; у курса она сохраняется нулём.
+    test: components/controller/tests/unit/edubridge/economy.service.test.ts
+    status: passing
+  - id: edu.econ.break.04
+    level: backend
+    kind: break
+    scenario: Взнос за весь курс включён, а занятий в программе нет.
+    expect: Отказ — считать взнос за курс не от чего.
+    test: components/controller/tests/unit/edubridge/economy.service.test.ts
+    status: passing
+  - id: edu.econ.happy.11
+    level: backend
+    kind: happy
+    scenario: "Срок взноса за курс: до начала занятий, без назначенного дня, в середине курса, на границе месяца, после конца."
+    expect: Курс заканчивается в один день для всех; в середине оплачиваются оставшиеся месяцы; после конца оплачивать нечего.
+    test: components/controller/tests/unit/edubridge/course-period.test.ts
+    status: passing
+  - id: edu.econ.ui.03
+    level: ui
+    kind: happy
+    scenario: "Форма курса: переключатель «Принимать взнос за весь курс разом» и скидка; карточка и страница курса."
+    expect: Выключен — везде только помесячный взнос; включён — рядом обе полные суммы и разница в рублях.
     test: ~
     status: missing

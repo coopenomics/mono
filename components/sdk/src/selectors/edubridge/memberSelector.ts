@@ -32,6 +32,9 @@ export const eduEnrollmentSelector = Selector('EduEnrollment')(rawEnrollmentSele
 
 const rawQuoteSelector = {
   amount: true,
+  months: true,
+  base_amount: true,
+  discount_amount: true,
   available: true,
   enough: true,
   shortfall: true,

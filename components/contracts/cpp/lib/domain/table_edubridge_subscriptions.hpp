@@ -15,11 +15,12 @@ using namespace eosio;
  * @brief Периоды подписки на курс ЦПП «Образование».
  */
 namespace SubscriptionPeriod {
-  inline constexpr eosio::name MONTH = "month"_n;
-  inline constexpr eosio::name YEAR  = "year"_n;
+  inline constexpr eosio::name MONTH  = "month"_n;
+  inline constexpr eosio::name COURSE = "course"_n; ///< взнос разом за весь курс
+  inline constexpr eosio::name YEAR   = "year"_n;   ///< у подписок, открытых до взноса за курс
 
   inline bool is_valid(eosio::name period) {
-    return period == MONTH || period == YEAR;
+    return period == MONTH || period == COURSE || period == YEAR;
   }
 }
 
@@ -43,7 +44,7 @@ struct [[eosio::table, eosio::contract(EDUBRIDGE)]] edu_subscription {
   eosio::name username;              ///< пайщик-плательщик (родитель-слушатель)
   uint64_t learner_id;               ///< обучающийся (off-chain id приложения)
   uint64_t course_id;                ///< курс (off-chain id приложения)
-  eosio::name period;                ///< период оплаты: month | year
+  eosio::name period;                ///< период оплаты: month | course (year — у прежних подписок)
   eosio::time_point_sec paid_until;  ///< оплачено до
   checksum256 statement_hash;        ///< hash последнего Заявления о конвертации, по которому оплачен период
   eosio::time_point_sec created_at;  ///< открытие подписки

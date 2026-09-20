@@ -43,7 +43,7 @@ export class EdubridgeEconomyResolver {
     return this.expenses.create(coop(), m.username as string, data);
   }
 
-  @Query(() => EduEconomySettingsDTO, { name: 'edubridgeEconomySettings', description: 'Наценка кооператива и предельная скидка за год' })
+  @Query(() => EduEconomySettingsDTO, { name: 'edubridgeEconomySettings', description: 'Наценка кооператива и предельная скидка за взнос разом за весь курс' })
   @UseGuards(GqlJwtAuthGuard, EdubridgeAccessGuard)
   @RequireEduAccess('EduEconomy', 'read')
   edubridgeEconomySettings(): Promise<EduEconomySettingsDTO> {

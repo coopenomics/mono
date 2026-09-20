@@ -1,5 +1,5 @@
 import { Field, Float, InputType, Int, ObjectType } from '@nestjs/graphql';
-import { IsInt, IsNumber, IsString, Length, Matches, Max, Min } from 'class-validator';
+import { IsBoolean, IsInt, IsNumber, IsOptional, IsString, Length, Matches, Max, Min } from 'class-validator';
 
 /** Сумма в формате цепи: «1000.0000 RUB». */
 const ASSET_PATTERN = /^\d+\.\d{4} [A-Z]{1,7}$/;
@@ -10,8 +10,8 @@ export class EduEconomySettingsDTO {
   @Field(() => Float, { description: 'Наценка кооператива к себестоимости курса, проценты' })
   markup_percent!: number;
 
-  @Field(() => Float, { description: 'Предельная скидка за годовой объём при этой наценке, проценты' })
-  max_year_discount_percent!: number;
+  @Field(() => Float, { description: 'Предельная скидка за взнос разом за весь курс при этой наценке, проценты' })
+  max_course_discount_percent!: number;
 }
 
 @InputType('EduSetEconomySettingsInput')
@@ -60,14 +60,20 @@ export class EduCourseEconomyInputDTO {
   @Matches(ASSET_PATTERN, { message: 'Ставка должна быть в формате «1000.0000 RUB»' })
   planned_hourly_rate!: string;
 
-  @Field(() => Float, { description: 'Скидка за годовой объём, проценты' })
+  @Field(() => Boolean, { nullable: true, description: 'Принимать взнос за весь курс разом; иначе взнос только помесячный' })
+  @IsOptional()
+  @IsBoolean()
+  course_payment_enabled?: boolean;
+
+  @Field(() => Float, { nullable: true, description: 'Скидка за взнос разом за весь курс, проценты' })
+  @IsOptional()
   @IsNumber()
   @Min(0)
   @Max(100)
-  year_discount_percent!: number;
+  course_discount_percent?: number;
 }
 
-/** Расчёт взноса: себестоимость, наценка, месяц и год. */
+/** Расчёт взноса: себестоимость, наценка, взнос за месяц и за весь курс разом. */
 @ObjectType('EduCourseFee')
 export class EduCourseFeeDTO {
   @Field(() => Float, { description: 'Часов занятий в месяц' })
@@ -82,20 +88,23 @@ export class EduCourseFeeDTO {
   @Field(() => String, { description: 'Членский взнос за месяц' })
   fee_month!: string;
 
-  @Field(() => String, { description: 'Взнос за год до скидки' })
-  fee_year_base!: string;
+  @Field(() => Int, { description: 'Длительность курса в месяцах; ноль — у курса нет конечной программы' })
+  course_months!: number;
 
-  @Field(() => String, { description: 'Скидка за годовой объём в сумме' })
-  year_discount_amount!: string;
+  @Field(() => String, { description: 'Сумма помесячных взносов за весь курс' })
+  fee_course_base!: string;
 
-  @Field(() => String, { description: 'Членский взнос за год' })
-  fee_year!: string;
+  @Field(() => String, { description: 'Скидка за взнос разом в сумме' })
+  course_discount_amount!: string;
 
-  @Field(() => String, { description: 'Себестоимость года' })
-  cost_year!: string;
+  @Field(() => String, { description: 'Членский взнос за весь курс разом' })
+  fee_course!: string;
+
+  @Field(() => String, { description: 'Себестоимость курса' })
+  cost_course!: string;
 
   @Field(() => Float, { description: 'Предельная скидка при текущей наценке, проценты' })
-  max_year_discount_percent!: number;
+  max_course_discount_percent!: number;
 
   @Field(() => Float, { description: 'Наценка кооператива, проценты' })
   markup_percent!: number;

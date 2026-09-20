@@ -9,7 +9,7 @@ import {
 } from '@coopenomics/innercoop';
 import { EDUBRIDGE_EXTENSION_NAME } from '../../constants/edubridge.constants';
 import { EduAssignmentStatus } from '../../domain/enums';
-import { calculateCourseFee, costOfHours, maxYearDiscountPercent, type CourseFeeCalculation } from '../../domain/economy/course-fee.calculator';
+import { calculateCourseFee, costOfHours, maxCourseDiscountPercent, type CourseFeeCalculation } from '../../domain/economy/course-fee.calculator';
 import type { EdubridgeCourseEntity } from '../../infrastructure/entities';
 import { EdubridgeCourseRepository } from '../../infrastructure/repositories/edubridge-course.repository';
 import { EdubridgeTeacherRepository } from '../../infrastructure/repositories/edubridge-teacher.repository';
@@ -107,14 +107,14 @@ export class EdubridgeEconomyService {
 
   async settings(): Promise<EduEconomySettingsDTO> {
     const markup = (await this.config.load()).markup_percent;
-    return { markup_percent: markup, max_year_discount_percent: maxYearDiscountPercent(markup) };
+    return { markup_percent: markup, max_course_discount_percent: maxCourseDiscountPercent(markup) };
   }
 
   /** Наценка одна на кооператив: меняется в разделе «Экономика», действует на все курсы. */
   async setMarkup(markupPercent: number): Promise<EduEconomySettingsDTO> {
     const saved = await this.extensions.patchConfig(EDUBRIDGE_EXTENSION_NAME, { markup_percent: markupPercent });
     this.config.set(saved.config);
-    return { markup_percent: markupPercent, max_year_discount_percent: maxYearDiscountPercent(markupPercent) };
+    return { markup_percent: markupPercent, max_course_discount_percent: maxCourseDiscountPercent(markupPercent) };
   }
 
   /**
@@ -137,20 +137,25 @@ export class EdubridgeEconomyService {
   }
 
   /**
-   * Взнос курса при сохранении. Скидка за год ограничена наценкой: годовой взнос
-   * не опускается ниже себестоимости — иначе кооператив взял бы на себя обязательства
-   * перед преподавателями, которых собранный взнос не покрывает.
+   * Взнос курса при сохранении. Скидка за взнос разом ограничена наценкой: взнос
+   * за курс не опускается ниже себестоимости — иначе кооператив взял бы на себя
+   * обязательства перед преподавателями, которых собранный взнос не покрывает.
    */
-  async feeForCourse(input: EduCourseEconomyInputDTO): Promise<{ fee_month: string; fee_year: string }> {
+  async feeForCourse(input: EduCourseEconomyInputDTO): Promise<{ fee_month: string }> {
     const markup = (await this.config.load()).markup_percent;
     const calc = this.calculate(input, markup);
-    const limit = maxYearDiscountPercent(markup);
-    if (input.year_discount_percent > limit) {
+    if (!input.course_payment_enabled) return { fee_month: calc.fee_month };
+    if (calc.course_months === 0) {
+      throw new BadRequestException('Взнос за весь курс считается от программы — укажите, сколько в ней занятий');
+    }
+    const limit = maxCourseDiscountPercent(markup);
+    const discount = input.course_discount_percent ?? 0;
+    if (discount > limit) {
       throw new BadRequestException(
-        `Скидка ${input.year_discount_percent}% больше наценки кооператива: при наценке ${markup}% годовой взнос опустится ниже себестоимости. Предельная скидка — ${limit}%`
+        `Скидка ${discount}% больше наценки кооператива: при наценке ${markup}% взнос за курс опустится ниже себестоимости. Предельная скидка — ${limit}%`
       );
     }
-    return { fee_month: calc.fee_month, fee_year: calc.fee_year };
+    return { fee_month: calc.fee_month };
   }
 
   /**
@@ -202,7 +207,8 @@ export class EdubridgeEconomyService {
       lessons_total: course.lessons_total,
       lesson_minutes: course.lesson_minutes,
       planned_hourly_rate: course.planned_hourly_rate,
-      year_discount_percent: course.year_discount_bp / BP_IN_PERCENT,
+      course_payment_enabled: course.course_payment_enabled,
+      course_discount_percent: course.course_discount_bp / BP_IN_PERCENT,
     };
   }
 
@@ -212,7 +218,9 @@ export class EdubridgeEconomyService {
       lesson_hours: input.lesson_minutes / MINUTES_IN_HOUR,
       hourly_rate: input.planned_hourly_rate,
       markup_percent: markupPercent,
-      year_discount_percent: input.year_discount_percent,
+      lessons_total: input.lessons_total,
+      // Скидка действует, только когда кооператив принимает взнос разом.
+      course_discount_percent: input.course_payment_enabled ? (input.course_discount_percent ?? 0) : 0,
     });
   }
 

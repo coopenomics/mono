@@ -8,7 +8,7 @@ export * as CatalogSubjects from './catalogSubjects'
 export * as Courses from './courses'
 /** Курс со служебными полями */
 export * as Course from './course'
-/** Наценка кооператива и предельная скидка за год */
+/** Наценка кооператива и предельная скидка за взнос разом за весь курс */
 export * as EconomySettings from './economySettings'
 /** Что вернут при отмене подписки */
 export * as RefundPreview from './refundPreview'

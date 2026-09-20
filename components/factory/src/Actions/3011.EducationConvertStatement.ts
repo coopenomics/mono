@@ -44,9 +44,9 @@ export class Factory extends DocFactory<EducationConvertStatement.Action> {
     // Имя ЦПП фиксировано (как в 1110).
     const program: EducationConvertStatement.Model['program'] = { name: 'Образование' }
 
-    // Период подписки on-chain хранится как eosio::name (month|year);
+    // Период подписки on-chain хранится как eosio::name (month|course);
     // в документ идёт человекочитаемая форма.
-    const periodHuman: Record<string, string> = { month: 'один месяц', year: 'один год' }
+    const periodHuman: Record<string, string> = { month: 'один месяц', course: 'весь курс', year: 'один год' }
     const period_human = periodHuman[data.period] ?? data.period
 
     const combinedData: EducationConvertStatement.Model = {

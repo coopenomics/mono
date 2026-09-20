@@ -3,7 +3,7 @@ import type { MakeAllFieldsRequired } from '../../utils/MakeAllFieldsRequired'
 
 const rawEconomySettingsSelector = {
   markup_percent: true,
-  max_year_discount_percent: true,
+  max_course_discount_percent: true,
 }
 const _validateSettings: MakeAllFieldsRequired<ValueTypes['EduEconomySettings']> = rawEconomySettingsSelector
 export const eduEconomySettingsSelector = Selector('EduEconomySettings')(rawEconomySettingsSelector)
@@ -13,11 +13,12 @@ const rawCourseFeeSelector = {
   cost_month: true,
   markup_month: true,
   fee_month: true,
-  fee_year_base: true,
-  year_discount_amount: true,
-  fee_year: true,
-  cost_year: true,
-  max_year_discount_percent: true,
+  course_months: true,
+  fee_course_base: true,
+  course_discount_amount: true,
+  fee_course: true,
+  cost_course: true,
+  max_course_discount_percent: true,
   markup_percent: true,
 }
 const _validateFee: MakeAllFieldsRequired<ValueTypes['EduCourseFee']> = rawCourseFeeSelector

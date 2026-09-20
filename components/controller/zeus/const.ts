@@ -4039,6 +4039,10 @@ export const AllTypesProps: Record<string,any> = {
 }
 
 export const ReturnTypes: Record<string,any> = {
+	auth:{
+		roles:"String",
+		self:"String"
+	},
 	AccessGrant:{
 		action:"String",
 		resource:"String"
@@ -5680,9 +5684,12 @@ export const ReturnTypes: Record<string,any> = {
 		teacher_username:"String"
 	},
 	EduCatalogCourse:{
+		course_discount_amount:"String",
+		course_months:"Int",
 		description:"String",
+		fee_course:"String",
+		fee_course_base:"String",
 		fee_month:"String",
-		fee_year:"String",
 		grade:"String",
 		id:"ID",
 		image_url:"String",
@@ -5737,13 +5744,18 @@ export const ReturnTypes: Record<string,any> = {
 	},
 	EduCourse:{
 		carrier:"EduAccessCarrier",
+		course_discount_amount:"String",
+		course_discount_percent:"Float",
+		course_months:"Int",
+		course_payment_enabled:"Boolean",
 		created_at:"DateTime",
 		description:"String",
 		direction:"EduCourseDirection",
 		external_ref:"String",
 		external_title_seen:"String",
+		fee_course:"String",
+		fee_course_base:"String",
 		fee_month:"String",
-		fee_year:"String",
 		grade:"String",
 		guarantee_days:"Int",
 		id:"ID",
@@ -5760,8 +5772,7 @@ export const ReturnTypes: Record<string,any> = {
 		syllabus:"String",
 		teacher_usernames:"String",
 		title:"String",
-		updated_at:"DateTime",
-		year_discount_percent:"Float"
+		updated_at:"DateTime"
 	},
 	EduCourseEconomy:{
 		actual_cost_month:"String",
@@ -5771,16 +5782,17 @@ export const ReturnTypes: Record<string,any> = {
 		teachers:"EduCourseTeacherLoad"
 	},
 	EduCourseFee:{
+		cost_course:"String",
 		cost_month:"String",
-		cost_year:"String",
+		course_discount_amount:"String",
+		course_months:"Int",
+		fee_course:"String",
+		fee_course_base:"String",
 		fee_month:"String",
-		fee_year:"String",
-		fee_year_base:"String",
 		hours_per_month:"Float",
 		markup_month:"String",
 		markup_percent:"Float",
-		max_year_discount_percent:"Float",
-		year_discount_amount:"String"
+		max_course_discount_percent:"Float"
 	},
 	EduCourseTeacherLoad:{
 		cost_month:"String",
@@ -5791,7 +5803,7 @@ export const ReturnTypes: Record<string,any> = {
 	},
 	EduEconomySettings:{
 		markup_percent:"Float",
-		max_year_discount_percent:"Float"
+		max_course_discount_percent:"Float"
 	},
 	EduEnrollment:{
 		access_state:"EduAccessState",
@@ -5906,8 +5918,11 @@ export const ReturnTypes: Record<string,any> = {
 	EduQuote:{
 		amount:"String",
 		available:"String",
+		base_amount:"String",
+		discount_amount:"String",
 		enough:"Boolean",
 		is_extension:"Boolean",
+		months:"Int",
 		paid_until:"DateTime",
 		shortfall:"String",
 		sub_hash:"String"

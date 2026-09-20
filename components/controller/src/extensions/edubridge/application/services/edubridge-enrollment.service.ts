@@ -13,6 +13,8 @@ import {
   type IUserWalletPort,
 } from '@coopenomics/innercoop';
 import { EduAccessState, EduCourseStatus, EduEnrollmentPeriod, EduEnrollmentStatus } from '../../domain/enums';
+import { courseMonths, feeForMonths } from '../../domain/economy/course-fee.calculator';
+import { addMonths, remainingCoursePeriod } from '../../domain/economy/course-period.calculator';
 import { calculateRefund, monthsOfPeriod, type RefundCalculation } from '../../domain/economy/refund.calculator';
 import { EDUBRIDGE_CHAIN_PORT, type EdubridgeChainPort } from '../../domain/ports/edubridge-chain.port';
 import type { EdubridgeCourseEntity, EdubridgeEnrollmentEntity, EdubridgeLearnerEntity } from '../../infrastructure/entities';
@@ -29,8 +31,23 @@ import { EdubridgeLearnerService } from './edubridge-learner.service';
 
 /** Главный паевой кошелёк — источник конвертации. */
 const SHARE_WALLET = 'w.wal.share';
-const PERIOD_MONTHS: Record<EduEnrollmentPeriod, number> = { [EduEnrollmentPeriod.MONTH]: 1, [EduEnrollmentPeriod.YEAR]: 12 };
-const PERIOD_CHAIN: Record<EduEnrollmentPeriod, string> = { [EduEnrollmentPeriod.MONTH]: 'month', [EduEnrollmentPeriod.YEAR]: 'year' };
+const PERIOD_CHAIN: Record<EduEnrollmentPeriod, string> = {
+  [EduEnrollmentPeriod.MONTH]: 'month',
+  [EduEnrollmentPeriod.COURSE]: 'course',
+  [EduEnrollmentPeriod.YEAR]: 'year',
+};
+const BP_IN_PERCENT = 100;
+
+/** Условия взноса за выбранный период: сколько месяцев, до какого дня и сколько вносить. */
+interface PeriodTerms {
+  months: number;
+  paidUntil: Date;
+  /** Сумма помесячных взносов за эти месяцы. */
+  baseAmount: string;
+  /** Скидка за взнос разом; при помесячном взносе — ноль. */
+  discountAmount: string;
+  amount: string;
+}
 
 export interface EnrollmentPlan {
   learner: EdubridgeLearnerEntity;
@@ -38,6 +55,10 @@ export interface EnrollmentPlan {
   existing: EdubridgeEnrollmentEntity | null;
   period: EduEnrollmentPeriod;
   amount: string;
+  /** Месяцев оплачивает взнос. */
+  months: number;
+  baseAmount: string;
+  discountAmount: string;
   symbol: string;
   isExtension: boolean;
   paidUntil: Date;
@@ -87,26 +108,48 @@ export class EdubridgeEnrollmentService {
     const course = await this.courses.findById(coopname, courseId);
     if (!course || course.status !== EduCourseStatus.PUBLISHED) throw new NotFoundException('Курс не найден или не опубликован');
 
-    const amount = period === EduEnrollmentPeriod.YEAR ? course.fee_year : course.fee_month;
-    const symbol = amount.split(' ')[1] ?? '';
+    const symbol = course.fee_month.split(' ')[1] ?? '';
     const existing = await this.enrollments.findByPair(coopname, learnerId, courseId);
     const now = new Date();
     const activeUntil = existing?.status === EduEnrollmentStatus.ACTIVE && existing.paid_until && existing.paid_until > now ? existing.paid_until : null;
-    const base = activeUntil ?? now;
-    const paidUntil = new Date(base);
-    paidUntil.setMonth(paidUntil.getMonth() + PERIOD_MONTHS[period]);
+    const terms = this.termsOf(course, period, activeUntil ?? now);
 
     return {
       learner,
       course,
       existing,
       period,
-      amount,
+      amount: terms.amount,
+      months: terms.months,
+      baseAmount: terms.baseAmount,
+      discountAmount: terms.discountAmount,
       symbol,
       isExtension: Boolean(activeUntil),
-      paidUntil,
+      paidUntil: terms.paidUntil,
       subHash: EdubridgeEnrollmentService.subHash(coopname, learner.chain_ref, course.chain_ref),
     };
+  }
+
+  /**
+   * Помесячный взнос оплачивает месяц. Взнос за весь курс разом — месяцы до
+   * конца программы со скидкой курса: пришедший в середине вносит за остаток.
+   */
+  private termsOf(course: EdubridgeCourseEntity, period: EduEnrollmentPeriod, from: Date): PeriodTerms {
+    if (period === EduEnrollmentPeriod.MONTH) {
+      const fee = feeForMonths(course.fee_month, 1, 0);
+      return { months: 1, paidUntil: addMonths(from, 1), baseAmount: fee.base, discountAmount: fee.discount, amount: fee.amount };
+    }
+    if (period !== EduEnrollmentPeriod.COURSE) {
+      throw new BadRequestException('Взнос за год больше не принимается: выберите взнос помесячно или за весь курс');
+    }
+    const total = courseMonths(course.lessons_per_month, course.lessons_total);
+    if (!course.course_payment_enabled || total === 0) {
+      throw new BadRequestException('Взнос за весь курс разом по этому курсу не принимается — доступен помесячный взнос');
+    }
+    const rest = remainingCoursePeriod(course.starts_at ? new Date(course.starts_at) : null, total, from);
+    if (!rest) throw new BadRequestException('Курс уже оплачен до конца программы');
+    const fee = feeForMonths(course.fee_month, rest.months, course.course_discount_bp / BP_IN_PERCENT);
+    return { months: rest.months, paidUntil: rest.paid_until, baseAmount: fee.base, discountAmount: fee.discount, amount: fee.amount };
   }
 
   async quote(coopname: string, member: string, learnerId: string, courseId: string, period: EduEnrollmentPeriod): Promise<EduQuoteDTO> {
@@ -117,6 +160,9 @@ export class EdubridgeEnrollmentService {
     const shortfall = Math.max(0, need - have);
     return {
       amount: plan.amount,
+      months: plan.months,
+      base_amount: plan.baseAmount,
+      discount_amount: plan.discountAmount,
       available,
       enough: have >= need,
       shortfall: `${shortfall.toFixed(4)} ${plan.symbol}`,
@@ -181,6 +227,7 @@ export class EdubridgeEnrollmentService {
     entity.period = period;
     entity.paid_until = plan.paidUntil;
     entity.paid_amount = plan.amount;
+    entity.paid_months = plan.months;
     entity.status = EduEnrollmentStatus.ACTIVE;
     entity.statement_hash = document.hash.toLowerCase();
     entity.expiry_notified_at = null;
@@ -278,11 +325,14 @@ export class EdubridgeEnrollmentService {
 
   /** Сумма возврата по Положению ЦПП — её же показывает стол до отмены. */
   refundFor(enrollment: EdubridgeEnrollmentEntity, course: EdubridgeCourseEntity, underfilled: boolean): RefundCalculation {
+    // У подписок, открытых до взноса за курс, число месяцев не сохранено — берём по периоду.
+    const monthsPaid = enrollment.paid_months ?? monthsOfPeriod(enrollment.period === EduEnrollmentPeriod.YEAR ? 'year' : 'month');
     return calculateRefund({
       paid_amount: enrollment.paid_amount,
       lessons_per_month: course.lessons_per_month,
       lessons_total: course.lessons_total,
-      months_paid: monthsOfPeriod(enrollment.period === EduEnrollmentPeriod.YEAR ? 'year' : 'month'),
+      months_paid: monthsPaid,
+      paid_from: enrollment.paid_until ? addMonths(new Date(enrollment.paid_until), -monthsPaid) : null,
       starts_at: course.starts_at ? new Date(course.starts_at) : null,
       now: new Date(),
       underfilled,

@@ -45,6 +45,10 @@ export class EdubridgeEnrollmentEntity {
   @Column({ type: 'varchar', length: 64, default: '0.0000 RUB' })
   public paid_amount!: string;
 
+  /** Месяцев оплачено текущим взносом: один при помесячном, месяцы до конца курса при взносе разом. */
+  @Column({ type: 'int', nullable: true })
+  public paid_months!: number | null;
+
   /** Когда подписка отменена; null — действует или истекла сама. */
   @Column({ type: 'timestamptz', nullable: true })
   public cancelled_at!: Date | null;

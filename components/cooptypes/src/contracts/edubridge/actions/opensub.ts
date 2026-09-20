@@ -4,7 +4,7 @@ import { Actors } from '../../../common'
 
 /**
  * Открытие подписки на курс после оплаты членским взносом (процесс p.edu.access).
- * period ∈ {month, year}; sub_hash уникален; paid_until > now.
+ * period ∈ {month, course, year}; sub_hash уникален; paid_until > now.
  */
 export const authorizations = [{ permissions: [Permissions.active], actor: Actors._coopname }] as const
 

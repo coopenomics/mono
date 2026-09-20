@@ -77,7 +77,7 @@
               v-model="markup"
               label="Наценка, %"
               type="number"
-              :hint="`Предельная скидка за годовой объём при этой наценке — ${maxDiscount}%`"
+              :hint="`Предельная скидка за взнос разом за весь курс при этой наценке — ${maxDiscount}%`"
               required
             )
             template(#footer)
@@ -87,7 +87,8 @@
         BaseCard(title="Как считается взнос")
           DataRow(label="Себестоимость месяца" value="часы занятий × ставка преподавателя")
           DataRow(label="Взнос за месяц" value="себестоимость + наценка кооператива")
-          DataRow(label="Взнос за год" value="месячный × 12 со скидкой за объём")
+          DataRow(label="Длительность курса" value="занятий в программе ÷ занятий в месяц, неполный месяц считается месяцем")
+          DataRow(label="Взнос за весь курс разом" value="месячный × месяцы курса со скидкой; в середине курса — за оставшиеся месяцы")
           DataRow(label="Предел скидки" :value="`${maxDiscount}% — ниже себестоимости взнос не опускается`")
 
     .text-subtitle1.q-mt-lg.q-mb-sm Ставки часа преподавателей
@@ -232,7 +233,7 @@ async function load(): Promise<void> {
       fetchExpenses({ page: 1, limit: 50, sortBy: 'createdAt', sortOrder: 'DESC' }),
     ]);
     markup.value = String(settings.markup_percent);
-    maxDiscount.value = settings.max_year_discount_percent;
+    maxDiscount.value = settings.max_course_discount_percent;
     teachers.value = list;
     fund.value = money;
     expenses.value = spending.items;
@@ -247,7 +248,7 @@ async function onSaveMarkup(): Promise<void> {
   savingMarkup.value = true;
   try {
     const saved = await setEconomySettings({ markup_percent: Number(markup.value) });
-    maxDiscount.value = saved.max_year_discount_percent;
+    maxDiscount.value = saved.max_course_discount_percent;
     SuccessAlert('Наценка сохранена — она действует на все курсы кооператива');
   } catch (e) {
     FailAlert(e);

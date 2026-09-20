@@ -26,7 +26,7 @@ function make(contracts: string[] = ['teach']) {
   } as any;
   const names = { displayNames: jest.fn(async (us: string[]) => new Map(us.map((u) => [u, `ФИО ${u}`]))) } as any;
   // Взносы считает экономика программы: курс сам сумму не назначает.
-  const economy = { feeForCourse: jest.fn(async () => ({ fee_month: '9600.0000 RUB', fee_year: '115200.0000 RUB' })) } as any;
+  const economy = { feeForCourse: jest.fn(async () => ({ fee_month: '9600.0000 RUB' })) } as any;
   return { service: new EdubridgeCourseService(courses, teachers, skillspace, images, names, economy), courses, teachers, images, economy, saved };
 }
 
@@ -38,7 +38,8 @@ const base = {
   lessons_total: 64,
   lesson_minutes: 60,
   planned_hourly_rate: '1000.0000 RUB',
-  year_discount_percent: 0,
+  course_payment_enabled: false,
+  course_discount_percent: 0,
   direction: EduCourseDirection.ONLINE_PLATFORM,
   carrier: EduAccessCarrier.SKILLSPACE,
   external_ref: COURSE_UUID,
@@ -55,12 +56,21 @@ describe('EdubridgeCourseService — конструктор курса', () => {
 
   it('параметры занятий сохраняются, а взнос приходит из расчёта экономики', async () => {
     const { service, economy, saved } = make();
-    const course = await service.create('voskhod', 'ant', { ...base, year_discount_percent: 10 });
-    expect(economy.feeForCourse).toHaveBeenCalledWith(expect.objectContaining({ lessons_per_month: 8, lesson_minutes: 60, year_discount_percent: 10 }));
+    const course = await service.create('voskhod', 'ant', { ...base, course_payment_enabled: true, course_discount_percent: 10 });
+    expect(economy.feeForCourse).toHaveBeenCalledWith(
+      expect.objectContaining({ lessons_per_month: 8, lesson_minutes: 60, course_payment_enabled: true, course_discount_percent: 10 })
+    );
     expect(course.fee_month).toBe('9600.0000 RUB');
-    expect(course.fee_year).toBe('115200.0000 RUB');
     expect(saved[0].lessons_total).toBe(64);
-    expect(saved[0].year_discount_bp).toBe(1000);
+    expect(saved[0].course_payment_enabled).toBe(true);
+    expect(saved[0].course_discount_bp).toBe(1000);
+  });
+
+  it('взнос только помесячный: скидка за курс не сохраняется', async () => {
+    const { service, saved } = make();
+    await service.create('voskhod', 'ant', { ...base, course_payment_enabled: false, course_discount_percent: 10 });
+    expect(saved[0].course_payment_enabled).toBe(false);
+    expect(saved[0].course_discount_bp).toBe(0);
   });
 
   it.each([

@@ -1,8 +1,9 @@
 /**
  * Расчёт членского взноса за курс. Стоимость складывается снизу: часы занятий
  * по ставке преподавателя дают себестоимость, кооператив добавляет наценку.
- * Годовой взнос — месячный за двенадцать месяцев со скидкой за объём, и скидка
- * ограничена наценкой: ниже себестоимости взнос не опускается.
+ * Взнос вносят помесячно либо разом за весь курс: курс длится столько месяцев,
+ * сколько занимает его программа, и за взнос разом кооператив даёт скидку.
+ * Скидка ограничена наценкой: ниже себестоимости взнос не опускается.
  *
  * Единственный источник арифметики взносов — и сервер, и стол считают здесь.
  */
@@ -11,8 +12,6 @@
 const PRECISION = 4;
 const SCALE = 10 ** PRECISION;
 
-/** Месяцев в годовой подписке. */
-export const MONTHS_IN_YEAR = 12;
 
 export interface CourseFeeParams {
   /** Занятий в месяц по расписанию курса. */
@@ -23,8 +22,10 @@ export interface CourseFeeParams {
   hourly_rate: string;
   /** Наценка кооператива, проценты. */
   markup_percent: number;
-  /** Скидка за годовой объём, проценты. */
-  year_discount_percent: number;
+  /** Занятий в программе курса; ноль — курс без конечной программы. */
+  lessons_total: number;
+  /** Скидка за взнос разом за весь курс, проценты. */
+  course_discount_percent: number;
 }
 
 export interface CourseFeeCalculation {
@@ -36,16 +37,18 @@ export interface CourseFeeCalculation {
   markup_month: string;
   /** Членский взнос за месяц. */
   fee_month: string;
-  /** Взнос за год до скидки — месячный за двенадцать месяцев. */
-  fee_year_base: string;
-  /** Скидка за годовой объём в сумме. */
-  year_discount_amount: string;
-  /** Членский взнос за год. */
-  fee_year: string;
-  /** Себестоимость года — ниже неё годовой взнос опускаться не может. */
-  cost_year: string;
-  /** Предельная скидка, при которой годовой взнос равен себестоимости, проценты. */
-  max_year_discount_percent: number;
+  /** Длительность курса в месяцах; ноль — курс без конечной программы. */
+  course_months: number;
+  /** Сумма помесячных взносов за весь курс — взнос за курс до скидки. */
+  fee_course_base: string;
+  /** Скидка за взнос разом в сумме. */
+  course_discount_amount: string;
+  /** Членский взнос за весь курс разом. */
+  fee_course: string;
+  /** Себестоимость курса — ниже неё взнос разом опускаться не может. */
+  cost_course: string;
+  /** Предельная скидка, при которой взнос за курс равен себестоимости, проценты. */
+  max_course_discount_percent: number;
 }
 
 function parseAmount(asset: string): { amount: number; symbol: string } {
@@ -59,13 +62,43 @@ function formatAmount(minor: number, symbol: string): string {
 }
 
 /**
- * Скидка съедает наценку: при доле наценки в взносе `m / (100 + m)` годовой
- * взнос со скидкой ровно в эту долю равен себестоимости. Округление вниз до
+ * Скидка съедает наценку: при доле наценки в взносе `m / (100 + m)` взнос за
+ * курс со скидкой ровно в эту долю равен себестоимости. Округление вниз до
  * сотых процента — чтобы предельное значение само проверку проходило.
  */
-export function maxYearDiscountPercent(markupPercent: number): number {
+export function maxCourseDiscountPercent(markupPercent: number): number {
   if (markupPercent <= 0) return 0;
   return Math.floor(((markupPercent / (100 + markupPercent)) * 100) * 100) / 100;
+}
+
+/**
+ * Длительность курса в месяцах — программа, разложенная по месячной нагрузке.
+ * Неполный последний месяц считается месяцем: занятия в нём идут. Ноль —
+ * у курса нет конечной программы, и взнос за него вносят только помесячно.
+ */
+export function courseMonths(lessonsPerMonth: number, lessonsTotal: number): number {
+  if (!(lessonsPerMonth > 0) || !(lessonsTotal > 0)) return 0;
+  return Math.ceil(lessonsTotal / lessonsPerMonth);
+}
+
+export interface FeeForMonths {
+  /** Сумма помесячных взносов за эти месяцы. */
+  base: string;
+  /** Скидка в сумме. */
+  discount: string;
+  /** Взнос к уплате. */
+  amount: string;
+}
+
+/**
+ * Взнос разом за несколько месяцев курса. Участник, пришедший в середине,
+ * вносит за оставшиеся месяцы — скидка та же, считается от их суммы.
+ */
+export function feeForMonths(feeMonth: string, months: number, discountPercent: number): FeeForMonths {
+  const { amount, symbol } = parseAmount(feeMonth);
+  const base = amount * Math.max(0, Math.floor(months));
+  const discount = Math.round((base * discountPercent) / 100);
+  return { base: formatAmount(base, symbol), discount: formatAmount(discount, symbol), amount: formatAmount(base - discount, symbol) };
 }
 
 /** Стоимость часов по ставке — общий множитель себестоимости. */
@@ -82,21 +115,20 @@ export function calculateCourseFee(params: CourseFeeParams): CourseFeeCalculatio
   const markupMonth = Math.round((costMonth * params.markup_percent) / 100);
   const feeMonth = costMonth + markupMonth;
 
-  const feeYearBase = feeMonth * MONTHS_IN_YEAR;
-  const discountAmount = Math.round((feeYearBase * params.year_discount_percent) / 100);
-  const feeYear = feeYearBase - discountAmount;
-  const costYear = costMonth * MONTHS_IN_YEAR;
+  const months = courseMonths(params.lessons_per_month, params.lessons_total);
+  const course = feeForMonths(formatAmount(feeMonth, symbol), months, params.course_discount_percent);
 
   return {
     hours_per_month: hoursPerMonth,
     cost_month: formatAmount(costMonth, symbol),
     markup_month: formatAmount(markupMonth, symbol),
     fee_month: formatAmount(feeMonth, symbol),
-    fee_year_base: formatAmount(feeYearBase, symbol),
-    year_discount_amount: formatAmount(discountAmount, symbol),
-    fee_year: formatAmount(feeYear, symbol),
-    cost_year: formatAmount(costYear, symbol),
-    max_year_discount_percent: maxYearDiscountPercent(params.markup_percent),
+    course_months: months,
+    fee_course_base: course.base,
+    course_discount_amount: course.discount,
+    fee_course: course.amount,
+    cost_course: formatAmount(costMonth * months, symbol),
+    max_course_discount_percent: maxCourseDiscountPercent(params.markup_percent),
   };
 }
 

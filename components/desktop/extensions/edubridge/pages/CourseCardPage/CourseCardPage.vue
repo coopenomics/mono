@@ -35,10 +35,20 @@
       .col-12.col-md-4
         //- Условия и кнопка записи держатся на виду, пока читают описание.
         BaseCard.edu-course__terms(variant="default")
+          //- Обе полные суммы рядом: скидка видна как разница в рублях, а не
+          //- как цена «от …», которую участник ни разу не вносит.
           .t-meta Членский взнос
-          .edu-course__fees
+          .edu-course__option
+            .edu-course__option-name Помесячно
             FeeAmount(:value="course.fee_month" size="lg" per="в месяц")
-            FeeAmount(:value="course.fee_year" size="sm" per="в год")
+            .t-sm.t-muted(v-if="course.fee_course_base") всего за {{ months }} — {{ formatAsset2Digits(course.fee_course_base) }}
+            .t-sm.t-muted(v-else-if="months") курс длится {{ months }}
+          template(v-if="course.fee_course")
+            .edu-course__or или
+            .edu-course__option
+              .edu-course__option-name За весь курс разом
+              FeeAmount(:value="course.fee_course" size="lg")
+              .t-sm.t-muted за {{ months }} · меньше на {{ formatAsset2Digits(course.course_discount_amount) }}
           BaseButton.q-mt-md(variant="primary" block @click="getAccess") Получить доступ
           .t-muted.t-sm.q-mt-sm(v-if="!session.isAuth")
             | Для записи на курс нужно вступить в кооператив — это займёт несколько минут.
@@ -62,18 +72,20 @@
 </template>
 
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { asText } from 'src/shared/lib/utils';
 import { FailAlert } from 'src/shared/api';
 import { useDesktopStore } from 'src/entities/Desktop/model';
 import { useSessionStore } from 'src/entities/Session';
 import { useFioCache } from 'src/shared/lib/account/useFioCache';
+import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { BaseButton, BaseCard, CardListSkeleton, EmptyState } from 'src/shared/ui/base';
 import { DataRow } from 'src/shared/ui/domain';
 import { fetchCatalogCourse, type ICatalogCourse } from '../../entities/Course';
 import { fetchMyLearners, type ILearner } from '../../entities/Learner';
 import { SubscribeDialog } from '../../features/Subscribe';
+import { courseMonthsLabel } from '../../shared/lib/courseMonths';
 import { FeeAmount } from '../../shared/ui/FeeAmount';
 
 /**
@@ -93,6 +105,7 @@ const loading = ref(true);
 const subscribeOpen = ref(false);
 const learners = ref<ILearner[]>([]);
 const { fioCache, enrichFio } = useFioCache();
+const months = computed(() => courseMonthsLabel(course.value?.course_months));
 const formatDate = (v: unknown) => (v ? new Date(String(v)).toLocaleDateString('ru-RU') : '______');
 
 // Преподаватель посетителю — по имени: учётное имя ничего ему не говорит.
@@ -208,12 +221,32 @@ onBeforeUnmount(() => desktopStore.clearPageTitleOverride());
   position: sticky;
   top: var(--p-4);
 }
-.edu-course__fees {
+.edu-course__option {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   gap: 2px;
-  margin-top: 6px;
+  margin-top: var(--p-2);
+}
+.edu-course__option-name {
+  font-size: var(--p-fs-body-sm, 13px);
+  font-weight: 600;
+  color: var(--p-ink);
+}
+/* «или» между двумя способами — тонкая линия с подписью посередине. */
+.edu-course__or {
+  display: flex;
+  align-items: center;
+  gap: var(--p-3);
+  margin: var(--p-3) 0 var(--p-1);
+  color: var(--p-ink-3);
+  font-size: var(--p-fs-meta, 12px);
+}
+.edu-course__or::before,
+.edu-course__or::after {
+  content: '';
+  flex: 1;
+  border-top: 1px solid var(--p-line);
 }
 .edu-course__terms-rows {
   margin-top: var(--p-4);

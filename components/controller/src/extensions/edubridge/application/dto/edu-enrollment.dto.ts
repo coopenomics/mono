@@ -86,6 +86,15 @@ export class EduQuoteDTO {
   @Field(() => String, { description: 'Сумма членского взноса за период' })
   amount!: string;
 
+  @Field(() => Int, { description: 'Сколько месяцев оплачивает взнос: один при помесячном, месяцы до конца курса при взносе разом' })
+  months!: number;
+
+  @Field(() => String, { description: 'Сумма помесячных взносов за эти месяцы' })
+  base_amount!: string;
+
+  @Field(() => String, { description: 'Скидка за взнос разом; при помесячном взносе — ноль' })
+  discount_amount!: string;
+
   @Field(() => String, { description: 'Доступно паевого в главном кошельке' })
   available!: string;
 

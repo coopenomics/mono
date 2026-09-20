@@ -16,7 +16,10 @@ const rawCatalogCourseSelector = {
   lesson_minutes: true,
   starts_at: true,
   fee_month: true,
-  fee_year: true,
+  course_months: true,
+  fee_course: true,
+  fee_course_base: true,
+  course_discount_amount: true,
 }
 
 const _validateCatalogCourse: MakeAllFieldsRequired<ValueTypes['EduCatalogCourse']> = rawCatalogCourseSelector
@@ -37,7 +40,8 @@ const rawCourseSelector = {
   external_ref: true,
   external_title_seen: true,
   planned_hourly_rate: true,
-  year_discount_percent: true,
+  course_payment_enabled: true,
+  course_discount_percent: true,
   guarantee_days: true,
   status: true,
   sort_order: true,

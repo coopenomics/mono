@@ -48,18 +48,26 @@ BaseForm.edu-course-form(ref="formEl" :loading="loading" :error="error" @submit=
         hint="До этой даты ученик отменяет подписку с полным возвратом"
       )
       BaseInput(
-        v-model="yearDiscount"
-        label="Скидка за год, %"
+        v-model="guaranteeDays"
+        label="Гарантия материалов, дней"
         type="number"
+        hint="Столько держится заявление преподавателя о взносе за занятие"
+      )
+    //- Взнос вносят помесячно либо разом за весь курс. Поле скидки стоит на месте
+    //- всегда и лишь включается — форма не прыгает при переключении.
+    .edu-course-form__pair
+      .edu-course-form__switch
+        BaseCheckbox(v-model="coursePayment" block)
+          | Принимать взнос за весь курс разом
+        .t-meta.t-muted {{ coursePaymentHint }}
+      BaseInput(
+        v-model="courseDiscount"
+        label="Скидка за взнос разом, %"
+        type="number"
+        :disabled="!coursePayment"
         :hint="discountHint"
         :error="discountError"
       )
-    BaseInput(
-      v-model="guaranteeDays"
-      label="Гарантия материалов, дней"
-      type="number"
-      hint="Столько держится заявление преподавателя о взносе за занятие"
-    )
 
     //- Итог расчёта — отдельной плашкой во всю ширину под полями: он меняется
     //- на глазах и читается как результат, а не как ещё одно поле.
@@ -69,8 +77,9 @@ BaseForm.edu-course-form(ref="formEl" :loading="loading" :error="error" @submit=
           .t-sm.t-muted Взнос в месяц
           .edu-course-form__amount.t-num {{ formatAsset2Digits(fee.fee_month) }}
         div
-          .t-sm.t-muted Взнос в год
-          .edu-course-form__amount.t-num {{ formatAsset2Digits(fee.fee_year) }}
+          .t-sm.t-muted {{ courseFeeLabel }}
+          .edu-course-form__amount.t-num(v-if="courseFeeShown") {{ formatAsset2Digits(fee.fee_course) }}
+          .edu-course-form__amount.t-muted(v-else) ______
       .edu-course-form__total-rows
         .edu-course-form__total-row
           span.t-sm.t-muted Себестоимость в месяц
@@ -78,6 +87,13 @@ BaseForm.edu-course-form(ref="formEl" :loading="loading" :error="error" @submit=
         .edu-course-form__total-row
           span.t-sm.t-muted Наценка кооператива, {{ fee.markup_percent }}%
           span.t-sm.t-num {{ formatAsset2Digits(fee.markup_month) }}
+        template(v-if="courseFeeShown")
+          .edu-course-form__total-row
+            span.t-sm.t-muted Помесячно за весь курс
+            span.t-sm.t-num {{ formatAsset2Digits(fee.fee_course_base) }}
+          .edu-course-form__total-row
+            span.t-sm.t-muted Скидка за взнос разом
+            span.t-sm.t-num {{ formatAsset2Digits(fee.course_discount_amount) }}
     .t-sm.t-muted(v-else) Заполните параметры занятий — взнос посчитается сам.
 
   section.edu-course-form__section
@@ -138,9 +154,9 @@ import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { Zeus } from '@coopenomics/sdk';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { useSystemStore } from 'src/entities/System/model';
-import { fileToBase64, formatToAsset } from 'src/shared/lib/utils';
+import { fileToBase64, formatToAsset, pluralize } from 'src/shared/lib/utils';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
-import { BaseButton, BaseForm, BaseInput, BaseSelect } from 'src/shared/ui/base';
+import { BaseButton, BaseCheckbox, BaseForm, BaseInput, BaseSelect } from 'src/shared/ui/base';
 import { IdentityCell } from 'src/shared/ui/domain';
 import { fetchCourseFeePreview, type ICourseFee } from '../../entities/Economy';
 import {
@@ -194,7 +210,8 @@ const form = reactive<ICreateCourseInput & { teacher_usernames: string[] }>({
   lessons_total: 64,
   lesson_minutes: 60,
   planned_hourly_rate: '',
-  year_discount_percent: 0,
+  course_payment_enabled: false,
+  course_discount_percent: 0,
   starts_at: null,
   guarantee_days: 14,
   direction: Zeus.EduCourseDirection.ONLINE_PLATFORM,
@@ -252,25 +269,37 @@ const lessonsTotal = ref('64');
 const lessonMinutes = ref('60');
 const plannedRate = ref('');
 const guaranteeDays = ref('14');
-const yearDiscount = ref('0');
+const coursePayment = ref(false);
+const courseDiscount = ref('0');
 
 /** Расчёт взноса считает сервер: та же арифметика, что при сохранении курса. */
 const fee = ref<ICourseFee | null>(null);
 const discountError = computed(() =>
-  fee.value && Number(yearDiscount.value || 0) > fee.value.max_year_discount_percent
-    ? 'Скидка больше наценки — годовой взнос опустится ниже себестоимости'
+  coursePayment.value && fee.value && Number(courseDiscount.value || 0) > fee.value.max_course_discount_percent
+    ? 'Скидка больше наценки — взнос за курс опустится ниже себестоимости'
     : '',
 );
 const discountHint = computed(() =>
-  fee.value ? `Предельная скидка при наценке ${fee.value.markup_percent}% — ${fee.value.max_year_discount_percent}%` : 'Скидка за годовой объём',
+  fee.value ? `Предельная скидка при наценке ${fee.value.markup_percent}% — ${fee.value.max_course_discount_percent}%` : 'Скидка тем, кто вносит взнос за весь курс сразу',
 );
+/** Длительность курса следует из программы: занятий в программе на занятий в месяц. */
+const courseMonthsLabel = computed(() => {
+  const n = fee.value?.course_months ?? 0;
+  return n > 0 ? `${n} ${pluralize(n, ['месяц', 'месяца', 'месяцев'])}` : '';
+});
+const coursePaymentHint = computed(() =>
+  courseMonthsLabel.value ? `Курс длится ${courseMonthsLabel.value} — по программе и нагрузке в месяц. Иначе взнос только помесячный.` : 'Иначе взнос только помесячный.',
+);
+const courseFeeShown = computed(() => coursePayment.value && (fee.value?.course_months ?? 0) > 0);
+const courseFeeLabel = computed(() => (courseFeeShown.value ? `Взнос за весь курс · ${courseMonthsLabel.value}` : 'Взнос за весь курс'));
 
 const economyParams = computed(() => ({
   lessons_per_month: Number(lessonsPerMonth.value || 0),
   lessons_total: Number(lessonsTotal.value || 0),
   lesson_minutes: Number(lessonMinutes.value || 0),
   planned_hourly_rate: toAsset(plannedRate.value || '0'),
-  year_discount_percent: Number(yearDiscount.value || 0),
+  course_payment_enabled: coursePayment.value,
+  course_discount_percent: coursePayment.value ? Number(courseDiscount.value || 0) : 0,
 }));
 
 let previewTimer: ReturnType<typeof setTimeout> | null = null;
@@ -335,7 +364,8 @@ watch(
     lessonMinutes.value = String(c.lesson_minutes);
     plannedRate.value = fromAsset(c.planned_hourly_rate);
     guaranteeDays.value = String(c.guarantee_days);
-    yearDiscount.value = String(c.year_discount_percent);
+    coursePayment.value = c.course_payment_enabled;
+    courseDiscount.value = String(c.course_discount_percent);
     releaseObjectUrl();
     imageFile.value = null;
     imageRemoved.value = false;
@@ -481,6 +511,13 @@ onMounted(async () => {
 }
 /* Пара коротких полей встаёт в ряд, только когда хватает ширины: иначе
    подсказка под одним полем обрезается высотой соседнего. */
+/* Переключатель стоит в паре с полем скидки: выровнен по его середине. */
+.edu-course-form__switch {
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-1);
+  padding-top: var(--p-2);
+}
 .edu-course-form__pair {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
