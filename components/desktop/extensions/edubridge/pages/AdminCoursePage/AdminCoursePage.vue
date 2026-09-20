@@ -36,55 +36,65 @@
               q-item(clickable v-close-popup :disable="cancelling" @click="cancelUnderfilled")
                 q-item-section.text-negative Отменить по недобору
 
+    //- Главные числа курса одной полосой: взносы и нагрузка читаются сразу,
+    //- без поиска по боковым карточкам.
+    BaseCard.edu-course__summary(variant="default")
+      .edu-course__metrics
+        .edu-course__metric
+          .t-meta Взнос в месяц
+          FeeAmount(:value="course.fee_month" size="lg")
+        .edu-course__metric
+          .t-meta Взнос в год
+          FeeAmount(:value="course.fee_year" size="lg")
+        .edu-course__metric
+          .t-meta Нагрузка в месяц
+          .edu-course__metric-value
+            span.edu-course__metric-num {{ course.lessons_per_month }}
+            span.edu-course__metric-unit {{ pluralize(Number(course.lessons_per_month), LESSON_FORMS) }} по {{ course.lesson_minutes }} мин
+        .edu-course__metric
+          .t-meta Программа
+          .edu-course__metric-value
+            span.edu-course__metric-num {{ course.lessons_total }}
+            span.edu-course__metric-unit {{ pluralize(Number(course.lessons_total), LESSON_FORMS) }}
+
     .row.q-col-gutter-md
       .col-12.col-md-8
-        BaseCard(variant="default")
-          .edu-course__cover.q-mb-md(v-if="course.image_url")
-            q-img(:src="course.image_url" :ratio="21 / 9" fit="cover" no-spinner)
-          .text-body2.edu-course__text(v-if="course.description") {{ course.description }}
-          .t-muted.t-sm(v-else) Описание курса не заполнено — в каталоге его место будет пустым.
-          q-separator.q-my-md
-          .text-subtitle2.q-mb-sm Учебная программа
-          .text-body2.edu-course__text(v-if="course.syllabus") {{ course.syllabus }}
-          .t-muted.t-sm(v-else) Программа не заполнена.
+        BaseCard.edu-course__about(variant="default")
+          q-img.edu-course__cover(v-if="course.image_url" :src="course.image_url" :ratio="3 / 1" fit="cover" no-spinner)
+          .edu-course__about-body
+            section
+              .edu-course__section-title О курсе
+              .edu-course__text(v-if="course.description") {{ course.description }}
+              .t-muted.t-sm(v-else) Описание не заполнено — в каталоге его место останется пустым.
+            section
+              .edu-course__section-title Учебная программа
+              .edu-course__text(v-if="course.syllabus") {{ course.syllabus }}
+              .t-muted.t-sm(v-else) Программа не заполнена.
 
       .col-12.col-md-4
-        BaseCard(variant="default" title="Условия участия")
-          .edu-course__fees
-            div
-              .t-sm.t-muted в месяц
-              .edu-course__fee.t-num {{ formatAsset2Digits(course.fee_month) }}
-            div
-              .t-sm.t-muted в год
-              .edu-course__fee.t-num {{ formatAsset2Digits(course.fee_year) }}
-          q-separator.q-my-md
-          DataRow(label="Занятий в месяц" :value="String(course.lessons_per_month)")
-          DataRow(label="Занятий в программе" :value="String(course.lessons_total)")
-          DataRow(label="Занятие" :value="`${course.lesson_minutes} минут`")
-          DataRow(label="Гарантия материалов" :value="`${course.guarantee_days} дней`")
+        .edu-course__side
+          //- Из чего сложился взнос и покрывает ли он обязательства перед теми,
+          //- кто курс ведёт: плановый расчёт против ставок преподавателей.
+          BaseCard(v-if="economy" variant="default" title="Экономика курса")
+            DataRow(label="Себестоимость в месяц" :value="formatAsset2Digits(economy.plan.cost_month)" align="spread")
+            DataRow(:label="`Наценка, ${economy.plan.markup_percent}%`" :value="formatAsset2Digits(economy.plan.markup_month)" align="spread")
+            DataRow(label="Ставка часа по программе" :value="formatAsset2Digits(course.planned_hourly_rate)" align="spread")
+            DataRow(label="По ставкам преподавателей" :value="formatAsset2Digits(economy.actual_cost_month)" align="spread")
+            BaseBanner.q-mt-sm(v-if="economy.over_fee" variant="warn")
+              template(#icon)
+                q-icon(name="warning_amber")
+              | Обязательства перед преподавателями больше собранного взноса — поднимите ставку часа или пересмотрите нагрузку.
 
-        //- Из чего сложился взнос и покрывает ли он обязательства перед теми,
-        //- кто курс ведёт: плановый расчёт против ставок преподавателей.
-        BaseCard.q-mt-md(v-if="economy" variant="default" title="Экономика курса")
-          DataRow(label="Себестоимость в месяц" :value="formatAsset2Digits(economy.plan.cost_month)" mono)
-          DataRow(:label="`Наценка, ${economy.plan.markup_percent}%`" :value="formatAsset2Digits(economy.plan.markup_month)" mono)
-          DataRow(label="Ставка часа по программе" :value="formatAsset2Digits(course.planned_hourly_rate)" mono)
-          DataRow(label="По ставкам преподавателей" :value="formatAsset2Digits(economy.actual_cost_month)" mono)
-          BaseBanner.q-mt-sm(v-if="economy.over_fee" variant="warn")
-            template(#icon)
-              q-icon(name="warning_amber")
-            | Обязательства перед преподавателями больше собранного взноса — поднимите ставку часа или пересмотрите нагрузку.
+          BaseCard(variant="default" title="Курс ведут")
+            .edu-course__teachers(v-if="course.teacher_usernames.length")
+              IdentityCell(v-for="username in course.teacher_usernames" :key="username" :account-name="username" :full-name="fioCache.get(username) || null")
+            .t-muted.t-sm(v-else) Преподаватели не назначены — назначения оформляются на странице «Преподаватели».
 
-        BaseCard.q-mt-md(variant="default" title="Курс ведут")
-          q-list.q-mb-md(v-if="course.teacher_usernames.length" separator)
-            q-item(v-for="username in course.teacher_usernames" :key="username")
-              q-item-section
-                IdentityCell(:account-name="username" :full-name="fioCache.get(username) || null")
-          .t-muted.t-sm.q-mb-md(v-else) Преподаватели не назначены — назначения оформляются на странице «Преподаватели».
-          q-separator.q-mb-md
-          DataRow(label="Направление" :value="directionLabel")
-          DataRow(label="Площадка" :value="carrierLabel")
-          DataRow(v-if="course.external_ref" label="Курс на площадке" :value="course.external_ref" mono copyable)
+          BaseCard(variant="default" title="Выдача доступа")
+            DataRow(label="Направление" :value="directionLabel" align="spread")
+            DataRow(label="Площадка" :value="carrierLabel" align="spread")
+            DataRow(label="Гарантия материалов" :value="`${course.guarantee_days} ${pluralizeDays(Number(course.guarantee_days))}`" align="spread")
+            DataRow(v-if="course.external_ref" label="Курс на площадке" :value="course.external_ref" align="vertical" mono copyable)
 
   //- Правка курса идёт в правой панели: так стол остаётся на виду, а форма
   //- открывается и закрывается на месте — общий порядок платформы.
@@ -100,7 +110,7 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { Zeus } from '@coopenomics/sdk';
-import { asText } from 'src/shared/lib/utils';
+import { asText, pluralize, pluralizeDays } from 'src/shared/lib/utils';
 import { useConfirm, useFirstLoad } from 'src/shared/lib/composables';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { useDesktopStore } from 'src/entities/Desktop/model';
@@ -119,12 +129,15 @@ import {
 } from '../../entities/Course';
 import { fetchCourseEconomy, type ICourseEconomy } from '../../entities/Economy';
 import { CourseForm } from '../../widgets/CourseForm';
+import { FeeAmount } from '../../shared/ui/FeeAmount';
 
 /**
  * Курс глазами администратора на отдельной странице: открывается кликом по
  * карточке в реестре. Всё управление курсом собрано здесь — под карточками
  * реестра кнопок нет, там только витрина.
  */
+const LESSON_FORMS: [string, string, string] = ['занятие', 'занятия', 'занятий'];
+
 const route = useRoute();
 const router = useRouter();
 const desktopStore = useDesktopStore();
@@ -265,27 +278,87 @@ onBeforeUnmount(() => desktopStore.clearPageTitleOverride());
   align-items: center;
   gap: var(--p-2);
 }
-.edu-course__cover {
-  border-radius: var(--p-r-lg);
+/* Полоса главных чисел: ячейки делятся тонкими линиями. Линию рисует левая и
+   верхняя граница ячейки, лишние у края срезает overflow — так сетка остаётся
+   ровной и когда ячейки переносятся на вторую строку. */
+.edu-course__summary {
+  margin-bottom: var(--p-4);
   overflow: hidden;
-  border: 1px solid var(--p-line);
+}
+.edu-course__summary :deep(.base-card__body) {
+  padding: 0;
+}
+.edu-course__metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  margin: -1px 0 0 -1px;
+}
+.edu-course__metric {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  padding: var(--p-4) var(--p-5);
+  border-left: 1px solid var(--p-line);
+  border-top: 1px solid var(--p-line);
+}
+.edu-course__metric-value {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.3em;
+  white-space: nowrap;
+  font-size: var(--p-fs-h1, 24px);
+  line-height: 1.15;
+  font-feature-settings: 'tnum' 1;
+}
+.edu-course__metric-num {
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  color: var(--p-ink);
+}
+.edu-course__metric-unit {
+  font-size: var(--p-fs-body-sm, 13px);
+  color: var(--p-ink-3);
+}
+/* Обложка идёт от края до края карточки, текст под ней — со своими полями. */
+.edu-course__about {
+  overflow: hidden;
+}
+.edu-course__about :deep(.base-card__body) {
+  padding: 0;
+}
+.edu-course__cover {
+  border-bottom: 1px solid var(--p-line);
   background: var(--p-surface-2);
+}
+.edu-course__about-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-6);
+  padding: var(--p-5) var(--p-6) var(--p-6);
+}
+.edu-course__section-title {
+  font-size: var(--p-fs-h3, 15px);
+  font-weight: 600;
+  color: var(--p-ink);
+  margin-bottom: var(--p-2);
 }
 .edu-course__text {
   white-space: pre-wrap;
-}
-/* Суммы — главное в карточке условий: крупно, в одну строку, без сжатия. */
-.edu-course__fees {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--p-3);
-}
-.edu-course__fee {
-  font-size: var(--p-fs-h4, 18px);
-  font-weight: 600;
-  letter-spacing: -0.01em;
+  max-width: 68ch;
+  font-size: var(--p-fs-body, 14px);
+  line-height: 1.6;
   color: var(--p-ink);
-  margin-top: 2px;
+}
+.edu-course__side {
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-4);
+}
+.edu-course__teachers {
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-3);
 }
 .edu-course__menu {
   min-width: 220px;

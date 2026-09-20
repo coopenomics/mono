@@ -4,57 +4,65 @@ BaseCard.edu-course-card(variant="default" role="link" tabindex="0" @click="emit
     q-img(v-if="course.image_url" :src="course.image_url" :ratio="16 / 9" fit="cover" no-spinner)
     .edu-course-card__placeholder(v-else)
       q-icon(name="school" size="32px")
-  .t-sm.t-muted.ellipsis {{ course.subject }} · {{ course.grade }}
-  .edu-course-card__title {{ course.title }}
-  .edu-course-card__meta
-    .edu-course-card__row(v-if="course.schedule")
-      q-icon(name="schedule" size="16px")
-      span.ellipsis {{ course.schedule }}
-    .edu-course-card__row(v-if="course.lessons_per_month")
-      q-icon(name="event_available" size="16px")
-      span.ellipsis {{ course.lessons_per_month }} занятий в месяц по {{ course.lesson_minutes }} минут
-  .edu-course-card__fees
-    div
-      .t-meta.t-muted в месяц
-      .edu-course-card__amount.t-num {{ formatAsset2Digits(course.fee_month) }}
-    div
-      .t-meta.t-muted в год
-      .edu-course-card__amount.t-num {{ formatAsset2Digits(course.fee_year) }}
+  .edu-course-card__body
+    .t-eyebrow.ellipsis {{ course.subject }} · {{ course.grade }}
+    .edu-course-card__title {{ course.title }}
+    .edu-course-card__facts
+      .edu-course-card__fact(v-if="course.schedule")
+        q-icon(name="schedule" size="16px")
+        span.ellipsis {{ course.schedule }}
+      .edu-course-card__fact(v-if="course.lessons_per_month")
+        q-icon(name="event_available" size="16px")
+        span.ellipsis {{ lessons }}
+    .edu-course-card__fees
+      FeeAmount(:value="course.fee_month" size="md" per="в месяц")
+      FeeAmount(:value="course.fee_year" size="sm" per="в год")
 </template>
 <script setup lang="ts">
-import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
+import { computed } from 'vue';
+import { pluralize } from 'src/shared/lib/utils';
 import { BaseCard } from 'src/shared/ui/base';
 import type { ICatalogCourse } from '../../entities/Course';
+import { FeeAmount } from '../../shared/ui/FeeAmount';
 
 /**
  * Карточка курса в каталоге: обложка (или заглушка), предмет и класс, название,
- * расписание, преподаватели, членский взнос за месяц и год. Тип направления и
+ * расписание, нагрузка в месяц, членский взнос за месяц и год. Тип направления и
  * площадка посетителю не показываются — суть курса читается из заголовка.
  */
-defineProps<{ course: ICatalogCourse }>();
+const props = defineProps<{ course: ICatalogCourse }>();
 const emit = defineEmits<{ open: [] }>();
+
+const lessons = computed(() => {
+  const n = Number(props.course.lessons_per_month);
+  return `${n} ${pluralize(n, ['занятие', 'занятия', 'занятий'])} в месяц по ${props.course.lesson_minutes} мин`;
+});
 </script>
 
 <style scoped>
 .edu-course-card {
-  cursor: pointer;
   height: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: var(--p-2);
-  transition: border-color 0.15s ease;
+  cursor: pointer;
+  overflow: hidden;
+  transition: border-color var(--p-dur-fast, 120ms) ease, box-shadow var(--p-dur-fast, 120ms) ease;
 }
 .edu-course-card:hover,
 .edu-course-card:focus-visible {
   border-color: var(--p-primary-line);
+  box-shadow: 0 6px 20px -12px rgba(0, 0, 0, 0.25);
   outline: none;
 }
-/* Обложка вылезает на поля карточки: ширина секции q-card равна --p-4 с каждой стороны. */
+/* Обложка идёт от края до края карточки, поэтому поля секции снимаем и
+   раскладываем содержимое сами: снимок, под ним текст со своими полями. */
+.edu-course-card :deep(.base-card__body) {
+  height: 100%;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
 .edu-course-card__media {
-  margin: calc(var(--p-4) * -1) calc(var(--p-4) * -1) var(--p-2);
-  border-radius: var(--p-r-md) var(--p-r-md) 0 0;
-  overflow: hidden;
   background: var(--p-surface-2);
+  border-bottom: 1px solid var(--p-line);
 }
 .edu-course-card__placeholder {
   aspect-ratio: 16 / 9;
@@ -63,10 +71,18 @@ const emit = defineEmits<{ open: [] }>();
   justify-content: center;
   color: var(--p-ink-3);
 }
+.edu-course-card__body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: var(--p-4) var(--p-5) var(--p-5);
+}
 .edu-course-card__title {
-  font-size: var(--p-fs-h5, 17px);
+  margin-top: var(--p-2);
+  font-size: 17px;
   font-weight: 600;
-  line-height: 1.25;
+  line-height: 1.3;
   letter-spacing: -0.01em;
   color: var(--p-ink);
   display: -webkit-box;
@@ -74,32 +90,39 @@ const emit = defineEmits<{ open: [] }>();
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
-.edu-course-card__meta {
+.edu-course-card__facts {
   display: flex;
   flex-direction: column;
-  gap: var(--p-1);
+  gap: 6px;
   min-width: 0;
+  margin-top: var(--p-3);
   color: var(--p-ink-2);
   font-size: var(--p-fs-body-sm, 13px);
 }
-.edu-course-card__row {
+.edu-course-card__fact {
   display: flex;
   align-items: center;
-  gap: var(--p-1);
+  gap: var(--p-2);
   min-width: 0;
 }
-.edu-course-card__fees {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--p-3);
-  margin-top: auto;
-  padding-top: var(--p-3);
-  border-top: 1px solid var(--p-line);
+.edu-course-card__fact .q-icon {
+  flex-shrink: 0;
+  color: var(--p-ink-3);
 }
-.edu-course-card__amount {
-  font-size: var(--p-fs-body, 15px);
-  font-weight: 600;
-  letter-spacing: -0.01em;
-  color: var(--p-ink);
+/* Взносы — итог карточки: отделены линией и прижаты к низу, чтобы карточки
+   в сетке заканчивались на одной высоте. Месячный взнос крупно, годовой под ним. */
+.edu-course-card__fees {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  margin-top: auto;
+  padding-top: var(--p-4);
+}
+.edu-course-card__fees::before {
+  content: '';
+  align-self: stretch;
+  border-top: 1px solid var(--p-line);
+  margin-bottom: var(--p-3);
 }
 </style>

@@ -6,8 +6,8 @@
 
   CardListSkeleton(v-if="firstLoad" :count="3")
   .row.q-col-gutter-md(v-else-if="items.length")
-    .col-12.col-sm-6.col-md-4(v-for="course in items" :key="asText(course.id)")
-      AdminCourseCard(:course="course" @open="openCourse(asText(course.id))")
+    .col-12.col-sm-6.col-md-4.col-xl-3(v-for="course in items" :key="asText(course.id)")
+      AdminCourseCard(:course="course" :teacher-names="teacherNames" @open="openCourse(asText(course.id))")
 
   EmptyState(v-if="!firstLoad && !items.length" title="Курсов пока нет" body="Добавьте первый курс кнопкой в правом верхнем углу.")
     template(#icon)
@@ -23,12 +23,13 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { asText } from 'src/shared/lib/utils';
 import { useFirstLoad } from 'src/shared/lib/composables';
 import { FailAlert } from 'src/shared/api';
 import { useHeaderActions } from 'src/shared/hooks';
+import { useFioCache } from 'src/shared/lib/account/useFioCache';
 import { BaseButton, CardListSkeleton, EmptyState } from 'src/shared/ui/base';
 import { DetailsDrawer, PageHint } from 'src/shared/ui/domain';
 import { fetchCourses, type ICourse } from '../../entities/Course';
@@ -44,6 +45,9 @@ import AddCourseHeaderButton from './AddCourseHeaderButton.vue';
 const route = useRoute();
 const router = useRouter();
 const { registerAction } = useHeaderActions();
+const { fioCache, enrichFio } = useFioCache();
+// Преподаватели на карточках — по ФИО: имена догружаем одним заходом на весь реестр.
+const teacherNames = computed(() => Object.fromEntries(fioCache.value));
 
 const items = ref<ICourse[]>([]);
 const loading = ref(false);
@@ -62,6 +66,7 @@ async function load(): Promise<void> {
   try {
     const result = await fetchCourses({ options: { page: 1, limit: 200, sortBy: 'sort_order', sortOrder: 'ASC' } });
     items.value = result.items;
+    void enrichFio(result.items.flatMap((c) => c.teacher_usernames));
   } catch (e) {
     FailAlert(e);
   } finally {
@@ -82,6 +87,7 @@ function onSaved(course: ICourse): void {
   const i = items.value.findIndex((c) => c.id === course.id);
   if (i >= 0) items.value[i] = course;
   else items.value.push(course);
+  void enrichFio(course.teacher_usernames);
   dialogOpen.value = false;
 }
 

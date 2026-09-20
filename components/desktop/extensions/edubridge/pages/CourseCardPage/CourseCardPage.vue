@@ -7,33 +7,49 @@
       q-icon(name="search_off" size="40px")
 
   template(v-else)
-    .edu-course__hero.q-mb-md(v-if="course.image_url")
-      q-img(:src="course.image_url" :ratio="21 / 9" fit="cover" no-spinner)
+    .edu-course__head
+      .t-eyebrow {{ course.subject }} · {{ course.grade }}
+      .edu-course__title {{ course.title }}
+      .edu-course__facts(v-if="course.schedule || course.starts_at")
+        span.edu-course__fact(v-if="course.starts_at")
+          q-icon(name="event" size="16px")
+          | Занятия с {{ formatDate(course.starts_at) }}
+        span.edu-course__fact(v-if="course.schedule")
+          q-icon(name="schedule" size="16px")
+          | {{ course.schedule }}
+
     .row.q-col-gutter-md
       .col-12.col-md-8
-        BaseCard(variant="default")
-          template(#head)
-            div
-              .row.q-gutter-xs
-                BaseChip(variant="neutral" size="sm") {{ course.subject }}
-                BaseChip(variant="neutral" size="sm") {{ course.grade }}
-          .text-body1.edu-course__text(v-if="course.description") {{ course.description }}
-          .t-muted(v-else) Описание курса появится позже.
-          q-separator.q-my-md
-          .text-subtitle2.q-mb-sm Учебная программа
-          .text-body2.edu-course__text(v-if="course.syllabus") {{ course.syllabus }}
-          .t-muted.t-sm(v-else) Программа будет опубликована позже.
+        BaseCard.edu-course__about(variant="default")
+          q-img.edu-course__cover(v-if="course.image_url" :src="course.image_url" :ratio="21 / 9" fit="cover" no-spinner)
+          .edu-course__about-body
+            section
+              .edu-course__section-title О курсе
+              .edu-course__text(v-if="course.description") {{ course.description }}
+              .t-muted.t-sm(v-else) Описание курса появится позже.
+            section
+              .edu-course__section-title Учебная программа
+              .edu-course__text(v-if="course.syllabus") {{ course.syllabus }}
+              .t-muted.t-sm(v-else) Программа будет опубликована позже.
 
       .col-12.col-md-4
-        BaseCard.edu-course__terms(variant="default" title="Условия участия")
-          DataRow(label="Расписание" :value="course.schedule || '______'")
-          DataRow(:label="course.teacher_usernames.length > 1 ? 'Преподаватели' : 'Преподаватель'" :value="course.teacher_usernames.join(', ') || '______'" mono)
-          DataRow(label="Взнос в месяц" :value="formatAsset2Digits(course.fee_month)" mono)
-          DataRow(label="Взнос в год" :value="formatAsset2Digits(course.fee_year)" mono)
-          .q-mt-md
-            BaseButton(variant="primary" block @click="getAccess") Получить доступ
+        //- Условия и кнопка записи держатся на виду, пока читают описание.
+        BaseCard.edu-course__terms(variant="default")
+          .t-meta Членский взнос
+          .edu-course__fees
+            FeeAmount(:value="course.fee_month" size="lg" per="в месяц")
+            FeeAmount(:value="course.fee_year" size="sm" per="в год")
+          BaseButton.q-mt-md(variant="primary" block @click="getAccess") Получить доступ
           .t-muted.t-sm.q-mt-sm(v-if="!session.isAuth")
             | Для записи на курс нужно вступить в кооператив — это займёт несколько минут.
+          .edu-course__terms-rows
+            DataRow(v-if="course.lessons_per_month" label="Занятий в месяц" :value="String(course.lessons_per_month)" align="spread")
+            DataRow(v-if="course.lesson_minutes" label="Занятие" :value="`${course.lesson_minutes} мин`" align="spread")
+            DataRow(v-if="course.lessons_total" label="Занятий в программе" :value="String(course.lessons_total)" align="spread")
+          template(v-if="course.teacher_usernames.length")
+            .edu-course__section-title.q-mt-md {{ course.teacher_usernames.length > 1 ? 'Преподаватели' : 'Преподаватель' }}
+            .edu-course__teachers
+              .edu-course__teacher(v-for="username in course.teacher_usernames" :key="username") {{ fioCache.get(username) || username }}
 
     SubscribeDialog(
       v-model="subscribeOpen"
@@ -46,18 +62,19 @@
 </template>
 
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref } from 'vue';
+import { onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { asText } from 'src/shared/lib/utils';
 import { FailAlert } from 'src/shared/api';
 import { useDesktopStore } from 'src/entities/Desktop/model';
 import { useSessionStore } from 'src/entities/Session';
-import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
-import { BaseButton, BaseCard, BaseChip, CardListSkeleton, EmptyState } from 'src/shared/ui/base';
+import { useFioCache } from 'src/shared/lib/account/useFioCache';
+import { BaseButton, BaseCard, CardListSkeleton, EmptyState } from 'src/shared/ui/base';
 import { DataRow } from 'src/shared/ui/domain';
 import { fetchCatalogCourse, type ICatalogCourse } from '../../entities/Course';
 import { fetchMyLearners, type ILearner } from '../../entities/Learner';
 import { SubscribeDialog } from '../../features/Subscribe';
+import { FeeAmount } from '../../shared/ui/FeeAmount';
 
 /**
  * Страница курса для посетителя: обложка, описание, учебная программа,
@@ -75,6 +92,16 @@ const course = ref<ICatalogCourse | null>(null);
 const loading = ref(true);
 const subscribeOpen = ref(false);
 const learners = ref<ILearner[]>([]);
+const { fioCache, enrichFio } = useFioCache();
+const formatDate = (v: unknown) => (v ? new Date(String(v)).toLocaleDateString('ru-RU') : '______');
+
+// Преподаватель посетителю — по имени: учётное имя ничего ему не говорит.
+watch(
+  () => course.value?.teacher_usernames,
+  (list) => {
+    if (list?.length) void enrichFio(list);
+  },
+);
 
 async function getAccess(): Promise<void> {
   if (!session.isAuth) {
@@ -122,18 +149,81 @@ onBeforeUnmount(() => desktopStore.clearPageTitleOverride());
 </script>
 
 <style scoped>
-.edu-course__hero {
-  border-radius: var(--p-r-lg);
+.edu-course__head {
+  margin-bottom: var(--p-4);
+}
+.edu-course__title {
+  font-size: 26px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  color: var(--p-ink);
+}
+.edu-course__facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--p-2) var(--p-4);
+  margin-top: var(--p-2);
+  color: var(--p-ink-2);
+  font-size: var(--p-fs-body-sm, 13px);
+}
+.edu-course__fact {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.edu-course__fact .q-icon {
+  color: var(--p-ink-3);
+}
+/* Обложка идёт от края до края карточки, текст под ней — со своими полями. */
+.edu-course__about {
   overflow: hidden;
-  border: 1px solid var(--p-line);
+}
+.edu-course__about :deep(.base-card__body) {
+  padding: 0;
+}
+.edu-course__cover {
+  border-bottom: 1px solid var(--p-line);
   background: var(--p-surface-2);
+}
+.edu-course__about-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-6);
+  padding: var(--p-5) var(--p-6) var(--p-6);
+}
+.edu-course__section-title {
+  font-size: var(--p-fs-h3, 15px);
+  font-weight: 600;
+  color: var(--p-ink);
+  margin-bottom: var(--p-2);
 }
 .edu-course__text {
   white-space: pre-wrap;
+  max-width: 68ch;
+  font-size: var(--p-fs-body, 14px);
+  line-height: 1.6;
 }
-/* Колонка условий узкая: пары «подпись — значение» внутри неё сами стекаются
-   в две строки (container query в DataRow), иначе сумма рвётся посреди числа. */
 .edu-course__terms {
-  container-type: inline-size;
+  position: sticky;
+  top: var(--p-4);
+}
+.edu-course__fees {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  margin-top: 6px;
+}
+.edu-course__terms-rows {
+  margin-top: var(--p-4);
+  padding-top: var(--p-2);
+  border-top: 1px solid var(--p-line);
+}
+.edu-course__teachers {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: var(--p-fs-body, 14px);
 }
 </style>

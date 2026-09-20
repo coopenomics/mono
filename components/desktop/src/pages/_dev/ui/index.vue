@@ -923,6 +923,18 @@
           <DataRow label="Дата регистрации" value="—" />
         </div>
       </div>
+      <p class="dev-ui__sect-sub">
+        <code>align="spread"</code> — для боковых карточек с короткими значениями: подпись слева,
+        значение у правого края в одну строку. В узкой карточке строка остаётся строкой,
+        а не складывается в столбик.
+      </p>
+      <div class="dev-ui__stage">
+        <div class="dev-ui__data-stack" style="max-width: 340px">
+          <DataRow label="Занятий в месяц" value="8" align="spread" />
+          <DataRow label="Занятие" value="60 минут" align="spread" />
+          <DataRow label="Себестоимость в месяц" value="10 000,00 RUB" align="spread" />
+        </div>
+      </div>
     </section>
 
     <!-- ============ 23 CONTACT SHEET (E8.2) ============ -->

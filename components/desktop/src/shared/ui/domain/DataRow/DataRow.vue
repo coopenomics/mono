@@ -94,6 +94,21 @@ async function onCopy(): Promise<void> {
   }
 }
 
+/* spread не складывается ни на телефоне, ни в узкой карточке: значение короткое,
+   ему хватает места справа, а столбик из пар строк вдвое растягивает карточку. */
+.data-row--spread {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+.data-row--spread .data-row__value {
+  justify-content: flex-end;
+  text-align: right;
+  white-space: nowrap;
+  font-feature-settings: 'tnum' 1;
+}
+.data-row--spread .data-row__hint {
+  text-align: left;
+}
+
 .data-row__label {
   color: var(--p-ink-2);
   font-size: var(--p-fs-body-sm, 13px);
