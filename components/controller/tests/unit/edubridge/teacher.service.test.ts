@@ -336,6 +336,20 @@ describe('EdubridgeTeacherService — занятия и гарантийный �
     expect(held.storage_act_hash).toBe('hold');
   });
 
+  it('отчёт задним числом и курс без гарантии: материалы всё равно принимаются на хранение', async () => {
+    const { service, chain, store } = make({ guaranteeDays: 0 });
+    const lesson = await service.reportLesson('voskhod', 'teach', { ...report, held_at: '2026-01-01T10:00:00Z' } as any);
+    const contribution = [...store.values()].find((c) => c.lesson_id === lesson.id);
+    const held = await service.holdContribution('voskhod', 'teach', contribution.id, signedBy('teach', 'HOLD'));
+    expect(chain.holdRid).toHaveBeenCalledWith(expect.objectContaining({ hold_until: '2026-01-01T10:00:00' }));
+    expect(held.status).toBe(EduContributionStatus.HELD);
+
+    // Срок уже истёк, поэтому заявление уходит в совет сразу.
+    const submitted = await service.submitContribution('voskhod', 'teach', contribution.id, signedBy('teach', 'STMT'));
+    expect(submitted.status).toBe(EduContributionStatus.SUBMITTED);
+    expect(chain.submitRid).toHaveBeenCalled();
+  });
+
   it('повторная передача тех же материалов отклоняется', async () => {
     const { service, store } = make();
     const lesson = await service.reportLesson('voskhod', 'teach', report as any);

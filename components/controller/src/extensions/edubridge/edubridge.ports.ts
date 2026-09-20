@@ -15,6 +15,7 @@ import {
   COUNCIL_PORT,
   EXPENSE_CHASSIS_PORT,
   DECISION_TRACKING_PORT,
+  DOCUMENT_DECLARATION_PORT,
   DOCUMENT_PORT,
   FREE_DECISION_PORT,
   DESKTOP_GRANTS_FILTER_REGISTRY_PORT,
@@ -44,6 +45,8 @@ export const edubridgePorts = {
     CHAIN_PORT,
     COUNCIL_PORT,
     DECISION_TRACKING_PORT,
+    // Документы ЦПП в реестре шаблонов кооператива: без объявления совет их не утверждает.
+    DOCUMENT_DECLARATION_PORT,
     DOCUMENT_PORT,
     FREE_DECISION_PORT,
     DESKTOP_GRANTS_FILTER_REGISTRY_PORT,

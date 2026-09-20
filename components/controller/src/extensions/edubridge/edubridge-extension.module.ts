@@ -9,11 +9,13 @@ import {
 } from '@coopenomics/extension-kit';
 import {
   COUNCIL_PORT,
+  DOCUMENT_DECLARATION_PORT,
   LOGGER_PORT,
   ONBOARDING_STEP_REGISTRY_PORT,
   MEMBER_EXIT_REGISTRY_PORT,
   REGISTRATION_REGISTRY_PORT,
   type ICouncilPort,
+  type IDocumentDeclarationPort,
   type ILoggerPort,
   type IOnboardingStepRegistryPort,
   type IMemberExitRegistryPort,
@@ -22,6 +24,7 @@ import {
 import { EdubridgeApplicationModule } from './application/edubridge-application.module';
 import { EdubridgeExitBlockersService } from './application/services/edubridge-exit-blockers.service';
 import { EdubridgeConfigHolder } from './application/config/edubridge-config.holder';
+import { registerEdubridgeDocuments } from './application/onboarding/register-edubridge-documents';
 import { registerEdubridgeOnboardingSteps } from './application/onboarding/register-edubridge-onboarding-steps';
 import { registerEdubridgeInAgreementRegistry } from './application/registration/register-edubridge-in-agreement-registry';
 import { EDUBRIDGE_EXTENSION_NAME } from './constants/edubridge.constants';
@@ -47,6 +50,7 @@ export class EdubridgeExtension extends BaseExtensionModule {
     @Inject(LOGGER_PORT) private readonly logger: ILoggerPort,
     @Inject(COUNCIL_PORT) private readonly council: ICouncilPort,
     @Inject(ONBOARDING_STEP_REGISTRY_PORT) private readonly onboardingSteps: IOnboardingStepRegistryPort,
+    @Inject(DOCUMENT_DECLARATION_PORT) private readonly documentDeclarations: IDocumentDeclarationPort,
     @Optional() @Inject(REGISTRATION_REGISTRY_PORT) private readonly registration: IRegistrationRegistryPort | null = null,
     @Optional() @Inject(MEMBER_EXIT_REGISTRY_PORT) private readonly memberExit: IMemberExitRegistryPort | null = null,
     private readonly configHolder: EdubridgeConfigHolder,
@@ -69,6 +73,7 @@ export class EdubridgeExtension extends BaseExtensionModule {
 
     await this.ensurePrograms();
     registerEdubridgeOnboardingSteps(this.onboardingSteps);
+    await registerEdubridgeDocuments(this.documentDeclarations);
     await this.syncCoopAcceptanceFromOnboarding();
     this.registerInAgreementRegistry();
     this.registerExitBlockers();

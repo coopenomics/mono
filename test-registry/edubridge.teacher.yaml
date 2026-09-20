@@ -35,6 +35,7 @@ sources:
     - components/cooptypes/src/cooperative/registry/3012.EducationRidStorageAct/**
     - components/factory/src/Actions/3012.EducationRidStorageAct.ts
     - components/controller/src/extensions/edubridge/domain/lib/lesson-dates.ts
+    - components/controller/src/extensions/edubridge/application/onboarding/register-edubridge-documents.ts
   ui:
     - components/desktop/extensions/edubridge/pages/AdminTeachersPage/**
     - components/desktop/extensions/edubridge/pages/AdminContributionsPage/**
@@ -198,6 +199,20 @@ cases:
     scenario: Рекламация по материалам, которые на ответственное хранение не передавались.
     expect: Взнос закрывается без проводок — снимать с хранения нечего.
     test: components/controller/tests/unit/edubridge/teacher.service.test.ts
+    status: passing
+  - id: edu.teach.side.10
+    level: backend
+    kind: side
+    scenario: Отчёт о занятии задним числом и курс с нулевой гарантией — срок хранения в прошлом.
+    expect: Материалы принимаются на ответственное хранение, заявление уходит в совет сразу.
+    test: components/controller/tests/unit/edubridge/teacher.service.test.ts
+    status: passing
+  - id: edu.teach.happy.10
+    level: backend
+    kind: happy
+    scenario: Расширение объявляет свои документы в реестре шаблонов кооператива.
+    expect: Объявлены положение, обе оферты, договор участия, бланки (включая акт хранения 3012) и протокол совета; шаблоны-двойники не объявляются, прежние декларации снимаются.
+    test: components/controller/tests/unit/edubridge/document-declarations.test.ts
     status: passing
   - id: edu.teach.happy.09
     level: backend
