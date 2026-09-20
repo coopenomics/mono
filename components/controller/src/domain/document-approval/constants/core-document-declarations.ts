@@ -63,7 +63,9 @@ export const CORE_DOCUMENT_DECLARATIONS: InnerDocumentDeclaration[] = [
 
   core(R.ConvertToAxonStatement.registry_id, 'form', 70, { bundle: 'core_forms' }),
   core(R.ParticipantExitApplication.registry_id, 'form', 71, { bundle: 'core_forms' }),
-  core(R.ReturnByMoney.registry_id, 'form', 72, { bundle: 'core_forms' }),
+  // Аннулирование соглашений ЦПП идёт вместе с выходом — сразу за его заявлением.
+  core(R.ProgramAgreementsAnnulmentStatement.registry_id, 'form', 72, { bundle: 'core_forms' }),
+  core(R.ReturnByMoney.registry_id, 'form', 73, { bundle: 'core_forms' }),
 
   core(R.DecisionOfParticipantExit.registry_id, 'service', 90),
   core(R.AnnualGeneralMeetingAgenda.registry_id, 'service', 91),

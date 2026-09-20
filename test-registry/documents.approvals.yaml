@@ -367,3 +367,11 @@ cases:
     expect: генератор их не знает, синхронизатор шаблонов записи в сети не трогает и сообщает о них как «в сети, но не в реестре»; рабочие документы 996, 1000, 1001, 1102 собираются как прежде
     test: components/factory/test/documents-1000-plus.test.ts
     status: written
+
+  - id: doc.appr.happy.21
+    level: backend
+    kind: happy
+    scenario: Заявление об аннулировании соглашений ЦПП (190) объявлено формой рядом с заявлением на выход (200)
+    expect: документ входит в набор core_forms и предлагается к подписи вместе с заявлением на выход; порядковые номера форм ядра не пересекаются
+    test: components/factory/test/program-agreements-annulment.test.ts
+    status: written
