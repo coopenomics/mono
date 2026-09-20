@@ -42,7 +42,7 @@ div
       v-else,
       :handler-submit='handlerSubmit',
       :is-submitting='isSubmitting',
-      :disabled='!document || loading',
+      :disabled='!documents || loading || blockers.length > 0',
       :button-cancel-txt='"Отменить"',
       :button-submit-txt='"Подписать и подать заявление"',
       @cancel='clear'
@@ -54,25 +54,54 @@ div
           p.q-mb-sm Внимательно прочитайте заявление. Выход из кооператива — необратимое действие.
           p.q-mb-none После подписания и подтверждения по ссылке из письма кабинет блокируется и запускается процесс выхода: получение решения Совета и возврат паевого взноса в срок, установленный Уставом кооператива.
 
-      //- Единый лоадер на подготовку заявления и расчёт суммы (грузим параллельно).
+      //- Единый лоадер на подготовку заявлений и расчёт суммы (грузим параллельно).
       div.exit-loading(v-if='loading')
         q-spinner(size='32px', color='primary')
-        span.exit-loading__text Готовим заявление и сумму к возврату…
+        span.exit-loading__text Готовим заявления и сумму к возврату…
 
       template(v-else)
-        div.exit-doc.q-mt-md(v-if='document')
-          DocumentHtmlReader(:html='document.html')
+        //- Причины отказа приходят от программ: пока они есть, подавать заявление
+        //- бесполезно — бэкенд его отклонит.
+        BaseBanner.q-mt-md(v-if='blockers.length', variant='neg')
+          template(#icon)
+            q-icon(name='block')
+          div
+            p.q-mb-sm Сейчас выйти нельзя:
+            ul.exit-blockers
+              li(v-for='reason in blockers', :key='reason') {{ reason }}
+
+        //- Что закрывается и сколько вернётся: по строке на программу, с
+        //- отметкой, какие остатки остаются кооперативу.
+        div.exit-programs(v-if='programs.length')
+          .exit-programs__title Участие в программах
+          .exit-program(v-for='program in programs', :key='program.program_id')
+            .exit-program__head
+              span.exit-program__name {{ program.title }}
+              span.exit-program__refund.t-num {{ formatAsset2Digits(program.refund) }}
+            .exit-program__note(v-if='program.agreement_signed_at') Соглашение от {{ formatDate(program.agreement_signed_at) }}
+            .exit-program__wallet(v-for='wallet in program.wallets', :key='wallet.wallet_name', :class='{ "exit-program__wallet--kept": !wallet.returns }')
+              span {{ wallet.human_name }}
+              span.t-num {{ formatAsset2Digits(wallet.balance) }}
+              span.exit-program__policy(v-if='!wallet.returns') остаётся кооперативу
+
+        div.exit-doc.q-mt-md(v-if='documents')
+          //- Заявлений два, и подпись под ними одна: читаются друг за другом.
+          .exit-doc__title(v-if='documents.annulment') Заявление о выходе
+          DocumentHtmlReader(:html='documents.application.html')
+          template(v-if='documents.annulment')
+            .exit-doc__title.q-mt-md Заявление об аннулировании соглашений
+            DocumentHtmlReader(:html='documents.annulment.html')
 
         //- Итог к возврату — soft-панель под документом, читается как подбивка
         //- к заявлению (а не «висящий» текст снизу). Сумма авторитетная: собирается
-        //- по сету паевых кошельков (тот же, что обходит контракт при возврате).
+        //- по таблице политики кошельков (той же, что обходит контракт при возврате).
         div.exit-summary(v-if='preview')
           span.exit-summary__label Сумма к возврату
           span.exit-summary__value {{ formatAsset2Digits(preview.total) }}
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { BaseButton } from 'src/shared/ui/base/BaseButton';
 import { BaseDialog } from 'src/shared/ui/base/BaseDialog';
@@ -80,14 +109,15 @@ import { BaseBanner } from 'src/shared/ui/base/BaseBanner';
 import { DocumentHtmlReader } from 'src/shared/ui/DocumentHtmlReader';
 import { Form } from 'src/shared/ui/Form';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
+import { useConfirm } from 'src/shared/lib/composables';
 import { useWalletStore } from 'src/entities/Wallet';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import {
   useMembershipExit,
   useExitDialog,
   useExitGate,
+  type IExitDocuments,
   type IMembershipExitReturnPreview,
-  type IGenerateMembershipExitApplicationResult,
 } from '../model';
 
 import type { BaseButtonVariant } from 'src/shared/ui/base/BaseButton/BaseButton.types';
@@ -110,15 +140,21 @@ const route = useRoute();
 const router = useRouter();
 const walletStore = useWalletStore();
 const { showDialog, open } = useExitDialog();
-const { generateApplication, submitSignedApplication, getReturnPreview, hasRequisites } = useMembershipExit();
+const { prepareExitDocuments, submitSignedApplication, getReturnPreview, hasRequisites } = useMembershipExit();
+const { confirm } = useConfirm();
 const { loadExitStatus } = useExitGate();
 
 const isSubmitting = ref(false);
 const checkingRequisites = ref(false);
 const requisitesOk = ref<boolean | null>(null);
 const loading = ref(false);
-const document = ref<IGenerateMembershipExitApplicationResult | null>(null);
+const documents = ref<IExitDocuments | null>(null);
 const preview = ref<IMembershipExitReturnPreview | null>(null);
+const blockers = computed(() => preview.value?.blockers ?? []);
+const programs = computed(() => preview.value?.programs ?? []);
+
+const formatDate = (value: unknown): string =>
+  value ? new Date(String(value)).toLocaleDateString('ru-RU') : '______';
 
 watch(showDialog, async (opened) => {
   if (!opened) return;
@@ -136,22 +172,21 @@ watch(showDialog, async (opened) => {
   }
   if (!requisitesOk.value) return;
 
-  // Заявление и сумму готовим параллельно под одним лоадером, показываем вместе.
+  // Сначала расчёт: из него берутся программы и суммы для заявления об
+  // аннулировании соглашений, поэтому документы готовятся следом.
   loading.value = true;
   try {
-    const [doc, prev] = await Promise.allSettled([generateApplication(), getReturnPreview()]);
-    if (doc.status === 'fulfilled') {
-      document.value = doc.value;
-    } else {
-      console.error('Ошибка формирования заявления о выходе:', doc.reason);
-      FailAlert('Не удалось сформировать заявление о выходе');
+    try {
+      preview.value = await getReturnPreview();
+    } catch (error) {
+      // Сумма — некритично: заявление о выходе можно подписать и без предрасчёта.
+      console.error('Ошибка расчёта суммы возврата:', error);
     }
-    if (prev.status === 'fulfilled') {
-      preview.value = prev.value;
-    } else {
-      // Сумма — некритично: документ можно подписать и без предрасчёта.
-      console.error('Ошибка расчёта суммы возврата:', prev.reason);
-    }
+    if (preview.value?.blockers?.length) return;
+    documents.value = await prepareExitDocuments(preview.value);
+  } catch (error) {
+    console.error('Ошибка формирования заявлений о выходе:', error);
+    FailAlert('Не удалось сформировать заявления о выходе');
   } finally {
     loading.value = false;
   }
@@ -163,7 +198,7 @@ const clear = (): void => {
   checkingRequisites.value = false;
   requisitesOk.value = null;
   loading.value = false;
-  document.value = null;
+  documents.value = null;
   preview.value = null;
 };
 
@@ -173,10 +208,22 @@ const goToRequisites = (): void => {
 };
 
 const handlerSubmit = async (): Promise<void> => {
-  if (!document.value) return;
+  if (!documents.value) return;
+
+  const agreed = await confirm({
+    title: 'Выйти из кооператива?',
+    message: documents.value.annulment
+      ? 'Ваше участие в программах прекратится, а средства вернутся после решения Совета. Вернуться назад нельзя.'
+      : 'Членство прекратится, паевой взнос вернётся после решения Совета. Вернуться назад нельзя.',
+    note: 'Заявления подписываются вашей электронной подписью прямо сейчас.',
+    confirmLabel: 'Подписать и подать',
+    danger: true,
+  });
+  if (!agreed) return;
+
   isSubmitting.value = true;
   try {
-    await submitSignedApplication(document.value);
+    await submitSignedApplication(documents.value);
     // Подтягиваем статус — overlay заблокирует кабинет и покажет экран ожидания письма.
     await loadExitStatus();
     SuccessAlert('Заявление подписано. Перейдите по ссылке из письма, чтобы подтвердить выход.');
@@ -196,6 +243,75 @@ const handlerSubmit = async (): Promise<void> => {
 </script>
 
 <style scoped lang="scss">
+.exit-blockers {
+  margin: 0;
+  padding-left: var(--p-5);
+}
+
+/* Что закрывается при выходе: по строке на программу, суммы столбиком справа. */
+.exit-programs {
+  margin-top: var(--p-4);
+  border: 1px solid var(--p-line);
+  border-radius: var(--p-r-md);
+  overflow: hidden;
+}
+.exit-programs__title {
+  padding: var(--p-3) var(--p-4);
+  background: var(--p-surface-2);
+  font-size: var(--p-fs-body-sm);
+  font-weight: 600;
+  color: var(--p-ink);
+}
+.exit-program {
+  padding: var(--p-3) var(--p-4);
+  border-top: 1px solid var(--p-line);
+}
+.exit-program__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--p-3);
+}
+.exit-program__name {
+  font-weight: 600;
+  color: var(--p-ink);
+}
+.exit-program__refund {
+  font-weight: 600;
+  white-space: nowrap;
+}
+.exit-program__note {
+  margin-top: 2px;
+  font-size: var(--p-fs-meta);
+  color: var(--p-ink-3);
+}
+.exit-program__wallet {
+  display: flex;
+  align-items: baseline;
+  gap: var(--p-2);
+  margin-top: var(--p-2);
+  font-size: var(--p-fs-body-sm);
+  color: var(--p-ink-2);
+}
+.exit-program__wallet span:nth-child(2) {
+  margin-left: auto;
+  white-space: nowrap;
+}
+.exit-program__wallet--kept {
+  color: var(--p-ink-3);
+}
+.exit-program__policy {
+  flex-basis: 100%;
+  font-size: var(--p-fs-meta);
+}
+
+.exit-doc__title {
+  font-size: var(--p-fs-body-sm);
+  font-weight: 600;
+  color: var(--p-ink);
+  margin-bottom: var(--p-2);
+}
+
 .exit-loading {
   display: flex;
   flex-direction: column;

@@ -21,6 +21,17 @@ export type ICreateMembershipExitResult =
 export type IMembershipExitReturnPreview =
   Queries.MembershipExit.MembershipExitReturnPreview.IOutput[typeof Queries.MembershipExit.MembershipExitReturnPreview.name];
 
+export type IGenerateProgramAgreementsAnnulmentResult =
+  Mutations.MembershipExit.GenerateProgramAgreementsAnnulment.IOutput[typeof Mutations.MembershipExit.GenerateProgramAgreementsAnnulment.name];
+
+/** Документы, которые пайщик подписывает при выходе: заявление и аннулирование соглашений. */
+export interface IExitDocuments {
+  exit_hash: string;
+  application: IGenerateMembershipExitApplicationResult;
+  /** Пусто, когда у пайщика нет соглашений об участии в программах. */
+  annulment: IGenerateProgramAgreementsAnnulmentResult | null;
+}
+
 /**
  * Композабл выхода пайщика из кооператива.
  */
@@ -124,24 +135,70 @@ export function useMembershipExit() {
   }
 
   /**
+   * Заявление об аннулировании соглашений ЦПП (190). Программы и остатки берутся
+   * из предрасчёта выхода — того же, что показывается пайщику в диалоге.
+   */
+  async function generateAnnulment(
+    exit_hash: string,
+    preview: IMembershipExitReturnPreview,
+  ): Promise<IGenerateProgramAgreementsAnnulmentResult> {
+    const {
+      [Mutations.MembershipExit.GenerateProgramAgreementsAnnulment.name]: result,
+    } = await client.Mutation(
+      Mutations.MembershipExit.GenerateProgramAgreementsAnnulment.mutation,
+      {
+        variables: {
+          data: {
+            coopname: info.coopname,
+            username: session.username,
+            skip_save: false,
+            exit_hash,
+            programs: programsForAnnulment(preview),
+            total_refund: preview.total,
+          },
+          options: { lang: 'ru' },
+        },
+      },
+    );
+
+    return result;
+  }
+
+  /**
+   * Оба документа выхода под общим `exit_hash`: заявление о выходе и, когда у
+   * пайщика есть соглашения об участии в программах, заявление об их
+   * аннулировании. Пайщик читает оба и подписывает одним действием.
+   */
+  async function prepareExitDocuments(
+    preview: IMembershipExitReturnPreview | null,
+  ): Promise<IExitDocuments> {
+    const exit_hash = await generateUniqueHash();
+    const application = await generateApplication();
+    const needsAnnulment = preview ? programsForAnnulment(preview).length > 0 : false;
+    const annulment = needsAnnulment && preview ? await generateAnnulment(exit_hash, preview) : null;
+    return { exit_hash, application, annulment };
+  }
+
+  /**
    * Шаг 2: подписывает показанный документ приватным ключом пайщика и подаёт
    * заявление. На бэкенде заявление принимается и уходит письмо с подтверждением —
    * в блокчейн отправится только после перехода по ссылке (confirmExit).
    */
-  async function submitSignedApplication(
-    document: IGenerateMembershipExitApplicationResult,
-  ): Promise<ICreateMembershipExitResult> {
-    const exit_hash = await generateUniqueHash();
+  async function submitSignedApplication(documents: IExitDocuments): Promise<ICreateMembershipExitResult> {
+    const statement = await new DigitalDocument(documents.application)
+      .sign<Cooperative.Registry.ParticipantExitApplication.Meta>(session.username);
 
-    const digitalDocument = new DigitalDocument(document);
-    const signedDocument =
-      await digitalDocument.sign<Cooperative.Registry.ParticipantExitApplication.Meta>(
-        session.username,
-      );
+    // Аннулирование соглашений подписывается тем же действием: пайщик читает оба
+    // документа и ставит подпись один раз.
+    const annulment = documents.annulment
+      ? await new DigitalDocument(documents.annulment)
+        .sign<Cooperative.Registry.ProgramAgreementsAnnulmentStatement.Meta>(session.username)
+      : undefined;
 
     return createMembershipExit({
-      exit_hash,
-      statement: signedDocument,
+      exit_hash: documents.exit_hash,
+      statement,
+      annulment,
     });
   }
 
@@ -160,10 +217,35 @@ export function useMembershipExit() {
   return {
     generateMembershipExitApplication,
     generateApplication,
+    generateAnnulment,
+    prepareExitDocuments,
     submitSignedApplication,
     createMembershipExit,
     confirmExit,
     getReturnPreview,
     hasRequisites,
   };
+}
+
+/**
+ * Программы для заявления об аннулировании: те, по которым у пайщика есть
+ * подписанное соглашение. Минимальный паевой взнос и прочее вне программ в
+ * документ не идут — аннулировать там нечего.
+ */
+function programsForAnnulment(preview: IMembershipExitReturnPreview) {
+  return (preview.programs ?? [])
+    .filter((program) => Boolean(program.agreement_hash) && program.program_id > 0)
+    .map((program) => ({
+      program_id: program.program_id,
+      title: program.title,
+      agreement_signed_at: program.agreement_signed_at ?? '',
+      agreement_hash: program.agreement_hash ?? '',
+      refund: program.refund,
+      wallets: program.wallets.map((wallet) => ({
+        wallet_name: wallet.wallet_name,
+        human_name: wallet.human_name,
+        balance: wallet.balance,
+        returns: wallet.returns,
+      })),
+    }));
 }
