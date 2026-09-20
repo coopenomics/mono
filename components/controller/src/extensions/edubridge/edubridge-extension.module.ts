@@ -11,13 +11,16 @@ import {
   COUNCIL_PORT,
   LOGGER_PORT,
   ONBOARDING_STEP_REGISTRY_PORT,
+  MEMBER_EXIT_REGISTRY_PORT,
   REGISTRATION_REGISTRY_PORT,
   type ICouncilPort,
   type ILoggerPort,
   type IOnboardingStepRegistryPort,
+  type IMemberExitRegistryPort,
   type IRegistrationRegistryPort,
 } from '@coopenomics/innercoop';
 import { EdubridgeApplicationModule } from './application/edubridge-application.module';
+import { EdubridgeExitBlockersService } from './application/services/edubridge-exit-blockers.service';
 import { EdubridgeConfigHolder } from './application/config/edubridge-config.holder';
 import { registerEdubridgeOnboardingSteps } from './application/onboarding/register-edubridge-onboarding-steps';
 import { registerEdubridgeInAgreementRegistry } from './application/registration/register-edubridge-in-agreement-registry';
@@ -45,7 +48,9 @@ export class EdubridgeExtension extends BaseExtensionModule {
     @Inject(COUNCIL_PORT) private readonly council: ICouncilPort,
     @Inject(ONBOARDING_STEP_REGISTRY_PORT) private readonly onboardingSteps: IOnboardingStepRegistryPort,
     @Optional() @Inject(REGISTRATION_REGISTRY_PORT) private readonly registration: IRegistrationRegistryPort | null = null,
-    private readonly configHolder: EdubridgeConfigHolder
+    @Optional() @Inject(MEMBER_EXIT_REGISTRY_PORT) private readonly memberExit: IMemberExitRegistryPort | null = null,
+    private readonly configHolder: EdubridgeConfigHolder,
+    private readonly exitBlockers: EdubridgeExitBlockersService
   ) {
     super();
     this.logger.setContext(EdubridgeExtension.name);
@@ -66,6 +71,7 @@ export class EdubridgeExtension extends BaseExtensionModule {
     registerEdubridgeOnboardingSteps(this.onboardingSteps);
     await this.syncCoopAcceptanceFromOnboarding();
     this.registerInAgreementRegistry();
+    this.registerExitBlockers();
     this.logger.info('edubridge-extension готов');
   }
 
@@ -98,6 +104,18 @@ export class EdubridgeExtension extends BaseExtensionModule {
     this.extension = { ...this.extension, config: merged.config };
     this.configHolder.set(this.extension.config);
     this.logger.info('[EDU.L1] coopAcceptance.accepted выставлен по завершению онбординга совета');
+  }
+
+  /**
+   * Почему преподавателю рано выходить из кооператива — ядро спросит об этом
+   * перед подачей заявления о выходе.
+   */
+  private registerExitBlockers(): void {
+    if (!this.memberExit) {
+      this.logger.info('[EDU.L2] реестр проверок выхода не предоставлен — обязательства преподавателя не проверяются');
+      return;
+    }
+    this.memberExit.registerExitBlockers(this.exitBlockers);
   }
 
   private registerInAgreementRegistry(): void {

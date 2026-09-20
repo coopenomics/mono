@@ -39,6 +39,7 @@ import { EdubridgeOwnerDirectory } from './membership/edubridge-owner.directory'
 import { EdubridgeMemberResolver } from './resolvers/edubridge-member.resolver';
 import { EdubridgeAccessOutboxService } from './services/edubridge-access-outbox.service';
 import { EdubridgeExpiryWorker } from './workers/edubridge-expiry.worker';
+import { EdubridgeExitBlockersService } from './services/edubridge-exit-blockers.service';
 import { EdubridgeOutboxWorker } from './workers/edubridge-outbox.worker';
 import { EdubridgeHoldWorker } from './workers/edubridge-hold.worker';
 import { EdubridgeOnboardingResolver } from './resolvers/edubridge-onboarding.resolver';
@@ -105,6 +106,7 @@ import { EdubridgeCatalogCourseFieldsResolver, EdubridgeCourseFieldsResolver } f
     EdubridgeAccessOutboxService,
     EdubridgeTeacherService,
     EdubridgeAdminService,
+    EdubridgeExitBlockersService,
     // Воркеры и слушатели
     EdubridgeOutboxWorker,
     EdubridgeExpiryWorker,
@@ -124,6 +126,6 @@ import { EdubridgeCatalogCourseFieldsResolver, EdubridgeCourseFieldsResolver } f
     EdubridgeTeacherResolver,
     EdubridgeAdminResolver,
   ],
-  exports: [EDUBRIDGE_ROLE_FACTS_PORT, EdubridgeConfigHolder, EdubridgeMembershipService],
+  exports: [EDUBRIDGE_ROLE_FACTS_PORT, EdubridgeConfigHolder, EdubridgeMembershipService, EdubridgeExitBlockersService],
 })
 export class EdubridgeApplicationModule {}

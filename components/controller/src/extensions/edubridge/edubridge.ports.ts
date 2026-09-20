@@ -23,6 +23,7 @@ import {
   FILE_STORAGE_PORT,
   LEDGER2_HISTORY_PORT,
   LOGGER_PORT,
+  MEMBER_EXIT_REGISTRY_PORT,
   NOTIFICATION_PORT,
   ONBOARDING_STEP_REGISTRY_PORT,
   PROGRAM_AGREEMENT_PORT,
@@ -54,6 +55,8 @@ export const edubridgePorts = {
     // Лента движения средств программы в разделе «Экономика» — журнал ledger2.
     LEDGER2_HISTORY_PORT,
     LOGGER_PORT,
+    // Почему преподавателю рано выходить из кооператива: курсы на руках, незакрытый расчёт.
+    MEMBER_EXIT_REGISTRY_PORT,
     NOTIFICATION_PORT,
     ONBOARDING_STEP_REGISTRY_PORT,
     PROGRAM_AGREEMENT_PORT,

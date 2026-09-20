@@ -129,4 +129,17 @@ cases:
     expect: "Задача выдачи уходит в needs_attention с человеческим объяснением («адрес принадлежит сотруднику школы — укажите обучающемуся другой»), а не с кодом площадки. Живая проверка 2026-09-03: адрес владельца — 400 INVITE_ONLY_EMPLOYEE, любой другой адрес на тот же курс — 200 с passwordSetupLink."
     test: components/controller/tests/unit/edubridge/connectors.test.ts
     status: passing
-
+  - id: edu.access.happy.10
+    level: backend
+    kind: happy
+    scenario: Пайщик подал заявление о выходе из кооператива.
+    expect: Подписки его обучающихся закрываются с расчётом возврата по Положению; возврат ложится на кошелёк программы.
+    test: ~
+    status: missing
+  - id: edu.access.break.05
+    level: backend
+    kind: break
+    scenario: Выход преподавателя с действующим назначением либо незакрытым расчётом по занятиям.
+    expect: Ядро получает от расширения причину отказа и не принимает заявление о выходе.
+    test: components/controller/tests/unit/edubridge/exit-blockers.test.ts
+    status: passing

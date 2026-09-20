@@ -3,6 +3,9 @@
   PageHint.q-mb-md(storage-key="edu:member-subscriptions:banner-dismissed")
     | Подписка открывается в каталоге: выберите курс и нажмите «Получить доступ». Членский взнос вносится
     | из паевого по заявлению о конвертации, доступ на площадке выдаётся автоматически. Здесь — что оплачено и до какого числа.
+    | Взнос, возвращённый при отмене, остаётся на кошельке программы и зачитывается при следующей подписке.
+    | Забрать его деньгами можно при выходе из кооператива —
+    |#[a.edu-subscriptions__link(href="#" @click.prevent="goToPrograms") в разделе «Участие в программах»].
 
   BaseCard(variant="default" title="Мои подписки")
     BaseTable(v-if="loading || enrollments.length" :columns="columns" :rows="enrollments" row-key="id" :loading="firstLoad" min-width="820px")
@@ -81,7 +84,13 @@ import { SubscribeDialog } from '../../features/Subscribe';
  * существующей: тот же диалог с закреплённым курсом.
  */
 const route = useRoute();
+
 const router = useRouter();
+/** Путь к деньгам: остатки кошельков программ возвращаются при выходе из кооператива. */
+function goToPrograms(): void {
+  void router.push({ name: 'user-programs', params: { coopname: route.params.coopname } });
+}
+
 
 const learners = ref<ILearner[]>([]);
 const enrollments = ref<IEnrollment[]>([]);
@@ -185,3 +194,10 @@ function onSubscribed(e: IEnrollment): void {
 
 onMounted(load);
 </script>
+
+<style scoped>
+.edu-subscriptions__link {
+  color: var(--p-primary);
+  cursor: pointer;
+}
+</style>

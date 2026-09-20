@@ -302,6 +302,29 @@ export class EdubridgeEnrollmentService {
     return cancelled;
   }
 
+  /**
+   * Выход пайщика из кооператива: его подписки закрываются с расчётом возврата
+   * по Положению — так же, как при отказе участника. Возврат ложится на
+   * кошелёк программы и входит в сумму, которую кооператив вернёт при выходе
+   * (решение владельца 20.09.2026). Ошибка по одной подписке выход не
+   * останавливает: остальные всё равно закрываются.
+   */
+  async cancelAllForMember(coopname: string, member: string, reason: string): Promise<EdubridgeEnrollmentEntity[]> {
+    const active = (await this.enrollments.findByMember(coopname, member)).filter((e) => isCancellable(e));
+    const cancelled: EdubridgeEnrollmentEntity[] = [];
+    for (const enrollment of active) {
+      try {
+        cancelled.push(await this.cancelOne(coopname, enrollment, false));
+      } catch (e) {
+        this.logger.warn(`[EDU.SUB] выход ${member} (${reason}): подписка ${enrollment.id} не закрыта — ${(e as Error)?.message ?? e}`);
+      }
+    }
+    if (cancelled.length) {
+      this.logger.info(`[EDU.SUB] выход ${member} (${reason}): закрыто подписок ${cancelled.length}`);
+    }
+    return cancelled;
+  }
+
   /** Общая часть отмены: расчёт по Положению, движение в цепи, закрытие записи. */
   private async cancelOne(coopname: string, enrollment: EdubridgeEnrollmentEntity, underfilled: boolean): Promise<EdubridgeEnrollmentEntity> {
     if (!isCancellable(enrollment)) throw new BadRequestException('Подписка уже отменена или закрыта');

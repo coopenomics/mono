@@ -2,17 +2,20 @@ import { Inject, Injectable } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import { RegistratorContract } from 'cooptypes';
 import { LOGGER_PORT, type ILoggerPort, type InnerChainActionRecord } from '@coopenomics/innercoop';
-import { EdubridgeExpiryWorker } from '../workers/edubridge-expiry.worker';
+import { EdubridgeEnrollmentService } from '../services/edubridge-enrollment.service';
 
 /**
  * Выход пайщика из кооператива (`registrator::exitcoop` — заявление подано):
- * подписки его обучающихся закрываются, доступ отзывается. Отзыв по заявлению,
- * а не по финальному расчёту: членство кончается с выходом, а не с возвратом.
+ * подписки его обучающихся закрываются с расчётом возврата по Положению, как
+ * при отказе участника, и доступ отзывается. Возврат ложится на кошелёк
+ * программы и входит в сумму выхода, которую кооператив вернёт после решения
+ * совета. Закрываем по заявлению, а не по финальному расчёту: членство
+ * кончается с выходом, а не с возвратом денег.
  */
 @Injectable()
 export class EdubridgeMembershipExitListener {
   constructor(
-    private readonly expiry: EdubridgeExpiryWorker,
+    private readonly enrollments: EdubridgeEnrollmentService,
     @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
   ) {
     this.logger.setContext(EdubridgeMembershipExitListener.name);
@@ -22,6 +25,6 @@ export class EdubridgeMembershipExitListener {
   async onExit(action: InnerChainActionRecord): Promise<void> {
     const data = action.data as RegistratorContract.Actions.ExitCoop.IExitCoop & { username?: string };
     if (!data?.coopname || !data?.username) return;
-    await this.expiry.revokeAllForMember(String(data.coopname), String(data.username), `exitcoop ${action.transaction_id}`);
+    await this.enrollments.cancelAllForMember(String(data.coopname), String(data.username), `exitcoop ${action.transaction_id}`);
   }
 }
