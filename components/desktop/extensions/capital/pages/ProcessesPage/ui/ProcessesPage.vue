@@ -273,7 +273,7 @@ async function activateTemplate() {
 
 async function deleteTemplate() {
   if (!selectedTemplate.value) return
-  if (!(await confirm({ title: 'Удалить процесс?', message: `Описание процесса «${selectedTemplate.value.name}» будет удалено.`, confirmLabel: 'Удалить', danger: true }))) return
+  if (!(await confirm({ title: 'Удалить процесс?', message: `Описание процесса «${selectedTemplate.value.title}» будет удалено.`, confirmLabel: 'Удалить', danger: true }))) return
   try {
     await processApi.deleteProcessTemplate(selectedTemplate.value.id)
     templates.value = templates.value.filter(t => t.id !== selectedTemplate.value?.id)
