@@ -16,7 +16,7 @@
 #   • cpp/capital/capital.hpp                                            — actions
 #   • cpp/capital/app/generation/create_commit/{createcmmt,approvecmmt,declinecmmt}.cpp — коммит
 #   • cpp/capital/app/result_submission/push_result/{pushrslt,approverslt,authrslt,declrslt,signact1,signact2,convertsegm}.cpp — приём + конвертация
-#   • cpp/lib/core/ledger2/operations.hpp                                 — o.cap.commit/accept/repay/cnvshr/cnvbl
+#   • cpp/lib/core/ledger2/operations.hpp                                 — o.cap.commit/accept/ridshr/repay/cnvshr/cnvbl
 # ─────────────────────────────────────────────────────────────────────────────
 
 # ── Секция 1. Паспорт ───────────────────────────────────────────────────────
@@ -283,6 +283,7 @@ transitions:
     ledger_code: o.cap.accept
     operations:
       - o.cap.accept
+      - o.cap.ridshr
       - o.cap.repay
     guards:
       - Акт-2 подписан председателем (registry_id=1042).
@@ -494,15 +495,17 @@ operations:
     human_name: Коммит РИД по программе «Благорост»
     wallet_op: ISSUE
     wallet_from: ''
-    wallet_to: w.cap.gen           # паевой фонд участника по программе «Благорост»
+    wallet_to: w.cap.gen           # кошелёк участника по программе «Генератор»
     debit: 8                   # Вложения во внеоборотные активы
-    credit: 80                 # Паевой фонд (складочный капитал)
+    credit: 76                 # Расчёты с разными дебиторами и кредиторами
     amount_ref: commit.delta_amount
     triggered_by: capital::approvecmmt
     description: >
-      Зачисление РИД в паевой фонд участника при одобрении мастером.
-      РИД учитывается как вложение во внеоборотные активы кооператива
-      и формирует паевой фонд.
+      Приём одобренного мастером коммита на ответственное хранение. Результат
+      передан кооперативу как объект и учитывается вложением во внеоборотные
+      активы, а на его стоимость возникает обязательство кооператива перед
+      участником — владельцем коммита. Паевым взносом результат становится
+      позже — по заявлению участника, решению совета и акту-2 (o.cap.ridshr).
 
   - ledger_code: o.cap.accept
     human_name: Приём РИД в паевой фонд
@@ -517,6 +520,21 @@ operations:
       Приём РИД в нематериальные активы кооператива на полную стоимость
       результата. Накопленный паевой взнос участника при этом остаётся
       неразделённым — до финального распределения.
+
+  - ledger_code: o.cap.ridshr
+    human_name: Паевой взнос результатом интеллектуальной деятельности по программе «Благорост»
+    wallet_op: NONE
+    wallet_from: ''                # кошелёк переносит конвертация сегмента
+    wallet_to: ''
+    debit: 76                  # Расчёты с разными дебиторами и кредиторами
+    credit: 80                 # Паевой фонд (складочный капитал)
+    amount_ref: segment.available_for_program
+    triggered_by: capital::signact2
+    description: >
+      Признание паевого взноса участника по принятому результату. Обязательство,
+      возникшее при приёме коммита на ответственное хранение, гасится ростом
+      паевого фонда на ту же сумму. Кошелёк переносится отдельным шагом —
+      конвертацией сегмента.
 
   - ledger_code: o.cap.repay
     human_name: Возврат беспроцентного займа пайщика по акту-2

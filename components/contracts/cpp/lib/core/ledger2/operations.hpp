@@ -77,8 +77,9 @@ namespace operations {
   namespace capital {
     inline constexpr eosio::name IMPORT              = "o.cap.import"_n;   ///< Оффлайн-импорт пайщика Благорост (Dr 04 / Cr 80, ISSUE BLAGOROST_FUND). Только РИД-имущество — деньги через INVEST.
     inline constexpr eosio::name INVEST              = "o.cap.invest"_n;   ///< Инвестиция в ЦПП Благорост (TRANSFER SHARE_FUND_PAY → BLAGOROST_FUND, без Dr/Cr).
-    inline constexpr eosio::name COMMIT_RID          = "o.cap.commit"_n;   ///< Коммит РИД (Dr 08 / Cr 80, ISSUE GENERATOR_FUND).
+    inline constexpr eosio::name COMMIT_RID          = "o.cap.commit"_n;   ///< Коммит РИД на ответственное хранение (Dr 08 / Cr 76, ISSUE GENERATOR_FUND). Одобренный мастером коммит — переданный кооперативу объект, паевым взносом он становится по заявлению пайщика и решению совета, поэтому источник актива — обязательство перед пайщиком-владельцем коммита на 76.
     inline constexpr eosio::name ACCEPT_RID          = "o.cap.accept"_n;   ///< Приём РИД в НМА (Dr 04 / Cr 08, NONE — только бухпроводка, кошелёк остаётся на GENERATOR_FUND до конвертации сегмента).
+    inline constexpr eosio::name SETTLE_RID          = "o.cap.ridshr"_n;   ///< Признание паевого взноса пайщика по принятому РИД (Dr 76 / Cr 80, NONE — кошелёк переносит convertsegm). Вторая нога акта-2: обязательство перед пайщиком гасится паевым фондом.
     inline constexpr eosio::name ACCEPT_PROPERTY     = "o.cap.actprp"_n;   ///< Акт-2 имущественный паевой взнос (Dr 04 / Cr 80, ISSUE BLAGOROST_FUND).
     inline constexpr eosio::name PREIMP              = "o.cap.preimp"_n;   ///< Первичный учёт РИД-взноса до перехода на электронный учёт (Dr 04 / Cr 80, ISSUE PREIMP_FUND).
     inline constexpr eosio::name DROP_PREIMP         = "o.cap.drppre"_n;   ///< Закрытие пред-импорт-учёта при переходе на электронный учёт (Dr 80 / Cr 04, BURN PREIMP_FUND). Вызывается из capital::importcontr перед o.cap.import.
@@ -130,7 +131,10 @@ namespace operations {
     inline constexpr eosio::name EXPENSE_REPORT        = "o.edu.exprpt"_n; ///< Закрытие подотчёта по расходу программы отчётом с чеками (BURN с w.exp.adv, без Dr/Cr — проводка сделана при выдаче аванса). Роль `report` в наборе шасси расходов программы.
     inline constexpr eosio::name EXPENSE_RETURN        = "o.edu.expret"_n; ///< Возврат неиспользованного аванса в пул расходов программы (TRANSFER w.exp.adv → w.edu.expns, Dr 51 / Cr 86 — деньги вернулись на расчётный счёт). Роль `refund` в наборе шасси расходов программы.
     inline constexpr eosio::name EXPENSE_OVERSPEND     = "o.edu.expovr"_n; ///< Доплата сверх выданного аванса по расходу программы (TRANSFER w.edu.expns → w.exp.adv, Dr 86 / Cr 51). Роль `overspend` в наборе шасси расходов программы.
-    inline constexpr eosio::name ACCEPT_EDU_RID        = "o.edu.rid"_n;   ///< Приём результата интеллектуальной деятельности преподавателя в паевой фонд по решению совета и акту (ISSUE → w.wal.share, Dr 04 / Cr 80). Эталон — o.cap.import; возврат — штатным createwthd.
+    inline constexpr eosio::name HOLD_EDU_RID          = "o.edu.hold"_n;  ///< Приём материалов занятия на ответственное хранение (ISSUE → w.edu.hold, Dr 08 / Cr 76). Материалы переданы кооперативу как объект и весь гарантийный срок курса числятся за преподавателем: актив лежит на 08, источник — обязательство перед ним на 76. Эталон — o.cap.commit «Благороста», где коммит встаёт на 08; отличие в кредите: паевой фонд признаётся по истечении срока, поэтому 76 вместо 80.
+    inline constexpr eosio::name ACCEPT_EDU_RID        = "o.edu.rid"_n;   ///< Приём результата интеллектуальной деятельности преподавателя в состав нематериальных активов по решению совета и акту (без кошельков, Dr 04 / Cr 08). Зеркало o.cap.accept: хранение на 08 закрывается, РИД встаёт на 04. Вторая нога приёма — o.edu.ridshr.
+    inline constexpr eosio::name SETTLE_EDU_RID        = "o.edu.ridshr"_n; ///< Зачисление паевого взноса преподавателю по принятому РИД (TRANSFER w.edu.hold → w.wal.share, Dr 76 / Cr 80). Обязательство перед преподавателем гасится признанием паевого фонда; средства ложатся в главный паевой кошелёк как право требования, возврат — штатным createwthd.
+    inline constexpr eosio::name RELEASE_EDU_RID       = "o.edu.retrid"_n; ///< Снятие материалов с ответственного хранения при рекламации и отказе совета (BURN с w.edu.hold, Dr 76 / Cr 08). Обязательство и актив закрываются встречно, материалы возвращаются преподавателю, паевой фонд остаётся нетронутым.
   }
 
   // branch — экономика кооперативного участка (requirement b6).
@@ -336,9 +340,17 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
     0, 0,
     "Инвестиция в ЦПП «Благорост»" },
 
-  // 7. Коммит РИД: Dr 08 / Cr 80, ISSUE GENERATOR_FUND (ADR-009: единый кошелёк программы Генератор)
+  // 7. Коммит РИД на ответственное хранение: Dr 08 / Cr 76, ISSUE GENERATOR_FUND
+  // (ADR-009: единый кошелёк программы Генератор).
+  //
+  // Пересмотр 2026-09-20 (решение владельца): прежняя проводка кредитовала
+  // паевой фонд (Cr 80) прямо на одобрении коммита мастером. Паевым взносом
+  // результат становится по заявлению пайщика и решению совета, а до того он
+  // остаётся переданным на хранение объектом, поэтому кредит идёт на 76 —
+  // обязательство кооператива перед пайщиком. Паевой фонд признаётся на акте-2
+  // (o.cap.ridshr, Dr 76 / Cr 80) — той же схемой, что и в ЦПП «Образование».
   { operations::capital::COMMIT_RID, processes::capital::RID, WalletOp::ISSUE, eosio::name{}, ledger2_wallets::GENERATOR_FUND,
-    ledger2_accounts::NON_CURRENT_INVESTMENTS, ledger2_accounts::SHARE_FUND,
+    ledger2_accounts::NON_CURRENT_INVESTMENTS, ledger2_accounts::OTHER_SETTLEMENTS,
     "Коммит результата интеллектуальной деятельности по программе «Генератор»" },
 
   // 8. Приём РИД в НМА: Dr 04 / Cr 08, NONE — кошелёк остаётся на GENERATOR_FUND.
@@ -349,6 +361,16 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
     eosio::name{}, eosio::name{},
     ledger2_accounts::INTANGIBLE_ASSETS, ledger2_accounts::NON_CURRENT_INVESTMENTS,
     "Приём результата интеллектуальной деятельности в паевой фонд" },
+
+  // 8². Признание паевого взноса пайщика по принятому РИД: Dr 76 / Cr 80, NONE —
+  // кошелёк остаётся на GENERATOR_FUND до convertsegm. Вторая нога акта-2:
+  // обязательство перед пайщиком, возникшее на коммите, гасится паевым фондом.
+  // Инвариант программы: Σ COMMIT_RID (Cr 76) == Σ SETTLE_RID (Dr 76), то есть
+  // 76 по программе «Генератор» закрывается в ноль, как и 08.
+  { operations::capital::SETTLE_RID, processes::capital::RID, WalletOp::NONE,
+    eosio::name{}, eosio::name{},
+    ledger2_accounts::OTHER_SETTLEMENTS, ledger2_accounts::SHARE_FUND,
+    "Паевой взнос результатом интеллектуальной деятельности по программе «Генератор»" },
 
   // 9. Акт-2 имущественный паевой взнос: Dr 04 / Cr 80, ISSUE BLAGOROST_FUND (ADR-009).
   // Имущественный (РИД) — Dr 04 (НМА), не Dr 51 (банк). Денежный паевой —
@@ -621,14 +643,44 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
     ledger2_accounts::TARGET_RECEIPTS, ledger2_accounts::BANK_ACCOUNT,
     "Доплата сверх аванса по расходу ЦПП «Образование»" },
 
-  // 12f. p.edu.rid: Приём РИД преподавателя в паевой фонд (ISSUE → w.wal.share,
-  //      Dr 04 / Cr 80). Эталон — o.cap.import (РИД как НМА, поэтому Dr 04).
-  //      Средства ложатся в главный паевой кошелёк преподавателя как право
-  //      требования; возврат — штатным механизмом платформы (createwthd).
-  { operations::edubridge::ACCEPT_EDU_RID, processes::edubridge::RID, WalletOp::ISSUE,
-    eosio::name{}, ledger2_wallets::SHARE_FUND_PAY,
-    ledger2_accounts::INTANGIBLE_ASSETS, ledger2_accounts::SHARE_FUND,
-    "Приём результата интеллектуальной деятельности преподавателя в паевой фонд" },
+  // 12f. p.edu.rid: Приём материалов занятия на ответственное хранение
+  //      (ISSUE → w.edu.hold, Dr 08 / Cr 76). Преподаватель передал кооперативу
+  //      материалы занятия и подписал акт хранения; весь гарантийный срок курса
+  //      они числятся за ним. Эталон — o.cap.commit «Благороста» (актив на 08),
+  //      с одним отличием: паевой фонд признаётся по истечении срока, поэтому
+  //      кредит идёт на 76 — обязательство кооператива перед преподавателем.
+  { operations::edubridge::HOLD_EDU_RID, processes::edubridge::RID, WalletOp::ISSUE,
+    eosio::name{}, ledger2_wallets::EDU_RID_HOLD,
+    ledger2_accounts::NON_CURRENT_INVESTMENTS, ledger2_accounts::OTHER_SETTLEMENTS,
+    "Приём материалов занятия на ответственное хранение по ЦПП «Образование»" },
+
+  // 12f². p.edu.rid: Приём РИД преподавателя в состав нематериальных активов
+  //      (без кошельков, Dr 04 / Cr 08). Зеркало o.cap.accept: гарантийный срок
+  //      истёк, совет принял решение, акт подписан — хранение на 08 закрывается,
+  //      результат встаёт на 04. Кошельки двигает вторая нога — o.edu.ridshr.
+  { operations::edubridge::ACCEPT_EDU_RID, processes::edubridge::RID, WalletOp::NONE,
+    eosio::name{}, eosio::name{},
+    ledger2_accounts::INTANGIBLE_ASSETS, ledger2_accounts::NON_CURRENT_INVESTMENTS,
+    "Приём результата интеллектуальной деятельности преподавателя в состав нематериальных активов" },
+
+  // 12f³. p.edu.rid: Зачисление паевого взноса преподавателю по принятому РИД
+  //      (TRANSFER w.edu.hold → w.wal.share, Dr 76 / Cr 80). Обязательство
+  //      перед преподавателем гасится признанием паевого фонда; средства
+  //      ложатся в главный паевой кошелёк как право требования, возврат идёт
+  //      штатным механизмом платформы (createwthd).
+  { operations::edubridge::SETTLE_EDU_RID, processes::edubridge::RID, WalletOp::TRANSFER,
+    ledger2_wallets::EDU_RID_HOLD, ledger2_wallets::SHARE_FUND_PAY,
+    ledger2_accounts::OTHER_SETTLEMENTS, ledger2_accounts::SHARE_FUND,
+    "Паевой взнос преподавателя результатом интеллектуальной деятельности" },
+
+  // 12f⁴. p.edu.rid: Снятие материалов с ответственного хранения при рекламации
+  //      и отказе совета (BURN с w.edu.hold, Dr 76 / Cr 08). Обязательство и
+  //      актив закрываются встречно, материалы возвращаются преподавателю,
+  //      паевой фонд остаётся нетронутым — сторно не требуется.
+  { operations::edubridge::RELEASE_EDU_RID, processes::edubridge::RID, WalletOp::BURN,
+    ledger2_wallets::EDU_RID_HOLD, eosio::name{},
+    ledger2_accounts::OTHER_SETTLEMENTS, ledger2_accounts::NON_CURRENT_INVESTMENTS,
+    "Снятие материалов занятия с ответственного хранения" },
 
   // 13a. p.brn.fees: Зачисление 100% членского взноса в общий кошелёк КУ
   //      (TRANSFER w.mkt.fee → w.brn.common, без Dr/Cr — внутри 86; username = braname).

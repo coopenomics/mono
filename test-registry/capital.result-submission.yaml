@@ -42,8 +42,9 @@ cases:
       акт-1, председатель — акт-2, участник конвертирует сегмент.
     expect: >
       Статусы результата authorized → act1 → act2, сегмент authorized → act1 →
-      contributed; применены o.cap.accept и (o.cap.cnvshr + o.cap.cnvbl);
-      сегмент и результат удалены.
+      contributed; применены o.cap.accept (Дт 04 / Кт 08), o.cap.ridshr
+      (Дт 76 / Кт 80) и (o.cap.cnvshr + o.cap.cnvbl); сегмент и результат
+      удалены.
     test: ~
     status: missing
 
@@ -99,7 +100,21 @@ cases:
     level: contract
     kind: side
     scenario: signact2 при segment.available_for_program == 0
-    expect: ACCEPT_RID не применяется, статусы всё равно переходят в act2/contributed
+    expect: ACCEPT_RID и SETTLE_RID не применяются, статусы всё равно переходят в act2/contributed
+    test: ~
+    status: missing
+
+  - id: cap.rid.happy.04
+    level: contract
+    kind: happy
+    scenario: >
+      Одобрение коммита мастером и приём результата по акту-2: коммит идёт на
+      ответственное хранение, акт-2 признаёт паевой взнос пайщика.
+    expect: >
+      approvecmmt применяет o.cap.commit (Дт 08 / Кт 76) — обязательство перед
+      владельцем коммита; signact2 применяет o.cap.accept (Дт 04 / Кт 08) и
+      o.cap.ridshr (Дт 76 / Кт 80) на ту же сумму, так что счета 08 и 76 по
+      программе закрываются в ноль.
     test: ~
     status: missing
 

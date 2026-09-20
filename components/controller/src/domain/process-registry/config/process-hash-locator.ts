@@ -120,7 +120,7 @@ export const PROCESS_HASH_LOCATOR: Readonly<Record<string, HashLocation[]>> = Ob
   // и o.cap.repay (при возврате через акт-2).
   'p.cap.debt': [{ code: 'capital', table: 'debts', field: 'debt_hash' }],
 
-  // p.cap.commit — backend-only: одобрение коммита мастером (Dr 08 / Cr 80).
+  // p.cap.commit — backend-only: одобрение коммита мастером (Dr 08 / Cr 76).
   // `o.cap.commit` эмитится на каждом `capital::approvecmmt`. process_hash =
   // project_hash (commit-entity удаляется сразу после одобрения, project —
   // долгоживущий якорь; все коммиты проекта группируются в один процесс).

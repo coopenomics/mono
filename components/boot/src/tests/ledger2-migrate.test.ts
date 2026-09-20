@@ -16,7 +16,7 @@ import { LedgerAccountType } from './wallet/walletUtils'
 //   TRANSIT_BLAGOROST  → Dr 51 / Cr 80, ISSUE BLAGOROST_FUND (w.cap.blago)
 //   TRANSIT_SHARE      → Dr 51 / Cr 80, ISSUE SHARE_FUND_PAY   (w.wal.share)
 //   TRANSIT_ENTRY      → Dr 51 / Cr 86, ISSUE ENTRANCE_FEES    (w.reg.entry)
-//   TRANSIT_COMMITMENT → Dr 08 / Cr 80, ISSUE GENERATOR_FUND (w.cap.gen)
+//   TRANSIT_COMMITMENT → Dr 08 / Cr 76, ISSUE GENERATOR_FUND (w.cap.gen)
 //
 // План счетов: 04, 08, 51, 58, 80, 86 (99 удалён как лишний транзит).
 // РИД-перенос (w.wal.sharid + o.mig.rid) удалён в Story 1.1: legacy 80 без РИД-части (ADR-009).

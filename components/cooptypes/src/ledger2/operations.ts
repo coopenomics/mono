@@ -98,9 +98,15 @@ export const LEDGER2_OPERATION_REGISTRY: readonly OperationMeta[] = [
 
   { code: 'o.cap.invest', process_type: 'p.cap.invest', contract: 'capital', name: 'INVEST', wallet_op: 'TRANSFER', wallet_from: 'w.wal.share', wallet_to: 'w.cap.blago', debit: null, credit: null, human_name: 'Инвестиция в ЦПП «Благорост»' },
 
-  { code: 'o.cap.commit', process_type: 'p.cap.rid', contract: 'capital', name: 'COMMIT_RID', wallet_op: 'ISSUE', wallet_from: null, wallet_to: 'w.cap.gen', debit: 8, credit: 80, human_name: 'Коммит РИД по программе «Генератор»' },
+  // Коммит принимается на ответственное хранение (Дт 08 / Кт 76): паевым
+  // взносом результат становится по заявлению пайщика и решению совета, и
+  // тогда обязательство перед владельцем коммита гасится паевым фондом
+  // (o.cap.ridshr).
+  { code: 'o.cap.commit', process_type: 'p.cap.rid', contract: 'capital', name: 'COMMIT_RID', wallet_op: 'ISSUE', wallet_from: null, wallet_to: 'w.cap.gen', debit: 8, credit: 76, human_name: 'Коммит РИД по программе «Генератор»' },
 
   { code: 'o.cap.accept', process_type: 'p.cap.rid', contract: 'capital', name: 'ACCEPT_RID', wallet_op: 'NONE', wallet_from: null, wallet_to: null, debit: 4, credit: 8, human_name: 'Приём РИД в паевой фонд' },
+
+  { code: 'o.cap.ridshr', process_type: 'p.cap.rid', contract: 'capital', name: 'SETTLE_RID', wallet_op: 'NONE', wallet_from: null, wallet_to: null, debit: 76, credit: 80, human_name: 'Паевой взнос пайщика результатом интеллектуальной деятельности по программе «Генератор»' },
 
   { code: 'o.cap.actprp', process_type: 'p.cap.prop', contract: 'capital', name: 'ACCEPT_PROPERTY', wallet_op: 'ISSUE', wallet_from: null, wallet_to: 'w.cap.blago', debit: 4, credit: 80, human_name: 'Паевой взнос (имущественный) по программе «Благорост»' },
 
@@ -344,10 +350,28 @@ export const LEDGER2_OPERATION_REGISTRY: readonly OperationMeta[] = [
     debit: 86, credit: 51,
     human_name: 'Доплата сверх аванса по расходу ЦПП «Образование»' },
 
+  // Материалы занятия принимаются на ответственное хранение и числятся за
+  // преподавателем весь гарантийный срок курса; паевым взносом они становятся
+  // по заявлению и решению совета, рекламация закрывает хранение возвратом.
+  { code: 'o.edu.hold',    process_type: 'p.edu.rid',     contract: 'edubridge',
+    name: 'HOLD_EDU_RID', wallet_op: 'ISSUE', wallet_from: null, wallet_to: 'w.edu.hold',
+    debit: 8, credit: 76,
+    human_name: 'Приём материалов занятия на ответственное хранение по ЦПП «Образование»' },
+
   { code: 'o.edu.rid',     process_type: 'p.edu.rid',     contract: 'edubridge',
-    name: 'ACCEPT_EDU_RID', wallet_op: 'ISSUE', wallet_from: null, wallet_to: 'w.wal.share',
-    debit: 4, credit: 80,
-    human_name: 'Приём результата интеллектуальной деятельности преподавателя в паевой фонд' },
+    name: 'ACCEPT_EDU_RID', wallet_op: 'NONE', wallet_from: null, wallet_to: null,
+    debit: 4, credit: 8,
+    human_name: 'Приём результата интеллектуальной деятельности преподавателя в состав нематериальных активов' },
+
+  { code: 'o.edu.ridshr',  process_type: 'p.edu.rid',     contract: 'edubridge',
+    name: 'SETTLE_EDU_RID', wallet_op: 'TRANSFER', wallet_from: 'w.edu.hold', wallet_to: 'w.wal.share',
+    debit: 76, credit: 80,
+    human_name: 'Паевой взнос преподавателя результатом интеллектуальной деятельности' },
+
+  { code: 'o.edu.retrid',  process_type: 'p.edu.rid',     contract: 'edubridge',
+    name: 'RELEASE_EDU_RID', wallet_op: 'BURN', wallet_from: 'w.edu.hold', wallet_to: null,
+    debit: 76, credit: 8,
+    human_name: 'Снятие материалов занятия с ответственного хранения' },
 
   // branch — экономика кооперативного участка (requirement b6)
   { code: 'o.brn.common',  process_type: 'p.brn.fees',    contract: 'branch',

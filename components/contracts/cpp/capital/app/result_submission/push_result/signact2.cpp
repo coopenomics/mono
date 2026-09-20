@@ -51,7 +51,7 @@ void capital::signact2(eosio::name coopname, eosio::name chairman, checksum256 r
   // Приём результата интеллектуальной деятельности (РИД) в паевой фонд.
   // Схема ревью 2026-04-20 (Ангелина Matrix 2026-04-19): две раздельные проводки
   // в разных action'ах по фазам жизненного цикла РИД.
-  //   1) COMMIT_RID (Dr 08 / Cr 80) — в `approvecmmt` на каждом одобрении
+  //   1) COMMIT_RID (Dr 08 / Cr 76) — в `approvecmmt` на каждом одобрении
   //      мастером конкретного коммита, на полный `commit.amounts.total_contribution`.
   //   2) ACCEPT_RID (Dr 04 / Cr 08) — здесь, на полный накопленный
   //      `segment.available_for_program`. «Переносим с 08 на 04 когда РИД
@@ -62,8 +62,15 @@ void capital::signact2(eosio::name coopname, eosio::name chairman, checksum256 r
   // сегментов программы. На уровне отдельного сегмента инвариант НЕ выполняется
   // (CRPS перераспределяет доли между сегментами без compensating TRANSFER) —
   // именно поэтому L3-разрез по пайщику снят (см. wallets.hpp:103).
+  //   3) SETTLE_RID (Dr 76 / Cr 80) — здесь же, на ту же сумму: обязательство
+  //      перед пайщиком, возникшее на коммите, гасится признанием паевого
+  //      фонда. Пересмотр 2026-09-20 (решение владельца): коммит перестал
+  //      кредитовать 80 напрямую, потому что паевым взносом результат
+  //      становится по заявлению пайщика и решению совета, а до того лежит
+  //      на ответственном хранении.
   if (segment.available_for_program.amount > 0) {
     Ledger2::apply(_capital, coopname, operations::capital::ACCEPT_RID, processes::capital::RID, segment.available_for_program, result -> username, result_hash, memo);
+    Ledger2::apply(_capital, coopname, operations::capital::SETTLE_RID, processes::capital::RID, segment.available_for_program, result -> username, result_hash, memo);
   }
 
   // Возврат беспроцентного займа пайщика: Dr 80 / Cr 58, TRANSFER LOAN_ISSUED → SHARE_FUND_PAY.
