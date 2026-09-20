@@ -5942,11 +5942,13 @@ export const ReturnTypes: Record<string,any> = {
 		base_amount:"String",
 		discount_amount:"String",
 		enough:"Boolean",
+		from_program:"String",
 		is_extension:"Boolean",
 		months:"Int",
 		paid_until:"DateTime",
 		shortfall:"String",
-		sub_hash:"String"
+		sub_hash:"String",
+		to_convert:"String"
 	},
 	EduRefundPreview:{
 		lessons_paid:"Int",

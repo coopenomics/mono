@@ -58,6 +58,12 @@ export class Factory extends DocFactory<EducationConvertStatement.Action> {
       sub_hash: data.sub_hash,
       // В документ сумма идёт человеку, а не цепи: «1000.0000 RUB» → «1000.00 RUB».
       amount: this.formatAsset(data.amount),
+      from_program: this.formatAsset(data.from_program ?? '0.0000 RUB'),
+      total: this.formatAsset(data.total ?? data.amount),
+      // Остаток кошелька программы засчитывается первым, с паевого идёт лишь
+      // недостача — заявление называет обе части.
+      from_program_used: parseFloat(String(data.from_program ?? '0')) > 0,
+      convert_used: parseFloat(String(data.amount ?? '0')) > 0,
       course_title: data.course_title,
       period: data.period,
       period_human,

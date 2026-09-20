@@ -23,11 +23,15 @@ export const Schema: JSONSchemaType<Model> = {
     program: CommonProgramSchema,
     sub_hash: { type: 'string' },
     amount: { type: 'string' },
+    from_program: { type: 'string' },
+    total: { type: 'string' },
+    from_program_used: { type: 'boolean' },
+    convert_used: { type: 'boolean' },
     course_title: { type: 'string' },
     period: { type: 'string' },
     period_human: { type: 'string' },
   },
-  required: ['meta', 'coop', 'vars', 'user', 'program', 'sub_hash', 'amount', 'course_title', 'period', 'period_human'],
+  required: ['meta', 'coop', 'vars', 'user', 'program', 'sub_hash', 'amount', 'from_program', 'total', 'from_program_used', 'convert_used', 'course_title', 'period', 'period_human'],
   additionalProperties: true,
 }
 

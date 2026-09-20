@@ -95,6 +95,12 @@ export class EduQuoteDTO {
   @Field(() => String, { description: 'Скидка за взнос разом; при помесячном взносе — ноль' })
   discount_amount!: string;
 
+  @Field(() => String, { description: 'Сколько зачтётся с кошелька членских взносов программы' })
+  from_program!: string;
+
+  @Field(() => String, { description: 'Сколько конвертируется с главного паевого — недостающая часть' })
+  to_convert!: string;
+
   @Field(() => String, { description: 'Доступно паевого в главном кошельке' })
   available!: string;
 

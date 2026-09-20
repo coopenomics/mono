@@ -20,7 +20,7 @@ const course = {
   starts_at: null,
 } as any;
 
-function make(opts: { existing?: any; available?: string; course?: any } = {}) {
+function make(opts: { existing?: any; available?: string; program?: string; course?: any } = {}) {
   const saved: any[] = [];
   const enrollments = {
     findByPair: jest.fn(async () => opts.existing ?? null),
@@ -36,7 +36,12 @@ function make(opts: { existing?: any; available?: string; course?: any } = {}) {
     cancelSubscription: jest.fn(async () => ({ transaction_id: 'TRX2' })),
   } as any;
   const documents = { generate: jest.fn(async () => ({ hash: 'ABC', html: '', full_title: '', binary: '', meta: {} })) } as any;
-  const wallets = { findByWalletAndUsername: jest.fn(async () => ({ available: opts.available ?? '5000.0000 RUB' })) } as any;
+  // Кошелёк программы и главный паевой: взнос берётся сначала с программы.
+  const wallets = {
+    findByWalletAndUsername: jest.fn(async (_coopname: string, wallet: string) => ({
+      available: wallet === 'w.edu.member' ? (opts.program ?? '0.0000 RUB') : (opts.available ?? '5000.0000 RUB'),
+    })),
+  } as any;
   const events = { emit: jest.fn() } as any;
   const service = new EdubridgeEnrollmentService(enrollments, courses, learnerService, chain, documents, wallets, logger, events);
   return { service, enrollments, chain, events, documents, saved };
@@ -53,6 +58,8 @@ describe('EdubridgeEnrollmentService', () => {
     expect(q.shortfall).toBe('500.0000 RUB');
     expect(q.months).toBe(1);
     expect(q.discount_amount).toBe('0.0000 RUB');
+    expect(q.from_program).toBe('0.0000 RUB');
+    expect(q.to_convert).toBe('1000.0000 RUB');
     expect(q.is_extension).toBe(false);
     expect(q.sub_hash).toBe(EdubridgeEnrollmentService.subHash('voskhod', '7', '3'));
   });
@@ -142,6 +149,41 @@ describe('EdubridgeEnrollmentService', () => {
   it('взнос за год больше не оформляется', async () => {
     const { service } = make();
     await expect(service.quote('voskhod', 'ant', 'L1', 'C1', EduEnrollmentPeriod.YEAR)).rejects.toThrow(/за год больше не принимается/);
+  });
+
+  it('остаток кошелька программы покрывает взнос целиком: конвертации нет', async () => {
+    const { service, chain } = make({ program: '5000.0000 RUB', available: '0.0000 RUB' });
+    const q = await service.quote('voskhod', 'ant', 'L1', 'C1', EduEnrollmentPeriod.MONTH);
+    expect(q.from_program).toBe('1000.0000 RUB');
+    expect(q.to_convert).toBe('0.0000 RUB');
+    expect(q.enough).toBe(true);
+
+    await service.subscribe('voskhod', 'ant', 'L1', 'C1', EduEnrollmentPeriod.MONTH, doc);
+    const [convert, , charge] = chain.convertAndSubscribe.mock.calls[0];
+    expect(convert).toBeNull();
+    // В фонд программы уходит полная стоимость подписки.
+    expect(charge.amount).toBe('1000.0000 RUB');
+  });
+
+  it('остаток кошелька программы покрывает часть: с паевого конвертируется недостача', async () => {
+    const { service, chain } = make({ program: '400.0000 RUB' });
+    const q = await service.quote('voskhod', 'ant', 'L1', 'C1', EduEnrollmentPeriod.MONTH);
+    expect(q.from_program).toBe('400.0000 RUB');
+    expect(q.to_convert).toBe('600.0000 RUB');
+
+    await service.subscribe('voskhod', 'ant', 'L1', 'C1', EduEnrollmentPeriod.MONTH, doc);
+    const [convert, , charge] = chain.convertAndSubscribe.mock.calls[0];
+    expect(convert.amount).toBe('600.0000 RUB');
+    expect(charge.amount).toBe('1000.0000 RUB');
+  });
+
+  it('заявление о конвертации называет зачёт и конвертацию', async () => {
+    const { service, documents } = make({ program: '400.0000 RUB' });
+    await service.statement('voskhod', 'ant', 'L1', 'C1', EduEnrollmentPeriod.MONTH);
+    const data = documents.generate.mock.calls[0][0].data;
+    expect(data.from_program).toBe('400.0000 RUB');
+    expect(data.amount).toBe('600.0000 RUB');
+    expect(data.total).toBe('1000.0000 RUB');
   });
 
   it('заявление о конвертации — документ 3011 с ключом подписки, суммой, курсом и периодом', async () => {

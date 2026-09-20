@@ -12,8 +12,13 @@ export interface EdubridgeChainPort {
    * сразу при подключении подписки (Положение ЦПП, п. 4.2.2), поэтому три
    * действия проходят вместе либо не проходят вовсе.
    */
+  /**
+   * Подписка одной транзакцией: конвертация (когда есть недостача), открытие
+   * или продление подписки, списание взноса в фонд. `convert` пуст, если взнос
+   * покрыт остатком кошелька программы целиком.
+   */
   convertAndSubscribe(
-    convert: EdubridgeContract.Actions.Convert.IConvert,
+    convert: EdubridgeContract.Actions.Convert.IConvert | null,
     subscribe:
       | { kind: 'open'; data: EdubridgeContract.Actions.Opensub.IOpensub }
       | { kind: 'extend'; data: EdubridgeContract.Actions.Extendsub.IExtendsub },

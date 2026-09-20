@@ -35,6 +35,8 @@ const rawQuoteSelector = {
   months: true,
   base_amount: true,
   discount_amount: true,
+  from_program: true,
+  to_convert: true,
   available: true,
   enough: true,
   shortfall: true,

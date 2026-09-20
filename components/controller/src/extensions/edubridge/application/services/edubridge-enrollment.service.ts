@@ -31,6 +31,8 @@ import { EdubridgeLearnerService } from './edubridge-learner.service';
 
 /** Главный паевой кошелёк — источник конвертации. */
 const SHARE_WALLET = 'w.wal.share';
+/** Кошелёк членских взносов программы — из него взнос списывается в первую очередь. */
+const MEMBER_WALLET = 'w.edu.member';
 const PERIOD_CHAIN: Record<EduEnrollmentPeriod, string> = {
   [EduEnrollmentPeriod.MONTH]: 'month',
   [EduEnrollmentPeriod.COURSE]: 'course',
@@ -47,6 +49,15 @@ interface PeriodTerms {
   /** Скидка за взнос разом; при помесячном взносе — ноль. */
   discountAmount: string;
   amount: string;
+}
+
+/** Чем оплачивается подписка: остатком программы и конвертацией с паевого. */
+interface PlanFunding {
+  fromProgram: string;
+  toConvert: string;
+  available: string;
+  enough: boolean;
+  shortfall: string;
 }
 
 export interface EnrollmentPlan {
@@ -154,34 +165,40 @@ export class EdubridgeEnrollmentService {
 
   async quote(coopname: string, member: string, learnerId: string, courseId: string, period: EduEnrollmentPeriod): Promise<EduQuoteDTO> {
     const plan = await this.plan(coopname, member, learnerId, courseId, period);
-    const available = await this.availableShare(coopname, member, plan.symbol);
-    const need = parseFloat(plan.amount);
-    const have = parseFloat(available);
-    const shortfall = Math.max(0, need - have);
+    const funding = await this.planFunding(coopname, member, plan);
     return {
       amount: plan.amount,
       months: plan.months,
       base_amount: plan.baseAmount,
       discount_amount: plan.discountAmount,
-      available,
-      enough: have >= need,
-      shortfall: `${shortfall.toFixed(4)} ${plan.symbol}`,
+      from_program: funding.fromProgram,
+      to_convert: funding.toConvert,
+      available: funding.available,
+      enough: funding.enough,
+      shortfall: funding.shortfall,
       is_extension: plan.isExtension,
       paid_until: plan.paidUntil,
       sub_hash: plan.subHash,
     };
   }
 
-  /** Заявление о конвертации (3011) без подписи — пайщик подписывает его на фронте. */
+  /**
+   * Заявление о конвертации (3011) без подписи — пайщик подписывает его на
+   * фронте. В заявлении названы обе части: что засчитывается с кошелька
+   * программы и что конвертируется с паевого.
+   */
   async statement(coopname: string, member: string, learnerId: string, courseId: string, period: EduEnrollmentPeriod): Promise<InnerGeneratedDocument> {
     const plan = await this.plan(coopname, member, learnerId, courseId, period);
+    const funding = await this.planFunding(coopname, member, plan);
     const action: Cooperative.Registry.EducationConvertStatement.Action = {
       registry_id: Cooperative.Registry.EducationConvertStatement.registry_id,
       coopname,
       username: member,
       lang: 'ru',
       sub_hash: plan.subHash,
-      amount: plan.amount,
+      amount: funding.toConvert,
+      from_program: funding.fromProgram,
+      total: plan.amount,
       course_title: plan.course.title,
       period: PERIOD_CHAIN[period],
       skip_save: false,
@@ -198,17 +215,24 @@ export class EdubridgeEnrollmentService {
     document: ISignedDocument
   ): Promise<EdubridgeEnrollmentEntity> {
     const plan = await this.plan(coopname, member, learnerId, courseId, period);
-    const available = parseFloat(await this.availableShare(coopname, member, plan.symbol));
-    if (available < parseFloat(plan.amount)) {
+    const funding = await this.planFunding(coopname, member, plan);
+    if (!funding.enough) {
       throw new BadRequestException(
-        `Недостаточно паевого взноса: нужно ${plan.amount}, доступно ${available.toFixed(4)} ${plan.symbol}. Пополните главный кошелёк.`
+        `Недостаточно средств: нужно ${plan.amount}, на кошельке программы ${funding.fromProgram}, ` +
+          `на главном паевом ${funding.available}. Пополните главный кошелёк.`
       );
     }
 
-    const convert = { coopname, username: member, amount: plan.amount, statement: document };
+    // С главного паевого конвертируется только недостающая часть: остаток
+    // кошелька программы засчитывается первым (решение владельца 20.09.2026,
+    // тот же порядок, что в «Столе заказов»).
+    const convert = parseFloat(funding.toConvert) > 0
+      ? { coopname, username: member, amount: funding.toConvert, statement: document }
+      : null;
     const subscribe = this.subscribeAction(coopname, member, plan, period, document);
     // Взнос уходит в фонд программы той же транзакцией: по Положению ЦПП
-    // стоимость подписки поступает в распоряжение кооператива сразу.
+    // стоимость подписки поступает в распоряжение кооператива сразу. Сумма —
+    // полная, независимо от того, сколько пришлось конвертировать.
     const charge = { coopname, username: member, sub_hash: plan.subHash, amount: plan.amount };
 
     const result = await this.chain.convertAndSubscribe(convert as never, subscribe as never, charge as never);
@@ -361,9 +385,41 @@ export class EdubridgeEnrollmentService {
   }
 
   private async availableShare(coopname: string, member: string, symbol: string): Promise<string> {
-    const row = await this.wallets.findByWalletAndUsername(coopname, SHARE_WALLET, member);
+    return this.availableOn(coopname, member, SHARE_WALLET, symbol);
+  }
+
+  private async availableOn(coopname: string, member: string, wallet: string, symbol: string): Promise<string> {
+    const row = await this.wallets.findByWalletAndUsername(coopname, wallet, member);
     const n = Number.parseFloat(row?.available ?? '0');
     return `${(Number.isNaN(n) ? 0 : n).toFixed(4)} ${symbol}`;
+  }
+
+  /**
+   * Чем платится взнос: сначала остаток кошелька программы, с главного паевого —
+   * только недостающая часть. Так участник тратит возвращённые ему взносы на
+   * новые подписки, а не копит их мёртвым грузом (п. 4.2.5 Положения ЦПП).
+   */
+  private async planFunding(coopname: string, member: string, plan: EnrollmentPlan): Promise<PlanFunding> {
+    const [programAvailable, shareAvailable] = await Promise.all([
+      this.availableOn(coopname, member, MEMBER_WALLET, plan.symbol),
+      this.availableOn(coopname, member, SHARE_WALLET, plan.symbol),
+    ]);
+    const need = parseFloat(plan.amount);
+    const program = parseFloat(programAvailable);
+    const share = parseFloat(shareAvailable);
+
+    const fromProgram = Math.min(need, program);
+    const toConvert = need - fromProgram;
+    const shortfall = Math.max(0, toConvert - share);
+
+    const asset = (value: number): string => `${value.toFixed(4)} ${plan.symbol}`;
+    return {
+      fromProgram: asset(fromProgram),
+      toConvert: asset(toConvert),
+      available: shareAvailable,
+      enough: shortfall === 0,
+      shortfall: asset(shortfall),
+    };
   }
 }
 

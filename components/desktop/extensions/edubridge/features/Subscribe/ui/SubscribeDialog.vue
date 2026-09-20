@@ -21,6 +21,10 @@ BaseDialog(:model-value="modelValue" title="Получить доступ" size=
           | за {{ monthsLabel }} · меньше на {{ formatAsset2Digits(courseQuote.discount_amount) }}
 
     template(v-if="quote")
+      //- Взнос сначала берётся с кошелька программы: возвращённые средства
+      //- идут в дело, а с паевого конвертируется только недостача.
+      DataRow(v-if="hasProgramFunds" label="Зачтётся с кошелька программы" :value="formatAsset2Digits(quote.from_program)")
+      DataRow(v-if="hasProgramFunds" label="Конвертируется с паевого" :value="formatAsset2Digits(quote.to_convert)")
       DataRow(label="Доступно паевого в главном кошельке" :value="formatAsset2Digits(quote.available)")
       DataRow(:label="quote.is_extension ? 'Будет продлено до' : 'Будет оплачено до'" :value="formatDate(quote.paid_until)")
 
@@ -91,6 +95,8 @@ const monthQuote = ref<IQuote | null>(null);
 const courseQuote = ref<IQuote | null>(null);
 const quote = computed(() => (period.value === Zeus.EduEnrollmentPeriod.COURSE ? courseQuote.value : monthQuote.value));
 const monthsLabel = computed(() => courseMonthsLabel(courseQuote.value?.months));
+/** Остаток кошелька программы участвует в оплате — показываем обе части взноса. */
+const hasProgramFunds = computed(() => parseFloat(String(quote.value?.from_program ?? '0')) > 0);
 const busy = ref(false);
 const statement = ref<DigitalDocument | null>(null);
 

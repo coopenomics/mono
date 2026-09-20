@@ -23,7 +23,11 @@ export async function buildConvertStatement(quote: IQuote, courseTitle: string, 
     coopname: system.info.coopname,
     username,
     sub_hash: quote.sub_hash,
-    amount: quote.amount,
+    // В заявлении названы обе части: зачёт остатка кошелька программы и
+    // конвертация недостающей суммы с паевого.
+    amount: quote.to_convert,
+    from_program: quote.from_program,
+    total: quote.amount,
     course_title: courseTitle,
     period,
   });

@@ -186,3 +186,24 @@ cases:
     expect: Занятия до его взноса не засчитываются — возврат считается от начала оплаченного срока.
     test: components/controller/tests/unit/edubridge/refund.test.ts
     status: passing
+  - id: edu.enroll.happy.10
+    level: backend
+    kind: happy
+    scenario: Остаток кошелька членских взносов программы покрывает взнос целиком.
+    expect: Конвертации с паевого нет, в фонд программы уходит полная стоимость подписки.
+    test: components/controller/tests/unit/edubridge/enrollment.service.test.ts
+    status: passing
+  - id: edu.enroll.happy.11
+    level: backend
+    kind: happy
+    scenario: Остаток кошелька программы покрывает часть взноса.
+    expect: С паевого конвертируется только недостача; заявление 3011 называет зачёт, конвертацию и полную стоимость.
+    test: components/controller/tests/unit/edubridge/enrollment.service.test.ts
+    status: passing
+  - id: edu.enroll.ui.04
+    level: ui
+    kind: happy
+    scenario: "Диалог подписки при ненулевом остатке кошелька программы."
+    expect: Показаны обе части взноса — зачёт с кошелька программы и конвертация с паевого.
+    test: ~
+    status: missing

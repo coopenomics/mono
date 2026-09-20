@@ -49,23 +49,28 @@ export class EdubridgeChainAdapter implements EdubridgeChainPort {
   }
 
   async convertAndSubscribe(
-    convert: EdubridgeContract.Actions.Convert.IConvert,
+    convert: EdubridgeContract.Actions.Convert.IConvert | null,
     subscribe:
       | { kind: 'open'; data: EdubridgeContract.Actions.Opensub.IOpensub }
       | { kind: 'extend'; data: EdubridgeContract.Actions.Extendsub.IExtendsub },
     charge: EdubridgeContract.Actions.Chargefee.IChargefee
   ): Promise<InnerTransactResult> {
-    await this.prepare(convert.coopname);
+    const coopname = charge.coopname;
+    await this.prepare(coopname);
     const second =
       subscribe.kind === 'open'
-        ? this.action(EdubridgeContract.Actions.Opensub.actionName, subscribe.data as unknown as Record<string, unknown>, convert.coopname)
-        : this.action(EdubridgeContract.Actions.Extendsub.actionName, subscribe.data as unknown as Record<string, unknown>, convert.coopname);
+        ? this.action(EdubridgeContract.Actions.Opensub.actionName, subscribe.data as unknown as Record<string, unknown>, coopname)
+        : this.action(EdubridgeContract.Actions.Extendsub.actionName, subscribe.data as unknown as Record<string, unknown>, coopname);
+    // Конвертации нет, когда взнос покрыт остатком кошелька программы целиком.
+    const first = convert
+      ? [this.action(EdubridgeContract.Actions.Convert.actionName, convert as unknown as Record<string, unknown>, coopname)]
+      : [];
     return this.chain.transact([
-      this.action(EdubridgeContract.Actions.Convert.actionName, convert as unknown as Record<string, unknown>, convert.coopname),
+      ...first,
       second,
       // Списание в фонд идёт последним: подписка к этому моменту существует,
       // и контракт связывает взнос с ней.
-      this.action(EdubridgeContract.Actions.Chargefee.actionName, charge as unknown as Record<string, unknown>, convert.coopname),
+      this.action(EdubridgeContract.Actions.Chargefee.actionName, charge as unknown as Record<string, unknown>, coopname),
     ]);
   }
 

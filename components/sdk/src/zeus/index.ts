@@ -7465,6 +7465,8 @@ export type ValueTypes = {
 	discount_amount?:boolean | `@${string}`,
 	/** Паевого хватает — можно подписывать заявление */
 	enough?:boolean | `@${string}`,
+	/** Сколько зачтётся с кошелька членских взносов программы */
+	from_program?:boolean | `@${string}`,
 	/** Это продление действующей подписки */
 	is_extension?:boolean | `@${string}`,
 	/** Сколько месяцев оплачивает взнос: один при помесячном, месяцы до конца курса при взносе разом */
@@ -7475,6 +7477,8 @@ export type ValueTypes = {
 	shortfall?:boolean | `@${string}`,
 	/** Ключ подписки в цепи */
 	sub_hash?:boolean | `@${string}`,
+	/** Сколько конвертируется с главного паевого — недостающая часть */
+	to_convert?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
 	['...on EduQuote']?: Omit<ValueTypes["EduQuote"], "...on EduQuote">
 }>;
@@ -24435,6 +24439,8 @@ export type ResolverInputTypes = {
 	discount_amount?:boolean | `@${string}`,
 	/** Паевого хватает — можно подписывать заявление */
 	enough?:boolean | `@${string}`,
+	/** Сколько зачтётся с кошелька членских взносов программы */
+	from_program?:boolean | `@${string}`,
 	/** Это продление действующей подписки */
 	is_extension?:boolean | `@${string}`,
 	/** Сколько месяцев оплачивает взнос: один при помесячном, месяцы до конца курса при взносе разом */
@@ -24445,6 +24451,8 @@ export type ResolverInputTypes = {
 	shortfall?:boolean | `@${string}`,
 	/** Ключ подписки в цепи */
 	sub_hash?:boolean | `@${string}`,
+	/** Сколько конвертируется с главного паевого — недостающая часть */
+	to_convert?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
 	["EduQuoteInput"]: {
@@ -40877,6 +40885,8 @@ export type ModelTypes = {
 	discount_amount: string,
 	/** Паевого хватает — можно подписывать заявление */
 	enough: boolean,
+	/** Сколько зачтётся с кошелька членских взносов программы */
+	from_program: string,
 	/** Это продление действующей подписки */
 	is_extension: boolean,
 	/** Сколько месяцев оплачивает взнос: один при помесячном, месяцы до конца курса при взносе разом */
@@ -40886,7 +40896,9 @@ export type ModelTypes = {
 	/** Сколько не хватает (0 — достаточно) */
 	shortfall: string,
 	/** Ключ подписки в цепи */
-	sub_hash: string
+	sub_hash: string,
+	/** Сколько конвертируется с главного паевого — недостающая часть */
+	to_convert: string
 };
 	["EduQuoteInput"]: {
 	/** Курс */
@@ -57825,6 +57837,8 @@ export type GraphQLTypes = {
 	discount_amount: string,
 	/** Паевого хватает — можно подписывать заявление */
 	enough: boolean,
+	/** Сколько зачтётся с кошелька членских взносов программы */
+	from_program: string,
 	/** Это продление действующей подписки */
 	is_extension: boolean,
 	/** Сколько месяцев оплачивает взнос: один при помесячном, месяцы до конца курса при взносе разом */
@@ -57835,6 +57849,8 @@ export type GraphQLTypes = {
 	shortfall: string,
 	/** Ключ подписки в цепи */
 	sub_hash: string,
+	/** Сколько конвертируется с главного паевого — недостающая часть */
+	to_convert: string,
 	['...on EduQuote']: Omit<GraphQLTypes["EduQuote"], "...on EduQuote">
 };
 	["EduQuoteInput"]: {

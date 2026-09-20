@@ -17,8 +17,12 @@ export interface Action extends IGenerate {
   registry_id: number
   /** Канонический идентификатор подписки on-chain (edusubs.sub_hash). */
   sub_hash: string
-  /** Сумма конвертации, с валютой. */
+  /** Сумма конвертации паевого взноса, с валютой; «0.0000 RUB» — конвертировать нечего. */
   amount: string
+  /** Сколько засчитывается с кошелька членских взносов программы, с валютой. */
+  from_program: string
+  /** Полная стоимость подписки, с валютой. */
+  total: string
   /** Название курса. */
   course_title: string
   /** Период подписки: `month` | `course` (`year` — у прежних подписок). */
@@ -44,6 +48,12 @@ export interface Model {
   program: ICommonProgram
   sub_hash: string
   amount: string
+  from_program: string
+  total: string
+  /** Часть взноса покрыта остатком кошелька программы — вычисляет фабрика. */
+  from_program_used: boolean
+  /** Остаётся недостача, её конвертируют с паевого — вычисляет фабрика. */
+  convert_used: boolean
   course_title: string
   period: string
   period_human: string
@@ -71,7 +81,7 @@ h1 { margin: 0px; text-align: center; }
     <p class="subheader">{% trans 'statement_subheader', program.name %}</p>
   </div>
 
-  <p>{% trans 'body', amount, program.name %}</p>
+  <p>{% if from_program_used %}{% trans 'body_with_program', from_program, program.name, total %}{% if convert_used %} {% trans 'body_convert_rest', amount %}{% endif %}{% else %}{% trans 'body', amount, program.name %}{% endif %}</p>
 
   <p>{% trans 'signature' %}</p>
   <p>{{ user.full_name_or_short_name }}</p>
@@ -86,6 +96,8 @@ export const translations = {
     statement_title: 'ЗАЯВЛЕНИЕ',
     statement_subheader: 'о конвертации паевого взноса в членский взнос по Целевой Потребительской Программе «{0}»',
     body: 'Прошу конвертировать мой паевой взнос в размере {0} в членский взнос по Целевой Потребительской Программе «{1}».',
+    body_with_program: 'Прошу зачесть в оплату подписки остаток моего членского взноса в размере {0} по Целевой Потребительской Программе «{1}», общая стоимость подписки — {2}.',
+    body_convert_rest: 'Недостающую часть прошу конвертировать из моего паевого взноса в размере {0}.',
     signature: 'Подписано электронной подписью.',
   },
 }
@@ -104,6 +116,10 @@ export const exampleData = {
   program: { name: 'ОБРАЗОВАНИЕ' },
   sub_hash: '0000abcd...',
   amount: '3000.00 RUB',
+  from_program: '0.00 RUB',
+  total: '3000.00 RUB',
+  from_program_used: false,
+  convert_used: true,
   course_title: 'Основы программирования',
   period: 'month',
   period_human: 'один месяц',
