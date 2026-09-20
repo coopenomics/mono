@@ -26,6 +26,12 @@ describe('Положение о ЦПП «Образование»', async () => 
     await testDocumentGeneration({ registry_id: 3000, coopname: 'voskhod', username: 'ant', lang: 'ru' })
   })
 
+  it('уведомляет участников о форс-мажоре и изменениях условий (п. 6.5 редакции 19.09.2026)', async () => {
+    const text = plainText((await generate()).html)
+    expect(text).toContain('При наступлении форс-мажорных обстоятельств или внесении изменений в условия ЦПП')
+    expect(text).toContain('Общество незамедлительно уведомляет о них Участников ЦПП')
+  })
+
   it('содержит все шесть разделов утверждённого текста', async () => {
     const text = plainText((await generate()).html)
     for (const title of [
