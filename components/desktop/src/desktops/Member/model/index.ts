@@ -1,5 +1,6 @@
 import { CardcoopPage } from 'src/pages/User/CardcoopPage';
 import { UserPaymentMethodsPage } from 'src/pages/User/PaymentMethodsPage';
+import { UserProgramsPage } from 'src/pages/User/ProgramsPage';
 import { UserSettingsPage } from 'src/pages/User/SettingsPage';
 import { markRaw } from 'vue';
 
@@ -37,6 +38,17 @@ export const manifest = {
           path: 'payment-methods',
           name: 'user-payment-methods',
           component: markRaw(UserPaymentMethodsPage),
+          children: [],
+        },
+        {
+          meta: {
+            title: 'Участие в программах',
+            icon: 'handshake',
+            roles: [],
+          },
+          path: 'programs',
+          name: 'user-programs',
+          component: markRaw(UserProgramsPage),
           children: [],
         },
         {
