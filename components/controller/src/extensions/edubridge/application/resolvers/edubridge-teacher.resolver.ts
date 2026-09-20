@@ -12,6 +12,7 @@ import {
   EduSignActInputDTO,
   EduSignAnnexInputDTO,
   EduSignContractInputDTO,
+  EduHoldContributionInputDTO,
   EduSubmitContributionInputDTO,
   EduTeacherContractDTO,
   EduTeacherDTO,
@@ -104,6 +105,20 @@ export class EdubridgeTeacherResolver {
   @RequireEduAccess('EduContribution', 'decide')
   async edubridgeRevokeContribution(@Args('data') data: EduRevokeContributionInputDTO): Promise<EduContributionDTO> {
     return new EduContributionDTO(await this.teachers.revokeHeldContribution(coop(), data.contribution_id, data.reason));
+  }
+
+  @Mutation(() => GeneratedDocumentDTO, { name: 'edubridgeRidStorageAct', description: 'Сформировать акт передачи материалов занятия на ответственное хранение для подписи' })
+  @UseGuards(GqlJwtAuthGuard, EdubridgeAccessGuard)
+  @RequireEduAccess('EduContribution', 'create:own')
+  async edubridgeRidStorageAct(@CurrentEduMember() m: IEdubridgeMembership, @Args('contribution_id', { type: () => ID }) id: string): Promise<GeneratedDocumentDTO> {
+    return new GeneratedDocumentDTO(await this.teachers.storageAct(coop(), m.username as string, id));
+  }
+
+  @Mutation(() => EduContributionDTO, { name: 'edubridgeHoldContribution', description: 'Передать материалы занятия на ответственное хранение на срок гарантии курса' })
+  @UseGuards(GqlJwtAuthGuard, EdubridgeAccessGuard)
+  @RequireEduAccess('EduContribution', 'create:own')
+  async edubridgeHoldContribution(@CurrentEduMember() m: IEdubridgeMembership, @Args('data') data: EduHoldContributionInputDTO): Promise<EduContributionDTO> {
+    return new EduContributionDTO(await this.teachers.holdContribution(coop(), m.username as string, data.contribution_id, data.document));
   }
 
   @Mutation(() => GeneratedDocumentDTO, { name: 'edubridgeRidStatement', description: 'Сформировать заявление о паевом взносе РИД для подписи' })

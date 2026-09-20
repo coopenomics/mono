@@ -1,19 +1,20 @@
 <template lang="pug">
 .q-pa-md
   PageHint.q-mb-md(storage-key="edu:teacher-contributions:banner-dismissed")
-    | Взнос появляется здесь после отчёта о занятии: сумма равна часам занятия по вашей ставке. Подпишите
-    | заявление — оно будет ждать конца гарантийного срока курса и уйдёт в совет само. После решения совета
-    | подпишите акт приёма-передачи: сумма поступит в ваш кошелёк правом требования.
+    | Взнос появляется здесь после отчёта о занятии: сумма равна часам занятия по вашей ставке. Передайте
+    | материалы кооперативу — он примет их на ответственное хранение на срок гарантии курса, а подписанное
+    | вместе с актом заявление уйдёт в совет по окончании срока. После решения совета подпишите акт
+    | приёма-передачи: сумма поступит в ваш кошелёк правом требования.
 
   BaseTable(v-if="loading || items.length" :columns="columns" :rows="items" row-key="id" :loading="firstLoad" min-width="900px")
     template(#cell-rid_type="{ row }") {{ ridType(row.rid_type) }}
     template(#cell-amount="{ row }") {{ formatAsset2Digits(row.amount) }}
     template(#cell-status="{ row }")
       BaseBadge(:variant="statusOf(row.status).variant") {{ statusOf(row.status).label }}
-      .t-muted.t-sm(v-if="row.status === Zeus.EduContributionStatus.HELD && row.hold_until") до {{ formatDate(row.hold_until) }}
+      .t-muted.t-sm(v-if="row.status === Zeus.EduContributionStatus.HELD && row.hold_until") на хранении до {{ formatDate(row.hold_until) }}
       .t-muted.t-sm(v-if="row.decline_reason") {{ row.decline_reason }}
     template(#cell-actions="{ row }")
-      BaseButton(v-if="row.status === Zeus.EduContributionStatus.DRAFT" variant="primary" size="sm" :loading="busy === row.id" @click="onSubmit(row)") Подписать заявление
+      BaseButton(v-if="row.status === Zeus.EduContributionStatus.DRAFT" variant="primary" size="sm" :loading="busy === row.id" @click="onSubmit(row)") Передать материалы
       BaseButton(v-else-if="row.status === Zeus.EduContributionStatus.COUNCIL_APPROVED" variant="primary" size="sm" :loading="busy === row.id" @click="onSignAct(row)") Подписать акт
   EmptyState(v-if="!firstLoad && !items.length" title="Взносов пока нет" body="Отчитайтесь о проведённом занятии на странице «Занятия» — взнос появится здесь.")
     template(#icon)
@@ -34,8 +35,8 @@ import {
   CONTRIBUTION_STATUS_LABELS,
   RID_TYPE_LABELS,
   fetchMyContributions,
+  commitLessonMaterials,
   signAct,
-  submitContribution,
   type IContribution,
 } from '../../entities/Teacher';
 
@@ -75,8 +76,8 @@ function replace(c: IContribution): void {
 async function onSubmit(c: IContribution): Promise<void> {
   busy.value = asText(c.id);
   try {
-    replace(await submitContribution(c));
-    SuccessAlert('Заявление подписано, проект решения направлен совету');
+    replace(await commitLessonMaterials(c));
+    SuccessAlert('Материалы приняты на ответственное хранение, заявление подписано');
   } catch (e) {
     FailAlert(e);
   } finally {

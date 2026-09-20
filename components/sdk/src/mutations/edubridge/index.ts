@@ -36,7 +36,9 @@ export * as SignContract from './signContract'
 export * as SignAnnex from './signAnnex'
 /** Заявление о паевом взносе РИД для подписи */
 export * as RidStatement from './ridStatement'
+export * as RidStorageAct from './ridStorageAct'
 /** Подать взнос РИД */
+export * as HoldContribution from './holdContribution'
 export * as SubmitContribution from './submitContribution'
 /** Акт приёма-передачи для подписи */
 export * as RidAct from './ridAct'

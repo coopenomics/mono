@@ -667,6 +667,9 @@ export const AllTypesProps: Record<string,any> = {
 		mechanics:"ExpenseMechanics",
 		recipient_type:"ExpenseRecipientType"
 	},
+	EduHoldContributionInput:{
+		document:"SignedDigitalDocumentInput"
+	},
 	EduLearnerInput:{
 		recipient_type:"EduRecipientType"
 	},
@@ -2072,6 +2075,9 @@ export const AllTypesProps: Record<string,any> = {
 		edubridgeDismissAdmin:{
 			data:"EduAdminInput"
 		},
+		edubridgeHoldContribution:{
+			data:"EduHoldContributionInput"
+		},
 		edubridgeRemoveLearner:{
 
 		},
@@ -2088,6 +2094,9 @@ export const AllTypesProps: Record<string,any> = {
 
 		},
 		edubridgeRidStatement:{
+
+		},
+		edubridgeRidStorageAct:{
 
 		},
 		edubridgeSetConnectorCredentials:{
@@ -5761,6 +5770,7 @@ export const ReturnTypes: Record<string,any> = {
 		rid_type:"EduRidType",
 		statement_hash:"String",
 		status:"EduContributionStatus",
+		storage_act_hash:"String",
 		teacher_username:"String"
 	},
 	EduCourse:{
@@ -7879,12 +7889,14 @@ export const ReturnTypes: Record<string,any> = {
 		edubridgeCreateExpense:"String",
 		edubridgeDeclineContribution:"EduContribution",
 		edubridgeDismissAdmin:"Boolean",
+		edubridgeHoldContribution:"EduContribution",
 		edubridgeRemoveLearner:"Boolean",
 		edubridgeReportLesson:"EduLesson",
 		edubridgeRetryTask:"EduAccessTask",
 		edubridgeRevokeContribution:"EduContribution",
 		edubridgeRidAct:"GeneratedDocument",
 		edubridgeRidStatement:"GeneratedDocument",
+		edubridgeRidStorageAct:"GeneratedDocument",
 		edubridgeSetConnectorCredentials:"EduConnectorBinding",
 		edubridgeSetConnectorEnabled:"EduConnectorBinding",
 		edubridgeSetCourseStatus:"EduCourse",

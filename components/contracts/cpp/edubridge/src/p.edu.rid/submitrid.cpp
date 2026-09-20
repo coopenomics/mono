@@ -2,14 +2,18 @@
  * @brief Преподаватель подаёт Заявление о паевом взносе результатом
  * интеллектуальной деятельности (РИД).
  *
- * Открывает процесс p.edu.rid: заявление (шаблон 3008) публикуется в реестр
- * документов, а в RAM заводится запись ожидания решения совета с оценкой РИД
- * (`amount`) и его видом (`rid_type`). Движений средств на этом шаге нет —
- * паевой фонд пополняется только по решению совета и акту (`acceptrid`).
+ * Продолжает процесс p.edu.rid, открытый приёмом материалов на ответственное
+ * хранение (`holdrid`). Гарантийный срок курса истёк, материалы остались у
+ * кооператива — преподаватель просит принять их в паевой фонд. Заявление
+ * (шаблон 3008) публикуется в реестр документов и уходит на рассмотрение
+ * совета. Движений средств на этом шаге нет: паевой фонд признаётся по
+ * решению совета и акту (`acceptrid`).
  *
  * Guards:
- *  - amount > 0 в _root_govern_symbol; подпись Заявления валидна (username);
- *  - rid_hash ещё не занят;
+ *  - материалы с rid_hash приняты на хранение и гарантийный срок истёк;
+ *  - оценка, вид результата и задание совпадают с принятыми на хранение;
+ *  - заявление по этим материалам ещё не подано;
+ *  - подпись Заявления валидна (username);
  *  - преподаватель — активный член кооператива с действующим договором УХД.
  *
  * @ingroup public_edubridge_actions
@@ -34,19 +38,26 @@ void edubridge::submitrid(eosio::name coopname,
   Edubridge::get_active_contract_or_fail(coopname, username);
 
   edu_rids_index rids(_edubridge, coopname.value);
-  auto by_hash = rids.get_index<"byhash"_n>();
-  eosio::check(by_hash.find(rid_hash) == by_hash.end(),
-               "Заявление о паевом взносе РИД с указанным hash уже существует");
+  auto rid = Edubridge::get_rid_or_fail(rids, rid_hash);
 
-  rids.emplace(_edubridge, [&](auto& r) {
-    r.id             = get_global_id_in_scope(_edubridge, coopname, "edurids"_n);
-    r.rid_hash       = rid_hash;
-    r.username       = username;
-    r.assignment_id  = assignment_id;
-    r.amount         = amount;
-    r.rid_type       = rid_type;
+  eosio::check(rid->username == username,
+               "Материалы на ответственном хранении приняты от другого пайщика");
+  eosio::check(rid->statement_hash == checksum256(),
+               "Заявление о паевом взносе по этим материалам уже подано");
+  eosio::check(rid->amount == amount,
+               "Сумма заявления расходится с оценкой материалов на ответственном хранении");
+  eosio::check(rid->rid_type == rid_type,
+               "Вид результата расходится с принятым на ответственное хранение");
+  eosio::check(rid->assignment_id == assignment_id,
+               "Задание расходится с принятым на ответственное хранение");
+
+  // Пока идёт гарантийный срок курса, материалы остаются на ответственном
+  // хранении и в совет не уходят (решение владельца 20.09.2026).
+  eosio::check(eosio::time_point_sec(eosio::current_time_point()) >= rid->hold_until,
+               "Гарантийный срок по материалам занятия ещё идёт");
+
+  rids.modify(rid, _edubridge, [&](auto& r) {
     r.statement_hash = statement.hash;
-    r.created_at     = eosio::time_point_sec(eosio::current_time_point());
   });
 
   // Заявление публикуется в реестр документов пакетом процесса (package = rid_hash).

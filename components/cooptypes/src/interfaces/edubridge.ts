@@ -120,6 +120,17 @@ export interface IExpiresub {
 
 // ── p.edu.rid: actions ───────────────────────────────────────────────────
 
+export interface IHoldrid {
+  coopname: IName
+  username: IName
+  rid_hash: IChecksum256
+  assignment_id: IUint64
+  amount: IAsset
+  rid_type: IName
+  hold_until: ITimePointSec
+  act: IDocument2
+}
+
 export interface ISubmitrid {
   coopname: IName
   username: IName
@@ -141,6 +152,12 @@ export interface IDeclinerid {
   coopname: IName
   rid_hash: IChecksum256
   decision: IDocument2
+}
+
+export interface IRecallrid {
+  coopname: IName
+  rid_hash: IChecksum256
+  reason: string
 }
 
 // ── p.edu.teach: actions ─────────────────────────────────────────────────

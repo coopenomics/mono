@@ -37,6 +37,7 @@ export const LEDGER2_WALLET_REGISTRY: readonly WalletMeta[] = [
   { name: "w.edu.expns", human_name: "Пул расходов ЦПП «Образование»", kind: "COOPERATIVE" },
   { name: "w.edu.fund", human_name: "Фонд ЦПП «Образование»", kind: "COOPERATIVE" },
   { name: "w.edu.member", human_name: "ЦПП «Образование» — членский взнос пайщика за доступ к курсу", kind: "USER_SHARED" },
+  { name: "w.edu.hold", human_name: "ЦПП «Образование» — материалы преподавателя на ответственном хранении", kind: "USER_SHARED" },
   { name: "w.cap.gen", human_name: "ЦПП «Генератор» — единый кошелёк программы", kind: "COOPERATIVE" },
   { name: "w.reg.entry", human_name: "Вступительные взносы", kind: "COOPERATIVE" },
   { name: "w.wal.wthdrw", human_name: "Возвраты паевых взносов пайщикам (deprecated, не используется в новых операциях)", kind: "COOPERATIVE" },
@@ -85,6 +86,7 @@ export const LEDGER2_USER_SHARED_PROGRAM_MAPPING: readonly ProgramWalletMapping[
   { wallet_name: "w.exp.adv", required_program_id: 0, program_label: null },
   { wallet_name: "w.reg.pend", required_program_id: 0, program_label: null },
   { wallet_name: "w.edu.member", required_program_id: 5, program_label: "Образование" },
+  { wallet_name: "w.edu.hold", required_program_id: 6, program_label: "Образование-преподавание" },
 ] as const
 
 /** Что выход из кооператива делает с кошельком пайщика. */
@@ -116,6 +118,7 @@ export const LEDGER2_EXIT_WALLET_POLICY: readonly ExitWalletRule[] = [
   { wallet_name: "w.mkt.member", policy: "FORFEIT", transfer_op: null, note: "Членский взнос ЦПП «Стол заказов» — Положение возврата не предусматривает" },
   { wallet_name: "w.mkt.order", policy: "BLOCKER", transfer_op: null, note: "под заказы Стола заказов зарезервирован паевой взнос — завершите или отмените заказы" },
   { wallet_name: "w.exp.adv", policy: "BLOCKER", transfer_op: null, note: "не закрыт подотчёт по служебной записке — отчитайтесь или верните аванс" },
+  { wallet_name: "w.edu.hold", policy: "BLOCKER", transfer_op: null, note: "идёт гарантийный срок по переданным материалам занятий — дождитесь его окончания" },
   { wallet_name: "w.wal.member", policy: "UNTOUCHED", transfer_op: null, note: "Членская часть Цифрового кошелька — политика выхода не определена" },
   { wallet_name: "w.cap.preimp", policy: "UNTOUCHED", transfer_op: null, note: "Пред-импорт РИД — учётный кошелёк, не средства пайщика" },
   { wallet_name: "w.mkt.claim", policy: "UNTOUCHED", transfer_op: null, note: "Требование к контрагенту по договору поставки, а не участие пайщика" },

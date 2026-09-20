@@ -29,10 +29,14 @@ using namespace Edubridge;
  *    членский взнос за доступ к курсу вносится конвертацией паевого взноса
  *    (w.wal.share → w.edu.member, o.edu.conv) по Заявлению о конвертации;
  *    подписка на курс — рабочее состояние в RAM, стирается по истечении.
- *  - **p.edu.rid** (3 actions): submitrid, acceptrid, declinerid —
- *    преподаватель вносит паевой взнос результатом интеллектуальной
- *    деятельности: заявление → решение совета → акт; средства ISSUE в
- *    главный паевой кошелёк преподавателя (o.edu.rid, Дт 04 / Кт 80).
+ *  - **p.edu.rid** (5 actions): holdrid, submitrid, acceptrid, declinerid,
+ *    recallrid — преподаватель отчитывается по занятию и передаёт материалы
+ *    на ответственное хранение (o.edu.hold, Дт 08 / Кт 76); по истечении
+ *    гарантийного срока курса заявление уходит в совет, и по решению с актом
+ *    результат принимается в паевой фонд (o.edu.rid, Дт 04 / Кт 08, и
+ *    o.edu.ridshr, w.edu.hold → w.wal.share, Дт 76 / Кт 80). Рекламация
+ *    внутри срока и отказ совета снимают материалы с хранения
+ *    (o.edu.retrid, Дт 76 / Кт 08).
  *  - **p.edu.teach** (6 actions): signcontract, apprvcontr, dclinecontr,
  *    signannex, apprvannex, dclineannex — договор УХД преподавателя и
  *    приложения к нему на курс подписываются двумя сторонами: первая
@@ -161,8 +165,25 @@ public:
   // ── p.edu.rid ────────────────────────────────────────────────────────
 
   /**
+   * @brief Преподаватель передаёт материалы занятия на ответственное хранение
+   * по Акту (шаблон 3012). Один шаг ledger2: o.edu.hold (ISSUE → w.edu.hold,
+   * Дт 08 / Кт 76) — материалы числятся за преподавателем весь гарантийный
+   * срок курса.
+   * @ingroup public_edubridge_actions
+   */
+  [[eosio::action]] void holdrid(eosio::name coopname,
+                                 eosio::name username,
+                                 checksum256 rid_hash,
+                                 uint64_t assignment_id,
+                                 eosio::asset amount,
+                                 eosio::name rid_type,
+                                 eosio::time_point_sec hold_until,
+                                 document2 act);
+
+  /**
    * @brief Преподаватель подаёт Заявление о паевом взносе результатом
-   * интеллектуальной деятельности (шаблон 3008). Движений средств нет.
+   * интеллектуальной деятельности (шаблон 3008) по истечении гарантийного
+   * срока. Движений средств нет.
    * @ingroup public_edubridge_actions
    */
   [[eosio::action]] void submitrid(eosio::name coopname,
@@ -175,8 +196,9 @@ public:
 
   /**
    * @brief Приём РИД в паевой фонд по Протоколу совета (3009) и Акту
-   * приёма-передачи (3010). Один шаг ledger2: o.edu.rid (ISSUE →
-   * w.wal.share, Дт 04 / Кт 80). Запись заявления стирается.
+   * приёма-передачи (3010). Два шага ledger2: o.edu.rid (Дт 04 / Кт 08) и
+   * o.edu.ridshr (TRANSFER w.edu.hold → w.wal.share, Дт 76 / Кт 80).
+   * Запись стирается.
    * @ingroup public_edubridge_actions
    */
   [[eosio::action]] void acceptrid(eosio::name coopname,
@@ -185,13 +207,23 @@ public:
                                    document2 act);
 
   /**
-   * @brief Отказ совета в приёме РИД по Протоколу (3009). Запись стирается,
-   * движений средств нет.
+   * @brief Отказ совета в приёме РИД по Протоколу (3009). Материалы снимаются
+   * с ответственного хранения (o.edu.retrid, Дт 76 / Кт 08), запись стирается.
    * @ingroup public_edubridge_actions
    */
   [[eosio::action]] void declinerid(eosio::name coopname,
                                     checksum256 rid_hash,
                                     document2 decision);
+
+  /**
+   * @brief Снятие материалов занятия с ответственного хранения по рекламации
+   * внутри гарантийного срока (o.edu.retrid, Дт 76 / Кт 08). Материалы
+   * возвращаются преподавателю, паевой взнос по ним не оформляется.
+   * @ingroup public_edubridge_actions
+   */
+  [[eosio::action]] void recallrid(eosio::name coopname,
+                                   checksum256 rid_hash,
+                                   std::string reason);
 
   // ── p.edu.teach ──────────────────────────────────────────────────────
 

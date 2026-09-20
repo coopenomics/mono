@@ -29,9 +29,13 @@ export interface EdubridgeChainPort {
   cancelSubscription(data: EdubridgeContract.Actions.Cancelsub.ICancelsub): Promise<InnerTransactResult>;
   /** Возврат остатка кошелька программы в паевой по заявлению ученика. */
   returnToShare(data: EdubridgeContract.Actions.Retshare.IRetshare): Promise<InnerTransactResult>;
+  /** Приём материалов занятия на ответственное хранение на срок гарантии курса. */
+  holdRid(data: EdubridgeContract.Actions.Holdrid.IHoldrid): Promise<InnerTransactResult>;
   submitRid(data: EdubridgeContract.Actions.Submitrid.ISubmitrid): Promise<InnerTransactResult>;
   acceptRid(data: EdubridgeContract.Actions.Acceptrid.IAcceptrid): Promise<InnerTransactResult>;
   declineRid(data: EdubridgeContract.Actions.Declinerid.IDeclinerid): Promise<InnerTransactResult>;
+  /** Снятие материалов с ответственного хранения по рекламации внутри срока. */
+  recallRid(data: EdubridgeContract.Actions.Recallrid.IRecallrid): Promise<InnerTransactResult>;
   /** Договор УХД преподавателя (первая подпись) — уходит председателю на одобрение. */
   signContract(data: EdubridgeContract.Actions.Signcontract.ISigncontract): Promise<InnerTransactResult>;
   /** Приложение к договору на курс (первая подпись) — уходит председателю на одобрение. */

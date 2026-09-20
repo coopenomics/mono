@@ -87,6 +87,11 @@ exports[`ledger2 wallets registry (generated from C++) > LEDGER2_USER_SHARED_PRO
     "required_program_id": 5,
     "wallet_name": "w.edu.member",
   },
+  {
+    "program_label": "Образование-преподавание",
+    "required_program_id": 6,
+    "wallet_name": "w.edu.hold",
+  },
 ]
 `;
 
@@ -181,6 +186,11 @@ exports[`ledger2 wallets registry (generated from C++) > LEDGER2_WALLET_REGISTRY
     "human_name": "ЦПП «Образование» — членский взнос пайщика за доступ к курсу",
     "kind": "USER_SHARED",
     "name": "w.edu.member",
+  },
+  {
+    "human_name": "ЦПП «Образование» — материалы преподавателя на ответственном хранении",
+    "kind": "USER_SHARED",
+    "name": "w.edu.hold",
   },
   {
     "human_name": "ЦПП «Генератор» — единый кошелёк программы",

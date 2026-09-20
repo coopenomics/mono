@@ -98,6 +98,13 @@ export class EdubridgeChainAdapter implements EdubridgeChainPort {
     );
   }
 
+  async holdRid(data: EdubridgeContract.Actions.Holdrid.IHoldrid): Promise<InnerTransactResult> {
+    await this.prepare(data.coopname);
+    return this.chain.transact(
+      this.action(EdubridgeContract.Actions.Holdrid.actionName, { ...data, act: this.chainDoc(data.act) }, data.coopname)
+    );
+  }
+
   async submitRid(data: EdubridgeContract.Actions.Submitrid.ISubmitrid): Promise<InnerTransactResult> {
     await this.prepare(data.coopname);
     return this.chain.transact(
@@ -127,5 +134,10 @@ export class EdubridgeChainAdapter implements EdubridgeChainPort {
   async declineRid(data: EdubridgeContract.Actions.Declinerid.IDeclinerid): Promise<InnerTransactResult> {
     await this.prepare(data.coopname);
     return this.chain.transact(this.action(EdubridgeContract.Actions.Declinerid.actionName, data as unknown as Record<string, unknown>, data.coopname));
+  }
+
+  async recallRid(data: EdubridgeContract.Actions.Recallrid.IRecallrid): Promise<InnerTransactResult> {
+    await this.prepare(data.coopname);
+    return this.chain.transact(this.action(EdubridgeContract.Actions.Recallrid.actionName, data as unknown as Record<string, unknown>, data.coopname));
   }
 }

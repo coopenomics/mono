@@ -26,7 +26,7 @@ export const RID_TYPE_LABELS: Record<string, string> = {
 
 export const CONTRIBUTION_STATUS_LABELS: Record<string, { label: string; variant: 'pos' | 'neg' | 'warn' | 'info' | 'neutral' }> = {
   [Zeus.EduContributionStatus.DRAFT]: { label: 'Черновик', variant: 'neutral' },
-  [Zeus.EduContributionStatus.HELD]: { label: 'Гарантийный срок', variant: 'warn' },
+  [Zeus.EduContributionStatus.HELD]: { label: 'На ответственном хранении', variant: 'warn' },
   [Zeus.EduContributionStatus.SUBMITTED]: { label: 'На рассмотрении совета', variant: 'info' },
   [Zeus.EduContributionStatus.COUNCIL_APPROVED]: { label: 'Ждёт подписи акта', variant: 'warn' },
   [Zeus.EduContributionStatus.ACT_SIGNED]: { label: 'Ждёт подписи председателя', variant: 'info' },
@@ -144,6 +144,27 @@ export async function signAnnex(a: IAssignment, contractNumber: string): Promise
   await doc.sign(username);
   if (!doc.signedDocument) throw new Error('Не удалось подписать приложение');
   return m<IAssignment>(Mutations.Edubridge.SignAnnex.mutation, Mutations.Edubridge.SignAnnex.name, { data: { assignment_id: a.id, document: doc.signedDocument } });
+}
+
+/**
+ * Передача материалов занятия кооперативу: акт ответственного хранения (3012)
+ * и заявление о паевом взносе (3008) подписываются подряд одним действием.
+ * По акту материалы сразу встают на хранение, а заявление ждёт конца
+ * гарантийного срока курса и уходит в совет само.
+ */
+export async function commitLessonMaterials(c: IContribution): Promise<IContribution> {
+  const held = await holdContribution(c);
+  return submitContribution(held);
+}
+
+/** Акт ответственного хранения (3012): подписывается сразу после отчёта о занятии. */
+export async function holdContribution(c: IContribution): Promise<IContribution> {
+  const { username } = who();
+  const generated = await m<{ hash: string; html: string; full_title: string; binary: string }>(Mutations.Edubridge.RidStorageAct.mutation, Mutations.Edubridge.RidStorageAct.name, { contribution_id: c.id });
+  const doc = new DigitalDocument(generated as never);
+  await doc.sign(username);
+  if (!doc.signedDocument) throw new Error('Не удалось подписать акт передачи материалов');
+  return m<IContribution>(Mutations.Edubridge.HoldContribution.mutation, Mutations.Edubridge.HoldContribution.name, { data: { contribution_id: c.id, document: doc.signedDocument } });
 }
 
 /** Заявление (3008): генерируется бэкендом по черновику, подписывается здесь, подаётся. */

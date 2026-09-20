@@ -6,15 +6,19 @@
  * Контракт публикует оба документа в реестр пакетом процесса и проводит
  * паевой взнос.
  *
- * Одна ledger2-операция:
- *  - `o.edu.rid` (ISSUE → w.wal.share, Дт 04 / Кт 80) — РИД принимается как
- *    нематериальный актив, преподавателю зачисляется паевой взнос в главный
- *    паевой кошелёк (право требования; возврат — штатным createwthd).
+ * Две ledger2-операции закрывают ответственное хранение:
+ *  - `o.edu.rid` (Дт 04 / Кт 08) — результат принят в состав нематериальных
+ *    активов кооператива, хранение на счёте вложений закрыто;
+ *  - `o.edu.ridshr` (TRANSFER w.edu.hold → w.wal.share, Дт 76 / Кт 80) —
+ *    обязательство перед преподавателем гасится признанием паевого фонда,
+ *    средства ложатся в его главный паевой кошелёк (право требования;
+ *    возврат — штатным createwthd).
  *
- * Запись заявления стирается: в RAM живут только заявления в ожидании решения.
+ * Запись стирается: в RAM живут только материалы до решения совета.
  *
  * Guards:
- *  - заявление с rid_hash существует;
+ *  - материалы с rid_hash приняты на хранение;
+ *  - заявление по ним подано (`submitrid`);
  *  - протокол и акт не пустые.
  *
  * @ingroup public_edubridge_actions
@@ -45,12 +49,22 @@ void edubridge::acceptrid(eosio::name coopname,
   const eosio::asset amount  = rid->amount;
   const uint64_t rid_id      = rid->id;
 
-  // ── o.edu.rid: ISSUE → w.wal.share (Дт 04 / Кт 80) ────────────────────
+  eosio::check(rid->statement_hash != checksum256(),
+               "Заявление о паевом взносе по этим материалам ещё не подано");
+
+  // ── o.edu.rid: Дт 04 / Кт 08 — результат принят в состав НМА ──────────
   Ledger2::apply(_edubridge, coopname,
                  operations::edubridge::ACCEPT_EDU_RID,
                  processes::edubridge::RID,
                  amount, username, act.hash,
                  Edubridge::Memo::get_accept_rid_memo(rid_id));
+
+  // ── o.edu.ridshr: TRANSFER w.edu.hold → w.wal.share (Дт 76 / Кт 80) ───
+  Ledger2::apply(_edubridge, coopname,
+                 operations::edubridge::SETTLE_EDU_RID,
+                 processes::edubridge::RID,
+                 amount, username, act.hash,
+                 Edubridge::Memo::get_settle_rid_memo(rid_id));
 
   // Протокол и акт — в реестр документов пакетом процесса (package = rid_hash).
   Soviet::make_complete_document(_edubridge, coopname, username,

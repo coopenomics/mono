@@ -6,13 +6,19 @@ title: Образовательный мост — договор УХД, наз
 # активируется подписью приложения 3007. Взнос: заявление 3008 → submitrid →
 # проект свободного решения совета с правилом отслеживания → DecisionTrackedEvent
 # → COUNCIL_APPROVED → акт 3010 подписывает преподаватель → acceptrid с
-# протоколом 3009 (Дт 04 / Кт 80, ISSUE в главный паевой кошелёк). Отклонение —
-# declinerid с причиной. Расчёт: сумма принятых и доступное в кошельке;
+# протоколом 3009 (Дт 04 / Кт 08 и Дт 76 / Кт 80 с переводом w.edu.hold →
+# w.wal.share). Отклонение — declinerid с причиной.
+#
+# Материалы занятия до заявления лежат на ответственном хранении: акт 3012 →
+# holdrid (Дт 08 / Кт 76, w.edu.hold). Рекламация внутри срока — recallrid
+# (Дт 76 / Кт 08). Расчёт: сумма принятых и доступное в кошельке;
 # возврат — штатным механизмом платформы.
 
 sources:
   contract:
     - components/contracts/cpp/edubridge/src/p.edu.teach/**
+    - components/contracts/cpp/edubridge/src/p.edu.rid/**
+    - components/contracts/cpp/lib/domain/table_edubridge_rids.hpp
     - components/contracts/cpp/lib/domain/table_edubridge_contracts.hpp
     - components/contracts/cpp/lib/domain/table_edubridge_annexes.hpp
   backend:
@@ -26,6 +32,9 @@ sources:
     - components/cooptypes/src/cooperative/registry/3005.EducationParticipationContractTemplate/**
     - components/cooptypes/src/cooperative/registry/3006.EducationParticipationContract/**
     - components/factory/src/Actions/3006.EducationParticipationContract.ts
+    - components/cooptypes/src/cooperative/registry/3012.EducationRidStorageAct/**
+    - components/factory/src/Actions/3012.EducationRidStorageAct.ts
+    - components/controller/src/extensions/edubridge/domain/lib/lesson-dates.ts
   ui:
     - components/desktop/extensions/edubridge/pages/AdminTeachersPage/**
     - components/desktop/extensions/edubridge/pages/AdminContributionsPage/**
@@ -166,8 +175,36 @@ cases:
     level: backend
     kind: side
     scenario: Подтверждённая рекламация в гарантийный срок.
-    expect: Заявление снимается с причиной, взнос не оформляется.
+    expect: Материалы снимаются с ответственного хранения проводкой Дт 76 / Кт 08, заявление закрывается с причиной, взнос не оформляется.
     test: components/controller/tests/unit/edubridge/teacher.service.test.ts
+    status: passing
+  - id: edu.teach.happy.08
+    level: backend
+    kind: happy
+    scenario: Преподаватель подписывает акт передачи материалов занятия на ответственное хранение.
+    expect: В цепь уходит holdrid с датой окончания гарантийного срока, взнос переходит в состояние «на ответственном хранении», акт сохранён.
+    test: components/controller/tests/unit/edubridge/teacher.service.test.ts
+    status: passing
+  - id: edu.teach.break.05
+    level: backend
+    kind: break
+    scenario: Повторная передача тех же материалов; заявление по материалам, не принятым на хранение.
+    expect: Отказ в обоих случаях — хранение открывается один раз и предшествует заявлению.
+    test: components/controller/tests/unit/edubridge/teacher.service.test.ts
+    status: passing
+  - id: edu.teach.side.09
+    level: backend
+    kind: side
+    scenario: Рекламация по материалам, которые на ответственное хранение не передавались.
+    expect: Взнос закрывается без проводок — снимать с хранения нечего.
+    test: components/controller/tests/unit/edubridge/teacher.service.test.ts
+    status: passing
+  - id: edu.teach.happy.09
+    level: backend
+    kind: happy
+    scenario: Акт передачи материалов на ответственное хранение (3012) формируется по отчёту о занятии.
+    expect: В акте названы курс, номер и тема занятия, состав материалов, оценка и дата окончания срока хранения; сказано, что паевым взносом материалы становятся по решению совета.
+    test: components/factory/test/education-rid-storage-act.test.ts
     status: passing
   - id: edu.teach.ui.03
     level: ui

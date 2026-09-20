@@ -137,6 +137,7 @@ export class EduContributionDTO {
   @Field(() => EduContributionStatus, { description: 'Состояние' }) status!: EduContributionStatus;
   @Field(() => String, { nullable: true }) statement_hash!: string | null;
   @Field(() => String, { nullable: true }) decision_hash!: string | null;
+  @Field(() => String, { nullable: true, description: 'Акт передачи материалов на ответственное хранение' }) storage_act_hash!: string | null;
   @Field(() => String, { nullable: true }) act_hash!: string | null;
   @Field(() => String, { nullable: true, description: 'Причина отклонения' }) decline_reason!: string | null;
   @Field(() => String, { nullable: true, description: 'Номер решения совета' }) council_decision_id!: string | null;
@@ -147,10 +148,17 @@ export class EduContributionDTO {
     Object.assign(this, {
       id: e.id, teacher_username: e.teacher_username, assignment_id: e.assignment_id, rid_hash: e.rid_hash, rid_type: e.rid_type,
       links: e.links ?? [], description: e.description, amount: e.amount, status: e.status, statement_hash: e.statement_hash,
-      decision_hash: e.decision_hash, act_hash: e.act_hash, decline_reason: e.decline_reason, council_decision_id: e.council_decision_id,
+      decision_hash: e.decision_hash, act_hash: e.act_hash, storage_act_hash: e.storage_act_hash, decline_reason: e.decline_reason, council_decision_id: e.council_decision_id,
       decided_at: e.decided_at, created_at: e.created_at, hold_until: e.hold_until,
     });
   }
+}
+
+@InputType('EduHoldContributionInput')
+export class EduHoldContributionInputDTO {
+  @Field(() => ID, { description: 'Взнос (черновик по проведённому занятию)' }) @IsUUID() contribution_id!: string;
+  @Field(() => SignedDigitalDocumentInputDTO, { description: 'Подписанный акт передачи материалов на ответственное хранение (3012)' })
+  @ValidateNested() @Type(() => SignedDigitalDocumentInputDTO) document!: SignedDigitalDocumentInputDTO;
 }
 
 @InputType('EduSubmitContributionInput')

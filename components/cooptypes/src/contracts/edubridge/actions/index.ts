@@ -48,6 +48,11 @@ export * as CreateExp from './createExp'
 // ── p.edu.rid (взнос РИД) ────────────────────────────────────────────────
 
 /**
+ * Приём материалов занятия на ответственное хранение: o.edu.hold.
+ */
+export * as Holdrid from './holdrid'
+
+/**
  * Заявление преподавателя о взносе РИД.
  */
 export * as Submitrid from './submitrid'
@@ -61,6 +66,11 @@ export * as Acceptrid from './acceptrid'
  * Отказ в приёме РИД по решению совета.
  */
 export * as Declinerid from './declinerid'
+
+/**
+ * Снятие материалов с ответственного хранения по рекламации: o.edu.retrid.
+ */
+export * as Recallrid from './recallrid'
 
 // ── p.edu.teach (договор УХД и приложения через одобрение председателя) ──
 

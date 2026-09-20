@@ -6959,6 +6959,8 @@ export type ValueTypes = {
 	statement_hash?:boolean | `@${string}`,
 	/** Состояние */
 	status?:boolean | `@${string}`,
+	/** Акт передачи материалов на ответственное хранение */
+	storage_act_hash?:boolean | `@${string}`,
 	/** Преподаватель */
 	teacher_username?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
@@ -7297,6 +7299,12 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on EduFundMovement']?: Omit<ValueTypes["EduFundMovement"], "...on EduFundMovement">
 }>;
+	["EduHoldContributionInput"]: {
+	/** Взнос (черновик по проведённому занятию) */
+	contribution_id: ValueTypes["ID"] | Variable<any, string>,
+	/** Подписанный акт передачи материалов на ответственное хранение (3012) */
+	document: ValueTypes["SignedDigitalDocumentInput"] | Variable<any, string>
+};
 	["EduLearner"]: AliasType<{
 	/** Добавлен */
 	created_at?:boolean | `@${string}`,
@@ -13688,12 +13696,14 @@ edubridgeCreateCourse?: [{	data: ValueTypes["EduCourseInput"] | Variable<any, st
 edubridgeCreateExpense?: [{	data: ValueTypes["EduCreateExpenseInput"] | Variable<any, string>},boolean | `@${string}`],
 edubridgeDeclineContribution?: [{	data: ValueTypes["EduDeclineContributionInput"] | Variable<any, string>},ValueTypes["EduContribution"]],
 edubridgeDismissAdmin?: [{	data: ValueTypes["EduAdminInput"] | Variable<any, string>},boolean | `@${string}`],
+edubridgeHoldContribution?: [{	data: ValueTypes["EduHoldContributionInput"] | Variable<any, string>},ValueTypes["EduContribution"]],
 edubridgeRemoveLearner?: [{	id: ValueTypes["ID"] | Variable<any, string>},boolean | `@${string}`],
 edubridgeReportLesson?: [{	data: ValueTypes["EduLessonReportInput"] | Variable<any, string>},ValueTypes["EduLesson"]],
 edubridgeRetryTask?: [{	data: ValueTypes["EduRetryTaskInput"] | Variable<any, string>},ValueTypes["EduAccessTask"]],
 edubridgeRevokeContribution?: [{	data: ValueTypes["EduRevokeContributionInput"] | Variable<any, string>},ValueTypes["EduContribution"]],
 edubridgeRidAct?: [{	contribution_id: ValueTypes["ID"] | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 edubridgeRidStatement?: [{	contribution_id: ValueTypes["ID"] | Variable<any, string>},ValueTypes["GeneratedDocument"]],
+edubridgeRidStorageAct?: [{	contribution_id: ValueTypes["ID"] | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 edubridgeSetConnectorCredentials?: [{	data: ValueTypes["EduSetConnectorCredentialsInput"] | Variable<any, string>},ValueTypes["EduConnectorBinding"]],
 edubridgeSetConnectorEnabled?: [{	data: ValueTypes["EduSetConnectorEnabledInput"] | Variable<any, string>},ValueTypes["EduConnectorBinding"]],
 edubridgeSetCourseStatus?: [{	data: ValueTypes["EduSetCourseStatusInput"] | Variable<any, string>},ValueTypes["EduCourse"]],
@@ -23953,6 +23963,8 @@ export type ResolverInputTypes = {
 	statement_hash?:boolean | `@${string}`,
 	/** Состояние */
 	status?:boolean | `@${string}`,
+	/** Акт передачи материалов на ответственное хранение */
+	storage_act_hash?:boolean | `@${string}`,
 	/** Преподаватель */
 	teacher_username?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
@@ -24281,6 +24293,12 @@ export type ResolverInputTypes = {
 	username?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	["EduHoldContributionInput"]: {
+	/** Взнос (черновик по проведённому занятию) */
+	contribution_id: ResolverInputTypes["ID"],
+	/** Подписанный акт передачи материалов на ответственное хранение (3012) */
+	document: ResolverInputTypes["SignedDigitalDocumentInput"]
+};
 	["EduLearner"]: AliasType<{
 	/** Добавлен */
 	created_at?:boolean | `@${string}`,
@@ -30479,12 +30497,14 @@ edubridgeCreateCourse?: [{	data: ResolverInputTypes["EduCourseInput"]},ResolverI
 edubridgeCreateExpense?: [{	data: ResolverInputTypes["EduCreateExpenseInput"]},boolean | `@${string}`],
 edubridgeDeclineContribution?: [{	data: ResolverInputTypes["EduDeclineContributionInput"]},ResolverInputTypes["EduContribution"]],
 edubridgeDismissAdmin?: [{	data: ResolverInputTypes["EduAdminInput"]},boolean | `@${string}`],
+edubridgeHoldContribution?: [{	data: ResolverInputTypes["EduHoldContributionInput"]},ResolverInputTypes["EduContribution"]],
 edubridgeRemoveLearner?: [{	id: ResolverInputTypes["ID"]},boolean | `@${string}`],
 edubridgeReportLesson?: [{	data: ResolverInputTypes["EduLessonReportInput"]},ResolverInputTypes["EduLesson"]],
 edubridgeRetryTask?: [{	data: ResolverInputTypes["EduRetryTaskInput"]},ResolverInputTypes["EduAccessTask"]],
 edubridgeRevokeContribution?: [{	data: ResolverInputTypes["EduRevokeContributionInput"]},ResolverInputTypes["EduContribution"]],
 edubridgeRidAct?: [{	contribution_id: ResolverInputTypes["ID"]},ResolverInputTypes["GeneratedDocument"]],
 edubridgeRidStatement?: [{	contribution_id: ResolverInputTypes["ID"]},ResolverInputTypes["GeneratedDocument"]],
+edubridgeRidStorageAct?: [{	contribution_id: ResolverInputTypes["ID"]},ResolverInputTypes["GeneratedDocument"]],
 edubridgeSetConnectorCredentials?: [{	data: ResolverInputTypes["EduSetConnectorCredentialsInput"]},ResolverInputTypes["EduConnectorBinding"]],
 edubridgeSetConnectorEnabled?: [{	data: ResolverInputTypes["EduSetConnectorEnabledInput"]},ResolverInputTypes["EduConnectorBinding"]],
 edubridgeSetCourseStatus?: [{	data: ResolverInputTypes["EduSetCourseStatusInput"]},ResolverInputTypes["EduCourse"]],
@@ -40426,6 +40446,8 @@ export type ModelTypes = {
 	statement_hash?: string | undefined | null,
 	/** Состояние */
 	status: ModelTypes["EduContributionStatus"],
+	/** Акт передачи материалов на ответственное хранение */
+	storage_act_hash?: string | undefined | null,
 	/** Преподаватель */
 	teacher_username: string
 };
@@ -40738,6 +40760,12 @@ export type ModelTypes = {
 	title: string,
 	/** Пайщик, к которому относится движение */
 	username?: string | undefined | null
+};
+	["EduHoldContributionInput"]: {
+	/** Взнос (черновик по проведённому занятию) */
+	contribution_id: ModelTypes["ID"],
+	/** Подписанный акт передачи материалов на ответственное хранение (3012) */
+	document: ModelTypes["SignedDigitalDocumentInput"]
 };
 	["EduLearner"]: {
 		/** Добавлен */
@@ -46825,6 +46853,8 @@ export type ModelTypes = {
 	edubridgeDeclineContribution: ModelTypes["EduContribution"],
 	/** Снять администратора */
 	edubridgeDismissAdmin: boolean,
+	/** Передать материалы занятия на ответственное хранение на срок гарантии курса */
+	edubridgeHoldContribution: ModelTypes["EduContribution"],
 	/** Удалить обучающегося без действующих подписок */
 	edubridgeRemoveLearner: boolean,
 	/** Отчитаться о проведённом занятии: материалы и взнос по ставке часа */
@@ -46837,6 +46867,8 @@ export type ModelTypes = {
 	edubridgeRidAct: ModelTypes["GeneratedDocument"],
 	/** Сформировать заявление о паевом взносе РИД для подписи */
 	edubridgeRidStatement: ModelTypes["GeneratedDocument"],
+	/** Сформировать акт передачи материалов занятия на ответственное хранение для подписи */
+	edubridgeRidStorageAct: ModelTypes["GeneratedDocument"],
 	/** Задать ключи подключения площадки (владелец); значения шифруются и наружу не выдаются */
 	edubridgeSetConnectorCredentials: ModelTypes["EduConnectorBinding"],
 	/** Включить или выключить площадку */
@@ -57331,6 +57363,8 @@ export type GraphQLTypes = {
 	statement_hash?: string | undefined | null,
 	/** Состояние */
 	status: GraphQLTypes["EduContributionStatus"],
+	/** Акт передачи материалов на ответственное хранение */
+	storage_act_hash?: string | undefined | null,
 	/** Преподаватель */
 	teacher_username: string,
 	['...on EduContribution']: Omit<GraphQLTypes["EduContribution"], "...on EduContribution">
@@ -57667,6 +57701,12 @@ export type GraphQLTypes = {
 	/** Пайщик, к которому относится движение */
 	username?: string | undefined | null,
 	['...on EduFundMovement']: Omit<GraphQLTypes["EduFundMovement"], "...on EduFundMovement">
+};
+	["EduHoldContributionInput"]: {
+		/** Взнос (черновик по проведённому занятию) */
+	contribution_id: GraphQLTypes["ID"],
+	/** Подписанный акт передачи материалов на ответственное хранение (3012) */
+	document: GraphQLTypes["SignedDigitalDocumentInput"]
 };
 	["EduLearner"]: {
 	__typename: "EduLearner",
@@ -64220,6 +64260,8 @@ export type GraphQLTypes = {
 	edubridgeDeclineContribution: GraphQLTypes["EduContribution"],
 	/** Снять администратора */
 	edubridgeDismissAdmin: boolean,
+	/** Передать материалы занятия на ответственное хранение на срок гарантии курса */
+	edubridgeHoldContribution: GraphQLTypes["EduContribution"],
 	/** Удалить обучающегося без действующих подписок */
 	edubridgeRemoveLearner: boolean,
 	/** Отчитаться о проведённом занятии: материалы и взнос по ставке часа */
@@ -64232,6 +64274,8 @@ export type GraphQLTypes = {
 	edubridgeRidAct: GraphQLTypes["GeneratedDocument"],
 	/** Сформировать заявление о паевом взносе РИД для подписи */
 	edubridgeRidStatement: GraphQLTypes["GeneratedDocument"],
+	/** Сформировать акт передачи материалов занятия на ответственное хранение для подписи */
+	edubridgeRidStorageAct: GraphQLTypes["GeneratedDocument"],
 	/** Задать ключи подключения площадки (владелец); значения шифруются и наружу не выдаются */
 	edubridgeSetConnectorCredentials: GraphQLTypes["EduConnectorBinding"],
 	/** Включить или выключить площадку */
@@ -70520,6 +70564,7 @@ type ZEUS_VARIABLES = {
 	["EduEnrollmentPeriod"]: ValueTypes["EduEnrollmentPeriod"];
 	["EduEnrollmentStatus"]: ValueTypes["EduEnrollmentStatus"];
 	["EduExpenseItemInput"]: ValueTypes["EduExpenseItemInput"];
+	["EduHoldContributionInput"]: ValueTypes["EduHoldContributionInput"];
 	["EduLearnerInput"]: ValueTypes["EduLearnerInput"];
 	["EduLessonReportInput"]: ValueTypes["EduLessonReportInput"];
 	["EduOfferKind"]: ValueTypes["EduOfferKind"];

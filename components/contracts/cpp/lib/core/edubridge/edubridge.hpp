@@ -133,6 +133,21 @@ namespace Memo {
     return "Возврат членского взноса по ЦПП «Образование» в паевой взнос пайщика";
   }
 
+  inline std::string get_hold_rid_memo(uint64_t rid_id) {
+    return "Приём материалов занятия № " + std::to_string(rid_id) +
+           " на ответственное хранение по акту преподавателя";
+  }
+
+  inline std::string get_settle_rid_memo(uint64_t rid_id) {
+    return "Паевой взнос результатом интеллектуальной деятельности по заявлению № " +
+           std::to_string(rid_id) + " и решению совета";
+  }
+
+  inline std::string get_release_rid_memo(uint64_t rid_id, const std::string& reason) {
+    return "Снятие материалов занятия № " + std::to_string(rid_id) +
+           " с ответственного хранения: " + reason;
+  }
+
   inline std::string get_accept_rid_memo(uint64_t rid_id) {
     return "Приём результата интеллектуальной деятельности преподавателя в паевой фонд по заявлению № " +
            std::to_string(rid_id) + " и решению совета";

@@ -25,6 +25,7 @@ export const eduAssignmentSelector = Selector('EduAssignment')(rawAssignmentSele
 
 const rawContributionSelector = {
   hold_until: true,
+  storage_act_hash: true,
   id: true,
   teacher_username: true,
   assignment_id: true,

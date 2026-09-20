@@ -23,6 +23,7 @@ import {
   type IUserWalletPort,
 } from '@coopenomics/innercoop';
 import { EduAssignmentStatus, EduContractStatus, EduContributionStatus, EduRidType } from '../../domain/enums';
+import { formatDate, formatDateTime, toChainTimePoint } from '../../domain/lib/lesson-dates';
 import { EDUBRIDGE_CHAIN_PORT, type EdubridgeChainPort } from '../../domain/ports/edubridge-chain.port';
 import type {
   EdubridgeContributionEntity,
@@ -367,6 +368,74 @@ export class EdubridgeTeacherService {
     return this.lessons.findByTeacher(coopname, teacher);
   }
 
+  /**
+   * Акт передачи материалов занятия на ответственное хранение (3012) без
+   * подписи. Преподаватель подписывает его вместе с заявлением сразу после
+   * отчёта: кооператив принимает материалы как имущество и держит их весь
+   * гарантийный срок курса.
+   */
+  async storageAct(coopname: string, teacher: string, contributionId: string): Promise<InnerGeneratedDocument> {
+    const c = await this.ownContribution(coopname, teacher, contributionId);
+    const { lesson, course } = await this.holdContext(coopname, c);
+    const action: Cooperative.Registry.EducationRidStorageAct.Action = {
+      registry_id: Cooperative.Registry.EducationRidStorageAct.registry_id,
+      coopname,
+      username: teacher,
+      lang: 'ru',
+      rid_hash: c.rid_hash,
+      amount: c.amount,
+      rid_type: c.rid_type,
+      course_title: course.title,
+      lesson_number: lesson.lesson_number,
+      lesson_topic: lesson.topic || c.description,
+      held_at: formatDateTime(lesson.held_at),
+      duration_minutes: lesson.duration_minutes,
+      materials: c.links ?? [],
+      hold_until: formatDate(c.hold_until ?? lesson.held_at),
+      skip_save: false,
+    };
+    return this.documents.generate({ data: action });
+  }
+
+  /**
+   * Приём материалов на ответственное хранение: `holdrid` в цепь. С этого
+   * момента их стоимость числится за преподавателем на кошельке хранения
+   * (Дт 08 / Кт 76) и ждёт окончания гарантийного срока.
+   */
+  async holdContribution(coopname: string, teacher: string, contributionId: string, document: ISignedDocument): Promise<EdubridgeContributionEntity> {
+    const c = await this.ownContribution(coopname, teacher, contributionId);
+    if (c.status !== EduContributionStatus.DRAFT) throw new BadRequestException('Материалы занятия уже приняты на ответственное хранение');
+    const { lesson } = await this.holdContext(coopname, c);
+    const holdUntil = c.hold_until ?? lesson.held_at;
+
+    await this.chain.holdRid({
+      coopname,
+      username: teacher,
+      rid_hash: c.rid_hash,
+      assignment_id: Number(new Date(c.created_at).getTime() % 1_000_000),
+      amount: c.amount,
+      rid_type: c.rid_type,
+      hold_until: toChainTimePoint(holdUntil),
+      act: document,
+    } as never);
+
+    c.storage_act_hash = document.hash.toLowerCase();
+    c.status = EduContributionStatus.HELD;
+    const saved = await this.teachers.saveContribution(c);
+    this.logger.info(`[EDU.RID] материалы ${c.rid_hash} приняты на ответственное хранение до ${holdUntil.toISOString()}`);
+    return saved;
+  }
+
+  /** Занятие и курс, по которым оформлены материалы. */
+  private async holdContext(coopname: string, c: EdubridgeContributionEntity) {
+    if (!c.lesson_id) throw new BadRequestException('Взнос оформлен вне журнала занятий');
+    const lesson = await this.lessons.findById(coopname, c.lesson_id);
+    if (!lesson) throw new NotFoundException('Занятие не найдено');
+    const course = await this.courses.findById(coopname, lesson.course_id);
+    if (!course) throw new NotFoundException('Курс не найден');
+    return { lesson, course };
+  }
+
   /** Заявление (3008) без подписи — для ознакомления и подписи на фронте. */
   async statement(coopname: string, teacher: string, contributionId: string): Promise<InnerGeneratedDocument> {
     const c = await this.ownContribution(coopname, teacher, contributionId);
@@ -388,7 +457,14 @@ export class EdubridgeTeacherService {
   /** Подача: `submitrid` в цепь + проект решения совета с отслеживанием. */
   async submitContribution(coopname: string, teacher: string, contributionId: string, document: ISignedDocument): Promise<EdubridgeContributionEntity> {
     const c = await this.ownContribution(coopname, teacher, contributionId);
-    if (c.status !== EduContributionStatus.DRAFT) throw new BadRequestException('Взнос уже подан');
+    if (c.status !== EduContributionStatus.HELD) {
+      throw new BadRequestException(
+        c.status === EduContributionStatus.DRAFT
+          ? 'Материалы занятия ещё не приняты на ответственное хранение'
+          : 'Взнос уже подан'
+      );
+    }
+    if (c.statement_document) throw new BadRequestException('Заявление по этим материалам уже подписано');
 
     // Гарантийный срок материалов ещё идёт: подписанное заявление держится
     // здесь и уходит в совет само по истечении срока. Преподаватель подписывает
@@ -396,7 +472,6 @@ export class EdubridgeTeacherService {
     if (c.hold_until && c.hold_until > new Date()) {
       c.statement_hash = document.hash.toLowerCase();
       c.statement_document = document as unknown as Record<string, unknown>;
-      c.status = EduContributionStatus.HELD;
       const held = await this.teachers.saveContribution(c);
       this.logger.info(`[EDU.RID] заявление ${c.rid_hash} принято и держится до ${c.hold_until.toISOString()}`);
       return held;
@@ -473,6 +548,14 @@ export class EdubridgeTeacherService {
     if (c.status !== EduContributionStatus.HELD && c.status !== EduContributionStatus.DRAFT) {
       throw new BadRequestException('Заявление уже отправлено в совет — снять его нельзя');
     }
+
+    // Материалы на ответственном хранении снимаются проводкой (Дт 76 / Кт 08):
+    // обязательство перед преподавателем и принятое имущество закрываются
+    // встречно, паевой фонд не затрагивается.
+    if (c.status === EduContributionStatus.HELD) {
+      await this.chain.recallRid({ coopname, rid_hash: c.rid_hash, reason } as never);
+    }
+
     c.status = EduContributionStatus.DECLINED;
     c.decline_reason = reason;
     const saved = await this.teachers.saveContribution(c);

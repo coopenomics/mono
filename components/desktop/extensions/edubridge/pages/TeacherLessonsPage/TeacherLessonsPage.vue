@@ -122,7 +122,7 @@ async function onReport(): Promise<void> {
     } as never);
     lessons.value = [created, ...lessons.value];
     reportOpen.value = false;
-    SuccessAlert('Занятие записано — взнос ждёт подписи заявления');
+    SuccessAlert('Занятие записано — материалы ждут передачи на хранение');
   } catch (e) {
     FailAlert(e);
   } finally {

@@ -117,6 +117,7 @@ export * as EducationCourseAnnex from './3007.EducationCourseAnnex'
 export * as EducationRidStatement from './3008.EducationRidStatement'
 export * as EducationRidDecision from './3009.EducationRidDecision'
 export * as EducationRidAct from './3010.EducationRidAct'
+export * as EducationRidStorageAct from './3012.EducationRidStorageAct'
 export * as EducationConvertStatement from './3011.EducationConvertStatement'
 
 export * from './registry'

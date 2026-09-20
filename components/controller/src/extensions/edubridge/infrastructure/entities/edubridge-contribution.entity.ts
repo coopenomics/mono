@@ -41,6 +41,10 @@ export class EdubridgeContributionEntity {
   @Column({ type: 'varchar', length: 64, nullable: true })
   public statement_hash!: string | null;
 
+  /** Акт передачи материалов на ответственное хранение (3012) — hash в цепи. */
+  @Column({ type: 'varchar', length: 64, nullable: true })
+  public storage_act_hash!: string | null;
+
   /**
    * Подписанное заявление целиком: преподаватель подписывает его один раз
    * вместе с отчётом, а в совет оно уходит по истечении гарантийного срока —
