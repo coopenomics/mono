@@ -87,6 +87,15 @@ export class ParticipantInteractor {
     return await this.documentDomainService.generateDocument({ data, options });
   }
 
+  /** Заявление об аннулировании соглашений ЦПП — подписывается вместе с заявлением о выходе. */
+  async generateProgramAgreementsAnnulment(
+    data: Cooperative.Registry.ProgramAgreementsAnnulmentStatement.Action,
+    options: Cooperative.Document.IGenerationOptions
+  ): Promise<DocumentDomainEntity> {
+    data.registry_id = Cooperative.Registry.ProgramAgreementsAnnulmentStatement.registry_id;
+    return await this.documentDomainService.generateDocument({ data, options });
+  }
+
   async generateMembershipExitDecision(
     data: Cooperative.Registry.DecisionOfParticipantExit.Action,
     options: Cooperative.Document.IGenerationOptions

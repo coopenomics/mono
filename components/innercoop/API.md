@@ -9,7 +9,7 @@
 экспорта, исчезнувший метод, новый обязательный параметр требуют major, а
 снятое старое — периода устаревания не меньше одного minor (INV-009).
 
-Всего экспортов: 290.
+Всего экспортов: 293.
 
 ## ACCOUNT_PORT
 
@@ -506,6 +506,13 @@
 - `getMeet(data: InnerGetMeetInput, username?: string): Promise<InnerMeet>`
 - `getMeetDraft(hash: string): Promise<InnerMeetDraft | null>`
 
+## IMemberExitRegistryPort
+
+`interface` · core-ports
+
+- `registerExitBlockers(provider: InnerExitBlockersProvider): void`
+- `unregisterExitBlockersByExtension(extensionName: string): void`
+
 ## IMessageChannelPort
 
 `interface` · core-ports
@@ -899,6 +906,13 @@
 
 - `created: boolean`
 - `program_id: number`
+
+## InnerExitBlockersProvider
+
+`interface` · core-ports
+
+- `extension_name: string`
+- `blockers(coopname: string, username: string): Promise<string[]>`
 
 ## InnerExpenseCallbackHandler
 
@@ -2253,6 +2267,12 @@
 `const` · core-ports
 
 - `Symbol.for('Innercoop.CorePort.Meet')`
+
+## MEMBER_EXIT_REGISTRY_PORT
+
+`const` · core-ports
+
+- `Symbol.for('Innercoop.CorePort.MemberExitRegistry')`
 
 ## MESSAGE_CHANNEL_PORT
 

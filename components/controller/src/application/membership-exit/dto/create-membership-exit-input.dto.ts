@@ -1,8 +1,9 @@
 import { Field, InputType } from '@nestjs/graphql';
-import { IsString, ValidateNested, IsNotEmpty } from 'class-validator';
+import { IsString, ValidateNested, IsNotEmpty, IsOptional } from 'class-validator';
 import { Type } from 'class-transformer';
 import type { CreateMembershipExitInputDomainInterface } from '~/domain/account/interfaces/create-membership-exit-input.interface';
 import { MembershipExitApplicationSignedDocumentInputDTO } from '~/application/document/documents-dto/membership-exit-application-document.dto';
+import { ProgramAgreementsAnnulmentSignedDocumentInputDTO } from '~/application/document/documents-dto/program-agreements-annulment-document.dto';
 
 /**
  * DTO подачи заявления на выход пайщика из кооператива.
@@ -28,4 +29,14 @@ export class CreateMembershipExitInputDTO implements CreateMembershipExitInputDo
   @IsNotEmpty({ message: 'Поле "statement" обязательно для заполнения.' })
   @Type(() => MembershipExitApplicationSignedDocumentInputDTO)
   statement!: MembershipExitApplicationSignedDocumentInputDTO;
+
+  @Field(() => ProgramAgreementsAnnulmentSignedDocumentInputDTO, {
+    nullable: true,
+    description:
+      'Подписанное заявление об аннулировании соглашений ЦПП; обязательно, когда у пайщика есть программные соглашения',
+  })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => ProgramAgreementsAnnulmentSignedDocumentInputDTO)
+  annulment?: ProgramAgreementsAnnulmentSignedDocumentInputDTO;
 }

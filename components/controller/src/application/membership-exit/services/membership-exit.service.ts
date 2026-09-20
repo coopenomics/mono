@@ -16,11 +16,14 @@ import { IMonoAccount } from '@coopenomics/innercoop';
 import { PAYMENT_METHOD_REPOSITORY, type PaymentMethodRepository } from '~/domain/common/repositories/payment-method.repository';
 import { PAYMENT_REPOSITORY, type PaymentRepository } from '~/domain/gateway/repositories/payment.repository';
 import { PaymentTypeEnum } from '~/domain/gateway/enums/payment-type.enum';
+import { USER_AGREEMENT_REPOSITORY, type UserAgreementRepository } from '~/domain/wallet/repositories/user-agreement.repository';
+import { SOVIET_BLOCKCHAIN_PORT, type SovietBlockchainPort } from '~/domain/common/ports/soviet-blockchain.port';
+import { MemberExitRegistryService } from '~/domain/account/services/member-exit-registry.service';
 import { MembershipExitRequestEntity } from '~/infrastructure/database/typeorm/entities/membership-exit-request.entity';
 import { tokenTypes } from '~/types/token.types';
 import { CreateMembershipExitInputDTO } from '../dto/create-membership-exit-input.dto';
 import { MembershipExitResultDTO } from '../dto/membership-exit-result.dto';
-import { MembershipExitReturnPreviewDTO } from '../dto/membership-exit-return-preview.dto';
+import { MembershipExitProgramDTO, MembershipExitReturnPreviewDTO } from '../dto/membership-exit-return-preview.dto';
 import { MembershipExitDTO } from '../dto/membership-exit.dto';
 import { MembershipExitStatus } from '../enums/membership-exit-status.enum';
 
@@ -44,6 +47,11 @@ export class MembershipExitService {
     private readonly paymentMethodRepository: PaymentMethodRepository,
     @Inject(PAYMENT_REPOSITORY)
     private readonly paymentRepository: PaymentRepository,
+    @Inject(USER_AGREEMENT_REPOSITORY)
+    private readonly userAgreementRepository: UserAgreementRepository,
+    @Inject(SOVIET_BLOCKCHAIN_PORT)
+    private readonly sovietBlockchainPort: SovietBlockchainPort,
+    private readonly memberExitRegistry: MemberExitRegistryService,
     @InjectRepository(MembershipExitRequestEntity)
     private readonly exitRequestRepository: Repository<MembershipExitRequestEntity>
   ) {}
@@ -61,6 +69,14 @@ export class MembershipExitService {
     options: Cooperative.Document.IGenerationOptions
   ): Promise<GeneratedDocumentDTO> {
     const document = await this.participantInteractor.generateMembershipExitDecision(data, options);
+    return document as unknown as GeneratedDocumentDTO;
+  }
+
+  async generateProgramAgreementsAnnulment(
+    data: Cooperative.Registry.ProgramAgreementsAnnulmentStatement.Action,
+    options: Cooperative.Document.IGenerationOptions
+  ): Promise<GeneratedDocumentDTO> {
+    const document = await this.participantInteractor.generateProgramAgreementsAnnulment(data, options);
     return document as unknown as GeneratedDocumentDTO;
   }
 
@@ -105,6 +121,22 @@ export class MembershipExitService {
       );
     }
 
+    // Выход закрывает участие пайщика в программах, и основание для этого — его
+    // заявление (registry 190). Без программных соглашений аннулировать нечего.
+    const agreements = await this.userAgreementRepository.findByUsername(data.coopname, data.username);
+    const programCount = agreements?.programs?.length ?? 0;
+    if (programCount > 0 && !data.annulment) {
+      throw new BadRequestException(
+        'К заявлению на выход приложите заявление об аннулировании соглашений об участии в программах.'
+      );
+    }
+
+    // Причины расширений: пайщик ведёт курс, не сдал отчёт, не закрыл обязательство.
+    const blockers = await this.memberExitRegistry.collectBlockers(data.coopname, data.username);
+    if (blockers.length > 0) {
+      throw new BadRequestException(`Выход из кооператива невозможен: ${blockers.join('; ')}`);
+    }
+
     // Уже идёт выход on-chain?
     const onchain = await this.accountBlockchainPort.getExit(data.coopname, data.username);
     if (onchain) {
@@ -130,6 +162,7 @@ export class MembershipExitService {
         username: data.username,
         exit_hash: data.exit_hash,
         statement: data.statement as unknown as Record<string, any>,
+        annulment: (data.annulment ?? null) as unknown as Record<string, any> | null,
         token: confirmToken,
       })
     );
@@ -177,6 +210,7 @@ export class MembershipExitService {
       username: request.username,
       exit_hash: request.exit_hash,
       statement: request.statement as any,
+      annulment: (request.annulment ?? undefined) as any,
     });
 
     await this.exitRequestRepository.delete({ id: request.id });
@@ -273,40 +307,130 @@ export class MembershipExitService {
   }
 
   /**
-   * Предварительный расчёт суммы возврата паевого взноса при выходе пайщика.
+   * Предварительный расчёт возврата при выходе пайщика.
    *
-   * Считается обходом кошельков, которые возвращаются пайщику по таблице
-   * политики выхода (Ledger2.EXIT_REFUND_WALLET_NAMES — зеркало
-   * `EXIT_WALLET_POLICY` контракта), по L3-балансам. Ту же таблицу обходит
-   * `confirmexit` при одобрении выхода советом, поэтому предрасчёт совпадает с
-   * суммой, которую реально вернёт контракт.
+   * Обходит таблицу политики кошельков (Ledger2.LEDGER2_EXIT_WALLET_POLICY —
+   * зеркало `EXIT_WALLET_POLICY` контракта) по L3-балансам и раскладывает
+   * остатки по программам пайщика. Ту же таблицу обходит `confirmexit` при
+   * одобрении выхода советом, поэтому предрасчёт совпадает с суммой, которую
+   * реально вернёт контракт. Рядом — причины, по которым выйти сейчас нельзя.
    */
   async getReturnPreview(coopname: string, username: string): Promise<MembershipExitReturnPreviewDTO> {
-    const wallets = Ledger2.EXIT_REFUND_WALLET_NAMES;
+    const rules = Ledger2.LEDGER2_EXIT_WALLET_POLICY.filter((rule) => rule.policy !== 'UNTOUCHED');
     const rows = await Promise.all(
-      wallets.map((wallet) => this.userWalletRepository.findByWalletAndUsername(coopname, wallet, username)),
+      rules.map((rule) => this.userWalletRepository.findByWalletAndUsername(coopname, rule.wallet_name, username))
     );
 
     // available учитываем только для существующих (present) кошельков
     const balances = rows.map((row) => (row?.present !== false ? row?.available : undefined));
-
     const template = await this.resolveAssetTemplate(coopname, balances.find((b) => !!b));
     const zero = this.zeroAssetLike(template);
-
     const assets = balances.map((b) => b ?? zero);
-    const total = assets.reduce((acc, a) => this.sumAssets(acc, a), zero);
 
-    // индивидуальные паевые отдаём для информации; фронт показывает total
+    const returnsBalance = (index: number): boolean =>
+      rules[index].policy === 'MAIN' || rules[index].policy === 'RETURN_TO_MAIN';
+
+    const total = assets.reduce(
+      (acc, amount, index) => (returnsBalance(index) ? this.sumAssets(acc, amount) : acc),
+      zero
+    );
+
     const balanceOf = (wallet: string): string => {
-      const idx = wallets.indexOf(wallet);
-      return idx >= 0 ? assets[idx] : zero;
+      const index = rules.findIndex((rule) => rule.wallet_name === wallet);
+      return index >= 0 ? assets[index] : zero;
     };
 
     return {
       total,
       share_contribution: balanceOf(Ledger2.SHARE_WALLET_NAME),
       minimum_contribution: balanceOf(Ledger2.MIN_SHARE_WALLET_NAME),
+      programs: await this.programBreakdown(coopname, username, rules, assets, zero),
+      blockers: await this.memberExitRegistry.collectBlockers(coopname, username),
     };
+  }
+
+  /**
+   * Остатки пайщика, разложенные по программам: к какой программе относится
+   * кошелёк, говорит карта `LEDGER2_USER_SHARED_PROGRAM_MAPPING`. Кошельки вне
+   * программ (минимальный паевой) идут отдельной строкой с `program_id = 0`.
+   * Кошельки с нулевым остатком не показываются — кроме программ, где пайщик
+   * состоит: там он должен видеть, что возвращать нечего.
+   */
+  private async programBreakdown(
+    coopname: string,
+    username: string,
+    rules: readonly Ledger2.ExitWalletRule[],
+    assets: readonly string[],
+    zero: string
+  ): Promise<MembershipExitProgramDTO[]> {
+    const agreements = await this.userAgreementRepository.findByUsername(coopname, username);
+    const signedByProgram = new Map<number, { signed_at: string; doc_hash: string }>();
+    for (const agreement of agreements?.programs ?? []) {
+      signedByProgram.set(Number(agreement.program_id), {
+        signed_at: String(agreement.signed_at ?? ''),
+        doc_hash: String(agreement.doc_hash ?? ''),
+      });
+    }
+
+    const titles = await this.programTitles(coopname);
+    const byProgram = new Map<number, MembershipExitProgramDTO>();
+
+    const program = (id: number): MembershipExitProgramDTO => {
+      const existing = byProgram.get(id);
+      if (existing) return existing;
+      const signed = signedByProgram.get(id);
+      const created: MembershipExitProgramDTO = {
+        program_id: id,
+        title: id === 0 ? 'Паевой взнос кооператива' : (titles.get(id) ?? `Программа № ${id}`),
+        agreement_signed_at: signed?.signed_at ?? null,
+        agreement_hash: signed?.doc_hash ?? null,
+        wallets: [],
+        refund: zero,
+      };
+      byProgram.set(id, created);
+      return created;
+    };
+
+    // Программы, где пайщик состоит, показываем всегда — даже с нулём.
+    for (const program_id of signedByProgram.keys()) program(program_id);
+
+    rules.forEach((rule, index) => {
+      const balance = assets[index];
+      const empty = this.isZeroAsset(balance);
+      const program_id = Ledger2.programIdForWallet(rule.wallet_name) ?? 0;
+      if (empty && !signedByProgram.has(program_id) && program_id !== 0) return;
+      if (empty && rule.policy === 'BLOCKER') return;
+
+      const returns = rule.policy === 'MAIN' || rule.policy === 'RETURN_TO_MAIN';
+      const row = program(program_id);
+      row.wallets.push({
+        wallet_name: rule.wallet_name,
+        human_name: Ledger2.getWalletHumanName(rule.wallet_name) ?? rule.wallet_name,
+        balance,
+        returns,
+        policy: rule.policy,
+      });
+      if (returns) row.refund = this.sumAssets(row.refund, balance);
+    });
+
+    // Пустые строки без кошельков и без соглашения показывать незачем.
+    return [...byProgram.values()].filter((row) => row.wallets.length > 0 || row.agreement_hash);
+  }
+
+  /** Названия программ кооператива по их идентификаторам. */
+  private async programTitles(coopname: string): Promise<Map<number, string>> {
+    try {
+      const programs = await this.sovietBlockchainPort.getPrograms(coopname);
+      return new Map(programs.map((p) => [Number(p.id), String(p.title ?? `Программа № ${p.id}`)]));
+    } catch (e) {
+      this.logger.warn(`Не удалось прочитать программы кооператива: ${(e as Error)?.message ?? e}`);
+      return new Map();
+    }
+  }
+
+  /** Нулевой ли остаток («0.0000 RUB»). */
+  private isZeroAsset(value: string): boolean {
+    return Number(String(value).split(' ')[0]) === 0;
   }
 
   /** Сумма двух asset-строк одного символа («100.0000 RUB»). */

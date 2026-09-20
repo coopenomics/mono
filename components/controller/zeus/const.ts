@@ -494,6 +494,7 @@ export const AllTypesProps: Record<string,any> = {
 
 	},
 	CreateMembershipExitInput:{
+		annulment:"ProgramAgreementsAnnulmentSignedDocumentInput",
 		statement:"MembershipExitApplicationSignedDocumentInput"
 	},
 	CreateOrganizationDataInput:{
@@ -2183,6 +2184,10 @@ export const AllTypesProps: Record<string,any> = {
 			data:"GenerateDocumentInput",
 			options:"GenerateDocumentOptionsInput"
 		},
+		generateProgramAgreementsAnnulment:{
+			data:"ProgramAgreementsAnnulmentGenerateDocumentInput",
+			options:"GenerateDocumentOptionsInput"
+		},
 		generateProjectOfFreeDecision:{
 			data:"ProjectFreeDecisionGenerateDocumentInput",
 			options:"GenerateDocumentOptionsInput"
@@ -2825,6 +2830,22 @@ export const AllTypesProps: Record<string,any> = {
 	ProcessTemplateStatus: "enum" as const,
 	ProcessesFilter:{
 
+	},
+	ProgramAgreementInput:{
+		wallets:"ProgramAgreementWalletInput"
+	},
+	ProgramAgreementWalletInput:{
+
+	},
+	ProgramAgreementsAnnulmentGenerateDocumentInput:{
+		programs:"ProgramAgreementInput"
+	},
+	ProgramAgreementsAnnulmentSignedDocumentInput:{
+		meta:"ProgramAgreementsAnnulmentSignedMetaDocumentInput",
+		signatures:"SignatureInfoInput"
+	},
+	ProgramAgreementsAnnulmentSignedMetaDocumentInput:{
+		programs:"ProgramAgreementInput"
 	},
 	ProgramCapitalizationMoneyInvestStatementGenerateDocumentInput:{
 
@@ -7646,14 +7667,31 @@ export const ReturnTypes: Record<string,any> = {
 		quantity:"String",
 		status:"MembershipExitStatus"
 	},
+	MembershipExitProgram:{
+		agreement_hash:"String",
+		agreement_signed_at:"String",
+		program_id:"Int",
+		refund:"String",
+		title:"String",
+		wallets:"MembershipExitWallet"
+	},
 	MembershipExitResult:{
 		exit_hash:"String",
 		status:"MembershipExitStatus"
 	},
 	MembershipExitReturnPreview:{
+		blockers:"String",
 		minimum_contribution:"String",
+		programs:"MembershipExitProgram",
 		share_contribution:"String",
 		total:"String"
+	},
+	MembershipExitWallet:{
+		balance:"String",
+		human_name:"String",
+		policy:"String",
+		returns:"Boolean",
+		wallet_name:"String"
 	},
 	MissingRequisiteField:{
 		key:"String",
@@ -7873,6 +7911,7 @@ export const ReturnTypes: Record<string,any> = {
 		generateParticipantApplication:"GeneratedDocument",
 		generateParticipantApplicationDecision:"GeneratedDocument",
 		generatePrivacyAgreement:"GeneratedDocument",
+		generateProgramAgreementsAnnulment:"GeneratedDocument",
 		generateProjectOfFreeDecision:"GeneratedDocument",
 		generateRegistrationDocuments:"GenerateRegistrationDocumentsOutput",
 		generateReportFromEdits:"GeneratedReport",

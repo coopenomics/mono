@@ -223,12 +223,34 @@ export class AccountBlockchainAdapter implements AccountBlockchainPort {
       statement: Classes.Document.finalize(data.statement),
     };
 
-    await this.blockchainService.transact({
-      account: RegistratorContract.contractName.production,
-      name: RegistratorContract.Actions.ExitCoop.actionName,
-      authorization: [{ actor: data.coopname, permission: 'active' }],
-      data: exitData,
-    });
+    const authorization = [{ actor: data.coopname, permission: 'active' }];
+    const actions: Array<Record<string, unknown>> = [
+      {
+        account: RegistratorContract.contractName.production,
+        name: RegistratorContract.Actions.ExitCoop.actionName,
+        authorization,
+        data: exitData,
+      },
+    ];
+
+    // Заявление об аннулировании соглашений ЦПП идёт той же транзакцией: совет
+    // рассматривает оба документа разом, и выход без аннулирования не пройдёт.
+    if (data.annulment) {
+      const annulmentData: RegistratorContract.Actions.ExitAgree.IExitAgree = {
+        coopname: data.coopname,
+        username: data.username,
+        exit_hash: data.exit_hash,
+        annulment: Classes.Document.finalize(data.annulment),
+      };
+      actions.push({
+        account: RegistratorContract.contractName.production,
+        name: RegistratorContract.Actions.ExitAgree.actionName,
+        authorization,
+        data: annulmentData,
+      });
+    }
+
+    await this.blockchainService.transact(actions);
   }
 
   // Верификация личности пайщика на кооперативном участке: подписывает верификатор

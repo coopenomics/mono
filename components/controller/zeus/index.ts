@@ -6038,6 +6038,8 @@ export type ValueTypes = {
 	username: string | Variable<any, string>
 };
 	["CreateMembershipExitInput"]: {
+	/** Подписанное заявление об аннулировании соглашений ЦПП; обязательно, когда у пайщика есть программные соглашения */
+	annulment?: ValueTypes["ProgramAgreementsAnnulmentSignedDocumentInput"] | undefined | null | Variable<any, string>,
 	/** Имя аккаунта кооператива */
 	coopname: string | Variable<any, string>,
 	/** Хеш процесса выхода (генерируется на клиенте) */
@@ -13410,6 +13412,22 @@ export type ValueTypes = {
 	/** Версия генератора, использованного для создания документа */
 	version?: string | undefined | null | Variable<any, string>
 };
+	["MembershipExitProgram"]: AliasType<{
+	/** Хэш подписанного соглашения */
+	agreement_hash?:boolean | `@${string}`,
+	/** Когда подписано соглашение об участии */
+	agreement_signed_at?:boolean | `@${string}`,
+	/** Идентификатор программы; 0 — кошельки вне программ */
+	program_id?:boolean | `@${string}`,
+	/** Сколько возвращается по этой программе */
+	refund?:boolean | `@${string}`,
+	/** Название программы */
+	title?:boolean | `@${string}`,
+	/** Кошельки программы с остатками */
+	wallets?:ValueTypes["MembershipExitWallet"],
+		__typename?: boolean | `@${string}`,
+	['...on MembershipExitProgram']?: Omit<ValueTypes["MembershipExitProgram"], "...on MembershipExitProgram">
+}>;
 	["MembershipExitResult"]: AliasType<{
 	/** Хеш созданного процесса выхода */
 	exit_hash?:boolean | `@${string}`,
@@ -13419,17 +13437,35 @@ export type ValueTypes = {
 	['...on MembershipExitResult']?: Omit<ValueTypes["MembershipExitResult"], "...on MembershipExitResult">
 }>;
 	["MembershipExitReturnPreview"]: AliasType<{
+	/** Причины, по которым выйти сейчас нельзя; пусто — выход доступен */
+	blockers?:boolean | `@${string}`,
 	/** Минимальный паевой взнос пайщика */
 	minimum_contribution?:boolean | `@${string}`,
+	/** Разбивка возврата по программам пайщика */
+	programs?:ValueTypes["MembershipExitProgram"],
 	/** Целевой паевой взнос пайщика */
 	share_contribution?:boolean | `@${string}`,
-	/** Итоговая сумма к возврату (минимальный + целевой паевой) */
+	/** Итоговая сумма к возврату */
 	total?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
 	['...on MembershipExitReturnPreview']?: Omit<ValueTypes["MembershipExitReturnPreview"], "...on MembershipExitReturnPreview">
 }>;
 	/** Статус процесса выхода пайщика из кооператива */
 ["MembershipExitStatus"]:MembershipExitStatus;
+	["MembershipExitWallet"]: AliasType<{
+	/** Остаток пайщика на кошельке */
+	balance?:boolean | `@${string}`,
+	/** Человекочитаемое название кошелька */
+	human_name?:boolean | `@${string}`,
+	/** Что выход делает с кошельком: MAIN, RETURN_TO_MAIN, FORFEIT, BLOCKER, UNTOUCHED */
+	policy?:boolean | `@${string}`,
+	/** Остаток возвращается пайщику при выходе */
+	returns?:boolean | `@${string}`,
+	/** Машинное имя кошелька */
+	wallet_name?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on MembershipExitWallet']?: Omit<ValueTypes["MembershipExitWallet"], "...on MembershipExitWallet">
+}>;
 	/** Источник вклада в метрику */
 ["MetricContributionSource"]:MetricContributionSource;
 	/** Направление вклада метрики в общую динамику */
@@ -13683,6 +13719,7 @@ generateMembershipExitDecision?: [{	data: ValueTypes["MembershipExitDecisionGene
 generateParticipantApplication?: [{	data: ValueTypes["ParticipantApplicationGenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 generateParticipantApplicationDecision?: [{	data: ValueTypes["ParticipantApplicationDecisionGenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 generatePrivacyAgreement?: [{	data: ValueTypes["GenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
+generateProgramAgreementsAnnulment?: [{	data: ValueTypes["ProgramAgreementsAnnulmentGenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 generateProjectOfFreeDecision?: [{	data: ValueTypes["ProjectFreeDecisionGenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 generateRegistrationDocuments?: [{	data: ValueTypes["GenerateRegistrationDocumentsInput"] | Variable<any, string>},ValueTypes["GenerateRegistrationDocumentsOutput"]],
 generateReportFromEdits?: [{	editsJson: string | Variable<any, string>,	period?: number | undefined | null | Variable<any, string>,	reportType: ValueTypes["ReportType"] | Variable<any, string>,	year: number | Variable<any, string>},ValueTypes["GeneratedReport"]],
@@ -15133,6 +15170,105 @@ walmoveWallets?: [{	input: ValueTypes["WalmoveInput"] | Variable<any, string>},V
 	processType?: string | undefined | null | Variable<any, string>,
 	toBlock?: number | undefined | null | Variable<any, string>,
 	username?: string | undefined | null | Variable<any, string>
+};
+	["ProgramAgreementInput"]: {
+	/** Хэш подписанного соглашения */
+	agreement_hash: string | Variable<any, string>,
+	/** Когда подписано соглашение об участии */
+	agreement_signed_at: string | Variable<any, string>,
+	/** Идентификатор программы */
+	program_id: number | Variable<any, string>,
+	/** Сколько возвращается по этой программе */
+	refund: string | Variable<any, string>,
+	/** Название программы */
+	title: string | Variable<any, string>,
+	/** Кошельки программы с остатками */
+	wallets: Array<ValueTypes["ProgramAgreementWalletInput"]> | Variable<any, string>
+};
+	["ProgramAgreementWalletInput"]: {
+	/** Остаток на день заявления */
+	balance: string | Variable<any, string>,
+	/** Человекочитаемое название кошелька */
+	human_name: string | Variable<any, string>,
+	/** Остаток возвращается на главный паевой кошелёк */
+	returns: boolean | Variable<any, string>,
+	/** Машинное имя кошелька */
+	wallet_name: string | Variable<any, string>
+};
+	["ProgramAgreementsAnnulmentGenerateDocumentInput"]: {
+	/** Номер блока, на котором был создан документ */
+	block_num?: number | undefined | null | Variable<any, string>,
+	/** Название кооператива, связанное с документом */
+	coopname: string | Variable<any, string>,
+	/** Дата и время создания документа */
+	created_at?: string | undefined | null | Variable<any, string>,
+	/** Хэш процесса выхода; пусто — аннулирование без выхода из кооператива */
+	exit_hash?: string | undefined | null | Variable<any, string>,
+	/** Имя генератора, использованного для создания документа */
+	generator?: string | undefined | null | Variable<any, string>,
+	/** Язык документа */
+	lang?: string | undefined | null | Variable<any, string>,
+	/** Ссылки, связанные с документом */
+	links?: Array<string> | undefined | null | Variable<any, string>,
+	/** Программы, соглашения по которым аннулируются */
+	programs: Array<ValueTypes["ProgramAgreementInput"]> | Variable<any, string>,
+	/** Флаг пропуска сохранения документа (используется для предварительной генерации и демонстрации пользователю) */
+	skip_save: boolean | Variable<any, string>,
+	/** Часовой пояс, в котором был создан документ */
+	timezone?: string | undefined | null | Variable<any, string>,
+	/** Название документа */
+	title?: string | undefined | null | Variable<any, string>,
+	/** Сумма к переводу на главный паевой кошелёк по всем программам */
+	total_refund: string | Variable<any, string>,
+	/** Имя пользователя, создавшего документ */
+	username: string | Variable<any, string>,
+	/** Версия генератора, использованного для создания документа */
+	version?: string | undefined | null | Variable<any, string>
+};
+	["ProgramAgreementsAnnulmentSignedDocumentInput"]: {
+	/** Хэш содержимого документа */
+	doc_hash: string | Variable<any, string>,
+	/** Общий хэш (doc_hash + meta_hash) */
+	hash: string | Variable<any, string>,
+	meta: ValueTypes["ProgramAgreementsAnnulmentSignedMetaDocumentInput"] | Variable<any, string>,
+	/** Хэш мета-данных */
+	meta_hash: string | Variable<any, string>,
+	/** Вектор подписей */
+	signatures: Array<ValueTypes["SignatureInfoInput"]> | Variable<any, string>,
+	/** Версия стандарта документа */
+	version: string | Variable<any, string>
+};
+	["ProgramAgreementsAnnulmentSignedMetaDocumentInput"]: {
+	/** Номер блока, на котором был создан документ */
+	block_num: number | Variable<any, string>,
+	/** Название кооператива, связанное с документом */
+	coopname: string | Variable<any, string>,
+	/** Дата и время создания документа */
+	created_at: string | Variable<any, string>,
+	/** Хэш процесса выхода; пусто — аннулирование без выхода из кооператива */
+	exit_hash?: string | undefined | null | Variable<any, string>,
+	/** Имя генератора, использованного для создания документа */
+	generator: string | Variable<any, string>,
+	/** Язык документа */
+	lang: string | Variable<any, string>,
+	/** Ссылки, связанные с документом */
+	links: Array<string> | Variable<any, string>,
+	/** Программы, соглашения по которым аннулируются */
+	programs: Array<ValueTypes["ProgramAgreementInput"]> | Variable<any, string>,
+	/** ID документа в реестре */
+	registry_id: number | Variable<any, string>,
+	/** Флаг пропуска сохранения документа (используется для предварительной генерации и демонстрации пользователю) */
+	skip_save: boolean | Variable<any, string>,
+	/** Часовой пояс, в котором был создан документ */
+	timezone: string | Variable<any, string>,
+	/** Название документа */
+	title: string | Variable<any, string>,
+	/** Сумма к переводу на главный паевой кошелёк по всем программам */
+	total_refund: string | Variable<any, string>,
+	/** Имя пользователя, создавшего документ */
+	username: string | Variable<any, string>,
+	/** Версия генератора, использованного для создания документа */
+	version: string | Variable<any, string>
 };
 	["ProgramCapitalizationMoneyInvestStatementGenerateDocumentInput"]: {
 	/** Сумма инвестирования в программу (актив) */
@@ -22918,6 +23054,8 @@ export type ResolverInputTypes = {
 	username: string
 };
 	["CreateMembershipExitInput"]: {
+	/** Подписанное заявление об аннулировании соглашений ЦПП; обязательно, когда у пайщика есть программные соглашения */
+	annulment?: ResolverInputTypes["ProgramAgreementsAnnulmentSignedDocumentInput"] | undefined | null,
 	/** Имя аккаунта кооператива */
 	coopname: string,
 	/** Хеш процесса выхода (генерируется на клиенте) */
@@ -30067,6 +30205,21 @@ export type ResolverInputTypes = {
 	/** Версия генератора, использованного для создания документа */
 	version?: string | undefined | null
 };
+	["MembershipExitProgram"]: AliasType<{
+	/** Хэш подписанного соглашения */
+	agreement_hash?:boolean | `@${string}`,
+	/** Когда подписано соглашение об участии */
+	agreement_signed_at?:boolean | `@${string}`,
+	/** Идентификатор программы; 0 — кошельки вне программ */
+	program_id?:boolean | `@${string}`,
+	/** Сколько возвращается по этой программе */
+	refund?:boolean | `@${string}`,
+	/** Название программы */
+	title?:boolean | `@${string}`,
+	/** Кошельки программы с остатками */
+	wallets?:ResolverInputTypes["MembershipExitWallet"],
+		__typename?: boolean | `@${string}`
+}>;
 	["MembershipExitResult"]: AliasType<{
 	/** Хеш созданного процесса выхода */
 	exit_hash?:boolean | `@${string}`,
@@ -30075,16 +30228,33 @@ export type ResolverInputTypes = {
 		__typename?: boolean | `@${string}`
 }>;
 	["MembershipExitReturnPreview"]: AliasType<{
+	/** Причины, по которым выйти сейчас нельзя; пусто — выход доступен */
+	blockers?:boolean | `@${string}`,
 	/** Минимальный паевой взнос пайщика */
 	minimum_contribution?:boolean | `@${string}`,
+	/** Разбивка возврата по программам пайщика */
+	programs?:ResolverInputTypes["MembershipExitProgram"],
 	/** Целевой паевой взнос пайщика */
 	share_contribution?:boolean | `@${string}`,
-	/** Итоговая сумма к возврату (минимальный + целевой паевой) */
+	/** Итоговая сумма к возврату */
 	total?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
 	/** Статус процесса выхода пайщика из кооператива */
 ["MembershipExitStatus"]:MembershipExitStatus;
+	["MembershipExitWallet"]: AliasType<{
+	/** Остаток пайщика на кошельке */
+	balance?:boolean | `@${string}`,
+	/** Человекочитаемое название кошелька */
+	human_name?:boolean | `@${string}`,
+	/** Что выход делает с кошельком: MAIN, RETURN_TO_MAIN, FORFEIT, BLOCKER, UNTOUCHED */
+	policy?:boolean | `@${string}`,
+	/** Остаток возвращается пайщику при выходе */
+	returns?:boolean | `@${string}`,
+	/** Машинное имя кошелька */
+	wallet_name?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
 	/** Источник вклада в метрику */
 ["MetricContributionSource"]:MetricContributionSource;
 	/** Направление вклада метрики в общую динамику */
@@ -30336,6 +30506,7 @@ generateMembershipExitDecision?: [{	data: ResolverInputTypes["MembershipExitDeci
 generateParticipantApplication?: [{	data: ResolverInputTypes["ParticipantApplicationGenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
 generateParticipantApplicationDecision?: [{	data: ResolverInputTypes["ParticipantApplicationDecisionGenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
 generatePrivacyAgreement?: [{	data: ResolverInputTypes["GenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
+generateProgramAgreementsAnnulment?: [{	data: ResolverInputTypes["ProgramAgreementsAnnulmentGenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
 generateProjectOfFreeDecision?: [{	data: ResolverInputTypes["ProjectFreeDecisionGenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
 generateRegistrationDocuments?: [{	data: ResolverInputTypes["GenerateRegistrationDocumentsInput"]},ResolverInputTypes["GenerateRegistrationDocumentsOutput"]],
 generateReportFromEdits?: [{	editsJson: string,	period?: number | undefined | null,	reportType: ResolverInputTypes["ReportType"],	year: number},ResolverInputTypes["GeneratedReport"]],
@@ -31715,6 +31886,105 @@ walmoveWallets?: [{	input: ResolverInputTypes["WalmoveInput"]},ResolverInputType
 	processType?: string | undefined | null,
 	toBlock?: number | undefined | null,
 	username?: string | undefined | null
+};
+	["ProgramAgreementInput"]: {
+	/** Хэш подписанного соглашения */
+	agreement_hash: string,
+	/** Когда подписано соглашение об участии */
+	agreement_signed_at: string,
+	/** Идентификатор программы */
+	program_id: number,
+	/** Сколько возвращается по этой программе */
+	refund: string,
+	/** Название программы */
+	title: string,
+	/** Кошельки программы с остатками */
+	wallets: Array<ResolverInputTypes["ProgramAgreementWalletInput"]>
+};
+	["ProgramAgreementWalletInput"]: {
+	/** Остаток на день заявления */
+	balance: string,
+	/** Человекочитаемое название кошелька */
+	human_name: string,
+	/** Остаток возвращается на главный паевой кошелёк */
+	returns: boolean,
+	/** Машинное имя кошелька */
+	wallet_name: string
+};
+	["ProgramAgreementsAnnulmentGenerateDocumentInput"]: {
+	/** Номер блока, на котором был создан документ */
+	block_num?: number | undefined | null,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at?: string | undefined | null,
+	/** Хэш процесса выхода; пусто — аннулирование без выхода из кооператива */
+	exit_hash?: string | undefined | null,
+	/** Имя генератора, использованного для создания документа */
+	generator?: string | undefined | null,
+	/** Язык документа */
+	lang?: string | undefined | null,
+	/** Ссылки, связанные с документом */
+	links?: Array<string> | undefined | null,
+	/** Программы, соглашения по которым аннулируются */
+	programs: Array<ResolverInputTypes["ProgramAgreementInput"]>,
+	/** Флаг пропуска сохранения документа (используется для предварительной генерации и демонстрации пользователю) */
+	skip_save: boolean,
+	/** Часовой пояс, в котором был создан документ */
+	timezone?: string | undefined | null,
+	/** Название документа */
+	title?: string | undefined | null,
+	/** Сумма к переводу на главный паевой кошелёк по всем программам */
+	total_refund: string,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version?: string | undefined | null
+};
+	["ProgramAgreementsAnnulmentSignedDocumentInput"]: {
+	/** Хэш содержимого документа */
+	doc_hash: string,
+	/** Общий хэш (doc_hash + meta_hash) */
+	hash: string,
+	meta: ResolverInputTypes["ProgramAgreementsAnnulmentSignedMetaDocumentInput"],
+	/** Хэш мета-данных */
+	meta_hash: string,
+	/** Вектор подписей */
+	signatures: Array<ResolverInputTypes["SignatureInfoInput"]>,
+	/** Версия стандарта документа */
+	version: string
+};
+	["ProgramAgreementsAnnulmentSignedMetaDocumentInput"]: {
+	/** Номер блока, на котором был создан документ */
+	block_num: number,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at: string,
+	/** Хэш процесса выхода; пусто — аннулирование без выхода из кооператива */
+	exit_hash?: string | undefined | null,
+	/** Имя генератора, использованного для создания документа */
+	generator: string,
+	/** Язык документа */
+	lang: string,
+	/** Ссылки, связанные с документом */
+	links: Array<string>,
+	/** Программы, соглашения по которым аннулируются */
+	programs: Array<ResolverInputTypes["ProgramAgreementInput"]>,
+	/** ID документа в реестре */
+	registry_id: number,
+	/** Флаг пропуска сохранения документа (используется для предварительной генерации и демонстрации пользователю) */
+	skip_save: boolean,
+	/** Часовой пояс, в котором был создан документ */
+	timezone: string,
+	/** Название документа */
+	title: string,
+	/** Сумма к переводу на главный паевой кошелёк по всем программам */
+	total_refund: string,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version: string
 };
 	["ProgramCapitalizationMoneyInvestStatementGenerateDocumentInput"]: {
 	/** Сумма инвестирования в программу (актив) */
@@ -39295,6 +39565,8 @@ export type ModelTypes = {
 	username: string
 };
 	["CreateMembershipExitInput"]: {
+	/** Подписанное заявление об аннулировании соглашений ЦПП; обязательно, когда у пайщика есть программные соглашения */
+	annulment?: ModelTypes["ProgramAgreementsAnnulmentSignedDocumentInput"] | undefined | null,
 	/** Имя аккаунта кооператива */
 	coopname: string,
 	/** Хеш процесса выхода (генерируется на клиенте) */
@@ -46127,6 +46399,20 @@ export type ModelTypes = {
 	/** Версия генератора, использованного для создания документа */
 	version?: string | undefined | null
 };
+	["MembershipExitProgram"]: {
+		/** Хэш подписанного соглашения */
+	agreement_hash?: string | undefined | null,
+	/** Когда подписано соглашение об участии */
+	agreement_signed_at?: string | undefined | null,
+	/** Идентификатор программы; 0 — кошельки вне программ */
+	program_id: number,
+	/** Сколько возвращается по этой программе */
+	refund: string,
+	/** Название программы */
+	title: string,
+	/** Кошельки программы с остатками */
+	wallets: Array<ModelTypes["MembershipExitWallet"]>
+};
 	["MembershipExitResult"]: {
 		/** Хеш созданного процесса выхода */
 	exit_hash: string,
@@ -46134,14 +46420,30 @@ export type ModelTypes = {
 	status: ModelTypes["MembershipExitStatus"]
 };
 	["MembershipExitReturnPreview"]: {
-		/** Минимальный паевой взнос пайщика */
+		/** Причины, по которым выйти сейчас нельзя; пусто — выход доступен */
+	blockers: Array<string>,
+	/** Минимальный паевой взнос пайщика */
 	minimum_contribution: string,
+	/** Разбивка возврата по программам пайщика */
+	programs: Array<ModelTypes["MembershipExitProgram"]>,
 	/** Целевой паевой взнос пайщика */
 	share_contribution: string,
-	/** Итоговая сумма к возврату (минимальный + целевой паевой) */
+	/** Итоговая сумма к возврату */
 	total: string
 };
 	["MembershipExitStatus"]:MembershipExitStatus;
+	["MembershipExitWallet"]: {
+		/** Остаток пайщика на кошельке */
+	balance: string,
+	/** Человекочитаемое название кошелька */
+	human_name: string,
+	/** Что выход делает с кошельком: MAIN, RETURN_TO_MAIN, FORFEIT, BLOCKER, UNTOUCHED */
+	policy: string,
+	/** Остаток возвращается пайщику при выходе */
+	returns: boolean,
+	/** Машинное имя кошелька */
+	wallet_name: string
+};
 	["MetricContributionSource"]:MetricContributionSource;
 	["MetricDriveDirection"]:MetricDriveDirection;
 	["MetricSeriesMode"]:MetricSeriesMode;
@@ -46579,6 +46881,8 @@ export type ModelTypes = {
 	generateParticipantApplicationDecision: ModelTypes["GeneratedDocument"],
 	/** Сгенерировать документ согласия с политикой конфиденциальности. */
 	generatePrivacyAgreement: ModelTypes["GeneratedDocument"],
+	/** Сгенерировать заявление об аннулировании соглашений об участии в целевых потребительских программах. */
+	generateProgramAgreementsAnnulment: ModelTypes["GeneratedDocument"],
 	/** Сгенерировать документ проекта свободного решения */
 	generateProjectOfFreeDecision: ModelTypes["GeneratedDocument"],
 	/** Генерирует пакет документов для регистрации пайщика. Возвращает список документов с метаданными для отображения на фронтенде. */
@@ -48042,6 +48346,105 @@ export type ModelTypes = {
 	processType?: string | undefined | null,
 	toBlock?: number | undefined | null,
 	username?: string | undefined | null
+};
+	["ProgramAgreementInput"]: {
+	/** Хэш подписанного соглашения */
+	agreement_hash: string,
+	/** Когда подписано соглашение об участии */
+	agreement_signed_at: string,
+	/** Идентификатор программы */
+	program_id: number,
+	/** Сколько возвращается по этой программе */
+	refund: string,
+	/** Название программы */
+	title: string,
+	/** Кошельки программы с остатками */
+	wallets: Array<ModelTypes["ProgramAgreementWalletInput"]>
+};
+	["ProgramAgreementWalletInput"]: {
+	/** Остаток на день заявления */
+	balance: string,
+	/** Человекочитаемое название кошелька */
+	human_name: string,
+	/** Остаток возвращается на главный паевой кошелёк */
+	returns: boolean,
+	/** Машинное имя кошелька */
+	wallet_name: string
+};
+	["ProgramAgreementsAnnulmentGenerateDocumentInput"]: {
+	/** Номер блока, на котором был создан документ */
+	block_num?: number | undefined | null,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at?: string | undefined | null,
+	/** Хэш процесса выхода; пусто — аннулирование без выхода из кооператива */
+	exit_hash?: string | undefined | null,
+	/** Имя генератора, использованного для создания документа */
+	generator?: string | undefined | null,
+	/** Язык документа */
+	lang?: string | undefined | null,
+	/** Ссылки, связанные с документом */
+	links?: Array<string> | undefined | null,
+	/** Программы, соглашения по которым аннулируются */
+	programs: Array<ModelTypes["ProgramAgreementInput"]>,
+	/** Флаг пропуска сохранения документа (используется для предварительной генерации и демонстрации пользователю) */
+	skip_save: boolean,
+	/** Часовой пояс, в котором был создан документ */
+	timezone?: string | undefined | null,
+	/** Название документа */
+	title?: string | undefined | null,
+	/** Сумма к переводу на главный паевой кошелёк по всем программам */
+	total_refund: string,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version?: string | undefined | null
+};
+	["ProgramAgreementsAnnulmentSignedDocumentInput"]: {
+	/** Хэш содержимого документа */
+	doc_hash: string,
+	/** Общий хэш (doc_hash + meta_hash) */
+	hash: string,
+	meta: ModelTypes["ProgramAgreementsAnnulmentSignedMetaDocumentInput"],
+	/** Хэш мета-данных */
+	meta_hash: string,
+	/** Вектор подписей */
+	signatures: Array<ModelTypes["SignatureInfoInput"]>,
+	/** Версия стандарта документа */
+	version: string
+};
+	["ProgramAgreementsAnnulmentSignedMetaDocumentInput"]: {
+	/** Номер блока, на котором был создан документ */
+	block_num: number,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at: string,
+	/** Хэш процесса выхода; пусто — аннулирование без выхода из кооператива */
+	exit_hash?: string | undefined | null,
+	/** Имя генератора, использованного для создания документа */
+	generator: string,
+	/** Язык документа */
+	lang: string,
+	/** Ссылки, связанные с документом */
+	links: Array<string>,
+	/** Программы, соглашения по которым аннулируются */
+	programs: Array<ModelTypes["ProgramAgreementInput"]>,
+	/** ID документа в реестре */
+	registry_id: number,
+	/** Флаг пропуска сохранения документа (используется для предварительной генерации и демонстрации пользователю) */
+	skip_save: boolean,
+	/** Часовой пояс, в котором был создан документ */
+	timezone: string,
+	/** Название документа */
+	title: string,
+	/** Сумма к переводу на главный паевой кошелёк по всем программам */
+	total_refund: string,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version: string
 };
 	["ProgramCapitalizationMoneyInvestStatementGenerateDocumentInput"]: {
 	/** Сумма инвестирования в программу (актив) */
@@ -55994,7 +56397,9 @@ export type GraphQLTypes = {
 	username: string
 };
 	["CreateMembershipExitInput"]: {
-		/** Имя аккаунта кооператива */
+		/** Подписанное заявление об аннулировании соглашений ЦПП; обязательно, когда у пайщика есть программные соглашения */
+	annulment?: GraphQLTypes["ProgramAgreementsAnnulmentSignedDocumentInput"] | undefined | null,
+	/** Имя аккаунта кооператива */
 	coopname: string,
 	/** Хеш процесса выхода (генерируется на клиенте) */
 	exit_hash: string,
@@ -63367,6 +63772,22 @@ export type GraphQLTypes = {
 	/** Версия генератора, использованного для создания документа */
 	version?: string | undefined | null
 };
+	["MembershipExitProgram"]: {
+	__typename: "MembershipExitProgram",
+	/** Хэш подписанного соглашения */
+	agreement_hash?: string | undefined | null,
+	/** Когда подписано соглашение об участии */
+	agreement_signed_at?: string | undefined | null,
+	/** Идентификатор программы; 0 — кошельки вне программ */
+	program_id: number,
+	/** Сколько возвращается по этой программе */
+	refund: string,
+	/** Название программы */
+	title: string,
+	/** Кошельки программы с остатками */
+	wallets: Array<GraphQLTypes["MembershipExitWallet"]>,
+	['...on MembershipExitProgram']: Omit<GraphQLTypes["MembershipExitProgram"], "...on MembershipExitProgram">
+};
 	["MembershipExitResult"]: {
 	__typename: "MembershipExitResult",
 	/** Хеш созданного процесса выхода */
@@ -63377,16 +63798,34 @@ export type GraphQLTypes = {
 };
 	["MembershipExitReturnPreview"]: {
 	__typename: "MembershipExitReturnPreview",
+	/** Причины, по которым выйти сейчас нельзя; пусто — выход доступен */
+	blockers: Array<string>,
 	/** Минимальный паевой взнос пайщика */
 	minimum_contribution: string,
+	/** Разбивка возврата по программам пайщика */
+	programs: Array<GraphQLTypes["MembershipExitProgram"]>,
 	/** Целевой паевой взнос пайщика */
 	share_contribution: string,
-	/** Итоговая сумма к возврату (минимальный + целевой паевой) */
+	/** Итоговая сумма к возврату */
 	total: string,
 	['...on MembershipExitReturnPreview']: Omit<GraphQLTypes["MembershipExitReturnPreview"], "...on MembershipExitReturnPreview">
 };
 	/** Статус процесса выхода пайщика из кооператива */
 ["MembershipExitStatus"]: MembershipExitStatus;
+	["MembershipExitWallet"]: {
+	__typename: "MembershipExitWallet",
+	/** Остаток пайщика на кошельке */
+	balance: string,
+	/** Человекочитаемое название кошелька */
+	human_name: string,
+	/** Что выход делает с кошельком: MAIN, RETURN_TO_MAIN, FORFEIT, BLOCKER, UNTOUCHED */
+	policy: string,
+	/** Остаток возвращается пайщику при выходе */
+	returns: boolean,
+	/** Машинное имя кошелька */
+	wallet_name: string,
+	['...on MembershipExitWallet']: Omit<GraphQLTypes["MembershipExitWallet"], "...on MembershipExitWallet">
+};
 	/** Источник вклада в метрику */
 ["MetricContributionSource"]: MetricContributionSource;
 	/** Направление вклада метрики в общую динамику */
@@ -63833,6 +64272,8 @@ export type GraphQLTypes = {
 	generateParticipantApplicationDecision: GraphQLTypes["GeneratedDocument"],
 	/** Сгенерировать документ согласия с политикой конфиденциальности. */
 	generatePrivacyAgreement: GraphQLTypes["GeneratedDocument"],
+	/** Сгенерировать заявление об аннулировании соглашений об участии в целевых потребительских программах. */
+	generateProgramAgreementsAnnulment: GraphQLTypes["GeneratedDocument"],
 	/** Сгенерировать документ проекта свободного решения */
 	generateProjectOfFreeDecision: GraphQLTypes["GeneratedDocument"],
 	/** Генерирует пакет документов для регистрации пайщика. Возвращает список документов с метаданными для отображения на фронтенде. */
@@ -65464,6 +65905,105 @@ export type GraphQLTypes = {
 	processType?: string | undefined | null,
 	toBlock?: number | undefined | null,
 	username?: string | undefined | null
+};
+	["ProgramAgreementInput"]: {
+		/** Хэш подписанного соглашения */
+	agreement_hash: string,
+	/** Когда подписано соглашение об участии */
+	agreement_signed_at: string,
+	/** Идентификатор программы */
+	program_id: number,
+	/** Сколько возвращается по этой программе */
+	refund: string,
+	/** Название программы */
+	title: string,
+	/** Кошельки программы с остатками */
+	wallets: Array<GraphQLTypes["ProgramAgreementWalletInput"]>
+};
+	["ProgramAgreementWalletInput"]: {
+		/** Остаток на день заявления */
+	balance: string,
+	/** Человекочитаемое название кошелька */
+	human_name: string,
+	/** Остаток возвращается на главный паевой кошелёк */
+	returns: boolean,
+	/** Машинное имя кошелька */
+	wallet_name: string
+};
+	["ProgramAgreementsAnnulmentGenerateDocumentInput"]: {
+		/** Номер блока, на котором был создан документ */
+	block_num?: number | undefined | null,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at?: string | undefined | null,
+	/** Хэш процесса выхода; пусто — аннулирование без выхода из кооператива */
+	exit_hash?: string | undefined | null,
+	/** Имя генератора, использованного для создания документа */
+	generator?: string | undefined | null,
+	/** Язык документа */
+	lang?: string | undefined | null,
+	/** Ссылки, связанные с документом */
+	links?: Array<string> | undefined | null,
+	/** Программы, соглашения по которым аннулируются */
+	programs: Array<GraphQLTypes["ProgramAgreementInput"]>,
+	/** Флаг пропуска сохранения документа (используется для предварительной генерации и демонстрации пользователю) */
+	skip_save: boolean,
+	/** Часовой пояс, в котором был создан документ */
+	timezone?: string | undefined | null,
+	/** Название документа */
+	title?: string | undefined | null,
+	/** Сумма к переводу на главный паевой кошелёк по всем программам */
+	total_refund: string,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version?: string | undefined | null
+};
+	["ProgramAgreementsAnnulmentSignedDocumentInput"]: {
+		/** Хэш содержимого документа */
+	doc_hash: string,
+	/** Общий хэш (doc_hash + meta_hash) */
+	hash: string,
+	meta: GraphQLTypes["ProgramAgreementsAnnulmentSignedMetaDocumentInput"],
+	/** Хэш мета-данных */
+	meta_hash: string,
+	/** Вектор подписей */
+	signatures: Array<GraphQLTypes["SignatureInfoInput"]>,
+	/** Версия стандарта документа */
+	version: string
+};
+	["ProgramAgreementsAnnulmentSignedMetaDocumentInput"]: {
+		/** Номер блока, на котором был создан документ */
+	block_num: number,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at: string,
+	/** Хэш процесса выхода; пусто — аннулирование без выхода из кооператива */
+	exit_hash?: string | undefined | null,
+	/** Имя генератора, использованного для создания документа */
+	generator: string,
+	/** Язык документа */
+	lang: string,
+	/** Ссылки, связанные с документом */
+	links: Array<string>,
+	/** Программы, соглашения по которым аннулируются */
+	programs: Array<GraphQLTypes["ProgramAgreementInput"]>,
+	/** ID документа в реестре */
+	registry_id: number,
+	/** Флаг пропуска сохранения документа (используется для предварительной генерации и демонстрации пользователю) */
+	skip_save: boolean,
+	/** Часовой пояс, в котором был создан документ */
+	timezone: string,
+	/** Название документа */
+	title: string,
+	/** Сумма к переводу на главный паевой кошелёк по всем программам */
+	total_refund: string,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version: string
 };
 	["ProgramCapitalizationMoneyInvestStatementGenerateDocumentInput"]: {
 		/** Сумма инвестирования в программу (актив) */
@@ -70328,6 +70868,11 @@ type ZEUS_VARIABLES = {
 	["ProcessStepTemplateInput"]: ValueTypes["ProcessStepTemplateInput"];
 	["ProcessTemplateStatus"]: ValueTypes["ProcessTemplateStatus"];
 	["ProcessesFilter"]: ValueTypes["ProcessesFilter"];
+	["ProgramAgreementInput"]: ValueTypes["ProgramAgreementInput"];
+	["ProgramAgreementWalletInput"]: ValueTypes["ProgramAgreementWalletInput"];
+	["ProgramAgreementsAnnulmentGenerateDocumentInput"]: ValueTypes["ProgramAgreementsAnnulmentGenerateDocumentInput"];
+	["ProgramAgreementsAnnulmentSignedDocumentInput"]: ValueTypes["ProgramAgreementsAnnulmentSignedDocumentInput"];
+	["ProgramAgreementsAnnulmentSignedMetaDocumentInput"]: ValueTypes["ProgramAgreementsAnnulmentSignedMetaDocumentInput"];
 	["ProgramCapitalizationMoneyInvestStatementGenerateDocumentInput"]: ValueTypes["ProgramCapitalizationMoneyInvestStatementGenerateDocumentInput"];
 	["ProgramCapitalizationMoneyInvestStatementSignedDocumentInput"]: ValueTypes["ProgramCapitalizationMoneyInvestStatementSignedDocumentInput"];
 	["ProgramCapitalizationMoneyInvestStatementSignedMetaDocumentInput"]: ValueTypes["ProgramCapitalizationMoneyInvestStatementSignedMetaDocumentInput"];

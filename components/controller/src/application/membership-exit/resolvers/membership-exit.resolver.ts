@@ -3,6 +3,7 @@ import { ForbiddenException, UseGuards } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser, GeneratedDocumentDTO, GenerateDocumentOptionsInputDTO } from '@coopenomics/extension-kit';
 import { IMonoAccount } from '@coopenomics/innercoop';
+import { ProgramAgreementsAnnulmentGenerateDocumentInputDTO } from '~/application/document/documents-dto/program-agreements-annulment-document.dto';
 import { MembershipExitApplicationGenerateDocumentInputDTO } from '~/application/document/documents-dto/membership-exit-application-document.dto';
 import { MembershipExitDecisionGenerateDocumentInputDTO } from '~/application/document/documents-dto/membership-exit-decision-document.dto';
 import { MembershipExitService } from '../services/membership-exit.service';
@@ -34,6 +35,24 @@ export class MembershipExitResolver {
     options: GenerateDocumentOptionsInputDTO
   ): Promise<GeneratedDocumentDTO> {
     return this.membershipExitService.generateMembershipExitApplication(data, options);
+  }
+
+  // Заявление об аннулировании соглашений ЦПП подписывается вместе с заявлением
+  // о выходе: суммы по программам собирает сервер, пайщик их только видит.
+  @Mutation(() => GeneratedDocumentDTO, {
+    name: 'generateProgramAgreementsAnnulment',
+    description: 'Сгенерировать заявление об аннулировании соглашений об участии в целевых потребительских программах.',
+  })
+  @Throttle({ default: { limit: 3, ttl: 60000 } })
+  @UseGuards(GqlJwtAuthGuard, RolesGuard)
+  @AuthRoles(['chairman', 'member'])
+  async generateProgramAgreementsAnnulment(
+    @Args('data', { type: () => ProgramAgreementsAnnulmentGenerateDocumentInputDTO })
+    data: ProgramAgreementsAnnulmentGenerateDocumentInputDTO,
+    @Args('options', { type: () => GenerateDocumentOptionsInputDTO, nullable: true })
+    options: GenerateDocumentOptionsInputDTO
+  ): Promise<GeneratedDocumentDTO> {
+    return this.membershipExitService.generateProgramAgreementsAnnulment(data, options);
   }
 
   @Mutation(() => GeneratedDocumentDTO, {

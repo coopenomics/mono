@@ -25,6 +25,7 @@ export * from './wallet.port';
 export * from './program-agreement.port';
 export * from './vault.port';
 export * from './coop-credential.port';
+export * from './member-exit.port';
 export * from './onboarding.port';
 export * from './document-declaration.port';
 export * from './document-approval.port';

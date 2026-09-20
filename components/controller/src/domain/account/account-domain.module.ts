@@ -8,6 +8,7 @@ import {
 } from './services/notification-subscriber-sync.service';
 import { AccountRoleEventService } from './services/account-role-event.service';
 import { ParticipantStatusSyncService } from './services/participant-status-sync.service';
+import { MemberExitRegistryService } from './services/member-exit-registry.service';
 import { TokenApplicationModule } from '~/application/token/token-application.module';
 import { UserDomainModule } from '~/domain/user/user-domain.module';
 
@@ -19,6 +20,7 @@ import { UserDomainModule } from '~/domain/user/user-domain.module';
     NotificationSubscriberSyncService,
     AccountRoleEventService,
     ParticipantStatusSyncService,
+    MemberExitRegistryService,
     {
       provide: ACCOUNT_DOMAIN_SERVICE,
       useExisting: AccountDomainService,
@@ -33,6 +35,7 @@ import { UserDomainModule } from '~/domain/user/user-domain.module';
     NotificationSubscriberSyncService,
     AccountRoleEventService,
     ParticipantStatusSyncService,
+    MemberExitRegistryService,
     ACCOUNT_DOMAIN_SERVICE,
     NOTIFICATION_SUBSCRIBER_SYNC_SERVICE,
   ],

@@ -29,6 +29,10 @@ export class MembershipExitRequestEntity {
   @Column({ type: 'jsonb' })
   statement!: Record<string, any>;
 
+  /** Заявление об аннулировании соглашений ЦПП; пусто у пайщика без программных соглашений. */
+  @Column({ type: 'jsonb', nullable: true })
+  annulment!: Record<string, any> | null;
+
   @Column({ name: 'token', length: 1024 })
   token!: string;
 

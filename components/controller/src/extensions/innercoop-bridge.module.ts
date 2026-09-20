@@ -42,6 +42,7 @@ import {
   PROGRAM_WALLET_PORT,
   PROJECT_CAPITAL_CLEARANCE_PORT,
   REALTIME_CHANNEL_PORT,
+  MEMBER_EXIT_REGISTRY_PORT,
   REGISTRATION_REGISTRY_PORT,
   REGISTRATION_DOCUMENT_PARAMETERS_REGISTRY_PORT,
   SECRET_CIPHER_PORT,
@@ -114,6 +115,7 @@ import { ExtensionGrantsFilterRegistry } from '~/application/desktop/extension-g
 import { ExtensionOfferFilterRegistry } from '~/domain/registration/services/extension-offer-filter.registry';
 import { PubSubModule } from '~/infrastructure/pubsub/pubsub.module';
 import { AgreementRegistryService } from '~/domain/registration/services/agreement-registry.service';
+import { MemberExitRegistryService } from '~/domain/account/services/member-exit-registry.service';
 import { RegistrationDocumentParametersRegistry } from '~/domain/registration/services/registration-document-parameters.registry';
 import {
   OrganizationInnercoopAdapter,
@@ -434,6 +436,12 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
       useExisting: AgreementRegistryService,
     },
     {
+      // Расширение говорит, почему пайщику рано выходить; деньги и соглашения
+      // при выходе ведёт цепь.
+      provide: MEMBER_EXIT_REGISTRY_PORT,
+      useExisting: MemberExitRegistryService,
+    },
+    {
       // Реестр параметров оферт — там же и по той же причине: расширение
       // кладёт свой хук само, ядро вызывает его в потоке вступления.
       provide: REGISTRATION_DOCUMENT_PARAMETERS_REGISTRY_PORT,
@@ -513,6 +521,7 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
     DESKTOP_GRANTS_REGISTRY_PORT,
     DESKTOP_GRANTS_FILTER_REGISTRY_PORT,
     REGISTRATION_OFFER_FILTER_REGISTRY_PORT,
+    MEMBER_EXIT_REGISTRY_PORT,
     REGISTRATION_REGISTRY_PORT,
     REGISTRATION_DOCUMENT_PARAMETERS_REGISTRY_PORT,
     ONBOARDING_STEP_REGISTRY_PORT,
