@@ -236,77 +236,77 @@ cases:
     scenario: "Совет решения по заявлению не принял, председатель отказывает в приёме."
     expect: "Протокол не собирается; материалы снимаются с хранения recallrid с основанием, взнос отклонён."
     test: components/controller/tests/unit/edubridge/teacher.service.test.ts
-    status: written
+    status: passing
   - id: edu.teach.side.12
     level: backend
     kind: side
     scenario: "Решение совета есть, приём не состоялся — председатель закрывает заявление."
     expect: "declinerid с протоколом 3009 по номеру принятого решения; recallrid не вызывается."
     test: components/controller/tests/unit/edubridge/teacher.service.test.ts
-    status: written
+    status: passing
   - id: edu.teach.break.08
     level: backend
     kind: break
     scenario: "Сбой после submitrid: проект решения совета не создан."
     expect: "Статус SUBMITTED и подписанное заявление сохранены сразу; очередь доводит взнос до совета без повторной подачи в цепь."
     test: components/controller/tests/unit/edubridge/teacher.service.test.ts
-    status: written
+    status: passing
   - id: edu.teach.break.06
     level: backend
     kind: break
     scenario: "Цепь отвечает «уже подано» на повторный submitrid."
     expect: "Подача продолжается с проекта решения; иная ошибка цепи статус не меняет."
     test: components/controller/tests/unit/edubridge/teacher.service.test.ts
-    status: written
+    status: passing
   - id: edu.teach.side.13
     level: backend
     kind: side
     scenario: "Отчёт о занятии задним числом при гарантийном сроке курса."
     expect: "Срок хранения идёт от приёма материалов (акт 3012), а не от даты занятия; акт и цепь называют одну дату; устаревший акт не подписывается."
     test: components/controller/tests/unit/edubridge/teacher.service.test.ts
-    status: written
+    status: passing
   - id: edu.teach.break.07
     level: backend
     kind: break
     scenario: "Дата занятия в будущем либо раньше периода назначения; длительность больше сдвоенного занятия курса."
     expect: "Отчёт отклоняется до записи в журнал."
     test: components/controller/tests/unit/edubridge/teacher.service.test.ts
-    status: written
+    status: passing
   - id: edu.teach.side.14
     level: backend
     kind: side
     scenario: "Материалы занятия сняты с хранения — занятие проводится и отчитывается заново."
     expect: "Строка журнала та же, взнос новый с другим ключом."
     test: components/controller/tests/unit/edubridge/teacher.service.test.ts
-    status: written
+    status: passing
   - id: edu.teach.happy.11
     level: backend
     kind: happy
     scenario: "Прекращение договора УХД: выход преподавателя из кооператива либо соглашение сторон."
     expect: "termcontract в цепь, статус «прекращён»; договор подписывается заново, в том числе с новой ставкой."
     test: components/controller/tests/unit/edubridge/teacher.service.test.ts
-    status: written
+    status: passing
   - id: edu.teach.side.15
     level: backend
     kind: side
     scenario: "Прекращение договора при действующих назначениях либо незакрытых взносах; без основания; повторно."
     expect: "Отказ до обращения к цепи; прекращённый и отсутствующий договор в цепь не идут."
     test: components/controller/tests/unit/edubridge/teacher.service.test.ts
-    status: written
+    status: passing
   - id: edu.teach.side.16
     level: backend
     kind: side
     scenario: "Заявление о выходе из кооператива подано преподавателем."
     expect: "Подписки закрываются, договор УХД прекращается; сбой прекращения выход не роняет."
     test: components/controller/tests/unit/edubridge/membership-exit.listener.test.ts
-    status: written
+    status: passing
   - id: edu.teach.side.17
     level: backend
     kind: side
     scenario: "Материалы на хранении без подписанного заявления держат выход."
     expect: "Причина называет действие преподавателя — подписать заявление, а не ожидание."
     test: components/controller/tests/unit/edubridge/exit-blockers.test.ts
-    status: written
+    status: passing
   - id: edu.teach.contract.07
     level: contract
     kind: break

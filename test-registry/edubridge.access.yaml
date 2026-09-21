@@ -149,4 +149,4 @@ cases:
     scenario: "expiresub по подписке, которой в цепи уже нет; цепь не отвечает."
     expect: "Отсутствующая запись: статус «истекла» и отзыв доступа; недоступная цепь: подписка ждёт следующего прохода, остальные обрабатываются."
     test: components/controller/tests/unit/edubridge/expiry.worker.test.ts
-    status: written
+    status: passing
