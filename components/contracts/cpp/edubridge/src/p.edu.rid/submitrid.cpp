@@ -31,6 +31,7 @@ void edubridge::submitrid(eosio::name coopname,
   eosio::check(!is_empty_document(statement),
                "Отсутствует заявление о паевом взносе результатом интеллектуальной деятельности");
   verify_document_or_fail(statement, { username });
+  verify_signer_keys_or_fail(statement, username);
 
   get_participant_or_fail(coopname, username);
   // Паевой взнос результатом работы возможен только по действующему договору УХД

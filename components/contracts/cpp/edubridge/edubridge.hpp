@@ -24,11 +24,16 @@ using namespace Edubridge;
  * @brief Контракт `edubridge` — ЦПП «Образование» (приложение
  * «Образовательный мост»).
  *
- * Реализует actions двух процессов из YAML-стандартов рядом с этим .hpp:
- *  - **p.edu.access** (4 actions): convert, opensub, extendsub, expiresub —
- *    членский взнос за доступ к курсу вносится конвертацией паевого взноса
- *    (w.wal.share → w.edu.member, o.edu.conv) по Заявлению о конвертации;
- *    подписка на курс — рабочее состояние в RAM, стирается по истечении.
+ * Реализует actions четырёх процессов из YAML-стандартов рядом с этим .hpp:
+ *  - **p.edu.access** (7 actions): convert, opensub, chargefee, extendsub,
+ *    cancelsub, retshare, expiresub — членский взнос за доступ к курсу
+ *    вносится конвертацией паевого взноса (w.wal.share → w.edu.member,
+ *    o.edu.conv) по Заявлению о конвертации и списывается в фонд программы
+ *    (o.edu.fee); отмена возвращает взнос по Положению (o.edu.refund,
+ *    o.edu.retshr); подписка на курс — рабочее состояние в RAM, стирается по
+ *    истечении либо отмене.
+ *  - **p.edu.spend** (2 actions): createexp, onexpdone — расход программы из
+ *    фонда через общее шасси расходов.
  *  - **p.edu.rid** (5 actions): holdrid, submitrid, acceptrid, declinerid,
  *    recallrid — преподаватель отчитывается по занятию и передаёт материалы
  *    на ответственное хранение (o.edu.hold, Дт 08 / Кт 76); по истечении
@@ -37,8 +42,8 @@ using namespace Edubridge;
  *    o.edu.ridshr, w.edu.hold → w.wal.share, Дт 76 / Кт 80). Рекламация
  *    внутри срока и отказ совета снимают материалы с хранения
  *    (o.edu.retrid, Дт 76 / Кт 08).
- *  - **p.edu.teach** (6 actions): signcontract, apprvcontr, dclinecontr,
- *    signannex, apprvannex, dclineannex — договор УХД преподавателя и
+ *  - **p.edu.teach** (7 actions): signcontract, apprvcontr, dclinecontr,
+ *    signannex, apprvannex, dclineannex, termcontract — договор УХД преподавателя и
  *    приложения к нему на курс подписываются двумя сторонами: первая
  *    подпись преподавателя, вторая — председателя совета через одобрение
  *    (`Soviet::create_approval` → `soviet::confirmapprv` → коллбэк сюда),
@@ -50,7 +55,9 @@ using namespace Edubridge;
  *
  * Источник правды по логике, гардам и операциям:
  *  - `p.edu.access.standard.yaml`
+ *  - `p.edu.spend.standard.yaml`
  *  - `p.edu.rid.standard.yaml`
+ *  - `p.edu.teach.standard.yaml`
  */
 class [[eosio::contract(EDUBRIDGE)]] edubridge : public eosio::contract {
 
@@ -291,4 +298,15 @@ public:
                                      eosio::name username,
                                      checksum256 annex_hash,
                                      std::string reason);
+
+  /**
+   * @brief Прекратить Договор участия в хозяйственной деятельности — при
+   * выходе преподавателя из кооператива либо по соглашению сторон. Запись
+   * стирается; вернувшийся пайщик подписывает договор заново.
+   * @ingroup public_edubridge_actions
+   */
+  [[eosio::action]] void termcontract(eosio::name coopname,
+                                      eosio::name username,
+                                      checksum256 contract_hash,
+                                      std::string reason);
 };

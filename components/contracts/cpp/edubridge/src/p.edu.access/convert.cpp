@@ -12,7 +12,7 @@
  *    паевой переходит в целевое финансирование на членский кошелёк программы.
  *
  * Guards:
- *  - amount > 0 в _root_govern_symbol; подпись Заявления валидна (username).
+ *  - amount > 0 в _root_govern_symbol; Заявление подписано ключом самого пайщика.
  *  - Пайщик — активный член кооператива.
  *  - w.wal.share.available пайщика >= amount.
  *
@@ -29,6 +29,7 @@ void edubridge::convert(eosio::name coopname,
   eosio::check(!is_empty_document(statement),
                "Отсутствует заявление о конвертации паевого взноса");
   verify_document_or_fail(statement, { username });
+  verify_signer_keys_or_fail(statement, username);
 
   // Пайщик — активный член кооператива (бросает если не найден / blocked)
   get_participant_or_fail(coopname, username);

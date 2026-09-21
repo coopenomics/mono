@@ -46,6 +46,8 @@ void edubridge::acceptrid(eosio::name coopname,
   auto chairman = soviet.get_chairman();
   verify_document_or_fail(decision);
   verify_document_or_fail(act, { username, chairman });
+  verify_signer_keys_or_fail(act, username);
+  verify_signer_keys_or_fail(act, chairman);
   const eosio::asset amount  = rid->amount;
   const uint64_t rid_id      = rid->id;
 

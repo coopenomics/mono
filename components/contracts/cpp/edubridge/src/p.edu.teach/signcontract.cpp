@@ -24,6 +24,7 @@ void edubridge::signcontract(eosio::name coopname,
   eosio::check(!is_empty_document(contract), "Отсутствует договор участия в хозяйственной деятельности");
   eosio::check(contract.hash == contract_hash, "Hash договора не совпадает с переданным документом");
   verify_document_or_fail(contract, { username });
+  verify_signer_keys_or_fail(contract, username);
 
   get_participant_or_fail(coopname, username);
 

@@ -46,7 +46,7 @@ void edubridge::createexp(eosio::name coopname,
                "Расход с таким идентификатором уже подан");
 
   expenses.emplace(_edubridge, [&](auto& e) {
-    e.id      = expenses.available_primary_key();
+    e.id      = get_global_id_in_scope(_edubridge, coopname, "expenses"_n);
     e.hash    = expense_hash;
     e.creator = creator;
     e.amount  = amount;

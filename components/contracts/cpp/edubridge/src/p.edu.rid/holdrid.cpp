@@ -37,6 +37,7 @@ void edubridge::holdrid(eosio::name coopname,
   eosio::check(!is_empty_document(act),
                "Отсутствует акт передачи материалов на ответственное хранение");
   verify_document_or_fail(act, { username });
+  verify_signer_keys_or_fail(act, username);
 
   get_participant_or_fail(coopname, username);
   // Материалы принимаются только по действующему договору УХД

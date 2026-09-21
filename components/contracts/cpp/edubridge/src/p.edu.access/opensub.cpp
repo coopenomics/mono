@@ -27,7 +27,7 @@ void edubridge::opensub(eosio::name coopname,
   require_auth(coopname);
 
   eosio::check(Edubridge::SubscriptionPeriod::is_valid(period),
-               "Недопустимый период подписки: ожидается month или course");
+               "Недопустимый период подписки: ожидается month, course или year");
 
   const auto now = eosio::current_time_point();
   eosio::check(paid_until > eosio::time_point_sec(now),

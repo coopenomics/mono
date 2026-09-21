@@ -20,6 +20,7 @@ void edubridge::signannex(eosio::name coopname,
   eosio::check(!is_empty_document(annex), "Отсутствует приложение к договору");
   eosio::check(annex.hash == annex_hash, "Hash приложения не совпадает с переданным документом");
   verify_document_or_fail(annex, { username });
+  verify_signer_keys_or_fail(annex, username);
 
   get_participant_or_fail(coopname, username);
   auto contract = Edubridge::get_active_contract_or_fail(coopname, username);

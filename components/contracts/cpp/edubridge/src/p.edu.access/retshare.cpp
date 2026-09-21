@@ -27,6 +27,7 @@ void edubridge::retshare(eosio::name coopname,
   eosio::check(!is_empty_document(statement),
                "Отсутствует заявление о возврате членского взноса в паевой");
   verify_document_or_fail(statement, { username });
+  verify_signer_keys_or_fail(statement, username);
 
   get_participant_or_fail(coopname, username);
 

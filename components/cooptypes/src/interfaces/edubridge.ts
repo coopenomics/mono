@@ -183,6 +183,13 @@ export interface IDclinecontr {
   reason: string
 }
 
+export interface ITermcontract {
+  coopname: IName
+  username: IName
+  contract_hash: IChecksum256
+  reason: string
+}
+
 export interface ISignannex {
   coopname: IName
   username: IName
