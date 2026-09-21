@@ -16,6 +16,10 @@ sources:
     - components/controller/src/extensions/edubridge/infrastructure/repositories/edubridge-enrollment.repository.ts
     - components/controller/src/extensions/edubridge/infrastructure/repositories/edubridge-learner.repository.ts
     - components/controller/src/extensions/edubridge/application/services/edubridge-return.service.ts
+    - components/controller/src/extensions/edubridge/application/services/edubridge-funds.service.ts
+    - components/controller/src/extensions/edubridge/application/services/edubridge-refund.ts
+    - components/controller/src/extensions/edubridge/domain/economy/guarantee.ts
+    - components/controller/src/extensions/edubridge/domain/economy/teacher-reserve.calculator.ts
     - components/controller/src/extensions/edubridge/application/resolvers/edubridge-return.resolver.ts
     - components/controller/src/extensions/edubridge/application/dto/edu-return.dto.ts
     - components/controller/src/extensions/edubridge/infrastructure/repositories/edubridge-return-request.repository.ts
@@ -257,20 +261,6 @@ cases:
     expect: "convert и retshare отклоняются."
     test: ~
     status: missing
-  - id: edu.enroll.happy.12
-    level: backend
-    kind: happy
-    scenario: "Оплата подписки: из взноса выделяется резерв выплат преподавателям."
-    expect: "В резерв уходит себестоимость оплаченных месяцев по плановой ставке курса, не больше самого взноса; в фонде остаётся наценка; продление складывает резерв."
-    test: components/controller/tests/unit/edubridge/enrollment.service.test.ts
-    status: passing
-  - id: edu.enroll.side.12
-    level: backend
-    kind: side
-    scenario: "Отмена подписки с резервом: до начала курса, по недобору, отказ в ходе обучения, подписка без резерва."
-    expect: "Резерв под несостоявшиеся занятия возвращается в фонд раньше возврата участнику: весь либо в доле неиспользованных занятий; у прежних подписок высвобождения нет."
-    test: components/controller/tests/unit/edubridge/enrollment.service.test.ts
-    status: passing
   - id: edu.enroll.side.13
     level: backend
     kind: side
@@ -282,7 +272,7 @@ cases:
     level: backend
     kind: happy
     scenario: "Состав транзакций оплаты и отмены в цепи."
-    expect: "convert|regstatement → opensub|extendsub → chargefee → allotfee; отмена — freereserve → cancelsub; нулевой резерв в цепь не идёт."
+    expect: "convert|regstatement → opensub|extendsub → chargefee → lockfee; освобождение — unlockfee → allotfee; отмена — одно действие, резерв добирается и возвращается отдельными; нулевое удержание в цепь не идёт."
     test: components/controller/tests/unit/edubridge/chain.adapter.test.ts
     status: passing
   - id: edu.enroll.contract.06
@@ -334,38 +324,45 @@ cases:
     expect: "Сумма не больше незаявленного остатка; согласование спрашивает подтверждение, отказ требует причину."
     test: ~
     status: missing
-  - id: edu.enroll.happy.16
-    level: backend
-    kind: happy
-    scenario: "Оплата подписки, пока идёт гарантийный срок курса (в том числе у неактивированного курса)."
-    expect: "Взнос удерживается целиком и в резерв не уходит; себестоимость запоминается до разблокировки. Срок курса истёк — взнос свободен сразу, себестоимость уходит в резерв."
-    test: components/controller/tests/unit/edubridge/enrollment.service.test.ts
-    status: passing
-  - id: edu.enroll.happy.17
-    level: backend
-    kind: happy
-    scenario: "Гарантийный срок курса истёк у действующих подписок с удержанным взносом."
-    expect: "Очередь возвращает удержанное в фонд и выделяет резерв преподавателям одной транзакцией; пока срок идёт, взнос не трогает."
-    test: components/controller/tests/unit/edubridge/enrollment.service.test.ts
-    status: passing
-  - id: edu.enroll.break.07
-    level: backend
-    kind: break
-    scenario: "Сбой цепи при разблокировке; сбой выделения резерва по закрытой подписке."
-    expect: "Взнос остаётся удержанным до следующего прохода; закрытие подписки сбоем резерва не отменяется."
-    test: components/controller/tests/unit/edubridge/expiry.worker.test.ts
-    status: passing
-  - id: edu.enroll.side.16
-    level: backend
-    kind: side
-    scenario: "Отмена подписки в гарантийный срок; закрытие подписки раньше конца срока курса."
-    expect: "Удержанное цепь возвращает в фонд сама; запись об удержании снимается; по закрытой подписке резерв преподавателям выделяется отдельным действием."
-    test: components/controller/tests/unit/edubridge/enrollment.service.test.ts
-    status: passing
   - id: edu.enroll.contract.07
     level: contract
     kind: break
-    scenario: "lockfee больше собранного; unlockfee больше удержанного; cancelsub и expiresub с удержанным взносом."
+    scenario: "lockfee больше собранного; unlockfee больше удержанного; cancelsub и expiresub с удержанным взносом; allotfee и freereserve по закрытой подписке."
     expect: "Превышения отклоняются; отмена и закрытие возвращают удержанное в фонд (o.edu.unlock) до возврата участнику."
     test: ~
     status: missing
+  - id: edu.enroll.happy.18
+    level: backend
+    kind: happy
+    scenario: "Удержано не меньше того, что участник может потребовать назад."
+    expect: "Взнос удерживается целиком при оплате; пока идёт гарантийный срок курса (и у неактивированного курса), очередь его не трогает; после срока удержанным остаётся сумма возврата по Положению на этот день, лишнее уходит в фонд; когда оплаченные занятия прошли, удержание снимается полностью."
+    test: components/controller/tests/unit/edubridge/funds.service.test.ts
+    status: written
+  - id: edu.enroll.happy.19
+    level: backend
+    kind: happy
+    scenario: "Резерв преподавателям наполняется до обязательства по курсу."
+    expect: "Из освобождённого резерв добирается до стоимости часов за оплаченное время; на групповом курсе бюджет закрывает первый взнос, остальные свободны; принятый результат уменьшает обязательство и резерв."
+    test: components/controller/tests/unit/edubridge/funds.service.test.ts
+    status: written
+  - id: edu.enroll.side.17
+    level: backend
+    kind: side
+    scenario: "Оплаченное время курса: несколько учеников, разные сроки, конечная программа, оплата до начала занятий, выплаченное преподавателям."
+    expect: "Обязательство считается по времени, а не по числу учеников, не больше стоимости программы и за вычетом выплаченного."
+    test: components/controller/tests/unit/edubridge/teacher-reserve.test.ts
+    status: written
+  - id: edu.enroll.side.18
+    level: backend
+    kind: side
+    scenario: "Участник отменил либо подписка истекла с удержанным остатком."
+    expect: "Удержанное цепь возвращает сама; резерв по курсу возвращает лишнее в фонд либо добирается из освобождённого остатка."
+    test: components/controller/tests/unit/edubridge/funds.service.test.ts
+    status: written
+  - id: edu.enroll.break.08
+    level: backend
+    kind: break
+    scenario: "Сбой цепи при освобождении удержанного; сбой выравнивания резерва; сбой учёта резерва при приёме результата."
+    expect: "Взнос остаётся удержанным до следующего прохода; закрытие подписки и приём результата сбоем не отменяются."
+    test: components/controller/tests/unit/edubridge/funds.service.test.ts
+    status: written

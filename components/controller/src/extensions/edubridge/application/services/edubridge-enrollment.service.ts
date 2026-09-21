@@ -13,10 +13,9 @@ import {
   type IUserWalletPort,
 } from '@coopenomics/innercoop';
 import { EduAccessState, EduCourseStatus, EduEnrollmentPeriod, EduEnrollmentStatus } from '../../domain/enums';
-import { costOfHours, courseMonths, feeForMonths } from '../../domain/economy/course-fee.calculator';
+import { courseMonths, feeForMonths } from '../../domain/economy/course-fee.calculator';
 import { addMonths, remainingCoursePeriod } from '../../domain/economy/course-period.calculator';
-import { isGuaranteeRunning } from '../../domain/economy/guarantee';
-import { calculateRefund, monthsOfPeriod, RefundReason, type RefundCalculation } from '../../domain/economy/refund.calculator';
+import { monthsOfPeriod, type RefundCalculation } from '../../domain/economy/refund.calculator';
 import { EDUBRIDGE_CHAIN_PORT, type EdubridgeChainPort } from '../../domain/ports/edubridge-chain.port';
 import type { EdubridgeCourseEntity, EdubridgeEnrollmentEntity, EdubridgeLearnerEntity } from '../../infrastructure/entities';
 import { EdubridgeCourseRepository } from '../../infrastructure/repositories/edubridge-course.repository';
@@ -28,7 +27,9 @@ import {
   EDUBRIDGE_ENROLLMENT_OPENED_EVENT,
   type IEduEnrollmentEventPayload,
 } from '../events/edubridge.events';
+import { EdubridgeFundsService } from './edubridge-funds.service';
 import { EdubridgeLearnerService } from './edubridge-learner.service';
+import { refundOf } from './edubridge-refund';
 
 /** Главный паевой кошелёк — источник конвертации. */
 const SHARE_WALLET = 'w.wal.share';
@@ -40,9 +41,7 @@ const PERIOD_CHAIN: Record<EduEnrollmentPeriod, string> = {
   [EduEnrollmentPeriod.YEAR]: 'year',
 };
 const BP_IN_PERCENT = 100;
-const MINUTES_IN_HOUR = 60;
-/** Знаков после запятой в сумме цепи — четыре. */
-const ASSET_SCALE = 10_000;
+
 
 /** Условия взноса за выбранный период: сколько месяцев, до какого дня и сколько вносить. */
 interface PeriodTerms {
@@ -91,6 +90,7 @@ export class EdubridgeEnrollmentService {
     private readonly enrollments: EdubridgeEnrollmentRepository,
     private readonly courses: EdubridgeCourseRepository,
     private readonly learnerService: EdubridgeLearnerService,
+    private readonly funds: EdubridgeFundsService,
     @Inject(EDUBRIDGE_CHAIN_PORT) private readonly chain: EdubridgeChainPort,
     @Inject(DOCUMENT_PORT) private readonly documents: IDocumentPort,
     @Inject(USER_WALLET_PORT) private readonly wallets: IUserWalletPort,
@@ -236,8 +236,7 @@ export class EdubridgeEnrollmentService {
       );
     }
 
-    const money = moneyOf(plan);
-    const result = await this.sendPayment(coopname, member, plan, period, funding, money, document);
+    const result = await this.sendPayment(coopname, member, plan, period, funding, document);
     const trxId = String((result as { transaction_id?: string })?.transaction_id ?? document.hash);
     this.logger.info(`[EDU.SUB] ${member}: ${plan.isExtension ? 'extendsub' : 'opensub'} ${plan.subHash} до ${plan.paidUntil.toISOString()} (trx ${trxId})`);
 
@@ -250,7 +249,7 @@ export class EdubridgeEnrollmentService {
         course_id: courseId,
         sub_hash: plan.subHash,
       });
-    Object.assign(entity, this.paidBase(plan, money));
+    Object.assign(entity, this.paidBase(plan));
     entity.period = period;
     entity.paid_until = plan.paidUntil;
     entity.status = EduEnrollmentStatus.ACTIVE;
@@ -345,36 +344,6 @@ export class EdubridgeEnrollmentService {
     return cancelled;
   }
 
-  /**
-   * Гарантийный срок курса истёк: удержанные взносы действующих подписок
-   * возвращаются в фонд и становятся свободными, а их себестоимость уходит в
-   * резерв выплат преподавателям. Ошибка по одной подписке остальные не держит.
-   */
-  async unlockDue(coopname: string, now = new Date()): Promise<number> {
-    let unlocked = 0;
-    for (const enrollment of await this.enrollments.findLocked(coopname)) {
-      const course = await this.courses.findById(coopname, enrollment.course_id);
-      if (!course || isGuaranteeRunning(course, now)) continue;
-      try {
-        await this.chain.unlockFee({
-          coopname,
-          sub_hash: enrollment.sub_hash,
-          amount: enrollment.locked_amount as string,
-          allot: enrollment.locked_reserve ?? undefined,
-        });
-        enrollment.reserved_amount = sumAssets(enrollment.reserved_amount ?? zeroOf(symbolOf(enrollment.locked_amount)), enrollment.locked_reserve ?? zeroOf(symbolOf(enrollment.locked_amount)));
-        enrollment.locked_amount = null;
-        enrollment.locked_reserve = null;
-        await this.enrollments.save(enrollment);
-        unlocked += 1;
-      } catch (e) {
-        this.logger.error(`[EDU.SUB] разблокировка взноса по подписке ${enrollment.id}: ${(e as Error)?.message ?? e}`);
-      }
-    }
-    if (unlocked) this.logger.info(`[EDU.SUB] гарантийный срок истёк: разблокировано подписок ${unlocked}`);
-    return unlocked;
-  }
-
   /** Общая часть отмены: расчёт по Положению, движение в цепи, закрытие записи. */
   private async cancelOne(coopname: string, enrollment: EdubridgeEnrollmentEntity, underfilled: boolean): Promise<EdubridgeEnrollmentEntity> {
     if (!isCancellable(enrollment)) throw new BadRequestException('Подписка уже отменена или закрыта');
@@ -382,22 +351,19 @@ export class EdubridgeEnrollmentService {
     if (!course) throw new NotFoundException('Курс не найден');
 
     const refund = this.refundFor(enrollment, course, underfilled);
-    await this.chain.cancelSubscription(
-      {
-        coopname,
-        username: enrollment.member_username,
-        sub_hash: enrollment.sub_hash,
-        refund: refund.refund,
-        to_share: refund.to_share,
-      } as never,
-      freedReserve(enrollment.reserved_amount, refund)
-    );
+    await this.chain.cancelSubscription({
+      coopname,
+      username: enrollment.member_username,
+      sub_hash: enrollment.sub_hash,
+      refund: refund.refund,
+      to_share: refund.to_share,
+    } as never);
 
-    // Удержанное цепь вернула в фонд сама, вместе с отменой.
-    enrollment.locked_amount = null;
-    enrollment.locked_reserve = null;
     enrollment.status = EduEnrollmentStatus.CANCELLED;
     enrollment.cancelled_at = new Date();
+    // Удержанное цепь вернула в фонд сама, вместе с отменой; резерв
+    // преподавателям по курсу выравнивается под оставшихся участников.
+    await this.funds.afterClosed(coopname, enrollment);
     enrollment.refunded_amount = refund.refund;
     enrollment.refund_reason = refund.reason;
     const saved = await this.enrollments.save(enrollment);
@@ -428,18 +394,7 @@ export class EdubridgeEnrollmentService {
 
   /** Сумма возврата по Положению ЦПП — её же показывает стол до отмены. */
   refundFor(enrollment: EdubridgeEnrollmentEntity, course: EdubridgeCourseEntity, underfilled: boolean): RefundCalculation {
-    // У подписок, открытых до взноса за курс, число месяцев не сохранено — берём по периоду.
-    const monthsPaid = enrollment.paid_months ?? monthsOfPeriod(enrollment.period === EduEnrollmentPeriod.YEAR ? 'year' : 'month');
-    return calculateRefund({
-      paid_amount: enrollment.paid_amount,
-      lessons_per_month: course.lessons_per_month,
-      lessons_total: course.lessons_total,
-      months_paid: monthsPaid,
-      paid_from: enrollment.paid_until ? addMonths(new Date(enrollment.paid_until), -monthsPaid) : null,
-      starts_at: course.starts_at ? new Date(course.starts_at) : null,
-      now: new Date(),
-      underfilled,
-    });
+    return refundOf(enrollment, course, underfilled);
   }
 
   /**
@@ -447,14 +402,14 @@ export class EdubridgeEnrollmentService {
    * прежним: возврат по Положению считается от всего оплаченного, а не от
    * последнего платежа. Истёкший срок израсходован целиком — счёт с нуля.
    */
-  private paidBase(plan: EnrollmentPlan, money: PaymentMoney): Partial<EdubridgeEnrollmentEntity> {
+  private paidBase(plan: EnrollmentPlan): Partial<EdubridgeEnrollmentEntity> {
     const zero = zeroOf(plan.symbol);
     const base = priorBase(plan);
     return {
       paid_amount: sumAssets(base?.paid_amount ?? zero, plan.amount),
       paid_months: (base?.paid_months ?? 0) + plan.months,
-      reserved_amount: sumAssets(base?.reserved_amount ?? zero, money.allot ?? zero),
-      ...lockedBase(plan, money),
+      // Удержанное копится до освобождения независимо от того, кончился ли прежний оплаченный срок.
+      locked_amount: sumAssets(plan.existing?.locked_amount ?? zero, plan.amount),
     };
   }
 
@@ -463,8 +418,9 @@ export class EdubridgeEnrollmentService {
    * часть: остаток кошелька программы засчитывается первым (решение владельца
    * 20.09.2026, тот же порядок, что в «Столе заказов»). Взнос уходит в фонд той
    * же транзакцией на полную сумму, независимо от того, сколько конвертировано
-   * (Положение ЦПП, п. 4.2.2), и дальше удерживается либо делится на резерв и
-   * свободные средства.
+   * (Положение ЦПП, п. 4.2.2), и сразу удерживается целиком: пока участник
+   * может потребовать взнос назад, на расходы он не идёт. Что вернуть уже
+   * нельзя, очередь освободит сама.
    */
   private sendPayment(
     coopname: string,
@@ -472,15 +428,13 @@ export class EdubridgeEnrollmentService {
     plan: EnrollmentPlan,
     period: EduEnrollmentPeriod,
     funding: PlanFunding,
-    money: PaymentMoney,
     document: ISignedDocument
   ) {
     const convert = parseFloat(funding.toConvert) > 0 ? { coopname, username: member, amount: funding.toConvert, statement: document } : null;
     const subscribe = this.subscribeAction(coopname, member, plan, period, document);
     const charge = { coopname, username: member, sub_hash: plan.subHash, amount: plan.amount };
     return this.chain.convertAndSubscribe(convert as never, subscribe as never, charge as never, {
-      lock: money.lock,
-      allot: money.allot,
+      lock: plan.amount,
       statement: convert ? undefined : { coopname, username: member, statement: document as never },
     });
   }
@@ -569,77 +523,13 @@ export class EdubridgeEnrollmentService {
 }
 
 /** Прежний оплаченный срок, пока он не кончился: к нему прибавляется новый взнос. */
-function priorBase(plan: EnrollmentPlan): { paid_amount: string; paid_months: number; reserved_amount: string | null } | null {
+function priorBase(plan: EnrollmentPlan): { paid_amount: string; paid_months: number } | null {
   const prior = plan.existing;
   if (!plan.isExtension || !prior?.paid_until || prior.paid_until <= new Date()) return null;
   return {
     paid_amount: prior.paid_amount,
     paid_months: prior.paid_months ?? monthsOfPeriod(prior.period === EduEnrollmentPeriod.YEAR ? 'year' : 'month'),
-    reserved_amount: prior.reserved_amount,
   };
-}
-
-/** Удержанное копится до разблокировки независимо от того, кончился ли прежний оплаченный срок. */
-function lockedBase(plan: EnrollmentPlan, money: PaymentMoney): Partial<EdubridgeEnrollmentEntity> {
-  if (!money.lock) return {};
-  const zero = zeroOf(plan.symbol);
-  return {
-    locked_amount: sumAssets(plan.existing?.locked_amount ?? zero, money.lock),
-    locked_reserve: sumAssets(plan.existing?.locked_reserve ?? zero, money.reserve),
-  };
-}
-
-/** Куда уходит взнос после списания в фонд. */
-interface PaymentMoney {
-  /** Себестоимость оплаченных месяцев — доля преподавателей. */
-  reserve: string;
-  /** Удерживается целиком, пока идёт гарантийный срок курса. */
-  lock?: string;
-  /** Уходит в резерв сразу, когда взнос не удержан. */
-  allot?: string;
-}
-
-/**
- * Пока идёт гарантийный срок курса, участник вправе закрыть подписку с
- * возвратом — взнос удерживается целиком и на расходы не идёт, а резерв
- * преподавателям выделится из него при разблокировке. Срок вышел — себестоимость
- * уходит в резерв сразу, в фонде остаётся наценка.
- */
-function moneyOf(plan: EnrollmentPlan): PaymentMoney {
-  const reserve = reserveShare(plan);
-  return isGuaranteeRunning(plan.course, new Date()) ? { reserve, lock: plan.amount } : { reserve, allot: reserve };
-}
-
-/**
- * Доля взноса в резерв выплат преподавателям — себестоимость оплаченных
- * месяцев по плановой ставке курса. Скидка за взнос разом съедает только
- * наценку, поэтому резерв не больше самого взноса.
- */
-function reserveShare(plan: EnrollmentPlan): string {
-  const hoursPerMonth = (plan.course.lessons_per_month * plan.course.lesson_minutes) / MINUTES_IN_HOUR;
-  const costMonth = Number.parseFloat(costOfHours(plan.course.planned_hourly_rate, hoursPerMonth)) || 0;
-  const share = Math.min(Number.parseFloat(plan.amount) || 0, costMonth * plan.months);
-  return `${Math.max(0, share).toFixed(4)} ${plan.symbol}`;
-}
-
-/**
- * Резерв под несостоявшиеся занятия возвращается в фонд: до начала курса и при
- * недоборе — весь, при отказе в ходе обучения — в доле неиспользованных занятий.
- */
-function freedReserve(reserved: string | null, refund: RefundCalculation): string | undefined {
-  const [value, symbol] = String(reserved ?? '').trim().split(' ');
-  const total = Number.parseFloat(value) || 0;
-  if (!(total > 0)) return undefined;
-  const unused =
-    refund.reason === RefundReason.REFUSAL
-      ? refund.lessons_paid > 0 ? (refund.lessons_paid - refund.lessons_used) / refund.lessons_paid : 0
-      : 1;
-  const freed = Math.floor(total * unused * ASSET_SCALE) / ASSET_SCALE;
-  return freed > 0 ? `${freed.toFixed(4)} ${symbol}` : undefined;
-}
-
-function symbolOf(asset: string | null): string {
-  return String(asset ?? '').trim().split(' ')[1] ?? '';
 }
 
 function zeroOf(symbol: string): string {

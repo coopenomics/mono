@@ -92,6 +92,18 @@ export class EdubridgeCourseEntity {
   @Column({ type: 'int', default: 14 })
   public guarantee_days!: number;
 
+  /**
+   * Сколько сейчас лежит в резерве выплат преподавателям по этому курсу. Резерв
+   * наполняется до обязательства перед преподавателями за оплаченное время
+   * курса, всё сверх него остаётся свободными средствами программы.
+   */
+  @Column({ type: 'varchar', length: 64, nullable: true })
+  public teacher_reserve_balance!: string | null;
+
+  /** Сколько преподавателям курса уже выплачено из резерва (принятые результаты). */
+  @Column({ type: 'varchar', length: 64, nullable: true })
+  public teacher_settled_total!: string | null;
+
   /** Принимает ли кооператив взнос за весь курс разом; иначе взнос только помесячный. */
   @Column({ type: 'boolean', default: false })
   public course_payment_enabled!: boolean;

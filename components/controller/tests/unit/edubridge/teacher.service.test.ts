@@ -78,9 +78,10 @@ function make(
   // Имя и фотография приходят из ядра портами — расширение своей копии не держит.
   const avatars = { getAvatarUrl: jest.fn(async () => null), getAvatarUrls: jest.fn(async () => new Map([['teach', '/backend/avatar.jpg']])) } as any;
   const names = { displayName: jest.fn(async () => 'Иванов Иван Иванович'), displayNames: jest.fn(async () => new Map([['teach', 'Иванов Иван Иванович']])) } as any;
+  const funds = { onSettled: jest.fn(async () => undefined) } as any;
   const events = { emit: jest.fn() } as any;
-  const service = new EdubridgeTeacherService(teachers, courses, lessons, chain, documents, freeDecisions, tracking, council, wallets, avatars, names, logger, events);
-  return { service, teachers, chain, documents, freeDecisions, tracking, council, store, assignment, avatars, names, lessons };
+  const service = new EdubridgeTeacherService(teachers, courses, lessons, chain, documents, freeDecisions, tracking, council, wallets, avatars, names, funds, logger, events);
+  return { service, teachers, chain, documents, freeDecisions, tracking, council, funds, store, assignment, avatars, names, lessons };
 }
 
 
@@ -251,7 +252,7 @@ describe('EdubridgeTeacherService', () => {
   });
 
   it('решение совета → COUNCIL_APPROVED; акт преподавателя → ACT_SIGNED; тот же акт с подписью председателя → acceptrid, ACCEPTED', async () => {
-    const { service, chain, documents, store } = make();
+    const { funds, service, chain, documents, store } = make();
     const c = await contributionOfLesson(service, store);
     await service.submitContribution('voskhod', 'teach', c.id, signedBy('teach'));
     await service.onDecisionTracked(new DecisionTrackedEvent({ matched: true, hash: 'PROJ', event_type: DecisionEventType.SOVIET_DECISION, decision_id: '17', decision_date: '2026-03-01', metadata: { extension: 'edubridge', rid_hash: c.rid_hash } }));
@@ -275,6 +276,17 @@ describe('EdubridgeTeacherService', () => {
     expect(chain.acceptRid).toHaveBeenCalledWith(expect.objectContaining({ rid_hash: c.rid_hash, act: expect.objectContaining({ hash: 'ACT' }) }));
     expect(documents.generate.mock.calls.some((x: any) => x[0].data.registry_id === 3009 && x[0].data.decision_id === 17)).toBe(true);
     expect(accepted.status).toBe(EduContributionStatus.ACCEPTED);
+    // Цепь списала резерв преподавателям — обязательство по курсу уменьшается на стоимость результата.
+    expect(funds.onSettled).toHaveBeenCalledWith('voskhod', 'C1', '1000.0000 RUB');
+  });
+
+  it('сбой учёта резерва приём результата не отменяет', async () => {
+    const { service, funds, store } = make();
+    funds.onSettled.mockRejectedValue(new Error('база недоступна'));
+    const c = await contributionOfLesson(service, store);
+    Object.assign(c, { status: EduContributionStatus.ACT_SIGNED, act_hash: 'act', council_decision_id: '17' });
+    const act = { ...signedBy('teach', 'ACT'), signatures: [{ signer: 'teach' }, { signer: 'ant' }] };
+    await expect(service.acceptContribution('voskhod', 'ant', c.id, act)).resolves.toMatchObject({ status: EduContributionStatus.ACCEPTED });
   });
 
   it('приём отклоняется, если на акте нет обеих подписей или хэш другой', async () => {

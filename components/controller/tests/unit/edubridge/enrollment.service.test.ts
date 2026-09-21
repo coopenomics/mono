@@ -28,17 +28,17 @@ function make(opts: { existing?: any; available?: string; program?: string; cour
     findByPair: jest.fn(async () => opts.existing ?? null),
     findById: jest.fn(async () => opts.existing ?? null),
     findByCourse: jest.fn(async () => (opts.existing ? [opts.existing] : [])),
-    findLocked: jest.fn(async () => (opts.existing ? [opts.existing] : [])),
     create: jest.fn((d: any) => ({ ...d })),
     save: jest.fn(async (e: any) => { saved.push(e); return { ...e, id: e.id ?? 'E1' }; }),
   } as any;
   // Копия: отмена по недобору меняет статус курса, общий образец остаётся нетронутым.
   const courses = { findById: jest.fn(async () => ({ ...(opts.course ?? course) })), save: jest.fn(async (c: any) => c) } as any;
   const learnerService = { getOwned: jest.fn(async () => learner) } as any;
+  // Выравнивание резерва преподавателям и освобождение удержанного — отдельный сервис.
+  const funds = { afterClosed: jest.fn(async (_c: string, e: any) => { e.locked_amount = null; }) } as any;
   const chain = {
     convertAndSubscribe: jest.fn(async () => ({ transaction_id: 'TRX1' })),
     cancelSubscription: jest.fn(async () => ({ transaction_id: 'TRX2' })),
-    unlockFee: jest.fn(async () => ({ transaction_id: 'TRX3' })),
   } as any;
   const documents = { generate: jest.fn(async () => ({ hash: 'ABC', html: '', full_title: '', binary: '', meta: {} })) } as any;
   // Кошелёк программы и главный паевой: взнос берётся сначала с программы.
@@ -48,8 +48,8 @@ function make(opts: { existing?: any; available?: string; program?: string; cour
     })),
   } as any;
   const events = { emit: jest.fn() } as any;
-  const service = new EdubridgeEnrollmentService(enrollments, courses, learnerService, chain, documents, wallets, logger, events);
-  return { service, enrollments, courses, chain, events, documents, saved };
+  const service = new EdubridgeEnrollmentService(enrollments, courses, learnerService, funds, chain, documents, wallets, logger, events);
+  return { service, enrollments, courses, chain, events, documents, saved, funds };
 }
 
 const doc = { hash: 'DEADBEEF', meta: {}, signatures: [] } as any;
@@ -266,27 +266,19 @@ describe('EdubridgeEnrollmentService — продление и сверка за
   });
 });
 
-describe('EdubridgeEnrollmentService — резерв выплат преподавателям', () => {
-  it('из взноса в резерв уходит себестоимость, в фонде остаётся наценка', async () => {
+describe('EdubridgeEnrollmentService — удержание взноса', () => {
+  it('взнос удерживается целиком сразу после списания в фонд — что вернуть уже нельзя, освободит очередь', async () => {
     const { service, chain } = make({ available: '20000.0000 RUB' });
     const saved = await service.subscribe('voskhod', 'ant', 'L1', 'C1', EduEnrollmentPeriod.MONTH, await docFor(service, EduEnrollmentPeriod.MONTH));
-    const extras = chain.convertAndSubscribe.mock.calls[0][3];
-    expect(extras.allot).toBe('800.0000 RUB');
-    expect(saved.reserved_amount).toBe('800.0000 RUB');
+    expect(chain.convertAndSubscribe.mock.calls[0][3].lock).toBe('1000.0000 RUB');
+    expect(saved.locked_amount).toBe('1000.0000 RUB');
   });
 
-  it('скидка за взнос разом съедает наценку, резерв — полная себестоимость оплаченных месяцев', async () => {
-    const { service, chain } = make({ available: '20000.0000 RUB' });
-    await service.subscribe('voskhod', 'ant', 'L1', 'C1', EduEnrollmentPeriod.COURSE, await docFor(service, EduEnrollmentPeriod.COURSE));
-    // Восемь месяцев: взнос 7200 при себестоимости 6400.
-    expect(chain.convertAndSubscribe.mock.calls[0][3].allot).toBe('6400.0000 RUB');
-  });
-
-  it('резерв не больше самого взноса', async () => {
-    const dear = { ...course, planned_hourly_rate: '500.0000 RUB' };
-    const { service, chain } = make({ available: '20000.0000 RUB', course: dear });
-    await service.subscribe('voskhod', 'ant', 'L1', 'C1', EduEnrollmentPeriod.MONTH, await docFor(service, EduEnrollmentPeriod.MONTH));
-    expect(chain.convertAndSubscribe.mock.calls[0][3].allot).toBe('1000.0000 RUB');
+  it('продление складывает удержанное с прежним', async () => {
+    const existing = { id: 'E9', status: EduEnrollmentStatus.ACTIVE, paid_until: new Date(Date.now() + 10 * 86400_000), paid_amount: '1000.0000 RUB', paid_months: 1, locked_amount: '400.0000 RUB', period: EduEnrollmentPeriod.MONTH, learner_id: 'L1', course_id: 'C1', sub_hash: 'x' };
+    const { service } = make({ existing });
+    const saved = await service.subscribe('voskhod', 'ant', 'L1', 'C1', EduEnrollmentPeriod.MONTH, await docFor(service, EduEnrollmentPeriod.MONTH));
+    expect(saved.locked_amount).toBe('1400.0000 RUB');
   });
 
   it('взнос целиком с кошелька программы: конвертации нет, заявление публикуется отдельным действием', async () => {
@@ -304,109 +296,14 @@ describe('EdubridgeEnrollmentService — резерв выплат препод�
     expect(chain.convertAndSubscribe.mock.calls[0][3].statement).toBeUndefined();
   });
 
-  it('продление складывает резерв вместе со взносом', async () => {
-    const existing = { id: 'E9', status: EduEnrollmentStatus.ACTIVE, paid_until: new Date(Date.now() + 10 * 86400_000), paid_amount: '1000.0000 RUB', paid_months: 1, reserved_amount: '800.0000 RUB', period: EduEnrollmentPeriod.MONTH, learner_id: 'L1', course_id: 'C1', sub_hash: 'x' };
-    const { service } = make({ existing });
-    const saved = await service.subscribe('voskhod', 'ant', 'L1', 'C1', EduEnrollmentPeriod.MONTH, await docFor(service, EduEnrollmentPeriod.MONTH));
-    expect(saved.reserved_amount).toBe('1600.0000 RUB');
-  });
-
-  const paidSub = { id: 'E1', coopname: 'voskhod', member_username: 'ant', learner_id: 'L1', course_id: 'C1', sub_hash: 'aabb', period: EduEnrollmentPeriod.MONTH, paid_amount: '1000.0000 RUB', paid_months: 1, reserved_amount: '800.0000 RUB', status: EduEnrollmentStatus.ACTIVE };
-
-  it('отмена до начала курса и по недобору высвобождает весь резерв: занятия не состоятся', async () => {
-    const { service, chain } = make({ existing: { ...paidSub } });
-    await service.cancel('voskhod', 'ant', 'E1');
-    expect(chain.cancelSubscription.mock.calls[0][1]).toBe('800.0000 RUB');
-  });
-
-  it('отказ в ходе обучения высвобождает резерв в доле неиспользованных занятий', async () => {
-    // Курс идёт 15 дней из оплаченного месяца: прошло 4 занятия из 8.
-    const startsAt = new Date(Date.now() - 15 * 86400_000);
-    const running = { ...paidSub, paid_until: new Date(startsAt.getTime() + 30 * 86400_000) };
-    const { service, chain } = make({ existing: running, course: { ...course, starts_at: startsAt } });
-    await service.cancel('voskhod', 'ant', 'E1');
-    const [payload, freed] = chain.cancelSubscription.mock.calls[0];
-    expect(payload.refund).toBe('250.0000 RUB');
-    expect(freed).toBe('400.0000 RUB');
-  });
-
-  it('подписка, открытая до введения резерва, отменяется без высвобождения', async () => {
-    const { service, chain } = make({ existing: { ...paidSub, reserved_amount: null } });
-    await service.cancel('voskhod', 'ant', 'E1');
-    expect(chain.cancelSubscription.mock.calls[0][1]).toBeUndefined();
-  });
-});
-
-describe('EdubridgeEnrollmentService — гарантийный срок курса', () => {
-  const DAY = 86400_000;
-  /** Курс с гарантией 14 дней; занятия начались `daysAgo` дней назад (null — курс не активирован). */
-  const guaranteed = (daysAgo: number | null) => ({ ...course, guarantee_days: 14, starts_at: daysAgo === null ? null : new Date(Date.now() - daysAgo * DAY) });
-
-  it('пока идёт гарантийный срок, взнос удерживается целиком и в резерв не уходит', async () => {
-    const { service, chain } = make({ available: '20000.0000 RUB', course: guaranteed(3) });
-    const saved = await service.subscribe('voskhod', 'ant', 'L1', 'C1', EduEnrollmentPeriod.MONTH, await docFor(service, EduEnrollmentPeriod.MONTH));
-    const extras = chain.convertAndSubscribe.mock.calls[0][3];
-    expect(extras.lock).toBe('1000.0000 RUB');
-    expect(extras.allot).toBeUndefined();
-    expect(saved.locked_amount).toBe('1000.0000 RUB');
-    // Себестоимость запомнена: уйдёт в резерв преподавателям при разблокировке.
-    expect(saved.locked_reserve).toBe('800.0000 RUB');
-    expect(saved.reserved_amount).toBe('0.0000 RUB');
-  });
-
-  it('курс ещё не активирован — срок впереди, взнос удерживается', async () => {
-    const { service, chain } = make({ available: '20000.0000 RUB', course: guaranteed(null) });
-    await service.subscribe('voskhod', 'ant', 'L1', 'C1', EduEnrollmentPeriod.MONTH, await docFor(service, EduEnrollmentPeriod.MONTH));
-    expect(chain.convertAndSubscribe.mock.calls[0][3].lock).toBe('1000.0000 RUB');
-  });
-
-  it('срок курса истёк — взнос свободен сразу, себестоимость уходит в резерв', async () => {
-    const { service, chain } = make({ available: '20000.0000 RUB', course: guaranteed(15) });
-    const saved = await service.subscribe('voskhod', 'ant', 'L1', 'C1', EduEnrollmentPeriod.MONTH, await docFor(service, EduEnrollmentPeriod.MONTH));
-    const extras = chain.convertAndSubscribe.mock.calls[0][3];
-    expect(extras.lock).toBeUndefined();
-    expect(extras.allot).toBe('800.0000 RUB');
-    expect(saved.locked_amount ?? null).toBeNull();
-  });
-
-  const lockedSub = { id: 'E1', coopname: 'voskhod', member_username: 'ant', learner_id: 'L1', course_id: 'C1', sub_hash: 'aabb', period: EduEnrollmentPeriod.MONTH, paid_amount: '1000.0000 RUB', paid_months: 1, reserved_amount: '0.0000 RUB', locked_amount: '1000.0000 RUB', locked_reserve: '800.0000 RUB', status: EduEnrollmentStatus.ACTIVE };
-
-  it('очередь разблокирует взнос, когда срок курса вышел: удержанное — в фонд, себестоимость — в резерв', async () => {
-    const existing = { ...lockedSub };
-    const { service, chain } = make({ existing, course: guaranteed(15) });
-    await expect(service.unlockDue('voskhod')).resolves.toBe(1);
-    expect(chain.unlockFee).toHaveBeenCalledWith({ coopname: 'voskhod', sub_hash: 'aabb', amount: '1000.0000 RUB', allot: '800.0000 RUB' });
-    expect(existing.locked_amount).toBeNull();
-    expect(existing.locked_reserve).toBeNull();
-    expect(existing.reserved_amount).toBe('800.0000 RUB');
-  });
-
-  it('пока срок идёт, очередь взнос не трогает', async () => {
-    const existing = { ...lockedSub };
-    const { service, chain } = make({ existing, course: guaranteed(13) });
-    await expect(service.unlockDue('voskhod')).resolves.toBe(0);
-    expect(chain.unlockFee).not.toHaveBeenCalled();
-    expect(existing.locked_amount).toBe('1000.0000 RUB');
-  });
-
-  it('сбой цепи при разблокировке оставляет взнос удержанным до следующего прохода', async () => {
-    const existing = { ...lockedSub };
-    const { service, chain } = make({ existing, course: guaranteed(15) });
-    chain.unlockFee.mockRejectedValueOnce(new Error('цепь не отвечает'));
-    await expect(service.unlockDue('voskhod')).resolves.toBe(0);
-    expect(existing.locked_amount).toBe('1000.0000 RUB');
-  });
-
-  it('отмена в гарантийный срок: удержанное цепь возвращает сама, запись об удержании снимается', async () => {
-    const existing = { ...lockedSub };
-    const { service, chain } = make({ existing, course: guaranteed(null) });
+  it('отмена: удержанное цепь возвращает в фонд сама, резерв преподавателям выравнивается после отмены', async () => {
+    const existing = { id: 'E1', coopname: 'voskhod', member_username: 'ant', learner_id: 'L1', course_id: 'C1', sub_hash: 'aabb', period: EduEnrollmentPeriod.MONTH, paid_amount: '1000.0000 RUB', paid_months: 1, locked_amount: '1000.0000 RUB', status: EduEnrollmentStatus.ACTIVE };
+    const { service, chain, funds } = make({ existing });
     const saved = await service.cancel('voskhod', 'ant', 'E1');
-    const [payload, freed] = chain.cancelSubscription.mock.calls[0];
-    expect(payload.refund).toBe('1000.0000 RUB');
-    // Резерв преподавателям из этого взноса ещё не выделялся — высвобождать нечего.
-    expect(freed).toBeUndefined();
+    expect(chain.cancelSubscription).toHaveBeenCalledTimes(1);
+    expect(chain.cancelSubscription.mock.calls[0]).toHaveLength(1);
+    expect(funds.afterClosed).toHaveBeenCalledWith('voskhod', expect.objectContaining({ id: 'E1', status: EduEnrollmentStatus.CANCELLED }));
     expect(saved.locked_amount).toBeNull();
-    expect(saved.locked_reserve).toBeNull();
   });
 });
 

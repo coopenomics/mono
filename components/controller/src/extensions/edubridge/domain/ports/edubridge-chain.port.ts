@@ -7,10 +7,8 @@ import type { InnerTransactResult } from '@coopenomics/innercoop';
  */
 /** Что ещё едет в транзакции оплаты подписки. */
 export interface EduSubscribeExtras {
-  /** Взнос удерживается целиком, пока идёт гарантийный срок курса. */
+  /** Взнос удерживается целиком: лишнее очередь освободит, когда его уже нельзя будет потребовать назад. */
   lock?: string;
-  /** Доля себестоимости взноса — в резерв выплат преподавателям (когда взнос не удержан). */
-  allot?: string;
   /** Заявление публикуется отдельно, когда конвертации нет и `convert` его не несёт. */
   statement?: EdubridgeContract.Actions.Regstatement.IRegstatement;
 }
@@ -37,7 +35,9 @@ export interface EdubridgeChainPort {
   ): Promise<InnerTransactResult>;
   expireSubscription(data: EdubridgeContract.Actions.Expiresub.IExpiresub): Promise<InnerTransactResult>;
   /** Отмена подписки с возвратом взноса; `to_share` — возврат сразу в паевой. */
-  cancelSubscription(data: EdubridgeContract.Actions.Cancelsub.ICancelsub, freeReserve?: string): Promise<InnerTransactResult>;
+  cancelSubscription(data: EdubridgeContract.Actions.Cancelsub.ICancelsub): Promise<InnerTransactResult>;
+  /** Резерв выплат преподавателям сверх обязательств по курсу возвращается в фонд. */
+  freeReserve(data: { coopname: string; sub_hash: string; amount: string }): Promise<InnerTransactResult>;
   /** Гарантийный срок курса истёк: удержанное возвращается в фонд, себестоимость уходит в резерв. */
   unlockFee(data: { coopname: string; sub_hash: string; amount: string; allot?: string }): Promise<InnerTransactResult>;
   /** Резерв выплат преподавателям по подписке, запись которой в цепи уже закрыта. */

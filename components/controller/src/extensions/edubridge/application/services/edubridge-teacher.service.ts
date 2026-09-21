@@ -26,6 +26,7 @@ import {
 } from '@coopenomics/innercoop';
 import { EduAssignmentStatus, EduContractStatus, EduContributionStatus, EduCouncilOutcome, EduRidType } from '../../domain/enums';
 import { guaranteeEndsAt } from '../../domain/economy/guarantee';
+import { EdubridgeFundsService } from './edubridge-funds.service';
 import { formatDate, formatDateTime, toChainTimePoint } from '../../domain/lib/lesson-dates';
 import { EDUBRIDGE_CHAIN_PORT, type EdubridgeChainPort } from '../../domain/ports/edubridge-chain.port';
 import type {
@@ -100,6 +101,7 @@ export class EdubridgeTeacherService {
     @Inject(USER_WALLET_PORT) private readonly wallets: IUserWalletPort,
     @Inject(USER_AVATAR_PORT) private readonly avatars: IUserAvatarPort,
     private readonly names: EdubridgeNamesService,
+    private readonly funds: EdubridgeFundsService,
     @Inject(LOGGER_PORT) private readonly logger: ILoggerPort,
     private readonly events: EventEmitter2
   ) {
@@ -828,6 +830,7 @@ export class EdubridgeTeacherService {
       } as Cooperative.Registry.EducationRidDecision.Action,
     });
     await this.chain.acceptRid({ coopname, rid_hash: c.rid_hash, decision: this.unsigned(decision), act } as never);
+    await this.settleReserve(coopname, c);
     c.decision_hash = decision.hash.toLowerCase();
     c.act_signed = act as unknown as Record<string, unknown>;
     c.status = EduContributionStatus.ACCEPTED;
@@ -835,6 +838,20 @@ export class EdubridgeTeacherService {
     this.events.emit(EDUBRIDGE_CONTRIBUTION_DECIDED_EVENT, { coopname, contribution_id: saved.id, teacher_username: c.teacher_username, accepted: true });
     this.logger.info(`[EDU.RID] взнос ${c.rid_hash} принят — acceptrid, право требования в кошельке ${c.teacher_username}`);
     return saved;
+  }
+
+  /**
+   * Цепь при приёме списала резерв преподавателям на стоимость результата —
+   * обязательство по курсу уменьшается на ту же сумму. Сбой учёта приём не
+   * отменяет: результат уже в паевом фонде.
+   */
+  private async settleReserve(coopname: string, c: EdubridgeContributionEntity): Promise<void> {
+    try {
+      const assignment = await this.teachers.findAssignment(coopname, c.assignment_id);
+      if (assignment) await this.funds.onSettled(coopname, assignment.course_id, c.amount);
+    } catch (e) {
+      this.logger.error(`[EDU.RID] резерв по курсу после приёма ${c.rid_hash} не обновлён: ${(e as Error)?.message ?? e}`);
+    }
   }
 
   async decline(coopname: string, contributionId: string, reason: string): Promise<EdubridgeContributionEntity> {

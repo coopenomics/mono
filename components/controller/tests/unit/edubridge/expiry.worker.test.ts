@@ -12,10 +12,10 @@ function make(due: any[]) {
   } as any;
   const courses = { findById: jest.fn(async () => ({ id: 'C1', carrier: 'skillspace' })) } as any;
   const outbox = { enqueue: jest.fn(async () => undefined) } as any;
-  const chain = { expireSubscription: jest.fn(async () => ({ transaction_id: 'TRX' })), allotReserve: jest.fn(async () => ({})) } as any;
-  const enrollmentService = { unlockDue: jest.fn(async () => 0) } as any;
-  const worker = new EdubridgeExpiryWorker(enrollments, {} as any, courses, outbox, {} as any, enrollmentService, chain, {} as any, logger);
-  return { worker, enrollments, outbox, chain, enrollmentService };
+  const chain = { expireSubscription: jest.fn(async () => ({ transaction_id: 'TRX' })) } as any;
+  const funds = { unlockDue: jest.fn(async () => 0), afterClosed: jest.fn(async () => undefined) } as any;
+  const worker = new EdubridgeExpiryWorker(enrollments, {} as any, courses, outbox, {} as any, funds, chain, {} as any, logger);
+  return { worker, enrollments, outbox, chain, funds };
 }
 
 const sub = (id: string) => ({ id, sub_hash: `h${id}`, course_id: 'C1', status: EduEnrollmentStatus.ACTIVE, paid_until: new Date('2026-01-01') });
@@ -50,23 +50,12 @@ describe('EdubridgeExpiryWorker', () => {
     expect(outbox.enqueue).toHaveBeenCalledTimes(1);
   });
 
-  it('подписка закрыта раньше конца гарантийного срока курса: удержанное цепь вернула сама, резерв преподавателям выделяется отдельно', async () => {
-    const e = { ...sub('6'), locked_amount: '1000.0000 RUB', locked_reserve: '800.0000 RUB' } as any;
-    const { worker, chain } = make([e]);
+  it('закрытая подписка отдаёт удержанное: резерв преподавателям по курсу выравнивается', async () => {
+    const e = { ...sub('6'), locked_amount: '400.0000 RUB' } as any;
+    const { worker, funds } = make([e]);
     await worker.expire('voskhod');
-    expect(chain.allotReserve).toHaveBeenCalledWith({ coopname: 'voskhod', sub_hash: 'h6', amount: '800.0000 RUB' });
-    expect(e.locked_amount).toBeNull();
-    expect(e.locked_reserve).toBeNull();
+    expect(funds.afterClosed).toHaveBeenCalledWith('voskhod', e);
     expect(e.status).toBe(EduEnrollmentStatus.EXPIRED);
-  });
-
-  it('сбой выделения резерва закрытие подписки не отменяет', async () => {
-    const e = { ...sub('7'), locked_amount: '1000.0000 RUB', locked_reserve: '800.0000 RUB' } as any;
-    const { worker, chain, outbox } = make([e]);
-    chain.allotReserve.mockRejectedValue(new Error('в фонде недостаточно средств'));
-    await worker.expire('voskhod');
-    expect(e.status).toBe(EduEnrollmentStatus.EXPIRED);
-    expect(outbox.enqueue).toHaveBeenCalled();
   });
 
   it('досрочный отзыв при выходе пайщика переживает отсутствие записи в цепи', async () => {

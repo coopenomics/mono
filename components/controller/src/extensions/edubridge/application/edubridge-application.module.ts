@@ -21,6 +21,7 @@ import { EdubridgeLessonRepository } from '../infrastructure/repositories/edubri
 import { EdubridgeAdminRepository } from '../infrastructure/repositories/edubridge-admin.repository';
 import { EdubridgeReturnRequestRepository } from '../infrastructure/repositories/edubridge-return-request.repository';
 import { EdubridgeReturnService } from './services/edubridge-return.service';
+import { EdubridgeFundsService } from './services/edubridge-funds.service';
 import { EdubridgeReturnResolver } from './resolvers/edubridge-return.resolver';
 import { EDUBRIDGE_CHAIN_PORT } from '../domain/ports/edubridge-chain.port';
 import { EdubridgeConfigHolder } from './config/edubridge-config.holder';
@@ -106,6 +107,7 @@ import { EdubridgeCatalogCourseFieldsResolver, EdubridgeCourseFieldsResolver } f
     EdubridgeExpenseService,
     EdubridgeOnboardingService,
     EdubridgeLearnerService,
+    EdubridgeFundsService,
     EdubridgeEnrollmentService,
     EdubridgeReturnService,
     EdubridgeAccessOutboxService,

@@ -10,8 +10,7 @@ import { EdubridgeEnrollmentRepository } from '../../infrastructure/repositories
 import { EdubridgeLearnerRepository } from '../../infrastructure/repositories/edubridge-learner.repository';
 import { EdubridgeConfigHolder } from '../config/edubridge-config.holder';
 import { EdubridgeAccessOutboxService } from '../services/edubridge-access-outbox.service';
-import { EdubridgeEnrollmentService } from '../services/edubridge-enrollment.service';
-import type { EdubridgeEnrollmentEntity } from '../../infrastructure/entities';
+import { EdubridgeFundsService } from '../services/edubridge-funds.service';
 
 /**
  * Граница оплаченного периода: предупредить заранее, а по наступлению —
@@ -30,7 +29,7 @@ export class EdubridgeExpiryWorker {
     private readonly courses: EdubridgeCourseRepository,
     private readonly outbox: EdubridgeAccessOutboxService,
     private readonly config: EdubridgeConfigHolder,
-    private readonly enrollmentService: EdubridgeEnrollmentService,
+    private readonly funds: EdubridgeFundsService,
     @Inject(EDUBRIDGE_CHAIN_PORT) private readonly chain: EdubridgeChainPort,
     @Inject(NOTIFICATION_PORT) private readonly notifications: INotificationPort,
     @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
@@ -45,8 +44,8 @@ export class EdubridgeExpiryWorker {
     if (!coopname) return;
     this.running = true;
     try {
-      // Сначала разблокировка по истёкшему гарантийному сроку курса, затем закрытие истёкших подписок.
-      await this.enrollmentService.unlockDue(coopname);
+      // Сначала освобождается удержанное, которое уже нельзя потребовать назад, затем закрываются истёкшие подписки.
+      await this.funds.unlockDue(coopname);
       await this.expire(coopname);
       await this.notifyExpiring(coopname);
     } catch (e) {
@@ -62,7 +61,7 @@ export class EdubridgeExpiryWorker {
       try {
         const trx = await this.closeInChain(coopname, enrollment.sub_hash, `expire:${enrollment.id}:${enrollment.paid_until?.toISOString()}`);
         enrollment.status = EduEnrollmentStatus.EXPIRED;
-        await this.settleLocked(coopname, enrollment);
+        await this.funds.afterClosed(coopname, enrollment);
         await this.enrollments.save(enrollment);
         const course = await this.courses.findById(coopname, enrollment.course_id);
         if (course) await this.outbox.enqueue({ coopname, enrollment, kind: EduAccessTaskKind.REVOKE, carrier: course.carrier, trigger: trx });
@@ -87,24 +86,6 @@ export class EdubridgeExpiryWorker {
       if (!SUBSCRIPTION_GONE.test((e as Error)?.message ?? '')) throw e;
       this.logger.warn(`[EDU.EXPIRY] подписки ${subHash} в цепи уже нет — закрываем запись и отзываем доступ`);
       return fallback;
-    }
-  }
-
-  /**
-   * Подписка закрыта раньше, чем истёк гарантийный срок курса: оплаченный срок
-   * израсходован, возвращать нечего, и цепь вернула удержанное в фонд сама.
-   * Остаётся выделить из него резерв выплат преподавателям — запись подписки в
-   * цепи уже стёрта, поэтому отдельным действием. Сбой закрытие не отменяет.
-   */
-  private async settleLocked(coopname: string, enrollment: EdubridgeEnrollmentEntity): Promise<void> {
-    const reserve = enrollment.locked_reserve;
-    enrollment.locked_amount = null;
-    enrollment.locked_reserve = null;
-    if (!reserve || !(parseFloat(reserve) > 0)) return;
-    try {
-      await this.chain.allotReserve({ coopname, sub_hash: enrollment.sub_hash, amount: reserve });
-    } catch (e) {
-      this.logger.error(`[EDU.EXPIRY] резерв преподавателям по закрытой подписке ${enrollment.id} не выделен: ${(e as Error)?.message ?? e}`);
     }
   }
 
@@ -142,7 +123,7 @@ export class EdubridgeExpiryWorker {
       try {
         const trx = await this.closeInChain(coopname, enrollment.sub_hash, `revoke:${enrollment.id}`);
         enrollment.status = EduEnrollmentStatus.REVOKED;
-        await this.settleLocked(coopname, enrollment);
+        await this.funds.afterClosed(coopname, enrollment);
         await this.enrollments.save(enrollment);
         const course = await this.courses.findById(coopname, enrollment.course_id);
         if (course) await this.outbox.enqueue({ coopname, enrollment, kind: EduAccessTaskKind.REVOKE, carrier: course.carrier, trigger: trx });
