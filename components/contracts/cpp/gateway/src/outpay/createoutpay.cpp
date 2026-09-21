@@ -38,7 +38,7 @@ void gateway::createoutpay(eosio::name coopname, eosio::name username, checksum2
   uint64_t id = get_global_id(_gateway, "outcomes"_n);
 
   //TODO make coopname payer
-  outcomes.emplace(_gateway, [&](auto &d) {
+  outcomes.emplace(RamPayer::of(outcomes, coopname), [&](auto &d) {
     d.id = id;
     d.outcome_hash = outcome_hash;
     d.callback_contract = callback_contract;

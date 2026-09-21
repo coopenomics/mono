@@ -1,5 +1,7 @@
 #pragma once
 
+
+#include "../../../lib/core/ram_payer.hpp"
 using namespace eosio;
 using std::string;
 
@@ -105,7 +107,7 @@ inline void create_result_for_participant(eosio::name coopname, const checksum25
                                          eosio::asset segment_cost, eosio::asset debt_amount, const document2 &statement) {
     result_index results(_capital, coopname.value);
     
-    results.emplace(_capital, [&](auto &r) {
+    results.emplace(RamPayer::of(results, coopname), [&](auto &r) {
         r.id = get_global_id_in_scope(_capital, coopname, "results"_n);
         r.project_hash = project_hash;
         r.result_hash = result_hash;
@@ -139,7 +141,7 @@ inline void update_result_status(eosio::name coopname, uint64_t result_id, eosio
     auto result = results.find(result_id);
     eosio::check(result != results.end(), "Объект результата не найден");
 
-    results.modify(result, _capital, [&](auto &r){
+    results.modify(result, RamPayer::of(results, coopname), [&](auto &r){
         r.status = new_status;
     });
 }
@@ -152,7 +154,7 @@ inline void set_result_authorization(eosio::name coopname, uint64_t result_id, c
     auto result = results.find(result_id);
     eosio::check(result != results.end(), "Объект результата не найден");
 
-    results.modify(result, _capital, [&](auto &r){
+    results.modify(result, RamPayer::of(results, coopname), [&](auto &r){
         r.authorization = authorization;
     });
 }
@@ -165,7 +167,7 @@ inline void set_result_approved_statement(eosio::name coopname, uint64_t result_
     auto result = results.find(result_id);
     eosio::check(result != results.end(), "Объект результата не найден");
 
-    results.modify(result, _capital, [&](auto &r){
+    results.modify(result, RamPayer::of(results, coopname), [&](auto &r){
         r.statement = approved_statement;
     });
 }
@@ -178,7 +180,7 @@ inline void set_result_act1(eosio::name coopname, uint64_t result_id, const docu
     auto result = results.find(result_id);
     eosio::check(result != results.end(), "Объект результата не найден");
 
-    results.modify(result, coopname, [&](auto &r){
+    results.modify(result, RamPayer::of(results, coopname), [&](auto &r){
         r.act = act;
     });
 }
@@ -191,7 +193,7 @@ inline void set_result_act2(eosio::name coopname, uint64_t result_id, const docu
     auto result = results.find(result_id);
     eosio::check(result != results.end(), "Объект результата не найден");
 
-    results.modify(result, coopname, [&](auto &r){
+    results.modify(result, RamPayer::of(results, coopname), [&](auto &r){
         r.act = act;
     });
 }
@@ -235,3 +237,6 @@ inline void send_result_for_approval(eosio::name coopname, eosio::name username,
 } // namespace Results
 
 } // namespace Capital
+
+// Плательщик за оперативную память строк таблицы — правило в lib/core/ram_payer.hpp.
+RAM_PAYER_CLASS(Capital::result, cooperative);

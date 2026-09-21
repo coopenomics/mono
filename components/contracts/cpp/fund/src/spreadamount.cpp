@@ -37,7 +37,7 @@
   eosio::asset remain_amount = quantity - total_accumulated;
 
   // начисляем на накопительный счет списания
-  coopwallet.modify(wal, payer, [&](auto &w) {
+  coopwallet.modify(wal, RamPayer::of(coopwallet, coopname), [&](auto &w) {
     w.accumulative_expense_account.available += remain_amount;
   });
 };

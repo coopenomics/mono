@@ -47,7 +47,7 @@ void marketplace::propwroff(eosio::name coopname,
   }
 
   writeoff_proposals_index proposals(_marketplace, coopname.value);
-  proposals.emplace(_marketplace, [&](auto& p) {
+  proposals.emplace(RamPayer::of(proposals, coopname), [&](auto& p) {
     p.id            = proposals.available_primary_key();
     p.hash          = proposal_hash;
     p.coopname      = coopname;

@@ -28,7 +28,7 @@
   eosio::check(!is, "Участник уже принимает участие данной целевой программы");
   eosio::check(indoc -> username == username, "Имя пользователя не соответствует документу");
   
-  agreements.modify(indoc, administrator, [&](auto &d) { 
+  agreements.modify(indoc, RamPayer::of(agreements, coopname), [&](auto &d) { 
     d.status = "confirmed"_n;
   });
   

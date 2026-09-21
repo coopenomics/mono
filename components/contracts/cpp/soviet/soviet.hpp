@@ -1,5 +1,7 @@
 // #pragma once
 
+
+#include "../lib/core/ram_payer.hpp"
 #include <eosio/binary_extension.hpp>
 #include <eosio/eosio.hpp>
 #include <eosio/ignore.hpp>
@@ -433,5 +435,9 @@ struct [[eosio::table, eosio::contract(SOVIET)]] automator {
     eosio::indexed_by<"byexchange"_n, eosio::const_mem_fun<changes, uint64_t, &changes::byexchange>>
   > changes_index;
 
-
-
+// Плательщик за оперативную память строк таблицы — правило в lib/core/ram_payer.hpp.
+RAM_PAYER_CLASS(counts, contract);
+RAM_PAYER_CLASS(automator, contract);
+RAM_PAYER_CLASS(autosigner, contract);
+RAM_PAYER_CLASS(joincoops, cooperative);
+RAM_PAYER_CLASS(changes, cooperative);

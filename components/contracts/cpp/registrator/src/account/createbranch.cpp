@@ -37,7 +37,7 @@ void registrator::createbranch(eosio::name coopname, eosio::name braname) {
   std::vector<eosio::name> storages;
   storages.push_back(coopname);
 
-  accounts.emplace(_registrator, [&](auto &n)
+  accounts.emplace(RamPayer::of(accounts, coopname), [&](auto &n)
     {
       n.username = braname;
       n.status = "active"_n;

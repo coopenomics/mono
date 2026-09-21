@@ -20,7 +20,7 @@ void registrator::confirmpay(name coopname, checksum256 registration_hash){
   auto candidate = candidates.find(exist_candidate -> username.value);
   
   //TODO: coopname is payer
-  candidates.modify(candidate, _registrator, [&](auto &c){
+  candidates.modify(candidate, RamPayer::of(candidates, coopname), [&](auto &c){
     c.status = "payed"_n;
   });
 

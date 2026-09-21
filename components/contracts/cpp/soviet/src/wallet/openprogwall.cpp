@@ -33,7 +33,7 @@ void soviet::openprogwall(name coopname, name username, name program_type, uint6
   }
 
   //TODO: make payer coopname
-  progwallets.emplace(_soviet, [&](auto &b) {
+  progwallets.emplace(RamPayer::of(progwallets, coopname), [&](auto &b) {
     b.id = progwallets.available_primary_key();
     b.program_id = program_id;
     b.coopname = coopname;

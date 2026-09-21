@@ -39,7 +39,7 @@ void ano::pubrepschema(uint64_t version, std::string document) {
                version < expected ? "Версия уже занята: повторная публикация отклонена"
                                   : "Версии растут без пропусков: публикуй следующую по порядку");
 
-  schemas.emplace(get_self(), [&](auto &row) {
+  schemas.emplace(RamPayer::of(schemas), [&](auto &row) {
     row.version = version;
     row.document = std::move(document);
     row.published_at = eosio::time_point_sec(eosio::current_time_point().sec_since_epoch());

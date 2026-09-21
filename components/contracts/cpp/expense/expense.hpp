@@ -1,5 +1,7 @@
 #pragma once
 
+
+#include "../lib/core/ram_payer.hpp"
 #include <eosio/eosio.hpp>
 #include <eosio/asset.hpp>
 #include <eosio/crypto.hpp>
@@ -231,3 +233,6 @@ public:
     void overspendexp(name coopname, checksum256 proposal_hash, checksum256 item_hash,
                       asset overspend_amount);
 };
+
+// Плательщик за оперативную память строк таблицы — правило в lib/core/ram_payer.hpp.
+RAM_PAYER_CLASS(ExpenseDomain::proposal, cooperative);

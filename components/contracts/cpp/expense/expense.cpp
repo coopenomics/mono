@@ -124,7 +124,7 @@ void expense::createexp(name coopname, name username,
 
   const auto total = sum_planned(items);
 
-  tbl.emplace(get_self(), [&](auto& row) {
+  tbl.emplace(RamPayer::of(tbl, coopname), [&](auto& row) {
     row.id              = tbl.available_primary_key();
     row.coopname        = coopname;
     row.proposal_hash   = proposal_hash;
@@ -170,7 +170,7 @@ void expense::authexp(name coopname, checksum256 proposal_hash, document2 decisi
 
   verify_document_or_fail(decision);
 
-  idx.modify(it, get_self(), [&](auto& row) {
+  idx.modify(it, RamPayer::of(idx, coopname), [&](auto& row) {
     row.decision_doc = decision;
     row.status       = static_cast<uint8_t>(D::ProposalStatus::AUTHORIZED);
     row.updated_at   = eosio::current_time_point();
@@ -192,7 +192,7 @@ void expense::declexp(name coopname, checksum256 proposal_hash, std::string reas
                it->status == static_cast<uint8_t>(D::ProposalStatus::AUTHORIZED),
                "Отклонить можно только СЗ без оплат (статусы CREATED / AUTHORIZED)");
 
-  idx.modify(it, get_self(), [&](auto& row) {
+  idx.modify(it, RamPayer::of(idx, coopname), [&](auto& row) {
     row.status     = static_cast<uint8_t>(D::ProposalStatus::DECLINED);
     row.updated_at = eosio::current_time_point();
   });
@@ -222,7 +222,7 @@ void expense::payexp(name coopname, checksum256 proposal_hash, checksum256 item_
   uint8_t paid_mechanics = 0;
   name paid_recipient{};
 
-  idx.modify(it, get_self(), [&](auto& row) {
+  idx.modify(it, RamPayer::of(idx, coopname), [&](auto& row) {
     bool all_reported = true;
     for (auto& i : row.items) {
       if (i.item_hash == item_hash) {
@@ -281,7 +281,7 @@ void expense::reportexp(name coopname, checksum256 proposal_hash, checksum256 it
   bool item_found = false;
   name item_recipient{};
 
-  idx.modify(it, get_self(), [&](auto& row) {
+  idx.modify(it, RamPayer::of(idx, coopname), [&](auto& row) {
     bool all_reported = true;
     for (auto& i : row.items) {
       if (i.item_hash == item_hash) {
@@ -326,7 +326,7 @@ void expense::closeexp(name coopname, checksum256 proposal_hash) {
   eosio::check(it->status == static_cast<uint8_t>(D::ProposalStatus::REPORT_SUBMITTED),
                "Закрыть можно только СЗ в статусе REPORT_SUBMITTED");
 
-  idx.modify(it, get_self(), [&](auto& row) {
+  idx.modify(it, RamPayer::of(idx, coopname), [&](auto& row) {
     row.status     = static_cast<uint8_t>(D::ProposalStatus::CLOSED);
     row.updated_at = eosio::current_time_point();
   });
@@ -351,7 +351,7 @@ void expense::returnexp(name coopname, checksum256 proposal_hash, checksum256 it
   bool item_found = false;
   name item_recipient{};
 
-  idx.modify(it, get_self(), [&](auto& row) {
+  idx.modify(it, RamPayer::of(idx, coopname), [&](auto& row) {
     for (auto& i : row.items) {
       if (i.item_hash == item_hash) {
         eosio::check(i.status == static_cast<uint8_t>(D::ItemStatus::PAID),
@@ -399,7 +399,7 @@ void expense::overspendexp(name coopname, checksum256 proposal_hash, checksum256
   bool item_found = false;
   name item_recipient{};
 
-  idx.modify(it, get_self(), [&](auto& row) {
+  idx.modify(it, RamPayer::of(idx, coopname), [&](auto& row) {
     for (auto& i : row.items) {
       if (i.item_hash == item_hash) {
         eosio::check(i.status == static_cast<uint8_t>(D::ItemStatus::PAID),

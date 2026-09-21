@@ -1,5 +1,7 @@
 #pragma once
 
+
+#include "../../../lib/core/ram_payer.hpp"
 #include <eosio/eosio.hpp>
 #include <eosio/asset.hpp>
 
@@ -122,7 +124,7 @@ inline void create_program_property_with_approve(
   auto property_id = get_global_id_in_scope(_capital, coopname, "pgproperties"_n);
   
   // Создаем предложение в таблице pgproperties
-  properties.emplace(coopname, [&](auto &p) {
+  properties.emplace(RamPayer::of(properties, coopname), [&](auto &p) {
     p.id = property_id;
     p.status = Capital::ProgramProperties::Status::CREATED;
     p.coopname = coopname;
@@ -160,7 +162,7 @@ inline void update_program_property_status(eosio::name coopname, uint64_t proper
   auto property = properties.find(property_id);
   eosio::check(property != properties.end(), "Предложение по программному имущественному взносу не найдено");
   
-  properties.modify(property, _capital, [&](auto &p) {
+  properties.modify(property, RamPayer::of(properties, coopname), [&](auto &p) {
     p.status = new_status;
   });
 }
@@ -174,7 +176,7 @@ inline void set_program_property_approved_statement(eosio::name coopname, uint64
   
   eosio::check(property != properties.end(), "Предложение по программному имущественному взносу не найдено");
   
-  properties.modify(property, _capital, [&](auto &p) {
+  properties.modify(property, RamPayer::of(properties, coopname), [&](auto &p) {
     p.statement = approved_statement;
   });
 }
@@ -187,7 +189,7 @@ inline void set_program_property_authorization(eosio::name coopname, uint64_t pr
   auto property = properties.find(property_id);
   eosio::check(property != properties.end(), "Предложение по программному имущественному взносу не найдено");
   
-  properties.modify(property, _capital, [&](auto &p) {
+  properties.modify(property, RamPayer::of(properties, coopname), [&](auto &p) {
     p.authorization = authorization;
   });
 }
@@ -200,7 +202,7 @@ inline void set_program_property_act1(eosio::name coopname, uint64_t property_id
   auto property = properties.find(property_id);
   eosio::check(property != properties.end(), "Предложение по программному имущественному взносу не найдено");
   
-  properties.modify(property, _capital, [&](auto &p) {
+  properties.modify(property, RamPayer::of(properties, coopname), [&](auto &p) {
     p.act = act1;
   });
 }
@@ -213,9 +215,12 @@ inline void set_program_property_act2(eosio::name coopname, uint64_t property_id
   auto property = properties.find(property_id);
   eosio::check(property != properties.end(), "Предложение по программному имущественному взносу не найдено");
   
-  properties.modify(property, _capital, [&](auto &p) {
+  properties.modify(property, RamPayer::of(properties, coopname), [&](auto &p) {
     p.act = act2;
   });
 }
 
 } // namespace Capital::ProgramProperties
+
+// Плательщик за оперативную память строк таблицы — правило в lib/core/ram_payer.hpp.
+RAM_PAYER_CLASS(Capital::ProgramProperties::program_property, cooperative);

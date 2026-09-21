@@ -62,12 +62,12 @@
   auto user_it = users.find(username.value);
 
   if (user_it == users.end()) {
-    users.emplace(_capital, [&](auto &row) {
+    users.emplace(RamPayer::of(users, coopname), [&](auto &row) {
       row.username = username;
       row.programs = { pa };
     });
   } else {
-    users.modify(user_it, _capital, [&](auto &row) {
+    users.modify(user_it, RamPayer::of(users, coopname), [&](auto &row) {
       row.programs.push_back(pa);
     });
   }

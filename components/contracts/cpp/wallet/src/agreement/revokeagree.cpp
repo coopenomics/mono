@@ -36,7 +36,7 @@
     // Последняя программа — удаляем запись users целиком.
     users.erase(user_it);
   } else {
-    users.modify(user_it, coopname, [&](auto &row) {
+    users.modify(user_it, RamPayer::of(users, coopname), [&](auto &row) {
       auto it = std::find_if(
         row.programs.begin(), row.programs.end(),
         [&](const Wallet::program_agreement &p) { return p.program_id == program_id; });

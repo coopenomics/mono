@@ -43,7 +43,7 @@ void meet::createmeet(name coopname, checksum256 hash, eosio::name initiator, na
   
   uint64_t meet_id = get_global_id_in_scope(_meet, coopname, "genmeets"_n);
   
-  genmeets.emplace(coopname, [&](auto &g){
+  genmeets.emplace(RamPayer::of(genmeets, coopname), [&](auto &g){
     g.id = meet_id;
     g.hash = hash;
     g.coopname = coopname;
@@ -70,7 +70,7 @@ void meet::createmeet(name coopname, checksum256 hash, eosio::name initiator, na
     number++;
     eosio::check(number <= 10, "Не больше 10 вопросов на повестке собрания");
     
-    questions.emplace(coopname, [&](auto& q) {
+    questions.emplace(RamPayer::of(questions, coopname), [&](auto& q) {
       q.id = get_global_id_in_scope(_meet, coopname, "questions"_n);
       q.number = number;
       q.coopname = coopname;

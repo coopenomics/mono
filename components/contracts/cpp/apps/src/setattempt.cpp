@@ -32,7 +32,7 @@ void apps::setattempt(eosio::name catalog_operator,
   eosio::check(it != by_cooppkg.end(), "subscription not found");
 
   auto now = eosio::time_point_sec(eosio::current_time_point().sec_since_epoch());
-  by_cooppkg.modify(it, catalog_operator, [&](auto &s) {
+  by_cooppkg.modify(it, RamPayer::of(by_cooppkg), [&](auto &s) {
     s.attempt    = attempt;
     s.updated_at = now;
   });

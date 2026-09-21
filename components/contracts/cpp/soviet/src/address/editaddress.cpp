@@ -27,7 +27,7 @@ void soviet::editaddress(eosio::name coopname, eosio::name chairman, eosio::name
     auto branch = get_branch_or_fail(coopname, braname);
   };
 
-  addresses.modify(address, chairman, [&](auto &a){
+  addresses.modify(address, RamPayer::of(addresses, coopname), [&](auto &a){
     a.braname = braname;
     a.data = data;
   });

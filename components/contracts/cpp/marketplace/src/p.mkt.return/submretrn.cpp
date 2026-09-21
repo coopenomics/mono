@@ -95,7 +95,7 @@ void marketplace::submretrn(eosio::name coopname,
   // Создание return_request entity
   return_requests_index requests(_marketplace, coopname.value);
   const uint64_t request_id = Marketplace::next_return_request_id(coopname);
-  requests.emplace(_marketplace, [&](auto& r) {
+  requests.emplace(RamPayer::of(requests, coopname), [&](auto& r) {
     r.id                    = request_id;
     r.hash                  = request_hash;
     r.coopname              = coopname;

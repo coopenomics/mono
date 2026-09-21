@@ -67,7 +67,7 @@
   eosio::check(byhash.find(aid_hash) == byhash.end(),
                "Заявление на материальную помощь с таким идентификатором уже подано");
 
-  aids.emplace(coopname, [&](auto& a) {
+  aids.emplace(RamPayer::of(aids, coopname), [&](auto& a) {
     a.id        = aids.available_primary_key();
     a.hash      = aid_hash;
     a.username  = username;

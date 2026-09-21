@@ -17,7 +17,7 @@ void soviet::deletebranch(eosio::name coopname, eosio::name braname) {
 
     for (auto itr = idx.lower_bound(braname.value); itr != idx.end() && itr->by_braname() == braname.value; ++itr) {
         if (itr->braname.has_value() && itr->braname.value() == braname) {
-            idx.modify(itr, get_self(), [&](auto& row) {
+            idx.modify(itr, RamPayer::of(idx, coopname), [&](auto& row) {
                 row.braname.reset();
             });
         }

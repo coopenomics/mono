@@ -26,7 +26,7 @@ void soviet::change(eosio::name coopname, eosio::name parent_username, eosio::na
   auto change = exchange.find(exchange_id);
   eosio::check(change != exchange.end(), "Заявка не обнаружена");
 
-  changes.emplace(_marketplace, [&](auto &c) {
+  changes.emplace(RamPayer::of(changes, coopname), [&](auto &c) {
     c.id = batch_id;
     c.exchange_id = exchange_id;
     c.contribution_product_decision_id = decision_id_1;
@@ -36,7 +36,7 @@ void soviet::change(eosio::name coopname, eosio::name parent_username, eosio::na
   // Вызов для первого решения
   checksum256 hash = eosio::sha256((char*)&batch_id, sizeof(batch_id));
 
-  decisions.emplace(_soviet, [&](auto &d) {
+  decisions.emplace(RamPayer::of(decisions, coopname), [&](auto &d) {
     d.id = decision_id_1;
     d.type = _change_action;
     d.batch_id = batch_id;
@@ -48,7 +48,7 @@ void soviet::change(eosio::name coopname, eosio::name parent_username, eosio::na
     d.hash = hash;
   });
   
-  decisions.emplace(_soviet, [&](auto &d){
+  decisions.emplace(RamPayer::of(decisions, coopname), [&](auto &d){
     d.id = decision_id_2;
     d.type = _change_action;
     d.batch_id = batch_id;

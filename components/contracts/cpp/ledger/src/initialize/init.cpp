@@ -22,7 +22,7 @@ void ledger::init(eosio::name coopname) {
     uint64_t id = std::get<0>(account_data);
     std::string name = std::get<1>(account_data);
 
-    accounts.emplace(coopname, [&](auto& acc) {
+    accounts.emplace(RamPayer::of(accounts, coopname), [&](auto& acc) {
       acc.id = id;
       acc.name = name;
       acc.allocation = eosio::asset(0, _root_govern_symbol);

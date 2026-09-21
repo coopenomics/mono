@@ -32,7 +32,7 @@ void soviet::addbal(eosio::name coopname, eosio::name username, uint64_t program
   auto wallet_idx_it = by_user_program.find(key);
 
   if (wallet_idx_it == by_user_program.end()) {
-    progwallets.emplace(_soviet, [&](auto &b) {
+    progwallets.emplace(RamPayer::of(progwallets, coopname), [&](auto &b) {
       b.id = progwallets.available_primary_key();
       b.program_id = program_id;
       b.coopname = coopname;
@@ -44,13 +44,13 @@ void soviet::addbal(eosio::name coopname, eosio::name username, uint64_t program
     });
   } else {
     auto wallet = progwallets.find(wallet_idx_it->id);
-    progwallets.modify(wallet, _soviet, [&](auto &b) {
+    progwallets.modify(wallet, RamPayer::of(progwallets, coopname), [&](auto &b) {
       b.available += quantity;
     });
   }
 
   // Обновляем агрегированный баланс в самой программе (program_id)
-  programs.modify(prg, _soviet, [&](auto &p) {
+  programs.modify(prg, RamPayer::of(programs, coopname), [&](auto &p) {
     p.available = p.available.value_or(asset(0, quantity.symbol)) + quantity;
     p.share_contributions = p.share_contributions.value_or(asset(0, quantity.symbol)) + quantity;
   });

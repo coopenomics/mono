@@ -21,7 +21,7 @@ void apps::transferpkg(eosio::name coopname,
   eosio::check(it->owner != new_owner, "Пакет уже принадлежит этому владельцу");
 
   auto now = eosio::current_time_point().sec_since_epoch();
-  packages.modify(it, coopname, [&](auto &p) {
+  packages.modify(it, RamPayer::of(packages, coopname), [&](auto &p) {
     p.owner      = new_owner;
     p.updated_at = eosio::time_point_sec(now);
   });

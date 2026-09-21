@@ -1,5 +1,7 @@
 #pragma once
 
+
+#include "../core/ram_payer.hpp"
 #include <optional>
 
 #include <eosio/asset.hpp>
@@ -69,3 +71,6 @@ inline std::optional<exit> get_exit_by_hash(name coopname, const checksum256 &ha
 }
 
 } // namespace Registrator
+
+// Плательщик за оперативную память строк таблицы — правило в lib/core/ram_payer.hpp.
+RAM_PAYER_CLASS(Registrator::exit, cooperative);

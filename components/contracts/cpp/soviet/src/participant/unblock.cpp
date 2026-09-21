@@ -48,7 +48,7 @@ void soviet::unblock(eosio::name coopname, eosio::name admin, eosio::name userna
   //   ).send();      
   // } 
   
-  participants.modify(participant, _soviet, [&](auto &row){
+  participants.modify(participant, RamPayer::of(participants, coopname), [&](auto &row){
     row.status = "accepted"_n;
     row.is_initial = true;
     row.is_minimum = true;

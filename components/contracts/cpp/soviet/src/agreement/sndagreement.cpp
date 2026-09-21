@@ -58,7 +58,7 @@
   
     if (wallet == wallets_by_username_and_program.end()) {
       
-      progwallets.emplace(_soviet, [&](auto &b) {
+      progwallets.emplace(RamPayer::of(progwallets, coopname), [&](auto &b) {
         b.id = progwallets.available_primary_key();
         b.program_id = coagreement.program_id;
         b.coopname = coopname;
@@ -79,7 +79,7 @@
 
   if (agreement == agreements_by_username_and_draft.end()) {
     
-    agreements.emplace(_soviet, [&](auto &row){
+    agreements.emplace(RamPayer::of(agreements, coopname), [&](auto &row){
       row.id = agreement_id;
       row.coopname = coopname;
       row.status = ""_n;
@@ -95,7 +95,7 @@
     
     eosio::check(agreement->status != "confirmed"_n, "Соглашение уже принято");
     
-    agreements_by_username_and_draft.modify(agreement, _soviet, [&](auto &row){
+    agreements_by_username_and_draft.modify(agreement, RamPayer::of(agreements_by_username_and_draft, coopname), [&](auto &row){
       row.status = ""_n;
       row.program_id = coagreement.program_id;
       row.version = version;

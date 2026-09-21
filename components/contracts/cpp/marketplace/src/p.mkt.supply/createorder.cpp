@@ -93,7 +93,7 @@ void marketplace::createorder(eosio::name coopname,
   orders_index orders(_marketplace, coopname.value);
   uint64_t new_id = orders.available_primary_key();
 
-  orders.emplace(_marketplace, [&](auto& o) {
+  orders.emplace(RamPayer::of(orders, coopname), [&](auto& o) {
     o.id              = new_id;
     o.hash            = order_hash;
     o.coopname        = coopname;

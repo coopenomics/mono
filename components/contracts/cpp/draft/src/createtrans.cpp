@@ -28,7 +28,7 @@ void draft::createtrans(eosio::name scope, eosio::name username, uint64_t regist
 
   uint64_t translation_id = get_global_id(_draft, "translation"_n);
 
-  translations.emplace(payer, [&](auto &d){
+  translations.emplace(RamPayer::of(translations, scope), [&](auto &d){
     d.id = translation_id;
     d.draft_id = registry_id;
     d.lang = lang;

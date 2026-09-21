@@ -92,3 +92,6 @@ public:
     return payer;
   }
 };
+
+// Плательщик за оперативную память строк таблицы — правило в lib/core/ram_payer.hpp.
+RAM_PAYER_CLASS(draft::counts, contract);

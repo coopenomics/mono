@@ -47,7 +47,7 @@ void registrator::confirmexit(eosio::name coopname, checksum256 exit_hash, docum
     Registrator::consolidate_share_to_main(coopname, username, wallet_name, balance, exit_hash);
   }
 
-  exits.modify(e, _soviet, [&](auto &row) {
+  exits.modify(e, RamPayer::of(exits, coopname), [&](auto &row) {
     row.status = "authorized"_n;
     row.approved_statement = authorization;
     row.quantity = total_return;

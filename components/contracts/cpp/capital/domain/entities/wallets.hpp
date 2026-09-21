@@ -75,7 +75,7 @@ namespace Wallets {
     auto itr = idx.find(username.value);
     if (itr == idx.end()) {
       // Создаем новый кошелек
-      capital_wallets.emplace(coopname, [&](auto &w) {
+      capital_wallets.emplace(RamPayer::of(capital_wallets, coopname), [&](auto &w) {
         w.id = get_global_id_in_scope(_capital, coopname, "capwallets"_n);
         w.coopname = coopname;
         w.username = username;
@@ -84,7 +84,7 @@ namespace Wallets {
       });
     } else {
       // Обновляем существующий
-      idx.modify(itr, coopname, [&](auto &w) {
+      idx.modify(itr, RamPayer::of(idx, coopname), [&](auto &w) {
         if (last_program_crps != 0) w.last_program_crps = last_program_crps;
         if (capital_available.amount != 0) w.capital_available += capital_available;
       });
@@ -94,3 +94,5 @@ namespace Wallets {
 } //namespace Capital::Wallet
 } // namespace Capital
 
+// Плательщик за оперативную память строк таблицы — правило в lib/core/ram_payer.hpp.
+RAM_PAYER_CLASS(Capital::capital_wallet, contract);

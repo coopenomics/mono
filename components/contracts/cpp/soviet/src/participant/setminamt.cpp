@@ -21,7 +21,7 @@ void soviet::setminamt(eosio::name coopname, eosio::name username, eosio::asset 
   auto p = participants.find(username.value);
   eosio::check(p != participants.end(), "Пайщик не найден");
 
-  participants.modify(p, coopname, [&](auto &m){
+  participants.modify(p, RamPayer::of(participants, coopname), [&](auto &m){
     m.minimum_amount = minimum;
   });
 }

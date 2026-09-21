@@ -29,7 +29,7 @@ void meet::gmnotify(name coopname, checksum256 hash, name username, document2 no
     eosio::check(std::find(notified.begin(), notified.end(), username) == notified.end(), "Пользователь уже подписал уведомление");
 
     // Добавляем пользователя
-    meet_idx.modify(meet_itr, coopname, [&](auto& m) {
+    meet_idx.modify(meet_itr, RamPayer::of(meet_idx, coopname), [&](auto& m) {
         m.notified_users.push_back(username);
     });
     

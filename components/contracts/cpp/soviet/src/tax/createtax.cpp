@@ -55,7 +55,7 @@
   eosio::check(amount <= withheld,
                "Сумма платежа превышает удержанный налог: перечислить можно не больше того, что удержано");
 
-  taxes.emplace(coopname, [&](auto& t) {
+  taxes.emplace(RamPayer::of(taxes, coopname), [&](auto& t) {
     t.id     = taxes.available_primary_key();
     t.hash   = tax_hash;
     t.amount = amount;

@@ -33,7 +33,7 @@ void draft::approve(eosio::name coopname, eosio::name username, uint64_t registr
   auto exist = approvals.find(registry_id);
 
   if (exist == approvals.end()) {
-    approvals.emplace(payer, [&](auto &a) {
+    approvals.emplace(RamPayer::of(approvals, coopname), [&](auto &a) {
       a.registry_id = registry_id;
       a.version = version;
       a.decision_id = decision_id;
@@ -41,7 +41,7 @@ void draft::approve(eosio::name coopname, eosio::name username, uint64_t registr
       a.text_hash = text_hash;
     });
   } else {
-    approvals.modify(exist, payer, [&](auto &a) {
+    approvals.modify(exist, RamPayer::of(approvals, coopname), [&](auto &a) {
       a.version = version;
       a.decision_id = decision_id;
       a.approved_at = approved_at;

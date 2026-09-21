@@ -36,7 +36,7 @@ void soviet::validate(eosio::name coopname, eosio::name username, uint64_t decis
   };
   
   bool validated = !decision -> validated;
-  decisions.modify(decision, username, [&](auto &d){
+  decisions.modify(decision, RamPayer::of(decisions, coopname), [&](auto &d){
     d.validated = validated;
   });
 
@@ -44,7 +44,7 @@ void soviet::validate(eosio::name coopname, eosio::name username, uint64_t decis
   auto signer = autosigner.find(decision -> id);
 
   if (validated && signer == autosigner.end())
-    autosigner.emplace(_soviet, [&](auto &o) {
+    autosigner.emplace(RamPayer::of(autosigner, coopname), [&](auto &o) {
       o.decision_id = decision -> id;
     });
 }

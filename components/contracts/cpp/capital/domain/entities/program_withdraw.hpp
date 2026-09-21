@@ -1,5 +1,7 @@
 #pragma once
 
+
+#include "../../../lib/core/ram_payer.hpp"
 using namespace eosio;
 using std::string;
 
@@ -63,3 +65,6 @@ inline std::optional<program_withdraw> get_program_withdraw(eosio::name coopname
 
 
 } // namespace Capital
+
+// Плательщик за оперативную память строк таблицы — правило в lib/core/ram_payer.hpp.
+RAM_PAYER_CLASS(Capital::program_withdraw, cooperative);

@@ -92,7 +92,7 @@ void meet::vote(name coopname, checksum256 hash, name username, document2 ballot
         auto qitr = questions.find(b.question_id);
         eosio::check(qitr != questions.end(), "Вопрос не найден");
 
-        questions.modify(qitr, coopname, [&](auto &q) {
+        questions.modify(qitr, RamPayer::of(questions, coopname), [&](auto &q) {
             if (b.vote == "for"_n) {
                 q.counter_votes_for++;
                 q.voters_for.push_back(username);
@@ -112,7 +112,7 @@ void meet::vote(name coopname, checksum256 hash, name username, document2 ballot
     Meet::meets_index genmeets(_meet, coopname.value);
     auto meet_itr = genmeets.find(meet_record.id);
     eosio::check(meet_itr != genmeets.end(), "Собрание не найдено при обновлении кворума");
-    genmeets.modify(meet_itr, coopname, [&](auto &m) {
+    genmeets.modify(meet_itr, RamPayer::of(genmeets, coopname), [&](auto &m) {
         m.signed_ballots++; // регистрируем принятый бюллетень
         uint64_t total_participants = get_total_participants(coopname);
         if (total_participants == 0) {

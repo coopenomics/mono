@@ -63,7 +63,7 @@
   eosio::check(byhash.find(expense_hash) == byhash.end(),
                "Расход с таким идентификатором уже подан");
 
-  expenses.emplace(coopname, [&](auto& e) {
+  expenses.emplace(RamPayer::of(expenses, coopname), [&](auto& e) {
     e.id      = expenses.available_primary_key();
     e.hash    = expense_hash;
     e.braname = braname;

@@ -29,14 +29,14 @@ void soviet::unblockbal(eosio::name coopname, eosio::name username, uint64_t pro
   
   eosio::check(wallet -> blocked.value() >= quantity, "Недостаточно средств в блокировке для разблокировки");
 
-  progwallets.modify(wallet, _soviet, [&](auto &w){
+  progwallets.modify(wallet, RamPayer::of(progwallets, coopname), [&](auto &w){
     w.available += quantity;
     w.blocked = w.blocked.value_or(asset(0, quantity.symbol)) - quantity;
   });
   
   //разблокируем средства в программе
   eosio::check(prg -> blocked.value() >= quantity, "Недостаточно средств в блокировке программы");
-  programs.modify(prg, _soviet, [&](auto &p){
+  programs.modify(prg, RamPayer::of(programs, coopname), [&](auto &p){
     p.available = p.available.value_or(asset(0, quantity.symbol)) + quantity;
     p.blocked = p.blocked.value_or(asset(0, quantity.symbol)) - quantity;
   });

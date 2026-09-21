@@ -28,7 +28,7 @@
                    "Пайщик уже является председателем другого кооперативного участка");
     }
 
-    branches.emplace(coopname, [&](auto &row) {
+    branches.emplace(RamPayer::of(branches, coopname), [&](auto &row) {
       row.braname = braname;
       row.trustee = trustee;
     });

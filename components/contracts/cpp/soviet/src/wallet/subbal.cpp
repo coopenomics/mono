@@ -33,12 +33,12 @@ void soviet::subbal(eosio::name coopname, eosio::name username, uint64_t program
   if (!skip_available_check)
     eosio::check(wallet ->available >= quantity, "Недостаточный баланс");
   
-  progwallets.modify(wallet, _soviet, [&](auto &b) { 
+  progwallets.modify(wallet, RamPayer::of(progwallets, coopname), [&](auto &b) { 
     b.available -= quantity; 
   });
   
   // Уменьшаем агрегированный баланс в самой программе
-  programs.modify(prg, _soviet, [&](auto &p){
+  programs.modify(prg, RamPayer::of(programs, coopname), [&](auto &p){
     eosio::check(p.available.value() >= quantity, "В программе недостаточно доступных средств");
     eosio::check(p.share_contributions.value() >= quantity, "В программе недостаточно средств");
     

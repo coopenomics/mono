@@ -38,7 +38,7 @@ void capital::approvereg(eosio::name coopname, eosio::name username, checksum256
   };
   
   // Обновляем пайщика и устанавливаем принятый договор УХД
-  contributors.modify(contributor, payer, [&](auto &c){
+  contributors.modify(contributor, RamPayer::of(contributors, coopname), [&](auto &c){
     c.status = Capital::Contributors::Status::ACTIVE;
     c.contract = contract;
   });

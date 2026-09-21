@@ -31,7 +31,7 @@
   std::vector<eosio::name> storages;
   storages.push_back(coopname);
 
-  accounts.modify(new_user, coopname, [&](auto &c)
+  accounts.modify(new_user, RamPayer::of(accounts, coopname), [&](auto &c)
   {
     c.type = type;
     c.storages = storages;
@@ -61,7 +61,7 @@
   auto candidate = candidates.find(username.value);
   eosio::check(candidate == candidates.end(), "Кандидат уже существует");
   
-  candidates.emplace(coopname, [&](auto &c) {
+  candidates.emplace(RamPayer::of(candidates, coopname), [&](auto &c) {
     c.coopname = coopname;
     c.username = username;
     c.braname = braname;

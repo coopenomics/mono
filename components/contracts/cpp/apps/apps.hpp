@@ -1,5 +1,7 @@
 #pragma once
 
+
+#include "../lib/core/ram_payer.hpp"
 #include <eosio/asset.hpp>
 #include <eosio/contract.hpp>
 #include <eosio/crypto.hpp>
@@ -374,3 +376,6 @@ public:
 
   struct [[eosio::table, eosio::contract(APPS)]] counts : counts_base {};
 };
+
+// Плательщик за оперативную память строк таблицы — правило в lib/core/ram_payer.hpp.
+RAM_PAYER_CLASS(apps::counts, contract);

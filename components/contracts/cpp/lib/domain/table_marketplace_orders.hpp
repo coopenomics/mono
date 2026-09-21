@@ -1,5 +1,7 @@
 #pragma once
 
+
+#include "../core/ram_payer.hpp"
 #include <eosio/asset.hpp>
 #include <eosio/crypto.hpp>
 #include <eosio/binary_extension.hpp>
@@ -251,3 +253,6 @@ typedef eosio::multi_index<
     orders_index;
 
 } // namespace Marketplace
+
+// Плательщик за оперативную память строк таблицы — правило в lib/core/ram_payer.hpp.
+RAM_PAYER_CLASS(Marketplace::order, cooperative);

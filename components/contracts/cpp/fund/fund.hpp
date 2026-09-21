@@ -137,3 +137,6 @@ class [[eosio::contract(FUND)]] fund : public eosio::contract {
 
   struct [[eosio::table, eosio::contract(FUND)]] counts : counts_base {};
 };
+
+// Плательщик за оперативную память строк таблицы — правило в lib/core/ram_payer.hpp.
+RAM_PAYER_CLASS(fund::counts, contract);

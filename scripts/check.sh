@@ -11,7 +11,9 @@
 #     @coopenomics/innercoop (статические импорты ловит eslint, динамические и
 #     относительные пути — check-extension-boundaries.mjs); и
 #     согласованность реестров имён процессов ledger2 между контрактом,
-#     cooptypes и локатором бэкенда (см. check-ledger2-processes.mjs).
+#     cooptypes и локатором бэкенда (см. check-ledger2-processes.mjs); и
+#     плательщик за память в контрактах — только через RamPayer::of, храповиком
+#     по снимку долга (см. check-ram-payer.mjs).
 #
 #   Ярус B «канон» — только на изменённые файлы, храповиком.
 #     Правила, которым старый код массово не соответствует (сложность, размер
@@ -123,6 +125,10 @@ gate_ledger2_processes() {
   node "$REPO_ROOT/scripts/check-ledger2-processes.mjs"
 }
 
+gate_ram_payer() {
+  node "$REPO_ROOT/scripts/check-ram-payer.mjs"
+}
+
 gate_unit_tests() {
   pnpm run test:unit
 }
@@ -136,6 +142,7 @@ case "$MODE" in
     run_gate "публичный API контракта" gate_innercoop_api
     run_gate "порты переживут вынос" gate_ports_async
     run_gate "реестры процессов ledger2" gate_ledger2_processes
+    run_gate "плательщик памяти в контрактах" gate_ram_payer
     ;;
   ledger2)
     run_gate "реестры процессов ledger2" gate_ledger2_processes
@@ -155,6 +162,7 @@ case "$MODE" in
     run_gate "публичный API контракта" gate_innercoop_api
     run_gate "порты переживут вынос" gate_ports_async
     run_gate "реестры процессов ledger2" gate_ledger2_processes
+    run_gate "плательщик памяти в контрактах" gate_ram_payer
     run_gate "канон: изменённые файлы" gate_changed
     run_gate "реестр тестов" gate_registry
     # Тесты по умолчанию ВЫКЛЮЧЕНЫ намеренно: CLAUDE.md запрещает гонять

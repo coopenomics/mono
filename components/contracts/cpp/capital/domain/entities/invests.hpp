@@ -1,5 +1,7 @@
 #pragma once
 
+
+#include "../../../lib/core/ram_payer.hpp"
 using namespace eosio;
 using std::string;
 
@@ -138,7 +140,7 @@ inline void create_invest_with_approve(
   invest_index invests(_capital, coopname.value);
   uint64_t invest_id = get_global_id_in_scope(_capital, coopname, "invests"_n);
   
-  invests.emplace(coopname, [&](auto &i){
+  invests.emplace(RamPayer::of(invests, coopname), [&](auto &i){
     i.id = invest_id;
     i.coopname = coopname;
     i.username = username;
@@ -186,7 +188,7 @@ inline void set_coordinator_info(
   eosio::check(invest_iterator != invest_hash_index.end(), "Инвестиция не найдена");
   
   // Обновляем запись с информацией о координаторе
-  invest_hash_index.modify(invest_iterator, coopname, [&](auto &i){
+  invest_hash_index.modify(invest_iterator, RamPayer::of(invest_hash_index, coopname), [&](auto &i){
     i.coordinator = coordinator_username;
     i.coordinator_amount = coordinator_amount;
   });
@@ -194,3 +196,6 @@ inline void set_coordinator_info(
 
 
 } // namespace Capital::Invests
+
+// Плательщик за оперативную память строк таблицы — правило в lib/core/ram_payer.hpp.
+RAM_PAYER_CLASS(Capital::invest, cooperative);

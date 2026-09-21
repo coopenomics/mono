@@ -1,5 +1,7 @@
 #pragma once
 
+
+#include "../core/ram_payer.hpp"
 #include <eosio/asset.hpp>
 #include <eosio/eosio.hpp>
 #include <eosio/time.hpp>
@@ -43,3 +45,6 @@ struct [[eosio::table, eosio::contract(APPS)]] pricing {
 typedef eosio::multi_index<"pricings"_n, pricing> pricings_index;
 
 } // namespace Apps
+
+// Плательщик за оперативную память строк таблицы — правило в lib/core/ram_payer.hpp.
+RAM_PAYER_CLASS(Apps::pricing, contract);

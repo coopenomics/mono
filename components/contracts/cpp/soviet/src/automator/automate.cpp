@@ -79,7 +79,7 @@ void soviet::automate(eosio::name coopname, uint64_t board_id, eosio::name membe
   auto existing = by_member.find(member.value);
 
   if (existing == by_member.end()) {
-    automator.emplace(member, [&](auto& a) {
+    automator.emplace(RamPayer::of(automator, coopname), [&](auto& a) {
       a.id = automator.available_primary_key();
       a.coopname = coopname;
       a.board_id = board_id;
@@ -94,7 +94,7 @@ void soviet::automate(eosio::name coopname, uint64_t board_id, eosio::name membe
       a.updated_at = now;
     });
   } else {
-    by_member.modify(existing, member, [&](auto& a) {
+    by_member.modify(existing, RamPayer::of(by_member, coopname), [&](auto& a) {
       a.board_id = board_id;
       a.permission_name = permission_name;
       a.vote_types = vote_types;

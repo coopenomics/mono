@@ -16,7 +16,7 @@
     auto branch = branches.find(braname.value);
     eosio::check(branch != branches.end(), "Кооперативный участок не найден");
     
-    branches.modify(branch, coopname, [&](auto &b) {
+    branches.modify(branch, RamPayer::of(branches, coopname), [&](auto &b) {
         auto it = std::find(b.trusted.begin(), b.trusted.end(), trusted);
         eosio::check(it != b.trusted.end(), "Доверенный не найден в кооперативном участке");
         b.trusted.erase(it);

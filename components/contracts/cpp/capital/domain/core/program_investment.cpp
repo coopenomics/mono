@@ -31,7 +31,7 @@ namespace Capital::Core {
     Capital::project_index projects(_capital, coopname.value);
     auto project = projects.find(project_id);
     
-    projects.modify(project, coopname, [&](auto &p) {
+    projects.modify(project, RamPayer::of(projects, coopname), [&](auto &p) {
       // Рассчитываем сколько средств еще нужно для достижения цели по расходам
       eosio::asset expense_gap = p.plan.target_expense_pool - p.fact.accumulated_expense_pool;
       
@@ -107,7 +107,7 @@ namespace Capital::Core {
     eosio::check(project->fact.invest_pool >= amount, "Недостаточно средств в инвестиционном пуле проекта");
     eosio::check(project->fact.total_received_investments >= amount, "Недостаточно полученных инвестиций в проекте");
 
-    projects.modify(project, coopname, [&](auto &p) {
+    projects.modify(project, RamPayer::of(projects, coopname), [&](auto &p) {
       // Списываем средства из программного и инвестиционного пулов проекта
       p.fact.program_invest_pool -= amount;
       p.fact.invest_pool -= amount;

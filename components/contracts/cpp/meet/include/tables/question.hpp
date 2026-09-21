@@ -35,3 +35,6 @@ typedef eosio::multi_index<
 > questions_index;
 
 }
+
+// Плательщик за оперативную память строк таблицы — правило в lib/core/ram_payer.hpp.
+RAM_PAYER_CLASS(Meet::question, cooperative);

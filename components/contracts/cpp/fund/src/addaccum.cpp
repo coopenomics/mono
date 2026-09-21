@@ -7,7 +7,7 @@
   auto wal = coopwallet.find(0);
   eosio::check(wal != coopwallet.end(), "Кошелёк кооператива не найден");
 
-  coopwallet.modify(wal, _fund, [&](auto &row) {
+  coopwallet.modify(wal, RamPayer::of(coopwallet, coopname), [&](auto &row) {
     row.accumulative_account.available += quantity;
   });
 
@@ -16,6 +16,6 @@
 
   eosio::check(afund != accfunds.end(), "Фонд не найден");
 
-  accfunds.modify(afund, _fund, [&](auto &a) { a.available += quantity; });
+  accfunds.modify(afund, RamPayer::of(accfunds, coopname), [&](auto &a) { a.available += quantity; });
 };
 

@@ -7,7 +7,7 @@ void add_vote_against(eosio::name coopname, eosio::name username, uint64_t decis
   eosio::check(decision != decisions.end(), "Решение с данным ID не найдено.");
   
   // Модифицируем запись в таблице
-  decisions.modify(decision, _soviet, [&](auto& row) {
+  decisions.modify(decision, RamPayer::of(decisions, coopname), [&](auto& row) {
     row.votes_against.push_back(username); // Добавляем участника в голоса против
   });
 }

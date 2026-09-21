@@ -17,7 +17,7 @@ void wallet::createwthd(eosio::name coopname, eosio::name username, checksum256 
 
   Wallet::withdraws_index withdraws(_wallet, coopname.value);
     
-  withdraws.emplace(coopname, [&](auto &d) {
+  withdraws.emplace(RamPayer::of(withdraws, coopname), [&](auto &d) {
     d.id = id;
     d.withdraw_hash = withdraw_hash;
     d.username = username;

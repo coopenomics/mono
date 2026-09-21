@@ -57,7 +57,7 @@
     check(total_percent <= HUNDR_PERCENTS,
           "Сумма всех процентов превышает 100%");
 
-    accfunds.modify(afund, username, [&](auto &a) {
+    accfunds.modify(afund, RamPayer::of(accfunds, coopname), [&](auto &a) {
       a.contract = contract;
       a.name = name;
       a.description = description;
@@ -77,7 +77,7 @@
       eosio::check(contract == ""_n, "Нельзя передать в управление обязательный фонд");
     }
 
-    expfunds.modify(efund, username, [&](auto &e) {
+    expfunds.modify(efund, RamPayer::of(expfunds, coopname), [&](auto &e) {
       e.contract = contract;
       e.name = name;
       e.description = description;

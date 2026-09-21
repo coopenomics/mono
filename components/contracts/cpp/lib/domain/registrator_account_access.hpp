@@ -22,7 +22,7 @@ inline void reset_account_card(eosio::name username) {
   accounts_index accounts(_registrator, _registrator.value);
   auto account_row = accounts.find(username.value);
   if (account_row == accounts.end()) return;
-  accounts.modify(account_row, _registrator, [&](auto &a) {
+  accounts.modify(account_row, RamPayer::of(accounts), [&](auto &a) {
     a.type = ""_n;
     a.storages.clear();
   });

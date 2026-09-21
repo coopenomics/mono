@@ -23,7 +23,7 @@
   
   auto decision_id = get_id(_soviet, coopname, "decisions"_n);
   
-  decisions.emplace(_soviet, [&](auto &d) {
+  decisions.emplace(RamPayer::of(decisions, coopname), [&](auto &d) {
     d.id = decision_id;
     d.coopname = coopname;
     d.username = username;

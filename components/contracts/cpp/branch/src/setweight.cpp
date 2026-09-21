@@ -40,13 +40,13 @@
        it != idx.upper_bound(combine_ids(contract.value, braname.value)); ++it) {
     if (it->username != username) continue;
     total_delta -= static_cast<int64_t>(it->weight);
-    idx.modify(it, coopname, [&](auto& w) { w.weight = weight; });
+    idx.modify(it, RamPayer::of(idx, coopname), [&](auto& w) { w.weight = weight; });
     found = true;
     break;
   }
 
   if (!found) {
-    weights.emplace(coopname, [&](auto& w) {
+    weights.emplace(RamPayer::of(weights, coopname), [&](auto& w) {
       w.id       = weights.available_primary_key();
       w.braname  = braname;
       w.contract = contract;

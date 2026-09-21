@@ -78,7 +78,7 @@ void soviet::make_base_coagreements( eosio::name coopname, eosio::symbol govern_
     auto wallet_program_id = get_global_id_in_scope(_soviet, coopname, "programs"_n);
   
     //создаём программу кошелька
-    programs.emplace(_soviet, [&](auto &pr) {
+    programs.emplace(RamPayer::of(programs, coopname), [&](auto &pr) {
       pr.id = wallet_program_id;
       pr.program_type = _wallet_program;
       pr.is_active = true;
@@ -104,7 +104,7 @@ void soviet::make_base_coagreements( eosio::name coopname, eosio::symbol govern_
     });
   
     //создаём соглашение для программы кошелька    
-    coagreements.emplace(_soviet, [&](auto &row){
+    coagreements.emplace(RamPayer::of(coagreements, coopname), [&](auto &row){
       row.type = "wallet"_n;
       row.coopname = coopname;
       row.program_id = wallet_program_id;
@@ -112,7 +112,7 @@ void soviet::make_base_coagreements( eosio::name coopname, eosio::symbol govern_
     });
     
     //создаём соглашение для шаблона простой электронной подписи
-    coagreements.emplace(_soviet, [&](auto &row){
+    coagreements.emplace(RamPayer::of(coagreements, coopname), [&](auto &row){
       row.type = "signature"_n;
       row.coopname = coopname;
       row.program_id = 0;
@@ -120,7 +120,7 @@ void soviet::make_base_coagreements( eosio::name coopname, eosio::symbol govern_
     });
 
     //создаём соглашение для шаблона пользовательского соглашения
-    coagreements.emplace(_soviet, [&](auto &row){
+    coagreements.emplace(RamPayer::of(coagreements, coopname), [&](auto &row){
       row.type = "user"_n;
       row.coopname = coopname;
       row.program_id = 0;
@@ -128,7 +128,7 @@ void soviet::make_base_coagreements( eosio::name coopname, eosio::symbol govern_
     });
     
     //создаём соглашение для шаблона политики конфиденциальности
-    coagreements.emplace(_soviet, [&](auto &row){
+    coagreements.emplace(RamPayer::of(coagreements, coopname), [&](auto &row){
       row.type = "privacy"_n;
       row.coopname = coopname;
       row.program_id = 0;

@@ -124,7 +124,7 @@ inline void update_order(eosio::name coopname, uint64_t order_id, const std::fun
   orders_index orders(_marketplace, coopname.value);
   auto it = orders.find(order_id);
   eosio::check(it != orders.end(), "Заказ не найден по id");
-  orders.modify(it, _marketplace, [&](auto& o) { fn(o); });
+  orders.modify(it, RamPayer::of(orders, coopname), [&](auto& o) { fn(o); });
 }
 
 /// Денежное расширение строки заказа, если в нём действительно сумма.
@@ -213,7 +213,7 @@ inline void update_return_request(eosio::name coopname, uint64_t request_id,
   return_requests_index requests(_marketplace, coopname.value);
   auto it = requests.find(request_id);
   eosio::check(it != requests.end(), "Заявление на возврат не найдено по id");
-  requests.modify(it, _marketplace, [&](auto& r) { fn(r); });
+  requests.modify(it, RamPayer::of(requests, coopname), [&](auto& r) { fn(r); });
 }
 
 // Терминал жизненного цикла: запись стирается из RAM (история — в журнале
@@ -261,7 +261,7 @@ inline void update_writeoff_proposal(eosio::name coopname, uint64_t proposal_id,
   writeoff_proposals_index proposals(_marketplace, coopname.value);
   auto it = proposals.find(proposal_id);
   eosio::check(it != proposals.end(), "Проект списания не найден по id");
-  proposals.modify(it, _marketplace, [&](auto& p) { fn(p); });
+  proposals.modify(it, RamPayer::of(proposals, coopname), [&](auto& p) { fn(p); });
 }
 
 // Терминал жизненного цикла: запись стирается из RAM, история процесса —
@@ -297,7 +297,7 @@ inline void update_claim(eosio::name coopname, uint64_t claim_id,
   warranty_claims_index claims(_marketplace, coopname.value);
   auto it = claims.find(claim_id);
   eosio::check(it != claims.end(), "Гарантийная претензия не найдена по id");
-  claims.modify(it, _marketplace, [&](auto& c) { fn(c); });
+  claims.modify(it, RamPayer::of(claims, coopname), [&](auto& c) { fn(c); });
 }
 
 // ── Cross-contract read: ledger2 wallet/userwallet balances ─────────────

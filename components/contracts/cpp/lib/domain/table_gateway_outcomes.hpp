@@ -1,5 +1,7 @@
 #pragma once
 
+
+#include "../core/ram_payer.hpp"
 #include <eosio/asset.hpp>
 #include <eosio/crypto.hpp>
 #include <eosio/eosio.hpp>
@@ -56,3 +58,6 @@ inline std::optional<outcome> get_outcome(eosio::name coopname, const checksum25
 }
 
 } // namespace Gateway
+
+// Плательщик за оперативную память строк таблицы — правило в lib/core/ram_payer.hpp.
+RAM_PAYER_CLASS(Gateway::outcome, cooperative);

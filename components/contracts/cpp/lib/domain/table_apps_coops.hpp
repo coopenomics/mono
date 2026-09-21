@@ -1,5 +1,7 @@
 #pragma once
 
+
+#include "../core/ram_payer.hpp"
 #include <eosio/eosio.hpp>
 #include <eosio/crypto.hpp>
 
@@ -60,3 +62,6 @@ typedef eosio::multi_index<
     coops_index;
 
 } // namespace Apps
+
+// Плательщик за оперативную память строк таблицы — правило в lib/core/ram_payer.hpp.
+RAM_PAYER_CLASS(Apps::coop, contract);

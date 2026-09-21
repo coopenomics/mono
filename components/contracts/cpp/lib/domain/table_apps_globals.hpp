@@ -1,5 +1,7 @@
 #pragma once
 
+
+#include "../core/ram_payer.hpp"
 #include <eosio/eosio.hpp>
 #include <eosio/singleton.hpp>
 
@@ -41,3 +43,6 @@ struct [[eosio::table, eosio::contract(APPS)]] globals_row {
 typedef eosio::singleton<"globals"_n, globals_row> globals_singleton;
 
 } // namespace Apps
+
+// Плательщик за оперативную память строк таблицы — правило в lib/core/ram_payer.hpp.
+RAM_PAYER_CLASS(Apps::globals_row, contract);

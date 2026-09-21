@@ -17,7 +17,7 @@
   eosio::check(wal != coopwallet.end(), "Кошелёк кооператива не найден");
 
   // Добавление членского взноса на накопительный счет кооператива
-  coopwallet.modify(wal, payer, [&](auto &w) {
+  coopwallet.modify(wal, RamPayer::of(coopwallet, coopname), [&](auto &w) {
     w.accumulative_expense_account.available += quantity;
   });
 } 

@@ -1,5 +1,7 @@
 #pragma once
 
+
+#include "../../../lib/core/ram_payer.hpp"
 #include <eosio/eosio.hpp>
 #include <eosio/asset.hpp>
 
@@ -120,7 +122,7 @@ namespace Votes {
         votes_index votes(_capital, coopname.value);
         auto vote_id = get_global_id_in_scope(_capital, coopname, "vote"_n);
         
-        votes.emplace(coopname, [&](auto &v) {
+        votes.emplace(RamPayer::of(votes, coopname), [&](auto &v) {
             v.id = vote_id;
             v.coopname = coopname;
             v.project_hash = project_hash;
@@ -134,3 +136,6 @@ namespace Votes {
 } // namespace Votes
 
 } // namespace Capital
+
+// Плательщик за оперативную память строк таблицы — правило в lib/core/ram_payer.hpp.
+RAM_PAYER_CLASS(Capital::vote, cooperative);

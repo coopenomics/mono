@@ -30,14 +30,14 @@ void soviet::blockbal(eosio::name coopname, eosio::name username, uint64_t progr
   
   eosio::check(wallet -> available >= quantity, "Недостаточно средств на балансе для блокировки");
 
-  progwallets.modify(wallet, _soviet, [&](auto &w){
+  progwallets.modify(wallet, RamPayer::of(progwallets, coopname), [&](auto &w){
     w.available -= quantity;
     w.blocked = w.blocked.value_or(asset(0, quantity.symbol)) + quantity;
   });
   
   eosio::check(prg -> available.value() >= quantity, "Недостаточно средств на балансе программы");
     
-  programs.modify(prg, _soviet, [&](auto &p){
+  programs.modify(prg, RamPayer::of(programs, coopname), [&](auto &p){
     p.available = p.available.value_or(asset(0, quantity.symbol)) - quantity;
     p.blocked = p.blocked.value_or(asset(0, quantity.symbol)) + quantity;
   });
