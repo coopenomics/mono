@@ -33,9 +33,11 @@
 #   • cpp/edubridge/src/p.edu.rid/                    — реализация
 #   • cpp/lib/core/ledger2/operations.hpp             — OPERATION_REGISTRY
 #                                                       o.edu.hold, o.edu.rid,
-#                                                       o.edu.ridshr, o.edu.retrid
+#                                                       o.edu.ridshr, o.edu.settle,
+#                                                       o.edu.retrid
 #   • cpp/lib/core/ledger2/processes.hpp              — processes::edubridge::RID
-#   • cpp/lib/core/ledger2/wallets.hpp                — w.edu.hold, w.wal.share
+#   • cpp/lib/core/ledger2/wallets.hpp                — w.edu.hold, w.wal.share,
+#                                                       w.edu.teach
 #   • cpp/lib/core/ledger2/accounts.hpp               — Нематериальные активы (04),
 #                                                       Вложения во внеоборотные
 #                                                       активы (08), Расчёты с
@@ -419,9 +421,9 @@ documents:
     note: "Двухподписный акт: первым подписывает преподаватель, вторым — председатель по хэшу. Завершающий документ пути. Источник правды — components/cooptypes/src/cooperative/registry/3010.EducationRidAct"
 
 # ── Секция 6. Операции (Ledger2) ────────────────────────────────────────────
-# Четыре операции по фазам жизненного цикла материалов: приём на хранение,
-# приём результата в состав активов, зачисление паевого взноса, возврат с
-# хранения.
+# Пять операций по фазам жизненного цикла материалов: приём на хранение,
+# приём результата в состав активов, зачисление паевого взноса, расчёт за
+# счёт резерва выплат преподавателям, возврат с хранения.
 operations:
   - ledger_code: o.edu.hold
     human_name: Приём материалов занятия на ответственное хранение по ЦПП «Образование»
@@ -522,7 +524,7 @@ operations:
     available_delta: "−amount"
     blocked_delta: null
     amount_ref: edu_rid.amount
-    triggered_by: edubridge::recallrid
+    triggered_by: edubridge::recallrid, edubridge::declinerid
     description: >
       Снятие материалов занятия с ответственного хранения при подтверждённом
       гарантийном случае и при отказе совета в приёме результата. Двойная
