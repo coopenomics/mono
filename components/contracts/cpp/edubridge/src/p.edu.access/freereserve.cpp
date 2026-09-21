@@ -25,7 +25,7 @@ void edubridge::freereserve(eosio::name coopname,
 
   edu_subscriptions_index subs(_edubridge, coopname.value);
   auto sub = Edubridge::get_subscription_or_fail(subs, sub_hash);
-  eosio::check(amount <= sub->reserved,
+  eosio::check(!sub->is_tracked() || amount <= sub->reserved_or_zero(),
                "Высвобождается не больше зарезервированного по подписке");
 
   Ledger2::apply(_edubridge, coopname,
@@ -35,6 +35,8 @@ void edubridge::freereserve(eosio::name coopname,
                  Edubridge::Memo::get_free_reserve_memo());
 
   subs.modify(sub, _edubridge, [&](auto& s) {
-    s.reserved -= amount;
+    if (s.is_tracked()) {
+      s.reserved.emplace(s.reserved_or_zero() - amount);
+    }
   });
 }

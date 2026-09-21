@@ -14,7 +14,8 @@
  * Guards:
  *  - amount > 0 в символе кооператива;
  *  - подписка с указанным hash существует;
- *  - в резерв уходит не больше собранного по подписке.
+ *  - в резерв уходит не больше собранного по подписке (у подписок, открытых
+ *    до учёта собранного, потолка нет — достаточность фонда проверит перевод).
  *
  * @ingroup public_edubridge_actions
  */
@@ -27,7 +28,7 @@ void edubridge::allotfee(eosio::name coopname,
 
   edu_subscriptions_index subs(_edubridge, coopname.value);
   auto sub = Edubridge::get_subscription_or_fail(subs, sub_hash);
-  eosio::check(sub->reserved + amount <= sub->charged,
+  eosio::check(!sub->is_tracked() || sub->reserved_or_zero() + amount <= sub->charged_or_zero(),
                "В резерв выплат преподавателям уходит не больше собранного по подписке");
 
   Ledger2::apply(_edubridge, coopname,
@@ -37,6 +38,8 @@ void edubridge::allotfee(eosio::name coopname,
                  Edubridge::Memo::get_allot_reserve_memo());
 
   subs.modify(sub, _edubridge, [&](auto& s) {
-    s.reserved += amount;
+    if (s.is_tracked()) {
+      s.reserved.emplace(s.reserved_or_zero() + amount);
+    }
   });
 }

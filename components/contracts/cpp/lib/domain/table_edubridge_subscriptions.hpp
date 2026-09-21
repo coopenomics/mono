@@ -1,6 +1,7 @@
 #pragma once
 
 #include <eosio/asset.hpp>
+#include <eosio/binary_extension.hpp>
 #include <eosio/crypto.hpp>
 #include <eosio/eosio.hpp>
 #include <eosio/time.hpp>
@@ -49,8 +50,30 @@ struct [[eosio::table, eosio::contract(EDUBRIDGE)]] edu_subscription {
   checksum256 statement_hash;        ///< hash последнего Заявления о конвертации, по которому оплачен период
   eosio::time_point_sec created_at;  ///< открытие подписки
   eosio::time_point_sec updated_at;  ///< последнее продление
-  eosio::asset charged  = eosio::asset(0, _root_govern_symbol); ///< собрано по подписке в фонд программы (o.edu.fee) — потолок возврата при отмене
-  eosio::asset reserved = eosio::asset(0, _root_govern_symbol); ///< из собранного выделено в резерв выплат преподавателям (o.edu.allot) — потолок высвобождения
+  // Поля добавлены в ХВОСТ struct и обёрнуты в binary_extension: подписки,
+  // записанные до их появления, иначе перестают читаться. Значение читать
+  // только через asset_or_zero — пустое расширение материализуется при первой
+  // же записи строки как asset() без символа.
+  eosio::binary_extension<eosio::asset> charged;  ///< собрано по подписке в фонд программы (o.edu.fee) — потолок возврата при отмене
+  eosio::binary_extension<eosio::asset> reserved; ///< из собранного выделено в резерв выплат преподавателям (o.edu.allot) — потолок высвобождения
+
+  /// Учёт собранного ведётся с открытия подписки. У подписок, открытых до его
+  /// появления, расширение пусто либо материализовано без символа — потолки
+  /// возврата и резерва к ним не применяются.
+  bool is_tracked() const {
+    return charged.has_value() && charged.value().symbol == _root_govern_symbol;
+  }
+
+  eosio::asset charged_or_zero()  const { return asset_or_zero(charged); }
+  eosio::asset reserved_or_zero() const { return asset_or_zero(reserved); }
+
+  /// Значение расширения либо ноль в символе кооператива.
+  static eosio::asset asset_or_zero(const eosio::binary_extension<eosio::asset>& v) {
+    if (!v.has_value() || v.value().symbol != _root_govern_symbol) {
+      return eosio::asset(0, _root_govern_symbol);
+    }
+    return v.value();
+  }
 
   uint64_t primary_key()      const { return id; }
   checksum256 by_hash()       const { return sub_hash; }

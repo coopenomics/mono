@@ -51,5 +51,7 @@ void edubridge::opensub(eosio::name coopname,
     s.statement_hash = statement_hash;
     s.created_at     = eosio::time_point_sec(now);
     s.updated_at     = eosio::time_point_sec(now);
+    s.charged.emplace(eosio::asset(0, _root_govern_symbol));
+    s.reserved.emplace(eosio::asset(0, _root_govern_symbol));
   });
 }

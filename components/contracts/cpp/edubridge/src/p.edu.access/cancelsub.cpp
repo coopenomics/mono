@@ -43,8 +43,9 @@ void edubridge::cancelsub(eosio::name coopname,
   eosio::check(sub->username == username,
                "Подписку отменяет тот пайщик, которому она принадлежит");
 
-  eosio::check(refund <= sub->charged,
-               std::string{"Возврат больше собранного по подписке: собрано "} + sub->charged.to_string());
+  // У подписок, открытых до учёта собранного, потолка нет: сумму считает кооператив.
+  eosio::check(!sub->is_tracked() || refund <= sub->charged_or_zero(),
+               std::string{"Возврат больше собранного по подписке: собрано "} + sub->charged_or_zero().to_string());
 
   if (refund.amount > 0) {
     Ledger2::apply(_edubridge, coopname,

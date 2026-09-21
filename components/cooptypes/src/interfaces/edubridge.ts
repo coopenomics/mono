@@ -246,8 +246,10 @@ export interface IEduSubscription {
   statement_hash: IChecksum256
   created_at: ITimePointSec
   updated_at: ITimePointSec
-  charged: IAsset
-  reserved: IAsset
+  /** Собрано по подписке в фонд программы; нет у подписок, открытых до учёта собранного. */
+  charged?: IAsset
+  /** Из собранного выделено в резерв выплат преподавателям. */
+  reserved?: IAsset
 }
 
 /**
