@@ -189,6 +189,21 @@ export class EdubridgeTeacherResolver {
     return new EduAssignmentDTO(a, '');
   }
 
+  @Mutation(() => EduTeacherContractDTO, {
+    nullable: true,
+    name: 'edubridgeTerminateContract',
+    description: 'Прекратить договор участия в хозяйственной деятельности по соглашению сторон',
+  })
+  @UseGuards(GqlJwtAuthGuard, EdubridgeAccessGuard)
+  @RequireEduAccess('EduAssignment', 'manage')
+  async edubridgeTerminateContract(
+    @Args('username', { type: () => String }) username: string,
+    @Args('reason', { type: () => String }) reason: string
+  ): Promise<EduTeacherContractDTO | null> {
+    const c = await this.teachers.terminateContract(coop(), username, reason);
+    return c ? new EduTeacherContractDTO(c) : null;
+  }
+
   @Query(() => [EduContributionDTO], { name: 'edubridgeContributions', description: 'Взносы РИД всех преподавателей' })
   @UseGuards(GqlJwtAuthGuard, EdubridgeAccessGuard)
   @RequireEduAccess('EduContribution', 'read:all')

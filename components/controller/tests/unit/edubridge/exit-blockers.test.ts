@@ -51,4 +51,18 @@ describe('Запреты выхода из кооператива у Образ�
       ],
     });
   });
+
+  it('материалы на хранении без заявления: причина называет действие преподавателя, а не ожидание', async () => {
+    const { service } = make({
+      contributions: [
+        { id: 'K1', status: EduContributionStatus.HELD, statement_document: null },
+        { id: 'K2', status: EduContributionStatus.HELD, statement_document: { hash: 'S' } },
+        { id: 'K3', status: EduContributionStatus.SUBMITTED },
+      ],
+    });
+    const reasons = await service.blockers('voskhod', 'ant');
+    expect(reasons).toHaveLength(2);
+    expect(reasons[0]).toMatch(/без заявления о паевом взносе — 1: подпишите заявление/);
+    expect(reasons[1]).toMatch(/заявлений в работе — 2/);
+  });
 });

@@ -39,6 +39,7 @@ export * as RidStatement from './ridStatement'
 export * as RidStorageAct from './ridStorageAct'
 /** Подать взнос РИД */
 export * as HoldContribution from './holdContribution'
+export * as TerminateContract from './terminateContract'
 export * as SubmitContribution from './submitContribution'
 /** Акт приёма-передачи для подписи */
 export * as RidAct from './ridAct'

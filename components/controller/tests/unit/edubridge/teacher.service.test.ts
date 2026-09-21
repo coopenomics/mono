@@ -14,7 +14,7 @@ const signedBy = (signer: string, hash = 'ABC') => ({ hash, doc_hash: hash, meta
 function make(
   opts: { contract?: boolean | EduContractStatus; assignmentStatus?: EduAssignmentStatus; lessonsTotal?: number; guaranteeDays?: number } = {}
 ) {
-  const assignment = { id: 'A1', coopname: 'voskhod', teacher_username: 'teach', course_id: 'C1', annex_hash: null, decline_reason: '', status: opts.assignmentStatus ?? EduAssignmentStatus.ACTIVE, created_at: new Date('2026-01-01') } as any;
+  const assignment = { id: 'A1', coopname: 'voskhod', teacher_username: 'teach', course_id: 'C1', annex_hash: null, decline_reason: '', status: opts.assignmentStatus ?? EduAssignmentStatus.ACTIVE, period_from: '2025-09-01', period_to: '2027-06-01', created_at: new Date('2026-01-01') } as any;
   const store = new Map<string, any>();
   const contractState: { current: any } = {
     current: opts.contract === false ? null : { coopname: 'voskhod', teacher_username: 'teach', contract_hash: 'h', contract_number: 'N1', hourly_rate: '1000.0000 RUB', status: typeof opts.contract === 'string' ? opts.contract : EduContractStatus.ACTIVE, decline_reason: '', approved_at: null },
@@ -33,6 +33,8 @@ function make(
     findContributionByRidHash: jest.fn(async (h: string) => [...store.values()].find((c) => c.rid_hash === h) ?? null),
     createContribution: jest.fn((d: any) => ({ ...d, id: 'K1', created_at: new Date('2026-02-01'), links: d.links })),
     saveContribution: jest.fn(async (c: any) => { store.set(c.id, c); return c; }),
+    findHeldDue: jest.fn(async () => []),
+    findSubmittedWithoutProject: jest.fn(async () => []),
   } as any;
   const courses = {
     findById: jest.fn(async () => ({
@@ -55,7 +57,7 @@ function make(
   const chain = {
     holdRid: jest.fn(async () => ({})), recallRid: jest.fn(async () => ({})),
     submitRid: jest.fn(async () => ({})), acceptRid: jest.fn(async () => ({})), declineRid: jest.fn(async () => ({})),
-    signContract: jest.fn(async () => ({})), signAnnex: jest.fn(async () => ({})),
+    signContract: jest.fn(async () => ({})), signAnnex: jest.fn(async () => ({})), terminateContract: jest.fn(async () => ({})),
   } as any;
   const documents = {
     generate: jest.fn(async (r: any) => ({ hash: `H${r.data.registry_id}`, html: '', full_title: '', binary: '', meta: {} })),
@@ -121,6 +123,40 @@ describe('EdubridgeTeacherService — договор УХД и приложен�
     await expect(
       service.signContract('voskhod', 'teach', signedBy('teach', 'CONTRACT3'), 'N-3', '5000.0000 RUB')
     ).rejects.toThrow(/её меняет администратор/);
+  });
+
+  it('прекращение договора: termcontract в цепь, статус «прекращён», подписывается заново — уже с новой ставкой', async () => {
+    const { service, chain, teachers } = make();
+    teachers.listAssignments.mockResolvedValue([]);
+    const terminated = await service.terminateContract('voskhod', 'teach', 'выход преподавателя из кооператива');
+    expect(chain.terminateContract).toHaveBeenCalledWith({ coopname: 'voskhod', username: 'teach', contract_hash: 'h', reason: 'выход преподавателя из кооператива' });
+    expect(terminated?.status).toBe(EduContractStatus.TERMINATED);
+    await expect(service.reportLesson('voskhod', 'teach', { assignment_id: 'A1', lesson_number: 1, materials: ['x'] } as any)).rejects.toThrow(/прекращён/);
+
+    const again = await service.signContract('voskhod', 'teach', signedBy('teach', 'NEW'), 'N2', '1500.0000 RUB');
+    expect(chain.signContract).toHaveBeenCalled();
+    expect(again.status).toBe(EduContractStatus.PENDING_APPROVAL);
+    expect(again.hourly_rate).toBe('1500.0000 RUB');
+  });
+
+  it('договор не прекращается, пока преподаватель ведёт курс или по занятиям не закрыт расчёт', async () => {
+    const { service, chain, teachers, store } = make();
+    await expect(service.terminateContract('voskhod', 'teach', 'соглашение сторон')).rejects.toThrow(/ведёт курсы/);
+    teachers.listAssignments.mockResolvedValue([]);
+    store.set('K9', { id: 'K9', status: EduContributionStatus.HELD });
+    await expect(service.terminateContract('voskhod', 'teach', 'соглашение сторон')).rejects.toThrow(/не закрыт расчёт/);
+    expect(chain.terminateContract).not.toHaveBeenCalled();
+  });
+
+  it('прекращать нечего: без договора и с уже прекращённым в цепь не ходим; основание обязательно', async () => {
+    const none = make({ contract: false });
+    await expect(none.service.terminateContract('voskhod', 'teach', 'выход')).resolves.toBeNull();
+    const done = make({ contract: EduContractStatus.TERMINATED });
+    await done.service.terminateContract('voskhod', 'teach', 'выход');
+    expect(done.chain.terminateContract).not.toHaveBeenCalled();
+    const live = make();
+    live.teachers.listAssignments.mockResolvedValue([]);
+    await expect(live.service.terminateContract('voskhod', 'teach', ' ')).rejects.toThrow(/основание/);
   });
 
   it('действующий договор повторно не подписывается — возвращается тот же', async () => {
@@ -245,14 +281,73 @@ describe('EdubridgeTeacherService', () => {
     await expect(service.act('voskhod', 'teach', c.id)).rejects.toThrow(/после решения совета/);
   });
 
-  it('отклонение: declinerid с протоколом, причина сохранена', async () => {
+  it('отказ без решения совета: протокола нет, материалы снимаются с хранения с основанием', async () => {
+    const { service, chain, documents, store } = make();
+    const c = await contributionOfLesson(service, store);
+    await service.submitContribution('voskhod', 'teach', c.id, signedBy('teach'));
+    documents.generate.mockClear();
+    const declined = await service.decline('voskhod', c.id, 'Материал не соответствует программе');
+    // Отрицательного протокола у совета не бывает: собирать его не из чего.
+    expect(documents.generate).not.toHaveBeenCalled();
+    expect(chain.declineRid).not.toHaveBeenCalled();
+    expect(chain.recallRid).toHaveBeenCalledWith(
+      expect.objectContaining({ rid_hash: c.rid_hash, reason: 'совет не принял решение о приёме: Материал не соответствует программе' })
+    );
+    expect(declined.status).toBe(EduContributionStatus.DECLINED);
+    expect(declined.decline_reason).toMatch(/не соответствует/);
+  });
+
+  it('отказ после решения совета: declinerid с протоколом этого решения', async () => {
+    const { service, chain, documents, store } = make();
+    const c = await contributionOfLesson(service, store);
+    await service.submitContribution('voskhod', 'teach', c.id, signedBy('teach'));
+    c.status = EduContributionStatus.COUNCIL_APPROVED;
+    c.council_decision_id = '42';
+    const declined = await service.decline('voskhod', c.id, 'Преподаватель отозвал результат');
+    expect(documents.generate).toHaveBeenLastCalledWith(expect.objectContaining({ data: expect.objectContaining({ registry_id: 3009, decision_id: 42 }) }));
+    expect(chain.declineRid).toHaveBeenCalledWith(expect.objectContaining({ rid_hash: c.rid_hash }));
+    expect(chain.recallRid).not.toHaveBeenCalled();
+    expect(declined.status).toBe(EduContributionStatus.DECLINED);
+  });
+
+  it('отказ без основания не принимается', async () => {
     const { service, chain, store } = make();
     const c = await contributionOfLesson(service, store);
     await service.submitContribution('voskhod', 'teach', c.id, signedBy('teach'));
-    const declined = await service.decline('voskhod', c.id, 'Материал не соответствует программе');
-    expect(chain.declineRid).toHaveBeenCalledWith(expect.objectContaining({ rid_hash: c.rid_hash }));
-    expect(declined.status).toBe(EduContributionStatus.DECLINED);
-    expect(declined.decline_reason).toMatch(/не соответствует/);
+    await expect(service.decline('voskhod', c.id, '  ')).rejects.toThrow(/основание/);
+    expect(chain.recallRid).not.toHaveBeenCalled();
+  });
+
+  it('сбой на проекте решения: заявление в цепи зафиксировано, очередь доводит его до совета без повторной подачи', async () => {
+    const { service, chain, freeDecisions, teachers, store } = make();
+    const c = await contributionOfLesson(service, store);
+    freeDecisions.publishProjectOfFreeDecision.mockRejectedValueOnce(new Error('совет недоступен'));
+    await expect(service.submitContribution('voskhod', 'teach', c.id, signedBy('teach', 'STMT'))).rejects.toThrow(/совет недоступен/);
+    expect(c.status).toBe(EduContributionStatus.SUBMITTED);
+    expect(c.statement_document).toBeTruthy();
+    expect(c.council_project_hash ?? null).toBeNull();
+
+    teachers.findSubmittedWithoutProject.mockResolvedValue([c]);
+    await expect(service.publishDueContributions('voskhod')).resolves.toBe(1);
+    expect(chain.submitRid).toHaveBeenCalledTimes(1);
+    expect(c.council_project_hash).toBe('proj');
+  });
+
+  it('цепь отвечает «уже подано» — подача продолжается с проекта решения', async () => {
+    const { service, chain, freeDecisions, store } = make();
+    const c = await contributionOfLesson(service, store);
+    chain.submitRid.mockRejectedValueOnce(new Error('assertion failure with message: Заявление о паевом взносе по этим материалам уже подано'));
+    const submitted = await service.submitContribution('voskhod', 'teach', c.id, signedBy('teach', 'STMT'));
+    expect(submitted.status).toBe(EduContributionStatus.SUBMITTED);
+    expect(freeDecisions.publishProjectOfFreeDecision).toHaveBeenCalled();
+  });
+
+  it('иная ошибка цепи при подаче статус не меняет', async () => {
+    const { service, chain, store } = make();
+    const c = await contributionOfLesson(service, store);
+    chain.submitRid.mockRejectedValueOnce(new Error('Гарантийный срок по материалам занятия ещё идёт'));
+    await expect(service.submitContribution('voskhod', 'teach', c.id, signedBy('teach', 'STMT'))).rejects.toThrow(/ещё идёт/);
+    expect(c.status).toBe(EduContributionStatus.HELD);
   });
 
   it('расчёт: сумма принятых и доступное в главном кошельке', async () => {
@@ -326,14 +421,66 @@ describe('EdubridgeTeacherService — занятия и гарантийный �
 
   it('передача материалов: holdrid в цепь с датой окончания срока, статус «на хранении»', async () => {
     const { service, chain, store } = make();
+    // Занятие было давно, гарантия 14 дней: срок идёт от приёма материалов, а
+    // не от даты занятия — отчёт задним числом его не сокращает.
     const lesson = await service.reportLesson('voskhod', 'teach', { ...report, held_at: '2026-01-01T10:00:00Z' } as any);
     const contribution = [...store.values()].find((c) => c.lesson_id === lesson.id);
     const held = await service.holdContribution('voskhod', 'teach', contribution.id, signedBy('teach', 'HOLD'));
-    expect(chain.holdRid).toHaveBeenCalledWith(
-      expect.objectContaining({ rid_hash: contribution.rid_hash, amount: '1000.0000 RUB', hold_until: '2026-01-15T10:00:00' })
-    );
+    const [payload] = chain.holdRid.mock.calls[0];
+    expect(payload).toMatchObject({ rid_hash: contribution.rid_hash, amount: '1000.0000 RUB' });
+    const until = new Date(`${payload.hold_until}Z`).getTime();
+    expect(Math.abs(until - (Date.now() + 14 * 86400_000))).toBeLessThan(60_000);
     expect(held.status).toBe(EduContributionStatus.HELD);
     expect(held.storage_act_hash).toBe('hold');
+  });
+
+  it('акт хранения называет срок от дня передачи, и эта же дата уходит в цепь', async () => {
+    const { service, chain, documents, store } = make();
+    const lesson = await service.reportLesson('voskhod', 'teach', report as any);
+    const contribution = [...store.values()].find((c) => c.lesson_id === lesson.id);
+    contribution.hold_until = new Date('2026-01-01');
+    await service.storageAct('voskhod', 'teach', contribution.id);
+    expect(Math.abs(contribution.hold_until.getTime() - (Date.now() + 14 * 86400_000))).toBeLessThan(60_000);
+    expect(documents.generate).toHaveBeenLastCalledWith(expect.objectContaining({ data: expect.objectContaining({ registry_id: 3012 }) }));
+    await service.holdContribution('voskhod', 'teach', contribution.id, signedBy('teach', 'HOLD'));
+    expect(new Date(`${chain.holdRid.mock.calls[0][0].hold_until}Z`).getTime()).toBe(Math.floor(contribution.hold_until.getTime() / 1000) * 1000);
+  });
+
+  it('акт, сформированный давно, называет срок короче гарантийного — подписать его нельзя', async () => {
+    const { service, chain, store } = make();
+    const lesson = await service.reportLesson('voskhod', 'teach', report as any);
+    const contribution = [...store.values()].find((c) => c.lesson_id === lesson.id);
+    contribution.hold_until = new Date(Date.now() + 3 * 86400_000);
+    await expect(service.holdContribution('voskhod', 'teach', contribution.id, signedBy('teach', 'HOLD'))).rejects.toThrow(/устарел/);
+    expect(chain.holdRid).not.toHaveBeenCalled();
+  });
+
+  it('дата занятия в будущем и раньше периода назначения отклоняется', async () => {
+    const { service } = make();
+    const tomorrow = new Date(Date.now() + 86400_000).toISOString();
+    await expect(service.reportLesson('voskhod', 'teach', { ...report, held_at: tomorrow } as any)).rejects.toThrow(/ещё не наступила/);
+    await expect(service.reportLesson('voskhod', 'teach', { ...report, held_at: '2025-01-01T10:00:00Z' } as any)).rejects.toThrow(/раньше начала периода/);
+  });
+
+  it('занятие в отчёте не длиннее сдвоенного занятия курса', async () => {
+    const { service, store } = make();
+    await expect(service.reportLesson('voskhod', 'teach', { ...report, duration_minutes: 121 } as any)).rejects.toThrow(/не больше 120 мин/);
+    await service.reportLesson('voskhod', 'teach', { ...report, duration_minutes: 120 } as any);
+    expect([...store.values()][0].amount).toBe('2000.0000 RUB');
+  });
+
+  it('после снятия материалов с хранения занятие проводится и отчитывается заново — взнос новый', async () => {
+    const { service, teachers, store } = make();
+    let n = 0;
+    teachers.createContribution.mockImplementation((d: any) => ({ ...d, id: `K${++n}`, created_at: new Date('2026-02-01') }));
+    const first = await service.reportLesson('voskhod', 'teach', report as any);
+    const firstContribution = store.get('K1');
+    await service.revokeHeldContribution('voskhod', 'K1', 'Занятие не состоялось');
+    const again = await service.reportLesson('voskhod', 'teach', { ...report, topic: 'Дроби, повтор' } as any);
+    expect(again.id).toBe(first.id);
+    expect(again.topic).toBe('Дроби, повтор');
+    expect(again.contribution_id).toBe('K2');
+    expect(store.get('K2').rid_hash).not.toBe(firstContribution.rid_hash);
   });
 
   it('отчёт задним числом и курс без гарантии: материалы всё равно принимаются на хранение', async () => {
@@ -341,7 +488,8 @@ describe('EdubridgeTeacherService — занятия и гарантийный �
     const lesson = await service.reportLesson('voskhod', 'teach', { ...report, held_at: '2026-01-01T10:00:00Z' } as any);
     const contribution = [...store.values()].find((c) => c.lesson_id === lesson.id);
     const held = await service.holdContribution('voskhod', 'teach', contribution.id, signedBy('teach', 'HOLD'));
-    expect(chain.holdRid).toHaveBeenCalledWith(expect.objectContaining({ hold_until: '2026-01-01T10:00:00' }));
+    // Гарантия на курсе не объявлена: срок кончается в момент приёма.
+    expect(new Date(`${chain.holdRid.mock.calls[0][0].hold_until}Z`).getTime()).toBeLessThanOrEqual(Date.now());
     expect(held.status).toBe(EduContributionStatus.HELD);
 
     // Срок уже истёк, поэтому заявление уходит в совет сразу.

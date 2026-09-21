@@ -36,6 +36,8 @@ sources:
     - components/factory/src/Actions/3012.EducationRidStorageAct.ts
     - components/controller/src/extensions/edubridge/domain/lib/lesson-dates.ts
     - components/controller/src/extensions/edubridge/application/onboarding/register-edubridge-documents.ts
+    - components/controller/src/extensions/edubridge/application/listeners/edubridge-membership-exit.listener.ts
+    - components/controller/src/extensions/edubridge/application/services/edubridge-exit-blockers.service.ts
   ui:
     - components/desktop/extensions/edubridge/pages/AdminTeachersPage/**
     - components/desktop/extensions/edubridge/pages/AdminContributionsPage/**
@@ -226,5 +228,103 @@ cases:
     kind: happy
     scenario: "Стол преподавателя — страница «Занятия»: отчёт с материалами, журнал проведённых; на странице взносов виден гарантийный срок."
     expect: Произвольная сумма взноса недоступна, номер занятия подставляется следующим.
+    test: ~
+    status: missing
+  - id: edu.teach.side.11
+    level: backend
+    kind: side
+    scenario: "Совет решения по заявлению не принял, председатель отказывает в приёме."
+    expect: "Протокол не собирается; материалы снимаются с хранения recallrid с основанием, взнос отклонён."
+    test: components/controller/tests/unit/edubridge/teacher.service.test.ts
+    status: written
+  - id: edu.teach.side.12
+    level: backend
+    kind: side
+    scenario: "Решение совета есть, приём не состоялся — председатель закрывает заявление."
+    expect: "declinerid с протоколом 3009 по номеру принятого решения; recallrid не вызывается."
+    test: components/controller/tests/unit/edubridge/teacher.service.test.ts
+    status: written
+  - id: edu.teach.break.08
+    level: backend
+    kind: break
+    scenario: "Сбой после submitrid: проект решения совета не создан."
+    expect: "Статус SUBMITTED и подписанное заявление сохранены сразу; очередь доводит взнос до совета без повторной подачи в цепь."
+    test: components/controller/tests/unit/edubridge/teacher.service.test.ts
+    status: written
+  - id: edu.teach.break.06
+    level: backend
+    kind: break
+    scenario: "Цепь отвечает «уже подано» на повторный submitrid."
+    expect: "Подача продолжается с проекта решения; иная ошибка цепи статус не меняет."
+    test: components/controller/tests/unit/edubridge/teacher.service.test.ts
+    status: written
+  - id: edu.teach.side.13
+    level: backend
+    kind: side
+    scenario: "Отчёт о занятии задним числом при гарантийном сроке курса."
+    expect: "Срок хранения идёт от приёма материалов (акт 3012), а не от даты занятия; акт и цепь называют одну дату; устаревший акт не подписывается."
+    test: components/controller/tests/unit/edubridge/teacher.service.test.ts
+    status: written
+  - id: edu.teach.break.07
+    level: backend
+    kind: break
+    scenario: "Дата занятия в будущем либо раньше периода назначения; длительность больше сдвоенного занятия курса."
+    expect: "Отчёт отклоняется до записи в журнал."
+    test: components/controller/tests/unit/edubridge/teacher.service.test.ts
+    status: written
+  - id: edu.teach.side.14
+    level: backend
+    kind: side
+    scenario: "Материалы занятия сняты с хранения — занятие проводится и отчитывается заново."
+    expect: "Строка журнала та же, взнос новый с другим ключом."
+    test: components/controller/tests/unit/edubridge/teacher.service.test.ts
+    status: written
+  - id: edu.teach.happy.11
+    level: backend
+    kind: happy
+    scenario: "Прекращение договора УХД: выход преподавателя из кооператива либо соглашение сторон."
+    expect: "termcontract в цепь, статус «прекращён»; договор подписывается заново, в том числе с новой ставкой."
+    test: components/controller/tests/unit/edubridge/teacher.service.test.ts
+    status: written
+  - id: edu.teach.side.15
+    level: backend
+    kind: side
+    scenario: "Прекращение договора при действующих назначениях либо незакрытых взносах; без основания; повторно."
+    expect: "Отказ до обращения к цепи; прекращённый и отсутствующий договор в цепь не идут."
+    test: components/controller/tests/unit/edubridge/teacher.service.test.ts
+    status: written
+  - id: edu.teach.side.16
+    level: backend
+    kind: side
+    scenario: "Заявление о выходе из кооператива подано преподавателем."
+    expect: "Подписки закрываются, договор УХД прекращается; сбой прекращения выход не роняет."
+    test: components/controller/tests/unit/edubridge/membership-exit.listener.test.ts
+    status: written
+  - id: edu.teach.side.17
+    level: backend
+    kind: side
+    scenario: "Материалы на хранении без подписанного заявления держат выход."
+    expect: "Причина называет действие преподавателя — подписать заявление, а не ожидание."
+    test: components/controller/tests/unit/edubridge/exit-blockers.test.ts
+    status: written
+  - id: edu.teach.contract.07
+    level: contract
+    kind: break
+    scenario: "Документ от имени пайщика подписан чужим ключом (holdrid, submitrid, acceptrid, signcontract, signannex)."
+    expect: "Действие отклоняется: ключ подписи не принадлежит аккаунту подписанта."
+    test: ~
+    status: missing
+  - id: edu.teach.contract.08
+    level: contract
+    kind: side
+    scenario: "declinerid до подачи заявления; recallrid после подачи заявления."
+    expect: "declinerid отклоняется; recallrid снимает материалы с хранения (Дт 76 / Кт 08) и стирает запись."
+    test: ~
+    status: missing
+  - id: edu.teach.contract.09
+    level: contract
+    kind: side
+    scenario: "termcontract при материалах на хранении, при приложении на подписи, чужой hash."
+    expect: "Отказ; без препятствий запись договора стирается и signcontract снова доступен."
     test: ~
     status: missing

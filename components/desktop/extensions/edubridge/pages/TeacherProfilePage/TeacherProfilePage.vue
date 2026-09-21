@@ -65,6 +65,7 @@ const CONTRACT_STATUS_LABELS: Record<string, { label: string; variant: 'pos' | '
   [Zeus.EduContractStatus.PENDING_APPROVAL]: { label: 'Ждёт председателя', variant: 'warn' },
   [Zeus.EduContractStatus.ACTIVE]: { label: 'Действует', variant: 'pos' },
   [Zeus.EduContractStatus.DECLINED]: { label: 'Председатель отказал', variant: 'neg' },
+  [Zeus.EduContractStatus.TERMINATED]: { label: 'Прекращён', variant: 'neg' },
 };
 
 const session = useSessionStore();

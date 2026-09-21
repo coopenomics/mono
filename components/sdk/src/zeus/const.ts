@@ -2132,6 +2132,9 @@ export const AllTypesProps: Record<string,any> = {
 		edubridgeSubscribe:{
 			data:"EduSubscribeInput"
 		},
+		edubridgeTerminateContract:{
+
+		},
 		edubridgeUpdateCourse:{
 			data:"EduUpdateCourseInput"
 		},
@@ -7908,6 +7911,7 @@ export const ReturnTypes: Record<string,any> = {
 		edubridgeSignOffer:"EduOnboardingState",
 		edubridgeSubmitContribution:"EduContribution",
 		edubridgeSubscribe:"EduEnrollment",
+		edubridgeTerminateContract:"EduTeacherContract",
 		edubridgeUpdateCourse:"EduCourse",
 		edubridgeUpdateLearner:"EduLearner",
 		enrollTwoFactor:"TwoFactorEnrollment",

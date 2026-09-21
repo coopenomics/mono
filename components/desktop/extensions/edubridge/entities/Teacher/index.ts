@@ -47,6 +47,7 @@ export const CONTRACT_STATUS_LABELS: Record<string, { label: string; variant: 'p
   [Zeus.EduContractStatus.PENDING_APPROVAL]: { label: 'Ждёт подписи председателя', variant: 'info' },
   [Zeus.EduContractStatus.ACTIVE]: { label: 'Действует', variant: 'pos' },
   [Zeus.EduContractStatus.DECLINED]: { label: 'Отклонён председателем', variant: 'neg' },
+  [Zeus.EduContractStatus.TERMINATED]: { label: 'Прекращён', variant: 'neg' },
 };
 
 async function q<T>(query: any, name: string, variables?: Record<string, unknown>): Promise<T> {

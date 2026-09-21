@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PaginationInputDTO, type PaginationResult } from '@coopenomics/extension-kit';
-import { CARRIERS_BY_DIRECTION, EduAccessCarrier, EduCourseStatus, PLATFORM_CARRIERS } from '../../domain/enums';
+import { CARRIERS_BY_DIRECTION, EduAccessCarrier, EduContractStatus, EduCourseStatus, PLATFORM_CARRIERS } from '../../domain/enums';
 import type { EdubridgeCourseEntity } from '../../infrastructure/entities';
 import type { EduCourseImage } from '../../infrastructure/entities/edubridge-course.entity';
 import { EdubridgeCourseRepository, type EduCourseFilter } from '../../infrastructure/repositories/edubridge-course.repository';
@@ -216,7 +216,12 @@ export class EdubridgeCourseService {
   /** Преподавать могут только пайщики с подписанным договором УХД. */
   private async validateTeachers(coopname: string, teachers: string[]): Promise<void> {
     if (!teachers.length) return;
-    const known = new Set((await this.teachers.listContracts(coopname)).map((c) => c.teacher_username));
+    // Отклонённый и прекращённый договор права преподавать не даёт.
+    const known = new Set(
+      (await this.teachers.listContracts(coopname))
+        .filter((c) => c.status === EduContractStatus.ACTIVE || c.status === EduContractStatus.PENDING_APPROVAL)
+        .map((c) => c.teacher_username)
+    );
     const strangers = teachers.filter((t) => !known.has(t));
     if (strangers.length) {
       throw new BadRequestException(`Нет договора участия в хозяйственной деятельности: ${strangers.join(', ')}`);

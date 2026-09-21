@@ -13715,6 +13715,7 @@ edubridgeSignContract?: [{	data: ValueTypes["EduSignContractInput"] | Variable<a
 edubridgeSignOffer?: [{	input: ValueTypes["EduSignOfferInput"] | Variable<any, string>},ValueTypes["EduOnboardingState"]],
 edubridgeSubmitContribution?: [{	data: ValueTypes["EduSubmitContributionInput"] | Variable<any, string>},ValueTypes["EduContribution"]],
 edubridgeSubscribe?: [{	data: ValueTypes["EduSubscribeInput"] | Variable<any, string>},ValueTypes["EduEnrollment"]],
+edubridgeTerminateContract?: [{	reason: string | Variable<any, string>,	username: string | Variable<any, string>},ValueTypes["EduTeacherContract"]],
 edubridgeUpdateCourse?: [{	data: ValueTypes["EduUpdateCourseInput"] | Variable<any, string>},ValueTypes["EduCourse"]],
 edubridgeUpdateLearner?: [{	data: ValueTypes["EduUpdateLearnerInput"] | Variable<any, string>},ValueTypes["EduLearner"]],
 	/** Начать подключение второго фактора: выпустить секрет и otpauth-URI для QR */
@@ -30516,6 +30517,7 @@ edubridgeSignContract?: [{	data: ResolverInputTypes["EduSignContractInput"]},Res
 edubridgeSignOffer?: [{	input: ResolverInputTypes["EduSignOfferInput"]},ResolverInputTypes["EduOnboardingState"]],
 edubridgeSubmitContribution?: [{	data: ResolverInputTypes["EduSubmitContributionInput"]},ResolverInputTypes["EduContribution"]],
 edubridgeSubscribe?: [{	data: ResolverInputTypes["EduSubscribeInput"]},ResolverInputTypes["EduEnrollment"]],
+edubridgeTerminateContract?: [{	reason: string,	username: string},ResolverInputTypes["EduTeacherContract"]],
 edubridgeUpdateCourse?: [{	data: ResolverInputTypes["EduUpdateCourseInput"]},ResolverInputTypes["EduCourse"]],
 edubridgeUpdateLearner?: [{	data: ResolverInputTypes["EduUpdateLearnerInput"]},ResolverInputTypes["EduLearner"]],
 	/** Начать подключение второго фактора: выпустить секрет и otpauth-URI для QR */
@@ -46891,6 +46893,8 @@ export type ModelTypes = {
 	edubridgeSubmitContribution: ModelTypes["EduContribution"],
 	/** Получить доступ: конвертировать паевой в членский и открыть/продлить подписку */
 	edubridgeSubscribe: ModelTypes["EduEnrollment"],
+	/** Прекратить договор участия в хозяйственной деятельности по соглашению сторон */
+	edubridgeTerminateContract?: ModelTypes["EduTeacherContract"] | undefined | null,
 	/** Изменить курс */
 	edubridgeUpdateCourse: ModelTypes["EduCourse"],
 	/** Исправить имя или контакт обучающегося (без повторной оплаты) */
@@ -64298,6 +64302,8 @@ export type GraphQLTypes = {
 	edubridgeSubmitContribution: GraphQLTypes["EduContribution"],
 	/** Получить доступ: конвертировать паевой в членский и открыть/продлить подписку */
 	edubridgeSubscribe: GraphQLTypes["EduEnrollment"],
+	/** Прекратить договор участия в хозяйственной деятельности по соглашению сторон */
+	edubridgeTerminateContract?: GraphQLTypes["EduTeacherContract"] | undefined | null,
 	/** Изменить курс */
 	edubridgeUpdateCourse: GraphQLTypes["EduCourse"],
 	/** Исправить имя или контакт обучающегося (без повторной оплаты) */
@@ -69505,7 +69511,8 @@ export enum EduConnectorHealth {
 export enum EduContractStatus {
 	ACTIVE = "ACTIVE",
 	DECLINED = "DECLINED",
-	PENDING_APPROVAL = "PENDING_APPROVAL"
+	PENDING_APPROVAL = "PENDING_APPROVAL",
+	TERMINATED = "TERMINATED"
 }
 /** Состояние взноса результатами работы */
 export enum EduContributionStatus {

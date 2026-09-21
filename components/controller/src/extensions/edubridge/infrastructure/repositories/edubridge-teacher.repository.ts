@@ -76,6 +76,18 @@ export class EdubridgeTeacherRepository {
       .getMany();
   }
 
+  /** Заявление в цепи есть, а проекта решения совета нет — сбой между двумя шагами подачи. */
+  findSubmittedWithoutProject(coopname: string, limit = 50): Promise<EdubridgeContributionEntity[]> {
+    return this.contributions
+      .createQueryBuilder('c')
+      .where('c.coopname = :coopname', { coopname })
+      .andWhere('c.status = :status', { status: EduContributionStatus.SUBMITTED })
+      .andWhere('c.council_project_hash IS NULL')
+      .orderBy('c.updated_at', 'ASC')
+      .take(limit)
+      .getMany();
+  }
+
   findContributionByProjectHash(hash: string): Promise<EdubridgeContributionEntity | null> {
     return this.contributions.findOne({ where: { council_project_hash: hash.toLowerCase() } });
   }

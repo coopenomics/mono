@@ -86,8 +86,9 @@ const symbol = computed(() => system.governSymbol);
 const isTeacher = computed(() => props.kind === Zeus.EduOfferKind.TEACHER);
 const offer = computed(() => (isTeacher.value ? state.value?.teacher : state.value?.parent) ?? null);
 const offerSigned = computed(() => offer.value?.source === 'AGREEMENT_SIGNED');
-// Договор считается подписанным преподавателем, пока председатель не отказал.
-const contractSigned = computed(() => Boolean(contract.value) && contract.value?.status !== Zeus.EduContractStatus.DECLINED);
+// Договор считается подписанным преподавателем, пока председатель не отказал и договор не прекращён.
+const RESIGNABLE: string[] = [Zeus.EduContractStatus.DECLINED, Zeus.EduContractStatus.TERMINATED];
+const contractSigned = computed(() => Boolean(contract.value) && !RESIGNABLE.includes(contract.value?.status ?? ''));
 
 const steps = computed<StepperStep[]>(() =>
   isTeacher.value
@@ -108,10 +109,15 @@ const activeStep = computed(() => steps.value.find((s) => !completedKeys.value.i
 function stepProps(key: string) {
   if (key === 'contract') {
     const declined = contract.value?.status === Zeus.EduContractStatus.DECLINED;
+    const terminated = contract.value?.status === Zeus.EduContractStatus.TERMINATED;
     return {
       stepKey: key,
       description: props.contractDescription,
-      notice: declined ? `Председатель отказал в подписи договора${contract.value?.decline_reason ? `: ${contract.value.decline_reason}` : ''}. Прочитайте и подпишите договор заново.` : undefined,
+      notice: declined
+        ? `Председатель отказал в подписи договора${contract.value?.decline_reason ? `: ${contract.value.decline_reason}` : ''}. Прочитайте и подпишите договор заново.`
+        : terminated
+          ? 'Прежний договор прекращён. Чтобы снова вести занятия, прочитайте и подпишите договор заново.'
+          : undefined,
       agreeLabel: 'Я прочитал(а) договор участия в хозяйственной деятельности и согласен(на) с его условиями.',
       actionLabel: 'Подписать договор',
       build: async () => {

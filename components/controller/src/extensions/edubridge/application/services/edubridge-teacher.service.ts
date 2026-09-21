@@ -27,6 +27,7 @@ import { formatDate, formatDateTime, toChainTimePoint } from '../../domain/lib/l
 import { EDUBRIDGE_CHAIN_PORT, type EdubridgeChainPort } from '../../domain/ports/edubridge-chain.port';
 import type {
   EdubridgeContributionEntity,
+  EdubridgeCourseEntity,
   EdubridgeLessonEntity,
   EdubridgeTeacherAssignmentEntity,
   EdubridgeTeacherContractEntity,
@@ -52,6 +53,22 @@ import {
 const SHARE_WALLET = 'w.wal.share';
 /** Одно поле vars под все решения о РИД — ядро пишет туда номер и дату последнего решения. */
 const RID_VARS_FIELD = 'education_rid_decision';
+/** Договор в этих статусах не действует, и преподаватель подписывает его заново. */
+const RESIGNABLE_CONTRACT = [EduContractStatus.DECLINED, EduContractStatus.TERMINATED];
+/** Взносы, по которым расчёт с преподавателем ещё не закрыт. */
+const OPEN_CONTRIBUTIONS = [
+  EduContributionStatus.HELD,
+  EduContributionStatus.SUBMITTED,
+  EduContributionStatus.COUNCIL_APPROVED,
+  EduContributionStatus.ACT_SIGNED,
+];
+const DAY_MS = 24 * 60 * 60 * 1000;
+/** Допуск на расхождение часов клиента и сервера при проверке даты занятия. */
+const CLOCK_SKEW_MS = 5 * 60 * 1000;
+/** Во сколько раз занятие в отчёте может быть длиннее занятия по курсу (сдвоенный урок). */
+const MAX_LESSON_STRETCH = 2;
+/** Ответ цепи на повторную подачу заявления по тем же материалам. */
+const ALREADY_SUBMITTED = /уже подано/i;
 
 /**
  * Преподавательский контур: ДУХД → назначение с приложением → взнос РИД по
@@ -98,12 +115,13 @@ export class EdubridgeTeacherService {
    */
   async signContract(coopname: string, teacher: string, document: ISignedDocument, number: string, hourlyRate: string) {
     const existing = await this.teachers.findContract(coopname, teacher);
-    if (existing && existing.status !== EduContractStatus.DECLINED) return existing;
+    if (existing && !RESIGNABLE_CONTRACT.includes(existing.status)) return existing;
     if (!document.signatures?.some((s) => s.signer === teacher)) throw new BadRequestException('Договор не подписан преподавателем');
     // Ставку преподаватель называет один раз при подключении. Дальше она
     // определяет и себестоимость курса, и его собственный взнос за занятие,
     // поэтому менять её в одиночку он не может — это делает администратор.
-    if (existing && isPositiveRate(existing.hourly_rate) && existing.hourly_rate !== hourlyRate) {
+    // Прекращённый договор ставку не держит: новый договор — новые условия.
+    if (existing && existing.status !== EduContractStatus.TERMINATED && isPositiveRate(existing.hourly_rate) && existing.hourly_rate !== hourlyRate) {
       throw new BadRequestException('Ставка часа уже задана: её меняет администратор кооператива');
     }
 
@@ -147,10 +165,41 @@ export class EdubridgeTeacherService {
     this.events.emit(EDUBRIDGE_CONTRACT_DECIDED_EVENT, { coopname, teacher_username: teacher, contract_hash: c.contract_hash, approved: false, reason });
   }
 
+  /**
+   * Прекращение договора: преподаватель вышел из кооператива либо стороны
+   * договорились. Расчёт к этому моменту закрыт — незакрытые взносы и
+   * действующие назначения держат и выход, и прекращение. Вернувшийся пайщик
+   * подписывает договор заново.
+   */
+  async terminateContract(coopname: string, teacher: string, reason: string): Promise<EdubridgeTeacherContractEntity | null> {
+    const c = await this.teachers.findContract(coopname, teacher);
+    if (!c || RESIGNABLE_CONTRACT.includes(c.status)) return c;
+    if (!reason?.trim()) throw new BadRequestException('Укажите основание прекращения договора');
+
+    const openAssignments = (await this.teachers.listAssignments(coopname, { teacher })).filter(
+      (a) => a.status === EduAssignmentStatus.ACTIVE || a.status === EduAssignmentStatus.PENDING_APPROVAL
+    );
+    if (openAssignments.length) throw new BadRequestException('Преподаватель ведёт курсы — сначала закройте его назначения');
+    const openContributions = await this.teachers.listContributions(coopname, { teacher, statuses: OPEN_CONTRIBUTIONS });
+    if (openContributions.length) throw new BadRequestException('По занятиям преподавателя не закрыт расчёт — договор прекращается после него');
+
+    // Ожидающий договор в цепи снимает только отказ председателя.
+    if (c.status === EduContractStatus.PENDING_APPROVAL) {
+      throw new BadRequestException('Договор ждёт подписи председателя — прекратить можно действующий договор');
+    }
+    await this.chain.terminateContract({ coopname, username: teacher, contract_hash: c.contract_hash, reason: reason.trim() });
+    c.status = EduContractStatus.TERMINATED;
+    c.decline_reason = reason.trim();
+    const saved = await this.teachers.saveContract(c);
+    this.logger.info(`[EDU.TEACH] ${teacher}: договор УХД ${c.contract_hash} прекращён — ${reason.trim()}`);
+    return saved;
+  }
+
   private async requireContract(coopname: string, teacher: string): Promise<EdubridgeTeacherContractEntity> {
     const c = await this.teachers.findContract(coopname, teacher);
     if (!c) throw new BadRequestException('Сначала подпишите договор участия в хозяйственной деятельности');
     if (c.status === EduContractStatus.PENDING_APPROVAL) throw new BadRequestException('Договор ещё не подписан председателем совета');
+    if (c.status === EduContractStatus.TERMINATED) throw new BadRequestException('Договор прекращён — подпишите его заново');
     if (c.status !== EduContractStatus.ACTIVE) throw new BadRequestException('Договор отклонён председателем — подпишите его заново');
     return c;
   }
@@ -285,25 +334,25 @@ export class EdubridgeTeacherService {
    * начисление преподавателю считаются от одного и того же.
    */
   async reportLesson(coopname: string, teacher: string, input: EduLessonReportInputDTO): Promise<EdubridgeLessonEntity> {
-    const { contract, assignment: a, course } = await this.lessonContext(coopname, teacher, input);
+    const { contract, assignment: a, course, previous } = await this.lessonContext(coopname, teacher, input);
     const duration = input.duration_minutes ?? course.lesson_minutes;
     const amount = costOfHours(contract.hourly_rate, duration / 60);
 
-    const lesson = await this.lessons.save(
-      this.lessons.create({
-        coopname,
-        teacher_username: teacher,
-        course_id: course.id,
-        assignment_id: a.id,
-        lesson_number: input.lesson_number,
-        held_at: input.held_at ? new Date(input.held_at) : new Date(),
-        duration_minutes: duration,
-        materials: input.materials.map((m) => m.trim()).filter(Boolean),
-        topic: input.topic ?? '',
-      })
-    );
+    // Занятие, материалы которого сняты с хранения, проводится заново: строка
+    // журнала та же, взнос по ней — новый.
+    const row = previous?.lesson ?? this.lessons.create({ coopname, course_id: course.id, lesson_number: input.lesson_number });
+    Object.assign(row, {
+      teacher_username: teacher,
+      assignment_id: a.id,
+      held_at: input.held_at ? new Date(input.held_at) : new Date(),
+      duration_minutes: duration,
+      materials: input.materials.map((m) => m.trim()).filter(Boolean),
+      topic: input.topic ?? '',
+    });
+    const lesson = await this.lessons.save(row);
 
-    const ridHash = createHash('sha256').update(`${coopname}|${teacher}|${lesson.id}`).digest('hex');
+    const attempt = previous?.contribution ? `|${previous.contribution.id}` : '';
+    const ridHash = createHash('sha256').update(`${coopname}|${teacher}|${lesson.id}${attempt}`).digest('hex');
     const contribution = await this.teachers.saveContribution(
       this.teachers.createContribution({
         coopname,
@@ -315,9 +364,11 @@ export class EdubridgeTeacherService {
         description: lesson.topic || `Занятие № ${lesson.lesson_number} курса «${course.title}»`,
         amount,
         lesson_id: lesson.id,
-        // Гарантийный срок идёт от занятия: до его истечения заявление держит
-        // расширение, а в совет отправляет само.
-        hold_until: new Date(lesson.held_at.getTime() + course.guarantee_days * 24 * 60 * 60 * 1000),
+        // Гарантийный срок идёт от приёма материалов на хранение, а не от
+        // даты занятия: рекламация возможна только по переданным материалам,
+        // и отчёт задним числом срок не сокращает. Здесь — предварительная
+        // дата, окончательную ставит акт хранения.
+        hold_until: this.guaranteeEnd(course.guarantee_days),
         status: EduContributionStatus.DRAFT,
       })
     );
@@ -348,10 +399,42 @@ export class EdubridgeTeacherService {
     if (input.lesson_number < 1 || input.lesson_number > course.lessons_total) {
       throw new BadRequestException(`Занятие вне плана курса: в программе ${course.lessons_total} занятий`);
     }
-    if (await this.lessons.findByNumber(coopname, course.id, input.lesson_number)) {
-      throw new BadRequestException(`Отчёт по занятию № ${input.lesson_number} уже подан`);
+    this.assertLessonReport(input, course, assignment);
+
+    return { contract, assignment, course, previous: await this.previousReport(coopname, course.id, input.lesson_number) };
+  }
+
+  /**
+   * Прежний отчёт по тому же занятию. Действующий взнос повторный отчёт
+   * запрещает; снятый с хранения либо отклонённый — разрешает провести
+   * занятие и отчитаться заново.
+   */
+  private async previousReport(coopname: string, courseId: string, lessonNumber: number) {
+    const lesson = await this.lessons.findByNumber(coopname, courseId, lessonNumber);
+    if (!lesson) return null;
+    const contribution = lesson.contribution_id ? await this.teachers.findContribution(coopname, lesson.contribution_id) : null;
+    if (contribution && contribution.status !== EduContributionStatus.DECLINED) {
+      throw new BadRequestException(`Отчёт по занятию № ${lessonNumber} уже подан`);
     }
-    return { contract, assignment, course };
+    return { lesson, contribution };
+  }
+
+  /** Длительность и дата занятия в отчёте — в границах курса и назначения. */
+  private assertLessonReport(input: EduLessonReportInputDTO, course: EdubridgeCourseEntity, assignment: EdubridgeTeacherAssignmentEntity): void {
+    const maxMinutes = course.lesson_minutes * MAX_LESSON_STRETCH;
+    if (input.duration_minutes && input.duration_minutes > maxMinutes) {
+      throw new BadRequestException(`Занятие по курсу длится ${course.lesson_minutes} мин — в отчёте не больше ${maxMinutes} мин`);
+    }
+    if (input.held_at) {
+      const heldAt = new Date(input.held_at);
+      if (heldAt.getTime() > Date.now() + CLOCK_SKEW_MS) throw new BadRequestException('Отчёт подаётся после занятия: дата занятия ещё не наступила');
+      if (heldAt < new Date(assignment.period_from)) throw new BadRequestException('Дата занятия раньше начала периода назначения');
+    }
+  }
+
+  /** Конец гарантийного срока, если материалы принять на хранение сейчас. */
+  private guaranteeEnd(guaranteeDays: number): Date {
+    return new Date(Date.now() + guaranteeDays * DAY_MS);
   }
 
   /** Названия курсов по идентификаторам — журнал занятий показывает их, а не ключи. */
@@ -376,7 +459,12 @@ export class EdubridgeTeacherService {
    */
   async storageAct(coopname: string, teacher: string, contributionId: string): Promise<InnerGeneratedDocument> {
     const c = await this.ownContribution(coopname, teacher, contributionId);
+    if (c.status !== EduContributionStatus.DRAFT) throw new BadRequestException('Материалы занятия уже приняты на ответственное хранение');
     const { lesson, course } = await this.holdContext(coopname, c);
+    // Срок отсчитывается от передачи материалов: акт называет дату, с которой
+    // согласился преподаватель, она же уйдёт в цепь.
+    c.hold_until = this.guaranteeEnd(course.guarantee_days);
+    await this.teachers.saveContribution(c);
     const action: Cooperative.Registry.EducationRidStorageAct.Action = {
       registry_id: Cooperative.Registry.EducationRidStorageAct.registry_id,
       coopname,
@@ -405,14 +493,18 @@ export class EdubridgeTeacherService {
   async holdContribution(coopname: string, teacher: string, contributionId: string, document: ISignedDocument): Promise<EdubridgeContributionEntity> {
     const c = await this.ownContribution(coopname, teacher, contributionId);
     if (c.status !== EduContributionStatus.DRAFT) throw new BadRequestException('Материалы занятия уже приняты на ответственное хранение');
-    const { lesson } = await this.holdContext(coopname, c);
-    const holdUntil = c.hold_until ?? lesson.held_at;
+    const { course } = await this.holdContext(coopname, c);
+    const holdUntil = c.hold_until ?? this.guaranteeEnd(course.guarantee_days);
+    // Акт, сформированный давно, называет срок короче гарантийного.
+    if (this.guaranteeEnd(course.guarantee_days).getTime() - holdUntil.getTime() > DAY_MS) {
+      throw new BadRequestException('Акт передачи материалов устарел — сформируйте и подпишите его заново');
+    }
 
     await this.chain.holdRid({
       coopname,
       username: teacher,
       rid_hash: c.rid_hash,
-      assignment_id: Number(new Date(c.created_at).getTime() % 1_000_000),
+      assignment_id: chainAssignmentId(c),
       amount: c.amount,
       rid_type: c.rid_type,
       hold_until: toChainTimePoint(holdUntil),
@@ -445,7 +537,7 @@ export class EdubridgeTeacherService {
       username: teacher,
       lang: 'ru',
       rid_hash: c.rid_hash,
-      assignment_id: Number((await this.teachers.findAssignment(coopname, c.assignment_id))?.created_at.getTime() ?? 0) % 1_000_000,
+      assignment_id: chainAssignmentId(c),
       amount: c.amount,
       rid_type: c.rid_type,
       links: c.links,
@@ -491,17 +583,30 @@ export class EdubridgeTeacherService {
     c: EdubridgeContributionEntity,
     document: ISignedDocument
   ): Promise<EdubridgeContributionEntity> {
-    await this.chain.submitRid({
-      coopname,
-      username: teacher,
-      rid_hash: c.rid_hash,
-      assignment_id: Number(new Date(c.created_at).getTime() % 1_000_000),
-      amount: c.amount,
-      rid_type: c.rid_type,
-      statement: document,
-    } as never);
-    c.statement_hash = document.hash.toLowerCase();
-    c.status = EduContributionStatus.SUBMITTED;
+    // Два шага, и оба повторяемы. Заявление в цепи фиксируется в базе сразу:
+    // сбой на проекте решения не должен возвращать взнос в очередь подачи, где
+    // цепь ответит «уже подано» и заявление застрянет.
+    if (c.status === EduContributionStatus.HELD) {
+      try {
+        await this.chain.submitRid({
+          coopname,
+          username: teacher,
+          rid_hash: c.rid_hash,
+          assignment_id: chainAssignmentId(c),
+          amount: c.amount,
+          rid_type: c.rid_type,
+          statement: document,
+        } as never);
+      } catch (e) {
+        if (!ALREADY_SUBMITTED.test((e as Error)?.message ?? '')) throw e;
+        this.logger.warn(`[EDU.RID] заявление ${c.rid_hash} уже в цепи — продолжаем с проекта решения`);
+      }
+      c.statement_hash = document.hash.toLowerCase();
+      c.statement_document = document as unknown as Record<string, unknown>;
+      c.status = EduContributionStatus.SUBMITTED;
+      await this.teachers.saveContribution(c);
+    }
+    if (c.council_project_hash) return c;
 
     // Решение совета — платформенный проект свободного решения; по принятию ядро
     // эмитит DecisionTrackedEvent с нашими метаданными.
@@ -563,15 +668,18 @@ export class EdubridgeTeacherService {
     return saved;
   }
 
-  /** Заявления, у которых гарантийный срок истёк — их отправляет очередь. */
+  /**
+   * Заявления, у которых гарантийный срок истёк, и поданные в цепь, но не
+   * дошедшие до совета из-за сбоя, — их отправляет очередь.
+   */
   async publishDueContributions(coopname: string): Promise<number> {
-    const due = await this.teachers.findHeldDue(coopname, new Date());
+    const due = [
+      ...(await this.teachers.findHeldDue(coopname, new Date())).filter((c) => Boolean(c.statement_document)),
+      ...(await this.teachers.findSubmittedWithoutProject(coopname)),
+    ];
     let published = 0;
     for (const c of due) {
-      if (!c.statement_document) {
-        this.logger.warn(`[EDU.RID] заявление ${c.rid_hash} держится без подписанного экземпляра — пропускаем`);
-        continue;
-      }
+      if (!c.statement_document) continue;
       try {
         await this.publishContribution(coopname, c.teacher_username, c, c.statement_document as unknown as ISignedDocument);
         published += 1;
@@ -677,20 +785,28 @@ export class EdubridgeTeacherService {
     if (![EduContributionStatus.SUBMITTED, EduContributionStatus.COUNCIL_APPROVED, EduContributionStatus.ACT_SIGNED].includes(c.status)) {
       throw new BadRequestException('Отклонить можно только поданный взнос');
     }
-    const decision = await this.documents.generate({
-      data: {
-        registry_id: Cooperative.Registry.EducationRidDecision.registry_id,
-        coopname,
-        username: await this.chairman(coopname),
-        lang: 'ru',
-        rid_hash: c.rid_hash,
-        amount: c.amount,
-        decision_id: Number(c.council_decision_id ?? 0),
-        skip_save: false,
-      } as Cooperative.Registry.EducationRidDecision.Action,
-    });
-    await this.chain.declineRid({ coopname, rid_hash: c.rid_hash, decision: this.unsigned(decision) } as never);
-    c.decision_hash = decision.hash.toLowerCase();
+    if (!reason?.trim()) throw new BadRequestException('Укажите основание отказа');
+    if (c.council_decision_id) {
+      // Решение совета есть, приём не состоялся: заявление закрывается его протоколом.
+      const decision = await this.documents.generate({
+        data: {
+          registry_id: Cooperative.Registry.EducationRidDecision.registry_id,
+          coopname,
+          username: await this.chairman(coopname),
+          lang: 'ru',
+          rid_hash: c.rid_hash,
+          amount: c.amount,
+          decision_id: Number(c.council_decision_id),
+          skip_save: false,
+        } as Cooperative.Registry.EducationRidDecision.Action,
+      });
+      await this.chain.declineRid({ coopname, rid_hash: c.rid_hash, decision: this.unsigned(decision) } as never);
+      c.decision_hash = decision.hash.toLowerCase();
+    } else {
+      // Совет решения не принял — отрицательного протокола у него не бывает.
+      // Материалы снимаются с хранения с основанием (Дт 76 / Кт 08).
+      await this.chain.recallRid({ coopname, rid_hash: c.rid_hash, reason: `совет не принял решение о приёме: ${reason.trim()}` } as never);
+    }
     c.decline_reason = reason;
     c.status = EduContributionStatus.DECLINED;
     c.decided_at = new Date();
@@ -728,6 +844,14 @@ export class EdubridgeTeacherService {
   private async chairman(_coopname: string): Promise<string> {
     return platformSettings().coopname; // документы совета формируются от имени кооператива
   }
+}
+
+/**
+ * Номер задания в цепи. Приём на хранение, заявление и его текст обязаны
+ * называть одно и то же число: `submitrid` сверяет его с принятым на хранение.
+ */
+function chainAssignmentId(c: EdubridgeContributionEntity): number {
+  return Number(new Date(c.created_at).getTime() % 1_000_000);
 }
 
 /** Ставка задана, когда сумма больше нуля: «0.0000 RUB» — ещё не названа. */

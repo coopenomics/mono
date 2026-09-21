@@ -1,6 +1,6 @@
 /** Конструктор курса: носитель по направлению, идентификатор площадки, преподаватели только с договором. */
 import { EdubridgeCourseService } from '~/extensions/edubridge/application/services/edubridge-course.service';
-import { EduAccessCarrier, EduCourseDirection, EduCourseStatus } from '~/extensions/edubridge/domain/enums';
+import { EduAccessCarrier, EduContractStatus, EduCourseDirection, EduCourseStatus } from '~/extensions/edubridge/domain/enums';
 
 const COURSE_UUID = '0cd16d12-6ade-40f2-8830-b0673dde8b9e';
 const GROUP_UUID = '426fa814-9a36-4e9a-9fb0-ca5672afe667';
@@ -13,7 +13,7 @@ function make(contracts: string[] = ['teach']) {
     findById: jest.fn(async (_coop: string, id: string) => ({ id, external_ref: 'old', status: EduCourseStatus.DRAFT })),
   } as any;
   const teachers = {
-    listContracts: jest.fn(async () => contracts.map((t, i) => ({ teacher_username: t, contract_number: `УХД-${i + 1}`, signed_at: new Date('2026-02-01') }))),
+    listContracts: jest.fn(async () => contracts.map((t, i) => ({ teacher_username: t, contract_number: `УХД-${i + 1}`, status: t.startsWith('ex_') ? EduContractStatus.TERMINATED : EduContractStatus.ACTIVE, signed_at: new Date('2026-02-01') }))),
   } as any;
   const skillspace = {
     listCourses: jest.fn(async () => [{ id: COURSE_UUID, name: 'Тестовый курс [coop]', slug: 'testovyj-kurs-coop' }, { id: 'aaaaaaaa-0000-4000-8000-000000000001', name: 'Другой' }]),
@@ -117,6 +117,11 @@ describe('EdubridgeCourseService — конструктор курса', () => {
   it('преподаватель без договора УХД — отказ с именем', async () => {
     const { service } = make(['teach']);
     await expect(service.create('voskhod', 'ant', { ...base, teacher_usernames: ['teach', 'stranger'] })).rejects.toThrow(/stranger/);
+  });
+
+  it('преподаватель с прекращённым договором на курс не назначается', async () => {
+    const { service } = make(['teach', 'ex_teach']);
+    await expect(service.create('voskhod', 'ant', { ...base, teacher_usernames: ['teach', 'ex_teach'] })).rejects.toThrow(/ex_teach/);
   });
 
   it('несколько преподавателей с договорами — сохраняются все', async () => {

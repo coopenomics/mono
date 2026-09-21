@@ -110,6 +110,8 @@ export enum EduContractStatus {
   ACTIVE = 'active',
   /** Председатель отказал — можно подписать заново. */
   DECLINED = 'declined',
+  /** Прекращён — с выходом преподавателя из кооператива либо по соглашению сторон; можно подписать заново. */
+  TERMINATED = 'terminated',
 }
 
 export enum EduAssignmentStatus {

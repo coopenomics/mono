@@ -207,3 +207,45 @@ cases:
     expect: Показаны обе части взноса — зачёт с кошелька программы и конвертация с паевого.
     test: ~
     status: missing
+  - id: edu.enroll.side.08
+    level: backend
+    kind: side
+    scenario: "Продление до конца оплаченного срока, затем отмена либо недобор."
+    expect: "Взносы складываются: возврат считается от всего оплаченного, при недоборе возвращаются оба взноса."
+    test: components/controller/tests/unit/edubridge/enrollment.service.test.ts
+    status: written
+  - id: edu.enroll.side.09
+    level: backend
+    kind: side
+    scenario: "Оплата после истечения срока, пока подписка ещё числится действующей."
+    expect: "extendsub от сегодняшнего дня вместо opensub; счёт оплаченного начинается заново."
+    test: components/controller/tests/unit/edubridge/enrollment.service.test.ts
+    status: written
+  - id: edu.enroll.break.04
+    level: backend
+    kind: break
+    scenario: "Заявление 3011 подписано при другой раскладке оплаты либо по другой подписке."
+    expect: "Отказ с просьбой сформировать заявление заново, в цепь не ходим."
+    test: components/controller/tests/unit/edubridge/enrollment.service.test.ts
+    status: written
+  - id: edu.enroll.side.10
+    level: backend
+    kind: side
+    scenario: "Курс снят с публикации при действующих подписках."
+    expect: "Действующая подписка продлевается, новая не открывается."
+    test: components/controller/tests/unit/edubridge/enrollment.service.test.ts
+    status: written
+  - id: edu.enroll.side.11
+    level: backend
+    kind: side
+    scenario: "Отмена курса по недобору: сбой по одной из подписок."
+    expect: "Курс снимается с публикации первым; остальные подписки отменяются; ответ называет, сколько возвращено и сколько осталось."
+    test: components/controller/tests/unit/edubridge/enrollment.service.test.ts
+    status: written
+  - id: edu.enroll.contract.05
+    level: contract
+    kind: break
+    scenario: "Заявление о конвертации либо о возврате в паевой подписано чужим ключом."
+    expect: "convert и retshare отклоняются."
+    test: ~
+    status: missing

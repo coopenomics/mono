@@ -117,13 +117,21 @@ export class EdubridgeEnrollmentService {
   async plan(coopname: string, member: string, learnerId: string, courseId: string, period: EduEnrollmentPeriod): Promise<EnrollmentPlan> {
     const learner = await this.learnerService.getOwned(coopname, member, learnerId);
     const course = await this.courses.findById(coopname, courseId);
-    if (!course || course.status !== EduCourseStatus.PUBLISHED) throw new NotFoundException('Курс не найден или не опубликован');
+    const existing = await this.enrollments.findByPair(coopname, learnerId, courseId);
+    // Действующая подписка живёт в цепи до закрытия, даже когда оплаченный срок
+    // уже истёк, а очередь закрытия до неё ещё не дошла: новый взнос её
+    // продлевает, а не открывает заново — иначе цепь ответит «уже существует».
+    const isExtension = existing?.status === EduEnrollmentStatus.ACTIVE && Boolean(existing.paid_until);
+    // Снятый с публикации курс новых участников не принимает, но действующие
+    // подписки на нём продлеваются.
+    if (!course || (course.status !== EduCourseStatus.PUBLISHED && !isExtension)) {
+      throw new NotFoundException('Курс не найден или не опубликован');
+    }
 
     const symbol = course.fee_month.split(' ')[1] ?? '';
-    const existing = await this.enrollments.findByPair(coopname, learnerId, courseId);
     const now = new Date();
-    const activeUntil = existing?.status === EduEnrollmentStatus.ACTIVE && existing.paid_until && existing.paid_until > now ? existing.paid_until : null;
-    const terms = this.termsOf(course, period, activeUntil ?? now);
+    const paidUntil = isExtension ? (existing?.paid_until as Date) : null;
+    const terms = this.termsOf(course, period, paidUntil && paidUntil > now ? paidUntil : now);
 
     return {
       learner,
@@ -135,7 +143,7 @@ export class EdubridgeEnrollmentService {
       baseAmount: terms.baseAmount,
       discountAmount: terms.discountAmount,
       symbol,
-      isExtension: Boolean(activeUntil),
+      isExtension,
       paidUntil: terms.paidUntil,
       subHash: EdubridgeEnrollmentService.subHash(coopname, learner.chain_ref, course.chain_ref),
     };
@@ -216,6 +224,7 @@ export class EdubridgeEnrollmentService {
   ): Promise<EdubridgeEnrollmentEntity> {
     const plan = await this.plan(coopname, member, learnerId, courseId, period);
     const funding = await this.planFunding(coopname, member, plan);
+    this.assertStatementMatches(document, plan, funding);
     if (!funding.enough) {
       throw new BadRequestException(
         `Недостаточно средств: нужно ${plan.amount}, на кошельке программы ${funding.fromProgram}, ` +
@@ -248,10 +257,9 @@ export class EdubridgeEnrollmentService {
         course_id: courseId,
         sub_hash: plan.subHash,
       });
+    Object.assign(entity, this.paidBase(plan));
     entity.period = period;
     entity.paid_until = plan.paidUntil;
-    entity.paid_amount = plan.amount;
-    entity.paid_months = plan.months;
     entity.status = EduEnrollmentStatus.ACTIVE;
     entity.statement_hash = document.hash.toLowerCase();
     entity.expiry_notified_at = null;
@@ -295,10 +303,29 @@ export class EdubridgeEnrollmentService {
     if (course.starts_at && new Date(course.starts_at) <= new Date()) {
       throw new BadRequestException('Занятия по курсу уже начались — отмена по недобору невозможна');
     }
+    // Курс снимается с публикации первым: пока идут возвраты, на отменённый
+    // курс никто не должен успеть подписаться.
+    if (course.status === EduCourseStatus.PUBLISHED) {
+      course.status = EduCourseStatus.ARCHIVED;
+      await this.courses.save(course);
+    }
     const active = (await this.enrollments.findByCourse(coopname, courseId)).filter((e) => isCancellable(e));
     const cancelled: EdubridgeEnrollmentEntity[] = [];
-    for (const enrollment of active) cancelled.push(await this.cancelOne(coopname, enrollment, true));
-    this.logger.info(`[EDU.SUB] курс ${courseId} отменён по недобору: возвращено подписок ${cancelled.length}`);
+    const failed: string[] = [];
+    for (const enrollment of active) {
+      try {
+        cancelled.push(await this.cancelOne(coopname, enrollment, true));
+      } catch (e) {
+        failed.push(enrollment.id);
+        this.logger.error(`[EDU.SUB] недобор по курсу ${courseId}: подписка ${enrollment.id} не отменена — ${(e as Error)?.message ?? e}`);
+      }
+    }
+    this.logger.info(`[EDU.SUB] курс ${courseId} отменён по недобору: возвращено подписок ${cancelled.length}, с ошибкой ${failed.length}`);
+    if (failed.length) {
+      throw new BadRequestException(
+        `Возвращено подписок: ${cancelled.length}, не удалось: ${failed.length}. Повторите отмену — она продолжит с оставшихся`
+      );
+    }
     return cancelled;
   }
 
@@ -386,6 +413,42 @@ export class EdubridgeEnrollmentService {
     });
   }
 
+  /**
+   * Пока прежний оплаченный срок не кончился, новый взнос складывается с
+   * прежним: возврат по Положению считается от всего оплаченного, а не от
+   * последнего платежа. Истёкший срок израсходован целиком — счёт с нуля.
+   */
+  private paidBase(plan: EnrollmentPlan): { paid_amount: string; paid_months: number } {
+    const prior = plan.existing;
+    const running = plan.isExtension && prior?.paid_until && prior.paid_until > new Date();
+    if (!running || !prior) return { paid_amount: plan.amount, paid_months: plan.months };
+    const before = prior.paid_months ?? monthsOfPeriod(prior.period === EduEnrollmentPeriod.YEAR ? 'year' : 'month');
+    return { paid_amount: sumAssets(prior.paid_amount, plan.amount), paid_months: before + plan.months };
+  }
+
+  /**
+   * Пайщик подписал заявление с конкретной раскладкой: сколько засчитывается с
+   * кошелька программы и сколько конвертируется с паевого. Если к моменту
+   * подписки остатки изменились (пришёл возврат, прошла другая оплата),
+   * подписанное расходится с тем, что уйдёт в цепь, — заявление формируется заново.
+   */
+  private assertStatementMatches(document: ISignedDocument, plan: EnrollmentPlan, funding: PlanFunding): void {
+    const raw = document.meta as unknown;
+    let meta: Record<string, unknown> = {};
+    try {
+      meta = (typeof raw === 'string' ? JSON.parse(raw) : raw ?? {}) as Record<string, unknown>;
+    } catch {
+      meta = {};
+    }
+    const matches =
+      String(meta.sub_hash ?? '').toLowerCase() === plan.subHash.toLowerCase() &&
+      String(meta.total ?? '') === plan.amount &&
+      String(meta.amount ?? '') === funding.toConvert;
+    if (!matches) {
+      throw new BadRequestException('Условия оплаты изменились с момента формирования заявления — сформируйте и подпишите его заново');
+    }
+  }
+
   /** `extendsub` для действующей связки, `opensub` — для новой; время цепи без миллисекунд и зоны. */
   private subscribeAction(coopname: string, member: string, plan: EnrollmentPlan, period: EduEnrollmentPeriod, document: ISignedDocument) {
     const paid_until = new Date(Math.floor(plan.paidUntil.getTime() / 1000) * 1000).toISOString().slice(0, 19);
@@ -444,6 +507,14 @@ export class EdubridgeEnrollmentService {
       shortfall: asset(shortfall),
     };
   }
+}
+
+/** Сумма двух сумм цепи в одном символе («9600.0000 RUB»). */
+function sumAssets(a: string, b: string): string {
+  const [av, symbol] = String(a ?? '').trim().split(' ');
+  const [bv, bSymbol] = String(b ?? '').trim().split(' ');
+  const total = (Number.parseFloat(av) || 0) + (Number.parseFloat(bv) || 0);
+  return `${total.toFixed(4)} ${symbol || bSymbol || ''}`.trim();
 }
 
 /** Отменить можно действующую подписку; истёкшую, отозванную и уже отменённую — нет. */

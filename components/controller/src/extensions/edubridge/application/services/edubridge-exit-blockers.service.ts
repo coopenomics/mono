@@ -45,10 +45,17 @@ export class EdubridgeExitBlockersService implements InnerExitBlockersProvider {
         EduContributionStatus.ACT_SIGNED,
       ],
     });
-    if (pending.length > 0) {
+    // Материалы на хранении без подписанного заявления сами никуда не уйдут:
+    // здесь ждать нечего, нужно действие преподавателя.
+    const unsigned = pending.filter((c) => c.status === EduContributionStatus.HELD && !c.statement_document);
+    if (unsigned.length > 0) {
       reasons.push(
-        `по вашим занятиям не закрыт расчёт: заявлений в работе — ${pending.length}, дождитесь их прохождения`
+        `материалы ваших занятий на ответственном хранении без заявления о паевом взносе — ${unsigned.length}: подпишите заявление на столе преподавателя`
       );
+    }
+    const inWork = pending.length - unsigned.length;
+    if (inWork > 0) {
+      reasons.push(`по вашим занятиям не закрыт расчёт: заявлений в работе — ${inWork}, дождитесь их прохождения`);
     }
 
     return reasons;

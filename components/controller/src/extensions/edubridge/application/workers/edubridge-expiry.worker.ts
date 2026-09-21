@@ -15,6 +15,9 @@ import { EdubridgeAccessOutboxService } from '../services/edubridge-access-outbo
  * Граница оплаченного периода: предупредить заранее, а по наступлению —
  * `expiresub` ключом кооператива и отзыв доступа. Ручных операций ноль.
  */
+/** Ответ цепи, когда записи подписки уже нет. */
+const SUBSCRIPTION_GONE = /Подписка с указанным hash не найдена/i;
+
 @Injectable()
 export class EdubridgeExpiryWorker {
   private running = false;
@@ -52,19 +55,33 @@ export class EdubridgeExpiryWorker {
     const due = await this.enrollments.findExpired(coopname, new Date());
     for (const enrollment of due) {
       try {
-        const result = await this.chain.expireSubscription({ coopname, sub_hash: enrollment.sub_hash });
-        const trx = String((result as { transaction_id?: string })?.transaction_id ?? `expire:${enrollment.id}:${enrollment.paid_until?.toISOString()}`);
+        const trx = await this.closeInChain(coopname, enrollment.sub_hash, `expire:${enrollment.id}:${enrollment.paid_until?.toISOString()}`);
         enrollment.status = EduEnrollmentStatus.EXPIRED;
         await this.enrollments.save(enrollment);
         const course = await this.courses.findById(coopname, enrollment.course_id);
         if (course) await this.outbox.enqueue({ coopname, enrollment, kind: EduAccessTaskKind.REVOKE, carrier: course.carrier, trigger: trx });
         this.logger.info(`[EDU.EXPIRY] подписка ${enrollment.id} истекла — expiresub ${trx}`);
       } catch (e) {
-        // Запись в цепи уже могла быть стёрта (повтор) — сверим на следующем тике.
         this.logger.warn(`[EDU.EXPIRY] expiresub ${enrollment.sub_hash}: ${(e as Error)?.message ?? e}`);
       }
     }
     return due.length;
+  }
+
+  /**
+   * `expiresub` в цепь. Записи там может уже не быть — её стёрли раньше, а
+   * статус здесь не сохранился. Подписка всё равно истекла: доступ отзывается,
+   * иначе очередь спотыкалась бы о неё вечно, а ученик учился бы без взноса.
+   */
+  private async closeInChain(coopname: string, subHash: string, fallback: string): Promise<string> {
+    try {
+      const result = await this.chain.expireSubscription({ coopname, sub_hash: subHash });
+      return String((result as { transaction_id?: string })?.transaction_id ?? fallback);
+    } catch (e) {
+      if (!SUBSCRIPTION_GONE.test((e as Error)?.message ?? '')) throw e;
+      this.logger.warn(`[EDU.EXPIRY] подписки ${subHash} в цепи уже нет — закрываем запись и отзываем доступ`);
+      return fallback;
+    }
   }
 
   async notifyExpiring(coopname: string): Promise<number> {
@@ -99,8 +116,7 @@ export class EdubridgeExpiryWorker {
     const active = await this.enrollments.findActiveByMember(coopname, username);
     for (const enrollment of active) {
       try {
-        const result = await this.chain.expireSubscription({ coopname, sub_hash: enrollment.sub_hash });
-        const trx = String((result as { transaction_id?: string })?.transaction_id ?? `revoke:${enrollment.id}`);
+        const trx = await this.closeInChain(coopname, enrollment.sub_hash, `revoke:${enrollment.id}`);
         enrollment.status = EduEnrollmentStatus.REVOKED;
         await this.enrollments.save(enrollment);
         const course = await this.courses.findById(coopname, enrollment.course_id);
