@@ -94,7 +94,7 @@ th {  width: 30%; }
   </table>
 
   <h3>{% trans 'meeting_legality' %}</h3>
-  <p>{% trans 'voting_results', decision.voters_percent %} {% trans 'quorum' %} {% trans 'chairman_of_the_meeting', coop.chairman.last_name, coop.chairman.first_name, coop.chairman.middle_name %}.</p>
+  <p>{% trans 'voting_results', coop.members | length, coop.members | length, decision.voters_percent %} {% trans 'quorum' %} {% trans 'chairman_of_the_meeting', coop.chairman.last_name, coop.chairman.first_name, coop.chairman.middle_name %}.</p>
 
   <h3>{% trans 'agenda' %}</h3>
   <table>
@@ -159,7 +159,7 @@ export const translations = {
     meeting_place: 'Место',
     opening_time: 'Время открытия',
     council_members: 'ЧЛЕНЫ СОВЕТА',
-    voting_results: 'Количество голосов составляет {0}% от общего числа членов Совета.',
+    voting_results: 'В заседании участвуют {0} из {1} членов Совета ({2}%).',
     meeting_legality: 'СОБРАНИЕ ПРАВОМОЧНО',
     chairman_of_the_meeting: 'Председатель собрания совета: {0} {1} {2}',
     agenda: 'ПОВЕСТКА ДНЯ',

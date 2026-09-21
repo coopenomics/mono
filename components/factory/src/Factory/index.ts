@@ -338,7 +338,10 @@ export abstract class DocFactory<T extends IGenerate> {
     const total_voters = votes_for + votes_against
     const votes_abstained = total_members - total_voters
 
-    const voters_percent: number = Number.parseFloat((total_voters / total_members * 100).toFixed(0))
+    // Заседание совета заочное: повестку получают все члены совета, и все они участвуют в заседании. Кто не проголосовал,
+    // записан воздержавшимся, поэтому участников столько же, сколько членов совета, и кворум составляет 100 %.
+    const participants = total_voters + votes_abstained
+    const voters_percent: number = Number.parseFloat((participants / total_members * 100).toFixed(0))
 
     const [date, time] = created_at.split(' ')
 
