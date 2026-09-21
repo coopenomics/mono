@@ -15,11 +15,19 @@ sources:
     - components/controller/src/extensions/edubridge/infrastructure/adapters/edubridge-chain.adapter.ts
     - components/controller/src/extensions/edubridge/infrastructure/repositories/edubridge-enrollment.repository.ts
     - components/controller/src/extensions/edubridge/infrastructure/repositories/edubridge-learner.repository.ts
+    - components/controller/src/extensions/edubridge/application/services/edubridge-return.service.ts
+    - components/controller/src/extensions/edubridge/application/resolvers/edubridge-return.resolver.ts
+    - components/controller/src/extensions/edubridge/application/dto/edu-return.dto.ts
+    - components/controller/src/extensions/edubridge/infrastructure/repositories/edubridge-return-request.repository.ts
+    - components/controller/src/extensions/edubridge/infrastructure/entities/edubridge-return-request.entity.ts
+    - components/cooptypes/src/cooperative/registry/3013.EducationReturnStatement/**
+    - components/factory/src/Actions/3013.EducationReturnStatement.ts
   ui:
     - components/desktop/extensions/edubridge/pages/MemberLearnersPage/**
     - components/desktop/extensions/edubridge/pages/MemberSubscriptionsPage/**
     - components/desktop/extensions/edubridge/pages/CourseCardPage/**
     - components/desktop/extensions/edubridge/features/Subscribe/**
+    - components/desktop/extensions/edubridge/features/ReturnToShare/**
     - components/desktop/extensions/edubridge/widgets/LearnerForm/**
     - components/desktop/extensions/edubridge/entities/Learner/**
 
@@ -282,5 +290,47 @@ cases:
     kind: break
     scenario: "cancelsub с возвратом больше собранного по подписке; allotfee больше собранного; freereserve больше зарезервированного."
     expect: "Все три действия отклоняются."
+    test: ~
+    status: missing
+  - id: edu.enroll.happy.14
+    level: backend
+    kind: happy
+    scenario: "Возврат остатка кошелька программы в паевой взнос: заявление 3013, заявка, согласование кооперативом."
+    expect: "Заявление формируется в пределах остатка; заявка ждёт согласования, в цепь до решения ничего не уходит; согласование проводит retshare с подписанным заявлением."
+    test: components/controller/tests/unit/edubridge/return.service.test.ts
+    status: written
+  - id: edu.enroll.side.14
+    level: backend
+    kind: side
+    scenario: "Сумма больше остатка, нулевая, не в формате цепи; уже заявленное заявляется повторно."
+    expect: "Отказ; остаток считается за вычетом заявок на согласовании."
+    test: components/controller/tests/unit/edubridge/return.service.test.ts
+    status: written
+  - id: edu.enroll.break.06
+    level: backend
+    kind: break
+    scenario: "Заявление без подписи пайщика либо на другую сумму; согласование, когда остаток уже потрачен; сбой цепи; повторное решение."
+    expect: "Заявка не создаётся; согласование отклоняется до обращения к цепи; сбой оставляет заявку ожидающей; по закрытой заявке решения нет."
+    test: components/controller/tests/unit/edubridge/return.service.test.ts
+    status: written
+  - id: edu.enroll.side.15
+    level: backend
+    kind: side
+    scenario: "Кооператив отклоняет заявление."
+    expect: "Причина обязательна; остаток снова доступен для заявления."
+    test: components/controller/tests/unit/edubridge/return.service.test.ts
+    status: written
+  - id: edu.enroll.happy.15
+    level: backend
+    kind: happy
+    scenario: "Заявление 3013 формируется фабрикой документов."
+    expect: "Названы сумма, обе программы и согласование Обществом; сумма в мете — как в цепи."
+    test: components/factory/test/education-return-statement.test.ts
+    status: written
+  - id: edu.enroll.ui.05
+    level: ui
+    kind: happy
+    scenario: "Стол пайщика — карточка «Кошелёк программы»: остаток, подача заявления, история заявок; стол администратора — вкладка «Возвраты в паевой»."
+    expect: "Сумма не больше незаявленного остатка; согласование спрашивает подтверждение, отказ требует причину."
     test: ~
     status: missing

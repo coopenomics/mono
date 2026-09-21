@@ -64,3 +64,9 @@ export * as AppointAdmin from './appointAdmin'
 export * as DismissAdmin from './dismissAdmin'
 /** Председатель подписал акт — взнос принят */
 export * as AcceptContribution from './acceptContribution'
+
+/** Возврат остатка кошелька программы в паевой взнос: заявление пайщика и согласование кооперативом. */
+export * as ReturnStatement from './returnStatement'
+export * as RequestReturn from './requestReturn'
+export * as ApproveReturn from './approveReturn'
+export * as DeclineReturn from './declineReturn'

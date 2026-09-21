@@ -19,6 +19,9 @@ import { EdubridgeLearnerRepository } from '../infrastructure/repositories/edubr
 import { EdubridgeTeacherRepository } from '../infrastructure/repositories/edubridge-teacher.repository';
 import { EdubridgeLessonRepository } from '../infrastructure/repositories/edubridge-lesson.repository';
 import { EdubridgeAdminRepository } from '../infrastructure/repositories/edubridge-admin.repository';
+import { EdubridgeReturnRequestRepository } from '../infrastructure/repositories/edubridge-return-request.repository';
+import { EdubridgeReturnService } from './services/edubridge-return.service';
+import { EdubridgeReturnResolver } from './resolvers/edubridge-return.resolver';
 import { EDUBRIDGE_CHAIN_PORT } from '../domain/ports/edubridge-chain.port';
 import { EdubridgeConfigHolder } from './config/edubridge-config.holder';
 import { EdubridgeDesktopGrantsProvider } from './desktop/edubridge-desktop-grants.provider';
@@ -78,6 +81,7 @@ import { EdubridgeCatalogCourseFieldsResolver, EdubridgeCourseFieldsResolver } f
     EdubridgeTeacherRepository,
     EdubridgeLessonRepository,
     EdubridgeAdminRepository,
+    EdubridgeReturnRequestRepository,
     EdubridgeConnectorBindingRepository,
     { provide: EDUBRIDGE_CHAIN_PORT, useClass: EdubridgeChainAdapter },
     // Коннекторы площадок — фабрика по носителю; новая площадка = новый класс в списке
@@ -103,6 +107,7 @@ import { EdubridgeCatalogCourseFieldsResolver, EdubridgeCourseFieldsResolver } f
     EdubridgeOnboardingService,
     EdubridgeLearnerService,
     EdubridgeEnrollmentService,
+    EdubridgeReturnService,
     EdubridgeAccessOutboxService,
     EdubridgeTeacherService,
     EdubridgeAdminService,
@@ -123,6 +128,7 @@ import { EdubridgeCatalogCourseFieldsResolver, EdubridgeCourseFieldsResolver } f
     EdubridgeEconomyResolver,
     EdubridgeOnboardingResolver,
     EdubridgeMemberResolver,
+    EdubridgeReturnResolver,
     EdubridgeTeacherResolver,
     EdubridgeAdminResolver,
   ],

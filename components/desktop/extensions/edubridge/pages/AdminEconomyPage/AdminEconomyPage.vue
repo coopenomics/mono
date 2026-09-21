@@ -45,6 +45,11 @@
       template(#icon)
         q-icon(name="receipt_long" size="32px")
 
+  //- Остаток кошелька программы возвращается в паевой по заявлению пайщика и
+  //- согласованию кооператива (пп. 4.2.4, 4.2.5 Положения ЦПП).
+  template(v-else-if="tab === 'returns'")
+    ReturnRequestsPanel(@decided="load")
+
   template(v-else-if="tab === 'expenses'")
     .row.justify-end.q-mb-md
       BaseButton(variant="primary" @click="expenseOpen = true")
@@ -137,6 +142,7 @@ import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { BaseButton, BaseCard, BaseDialog, BaseForm, BaseInput, BaseTable, EmptyState, type BaseTableColumn } from 'src/shared/ui/base';
 import { DataRow, IdentityCell, PageHint, WalletCard } from 'src/shared/ui/domain';
 import { PageTabs, type PageTab } from 'src/shared/ui/layout';
+import { ReturnRequestsPanel } from '../../features/ReturnToShare';
 import { ExpenseCreateDialog, ExpenseProposalList, type ExpenseCreatePayload, type ExpenseProposalListRow } from 'src/shared/ui/domain';
 import {
   EDU_EXPENSE_WALLET,
@@ -180,6 +186,7 @@ const expenseOpen = ref(false);
 const tabs: PageTab[] = [
   { key: 'money', label: 'Деньги' },
   { key: 'expenses', label: 'Расходы' },
+  { key: 'returns', label: 'Возвраты в паевой' },
   { key: 'settings', label: 'Настройки' },
 ];
 

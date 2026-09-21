@@ -8,3 +8,4 @@ export { EdubridgeContributionEntity } from './edubridge-contribution.entity';
 export { EdubridgeLessonEntity } from './edubridge-lesson.entity';
 export { EdubridgeAdminEntity } from './edubridge-admin.entity';
 export { EdubridgeTeacherContractEntity } from './edubridge-teacher-contract.entity';
+export { EdubridgeReturnRequestEntity } from './edubridge-return-request.entity';

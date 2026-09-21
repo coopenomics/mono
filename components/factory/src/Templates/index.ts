@@ -119,6 +119,7 @@ export * as EducationRidDecision from './3009.EducationRidDecision'
 export * as EducationRidAct from './3010.EducationRidAct'
 export * as EducationRidStorageAct from './3012.EducationRidStorageAct'
 export * as EducationConvertStatement from './3011.EducationConvertStatement'
+export * as EducationReturnStatement from './3013.EducationReturnStatement'
 
 export * from './registry'
 export * from './versions'

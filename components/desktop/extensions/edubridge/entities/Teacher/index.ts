@@ -72,6 +72,9 @@ export const fetchTeachers = () => q<ITeacher[]>(Queries.Edubridge.Teachers.quer
 export const fetchContributions = () => q<IContribution[]>(Queries.Edubridge.Contributions.query, Queries.Edubridge.Contributions.name);
 export const createAssignment = (data: IAssignmentInput) => m<IAssignment>(Mutations.Edubridge.CreateAssignment.mutation, Mutations.Edubridge.CreateAssignment.name, { data });
 export const closeAssignment = (id: string) => m<IAssignment>(Mutations.Edubridge.CloseAssignment.mutation, Mutations.Edubridge.CloseAssignment.name, { id });
+/** Прекращение договора по соглашению сторон; вернётся null, когда прекращать нечего. */
+export const terminateContract = (username: string, reason: string) =>
+  m<IContract | null>(Mutations.Edubridge.TerminateContract.mutation, Mutations.Edubridge.TerminateContract.name, { username, reason });
 export const declineContribution = (contribution_id: string, reason: string) =>
   m<IContribution>(Mutations.Edubridge.DeclineContribution.mutation, Mutations.Edubridge.DeclineContribution.name, { data: { contribution_id, reason } });
 

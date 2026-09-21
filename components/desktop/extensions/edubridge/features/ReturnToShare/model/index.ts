@@ -1,0 +1,12 @@
+import { Zeus, type Mutations, type Queries } from '@coopenomics/sdk';
+
+export type IReturnBalance = Queries.Edubridge.ReturnBalance.IOutput['edubridgeReturnBalance'];
+export type IReturnRequest = Queries.Edubridge.MyReturnRequests.IOutput['edubridgeMyReturnRequests'][number];
+export type IRequestReturnInput = Mutations.Edubridge.RequestReturn.IInput['data'];
+export type IDeclineReturnInput = Mutations.Edubridge.DeclineReturn.IInput['data'];
+
+export const RETURN_STATUS_LABELS: Record<string, { label: string; variant: 'pos' | 'neg' | 'warn' | 'info' | 'neutral' }> = {
+  [Zeus.EduReturnStatus.PENDING]: { label: 'Ждёт согласования', variant: 'info' },
+  [Zeus.EduReturnStatus.APPROVED]: { label: 'Возвращено в паевой', variant: 'pos' },
+  [Zeus.EduReturnStatus.DECLINED]: { label: 'Отклонено', variant: 'neg' },
+};

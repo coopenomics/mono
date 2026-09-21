@@ -661,6 +661,9 @@ export const AllTypesProps: Record<string,any> = {
 	EduDeclineContributionInput:{
 
 	},
+	EduDeclineReturnInput:{
+
+	},
 	EduEnrollmentPeriod: "enum" as const,
 	EduEnrollmentStatus: "enum" as const,
 	EduExpenseItemInput:{
@@ -685,9 +688,16 @@ export const AllTypesProps: Record<string,any> = {
 		period:"EduEnrollmentPeriod"
 	},
 	EduRecipientType: "enum" as const,
+	EduRequestReturnInput:{
+		document:"SignedDigitalDocumentInput"
+	},
 	EduRetryTaskInput:{
 
 	},
+	EduReturnStatementInput:{
+
+	},
+	EduReturnStatus: "enum" as const,
 	EduRevokeContributionInput:{
 
 	},
@@ -2045,6 +2055,9 @@ export const AllTypesProps: Record<string,any> = {
 		edubridgeAppointAdmin:{
 			data:"EduAdminInput"
 		},
+		edubridgeApproveReturn:{
+
+		},
 		edubridgeCancelCourseUnderfilled:{
 
 		},
@@ -2072,6 +2085,9 @@ export const AllTypesProps: Record<string,any> = {
 		edubridgeDeclineContribution:{
 			data:"EduDeclineContributionInput"
 		},
+		edubridgeDeclineReturn:{
+			data:"EduDeclineReturnInput"
+		},
 		edubridgeDismissAdmin:{
 			data:"EduAdminInput"
 		},
@@ -2084,8 +2100,14 @@ export const AllTypesProps: Record<string,any> = {
 		edubridgeReportLesson:{
 			data:"EduLessonReportInput"
 		},
+		edubridgeRequestReturn:{
+			data:"EduRequestReturnInput"
+		},
 		edubridgeRetryTask:{
 			data:"EduRetryTaskInput"
+		},
+		edubridgeReturnStatement:{
+			data:"EduReturnStatementInput"
 		},
 		edubridgeRevokeContribution:{
 			data:"EduRevokeContributionInput"
@@ -3169,6 +3191,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		edubridgeRefundPreview:{
 
+		},
+		edubridgeReturnRequests:{
+			status:"EduReturnStatus"
 		},
 		expenseFile:{
 
@@ -5971,6 +5996,21 @@ export const ReturnTypes: Record<string,any> = {
 		to_share:"Boolean",
 		withheld:"String"
 	},
+	EduReturnBalance:{
+		available:"String",
+		free:"String",
+		pending:"String"
+	},
+	EduReturnRequest:{
+		amount:"String",
+		created_at:"DateTime",
+		decided_at:"DateTime",
+		decline_reason:"String",
+		id:"ID",
+		member_username:"String",
+		statement_hash:"String",
+		status:"EduReturnStatus"
+	},
 	EduTeacher:{
 		approved_at:"DateTime",
 		assignments_active:"Float",
@@ -7882,6 +7922,7 @@ export const ReturnTypes: Record<string,any> = {
 		edubridgeAcceptContribution:"EduContribution",
 		edubridgeAddLearner:"EduLearner",
 		edubridgeAppointAdmin:"EduAdmin",
+		edubridgeApproveReturn:"EduReturnRequest",
 		edubridgeCancelCourseUnderfilled:"Int",
 		edubridgeCancelEnrollment:"EduEnrollment",
 		edubridgeCheckConnector:"EduConnectorBinding",
@@ -7891,11 +7932,14 @@ export const ReturnTypes: Record<string,any> = {
 		edubridgeCreateCourse:"EduCourse",
 		edubridgeCreateExpense:"String",
 		edubridgeDeclineContribution:"EduContribution",
+		edubridgeDeclineReturn:"EduReturnRequest",
 		edubridgeDismissAdmin:"Boolean",
 		edubridgeHoldContribution:"EduContribution",
 		edubridgeRemoveLearner:"Boolean",
 		edubridgeReportLesson:"EduLesson",
+		edubridgeRequestReturn:"EduReturnRequest",
 		edubridgeRetryTask:"EduAccessTask",
+		edubridgeReturnStatement:"GeneratedDocument",
 		edubridgeRevokeContribution:"EduContribution",
 		edubridgeRidAct:"GeneratedDocument",
 		edubridgeRidStatement:"GeneratedDocument",
@@ -8804,6 +8848,7 @@ export const ReturnTypes: Record<string,any> = {
 		edubridgeMyEnrollments:"EduEnrollment",
 		edubridgeMyLearners:"EduLearner",
 		edubridgeMyLessons:"EduLesson",
+		edubridgeMyReturnRequests:"EduReturnRequest",
 		edubridgeMySettlement:"EduTeacherSettlement",
 		edubridgeOnboardingState:"EduOnboardingState",
 		edubridgePlatformCourses:"EduPlatformCourse",
@@ -8811,6 +8856,8 @@ export const ReturnTypes: Record<string,any> = {
 		edubridgeQueue:"EduAccessTask",
 		edubridgeQuote:"EduQuote",
 		edubridgeRefundPreview:"EduRefundPreview",
+		edubridgeReturnBalance:"EduReturnBalance",
+		edubridgeReturnRequests:"EduReturnRequest",
 		edubridgeTeacherOptions:"EduTeacherOption",
 		edubridgeTeachers:"EduTeacher",
 		expenseFile:"ExpenseFile",

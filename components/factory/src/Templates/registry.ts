@@ -104,6 +104,7 @@ import * as EducationRidDecision from './3009.EducationRidDecision'
 import * as EducationRidAct from './3010.EducationRidAct'
 import * as EducationRidStorageAct from './3012.EducationRidStorageAct'
 import * as EducationConvertStatement from './3011.EducationConvertStatement'
+import * as EducationReturnStatement from './3013.EducationReturnStatement'
 
 export const Registry = {
   1: WalletAgreement,
@@ -198,4 +199,5 @@ export const Registry = {
   3010: EducationRidAct,
   3012: EducationRidStorageAct,
   3011: EducationConvertStatement,
+  3013: EducationReturnStatement,
 }

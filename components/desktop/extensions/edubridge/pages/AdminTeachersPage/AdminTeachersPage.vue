@@ -54,6 +54,16 @@
         DataRow(label="Назначений действует" :value="String(current.assignments_active)")
         DataRow(label="Назначений всего" :value="String(current.assignments_total)")
 
+        //- Прекращение по соглашению сторон: основание уходит в цепь вместе с действием.
+        template(v-if="current.contract_status === Zeus.EduContractStatus.ACTIVE")
+          BaseButton.q-mt-md(v-if="!terminateFormOpen" variant="ghost" size="sm" @click="openTerminateForm") Прекратить договор
+          BaseForm.q-mt-md(v-else :loading="busy" @submit="onTerminate")
+            BaseInput(v-model="terminateReason" label="Основание прекращения" type="textarea" :rows="2" required)
+            template(#footer)
+              .row.justify-end.q-gutter-sm
+                BaseButton(variant="ghost" type="button" :disabled="busy" @click="terminateFormOpen = false") Отменить
+                BaseButton(variant="danger" type="submit" :loading="busy") Прекратить договор
+
       template(v-else)
         q-list.q-mb-md(v-if="ownAssignments.length" separator)
           q-item(v-for="a in ownAssignments" :key="asText(a.id)")
@@ -92,7 +102,7 @@ import { computed, onMounted, reactive, ref } from 'vue';
 import { Zeus } from '@coopenomics/sdk';
 import { asDateInput, asText } from 'src/shared/lib/utils';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
-import { useFirstLoad } from 'src/shared/lib/composables';
+import { useConfirm, useFirstLoad } from 'src/shared/lib/composables';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { Avatar, BaseBadge, BaseButton, BaseForm, BaseInput, BaseSelect, BaseTable, EmptyState, type BaseTableColumn } from 'src/shared/ui/base';
 import { AccountBadge, DataRow, DetailsDrawer, PageHint } from 'src/shared/ui/domain';
@@ -105,6 +115,7 @@ import {
   createAssignment,
   fetchAssignments,
   fetchTeachers,
+  terminateContract,
   type IAssignment,
   type IAssignmentInput,
   type ITeacher,
@@ -127,6 +138,9 @@ const cardOpen = ref(false);
 const current = ref<ITeacher | null>(null);
 const tab = ref('contract');
 const assignFormOpen = ref(false);
+const terminateFormOpen = ref(false);
+const terminateReason = ref('');
+const { confirm } = useConfirm();
 
 const tabs: PageTab[] = [
   { key: 'contract', label: 'Договор' },
@@ -177,6 +191,7 @@ function openCard(row: ITeacher): void {
   current.value = row;
   tab.value = 'contract';
   assignFormOpen.value = false;
+  terminateFormOpen.value = false;
   cardOpen.value = true;
 }
 
@@ -214,6 +229,37 @@ async function onClose(a: IAssignment): Promise<void> {
     if (a.status === Zeus.EduAssignmentStatus.ACTIVE) bumpActive(-1);
   } catch (e) {
     FailAlert(e);
+  }
+}
+
+function openTerminateForm(): void {
+  terminateReason.value = '';
+  terminateFormOpen.value = true;
+}
+
+/**
+ * Договор прекращается, когда расчёт с преподавателем закрыт: действующие
+ * назначения и незакрытые взносы сервер назовёт сам.
+ */
+async function onTerminate(): Promise<void> {
+  if (!current.value) return;
+  const ok = await confirm({
+    title: 'Прекратить договор?',
+    message: 'Преподаватель не сможет вести занятия и отчитываться по ним, пока не подпишет договор заново.',
+    confirmLabel: 'Прекратить договор',
+    danger: true,
+  });
+  if (!ok) return;
+  busy.value = true;
+  try {
+    const contract = await terminateContract(current.value.username, terminateReason.value.trim());
+    if (contract) patchCurrent((t) => ({ ...t, contract_status: contract.status }));
+    terminateFormOpen.value = false;
+    SuccessAlert('Договор прекращён');
+  } catch (e) {
+    FailAlert(e);
+  } finally {
+    busy.value = false;
   }
 }
 

@@ -4,7 +4,8 @@
     | Подписка открывается в каталоге: выберите курс и нажмите «Получить доступ». Членский взнос вносится
     | из паевого по заявлению о конвертации, доступ на площадке выдаётся автоматически. Здесь — что оплачено и до какого числа.
     | Взнос, возвращённый при отмене, остаётся на кошельке программы и зачитывается при следующей подписке.
-    | Забрать его деньгами можно при выходе из кооператива —
+    | Вернуть его в паевой взнос можно по заявлению — в карточке «Кошелёк программы» ниже; остаток также возвращается
+    | при выходе из кооператива —
     |#[a.edu-subscriptions__link(href="#" @click.prevent="goToPrograms") в разделе «Участие в программах»].
 
   BaseCard(variant="default" title="Мои подписки")
@@ -26,6 +27,8 @@
         q-icon(name="school" size="32px")
       template(#action)
         BaseButton.q-mt-md(variant="primary" @click="goToCatalog") Перейти в каталог
+
+  ReturnToShareCard.q-mt-md(:key="walletRev")
 
   //- Отмена подписки: сумма возврата считается по Положению ЦПП на сервере,
   //- поэтому ученик видит её до нажатия, а не после.
@@ -76,6 +79,7 @@ import {
   type ILearner,
   type IRefundPreview,
 } from '../../entities/Learner';
+import { ReturnToShareCard } from '../../features/ReturnToShare';
 import { SubscribeDialog } from '../../features/Subscribe';
 
 /**
@@ -103,6 +107,8 @@ const cancelOpen = ref(false);
 const cancelTarget = ref<IEnrollment | null>(null);
 const refund = ref<IRefundPreview | null>(null);
 const cancelBusy = ref(false);
+// Отмена и оплата меняют остаток кошелька программы — карточка перечитывает его.
+const walletRev = ref(0);
 
 /**
  * Ширины: колонка курса единственная без фиксированной — она забирает остаток,
@@ -173,6 +179,7 @@ async function confirmCancel(): Promise<void> {
     const updated = await cancelEnrollment(asText(cancelTarget.value.id));
     enrollments.value = enrollments.value.map((e) => (e.id === updated.id ? updated : e));
     cancelOpen.value = false;
+    walletRev.value += 1;
     SuccessAlert(`Подписка отменена, возврат ${formatAsset2Digits(updated.refunded_amount ?? '')}`);
   } catch (e) {
     FailAlert(e);
@@ -187,6 +194,7 @@ function onLearnerAdded(l: ILearner): void {
   else learners.value.push(l);
 }
 function onSubscribed(e: IEnrollment): void {
+  walletRev.value += 1;
   const i = enrollments.value.findIndex((x) => x.id === e.id);
   if (i >= 0) enrollments.value[i] = e;
   else enrollments.value.push(e);
