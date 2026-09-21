@@ -7547,7 +7547,7 @@ export type ValueTypes = {
 	['...on EduRefundPreview']?: Omit<ValueTypes["EduRefundPreview"], "...on EduRefundPreview">
 }>;
 	["EduRequestReturnInput"]: {
-	/** Подписанное заявление о прекращении участия в программе */
+	/** Подписанное заявление об аннулировании соглашения об участии в программе «Образование» — без выхода из кооператива */
 	document: ValueTypes["SignedDigitalDocumentInput"] | Variable<any, string>
 };
 	["EduRetryTaskInput"]: {
@@ -13775,8 +13775,6 @@ edubridgeRemoveLearner?: [{	id: ValueTypes["ID"] | Variable<any, string>},boolea
 edubridgeReportLesson?: [{	data: ValueTypes["EduLessonReportInput"] | Variable<any, string>},ValueTypes["EduLesson"]],
 edubridgeRequestReturn?: [{	data: ValueTypes["EduRequestReturnInput"] | Variable<any, string>},ValueTypes["EduReturnRequest"]],
 edubridgeRetryTask?: [{	data: ValueTypes["EduRetryTaskInput"] | Variable<any, string>},ValueTypes["EduAccessTask"]],
-	/** Сформировать заявление о прекращении участия в программе */
-	edubridgeReturnStatement?:ValueTypes["GeneratedDocument"],
 edubridgeRevokeContribution?: [{	data: ValueTypes["EduRevokeContributionInput"] | Variable<any, string>},ValueTypes["EduContribution"]],
 edubridgeRidAct?: [{	contribution_id: ValueTypes["ID"] | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 edubridgeRidStatement?: [{	contribution_id: ValueTypes["ID"] | Variable<any, string>},ValueTypes["GeneratedDocument"]],
@@ -24662,7 +24660,7 @@ export type ResolverInputTypes = {
 		__typename?: boolean | `@${string}`
 }>;
 	["EduRequestReturnInput"]: {
-	/** Подписанное заявление о прекращении участия в программе */
+	/** Подписанное заявление об аннулировании соглашения об участии в программе «Образование» — без выхода из кооператива */
 	document: ResolverInputTypes["SignedDigitalDocumentInput"]
 };
 	["EduRetryTaskInput"]: {
@@ -30707,8 +30705,6 @@ edubridgeRemoveLearner?: [{	id: ResolverInputTypes["ID"]},boolean | `@${string}`
 edubridgeReportLesson?: [{	data: ResolverInputTypes["EduLessonReportInput"]},ResolverInputTypes["EduLesson"]],
 edubridgeRequestReturn?: [{	data: ResolverInputTypes["EduRequestReturnInput"]},ResolverInputTypes["EduReturnRequest"]],
 edubridgeRetryTask?: [{	data: ResolverInputTypes["EduRetryTaskInput"]},ResolverInputTypes["EduAccessTask"]],
-	/** Сформировать заявление о прекращении участия в программе */
-	edubridgeReturnStatement?:ResolverInputTypes["GeneratedDocument"],
 edubridgeRevokeContribution?: [{	data: ResolverInputTypes["EduRevokeContributionInput"]},ResolverInputTypes["EduContribution"]],
 edubridgeRidAct?: [{	contribution_id: ResolverInputTypes["ID"]},ResolverInputTypes["GeneratedDocument"]],
 edubridgeRidStatement?: [{	contribution_id: ResolverInputTypes["ID"]},ResolverInputTypes["GeneratedDocument"]],
@@ -41245,7 +41241,7 @@ export type ModelTypes = {
 	withheld: string
 };
 	["EduRequestReturnInput"]: {
-	/** Подписанное заявление о прекращении участия в программе */
+	/** Подписанное заявление об аннулировании соглашения об участии в программе «Образование» — без выхода из кооператива */
 	document: ModelTypes["SignedDigitalDocumentInput"]
 };
 	["EduRetryTaskInput"]: {
@@ -47465,8 +47461,6 @@ export type ModelTypes = {
 	edubridgeRequestReturn: ModelTypes["EduReturnRequest"],
 	/** Повторить задачу выдачи/отзыва доступа */
 	edubridgeRetryTask: ModelTypes["EduAccessTask"],
-	/** Сформировать заявление о прекращении участия в программе */
-	edubridgeReturnStatement: ModelTypes["GeneratedDocument"],
 	/** Снять удерживаемое заявление по подтверждённой рекламации */
 	edubridgeRevokeContribution: ModelTypes["EduContribution"],
 	/** Сформировать акт приёма-передачи для подписи (после решения совета) */
@@ -59055,7 +59049,7 @@ export type GraphQLTypes = {
 	['...on EduRefundPreview']: Omit<GraphQLTypes["EduRefundPreview"], "...on EduRefundPreview">
 };
 	["EduRequestReturnInput"]: {
-		/** Подписанное заявление о прекращении участия в программе */
+		/** Подписанное заявление об аннулировании соглашения об участии в программе «Образование» — без выхода из кооператива */
 	document: GraphQLTypes["SignedDigitalDocumentInput"]
 };
 	["EduRetryTaskInput"]: {
@@ -65719,8 +65713,6 @@ export type GraphQLTypes = {
 	edubridgeRequestReturn: GraphQLTypes["EduReturnRequest"],
 	/** Повторить задачу выдачи/отзыва доступа */
 	edubridgeRetryTask: GraphQLTypes["EduAccessTask"],
-	/** Сформировать заявление о прекращении участия в программе */
-	edubridgeReturnStatement: GraphQLTypes["GeneratedDocument"],
 	/** Снять удерживаемое заявление по подтверждённой рекламации */
 	edubridgeRevokeContribution: GraphQLTypes["EduContribution"],
 	/** Сформировать акт приёма-передачи для подписи (после решения совета) */

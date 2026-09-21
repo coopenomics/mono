@@ -232,7 +232,7 @@ export function useMembershipExit() {
  * подписанное соглашение. Минимальный паевой взнос и прочее вне программ в
  * документ не идут — аннулировать там нечего.
  */
-function programsForAnnulment(preview: IMembershipExitReturnPreview) {
+export function programsForAnnulment(preview: IMembershipExitReturnPreview) {
   return (preview.programs ?? [])
     .filter((program) => Boolean(program.agreement_hash) && program.program_id > 0)
     .map((program) => ({

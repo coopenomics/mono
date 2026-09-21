@@ -12,7 +12,7 @@ import { ACCOUNT_BLOCKCHAIN_PORT, type AccountBlockchainPort } from '~/domain/ac
 import { USER_WALLET_REPOSITORY, type UserWalletRepository } from '~/domain/wallet/repositories/user-wallet.repository';
 import { BLOCKCHAIN_PORT, type BlockchainPort } from '~/domain/common/ports/blockchain.port';
 import { USER_DOMAIN_SERVICE, type UserDomainService } from '~/domain/user/services/user-domain.service';
-import { IMonoAccount } from '@coopenomics/innercoop';
+import { IMonoAccount, type InnerExitPendingReturn } from '@coopenomics/innercoop';
 import { PAYMENT_METHOD_REPOSITORY, type PaymentMethodRepository } from '~/domain/common/repositories/payment-method.repository';
 import { PAYMENT_REPOSITORY, type PaymentRepository } from '~/domain/gateway/repositories/payment.repository';
 import { PaymentTypeEnum } from '~/domain/gateway/enums/payment-type.enum';
@@ -330,9 +330,13 @@ export class MembershipExitService {
     const returnsBalance = (index: number): boolean =>
       rules[index].policy === 'MAIN' || rules[index].policy === 'RETURN_TO_MAIN';
 
-    const total = assets.reduce(
-      (acc, amount, index) => (returnsBalance(index) ? this.sumAssets(acc, amount) : acc),
-      zero
+    // Возврат, который выход ещё положит на кошельки программ, закрыв
+    // обязательства расширений (подписки на курсы): в паевой он уйдёт вместе с остатком.
+    const pending = await this.memberExitRegistry.collectPendingReturns(coopname, username);
+
+    const total = pending.reduce(
+      (acc, item) => this.sumAssets(acc, item.amount),
+      assets.reduce((acc, amount, index) => (returnsBalance(index) ? this.sumAssets(acc, amount) : acc), zero)
     );
 
     const balanceOf = (wallet: string): string => {
@@ -344,7 +348,7 @@ export class MembershipExitService {
       total,
       share_contribution: balanceOf(Ledger2.SHARE_WALLET_NAME),
       minimum_contribution: balanceOf(Ledger2.MIN_SHARE_WALLET_NAME),
-      programs: await this.programBreakdown(coopname, username, rules, assets, zero),
+      programs: await this.programBreakdown(coopname, username, rules, assets, zero, pending),
       blockers: await this.memberExitRegistry.collectBlockers(coopname, username),
     };
   }
@@ -354,14 +358,16 @@ export class MembershipExitService {
    * кошелёк, говорит карта `LEDGER2_USER_SHARED_PROGRAM_MAPPING`. Кошельки вне
    * программ (минимальный паевой) идут отдельной строкой с `program_id = 0`.
    * Кошельки с нулевым остатком не показываются — кроме программ, где пайщик
-   * состоит: там он должен видеть, что возвращать нечего.
+   * состоит: там он должен видеть, что возвращать нечего. Возврат, который выход
+   * ещё положит на кошелёк программы, идёт отдельной строкой той же программы.
    */
   private async programBreakdown(
     coopname: string,
     username: string,
     rules: readonly Ledger2.ExitWalletRule[],
     assets: readonly string[],
-    zero: string
+    zero: string,
+    pending: readonly InnerExitPendingReturn[] = []
   ): Promise<MembershipExitProgramDTO[]> {
     const agreements = await this.userAgreementRepository.findByUsername(coopname, username);
     const signedByProgram = new Map<number, { signed_at: string; doc_hash: string }>();
@@ -413,8 +419,22 @@ export class MembershipExitService {
       if (returns) row.refund = this.sumAssets(row.refund, balance);
     });
 
+    for (const item of pending) this.addPendingReturn(program(Ledger2.programIdForWallet(item.wallet_name) ?? 0), item);
+
     // Пустые строки без кошельков и без соглашения показывать незачем.
     return [...byProgram.values()].filter((row) => row.wallets.length > 0 || row.agreement_hash);
+  }
+
+  /** Возврат, который выход ещё положит на кошелёк программы, — отдельной строкой той же программы. */
+  private addPendingReturn(row: MembershipExitProgramDTO, item: InnerExitPendingReturn): void {
+    row.wallets.push({
+      wallet_name: item.wallet_name,
+      human_name: item.human_name,
+      balance: item.amount,
+      returns: true,
+      policy: 'RETURN_TO_MAIN',
+    });
+    row.refund = this.sumAssets(row.refund, item.amount);
   }
 
   /** Названия программ кооператива по их идентификаторам. */

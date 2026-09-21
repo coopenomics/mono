@@ -5,7 +5,7 @@ import {
   EXTENSION_APP_TERMINATE_EVENT,
   type ExtensionAppTerminatePayload,
 } from '@coopenomics/extension-kit';
-import type { IMemberExitRegistryPort, InnerExitBlockersProvider } from '@coopenomics/innercoop';
+import type { IMemberExitRegistryPort, InnerExitBlockersProvider, InnerExitPendingReturn } from '@coopenomics/innercoop';
 
 /**
  * Реестр причин, по которым расширение не пускает пайщика на выход.
@@ -55,6 +55,28 @@ export class MemberExitRegistryService implements IMemberExitRegistryPort {
       })
     );
     return results.flat().filter((reason) => Boolean(reason?.trim()));
+  }
+
+  /**
+   * Что выход ещё вернёт на кошельки программ, закрыв обязательства расширений.
+   * Сбой расширения сумму не выдумывает: его возврат просто не попадёт в
+   * предрасчёт, а контракт при выходе всё равно вернёт весь кошелёк программы.
+   */
+  async collectPendingReturns(coopname: string, username: string): Promise<InnerExitPendingReturn[]> {
+    const results = await Promise.all(
+      [...this.providers.values()].map(async (provider) => {
+        if (!provider.pendingReturns) return [];
+        try {
+          return await provider.pendingReturns(coopname, username);
+        } catch (e) {
+          this.logger.warn(
+            `[EXIT] возврат по обязательствам ${provider.extension_name} не посчитан: ${(e as Error)?.message ?? e}`
+          );
+          return [];
+        }
+      })
+    );
+    return results.flat().filter((r) => Number.parseFloat(r?.amount ?? '0') > 0);
   }
 }
 

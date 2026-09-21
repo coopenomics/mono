@@ -1,12 +1,9 @@
 import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { Cooperative } from 'cooptypes';
 import {
-  DOCUMENT_PORT,
   LOGGER_PORT,
   USER_WALLET_PORT,
-  type IDocumentPort,
   type ILoggerPort,
-  type InnerGeneratedDocument,
   type ISignedDocument,
   type IUserWalletPort,
 } from '@coopenomics/innercoop';
@@ -19,6 +16,8 @@ import { EdubridgeEnrollmentService } from './edubridge-enrollment.service';
 
 /** Кошелёк членских взносов программы — его остаток уходит в паевой. */
 const MEMBER_WALLET = 'w.edu.member';
+/** Программа «Обучение» ЦПП «Образование» в реестре программ кооператива. */
+const EDU_LEARNER_PROGRAM_ID = 5;
 
 export interface ReturnBalance {
   /** Остаток кошелька программы. */
@@ -40,9 +39,11 @@ export interface ReturnBalance {
  * участвует в программе, остаток кошелька программы идёт на новые подписки.
  *
  * Путь двухшаговый (п. 4.2.5 Положения требует согласования Обществом):
- * пайщик подписывает заявление 3013, кооператив согласует. Тогда подписки
- * закрываются с возвратом по Положению, и `retshare` переводит весь остаток в
- * паевой (Дт 86 / Кт 80) и аннулирует соглашение о программе.
+ * пайщик подписывает заявление об аннулировании соглашения (190) — тот же
+ * бланк, что при выходе из кооператива, только без выхода и с одной программой
+ * в таблице, — кооператив согласует. Тогда подписки закрываются с возвратом по
+ * Положению, и `retshare` переводит весь остаток в паевой (Дт 86 / Кт 80) и
+ * аннулирует соглашение о программе.
  */
 @Injectable()
 export class EdubridgeReturnService {
@@ -50,7 +51,6 @@ export class EdubridgeReturnService {
     private readonly requests: EdubridgeReturnRequestRepository,
     private readonly enrollments: EdubridgeEnrollmentService,
     @Inject(EDUBRIDGE_CHAIN_PORT) private readonly chain: EdubridgeChainPort,
-    @Inject(DOCUMENT_PORT) private readonly documents: IDocumentPort,
     @Inject(USER_WALLET_PORT) private readonly wallets: IUserWalletPort,
     @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
   ) {
@@ -80,25 +80,10 @@ export class EdubridgeReturnService {
     };
   }
 
-  /** Заявление 3013 без подписи — пайщик подписывает его на фронте. */
-  async statement(coopname: string, member: string): Promise<InnerGeneratedDocument> {
-    await this.assertNoPending(coopname, member);
-    const action: Cooperative.Registry.EducationReturnStatement.Action = {
-      registry_id: Cooperative.Registry.EducationReturnStatement.registry_id,
-      coopname,
-      username: member,
-      lang: 'ru',
-      skip_save: false,
-    };
-    return this.documents.generate({ data: action });
-  }
-
   /** Пайщик подал подписанное заявление — оно ждёт согласования кооперативом. */
   async request(coopname: string, member: string, document: ISignedDocument): Promise<EdubridgeReturnRequestEntity> {
     if (!document.signatures?.some((s) => s.signer === member)) throw new BadRequestException('Заявление не подписано пайщиком');
-    if (Number(metaOf(document).registry_id) !== Cooperative.Registry.EducationReturnStatement.registry_id) {
-      throw new BadRequestException('Подписан не тот документ: нужно заявление о прекращении участия в программе');
-    }
+    assertProgramAnnulment(metaOf(document));
     await this.assertNoPending(coopname, member);
 
     const saved = await this.requests.save(
@@ -182,6 +167,23 @@ export class EdubridgeReturnService {
 
 function toNumber(asset: string | null | undefined): number {
   return Number.parseFloat(String(asset ?? '0')) || 0;
+}
+
+/**
+ * Подписано заявление об аннулировании соглашения (190) именно об этой
+ * программе и без выхода из кооператива: выход ведёт ядро своим порядком.
+ */
+function assertProgramAnnulment(meta: Record<string, unknown>): void {
+  if (Number(meta.registry_id) !== Cooperative.Registry.ProgramAgreementsAnnulmentStatement.registry_id) {
+    throw new BadRequestException('Подписан не тот документ: нужно заявление об аннулировании соглашения об участии в программе');
+  }
+  if (meta.exit_hash) {
+    throw new BadRequestException('Заявление подписано вместе с выходом из кооператива — его рассматривает совет при выходе');
+  }
+  const programs = Array.isArray(meta.programs) ? (meta.programs as Array<{ program_id?: unknown }>) : [];
+  if (programs.length !== 1 || Number(programs[0]?.program_id) !== EDU_LEARNER_PROGRAM_ID) {
+    throw new BadRequestException('В заявлении должна быть одна программа — «Образование»');
+  }
 }
 
 /** Мета подписанного документа приходит объектом либо строкой JSON. */

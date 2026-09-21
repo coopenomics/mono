@@ -36,8 +36,11 @@ export interface IAnnulmentProgram {
  * подставляется таблицей, отдельного бланка под каждую ЦПП нет.
  *
  * Подписывается вместе с заявлением на выход из кооператива (registry 200) —
- * тогда `exit_hash` связывает документы. Аннулирование одной программы без
- * выхода из кооператива идёт этим же документом без `exit_hash`.
+ * тогда `exit_hash` связывает документы, а в таблице все программы пайщика.
+ * Прекращение участия в одной программе без выхода из кооператива идёт этим же
+ * документом без `exit_hash`, в таблице — только эта программа; заявление
+ * согласует кооператив, в цепь его передаёт контракт программы (для ЦПП
+ * «Образование» — `edubridge::retshare`).
  */
 export interface Action extends IGenerate {
   /** Хэш процесса выхода; пусто — аннулирование без выхода из кооператива. */
@@ -69,13 +72,13 @@ export interface Model {
 
 export const title = 'Заявление об аннулировании соглашений об участии в целевых потребительских программах'
 export const description
-  = 'Заявление пайщика о прекращении участия в целевых потребительских программах кооператива с переводом остатков кошельков программ на главный паевой кошелёк. Подписывается вместе с заявлением на выход из кооператива.'
+  = 'Заявление пайщика о прекращении участия в целевых потребительских программах кооператива с переводом остатков кошельков программ на главный паевой кошелёк. Подписывается вместе с заявлением на выход из кооператива — по всем программам пайщика, либо отдельно — по одной программе, участие в которой пайщик прекращает.'
 
 // Вёрстка по канону документов реестра (см. 2010): без <style>-блока — превью
 // его не применяет; только inline text-align на div-обёртках. Программы —
 // нумерованным списком: название и дата соглашения, под ними кошельки с
 // остатками и отметкой о возврате.
-export const context = `<div class="digital-document"><div style="text-align: right"><p>{% trans 'TO_COUNCIL' %} {{ vars.full_abbr_genitive }} «{{ vars.name }}»</p><p>{% trans 'FROM_MEMBER' %} {{ user.full_name_or_short_name }}</p></div><div style="text-align: center"><h2>{% trans 'DOC_TITLE' %}</h2></div><p style="text-align: right">{{ coop.city }}, {{ meta.created_at }}</p><p>{% trans 'BODY_INTRO' %}{% if exit_hash %} {% trans 'BODY_WITH_EXIT' %}{% endif %}:</p>{% for program in programs %}<div style="padding-top: 10px"><p><strong>{{ loop.index }}. {{ program.title }}</strong></p><p>{% trans 'AGREEMENT_SIGNED_AT' %}: {{ program.agreement_signed_at }}</p>{% for wallet in program.wallets %}<p>{{ wallet.human_name }} — {{ wallet.balance }} ({% if wallet.returns %}{% trans 'WALLET_RETURNS' %}{% else %}{% trans 'WALLET_STAYS' %}{% endif %})</p>{% endfor %}</div>{% endfor %}<p style="padding-top: 10px">{% trans 'TOTAL_REFUND' %}: {{ total_refund }}.</p><p>{% trans 'REQUEST_TRANSFER' %}</p><p>{% trans 'NO_CLAIMS' %}</p><div style="padding-top: 30px"><p>{{ user.full_name_or_short_name }}</p><p>{% trans 'SIGNED_DIGITALLY' %}</p></div></div>`
+export const context = `<div class="digital-document"><div style="text-align: right"><p>{% trans 'TO_COUNCIL' %} {{ vars.full_abbr_genitive }} «{{ vars.name }}»</p><p>{% trans 'FROM_MEMBER' %} {{ user.full_name_or_short_name }}</p></div><div style="text-align: center"><h2>{% trans 'DOC_TITLE' %}</h2></div><p style="text-align: right">{{ coop.city }}, {{ meta.created_at }}</p><p>{% trans 'BODY_INTRO' %}{% if exit_hash %} {% trans 'BODY_WITH_EXIT' %}{% endif %}:</p>{% for program in programs %}<div style="padding-top: 10px"><p><strong>{{ loop.index }}. {{ program.title }}</strong></p><p>{% trans 'AGREEMENT_SIGNED_AT' %}: {{ program.agreement_signed_at }}</p>{% for wallet in program.wallets %}<p>{{ wallet.human_name }} — {{ wallet.balance }} ({% if wallet.returns %}{% trans 'WALLET_RETURNS' %}{% else %}{% trans 'WALLET_STAYS' %}{% endif %})</p>{% endfor %}</div>{% endfor %}<p style="padding-top: 10px">{% trans 'TOTAL_REFUND' %}: {{ total_refund }}.</p><p>{% if exit_hash %}{% trans 'REQUEST_TRANSFER' %}{% else %}{% trans 'REQUEST_TRANSFER_PROGRAM' %}{% endif %}</p><p>{% trans 'NO_CLAIMS' %}</p><div style="padding-top: 30px"><p>{{ user.full_name_or_short_name }}</p><p>{% trans 'SIGNED_DIGITALLY' %}</p></div></div>`
 
 export const translations = {
   ru: {
@@ -89,6 +92,7 @@ export const translations = {
     WALLET_STAYS: 'остаётся Обществу по условиям Положения программы',
     TOTAL_REFUND: 'Итого к переводу на главный паевой кошелёк',
     REQUEST_TRANSFER: 'Прошу перевести указанные остатки на мой главный паевой кошелёк. Сумму перевода Общество определяет на день принятия решения Советом, поэтому она отличается от указанной выше на сумму движений по моим кошелькам после подписания заявления.',
+    REQUEST_TRANSFER_PROGRAM: 'Прошу перевести указанные остатки на мой главный паевой кошелёк. Сумму перевода Общество определяет на день согласования настоящего заявления, поэтому она отличается от указанной выше на сумму движений по моим кошелькам после подписания заявления.',
     NO_CLAIMS: 'Подтверждаю, что к возврату мне причитаются остатки на кошельках перечисленных программ, и иных требований по этим программам к Обществу я не имею.',
     SIGNED_DIGITALLY: 'подписано электронной подписью',
   },

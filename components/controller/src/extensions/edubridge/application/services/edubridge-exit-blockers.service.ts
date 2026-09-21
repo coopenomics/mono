@@ -1,15 +1,21 @@
 import { Injectable } from '@nestjs/common';
-import type { InnerExitBlockersProvider } from '@coopenomics/innercoop';
+import type { InnerExitBlockersProvider, InnerExitPendingReturn } from '@coopenomics/innercoop';
+import { platformSettings } from '@coopenomics/extension-kit';
 import { EDUBRIDGE_EXTENSION_NAME } from '../../constants/edubridge.constants';
 import { EduAssignmentStatus, EduContributionStatus } from '../../domain/enums';
 import { EdubridgeTeacherRepository } from '../../infrastructure/repositories/edubridge-teacher.repository';
 import { EdubridgeCourseRepository } from '../../infrastructure/repositories/edubridge-course.repository';
+import { EdubridgeEnrollmentService } from './edubridge-enrollment.service';
+
+/** Кошелёк членских взносов программы — на него ложится возврат по подпискам. */
+const MEMBER_WALLET = 'w.edu.member';
 
 /**
- * Почему преподавателю рано выходить из кооператива.
+ * Выход из кооператива глазами программы «Образование».
  *
  * У родителя-слушателя препятствий нет: его подписки закрываются с возвратом,
- * а остаток кошелька программы возвращается вместе с паевым взносом. У
+ * а остаток кошелька программы возвращается вместе с паевым взносом — этот
+ * возврат попадает в заявление об аннулировании соглашений (190). У
  * преподавателя иначе — он ведёт курсы и получает взносы за проведённые
  * занятия, и эти обязательства кооператив должен закрыть до выхода.
  */
@@ -19,8 +25,22 @@ export class EdubridgeExitBlockersService implements InnerExitBlockersProvider {
 
   constructor(
     private readonly teachers: EdubridgeTeacherRepository,
-    private readonly courses: EdubridgeCourseRepository
+    private readonly courses: EdubridgeCourseRepository,
+    private readonly enrollments: EdubridgeEnrollmentService
   ) {}
+
+  /** Возврат по действующим подпискам: выход закроет их по Положению, и деньги лягут на кошелёк программы. */
+  async pendingReturns(coopname: string, username: string): Promise<InnerExitPendingReturn[]> {
+    const { subscriptions, refunds } = await this.enrollments.refundsOnExit(coopname, username);
+    if (!(subscriptions > 0 && refunds > 0)) return [];
+    return [
+      {
+        wallet_name: MEMBER_WALLET,
+        human_name: `Возврат членских взносов по действующим подпискам на курсы (${subscriptions}) по Положению программы`,
+        amount: `${refunds.toFixed(4)} ${platformSettings().blockchain.rootGovernSymbol}`,
+      },
+    ];
+  }
 
   async blockers(coopname: string, username: string): Promise<string[]> {
     const reasons: string[] = [];

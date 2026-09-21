@@ -20,7 +20,7 @@ describe('Документы ЦПП «Образование» в реестре
     const { port, registered } = portSpy();
     await registerEdubridgeDocuments(port);
     expect(registered.map((d) => d.registry_id).sort((a, b) => a - b)).toEqual([
-      3000, 3002, 3004, 3006, 3007, 3008, 3009, 3010, 3011, 3012, 3013,
+      3000, 3002, 3004, 3006, 3007, 3008, 3009, 3010, 3011, 3012,
     ]);
     expect(registered.every((d) => d.extension_name === 'edubridge')).toBe(true);
   });
@@ -49,8 +49,6 @@ describe('Документы ЦПП «Образование» в реестре
     await registerEdubridgeDocuments(port);
     const byId = new Map(registered.map((d) => [d.registry_id, d]));
     expect(byId.get(3012)).toMatchObject({ kind: 'form', approval: 'required', bundle: 'education_forms' });
-    // Заявление о прекращении участия в программе — рабочая форма пайщика, совет утверждает её редакцию.
-    expect(byId.get(3013)).toMatchObject({ kind: 'form', approval: 'required', bundle: 'education_forms' });
     expect(byId.get(3009)).toMatchObject({ kind: 'service', approval: 'none' });
   });
 

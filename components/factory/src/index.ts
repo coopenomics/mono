@@ -250,7 +250,6 @@ export class Generator implements IGenerator {
       [Actions.EducationRidAct.Template.registry_id]: new Actions.EducationRidAct.Factory(this.storage), // 3010 — двухподписный акт
       [Actions.EducationRidStorageAct.Template.registry_id]: new Actions.EducationRidStorageAct.Factory(this.storage), // 3012 — акт ответственного хранения материалов занятия
       [Actions.EducationConvertStatement.Template.registry_id]: new Actions.EducationConvertStatement.Factory(this.storage), // 3011
-      [Actions.EducationReturnStatement.Template.registry_id]: new Actions.EducationReturnStatement.Factory(this.storage), // 3013 — заявление о возврате членского взноса программы в паевой
       // Marketplace (Стол заказов) — паевая модель (компонент 68): выдача и гарантийный возврат
       [Actions.MarketplaceShareReturnStatement.Template.registry_id]: new Actions.MarketplaceShareReturnStatement.Factory(this.storage), // 1113
       [Actions.MarketplaceShareReturnDecision.Template.registry_id]: new Actions.MarketplaceShareReturnDecision.Factory(this.storage), // 1114

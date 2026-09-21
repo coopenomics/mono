@@ -9,7 +9,7 @@
 экспорта, исчезнувший метод, новый обязательный параметр требуют major, а
 снятое старое — периода устаревания не меньше одного minor (INV-009).
 
-Всего экспортов: 293.
+Всего экспортов: 294.
 
 ## ACCOUNT_PORT
 
@@ -913,6 +913,15 @@
 
 - `extension_name: string`
 - `blockers(coopname: string, username: string): Promise<string[]>`
+- `pendingReturns?(coopname: string, username: string): Promise<InnerExitPendingReturn[]>`
+
+## InnerExitPendingReturn
+
+`interface` · core-ports
+
+- `wallet_name: string`
+- `human_name: string`
+- `amount: string`
 
 ## InnerExpenseCallbackHandler
 

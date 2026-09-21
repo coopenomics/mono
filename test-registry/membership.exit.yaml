@@ -16,6 +16,8 @@ title: Выход пайщика из кооператива с аннулиро
 sources:
   backend:
     - components/controller/src/application/membership-exit/**
+    - components/controller/src/domain/account/services/member-exit-registry.service.ts
+    - components/innercoop/src/core-ports/member-exit.port.ts
     - components/cooptypes/src/cooperative/registry/190.ProgramAgreementsAnnulmentStatement/**
     - components/cooptypes/src/cooperative/registry/200.ParticipantExitApplication/**
     - components/cooptypes/src/cooperative/registry/201.DecisionOfParticipantExit/**
@@ -37,6 +39,13 @@ cases:
     scenario: Заявление 190 у пайщика с двумя программами.
     expect: Программы печатаются таблицей с датой соглашения и остатками кошельков; итог к переводу — сумма возвратных.
     test: components/factory/test/program-agreements-annulment.test.ts
+    status: passing
+  - id: exit.doc.side.02
+    level: backend
+    kind: side
+    scenario: Возврат, который выход ещё положит на кошельки программ (действующие подписки на курсы).
+    expect: Расширения сообщают его реестру выхода; нулевые суммы отбрасываются, сбой расширения предрасчёт не роняет; в таблице 190 — отдельной строкой программы, в итоге — вместе с остатками.
+    test: components/controller/tests/unit/membership-exit/member-exit-registry.test.ts
     status: passing
   - id: exit.doc.happy.02
     level: backend

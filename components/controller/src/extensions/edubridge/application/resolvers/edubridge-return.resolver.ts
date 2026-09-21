@@ -1,6 +1,6 @@
 import { Injectable, UseGuards } from '@nestjs/common';
 import { Args, ID, Mutation, Query, Resolver } from '@nestjs/graphql';
-import { GeneratedDocumentDTO, GqlJwtAuthGuard, platformSettings } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, platformSettings } from '@coopenomics/extension-kit';
 import { EduReturnStatus } from '../../domain/enums';
 import { CurrentEduMember } from '../decorators/current-edu-member.decorator';
 import { RequireEduAccess } from '../decorators/edubridge-access.decorator';
@@ -34,13 +34,6 @@ export class EdubridgeReturnResolver {
   @RequireEduAccess('EduReturn', 'read:own')
   async edubridgeMyReturnRequests(@CurrentEduMember() m: IEdubridgeMembership): Promise<EduReturnRequestDTO[]> {
     return (await this.returns.listMine(coop(), m.username as string)).map((r) => new EduReturnRequestDTO(r));
-  }
-
-  @Mutation(() => GeneratedDocumentDTO, { name: 'edubridgeReturnStatement', description: 'Сформировать заявление о прекращении участия в программе' })
-  @UseGuards(GqlJwtAuthGuard, EdubridgeAccessGuard)
-  @RequireEduAccess('EduReturn', 'create:own')
-  async edubridgeReturnStatement(@CurrentEduMember() m: IEdubridgeMembership): Promise<GeneratedDocumentDTO> {
-    return (await this.returns.statement(coop(), m.username as string)) as unknown as GeneratedDocumentDTO;
   }
 
   @Mutation(() => EduReturnRequestDTO, { name: 'edubridgeRequestReturn', description: 'Подать подписанное заявление о прекращении участия в программе на согласование кооперативу' })

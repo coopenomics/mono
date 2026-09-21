@@ -7933,7 +7933,6 @@ export const ReturnTypes: Record<string,any> = {
 		edubridgeReportLesson:"EduLesson",
 		edubridgeRequestReturn:"EduReturnRequest",
 		edubridgeRetryTask:"EduAccessTask",
-		edubridgeReturnStatement:"GeneratedDocument",
 		edubridgeRevokeContribution:"EduContribution",
 		edubridgeRidAct:"GeneratedDocument",
 		edubridgeRidStatement:"GeneratedDocument",

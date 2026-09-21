@@ -1,6 +1,6 @@
 /**
  * Прекращение участия в ЦПП «Образование»: членский взнос программы уходит в
- * паевой только с прекращением участия — по заявлению пайщика и согласованию
+ * паевой только с прекращением участия — по заявлению 190 и согласованию
  * кооператива, подписки закрываются с возвратом по Положению, остаток переводится целиком.
  */
 import { EdubridgeReturnService } from '~/extensions/edubridge/application/services/edubridge-return.service';
@@ -34,13 +34,14 @@ function make(opts: { available?: string; subscriptions?: number; refunds?: numb
     }),
   } as any;
   const chain = { returnToShare: jest.fn(async () => ({ transaction_id: 'TRX' })) } as any;
-  const documents = { generate: jest.fn(async (r: any) => ({ hash: 'DOC', meta: r.data })) } as any;
   const wallets = { findByWalletAndUsername: jest.fn(async () => ({ available: opts.available ?? '1000.0000 RUB' })) } as any;
-  const service = new EdubridgeReturnService(requests, enrollments, chain, documents, wallets, logger);
-  return { service, requests, enrollments, chain, documents, wallets, rows };
+  const service = new EdubridgeReturnService(requests, enrollments, chain, wallets, logger);
+  return { service, requests, enrollments, chain, wallets, rows };
 }
 
-const signed = (signer = 'ant', hash = 'AABB', registry_id: unknown = 3013) => ({ hash, meta: { registry_id }, signatures: [{ signer }] }) as any;
+/** Заявление 190 без выхода из кооператива, в таблице одна программа — «Образование». */
+const signed = (signer = 'ant', hash = 'AABB', meta: Record<string, unknown> = {}) =>
+  ({ hash, meta: { registry_id: 190, programs: [{ program_id: 5 }], ...meta }, signatures: [{ signer }] }) as any;
 
 describe('EdubridgeReturnService — прекращение участия в программе', () => {
   it('баланс показывает, что уйдёт в паевой сегодня: остаток плюс возврат по подпискам', async () => {
@@ -55,14 +56,6 @@ describe('EdubridgeReturnService — прекращение участия в п
     expect(wallets.findByWalletAndUsername).toHaveBeenCalledWith('voskhod', 'w.edu.member', 'ant');
   });
 
-  it('заявление 3013 формируется без суммы', async () => {
-    const { service, documents } = make();
-    await service.statement('voskhod', 'ant');
-    const data = documents.generate.mock.calls[0][0].data;
-    expect(data).toMatchObject({ registry_id: 3013, username: 'ant' });
-    expect(data).not.toHaveProperty('amount');
-  });
-
   it('подписанное заявление ждёт согласования — в цепь до решения ничего не уходит', async () => {
     const { service, chain, enrollments } = make();
     const r = await service.request('voskhod', 'ant', signed());
@@ -72,22 +65,29 @@ describe('EdubridgeReturnService — прекращение участия в п
   });
 
   it('второе заявление, пока первое ждёт решения, не подаётся', async () => {
-    const { service, documents } = make();
+    const { service } = make();
     await service.request('voskhod', 'ant', signed());
     expect((await service.balance('voskhod', 'ant')).has_pending).toBe(true);
     await expect(service.request('voskhod', 'ant', signed('ant', 'CCDD'))).rejects.toThrow(/уже подано/);
-    await expect(service.statement('voskhod', 'ant')).rejects.toThrow(/уже подано/);
-    expect(documents.generate).not.toHaveBeenCalled();
   });
 
   it('заявление без подписи пайщика и чужой документ не принимаются', async () => {
     const { service, requests } = make();
     await expect(service.request('voskhod', 'ant', signed('other'))).rejects.toThrow(/не подписано пайщиком/);
-    await expect(service.request('voskhod', 'ant', signed('ant', 'AA', 3011))).rejects.toThrow(/не тот документ/);
+    await expect(service.request('voskhod', 'ant', signed('ant', 'AA', { registry_id: 3011 }))).rejects.toThrow(/не тот документ/);
     // Мета может прийти строкой JSON.
-    const asString = { hash: 'EE', meta: JSON.stringify({ registry_id: 3013 }), signatures: [{ signer: 'ant' }] } as any;
+    const asString = { hash: 'EE', meta: JSON.stringify({ registry_id: 190, programs: [{ program_id: 5 }] }), signatures: [{ signer: 'ant' }] } as any;
     await expect(service.request('voskhod', 'ant', asString)).resolves.toMatchObject({ status: EduReturnStatus.PENDING });
     expect(requests.save).toHaveBeenCalledTimes(1);
+  });
+
+  it('заявление 190 при выходе из кооператива и с чужими программами в таблице здесь не принимается', async () => {
+    const { service } = make();
+    await expect(service.request('voskhod', 'ant', signed('ant', 'A1', { exit_hash: 'ff' }))).rejects.toThrow(/вместе с выходом/);
+    await expect(service.request('voskhod', 'ant', signed('ant', 'A2', { programs: [{ program_id: 2 }] }))).rejects.toThrow(/одна программа/);
+    await expect(
+      service.request('voskhod', 'ant', signed('ant', 'A3', { programs: [{ program_id: 5 }, { program_id: 2 }] }))
+    ).rejects.toThrow(/одна программа/);
   });
 
   it('согласование: подписки закрываются, в паевой уходит весь остаток вместе с возвратами', async () => {

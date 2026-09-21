@@ -66,7 +66,6 @@ export * as DismissAdmin from './dismissAdmin'
 export * as AcceptContribution from './acceptContribution'
 
 /** Возврат остатка кошелька программы в паевой взнос: заявление пайщика и согласование кооперативом. */
-export * as ReturnStatement from './returnStatement'
 export * as RequestReturn from './requestReturn'
 export * as ApproveReturn from './approveReturn'
 export * as DeclineReturn from './declineReturn'

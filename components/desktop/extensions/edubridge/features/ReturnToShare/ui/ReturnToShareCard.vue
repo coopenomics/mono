@@ -27,7 +27,7 @@ BaseCard(variant="default" title="Кошелёк программы")
       )
       DataRow(label="В паевой взнос, оценка на сегодня" :value="formatAsset2Digits(balance?.total ?? '')" align="spread")
       .t-sm.t-muted.q-mt-sm
-        | Вы подпишете заявление о прекращении участия в программе «Образование». После согласования
+        | Вы подпишете заявление об аннулировании соглашения об участии в программе «Образование». После согласования
         | кооперативом подписки закроются с возвратом по Положению, весь остаток перейдёт в паевой взнос.
         | Точная сумма считается в день согласования. Чтобы снова учиться, понадобится подписать оферту программы заново.
       template(#footer)
@@ -42,7 +42,7 @@ import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { BaseBadge, BaseButton, BaseCard, BaseDialog, BaseForm, BaseTable, type BaseTableColumn } from 'src/shared/ui/base';
 import { DataRow } from 'src/shared/ui/domain';
-import { buildReturnStatement, fetchMyReturnRequests, fetchReturnBalance, requestReturn } from '../api';
+import { buildProgramAnnulment, fetchMyReturnRequests, fetchReturnBalance, requestReturn } from '../api';
 import { RETURN_STATUS_LABELS, type IReturnBalance, type IReturnRequest } from '../model';
 
 /**
@@ -79,8 +79,8 @@ async function load(): Promise<void> {
 async function onSubmit(): Promise<void> {
   busy.value = true;
   try {
-    const statement = await buildReturnStatement();
-    const created = await requestReturn(statement);
+    const document = await buildProgramAnnulment();
+    const created = await requestReturn(document);
     requests.value = [created, ...requests.value];
     balance.value = await fetchReturnBalance();
     dialogOpen.value = false;

@@ -90,4 +90,13 @@ describe('Заявление об аннулировании соглашени�
     expect(alone).not.toContain('в связи с моим выходом из состава пайщиков')
     expect(alone).toContain('Прошу аннулировать мои соглашения об участии в целевых потребительских программах Общества')
   })
+
+  it('прекращение участия в одной программе: одна строка таблицы, сумма — на день согласования Обществом', async () => {
+    const alone = plainText((await generate({ exit_hash: undefined, programs: [PROGRAMS[0]], total_refund: '10000.0000 RUB' })).html)
+    expect(alone).toContain('1. Образование')
+    expect(alone).not.toContain('Стол заказов')
+    expect(alone).toContain('Итого к переводу на главный паевой кошелёк: 10000.00 RUB')
+    expect(alone).toContain('Сумму перевода Общество определяет на день согласования настоящего заявления')
+    expect(alone).not.toContain('на день принятия решения Советом')
+  })
 })

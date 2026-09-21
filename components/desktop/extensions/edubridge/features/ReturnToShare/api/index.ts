@@ -1,10 +1,11 @@
-import { Cooperative } from 'cooptypes';
+import type { Cooperative } from 'cooptypes';
 import { Mutations, Queries, type Zeus } from '@coopenomics/sdk';
 import { client } from 'src/shared/api/client';
 import { useSessionStore } from 'src/entities/Session';
 import { useSystemStore } from 'src/entities/System/model';
 import { DigitalDocument } from 'src/shared/lib/document';
-import type { IDeclineReturnInput, IRequestReturnInput } from '../model';
+import { programsForAnnulment } from 'src/features/Membership/ExitFromCoop/model';
+import { EDU_LEARNER_PROGRAM_ID, type IDeclineReturnInput, type IProgramAnnulmentDocument, type IRequestReturnInput } from '../model';
 
 export async function fetchReturnBalance() {
   const { [Queries.Edubridge.ReturnBalance.name]: result } = await client.Query(Queries.Edubridge.ReturnBalance.query);
@@ -24,31 +25,43 @@ export async function fetchReturnRequests(status?: Zeus.EduReturnStatus | null) 
 }
 
 /**
- * Заявление о прекращении участия в программе (3013): формируется без суммы —
- * остаток становится известен в день согласования — и подписывается локальным
- * ключом пайщика.
+ * Заявление об аннулировании соглашения об участии в программе (190) — тот же
+ * бланк, что при выходе из кооператива, но без выхода и с одной программой в
+ * таблице. Строки и суммы берутся из предрасчёта выхода: остаток кошелька
+ * программы и возврат по действующим подпискам.
  */
-export async function buildReturnStatement(): Promise<DigitalDocument> {
+export async function buildProgramAnnulment(): Promise<IProgramAnnulmentDocument> {
   const session = useSessionStore();
   const system = useSystemStore();
   const username = session.username;
   if (!username) throw new Error('Пайщик не авторизован');
-  const document = new DigitalDocument();
-  await document.generate({
-    registry_id: Cooperative.Registry.EducationReturnStatement.registry_id,
-    coopname: system.info.coopname,
-    username,
-  });
+  const coopname = system.info.coopname;
+
+  const { [Queries.MembershipExit.MembershipExitReturnPreview.name]: preview } = await client.Query(
+    Queries.MembershipExit.MembershipExitReturnPreview.query,
+    { variables: { coopname, username } },
+  );
+  const programs = programsForAnnulment(preview).filter((p) => p.program_id === EDU_LEARNER_PROGRAM_ID);
+  if (!programs.length) throw new Error('Соглашение об участии в программе «Образование» не найдено');
+
+  const { [Mutations.MembershipExit.GenerateProgramAgreementsAnnulment.name]: document } = await client.Mutation(
+    Mutations.MembershipExit.GenerateProgramAgreementsAnnulment.mutation,
+    {
+      variables: {
+        data: { coopname, username, skip_save: false, programs, total_refund: programs[0].refund },
+        options: { lang: 'ru' },
+      },
+    },
+  );
   return document;
 }
 
-export async function requestReturn(statement: DigitalDocument) {
+export async function requestReturn(document: IProgramAnnulmentDocument) {
   const session = useSessionStore();
   const username = session.username;
   if (!username) throw new Error('Пайщик не авторизован');
-  await statement.sign(username);
-  if (!statement.signedDocument) throw new Error('Не удалось подписать заявление');
-  const data: IRequestReturnInput = { document: statement.signedDocument };
+  const signed = await new DigitalDocument(document).sign<Cooperative.Registry.ProgramAgreementsAnnulmentStatement.Meta>(username);
+  const data: IRequestReturnInput = { document: signed };
   const { [Mutations.Edubridge.RequestReturn.name]: result } = await client.Mutation(Mutations.Edubridge.RequestReturn.mutation, {
     variables: { data },
   });

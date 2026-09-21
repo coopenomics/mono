@@ -27,7 +27,7 @@ export class EdubridgeReturnRequestEntity {
   @Column({ type: 'varchar', length: 64 })
   public statement_hash!: string;
 
-  /** Подписанное заявление 3013: в цепь оно уходит после согласования. */
+  /** Подписанное заявление об аннулировании соглашения (190): в цепь оно уходит после согласования. */
   @Column({ type: 'jsonb' })
   public statement_document!: Record<string, unknown>;
 

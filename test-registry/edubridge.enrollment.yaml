@@ -19,13 +19,12 @@ sources:
     - components/controller/src/extensions/edubridge/application/services/edubridge-funds.service.ts
     - components/controller/src/extensions/edubridge/application/services/edubridge-refund.ts
     - components/controller/src/extensions/edubridge/domain/economy/guarantee.ts
+    - components/controller/src/extensions/edubridge/application/services/edubridge-exit-blockers.service.ts
     - components/controller/src/extensions/edubridge/domain/economy/teacher-reserve.calculator.ts
     - components/controller/src/extensions/edubridge/application/resolvers/edubridge-return.resolver.ts
     - components/controller/src/extensions/edubridge/application/dto/edu-return.dto.ts
     - components/controller/src/extensions/edubridge/infrastructure/repositories/edubridge-return-request.repository.ts
     - components/controller/src/extensions/edubridge/infrastructure/entities/edubridge-return-request.entity.ts
-    - components/cooptypes/src/cooperative/registry/3013.EducationReturnStatement/**
-    - components/factory/src/Actions/3013.EducationReturnStatement.ts
   ui:
     - components/desktop/extensions/edubridge/pages/MemberLearnersPage/**
     - components/desktop/extensions/edubridge/pages/MemberSubscriptionsPage/**
@@ -257,7 +256,7 @@ cases:
   - id: edu.enroll.contract.05
     level: contract
     kind: break
-    scenario: "Заявление о конвертации либо о прекращении участия подписано чужим ключом."
+    scenario: "Заявление о конвертации либо об аннулировании соглашения подписано чужим ключом."
     expect: "convert и retshare отклоняются."
     test: ~
     status: missing
@@ -285,7 +284,7 @@ cases:
   - id: edu.enroll.happy.14
     level: backend
     kind: happy
-    scenario: "Прекращение участия в программе: заявление 3013, согласование кооперативом."
+    scenario: "Прекращение участия в программе: заявление 190 без выхода из кооператива, согласование кооперативом."
     expect: "Заявление без суммы; до решения в цепь ничего не уходит; согласование закрывает подписки с возвратом по Положению и проводит retshare на весь остаток вместе с возвратами; пустой кошелёк — перевод нулевой."
     test: components/controller/tests/unit/edubridge/return.service.test.ts
     status: passing
@@ -299,7 +298,7 @@ cases:
   - id: edu.enroll.break.06
     level: backend
     kind: break
-    scenario: "Заявление без подписи пайщика либо чужой документ; подписка не закрылась при согласовании; сбой цепи; повторное решение."
+    scenario: "Заявление без подписи пайщика, чужой документ, 190 с выходом из кооператива либо с другими программами; подписка не закрылась при согласовании; сбой цепи; повторное решение."
     expect: "Заявление не принимается; без закрытых подписок перевод в цепь не уходит; сбой оставляет заявление ожидающим; по закрытому заявлению решения нет."
     test: components/controller/tests/unit/edubridge/return.service.test.ts
     status: passing
@@ -313,9 +312,9 @@ cases:
   - id: edu.enroll.happy.15
     level: backend
     kind: happy
-    scenario: "Заявление 3013 формируется фабрикой документов."
-    expect: "Просит прекратить участие, закрыть подписки с возвратом по Положению и вернуть весь остаток в паевой; оговаривает согласование Обществом."
-    test: components/factory/test/education-return-statement.test.ts
+    scenario: "Заявление 190 о прекращении участия в одной программе формируется фабрикой документов."
+    expect: "В таблице одна программа, итог — её возврат; сумма перевода — на день согласования заявления Обществом, связи с выходом из кооператива в тексте нет."
+    test: components/factory/test/program-agreements-annulment.test.ts
     status: passing
   - id: edu.enroll.ui.05
     level: ui
@@ -365,6 +364,13 @@ cases:
     scenario: "Ученик вписался в идущий курс после конца гарантийного срока курса."
     expect: "Свой гарантийный срок от дня вступления: пока он идёт, взнос удержан целиком; после него удержание тает по Положению."
     test: components/controller/tests/unit/edubridge/funds.service.test.ts
+    status: passing
+  - id: edu.enroll.side.20
+    level: backend
+    kind: side
+    scenario: "Выход из кооператива либо из программы при действующих подписках на курсы."
+    expect: "Возврат по подпискам на сегодня попадает в заявление 190 строкой кошелька программы; нет подписок либо возврата — строки нет."
+    test: components/controller/tests/unit/edubridge/exit-blockers.test.ts
     status: passing
   - id: edu.enroll.contract.08
     level: contract

@@ -75,7 +75,7 @@ export class EduReturnBalanceDTO {
 
 @InputType('EduRequestReturnInput')
 export class EduRequestReturnInputDTO {
-  @Field(() => SignedDigitalDocumentInputDTO, { description: 'Подписанное заявление о прекращении участия в программе' })
+  @Field(() => SignedDigitalDocumentInputDTO, { description: 'Подписанное заявление об аннулировании соглашения об участии в программе «Образование» — без выхода из кооператива' })
   @ValidateNested()
   @Type(() => SignedDigitalDocumentInputDTO)
   document!: SignedDigitalDocumentInputDTO;
