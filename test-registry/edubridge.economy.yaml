@@ -191,4 +191,4 @@ cases:
     scenario: "Раздел «Экономика»: фонд и резерв выплат преподавателям."
     expect: "Свободные средства и резерв показаны раздельными кошельками; пустой резерв показывается нулём."
     test: components/controller/tests/unit/edubridge/economy.service.test.ts
-    status: written
+    status: passing

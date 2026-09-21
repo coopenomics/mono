@@ -334,7 +334,7 @@ cases:
     scenario: "Назначение на курс преподавателя со ставкой выше плановой ставки курса."
     expect: "Отказ: взносы учеников такую ставку не покрывают; со ставкой не выше плановой назначение создаётся."
     test: components/controller/tests/unit/edubridge/teacher.service.test.ts
-    status: written
+    status: passing
   - id: edu.teach.contract.10
     level: contract
     kind: side
@@ -348,18 +348,18 @@ cases:
     scenario: "Совет отклонил вопрос о приёме результата либо не принял решение в срок."
     expect: "Подача запоминает номер вопроса в повестке; заявление помечается исходом совета и остаётся на рассмотрении — материалы снимает председатель; чужой вопрос и заявление в другом статусе не помечаются."
     test: components/controller/tests/unit/edubridge/teacher.service.test.ts
-    status: written
+    status: passing
   - id: edu.teach.side.20
     level: backend
     kind: side
     scenario: "Действия совета declinedec и cancelexprd доходят до расширения."
     expect: "Слушатель передаёт кооператив, номер вопроса (в том числе нулевой) и исход; действие без номера пропускается."
     test: components/controller/tests/unit/edubridge/council-outcome.listener.test.ts
-    status: written
+    status: passing
   - id: edu.teach.break.09
     level: backend
     kind: break
     scenario: "Повестка совета недоступна в момент подачи заявления."
     expect: "Подача проходит, номер вопроса не запоминается, пометки исхода не будет."
     test: components/controller/tests/unit/edubridge/teacher.service.test.ts
-    status: written
+    status: passing
