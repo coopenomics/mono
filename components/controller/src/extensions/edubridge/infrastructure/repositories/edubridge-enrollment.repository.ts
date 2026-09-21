@@ -34,6 +34,18 @@ export class EdubridgeEnrollmentRepository {
   }
 
   /** Активные подписки с истёкшим периодом — для воркера отзыва. */
+  /** Действующие подписки с удержанным взносом — кандидаты на разблокировку по истечении гарантийного срока курса. */
+  findLocked(coopname: string, limit = 200): Promise<EdubridgeEnrollmentEntity[]> {
+    return this.repo
+      .createQueryBuilder('e')
+      .where('e.coopname = :coopname', { coopname })
+      .andWhere('e.status = :status', { status: EduEnrollmentStatus.ACTIVE })
+      .andWhere('e.locked_amount IS NOT NULL')
+      .orderBy('e.updated_at', 'ASC')
+      .take(limit)
+      .getMany();
+  }
+
   findExpired(coopname: string, now: Date, limit = 100): Promise<EdubridgeEnrollmentEntity[]> {
     return this.repo.find({
       where: { coopname, status: EduEnrollmentStatus.ACTIVE, paid_until: LessThanOrEqual(now) },

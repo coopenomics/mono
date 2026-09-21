@@ -25,6 +25,7 @@ import {
   type IUserWalletPort,
 } from '@coopenomics/innercoop';
 import { EduAssignmentStatus, EduContractStatus, EduContributionStatus, EduCouncilOutcome, EduRidType } from '../../domain/enums';
+import { guaranteeEndsAt } from '../../domain/economy/guarantee';
 import { formatDate, formatDateTime, toChainTimePoint } from '../../domain/lib/lesson-dates';
 import { EDUBRIDGE_CHAIN_PORT, type EdubridgeChainPort } from '../../domain/ports/edubridge-chain.port';
 import type {
@@ -385,11 +386,10 @@ export class EdubridgeTeacherService {
         description: lesson.topic || `Занятие № ${lesson.lesson_number} курса «${course.title}»`,
         amount,
         lesson_id: lesson.id,
-        // Гарантийный срок идёт от приёма материалов на хранение, а не от
-        // даты занятия: рекламация возможна только по переданным материалам,
-        // и отчёт задним числом срок не сокращает. Здесь — предварительная
-        // дата, окончательную ставит акт хранения.
-        hold_until: this.guaranteeEnd(course.guarantee_days),
+        // Гарантийный срок — один на курс, от даты начала занятий: пока он
+        // идёт, результаты преподавателя в совет не уходят; срок вышел —
+        // заявления идут сразу. Окончательную дату ставит акт хранения.
+        hold_until: this.guaranteeEnd(course),
         status: EduContributionStatus.DRAFT,
       })
     );
@@ -453,9 +453,13 @@ export class EdubridgeTeacherService {
     }
   }
 
-  /** Конец гарантийного срока, если материалы принять на хранение сейчас. */
-  private guaranteeEnd(guaranteeDays: number): Date {
-    return new Date(Date.now() + guaranteeDays * DAY_MS);
+  /**
+   * Конец гарантийного срока курса. У неактивированного курса даты начала
+   * занятий ещё нет — срок отсчитывается от сегодняшнего дня, и акт хранения
+   * пересчитает его при подписи.
+   */
+  private guaranteeEnd(course: EdubridgeCourseEntity): Date {
+    return guaranteeEndsAt(course) ?? new Date(Date.now() + course.guarantee_days * DAY_MS);
   }
 
   /** Названия курсов по идентификаторам — журнал занятий показывает их, а не ключи. */
@@ -482,9 +486,9 @@ export class EdubridgeTeacherService {
     const c = await this.ownContribution(coopname, teacher, contributionId);
     if (c.status !== EduContributionStatus.DRAFT) throw new BadRequestException('Материалы занятия уже приняты на ответственное хранение');
     const { lesson, course } = await this.holdContext(coopname, c);
-    // Срок отсчитывается от передачи материалов: акт называет дату, с которой
-    // согласился преподаватель, она же уйдёт в цепь.
-    c.hold_until = this.guaranteeEnd(course.guarantee_days);
+    // Акт называет конец гарантийного срока курса — дату, с которой согласился
+    // преподаватель; она же уйдёт в цепь.
+    c.hold_until = this.guaranteeEnd(course);
     await this.teachers.saveContribution(c);
     const action: Cooperative.Registry.EducationRidStorageAct.Action = {
       registry_id: Cooperative.Registry.EducationRidStorageAct.registry_id,
@@ -515,9 +519,10 @@ export class EdubridgeTeacherService {
     const c = await this.ownContribution(coopname, teacher, contributionId);
     if (c.status !== EduContributionStatus.DRAFT) throw new BadRequestException('Материалы занятия уже приняты на ответственное хранение');
     const { course } = await this.holdContext(coopname, c);
-    const holdUntil = c.hold_until ?? this.guaranteeEnd(course.guarantee_days);
-    // Акт, сформированный давно, называет срок короче гарантийного.
-    if (this.guaranteeEnd(course.guarantee_days).getTime() - holdUntil.getTime() > DAY_MS) {
+    const holdUntil = c.hold_until ?? this.guaranteeEnd(course);
+    // Акт называет другую дату, чем срок курса сейчас: курс активировали либо
+    // сдвинули после формирования акта.
+    if (Math.abs(this.guaranteeEnd(course).getTime() - holdUntil.getTime()) > DAY_MS) {
       throw new BadRequestException('Акт передачи материалов устарел — сформируйте и подпишите его заново');
     }
 

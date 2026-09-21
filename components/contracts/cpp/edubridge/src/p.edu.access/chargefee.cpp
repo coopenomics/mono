@@ -50,8 +50,7 @@ void edubridge::chargefee(eosio::name coopname,
     // Прежняя подписка остаётся без учёта: счёт с середины дал бы потолок
     // возврата меньше уже оплаченного.
     if (s.is_tracked()) {
-      s.charged.emplace(s.charged_or_zero() + amount);
-      s.reserved.emplace(s.reserved_or_zero());
+      s.set_amounts(s.charged_or_zero() + amount, s.reserved_or_zero(), s.locked_or_zero());
     }
   });
 }

@@ -1,11 +1,12 @@
 /**
- * @brief Выделение доли собранного взноса в резерв выплат преподавателям.
+ * @brief Выделение доли взноса в резерв выплат преподавателям.
  *
  * Взнос ученика складывается из себестоимости — часов занятий по ставке
  * преподавателя — и наценки кооператива. Себестоимость обещана преподавателям
- * за оплаченные занятия, поэтому сразу после списания взноса в фонд
- * (`chargefee`) она уходит в резерв. В фонде остаются свободные средства
- * программы: только из них идут расходы и докрывается перерасход.
+ * за оплаченные занятия и уходит в резерв, когда взнос стал свободным: сразу
+ * после списания, если гарантийный срок курса уже истёк, либо вместе с
+ * разблокировкой удержанного (`unlockfee`). В фонде остаются свободные средства
+ * программы: только из них идут расходы.
  *
  * Одна ledger2-операция:
  *  - `o.edu.allot` (TRANSFER w.edu.fund → w.edu.teach, без проводки — оба на
@@ -13,9 +14,9 @@
  *
  * Guards:
  *  - amount > 0 в символе кооператива;
- *  - подписка с указанным hash существует;
- *  - в резерв уходит не больше собранного по подписке (у подписок, открытых
- *    до учёта собранного, потолка нет — достаточность фонда проверит перевод).
+ *  - пока подписка жива, в резерв уходит не больше собранного по ней. Закрытая
+ *    подписка потолка не даёт: её запись стёрта, достаточность фонда проверит
+ *    сам перевод.
  *
  * @ingroup public_edubridge_actions
  */
@@ -27,8 +28,10 @@ void edubridge::allotfee(eosio::name coopname,
   Edubridge::check_money(amount, "Сумма резерва выплат преподавателям");
 
   edu_subscriptions_index subs(_edubridge, coopname.value);
-  auto sub = Edubridge::get_subscription_or_fail(subs, sub_hash);
-  eosio::check(!sub->is_tracked() || sub->reserved_or_zero() + amount <= sub->charged_or_zero(),
+  auto by_hash = subs.get_index<"byhash"_n>();
+  auto found = by_hash.find(sub_hash);
+  const bool tracked = found != by_hash.end() && found->is_tracked();
+  eosio::check(!tracked || found->reserved_or_zero() + amount <= found->charged_or_zero(),
                "В резерв выплат преподавателям уходит не больше собранного по подписке");
 
   Ledger2::apply(_edubridge, coopname,
@@ -37,9 +40,9 @@ void edubridge::allotfee(eosio::name coopname,
                  amount, coopname, sub_hash,
                  Edubridge::Memo::get_allot_reserve_memo());
 
-  subs.modify(sub, _edubridge, [&](auto& s) {
-    if (s.is_tracked()) {
-      s.reserved.emplace(s.reserved_or_zero() + amount);
-    }
-  });
+  if (tracked) {
+    subs.modify(subs.find(found->id), _edubridge, [&](auto& s) {
+      s.set_amounts(s.charged_or_zero(), s.reserved_or_zero() + amount, s.locked_or_zero());
+    });
+  }
 }

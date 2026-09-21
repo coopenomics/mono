@@ -11,8 +11,7 @@
  *
  * Guards:
  *  - amount > 0 в символе кооператива;
- *  - подписка с указанным hash существует;
- *  - высвобождается не больше зарезервированного по этой подписке.
+ *  - пока подписка жива, высвобождается не больше зарезервированного по ней.
  *
  * @ingroup public_edubridge_actions
  */
@@ -24,8 +23,10 @@ void edubridge::freereserve(eosio::name coopname,
   Edubridge::check_money(amount, "Сумма высвобождаемого резерва");
 
   edu_subscriptions_index subs(_edubridge, coopname.value);
-  auto sub = Edubridge::get_subscription_or_fail(subs, sub_hash);
-  eosio::check(!sub->is_tracked() || amount <= sub->reserved_or_zero(),
+  auto by_hash = subs.get_index<"byhash"_n>();
+  auto found = by_hash.find(sub_hash);
+  const bool tracked = found != by_hash.end() && found->is_tracked();
+  eosio::check(!tracked || amount <= found->reserved_or_zero(),
                "Высвобождается не больше зарезервированного по подписке");
 
   Ledger2::apply(_edubridge, coopname,
@@ -34,9 +35,9 @@ void edubridge::freereserve(eosio::name coopname,
                  amount, coopname, sub_hash,
                  Edubridge::Memo::get_free_reserve_memo());
 
-  subs.modify(sub, _edubridge, [&](auto& s) {
-    if (s.is_tracked()) {
-      s.reserved.emplace(s.reserved_or_zero() - amount);
-    }
-  });
+  if (tracked) {
+    subs.modify(subs.find(found->id), _edubridge, [&](auto& s) {
+      s.set_amounts(s.charged_or_zero(), s.reserved_or_zero() - amount, s.locked_or_zero());
+    });
+  }
 }

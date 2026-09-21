@@ -56,6 +56,7 @@ struct [[eosio::table, eosio::contract(EDUBRIDGE)]] edu_subscription {
   // же записи строки как asset() без символа.
   eosio::binary_extension<eosio::asset> charged;  ///< собрано по подписке в фонд программы (o.edu.fee) — потолок возврата при отмене
   eosio::binary_extension<eosio::asset> reserved; ///< из собранного выделено в резерв выплат преподавателям (o.edu.allot) — потолок высвобождения
+  eosio::binary_extension<eosio::asset> locked;   ///< удержано до конца гарантийного срока курса (o.edu.lock); возвращается в фонд по истечении срока, при отмене и закрытии подписки
 
   /// Учёт собранного ведётся с открытия подписки. У подписок, открытых до его
   /// появления, расширение пусто либо материализовано без символа — потолки
@@ -66,6 +67,15 @@ struct [[eosio::table, eosio::contract(EDUBRIDGE)]] edu_subscription {
 
   eosio::asset charged_or_zero()  const { return asset_or_zero(charged); }
   eosio::asset reserved_or_zero() const { return asset_or_zero(reserved); }
+  /// Удержанное считается с нуля у любой подписки: оно не зависит от того, что было собрано раньше.
+  eosio::asset locked_or_zero()   const { return asset_or_zero(locked); }
+
+  /// Расширения пишутся только вместе: пустое материализуется без символа.
+  void set_amounts(const eosio::asset& charged_, const eosio::asset& reserved_, const eosio::asset& locked_) {
+    charged.emplace(charged_);
+    reserved.emplace(reserved_);
+    locked.emplace(locked_);
+  }
 
   /// Значение расширения либо ноль в символе кооператива.
   static eosio::asset asset_or_zero(const eosio::binary_extension<eosio::asset>& v) {

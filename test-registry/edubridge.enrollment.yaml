@@ -334,3 +334,38 @@ cases:
     expect: "Сумма не больше незаявленного остатка; согласование спрашивает подтверждение, отказ требует причину."
     test: ~
     status: missing
+  - id: edu.enroll.happy.16
+    level: backend
+    kind: happy
+    scenario: "Оплата подписки, пока идёт гарантийный срок курса (в том числе у неактивированного курса)."
+    expect: "Взнос удерживается целиком и в резерв не уходит; себестоимость запоминается до разблокировки. Срок курса истёк — взнос свободен сразу, себестоимость уходит в резерв."
+    test: components/controller/tests/unit/edubridge/enrollment.service.test.ts
+    status: written
+  - id: edu.enroll.happy.17
+    level: backend
+    kind: happy
+    scenario: "Гарантийный срок курса истёк у действующих подписок с удержанным взносом."
+    expect: "Очередь возвращает удержанное в фонд и выделяет резерв преподавателям одной транзакцией; пока срок идёт, взнос не трогает."
+    test: components/controller/tests/unit/edubridge/enrollment.service.test.ts
+    status: written
+  - id: edu.enroll.break.07
+    level: backend
+    kind: break
+    scenario: "Сбой цепи при разблокировке; сбой выделения резерва по закрытой подписке."
+    expect: "Взнос остаётся удержанным до следующего прохода; закрытие подписки сбоем резерва не отменяется."
+    test: components/controller/tests/unit/edubridge/expiry.worker.test.ts
+    status: written
+  - id: edu.enroll.side.16
+    level: backend
+    kind: side
+    scenario: "Отмена подписки в гарантийный срок; закрытие подписки раньше конца срока курса."
+    expect: "Удержанное цепь возвращает в фонд сама; запись об удержании снимается; по закрытой подписке резерв преподавателям выделяется отдельным действием."
+    test: components/controller/tests/unit/edubridge/enrollment.service.test.ts
+    status: written
+  - id: edu.enroll.contract.07
+    level: contract
+    kind: break
+    scenario: "lockfee больше собранного; unlockfee больше удержанного; cancelsub и expiresub с удержанным взносом."
+    expect: "Превышения отклоняются; отмена и закрытие возвращают удержанное в фонд (o.edu.unlock) до возврата участнику."
+    test: ~
+    status: missing

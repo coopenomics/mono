@@ -122,6 +122,8 @@ namespace operations {
   namespace edubridge {
     inline constexpr eosio::name CONVERT_TO_EDU_MEMBER = "o.edu.conv"_n;  ///< Конвертация паевого взноса в членский взнос ЦПП «Образование» по заявлению пайщика (TRANSFER w.wal.share → w.edu.member, Dr 80 / Cr 86). Зеркало o.mkt.conv: единственный путь паевой→членский в программе.
     inline constexpr eosio::name COLLECT_EDU_FEE       = "o.edu.fee"_n;   ///< Списание членского взноса ученика в фонд программы при открытии и продлении подписки (TRANSFER w.edu.member → w.edu.fund, без Dr/Cr — оба на 86). Образец — o.mkt.fee «Стола заказов»; основание — Положение ЦПП «Образование», п. 4.2.2: стоимость подписки уходит в распоряжение общества.
+    inline constexpr eosio::name LOCK_FEE              = "o.edu.lock"_n;   ///< Удержание взноса до конца гарантийного срока курса (TRANSFER w.edu.fund → w.edu.escrow, без Dr/Cr — оба на 86). Выполняется сразу после o.edu.fee, пока срок идёт: участник вправе закрыть подписку и получить возврат, поэтому на расходы программы этот взнос не идёт.
+    inline constexpr eosio::name UNLOCK_FEE            = "o.edu.unlock"_n; ///< Разблокировка удержанного взноса (TRANSFER w.edu.escrow → w.edu.fund, без Dr/Cr — оба на 86). Гарантийный срок курса истёк — взнос становится свободными средствами программы; при отмене и закрытии подписки удержанное возвращается в фонд тем же ходом, и возврат участнику идёт уже из фонда.
     inline constexpr eosio::name ALLOT_TEACHER_RESERVE = "o.edu.allot"_n;  ///< Выделение доли себестоимости собранного взноса в резерв выплат преподавателям (TRANSFER w.edu.fund → w.edu.teach, без Dr/Cr — оба на 86). Выполняется сразу после o.edu.fee: в фонде остаются свободные средства программы, из которых идут расходы, в резерве — обещанное преподавателям за оплаченные занятия.
     inline constexpr eosio::name FREE_TEACHER_RESERVE  = "o.edu.free"_n;   ///< Высвобождение резерва выплат преподавателям обратно в фонд программы (TRANSFER w.edu.teach → w.edu.fund, без Dr/Cr — оба на 86). Подписка отменена, оплаченные занятия не состоятся: зарезервированное под них возвращается в фонд, откуда идёт возврат ученику.
     inline constexpr eosio::name SETTLE_TEACHER_RESERVE = "o.edu.settle"_n; ///< Расчёт с преподавателем за счёт резерва при приёме его результата (BURN с w.edu.teach, без Dr/Cr). Обязательство программы перед преподавателем исполнено: стоимость результата зачислена ему паевым взносом (o.edu.ridshr), и зарезервированные под неё средства перестают числиться за программой.
@@ -575,6 +577,21 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
     ledger2_wallets::EDU_MEMBER_FEE, ledger2_wallets::EDU_PROGRAM_FUND,
     0, 0,
     "Членский взнос за курс в фонд ЦПП «Образование»" },
+
+  // 12e⁵. p.edu.access: Удержание взноса до конца гарантийного срока курса
+  //      (TRANSFER w.edu.fund → w.edu.escrow, без Dr/Cr — оба на 86).
+  { operations::edubridge::LOCK_FEE, processes::edubridge::ACCESS, WalletOp::TRANSFER,
+    ledger2_wallets::EDU_PROGRAM_FUND, ledger2_wallets::EDU_GUARANTEE_ESCROW,
+    0, 0,
+    "Удержание членского взноса до конца гарантийного срока по ЦПП «Образование»" },
+
+  // 12e⁶. p.edu.access: Разблокировка удержанного взноса (TRANSFER
+  //      w.edu.escrow → w.edu.fund, без Dr/Cr — оба на 86): срок истёк,
+  //      подписка отменена либо закрыта.
+  { operations::edubridge::UNLOCK_FEE, processes::edubridge::ACCESS, WalletOp::TRANSFER,
+    ledger2_wallets::EDU_GUARANTEE_ESCROW, ledger2_wallets::EDU_PROGRAM_FUND,
+    0, 0,
+    "Разблокировка членского взноса по ЦПП «Образование»" },
 
   // 12e³. p.edu.access: Выделение доли себестоимости взноса в резерв выплат
   //      преподавателям (TRANSFER w.edu.fund → w.edu.teach, без Dr/Cr — оба на

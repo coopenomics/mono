@@ -80,6 +80,18 @@ export interface IChargefee {
   amount: IAsset
 }
 
+export interface ILockfee {
+  coopname: IName
+  sub_hash: IChecksum256
+  amount: IAsset
+}
+
+export interface IUnlockfee {
+  coopname: IName
+  sub_hash: IChecksum256
+  amount: IAsset
+}
+
 export interface IAllotfee {
   coopname: IName
   sub_hash: IChecksum256
@@ -250,6 +262,8 @@ export interface IEduSubscription {
   charged?: IAsset
   /** Из собранного выделено в резерв выплат преподавателям. */
   reserved?: IAsset
+  /** Удержано до конца гарантийного срока курса. */
+  locked?: IAsset
 }
 
 /**

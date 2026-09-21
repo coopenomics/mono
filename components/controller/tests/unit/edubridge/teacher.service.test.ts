@@ -12,7 +12,7 @@ const logger = { setContext: jest.fn(), info: jest.fn(), warn: jest.fn(), error:
 const signedBy = (signer: string, hash = 'ABC') => ({ hash, doc_hash: hash, meta_hash: hash, version: '1.0', meta: {}, signatures: [{ signer }] }) as any;
 
 function make(
-  opts: { contract?: boolean | EduContractStatus; assignmentStatus?: EduAssignmentStatus; lessonsTotal?: number; guaranteeDays?: number; plannedRate?: string } = {}
+  opts: { contract?: boolean | EduContractStatus; assignmentStatus?: EduAssignmentStatus; lessonsTotal?: number; guaranteeDays?: number; plannedRate?: string; startsAt?: Date | null } = {}
 ) {
   const assignment = { id: 'A1', coopname: 'voskhod', teacher_username: 'teach', course_id: 'C1', annex_hash: null, decline_reason: '', status: opts.assignmentStatus ?? EduAssignmentStatus.ACTIVE, period_from: '2025-09-01', period_to: '2027-06-01', created_at: new Date('2026-01-01') } as any;
   const store = new Map<string, any>();
@@ -46,6 +46,7 @@ function make(
       lesson_minutes: 60,
       guarantee_days: opts.guaranteeDays ?? 14,
       planned_hourly_rate: opts.plannedRate ?? '1000.0000 RUB',
+      starts_at: opts.startsAt ?? null,
     })),
   } as any;
   const lessonStore = new Map<number, any>();
@@ -466,8 +467,8 @@ describe('EdubridgeTeacherService — занятия и гарантийный �
 
   it('передача материалов: holdrid в цепь с датой окончания срока, статус «на хранении»', async () => {
     const { service, chain, store } = make();
-    // Занятие было давно, гарантия 14 дней: срок идёт от приёма материалов, а
-    // не от даты занятия — отчёт задним числом его не сокращает.
+    // Курс ещё не активирован, гарантия 14 дней: срок считается от сегодняшнего
+    // дня, дата занятия на него не влияет.
     const lesson = await service.reportLesson('voskhod', 'teach', { ...report, held_at: '2026-01-01T10:00:00Z' } as any);
     const contribution = [...store.values()].find((c) => c.lesson_id === lesson.id);
     const held = await service.holdContribution('voskhod', 'teach', contribution.id, signedBy('teach', 'HOLD'));
@@ -489,6 +490,27 @@ describe('EdubridgeTeacherService — занятия и гарантийный �
     expect(documents.generate).toHaveBeenLastCalledWith(expect.objectContaining({ data: expect.objectContaining({ registry_id: 3012 }) }));
     await service.holdContribution('voskhod', 'teach', contribution.id, signedBy('teach', 'HOLD'));
     expect(new Date(`${chain.holdRid.mock.calls[0][0].hold_until}Z`).getTime()).toBe(Math.floor(contribution.hold_until.getTime() / 1000) * 1000);
+  });
+
+  it('гарантийный срок — один на курс, от даты начала занятий: дата занятия и день отчёта на него не влияют', async () => {
+    const startsAt = new Date(Date.now() - 3 * 86400_000);
+    const { service, chain, store } = make({ startsAt });
+    const lesson = await service.reportLesson('voskhod', 'teach', report as any);
+    const contribution = [...store.values()].find((c) => c.lesson_id === lesson.id);
+    await service.storageAct('voskhod', 'teach', contribution.id);
+    await service.holdContribution('voskhod', 'teach', contribution.id, signedBy('teach', 'HOLD'));
+    const until = new Date(`${chain.holdRid.mock.calls[0][0].hold_until}Z`).getTime();
+    expect(until).toBe(Math.floor((startsAt.getTime() + 14 * 86400_000) / 1000) * 1000);
+  });
+
+  it('срок курса вышел — заявление преподавателя уходит в совет сразу', async () => {
+    const { service, chain, store } = make({ startsAt: new Date(Date.now() - 30 * 86400_000) });
+    const lesson = await service.reportLesson('voskhod', 'teach', report as any);
+    const contribution = [...store.values()].find((c) => c.lesson_id === lesson.id);
+    await service.holdContribution('voskhod', 'teach', contribution.id, signedBy('teach', 'HOLD'));
+    const submitted = await service.submitContribution('voskhod', 'teach', contribution.id, signedBy('teach', 'STMT'));
+    expect(submitted.status).toBe(EduContributionStatus.SUBMITTED);
+    expect(chain.submitRid).toHaveBeenCalled();
   });
 
   it('акт, сформированный давно, называет срок короче гарантийного — подписать его нельзя', async () => {

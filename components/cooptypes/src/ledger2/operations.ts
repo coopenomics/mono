@@ -305,6 +305,16 @@ export const LEDGER2_OPERATION_REGISTRY: readonly OperationMeta[] = [
     debit: null, credit: null,
     human_name: 'Членский взнос за курс в фонд ЦПП «Образование»' },
 
+  { code: 'o.edu.lock',    process_type: 'p.edu.access',  contract: 'edubridge',
+    name: 'LOCK_FEE', wallet_op: 'TRANSFER', wallet_from: 'w.edu.fund', wallet_to: 'w.edu.escrow',
+    debit: null, credit: null,
+    human_name: 'Удержание членского взноса до конца гарантийного срока по ЦПП «Образование»' },
+
+  { code: 'o.edu.unlock',  process_type: 'p.edu.access',  contract: 'edubridge',
+    name: 'UNLOCK_FEE', wallet_op: 'TRANSFER', wallet_from: 'w.edu.escrow', wallet_to: 'w.edu.fund',
+    debit: null, credit: null,
+    human_name: 'Разблокировка членского взноса по ЦПП «Образование»' },
+
   { code: 'o.edu.allot',   process_type: 'p.edu.access',  contract: 'edubridge',
     name: 'ALLOT_TEACHER_RESERVE', wallet_op: 'TRANSFER', wallet_from: 'w.edu.fund', wallet_to: 'w.edu.teach',
     debit: null, credit: null,

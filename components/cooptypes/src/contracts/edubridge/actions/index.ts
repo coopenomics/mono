@@ -87,6 +87,10 @@ export * as Apprvcontr from './apprvcontr'
 /**
  * Председатель отказал в подписи договора — коллбэк совета.
  */
+/** Удержание взноса до конца гарантийного срока курса и его разблокировка. */
+export * as Lockfee from './lockfee'
+export * as Unlockfee from './unlockfee'
+
 /** Резерв выплат преподавателям: выделение из собранного взноса и высвобождение при отмене. */
 export * as Allotfee from './allotfee'
 export * as Freereserve from './freereserve'

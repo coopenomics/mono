@@ -70,8 +70,11 @@ export class EdubridgeChainAdapter implements EdubridgeChainPort {
       : extras.statement
         ? [this.action(EdubridgeContract.Actions.Regstatement.actionName, { ...extras.statement, statement: this.chainDoc(extras.statement.statement) }, coopname)]
         : [];
-    // Резерв выплат преподавателям — после списания взноса: выделяется из уже собранного.
-    const allot = extras.allot && parseFloat(extras.allot) > 0
+    // Удержание и резерв — после списания взноса: оба берутся из уже собранного.
+    const lock = positive(extras.lock)
+      ? [this.action(EdubridgeContract.Actions.Lockfee.actionName, { coopname, sub_hash: charge.sub_hash, amount: extras.lock }, coopname)]
+      : [];
+    const allot = positive(extras.allot)
       ? [this.action(EdubridgeContract.Actions.Allotfee.actionName, { coopname, sub_hash: charge.sub_hash, amount: extras.allot }, coopname)]
       : [];
     return this.chain.transact([
@@ -80,6 +83,7 @@ export class EdubridgeChainAdapter implements EdubridgeChainPort {
       // Списание в фонд идёт последним: подписка к этому моменту существует,
       // и контракт связывает взнос с ней.
       this.action(EdubridgeContract.Actions.Chargefee.actionName, charge as unknown as Record<string, unknown>, coopname),
+      ...lock,
       ...allot,
     ]);
   }
@@ -96,10 +100,24 @@ export class EdubridgeChainAdapter implements EdubridgeChainPort {
     return this.chain.transact(this.action(EdubridgeContract.Actions.Expiresub.actionName, data as unknown as Record<string, unknown>, data.coopname));
   }
 
+  async unlockFee(data: { coopname: string; sub_hash: string; amount: string; allot?: string }): Promise<InnerTransactResult> {
+    await this.prepare(data.coopname);
+    const { coopname, sub_hash } = data;
+    return this.chain.transact([
+      this.action(EdubridgeContract.Actions.Unlockfee.actionName, { coopname, sub_hash, amount: data.amount }, coopname),
+      ...(positive(data.allot) ? [this.action(EdubridgeContract.Actions.Allotfee.actionName, { coopname, sub_hash, amount: data.allot }, coopname)] : []),
+    ]);
+  }
+
+  async allotReserve(data: { coopname: string; sub_hash: string; amount: string }): Promise<InnerTransactResult> {
+    await this.prepare(data.coopname);
+    return this.chain.transact(this.action(EdubridgeContract.Actions.Allotfee.actionName, data, data.coopname));
+  }
+
   async cancelSubscription(data: EdubridgeContract.Actions.Cancelsub.ICancelsub, freeReserve?: string): Promise<InnerTransactResult> {
     await this.prepare(data.coopname);
     const cancel = this.action(EdubridgeContract.Actions.Cancelsub.actionName, data as unknown as Record<string, unknown>, data.coopname);
-    if (!freeReserve || !(parseFloat(freeReserve) > 0)) return this.chain.transact(cancel);
+    if (!positive(freeReserve)) return this.chain.transact(cancel);
     // Резерв под несостоявшиеся занятия возвращается в фонд первым: из фонда идёт возврат ученику.
     return this.chain.transact([
       this.action(EdubridgeContract.Actions.Freereserve.actionName, { coopname: data.coopname, sub_hash: data.sub_hash, amount: freeReserve }, data.coopname),
@@ -161,4 +179,9 @@ export class EdubridgeChainAdapter implements EdubridgeChainPort {
     await this.prepare(data.coopname);
     return this.chain.transact(this.action(EdubridgeContract.Actions.Recallrid.actionName, data as unknown as Record<string, unknown>, data.coopname));
   }
+}
+
+/** Сумма цепи больше нуля: нулевые движения в транзакцию не идут. */
+function positive(asset: string | null | undefined): asset is string {
+  return Boolean(asset) && parseFloat(String(asset)) > 0;
 }

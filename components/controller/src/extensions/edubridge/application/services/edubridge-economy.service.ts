@@ -31,9 +31,10 @@ import type {
 const FUND_WALLET = 'w.edu.fund';
 const MEMBER_WALLET = 'w.edu.member';
 const RESERVE_WALLET = 'w.edu.teach';
+const ESCROW_WALLET = 'w.edu.escrow';
 
 /** Операции программы, из которых складывается лента движения средств. */
-const MOVEMENT_OPERATIONS = ['o.edu.conv', 'o.edu.fee', 'o.edu.allot', 'o.edu.free', 'o.edu.settle', 'o.edu.refund'];
+const MOVEMENT_OPERATIONS = ['o.edu.conv', 'o.edu.fee', 'o.edu.lock', 'o.edu.unlock', 'o.edu.allot', 'o.edu.free', 'o.edu.settle', 'o.edu.refund'];
 
 /** Сколько движений показывает лента раздела «Экономика». */
 const MOVEMENTS_LIMIT = 50;
@@ -81,6 +82,7 @@ export class EdubridgeEconomyService {
 
     const fund = coopWallets.find((w) => w.id === FUND_WALLET);
     const reserve = coopWallets.find((w) => w.id === RESERVE_WALLET);
+    const escrow = coopWallets.find((w) => w.id === ESCROW_WALLET);
     const fundBalance = fund?.available ?? `0.0000 ${symbol}`;
     const membersMinor = memberShares.reduce((sum, w) => sum + toMinor(w.available ?? '0.0000'), 0);
 
@@ -90,6 +92,12 @@ export class EdubridgeEconomyService {
         name: fund?.name ?? 'Фонд ЦПП «Образование»',
         available: fundBalance,
         hint: 'Свободные средства программы: из них идут расходы и возвраты по Положению. Обещанное преподавателям сюда не входит.',
+      },
+      {
+        id: ESCROW_WALLET,
+        name: escrow?.name ?? 'Удержано до конца гарантийного срока',
+        available: escrow?.available ?? `0.0000 ${symbol}`,
+        hint: 'Взносы по курсам, у которых идёт гарантийный срок: участник ещё вправе закрыть подписку с возвратом, поэтому на расходы они не идут. Срок вышел — взнос переходит в фонд.',
       },
       {
         id: RESERVE_WALLET,
@@ -241,6 +249,8 @@ export class EdubridgeEconomyService {
 const MOVEMENT_TITLES: Record<string, { title: string; direction: string }> = {
   'o.edu.conv': { title: 'Ученик внёс членский взнос', direction: 'in' },
   'o.edu.fee': { title: 'Взнос за курс списан в фонд программы', direction: 'in' },
+  'o.edu.lock': { title: 'Взнос удержан до конца гарантийного срока курса', direction: 'out' },
+  'o.edu.unlock': { title: 'Взнос разблокирован: гарантийный срок истёк либо подписка закрыта', direction: 'in' },
   'o.edu.allot': { title: 'Себестоимость взноса выделена в резерв выплат преподавателям', direction: 'out' },
   'o.edu.free': { title: 'Резерв высвобожден в фонд: подписка отменена', direction: 'in' },
   'o.edu.settle': { title: 'Расчёт с преподавателем за счёт резерва', direction: 'out' },

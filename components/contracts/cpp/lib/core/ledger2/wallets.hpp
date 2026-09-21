@@ -84,6 +84,7 @@ struct ledger2_wallets {
   static constexpr eosio::name EDU_MEMBER_FEE        = "w.edu.member"_n;  ///< ЦПП «Образование» — членский взнос пайщика за доступ к курсу (USER_SHARED, счёт 86). Пополняется конвертацией паевого по заявлению (o.edu.conv, Дт 80 / Кт 86); списывается в фонд программы при открытии и продлении подписки (o.edu.fee, TRANSFER → w.edu.fund) и возвращается ученику по Положению ЦПП.
 
   static constexpr eosio::name EDU_EXPENSE_POOL      = "w.edu.expns"_n;  ///< Пул расходов ЦПП «Образование» (COOPERATIVE) — источник средств шасси расходов для программы. Наполняется под конкретный расход при создании служебной записки (o.edu.expfnd с w.edu.fund), расходуется прямой оплатой по реквизитам (o.edu.spend) либо выдачей аванса под отчёт (o.edu.expadv); неизрасходованный остаток возвращается в фонд (o.edu.expunf). Транзит тот же, что у кооперативного участка: видно, сколько средств программы отдано под расходы.
+  static constexpr eosio::name EDU_GUARANTEE_ESCROW  = "w.edu.escrow"_n;  ///< ЦПП «Образование» — взносы, удержанные до конца гарантийного срока курса (COOPERATIVE-пул, счёт 86). Гарантийный срок идёт от даты начала занятий курса; пока он не истёк, участник вправе закрыть подписку и получить возврат, поэтому его взнос целиком уходит сюда сразу после списания в фонд (o.edu.lock) и на расходы программы не идёт. Возвращается в фонд по истечении срока, при отмене и при закрытии подписки (o.edu.unlock).
   static constexpr eosio::name EDU_TEACHER_RESERVE   = "w.edu.teach"_n;   ///< ЦПП «Образование» — резерв выплат преподавателям (COOPERATIVE-пул, счёт 86). Пополняется долей себестоимости из каждого собранного взноса сразу после его списания в фонд (o.edu.allot, TRANSFER с w.edu.fund, без проводки — оба на 86). Расходы программы из него не идут: фонд остаётся свободными средствами, резерв — обещанным преподавателям. Уменьшается расчётом с преподавателем при приёме его результата (o.edu.settle) и высвобождается обратно в фонд, когда оплаченные занятия не состоятся (o.edu.free — отмена подписки).
   static constexpr eosio::name EDU_PROGRAM_FUND      = "w.edu.fund"_n;    ///< ЦПП «Образование» — фонд программы (COOPERATIVE-пул, счёт 86). Пополняется списанием членского взноса ученика в распоряжение общества при открытии и продлении подписки (o.edu.fee, TRANSFER с w.edu.member, без проводки — оба на 86; Положение ЦПП, п. 4.2.2). Расходуется на программу через шасси расходов по решению совета; из него же идут возвраты ученикам по Положению.
   // branch — экономика кооперативного участка (requirement b6 «Экономика КУ», раунд 5: приоритет общего кошелька)
@@ -126,7 +127,7 @@ struct Ledger2WalletMeta {
   WalletKind       kind;
 };
 
-inline constexpr std::array<Ledger2WalletMeta, 35> LEDGER2_WALLET_REGISTRY = {{
+inline constexpr std::array<Ledger2WalletMeta, 36> LEDGER2_WALLET_REGISTRY = {{
   // USER_SHARED (16) — L3-разрез по пайщику (у w.brn.common — по braname КУ)
   { ledger2_wallets::MIN_SHARE_FUND,        "Минимальный паевой взнос",                                 WalletKind::USER_SHARED },
   { ledger2_wallets::SHARE_FUND_PAY,        "Паевой взнос пайщика",                                     WalletKind::USER_SHARED },
@@ -145,6 +146,7 @@ inline constexpr std::array<Ledger2WalletMeta, 35> LEDGER2_WALLET_REGISTRY = {{
   { ledger2_wallets::REGISTRATION_PENDING,  "Регистрационный взнос в ожидании решения совета",          WalletKind::USER_SHARED },
   { ledger2_wallets::EDU_EXPENSE_POOL,       "Пул расходов ЦПП «Образование»",                         WalletKind::COOPERATIVE },
   { ledger2_wallets::EDU_PROGRAM_FUND,       "Фонд ЦПП «Образование»",                                WalletKind::COOPERATIVE },
+  { ledger2_wallets::EDU_GUARANTEE_ESCROW,   "Взносы ЦПП «Образование», удержанные до конца гарантийного срока", WalletKind::COOPERATIVE },
   { ledger2_wallets::EDU_TEACHER_RESERVE,    "Резерв выплат преподавателям ЦПП «Образование»",          WalletKind::COOPERATIVE },
   { ledger2_wallets::EDU_MEMBER_FEE,        "ЦПП «Образование» — членский взнос пайщика за доступ к курсу", WalletKind::USER_SHARED },
   { ledger2_wallets::EDU_RID_HOLD,          "ЦПП «Образование» — материалы преподавателя на ответственном хранении", WalletKind::USER_SHARED },

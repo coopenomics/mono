@@ -9,6 +9,8 @@
  * закрывает подписку.
  *
  * Движения средств:
+ *  - `o.edu.unlock` (TRANSFER w.edu.escrow → w.edu.fund) — взнос, удержанный
+ *    до конца гарантийного срока курса, возвращается в фонд целиком;
  *  - `o.edu.refund` (TRANSFER w.edu.fund → w.edu.member, без проводки — оба на
  *    86): взнос возвращается из фонда программы на кошелёк ЦПП ученика;
  *  - `o.edu.retshr` (TRANSFER w.edu.member → w.wal.share, Дт 86 / Кт 80) —
@@ -46,6 +48,17 @@ void edubridge::cancelsub(eosio::name coopname,
   // У подписок, открытых до учёта собранного, потолка нет: сумму считает кооператив.
   eosio::check(!sub->is_tracked() || refund <= sub->charged_or_zero(),
                std::string{"Возврат больше собранного по подписке: собрано "} + sub->charged_or_zero().to_string());
+
+  // Удержанное до конца гарантийного срока возвращается в фонд целиком:
+  // возврат участнику идёт уже из фонда, невозвратная часть остаётся свободной.
+  const eosio::asset locked = sub->locked_or_zero();
+  if (locked.amount > 0) {
+    Ledger2::apply(_edubridge, coopname,
+                   operations::edubridge::UNLOCK_FEE,
+                   processes::edubridge::ACCESS,
+                   locked, coopname, sub_hash,
+                   Edubridge::Memo::get_unlock_fee_memo());
+  }
 
   if (refund.amount > 0) {
     Ledger2::apply(_edubridge, coopname,

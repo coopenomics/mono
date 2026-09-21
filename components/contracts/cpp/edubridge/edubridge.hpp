@@ -25,9 +25,9 @@ using namespace Edubridge;
  * «Образовательный мост»).
  *
  * Реализует actions четырёх процессов из YAML-стандартов рядом с этим .hpp:
- *  - **p.edu.access** (10 actions): convert, regstatement, opensub,
- *    chargefee, allotfee, extendsub, freereserve, cancelsub, retshare,
- *    expiresub — членский взнос за доступ к курсу
+ *  - **p.edu.access** (12 actions): convert, regstatement, opensub,
+ *    chargefee, lockfee, unlockfee, allotfee, extendsub, freereserve,
+ *    cancelsub, retshare, expiresub — членский взнос за доступ к курсу
  *    вносится конвертацией паевого взноса (w.wal.share → w.edu.member,
  *    o.edu.conv) по Заявлению о конвертации и списывается в фонд программы
  *    (o.edu.fee); отмена возвращает взнос по Положению (o.edu.refund,
@@ -104,6 +104,26 @@ public:
    */
   [[eosio::action]] void chargefee(eosio::name coopname,
                                    eosio::name username,
+                                   checksum256 sub_hash,
+                                   eosio::asset amount);
+
+  /**
+   * @brief Удержать взнос до конца гарантийного срока курса. Один шаг ledger2:
+   * o.edu.lock (TRANSFER w.edu.fund → w.edu.escrow, без проводки — оба на 86).
+   * Пока срок идёт, участник вправе закрыть подписку с возвратом, и на расходы
+   * программы этот взнос не идёт.
+   * @ingroup public_edubridge_actions
+   */
+  [[eosio::action]] void lockfee(eosio::name coopname,
+                                 checksum256 sub_hash,
+                                 eosio::asset amount);
+
+  /**
+   * @brief Разблокировать взнос по истечении гарантийного срока курса. Один шаг
+   * ledger2: o.edu.unlock (TRANSFER w.edu.escrow → w.edu.fund).
+   * @ingroup public_edubridge_actions
+   */
+  [[eosio::action]] void unlockfee(eosio::name coopname,
                                    checksum256 sub_hash,
                                    eosio::asset amount);
 

@@ -57,6 +57,18 @@ export class EdubridgeEnrollmentEntity {
   @Column({ type: 'varchar', length: 64, nullable: true })
   public reserved_amount!: string | null;
 
+  /**
+   * Сколько из оплаченного удержано до конца гарантийного срока курса. Пока
+   * удержано, на расходы программы эти средства не идут; разблокирует их
+   * очередь по истечении срока, отмена и закрытие подписки.
+   */
+  @Column({ type: 'varchar', length: 64, nullable: true })
+  public locked_amount!: string | null;
+
+  /** Доля себестоимости в удержанном: уйдёт в резерв выплат преподавателям при разблокировке. */
+  @Column({ type: 'varchar', length: 64, nullable: true })
+  public locked_reserve!: string | null;
+
   /** Когда подписка отменена; null — действует или истекла сама. */
   @Column({ type: 'timestamptz', nullable: true })
   public cancelled_at!: Date | null;
