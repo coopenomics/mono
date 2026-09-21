@@ -183,6 +183,11 @@ exports[`ledger2 wallets registry (generated from C++) > LEDGER2_WALLET_REGISTRY
     "name": "w.edu.fund",
   },
   {
+    "human_name": "Резерв выплат преподавателям ЦПП «Образование»",
+    "kind": "COOPERATIVE",
+    "name": "w.edu.teach",
+  },
+  {
     "human_name": "ЦПП «Образование» — членский взнос пайщика за доступ к курсу",
     "kind": "USER_SHARED",
     "name": "w.edu.member",

@@ -36,6 +36,7 @@ export const LEDGER2_WALLET_REGISTRY: readonly WalletMeta[] = [
   { name: "w.reg.pend", human_name: "Регистрационный взнос в ожидании решения совета", kind: "USER_SHARED" },
   { name: "w.edu.expns", human_name: "Пул расходов ЦПП «Образование»", kind: "COOPERATIVE" },
   { name: "w.edu.fund", human_name: "Фонд ЦПП «Образование»", kind: "COOPERATIVE" },
+  { name: "w.edu.teach", human_name: "Резерв выплат преподавателям ЦПП «Образование»", kind: "COOPERATIVE" },
   { name: "w.edu.member", human_name: "ЦПП «Образование» — членский взнос пайщика за доступ к курсу", kind: "USER_SHARED" },
   { name: "w.edu.hold", human_name: "ЦПП «Образование» — материалы преподавателя на ответственном хранении", kind: "USER_SHARED" },
   { name: "w.cap.gen", human_name: "ЦПП «Генератор» — единый кошелёк программы", kind: "COOPERATIVE" },

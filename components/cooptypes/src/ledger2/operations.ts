@@ -305,6 +305,16 @@ export const LEDGER2_OPERATION_REGISTRY: readonly OperationMeta[] = [
     debit: null, credit: null,
     human_name: 'Членский взнос за курс в фонд ЦПП «Образование»' },
 
+  { code: 'o.edu.allot',   process_type: 'p.edu.access',  contract: 'edubridge',
+    name: 'ALLOT_TEACHER_RESERVE', wallet_op: 'TRANSFER', wallet_from: 'w.edu.fund', wallet_to: 'w.edu.teach',
+    debit: null, credit: null,
+    human_name: 'Резерв выплат преподавателям из членского взноса по ЦПП «Образование»' },
+
+  { code: 'o.edu.free',    process_type: 'p.edu.access',  contract: 'edubridge',
+    name: 'FREE_TEACHER_RESERVE', wallet_op: 'TRANSFER', wallet_from: 'w.edu.teach', wallet_to: 'w.edu.fund',
+    debit: null, credit: null,
+    human_name: 'Высвобождение резерва выплат преподавателям в фонд ЦПП «Образование»' },
+
   { code: 'o.edu.refund',  process_type: 'p.edu.access',  contract: 'edubridge',
     name: 'REFUND_FEE', wallet_op: 'TRANSFER', wallet_from: 'w.edu.fund', wallet_to: 'w.edu.member',
     debit: null, credit: null,
@@ -367,6 +377,11 @@ export const LEDGER2_OPERATION_REGISTRY: readonly OperationMeta[] = [
     name: 'SETTLE_EDU_RID', wallet_op: 'TRANSFER', wallet_from: 'w.edu.hold', wallet_to: 'w.wal.share',
     debit: 76, credit: 80,
     human_name: 'Паевой взнос преподавателя результатом интеллектуальной деятельности' },
+
+  { code: 'o.edu.settle',  process_type: 'p.edu.rid',     contract: 'edubridge',
+    name: 'SETTLE_TEACHER_RESERVE', wallet_op: 'BURN', wallet_from: 'w.edu.teach', wallet_to: null,
+    debit: null, credit: null,
+    human_name: 'Расчёт с преподавателем за счёт резерва ЦПП «Образование»' },
 
   { code: 'o.edu.retrid',  process_type: 'p.edu.rid',     contract: 'edubridge',
     name: 'RELEASE_EDU_RID', wallet_op: 'BURN', wallet_from: 'w.edu.hold', wallet_to: null,

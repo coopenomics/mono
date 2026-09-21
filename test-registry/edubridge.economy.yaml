@@ -185,3 +185,10 @@ cases:
     expect: Выключен — везде только помесячный взнос; включён — рядом обе полные суммы и разница в рублях.
     test: ~
     status: missing
+  - id: edu.econ.side.06
+    level: backend
+    kind: side
+    scenario: "Раздел «Экономика»: фонд и резерв выплат преподавателям."
+    expect: "Свободные средства и резерв показаны раздельными кошельками; пустой резерв показывается нулём."
+    test: components/controller/tests/unit/edubridge/economy.service.test.ts
+    status: written

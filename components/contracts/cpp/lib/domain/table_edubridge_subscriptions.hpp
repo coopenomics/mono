@@ -49,6 +49,8 @@ struct [[eosio::table, eosio::contract(EDUBRIDGE)]] edu_subscription {
   checksum256 statement_hash;        ///< hash последнего Заявления о конвертации, по которому оплачен период
   eosio::time_point_sec created_at;  ///< открытие подписки
   eosio::time_point_sec updated_at;  ///< последнее продление
+  eosio::asset charged  = eosio::asset(0, _root_govern_symbol); ///< собрано по подписке в фонд программы (o.edu.fee) — потолок возврата при отмене
+  eosio::asset reserved = eosio::asset(0, _root_govern_symbol); ///< из собранного выделено в резерв выплат преподавателям (o.edu.allot) — потолок высвобождения
 
   uint64_t primary_key()      const { return id; }
   checksum256 by_hash()       const { return sub_hash; }

@@ -245,6 +245,7 @@ export class EdubridgeTeacherService {
     const course = await this.courses.findById(coopname, input.course_id);
     if (!course) throw new NotFoundException('Курс не найден');
     if (input.period_to < input.period_from) throw new BadRequestException('Конец периода раньше начала');
+    await this.assertRateCovered(coopname, input.teacher_username.trim(), course);
     const entity = this.teachers.createAssignment({
       coopname,
       teacher_username: input.teacher_username.trim(),
@@ -258,6 +259,23 @@ export class EdubridgeTeacherService {
       status: EduAssignmentStatus.DRAFT,
     });
     return this.teachers.saveAssignment(entity);
+  }
+
+  /**
+   * Взнос учеников посчитан от плановой ставки курса, и в резерв выплат уходит
+   * именно она. Преподаватель со ставкой выше плановой резервом не обеспечен:
+   * сначала поднимается ставка курса — для новых подписок, а разница по
+   * действующим покрывается свободными средствами программы осознанно.
+   */
+  private async assertRateCovered(coopname: string, teacher: string, course: EdubridgeCourseEntity): Promise<void> {
+    const contract = await this.teachers.findContract(coopname, teacher);
+    const rate = rateValue(contract?.hourly_rate);
+    const planned = rateValue(course.planned_hourly_rate);
+    if (rate > planned) {
+      throw new BadRequestException(
+        `Ставка преподавателя ${contract?.hourly_rate} выше плановой ставки курса ${course.planned_hourly_rate}: взносы учеников её не покрывают. Поднимите плановую ставку курса либо назначьте преподавателя с меньшей ставкой`
+      );
+    }
   }
 
   async closeAssignment(coopname: string, id: string): Promise<EdubridgeTeacherAssignmentEntity> {
@@ -854,7 +872,12 @@ function chainAssignmentId(c: EdubridgeContributionEntity): number {
   return Number(new Date(c.created_at).getTime() % 1_000_000);
 }
 
+/** Числовое значение ставки часа («1000.0000 RUB» → 1000). */
+function rateValue(rate: string | null | undefined): number {
+  return Number(String(rate ?? '').trim().split(' ')[0] ?? 0) || 0;
+}
+
 /** Ставка задана, когда сумма больше нуля: «0.0000 RUB» — ещё не названа. */
 function isPositiveRate(rate: string | null | undefined): boolean {
-  return Number(String(rate ?? '').trim().split(' ')[0] ?? 0) > 0;
+  return rateValue(rate) > 0;
 }

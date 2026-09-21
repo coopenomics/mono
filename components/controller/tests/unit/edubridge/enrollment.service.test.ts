@@ -17,6 +17,8 @@ const course = {
   lessons_per_month: 8,
   lessons_total: 64,
   lesson_minutes: 60,
+  // Себестоимость месяца — 8 часов по 100: из взноса 1000 в резерв выплат преподавателям уходит 800.
+  planned_hourly_rate: '100.0000 RUB',
   starts_at: null,
 } as any;
 
@@ -259,6 +261,77 @@ describe('EdubridgeEnrollmentService — продление и сверка за
     const foreign = { hash: 'DEADBEEF', meta: JSON.stringify({ sub_hash: 'ff', total: '1000.0000 RUB', amount: '1000.0000 RUB' }), signatures: [] } as any;
     await expect(service.subscribe('voskhod', 'ant', 'L1', 'C1', EduEnrollmentPeriod.MONTH, foreign)).rejects.toThrow(/заново/);
     expect(chain.convertAndSubscribe).not.toHaveBeenCalled();
+  });
+});
+
+describe('EdubridgeEnrollmentService — резерв выплат преподавателям', () => {
+  it('из взноса в резерв уходит себестоимость, в фонде остаётся наценка', async () => {
+    const { service, chain } = make({ available: '20000.0000 RUB' });
+    const saved = await service.subscribe('voskhod', 'ant', 'L1', 'C1', EduEnrollmentPeriod.MONTH, await docFor(service, EduEnrollmentPeriod.MONTH));
+    const extras = chain.convertAndSubscribe.mock.calls[0][3];
+    expect(extras.allot).toBe('800.0000 RUB');
+    expect(saved.reserved_amount).toBe('800.0000 RUB');
+  });
+
+  it('скидка за взнос разом съедает наценку, резерв — полная себестоимость оплаченных месяцев', async () => {
+    const { service, chain } = make({ available: '20000.0000 RUB' });
+    await service.subscribe('voskhod', 'ant', 'L1', 'C1', EduEnrollmentPeriod.COURSE, await docFor(service, EduEnrollmentPeriod.COURSE));
+    // Восемь месяцев: взнос 7200 при себестоимости 6400.
+    expect(chain.convertAndSubscribe.mock.calls[0][3].allot).toBe('6400.0000 RUB');
+  });
+
+  it('резерв не больше самого взноса', async () => {
+    const dear = { ...course, planned_hourly_rate: '500.0000 RUB' };
+    const { service, chain } = make({ available: '20000.0000 RUB', course: dear });
+    await service.subscribe('voskhod', 'ant', 'L1', 'C1', EduEnrollmentPeriod.MONTH, await docFor(service, EduEnrollmentPeriod.MONTH));
+    expect(chain.convertAndSubscribe.mock.calls[0][3].allot).toBe('1000.0000 RUB');
+  });
+
+  it('взнос целиком с кошелька программы: конвертации нет, заявление публикуется отдельным действием', async () => {
+    const { service, chain } = make({ program: '5000.0000 RUB' });
+    const document = await docFor(service, EduEnrollmentPeriod.MONTH);
+    await service.subscribe('voskhod', 'ant', 'L1', 'C1', EduEnrollmentPeriod.MONTH, document);
+    const [convert, , , extras] = chain.convertAndSubscribe.mock.calls[0];
+    expect(convert).toBeNull();
+    expect(extras.statement).toEqual({ coopname: 'voskhod', username: 'ant', statement: document });
+  });
+
+  it('при конвертации заявление несёт convert — отдельно оно не публикуется', async () => {
+    const { service, chain } = make({ available: '20000.0000 RUB' });
+    await service.subscribe('voskhod', 'ant', 'L1', 'C1', EduEnrollmentPeriod.MONTH, await docFor(service, EduEnrollmentPeriod.MONTH));
+    expect(chain.convertAndSubscribe.mock.calls[0][3].statement).toBeUndefined();
+  });
+
+  it('продление складывает резерв вместе со взносом', async () => {
+    const existing = { id: 'E9', status: EduEnrollmentStatus.ACTIVE, paid_until: new Date(Date.now() + 10 * 86400_000), paid_amount: '1000.0000 RUB', paid_months: 1, reserved_amount: '800.0000 RUB', period: EduEnrollmentPeriod.MONTH, learner_id: 'L1', course_id: 'C1', sub_hash: 'x' };
+    const { service } = make({ existing });
+    const saved = await service.subscribe('voskhod', 'ant', 'L1', 'C1', EduEnrollmentPeriod.MONTH, await docFor(service, EduEnrollmentPeriod.MONTH));
+    expect(saved.reserved_amount).toBe('1600.0000 RUB');
+  });
+
+  const paidSub = { id: 'E1', coopname: 'voskhod', member_username: 'ant', learner_id: 'L1', course_id: 'C1', sub_hash: 'aabb', period: EduEnrollmentPeriod.MONTH, paid_amount: '1000.0000 RUB', paid_months: 1, reserved_amount: '800.0000 RUB', status: EduEnrollmentStatus.ACTIVE };
+
+  it('отмена до начала курса и по недобору высвобождает весь резерв: занятия не состоятся', async () => {
+    const { service, chain } = make({ existing: { ...paidSub } });
+    await service.cancel('voskhod', 'ant', 'E1');
+    expect(chain.cancelSubscription.mock.calls[0][1]).toBe('800.0000 RUB');
+  });
+
+  it('отказ в ходе обучения высвобождает резерв в доле неиспользованных занятий', async () => {
+    // Курс идёт 15 дней из оплаченного месяца: прошло 4 занятия из 8.
+    const startsAt = new Date(Date.now() - 15 * 86400_000);
+    const running = { ...paidSub, paid_until: new Date(startsAt.getTime() + 30 * 86400_000) };
+    const { service, chain } = make({ existing: running, course: { ...course, starts_at: startsAt } });
+    await service.cancel('voskhod', 'ant', 'E1');
+    const [payload, freed] = chain.cancelSubscription.mock.calls[0];
+    expect(payload.refund).toBe('250.0000 RUB');
+    expect(freed).toBe('400.0000 RUB');
+  });
+
+  it('подписка, открытая до введения резерва, отменяется без высвобождения', async () => {
+    const { service, chain } = make({ existing: { ...paidSub, reserved_amount: null } });
+    await service.cancel('voskhod', 'ant', 'E1');
+    expect(chain.cancelSubscription.mock.calls[0][1]).toBeUndefined();
   });
 });
 

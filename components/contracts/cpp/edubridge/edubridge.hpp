@@ -25,8 +25,9 @@ using namespace Edubridge;
  * «Образовательный мост»).
  *
  * Реализует actions четырёх процессов из YAML-стандартов рядом с этим .hpp:
- *  - **p.edu.access** (7 actions): convert, opensub, chargefee, extendsub,
- *    cancelsub, retshare, expiresub — членский взнос за доступ к курсу
+ *  - **p.edu.access** (10 actions): convert, regstatement, opensub,
+ *    chargefee, allotfee, extendsub, freereserve, cancelsub, retshare,
+ *    expiresub — членский взнос за доступ к курсу
  *    вносится конвертацией паевого взноса (w.wal.share → w.edu.member,
  *    o.edu.conv) по Заявлению о конвертации и списывается в фонд программы
  *    (o.edu.fee); отмена возвращает взнос по Положению (o.edu.refund,
@@ -105,6 +106,35 @@ public:
                                    eosio::name username,
                                    checksum256 sub_hash,
                                    eosio::asset amount);
+
+  /**
+   * @brief Выделить долю собранного взноса в резерв выплат преподавателям.
+   * Один шаг ledger2: o.edu.allot (TRANSFER w.edu.fund → w.edu.teach, без
+   * проводки — оба на 86). В фонде остаются свободные средства программы.
+   * @ingroup public_edubridge_actions
+   */
+  [[eosio::action]] void allotfee(eosio::name coopname,
+                                  checksum256 sub_hash,
+                                  eosio::asset amount);
+
+  /**
+   * @brief Высвободить резерв выплат преподавателям обратно в фонд при отмене
+   * подписки. Один шаг ledger2: o.edu.free (TRANSFER w.edu.teach → w.edu.fund).
+   * @ingroup public_edubridge_actions
+   */
+  [[eosio::action]] void freereserve(eosio::name coopname,
+                                     checksum256 sub_hash,
+                                     eosio::asset amount);
+
+  /**
+   * @brief Опубликовать Заявление о взносе (шаблон 3011), целиком покрытом
+   * кошельком программы участника: конвертации нет, и `convert` его не
+   * публикует. Движений средств нет.
+   * @ingroup public_edubridge_actions
+   */
+  [[eosio::action]] void regstatement(eosio::name coopname,
+                                      eosio::name username,
+                                      document2 statement);
 
   /**
    * @brief Продлить подписку: новый срок оплаты строго больше прежнего.

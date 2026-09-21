@@ -9,6 +9,7 @@
 
 #include "../../consts.hpp"
 #include "../../domain/table_ledger2_userwallets.hpp"
+#include "../../domain/table_ledger2_wallet.hpp"
 #include "../../domain/table_edubridge_subscriptions.hpp"
 #include "../../domain/table_edubridge_rids.hpp"
 #include "../../domain/table_edubridge_contracts.hpp"
@@ -101,6 +102,13 @@ get_annex_or_fail(edu_annexes_index& annexes, const checksum256& annex_hash) {
   return annexes.find(it->id);
 }
 
+/// Доступный остаток кооперативного кошелька программы; ноль, если кошелёк ещё не заведён.
+inline eosio::asset get_coop_wallet_available(eosio::name coopname, eosio::name wallet_id) {
+  wallets2_index wallets(_ledger2, coopname.value);
+  auto it = wallets.find(wallet_id.value);
+  return it == wallets.end() ? eosio::asset(0, _root_govern_symbol) : it->available;
+}
+
 /// Валидация денежной суммы контракта: корректный asset, > 0, символ кооператива.
 inline void check_money(const eosio::asset& amount, const char* what) {
   eosio::check(amount.is_valid() && amount.amount > 0,
@@ -123,6 +131,18 @@ namespace Memo {
 
   inline std::string get_collect_fee_memo() {
     return "Членский взнос за курс по ЦПП «Образование» в распоряжение кооператива";
+  }
+
+  inline std::string get_allot_reserve_memo() {
+    return "Резерв выплат преподавателям из членского взноса за курс по ЦПП «Образование»";
+  }
+
+  inline std::string get_free_reserve_memo() {
+    return "Высвобождение резерва выплат преподавателям: подписка отменена, занятия не состоятся";
+  }
+
+  inline std::string get_settle_reserve_memo(uint64_t rid_id) {
+    return "Расчёт с преподавателем за счёт резерва программы по заявлению № " + std::to_string(rid_id);
   }
 
   inline std::string get_refund_memo() {

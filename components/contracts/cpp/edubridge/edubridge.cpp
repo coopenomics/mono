@@ -4,10 +4,13 @@
 // (p.edu.access.standard.yaml / p.edu.rid.standard.yaml). Имена подпапок 1:1
 // совпадают с process_type — связь от файла → к стандарту прозрачная.
 
-// ── p.edu.access (7 actions) ─── доступ к курсу, p.edu.spend (2) — расходы ──
+// ── p.edu.access (10 actions) ─── доступ к курсу, p.edu.spend (2) — расходы ──
 #include "src/p.edu.access/convert.cpp"
 #include "src/p.edu.access/opensub.cpp"
 #include "src/p.edu.access/chargefee.cpp"
+#include "src/p.edu.access/allotfee.cpp"
+#include "src/p.edu.access/freereserve.cpp"
+#include "src/p.edu.access/regstatement.cpp"
 #include "src/p.edu.access/cancelsub.cpp"
 #include "src/p.edu.access/retshare.cpp"
 #include "src/p.edu.spend/createexp.cpp"

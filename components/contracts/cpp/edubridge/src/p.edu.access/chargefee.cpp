@@ -17,6 +17,8 @@
  *  - взнос списывается у владельца подписки;
  *  - w.edu.member.available пайщика >= amount.
  *
+ * Собранное копится в записи подписки: это потолок возврата при отмене.
+ *
  * @ingroup public_edubridge_actions
  */
 void edubridge::chargefee(eosio::name coopname,
@@ -43,4 +45,8 @@ void edubridge::chargefee(eosio::name coopname,
                  processes::edubridge::ACCESS,
                  amount, username, sub_hash,
                  Edubridge::Memo::get_collect_fee_memo());
+
+  subs.modify(sub, _edubridge, [&](auto& s) {
+    s.charged += amount;
+  });
 }

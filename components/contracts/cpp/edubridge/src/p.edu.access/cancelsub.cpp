@@ -20,7 +20,8 @@
  *
  * Guards:
  *  - подписка с указанным hash существует и принадлежит этому пайщику;
- *  - сумма возврата неотрицательна и в символе кооператива;
+ *  - сумма возврата неотрицательна, в символе кооператива и не больше
+ *    собранного по этой подписке — чужие взносы из фонда не возвращаются;
  *  - достаточность средств проверяет сам перевод в книге учёта.
  *
  * @ingroup public_edubridge_actions
@@ -41,6 +42,9 @@ void edubridge::cancelsub(eosio::name coopname,
   auto sub = Edubridge::get_subscription_or_fail(subs, sub_hash);
   eosio::check(sub->username == username,
                "Подписку отменяет тот пайщик, которому она принадлежит");
+
+  eosio::check(refund <= sub->charged,
+               std::string{"Возврат больше собранного по подписке: собрано "} + sub->charged.to_string());
 
   if (refund.amount > 0) {
     Ledger2::apply(_edubridge, coopname,

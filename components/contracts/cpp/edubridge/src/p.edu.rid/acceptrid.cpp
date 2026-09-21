@@ -14,6 +14,13 @@
  *    средства ложатся в его главный паевой кошелёк (право требования;
  *    возврат — штатным createwthd).
  *
+ * Третья операция закрывает обязательство программы: `o.edu.settle` (BURN с
+ * w.edu.teach) списывает резерв выплат преподавателям на стоимость результата.
+ * Когда резерва не хватает (ставка преподавателя выше плановой ставки курса,
+ * подписки открыты до введения резерва), недостающее сначала выделяется из
+ * свободного фонда программы. Приём при этом не блокируется: списывается
+ * столько, сколько в резерве и фонде есть.
+ *
  * Запись стирается: в RAM живут только материалы до решения совета.
  *
  * Guards:
@@ -67,6 +74,29 @@ void edubridge::acceptrid(eosio::name coopname,
                  processes::edubridge::RID,
                  amount, username, act.hash,
                  Edubridge::Memo::get_settle_rid_memo(rid_id));
+
+  // ── o.edu.settle: расчёт с преподавателем за счёт резерва программы ────
+  eosio::asset reserve = Edubridge::get_coop_wallet_available(coopname, ledger2_wallets::EDU_TEACHER_RESERVE);
+  if (reserve < amount) {
+    const eosio::asset fund = Edubridge::get_coop_wallet_available(coopname, ledger2_wallets::EDU_PROGRAM_FUND);
+    const eosio::asset topup = std::min(amount - reserve, fund);
+    if (topup.amount > 0) {
+      Ledger2::apply(_edubridge, coopname,
+                     operations::edubridge::ALLOT_TEACHER_RESERVE,
+                     processes::edubridge::RID,
+                     topup, coopname, act.hash,
+                     "Пополнение резерва выплат преподавателям из фонда программы: стоимость результата выше зарезервированного");
+      reserve += topup;
+    }
+  }
+  const eosio::asset settled = std::min(amount, reserve);
+  if (settled.amount > 0) {
+    Ledger2::apply(_edubridge, coopname,
+                   operations::edubridge::SETTLE_TEACHER_RESERVE,
+                   processes::edubridge::RID,
+                   settled, coopname, act.hash,
+                   Edubridge::Memo::get_settle_reserve_memo(rid_id));
+  }
 
   // Протокол и акт — в реестр документов пакетом процесса (package = rid_hash).
   Soviet::make_complete_document(_edubridge, coopname, username,

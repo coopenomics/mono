@@ -30,9 +30,10 @@ import type {
 /** Кошельки программы «Образование» в реестре ledger2. */
 const FUND_WALLET = 'w.edu.fund';
 const MEMBER_WALLET = 'w.edu.member';
+const RESERVE_WALLET = 'w.edu.teach';
 
 /** Операции программы, из которых складывается лента движения средств. */
-const MOVEMENT_OPERATIONS = ['o.edu.conv', 'o.edu.fee'];
+const MOVEMENT_OPERATIONS = ['o.edu.conv', 'o.edu.fee', 'o.edu.allot', 'o.edu.free', 'o.edu.settle', 'o.edu.refund'];
 
 /** Сколько движений показывает лента раздела «Экономика». */
 const MOVEMENTS_LIMIT = 50;
@@ -79,6 +80,7 @@ export class EdubridgeEconomyService {
     ]);
 
     const fund = coopWallets.find((w) => w.id === FUND_WALLET);
+    const reserve = coopWallets.find((w) => w.id === RESERVE_WALLET);
     const fundBalance = fund?.available ?? `0.0000 ${symbol}`;
     const membersMinor = memberShares.reduce((sum, w) => sum + toMinor(w.available ?? '0.0000'), 0);
 
@@ -87,7 +89,13 @@ export class EdubridgeEconomyService {
         id: FUND_WALLET,
         name: fund?.name ?? 'Фонд ЦПП «Образование»',
         available: fundBalance,
-        hint: 'Собранные членские взносы в распоряжении кооператива: из них ведётся обучение и идут возвраты по Положению.',
+        hint: 'Свободные средства программы: из них идут расходы и возвраты по Положению. Обещанное преподавателям сюда не входит.',
+      },
+      {
+        id: RESERVE_WALLET,
+        name: reserve?.name ?? 'Резерв выплат преподавателям',
+        available: reserve?.available ?? `0.0000 ${symbol}`,
+        hint: 'Себестоимость оплаченных занятий: выделяется из каждого взноса и уменьшается, когда результат преподавателя принят. На расходы программы не идёт.',
       },
       {
         id: MEMBER_WALLET,
@@ -233,6 +241,10 @@ export class EdubridgeEconomyService {
 const MOVEMENT_TITLES: Record<string, { title: string; direction: string }> = {
   'o.edu.conv': { title: 'Ученик внёс членский взнос', direction: 'in' },
   'o.edu.fee': { title: 'Взнос за курс списан в фонд программы', direction: 'in' },
+  'o.edu.allot': { title: 'Себестоимость взноса выделена в резерв выплат преподавателям', direction: 'out' },
+  'o.edu.free': { title: 'Резерв высвобожден в фонд: подписка отменена', direction: 'in' },
+  'o.edu.settle': { title: 'Расчёт с преподавателем за счёт резерва', direction: 'out' },
+  'o.edu.refund': { title: 'Взнос возвращён ученику', direction: 'out' },
 };
 
 function toMovement(op: InnerLedger2Operation, symbol: string): EduFundMovementDTO {

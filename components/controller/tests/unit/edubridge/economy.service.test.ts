@@ -222,7 +222,9 @@ describe('Деньги программы', () => {
     const fund = await service.fund('voskhod');
     expect(fund.fund_balance).toBe('50000.0000 RUB');
     expect(fund.members_balance).toBe('1500.0000 RUB');
-    expect(fund.wallets.map((w) => w.id)).toEqual(['w.edu.fund', 'w.edu.member']);
+    // Свободные средства и резерв выплат преподавателям показаны раздельно.
+    expect(fund.wallets.map((w) => w.id)).toEqual(['w.edu.fund', 'w.edu.teach', 'w.edu.member']);
+    expect(fund.wallets[1]!.available).toBe('0.0000 RUB');
     expect(fund.movements).toHaveLength(1);
     expect(fund.movements[0]!.title).toBe('Взнос за курс списан в фонд программы');
     expect(fund.movements[0]!.username).toBe('parent');
@@ -232,6 +234,18 @@ describe('Деньги программы', () => {
     const { service } = make({ coopWallets: [] });
     const fund = await service.fund('voskhod');
     expect(fund.fund_balance).toBe('0.0000 RUB');
-    expect(fund.wallets).toHaveLength(2);
+    expect(fund.wallets).toHaveLength(3);
+  });
+
+  it('резерв выплат преподавателям читается из своего кошелька', async () => {
+    const { service } = make({
+      coopWallets: [
+        { id: 'w.edu.fund', name: 'Фонд ЦПП «Образование»', available: '200.0000 RUB' },
+        { id: 'w.edu.teach', name: 'Резерв выплат преподавателям ЦПП «Образование»', available: '800.0000 RUB' },
+      ],
+    });
+    const fund = await service.fund('voskhod');
+    expect(fund.fund_balance).toBe('200.0000 RUB');
+    expect(fund.wallets.find((w) => w.id === 'w.edu.teach')!.available).toBe('800.0000 RUB');
   });
 });

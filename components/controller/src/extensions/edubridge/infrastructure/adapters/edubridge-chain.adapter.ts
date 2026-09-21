@@ -10,7 +10,7 @@ import {
   type InnerTransactResult,
   type IVaultPort,
 } from '@coopenomics/innercoop';
-import type { EdubridgeChainPort } from '../../domain/ports/edubridge-chain.port';
+import type { EdubridgeChainPort, EduSubscribeExtras } from '../../domain/ports/edubridge-chain.port';
 
 /**
  * Все действия `edubridge` требуют `require_auth(coopname)`: пайщик подписывает
@@ -53,7 +53,8 @@ export class EdubridgeChainAdapter implements EdubridgeChainPort {
     subscribe:
       | { kind: 'open'; data: EdubridgeContract.Actions.Opensub.IOpensub }
       | { kind: 'extend'; data: EdubridgeContract.Actions.Extendsub.IExtendsub },
-    charge: EdubridgeContract.Actions.Chargefee.IChargefee
+    charge: EdubridgeContract.Actions.Chargefee.IChargefee,
+    extras: EduSubscribeExtras = {}
   ): Promise<InnerTransactResult> {
     const coopname = charge.coopname;
     await this.prepare(coopname);
@@ -61,9 +62,17 @@ export class EdubridgeChainAdapter implements EdubridgeChainPort {
       subscribe.kind === 'open'
         ? this.action(EdubridgeContract.Actions.Opensub.actionName, subscribe.data as unknown as Record<string, unknown>, coopname)
         : this.action(EdubridgeContract.Actions.Extendsub.actionName, subscribe.data as unknown as Record<string, unknown>, coopname);
-    // Конвертации нет, когда взнос покрыт остатком кошелька программы целиком.
+    // Конвертации нет, когда взнос покрыт остатком кошелька программы целиком:
+    // заявление тогда публикуется отдельным действием — в реестр документов
+    // оно обязано попасть в любом случае.
     const first = convert
-      ? [this.action(EdubridgeContract.Actions.Convert.actionName, convert as unknown as Record<string, unknown>, coopname)]
+      ? [this.action(EdubridgeContract.Actions.Convert.actionName, { ...convert, statement: this.chainDoc(convert.statement) }, coopname)]
+      : extras.statement
+        ? [this.action(EdubridgeContract.Actions.Regstatement.actionName, { ...extras.statement, statement: this.chainDoc(extras.statement.statement) }, coopname)]
+        : [];
+    // Резерв выплат преподавателям — после списания взноса: выделяется из уже собранного.
+    const allot = extras.allot && parseFloat(extras.allot) > 0
+      ? [this.action(EdubridgeContract.Actions.Allotfee.actionName, { coopname, sub_hash: charge.sub_hash, amount: extras.allot }, coopname)]
       : [];
     return this.chain.transact([
       ...first,
@@ -71,6 +80,7 @@ export class EdubridgeChainAdapter implements EdubridgeChainPort {
       // Списание в фонд идёт последним: подписка к этому моменту существует,
       // и контракт связывает взнос с ней.
       this.action(EdubridgeContract.Actions.Chargefee.actionName, charge as unknown as Record<string, unknown>, coopname),
+      ...allot,
     ]);
   }
 
@@ -86,9 +96,15 @@ export class EdubridgeChainAdapter implements EdubridgeChainPort {
     return this.chain.transact(this.action(EdubridgeContract.Actions.Expiresub.actionName, data as unknown as Record<string, unknown>, data.coopname));
   }
 
-  async cancelSubscription(data: EdubridgeContract.Actions.Cancelsub.ICancelsub): Promise<InnerTransactResult> {
+  async cancelSubscription(data: EdubridgeContract.Actions.Cancelsub.ICancelsub, freeReserve?: string): Promise<InnerTransactResult> {
     await this.prepare(data.coopname);
-    return this.chain.transact(this.action(EdubridgeContract.Actions.Cancelsub.actionName, data as unknown as Record<string, unknown>, data.coopname));
+    const cancel = this.action(EdubridgeContract.Actions.Cancelsub.actionName, data as unknown as Record<string, unknown>, data.coopname);
+    if (!freeReserve || !(parseFloat(freeReserve) > 0)) return this.chain.transact(cancel);
+    // Резерв под несостоявшиеся занятия возвращается в фонд первым: из фонда идёт возврат ученику.
+    return this.chain.transact([
+      this.action(EdubridgeContract.Actions.Freereserve.actionName, { coopname: data.coopname, sub_hash: data.sub_hash, amount: freeReserve }, data.coopname),
+      cancel,
+    ]);
   }
 
   async returnToShare(data: EdubridgeContract.Actions.Retshare.IRetshare): Promise<InnerTransactResult> {

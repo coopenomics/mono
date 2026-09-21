@@ -87,6 +87,13 @@ export * as Apprvcontr from './apprvcontr'
 /**
  * Председатель отказал в подписи договора — коллбэк совета.
  */
+/** Резерв выплат преподавателям: выделение из собранного взноса и высвобождение при отмене. */
+export * as Allotfee from './allotfee'
+export * as Freereserve from './freereserve'
+
+/** Публикация заявления о взносе, покрытом кошельком программы целиком. */
+export * as Regstatement from './regstatement'
+
 export * as Dclinecontr from './dclinecontr'
 
 /** Прекращение договора УХД — при выходе преподавателя либо по соглашению сторон. */

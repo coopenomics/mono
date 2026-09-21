@@ -13,9 +13,9 @@ import {
   type IUserWalletPort,
 } from '@coopenomics/innercoop';
 import { EduAccessState, EduCourseStatus, EduEnrollmentPeriod, EduEnrollmentStatus } from '../../domain/enums';
-import { courseMonths, feeForMonths } from '../../domain/economy/course-fee.calculator';
+import { costOfHours, courseMonths, feeForMonths } from '../../domain/economy/course-fee.calculator';
 import { addMonths, remainingCoursePeriod } from '../../domain/economy/course-period.calculator';
-import { calculateRefund, monthsOfPeriod, type RefundCalculation } from '../../domain/economy/refund.calculator';
+import { calculateRefund, monthsOfPeriod, RefundReason, type RefundCalculation } from '../../domain/economy/refund.calculator';
 import { EDUBRIDGE_CHAIN_PORT, type EdubridgeChainPort } from '../../domain/ports/edubridge-chain.port';
 import type { EdubridgeCourseEntity, EdubridgeEnrollmentEntity, EdubridgeLearnerEntity } from '../../infrastructure/entities';
 import { EdubridgeCourseRepository } from '../../infrastructure/repositories/edubridge-course.repository';
@@ -39,6 +39,9 @@ const PERIOD_CHAIN: Record<EduEnrollmentPeriod, string> = {
   [EduEnrollmentPeriod.YEAR]: 'year',
 };
 const BP_IN_PERCENT = 100;
+const MINUTES_IN_HOUR = 60;
+/** Знаков после запятой в сумме цепи — четыре. */
+const ASSET_SCALE = 10_000;
 
 /** Условия взноса за выбранный период: сколько месяцев, до какого дня и сколько вносить. */
 interface PeriodTerms {
@@ -243,8 +246,14 @@ export class EdubridgeEnrollmentService {
     // стоимость подписки поступает в распоряжение кооператива сразу. Сумма —
     // полная, независимо от того, сколько пришлось конвертировать.
     const charge = { coopname, username: member, sub_hash: plan.subHash, amount: plan.amount };
+    // Себестоимость взноса обещана преподавателям и уходит в резерв; в фонде
+    // остаётся наценка — свободные средства программы, из которых идут расходы.
+    const reserve = reserveShare(plan);
 
-    const result = await this.chain.convertAndSubscribe(convert as never, subscribe as never, charge as never);
+    const result = await this.chain.convertAndSubscribe(convert as never, subscribe as never, charge as never, {
+      allot: reserve,
+      statement: convert ? undefined : { coopname, username: member, statement: document as never },
+    });
     const trxId = String((result as { transaction_id?: string })?.transaction_id ?? document.hash);
     this.logger.info(`[EDU.SUB] ${member}: ${plan.isExtension ? 'extendsub' : 'opensub'} ${plan.subHash} до ${plan.paidUntil.toISOString()} (trx ${trxId})`);
 
@@ -257,7 +266,7 @@ export class EdubridgeEnrollmentService {
         course_id: courseId,
         sub_hash: plan.subHash,
       });
-    Object.assign(entity, this.paidBase(plan));
+    Object.assign(entity, this.paidBase(plan, reserve));
     entity.period = period;
     entity.paid_until = plan.paidUntil;
     entity.status = EduEnrollmentStatus.ACTIVE;
@@ -359,13 +368,16 @@ export class EdubridgeEnrollmentService {
     if (!course) throw new NotFoundException('Курс не найден');
 
     const refund = this.refundFor(enrollment, course, underfilled);
-    await this.chain.cancelSubscription({
-      coopname,
-      username: enrollment.member_username,
-      sub_hash: enrollment.sub_hash,
-      refund: refund.refund,
-      to_share: refund.to_share,
-    } as never);
+    await this.chain.cancelSubscription(
+      {
+        coopname,
+        username: enrollment.member_username,
+        sub_hash: enrollment.sub_hash,
+        refund: refund.refund,
+        to_share: refund.to_share,
+      } as never,
+      freedReserve(enrollment.reserved_amount, refund)
+    );
 
     enrollment.status = EduEnrollmentStatus.CANCELLED;
     enrollment.cancelled_at = new Date();
@@ -418,12 +430,16 @@ export class EdubridgeEnrollmentService {
    * прежним: возврат по Положению считается от всего оплаченного, а не от
    * последнего платежа. Истёкший срок израсходован целиком — счёт с нуля.
    */
-  private paidBase(plan: EnrollmentPlan): { paid_amount: string; paid_months: number } {
+  private paidBase(plan: EnrollmentPlan, reserve: string): { paid_amount: string; paid_months: number; reserved_amount: string } {
     const prior = plan.existing;
     const running = plan.isExtension && prior?.paid_until && prior.paid_until > new Date();
-    if (!running || !prior) return { paid_amount: plan.amount, paid_months: plan.months };
+    if (!running || !prior) return { paid_amount: plan.amount, paid_months: plan.months, reserved_amount: reserve };
     const before = prior.paid_months ?? monthsOfPeriod(prior.period === EduEnrollmentPeriod.YEAR ? 'year' : 'month');
-    return { paid_amount: sumAssets(prior.paid_amount, plan.amount), paid_months: before + plan.months };
+    return {
+      paid_amount: sumAssets(prior.paid_amount, plan.amount),
+      paid_months: before + plan.months,
+      reserved_amount: sumAssets(prior.reserved_amount ?? `0.0000 ${plan.symbol}`, reserve),
+    };
   }
 
   /**
@@ -507,6 +523,34 @@ export class EdubridgeEnrollmentService {
       shortfall: asset(shortfall),
     };
   }
+}
+
+/**
+ * Доля взноса в резерв выплат преподавателям — себестоимость оплаченных
+ * месяцев по плановой ставке курса. Скидка за взнос разом съедает только
+ * наценку, поэтому резерв не больше самого взноса.
+ */
+function reserveShare(plan: EnrollmentPlan): string {
+  const hoursPerMonth = (plan.course.lessons_per_month * plan.course.lesson_minutes) / MINUTES_IN_HOUR;
+  const costMonth = Number.parseFloat(costOfHours(plan.course.planned_hourly_rate, hoursPerMonth)) || 0;
+  const share = Math.min(Number.parseFloat(plan.amount) || 0, costMonth * plan.months);
+  return `${Math.max(0, share).toFixed(4)} ${plan.symbol}`;
+}
+
+/**
+ * Резерв под несостоявшиеся занятия возвращается в фонд: до начала курса и при
+ * недоборе — весь, при отказе в ходе обучения — в доле неиспользованных занятий.
+ */
+function freedReserve(reserved: string | null, refund: RefundCalculation): string | undefined {
+  const [value, symbol] = String(reserved ?? '').trim().split(' ');
+  const total = Number.parseFloat(value) || 0;
+  if (!(total > 0)) return undefined;
+  const unused =
+    refund.reason === RefundReason.REFUSAL
+      ? refund.lessons_paid > 0 ? (refund.lessons_paid - refund.lessons_used) / refund.lessons_paid : 0
+      : 1;
+  const freed = Math.floor(total * unused * ASSET_SCALE) / ASSET_SCALE;
+  return freed > 0 ? `${freed.toFixed(4)} ${symbol}` : undefined;
 }
 
 /** Сумма двух сумм цепи в одном символе («9600.0000 RUB»). */

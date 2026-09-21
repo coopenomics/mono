@@ -328,3 +328,17 @@ cases:
     expect: "Отказ; без препятствий запись договора стирается и signcontract снова доступен."
     test: ~
     status: missing
+  - id: edu.teach.side.18
+    level: backend
+    kind: side
+    scenario: "Назначение на курс преподавателя со ставкой выше плановой ставки курса."
+    expect: "Отказ: взносы учеников такую ставку не покрывают; со ставкой не выше плановой назначение создаётся."
+    test: components/controller/tests/unit/edubridge/teacher.service.test.ts
+    status: written
+  - id: edu.teach.contract.10
+    level: contract
+    kind: side
+    scenario: "acceptrid при достаточном резерве, при нехватке резерва и при пустом фонде."
+    expect: "Резерв списывается на стоимость результата; недостающее выделяется из фонда; приём не блокируется."
+    test: ~
+    status: missing

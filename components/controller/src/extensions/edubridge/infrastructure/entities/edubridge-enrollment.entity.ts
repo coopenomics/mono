@@ -49,6 +49,14 @@ export class EdubridgeEnrollmentEntity {
   @Column({ type: 'int', nullable: true })
   public paid_months!: number | null;
 
+  /**
+   * Сколько из оплаченного выделено в резерв выплат преподавателям — доля
+   * себестоимости. При отмене резерв под несостоявшиеся занятия возвращается в
+   * фонд; null — подписка открыта до введения резерва.
+   */
+  @Column({ type: 'varchar', length: 64, nullable: true })
+  public reserved_amount!: string | null;
+
   /** Когда подписка отменена; null — действует или истекла сама. */
   @Column({ type: 'timestamptz', nullable: true })
   public cancelled_at!: Date | null;

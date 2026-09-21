@@ -249,3 +249,38 @@ cases:
     expect: "convert и retshare отклоняются."
     test: ~
     status: missing
+  - id: edu.enroll.happy.12
+    level: backend
+    kind: happy
+    scenario: "Оплата подписки: из взноса выделяется резерв выплат преподавателям."
+    expect: "В резерв уходит себестоимость оплаченных месяцев по плановой ставке курса, не больше самого взноса; в фонде остаётся наценка; продление складывает резерв."
+    test: components/controller/tests/unit/edubridge/enrollment.service.test.ts
+    status: written
+  - id: edu.enroll.side.12
+    level: backend
+    kind: side
+    scenario: "Отмена подписки с резервом: до начала курса, по недобору, отказ в ходе обучения, подписка без резерва."
+    expect: "Резерв под несостоявшиеся занятия возвращается в фонд раньше возврата участнику: весь либо в доле неиспользованных занятий; у прежних подписок высвобождения нет."
+    test: components/controller/tests/unit/edubridge/enrollment.service.test.ts
+    status: written
+  - id: edu.enroll.side.13
+    level: backend
+    kind: side
+    scenario: "Взнос целиком покрыт кошельком программы."
+    expect: "Конвертации нет, заявление 3011 публикуется отдельным действием той же транзакции."
+    test: components/controller/tests/unit/edubridge/enrollment.service.test.ts
+    status: written
+  - id: edu.enroll.happy.13
+    level: backend
+    kind: happy
+    scenario: "Состав транзакций оплаты и отмены в цепи."
+    expect: "convert|regstatement → opensub|extendsub → chargefee → allotfee; отмена — freereserve → cancelsub; нулевой резерв в цепь не идёт."
+    test: components/controller/tests/unit/edubridge/chain.adapter.test.ts
+    status: written
+  - id: edu.enroll.contract.06
+    level: contract
+    kind: break
+    scenario: "cancelsub с возвратом больше собранного по подписке; allotfee больше собранного; freereserve больше зарезервированного."
+    expect: "Все три действия отклоняются."
+    test: ~
+    status: missing

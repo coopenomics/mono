@@ -12,7 +12,7 @@ const logger = { setContext: jest.fn(), info: jest.fn(), warn: jest.fn(), error:
 const signedBy = (signer: string, hash = 'ABC') => ({ hash, doc_hash: hash, meta_hash: hash, version: '1.0', meta: {}, signatures: [{ signer }] }) as any;
 
 function make(
-  opts: { contract?: boolean | EduContractStatus; assignmentStatus?: EduAssignmentStatus; lessonsTotal?: number; guaranteeDays?: number } = {}
+  opts: { contract?: boolean | EduContractStatus; assignmentStatus?: EduAssignmentStatus; lessonsTotal?: number; guaranteeDays?: number; plannedRate?: string } = {}
 ) {
   const assignment = { id: 'A1', coopname: 'voskhod', teacher_username: 'teach', course_id: 'C1', annex_hash: null, decline_reason: '', status: opts.assignmentStatus ?? EduAssignmentStatus.ACTIVE, period_from: '2025-09-01', period_to: '2027-06-01', created_at: new Date('2026-01-01') } as any;
   const store = new Map<string, any>();
@@ -44,6 +44,7 @@ function make(
       lessons_total: opts.lessonsTotal ?? 64,
       lesson_minutes: 60,
       guarantee_days: opts.guaranteeDays ?? 14,
+      planned_hourly_rate: opts.plannedRate ?? '1000.0000 RUB',
     })),
   } as any;
   const lessonStore = new Map<number, any>();
@@ -157,6 +158,15 @@ describe('EdubridgeTeacherService — договор УХД и приложен�
     const live = make();
     live.teachers.listAssignments.mockResolvedValue([]);
     await expect(live.service.terminateContract('voskhod', 'teach', ' ')).rejects.toThrow(/основание/);
+  });
+
+  it('назначение на курс: ставка преподавателя не выше плановой ставки курса, от которой считан взнос', async () => {
+    const input = { teacher_username: 'teach', course_id: 'C1', period_from: '2026-09-01', period_to: '2027-06-01' } as any;
+    const covered = make();
+    await expect(covered.service.createAssignment('voskhod', input)).resolves.toMatchObject({ teacher_username: 'teach' });
+    const dear = make({ plannedRate: '900.0000 RUB' });
+    await expect(dear.service.createAssignment('voskhod', input)).rejects.toThrow(/выше плановой ставки курса/);
+    expect(dear.teachers.saveAssignment).not.toHaveBeenCalled();
   });
 
   it('действующий договор повторно не подписывается — возвращается тот же', async () => {

@@ -5,6 +5,14 @@ import type { InnerTransactResult } from '@coopenomics/innercoop';
  * Действия контракта `edubridge` от имени кооператива. Пакет из нескольких
  * действий проходит одной транзакцией — либо целиком, либо никак.
  */
+/** Что ещё едет в транзакции оплаты подписки. */
+export interface EduSubscribeExtras {
+  /** Доля себестоимости взноса — в резерв выплат преподавателям. */
+  allot?: string;
+  /** Заявление публикуется отдельно, когда конвертации нет и `convert` его не несёт. */
+  statement?: EdubridgeContract.Actions.Regstatement.IRegstatement;
+}
+
 export interface EdubridgeChainPort {
   /**
    * Конвертация паевого в членский, подписка и списание взноса в фонд
@@ -22,11 +30,12 @@ export interface EdubridgeChainPort {
     subscribe:
       | { kind: 'open'; data: EdubridgeContract.Actions.Opensub.IOpensub }
       | { kind: 'extend'; data: EdubridgeContract.Actions.Extendsub.IExtendsub },
-    charge: EdubridgeContract.Actions.Chargefee.IChargefee
+    charge: EdubridgeContract.Actions.Chargefee.IChargefee,
+    extras?: EduSubscribeExtras
   ): Promise<InnerTransactResult>;
   expireSubscription(data: EdubridgeContract.Actions.Expiresub.IExpiresub): Promise<InnerTransactResult>;
   /** Отмена подписки с возвратом взноса; `to_share` — возврат сразу в паевой. */
-  cancelSubscription(data: EdubridgeContract.Actions.Cancelsub.ICancelsub): Promise<InnerTransactResult>;
+  cancelSubscription(data: EdubridgeContract.Actions.Cancelsub.ICancelsub, freeReserve?: string): Promise<InnerTransactResult>;
   /** Возврат остатка кошелька программы в паевой по заявлению ученика. */
   returnToShare(data: EdubridgeContract.Actions.Retshare.IRetshare): Promise<InnerTransactResult>;
   /** Приём материалов занятия на ответственное хранение на срок гарантии курса. */

@@ -80,6 +80,24 @@ export interface IChargefee {
   amount: IAsset
 }
 
+export interface IAllotfee {
+  coopname: IName
+  sub_hash: IChecksum256
+  amount: IAsset
+}
+
+export interface IFreereserve {
+  coopname: IName
+  sub_hash: IChecksum256
+  amount: IAsset
+}
+
+export interface IRegstatement {
+  coopname: IName
+  username: IName
+  statement: IDocument2
+}
+
 export interface ICancelsub {
   coopname: IName
   username: IName
@@ -228,6 +246,8 @@ export interface IEduSubscription {
   statement_hash: IChecksum256
   created_at: ITimePointSec
   updated_at: ITimePointSec
+  charged: IAsset
+  reserved: IAsset
 }
 
 /**
