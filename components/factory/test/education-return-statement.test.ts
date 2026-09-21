@@ -4,9 +4,10 @@ import { testDocumentGeneration } from './utils/testDocument'
 import { generator, mongoUri } from './utils'
 
 /**
- * Заявление о возврате членского взноса по ЦПП «Образование» в паевой взнос
- * (3013). Проверяется, что заявление называет сумму, обе программы и оговорку
- * о согласовании Обществом, которого требует Положение.
+ * Заявление о прекращении участия в ЦПП «Образование» (3013). Членский взнос
+ * программы возвращается в паевой только с прекращением участия, поэтому
+ * заявление просит именно этого: закрыть подписки с возвратом по Положению и
+ * вернуть весь остаток в паевой — после согласования Обществом.
  */
 function plainText(html: string): string {
   return html.replace(/<style>[\s\S]*?<\/style>/g, '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
@@ -17,14 +18,13 @@ const BASE = {
   coopname: 'voskhod',
   username: 'ant',
   lang: 'ru',
-  amount: '1250.5000 RUB',
 }
 
 async function generate(data: Record<string, unknown> = {}): Promise<IGeneratedDocument> {
   return generator.generate({ ...BASE, ...data } as never)
 }
 
-describe('Заявление о возврате членского взноса в паевой взнос', async () => {
+describe('Заявление о прекращении участия в ЦПП «Образование»', async () => {
   beforeAll(async () => {
     await generator.connect(mongoUri)
   })
@@ -33,20 +33,20 @@ describe('Заявление о возврате членского взноса
     await testDocumentGeneration(BASE as never)
   })
 
-  it('называет сумму человеческим форматом и обе программы', async () => {
+  it('просит прекратить участие в программе', async () => {
     const text = plainText((await generate()).html)
-    expect(text).toContain('о возврате членского взноса по Целевой Потребительской Программе «Образование» в паевой взнос')
-    expect(text).toContain('в размере 1250.50 RUB')
-    expect(text).toContain('в мой паевой взнос по Целевой Потребительской Программе «Цифровой Кошелёк»')
+    expect(text).toContain('о прекращении участия в Целевой Потребительской Программе «Образование»')
+    expect(text).toContain('Прошу прекратить моё участие в Целевой Потребительской Программе «Образование».')
+  })
+
+  it('называет судьбу подписок и остатка: возврат по Положению и весь остаток в паевой', async () => {
+    const text = plainText((await generate()).html)
+    expect(text).toContain('закрыть с возвратом членских взносов по Положению')
+    expect(text).toContain('весь остаток моего членского взноса по программе вернуть в мой паевой взнос по Целевой Потребительской Программе «Цифровой Кошелёк»')
   })
 
   it('оговаривает согласование Обществом', async () => {
     const text = plainText((await generate()).html)
     expect(text).toContain('после согласования настоящего заявления Обществом')
-  })
-
-  it('сумма уходит в мету документа как в цепи — по ней кооператив проводит возврат', async () => {
-    const document = await generate()
-    expect((document.meta as unknown as { amount: string }).amount).toBe('1250.5000 RUB')
   })
 })

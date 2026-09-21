@@ -45,8 +45,8 @@
       template(#icon)
         q-icon(name="receipt_long" size="32px")
 
-  //- Остаток кошелька программы возвращается в паевой по заявлению пайщика и
-  //- согласованию кооператива (пп. 4.2.4, 4.2.5 Положения ЦПП).
+  //- Прекращение участия в программе по заявлению пайщика и согласованию
+  //- кооператива: остаток кошелька программы уходит в паевой (п. 4.2.5 Положения ЦПП).
   template(v-else-if="tab === 'returns'")
     ReturnRequestsPanel(@decided="load")
 
@@ -186,7 +186,7 @@ const expenseOpen = ref(false);
 const tabs: PageTab[] = [
   { key: 'money', label: 'Деньги' },
   { key: 'expenses', label: 'Расходы' },
-  { key: 'returns', label: 'Возвраты в паевой' },
+  { key: 'returns', label: 'Выход из программы' },
   { key: 'settings', label: 'Настройки' },
 ];
 

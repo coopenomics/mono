@@ -695,9 +695,6 @@ export const AllTypesProps: Record<string,any> = {
 	EduRetryTaskInput:{
 
 	},
-	EduReturnStatementInput:{
-
-	},
 	EduReturnStatus: "enum" as const,
 	EduRevokeContributionInput:{
 
@@ -2106,9 +2103,6 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		edubridgeRetryTask:{
 			data:"EduRetryTaskInput"
-		},
-		edubridgeReturnStatement:{
-			data:"EduReturnStatementInput"
 		},
 		edubridgeRevokeContribution:{
 			data:"EduRevokeContributionInput"
@@ -4098,10 +4092,6 @@ export const AllTypesProps: Record<string,any> = {
 }
 
 export const ReturnTypes: Record<string,any> = {
-	auth:{
-		roles:"String",
-		self:"String"
-	},
 	AccessGrant:{
 		action:"String",
 		resource:"String"
@@ -6000,8 +5990,10 @@ export const ReturnTypes: Record<string,any> = {
 	},
 	EduReturnBalance:{
 		available:"String",
-		free:"String",
-		pending:"String"
+		has_pending:"Boolean",
+		refunds:"String",
+		subscriptions:"Int",
+		total:"String"
 	},
 	EduReturnRequest:{
 		amount:"String",

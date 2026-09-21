@@ -7,10 +7,9 @@ import type { MongoDBConnector } from '../Services/Databazor'
 export { EducationReturnStatement as Template } from '../Templates'
 
 /**
- * Factory для Заявления о возврате членского взноса по ЦПП «Образование» в
- * паевой взнос (процесс p.edu.access). Подписывается пайщиком
- * (`data.username`) и после согласования кооперативом уходит в
- * `edubridge::retshare`. Зеркало 3011 в обратную сторону.
+ * Factory для Заявления о прекращении участия в ЦПП «Образование» (процесс
+ * p.edu.access). Подписывается пайщиком (`data.username`) и после согласования
+ * кооперативом уходит в `edubridge::retshare`.
  */
 export class Factory extends DocFactory<EducationReturnStatement.Action> {
   constructor(storage: MongoDBConnector) {
@@ -50,8 +49,6 @@ export class Factory extends DocFactory<EducationReturnStatement.Action> {
       vars,
       user,
       program,
-      // В документ сумма идёт человеку, а не цепи: «1000.0000 RUB» → «1000.00 RUB».
-      amount: this.formatAsset(data.amount),
     }
 
     await this.validate(combinedData, template.model)

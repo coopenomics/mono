@@ -1,5 +1,5 @@
-import { Field, ID, InputType, ObjectType } from '@nestjs/graphql';
-import { IsNotEmpty, IsString, IsUUID, Matches, MaxLength, ValidateNested } from 'class-validator';
+import { Field, ID, InputType, Int, ObjectType } from '@nestjs/graphql';
+import { IsNotEmpty, IsString, IsUUID, MaxLength, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 import { SignedDigitalDocumentInputDTO } from '@coopenomics/extension-kit';
 import { EduReturnStatus } from '../../domain/enums';
@@ -7,21 +7,19 @@ import type { EdubridgeReturnRequestEntity } from '../../infrastructure/entities
 import type { ReturnBalance } from '../services/edubridge-return.service';
 import './edu-enums.registration';
 
-const ASSET = /^\d+\.\d{4} [A-Z]{1,7}$/;
-
-/** Заявка на возврат остатка кошелька программы в паевой взнос. */
+/** Заявление пайщика о прекращении участия в программе «Образование». */
 @ObjectType('EduReturnRequest')
 export class EduReturnRequestDTO {
-  @Field(() => ID, { description: 'Идентификатор заявки' })
+  @Field(() => ID, { description: 'Идентификатор заявления' })
   id!: string;
 
   @Field(() => String, { description: 'Пайщик, подавший заявление' })
   member_username!: string;
 
-  @Field(() => String, { description: 'Сумма возврата в паевой взнос' })
+  @Field(() => String, { description: 'Сумма перевода в паевой взнос: после согласования — переведённая, до него — оценка на день подачи' })
   amount!: string;
 
-  @Field(() => EduReturnStatus, { description: 'Состояние заявки' })
+  @Field(() => EduReturnStatus, { description: 'Состояние заявления' })
   status!: EduReturnStatus;
 
   @Field(() => String, { description: 'Идентификатор подписанного заявления' })
@@ -48,35 +46,36 @@ export class EduReturnRequestDTO {
   }
 }
 
-/** Остаток кошелька программы и то, что из него ещё можно заявить к возврату. */
+/** Что уйдёт в паевой взнос, если прекратить участие в программе сегодня. */
 @ObjectType('EduReturnBalance')
 export class EduReturnBalanceDTO {
   @Field(() => String, { description: 'Остаток кошелька программы' })
   available!: string;
 
-  @Field(() => String, { description: 'Заявлено к возврату и ждёт согласования' })
-  pending!: string;
+  @Field(() => String, { description: 'Сколько вернут по действующим подпискам, если закрыть их сегодня' })
+  refunds!: string;
 
-  @Field(() => String, { description: 'Доступно для нового заявления' })
-  free!: string;
+  @Field(() => String, { description: 'Сколько уйдёт в паевой взнос при прекращении участия сегодня' })
+  total!: string;
+
+  @Field(() => Int, { description: 'Действующих подписок, которые закроются' })
+  subscriptions!: number;
+
+  @Field(() => Boolean, { description: 'Заявление о прекращении участия уже подано и ждёт согласования' })
+  has_pending!: boolean;
 
   constructor(b: ReturnBalance) {
     this.available = b.available;
-    this.pending = b.pending;
-    this.free = b.free;
+    this.refunds = b.refunds;
+    this.total = b.total;
+    this.subscriptions = b.subscriptions;
+    this.has_pending = b.has_pending;
   }
 }
 
-@InputType('EduReturnStatementInput')
-export class EduReturnStatementInputDTO {
-  @Field(() => String, { description: 'Сумма возврата в паевой взнос, например «1000.0000 RUB»' })
-  @Matches(ASSET)
-  amount!: string;
-}
-
 @InputType('EduRequestReturnInput')
-export class EduRequestReturnInputDTO extends EduReturnStatementInputDTO {
-  @Field(() => SignedDigitalDocumentInputDTO, { description: 'Подписанное заявление о возврате членского взноса в паевой взнос' })
+export class EduRequestReturnInputDTO {
+  @Field(() => SignedDigitalDocumentInputDTO, { description: 'Подписанное заявление о прекращении участия в программе' })
   @ValidateNested()
   @Type(() => SignedDigitalDocumentInputDTO)
   document!: SignedDigitalDocumentInputDTO;

@@ -14,6 +14,6 @@ const rawReturnRequestSelector = {
 const _validateReturnRequest: MakeAllFieldsRequired<ValueTypes['EduReturnRequest']> = rawReturnRequestSelector
 export const eduReturnRequestSelector = Selector('EduReturnRequest')(rawReturnRequestSelector)
 
-const rawReturnBalanceSelector = { available: true, pending: true, free: true }
+const rawReturnBalanceSelector = { available: true, refunds: true, total: true, subscriptions: true, has_pending: true }
 const _validateReturnBalance: MakeAllFieldsRequired<ValueTypes['EduReturnBalance']> = rawReturnBalanceSelector
 export const eduReturnBalanceSelector = Selector('EduReturnBalance')(rawReturnBalanceSelector)

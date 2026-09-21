@@ -84,6 +84,24 @@ describe('EdubridgeFundsService — удержание', () => {
     expect(e.locked_amount).toBe('250.0000 RUB');
   });
 
+  it('ученик вписался в идущий курс — свои 14 дней гарантии от дня вступления', async () => {
+    // Курс идёт с 1 сентября, ученик вписался 20-го: срок курса давно вышел, а его — до 4 октября.
+    const course = courseOf(true);
+    const e = subOf(course, { joined_at: at(19), paid_until: new Date('2026-10-20T00:00:00Z') });
+    const { service, chain } = make(course, [e]);
+    await expect(service.unlockDue('voskhod', at(25))).resolves.toBe(0);
+    expect(chain.unlockFee).not.toHaveBeenCalled();
+    expect(e.locked_amount).toBe('1000.0000 RUB');
+  });
+
+  it('личный срок вписавшегося вышел — удержание тает по Положению', async () => {
+    const course = courseOf(true);
+    const e = subOf(course, { joined_at: at(19), paid_until: new Date('2026-10-20T00:00:00Z') });
+    const { service, chain } = make(course, [e]);
+    await expect(service.unlockDue('voskhod', at(35))).resolves.toBe(1);
+    expect(chain.unlockFee).toHaveBeenCalled();
+  });
+
   it('повторный проход без новых занятий ничего не освобождает', async () => {
     const course = courseOf(true);
     const e = subOf(course, { locked_amount: '250.0000 RUB' });

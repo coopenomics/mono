@@ -255,7 +255,11 @@ export class EdubridgeEnrollmentService {
     entity.status = EduEnrollmentStatus.ACTIVE;
     entity.statement_hash = document.hash.toLowerCase();
     entity.expiry_notified_at = null;
-    if (!plan.isExtension) entity.access_state = EduAccessState.PENDING;
+    if (!plan.isExtension) {
+      entity.access_state = EduAccessState.PENDING;
+      // Ученик вписался в курс: от этого дня (не раньше начала занятий) идёт его гарантийный срок.
+      entity.joined_at = new Date();
+    }
     const saved = await this.enrollments.save(entity);
 
     const payload: IEduEnrollmentEventPayload = {
@@ -390,6 +394,17 @@ export class EdubridgeEnrollmentService {
     const course = await this.courses.findById(coopname, enrollment.course_id);
     if (!course) throw new NotFoundException('Курс не найден');
     return this.refundFor(enrollment, course, false);
+  }
+
+  /** Сколько действующих подписок у пайщика и сколько вернут по ним сегодня — для прекращения участия в программе. */
+  async refundsOnExit(coopname: string, member: string): Promise<{ subscriptions: number; refunds: number }> {
+    const active = (await this.enrollments.findByMember(coopname, member)).filter((e) => isCancellable(e));
+    let refunds = 0;
+    for (const enrollment of active) {
+      const course = await this.courses.findById(coopname, enrollment.course_id);
+      if (course) refunds += Number.parseFloat(this.refundFor(enrollment, course, false).refund) || 0;
+    }
+    return { subscriptions: active.length, refunds };
   }
 
   /** Сумма возврата по Положению ЦПП — её же показывает стол до отмены. */

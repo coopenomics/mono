@@ -23,7 +23,7 @@ div
   EmptyState(
     v-if="!firstLoad && !requests.length"
     title="Заявлений нет"
-    body="Здесь появляются заявления пайщиков о возврате остатка кошелька программы в паевой взнос."
+    body="Здесь появляются заявления пайщиков о прекращении участия в программе."
   )
     template(#icon)
       q-icon(name="undo" size="32px")
@@ -50,8 +50,10 @@ import { approveReturn, declineReturn, fetchReturnRequests } from '../api';
 import { RETURN_STATUS_LABELS, type IReturnRequest } from '../model';
 
 /**
- * Согласование заявлений о возврате членского взноса в паевой взнос: Положение
- * ЦПП требует решения кооператива, и только после него средства переходят.
+ * Согласование заявлений о прекращении участия в программе: Положение ЦПП
+ * требует решения кооператива. После согласования подписки пайщика
+ * закрываются с возвратом по Положению, весь остаток кошелька программы
+ * переходит в паевой взнос, соглашение о программе аннулируется.
  */
 const emit = defineEmits<{ (e: 'decided'): void }>();
 
@@ -68,7 +70,7 @@ const { confirm } = useConfirm();
 const columns: BaseTableColumn<IReturnRequest>[] = [
   { key: 'created_at', label: 'Подано', width: '120px', nowrap: true },
   { key: 'member_username', label: 'Пайщик' },
-  { key: 'amount', label: 'Сумма', numeric: true, width: '150px', nowrap: true },
+  { key: 'amount', label: 'В паевой', numeric: true, width: '150px', nowrap: true },
   { key: 'status', label: 'Состояние', width: '220px' },
   { key: 'actions', label: '', align: 'right', width: '230px' },
 ];
@@ -95,15 +97,15 @@ function replace(updated: IReturnRequest): void {
 
 async function onApprove(row: IReturnRequest): Promise<void> {
   const ok = await confirm({
-    title: 'Согласовать возврат?',
-    message: `${formatAsset2Digits(row.amount)} перейдут с кошелька программы в паевой взнос пайщика.`,
+    title: 'Согласовать прекращение участия?',
+    message: `Подписки пайщика закроются с возвратом по Положению, весь остаток кошелька программы перейдёт в его паевой взнос (на день подачи — ${formatAsset2Digits(row.amount)}).`,
     confirmLabel: 'Согласовать',
   });
   if (!ok) return;
   busyId.value = asText(row.id);
   try {
     replace(await approveReturn(asText(row.id)));
-    SuccessAlert('Возврат согласован, средства переведены в паевой взнос');
+    SuccessAlert('Участие прекращено, остаток переведён в паевой взнос');
   } catch (e) {
     FailAlert(e);
   } finally {

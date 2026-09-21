@@ -21,9 +21,8 @@ export const Schema: JSONSchemaType<Model> = {
     vars: VarsSchema,
     user: CommonUserSchema,
     program: CommonProgramSchema,
-    amount: { type: 'string' },
   },
-  required: ['meta', 'coop', 'vars', 'user', 'program', 'amount'],
+  required: ['meta', 'coop', 'vars', 'user', 'program'],
   additionalProperties: true,
 }
 

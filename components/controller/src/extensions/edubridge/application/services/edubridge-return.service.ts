@@ -15,32 +15,40 @@ import { EduReturnStatus } from '../../domain/enums';
 import { EDUBRIDGE_CHAIN_PORT, type EdubridgeChainPort } from '../../domain/ports/edubridge-chain.port';
 import type { EdubridgeReturnRequestEntity } from '../../infrastructure/entities';
 import { EdubridgeReturnRequestRepository } from '../../infrastructure/repositories/edubridge-return-request.repository';
+import { EdubridgeEnrollmentService } from './edubridge-enrollment.service';
 
-/** Кошелёк членских взносов программы — источник возврата. */
+/** Кошелёк членских взносов программы — его остаток уходит в паевой. */
 const MEMBER_WALLET = 'w.edu.member';
-const ASSET_PATTERN = /^(\d+\.\d{4}) ([A-Z]{1,7})$/;
 
 export interface ReturnBalance {
   /** Остаток кошелька программы. */
   available: string;
-  /** Сколько уже заявлено к возврату и ждёт согласования. */
-  pending: string;
-  /** Сколько ещё можно заявить. */
-  free: string;
+  /** Сколько вернут по действующим подпискам, если закрыть их сегодня. */
+  refunds: string;
+  /** Сколько уйдёт в паевой при прекращении участия сегодня. */
+  total: string;
+  /** Действующих подписок, которые закроются. */
+  subscriptions: number;
+  /** Заявление о прекращении участия уже подано и ждёт согласования. */
+  has_pending: boolean;
 }
 
 /**
- * Возврат остатка кошелька программы в паевой взнос. Положение ЦПП
- * «Образование» (пп. 4.2.4, 4.2.5) отдаёт возвращённые участнику взносы в его
- * распоряжение: на другую подписку либо обратно в Цифровой Кошелёк — по
- * заявлению Участника и согласованию Общества. Поэтому путь двухшаговый:
- * пайщик подписывает заявление 3013, кооператив согласует, и только тогда
- * `retshare` переводит средства (Дт 86 / Кт 80).
+ * Прекращение участия в ЦПП «Образование». Членский взнос программы
+ * возвращается в паевой только с прекращением участия: по заявлению пайщика,
+ * при выходе из кооператива, при отмене курса по недобору. Пока пайщик
+ * участвует в программе, остаток кошелька программы идёт на новые подписки.
+ *
+ * Путь двухшаговый (п. 4.2.5 Положения требует согласования Обществом):
+ * пайщик подписывает заявление 3013, кооператив согласует. Тогда подписки
+ * закрываются с возвратом по Положению, и `retshare` переводит весь остаток в
+ * паевой (Дт 86 / Кт 80) и аннулирует соглашение о программе.
  */
 @Injectable()
 export class EdubridgeReturnService {
   constructor(
     private readonly requests: EdubridgeReturnRequestRepository,
+    private readonly enrollments: EdubridgeEnrollmentService,
     @Inject(EDUBRIDGE_CHAIN_PORT) private readonly chain: EdubridgeChainPort,
     @Inject(DOCUMENT_PORT) private readonly documents: IDocumentPort,
     @Inject(USER_WALLET_PORT) private readonly wallets: IUserWalletPort,
@@ -57,80 +65,88 @@ export class EdubridgeReturnService {
     return this.requests.findByStatus(coopname, status);
   }
 
-  /** Сколько на кошельке программы и сколько из этого ещё не заявлено к возврату. */
+  /** Что уйдёт в паевой, если прекратить участие сегодня. */
   async balance(coopname: string, member: string): Promise<ReturnBalance> {
     const symbol = platformSettings().blockchain.rootGovernSymbol;
-    const wallet = await this.wallets.findByWalletAndUsername(coopname, MEMBER_WALLET, member);
-    const available = toNumber(wallet?.available);
-    const pending = (await this.requests.findByMember(coopname, member))
-      .filter((r) => r.status === EduReturnStatus.PENDING)
-      .reduce((sum, r) => sum + toNumber(r.amount), 0);
     const asset = (value: number): string => `${Math.max(0, value).toFixed(4)} ${symbol}`;
-    return { available: asset(available), pending: asset(pending), free: asset(available - pending) };
+    const available = await this.walletAvailable(coopname, member);
+    const { subscriptions, refunds } = await this.enrollments.refundsOnExit(coopname, member);
+    return {
+      available: asset(available),
+      refunds: asset(refunds),
+      total: asset(available + refunds),
+      subscriptions,
+      has_pending: await this.hasPending(coopname, member),
+    };
   }
 
   /** Заявление 3013 без подписи — пайщик подписывает его на фронте. */
-  async statement(coopname: string, member: string, amount: string): Promise<InnerGeneratedDocument> {
-    await this.assertAmount(coopname, member, amount);
+  async statement(coopname: string, member: string): Promise<InnerGeneratedDocument> {
+    await this.assertNoPending(coopname, member);
     const action: Cooperative.Registry.EducationReturnStatement.Action = {
       registry_id: Cooperative.Registry.EducationReturnStatement.registry_id,
       coopname,
       username: member,
       lang: 'ru',
-      amount,
       skip_save: false,
     };
     return this.documents.generate({ data: action });
   }
 
-  /** Пайщик подал подписанное заявление — заявка ждёт согласования кооперативом. */
-  async request(coopname: string, member: string, amount: string, document: ISignedDocument): Promise<EdubridgeReturnRequestEntity> {
+  /** Пайщик подал подписанное заявление — оно ждёт согласования кооперативом. */
+  async request(coopname: string, member: string, document: ISignedDocument): Promise<EdubridgeReturnRequestEntity> {
     if (!document.signatures?.some((s) => s.signer === member)) throw new BadRequestException('Заявление не подписано пайщиком');
-    if (String(metaOf(document).amount ?? '') !== amount) {
-      throw new BadRequestException('Сумма заявки расходится с суммой в подписанном заявлении');
+    if (Number(metaOf(document).registry_id) !== Cooperative.Registry.EducationReturnStatement.registry_id) {
+      throw new BadRequestException('Подписан не тот документ: нужно заявление о прекращении участия в программе');
     }
-    await this.assertAmount(coopname, member, amount);
+    await this.assertNoPending(coopname, member);
 
     const saved = await this.requests.save(
       this.requests.create({
         coopname,
         member_username: member,
-        amount,
+        // Точная сумма известна в день согласования; до него — оценка на день подачи.
+        amount: (await this.balance(coopname, member)).total,
         statement_hash: document.hash.toLowerCase(),
         statement_document: document as unknown as Record<string, unknown>,
         status: EduReturnStatus.PENDING,
       })
     );
-    this.logger.info(`[EDU.RETURN] ${member}: заявка на возврат ${amount} в паевой взнос ждёт согласования`);
+    this.logger.info(`[EDU.EXIT] ${member}: заявление о прекращении участия в программе ждёт согласования`);
     return saved;
   }
 
-  /** Кооператив согласовал заявление: `retshare` переводит остаток в паевой взнос. */
+  /**
+   * Кооператив согласовал: подписки закрываются с возвратом по Положению, весь
+   * остаток кошелька программы уходит в паевой, соглашение о программе аннулируется.
+   */
   async approve(coopname: string, id: string, actor: string): Promise<EdubridgeReturnRequestEntity> {
     const r = await this.pending(coopname, id);
-    const wallet = await this.wallets.findByWalletAndUsername(coopname, MEMBER_WALLET, r.member_username);
-    if (toNumber(wallet?.available) < toNumber(r.amount)) {
-      throw new BadRequestException(
-        `На кошельке программы пайщика ${wallet?.available ?? '0'} — меньше заявленного ${r.amount}: средства потрачены на подписку. Отклоните заявку, пайщик подаст новую`
-      );
+    const member = r.member_username;
+    const symbol = platformSettings().blockchain.rootGovernSymbol;
+
+    // Остаток до закрытия подписок: возвраты по ним лягут сверху, книга ещё не успела их отразить.
+    const before = await this.walletAvailable(coopname, member);
+    const cancelled = await this.enrollments.cancelAllForMember(coopname, member, 'прекращение участия в программе');
+    const left = await this.enrollments.refundsOnExit(coopname, member);
+    if (left.subscriptions > 0) {
+      throw new BadRequestException(`Не удалось закрыть подписок: ${left.subscriptions}. Повторите согласование — закрытые уже не тронутся`);
     }
+    const refunds = cancelled.reduce((sum, e) => sum + (Number.parseFloat(e.refunded_amount ?? '0') || 0), 0);
+    const amount = `${(before + refunds).toFixed(4)} ${symbol}`;
 
-    await this.chain.returnToShare({
-      coopname,
-      username: r.member_username,
-      amount: r.amount,
-      statement: r.statement_document,
-    } as never);
+    await this.chain.returnToShare({ coopname, username: member, amount, statement: r.statement_document } as never);
 
+    r.amount = amount;
     r.status = EduReturnStatus.APPROVED;
     r.decided_by = actor;
     r.decided_at = new Date();
     const saved = await this.requests.save(r);
-    this.logger.info(`[EDU.RETURN] ${r.member_username}: ${r.amount} возвращены в паевой взнос, согласовал ${actor}`);
+    this.logger.info(`[EDU.EXIT] ${member}: участие в программе прекращено, ${amount} в паевой взнос, согласовал ${actor}`);
     return saved;
   }
 
-  /** Кооператив отклонил заявление — остаток остаётся на кошельке программы. */
+  /** Кооператив отклонил заявление — участие продолжается, остаток на кошельке программы. */
   async decline(coopname: string, id: string, actor: string, reason: string): Promise<EdubridgeReturnRequestEntity> {
     if (!reason?.trim()) throw new BadRequestException('Укажите причину отказа');
     const r = await this.pending(coopname, id);
@@ -143,20 +159,24 @@ export class EdubridgeReturnService {
 
   private async pending(coopname: string, id: string): Promise<EdubridgeReturnRequestEntity> {
     const r = await this.requests.findById(coopname, id);
-    if (!r) throw new NotFoundException('Заявка не найдена');
-    if (r.status !== EduReturnStatus.PENDING) throw new BadRequestException('По заявке уже принято решение');
+    if (!r) throw new NotFoundException('Заявление не найдено');
+    if (r.status !== EduReturnStatus.PENDING) throw new BadRequestException('По заявлению уже принято решение');
     return r;
   }
 
-  /** Сумма — в формате цепи, больше нуля и не больше незаявленного остатка. */
-  private async assertAmount(coopname: string, member: string, amount: string): Promise<void> {
-    if (!ASSET_PATTERN.test(amount) || !(toNumber(amount) > 0)) {
-      throw new BadRequestException('Сумма возврата указывается в формате «1000.0000 RUB» и больше нуля');
+  private async hasPending(coopname: string, member: string): Promise<boolean> {
+    return (await this.requests.findByMember(coopname, member)).some((r) => r.status === EduReturnStatus.PENDING);
+  }
+
+  private async assertNoPending(coopname: string, member: string): Promise<void> {
+    if (await this.hasPending(coopname, member)) {
+      throw new BadRequestException('Заявление о прекращении участия уже подано и ждёт согласования');
     }
-    const balance = await this.balance(coopname, member);
-    if (toNumber(amount) > toNumber(balance.free)) {
-      throw new BadRequestException(`К возврату доступно ${balance.free}: остаток кошелька программы за вычетом уже поданных заявок`);
-    }
+  }
+
+  private async walletAvailable(coopname: string, member: string): Promise<number> {
+    const wallet = await this.wallets.findByWalletAndUsername(coopname, MEMBER_WALLET, member);
+    return toNumber(wallet?.available);
   }
 }
 

@@ -2,7 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import { EduEnrollmentStatus } from '../../domain/enums';
 import { costOfHours, courseMonths } from '../../domain/economy/course-fee.calculator';
-import { isGuaranteeRunning } from '../../domain/economy/guarantee';
+import { isEntryGuaranteeRunning } from '../../domain/economy/guarantee';
 import { reserveTarget, type ReserveCoverage, type ReserveTarget } from '../../domain/economy/teacher-reserve.calculator';
 import { EDUBRIDGE_CHAIN_PORT, type EdubridgeChainPort } from '../../domain/ports/edubridge-chain.port';
 import type { EdubridgeCourseEntity, EdubridgeEnrollmentEntity } from '../../infrastructure/entities';
@@ -19,8 +19,8 @@ const ASSET_SCALE = 10_000;
  * правила, на которых держится всё остальное.
  *
  * Удержано не меньше того, что участник может потребовать назад прямо сейчас.
- * Пока идёт гарантийный срок курса — это весь взнос; после него — сумма
- * возврата по Положению, которая тает с каждым проведённым занятием. Поэтому
+ * Пока идёт гарантийный срок ученика — это весь взнос; после него — сумма
+ * возврата по Положению, которая тает по мере прохождения курса. Поэтому
  * возврат всегда обеспечен деньгами, а фонд можно тратить на расходы без
  * оглядки: в нём лежит только то, что вернуть уже нельзя.
  *
@@ -42,7 +42,7 @@ export class EdubridgeFundsService {
   /** Сколько по подписке должно оставаться удержанным на этот момент. */
   requiredLock(enrollment: EdubridgeEnrollmentEntity, course: EdubridgeCourseEntity, now = new Date()): number {
     const locked = toNumber(enrollment.locked_amount);
-    if (isGuaranteeRunning(course, now)) return locked;
+    if (isEntryGuaranteeRunning(course, enrollment, now)) return locked;
     return Math.min(locked, toNumber(refundOf(enrollment, course, false, now).refund));
   }
 

@@ -49,7 +49,7 @@ describe('Документы ЦПП «Образование» в реестре
     await registerEdubridgeDocuments(port);
     const byId = new Map(registered.map((d) => [d.registry_id, d]));
     expect(byId.get(3012)).toMatchObject({ kind: 'form', approval: 'required', bundle: 'education_forms' });
-    // Заявление о возврате членского взноса в паевой — рабочая форма пайщика, совет утверждает её редакцию.
+    // Заявление о прекращении участия в программе — рабочая форма пайщика, совет утверждает её редакцию.
     expect(byId.get(3013)).toMatchObject({ kind: 'form', approval: 'required', bundle: 'education_forms' });
     expect(byId.get(3009)).toMatchObject({ kind: 'service', approval: 'none' });
   });

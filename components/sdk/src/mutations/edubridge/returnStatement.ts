@@ -1,19 +1,13 @@
 import { documentSelector } from '../../selectors/common/documentSelector'
-import { $, type GraphQLTypes, type InputType, type ModelTypes, Selector } from '../../zeus/index'
+import { type GraphQLTypes, type InputType, Selector } from '../../zeus/index'
 
 export const name = 'edubridgeReturnStatement'
 
+/**
+ * Сформировать заявление о прекращении участия в программе «Образование».
+ */
 export const mutation = Selector('Mutation')({
-  [name]: [{ data: $('data', 'EduReturnStatementInput!') }, documentSelector],
+  [name]: documentSelector,
 })
-
-export interface IInput {
-  /**
-   * @private
-   */
-  [key: string]: unknown
-
-  data: ModelTypes['EduReturnStatementInput']
-}
 
 export type IOutput = InputType<GraphQLTypes['Mutation'], typeof mutation>

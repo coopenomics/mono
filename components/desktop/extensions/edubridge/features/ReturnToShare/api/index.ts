@@ -24,10 +24,11 @@ export async function fetchReturnRequests(status?: Zeus.EduReturnStatus | null) 
 }
 
 /**
- * Заявление о возврате членского взноса в паевой взнос (3013): формируется на
- * сумму заявки и подписывается локальным ключом пайщика.
+ * Заявление о прекращении участия в программе (3013): формируется без суммы —
+ * остаток становится известен в день согласования — и подписывается локальным
+ * ключом пайщика.
  */
-export async function buildReturnStatement(amount: string): Promise<DigitalDocument> {
+export async function buildReturnStatement(): Promise<DigitalDocument> {
   const session = useSessionStore();
   const system = useSystemStore();
   const username = session.username;
@@ -37,18 +38,17 @@ export async function buildReturnStatement(amount: string): Promise<DigitalDocum
     registry_id: Cooperative.Registry.EducationReturnStatement.registry_id,
     coopname: system.info.coopname,
     username,
-    amount,
   });
   return document;
 }
 
-export async function requestReturn(amount: string, statement: DigitalDocument) {
+export async function requestReturn(statement: DigitalDocument) {
   const session = useSessionStore();
   const username = session.username;
   if (!username) throw new Error('Пайщик не авторизован');
   await statement.sign(username);
   if (!statement.signedDocument) throw new Error('Не удалось подписать заявление');
-  const data: IRequestReturnInput = { amount, document: statement.signedDocument };
+  const data: IRequestReturnInput = { document: statement.signedDocument };
   const { [Mutations.Edubridge.RequestReturn.name]: result } = await client.Mutation(Mutations.Edubridge.RequestReturn.mutation, {
     variables: { data },
   });

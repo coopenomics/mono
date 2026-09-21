@@ -1,5 +1,5 @@
 import { Field, ID, InputType, Int, ObjectType } from '@nestjs/graphql';
-import { IsEnum, IsUUID, Matches, ValidateNested } from 'class-validator';
+import { IsEnum, IsUUID, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 import { SignedDigitalDocumentInputDTO } from '@coopenomics/extension-kit';
 import { EduAccessState, EduEnrollmentPeriod, EduEnrollmentStatus } from '../../domain/enums';
@@ -148,16 +148,4 @@ export class EduRefundPreviewDTO {
 
   @Field(() => Boolean, { description: 'Возврат идёт сразу на паевой' })
   to_share!: boolean;
-}
-
-@InputType('EduReturnToShareInput')
-export class EduReturnToShareInputDTO {
-  @Field(() => String, { description: 'Сумма возврата в паевой («1000.0000 RUB»)' })
-  @Matches(/^\d+\.\d{4} [A-Z]{1,7}$/, { message: 'Сумма должна быть в формате «1000.0000 RUB»' })
-  amount!: string;
-
-  @Field(() => SignedDigitalDocumentInputDTO, { description: 'Подписанное заявление о возврате членского взноса в паевой' })
-  @ValidateNested()
-  @Type(() => SignedDigitalDocumentInputDTO)
-  document!: SignedDigitalDocumentInputDTO;
 }
