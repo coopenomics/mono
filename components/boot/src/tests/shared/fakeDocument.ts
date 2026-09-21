@@ -25,10 +25,17 @@ export const fakeDocument = {
     id: 1,
     signed_hash: DOCUMENT_HASH,
     signer: 'cooperative1',
-    // eslint-disable-next-line node/prefer-global/process
-    public_key: process.env.EOSIO_PUB_KEY!,
-    // eslint-disable-next-line node/prefer-global/process
-    signature: ecc.signHash(DOCUMENT_HASH, process.env.EOSIO_PRV_KEY!),
+    // Ключ и подпись читаются при обращении, а не при загрузке модуля: фикстуру импортирует рабочий код boot, и весь
+    // бандл вычислял бы подпись на любом запуске. `drafts:sync --plan` в плейбуке идёт без ключа и падал на
+    // «Invalid private key» ещё до чтения цепи (релиз v2026.9.21).
+    get public_key(): string {
+      // eslint-disable-next-line node/prefer-global/process
+      return process.env.EOSIO_PUB_KEY!
+    },
+    get signature(): string {
+      // eslint-disable-next-line node/prefer-global/process
+      return ecc.signHash(DOCUMENT_HASH, process.env.EOSIO_PRV_KEY!)
+    },
     signed_at: '2025-05-14T12:22:26',
     meta: '{}',
   }],
