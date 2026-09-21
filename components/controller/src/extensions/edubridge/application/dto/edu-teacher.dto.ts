@@ -2,7 +2,7 @@ import { Field, ID, InputType, Int, ObjectType } from '@nestjs/graphql';
 import { IsArray, IsDateString, IsEnum, IsInt, IsOptional, IsString, IsUUID, Length, Matches, Max, Min, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 import { SignedDigitalDocumentInputDTO } from '@coopenomics/extension-kit';
-import { EduAssignmentStatus, EduContractStatus, EduContributionStatus, EduRidType } from '../../domain/enums';
+import { EduAssignmentStatus, EduContractStatus, EduContributionStatus, EduCouncilOutcome, EduRidType } from '../../domain/enums';
 import type {
   EdubridgeContributionEntity,
   EdubridgeLessonEntity,
@@ -141,6 +141,7 @@ export class EduContributionDTO {
   @Field(() => String, { nullable: true }) act_hash!: string | null;
   @Field(() => String, { nullable: true, description: 'Причина отклонения' }) decline_reason!: string | null;
   @Field(() => String, { nullable: true, description: 'Номер решения совета' }) council_decision_id!: string | null;
+  @Field(() => EduCouncilOutcome, { nullable: true, description: 'Совет решения о приёме не принял: отклонил вопрос либо не уложился в срок' }) council_outcome!: EduCouncilOutcome | null;
   @Field(() => Date, { nullable: true, description: 'Дата решения' }) decided_at!: Date | null;
   @Field(() => Date) created_at!: Date;
 
@@ -148,7 +149,7 @@ export class EduContributionDTO {
     Object.assign(this, {
       id: e.id, teacher_username: e.teacher_username, assignment_id: e.assignment_id, rid_hash: e.rid_hash, rid_type: e.rid_type,
       links: e.links ?? [], description: e.description, amount: e.amount, status: e.status, statement_hash: e.statement_hash,
-      decision_hash: e.decision_hash, act_hash: e.act_hash, storage_act_hash: e.storage_act_hash, decline_reason: e.decline_reason, council_decision_id: e.council_decision_id,
+      decision_hash: e.decision_hash, act_hash: e.act_hash, storage_act_hash: e.storage_act_hash, decline_reason: e.decline_reason, council_decision_id: e.council_decision_id, council_outcome: e.council_outcome ?? null,
       decided_at: e.decided_at, created_at: e.created_at, hold_until: e.hold_until,
     });
   }

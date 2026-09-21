@@ -88,6 +88,11 @@ export class EdubridgeTeacherRepository {
       .getMany();
   }
 
+  /** Заявление по номеру вопроса в повестке совета. */
+  findContributionByAgendaId(coopname: string, agendaId: string): Promise<EdubridgeContributionEntity | null> {
+    return this.contributions.findOne({ where: { coopname, council_agenda_id: agendaId } });
+  }
+
   findContributionByProjectHash(hash: string): Promise<EdubridgeContributionEntity | null> {
     return this.contributions.findOne({ where: { council_project_hash: hash.toLowerCase() } });
   }

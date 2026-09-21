@@ -1,10 +1,12 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
-import { EdubridgeContract } from 'cooptypes';
+import { EdubridgeContract, SovietContract } from 'cooptypes';
 import { LOGGER_PORT, type ILoggerPort, type InnerChainActionRecord } from '@coopenomics/innercoop';
+import { EduCouncilOutcome } from '../../domain/enums';
 import { EdubridgeTeacherService } from '../services/edubridge-teacher.service';
 
 const CONTRACT = EdubridgeContract.contractName.production;
+const SOVIET = SovietContract.contractName.production;
 
 /**
  * Вторая подпись председателя приходит не мутацией, а действием цепи:
@@ -47,5 +49,23 @@ export class EdubridgeApprovalListener {
     const d = action.data as EdubridgeContract.Actions.Dclineannex.IDclineannex;
     if (!d?.coopname || !d?.username || !d?.annex_hash) return;
     await this.teachers.onAnnexDeclined(String(d.coopname), String(d.username), String(d.annex_hash), String(d.reason ?? ''));
+  }
+
+  /** Совет отклонил вопрос о приёме результата — заявление помечается, материалы снимает председатель. */
+  @OnEvent(`action::${SOVIET}::${SovietContract.Actions.Decisions.Declinedec.actionName}`)
+  async onCouncilDeclined(action: InnerChainActionRecord): Promise<void> {
+    await this.councilGaveUp(action, EduCouncilOutcome.DECLINED);
+  }
+
+  /** Вопрос не набрал голосов в срок и снят с повестки. */
+  @OnEvent(`action::${SOVIET}::${SovietContract.Actions.Decisions.Cancelexprd.actionName}`)
+  async onCouncilExpired(action: InnerChainActionRecord): Promise<void> {
+    await this.councilGaveUp(action, EduCouncilOutcome.EXPIRED);
+  }
+
+  private async councilGaveUp(action: InnerChainActionRecord, outcome: EduCouncilOutcome): Promise<void> {
+    const d = action.data as { coopname?: string; decision_id?: string | number } | undefined;
+    if (!d?.coopname || d.decision_id === undefined || d.decision_id === null) return;
+    await this.teachers.onCouncilGaveUp(String(d.coopname), String(d.decision_id), outcome);
   }
 }

@@ -1,5 +1,5 @@
 import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
-import { EduContributionStatus, EduRidType } from '../../domain/enums';
+import { EduContributionStatus, EduCouncilOutcome, EduRidType } from '../../domain/enums';
 
 /** Паевой взнос преподавателя результатами работы (РИД). `rid_hash` — ключ записи в цепи (`edubridge::edurids`). */
 @Entity({ name: 'edubridge_contributions' })
@@ -77,6 +77,17 @@ export class EdubridgeContributionEntity {
   /** Хеш проекта решения совета (правило отслеживания ядра). */
   @Column({ type: 'varchar', length: 64, nullable: true })
   public council_project_hash!: string | null;
+
+  /**
+   * Номер вопроса в повестке совета — по нему приходит отклонение и снятие
+   * просроченного вопроса. Принятое решение пишется в `council_decision_id`.
+   */
+  @Column({ type: 'varchar', length: 64, nullable: true })
+  public council_agenda_id!: string | null;
+
+  /** Совет решения о приёме не принял: отклонил либо не уложился в срок. Материалы снимает председатель. */
+  @Column({ type: 'enum', enum: EduCouncilOutcome, nullable: true })
+  public council_outcome!: EduCouncilOutcome | null;
 
   /** Номер решения совета, когда принято. */
   @Column({ type: 'varchar', length: 64, nullable: true })

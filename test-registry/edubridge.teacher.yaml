@@ -342,3 +342,24 @@ cases:
     expect: "Резерв списывается на стоимость результата; недостающее выделяется из фонда; приём не блокируется."
     test: ~
     status: missing
+  - id: edu.teach.side.19
+    level: backend
+    kind: side
+    scenario: "Совет отклонил вопрос о приёме результата либо не принял решение в срок."
+    expect: "Подача запоминает номер вопроса в повестке; заявление помечается исходом совета и остаётся на рассмотрении — материалы снимает председатель; чужой вопрос и заявление в другом статусе не помечаются."
+    test: components/controller/tests/unit/edubridge/teacher.service.test.ts
+    status: written
+  - id: edu.teach.side.20
+    level: backend
+    kind: side
+    scenario: "Действия совета declinedec и cancelexprd доходят до расширения."
+    expect: "Слушатель передаёт кооператив, номер вопроса (в том числе нулевой) и исход; действие без номера пропускается."
+    test: components/controller/tests/unit/edubridge/council-outcome.listener.test.ts
+    status: written
+  - id: edu.teach.break.09
+    level: backend
+    kind: break
+    scenario: "Повестка совета недоступна в момент подачи заявления."
+    expect: "Подача проходит, номер вопроса не запоминается, пометки исхода не будет."
+    test: components/controller/tests/unit/edubridge/teacher.service.test.ts
+    status: written

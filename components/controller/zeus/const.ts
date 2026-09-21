@@ -638,6 +638,7 @@ export const AllTypesProps: Record<string,any> = {
 	EduConnectorHealth: "enum" as const,
 	EduContractStatus: "enum" as const,
 	EduContributionStatus: "enum" as const,
+	EduCouncilOutcome: "enum" as const,
 	EduCourseDirection: "enum" as const,
 	EduCourseEconomyInput:{
 
@@ -5786,6 +5787,7 @@ export const ReturnTypes: Record<string,any> = {
 		amount:"String",
 		assignment_id:"ID",
 		council_decision_id:"String",
+		council_outcome:"EduCouncilOutcome",
 		created_at:"DateTime",
 		decided_at:"DateTime",
 		decision_hash:"String",

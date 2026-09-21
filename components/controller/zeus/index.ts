@@ -6939,6 +6939,8 @@ export type ValueTypes = {
 	assignment_id?:boolean | `@${string}`,
 	/** Номер решения совета */
 	council_decision_id?:boolean | `@${string}`,
+	/** Совет решения о приёме не принял: отклонил вопрос либо не уложился в срок */
+	council_outcome?:boolean | `@${string}`,
 	created_at?:boolean | `@${string}`,
 	/** Дата решения */
 	decided_at?:boolean | `@${string}`,
@@ -6968,6 +6970,8 @@ export type ValueTypes = {
 }>;
 	/** Состояние взноса результатами работы */
 ["EduContributionStatus"]:EduContributionStatus;
+	/** Исход рассмотрения заявления советом, когда решение о приёме не принято */
+["EduCouncilOutcome"]:EduCouncilOutcome;
 	["EduCourse"]: AliasType<{
 	/** Носитель доступа */
 	carrier?:boolean | `@${string}`,
@@ -24001,6 +24005,8 @@ export type ResolverInputTypes = {
 	assignment_id?:boolean | `@${string}`,
 	/** Номер решения совета */
 	council_decision_id?:boolean | `@${string}`,
+	/** Совет решения о приёме не принял: отклонил вопрос либо не уложился в срок */
+	council_outcome?:boolean | `@${string}`,
 	created_at?:boolean | `@${string}`,
 	/** Дата решения */
 	decided_at?:boolean | `@${string}`,
@@ -24029,6 +24035,8 @@ export type ResolverInputTypes = {
 }>;
 	/** Состояние взноса результатами работы */
 ["EduContributionStatus"]:EduContributionStatus;
+	/** Исход рассмотрения заявления советом, когда решение о приёме не принято */
+["EduCouncilOutcome"]:EduCouncilOutcome;
 	["EduCourse"]: AliasType<{
 	/** Носитель доступа */
 	carrier?:boolean | `@${string}`,
@@ -40540,6 +40548,8 @@ export type ModelTypes = {
 	assignment_id: ModelTypes["ID"],
 	/** Номер решения совета */
 	council_decision_id?: string | undefined | null,
+	/** Совет решения о приёме не принял: отклонил вопрос либо не уложился в срок */
+	council_outcome?: ModelTypes["EduCouncilOutcome"] | undefined | null,
 	created_at: ModelTypes["DateTime"],
 	/** Дата решения */
 	decided_at?: ModelTypes["DateTime"] | undefined | null,
@@ -40566,6 +40576,7 @@ export type ModelTypes = {
 	teacher_username: string
 };
 	["EduContributionStatus"]:EduContributionStatus;
+	["EduCouncilOutcome"]:EduCouncilOutcome;
 	["EduCourse"]: {
 		/** Носитель доступа */
 	carrier: ModelTypes["EduAccessCarrier"],
@@ -57516,6 +57527,8 @@ export type GraphQLTypes = {
 	assignment_id: GraphQLTypes["ID"],
 	/** Номер решения совета */
 	council_decision_id?: string | undefined | null,
+	/** Совет решения о приёме не принял: отклонил вопрос либо не уложился в срок */
+	council_outcome?: GraphQLTypes["EduCouncilOutcome"] | undefined | null,
 	created_at: GraphQLTypes["DateTime"],
 	/** Дата решения */
 	decided_at?: GraphQLTypes["DateTime"] | undefined | null,
@@ -57544,6 +57557,8 @@ export type GraphQLTypes = {
 };
 	/** Состояние взноса результатами работы */
 ["EduContributionStatus"]: EduContributionStatus;
+	/** Исход рассмотрения заявления советом, когда решение о приёме не принято */
+["EduCouncilOutcome"]: EduCouncilOutcome;
 	["EduCourse"]: {
 	__typename: "EduCourse",
 	/** Носитель доступа */
@@ -69755,6 +69770,11 @@ export enum EduContributionStatus {
 	HELD = "HELD",
 	SUBMITTED = "SUBMITTED"
 }
+/** Исход рассмотрения заявления советом, когда решение о приёме не принято */
+export enum EduCouncilOutcome {
+	DECLINED = "DECLINED",
+	EXPIRED = "EXPIRED"
+}
 /** Тип направления курса (внутренний признак) */
 export enum EduCourseDirection {
 	CLOSED_COMMUNITY = "CLOSED_COMMUNITY",
@@ -70797,6 +70817,7 @@ type ZEUS_VARIABLES = {
 	["EduConnectorHealth"]: ValueTypes["EduConnectorHealth"];
 	["EduContractStatus"]: ValueTypes["EduContractStatus"];
 	["EduContributionStatus"]: ValueTypes["EduContributionStatus"];
+	["EduCouncilOutcome"]: ValueTypes["EduCouncilOutcome"];
 	["EduCourseDirection"]: ValueTypes["EduCourseDirection"];
 	["EduCourseEconomyInput"]: ValueTypes["EduCourseEconomyInput"];
 	["EduCourseImageUploadInput"]: ValueTypes["EduCourseImageUploadInput"];

@@ -40,6 +40,7 @@ const rawContributionSelector = {
   act_hash: true,
   decline_reason: true,
   council_decision_id: true,
+  council_outcome: true,
   decided_at: true,
   created_at: true,
 }

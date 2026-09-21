@@ -3,7 +3,8 @@
   PageHint.q-mb-md(storage-key="edu:admin-contributions:banner-dismissed")
     | Взносы результатами работы: преподаватель подаёт результат по действующему назначению, решение принимает
     | совет в повестке. Здесь председатель подписывает акт приёма-передачи — после этого взнос попадает
-    | в паевой фонд — либо отклоняет взнос с причиной.
+    | в паевой фонд — либо отклоняет взнос с причиной. Когда совет отклонил вопрос либо не принял решение в срок,
+    | у взноса появляется пометка: отклоните его, и материалы вернутся преподавателю.
 
   BaseTable(v-if="loading || contributions.length" :columns="columns" :rows="contributions" row-key="id" :loading="firstLoad" min-width="920px")
     template(#cell-teacher_username="{ row }")
@@ -12,6 +13,8 @@
     template(#cell-amount="{ row }") {{ formatAsset2Digits(row.amount) }}
     template(#cell-status="{ row }")
       BaseBadge(:variant="statusOf(row.status).variant") {{ statusOf(row.status).label }}
+      //- Совет решения о приёме не принял: протокола не будет, материалы снимает председатель.
+      .t-meta.text-negative(v-if="councilOutcome(row)") {{ councilOutcome(row) }}
     template(#cell-actions="{ row }")
       .row.no-wrap.justify-end.q-gutter-xs
         BaseButton(v-if="row.status === Zeus.EduContributionStatus.ACT_SIGNED" variant="primary" size="sm" :loading="busyId === row.id" @click="onAccept(row)") Подписать акт
@@ -144,9 +147,18 @@ async function onRevoke(): Promise<void> {
   }
 }
 
+const COUNCIL_OUTCOME_LABELS: Record<string, string> = {
+  [Zeus.EduCouncilOutcome.DECLINED]: 'Совет отклонил вопрос',
+  [Zeus.EduCouncilOutcome.EXPIRED]: 'Совет не принял решение в срок',
+};
+/** Пометка нужна, только пока взнос ждёт совета: после отклонения она уже сказана причиной. */
+const councilOutcome = (c: IContribution) =>
+  c.status === Zeus.EduContributionStatus.SUBMITTED && c.council_outcome ? COUNCIL_OUTCOME_LABELS[c.council_outcome] ?? '' : '';
+
 function openDecline(c: IContribution): void {
   declineTarget.value = c;
-  declineReason.value = '';
+  // Исход совета подставляется причиной — председатель может её уточнить.
+  declineReason.value = councilOutcome(c);
   declineOpen.value = true;
 }
 

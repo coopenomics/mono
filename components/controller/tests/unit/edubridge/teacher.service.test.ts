@@ -1,7 +1,7 @@
 /** Преподавательский контур: ДУХД и приложение двухподписные через одобрение председателя, взнос РИД, решение совета, акт → acceptrid, отклонение. */
 import { DecisionEventType, DecisionTrackedEvent } from '@coopenomics/innercoop';
 import { EdubridgeTeacherService } from '~/extensions/edubridge/application/services/edubridge-teacher.service';
-import { EduAssignmentStatus, EduContractStatus, EduContributionStatus } from '~/extensions/edubridge/domain/enums';
+import { EduAssignmentStatus, EduContractStatus, EduContributionStatus, EduCouncilOutcome } from '~/extensions/edubridge/domain/enums';
 
 jest.mock('@coopenomics/extension-kit', () => ({
   ...jest.requireActual('@coopenomics/extension-kit'),
@@ -35,6 +35,7 @@ function make(
     saveContribution: jest.fn(async (c: any) => { store.set(c.id, c); return c; }),
     findHeldDue: jest.fn(async () => []),
     findSubmittedWithoutProject: jest.fn(async () => []),
+    findContributionByAgendaId: jest.fn(async (_c: string, id: string) => [...store.values()].find((c) => c.council_agenda_id === id) ?? null),
   } as any;
   const courses = {
     findById: jest.fn(async () => ({
@@ -70,13 +71,15 @@ function make(
     publishProjectOfFreeDecision: jest.fn(async () => true),
   } as any;
   const tracking = { registerTrackingRule: jest.fn(async () => ({})) } as any;
+  // Вопрос в повестке совета находится по хэшу проекта решения.
+  const council = { getDecisions: jest.fn(async () => [{ id: 77, hash: 'PROJ' }]) } as any;
   const wallets = { findByWalletAndUsername: jest.fn(async () => ({ available: '7000.0000 RUB' })) } as any;
   // Имя и фотография приходят из ядра портами — расширение своей копии не держит.
   const avatars = { getAvatarUrl: jest.fn(async () => null), getAvatarUrls: jest.fn(async () => new Map([['teach', '/backend/avatar.jpg']])) } as any;
   const names = { displayName: jest.fn(async () => 'Иванов Иван Иванович'), displayNames: jest.fn(async () => new Map([['teach', 'Иванов Иван Иванович']])) } as any;
   const events = { emit: jest.fn() } as any;
-  const service = new EdubridgeTeacherService(teachers, courses, lessons, chain, documents, freeDecisions, tracking, wallets, avatars, names, logger, events);
-  return { service, teachers, chain, documents, freeDecisions, tracking, store, assignment, avatars, names, lessons };
+  const service = new EdubridgeTeacherService(teachers, courses, lessons, chain, documents, freeDecisions, tracking, council, wallets, avatars, names, logger, events);
+  return { service, teachers, chain, documents, freeDecisions, tracking, council, store, assignment, avatars, names, lessons };
 }
 
 
@@ -318,6 +321,38 @@ describe('EdubridgeTeacherService', () => {
     expect(chain.declineRid).toHaveBeenCalledWith(expect.objectContaining({ rid_hash: c.rid_hash }));
     expect(chain.recallRid).not.toHaveBeenCalled();
     expect(declined.status).toBe(EduContributionStatus.DECLINED);
+  });
+
+  it('подача запоминает номер вопроса в повестке совета; отклонение и просрочка помечают заявление', async () => {
+    const { service, store } = make();
+    const c = await contributionOfLesson(service, store);
+    await service.submitContribution('voskhod', 'teach', c.id, signedBy('teach', 'STMT'));
+    expect(c.council_agenda_id).toBe('77');
+
+    await service.onCouncilGaveUp('voskhod', '77', EduCouncilOutcome.DECLINED);
+    expect(c.council_outcome).toBe(EduCouncilOutcome.DECLINED);
+    // Заявление остаётся на рассмотрении: материалы снимает председатель, а не автомат.
+    expect(c.status).toBe(EduContributionStatus.SUBMITTED);
+  });
+
+  it('чужой вопрос повестки и заявление не на рассмотрении не помечаются', async () => {
+    const { service, store } = make();
+    const c = await contributionOfLesson(service, store);
+    await service.submitContribution('voskhod', 'teach', c.id, signedBy('teach', 'STMT'));
+    await service.onCouncilGaveUp('voskhod', '78', EduCouncilOutcome.EXPIRED);
+    expect(c.council_outcome ?? null).toBeNull();
+    c.status = EduContributionStatus.COUNCIL_APPROVED;
+    await service.onCouncilGaveUp('voskhod', '77', EduCouncilOutcome.EXPIRED);
+    expect(c.council_outcome ?? null).toBeNull();
+  });
+
+  it('повестка совета недоступна — подача проходит, пометки не будет', async () => {
+    const { service, council, store } = make();
+    council.getDecisions.mockRejectedValue(new Error('цепь не отвечает'));
+    const c = await contributionOfLesson(service, store);
+    const submitted = await service.submitContribution('voskhod', 'teach', c.id, signedBy('teach', 'STMT'));
+    expect(submitted.status).toBe(EduContributionStatus.SUBMITTED);
+    expect(submitted.council_agenda_id).toBeNull();
   });
 
   it('отказ без основания не принимается', async () => {

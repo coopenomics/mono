@@ -4,6 +4,7 @@ import { createHash, randomUUID } from 'crypto';
 import { Cooperative } from 'cooptypes';
 import { platformSettings } from '@coopenomics/extension-kit';
 import {
+  COUNCIL_PORT,
   DECISION_TRACKING_PORT,
   DOCUMENT_PORT,
   DecisionEventType,
@@ -12,6 +13,7 @@ import {
   LOGGER_PORT,
   USER_AVATAR_PORT,
   USER_WALLET_PORT,
+  type ICouncilPort,
   type IDecisionTrackingPort,
   type IDocumentPort,
   type IFreeDecisionPort,
@@ -22,7 +24,7 @@ import {
   type IUserAvatarPort,
   type IUserWalletPort,
 } from '@coopenomics/innercoop';
-import { EduAssignmentStatus, EduContractStatus, EduContributionStatus, EduRidType } from '../../domain/enums';
+import { EduAssignmentStatus, EduContractStatus, EduContributionStatus, EduCouncilOutcome, EduRidType } from '../../domain/enums';
 import { formatDate, formatDateTime, toChainTimePoint } from '../../domain/lib/lesson-dates';
 import { EDUBRIDGE_CHAIN_PORT, type EdubridgeChainPort } from '../../domain/ports/edubridge-chain.port';
 import type {
@@ -93,6 +95,7 @@ export class EdubridgeTeacherService {
     @Inject(DOCUMENT_PORT) private readonly documents: IDocumentPort,
     @Inject(FREE_DECISION_PORT) private readonly freeDecisions: IFreeDecisionPort,
     @Inject(DECISION_TRACKING_PORT) private readonly tracking: IDecisionTrackingPort,
+    @Inject(COUNCIL_PORT) private readonly council: ICouncilPort,
     @Inject(USER_WALLET_PORT) private readonly wallets: IUserWalletPort,
     @Inject(USER_AVATAR_PORT) private readonly avatars: IUserAvatarPort,
     private readonly names: EdubridgeNamesService,
@@ -654,6 +657,7 @@ export class EdubridgeTeacherService {
       metadata: { extension: 'edubridge', rid_hash: c.rid_hash, project_id: projectId },
     });
     c.council_project_hash = project.hash.toLowerCase();
+    c.council_agenda_id = await this.lookupAgendaId(coopname, project.hash);
     const saved = await this.teachers.saveContribution(c);
     this.events.emit(EDUBRIDGE_CONTRIBUTION_SUBMITTED_EVENT, { coopname, contribution_id: saved.id, teacher_username: teacher });
     this.logger.info(`[EDU.RID] взнос ${c.rid_hash} подан, проект решения ${project.hash}`);
@@ -708,6 +712,36 @@ export class EdubridgeTeacherService {
     return published;
   }
 
+  /**
+   * Номер вопроса в повестке совета по хэшу проекта решения: по нему придёт
+   * отклонение либо снятие просроченного вопроса. Не нашёлся — заявление
+   * остаётся без автоматической пометки, председатель снимает материалы сам.
+   */
+  private async lookupAgendaId(coopname: string, projectHash: string): Promise<string | null> {
+    try {
+      const decisions = await this.council.getDecisions(coopname);
+      const found = decisions.find((d) => String(d.hash ?? '').toLowerCase() === projectHash.toLowerCase());
+      if (found) return String(found.id);
+    } catch (e) {
+      this.logger.warn(`[EDU.RID] повестка совета не прочитана: ${(e as Error)?.message ?? e}`);
+    }
+    this.logger.warn(`[EDU.RID] вопрос по проекту ${projectHash} в повестке совета не найден — исход совета сам не отметится`);
+    return null;
+  }
+
+  /**
+   * Совет решения о приёме не принял: отклонил вопрос либо не уложился в срок.
+   * Отрицательного протокола у совета не бывает, поэтому заявление только
+   * помечается — материалы с хранения снимает председатель (`decline`).
+   */
+  async onCouncilGaveUp(coopname: string, agendaId: string, outcome: EduCouncilOutcome): Promise<void> {
+    const c = await this.teachers.findContributionByAgendaId(coopname, agendaId);
+    if (!c || c.status !== EduContributionStatus.SUBMITTED) return;
+    c.council_outcome = outcome;
+    await this.teachers.saveContribution(c);
+    this.logger.info(`[EDU.RID] совет не принял решение по взносу ${c.rid_hash} (${outcome}) — материалы ждут снятия с хранения`);
+  }
+
   /** Совет принял решение: ждём акт преподавателя. */
   @OnEvent(DecisionTrackedEvent.eventName)
   async onDecisionTracked(event: DecisionTrackedEvent): Promise<void> {
@@ -716,6 +750,7 @@ export class EdubridgeTeacherService {
     const c = await this.teachers.findContributionByRidHash(String(r.metadata.rid_hash));
     if (!c || c.status !== EduContributionStatus.SUBMITTED) return;
     c.status = EduContributionStatus.COUNCIL_APPROVED;
+    c.council_outcome = null;
     c.council_decision_id = r.decision_id ? String(r.decision_id) : null;
     c.decided_at = r.decision_date ? new Date(r.decision_date) : new Date();
     await this.teachers.saveContribution(c);

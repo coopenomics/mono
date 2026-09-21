@@ -7,6 +7,7 @@ import {
   EduAssignmentStatus,
   EduConnectorHealth,
   EduContractStatus,
+  EduCouncilOutcome,
   EduReturnStatus,
   EduContributionStatus,
   EduCourseDirection,
@@ -32,3 +33,4 @@ registerEnumType(EduContractStatus, { name: 'EduContractStatus', description: '�
 registerEnumType(EduRidType, { name: 'EduRidType', description: 'Тип результата интеллектуальной деятельности' });
 registerEnumType(EduContributionStatus, { name: 'EduContributionStatus', description: 'Состояние взноса результатами работы' });
 registerEnumType(EduReturnStatus, { name: 'EduReturnStatus', description: 'Состояние заявления о возврате членского взноса в паевой взнос' });
+registerEnumType(EduCouncilOutcome, { name: 'EduCouncilOutcome', description: 'Исход рассмотрения заявления советом, когда решение о приёме не принято' });
