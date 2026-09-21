@@ -337,32 +337,32 @@ cases:
     scenario: "Удержано не меньше того, что участник может потребовать назад."
     expect: "Взнос удерживается целиком при оплате; пока идёт гарантийный срок курса (и у неактивированного курса), очередь его не трогает; после срока удержанным остаётся сумма возврата по Положению на этот день, лишнее уходит в фонд; когда оплаченные занятия прошли, удержание снимается полностью."
     test: components/controller/tests/unit/edubridge/funds.service.test.ts
-    status: written
+    status: passing
   - id: edu.enroll.happy.19
     level: backend
     kind: happy
     scenario: "Резерв преподавателям наполняется до обязательства по курсу."
     expect: "Из освобождённого резерв добирается до стоимости часов за оплаченное время; на групповом курсе бюджет закрывает первый взнос, остальные свободны; принятый результат уменьшает обязательство и резерв."
     test: components/controller/tests/unit/edubridge/funds.service.test.ts
-    status: written
+    status: passing
   - id: edu.enroll.side.17
     level: backend
     kind: side
     scenario: "Оплаченное время курса: несколько учеников, разные сроки, конечная программа, оплата до начала занятий, выплаченное преподавателям."
     expect: "Обязательство считается по времени, а не по числу учеников, не больше стоимости программы и за вычетом выплаченного."
     test: components/controller/tests/unit/edubridge/teacher-reserve.test.ts
-    status: written
+    status: passing
   - id: edu.enroll.side.18
     level: backend
     kind: side
     scenario: "Участник отменил либо подписка истекла с удержанным остатком."
     expect: "Удержанное цепь возвращает сама; резерв по курсу возвращает лишнее в фонд либо добирается из освобождённого остатка."
     test: components/controller/tests/unit/edubridge/funds.service.test.ts
-    status: written
+    status: passing
   - id: edu.enroll.break.08
     level: backend
     kind: break
     scenario: "Сбой цепи при освобождении удержанного; сбой выравнивания резерва; сбой учёта резерва при приёме результата."
     expect: "Взнос остаётся удержанным до следующего прохода; закрытие подписки и приём результата сбоем не отменяются."
     test: components/controller/tests/unit/edubridge/funds.service.test.ts
-    status: written
+    status: passing
