@@ -16,12 +16,12 @@
         .edu-course__guest(v-if="!session.isAuth") Для записи нужно вступить в кооператив
       //- Обе полные суммы рядом: скидка видна как разница в рублях, а не как
       //- цена «от …», которую участник ни разу не вносит.
-      CourseHeroFigure(caption="взнос в месяц" :note="monthNote")
+      CourseHeroFigure(caption="взнос в месяц")
         FeeAmount(:value="course.fee_month" size="lg")
-      CourseHeroFigure(v-if="course.fee_course" caption="за весь курс разом" :note="courseNote")
+      CourseHeroFigure(v-if="course.fee_course" caption="за весь курс разом")
         FeeAmount(:value="course.fee_course" size="lg")
       CourseHeroFigure(:value="course.lessons_per_month" :caption="`${pluralize(Number(course.lessons_per_month), LESSON_FORMS)} в месяц по ${course.lesson_minutes} мин`")
-      CourseHeroFigure(:value="course.lessons_total" :caption="`${pluralize(Number(course.lessons_total), LESSON_FORMS)} в программе`" :note="months ? `курс длится ${months}` : ''")
+      CourseHeroFigure(:value="course.lessons_total" :caption="`${pluralize(Number(course.lessons_total), LESSON_FORMS)} в программе`")
 
     .row.q-col-gutter-md
       .col-12(:class="course.teacher_usernames.length ? 'col-md-8' : ''")
@@ -51,19 +51,18 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { asText, pluralize } from 'src/shared/lib/utils';
 import { FailAlert } from 'src/shared/api';
 import { useDesktopStore } from 'src/entities/Desktop/model';
 import { useSessionStore } from 'src/entities/Session';
 import { useFioCache } from 'src/shared/lib/account/useFioCache';
-import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { BaseButton, BaseCard, CardListSkeleton, EmptyState } from 'src/shared/ui/base';
 import { fetchCatalogCourse, type ICatalogCourse } from '../../entities/Course';
 import { fetchMyLearners, type ILearner } from '../../entities/Learner';
 import { SubscribeDialog } from '../../features/Subscribe';
-import { LESSON_FORMS, courseMonthsLabel } from '../../shared/lib/courseMonths';
+import { LESSON_FORMS } from '../../shared/lib/courseMonths';
 import { FeeAmount } from '../../shared/ui/FeeAmount';
 import { CourseHero, CourseHeroFigure } from '../../widgets/CourseHero';
 
@@ -84,17 +83,6 @@ const loading = ref(true);
 const subscribeOpen = ref(false);
 const learners = ref<ILearner[]>([]);
 const { fioCache, enrichFio } = useFioCache();
-const months = computed(() => courseMonthsLabel(course.value?.course_months));
-const monthNote = computed(() => {
-  const c = course.value;
-  if (c?.fee_course_base) return `всего за ${months.value} ${formatAsset2Digits(c.fee_course_base)}`;
-  return c?.fee_course ? '' : 'взнос принимается помесячно';
-});
-const courseNote = computed(() => {
-  const c = course.value;
-  if (!c?.course_discount_amount) return months.value ? `за ${months.value}` : '';
-  return `меньше помесячных на ${formatAsset2Digits(c.course_discount_amount)}`;
-});
 const formatDate = (v: unknown) => (v ? new Date(String(v)).toLocaleDateString('ru-RU') : '______');
 
 // Преподаватель посетителю — по имени: учётное имя ничего ему не говорит.

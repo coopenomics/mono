@@ -31,10 +31,10 @@
               q-list.edu-course__menu(dense)
                 q-item(clickable v-close-popup :disable="cancelling" @click="cancelUnderfilled")
                   q-item-section.text-negative Отменить по недобору
-      CourseHeroFigure(caption="взнос в месяц" :note="feeNote")
+      CourseHeroFigure(caption="взнос в месяц")
         FeeAmount(:value="course.fee_month" size="lg")
       CourseHeroFigure(:value="course.lessons_per_month" :caption="`${pluralize(Number(course.lessons_per_month), LESSON_FORMS)} в месяц по ${course.lesson_minutes} мин`")
-      CourseHeroFigure(:value="course.lessons_total" :caption="`${pluralize(Number(course.lessons_total), LESSON_FORMS)} в программе`" :note="months ? `курс длится ${months}` : ''")
+      CourseHeroFigure(:value="course.lessons_total" :caption="`${pluralize(Number(course.lessons_total), LESSON_FORMS)} в программе`")
 
     .row.q-col-gutter-md
       .col-12.col-md-8
@@ -98,7 +98,7 @@ import {
   type ICourse,
 } from '../../entities/Course';
 import { fetchCourseEconomy, type ICourseEconomy } from '../../entities/Economy';
-import { LESSON_FORMS, courseMonthsLabel } from '../../shared/lib/courseMonths';
+import { LESSON_FORMS } from '../../shared/lib/courseMonths';
 import { FeeAmount } from '../../shared/ui/FeeAmount';
 import { CourseHero, CourseHeroFigure } from '../../widgets/CourseHero';
 
@@ -125,13 +125,6 @@ const cancelling = ref(false);
 const started = computed(() => Boolean(course.value?.starts_at) && new Date(String(course.value?.starts_at)) <= new Date());
 const formatDate = (v: unknown) => (v ? new Date(String(v)).toLocaleDateString('ru-RU') : '______');
 
-const months = computed(() => courseMonthsLabel(course.value?.course_months));
-const feeNote = computed(() => {
-  const c = course.value;
-  if (!c?.fee_course) return 'принимается помесячно';
-  const saving = c.course_discount_amount ? `, на ${formatAsset2Digits(c.course_discount_amount)} меньше помесячных` : '';
-  return `за весь курс разом ${formatAsset2Digits(c.fee_course)}${saving}`;
-});
 const status = computed(() => COURSE_STATUS_LABELS[course.value?.status ?? ''] ?? { label: course.value?.status ?? '', variant: 'neutral' as const });
 const published = computed(() => course.value?.status === Zeus.EduCourseStatus.PUBLISHED);
 const carrierLabel = computed(() => CARRIER_LABELS[course.value?.carrier ?? ''] ?? course.value?.carrier ?? '______');
