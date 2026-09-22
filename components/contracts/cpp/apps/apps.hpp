@@ -89,12 +89,12 @@ static constexpr uint64_t RELEASE_RETENTION_SECS = 90 * 86400;
 static constexpr uint64_t CLEANUP_BUDGET_PER_CALL = 50;
 } // namespace Apps
 
-class [[eosio::contract(APPS)]] apps : public eosio::contract {
+class [[eosio::contract(APPS)]] apps : public coop_contract {
 
 public:
   apps(eosio::name receiver, eosio::name code,
        eosio::datastream<const char *> ds)
-      : eosio::contract(receiver, code, ds) {}
+      : coop_contract(receiver, code, ds) {}
 
   [[eosio::action]] void migrate();
 

@@ -55,11 +55,11 @@ OPERATION_REGISTRY.
  *          ledger — одноразовое migrate(). Внешних add/sub/writeoff нет:
  *          всё движение средств описывается через OPERATION_REGISTRY.
  */
-class [[eosio::contract(LEDGER2)]] ledger2 : public eosio::contract {
+class [[eosio::contract(LEDGER2)]] ledger2 : public coop_contract {
 public:
   ledger2(eosio::name receiver, eosio::name code,
           eosio::datastream<const char*> ds)
-      : eosio::contract(receiver, code, ds) {}
+      : coop_contract(receiver, code, ds) {}
 
   /**
    * @brief Единая точка входа финансовых движений ledger2 (orchestrator).

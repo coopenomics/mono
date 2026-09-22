@@ -51,11 +51,11 @@
  *  @details
 
  */
-class [[eosio::contract(FUND)]] fund : public eosio::contract {
+class [[eosio::contract(FUND)]] fund : public coop_contract {
  public:
   fund(eosio::name receiver, eosio::name code,
        eosio::datastream<const char *> ds)
-      : eosio::contract(receiver, code, ds) {}
+      : coop_contract(receiver, code, ds) {}
 
   void apply(uint64_t receiver, uint64_t code, uint64_t action);
   [[eosio::action]] void migrate();

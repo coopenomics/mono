@@ -50,12 +50,12 @@
  *  @brief Класс `gateway` обеспечивает процессинг банковских и криптовалютных платежей в кооперативах.
  *  @details
  */
-class [[eosio::contract(GATEWAY)]] gateway : public eosio::contract {
+class [[eosio::contract(GATEWAY)]] gateway : public coop_contract {
 
 public:
   gateway(eosio::name receiver, eosio::name code,
       eosio::datastream<const char *> ds)
-      : eosio::contract(receiver, code, ds) {}
+      : coop_contract(receiver, code, ds) {}
   
   void apply(uint64_t receiver, uint64_t code, uint64_t action);
   [[eosio::action]] void migrate();

@@ -77,12 +77,12 @@ using namespace Marketplace;
  * Donor-actions старой клиринговой модели (FR19a, AR30) удалены вместе с
  * соответствующими таблицами `Marketplace::request/segment/shipment`.
  */
-class [[eosio::contract(MARKETPLACE)]] marketplace : public eosio::contract {
+class [[eosio::contract(MARKETPLACE)]] marketplace : public coop_contract {
 
 public:
   marketplace(eosio::name receiver, eosio::name code,
               eosio::datastream<const char *> ds)
-      : eosio::contract(receiver, code, ds) {}
+      : coop_contract(receiver, code, ds) {}
 
   // ── p.mkt.supply ─────────────────────────────────────────────────────
 

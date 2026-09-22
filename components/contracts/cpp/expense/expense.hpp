@@ -140,9 +140,9 @@ namespace ExpenseDomain {
  *  @ingroup public_contracts
  *  @brief Шасси расходов — 8 actions, MVP только Благорост.
  */
-class [[eosio::contract("expense")]] expense : public contract {
+class [[eosio::contract("expense")]] expense : public coop_contract {
 public:
-    using contract::contract;
+    using coop_contract::coop_contract;
 
     /**
      * @brief Создать и подать СЗ-расход.

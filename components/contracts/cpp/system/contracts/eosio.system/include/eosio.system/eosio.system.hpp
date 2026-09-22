@@ -40,6 +40,7 @@
 #include <string>
 #include <type_traits>
 #include "../../../../../lib/consts.hpp"
+#include "../../../../../lib/core/ram_watch.hpp"
 
 
 #define CHANNEL_RAM_AND_NAMEBID_FEES_TO_REX 0
@@ -512,6 +513,31 @@ namespace eosiosystem {
                                > powerup_order_table;
 
    /**
+    * @brief Настройка выдачи памяти контрактам платформы по заявке `ramreq`.
+    *
+    * Контракт платформы содержит служебные записи (реестры, счётчики, договоры
+    * участия), и его квота со временем подходит к концу. Системный контракт
+    * проверяет квоту по заявке и, если занято больше порога, выдаёт память
+    * бессрочно из свободного пула сети. Порог, объём и частота — параметры
+    * сети, а не числа в коде.
+    *
+    * @ingroup public_tables
+    * @ingroup public_system_tables
+    * @par Область памяти (scope): eosio
+    * @par Имя таблицы (table): ramgrantcfg
+    */
+   struct [[eosio::table("ramgrantcfg"), eosio::contract("eosio.system")]] ram_grant_config {
+      uint8_t              threshold_percent  = 70;          ///< Выдавать, когда занято не меньше этой доли квоты, %
+      int64_t              grant_bytes        = 512 * 1024;  ///< Объём одной выдачи, байт
+      uint32_t             check_interval_sec = 3600;        ///< Как часто контракт может просить проверку, секунд
+      std::vector<name>    contracts;                        ///< Контракты платформы, которым выдаётся память
+
+      EOSLIB_SERIALIZE( ram_grant_config, (threshold_percent)(grant_bytes)(check_interval_sec)(contracts) )
+   };
+
+   typedef eosio::singleton<"ramgrantcfg"_n, ram_grant_config> ram_grant_config_singleton;
+
+   /**
     * The `eosio.system` smart contract is provided by `block.one` as a sample system contract, and it defines the structures and actions needed for blockchain's core functionality.
     *
     * Just like in the `eosio.bios` sample contract implementation, there are a few actions which are not implemented at the contract level (`newaccount`, `updateauth`, `deleteauth`, `linkauth`, `unlinkauth`, `canceldelay`, `onerror`, `setabi`, `setcode`), they are just declared in the contract so they will show in the contract's ABI and users will be able to push those actions to the chain via the account holding the `eosio.system` contract, but the implementation is at the EOSIO core level. They are referred to as EOSIO native actions.
@@ -749,6 +775,25 @@ namespace eosiosystem {
 
          [[eosio::action]]
          void powerup(const name& payer, const name& receiver, uint32_t days, const asset& payment, const bool transfer = false);
+
+
+         /**
+          * @brief Настройка выдачи памяти контрактам платформы.
+          * @note Авторизация требуется от аккаунта: @p eosio
+          */
+         [[eosio::action]]
+         void setramgrant( const ram_grant_config& config );
+
+         /**
+          * @brief Заявка контракта платформы на проверку его памяти.
+          * Подаётся самим контрактом из конструктора не чаще интервала
+          * проверки. Если занято больше порога — выдаёт память бессрочно из
+          * свободного пула сети. Заявка не может уронить транзакцию, в которой
+          * подана: повтор, отказ и пустой пул обрабатываются молча.
+          * @note Авторизация требуется от аккаунта: @p contract
+          */
+         [[eosio::action]]
+         void ramreq( const name& contract );
 
 
          [[eosio::action]]

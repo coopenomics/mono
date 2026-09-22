@@ -50,9 +50,9 @@ struct follow_rule {
     eosio::name follow; ///< Член совета, за голосом которого робот повторяет
 };
 
-class [[eosio::contract(SOVIET)]] soviet : public eosio::contract {
+class [[eosio::contract(SOVIET)]] soviet : public coop_contract {
 public:
-  using contract::contract;
+  using coop_contract::coop_contract;
   
   [[eosio::action]] void init();
   [[eosio::action]] void migrate();

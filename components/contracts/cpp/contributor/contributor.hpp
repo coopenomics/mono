@@ -16,9 +16,9 @@ using std::string;
  *  @brief  Контракт Contributor управляет вкладами, распределением вознаграждений и выводом средств для участников.
  *  Contributor — это контракт, управляющий вкладами участников, распределением вознаграждений и механизмами вывода средств в системе. Он поддерживает два типа вкладов — интеллектуальные и имущественные, и предоставляет два метода для участников, чтобы вывести свои средства при различных условиях.
  */
-class [[eosio::contract]] contributor : public contract {
+class [[eosio::contract]] contributor : public coop_contract {
 public:
-    using contract::contract;
+    using coop_contract::coop_contract;
 
     /**
      * @brief Инициализирует контракт, устанавливая глобальное состояние.
