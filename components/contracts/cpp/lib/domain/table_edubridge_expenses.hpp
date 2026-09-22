@@ -5,6 +5,7 @@
 #include <eosio/eosio.hpp>
 
 #include "../consts.hpp"
+#include "../core/ram_payer.hpp"
 
 /**
  * @brief Расход ЦПП «Образование», поданный в шасси расходов
@@ -42,3 +43,6 @@ typedef eosio::multi_index<
     "expenses"_n, edu_expense,
     eosio::indexed_by<"byhash"_n, eosio::const_mem_fun<edu_expense, eosio::checksum256, &edu_expense::by_hash>>>
     edu_expenses_index;
+
+// Плательщик за оперативную память строк таблицы — правило в lib/core/ram_payer.hpp.
+RAM_PAYER_CLASS(edu_expense, cooperative);

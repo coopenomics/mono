@@ -1,5 +1,7 @@
 #pragma once
 
+
+#include "../core/ram_payer.hpp"
 #include <optional>
 
 #include <eosio/asset.hpp>
@@ -60,3 +62,6 @@ inline std::optional<eosio::name> get_participant_branch(eosio::name coopname, e
   if (braname == eosio::name{}) return std::nullopt;
   return braname;
 }
+
+// Плательщик за оперативную память строк таблицы — правило в lib/core/ram_payer.hpp.
+RAM_PAYER_CLASS(participant, contract);

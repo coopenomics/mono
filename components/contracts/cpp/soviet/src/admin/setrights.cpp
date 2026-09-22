@@ -25,7 +25,7 @@ void soviet::setrights(eosio::name coopname, eosio::name chairman, eosio::name u
   auto persona = staff.find(username.value);
   eosio::check(persona != staff.end(), "Персона не найдена");
 
-  staff.modify(persona, chairman, [&](auto &a){
+  staff.modify(persona, RamPayer::of(staff, coopname), [&](auto &a){
     a.rights = rights;
     a.updated_at = eosio::time_point_sec(eosio::current_time_point().sec_since_epoch());
   });  

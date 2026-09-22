@@ -45,7 +45,7 @@ namespace Capital::Projects {
                               project->total_debt_amount.value().symbol == _root_govern_symbol;
 
     if (!materialized || project->total_debt_amount.value() != total) {
-      projects.modify(project, _capital, [&](auto &p) {
+      projects.modify(project, RamPayer::of(projects, coopname), [&](auto &p) {
         p.total_debt_amount = total;
       });
     }

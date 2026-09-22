@@ -51,13 +51,13 @@ void apps::setpricing(eosio::name package_id,
   auto now = eosio::time_point_sec(eosio::current_time_point().sec_since_epoch());
 
   if (it == pricings.end()) {
-    pricings.emplace(get_self(), [&](auto &p) {
+    pricings.emplace(RamPayer::of(pricings), [&](auto &p) {
       p.plan        = plan;
       p.hourly_rate = hourly_rate;
       p.updated_at  = now;
     });
   } else {
-    pricings.modify(it, get_self(), [&](auto &p) {
+    pricings.modify(it, RamPayer::of(pricings), [&](auto &p) {
       p.hourly_rate = hourly_rate;
       p.updated_at  = now;
     });

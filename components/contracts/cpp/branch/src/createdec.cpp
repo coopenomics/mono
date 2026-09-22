@@ -39,7 +39,7 @@
 
   uint64_t decision_id = get_global_id_in_scope(_branch, coopname, "decisions"_n);
 
-  decisions.emplace(coopname, [&](auto &d) {
+  decisions.emplace(RamPayer::of(decisions, coopname), [&](auto &d) {
     d.id = decision_id;
     d.hash = hash;
     d.coopname = coopname;
@@ -64,7 +64,7 @@
     number++;
     eosio::check(number <= 10, "Не больше 10 вопросов на повестке собрания");
 
-    questions.emplace(coopname, [&](auto &q) {
+    questions.emplace(RamPayer::of(questions, coopname), [&](auto &q) {
       q.id = get_global_id_in_scope(_branch, coopname, "decisionq"_n);
       q.decision_id = decision_id;
       q.number = number;

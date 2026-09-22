@@ -59,7 +59,7 @@
   for (const auto &v : votes) {
     auto qitr = questions.find(v.question_id);
     eosio::check(qitr != questions.end(), "Вопрос не найден");
-    questions.modify(qitr, coopname, [&](auto &q) {
+    questions.modify(qitr, RamPayer::of(questions, coopname), [&](auto &q) {
       if (v.vote == "for"_n) {
         q.counter_votes_for++;
         q.voters_for.push_back(username);
@@ -77,7 +77,7 @@
 
   decision_index decisions(_branch, coopname.value);
   auto ditr = decisions.find(dec.id);
-  decisions.modify(ditr, coopname, [&](auto &d) {
+  decisions.modify(ditr, RamPayer::of(decisions, coopname), [&](auto &d) {
     d.signed_ballots++;
   });
 

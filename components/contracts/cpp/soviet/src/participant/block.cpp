@@ -27,7 +27,7 @@ void soviet::block(eosio::name coopname, eosio::name admin, eosio::name username
   bool had_vote = participant->has_vote;
   bool was_active = participant->status == "accepted"_n;
   
-  participants.modify(participant, _soviet, [&](auto &row){
+  participants.modify(participant, RamPayer::of(participants, coopname), [&](auto &row){
       row.status = "blocked"_n;
       row.is_initial = false;
       row.is_minimum = false;

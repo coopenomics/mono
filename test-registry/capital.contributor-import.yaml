@@ -1,0 +1,135 @@
+feature: capital.contributor-import
+title: Импорт пайщика с бумажными договорами
+
+# Кооператив вводит в электронный учёт пайщика, который вступил в «Благорост» до
+# платформы: договор УХД и соглашение о присоединении к программе подписаны на
+# бумаге, электронной подписи под ними нет и быть не может. Председатель со
+# стола участников заполняет имя, сумму взноса и реквизиты обоих бумажных
+# документов, а `capital::importcontrib` одним действием заводит запись
+# участника, фиксирует соглашение программы и зачисляет взнос на кошелёк
+# «Благороста».
+#
+# Соглашение фиксируется через `wallet::importagree` — действие с
+# авторизацией только у контракта capital. Запись получает нулевой doc_hash и
+# draft_id = 0: это и есть признак «подписано вне платформы». Без неё
+# `ledger2::walletop` не пускает зачисление на `w.cap.blago` (ADR-004), и импорт
+# падал с «не подписано соглашение program_id=4».
+#
+# Реквизиты бумажных документов (номера и даты) кооператив хранит в реестре
+# параметров документов, вне цепи — в цепи остаётся только факт соглашения.
+
+# Правка 2026-09-21 (C28-78): плательщик за оперативную память строк
+# выбирается хелпером RamPayer::of по классу таблицы (lib/core/ram_payer.hpp),
+# а не именем, переданным вручную в emplace/modify. Меняется только то, с кого
+# цепь списывает память; содержимое строк, проверки и поведение действий
+# прежние, набор случаев этой фичи не менялся. Правило плательщика покрыто
+# отдельно — test-registry/contracts.ram-payer.yaml.
+
+sources:
+  contract:
+    - components/contracts/cpp/capital/app/participation_management/import_contributor/importcontr.cpp
+    - components/contracts/cpp/wallet/src/agreement/importagree.cpp
+  backend:
+    - components/controller/src/extensions/capital/application/use-cases/participation-management.interactor.ts
+    - components/controller/src/extensions/capital/infrastructure/blockchain/adapters/capital-blockchain.adapter.ts
+  ui:
+    - components/desktop/extensions/capital/features/Contributor/ImportContributor/**
+
+cases:
+  # ── Уровень контракта ─────────────────────────────────────────────────────
+
+  - id: cap.cimp.happy.01
+    level: contract
+    kind: happy
+    scenario: >
+      Пайщик состоит в кооперативе, оферту «Благороста» в платформе не
+      подписывал — его соглашение на бумаге. Председатель импортирует его с
+      суммой взноса по бумажному договору.
+    expect: >
+      импорт проходит без единой электронной подписи: появляется запись
+      участника, в wallet::users заводится соглашение программы с нулевым
+      doc_hash и draft_id = 0, взнос ложится на кошелёк программы
+    test: components/boot/src/tests/capital-contributor-import.test.ts
+    status: written
+
+  - id: cap.cimp.side.01
+    level: contract
+    kind: side
+    scenario: >
+      Импортируется пайщик, который оферту «Благороста» в платформе уже
+      подписал электронно.
+    expect: >
+      импорт не перетирает подпись — хэш документа и шаблон остаются прежними.
+      Электронная подпись старше бумаги
+    test: components/boot/src/tests/capital-contributor-import.test.ts
+    status: written
+
+  - id: cap.cimp.side.02
+    level: contract
+    kind: side
+    scenario: >
+      Импортированный пайщик пополняет паевой кошелёк и вносит взнос в
+      программу — обычная работа после ввода в учёт.
+    expect: >
+      взнос проходит: соглашение, заведённое импортом, пускает операции
+      программы наравне с подписанным в платформе
+    test: components/boot/src/tests/capital-contributor-import.test.ts
+    status: written
+
+  - id: cap.cimp.break.01
+    level: contract
+    kind: break
+    scenario: >
+      Кооператив пробует записать программное соглашение без подписи напрямую —
+      зовёт wallet::importagree от своего имени, минуя импорт.
+    expect: >
+      отказ авторизации: путь ввода бумажного соглашения открыт только
+      контракту capital, иначе подпись под программой можно было бы подделать
+    test: ~
+    status: missing
+
+  - id: cap.cimp.break.02
+    level: contract
+    kind: break
+    scenario: Повторный импорт того же пайщика.
+    expect: >
+      отказ «Участник уже существует» — ни второй записи участника, ни второго
+      зачисления взноса
+    test: ~
+    status: missing
+
+  # ── Уровень бэкенда ───────────────────────────────────────────────────────
+
+  - id: cap.cimp.side.03
+    level: backend
+    kind: side
+    scenario: >
+      Импорт участника, который уже заведён в реестре контроллера.
+    expect: отказ до обращения к цепи
+    test: ~
+    status: missing
+
+  - id: cap.cimp.side.04
+    level: backend
+    kind: side
+    scenario: >
+      Цепь отклонила импорт (например, сумма взноса нулевая).
+    expect: >
+      ни записи участника, ни параметров бумажных документов в реестре
+      контроллера не остаётся
+    test: ~
+    status: missing
+
+  # ── Уровень UI ────────────────────────────────────────────────────────────
+
+  - id: cap.cimp.ui.01
+    level: ui
+    kind: side
+    scenario: >
+      Председатель «Восхода» открывает стол участников «Благороста» и заводит
+      пайщика по бумажным договорам через кнопку «Добавить».
+    expect: >
+      форма принимает имя, сумму и реквизиты обоих документов, участник
+      появляется в реестре со своим взносом
+    test: ~
+    status: missing

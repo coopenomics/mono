@@ -38,7 +38,7 @@ void registrator::exitcoop(eosio::name coopname, eosio::name username, checksum2
   // кооператив, и иначе выход можно было бы оформить за пайщика чужим ключом.
   verify_signer_keys_or_fail(statement, username);
 
-  exits.emplace(coopname, [&](auto &e) {
+  exits.emplace(RamPayer::of(exits, coopname), [&](auto &e) {
     e.username = username;
     e.coopname = coopname;
     e.status = "pending"_n;

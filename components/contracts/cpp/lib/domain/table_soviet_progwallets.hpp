@@ -1,5 +1,7 @@
 #pragma once
 
+
+#include "../core/ram_payer.hpp"
 #include <eosio/asset.hpp>
 #include <eosio/binary_extension.hpp>
 #include <eosio/eosio.hpp>
@@ -52,3 +54,6 @@ progwallet get_user_program_wallet_or_fail(eosio::name coopname, eosio::name use
 
   return *wallet;
 }
+
+// Плательщик за оперативную память строк таблицы — правило в lib/core/ram_payer.hpp.
+RAM_PAYER_CLASS(progwallet, contract);

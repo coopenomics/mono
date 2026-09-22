@@ -1,5 +1,7 @@
 #pragma once
 
+
+#include "../core/ram_payer.hpp"
 #include <algorithm>
 #include <eosio/binary_extension.hpp>
 #include <eosio/eosio.hpp>
@@ -91,3 +93,6 @@ coobranch get_branch_or_fail(eosio::name coopname, eosio::name braname) {
 
   return *branch;
 }
+
+// Плательщик за оперативную память строк таблицы — правило в lib/core/ram_payer.hpp.
+RAM_PAYER_CLASS(coobranch, contract);

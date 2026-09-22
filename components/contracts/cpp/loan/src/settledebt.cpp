@@ -29,7 +29,7 @@ void loan::settledebt(name coopname, name username, checksum256 debt_hash, asset
   if (debt.amount == quantity) {
     debts.erase(it);
   } else {
-    debts.modify(it, same_payer, [&](auto& d) {
+    debts.modify(it, RamPayer::of(debts, coopname), [&](auto& d) {
       d.amount -= quantity;
     });
   }
@@ -41,7 +41,7 @@ void loan::settledebt(name coopname, name username, checksum256 debt_hash, asset
   if (sum_itr->total == quantity) {
     summaries.erase(sum_itr);
   } else {
-    summaries.modify(sum_itr, same_payer, [&](auto& s) {
+    summaries.modify(sum_itr, RamPayer::of(summaries, coopname), [&](auto& s) {
       s.total -= quantity;
     });
   }

@@ -28,7 +28,7 @@
   //     n.registered_at = eosio::time_point_sec(eosio::current_time_point().sec_since_epoch()); 
   // });
 
-  accounts.emplace(_system, [&](auto &n)
+  accounts.emplace(RamPayer::of(accounts), [&](auto &n)
   {
       n.type = "organization"_n;
       n.storages = storages;
@@ -46,7 +46,7 @@
   eosio::check(_provider_org_initial.amount > 0 && _provider_org_minimum.amount > 0 && _provider_initial.amount > 0 && _provider_minimum.amount > 0, "Вступительный и минимальный паевые взносы должны быть положительными");
 
 
-  coops.emplace(_system, [&](auto &org)
+  coops.emplace(RamPayer::of(coops), [&](auto &org)
   {
     org.username = _provider;
     org.is_cooperative = true;

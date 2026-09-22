@@ -13,9 +13,9 @@ using std::string;
  *  \ingroup public_contracts
  *  @brief  Контракт Wallet управляет взносами и возвратами взносов по ЦПП "Цифровой Кошелёк".
  */
-class [[eosio::contract]] wallet : public contract {
+class [[eosio::contract]] wallet : public coop_contract {
 public:
-    using contract::contract;
+    using coop_contract::coop_contract;
     [[eosio::action]] void migrate();
     
     //паевой взнос
@@ -33,4 +33,5 @@ public:
     [[eosio::action]] void signagree(eosio::name coopname, eosio::name username, uint64_t program_id, document2 document, uint64_t draft_id);
     [[eosio::action]] void revokeagree(eosio::name coopname, eosio::name username, uint64_t program_id);
     [[eosio::action]] void migrate3(eosio::name coopname, eosio::name username, uint64_t program_id, checksum256 doc_hash, uint16_t version, uint64_t draft_id, time_point signed_at);
+    [[eosio::action]] void importagree(eosio::name coopname, eosio::name username, uint64_t program_id);
 };

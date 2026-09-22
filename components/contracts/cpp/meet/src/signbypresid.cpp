@@ -74,7 +74,7 @@ void meet::signbypresid(name coopname, name username, checksum256 hash, document
     
     eosio::check(meet_itr != hash_index.end(), "Собрание не найдено");
     
-    hash_index.modify(meet_itr, same_payer, [&](auto& m) {
+    hash_index.modify(meet_itr, RamPayer::of(hash_index, coopname), [&](auto& m) {
         m.decision2 = presider_decision;
         m.status = "closed"_n;
     });

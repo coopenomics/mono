@@ -1,5 +1,7 @@
 #pragma once
 
+
+#include "../core/ram_payer.hpp"
 #include <eosio/eosio.hpp>
 
 #include "../consts.hpp"
@@ -26,13 +28,13 @@ uint64_t add_branch_count(eosio::name coopname) {
 
   if (st == stat.end()) {
     new_count = 1;
-    stat.emplace(coopname, [&](auto &s) {
+    stat.emplace(RamPayer::of(stat, coopname), [&](auto &s) {
       s.coopname = coopname;
       s.count = new_count;
     });
   } else {
     new_count = st->count + 1;
-    stat.modify(st, coopname, [&](auto &s) { s.count += 1; });
+    stat.modify(st, RamPayer::of(stat, coopname), [&](auto &s) { s.count += 1; });
   }
 
   return new_count;
@@ -48,7 +50,10 @@ uint64_t sub_branch_count(eosio::name coopname) {
 
   new_count = st->count - 1;
 
-  stat.modify(st, coopname, [&](auto &s) { s.count -= 1; });
+  stat.modify(st, RamPayer::of(stat, coopname), [&](auto &s) { s.count -= 1; });
 
   return new_count;
 }
+
+// Плательщик за оперативную память строк таблицы — правило в lib/core/ram_payer.hpp.
+RAM_PAYER_CLASS(branchstat, contract);

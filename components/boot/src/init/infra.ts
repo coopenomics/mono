@@ -154,6 +154,20 @@ export async function startInfra() {
 
   await sleep(2000)
 
+  // Контракты платформы содержат свои служебные записи сами и просят память у
+  // сети, когда квота подходит к концу (C28-78). Список — прикладные контракты,
+  // которые разворачивает boot.
+  await blockchain.setRamGrant({
+    threshold_percent: 70,
+    grant_bytes: 512 * 1024,
+    check_interval_sec: 3600,
+    contracts: config.contracts
+      .map((c: { target: string }) => c.target)
+      .filter((target: string) => !target.startsWith('eosio')),
+  })
+
+  await sleep(2000)
+
   // Реестр документов раскатывается тем же синхронизатором, что и на
   // работающей сети: на пустой цепи он просто создаёт все шаблоны.
   await syncDrafts(blockchain)

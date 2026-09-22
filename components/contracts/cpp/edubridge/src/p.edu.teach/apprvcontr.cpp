@@ -22,7 +22,7 @@ void edubridge::apprvcontr(eosio::name coopname,
   eosio::check(it->status == Edubridge::ContractStatus::PENDING, "Договор уже подписан председателем");
 
   auto record = contracts.find(it->id);
-  contracts.modify(record, _edubridge, [&](auto& c) {
+  contracts.modify(record, RamPayer::of(contracts, coopname), [&](auto& c) {
     c.status      = Edubridge::ContractStatus::ACTIVE;
     c.approved_at = eosio::time_point_sec(eosio::current_time_point());
   });

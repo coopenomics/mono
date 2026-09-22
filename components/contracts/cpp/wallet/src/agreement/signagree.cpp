@@ -90,12 +90,12 @@
   };
 
   if (user_it == users.end()) {
-    users.emplace(payer, [&](auto &row) {
+    users.emplace(RamPayer::of(users, coopname), [&](auto &row) {
       row.username = username;
       row.programs = { new_pa };
     });
   } else {
-    users.modify(user_it, payer, [&](auto &row) {
+    users.modify(user_it, RamPayer::of(users, coopname), [&](auto &row) {
       auto pa_it = std::find_if(
         row.programs.begin(), row.programs.end(),
         [&](const Wallet::program_agreement &p) { return p.program_id == program_id; });

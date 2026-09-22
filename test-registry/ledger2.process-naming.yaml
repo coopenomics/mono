@@ -21,6 +21,14 @@ title: Имя нитки процесса ledger2
 # 2026-08-21: добавлены процессы p.edu.access / p.edu.rid контракта edubridge
 # («Образовательный мост», 7DD-4) с операциями o.edu.conv / o.edu.rid и кошельком
 # w.edu.member; локатор — edusubs.sub_hash / edurids.rid_hash. Гейт check:ledger2 зелёный.
+
+# Правка 2026-09-21 (C28-78): плательщик за оперативную память строк
+# выбирается хелпером RamPayer::of по классу таблицы (lib/core/ram_payer.hpp),
+# а не именем, переданным вручную в emplace/modify. Меняется только то, с кого
+# цепь списывает память; содержимое строк, проверки и поведение действий
+# прежние, набор случаев этой фичи не менялся. Правило плательщика покрыто
+# отдельно — test-registry/contracts.ram-payer.yaml.
+
 sources:
   contract:
     - components/contracts/cpp/lib/core/ledger2/processes.hpp

@@ -133,7 +133,7 @@ export interface BlockchainPort {
   changeKey(data: RegistratorContract.Actions.ChangeKey.IChangeKey): Promise<void>;
 
   // Powerup related methods
-  powerUp(username: string, quantity: string): Promise<void>;
+  powerUp(username: string, quantity: string): Promise<string>;
 
   // System installation methods
   addUser(data: RegistratorContract.Actions.AddUser.IAddUser): Promise<void>;

@@ -4,6 +4,7 @@ import { Action, type API, APIClient, PrivateKey } from '@wharfkit/antelope'
 import { ContractKit, Table } from '@wharfkit/contract'
 import { Session } from '@wharfkit/session'
 import { WalletPluginPrivateKey } from '@wharfkit/wallet-plugin-privatekey'
+import { createChainFetch } from '../../utils/chainFetch'
 
 /**
  * Класс Blockchain для взаимодействия с блокчейном COOPOS.
@@ -40,15 +41,21 @@ export class Blockchain {
    * @returns Текущий экземпляр Blockchain для цепочного вызова.
    */
   public setWif(username: string, wif: string, permission = 'active'): this {
-    this.session = new Session({
-      actor: username,
-      permission,
-      chain: {
-        id: this.config.chain_id,
-        url: this.config.chain_url,
+    const onFailure = this.config.onChainFailure
+    this.session = new Session(
+      {
+        actor: username,
+        permission,
+        chain: {
+          id: this.config.chain_id,
+          url: this.config.chain_url,
+        },
+        walletPlugin: new WalletPluginPrivateKey(PrivateKey.fromString(wif)),
       },
-      walletPlugin: new WalletPluginPrivateKey(PrivateKey.fromString(wif)),
-    })
+      // Ответ узла виден только здесь: `session.transact` оставляет от него
+      // первую строку подробностей без кода исключения и без тела.
+      onFailure ? { fetch: createChainFetch(onFailure) } : undefined,
+    )
 
     return this
   }

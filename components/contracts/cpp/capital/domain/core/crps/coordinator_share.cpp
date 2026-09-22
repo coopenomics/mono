@@ -40,7 +40,7 @@ void upsert_coordinator_segment(eosio::name coopname, uint64_t segment_id, uint6
     auto project = Capital::Projects::get_project_by_id_or_fail(coopname, project_id);
 
     if (segment == segments.end()) {
-        segments.emplace(_capital, [&](auto &g){
+        segments.emplace(RamPayer::of(segments, coopname), [&](auto &g){
             g.id            = segment_id;
             g.coopname      = coopname;
             g.project_hash  = project.project_hash;
@@ -55,7 +55,7 @@ void upsert_coordinator_segment(eosio::name coopname, uint64_t segment_id, uint6
         Capital::Projects::increment_total_unique_participants(coopname, project_id);
         Capital::Projects::increment_total_coordinators(coopname, project_id);
     } else {
-        segments.modify(segment, _capital, [&](auto &g) {
+        segments.modify(segment, RamPayer::of(segments, coopname), [&](auto &g) {
             if (!g.is_coordinator) {
                 g.is_coordinator = true;
                 Capital::Projects::increment_total_coordinators(coopname, project_id);
@@ -81,7 +81,7 @@ void upsert_coordinator_segment(eosio::name coopname, uint64_t segment_id, uint6
     
     // Если координатор ничего не привлек, обнуляем его базу
     if (segment->coordinator_investments.amount == 0) {
-      segments.modify(segment, coopname, [&](auto &s) {
+      segments.modify(segment, RamPayer::of(segments, coopname), [&](auto &s) {
         s.coordinator_base = asset(0, _root_govern_symbol);
         s.last_known_coordinators_investment_pool = project.fact.coordinators_investment_pool;
       });
@@ -99,7 +99,7 @@ void upsert_coordinator_segment(eosio::name coopname, uint64_t segment_id, uint6
     );
     
     // Обновляем сегмент координатора
-    segments.modify(segment, _capital, [&](auto &s) {
+    segments.modify(segment, RamPayer::of(segments, coopname), [&](auto &s) {
       s.coordinator_base = new_coordinator_base;
       s.last_known_coordinators_investment_pool = project.fact.coordinators_investment_pool;
     });

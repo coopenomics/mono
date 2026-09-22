@@ -30,7 +30,7 @@ void apps::regcoop(eosio::name coopname,
   eosio::check(it == coops.end(), "Кооператив уже зарегистрирован — используйте setcoop");
 
   auto now_tps = eosio::time_point_sec(eosio::current_time_point().sec_since_epoch());
-  coops.emplace(coopname, [&](auto &c) {
+  coops.emplace(RamPayer::of(coops, coopname), [&](auto &c) {
     c.coopname       = coopname;
     c.chain_id       = chain_id;
     c.subnet_label   = subnet_label;

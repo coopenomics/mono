@@ -48,7 +48,7 @@ void apps::extendsub(eosio::name catalog_operator,
                "already extended");
 
   auto now = eosio::time_point_sec(eosio::current_time_point().sec_since_epoch());
-  by_cooppkg.modify(it, catalog_operator, [&](auto &s) {
+  by_cooppkg.modify(it, RamPayer::of(by_cooppkg), [&](auto &s) {
     s.end_at = eosio::time_point_sec(s.end_at.sec_since_epoch() + period_seconds);
     s.last_charge_intent_id = charge_intent_id;
     s.attempt = 0;

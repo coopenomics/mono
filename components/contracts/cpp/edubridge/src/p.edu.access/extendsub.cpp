@@ -25,7 +25,7 @@ void edubridge::extendsub(eosio::name coopname,
   eosio::check(paid_until > sub->paid_until,
                "Новый срок оплаты должен быть позже текущего");
 
-  subs.modify(sub, _edubridge, [&](auto& s) {
+  subs.modify(sub, RamPayer::of(subs, coopname), [&](auto& s) {
     s.paid_until     = paid_until;
     s.statement_hash = statement_hash;
     s.updated_at     = eosio::time_point_sec(eosio::current_time_point());

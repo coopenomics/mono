@@ -533,6 +533,33 @@ export default class Blockchain {
     console.log('Эмиссия инициализирована', params)
   }
 
+  /**
+   * Настройка выдачи памяти контрактам платформы: порог, объём одной выдачи,
+   * интервал проверки и список контрактов, которым сеть выдаёт память сама.
+   */
+  async setRamGrant(config: {
+    threshold_percent: number
+    grant_bytes: number
+    check_interval_sec: number
+    contracts: string[]
+  }) {
+    await this.update_pass_instance()
+
+    await this.api.transact(
+      {
+        actions: [
+          {
+            account: SystemContract.contractName.production,
+            name: 'setramgrant',
+            authorization: [{ actor: 'eosio', permission: 'active' }],
+            data: { config },
+          },
+        ],
+      },
+      { blocksBehind: 3, expireSeconds: 30 },
+    )
+  }
+
   async initPowerup(params: SystemContract.Actions.InitPowerup.IInitPowerup) {
     await this.update_pass_instance()
 

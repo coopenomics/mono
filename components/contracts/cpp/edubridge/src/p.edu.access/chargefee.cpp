@@ -46,7 +46,7 @@ void edubridge::chargefee(eosio::name coopname,
                  amount, username, sub_hash,
                  Edubridge::Memo::get_collect_fee_memo());
 
-  subs.modify(sub, _edubridge, [&](auto& s) {
+  subs.modify(sub, RamPayer::of(subs, coopname), [&](auto& s) {
     // Прежняя подписка остаётся без учёта: счёт с середины дал бы потолок
     // возврата меньше уже оплаченного.
     if (s.is_tracked()) {

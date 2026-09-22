@@ -57,7 +57,7 @@ void edubridge::submitrid(eosio::name coopname,
   eosio::check(eosio::time_point_sec(eosio::current_time_point()) >= rid->hold_until,
                "Гарантийный срок по материалам занятия ещё идёт");
 
-  rids.modify(rid, _edubridge, [&](auto& r) {
+  rids.modify(rid, RamPayer::of(rids, coopname), [&](auto& r) {
     r.statement_hash = statement.hash;
   });
 

@@ -17,7 +17,7 @@ void draft::upversion(eosio::name scope, eosio::name username, uint64_t registry
   
   eosio::check(exist != drafts.end(), "Шаблон не найден");
 
-  drafts.modify(exist, payer, [&](auto &d){
+  drafts.modify(exist, RamPayer::of(drafts, scope), [&](auto &d){
     d.version = exist -> version + 1;
   });
 }

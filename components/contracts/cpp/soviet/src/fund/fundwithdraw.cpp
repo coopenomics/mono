@@ -20,7 +20,7 @@ void soviet::fundwithdraw(eosio::name coopname, eosio::name username, eosio::nam
   
   checksum256 hash = eosio::sha256((char*)&withdraw_id, sizeof(withdraw_id));
   
-  decisions.emplace(_registrator, [&](auto &d){
+  decisions.emplace(RamPayer::of(decisions, coopname), [&](auto &d){
     d.id = decision_id;
     d.coopname = coopname;
     d.username = username;

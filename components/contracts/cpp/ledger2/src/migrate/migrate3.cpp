@@ -68,7 +68,7 @@ void ledger2::migrate3(eosio::name coopname,
   if (it == idx.end()) {
     if (is_zero) return; // нечего создавать; безопасный no-op для повторов
     const uint64_t new_id = user_wallets.available_primary_key();
-    user_wallets.emplace(get_self(), [&](auto& uw) {
+    user_wallets.emplace(RamPayer::of(user_wallets, coopname), [&](auto& uw) {
       uw.id          = new_id;
       uw.wallet_name = wallet_name;
       uw.username    = username;
@@ -80,7 +80,7 @@ void ledger2::migrate3(eosio::name coopname,
       idx.erase(it);
     } else {
       auto pri = user_wallets.find(it->id);
-      user_wallets.modify(pri, get_self(), [&](auto& uw) {
+      user_wallets.modify(pri, RamPayer::of(user_wallets, coopname), [&](auto& uw) {
         uw.available = available;
         uw.blocked   = blocked;
       });

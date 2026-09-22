@@ -24,7 +24,7 @@ void meet::authmeet(eosio::name coopname, checksum256 hash, document2 authorizat
              "Дата открытия должна быть по крайней мере через 15 дней от момента решения совета");
 
   //TODO: change payer to coopname
-  genmeets.modify(genmeet, _meet, [&](auto &gm){
+  genmeets.modify(genmeet, RamPayer::of(genmeets, coopname), [&](auto &gm){
     gm.status = "authorized"_n;
     gm.authorization = authorization;
   });

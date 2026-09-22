@@ -14,5 +14,5 @@
   auto wal = coopwallet.find(0);
   
   coopwallet.modify(
-      wal, payer, [&](auto &row) { row.initial_account.available += quantity; });
+      wal, RamPayer::of(coopwallet, coopname), [&](auto &row) { row.initial_account.available += quantity; });
 }

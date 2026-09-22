@@ -46,7 +46,7 @@ void soviet::createapprv(eosio::name coopname,
     
     Approver::approvals_index approvals(_soviet, coopname.value);
     
-    approvals.emplace(_soviet, [&](auto &a) {
+    approvals.emplace(RamPayer::of(approvals, coopname), [&](auto &a) {
       a.id                      = apprv_id;
       a.coopname                = coopname;
       a.username                = username;

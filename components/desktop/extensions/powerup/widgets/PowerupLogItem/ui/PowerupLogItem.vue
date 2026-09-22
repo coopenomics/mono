@@ -15,11 +15,15 @@
 
   .detail-row
     span.detail-label CPU
-    span.detail-value {{ formatCpuNet(log.resources.cpu_limit) }} ({{ calculateCpuNetPercent(log.resources.cpu_limit).toFixed(2) }}% использовано)
+    span.detail-value {{ formatCpuTime(log.resources.cpu_limit) }} ({{ calculateCpuNetPercent(log.resources.cpu_limit).toFixed(2) }}% использовано)
 
   .detail-row
     span.detail-label NET
-    span.detail-value {{ formatCpuNet(log.resources.net_limit) }} ({{ calculateCpuNetPercent(log.resources.net_limit).toFixed(2) }}% использовано)
+    span.detail-value {{ formatNet(log.resources.net_limit) }} ({{ calculateCpuNetPercent(log.resources.net_limit).toFixed(2) }}% использовано)
+
+  .detail-row(v-if="log.trx_id")
+    span.detail-label Транзакция
+    span.detail-value {{ log.trx_id.slice(0, 16) }}…
 </template>
 
 <script lang="ts" setup>
@@ -30,6 +34,8 @@ interface PowerupLog {
   type: 'daily' | 'now'
   amount: string
   timestamp?: string
+  /** Транзакция пополнения в цепи. Запись в журнале появляется только после неё. */
+  trx_id?: string
   resources: {
     username: string
     ram_usage: any
@@ -65,13 +71,34 @@ const formatBytes = (value: any) => {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
 }
 
-const formatCpuNet = (resource: any) => {
+// Полоса меряется в байтах, процессорное время — в микросекундах. Раньше обе
+// величины печатались байтами, и час процессорного времени выглядел как «36 ГБ».
+const formatNet = (resource: any) => {
   if (!resource || typeof resource !== 'object') return 'N/A'
 
   const available = resource.available || resource.current_used || 0
   const max = resource.max || 0
 
   return `${formatBytes(available)} / ${formatBytes(max)}`
+}
+
+const formatMicroseconds = (value: any) => {
+  const us = typeof value === 'string' ? parseInt(value) : value || 0
+  if (!us) return '0 мкс'
+  if (us < 1_000) return `${us} мкс`
+  if (us < 1_000_000) return `${(us / 1_000).toFixed(2)} мс`
+  if (us < 60 * 1_000_000) return `${(us / 1_000_000).toFixed(2)} с`
+  if (us < 3600 * 1_000_000) return `${(us / 60_000_000).toFixed(2)} мин`
+  return `${(us / 3_600_000_000).toFixed(2)} ч`
+}
+
+const formatCpuTime = (resource: any) => {
+  if (!resource || typeof resource !== 'object') return 'N/A'
+
+  const available = resource.available || resource.current_used || 0
+  const max = resource.max || 0
+
+  return `${formatMicroseconds(available)} / ${formatMicroseconds(max)}`
 }
 
 const calculateRamPercent = (usage: any, quota: any) => {

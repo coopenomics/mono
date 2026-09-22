@@ -29,7 +29,7 @@ void draft::createdraft(eosio::name scope, eosio::name username, uint64_t regist
   // Создание нового шаблона
   uint64_t translation_id = get_global_id(_draft, "translation"_n);
   
-  drafts.emplace(payer, [&](auto &d) {
+  drafts.emplace(RamPayer::of(drafts, scope), [&](auto &d) {
     d.registry_id = registry_id;
     d.version = 1;
     d.default_translation_id = translation_id;
@@ -42,7 +42,7 @@ void draft::createdraft(eosio::name scope, eosio::name username, uint64_t regist
  
   translations_index translations(_draft, scope.value);
  
-  translations.emplace(payer, [&](auto &t) {
+  translations.emplace(RamPayer::of(translations, scope), [&](auto &t) {
     t.id = translation_id;
     t.draft_id = registry_id;
     t.lang = lang;

@@ -40,9 +40,9 @@ using std::string;
  *  \ingroup public_contracts
  *  @brief  Контракт Meet управляет собраниями пайщиков.
  */
-class [[eosio::contract]] meet : public contract {
+class [[eosio::contract]] meet : public coop_contract {
 public:
-    using contract::contract;
+    using coop_contract::coop_contract;
 
     /**
      * @brief Минимальная задержка до открытия общего собрания.

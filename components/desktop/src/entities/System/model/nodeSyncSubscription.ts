@@ -24,7 +24,12 @@ export function createNodeSyncSubscription(): RealtimeSubscription {
         Subscriptions.System.NodeSyncState.subscription,
       );
 
+      // Признак живого сокета — по нему ядро понимает, что подписку пора
+      // поднимать заново; без него состояние узла держалось бы на дочитке.
+      let alive = false;
+
       stream.on((payload) => {
+        alive = true;
         const state = (payload as Subscriptions.System.NodeSyncState.IOutput | undefined)
           ?.nodeSyncState;
         if (state) system.syncState = state;
@@ -32,17 +37,23 @@ export function createNodeSyncSubscription(): RealtimeSubscription {
 
       // Реконнект: пока сокет молчал, узел мог и уйти в догон, и выйти из него.
       stream.open(() => {
+        alive = true;
         void system.loadNodeSyncState();
       });
 
       stream.error((err: unknown) => {
+        alive = false;
         console.warn('[node-sync] ws-ошибка подписки (реконнект сам)', err);
       });
 
       // Транспорт подписок общий с расширениями, поэтому здесь закрывается
       // только свой сокет: `disposeSubscriptions()` оборвал бы и чужие.
       return {
-        close: () => stream.ws.close(),
+        isAlive: () => alive,
+        close: () => {
+          alive = false;
+          stream.ws.close();
+        },
       };
     },
     resync() {

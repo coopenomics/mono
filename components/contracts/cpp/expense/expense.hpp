@@ -1,5 +1,7 @@
 #pragma once
 
+
+#include "../lib/core/ram_payer.hpp"
 #include <eosio/eosio.hpp>
 #include <eosio/asset.hpp>
 #include <eosio/crypto.hpp>
@@ -138,9 +140,9 @@ namespace ExpenseDomain {
  *  @ingroup public_contracts
  *  @brief Шасси расходов — 8 actions, MVP только Благорост.
  */
-class [[eosio::contract("expense")]] expense : public contract {
+class [[eosio::contract("expense")]] expense : public coop_contract {
 public:
-    using contract::contract;
+    using coop_contract::coop_contract;
 
     /**
      * @brief Создать и подать СЗ-расход.
@@ -231,3 +233,6 @@ public:
     void overspendexp(name coopname, checksum256 proposal_hash, checksum256 item_hash,
                       asset overspend_amount);
 };
+
+// Плательщик за оперативную память строк таблицы — правило в lib/core/ram_payer.hpp.
+RAM_PAYER_CLASS(ExpenseDomain::proposal, cooperative);

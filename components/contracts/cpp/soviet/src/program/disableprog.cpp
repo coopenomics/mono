@@ -16,7 +16,7 @@ void soviet::disableprog(eosio::name coopname, uint64_t program_id) {
   auto existing_program = programs.find(program_id);
   eosio::check(existing_program != programs.end(), "Программа не найдена.");
 
-  programs.modify(existing_program, coopname, [&](auto& pr) {
+  programs.modify(existing_program, RamPayer::of(programs, coopname), [&](auto& pr) {
     pr.is_active = false;
   });
 }

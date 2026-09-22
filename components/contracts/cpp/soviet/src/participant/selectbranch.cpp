@@ -37,7 +37,7 @@
   auto participant = participants.find(username.value);
   eosio::check(participant != participants.end(), "Пайщик не найден");
   
-  participants.modify(participant, coopname, [&](auto &row){
+  participants.modify(participant, RamPayer::of(participants, coopname), [&](auto &row){
     row.braname = braname;
   });
     

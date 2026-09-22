@@ -46,7 +46,7 @@ void soviet::migrateagree(eosio::name coopname, uint64_t agreement_id) {
     // Создаем новую запись в agreement2 с тем же ID
     agreements2_index agreements2(_self, coopname.value);
     
-    agreements2.emplace(_self, [&](auto& new_agreement) {
+    agreements2.emplace(RamPayer::of(agreements2, coopname), [&](auto& new_agreement) {
         new_agreement.id = agreement_itr->id;
         new_agreement.coopname = agreement_itr->coopname;
         new_agreement.username = agreement_itr->username;

@@ -36,7 +36,7 @@
 
   branch_index branches(_branch, coopname.value);
   auto bitr = branches.find(req.braname.value);
-  branches.modify(bitr, coopname, [&](auto &row) {
+  branches.modify(bitr, RamPayer::of(branches, coopname), [&](auto &row) {
     row.add_account_to_trusted(req.username);
   });
 

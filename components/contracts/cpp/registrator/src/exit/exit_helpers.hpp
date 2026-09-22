@@ -75,7 +75,7 @@ inline void finalize_member_exit(name coopname, name username) {
   accounts_index accounts(_registrator, _registrator.value);
   auto account = accounts.find(username.value);
   eosio::check(account != accounts.end(), "Аккаунт не найден");
-  accounts.modify(account, _registrator, [&](auto &a) {
+  accounts.modify(account, RamPayer::of(accounts, coopname), [&](auto &a) {
     a.status = "blocked"_n;
   });
 }

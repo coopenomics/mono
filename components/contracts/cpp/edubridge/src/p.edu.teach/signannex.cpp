@@ -29,7 +29,7 @@ void edubridge::signannex(eosio::name coopname,
   auto by_hash = annexes.get_index<"byhash"_n>();
   eosio::check(by_hash.find(annex_hash) == by_hash.end(), "Приложение с указанным hash уже существует");
 
-  annexes.emplace(_edubridge, [&](auto& a) {
+  annexes.emplace(RamPayer::of(annexes, coopname), [&](auto& a) {
     a.id            = get_global_id_in_scope(_edubridge, coopname, "eduannexes"_n);
     a.username      = username;
     a.course_id     = course_id;

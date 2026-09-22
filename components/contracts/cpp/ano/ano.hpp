@@ -120,11 +120,11 @@ static constexpr size_t MAX_SCHEMA_SIZE = 51200;
 
 } // namespace Ano
 
-class [[eosio::contract(ANO)]] ano : public eosio::contract {
+class [[eosio::contract(ANO)]] ano : public coop_contract {
 
 public:
   ano(eosio::name receiver, eosio::name code, eosio::datastream<const char *> ds)
-      : eosio::contract(receiver, code, ds) {}
+      : coop_contract(receiver, code, ds) {}
 
   /**
    * \brief Выдать или продлить заверение.

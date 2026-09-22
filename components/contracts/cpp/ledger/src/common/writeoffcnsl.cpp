@@ -30,7 +30,7 @@ void ledger::writeoffcnsl(eosio::name coopname, uint64_t account_id, eosio::asse
   eosio::check(account_iter->writeoff >= quantity, "Недостаточно списанных средств для отмены списания");
 
   // Атомарно переводим средства из writeoff в blocked
-  accounts.modify(account_iter, payer, [&](auto& acc) {
+  accounts.modify(account_iter, RamPayer::of(accounts, coopname), [&](auto& acc) {
     acc.writeoff -= quantity;
     acc.blocked += quantity;
   });

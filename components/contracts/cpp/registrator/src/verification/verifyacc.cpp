@@ -52,7 +52,7 @@
   // с плательщика строки. У аккаунтов, заведённых при запуске сети, плательщик —
   // системный аккаунт, и без его подписи цепь такой прирост отвергает. Поэтому
   // строку оплачивает сам регистратор — так же, как при подтверждении регистрации.
-  accounts.modify(account, _registrator, [&](auto &a)
+  accounts.modify(account, RamPayer::of(accounts, coopname), [&](auto &a)
   {
     verification new_verification {
       .verificator = verificator,

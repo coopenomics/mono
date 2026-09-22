@@ -38,7 +38,7 @@ void edubridge::signcontract(eosio::name coopname,
   auto by_hash = contracts.get_index<"byhash"_n>();
   eosio::check(by_hash.find(contract_hash) == by_hash.end(), "Договор с указанным hash уже существует");
 
-  contracts.emplace(_edubridge, [&](auto& c) {
+  contracts.emplace(RamPayer::of(contracts, coopname), [&](auto& c) {
     c.id            = get_global_id_in_scope(_edubridge, coopname, "educontracts"_n);
     c.username      = username;
     c.contract_hash = contract_hash;

@@ -72,7 +72,7 @@ void apps::setrelease(eosio::name coopname,
       // Найден active с тем же scope → supersede.
       auto stash = act_it;
       ++act_it;
-      releases.modify(*stash, coopname, [&](auto &r) {
+      releases.modify(*stash, RamPayer::of(releases, coopname), [&](auto &r) {
         r.status        = "superseded"_n;
         r.superseded_at = now_tps;
       });
@@ -83,7 +83,7 @@ void apps::setrelease(eosio::name coopname,
 
   // Создать новый active.
   uint64_t new_id = get_global_id(_apps, "release"_n);
-  releases.emplace(coopname, [&](auto &r) {
+  releases.emplace(RamPayer::of(releases, coopname), [&](auto &r) {
     r.id             = new_id;
     r.package_id     = package_id;
     r.version        = version;
@@ -98,7 +98,7 @@ void apps::setrelease(eosio::name coopname,
 
   // Обновить last_active_version только для scope=all.
   if (scope.kind == "all"_n) {
-    packages.modify(pkg_it, coopname, [&](auto &p) {
+    packages.modify(pkg_it, RamPayer::of(packages, coopname), [&](auto &p) {
       p.last_active_version = version;
       p.updated_at          = now_tps;
     });

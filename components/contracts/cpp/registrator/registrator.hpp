@@ -50,13 +50,13 @@
  *
  *  \note Этот класс служит основой для регистрации и идентификации участников в блокчейн-среде.
  */
-class [[eosio::contract(REGISTRATOR)]] registrator : public eosio::contract
+class [[eosio::contract(REGISTRATOR)]] registrator : public coop_contract
 {
 
 public:
   registrator(eosio::name receiver, eosio::name code,
               eosio::datastream<const char *> ds)
-      : eosio::contract(receiver, code, ds) {}
+      : coop_contract(receiver, code, ds) {}
 
   [[eosio::action]] void init();
   [[eosio::action]] void migrate();

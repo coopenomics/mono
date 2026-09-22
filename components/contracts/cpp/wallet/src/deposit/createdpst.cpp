@@ -12,7 +12,7 @@ void wallet::createdpst(eosio::name coopname, eosio::name username, checksum256 
   auto exist_deposit = Wallet::get_deposit(coopname, deposit_hash);
   eosio::check(!exist_deposit.has_value(), "Взнос у указанным deposit_hash уже существует");
   
-  deposits.emplace(coopname, [&](auto &w){
+  deposits.emplace(RamPayer::of(deposits, coopname), [&](auto &w){
     w.id = id;
     w.coopname = coopname; 
     w.username = username; 

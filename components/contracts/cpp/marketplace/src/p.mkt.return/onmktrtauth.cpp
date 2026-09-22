@@ -76,7 +76,7 @@ void marketplace::onmktrtauth(eosio::name coopname,
                  "Претензия поставщику по этой рекламации уже выставлена");
     const uint64_t claim_id = claims.available_primary_key();
     const auto now = eosio::time_point_sec(eosio::current_time_point().sec_since_epoch());
-    claims.emplace(_marketplace, [&](auto& c) {
+    claims.emplace(RamPayer::of(claims, coopname), [&](auto& c) {
       c.id                  = claim_id;
       c.hash                = claim_hash;
       c.coopname            = coopname;

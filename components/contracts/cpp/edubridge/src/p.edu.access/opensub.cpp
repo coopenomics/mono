@@ -40,7 +40,7 @@ void edubridge::opensub(eosio::name coopname,
   eosio::check(by_hash.find(sub_hash) == by_hash.end(),
                "Подписка с указанным hash уже существует");
 
-  subs.emplace(_edubridge, [&](auto& s) {
+  subs.emplace(RamPayer::of(subs, coopname), [&](auto& s) {
     s.id             = get_global_id_in_scope(_edubridge, coopname, "edusubs"_n);
     s.sub_hash       = sub_hash;
     s.username       = username;

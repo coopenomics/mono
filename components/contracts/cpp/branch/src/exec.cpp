@@ -33,7 +33,7 @@
 
   decision_index decisions(_branch, coopname.value);
   auto itr = decisions.find(dec.id);
-  decisions.modify(itr, coopname, [&](auto &d) {
+  decisions.modify(itr, RamPayer::of(decisions, coopname), [&](auto &d) {
     d.status = "onapproval"_n;
     d.petition = petition;
     d.liability = liability;

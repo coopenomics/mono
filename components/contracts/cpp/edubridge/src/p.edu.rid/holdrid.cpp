@@ -56,7 +56,7 @@ void edubridge::holdrid(eosio::name coopname,
   const auto now = eosio::time_point_sec(eosio::current_time_point());
 
   uint64_t rid_id = 0;
-  rids.emplace(_edubridge, [&](auto& r) {
+  rids.emplace(RamPayer::of(rids, coopname), [&](auto& r) {
     r.id               = get_global_id_in_scope(_edubridge, coopname, "edurids"_n);
     r.rid_hash         = rid_hash;
     r.username         = username;

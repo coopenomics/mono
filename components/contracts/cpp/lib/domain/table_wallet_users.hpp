@@ -1,5 +1,7 @@
 #pragma once
 
+
+#include "../core/ram_payer.hpp"
 #include <eosio/crypto.hpp>
 #include <eosio/eosio.hpp>
 #include <vector>
@@ -44,3 +46,6 @@ struct [[eosio::table, eosio::contract(WALLET)]] user {
 typedef multi_index<"users"_n, user> users_index;
 
 } // namespace WalletTables
+
+// Плательщик за оперативную память строк таблицы — правило в lib/core/ram_payer.hpp.
+RAM_PAYER_CLASS(WalletTables::user, contract);

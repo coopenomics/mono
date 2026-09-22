@@ -1,0 +1,81 @@
+feature: contracts.ram-payer
+title: Кто оплачивает оперативную память строк таблиц в контрактах
+
+# Оперативную память цепи оплачивает аккаунт, чьё имя передано в `emplace` или
+# `modify`, и плательщик меняется при каждом изменении строки. Пока имя
+# передавалось в каждом месте вручную, одна и та же сущность оказывалась то на
+# кооперативе, то на контракте, то на человеке (C28-78, перечень 20.09.2026).
+#
+# Правило одно. Кооператив оплачивает свой бизнес-процесс — документы и их
+# проведение. Служебное хранение — реестры, договоры участия, счётчики,
+# настройки — оплачивает контракт-владелец таблицы. Общий реестр шаблонов
+# документов оплачивает система.
+#
+# Класс объявляется у каждой структуры строки макросом RAM_PAYER_CLASS, все
+# 394 места записи берут плательщика через RamPayer::of. Таблица без класса не
+# собирается; голое имя плательщика роняет гейт scripts/check-ram-payer.mjs.
+#
+# Кооператив может оплатить строку, только если подписал действие: контракты
+# платформы непривилегированные, и узел списывает память лишь с того, кто
+# авторизовал запись. В служебном вызове (колбэк совета, исполнение другого
+# контракта) за бизнес-процесс кооператива платит контракт.
+
+sources:
+  contract:
+    - components/contracts/cpp/lib/core/ram_payer.hpp
+  backend:
+    - scripts/check-ram-payer.mjs
+
+cases:
+  - id: ram.payer.happy.01
+    level: contract
+    kind: happy
+    scenario: кооператив заводит проект Благороста своим действием
+    expect: строку проекта оплачивает кооператив
+    test: components/boot/src/tests/ram-payer.test.ts
+    status: passing
+
+  - id: ram.payer.happy.02
+    level: contract
+    kind: happy
+    scenario: на цепи заводится аккаунт нового пайщика
+    expect: запись в реестре аккаунтов оплачивает регистратор, а не кооператив
+    test: components/boot/src/tests/ram-payer.test.ts
+    status: passing
+
+  - id: ram.payer.happy.03
+    level: contract
+    kind: happy
+    scenario: пайщик попадает в реестр пайщиков кооператива
+    expect: строку реестра оплачивает контракт совета
+    test: components/boot/src/tests/ram-payer.test.ts
+    status: passing
+
+  - id: ram.payer.side.01
+    level: contract
+    kind: side
+    scenario: >
+      договор участия в Благоросте принимается советом — запись меняется
+      колбэком, который кооператив не подписывает
+    expect: >
+      транзакция проходит без отказа цепи, строку договора оплачивает
+      контракт. Жёсткое «платит кооператив» роняло бы такие вызовы отказом
+      unauthorized_ram_usage_increase
+    test: components/boot/src/tests/ram-payer.test.ts
+    status: passing
+
+  - id: ram.payer.break.01
+    level: contract
+    kind: break
+    scenario: в новом месте записи плательщиком передано голое имя
+    expect: гейт check-ram-payer роняет pnpm check
+    test: scripts/check-ram-payer.mjs
+    status: passing
+
+  - id: ram.payer.break.02
+    level: contract
+    kind: break
+    scenario: заведена новая таблица без объявленного класса плательщика
+    expect: контракт не собирается — у RamPayer::class_of нет определения
+    test: components/contracts/cpp/lib/core/ram_payer.hpp
+    status: passing

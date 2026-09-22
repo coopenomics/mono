@@ -10,7 +10,7 @@ namespace Capital::Core {
     Capital::project_index projects(_capital, coopname.value);
     auto project_for_modify = projects.find(project_id);
     
-    projects.modify(project_for_modify, _capital, [&](auto &p) {
+    projects.modify(project_for_modify, RamPayer::of(projects, coopname), [&](auto &p) {
       // Проверяем что есть зарегистрированные доли для распределения
       if (p.crps.total_capital_contributors_shares.amount > 0) {
         // Используем 128-битную математику для предотвращения переполнения
@@ -43,7 +43,7 @@ void upsert_contributor_segment(eosio::name coopname, uint64_t segment_id, const
     auto segment = segments.find(segment_id);
         
     if (segment == segments.end()) {
-        segments.emplace(_capital, [&](auto &g){
+        segments.emplace(RamPayer::of(segments, coopname), [&](auto &g){
             g.id            = segment_id;
             g.coopname      = coopname;
             g.project_hash  = project.project_hash;
@@ -61,7 +61,7 @@ void upsert_contributor_segment(eosio::name coopname, uint64_t segment_id, const
     } else {
         bool became_contributor = (!segment->is_contributor);
     
-        segments.modify(segment, _capital, [&](auto &g) {
+        segments.modify(segment, RamPayer::of(segments, coopname), [&](auto &g) {
             if (!g.is_contributor) {
                 // Становится новым участником
                 g.is_contributor = true;
@@ -76,7 +76,7 @@ void upsert_contributor_segment(eosio::name coopname, uint64_t segment_id, const
                     // Обновляем общее количество долей в проекте
                     Capital::project_index projects(_capital, coopname.value);
                     auto project_it = projects.find(project.id);
-                    projects.modify(project_it, _capital, [&](auto &p) {
+                    projects.modify(project_it, RamPayer::of(projects, coopname), [&](auto &p) {
                         p.crps.total_capital_contributors_shares += shares_delta;
                     });
                 }
@@ -99,7 +99,7 @@ void upsert_contributor_segment(eosio::name coopname, uint64_t segment_id, const
     Segments::segments_index segments(_capital, coopname.value);
     auto segment = segments.find(segment_id);
     
-    segments.modify(segment, coopname, [&](auto &s) {
+    segments.modify(segment, RamPayer::of(segments, coopname), [&](auto &s) {
       // Обновляем награды участника через CRPS алгоритм
       if (segment -> capital_contributor_shares.amount > 0) {
         // Накопленная награда в проекте и в сегменте (хранятся как double, но содержат масштабированные uint128_t)

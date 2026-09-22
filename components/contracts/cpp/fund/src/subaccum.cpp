@@ -9,7 +9,7 @@
   eosio::check(wal->accumulative_account.available >= quantity,
                "Недостаточно средств для списания");
 
-  coopwallet.modify(wal, _fund, [&](auto &row) {
+  coopwallet.modify(wal, RamPayer::of(coopwallet, coopname), [&](auto &row) {
     row.accumulative_account.available -= quantity;
     row.accumulative_account.withdrawed += quantity;
   });
@@ -19,7 +19,7 @@
 
   eosio::check(afund != accfunds.end(), "Фонд не найден");
 
-  accfunds.modify(afund, _fund, [&](auto &a) {
+  accfunds.modify(afund, RamPayer::of(accfunds, coopname), [&](auto &a) {
     a.available -= quantity;
     a.withdrawed += quantity;
   });

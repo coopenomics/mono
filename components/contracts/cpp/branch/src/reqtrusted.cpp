@@ -33,7 +33,7 @@
   auto idx = trustreqs.get_index<"byhash"_n>();
   eosio::check(idx.find(hash) == idx.end(), "Заявка с указанным идентификатором уже существует");
 
-  trustreqs.emplace(coopname, [&](auto &r) {
+  trustreqs.emplace(RamPayer::of(trustreqs, coopname), [&](auto &r) {
     r.id = get_global_id_in_scope(_branch, coopname, "trustreqs"_n);
     r.hash = hash;
     r.coopname = coopname;

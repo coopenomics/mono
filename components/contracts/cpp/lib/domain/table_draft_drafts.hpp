@@ -1,5 +1,7 @@
 #pragma once
 
+
+#include "../core/ram_payer.hpp"
 #include <eosio/contract.hpp>
 #include <eosio/crypto.hpp>
 #include <eosio/eosio.hpp>
@@ -37,3 +39,6 @@ onedraft get_scoped_draft_by_registry_or_fail(eosio::name scope, uint64_t draft_
 
   return *draft;
 }
+
+// Плательщик за оперативную память строк таблицы — правило в lib/core/ram_payer.hpp.
+RAM_PAYER_CLASS(onedraft, system);

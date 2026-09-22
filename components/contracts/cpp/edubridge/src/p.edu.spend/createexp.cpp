@@ -45,7 +45,7 @@ void edubridge::createexp(eosio::name coopname,
   eosio::check(byhash.find(expense_hash) == byhash.end(),
                "Расход с таким идентификатором уже подан");
 
-  expenses.emplace(_edubridge, [&](auto& e) {
+  expenses.emplace(RamPayer::of(expenses, coopname), [&](auto& e) {
     e.id      = get_global_id_in_scope(_edubridge, coopname, "expenses"_n);
     e.hash    = expense_hash;
     e.creator = creator;

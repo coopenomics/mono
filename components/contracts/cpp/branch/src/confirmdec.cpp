@@ -34,7 +34,7 @@
                  "Избранный председатель уже является председателем другого кооперативного участка");
   }
 
-  branches.emplace(coopname, [&](auto &row) {
+  branches.emplace(RamPayer::of(branches, coopname), [&](auto &row) {
     row.braname = dec.braname;
     row.trustee = dec.chairman;
   });

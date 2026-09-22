@@ -77,7 +77,7 @@ static void recalculate_levels(eosio::name coopname) {
       continue;
     }
 
-    contributors.modify(itr, _capital, [&](auto &c) {
+    contributors.modify(itr, RamPayer::of(contributors, coopname), [&](auto &c) {
       c.level = new_level;
       c.energy = new_energy;
     });
@@ -110,7 +110,7 @@ void capital::migrate() {
     return;
   }
 
-  projects.modify(project_itr, _capital, [&](auto &p) {
+  projects.modify(project_itr, RamPayer::of(projects, project_itr->coopname), [&](auto &p) {
     p.voting.amounts.equal_voting_amount = expected_equal;
   });
 }

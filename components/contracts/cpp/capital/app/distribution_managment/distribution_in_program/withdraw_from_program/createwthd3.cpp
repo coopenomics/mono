@@ -42,7 +42,7 @@ void capital::createwthd3(name coopname, name username, checksum256 withdraw_has
   // Создаем заявку на возврат
   Capital::program_withdraws_index program_withdraws(_capital, coopname.value);
   
-  program_withdraws.emplace(coopname, [&](auto &w) {
+  program_withdraws.emplace(RamPayer::of(program_withdraws, coopname), [&](auto &w) {
     w.id = get_global_id_in_scope(_capital, coopname, "withdraws3"_n);
     w.status = Capital::ProgramWithdraw::Status::CREATED;
     w.coopname = coopname;

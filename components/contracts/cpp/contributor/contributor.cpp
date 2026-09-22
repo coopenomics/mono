@@ -10,7 +10,7 @@ void contributor::init(eosio::name coopname) {
       .coopname = coopname,
     };
     
-    global_state_inst.emplace(_self, [&](auto& s) {
+    global_state_inst.emplace(RamPayer::of(global_state_inst), [&](auto& s) {
         s = gs;
     });
 }
@@ -19,7 +19,7 @@ void contributor::update_global_state(const global_state& gs) {
     global_state_table global_state_inst(_self, _self.value);
     auto itr = global_state_inst.find(0);
     check(itr != global_state_inst.end(), "Global state not found");
-    global_state_inst.modify(itr, _self, [&](auto& s) {
+    global_state_inst.modify(itr, RamPayer::of(global_state_inst), [&](auto& s) {
         s = gs;
     });
 }
@@ -40,7 +40,7 @@ void contributor::contribute(name coopname, name username, asset amount, name ty
     auto participant_itr = idx.find(username.value);
     if (participant_itr == idx.end()) {
         // Create new participant
-        participants.emplace(_self, [&](auto& p) {
+        participants.emplace(RamPayer::of(participants), [&](auto& p) {
             p.id = participants.available_primary_key();
             p.account = username;
             p.share_balance = asset(0, TOKEN_SYMBOL);
@@ -88,7 +88,7 @@ void contributor::withdraw1(name coopname, name username, asset amount) {
 
     // Update participant data
     auto primary_itr = participants.find(participant_itr->primary_key());
-    participants.modify(primary_itr, same_payer, [&](auto& p) {
+    participants.modify(primary_itr, RamPayer::of(participants), [&](auto& p) {
         p.share_balance -= amount;
         p.withdrawed += amount;
     });
@@ -126,7 +126,7 @@ void contributor::withdraw2(name coopname, name username, asset amount) {
 
     // Add withdrawal request to queue
     withdrawals_table withdrawals(_self, _self.value);
-    withdrawals.emplace(_self, [&](auto& w) {
+    withdrawals.emplace(RamPayer::of(withdrawals), [&](auto& w) {
         w.id = withdrawals.available_primary_key();
         w.account = username;
         w.amount = amount;
@@ -135,7 +135,7 @@ void contributor::withdraw2(name coopname, name username, asset amount) {
 
     // Update participant data
     auto primary_itr = participants.find(participant_itr->primary_key());
-    participants.modify(primary_itr, same_payer, [&](auto& p) {
+    participants.modify(primary_itr, RamPayer::of(participants), [&](auto& p) {
         p.queued_withdrawal += amount;
         p.share_balance -= amount; // Remove from share balance so it stops earning
     });
@@ -188,7 +188,7 @@ void contributor::process_withdrawals(const name& coopname) {
             auto participant_itr = idx.find(itr->account.value);
             if (participant_itr != idx.end()) {
                 auto primary_itr = participants.find(participant_itr->primary_key());
-                participants.modify(primary_itr, same_payer, [&](auto& p) {
+                participants.modify(primary_itr, RamPayer::of(participants), [&](auto& p) {
                     p.queued_withdrawal -= itr->amount;
                 });
             }
@@ -229,7 +229,7 @@ void contributor::refresh(name coopname, name username) {
 
     // Update participant data
     auto primary_itr = participants.find(participant_itr->primary_key());
-    participants.modify(primary_itr, same_payer, [&](auto& p) {
+    participants.modify(primary_itr, RamPayer::of(participants), [&](auto& p) {
         p.pending_rewards += reward_amount;
         p.reward_per_share_last = gs.cumulative_reward_per_share;
         p.share_balance += reward_amount;
@@ -272,7 +272,7 @@ void contributor::process_intellectual(const name & coopname, const name& userna
     auto participant_itr = idx.find(username.value);
     check(participant_itr != idx.end(), "Participant not found");
     auto primary_itr = participants.find(participant_itr->primary_key());
-    participants.modify(primary_itr, same_payer, [&](auto& p) {
+    participants.modify(primary_itr, RamPayer::of(participants), [&](auto& p) {
         p.share_balance += amount;
         p.intellectual_contributions += amount;
         p.total_contributions += amount;
@@ -292,7 +292,7 @@ void contributor::process_property(const name& coopname, const name& username, c
 
     // Update participant data
     auto primary_itr = participants.find(participant_itr->primary_key());
-    participants.modify(primary_itr, same_payer, [&](auto& p) {
+    participants.modify(primary_itr, RamPayer::of(participants), [&](auto& p) {
         p.share_balance += amount;
         p.property_contributions += amount;
         p.total_contributions += amount;

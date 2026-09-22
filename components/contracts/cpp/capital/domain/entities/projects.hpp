@@ -1,5 +1,7 @@
 #pragma once
 
+
+#include "../../../lib/core/ram_payer.hpp"
 #include "plan_pool.hpp"
 #include "fact_pool.hpp"
 #include "crps.hpp"
@@ -196,7 +198,7 @@ namespace Capital::Projects {
     
     project_index projects(_capital, coopname.value);    
     
-    projects.emplace(coopname, [&](auto& row) {
+    projects.emplace(RamPayer::of(projects, coopname), [&](auto& row) {
       row.id = get_global_id_in_scope(_capital, coopname, "projects"_n);
       row.status = Capital::Projects::Status::PENDING;
       row.project_hash = project_hash;
@@ -229,7 +231,7 @@ namespace Capital::Projects {
     project_index projects(_capital, coopname.value);
     auto project_itr = projects.find(project_id);
     eosio::check(project_itr != projects.end(), "Проект не найден");
-    projects.modify(project_itr, coopname, [&](auto& row) {
+    projects.modify(project_itr, RamPayer::of(projects, coopname), [&](auto& row) {
       // Всегда обновляем строковые поля
       row.title = title;
       row.description = description;
@@ -249,7 +251,7 @@ namespace Capital::Projects {
       project_index projects(_capital, coopname.value);
       auto project = projects.find(project_id);
       eosio::check(project != projects.end(), "Проект не найден");
-      projects.modify(project, _capital, [&](auto &p) {
+      projects.modify(project, RamPayer::of(projects, coopname), [&](auto &p) {
           // Добавляем стоимость имущества в пул себестоимостей
           p.fact.property_base_pool += property_amount;
           
@@ -273,7 +275,7 @@ namespace Capital::Projects {
       project_index projects(_capital, coopname.value);
       auto project = projects.find(project_id);
       eosio::check(project != projects.end(), "Проект не найден");
-      projects.modify(project, _capital, [&](auto &p) {
+      projects.modify(project, RamPayer::of(projects, coopname), [&](auto &p) {
           // Увеличиваем счетчик коммитов
           p.counts.total_commits++;
           
@@ -338,7 +340,7 @@ namespace Capital::Projects {
     Capital::project_index projects(_capital, coopname.value);
     auto project_itr = projects.find(project_id);
     eosio::check(project_itr != projects.end(), "Проект не найден");
-    projects.modify(project_itr, coopname, [&](auto &p) {
+    projects.modify(project_itr, RamPayer::of(projects, coopname), [&](auto &p) {
         p.master = master;
     });
     
@@ -355,7 +357,7 @@ namespace Capital::Projects {
       auto project = projects.find(project_id);
       eosio::check(project != projects.end(), "Проект не найден");
       
-      projects.modify(project, coopname, [&](auto &p) {
+      projects.modify(project, RamPayer::of(projects, coopname), [&](auto &p) {
           p.status = new_status;
       });
   }
@@ -370,7 +372,7 @@ namespace Capital::Projects {
       project_index projects(_capital, coopname.value);
       auto project = projects.find(project_id);
       eosio::check(project != projects.end(), "Проект не найден");
-      projects.modify(project, coopname, [&](auto &p) {
+      projects.modify(project, RamPayer::of(projects, coopname), [&](auto &p) {
         p.plan = calculated_plan;
         p.is_planed = true; // Проект теперь запланирован
       });
@@ -387,7 +389,7 @@ namespace Capital::Projects {
       auto project = projects.find(project_id);
       eosio::check(project != projects.end(), "Проект не найден");
       
-      projects.modify(project, coopname, [&](auto &p) {
+      projects.modify(project, RamPayer::of(projects, coopname), [&](auto &p) {
           // Рассчитываем сколько средств еще нужно для достижения цели по расходам
           eosio::asset expense_gap = p.plan.target_expense_pool - p.fact.accumulated_expense_pool;
           
@@ -436,7 +438,7 @@ namespace Capital::Projects {
       auto project = projects.find(project_id);
       eosio::check(project != projects.end(), "Проект не найден");
       
-      projects.modify(project, coopname, [&](auto &p) {
+      projects.modify(project, RamPayer::of(projects, coopname), [&](auto &p) {
           // Увеличиваем целевой размер пула расходов в фактических показателях
           p.fact.target_expense_pool += additional_amount;
       });
@@ -452,7 +454,7 @@ namespace Capital::Projects {
       project_index projects(_capital, coopname.value);
       auto project = projects.find(project_id);
       eosio::check(project != projects.end(), "Проект не найден");
-      projects.modify(project, coopname, [&](auto &p) {
+      projects.modify(project, RamPayer::of(projects, coopname), [&](auto &p) {
           // Копируем целевые показатели расходов из плана в факт
           p.fact.target_expense_pool = p.plan.target_expense_pool;
 
@@ -473,7 +475,7 @@ namespace Capital::Projects {
       project_index projects(_capital, coopname.value);
       auto project = projects.find(project_id);
       eosio::check(project != projects.end(), "Проект не найден");
-      projects.modify(project, coopname, [&](auto &p) {
+      projects.modify(project, RamPayer::of(projects, coopname), [&](auto &p) {
           // Закрываем проект от инвестиций
           p.is_opened = false;
       });
@@ -491,7 +493,7 @@ namespace Capital::Projects {
       eosio::check(project_for_modify != projects.end(), "Проект не найден");
       
       
-      projects.modify(project_for_modify, coopname, [&](auto &p) {
+      projects.modify(project_for_modify, RamPayer::of(projects, coopname), [&](auto &p) {
           eosio::check(p.fact.accumulated_expense_pool >= amount, 
                        "Недостаточно средств в пуле расходов");
           p.fact.accumulated_expense_pool -= amount;
@@ -509,7 +511,7 @@ namespace Capital::Projects {
       auto project_for_modify = projects.find(project_id);
       eosio::check(project_for_modify != projects.end(), "Проект не найден");
       
-      projects.modify(project_for_modify, coopname, [&](auto &p) {
+      projects.modify(project_for_modify, RamPayer::of(projects, coopname), [&](auto &p) {
           p.fact.accumulated_expense_pool += amount;
       });
   }
@@ -525,7 +527,7 @@ namespace Capital::Projects {
       auto project_for_modify = projects.find(project_id);
       eosio::check(project_for_modify != projects.end(), "Проект не найден");
       
-      projects.modify(project_for_modify, coopname, [&](auto &p) {
+      projects.modify(project_for_modify, RamPayer::of(projects, coopname), [&](auto &p) {
           p.fact.used_expense_pool += amount;
           
           // Пересчитываем total, т.к. он зависит от вкладов, но больше не включает расходы напрямую
@@ -551,7 +553,7 @@ namespace Capital::Projects {
     auto project_for_modify = projects.find(project_id);
     eosio::check(project_for_modify != projects.end(), "Проект не найден");
     
-    projects.modify(project_for_modify, _capital, [&](auto &p) {
+    projects.modify(project_for_modify, RamPayer::of(projects, coopname), [&](auto &p) {
       p.counts.total_propertors += 1;
     });
   }
@@ -564,7 +566,7 @@ namespace Capital::Projects {
     auto project_for_modify = projects.find(project_id);
     eosio::check(project_for_modify != projects.end(), "Проект не найден");
     
-    projects.modify(project_for_modify, _capital, [&](auto &p) {
+    projects.modify(project_for_modify, RamPayer::of(projects, coopname), [&](auto &p) {
       p.counts.total_investors += 1;
     });
   }
@@ -577,7 +579,7 @@ namespace Capital::Projects {
     auto project_for_modify = projects.find(project_id);
     eosio::check(project_for_modify != projects.end(), "Проект не найден");
 
-    projects.modify(project_for_modify, _capital, [&](auto &p) {
+    projects.modify(project_for_modify, RamPayer::of(projects, coopname), [&](auto &p) {
       p.counts.total_contributors += 1;
     });
   }
@@ -590,7 +592,7 @@ namespace Capital::Projects {
     auto project_for_modify = projects.find(project_id);
 
     eosio::check(project_for_modify != projects.end(), "Проект не найден");
-    projects.modify(project_for_modify, _capital, [&](auto &p) {
+    projects.modify(project_for_modify, RamPayer::of(projects, coopname), [&](auto &p) {
       p.crps.total_capital_contributors_shares += shares;
     });
   }
@@ -602,7 +604,7 @@ namespace Capital::Projects {
     project_index projects(_capital, coopname.value);
     auto project_for_modify = projects.find(project_id);
     eosio::check(project_for_modify != projects.end(), "Проект не найден");
-    projects.modify(project_for_modify, _capital, [&](auto &p) {
+    projects.modify(project_for_modify, RamPayer::of(projects, coopname), [&](auto &p) {
       p.counts.total_authors += 1;
     });
   }
@@ -614,7 +616,7 @@ namespace Capital::Projects {
     project_index projects(_capital, coopname.value);
     auto project_for_modify = projects.find(project_id);
     eosio::check(project_for_modify != projects.end(), "Проект не найден");
-    projects.modify(project_for_modify, _capital, [&](auto &p) {
+    projects.modify(project_for_modify, RamPayer::of(projects, coopname), [&](auto &p) {
       p.counts.total_coordinators += 1;
     });
   }
@@ -626,7 +628,7 @@ namespace Capital::Projects {
     project_index projects(_capital, coopname.value);
     auto project_for_modify = projects.find(project_id);
     eosio::check(project_for_modify != projects.end(), "Проект не найден");
-    projects.modify(project_for_modify, _capital, [&](auto &p) {
+    projects.modify(project_for_modify, RamPayer::of(projects, coopname), [&](auto &p) {
       p.counts.total_creators += 1;
     });
   }
@@ -638,7 +640,7 @@ namespace Capital::Projects {
     project_index projects(_capital, coopname.value);
     auto project_for_modify = projects.find(project_id);
     
-    projects.modify(project_for_modify, _capital, [&](auto &p) {
+    projects.modify(project_for_modify, RamPayer::of(projects, coopname), [&](auto &p) {
       p.counts.total_unique_participants += 1;
     });
   }
@@ -651,7 +653,7 @@ namespace Capital::Projects {
     auto project_for_modify = projects.find(project_id);
     eosio::check(project_for_modify != projects.end(), "Проект не найден");
     
-    projects.modify(project_for_modify, _capital, [&](auto &p) {
+    projects.modify(project_for_modify, RamPayer::of(projects, coopname), [&](auto &p) {
       p.voting.votes_received++;
     });
   }
@@ -661,7 +663,7 @@ namespace Capital::Projects {
     Capital::project_index projects(_capital, coopname.value);
     auto project_itr = projects.find(project_id);
     eosio::check(project_itr != projects.end(), "Проект не найден");
-    projects.modify(project_itr, coopname, [&](auto &p) {
+    projects.modify(project_itr, RamPayer::of(projects, coopname), [&](auto &p) {
       p.fact.total_returned_investments += amount;
     });
 
@@ -678,7 +680,7 @@ namespace Capital::Projects {
     project_index projects(_capital, coopname.value);
     auto project = projects.find(project_id);
     eosio::check(project != projects.end(), "Проект не найден");
-    projects.modify(project, _capital, [&](auto &p) {
+    projects.modify(project, RamPayer::of(projects, coopname), [&](auto &p) {
       p.fact.total_used_for_compensation += amount;
     });
   }
@@ -696,7 +698,7 @@ namespace Capital::Projects {
     eosio::check(project != projects.end(), "Проект не найден");
     eosio::check(project->fact.total_used_for_compensation >= amount, "Недостаточно использованных инвестиций для вычитания");
 
-    projects.modify(project, _capital, [&](auto &p) {
+    projects.modify(project, RamPayer::of(projects, coopname), [&](auto &p) {
       p.fact.total_used_for_compensation -= amount;
     });
   }
@@ -711,7 +713,7 @@ namespace Capital::Projects {
     auto project = projects.find(project_id);
     eosio::check(project != projects.end(), "Проект не найден");
     
-    projects.modify(project, _capital, [&](auto &p) {
+    projects.modify(project, RamPayer::of(projects, coopname), [&](auto &p) {
       p.counts.total_converted_segments++;
     });
   }
@@ -799,7 +801,7 @@ namespace Capital::Projects {
     project_index projects(_capital, coopname.value);
     auto project_itr = projects.find(project_id);
     eosio::check(project_itr != projects.end(), "Проект не найден");
-    projects.modify(project_itr, coopname, [&](auto& row) {
+    projects.modify(project_itr, RamPayer::of(projects, coopname), [&](auto& row) {
       row.is_authorized = true;
       row.authorization = decision;
     });
@@ -815,7 +817,7 @@ namespace Capital::Projects {
     project_index projects(_capital, coopname.value);
     auto project_itr = projects.find(project_id);
     eosio::check(project_itr != projects.end(), "Проект не найден");
-    projects.modify(project_itr, coopname, [&](auto& row) {
+    projects.modify(project_itr, RamPayer::of(projects, coopname), [&](auto& row) {
       row.is_authorized = false;
       row.authorization = document2(); // Пустой документ авторизации
     });
@@ -828,10 +830,13 @@ namespace Capital::Projects {
     project_index projects(_capital, coopname.value);
     auto project = projects.find(project_id);
     eosio::check(project != projects.end(), "Проект не найден");
-    projects.modify(project, _capital, [&](auto &p) {
+    projects.modify(project, RamPayer::of(projects, coopname), [&](auto &p) {
       p.voting.total_voters++;
     });
   }
   
 
 }// namespace Project
+
+// Плательщик за оперативную память строк таблицы — правило в lib/core/ram_payer.hpp.
+RAM_PAYER_CLASS(Capital::project, cooperative);

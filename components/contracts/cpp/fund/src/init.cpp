@@ -21,7 +21,7 @@
   
   if (exist == coopwallet.end()) {  
     // кошелёк кооператива
-    coopwallet.emplace(payer, [&](auto &row) {
+    coopwallet.emplace(RamPayer::of(coopwallet, coopname), [&](auto &row) {
       row.id = 0;
       row.coopname = coopname;
 
@@ -39,7 +39,7 @@
     });
 
     // неделимый
-    accfunds.emplace(payer, [&](auto &a) {
+    accfunds.emplace(RamPayer::of(accfunds, coopname), [&](auto &a) {
       a.id = get_global_id_in_scope(_fund, coopname, "funds"_n);  // 1
       a.coopname = coopname;
       a.contract = ""_n;
@@ -51,7 +51,7 @@
     });
 
     // резервный
-    accfunds.emplace(payer, [&](auto &a) {
+    accfunds.emplace(RamPayer::of(accfunds, coopname), [&](auto &a) {
       a.id = get_global_id_in_scope(_fund, coopname, "funds"_n);  // 2
       a.coopname = coopname;
       a.contract = ""_n;
@@ -63,7 +63,7 @@
     });
 
     // развития
-    accfunds.emplace(payer, [&](auto &a) {
+    accfunds.emplace(RamPayer::of(accfunds, coopname), [&](auto &a) {
       a.id = get_global_id_in_scope(_fund, coopname, "funds"_n);  // 3
       a.coopname = coopname;
       a.contract = ""_n;
@@ -75,7 +75,7 @@
     });
 
     // хозяйственный
-    expfunds.emplace(payer, [&](auto &e) {
+    expfunds.emplace(RamPayer::of(expfunds, coopname), [&](auto &e) {
       e.id = get_global_id_in_scope(_fund, coopname, "funds"_n);  // 4
       e.coopname = coopname;
       e.contract = ""_n;
@@ -85,7 +85,7 @@
     });
 
     // взаимный
-    expfunds.emplace(payer, [&](auto &e) {
+    expfunds.emplace(RamPayer::of(expfunds, coopname), [&](auto &e) {
       e.id = get_global_id_in_scope(_fund, coopname, "funds"_n);  // 5
       e.coopname = coopname;
       e.contract = ""_n;

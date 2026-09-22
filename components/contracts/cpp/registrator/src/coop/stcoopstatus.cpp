@@ -44,7 +44,7 @@
       }
     }
     
-    coops.modify(coop, administrator, [&](auto &row){ //payer is coopname should be always
+    coops.modify(coop, RamPayer::of(coops, coopname), [&](auto &row){ //payer is coopname should be always
       row.status = status;
     });
 }

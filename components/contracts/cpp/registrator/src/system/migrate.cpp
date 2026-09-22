@@ -51,7 +51,7 @@
       }
     }
 
-    accounts.modify(acc, eosio::same_payer, [&](auto &row) { row.type = resolved; });
+    accounts.modify(acc, RamPayer::of(accounts), [&](auto &row) { row.type = resolved; });
   }
 
   // ──────────────────────────────────────────────────────────────────────────
@@ -91,7 +91,7 @@
     if (it->username == _provider) continue;
     if (it->parent_username != eosio::name()) continue;
 
-    coops2.modify(it, _registrator, [&](auto& coop) {
+    coops2.modify(it, RamPayer::of(coops2), [&](auto& coop) {
       coop.parent_username = _provider;
     });
   }
@@ -137,6 +137,6 @@
     if (!accepted)
       continue;
 
-    accounts.modify(acc, eosio::same_payer, [&](auto &row) { row.status = "active"_n; });
+    accounts.modify(acc, RamPayer::of(accounts), [&](auto &row) { row.status = "active"_n; });
   }
 }

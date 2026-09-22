@@ -1,5 +1,7 @@
 #pragma once
 
+
+#include "../core/ram_payer.hpp"
 #include <eosio/eosio.hpp>
 #include <eosio/time.hpp>
 #include <string>
@@ -50,3 +52,6 @@ struct [[eosio::table, eosio::contract(ANO)]] repschema {
 typedef eosio::multi_index<"repschemas"_n, repschema> repschemas_index;
 
 } // namespace Ano
+
+// Плательщик за оперативную память строк таблицы — правило в lib/core/ram_payer.hpp.
+RAM_PAYER_CLASS(Ano::repschema, contract);

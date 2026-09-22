@@ -1,5 +1,7 @@
 #pragma once
 
+
+#include "../core/ram_payer.hpp"
 #include <eosio/eosio.hpp>
 #include <eosio/singleton.hpp>
 
@@ -31,3 +33,6 @@ typedef eosio::singleton<"config"_n, mkt_config> mkt_config_singleton;
 // раундом 5 (решение владельца 2026-06-10): при финализации 100% взноса
 // уходит в общий кошелёк КУ (branch::accrue), распределение доверенным —
 // ручная команда председателя branch::distribute с произвольной суммой.
+
+// Плательщик за оперативную память строк таблицы — правило в lib/core/ram_payer.hpp.
+RAM_PAYER_CLASS(mkt_config, contract);

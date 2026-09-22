@@ -16,7 +16,7 @@ namespace Capital::Core {
       auto segment = segments.find(segment_id);
 
       if (segment == segments.end()) {
-        segments.emplace(_capital, [&](auto &g){
+        segments.emplace(RamPayer::of(segments, coopname), [&](auto &g){
             g.id            = segment_id;
             g.coopname      = coopname;
             g.project_hash  = project.project_hash;
@@ -33,7 +33,7 @@ namespace Capital::Core {
         } else {
           bool became_propertor = (!segment->is_propertor);
           
-          segments.modify(segment, _capital, [&](auto &g) {
+          segments.modify(segment, RamPayer::of(segments, coopname), [&](auto &g) {
               if (!g.is_propertor) {
                   g.is_propertor = true;
               }

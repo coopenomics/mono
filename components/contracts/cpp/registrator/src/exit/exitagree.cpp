@@ -30,7 +30,7 @@ void registrator::exitagree(eosio::name coopname, eosio::name username, checksum
   verify_document_or_fail(annulment);
   verify_signer_keys_or_fail(annulment, username);
 
-  exits.modify(e, coopname, [&](auto &row) {
+  exits.modify(e, RamPayer::of(exits, coopname), [&](auto &row) {
     row.annulment_statement = annulment;
   });
 

@@ -37,7 +37,7 @@ void edubridge::lockfee(eosio::name coopname,
                  amount, coopname, sub_hash,
                  Edubridge::Memo::get_lock_fee_memo());
 
-  subs.modify(sub, _edubridge, [&](auto& s) {
+  subs.modify(sub, RamPayer::of(subs, coopname), [&](auto& s) {
     s.set_amounts(s.charged_or_zero(), s.reserved_or_zero(), s.locked_or_zero() + amount);
   });
 }

@@ -52,3 +52,6 @@ typedef eosio::multi_index<
 > meets_index;
 
 }
+
+// Плательщик за оперативную память строк таблицы — правило в lib/core/ram_payer.hpp.
+RAM_PAYER_CLASS(Meet::meet, cooperative);

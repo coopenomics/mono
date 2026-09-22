@@ -44,7 +44,7 @@ void apps::withdraw(eosio::name coopname,
                         && target->scope.kind == "all"_n;
   auto now_tps = eosio::time_point_sec(eosio::current_time_point().sec_since_epoch());
 
-  by_pkg.modify(target, coopname, [&](auto &r) {
+  by_pkg.modify(target, RamPayer::of(by_pkg, coopname), [&](auto &r) {
     r.status = "withdrawn"_n;
     // superseded_at оставляем как есть; meta обогащаем reason'ом.
     if (!reason.empty()) {
@@ -54,7 +54,7 @@ void apps::withdraw(eosio::name coopname,
   });
 
   if (was_active_all) {
-    packages.modify(pkg_it, coopname, [&](auto &p) {
+    packages.modify(pkg_it, RamPayer::of(packages, coopname), [&](auto &p) {
       p.last_active_version = "";
       p.updated_at          = now_tps;
     });

@@ -1,5 +1,7 @@
 #pragma once
 
+
+#include "../core/ram_payer.hpp"
 #include <eosio/crypto.hpp>
 #include <eosio/eosio.hpp>
 #include <eosio/time.hpp>
@@ -76,3 +78,6 @@ typedef eosio::multi_index<
     endorsements_index;
 
 } // namespace Ano
+
+// Плательщик за оперативную память строк таблицы — правило в lib/core/ram_payer.hpp.
+RAM_PAYER_CLASS(Ano::endorsement, contract);

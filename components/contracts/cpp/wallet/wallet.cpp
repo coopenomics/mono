@@ -14,6 +14,7 @@
 #include "src/agreement/signagree.cpp"
 #include "src/agreement/revokeagree.cpp"
 #include "src/agreement/migrate3.cpp"
+#include "src/agreement/importagree.cpp"
 
 using namespace eosio;
 

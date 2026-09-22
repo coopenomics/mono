@@ -2,6 +2,7 @@ import { defineStore } from 'pinia';
 import { useGlobalStore } from 'src/shared/store';
 import { computed, ComputedRef, Ref, ref } from 'vue';
 import { Session } from '@wharfkit/session';
+import { chainFetch } from 'src/shared/lib/chain';
 import { WalletPluginPrivateKey } from '@wharfkit/wallet-plugin-privatekey';
 import {
   clearPinCache,
@@ -350,18 +351,23 @@ export const useSessionStore = defineStore('session', (): ISessionStore => {
     if (opts?.persistPin) void persistPinCache({ storage }).catch(() => undefined);
 
     const wallet = await getWallet();
-    session.value = new Session({
-      actor: wallet.account,
-      permission: 'active',
-      chain: {
-        id: env.CHAIN_ID as string,
-        url: env.CHAIN_URL as string,
+    session.value = new Session(
+      {
+        actor: wallet.account,
+        permission: 'active',
+        chain: {
+          id: env.CHAIN_ID as string,
+          url: env.CHAIN_URL as string,
+        },
+        walletPlugin: new WalletPluginCoopId({
+          publicKey: wallet.publicKey,
+          ensureUnlocked: ensureWalletUnlocked,
+        }),
       },
-      walletPlugin: new WalletPluginCoopId({
-        publicKey: wallet.publicKey,
-        ensureUnlocked: ensureWalletUnlocked,
-      }),
-    });
+      // Отказ узла разбирается перехватчиком: дальше по стеку от ответа цепи
+      // остаётся одна строка без кода и тела.
+      { fetch: chainFetch },
+    );
     coopIdAccount.value = wallet.account;
     isAuth.value = true;
     // Документы кооператива подписываются ключом из общего стора — выдаём его туда,
@@ -499,17 +505,20 @@ export const useSessionStore = defineStore('session', (): ISessionStore => {
 
       try {
         if (globalStore.hasCreditials) {
-          session.value = new Session({
-            actor: globalStore.username,
-            permission: 'active',
-            chain: {
-              id: env.CHAIN_ID as string,
-              url: env.CHAIN_URL as string,
+          session.value = new Session(
+            {
+              actor: globalStore.username,
+              permission: 'active',
+              chain: {
+                id: env.CHAIN_ID as string,
+                url: env.CHAIN_URL as string,
+              },
+              walletPlugin: new WalletPluginPrivateKey(
+                globalStore.wif as PrivateKey,
+              ),
             },
-            walletPlugin: new WalletPluginPrivateKey(
-              globalStore.wif as PrivateKey,
-            ),
-          });
+            { fetch: chainFetch },
+          );
         }
       } catch (e: any) {
         console.error(e);

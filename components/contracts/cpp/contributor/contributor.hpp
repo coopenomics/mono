@@ -2,6 +2,8 @@
 
 #pragma once
 
+
+#include "../lib/core/ram_payer.hpp"
 #include <eosio/eosio.hpp>
 #include <eosio/asset.hpp>
 #include "../lib/index.hpp"
@@ -14,9 +16,9 @@ using std::string;
  *  @brief  Контракт Contributor управляет вкладами, распределением вознаграждений и выводом средств для участников.
  *  Contributor — это контракт, управляющий вкладами участников, распределением вознаграждений и механизмами вывода средств в системе. Он поддерживает два типа вкладов — интеллектуальные и имущественные, и предоставляет два метода для участников, чтобы вывести свои средства при различных условиях.
  */
-class [[eosio::contract]] contributor : public contract {
+class [[eosio::contract]] contributor : public coop_contract {
 public:
-    using contract::contract;
+    using coop_contract::coop_contract;
 
     /**
      * @brief Инициализирует контракт, устанавливая глобальное состояние.
@@ -187,3 +189,8 @@ private:
      */
     void process_withdrawals(const name& coopname); // Обработка очереди на вывод
 };
+
+// Плательщик за оперативную память строк таблицы — правило в lib/core/ram_payer.hpp.
+RAM_PAYER_CLASS(contributor::participant, contract);
+RAM_PAYER_CLASS(contributor::global_state, contract);
+RAM_PAYER_CLASS(contributor::withdrawal_request, contract);

@@ -55,7 +55,7 @@ void ledger2::migrate() {
     userwallets_index user_wallets(get_self(), coopname.value);
     for (auto it = user_wallets.begin(); it != user_wallets.end(); ++it) {
       if (it->blocked.amount <= 0) continue;
-      user_wallets.modify(it, get_self(), [&](auto& r) {
+      user_wallets.modify(it, RamPayer::of(user_wallets), [&](auto& r) {
         r.available += r.blocked;
         r.blocked    = eosio::asset(0, r.blocked.symbol);
       });
@@ -65,7 +65,7 @@ void ledger2::migrate() {
     wallets2_index wallets(get_self(), coopname.value);
     for (auto it = wallets.begin(); it != wallets.end(); ++it) {
       if (it->blocked.amount <= 0) continue;
-      wallets.modify(it, get_self(), [&](auto& w) {
+      wallets.modify(it, RamPayer::of(wallets), [&](auto& w) {
         w.available += w.blocked;
         w.blocked    = eosio::asset(0, w.blocked.symbol);
       });
@@ -115,7 +115,7 @@ void ledger2::migrate() {
       wallets2_index w2(get_self(), PHANTOM_COOP.value);
       auto wit = w2.find(MINSHR.value);
       if (wit != w2.end()) {
-        w2.modify(wit, get_self(), [&](auto& w) { w.available -= removed; });
+        w2.modify(wit, RamPayer::of(w2), [&](auto& w) { w.available -= removed; });
         if (wit->is_empty()) w2.erase(wit);
       }
 
@@ -126,7 +126,7 @@ void ledger2::migrate() {
 
       auto a80 = acc.find(ledger2_accounts::SHARE_FUND);
       if (a80 != acc.end()) {
-        acc.modify(a80, get_self(), [&](auto& a) {
+        acc.modify(a80, RamPayer::of(acc), [&](auto& a) {
           a.credit_balance -= removed;
           a.balance = account2::compute_balance(a.account_type, a.debit_balance, a.credit_balance);
         });
@@ -134,7 +134,7 @@ void ledger2::migrate() {
 
       auto a51 = acc.find(ledger2_accounts::BANK_ACCOUNT);
       if (a51 != acc.end()) {
-        acc.modify(a51, get_self(), [&](auto& a) {
+        acc.modify(a51, RamPayer::of(acc), [&](auto& a) {
           a.debit_balance -= removed;
           a.balance = account2::compute_balance(a.account_type, a.debit_balance, a.credit_balance);
         });

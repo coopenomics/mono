@@ -52,7 +52,7 @@
     check(total_percent <= HUNDR_PERCENTS,
           "Сумма всех процентов превышает 100% (1 000 000)");
     id = get_global_id(_fund, "funds"_n);
-    accfunds.emplace(username, [&](auto &a) {
+    accfunds.emplace(RamPayer::of(accfunds, coopname), [&](auto &a) {
       a.id = get_global_id_in_scope(_fund, coopname, "funds"_n);
       a.coopname = coopname;
       a.contract = contract;
@@ -70,7 +70,7 @@
     expfunds_index expfunds(_fund, coopname.value);
     id = get_global_id_in_scope(_fund, coopname, "funds"_n);
 
-    expfunds.emplace(username, [&](auto &e) {
+    expfunds.emplace(RamPayer::of(expfunds, coopname), [&](auto &e) {
       e.id = id;
       e.coopname = coopname;
       e.contract = contract;

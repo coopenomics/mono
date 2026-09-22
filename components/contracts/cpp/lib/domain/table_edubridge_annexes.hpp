@@ -5,6 +5,7 @@
 #include <eosio/time.hpp>
 
 #include "../consts.hpp"
+#include "../core/ram_payer.hpp"
 
 namespace Edubridge {
 
@@ -41,3 +42,6 @@ typedef eosio::multi_index<
     edu_annexes_index;
 
 } // namespace Edubridge
+
+// Плательщик за оперативную память строк таблицы — правило в lib/core/ram_payer.hpp.
+RAM_PAYER_CLASS(Edubridge::edu_annex, cooperative);

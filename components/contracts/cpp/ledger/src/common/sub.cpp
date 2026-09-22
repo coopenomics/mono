@@ -33,7 +33,7 @@ void ledger::sub(eosio::name coopname, uint64_t account_id, eosio::asset quantit
   eosio::check(account_iter->available >= quantity, "Недостаточно доступных средств для списания");
 
   // Обновляем баланс счета
-  accounts.modify(account_iter, payer, [&](auto& acc) {
+  accounts.modify(account_iter, RamPayer::of(accounts, coopname), [&](auto& acc) {
     acc.available -= quantity;
   });
   

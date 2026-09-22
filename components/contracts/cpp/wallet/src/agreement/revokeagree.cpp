@@ -24,7 +24,9 @@
   // (симметрично signagree).
   std::vector<eosio::name> allowed{coopname};
   for (const auto& c : contracts_whitelist) allowed.push_back(c);
-  const eosio::name payer = check_auth_and_get_payer_or_fail(allowed);
+  // Плательщик памяти — по классу таблицы (RamPayer), проверка лишь пропускает
+  // вызывающего.
+  check_auth_and_get_payer_or_fail(allowed);
 
   Wallet::users_index users(_wallet, coopname.value);
   auto user_it = users.find(username.value);
@@ -43,7 +45,7 @@
     // Последняя программа — удаляем запись users целиком.
     users.erase(user_it);
   } else {
-    users.modify(user_it, payer, [&](auto &row) {
+    users.modify(user_it, RamPayer::of(users, coopname), [&](auto &row) {
       auto it = std::find_if(
         row.programs.begin(), row.programs.end(),
         [&](const Wallet::program_agreement &p) { return p.program_id == program_id; });

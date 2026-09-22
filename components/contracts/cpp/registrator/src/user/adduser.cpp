@@ -61,7 +61,7 @@
   
   storages.push_back(coopname);
 
-  accounts.emplace(coopname, [&](auto &n)
+  accounts.emplace(RamPayer::of(accounts, coopname), [&](auto &n)
     {
       n.username = username;
       n.status = "active"_n;
@@ -88,7 +88,7 @@
   cooperatives2_index cooperatives(_registrator, _registrator.value);
   auto coop_itr = cooperatives.find(coopname.value);
   if (coop_itr != cooperatives.end() && coop_itr->is_cooperative) {
-    cooperatives.modify(coop_itr, coopname, [&](auto &coop) {
+    cooperatives.modify(coop_itr, RamPayer::of(cooperatives, coopname), [&](auto &coop) {
       if (coop.active_participants_count.has_value()) {
         coop.active_participants_count = coop.active_participants_count.value() + 1;
       } else {

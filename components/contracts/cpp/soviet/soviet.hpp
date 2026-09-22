@@ -1,5 +1,7 @@
 // #pragma once
 
+
+#include "../lib/core/ram_payer.hpp"
 #include <eosio/binary_extension.hpp>
 #include <eosio/eosio.hpp>
 #include <eosio/ignore.hpp>
@@ -48,9 +50,9 @@ struct follow_rule {
     eosio::name follow; ///< Член совета, за голосом которого робот повторяет
 };
 
-class [[eosio::contract(SOVIET)]] soviet : public eosio::contract {
+class [[eosio::contract(SOVIET)]] soviet : public coop_contract {
 public:
-  using contract::contract;
+  using coop_contract::coop_contract;
   
   [[eosio::action]] void init();
   [[eosio::action]] void migrate();
@@ -433,5 +435,9 @@ struct [[eosio::table, eosio::contract(SOVIET)]] automator {
     eosio::indexed_by<"byexchange"_n, eosio::const_mem_fun<changes, uint64_t, &changes::byexchange>>
   > changes_index;
 
-
-
+// Плательщик за оперативную память строк таблицы — правило в lib/core/ram_payer.hpp.
+RAM_PAYER_CLASS(counts, contract);
+RAM_PAYER_CLASS(automator, contract);
+RAM_PAYER_CLASS(autosigner, contract);
+RAM_PAYER_CLASS(joincoops, cooperative);
+RAM_PAYER_CLASS(changes, cooperative);

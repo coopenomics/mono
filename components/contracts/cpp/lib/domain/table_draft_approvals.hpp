@@ -1,5 +1,7 @@
 #pragma once
 
+
+#include "../core/ram_payer.hpp"
 #include <eosio/crypto.hpp>
 #include <eosio/eosio.hpp>
 #include <eosio/time.hpp>
@@ -59,3 +61,6 @@ inline uint64_t get_effective_draft_version(eosio::name coopname, uint64_t regis
 
   return get_scoped_draft_by_registry_or_fail(_draft, registry_id).version;
 }
+
+// Плательщик за оперативную память строк таблицы — правило в lib/core/ram_payer.hpp.
+RAM_PAYER_CLASS(draftapproval, contract);

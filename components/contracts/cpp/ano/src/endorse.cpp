@@ -59,7 +59,7 @@ void ano::endorse(eosio::name issuer,
   auto it = endorsements.find(subject.value);
 
   if (it == endorsements.end()) {
-    endorsements.emplace(issuer, [&](auto &e) {
+    endorsements.emplace(RamPayer::of(endorsements), [&](auto &e) {
       e.subject = subject;
       e.issuer = issuer;
       e.chain_id = chain_id;
@@ -78,7 +78,7 @@ void ano::endorse(eosio::name issuer,
 
   const eosio::name payer = it->issuer == issuer ? eosio::same_payer : issuer;
 
-  endorsements.modify(it, payer, [&](auto &e) {
+  endorsements.modify(it, RamPayer::of(endorsements), [&](auto &e) {
     e.issuer = issuer;
     e.chain_id = chain_id;
     e.cert_key = cert_key;

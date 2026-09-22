@@ -22,7 +22,7 @@ void ledger::complete(eosio::name coopname, checksum256 writeoff_hash) {
   // Обновляем статус операции
   writeoffs_index writeoffs(_ledger, _ledger.value);
   auto writeoff_iter = writeoffs.find(writeoff.id);
-  writeoffs.modify(writeoff_iter, _gateway, [&](auto& w) {
+  writeoffs.modify(writeoff_iter, RamPayer::of(writeoffs, coopname), [&](auto& w) {
     w.status = "paid"_n;
   });
 
@@ -31,7 +31,7 @@ void ledger::complete(eosio::name coopname, checksum256 writeoff_hash) {
   auto account_iter = accounts.find(writeoff.account_id);
   eosio::check(account_iter != accounts.end(), "Счет не найден");
 
-  accounts.modify(account_iter, _gateway, [&](auto& acc) {
+  accounts.modify(account_iter, RamPayer::of(accounts, coopname), [&](auto& acc) {
     acc.blocked -= writeoff.quantity;
     acc.writeoff += writeoff.quantity;
   });

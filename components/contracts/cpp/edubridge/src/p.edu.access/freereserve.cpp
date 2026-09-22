@@ -37,7 +37,7 @@ void edubridge::freereserve(eosio::name coopname,
                  Edubridge::Memo::get_free_reserve_memo());
 
   if (tracked) {
-    subs.modify(subs.find(found->id), _edubridge, [&](auto& s) {
+    subs.modify(subs.find(found->id), RamPayer::of(subs, coopname), [&](auto& s) {
       s.set_amounts(s.charged_or_zero(), s.reserved_or_zero() - amount, s.locked_or_zero());
     });
   }

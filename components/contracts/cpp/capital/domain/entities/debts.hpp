@@ -1,5 +1,7 @@
 #pragma once
 
+
+#include "../../../lib/core/ram_payer.hpp"
 #include <eosio/eosio.hpp>
 #include <eosio/asset.hpp>
 
@@ -100,7 +102,7 @@ inline void create_debt(
   debts_index debts(_capital, coopname.value);
   auto debt_id = get_global_id_in_scope(_capital, coopname, "debts"_n);
   
-  debts.emplace(payer, [&](auto &d){
+  debts.emplace(RamPayer::of(debts, coopname), [&](auto &d){
     d.id = debt_id;
     d.coopname = coopname;
     d.username = username;
@@ -130,7 +132,7 @@ inline void update_debt_status(
   auto debt = debts.find(debt_id);
   eosio::check(debt != debts.end(), "Долг не найден");
   
-  debts.modify(debt, payer, [&](auto &d) {
+  debts.modify(debt, RamPayer::of(debts, coopname), [&](auto &d) {
     d.status = new_status;
     
     if (new_status == Status::APPROVED) {
@@ -207,3 +209,6 @@ inline void create_debt_agenda(
 
 
 } // namespace Capital::Debts
+
+// Плательщик за оперативную память строк таблицы — правило в lib/core/ram_payer.hpp.
+RAM_PAYER_CLASS(Capital::Debts::debt, cooperative);
