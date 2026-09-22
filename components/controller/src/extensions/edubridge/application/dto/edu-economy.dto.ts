@@ -173,7 +173,10 @@ export class EduProgramWalletDTO {
   @Field(() => String, { description: 'Остаток' })
   available!: string;
 
-  @Field(() => String, { description: 'Что это за средства и откуда они берутся' })
+  @Field(() => String, { description: 'Короткая подпись: что это за средства' })
+  summary!: string;
+
+  @Field(() => String, { description: 'Подробно: откуда средства берутся, куда уходят и на что их можно тратить' })
   hint!: string;
 }
 
@@ -194,6 +197,9 @@ export class EduFundMovementDTO {
 
   @Field(() => String, { nullable: true, description: 'Пайщик, к которому относится движение' })
   username!: string | null;
+
+  @Field(() => String, { nullable: true, description: 'ФИО пайщика (у организации — наименование)' })
+  display_name!: string | null;
 
   @Field(() => String, { description: 'Направление: приход в фонд или расход из него' })
   direction!: string;

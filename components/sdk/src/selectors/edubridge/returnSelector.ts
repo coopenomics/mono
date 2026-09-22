@@ -4,6 +4,7 @@ import type { MakeAllFieldsRequired } from '../../utils/MakeAllFieldsRequired'
 const rawReturnRequestSelector = {
   id: true,
   member_username: true,
+  display_name: true,
   amount: true,
   status: true,
   statement_hash: true,

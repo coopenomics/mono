@@ -5897,6 +5897,7 @@ export const ReturnTypes: Record<string,any> = {
 		amount:"String",
 		at:"DateTime",
 		direction:"String",
+		display_name:"String",
 		id:"String",
 		title:"String",
 		username:"String"
@@ -5964,7 +5965,8 @@ export const ReturnTypes: Record<string,any> = {
 		available:"String",
 		hint:"String",
 		id:"String",
-		name:"String"
+		name:"String",
+		summary:"String"
 	},
 	EduQuote:{
 		amount:"String",
@@ -6000,6 +6002,7 @@ export const ReturnTypes: Record<string,any> = {
 		created_at:"DateTime",
 		decided_at:"DateTime",
 		decline_reason:"String",
+		display_name:"String",
 		id:"ID",
 		member_username:"String",
 		statement_hash:"String",

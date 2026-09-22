@@ -91,25 +91,29 @@ export class EdubridgeEconomyService {
         id: FUND_WALLET,
         name: fund?.name ?? 'Фонд ЦПП «Образование»',
         available: fundBalance,
-        hint: 'Свободные средства программы: из них идут расходы и возвраты по Положению. Обещанное преподавателям сюда не входит.',
+        summary: 'Свободные средства программы',
+        hint: 'Из фонда идут расходы программы. Сюда попадает только то, что ученики уже не вправе потребовать назад, за вычетом обязательства перед преподавателями.',
       },
       {
         id: ESCROW_WALLET,
         name: escrow?.name ?? 'Удержано до конца гарантийного срока',
         available: escrow?.available ?? `0.0000 ${symbol}`,
-        hint: 'Взносы по курсам, у которых идёт гарантийный срок: участник ещё вправе закрыть подписку с возвратом, поэтому на расходы они не идут. Срок вышел — взнос переходит в фонд.',
+        summary: 'Взносы, которые ученики могут вернуть',
+        hint: 'Пока у ученика идёт гарантийный срок, его взнос удержан целиком; после срока удержана сумма возврата по Положению на сегодня. На расходы эти средства не идут, освобождённое переходит в фонд.',
       },
       {
         id: RESERVE_WALLET,
         name: reserve?.name ?? 'Резерв выплат преподавателям',
         available: reserve?.available ?? `0.0000 ${symbol}`,
-        hint: 'Себестоимость оплаченных занятий: выделяется из каждого взноса и уменьшается, когда результат преподавателя принят. На расходы программы не идёт.',
+        summary: 'Обязательство перед преподавателями',
+        hint: 'Стоимость часов курсов по плановой ставке за оплаченное учениками время, за вычетом уже выплаченного. Наполняется из освобождённых взносов, уменьшается, когда результат преподавателя принят. На расходы программы не идёт.',
       },
       {
         id: MEMBER_WALLET,
         name: 'Членские взносы учеников',
         available: formatMinor(membersMinor, symbol),
-        hint: 'Внесено учениками, но ещё не списано в фонд: остаток появляется при возврате и до подключения подписки.',
+        summary: 'Остатки на кошельках программы учеников',
+        hint: 'Внесено учениками и ещё не списано в фонд: возвраты по отменённым подпискам и взносы до подключения подписки. Идут на новые подписки; в паевой взнос возвращаются только с прекращением участия в программе.',
       },
     ];
 
@@ -117,8 +121,15 @@ export class EdubridgeEconomyService {
       wallets,
       fund_balance: fundBalance,
       members_balance: formatMinor(membersMinor, symbol),
-      movements: history.items.map((op) => toMovement(op, symbol)),
+      movements: await this.withNames(history.items.map((op) => toMovement(op, symbol))),
     };
+  }
+
+  /** В ленте пайщик называется по ФИО, логин остаётся для копирования. */
+  private async withNames(movements: EduFundMovementDTO[]): Promise<EduFundMovementDTO[]> {
+    const usernames = [...new Set(movements.map((m) => m.username).filter((u): u is string => Boolean(u)))];
+    const names = await this.names.displayNames(usernames);
+    return movements.map((m) => ({ ...m, display_name: m.username ? names.get(m.username) || null : null }));
   }
 
   async settings(): Promise<EduEconomySettingsDTO> {
@@ -265,6 +276,7 @@ function toMovement(op: InnerLedger2Operation, symbol: string): EduFundMovementD
     title: known.title,
     amount: op.quantity ?? `0.0000 ${symbol}`,
     username: op.username ?? null,
+    display_name: null,
     direction: known.direction,
   };
 }

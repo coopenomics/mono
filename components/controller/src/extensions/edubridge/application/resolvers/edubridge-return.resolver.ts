@@ -13,6 +13,7 @@ import {
 import { EdubridgeAccessGuard } from '../guards/edubridge-access.guard';
 import type { IEdubridgeMembership } from '../membership/edubridge-membership.service';
 import { EdubridgeReturnService } from '../services/edubridge-return.service';
+import { EdubridgeNamesService } from '../membership/edubridge-names.service';
 
 const coop = () => platformSettings().coopname;
 
@@ -20,7 +21,10 @@ const coop = () => platformSettings().coopname;
 @Resolver()
 @Injectable()
 export class EdubridgeReturnResolver {
-  constructor(private readonly returns: EdubridgeReturnService) {}
+  constructor(
+    private readonly returns: EdubridgeReturnService,
+    private readonly names: EdubridgeNamesService
+  ) {}
 
   @Query(() => EduReturnBalanceDTO, { name: 'edubridgeReturnBalance', description: 'Что уйдёт в паевой взнос, если прекратить участие в программе сегодня' })
   @UseGuards(GqlJwtAuthGuard, EdubridgeAccessGuard)
@@ -49,7 +53,9 @@ export class EdubridgeReturnResolver {
   async edubridgeReturnRequests(
     @Args('status', { type: () => EduReturnStatus, nullable: true }) status?: EduReturnStatus
   ): Promise<EduReturnRequestDTO[]> {
-    return (await this.returns.listAll(coop(), status)).map((r) => new EduReturnRequestDTO(r));
+    const rows = await this.returns.listAll(coop(), status);
+    const names = await this.names.displayNames(rows.map((r) => r.member_username));
+    return rows.map((r) => new EduReturnRequestDTO(r, names.get(r.member_username)));
   }
 
   @Mutation(() => EduReturnRequestDTO, { name: 'edubridgeApproveReturn', description: 'Согласовать заявление: подписки пайщика закрываются с возвратом по Положению, весь остаток кошелька программы переходит в его паевой взнос, участие в программе прекращается' })

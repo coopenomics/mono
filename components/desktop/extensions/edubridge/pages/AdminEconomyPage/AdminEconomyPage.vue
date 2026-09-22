@@ -1,9 +1,9 @@
 <template lang="pug">
 .q-pa-md
   PageHint.q-mb-md(storage-key="edu:admin-economy:banner-dismissed")
-    | Деньги программы: членский взнос ученика переходит в фонд кооператива, и на эти средства ведётся
-    | обучение. Стоимость курса складывается снизу — часы занятий по ставке преподавателя плюс наценка,
-    | одна на весь кооператив.
+    | Взнос ученика удерживается, пока он вправе потребовать его назад, затем покрывает обязательство
+    | перед преподавателями, а остаток становится свободными средствами фонда. Стоимость курса складывается
+    | снизу — часы занятий по ставке преподавателя плюс наценка, одна на весь кооператив.
 
   PageTabs.q-mb-md(:tabs="tabs" :active-key="tab" @select="(t) => (tab = t.key)")
 
@@ -12,9 +12,10 @@
       .col-12.col-md-6(v-for="w in wallets" :key="w.id")
         WalletCard(
           :title="w.name"
-          :subtitle="w.hint"
-          :balance="formatAsset2Digits(w.available)"
-          :symbol="symbol"
+          :subtitle="w.summary"
+          :hint="w.hint"
+          :balance="splitAsset2Digits(w.available).amount"
+          :symbol="splitAsset2Digits(w.available).symbol || symbol"
           balance-label="Остаток"
           icon="savings"
           stacked
@@ -33,7 +34,7 @@
     )
       template(#cell-at="{ row }") {{ formatDate(row.at) }}
       template(#cell-username="{ row }")
-        IdentityCell(v-if="row.username" :account-name="row.username")
+        IdentityCell(v-if="row.username" :account-name="row.username" :full-name="row.display_name")
         span(v-else) ______
       template(#cell-amount="{ row }") {{ formatAsset2Digits(row.amount) }}
 
@@ -138,7 +139,7 @@ import { useSystemStore } from 'src/entities/System/model';
 import { useFirstLoad } from 'src/shared/lib/composables';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { asDateInput, asText, formatToAsset } from 'src/shared/lib/utils';
-import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
+import { formatAsset2Digits, splitAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { BaseButton, BaseCard, BaseDialog, BaseForm, BaseInput, BaseTable, EmptyState, type BaseTableColumn } from 'src/shared/ui/base';
 import { DataRow, IdentityCell, PageHint, WalletCard } from 'src/shared/ui/domain';
 import { PageTabs, type PageTab } from 'src/shared/ui/layout';

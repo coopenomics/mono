@@ -7320,6 +7320,8 @@ export type ValueTypes = {
 	at?:boolean | `@${string}`,
 	/** Направление: приход в фонд или расход из него */
 	direction?:boolean | `@${string}`,
+	/** ФИО пайщика (у организации — наименование) */
+	display_name?:boolean | `@${string}`,
 	/** Номер движения */
 	id?:boolean | `@${string}`,
 	/** Что произошло */
@@ -7479,12 +7481,14 @@ export type ValueTypes = {
 	["EduProgramWallet"]: AliasType<{
 	/** Остаток */
 	available?:boolean | `@${string}`,
-	/** Что это за средства и откуда они берутся */
+	/** Подробно: откуда средства берутся, куда уходят и на что их можно тратить */
 	hint?:boolean | `@${string}`,
 	/** Идентификатор кошелька */
 	id?:boolean | `@${string}`,
 	/** Название кошелька */
 	name?:boolean | `@${string}`,
+	/** Короткая подпись: что это за средства */
+	summary?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
 	['...on EduProgramWallet']?: Omit<ValueTypes["EduProgramWallet"], "...on EduProgramWallet">
 }>;
@@ -7576,6 +7580,8 @@ export type ValueTypes = {
 	decided_at?:boolean | `@${string}`,
 	/** Причина отказа, если кооператив отклонил заявление */
 	decline_reason?:boolean | `@${string}`,
+	/** ФИО пайщика (у организации — наименование) */
+	display_name?:boolean | `@${string}`,
 	/** Идентификатор заявления */
 	id?:boolean | `@${string}`,
 	/** Пайщик, подавший заявление */
@@ -24446,6 +24452,8 @@ export type ResolverInputTypes = {
 	at?:boolean | `@${string}`,
 	/** Направление: приход в фонд или расход из него */
 	direction?:boolean | `@${string}`,
+	/** ФИО пайщика (у организации — наименование) */
+	display_name?:boolean | `@${string}`,
 	/** Номер движения */
 	id?:boolean | `@${string}`,
 	/** Что произошло */
@@ -24595,12 +24603,14 @@ export type ResolverInputTypes = {
 	["EduProgramWallet"]: AliasType<{
 	/** Остаток */
 	available?:boolean | `@${string}`,
-	/** Что это за средства и откуда они берутся */
+	/** Подробно: откуда средства берутся, куда уходят и на что их можно тратить */
 	hint?:boolean | `@${string}`,
 	/** Идентификатор кошелька */
 	id?:boolean | `@${string}`,
 	/** Название кошелька */
 	name?:boolean | `@${string}`,
+	/** Короткая подпись: что это за средства */
+	summary?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
 	["EduQueueFilterInput"]: {
@@ -24688,6 +24698,8 @@ export type ResolverInputTypes = {
 	decided_at?:boolean | `@${string}`,
 	/** Причина отказа, если кооператив отклонил заявление */
 	decline_reason?:boolean | `@${string}`,
+	/** ФИО пайщика (у организации — наименование) */
+	display_name?:boolean | `@${string}`,
 	/** Идентификатор заявления */
 	id?:boolean | `@${string}`,
 	/** Пайщик, подавший заявление */
@@ -41043,6 +41055,8 @@ export type ModelTypes = {
 	at: ModelTypes["DateTime"],
 	/** Направление: приход в фонд или расход из него */
 	direction: string,
+	/** ФИО пайщика (у организации — наименование) */
+	display_name?: string | undefined | null,
 	/** Номер движения */
 	id: string,
 	/** Что произошло */
@@ -41180,12 +41194,14 @@ export type ModelTypes = {
 	["EduProgramWallet"]: {
 		/** Остаток */
 	available: string,
-	/** Что это за средства и откуда они берутся */
+	/** Подробно: откуда средства берутся, куда уходят и на что их можно тратить */
 	hint: string,
 	/** Идентификатор кошелька */
 	id: string,
 	/** Название кошелька */
-	name: string
+	name: string,
+	/** Короткая подпись: что это за средства */
+	summary: string
 };
 	["EduQueueFilterInput"]: {
 	/** Состояния задач */
@@ -41268,6 +41284,8 @@ export type ModelTypes = {
 	decided_at?: ModelTypes["DateTime"] | undefined | null,
 	/** Причина отказа, если кооператив отклонил заявление */
 	decline_reason: string,
+	/** ФИО пайщика (у организации — наименование) */
+	display_name?: string | undefined | null,
 	/** Идентификатор заявления */
 	id: ModelTypes["ID"],
 	/** Пайщик, подавший заявление */
@@ -58823,6 +58841,8 @@ export type GraphQLTypes = {
 	at: GraphQLTypes["DateTime"],
 	/** Направление: приход в фонд или расход из него */
 	direction: string,
+	/** ФИО пайщика (у организации — наименование) */
+	display_name?: string | undefined | null,
 	/** Номер движения */
 	id: string,
 	/** Что произошло */
@@ -58982,12 +59002,14 @@ export type GraphQLTypes = {
 	__typename: "EduProgramWallet",
 	/** Остаток */
 	available: string,
-	/** Что это за средства и откуда они берутся */
+	/** Подробно: откуда средства берутся, куда уходят и на что их можно тратить */
 	hint: string,
 	/** Идентификатор кошелька */
 	id: string,
 	/** Название кошелька */
 	name: string,
+	/** Короткая подпись: что это за средства */
+	summary: string,
 	['...on EduProgramWallet']: Omit<GraphQLTypes["EduProgramWallet"], "...on EduProgramWallet">
 };
 	["EduQueueFilterInput"]: {
@@ -59079,6 +59101,8 @@ export type GraphQLTypes = {
 	decided_at?: GraphQLTypes["DateTime"] | undefined | null,
 	/** Причина отказа, если кооператив отклонил заявление */
 	decline_reason: string,
+	/** ФИО пайщика (у организации — наименование) */
+	display_name?: string | undefined | null,
 	/** Идентификатор заявления */
 	id: GraphQLTypes["ID"],
 	/** Пайщик, подавший заявление */

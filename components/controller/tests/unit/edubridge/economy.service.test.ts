@@ -228,6 +228,9 @@ describe('Деньги программы', () => {
     expect(fund.movements).toHaveLength(1);
     expect(fund.movements[0]!.title).toBe('Взнос за курс списан в фонд программы');
     expect(fund.movements[0]!.username).toBe('parent');
+    expect(fund.movements[0]!.display_name).toBe('ФИО parent');
+    // У каждого кошелька короткая подпись для карточки и подробная подсказка под знаком вопроса.
+    expect(fund.wallets.every((w) => w.summary.length > 0 && w.summary.length <= 45 && w.hint.length > w.summary.length)).toBe(true);
   });
 
   it('пустой фонд показывается нулём, а не пропадает из списка', async () => {

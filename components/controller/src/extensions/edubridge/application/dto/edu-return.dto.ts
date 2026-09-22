@@ -16,6 +16,9 @@ export class EduReturnRequestDTO {
   @Field(() => String, { description: 'Пайщик, подавший заявление' })
   member_username!: string;
 
+  @Field(() => String, { nullable: true, description: 'ФИО пайщика (у организации — наименование)' })
+  display_name!: string | null;
+
   @Field(() => String, { description: 'Сумма перевода в паевой взнос: после согласования — переведённая, до него — оценка на день подачи' })
   amount!: string;
 
@@ -34,9 +37,10 @@ export class EduReturnRequestDTO {
   @Field(() => Date, { nullable: true, description: 'Когда кооператив принял решение' })
   decided_at!: Date | null;
 
-  constructor(e: EdubridgeReturnRequestEntity) {
+  constructor(e: EdubridgeReturnRequestEntity, displayName?: string | null) {
     this.id = e.id;
     this.member_username = e.member_username;
+    this.display_name = displayName || null;
     this.amount = e.amount;
     this.status = e.status;
     this.statement_hash = e.statement_hash;

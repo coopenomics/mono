@@ -12,7 +12,12 @@
 
     <div class="wallet__body">
       <div class="wallet__main">
-        <div class="wallet__title" :title="resolvedTitle">{{ resolvedTitle }}</div>
+        <div class="wallet__title" :title="hint ? undefined : resolvedTitle">
+          {{ resolvedTitle }}
+          <q-icon v-if="hint" name="help_outline" class="wallet__hint">
+            <q-tooltip max-width="320px">{{ hint }}</q-tooltip>
+          </q-icon>
+        </div>
         <div v-if="subtitle" class="wallet__sub" :title="subtitle">{{ subtitle }}</div>
       </div>
 

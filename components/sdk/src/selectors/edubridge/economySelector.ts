@@ -47,6 +47,7 @@ const rawProgramWalletSelector = {
   id: true,
   name: true,
   available: true,
+  summary: true,
   hint: true,
 }
 const _validateWallet: MakeAllFieldsRequired<ValueTypes['EduProgramWallet']> = rawProgramWalletSelector
@@ -57,6 +58,7 @@ const rawFundMovementSelector = {
   title: true,
   amount: true,
   username: true,
+  display_name: true,
   direction: true,
 }
 const _validateMovement: MakeAllFieldsRequired<ValueTypes['EduFundMovement']> = rawFundMovementSelector

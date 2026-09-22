@@ -41,6 +41,16 @@ export const formatAsset2Digits = (value: string | null | undefined): string => 
 };
 
 /**
+ * Актив раздельно — число и тикер: для компонентов, которые печатают тикер
+ * сами (`WalletCard` принимает `balance` и `symbol` порознь). Число — тем же
+ * форматом, что {@link formatAsset2Digits}: "2000.0000 RUB" → { amount: "2 000,00", symbol: "RUB" }.
+ */
+export const splitAsset2Digits = (value: string | null | undefined): { amount: string; symbol: string } => {
+  const [number = '', symbol = ''] = (value ?? '').trim().split(' ');
+  return { amount: formatAsset2Digits(number || '0'), symbol };
+};
+
+/**
  * Регэксп для актива внутри свободного текста: целое.дробное (≥3 знаков)
  * + пробел + тикер. Требование ≥3 знаков таргетит «сырой» on-chain рендер
  * `asset::to_string()` (precision=4 для RUB → "100.0000"), но не трогает

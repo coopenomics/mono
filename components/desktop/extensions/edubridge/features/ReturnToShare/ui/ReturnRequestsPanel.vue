@@ -10,7 +10,7 @@ div
   )
     template(#cell-created_at="{ row }") {{ formatDate(row.created_at) }}
     template(#cell-member_username="{ row }")
-      IdentityCell(:account-name="row.member_username")
+      IdentityCell(:account-name="row.member_username" :full-name="row.display_name")
     template(#cell-amount="{ row }") {{ formatAsset2Digits(row.amount) }}
     template(#cell-status="{ row }")
       BaseBadge(:variant="statusOf(row.status).variant") {{ statusOf(row.status).label }}

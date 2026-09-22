@@ -360,6 +360,15 @@ body {
   white-space: normal;
   overflow: visible;
 }
+/* Знак вопроса после заголовка: подробности — во всплывающей подсказке. */
+.wallet__hint {
+  margin-left: var(--p-1);
+  font-size: var(--p-fs-body);
+  color: var(--p-ink-3);
+  vertical-align: -2px;
+  cursor: help;
+}
+.wallet__hint:hover { color: var(--p-ink-2); }
 .wallet__sub {
   font-size: var(--p-fs-meta);
   color: var(--p-ink-2);
