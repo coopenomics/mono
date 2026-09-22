@@ -3,8 +3,8 @@ BaseForm.edu-course-form(ref="formEl" :loading="loading" :error="error" @submit=
   //- Форма идёт разделами сверху вниз, поля — в одну колонку с подсказкой под
   //- каждым: так читается, что от чего зависит. Пары коротких полей встают
   //- рядом только когда места хватает, поэтому подсказки не обрезаются.
-  section.edu-course-form__section
-    .edu-course-form__legend Курс
+  section.edu-course-form__section(v-if="show('course')")
+    .edu-course-form__legend(v-if="!section") Курс
     BaseInput(v-model="form.title" label="Название курса" hint="Как курс увидят в каталоге" required)
     .edu-course-form__pair
       BaseInput(v-model="form.subject" label="Предмет" required)
@@ -13,8 +13,8 @@ BaseForm.edu-course-form(ref="formEl" :loading="loading" :error="error" @submit=
     BaseInput(v-model="form.description" label="Описание" type="textarea" :rows="3" autogrow)
     BaseInput(v-model="form.syllabus" label="Учебная программа" type="textarea" :rows="5" autogrow)
 
-  section.edu-course-form__section
-    .edu-course-form__legend Обложка
+  section.edu-course-form__section(v-if="show('cover')")
+    .edu-course-form__legend(v-if="!section") Обложка
     //- Обложка во всю ширину: снимок виден в тех же пропорциях, что и в каталоге,
     //- замена с удалением открываются наведением на него.
     .edu-course-form__cover(v-if="previewUrl")
@@ -31,31 +31,40 @@ BaseForm.edu-course-form(ref="formEl" :loading="loading" :error="error" @submit=
   //- Взнос не вводится руками: он складывается из часов занятий по ставке
   //- преподавателя и наценки кооператива. Так оплата ученика покрывает
   //- обязательства перед теми, кто курс ведёт.
-  section.edu-course-form__section
-    .edu-course-form__legend Стоимость
-    .edu-course-form__pair
-      BaseInput(v-model="lessonsPerMonth" label="Занятий в месяц" type="number" hint="По расписанию курса" required)
-      BaseInput(v-model="lessonMinutes" label="Занятие, минут" type="number" hint="Длительность одного занятия" required)
-    .edu-course-form__pair
-      BaseInput(v-model="lessonsTotal" label="Занятий в программе" type="number" hint="Всего занятий курса" required)
-      BaseInput(v-model="plannedRate" label="Ставка часа" type="number" :suffix="symbol" hint="Плановая ставка преподавателя" required)
-    .edu-course-form__pair
-      BaseInput(
-        v-model="form.starts_at"
-        label="Дата начала занятий"
-        type="date"
-        stack-label
-        hint="До этой даты ученик отменяет подписку с полным возвратом"
-      )
-      BaseInput(
-        v-model="guaranteeDays"
-        label="Гарантия материалов, дней"
-        type="number"
-        hint="Столько держится заявление преподавателя о взносе за занятие"
-      )
+  section.edu-course-form__section(v-if="show('price')")
+    .edu-course-form__legend(v-if="!section") Стоимость
+    .edu-course-form__group
+      .edu-course-form__group-title Занятия
+      .edu-course-form__pair
+        BaseInput(v-model="lessonsPerMonth" label="Занятий в месяц" type="number" hint="По расписанию курса" required)
+        BaseInput(v-model="lessonMinutes" label="Длительность занятия, минут" type="number" required)
+      BaseInput(v-model="lessonsTotal" label="Занятий в программе" type="number" hint="Всего занятий курса — от них считается его длительность" required)
+
+    .edu-course-form__group
+      .edu-course-form__group-title Ставка
+      BaseInput(v-model="plannedRate" label="Ставка часа" type="number" :suffix="symbol" hint="Плановая ставка преподавателя: из неё складывается взнос" required)
+
+    .edu-course-form__group
+      .edu-course-form__group-title Сроки
+      .edu-course-form__pair
+        BaseInput(
+          v-model="form.starts_at"
+          label="Дата начала занятий"
+          type="date"
+          stack-label
+          hint="От неё отсчитывается гарантийный срок курса"
+        )
+        BaseInput(
+          v-model="guaranteeDays"
+          label="Гарантийный срок, дней"
+          type="number"
+          hint="Столько дней ученик может вернуть взнос"
+        )
+
     //- Взнос вносят помесячно либо разом за весь курс. Поле скидки стоит на месте
     //- всегда и лишь включается — форма не прыгает при переключении.
-    .edu-course-form__pair
+    .edu-course-form__group
+      .edu-course-form__group-title Взнос за весь курс
       .edu-course-form__switch
         BaseCheckbox(v-model="coursePayment" block)
           | Принимать взнос за весь курс разом
@@ -96,8 +105,8 @@ BaseForm.edu-course-form(ref="formEl" :loading="loading" :error="error" @submit=
             span.t-sm.t-num {{ formatAsset2Digits(fee.course_discount_amount) }}
     .t-sm.t-muted(v-else) Заполните параметры занятий — взнос посчитается сам.
 
-  section.edu-course-form__section
-    .edu-course-form__legend Выдача доступа
+  section.edu-course-form__section(v-if="show('access')")
+    .edu-course-form__legend(v-if="!section") Выдача доступа
     .edu-course-form__pair
       BaseSelect(v-model="form.direction" label="Тип направления" :options="directionOptions" hint="Внутренний признак, ученику не виден" required)
       BaseSelect(v-model="form.carrier" label="Носитель доступа" :options="carrierOptions" required)
@@ -122,8 +131,8 @@ BaseForm.edu-course-form(ref="formEl" :loading="loading" :error="error" @submit=
     BaseInput(v-else-if="isPlatform" v-model="form.external_ref" label="Идентификатор курса на площадке" mono :hint="externalRefHint" required)
 
   //- Назначенные преподаватели идут списком имён, а выбор — строкой под ним.
-  section.edu-course-form__section
-    .edu-course-form__legend Преподаватели
+  section.edu-course-form__section(v-if="show('teachers')")
+    .edu-course-form__legend(v-if="!section") Преподаватели
     q-list.edu-course-form__teachers(v-if="form.teacher_usernames.length" separator)
       q-item(v-for="t in form.teacher_usernames" :key="t")
         q-item-section
@@ -150,339 +159,91 @@ BaseForm.edu-course-form(ref="formEl" :loading="loading" :error="error" @submit=
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
-import { Zeus } from '@coopenomics/sdk';
-import { FailAlert, SuccessAlert } from 'src/shared/api';
-import { useSystemStore } from 'src/entities/System/model';
-import { fileToBase64, formatToAsset, pluralize } from 'src/shared/lib/utils';
+import { ref } from 'vue';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { BaseButton, BaseCheckbox, BaseForm, BaseInput, BaseSelect } from 'src/shared/ui/base';
 import { IdentityCell } from 'src/shared/ui/domain';
-import { fetchCourseFeePreview, type ICourseFee } from '../../entities/Economy';
-import {
-  CARRIER_LABELS,
-  CARRIERS_BY_DIRECTION,
-  COURSE_IMAGE_ACCEPT,
-  COURSE_IMAGE_MAX_BYTES,
-  DIRECTION_LABELS,
-  PLATFORM_CARRIERS,
-  createCourse,
-  fetchPlatformCourses,
-  fetchTeacherOptions,
-  updateCourse,
-  type ICourse,
-  type ICreateCourseInput,
-  type IPlatformCourse,
-  type ITeacherOption,
-} from '../../entities/Course';
+import { COURSE_IMAGE_ACCEPT, type ICourse } from '../../entities/Course';
+import { createCourseFormState, injectCourseForm, type CourseFormSection } from './model/useCourseForm';
 
 /**
- * Конструктор курса. Носитель доступа зависит от направления: онлайн-платформа —
- * Skillspace/GetCourse, закрытое сообщество — Telegram/ВКонтакте, очное — очно;
- * идентификатор курса на площадке нужен только площадкам с API. Преподаватели
- * выбираются из пайщиков с подписанным договором УХД, их может быть несколько.
- * Обложка уходит base64 внутри той же мутации, как изображения товара в
- * «Столе заказов»; без изменений поле не передаётся, снятая — `null`.
+ * Конструктор курса. На полной странице правки каждый раздел — отдельный шаг,
+ * а состояние живёт у страницы; сама по себе форма показывает все разделы и
+ * держит состояние у себя.
  */
 const props = defineProps<{
   course?: ICourse | null;
-  /** Кнопки живут снаружи — так форма ложится в правую панель с прибитым низом. */
+  /** Кнопки живут снаружи — на странице правки их держит нижняя панель. */
   hideFooter?: boolean;
+  /** Показать один раздел; без него — все. */
+  section?: CourseFormSection;
 }>();
 const emit = defineEmits<{ saved: [course: ICourse]; cancel: []; busy: [value: boolean] }>();
 
-const system = useSystemStore();
-const symbol = computed(() => system.governSymbol);
-
-const loading = ref(false);
-const error = ref('');
-const teachers = ref<ITeacherOption[]>([]);
-
-const form = reactive<ICreateCourseInput & { teacher_usernames: string[] }>({
-  title: '',
-  subject: '',
-  grade: '',
-  description: '',
-  syllabus: '',
-  schedule: '',
-  teacher_usernames: [],
-  lessons_per_month: 8,
-  lessons_total: 64,
-  lesson_minutes: 60,
-  planned_hourly_rate: '',
-  course_payment_enabled: false,
-  course_discount_percent: 0,
-  starts_at: null,
-  guarantee_days: 14,
-  direction: Zeus.EduCourseDirection.ONLINE_PLATFORM,
-  carrier: Zeus.EduAccessCarrier.SKILLSPACE,
-  external_ref: '',
-  sort_order: 0,
-});
-
-// Обложка: новый файл (превью — object URL), снятие, либо без изменений.
-const imageFile = ref<File | null>(null);
-const imageRemoved = ref(false);
-const objectUrl = ref<string | null>(null);
-const previewUrl = computed(() => objectUrl.value ?? (imageRemoved.value ? null : (props.course?.image_url ?? null)));
-
-function releaseObjectUrl(): void {
-  if (objectUrl.value) URL.revokeObjectURL(objectUrl.value);
-  objectUrl.value = null;
-}
-const fileInput = ref<HTMLInputElement | null>(null);
-
-function pickImage(): void {
-  fileInput.value?.click();
-}
-
-function onFilePicked(event: Event): void {
-  const input = event.target as HTMLInputElement;
-  const file = input.files?.[0] ?? null;
-  input.value = '';
-  if (!file) return;
-  if (file.size > COURSE_IMAGE_MAX_BYTES) {
-    FailAlert(new Error(`Обложка больше ${Math.round(COURSE_IMAGE_MAX_BYTES / (1024 * 1024))} МБ — выберите файл поменьше`));
-    return;
-  }
-  releaseObjectUrl();
-  imageFile.value = file;
-  imageRemoved.value = false;
-  objectUrl.value = URL.createObjectURL(file);
-}
-
-function removeImage(): void {
-  releaseObjectUrl();
-  imageFile.value = null;
-  imageRemoved.value = true;
-}
-async function imagePayload(): Promise<ICreateCourseInput['image']> {
-  if (imageFile.value) return { base64: await fileToBase64(imageFile.value), mime_type: imageFile.value.type };
-  if (imageRemoved.value) return null;
-  return undefined;
-}
-onBeforeUnmount(releaseObjectUrl);
-
-// Параметры занятий — числами в полях; ставка уходит asset-строкой «1000.0000 RUB».
-const lessonsPerMonth = ref('8');
-const lessonsTotal = ref('64');
-const lessonMinutes = ref('60');
-const plannedRate = ref('');
-const guaranteeDays = ref('14');
-const coursePayment = ref(false);
-const courseDiscount = ref('0');
-
-/** Расчёт взноса считает сервер: та же арифметика, что при сохранении курса. */
-const fee = ref<ICourseFee | null>(null);
-const discountError = computed(() =>
-  coursePayment.value && fee.value && Number(courseDiscount.value || 0) > fee.value.max_course_discount_percent
-    ? 'Скидка больше наценки — взнос за курс опустится ниже себестоимости'
-    : '',
-);
-const discountHint = computed(() =>
-  fee.value ? `Предельная скидка при наценке ${fee.value.markup_percent}% — ${fee.value.max_course_discount_percent}%` : 'Скидка тем, кто вносит взнос за весь курс сразу',
-);
-/** Длительность курса следует из программы: занятий в программе на занятий в месяц. */
-const courseMonthsLabel = computed(() => {
-  const n = fee.value?.course_months ?? 0;
-  return n > 0 ? `${n} ${pluralize(n, ['месяц', 'месяца', 'месяцев'])}` : '';
-});
-const coursePaymentHint = computed(() =>
-  courseMonthsLabel.value ? `Курс длится ${courseMonthsLabel.value} — по программе и нагрузке в месяц. Иначе взнос только помесячный.` : 'Иначе взнос только помесячный.',
-);
-const courseFeeShown = computed(() => coursePayment.value && (fee.value?.course_months ?? 0) > 0);
-const courseFeeLabel = computed(() => (courseFeeShown.value ? `Взнос за весь курс · ${courseMonthsLabel.value}` : 'Взнос за весь курс'));
-
-const economyParams = computed(() => ({
-  lessons_per_month: Number(lessonsPerMonth.value || 0),
-  lessons_total: Number(lessonsTotal.value || 0),
-  lesson_minutes: Number(lessonMinutes.value || 0),
-  planned_hourly_rate: toAsset(plannedRate.value || '0'),
-  course_payment_enabled: coursePayment.value,
-  course_discount_percent: coursePayment.value ? Number(courseDiscount.value || 0) : 0,
-}));
-
-let previewTimer: ReturnType<typeof setTimeout> | null = null;
-watch(
-  economyParams,
-  (params) => {
-    if (previewTimer) clearTimeout(previewTimer);
-    // Пока параметры неполные, считать нечего: сервер такой набор отклонит.
-    if (params.lessons_per_month < 1 || params.lessons_total < 1 || params.lesson_minutes < 5) {
-      fee.value = null;
-      return;
-    }
-    previewTimer = setTimeout(async () => {
-      try {
-        fee.value = await fetchCourseFeePreview(params);
-      } catch {
-        // Расчёт — подсказка: отказ сервера здесь не мешает заполнять форму дальше.
-        fee.value = null;
-      }
-    }, 400);
-  },
-  { immediate: true, deep: true },
-);
-onBeforeUnmount(() => {
-  if (previewTimer) clearTimeout(previewTimer);
-});
-
-// Skillspace: привязка выбирается из реестра школы, а не вводится руками —
-// числовой номер из адреса конструктора площадка не знает, а UUID в адресе
-// обычно принадлежит модулю. Хранится «UUID курса» или «UUID курса:UUID группы».
-const platformCourses = ref<IPlatformCourse[]>([]);
-const skillspaceCourseId = ref<string | null>(null);
-const skillspaceGroupId = ref<string | null>(null);
-
-function toAsset(value: string): string {
-  return formatToAsset(String(value).replace(',', '.'), symbol.value);
-}
-function fromAsset(value?: string | null): string {
-  return value ? String(parseFloat(value)) : '';
-}
-
-watch(
-  () => props.course,
-  (c) => {
-    if (!c) return;
-    Object.assign(form, {
-      title: c.title,
-      subject: c.subject,
-      grade: c.grade,
-      description: c.description,
-      syllabus: c.syllabus,
-      schedule: c.schedule,
-      teacher_usernames: [...c.teacher_usernames],
-      direction: c.direction,
-      carrier: c.carrier,
-      starts_at: c.starts_at,
-      external_ref: c.external_ref,
-      sort_order: c.sort_order,
-    });
-    lessonsPerMonth.value = String(c.lessons_per_month);
-    lessonsTotal.value = String(c.lessons_total);
-    lessonMinutes.value = String(c.lesson_minutes);
-    plannedRate.value = fromAsset(c.planned_hourly_rate);
-    guaranteeDays.value = String(c.guarantee_days);
-    coursePayment.value = c.course_payment_enabled;
-    courseDiscount.value = String(c.course_discount_percent);
-    releaseObjectUrl();
-    imageFile.value = null;
-    imageRemoved.value = false;
-    if (c.carrier === Zeus.EduAccessCarrier.SKILLSPACE) {
-      const [course = '', group = ''] = c.external_ref.split(':');
-      skillspaceCourseId.value = course || null;
-      skillspaceGroupId.value = group || null;
-    }
-  },
-  { immediate: true },
-);
-
-const directionOptions = Object.entries(DIRECTION_LABELS).map(([value, label]) => ({ value, label }));
-const allowedCarriers = computed(() => CARRIERS_BY_DIRECTION[form.direction] ?? []);
-const carrierOptions = computed(() => allowedCarriers.value.map((value) => ({ value, label: CARRIER_LABELS[value] ?? value })));
-const isPlatform = computed(() => PLATFORM_CARRIERS.includes(form.carrier));
-const isSkillspace = computed(() => form.carrier === Zeus.EduAccessCarrier.SKILLSPACE);
-const externalRefHint = 'Идентификатор группы GetCourse, в которую попадает обучающийся';
-
-const platformCourseOptions = computed(() => platformCourses.value.map((c) => ({ value: c.id, label: c.name })));
-const platformGroupOptions = computed(
-  () => platformCourses.value.find((c) => c.id === skillspaceCourseId.value)?.groups.map((g) => ({ value: g.id, label: g.name })) ?? [],
-);
-watch(skillspaceCourseId, () => {
-  if (!platformGroupOptions.value.some((g) => g.value === skillspaceGroupId.value)) skillspaceGroupId.value = null;
-});
-watch([skillspaceCourseId, skillspaceGroupId], ([course, group]) => {
-  if (isSkillspace.value) form.external_ref = course ? (group ? `${course}:${group}` : course) : '';
-});
-watch(
+const state = injectCourseForm() ?? createCourseFormState(() => props.course);
+const {
+  symbol,
+  loading,
+  error,
+  form,
+  previewUrl,
+  fileInput,
+  pickImage,
+  onFilePicked,
+  removeImage,
+  lessonsPerMonth,
+  lessonsTotal,
+  lessonMinutes,
+  plannedRate,
+  guaranteeDays,
+  coursePayment,
+  courseDiscount,
+  fee,
+  discountError,
+  discountHint,
+  coursePaymentHint,
+  courseFeeShown,
+  courseFeeLabel,
+  platformCourses,
+  skillspaceCourseId,
+  skillspaceGroupId,
+  directionOptions,
+  carrierOptions,
+  isPlatform,
   isSkillspace,
-  async (on) => {
-    if (!on || platformCourses.value.length) return;
-    try {
-      platformCourses.value = await fetchPlatformCourses(Zeus.EduAccessCarrier.SKILLSPACE);
-    } catch (e) {
-      FailAlert(e);
-    }
-  },
-  { immediate: true },
-);
+  externalRefHint,
+  platformCourseOptions,
+  platformGroupOptions,
+  teacherOptions,
+  teacherName,
+  teacherHint,
+  addTeacher,
+  removeTeacher,
+} = state;
 
-// Сменили направление — носитель вне его списка теряет смысл: берём первый допустимый.
-watch(
-  () => form.direction,
-  () => {
-    if (!allowedCarriers.value.includes(form.carrier)) form.carrier = allowedCarriers.value[0]!;
-  },
-);
-watch(isPlatform, (platform) => {
-  if (!platform) form.external_ref = '';
-});
-
-// В списке — имя человека и номер его договора: учётное имя администратору
-// ничего не говорит, а договор отличает однофамильцев.
-const teacherOptions = computed(() =>
-  teachers.value
-    .filter((t) => !form.teacher_usernames.includes(t.username))
-    .map((t) => ({ value: t.username, label: `${t.display_name || t.username} · договор № ${t.contract_number}` })),
-);
-const teacherName = (username: string) => teachers.value.find((t) => t.username === username)?.display_name || null;
-const teacherHint = computed(() =>
-  teachers.value.length
-    ? 'Пайщики с подписанным договором участия в хозяйственной деятельности'
-    : 'Пока никто не подписал договор участия в хозяйственной деятельности',
-);
-
-function addTeacher(value: string | number | null): void {
-  const username = String(value ?? '');
-  if (!username || form.teacher_usernames.includes(username)) return;
-  form.teacher_usernames.push(username);
-}
-function removeTeacher(username: string): void {
-  form.teacher_usernames = form.teacher_usernames.filter((t) => t !== username);
-}
+const show = (section: CourseFormSection): boolean => !props.section || props.section === section;
 
 async function submit(): Promise<void> {
-  error.value = '';
-  loading.value = true;
   emit('busy', true);
-  try {
-    const data: ICreateCourseInput = {
-      ...form,
-      image: await imagePayload(),
-      external_ref: isPlatform.value ? form.external_ref : '',
-      guarantee_days: Number(guaranteeDays.value || 0),
-      ...economyParams.value,
-    };
-    const saved = props.course ? await updateCourse({ ...data, id: props.course.id }) : await createCourse(data);
-    SuccessAlert(props.course ? 'Курс сохранён' : 'Курс добавлен');
-    emit('saved', saved);
-  } catch (e) {
-    FailAlert(e);
-  } finally {
-    loading.value = false;
-    emit('busy', false);
-  }
+  const saved = await state.submit();
+  emit('busy', false);
+  if (saved) emit('saved', saved);
 }
 
-// Правая панель держит кнопки у нижнего края и сама зовёт отправку формы —
-// поля при этом проверяются так же, как при отправке изнутри.
+// Снаружи формы кнопки зовут проверку и отправку сами — поля при этом
+// проверяются так же, как при отправке изнутри.
 const formEl = ref<InstanceType<typeof BaseForm> | null>(null);
 
+async function validate(): Promise<boolean> {
+  return Boolean(await formEl.value?.validate());
+}
+
 async function requestSubmit(): Promise<void> {
-  if (!(await formEl.value?.validate())) return;
+  if (!(await validate())) return;
   await submit();
 }
 
-defineExpose({ submit: requestSubmit });
-
-onMounted(async () => {
-  try {
-    teachers.value = await fetchTeacherOptions();
-  } catch (e) {
-    FailAlert(e);
-  }
-});
+defineExpose({ submit: requestSubmit, validate });
 </script>
 
 <style scoped>
@@ -490,12 +251,12 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
 }
-/* Раздел формы: поля в одну колонку, между разделами — воздух и линия. */
+/* Раздел формы: между разделами — воздух и линия. */
 .edu-course-form__section {
   display: flex;
   flex-direction: column;
-  gap: var(--p-3);
-  padding: var(--p-5) 0;
+  gap: var(--p-6);
+  padding: var(--p-6) 0;
   border-top: 1px solid var(--p-line);
 }
 .edu-course-form__section:first-of-type {
@@ -503,25 +264,33 @@ onMounted(async () => {
   border-top: none;
 }
 .edu-course-form__legend {
-  font-size: var(--p-fs-body-sm, 13px);
+  font-size: var(--p-fs-h3);
   font-weight: 600;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
-  color: var(--p-ink-3);
+  color: var(--p-ink);
 }
-/* Пара коротких полей встаёт в ряд, только когда хватает ширины: иначе
-   подсказка под одним полем обрезается высотой соседнего. */
-/* Переключатель стоит в паре с полем скидки: выровнен по его середине. */
+/* Группа полей внутри раздела: короткий подзаголовок и поля под ним. */
+.edu-course-form__group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-3);
+}
+.edu-course-form__group-title {
+  font-size: var(--p-fs-body-sm);
+  line-height: var(--p-lh-body-sm);
+  font-weight: 600;
+  color: var(--p-ink-2);
+}
 .edu-course-form__switch {
   display: flex;
   flex-direction: column;
   gap: var(--p-1);
-  padding-top: var(--p-2);
 }
+/* Пара коротких полей встаёт в ряд, только когда хватает ширины: иначе
+   подсказка под одним полем обрезается высотой соседнего. */
 .edu-course-form__pair {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: var(--p-3);
+  gap: var(--p-3) var(--p-4);
   align-items: start;
 }
 .edu-course-form__cover {
@@ -574,10 +343,10 @@ onMounted(async () => {
   border: 1px solid var(--p-line);
   border-radius: var(--p-r-md);
   background: var(--p-surface-2);
-  padding: var(--p-4);
+  padding: var(--p-5);
   display: flex;
   flex-direction: column;
-  gap: var(--p-3);
+  gap: var(--p-4);
 }
 .edu-course-form__total-main {
   display: grid;
@@ -594,8 +363,8 @@ onMounted(async () => {
 .edu-course-form__total-rows {
   display: flex;
   flex-direction: column;
-  gap: var(--p-1);
-  padding-top: var(--p-3);
+  gap: var(--p-2);
+  padding-top: var(--p-4);
   border-top: 1px solid var(--p-line);
 }
 .edu-course-form__total-row {

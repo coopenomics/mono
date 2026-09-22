@@ -13,13 +13,6 @@
     template(#icon)
       q-icon(name="library_books" size="40px")
 
-  //- Новый курс заводится в правой панели — тем же порядком, что и правка курса.
-  DetailsDrawer(v-model="dialogOpen" :title="editing ? 'Изменить курс' : 'Новый курс'" :width="720")
-    CourseForm(ref="formRef" :course="editing" hide-footer @saved="onSaved" @busy="(v) => (saving = v)")
-    template(#footer)
-      .row.justify-end.q-gutter-sm
-        BaseButton(variant="ghost" :disabled="saving" @click="dialogOpen = false") Отменить
-        BaseButton(variant="primary" :loading="saving" @click="submitForm") {{ editing ? 'Сохранить' : 'Добавить курс' }}
 </template>
 
 <script setup lang="ts">
@@ -30,11 +23,10 @@ import { useFirstLoad } from 'src/shared/lib/composables';
 import { FailAlert } from 'src/shared/api';
 import { useHeaderActions } from 'src/shared/hooks';
 import { useFioCache } from 'src/shared/lib/account/useFioCache';
-import { BaseButton, CardListSkeleton, EmptyState } from 'src/shared/ui/base';
-import { DetailsDrawer, PageHint } from 'src/shared/ui/domain';
+import { CardListSkeleton, EmptyState } from 'src/shared/ui/base';
+import { PageHint } from 'src/shared/ui/domain';
 import { fetchCourses, type ICourse } from '../../entities/Course';
 import { AdminCourseCard } from '../../widgets/AdminCourseCard';
-import { CourseForm } from '../../widgets/CourseForm';
 import AddCourseHeaderButton from './AddCourseHeaderButton.vue';
 
 /**
@@ -52,14 +44,6 @@ const teacherNames = computed(() => Object.fromEntries(fioCache.value));
 const items = ref<ICourse[]>([]);
 const loading = ref(false);
 const firstLoad = useFirstLoad(loading);
-const dialogOpen = ref(false);
-const saving = ref(false);
-const editing = ref<ICourse | null>(null);
-const formRef = ref<InstanceType<typeof CourseForm> | null>(null);
-
-function submitForm(): void {
-  void formRef.value?.submit();
-}
 
 async function load(): Promise<void> {
   loading.value = true;
@@ -74,21 +58,13 @@ async function load(): Promise<void> {
   }
 }
 
+/** Новый курс заводится на полной странице — по разделам, как и правка. */
 function add(): void {
-  editing.value = null;
-  dialogOpen.value = true;
+  void router.push({ name: 'edubridge-admin-course-new', params: { coopname: route.params.coopname } });
 }
 
 function openCourse(id: string): void {
   void router.push({ name: 'edubridge-admin-course', params: { coopname: route.params.coopname, id } });
-}
-
-function onSaved(course: ICourse): void {
-  const i = items.value.findIndex((c) => c.id === course.id);
-  if (i >= 0) items.value[i] = course;
-  else items.value.push(course);
-  void enrichFio(course.teacher_usernames);
-  dialogOpen.value = false;
 }
 
 onMounted(() => {

@@ -27,9 +27,9 @@
               span.edu-course__when(v-if="course.schedule") {{ course.schedule }}
               span.edu-course__when(v-if="course.starts_at") занятия с {{ formatDate(course.starts_at) }}
           .edu-course__actions
-            BaseButton(v-if="published" variant="secondary" :loading="busy" @click="setStatus(Zeus.EduCourseStatus.DRAFT)") Снять с публикации
+            BaseButton(v-if="published" variant="secondary" :loading="busy" @click="unpublish") Снять с публикации
             BaseButton(v-else variant="secondary" :loading="busy" @click="setStatus(Zeus.EduCourseStatus.PUBLISHED)") Опубликовать
-            BaseButton(variant="primary" @click="editOpen = true") Изменить
+            BaseButton(variant="primary" @click="edit") Изменить
             //- Отмена набора — решение с последствиями, поэтому она лежит под
             //- кнопкой «ещё», а не рядом с обычными действиями.
             BaseButton(v-if="!started" variant="ghost" icon-only aria-label="Ещё действия")
@@ -91,17 +91,9 @@
           BaseCard(variant="default" title="Выдача доступа")
             DataRow(label="Направление" :value="directionLabel" align="spread")
             DataRow(label="Площадка" :value="carrierLabel" align="spread")
-            DataRow(label="Гарантия материалов" :value="`${course.guarantee_days} ${pluralizeDays(Number(course.guarantee_days))}`" align="spread")
+            DataRow(label="Гарантийный срок" :value="`${course.guarantee_days} ${pluralizeDays(Number(course.guarantee_days))}`" align="spread")
             DataRow(v-if="course.external_ref" label="Курс на площадке" :value="course.external_ref" align="vertical" mono copyable)
 
-  //- Правка курса идёт в правой панели: так стол остаётся на виду, а форма
-  //- открывается и закрывается на месте — общий порядок платформы.
-  DetailsDrawer(v-model="editOpen" title="Изменить курс" :width="720")
-    CourseForm(ref="formRef" :course="course" hide-footer @saved="onSaved" @busy="(v) => (saving = v)")
-    template(#footer)
-      .row.justify-end.q-gutter-sm
-        BaseButton(variant="ghost" :disabled="saving" @click="editOpen = false") Отменить
-        BaseButton(variant="primary" :loading="saving" @click="submitForm") Сохранить
 </template>
 
 <script setup lang="ts">
@@ -115,7 +107,7 @@ import { useDesktopStore } from 'src/entities/Desktop/model';
 import { useFioCache } from 'src/shared/lib/account/useFioCache';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { BaseBadge, BaseBanner, BaseButton, BaseCard, CardListSkeleton, EmptyState } from 'src/shared/ui/base';
-import { DataRow, DetailsDrawer, IdentityCell } from 'src/shared/ui/domain';
+import { DataRow, IdentityCell } from 'src/shared/ui/domain';
 import {
   CARRIER_LABELS,
   COURSE_STATUS_LABELS,
@@ -126,7 +118,6 @@ import {
   type ICourse,
 } from '../../entities/Course';
 import { fetchCourseEconomy, type ICourseEconomy } from '../../entities/Economy';
-import { CourseForm } from '../../widgets/CourseForm';
 import { courseMonthsLabel } from '../../shared/lib/courseMonths';
 import { FeeAmount } from '../../shared/ui/FeeAmount';
 
@@ -147,9 +138,6 @@ const course = ref<ICourse | null>(null);
 const loading = ref(true);
 const firstLoad = useFirstLoad(loading);
 const busy = ref(false);
-const saving = ref(false);
-const editOpen = ref(false);
-const formRef = ref<InstanceType<typeof CourseForm> | null>(null);
 const economy = ref<ICourseEconomy | null>(null);
 const cancelling = ref(false);
 // Пока занятия не начались, набор можно отменить: после первого занятия у
@@ -167,8 +155,19 @@ function goBack(): void {
   void router.push({ name: 'edubridge-admin-courses', params: { coopname: route.params.coopname } });
 }
 
-function submitForm(): void {
-  void formRef.value?.submit();
+function edit(): void {
+  void router.push({ name: 'edubridge-admin-course-edit', params: { coopname: route.params.coopname, id: String(route.params.id) } });
+}
+
+/** Снятие с публикации убирает курс из каталога — спрашиваем, как и другие заметные действия. */
+async function unpublish(): Promise<void> {
+  if (!course.value) return;
+  const agreed = await confirm({
+    title: 'Снять курс с публикации?',
+    message: `Курс «${course.value.title}» пропадёт из каталога, новые подписки на него станут недоступны. Действующие подписки продолжат работать.`,
+    confirmLabel: 'Снять с публикации',
+  });
+  if (agreed) await setStatus(Zeus.EduCourseStatus.DRAFT);
 }
 
 async function load(): Promise<void> {
@@ -192,17 +191,6 @@ watch(
   },
   { immediate: true },
 );
-
-async function onSaved(updated: ICourse): Promise<void> {
-  course.value = updated;
-  editOpen.value = false;
-  // Параметры изменились — расчёт пересобираем, иначе на странице остаётся прежний.
-  try {
-    economy.value = await fetchCourseEconomy(asText(updated.id));
-  } catch (e) {
-    FailAlert(e);
-  }
-}
 
 async function cancelUnderfilled(): Promise<void> {
   if (!course.value) return;

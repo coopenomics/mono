@@ -7,6 +7,7 @@ import {
   AdminContributionsPage,
   AdminEconomyPage,
   AdminCoursePage,
+  AdminCourseEditPage,
   AdminCoursesPage,
   AdminMembersPage,
   AdminTeachersPage,
@@ -79,6 +80,8 @@ function adminWorkspace(): IWorkspaceConfig {
   return workspace('edubridge', 'Стол администратора', 'admin_panel_settings', 'edubridge-admin-courses', [
     memberPage('configure', 'edubridge-configure', ConfigurePage, { title: 'Подключение', icon: 'settings', requires: 'Extension:configure', gate: true }),
     memberPage('courses', 'edubridge-admin-courses', AdminCoursesPage, { title: 'Курсы', icon: 'library_books', requires: 'EduCourse:manage' }),
+    memberPage('courses/new', 'edubridge-admin-course-new', AdminCourseEditPage, { title: 'Новый курс', icon: 'library_books', requires: 'EduCourse:manage', hidden: true, menuKey: 'edubridge-admin-courses' }),
+    memberPage('courses/:id/edit', 'edubridge-admin-course-edit', AdminCourseEditPage, { title: 'Изменить курс', icon: 'library_books', requires: 'EduCourse:manage', hidden: true, menuKey: 'edubridge-admin-courses' }),
     memberPage('courses/:id', 'edubridge-admin-course', AdminCoursePage, { title: 'Курс', icon: 'library_books', requires: 'EduCourse:manage', hidden: true, menuKey: 'edubridge-admin-courses' }),
     memberPage('teachers', 'edubridge-admin-teachers', AdminTeachersPage, { title: 'Преподаватели', icon: 'co_present', requires: 'EduAssignment:manage' }),
     memberPage('contributions', 'edubridge-admin-contributions', AdminContributionsPage, { title: 'Взносы преподавателей', icon: 'workspace_premium', requires: 'EduContribution:decide' }),

@@ -3,6 +3,7 @@ export { CourseCardPage } from './CourseCardPage';
 export { ConfigurePage } from './ConfigurePage';
 export { AdminCoursesPage } from './AdminCoursesPage';
 export { AdminCoursePage } from './AdminCoursePage';
+export { AdminCourseEditPage } from './AdminCourseEditPage';
 export { MemberOnboardingPage } from './MemberOnboardingPage';
 export { MemberLearnersPage } from './MemberLearnersPage';
 export { MemberSubscriptionsPage } from './MemberSubscriptionsPage';
