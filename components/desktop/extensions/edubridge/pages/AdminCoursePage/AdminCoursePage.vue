@@ -12,49 +12,29 @@
         q-icon(name="arrow_back" size="16px")
       | К реестру курсов
 
-    //- Карточка курса — главное на странице: обложка, название и состояние,
-    //- действия, ниже под тонкой линией — числа курса. Всё про курс в одном
-    //- месте и по уровням: что это за курс → в каком он состоянии → сколько стоит.
-    BaseCard.edu-course__hero(variant="default")
-      q-img.edu-course__cover(v-if="course.image_url" :src="course.image_url" :ratio="4 / 1" fit="cover" no-spinner)
-      .edu-course__hero-body
-        .edu-course__head
-          .edu-course__head-text
-            .edu-course__subject {{ course.subject }}, {{ course.grade }}
-            h1.edu-course__title {{ course.title }}
-            .edu-course__facts
-              BaseBadge(:variant="status.variant") {{ status.label }}
-              span.edu-course__when(v-if="course.schedule") {{ course.schedule }}
-              span.edu-course__when(v-if="course.starts_at") занятия с {{ formatDate(course.starts_at) }}
-          .edu-course__actions
-            BaseButton(v-if="published" variant="secondary" :loading="busy" @click="unpublish") Снять с публикации
-            BaseButton(v-else variant="secondary" :loading="busy" @click="setStatus(Zeus.EduCourseStatus.PUBLISHED)") Опубликовать
-            BaseButton(variant="primary" @click="edit") Изменить
-            //- Отмена набора — решение с последствиями, поэтому она лежит под
-            //- кнопкой «ещё», а не рядом с обычными действиями.
-            BaseButton(v-if="!started" variant="ghost" icon-only aria-label="Ещё действия")
-              template(#icon-left)
-                q-icon(name="more_horiz" size="20px")
-              q-menu(anchor="bottom right" self="top right")
-                q-list.edu-course__menu(dense)
-                  q-item(clickable v-close-popup :disable="cancelling" @click="cancelUnderfilled")
-                    q-item-section.text-negative Отменить по недобору
-
-        .edu-course__figures
-          .edu-course__figure
-            FeeAmount(:value="course.fee_month" size="lg")
-            .edu-course__caption взнос в месяц
-            .edu-course__note(v-if="course.fee_course")
-              | за весь курс разом {{ formatAsset2Digits(course.fee_course) }}
-              template(v-if="course.course_discount_amount") , на {{ formatAsset2Digits(course.course_discount_amount) }} меньше помесячных
-            .edu-course__note(v-else) принимается помесячно
-          .edu-course__figure
-            .edu-course__num {{ course.lessons_per_month }}
-            .edu-course__caption {{ pluralize(Number(course.lessons_per_month), LESSON_FORMS) }} в месяц по {{ course.lesson_minutes }} мин
-          .edu-course__figure
-            .edu-course__num {{ course.lessons_total }}
-            .edu-course__caption {{ pluralize(Number(course.lessons_total), LESSON_FORMS) }} в программе
-            .edu-course__note(v-if="months") курс длится {{ months }}
+    CourseHero(:title="course.title" :subject="course.subject" :grade="course.grade" :image-url="course.image_url")
+      template(#facts)
+        BaseBadge(:variant="status.variant") {{ status.label }}
+        span(v-if="course.schedule") {{ course.schedule }}
+        span(v-if="course.starts_at") занятия с {{ formatDate(course.starts_at) }}
+      template(#actions)
+        .edu-course__buttons
+          BaseButton(v-if="published" variant="secondary" :loading="busy" @click="unpublish") Снять с публикации
+          BaseButton(v-else variant="secondary" :loading="busy" @click="setStatus(Zeus.EduCourseStatus.PUBLISHED)") Опубликовать
+          BaseButton(variant="primary" @click="edit") Изменить
+          //- Отмена набора — решение с последствиями, поэтому она лежит под
+          //- кнопкой «ещё», а не рядом с обычными действиями.
+          BaseButton(v-if="!started" variant="ghost" icon-only aria-label="Ещё действия")
+            template(#icon-left)
+              q-icon(name="more_horiz" size="20px")
+            q-menu(anchor="bottom right" self="top right")
+              q-list.edu-course__menu(dense)
+                q-item(clickable v-close-popup :disable="cancelling" @click="cancelUnderfilled")
+                  q-item-section.text-negative Отменить по недобору
+      CourseHeroFigure(caption="взнос в месяц" :note="feeNote")
+        FeeAmount(:value="course.fee_month" size="lg")
+      CourseHeroFigure(:value="course.lessons_per_month" :caption="`${pluralize(Number(course.lessons_per_month), LESSON_FORMS)} в месяц по ${course.lesson_minutes} мин`")
+      CourseHeroFigure(:value="course.lessons_total" :caption="`${pluralize(Number(course.lessons_total), LESSON_FORMS)} в программе`" :note="months ? `курс длится ${months}` : ''")
 
     .row.q-col-gutter-md
       .col-12.col-md-8
@@ -118,15 +98,15 @@ import {
   type ICourse,
 } from '../../entities/Course';
 import { fetchCourseEconomy, type ICourseEconomy } from '../../entities/Economy';
-import { courseMonthsLabel } from '../../shared/lib/courseMonths';
+import { LESSON_FORMS, courseMonthsLabel } from '../../shared/lib/courseMonths';
 import { FeeAmount } from '../../shared/ui/FeeAmount';
+import { CourseHero, CourseHeroFigure } from '../../widgets/CourseHero';
 
 /**
  * Курс глазами администратора на отдельной странице: открывается кликом по
  * карточке в реестре. Всё управление курсом собрано здесь — под карточками
  * реестра кнопок нет, там только витрина.
  */
-const LESSON_FORMS: [string, string, string] = ['занятие', 'занятия', 'занятий'];
 
 const route = useRoute();
 const router = useRouter();
@@ -146,6 +126,12 @@ const started = computed(() => Boolean(course.value?.starts_at) && new Date(Stri
 const formatDate = (v: unknown) => (v ? new Date(String(v)).toLocaleDateString('ru-RU') : '______');
 
 const months = computed(() => courseMonthsLabel(course.value?.course_months));
+const feeNote = computed(() => {
+  const c = course.value;
+  if (!c?.fee_course) return 'принимается помесячно';
+  const saving = c.course_discount_amount ? `, на ${formatAsset2Digits(c.course_discount_amount)} меньше помесячных` : '';
+  return `за весь курс разом ${formatAsset2Digits(c.fee_course)}${saving}`;
+});
 const status = computed(() => COURSE_STATUS_LABELS[course.value?.status ?? ''] ?? { label: course.value?.status ?? '', variant: 'neutral' as const });
 const published = computed(() => course.value?.status === Zeus.EduCourseStatus.PUBLISHED);
 const carrierLabel = computed(() => CARRIER_LABELS[course.value?.carrier ?? ''] ?? course.value?.carrier ?? '______');
@@ -234,97 +220,10 @@ onBeforeUnmount(() => desktopStore.clearPageTitleOverride());
 .edu-course__back {
   margin: 0 0 var(--p-3) calc(-1 * var(--p-2));
 }
-/* Карточка курса: обложка от края до края, дальше содержимое с полями. */
-.edu-course__hero {
-  overflow: hidden;
-  margin-bottom: var(--p-5);
-}
-.edu-course__hero :deep(.base-card__body) {
-  padding: 0;
-}
-.edu-course__cover {
-  border-bottom: 1px solid var(--p-line);
-  background: var(--p-surface-2);
-}
-.edu-course__hero-body {
-  padding: var(--p-6);
-}
-.edu-course__head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--p-4) var(--p-6);
-  flex-wrap: wrap;
-}
-.edu-course__head-text {
-  display: flex;
-  flex-direction: column;
-  gap: var(--p-2);
-  min-width: 0;
-}
-.edu-course__subject {
-  font-size: var(--p-fs-body-sm);
-  line-height: var(--p-lh-body-sm);
-  color: var(--p-ink-3);
-}
-.edu-course__title {
-  margin: 0;
-  font-size: var(--p-fs-display);
-  line-height: var(--p-lh-display);
-  letter-spacing: var(--p-ls-display);
-  font-weight: 600;
-  color: var(--p-ink);
-}
-.edu-course__facts {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: var(--p-2) var(--p-3);
-  margin-top: var(--p-1);
-}
-.edu-course__when {
-  font-size: var(--p-fs-body-sm);
-  color: var(--p-ink-2);
-  font-feature-settings: 'tnum' 1;
-}
-.edu-course__actions {
+.edu-course__buttons {
   display: flex;
   align-items: center;
   gap: var(--p-2);
-}
-/* Числа курса под тонкой линией, три равные колонки одного веса:
-   взнос первым по порядку чтения, а не размером. */
-.edu-course__figures {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: var(--p-5) var(--p-6);
-  margin-top: var(--p-6);
-  padding-top: var(--p-5);
-  border-top: 1px solid var(--p-line);
-}
-.edu-course__figure {
-  display: flex;
-  flex-direction: column;
-  gap: var(--p-1);
-  min-width: 0;
-}
-.edu-course__num {
-  font-size: var(--p-fs-h1);
-  line-height: var(--p-lh-h1);
-  letter-spacing: var(--p-ls-h1);
-  font-weight: 600;
-  color: var(--p-ink);
-  font-feature-settings: 'tnum' 1;
-}
-.edu-course__caption {
-  font-size: var(--p-fs-body-sm);
-  line-height: var(--p-lh-body-sm);
-  color: var(--p-ink-2);
-}
-.edu-course__note {
-  font-size: var(--p-fs-meta);
-  line-height: var(--p-lh-meta);
-  color: var(--p-ink-3);
 }
 /* Обложка идёт от края до края карточки, текст под ней — со своими полями. */
 .edu-course__about {
