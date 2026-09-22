@@ -25,6 +25,14 @@ title: Импорт пайщика с бумажными договорами
 # прежние, набор случаев этой фичи не менялся. Правило плательщика покрыто
 # отдельно — test-registry/contracts.ram-payer.yaml.
 
+
+# Правка 2026-09-22 (C28-78): описание и приглашение проекта уходят в цепь
+# хешем (sha256 текста), сам текст остаётся в базе контроллера. Контракт
+# принимает в этих полях только хеш или пустую строку, capital::migrate
+# переводит старые строки. Поведение действий этой фичи прежнее, набор случаев
+# не менялся; правило хранения текстов покрыто
+# test-registry/capital.project-chain-texts.yaml.
+
 sources:
   contract:
     - components/contracts/cpp/capital/app/participation_management/import_contributor/importcontr.cpp

@@ -31,6 +31,7 @@ import { fakeDocument } from './shared/fakeDocument'
 import { waitForProcessNaming } from './shared/processNaming'
 import { ratePerHour } from './capital/consts'
 import { COOP, bootstrapMember, programFreePool, rub } from './capital/programInvest'
+import { chainTextDigest } from '../utils/chainTextDigest'
 
 const bc = new Blockchain(config.network, config.private_keys)
 const ZERO_HASH = '0'.repeat(64)
@@ -104,7 +105,7 @@ describe('Благорост — подача результата и акты �
       project_hash: project,
       parent_hash: ZERO_HASH,
       title: `Проект результата ${project.slice(0, 8)}`,
-      description: 'Проект контрактного теста подачи результата.',
+      description: chainTextDigest('Проект контрактного теста подачи результата.'),
       invite: '',
       data: '',
       meta: '',

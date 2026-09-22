@@ -20,6 +20,7 @@ import { signAppendix } from './capital/signAppendix'
 import { getSegment } from './capital/getSegment'
 import { ratePerHour } from './capital/consts'
 import { COOP, bootstrapMember, minor, rub, signedBy } from './capital/programInvest'
+import { chainTextDigest } from '../utils/chainTextDigest'
 
 const bc = new Blockchain(config.network, config.private_keys)
 const ZERO_HASH = '0'.repeat(64)
@@ -82,7 +83,7 @@ describe('Благорост — соавторы проекта (contract, жи
       project_hash: project,
       parent_hash: ZERO_HASH,
       title: `Проект соавторов ${project.slice(0, 8)}`,
-      description: 'Проект контрактного теста соавторства.',
+      description: chainTextDigest('Проект контрактного теста соавторства.'),
       invite: '',
       data: '',
       meta: '',

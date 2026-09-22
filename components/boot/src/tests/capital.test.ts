@@ -35,6 +35,7 @@ import { getProject } from './capital/getProject'
 import { processFundProgram } from './capital/processFundProgram'
 import { processRefreshProg } from './capital/processRefreshProg'
 import { processRegShare } from './capital/processRegShare'
+import { chainTextDigest } from '../utils/chainTextDigest'
 // const CLI_PATH = 'src/index.ts'
 
 const blockchain = new Blockchain(config.network, config.private_keys)
@@ -310,7 +311,7 @@ describe('тест контракта CAPITAL', () => {
       project_hash: metaHash,
       parent_hash: parentHash,
       title: `Мета-проект ${metaHash.slice(0, 10)}`,
-      description: generateRandomDescription(),
+      description: chainTextDigest(generateRandomDescription()),
       invite: '',
       data: generateRandomProjectData(800, 1500),
       meta: generateRandomMeta(),
@@ -351,7 +352,7 @@ describe('тест контракта CAPITAL', () => {
       project_hash: componentHash,
       parent_hash: metaHash, // Родительский хэш указывает на мета-проект
       title: `Компонент-проект ${componentHash.slice(0, 10)}`,
-      description: generateRandomDescription(),
+      description: chainTextDigest(generateRandomDescription()),
       meta: generateRandomMeta(),
       data: generateRandomProjectData(1000, 2500),
       invite: '',
@@ -1909,7 +1910,7 @@ describe('тест контракта CAPITAL', () => {
       project_hash: newComponentHash,
       parent_hash: metaProject.project_hash, // Родительский хэш указывает на мета-проект
       title: `Новый компонент-проект ${newComponentHash.slice(0, 10)}`,
-      description: generateRandomDescription(),
+      description: chainTextDigest(generateRandomDescription()),
       meta: generateRandomMeta(),
       invite: '',
       data: generateRandomProjectData(1200, 3000),
@@ -2457,7 +2458,7 @@ describe('тест контракта CAPITAL', () => {
       project_hash: highPrecisionHash,
       parent_hash: metaProject.project_hash,
       title: `High Precision 50kM Test`,
-      description: 'Test for rounding and precision on large numbers',
+      description: chainTextDigest('Test for rounding and precision on large numbers'),
       invite: '',
       data: '{}',
       meta: '{}',

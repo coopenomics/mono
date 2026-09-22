@@ -84,8 +84,40 @@ static void recalculate_levels(eosio::name coopname) {
   }
 }
 
+/**
+ * @brief Вынос текстов проектов из памяти цепи.
+ *
+ * Описание и приглашение проекта теперь хранятся в базе контроллера, а в цепи
+ * остаётся их sha256 (см. Capital::Projects::check_text_digest). Старые строки
+ * держат полный текст — на восходе это 345 КБ из 406 КБ таблицы проектов.
+ * Шаг заменяет текст его хешем прямо в цепи: хеш считается от тех же байтов,
+ * которые лежат в строке, поэтому совпадает с тем, что посчитает контроллер от
+ * своей копии текста. Контроллер при такой дельте текст в базе не трогает и
+ * сверяет его хеш с цепью.
+ *
+ * Идемпотентно: строка, где уже лежит хеш или пусто, не переписывается.
+ */
+static void digest_project_texts(eosio::name coopname) {
+  Capital::project_index projects(_capital, coopname.value);
+
+  for (auto itr = projects.begin(); itr != projects.end(); ++itr) {
+    const bool description_done = Capital::Projects::is_text_digest(itr->description);
+    const bool invite_done = Capital::Projects::is_text_digest(itr->invite);
+    if (description_done && invite_done) {
+      continue;
+    }
+
+    projects.modify(itr, RamPayer::of(projects, coopname), [&](auto &p) {
+      if (!description_done) p.description = Capital::Projects::text_digest(p.description);
+      if (!invite_done) p.invite = Capital::Projects::text_digest(p.invite);
+    });
+  }
+}
+
 void capital::migrate() {
   require_auth(_capital);
+
+  digest_project_texts("voskhod"_n);
 
   // Уровни пересчитываются у всех участников кооператива: сломанная формула
   // начисления действовала на всех, кто вносил вклады.

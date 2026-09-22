@@ -41,6 +41,7 @@ import { signAppendix } from './capital/signAppendix'
 import { refreshSegment } from './capital/refreshSegment'
 import { getSegment } from './capital/getSegment'
 import { ratePerHour } from './capital/consts'
+import { chainTextDigest } from '../utils/chainTextDigest'
 
 const COOP = 'voskhod'
 const ZERO_HASH = '0000000000000000000000000000000000000000000000000000000000000000'
@@ -103,7 +104,7 @@ async function createProject(title: string): Promise<string> {
     project_hash: hash,
     parent_hash: ZERO_HASH,
     title: `${title} ${hash.slice(0, 8)}`,
-    description: 'Проект контрактного теста денежных мест программы.',
+    description: chainTextDigest('Проект контрактного теста денежных мест программы.'),
     invite: '',
     data: '',
     meta: '',
