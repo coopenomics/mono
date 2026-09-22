@@ -130,7 +130,6 @@ q-form.settings-page(@submit.prevent='save' @validation-error='onValidationError
           :exact-lengths='[12]'
           :pattern='INN_FL_PATTERN'
           pattern-message='Формат: 12 цифр'
-          hint='Попадает в персонифицированные сведения (ПСВ) — без ИНН СФР отклоняет отчёт'
           required
           @update:value='v => (manualInput.signerInn = v)'
         )
