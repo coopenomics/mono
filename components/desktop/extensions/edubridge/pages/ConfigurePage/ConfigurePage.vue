@@ -14,11 +14,10 @@ q-page.edu-onboarding(role="region" aria-label="Подключение ЦПП О
 
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
-import { Mutations } from '@coopenomics/sdk';
+import { Queries, Zeus } from '@coopenomics/sdk';
 import { client } from 'src/shared/api/client';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { useSystemStore } from 'src/entities/System/model';
-import { useSessionStore } from 'src/entities/Session';
 import { useDesktopStore } from 'src/entities/Desktop/model';
 import { useExtensionCooperativeOnboarding } from 'src/features/CooperativeOnboarding';
 import { CouncilOnboardingCard, type ICouncilOnboardingConfig, type ICouncilOnboardingStep } from 'src/shared/ui/CouncilOnboarding';
@@ -76,7 +75,6 @@ const STEP_META: StepMeta[] = [
 ];
 
 const systemStore = useSystemStore();
-const sessionStore = useSessionStore();
 const desktopStore = useDesktopStore();
 const onboarding = useExtensionCooperativeOnboarding(() => EXTENSION_NAME);
 const { isLoading, allDone } = onboarding;
@@ -115,14 +113,16 @@ watch(allDone, async (done) => {
   if (done) await desktopStore.loadDesktop();
 });
 
+// Бланк текущей редакции из фабрики утверждений — тот же текст, что уйдёт в
+// решение совета (как у Благороста и Стола заказов). Бланк не требует данных
+// пайщика и совета, поэтому открывается и до наполнения индекса цепи.
 async function renderDocument(registryId: number): Promise<string> {
   const coopname = systemStore.info?.coopname || '';
-  const username = sessionStore.username;
-  const input: Mutations.Documents.GenerateDocument.IInput = { input: { data: { coopname, username, registry_id: registryId } } };
-  const { [Mutations.Documents.GenerateDocument.name]: result } = await client.Mutation(Mutations.Documents.GenerateDocument.mutation, {
-    variables: input,
-  });
-  return result?.html || '';
+  const { [Queries.DocumentApprovals.DocumentTemplateBlank.name]: blank } = await client.Query(
+    Queries.DocumentApprovals.DocumentTemplateBlank.query,
+    { variables: { coopname, registry_id: registryId, edition: Zeus.DocumentTemplateEdition.Current } },
+  );
+  return blank?.html || '';
 }
 
 async function handleStepSubmit(step: ICouncilOnboardingStep): Promise<void> {
