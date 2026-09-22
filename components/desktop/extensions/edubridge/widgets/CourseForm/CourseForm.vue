@@ -15,13 +15,16 @@ BaseForm.edu-course-form(ref="formEl" :loading="loading" :error="error" @submit=
 
   section.edu-course-form__section(v-if="show('cover')")
     .edu-course-form__legend(v-if="!section") Обложка
-    //- Обложка во всю ширину: снимок виден в тех же пропорциях, что и в каталоге,
-    //- замена с удалением открываются наведением на него.
-    .edu-course-form__cover(v-if="previewUrl")
-      q-img(:src="previewUrl" :ratio="21 / 9" fit="cover" no-spinner)
+    //- Обложка во всю ширину, в тех же пропорциях, что и в каталоге; замена и
+    //- удаление — строкой под снимком, всегда на виду.
+    template(v-if="previewUrl")
+      .edu-course-form__cover
+        q-img(:src="previewUrl" :ratio="21 / 9" fit="cover" no-spinner)
       .edu-course-form__cover-actions
-        BaseButton(variant="secondary" size="sm" type="button" @click="pickImage") Заменить
+        span.t-meta.t-muted JPEG, PNG или WEBP до 10 МБ
+        q-space
         BaseButton(variant="ghost" size="sm" type="button" @click="removeImage") Убрать
+        BaseButton(variant="secondary" size="sm" type="button" @click="pickImage") Заменить
     .edu-course-form__picker(v-else role="button" tabindex="0" @click="pickImage" @keydown.enter="pickImage")
       q-icon(name="add_photo_alternate" size="24px")
       .t-sm.text-weight-medium Загрузить обложку
@@ -300,21 +303,11 @@ defineExpose({ submit: requestSubmit, validate });
   overflow: hidden;
   background: var(--p-surface-2);
 }
-/* Действия всплывают поверх снимка и не занимают места, пока не нужны. */
+/* Замена и удаление — строкой под снимком. */
 .edu-course-form__cover-actions {
-  position: absolute;
-  inset: auto 0 0 0;
   display: flex;
-  justify-content: flex-end;
+  align-items: center;
   gap: var(--p-2);
-  padding: var(--p-2);
-  background: linear-gradient(to top, rgba(15, 23, 24, 0.72), transparent);
-  opacity: 0;
-  transition: opacity 0.16s ease;
-}
-.edu-course-form__cover:hover .edu-course-form__cover-actions,
-.edu-course-form__cover:focus-within .edu-course-form__cover-actions {
-  opacity: 1;
 }
 .edu-course-form__picker {
   display: flex;
