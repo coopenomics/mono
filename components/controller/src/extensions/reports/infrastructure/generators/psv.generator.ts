@@ -16,7 +16,9 @@ import {
  * XSD: NO_PERSSVFL_1_297_00_05_01_02.xsd, КНД: 1151162, ВерсФорм 5.01.
  *
  * В нулевом отчёте — одна запись <ПерсСвФЛ> для подписанта (председателя)
- * с @СумВыпл=0. СНИЛС обязателен — берётся из signer.snils.
+ * с @СумВыпл=0. СНИЛС обязателен — берётся из signer.snils. ИНН — из
+ * signer.inn: по XSD @ИННФЛ необязателен, но СФР отклоняет отчёт без него
+ * (эталон принятого файла — Корректировки_отчетов/ПСВ).
  * СвНП @Тлф и краткое НаимОрг — по эталону принятого Астралом файла
  * (см. Корректировки_отчетов/ПСВ).
  */
@@ -27,6 +29,10 @@ export class PsvGenerator implements IReportGenerator {
     const edits = input as ZeroReportEditsShape;
     const fileName = edits.header.idFile;
     const errors: string[] = [];
+    if (!edits.signer.inn) {
+      errors.push('Для ПСВ обязателен ИНН подписанта (поле signer.inn) — без него СФР отклоняет отчёт');
+      return { reportType: this.reportType, xml: '', fileName, errors, isValid: false };
+    }
     try {
       const xml = this.buildXml(edits);
       return { reportType: this.reportType, xml, fileName, errors, isValid: true };
@@ -78,6 +84,7 @@ export class PsvGenerator implements IReportGenerator {
     sig.up();
 
     const persSv = dokument.ele('ПерсСвФЛ')
+      .att('ИННФЛ', signer.inn ?? '')
       .att('СНИЛС', signer.snils || '000-000-000 00')
       .att('СумВыпл', '0');
 

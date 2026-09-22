@@ -15094,6 +15094,7 @@ verificationReviews?: [{	data?: ValueTypes["VerificationReviewsInput"] | undefin
 	phone?:ValueTypes["RequisiteFieldView"],
 	sfrRegNumber?:ValueTypes["RequisiteFieldView"],
 	signerFirstName?:ValueTypes["RequisiteFieldView"],
+	signerInn?:ValueTypes["RequisiteFieldView"],
 	signerLastName?:ValueTypes["RequisiteFieldView"],
 	signerMiddleName?:ValueTypes["RequisiteFieldView"],
 	signerRepDoc?:ValueTypes["RequisiteFieldView"],
@@ -16479,6 +16480,8 @@ walletEvents?: [{	input: ValueTypes["WalletEventsInput"] | Variable<any, string>
 	phoneOverride?: string | undefined | null | Variable<any, string>,
 	/** Рег. номер СФР — 10 цифр */
 	sfrRegNumber?: string | undefined | null | Variable<any, string>,
+	/** ИНН подписанта-физлица — 12 цифр */
+	signerInn?: string | undefined | null | Variable<any, string>,
 	signerRepDoc?: string | undefined | null | Variable<any, string>,
 	/** СНИЛС — XXX-XXX-XXX YY или 11 цифр */
 	signerSnils?: string | undefined | null | Variable<any, string>,
@@ -17013,6 +17016,7 @@ walletEvents?: [{	input: ValueTypes["WalletEventsInput"] | Variable<any, string>
 	["ZeroReportSignerEdits"]: AliasType<{
 	chairmanPosition?:boolean | `@${string}`,
 	firstName?:boolean | `@${string}`,
+	inn?:boolean | `@${string}`,
 	lastName?:boolean | `@${string}`,
 	middleName?:boolean | `@${string}`,
 	pfrRegNumber?:boolean | `@${string}`,
@@ -30615,6 +30619,7 @@ verificationReviews?: [{	data?: ResolverInputTypes["VerificationReviewsInput"] |
 	phone?:ResolverInputTypes["RequisiteFieldView"],
 	sfrRegNumber?:ResolverInputTypes["RequisiteFieldView"],
 	signerFirstName?:ResolverInputTypes["RequisiteFieldView"],
+	signerInn?:ResolverInputTypes["RequisiteFieldView"],
 	signerLastName?:ResolverInputTypes["RequisiteFieldView"],
 	signerMiddleName?:ResolverInputTypes["RequisiteFieldView"],
 	signerRepDoc?:ResolverInputTypes["RequisiteFieldView"],
@@ -31963,6 +31968,8 @@ walletEvents?: [{	input: ResolverInputTypes["WalletEventsInput"]},ResolverInputT
 	phoneOverride?: string | undefined | null,
 	/** Рег. номер СФР — 10 цифр */
 	sfrRegNumber?: string | undefined | null,
+	/** ИНН подписанта-физлица — 12 цифр */
+	signerInn?: string | undefined | null,
 	signerRepDoc?: string | undefined | null,
 	/** СНИЛС — XXX-XXX-XXX YY или 11 цифр */
 	signerSnils?: string | undefined | null,
@@ -32480,6 +32487,7 @@ walletEvents?: [{	input: ResolverInputTypes["WalletEventsInput"]},ResolverInputT
 	["ZeroReportSignerEdits"]: AliasType<{
 	chairmanPosition?:boolean | `@${string}`,
 	firstName?:boolean | `@${string}`,
+	inn?:boolean | `@${string}`,
 	lastName?:boolean | `@${string}`,
 	middleName?:boolean | `@${string}`,
 	pfrRegNumber?:boolean | `@${string}`,
@@ -46105,6 +46113,7 @@ export type ModelTypes = {
 	phone: ModelTypes["RequisiteFieldView"],
 	sfrRegNumber: ModelTypes["RequisiteFieldView"],
 	signerFirstName: ModelTypes["RequisiteFieldView"],
+	signerInn: ModelTypes["RequisiteFieldView"],
 	signerLastName: ModelTypes["RequisiteFieldView"],
 	signerMiddleName: ModelTypes["RequisiteFieldView"],
 	signerRepDoc: ModelTypes["RequisiteFieldView"],
@@ -47404,6 +47413,8 @@ export type ModelTypes = {
 	phoneOverride?: string | undefined | null,
 	/** Рег. номер СФР — 10 цифр */
 	sfrRegNumber?: string | undefined | null,
+	/** ИНН подписанта-физлица — 12 цифр */
+	signerInn?: string | undefined | null,
 	signerRepDoc?: string | undefined | null,
 	/** СНИЛС — XXX-XXX-XXX YY или 11 цифр */
 	signerSnils?: string | undefined | null,
@@ -47894,6 +47905,7 @@ export type ModelTypes = {
 	["ZeroReportSignerEdits"]: {
 		chairmanPosition?: string | undefined | null,
 	firstName: string,
+	inn?: string | undefined | null,
 	lastName: string,
 	middleName?: string | undefined | null,
 	pfrRegNumber?: string | undefined | null,
@@ -62455,6 +62467,7 @@ export type GraphQLTypes = {
 	phone: GraphQLTypes["RequisiteFieldView"],
 	sfrRegNumber: GraphQLTypes["RequisiteFieldView"],
 	signerFirstName: GraphQLTypes["RequisiteFieldView"],
+	signerInn: GraphQLTypes["RequisiteFieldView"],
 	signerLastName: GraphQLTypes["RequisiteFieldView"],
 	signerMiddleName: GraphQLTypes["RequisiteFieldView"],
 	signerRepDoc: GraphQLTypes["RequisiteFieldView"],
@@ -63841,6 +63854,8 @@ export type GraphQLTypes = {
 	phoneOverride?: string | undefined | null,
 	/** Рег. номер СФР — 10 цифр */
 	sfrRegNumber?: string | undefined | null,
+	/** ИНН подписанта-физлица — 12 цифр */
+	signerInn?: string | undefined | null,
 	signerRepDoc?: string | undefined | null,
 	/** СНИЛС — XXX-XXX-XXX YY или 11 цифр */
 	signerSnils?: string | undefined | null,
@@ -64377,6 +64392,7 @@ export type GraphQLTypes = {
 	__typename: "ZeroReportSignerEdits",
 	chairmanPosition?: string | undefined | null,
 	firstName: string,
+	inn?: string | undefined | null,
 	lastName: string,
 	middleName?: string | undefined | null,
 	pfrRegNumber?: string | undefined | null,

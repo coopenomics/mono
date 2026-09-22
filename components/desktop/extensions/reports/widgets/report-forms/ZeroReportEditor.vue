@@ -128,6 +128,14 @@
     )
 
     q-input(
+      v-if='needs.snils'
+      label='ИНН председателя'
+      :model-value='editsValue.signer.inn || ""'
+      readonly disable
+      dense filled
+    )
+
+    q-input(
       v-if='needs.sfrExtras'
       label='Регистрационный номер ПФР'
       :model-value='editsValue.signer.pfrRegNumber || ""'
@@ -179,6 +187,7 @@ interface ZeroReportEdits {
     middleName: string | null
     repDoc: string | null
     snils: string | null
+    inn: string | null
     sfrRegNumber: string | null
     pfrRegNumber: string | null
     chairmanPosition: string | null

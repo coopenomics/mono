@@ -12,6 +12,7 @@ import {
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import {
+  INN_FL_PATTERN,
   INN_UL_PATTERN,
   KPP_PATTERN,
   OGRN_UL_PATTERN,
@@ -215,6 +216,11 @@ export class ZeroReportSignerEditsInputDTO {
 
   @Field(() => String, { nullable: true })
   @IsOptional()
+  @Matches(INN_FL_PATTERN, { message: 'ИНН подписанта — 12 цифр' })
+  inn!: string | null;
+
+  @Field(() => String, { nullable: true })
+  @IsOptional()
   @Matches(SFR_REG_NUMBER_PATTERN, { message: 'Рег.номер СФР — 10 цифр' })
   sfrRegNumber!: string | null;
 
@@ -238,6 +244,7 @@ export class ZeroReportSignerEditsDTO {
   @Field(() => String, { nullable: true }) middleName!: string | null;
   @Field(() => String, { nullable: true }) repDoc!: string | null;
   @Field(() => String, { nullable: true }) snils!: string | null;
+  @Field(() => String, { nullable: true }) inn!: string | null;
   @Field(() => String, { nullable: true }) sfrRegNumber!: string | null;
   @Field(() => String, { nullable: true }) pfrRegNumber!: string | null;
   @Field(() => String, { nullable: true }) chairmanPosition!: string | null;

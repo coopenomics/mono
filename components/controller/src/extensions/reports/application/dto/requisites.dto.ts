@@ -1,7 +1,7 @@
 import { ObjectType, Field, InputType, registerEnumType } from '@nestjs/graphql';
 import { IsOptional, IsString, IsIn, Matches, MaxLength } from 'class-validator';
 import { ReportType } from '../../domain/enums/report-type.enum';
-import { SFR_REG_NUMBER_PATTERN, PFR_REG_NUMBER_PATTERN } from '../../domain/patterns';
+import { SFR_REG_NUMBER_PATTERN, PFR_REG_NUMBER_PATTERN, INN_FL_PATTERN } from '../../domain/patterns';
 
 export enum RequisiteSource {
   DATABASE = 'database',
@@ -47,6 +47,7 @@ export class ReportRequisitesViewDTO {
   @Field(() => RequisiteFieldViewDTO) pfrRegNumber!: RequisiteFieldViewDTO;
   @Field(() => RequisiteFieldViewDTO) chairmanPosition!: RequisiteFieldViewDTO;
   @Field(() => RequisiteFieldViewDTO) signerSnils!: RequisiteFieldViewDTO;
+  @Field(() => RequisiteFieldViewDTO) signerInn!: RequisiteFieldViewDTO;
   @Field(() => RequisiteFieldViewDTO) signerRepDoc!: RequisiteFieldViewDTO;
 
   // Выбор пользователя — не RequisiteField (не связан с БД-источником).
@@ -127,6 +128,12 @@ export class UpdateReportRequisitesInputDTO {
   @IsString()
   @Matches(/^(\d{3}-\d{3}-\d{3} \d{2}|\d{11})$/, { message: 'СНИЛС — XXX-XXX-XXX YY или 11 цифр' })
   signerSnils?: string | null;
+
+  @Field(() => String, { nullable: true, description: 'ИНН подписанта-физлица — 12 цифр' })
+  @IsOptional()
+  @IsString()
+  @Matches(INN_FL_PATTERN, { message: 'ИНН подписанта — 12 цифр' })
+  signerInn?: string | null;
 
   @Field(() => String, { nullable: true })
   @IsOptional()

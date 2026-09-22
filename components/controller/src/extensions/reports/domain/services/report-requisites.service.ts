@@ -39,6 +39,8 @@ export interface MergedRequisites {
   pfrRegNumber: RequisiteField;
   chairmanPosition: RequisiteField;
   signerSnils: RequisiteField;
+  /** ИНН подписанта-физлица — ПСВ ПерсСвФЛ @ИННФЛ (без него СФР отклоняет отчёт). */
+  signerInn: RequisiteField;
   signerRepDoc: RequisiteField;
   /**
    * Тип подписанта — не имеет «источника» database/manual: это чистый choice,
@@ -100,6 +102,7 @@ const REQUIRED_BY_TYPE: Record<ReportType, RequiredFieldSpec[]> = {
   ],
   [ReportType.PSV]: [
     { key: 'signerSnils', label: 'СНИЛС подписанта', source: 'manual' },
+    { key: 'signerInn', label: 'ИНН подписанта', source: 'manual' },
     { key: 'phone', label: 'Телефон', source: 'database' },
   ],
   [ReportType.UV_VZNOSY]: [{ key: 'oktmo', label: 'ОКТМО', source: 'manual' }],
@@ -163,6 +166,7 @@ export class ReportRequisitesService {
       pfrRegNumber: mn(manual?.pfr_reg_number),
       chairmanPosition: mn(manual?.chairman_position),
       signerSnils: mn(manual?.signer_snils),
+      signerInn: mn(manual?.signer_inn),
       signerRepDoc: mn(manual?.signer_rep_doc),
       signerType: manual?.signer_type ?? 'chairman',
     };
@@ -230,6 +234,7 @@ export class ReportRequisitesService {
       pfr_reg_number: input.pfr_reg_number ?? undefined,
       chairman_position: input.chairman_position ?? undefined,
       signer_snils: input.signer_snils ?? undefined,
+      signer_inn: input.signer_inn ?? undefined,
       signer_rep_doc: input.signer_rep_doc ?? undefined,
       signer_type: input.signer_type ?? undefined,
       phone_override: input.phone_override ?? undefined,

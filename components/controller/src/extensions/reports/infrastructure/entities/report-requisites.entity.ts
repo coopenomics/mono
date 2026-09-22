@@ -6,7 +6,7 @@ import { Entity, Column, PrimaryColumn, UpdateDateColumn } from 'typeorm';
  * Хранятся поля, которых нет в профиле организации (`IOrganizationData` в
  * основной БД кооператива): ОКВЭД, ОКФС, ОКОПФ, ОКТМО, ОКПО, регномер СФР,
  * регномер ПФР (для ЕФС-1 — отдельный от regномера СФР, см. patterns.ts),
- * должность руководителя, СНИЛС подписанта, описание доверенности. Плюс
+ * должность руководителя, СНИЛС и ИНН подписанта, описание доверенности. Плюс
  * возможные override'ы телефона и адреса (если в отчётности нужен не тот,
  * что в профиле организации).
  *
@@ -43,6 +43,10 @@ export class ReportRequisitesEntity {
 
   @Column({ type: 'varchar', length: 32, nullable: true })
   signer_snils?: string | null;
+
+  /** ИНН подписанта-физлица (12 цифр) — ПСВ ПерсСвФЛ @ИННФЛ. */
+  @Column({ type: 'varchar', length: 12, nullable: true })
+  signer_inn?: string | null;
 
   @Column({ type: 'varchar', length: 255, nullable: true })
   signer_rep_doc?: string | null;

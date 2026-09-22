@@ -8419,6 +8419,7 @@ export const ReturnTypes: Record<string,any> = {
 		phone:"RequisiteFieldView",
 		sfrRegNumber:"RequisiteFieldView",
 		signerFirstName:"RequisiteFieldView",
+		signerInn:"RequisiteFieldView",
 		signerLastName:"RequisiteFieldView",
 		signerMiddleName:"RequisiteFieldView",
 		signerRepDoc:"RequisiteFieldView",
@@ -8844,6 +8845,7 @@ export const ReturnTypes: Record<string,any> = {
 	ZeroReportSignerEdits:{
 		chairmanPosition:"String",
 		firstName:"String",
+		inn:"String",
 		lastName:"String",
 		middleName:"String",
 		pfrRegNumber:"String",
