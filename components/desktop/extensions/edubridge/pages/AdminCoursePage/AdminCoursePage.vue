@@ -7,55 +7,58 @@
       q-icon(name="search_off" size="40px")
 
   template(v-else)
-    //- Шапка одной тихой строкой: название курса уже стоит в верхней панели,
-    //- здесь — откуда пришли, что это за курс и в каком он состоянии. Главное
-    //- действие одно, остальные спокойнее.
-    .edu-course__head
-      .edu-course__lead
-        BaseButton(variant="ghost" size="sm" icon-only aria-label="К реестру курсов" @click="goBack")
-          template(#icon-left)
-            q-icon(name="arrow_back" size="18px")
-        .edu-course__kicker
-          span.edu-course__subject {{ course.subject }}, {{ course.grade }}
-          BaseBadge(:variant="status.variant") {{ status.label }}
-          span.edu-course__when(v-if="course.schedule") {{ course.schedule }}
-          span.edu-course__when(v-if="course.starts_at") занятия с {{ formatDate(course.starts_at) }}
-      .edu-course__actions
-        BaseButton(v-if="published" variant="ghost" :loading="busy" @click="setStatus(Zeus.EduCourseStatus.DRAFT)") Снять с публикации
-        BaseButton(v-else variant="ghost" :loading="busy" @click="setStatus(Zeus.EduCourseStatus.PUBLISHED)") Опубликовать
-        BaseButton(variant="primary" @click="editOpen = true") Изменить
-        //- Отмена набора — решение с последствиями, поэтому она лежит под
-        //- кнопкой «ещё», а не рядом с обычными действиями.
-        BaseButton(v-if="!started" variant="ghost" icon-only aria-label="Ещё действия")
-          template(#icon-left)
-            q-icon(name="more_horiz" size="20px")
-          q-menu(anchor="bottom right" self="top right")
-            q-list.edu-course__menu(dense)
-              q-item(clickable v-close-popup :disable="cancelling" @click="cancelUnderfilled")
-                q-item-section.text-negative Отменить по недобору
+    BaseButton.edu-course__back(variant="ghost" size="sm" @click="goBack")
+      template(#icon-left)
+        q-icon(name="arrow_back" size="16px")
+      | К реестру курсов
 
-    //- Числа курса на воздухе, без ячеек: взнос в месяц — главное, крупно;
-    //- нагрузка и программа — рядом, тише. Подпись под числом, а не над ним.
-    .edu-course__figures
-      .edu-course__figure.edu-course__figure--hero
-        FeeAmount(:value="course.fee_month" size="lg")
-        .edu-course__caption взнос в месяц
-        .edu-course__note(v-if="course.fee_course")
-          | За весь курс разом {{ formatAsset2Digits(course.fee_course) }}
-          template(v-if="course.course_discount_amount") , на {{ formatAsset2Digits(course.course_discount_amount) }} меньше помесячных
-        .edu-course__note(v-else) Взнос принимается помесячно
-      .edu-course__figure
-        .edu-course__num {{ course.lessons_per_month }}
-        .edu-course__caption {{ pluralize(Number(course.lessons_per_month), LESSON_FORMS) }} в месяц по {{ course.lesson_minutes }} мин
-      .edu-course__figure
-        .edu-course__num {{ course.lessons_total }}
-        .edu-course__caption {{ pluralize(Number(course.lessons_total), LESSON_FORMS) }} в программе
-        .edu-course__note(v-if="months") курс длится {{ months }}
+    //- Карточка курса — главное на странице: обложка, название и состояние,
+    //- действия, ниже под тонкой линией — числа курса. Всё про курс в одном
+    //- месте и по уровням: что это за курс → в каком он состоянии → сколько стоит.
+    BaseCard.edu-course__hero(variant="default")
+      q-img.edu-course__cover(v-if="course.image_url" :src="course.image_url" :ratio="4 / 1" fit="cover" no-spinner)
+      .edu-course__hero-body
+        .edu-course__head
+          .edu-course__head-text
+            .edu-course__subject {{ course.subject }}, {{ course.grade }}
+            h1.edu-course__title {{ course.title }}
+            .edu-course__facts
+              BaseBadge(:variant="status.variant") {{ status.label }}
+              span.edu-course__when(v-if="course.schedule") {{ course.schedule }}
+              span.edu-course__when(v-if="course.starts_at") занятия с {{ formatDate(course.starts_at) }}
+          .edu-course__actions
+            BaseButton(v-if="published" variant="secondary" :loading="busy" @click="setStatus(Zeus.EduCourseStatus.DRAFT)") Снять с публикации
+            BaseButton(v-else variant="secondary" :loading="busy" @click="setStatus(Zeus.EduCourseStatus.PUBLISHED)") Опубликовать
+            BaseButton(variant="primary" @click="editOpen = true") Изменить
+            //- Отмена набора — решение с последствиями, поэтому она лежит под
+            //- кнопкой «ещё», а не рядом с обычными действиями.
+            BaseButton(v-if="!started" variant="ghost" icon-only aria-label="Ещё действия")
+              template(#icon-left)
+                q-icon(name="more_horiz" size="20px")
+              q-menu(anchor="bottom right" self="top right")
+                q-list.edu-course__menu(dense)
+                  q-item(clickable v-close-popup :disable="cancelling" @click="cancelUnderfilled")
+                    q-item-section.text-negative Отменить по недобору
+
+        .edu-course__figures
+          .edu-course__figure
+            FeeAmount(:value="course.fee_month" size="lg")
+            .edu-course__caption взнос в месяц
+            .edu-course__note(v-if="course.fee_course")
+              | за весь курс разом {{ formatAsset2Digits(course.fee_course) }}
+              template(v-if="course.course_discount_amount") , на {{ formatAsset2Digits(course.course_discount_amount) }} меньше помесячных
+            .edu-course__note(v-else) принимается помесячно
+          .edu-course__figure
+            .edu-course__num {{ course.lessons_per_month }}
+            .edu-course__caption {{ pluralize(Number(course.lessons_per_month), LESSON_FORMS) }} в месяц по {{ course.lesson_minutes }} мин
+          .edu-course__figure
+            .edu-course__num {{ course.lessons_total }}
+            .edu-course__caption {{ pluralize(Number(course.lessons_total), LESSON_FORMS) }} в программе
+            .edu-course__note(v-if="months") курс длится {{ months }}
 
     .row.q-col-gutter-md
       .col-12.col-md-8
         BaseCard.edu-course__about(variant="default")
-          q-img.edu-course__cover(v-if="course.image_url" :src="course.image_url" :ratio="3 / 1" fit="cover" no-spinner)
           .edu-course__about-body
             section
               .edu-course__section-title О курсе
@@ -172,7 +175,7 @@ async function load(): Promise<void> {
   loading.value = true;
   try {
     course.value = await fetchCourse(String(route.params.id));
-    if (course.value) desktopStore.setPageTitleOverride(course.value.title);
+    if (course.value) desktopStore.setPageTitleOverride('Курс');
     economy.value = await fetchCourseEconomy(String(route.params.id));
   } catch (e) {
     FailAlert(e);
@@ -192,7 +195,6 @@ watch(
 
 async function onSaved(updated: ICourse): Promise<void> {
   course.value = updated;
-  desktopStore.setPageTitleOverride(updated.title);
   editOpen.value = false;
   // Параметры изменились — расчёт пересобираем, иначе на странице остаётся прежний.
   try {
@@ -241,51 +243,76 @@ onBeforeUnmount(() => desktopStore.clearPageTitleOverride());
 </script>
 
 <style scoped>
+.edu-course__back {
+  margin: 0 0 var(--p-3) calc(-1 * var(--p-2));
+}
+/* Карточка курса: обложка от края до края, дальше содержимое с полями. */
+.edu-course__hero {
+  overflow: hidden;
+  margin-bottom: var(--p-5);
+}
+.edu-course__hero :deep(.base-card__body) {
+  padding: 0;
+}
+.edu-course__cover {
+  border-bottom: 1px solid var(--p-line);
+  background: var(--p-surface-2);
+}
+.edu-course__hero-body {
+  padding: var(--p-6);
+}
 .edu-course__head {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  gap: var(--p-3) var(--p-4);
+  gap: var(--p-4) var(--p-6);
   flex-wrap: wrap;
 }
-.edu-course__lead {
+.edu-course__head-text {
   display: flex;
-  align-items: center;
+  flex-direction: column;
   gap: var(--p-2);
   min-width: 0;
-  margin-left: calc(-1 * var(--p-2));
 }
-.edu-course__kicker {
+.edu-course__subject {
+  font-size: var(--p-fs-body-sm);
+  line-height: var(--p-lh-body-sm);
+  color: var(--p-ink-3);
+}
+.edu-course__title {
+  margin: 0;
+  font-size: var(--p-fs-display);
+  line-height: var(--p-lh-display);
+  letter-spacing: var(--p-ls-display);
+  font-weight: 600;
+  color: var(--p-ink);
+}
+.edu-course__facts {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
   gap: var(--p-2) var(--p-3);
-  min-width: 0;
-}
-.edu-course__subject {
-  font-size: var(--p-fs-h3);
-  line-height: var(--p-lh-h3);
-  font-weight: 500;
-  color: var(--p-ink);
+  margin-top: var(--p-1);
 }
 .edu-course__when {
   font-size: var(--p-fs-body-sm);
-  color: var(--p-ink-3);
+  color: var(--p-ink-2);
   font-feature-settings: 'tnum' 1;
 }
 .edu-course__actions {
   display: flex;
   align-items: center;
-  gap: var(--p-1);
+  gap: var(--p-2);
 }
-/* Числа курса: без рамок и ячеек, только воздух между ними. Главное число —
-   взнос — крупнее прочих; подпись под числом, приглушённая. */
+/* Числа курса под тонкой линией, три равные колонки одного веса:
+   взнос первым по порядку чтения, а не размером. */
 .edu-course__figures {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
-  gap: var(--p-5) var(--p-9);
-  padding: var(--p-7) 0 var(--p-8);
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--p-5) var(--p-6);
+  margin-top: var(--p-6);
+  padding-top: var(--p-5);
+  border-top: 1px solid var(--p-line);
 }
 .edu-course__figure {
   display: flex;
@@ -293,16 +320,11 @@ onBeforeUnmount(() => desktopStore.clearPageTitleOverride());
   gap: var(--p-1);
   min-width: 0;
 }
-.edu-course__figure--hero :deep(.edu-fee) {
-  font-size: var(--p-fs-display);
-  letter-spacing: var(--p-ls-display);
-  line-height: var(--p-lh-display);
-}
 .edu-course__num {
-  font-size: var(--p-fs-display);
-  line-height: var(--p-lh-display);
-  letter-spacing: var(--p-ls-display);
-  font-weight: 300;
+  font-size: var(--p-fs-h1);
+  line-height: var(--p-lh-h1);
+  letter-spacing: var(--p-ls-h1);
+  font-weight: 600;
   color: var(--p-ink);
   font-feature-settings: 'tnum' 1;
 }
@@ -322,10 +344,6 @@ onBeforeUnmount(() => desktopStore.clearPageTitleOverride());
 }
 .edu-course__about :deep(.base-card__body) {
   padding: 0;
-}
-.edu-course__cover {
-  border-bottom: 1px solid var(--p-line);
-  background: var(--p-surface-2);
 }
 .edu-course__about-body {
   display: flex;
