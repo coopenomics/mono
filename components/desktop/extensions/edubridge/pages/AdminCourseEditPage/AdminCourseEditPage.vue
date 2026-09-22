@@ -19,7 +19,7 @@ q-page.edu-course-edit
       )
         template(#active="{ step }")
           .edu-course-edit__step
-            CourseForm(ref="formRef" :section="step.key" hide-footer @saved="onSaved" @busy="(v) => (saving = v)")
+            CourseForm(ref="formRef" :section="sectionOf(step.key)" hide-footer @saved="onSaved" @busy="(v) => (saving = v)")
 
       footer.edu-course-edit__foot
         BaseButton(v-if="index === 0" variant="ghost" :disabled="saving" @click="leave") Отменить
@@ -82,8 +82,13 @@ const completedKeys = computed(() =>
   isEdit.value ? steps.map((s) => s.key).filter((k) => k !== activeKey.value) : visited.value,
 );
 
+/** Ключ шага из списка — он же раздел формы. */
+function sectionOf(key: string): CourseFormSection {
+  return steps.find((s) => s.key === key)?.key ?? 'course';
+}
+
 function goTo(key: string): void {
-  activeKey.value = key as CourseFormSection;
+  activeKey.value = sectionOf(key);
 }
 
 async function next(): Promise<void> {
