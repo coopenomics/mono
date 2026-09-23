@@ -57,13 +57,15 @@ function makeService(overrides: {
   events?: any;
   parserInteractor?: any;
   forkRegistry?: any;
+  deltaWaiter?: any;
 }) {
   const logger = overrides.logger ?? makeLoggerStub();
   const events = overrides.events ?? makeEventsServiceStub();
   const parser = overrides.parserInteractor ?? makeParserInteractorStub();
   const fork = overrides.forkRegistry ?? makeForkRegistryStub();
-  const service = new BlockchainConsumerService(logger, events, parser, fork);
-  return { service, logger, events, parser, fork };
+  const deltaWaiter = overrides.deltaWaiter ?? { wake: jest.fn() };
+  const service = new BlockchainConsumerService(logger, events, parser, fork, deltaWaiter);
+  return { service, logger, events, parser, fork, deltaWaiter };
 }
 
 describe('BlockchainConsumerService.processFork (Stories 4.1 + 4.2)', () => {
@@ -274,5 +276,37 @@ describe('BlockchainConsumerService.processAction/processDelta — markEventAppl
     await (service as any).processDeltaDelayed(delta);
 
     expect(parser.markEventApplied).toHaveBeenCalledWith(expect.any(String), 12345);
+  });
+
+  it('processDelta: ожидающие мутации будятся после слушателей дельты, а не одновременно с ними (ADR-009)', async () => {
+    const calls: string[] = [];
+    const events = makeEventsServiceStub();
+    events.emitAsyncWithTimeout.mockImplementation(async () => {
+      calls.push('listeners');
+      return true;
+    });
+    const deltaWaiter = { wake: jest.fn(() => calls.push('wake')) };
+    const { service } = makeService({ events, deltaWaiter });
+    const { config } = await import('~/config');
+    const delta = { code: 'edubridge', table: 'educontracts', primary_key: '1', value: { coopname: config.coopname }, scope: config.coopname, block_num: 7, present: true } as any;
+
+    await (service as any).processDeltaDelayed(delta);
+
+    expect(calls).toEqual(['listeners', 'wake']);
+    expect(deltaWaiter.wake).toHaveBeenCalledWith(delta);
+  });
+
+  it('processDelta: упавший или зависший слушатель не держит событие — ожидающие всё равно будятся', async () => {
+    const events = makeEventsServiceStub();
+    events.emitAsyncWithTimeout.mockImplementation(async () => {
+      throw new Error('слушатель упал');
+    });
+    const { service, parser, deltaWaiter } = makeService({ events });
+    const { config } = await import('~/config');
+    const delta = { code: 'edubridge', table: 'educontracts', primary_key: '1', value: { coopname: config.coopname }, scope: config.coopname, block_num: 8, present: true } as any;
+
+    await expect((service as any).processDeltaDelayed(delta)).resolves.toBeUndefined();
+    expect(parser.markEventApplied).toHaveBeenCalled();
+    expect(deltaWaiter.wake).toHaveBeenCalledWith(delta);
   });
 });

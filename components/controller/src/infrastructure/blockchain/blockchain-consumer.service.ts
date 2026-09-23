@@ -1,6 +1,7 @@
 // infrastructure/blockchain/blockchain-consumer.service.ts
 
 import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import { ChainDeltaWaiterService } from './chain-delta-waiter.service';
 import { ParserClient, type ParserEvent } from '@coopenomics/parser2';
 import { IAction, IDelta } from '~/types/common';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
@@ -51,7 +52,8 @@ export class BlockchainConsumerService implements OnModuleInit, OnModuleDestroy 
     private readonly logger: WinstonLoggerService,
     private readonly eventsService: EventsService,
     private readonly parserInteractor: ParserInteractor,
-    private readonly forkRegistry: ForkRegistryService
+    private readonly forkRegistry: ForkRegistryService,
+    private readonly deltaWaiter: ChainDeltaWaiterService
   ) {
     this.logger.setContext(BlockchainConsumerService.name);
   }
@@ -313,9 +315,21 @@ export class BlockchainConsumerService implements OnModuleInit, OnModuleDestroy 
     // block_num пишем для последующего deleteAfterBlock на форке (Story 4.1).
     await this.parserInteractor.markEventApplied(eventId, delta.block_num);
 
-    // Публикуем событие во внутреннюю шину с типизированным именем
+    // Публикуем событие во внутреннюю шину и ждём её слушателей (проекции в
+    // базе) — но не дольше барьера: медленный слушатель не должен вставать
+    // поперёк разбора цепи. Потом будим мутации, ждущие это изменение: к этому
+    // моменту проекции уже записаны, и ответ собирается из свежих данных
+    // (ADR-009, DEC-T10). Ошибка слушателя, как и раньше, событие не держит.
     const eventName = `delta::${delta.code}::${delta.table}`;
-    this.eventsService.emit(eventName, delta);
+    try {
+      const settled = await this.eventsService.emitAsyncWithTimeout(eventName, delta, config.blockchain.delta_listeners_barrier_ms);
+      if (!settled) {
+        this.logger.warn(`Слушатели ${eventName} не уложились в ${config.blockchain.delta_listeners_barrier_ms} мс — идём дальше`);
+      }
+    } catch (error: any) {
+      this.logger.error(`Слушатель ${eventName} упал: ${error?.message ?? error}`, error?.stack);
+    }
+    this.deltaWaiter.wake(delta);
 
     this.logger.debug(`Дельта опубликована в событийную шину: ${eventName} с primary_key ${delta.primary_key}`);
   }

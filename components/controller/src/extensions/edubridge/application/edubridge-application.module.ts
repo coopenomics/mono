@@ -37,6 +37,7 @@ import { EdubridgeCatalogResolver } from './resolvers/edubridge-catalog.resolver
 import { EdubridgeCourseAdminResolver } from './resolvers/edubridge-course-admin.resolver';
 import { EdubridgeAccessListener } from './listeners/edubridge-access.listener';
 import { EdubridgeApprovalListener } from './listeners/edubridge-approval.listener';
+import { EdubridgeContractDeltaListener } from './listeners/edubridge-contract-delta.listener';
 import { EdubridgeMembershipExitListener } from './listeners/edubridge-membership-exit.listener';
 import { EdubridgeNotificationListener } from './listeners/edubridge-notification.listener';
 import { EdubridgeOwnerDirectory } from './membership/edubridge-owner.directory';
@@ -124,6 +125,7 @@ import { EdubridgeCatalogCourseFieldsResolver, EdubridgeCourseFieldsResolver } f
     EdubridgeHoldWorker,
     EdubridgeAccessListener,
     EdubridgeApprovalListener,
+    EdubridgeContractDeltaListener,
     EdubridgeMembershipExitListener,
     EdubridgeNotificationListener,
     // Резолверы

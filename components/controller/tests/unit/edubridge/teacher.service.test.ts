@@ -641,3 +641,30 @@ describe('EdubridgeTeacherService — занятия и гарантийный �
     expect(revoked.status).toBe(EduContributionStatus.DECLINED);
   });
 });
+
+describe('EdubridgeTeacherService — договор следует за таблицей цепи (ответ после дельты)', () => {
+  it('дельта «active» переводит ждущий договор в действующий с датой подписи из цепи — без уведомления', async () => {
+    const { service, teachers } = make({ contract: EduContractStatus.PENDING_APPROVAL });
+    await service.applyContractFromChain('voskhod', 'teach', 'H', 'active', '2026-09-23T13:49:52');
+    const saved = teachers.saveContract.mock.calls[0]![0];
+    expect(saved.status).toBe(EduContractStatus.ACTIVE);
+    expect(saved.approved_at).toEqual(new Date('2026-09-23T13:49:52Z'));
+  });
+
+  it('строка стёрта у ждущего договора — отказ; действующий договор дельтой не трогается', async () => {
+    const pending = make({ contract: EduContractStatus.PENDING_APPROVAL });
+    await pending.service.applyContractFromChain('voskhod', 'teach', 'h', null, null);
+    expect(pending.teachers.saveContract.mock.calls[0]![0].status).toBe(EduContractStatus.DECLINED);
+
+    const active = make({ contract: EduContractStatus.ACTIVE });
+    await active.service.applyContractFromChain('voskhod', 'teach', 'h', null, null);
+    expect(active.teachers.saveContract).not.toHaveBeenCalled();
+  });
+
+  it('действие apprvcontr после дельты не перетирает дату подписи из цепи', async () => {
+    const { service, teachers } = make({ contract: EduContractStatus.PENDING_APPROVAL });
+    await service.applyContractFromChain('voskhod', 'teach', 'h', 'active', '2026-09-23T13:49:52');
+    await service.onContractApproved('voskhod', 'teach', 'h');
+    expect(teachers.saveContract.mock.calls[1]![0].approved_at).toEqual(new Date('2026-09-23T13:49:52Z'));
+  });
+});

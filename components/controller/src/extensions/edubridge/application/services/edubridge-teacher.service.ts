@@ -147,6 +147,33 @@ export class EdubridgeTeacherService {
     });
   }
 
+  /**
+   * Состояние договора из цепи — по дельте `educontracts`, сразу как она
+   * пришла, без трёхсекундной задержки событий действий. Так ответ на подпись
+   * председателя (он ждёт эту дельту) уже видит действующий договор.
+   * Уведомления и причина отказа остаются за действиями — их в дельте нет.
+   */
+  async applyContractFromChain(
+    coopname: string,
+    teacher: string,
+    contractHash: string,
+    chainStatus: string | null,
+    approvedAt: string | null
+  ): Promise<void> {
+    const c = await this.teachers.findContract(coopname, teacher);
+    if (!c || c.contract_hash !== contractHash.toLowerCase()) return;
+    if (chainStatus === 'active' && c.status === EduContractStatus.PENDING_APPROVAL) {
+      c.status = EduContractStatus.ACTIVE;
+      c.approved_at = approvedAt ? new Date(`${approvedAt.replace(/Z?$/, 'Z')}`) : new Date();
+      c.decline_reason = '';
+      await this.teachers.saveContract(c);
+    } else if (chainStatus === null && c.status === EduContractStatus.PENDING_APPROVAL) {
+      // Отказ председателя стирает запись; причину допишет действие dclinecontr.
+      c.status = EduContractStatus.DECLINED;
+      await this.teachers.saveContract(c);
+    }
+  }
+
   /** Коллбэк совета `apprvcontr`: председатель подписал — договор действует. */
   async onContractApproved(coopname: string, teacher: string, contractHash: string): Promise<void> {
     const c = await this.teachers.findContract(coopname, teacher);
@@ -154,8 +181,9 @@ export class EdubridgeTeacherService {
       this.logger.warn(`[EDU.TEACH] apprvcontr для неизвестного договора ${contractHash} (${teacher})`);
       return;
     }
+    // Статус мог уже прийти дельтой — дату подписи из цепи не перетираем.
     c.status = EduContractStatus.ACTIVE;
-    c.approved_at = new Date();
+    c.approved_at = c.approved_at ?? new Date();
     c.decline_reason = '';
     await this.teachers.saveContract(c);
     this.events.emit(EDUBRIDGE_CONTRACT_DECIDED_EVENT, { coopname, teacher_username: teacher, contract_hash: c.contract_hash, approved: true });

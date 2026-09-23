@@ -2,6 +2,7 @@ import { Module, Global } from '@nestjs/common';
 import { BlockchainService } from './blockchain.service';
 import { RpcPool } from './rpc-pool.service';
 import { BlockchainConsumerService } from './blockchain-consumer.service';
+import { ChainDeltaWaiterService } from './chain-delta-waiter.service';
 import { DraftRegistrySyncService } from './services/draft-registry-sync.service';
 import { BlockchainRepeatService } from './services/blockchain-repeat.service';
 import { RedisModule } from '../redis/redis.module';
@@ -42,6 +43,8 @@ import { BlockchainArchiveRetentionService } from '~/shared/sync/services/blockc
     RpcPool,
     BlockchainService,
     BlockchainConsumerService,
+    // Ожидание изменения из цепи для ответов мутаций (ADR-009).
+    ChainDeltaWaiterService,
     DraftRegistrySyncService,
     BlockchainRepeatService,
     {
@@ -100,6 +103,7 @@ import { BlockchainArchiveRetentionService } from '~/shared/sync/services/blockc
     BlockchainArchiveRetentionService,
   ],
   exports: [
+    ChainDeltaWaiterService,
     RpcPool,
     BlockchainService,
     BlockchainConsumerService,

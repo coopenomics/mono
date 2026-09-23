@@ -1,0 +1,68 @@
+feature: sync.write-wait-delta
+title: Ответ мутации после факта из цепи — ожидание дельты своей транзакции
+
+# Паттерн ADR-009 / DEC-T10 (требования «Синхронизация узла с блокчейном v1»
+# и «Интеграция контроллера с parser2 v1», задача C28-15). Мутация отправляет
+# транзакцию и ждёт, пока изменение её блока придёт от индексатора и ляжет в
+# базу узла; ответ собирается из свежих данных. Задержка — фактическая, а не
+# выдуманная пауза; не пришло за BLOCKCHAIN_WRITE_WAIT_DELTA_MS — ответ без
+# ожидания, интерфейс догонит при следующем чтении.
+#
+# Введено 23.09.2026 (7DD-22) экспериментом на подписи председателя: договор
+# преподавателя в карточке показывался «ждёт подписи» ещё 3 секунды после
+# подписи — статус обновлялся по событию действия, которое шина задерживает.
+# Потребитель теперь ждёт слушателей дельты (не дольше барьера) и только потом
+# будит ожидающих; Образование проецирует договор из дельты educontracts.
+# Остальные места с паузами переводятся на порт постепенно.
+
+sources:
+  backend:
+    - components/controller/src/infrastructure/blockchain/chain-delta-waiter.service.ts
+    - components/controller/src/infrastructure/blockchain/blockchain-consumer.service.ts
+    - components/controller/src/extensions/chairman/application/services/approval.service.ts
+    - components/controller/src/extensions/edubridge/application/listeners/edubridge-contract-delta.listener.ts
+    - components/innercoop/src/core-ports/chain-delta-wait.port.ts
+
+cases:
+  - id: sync.wwd.happy.01
+    level: backend
+    kind: happy
+    scenario: "Мутация ждёт дельту своей таблицы и области из блока транзакции."
+    expect: "Ожидание будится этой дельтой и получает её; номер блока берётся из результата transact."
+    test: components/controller/src/infrastructure/blockchain/chain-delta-waiter.service.spec.ts
+    status: passing
+  - id: sync.wwd.side.01
+    level: backend
+    kind: side
+    scenario: "Приходят дельты раньшего блока, чужой таблицы, чужой области, чужой строки; нужная не приходит."
+    expect: "Ожидание не будится ими; по таймауту — null, ожидание и таймер не остаются в памяти."
+    test: components/controller/src/infrastructure/blockchain/chain-delta-waiter.service.spec.ts
+    status: passing
+  - id: sync.wwd.side.02
+    level: backend
+    kind: side
+    scenario: "Потребитель разбирает дельту, у которой есть слушатели-проекции; слушатель падает или зависает."
+    expect: "Ожидающие будятся после слушателей, не одновременно с ними; упавший или зависший дольше барьера слушатель событие не держит — оно подтверждается, ожидающие будятся."
+    test: components/controller/tests/unit/blockchain/blockchain-consumer.processFork.test.ts
+    status: passing
+  - id: sync.wwd.happy.02
+    level: backend
+    kind: happy
+    scenario: "Председатель подтверждает или отклоняет одобрение."
+    expect: "Ответ уходит после дельты самого одобрения (soviet::approvals по хэшу) и дельты контракта-адресата из блока транзакции; без порта или по таймауту — ответ сразу, с предупреждением в журнал."
+    test: components/controller/tests/unit/chairman/approval-decision-wait.test.ts
+    status: passing
+  - id: sync.wwd.happy.03
+    level: backend
+    kind: happy
+    scenario: "Дельта educontracts: договор стал active; строка ждущего договора стёрта; позже приходит действие apprvcontr."
+    expect: "Договор становится действующим с датой подписи из цепи сразу по дельте; стёртая строка ждущего — отказ; действие дату не перетирает, уведомление шлёт оно."
+    test: components/controller/tests/unit/edubridge/teacher.service.test.ts
+    status: passing
+  - id: sync.wwd.ui.01
+    level: ui
+    kind: happy
+    scenario: "Председатель подписывает договор в карточке преподавателя."
+    expect: "Сразу после ответа карточка показывает «Действует» и дату подписи председателя, без перезагрузки и пауз на стороне стола."
+    test: ~
+    status: missing
