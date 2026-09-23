@@ -95,10 +95,18 @@ static void recalculate_levels(eosio::name coopname) {
  * своей копии текста. Контроллер при такой дельте текст в базе не трогает и
  * сверяет его хеш с цепью.
  *
+ * Работа идёт порциями: за вызов переводится не больше kDigestBytesPerCall
+ * байт текста. Все 61 проект восхода за один вызов заняли 203 мс CPU при
+ * лимите транзакции 290 мс (замер 23.09.2026) — впритык. Если осталось ещё,
+ * вызов пишет «бюджет исчерпан», и раскатка повторяет migrate.
+ *
  * Идемпотентно: строка, где уже лежит хеш или пусто, не переписывается.
  */
+static constexpr uint64_t kDigestBytesPerCall = 100 * 1024;
+
 static void digest_project_texts(eosio::name coopname) {
   Capital::project_index projects(_capital, coopname.value);
+  uint64_t digested_bytes = 0;
 
   for (auto itr = projects.begin(); itr != projects.end(); ++itr) {
     const bool description_done = Capital::Projects::is_text_digest(itr->description);
@@ -107,6 +115,12 @@ static void digest_project_texts(eosio::name coopname) {
       continue;
     }
 
+    if (digested_bytes >= kDigestBytesPerCall) {
+      eosio::print("migrate capital: тексты проектов переведены частично, бюджет исчерпан — продолжит следующий вызов");
+      return;
+    }
+
+    digested_bytes += itr->description.size() + itr->invite.size();
     projects.modify(itr, RamPayer::of(projects, coopname), [&](auto &p) {
       if (!description_done) p.description = Capital::Projects::text_digest(p.description);
       if (!invite_done) p.invite = Capital::Projects::text_digest(p.invite);

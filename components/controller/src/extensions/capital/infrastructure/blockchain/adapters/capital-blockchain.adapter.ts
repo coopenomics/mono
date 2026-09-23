@@ -15,16 +15,15 @@ import { VAULT_PORT, type IVaultPort,
 } from '@coopenomics/innercoop';
 import { chainTextDigest } from '../../../domain/utils/chain-text-digest';
 
-/**
- * Инфраструктурный сервис для реализации блокчейн порта CAPITAL
- * Осуществляет взаимодействие с блокчейном через IChainPort
- */
-
 /** Описание и приглашение уходят в цепь хешем, текст остаётся в базе контроллера. */
 function withChainTextDigests<T extends { description: string; invite: string }>(data: T): T {
   return { ...data, description: chainTextDigest(data.description), invite: chainTextDigest(data.invite) };
 }
 
+/**
+ * Инфраструктурный сервис для реализации блокчейн порта CAPITAL
+ * Осуществляет взаимодействие с блокчейном через IChainPort
+ */
 @Injectable()
 export class CapitalBlockchainAdapter implements CapitalBlockchainPort {
   constructor(
