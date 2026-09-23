@@ -9,6 +9,7 @@ import type {
 } from '~/domain/notification/interfaces/channel.ports';
 import { renderTemplate, resolveTemplate } from '../template.util';
 import { NotificationChannel } from '~/domain/notification/interfaces/notify-input.domain.interface';
+import { t } from '~/i18n';
 
 /**
  * Канал «In-app» — реализация {@link InAppChannelPort}.
@@ -29,8 +30,8 @@ export class InAppChannelAdapter implements InAppChannelPort {
   ) {}
 
   async send(message: ChannelMessage): Promise<ChannelDeliveryResult> {
-    const template = resolveTemplate(message.workflowId, NotificationChannel.IN_APP);
-    const title = renderTemplate(template?.subject, message) || 'Уведомление';
+    const template = resolveTemplate(message.workflowId, NotificationChannel.IN_APP, message.locale);
+    const title = renderTemplate(template?.subject, message) || t('notificationCenter.inAppChannelAdapter.defaultTitle');
     const body = renderTemplate(template?.body, message);
 
     try {

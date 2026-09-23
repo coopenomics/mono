@@ -3,7 +3,7 @@ import { WorkflowBuilder } from '../../base/workflow-builder';
 import { z } from 'zod';
 import { BaseWorkflowPayload } from '../../types';
 import { createEmailStep, createInAppStep, createPushStep } from '../../base/defaults';
-import { slugify } from '../../utils';
+import { nt } from '../../i18n';
 
 export const marketplaceWriteoffRejectedPayloadSchema = z.object({
   recipientName: z.string(),
@@ -17,30 +17,33 @@ export const marketplaceWriteoffRejectedPayloadSchema = z.object({
 export type IPayload = z.infer<typeof marketplaceWriteoffRejectedPayloadSchema>;
 export interface IWorkflow extends BaseWorkflowPayload, IPayload {}
 
-export const name = 'Совет отклонил проект списания скоропорта';
-export const id = slugify(name);
+export const name = nt('marketplaceWriteoffRejected.name');
+// Идентификатор закреплён: раньше он вычислялся из названия, и правка
+// или перевод названия меняли бы его. Не менять — на него ссылаются подписки.
+export const id = 'sovet-otklonil-proekt-spisaniya-skoroporta';
 
 export const workflow: WorkflowDefinition<IWorkflow> = WorkflowBuilder.create<IWorkflow>()
   .name(name)
   .workflowId(id)
-  .description('Уведомление администратору об отказе совета в проекте списания (или истёкшем сроке повестки).')
+  .i18nKey('marketplaceWriteoffRejected')
+  .description(nt('marketplaceWriteoffRejected.description'))
   .payloadSchema(marketplaceWriteoffRejectedPayloadSchema)
   .tags(['marketplace', 'admin', 'writeoff'])
   .addSteps([
     createEmailStep(
       'marketplace-writeoff-rejected-email',
-      'Совет отклонил проект списания',
-      'Здравствуйте, {{payload.recipientName}}!<br><br>Совет отклонил проект списания скоропорта. Причина: <strong>{{payload.reason}}</strong>. Позиции остаются на складах участков.<br><br>Открыть проект: {{payload.deepLinkUrl}}'
+      nt('marketplaceWriteoffRejected.email.subject'),
+      nt('marketplaceWriteoffRejected.email.body')
     ),
     createInAppStep(
       'marketplace-writeoff-rejected-notification',
-      'Проект списания отклонён',
-      'Причина: {{payload.reason}}'
+      nt('marketplaceWriteoffRejected.inApp.subject'),
+      nt('marketplaceWriteoffRejected.inApp.body')
     ),
     createPushStep(
       'marketplace-writeoff-rejected-push',
-      'Проект списания отклонён',
-      '{{payload.reason}}'
+      nt('marketplaceWriteoffRejected.push.subject'),
+      nt('marketplaceWriteoffRejected.push.body')
     ),
   ])
   .build();

@@ -3,7 +3,7 @@ import { WorkflowBuilder } from '../../base/workflow-builder';
 import { z } from 'zod';
 import { BaseWorkflowPayload } from '../../types';
 import { createEmailStep, createInAppStep, createPushStep } from '../../base/defaults';
-import { slugify } from '../../utils';
+import { nt } from '../../i18n';
 
 // Схема для branch-trusted-resolved воркфлоу
 export const branchTrustedResolvedPayloadSchema = z.object({
@@ -17,31 +17,34 @@ export type IPayload = z.infer<typeof branchTrustedResolvedPayloadSchema>;
 
 export interface IWorkflow extends BaseWorkflowPayload, IPayload {}
 
-export const name = 'Заявка доверенного лица рассмотрена';
-export const id = slugify(name);
+export const name = nt('branchTrustedResolved.name');
+// Идентификатор закреплён: раньше он вычислялся из названия, и правка
+// или перевод названия меняли бы его. Не менять — на него ссылаются подписки.
+export const id = 'zayavka-doverennogo-litsa-rassmotrena';
 
 export const workflow: WorkflowDefinition<IWorkflow> = WorkflowBuilder
   .create<IWorkflow>()
   .name(name)
   .workflowId(id)
-  .description('Уведомление заявителю о решении председателя кооперативного участка по заявке доверенного лица')
+  .i18nKey('branchTrustedResolved')
+  .description(nt('branchTrustedResolved.description'))
   .payloadSchema(branchTrustedResolvedPayloadSchema)
   .tags(['user'])
   .addSteps([
     createEmailStep(
       'branch-trusted-resolved-email',
-      'Ваша заявка доверенного лица {{payload.resolution}} в {{payload.coopShortName}}',
-      'Уважаемый пайщик!<br><br>Ваша заявка на приём доверенным лицом кооперативного участка {{payload.resolution}} председателем участка.<br><br>Подробности на странице участка:<br><a href="{{payload.branchUrl}}">{{payload.branchUrl}}</a><br><br>С уважением, {{payload.coopShortName}}.'
+      nt('branchTrustedResolved.email.subject'),
+      nt('branchTrustedResolved.email.body')
     ),
     createInAppStep(
       'branch-trusted-resolved-notification',
-      'Заявка доверенного лица {{payload.resolution}}',
-      'Председатель участка рассмотрел вашу заявку: она {{payload.resolution}}'
+      nt('branchTrustedResolved.inApp.subject'),
+      nt('branchTrustedResolved.inApp.body')
     ),
     createPushStep(
       'branch-trusted-resolved-push',
-      'Заявка доверенного {{payload.resolution}}',
-      'Председатель участка рассмотрел вашу заявку'
+      nt('branchTrustedResolved.push.subject'),
+      nt('branchTrustedResolved.push.body')
     ),
   ])
   .build();

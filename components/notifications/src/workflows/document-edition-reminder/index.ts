@@ -3,7 +3,7 @@ import { WorkflowBuilder } from '../../base/workflow-builder';
 import { z } from 'zod';
 import { BaseWorkflowPayload } from '../../types';
 import { createEmailStep, createInAppStep } from '../../base/defaults';
-import { slugify } from '../../utils';
+import { nt } from '../../i18n';
 
 /**
  * Периодическое напоминание председателю: в кооперативе есть документы, чьи
@@ -24,26 +24,29 @@ export type IPayload = z.infer<typeof documentEditionReminderPayloadSchema>;
 
 export interface IWorkflow extends BaseWorkflowPayload, IPayload {}
 
-export const name = 'Редакции документов ждут утверждения совета';
-export const id = slugify(name);
+export const name = nt('documentEditionReminder.name');
+// Идентификатор закреплён: раньше он вычислялся из названия, и правка
+// или перевод названия меняли бы его. Не менять — на него ссылаются подписки.
+export const id = 'redaktsii-dokumentov-zhdut-utverzhdeniya-soveta';
 
 export const workflow: WorkflowDefinition<IWorkflow> = WorkflowBuilder
   .create<IWorkflow>()
   .name(name)
   .workflowId(id)
-  .description('Напоминание председателю о документах, редакции которых ещё не утверждены советом')
+  .i18nKey('documentEditionReminder')
+  .description(nt('documentEditionReminder.description'))
   .payloadSchema(documentEditionReminderPayloadSchema)
   .tags(['chairman'])
   .addSteps([
     createEmailStep(
       'document-edition-reminder-email',
-      'Документы {{payload.short_abbr}} {{payload.name}} ждут утверждения совета: {{payload.count}}',
-      'Уважаемый {{payload.userName}}!<br><br>В кооперативе {{payload.short_abbr}} {{payload.name}} редакции документов ждут решения совета: <strong>{{payload.documentTitles}}</strong>.<br><br>Пока решения нет, пайщикам предъявляются прежние редакции. Вынести документы на совет: <a href="{{payload.templatesUrl}}">{{payload.templatesUrl}}</a>'
+      nt('documentEditionReminder.email.subject'),
+      nt('documentEditionReminder.email.body')
     ),
     createInAppStep(
       'document-edition-reminder-notification',
-      'Документы ждут утверждения совета',
-      'Редакции документов ждут решения совета: {{payload.documentTitles}}'
+      nt('documentEditionReminder.inApp.subject'),
+      nt('documentEditionReminder.inApp.body')
     ),
   ])
   .build();

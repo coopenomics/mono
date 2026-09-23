@@ -3,7 +3,7 @@ import { WorkflowBuilder } from '../../base/workflow-builder';
 import { z } from 'zod';
 import { BaseWorkflowPayload } from '../../types';
 import { createEmailStep, createInAppStep, createPushStep } from '../../base/defaults';
-import { slugify } from '../../utils';
+import { nt } from '../../i18n';
 
 export const marketplaceSupplierClaimIssuedPayloadSchema = z.object({
   supplierName: z.string(),
@@ -20,8 +20,10 @@ export type IPayload = z.infer<typeof marketplaceSupplierClaimIssuedPayloadSchem
 
 export interface IWorkflow extends BaseWorkflowPayload, IPayload {}
 
-export const name = 'Гарантийная претензия поставщику';
-export const id = slugify(name);
+export const name = nt('marketplaceSupplierClaimIssued.name');
+// Идентификатор закреплён: раньше он вычислялся из названия, и правка
+// или перевод названия меняли бы его. Не менять — на него ссылаются подписки.
+export const id = 'garantiynaya-pretenziya-postavschiku';
 
 /**
  * Задача 99D-13: по решению совета об отмене сделки поставщику выставлена
@@ -33,24 +35,25 @@ export const workflow: WorkflowDefinition<IWorkflow> = WorkflowBuilder
   .create<IWorkflow>()
   .name(name)
   .workflowId(id)
-  .description('Уведомление поставщику о гарантийной претензии по его товару: имущество возвращено пайщиком и принято кооперативом, поставщику предлагается признать претензию или отказать.')
+  .i18nKey('marketplaceSupplierClaimIssued')
+  .description(nt('marketplaceSupplierClaimIssued.description'))
   .payloadSchema(marketplaceSupplierClaimIssuedPayloadSchema)
   .tags(['marketplace', 'offerer'])
   .addSteps([
     createEmailStep(
       'marketplace-supplier-claim-issued-email',
-      'Гарантийная претензия на {{payload.amount}} по вашему товару',
-      'Уважаемый {{payload.supplierName}}!<br><br>По вашему товару оформлен гарантийный возврат: пайщик вернул имущество, кооператив принял его на участке <strong>{{payload.kuName}}</strong> и по решению совета отменил сделку. Вам выставлена гарантийная претензия на <strong>{{payload.amount}}</strong>.<br><br>Причина: {{payload.reasonExcerpt}}<br><br>Откройте раздел «Гарантийные возвраты» на своём столе: там рекламация с подписями пайщика и оператора, фотографии и кнопки «Согласен» и «Не согласен». Если вы согласны, сумма будет удержана из ваших следующих выплат; если нет — свяжитесь с участком {{payload.kuName}}, там же можно забрать имущество.<br><br>Подробности: {{payload.deepLinkUrl}}'
+      nt('marketplaceSupplierClaimIssued.email.subject'),
+      nt('marketplaceSupplierClaimIssued.email.body')
     ),
     createInAppStep(
       'marketplace-supplier-claim-issued-notification',
-      'Гарантийная претензия на {{payload.amount}}',
-      'По вашему товару оформлен гарантийный возврат на участке {{payload.kuName}}. Ответьте по претензии в разделе «Гарантийные возвраты».'
+      nt('marketplaceSupplierClaimIssued.inApp.subject'),
+      nt('marketplaceSupplierClaimIssued.inApp.body')
     ),
     createPushStep(
       'marketplace-supplier-claim-issued-push',
-      'Гарантийная претензия на {{payload.amount}}',
-      'Возврат по вашему товару на участке {{payload.kuName}} — ответьте в разделе «Гарантийные возвраты».'
+      nt('marketplaceSupplierClaimIssued.push.subject'),
+      nt('marketplaceSupplierClaimIssued.push.body')
     ),
   ])
   .build();

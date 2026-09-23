@@ -145,10 +145,13 @@ export class OutboxWorkerService implements OnModuleInit {
     const port = this.channelPorts[row.channel];
     const result: ChannelDeliveryResult = port
       ? await this.safeSend(port, row)
+      // i18n-ignore: строка технического журнала доставки уведомлений, не текст для пайщика
       : { delivered: false, error: `нет адаптера для канала '${row.channel}'` };
 
     // Контекст для логов — председатель/оператор должен видеть, кому что и почему.
+    // i18n-ignore: строка технического журнала доставки уведомлений, не текст для пайщика
     const target = `workflow=${row.workflowId} канал=${row.channel} получатель=${row.recipientUsername || row.recipientSubscriberId}`;
+    // i18n-ignore: строка технического журнала доставки уведомлений, не текст для пайщика
     const ctx = `${target} попытка ${attemptNumber}/${row.maxAttempts}`;
     // Ожидание канала номера попытки не имеет — писать «попытка 5/5» там,
     // где лимит не тратится, значит врать читателю логов.
@@ -302,9 +305,13 @@ export function transportBackoffMs(waitedMs: number): number {
 /** «1 ч 30 мин» / «45 мин» / «30 с» — для человекочитаемых строк лога. */
 function formatDuration(ms: number): string {
   const totalMinutes = Math.round(ms / 60_000);
+  // i18n-ignore: строка технического журнала доставки уведомлений, не текст для пайщика
   if (totalMinutes < 1) return `${Math.round(ms / 1000)} с`;
   const hours = Math.floor(totalMinutes / 60);
   const minutes = totalMinutes % 60;
+  // i18n-ignore: строка технического журнала доставки уведомлений, не текст для пайщика
   if (hours === 0) return `${minutes} мин`;
+  // i18n-ignore: строка технического журнала доставки уведомлений, не текст для пайщика
+  // i18n-ignore: строка технического журнала доставки уведомлений, не текст для пайщика
   return minutes === 0 ? `${hours} ч` : `${hours} ч ${minutes} мин`;
 }

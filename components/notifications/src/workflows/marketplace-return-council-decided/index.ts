@@ -3,7 +3,7 @@ import { WorkflowBuilder } from '../../base/workflow-builder';
 import { z } from 'zod';
 import { BaseWorkflowPayload } from '../../types';
 import { createEmailStep, createInAppStep, createPushStep } from '../../base/defaults';
-import { slugify } from '../../utils';
+import { nt } from '../../i18n';
 
 export const marketplaceReturnCouncilDecidedPayloadSchema = z.object({
   ordererName: z.string(),
@@ -21,8 +21,10 @@ export type IPayload = z.infer<typeof marketplaceReturnCouncilDecidedPayloadSche
 
 export interface IWorkflow extends BaseWorkflowPayload, IPayload {}
 
-export const name = 'Совет решил по гарантийному возврату';
-export const id = slugify(name);
+export const name = nt('marketplaceReturnCouncilDecided.name');
+// Идентификатор закреплён: раньше он вычислялся из названия, и правка
+// или перевод названия меняли бы его. Не менять — на него ссылаются подписки.
+export const id = 'sovet-reshil-po-garantiynomu-vozvratu';
 
 /**
  * Паевая модель Стола заказов: оператор принял имущество у стойки и подал в
@@ -34,24 +36,25 @@ export const workflow: WorkflowDefinition<IWorkflow> = WorkflowBuilder
   .create<IWorkflow>()
   .name(name)
   .workflowId(id)
-  .description('Уведомление пайщику-заказчику о решении совета по гарантийному возврату имущества.')
+  .i18nKey('marketplaceReturnCouncilDecided')
+  .description(nt('marketplaceReturnCouncilDecided.description'))
   .payloadSchema(marketplaceReturnCouncilDecidedPayloadSchema)
   .tags(['marketplace', 'orderer'])
   .addSteps([
     createEmailStep(
       'marketplace-return-council-decided-email',
-      'Решение совета по гарантийному возврату (заказ {{payload.order_id}})',
-      'Уважаемый {{payload.ordererName}}!<br><br>{{payload.outcomeText}}<br><br>{{payload.nextStepText}}<br><br>Участок: <strong>{{payload.kuName}}</strong>.<br><br>Подробности: {{payload.deepLinkUrl}}'
+      nt('marketplaceReturnCouncilDecided.email.subject'),
+      nt('marketplaceReturnCouncilDecided.email.body')
     ),
     createInAppStep(
       'marketplace-return-council-decided-notification',
-      'Решение совета по возврату',
-      '{{payload.outcomeText}} {{payload.nextStepText}}'
+      nt('marketplaceReturnCouncilDecided.inApp.subject'),
+      nt('marketplaceReturnCouncilDecided.inApp.body')
     ),
     createPushStep(
       'marketplace-return-council-decided-push',
-      'Решение совета по возврату',
-      '{{payload.outcomeText}} {{payload.nextStepText}}'
+      nt('marketplaceReturnCouncilDecided.push.subject'),
+      nt('marketplaceReturnCouncilDecided.push.body')
     ),
   ])
   .build();

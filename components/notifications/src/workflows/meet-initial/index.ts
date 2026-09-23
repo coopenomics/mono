@@ -4,7 +4,7 @@ import { WorkflowBuilder } from '../../base/workflow-builder';
 import { z } from 'zod';
 import { BaseWorkflowPayload } from '../../types';
 import { createEmailStep, createInAppStep, createPushStep } from '../../base/defaults';
-import { slugify } from '../../utils';
+import { nt } from '../../i18n';
 
 // Схема для meet-initial воркфлоу
 export const meetInitialPayloadSchema = z.object({
@@ -23,31 +23,34 @@ export type IPayload = z.infer<typeof meetInitialPayloadSchema>;
 
 export interface IWorkflow extends BaseWorkflowPayload, IPayload {}
 
-export const name = 'Уведомление о новом общем собрании';
-export const id = slugify(name);
+export const name = nt('meetInitial.name');
+// Идентификатор закреплён: раньше он вычислялся из названия, и правка
+// или перевод названия меняли бы его. Не менять — на него ссылаются подписки.
+export const id = 'uvedomlenie-o-novom-obschem-sobranii';
 
 export const workflow: WorkflowDefinition<IWorkflow> = WorkflowBuilder
   .create<IWorkflow>()
   .name(name)
   .workflowId(id)
-  .description('Начальное уведомление о назначении нового общего собрания пайщиков')
+  .i18nKey('meetInitial')
+  .description(nt('meetInitial.description'))
   .payloadSchema(meetInitialPayloadSchema)
   .tags(['user']) // Для всех пользователей
   .addSteps([
     createEmailStep(
       'meet-initial-email',
-      'Уведомление о общем собрании пайщиков №{{payload.meetId}} в {{payload.coopShortName}}',
-      'Уважаемый пайщик!<br><br>В кооперативе объявлено новое общее собрание №{{payload.meetId}}.<br><br>Дата и время начала: {{payload.meetDate}} в {{payload.meetTime}} ({{payload.timezone}})<br>Дата и время завершения: {{payload.meetEndDate}} в {{payload.meetEndTime}} ({{payload.timezone}})<br><br>Для ознакомления с повесткой, пожалуйста, перейдите по ссылке:<br><a href="{{payload.meetUrl}}">{{payload.meetUrl}}</a>{% if payload.details %}<br><br>Дополнительная информация:<div style="white-space:pre-wrap;">{{payload.details}}</div>{% endif %}<br><br>С уважением, Совет {{payload.coopShortName}}.'
+      nt('meetInitial.email.subject'),
+      nt('meetInitial.email.body')
     ),
     createInAppStep(
       'meet-initial-notification',
-      'Новое общее собрание №{{payload.meetId}}',
-      'Назначено собрание на {{payload.meetDate}} в {{payload.meetTime}}{% if payload.details %}. {{payload.details}}{% endif %}'
+      nt('meetInitial.inApp.subject'),
+      nt('meetInitial.inApp.body')
     ),
     createPushStep(
       'meet-initial-push',
-      'Новое общее собрание №{{payload.meetId}}',
-      'Собрание {{payload.meetDate}} в {{payload.meetTime}}'
+      nt('meetInitial.push.subject'),
+      nt('meetInitial.push.body')
     ),
   ])
   .build();

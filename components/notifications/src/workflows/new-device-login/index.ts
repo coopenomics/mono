@@ -1,8 +1,8 @@
 import { WorkflowDefinition, type BaseWorkflowPayload } from '../../types';
 import { WorkflowBuilder } from '../../base/workflow-builder';
 import { createEmailStep, createInAppStep } from '../../base/defaults';
+import { nt } from '../../i18n';
 import { z } from 'zod';
-import { slugify } from '../../utils';
 
 // Схема для new-device-login воркфлоу (CoopID Story 3.9)
 export const newDeviceLoginPayloadSchema = z.object({
@@ -26,36 +26,31 @@ export type IPayload = z.infer<typeof newDeviceLoginPayloadSchema>;
 
 export interface IWorkflow extends BaseWorkflowPayload, IPayload {}
 
-export const name = 'Вход с нового устройства';
-export const id = slugify(name);
+export const name = nt('newDeviceLogin.name');
+// Идентификатор закреплён: раньше он вычислялся из названия, и правка
+// или перевод названия меняли бы его. Не менять — на него ссылаются подписки.
+export const id = 'vkhods-novogo-ustroystva';
 
 export const workflow: WorkflowDefinition<IWorkflow> = WorkflowBuilder
   .create<IWorkflow>()
   .name(name)
   .workflowId(id)
-  .description('Уведомление о входе в аккаунт с устройства, которое ранее не использовалось')
+  .i18nKey('newDeviceLogin')
+  .description(nt('newDeviceLogin.description'))
   .payloadSchema(newDeviceLoginPayloadSchema)
   .tags(['auth'])
   .addSteps([
     createEmailStep(
       'new-device-login-email',
-      'Новый вход в ваш аккаунт',
-      'Зафиксирован вход в ваш аккаунт с устройства, которое ранее не использовалось:<br><br>' +
-      '<strong>Устройство:</strong> {{payload.summary}}<br>' +
-      '<strong>IP-адрес:</strong> {{payload.ip}}<br>' +
-      '<strong>Время:</strong> {{payload.time}}<br><br>' +
-      'Если это были вы — ничего делать не нужно.<br>' +
-      'Если нет — нажмите «Это не я», чтобы немедленно завершить все сессии: ' +
-      '<a href="{{payload.notMeUrl}}">Это не я</a>.<br>' +
-      'Управлять безопасностью аккаунта: ' +
-      '<a href="{{payload.securityUrl}}">{{payload.securityUrl}}</a>.'
+      nt('newDeviceLogin.email.subject'),
+      nt('newDeviceLogin.email.body')
     ),
     createInAppStep(
       'new-device-login-notification',
-      'Новый вход в ваш аккаунт',
+      nt('newDeviceLogin.inApp.subject'),
       // Коротко и по-человечески: «Chrome на macOS · Москва». Нажатие на
       // уведомление ведёт к активным сессиям (deep-link собирает фронт по payload).
-      'Вход с нового устройства: {{payload.summary}}. Если это не вы — завершите сессии в настройках безопасности.'
+      nt('newDeviceLogin.inApp.body')
     ),
   ])
   .build();

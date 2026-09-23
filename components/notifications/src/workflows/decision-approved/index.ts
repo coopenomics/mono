@@ -4,7 +4,7 @@ import { WorkflowBuilder } from '../../base/workflow-builder';
 import { z } from 'zod';
 import { BaseWorkflowPayload } from '../../types';
 import { createEmailStep, createInAppStep, createPushStep } from '../../base/defaults';
-import { slugify } from '../../utils';
+import { nt } from '../../i18n';
 
 // Схема для decision-approved воркфлоу
 export const decisionApprovedPayloadSchema = z.object({
@@ -19,31 +19,34 @@ export type IPayload = z.infer<typeof decisionApprovedPayloadSchema>;
 
 export interface IWorkflow extends BaseWorkflowPayload, IPayload {}
 
-export const name = 'Решение совета принято';
-export const id = slugify(name);
+export const name = nt('decisionApproved.name');
+// Идентификатор закреплён: раньше он вычислялся из названия, и правка
+// или перевод названия меняли бы его. Не менять — на него ссылаются подписки.
+export const id = 'reshenie-soveta-prinyato';
 
 export const workflow: WorkflowDefinition<IWorkflow> = WorkflowBuilder
   .create<IWorkflow>()
   .name(name)
   .workflowId(id)
-  .description('Уведомление пользователю о принятии решения совета по его вопросу')
+  .i18nKey('decisionApproved')
+  .description(nt('decisionApproved.description'))
   .payloadSchema(decisionApprovedPayloadSchema)
   .tags(['user']) // Для всех пользователей
   .addSteps([
     createEmailStep(
       'decision-approved-email',
-      'Решение совета принято по вашему вопросу',
-      'Уважаемый {{payload.userName}}!<br><br>Совет кооператива принял решение по вашему вопросу:<br><br><strong>{{payload.decisionTitle}}</strong><br><br>Ссылка для просмотра подробной информации: {{payload.decisionUrl}}'
+      nt('decisionApproved.email.subject'),
+      nt('decisionApproved.email.body')
     ),
     createInAppStep(
       'decision-approved-notification',
-      'Решение совета принято',
-      'По вашему вопросу принято решение: {{payload.decisionTitle}}'
+      nt('decisionApproved.inApp.subject'),
+      nt('decisionApproved.inApp.body')
     ),
     createPushStep(
       'decision-approved-push',
-      'Решение совета принято',
-      'Принято решение: {{payload.decisionTitle}}'
+      nt('decisionApproved.push.subject'),
+      nt('decisionApproved.push.body')
     ),
   ])
   .build();

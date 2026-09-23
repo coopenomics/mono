@@ -3,7 +3,7 @@ import { WorkflowBuilder } from '../../base/workflow-builder';
 import { z } from 'zod';
 import { BaseWorkflowPayload } from '../../types';
 import { createEmailStep, createInAppStep, createPushStep } from '../../base/defaults';
-import { slugify } from '../../utils';
+import { nt } from '../../i18n';
 
 export const marketplaceReturnClaimSubmittedPayloadSchema = z.object({
   // Имя ПОЛУЧАТЕЛЯ письма, а не председателя: заявление уходит веером всем
@@ -23,31 +23,34 @@ export type IPayload = z.infer<typeof marketplaceReturnClaimSubmittedPayloadSche
 
 export interface IWorkflow extends BaseWorkflowPayload, IPayload {}
 
-export const name = 'Новое заявление на гарантийный возврат';
-export const id = slugify(name);
+export const name = nt('marketplaceReturnClaimSubmitted.name');
+// Идентификатор закреплён: раньше он вычислялся из названия, и правка
+// или перевод названия меняли бы его. Не менять — на него ссылаются подписки.
+export const id = 'novoe-zayavlenie-na-garantiyniy-vozvrat';
 
 export const workflow: WorkflowDefinition<IWorkflow> = WorkflowBuilder
   .create<IWorkflow>()
   .name(name)
   .workflowId(id)
-  .description('Уведомление операторам пункта выдачи — председателю кооперативного участка и его доверенным лицам — о поступившем заявлении на гарантийный возврат имущества пайщиком.')
+  .i18nKey('marketplaceReturnClaimSubmitted')
+  .description(nt('marketplaceReturnClaimSubmitted.description'))
   .payloadSchema(marketplaceReturnClaimSubmittedPayloadSchema)
   .tags(['marketplace', 'operator', 'return'])
   .addSteps([
     createEmailStep(
       'marketplace-return-claim-submitted-email',
-      'Новое заявление на гарантийный возврат от {{payload.ordererName}}',
-      'Уважаемый {{payload.recipientName}}!<br><br>Пайщик <strong>{{payload.ordererName}}</strong> подал заявление на гарантийный возврат имущества по заказу <strong>{{payload.order_id}}</strong> на вашем пункте выдачи <strong>{{payload.brananame}}</strong>.<br><br>Причина: {{payload.reasonExcerpt}}<br><br>Рассмотреть заявление: {{payload.deepLinkUrl}}'
+      nt('marketplaceReturnClaimSubmitted.email.subject'),
+      nt('marketplaceReturnClaimSubmitted.email.body')
     ),
     createInAppStep(
       'marketplace-return-claim-submitted-notification',
-      'Новое заявление на гарантийный возврат',
-      'Пайщик {{payload.ordererName}} подал заявление по заказу {{payload.order_id}} — требуется удалённое рассмотрение.'
+      nt('marketplaceReturnClaimSubmitted.inApp.subject'),
+      nt('marketplaceReturnClaimSubmitted.inApp.body')
     ),
     createPushStep(
       'marketplace-return-claim-submitted-push',
-      'Новое заявление на гарантийный возврат',
-      'Заявление на гарантийный возврат на пункте выдачи {{payload.brananame}} ждёт рассмотрения.'
+      nt('marketplaceReturnClaimSubmitted.push.subject'),
+      nt('marketplaceReturnClaimSubmitted.push.body')
     ),
   ])
   .build();
