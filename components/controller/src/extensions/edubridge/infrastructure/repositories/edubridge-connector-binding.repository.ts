@@ -13,10 +13,23 @@ export class EdubridgeConnectorBindingRepository {
     return this.repo.find({ where: { coopname }, order: { carrier: 'ASC' } });
   }
 
+  /**
+   * Привязка площадки к кооперативу; при первом обращении заводится. Форма
+   * курса обращается к привязке несколькими запросами сразу, поэтому «найти,
+   * иначе вставить» гонялось: обе ветки не находили запись и вторая вставка
+   * падала на уникальном индексе (кооператив, площадка). Вставка без конфликта
+   * и чтение следом отдают всем одну и ту же запись.
+   */
   async ensure(coopname: string, carrier: EduAccessCarrier): Promise<EdubridgeConnectorBindingEntity> {
     const existing = await this.repo.findOne({ where: { coopname, carrier } });
     if (existing) return existing;
-    return this.repo.save(this.repo.create({ coopname, carrier, enabled: true, health: EduConnectorHealth.UNKNOWN }));
+    await this.repo
+      .createQueryBuilder()
+      .insert()
+      .values({ coopname, carrier, enabled: true, health: EduConnectorHealth.UNKNOWN })
+      .orIgnore()
+      .execute();
+    return this.repo.findOneOrFail({ where: { coopname, carrier } });
   }
 
   /** Отметить результат обращения к площадке. */
