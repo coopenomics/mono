@@ -113,9 +113,13 @@ jobs:
           POSTGRES_USERNAME: postgres
           POSTGRES_PASSWORD: postgres
           POSTGRES_DATABASE: postgres
+        # Конфиг контроллера требует ключи VAPID (веб-уведомления); для сверки
+        # схемы годится одноразовая пара — генерируем её здесь, а не храним.
         run: |
           cp components/controller/.env-example components/controller/.env
-          pnpm -F @coopenomics/controller run schema:check
+          cd components/controller
+          eval "$(node -e "const k=require('web-push').generateVAPIDKeys(); console.log('export VAPID_PUBLIC_KEY=' + k.publicKey + ' VAPID_PRIVATE_KEY=' + k.privateKey)")"
+          pnpm run schema:check
 
   component:
     runs-on: ubuntu-latest
