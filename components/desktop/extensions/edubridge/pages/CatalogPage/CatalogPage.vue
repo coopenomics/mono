@@ -59,12 +59,12 @@ const currentPage = ref(1);
 const totalPages = ref(0);
 
 const filters = computed<FilterDefinition[]>(() => [
-  { key: 'section_id', label: 'Раздел', type: 'select', options: sections.value.map((sec) => ({ value: sec.id, label: sec.title })) },
+  { key: 'section_id', label: 'Раздел', type: 'select', options: sections.value.map((sec) => ({ value: String(sec.id), label: sec.title })) },
   {
     key: 'level_id',
     label: 'Уровень',
     type: 'select',
-    options: (sections.value.find((sec) => sec.id === sectionId.value)?.levels ?? []).map((l) => ({ value: l.id, label: l.title })),
+    options: (sections.value.find((sec) => sec.id === sectionId.value)?.levels ?? []).map((l) => ({ value: String(l.id), label: l.title })),
   },
 ]);
 const filterValues = computed<FilterValues>(() => ({ section_id: sectionId.value, level_id: levelId.value }));

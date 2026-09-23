@@ -13,7 +13,7 @@
     template(#icon)
       q-icon(name="category" size="32px")
 
-  BaseCard.q-mb-md(v-for="(section, si) in visible" :key="section.id" variant="default")
+  BaseCard.q-mb-md(v-for="(section, si) in visible" :key="String(section.id)" variant="default")
     .edu-sections__head
       .edu-sections__title
         .t-h3 {{ section.title }}
@@ -29,7 +29,7 @@
         BaseButton(variant="ghost" size="sm" :disabled="busy" @click="toggleSection(section)") {{ section.archived ? 'Вернуть' : 'В архив' }}
 
     q-list.q-mt-sm(v-if="levelsOf(section).length" separator)
-      q-item(v-for="(level, li) in levelsOf(section)" :key="level.id")
+      q-item(v-for="(level, li) in levelsOf(section)" :key="String(level.id)")
         q-item-section(avatar)
           .t-mono.t-muted {{ li + 1 }}
         q-item-section
@@ -49,8 +49,8 @@
     .t-muted.t-sm.q-mt-sm(v-else) Уровней нет — курсы раздела видны в нём целиком.
 
     .edu-sections__add.q-mt-md(v-if="!section.archived")
-      BaseInput(v-model="newLevel[section.id]" label="Новый уровень" placeholder="«7 класс», «Ступень 1»" @keyup.enter="addLevel(section)")
-      BaseButton(variant="secondary" :disabled="!newLevel[section.id]?.trim() || busy" @click="addLevel(section)") Добавить
+      BaseInput(v-model="newLevel[String(section.id)]" label="Новый уровень" placeholder="«7 класс», «Ступень 1»" @keyup.enter="addLevel(section)")
+      BaseButton(variant="secondary" :disabled="!newLevel[String(section.id)]?.trim() || busy" @click="addLevel(section)") Добавить
 
   BaseDialog(v-model="dialog.open" :title="dialogTitle" size="sm")
     BaseInput(v-model="dialog.title" :label="dialog.kind === 'level' ? 'Название уровня' : 'Название раздела'" autofocus @keyup.enter="submitDialog")

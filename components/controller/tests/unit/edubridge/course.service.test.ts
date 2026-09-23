@@ -215,7 +215,9 @@ describe('EdubridgeCourseService — обложка курса', () => {
   it('без поля image обложка не меняется; null — убирает и удаляет старый объект', async () => {
     const { service, courses, images } = make();
     const old = { bucket_key: 'courses/voskhod/old.jpg', content_hash: 'o', mime_type: 'image/jpeg' };
-    courses.findById = jest.fn(async (_c: string, id: string) => ({ id, external_ref: '', status: EduCourseStatus.DRAFT, image: old }));
+    // Один курс, как в базе: запись меняет его, перечитывание после сохранения видит новое.
+    const stored = { id: 'C1', external_ref: '', status: EduCourseStatus.DRAFT, image: old };
+    courses.findById = jest.fn(async () => stored);
     const kept = await service.update('voskhod', 'ant', { ...base, id: 'C1' });
     expect(kept.image).toEqual(old);
     expect(images.deleteImage).not.toHaveBeenCalled();

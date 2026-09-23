@@ -296,12 +296,12 @@ function useTaxonomy(form: CourseFormFields) {
     sections.value = await fetchSections({ include_archived: true });
   };
   const sectionOptions = computed(() =>
-    sections.value.filter((s) => !s.archived || s.id === form.section_id).map((s) => ({ value: s.id, label: s.title })),
+    sections.value.filter((s) => !s.archived || s.id === form.section_id).map((s) => ({ value: String(s.id), label: s.title })),
   );
   const levelOptions = computed(() =>
     (sections.value.find((s) => s.id === form.section_id)?.levels ?? [])
       .filter((l) => !l.archived || l.id === form.level_id)
-      .map((l) => ({ value: l.id, label: l.title })),
+      .map((l) => ({ value: String(l.id), label: l.title })),
   );
 
   /** Выбран раздел из списка либо введён новый — тогда он добавляется в справочник. */
@@ -313,7 +313,7 @@ function useTaxonomy(form: CourseFormFields) {
       return;
     }
     const known = sections.value.find((s) => s.id === v);
-    const id = known ? known.id : await create(() => saveSection({ title: v }));
+    const id = known ? String(known.id) : await create(() => saveSection({ title: v }));
     if (!id) return;
     if (form.section_id !== id) form.level_id = null;
     form.section_id = id;
@@ -329,7 +329,7 @@ function useTaxonomy(form: CourseFormFields) {
     const section = sections.value.find((s) => s.id === form.section_id);
     if (!section) return;
     const known = section.levels.find((l) => l.id === v);
-    const id = known ? known.id : await create(() => saveLevel({ section_id: section.id, title: v }));
+    const id = known ? String(known.id) : await create(() => saveLevel({ section_id: String(section.id), title: v }));
     if (id) form.level_id = id;
   }
 
