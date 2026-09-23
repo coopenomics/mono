@@ -18,6 +18,7 @@ import type { EduCourseEconomyInputDTO } from '../dto/edu-economy.dto';
 import { EdubridgeCourseImagesService } from './edubridge-course-images.service';
 import { EdubridgeEconomyService } from './edubridge-economy.service';
 import { EdubridgeNamesService } from '../membership/edubridge-names.service';
+import { EdubridgeTeacherService, rateCoverageError } from './edubridge-teacher.service';
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -59,7 +60,8 @@ export class EdubridgeCourseService {
     private readonly skillspace: SkillspaceConnector,
     private readonly images: EdubridgeCourseImagesService,
     private readonly names: EdubridgeNamesService,
-    private readonly economy: EdubridgeEconomyService
+    private readonly economy: EdubridgeEconomyService,
+    private readonly teacherService: EdubridgeTeacherService
   ) {}
 
   /**
@@ -133,12 +135,16 @@ export class EdubridgeCourseService {
       image,
       status: EduCourseStatus.DRAFT,
     });
+    let saved: EdubridgeCourseEntity;
     try {
-      return await this.courses.save(entity);
+      saved = await this.courses.save(entity);
     } catch (e) {
       if (image) await this.images.deleteImage(image.bucket_key);
       throw e;
     }
+    // Преподаватели курса получают черновики назначений — им есть что подписать.
+    await this.teacherService.syncCourseAssignments(coopname, saved);
+    return saved;
   }
 
   async update(coopname: string, actor: string, input: EduUpdateCourseInputDTO): Promise<EdubridgeCourseEntity> {
@@ -167,6 +173,8 @@ export class EdubridgeCourseService {
     const saved = await this.courses.save(course);
     // Старая обложка больше никому не нужна — ключ content-addressed, у другого курса с тем же файлом ключ тот же.
     if (previous && previous.bucket_key !== image?.bucket_key) await this.images.deleteImage(previous.bucket_key);
+    // Добавленные преподаватели получают черновики назначений, убранные — лишаются неподписанных.
+    await this.teacherService.syncCourseAssignments(coopname, saved);
     return saved;
   }
 
@@ -212,21 +220,30 @@ export class EdubridgeCourseService {
       throw new BadRequestException(`Носитель «${input.carrier}» недопустим для направления «${input.direction}»`);
     }
     validatePlatformRef(input.carrier, input.external_ref ?? '');
-    await this.validateTeachers(coopname, input.teacher_usernames ?? []);
+    await this.validateTeachers(coopname, input.teacher_usernames ?? [], input.planned_hourly_rate);
   }
 
-  /** Преподавать могут только пайщики с подписанным договором УХД. */
-  private async validateTeachers(coopname: string, teachers: string[]): Promise<void> {
+  /**
+   * Преподавать могут только пайщики с подписанным договором УХД, и их ставку
+   * должны покрывать взносы учеников: преподаватель курса сразу получает
+   * черновик назначения, а назначение с непокрытой ставкой не создаётся —
+   * отказываем до сохранения курса, а не после.
+   */
+  private async validateTeachers(coopname: string, teachers: string[], plannedRate: string | undefined): Promise<void> {
     if (!teachers.length) return;
     // Отклонённый и прекращённый договор права преподавать не даёт.
-    const known = new Set(
+    const contracts = new Map(
       (await this.teachers.listContracts(coopname))
         .filter((c) => c.status === EduContractStatus.ACTIVE || c.status === EduContractStatus.PENDING_APPROVAL)
-        .map((c) => c.teacher_username)
+        .map((c) => [c.teacher_username, c])
     );
-    const strangers = teachers.filter((t) => !known.has(t));
+    const strangers = teachers.filter((t) => !contracts.has(t));
     if (strangers.length) {
       throw new BadRequestException(`Нет договора участия в хозяйственной деятельности: ${strangers.join(', ')}`);
+    }
+    for (const t of teachers) {
+      const error = rateCoverageError(contracts.get(t)?.hourly_rate, plannedRate);
+      if (error) throw new BadRequestException(`${t}: ${error}`);
     }
   }
 

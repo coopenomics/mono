@@ -303,12 +303,50 @@ export class EdubridgeTeacherService {
    */
   private async assertRateCovered(coopname: string, teacher: string, course: EdubridgeCourseEntity): Promise<void> {
     const contract = await this.teachers.findContract(coopname, teacher);
-    const rate = rateValue(contract?.hourly_rate);
-    const planned = rateValue(course.planned_hourly_rate);
-    if (rate > planned) {
-      throw new BadRequestException(
-        `Ставка преподавателя ${contract?.hourly_rate} выше плановой ставки курса ${course.planned_hourly_rate}: взносы учеников её не покрывают. Поднимите плановую ставку курса либо назначьте преподавателя с меньшей ставкой`
-      );
+    const error = rateCoverageError(contract?.hourly_rate, course.planned_hourly_rate);
+    if (error) throw new BadRequestException(error);
+  }
+
+  /**
+   * Черновики назначений по списку «Курс ведут». Преподаватель, добавленный в
+   * курс, получает черновик назначения — приложение к договору, которое он
+   * видит на своём столе и подписывает; убранный из курса — его неподписанный
+   * черновик закрывается. Подписанные и действующие назначения не трогаются:
+   * их закрывает администратор явно. Идемпотентно.
+   */
+  async syncCourseAssignments(coopname: string, course: EdubridgeCourseEntity): Promise<void> {
+    const listed = new Set(course.teacher_usernames ?? []);
+    const forCourse = (await this.teachers.listAssignments(coopname)).filter((a) => a.course_id === course.id);
+    const period = coursePeriod(course);
+    for (const teacher of listed) {
+      if (forCourse.some((a) => a.teacher_username === teacher && a.status !== EduAssignmentStatus.CLOSED)) continue;
+      await this.createAssignment(coopname, {
+        teacher_username: teacher,
+        course_id: course.id,
+        schedule: course.schedule ?? '',
+        expected_result: `Проведение занятий курса «${course.title}» по его учебной программе`,
+        period_from: period.from,
+        period_to: period.to,
+      } as EduAssignmentInputDTO);
+      this.logger.info(`Черновик назначения: ${teacher} → курс «${course.title}»`);
+    }
+    for (const a of forCourse) {
+      const unsigned = a.status === EduAssignmentStatus.DRAFT || a.status === EduAssignmentStatus.DECLINED;
+      if (!listed.has(a.teacher_username) && unsigned) {
+        a.status = EduAssignmentStatus.CLOSED;
+        await this.teachers.saveAssignment(a);
+      }
+    }
+  }
+
+  /** Черновики по всем курсам — при запуске: курсы, заполненные до появления связи. */
+  async syncAllCourseAssignments(coopname: string): Promise<void> {
+    for (const course of await this.courses.listAll(coopname)) {
+      try {
+        await this.syncCourseAssignments(coopname, course);
+      } catch (e) {
+        this.logger.warn(`Назначения курса «${course.title}» не сведены: ${(e as Error)?.message ?? e}`);
+      }
     }
   }
 
@@ -958,6 +996,31 @@ function chainAssignmentId(c: EdubridgeContributionEntity): number {
 }
 
 /** Числовое значение ставки часа («1000.0000 RUB» → 1000). */
+/**
+ * Покрывают ли взносы учеников ставку преподавателя: взнос посчитан от
+ * плановой ставки курса, и ставка выше неё резервом выплат не обеспечена.
+ * Текст отказа либо `null`. Одна проверка для назначения и для формы курса.
+ */
+export function rateCoverageError(contractRate: string | null | undefined, plannedRate: string | null | undefined): string | null {
+  if (rateValue(contractRate) <= rateValue(plannedRate)) return null;
+  return `Ставка преподавателя ${contractRate} выше плановой ставки курса ${plannedRate}: взносы учеников её не покрывают. Поднимите плановую ставку курса либо назначьте преподавателя с меньшей ставкой`;
+}
+
+/**
+ * Период назначения по курсу: от начала занятий (или сегодня) на весь срок
+ * программы — столько месяцев, сколько нужно на все занятия.
+ */
+export function coursePeriod(course: Pick<EdubridgeCourseEntity, 'starts_at' | 'lessons_total' | 'lessons_per_month'>): { from: string; to: string } {
+  const from = course.starts_at ? String(course.starts_at).slice(0, 10) : new Date().toISOString().slice(0, 10);
+  const months = Math.max(1, Math.ceil((course.lessons_total || 0) / Math.max(1, course.lessons_per_month || 1)));
+  const start = new Date(`${from}T00:00:00Z`);
+  // День прижимается к концу месяца: от 31 января месяц кончается в феврале, а не в марте.
+  const target = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth() + months, 1));
+  const lastDay = new Date(Date.UTC(target.getUTCFullYear(), target.getUTCMonth() + 1, 0)).getUTCDate();
+  target.setUTCDate(Math.min(start.getUTCDate(), lastDay) - 1);
+  return { from, to: target.toISOString().slice(0, 10) };
+}
+
 function rateValue(rate: string | null | undefined): number {
   return Number(String(rate ?? '').trim().split(' ')[0] ?? 0) || 0;
 }

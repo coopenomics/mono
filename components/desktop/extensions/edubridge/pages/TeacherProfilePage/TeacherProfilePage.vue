@@ -26,7 +26,9 @@
               .t-muted.t-sm {{ a.period_from }} — {{ a.period_to }}
             q-item-section(side)
               BaseBadge(:variant="statusOf(a.status).variant") {{ statusOf(a.status).label }}
-        .t-muted.t-sm(v-else) Назначений пока нет — администратор ещё не назначил вам курс.
+              //- Черновик назначения — подпись приложения на странице «Назначения».
+              BaseButton.q-mt-xs(v-if="awaitsTeacherSignature(a)" variant="ghost" size="sm" @click="goSign") Подписать
+        .t-muted.t-sm(v-else) Назначений пока нет — администратор ещё не поставил вас на курс.
 
     .col-12.col-md-5
       BaseCard(variant="default" title="Договор участия в хозяйственной деятельности")
@@ -44,6 +46,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import { Zeus } from '@coopenomics/sdk';
 import { useFirstLoad } from 'src/shared/lib/composables';
 import { FailAlert } from 'src/shared/api';
@@ -51,9 +54,9 @@ import { useSessionStore } from 'src/entities/Session';
 import { AvatarUpload } from 'src/features/User/Avatar';
 import { getName } from 'src/shared/lib/utils/account';
 import { asDateInput, asText } from 'src/shared/lib/utils';
-import { BaseBadge, BaseCard, CardListSkeleton } from 'src/shared/ui/base';
+import { BaseBadge, BaseButton, BaseCard, CardListSkeleton } from 'src/shared/ui/base';
 import { DataRow, IdentityPanel, PageHint, type Identity } from 'src/shared/ui/domain';
-import { ASSIGNMENT_STATUS_LABELS, fetchMyAssignments, fetchMyContract, type IAssignment, type IContract } from '../../entities/Teacher';
+import { ASSIGNMENT_STATUS_LABELS, awaitsTeacherSignature, fetchMyAssignments, fetchMyContract, type IAssignment, type IContract } from '../../entities/Teacher';
 import { useLiveReload } from 'src/shared/lib/realtime';
 import { EduLive } from '../../shared/lib/live';
 
@@ -110,6 +113,13 @@ async function load(): Promise<void> {
   } finally {
     loading.value = false;
   }
+}
+
+const router = useRouter();
+const route = useRoute();
+/** Подпись приложения — на странице «Назначения», там документ к чтению. */
+function goSign(): void {
+  void router.push({ name: 'edubridge-assignments', params: { coopname: route.params.coopname } });
 }
 
 // Живое обновление: данные меняются в цепи и на столах других участников.

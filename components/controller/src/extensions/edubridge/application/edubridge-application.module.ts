@@ -142,6 +142,6 @@ import { EdubridgeLiveFeedService } from './services/edubridge-live-feed.service
     EdubridgeTeacherResolver,
     EdubridgeAdminResolver,
   ],
-  exports: [EDUBRIDGE_ROLE_FACTS_PORT, EdubridgeConfigHolder, EdubridgeMembershipService, EdubridgeExitBlockersService, EdubridgeLiveFeedService],
+  exports: [EDUBRIDGE_ROLE_FACTS_PORT, EdubridgeConfigHolder, EdubridgeMembershipService, EdubridgeExitBlockersService, EdubridgeLiveFeedService, EdubridgeTeacherService],
 })
 export class EdubridgeApplicationModule {}

@@ -1,6 +1,6 @@
 /** Преподавательский контур: ДУХД и приложение двухподписные через одобрение председателя, взнос РИД, решение совета, акт → acceptrid, отклонение. */
 import { DecisionEventType, DecisionTrackedEvent } from '@coopenomics/innercoop';
-import { EdubridgeTeacherService } from '~/extensions/edubridge/application/services/edubridge-teacher.service';
+import { EdubridgeTeacherService, coursePeriod, rateCoverageError } from '~/extensions/edubridge/application/services/edubridge-teacher.service';
 import { EduAssignmentStatus, EduContractStatus, EduContributionStatus, EduCouncilOutcome } from '~/extensions/edubridge/domain/enums';
 import { Cooperative } from 'cooptypes';
 
@@ -668,3 +668,65 @@ describe('EdubridgeTeacherService — договор следует за таб�
     expect(teachers.saveContract.mock.calls[1]![0].approved_at).toEqual(new Date('2026-09-23T13:49:52Z'));
   });
 });
+
+describe('Черновики назначений по списку «Курс ведут»', () => {
+  const course = (teachers: string[]) =>
+    ({ id: 'C1', title: 'Алгебра', schedule: 'Вт, Чт 17–19', teacher_usernames: teachers, starts_at: '2026-09-23', lessons_total: 64, lessons_per_month: 8, lesson_minutes: 60, planned_hourly_rate: '1000.0000 RUB' }) as any;
+
+  it('добавленный в курс преподаватель получает черновик назначения, уже назначенный — нет', async () => {
+    const { service, teachers } = make({ assignmentStatus: EduAssignmentStatus.ACTIVE });
+
+    await service.syncCourseAssignments('voskhod', course(['teach', 'newbie']));
+
+    expect(teachers.saveAssignment).toHaveBeenCalledTimes(1);
+    expect(teachers.saveAssignment).toHaveBeenCalledWith(
+      expect.objectContaining({
+        teacher_username: 'newbie',
+        course_id: 'C1',
+        status: EduAssignmentStatus.DRAFT,
+        schedule: 'Вт, Чт 17–19',
+        period_from: '2026-09-23',
+        period_to: '2027-05-22',
+        expected_result: 'Проведение занятий курса «Алгебра» по его учебной программе',
+      })
+    );
+  });
+
+  it('убранный из курса: неподписанный черновик закрывается', async () => {
+    const { service, assignment } = make({ assignmentStatus: EduAssignmentStatus.DRAFT });
+
+    await service.syncCourseAssignments('voskhod', course([]));
+
+    expect(assignment.status).toBe(EduAssignmentStatus.CLOSED);
+  });
+
+  it('убранный из курса: действующее назначение не трогается — его закрывает администратор явно', async () => {
+    const { service, assignment, teachers } = make({ assignmentStatus: EduAssignmentStatus.ACTIVE });
+
+    await service.syncCourseAssignments('voskhod', course([]));
+
+    expect(assignment.status).toBe(EduAssignmentStatus.ACTIVE);
+    expect(teachers.saveAssignment).not.toHaveBeenCalled();
+  });
+
+  it('повторная сверка ничего не создаёт — идемпотентно', async () => {
+    const { service, teachers } = make({ assignmentStatus: EduAssignmentStatus.DRAFT });
+
+    await service.syncCourseAssignments('voskhod', course(['teach']));
+
+    expect(teachers.saveAssignment).not.toHaveBeenCalled();
+  });
+
+  it('период — от начала занятий на весь срок программы; без даты — от сегодня', () => {
+    expect(coursePeriod({ starts_at: '2026-09-23', lessons_total: 64, lessons_per_month: 8 } as any)).toEqual({ from: '2026-09-23', to: '2027-05-22' });
+    expect(coursePeriod({ starts_at: '2026-01-31', lessons_total: 5, lessons_per_month: 8 } as any)).toEqual({ from: '2026-01-31', to: '2026-02-27' });
+    expect(coursePeriod({ starts_at: null, lessons_total: 8, lessons_per_month: 8 } as any).from).toBe(new Date().toISOString().slice(0, 10));
+  });
+
+  it('ставка преподавателя выше плановой ставки курса — отказ с объяснением; не выше — пусто', () => {
+    expect(rateCoverageError('1200.0000 RUB', '1000.0000 RUB')).toContain('выше плановой ставки курса');
+    expect(rateCoverageError('1000.0000 RUB', '1000.0000 RUB')).toBeNull();
+    expect(rateCoverageError(undefined, '1000.0000 RUB')).toBeNull();
+  });
+});
+

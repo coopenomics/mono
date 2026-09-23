@@ -27,7 +27,9 @@ function make(contracts: string[] = ['teach']) {
   const names = { displayNames: jest.fn(async (us: string[]) => new Map(us.map((u) => [u, `ФИО ${u}`]))) } as any;
   // Взносы считает экономика программы: курс сам сумму не назначает.
   const economy = { feeForCourse: jest.fn(async () => ({ fee_month: '9600.0000 RUB' })) } as any;
-  return { service: new EdubridgeCourseService(courses, teachers, skillspace, images, names, economy), courses, teachers, images, economy, saved };
+  // Преподаватели курса получают черновики назначений — здесь только факт вызова.
+  const teacherService = { syncCourseAssignments: jest.fn(async () => undefined) } as any;
+  return { service: new EdubridgeCourseService(courses, teachers, skillspace, images, names, economy, teacherService), courses, teachers, images, economy, saved, teacherService };
 }
 
 const base = {
@@ -122,6 +124,21 @@ describe('EdubridgeCourseService — конструктор курса', () => {
   it('преподаватель с прекращённым договором на курс не назначается', async () => {
     const { service } = make(['teach', 'ex_teach']);
     await expect(service.create('voskhod', 'ant', { ...base, teacher_usernames: ['teach', 'ex_teach'] })).rejects.toThrow(/ex_teach/);
+  });
+
+  it('преподаватели курса получают черновики назначений — сверка после сохранения', async () => {
+    const { service, teacherService, courses } = make(['teach']);
+    const course = await service.create('voskhod', 'ant', { ...base, teacher_usernames: ['teach'] });
+    expect(courses.save).toHaveBeenCalled();
+    expect(teacherService.syncCourseAssignments).toHaveBeenCalledWith('voskhod', course);
+  });
+
+  it('ставка преподавателя выше плановой ставки курса — отказ до сохранения курса, черновики не заводятся', async () => {
+    const { service, teachers, courses, teacherService } = make(['teach']);
+    teachers.listContracts.mockResolvedValue([{ teacher_username: 'teach', status: EduContractStatus.ACTIVE, hourly_rate: '1500.0000 RUB' }]);
+    await expect(service.create('voskhod', 'ant', { ...base, teacher_usernames: ['teach'] })).rejects.toThrow(/выше плановой ставки курса/);
+    expect(courses.save).not.toHaveBeenCalled();
+    expect(teacherService.syncCourseAssignments).not.toHaveBeenCalled();
   });
 
   it('несколько преподавателей с договорами — сохраняются все', async () => {

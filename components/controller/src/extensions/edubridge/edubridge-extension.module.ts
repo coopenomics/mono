@@ -24,6 +24,7 @@ import {
 import { EdubridgeApplicationModule } from './application/edubridge-application.module';
 import { EdubridgeExitBlockersService } from './application/services/edubridge-exit-blockers.service';
 import { EdubridgeLiveFeedService } from './application/services/edubridge-live-feed.service';
+import { EdubridgeTeacherService } from './application/services/edubridge-teacher.service';
 import { EdubridgeConfigHolder } from './application/config/edubridge-config.holder';
 import { registerEdubridgeDocuments } from './application/onboarding/register-edubridge-documents';
 import { registerEdubridgeOnboardingSteps } from './application/onboarding/register-edubridge-onboarding-steps';
@@ -56,7 +57,8 @@ export class EdubridgeExtension extends BaseExtensionModule {
     @Optional() @Inject(MEMBER_EXIT_REGISTRY_PORT) private readonly memberExit: IMemberExitRegistryPort | null = null,
     private readonly configHolder: EdubridgeConfigHolder,
     private readonly exitBlockers: EdubridgeExitBlockersService,
-    private readonly liveFeed: EdubridgeLiveFeedService
+    private readonly liveFeed: EdubridgeLiveFeedService,
+    private readonly teacherService: EdubridgeTeacherService
   ) {
     super();
     this.logger.setContext(EdubridgeExtension.name);
@@ -82,6 +84,9 @@ export class EdubridgeExtension extends BaseExtensionModule {
     // Живое обновление столов: таблицы в ленте изменений и состав персонала.
     this.liveFeed.declareTables();
     await this.liveFeed.refreshStaff(platformSettings().coopname);
+    // Курсы, где преподаватели указаны до появления черновиков назначений, —
+    // досоздаём черновики, чтобы преподавателю было что подписать.
+    await this.teacherService.syncAllCourseAssignments(platformSettings().coopname);
     this.logger.info('edubridge-extension готов');
   }
 

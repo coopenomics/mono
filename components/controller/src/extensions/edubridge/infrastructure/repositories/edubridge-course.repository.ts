@@ -41,6 +41,11 @@ export class EdubridgeCourseRepository {
   }
 
   /** Предметы и классы, по которым есть опубликованные курсы — для иерархии каталога. */
+  /** Все курсы кооператива — для сверки назначений при запуске. */
+  listAll(coopname: string): Promise<EdubridgeCourseEntity[]> {
+    return this.repo.find({ where: { coopname } });
+  }
+
   async listSubjects(coopname: string): Promise<Array<{ subject: string; grade: string }>> {
     return this.repo
       .createQueryBuilder('c')

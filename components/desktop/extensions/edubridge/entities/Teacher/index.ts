@@ -134,8 +134,11 @@ export async function signContract(hourly_rate: string, prepared?: IContractDraf
   });
 }
 
-/** Приложение к договору по курсу (3007). */
-export async function signAnnex(a: IAssignment, contractNumber: string): Promise<IAssignment> {
+/**
+ * Приложение к договору по курсу (3007) — экземпляр для чтения. Подписывается
+ * ровно он (`signAnnex`), а не собранный заново.
+ */
+export async function buildAnnexDocument(a: IAssignment, contractNumber: string): Promise<DigitalDocument> {
   const { username, coopname } = who();
   const doc = new DigitalDocument();
   await doc.generate({
@@ -149,10 +152,20 @@ export async function signAnnex(a: IAssignment, contractNumber: string): Promise
     period_from: a.period_from,
     period_to: a.period_to,
   });
+  return doc;
+}
+
+/** Подписать прочитанное приложение и отправить: назначение уходит на подпись председателю. */
+export async function signAnnex(a: IAssignment, doc: DigitalDocument): Promise<IAssignment> {
+  const { username } = who();
   await doc.sign(username);
   if (!doc.signedDocument) throw new Error('Не удалось подписать приложение');
   return m<IAssignment>(Mutations.Edubridge.SignAnnex.mutation, Mutations.Edubridge.SignAnnex.name, { data: { assignment_id: a.id, document: doc.signedDocument } });
 }
+
+/** Назначение ждёт подписи преподавателя: новое либо отклонённое председателем. */
+export const awaitsTeacherSignature = (a: IAssignment): boolean =>
+  a.status === Zeus.EduAssignmentStatus.DRAFT || a.status === Zeus.EduAssignmentStatus.DECLINED;
 
 /**
  * Передача материалов занятия кооперативу: акт ответственного хранения (3012)
