@@ -33,9 +33,8 @@ import { HOURS_FLOAT_EPSILON, hoursAlmostEqual, isNegligibleHours } from '../../
 import type { TimeEntryType } from '../../domain/interfaces/time-entry-database.interface';
 import { isPersonalTimeScope } from '../../domain/utils/private-project-access';
 import type { PaginationInputDTO } from '@coopenomics/extension-kit';
-import { EMPTY_HASH,
-  platformSettings,
-} from '@coopenomics/extension-kit';
+import { EMPTY_HASH, platformSettings, DomainError } from '@coopenomics/extension-kit';
+import { t } from '../../i18n';
 
 /**
  * Интерактор домена для учёта времени в CAPITAL контракте
@@ -239,7 +238,7 @@ export class TimeTrackingInteractor {
   }): Promise<TimeEntryDomainEntity> {
     const hours = Number(input.hours);
     if (!Number.isFinite(hours) || hours <= HOURS_FLOAT_EPSILON) {
-      throw new Error('Количество часов должно быть больше нуля');
+      throw DomainError.internal('CAPITAL_TIME_HOURS_NOT_POSITIVE');
     }
 
     const { issue, contributor } = await this.requireIssueAndCreator(input.username, input.coopname, input.issue_hash);
@@ -292,9 +291,7 @@ export class TimeTrackingInteractor {
       const remaining = await this.getRemainingDailyHours(contributor, today);
       if (remaining <= HOURS_FLOAT_EPSILON) {
         const limit = this.getHoursPerDayLimit(contributor);
-        throw new Error(
-          `Суточный лимит ${limit} ч уже выбран по кооперативным проектам. Таймер можно запустить завтра или уменьшить учтённое время.`
-        );
+        throw DomainError.internal('CAPITAL_DAILY_TIME_LIMIT_REACHED', { limit });
       }
     }
 
@@ -322,7 +319,7 @@ export class TimeTrackingInteractor {
   async stopTimer(input: { username: string; coopname: string }): Promise<TimeEntryDomainEntity | null> {
     const contributor = await this.contributorRepository.findByUsernameAndCoopname(input.username, input.coopname);
     if (!contributor) {
-      throw new Error(`Участник ${input.username} не найден в ${input.coopname}`);
+      throw DomainError.internal('CAPITAL_CONTRIBUTOR_NOT_FOUND_IN_COOP', { username: input.username, coopname: input.coopname });
     }
     const open = await this.timerSessionRepository.findOpenByContributor(contributor.contributor_hash);
     if (!open) return null;
@@ -336,11 +333,11 @@ export class TimeTrackingInteractor {
   async pauseTimer(input: { username: string; coopname: string }): Promise<TimerSessionDomainEntity> {
     const contributor = await this.contributorRepository.findByUsernameAndCoopname(input.username, input.coopname);
     if (!contributor) {
-      throw new Error(`Участник ${input.username} не найден в ${input.coopname}`);
+      throw DomainError.internal('CAPITAL_CONTRIBUTOR_NOT_FOUND_IN_COOP', { username: input.username, coopname: input.coopname });
     }
     const open = await this.timerSessionRepository.findOpenByContributor(contributor.contributor_hash);
     if (!open) {
-      throw new Error('Нет активного таймера');
+      throw DomainError.internal('CAPITAL_TIMER_NOT_ACTIVE');
     }
     if (open.isPaused) return open;
     open.paused_at = new Date();
@@ -353,11 +350,11 @@ export class TimeTrackingInteractor {
   async resumeTimer(input: { username: string; coopname: string }): Promise<TimerSessionDomainEntity> {
     const contributor = await this.contributorRepository.findByUsernameAndCoopname(input.username, input.coopname);
     if (!contributor) {
-      throw new Error(`Участник ${input.username} не найден в ${input.coopname}`);
+      throw DomainError.internal('CAPITAL_CONTRIBUTOR_NOT_FOUND_IN_COOP', { username: input.username, coopname: input.coopname });
     }
     const open = await this.timerSessionRepository.findOpenByContributor(contributor.contributor_hash);
     if (!open) {
-      throw new Error('Нет активного таймера');
+      throw DomainError.internal('CAPITAL_TIMER_NOT_ACTIVE');
     }
     if (!open.isPaused || !open.paused_at) return open;
 
@@ -459,7 +456,7 @@ export class TimeTrackingInteractor {
 
     if (hours <= HOURS_FLOAT_EPSILON) {
       if (opts.allowEmpty) return null;
-      throw new Error('Сессия таймера слишком короткая или суточный лимит исчерпан — запись не создана');
+      throw DomainError.internal('CAPITAL_TIME_SESSION_TOO_SHORT_OR_LIMIT');
     }
 
     return this.timeEntryRepository.create(
@@ -513,18 +510,18 @@ export class TimeTrackingInteractor {
   ): Promise<{ issue: IssueDomainEntity; contributor: ContributorDomainEntity }> {
     const issue = await this.issueRepository.findByIssueHash(issueHash);
     if (!issue) {
-      throw new Error(`Задача ${issueHash} не найдена`);
+      throw DomainError.internal('CAPITAL_ISSUE_NOT_FOUND', { hash: issueHash });
     }
     const contributor = await this.contributorRepository.findByUsernameAndCoopname(username, coopname);
     if (!contributor) {
-      throw new Error(`Участник ${username} не найден в ${coopname}`);
+      throw DomainError.internal('CAPITAL_CONTRIBUTOR_NOT_FOUND_IN_COOP', { username, coopname });
     }
     const creators = (issue.creators || []).map((c) => String(c).toLowerCase());
     if (creators.length === 0) {
-      throw new Error('Назначьте исполнителя задачи, чтобы учитывать время');
+      throw DomainError.internal('CAPITAL_ISSUE_ASSIGNEE_REQUIRED');
     }
     if (!creators.includes(username.toLowerCase())) {
-      throw new Error('Время можно учитывать только исполнителю задачи');
+      throw DomainError.internal('CAPITAL_TIME_ONLY_BY_ASSIGNEE');
     }
     return { issue, contributor };
   }
@@ -671,7 +668,7 @@ export class TimeTrackingInteractor {
       results = [
         {
           project_hash: data.project_hash,
-          project_name: project?.title || 'Неизвестный проект',
+          project_name: project?.title || t('capital.timeTracking.unknownProjectLabel'),
           contributor_hash: contributorHash,
           total_committed_hours: timeStats.total_committed_hours,
           total_uncommitted_hours: timeStats.total_uncommitted_hours,
@@ -697,7 +694,7 @@ export class TimeTrackingInteractor {
 
         return {
           project_hash: projectInfo.project_hash,
-          project_name: project?.title || 'Неизвестный проект',
+          project_name: project?.title || t('capital.timeTracking.unknownProjectLabel'),
           contributor_hash: contributorHash,
           total_committed_hours: timeStats.total_committed_hours,
           total_uncommitted_hours: timeStats.total_uncommitted_hours,
@@ -724,7 +721,7 @@ export class TimeTrackingInteractor {
 
         return {
           project_hash: data.project_hash as string,
-          project_name: project?.title || 'Неизвестный проект',
+          project_name: project?.title || t('capital.timeTracking.unknownProjectLabel'),
           contributor_hash: contributorInfo.contributor_hash as string,
           total_committed_hours: timeStats.total_committed_hours,
           total_uncommitted_hours: timeStats.total_uncommitted_hours,
@@ -759,7 +756,7 @@ export class TimeTrackingInteractor {
 
               return {
                 project_hash: project.project_hash,
-                project_name: project.title || 'Неизвестный проект',
+                project_name: project.title || t('capital.timeTracking.unknownProjectLabel'),
                 contributor_hash: contributorInfo.contributor_hash,
                 total_committed_hours: timeStats.total_committed_hours,
                 total_uncommitted_hours: timeStats.total_uncommitted_hours,
@@ -1061,13 +1058,13 @@ export class TimeTrackingInteractor {
     );
 
     if (uncommittedEntries.length === 0) {
-      throw new Error('Не найдено незакоммиченных записей времени');
+      throw DomainError.internal('CAPITAL_UNCOMMITTED_TIME_ENTRIES_NOT_FOUND');
     }
 
     // Получаем contributor по hash, чтобы получить username
     const contributor = await this.contributorRepository.findOne({ contributor_hash: contributorHash });
     if (!contributor) {
-      throw new Error(`Участник с хэшем ${contributorHash} не найден`);
+      throw DomainError.internal('CAPITAL_CONTRIBUTOR_NOT_FOUND_BY_HASH', { hash: contributorHash });
     }
 
     // Получаем завершённые задачи участника в этом проекте
@@ -1082,7 +1079,7 @@ export class TimeTrackingInteractor {
     const availableEntries = uncommittedEntries.filter((entry) => completedIssueHashes.includes(entry.issue_hash));
 
     if (availableEntries.length === 0) {
-      throw new Error('Не найдено незакоммиченных записей времени для завершенных задач');
+      throw DomainError.internal('CAPITAL_UNCOMMITTED_TIME_ENTRIES_FOR_DONE_ISSUES_NOT_FOUND');
     }
 
     // Сортируем по дате (старые сначала)
@@ -1136,9 +1133,7 @@ export class TimeTrackingInteractor {
     }
 
     if (remainingHours > HOURS_FLOAT_EPSILON) {
-      throw new Error(
-        `Недостаточно незакоммиченных часов для завершенных задач. Требуется: ${hours}, доступно: ${hours - remainingHours}`
-      );
+      throw DomainError.internal('CAPITAL_INSUFFICIENT_UNCOMMITTED_HOURS', { required: hours, available: hours - remainingHours });
     }
   }
 
@@ -1159,7 +1154,7 @@ export class TimeTrackingInteractor {
     // Получаем contributor по hash, чтобы получить username
     const contributor = await this.contributorRepository.findOne({ contributor_hash: contributorHash });
     if (!contributor) {
-      throw new Error(`Участник с хэшем ${contributorHash} не найден`);
+      throw DomainError.internal('CAPITAL_CONTRIBUTOR_NOT_FOUND_BY_HASH', { hash: contributorHash });
     }
 
     // Получаем завершённые задачи участника в этом проекте

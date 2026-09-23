@@ -7,6 +7,8 @@ import { LOGGER_PORT, type ILoggerPort,
   type IIntegrationSettingsPort,
 } from '@coopenomics/innercoop';
 import { resolveCapitalGithubApiPlainToken } from '../utils/capital-github-token';
+import { t } from '../../i18n';
+import { DomainError } from '@coopenomics/extension-kit';
 
 /**
  * Тип Git-источника
@@ -114,11 +116,11 @@ export class GitService {
       case GitSourceType.GITHUB:
         return await this.extractFromGitHub(url, parsed);
       case GitSourceType.GITLAB:
-        throw new Error('GitLab пока не поддерживается. Используйте GitHub.');
+        throw DomainError.internal('CAPITAL_GIT_SOURCE_GITLAB_UNSUPPORTED');
       case GitSourceType.BITBUCKET:
-        throw new Error('Bitbucket пока не поддерживается. Используйте GitHub.');
+        throw DomainError.internal('CAPITAL_GIT_SOURCE_BITBUCKET_UNSUPPORTED');
       default:
-        throw new Error('Неизвестный Git-источник. Поддерживаются только GitHub URL.');
+        throw DomainError.internal('CAPITAL_GIT_SOURCE_UNKNOWN');
     }
   }
 
@@ -187,7 +189,7 @@ export class GitService {
     }
 
     throw new Error(
-      'Не удалось распарсить Git URL. Поддерживаемые форматы:\n' +
+      t('capital.git.unsupportedUrlFormatsIntro') +
         '- GitHub PR: https://github.com/owner/repo/pull/123\n' +
         '- GitHub Commit: https://github.com/owner/repo/commit/abc123'
     );
@@ -236,11 +238,11 @@ export class GitService {
 
         diff = data as unknown as string;
       } else {
-        throw new Error(`Неподдерживаемый тип ссылки: ${parsed.type}`);
+        throw DomainError.internal('CAPITAL_GIT_LINK_TYPE_UNSUPPORTED', { type: parsed.type });
       }
 
       if (!diff || diff.trim().length === 0) {
-        throw new Error('Получен пустой diff. Проверьте правильность URL.');
+        throw DomainError.internal('CAPITAL_GIT_DIFF_EMPTY');
       }
 
       this.logger.debug(`Успешно извлечен diff (${diff.length} символов)`);
@@ -260,15 +262,11 @@ export class GitService {
 
       // Улучшенная обработка ошибок
       if (error?.status === 404) {
-        throw new Error(
-          `PR/коммит не найден. Проверьте правильность URL и доступность репозитория.`
-        );
+        throw DomainError.internal('CAPITAL_GIT_PR_NOT_FOUND');
       } else if (error?.status === 401 || error?.status === 403) {
-        throw new Error(
-          `Отсутствует доступ к репозиторию. Для приватных репозиториев задайте токен в настройках расширения Capital или переменную GITHUB_TOKEN.`
-        );
+        throw DomainError.internal('CAPITAL_GIT_REPO_ACCESS_DENIED');
       } else {
-        throw new Error(`Не удалось получить diff из GitHub: ${error?.message}`);
+        throw DomainError.internal('CAPITAL_GIT_DIFF_FETCH_FAILED', { message: error?.message });
       }
     }
   }

@@ -7,6 +7,7 @@ import {
   type SignerTypeValue,
 } from '../repositories/report-requisites.repository';
 import { ORGANIZATION_PORT, type IOrganizationPort, type InnerOrganization } from '@coopenomics/innercoop';
+import { t } from '../../i18n';
 
 export type RequisiteSource = 'database' | 'manual' | 'empty';
 
@@ -74,40 +75,40 @@ type RequiredFieldSpec = {
 };
 
 const ALWAYS_REQUIRED: RequiredFieldSpec[] = [
-  { key: 'inn', label: 'ИНН', source: 'database' },
-  { key: 'kpp', label: 'КПП', source: 'database' },
-  { key: 'ogrn', label: 'ОГРН', source: 'database' },
-  { key: 'orgName', label: 'Наименование организации', source: 'database' },
-  { key: 'signerLastName', label: 'Фамилия подписанта', source: 'database' },
-  { key: 'signerFirstName', label: 'Имя подписанта', source: 'database' },
+  { key: 'inn', label: t('reports.reportRequisites.field.inn'), source: 'database' },
+  { key: 'kpp', label: t('reports.reportRequisites.field.kpp'), source: 'database' },
+  { key: 'ogrn', label: t('reports.reportRequisites.field.ogrn'), source: 'database' },
+  { key: 'orgName', label: t('reports.reportRequisites.field.orgName'), source: 'database' },
+  { key: 'signerLastName', label: t('reports.reportRequisites.field.signerLastName'), source: 'database' },
+  { key: 'signerFirstName', label: t('reports.reportRequisites.field.signerFirstName'), source: 'database' },
 ];
 
 const REQUIRED_BY_TYPE: Record<ReportType, RequiredFieldSpec[]> = {
   [ReportType.BUHOTCH]: [
-    { key: 'okved', label: 'ОКВЭД', source: 'manual' },
-    { key: 'okfs', label: 'ОКФС', source: 'manual' },
-    { key: 'okopf', label: 'ОКОПФ', source: 'manual' },
+    { key: 'okved', label: t('reports.reportRequisites.field.okved'), source: 'manual' },
+    { key: 'okfs', label: t('reports.reportRequisites.field.okfs'), source: 'manual' },
+    { key: 'okopf', label: t('reports.reportRequisites.field.okopf'), source: 'manual' },
   ],
-  [ReportType.NDFL6]: [{ key: 'oktmo', label: 'ОКТМО', source: 'manual' }],
+  [ReportType.NDFL6]: [{ key: 'oktmo', label: t('reports.reportRequisites.field.oktmo'), source: 'manual' }],
   [ReportType.RSV]: [
-    { key: 'oktmo', label: 'ОКТМО', source: 'manual' },
-    { key: 'phone', label: 'Телефон', source: 'database' },
+    { key: 'oktmo', label: t('reports.reportRequisites.field.oktmo'), source: 'manual' },
+    { key: 'phone', label: t('reports.reportRequisites.field.phone'), source: 'database' },
   ],
-  [ReportType.DUSN]: [{ key: 'oktmo', label: 'ОКТМО', source: 'manual' }],
+  [ReportType.DUSN]: [{ key: 'oktmo', label: t('reports.reportRequisites.field.oktmo'), source: 'manual' }],
   [ReportType.FSS4]: [
-    { key: 'oktmo', label: 'ОКТМО', source: 'manual' },
-    { key: 'sfrRegNumber', label: 'Регистрационный номер в СФР', source: 'manual' },
-    { key: 'pfrRegNumber', label: 'Регистрационный номер в ПФР', source: 'manual' },
-    { key: 'chairmanPosition', label: 'Должность руководителя', source: 'manual' },
+    { key: 'oktmo', label: t('reports.reportRequisites.field.oktmo'), source: 'manual' },
+    { key: 'sfrRegNumber', label: t('reports.reportRequisites.field.sfrRegNumber'), source: 'manual' },
+    { key: 'pfrRegNumber', label: t('reports.reportRequisites.field.pfrRegNumber'), source: 'manual' },
+    { key: 'chairmanPosition', label: t('reports.reportRequisites.field.chairmanPosition'), source: 'manual' },
   ],
   [ReportType.PSV]: [
-    { key: 'signerSnils', label: 'СНИЛС подписанта', source: 'manual' },
-    { key: 'signerInn', label: 'ИНН подписанта', source: 'manual' },
-    { key: 'phone', label: 'Телефон', source: 'database' },
+    { key: 'signerSnils', label: t('reports.reportRequisites.field.signerSnils'), source: 'manual' },
+    { key: 'signerInn', label: t('reports.reportRequisites.field.signerInn'), source: 'manual' },
+    { key: 'phone', label: t('reports.reportRequisites.field.phone'), source: 'database' },
   ],
-  [ReportType.UV_VZNOSY]: [{ key: 'oktmo', label: 'ОКТМО', source: 'manual' }],
-  [ReportType.UUSN]: [{ key: 'oktmo', label: 'ОКТМО', source: 'manual' }],
-  [ReportType.UV_NDFL]: [{ key: 'oktmo', label: 'ОКТМО', source: 'manual' }],
+  [ReportType.UV_VZNOSY]: [{ key: 'oktmo', label: t('reports.reportRequisites.field.oktmo'), source: 'manual' }],
+  [ReportType.UUSN]: [{ key: 'oktmo', label: t('reports.reportRequisites.field.oktmo'), source: 'manual' }],
+  [ReportType.UV_NDFL]: [{ key: 'oktmo', label: t('reports.reportRequisites.field.oktmo'), source: 'manual' }],
 };
 
 @Injectable()
@@ -196,8 +197,8 @@ export class ReportRequisitesService {
           source: spec.source,
           reason:
             spec.source === 'database'
-              ? 'Поле должно быть заполнено в БД кооператива (профиль организации)'
-              : 'Поле не заполнено в настройках отчётности — нужен ручной ввод',
+              ? t('reports.reportRequisites.reasonDatabaseField')
+              : t('reports.reportRequisites.reasonManualField'),
         });
       }
     }

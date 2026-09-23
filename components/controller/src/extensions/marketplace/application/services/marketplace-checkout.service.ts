@@ -43,7 +43,7 @@ import {
   type FundingLinePlan,
 } from './marketplace-convert.service';
 import type { MarketplaceConvertStatementSignedInputDTO } from '../documents-dto/marketplace-convert-statement-document.dto';
-import { rethrowChainError } from '@coopenomics/extension-kit';
+import { rethrowChainError, DomainError } from '@coopenomics/extension-kit';
 import type { MarketContract } from 'cooptypes';
 import {
   MARKETPLACE_CANONICAL_BLOCKCHAIN_PORT,
@@ -53,6 +53,7 @@ import {
 import type { MarketplaceOrderPreparedLine } from './marketplace-order-create.service';
 import type { MarketplaceStockOrderPreparedLine } from './marketplace-stock.service';
 import { normalizeChainTx } from '../shared/chain-tx.util';
+import { t } from '../../i18n';
 
 export const MARKETPLACE_CHECKOUT_SERVICE = Symbol('MARKETPLACE_CHECKOUT_SERVICE');
 
@@ -177,10 +178,10 @@ export class MarketplaceCheckoutService {
   async getSignablePayloads(scope: CheckoutScope): Promise<MarketplaceCheckoutPreview> {
     const cart = await this.cartRepo.getOrCreate(scope.coopname, scope.orderer_account);
     if (cart.is_empty) {
-      throw new BadRequestException('Корзина пуста — оформлять нечего.');
+      throw DomainError.badRequest('MARKETPLACE_CART_EMPTY');
     }
     if (!cart.delivery_braname) {
-      throw new BadRequestException('Не выбран пункт выдачи (КУ) — выберите КУ перед оформлением.');
+      throw DomainError.badRequest('MARKETPLACE_CHECKOUT_BRANCH_REQUIRED');
     }
 
     const offers = await this.offerRepo.findByIds(cart.items.map((i) => i.offer_id));
@@ -225,10 +226,10 @@ export class MarketplaceCheckoutService {
   ): Promise<MarketplaceCheckoutResultDTO> {
     const cart = await this.cartRepo.getOrCreate(scope.coopname, scope.orderer_account);
     if (cart.is_empty) {
-      throw new BadRequestException('Корзина пуста — оформлять нечего.');
+      throw DomainError.badRequest('MARKETPLACE_CART_EMPTY');
     }
     if (!cart.delivery_braname) {
-      throw new BadRequestException('Не выбран пункт выдачи (КУ) — выберите КУ перед оформлением.');
+      throw DomainError.badRequest('MARKETPLACE_CHECKOUT_BRANCH_REQUIRED');
     }
     const deliveryBraname = cart.delivery_braname;
 
@@ -252,7 +253,7 @@ export class MarketplaceCheckoutService {
     // списания): с Цифрового кошелька уходит сумма заявления — тела сверх
     // свободного паевого программы и недостающие части взносов.
     if (planned.lines.length > 0) {
-      await this.assertSpendable(scope, MAIN_SHARE_WALLET, planned.transfer_units, 'Цифровом кошельке');
+      await this.assertSpendable(scope, MAIN_SHARE_WALLET, planned.transfer_units, t('marketplace.checkout.digitalWalletLabel'));
     }
 
     // ── Заявление 1110: перевод в членский кошелёк идёт первым действием общей транзакции ──
@@ -324,7 +325,7 @@ export class MarketplaceCheckoutService {
             offer_id: line.offer_id,
             product_name: line.offer.product_name,
             quantity: line.quantity,
-            reason: error?.message ?? 'Не удалось оформить позицию.',
+            reason: error?.message ?? t('marketplace.checkout.itemFailedReason'),
           })
         );
       }
@@ -342,8 +343,8 @@ export class MarketplaceCheckoutService {
       }
       const reasons = failed.map((f) => `«${f.product_name ?? f.offer_id}»: ${f.reason}`).join('; ');
       throw new BadRequestException(
-        `Оформление не запущено — не все позиции корзины можно заказать (${reasons}). ` +
-          'Уберите их из корзины и подпишите заявление заново.'
+        t('marketplace.checkout.notStartedReason', { reasons }) +
+          t('marketplace.checkout.removeItemsHint')
       );
     }
 
@@ -363,7 +364,7 @@ export class MarketplaceCheckoutService {
               : { kind: p.kind, data: p.order.action }
           ),
         });
-        tx = normalizeChainTx(result, 'Оформление корзины: цепь не вернула tx_hash. Повторите попытку.');
+        tx = normalizeChainTx(result, t('marketplace.checkout.chainNoTxHash'));
       } catch (error: any) {
         this.logger.error(
           `MarketplaceCheckoutService: цепь отказала в оформлении checkout=${checkoutId} (${prepared.length} строк) — снимаю брони: ${error.message}`
@@ -397,7 +398,7 @@ export class MarketplaceCheckoutService {
               offer_id: p.line.offer_id,
               product_name: p.line.offer.product_name,
               quantity: p.line.quantity,
-              reason: error?.message ?? 'Заказ проведён, но не записан — обратитесь к администратору.',
+              reason: error?.message ?? t('marketplace.checkout.orderNotRecordedError'),
             })
           );
         }
@@ -483,8 +484,8 @@ export class MarketplaceCheckoutService {
     const available = await this.convertService.availableUnits(scope.coopname, scope.orderer_account, wallet_name);
     if (needed > available) {
       throw new BadRequestException(
-        `Недостаточно средств на ${walletLabel} для оформления: нужно ${this.economyService.unitsToAsset(needed)}, доступно ${this.economyService.unitsToAsset(available)}. ` +
-          'Заказ не запущен — пополните главный кошелёк или уберите часть позиций.'
+        t('marketplace.checkout.insufficientFunds', { walletLabel, needed: this.economyService.unitsToAsset(needed), available: this.economyService.unitsToAsset(available) }) +
+          t('marketplace.checkout.insufficientFundsHint')
       );
     }
   }
@@ -505,7 +506,7 @@ export class MarketplaceCheckoutService {
             offer_id: item.offer_id,
             product_name: offer?.product_name ?? null,
             quantity: item.quantity,
-            reason: 'Предложение больше не активно.',
+            reason: t('marketplace.checkout.offerNotActiveReason'),
           })
         );
         continue;
@@ -516,7 +517,7 @@ export class MarketplaceCheckoutService {
             offer_id: item.offer_id,
             product_name: offer.product_name,
             quantity: item.quantity,
-            reason: 'Товар не возят на выбранный пункт выдачи.',
+            reason: t('marketplace.checkout.offerNotDeliveredReason'),
           })
         );
         continue;

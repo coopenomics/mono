@@ -1,3 +1,4 @@
+import './i18n';
 import { Inject, Injectable, Module, Optional } from '@nestjs/common';
 import { BaseExtensionModule, EXTENSION_REPOSITORY, type ExtensionDomainRepository,
   platformSettings,
@@ -22,6 +23,7 @@ import { registerMarketplaceOnboardingSteps } from './application/onboarding/reg
 import { registerMarketplaceDocuments } from './application/onboarding/register-marketplace-documents';
 import { MarketplaceUdataParametersAdapter } from './application/registration/marketplace-udata-parameters.adapter';
 import { ONBOARDING_STEP_REGISTRY_PORT, ONBOARDING_COMPLETED_EVENT, type IOnboardingStepRegistryPort, DOCUMENT_DECLARATION_PORT, type IDocumentDeclarationPort } from '@coopenomics/innercoop';
+import { t } from './i18n';
 
 /**
  * Optional-инжектируемый порт файлового хранилища. Имя расширения marketplace
@@ -70,6 +72,7 @@ export class MarketplaceExtension extends BaseExtensionModule {
 
   async initialize() {
     const extensionData = await this.extensionRepository.findByName(this.name);
+    // i18n-ignore: проверка конфигурации при старте, до пайщика не доходит
     if (!extensionData) throw new Error('Конфиг не найден');
 
     this.extension = {
@@ -121,7 +124,7 @@ export class MarketplaceExtension extends BaseExtensionModule {
       const { created, program_id } = await this.council.ensureProgram({
         coopname: platformSettings().coopname,
         type: MARKETPLACE_AGREEMENT_TYPE,
-        title: 'Целевая потребительская программа «Стол заказов»',
+        title: t('marketplace.extensionModule.agreementTitle'),
       });
       if (created) {
         this.logger.info(

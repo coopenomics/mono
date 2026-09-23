@@ -19,14 +19,19 @@ export class MarketplaceContainerTypeDomainEntity {
 
   constructor(props: MarketplaceContainerTypeProps) {
     if (!props.name.trim()) {
+      // i18n-ignore: внутренний инвариант сущности, до пайщика не доходит
       throw new Error('MarketplaceContainerTypeDomainEntity: название типа не может быть пустым.');
     }
     for (const [label, value] of [
+      // i18n-ignore: используется только во внутреннем инварианте, до пайщика не доходит
       ['длина', props.length_cm],
+      // i18n-ignore: используется только во внутреннем инварианте, до пайщика не доходит
       ['ширина', props.width_cm],
+      // i18n-ignore: используется только во внутреннем инварианте, до пайщика не доходит
       ['высота', props.height_cm],
     ] as const) {
       if (!Number.isFinite(value) || value <= 0) {
+        // i18n-ignore: внутренний инвариант сущности, до пайщика не доходит
         throw new Error(`MarketplaceContainerTypeDomainEntity: ${label} должна быть положительной.`);
       }
     }
@@ -62,6 +67,7 @@ export class MarketplaceContainerDomainEntity {
 
   constructor(props: MarketplaceContainerProps) {
     if (!props.code.trim()) {
+      // i18n-ignore: внутренний инвариант сущности, до пайщика не доходит
       throw new Error('MarketplaceContainerDomainEntity: код бокса не может быть пустым.');
     }
     this.id = props.id;

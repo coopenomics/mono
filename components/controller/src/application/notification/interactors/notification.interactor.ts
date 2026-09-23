@@ -8,6 +8,7 @@ import type { CreateSubscriptionInputDomainInterface } from '~/domain/notificati
 import type { SubscriptionStatsDomainInterface } from '~/domain/notification/interfaces/subscription-stats-domain.interface';
 import type { NotificationPayloadDomainInterface } from '~/domain/notification/interfaces/notification-payload-domain.interface';
 import type { WorkflowActorDomainInterface } from '~/domain/notification/interfaces/workflow-trigger-domain.interface';
+import { DomainError } from '@coopenomics/extension-kit';
 
 /**
  * Интерактор для управления веб-пуш подписками
@@ -259,27 +260,27 @@ export class NotificationInteractor {
    */
   private validateSubscriptionData(data: CreateSubscriptionInputDomainInterface): void {
     if (!data.username || typeof data.username !== 'string') {
-      throw new Error('username обязателен и должен быть строкой');
+      throw DomainError.internal('NOTIFICATION_USERNAME_REQUIRED');
     }
 
     if (!data.subscription || typeof data.subscription !== 'object') {
-      throw new Error('subscription обязателен и должен быть объектом');
+      throw DomainError.internal('NOTIFICATION_SUBSCRIPTION_REQUIRED');
     }
 
     if (!data.subscription.endpoint || typeof data.subscription.endpoint !== 'string') {
-      throw new Error('endpoint обязателен и должен быть строкой');
+      throw DomainError.internal('NOTIFICATION_ENDPOINT_REQUIRED');
     }
 
     if (!data.subscription.keys || typeof data.subscription.keys !== 'object') {
-      throw new Error('keys обязательны и должны быть объектом');
+      throw DomainError.internal('NOTIFICATION_KEYS_REQUIRED');
     }
 
     if (!data.subscription.keys.p256dh || typeof data.subscription.keys.p256dh !== 'string') {
-      throw new Error('p256dh ключ обязателен и должен быть строкой');
+      throw DomainError.internal('NOTIFICATION_P256DH_KEY_REQUIRED');
     }
 
     if (!data.subscription.keys.auth || typeof data.subscription.keys.auth !== 'string') {
-      throw new Error('auth ключ обязателен и должен быть строкой');
+      throw DomainError.internal('NOTIFICATION_AUTH_KEY_REQUIRED');
     }
   }
 }

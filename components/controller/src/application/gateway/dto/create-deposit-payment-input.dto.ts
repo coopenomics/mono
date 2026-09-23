@@ -1,17 +1,18 @@
 import { Field, InputType } from '@nestjs/graphql';
 import { IsString, IsNumber } from 'class-validator';
+import { t } from '~/i18n';
 
 @InputType('CreateDepositPaymentInput')
 export class CreateDepositPaymentInputDTO {
   @Field(() => String, { description: 'Имя аккаунта пользователя' })
-  @IsString({ message: 'Поле "username" должно быть строкой' })
+  @IsString({ message: t('gateway.createDepositPaymentInput.usernameMustBeString') })
   username!: string;
 
   @Field(() => Number, { description: 'Сумма взноса' })
-  @IsNumber({}, { message: 'Поле "quantity" должно быть числом' })
+  @IsNumber({}, { message: t('gateway.createDepositPaymentInput.quantityMustBeNumber') })
   quantity!: number;
 
   @Field(() => String, { description: 'Символ валюты' })
-  @IsString({ message: 'Поле "symbol" должно быть строкой' })
+  @IsString({ message: t('gateway.createDepositPaymentInput.symbolMustBeString') })
   symbol!: string;
 }

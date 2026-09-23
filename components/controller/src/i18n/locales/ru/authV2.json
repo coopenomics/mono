@@ -1,0 +1,170 @@
+{
+  "authV2": {
+    "authRateLimitGuard": {
+      "tooManyAttemptsMessage": "Слишком много попыток. Подождите и повторите позже."
+    },
+    "authV2Error": {
+      "vaultServerDecryptionForbidden": "Серверная расшифровка ключа участника запрещена: расшифровать может только владелец пароля на клиенте"
+    },
+    "authorizationDenial": {
+      "insufficientRightsMessage": "Недостаточно прав для выполнения операции"
+    },
+    "certificateService": {
+      "certTooLargeMessage": "participant_certificate превышает {maxBytes} байт ({size})",
+      "endorsementUnavailableMessage": "COOPOS недоступен: заверение {subject} не получено"
+    },
+    "deviceDescriptionUtil": {
+      "browserYandex": "Яндекс Браузер",
+      "deviceSummary": "{browser} на {os}",
+      "localNetwork": "локальная сеть",
+      "unknownDevice": "неизвестное устройство"
+    },
+    "forceRecoveryService": {
+      "consentLinkInvalidMessage": "Ссылка согласия недействительна или истекла",
+      "consentOrDecisionRequiredMessage": "Force-recovery невозможен без согласия пайщика или решения общего собрания"
+    },
+    "loginFactorsService": {
+      "emailNotVerifiedMessage": "Почта не подтверждена — код на неё отправлять нельзя.",
+      "invalidTotpCodeMessage": "Неверный код из приложения-аутентификатора.",
+      "passwordRequiredMessage": "Подтверждение входа станет доступно после установки пароля.",
+      "totpNotEnrolledMessage": "Сначала подключите приложение-аутентификатор."
+    },
+    "loginTwoFactorService": {
+      "challengeExpiredMessage": "Подтверждение входа истекло — войдите заново.",
+      "codeAlreadySentMessage": "Код уже отправлен — подождите минуту перед повтором.",
+      "emailCodeNotRequestedMessage": "Код на почту сейчас не запрашивается.",
+      "emailCodeTtlLabel": "10 минут",
+      "emailSendFailedMessage": "Не удалось отправить код подтверждения на почту.",
+      "emailSendFailedRetryMessage": "Не удалось отправить код подтверждения на почту. Повторите попытку позже.",
+      "emailSendLimitExceededMessage": "Лимит отправок кода исчерпан — войдите заново.",
+      "invalidEmailCodeMessage": "Неверный код из письма.",
+      "invalidTotpCodeMessage": "Неверный код из приложения-аутентификатора.",
+      "tooManyInvalidCodesMessage": "Слишком много неверных кодов — войдите заново."
+    },
+    "migrationService": {
+      "accountKeyCheckUnavailableMessage": "COOPOS недоступен: не удалось проверить ключ аккаунта",
+      "chainTimeUnavailableMessage": "COOPOS недоступен: не удалось получить время блокчейна",
+      "invalidCredentialsMessage": "Неверный email, ключ или подпись",
+      "migrationWithoutVaultBlobMessage": "Миграция без vault-блоба невозможна — обновите страницу",
+      "rotationAvailableAfterRegistrationMessage": "Смена ключа доступна после завершения регистрации",
+      "rotationWithoutVaultBlobMessage": "Ротация без vault-блоба невозможна: новому ключу негде жить",
+      "timestampOutOfWindowMessage": "Метка времени вне допустимого окна свежести",
+      "weakPasswordMessage": "Пароль слишком простой: {reasons}"
+    },
+    "newDeviceNotificationService": {
+      "unknownIp": "неизвестен"
+    },
+    "offlineRecoveryService": {
+      "invalidCodeMessage": "Код восстановления неверен или уже использован."
+    },
+    "passportChangeListener": {
+      "revokeReasonMessage": "Паспортные данные изменены советом — нужна повторная сверка"
+    },
+    "passwordPolicy": {
+      "digitRequiredRule": "Хотя бы одна цифра",
+      "minLengthRule": "Минимум {minLength} символов",
+      "specialCharRequiredRule": "Хотя бы один спецсимвол (например !, ?, - или _)"
+    },
+    "recoveryConfirmService": {
+      "invalidRecoveryLinkMessage": "Ссылка восстановления недействительна или истекла. Запросите восстановление заново.",
+      "invalidTotpCodeMessage": "Неверный код из приложения-аутентификатора.",
+      "weakPasswordMessage": "Пароль слишком простой: {reasons}"
+    },
+    "recoveryController": {
+      "tooManyConfirmAttemptsMessage": "Слишком много попыток подтверждения. Попробуйте позже.",
+      "tooManyRequestsMessage": "Слишком много запросов на восстановление. Попробуйте позже."
+    },
+    "recoveryService": {
+      "invalidRecoveryLinkMessage": "Ссылка восстановления недействительна или истекла. Запросите восстановление заново."
+    },
+    "recoveryStrategyService": {
+      "invalidTotpCodeMessage": "Неверный код из приложения-аутентификатора.",
+      "totpRequiredMessage": "Смена способа восстановления требует кода из приложения-аутентификатора, но он не подключён."
+    },
+    "securityEvent": {
+      "type": {
+        "accessKeyReissued": "Перевыпущен ключ доступа",
+        "loginConfirmationSettingsChanged": "Изменены настройки подтверждения входа",
+        "passwordChanged": "Изменён пароль",
+        "recoveryMethodChanged": "Изменён способ восстановления доступа",
+        "twoFaDisabled": "Отключён второй фактор (2FA)",
+        "twoFaEnabled": "Подключён второй фактор (2FA)"
+      }
+    },
+    "securityEventNotificationService": {
+      "localNetwork": "локальная сеть",
+      "unknownIp": "неизвестен"
+    },
+    "sessionTypes": {
+      "unknownDevice": "неизвестное устройство",
+      "unknownIp": "неизвестен"
+    },
+    "twoFactorService": {
+      "invalidTotpCodeMessage": "Неверный код из приложения-аутентификатора.",
+      "notConnectedMessage": "Второй фактор не подключён.",
+      "notEnrolledMessage": "Второй фактор не выпущен — начните подключение заново."
+    },
+    "verificationRuleGuard": {
+      "insufficientLevelMessage": "Недостаточный уровень верификации для действия «{actionCode}»: требуется {missingLevels}"
+    },
+    "verifyTimestampService": {
+      "bindingSecretNotConfiguredMessage": "AUTH_V2_SESSION_BINDING_SECRET не сконфигурирован",
+      "bindingTokenInvalidMessage": "session_binding_token недействителен или истёк",
+      "bindingTokenReusedMessage": "session_binding_token уже использован",
+      "chainTimeUnavailableMessage": "COOPOS недоступен: не удалось получить время блокчейна",
+      "cooposUnavailableNoCacheMessage": "COOPOS недоступен/не финализирован и нет валидного кеша ключей для проверки",
+      "keyRecoveryFailedMessage": "Не удалось восстановить ключ из подписи",
+      "signatureMismatchMessage": "Подпись не соответствует ключу аккаунта",
+      "timestampOutOfWindowMessage": "Метка времени вне допустимого окна свежести"
+    }
+  },
+  "errors": {
+    "AUTH_V2_AUTHENTIK_CREATE_USER_FAILED": "authentik create-user вернул {status}",
+    "AUTH_V2_AUTHENTIK_ME_FAILED": "authentik me-endpoint вернул {status}",
+    "AUTH_V2_AUTHENTIK_SET_PASSWORD_FAILED": "authentik set_password вернул {status}",
+    "AUTH_V2_AUTHENTIK_USERS_LIST_FAILED": "authentik users-list вернул {status}",
+    "AUTH_V2_BRANCH_NOT_FOUND": "Кооперативный участок не найден",
+    "AUTH_V2_CAPABILITY_SET_NOT_ACTIVE": "У пайщика «{username}» нет активного набора «{setKey}»",
+    "AUTH_V2_CAPABILITY_SET_NOT_FOUND": "Набор возможностей «{setKey}» не найден",
+    "AUTH_V2_CERT_KEY_FIXED_BY_SUPPLY_SECRET": "Ключ заверения задан секретом поставки — перевыпустить его можно только там, где этот секрет заводится",
+    "AUTH_V2_CERT_KEY_MISSING_FOR_ACCOUNT": "Ключа заверения {account} нет — подписать нечем",
+    "AUTH_V2_CERT_KEY_MISSING_PRIVATE_PART": "Ключ заверения не содержит приватной части",
+    "AUTH_V2_CERT_KEY_NOT_FOUND": "Ключ заверения не найден: ни секрета поставки, ни собственного выпуска",
+    "AUTH_V2_CERT_KEY_SAVE_FAILED": "Не удалось сохранить ключ заверения",
+    "AUTH_V2_CRITICAL_ACTION_ALREADY_CONFIRMED": "Этот член совета уже подтвердил действие",
+    "AUTH_V2_CRITICAL_ACTION_NOT_FOUND": "Критическое действие не найдено",
+    "AUTH_V2_CRITICAL_ACTION_NOT_PENDING": "Действие уже не в статусе ожидания",
+    "AUTH_V2_CRITICAL_ACTION_SELF_CONFIRM_FORBIDDEN": "Инициатор не может подтверждать собственное действие",
+    "AUTH_V2_CRITICAL_ACTION_WINDOW_EXPIRED": "Окно подтверждения истекло",
+    "AUTH_V2_EMAIL_REQUIRED": "Требуется email",
+    "AUTH_V2_FIELD_REQUIRED": "Требуется {field}",
+    "AUTH_V2_IDENTITY_ALREADY_VERIFIED": "Личность пайщика уже подтверждена — данные для сверки не выдаются",
+    "AUTH_V2_LINK_INVALID_OR_USED": "Ссылка недействительна или уже использована",
+    "AUTH_V2_LOGIN_2FA_CHALLENGE_FIELDS_REQUIRED": "Требуются challenge_token и code",
+    "AUTH_V2_LOGIN_2FA_CHALLENGE_TOKEN_REQUIRED": "Требуется challenge_token",
+    "AUTH_V2_MIGRATION_FIELDS_REQUIRED": "Требуются email, timestamp, signature, new_password",
+    "AUTH_V2_PARTICIPANT_NOT_FOUND": "Пайщик не найден в кооперативе",
+    "AUTH_V2_REFRESH_TOKEN_INVALID": "refresh_token недействителен или отозван",
+    "AUTH_V2_REFRESH_TOKEN_REQUIRED": "Требуется refresh_token",
+    "AUTH_V2_ROTATION_VAULT_BLOB_REQUIRED": "Ротация требует зашифрованный vault-блоб с новым ключом",
+    "AUTH_V2_SESSION_NOT_FOUND": "Сессия не найдена",
+    "AUTH_V2_TOTP_SECRET_INVALID_BASE32": "Невалидный символ Base32 в TOTP-секрете",
+    "AUTH_V2_USERNAME_REQUIRED": "username обязателен",
+    "AUTH_V2_USER_NOT_FOUND": "Пользователь не найден",
+    "AUTH_V2_VAULT_BLOB_REQUIRED": "Требуется зашифрованный vault-блоб",
+    "AUTH_V2_VAULT_NOT_FOUND": "vault не найден",
+    "AUTH_V2_VERIFICATION_ALREADY_DECIDED": "По этой сверке решение уже принято",
+    "AUTH_V2_VERIFICATION_BRANCH_AUTHORITY_ONLY": "Сверять личность на участке вправе его председатель или доверенное лицо",
+    "AUTH_V2_VERIFICATION_CHAIRMAN_ONLY": "Подтверждать личность от имени совета вправе председатель совета",
+    "AUTH_V2_VERIFICATION_DATA_MISSING": "У пайщика не заполнены данные для сверки личности",
+    "AUTH_V2_VERIFICATION_PHOTOS_LIMIT": "Можно приложить не больше {max} фотографий",
+    "AUTH_V2_VERIFICATION_PHOTO_CHECKSUM_MISMATCH": "checksum_sha256 не совпадает с реальным SHA-256 содержимого",
+    "AUTH_V2_VERIFICATION_PHOTO_REQUIRED": "Приложите хотя бы одну фотографию сверки: пайщика и его паспорт",
+    "AUTH_V2_VERIFICATION_PHOTO_SIZE_MISMATCH": "size_bytes ({declaredSize}) не совпадает с фактическим размером содержимого ({actualSize})",
+    "AUTH_V2_VERIFICATION_RECORD_NOT_FOUND": "Запись о сверке личности не найдена",
+    "AUTH_V2_VERIFICATION_REVIEW_CHAIRMAN_ONLY": "Проверять сверку личности вправе председатель совета",
+    "AUTH_V2_VERIFICATION_REVOKE_CHAIRMAN_ONLY": "Отзывать верификацию личности вправе председатель совета",
+    "AUTH_V2_VERIFICATION_SELF_FORBIDDEN": "Свою личность на участке не сверяют — её подтверждает председатель совета",
+    "AUTH_V2_VERIFY_TIMESTAMP_FIELDS_REQUIRED": "Требуются signature, timestamp и binding_token"
+  }
+}

@@ -2,6 +2,7 @@ import { Field, InputType } from '@nestjs/graphql';
 import { IsNotEmpty, IsString, IsArray, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 import type { SubmitVoteDomainInput } from '../../../domain/actions/submit-vote-domain-input.interface';
+import { t } from '../../../i18n';
 
 /**
  * DTO для распределения голосов
@@ -9,13 +10,13 @@ import type { SubmitVoteDomainInput } from '../../../domain/actions/submit-vote-
 @InputType('VoteDistributionInput')
 export class VoteDistributionInputDTO {
   @Field(() => String, { description: 'Получатель голосов' })
-  @IsNotEmpty({ message: 'Получатель голосов не должен быть пустым' })
-  @IsString({ message: 'Получатель голосов должен быть строкой' })
+  @IsNotEmpty({ message: t('capital.submitVoteInput.recipient.required') })
+  @IsString({ message: t('capital.submitVoteInput.recipient.string') })
   recipient!: string;
 
   @Field(() => String, { description: 'Сумма голосов' })
-  @IsNotEmpty({ message: 'Сумма голосов не должна быть пустой' })
-  @IsString({ message: 'Сумма голосов должна быть строкой' })
+  @IsNotEmpty({ message: t('capital.submitVoteInput.amount.required') })
+  @IsString({ message: t('capital.submitVoteInput.amount.string') })
   amount!: string;
 }
 
@@ -25,17 +26,17 @@ export class VoteDistributionInputDTO {
 @InputType('SubmitVoteInput')
 export class SubmitVoteInputDTO implements Omit<SubmitVoteDomainInput, 'voter'> {
   @Field(() => String, { description: 'Имя аккаунта кооператива' })
-  @IsNotEmpty({ message: 'Имя аккаунта кооператива не должно быть пустым' })
-  @IsString({ message: 'Имя аккаунта кооператива должно быть строкой' })
+  @IsNotEmpty({ message: t('capital.submitVoteInput.coopname.required') })
+  @IsString({ message: t('capital.submitVoteInput.coopname.string') })
   coopname!: string;
 
   @Field(() => String, { description: 'Хэш проекта' })
-  @IsNotEmpty({ message: 'Хэш проекта не должен быть пустым' })
-  @IsString({ message: 'Хэш проекта должен быть строкой' })
+  @IsNotEmpty({ message: t('capital.submitVoteInput.projectHash.required') })
+  @IsString({ message: t('capital.submitVoteInput.projectHash.string') })
   project_hash!: string;
 
   @Field(() => [VoteDistributionInputDTO], { description: 'Распределение голосов' })
-  @IsArray({ message: 'Распределение голосов должно быть массивом' })
+  @IsArray({ message: t('capital.submitVoteInput.votes.array') })
   @ValidateNested({ each: true })
   @Type(() => VoteDistributionInputDTO)
   votes!: VoteDistributionInputDTO[];

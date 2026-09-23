@@ -26,6 +26,7 @@ export function docDirectiveTransformer(schema: GraphQLSchema, directiveName: st
 
       if (directive) {
         const originalDescription = fieldConfig.description || '';
+        // i18n-ignore: текст автогенерируемой GraphQL-документации директивы для разработчиков API, не интерфейс пайщика
         const authDescription = `Требуемые роли: ${directive.roles.join(', ')}`;
 
         // Проверяем, содержит ли тип аргумента `data` поле `username`
@@ -33,6 +34,7 @@ export function docDirectiveTransformer(schema: GraphQLSchema, directiveName: st
         const hasUsername = dataType instanceof GraphQLInputObjectType && hasUsernameField(dataType);
 
         const argumentDescription = hasUsername
+          // i18n-ignore: текст автогенерируемой GraphQL-документации директивы для разработчиков API, не интерфейс пайщика
           ? 'Исключение: доступ разрешен, если `data.username` совпадает с `username` текущего пользователя.'
           : '';
 

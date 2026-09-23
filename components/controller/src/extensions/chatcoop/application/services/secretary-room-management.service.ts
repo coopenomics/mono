@@ -1,4 +1,4 @@
-import { BadRequestException, Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { MatrixApiService } from './matrix-api.service';
 import { ChatCoopApplicationService } from './chatcoop-application.service';
 import { MatrixUserManagementService } from '../../domain/services/matrix-user-management.service';
@@ -12,6 +12,8 @@ import {
   type ChatcoopStateRepository,
 } from '../../domain/repositories/chatcoop-state.repository';
 import type { ManagedMatrixRoomDomainEntity } from '../../domain/entities/managed-matrix-room.entity';
+import { t } from '../../i18n';
+import { DomainError } from '@coopenomics/extension-kit';
 
 export interface CreateSecretaryRoomInput {
   /** Логин пайщика-создателя (председатель или член совета) */
@@ -53,15 +55,15 @@ export class SecretaryRoomManagementService {
   async createSecretaryRoom(input: CreateSecretaryRoomInput): Promise<ManagedMatrixRoomDomainEntity> {
     const st = await this.chatcoopState.getSingleton();
     if (!st.isInitialized || !st.spaceId || st.spaceId.trim().length === 0) {
-      throw new BadRequestException('ChatCoop не инициализирован — нельзя создать комнату секретаря');
+      throw DomainError.badRequest('CHATCOOP_NOT_INITIALIZED');
     }
     const secretaryId = st.secretaryMatrixUserId;
     if (typeof secretaryId !== 'string' || secretaryId.trim().length === 0) {
-      throw new BadRequestException('Секретарь не инициализирован — нельзя создать комнату секретаря');
+      throw DomainError.badRequest('CHATCOOP_SECRETARY_NOT_INITIALIZED');
     }
     const displayName = input.displayName.trim();
     if (displayName.length === 0) {
-      throw new BadRequestException('Название комнаты не может быть пустым');
+      throw DomainError.badRequest('CHATCOOP_ROOM_NAME_EMPTY');
     }
 
     const adminUserId = this.matrixApi.getAdminUserId();
@@ -70,7 +72,7 @@ export class SecretaryRoomManagementService {
 
     const roomId = await this.matrixApi.createRoom(
       displayName.slice(0, 240),
-      `Комната секретаря — создал ${input.creatorUsername}`,
+      t('chatcoop.secretaryRoom.topic', { creatorUsername: input.creatorUsername }),
       isPrivate,
       SECRETARY_ROOM_MATRIX.roomType,
       SECRETARY_ROOM_MATRIX.initialState.length > 0 ? SECRETARY_ROOM_MATRIX.initialState : undefined,
@@ -127,10 +129,10 @@ export class SecretaryRoomManagementService {
   async removeSecretaryRoom(id: string): Promise<string> {
     const room = await this.managedRooms.findById(id);
     if (!room) {
-      throw new NotFoundException('Комната не найдена в реестре ChatCoop');
+      throw DomainError.notFound('CHATCOOP_ROOM_NOT_FOUND');
     }
     if (room.kind !== 'secretary') {
-      throw new BadRequestException('Удалять можно только комнаты секретаря (системные и проектные защищены)');
+      throw DomainError.badRequest('CHATCOOP_ROOM_DELETE_FORBIDDEN');
     }
 
     const matrixRoomId = room.matrixRoomId;
@@ -138,7 +140,7 @@ export class SecretaryRoomManagementService {
     const secretaryId = st.secretaryMatrixUserId;
     if (typeof secretaryId === 'string' && secretaryId.trim().length > 0) {
       try {
-        await this.matrixApi.kickUser(secretaryId.trim(), matrixRoomId, 'Комната секретаря удалена');
+        await this.matrixApi.kickUser(secretaryId.trim(), matrixRoomId, t('chatcoop.secretaryRoom.deletedKickReason'));
       } catch (err) {
         this.logger.warn(`Не удалось вывести секретаря из ${matrixRoomId}: ${String(err)}`);
       }

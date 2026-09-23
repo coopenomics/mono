@@ -22,9 +22,8 @@ import type { DeallocateFundsInputDTO } from '../dto/invests_management/dealloca
 import type { DeallocationLimitInputDTO } from '../dto/invests_management/deallocation-limit.dto';
 import { calculateDeallocationLimit, type DeallocationLimit } from '../../domain/utils/deallocation-limit';
 import type { PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
-import { DomainToBlockchainUtils,
-  CurrencyValidationUtil,
-} from '@coopenomics/extension-kit';
+import { DomainToBlockchainUtils, CurrencyValidationUtil, DomainError } from '@coopenomics/extension-kit';
+import { t } from '../../i18n';
 
 /**
  * Интерактор домена для управления инвестициями CAPITAL контракта
@@ -62,7 +61,7 @@ export class InvestsManagementInteractor {
   ): Promise<Cooperative.Registry.GenerationMoneyInvestStatement.Action> {
     const projectHash = data.project_hash;
     if (!projectHash) {
-      throw new Error('project_hash обязателен для генерации заявления об инвестировании');
+      throw DomainError.internal('CAPITAL_INVESTMENT_PROJECT_HASH_REQUIRED');
     }
 
     // 1. Находим подтвержденное приложение пользователя по project_hash
@@ -72,7 +71,7 @@ export class InvestsManagementInteractor {
     );
 
     if (!userAppendix) {
-      throw new Error(`Не найдено подтвержденное соглашение пользователя ${currentUser.username} для проекта ${projectHash}`);
+      throw DomainError.internal('CAPITAL_CONFIRMED_AGREEMENT_NOT_FOUND', { username: currentUser.username, projectHash });
     }
 
     // 2. Получаем contributor_hash и contributor_created_at из приложения к проекту
@@ -80,32 +79,32 @@ export class InvestsManagementInteractor {
     const contributorCreatedAt = userAppendix.appendix?.meta?.contributor_created_at;
 
     if (!contributorHash || !contributorCreatedAt) {
-      throw new Error('Не найдены данные участника в приложении к проекту');
+      throw DomainError.internal('CAPITAL_CONTRIBUTOR_DATA_IN_APPENDIX_MISSING');
     }
 
     // 3. Получаем parent_hash из метаданных документа приложения к проекту
     const parentAppendixHash = userAppendix.appendix?.meta?.parent_appendix_hash;
 
     if (!parentAppendixHash) {
-      throw new Error('Не найден parent_appendix_hash в метаданных приложения к проекту');
+      throw DomainError.internal('CAPITAL_PARENT_APPENDIX_HASH_MISSING');
     }
 
     // 4. Находим родительское приложение по parent_appendix_hash
     const parentAppendix = await this.appendixRepository.findByAppendixHash(parentAppendixHash);
 
     if (!parentAppendix) {
-      throw new Error(`Не найдено родительское соглашение с hash ${parentAppendixHash}`);
+      throw DomainError.internal('CAPITAL_PARENT_AGREEMENT_NOT_FOUND', { hash: parentAppendixHash });
     }
 
     // 5. Получаем created_at из метаданных родительского документа
     const appendixCreatedAt = parentAppendix.appendix?.meta?.created_at;
 
     if (!appendixCreatedAt) {
-      throw new Error('Не найдена дата создания родительского соглашения');
+      throw DomainError.internal('CAPITAL_PARENT_AGREEMENT_DATE_MISSING');
     }
 
     // Проверяем, что amount содержит правильный символ валюты
-    CurrencyValidationUtil.validateCurrencySymbol(data.amount, 'сумме инвестирования');
+    CurrencyValidationUtil.validateCurrencySymbol(data.amount, t('capital.investsManagement.fieldLabel.investmentAmount'));
 
     // 6. Возвращаем enriched data с данными родительского соглашения
     return {
@@ -126,7 +125,7 @@ export class InvestsManagementInteractor {
     _currentUser: IMonoAccount
   ): Promise<InnerTransactResult> {
     const project = await this.projectRepository.findByHash(data.project_hash.toLowerCase());
-    assertBlockchainProject(project, 'инвестирование');
+    assertBlockchainProject(project, t('capital.investsManagement.actionLabel.investment'));
 
     // Преобразовываем доменный документ в формат блокчейна
     const blockchainData = {
@@ -164,7 +163,7 @@ export class InvestsManagementInteractor {
   async allocateFunds(data: AllocateFundsInputDTO): Promise<InnerTransactResult> {
     const project_hash = data.project_hash.toLowerCase();
     const project = await this.projectRepository.findByHash(project_hash);
-    assertBlockchainProject(project, 'направление средств');
+    assertBlockchainProject(project, t('capital.investsManagement.actionLabel.allocateFunds'));
 
     return await this.capitalBlockchainPort.allocateFunds({
       coopname: data.coopname,
@@ -179,7 +178,7 @@ export class InvestsManagementInteractor {
   async deallocateFunds(data: DeallocateFundsInputDTO): Promise<InnerTransactResult> {
     const project_hash = data.project_hash.toLowerCase();
     const project = await this.projectRepository.findByHash(project_hash);
-    assertBlockchainProject(project, 'возврат средств');
+    assertBlockchainProject(project, t('capital.investsManagement.actionLabel.deallocateFunds'));
 
     return await this.capitalBlockchainPort.deallocateFunds({
       coopname: data.coopname,
@@ -198,7 +197,7 @@ export class InvestsManagementInteractor {
   async getDeallocationLimit(data: DeallocationLimitInputDTO): Promise<DeallocationLimit> {
     const project_hash = data.project_hash.toLowerCase();
     const project = await this.projectRepository.findByHash(project_hash);
-    assertBlockchainProject(project, 'расчёт доступного возврата');
+    assertBlockchainProject(project, t('capital.investsManagement.actionLabel.calculateAvailableReturn'));
 
     // Без постраничного вывода: предел считается по самому «дорогому» заёмщику,
     // и пропущенный участник дал бы сумму, которую контракт отклонит

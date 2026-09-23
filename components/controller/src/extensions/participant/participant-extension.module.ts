@@ -1,6 +1,7 @@
+import './i18n';
 import cron from 'node-cron';
 import { Inject, Injectable, Module, OnModuleDestroy } from '@nestjs/common';
-import { BaseExtensionModule, EXTENSION_REPOSITORY, type ExtensionDomainRepository, LOG_EXTENSION_REPOSITORY, LogExtensionDomainRepository } from '@coopenomics/extension-kit';
+import { BaseExtensionModule, EXTENSION_REPOSITORY, type ExtensionDomainRepository, LOG_EXTENSION_REPOSITORY, LogExtensionDomainRepository, DomainError } from '@coopenomics/extension-kit';
 import { LOGGER_PORT, type ILoggerPort, ACCOUNT_PORT, type IAccountPort, type InnerAccount, MEET_PORT, IMeetPort } from '@coopenomics/innercoop';
 import type { ExtensionDomainEntity } from '@coopenomics/extension-kit';
 import { merge } from 'lodash';
@@ -55,7 +56,7 @@ export class ParticipantExtension extends BaseExtensionModule implements OnModul
 
   async initialize() {
     const extensionData = await this.extensionRepository.findByName(this.name);
-    if (!extensionData) throw new Error('Конфиг не найден');
+    if (!extensionData) throw DomainError.internal('PARTICIPANT_CONFIG_NOT_FOUND');
 
     // Применяем глубокий мердж дефолтных параметров с существующими
     this.extension = {

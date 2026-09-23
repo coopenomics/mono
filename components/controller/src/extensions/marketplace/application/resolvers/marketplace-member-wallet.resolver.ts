@@ -12,6 +12,7 @@ import {
 } from '../dto/marketplace-member-wallet.dto';
 import { MarketplaceMembershipGuard } from '../guards/marketplace-membership.guard';
 import { USER_WALLET_PORT, type IUserWalletPort } from '@coopenomics/innercoop';
+import { t } from '../../i18n';
 
 /**
  * Релевантные стол-заказам USER_SHARED-кошельки по стандарту marketplace
@@ -29,10 +30,10 @@ const MARKETPLACE_RELEVANT_WALLETS: ReadonlyArray<{
   program_id: number;
   label: string;
 }> = [
-  { name: 'w.wal.share', program_id: 1, label: 'Паевой | Цифровой Кошелёк' },
-  { name: 'w.mkt.order', program_id: 2, label: 'Паевой резерв под заказы | Стол Заказов' },
-  { name: 'w.mkt.share', program_id: 2, label: 'Свободный паевой | Стол Заказов' },
-  { name: 'w.mkt.member', program_id: 2, label: 'Членский взнос | Стол Заказов' },
+  { name: 'w.wal.share', program_id: 1, label: t('marketplace.memberWallet.shareDigitalWalletLabel') },
+  { name: 'w.mkt.order', program_id: 2, label: t('marketplace.memberWallet.shareOrderReserveLabel') },
+  { name: 'w.mkt.share', program_id: 2, label: t('marketplace.memberWallet.shareFreeLabel') },
+  { name: 'w.mkt.member', program_id: 2, label: t('marketplace.memberWallet.membershipFeeLabel') },
 ];
 
 /**

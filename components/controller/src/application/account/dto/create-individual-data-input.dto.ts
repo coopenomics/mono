@@ -3,11 +3,12 @@ import { IsNotEmpty, IsOptional, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 import { PassportInputDTO } from './passport-input.dto';
 import { NoMarkup } from '~/shared/validators/no-markup.decorator';
+import { t } from '~/i18n';
 
 @InputType('CreateIndividualDataInput')
 export class CreateIndividualDataInputDTO {
   @Field({ description: 'Дата рождения' })
-  @IsNotEmpty({ message: 'Поле "birthdate" обязательно для заполнения.' })
+  @IsNotEmpty({ message: t('account.createIndividualDataInput.fieldBirthdateRequired') })
   @NoMarkup()
   birthdate!: string;
 
@@ -16,22 +17,22 @@ export class CreateIndividualDataInputDTO {
   email!: string;
 
   @Field({ description: 'Имя' })
-  @IsNotEmpty({ message: 'Поле "first_name" обязательно для заполнения.' })
+  @IsNotEmpty({ message: t('account.createIndividualDataInput.fieldFirstNameRequired') })
   @NoMarkup()
   first_name!: string;
 
   @Field({ description: 'Полный адрес' })
-  @IsNotEmpty({ message: 'Поле "full_address" обязательно для заполнения.' })
+  @IsNotEmpty({ message: t('account.createIndividualDataInput.fieldFullAddressRequired') })
   @NoMarkup()
   full_address!: string;
 
   @Field({ description: 'Фамилия' })
-  @IsNotEmpty({ message: 'Поле "last_name" обязательно для заполнения.' })
+  @IsNotEmpty({ message: t('account.createIndividualDataInput.fieldLastNameRequired') })
   @NoMarkup()
   last_name!: string;
 
   @Field({ description: 'Отчество' })
-  @IsNotEmpty({ message: 'Поле "middle_name" обязательно для заполнения.' })
+  @IsNotEmpty({ message: t('account.createIndividualDataInput.fieldMiddleNameRequired') })
   @NoMarkup()
   middle_name!: string;
 
@@ -42,7 +43,7 @@ export class CreateIndividualDataInputDTO {
   passport?: PassportInputDTO;
 
   @Field({ description: 'Телефон' })
-  @IsNotEmpty({ message: 'Поле "phone" обязательно для заполнения.' })
+  @IsNotEmpty({ message: t('account.createIndividualDataInput.fieldPhoneRequired') })
   @NoMarkup()
   phone!: string;
 }
@@ -50,7 +51,7 @@ export class CreateIndividualDataInputDTO {
 @InputType('CreateSovietIndividualDataInput')
 export class CreateSovietIndividualDataInputDTO extends CreateIndividualDataInputDTO {
   @Field({ description: 'Email адрес' })
-  @IsNotEmpty({ message: 'Поле "email" обязательно для заполнения.' })
+  @IsNotEmpty({ message: t('account.createIndividualDataInput.fieldEmailRequired') })
   @NoMarkup()
   email!: string;
 }

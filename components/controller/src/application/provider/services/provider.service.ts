@@ -1,4 +1,4 @@
-import { Injectable, Logger, BadRequestException, Inject } from '@nestjs/common';
+import { Injectable, Logger, Inject } from '@nestjs/common';
 import { ProviderSubscriptionDTO } from '../dto/provider-subscription.dto';
 import { CurrentInstanceDTO } from '../dto/current-instance.dto';
 import { InstanceStatus } from '~/domain/instance-status.enum';
@@ -6,7 +6,7 @@ import { Client, configureClient } from '@coopenomics/provider-client';
 import { config } from '~/config';
 import { DocumentDomainService } from '~/domain/document/services/document-domain.service';
 import { ConvertToAxonStatementGenerateDocumentInputDTO } from '~/application/document/documents-dto/convert-to-axon-statement-document.dto';
-import { GenerateDocumentOptionsInputDTO, GeneratedDocumentDTO, AmountFormatterUtils } from '@coopenomics/extension-kit';
+import { GenerateDocumentOptionsInputDTO, GeneratedDocumentDTO, AmountFormatterUtils, DomainError } from '@coopenomics/extension-kit';
 import { ProcessConvertToAxonStatementInputDTO } from '../dto/process-convert-to-axon-statement-input.dto';
 import { SystemBlockchainPort, SYSTEM_BLOCKCHAIN_PORT } from '~/domain/system/interfaces/system-blockchain.port';
 import { AmountComparisonUtils } from '~/shared/utils/amount-comparison.utils';
@@ -47,7 +47,7 @@ export class ProviderService {
   async getUserSubscriptions(username: string): Promise<ProviderSubscriptionDTO[]> {
     // Проверяем доступность провайдера
     if (!this.isProviderAvailable()) {
-      throw new Error('Провайдер не настроен');
+      throw DomainError.internal('PROVIDER_NOT_CONFIGURED');
     }
 
     try {
@@ -77,7 +77,7 @@ export class ProviderService {
   async getSubscriptionById(id: number): Promise<ProviderSubscriptionDTO> {
     // Проверяем доступность провайдера
     if (!this.isProviderAvailable()) {
-      throw new Error('Провайдер не настроен');
+      throw DomainError.internal('PROVIDER_NOT_CONFIGURED');
     }
 
     try {
@@ -99,7 +99,7 @@ export class ProviderService {
   async getCurrentInstance(username: string): Promise<CurrentInstanceDTO | null> {
     // Проверяем доступность провайдера
     if (!this.isProviderAvailable()) {
-      throw new Error('Провайдер не настроен');
+      throw DomainError.internal('PROVIDER_NOT_CONFIGURED');
     }
 
     try {
@@ -154,12 +154,12 @@ export class ProviderService {
     const storedDocument = await this.documentDomainService.getDocumentByHash(data.signedDocument.doc_hash);
 
     if (!storedDocument) {
-      throw new BadRequestException('Документ не найден в реестре');
+      throw DomainError.badRequest('PROVIDER_DOCUMENT_NOT_FOUND');
     }
 
     // Проверяем совпадение хэшей
     if (storedDocument.hash !== data.signedDocument.doc_hash) {
-      throw new BadRequestException('Хэш документа не совпадает с хранимым');
+      throw DomainError.badRequest('PROVIDER_DOCUMENT_HASH_MISMATCH');
     }
 
     // Проверяем совпадение сумм (число и валюта)

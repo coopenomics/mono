@@ -1,6 +1,7 @@
+import { t } from '~/i18n';
 /** Человекочитаемые заглушки, когда метаданные устройства/IP сессии не сохранялись. */
-export const SESSION_DEVICE_UNKNOWN = 'неизвестное устройство';
-export const SESSION_IP_UNKNOWN = 'неизвестен';
+export const SESSION_DEVICE_UNKNOWN = t('authV2.sessionTypes.unknownDevice');
+export const SESSION_IP_UNKNOWN = t('authV2.sessionTypes.unknownIp');
 
 /**
  * Активная сессия пайщика (Story 3.7) — проекция персистентного refresh-токена,

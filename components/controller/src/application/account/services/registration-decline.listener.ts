@@ -8,6 +8,7 @@ import type { PaymentDomainInterface } from '~/domain/gateway/interfaces/payment
 import type { ActionDomainInterface } from '~/domain/parser/interfaces/action-domain.interface';
 import { generateUniqueHash } from '~/utils/generate-hash.util';
 import { RegistratorContract } from 'cooptypes';
+import { t } from '~/i18n';
 
 // Имя on-chain события отказа в регистрации — из констант cooptypes, не хардкод.
 const REGISTRATOR = RegistratorContract.contractName.production;
@@ -99,7 +100,7 @@ export class RegistrationDeclineListener {
       // исходного платежа, что показывался пайщику в QR) и та же НДС-оговорка
       // (VAT_EXEMPT_NOTE). Назначение целиком хранится в memo — провайдеры её
       // больше не дописывают. Кассир копирует этот текст as-is в возвратный платёж.
-      memo: `Возврат вступительного и минимального паевого взносов №${original.hash.slice(0, 8)}. ${VAT_EXEMPT_NOTE}`,
+      memo: t('account.registrationDeclineListener.refundMemo', { hashPrefix: original.hash.slice(0, 8), vatExemptNote: VAT_EXEMPT_NOTE }),
       provider: original.provider,
       secret: generateUniqueHash(),
       // Хэш = registration_hash: совпадает с outcome_hash on-chain исходящего

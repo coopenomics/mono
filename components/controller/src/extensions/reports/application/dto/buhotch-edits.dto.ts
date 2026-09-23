@@ -20,6 +20,7 @@ import {
   OKPO_PATTERN,
   DATE_DDMMYYYY_PATTERN,
 } from '../../domain/patterns';
+import { t } from '../../i18n';
 
 /**
  * Редактируемое состояние формы БУХОТЧ (КНД 0710096, ВерсФорм 5.04, НКО-профиль).
@@ -102,7 +103,7 @@ export class BuhotchHeaderEditsInputDTO {
 
   /** `<Документ ДатаДок="DD.MM.YYYY">`. */
   @Field(() => String)
-  @Matches(DATE_DDMMYYYY_PATTERN, { message: 'ДатаДок — DD.MM.YYYY' })
+  @Matches(DATE_DDMMYYYY_PATTERN, { message: t('reports.requisites.status.docDateFormat') })
   docDate!: string;
 
   /** `<Документ ОтчетГод="...">`. */
@@ -153,11 +154,11 @@ export class BuhotchOrganizationEditsInputDTO {
   orgName!: string;
 
   @Field(() => String)
-  @Matches(INN_UL_PATTERN, { message: 'ИНН ЮЛ — 10 цифр' })
+  @Matches(INN_UL_PATTERN, { message: t('reports.requisites.status.innUlFormat') })
   inn!: string;
 
   @Field(() => String)
-  @Matches(KPP_PATTERN, { message: 'КПП — 9 символов (4 цифры + 2 [0-9A-Z] + 3 цифры)' })
+  @Matches(KPP_PATTERN, { message: t('reports.requisites.status.kppFullFormat') })
   kpp!: string;
 
   @Field(() => String, { nullable: true })
@@ -168,15 +169,15 @@ export class BuhotchOrganizationEditsInputDTO {
 
   @Field(() => String, { nullable: true })
   @IsOptional()
-  @Matches(OKPO_PATTERN, { message: 'ОКПО — 8 или 10 цифр' })
+  @Matches(OKPO_PATTERN, { message: t('reports.requisites.status.okpoFormat') })
   okpo?: string | null;
 
   @Field(() => String)
-  @Matches(OKFS_PATTERN, { message: 'ОКФС — 1-3 цифры' })
+  @Matches(OKFS_PATTERN, { message: t('reports.requisites.status.okfsFormat') })
   okfs!: string;
 
   @Field(() => String)
-  @Matches(OKOPF_PATTERN, { message: 'ОКОПФ — 5 цифр' })
+  @Matches(OKOPF_PATTERN, { message: t('reports.requisites.status.okopfFormat') })
   okopf!: string;
 }
 

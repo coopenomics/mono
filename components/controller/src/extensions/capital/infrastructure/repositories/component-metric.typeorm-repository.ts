@@ -6,6 +6,7 @@ import { ComponentMetricDomainEntity } from '../../domain/entities/component-met
 import { MetricStatus } from '../../domain/enums/metric-status.enum';
 import { ComponentMetricTypeormEntity } from '../entities/component-metric.typeorm-entity';
 import { ComponentMetricMapper } from '../mappers/component-metric.mapper';
+import { DomainError } from '@coopenomics/extension-kit';
 
 @Injectable()
 export class ComponentMetricTypeormRepository implements ComponentMetricRepository {
@@ -63,7 +64,7 @@ export class ComponentMetricTypeormRepository implements ComponentMetricReposito
     await this.repo.save(ComponentMetricMapper.toEntity(metric));
     const updated = await this.repo.findOne({ where: { _id: metric._id } });
     if (!updated) {
-      throw new Error(`Метрика ${metric.metric_hash} не найдена после обновления`);
+      throw DomainError.internal('CAPITAL_METRIC_NOT_FOUND_AFTER_UPDATE', { hash: metric.metric_hash });
     }
     return ComponentMetricMapper.toDomain(updated);
   }

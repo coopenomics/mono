@@ -2,21 +2,22 @@ import { Field, InputType } from '@nestjs/graphql';
 import { IsNotEmpty, IsString, ValidateNested } from 'class-validator';
 import type { SelectBranchInputDomainInterface } from '~/domain/branch/interfaces/select-branch-domain-input.interface';
 import { SelectBranchSignedDocumentInputDTO } from '../../document/documents-dto/select-branch-document.dto';
+import { t } from '~/i18n';
 
 @InputType('SelectBranchInput')
 export class SelectBranchInputDTO implements SelectBranchInputDomainInterface {
   @Field(() => String, { description: 'Имя аккаунта кооператива' })
-  @IsNotEmpty({ message: 'Имя аккаунта кооператива не должно быть пустым' })
-  @IsString({ message: 'Имя аккаунта кооператива должно быть строкой' })
+  @IsNotEmpty({ message: t('branch.selectBranchInput.coopnameRequired') })
+  @IsString({ message: t('branch.selectBranchInput.coopnameMustBeString') })
   coopname!: string;
 
   @Field(() => String, { description: 'Имя аккаунта кооперативного участка' })
-  @IsNotEmpty({ message: 'Имя аккаунта кооперативного участка не должно быть пустым' })
-  @IsString({ message: 'Имя аккаунта кооперативного участка должно быть строкой' })
+  @IsNotEmpty({ message: t('branch.selectBranchInput.branameRequired') })
+  @IsString({ message: t('branch.selectBranchInput.branameMustBeString') })
   braname!: string;
 
   @Field(() => String, { description: 'Имя аккаунта пользователя' })
-  @IsNotEmpty({ message: 'Имя аккаунта пользователя не должно быть пустым' })
+  @IsNotEmpty({ message: t('branch.selectBranchInput.usernameRequired') })
   username!: string;
 
   @Field(() => SelectBranchSignedDocumentInputDTO, {

@@ -1,3 +1,4 @@
+import { t } from '~/i18n';
 /** Зеркало enum'а ошибок SDK @coopenomics/auth (источник контракта един). */
 export enum AuthV2ErrorCode {
   InvalidCredentials = 'invalid_credentials',
@@ -45,7 +46,7 @@ export class VaultServerDecryptionForbiddenError extends AuthV2Error {
   constructor() {
     super(
       AuthV2ErrorCode.VaultServerDecryptionForbidden,
-      'Серверная расшифровка ключа участника запрещена: расшифровать может только владелец пароля на клиенте',
+      t('authV2.authV2Error.vaultServerDecryptionForbidden'),
     );
   }
 }

@@ -1,3 +1,4 @@
+import { t } from '~/i18n';
 /**
  * Человекочитаемое описание входа для уведомления «вход с нового устройства».
  *
@@ -8,7 +9,7 @@
 
 /** Браузер по маркерам UA. Порядок важен: Chrome-клоны объявляют и Chrome тоже. */
 function browserOf(ua: string): string | null {
-  if (/YaBrowser\//i.test(ua)) return 'Яндекс Браузер';
+  if (/YaBrowser\//i.test(ua)) return t('authV2.deviceDescriptionUtil.browserYandex');
   if (/Edg(e|A|iOS)?\//i.test(ua)) return 'Edge';
   if (/(OPR|Opera)\//i.test(ua)) return 'Opera';
   if (/Firefox\//i.test(ua)) return 'Firefox';
@@ -30,13 +31,13 @@ function osOf(ua: string): string | null {
 
 /** «Chrome на macOS» / «Safari» / «неизвестное устройство». */
 export function describeUserAgent(userAgent: string | null | undefined): string {
-  if (!userAgent) return 'неизвестное устройство';
+  if (!userAgent) return t('authV2.deviceDescriptionUtil.unknownDevice');
   const browser = browserOf(userAgent);
   const os = osOf(userAgent);
-  if (browser && os) return `${browser} на ${os}`;
+  if (browser && os) return t('authV2.deviceDescriptionUtil.deviceSummary', { browser, os });
   if (browser) return browser;
   if (os) return os;
-  return 'неизвестное устройство';
+  return t('authV2.deviceDescriptionUtil.unknownDevice');
 }
 
 /** Приватный/служебный адрес: гео спрашивать не у кого, это локальная сеть. */
@@ -61,7 +62,7 @@ const GEO_TIMEOUT_MS = 2500;
 export async function resolveIpLocation(ip: string | null | undefined): Promise<string | null> {
   if (!ip) return null;
   const bare = ip.replace(/^::ffff:/i, '');
-  if (isPrivateIp(bare)) return 'локальная сеть';
+  if (isPrivateIp(bare)) return t('authV2.deviceDescriptionUtil.localNetwork');
   try {
     const res = await fetch(`https://ipwho.is/${encodeURIComponent(bare)}`, {
       signal: AbortSignal.timeout(GEO_TIMEOUT_MS),

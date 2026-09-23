@@ -1,6 +1,7 @@
 import { Field, InputType } from '@nestjs/graphql';
 import { IsNotEmpty, IsString } from 'class-validator';
 import type { StartProjectDomainInput } from '../../../domain/actions/start-project-domain-input.interface';
+import { t } from '../../../i18n';
 
 /**
  * GraphQL DTO для запуска проекта CAPITAL контракта
@@ -8,12 +9,12 @@ import type { StartProjectDomainInput } from '../../../domain/actions/start-proj
 @InputType('StartProjectInput')
 export class StartProjectInputDTO implements StartProjectDomainInput {
   @Field(() => String, { description: 'Имя аккаунта кооператива' })
-  @IsNotEmpty({ message: 'Имя аккаунта кооператива не должно быть пустым' })
-  @IsString({ message: 'Имя аккаунта кооператива должно быть строкой' })
+  @IsNotEmpty({ message: t('capital.startProjectInput.coopname.required') })
+  @IsString({ message: t('capital.startProjectInput.coopname.string') })
   coopname!: string;
 
   @Field(() => String, { description: 'Хэш проекта' })
-  @IsNotEmpty({ message: 'Хэш проекта не должен быть пустым' })
-  @IsString({ message: 'Хэш проекта должен быть строкой' })
+  @IsNotEmpty({ message: t('capital.startProjectInput.projectHash.required') })
+  @IsString({ message: t('capital.startProjectInput.projectHash.string') })
   project_hash!: string;
 }

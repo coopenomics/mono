@@ -3,6 +3,7 @@ import { IsNotEmpty, IsString } from 'class-validator';
 import { Type } from 'class-transformer';
 import { SignedDigitalDocumentInputDTO } from '@coopenomics/extension-kit';
 import type { ConvertSegmentDomainInput } from '../../../domain/actions/convert-segment-domain-input.interface';
+import { t } from '../../../i18n';
 
 /**
  * GraphQL DTO для конвертации сегмента CAPITAL контракта
@@ -10,33 +11,33 @@ import type { ConvertSegmentDomainInput } from '../../../domain/actions/convert-
 @InputType('ConvertSegmentInput')
 export class ConvertSegmentInputDTO implements ConvertSegmentDomainInput {
   @Field(() => String, { description: 'Имя аккаунта кооператива' })
-  @IsNotEmpty({ message: 'Имя аккаунта кооператива не должно быть пустым' })
-  @IsString({ message: 'Имя аккаунта кооператива должно быть строкой' })
+  @IsNotEmpty({ message: t('capital.convertSegmentInput.coopname.required') })
+  @IsString({ message: t('capital.convertSegmentInput.coopname.string') })
   coopname!: string;
 
   @Field(() => String, { description: 'Имя пользователя' })
-  @IsNotEmpty({ message: 'Имя пользователя не должно быть пустым' })
-  @IsString({ message: 'Имя пользователя должно быть строкой' })
+  @IsNotEmpty({ message: t('capital.convertSegmentInput.username.required') })
+  @IsString({ message: t('capital.convertSegmentInput.username.string') })
   username!: string;
 
   @Field(() => String, { description: 'Хэш проекта' })
-  @IsNotEmpty({ message: 'Хэш проекта не должен быть пустым' })
-  @IsString({ message: 'Хэш проекта должен быть строкой' })
+  @IsNotEmpty({ message: t('capital.convertSegmentInput.projectHash.required') })
+  @IsString({ message: t('capital.convertSegmentInput.projectHash.string') })
   project_hash!: string;
 
   @Field(() => String, { description: 'Хэш результата (анкер процесса p.cap.rid)' })
-  @IsNotEmpty({ message: 'Хэш результата не должен быть пустым' })
-  @IsString({ message: 'Хэш результата должен быть строкой' })
+  @IsNotEmpty({ message: t('capital.convertSegmentInput.resultHash.required') })
+  @IsString({ message: t('capital.convertSegmentInput.resultHash.string') })
   result_hash!: string;
 
   @Field(() => String, { description: 'Сумма для конвертации в главный кошелек' })
-  @IsNotEmpty({ message: 'Сумма для конвертации в главный кошелек не должна быть пустой' })
-  @IsString({ message: 'Сумма для конвертации в главный кошелек должна быть строкой' })
+  @IsNotEmpty({ message: t('capital.convertSegmentInput.walletAmount.required') })
+  @IsString({ message: t('capital.convertSegmentInput.walletAmount.string') })
   wallet_amount!: string;
 
   @Field(() => String, { description: 'Сумма для конвертации в благорост' })
-  @IsNotEmpty({ message: 'Сумма для конвертации в благорост не должна быть пустой' })
-  @IsString({ message: 'Сумма для конвертации в благорост должна быть строкой' })
+  @IsNotEmpty({ message: t('capital.convertSegmentInput.capitalAmount.required') })
+  @IsString({ message: t('capital.convertSegmentInput.capitalAmount.string') })
   capital_amount!: string;
 
   @Field(() => SignedDigitalDocumentInputDTO, { description: 'Заявление' })

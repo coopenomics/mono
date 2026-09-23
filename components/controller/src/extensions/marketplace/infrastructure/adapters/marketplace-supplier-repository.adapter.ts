@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import type {
@@ -9,6 +9,7 @@ import type {
 import { MarketplaceSupplierDomainEntity } from '../../domain/entities/marketplace-supplier.entity';
 import { MarketplaceSupplierEntity } from '../entities/marketplace-supplier.entity';
 import { MarketplaceSupplierMapper } from '../mappers/marketplace-supplier.mapper';
+import { DomainError } from '@coopenomics/extension-kit';
 
 @Injectable()
 export class MarketplaceSupplierRepositoryAdapter
@@ -60,7 +61,7 @@ export class MarketplaceSupplierRepositoryAdapter
   ): Promise<MarketplaceSupplierDomainEntity> {
     const row = await this.repo.findOne({ where: { coopname, member_account } });
     if (!row) {
-      throw new NotFoundException(`Поставщик ${member_account} не найден в реестре.`);
+      throw DomainError.notFound('MARKETPLACE_SUPPLIER_NOT_FOUND_IN_REGISTRY', { memberAccount: member_account });
     }
     if (patch.model !== undefined) row.model = patch.model;
     if (patch.status !== undefined) row.status = patch.status;

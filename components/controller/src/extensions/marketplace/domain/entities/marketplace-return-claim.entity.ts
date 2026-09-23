@@ -53,6 +53,7 @@ export class MarketplaceReturnClaimDomainEntity {
 
   constructor(props: MarketplaceReturnClaimProps) {
     if (!props.id || !props.coopname || !props.request_hash || !props.order_id) {
+      // i18n-ignore: внутренний инвариант сущности, до пайщика не доходит
       throw new Error('MarketplaceReturnClaimDomainEntity: обязательные поля отсутствуют.');
     }
     this.id = props.id;

@@ -4,6 +4,7 @@ import { Type } from 'class-transformer';
 import type { CreateAnnualGeneralMeetInputDomainInterface } from '~/domain/meet/interfaces/create-annual-meet-input-domain.interface';
 import { AgendaGeneralMeetPointInputDTO } from './agenda-meet-point-input.dto';
 import { AnnualGeneralMeetingAgendaSignedDocumentInputDTO } from '~/application/document/documents-dto/annual-general-meeting-agenda-document.dto';
+import { t } from '~/i18n';
 
 /** Согласовано с лимитом на desktop (повестка / форма собрания) */
 const MEET_DETAILS_MAX_LEN = 10_000;
@@ -11,37 +12,37 @@ const MEET_DETAILS_MAX_LEN = 10_000;
 @InputType('CreateAnnualGeneralMeetInput')
 export class CreateAnnualGeneralMeetInputDTO implements CreateAnnualGeneralMeetInputDomainInterface {
   @Field(() => String, { description: 'Имя аккаунта кооператива' })
-  @IsNotEmpty({ message: 'Имя аккаунта кооператива не должно быть пустым' })
-  @IsString({ message: 'Имя аккаунта кооператива должно быть строкой' })
+  @IsNotEmpty({ message: t('meet.createMeetAgendaInput.coopnameRequired') })
+  @IsString({ message: t('meet.createMeetAgendaInput.coopnameMustBeString') })
   coopname!: string;
 
   @Field(() => String, { description: 'Имя аккаунта инициатора' })
-  @IsNotEmpty({ message: 'Имя аккаунта инициатора не должно быть пустым' })
-  @IsString({ message: 'Имя аккаунта инициатора должно быть строкой' })
+  @IsNotEmpty({ message: t('meet.createMeetAgendaInput.initiatorRequired') })
+  @IsString({ message: t('meet.createMeetAgendaInput.initiatorMustBeString') })
   initiator!: string;
 
   @Field(() => String, { description: 'Имя аккаунта председателя' })
-  @IsNotEmpty({ message: 'Имя аккаунта председателя не должно быть пустым' })
-  @IsString({ message: 'Имя аккаунта председателя должно быть строкой' })
+  @IsNotEmpty({ message: t('meet.createMeetAgendaInput.chairmanRequired') })
+  @IsString({ message: t('meet.createMeetAgendaInput.chairmanMustBeString') })
   presider!: string;
 
   @Field(() => String, { description: 'Имя аккаунта секретаря' })
-  @IsNotEmpty({ message: 'Имя аккаунта секретаря не должно быть пустым' })
-  @IsString({ message: 'Имя аккаунта секретаря должно быть строкой' })
+  @IsNotEmpty({ message: t('meet.createMeetAgendaInput.secretaryRequired') })
+  @IsString({ message: t('meet.createMeetAgendaInput.secretaryMustBeString') })
   secretary!: string;
 
   @Field(() => [AgendaGeneralMeetPointInputDTO], { description: 'Повестка собрания' })
-  @IsArray({ message: 'Повестка должна быть массивом' })
+  @IsArray({ message: t('meet.createMeetAgendaInput.agendaMustBeArray') })
   @ValidateNested({ each: true })
   @Type(() => AgendaGeneralMeetPointInputDTO)
   agenda!: AgendaGeneralMeetPointInputDTO[];
 
   @Field(() => Date, { description: 'Время открытия собрания' })
-  @IsNotEmpty({ message: 'Время открытия собрания не должно быть пустым' })
+  @IsNotEmpty({ message: t('meet.createMeetAgendaInput.openTimeRequired') })
   open_at!: Date;
 
   @Field(() => Date, { description: 'Время закрытия собрания' })
-  @IsNotEmpty({ message: 'Время закрытия собрания не должно быть пустым' })
+  @IsNotEmpty({ message: t('meet.createMeetAgendaInput.closeTimeRequired') })
   close_at!: Date;
 
   @Field(() => AnnualGeneralMeetingAgendaSignedDocumentInputDTO, { description: 'Предложение повестки собрания' })

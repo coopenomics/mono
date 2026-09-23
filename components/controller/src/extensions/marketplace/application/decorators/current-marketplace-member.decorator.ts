@@ -2,6 +2,7 @@ import { createParamDecorator, ExecutionContext, UnauthorizedException } from '@
 import { GqlExecutionContext } from '@nestjs/graphql';
 
 import type { IMarketplaceCurrentMember } from '../dto/marketplace-current-member.dto';
+import { DomainError } from '@coopenomics/extension-kit';
 
 /**
  * Извлекает `IMarketplaceCurrentMember` из GraphQL-context, куда его положил
@@ -19,9 +20,7 @@ export const CurrentMarketplaceMember = createParamDecorator(
       (gqlContext?.req?.currentMember as IMarketplaceCurrentMember | undefined);
 
     if (!currentMember) {
-      throw new UnauthorizedException(
-        'MarketplaceMembershipGuard не отработал — currentMember отсутствует в context'
-      );
+      throw DomainError.unauthorized('MARKETPLACE_MEMBERSHIP_GUARD_NOT_APPLIED');
     }
 
     return currentMember;

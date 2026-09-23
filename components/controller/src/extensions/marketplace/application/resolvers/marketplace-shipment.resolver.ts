@@ -1,6 +1,6 @@
-import { ForbiddenException, Inject, Injectable, NotFoundException, UseGuards } from '@nestjs/common';
+import { Inject, Injectable, UseGuards } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
-import { GqlJwtAuthGuard, platformSettings } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, platformSettings, DomainError } from '@coopenomics/extension-kit';
 import { CurrentMarketplaceMember } from '../decorators/current-marketplace-member.decorator';
 import { RequireMarketplaceAccess } from '../decorators/marketplace-access.decorator';
 import { MarketplaceMembershipGuard } from '../guards/marketplace-membership.guard';
@@ -127,9 +127,7 @@ export class MarketplaceShipmentResolver {
         member.username
       );
       if (!isMember) {
-        throw new ForbiddenException(
-          'Лента поставок доступна только по участку, на котором вы являетесь председателем или доверенным лицом.'
-        );
+        throw DomainError.forbidden('MARKETPLACE_SHIPMENT_FEED_NOT_TRUSTEE');
       }
     }
 
@@ -156,10 +154,10 @@ export class MarketplaceShipmentResolver {
   ): Promise<MarketplaceShipmentDTO> {
     const shipment = await this.shipmentRepo.findById(data.shipment_id);
     if (!shipment || shipment.coopname !== platformSettings().coopname) {
-      throw new NotFoundException('Партия поставки не найдена.');
+      throw DomainError.notFound('MARKETPLACE_SHIPMENT_NOT_FOUND');
     }
     if (shipment.offerer_account !== member.username) {
-      throw new NotFoundException('Партия поставки не найдена.');
+      throw DomainError.notFound('MARKETPLACE_SHIPMENT_NOT_FOUND');
     }
     return toMarketplaceShipmentDTO(shipment);
   }

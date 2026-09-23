@@ -1,6 +1,7 @@
 import { Field, InputType } from '@nestjs/graphql';
 import { IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator';
 import type { ProjectFreeDecisionDomainInterface } from '~/domain/common/interfaces/project-free-decision-domain.interface';
+import { t } from '~/i18n';
 
 @InputType('CreateProjectFreeDecisionInput')
 export class CreateProjectFreeDecisionInputDTO implements Omit<ProjectFreeDecisionDomainInterface, 'id'> {
@@ -9,17 +10,17 @@ export class CreateProjectFreeDecisionInputDTO implements Omit<ProjectFreeDecisi
     nullable: true,
   })
   @IsOptional()
-  @IsString({ message: 'Заголовок документа должен быть строкой' })
-  @MaxLength(200, { message: 'Заголовок документа должен быть не длиннее 200 символов' })
+  @IsString({ message: t('freeDecision.createProjectFreeDecision.titleMustBeString') })
+  @MaxLength(200, { message: t('freeDecision.createProjectFreeDecision.titleTooLong') })
   title?: string;
 
   @Field(() => String, { description: 'Вопрос, который выносится на повестку' })
-  @IsNotEmpty({ message: 'Вопрос повестки не должен быть пустым' })
+  @IsNotEmpty({ message: t('freeDecision.createProjectFreeDecision.agendaQuestionRequired') })
   question!: string;
 
   @Field(() => String, {
     description: 'Проект решения, которое предлагается принять',
   })
-  @IsString({ message: 'Проект решения должен быть строкой' })
+  @IsString({ message: t('freeDecision.createProjectFreeDecision.draftMustBeString') })
   decision!: string;
 }

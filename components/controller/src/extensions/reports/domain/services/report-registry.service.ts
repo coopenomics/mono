@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import type { IReportGenerator, ReportOutput } from '../interfaces/report-generator.interface';
 import { ReportType, REPORT_CONFIG } from '../enums/report-type.enum';
+import { DomainError } from '@coopenomics/extension-kit';
 
 /**
  * Реестр генераторов отчётов — фабрика.
@@ -26,7 +27,7 @@ export class ReportRegistryService {
   generate(reportType: ReportType, edits: unknown): ReportOutput {
     const generator = this.generators.get(reportType);
     if (!generator) {
-      throw new Error(`Генератор для типа отчёта "${reportType}" не зарегистрирован`);
+      throw DomainError.internal('REPORTS_GENERATOR_NOT_REGISTERED', { reportType });
     }
     return generator.generate(edits);
   }

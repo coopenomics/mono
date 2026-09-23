@@ -1,4 +1,4 @@
-import { BadRequestException, ForbiddenException, Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { Cooperative, type MarketContract } from 'cooptypes';
 import { PublicKey, Signature } from '@wharfkit/antelope';
 import {
@@ -8,7 +8,7 @@ import {
   type InnerGeneratedDocument,
   type IUserWalletPort,
 } from '@coopenomics/innercoop';
-import { SignedDigitalDocumentInputDTO } from '@coopenomics/extension-kit';
+import { SignedDigitalDocumentInputDTO, DomainError } from '@coopenomics/extension-kit';
 import type { MarketplaceConvertStatementSignedInputDTO } from '../documents-dto/marketplace-convert-statement-document.dto';
 import { MARKETPLACE_ASSET_CONFIG, type MarketplaceAssetConfig } from './marketplace-asset.config';
 import { MARKETPLACE_ECONOMY_SERVICE, MarketplaceEconomyService } from './marketplace-economy.service';
@@ -173,26 +173,20 @@ export class MarketplaceConvertService {
     signer: string
   ): ConvertStatementDocument {
     if (!signed) {
-      throw new BadRequestException(
-        `Нет подписанного заявления о переводе паевого взноса в программу на ${this.economyService.unitsToAsset(expected.amount_units)} — обновите оформление.`
-      );
+      throw DomainError.badRequest('MARKETPLACE_CONVERT_STATEMENT_MISSING', { expectedAmount: this.economyService.unitsToAsset(expected.amount_units) });
     }
     const meta = signed.meta;
     if (
       meta.registry_id !== Cooperative.Registry.MarketplaceConvertStatement.registry_id ||
       meta.order_hash !== expected.anchor_hash
     ) {
-      throw new BadRequestException('Заявление подписано для другого оформления — обновите оформление.');
+      throw DomainError.badRequest('MARKETPLACE_CONVERT_STATEMENT_WRONG_CHECKOUT');
     }
     if (this.economyService.assetToUnits(String(meta.amount)) !== expected.amount_units) {
-      throw new BadRequestException(
-        `Недостающая сумма изменилась (в заявлении ${meta.amount}, к переводу ${this.economyService.unitsToAsset(expected.amount_units)}) — обновите оформление.`
-      );
+      throw DomainError.badRequest('MARKETPLACE_CONVERT_AMOUNT_CHANGED', { statementAmount: meta.amount, expectedAmount: this.economyService.unitsToAsset(expected.amount_units) });
     }
     if (this.economyService.assetToUnits(String(meta.membership_fee)) !== expected.fee_units) {
-      throw new BadRequestException(
-        `Членская часть перевода изменилась (в заявлении ${meta.membership_fee}, к переводу ${this.economyService.unitsToAsset(expected.fee_units)}) — обновите оформление.`
-      );
+      throw DomainError.badRequest('MARKETPLACE_CONVERT_FEE_CHANGED', { statementFee: meta.membership_fee, expectedFee: this.economyService.unitsToAsset(expected.fee_units) });
     }
     this.verifySignature(signed, signer);
     return new SignedDigitalDocumentInputDTO(signed).toDocument() as ConvertStatementDocument;
@@ -204,7 +198,7 @@ export class MarketplaceConvertService {
   ): void {
     const signatures = doc.signatures ?? [];
     if (!signatures.some((s) => s.signer === expectedSigner)) {
-      throw new ForbiddenException(`Заявление должно быть подписано учётной записью ${expectedSigner}.`);
+      throw DomainError.forbidden('MARKETPLACE_CONVERT_WRONG_SIGNER', { expectedSigner });
     }
     for (const sig of signatures) {
       let ok = false;
@@ -214,7 +208,7 @@ export class MarketplaceConvertService {
         ok = false;
       }
       if (!ok) {
-        throw new ForbiddenException('Подпись заявления недействительна.');
+        throw DomainError.forbidden('MARKETPLACE_CONVERT_SIGNATURE_INVALID');
       }
     }
   }

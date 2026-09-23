@@ -9,6 +9,7 @@ import type {
   SBPDataDomainInterface,
 } from '~/domain/payment-method/interfaces/payment-methods-domain.interface';
 import type { PaymentMethodDomainInterface } from '~/domain/payment-method/interfaces/payment-method-domain.interface';
+import { t } from '~/i18n';
 
 /**
  * Общий Union Type для данных метода оплаты
@@ -33,24 +34,24 @@ export const PaymentMethodDataUnion = createUnionType({
 @ObjectType('PaymentMethod')
 export class PaymentMethodDTO implements PaymentMethodDomainInterface {
   @Field(() => String, { description: 'Имя пользователя, к которому привязан метод оплаты' })
-  @IsNotEmpty({ message: 'Имя пользователя обязательно' })
+  @IsNotEmpty({ message: t('paymentMethod.paymentMethodDto.usernameRequired') })
   @IsString()
   username!: string;
 
   @Field(() => Boolean, {
     description: 'Флаг основного метода платежа, который отображается в документах',
   })
-  @IsNotEmpty({ message: 'Флаг основного метода платежа должен быть установлен' })
+  @IsNotEmpty({ message: t('paymentMethod.paymentMethodDto.isMainFlagRequired') })
   @IsBoolean()
   is_default!: boolean;
 
   @Field(() => String, { description: 'Тип метода оплаты (например, sbp, bank_transfer)' })
-  @IsNotEmpty({ message: 'Тип метода оплаты обязателен' })
+  @IsNotEmpty({ message: t('paymentMethod.paymentMethodDto.typeRequired') })
   @IsString()
   method_type!: 'sbp' | 'bank_transfer';
 
   @Field(() => PaymentMethodDataUnion, { description: 'Данные метода оплаты' })
-  @IsDefined({ message: 'Данные метода оплаты обязательны' })
+  @IsDefined({ message: t('paymentMethod.paymentMethodDto.detailsRequired') })
   @ValidateNested()
   @Type((options) => {
     const object = options?.object as PaymentMethodDTO;
@@ -64,7 +65,7 @@ export class PaymentMethodDTO implements PaymentMethodDomainInterface {
   data!: SBPDataDTO | BankAccountDTO;
 
   @Field(() => String, { description: 'Идентификатор метода оплаты' })
-  @IsNotEmpty({ message: 'Идентификатор метода обязателен' })
+  @IsNotEmpty({ message: t('paymentMethod.paymentMethodDto.idRequired') })
   @IsString()
   method_id!: string;
 

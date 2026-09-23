@@ -13,6 +13,7 @@ import { AuditService } from '../audit/audit.service';
 import { passwordPolicyErrors } from '../password-policy';
 import { SessionsService } from '../sessions/sessions.service';
 import { VaultService } from '../vault/vault.service';
+import { t } from '~/i18n';
 
 /** Окно свежести метки времени против head_block_time, сек. */
 const TIMESTAMP_WINDOW_SEC = 60;
@@ -103,34 +104,34 @@ export class MigrationService {
   async migrate(input: MigrateInput): Promise<MigrateOutcome> {
     const policyErrors = passwordPolicyErrors(input.newPassword ?? '');
     if (policyErrors.length > 0)
-      throw new AuthV2Error(AuthV2ErrorCode.WeakPassword, `Пароль слишком простой: ${policyErrors.join(', ').toLowerCase()}`);
+      throw new AuthV2Error(AuthV2ErrorCode.WeakPassword, t('authV2.migrationService.weakPasswordMessage', { reasons: policyErrors.join(', ').toLowerCase() }));
 
     const rotate = !!input.newPublicKey;
     if (rotate && !input.vaultBlob)
-      throw new AuthV2Error(AuthV2ErrorCode.ChainVerificationFailed, 'Ротация без vault-блоба невозможна: новому ключу негде жить');
+      throw new AuthV2Error(AuthV2ErrorCode.ChainVerificationFailed, t('authV2.migrationService.rotationWithoutVaultBlobMessage'));
     // Блоб едет в запросе и без ротации: записать его отдельно без доказательства
     // владения ключом нельзя (открытая запись позволяла перезаписать чужой блоб).
     // Отказ — до любых записей, чтобы клиент старой версии не оставил пайщика с
     // паролем, но без блоба.
     if (!input.vaultBlob)
-      throw new AuthV2Error(AuthV2ErrorCode.ChainVerificationFailed, 'Миграция без vault-блоба невозможна — обновите страницу');
+      throw new AuthV2Error(AuthV2ErrorCode.ChainVerificationFailed, t('authV2.migrationService.migrationWithoutVaultBlobMessage'));
 
     // 1. email → пайщик. Несуществующий email и неверный ключ дают ОДНУ ошибку
     //    (InvalidCredentials) — без enumeration существования аккаунта.
     const user = await this.userDomainService.getUserByEmail(input.email).catch(() => null);
     if (!user)
-      throw new AuthV2Error(AuthV2ErrorCode.InvalidCredentials, 'Неверный email, ключ или подпись');
+      throw new AuthV2Error(AuthV2ErrorCode.InvalidCredentials, t('authV2.migrationService.invalidCredentialsMessage'));
 
     // 2. окно свежести метки против времени блокчейна (anti-replay вне ±60s).
     let info: Awaited<ReturnType<BlockchainPort['getInfo']>>;
     try {
       info = await this.blockchainPort.getInfo();
     } catch {
-      throw new AuthV2Error(AuthV2ErrorCode.CooposDegraded, 'COOPOS недоступен: не удалось получить время блокчейна');
+      throw new AuthV2Error(AuthV2ErrorCode.CooposDegraded, t('authV2.migrationService.chainTimeUnavailableMessage'));
     }
     const skewSec = Math.abs(new Date(info.head_block_time).getTime() - new Date(input.timestamp).getTime()) / 1000;
     if (!Number.isFinite(skewSec) || skewSec > TIMESTAMP_WINDOW_SEC)
-      throw new AuthV2Error(AuthV2ErrorCode.TimestampTooOld, 'Метка времени вне допустимого окна свежести');
+      throw new AuthV2Error(AuthV2ErrorCode.TimestampTooOld, t('authV2.migrationService.timestampOutOfWindowMessage'));
 
     // 3. восстановить pubkey из подписи по каноническому сообщению (ts + pw_hash [+ pk]).
     let recoveredKey: string;
@@ -142,7 +143,7 @@ export class MigrationService {
       });
       recoveredKey = this.blockchainPort.recoverPublicKey(message, input.signature);
     } catch {
-      throw new AuthV2Error(AuthV2ErrorCode.InvalidCredentials, 'Неверный email, ключ или подпись');
+      throw new AuthV2Error(AuthV2ErrorCode.InvalidCredentials, t('authV2.migrationService.invalidCredentialsMessage'));
     }
 
     // 4. сверить ключ с владением. Принятый пайщик — активные ключи аккаунта в COOPOS
@@ -155,19 +156,19 @@ export class MigrationService {
       try {
         account = await this.blockchainPort.getAccount(user.username);
       } catch {
-        throw new AuthV2Error(AuthV2ErrorCode.CooposDegraded, 'COOPOS недоступен: не удалось проверить ключ аккаунта');
+        throw new AuthV2Error(AuthV2ErrorCode.CooposDegraded, t('authV2.migrationService.accountKeyCheckUnavailableMessage'));
       }
       if (!account || !this.blockchainPort.hasActiveKey(account, recoveredKey)) {
         await this.safeAudit({ event: 'coopid.migrate', subjectId: user.username, result: 'failure', context: { reason: 'key_mismatch' }, ip: input.ip });
-        throw new AuthV2Error(AuthV2ErrorCode.InvalidCredentials, 'Неверный email, ключ или подпись');
+        throw new AuthV2Error(AuthV2ErrorCode.InvalidCredentials, t('authV2.migrationService.invalidCredentialsMessage'));
       }
       oldPublicKey = recoveredKey;
     } else {
       if (rotate)
-        throw new AuthV2Error(AuthV2ErrorCode.RotationUnavailable, 'Смена ключа доступна после завершения регистрации');
+        throw new AuthV2Error(AuthV2ErrorCode.RotationUnavailable, t('authV2.migrationService.rotationAvailableAfterRegistrationMessage'));
       if (!user.public_key || !this.blockchainPort.hasActiveKey(keyToAccount(user.public_key), recoveredKey)) {
         await this.safeAudit({ event: 'coopid.migrate', subjectId: user.username, result: 'failure', context: { reason: 'candidate_key_mismatch' }, ip: input.ip });
-        throw new AuthV2Error(AuthV2ErrorCode.InvalidCredentials, 'Неверный email, ключ или подпись');
+        throw new AuthV2Error(AuthV2ErrorCode.InvalidCredentials, t('authV2.migrationService.invalidCredentialsMessage'));
       }
     }
 

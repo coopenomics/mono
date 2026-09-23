@@ -2,11 +2,12 @@
 import { IsNotEmpty, IsString } from 'class-validator';
 import { Field, ObjectType } from '@nestjs/graphql';
 import type { SBPDataDomainInterface } from '~/domain/payment-method/interfaces/payment-methods-domain.interface';
+import { t } from '~/i18n';
 
 @ObjectType('SbpAccount')
 export class SBPDataDTO {
   @Field(() => String, { description: 'Мобильный телефон получателя' })
-  @IsNotEmpty({ message: 'Телефон обязателен для метода СБП' })
+  @IsNotEmpty({ message: t('paymentMethod.sbpAccount.phoneRequired') })
   @IsString()
   phone!: string;
 

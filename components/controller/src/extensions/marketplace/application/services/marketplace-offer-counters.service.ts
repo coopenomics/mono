@@ -1,4 +1,4 @@
-import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import {
   MARKETPLACE_OFFER_REPOSITORY,
@@ -7,6 +7,7 @@ import {
 import type { MarketplaceOfferDomainEntity } from '../../domain/entities/marketplace-offer.entity';
 import type { OfferPackageDelta } from '../../domain/entities/marketplace-offer.types';
 import { MARKETPLACE_OFFER_COUNTERS_CHANGED_EVENT } from '../events/marketplace-notification.events';
+import { DomainError } from '@coopenomics/extension-kit';
 
 export const MARKETPLACE_OFFER_COUNTERS_SERVICE = Symbol('MARKETPLACE_OFFER_COUNTERS_SERVICE');
 
@@ -115,10 +116,10 @@ export class MarketplaceOfferCountersService {
    */
   private assertPositive(qty: number, pkg?: OfferPackageDelta): void {
     if (!Number.isFinite(qty) || qty <= 0) {
-      throw new BadRequestException('Количество должно быть больше нуля.');
+      throw DomainError.badRequest('MARKETPLACE_QUANTITY_MUST_BE_POSITIVE');
     }
     if (pkg && (!Number.isInteger(pkg.count) || pkg.count <= 0)) {
-      throw new BadRequestException('Число упаковок должно быть целым и больше нуля.');
+      throw DomainError.badRequest('MARKETPLACE_PACKAGE_COUNT_INVALID');
     }
   }
 
@@ -130,23 +131,15 @@ export class MarketplaceOfferCountersService {
   ): never {
     switch (reason) {
       case 'offer_not_found':
-        throw new NotFoundException('Предложение не найдено.');
+        throw DomainError.notFound('MARKETPLACE_OFFER_NOT_FOUND');
       case 'offer_not_active':
-        throw new BadRequestException(
-          'Предложение неактивно — операция с количеством запрещена.'
-        );
+        throw DomainError.badRequest('MARKETPLACE_OFFER_COUNTER_INACTIVE');
       case 'insufficient_available':
-        throw new BadRequestException(
-          `Недостаточно свободного количества в предложении: требуется ${qty}.`
-        );
+        throw DomainError.badRequest('MARKETPLACE_OFFER_FREE_QUANTITY_INSUFFICIENT', { qty });
       case 'insufficient_blocked':
-        throw new BadRequestException(
-          `Недостаточно зарезервированного количества для операции: требуется ${qty}.`
-        );
+        throw DomainError.badRequest('MARKETPLACE_OFFER_RESERVED_QUANTITY_INSUFFICIENT', { qty });
       default:
-        throw new BadRequestException(
-          `Не удалось выполнить операцию «${op}» на ${qty}. Попробуйте обновить страницу.`
-        );
+        throw DomainError.badRequest('MARKETPLACE_OFFER_COUNTER_OPERATION_FAILED', { operation: op, qty });
     }
   }
 

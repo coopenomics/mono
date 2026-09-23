@@ -1,4 +1,4 @@
-import { Injectable, Inject, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, Inject, Logger } from '@nestjs/common';
 import type { SetPaymentStatusInputDomainInterface } from '~/domain/gateway/interfaces/set-payment-status-domain-input.interface';
 import type { InternalPaymentFiltersDomainInterface } from '~/domain/gateway/interfaces/payment-filters-domain.interface';
 import type {
@@ -34,7 +34,8 @@ import { PaymentMethodRepository, PAYMENT_METHOD_REPOSITORY } from '~/domain/com
 import type { PaymentDetailsDomainInterface } from '~/domain/gateway/interfaces/payment-domain.interface';
 import { AccountDomainPort, ACCOUNT_DOMAIN_PORT } from '~/domain/account/ports/account-domain.port';
 import { EXPENSE_CHASSIS_PORT, type IExpenseChassisPort } from '@coopenomics/innercoop';
-import { QuantityUtils } from '@coopenomics/extension-kit';
+import { QuantityUtils, DomainError } from '@coopenomics/extension-kit';
+import { t } from '~/i18n';
 
 /**
  * Интерактор домена gateway для управления платежами (просмотр, изменение статуса и создание)
@@ -107,7 +108,7 @@ export class GatewayInteractor implements GatewayInteractorPort {
     try {
       const payment = await this.paymentRepository.findById(data.id);
       if (!payment) {
-        throw new NotFoundException(`Не удалось найти платеж с ID ${data.id}`);
+        throw DomainError.notFound('GATEWAY_PAYMENT_NOT_FOUND', { id: data.id });
       }
 
       const paymentEntity = new PaymentDomainEntity(payment);
@@ -115,13 +116,13 @@ export class GatewayInteractor implements GatewayInteractorPort {
 
       // Проверяем можно ли изменить статус
       if (!paymentEntity.canChangeStatus()) {
-        throw new Error(`Невозможно изменить статус платежа с текущим статусом: ${payment.status}`);
+        throw DomainError.internal('GATEWAY_PAYMENT_STATUS_CHANGE_FORBIDDEN', { status: payment.status });
       }
 
       const result = await this.paymentRepository.setPaymentStatus(data.id, statusEnum);
 
       if (!result) {
-        throw new NotFoundException(`Не удалось найти платеж с ID ${data.id}`);
+        throw DomainError.notFound('GATEWAY_PAYMENT_NOT_FOUND', { id: data.id });
       }
 
       // Сохраняем причину изменения статуса (например, причину отклонения платежа),
@@ -147,7 +148,7 @@ export class GatewayInteractor implements GatewayInteractorPort {
       return new PaymentDomainEntity(result);
     } catch (error: any) {
       this.logger.error(`Не удалось обновить статус платежа: ${error.message}`);
-      throw new NotFoundException(`Не удалось найти платеж с ID ${data.id}`);
+      throw DomainError.notFound('GATEWAY_PAYMENT_NOT_FOUND', { id: data.id });
     }
   }
 
@@ -206,7 +207,7 @@ export class GatewayInteractor implements GatewayInteractorPort {
         // семантика). proposal_hash и item_hash — в blockchain_data.
         const bc = payment.blockchain_data as { proposal_hash?: string; item_hash?: string } | undefined;
         if (!bc?.proposal_hash || !bc?.item_hash) {
-          throw new Error(`У платежа возврата ${payment.hash} нет proposal_hash/item_hash в blockchain_data`);
+          throw DomainError.internal('GATEWAY_REFUND_PAYMENT_MISSING_HASH', { hash: payment.hash });
         }
         const returnAmount = QuantityUtils.formatQuantityForBlockchain(payment.quantity, payment.symbol);
         await this.expenseChassis.returnItem(payment.coopname, bc.proposal_hash, bc.item_hash, returnAmount);
@@ -285,7 +286,7 @@ export class GatewayInteractor implements GatewayInteractorPort {
       const proposalHash = (payment.blockchain_data as { proposal_hash?: string } | undefined)?.proposal_hash;
       try {
         if (!proposalHash) {
-          throw new Error(`У платежа расхода ${payment.hash} отсутствует proposal_hash в blockchain_data`);
+          throw DomainError.internal('GATEWAY_EXPENSE_PAYMENT_MISSING_HASH', { hash: payment.hash });
         }
         const actualAmount = QuantityUtils.formatQuantityForBlockchain(payment.quantity, payment.symbol);
         await this.expenseChassis.payItem(payment.coopname, proposalHash, payment.hash, actualAmount);
@@ -313,7 +314,7 @@ export class GatewayInteractor implements GatewayInteractorPort {
       const bc = payment.blockchain_data as { proposal_hash?: string; item_hash?: string } | undefined;
       try {
         if (!bc?.proposal_hash || !bc?.item_hash) {
-          throw new Error(`У платежа доплаты ${payment.hash} нет proposal_hash/item_hash в blockchain_data`);
+          throw DomainError.internal('GATEWAY_SURCHARGE_PAYMENT_MISSING_HASH', { hash: payment.hash });
         }
         const overspendAmount = QuantityUtils.formatQuantityForBlockchain(payment.quantity, payment.symbol);
         await this.expenseChassis.overspendItem(payment.coopname, bc.proposal_hash, bc.item_hash, overspendAmount);
@@ -372,7 +373,7 @@ export class GatewayInteractor implements GatewayInteractorPort {
     const userAccount = await this.accountDomainService.getAccount(data.username);
 
     if (!userAccount.private_account) {
-      throw new Error(`Не удалось определить тип аккаунта для пользователя ${data.username}`);
+      throw DomainError.internal('GATEWAY_ACCOUNT_TYPE_UNKNOWN', { username: data.username });
     }
 
     // Определяем сумму платежа на основе типа аккаунта
@@ -457,7 +458,7 @@ export class GatewayInteractor implements GatewayInteractorPort {
       direction: PaymentDirectionEnum.INCOMING,
       provider,
       status: PaymentStatusEnum.PENDING,
-      memo: `Вступительный и минимальный паевой взносы №${hash.slice(0, 8)}. ${VAT_EXEMPT_NOTE}`,
+      memo: t('gateway.gatewayInteractor.entryAndMinShareMemo', { hashPrefix: hash.slice(0, 8), vatExemptNote: VAT_EXEMPT_NOTE }),
       payment_method_id: undefined,
       expired_at: expiredAt,
       created_at: now,
@@ -469,13 +470,13 @@ export class GatewayInteractor implements GatewayInteractorPort {
     const createdPayment = await this.paymentRepository.create(paymentData);
 
     if (!createdPayment.id) {
-      throw new Error('Не удалось создать платеж - отсутствует ID');
+      throw DomainError.internal('GATEWAY_PAYMENT_CREATE_MISSING_ID');
     }
 
     // Получаем провайдер и создаем платежные детали
     const paymentProvider = this.providerPort.getProvider(provider);
     if (!paymentProvider) {
-      throw new Error(`Провайдер ${provider} не найден`);
+      throw DomainError.internal('GATEWAY_PROVIDER_NOT_FOUND', { provider });
     }
 
     try {
@@ -489,7 +490,7 @@ export class GatewayInteractor implements GatewayInteractorPort {
       // Возвращаем обновленный платеж
       const updatedPayment = await this.paymentRepository.findById(createdPayment.id);
       if (!updatedPayment) {
-        throw new Error(`Не удалось найти обновленный платеж с ID ${createdPayment.id}`);
+        throw DomainError.internal('GATEWAY_UPDATED_PAYMENT_NOT_FOUND', { id: createdPayment.id });
       }
       return new PaymentDomainEntity(updatedPayment, { isNewlyCreated: true });
     } catch (error: any) {
@@ -497,7 +498,7 @@ export class GatewayInteractor implements GatewayInteractorPort {
       // Если не удалось создать детали платежа, помечаем платеж как неудачный
       await this.paymentRepository.update(createdPayment.id, {
         status: PaymentStatusEnum.FAILED,
-        message: `Ошибка создания платежа: ${error.message}`,
+        message: t('gateway.gatewayInteractor.paymentCreationErrorMessage', { errorMessage: error.message }),
       });
       throw error;
     }
@@ -547,7 +548,7 @@ export class GatewayInteractor implements GatewayInteractorPort {
       direction: PaymentDirectionEnum.INCOMING,
       provider: provider,
       status: PaymentStatusEnum.PENDING,
-      memo: `Паевой взнос по соглашению о ЦПП "Цифровой Кошелёк" №${hash.slice(0, 8)}. ${VAT_EXEMPT_NOTE}`,
+      memo: t('gateway.gatewayInteractor.walletCppShareMemo', { hashPrefix: hash.slice(0, 8), vatExemptNote: VAT_EXEMPT_NOTE }),
       secret,
       payment_method_id: undefined,
       expired_at: expiredAt,
@@ -560,13 +561,13 @@ export class GatewayInteractor implements GatewayInteractorPort {
     const createdPayment = await this.paymentRepository.create(paymentData);
 
     if (!createdPayment.id) {
-      throw new Error('Не удалось создать платеж - отсутствует ID');
+      throw DomainError.internal('GATEWAY_PAYMENT_CREATE_MISSING_ID');
     }
 
     // Получаем провайдер и создаем платежные детали
     const paymentProvider = this.providerPort.getProvider(provider);
     if (!paymentProvider) {
-      throw new Error(`Провайдер ${provider} не найден`);
+      throw DomainError.internal('GATEWAY_PROVIDER_NOT_FOUND', { provider });
     }
 
     try {
@@ -580,7 +581,7 @@ export class GatewayInteractor implements GatewayInteractorPort {
       // Возвращаем обновленный платеж
       const updatedPayment = await this.paymentRepository.findById(createdPayment.id);
       if (!updatedPayment) {
-        throw new Error(`Не удалось найти обновленный платеж с ID ${createdPayment.id}`);
+        throw DomainError.internal('GATEWAY_UPDATED_PAYMENT_NOT_FOUND', { id: createdPayment.id });
       }
       return new PaymentDomainEntity(updatedPayment, { isNewlyCreated: true });
     } catch (error: any) {
@@ -588,7 +589,7 @@ export class GatewayInteractor implements GatewayInteractorPort {
       // Если не удалось создать детали платежа, помечаем платеж как неудачный
       await this.paymentRepository.update(createdPayment.id, {
         status: PaymentStatusEnum.FAILED,
-        message: `Ошибка создания платежа: ${error.message}`,
+        message: t('gateway.gatewayInteractor.paymentCreationErrorMessage', { errorMessage: error.message }),
       });
       throw error;
     }
@@ -615,7 +616,7 @@ export class GatewayInteractor implements GatewayInteractorPort {
     const existingPayment = await this.paymentRepository.findByHash(data.payment_hash);
 
     if (existingPayment) {
-      throw new Error(`Платеж с хешем ${data.payment_hash} уже существует. Возможно, заявка была создана ранее.`);
+      throw DomainError.internal('GATEWAY_PAYMENT_HASH_DUPLICATE', { hash: data.payment_hash });
     }
 
     // Получаем настройки для определения провайдера
@@ -645,9 +646,7 @@ export class GatewayInteractor implements GatewayInteractorPort {
         tolerance_percent: 0,
       };
     } catch (error: any) {
-      throw new BadRequestException(
-        `Платежный метод ${data.method_id} для пользователя ${data.username} не найден. Невозможно создать исходящий платеж.`
-      );
+      throw DomainError.badRequest('GATEWAY_PAYMENT_METHOD_NOT_FOUND', { methodId: data.method_id, username: data.username });
     }
 
     const paymentData: PaymentDomainInterface = {
@@ -663,7 +662,7 @@ export class GatewayInteractor implements GatewayInteractorPort {
       // готовый к выплате. Переход AWAITING_AUTHORIZATION → PENDING происходит
       // в WithdrawAuthorizationListener при on-chain action wallet::authwthd.
       status: PaymentStatusEnum.AWAITING_AUTHORIZATION,
-      memo: `Возврат паевого взноса №${data.payment_hash.slice(0, 8)}. ${VAT_EXEMPT_NOTE}`,
+      memo: t('gateway.gatewayInteractor.shareRefundMemo', { hashPrefix: data.payment_hash.slice(0, 8), vatExemptNote: VAT_EXEMPT_NOTE }),
       secret: generateUniqueHash(),
       payment_method_id: data.method_id,
       payment_details: paymentDetails,
@@ -684,7 +683,7 @@ export class GatewayInteractor implements GatewayInteractorPort {
     const createdPayment = await this.paymentRepository.create(paymentData);
 
     if (!createdPayment.id) {
-      throw new Error('Не удалось создать платеж - отсутствует ID');
+      throw DomainError.internal('GATEWAY_PAYMENT_CREATE_MISSING_ID');
     }
 
     this.logger.log(
@@ -761,7 +760,7 @@ export class GatewayInteractor implements GatewayInteractorPort {
 
     const created = await this.paymentRepository.create(paymentData);
     if (!created.id) {
-      throw new Error('createSystemOutgoingPayment: не удалось создать платёж — отсутствует ID');
+      throw DomainError.internal('GATEWAY_SYSTEM_PAYMENT_CREATE_MISSING_ID');
     }
 
     this.logger.log(

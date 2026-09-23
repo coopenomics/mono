@@ -1,4 +1,3 @@
-import { BadRequestException } from '@nestjs/common';
 import {
   MarketplaceSaleForms,
   type MarketplaceOfferPackage,
@@ -6,6 +5,8 @@ import {
   type MarketplaceUnitOfMeasure,
   type OfferPackageDelta,
 } from '../../domain/entities/marketplace-offer.types';
+import { t } from '../../i18n';
+import { DomainError } from '@coopenomics/extension-kit';
 
 export type { OfferPackageDelta };
 import { assertValidQuantity, MARKETPLACE_UNIT_PRECISION } from './quantity.util';
@@ -49,11 +50,11 @@ export function findOfferPackageOrFail(
   packageId: string | null | undefined
 ): MarketplaceOfferPackage {
   if (!packageId) {
-    throw new BadRequestException('Для товара, отпускаемого упаковкой, нужно выбрать упаковку.');
+    throw DomainError.badRequest('MARKETPLACE_PACKAGING_REQUIRED');
   }
   const pkg = (packages ?? []).find((p) => p.id === packageId);
   if (!pkg) {
-    throw new BadRequestException('Выбранная упаковка не найдена в предложении.');
+    throw DomainError.badRequest('MARKETPLACE_PACKAGING_NOT_FOUND');
   }
   return pkg;
 }
@@ -75,7 +76,7 @@ export function resolveSaleUnit(
   if (offer.sale_form === MarketplaceSaleForms.PACKAGED) {
     const pkg = findOfferPackageOrFail(offer.packages, packageId);
     if (!Number.isInteger(requestedAmount) || requestedAmount <= 0) {
-      throw new BadRequestException('Число упаковок должно быть целым и больше нуля.');
+      throw DomainError.badRequest('MARKETPLACE_PACKAGING_COUNT_INVALID');
     }
     const precision = MARKETPLACE_UNIT_PRECISION[offer.unit_of_measure];
     const baseQuantity = Number((requestedAmount * pkg.size).toFixed(precision));
@@ -115,7 +116,7 @@ export function presentSaleUnit(
   if (packageSize > 0) {
     return {
       units: Number((baseQuantity / packageSize).toFixed(0)),
-      unitLabel: `упак. ${formatSize(packageSize)} ${baseLabel}`,
+      unitLabel: t('marketplace.packaging.packageSizeLabel', { size: formatSize(packageSize), baseLabel }),
     };
   }
   return { units: baseQuantity, unitLabel: baseLabel };
@@ -188,7 +189,7 @@ export function saleUnitShortfall(
   const available = availableSaleUnits(offer, resolved);
   const requested = resolved.packageCount ?? resolved.baseQuantity;
   if (available >= requested) return null;
-  return { available, requested, unitLabel: resolved.packageId ? 'упак.' : 'ед.' };
+  return { available, requested, unitLabel: resolved.packageId ? t('marketplace.packaging.packageAbbrLabel') : t('marketplace.packaging.unitAbbrLabel') };
 }
 
 /**

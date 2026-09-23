@@ -2,6 +2,7 @@ import { Field, InputType, Int, Float } from '@nestjs/graphql';
 import { IsNotEmpty, IsString, IsOptional, IsEnum, Min, IsArray, IsNumber } from 'class-validator';
 import { IssuePriority } from '../../../domain/enums/issue-priority.enum';
 import { IssueStatus } from '../../../domain/enums/issue-status.enum';
+import { t } from '../../../i18n';
 
 /**
  * GraphQL Input DTO для создания задачи
@@ -11,15 +12,15 @@ export class CreateIssueInputDTO {
   @Field(() => String, {
     description: 'Имя аккаунта кооператива',
   })
-  @IsNotEmpty({ message: 'Имя аккаунта кооператива не должно быть пустым' })
-  @IsString({ message: 'Имя аккаунта кооператива должно быть строкой' })
+  @IsNotEmpty({ message: t('capital.createIssueInput.coopname.required') })
+  @IsString({ message: t('capital.createIssueInput.coopname.string') })
   coopname!: string;
 
   @Field(() => String, {
     description: 'Название задачи',
   })
-  @IsNotEmpty({ message: 'Название задачи не должно быть пустым' })
-  @IsString({ message: 'Название задачи должно быть строкой' })
+  @IsNotEmpty({ message: t('capital.createIssueInput.title.required') })
+  @IsString({ message: t('capital.createIssueInput.title.string') })
   title!: string;
 
   @Field(() => String, {
@@ -27,7 +28,7 @@ export class CreateIssueInputDTO {
     description: 'Описание задачи',
   })
   @IsOptional()
-  @IsString({ message: 'Описание задачи должно быть строкой' })
+  @IsString({ message: t('capital.createIssueInput.description.string') })
   description?: string;
 
   @Field(() => IssuePriority, {
@@ -36,7 +37,7 @@ export class CreateIssueInputDTO {
     defaultValue: IssuePriority.MEDIUM,
   })
   @IsOptional()
-  @IsEnum(IssuePriority, { message: 'Неверный приоритет задачи' })
+  @IsEnum(IssuePriority, { message: t('capital.createIssueInput.priority.invalid') })
   priority?: IssuePriority;
 
   @Field(() => IssueStatus, {
@@ -45,7 +46,7 @@ export class CreateIssueInputDTO {
     defaultValue: IssueStatus.BACKLOG,
   })
   @IsOptional()
-  @IsEnum(IssueStatus, { message: 'Неверный статус задачи' })
+  @IsEnum(IssueStatus, { message: t('capital.createIssueInput.status.invalid') })
   status?: IssueStatus;
 
   @Field(() => Float, {
@@ -54,8 +55,8 @@ export class CreateIssueInputDTO {
     defaultValue: 0,
   })
   @IsOptional()
-  @IsNumber({ allowNaN: false, allowInfinity: false }, { message: 'Оценка должна быть числом' })
-  @Min(0, { message: 'Оценка не может быть отрицательной' })
+  @IsNumber({ allowNaN: false, allowInfinity: false }, { message: t('capital.createIssueInput.estimate.number') })
+  @Min(0, { message: t('capital.createIssueInput.estimate.min') })
   estimate?: number;
 
   @Field(() => Int, {
@@ -64,7 +65,7 @@ export class CreateIssueInputDTO {
     defaultValue: 0,
   })
   @IsOptional()
-  @Min(0, { message: 'Порядок сортировки не может быть отрицательным' })
+  @Min(0, { message: t('capital.createIssueInput.sortOrder.min') })
   sort_order?: number;
 
   @Field(() => String, {
@@ -72,7 +73,7 @@ export class CreateIssueInputDTO {
     description: 'Имя пользователя ответственного (contributor)',
   })
   @IsOptional()
-  @IsString({ message: 'Имя пользователя ответственного должно быть строкой' })
+  @IsString({ message: t('capital.createIssueInput.submaster.string') })
   submaster?: string;
 
   @Field(() => [String], {
@@ -81,7 +82,7 @@ export class CreateIssueInputDTO {
       'Массив имён соисполнителей (contributors); может быть пустым. Первый элемент при сохранении становится ответственным (submaster), если submaster не задан явно.',
   })
   @IsOptional()
-  @IsArray({ message: 'Создатели должны быть массивом строк' })
+  @IsArray({ message: t('capital.createIssueInput.creators.arrayOfStrings') })
   creators?: string[];
 
   @Field(() => String, {
@@ -90,7 +91,7 @@ export class CreateIssueInputDTO {
       'Хеш проекта или компонента. Если не указан — свободная задача без привязки к проекту',
   })
   @IsOptional()
-  @IsString({ message: 'Хеш проекта должен быть строкой' })
+  @IsString({ message: t('capital.createIssueInput.projectHash.string') })
   project_hash?: string;
 
   @Field(() => String, {
@@ -98,7 +99,7 @@ export class CreateIssueInputDTO {
     description: 'ID цикла',
   })
   @IsOptional()
-  @IsString({ message: 'ID цикла должен быть строкой' })
+  @IsString({ message: t('capital.createIssueInput.cycleId.string') })
   cycle_id?: string;
 
   @Field(() => [String], {
@@ -106,7 +107,7 @@ export class CreateIssueInputDTO {
     description: 'Метки задачи',
   })
   @IsOptional()
-  @IsArray({ message: 'Метки должны быть массивом строк' })
+  @IsArray({ message: t('capital.createIssueInput.labels.arrayOfStrings') })
   labels?: string[];
 
   @Field(() => [String], {
@@ -114,6 +115,6 @@ export class CreateIssueInputDTO {
     description: 'Вложения задачи',
   })
   @IsOptional()
-  @IsArray({ message: 'Вложения должны быть массивом строк' })
+  @IsArray({ message: t('capital.createIssueInput.attachments.arrayOfStrings') })
   attachments?: string[];
 }

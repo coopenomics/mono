@@ -19,13 +19,14 @@ import canonicalize from 'canonicalize';
 import { Signature } from '@wharfkit/antelope';
 import { AnoContract } from 'cooptypes';
 import { CHAIN_PORT, type IChainPort, LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
-import { platformSettings } from '@coopenomics/extension-kit';
+import { platformSettings, DomainError } from '@coopenomics/extension-kit';
 import { CardcoopAttestationService } from '../attestation/attestation.service';
 import {
   CardcoopEntryOutcome,
   CardcoopEntrySessionTypeormEntity,
   CardcoopEntryStatus,
 } from '../infrastructure/entities/cardcoop-entry-session.typeorm-entity';
+import { t } from '../i18n';
 
 /** Аккаунт цепи, на котором живут заверения сети. */
 const ANO = AnoContract.contractName.production;
@@ -83,7 +84,7 @@ export class CardcoopDisclosureIntakeService {
     if (!session.memberships.some((entry) => entry.coopname === fromCoopname)) {
       // Источник — только из членств, показанных с согласия держателя при входе: просить
       // анкету у кооператива, о членстве в котором человек нам не говорил, нельзя.
-      throw new NotFoundException('Кооператив-источник не значится среди членств карты');
+      throw DomainError.notFound('CARDCOOP_SOURCE_COOP_NOT_IN_MEMBERSHIPS');
     }
 
     const envelope = await this.attestationService.signDocument({
@@ -100,7 +101,7 @@ export class CardcoopDisclosureIntakeService {
 
     if (!result.delivered || !disclosureId) {
       throw new ConflictException(
-        result.reason ?? 'Сеть не приняла запрос раскрытия — попробуйте позже либо заполните анкету руками'
+        result.reason ?? t('cardcoop.disclosureIntake.deliveryFailedHint')
       );
     }
 
@@ -125,7 +126,7 @@ export class CardcoopDisclosureIntakeService {
 
     try {
       if (!notification.grant || !notification.from_disclosure_url || !notification.from_coopname) {
-        throw new Error('в уведомлении нет гранта либо адреса источника — источник на старой версии');
+        throw DomainError.internal('CARDCOOP_NOTIFICATION_LEGACY_SOURCE');
       }
 
       const envelope = await this.fetchProfile(notification.from_disclosure_url, notification.grant);
@@ -186,11 +187,11 @@ export class CardcoopDisclosureIntakeService {
       signal: AbortSignal.timeout(EXCHANGE_TIMEOUT_MS),
     });
 
-    if (!response.ok) throw new Error(`источник ответил ${response.status}`);
+    if (!response.ok) throw DomainError.internal('CARDCOOP_SOURCE_RESPONDED_WITH_STATUS', { status: response.status });
 
     const envelope = (await response.json()) as { payload?: Record<string, unknown>; signature?: string };
     if (!envelope.payload || typeof envelope.signature !== 'string') {
-      throw new Error('ответ источника не является подписанным конвертом');
+      throw DomainError.internal('CARDCOOP_SOURCE_RESPONSE_NOT_SIGNED_ENVELOPE');
     }
     return { payload: envelope.payload, signature: envelope.signature };
   }
@@ -209,11 +210,11 @@ export class CardcoopDisclosureIntakeService {
   ): Promise<void> {
     const { payload } = envelope;
 
-    if (payload.type !== 'disclosure_profile') throw new Error('источник прислал документ другого вида');
-    if (payload.coopname !== fromCoopname) throw new Error('анкету подписал не тот кооператив, у которого просили');
-    if (payload.grant_jti !== session.disclosureId) throw new Error('анкета выдана по другому согласию');
-    if (payload.card_id !== session.cardId) throw new Error('анкета выдана по другой карте');
-    if (payload.to_coopname !== platformSettings().coopname) throw new Error('анкета адресована другому кооперативу');
+    if (payload.type !== 'disclosure_profile') throw DomainError.internal('CARDCOOP_SOURCE_WRONG_DOCUMENT_TYPE');
+    if (payload.coopname !== fromCoopname) throw DomainError.internal('CARDCOOP_SOURCE_SIGNER_MISMATCH');
+    if (payload.grant_jti !== session.disclosureId) throw DomainError.internal('CARDCOOP_PROFILE_WRONG_GRANT');
+    if (payload.card_id !== session.cardId) throw DomainError.internal('CARDCOOP_PROFILE_WRONG_CARD');
+    if (payload.to_coopname !== platformSettings().coopname) throw DomainError.internal('CARDCOOP_PROFILE_WRONG_TARGET_COOP');
 
     await this.verifyByChain(payload, envelope.signature, fromCoopname);
 
@@ -232,17 +233,17 @@ export class CardcoopDisclosureIntakeService {
     fromCoopname: string
   ): Promise<void> {
     const canonical = canonicalize(payload);
-    if (canonical === undefined) throw new Error('анкета не канонизируется');
+    if (canonical === undefined) throw DomainError.internal('CARDCOOP_PROFILE_NOT_CANONICAL_JSON');
 
     const endorsement = await this.chain.getSingleRow<EndorsementRow>(ANO, ANO, ENDORSEMENTS_TABLE, fromCoopname);
-    if (!endorsement?.cert_key) throw new Error(`кооператив ${fromCoopname} не заверен в цепи`);
+    if (!endorsement?.cert_key) throw DomainError.internal('CARDCOOP_SOURCE_COOP_NOT_ENDORSED', { coopname: fromCoopname });
     if (endorsement.expires_at && Date.parse(`${endorsement.expires_at}Z`) < Date.now()) {
-      throw new Error(`заверение кооператива ${fromCoopname} истекло`);
+      throw DomainError.internal('CARDCOOP_SOURCE_ENDORSEMENT_EXPIRED', { coopname: fromCoopname });
     }
 
     const signer = Signature.from(signature).recoverMessage(Buffer.from(canonical, 'utf8')).toString();
     if (signer !== endorsement.cert_key) {
-      throw new Error('подпись анкеты не сходится с ключом заверения источника в цепи');
+      throw DomainError.internal('CARDCOOP_PROFILE_SIGNATURE_MISMATCH');
     }
   }
 
@@ -250,7 +251,7 @@ export class CardcoopDisclosureIntakeService {
   private async candidateSession(id: string): Promise<CardcoopEntrySessionTypeormEntity> {
     const session = await this.sessions.findOne({ where: { id } });
     if (!session || session.outcome !== CardcoopEntryOutcome.Candidate) {
-      throw new NotFoundException('Сессия входа не найдена — начните заново');
+      throw DomainError.notFound('CARDCOOP_ENTRY_SESSION_NOT_FOUND');
     }
     return session;
   }

@@ -3,6 +3,7 @@ import cron from 'node-cron';
 import { generateSubscriberHash } from '~/utils/subscriber-hash.util';
 import config from '~/config/config';
 import { USER_DOMAIN_SERVICE, UserDomainService } from '~/domain/user/services/user-domain.service';
+import { DomainError } from '@coopenomics/extension-kit';
 
 /**
  * Backfill identity получателя уведомлений: догенерирует `subscriber_id`/`subscriber_hash`
@@ -104,7 +105,7 @@ export class NotificationSubscriberSyncService implements OnModuleInit, OnModule
    */
   async manualSync(): Promise<{ success: number; errors: number }> {
     if (this.isProcessing) {
-      throw new Error('Синхронизация уже выполняется');
+      throw DomainError.internal('ACCOUNT_SYNC_IN_PROGRESS');
     }
 
     this.logger.log('Запуск ручной синхронизации подписчиков');

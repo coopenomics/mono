@@ -37,6 +37,7 @@ export async function authenticateWsConnection(
 ): Promise<WsConnectionAuth> {
   const params = connectionParams ?? {};
   const token = extractBearerToken(params.authorization ?? params.Authorization);
+  // i18n-ignore: внутренняя причина отказа WS-подключения для лога/отладки, не текст интерфейса
   if (!token) return { ok: false, reason: 'нет токена в connectionParams' };
 
   let payload: any;
@@ -46,12 +47,14 @@ export async function authenticateWsConnection(
     return { ok: false, reason: `verify failed (${(e as Error).message})` };
   }
   if (payload?.type !== tokenTypes.ACCESS) {
+    // i18n-ignore: внутренняя причина отказа WS-подключения для лога/отладки, не текст интерфейса
     return { ok: false, reason: `тип токена "${payload?.type}" != ACCESS` };
   }
   // Подписи и типа мало: сессия могла быть отозвана (выход, смена пароля,
   // восстановление доступа). HTTP это проверяет, и ws обязан судить так же —
   // иначе отозванный доступ живёт наполовину.
   const username = await wsSessionUsername(payload.sid, payload.sub);
+  // i18n-ignore: внутренняя причина отказа WS-подключения для лога/отладки, не текст интерфейса
   if (!username) return { ok: false, reason: `сессия завершена (sub=${payload.sub})` };
   return { ok: true, user: { sub: String(payload.sub), username } };
 }

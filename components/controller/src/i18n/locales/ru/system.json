@@ -1,0 +1,34 @@
+{
+  "errors": {
+    "SYSTEM_ACCOUNT_NOT_FOUND": "Аккаунт не найден",
+    "SYSTEM_ALREADY_INITIALIZED": "Инициализация невозможна - установка уже завершена. Система находится в статусе '{status}'. ",
+    "SYSTEM_COOPERATIVE_INFO_NOT_FOUND": "Информация о кооперативе не обнаружена",
+    "SYSTEM_COOPERATIVE_NOT_FOUND": "Кооператив не найден",
+    "SYSTEM_INSTALL_CODE_INVALID": "Неверный или истекший код установки",
+    "SYSTEM_INSTALL_CODE_INVALID_RESTART": "Неверный или истекший код установки — начните установку заново с ключа кооператива",
+    "SYSTEM_INSTALL_INTERRUPTED_AFTER_CHAIN_ACCOUNTS": "Установка прервана после создания аккаунтов на цепи: {errorMessage}. Требуется ручной разбор (статус '{maintenanceStatus}').",
+    "SYSTEM_INSTALL_NOT_ACTIVE": "Система не была правильно установлена: статус не изменился на активный",
+    "SYSTEM_INSTALL_STATUS_MISMATCH": "Установка невозможна. Текущий статус: {status}. Требуется статус: {requiredStatus}",
+    "SYSTEM_INVITE_SUBSCRIBER_ID_MISSING": "subscriber_id не задан для пользователя {username} — нельзя отправить приглашение",
+    "SYSTEM_INVITE_USER_NOT_FOUND": "Пользователь с email {email} не найден",
+    "SYSTEM_ORGANIZATION_DATA_READONLY": "Невозможно обновить данные организации - они были установлены администратором и доступны только для чтения.",
+    "SYSTEM_SOVIET_MEMBERS_MIN_COUNT": "Количество членов совета должно быть не менее {minCount}",
+    "SYSTEM_STATUS_UPDATE_FAILED": "Не удалось обновить статус системы"
+  },
+  "system": {
+    "installInteractor": {
+      "councilGroupName": "Совет",
+      "positionTitleChairman": "Председатель совета",
+      "positionTitleMember": "Член совета"
+    },
+    "sovietMemberInput": {
+      "roleInvalid": "Роль должна быть \"chairman\" или \"member\""
+    },
+    "startInstallInput": {
+      "wifRequired": "Поле \"wif\" обязательно для заполнения."
+    },
+    "systemInteractor": {
+      "installKeyStatusPrefix": "Установка ключа невозможна. Система находится в статусе: "
+    }
+  }
+}

@@ -1,6 +1,7 @@
 import { Field, InputType } from '@nestjs/graphql';
 import { IsNotEmpty, IsString } from 'class-validator';
 import type { DeleteProjectDomainInput } from '../../../domain/actions/delete-project-domain-input.interface';
+import { t } from '../../../i18n';
 
 /**
  * GraphQL DTO для удаления проекта CAPITAL контракта
@@ -8,12 +9,12 @@ import type { DeleteProjectDomainInput } from '../../../domain/actions/delete-pr
 @InputType('DeleteProjectInput')
 export class DeleteProjectInputDTO implements DeleteProjectDomainInput {
   @Field(() => String, { description: 'Имя аккаунта кооператива' })
-  @IsNotEmpty({ message: 'Имя аккаунта кооператива не должно быть пустым' })
-  @IsString({ message: 'Имя аккаунта кооператива должно быть строкой' })
+  @IsNotEmpty({ message: t('capital.deleteProjectInput.coopname.required') })
+  @IsString({ message: t('capital.deleteProjectInput.coopname.string') })
   coopname!: string;
 
   @Field(() => String, { description: 'Хэш проекта' })
-  @IsNotEmpty({ message: 'Хэш проекта не должен быть пустым' })
-  @IsString({ message: 'Хэш проекта должен быть строкой' })
+  @IsNotEmpty({ message: t('capital.deleteProjectInput.projectHash.required') })
+  @IsString({ message: t('capital.deleteProjectInput.projectHash.string') })
   project_hash!: string;
 }

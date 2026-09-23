@@ -11,6 +11,7 @@ import {
 } from '../result-document-payload';
 import { StoryContentFormat } from '../enums/story-content-format.enum';
 import { ProjectStatus } from '../enums/project-status.enum';
+import { t } from '../../i18n';
 
 /**
  * Интерфейс для результата парсинга markdown
@@ -520,38 +521,38 @@ export class FileFormatService {
     const descriptionParts: string[] = [];
 
     if (segment.total_segment_cost) {
-      descriptionParts.push(`**Размер вклада:** ${segment.total_segment_cost}`);
+      descriptionParts.push(t('capital.fileFormat.segmentDescription.contributionAmount', { amount: segment.total_segment_cost }));
     }
     descriptionParts.push('');
     if (segment.debt_amount) {
-      descriptionParts.push(`**Размер займа:** ${segment.debt_amount}`);
+      descriptionParts.push(t('capital.fileFormat.segmentDescription.debtAmount', { amount: segment.debt_amount }));
     }
     descriptionParts.push('');
     if (result.total_amount) {
-      descriptionParts.push(`**Итоговая сумма:** ${result.total_amount}`);
+      descriptionParts.push(t('capital.fileFormat.segmentDescription.totalAmount', { amount: result.total_amount }));
     }
     descriptionParts.push('');
     // Добавляем информацию о ролях участника
     const roles: string[] = [];
-    if (segment.is_author) roles.push('Автор');
-    if (segment.is_creator) roles.push('Создатель');
-    if (segment.is_coordinator) roles.push('Координатор');
-    if (segment.is_investor) roles.push('Инвестор');
-    if (segment.is_contributor) roles.push('Участник');
-    if (segment.is_propertor) roles.push('Собственник');
+    if (segment.is_author) roles.push(t('capital.fileFormat.role.author'));
+    if (segment.is_creator) roles.push(t('capital.fileFormat.role.creator'));
+    if (segment.is_coordinator) roles.push(t('capital.fileFormat.role.coordinator'));
+    if (segment.is_investor) roles.push(t('capital.fileFormat.role.investor'));
+    if (segment.is_contributor) roles.push(t('capital.fileFormat.role.contributor'));
+    if (segment.is_propertor) roles.push(t('capital.fileFormat.role.propertor'));
 
     if (roles.length > 0) {
-      descriptionParts.push(`**Роли в проекте:** ${roles.join(', ')}`);
+      descriptionParts.push(t('capital.fileFormat.segmentDescription.roles', { roles: roles.join(', ') }));
     }
 
     // Добавляем информацию о заявлении
     if (result.statement) {
       descriptionParts.push('');
-      descriptionParts.push('## Заявление');
-      descriptionParts.push(`- **Хэш документа:** ${result.statement.doc_hash}`);
+      descriptionParts.push(t('capital.fileFormat.segmentDescription.statementHeading'));
+      descriptionParts.push(t('capital.fileFormat.segmentDescription.statementHash', { hash: result.statement.doc_hash }));
       if (result.statement.meta) {
-        descriptionParts.push(`- **Публичный ключ:** ${result.statement.signatures[0].public_key}`);
-        descriptionParts.push(`- **Подпись:** ${result.statement.signatures[0].signature}`);
+        descriptionParts.push(t('capital.fileFormat.segmentDescription.statementPublicKey', { key: result.statement.signatures[0].public_key }));
+        descriptionParts.push(t('capital.fileFormat.segmentDescription.statementSignature', { signature: result.statement.signatures[0].signature }));
       }
     }
     const resultDataForExport = result.data
@@ -587,9 +588,9 @@ export class FileFormatService {
       ``,
       projectTitle,
       ``,
-      `- Проект: \`${projectHash}\``,
+      t('capital.fileFormat.commitDescription.projectLine', { projectHash }),
       ``,
-      `## Сообщения:`,
+      t('capital.fileFormat.commitDescription.messagesHeading'),
       ``,
     ];
     const parts: string[] = [...header];

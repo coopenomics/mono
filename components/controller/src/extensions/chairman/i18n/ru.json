@@ -1,0 +1,70 @@
+{
+  "chairman": {
+    "approvalNotification": {
+      "defaultDescription": "Требуется одобрение действия",
+      "defaultTitle": "Новый запрос на одобрение"
+    },
+    "approvalResponseNotification": {
+      "defaultTitle": "Запрос на одобрение действия",
+      "status": {
+        "approved": "одобрен",
+        "declined": "отклонён"
+      }
+    },
+    "approvalTypes": {
+      "commit": {
+        "description": "Требуется одобрение коммита в проект",
+        "title": "Одобрение коммита"
+      },
+      "investment": {
+        "description": "Требуется одобрение инвестиции",
+        "title": "Одобрение инвестиции"
+      },
+      "programContribution": {
+        "description": "Требуется одобрение программного имущественного взноса",
+        "title": "Одобрение программного имущественного взноса"
+      },
+      "projectAccess": {
+        "description": "Требуется одобрение приложения к договору участия в хозяйственной деятельности по проекту.",
+        "title": "Одобрение допуска к проекту"
+      },
+      "projectContribution": {
+        "description": "Требуется одобрение проектного имущественного взноса",
+        "title": "Одобрение проектного имущественного взноса"
+      },
+      "registration": {
+        "description": "Требуется одобрение регистрации нового участника",
+        "title": "Одобрение регистрации участника"
+      },
+      "result": {
+        "description": "Требуется одобрение результата интеллектуальной деятельности для приёмки",
+        "title": "Одобрение результата"
+      }
+    },
+    "decisionExpiredNotification": {
+      "unknownError": "Неизвестная ошибка"
+    },
+    "onboardingSteps": {
+      "generalMeetTitle": "Утверждение общим собранием",
+      "participantApplicationTitle": "Утверждение шаблонов заявлений участника",
+      "privacyAgreementTitle": "Утверждение политики конфиденциальности",
+      "signatureAgreementTitle": "Утверждение соглашения о простой электронной подписи",
+      "userAgreementTitle": "Утверждение пользовательского соглашения",
+      "voskhodMembershipTitle": "Решение о вступлении в ПК «ВОСХОД»",
+      "walletAgreementTitle": "Утверждение кошелькового соглашения"
+    },
+    "settings": {
+      "expiredCheckIntervalAppend": "минут",
+      "expiredCheckIntervalLabel": "Интервал проверки истекших решений (в минутах)",
+      "expiredCheckIntervalNote": "Минимум: 1 минута",
+      "expiredCheckIntervalPrepend": "Каждые"
+    }
+  },
+  "errors": {
+    "CHAIRMAN_APPROVAL_NOT_FOUND": "Одобрение с хешем {hash} не найдено",
+    "CHAIRMAN_CONFIG_NOT_FOUND": "Конфиг не найден",
+    "CHAIRMAN_EXTENSION_CONFIG_NOT_FOUND": "Конфигурация расширения chairman не найдена",
+    "CHAIRMAN_ONBOARDING_UNKNOWN_STEP": "Неизвестный шаг онбординга: {step}",
+    "CHAIRMAN_PRIVATE_KEY_NOT_FOUND": "Не найден приватный ключ для совершения операции"
+  }
+}

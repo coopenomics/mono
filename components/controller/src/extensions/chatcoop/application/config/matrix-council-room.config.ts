@@ -4,6 +4,7 @@
  */
 
 import type { MatrixChatRoomPreset } from './matrix-chat-room-preset.types';
+import { t } from '../../i18n';
 
 function buildPowerLevels(adminUserId: string): Record<string, unknown> {
   return {
@@ -43,7 +44,7 @@ function buildPowerLevels(adminUserId: string): Record<string, unknown> {
 }
 
 export const COUNCIL_ROOM_MATRIX: MatrixChatRoomPreset = {
-  label: 'Комната совета кооператива',
+  label: t('chatcoop.room.status.councilFull'),
   isPrivate: true,
   encrypt: true,
   roomType: undefined,

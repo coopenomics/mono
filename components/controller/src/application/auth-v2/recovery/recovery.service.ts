@@ -15,6 +15,7 @@ import { TWO_FACTOR_VERIFIER } from '~/domain/auth-v2/ports/two-factor.port';
 import type { ITwoFactorVerifier } from '~/domain/auth-v2/ports/two-factor.port';
 import { AuditService } from '../audit/audit.service';
 import { RecoveryStrategyService } from './recovery-strategy.service';
+import { t } from '~/i18n';
 
 /** TTL recovery-токена (Story 3.1 AC): magic-link живёт 5 минут. */
 const RECOVERY_TOKEN_TTL_SEC = 5 * 60;
@@ -152,7 +153,7 @@ export class RecoveryService {
     if (!payload) {
       throw new AuthV2Error(
         AuthV2ErrorCode.InvalidRecoveryToken,
-        'Ссылка восстановления недействительна или истекла. Запросите восстановление заново.',
+        t('authV2.recoveryService.invalidRecoveryLinkMessage'),
       );
     }
     const user = await this.users.findUserById(payload.subjectId);
@@ -161,7 +162,7 @@ export class RecoveryService {
       this.logger.warn(`recovery: токен ссылки указывает на несуществующего пайщика ${payload.subjectId}`);
       throw new AuthV2Error(
         AuthV2ErrorCode.InvalidRecoveryToken,
-        'Ссылка восстановления недействительна или истекла. Запросите восстановление заново.',
+        t('authV2.recoveryService.invalidRecoveryLinkMessage'),
       );
     }
     const two_factor_required = await this.twoFactor.isEnabled(payload.subjectId);

@@ -1,4 +1,4 @@
-import { BadRequestException, Inject, Injectable, Logger } from '@nestjs/common'
+import { Inject, Injectable, Logger } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
 import type { InnerExpenseRequisiteItemInput } from '@coopenomics/innercoop'
@@ -6,6 +6,7 @@ import { EXPENSES_CHASSIS_CONFIG } from '../../domain/expenses-chassis.config'
 import { ExpenseRequisiteSnapshotTypeormEntity } from '../../infrastructure/entities/expense-requisite-snapshot.typeorm-entity'
 import { formatPaymentMethodRequisites } from '../../domain/utils/format-requisites.util'
 import { PAYMENT_METHOD_PORT, type IPaymentMethodPort } from '@coopenomics/innercoop';
+import { DomainError } from '@coopenomics/extension-kit';
 
 /**
  * Снимки реквизитов получателей по строкам СЗ. Канон gateway prepareWithdraw →
@@ -102,14 +103,10 @@ export class ExpenseRequisiteSnapshotsService {
         // реквизиты, расходом станут после отчёта чеком); организации — только
         // прямая оплата по выставленным реквизитам.
         if (it.isOrganization && it.mechanics !== 'DIRECT') {
-          throw new BadRequestException(
-            'Организации/ИП доступна только оплата по счёту (DIRECT) — аванс под отчёт ей не выдаётся'
-          )
+          throw DomainError.badRequest('EXPENSES_ORG_ONLY_DIRECT')
         }
         if (!it.isOrganization && it.mechanics !== 'ADVANCE') {
-          throw new BadRequestException(
-            `Пайщику ${it.recipient} средства передаются только авансом под отчёт (ADVANCE) — оплата по счёту доступна только организации/ИП`
-          )
+          throw DomainError.badRequest('EXPENSES_MEMBER_ONLY_ADVANCE', { recipient: it.recipient })
         }
 
         const snapshot = this.repository.create({
@@ -133,9 +130,7 @@ export class ExpenseRequisiteSnapshotsService {
         snapshot.payment_purpose = EXPENSES_CHASSIS_CONFIG.advancePaymentPurpose
 
         if (!it.paymentMethodId) {
-          throw new BadRequestException(
-            `Не указаны реквизиты получателя ${it.recipient} (платёжный метод) по строке расхода`
-          )
+          throw DomainError.badRequest('EXPENSES_RECIPIENT_REQUISITES_MISSING', { recipient: it.recipient })
         }
 
         const method = await this.paymentMethods.get({

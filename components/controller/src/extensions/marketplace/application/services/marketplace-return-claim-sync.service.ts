@@ -9,6 +9,7 @@ import {
   MARKETPLACE_CANONICAL_BLOCKCHAIN_PORT,
   type MarketplaceCanonicalBlockchainPort,
 } from '../../domain/ports/marketplace-canonical-blockchain.port';
+import { t } from '../../i18n';
 
 /** Статус заявки на цепи, когда взнос ждёт пополнения общего кошелька участка (`ReturnStatus::FEE_PENDING`). */
 const CHAIN_FEE_PENDING_STATUS = 'feepend';
@@ -89,7 +90,7 @@ export class MarketplaceReturnClaimSyncService {
       await this.returnService.onCouncilDeclined({
         coopname: data.coopname,
         request_hash: String(data.hash).toLowerCase(),
-        reason: data.reason ?? 'причина не указана',
+        reason: data.reason ?? t('marketplace.returnClaimSync.reasonFallback'),
         tx_hash: this.txHash(action),
       });
     } catch (err: any) {

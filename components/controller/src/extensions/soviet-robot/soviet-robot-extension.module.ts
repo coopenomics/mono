@@ -1,14 +1,8 @@
+import './i18n';
 import { Inject, Module } from '@nestjs/common';
 import { z } from 'zod';
 import { merge } from 'lodash';
-import {
-  BaseExtensionModule,
-  DomainToBlockchainUtils,
-  EXTENSION_REPOSITORY,
-  type DeserializedDescriptionOfExtension,
-  type ExtensionDomainEntity,
-  type ExtensionDomainRepository,
-} from '@coopenomics/extension-kit';
+import { BaseExtensionModule, DomainToBlockchainUtils, EXTENSION_REPOSITORY, type DeserializedDescriptionOfExtension, type ExtensionDomainEntity, type ExtensionDomainRepository, DomainError } from '@coopenomics/extension-kit';
 import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import { SovietRobotDatabaseModule } from './infrastructure/database/soviet-robot-database.module';
 import { ROBOT_DECISION_REPOSITORY } from './domain/repositories/robot-decision.repository';
@@ -25,6 +19,7 @@ import { RobotDesktopGrantsProvider } from './application/desktop/robot-desktop-
 import { SovietRobotInnercoopAdapter } from './application/adapters/soviet-robot-innercoop.adapter';
 import { SovietRobotResolver } from './application/resolvers/soviet-robot.resolver';
 import { ROBOT_EXTENSION_NAME } from './domain/constants';
+import { t } from './i18n';
 
 function describeField(description: DeserializedDescriptionOfExtension): string {
   return JSON.stringify(description);
@@ -43,11 +38,11 @@ export const Schema = z.object({
     .default(defaultConfig.max_attempts)
     .describe(
       describeField({
-        label: 'Число попыток на одно решение',
-        note: 'После исчерпания решение помечается как застрявшее и ждёт ручного повтора',
+        label: t('sovietRobot.settings.maxAttemptsLabel'),
+        note: t('sovietRobot.settings.maxAttemptsNote'),
         rules: ['val >= 1'],
-        prepend: 'Не больше',
-        append: 'попыток',
+        prepend: t('sovietRobot.settings.maxAttemptsPrepend'),
+        append: t('sovietRobot.settings.maxAttemptsAppend'),
       })
     ),
   retry_backoff_sec: z
@@ -55,11 +50,11 @@ export const Schema = z.object({
     .default(defaultConfig.retry_backoff_sec)
     .describe(
       describeField({
-        label: 'Пауза между попытками (в секундах)',
-        note: 'Умножается на номер попытки',
+        label: t('sovietRobot.settings.retryDelayLabel'),
+        note: t('sovietRobot.settings.retryDelayNote'),
         rules: ['val >= 1'],
-        prepend: 'Через',
-        append: 'секунд',
+        prepend: t('sovietRobot.settings.retryDelayPrepend'),
+        append: t('sovietRobot.settings.retryDelayAppend'),
       })
     ),
   index_lag_attempts: z
@@ -67,11 +62,11 @@ export const Schema = z.object({
     .default(defaultConfig.index_lag_attempts)
     .describe(
       describeField({
-        label: 'Сборок протокола, пока голоса не видны в истории',
-        note: 'Голоса робота попадают в историю действий с небольшой задержкой; протокол собирается повторно в том же проходе',
+        label: t('sovietRobot.settings.protocolRetriesLabel'),
+        note: t('sovietRobot.settings.protocolRetriesNote'),
         rules: ['val >= 1'],
-        prepend: 'Не больше',
-        append: 'раз',
+        prepend: t('sovietRobot.settings.protocolRetriesPrepend'),
+        append: t('sovietRobot.settings.protocolRetriesAppend'),
       })
     ),
   index_lag_pause_ms: z
@@ -79,10 +74,10 @@ export const Schema = z.object({
     .default(defaultConfig.index_lag_pause_ms)
     .describe(
       describeField({
-        label: 'Пауза между такими сборками (в миллисекундах)',
+        label: t('sovietRobot.settings.protocolRetryDelayLabel'),
         rules: ['val >= 0'],
-        prepend: 'Через',
-        append: 'мс',
+        prepend: t('sovietRobot.settings.protocolRetryDelayPrepend'),
+        append: t('sovietRobot.settings.protocolRetryDelayAppend'),
       })
     ),
 });
@@ -110,7 +105,7 @@ export class SovietRobotExtension extends BaseExtensionModule {
 
   async initialize() {
     const extensionData = await this.extensionRepository.findByName(this.name);
-    if (!extensionData) throw new Error('Конфиг не найден');
+    if (!extensionData) throw DomainError.internal('SOVIET_ROBOT_CONFIG_NOT_FOUND');
     this.extension = { ...extensionData, config: merge({}, defaultConfig, extensionData.config) };
     this.logger.info(`Инициализация ${this.name} с конфигурацией`, this.extension.config);
   }

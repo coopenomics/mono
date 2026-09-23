@@ -2,6 +2,7 @@ import { Field, InputType } from '@nestjs/graphql';
 import { IsNotEmpty, IsString } from 'class-validator';
 import { SignedDigitalDocumentInputDTO } from '@coopenomics/extension-kit';
 import { Type } from 'class-transformer';
+import { t } from '../../../i18n';
 
 /**
  * GraphQL DTO для внесения результата CAPITAL контракта
@@ -10,13 +11,13 @@ import { Type } from 'class-transformer';
 @InputType('PushResultInput')
 export class PushResultInputDTO {
   @Field(() => String, { description: 'Хэш проекта' })
-  @IsNotEmpty({ message: 'Хэш проекта не должен быть пустым' })
-  @IsString({ message: 'Хэш проекта должен быть строкой' })
+  @IsNotEmpty({ message: t('capital.pushResultInput.projectHash.required') })
+  @IsString({ message: t('capital.pushResultInput.projectHash.string') })
   project_hash!: string;
 
   @Field(() => String, { description: 'Имя пользователя' })
-  @IsNotEmpty({ message: 'Имя пользователя не должно быть пустым' })
-  @IsString({ message: 'Имя пользователя должно быть строкой' })
+  @IsNotEmpty({ message: t('capital.pushResultInput.username.required') })
+  @IsString({ message: t('capital.pushResultInput.username.string') })
   username!: string;
 
   @Field(() => SignedDigitalDocumentInputDTO, { description: 'Подписанное заявление' })

@@ -3,6 +3,7 @@ import { Type } from 'class-transformer';
 import { IsNotEmpty, IsString, ValidateNested } from 'class-validator';
 import { SignedDigitalDocumentInputDTO } from '@coopenomics/extension-kit';
 import type { CreateExpenseDomainInput } from '../../../domain/actions/create-expense-domain-input.interface';
+import { t } from '../../../i18n';
 
 /**
  * GraphQL DTO для создания расхода CAPITAL контракта
@@ -10,33 +11,33 @@ import type { CreateExpenseDomainInput } from '../../../domain/actions/create-ex
 @InputType('CreateExpenseInput')
 export class CreateExpenseInputDTO implements CreateExpenseDomainInput {
   @Field(() => String, { description: 'Имя аккаунта кооператива' })
-  @IsNotEmpty({ message: 'Имя аккаунта кооператива не должно быть пустым' })
-  @IsString({ message: 'Имя аккаунта кооператива должно быть строкой' })
+  @IsNotEmpty({ message: t('capital.createExpenseInput.coopname.required') })
+  @IsString({ message: t('capital.createExpenseInput.coopname.string') })
   coopname!: string;
 
   @Field(() => String, { description: 'Хэш расхода' })
-  @IsNotEmpty({ message: 'Хэш расхода не должен быть пустым' })
-  @IsString({ message: 'Хэш расхода должен быть строкой' })
+  @IsNotEmpty({ message: t('capital.createExpenseInput.expenseHash.required') })
+  @IsString({ message: t('capital.createExpenseInput.expenseHash.string') })
   expense_hash!: string;
 
   @Field(() => String, { description: 'Хэш проекта' })
-  @IsNotEmpty({ message: 'Хэш проекта не должен быть пустым' })
-  @IsString({ message: 'Хэш проекта должен быть строкой' })
+  @IsNotEmpty({ message: t('capital.createExpenseInput.projectHash.required') })
+  @IsString({ message: t('capital.createExpenseInput.projectHash.string') })
   project_hash!: string;
 
   @Field(() => String, { description: 'Сумма расхода' })
-  @IsNotEmpty({ message: 'Сумма расхода не должна быть пустой' })
-  @IsString({ message: 'Сумма расхода должна быть строкой' })
+  @IsNotEmpty({ message: t('capital.createExpenseInput.amount.required') })
+  @IsString({ message: t('capital.createExpenseInput.amount.string') })
   amount!: string;
 
   @Field(() => String, { description: 'Описание расхода' })
-  @IsNotEmpty({ message: 'Описание расхода не должно быть пустым' })
-  @IsString({ message: 'Описание расхода должно быть строкой' })
+  @IsNotEmpty({ message: t('capital.createExpenseInput.description.required') })
+  @IsString({ message: t('capital.createExpenseInput.description.string') })
   description!: string;
 
   @Field(() => String, { description: 'Исполнитель расхода' })
-  @IsNotEmpty({ message: 'Исполнитель расхода не должен быть пустым' })
-  @IsString({ message: 'Исполнитель расхода должен быть строкой' })
+  @IsNotEmpty({ message: t('capital.createExpenseInput.creator.required') })
+  @IsString({ message: t('capital.createExpenseInput.creator.string') })
   creator!: string;
 
   @Field(() => SignedDigitalDocumentInputDTO, { description: 'Служебная записка о расходе' })

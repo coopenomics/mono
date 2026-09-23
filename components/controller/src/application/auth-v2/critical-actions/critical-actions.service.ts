@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { ConflictException, Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { AuditService } from '../audit/audit.service';
 import {
@@ -12,6 +12,7 @@ import {
   type IPendingCriticalActionsRepository,
   type PendingCriticalAction,
 } from '~/domain/auth-v2/ports/pending-critical-actions.port';
+import { DomainError } from '@coopenomics/extension-kit';
 
 /** Окно сбора подписей — 24ч (governance: ≤24ч, не env-тюнится). */
 export const CRITICAL_ACTION_WINDOW_MS = 24 * 60 * 60 * 1000;
@@ -91,18 +92,18 @@ export class CriticalActionsService {
    */
   async confirm(actionId: string, confirmerId: string): Promise<PendingCriticalAction> {
     const action = await this.repo.findById(actionId);
-    if (!action) throw new NotFoundException('Критическое действие не найдено');
+    if (!action) throw DomainError.notFound('AUTH_V2_CRITICAL_ACTION_NOT_FOUND');
     if (action.status !== CriticalActionStatus.Pending)
-      throw new ConflictException('Действие уже не в статусе ожидания');
+      throw DomainError.conflict('AUTH_V2_CRITICAL_ACTION_NOT_PENDING');
 
     if (Date.now() > new Date(action.expiresAt).getTime()) {
       await this.expire(action); // ленивое истечение на пути подтверждения
-      throw new ConflictException('Окно подтверждения истекло');
+      throw DomainError.conflict('AUTH_V2_CRITICAL_ACTION_WINDOW_EXPIRED');
     }
     if (confirmerId === action.actorId)
-      throw new ConflictException('Инициатор не может подтверждать собственное действие');
+      throw DomainError.conflict('AUTH_V2_CRITICAL_ACTION_SELF_CONFIRM_FORBIDDEN');
     if (action.confirmations.some((c) => c.by === confirmerId))
-      throw new ConflictException('Этот член совета уже подтвердил действие');
+      throw DomainError.conflict('AUTH_V2_CRITICAL_ACTION_ALREADY_CONFIRMED');
 
     action.confirmations.push({ by: confirmerId, at: new Date().toISOString() });
 

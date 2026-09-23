@@ -47,15 +47,19 @@ export class RequestEntity {
   programId!: number;
 
   // Финансовые поля из блокчейна
+  // i18n-ignore: комментарий к колонке БД, не текст интерфейса
   @Column({ name: 'unit_cost', type: 'decimal', precision: 10, scale: 2, comment: 'Стоимость единицы из блокчейна' })
   unitCost!: number;
 
+  // i18n-ignore: комментарий к колонке БД, не текст интерфейса
   @Column({ name: 'supplier_amount', type: 'decimal', precision: 10, scale: 2, comment: 'Сумма поставщика' })
   supplierAmount!: number;
 
+  // i18n-ignore: комментарий к колонке БД, не текст интерфейса
   @Column({ name: 'membership_fee', type: 'decimal', precision: 10, scale: 2, default: 0, comment: 'Членский взнос' })
   membershipFee!: number;
 
+  // i18n-ignore: комментарий к колонке БД, не текст интерфейса
   @Column({ name: 'total_cost', type: 'decimal', precision: 10, scale: 2, comment: 'Общая стоимость' })
   totalCost!: number;
 
@@ -65,6 +69,7 @@ export class RequestEntity {
     precision: 5,
     scale: 2,
     nullable: true,
+    // i18n-ignore: комментарий к колонке БД, не текст интерфейса
     comment: 'Штраф за отмену (%)',
   })
   cancellationFee?: number;
@@ -75,17 +80,21 @@ export class RequestEntity {
     precision: 10,
     scale: 2,
     nullable: true,
+    // i18n-ignore: комментарий к колонке БД, не текст интерфейса
     comment: 'Сумма штрафа за отмену',
   })
   cancellationFeeAmount?: number;
 
   // Дополнительные блокчейн количества
+  // i18n-ignore: комментарий к колонке БД, не текст интерфейса
   @Column({ name: 'remain_units', type: 'integer', comment: 'Остаток единиц из блокчейна' })
   remainUnits!: number;
 
+  // i18n-ignore: комментарий к колонке БД, не текст интерфейса
   @Column({ name: 'blocked_units', type: 'integer', default: 0, comment: 'Заблокированные единицы' })
   blockedUnits!: number;
 
+  // i18n-ignore: комментарий к колонке БД, не текст интерфейса
   @Column({ name: 'delivered_units', type: 'integer', default: 0, comment: 'Доставленные единицы' })
   deliveredUnits!: number;
 
@@ -146,6 +155,7 @@ export class RequestEntity {
     name: 'type',
     type: 'enum',
     enum: ['offer', 'order'],
+    // i18n-ignore: комментарий к колонке БД, не текст интерфейса
     comment: 'Тип заявки: offer - предложение, order - заказ',
   })
   @Index('idx_request_type')
@@ -156,6 +166,7 @@ export class RequestEntity {
     type: 'enum',
     enum: ['draft', 'published', 'moderation', 'active', 'matched', 'completed', 'cancelled', 'declined'],
     default: 'draft',
+    // i18n-ignore: комментарий к колонке БД, не текст интерфейса
     comment: 'Статус заявки',
   })
   @Index('idx_request_status')
@@ -165,6 +176,7 @@ export class RequestEntity {
   @Column({ name: 'name', type: 'varchar', length: 500 })
   name!: string;
 
+  // i18n-ignore: комментарий к колонке БД, не текст интерфейса
   @Column({ name: 'article_number', type: 'varchar', length: 50, comment: 'Артикул товара' })
   @Index('idx_request_article_number')
   articleNumber!: string;
@@ -182,31 +194,38 @@ export class RequestEntity {
   typeId!: number;
 
   // Цены
+  // i18n-ignore: комментарий к колонке БД, не текст интерфейса
   @Column({ name: 'price', type: 'decimal', precision: 10, scale: 2, comment: 'Цена товара' })
   price!: number;
 
+  // i18n-ignore: комментарий к колонке БД, не текст интерфейса
   @Column({ name: 'old_price', type: 'decimal', precision: 10, scale: 2, nullable: true, comment: 'Цена до скидки' })
   oldPrice?: number;
 
   @Column({ name: 'currency_code', type: 'varchar', length: 3, default: 'RUB' })
   currencyCode!: string;
 
+  // i18n-ignore: комментарий к колонке БД, не текст интерфейса
   @Column({ name: 'vat', type: 'varchar', length: 10, comment: 'Ставка НДС' })
   vat!: string;
 
   // Габариты и вес
+  // i18n-ignore: комментарий к колонке БД, не текст интерфейса
   @Column({ name: 'width', type: 'integer', nullable: true, comment: 'Ширина в мм/см/дюймах' })
   width?: number;
 
+  // i18n-ignore: комментарий к колонке БД, не текст интерфейса
   @Column({ name: 'height', type: 'integer', nullable: true, comment: 'Высота в мм/см/дюймах' })
   height?: number;
 
+  // i18n-ignore: комментарий к колонке БД, не текст интерфейса
   @Column({ name: 'depth', type: 'integer', nullable: true, comment: 'Глубина в мм/см/дюймах' })
   depth?: number;
 
   @Column({ name: 'dimension_unit', type: 'varchar', length: 10, nullable: true, default: 'mm' })
   dimensionUnit?: string;
 
+  // i18n-ignore: комментарий к колонке БД, не текст интерфейса
   @Column({ name: 'weight', type: 'integer', nullable: true, comment: 'Вес в граммах/кг/фунтах' })
   weight?: number;
 
@@ -214,37 +233,47 @@ export class RequestEntity {
   weightUnit?: string;
 
   // Количества
+  // i18n-ignore: комментарий к колонке БД, не текст интерфейса
   @Column({ name: 'units', type: 'integer', comment: 'Общее количество единиц' })
   units!: number;
 
+  // i18n-ignore: комментарий к колонке БД, не текст интерфейса
   @Column({ name: 'available_units', type: 'integer', comment: 'Доступное количество единиц' })
   availableUnits!: number;
 
+  // i18n-ignore: комментарий к колонке БД, не текст интерфейса
   @Column({ name: 'settled_units', type: 'integer', default: 0, comment: 'Количество проданных единиц' })
   settledUnits!: number;
 
   // Время жизни и гарантии
+  // i18n-ignore: комментарий к колонке БД, не текст интерфейса
   @Column({ name: 'product_lifecycle_secs', type: 'integer', nullable: true, comment: 'Время жизни продукта в секундах' })
   productLifecycleSecs?: number;
 
+  // i18n-ignore: комментарий к колонке БД, не текст интерфейса
   @Column({ name: 'warranty_days', type: 'integer', nullable: true, comment: 'Гарантийный срок в днях' })
   warrantyDays?: number;
 
   // Дополнительные данные
+  // i18n-ignore: комментарий к колонке БД, не текст интерфейса
   @Column({ name: 'data', type: 'text', nullable: true, comment: 'Дополнительные данные JSON' })
   data?: string;
 
+  // i18n-ignore: комментарий к колонке БД, не текст интерфейса
   @Column({ name: 'meta', type: 'text', nullable: true, comment: 'Метаданные JSON' })
   meta?: string;
 
   // Изображения
+  // i18n-ignore: комментарий к колонке БД, не текст интерфейса
   @Column({ name: 'primary_image_url', type: 'text', nullable: true, comment: 'URL главного изображения' })
   primaryImageUrl?: string;
 
+  // i18n-ignore: комментарий к колонке БД, не текст интерфейса
   @Column({ name: 'color_image_url', type: 'text', nullable: true, comment: 'URL образца цвета' })
   colorImageUrl?: string;
 
   // Геоограничения
+  // i18n-ignore: комментарий к колонке БД, не текст интерфейса
   @Column({ name: 'geo_names', type: 'text', nullable: true, comment: 'Геоограничения JSON массив' })
   geoNames?: string;
 

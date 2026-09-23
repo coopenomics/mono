@@ -1,10 +1,8 @@
 import { Args, Int, Mutation, Query, Resolver } from '@nestjs/graphql';
-import { BadRequestException, Inject, NotFoundException, UseGuards } from '@nestjs/common';
+import { Inject, NotFoundException, UseGuards } from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
 import { validate, type ValidationError } from 'class-validator';
-import { GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser,
-  platformSettings,
-} from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser, platformSettings, DomainError } from '@coopenomics/extension-kit';
 import type { IMonoAccount } from '@coopenomics/innercoop';
 import { ReportType } from '../../domain/enums/report-type.enum';
 import {
@@ -155,9 +153,7 @@ export class ReportDraftResolver {
     try {
       parsed = JSON.parse(editsJson);
     } catch (err) {
-      throw new BadRequestException(
-        `editsJson: невалидный JSON (${err instanceof Error ? err.message : String(err)})`,
-      );
+      throw DomainError.badRequest('REPORTS_EDITS_JSON_INVALID', { message: err instanceof Error ? err.message : String(err) });
     }
     const dto = this.buildEditsInputDto(reportType, parsed);
     const errors = await validate(dto, { whitelist: false, forbidNonWhitelisted: false });
@@ -229,9 +225,7 @@ export class ReportDraftResolver {
     try {
       return JSON.parse(raw);
     } catch (err) {
-      throw new BadRequestException(
-        `editsJson: невалидный JSON (${err instanceof Error ? err.message : String(err)})`,
-      );
+      throw DomainError.badRequest('REPORTS_EDITS_JSON_INVALID', { message: err instanceof Error ? err.message : String(err) });
     }
   }
 

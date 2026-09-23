@@ -5,31 +5,32 @@ import { EntrepreneurDetailsInputDTO } from './entrepreneur-details-input.dto';
 import { IsNotEmpty, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 import { NoMarkup } from '~/shared/validators/no-markup.decorator';
+import { t } from '~/i18n';
 
 @InputType('CreateEntrepreneurDataInput')
 export class CreateEntrepreneurDataInputDTO {
   @Field(() => BankAccountInputDTO, { description: 'Банковский счет' })
-  @IsNotEmpty({ message: 'Поле "bank_account" обязательно для заполнения.' })
+  @IsNotEmpty({ message: t('account.createEntrepreneurDataInput.fieldBankAccountRequired') })
   @ValidateNested()
   @Type(() => BankAccountInputDTO)
   bank_account!: BankAccountInputDTO;
 
   @Field({ description: 'Дата рождения' })
-  @IsNotEmpty({ message: 'Поле "birthdate" обязательно для заполнения.' })
+  @IsNotEmpty({ message: t('account.createEntrepreneurDataInput.fieldBirthdateRequired') })
   @NoMarkup()
   birthdate!: string;
 
   @Field({ description: 'Город' })
-  @IsNotEmpty({ message: 'Поле "city" обязательно для заполнения.' })
+  @IsNotEmpty({ message: t('account.createEntrepreneurDataInput.fieldCityRequired') })
   @NoMarkup()
   city!: string;
 
   @Field(() => Country, { description: 'Страна' })
-  @IsNotEmpty({ message: 'Поле "country" обязательно для заполнения.' })
+  @IsNotEmpty({ message: t('account.createEntrepreneurDataInput.fieldCountryRequired') })
   country!: Country;
 
   @Field(() => EntrepreneurDetailsInputDTO, { description: 'Детали индивидуального предпринимателя' })
-  @IsNotEmpty({ message: 'Поле "details" обязательно для заполнения.' })
+  @IsNotEmpty({ message: t('account.createEntrepreneurDataInput.fieldDetailsRequired') })
   @ValidateNested()
   @Type(() => EntrepreneurDetailsInputDTO)
   details!: EntrepreneurDetailsInputDTO;
@@ -39,27 +40,27 @@ export class CreateEntrepreneurDataInputDTO {
   email!: string;
 
   @Field({ description: 'Имя' })
-  @IsNotEmpty({ message: 'Поле "first_name" обязательно для заполнения.' })
+  @IsNotEmpty({ message: t('account.createEntrepreneurDataInput.fieldFirstNameRequired') })
   @NoMarkup()
   first_name!: string;
 
   @Field({ description: 'Полный адрес' })
-  @IsNotEmpty({ message: 'Поле "full_address" обязательно для заполнения.' })
+  @IsNotEmpty({ message: t('account.createEntrepreneurDataInput.fieldFullAddressRequired') })
   @NoMarkup()
   full_address!: string;
 
   @Field({ description: 'Фамилия' })
-  @IsNotEmpty({ message: 'Поле "last_name" обязательно для заполнения.' })
+  @IsNotEmpty({ message: t('account.createEntrepreneurDataInput.fieldLastNameRequired') })
   @NoMarkup()
   last_name!: string;
 
   @Field({ description: 'Отчество' })
-  @IsNotEmpty({ message: 'Поле "middle_name" обязательно для заполнения.' })
+  @IsNotEmpty({ message: t('account.createEntrepreneurDataInput.fieldMiddleNameRequired') })
   @NoMarkup()
   middle_name!: string;
 
   @Field({ description: 'Телефон' })
-  @IsNotEmpty({ message: 'Поле "phone" обязательно для заполнения.' })
+  @IsNotEmpty({ message: t('account.createEntrepreneurDataInput.fieldPhoneRequired') })
   @NoMarkup()
   phone!: string;
 }

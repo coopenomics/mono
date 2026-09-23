@@ -11,6 +11,7 @@ import {
   type InnerTransactResult,
 } from '@coopenomics/innercoop';
 import { SOVIET } from '../../domain/constants';
+import { DomainError } from '@coopenomics/extension-kit';
 
 /** Строка реестра автоматизаций, как её отдаёт цепь. */
 export type AutomatorRow = SovietContract.Tables.Automations.IAutomations;
@@ -95,7 +96,7 @@ export class RobotChainService {
 
   private async transactAsCoop(coopname: string, actions: InnerChainAction[]): Promise<string> {
     const wif = await this.vault.getWif(coopname);
-    if (!wif) throw new Error(`В хранилище нет ключа кооператива ${coopname} — роботу нечем подписать транзакцию`);
+    if (!wif) throw DomainError.internal('SOVIET_ROBOT_KEY_NOT_IN_VAULT', { coopname });
     this.chain.initialize(coopname, wif);
     const result = await this.chain.transact(actions);
     return RobotChainService.transactionId(result);

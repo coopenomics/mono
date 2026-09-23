@@ -2,18 +2,19 @@
 import { IsNotEmpty, IsString, IsBoolean } from 'class-validator';
 import { Field, InputType } from '@nestjs/graphql';
 import { BankAccountInputDTO } from './bank-account-input.dto';
+import { t } from '~/i18n';
 
 @InputType('CreateBankAccountInput')
 export class CreateBankAccountInputDTO {
   @Field(() => String, { description: 'Имя аккаунта пользователя' })
-  @IsNotEmpty({ message: 'Имя аккаунта пользователя обязательно' })
+  @IsNotEmpty({ message: t('paymentMethod.createBankAccountInput.usernameRequired') })
   @IsString()
   username!: string;
 
   @Field(() => Boolean, {
     description: 'Флаг основного метода платежа, который отображается в документах',
   })
-  @IsNotEmpty({ message: 'Флаг основного метода платежа должен быть установлен' })
+  @IsNotEmpty({ message: t('paymentMethod.createBankAccountInput.isMainFlagRequired') })
   @IsBoolean()
   is_default!: boolean;
 

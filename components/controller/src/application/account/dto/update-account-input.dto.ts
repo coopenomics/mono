@@ -4,11 +4,12 @@ import { Type } from 'class-transformer';
 import { UpdateEntrepreneurDataInputDTO } from './update-entrepreneur-data-input.dto';
 import { UpdateIndividualDataInputDTO } from './update-individual-data-input.dto';
 import { UpdateOrganizationDataInputDTO } from './update-organization-data-input.dto';
+import { t } from '~/i18n';
 
 @InputType('UpdateAccountInput')
 export class UpdateAccountInputDTO {
   @Field({ description: 'Имя пользователя' })
-  @IsNotEmpty({ message: 'Поле "username" обязательно для заполнения.' })
+  @IsNotEmpty({ message: t('account.updateAccountInput.fieldUsernameRequired') })
   username!: string;
 
   @Field({ nullable: true, description: 'Имя аккаунта реферера' })
@@ -39,7 +40,7 @@ export class UpdateAccountInputDTO {
 
   @ValidateIf((o: UpdateAccountInputDTO) => !o.entrepreneur_data && !o.individual_data && !o.organization_data)
   @IsNotEmpty({
-    message: 'Необходимо указать хотя бы одно из полей: "entrepreneur_data", "individual_data" или "organization_data".',
+    message: t('account.updateAccountInput.atLeastOneDataRequired'),
   })
   validateOneTypePresent!: boolean;
 }

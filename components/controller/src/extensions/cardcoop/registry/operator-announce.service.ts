@@ -32,6 +32,7 @@ import { CardcoopAttestationService } from '../attestation/attestation.service';
 import { CardcoopOperatorAnnouncementTypeormEntity } from '../infrastructure/entities/cardcoop-operator-announcement.typeorm-entity';
 import { CardcoopRegistryDocumentType, type CardcoopAdmissionPayload } from './registry.types';
 import { isNetworkOperator } from './operator';
+import { t } from '../i18n';
 
 const CONTRACT = RegistratorContract.contractName.production;
 
@@ -193,7 +194,7 @@ export class CardcoopOperatorAnnounceService {
     const record = known ?? this.announcements.create({ coopname: subject });
     record.displayName = payload.display_name;
     record.delivered = result.delivered;
-    record.lastError = result.delivered ? null : (result.reason ?? 'сеть недоступна');
+    record.lastError = result.delivered ? null : (result.reason ?? t('cardcoop.delivery.status.networkUnavailable'));
     await this.announcements.save(record);
 
     if (result.delivered) {

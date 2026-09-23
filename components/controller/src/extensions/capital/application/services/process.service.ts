@@ -10,6 +10,8 @@ import { IssueDomainEntity } from '../../domain/entities/issue.entity';
 import { IssueStatus } from '../../domain/enums/issue-status.enum';
 import { IssuePriority } from '../../domain/enums/issue-priority.enum';
 import { v4 as uuid } from 'uuid';
+import { t } from '../../i18n';
+import { DomainError } from '@coopenomics/extension-kit';
 
 @Injectable()
 export class ProcessService {
@@ -67,13 +69,13 @@ export class ProcessService {
     coopname: string;
   }): Promise<ProcessInstanceDomainEntity> {
     const template = await this.templateRepo.findById(data.template_id);
-    if (!template) throw new Error('Шаблон процесса не найден');
+    if (!template) throw DomainError.internal('CAPITAL_PROCESS_TEMPLATE_NOT_FOUND');
     if (template.status !== ProcessTemplateStatus.ACTIVE) {
-      throw new Error('Шаблон процесса должен быть в статусе ACTIVE');
+      throw DomainError.internal('CAPITAL_PROCESS_TEMPLATE_NOT_ACTIVE');
     }
 
     const startSteps = template.steps.filter(s => s.is_start);
-    if (startSteps.length === 0) throw new Error('В шаблоне нет стартовых шагов');
+    if (startSteps.length === 0) throw DomainError.internal('CAPITAL_PROCESS_TEMPLATE_NO_START_STEPS');
 
     const stepStates: ProcessStepState[] = template.steps.map(step => ({
       step_id: step.id,
@@ -99,13 +101,13 @@ export class ProcessService {
 
   async completeStep(instanceId: string, stepId: string): Promise<ProcessInstanceDomainEntity> {
     const instance = await this.instanceRepo.findById(instanceId);
-    if (!instance) throw new Error('Экземпляр процесса не найден');
+    if (!instance) throw DomainError.internal('CAPITAL_PROCESS_INSTANCE_NOT_FOUND');
 
     const template = await this.templateRepo.findById(instance.template_id);
-    if (!template) throw new Error('Шаблон процесса не найден');
+    if (!template) throw DomainError.internal('CAPITAL_PROCESS_TEMPLATE_NOT_FOUND');
 
     const stepState = instance.step_states.find(s => s.step_id === stepId);
-    if (!stepState) throw new Error('Шаг не найден');
+    if (!stepState) throw DomainError.internal('CAPITAL_PROCESS_STEP_NOT_FOUND');
     if (stepState.status === ProcessStepStatus.COMPLETED) return instance;
 
     stepState.status = ProcessStepStatus.COMPLETED;
@@ -185,7 +187,7 @@ export class ProcessService {
         issue_hash: issueHash,
         coopname: instance.coopname,
         title: `[${template.title}] ${step.title}`,
-        description: step.description || `Задача процесса "${template.title}", цикл ${instance.cycle}`,
+        description: step.description || t('capital.process.taskTitle', { templateTitle: template.title, cycle: instance.cycle }),
         priority: IssuePriority.MEDIUM,
         status: IssueStatus.TODO,
         estimate: step.estimate || 0,

@@ -1,5 +1,6 @@
 import { Field, InputType } from '@nestjs/graphql';
 import { IsNotEmpty, IsString } from 'class-validator';
+import { t } from '../../../i18n';
 
 /**
  * GraphQL Input DTO для получения конфигурации CAPITAL контракта
@@ -9,7 +10,7 @@ export class GetCapitalConfigInputDTO {
   @Field(() => String, {
     description: 'Название кооператива',
   })
-  @IsNotEmpty({ message: 'Название кооператива не должно быть пустым' })
-  @IsString({ message: 'Название кооператива должно быть строкой' })
+  @IsNotEmpty({ message: t('capital.getConfigInput.coopname.required') })
+  @IsString({ message: t('capital.getConfigInput.coopname.string') })
   coopname!: string;
 }

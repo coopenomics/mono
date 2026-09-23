@@ -10,6 +10,7 @@ export class NoopGeocoderAdapter implements GeocoderPort {
 
   async geocode(_addressFull: string): Promise<GeocoderResult> {
     this.logger.debug('GEOCODER_PROVIDER=noop — геокодинг пропущен');
+    // i18n-ignore: техническое сообщение диагностики геокодера, не интерфейс пайщика
     return { status: 'FAILED', errorMessage: 'Геокодинг отключён (GEOCODER_PROVIDER=noop)' };
   }
 }

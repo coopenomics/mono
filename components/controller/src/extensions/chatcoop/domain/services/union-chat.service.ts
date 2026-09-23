@@ -11,6 +11,7 @@ import { COOPERATIVE_VARS_PORT, type ICooperativeVarsPort, type InnerAccount,
   INTEGRATION_SETTINGS_PORT,
   type IIntegrationSettingsPort,
 } from '@coopenomics/innercoop';
+import { t } from '../../i18n';
 
 @Injectable()
 export class UnionChatService {
@@ -40,7 +41,7 @@ export class UnionChatService {
       }
 
       const unionPersonId = this.union.union_person_id;
-      const unionName = this.union.union_name || 'СПО РУСЬ';
+      const unionName = this.union.union_name || t('chatcoop.unionChat.defaultUnionName');
 
       if (!unionPersonId) {
         this.logger.warn('union_person_id не задан, пропускаем создание комнаты союза');
@@ -71,7 +72,7 @@ export class UnionChatService {
 
       // Имя комнаты
       const roomName = `${orgData.short_name} & ${unionName}`;
-      const topic = `Связь с представителем ${unionName}`;
+      const topic = t('chatcoop.unionChat.roomTopic', { unionName });
 
       // Создаем комнату без шифрования, приватную
       const roomId = await this.matrixApiService.createRoom(roomName, topic, true, undefined, undefined, false);
@@ -93,7 +94,7 @@ export class UnionChatService {
 
       // Отправляем приветственное сообщение
       const coopDisplayName = orgData.short_name;
-      const welcomeMessage = `Добро пожаловать в комнату связи между представителем кооператива ${coopDisplayName} и ${unionName}.`;
+      const welcomeMessage = t('chatcoop.unionChat.welcomeMessage', { coopName: coopDisplayName, unionName });
 
       await this.matrixApiService.sendMessage(roomId, welcomeMessage);
 

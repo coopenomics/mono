@@ -1,5 +1,6 @@
 import { Field, InputType, Int, ObjectType } from '@nestjs/graphql';
 import { IsInt, IsOptional, IsString, Matches, Min } from 'class-validator';
+import { t } from '../../i18n';
 
 @ObjectType('RobotKeyStatus', { description: 'Состояние ключа робота у члена совета' })
 export class RobotKeyStatusDTO {
@@ -29,7 +30,7 @@ export class RobotKeyStatusDTO {
 export class RobotDelegateKeyInputDTO {
   @Field(() => String, { description: 'Приватный ключ разрешения робота (WIF); передаётся один раз и не хранится на устройстве' })
   @IsString()
-  @Matches(/^(5[HJK][1-9A-HJ-NP-Za-km-z]{49}|PVT_K1_[1-9A-HJ-NP-Za-km-z]{50,60})$/, { message: 'Ожидается приватный ключ в формате WIF' })
+  @Matches(/^(5[HJK][1-9A-HJ-NP-Za-km-z]{49}|PVT_K1_[1-9A-HJ-NP-Za-km-z]{50,60})$/, { message: t('sovietRobot.robotKeyDto.wifFormatHint') })
   wif!: string;
 
   @Field(() => String, { nullable: true, description: 'Имя разрешения; по умолчанию robot' })

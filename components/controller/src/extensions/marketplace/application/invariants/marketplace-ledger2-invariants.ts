@@ -23,6 +23,7 @@
  */
 
 import { Ledger2 } from 'cooptypes'
+import { t as i18nT } from '../../i18n';
 
 /** Asset цепи «100.0000 RUB» либо чистая сумма проекции «100.0000» — символ необязателен. */
 const ASSET_RE = /^(-?\d+)(?:\.(\d+))?(?:\s+[A-Z]{1,7})?$/
@@ -31,6 +32,7 @@ const ASSET_RE = /^(-?\d+)(?:\.(\d+))?(?:\s+[A-Z]{1,7})?$/
 export function parseAssetToBigInt(quantity: string | null | undefined, precision = 4): bigint {
   if (!quantity) return 0n
   const m = ASSET_RE.exec(quantity.trim())
+  // i18n-ignore: внутренняя ошибка, до пайщика не доходит — защитный разбор ledger2-строк из истории цепи (не пользовательский ввод)
   if (!m) throw new Error(`parseAssetToBigInt: не распознан asset "${quantity}"`)
   const [, intPart, fracPart = ''] = m
   const padded = (fracPart + '0'.repeat(precision)).slice(0, precision)
@@ -227,7 +229,7 @@ function checkAccountUsage(params: {
     if (!allowed) {
       violations.push({
         processHash: r.processHash as string,
-        message: `${side === 'debit' ? 'дебет' : 'кредит'} ${accountId} на ${r.quantity ?? '∅'} ${rule.missing} в нитке: ${threadCodes.join(', ')}`,
+        message: i18nT('marketplace.ledgerInvariants.accountUsageViolation', { side: side === 'debit' ? 'дебет' : 'кредит', accountId, quantity: r.quantity ?? '∅', missing: rule.missing, threadCodes: threadCodes.join(', ') }),
       })
     }
   }
@@ -252,9 +254,9 @@ function checkAccountUsage(params: {
 /** Нарушения формы нитки: вторая приёмка, выплата без приёмки, вторая выплата. */
 function supplierThreadShapeIssues(purch: CodeTotal | undefined, payout: CodeTotal | undefined): string[] {
   const out: string[] = []
-  if (purch && purch.count > 1) out.push(`приёмка проведена ${purch.count} раза на ${formatBigIntAsset(purch.total)}`)
-  if (payout && !purch) out.push(`выплата ${formatBigIntAsset(payout.total)} без приёмки в нитке`)
-  if (payout && payout.count > 1) out.push(`выплата проведена ${payout.count} раза на ${formatBigIntAsset(payout.total)}`)
+  if (purch && purch.count > 1) out.push(i18nT('marketplace.ledgerInvariants.receiptRepeatedIssue', { count: purch.count, amount: formatBigIntAsset(purch.total) }))
+  if (payout && !purch) out.push(i18nT('marketplace.ledgerInvariants.payoutWithoutReceiptIssue', { amount: formatBigIntAsset(payout.total) }))
+  if (payout && payout.count > 1) out.push(i18nT('marketplace.ledgerInvariants.payoutRepeatedIssue', { count: payout.count, amount: formatBigIntAsset(payout.total) }))
   return out
 }
 
@@ -269,11 +271,11 @@ function supplierThreadSettlement(
     const issue =
       settled === purch.total
         ? null
-        : `выплата ${formatBigIntAsset(payout.total)} и удержание ${formatBigIntAsset(deductTotal)} не закрывают принятую стоимость ${formatBigIntAsset(purch.total)}`
+        : i18nT('marketplace.ledgerInvariants.settlementMismatchIssue', { payoutAmount: formatBigIntAsset(payout.total), deductAmount: formatBigIntAsset(deductTotal), acceptedAmount: formatBigIntAsset(purch.total) })
     return { issue, closed: true }
   }
   if (settled > purch.total) {
-    return { issue: `удержано ${formatBigIntAsset(settled)} — больше принятой стоимости ${formatBigIntAsset(purch.total)}`, closed: false }
+    return { issue: i18nT('marketplace.ledgerInvariants.deductExceedsAcceptedIssue', { settledAmount: formatBigIntAsset(settled), acceptedAmount: formatBigIntAsset(purch.total) }), closed: false }
   }
   return { issue: null, closed: settled === purch.total }
 }
@@ -301,14 +303,14 @@ export function checkInvariantI1SupplierThreads(rows: readonly MarketplaceLedger
     const state = inspectSupplierThread(totals, (message) => violations.push({ processHash, message }))
     if (state !== 'skip') counts[state] += 1
   }
-  const summary = `ниток: ${counts.open + counts.closed}, закрытых: ${counts.closed}`
+  const summary = i18nT('marketplace.ledgerInvariants.threadsSummary', { total: counts.open + counts.closed, closed: counts.closed })
   if (violations.length > 0) {
     return {
       ok: false,
       invariant: 'I1',
-      expected: 'по каждому заказу выплата и удержание закрывают принятую стоимость',
+      expected: i18nT('marketplace.ledgerInvariants.i1Expected'),
       actual: summary,
-      violation: 'I1: расчёт с поставщиком по заказу закрыт не на принятую сумму либо проведён дважды.',
+      violation: i18nT('marketplace.ledgerInvariants.i1Violation'),
       details: violations,
     }
   }
@@ -329,8 +331,8 @@ export function checkInvariantI1SupplierThreads(rows: readonly MarketplaceLedger
 // и всегда отвечала «сходится».
 // ---------------------------------------------------------------------------
 const ACCOUNT_86_SIDES: Record<'debit' | 'credit', AccountSideRule> = {
-  debit: { codes: [], missing: '— у Стола заказов дебета 86 нет' },
-  credit: { codes: ['o.mkt.conv', 'o.mkt.penal'], missing: 'без перевода в членский (o.mkt.conv) и удержания при отказе (o.mkt.penal)' },
+  debit: { codes: [], missing: i18nT('marketplace.ledgerInvariants.account86DebitMissing') },
+  credit: { codes: ['o.mkt.conv', 'o.mkt.penal'], missing: i18nT('marketplace.ledgerInvariants.account86CreditMissing') },
 }
 
 export function checkInvariantI2Account86Usage(rows: readonly MarketplaceLedger2OperationRow[]): InvariantResult {
@@ -339,8 +341,8 @@ export function checkInvariantI2Account86Usage(rows: readonly MarketplaceLedger2
     accountId: 86,
     rules: ACCOUNT_86_SIDES,
     rows,
-    expected: 'дебета 86 нет, кредит 86 только переводом в членский и удержанием при отказе',
-    violation: 'I2: на счёте 86 есть marketplace-проводки вне перевода в членский и удержания при отказе.',
+    expected: i18nT('marketplace.ledgerInvariants.i2Expected'),
+    violation: i18nT('marketplace.ledgerInvariants.i2Violation'),
   })
 }
 
@@ -379,8 +381,8 @@ export function checkInvariantI3Account10Materials(
       expected: formatBigIntAsset(computed),
       actual: formatBigIntAsset(actual),
       violation:
-        'I3: баланс счёта 10 не совпадает с marketplace-вкладом (purch+return2 − consum−wroff). ' +
-        'Возможный источник: пропущенный consum/wroff или дублирующий purch.',
+        i18nT('marketplace.ledgerInvariants.i3Violation') +
+        i18nT('marketplace.ledgerInvariants.i3ViolationHint'),
     }
   }
   return { ok: true, invariant: 'I3', expected: formatBigIntAsset(computed) }
@@ -398,8 +400,8 @@ export function checkInvariantI3Account10Materials(
 // реестра.
 // ---------------------------------------------------------------------------
 const ACCOUNT_91_SIDES: Record<'debit' | 'credit', AccountSideRule> = {
-  debit: { codes: ['o.mkt.loss', 'o.mkt.wroff'], missing: 'без уценки (o.mkt.loss) и списания скоропорта (o.mkt.wroff)' },
-  credit: { codes: ['o.mkt.admit'], missing: 'без признанной претензии (o.mkt.admit)' },
+  debit: { codes: ['o.mkt.loss', 'o.mkt.wroff'], missing: i18nT('marketplace.ledgerInvariants.account91DebitMissing') },
+  credit: { codes: ['o.mkt.admit'], missing: i18nT('marketplace.ledgerInvariants.account91CreditMissing') },
 }
 
 export function checkInvariantI4Account91Usage(rows: readonly MarketplaceLedger2OperationRow[]): InvariantResult {
@@ -408,8 +410,8 @@ export function checkInvariantI4Account91Usage(rows: readonly MarketplaceLedger2
     accountId: 91,
     rules: ACCOUNT_91_SIDES,
     rows,
-    expected: 'дебет 91 только уценкой и списанием скоропорта, кредит 91 только признанной претензией',
-    violation: 'I4: на счёте 91 есть marketplace-проводки вне уценки, списания скоропорта и признанных претензий.',
+    expected: i18nT('marketplace.ledgerInvariants.i4Expected'),
+    violation: i18nT('marketplace.ledgerInvariants.i4Violation'),
   })
 }
 
@@ -465,8 +467,8 @@ export function checkInvariantI5ReserveConsistency(
       expected: formatBigIntAsset(computed),
       actual: formatBigIntAsset(totalReserve),
       violation:
-        'I5: резерв на w.mkt.order не совпадает с историей lock − unlock − consum. ' +
-        'Возможный источник: пропущенный unlock при отмене Order или повторный lock без unlock.',
+        i18nT('marketplace.ledgerInvariants.i5Violation') +
+        i18nT('marketplace.ledgerInvariants.i5ViolationHint'),
     }
   }
   return { ok: true, invariant: 'I5', expected: formatBigIntAsset(computed) }
@@ -509,19 +511,19 @@ export function checkInvariantI6NoOrphanedReserves(
       violations.push({
         processHash,
         message:
-          'consum без предшествующего резерва (lock / lockp) — невозможно списать резерв, которого не было.',
+          i18nT('marketplace.ledgerInvariants.consumWithoutReserveIssue'),
       })
     }
     if (hasUnlock && !hasLock) {
       violations.push({
         processHash,
-        message: 'unlock без резерва (lock / lockp) — невозможно снять резерв, который не вносился.',
+        message: i18nT('marketplace.ledgerInvariants.unlockWithoutReserveIssue'),
       })
     }
     if (hasLock && hasUnlock && hasConsum) {
       violations.push({
         processHash,
-        message: 'резерв + unlock + consum в одном процессе — двойное закрытие резерва.',
+        message: i18nT('marketplace.ledgerInvariants.doubleReserveCloseIssue'),
       })
     }
   }
@@ -529,7 +531,7 @@ export function checkInvariantI6NoOrphanedReserves(
     return {
       ok: false,
       invariant: 'I6',
-      violation: 'I6: обнаружены процессы с некорректной парностью резерва/unlock/consum.',
+      violation: i18nT('marketplace.ledgerInvariants.i6Violation'),
       details: violations,
     }
   }
@@ -576,7 +578,7 @@ export function checkInvariantI7SupplierSettlements(
     const settled = (totals?.get('o.mkt.deduct')?.total ?? 0n) + (totals?.get('o.mkt.payout')?.total ?? 0n)
     const outstanding = accepted - settled
     openOutstanding += outstanding
-    details.push({ processHash: s.processHash, message: `открытый расчёт на ${formatBigIntAsset(outstanding)}` })
+    details.push({ processHash: s.processHash, message: i18nT('marketplace.ledgerInvariants.openSettlementAmount', { amount: formatBigIntAsset(outstanding) }) })
   }
   let admittedDebt = 0n
   for (const w of wallets) {
@@ -591,9 +593,9 @@ export function checkInvariantI7SupplierSettlements(
       expected: formatBigIntAsset(expected),
       actual: formatBigIntAsset(ledger76),
       violation:
-        'I7: остаток счёта 76 по Столу заказов не равен открытым расчётам с поставщиками ' +
-        '(принятая стоимость заказов с неподтверждённой выплатой за вычетом удержанного минус признанный долг поставщиков). ' +
-        'Возможный источник: выплата проведена не на принятую сумму либо заказ стёрт при незавершённой выплате.',
+        i18nT('marketplace.ledgerInvariants.i7ViolationIntro') +
+        i18nT('marketplace.ledgerInvariants.i7ViolationDetail') +
+        i18nT('marketplace.ledgerInvariants.i7ViolationHint'),
       details,
     }
   }

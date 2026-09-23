@@ -4,6 +4,7 @@
  */
 
 import type { MatrixChatRoomPreset } from './matrix-chat-room-preset.types';
+import { t } from '../../i18n';
 
 /**
  * Стартовые права: модераторы (50) — звонки, оформление комнаты, виджеты, закрепы, аватар;
@@ -56,7 +57,7 @@ function buildPowerLevels(adminUserId: string): Record<string, unknown> {
 }
 
 export const COOPERATIVE_MEMBERS_ROOM_MATRIX: MatrixChatRoomPreset = {
-  label: 'Комната пайщиков кооператива',
+  label: t('chatcoop.room.status.membersFull'),
   isPrivate: true,
   /** Без E2EE: секретарь и синхронизация истории работают по plaintext в Matrix. */
   encrypt: false,

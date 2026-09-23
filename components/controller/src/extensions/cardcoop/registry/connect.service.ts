@@ -26,6 +26,7 @@ import { platformSettings } from '@coopenomics/extension-kit';
 import { CardcoopAttestationService } from '../attestation/attestation.service';
 import { CardcoopConnectStateTypeormEntity } from '../infrastructure/entities/cardcoop-connect-state.typeorm-entity';
 import { CardcoopRegistryDocumentType, type CardcoopConnectPayload } from './registry.types';
+import { t } from '../i18n';
 
 /** Реквизиты клиента card.coop в CoopID кооператива — из настроек контура. */
 interface CardcoopClientSettings {
@@ -204,7 +205,7 @@ export class CardcoopConnectService implements OnModuleDestroy {
       }
       this.logger.info('Параметры установки донесены до сети карт');
     } else {
-      record.lastError = result.reason ?? 'сеть недоступна';
+      record.lastError = result.reason ?? t('cardcoop.delivery.status.networkUnavailable');
       this.logger.error(`Сеть карт не приняла параметры установки: ${record.lastError}`);
     }
     await this.state.save(record);

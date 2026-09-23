@@ -26,6 +26,7 @@ import {
   SNILS_PATTERN,
   DATE_DDMMYYYY_PATTERN,
 } from '../../domain/patterns';
+import { t } from '../../i18n';
 
 /**
  * DTO для «нулёвок»: NDFL6, RSV, PSV, DUSN, UUSN, FSS4/ЕФС-1.
@@ -60,7 +61,7 @@ export class ZeroReportHeaderEditsInputDTO {
   versProgram!: string;
 
   @Field(() => String)
-  @Matches(DATE_DDMMYYYY_PATTERN, { message: 'ДатаДок — DD.MM.YYYY' })
+  @Matches(DATE_DDMMYYYY_PATTERN, { message: t('reports.requisites.status.docDateFormat') })
   docDate!: string;
 
   @Field(() => Int)
@@ -112,41 +113,41 @@ export class ZeroReportOrganizationEditsInputDTO {
   orgName!: string;
 
   @Field(() => String)
-  @Matches(INN_UL_PATTERN, { message: 'ИНН ЮЛ — 10 цифр' })
+  @Matches(INN_UL_PATTERN, { message: t('reports.requisites.status.innUlFormat') })
   inn!: string;
 
   @Field(() => String)
-  @Matches(KPP_PATTERN, { message: 'КПП — 9 символов' })
+  @Matches(KPP_PATTERN, { message: t('reports.zeroReportEdits.kppShortFormat') })
   kpp!: string;
 
   @Field(() => String, { nullable: true })
   @IsOptional()
-  @Matches(OKTMO_PATTERN, { message: 'ОКТМО — 8 или 11 цифр' })
+  @Matches(OKTMO_PATTERN, { message: t('reports.requisites.status.oktmoFormat') })
   oktmo!: string | null;
 
   @Field(() => String, { nullable: true })
   @IsOptional()
-  @Matches(OKVED_PATTERN, { message: 'ОКВЭД — XX, XX.X, XX.XX, XX.XX.X или XX.XX.XX' })
+  @Matches(OKVED_PATTERN, { message: t('reports.requisites.status.okvedFormat') })
   okved!: string | null;
 
   @Field(() => String, { nullable: true })
   @IsOptional()
-  @Matches(OKFS_PATTERN, { message: 'ОКФС — 1-3 цифры' })
+  @Matches(OKFS_PATTERN, { message: t('reports.requisites.status.okfsFormat') })
   okfs!: string | null;
 
   @Field(() => String, { nullable: true })
   @IsOptional()
-  @Matches(OKOPF_PATTERN, { message: 'ОКОПФ — 5 цифр' })
+  @Matches(OKOPF_PATTERN, { message: t('reports.requisites.status.okopfFormat') })
   okopf!: string | null;
 
   @Field(() => String, { nullable: true })
   @IsOptional()
-  @Matches(OKPO_PATTERN, { message: 'ОКПО — 8 или 10 цифр' })
+  @Matches(OKPO_PATTERN, { message: t('reports.requisites.status.okpoFormat') })
   okpo!: string | null;
 
   @Field(() => String, { nullable: true })
   @IsOptional()
-  @Matches(OGRN_UL_PATTERN, { message: 'ОГРН ЮЛ — 13 цифр' })
+  @Matches(OGRN_UL_PATTERN, { message: t('reports.zeroReportEdits.ogrnUlFormat') })
   ogrn!: string | null;
 
   @Field(() => String, { nullable: true })
@@ -211,22 +212,22 @@ export class ZeroReportSignerEditsInputDTO {
 
   @Field(() => String, { nullable: true })
   @IsOptional()
-  @Matches(SNILS_PATTERN, { message: 'СНИЛС — XXX-XXX-XXX YY или 11 цифр' })
+  @Matches(SNILS_PATTERN, { message: t('reports.requisites.status.snilsFormat') })
   snils!: string | null;
 
   @Field(() => String, { nullable: true })
   @IsOptional()
-  @Matches(INN_FL_PATTERN, { message: 'ИНН подписанта — 12 цифр' })
+  @Matches(INN_FL_PATTERN, { message: t('reports.requisites.status.signerInn12Format') })
   inn!: string | null;
 
   @Field(() => String, { nullable: true })
   @IsOptional()
-  @Matches(SFR_REG_NUMBER_PATTERN, { message: 'Рег.номер СФР — 10 цифр' })
+  @Matches(SFR_REG_NUMBER_PATTERN, { message: t('reports.zeroReportEdits.sfrRegNumberFormat') })
   sfrRegNumber!: string | null;
 
   @Field(() => String, { nullable: true })
   @IsOptional()
-  @Matches(PFR_REG_NUMBER_PATTERN, { message: 'Рег.номер ПФР — XXX-XXX-XXXXXX' })
+  @Matches(PFR_REG_NUMBER_PATTERN, { message: t('reports.zeroReportEdits.pfrRegNumberFormat') })
   pfrRegNumber!: string | null;
 
   @Field(() => String, { nullable: true })

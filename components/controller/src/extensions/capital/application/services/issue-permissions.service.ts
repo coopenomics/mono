@@ -11,6 +11,7 @@ import {
   ProjectAction,
 } from '../../domain/services/access-policy.service';
 import { PermissionsLookupCache } from './permissions-lookup-cache';
+import { DomainError } from '@coopenomics/extension-kit';
 
 // Реэкспортируем типы для обратной совместимости
 export { UserRole, IssueAction, ProjectUserRole, ProjectAction };
@@ -143,7 +144,7 @@ export class IssuePermissionsService {
       this.projectRepository.findByHash(projectHash)
     );
     if (!project) {
-      throw new Error(`Проект с хэшем ${projectHash} не найден`);
+      throw DomainError.internal('CAPITAL_ISSUE_PROJECT_NOT_FOUND', { hash: projectHash });
     }
 
     // Проверяем, является ли пользователь мастером текущего проекта
@@ -186,7 +187,7 @@ export class IssuePermissionsService {
   async validateSubmasterAssignmentPermission(username: string, coopname: string, projectHash: string): Promise<void> {
     const isMaster = await this.isProjectMaster(username, coopname, projectHash);
     if (!isMaster) {
-      throw new Error('Только мастер проекта или связанного с ним компонента может назначать исполнителей на задачи');
+      throw DomainError.internal('CAPITAL_ISSUE_ASSIGN_FORBIDDEN');
     }
   }
 
@@ -278,19 +279,19 @@ export class IssuePermissionsService {
     const roles = await this.getUserRoleForIssue(username, coopname, projectHash, issueSubmaster, issueCreators, userRole);
 
     if (!this.hasPermission(roles, IssueAction.CHANGE_STATUS)) {
-      throw new Error(`У вас нет прав на изменение статуса задачи`);
+      throw DomainError.internal('CAPITAL_ISSUE_STATUS_CHANGE_FORBIDDEN');
     }
 
     if (!this.canTransitionStatus(roles, currentStatus, newStatus)) {
-      throw new Error(`Переход из статуса "${currentStatus}" в "${newStatus}" запрещен для вашей роли`);
+      throw DomainError.internal('CAPITAL_ISSUE_STATUS_TRANSITION_FORBIDDEN', { currentStatus, newStatus });
     }
 
     if (newStatus === IssueStatus.DONE && !this.hasPermission(roles, IssueAction.SET_DONE)) {
-      throw new Error('Только мастер проекта может устанавливать статус "Выполнена"');
+      throw DomainError.internal('CAPITAL_ISSUE_SET_DONE_FORBIDDEN');
     }
 
     if (newStatus === IssueStatus.ON_REVIEW && !this.hasPermission(roles, IssueAction.SET_ON_REVIEW)) {
-      throw new Error('Только ответственный исполнитель может устанавливать статус "На проверке"');
+      throw DomainError.internal('CAPITAL_ISSUE_SET_ON_REVIEW_FORBIDDEN');
     }
   }
 
@@ -316,7 +317,7 @@ export class IssuePermissionsService {
     const roles = await this.getUserRoleForIssue(username, coopname, projectHash, issueSubmaster, issueCreators, userRole);
 
     if (!this.hasPermission(roles, IssueAction.SET_ESTIMATE)) {
-      throw new Error('Только мастер проекта может устанавливать оценку на задачи');
+      throw DomainError.internal('CAPITAL_ISSUE_SET_ESTIMATE_FORBIDDEN');
     }
   }
 
@@ -347,7 +348,7 @@ export class IssuePermissionsService {
     const roles = await this.getUserRoleForIssue(username, coopname, projectHash, issueSubmaster, issueCreators, userRole);
 
     if (!this.hasPermission(roles, IssueAction.SET_PRIORITY)) {
-      throw new Error('Только председатель или мастер проекта может устанавливать приоритет на задачи');
+      throw DomainError.internal('CAPITAL_ISSUE_SET_PRIORITY_FORBIDDEN');
     }
   }
 

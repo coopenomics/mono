@@ -12,6 +12,7 @@ import {
   MaxLength,
 } from 'class-validator';
 import { Type } from 'class-transformer';
+import { t } from '~/i18n';
 
 /**
  * Input для `getLedger2History`. Все фильтры серверные — клиент не
@@ -70,7 +71,7 @@ export class GetLedger2HistoryInputDTO {
   // проводки, считая их ниткой своего процесса. Отсутствие фильтра теперь
   // выражается только отсутствием поля.
   @Matches(/^[0-9a-fA-F]{64}$/, {
-    message: 'process_hash должен быть hex-строкой длиной 64 символа',
+    message: t('ledger2.getLedger2HistoryInput.processHashInvalidFormat'),
   })
   processHash?: string;
 

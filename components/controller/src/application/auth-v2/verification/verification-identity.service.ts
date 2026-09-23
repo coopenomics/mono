@@ -1,4 +1,4 @@
-import { ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import config from '~/config/config';
 import { ACCOUNT_DOMAIN_SERVICE } from '~/domain/account/services/account-domain.service';
 import type { AccountDomainService } from '~/domain/account/services/account-domain.service';
@@ -8,6 +8,7 @@ import { AuditService } from '../audit/audit.service';
 import { VerificationTypesService } from './verification-types.service';
 import { VerificationAuthorityService, type VerificationActor } from './verification-authority.service';
 import type { ParticipantIdentityForVerificationDTO } from './dto/verification.dto';
+import { DomainError } from '@coopenomics/extension-kit';
 
 /** ФИО одной строкой; отсутствующие части просто пропускаем. */
 function fullName(data: { last_name?: string; first_name?: string; middle_name?: string }): string {
@@ -36,11 +37,11 @@ export class VerificationIdentityService {
     await this.verificationAuthorityService.assertMayVerify(actor, username);
 
     const participant = await this.accountDomainService.getParticipantAccount(config.coopname, username);
-    if (!participant) throw new NotFoundException('Пайщик не найден в кооперативе');
+    if (!participant) throw DomainError.notFound('AUTH_V2_PARTICIPANT_NOT_FOUND');
 
     const levels = await this.verificationTypesService.resolveForUsername(username);
     if (levels.some((level) => level.type === VerificationType.PassportOnsite)) {
-      throw new ForbiddenException('Личность пайщика уже подтверждена — данные для сверки не выдаются');
+      throw DomainError.forbidden('AUTH_V2_IDENTITY_ALREADY_VERIFIED');
     }
 
     const account = await this.accountDomainService.getAccount(username);
@@ -74,7 +75,7 @@ export class VerificationIdentityService {
     if (type === InnerAccountType.organization) {
       return this.buildOrganization(username, privateAccount.organization_data ?? {});
     }
-    throw new NotFoundException('У пайщика не заполнены данные для сверки личности');
+    throw DomainError.notFound('AUTH_V2_VERIFICATION_DATA_MISSING');
   }
 
   private buildIndividual(username: string, data: any): ParticipantIdentityForVerificationDTO {

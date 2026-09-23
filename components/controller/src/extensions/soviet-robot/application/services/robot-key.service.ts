@@ -11,6 +11,7 @@ import {
 import { ROBOT_PERMISSION } from '../../domain/constants';
 import { ROBOT_KEY_REPOSITORY, type RobotKeyRepository } from '../../domain/repositories/robot-key.repository';
 import { RobotChainService } from './robot-chain.service';
+import { DomainError } from '@coopenomics/extension-kit';
 
 /** Состояние ключа робота у члена совета — то, что показывается в интерфейсе. */
 export interface RobotKeyStatus {
@@ -82,12 +83,12 @@ export class RobotKeyService {
     const permission_name = requestedPermission || ROBOT_PERMISSION;
     await this.assertCouncilMember(coopname, member);
     if (permission_name === 'active' || permission_name === 'owner') {
-      throw new Error('Роботу выдаётся отдельное разрешение аккаунта, а не active или owner');
+      throw DomainError.internal('SOVIET_ROBOT_PERMISSION_MUST_NOT_BE_SYSTEM');
     }
     const publicKey = RobotKeyService.publicKeyOf(wif);
     const chainKeys = await this.waitPermissionKeys(member, permission_name);
     if (!chainKeys.includes(publicKey)) {
-      throw new Error(`Ключ не принадлежит разрешению ${permission_name} аккаунта ${member}`);
+      throw DomainError.internal('SOVIET_ROBOT_KEY_NOT_IN_PERMISSION', { permission: permission_name, account: member });
     }
 
     await this.keys.upsert({ coopname, member, permission_name, encrypted_wif: this.cipher.encrypt(wif), public_key: publicKey });
@@ -98,7 +99,7 @@ export class RobotKeyService {
   private async assertCouncilMember(coopname: string, member: string): Promise<void> {
     const board = await this.chain.getSovietBoard(coopname);
     if (!board || !board.members.some((m) => m.username === member)) {
-      throw new Error('Ключ робота принимается только от члена совета кооператива');
+      throw DomainError.internal('SOVIET_ROBOT_KEY_NOT_FROM_COUNCIL_MEMBER');
     }
   }
 
@@ -106,7 +107,7 @@ export class RobotKeyService {
     try {
       return PrivateKey.from(wif).toPublic().toString();
     } catch {
-      throw new Error('Приватный ключ не разобран: ожидается ключ в формате WIF');
+      throw DomainError.internal('SOVIET_ROBOT_KEY_UNPARSABLE');
     }
   }
 
@@ -120,9 +121,7 @@ export class RobotKeyService {
       const keys = await this.permissionKeys(member, permission_name);
       if (keys) return keys;
     }
-    throw new Error(
-      `На аккаунте ${member} нет разрешения ${permission_name}: сначала выпустите его (в цепи видны: ${this.lastSeenPermissions.join(', ') || 'ничего'})`
-    );
+    throw DomainError.internal('SOVIET_ROBOT_PERMISSION_NOT_ISSUED', { account: member, permission: permission_name, seenPermissions: this.lastSeenPermissions.join(', ') || 'ничего' });
   }
 
   async revokeKey(coopname: string, member: string): Promise<boolean> {

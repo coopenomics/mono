@@ -7,9 +7,10 @@ import {
 import { VerificationType } from '~/domain/auth-v2/verification/verification.types';
 import { VerificationOnsiteService } from './verification-onsite.service';
 import { VerificationTypesService } from './verification-types.service';
+import { t } from '~/i18n';
 
 /** Причина отзыва в журнале верификаций. */
-const PASSPORT_CHANGED_REASON = 'Паспортные данные изменены советом — нужна повторная сверка';
+const PASSPORT_CHANGED_REASON = t('authV2.passportChangeListener.revokeReasonMessage');
 
 /**
  * Сверка по паспорту подтверждала конкретный документ. Когда совет меняет

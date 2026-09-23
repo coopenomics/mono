@@ -1,0 +1,14 @@
+{
+  "errors": {
+    "SBERPOLL_CONFIG_NOT_FOUND": "Конфиг не найден",
+    "SBERPOLL_PAYMENT_NOT_FOUND": "Платеж с hash {hash} не найден"
+  },
+  "sberpoll": {
+    "payment": {
+      "defaultDescription": "Платеж для {username}"
+    },
+    "settings": {
+      "placeholderAccountNumber": "ВАШ_НОМЕР_СЧЕТА"
+    }
+  }
+}

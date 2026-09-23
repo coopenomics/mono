@@ -1,5 +1,6 @@
 import { Field, InputType } from '@nestjs/graphql';
 import { IsString, MaxLength, MinLength, Matches, Length } from 'class-validator';
+import { t } from '~/i18n';
 
 /**
  * Input для мутации `walmoveWallets` (operation `o.adj.walmove`).
@@ -33,12 +34,12 @@ export class WalmoveInputDTO {
 
   @Field(() => String, { description: 'Сумма с символом, например "100.0000 RUB"' })
   @IsString()
-  @Matches(/^\d+(\.\d+)?\s+[A-Z]{1,7}$/, { message: 'Формат "<amount> <SYMBOL>", например "100.0000 RUB"' })
+  @Matches(/^\d+(\.\d+)?\s+[A-Z]{1,7}$/, { message: t('ledger2.walmoveInput.amountFormatHint') })
   quantity!: string;
 
   @Field(() => String, { description: 'Обязательное обоснование корректировки' })
   @IsString()
-  @MinLength(1, { message: 'memo обязателен — укажите обоснование корректировки' })
+  @MinLength(1, { message: t('ledger2.walmoveInput.memoRequired') })
   @MaxLength(255)
   memo!: string;
 }

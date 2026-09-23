@@ -10,7 +10,7 @@ import type { GatewayBlockchainPort } from '~/domain/gateway/ports/gateway-block
 import type { CompleteIncomeDomainInterface } from '~/domain/gateway/interfaces/complete-income-domain.interface';
 import type { CompleteOutcomeDomainInterface } from '~/domain/gateway/interfaces/complete-outcome-domain.interface';
 import type { DeclineOutcomeDomainInterface } from '~/domain/gateway/interfaces/decline-outcome-domain.interface';
-import { HttpApiError } from '@coopenomics/extension-kit';
+import { DomainError } from '@coopenomics/extension-kit';
 
 /**
  * Блокчейн адаптер для gateway
@@ -30,7 +30,7 @@ export class GatewayBlockchainAdapter implements GatewayBlockchainPort {
    */
   async completeOutcome(data: CompleteOutcomeDomainInterface): Promise<TransactionResult> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
-    if (!wif) throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ для совершения операции');
+    if (!wif) throw new DomainError('BLOCKCHAIN_PRIVATE_KEY_NOT_FOUND', {}, httpStatus.BAD_GATEWAY);
 
     this.blockchainService.initialize(data.coopname, wif);
 
@@ -55,7 +55,7 @@ export class GatewayBlockchainAdapter implements GatewayBlockchainPort {
    */
   async declineOutcome(data: DeclineOutcomeDomainInterface): Promise<TransactionResult> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
-    if (!wif) throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ для совершения операции');
+    if (!wif) throw new DomainError('BLOCKCHAIN_PRIVATE_KEY_NOT_FOUND', {}, httpStatus.BAD_GATEWAY);
 
     this.blockchainService.initialize(data.coopname, wif);
 
@@ -117,7 +117,7 @@ export class GatewayBlockchainAdapter implements GatewayBlockchainPort {
   async completeIncome(data: CompleteIncomeDomainInterface): Promise<TransactionResult> {
     // Получаем приватный ключ кооператива
     const wif = await this.vaultDomainService.getWif(data.coopname);
-    if (!wif) throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ для совершения операции');
+    if (!wif) throw new DomainError('BLOCKCHAIN_PRIVATE_KEY_NOT_FOUND', {}, httpStatus.BAD_GATEWAY);
 
     this.blockchainService.initialize(data.coopname, wif);
 

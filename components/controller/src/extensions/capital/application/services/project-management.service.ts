@@ -15,10 +15,7 @@ import type {
 } from '../dto/project_management';
 import { ProjectOutputDTO } from '../dto/project_management/project.dto';
 import { ProjectFilterInputDTO } from '../dto/property_management/project-filter.input';
-import { PaginationInputDTO, PaginationResult,
-  platformSettings,
-  sanitizeUserText,
-} from '@coopenomics/extension-kit';
+import { PaginationInputDTO, PaginationResult, platformSettings, sanitizeUserText, DomainError } from '@coopenomics/extension-kit';
 import { ProjectMapperService } from './project-mapper.service';
 import type { IMonoAccount } from '@coopenomics/innercoop';
 import { SetCapitalProjectDevelopmentRepositoryUrlInputDTO } from '../dto/project_management/set-development-repository-url.input.dto';
@@ -83,11 +80,11 @@ export class ProjectManagementService {
     if (currentUser.role === 'user') {
       const project = await this.projectManagementInteractor.getProjectByHash(data.project_hash);
       if (!project) {
-        throw new Error(`Проект с хешем ${data.project_hash} не найден`);
+        throw DomainError.internal('CAPITAL_PROJECT_NOT_FOUND_BY_HASH', { hash: data.project_hash });
       }
       const projectDTO = await this.projectMapperService.mapToDTO(project, currentUser);
       if (!projectDTO.permissions.can_edit_project) {
-        throw new Error('Недостаточно прав для редактирования проекта');
+        throw DomainError.internal('CAPITAL_PROJECT_EDIT_FORBIDDEN');
       }
     }
 
@@ -116,13 +113,13 @@ export class ProjectManagementService {
     // Находим проект для проверки прав
     const project = await this.projectManagementInteractor.getProjectByHash(data.project_hash);
     if (!project) {
-      throw new Error(`Проект с хешем ${data.project_hash} не найден`);
+      throw DomainError.internal('CAPITAL_PROJECT_NOT_FOUND_BY_HASH', { hash: data.project_hash });
     }
 
     // Проверяем права доступа
     const projectDTO = await this.projectMapperService.mapToDTO(project, currentUser);
     if (!projectDTO.permissions.can_set_plan) {
-      throw new Error('Недостаточно прав для установки плана проекта');
+      throw DomainError.internal('CAPITAL_PROJECT_PLAN_FORBIDDEN');
     }
 
     // Выполняем операцию установки плана
@@ -131,7 +128,7 @@ export class ProjectManagementService {
     // Получаем обновленный проект после установки плана
     const updatedProject = await this.projectManagementInteractor.getProjectByHash(data.project_hash);
     if (!updatedProject) {
-      throw new Error(`Не удалось получить обновленный проект после установки плана`);
+      throw DomainError.internal('CAPITAL_PROJECT_REFRESH_AFTER_PLAN_FAILED');
     }
 
     return await this.projectMapperService.mapToDTO(updatedProject, currentUser);
@@ -196,11 +193,11 @@ export class ProjectManagementService {
   ): Promise<ProjectOutputDTO> {
     const project = await this.projectManagementInteractor.getProjectByHash(data.project_hash.trim().toLowerCase());
     if (!project) {
-      throw new Error(`Проект с хэшем ${data.project_hash} не найден`);
+      throw DomainError.internal('CAPITAL_PROJECT_BY_HASH_NOT_FOUND', { hash: data.project_hash });
     }
     const preview = await this.projectMapperService.mapToDTO(project, currentUser);
     if (!preview.permissions.can_set_priority) {
-      throw new Error('Недостаточно прав для изменения приоритета проекта или компонента');
+      throw DomainError.internal('CAPITAL_PROJECT_PRIORITY_FORBIDDEN');
     }
 
     const updated = await this.projectManagementInteractor.setPriority(project.project_hash, data.priority);
@@ -216,11 +213,11 @@ export class ProjectManagementService {
   ): Promise<ProjectOutputDTO> {
     const project = await this.projectManagementInteractor.getProjectByHash(data.project_hash.trim().toLowerCase());
     if (!project) {
-      throw new Error(`Проект с хэшем ${data.project_hash} не найден`);
+      throw DomainError.internal('CAPITAL_PROJECT_BY_HASH_NOT_FOUND', { hash: data.project_hash });
     }
     const preview = await this.projectMapperService.mapToDTO(project, currentUser);
     if (!preview.permissions.can_edit_project) {
-      throw new Error('Недостаточно прав для изменения URL репозитория проекта');
+      throw DomainError.internal('CAPITAL_PROJECT_REPO_URL_FORBIDDEN');
     }
 
     const raw =
@@ -238,7 +235,7 @@ export class ProjectManagementService {
     } else {
       const normalized = normalizeDevelopmentRepositoryUrl(raw);
       if (!normalized) {
-        throw new Error('Укажите ссылку на репозиторий github.com (https://github.com/владелец/репозиторий) или формат owner/repo');
+        throw DomainError.internal('CAPITAL_PROJECT_REPO_URL_INVALID');
       }
       nextNormalizedKey = normalized;
       await this.projectManagementInteractor.setDevelopmentRepositoryUrl(project.project_hash, normalized);
@@ -260,7 +257,7 @@ export class ProjectManagementService {
 
     const updated = await this.projectManagementInteractor.getProjectByHash(project.project_hash);
     if (!updated) {
-      throw new Error('Не удалось перечитать проект после сохранения URL репозитория');
+      throw DomainError.internal('CAPITAL_PROJECT_REFRESH_AFTER_REPO_URL_FAILED');
     }
     return await this.projectMapperService.mapToDTO(updated, currentUser);
   }

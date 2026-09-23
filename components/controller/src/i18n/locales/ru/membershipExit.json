@@ -1,0 +1,22 @@
+{
+  "errors": {
+    "MEMBERSHIP_EXIT_ALREADY_EXITED": "Вы уже вышли из кооператива — повторный выход невозможен.",
+    "MEMBERSHIP_EXIT_ALREADY_SUBMITTED": "Процесс выхода уже запущен и отправлен в блокчейн",
+    "MEMBERSHIP_EXIT_CALCULATION_SELF_ONLY": "Доступен только собственный расчёт возврата",
+    "MEMBERSHIP_EXIT_CANCEL_SELF_ONLY": "Отменить выход можно только за себя",
+    "MEMBERSHIP_EXIT_NO_PENDING_REQUEST": "Нет заявления на выход, ожидающего подтверждения",
+    "MEMBERSHIP_EXIT_PAYMENT_METHOD_REQUIRED": "Для выхода из кооператива установите реквизиты для получения возврата паевого взноса.",
+    "MEMBERSHIP_EXIT_PENDING_CONFIRMATION": "Заявление на выход уже подано и ожидает подтверждения по ссылке из письма",
+    "MEMBERSHIP_EXIT_REQUEST_NOT_FOUND": "Заявление на выход не найдено или уже подтверждено",
+    "MEMBERSHIP_EXIT_SELF_ONLY": "Подать заявление на выход можно только за себя",
+    "MEMBERSHIP_EXIT_STATUS_SELF_ONLY": "Доступен только собственный статус выхода"
+  },
+  "membershipExit": {
+    "createMembershipExitInput": {
+      "fieldStatementRequired": "Поле \"statement\" обязательно для заполнения."
+    },
+    "membershipExitAuthorizationListener": {
+      "refundMemo": "Возврат паевого взноса при выходе из кооператива №{hashPrefix}. {vatExemptNote}"
+    }
+  }
+}

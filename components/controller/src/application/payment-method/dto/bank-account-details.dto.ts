@@ -1,14 +1,15 @@
 import { ObjectType, Field } from '@nestjs/graphql';
 import { IsNotEmpty, IsString } from 'class-validator';
+import { t } from '~/i18n';
 
 @ObjectType('BankAccountDetails')
 export class BankAccountDetailsDTO {
   @Field(() => String, { description: 'БИК банка' })
-  @IsNotEmpty({ message: 'БИК банка обязателен обязателен' })
+  @IsNotEmpty({ message: t('paymentMethod.bankAccountDetails.bikRequired') })
   bik: string;
 
   @Field(() => String, { description: 'Корреспондентский счет' })
-  @IsNotEmpty({ message: 'Корр. счет обязателен' })
+  @IsNotEmpty({ message: t('paymentMethod.bankAccountDetails.corrAccountRequired') })
   @IsString()
   corr: string;
 

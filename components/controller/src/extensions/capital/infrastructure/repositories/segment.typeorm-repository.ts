@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, SelectQueryBuilder } from 'typeorm';
 import { SegmentRepository } from '../../domain/repositories/segment.repository';
@@ -14,7 +14,7 @@ import { ResultTypeormEntity } from '../entities/result.typeorm-entity';
 import { VoteTypeormEntity } from '../entities/vote.typeorm-entity';
 import { ProjectTypeormEntity } from '../entities/project.typeorm-entity';
 import { SegmentStatus } from '../../domain/enums/segment-status.enum';
-import { PaginationInputDTO, PaginationResult, PaginationUtils, AssetUtils, resolveSortColumn } from '@coopenomics/extension-kit';
+import { PaginationInputDTO, PaginationResult, PaginationUtils, AssetUtils, resolveSortColumn, DomainError } from '@coopenomics/extension-kit';
 
 /** Нулевой хэш — признак «родителя нет»: проект верхнего уровня */
 const NULL_PROJECT_HASH = '0000000000000000000000000000000000000000000000000000000000000000';
@@ -647,7 +647,7 @@ export class SegmentTypeormRepository
     });
 
     if (!entity) {
-      throw new NotFoundException(`Сегмент ${project_hash}:${username} не найден`);
+      throw DomainError.notFound('CAPITAL_SEGMENT_NOT_FOUND_BY_KEY', { projectHash: project_hash, username });
     }
 
     // Установим флаг завершения, статус FINALIZED и present = false (сегмент удален из блокчейна)

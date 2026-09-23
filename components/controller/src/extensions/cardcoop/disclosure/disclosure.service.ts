@@ -107,6 +107,7 @@ export class CardcoopDisclosureService {
       where: { cardId, state: CardcoopAttestationState.Active },
     });
 
+    // i18n-ignore: внутренняя причина отказа гранта (CardcoopGrantRejected) — только в логе, пайщику уходит общий текст
     if (!record) throw new CardcoopGrantRejected(`по карте ${cardId} нет действующего подтверждения членства`);
     return record.username;
   }
@@ -130,6 +131,7 @@ export class CardcoopDisclosureService {
         toCoopname: claims.aud,
       });
     } catch {
+      // i18n-ignore: внутренняя причина отказа гранта (CardcoopGrantRejected) — только в логе, пайщику уходит общий текст
       throw new CardcoopGrantRejected(`по согласию ${claims.jti} анкета уже выдана`);
     }
   }

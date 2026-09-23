@@ -3,6 +3,7 @@ import { LOGGER_PORT, type ILoggerPort, ACCOUNT_PORT, type IAccountPort, NOTIFIC
 import { TrackedMeet, NotificationTypes, ILog } from './types';
 import { LOG_EXTENSION_REPOSITORY, LogExtensionDomainRepository, platformSettings, DateUtils } from '@coopenomics/extension-kit';
 import { Workflows } from '@coopenomics/notifications';
+import { t } from './i18n';
 
 @Injectable()
 export class NotificationSenderService {
@@ -77,7 +78,7 @@ export class NotificationSenderService {
 
   // Форматирование сообщения о часовом поясе
   private getTimezoneDisplay(): string {
-    return platformSettings().timezone === 'Europe/Moscow' ? 'МСК' : platformSettings().timezone;
+    return platformSettings().timezone === 'Europe/Moscow' ? t('participant.notificationSender.timezoneMsk') : platformSettings().timezone;
   }
 
   // Функции отправки уведомлений
@@ -347,20 +348,20 @@ export class NotificationSenderService {
     switch (meet.extendedStatus) {
       case ExtendedMeetStatus.EXPIRED_NO_QUORUM:
         endType = 'EXPIRED_NO_QUORUM';
-        endTitle = `Кворум общего собрания №${meet.id} в ${coopShortName} не собран`;
-        endMessage = `Уважаемый пайщик!\n\nКворум общего собрания №${meet.id} не собран. В ближайшее время будет назначена новая дата собрания с прежней повесткой.\n\nСледите за обновлениями.\n\nС уважением, Совет ${coopShortName}.`;
+        endTitle = t('participant.notificationSender.noQuorumTitle', { meetId: meet.id, coopShortName });
+        endMessage = t('participant.notificationSender.noQuorumMessage', { meetId: meet.id, coopShortName });
         break;
 
       case ExtendedMeetStatus.VOTING_COMPLETED:
         endType = 'VOTING_COMPLETED';
-        endTitle = `Голосование по собранию №${meet.id} в ${coopShortName} завершено`;
-        endMessage = `Уважаемый пайщик!\n\nГолосование по собранию №${meet.id} завершено. Ожидаем утверждения протокола собрания советом.\n\nДля просмотра результатов голосования перейдите по ссылке:\n${notificationUrl}\n\nС уважением, Совет ${coopShortName}.`;
+        endTitle = t('participant.notificationSender.votingCompletedTitle', { meetId: meet.id, coopShortName });
+        endMessage = t('participant.notificationSender.votingCompletedMessage', { meetId: meet.id, url: notificationUrl, coopShortName });
         break;
 
       case ExtendedMeetStatus.CLOSED:
         endType = 'CLOSED';
-        endTitle = `Общее собрание №${meet.id} в ${coopShortName} завершено`;
-        endMessage = `Уважаемый пайщик!\n\nОбщее собрание пайщиков №${meet.id} успешно завершено. Протокол собрания утвержден.\n\nДля просмотра результатов собрания перейдите по ссылке:\n${notificationUrl}\n\nС уважением, Совет ${coopShortName}.`;
+        endTitle = t('participant.notificationSender.closedTitle', { meetId: meet.id, coopShortName });
+        endMessage = t('participant.notificationSender.closedMessage', { meetId: meet.id, url: notificationUrl, coopShortName });
         break;
 
       default:

@@ -1,4 +1,4 @@
-import { ConflictException, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, IsNull, Repository } from 'typeorm';
 import {
@@ -26,6 +26,7 @@ import {
   MarketplaceContainerMapper,
   MarketplaceContainerTypeMapper,
 } from '../mappers/marketplace-container.mapper';
+import { DomainError } from '@coopenomics/extension-kit';
 
 @Injectable()
 export class MarketplaceContainerTypeRepositoryAdapter implements MarketplaceContainerTypeDomainRepository {
@@ -39,7 +40,7 @@ export class MarketplaceContainerTypeRepositoryAdapter implements MarketplaceCon
     const name = input.name.trim();
     const duplicate = await this.repo.findOne({ where: { coopname: input.coopname, name } });
     if (duplicate) {
-      throw new ConflictException(`Тип боксов «${name}» уже заведён.`);
+      throw DomainError.conflict('MARKETPLACE_CONTAINER_TYPE_NAME_TAKEN', { name });
     }
     const row = this.repo.create({
       coopname: input.coopname,

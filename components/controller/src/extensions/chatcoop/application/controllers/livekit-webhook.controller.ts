@@ -1,12 +1,9 @@
-import { Controller, Post, Req, Body, Logger, Inject, UnauthorizedException } from '@nestjs/common';
+import { Controller, Post, Req, Body, Logger, Inject } from '@nestjs/common';
 import { createHash } from 'crypto';
 import { TokenVerifier } from 'livekit-server-sdk';
 import { INTEGRATION_SETTINGS_PORT, type IIntegrationSettingsPort } from '@coopenomics/innercoop';
 import { SecretaryAgentService } from '../services/secretary-agent.service';
-import {
-  ExtensionDomainRepository,
-  EXTENSION_REPOSITORY,
-} from '@coopenomics/extension-kit';
+import { ExtensionDomainRepository, EXTENSION_REPOSITORY, DomainError } from '@coopenomics/extension-kit';
 import { matchLivekitRoomToSecretaryEligibleRooms } from '../utils/livekit-room-mapping.util';
 import { CHATCOOP_MANAGED_MATRIX_ROOM_REPOSITORY } from '../../domain/repositories/managed-matrix-room.repository';
 import type { ChatcoopManagedMatrixRoomRepository } from '../../domain/repositories/managed-matrix-room.repository';
@@ -72,16 +69,16 @@ export class LiveKitWebhookController {
   private async assertSignedByLiveKit(req: any): Promise<void> {
     const livekit = this.integrations.get<{ api_key?: string; api_secret?: string }>('chatcoop', 'livekit');
     if (!livekit?.api_key || !livekit.api_secret) {
-      throw new UnauthorizedException('Вебхук LiveKit не принимается: ключи LiveKit не настроены');
+      throw DomainError.unauthorized('CHATCOOP_LIVEKIT_WEBHOOK_NOT_CONFIGURED');
     }
     const token = req.get?.('Authorization') ?? req.headers?.authorization;
-    if (!token) throw new UnauthorizedException('Вебхук LiveKit без подписи');
+    if (!token) throw DomainError.unauthorized('CHATCOOP_LIVEKIT_WEBHOOK_UNSIGNED');
 
     let claims: { sha256?: string };
     try {
       claims = await new TokenVerifier(livekit.api_key, livekit.api_secret).verify(token);
     } catch {
-      throw new UnauthorizedException('Подпись вебхука LiveKit не прошла проверку');
+      throw DomainError.unauthorized('CHATCOOP_LIVEKIT_WEBHOOK_SIGNATURE_INVALID');
     }
 
     const raw: string = typeof req.rawBody === 'string' ? req.rawBody : JSON.stringify(req.body ?? {});

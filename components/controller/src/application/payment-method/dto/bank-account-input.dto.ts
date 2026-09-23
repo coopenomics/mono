@@ -4,12 +4,13 @@ import { BankAccountDetailsInputDTO } from './bank-account-details-input.dto';
 import { IsNotEmpty, IsOptional, IsString, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 import { NoMarkup } from '~/shared/validators/no-markup.decorator';
+import { t } from '~/i18n';
 
 @InputType('BankAccountInput')
 export class BankAccountInputDTO implements BankAccountDomainInterface {
   @Field(() => String, { description: 'Валюта счета' })
   @IsString()
-  @IsNotEmpty({ message: 'Указание валюты счета обязательно' })
+  @IsNotEmpty({ message: t('paymentMethod.bankAccountInput.currencyRequired') })
   @NoMarkup()
   currency!: string;
 
@@ -21,18 +22,18 @@ export class BankAccountInputDTO implements BankAccountDomainInterface {
 
   @Field(() => String, { description: 'Название банка' })
   @IsString()
-  @IsNotEmpty({ message: 'Название банка обязательно' })
+  @IsNotEmpty({ message: t('paymentMethod.bankAccountInput.bankNameRequired') })
   @NoMarkup()
   bank_name!: string;
 
   @Field(() => String, { description: 'Номер банковского счета' })
   @IsString()
-  @IsNotEmpty({ message: 'Номер банковского счёта обязателен' })
+  @IsNotEmpty({ message: t('paymentMethod.bankAccountInput.accountNumberRequired') })
   @NoMarkup()
   account_number!: string;
 
   @Field(() => BankAccountDetailsInputDTO, { description: 'Детали счета' })
-  @IsNotEmpty({ message: 'Детали счёта обязательны' })
+  @IsNotEmpty({ message: t('paymentMethod.bankAccountInput.detailsRequired') })
   @ValidateNested()
   @Type(() => BankAccountDetailsInputDTO)
   details!: BankAccountDetailsInputDTO;

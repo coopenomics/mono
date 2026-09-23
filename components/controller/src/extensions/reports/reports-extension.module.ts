@@ -1,3 +1,4 @@
+import './i18n';
 import { Module } from '@nestjs/common';
 import { TypeOrmModule as NestTypeOrmModule } from '@nestjs/typeorm';
 import { ReportRegistryService } from './domain/services/report-registry.service';

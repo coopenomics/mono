@@ -2,28 +2,29 @@
 import { IsNotEmpty, IsString, IsDefined, IsBoolean } from 'class-validator';
 import { BankAccountInputDTO } from './bank-account-input.dto';
 import { Field, InputType } from '@nestjs/graphql';
+import { t } from '~/i18n';
 
 @InputType('UpdateBankAccountInput')
 export class UpdateBankAccountInputDTO {
   @Field(() => String, { description: 'Имя аккаунта пользователя' })
-  @IsNotEmpty({ message: 'Имя аккаунта пользователя обязательно' })
+  @IsNotEmpty({ message: t('paymentMethod.updateBankAccountInput.usernameRequired') })
   @IsString()
   username!: string;
 
   @Field(() => String, { description: 'Идентификатор платежного метода' })
-  @IsNotEmpty({ message: 'Идентификатор метода обязателен' })
+  @IsNotEmpty({ message: t('paymentMethod.updateBankAccountInput.idRequired') })
   @IsString()
   method_id!: string;
 
   @Field(() => Boolean, {
     description: 'Флаг основного метода платежа, который отображается в документах',
   })
-  @IsNotEmpty({ message: 'Флаг основного метода платежа должен быть установлен' })
+  @IsNotEmpty({ message: t('paymentMethod.updateBankAccountInput.isMainFlagRequired') })
   @IsBoolean()
   is_default!: boolean;
 
   @Field(() => BankAccountInputDTO, { description: 'Данные банковского счёта' })
-  @IsDefined({ message: 'Данные метода обязательны' })
+  @IsDefined({ message: t('paymentMethod.updateBankAccountInput.detailsRequired') })
   data!: BankAccountInputDTO;
 }
 

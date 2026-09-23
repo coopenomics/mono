@@ -8,6 +8,7 @@ import { buildOtpauthUri, generateTotpSecret, verifyTotp } from '~/domain/auth-v
 import { SecurityEventKind } from '~/domain/auth-v2/security-events/security-event.types';
 import { AuditService } from '../audit/audit.service';
 import { SecurityEventNotificationService } from '../security-events/security-event-notification.service';
+import { t } from '~/i18n';
 
 export interface EnrollmentChallenge {
   /** Base32-секрет для ручного ввода в приложение-аутентификатор. */
@@ -42,9 +43,9 @@ export class TwoFactorService implements ITwoFactorVerifier {
   /** Подтвердить enrollment первым кодом из приложения. */
   async activate(subjectId: string, code: string, ip: string | null): Promise<void> {
     const record = await this.repo.get(subjectId);
-    if (!record) throw new AuthV2Error(AuthV2ErrorCode.TwoFactorNotEnrolled, 'Второй фактор не выпущен — начните подключение заново.');
+    if (!record) throw new AuthV2Error(AuthV2ErrorCode.TwoFactorNotEnrolled, t('authV2.twoFactorService.notEnrolledMessage'));
     if (!verifyTotp(decrypt(record.secretEnc), code)) {
-      throw new AuthV2Error(AuthV2ErrorCode.InvalidTwoFactorCode, 'Неверный код из приложения-аутентификатора.');
+      throw new AuthV2Error(AuthV2ErrorCode.InvalidTwoFactorCode, t('authV2.twoFactorService.invalidTotpCodeMessage'));
     }
     await this.repo.enable(subjectId);
     await this.audit.record({ event: 'coopid.2fa.enabled', subjectId, actor: 'self', result: 'success', ip });
@@ -56,10 +57,10 @@ export class TwoFactorService implements ITwoFactorVerifier {
   async disable(subjectId: string, code: string, ip: string | null): Promise<void> {
     const record = await this.repo.get(subjectId);
     if (!record || !record.enabled) {
-      throw new AuthV2Error(AuthV2ErrorCode.TwoFactorNotEnrolled, 'Второй фактор не подключён.');
+      throw new AuthV2Error(AuthV2ErrorCode.TwoFactorNotEnrolled, t('authV2.twoFactorService.notConnectedMessage'));
     }
     if (!verifyTotp(decrypt(record.secretEnc), code)) {
-      throw new AuthV2Error(AuthV2ErrorCode.InvalidTwoFactorCode, 'Неверный код из приложения-аутентификатора.');
+      throw new AuthV2Error(AuthV2ErrorCode.InvalidTwoFactorCode, t('authV2.twoFactorService.invalidTotpCodeMessage'));
     }
     await this.repo.remove(subjectId);
     await this.audit.record({ event: 'coopid.2fa.disabled', subjectId, actor: 'self', result: 'success', ip });

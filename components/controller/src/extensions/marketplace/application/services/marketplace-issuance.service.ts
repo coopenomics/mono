@@ -1,12 +1,4 @@
-import {
-  BadRequestException,
-  ConflictException,
-  ForbiddenException,
-  Inject,
-  Injectable,
-  NotFoundException,
-  Optional,
-} from '@nestjs/common';
+import { ConflictException, Inject, Injectable, Optional } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Cooperative, SovietContract, type MarketContract } from 'cooptypes';
 import { PublicKey, Signature } from '@wharfkit/antelope';
@@ -23,7 +15,7 @@ import {
   type ISovietRobotPort,
   type ISignedDocument,
 } from '@coopenomics/innercoop';
-import { SignedDigitalDocumentInputDTO } from '@coopenomics/extension-kit';
+import { SignedDigitalDocumentInputDTO, DomainError } from '@coopenomics/extension-kit';
 import { MARKETPLACE_ASSET_CONFIG, type MarketplaceAssetConfig } from './marketplace-asset.config';
 import {
   MARKETPLACE_ORDER_REPOSITORY,
@@ -80,6 +72,7 @@ import type { MarketplaceConvertStatementSignedInputDTO } from '../documents-dto
 import { MARKETPLACE_CONVERT_SERVICE, MarketplaceConvertService } from './marketplace-convert.service';
 import { MARKETPLACE_ECONOMY_SERVICE, MarketplaceEconomyService } from './marketplace-economy.service';
 import type { MarketplaceShareReturnActSignedInputDTO } from '../documents-dto/marketplace-share-return-act-document.dto';
+import { t } from '../../i18n';
 
 export interface MarketplaceIssuanceFixFactInput {
   coopname: string;
@@ -199,11 +192,11 @@ export class MarketplaceIssuanceService {
     const order = await this.loadOrder(input.coopname, input.order_id);
     if (order.status === 'READY_TO_RECEIVE') return order;
     if (order.status !== 'ACCEPTED_TO_COOP') {
-      throw new ConflictException(`Заказ в статусе «${order.status}» — отметить готовность к выдаче нельзя.`);
+      throw DomainError.conflict('MARKETPLACE_ORDER_READY_WRONG_STATUS', { status: order.status });
     }
     const available = await this.loadAvailableOnWarehouse(order);
     if (available <= 0) {
-      throw new ConflictException('По заказу ещё ничего не принято на склад пункта выдачи — объявить готовность нельзя.');
+      throw DomainError.conflict('MARKETPLACE_ORDER_READY_NOTHING_RECEIVED');
     }
     let tx;
     try {
@@ -213,7 +206,7 @@ export class MarketplaceIssuanceService {
         order_hash: order.order_hash,
       });
     } catch (err) {
-      throw new ConflictException(`Готовность к выдаче не отмечена в цепи: ${this.errMessage(err)}.`);
+      throw DomainError.conflict('MARKETPLACE_ORDER_READY_CHAIN_FAILED', { errorMessage: this.errMessage(err) });
     }
     void this.extractTxHash(tx);
     const updated = await this.orderRepo.applyReadyIssue(order.id, { current_warehouse_braname: order.delivery_braname });
@@ -250,7 +243,7 @@ export class MarketplaceIssuanceService {
       fact,
     });
     if (saga.stage !== MarketplaceIssuanceSagaStages.FACT_FIXED) {
-      throw new ConflictException(`Выдача по заказу уже начата (этап «${saga.stage}») — дождитесь её завершения или отмените.`);
+      throw DomainError.conflict('MARKETPLACE_ISSUANCE_ALREADY_STARTED', { stage: saga.stage });
     }
     const statement = await this.generateStatementDocument(order, saga.fact);
     this.emitSagaUpdated(saga);
@@ -270,10 +263,10 @@ export class MarketplaceIssuanceService {
   private async validateFact(input: MarketplaceIssuanceFixFactInput): Promise<MarketplaceOrderDomainEntity> {
     const order = await this.loadOrder(input.coopname, input.order_id);
     if (order.status !== 'READY_TO_RECEIVE' && order.status !== 'ACCEPTED_TO_COOP') {
-      throw new ConflictException(`Заказ в статусе «${order.status}» — выдача недоступна.`);
+      throw DomainError.conflict('MARKETPLACE_ISSUANCE_WRONG_ORDER_STATUS', { status: order.status });
     }
-    if (!(input.actual_quantity > 0)) throw new BadRequestException('Фактическое количество должно быть больше нуля.');
-    if (!(Number.parseFloat(input.actual_unit_price) > 0)) throw new BadRequestException('Фактическая цена за единицу должна быть больше нуля.');
+    if (!(input.actual_quantity > 0)) throw DomainError.badRequest('MARKETPLACE_FACT_QUANTITY_MUST_BE_POSITIVE');
+    if (!(Number.parseFloat(input.actual_unit_price) > 0)) throw DomainError.badRequest('MARKETPLACE_FACT_UNIT_PRICE_MUST_BE_POSITIVE');
 
     // Гейт верификации личности (105-28): имущество выдаётся только получателю с
     // подтверждённой личностью — сверка паспорта до подписи заявления.
@@ -288,9 +281,7 @@ export class MarketplaceIssuanceService {
     // уценкой после выдачи, а для повышения доходной проводки в модели нет.
     const priceCeiling = await this.issuePriceCeiling(order);
     if (compareMoney(input.actual_unit_price, priceCeiling, this.assetConfig.decimals) > 0) {
-      throw new ConflictException(
-        `Цену при выдаче можно только снизить: не выше ${priceCeiling} ₽ за единицу отпуска — по этой цене имущество числится на складе.`
-      );
+      throw DomainError.conflict('MARKETPLACE_ISSUANCE_PRICE_ABOVE_CEILING', { priceCeiling });
     }
     return order;
   }
@@ -301,7 +292,7 @@ export class MarketplaceIssuanceService {
     this.assertOrderer(order, member_account);
     const saga = await this.requireSaga(coopname, order.id);
     if (saga.stage !== MarketplaceIssuanceSagaStages.FACT_FIXED) {
-      throw new ConflictException('Заявление уже подписано — следующий шаг за советом или актом.');
+      throw DomainError.conflict('MARKETPLACE_STATEMENT_ALREADY_SIGNED');
     }
     return this.generateStatementDocument(order, saga.fact);
   }
@@ -391,7 +382,7 @@ export class MarketplaceIssuanceService {
       return this.settleAfterRobot(saga);
     }
     if (order.status !== 'READY_TO_RECEIVE') {
-      throw new ConflictException(`Заказ в статусе «${order.status}» — подписать заявление нельзя.`);
+      throw DomainError.conflict('MARKETPLACE_STATEMENT_SIGN_WRONG_ORDER_STATUS', { status: order.status });
     }
 
     this.assertStatementMatchesFact(input.signed_statement, order, saga);
@@ -412,7 +403,7 @@ export class MarketplaceIssuanceService {
     } catch (err) {
       const message = this.errMessage(err);
       await this.sagaRepo.update(saga.id, { last_error: message });
-      throw new ConflictException(`Заявление не принято цепью: ${message}. Повторите подписание.`);
+      throw DomainError.conflict('MARKETPLACE_STATEMENT_SIGN_CHAIN_FAILED', { message });
     }
     const txHash = this.extractTxHash(tx);
     // Номер решения — из трассы транзакции инициатора (инлайн `soviet::newsubmitted`,
@@ -448,10 +439,10 @@ export class MarketplaceIssuanceService {
       meta.registry_id !== Cooperative.Registry.MarketplaceShareReturnStatement.registry_id ||
       meta.order_hash !== order.order_hash
     ) {
-      throw new BadRequestException('Заявление подписано для другого заказа — обновите экран выдачи.');
+      throw DomainError.badRequest('MARKETPLACE_STATEMENT_WRONG_ORDER');
     }
     if (compareMoney(String(meta.total_amount), saga.fact.fact_cost, this.assetConfig.decimals) !== 0) {
-      throw new BadRequestException('Состав в заявлении не совпадает с зафиксированным оператором — обновите экран выдачи.');
+      throw DomainError.badRequest('MARKETPLACE_STATEMENT_CONTENT_MISMATCH');
     }
     this.verifyDocumentSignature(signed_statement, order.orderer_account);
   }
@@ -487,7 +478,7 @@ export class MarketplaceIssuanceService {
     } catch (err) {
       const message = this.errMessage(err);
       await this.sagaRepo.update(saga.id, { last_error: message });
-      throw new ConflictException(`Перевод в членский кошелёк не принят цепью: ${message}. Повторите подписание.`);
+      throw DomainError.conflict('MARKETPLACE_MEMBERSHIP_TRANSFER_CHAIN_FAILED', { message });
     }
   }
 
@@ -646,7 +637,7 @@ export class MarketplaceIssuanceService {
     this.assertOrderer(order, member_account);
     const saga = await this.requireSaga(coopname, order.id);
     if (saga.stage !== MarketplaceIssuanceSagaStages.DECISION_AUTHORIZED) {
-      throw new ConflictException(saga.awaits_council ? 'Совет ещё не принял решение по заявлению.' : `Акт на этом этапе («${saga.stage}») подписывать не нужно.`);
+      throw new ConflictException(saga.awaits_council ? t('marketplace.issuance.councilPendingNote') : t('marketplace.issuance.actNotNeededAtStage', { stage: saga.stage }));
     }
     const stored = saga.act_document_hash ? await this.documentPort.getByHash(saga.act_document_hash) : null;
     if (stored) return stored;
@@ -661,7 +652,7 @@ export class MarketplaceIssuanceService {
     const saga = await this.requireSaga(input.coopname, order.id);
     if (saga.stage === MarketplaceIssuanceSagaStages.ACT1_SIGNED || saga.stage === MarketplaceIssuanceSagaStages.CLOSED) return saga;
     if (saga.stage !== MarketplaceIssuanceSagaStages.DECISION_AUTHORIZED) {
-      throw new ConflictException(saga.awaits_council ? 'Совет ещё не принял решение по заявлению.' : `Выдача на этапе «${saga.stage}» — акт подписывать нельзя.`);
+      throw new ConflictException(saga.awaits_council ? t('marketplace.issuance.councilPendingNote') : t('marketplace.issuance.actSignForbiddenAtStage', { stage: saga.stage }));
     }
     this.assertActMatchesSaga(input.signed_act, order, saga);
     const act = new SignedDigitalDocumentInputDTO(input.signed_act).toDocument() as MarketContract.Actions.IssueAct1.IIssueAct1['act'];
@@ -671,7 +662,7 @@ export class MarketplaceIssuanceService {
     } catch (err) {
       const message = this.errMessage(err);
       await this.sagaRepo.update(saga.id, { last_error: message });
-      throw new ConflictException(`Подпись акта не принята цепью: ${message}. Повторите подписание.`);
+      throw DomainError.conflict('MARKETPLACE_ACT_SIGN_CHAIN_FAILED', { message });
     }
     const txHash = this.extractTxHash(tx);
     const moved = await this.sagaRepo.transition(saga.id, MarketplaceIssuanceSagaStages.DECISION_AUTHORIZED, {
@@ -698,10 +689,10 @@ export class MarketplaceIssuanceService {
   ): void {
     const meta = signed_act.meta;
     if (meta.registry_id !== Cooperative.Registry.MarketplaceShareReturnAct.registry_id || meta.order_hash !== order.order_hash) {
-      throw new BadRequestException('Акт подписан для другого заказа — обновите экран.');
+      throw DomainError.badRequest('MARKETPLACE_ACT_WRONG_ORDER');
     }
     if (saga.act_document_hash && signed_act.doc_hash !== saga.act_document_hash) {
-      throw new ForbiddenException('Подписанный акт не совпадает с выданным к подписи — подпись отклонена.');
+      throw DomainError.forbidden('MARKETPLACE_ACT_CONTENT_MISMATCH');
     }
     this.verifyDocumentSignature(signed_act, order.orderer_account);
   }
@@ -713,10 +704,10 @@ export class MarketplaceIssuanceService {
     const order = await this.loadOrder(coopname, order_id);
     const saga = await this.requireSaga(coopname, order.id);
     if (saga.stage !== MarketplaceIssuanceSagaStages.ACT1_SIGNED || !saga.act1_document) {
-      throw new ConflictException('Акт ещё не подписан заказчиком — закрывать нечего.');
+      throw DomainError.conflict('MARKETPLACE_ACT_NOT_SIGNED_BY_CUSTOMER');
     }
     const aggregate = await this.documentPort.buildAggregate(saga.act1_document);
-    if (!aggregate) throw new ConflictException('Исходник акта не найден в сторе документов — переформируйте выдачу.');
+    if (!aggregate) throw DomainError.conflict('MARKETPLACE_ACT_SOURCE_NOT_FOUND');
     return aggregate;
   }
 
@@ -732,7 +723,7 @@ export class MarketplaceIssuanceService {
     const saga = await this.requireSaga(input.coopname, order.id);
     if (saga.stage === MarketplaceIssuanceSagaStages.CLOSED) return saga;
     if (saga.stage !== MarketplaceIssuanceSagaStages.ACT1_SIGNED || !saga.act1_document) {
-      throw new ConflictException('Акт ещё не подписан заказчиком — закрыть выдачу нельзя.');
+      throw DomainError.conflict('MARKETPLACE_ISSUANCE_CLOSE_ACT_NOT_SIGNED');
     }
     const sub = input.signed_act as unknown as ISignedDocument;
     this.assertClosingActMatches(sub, saga.act1_document, input);
@@ -744,7 +735,7 @@ export class MarketplaceIssuanceService {
     } catch (err) {
       const message = this.errMessage(err);
       await this.sagaRepo.update(saga.id, { last_error: message });
-      throw new ConflictException(`Закрытие выдачи не принято цепью: ${message}. Имущество не передавайте, повторите закрытие.`);
+      throw DomainError.conflict('MARKETPLACE_ISSUANCE_CLOSE_CHAIN_FAILED', { message });
     }
     const txHash = this.extractTxHash(tx);
     const factSnapshot = this.toFactSnapshot(order, saga.fact);
@@ -781,13 +772,13 @@ export class MarketplaceIssuanceService {
     input: MarketplaceIssuanceCloseInput
   ): void {
     if (submitted.doc_hash !== stored.doc_hash || submitted.meta_hash !== stored.meta_hash) {
-      throw new ForbiddenException('Подписанный акт не совпадает с актом заказчика — подпись отклонена.');
+      throw DomainError.forbidden('MARKETPLACE_ACT_CLOSE_CONTENT_MISMATCH');
     }
     const memberSig = stored.signatures?.[0];
     const memberPreserved = !!memberSig && submitted.signatures.some((s) => s.signer === memberSig.signer && s.signature === memberSig.signature);
-    if (!memberPreserved) throw new ForbiddenException('Подпись заказчика на акте утеряна или подменена — подпись отклонена.');
+    if (!memberPreserved) throw DomainError.forbidden('MARKETPLACE_ACT_CUSTOMER_SIGNATURE_LOST');
     if (!submitted.signatures.some((s) => s.signer === input.operator_account)) {
-      throw new ForbiddenException('Закрывающую подпись должен поставить оператор, закрывающий выдачу.');
+      throw DomainError.forbidden('MARKETPLACE_ACT_CLOSE_WRONG_OPERATOR');
     }
     this.verifyDocumentSignature(input.signed_act, input.operator_account);
   }
@@ -798,13 +789,13 @@ export class MarketplaceIssuanceService {
     const saga = await this.requireSaga(input.coopname, order.id);
     if (!saga.is_active) return saga;
     if (saga.awaits_council) {
-      throw new ConflictException('Совет ещё рассматривает заявление — отменить выдачу можно после его ответа.');
+      throw DomainError.conflict('MARKETPLACE_ISSUANCE_CANCEL_COUNCIL_PENDING');
     }
     if (saga.stage !== MarketplaceIssuanceSagaStages.FACT_FIXED) {
       try {
         await this.chainPort.cancelIssue({ coopname: order.coopname, signer: input.operator_account, order_hash: order.order_hash });
       } catch (err) {
-        throw new ConflictException(`Отмена выдачи не принята цепью: ${this.errMessage(err)}.`);
+        throw DomainError.conflict('MARKETPLACE_ISSUANCE_CANCEL_CHAIN_FAILED', { errorMessage: this.errMessage(err) });
       }
     }
     const moved = await this.sagaRepo.transition(saga.id, [MarketplaceIssuanceSagaStages.FACT_FIXED, MarketplaceIssuanceSagaStages.DECISION_AUTHORIZED, MarketplaceIssuanceSagaStages.ACT1_SIGNED], {
@@ -944,7 +935,7 @@ export class MarketplaceIssuanceService {
       order_hash: order.order_hash,
       braname: order.delivery_braname,
       sku: order.offer_id,
-      product_title: offer?.product_name ?? 'Товар по предложению',
+      product_title: offer?.product_name ?? t('marketplace.issuance.itemFallbackName'),
       unit_of_measurement: unit.unitLabel || (offer ? marketplaceOrderUnitLabel(offer.unit_of_measure) : ''),
       fact_quantity: unit.units,
       unit_cost: fact.actual_unit_price,
@@ -972,7 +963,7 @@ export class MarketplaceIssuanceService {
       transmitter: saga.operator_account,
       braname: order.delivery_braname,
       sku: order.offer_id,
-      product_title: offer?.product_name ?? 'Товар по предложению',
+      product_title: offer?.product_name ?? t('marketplace.issuance.itemFallbackName'),
       unit_of_measurement: unit.unitLabel || (offer ? marketplaceOrderUnitLabel(offer.unit_of_measure) : ''),
       fact_quantity: unit.units,
       unit_cost: saga.fact.actual_unit_price,
@@ -1132,7 +1123,7 @@ export class MarketplaceIssuanceService {
   private async assertRecipientVerified(ordererAccount: string): Promise<void> {
     const verification = await this.verificationPort.checkRequired(ordererAccount, MARKETPLACE_ISSUE_ACTION_CODE);
     if (!verification.passed) {
-      throw new ConflictException('Выдача невозможна: получатель не прошёл верификацию личности. Сверьте паспорт пайщика, подтвердите его личность и повторите.');
+      throw DomainError.conflict('MARKETPLACE_ISSUANCE_IDENTITY_NOT_VERIFIED');
     }
   }
 
@@ -1161,24 +1152,24 @@ export class MarketplaceIssuanceService {
   }
 
   private assertWithinWarehouse(order: MarketplaceOrderDomainEntity, requested: number, available: number): void {
-    if (available <= 0) throw new ConflictException(`По заказу ${order.id} нет принятого на склад имущества — выдача недоступна до приёмки поставки.`);
-    if (requested > available) throw new ConflictException(`Нельзя выдать больше, чем принято на склад: доступно ${available}, запрошено ${requested}.`);
+    if (available <= 0) throw DomainError.conflict('MARKETPLACE_ISSUANCE_NOTHING_RECEIVED_FOR_ORDER', { orderId: order.id });
+    if (requested > available) throw DomainError.conflict('MARKETPLACE_ISSUANCE_QUANTITY_EXCEEDS_RECEIVED', { available, requested });
   }
 
   private async loadOrder(coopname: string, order_id: string): Promise<MarketplaceOrderDomainEntity> {
     const order = await this.orderRepo.findById(order_id);
-    if (!order || order.coopname !== coopname) throw new NotFoundException(`Заказ ${order_id} не найден.`);
+    if (!order || order.coopname !== coopname) throw DomainError.notFound('MARKETPLACE_ORDER_NOT_FOUND_BY_ID', { orderId: order_id });
     return order;
   }
 
   private async requireSaga(coopname: string, order_id: string): Promise<MarketplaceIssuanceSagaDomainEntity> {
     const saga = await this.sagaRepo.findActiveByOrderId(coopname, order_id);
-    if (!saga) throw new ConflictException('Выдача по заказу не начата — оператор должен зафиксировать факт у стойки.');
+    if (!saga) throw DomainError.conflict('MARKETPLACE_ISSUANCE_NOT_STARTED_OPERATOR');
     return saga;
   }
 
   private assertOrderer(order: MarketplaceOrderDomainEntity, member_account: string): void {
-    if (order.orderer_account !== member_account) throw new ForbiddenException('Заказ принадлежит другому пайщику.');
+    if (order.orderer_account !== member_account) throw DomainError.forbidden('MARKETPLACE_ORDER_FOREIGN_MEMBER');
   }
 
   /** Номер решения из инлайн-действия `soviet::newsubmitted` в трассе транзакции. */
@@ -1210,7 +1201,7 @@ export class MarketplaceIssuanceService {
       await this.sleep(500);
       last = await this.sagaRepo.findById(saga_id);
     }
-    if (!last) throw new NotFoundException('Сага выдачи не найдена.');
+    if (!last) throw DomainError.notFound('MARKETPLACE_ISSUANCE_SAGA_NOT_FOUND');
     return last;
   }
 
@@ -1236,7 +1227,7 @@ export class MarketplaceIssuanceService {
   ): void {
     const signatures = doc.signatures ?? [];
     if (!signatures.some((s) => s.signer === expectedSigner)) {
-      throw new ForbiddenException(`Документ должен быть подписан учётной записью ${expectedSigner}.`);
+      throw DomainError.forbidden('MARKETPLACE_DOCUMENT_WRONG_SIGNER', { expectedSigner });
     }
     for (const sig of signatures) {
       let ok = false;
@@ -1245,7 +1236,7 @@ export class MarketplaceIssuanceService {
       } catch {
         ok = false;
       }
-      if (!ok) throw new ForbiddenException(`Подпись ${sig.signer} не прошла проверку.`);
+      if (!ok) throw DomainError.forbidden('MARKETPLACE_SIGNATURE_VERIFICATION_FAILED', { signer: sig.signer });
     }
   }
 
@@ -1272,7 +1263,7 @@ export class MarketplaceIssuanceService {
       candidate?.transaction?.id ??
       candidate?.transaction_id ??
       candidate?.id;
-    if (!hash) throw new ConflictException('Не получен tx_hash от блокчейна — повторите действие.');
+    if (!hash) throw DomainError.conflict('MARKETPLACE_CHAIN_NO_TX_HASH');
     return String(hash);
   }
 

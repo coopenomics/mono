@@ -1,5 +1,18 @@
 {
+  "document": {
+    "documentValidation": {
+      "hashMismatch": "Хеш документа \"{id}\" не совпадает с оригиналом",
+      "invalidSignatures": "Документ \"{id}\" имеет недействительные подписи",
+      "originalNotFound": "Оригинал документа \"{id}\" не найден в базе",
+      "structureInvalid": "Документ \"{id}\" не прошел структурную валидацию",
+      "unknownError": "Неизвестная ошибка",
+      "validationErrorWithMessage": "Ошибка валидации документа \"{id}\": {errorMessage}"
+    }
+  },
   "errors": {
-    "DOCUMENT_NOT_FOUND": "Документ не найден"
+    "DOCUMENT_GENERATION_FORBIDDEN": "Недостаточно прав доступа для генерации документа",
+    "DOCUMENT_NOT_FOUND": "Документ не найден",
+    "DOCUMENT_PUBLIC_PROVISION_SUBJECT_REQUIRED": "Документ {registryId} не публикуется без указания субъекта",
+    "DOCUMENT_USER_NOT_AUTHORIZED": "Пользователь не авторизован"
   }
 }

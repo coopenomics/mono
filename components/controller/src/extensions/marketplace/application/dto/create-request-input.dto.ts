@@ -1,6 +1,7 @@
 import { InputType, Field, Int, registerEnumType } from '@nestjs/graphql';
 import { IsOptional, IsString, IsNumber, IsArray, IsEnum, IsNotEmpty, Min, IsUrl, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
+import { t } from '../../i18n';
 
 // Регистрируем enum для GraphQL
 export enum RequestTypeInput {
@@ -58,7 +59,7 @@ export class RequestImageInput {
   @Field({ description: 'URL изображения' })
   @IsString()
   @IsNotEmpty()
-  @IsUrl({}, { message: 'Некорректный URL изображения' })
+  @IsUrl({}, { message: t('marketplace.createRequestInput.imageUrlInvalid') })
   imageUrl!: string;
 
   @Field(() => RequestImageTypeInput, { description: 'Тип изображения', defaultValue: RequestImageTypeInput.REGULAR })
@@ -219,13 +220,13 @@ export class CreateRequestInput {
   @Field({ description: 'URL главного изображения', nullable: true })
   @IsOptional()
   @IsString()
-  @IsUrl({}, { message: 'Некорректный URL главного изображения' })
+  @IsUrl({}, { message: t('marketplace.createRequestInput.mainImageUrlInvalid') })
   primaryImageUrl?: string;
 
   @Field({ description: 'URL образца цвета', nullable: true })
   @IsOptional()
   @IsString()
-  @IsUrl({}, { message: 'Некорректный URL образца цвета' })
+  @IsUrl({}, { message: t('marketplace.createRequestInput.colorSampleUrlInvalid') })
   colorImageUrl?: string;
 
   // Геоограничения

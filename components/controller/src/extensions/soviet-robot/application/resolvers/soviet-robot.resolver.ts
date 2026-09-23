@@ -1,15 +1,6 @@
 import { Inject, UseGuards } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
-import {
-  AuthRoles,
-  CurrentUser,
-  GqlJwtAuthGuard,
-  PaginationInputDTO,
-  RolesGuard,
-  createPaginationResult,
-  platformSettings,
-  type PaginationResult,
-} from '@coopenomics/extension-kit';
+import { AuthRoles, CurrentUser, GqlJwtAuthGuard, PaginationInputDTO, RolesGuard, createPaginationResult, platformSettings, type PaginationResult, DomainError } from '@coopenomics/extension-kit';
 import { ACCOUNT_PORT, type IAccountPort, type IMonoAccount } from '@coopenomics/innercoop';
 import { RobotCouncilDTO, RobotDecisionTypeDTO } from '../dto/robot-registry.dto';
 import { RobotDecisionDTO } from '../dto/robot-journal.dto';
@@ -57,7 +48,7 @@ export class SovietRobotResolver {
   @AuthRoles(['member', 'chairman'])
   async getCouncil(): Promise<RobotCouncilDTO> {
     const board = await this.chain.getSovietBoard(this.coopname);
-    if (!board) throw new Error('Совет кооператива не найден');
+    if (!board) throw DomainError.internal('SOVIET_ROBOT_COUNCIL_NOT_FOUND');
     // Имя для показа берём у ядра: служебное учётное имя в интерфейсе не показываем.
     const members = await Promise.all(
       board.members.map(async (m) => ({

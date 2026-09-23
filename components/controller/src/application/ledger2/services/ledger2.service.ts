@@ -23,6 +23,8 @@ import type { GetLedger2HistoryInputDTO } from '../dto/get-ledger2-history-input
 import type { GetLedger2PostingsInputDTO } from '../dto/get-ledger2-postings-input.dto';
 import type { WalmoveInputDTO } from '../dto/walmove-input.dto';
 import type { Ledger2AdjustmentResultDTO } from '../dto/ledger2-adjustment-result.dto';
+import { t } from '~/i18n';
+import { DomainError } from '@coopenomics/extension-kit';
 
 @Injectable()
 export class Ledger2Service {
@@ -106,19 +108,17 @@ export class Ledger2Service {
    */
   async walmove(input: WalmoveInputDTO): Promise<Ledger2AdjustmentResultDTO> {
     if (input.fromWallet === input.toWallet) {
-      throw new BadRequestException('walmove: from_wallet и to_wallet не должны совпадать');
+      throw DomainError.badRequest('LEDGER2_WALMOVE_SAME_WALLET');
     }
     const fromAccountId = this.resolveWalletAccountId(input.fromWallet);
     const toAccountId = this.resolveWalletAccountId(input.toWallet);
     if (fromAccountId === null || toAccountId === null) {
-      throw new BadRequestException(
-        `walmove: не удалось определить account_id для кошельков ${input.fromWallet} / ${input.toWallet}`,
-      );
+      throw DomainError.badRequest('LEDGER2_WALMOVE_ACCOUNT_UNRESOLVED', { fromWallet: input.fromWallet, toWallet: input.toWallet });
     }
     if (fromAccountId !== toAccountId) {
       throw new BadRequestException(
-        `walmove: from_wallet и to_wallet принадлежат разным бух.счетам (${fromAccountId} ≠ ${toAccountId}). ` +
-          `Перевод между разными счетами требует Manual-корректировки через решение совета (отложено).`,
+        t('ledger2.ledger2Service.walmoveDifferentAccountsMessage', { fromAccountId, toAccountId }) +
+          t('ledger2.ledger2Service.manualAdjustmentRequiredMessage'),
       );
     }
 

@@ -15,6 +15,7 @@ import {
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ReportType, ReportPeriodType } from '../../domain/enums/report-type.enum';
+import { t } from '../../i18n';
 
 registerEnumType(ReportType, { name: 'ReportType' });
 registerEnumType(ReportPeriodType, { name: 'ReportPeriodType' });
@@ -172,7 +173,7 @@ export class OrganizationDataInputDTO {
   @Field(() => String, { nullable: true })
   @IsOptional()
   @IsString()
-  @Matches(/^(\d{10}|\d{12})$/, { message: 'ИНН должен быть 10 или 12 цифр' })
+  @Matches(/^(\d{10}|\d{12})$/, { message: t('reports.report.innFormat') })
   inn?: string;
 
   // XSD ФНС: КПП = 9 симв., позиции 5-6 могут быть A-Z (иностранные
@@ -180,7 +181,7 @@ export class OrganizationDataInputDTO {
   @Field(() => String, { nullable: true })
   @IsOptional()
   @IsString()
-  @Matches(/^\d{4}[0-9A-Z]{2}\d{3}$/, { message: 'КПП — 9 символов (4 цифры + 2 [0-9A-Z] + 3 цифры)' })
+  @Matches(/^\d{4}[0-9A-Z]{2}\d{3}$/, { message: t('reports.requisites.status.kppFullFormat') })
   kpp?: string;
 
   @Field(() => String, { nullable: true })
@@ -192,31 +193,31 @@ export class OrganizationDataInputDTO {
   @Field(() => String, { nullable: true })
   @IsOptional()
   @IsString()
-  @Matches(/^(\d{13}|\d{15})$/, { message: 'ОГРН — 13 цифр, ОГРНИП — 15' })
+  @Matches(/^(\d{13}|\d{15})$/, { message: t('reports.report.ogrnFormat') })
   ogrn?: string;
 
   @Field(() => String, { nullable: true, description: 'ОКВЭД — напр. 94.99, 46.73.7' })
   @IsOptional()
   @IsString()
-  @Matches(/^\d{2}(\.\d{1,2}){0,2}$/, { message: 'ОКВЭД — XX, XX.X, XX.XX, XX.XX.X или XX.XX.XX' })
+  @Matches(/^\d{2}(\.\d{1,2}){0,2}$/, { message: t('reports.requisites.status.okvedFormat') })
   okved?: string;
 
   @Field(() => String, { nullable: true })
   @IsOptional()
   @IsString()
-  @Matches(/^\d{8}(\d{3})?$/, { message: 'ОКТМО — 8 или 11 цифр' })
+  @Matches(/^\d{8}(\d{3})?$/, { message: t('reports.requisites.status.oktmoFormat') })
   oktmo?: string;
 
   @Field(() => String, { nullable: true, description: 'ОКФС — 1-3 цифры' })
   @IsOptional()
   @IsString()
-  @Matches(/^\d{1,3}$/, { message: 'ОКФС — 1-3 цифры' })
+  @Matches(/^\d{1,3}$/, { message: t('reports.requisites.status.okfsFormat') })
   okfs?: string;
 
   @Field(() => String, { nullable: true, description: 'ОКОПФ — 5 цифр' })
   @IsOptional()
   @IsString()
-  @Matches(/^\d{5}$/, { message: 'ОКОПФ — 5 цифр' })
+  @Matches(/^\d{5}$/, { message: t('reports.requisites.status.okopfFormat') })
   okopf?: string;
 
   @Field(() => String, { nullable: true })
@@ -237,7 +238,7 @@ export class OrganizationDataInputDTO {
   @Field(() => String, { nullable: true, description: 'ОКПО — 8 или 10 цифр (ФНС принимает 10)' })
   @IsOptional()
   @IsString()
-  @Matches(/^\d{8}(\d{2})?$/, { message: 'ОКПО — 8 или 10 цифр' })
+  @Matches(/^\d{8}(\d{2})?$/, { message: t('reports.requisites.status.okpoFormat') })
   okpo?: string;
 
   @Field(() => String, { nullable: true })
@@ -278,7 +279,7 @@ export class OrganizationDataInputDTO {
   @Field(() => String, { nullable: true, description: 'СНИЛС — XXX-XXX-XXX YY или 11 цифр' })
   @IsOptional()
   @IsString()
-  @Matches(/^(\d{3}-\d{3}-\d{3} \d{2}|\d{11})$/, { message: 'СНИЛС — XXX-XXX-XXX YY или 11 цифр' })
+  @Matches(/^(\d{3}-\d{3}-\d{3} \d{2}|\d{11})$/, { message: t('reports.requisites.status.snilsFormat') })
   signerSnils?: string;
 
   @Field(() => String, {
@@ -287,7 +288,7 @@ export class OrganizationDataInputDTO {
   })
   @IsOptional()
   @IsString()
-  @Matches(/^\d{3}-\d{3}-\d{6}$/, { message: 'Рег. номер СФР — XXX-XXX-XXXXXX (14 симв.)' })
+  @Matches(/^\d{3}-\d{3}-\d{6}$/, { message: t('reports.report.sfrRegNumber14Format') })
   sfrRegNumber?: string;
 
   @Field(() => String, {

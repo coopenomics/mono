@@ -19,7 +19,7 @@ import { SignBySecretaryOnAnnualGeneralMeetInputDomainInterface } from '~/domain
 import { SignByPresiderOnAnnualGeneralMeetInputDomainInterface } from '~/domain/meet/interfaces/sign-by-presider-on-annual-general-meet-input-domain.interface';
 import { NotifyOnAnnualGeneralMeetInputDomainInterface } from '~/domain/meet/interfaces/notify-on-annual-general-meet-input-domain.interface';
 import { generateUniqueHash } from '~/utils/generate-hash.util';
-import { DomainToBlockchainUtils, HttpApiError } from '@coopenomics/extension-kit';
+import { DomainToBlockchainUtils, DomainError } from '@coopenomics/extension-kit';
 
 @Injectable()
 export class MeetBlockchainAdapter implements MeetBlockchainPort {
@@ -176,7 +176,7 @@ export class MeetBlockchainAdapter implements MeetBlockchainPort {
 
   async createMeet(data: CreateAnnualGeneralMeetInputDomainInterface): Promise<TransactionResult> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
-    if (!wif) throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ для совершения операции');
+    if (!wif) throw new DomainError('BLOCKCHAIN_PRIVATE_KEY_NOT_FOUND', {}, httpStatus.BAD_GATEWAY);
 
     this.blockchainService.initialize(data.coopname, wif);
 
@@ -203,7 +203,7 @@ export class MeetBlockchainAdapter implements MeetBlockchainPort {
 
   async vote(data: VoteOnAnnualGeneralMeetInputDomainInterface): Promise<TransactionResult> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
-    if (!wif) throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ для совершения операции');
+    if (!wif) throw new DomainError('BLOCKCHAIN_PRIVATE_KEY_NOT_FOUND', {}, httpStatus.BAD_GATEWAY);
 
     this.blockchainService.initialize(data.coopname, wif);
 
@@ -228,7 +228,7 @@ export class MeetBlockchainAdapter implements MeetBlockchainPort {
 
   async restartMeet(data: RestartAnnualGeneralMeetInputDomainInterface): Promise<string> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
-    if (!wif) throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ для совершения операции');
+    if (!wif) throw new DomainError('BLOCKCHAIN_PRIVATE_KEY_NOT_FOUND', {}, httpStatus.BAD_GATEWAY);
 
     this.blockchainService.initialize(data.coopname, wif);
 
@@ -259,7 +259,7 @@ export class MeetBlockchainAdapter implements MeetBlockchainPort {
     data: SignBySecretaryOnAnnualGeneralMeetInputDomainInterface
   ): Promise<TransactionResult> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
-    if (!wif) throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ для совершения операции');
+    if (!wif) throw new DomainError('BLOCKCHAIN_PRIVATE_KEY_NOT_FOUND', {}, httpStatus.BAD_GATEWAY);
 
     this.blockchainService.initialize(data.coopname, wif);
 
@@ -284,7 +284,7 @@ export class MeetBlockchainAdapter implements MeetBlockchainPort {
     data: SignByPresiderOnAnnualGeneralMeetInputDomainInterface
   ): Promise<TransactionResult> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
-    if (!wif) throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ для совершения операции');
+    if (!wif) throw new DomainError('BLOCKCHAIN_PRIVATE_KEY_NOT_FOUND', {}, httpStatus.BAD_GATEWAY);
 
     this.blockchainService.initialize(data.coopname, wif);
 
@@ -307,7 +307,7 @@ export class MeetBlockchainAdapter implements MeetBlockchainPort {
 
   async notifyOnAnnualGeneralMeet(data: NotifyOnAnnualGeneralMeetInputDomainInterface): Promise<TransactionResult> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
-    if (!wif) throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ для совершения операции');
+    if (!wif) throw new DomainError('BLOCKCHAIN_PRIVATE_KEY_NOT_FOUND', {}, httpStatus.BAD_GATEWAY);
 
     this.blockchainService.initialize(data.coopname, wif);
 
