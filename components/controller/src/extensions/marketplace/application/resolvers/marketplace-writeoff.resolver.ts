@@ -186,7 +186,7 @@ export class MarketplaceWriteoffResolver {
   @Query(() => GeneratedDocumentDTO, {
     name: 'marketplaceWriteoffStatementSignablePayload',
     description:
-      'Превью Заявления о списании скоропорта (registry 1106) для подписания председателем.',
+      'Превью Заявления о списании скоропорта для подписания председателем.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
   @RequireMarketplaceAccess('Writeoff', 'propose')
@@ -235,7 +235,7 @@ export class MarketplaceWriteoffResolver {
   @Mutation(() => MarketplaceWriteoffProposalDTO, {
     name: 'marketplaceSubmitWriteoffDraft',
     description:
-      'Отправить черновик в совет. Принимает подписанное председателем Заявление 1106. После успешного приёма выполняются propwroff и soviet::createagenda(mktwroff).',
+      'Отправить черновик в совет. Принимает подписанное председателем Заявление о списании скоропорта. После успешного приёма выполняются propwroff и soviet::createagenda(mktwroff).',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
   @RequireMarketplaceAccess('Writeoff', 'propose')

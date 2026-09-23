@@ -181,7 +181,7 @@ export class MarketplaceSubmitWriteoffDraftInputDTO {
   @Field()
   draft_id!: string;
   @Field(() => SignedDigitalDocumentInputDTO, {
-    description: 'Подписанное председателем Заявление о списании скоропорта (registry_id=1106).',
+    description: 'Подписанное председателем Заявление о списании скоропорта.',
   })
   signed_statement!: SignedDigitalDocumentInputDTO;
 }

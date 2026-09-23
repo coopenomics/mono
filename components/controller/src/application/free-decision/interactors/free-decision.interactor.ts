@@ -46,7 +46,9 @@ export class FreeDecisionInteractor {
     if (!document) throw new BadRequestException('Документ не найден');
 
     if (data.document.meta.registry_id != Cooperative.Registry.ProjectFreeDecision.registry_id)
-      throw new BadRequestException('Неверный registry_id в переданном документе, ожидается registry_id == 101');
+      throw new BadRequestException(
+        `Неверный registry_id в переданном документе, ожидается registry_id == ${Cooperative.Registry.ProjectFreeDecision.registry_id}`
+      );
 
     if (data.coopname != config.coopname)
       throw new BadRequestException('Указанное имя аккаунта кооператива не обслуживается здесь');

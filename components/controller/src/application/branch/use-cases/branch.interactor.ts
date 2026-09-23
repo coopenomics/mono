@@ -367,7 +367,9 @@ export class BranchInteractor {
     if (!document) throw new BadRequestException('Документ не найден');
 
     if (data.document.meta.registry_id != Cooperative.Registry.SelectBranchStatement.registry_id)
-      throw new BadRequestException('Неверный registry_id в переданном документе, ожидается registry_id == 101');
+      throw new BadRequestException(
+        `Неверный registry_id в переданном документе, ожидается registry_id == ${Cooperative.Registry.SelectBranchStatement.registry_id}`
+      );
 
     // подписанное заявление должно быть выписано на того же пайщика,
     // иначе на цепь уедет документ одного пайщика с участком другого

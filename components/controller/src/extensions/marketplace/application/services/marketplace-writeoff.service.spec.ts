@@ -466,7 +466,7 @@ describe('MarketplaceWriteoffService', () => {
       ).rejects.toThrow(BadRequestException);
     });
 
-    it('BadRequest когда registry_id не 1106', async () => {
+    it('BadRequest когда документ не Заявление о списании скоропорта', async () => {
       const draft = buildProposal();
       mocks.repo.findById.mockResolvedValue(draft);
       const proposalHash = service.computeProposalHash({
