@@ -41,22 +41,24 @@ export class SessionAliveService {
     // Отдаём проверку веб-сокету. Регистрация в конструкторе, а не в onModuleInit:
     // соединение может прийти раньше полной инициализации приложения, и до
     // регистрации ws пускал бы всех — ровно то поведение, которое чиним.
-    registerWsSessionCheck((sessionId, sub) => this.isAliveBySub(sessionId, sub));
+    registerWsSessionCheck((sessionId, sub) => this.aliveUsernameBySub(sessionId, sub));
   }
 
   /**
    * То же для входа, у которого на руках только `sub` токена, — веб-сокета.
    * Резолв нужен именно здесь: `sub` это идентификатор учётной записи, а признак
    * перехода на пароль (vault-блоб) хранится по имени аккаунта пайщика.
-   * Пайщика по `sub` не нашли — сессии нет и быть не может.
+   * Возвращает имя аккаунта живой сессии — веб-сокет кладёт его в соединение,
+   * и подписки строят по нему персональные топики. Пайщика по `sub` не нашли
+   * или сессия не жива — `null`.
    */
-  async isAliveBySub(sessionId: unknown, sub: unknown): Promise<boolean> {
-    if (typeof sub !== 'string' || !sub) return false;
+  async aliveUsernameBySub(sessionId: unknown, sub: unknown): Promise<string | null> {
+    if (typeof sub !== 'string' || !sub) return null;
     try {
       const user = await resolveUserBySub(sub, this.userRepository, this.userDomainService);
-      return await this.isAlive(sessionId, user.username);
+      return (await this.isAlive(sessionId, user.username)) ? user.username : null;
     } catch {
-      return false;
+      return null;
     }
   }
 

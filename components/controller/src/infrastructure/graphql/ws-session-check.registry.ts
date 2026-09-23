@@ -10,8 +10,14 @@
  * До появления этого мостика ws проверял у токена только подпись и тип, из-за чего
  * отозванная сессия оставалась наполовину живой — подписки работали, HTTP отвечал
  * «Сессия завершена».
+ *
+ * Проверка возвращает имя аккаунта живой сессии, а не просто «да/нет». `sub` токена —
+ * идентификатор учётной записи, а персональные топики подписок строятся по имени
+ * аккаунта; чтобы узнать, жива ли сессия, проверка и так переводит одно в другое.
+ * Пока наружу отдавался только признак, подписки получали из соединения один `sub`,
+ * и `walletEvents`, читавший имя, отказывал каждому пайщику (C28-77).
  */
-type WsSessionCheck = (sessionId: unknown, username: string) => Promise<boolean>;
+type WsSessionCheck = (sessionId: unknown, sub: unknown) => Promise<string | null>;
 
 let check: WsSessionCheck | null = null;
 
@@ -21,14 +27,14 @@ export function registerWsSessionCheck(fn: WsSessionCheck): void {
 }
 
 /**
- * Жива ли сессия токена, пришедшего в ws-соединении.
+ * Имя аккаунта, чья сессия выдала токен ws-соединения; `null` — сессии нет.
  *
  * Проверка ещё не зарегистрирована — соединение отклоняем. Это осознанно строгий
  * выбор: пропускать «пока некому проверить» значит воспроизводить ровно ту дыру,
  * ради которой мостик и заведён, а регистрация происходит при создании провайдера,
  * то есть до приёма первого соединения.
  */
-export async function isWsSessionAlive(sessionId: unknown, username: string): Promise<boolean> {
-  if (!check) return false;
-  return check(sessionId, username);
+export async function wsSessionUsername(sessionId: unknown, sub: unknown): Promise<string | null> {
+  if (!check) return null;
+  return check(sessionId, sub);
 }

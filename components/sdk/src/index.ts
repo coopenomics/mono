@@ -318,8 +318,22 @@ export class Client {
       // headers как getter — Authorization актуален на каждом (ре)коннекте.
       // Не сгенерированный Zeus-Subscription: тот теряет variables (см.
       // utils/wsSubscription.ts), а правки генерята стирает регенерация.
+      //
+      // Перед подключением заголовок готовится тем же путём, что перед
+      // HTTP-запросом: у CoopID токен обновляется только по запросу, и сокет,
+      // переподключаясь после простоя, уходил со старым токеном — сервер
+      // отклонял соединение, и подписки пайщика молчали, пока какой-нибудь
+      // HTTP-запрос не обновит заголовок (C28-77). Сбой обновления токена
+      // соединение не останавливает: уходим с тем, что есть, отказ сервера
+      // вызовет повтор подключения уже по общим правилам.
       this.subscriptionApi = wsSubscription(toWebSocketUrl(this.options.api_url), {
-        headers: () => this.currentHeaders,
+        headers: async () => {
+          try {
+            await this.prepareAuthorization()
+          }
+          catch {}
+          return this.currentHeaders
+        },
       })
     }
     return this.subscriptionApi
