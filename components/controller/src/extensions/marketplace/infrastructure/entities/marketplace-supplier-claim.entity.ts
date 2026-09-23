@@ -61,7 +61,7 @@ export class MarketplaceSupplierClaimEntity {
   @Column({ type: 'text', default: '' })
   public inspection_result!: string;
 
-  @Column({ type: 'jsonb', default: () => "'[]'::jsonb" })
+  @Column({ type: 'jsonb', default: () => "'[]'" })
   public photos!: MarketplaceReturnClaimPhoto[];
 
   @Column({ type: 'jsonb', nullable: true })

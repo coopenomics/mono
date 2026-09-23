@@ -117,7 +117,7 @@ export class MarketplaceReturnClaimEntity {
   @Column({ type: 'varchar', length: 128 })
   public submretrn_tx_hash!: string;
 
-  @Column({ type: 'jsonb', default: () => "'[]'::jsonb" })
+  @Column({ type: 'jsonb', default: () => "'[]'" })
   public decision_log!: MarketplaceReturnClaimDecisionLogEntry[];
 
   @Column({ type: 'jsonb', nullable: true })

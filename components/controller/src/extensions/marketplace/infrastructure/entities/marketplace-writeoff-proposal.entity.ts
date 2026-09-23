@@ -82,7 +82,7 @@ export class MarketplaceWriteoffProposalEntity {
   @Column({ type: 'text', nullable: true })
   public reject_reason!: string | null;
 
-  @Column({ type: 'jsonb', default: () => "'[]'::jsonb" })
+  @Column({ type: 'jsonb', default: () => "'[]'" })
   public decision_log!: MarketplaceWriteoffProposalDecisionEntry[];
 
   @Column({ type: 'timestamptz', nullable: true })

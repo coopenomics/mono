@@ -10,7 +10,15 @@ export class BaseTypeormEntity {
   @Column({ type: 'boolean', default: false })
   present!: boolean;
 
-  @Column({ type: 'varchar' })
+  /**
+   * Значение по умолчанию задано явно: часть наследников (кошельки и соглашения
+   * пайщика, комментарии и голоса Благороста, состояние программы) статус в
+   * домене не заводит и пишет строку без него. До C28-79 умолчание сюда
+   * «утекало» от соседнего наследника через ошибку TypeORM и зависело от порядка
+   * загрузки сущностей; теперь — `UNDEFINED`, как у неизвестного статуса в
+   * `auditUnknownStatus`. Наследник со своим статусом переопределяет колонку.
+   */
+  @Column({ type: 'varchar', default: 'UNDEFINED' })
   status!: string;
 
   @CreateDateColumn({ type: 'timestamp' })
