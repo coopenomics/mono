@@ -180,7 +180,7 @@ const columns: BaseTableColumn<ITeacher>[] = [
   { key: 'signed_at', label: 'Подписан', width: '130px', nowrap: true },
 ];
 
-const courseOptions = computed(() => courses.value.map((c) => ({ value: asText(c.id), label: `${c.title} · ${courseSectionLabel(c.subject, c.grade, ', ')}` })));
+const courseOptions = computed(() => courses.value.map((c) => ({ value: asText(c.id), label: `${c.title} · ${courseSectionLabel(c.section_title, c.level_title, ', ')}` })));
 const ownAssignments = computed(() => assignments.value.filter((a) => a.teacher_username === current.value?.username));
 
 const contractStatusOf = (s: string) => CONTRACT_STATUS_LABELS[s] ?? { label: s, variant: 'neutral' as const };

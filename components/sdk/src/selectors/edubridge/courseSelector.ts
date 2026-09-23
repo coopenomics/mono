@@ -4,8 +4,10 @@ import type { MakeAllFieldsRequired } from '../../utils/MakeAllFieldsRequired'
 const rawCatalogCourseSelector = {
   id: true,
   title: true,
-  subject: true,
-  grade: true,
+  section_id: true,
+  section_title: true,
+  level_id: true,
+  level_title: true,
   description: true,
   syllabus: true,
   schedule: true,
@@ -60,9 +62,6 @@ export const eduCoursesPaginationResultSelector = Selector('PaginatedEduCoursesP
   currentPage: true,
 })
 
-const rawSubjectSelector = { subject: true, grades: true }
-const _validateSubject: MakeAllFieldsRequired<ValueTypes['EduCatalogSubject']> = rawSubjectSelector
-export const eduCatalogSubjectSelector = Selector('EduCatalogSubject')(rawSubjectSelector)
 
 const rawTeacherSelector = {
   username: true,

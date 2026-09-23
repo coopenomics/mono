@@ -12,7 +12,7 @@
         q-icon(name="arrow_back" size="16px")
       | К реестру курсов
 
-    CourseHero(:title="course.title" :subject="course.subject" :grade="course.grade" :image-url="course.image_url")
+    CourseHero(:title="course.title" :section="course.section_title" :level="course.level_title" :image-url="course.image_url")
       template(#facts)
         BaseBadge(:variant="status.variant") {{ status.label }}
         span(v-if="course.schedule") {{ course.schedule }}

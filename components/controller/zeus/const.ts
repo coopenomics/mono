@@ -631,6 +631,9 @@ export const AllTypesProps: Record<string,any> = {
 	EduAdminInput:{
 
 	},
+	EduArchiveInput:{
+
+	},
 	EduAssignmentInput:{
 
 	},
@@ -695,6 +698,9 @@ export const AllTypesProps: Record<string,any> = {
 		period:"EduEnrollmentPeriod"
 	},
 	EduRecipientType: "enum" as const,
+	EduReorderInput:{
+
+	},
 	EduRequestReturnInput:{
 		document:"SignedDigitalDocumentInput"
 	},
@@ -706,6 +712,15 @@ export const AllTypesProps: Record<string,any> = {
 
 	},
 	EduRidType: "enum" as const,
+	EduSaveLevelInput:{
+
+	},
+	EduSaveSectionInput:{
+
+	},
+	EduSectionsFilterInput:{
+
+	},
 	EduSetConnectorCredentialsInput:{
 		carrier:"EduAccessCarrier",
 		values:"EduConnectorCredentialInput"
@@ -2062,6 +2077,12 @@ export const AllTypesProps: Record<string,any> = {
 		edubridgeApproveReturn:{
 
 		},
+		edubridgeArchiveLevel:{
+			data:"EduArchiveInput"
+		},
+		edubridgeArchiveSection:{
+			data:"EduArchiveInput"
+		},
 		edubridgeCancelCourseUnderfilled:{
 
 		},
@@ -2101,6 +2122,12 @@ export const AllTypesProps: Record<string,any> = {
 		edubridgeRemoveLearner:{
 
 		},
+		edubridgeReorderLevels:{
+			data:"EduReorderInput"
+		},
+		edubridgeReorderSections:{
+			data:"EduReorderInput"
+		},
 		edubridgeReportLesson:{
 			data:"EduLessonReportInput"
 		},
@@ -2121,6 +2148,12 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		edubridgeRidStorageAct:{
 
+		},
+		edubridgeSaveLevel:{
+			data:"EduSaveLevelInput"
+		},
+		edubridgeSaveSection:{
+			data:"EduSaveSectionInput"
 		},
 		edubridgeSetConnectorCredentials:{
 			data:"EduSetConnectorCredentialsInput"
@@ -3195,6 +3228,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		edubridgeReturnRequests:{
 			status:"EduReturnStatus"
+		},
+		edubridgeSections:{
+			filter:"EduSectionsFilterInput"
 		},
 		edubridgeTeacherApprovals:{
 
@@ -5775,22 +5811,20 @@ export const ReturnTypes: Record<string,any> = {
 		fee_course:"String",
 		fee_course_base:"String",
 		fee_month:"String",
-		grade:"String",
 		id:"ID",
 		image_url:"String",
 		lesson_minutes:"Int",
 		lessons_per_month:"Int",
 		lessons_total:"Int",
+		level_id:"ID",
+		level_title:"String",
 		schedule:"String",
+		section_id:"ID",
+		section_title:"String",
 		starts_at:"String",
-		subject:"String",
 		syllabus:"String",
 		teacher_usernames:"String",
 		title:"String"
-	},
-	EduCatalogSubject:{
-		grades:"String",
-		subject:"String"
 	},
 	EduConnectorBinding:{
 		carrier:"EduAccessCarrier",
@@ -5843,19 +5877,21 @@ export const ReturnTypes: Record<string,any> = {
 		fee_course:"String",
 		fee_course_base:"String",
 		fee_month:"String",
-		grade:"String",
 		guarantee_days:"Int",
 		id:"ID",
 		image_url:"String",
 		lesson_minutes:"Int",
 		lessons_per_month:"Int",
 		lessons_total:"Int",
+		level_id:"ID",
+		level_title:"String",
 		planned_hourly_rate:"String",
 		schedule:"String",
+		section_id:"ID",
+		section_title:"String",
 		sort_order:"Int",
 		starts_at:"String",
 		status:"EduCourseStatus",
-		subject:"String",
 		syllabus:"String",
 		teacher_usernames:"String",
 		title:"String",
@@ -5957,6 +5993,13 @@ export const ReturnTypes: Record<string,any> = {
 		materials:"String",
 		topic:"String"
 	},
+	EduLevel:{
+		archived:"Boolean",
+		id:"ID",
+		section_id:"ID",
+		sort_order:"Int",
+		title:"String"
+	},
 	EduMemberCard:{
 		display_name:"String",
 		enrollments:"EduEnrollment",
@@ -6043,6 +6086,13 @@ export const ReturnTypes: Record<string,any> = {
 		member_username:"String",
 		statement_hash:"String",
 		status:"EduReturnStatus"
+	},
+	EduSection:{
+		archived:"Boolean",
+		id:"ID",
+		levels:"EduLevel",
+		sort_order:"Int",
+		title:"String"
 	},
 	EduTeacher:{
 		approved_at:"DateTime",
@@ -7956,6 +8006,8 @@ export const ReturnTypes: Record<string,any> = {
 		edubridgeAddLearner:"EduLearner",
 		edubridgeAppointAdmin:"EduAdmin",
 		edubridgeApproveReturn:"EduReturnRequest",
+		edubridgeArchiveLevel:"EduLevel",
+		edubridgeArchiveSection:"EduSection",
 		edubridgeCancelCourseUnderfilled:"Int",
 		edubridgeCancelEnrollment:"EduEnrollment",
 		edubridgeCheckConnector:"EduConnectorBinding",
@@ -7969,6 +8021,8 @@ export const ReturnTypes: Record<string,any> = {
 		edubridgeDismissAdmin:"Boolean",
 		edubridgeHoldContribution:"EduContribution",
 		edubridgeRemoveLearner:"Boolean",
+		edubridgeReorderLevels:"EduSection",
+		edubridgeReorderSections:"EduSection",
 		edubridgeReportLesson:"EduLesson",
 		edubridgeRequestReturn:"EduReturnRequest",
 		edubridgeRetryTask:"EduAccessTask",
@@ -7976,6 +8030,8 @@ export const ReturnTypes: Record<string,any> = {
 		edubridgeRidAct:"GeneratedDocument",
 		edubridgeRidStatement:"GeneratedDocument",
 		edubridgeRidStorageAct:"GeneratedDocument",
+		edubridgeSaveLevel:"EduLevel",
+		edubridgeSaveSection:"EduSection",
 		edubridgeSetConnectorCredentials:"EduConnectorBinding",
 		edubridgeSetConnectorEnabled:"EduConnectorBinding",
 		edubridgeSetCourseStatus:"EduCourse",
@@ -8864,7 +8920,6 @@ export const ReturnTypes: Record<string,any> = {
 		edubridgeAttention:"EduAttention",
 		edubridgeCatalog:"PaginatedEduCatalogCoursesPaginationResult",
 		edubridgeCatalogCourse:"EduCatalogCourse",
-		edubridgeCatalogSubjects:"EduCatalogSubject",
 		edubridgeConnectors:"EduConnectorBinding",
 		edubridgeContributions:"EduContribution",
 		edubridgeCourse:"EduCourse",
@@ -8891,6 +8946,7 @@ export const ReturnTypes: Record<string,any> = {
 		edubridgeRefundPreview:"EduRefundPreview",
 		edubridgeReturnBalance:"EduReturnBalance",
 		edubridgeReturnRequests:"EduReturnRequest",
+		edubridgeSections:"EduSection",
 		edubridgeTeacherApprovals:"EduApproval",
 		edubridgeTeacherOptions:"EduTeacherOption",
 		edubridgeTeachers:"EduTeacher",

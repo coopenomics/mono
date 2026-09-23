@@ -11,6 +11,8 @@ const table = (name: string): ChainTableRef => ({ code: EDU, table: name });
  */
 export const EduLive = {
   courses: table('edubridge_courses'),
+  sections: table('edubridge_sections'),
+  levels: table('edubridge_levels'),
   enrollments: table('edubridge_enrollments'),
   learners: table('edubridge_learners'),
   returnRequests: table('edubridge_return_requests'),

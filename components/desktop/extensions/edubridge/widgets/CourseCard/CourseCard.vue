@@ -5,7 +5,7 @@ BaseCard.edu-course-card(variant="default" role="link" tabindex="0" @click="emit
     .edu-course-card__placeholder(v-else)
       q-icon(name="school" size="32px")
   .edu-course-card__body
-    .t-eyebrow.ellipsis {{ courseSectionLabel(course.subject, course.grade) }}
+    .t-eyebrow.ellipsis {{ courseSectionLabel(course.section_title, course.level_title) }}
     .edu-course-card__title {{ course.title }}
     .edu-course-card__facts
       .edu-course-card__fact(v-if="course.schedule")

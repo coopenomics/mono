@@ -22,11 +22,6 @@ export async function fetchCatalogCourse(id: string) {
   return result;
 }
 
-export async function fetchCatalogSubjects() {
-  const { [Queries.Edubridge.CatalogSubjects.name]: result } = await client.Query(Queries.Edubridge.CatalogSubjects.query);
-  return result;
-}
-
 export async function fetchCourses(data: ICoursesInput = {}) {
   const { [Queries.Edubridge.Courses.name]: result } = await client.Query(Queries.Edubridge.Courses.query, {
     variables: data,

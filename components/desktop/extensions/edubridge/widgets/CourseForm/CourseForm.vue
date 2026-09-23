@@ -9,12 +9,12 @@ BaseForm.edu-course-form(ref="formEl" :loading="loading" :error="error" @submit=
       template(#append)
         FieldHelp(:text="COURSE_FORM_HELP.title")
     .edu-course-form__pair
-      BaseSelect(v-model="form.subject" label="Раздел" :options="sectionOptions" creatable required)
+      BaseSelect(:model-value="form.section_id || null" label="Раздел" :options="sectionOptions" creatable required @update:model-value="pickSection")
         template(#append)
-          FieldHelp(:text="COURSE_FORM_HELP.subject")
-      BaseSelect(:model-value="form.grade" label="Уровень" :options="levelOptions" creatable clearable @update:model-value="(v) => (form.grade = v ? String(v) : '')")
+          FieldHelp(:text="COURSE_FORM_HELP.section")
+      BaseSelect(:model-value="form.level_id" label="Уровень" :options="levelOptions" creatable clearable :disabled="!form.section_id" @update:model-value="pickLevel")
         template(#append)
-          FieldHelp(:text="COURSE_FORM_HELP.grade")
+          FieldHelp(:text="COURSE_FORM_HELP.level")
     BaseInput(v-model="form.schedule" label="Расписание" placeholder="Вт, Чт 17:00–18:30")
       template(#append)
         FieldHelp(:text="COURSE_FORM_HELP.schedule")
@@ -263,6 +263,8 @@ const {
   platformGroupOptions,
   sectionOptions,
   levelOptions,
+  pickSection,
+  pickLevel,
   markupPercent,
   teacherOptions,
   teacherName,

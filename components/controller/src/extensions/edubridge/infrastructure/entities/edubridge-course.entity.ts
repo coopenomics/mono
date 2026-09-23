@@ -1,4 +1,6 @@
-import { Column, CreateDateColumn, Entity, Generated, Index, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
+import { Column, CreateDateColumn, Entity, Generated, Index, JoinColumn, ManyToOne, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
+import { EdubridgeLevelEntity } from './edubridge-level.entity';
+import { EdubridgeSectionEntity } from './edubridge-section.entity';
 import { EduAccessCarrier, EduCourseDirection, EduCourseStatus } from '../../domain/enums';
 
 /** Снимок объекта bucket'а `edubridge:images`; ссылка на чтение подписывается при отдаче. */
@@ -8,7 +10,7 @@ export interface EduCourseImage {
   mime_type: string;
 }
 
-/** Курс каталога: предмет → класс, карточка, привязка к курсу площадки. Off-chain. */
+/** Курс каталога: раздел → уровень (справочник), карточка, привязка к курсу площадки. Off-chain. */
 @Entity({ name: 'edubridge_courses' })
 @Index('IDX_edubridge_courses_coop_status', ['coopname', 'status'])
 export class EdubridgeCourseEntity {
@@ -26,12 +28,33 @@ export class EdubridgeCourseEntity {
   @Column({ type: 'varchar', length: 255 })
   public title!: string;
 
-  @Column({ type: 'varchar', length: 120 })
-  public subject!: string;
+  /** Раздел каталога — из справочника (`edubridge_sections`). */
+  @Column({ type: 'uuid', nullable: true })
+  public section_id!: string | null;
 
-  /** Класс/уровень (например «7 класс»); свободная строка для сортировки в иерархии. */
-  @Column({ type: 'varchar', length: 60 })
-  public grade!: string;
+  @ManyToOne(() => EdubridgeSectionEntity, { eager: true, nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'section_id' })
+  public section?: EdubridgeSectionEntity | null;
+
+  /** Уровень внутри раздела — из справочника (`edubridge_levels`); пусто — без уровня. */
+  @Column({ type: 'uuid', nullable: true })
+  public level_id!: string | null;
+
+  @ManyToOne(() => EdubridgeLevelEntity, { eager: true, nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'level_id' })
+  public level?: EdubridgeLevelEntity | null;
+
+  /**
+   * Раздел строкой — до справочника (7DD-23). Только для переноса в
+   * справочник при запуске; код его не читает. Колонку убрать, когда перенос
+   * пройдёт на всех кооперативах.
+   */
+  @Column({ name: 'subject', type: 'varchar', length: 120, nullable: true, default: '' })
+  public legacy_subject!: string | null;
+
+  /** Уровень строкой — до справочника (7DD-23), см. `legacy_subject`. */
+  @Column({ name: 'grade', type: 'varchar', length: 60, nullable: true, default: '' })
+  public legacy_grade!: string | null;
 
   @Column({ type: 'text', default: '' })
   public description!: string;

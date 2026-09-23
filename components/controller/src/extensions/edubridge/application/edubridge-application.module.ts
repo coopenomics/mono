@@ -35,6 +35,9 @@ import { EdubridgeUdataParametersAdapter } from './registration/edubridge-udata-
 import { EdubridgeCapitalNarrowingPolicy } from './policies/edubridge-capital-narrowing.policy';
 import { EdubridgeCatalogResolver } from './resolvers/edubridge-catalog.resolver';
 import { EdubridgeCourseAdminResolver } from './resolvers/edubridge-course-admin.resolver';
+import { EdubridgeSectionsResolver } from './resolvers/edubridge-sections.resolver';
+import { EdubridgeSectionsService } from './services/edubridge-sections.service';
+import { EdubridgeSectionRepository } from '../infrastructure/repositories/edubridge-section.repository';
 import { EdubridgeAccessListener } from './listeners/edubridge-access.listener';
 import { EdubridgeApprovalListener } from './listeners/edubridge-approval.listener';
 import { EdubridgeContractDeltaListener } from './listeners/edubridge-contract-delta.listener';
@@ -135,6 +138,9 @@ import { EdubridgeLiveFeedService } from './services/edubridge-live-feed.service
     EdubridgeCatalogCourseFieldsResolver,
     EdubridgeCourseFieldsResolver,
     EdubridgeCourseAdminResolver,
+    EdubridgeSectionsResolver,
+    EdubridgeSectionsService,
+    EdubridgeSectionRepository,
     EdubridgeEconomyResolver,
     EdubridgeOnboardingResolver,
     EdubridgeMemberResolver,
@@ -142,6 +148,6 @@ import { EdubridgeLiveFeedService } from './services/edubridge-live-feed.service
     EdubridgeTeacherResolver,
     EdubridgeAdminResolver,
   ],
-  exports: [EDUBRIDGE_ROLE_FACTS_PORT, EdubridgeConfigHolder, EdubridgeMembershipService, EdubridgeExitBlockersService, EdubridgeLiveFeedService, EdubridgeTeacherService],
+  exports: [EDUBRIDGE_ROLE_FACTS_PORT, EdubridgeConfigHolder, EdubridgeMembershipService, EdubridgeExitBlockersService, EdubridgeLiveFeedService, EdubridgeTeacherService, EdubridgeSectionsService],
 })
 export class EdubridgeApplicationModule {}

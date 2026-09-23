@@ -7,7 +7,6 @@ import { EdubridgeCourseRepository, type EduCourseFilter } from '../../infrastru
 import { EdubridgeTeacherRepository } from '../../infrastructure/repositories/edubridge-teacher.repository';
 import { SkillspaceConnector, splitSkillspaceRef } from '../../infrastructure/connectors/skillspace.connector';
 import type {
-  EduCatalogSubjectDTO,
   EduCourseImageUploadInputDTO,
   EduCourseInputDTO,
   EduPlatformCourseDTO,
@@ -19,6 +18,7 @@ import { EdubridgeCourseImagesService } from './edubridge-course-images.service'
 import { EdubridgeEconomyService } from './edubridge-economy.service';
 import { EdubridgeNamesService } from '../membership/edubridge-names.service';
 import { EdubridgeTeacherService, rateCoverageError } from './edubridge-teacher.service';
+import { EdubridgeSectionsService } from './edubridge-sections.service';
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -61,7 +61,8 @@ export class EdubridgeCourseService {
     private readonly images: EdubridgeCourseImagesService,
     private readonly names: EdubridgeNamesService,
     private readonly economy: EdubridgeEconomyService,
-    private readonly teacherService: EdubridgeTeacherService
+    private readonly teacherService: EdubridgeTeacherService,
+    private readonly sections: EdubridgeSectionsService
   ) {}
 
   /**
@@ -102,18 +103,7 @@ export class EdubridgeCourseService {
     return course;
   }
 
-  async subjects(coopname: string): Promise<EduCatalogSubjectDTO[]> {
-    const rows = await this.courses.listSubjects(coopname);
-    const map = new Map<string, string[]>();
-    for (const r of rows) {
-      const grades = map.get(r.subject) ?? [];
-      // Уровень необязателен: курс без уровня виден в разделе, но пустого
-      // пункта в фильтре уровней нет.
-      if (r.grade) grades.push(r.grade);
-      map.set(r.subject, grades);
-    }
-    return [...map.entries()].map(([subject, grades]) => ({ subject, grades }));
-  }
+
 
   list(coopname: string, filter: EduCourseFilter, options?: PaginationInputDTO): Promise<PaginationResult<EdubridgeCourseEntity>> {
     return this.courses.findPage(coopname, filter, options);
@@ -144,12 +134,13 @@ export class EdubridgeCourseService {
     }
     // Преподаватели курса получают черновики назначений — им есть что подписать.
     await this.teacherService.syncCourseAssignments(coopname, saved);
-    return saved;
+    // Перечитываем: save() не подгружает раздел и уровень, а ответ показывает их названия.
+    return (await this.courses.findById(coopname, saved.id)) ?? saved;
   }
 
   async update(coopname: string, actor: string, input: EduUpdateCourseInputDTO): Promise<EdubridgeCourseEntity> {
     const course = await this.get(coopname, input.id);
-    await this.validate(coopname, input);
+    await this.validate(coopname, input, course);
     // Занятия начались — дату активации можно только сдвигать вперёд: от неё
     // считается использованное при отказе от подписки.
     if (course.starts_at && new Date(course.starts_at) <= new Date()) {
@@ -164,6 +155,9 @@ export class EdubridgeCourseService {
     const previousRef = course.external_ref;
     const image = await this.resolveImage(coopname, actor, input.image, previous);
     Object.assign(course, this.fields(input, fee), { image });
+    // Подгруженные связи перебили бы новые section_id/level_id при сохранении.
+    course.section = undefined;
+    course.level = undefined;
     // Привязка к площадке изменилась — прежняя сверка больше не действительна.
     // Сравнивается уже нормализованное значение: пробелы по краям — не смена привязки.
     if (course.external_ref !== previousRef) {
@@ -175,7 +169,7 @@ export class EdubridgeCourseService {
     if (previous && previous.bucket_key !== image?.bucket_key) await this.images.deleteImage(previous.bucket_key);
     // Добавленные преподаватели получают черновики назначений, убранные — лишаются неподписанных.
     await this.teacherService.syncCourseAssignments(coopname, saved);
-    return saved;
+    return (await this.courses.findById(coopname, saved.id)) ?? saved;
   }
 
   /**
@@ -215,7 +209,9 @@ export class EdubridgeCourseService {
    * имеет смысл только у площадок с API, а преподавать могут лишь пайщики с
    * подписанным договором — форма это подсказывает, сервер проверяет сам.
    */
-  private async validate(coopname: string, input: EduCourseInputDTO): Promise<void> {
+  private async validate(coopname: string, input: EduCourseInputDTO, current?: EdubridgeCourseEntity): Promise<void> {
+    // Раздел и уровень — из справочника; архивное — только если уже стоит у курса.
+    await this.sections.assertForCourse(coopname, input.section_id, input.level_id, current && { section_id: current.section_id, level_id: current.level_id });
     if (!CARRIERS_BY_DIRECTION[input.direction].includes(input.carrier)) {
       throw new BadRequestException(`Носитель «${input.carrier}» недопустим для направления «${input.direction}»`);
     }
@@ -251,8 +247,8 @@ export class EdubridgeCourseService {
     const platform = PLATFORM_CARRIERS.includes(input.carrier);
     return {
       title: input.title,
-      subject: input.subject.trim(),
-      grade: input.grade.trim(),
+      section_id: input.section_id,
+      level_id: input.level_id ?? null,
       description: input.description ?? '',
       syllabus: input.syllabus ?? '',
       schedule: input.schedule ?? '',

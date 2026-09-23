@@ -21,6 +21,9 @@ import {
   type ITeacherOption,
 } from '../../../entities/Course';
 import { COURSE_FORM_HELP } from './courseFormHelp';
+import { fetchSections, saveLevel, saveSection, type ISection } from '../../../entities/Section';
+import { useLiveReload } from 'src/shared/lib/realtime';
+import { EduLive } from '../../../shared/lib/live';
 
 /** Разделы формы курса: на полной странице каждый — отдельный шаг. */
 export type CourseFormSection = 'course' | 'cover' | 'price' | 'access' | 'teachers';
@@ -31,8 +34,8 @@ type CourseFormFields = ICreateCourseInput & { teacher_usernames: string[] };
 function emptyForm(): CourseFormFields {
   return reactive<CourseFormFields>({
     title: '',
-    subject: '',
-    grade: '',
+    section_id: '',
+    level_id: null,
     description: '',
     syllabus: '',
     schedule: '',
@@ -188,7 +191,8 @@ function useFeePreview(economy: ReturnType<typeof useEconomyFields>) {
         fee.value = null;
         return;
       }
-      previewTimer = setTimeout(async () => {
+      // timing: debounce — взнос пересчитывается, когда ввод утих, а не на каждую букву.
+    previewTimer = setTimeout(async () => {
         try {
           fee.value = await fetchCourseFeePreview(params);
         } catch {
@@ -281,27 +285,76 @@ function useAccess(form: CourseFormFields) {
 }
 
 /**
- * Разделы и уровни каталога — из курсов кооператива, включая черновики.
- * Раздел выбирают из списка, а новый добавляют вводом: так один предмет не
- * расходится на два написания. Уровни предлагаются внутри выбранного раздела.
+ * Раздел и уровень — из справочника «Разделы и уровни» (7DD-23). Выбирают из
+ * списка, а новое вводом: оно сразу становится записью справочника, так один
+ * предмет не расходится на два написания. Уровни — выбранного раздела, в их
+ * последовательности. Архивное предлагается только у курса, где оно уже стоит.
  */
 function useTaxonomy(form: CourseFormFields) {
-  const known = ref<Array<{ subject: string; grade: string }>>([]);
-  const toOptions = (values: string[]) =>
-    [...new Set(values.map((v) => v.trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'ru')).map((v) => ({ value: v, label: v }));
-  const sectionOptions = computed(() => toOptions(known.value.map((c) => c.subject)));
-  const levelOptions = computed(() => toOptions(known.value.filter((c) => c.subject === form.subject).map((c) => c.grade)));
+  const sections = ref<ISection[]>([]);
+  const reload = async () => {
+    sections.value = await fetchSections({ include_archived: true });
+  };
+  const sectionOptions = computed(() =>
+    sections.value.filter((s) => !s.archived || s.id === form.section_id).map((s) => ({ value: s.id, label: s.title })),
+  );
+  const levelOptions = computed(() =>
+    (sections.value.find((s) => s.id === form.section_id)?.levels ?? [])
+      .filter((l) => !l.archived || l.id === form.level_id)
+      .map((l) => ({ value: l.id, label: l.title })),
+  );
+
+  /** Выбран раздел из списка либо введён новый — тогда он добавляется в справочник. */
+  async function pickSection(value: unknown): Promise<void> {
+    const v = value === null || value === undefined ? '' : String(value);
+    if (!v) {
+      form.section_id = '';
+      form.level_id = null;
+      return;
+    }
+    const known = sections.value.find((s) => s.id === v);
+    const id = known ? known.id : await create(() => saveSection({ title: v }));
+    if (!id) return;
+    if (form.section_id !== id) form.level_id = null;
+    form.section_id = id;
+  }
+
+  /** Выбран уровень раздела либо введён новый — он добавляется в раздел. */
+  async function pickLevel(value: unknown): Promise<void> {
+    const v = value === null || value === undefined ? '' : String(value);
+    if (!v) {
+      form.level_id = null;
+      return;
+    }
+    const section = sections.value.find((s) => s.id === form.section_id);
+    if (!section) return;
+    const known = section.levels.find((l) => l.id === v);
+    const id = known ? known.id : await create(() => saveLevel({ section_id: section.id, title: v }));
+    if (id) form.level_id = id;
+  }
+
+  async function create(save: () => Promise<{ id: unknown }>): Promise<string | null> {
+    try {
+      const created = await save();
+      await reload();
+      return String(created.id);
+    } catch (e) {
+      FailAlert(e);
+      return null;
+    }
+  }
 
   onMounted(async () => {
     try {
-      const page = await fetchCourses({ options: { page: 1, limit: 200, sortBy: 'sort_order', sortOrder: 'ASC' } });
-      known.value = page.items.map((c) => ({ subject: c.subject, grade: c.grade }));
+      await reload();
     } catch (e) {
       FailAlert(e);
     }
   });
+  // Администратор правит справочник — форма видит новые названия и порядок сразу.
+  useLiveReload([EduLive.sections, EduLive.levels], reload);
 
-  return { sectionOptions, levelOptions };
+  return { sectionOptions, levelOptions, pickSection, pickLevel };
 }
 
 /**
@@ -360,8 +413,8 @@ function useTeachers(form: CourseFormFields) {
 function fillForm(form: CourseFormFields, c: ICourse): void {
   Object.assign(form, {
     title: c.title,
-    subject: c.subject,
-    grade: c.grade,
+    section_id: c.section_id ?? '',
+    level_id: c.level_id ?? null,
     description: c.description,
     syllabus: c.syllabus,
     schedule: c.schedule,

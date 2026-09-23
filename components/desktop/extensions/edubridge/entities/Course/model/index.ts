@@ -1,7 +1,6 @@
 import { Zeus, type Mutations, type Queries } from '@coopenomics/sdk';
 
 export type ICatalogCourse = Queries.Edubridge.Catalog.IOutput['edubridgeCatalog']['items'][number];
-export type ICatalogSubject = Queries.Edubridge.CatalogSubjects.IOutput['edubridgeCatalogSubjects'][number];
 export type ICourse = Queries.Edubridge.Courses.IOutput['edubridgeCourses']['items'][number];
 
 export type ICatalogInput = Queries.Edubridge.Catalog.IInput;
@@ -57,6 +56,6 @@ export const COURSE_IMAGE_MAX_BYTES = 10 * 1024 * 1024;
  * Раздел с уровнем одной строкой: «Математика · 7 класс». Уровень
  * необязателен — без него остаётся раздел, без висящего разделителя.
  */
-export function courseSectionLabel(subject: string, grade: string | null | undefined, separator = ' · '): string {
-  return [subject, grade].map((v) => (v ?? '').trim()).filter(Boolean).join(separator);
+export function courseSectionLabel(section: string | null | undefined, level: string | null | undefined, separator = ' · '): string {
+  return [section, level].map((v) => (v ?? '').trim()).filter(Boolean).join(separator);
 }

@@ -32,7 +32,8 @@ import { useFirstLoad } from 'src/shared/lib/composables';
 import { FailAlert } from 'src/shared/api';
 import { BaseButton, CardListSkeleton, EmptyState } from 'src/shared/ui/base';
 import { FilterBar, PageHint, type FilterDefinition, type FilterValues } from 'src/shared/ui/domain';
-import { fetchCatalog, fetchCatalogSubjects, type ICatalogCourse, type ICatalogSubject } from '../../entities/Course';
+import { fetchCatalog, type ICatalogCourse } from '../../entities/Course';
+import { fetchSections, type ISection } from '../../entities/Section';
 import { CourseCard } from '../../widgets/CourseCard';
 import { useLiveReload } from 'src/shared/lib/realtime';
 import { EduLive } from '../../shared/lib/live';
@@ -47,9 +48,10 @@ const PAGE_SIZE = 24;
 const route = useRoute();
 const router = useRouter();
 
-const subjects = ref<ICatalogSubject[]>([]);
-const subject = ref<string | null>(null);
-const grade = ref<string | null>(null);
+// Разделы и уровни — из справочника, только те, где есть опубликованные курсы.
+const sections = ref<ISection[]>([]);
+const sectionId = ref<string | null>(null);
+const levelId = ref<string | null>(null);
 const items = ref<ICatalogCourse[]>([]);
 const loading = ref(false);
 const firstLoad = useFirstLoad(loading);
@@ -57,22 +59,22 @@ const currentPage = ref(1);
 const totalPages = ref(0);
 
 const filters = computed<FilterDefinition[]>(() => [
-  { key: 'subject', label: 'Раздел', type: 'select', options: subjects.value.map((s) => ({ value: s.subject, label: s.subject })) },
+  { key: 'section_id', label: 'Раздел', type: 'select', options: sections.value.map((sec) => ({ value: sec.id, label: sec.title })) },
   {
-    key: 'grade',
+    key: 'level_id',
     label: 'Уровень',
     type: 'select',
-    options: (subjects.value.find((s) => s.subject === subject.value)?.grades ?? []).map((g) => ({ value: g, label: g })),
+    options: (sections.value.find((sec) => sec.id === sectionId.value)?.levels ?? []).map((l) => ({ value: l.id, label: l.title })),
   },
 ]);
-const filterValues = computed<FilterValues>(() => ({ subject: subject.value, grade: grade.value }));
+const filterValues = computed<FilterValues>(() => ({ section_id: sectionId.value, level_id: levelId.value }));
 const hasMore = computed(() => currentPage.value < totalPages.value);
 
 async function load(page: number): Promise<void> {
   loading.value = true;
   try {
     const result = await fetchCatalog({
-      filter: { subject: subject.value ?? undefined, grade: grade.value ?? undefined },
+      filter: { section_id: sectionId.value ?? undefined, level_id: levelId.value ?? undefined },
       options: { page, limit: PAGE_SIZE, sortBy: 'sort_order', sortOrder: 'ASC' },
     });
     items.value = page === 1 ? result.items : [...items.value, ...result.items];
@@ -87,10 +89,10 @@ async function load(page: number): Promise<void> {
 
 // Уровень имеет смысл только внутри раздела: сменили раздел — уровень сбрасывается.
 function onFilters(values: FilterValues): void {
-  const nextSubject = (values.subject as string | null | undefined) ?? null;
-  const nextGrade = (values.grade as string | null | undefined) ?? null;
-  grade.value = nextSubject === subject.value ? nextGrade : null;
-  subject.value = nextSubject;
+  const nextSection = (values.section_id as string | null | undefined) ?? null;
+  const nextLevel = (values.level_id as string | null | undefined) ?? null;
+  levelId.value = nextSection === sectionId.value ? nextLevel : null;
+  sectionId.value = nextSection;
   void load(1);
 }
 
@@ -102,12 +104,18 @@ function openCourse(id: string): void {
   void router.push({ name: 'edubridge-catalog-course', params: { coopname: route.params.coopname, id } });
 }
 
-// Живое обновление: данные меняются в цепи и на столах других участников.
-useLiveReload([EduLive.courses], () => load(1));
+const loadSections = () => fetchSections({ only_with_courses: true });
+
+// Живое обновление: курсы и справочник меняет администратор — каталог
+// перечитывает и список, и фильтры.
+useLiveReload([EduLive.courses, EduLive.sections, EduLive.levels], async () => {
+  sections.value = await loadSections();
+  await load(1);
+});
 
 onMounted(async () => {
   try {
-    subjects.value = await fetchCatalogSubjects();
+    sections.value = await loadSections();
   } catch (e) {
     FailAlert(e);
   }

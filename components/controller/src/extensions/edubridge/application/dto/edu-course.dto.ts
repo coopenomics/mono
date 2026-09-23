@@ -11,6 +11,16 @@ import './edu-enums.registration';
 /** Сумма в формате цепи: «1000.0000 RUB». */
 const ASSET_PATTERN = /^\d+\.\d{4} [A-Z]{1,7}$/;
 
+/** Раздел и уровень курса из справочника: ссылки и названия для показа. */
+function taxonomyOf(e: EdubridgeCourseEntity) {
+  return {
+    section_id: e.section_id ?? null,
+    section_title: e.section?.title ?? '',
+    level_id: e.level_id ?? null,
+    level_title: e.level?.title ?? '',
+  };
+}
+
 /**
  * Карточка курса для посетителя каталога. Внутренних признаков (тип
  * направления, привязка к площадке, состояние) здесь нет намеренно.
@@ -23,11 +33,17 @@ export class EduCatalogCourseDTO {
   @Field(() => String, { description: 'Название курса' })
   title!: string;
 
-  @Field(() => String, { description: 'Раздел каталога — область знаний: «Математика», «Духовные практики»' })
-  subject!: string;
+  @Field(() => ID, { nullable: true, description: 'Раздел каталога из справочника' })
+  section_id!: string | null;
 
-  @Field(() => String, { description: 'Уровень внутри раздела: «7 класс», «Ступень 1»' })
-  grade!: string;
+  @Field(() => String, { description: 'Раздел каталога — область знаний: «Математика», «Духовные практики»' })
+  section_title!: string;
+
+  @Field(() => ID, { nullable: true, description: 'Уровень внутри раздела из справочника; пусто — без уровня' })
+  level_id!: string | null;
+
+  @Field(() => String, { description: 'Уровень внутри раздела: «7 класс», «Ступень 1»; пусто — без уровня' })
+  level_title!: string;
 
   @Field(() => String, { description: 'Описание курса' })
   description!: string;
@@ -77,8 +93,7 @@ export class EduCatalogCourseDTO {
   constructor(e: EdubridgeCourseEntity) {
     this.id = e.id;
     this.title = e.title;
-    this.subject = e.subject;
-    this.grade = e.grade;
+    Object.assign(this, taxonomyOf(e));
     this.description = e.description;
     this.syllabus = e.syllabus;
     this.schedule = e.schedule;
@@ -154,26 +169,17 @@ export class EduCourseDTO extends EduCatalogCourseDTO {
   }
 }
 
-@ObjectType('EduCatalogSubject')
-export class EduCatalogSubjectDTO {
-  @Field(() => String, { description: 'Раздел каталога — область знаний: «Математика», «Духовные практики»' })
-  subject!: string;
-
-  @Field(() => [String], { description: 'Уровни раздела, по которым есть курсы; курсы без уровня сюда не входят' })
-  grades!: string[];
-}
-
 @InputType('EduCatalogFilterInput')
 export class EduCatalogFilterInputDTO {
-  @Field(() => String, { nullable: true, description: 'Раздел каталога — область знаний: «Математика», «Духовные практики»' })
+  @Field(() => ID, { nullable: true, description: 'Раздел каталога из справочника' })
   @IsOptional()
-  @IsString()
-  subject?: string;
+  @IsUUID()
+  section_id?: string;
 
-  @Field(() => String, { nullable: true, description: 'Уровень внутри раздела: «7 класс», «Ступень 1»' })
+  @Field(() => ID, { nullable: true, description: 'Уровень внутри раздела из справочника' })
   @IsOptional()
-  @IsString()
-  grade?: string;
+  @IsUUID()
+  level_id?: string;
 }
 
 @InputType('EduCoursesFilterInput')
@@ -216,15 +222,14 @@ export class EduCourseInputDTO {
   @Length(1, 255)
   title!: string;
 
-  @Field(() => String, { description: 'Раздел каталога — область знаний: «Математика», «Духовные практики»' })
-  @IsString()
-  @Length(1, 120)
-  subject!: string;
+  @Field(() => ID, { description: 'Раздел каталога из справочника' })
+  @IsUUID()
+  section_id!: string;
 
-  @Field(() => String, { description: 'Уровень внутри раздела: «7 класс», «Ступень 1»; пусто — без уровня' })
-  @IsString()
-  @Length(0, 60)
-  grade!: string;
+  @Field(() => ID, { nullable: true, description: 'Уровень внутри раздела из справочника; пусто — без уровня' })
+  @IsOptional()
+  @IsUUID()
+  level_id?: string | null;
 
   @Field(() => String, { nullable: true, description: 'Описание курса' })
   @IsOptional()

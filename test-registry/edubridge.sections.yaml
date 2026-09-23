@@ -1,0 +1,99 @@
+feature: edubridge.sections
+title: Справочник разделов и уровней курсов образования
+
+# Задача blago 7DD-23, решение владельца 24.09.2026. Раздел и уровень курса
+# были строками в самом курсе: ими нельзя было управлять отдельно — ни
+# переименовать разом, ни упорядочить, ни связать уровни в последовательность.
+# Теперь это справочник под управлением администратора образования (страница
+# «Разделы и уровни»); курс ссылается на записи, форма курса выбирает из
+# справочника и новым вводом пополняет его; каталог фильтрует и сортирует в
+# порядке справочника. Перенос старых курсов — при запуске расширения.
+# Правила последовательности уровней — следующая задача.
+
+sources:
+  backend:
+    - components/controller/src/extensions/edubridge/application/services/edubridge-sections.service.ts
+    - components/controller/src/extensions/edubridge/application/resolvers/edubridge-sections.resolver.ts
+    - components/controller/src/extensions/edubridge/application/dto/edu-section.dto.ts
+    - components/controller/src/extensions/edubridge/infrastructure/repositories/edubridge-section.repository.ts
+    - components/controller/src/extensions/edubridge/infrastructure/entities/edubridge-section.entity.ts
+    - components/controller/src/extensions/edubridge/infrastructure/entities/edubridge-level.entity.ts
+  ui:
+    - components/desktop/extensions/edubridge/pages/AdminSectionsPage/**
+    - components/desktop/extensions/edubridge/entities/Section/**
+
+cases:
+  - id: edu.sections.happy.01
+    level: backend
+    kind: happy
+    scenario: Администратор или форма курса добавляет раздел и уровень.
+    expect: >
+      запись встаёт в конец порядка; то же название в другом регистре и с
+      пробелами — прежняя запись, дубля нет; уровень ищется внутри своего раздела
+    test: components/controller/tests/unit/edubridge/sections.service.test.ts
+    status: passing
+
+  - id: edu.sections.break.01
+    level: backend
+    kind: break
+    scenario: Переименование в занятое название, пустое название.
+    expect: отказ с объяснением
+    test: components/controller/tests/unit/edubridge/sections.service.test.ts
+    status: passing
+
+  - id: edu.sections.happy.02
+    level: backend
+    kind: happy
+    scenario: Администратор меняет порядок уровней раздела.
+    expect: последовательность уровней — по присланному списку; список не всех уровней — отказ
+    test: components/controller/tests/unit/edubridge/sections.service.test.ts
+    status: passing
+
+  - id: edu.sections.side.01
+    level: backend
+    kind: side
+    scenario: Раздел в архиве; каталог просит фильтры.
+    expect: >
+      архивное скрыто, пока не попросили; каталог получает только разделы и
+      уровни с опубликованными курсами
+    test: components/controller/tests/unit/edubridge/sections.service.test.ts
+    status: passing
+
+  - id: edu.sections.break.02
+    level: backend
+    kind: break
+    scenario: Курсу выбирают уровень чужого раздела либо архивный раздел.
+    expect: >
+      отказ, курс не сохраняется; архивное, уже стоящее у курса, при правке
+      курса остаётся
+    test: components/controller/tests/unit/edubridge/sections.service.test.ts
+    status: passing
+
+  - id: edu.sections.happy.03
+    level: backend
+    kind: happy
+    scenario: Курс сохраняется с разделом и уровнем.
+    expect: курс хранит ссылки на справочник, а не строки; уровень необязателен
+    test: components/controller/tests/unit/edubridge/course.service.test.ts
+    status: passing
+
+  - id: edu.sections.side.02
+    level: backend
+    kind: side
+    scenario: Кооператив с курсами, где раздел и уровень записаны строками.
+    expect: >
+      при запуске пары переносятся в справочник, курсы получают ссылки,
+      повторный перенос ничего не создаёт
+    test: components/controller/tests/unit/edubridge/sections.service.test.ts
+    status: passing
+
+  - id: edu.sections.ui.01
+    level: ui
+    kind: happy
+    scenario: >
+      Администратор на «Разделах и уровнях» переименовывает раздел и меняет
+      порядок уровней; в другой вкладке открыты форма курса и каталог.
+    expect: >
+      форма курса и фильтры каталога сразу показывают новые названия и порядок;
+      новое значение, введённое в форме курса, появляется на странице справочника
+    status: missing

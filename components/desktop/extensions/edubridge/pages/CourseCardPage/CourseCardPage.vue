@@ -7,7 +7,7 @@
       q-icon(name="search_off" size="40px")
 
   template(v-else)
-    CourseHero(:title="course.title" :subject="course.subject" :grade="course.grade" :image-url="course.image_url")
+    CourseHero(:title="course.title" :section="course.section_title" :level="course.level_title" :image-url="course.image_url")
       template(#facts)
         span(v-if="course.schedule") {{ course.schedule }}
         span(v-if="course.starts_at") занятия с {{ formatDate(course.starts_at) }}

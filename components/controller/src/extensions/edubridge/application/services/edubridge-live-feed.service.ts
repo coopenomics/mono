@@ -14,6 +14,9 @@ import { EdubridgeAdminRepository } from '../../infrastructure/repositories/edub
  */
 export const EDU_LIVE_TABLES: InnerChainChangesTable[] = [
   { code: EDUBRIDGE_EXTENSION_NAME, table: 'edubridge_courses' },
+  // Справочник разделов и уровней — как каталог, открыт всем.
+  { code: EDUBRIDGE_EXTENSION_NAME, table: 'edubridge_sections' },
+  { code: EDUBRIDGE_EXTENSION_NAME, table: 'edubridge_levels' },
   { code: EDUBRIDGE_EXTENSION_NAME, table: 'edubridge_enrollments', owner_field: 'member_username' },
   { code: EDUBRIDGE_EXTENSION_NAME, table: 'edubridge_learners', owner_field: 'member_username' },
   { code: EDUBRIDGE_EXTENSION_NAME, table: 'edubridge_return_requests', owner_field: 'member_username' },

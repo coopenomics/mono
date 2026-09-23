@@ -5,12 +5,16 @@ import { EduAccessCarrier, EduContractStatus, EduCourseDirection, EduCourseStatu
 const COURSE_UUID = '0cd16d12-6ade-40f2-8830-b0673dde8b9e';
 const GROUP_UUID = '426fa814-9a36-4e9a-9fb0-ca5672afe667';
 
+const SECTION_ID = '11111111-1111-4111-8111-000000000001';
+const LEVEL_ID = '11111111-1111-4111-8111-000000000002';
+
 function make(contracts: string[] = ['teach']) {
   const saved: any[] = [];
   const courses = {
     create: jest.fn((d: any) => ({ ...d })),
     save: jest.fn(async (c: any) => { saved.push(c); return c; }),
-    findById: jest.fn(async (_coop: string, id: string) => ({ id, external_ref: 'old', status: EduCourseStatus.DRAFT })),
+    // Сохранённое перечитывается после записи (раздел и уровень подгружаются связями).
+    findById: jest.fn(async (_coop: string, id: string) => saved.find((c) => c.id === id) ?? ({ id, external_ref: 'old', status: EduCourseStatus.DRAFT })),
   } as any;
   const teachers = {
     listContracts: jest.fn(async () => contracts.map((t, i) => ({ teacher_username: t, contract_number: `УХД-${i + 1}`, status: t.startsWith('ex_') ? EduContractStatus.TERMINATED : EduContractStatus.ACTIVE, signed_at: new Date('2026-02-01') }))),
@@ -29,13 +33,15 @@ function make(contracts: string[] = ['teach']) {
   const economy = { feeForCourse: jest.fn(async () => ({ fee_month: '9600.0000 RUB' })) } as any;
   // Преподаватели курса получают черновики назначений — здесь только факт вызова.
   const teacherService = { syncCourseAssignments: jest.fn(async () => undefined) } as any;
-  return { service: new EdubridgeCourseService(courses, teachers, skillspace, images, names, economy, teacherService), courses, teachers, images, economy, saved, teacherService };
+  // Раздел и уровень проверяет справочник — здесь только факт проверки.
+  const sections = { assertForCourse: jest.fn(async () => undefined) } as any;
+  return { service: new EdubridgeCourseService(courses, teachers, skillspace, images, names, economy, teacherService, sections), courses, teachers, images, economy, saved, teacherService, sections };
 }
 
 const base = {
   title: 'Алгебра',
-  subject: 'Математика',
-  grade: '7 класс',
+  section_id: SECTION_ID,
+  level_id: LEVEL_ID,
   lessons_per_month: 8,
   lessons_total: 64,
   lesson_minutes: 60,
@@ -173,25 +179,26 @@ describe('EdubridgeCourseService — конструктор курса', () => {
   });
 });
 
-describe('EdubridgeCourseService — раздел и уровень каталога', () => {
-  it('курс без уровня сохраняется: уровень необязателен', async () => {
-    const { service, saved } = make();
-    const course = await service.create('voskhod', 'ant', { ...base, subject: 'Духовные практики', grade: '' });
-    expect(course.grade).toBe('');
-    expect(saved).toHaveLength(1);
+describe('EdubridgeCourseService — раздел и уровень из справочника', () => {
+  it('курс ссылается на раздел и уровень справочника, а не хранит их строкой', async () => {
+    const { service, saved, sections } = make();
+    await service.create('voskhod', 'ant', { ...base });
+    expect(saved[0]).toEqual(expect.objectContaining({ section_id: SECTION_ID, level_id: LEVEL_ID }));
+    expect(saved[0]).not.toHaveProperty('subject');
+    expect(sections.assertForCourse).toHaveBeenCalledWith('voskhod', SECTION_ID, LEVEL_ID, undefined);
   });
 
-  it('фильтр каталога: уровни внутри раздела, курсы без уровня пустого пункта не дают', async () => {
-    const { service, courses } = make();
-    courses.listSubjects = jest.fn(async () => [
-      { subject: 'Духовные практики', grade: '' },
-      { subject: 'Духовные практики', grade: 'Ступень 1' },
-      { subject: 'Математика', grade: '7 класс' },
-    ]);
-    await expect(service.subjects('voskhod')).resolves.toEqual([
-      { subject: 'Духовные практики', grades: ['Ступень 1'] },
-      { subject: 'Математика', grades: ['7 класс'] },
-    ]);
+  it('курс без уровня сохраняется: уровень необязателен', async () => {
+    const { service, saved } = make();
+    await service.create('voskhod', 'ant', { ...base, level_id: null });
+    expect(saved[0].level_id).toBeNull();
+  });
+
+  it('справочник отказал (раздел в архиве, уровень чужого раздела) — курс не сохраняется', async () => {
+    const { service, saved, sections } = make();
+    sections.assertForCourse.mockRejectedValue(new Error('Уровень не принадлежит разделу'));
+    await expect(service.create('voskhod', 'ant', { ...base })).rejects.toThrow('Уровень не принадлежит разделу');
+    expect(saved).toHaveLength(0);
   });
 });
 

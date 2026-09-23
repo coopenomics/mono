@@ -7,7 +7,7 @@ BaseCard.edu-hero(variant="default")
   .edu-hero__body
     .edu-hero__head
       .edu-hero__text
-        .edu-hero__subject {{ courseSectionLabel(subject, grade, ', ') }}
+        .edu-hero__subject {{ courseSectionLabel(section, level, ', ') }}
         h1.edu-hero__title {{ title }}
         .edu-hero__facts(v-if="$slots.facts")
           slot(name="facts")
@@ -23,8 +23,8 @@ import { courseSectionLabel } from '../../entities/Course';
 
 defineProps<{
   title: string;
-  subject: string;
-  grade: string;
+  section: string;
+  level: string;
   imageUrl?: string | null;
 }>();
 </script>

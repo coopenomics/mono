@@ -7,7 +7,7 @@ BaseCard.edu-admin-course(variant="default" role="link" tabindex="0" @click="emi
   .edu-admin-course__body
     //- Раздел с уровнем слева, состояние курса справа — одной строкой над названием.
     .edu-admin-course__meta
-      .t-eyebrow.ellipsis {{ courseSectionLabel(course.subject, course.grade) }}
+      .t-eyebrow.ellipsis {{ courseSectionLabel(course.section_title, course.level_title) }}
       BaseBadge(:variant="status.variant") {{ status.label }}
     .edu-admin-course__title {{ course.title }}
     .edu-admin-course__facts

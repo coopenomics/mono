@@ -9,3 +9,5 @@ export { EdubridgeLessonEntity } from './edubridge-lesson.entity';
 export { EdubridgeAdminEntity } from './edubridge-admin.entity';
 export { EdubridgeTeacherContractEntity } from './edubridge-teacher-contract.entity';
 export { EdubridgeReturnRequestEntity } from './edubridge-return-request.entity';
+export { EdubridgeSectionEntity } from './edubridge-section.entity';
+export { EdubridgeLevelEntity } from './edubridge-level.entity';

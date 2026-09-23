@@ -25,6 +25,7 @@ import { EdubridgeApplicationModule } from './application/edubridge-application.
 import { EdubridgeExitBlockersService } from './application/services/edubridge-exit-blockers.service';
 import { EdubridgeLiveFeedService } from './application/services/edubridge-live-feed.service';
 import { EdubridgeTeacherService } from './application/services/edubridge-teacher.service';
+import { EdubridgeSectionsService } from './application/services/edubridge-sections.service';
 import { EdubridgeConfigHolder } from './application/config/edubridge-config.holder';
 import { registerEdubridgeDocuments } from './application/onboarding/register-edubridge-documents';
 import { registerEdubridgeOnboardingSteps } from './application/onboarding/register-edubridge-onboarding-steps';
@@ -58,7 +59,8 @@ export class EdubridgeExtension extends BaseExtensionModule {
     private readonly configHolder: EdubridgeConfigHolder,
     private readonly exitBlockers: EdubridgeExitBlockersService,
     private readonly liveFeed: EdubridgeLiveFeedService,
-    private readonly teacherService: EdubridgeTeacherService
+    private readonly teacherService: EdubridgeTeacherService,
+    private readonly sections: EdubridgeSectionsService
   ) {
     super();
     this.logger.setContext(EdubridgeExtension.name);
@@ -84,6 +86,10 @@ export class EdubridgeExtension extends BaseExtensionModule {
     // Живое обновление столов: таблицы в ленте изменений и состав персонала.
     this.liveFeed.declareTables();
     await this.liveFeed.refreshStaff(platformSettings().coopname);
+    // Раздел и уровень курсов, заполненные строками до справочника (7DD-23), —
+    // переносим в справочник: курсы получают ссылки. Идемпотентно.
+    const migrated = await this.sections.migrateLegacyCourses(platformSettings().coopname);
+    if (migrated) this.logger.info(`[EDU.SECTIONS] курсов перенесено в справочник разделов и уровней: ${migrated}`);
     // Курсы, где преподаватели указаны до появления черновиков назначений, —
     // досоздаём черновики, чтобы преподавателю было что подписать.
     await this.teacherService.syncAllCourseAssignments(platformSettings().coopname);

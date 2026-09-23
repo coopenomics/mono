@@ -6839,6 +6839,11 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on EduApproval']?: Omit<ValueTypes["EduApproval"], "...on EduApproval">
 }>;
+	["EduArchiveInput"]: {
+	/** true — убрать в архив, false — вернуть */
+	archived: boolean | Variable<any, string>,
+	id: ValueTypes["ID"] | Variable<any, string>
+};
 	["EduAssignment"]: AliasType<{
 	/** Хеш подписанного приложения к договору */
 	annex_hash?:boolean | `@${string}`,
@@ -6910,8 +6915,6 @@ export type ValueTypes = {
 	fee_course_base?:boolean | `@${string}`,
 	/** Членский взнос за месяц */
 	fee_month?:boolean | `@${string}`,
-	/** Уровень внутри раздела: «7 класс», «Ступень 1» */
-	grade?:boolean | `@${string}`,
 	/** Идентификатор курса */
 	id?:boolean | `@${string}`,
 	image_url?:boolean | `@${string}`,
@@ -6921,12 +6924,18 @@ export type ValueTypes = {
 	lessons_per_month?:boolean | `@${string}`,
 	/** Занятий во всей программе курса */
 	lessons_total?:boolean | `@${string}`,
+	/** Уровень внутри раздела из справочника; пусто — без уровня */
+	level_id?:boolean | `@${string}`,
+	/** Уровень внутри раздела: «7 класс», «Ступень 1»; пусто — без уровня */
+	level_title?:boolean | `@${string}`,
 	/** Расписание занятий */
 	schedule?:boolean | `@${string}`,
+	/** Раздел каталога из справочника */
+	section_id?:boolean | `@${string}`,
+	/** Раздел каталога — область знаний: «Математика», «Духовные практики» */
+	section_title?:boolean | `@${string}`,
 	/** Дата активации курса — с неё начинаются занятия */
 	starts_at?:boolean | `@${string}`,
-	/** Раздел каталога — область знаний: «Математика», «Духовные практики» */
-	subject?:boolean | `@${string}`,
 	/** Учебная программа */
 	syllabus?:boolean | `@${string}`,
 	/** Преподаватели курса (учётные имена пайщиков) */
@@ -6937,19 +6946,11 @@ export type ValueTypes = {
 	['...on EduCatalogCourse']?: Omit<ValueTypes["EduCatalogCourse"], "...on EduCatalogCourse">
 }>;
 	["EduCatalogFilterInput"]: {
-	/** Уровень внутри раздела: «7 класс», «Ступень 1» */
-	grade?: string | undefined | null | Variable<any, string>,
-	/** Раздел каталога — область знаний: «Математика», «Духовные практики» */
-	subject?: string | undefined | null | Variable<any, string>
+	/** Уровень внутри раздела из справочника */
+	level_id?: ValueTypes["ID"] | undefined | null | Variable<any, string>,
+	/** Раздел каталога из справочника */
+	section_id?: ValueTypes["ID"] | undefined | null | Variable<any, string>
 };
-	["EduCatalogSubject"]: AliasType<{
-	/** Уровни раздела, по которым есть курсы; курсы без уровня сюда не входят */
-	grades?:boolean | `@${string}`,
-	/** Раздел каталога — область знаний: «Математика», «Духовные практики» */
-	subject?:boolean | `@${string}`,
-		__typename?: boolean | `@${string}`,
-	['...on EduCatalogSubject']?: Omit<ValueTypes["EduCatalogSubject"], "...on EduCatalogSubject">
-}>;
 	["EduConnectorBinding"]: AliasType<{
 	carrier?:boolean | `@${string}`,
 	/** Все поля подключения заданы (сами ключи наружу не выдаются) */
@@ -7051,8 +7052,6 @@ export type ValueTypes = {
 	fee_course_base?:boolean | `@${string}`,
 	/** Членский взнос за месяц */
 	fee_month?:boolean | `@${string}`,
-	/** Уровень внутри раздела: «7 класс», «Ступень 1» */
-	grade?:boolean | `@${string}`,
 	/** Гарантийный срок на материалы занятия, дней */
 	guarantee_days?:boolean | `@${string}`,
 	/** Идентификатор курса */
@@ -7064,18 +7063,24 @@ export type ValueTypes = {
 	lessons_per_month?:boolean | `@${string}`,
 	/** Занятий во всей программе курса */
 	lessons_total?:boolean | `@${string}`,
+	/** Уровень внутри раздела из справочника; пусто — без уровня */
+	level_id?:boolean | `@${string}`,
+	/** Уровень внутри раздела: «7 класс», «Ступень 1»; пусто — без уровня */
+	level_title?:boolean | `@${string}`,
 	/** Плановая ставка часа по программе */
 	planned_hourly_rate?:boolean | `@${string}`,
 	/** Расписание занятий */
 	schedule?:boolean | `@${string}`,
+	/** Раздел каталога из справочника */
+	section_id?:boolean | `@${string}`,
+	/** Раздел каталога — область знаний: «Математика», «Духовные практики» */
+	section_title?:boolean | `@${string}`,
 	/** Порядок в каталоге */
 	sort_order?:boolean | `@${string}`,
 	/** Дата активации курса — с неё начинаются занятия */
 	starts_at?:boolean | `@${string}`,
 	/** Состояние курса */
 	status?:boolean | `@${string}`,
-	/** Раздел каталога — область знаний: «Математика», «Духовные практики» */
-	subject?:boolean | `@${string}`,
 	/** Учебная программа */
 	syllabus?:boolean | `@${string}`,
 	/** Преподаватели курса (учётные имена пайщиков) */
@@ -7164,8 +7169,6 @@ export type ValueTypes = {
 	direction: ValueTypes["EduCourseDirection"] | Variable<any, string>,
 	/** Идентификатор курса на площадке */
 	external_ref?: string | undefined | null | Variable<any, string>,
-	/** Уровень внутри раздела: «7 класс», «Ступень 1»; пусто — без уровня */
-	grade: string | Variable<any, string>,
 	/** Гарантийный срок на материалы занятия, дней */
 	guarantee_days?: number | undefined | null | Variable<any, string>,
 	/** Обложка курса: новое изображение (base64, ≤ 10 МБ, JPEG/PNG/WEBP), прежнее (bucket_key) или null — убрать */
@@ -7176,16 +7179,18 @@ export type ValueTypes = {
 	lessons_per_month: number | Variable<any, string>,
 	/** Занятий во всей программе курса */
 	lessons_total: number | Variable<any, string>,
+	/** Уровень внутри раздела из справочника; пусто — без уровня */
+	level_id?: ValueTypes["ID"] | undefined | null | Variable<any, string>,
 	/** Плановая ставка часа по программе («1000.0000 RUB») */
 	planned_hourly_rate: string | Variable<any, string>,
 	/** Расписание занятий */
 	schedule?: string | undefined | null | Variable<any, string>,
+	/** Раздел каталога из справочника */
+	section_id: ValueTypes["ID"] | Variable<any, string>,
 	/** Порядок в каталоге */
 	sort_order?: number | undefined | null | Variable<any, string>,
 	/** Дата активации курса (YYYY-MM-DD); пусто — дата ещё не назначена */
 	starts_at?: string | undefined | null | Variable<any, string>,
-	/** Раздел каталога — область знаний: «Математика», «Духовные практики» */
-	subject: string | Variable<any, string>,
 	/** Учебная программа */
 	syllabus?: string | undefined | null | Variable<any, string>,
 	/** Преподаватели курса — из пайщиков с подписанным договором участия в хозяйственной деятельности */
@@ -7210,12 +7215,12 @@ export type ValueTypes = {
 	['...on EduCourseTeacherLoad']?: Omit<ValueTypes["EduCourseTeacherLoad"], "...on EduCourseTeacherLoad">
 }>;
 	["EduCoursesFilterInput"]: {
-	/** Уровень внутри раздела: «7 класс», «Ступень 1» */
-	grade?: string | undefined | null | Variable<any, string>,
+	/** Уровень внутри раздела из справочника */
+	level_id?: ValueTypes["ID"] | undefined | null | Variable<any, string>,
+	/** Раздел каталога из справочника */
+	section_id?: ValueTypes["ID"] | undefined | null | Variable<any, string>,
 	/** Состояние курса */
-	status?: ValueTypes["EduCourseStatus"] | undefined | null | Variable<any, string>,
-	/** Раздел каталога — область знаний: «Математика», «Духовные практики» */
-	subject?: string | undefined | null | Variable<any, string>
+	status?: ValueTypes["EduCourseStatus"] | undefined | null | Variable<any, string>
 };
 	/** Подача расхода программы: средства фонда выделяются под расход, а сам расход уходит на решение совета и далее к оплате. */
 ["EduCreateExpenseInput"]: {
@@ -7430,6 +7435,19 @@ export type ValueTypes = {
 	/** Тема занятия */
 	topic?: string | undefined | null | Variable<any, string>
 };
+	["EduLevel"]: AliasType<{
+	/** В архиве: не предлагается новым курсам и в каталоге */
+	archived?:boolean | `@${string}`,
+	id?:boolean | `@${string}`,
+	/** Раздел уровня */
+	section_id?:boolean | `@${string}`,
+	/** Место уровня в последовательности раздела: меньше — раньше */
+	sort_order?:boolean | `@${string}`,
+	/** Уровень внутри раздела: «7 класс», «Ступень 1» */
+	title?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on EduLevel']?: Omit<ValueTypes["EduLevel"], "...on EduLevel">
+}>;
 	["EduMemberCard"]: AliasType<{
 	/** ФИО пайщика */
 	display_name?:boolean | `@${string}`,
@@ -7582,6 +7600,12 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on EduRefundPreview']?: Omit<ValueTypes["EduRefundPreview"], "...on EduRefundPreview">
 }>;
+	["EduReorderInput"]: {
+	/** Идентификаторы в новом порядке */
+	ids: Array<ValueTypes["ID"]> | Variable<any, string>,
+	/** Раздел, чьи уровни упорядочиваются; для разделов — пусто */
+	section_id?: ValueTypes["ID"] | undefined | null | Variable<any, string>
+};
 	["EduRequestReturnInput"]: {
 	/** Подписанное заявление об аннулировании соглашения об участии в программе «Образование» — без выхода из кооператива */
 	document: ValueTypes["SignedDigitalDocumentInput"] | Variable<any, string>
@@ -7635,6 +7659,39 @@ export type ValueTypes = {
 };
 	/** Тип результата интеллектуальной деятельности */
 ["EduRidType"]:EduRidType;
+	["EduSaveLevelInput"]: {
+	/** Уровень, который переименовать; пусто — новый уровень */
+	id?: ValueTypes["ID"] | undefined | null | Variable<any, string>,
+	/** Раздел уровня */
+	section_id: ValueTypes["ID"] | Variable<any, string>,
+	/** Название уровня */
+	title: string | Variable<any, string>
+};
+	["EduSaveSectionInput"]: {
+	/** Раздел, который переименовать; пусто — новый раздел */
+	id?: ValueTypes["ID"] | undefined | null | Variable<any, string>,
+	/** Название раздела */
+	title: string | Variable<any, string>
+};
+	["EduSection"]: AliasType<{
+	/** В архиве: не предлагается новым курсам и в каталоге */
+	archived?:boolean | `@${string}`,
+	id?:boolean | `@${string}`,
+	/** Уровни раздела в их последовательности */
+	levels?:ValueTypes["EduLevel"],
+	/** Порядок раздела: меньше — выше */
+	sort_order?:boolean | `@${string}`,
+	/** Раздел каталога — область знаний: «Математика», «Духовные практики» */
+	title?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on EduSection']?: Omit<ValueTypes["EduSection"], "...on EduSection">
+}>;
+	["EduSectionsFilterInput"]: {
+	/** Показать и архивные — для страницы управления справочником */
+	include_archived?: boolean | undefined | null | Variable<any, string>,
+	/** Только разделы и уровни, по которым есть опубликованные курсы, — для фильтров каталога */
+	only_with_courses?: boolean | undefined | null | Variable<any, string>
+};
 	["EduSetConnectorCredentialsInput"]: {
 	carrier: ValueTypes["EduAccessCarrier"] | Variable<any, string>,
 	values: Array<ValueTypes["EduConnectorCredentialInput"]> | Variable<any, string>
@@ -7778,8 +7835,6 @@ export type ValueTypes = {
 	direction: ValueTypes["EduCourseDirection"] | Variable<any, string>,
 	/** Идентификатор курса на площадке */
 	external_ref?: string | undefined | null | Variable<any, string>,
-	/** Уровень внутри раздела: «7 класс», «Ступень 1»; пусто — без уровня */
-	grade: string | Variable<any, string>,
 	/** Гарантийный срок на материалы занятия, дней */
 	guarantee_days?: number | undefined | null | Variable<any, string>,
 	/** Идентификатор курса */
@@ -7792,16 +7847,18 @@ export type ValueTypes = {
 	lessons_per_month: number | Variable<any, string>,
 	/** Занятий во всей программе курса */
 	lessons_total: number | Variable<any, string>,
+	/** Уровень внутри раздела из справочника; пусто — без уровня */
+	level_id?: ValueTypes["ID"] | undefined | null | Variable<any, string>,
 	/** Плановая ставка часа по программе («1000.0000 RUB») */
 	planned_hourly_rate: string | Variable<any, string>,
 	/** Расписание занятий */
 	schedule?: string | undefined | null | Variable<any, string>,
+	/** Раздел каталога из справочника */
+	section_id: ValueTypes["ID"] | Variable<any, string>,
 	/** Порядок в каталоге */
 	sort_order?: number | undefined | null | Variable<any, string>,
 	/** Дата активации курса (YYYY-MM-DD); пусто — дата ещё не назначена */
 	starts_at?: string | undefined | null | Variable<any, string>,
-	/** Раздел каталога — область знаний: «Математика», «Духовные практики» */
-	subject: string | Variable<any, string>,
 	/** Учебная программа */
 	syllabus?: string | undefined | null | Variable<any, string>,
 	/** Преподаватели курса — из пайщиков с подписанным договором участия в хозяйственной деятельности */
@@ -13795,6 +13852,8 @@ edubridgeAcceptContribution?: [{	data: ValueTypes["EduAcceptContributionInput"] 
 edubridgeAddLearner?: [{	data: ValueTypes["EduLearnerInput"] | Variable<any, string>},ValueTypes["EduLearner"]],
 edubridgeAppointAdmin?: [{	data: ValueTypes["EduAdminInput"] | Variable<any, string>},ValueTypes["EduAdmin"]],
 edubridgeApproveReturn?: [{	id: ValueTypes["ID"] | Variable<any, string>},ValueTypes["EduReturnRequest"]],
+edubridgeArchiveLevel?: [{	data: ValueTypes["EduArchiveInput"] | Variable<any, string>},ValueTypes["EduLevel"]],
+edubridgeArchiveSection?: [{	data: ValueTypes["EduArchiveInput"] | Variable<any, string>},ValueTypes["EduSection"]],
 edubridgeCancelCourseUnderfilled?: [{	course_id: ValueTypes["ID"] | Variable<any, string>},boolean | `@${string}`],
 edubridgeCancelEnrollment?: [{	enrollment_id: ValueTypes["ID"] | Variable<any, string>},ValueTypes["EduEnrollment"]],
 edubridgeCheckConnector?: [{	carrier: ValueTypes["EduAccessCarrier"] | Variable<any, string>},ValueTypes["EduConnectorBinding"]],
@@ -13808,6 +13867,8 @@ edubridgeDeclineReturn?: [{	data: ValueTypes["EduDeclineReturnInput"] | Variable
 edubridgeDismissAdmin?: [{	data: ValueTypes["EduAdminInput"] | Variable<any, string>},boolean | `@${string}`],
 edubridgeHoldContribution?: [{	data: ValueTypes["EduHoldContributionInput"] | Variable<any, string>},ValueTypes["EduContribution"]],
 edubridgeRemoveLearner?: [{	id: ValueTypes["ID"] | Variable<any, string>},boolean | `@${string}`],
+edubridgeReorderLevels?: [{	data: ValueTypes["EduReorderInput"] | Variable<any, string>},ValueTypes["EduSection"]],
+edubridgeReorderSections?: [{	data: ValueTypes["EduReorderInput"] | Variable<any, string>},ValueTypes["EduSection"]],
 edubridgeReportLesson?: [{	data: ValueTypes["EduLessonReportInput"] | Variable<any, string>},ValueTypes["EduLesson"]],
 edubridgeRequestReturn?: [{	data: ValueTypes["EduRequestReturnInput"] | Variable<any, string>},ValueTypes["EduReturnRequest"]],
 edubridgeRetryTask?: [{	data: ValueTypes["EduRetryTaskInput"] | Variable<any, string>},ValueTypes["EduAccessTask"]],
@@ -13815,6 +13876,8 @@ edubridgeRevokeContribution?: [{	data: ValueTypes["EduRevokeContributionInput"] 
 edubridgeRidAct?: [{	contribution_id: ValueTypes["ID"] | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 edubridgeRidStatement?: [{	contribution_id: ValueTypes["ID"] | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 edubridgeRidStorageAct?: [{	contribution_id: ValueTypes["ID"] | Variable<any, string>},ValueTypes["GeneratedDocument"]],
+edubridgeSaveLevel?: [{	data: ValueTypes["EduSaveLevelInput"] | Variable<any, string>},ValueTypes["EduLevel"]],
+edubridgeSaveSection?: [{	data: ValueTypes["EduSaveSectionInput"] | Variable<any, string>},ValueTypes["EduSection"]],
 edubridgeSetConnectorCredentials?: [{	data: ValueTypes["EduSetConnectorCredentialsInput"] | Variable<any, string>},ValueTypes["EduConnectorBinding"]],
 edubridgeSetConnectorEnabled?: [{	data: ValueTypes["EduSetConnectorEnabledInput"] | Variable<any, string>},ValueTypes["EduConnectorBinding"]],
 edubridgeSetCourseStatus?: [{	data: ValueTypes["EduSetCourseStatusInput"] | Variable<any, string>},ValueTypes["EduCourse"]],
@@ -15779,8 +15842,6 @@ edubridgeActSignablePayload?: [{	contribution_id: ValueTypes["ID"] | Variable<an
 	edubridgeAttention?:ValueTypes["EduAttention"],
 edubridgeCatalog?: [{	filter?: ValueTypes["EduCatalogFilterInput"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedEduCatalogCoursesPaginationResult"]],
 edubridgeCatalogCourse?: [{	id: ValueTypes["ID"] | Variable<any, string>},ValueTypes["EduCatalogCourse"]],
-	/** Предметы и классы каталога */
-	edubridgeCatalogSubjects?:ValueTypes["EduCatalogSubject"],
 	/** Площадки и их состояние (ключи не выдаются) */
 	edubridgeConnectors?:ValueTypes["EduConnectorBinding"],
 	/** Взносы РИД всех преподавателей */
@@ -15821,6 +15882,7 @@ edubridgeRefundPreview?: [{	enrollment_id: ValueTypes["ID"] | Variable<any, stri
 	/** Что уйдёт в паевой взнос, если прекратить участие в программе сегодня */
 	edubridgeReturnBalance?:ValueTypes["EduReturnBalance"],
 edubridgeReturnRequests?: [{	status?: ValueTypes["EduReturnStatus"] | undefined | null | Variable<any, string>},ValueTypes["EduReturnRequest"]],
+edubridgeSections?: [{	filter?: ValueTypes["EduSectionsFilterInput"] | undefined | null | Variable<any, string>},ValueTypes["EduSection"]],
 edubridgeTeacherApprovals?: [{	username: string | Variable<any, string>},ValueTypes["EduApproval"]],
 	/** Преподаватели, которых можно назначить на курс */
 	edubridgeTeacherOptions?:ValueTypes["EduTeacherOption"],
@@ -23967,6 +24029,11 @@ export type ResolverInputTypes = {
 	username?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	["EduArchiveInput"]: {
+	/** true — убрать в архив, false — вернуть */
+	archived: boolean,
+	id: ResolverInputTypes["ID"]
+};
 	["EduAssignment"]: AliasType<{
 	/** Хеш подписанного приложения к договору */
 	annex_hash?:boolean | `@${string}`,
@@ -24036,8 +24103,6 @@ export type ResolverInputTypes = {
 	fee_course_base?:boolean | `@${string}`,
 	/** Членский взнос за месяц */
 	fee_month?:boolean | `@${string}`,
-	/** Уровень внутри раздела: «7 класс», «Ступень 1» */
-	grade?:boolean | `@${string}`,
 	/** Идентификатор курса */
 	id?:boolean | `@${string}`,
 	image_url?:boolean | `@${string}`,
@@ -24047,12 +24112,18 @@ export type ResolverInputTypes = {
 	lessons_per_month?:boolean | `@${string}`,
 	/** Занятий во всей программе курса */
 	lessons_total?:boolean | `@${string}`,
+	/** Уровень внутри раздела из справочника; пусто — без уровня */
+	level_id?:boolean | `@${string}`,
+	/** Уровень внутри раздела: «7 класс», «Ступень 1»; пусто — без уровня */
+	level_title?:boolean | `@${string}`,
 	/** Расписание занятий */
 	schedule?:boolean | `@${string}`,
+	/** Раздел каталога из справочника */
+	section_id?:boolean | `@${string}`,
+	/** Раздел каталога — область знаний: «Математика», «Духовные практики» */
+	section_title?:boolean | `@${string}`,
 	/** Дата активации курса — с неё начинаются занятия */
 	starts_at?:boolean | `@${string}`,
-	/** Раздел каталога — область знаний: «Математика», «Духовные практики» */
-	subject?:boolean | `@${string}`,
 	/** Учебная программа */
 	syllabus?:boolean | `@${string}`,
 	/** Преподаватели курса (учётные имена пайщиков) */
@@ -24062,18 +24133,11 @@ export type ResolverInputTypes = {
 		__typename?: boolean | `@${string}`
 }>;
 	["EduCatalogFilterInput"]: {
-	/** Уровень внутри раздела: «7 класс», «Ступень 1» */
-	grade?: string | undefined | null,
-	/** Раздел каталога — область знаний: «Математика», «Духовные практики» */
-	subject?: string | undefined | null
+	/** Уровень внутри раздела из справочника */
+	level_id?: ResolverInputTypes["ID"] | undefined | null,
+	/** Раздел каталога из справочника */
+	section_id?: ResolverInputTypes["ID"] | undefined | null
 };
-	["EduCatalogSubject"]: AliasType<{
-	/** Уровни раздела, по которым есть курсы; курсы без уровня сюда не входят */
-	grades?:boolean | `@${string}`,
-	/** Раздел каталога — область знаний: «Математика», «Духовные практики» */
-	subject?:boolean | `@${string}`,
-		__typename?: boolean | `@${string}`
-}>;
 	["EduConnectorBinding"]: AliasType<{
 	carrier?:boolean | `@${string}`,
 	/** Все поля подключения заданы (сами ключи наружу не выдаются) */
@@ -24172,8 +24236,6 @@ export type ResolverInputTypes = {
 	fee_course_base?:boolean | `@${string}`,
 	/** Членский взнос за месяц */
 	fee_month?:boolean | `@${string}`,
-	/** Уровень внутри раздела: «7 класс», «Ступень 1» */
-	grade?:boolean | `@${string}`,
 	/** Гарантийный срок на материалы занятия, дней */
 	guarantee_days?:boolean | `@${string}`,
 	/** Идентификатор курса */
@@ -24185,18 +24247,24 @@ export type ResolverInputTypes = {
 	lessons_per_month?:boolean | `@${string}`,
 	/** Занятий во всей программе курса */
 	lessons_total?:boolean | `@${string}`,
+	/** Уровень внутри раздела из справочника; пусто — без уровня */
+	level_id?:boolean | `@${string}`,
+	/** Уровень внутри раздела: «7 класс», «Ступень 1»; пусто — без уровня */
+	level_title?:boolean | `@${string}`,
 	/** Плановая ставка часа по программе */
 	planned_hourly_rate?:boolean | `@${string}`,
 	/** Расписание занятий */
 	schedule?:boolean | `@${string}`,
+	/** Раздел каталога из справочника */
+	section_id?:boolean | `@${string}`,
+	/** Раздел каталога — область знаний: «Математика», «Духовные практики» */
+	section_title?:boolean | `@${string}`,
 	/** Порядок в каталоге */
 	sort_order?:boolean | `@${string}`,
 	/** Дата активации курса — с неё начинаются занятия */
 	starts_at?:boolean | `@${string}`,
 	/** Состояние курса */
 	status?:boolean | `@${string}`,
-	/** Раздел каталога — область знаний: «Математика», «Духовные практики» */
-	subject?:boolean | `@${string}`,
 	/** Учебная программа */
 	syllabus?:boolean | `@${string}`,
 	/** Преподаватели курса (учётные имена пайщиков) */
@@ -24282,8 +24350,6 @@ export type ResolverInputTypes = {
 	direction: ResolverInputTypes["EduCourseDirection"],
 	/** Идентификатор курса на площадке */
 	external_ref?: string | undefined | null,
-	/** Уровень внутри раздела: «7 класс», «Ступень 1»; пусто — без уровня */
-	grade: string,
 	/** Гарантийный срок на материалы занятия, дней */
 	guarantee_days?: number | undefined | null,
 	/** Обложка курса: новое изображение (base64, ≤ 10 МБ, JPEG/PNG/WEBP), прежнее (bucket_key) или null — убрать */
@@ -24294,16 +24360,18 @@ export type ResolverInputTypes = {
 	lessons_per_month: number,
 	/** Занятий во всей программе курса */
 	lessons_total: number,
+	/** Уровень внутри раздела из справочника; пусто — без уровня */
+	level_id?: ResolverInputTypes["ID"] | undefined | null,
 	/** Плановая ставка часа по программе («1000.0000 RUB») */
 	planned_hourly_rate: string,
 	/** Расписание занятий */
 	schedule?: string | undefined | null,
+	/** Раздел каталога из справочника */
+	section_id: ResolverInputTypes["ID"],
 	/** Порядок в каталоге */
 	sort_order?: number | undefined | null,
 	/** Дата активации курса (YYYY-MM-DD); пусто — дата ещё не назначена */
 	starts_at?: string | undefined | null,
-	/** Раздел каталога — область знаний: «Математика», «Духовные практики» */
-	subject: string,
 	/** Учебная программа */
 	syllabus?: string | undefined | null,
 	/** Преподаватели курса — из пайщиков с подписанным договором участия в хозяйственной деятельности */
@@ -24327,12 +24395,12 @@ export type ResolverInputTypes = {
 		__typename?: boolean | `@${string}`
 }>;
 	["EduCoursesFilterInput"]: {
-	/** Уровень внутри раздела: «7 класс», «Ступень 1» */
-	grade?: string | undefined | null,
+	/** Уровень внутри раздела из справочника */
+	level_id?: ResolverInputTypes["ID"] | undefined | null,
+	/** Раздел каталога из справочника */
+	section_id?: ResolverInputTypes["ID"] | undefined | null,
 	/** Состояние курса */
-	status?: ResolverInputTypes["EduCourseStatus"] | undefined | null,
-	/** Раздел каталога — область знаний: «Математика», «Духовные практики» */
-	subject?: string | undefined | null
+	status?: ResolverInputTypes["EduCourseStatus"] | undefined | null
 };
 	/** Подача расхода программы: средства фонда выделяются под расход, а сам расход уходит на решение совета и далее к оплате. */
 ["EduCreateExpenseInput"]: {
@@ -24540,6 +24608,18 @@ export type ResolverInputTypes = {
 	/** Тема занятия */
 	topic?: string | undefined | null
 };
+	["EduLevel"]: AliasType<{
+	/** В архиве: не предлагается новым курсам и в каталоге */
+	archived?:boolean | `@${string}`,
+	id?:boolean | `@${string}`,
+	/** Раздел уровня */
+	section_id?:boolean | `@${string}`,
+	/** Место уровня в последовательности раздела: меньше — раньше */
+	sort_order?:boolean | `@${string}`,
+	/** Уровень внутри раздела: «7 класс», «Ступень 1» */
+	title?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
 	["EduMemberCard"]: AliasType<{
 	/** ФИО пайщика */
 	display_name?:boolean | `@${string}`,
@@ -24682,6 +24762,12 @@ export type ResolverInputTypes = {
 	withheld?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	["EduReorderInput"]: {
+	/** Идентификаторы в новом порядке */
+	ids: Array<ResolverInputTypes["ID"]>,
+	/** Раздел, чьи уровни упорядочиваются; для разделов — пусто */
+	section_id?: ResolverInputTypes["ID"] | undefined | null
+};
 	["EduRequestReturnInput"]: {
 	/** Подписанное заявление об аннулировании соглашения об участии в программе «Образование» — без выхода из кооператива */
 	document: ResolverInputTypes["SignedDigitalDocumentInput"]
@@ -24733,6 +24819,38 @@ export type ResolverInputTypes = {
 };
 	/** Тип результата интеллектуальной деятельности */
 ["EduRidType"]:EduRidType;
+	["EduSaveLevelInput"]: {
+	/** Уровень, который переименовать; пусто — новый уровень */
+	id?: ResolverInputTypes["ID"] | undefined | null,
+	/** Раздел уровня */
+	section_id: ResolverInputTypes["ID"],
+	/** Название уровня */
+	title: string
+};
+	["EduSaveSectionInput"]: {
+	/** Раздел, который переименовать; пусто — новый раздел */
+	id?: ResolverInputTypes["ID"] | undefined | null,
+	/** Название раздела */
+	title: string
+};
+	["EduSection"]: AliasType<{
+	/** В архиве: не предлагается новым курсам и в каталоге */
+	archived?:boolean | `@${string}`,
+	id?:boolean | `@${string}`,
+	/** Уровни раздела в их последовательности */
+	levels?:ResolverInputTypes["EduLevel"],
+	/** Порядок раздела: меньше — выше */
+	sort_order?:boolean | `@${string}`,
+	/** Раздел каталога — область знаний: «Математика», «Духовные практики» */
+	title?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["EduSectionsFilterInput"]: {
+	/** Показать и архивные — для страницы управления справочником */
+	include_archived?: boolean | undefined | null,
+	/** Только разделы и уровни, по которым есть опубликованные курсы, — для фильтров каталога */
+	only_with_courses?: boolean | undefined | null
+};
 	["EduSetConnectorCredentialsInput"]: {
 	carrier: ResolverInputTypes["EduAccessCarrier"],
 	values: Array<ResolverInputTypes["EduConnectorCredentialInput"]>
@@ -24872,8 +24990,6 @@ export type ResolverInputTypes = {
 	direction: ResolverInputTypes["EduCourseDirection"],
 	/** Идентификатор курса на площадке */
 	external_ref?: string | undefined | null,
-	/** Уровень внутри раздела: «7 класс», «Ступень 1»; пусто — без уровня */
-	grade: string,
 	/** Гарантийный срок на материалы занятия, дней */
 	guarantee_days?: number | undefined | null,
 	/** Идентификатор курса */
@@ -24886,16 +25002,18 @@ export type ResolverInputTypes = {
 	lessons_per_month: number,
 	/** Занятий во всей программе курса */
 	lessons_total: number,
+	/** Уровень внутри раздела из справочника; пусто — без уровня */
+	level_id?: ResolverInputTypes["ID"] | undefined | null,
 	/** Плановая ставка часа по программе («1000.0000 RUB») */
 	planned_hourly_rate: string,
 	/** Расписание занятий */
 	schedule?: string | undefined | null,
+	/** Раздел каталога из справочника */
+	section_id: ResolverInputTypes["ID"],
 	/** Порядок в каталоге */
 	sort_order?: number | undefined | null,
 	/** Дата активации курса (YYYY-MM-DD); пусто — дата ещё не назначена */
 	starts_at?: string | undefined | null,
-	/** Раздел каталога — область знаний: «Математика», «Духовные практики» */
-	subject: string,
 	/** Учебная программа */
 	syllabus?: string | undefined | null,
 	/** Преподаватели курса — из пайщиков с подписанным договором участия в хозяйственной деятельности */
@@ -30712,6 +30830,8 @@ edubridgeAcceptContribution?: [{	data: ResolverInputTypes["EduAcceptContribution
 edubridgeAddLearner?: [{	data: ResolverInputTypes["EduLearnerInput"]},ResolverInputTypes["EduLearner"]],
 edubridgeAppointAdmin?: [{	data: ResolverInputTypes["EduAdminInput"]},ResolverInputTypes["EduAdmin"]],
 edubridgeApproveReturn?: [{	id: ResolverInputTypes["ID"]},ResolverInputTypes["EduReturnRequest"]],
+edubridgeArchiveLevel?: [{	data: ResolverInputTypes["EduArchiveInput"]},ResolverInputTypes["EduLevel"]],
+edubridgeArchiveSection?: [{	data: ResolverInputTypes["EduArchiveInput"]},ResolverInputTypes["EduSection"]],
 edubridgeCancelCourseUnderfilled?: [{	course_id: ResolverInputTypes["ID"]},boolean | `@${string}`],
 edubridgeCancelEnrollment?: [{	enrollment_id: ResolverInputTypes["ID"]},ResolverInputTypes["EduEnrollment"]],
 edubridgeCheckConnector?: [{	carrier: ResolverInputTypes["EduAccessCarrier"]},ResolverInputTypes["EduConnectorBinding"]],
@@ -30725,6 +30845,8 @@ edubridgeDeclineReturn?: [{	data: ResolverInputTypes["EduDeclineReturnInput"]},R
 edubridgeDismissAdmin?: [{	data: ResolverInputTypes["EduAdminInput"]},boolean | `@${string}`],
 edubridgeHoldContribution?: [{	data: ResolverInputTypes["EduHoldContributionInput"]},ResolverInputTypes["EduContribution"]],
 edubridgeRemoveLearner?: [{	id: ResolverInputTypes["ID"]},boolean | `@${string}`],
+edubridgeReorderLevels?: [{	data: ResolverInputTypes["EduReorderInput"]},ResolverInputTypes["EduSection"]],
+edubridgeReorderSections?: [{	data: ResolverInputTypes["EduReorderInput"]},ResolverInputTypes["EduSection"]],
 edubridgeReportLesson?: [{	data: ResolverInputTypes["EduLessonReportInput"]},ResolverInputTypes["EduLesson"]],
 edubridgeRequestReturn?: [{	data: ResolverInputTypes["EduRequestReturnInput"]},ResolverInputTypes["EduReturnRequest"]],
 edubridgeRetryTask?: [{	data: ResolverInputTypes["EduRetryTaskInput"]},ResolverInputTypes["EduAccessTask"]],
@@ -30732,6 +30854,8 @@ edubridgeRevokeContribution?: [{	data: ResolverInputTypes["EduRevokeContribution
 edubridgeRidAct?: [{	contribution_id: ResolverInputTypes["ID"]},ResolverInputTypes["GeneratedDocument"]],
 edubridgeRidStatement?: [{	contribution_id: ResolverInputTypes["ID"]},ResolverInputTypes["GeneratedDocument"]],
 edubridgeRidStorageAct?: [{	contribution_id: ResolverInputTypes["ID"]},ResolverInputTypes["GeneratedDocument"]],
+edubridgeSaveLevel?: [{	data: ResolverInputTypes["EduSaveLevelInput"]},ResolverInputTypes["EduLevel"]],
+edubridgeSaveSection?: [{	data: ResolverInputTypes["EduSaveSectionInput"]},ResolverInputTypes["EduSection"]],
 edubridgeSetConnectorCredentials?: [{	data: ResolverInputTypes["EduSetConnectorCredentialsInput"]},ResolverInputTypes["EduConnectorBinding"]],
 edubridgeSetConnectorEnabled?: [{	data: ResolverInputTypes["EduSetConnectorEnabledInput"]},ResolverInputTypes["EduConnectorBinding"]],
 edubridgeSetCourseStatus?: [{	data: ResolverInputTypes["EduSetCourseStatusInput"]},ResolverInputTypes["EduCourse"]],
@@ -32620,8 +32744,6 @@ edubridgeActSignablePayload?: [{	contribution_id: ResolverInputTypes["ID"]},Reso
 	edubridgeAttention?:ResolverInputTypes["EduAttention"],
 edubridgeCatalog?: [{	filter?: ResolverInputTypes["EduCatalogFilterInput"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedEduCatalogCoursesPaginationResult"]],
 edubridgeCatalogCourse?: [{	id: ResolverInputTypes["ID"]},ResolverInputTypes["EduCatalogCourse"]],
-	/** Предметы и классы каталога */
-	edubridgeCatalogSubjects?:ResolverInputTypes["EduCatalogSubject"],
 	/** Площадки и их состояние (ключи не выдаются) */
 	edubridgeConnectors?:ResolverInputTypes["EduConnectorBinding"],
 	/** Взносы РИД всех преподавателей */
@@ -32662,6 +32784,7 @@ edubridgeRefundPreview?: [{	enrollment_id: ResolverInputTypes["ID"]},ResolverInp
 	/** Что уйдёт в паевой взнос, если прекратить участие в программе сегодня */
 	edubridgeReturnBalance?:ResolverInputTypes["EduReturnBalance"],
 edubridgeReturnRequests?: [{	status?: ResolverInputTypes["EduReturnStatus"] | undefined | null},ResolverInputTypes["EduReturnRequest"]],
+edubridgeSections?: [{	filter?: ResolverInputTypes["EduSectionsFilterInput"] | undefined | null},ResolverInputTypes["EduSection"]],
 edubridgeTeacherApprovals?: [{	username: string},ResolverInputTypes["EduApproval"]],
 	/** Преподаватели, которых можно назначить на курс */
 	edubridgeTeacherOptions?:ResolverInputTypes["EduTeacherOption"],
@@ -40572,6 +40695,11 @@ export type ModelTypes = {
 	/** Пайщик, чей документ ждёт подписи */
 	username: string
 };
+	["EduArchiveInput"]: {
+	/** true — убрать в архив, false — вернуть */
+	archived: boolean,
+	id: ModelTypes["ID"]
+};
 	["EduAssignment"]: {
 		/** Хеш подписанного приложения к договору */
 	annex_hash?: string | undefined | null,
@@ -40638,8 +40766,6 @@ export type ModelTypes = {
 	fee_course_base?: string | undefined | null,
 	/** Членский взнос за месяц */
 	fee_month: string,
-	/** Уровень внутри раздела: «7 класс», «Ступень 1» */
-	grade: string,
 	/** Идентификатор курса */
 	id: ModelTypes["ID"],
 	image_url?: string | undefined | null,
@@ -40649,12 +40775,18 @@ export type ModelTypes = {
 	lessons_per_month: number,
 	/** Занятий во всей программе курса */
 	lessons_total: number,
+	/** Уровень внутри раздела из справочника; пусто — без уровня */
+	level_id?: ModelTypes["ID"] | undefined | null,
+	/** Уровень внутри раздела: «7 класс», «Ступень 1»; пусто — без уровня */
+	level_title: string,
 	/** Расписание занятий */
 	schedule: string,
+	/** Раздел каталога из справочника */
+	section_id?: ModelTypes["ID"] | undefined | null,
+	/** Раздел каталога — область знаний: «Математика», «Духовные практики» */
+	section_title: string,
 	/** Дата активации курса — с неё начинаются занятия */
 	starts_at?: string | undefined | null,
-	/** Раздел каталога — область знаний: «Математика», «Духовные практики» */
-	subject: string,
 	/** Учебная программа */
 	syllabus: string,
 	/** Преподаватели курса (учётные имена пайщиков) */
@@ -40663,16 +40795,10 @@ export type ModelTypes = {
 	title: string
 };
 	["EduCatalogFilterInput"]: {
-	/** Уровень внутри раздела: «7 класс», «Ступень 1» */
-	grade?: string | undefined | null,
-	/** Раздел каталога — область знаний: «Математика», «Духовные практики» */
-	subject?: string | undefined | null
-};
-	["EduCatalogSubject"]: {
-		/** Уровни раздела, по которым есть курсы; курсы без уровня сюда не входят */
-	grades: Array<string>,
-	/** Раздел каталога — область знаний: «Математика», «Духовные практики» */
-	subject: string
+	/** Уровень внутри раздела из справочника */
+	level_id?: ModelTypes["ID"] | undefined | null,
+	/** Раздел каталога из справочника */
+	section_id?: ModelTypes["ID"] | undefined | null
 };
 	["EduConnectorBinding"]: {
 		carrier: ModelTypes["EduAccessCarrier"],
@@ -40765,8 +40891,6 @@ export type ModelTypes = {
 	fee_course_base?: string | undefined | null,
 	/** Членский взнос за месяц */
 	fee_month: string,
-	/** Уровень внутри раздела: «7 класс», «Ступень 1» */
-	grade: string,
 	/** Гарантийный срок на материалы занятия, дней */
 	guarantee_days: number,
 	/** Идентификатор курса */
@@ -40778,18 +40902,24 @@ export type ModelTypes = {
 	lessons_per_month: number,
 	/** Занятий во всей программе курса */
 	lessons_total: number,
+	/** Уровень внутри раздела из справочника; пусто — без уровня */
+	level_id?: ModelTypes["ID"] | undefined | null,
+	/** Уровень внутри раздела: «7 класс», «Ступень 1»; пусто — без уровня */
+	level_title: string,
 	/** Плановая ставка часа по программе */
 	planned_hourly_rate: string,
 	/** Расписание занятий */
 	schedule: string,
+	/** Раздел каталога из справочника */
+	section_id?: ModelTypes["ID"] | undefined | null,
+	/** Раздел каталога — область знаний: «Математика», «Духовные практики» */
+	section_title: string,
 	/** Порядок в каталоге */
 	sort_order: number,
 	/** Дата активации курса — с неё начинаются занятия */
 	starts_at?: string | undefined | null,
 	/** Состояние курса */
 	status: ModelTypes["EduCourseStatus"],
-	/** Раздел каталога — область знаний: «Математика», «Духовные практики» */
-	subject: string,
 	/** Учебная программа */
 	syllabus: string,
 	/** Преподаватели курса (учётные имена пайщиков) */
@@ -40871,8 +41001,6 @@ export type ModelTypes = {
 	direction: ModelTypes["EduCourseDirection"],
 	/** Идентификатор курса на площадке */
 	external_ref?: string | undefined | null,
-	/** Уровень внутри раздела: «7 класс», «Ступень 1»; пусто — без уровня */
-	grade: string,
 	/** Гарантийный срок на материалы занятия, дней */
 	guarantee_days?: number | undefined | null,
 	/** Обложка курса: новое изображение (base64, ≤ 10 МБ, JPEG/PNG/WEBP), прежнее (bucket_key) или null — убрать */
@@ -40883,16 +41011,18 @@ export type ModelTypes = {
 	lessons_per_month: number,
 	/** Занятий во всей программе курса */
 	lessons_total: number,
+	/** Уровень внутри раздела из справочника; пусто — без уровня */
+	level_id?: ModelTypes["ID"] | undefined | null,
 	/** Плановая ставка часа по программе («1000.0000 RUB») */
 	planned_hourly_rate: string,
 	/** Расписание занятий */
 	schedule?: string | undefined | null,
+	/** Раздел каталога из справочника */
+	section_id: ModelTypes["ID"],
 	/** Порядок в каталоге */
 	sort_order?: number | undefined | null,
 	/** Дата активации курса (YYYY-MM-DD); пусто — дата ещё не назначена */
 	starts_at?: string | undefined | null,
-	/** Раздел каталога — область знаний: «Математика», «Духовные практики» */
-	subject: string,
 	/** Учебная программа */
 	syllabus?: string | undefined | null,
 	/** Преподаватели курса — из пайщиков с подписанным договором участия в хозяйственной деятельности */
@@ -40914,12 +41044,12 @@ export type ModelTypes = {
 	username: string
 };
 	["EduCoursesFilterInput"]: {
-	/** Уровень внутри раздела: «7 класс», «Ступень 1» */
-	grade?: string | undefined | null,
+	/** Уровень внутри раздела из справочника */
+	level_id?: ModelTypes["ID"] | undefined | null,
+	/** Раздел каталога из справочника */
+	section_id?: ModelTypes["ID"] | undefined | null,
 	/** Состояние курса */
-	status?: ModelTypes["EduCourseStatus"] | undefined | null,
-	/** Раздел каталога — область знаний: «Математика», «Духовные практики» */
-	subject?: string | undefined | null
+	status?: ModelTypes["EduCourseStatus"] | undefined | null
 };
 	/** Подача расхода программы: средства фонда выделяются под расход, а сам расход уходит на решение совета и далее к оплате. */
 ["EduCreateExpenseInput"]: {
@@ -41118,6 +41248,17 @@ export type ModelTypes = {
 	/** Тема занятия */
 	topic?: string | undefined | null
 };
+	["EduLevel"]: {
+		/** В архиве: не предлагается новым курсам и в каталоге */
+	archived: boolean,
+	id: ModelTypes["ID"],
+	/** Раздел уровня */
+	section_id: ModelTypes["ID"],
+	/** Место уровня в последовательности раздела: меньше — раньше */
+	sort_order: number,
+	/** Уровень внутри раздела: «7 класс», «Ступень 1» */
+	title: string
+};
 	["EduMemberCard"]: {
 		/** ФИО пайщика */
 	display_name: string,
@@ -41247,6 +41388,12 @@ export type ModelTypes = {
 	/** Сколько остаётся в фонде программы */
 	withheld: string
 };
+	["EduReorderInput"]: {
+	/** Идентификаторы в новом порядке */
+	ids: Array<ModelTypes["ID"]>,
+	/** Раздел, чьи уровни упорядочиваются; для разделов — пусто */
+	section_id?: ModelTypes["ID"] | undefined | null
+};
 	["EduRequestReturnInput"]: {
 	/** Подписанное заявление об аннулировании соглашения об участии в программе «Образование» — без выхода из кооператива */
 	document: ModelTypes["SignedDigitalDocumentInput"]
@@ -41294,6 +41441,37 @@ export type ModelTypes = {
 	reason: string
 };
 	["EduRidType"]:EduRidType;
+	["EduSaveLevelInput"]: {
+	/** Уровень, который переименовать; пусто — новый уровень */
+	id?: ModelTypes["ID"] | undefined | null,
+	/** Раздел уровня */
+	section_id: ModelTypes["ID"],
+	/** Название уровня */
+	title: string
+};
+	["EduSaveSectionInput"]: {
+	/** Раздел, который переименовать; пусто — новый раздел */
+	id?: ModelTypes["ID"] | undefined | null,
+	/** Название раздела */
+	title: string
+};
+	["EduSection"]: {
+		/** В архиве: не предлагается новым курсам и в каталоге */
+	archived: boolean,
+	id: ModelTypes["ID"],
+	/** Уровни раздела в их последовательности */
+	levels: Array<ModelTypes["EduLevel"]>,
+	/** Порядок раздела: меньше — выше */
+	sort_order: number,
+	/** Раздел каталога — область знаний: «Математика», «Духовные практики» */
+	title: string
+};
+	["EduSectionsFilterInput"]: {
+	/** Показать и архивные — для страницы управления справочником */
+	include_archived?: boolean | undefined | null,
+	/** Только разделы и уровни, по которым есть опубликованные курсы, — для фильтров каталога */
+	only_with_courses?: boolean | undefined | null
+};
 	["EduSetConnectorCredentialsInput"]: {
 	carrier: ModelTypes["EduAccessCarrier"],
 	values: Array<ModelTypes["EduConnectorCredentialInput"]>
@@ -41429,8 +41607,6 @@ export type ModelTypes = {
 	direction: ModelTypes["EduCourseDirection"],
 	/** Идентификатор курса на площадке */
 	external_ref?: string | undefined | null,
-	/** Уровень внутри раздела: «7 класс», «Ступень 1»; пусто — без уровня */
-	grade: string,
 	/** Гарантийный срок на материалы занятия, дней */
 	guarantee_days?: number | undefined | null,
 	/** Идентификатор курса */
@@ -41443,16 +41619,18 @@ export type ModelTypes = {
 	lessons_per_month: number,
 	/** Занятий во всей программе курса */
 	lessons_total: number,
+	/** Уровень внутри раздела из справочника; пусто — без уровня */
+	level_id?: ModelTypes["ID"] | undefined | null,
 	/** Плановая ставка часа по программе («1000.0000 RUB») */
 	planned_hourly_rate: string,
 	/** Расписание занятий */
 	schedule?: string | undefined | null,
+	/** Раздел каталога из справочника */
+	section_id: ModelTypes["ID"],
 	/** Порядок в каталоге */
 	sort_order?: number | undefined | null,
 	/** Дата активации курса (YYYY-MM-DD); пусто — дата ещё не назначена */
 	starts_at?: string | undefined | null,
-	/** Раздел каталога — область знаний: «Математика», «Духовные практики» */
-	subject: string,
 	/** Учебная программа */
 	syllabus?: string | undefined | null,
 	/** Преподаватели курса — из пайщиков с подписанным договором участия в хозяйственной деятельности */
@@ -47168,6 +47346,10 @@ export type ModelTypes = {
 	edubridgeAppointAdmin: ModelTypes["EduAdmin"],
 	/** Согласовать заявление: подписки пайщика закрываются с возвратом по Положению, весь остаток кошелька программы переходит в его паевой взнос, участие в программе прекращается */
 	edubridgeApproveReturn: ModelTypes["EduReturnRequest"],
+	/** Убрать уровень в архив либо вернуть */
+	edubridgeArchiveLevel: ModelTypes["EduLevel"],
+	/** Убрать раздел в архив либо вернуть */
+	edubridgeArchiveSection: ModelTypes["EduSection"],
 	/** Отменить курс по недобору: подписки закрываются, взносы возвращаются участникам на паевой */
 	edubridgeCancelCourseUnderfilled: number,
 	/** Отменить подписку с возвратом членского взноса по Положению ЦПП */
@@ -47194,6 +47376,10 @@ export type ModelTypes = {
 	edubridgeHoldContribution: ModelTypes["EduContribution"],
 	/** Удалить обучающегося без действующих подписок */
 	edubridgeRemoveLearner: boolean,
+	/** Порядок уровней раздела — их последовательность */
+	edubridgeReorderLevels: Array<ModelTypes["EduSection"]>,
+	/** Порядок разделов */
+	edubridgeReorderSections: Array<ModelTypes["EduSection"]>,
 	/** Отчитаться о проведённом занятии: материалы и взнос по ставке часа */
 	edubridgeReportLesson: ModelTypes["EduLesson"],
 	/** Подать подписанное заявление о прекращении участия в программе на согласование кооперативу */
@@ -47208,6 +47394,10 @@ export type ModelTypes = {
 	edubridgeRidStatement: ModelTypes["GeneratedDocument"],
 	/** Сформировать акт передачи материалов занятия на ответственное хранение для подписи */
 	edubridgeRidStorageAct: ModelTypes["GeneratedDocument"],
+	/** Добавить уровень в раздел либо переименовать */
+	edubridgeSaveLevel: ModelTypes["EduLevel"],
+	/** Добавить раздел либо переименовать */
+	edubridgeSaveSection: ModelTypes["EduSection"],
 	/** Задать ключи подключения площадки (владелец); значения шифруются и наружу не выдаются */
 	edubridgeSetConnectorCredentials: ModelTypes["EduConnectorBinding"],
 	/** Включить или выключить площадку */
@@ -49271,8 +49461,6 @@ export type ModelTypes = {
 	edubridgeCatalog: ModelTypes["PaginatedEduCatalogCoursesPaginationResult"],
 	/** Карточка курса */
 	edubridgeCatalogCourse: ModelTypes["EduCatalogCourse"],
-	/** Предметы и классы каталога */
-	edubridgeCatalogSubjects: Array<ModelTypes["EduCatalogSubject"]>,
 	/** Площадки и их состояние (ключи не выдаются) */
 	edubridgeConnectors: Array<ModelTypes["EduConnectorBinding"]>,
 	/** Взносы РИД всех преподавателей */
@@ -49325,6 +49513,8 @@ export type ModelTypes = {
 	edubridgeReturnBalance: ModelTypes["EduReturnBalance"],
 	/** Заявления пайщиков о прекращении участия в программе */
 	edubridgeReturnRequests: Array<ModelTypes["EduReturnRequest"]>,
+	/** Разделы каталога с уровнями в порядке справочника */
+	edubridgeSections: Array<ModelTypes["EduSection"]>,
 	/** Договор и приложения преподавателя, которые ждут подписи председателя */
 	edubridgeTeacherApprovals: Array<ModelTypes["EduApproval"]>,
 	/** Преподаватели, которых можно назначить на курс */
@@ -57595,6 +57785,11 @@ export type GraphQLTypes = {
 	username: string,
 	['...on EduApproval']: Omit<GraphQLTypes["EduApproval"], "...on EduApproval">
 };
+	["EduArchiveInput"]: {
+		/** true — убрать в архив, false — вернуть */
+	archived: boolean,
+	id: GraphQLTypes["ID"]
+};
 	["EduAssignment"]: {
 	__typename: "EduAssignment",
 	/** Хеш подписанного приложения к договору */
@@ -57667,8 +57862,6 @@ export type GraphQLTypes = {
 	fee_course_base?: string | undefined | null,
 	/** Членский взнос за месяц */
 	fee_month: string,
-	/** Уровень внутри раздела: «7 класс», «Ступень 1» */
-	grade: string,
 	/** Идентификатор курса */
 	id: GraphQLTypes["ID"],
 	image_url?: string | undefined | null,
@@ -57678,12 +57871,18 @@ export type GraphQLTypes = {
 	lessons_per_month: number,
 	/** Занятий во всей программе курса */
 	lessons_total: number,
+	/** Уровень внутри раздела из справочника; пусто — без уровня */
+	level_id?: GraphQLTypes["ID"] | undefined | null,
+	/** Уровень внутри раздела: «7 класс», «Ступень 1»; пусто — без уровня */
+	level_title: string,
 	/** Расписание занятий */
 	schedule: string,
+	/** Раздел каталога из справочника */
+	section_id?: GraphQLTypes["ID"] | undefined | null,
+	/** Раздел каталога — область знаний: «Математика», «Духовные практики» */
+	section_title: string,
 	/** Дата активации курса — с неё начинаются занятия */
 	starts_at?: string | undefined | null,
-	/** Раздел каталога — область знаний: «Математика», «Духовные практики» */
-	subject: string,
 	/** Учебная программа */
 	syllabus: string,
 	/** Преподаватели курса (учётные имена пайщиков) */
@@ -57693,18 +57892,10 @@ export type GraphQLTypes = {
 	['...on EduCatalogCourse']: Omit<GraphQLTypes["EduCatalogCourse"], "...on EduCatalogCourse">
 };
 	["EduCatalogFilterInput"]: {
-		/** Уровень внутри раздела: «7 класс», «Ступень 1» */
-	grade?: string | undefined | null,
-	/** Раздел каталога — область знаний: «Математика», «Духовные практики» */
-	subject?: string | undefined | null
-};
-	["EduCatalogSubject"]: {
-	__typename: "EduCatalogSubject",
-	/** Уровни раздела, по которым есть курсы; курсы без уровня сюда не входят */
-	grades: Array<string>,
-	/** Раздел каталога — область знаний: «Математика», «Духовные практики» */
-	subject: string,
-	['...on EduCatalogSubject']: Omit<GraphQLTypes["EduCatalogSubject"], "...on EduCatalogSubject">
+		/** Уровень внутри раздела из справочника */
+	level_id?: GraphQLTypes["ID"] | undefined | null,
+	/** Раздел каталога из справочника */
+	section_id?: GraphQLTypes["ID"] | undefined | null
 };
 	["EduConnectorBinding"]: {
 	__typename: "EduConnectorBinding",
@@ -57808,8 +57999,6 @@ export type GraphQLTypes = {
 	fee_course_base?: string | undefined | null,
 	/** Членский взнос за месяц */
 	fee_month: string,
-	/** Уровень внутри раздела: «7 класс», «Ступень 1» */
-	grade: string,
 	/** Гарантийный срок на материалы занятия, дней */
 	guarantee_days: number,
 	/** Идентификатор курса */
@@ -57821,18 +58010,24 @@ export type GraphQLTypes = {
 	lessons_per_month: number,
 	/** Занятий во всей программе курса */
 	lessons_total: number,
+	/** Уровень внутри раздела из справочника; пусто — без уровня */
+	level_id?: GraphQLTypes["ID"] | undefined | null,
+	/** Уровень внутри раздела: «7 класс», «Ступень 1»; пусто — без уровня */
+	level_title: string,
 	/** Плановая ставка часа по программе */
 	planned_hourly_rate: string,
 	/** Расписание занятий */
 	schedule: string,
+	/** Раздел каталога из справочника */
+	section_id?: GraphQLTypes["ID"] | undefined | null,
+	/** Раздел каталога — область знаний: «Математика», «Духовные практики» */
+	section_title: string,
 	/** Порядок в каталоге */
 	sort_order: number,
 	/** Дата активации курса — с неё начинаются занятия */
 	starts_at?: string | undefined | null,
 	/** Состояние курса */
 	status: GraphQLTypes["EduCourseStatus"],
-	/** Раздел каталога — область знаний: «Математика», «Духовные практики» */
-	subject: string,
 	/** Учебная программа */
 	syllabus: string,
 	/** Преподаватели курса (учётные имена пайщиков) */
@@ -57920,8 +58115,6 @@ export type GraphQLTypes = {
 	direction: GraphQLTypes["EduCourseDirection"],
 	/** Идентификатор курса на площадке */
 	external_ref?: string | undefined | null,
-	/** Уровень внутри раздела: «7 класс», «Ступень 1»; пусто — без уровня */
-	grade: string,
 	/** Гарантийный срок на материалы занятия, дней */
 	guarantee_days?: number | undefined | null,
 	/** Обложка курса: новое изображение (base64, ≤ 10 МБ, JPEG/PNG/WEBP), прежнее (bucket_key) или null — убрать */
@@ -57932,16 +58125,18 @@ export type GraphQLTypes = {
 	lessons_per_month: number,
 	/** Занятий во всей программе курса */
 	lessons_total: number,
+	/** Уровень внутри раздела из справочника; пусто — без уровня */
+	level_id?: GraphQLTypes["ID"] | undefined | null,
 	/** Плановая ставка часа по программе («1000.0000 RUB») */
 	planned_hourly_rate: string,
 	/** Расписание занятий */
 	schedule?: string | undefined | null,
+	/** Раздел каталога из справочника */
+	section_id: GraphQLTypes["ID"],
 	/** Порядок в каталоге */
 	sort_order?: number | undefined | null,
 	/** Дата активации курса (YYYY-MM-DD); пусто — дата ещё не назначена */
 	starts_at?: string | undefined | null,
-	/** Раздел каталога — область знаний: «Математика», «Духовные практики» */
-	subject: string,
 	/** Учебная программа */
 	syllabus?: string | undefined | null,
 	/** Преподаватели курса — из пайщиков с подписанным договором участия в хозяйственной деятельности */
@@ -57966,12 +58161,12 @@ export type GraphQLTypes = {
 	['...on EduCourseTeacherLoad']: Omit<GraphQLTypes["EduCourseTeacherLoad"], "...on EduCourseTeacherLoad">
 };
 	["EduCoursesFilterInput"]: {
-		/** Уровень внутри раздела: «7 класс», «Ступень 1» */
-	grade?: string | undefined | null,
+		/** Уровень внутри раздела из справочника */
+	level_id?: GraphQLTypes["ID"] | undefined | null,
+	/** Раздел каталога из справочника */
+	section_id?: GraphQLTypes["ID"] | undefined | null,
 	/** Состояние курса */
-	status?: GraphQLTypes["EduCourseStatus"] | undefined | null,
-	/** Раздел каталога — область знаний: «Математика», «Духовные практики» */
-	subject?: string | undefined | null
+	status?: GraphQLTypes["EduCourseStatus"] | undefined | null
 };
 	/** Подача расхода программы: средства фонда выделяются под расход, а сам расход уходит на решение совета и далее к оплате. */
 ["EduCreateExpenseInput"]: {
@@ -58186,6 +58381,19 @@ export type GraphQLTypes = {
 	/** Тема занятия */
 	topic?: string | undefined | null
 };
+	["EduLevel"]: {
+	__typename: "EduLevel",
+	/** В архиве: не предлагается новым курсам и в каталоге */
+	archived: boolean,
+	id: GraphQLTypes["ID"],
+	/** Раздел уровня */
+	section_id: GraphQLTypes["ID"],
+	/** Место уровня в последовательности раздела: меньше — раньше */
+	sort_order: number,
+	/** Уровень внутри раздела: «7 класс», «Ступень 1» */
+	title: string,
+	['...on EduLevel']: Omit<GraphQLTypes["EduLevel"], "...on EduLevel">
+};
 	["EduMemberCard"]: {
 	__typename: "EduMemberCard",
 	/** ФИО пайщика */
@@ -58338,6 +58546,12 @@ export type GraphQLTypes = {
 	withheld: string,
 	['...on EduRefundPreview']: Omit<GraphQLTypes["EduRefundPreview"], "...on EduRefundPreview">
 };
+	["EduReorderInput"]: {
+		/** Идентификаторы в новом порядке */
+	ids: Array<GraphQLTypes["ID"]>,
+	/** Раздел, чьи уровни упорядочиваются; для разделов — пусто */
+	section_id?: GraphQLTypes["ID"] | undefined | null
+};
 	["EduRequestReturnInput"]: {
 		/** Подписанное заявление об аннулировании соглашения об участии в программе «Образование» — без выхода из кооператива */
 	document: GraphQLTypes["SignedDigitalDocumentInput"]
@@ -58391,6 +58605,39 @@ export type GraphQLTypes = {
 };
 	/** Тип результата интеллектуальной деятельности */
 ["EduRidType"]: EduRidType;
+	["EduSaveLevelInput"]: {
+		/** Уровень, который переименовать; пусто — новый уровень */
+	id?: GraphQLTypes["ID"] | undefined | null,
+	/** Раздел уровня */
+	section_id: GraphQLTypes["ID"],
+	/** Название уровня */
+	title: string
+};
+	["EduSaveSectionInput"]: {
+		/** Раздел, который переименовать; пусто — новый раздел */
+	id?: GraphQLTypes["ID"] | undefined | null,
+	/** Название раздела */
+	title: string
+};
+	["EduSection"]: {
+	__typename: "EduSection",
+	/** В архиве: не предлагается новым курсам и в каталоге */
+	archived: boolean,
+	id: GraphQLTypes["ID"],
+	/** Уровни раздела в их последовательности */
+	levels: Array<GraphQLTypes["EduLevel"]>,
+	/** Порядок раздела: меньше — выше */
+	sort_order: number,
+	/** Раздел каталога — область знаний: «Математика», «Духовные практики» */
+	title: string,
+	['...on EduSection']: Omit<GraphQLTypes["EduSection"], "...on EduSection">
+};
+	["EduSectionsFilterInput"]: {
+		/** Показать и архивные — для страницы управления справочником */
+	include_archived?: boolean | undefined | null,
+	/** Только разделы и уровни, по которым есть опубликованные курсы, — для фильтров каталога */
+	only_with_courses?: boolean | undefined | null
+};
 	["EduSetConnectorCredentialsInput"]: {
 		carrier: GraphQLTypes["EduAccessCarrier"],
 	values: Array<GraphQLTypes["EduConnectorCredentialInput"]>
@@ -58534,8 +58781,6 @@ export type GraphQLTypes = {
 	direction: GraphQLTypes["EduCourseDirection"],
 	/** Идентификатор курса на площадке */
 	external_ref?: string | undefined | null,
-	/** Уровень внутри раздела: «7 класс», «Ступень 1»; пусто — без уровня */
-	grade: string,
 	/** Гарантийный срок на материалы занятия, дней */
 	guarantee_days?: number | undefined | null,
 	/** Идентификатор курса */
@@ -58548,16 +58793,18 @@ export type GraphQLTypes = {
 	lessons_per_month: number,
 	/** Занятий во всей программе курса */
 	lessons_total: number,
+	/** Уровень внутри раздела из справочника; пусто — без уровня */
+	level_id?: GraphQLTypes["ID"] | undefined | null,
 	/** Плановая ставка часа по программе («1000.0000 RUB») */
 	planned_hourly_rate: string,
 	/** Расписание занятий */
 	schedule?: string | undefined | null,
+	/** Раздел каталога из справочника */
+	section_id: GraphQLTypes["ID"],
 	/** Порядок в каталоге */
 	sort_order?: number | undefined | null,
 	/** Дата активации курса (YYYY-MM-DD); пусто — дата ещё не назначена */
 	starts_at?: string | undefined | null,
-	/** Раздел каталога — область знаний: «Математика», «Духовные практики» */
-	subject: string,
 	/** Учебная программа */
 	syllabus?: string | undefined | null,
 	/** Преподаватели курса — из пайщиков с подписанным договором участия в хозяйственной деятельности */
@@ -64703,6 +64950,10 @@ export type GraphQLTypes = {
 	edubridgeAppointAdmin: GraphQLTypes["EduAdmin"],
 	/** Согласовать заявление: подписки пайщика закрываются с возвратом по Положению, весь остаток кошелька программы переходит в его паевой взнос, участие в программе прекращается */
 	edubridgeApproveReturn: GraphQLTypes["EduReturnRequest"],
+	/** Убрать уровень в архив либо вернуть */
+	edubridgeArchiveLevel: GraphQLTypes["EduLevel"],
+	/** Убрать раздел в архив либо вернуть */
+	edubridgeArchiveSection: GraphQLTypes["EduSection"],
 	/** Отменить курс по недобору: подписки закрываются, взносы возвращаются участникам на паевой */
 	edubridgeCancelCourseUnderfilled: number,
 	/** Отменить подписку с возвратом членского взноса по Положению ЦПП */
@@ -64729,6 +64980,10 @@ export type GraphQLTypes = {
 	edubridgeHoldContribution: GraphQLTypes["EduContribution"],
 	/** Удалить обучающегося без действующих подписок */
 	edubridgeRemoveLearner: boolean,
+	/** Порядок уровней раздела — их последовательность */
+	edubridgeReorderLevels: Array<GraphQLTypes["EduSection"]>,
+	/** Порядок разделов */
+	edubridgeReorderSections: Array<GraphQLTypes["EduSection"]>,
 	/** Отчитаться о проведённом занятии: материалы и взнос по ставке часа */
 	edubridgeReportLesson: GraphQLTypes["EduLesson"],
 	/** Подать подписанное заявление о прекращении участия в программе на согласование кооперативу */
@@ -64743,6 +64998,10 @@ export type GraphQLTypes = {
 	edubridgeRidStatement: GraphQLTypes["GeneratedDocument"],
 	/** Сформировать акт передачи материалов занятия на ответственное хранение для подписи */
 	edubridgeRidStorageAct: GraphQLTypes["GeneratedDocument"],
+	/** Добавить уровень в раздел либо переименовать */
+	edubridgeSaveLevel: GraphQLTypes["EduLevel"],
+	/** Добавить раздел либо переименовать */
+	edubridgeSaveSection: GraphQLTypes["EduSection"],
 	/** Задать ключи подключения площадки (владелец); значения шифруются и наружу не выдаются */
 	edubridgeSetConnectorCredentials: GraphQLTypes["EduConnectorBinding"],
 	/** Включить или выключить площадку */
@@ -66989,8 +67248,6 @@ export type GraphQLTypes = {
 	edubridgeCatalog: GraphQLTypes["PaginatedEduCatalogCoursesPaginationResult"],
 	/** Карточка курса */
 	edubridgeCatalogCourse: GraphQLTypes["EduCatalogCourse"],
-	/** Предметы и классы каталога */
-	edubridgeCatalogSubjects: Array<GraphQLTypes["EduCatalogSubject"]>,
 	/** Площадки и их состояние (ключи не выдаются) */
 	edubridgeConnectors: Array<GraphQLTypes["EduConnectorBinding"]>,
 	/** Взносы РИД всех преподавателей */
@@ -67043,6 +67300,8 @@ export type GraphQLTypes = {
 	edubridgeReturnBalance: GraphQLTypes["EduReturnBalance"],
 	/** Заявления пайщиков о прекращении участия в программе */
 	edubridgeReturnRequests: Array<GraphQLTypes["EduReturnRequest"]>,
+	/** Разделы каталога с уровнями в порядке справочника */
+	edubridgeSections: Array<GraphQLTypes["EduSection"]>,
 	/** Договор и приложения преподавателя, которые ждут подписи председателя */
 	edubridgeTeacherApprovals: Array<GraphQLTypes["EduApproval"]>,
 	/** Преподаватели, которых можно назначить на курс */
@@ -71041,6 +71300,7 @@ type ZEUS_VARIABLES = {
 	["EduAccessTaskKind"]: ValueTypes["EduAccessTaskKind"];
 	["EduAccessTaskStatus"]: ValueTypes["EduAccessTaskStatus"];
 	["EduAdminInput"]: ValueTypes["EduAdminInput"];
+	["EduArchiveInput"]: ValueTypes["EduArchiveInput"];
 	["EduAssignmentInput"]: ValueTypes["EduAssignmentInput"];
 	["EduAssignmentStatus"]: ValueTypes["EduAssignmentStatus"];
 	["EduCatalogFilterInput"]: ValueTypes["EduCatalogFilterInput"];
@@ -71069,11 +71329,15 @@ type ZEUS_VARIABLES = {
 	["EduQueueFilterInput"]: ValueTypes["EduQueueFilterInput"];
 	["EduQuoteInput"]: ValueTypes["EduQuoteInput"];
 	["EduRecipientType"]: ValueTypes["EduRecipientType"];
+	["EduReorderInput"]: ValueTypes["EduReorderInput"];
 	["EduRequestReturnInput"]: ValueTypes["EduRequestReturnInput"];
 	["EduRetryTaskInput"]: ValueTypes["EduRetryTaskInput"];
 	["EduReturnStatus"]: ValueTypes["EduReturnStatus"];
 	["EduRevokeContributionInput"]: ValueTypes["EduRevokeContributionInput"];
 	["EduRidType"]: ValueTypes["EduRidType"];
+	["EduSaveLevelInput"]: ValueTypes["EduSaveLevelInput"];
+	["EduSaveSectionInput"]: ValueTypes["EduSaveSectionInput"];
+	["EduSectionsFilterInput"]: ValueTypes["EduSectionsFilterInput"];
 	["EduSetConnectorCredentialsInput"]: ValueTypes["EduSetConnectorCredentialsInput"];
 	["EduSetConnectorEnabledInput"]: ValueTypes["EduSetConnectorEnabledInput"];
 	["EduSetCourseStatusInput"]: ValueTypes["EduSetCourseStatusInput"];

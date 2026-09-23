@@ -5,7 +5,6 @@ import { RequireEduAccess } from '../decorators/edubridge-access.decorator';
 import {
   EduCatalogCourseDTO,
   EduCatalogFilterInputDTO,
-  EduCatalogSubjectDTO,
   PaginatedEduCatalogCoursesDTO,
 } from '../dto/edu-course.dto';
 import { EdubridgeAccessGuard } from '../guards/edubridge-access.guard';
@@ -33,12 +32,5 @@ export class EdubridgeCatalogResolver {
   @RequireEduAccess('EduCatalog', 'read')
   async edubridgeCatalogCourse(@Args('id', { type: () => ID }) id: string): Promise<EduCatalogCourseDTO> {
     return new EduCatalogCourseDTO(await this.courses.catalogCourse(platformSettings().coopname, id));
-  }
-
-  @Query(() => [EduCatalogSubjectDTO], { name: 'edubridgeCatalogSubjects', description: 'Предметы и классы каталога' })
-  @UseGuards(OptionalGqlJwtAuthGuard, EdubridgeAccessGuard)
-  @RequireEduAccess('EduCatalog', 'read')
-  edubridgeCatalogSubjects(): Promise<EduCatalogSubjectDTO[]> {
-    return this.courses.subjects(platformSettings().coopname);
   }
 }

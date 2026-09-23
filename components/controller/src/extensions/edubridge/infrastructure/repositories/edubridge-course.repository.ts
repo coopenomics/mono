@@ -6,12 +6,12 @@ import { EduCourseStatus } from '../../domain/enums';
 import { EdubridgeCourseEntity } from '../entities';
 
 export interface EduCourseFilter {
-  subject?: string;
-  grade?: string;
+  section_id?: string;
+  level_id?: string;
   status?: EduCourseStatus;
 }
 
-const SORTABLE = new Set(['title', 'subject', 'grade', 'sort_order', 'created_at', 'updated_at']);
+const SORTABLE = new Set(['title', 'sort_order', 'created_at', 'updated_at']);
 
 @Injectable()
 export class EdubridgeCourseRepository {
@@ -26,11 +26,22 @@ export class EdubridgeCourseRepository {
     const { limit, offset } = PaginationUtils.getSqlPaginationParams(validated);
     const sortBy = validated.sortBy && SORTABLE.has(validated.sortBy) ? validated.sortBy : 'sort_order';
 
-    const qb = this.repo.createQueryBuilder('c').where('c.coopname = :coopname', { coopname });
-    if (filter.subject) qb.andWhere('c.subject = :subject', { subject: filter.subject });
-    if (filter.grade) qb.andWhere('c.grade = :grade', { grade: filter.grade });
+    // Раздел и уровень — связи справочника; построитель запросов подгружает их явно.
+    const qb = this.repo
+      .createQueryBuilder('c')
+      .leftJoinAndSelect('c.section', 'section')
+      .leftJoinAndSelect('c.level', 'level')
+      .where('c.coopname = :coopname', { coopname });
+    if (filter.section_id) qb.andWhere('c.section_id = :section_id', { section_id: filter.section_id });
+    if (filter.level_id) qb.andWhere('c.level_id = :level_id', { level_id: filter.level_id });
     if (filter.status) qb.andWhere('c.status = :status', { status: filter.status });
-    qb.orderBy(`c.${sortBy}`, validated.sortOrder).addOrderBy('c.title', 'ASC').skip(offset).take(limit);
+    if (sortBy === 'sort_order') {
+      // Порядок по умолчанию — порядок справочника: раздел, уровень, затем курс.
+      qb.orderBy('section.sort_order', 'ASC', 'NULLS LAST').addOrderBy('level.sort_order', 'ASC', 'NULLS FIRST').addOrderBy('c.sort_order', validated.sortOrder);
+    } else {
+      qb.orderBy(`c.${sortBy}`, validated.sortOrder);
+    }
+    qb.addOrderBy('c.title', 'ASC').skip(offset).take(limit);
 
     const [items, totalCount] = await qb.getManyAndCount();
     return PaginationUtils.createPaginationResult(items, totalCount, validated);
@@ -40,24 +51,12 @@ export class EdubridgeCourseRepository {
     return this.repo.findOne({ where: { coopname, id } });
   }
 
-  /** Предметы и классы, по которым есть опубликованные курсы — для иерархии каталога. */
   /** Все курсы кооператива — для сверки назначений при запуске. */
   listAll(coopname: string): Promise<EdubridgeCourseEntity[]> {
     return this.repo.find({ where: { coopname } });
   }
 
-  async listSubjects(coopname: string): Promise<Array<{ subject: string; grade: string }>> {
-    return this.repo
-      .createQueryBuilder('c')
-      .select('c.subject', 'subject')
-      .addSelect('c.grade', 'grade')
-      .where('c.coopname = :coopname AND c.status = :status', { coopname, status: EduCourseStatus.PUBLISHED })
-      .groupBy('c.subject')
-      .addGroupBy('c.grade')
-      .orderBy('c.subject', 'ASC')
-      .addOrderBy('c.grade', 'ASC')
-      .getRawMany();
-  }
+
 
   create(data: Partial<EdubridgeCourseEntity>): EdubridgeCourseEntity {
     return this.repo.create(data);
