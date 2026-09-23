@@ -66,12 +66,15 @@ export class CurrencyValidationUtil {
   /**
    * Форматирует сумму с правильным символом валюты
    * @param value Числовое значение
-   * @param precision Количество знаков после запятой (по умолчанию из конфига)
+   * @param precision Количество знаков после запятой (по умолчанию из настроек платформы)
    * @returns string - отформатированная сумма
    */
   static formatAmount(value: number, precision?: number): string {
-    const actualPrecision = precision ?? config.blockchain.root_govern_precision;
-    const symbol = platformSettings().blockchain.rootGovernSymbol;
+    // Точность и символ — из настроек платформы: `config` контроллера в
+    // каркасе недоступен (после переноса сюда ссылка на него роняла сверку сумм).
+    const { rootGovernPrecision, rootGovernSymbol } = platformSettings().blockchain;
+    const actualPrecision = precision ?? rootGovernPrecision;
+    const symbol = rootGovernSymbol;
     return `${value.toFixed(actualPrecision)} ${symbol}`;
   }
 }
