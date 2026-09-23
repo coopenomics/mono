@@ -20,9 +20,9 @@
 //   строка с пометкой `i18n-ignore` на той же или предыдущей строке
 //   (`// i18n-ignore: причина`, в pug — `//- i18n-ignore: причина`).
 
-import { readFileSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 import { createRequire } from 'node:module';
-import { dirname, join } from 'node:path';
+import { dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), '../..');
@@ -99,6 +99,59 @@ function exclusionReason(node) {
   return undefined;
 }
 
+const COMPARE_OPS = new Set([
+  ts.SyntaxKind.EqualsEqualsEqualsToken,
+  ts.SyntaxKind.ExclamationEqualsEqualsToken,
+  ts.SyntaxKind.EqualsEqualsToken,
+  ts.SyntaxKind.ExclamationEqualsToken,
+]);
+
+/**
+ * Подробности литерала для инструмента переноса: кавычка, части шаблонного
+ * литерала (текст и выражения), контекст, в котором механическая замена
+ * вызовом t() меняет смысл (сравнение, case, ключ объекта, член enum),
+ * и исключение, аргументом которого литерал служит.
+ */
+function literalDetails(node, sf, base) {
+  const d = {};
+  const src = sf.text;
+  d.quote = ts.isStringLiteral(node) ? src[node.getStart(sf)] : '`';
+  if (ts.isTemplateExpression(node)) {
+    d.parts = [{ text: node.head.text }];
+    for (const span of node.templateSpans) {
+      d.parts.push({ expr: span.expression.getText(sf) });
+      d.parts.push({ text: span.literal.text });
+    }
+  }
+  const parent = node.parent;
+  if (parent) {
+    if (ts.isBinaryExpression(parent) && COMPARE_OPS.has(parent.operatorToken.kind)) d.context = 'compare';
+    else if (ts.isCaseClause(parent)) d.context = 'case';
+    else if (ts.isEnumMember(parent)) d.context = 'enum';
+    else if ((ts.isPropertyAssignment(parent) || ts.isPropertySignature?.(parent) || ts.isMethodDeclaration(parent)) && parent.name === node) d.context = 'propName';
+    else if (ts.isComputedPropertyName(parent)) d.context = 'propName';
+    else if (ts.isElementAccessExpression(parent) && parent.argumentExpression === node) d.context = 'index';
+    else if (ts.isCallExpression(parent) && ts.isPropertyAccessExpression(parent.expression) && ['includes', 'startsWith', 'endsWith', 'indexOf', 'match', 'test', 'replace', 'split'].includes(parent.expression.name.text)) d.context = 'stringOp';
+    else if (ts.isNewExpression(parent) || ts.isCallExpression(parent)) {
+      const callee = parent.expression;
+      const name = ts.isIdentifier(callee) ? callee.text : ts.isPropertyAccessExpression(callee) ? callee.name.text : undefined;
+      const argIndex = (parent.arguments ?? []).indexOf(node);
+      if (ts.isNewExpression(parent) && name) {
+        d.newCallee = name;
+        d.argIndex = argIndex;
+        if (name === 'HttpApiError' && argIndex === 1) d.statusExpr = parent.arguments[0].getText(sf);
+        d.newStart = base + parent.getStart(sf);
+        d.newEnd = base + parent.getEnd();
+        d.newArgs = parent.arguments.length;
+      } else if (name) {
+        d.callee = name;
+        d.argIndex = argIndex;
+      }
+    }
+  }
+  return d;
+}
+
 function hasCyrillicTemplate(node) {
   if (ts.isNoSubstitutionTemplateLiteral(node)) return CYRILLIC.test(node.text);
   if (ts.isTemplateExpression(node)) {
@@ -130,6 +183,7 @@ export function scanScript(code, { base = 0, origin = 'script', fileName = 'x.ts
         end: base + node.getEnd(),
         text: ts.isTemplateExpression(node) ? node.getText(sf).slice(1, -1) : node.text,
         excluded,
+        ...literalDetails(node, sf, base),
       });
       // Внутри шаблонного литерала могут быть вложенные строки — их не считаем
       // отдельно: шаблон переносится целиком одним сообщением.
@@ -172,10 +226,16 @@ function isBoundAttr(name) {
 }
 
 function scanPug(src, tpl) {
+  // compiler-sfc отдаёт шаблон pug без общего отступа, а позиции нужны в
+  // исходном файле: сдвиг каждой строки — разница длин исходной и снятой.
   const content = tpl.content;
   const base = tpl.loc.start.offset;
-  const starts = lineStarts(content);
-  const at = (loc) => starts[loc.line - 1] + loc.column - 1;
+  const original = src.slice(tpl.loc.start.offset, tpl.loc.end.offset);
+  const oLines = original.split('\n');
+  const cLines = content.split('\n');
+  const oStarts = lineStarts(original);
+  const shiftOf = (li) => Math.max(0, (oLines[li]?.length ?? 0) - (cLines[li]?.length ?? 0));
+  const at = (loc) => oStarts[loc.line - 1] + shiftOf(loc.line - 1) + loc.column - 1;
   let tokens;
   try {
     tokens = pugLex(content, {});
@@ -187,14 +247,14 @@ function scanPug(src, tpl) {
     if (tok.type === 'text' && typeof tok.val === 'string' && tok.val) {
       const offset = at(tok.loc.start);
       // Токен текста начинается там, где начинается сам текст.
-      const idx = content.indexOf(tok.val, offset);
+      const idx = original.indexOf(tok.val, offset);
       const start = idx >= 0 && idx - offset < 4 ? idx : offset;
       found.push(...scanTextWithInterpolation(tok.val, base + start, 'template'));
     } else if (tok.type === 'attribute' && typeof tok.val === 'string') {
       const raw = tok.val;
       if (!CYRILLIC.test(raw)) continue;
       const tokStart = at(tok.loc.start);
-      const valIdx = content.indexOf(raw, tokStart);
+      const valIdx = original.indexOf(raw, tokStart);
       const valStart = base + (valIdx >= 0 ? valIdx : tokStart);
       const quoted = /^(['"`]).*\1$/s.test(raw);
       if (isBoundAttr(tok.name)) {
@@ -214,7 +274,7 @@ function scanPug(src, tpl) {
       }
     } else if ((tok.type === 'code' || tok.type === 'interpolated-code') && typeof tok.val === 'string' && CYRILLIC.test(tok.val)) {
       const offset = at(tok.loc.start);
-      const idx = content.indexOf(tok.val, offset);
+      const idx = original.indexOf(tok.val, offset);
       found.push(...scanExpression(tok.val, base + (idx >= 0 ? idx : offset), 'template'));
     }
   }
@@ -254,12 +314,37 @@ function scanHtmlTemplate(src, tpl) {
 
 // ─── файл ───────────────────────────────────────────────────────────────────
 
-function markIgnored(src, found) {
+// Шаблонные строки, признанные не текстом интерфейса, записаны списком —
+// комментарий в pug посреди списка атрибутов сломал бы шаблон.
+const ALLOWLIST_PATH = join(REPO_ROOT, 'scripts/lib/i18n-ignore.json');
+let allowlist;
+function allowlisted(filePath, f) {
+  if (allowlist === undefined) {
+    allowlist = existsSync(ALLOWLIST_PATH) ? JSON.parse(readFileSync(ALLOWLIST_PATH, 'utf8')) : {};
+  }
+  const rel = relative(REPO_ROOT, filePath);
+  const entries = allowlist[rel];
+  if (!entries || f.origin !== 'template') return false;
+  const norm = normalizeText(f.text);
+  return entries.some((e) => e.text === norm);
+}
+
+/** Текст находки как в списке исключений: {{ … }} → {0}, пробелы схлопнуты. */
+export function normalizeText(text) {
+  let i = 0;
+  return text.replace(/\{\{[\s\S]*?\}\}/g, () => `{${i++}}`).replace(/\s+/g, ' ').trim();
+}
+
+function markIgnored(src, found, filePath) {
   const starts = lineStarts(src);
   const lines = src.split('\n');
   for (const f of found) {
     f.line = lineOf(starts, f.start);
     if (f.excluded) continue;
+    if (filePath && allowlisted(filePath, f)) {
+      f.excluded = 'allowlist';
+      continue;
+    }
     const same = lines[f.line - 1] ?? '';
     const prev = lines[f.line - 2] ?? '';
     if (same.includes(IGNORE_MARK) || /^\s*(\/\/|\/\/-|<!--|\*|\/\*)/.test(prev) && prev.includes(IGNORE_MARK)) {
@@ -296,9 +381,9 @@ export function scanSource(src, filePath) {
       }
     }
     found.sort((a, b) => a.start - b.start);
-    return { found: markIgnored(src, found), error };
+    return { found: markIgnored(src, found, filePath), error };
   }
-  return { found: markIgnored(src, scanScript(src, { fileName: filePath })) };
+  return { found: markIgnored(src, scanScript(src, { fileName: filePath }), filePath) };
 }
 
 export function scanFile(absPath) {
