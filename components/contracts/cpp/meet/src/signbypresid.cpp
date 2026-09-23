@@ -112,4 +112,11 @@ void meet::signbypresid(name coopname, name username, checksum256 hash, document
       presider_decision
     );
 
+    // Собрание завершено: итоги ушли событием newgdecision, протокол — в реестр
+    // документов совета. Ни одно действие к строке больше не обратится, поэтому
+    // она стирается целиком — память кооператива освобождается сразу. Контроллер
+    // читает закрытое собрание из журнала дельт.
+    auto closed_itr = hash_index.find(hash);
+    hash_index.erase(closed_itr);
+
 } 

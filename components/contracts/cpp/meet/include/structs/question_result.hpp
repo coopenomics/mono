@@ -1,4 +1,5 @@
 // Например, во внешем header можно объявить структуру:
+/// Итог по вопросу; title, decision, context — sha256 формулировок, тексты в базе контроллера.
 struct question_result {
     uint64_t question_id;
     uint64_t number;

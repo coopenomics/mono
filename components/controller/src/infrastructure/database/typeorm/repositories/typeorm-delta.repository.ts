@@ -297,6 +297,34 @@ export class TypeOrmDeltaRepository implements DeltaRepositoryPort {
   /**
    * Поиск дельт с флагом repeat = true
    */
+  async findLatestRows(
+    filters: { code: string; scope: string; table: string },
+    where: Record<string, string> = {}
+  ): Promise<{ primary_key: string; value: any; present: boolean; block_num: number }[]> {
+    const params: string[] = [filters.code, filters.scope, filters.table];
+    const conditions = Object.entries(where).map(([field, value]) => {
+      if (!/^[a-z_][a-z0-9_]*$/.test(field)) throw new Error(`Недопустимое имя поля: ${field}`);
+      params.push(value.toLowerCase());
+      return `lower(value ->> '${field}') = $${params.length}`;
+    });
+
+    const rows = await this.deltaRepository.query(
+      `SELECT DISTINCT ON (primary_key) primary_key, value, present, block_num
+         FROM blockchain_deltas
+        WHERE code = $1 AND scope = $2 AND "table" = $3
+          ${conditions.length ? `AND ${conditions.join(' AND ')}` : ''}
+        ORDER BY primary_key, block_num DESC`,
+      params
+    );
+
+    return rows.map((row: any) => ({
+      primary_key: row.primary_key,
+      value: row.value,
+      present: row.present,
+      block_num: Number(row.block_num),
+    }));
+  }
+
   async findRepeatableDeltas(): Promise<DeltaDomainInterface[]> {
     return await this.deltaRepository.find({
       where: {

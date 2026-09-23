@@ -1,31 +1,10 @@
-import { createHash } from 'crypto';
+import { chainTextDigest, isChainTextDigest } from '@coopenomics/extension-kit';
 
 /**
- * Тексты проекта (описание, приглашение) в цепи хранятся хешем.
- *
- * Сам текст живёт в базе контроллера, в строке capital::projects лежит sha256 текста в
- * шестнадцатеричной записи или пустая строка. Контракт принимает только такие значения
- * (Capital::Projects::check_text_digest) и тем же способом переводит старые строки в
- * capital::migrate, поэтому хеш от одной и той же строки совпадает на обеих сторонах.
+ * Тексты проекта (описание, приглашение) в цепи хранятся хешем — общее правило в
+ * extension-kit (blockchain/chain-text-digest.ts). Здесь то, что относится к проекту:
+ * какие поля хешируются и как сверить текст в базе с хешем в цепи.
  */
-const DIGEST_RE = /^[0-9a-f]{64}$/;
-
-export function chainTextDigest(text: string | null | undefined): string {
-  if (!text) return '';
-  return createHash('sha256').update(text, 'utf8').digest('hex');
-}
-
-export function isChainTextDigest(value: string | null | undefined): value is string {
-  return typeof value === 'string' && DIGEST_RE.test(value);
-}
-
-/**
- * Значение поля из цепи для записи в базу: хеш текст в базе не заменяет.
- * Строки, записанные до выноса текстов, несут сам текст и копируются как раньше.
- */
-export function resolveChainText(chainValue: string, current: string | null | undefined): string {
-  return isChainTextDigest(chainValue) ? current ?? '' : chainValue;
-}
 
 /** Поля проекта, которые в цепи хранятся хешем. */
 export const PROJECT_CHAIN_TEXT_FIELDS = ['description', 'invite'] as const;
