@@ -11,6 +11,7 @@ import { MigrationLogger } from './migration-logger';
 import { VaultDomainService } from '../domain/vault/services/vault-domain.service';
 import { VaultTypeormRepository } from '../infrastructure/database/typeorm/repositories/vault.typeorm-repository';
 import { VaultEntity } from '../infrastructure/database/typeorm/entities/vault.entity';
+import { compareMigrationFilenames, isMigrationFile, parseMigrationFilename } from './migration-filename';
 
 export interface Migration {
   name: string;
@@ -90,53 +91,29 @@ export class MigrationManager {
     }
   }
 
-  // Извлекает версию из имени файла (например, из V1.0.0__initial.ts получаем 1.0.0)
+  // Ключ учёта из имени файла: `2.5.7` у прежних `V2.5.7__…`, `202609232115` у текущих.
   extractVersionFromFilename(filename: string): string {
-    const versionMatch = filename.match(/^V(\d+(\.\d+)*)/);
-    if (!versionMatch) {
-      throw new Error(`Неверный формат имени файла миграции: ${filename}. Ожидается формат V{версия}__{название}.ts`);
-    }
-    return versionMatch[1];
+    return parseMigrationFilename(filename).version;
   }
 
-  // Извлекает описательное название из имени файла (например, из V1.0.0__initial.ts получаем initial)
+  // Описание из имени файла: `V1.0.0__initial.ts` → `initial`.
   extractDescriptionFromFilename(filename: string): string {
-    const descMatch = filename.match(/^V\d+(\.\d+)*__(.+?)(\.[tj]s)?$/);
-    if (descMatch && descMatch[2]) {
-      return descMatch[2].replace(/_/g, ' ');
-    }
-    return filename; // Вернуть полное имя файла, если не удалось извлечь описание
+    return parseMigrationFilename(filename).description;
   }
 
   async getMigrationFiles(): Promise<{ filename: string; version: string; description: string }[]> {
     try {
-      const files = fs
+      const parsed = fs
         .readdirSync(this.migrationDir)
-        .filter((file) => (file.endsWith('.ts') || file.endsWith('.js')) && file.startsWith('V'));
+        .filter(isMigrationFile)
+        .map((filename) => ({ filename, name: parseMigrationFilename(filename) }))
+        .sort((a, b) => compareMigrationFilenames(a.name, b.name));
 
-      // Извлекаем версии и описания из имен файлов
-      const migrations = files.map((filename) => ({
+      const migrations = parsed.map(({ filename, name }) => ({
         filename,
-        version: this.extractVersionFromFilename(filename),
-        description: this.extractDescriptionFromFilename(filename),
+        version: name.version,
+        description: name.description,
       }));
-
-      // Сортируем по версии (используем semver сортировку)
-      migrations.sort((a, b) => {
-        const aParts = a.version.split('.').map(Number);
-        const bParts = b.version.split('.').map(Number);
-
-        for (let i = 0; i < Math.max(aParts.length, bParts.length); i++) {
-          const aVal = i < aParts.length ? aParts[i] : 0;
-          const bVal = i < bParts.length ? bParts[i] : 0;
-
-          if (aVal !== bVal) {
-            return aVal - bVal;
-          }
-        }
-
-        return 0;
-      });
 
       return migrations;
     } catch (error) {
