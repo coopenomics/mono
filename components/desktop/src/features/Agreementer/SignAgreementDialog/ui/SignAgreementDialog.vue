@@ -92,6 +92,17 @@ const sign = async () => {
 
 </script>
 
+<style>
+/* Панель с кнопкой — серым холстом под белой страницей документа, чтобы низ
+   окна читался отдельно от текста. Без scoped: подвал рисует BaseDialog в
+   портале; :has ограничивает правило этим окном. */
+.base-dialog__foot:has(.sign-agreement__actions) {
+  padding: var(--p-4);
+  background: var(--p-canvas);
+  border-top-color: var(--p-line-2);
+}
+</style>
+
 <style scoped>
 /* Одна белая страница: колонка текста по центру, поля вокруг — воздух. */
 .sign-agreement {
