@@ -66,7 +66,8 @@ export class MigrationManager {
       password: config.postgres.password,
       database: config.postgres.database,
       entities: [MigrationEntity, VaultEntity],
-      synchronize: true,
+      // Таблицы создают миграции схемы — migrateData() прогоняет их до этого шага.
+      synchronize: false,
     });
 
     await this.dataSource.initialize();

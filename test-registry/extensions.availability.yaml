@@ -30,6 +30,11 @@ title: Доступность расширений в зависимости о�
 # пустой конфигурации. Логика доступности не менялась, случаи те же; ожидание в
 # extension-availability.test.ts обновлено под новое значение.
 #
+# Правка 2026-09-23 (C28-79): в реестр расширений добавлено поле
+# `databaseMigrations` (миграции таблиц расширения) и их сбор в
+# `registerExtensionDatabaseMigrations`. Доступность расширений и набор случаев
+# не менялись.
+
 sources:
   backend:
     - components/controller/src/extensions/extensions.registry.ts

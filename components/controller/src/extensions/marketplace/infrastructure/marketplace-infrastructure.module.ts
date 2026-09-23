@@ -98,7 +98,6 @@ import {
 import { MarketplaceStockProposalMapper } from './mappers/marketplace-stock-proposal.mapper';
 import { MarketplaceAplReceptionMapper } from './mappers/marketplace-apl-reception.mapper';
 import { INTEGRATION_SETTINGS_PORT, type IIntegrationSettingsPort } from '@coopenomics/innercoop';
-import { MarketplaceAplReceptionIndexInitializer } from './services/marketplace-apl-reception-index-initializer.service';
 import { MarketplaceOutgoingPaymentRequestMapper } from './mappers/marketplace-outgoing-payment-request.mapper';
 import { MarketplaceTtnDocumentMapper } from './mappers/marketplace-ttn-document.mapper';
 import { MarketplaceReturnClaimMapper } from './mappers/marketplace-return-claim.mapper';
@@ -204,7 +203,11 @@ import { MARKETPLACE_SUPPLIER_SETTINGS_REPOSITORY } from '../domain/repositories
             MarketplaceCartItemEntity,
             MarketplaceSupplierSettingsEntity,
           ],
-          synchronize: true,
+          // Таблицы Стола заказов живут в основной базе, и их схему ведут
+          // миграции расширения (запись реестра `databaseMigrations`). Это
+          // подключение только читает и пишет строки — второй synchronize по
+          // той же базе дублировал бы основной.
+          synchronize: false,
           logging: false,
         };
       },
@@ -376,7 +379,6 @@ import { MARKETPLACE_SUPPLIER_SETTINGS_REPOSITORY } from '../domain/repositories
     },
     // Story 5.3 / 5.4 — АПП приёмки на КУ
     MarketplaceAplReceptionMapper,
-    MarketplaceAplReceptionIndexInitializer,
     {
       provide: MARKETPLACE_APL_RECEPTION_REPOSITORY,
       useClass: MarketplaceAplReceptionRepositoryAdapter,

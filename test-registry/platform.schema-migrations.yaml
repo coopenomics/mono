@@ -1,0 +1,95 @@
+feature: platform.schema-migrations
+title: Схема базы контроллера — только миграциями
+
+# До C28-79 таблицы 139 сущностей (ядро и девять расширений) создавал и менял
+# synchronize при каждом старте. Он молча удалял колонку, которой нет в
+# сущности, превращал переименование в «удалить + добавить» (потеря данных), а
+# в blue-green выкатке новая версия правила общую базу, пока старая работала.
+#
+# Теперь схему меняют миграции TypeORM (таблица учёта schema_migrations): ядро
+# держит свои в src/infrastructure/database/migrations, расширение — в своём
+# каталоге migrations/database и объявляет их в записи реестра
+# (databaseMigrations). Стартовые миграции идемпотентны: пустую базу создают,
+# базу, которую вёл synchronize, дотягивают и ничего не удаляют. Мигратор
+# данных (V-файлы) остаётся для данных и цепи; новые его файлы — с меткой
+# времени в имени.
+#
+# Гейты: pnpm check (нет synchronize: true, у расширения с таблицами есть
+# миграции) и CI-шаг pnpm schema:check (база из миграций = сущности).
+
+sources:
+  backend:
+    - components/controller/src/infrastructure/database/schema/idempotent-ddl.ts
+    - components/controller/src/infrastructure/database/typeorm/data-source.options.ts
+    - components/controller/src/infrastructure/database/migrations/*.ts
+    - components/controller/src/migrator/database-migrations.ts
+    - components/controller/src/migrator/migration-filename.ts
+    - components/controller/src/migrator/migrationManager.ts
+    - components/controller/scripts/schema-*.ts
+    - components/extension-kit/src/registry/installed-database-migrations.ts
+    - scripts/check-schema-migrations.mjs
+
+cases:
+  - id: platform.schema.happy.01
+    level: backend
+    kind: happy
+    scenario: пустая база — применяются все миграции ядра и расширений
+    expect: схема совпадает с сущностями (TypeORM не видит ни одного отличия)
+    test: .github/workflows/test.yaml
+    status: written
+
+  - id: platform.schema.side.01
+    level: backend
+    kind: side
+    scenario: повторный прогон миграций на той же базе
+    expect: ничего не применяется — учёт в schema_migrations
+    test: .github/workflows/test.yaml
+    status: written
+
+  - id: platform.schema.side.02
+    level: backend
+    kind: side
+    scenario: база, которую раньше вёл synchronize, с живыми строками и отставшая на релиз
+    expect: стартовые миграции добавляют недостающие таблицы и колонки, первичные ключи и данные не трогают
+    test: components/controller/tests/unit/database/idempotent-ddl.test.ts
+    status: written
+
+  - id: platform.schema.break.01
+    level: backend
+    kind: break
+    scenario: перестройка первичного ключа из прохода «таблицы без колонок» попала бы на живую таблицу
+    expect: не берётся в стартовую миграцию
+    test: components/controller/tests/unit/database/idempotent-ddl.test.ts
+    status: written
+
+  - id: platform.schema.break.02
+    level: backend
+    kind: break
+    scenario: частичный уникальный индекс на старой базе построен полным
+    expect: пересоздаётся частичным один раз, вместо службы-подпорки на каждом старте
+    test: components/controller/tests/unit/database/idempotent-ddl.test.ts
+    status: written
+
+  - id: platform.schema.break.03
+    level: backend
+    kind: break
+    scenario: колонка добавлена в сущность без миграции
+    expect: CI-шаг schema:check падает со списком SQL, которого не хватает
+    test: .github/workflows/test.yaml
+    status: written
+
+  - id: platform.schema.break.04
+    level: backend
+    kind: break
+    scenario: "в код вернули synchronize: true"
+    expect: pnpm check падает с указанием файла и строки
+    test: scripts/check-schema-migrations.mjs
+    status: written
+
+  - id: platform.schema.side.03
+    level: backend
+    kind: side
+    scenario: имя файла миграции данных — прежний V-формат и метка времени
+    expect: прежние идут первыми по версии, новые — по метке; метка, не являющаяся датой, отклоняется
+    test: components/controller/tests/unit/migrations/migration-filename.test.ts
+    status: written

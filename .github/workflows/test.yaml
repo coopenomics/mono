@@ -55,6 +55,23 @@ concurrency:
 jobs:
   unit:
     runs-on: ubuntu-latest
+
+    # Postgres — для гейта схемы: база собирается одними миграциями и
+    # сверяется с сущностями (scripts/schema-check.ts). Как и mongo ниже,
+    # сервис доступен по проброшенному порту на 127.0.0.1.
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+
     steps:
       - uses: actions/checkout@v4
 
@@ -84,6 +101,21 @@ jobs:
       # одну таблицу с поимённым списком падений.
       - name: Unit-тесты
         run: node scripts/run-unit-tests.mjs
+
+      # Схему меняют только миграции (C28-79). Пустая база, все миграции ядра и
+      # расширений, затем TypeORM не должен видеть ни одного отличия от
+      # сущностей: колонка, добавленная в класс без миграции, роняет шаг —
+      # иначе на узлах кооперативов её бы просто не было.
+      - name: Схема базы — только миграциями
+        env:
+          POSTGRES_HOST: 127.0.0.1
+          POSTGRES_PORT: 5432
+          POSTGRES_USERNAME: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DATABASE: postgres
+        run: |
+          cp components/controller/.env-example components/controller/.env
+          pnpm -F @coopenomics/controller run schema:check
 
   component:
     runs-on: ubuntu-latest
