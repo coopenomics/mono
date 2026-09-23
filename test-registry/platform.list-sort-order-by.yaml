@@ -27,7 +27,7 @@ cases:
     scenario: список запрашивается с сортировкой по колонке сущности
     expect: сортировка применяется по этой колонке
     test: components/controller/tests/unit/shared/list-sort-order-by.test.ts
-    status: written
+    status: passing
 
   - id: platform.sort.break.01
     level: backend
@@ -35,7 +35,7 @@ cases:
     scenario: в поле сортировки дописан подзапрос или посторонние символы
     expect: ввод отклоняется до построения запроса
     test: components/controller/tests/unit/shared/list-sort-order-by.test.ts
-    status: written
+    status: passing
 
   - id: platform.sort.break.02
     level: backend
@@ -43,7 +43,7 @@ cases:
     scenario: в поле сортировки допустимое по символам имя, которого нет среди колонок сущности
     expect: сортировка по умолчанию; чужая колонка в запрос не попадает
     test: components/controller/tests/unit/shared/list-sort-order-by.test.ts
-    status: written
+    status: passing
 
   - id: platform.sort.break.03
     level: backend
@@ -51,4 +51,4 @@ cases:
     scenario: направление сортировки не ASC и не DESC
     expect: журнал расширений сортирует по убыванию, строка клиента в запрос не попадает
     test: components/controller/tests/unit/shared/list-sort-order-by.test.ts
-    status: written
+    status: passing
