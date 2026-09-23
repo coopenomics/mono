@@ -31,16 +31,16 @@ BaseForm.edu-course-form(ref="formEl" :loading="loading" :error="error" @submit=
     //- удаление — строкой под снимком, всегда на виду.
     template(v-if="previewUrl")
       .edu-course-form__cover
-        q-img(:src="previewUrl" :ratio="21 / 9" fit="cover" no-spinner)
+        q-img(:src="previewUrl" :ratio="16 / 9" fit="cover" no-spinner)
       .edu-course-form__cover-actions
-        span.t-meta.t-muted JPEG, PNG или WEBP до 10 МБ
+        span.t-meta.t-muted JPEG, PNG или WEBP до 10 МБ, лучше 1600 × 900
         q-space
         BaseButton(variant="ghost" size="sm" type="button" @click="removeImage") Убрать
         BaseButton(variant="secondary" size="sm" type="button" @click="pickImage") Заменить
     .edu-course-form__picker(v-else role="button" tabindex="0" @click="pickImage" @keydown.enter="pickImage")
       q-icon(name="add_photo_alternate" size="24px")
       .t-sm.text-weight-medium Загрузить обложку
-      .t-meta.t-muted JPEG, PNG или WEBP до 10 МБ
+      .t-meta.t-muted JPEG, PNG или WEBP до 10 МБ, лучше 1600 × 900
     input.edu-course-form__file(ref="fileInput" type="file" :accept="COURSE_IMAGE_ACCEPT" @change="onFilePicked")
 
   //- Взнос не вводится руками: он складывается из часов занятий по ставке

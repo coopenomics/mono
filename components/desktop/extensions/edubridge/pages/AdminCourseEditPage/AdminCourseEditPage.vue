@@ -67,7 +67,7 @@ const state = provideCourseForm(() => course.value);
 
 const steps: Array<StepperStep & { key: CourseFormSection }> = [
   { key: 'course', label: 'Курс', description: 'Название, раздел, расписание, описание и программа' },
-  { key: 'cover', label: 'Обложка', description: 'Снимок для каталога', optional: true },
+  { key: 'cover', label: 'Обложка', description: 'Снимок для каталога (рекомендуемый размер: 1600 × 900)', optional: true },
   { key: 'price', label: 'Стоимость и сроки', description: 'Занятия, ставка, гарантийный срок и взнос' },
   { key: 'access', label: 'Выдача доступа', description: 'Где ученик проходит курс' },
   { key: 'teachers', label: 'Преподаватели', description: 'Кто ведёт курс', optional: true },
