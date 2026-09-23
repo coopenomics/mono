@@ -1,4 +1,13 @@
 import { Field, Int, ObjectType, InputType } from '@nestjs/graphql';
+import { IsOptional, Matches } from 'class-validator';
+
+/**
+ * Допустимое имя поля сортировки: латиница, цифры и подчёркивание. Поле уходит
+ * в `ORDER BY` строкой, и любой другой символ открывал бы подстановку SQL.
+ * Какая именно колонка разрешена, решает репозиторий по метаданным сущности
+ * (`resolveSortColumn`); здесь отсекается всё, что именем колонки быть не может.
+ */
+export const SORT_FIELD_PATTERN = /^[A-Za-z_][A-Za-z0-9_]*$/;
 
 /**
  * Входные параметры для пагинации и сортировки
@@ -12,6 +21,8 @@ export class PaginationInputDTO {
   limit!: number;
 
   @Field(() => String, { nullable: true, description: 'Ключ сортировки (например, "name")' })
+  @IsOptional()
+  @Matches(SORT_FIELD_PATTERN, { message: 'Недопустимое поле сортировки' })
   sortBy?: string;
 
   @Field(() => String, {
@@ -132,6 +143,10 @@ export class PaginationUtils {
 
     if (sortOrder !== 'ASC' && sortOrder !== 'DESC') {
       throw new Error('Направление сортировки должно быть ASC или DESC');
+    }
+
+    if (sortBy !== undefined && sortBy !== null && !SORT_FIELD_PATTERN.test(sortBy)) {
+      throw new Error('Недопустимое поле сортировки');
     }
 
     return {

@@ -20,3 +20,4 @@ export * from './transact-block-num';
 export * from './hash.utils';
 export * from './currency-validation.utils';
 export * from './user-text.utils';
+export * from './sort-column.utils';

@@ -242,6 +242,7 @@ export class ReportEditsBuilderService {
         middleName: merged.signerMiddleName.value,
         repDoc: merged.signerRepDoc.value,
         snils: merged.signerSnils.value,
+        inn: merged.signerInn.value,
         sfrRegNumber: merged.sfrRegNumber.value,
         pfrRegNumber: merged.pfrRegNumber.value,
         chairmanPosition:

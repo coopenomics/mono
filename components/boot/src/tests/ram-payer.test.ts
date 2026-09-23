@@ -8,6 +8,8 @@ import { generateRandomSHA256 } from '../utils/randomHash'
 import { generateRandomDescription, generateRandomMeta, generateRandomProjectData } from '../utils'
 import { registerContributor } from './capital/registerContributor'
 import { getRowPayer } from './shared/rowPayer'
+import { ensureCapitalConfigured } from './shared/ensureCapitalConfigured'
+import { chainTextDigest } from '../utils/chainTextDigest'
 
 /**
  * Плательщик за оперативную память строк (C28-78).
@@ -22,43 +24,9 @@ const blockchain = new Blockchain(config.network, config.private_keys)
 const coopname = 'voskhod'
 let tester: string
 
-/** Благорост на свежей цепи не настроен: без конфигурации кооператива проект не завести. */
-async function ensureCapitalConfigured() {
-  const state = await blockchain.getTableRows(CapitalContract.contractName.production, CapitalContract.contractName.production, 'state', 1, coopname, coopname)
-  if (state.length)
-    return
-
-  const data: CapitalContract.Actions.SetConfig.ISetConfig = {
-    coopname,
-    config: {
-      coordinator_bonus_percent: 4,
-      expense_pool_percent: 100,
-      coordinator_invite_validity_days: 30,
-      voting_period_in_days: 7,
-      authors_voting_percent: 38.2,
-      creators_voting_percent: 38.2,
-      energy_decay_rate_per_day: 0.11,
-      level_depth_base: 1000,
-      level_growth_coefficient: 1.5,
-      energy_gain_coefficient: 0.01,
-    },
-  }
-  await blockchain.api.transact(
-    {
-      actions: [{
-        account: CapitalContract.contractName.production,
-        name: CapitalContract.Actions.SetConfig.actionName,
-        authorization: [{ actor: coopname, permission: 'active' }],
-        data,
-      }],
-    },
-    { blocksBehind: 3, expireSeconds: 30 },
-  )
-}
-
 beforeAll(async () => {
   await blockchain.update_pass_instance()
-  await ensureCapitalConfigured()
+  await ensureCapitalConfigured(blockchain, coopname)
   tester = generateRandomUsername()
   await addUser(tester)
 }, 240_000)
@@ -81,7 +49,7 @@ describe('плательщик за оперативную память', () => 
       project_hash,
       parent_hash: '0000000000000000000000000000000000000000000000000000000000000000',
       title: `Проверка плательщика ${project_hash.slice(0, 10)}`,
-      description: generateRandomDescription(),
+      description: chainTextDigest(generateRandomDescription()),
       invite: '',
       data: generateRandomProjectData(100, 200),
       meta: generateRandomMeta(),

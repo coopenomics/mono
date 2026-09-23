@@ -120,6 +120,19 @@ q-form.settings-page(@submit.prevent='save' @validation-error='onValidationError
           required
           @update:value='v => (manualInput.signerSnils = v)'
         )
+        RequisiteField.col-md-6.col-12(
+          id='field-signerInn'
+          label='ИНН подписанта'
+          :value='manualInput.signerInn'
+          placeholder='12 цифр'
+          mask='############'
+          :max-length='12'
+          :exact-lengths='[12]'
+          :pattern='INN_FL_PATTERN'
+          pattern-message='Формат: 12 цифр'
+          required
+          @update:value='v => (manualInput.signerInn = v)'
+        )
         RequisiteField.col-12(
           v-if='signerType === "representative"'
           id='field-signerRepDoc'
@@ -180,6 +193,7 @@ type ManualKey =
   | 'pfrRegNumber'
   | 'chairmanPosition'
   | 'signerSnils'
+  | 'signerInn'
   | 'signerRepDoc'
   | 'phoneOverride'
   | 'addressOverride'
@@ -194,6 +208,7 @@ const manualInput = reactive<Record<ManualKey, string>>({
   pfrRegNumber: '',
   chairmanPosition: '',
   signerSnils: '',
+  signerInn: '',
   signerRepDoc: '',
   phoneOverride: '',
   addressOverride: '',
@@ -281,6 +296,7 @@ const signerTypeOptions = [
 // пользователь прожал пару цифр и нажал «Сохранить»: mask не мешает
 // сохранить частичный ввод, паттерн-правило блокирует.
 const SNILS_PATTERN = /^\d{3}-\d{3}-\d{3} \d{2}$/
+const INN_FL_PATTERN = /^\d{12}$/
 const SFR_REG_PATTERN = /^\d{10}$/
 const PFR_REG_PATTERN = /^\d{3}-\d{3}-\d{6}$/
 

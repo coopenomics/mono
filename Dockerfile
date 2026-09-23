@@ -11,7 +11,7 @@
 #      ставятся отдельно для удобного запуска `pnpm -F <pkg> run start`.
 #
 # Финальный размер: ~1-1.5GB (вместо 7.36GB в одностадийной сборке).
-# Все потребители mono-base (controller/desktop/parser/notifications/
+# Все потребители mono-base (controller/desktop/notifications/
 # notificator/boot) пользуются одним и тем же тонким runtime-образом
 # через `FROM dicoop/mono-base:<tag>` + `CMD`.
 
@@ -74,7 +74,6 @@ RUN lerna run build
 #    а quasar (devDep) уже снесён → ELIFECYCLE.
 #
 # Все production-сервисы переведены на runtime без devDeps:
-#   cooparser     → `node ./dist/index.cjs`
 #   notifications → `node ./dist/sync/sync-runner.cjs` (entry добавлен в unbuild)
 #   coopback      → `node dist/src/index.js` (сборка пакета в стадии builder;
 #                    `tsconfig-paths` в deps — только резолв алиасов `~/*`)

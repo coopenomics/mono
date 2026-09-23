@@ -83,10 +83,11 @@
       thead
         tr
           th(style='width:5%') №
-          th(style='width:22%') Фамилия
-          th(style='width:20%') Имя
-          th(style='width:20%') Отчество
-          th(style='width:18%') СНИЛС
+          th(style='width:18%') Фамилия
+          th(style='width:16%') Имя
+          th(style='width:16%') Отчество
+          th(style='width:15%') ИНН
+          th(style='width:15%') СНИЛС
           th(style='width:15%') Сумма выплат, ₽
       tbody
         tr(v-for='(p, i) in persons' :key='i')
@@ -94,11 +95,12 @@
           td {{ p.lastName || '—' }}
           td {{ p.firstName || '—' }}
           td {{ p.middleName || '—' }}
+          td.code {{ p.inn || '—' }}
           td.code {{ p.snils || '—' }}
           td.num {{ fmtZero(p.sumVypl) }}
         tr(v-if='persons.length === 0')
           td.num —
-          td(colspan='5') Нет персонифицированных сведений
+          td(colspan='6') Нет персонифицированных сведений
 
     .signature-line
       .sig-col.signature
@@ -132,6 +134,7 @@ interface PersonRow {
   lastName: string
   firstName: string
   middleName: string
+  inn: string
   snils: string
   sumVypl: number
 }
@@ -146,6 +149,7 @@ const persons = computed<PersonRow[]>(() => {
       lastName: fio?.getAttribute('Фамилия') ?? '',
       firstName: fio?.getAttribute('Имя') ?? '',
       middleName: fio?.getAttribute('Отчество') ?? '',
+      inn: n.getAttribute('ИННФЛ') ?? '',
       snils: n.getAttribute('СНИЛС') ?? '',
       sumVypl: Number(n.getAttribute('СумВыпл') ?? '0'),
     }

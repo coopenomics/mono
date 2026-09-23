@@ -90,6 +90,24 @@ describe('ЮKassa IPN: статус берётся у ЮKassa, а не из те
     expect(payments.update).toHaveBeenCalledWith('db-1', { status: PaymentStatus.PAID });
   });
 
+  it('платёж без секрета кооператива не проводится чужому пополнению', async () => {
+    // Пустой секрет выключал фильтр выборки, и оплату получал последний
+    // входящий платёж любого пайщика. Такой платёж создавали не мы — пропускаем.
+    const { ext, payments } = build();
+    getPayment.mockResolvedValue({
+      id: 'yk-1',
+      status: 'succeeded',
+      amount: { value: '100.00', currency: 'RUB' },
+      income_amount: { value: '100.00', currency: 'RUB' },
+      metadata: {},
+    });
+
+    await ext.handleIPN(notice('payment.succeeded', '100.00'));
+
+    expect(payments.list).not.toHaveBeenCalled();
+    expect(payments.update).not.toHaveBeenCalled();
+  });
+
   it('ЮKassa не отвечает — ошибка, чтобы уведомление пришло повторно', async () => {
     const { ext, noticeLog } = build();
     getPayment.mockRejectedValue(new Error('timeout'));

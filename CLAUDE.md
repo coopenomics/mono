@@ -10,7 +10,7 @@
 | Frontend (UI пайщика) | **`components/desktop/`** | **Vue 3 + Quasar** в SSR-режиме (`quasar dev --mode ssr`) |
 | Контракты | `components/contracts/` | EOSIO/CDT, C++ |
 | SDK для frontend | `components/sdk/` | TypeScript, авто-генерится из controller GraphQL schema |
-| Parser blockchain | `components/parser/` | TypeScript |
+| Parser blockchain | `parser2` (пакет `@coopenomics/parser2`, конфиг `parser2.config.yaml`) | TypeScript |
 | Boot/orchestration | `components/boot/` | TypeScript |
 
 **Frontend (`components/desktop/`) — FSD структура:** `src/{app,pages,processes,widgets,features,entities,shared,stores,desktops,boot}/`.
@@ -203,6 +203,41 @@ CI: Actions работают на GitHub-зеркале; PR туда не поп
 4. Возвращает `{tokens: {access: {token}, refresh: {token}}, account: {username}}`.
 
 **Не дёргать `Mutations.Auth.Login` напрямую** — `LoginInput` ждёт `{email, now, signature}`, генерация подписи внутри SDK Client. Refresh: `Mutations.Auth.Refresh.mutation` с `{access_token, refresh_token}`. Канон используется в `blago-cli/src/session/index.ts` (loginInteractive) и в EMP-коннекторе `connectors/cooperative-tsk-login-connector` (Story 11.5).
+
+## Ответ по факту из цепи — транзакция ждёт свой блок, экран живёт по ленте (гейты)
+
+Решение владельца 23.09.2026 (ветка `feat/edubridge-epic`). Две половины одного правила:
+
+**Сервер.** `BlockchainService.transact` — единственная отправка в цепь — возвращается, когда узел
+разобрал блок транзакции целиком (дельты сохранены, слушатели отработали). Любая мутация
+отвечает уже изменёнными данными; писать для этого ничего не нужно. Предел
+`BLOCKCHAIN_WRITE_WAIT_DELTA_MS`; изнутри разбора цепи транзакции не ждут. Подробности —
+`components/controller/CLAUDE.md`, «Write-mutation pattern».
+
+**Экран.** Экран, который грузит данные при открытии, подключает живое обновление по ленте
+изменений цепи (подписка `chainChanges`, одна на приложение):
+
+```ts
+useLiveReload([liveTable(CapitalContract, CapitalContract.Tables.Contributors)], reload)
+```
+
+Таблица должна быть объявлена в ленте: ядро — `chain-changes.service.ts`, расширение — порт
+`CHAIN_CHANGES_PORT` в `initialize()`. Личные таблицы (`owner_field`) получает только владелец
+строки и совет. Двойное обновление после мутации (ответ + сигнал) сливается одним полётом.
+После мутации — `live.refresh()` или сразу перечитать; **никаких `setTimeout`/`sleep`,
+«оптимистичных» патчей и циклов ожидания** ни на сервере, ни на столе.
+
+**Гейты** (`pnpm check`, ярус F, `pnpm check:fact`) — снимок долга, режим «тронул — перевёл»:
+файл, изменённый после коммита снимка, обязан быть чист.
+
+| гейт | что ловит | как чинить |
+|---|---|---|
+| пауза вместо факта | таймер без `// timing: <debounce\|throttle\|backoff\|timeout\|animation\|schedule\|ui> — зачем` | паузу после мутации убрать; законный таймер пометить |
+| транзакция мимо факта | отправка в цепь мимо `BlockchainService.transact` (жёстко); `waitAfterTransactBeforeChainTableRead` (долг) | слать через `transact`; паузу убрать |
+| экран без зеркала | `pages/`/`widgets/` грузят данные при открытии или опрашивают по таймеру без `useLiveReload` | подключить `useLiveReload`; нет источника — `// realtime: нет источника — <причина>` |
+
+Снимки — `scripts/lib/{timing,transact-fact,live-mirror}-baseline.json`, только вниз:
+`node scripts/check-<гейт>.mjs --update` отказывается, если долг вырос.
 
 ## DRY — любое 2-кратное повторение выносится в общее (ОБЯЗАТЕЛЬНО)
 

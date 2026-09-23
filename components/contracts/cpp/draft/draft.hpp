@@ -52,6 +52,8 @@ public:
   void apply(uint64_t receiver, uint64_t code, uint64_t action);
   
   [[eosio::action]] void migrate();
+  /// Очистка отработавших записей по правилам контракта (lib/core/cleanup.hpp); плейбук вызывает её на каждом деплое.
+  [[eosio::action]] void cleanup();
   
   [[eosio::action]] void newid(eosio::name scope, uint64_t id);
 

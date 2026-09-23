@@ -1,0 +1,54 @@
+feature: platform.list-sort-order-by
+title: Поле сортировки списков — только колонка сущности
+
+# Поле сортировки приходит от клиента в общем вводе пагинации и уходит в
+# ORDER BY строкой: TypeORM вставляет его в SQL как есть, параметром его не
+# передать. До 23.09.2026 журнал расширений и решения председателя брали поле
+# без проверки, и член совета мог дописать в сортировку подзапрос и посимвольно
+# вычитать базу кооператива. Найдено седьмым заходом аудита прав, задача C28-42.
+#
+# Рубежей два. На входе имя поля отсекается по шаблону (латиница, цифры,
+# подчёркивание) — и декоратором ввода, и общей проверкой пагинации. В
+# репозитории пропускается только колонка своей сущности, остальное молча
+# заменяется умолчанием (тот же помощник, что в списках Благороста).
+
+sources:
+  backend:
+    - components/extension-kit/src/dto/pagination.dto.ts
+    - components/extension-kit/src/utils/sort-column.utils.ts
+    - components/controller/src/infrastructure/database/typeorm/repositories/typeorm-log-extension.repository.ts
+    - components/controller/src/infrastructure/database/typeorm/repositories/agreement.typeorm-repository.ts
+    - components/controller/src/extensions/chairman/infrastructure/repositories/approval.typeorm-repository.ts
+
+cases:
+  - id: platform.sort.happy.01
+    level: backend
+    kind: happy
+    scenario: список запрашивается с сортировкой по колонке сущности
+    expect: сортировка применяется по этой колонке
+    test: components/controller/tests/unit/shared/list-sort-order-by.test.ts
+    status: passing
+
+  - id: platform.sort.break.01
+    level: backend
+    kind: break
+    scenario: в поле сортировки дописан подзапрос или посторонние символы
+    expect: ввод отклоняется до построения запроса
+    test: components/controller/tests/unit/shared/list-sort-order-by.test.ts
+    status: passing
+
+  - id: platform.sort.break.02
+    level: backend
+    kind: break
+    scenario: в поле сортировки допустимое по символам имя, которого нет среди колонок сущности
+    expect: сортировка по умолчанию; чужая колонка в запрос не попадает
+    test: components/controller/tests/unit/shared/list-sort-order-by.test.ts
+    status: passing
+
+  - id: platform.sort.break.03
+    level: backend
+    kind: break
+    scenario: направление сортировки не ASC и не DESC
+    expect: журнал расширений сортирует по убыванию, строка клиента в запрос не попадает
+    test: components/controller/tests/unit/shared/list-sort-order-by.test.ts
+    status: passing

@@ -87,8 +87,8 @@ fi
 
 # 7. Если что-то правили — пересоздать контейнеры
 if [[ "${NEED_RECREATE:-0}" == "1" ]]; then
-  log "Пересоздаю coopback/cooparser, чтобы подхватить новый env / новые бинарники..."
-  docker compose up -d --force-recreate --no-deps coopback cooparser
+  log "Пересоздаю coopback/parser2, чтобы подхватить новый env / новые бинарники..."
+  docker compose up -d --force-recreate --no-deps coopback parser2
 fi
 
 # 8. Дождаться coopback HTTP

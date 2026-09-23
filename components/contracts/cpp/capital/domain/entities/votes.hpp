@@ -115,6 +115,22 @@ namespace Votes {
     }
 
     /**
+     * @brief Удаляет голоса проекта.
+     *
+     * Голоса читает только расчёт премии (calcvotes), а он возможен лишь в
+     * статусе result. Финализированному и удалённому проекту голоса не нужны;
+     * хеш удалённого проекта может занять новый проект, и чужие голоса ложно
+     * отметили бы его участников как проголосовавших.
+     */
+    inline void erase_project_votes(name coopname, const checksum256 &project_hash) {
+        votes_index votes(_capital, coopname.value);
+        auto idx = votes.get_index<"byproject"_n>();
+        for (auto itr = idx.lower_bound(project_hash); itr != idx.end() && itr->project_hash == project_hash;) {
+            itr = idx.erase(itr);
+        }
+    }
+
+    /**
      * @brief Добавляет голос в проект
      */
     inline void add_vote(name coopname, checksum256 project_hash, 

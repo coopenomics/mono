@@ -14,8 +14,7 @@ import type { ArtifactAccessScope } from '../../domain/repositories/artifact-acc
 import { IssueIdGenerationService } from '../../domain/services/issue-id-generation.service';
 import { ProjectOrigin } from '../../domain/enums/project-origin.enum';
 import type { ProjectPriority } from '../../domain/enums/project-priority.enum';
-import { PaginationInputDTO, PaginationResult, PaginationUtils, DomainToBlockchainUtils, AssetUtils } from '@coopenomics/extension-kit';
-import { resolveSortColumn } from './sort-column.util';
+import { PaginationInputDTO, PaginationResult, PaginationUtils, DomainToBlockchainUtils, AssetUtils, resolveSortColumn } from '@coopenomics/extension-kit';
 
 /**
  * Среднее по процентным полям проекта и его компонентов.

@@ -158,7 +158,18 @@ export class YookassaExtension extends IPNProvider {
     if (!exist) {
       await this.noticeLog.record({ provider: 'yookassa', data: request });
 
-      const { secret } = request.object.metadata;
+      const secret = request.object.metadata?.secret;
+      // Без секрета платёж не наш: его создавали не мы (ссылка из кабинета ЮKassa,
+      // другой сервис того же магазина). Пустой секрет выключил бы фильтр выборки,
+      // и оплату получил бы последний входящий платёж любого пайщика.
+      if (typeof secret !== 'string' || !secret) {
+        this.logger.warn('Платёж ЮKassa без секрета кооператива — уведомление пропущено', {
+          source: 'handleIPN',
+          requestId: request.object.id,
+          event,
+        });
+        return;
+      }
       const payments = await this.payments.list(
         {
           secret,

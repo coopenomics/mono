@@ -13,7 +13,7 @@ import type {
   PaginationInputDomainInterface,
   PaginationResultDomainInterface,
 } from '~/domain/common/interfaces/pagination.interface';
-import { PaginationUtils } from '@coopenomics/extension-kit';
+import { PaginationUtils, resolveSortColumn } from '@coopenomics/extension-kit';
 
 /**
  * TypeORM реализация репозитория соглашений
@@ -98,7 +98,8 @@ export class AgreementTypeormRepository
 
     // Добавляем сортировку
     if (validatedOptions.sortBy) {
-      queryBuilder.orderBy(`agreement.${validatedOptions.sortBy}`, validatedOptions.sortOrder);
+      const sortBy = resolveSortColumn(this.repository, validatedOptions.sortBy, '_created_at');
+      queryBuilder.orderBy(`agreement.${sortBy}`, validatedOptions.sortOrder);
     } else {
       queryBuilder.orderBy('agreement._created_at', 'DESC');
     }

@@ -11,7 +11,7 @@
  * Реестр случаев: test-registry/capital.list-filters-sort.yaml
  */
 
-import { resolveSortColumn } from '~/extensions/capital/infrastructure/repositories/sort-column.util';
+import { resolveSortColumn } from '@coopenomics/extension-kit';
 
 function makeRepository(columns: Array<{ propertyName: string; databaseName: string }>) {
   return { metadata: { columns } } as any;

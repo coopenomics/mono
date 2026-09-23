@@ -13,6 +13,12 @@ import { VAULT_PORT, type IVaultPort,
   type IChainPort,
   type InnerTransactResult,
 } from '@coopenomics/innercoop';
+import { chainTextDigest } from '../../../domain/utils/chain-text-digest';
+
+/** Описание и приглашение уходят в цепь хешем, текст остаётся в базе контроллера. */
+function withChainTextDigests<T extends { description: string; invite: string }>(data: T): T {
+  return { ...data, description: chainTextDigest(data.description), invite: chainTextDigest(data.invite) };
+}
 
 /**
  * Инфраструктурный сервис для реализации блокчейн порта CAPITAL
@@ -92,7 +98,7 @@ export class CapitalBlockchainAdapter implements CapitalBlockchainPort {
       account: CapitalContract.contractName.production,
       name: CapitalContract.Actions.CreateProject.actionName,
       authorization: [{ actor: data.coopname, permission: 'active' }],
-      data,
+      data: withChainTextDigests(data),
     });
   }
 
@@ -126,7 +132,7 @@ export class CapitalBlockchainAdapter implements CapitalBlockchainPort {
       account: CapitalContract.contractName.production,
       name: CapitalContract.Actions.EditProject.actionName,
       authorization: [{ actor: data.coopname, permission: 'active' }],
-      data,
+      data: withChainTextDigests(data),
     });
   }
 

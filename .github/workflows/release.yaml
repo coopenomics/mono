@@ -410,9 +410,6 @@ jobs:
 
           build_service desktop       '@coopenomics/desktop'        start
           build_service coopback      '@coopenomics/controller'     start
-          # TEMP: cooparser — пока не мигрировали потребителей на dicoop/parser
-          # из отдельного coopenomics/parser repo.
-          build_service cooparser     '@coopenomics/parser'         start
           build_service notificator   'coop-notificator'            start
           build_service notifications '@coopenomics/notifications'  sync
 

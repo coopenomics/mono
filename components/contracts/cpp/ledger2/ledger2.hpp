@@ -138,6 +138,8 @@ public:
    * @note Авторизация требуется от аккаунта: @p ledger2 (get_self()).
    */
   [[eosio::action]] void migrate();
+  /// Очистка отработавших записей по правилам контракта (lib/core/cleanup.hpp); плейбук вызывает её на каждом деплое.
+  [[eosio::action]] void cleanup();
 
   /**
    * @brief Идемпотентная per-record миграция L3-балансов (Phase 1/2; ADR-008).

@@ -169,7 +169,7 @@ export class MarketplaceEconomyService {
 
   private toContractPercent(human: number, label: string): number {
     if (!Number.isFinite(human) || human < 0 || human > 100) {
-      throw new BadRequestException(`${label} должна быть в диапазоне от 0 до 100 процентов`);
+      throw new BadRequestException(`Значение «${label}» должно быть в диапазоне от 0 до 100 процентов`);
     }
     return Math.round((human * HUNDR_PERCENTS) / 100);
   }
@@ -265,11 +265,11 @@ export class MarketplaceEconomyService {
   }
 
   async setMembershipFee(coopname: string, feePercentHuman: number): Promise<number> {
-    // Человеку это поле известно как «наценка» (стол администратора) —
+    // Человеку это поле известно как «целевой членский взнос» (стол администратора) —
     // сообщение об ошибке должно говорить его словами.
     const membership_fee_percent = this.toContractPercent(
       feePercentHuman,
-      'Наценка'
+      'Целевой членский взнос'
     );
     try {
       await this.chainPort.setFee({ coopname, membership_fee_percent });

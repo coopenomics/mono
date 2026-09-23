@@ -50,6 +50,20 @@ export default boot(({ app, router }) => {
         // без перехвата. Кабинет от этого не страдает.
         /^(Error: )?Chatwoot not loaded$/,
       ],
+      // Кошельковое расширение браузера (MetaMask и подобные, EIP-1193)
+      // отклоняет свой промис объектом { code: -32603, message: 'Internal
+      // JSON-RPC error.' } без перехвата. Кабинет JSON-RPC не использует — цепь
+      // читается по HTTP, — так что это чужая ошибка на нашей странице (группа
+      // #7 GlitchTip). Фильтр по самому объекту, а не через ignoreErrors: текст
+      // события там общий («Object captured as promise rejection with keys:
+      // code, message») и спрятал бы и наши отклонения с такими же полями.
+      beforeSend(event, hint) {
+        const rejected = hint?.originalException as { code?: unknown; message?: unknown } | undefined;
+        if (rejected?.code === -32603 && rejected?.message === 'Internal JSON-RPC error.') {
+          return null;
+        }
+        return event;
+      },
     });
   } catch (error) {
     console.error('Failed to initialize Sentry:', error);

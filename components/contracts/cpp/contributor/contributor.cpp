@@ -305,3 +305,15 @@ void contributor::process_property(const name& coopname, const name& username, c
     update_global_state(gs);
 }
 
+/**
+ * @brief Очистка отработавших записей (lib/core/cleanup.hpp).
+ *
+ * Правил нет: выплата удаляется после оплаты, остальное — балансы и накопители.
+ *
+ * @note Авторизация требуется от аккаунта контракта.
+ */
+void contributor::cleanup() {
+  require_auth(get_self());
+  Cleanup::budget budget;
+  Cleanup::report(get_self(), budget);
+}

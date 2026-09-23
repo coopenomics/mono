@@ -4,7 +4,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { LogExtensionEntity } from '../entities/log-extension.entity';
-import { LogExtensionDomainRepository, LogExtensionDomainEntity } from '@coopenomics/extension-kit';
+import { LogExtensionDomainRepository, LogExtensionDomainEntity, resolveSortColumn } from '@coopenomics/extension-kit';
 import type {
   LogExtensionFilter,
   LogExtensionPaginationOptions,
@@ -67,8 +67,8 @@ export class TypeOrmLogExtensionDomainRepository<TLog = any> implements LogExten
     const totalCount = await queryBuilder.getCount();
 
     // Применяем сортировку
-    const sortBy = options?.sortBy || 'created_at';
-    const sortOrder = options?.sortOrder || 'DESC';
+    const sortBy = resolveSortColumn(this.ormRepo, options?.sortBy, 'created_at');
+    const sortOrder = options?.sortOrder === 'ASC' ? 'ASC' : 'DESC';
     queryBuilder.orderBy(`log.${sortBy}`, sortOrder);
 
     // Применяем пагинацию

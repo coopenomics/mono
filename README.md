@@ -22,7 +22,6 @@
 | [factory](components/factory) | `@coopenomics/factory` | Генератор юридических документов |
 | [migrator](components/migrator) | `migrator` | Утилита миграции данных |
 | [notifications](components/notifications) | `@coopenomics/notifications` | Библиотека уведомлений на основе Novu |
-| [parser](components/parser) | `@coopenomics/parser` | Индексатор блокчейна через State History Plugin |
 | [sdk](components/sdk) | `@coopenomics/sdk` | TypeScript SDK для GraphQL API |
 | [setup](components/setup) | `@coopenomics/setup` | Мастер первоначальной настройки |
 

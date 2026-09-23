@@ -1,0 +1,86 @@
+feature: capital.project-chain-texts
+title: Тексты проектов Благороста хранятся в базе, в цепи — их хеш
+
+# Проект Благороста — документ кооператива, и память цепи под него оплачивает
+# кооператив, пока проект открыт. Описания занимали 345 КБ из 406 КБ таблицы
+# проектов восхода, одна «Концепция» — 62 КБ (C28-78, замер 22.09.2026).
+#
+# Описание и приглашение живут в базе контроллера и в истории редакций, в
+# строке capital::projects лежит sha256 текста или пустая строка. Контракт
+# другое значение не принимает, контроллер считает хеш на границе с цепью и
+# при синхронизации текст в базе хешем не заменяет. Старые строки переводит
+# capital::migrate: хеш считается в цепи от тех же байтов и совпадает с хешем
+# копии текста в базе, контроллер сверяет их на каждой дельте.
+
+sources:
+  contract:
+    - components/contracts/cpp/capital/domain/entities/projects.hpp
+    - components/contracts/cpp/capital/app/contract_managment/migrate/migrate.cpp
+  backend:
+    - components/controller/src/extensions/capital/domain/utils/chain-text-digest.ts
+    - components/controller/src/extensions/capital/application/syncers/project-sync.service.ts
+    - components/controller/src/extensions/capital/domain/entities/project.entity.ts
+
+cases:
+  - id: cap.texts.happy.01
+    level: contract
+    kind: happy
+    scenario: кооператив заводит проект с хешем описания
+    expect: в строке проекта лежит присланный хеш
+    test: components/boot/src/tests/capital-text-digest.test.ts
+    status: passing
+
+  - id: cap.texts.break.01
+    level: contract
+    kind: break
+    scenario: в createproj пришло описание текстом
+    expect: цепь отказывает, текст в память не попадает
+    test: components/boot/src/tests/capital-text-digest.test.ts
+    status: passing
+
+  - id: cap.texts.break.02
+    level: contract
+    kind: break
+    scenario: в editproj пришло приглашение текстом
+    expect: цепь отказывает; хеш того же приглашения принимается
+    test: components/boot/src/tests/capital-text-digest.test.ts
+    status: passing
+
+  - id: cap.texts.side.01
+    level: backend
+    kind: side
+    scenario: приходит дельта проекта, где в цепи хеш
+    expect: описание и приглашение в базе остаются прежними
+    test: components/controller/tests/unit/capital/chain-text-digest.test.ts
+    status: passing
+
+  - id: cap.texts.side.02
+    level: backend
+    kind: side
+    scenario: приходит дельта строки, записанной до выноса текстов
+    expect: текст из цепи копируется в базу, как раньше
+    test: components/controller/tests/unit/capital/chain-text-digest.test.ts
+    status: passing
+
+  - id: cap.texts.side.03
+    level: backend
+    kind: side
+    scenario: текст в базе не даёт хеш, который лежит в цепи
+    expect: расхождение по полю попадает в журнал ошибок
+    test: components/controller/tests/unit/capital/chain-text-digest.test.ts
+    status: passing
+
+  - id: cap.texts.side.04
+    level: contract
+    kind: side
+    scenario: capital::migrate на цепи со старыми текстами и повторный прогон
+    expect: >
+      тексты заменены их sha256, пустые поля остались пустыми; повторный прогон
+      строки не переписывает
+    # На новой цепи строку с текстом не завести — контракт её отвергнет, поэтому
+    # проверка идёт выкатом: хеши в цепи сверяются с sha256 текстов из копии
+    # таблицы до миграции (~/shared/backups/c28-78). Разово проверено на
+    # mono-ai-1 22.09.2026: строки заведены прежним capital с тестнета, после
+    # migrate хеш совпал с sha256 Node на кириллице, emoji и переводах строк,
+    # пустые поля остались пустыми, повторный прогон ничего не изменил.
+    status: missing

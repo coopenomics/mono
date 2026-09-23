@@ -968,12 +968,17 @@ export default class Blockchain {
                       weight: 1,
                     },
                   ],
+                  // Право контракта действовать от своего имени (eosio.code) остаётся:
+                  // без него заявка на память из конструктора контракта роняет
+                  // любое его действие. Цепь требует список по возрастанию имени.
                   accounts: [
-                    {
-                      permission: { actor: delegate, permission: 'active' },
-                      weight: 1,
-                    },
-                  ],
+                    { permission: { actor: delegate, permission: 'active' }, weight: 1 },
+                    { permission: { actor: account, permission: 'eosio.code' }, weight: 1 },
+                  ].sort((a, b) => {
+                    const left = `${a.permission.actor}@${a.permission.permission}`
+                    const right = `${b.permission.actor}@${b.permission.permission}`
+                    return left < right ? -1 : left > right ? 1 : 0
+                  }),
                   waits: [],
                 },
               },

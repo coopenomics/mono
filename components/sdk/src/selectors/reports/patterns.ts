@@ -14,6 +14,9 @@ export const INN_PATTERN = /^(\d{10}|\d{12})$/;
 /** ИНН юрлица (БУХОТЧ, ЕФС-1 УТ8). */
 export const INN_UL_PATTERN = /^\d{10}$/;
 
+/** ИНН физлица (ПСВ ПерсСвФЛ @ИННФЛ). */
+export const INN_FL_PATTERN = /^\d{12}$/;
+
 /** КПП: 9 символов — 4 цифры + 2 [0-9A-Z] + 3 цифры. */
 export const KPP_PATTERN = /^\d{4}[0-9A-Z]{2}\d{3}$/;
 
@@ -65,6 +68,7 @@ export const KBK_PATTERN = /^\d{20}$/;
 export const reportRules = {
   inn: (message = 'ИНН — 10 или 12 цифр') => (v: unknown) => INN_PATTERN.test(String(v ?? '')) || message,
   innUl: (message = 'ИНН ЮЛ — 10 цифр') => (v: unknown) => INN_UL_PATTERN.test(String(v ?? '')) || message,
+  innFl: (message = 'ИНН физлица — 12 цифр') => (v: unknown) => INN_FL_PATTERN.test(String(v ?? '')) || message,
   kpp: (message = 'КПП — 4 цифры + 2 [0-9A-Z] + 3 цифры') => (v: unknown) => KPP_PATTERN.test(String(v ?? '')) || message,
   ogrn: (message = 'ОГРН — 13 цифр, ОГРНИП — 15') => (v: unknown) => OGRN_PATTERN.test(String(v ?? '')) || message,
   okved: (message = 'ОКВЭД — XX / XX.X / XX.XX / XX.XX.X / XX.XX.XX') => (v: unknown) => OKVED_PATTERN.test(String(v ?? '')) || message,

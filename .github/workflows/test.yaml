@@ -73,7 +73,7 @@ jobs:
       - name: Build all workspace packages
         run: pnpm lerna run build
 
-      # cooptypes + parser + notifications + controller.
+      # cooptypes + notifications + controller.
       # Юнит-тесты controller гоняются через `jest -i` (runInBand) — так же,
       # как требует CLAUDE.md для локального запуска.
       #

@@ -11,8 +11,7 @@ import { IContributorDatabaseData } from '../../domain/interfaces/contributor-da
 import type { ContributorFilterInputDTO } from '../../application/dto/participation_management/contributor-filter.input';
 import type { ContributorStatus } from '../../domain/enums/contributor-status.enum';
 import { AppendixStatus } from '../../domain/enums/appendix-status.enum';
-import { PaginationInputDTO, PaginationResult, PaginationUtils } from '@coopenomics/extension-kit';
-import { resolveSortColumn } from './sort-column.util';
+import { PaginationInputDTO, PaginationResult, PaginationUtils, resolveSortColumn } from '@coopenomics/extension-kit';
 
 @Injectable()
 export class ContributorTypeormRepository

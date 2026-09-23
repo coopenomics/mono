@@ -39,5 +39,6 @@ void capital::delproject(name coopname, checksum256 project_hash) {
   // удалена, а свободные средства программы на них не пополнены.
   Capital::Core::return_unused_investments(coopname, project.id);
 
+  Capital::Votes::erase_project_votes(coopname, project_hash);
   Capital::Projects::delete_project(coopname, project.id);
 }

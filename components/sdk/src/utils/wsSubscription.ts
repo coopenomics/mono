@@ -62,7 +62,7 @@ export interface WsSubscriptionHandle<Z, T> {
   isActive: () => boolean
 }
 
-export type WsHeadersProvider = HeadersInit | (() => HeadersInit)
+export type WsHeadersProvider = HeadersInit | (() => HeadersInit | Promise<HeadersInit>)
 
 export interface WsSubscriptionOptions {
   headers?: WsHeadersProvider
@@ -78,9 +78,9 @@ const RETRY_ATTEMPTS = Number.POSITIVE_INFINITY
 const RETRY_BASE_MS = 1_000
 const RETRY_MAX_MS = 30_000
 
-function resolveHeaders(headers?: WsHeadersProvider): HeadersInit {
+async function resolveHeaders(headers?: WsHeadersProvider): Promise<HeadersInit> {
   if (!headers) return {}
-  return typeof headers === 'function' ? headers() : headers
+  return typeof headers === 'function' ? await headers() : headers
 }
 
 function isBrowserOffline(): boolean {
@@ -103,9 +103,11 @@ export function wsSubscription(url: string, options: WsSubscriptionOptions = {})
       client = createClient({
         url,
         // Функция — чтобы Authorization подхватывался на каждом (ре)коннекте,
-        // а не замораживался снимком headers на момент создания.
-        connectionParams: () =>
-          Object.fromEntries(new Headers(resolveHeaders(options.headers)).entries()),
+        // а не замораживался снимком headers на момент создания. Асинхронная —
+        // чтобы перед подключением успеть взять свежий токен: сервер проверяет
+        // его один раз, при подключении, и протухший токен означал отказ.
+        connectionParams: async () =>
+          Object.fromEntries(new Headers(await resolveHeaders(options.headers)).entries()),
         keepAlive: KEEP_ALIVE_MS,
         retryAttempts: RETRY_ATTEMPTS,
         retryWait: async (retries) => {
