@@ -281,11 +281,39 @@ function glossaryProblems(messages) {
   return problems;
 }
 
+// Словарь, который никто не подключает, в приложение не попадёт: ядро
+// контроллера подключает свои явным импортом в src/i18n/index.ts (так сборка
+// кладёт их в dist), ядро desktop — через import.meta.glob, расширение —
+// импортом своего i18n/<язык>.json в собственном коде.
+function unconnectedProblems(app) {
+  const problems = [];
+  const files = listScanFiles();
+  for (const { file, extension } of dictionariesOf(app)) {
+    if (file.startsWith('components/i18n/')) continue;
+    if (!extension) {
+      if (app === 'controller') {
+        const index = readFileSync(join(REPO_ROOT, 'components/controller/src/i18n/index.ts'), 'utf8');
+        if (!index.includes(`./locales/ru/${basename(file)}`)) {
+          problems.push(`${file}: словарь не подключён — добавьте импорт в components/controller/src/i18n/index.ts`);
+        }
+      }
+      continue;
+    }
+    const extDir = file.replace(/\/i18n\/[^/]+$/, '/');
+    const connected = files.some(
+      (rel) => rel.startsWith(extDir) && /i18n\/ru\.json['"]/.test(readFileSync(join(REPO_ROOT, rel), 'utf8')),
+    );
+    if (!connected) problems.push(`${file}: словарь не подключён — импортируйте его в коде расширения и зарегистрируйте (registerMessages)`);
+  }
+  return problems;
+}
+
 function gateCatalog() {
   let failed = 0;
   for (const app of ['desktop', 'controller']) {
     const problems = [];
     const messages = loadApp(app, problems);
+    problems.push(...unconnectedProblems(app));
     problems.push(...compileProblems(messages));
     problems.push(...glossaryProblems(messages));
 

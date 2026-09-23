@@ -1,6 +1,7 @@
 {
   "errors": {
     "CHAIN_ASSERT": "{message}",
+    "CHAIN_ERROR": "{message}",
     "COMMON_BAD_REQUEST": "Неверный запрос",
     "COMMON_CONFLICT": "Конфликт данных",
     "COMMON_FORBIDDEN": "Доступ запрещен",

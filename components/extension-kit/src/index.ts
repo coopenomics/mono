@@ -41,3 +41,4 @@ export * from './blockchain/domain-to-blockchain.utils';
 export * from './utils';
 export * from './errors/http-api-error';
 export * from './errors/chain-error';
+export * from './errors/domain-error';

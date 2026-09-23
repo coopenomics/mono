@@ -2,7 +2,11 @@
 // Первым — предусловие: расширения читают настройки контура уже при построении
 // своих схем конфига, то есть раньше, чем выполнится любой код приложения.
 import './config/platform-bootstrap';
-import { Module } from '@nestjs/common';
+// Словари ядра регистрируются до загрузки модулей: отказы и надписи
+// переводятся уже при построении графа.
+import './i18n';
+import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
+import { LocaleMiddleware } from './i18n/locale.middleware';
 import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerModule } from '@nestjs/throttler';
@@ -224,4 +228,9 @@ import { MarketplaceExtensionModule } from './extensions/marketplace/marketplace
   ],
   exports: [],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  // Язык запроса — на весь запрос, до резолверов и валидации.
+  configure(consumer: MiddlewareConsumer): void {
+    consumer.apply(LocaleMiddleware).forRoutes('*');
+  }
+}
