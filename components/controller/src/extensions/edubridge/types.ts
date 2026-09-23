@@ -33,8 +33,9 @@ export interface IConfig {
   /** Связка с Благоростом: столы capital — только преподавателям, оферты capital при вступлении скрыты. */
   capital_integration: boolean;
   /**
-   * Наценка кооператива к себестоимости курса, проценты. Одна на кооператив:
-   * покрывает управление программой, издержки и возвраты по Положению ЦПП.
+   * Целевой членский взнос кооператива сверх себестоимости курса, проценты.
+   * Один на кооператив: покрывает управление программой, издержки и возвраты
+   * по Положению ЦПП. По умолчанию 30%.
    */
   markup_percent: number;
 }
@@ -45,7 +46,7 @@ export const defaultConfig: IConfig = {
   expiry_notice_days: 3,
   outbox_interval_sec: 30,
   capital_integration: true,
-  markup_percent: 0,
+  markup_percent: 30,
 };
 
 export const Schema = z.object({
@@ -122,10 +123,10 @@ export const Schema = z.object({
     .number()
     .min(0)
     .max(500)
-    .default(0)
+    .default(30)
     .describe(
       describeField({
-        label: 'Наценка кооператива, %',
+        label: 'Целевой членский взнос, %',
         note: 'Добавляется к себестоимости курса — часам преподавателей по их ставкам. Задаётся в разделе «Экономика» стола администратора.',
         visible: false,
       })

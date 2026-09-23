@@ -44,7 +44,7 @@ const BP_IN_PERCENT = 100;
 const MINUTES_IN_HOUR = 60;
 
 /**
- * Экономика программы: наценка кооператива, ставки часа преподавателей и
+ * Экономика программы: целевой членский взнос кооператива, ставки часа преподавателей и
  * расчёт членского взноса за курс. Суммы считает сервер — стол их только
  * показывает, поэтому взнос всегда соответствует часам и ставкам.
  */
@@ -137,7 +137,7 @@ export class EdubridgeEconomyService {
     return { markup_percent: markup, max_course_discount_percent: maxCourseDiscountPercent(markup) };
   }
 
-  /** Наценка одна на кооператив: меняется в разделе «Экономика», действует на все курсы. */
+  /** Целевой членский взнос один на кооператив: меняется в разделе «Экономика», действует на все курсы. */
   async setMarkup(markupPercent: number): Promise<EduEconomySettingsDTO> {
     const saved = await this.extensions.patchConfig(EDUBRIDGE_EXTENSION_NAME, { markup_percent: markupPercent });
     this.config.set(saved.config);
@@ -179,7 +179,7 @@ export class EdubridgeEconomyService {
     const discount = input.course_discount_percent ?? 0;
     if (discount > limit) {
       throw new BadRequestException(
-        `Скидка ${discount}% больше наценки кооператива: при наценке ${markup}% взнос за курс опустится ниже себестоимости. Предельная скидка — ${limit}%`
+        `Скидка ${discount}% больше целевого членского взноса: при взносе ${markup}% взнос за курс опустится ниже себестоимости. Предельная скидка — ${limit}%`
       );
     }
     return { fee_month: calc.fee_month };

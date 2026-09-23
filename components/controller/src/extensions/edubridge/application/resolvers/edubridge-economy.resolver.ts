@@ -20,7 +20,7 @@ import { EdubridgeEconomyService } from '../services/edubridge-economy.service';
 
 const coop = () => platformSettings().coopname;
 
-/** Экономика программы: наценка кооператива, ставки часа, расчёт взносов. */
+/** Экономика программы: целевой членский взнос кооператива, ставки часа, расчёт взносов. */
 @Resolver()
 @Injectable()
 export class EdubridgeEconomyResolver {
@@ -43,7 +43,7 @@ export class EdubridgeEconomyResolver {
     return this.expenses.create(coop(), m.username as string, data);
   }
 
-  @Query(() => EduEconomySettingsDTO, { name: 'edubridgeEconomySettings', description: 'Наценка кооператива и предельная скидка за взнос разом за весь курс' })
+  @Query(() => EduEconomySettingsDTO, { name: 'edubridgeEconomySettings', description: 'Целевой членский взнос кооператива и предельная скидка за взнос разом за весь курс' })
   @UseGuards(GqlJwtAuthGuard, EdubridgeAccessGuard)
   @RequireEduAccess('EduEconomy', 'read')
   edubridgeEconomySettings(): Promise<EduEconomySettingsDTO> {
@@ -57,7 +57,7 @@ export class EdubridgeEconomyResolver {
     return this.economy.fund(coop());
   }
 
-  @Mutation(() => EduEconomySettingsDTO, { name: 'edubridgeSetEconomySettings', description: 'Задать наценку кооператива' })
+  @Mutation(() => EduEconomySettingsDTO, { name: 'edubridgeSetEconomySettings', description: 'Задать целевой членский взнос кооператива' })
   @UseGuards(GqlJwtAuthGuard, EdubridgeAccessGuard)
   @RequireEduAccess('EduEconomy', 'manage')
   edubridgeSetEconomySettings(@Args('data') data: EduSetEconomySettingsInputDTO): Promise<EduEconomySettingsDTO> {

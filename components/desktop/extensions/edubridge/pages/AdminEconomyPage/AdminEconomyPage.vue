@@ -3,7 +3,7 @@
   PageHint.q-mb-md(storage-key="edu:admin-economy:banner-dismissed")
     | Взнос ученика удерживается, пока он вправе потребовать его назад, затем покрывает обязательство
     | перед преподавателями, а остаток становится свободными средствами фонда. Стоимость курса складывается
-    | снизу — часы занятий по ставке преподавателя плюс наценка, одна на весь кооператив.
+    | снизу — часы занятий по ставке преподавателя плюс целевой членский взнос, один на весь кооператив.
 
   PageTabs.q-mb-md(:tabs="tabs" :active-key="tab" @select="(t) => (tab = t.key)")
 
@@ -77,22 +77,23 @@
   template(v-else)
     .row.q-col-gutter-md
       .col-12.col-md-5
-        BaseCard(title="Наценка кооператива")
+        BaseCard(title="Целевой членский взнос")
           BaseForm(:loading="savingMarkup" @submit="onSaveMarkup")
             BaseInput(
               v-model="markup"
-              label="Наценка, %"
+              label="Целевой членский взнос, %"
               type="number"
-              :hint="`Предельная скидка за взнос разом за весь курс при этой наценке — ${maxDiscount}%`"
               required
             )
+              template(#append)
+                FieldHelp(:text="markupHelp")
             template(#footer)
               .row.justify-end
                 BaseButton(variant="primary" type="submit" :loading="savingMarkup") Сохранить
       .col-12.col-md-7
         BaseCard(title="Как считается взнос")
           DataRow(label="Себестоимость месяца" value="часы занятий × ставка преподавателя")
-          DataRow(label="Взнос за месяц" value="себестоимость + наценка кооператива")
+          DataRow(label="Взнос за месяц" value="себестоимость + целевой членский взнос кооператива")
           DataRow(label="Длительность курса" value="занятий в программе ÷ занятий в месяц, неполный месяц считается месяцем")
           DataRow(label="Взнос за весь курс разом" value="месячный × месяцы курса со скидкой; в середине курса — за оставшиеся месяцы")
           DataRow(label="Предел скидки" :value="`${maxDiscount}% — ниже себестоимости взнос не опускается`")
@@ -135,12 +136,13 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
+import { useRoute } from 'vue-router';
 import { useSystemStore } from 'src/entities/System/model';
 import { useFirstLoad } from 'src/shared/lib/composables';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { asDateInput, asText, formatToAsset } from 'src/shared/lib/utils';
 import { formatAsset2Digits, splitAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
-import { BaseButton, BaseCard, BaseDialog, BaseForm, BaseInput, BaseTable, EmptyState, type BaseTableColumn } from 'src/shared/ui/base';
+import { BaseButton, BaseCard, BaseDialog, BaseForm, BaseInput, BaseTable, EmptyState, FieldHelp, type BaseTableColumn } from 'src/shared/ui/base';
 import { DataRow, IdentityCell, PageHint, WalletCard } from 'src/shared/ui/domain';
 import { PageTabs, type PageTab } from 'src/shared/ui/layout';
 import { ReturnRequestsPanel } from '../../features/ReturnToShare';
@@ -163,7 +165,7 @@ import { fetchTeachers, type ITeacher } from '../../entities/Teacher';
  * Экономика программы. «Деньги» — где лежат средства кооператива по программе
  * и что с ними происходило: взнос ученика приходит на его членский кошелёк и
  * тем же действием уходит в фонд, из которого кооператив ведёт обучение.
- * «Настройки» — наценка кооператива и ставки часа преподавателей: из них
+ * «Настройки» — целевой членский взнос кооператива и ставки часа преподавателей: из них
  * складывается взнос за курс, поэтому они живут рядом.
  */
 const system = useSystemStore();
@@ -180,7 +182,6 @@ const rateOpen = ref(false);
 const rateTarget = ref<ITeacher | null>(null);
 const rate = ref('');
 const savingRate = ref(false);
-const tab = ref('money');
 const expenses = ref<IExpense[]>([]);
 const expenseOpen = ref(false);
 
@@ -190,6 +191,15 @@ const tabs: PageTab[] = [
   { key: 'returns', label: 'Выход из программы' },
   { key: 'settings', label: 'Настройки' },
 ];
+// Вкладку можно открыть ссылкой (?tab=settings) — так конструктор курса ведёт
+// к правке целевого членского взноса.
+const route = useRoute();
+const requestedTab = String(route.query.tab ?? '');
+const tab = ref(tabs.some((t) => t.key === requestedTab) ? requestedTab : 'money');
+const markupHelp = computed(
+  () =>
+    `Доля кооператива сверх себестоимости курса: идёт на ведение программы, издержки и возвраты по Положению ЦПП. Одна на все курсы. Предельная скидка за взнос разом за весь курс при этом взносе — ${maxDiscount.value}%.`,
+);
 
 const wallets = computed(() => fund.value?.wallets ?? []);
 // Список расходов собирает общий виджет шасси: заголовком идёт назначение
@@ -257,7 +267,7 @@ async function onSaveMarkup(): Promise<void> {
   try {
     const saved = await setEconomySettings({ markup_percent: Number(markup.value) });
     maxDiscount.value = saved.max_course_discount_percent;
-    SuccessAlert('Наценка сохранена — она действует на все курсы кооператива');
+    SuccessAlert('Целевой членский взнос сохранён — он действует на все курсы кооператива');
   } catch (e) {
     FailAlert(e);
   } finally {

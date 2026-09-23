@@ -7,16 +7,16 @@ const ASSET_PATTERN = /^\d+\.\d{4} [A-Z]{1,7}$/;
 /** Настройки экономики программы — одни на кооператив. */
 @ObjectType('EduEconomySettings')
 export class EduEconomySettingsDTO {
-  @Field(() => Float, { description: 'Наценка кооператива к себестоимости курса, проценты' })
+  @Field(() => Float, { description: 'Целевой членский взнос кооператива сверх себестоимости курса, проценты' })
   markup_percent!: number;
 
-  @Field(() => Float, { description: 'Предельная скидка за взнос разом за весь курс при этой наценке, проценты' })
+  @Field(() => Float, { description: 'Предельная скидка за взнос разом за весь курс при этом целевом членском взносе, проценты' })
   max_course_discount_percent!: number;
 }
 
 @InputType('EduSetEconomySettingsInput')
 export class EduSetEconomySettingsInputDTO {
-  @Field(() => Float, { description: 'Наценка кооператива к себестоимости курса, проценты' })
+  @Field(() => Float, { description: 'Целевой членский взнос кооператива сверх себестоимости курса, проценты' })
   @IsNumber()
   @Min(0)
   @Max(500)
@@ -73,7 +73,7 @@ export class EduCourseEconomyInputDTO {
   course_discount_percent?: number;
 }
 
-/** Расчёт взноса: себестоимость, наценка, взнос за месяц и за весь курс разом. */
+/** Расчёт взноса: себестоимость, целевой членский взнос, взнос за месяц и за весь курс разом. */
 @ObjectType('EduCourseFee')
 export class EduCourseFeeDTO {
   @Field(() => Float, { description: 'Часов занятий в месяц' })
@@ -82,7 +82,7 @@ export class EduCourseFeeDTO {
   @Field(() => String, { description: 'Себестоимость месяца — часы по ставке' })
   cost_month!: string;
 
-  @Field(() => String, { description: 'Наценка кооператива в сумме за месяц' })
+  @Field(() => String, { description: 'Целевой членский взнос кооператива в сумме за месяц' })
   markup_month!: string;
 
   @Field(() => String, { description: 'Членский взнос за месяц' })
@@ -103,10 +103,10 @@ export class EduCourseFeeDTO {
   @Field(() => String, { description: 'Себестоимость курса' })
   cost_course!: string;
 
-  @Field(() => Float, { description: 'Предельная скидка при текущей наценке, проценты' })
+  @Field(() => Float, { description: 'Предельная скидка при текущем целевом членском взносе, проценты' })
   max_course_discount_percent!: number;
 
-  @Field(() => Float, { description: 'Наценка кооператива, проценты' })
+  @Field(() => Float, { description: 'Целевой членский взнос кооператива, проценты' })
   markup_percent!: number;
 }
 

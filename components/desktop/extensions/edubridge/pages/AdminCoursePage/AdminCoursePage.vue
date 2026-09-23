@@ -55,7 +55,7 @@
           //- кто курс ведёт: плановый расчёт против ставок преподавателей.
           BaseCard(v-if="economy" variant="default" title="Экономика курса")
             DataRow(label="Себестоимость в месяц" :value="formatAsset2Digits(economy.plan.cost_month)" align="spread")
-            DataRow(:label="`Наценка, ${economy.plan.markup_percent}%`" :value="formatAsset2Digits(economy.plan.markup_month)" align="spread")
+            DataRow(:label="`Целевой членский взнос, ${economy.plan.markup_percent}%`" :value="formatAsset2Digits(economy.plan.markup_month)" align="spread")
             DataRow(label="Ставка часа по программе" :value="formatAsset2Digits(course.planned_hourly_rate)" align="spread")
             DataRow(label="По ставкам преподавателей" :value="formatAsset2Digits(economy.actual_cost_month)" align="spread")
             BaseBanner.q-mt-sm(v-if="economy.over_fee" variant="warn")

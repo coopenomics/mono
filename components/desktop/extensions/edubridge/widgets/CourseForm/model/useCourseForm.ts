@@ -3,7 +3,7 @@ import { Zeus } from '@coopenomics/sdk';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { useSystemStore } from 'src/entities/System/model';
 import { fileToBase64, formatToAsset, pluralize } from 'src/shared/lib/utils';
-import { fetchCourseFeePreview, type ICourseFee } from '../../../entities/Economy';
+import { fetchCourseFeePreview, fetchEconomySettings, type ICourseFee } from '../../../entities/Economy';
 import {
   CARRIER_LABELS,
   CARRIERS_BY_DIRECTION,
@@ -159,11 +159,11 @@ function useFeePreview(economy: ReturnType<typeof useEconomyFields>) {
   const fee = ref<ICourseFee | null>(null);
   const discountError = computed(() =>
     coursePayment.value && fee.value && Number(courseDiscount.value || 0) > fee.value.max_course_discount_percent
-      ? 'Скидка больше наценки — взнос за курс опустится ниже себестоимости'
+      ? 'Скидка больше целевого членского взноса — взнос за курс опустится ниже себестоимости'
       : '',
   );
   const discountHint = computed(() =>
-    fee.value ? `Предельная скидка при наценке ${fee.value.markup_percent}% — ${fee.value.max_course_discount_percent}%` : 'Скидка тем, кто вносит взнос за весь курс сразу',
+    fee.value ? `Скидка тем, кто вносит взнос за весь курс сразу. Предельная скидка при целевом членском взносе ${fee.value.markup_percent}% — ${fee.value.max_course_discount_percent}%.` : 'Скидка тем, кто вносит взнос за весь курс сразу',
   );
   /** Длительность курса следует из программы: занятий в программе на занятий в месяц. */
   const courseMonthsLabel = computed(() => {
@@ -304,6 +304,22 @@ function useTaxonomy(form: CourseFormFields) {
   return { sectionOptions, levelOptions };
 }
 
+/**
+ * Целевой членский взнос кооператива — один на все курсы, задаётся в разделе
+ * «Экономика». Форма показывает его сразу, до расчёта взноса курса.
+ */
+function useMembershipFee() {
+  const markupPercent = ref<number | null>(null);
+  onMounted(async () => {
+    try {
+      markupPercent.value = (await fetchEconomySettings()).markup_percent;
+    } catch (e) {
+      FailAlert(e);
+    }
+  });
+  return { markupPercent };
+}
+
 /** Преподаватели — пайщики с подписанным договором УХД, их может быть несколько. */
 function useTeachers(form: CourseFormFields) {
   const teachers = ref<ITeacherOption[]>([]);
@@ -375,6 +391,7 @@ export function createCourseFormState(course: CourseSource) {
   const access = useAccess(form);
   const teachers = useTeachers(form);
   const taxonomy = useTaxonomy(form);
+  const membershipFee = useMembershipFee();
 
   watch(
     () => course(),
@@ -411,7 +428,7 @@ export function createCourseFormState(course: CourseSource) {
     }
   }
 
-  return { symbol, loading, error, form, ...cover, ...economy, ...feePreview, ...access, ...teachers, ...taxonomy, submit };
+  return { symbol, loading, error, form, ...cover, ...economy, ...feePreview, ...access, ...teachers, ...taxonomy, ...membershipFee, submit };
 }
 
 export type CourseFormState = ReturnType<typeof createCourseFormState>;

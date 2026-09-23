@@ -44,7 +44,7 @@ BaseForm.edu-course-form(ref="formEl" :loading="loading" :error="error" @submit=
     input.edu-course-form__file(ref="fileInput" type="file" :accept="COURSE_IMAGE_ACCEPT" @change="onFilePicked")
 
   //- Взнос не вводится руками: он складывается из часов занятий по ставке
-  //- преподавателя и наценки кооператива. Так оплата ученика покрывает
+  //- преподавателя и целевого членского взноса кооператива. Так оплата ученика покрывает
   //- обязательства перед теми, кто курс ведёт.
   section.edu-course-form__section(v-if="show('price')")
     .edu-course-form__legend(v-if="!section") Стоимость
@@ -63,9 +63,19 @@ BaseForm.edu-course-form(ref="formEl" :loading="loading" :error="error" @submit=
 
     .edu-course-form__group
       .edu-course-form__group-title Ставка
-      BaseInput(v-model="plannedRate" label="Ставка часа" type="number" :suffix="symbol" required)
+      BaseInput(v-model="plannedRate" label="Ставка преподавателя за час" type="number" :suffix="symbol" required)
         template(#append)
           FieldHelp(:text="COURSE_FORM_HELP.plannedRate")
+
+    //- Целевой членский взнос один на кооператив: здесь он только виден, а
+    //- меняется в «Экономике» — кнопка ведёт туда, черновик курса сохраняется.
+    .edu-course-form__group
+      .edu-course-form__group-title Целевой членский взнос
+      .edu-course-form__fee-line
+        span.t-sm {{ markupPercent === null ? '______' : `${markupPercent}% сверх себестоимости курса` }}
+        FieldHelp(:text="COURSE_FORM_HELP.membershipFee")
+        q-space
+        BaseButton(variant="ghost" size="sm" type="button" @click="openEconomySettings") Редактировать
 
     .edu-course-form__group
       .edu-course-form__group-title Сроки
@@ -121,7 +131,7 @@ BaseForm.edu-course-form(ref="formEl" :loading="loading" :error="error" @submit=
           span.t-sm.t-muted Себестоимость в месяц
           span.t-sm.t-num {{ formatAsset2Digits(fee.cost_month) }}
         .edu-course-form__total-row
-          span.t-sm.t-muted Наценка кооператива, {{ fee.markup_percent }}%
+          span.t-sm.t-muted Целевой членский взнос, {{ fee.markup_percent }}%
           span.t-sm.t-num {{ formatAsset2Digits(fee.markup_month) }}
         template(v-if="courseFeeShown")
           .edu-course-form__total-row
@@ -196,6 +206,7 @@ BaseForm.edu-course-form(ref="formEl" :loading="loading" :error="error" @submit=
 
 <script setup lang="ts">
 import { ref } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { BaseButton, BaseCheckbox, BaseForm, BaseInput, BaseSelect, FieldHelp } from 'src/shared/ui/base';
 import { IdentityCell } from 'src/shared/ui/domain';
@@ -252,12 +263,20 @@ const {
   platformGroupOptions,
   sectionOptions,
   levelOptions,
+  markupPercent,
   teacherOptions,
   teacherName,
   teacherHint,
   addTeacher,
   removeTeacher,
 } = state;
+
+const route = useRoute();
+const router = useRouter();
+/** К правке целевого членского взноса — «Экономика», вкладка «Настройки». */
+function openEconomySettings(): void {
+  void router.push({ name: 'edubridge-admin-economy', params: { coopname: route.params.coopname }, query: { tab: 'settings' } });
+}
 
 const show = (section: CourseFormSection): boolean => !props.section || props.section === section;
 
@@ -322,6 +341,11 @@ defineExpose({ submit: requestSubmit, validate });
   display: flex;
   flex-direction: column;
   gap: var(--p-1);
+}
+.edu-course-form__fee-line {
+  display: flex;
+  align-items: center;
+  gap: var(--p-2);
 }
 .edu-course-form__check {
   display: flex;
