@@ -16,17 +16,18 @@
     template(v-else)
       VerticalStepper(v-if="steps.length > 1" :steps="steps" :active-key="activeStep.key" :completed="completedKeys")
         template(#active="{ step }")
-          EduGateDocumentStep(:key="step.key" v-bind="stepProps(step.key)" @signed="onSigned(step.key)")
+          EduGateDocumentStep(:key="step.key" v-bind="stepProps(step.key)")
             template(v-if="step.key === 'contract'" #before-agree)
               BaseInput(
                 v-model="hourlyRate"
-                label="Ставка часа"
+                label="Ваша ставка за час"
                 type="number"
                 :suffix="symbol"
-                hint="Стоимость вашего часа работы. Дальше её меняет администратор кооператива."
                 required
               )
-      EduGateDocumentStep(v-else :key="activeStep.key" v-bind="stepProps(activeStep.key)" @signed="onSigned(activeStep.key)")
+                template(#append)
+                  FieldHelp(text="Стоимость часа вашей работы преподавателем. Из ставки и часов занятий складывается взнос за курс. Дальше ставку меняет администратор кооператива в разделе «Экономика».")
+      EduGateDocumentStep(v-else :key="activeStep.key" v-bind="stepProps(activeStep.key)")
 </template>
 
 <script setup lang="ts">
@@ -37,7 +38,7 @@ import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { useDesktopStore } from 'src/entities/Desktop/model';
 import { useSystemStore } from 'src/entities/System/model';
 import { formatToAsset } from 'src/shared/lib/utils';
-import { BaseBanner, BaseCard, BaseInput, CardListSkeleton } from 'src/shared/ui/base';
+import { BaseBanner, BaseCard, BaseInput, CardListSkeleton, FieldHelp } from 'src/shared/ui/base';
 import { PageHint, VerticalStepper, type StepperStep } from 'src/shared/ui/domain';
 import type { DigitalDocument } from 'src/shared/lib/document';
 import { buildContractDocument, fetchMyContract, signContract, type IContract, type IContractDraft } from '../../../entities/Teacher';
@@ -128,6 +129,7 @@ function stepProps(key: string) {
       sign: async () => {
         const rate = formatToAsset(String(hourlyRate.value).replace(',', '.'), symbol.value);
         contract.value = await signContract(rate, contractDraft.value ?? undefined);
+        await onSigned(key);
       },
     };
   }
@@ -146,6 +148,7 @@ function stepProps(key: string) {
       // это занимает секунду-другую. Без ожидания шаг оставался открытым, а
       // следующий отвечал «сначала подпишите оферту».
       await waitForOffer();
+      await onSigned(key);
     },
   };
 }
@@ -170,6 +173,11 @@ async function load(): Promise<void> {
   }
 }
 
+/**
+ * Завершение подписи зовётся из функции подписи, а не событием шага: как только
+ * последний документ подписан, шаг снимается со страницы, и его событие «signed»
+ * уже никто не слышит — страница оставалась на скелетоне, не уходя на стол.
+ */
 async function onSigned(key: string): Promise<void> {
   SuccessAlert(key === 'contract' ? 'Договор подписан — ждёт подписи председателя совета' : 'Оферта подписана');
   if (!activeStep.value) await goToDesk();
