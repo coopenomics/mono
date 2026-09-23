@@ -204,29 +204,40 @@ CI: Actions работают на GitHub-зеркале; PR туда не поп
 
 **Не дёргать `Mutations.Auth.Login` напрямую** — `LoginInput` ждёт `{email, now, signature}`, генерация подписи внутри SDK Client. Refresh: `Mutations.Auth.Refresh.mutation` с `{access_token, refresh_token}`. Канон используется в `blago-cli/src/session/index.ts` (loginInteractive) и в EMP-коннекторе `connectors/cooperative-tsk-login-connector` (Story 11.5).
 
-## Ответ мутации — после факта из цепи, без пауз (ADR-009, переезд постепенный)
+## Ответ по факту из цепи — транзакция ждёт свой блок, экран живёт по ленте (гейты)
 
-Мутация, после которой стол сразу перечитывает данные, отвечает **после того,
-как изменения её транзакции пришли из цепи и легли в базу**, — одной строкой:
+Решение владельца 23.09.2026 (ветка `feat/edubridge-epic`). Две половины одного правила:
 
-```typescript
-const tx = await this.chain.createProgramInvest(data);
-await this.chainWait?.afterTransact(tx, [
-  { code: 'ledger2', table: 'userwallets', scope: coopname, match: byUser },
-]);
-return tx;   // стол перечитывает сразу
+**Сервер.** `BlockchainService.transact` — единственная отправка в цепь — возвращается, когда узел
+разобрал блок транзакции целиком (дельты сохранены, слушатели отработали). Любая мутация
+отвечает уже изменёнными данными; писать для этого ничего не нужно. Предел
+`BLOCKCHAIN_WRITE_WAIT_DELTA_MS`; изнутри разбора цепи транзакции не ждут. Подробности —
+`components/controller/CLAUDE.md`, «Write-mutation pattern».
+
+**Экран.** Экран, который грузит данные при открытии, подключает живое обновление по ленте
+изменений цепи (подписка `chainChanges`, одна на приложение):
+
+```ts
+useLiveReload([liveTable(CapitalContract, CapitalContract.Tables.Contributors)], reload)
 ```
 
-Порт `CHAIN_DELTA_WAIT_PORT` (innercoop) → `ChainDeltaWaiterService` (ядро);
-ждать таблицы, которые читает стол; не пришло за
-`BLOCKCHAIN_WRITE_WAIT_DELTA_MS` — ответ как есть. На столе после такой мутации
-перечитывать сразу: **никаких `setTimeout`/`sleep`, «оптимистичных» патчей и
-циклов ожидания перед чтением** — ни на сервере, ни на столе. Новые мутации —
-сразу по паттерну; старые паузы (`POST_CHAIN_REFETCH_MS`, `waitForStage`,
-`*_WAIT_ATTEMPTS`, `recentlySigned`) переводятся по одному, при касании.
-Подробности и порядок разбора событий — `components/controller/CLAUDE.md`,
-раздел «Write-mutation pattern». Канон: взнос в программу Благороста,
-решение председателя по одобрению (ветка `feat/edubridge-epic`, 23.09.2026).
+Таблица должна быть объявлена в ленте: ядро — `chain-changes.service.ts`, расширение — порт
+`CHAIN_CHANGES_PORT` в `initialize()`. Личные таблицы (`owner_field`) получает только владелец
+строки и совет. Двойное обновление после мутации (ответ + сигнал) сливается одним полётом.
+После мутации — `live.refresh()` или сразу перечитать; **никаких `setTimeout`/`sleep`,
+«оптимистичных» патчей и циклов ожидания** ни на сервере, ни на столе.
+
+**Гейты** (`pnpm check`, ярус F, `pnpm check:fact`) — снимок долга, режим «тронул — перевёл»:
+файл, изменённый после коммита снимка, обязан быть чист.
+
+| гейт | что ловит | как чинить |
+|---|---|---|
+| пауза вместо факта | таймер без `// timing: <debounce\|throttle\|backoff\|timeout\|animation\|schedule\|ui> — зачем` | паузу после мутации убрать; законный таймер пометить |
+| транзакция мимо факта | отправка в цепь мимо `BlockchainService.transact` (жёстко); `waitAfterTransactBeforeChainTableRead` (долг) | слать через `transact`; паузу убрать |
+| экран без зеркала | `pages/`/`widgets/` грузят данные при открытии или опрашивают по таймеру без `useLiveReload` | подключить `useLiveReload`; нет источника — `// realtime: нет источника — <причина>` |
+
+Снимки — `scripts/lib/{timing,transact-fact,live-mirror}-baseline.json`, только вниз:
+`node scripts/check-<гейт>.mjs --update` отказывается, если долг вырос.
 
 ## DRY — любое 2-кратное повторение выносится в общее (ОБЯЗАТЕЛЬНО)
 
