@@ -22,6 +22,10 @@ export function useCreateProgramInvest() {
 
   const isGenerating = ref(false);
   const generationError = ref(false);
+  // Весь путь взноса: заявление → подпись → транзакция → изменения из цепи.
+  // Отдельно от isGenerating: генерация заявления гасит свой флаг раньше, чем
+  // взнос завершится, и кнопка переставала крутиться посреди отправки.
+  const isSubmitting = ref(false);
 
   async function createProgramInvest(
     data: ICreateProgramInvestInput,
@@ -63,7 +67,7 @@ export function useCreateProgramInvest() {
     amount: string,
   ): Promise<ICreateProgramInvestOutput> {
     try {
-      isGenerating.value = true;
+      isSubmitting.value = true;
 
       const document = await generateProgramInvestStatement(amount);
       if (!document) {
@@ -96,7 +100,7 @@ export function useCreateProgramInvest() {
 
       return result;
     } finally {
-      isGenerating.value = false;
+      isSubmitting.value = false;
     }
   }
 
@@ -105,6 +109,7 @@ export function useCreateProgramInvest() {
     createProgramInvestWithGeneratedStatement,
     generateProgramInvestStatement,
     isGenerating,
+    isSubmitting,
     generationError,
   };
 }
