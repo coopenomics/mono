@@ -10,7 +10,7 @@
 | Frontend (UI пайщика) | **`components/desktop/`** | **Vue 3 + Quasar** в SSR-режиме (`quasar dev --mode ssr`) |
 | Контракты | `components/contracts/` | EOSIO/CDT, C++ |
 | SDK для frontend | `components/sdk/` | TypeScript, авто-генерится из controller GraphQL schema |
-| Parser blockchain | `components/parser/` | TypeScript |
+| Parser blockchain | `parser2` (пакет `@coopenomics/parser2`, конфиг `parser2.config.yaml`) | TypeScript |
 | Boot/orchestration | `components/boot/` | TypeScript |
 
 **Frontend (`components/desktop/`) — FSD структура:** `src/{app,pages,processes,widgets,features,entities,shared,stores,desktops,boot}/`.

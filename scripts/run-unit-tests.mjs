@@ -24,7 +24,6 @@ const REPORT_DIR = join(ROOT, 'node_modules', '.cache', 'unit-reports');
 
 const PACKAGES = [
   { title: 'cooptypes', filter: 'cooptypes', runner: 'vitest' },
-  { title: 'parser', filter: '@coopenomics/parser', runner: 'vitest' },
   { title: 'notifications', filter: '@coopenomics/notifications', runner: 'vitest' },
   // У SDK один каталог test/ на два набора: index.test.ts ходит в живой узел и
   // гоняется интеграцией (run-integration-tests.sh), остальные файлы — чистые

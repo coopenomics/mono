@@ -1,16 +1,15 @@
 # Конфиг индексера @coopenomics/parser2 для локального dev-стека (docker-compose.yaml).
 #
-# Зачем отдельный сервис: controller с переходом на ParserClient читает события
-# ТОЛЬКО из стрима `ce:parser2:<chain_id>:events`. Старый cooparser (components/parser)
-# пишет в стрим `notifications` и остаётся в стеке не как транспорт, а ради
-# explorer-API на :4000 — из него controller тянет историю действий
-# (SIMPLE_EXPLORER_API в agenda/document-аггрегаторах). Поэтому парсера в стеке два.
+# controller читает события ТОЛЬКО из стрима `ce:parser2:<chain_id>:events`.
+# Прежний индексатор (cooparser, components/parser) удалён 23.09.2026: историю
+# действий controller давно ведёт сам, а его открытый explorer-API на :4000
+# принимал фильтр запроса к Mongo прямо из адреса.
 #
 # Хосты — имена сервисов из docker-compose.yaml.
 
 ship:
   # state_history_plugin ноды: порт 8070 внутри сети compose (наружу проброшен
-  # как NODE_HISTORY_PORT). Тот же адрес, что у components/parser/.env → SHIP.
+  # как NODE_HISTORY_PORT).
   url: ws://node:8070
   timeoutMs: 15000
 
@@ -35,9 +34,8 @@ start:
   from: first
 
 publish:
-  # Список повторяет `subscribedContracts` из components/parser/src/config.ts —
-  # тот же набор, что парсер1 писал в стрим `notifications`. Без него в стрим
-  # уходит вся цепь: `eosio::onblock` и дельты `eosio::global`/`eosio::emission`
+  # Тот же набор контрактов, что прежний индексатор писал в стрим
+  # `notifications`. Без него в стрим уходит вся цепь: `eosio::onblock` и дельты `eosio::global`/`eosio::emission`
   # на каждом блоке, которые controller разбирает и выбрасывает как «wrong coopname».
   #
   # Добавляя контракт в стек, вписывать его сюда обязательно: не перечисленный
