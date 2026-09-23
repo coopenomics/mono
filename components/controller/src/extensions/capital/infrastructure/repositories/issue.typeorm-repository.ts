@@ -9,9 +9,8 @@ import { IssueMapper } from '../mappers/issue.mapper';
 import type { IssuePriority } from '../../domain/enums/issue-priority.enum';
 import { IssueStatus } from '../../domain/enums/issue-status.enum';
 import type { IssueFilterInputDTO } from '../../application/dto/generation/issue-filter.input';
-import { PaginationInputDTO, PaginationResult, PaginationUtils } from '@coopenomics/extension-kit';
+import { PaginationInputDTO, PaginationResult, PaginationUtils, resolveSortColumn } from '@coopenomics/extension-kit';
 import type { ArtifactAccessScope } from '../../domain/repositories/artifact-access-scope';
-import { resolveSortColumn } from './sort-column.util';
 
 @Injectable()
 export class IssueTypeormRepository implements IssueRepository {

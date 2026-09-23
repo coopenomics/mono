@@ -38,7 +38,7 @@ title: Списки Благороста — раздел «Компоненты
 
 sources:
   backend:
-    - components/controller/src/extensions/capital/infrastructure/repositories/sort-column.util.ts
+    - components/extension-kit/src/utils/sort-column.utils.ts
     - components/controller/src/extensions/capital/infrastructure/repositories/issue.typeorm-repository.ts
     - components/controller/src/extensions/capital/infrastructure/repositories/project.typeorm-repository.ts
     - components/controller/src/extensions/capital/infrastructure/repositories/commit.typeorm-repository.ts

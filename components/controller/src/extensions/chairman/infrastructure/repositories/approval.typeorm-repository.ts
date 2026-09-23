@@ -7,7 +7,7 @@ import { ApprovalMapper } from '../mappers/approval.mapper';
 import { BaseBlockchainRepository, EntityVersioningService } from '@coopenomics/extension-kit/sync';
 import type { ApprovalRepository } from '../../domain/repositories/approval.repository';
 import type { ApprovalFilterInput } from '../../application/dto/approval-filter.input';
-import { PaginationInputDTO, PaginationResult, PaginationUtils } from '@coopenomics/extension-kit';
+import { PaginationInputDTO, PaginationResult, PaginationUtils, resolveSortColumn } from '@coopenomics/extension-kit';
 
 /**
  * TypeORM реализация репозитория одобрений
@@ -87,7 +87,8 @@ export class ApprovalTypeormRepository
 
     // Добавляем сортировку
     if (validatedOptions.sortBy) {
-      queryBuilder.orderBy(`approval.${validatedOptions.sortBy}`, validatedOptions.sortOrder);
+      const sortBy = resolveSortColumn(this.repository, validatedOptions.sortBy, 'created_at');
+      queryBuilder.orderBy(`approval.${sortBy}`, validatedOptions.sortOrder);
     } else {
       queryBuilder.orderBy('approval.created_at', 'DESC');
     }

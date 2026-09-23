@@ -9,7 +9,7 @@ import type { TimeEntriesFilterDomainInterface } from '../../domain/interfaces/t
 import type { ContributorProjectBasicTimeStatsDomainInterface } from '../../domain/interfaces/time-stats-domain.interface';
 import type { TimeEntriesByIssuesDomainInterface } from '../../domain/interfaces/time-entries-by-issues-domain.interface';
 import type { PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
-import { resolveSortColumn } from './sort-column.util';
+import { resolveSortColumn } from '@coopenomics/extension-kit';
 
 /**
  * TypeORM реализация репозитория записей времени

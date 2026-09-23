@@ -8,9 +8,8 @@ import { StoryTypeormEntity } from '../entities/story.typeorm-entity';
 import { StoryMapper } from '../mappers/story.mapper';
 import type { StoryStatus } from '../../domain/enums/story-status.enum';
 import type { StoryFilterInputDTO } from '../../application/dto/generation/story-filter.input';
-import { PaginationInputDTO, PaginationResult, PaginationUtils } from '@coopenomics/extension-kit';
+import { PaginationInputDTO, PaginationResult, PaginationUtils, resolveSortColumn } from '@coopenomics/extension-kit';
 import type { ArtifactAccessScope } from '../../domain/repositories/artifact-access-scope';
-import { resolveSortColumn } from './sort-column.util';
 
 @Injectable()
 export class StoryTypeormRepository implements StoryRepository {

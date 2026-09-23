@@ -14,8 +14,7 @@ import { ResultTypeormEntity } from '../entities/result.typeorm-entity';
 import { VoteTypeormEntity } from '../entities/vote.typeorm-entity';
 import { ProjectTypeormEntity } from '../entities/project.typeorm-entity';
 import { SegmentStatus } from '../../domain/enums/segment-status.enum';
-import { PaginationInputDTO, PaginationResult, PaginationUtils, AssetUtils } from '@coopenomics/extension-kit';
-import { resolveSortColumn } from './sort-column.util';
+import { PaginationInputDTO, PaginationResult, PaginationUtils, AssetUtils, resolveSortColumn } from '@coopenomics/extension-kit';
 
 /** Нулевой хэш — признак «родителя нет»: проект верхнего уровня */
 const NULL_PROJECT_HASH = '0000000000000000000000000000000000000000000000000000000000000000';

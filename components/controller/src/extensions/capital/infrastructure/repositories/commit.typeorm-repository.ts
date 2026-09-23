@@ -10,8 +10,7 @@ import type { ICommitBlockchainData } from '../../domain/interfaces/commit-block
 import { BaseBlockchainRepository, EntityVersioningService } from '@coopenomics/extension-kit/sync';
 import type { ICommitDatabaseData } from '../../domain/interfaces/commit-database.interface';
 import type { CommitFilterInputDTO } from '../../application/dto/generation/commit-filter.input';
-import { PaginationInputDTO, PaginationResult, PaginationUtils } from '@coopenomics/extension-kit';
-import { resolveSortColumn } from './sort-column.util';
+import { PaginationInputDTO, PaginationResult, PaginationUtils, resolveSortColumn } from '@coopenomics/extension-kit';
 
 @Injectable()
 export class CommitTypeormRepository
