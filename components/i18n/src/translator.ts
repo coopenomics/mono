@@ -57,18 +57,23 @@ export function createTranslator(options: TranslatorOptions): Translator {
     },
   } as never);
 
+  // У translate десятки перегрузок с глубокими условными типами: их разбор
+  // упирается в предел глубины TypeScript (TS2589). Параметры мы проверяем
+  // своим интерфейсом выше, поэтому зовём ядро через простую сигнатуру.
+  const run = translate as unknown as (...args: unknown[]) => unknown;
+
   return {
     locale,
     t(key, params, plural) {
       let result: unknown;
       if (typeof params === 'number') {
-        result = translate(ctx as never, key, params);
+        result = run(ctx, key, params);
       } else if (plural !== undefined) {
-        result = translate(ctx as never, key, (params ?? {}) as never, { plural: plural } as never);
+        result = run(ctx, key, params ?? {}, { plural });
       } else if (params !== undefined) {
-        result = translate(ctx as never, key, params as never);
+        result = run(ctx, key, params);
       } else {
-        result = translate(ctx as never, key);
+        result = run(ctx, key);
       }
       return typeof result === 'string' ? result : key;
     },

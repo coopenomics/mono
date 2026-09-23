@@ -441,6 +441,7 @@ function applyCommand() {
     const edits = []; // { start, end, text, block? }
     const scriptNeedsT = new Set(); // смещение начала блока скрипта
     let needsDomainError = false;
+    let needsHttpStatus = false;
     const droppedExceptions = new Set();
 
     const isVue = rel.endsWith('.vue');
@@ -496,11 +497,14 @@ function applyCommand() {
       const paramsObj = exprs.length ? `, { ${exprs.map((e, i) => (e === paramNames[i] ? e : `${paramNames[i]}: ${e}`)).join(', ')} }` : '';
 
       // Отказ бэкенда: new XException('текст') → DomainError.x('КОД')
+      const STATUS_CLASS = { BadGatewayException: 'BAD_GATEWAY', ServiceUnavailableException: 'SERVICE_UNAVAILABLE', GatewayTimeoutException: 'GATEWAY_TIMEOUT' };
       const isError =
         owner.app === 'controller' &&
         f.origin !== 'template' &&
         f.newCallee &&
         ((EXCEPTION_FACTORY[f.newCallee] && f.argIndex === 0 && f.newArgs === 1) ||
+          (STATUS_CLASS[f.newCallee] && f.argIndex === 0 && f.newArgs === 1) ||
+          (f.newCallee === 'HttpException' && f.argIndex === 0 && f.newArgs === 2) ||
           (f.newCallee === 'HttpApiError' && f.argIndex === 1 && f.newArgs === 2));
       let key = decision.key;
       if (isError) {
@@ -513,9 +517,14 @@ function applyCommand() {
           skip(`код ${code} расширения должен начинаться с префикса расширения`);
           continue;
         }
-        const factory = f.newCallee === 'HttpApiError' ? factoryForStatus(f.statusExpr ?? '') : EXCEPTION_FACTORY[f.newCallee];
-        if (!factory) {
-          skip(`не разобран статус HttpApiError: ${f.statusExpr}`);
+        let factory = f.newCallee === 'HttpApiError' ? factoryForStatus(f.statusExpr ?? '') : EXCEPTION_FACTORY[f.newCallee];
+        // Статус без своей фабрики — конструктор DomainError со статусом.
+        let statusArg;
+        if (STATUS_CLASS[f.newCallee]) statusArg = `HttpStatus.${STATUS_CLASS[f.newCallee]}`;
+        if (f.newCallee === 'HttpException') statusArg = src.slice(f.newStart, f.newEnd).replace(/^new\s+HttpException\(/, '').split(',').slice(1).join(',').replace(/\)\s*$/, '').trim();
+        if (f.newCallee === 'HttpApiError' && !factory) statusArg = f.statusExpr;
+        if (!factory && !statusArg) {
+          skip(`не разобран статус ${f.newCallee}`);
           continue;
         }
         key = `errors.${code}`;
@@ -534,13 +543,26 @@ function applyCommand() {
         report.dicts.add(dictRel);
         if (!owner.ext) coreControllerDicts.add(dictDomain);
         const paramsArg = exprs.length ? `, { ${exprs.map((e, i) => (e === paramNames[i] ? e : `${paramNames[i]}: ${e}`)).join(', ')} }` : '';
-        edits.push({ start: f.newStart, end: f.newEnd, text: `DomainError.${factory}('${code}'${paramsArg})` });
+        if (statusArg && !factory) {
+          edits.push({ start: f.newStart, end: f.newEnd, text: `new DomainError('${code}', ${exprs.length ? paramsArg.slice(2) : '{}'}, ${statusArg})` });
+          if (statusArg.startsWith('HttpStatus.')) needsHttpStatus = true;
+        } else {
+          edits.push({ start: f.newStart, end: f.newEnd, text: `DomainError.${factory}('${code}'${paramsArg})` });
+        }
         needsDomainError = true;
         droppedExceptions.add(f.newCallee);
         report.applied++;
         continue;
       }
 
+      // Отказ в desktop (throw new Error('…')) размечен кодом: ключ — <область>.error.<код>.
+      if (owner.app === 'desktop' && (decision.code || key?.startsWith('errors.'))) {
+        const code = decision.code ?? key.slice(7);
+        const domain = owner.ns ?? decision.dict ?? entry.domainHint;
+        const prefix = domain.replace(/([a-z0-9])([A-Z])/g, '$1_$2').toUpperCase() + '_';
+        const stripped = code.startsWith(prefix) ? code.slice(prefix.length) : code;
+        key = `${domain}.error.${stripped.toLowerCase().replace(/_([a-z0-9])/g, (_, c) => c.toUpperCase())}`;
+      }
       if (!key || !KEY_RE.test(key)) {
         skip(`ключ «${key}» не по конвенции`);
         continue;
@@ -637,6 +659,7 @@ function applyCommand() {
     if (needsDomainError) {
       patchBlocks((code) => {
         let c = ensureImport(code, 'DomainError', '@coopenomics/extension-kit');
+        if (needsHttpStatus) c = ensureImport(c, 'HttpStatus', '@nestjs/common');
         c = dropUnusedImports(c, [...droppedExceptions], '@nestjs/common');
         c = dropUnusedImports(c, [...droppedExceptions], '@coopenomics/extension-kit');
         return c;

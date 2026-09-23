@@ -24,7 +24,8 @@ export default boot(async ({ app }) => {
         baseUrl: 'https://support.coopenomics.world'
       },
       settings: {
-        locale: currentLocale(),
+        // Языки платформы — подмножество языков виджета (ru, en, …).
+        locale: currentLocale() as 'ru',
         position: 'right',
         launcherTitle: '',
         hideMessageBubble: true
