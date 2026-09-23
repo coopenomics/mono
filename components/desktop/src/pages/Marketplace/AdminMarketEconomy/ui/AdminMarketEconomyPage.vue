@@ -38,7 +38,7 @@ async function load(): Promise<void> {
     const config = await getEconomyConfig()
     currentPercent.value = config.membership_fee_percent
   } catch (e) {
-    FailAlert(e, 'Не удалось загрузить наценку')
+    FailAlert(e, 'Не удалось загрузить целевой членский взнос')
   } finally {
     loading.value = false
   }
@@ -55,7 +55,7 @@ async function onSave(): Promise<void> {
     const config = await setMembershipFee({ membership_fee_percent: Number(draftPercent.value) })
     currentPercent.value = config.membership_fee_percent
     dialogOpen.value = false
-    SuccessAlert('Наценка установлена')
+    SuccessAlert('Целевой членский взнос установлен')
   } catch (e) {
     FailAlert(e, 'Не удалось установить ставку')
   } finally {
@@ -102,16 +102,16 @@ onMounted(() => {
 <template lang="pug">
 q-page.admin-economy
   PageHint(storage-key='mp:admin-economy:banner-dismissed')
-    | Наценка добавляется к стоимости каждого заказа Стола заказов и
+    | Целевой членский взнос добавляется к стоимости каждого заказа Стола заказов и
     | после исполнения заказа распределяется кооперативному участку выдачи.
-    | Наценка идёт на обеспечение хозяйственной деятельности кооператива и
-    | едина для всех участков и категорий — так исключаются
+    | Целевой членский взнос идёт на обеспечение хозяйственной деятельности кооператива и
+    | един для всех участков и категорий — так исключаются
     | спекуляции и переток заказов между участками. Изменение действует на
     | заказы, созданные после установки.
 
   .admin-economy__card
     .admin-economy__stat
-      .admin-economy__label Наценка
+      .admin-economy__label Целевой членский взнос
       .admin-economy__value
         span.admin-economy__amount {{ displayValue }}
         span.admin-economy__unit %
@@ -133,14 +133,14 @@ q-page.admin-economy
     :loading='turnoverLoading'
   )
 
-  BaseDialog(v-model='dialogOpen', title='Наценка', size='sm')
+  BaseDialog(v-model='dialogOpen', title='Целевой членский взнос', size='sm')
     p.admin-economy__dialog-hint
-      | Наценка идёт на обеспечение хозяйственной деятельности кооператива.
+      | Целевой членский взнос идёт на обеспечение хозяйственной деятельности кооператива.
       | Новое значение применится к заказам, созданным после сохранения. Уже
       | оформленные заказы не пересчитываются.
     AmountInput(
       v-model='draftPercent',
-      label='Наценка',
+      label='Целевой членский взнос',
       symbol='%',
       :precision='2',
       :min='0',

@@ -5,7 +5,7 @@
  * участок) и колонка пункта выдачи, поэтому раздел один на оба стола.
  *
  * Оборот меряется деньгами: сколько имущества принято на склад и на какую
- * сумму, сколько выдано пайщикам и сколько на этом заработано наценкой.
+ * сумму, сколько выдано пайщикам и сколько с этого получено целевым членским взносом.
  * Количество остаётся рядом — им проверяют, что за суммой стоит.
  */
 import { computed } from 'vue'
@@ -71,7 +71,7 @@ const columns = computed<BaseTableColumn<TurnoverTableRow>[]>(() => {
   list.push(
     { key: 'accepted', label: 'Принято', width: '170px', numeric: true },
     { key: 'issued', label: 'Выдано', width: '170px', numeric: true },
-    { key: 'fee', label: 'Наценка', width: '140px', numeric: true },
+    { key: 'fee', label: 'Целевой членский взнос', width: '200px', numeric: true },
   )
   return list
 })
@@ -91,7 +91,7 @@ const totals = computed(() => [
     value: money(turnover.value.totals.acceptedAmount),
   },
   { key: 'issued', label: 'Выдано пайщикам', value: money(turnover.value.totals.issuedAmount) },
-  { key: 'fee', label: 'Наценка с выданного', value: money(turnover.value.totals.feeAmount) },
+  { key: 'fee', label: 'Целевой членский взнос с выданного', value: money(turnover.value.totals.feeAmount) },
 ])
 </script>
 
@@ -103,7 +103,7 @@ section.turnover
 
   .turnover__note
     | Приход считается по дате приёмки имущества кооперативом, выдача — по дате
-    | получения заказчиком {{ periodLabel }}. Наценка — доход кооператива с
+    | получения заказчиком {{ periodLabel }}. Целевой членский взнос — доход кооператива с
     | выданного за тот же срок.
 
   .turnover__totals
