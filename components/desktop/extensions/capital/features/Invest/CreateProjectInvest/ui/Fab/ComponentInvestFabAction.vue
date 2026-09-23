@@ -14,8 +14,8 @@ q-btn(
     anchor="top middle"
     self="bottom middle"
   )
-    span(v-if="!project?.is_planed") Инвестирование доступно только для запланированных проектов
-    span(v-else-if="project?.is_opened === false") Компонент на данный момент инвестиции не принимает. Решение об открытии приема инвестиций принимает мастер совместно с советом кооператива.
+    span(v-if="!project?.is_planed") {{ $t('capital.componentInvestFabAction.plannedOnlyHint') }}
+    span(v-else-if="project?.is_opened === false") {{ $t('capital.componentInvestFabAction.notAcceptingHint') }}
   CreateProjectInvestDialog(
     ref="dialogRef"
     :project="project"
@@ -36,8 +36,8 @@ q-fab-action.bg-fab-accent-radial(
     anchor="top middle"
     self="bottom middle"
   )
-    span(v-if="!project?.is_planed") Инвестирование доступно только для запланированных проектов
-    span(v-else-if="project?.is_opened === false") Компонент на данный момент инвестиции не принимает. Решение об открытии приема инвестиций принимает мастер совместно с советом кооператива.
+    span(v-if="!project?.is_planed") {{ $t('capital.componentInvestFabAction.plannedOnlyHint') }}
+    span(v-else-if="project?.is_opened === false") {{ $t('capital.componentInvestFabAction.notAcceptingHint') }}
 
   CreateProjectInvestDialog(
     ref="dialogRef"
@@ -52,6 +52,7 @@ import { ref } from 'vue';
 import { CreateProjectInvestDialog } from '../Dialog';
 import type { IProject } from '../../../../../entities/Project/model';
 import { formatCapitalFabLabel } from 'app/extensions/capital/shared/lib';
+import { t } from '../../../../../i18n';
 
 const props = defineProps<{
   project: IProject | null | undefined;
@@ -62,8 +63,8 @@ const emit = defineEmits<{
   actionCompleted: [];
 }>();
 
-const fabMainLabel = formatCapitalFabLabel('Инвестировать', 'invest');
-const fabActionLabel = formatCapitalFabLabel('Инвестиция', 'invest');
+const fabMainLabel = formatCapitalFabLabel(t('capital.componentInvestFabAction.label'), 'invest');
+const fabActionLabel = formatCapitalFabLabel(t('capital.componentInvestFabAction.shortLabel'), 'invest');
 
 const dialogRef = ref();
 

@@ -1,8 +1,8 @@
 <template lang="pug">
 CreateDialog(
   ref="dialogRef"
-  title="Создать компонент"
-  submit-text="Создать"
+  :title="$t('capital.createComponentDialog.title')"
+  :submit-text="$t('common.action.create')"
   dialog-style="width: 600px; max-width: 100% !important;"
   :is-submitting="isSubmitting"
   @submit="handleSubmit"
@@ -16,8 +16,8 @@ CreateDialog(
         v-if='!props.project'
         v-model='selectedProjectHash'
         :options='projectOptions'
-        label='Проект'
-        placeholder='Выберите проект'
+        :label='$t("capital.createComponentDialog.projectLabel")'
+        :placeholder='$t("capital.createComponentDialog.projectPlaceholder")'
         searchable
         required
         :error='projectError'
@@ -25,7 +25,7 @@ CreateDialog(
 
       BaseInput(
         v-model='formData.title'
-        label='Название компонента'
+        :label='$t("capital.createComponentDialog.nameLabel")'
         autocomplete='off'
         required
         :error='titleError'
@@ -33,8 +33,8 @@ CreateDialog(
 
       BaseInput(
         v-model='formData.description'
-        label='Описание компонента'
-        placeholder='Опишите компонент подробно...'
+        :label='$t("capital.createComponentDialog.descriptionLabel")'
+        :placeholder='$t("capital.createComponentDialog.descriptionPlaceholder")'
         type='textarea'
         autogrow
         :rows='3'
@@ -51,6 +51,7 @@ import type { ICreateProjectInput, IProject } from 'app/extensions/capital/entit
 import { useFormDraft } from 'app/extensions/capital/shared/lib';
 import { useCreateComponent, useEditableProjects } from '../../model';
 import { FailAlert, SuccessAlert } from 'src/shared/api/alerts';
+import { t } from '../../../../../i18n';
 
 const props = defineProps<{
   /** Родительский проект. Не задан — выбирается в диалоге */
@@ -126,9 +127,9 @@ const resolveParentProject = (): IProject | undefined => {
 
 const handleSubmit = async () => {
   const parentProject = resolveParentProject();
-  titleError.value = formData.value.title ? '' : 'Это поле обязательно для заполнения';
+  titleError.value = formData.value.title ? '' : t('capital.createComponentDialog.requiredFieldError');
   if (!parentProject) {
-    projectError.value = 'Выберите проект';
+    projectError.value = t('capital.createComponentDialog.selectProjectError');
   }
   if (!parentProject || titleError.value) return;
 
@@ -150,7 +151,7 @@ const handleSubmit = async () => {
     await createComponent(inputData, {
       local: parentProject.origin === 'local',
     });
-    SuccessAlert('Компонент успешно создан');
+    SuccessAlert(t('capital.createComponentDialog.success'));
 
     // Закрываем диалог после успешного создания; черновик больше не нужен
     clear();

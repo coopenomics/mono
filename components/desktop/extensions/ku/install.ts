@@ -1,3 +1,4 @@
+import './i18n';
 import { KuBranchesPage } from 'src/pages/Ku/BranchesList';
 import { KuBranchDetailsPage } from 'src/pages/Ku/BranchDetails';
 import { KuMeetingsPage } from 'src/pages/Ku/MeetingsList';
@@ -6,19 +7,20 @@ import { KuMyBranchPage } from 'src/pages/Ku/MyBranch';
 import { agreementsBase } from 'src/shared/lib/consts/workspaces';
 import type { IWorkspaceConfig } from 'src/shared/lib/types/workspace';
 import { markRaw } from 'vue';
+import { t } from './i18n';
 
 export default async function (): Promise<IWorkspaceConfig[]> {
   return [
     {
       workspace: 'trustee',
       extension_name: 'trustee',
-      title: 'Кооперативный участок',
+      title: t('ku.install.title'),
       icon: 'fa-solid fa-users-cog',
       defaultRoute: 'ku-branches',
       routes: [
         {
           meta: {
-            title: 'Кооперативный участок',
+            title: t('ku.install.title'),
             icon: 'fa-solid fa-users-cog',
             roles: [],
           },
@@ -27,7 +29,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
           children: [
             {
               meta: {
-                title: 'Кооперативные участки',
+                title: t('ku.install.branchesTitle'),
                 icon: 'fa-solid fa-map-location-dot',
                 roles: [],
                 agreements: agreementsBase,
@@ -40,7 +42,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             },
             {
               meta: {
-                title: 'Участок',
+                title: t('ku.install.branchTitle'),
                 icon: 'fa-solid fa-map-location-dot',
                 roles: [],
                 agreements: agreementsBase,
@@ -54,7 +56,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             },
             {
               meta: {
-                title: 'Собрания',
+                title: t('ku.install.meetingsTitle'),
                 icon: 'fa-solid fa-people-group',
                 roles: [],
                 agreements: agreementsBase,
@@ -67,7 +69,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             },
             {
               meta: {
-                title: 'Собрание',
+                title: t('ku.install.meetingTitle'),
                 icon: 'fa-solid fa-people-group',
                 roles: [],
                 agreements: agreementsBase,
@@ -81,7 +83,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             },
             {
               meta: {
-                title: 'Мой участок',
+                title: t('ku.install.myBranchTitle'),
                 icon: 'fa-solid fa-house-user',
                 roles: [],
                 agreements: agreementsBase,

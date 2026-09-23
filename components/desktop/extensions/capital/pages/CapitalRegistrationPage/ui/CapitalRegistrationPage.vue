@@ -5,28 +5,28 @@
     .banner.banner--warn
       q-icon.banner__icon(name='info', size='20px')
       .banner__body
-        strong Ранним участникам.
+        strong {{ $t('capital.capitalRegistrationPage.earlyParticipantsTitle') }}
         |
-        | Перед продолжением нужно начислить дополнительный паевой взнос за раннее участие.
-        | Уточните порядок и сумму в поддержке:
+        | {{ $t('capital.capitalRegistrationPage.earlyParticipantsText') }}
+        | {{ $t('capital.capitalRegistrationPage.contactSupportText') }}
         |
         strong support@coopenomics.world
-        |  или через чат на сайте.
+        |  {{ $t('capital.capitalRegistrationPage.orChatText') }}
 
   template(v-else)
     .banner.banner--info
       q-icon.banner__icon(name='description', size='20px')
       .banner__body
-        | Ознакомьтесь с документами ниже и подпишите их.
+        | {{ $t('capital.capitalRegistrationPage.reviewDocsText') }}
 
     .reg-loading(v-if='isGeneratingCapitalDocs')
       q-spinner(color='primary', size='28px')
-      span.reg-loading__text Готовим документы…
+      span.reg-loading__text {{ $t('capital.capitalRegistrationPage.preparingDocsText') }}
 
     .reg-error(v-else-if='capitalDocsGenerationError')
       .banner.banner--neg
         q-icon.banner__icon(name='error', size='20px')
-        .banner__body Не удалось сформировать документы. Попробуйте ещё раз.
+        .banner__body {{ $t('capital.capitalRegistrationPage.generateFailedText') }}
       BaseButton(
         variant='primary',
         :loading='isGeneratingCapitalDocs',
@@ -34,12 +34,12 @@
       )
         template(#icon-left)
           q-icon(name='refresh', size='18px')
-        | Повторить
+        | {{ $t('common.action.retry') }}
 
     EmptyState(
       v-else-if='!hasGeneratedDocuments',
-      title='Документы пока не готовы',
-      body='Если загрузка затянулась — обновите страницу или повторите генерацию.'
+      :title='$t("capital.capitalRegistrationPage.docsNotReadyTitle")',
+      :body='$t("capital.capitalRegistrationPage.docsNotReadyBody")'
     )
       template(#icon)
         q-icon(name='description', size='32px')
@@ -64,7 +64,7 @@
         )
           template(#icon-left)
             q-icon(name='draw', size='18px')
-          | Подписать и отправить
+          | {{ $t('capital.capitalRegistrationPage.signSubmitLabel') }}
 </template>
 
 <script lang="ts" setup>
@@ -79,6 +79,7 @@ import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { useDataPoller } from 'src/shared/lib/composables';
 import { POLL_INTERVALS } from 'src/shared/lib/consts';
 import { useSessionStore } from 'src/entities/Session';
+import { t } from '../../../i18n';
 
 interface RegistrationDoc {
   key: string;
@@ -132,28 +133,28 @@ const documents = computed<RegistrationDoc[]>(() => {
       // Название — как в самом документе (1001.GenerationContract, подзаголовок
       // «об участии в хозяйственной деятельности»): договор УХД — это участие в
       // хозяйственной деятельности, управления в нём нет.
-      title: `${n++}. Договор об участии в хозяйственной деятельности`,
+      title: t('capital.capitalRegistrationPage.contractDocTitle', { index: n++ }),
       html: pack.generation_contract.html,
     });
   }
   if (pack.storage_agreement?.html) {
     list.push({
       key: 'storage_agreement',
-      title: `${n++}. Соглашение о хранении имущества`,
+      title: t('capital.capitalRegistrationPage.storageDocTitle', { index: n++ }),
       html: pack.storage_agreement.html,
     });
   }
   if (pack.blagorost_agreement?.html) {
     list.push({
       key: 'blagorost_agreement',
-      title: `${n++}. Соглашение о программе Благорост`,
+      title: t('capital.capitalRegistrationPage.blagorostDocTitle', { index: n++ }),
       html: pack.blagorost_agreement.html,
     });
   }
   if (pack.generator_offer?.html) {
     list.push({
       key: 'generator_offer',
-      title: `${n++}. Оферта о программе Генератор`,
+      title: t('capital.capitalRegistrationPage.generatorDocTitle', { index: n++ }),
       html: pack.generator_offer.html,
     });
   }
@@ -194,7 +195,7 @@ onMounted(() => {
   if (!shouldShowTemporaryStub.value && !contributorStore.isContributorActiveOrPending) {
     generateCapitalDocuments().catch((error) => {
       console.error('Ошибка при генерации пачки документов:', error);
-      FailAlert('Не удалось сгенерировать документы регистрации');
+      FailAlert(t('capital.capitalRegistrationPage.generateError'));
     });
   }
 });
@@ -206,7 +207,7 @@ onBeforeUnmount(() => {
 const signAndCompleteRegistration = async () => {
   try {
     if (!generatedCapitalDocuments.value) {
-      throw new Error('Документы не сгенерированы');
+      throw new Error(t('capital.error.registrationDocumentsNotGenerated'));
     }
 
     const {
@@ -217,7 +218,7 @@ const signAndCompleteRegistration = async () => {
     } = generatedCapitalDocuments.value;
 
     if (!storage_agreement) {
-      throw new Error('Отсутствуют обязательные документы');
+      throw new Error(t('capital.error.registrationRequiredDocumentsMissing'));
     }
 
     await completeRegistration(
@@ -227,7 +228,7 @@ const signAndCompleteRegistration = async () => {
       generator_offer,
     );
 
-    SuccessAlert('Документы успешно подписаны и отправлены');
+    SuccessAlert(t('capital.capitalRegistrationPage.signSuccess'));
     goToProfile();
   } catch (error) {
     console.error('Ошибка при завершении регистрации:', error);

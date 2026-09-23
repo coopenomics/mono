@@ -16,14 +16,14 @@ div
       color='primary',
       @click='showCreateInput = true'
     )
-      | Добавить артефакт
+      | {{ $t('capital.storiesWidget.addButton') }}
 
   // Форма создания истории
   q-card-section.q-pa-none.q-mb-md(v-if='canCreate && showCreateInput')
     q-input.q-pa-sm(
       ref='titleInput',
       v-model='newStoryTitle',
-      placeholder='Введите название артефакта...',
+      :placeholder='$t("capital.storiesWidget.titlePlaceholder")',
       dense,
       flat,
       hide-bottom-space,
@@ -100,7 +100,7 @@ div
       div(v-if='loading')
         .text-center.q-pa-md
           q-spinner(color='primary', size='24px')
-          .text-body2.text-grey-6.q-mt-sm Загрузка артефактов...
+          .text-body2.text-grey-6.q-mt-sm {{ $t('capital.storiesWidget.loadingText') }}
 </template>
 
 <script lang="ts" setup>
@@ -119,6 +119,7 @@ import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { useCreateStory } from 'app/extensions/capital/features/Story/CreateStory';
 import { DeleteStoryButton } from 'app/extensions/capital/features/Story/DeleteStory';
 import { useUpdateStory } from 'app/extensions/capital/features/Story/UpdateStory';
+import { t } from '../../../i18n';
 
 // Props для конфигурации виджета
 interface Props {
@@ -141,7 +142,7 @@ interface Props {
 const props = withDefaults(defineProps<Props>(), {
   canCreate: true,
   maxItems: 50,
-  emptyMessage: 'Артефактов пока нет',
+  emptyMessage: t('capital.storiesWidget.emptyTitle'),
   onStoryClick: undefined,
   onIssueClick: undefined,
   currentProjectHash: undefined,
@@ -224,7 +225,7 @@ const loadStories = async () => {
     await storyStore.loadStories({ filter, options });
   } catch (error) {
     console.error('Ошибка при загрузке историй:', error);
-    FailAlert('Не удалось загрузить истории');
+    FailAlert(t('capital.storiesWidget.loadError'));
   } finally {
     loading.value = false;
   }
@@ -234,7 +235,7 @@ const loadStories = async () => {
 const handleCreateStory = async () => {
   if (!newStoryTitle.value.trim()) return;
   if (!sessionStore.username || sessionStore.username === '') {
-    FailAlert('Необходимо авторизоваться');
+    FailAlert(t('capital.storiesWidget.authRequiredNotice'));
     return;
   }
 
@@ -253,7 +254,7 @@ const handleCreateStory = async () => {
     } as ICreateStoryInput;
 
     const newStory = await useCreateStory().createStory(storyData);
-    SuccessAlert('История создана');
+    SuccessAlert(t('capital.storiesWidget.createdNotice'));
 
     // Добавляем новую историю в локальный store
     storyStore.addStoryToList(newStory);
@@ -262,7 +263,7 @@ const handleCreateStory = async () => {
     newStoryTitle.value = '';
   } catch (error) {
     console.error('Ошибка при создании истории:', error);
-    FailAlert('Не удалось создать историю');
+    FailAlert(t('capital.storiesWidget.createError'));
   } finally {
     creating.value = false;
   }
@@ -344,10 +345,10 @@ const handleStatusChange = async (
     // Обновляем историю через API
     await useUpdateStory().updateStory(updateData);
 
-    SuccessAlert('Статус артефакта обновлён');
+    SuccessAlert(t('capital.storiesWidget.statusUpdatedNotice'));
   } catch (error) {
     console.error('Ошибка при обновлении статуса артефакта:', error);
-    FailAlert('Не удалось обновить статус артефакта');
+    FailAlert(t('capital.storiesWidget.statusUpdateError'));
   } finally {
     updatingStoryId.value = null;
   }

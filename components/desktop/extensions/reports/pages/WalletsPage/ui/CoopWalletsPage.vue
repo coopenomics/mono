@@ -9,7 +9,7 @@ div.coop-wallets-page
       row-key='id'
       :pagination='pagination'
       :loading='loading'
-      :no-data-label='"Кошельки не найдены"'
+      :no-data-label='$t("reports.coopWalletsPage.emptyLabel")'
     )
       template(#header='props')
         q-tr(:props='props')
@@ -33,7 +33,7 @@ div.coop-wallets-page
               icon='fa-solid fa-arrow-right-arrow-left'
               @click='openTransferFor(props.row.id)'
             )
-              q-tooltip Перевести с этого кошелька
+              q-tooltip {{ $t('reports.coopWalletsPage.transferFromLabel') }}
 
         q-tr.q-virtual-scroll--with-prev(
           no-hover
@@ -45,12 +45,12 @@ div.coop-wallets-page
             .q-pa-sm
               .row.items-center.q-mb-sm
                 .col
-                  .text-caption.caption-muted Движения по кошельку
+                  .text-caption.caption-muted {{ $t('reports.coopWalletsPage.movementsTitle') }}
                 .col-auto
                   q-btn(
                     flat dense size='sm' color='primary'
                     icon='fa-solid fa-arrow-right'
-                    label='К операциям'
+                    :label='$t("reports.coopWalletsPage.toOperationsLabel")'
                     :to='{ name: "reports-operations", query: { wallet_name: props.row.id } }'
                   )
               q-table(
@@ -61,7 +61,7 @@ div.coop-wallets-page
                 hide-pagination
                 :pagination='{ rowsPerPage: 0 }'
                 :loading='childLoading.has(props.row.id)'
-                no-data-label='Движений нет'
+                :no-data-label='$t("reports.coopWalletsPage.movementsEmptyLabel")'
               )
                 template(#body-cell-movementId='cp')
                   q-td(:props='cp')
@@ -69,7 +69,7 @@ div.coop-wallets-page
                       :rawId='cp.row.globalSequence'
                       @click='copyText(String(cp.row.globalSequence))'
                     )
-                      q-tooltip Клик — копировать
+                      q-tooltip {{ $t('reports.coopWalletsPage.copyHintLabel') }}
                 template(#body-cell-direction='cp')
                   q-td(:props='cp')
                     DirectionCell(:direction='directionFor(cp.row, String(props.row.id))')
@@ -93,7 +93,7 @@ div.coop-wallets-page
                       icon='fa-solid fa-arrow-right'
                       :to='{ name: "reports-operations", query: { process_hash: cp.row.processHash } }'
                     )
-                      q-tooltip К операции
+                      q-tooltip {{ $t('reports.coopWalletsPage.toOperationLabel') }}
 
       template(#item='props')
         .col-12
@@ -111,7 +111,7 @@ div.coop-wallets-page
                 )
             .row.q-mt-sm
               .col-6
-                .text-caption.caption-muted Доступно
+                .text-caption.caption-muted {{ $t('reports.coopWalletsPage.availableLabel') }}
                 .text-body2.text-weight-medium {{ formatAsset2Digits(props.row.available) }}
 
   WalletTransferDialog(
@@ -139,6 +139,7 @@ import { EntityIdBadge } from 'src/shared/ui'
 import { DirectionCell, WalletIdCell } from '../../../shared/ui'
 import WalletTransferDialog from './WalletTransferDialog.vue'
 import TransferWalletsButton from './TransferWalletsButton.vue'
+import { t } from '../../../i18n';
 
 const { info } = useSystemStore()
 const { isMobile } = useWindowSize()
@@ -200,9 +201,9 @@ function formatDate(d: string | Date): string {
 async function copyText(text: string) {
   try {
     await copyToClipboard(text)
-    SuccessAlert('Скопировано')
+    SuccessAlert(t('reports.coopWalletsPage.copySuccess'))
   } catch {
-    FailAlert('Не удалось скопировать')
+    FailAlert(t('reports.coopWalletsPage.copyError'))
   }
 }
 
@@ -210,8 +211,8 @@ const columns = computed<any[]>(() => {
   const base: any[] = [
     { name: 'expand', align: 'left', label: '', field: 'expand', sortable: false },
     { name: 'id', align: 'left', label: 'ID', field: 'id', sortable: true },
-    { name: 'name', align: 'left', label: 'Наименование', field: 'name', sortable: true },
-    { name: 'available', align: 'right', label: 'Доступно', field: 'available', sortable: true },
+    { name: 'name', align: 'left', label: t('reports.coopWalletsPage.column.name'), field: 'name', sortable: true },
+    { name: 'available', align: 'right', label: t('reports.coopWalletsPage.availableLabel'), field: 'available', sortable: true },
   ]
   if (isChairman.value && transferEnabled) {
     base.push({ name: 'actions', align: 'right', label: '', field: 'actions', sortable: false })
@@ -222,11 +223,11 @@ const columns = computed<any[]>(() => {
 const childColumns: any[] = [
   { name: 'movementId', align: 'left', label: '№', field: 'globalSequence' },
   { name: 'direction', align: 'center', label: '', field: 'direction' },
-  { name: 'walletFrom', align: 'left', label: 'Из', field: 'walletFrom' },
-  { name: 'walletTo', align: 'left', label: 'В', field: 'walletTo' },
-  { name: 'quantity', align: 'right', label: 'Сумма', field: 'quantity' },
-  { name: 'memo', align: 'left', label: 'Примечание', field: 'memo' },
-  { name: 'createdAt', align: 'left', label: 'Дата', field: 'createdAt' },
+  { name: 'walletFrom', align: 'left', label: t('reports.coopWalletsPage.column.walletFrom'), field: 'walletFrom' },
+  { name: 'walletTo', align: 'left', label: t('reports.coopWalletsPage.column.walletTo'), field: 'walletTo' },
+  { name: 'quantity', align: 'right', label: t('reports.coopWalletsPage.column.amount'), field: 'quantity' },
+  { name: 'memo', align: 'left', label: t('reports.coopWalletsPage.column.memo'), field: 'memo' },
+  { name: 'createdAt', align: 'left', label: t('reports.coopWalletsPage.column.date'), field: 'createdAt' },
   { name: 'open', align: 'right', label: '', field: 'processHash' },
 ]
 

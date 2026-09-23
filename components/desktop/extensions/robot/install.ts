@@ -1,8 +1,10 @@
+import './i18n';
 import { markRaw } from 'vue';
 import type { IWorkspaceConfig } from 'src/shared/lib/types/workspace';
 import { RobotRegistryPage } from './pages/RobotRegistryPage';
 import { RobotJournalPage } from './pages/RobotJournalPage';
 import { RobotAdminPage } from './pages/RobotAdminPage';
+import { t } from './i18n';
 
 /**
  * Стол «Робот совета». Видимость страниц задаёт бэкенд набором прав
@@ -14,13 +16,13 @@ export default async function (): Promise<IWorkspaceConfig[]> {
     {
       workspace: 'robot',
       extension_name: 'robot',
-      title: 'Робот совета',
+      title: t('robot.install.title'),
       icon: 'smart_toy',
       defaultRoute: 'robot-registry',
       routes: [
         {
           meta: {
-            title: 'Робот совета',
+            title: t('robot.install.title'),
             icon: 'smart_toy',
             requires: 'Robot:read',
             roles: [],
@@ -33,7 +35,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               name: 'robot-registry',
               component: markRaw(RobotRegistryPage),
               meta: {
-                title: 'Действия автоматизации',
+                title: t('robot.install.registryTitle'),
                 icon: 'rule',
                 requires: 'Robot:read',
                 requiresAuth: true,
@@ -44,7 +46,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               name: 'robot-journal',
               component: markRaw(RobotJournalPage),
               meta: {
-                title: 'Журнал робота',
+                title: t('robot.install.journalTitle'),
                 icon: 'history',
                 requires: 'Robot:read',
                 requiresAuth: true,
@@ -55,7 +57,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               name: 'robot-admin',
               component: markRaw(RobotAdminPage),
               meta: {
-                title: 'Состояние робота',
+                title: t('robot.install.adminTitle'),
                 icon: 'admin_panel_settings',
                 requires: 'Robot:admin',
                 requiresAuth: true,

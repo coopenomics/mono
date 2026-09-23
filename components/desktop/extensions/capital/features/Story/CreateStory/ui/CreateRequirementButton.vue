@@ -4,12 +4,12 @@ span
     v-if='canCreateRequirement',
     variant='primary',
     size='sm',
-    aria-label='Создать артефакт',
+    :aria-label='$t("capital.createRequirementButton.ariaLabel")',
     @click.stop='dialogRef?.openDialog()'
   )
     template(#icon-left)
       q-icon(name='add', size='18px')
-    | Артефакт
+    | {{ $t('capital.createRequirementButton.label') }}
 
   CreateRequirementWithEditorDialog(
     ref='dialogRef',

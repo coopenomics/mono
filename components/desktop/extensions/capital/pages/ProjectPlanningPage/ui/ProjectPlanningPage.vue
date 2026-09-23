@@ -3,9 +3,9 @@
   //- Сводный финансовый план — только кооперативные проекты
   .planning-page__section(v-if='!isLocalProject')
     .planning-page__head
-      .planning-page__title Сводный план · {{ project?.title || '…' }}
+      .planning-page__title {{ $t('capital.projectPlanningPage.title', { projectTitle: project?.title || '…' }) }}
       .planning-page__sub.t-sm.t-muted
-        | Агрегированные показатели из всех компонентов проекта
+        | {{ $t('capital.projectPlanningPage.subtitle') }}
     ProjectPlanningWidget(
       v-if='project',
       :project='project',
@@ -25,8 +25,8 @@
       :key='component.project_hash'
     )
       .planning-page__head
-        .planning-page__title Компонент · {{ component.title }}
-        .planning-page__sub.t-sm.t-muted Собственный план и факт компонента
+        .planning-page__title {{ $t('capital.projectPlanningPage.componentTitle', { componentTitle: component.title }) }}
+        .planning-page__sub.t-sm.t-muted {{ $t('capital.projectPlanningPage.componentSubtitle') }}
       ProjectPlanningWidget(
         :project='component',
         :permissions='permissions'
@@ -45,6 +45,7 @@ import { useProjectStore } from 'app/extensions/capital/entities/Project/model';
 import { ProjectPlanningWidget } from 'app/extensions/capital/widgets';
 import { MetricSuperpositionPanel } from 'app/extensions/capital/features/Metric/ViewMetricSuperposition';
 import { FailAlert } from 'src/shared/api';
+import { t } from '../../../i18n';
 
 const route = useRoute();
 const projectStore = useProjectStore();
@@ -76,7 +77,7 @@ const loadProject = async () => {
       null;
   } catch (error) {
     console.error('Ошибка при загрузке проекта с компонентами:', error);
-    FailAlert('Не удалось загрузить проект с компонентами');
+    FailAlert(t('capital.projectPlanningPage.loadError'));
     project.value = null;
   }
 };

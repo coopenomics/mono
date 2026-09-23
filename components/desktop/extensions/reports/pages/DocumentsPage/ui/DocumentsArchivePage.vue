@@ -1,13 +1,13 @@
 <template lang="pug">
 .documents-archive
   .row.items-center.q-mb-md
-    .text-h6.col Архив сгенерированных отчётов
+    .text-h6.col {{ $t('reports.documentsArchivePage.title') }}
 
   .row.q-gutter-sm.items-end.q-mb-md
     q-select.col-md-3.col-12(
       v-model='archiveFilter.reportType'
       :options='archiveTypeOptions'
-      label='Тип отчёта'
+      :label='$t("reports.documentsArchivePage.reportTypeFilterLabel")'
       dense
       outlined
       clearable
@@ -17,7 +17,7 @@
     )
     q-input.col-md-2.col-12(
       v-model.number='archiveFilter.year'
-      label='Год'
+      :label='$t("reports.documentsArchivePage.yearFilterLabel")'
       type='number'
       dense
       outlined
@@ -40,7 +40,7 @@
     )
       template(#body-cell-valid='props')
         q-td(:props='props')
-          BaseBadge(:variant='props.row.isValid ? "pos" : "neg"') {{ props.row.isValid ? 'Валиден' : 'Ошибки' }}
+          BaseBadge(:variant='props.row.isValid ? "pos" : "neg"') {{ props.row.isValid ? $t('reports.documentsArchivePage.validLabel') : $t('reports.documentsArchivePage.errorsLabel') }}
 
       template(#body-cell-createdAt='props')
         q-td(:props='props') {{ formatDate(props.row.createdAt) }}
@@ -53,7 +53,7 @@
             color='primary'
             @click='downloadArchive(props.row.id)'
           )
-            q-tooltip Скачать XML
+            q-tooltip {{ $t('reports.documentsArchivePage.downloadXmlLabel') }}
 </template>
 
 <script setup lang="ts">
@@ -66,18 +66,19 @@ import {
   type IReportType,
 } from 'src/entities/Report'
 import { BaseBadge } from 'src/shared/ui/base/BaseBadge'
+import { t as i18nT } from '../../../i18n';
 
 const MVP_REPORT_TYPES = ['BUHOTCH', 'NDFL6', 'RSV', 'PSV', 'FSS4'] as IReportType[]
 
 const REPORT_TYPE_LABELS: Record<string, string> = {
-  BUHOTCH: 'Бухотчётность',
-  NDFL6: 'НДФЛ-6',
-  RSV: 'РСВ',
-  DUSN: 'ДУСН',
-  FSS4: 'ЕФС-1',
-  PSV: 'ПСВ',
-  UV_VZNOSY: 'УВ-Взносы',
-  UUSN: 'УСН',
+  BUHOTCH: i18nT('reports.documentsArchivePage.reportType.buhotch'),
+  NDFL6: i18nT('reports.documentsArchivePage.reportType.ndfl6'),
+  RSV: i18nT('reports.documentsArchivePage.reportType.rsv'),
+  DUSN: i18nT('reports.documentsArchivePage.reportType.dusn'),
+  FSS4: i18nT('reports.documentsArchivePage.reportType.efs1'),
+  PSV: i18nT('reports.documentsArchivePage.reportType.psv'),
+  UV_VZNOSY: i18nT('reports.documentsArchivePage.reportType.uvVznosy'),
+  UUSN: i18nT('reports.documentsArchivePage.reportType.usn'),
 }
 
 function reportLabel(type: string, fallbackName?: string): string {
@@ -101,12 +102,12 @@ watch(
 )
 
 const archiveColumns = [
-  { name: 'reportType', label: 'Тип', field: 'reportType', align: 'left' as const },
-  { name: 'year', label: 'Год', field: 'year', align: 'center' as const },
-  { name: 'period', label: 'Период', field: 'period', align: 'center' as const },
-  { name: 'fileName', label: 'Файл', field: 'fileName', align: 'left' as const },
-  { name: 'valid', label: 'Валидация', field: 'isValid', align: 'center' as const },
-  { name: 'createdAt', label: 'Сгенерирован', field: 'createdAt', align: 'left' as const },
+  { name: 'reportType', label: i18nT('reports.documentsArchivePage.column.type'), field: 'reportType', align: 'left' as const },
+  { name: 'year', label: i18nT('reports.documentsArchivePage.column.year'), field: 'year', align: 'center' as const },
+  { name: 'period', label: i18nT('reports.documentsArchivePage.column.period'), field: 'period', align: 'center' as const },
+  { name: 'fileName', label: i18nT('reports.documentsArchivePage.column.file'), field: 'fileName', align: 'left' as const },
+  { name: 'valid', label: i18nT('reports.documentsArchivePage.column.validation'), field: 'isValid', align: 'center' as const },
+  { name: 'createdAt', label: i18nT('reports.documentsArchivePage.column.generatedAt'), field: 'createdAt', align: 'left' as const },
   { name: 'actions', label: '', field: 'id', align: 'right' as const },
 ]
 
@@ -141,7 +142,7 @@ async function loadArchive() {
       offset: (archivePagination.value.page - 1) * archivePagination.value.rowsPerPage,
     })
   } catch (e) {
-    FailAlert(e, 'Архив')
+    FailAlert(e, i18nT('reports.documentsArchivePage.column.archive'))
   }
 }
 
@@ -162,10 +163,10 @@ function onArchiveRequest(props: { pagination: { page: number; rowsPerPage: numb
 async function downloadArchive(id: string) {
   try {
     const r = await reportStore.getReport(id)
-    if (!r) throw new Error('Не удалось получить отчёт')
+    if (!r) throw new Error(i18nT('reports.error.fetchReportFailed'))
     reportStore.triggerDownload(r.xml, r.fileName)
   } catch (e) {
-    FailAlert(e, 'Ошибка скачивания')
+    FailAlert(e, i18nT('reports.documentsArchivePage.downloadError'))
   }
 }
 

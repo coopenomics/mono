@@ -1,4 +1,5 @@
 import { Zeus } from '@coopenomics/sdk';
+import { t } from '../../i18n';
 
 /**
  * Получение цвета статуса проекта
@@ -28,17 +29,17 @@ export const getProjectStatusColor = (status: string) => {
 export const getProjectStatusLabel = (status: string) => {
   switch (status) {
     case Zeus.ProjectStatus.ACTIVE:
-      return 'Активен';
+      return t('capital.project.status.active');
     case Zeus.ProjectStatus.PENDING:
-      return 'Ожидает';
+      return t('capital.project.status.pending');
     case Zeus.ProjectStatus.RESULT:
-      return 'Приёмка';
+      return t('capital.project.status.result');
     case Zeus.ProjectStatus.FINALIZED:
-      return 'Завершен';
+      return t('capital.project.status.finalized');
     case Zeus.ProjectStatus.UNDEFINED:
-      return 'Неопределен';
+      return t('capital.project.status.undefined');
     case Zeus.ProjectStatus.VOTING:
-      return 'Голосование';
+      return t('capital.project.status.voting');
     default:
       return status;
   }

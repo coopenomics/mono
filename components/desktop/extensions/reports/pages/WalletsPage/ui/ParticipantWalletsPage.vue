@@ -9,7 +9,7 @@ div.participant-wallets-page
       row-key='username'
       :pagination='pagination'
       :loading='loading'
-      :no-data-label='"Нет пайщиков (status=accepted)"'
+      :no-data-label='$t("reports.participantWalletsPage.emptyLabel")'
     )
       template(#header='props')
         q-tr(:props='props')
@@ -42,11 +42,11 @@ div.participant-wallets-page
               icon='fa-solid fa-arrow-right'
               :to='{ name: "reports-operations", query: { username: props.row.username } }'
             )
-              q-tooltip К операциям пайщика
+              q-tooltip {{ $t('reports.participantWalletsPage.toOperationsLabel') }}
 
       template(#bottom-row)
         q-tr.row-totals
-          q-td.text-weight-bold Σ по программе
+          q-td.text-weight-bold {{ $t('reports.participantWalletsPage.sumByProgramLabel') }}
           q-td.text-right(
             v-for='prog in data.programs'
             :key='`total_${prog.id}`'
@@ -67,7 +67,7 @@ div.participant-wallets-page
                 q-btn(
                   flat dense size='sm' color='primary'
                   icon='fa-solid fa-arrow-right'
-                  label='Операции'
+                  :label='$t("reports.participantWalletsPage.operationsLabel")'
                   :to='{ name: "reports-operations", query: { username: props.row.username } }'
                 )
             .row.q-mt-sm(v-for='prog in data.programs' :key='`m_${props.row.username}_${prog.id}`')
@@ -75,7 +75,7 @@ div.participant-wallets-page
               .col-6.text-right
                 WalletCell(:cell='data.matrix[props.row.username]?.[prog.id]')
             .row.q-mt-sm
-              .col-6.text-weight-bold Итого
+              .col-6.text-weight-bold {{ $t('reports.participantWalletsPage.totalLabel') }}
               .col-6.text-right
                 WalletCell(:cell='totalFor(props.row.username)' bold)
 </template>
@@ -95,6 +95,7 @@ import {
   type IProgramsAndWallets,
   type IWalletCell,
 } from './participant-wallets-api'
+import { t as i18nT } from '../../../i18n';
 
 const { info } = useSystemStore()
 const accountStore = useAccountStore()
@@ -156,7 +157,7 @@ const columns = computed(() => {
     {
       name: 'name',
       align: 'left' as const,
-      label: 'ФИО / Наименование',
+      label: i18nT('reports.participantWalletsPage.column.name'),
       field: (row: IAccount) => getName(row) || row.username,
       sortable: true,
     },
@@ -164,7 +165,7 @@ const columns = computed(() => {
     {
       name: 'total',
       align: 'right' as const,
-      label: 'Итого',
+      label: i18nT('reports.participantWalletsPage.totalLabel'),
       field: (row: IAccount) => {
         const t = totalFor(row.username)
         return t.available
@@ -203,7 +204,7 @@ const WalletCell = {
           [
             h(QIcon, { name: 'fa-solid fa-lock-open', size: '12px', class: 'cell-icon' }),
             h('span', { class: 'cell-value' }, formatAsset2Digits(`${c.available} RUB`)),
-            h(QTooltip, { anchor: 'top middle', self: 'bottom middle', delay: 200 }, () => 'Доступно'),
+            h(QTooltip, { anchor: 'top middle', self: 'bottom middle', delay: 200 }, () => i18nT('reports.participantWalletsPage.column.available')),
           ],
         ),
       ])
@@ -228,7 +229,7 @@ async function reload(): Promise<void> {
         return an.localeCompare(bn, uiLocale())
       })
   } catch (e) {
-    FailAlert(e, 'Не удалось загрузить кошельки пайщиков')
+    FailAlert(e, i18nT('reports.participantWalletsPage.loadError'))
   } finally {
     loading.value = false
   }

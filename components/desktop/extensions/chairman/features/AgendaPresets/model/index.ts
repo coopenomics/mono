@@ -3,6 +3,7 @@ import { api, type GeneratedDocument } from '../api'
 import type { IDocumentPreset } from './types'
 import { FailAlert, SuccessAlert } from 'src/shared/api'
 import { signDocument } from 'src/shared/lib/document'
+import { t } from '../../../i18n';
 
 export * from './presets'
 
@@ -36,7 +37,7 @@ export const useAgendaPresets = () => {
 
   const submitProposal = async (coopname: string, username: string) => {
     if (!generatedDocument.value || !currentPreset.value) {
-      throw new Error('Нет сгенерированного документа')
+      throw new Error(t('chairman.error.noGeneratedDocument'))
     }
 
     try {
@@ -50,7 +51,7 @@ export const useAgendaPresets = () => {
       })
 
       if (!project?.id) {
-        throw new Error('Не удалось создать проект решения')
+        throw new Error(t('chairman.error.projectCreateFailed'))
       }
 
       // 2. Генерируем документ проекта решения
@@ -71,7 +72,7 @@ export const useAgendaPresets = () => {
         meta: '',
       })
 
-      SuccessAlert('Предложение повестки успешно создано')
+      SuccessAlert(t('chairman.agendaPresets.proposalCreatedMessage'))
       closeDialog()
     } catch (error) {
       FailAlert(error)

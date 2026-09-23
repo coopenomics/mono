@@ -9,7 +9,7 @@
       row-key='id'
       :pagination='pagination'
       :loading='loading'
-      :no-data-label='"План счетов не найден"'
+      :no-data-label='$t("reports.accountsPage.emptyLabel")'
     )
       template(#header='props')
         q-tr(:props='props')
@@ -31,7 +31,7 @@
           q-td
             span.text-weight-bold(
               :class='props.row.accountType === 0 ? "account-type-active" : "account-type-passive"'
-            ) {{ props.row.accountType === 0 ? 'Активный' : 'Пассивный' }}
+            ) {{ props.row.accountType === 0 ? $t('reports.accountsPage.status.active') : $t('reports.accountsPage.status.passive') }}
 
         q-tr.q-virtual-scroll--with-prev(
           no-hover
@@ -43,12 +43,12 @@
             .q-pa-sm
               .row.items-center.q-mb-sm
                 .col
-                  .text-caption.t-faint История проводок
+                  .text-caption.t-faint {{ $t('reports.accountsPage.postingsHistoryTitle') }}
                 .col-auto
                   q-btn(
                     flat dense size='sm' color='primary'
                     icon='fa-solid fa-arrow-right'
-                    label='Все операции'
+                    :label='$t("reports.accountsPage.allOperationsLabel")'
                     :to='{ name: "reports-operations", query: { account_id: props.row.id } }'
                   )
               q-table(
@@ -59,20 +59,20 @@
                 hide-pagination
                 :pagination='{ rowsPerPage: 0 }'
                 :loading='childLoading.has(props.row.id)'
-                no-data-label='Проводок нет'
+                :no-data-label='$t("reports.accountsPage.postingsEmptyLabel")'
               )
                 template(#body-cell-action='cp')
                   q-td(:props='cp')
                     span.text-weight-bold(
                       :class='cp.row.action === "debit" ? "account-type-active" : "account-type-passive"'
-                    ) {{ cp.row.action === 'debit' ? 'Дебет' : 'Кредит' }}
+                    ) {{ cp.row.action === 'debit' ? $t('reports.accountsPage.debitLabel') : $t('reports.accountsPage.creditLabel') }}
                 template(#body-cell-postingId='cp')
                   q-td(:props='cp')
                     EntityIdBadge(
                       :rawId='cp.row.globalSequence'
                       @click='copyText(String(cp.row.globalSequence))'
                     )
-                      q-tooltip Клик — копировать
+                      q-tooltip {{ $t('reports.accountsPage.copyHintLabel') }}
                 template(#body-cell-processHash='cp')
                   q-td(:props='cp')
                     EntityIdBadge(
@@ -80,7 +80,7 @@
                       :rawId='shortHash(cp.row.processHash)'
                       @click='copyFullHash(cp.row.processHash)'
                     )
-                      q-tooltip Клик — копировать полный хэш
+                      q-tooltip {{ $t('reports.accountsPage.copyFullHashHintLabel') }}
                     span.t-faint(v-else) —
                 template(#body-cell-quantity='cp')
                   q-td.text-right(:props='cp') {{ cp.row.quantity ? formatAsset2Digits(cp.row.quantity) : '—' }}
@@ -94,7 +94,7 @@
                       icon='fa-solid fa-arrow-right'
                       :to='{ name: "reports-operations", query: { operation_id: cp.row.parentApplyGlobalSequence } }'
                     )
-                      q-tooltip К операции
+                      q-tooltip {{ $t('reports.accountsPage.toOperationLabel') }}
 
       template(#item='props')
         .col-12
@@ -105,23 +105,23 @@
                 .text-body2 {{ props.row.name }}
                 .text-caption.q-mt-xs.text-weight-bold(
                   :class='props.row.accountType === 0 ? "account-type-active" : "account-type-passive"'
-                ) {{ props.row.accountType === 0 ? 'Активный' : 'Пассивный' }}
+                ) {{ props.row.accountType === 0 ? $t('reports.accountsPage.status.active') : $t('reports.accountsPage.status.passive') }}
               .col-auto
                 q-btn(
                   flat dense round size='sm' color='primary'
                   icon='fa-solid fa-arrow-right'
                   :to='{ name: "reports-operations", query: { account_id: props.row.id } }'
                 )
-                  q-tooltip К операциям счёта
+                  q-tooltip {{ $t('reports.accountsPage.toAccountOperationsLabel') }}
             .row.q-mt-sm
               .col-4
-                .text-caption.t-faint Дебет
+                .text-caption.t-faint {{ $t('reports.accountsPage.debitLabel') }}
                 .text-body2 {{ formatAsset2Digits(props.row.debitBalance) }}
               .col-4
-                .text-caption.t-faint Кредит
+                .text-caption.t-faint {{ $t('reports.accountsPage.creditLabel') }}
                 .text-body2 {{ formatAsset2Digits(props.row.creditBalance) }}
               .col-4
-                .text-caption.t-faint Сальдо
+                .text-caption.t-faint {{ $t('reports.accountsPage.balanceLabel') }}
                 .text-body2.text-weight-bold {{ formatAsset2Digits(props.row.balance) }}
 </template>
 
@@ -137,6 +137,7 @@ import { FailAlert, SuccessAlert } from 'src/shared/api'
 import { ExpandToggleButton } from 'src/shared/ui/ExpandToggleButton'
 import { EntityIdBadge } from 'src/shared/ui'
 import { AccountIdCell } from '../../../shared/ui'
+import { t } from '../../../i18n';
 
 const { info } = useSystemStore()
 const { isMobile } = useWindowSize()
@@ -168,9 +169,9 @@ function shortHash(hash: string | null | undefined): string {
 async function copyText(text: string) {
   try {
     await copyToClipboard(text)
-    SuccessAlert('Скопировано')
+    SuccessAlert(t('reports.accountsPage.copySuccess'))
   } catch {
-    FailAlert('Не удалось скопировать')
+    FailAlert(t('reports.accountsPage.copyError'))
   }
 }
 
@@ -181,20 +182,20 @@ async function copyFullHash(hash: string | null | undefined) {
 
 const columns: any[] = [
   { name: 'expand', align: 'left', label: '', field: 'expand', sortable: false },
-  { name: 'id', align: 'left', label: 'Счёт', field: 'id', sortable: true },
-  { name: 'name', align: 'left', label: 'Наименование', field: 'name', sortable: true },
-  { name: 'debit', align: 'right', label: 'Дебет', field: 'debitBalance', sortable: true },
-  { name: 'credit', align: 'right', label: 'Кредит', field: 'creditBalance', sortable: true },
-  { name: 'balance', align: 'right', label: 'Сальдо', field: 'balance', sortable: true },
-  { name: 'accountType', align: 'left', label: 'Тип', field: 'accountType', sortable: true },
+  { name: 'id', align: 'left', label: t('reports.accountsPage.column.account'), field: 'id', sortable: true },
+  { name: 'name', align: 'left', label: t('reports.accountsPage.column.name'), field: 'name', sortable: true },
+  { name: 'debit', align: 'right', label: t('reports.accountsPage.debitLabel'), field: 'debitBalance', sortable: true },
+  { name: 'credit', align: 'right', label: t('reports.accountsPage.creditLabel'), field: 'creditBalance', sortable: true },
+  { name: 'balance', align: 'right', label: t('reports.accountsPage.balanceLabel'), field: 'balance', sortable: true },
+  { name: 'accountType', align: 'left', label: t('reports.accountsPage.column.type'), field: 'accountType', sortable: true },
 ]
 
 const childColumns: any[] = [
-  { name: 'action', align: 'left', label: 'Тип', field: 'action' },
-  { name: 'postingId', align: 'left', label: '№ проводки', field: 'globalSequence' },
-  { name: 'processHash', align: 'left', label: '№ процесса', field: 'processHash' },
-  { name: 'quantity', align: 'right', label: 'Сумма', field: 'quantity' },
-  { name: 'createdAt', align: 'left', label: 'Дата', field: 'createdAt' },
+  { name: 'action', align: 'left', label: t('reports.accountsPage.column.type'), field: 'action' },
+  { name: 'postingId', align: 'left', label: t('reports.accountsPage.column.postingId'), field: 'globalSequence' },
+  { name: 'processHash', align: 'left', label: t('reports.accountsPage.column.processId'), field: 'processHash' },
+  { name: 'quantity', align: 'right', label: t('reports.accountsPage.column.amount'), field: 'quantity' },
+  { name: 'createdAt', align: 'left', label: t('reports.accountsPage.column.date'), field: 'createdAt' },
   { name: 'open', align: 'right', label: '', field: 'parentApplyGlobalSequence' },
 ]
 

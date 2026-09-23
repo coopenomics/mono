@@ -3,7 +3,7 @@ q-btn(
   color='primary',
   @click='handleCreateCycle',
   :loading='loading',
-  label='Создать цикл'
+  :label='$t("capital.createCycleButton.label")'
 )
 </template>
 

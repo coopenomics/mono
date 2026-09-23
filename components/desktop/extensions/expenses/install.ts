@@ -1,3 +1,4 @@
+import './i18n';
 import { markRaw } from 'vue';
 import { agreementsBase } from 'src/shared/lib/consts/workspaces';
 import type { IWorkspaceConfig } from 'src/shared/lib/types/workspace';
@@ -8,6 +9,7 @@ import {
   CashierPage,
   MyAdvancesPage,
 } from './pages';
+import { t } from './i18n';
 
 // Шасси расходов — UI scaffold (C28-32). Зарегистрировано в
 // src/processes/init-installed-extensions/extensions-registry.ts после
@@ -16,13 +18,13 @@ export default async function (): Promise<IWorkspaceConfig[]> {
   return [{
     workspace: 'expenses',
     extension_name: 'expenses',
-    title: 'Расходы',
+    title: t('expenses.install.extensionName'),
     icon: 'receipt_long',
     defaultRoute: 'expenses-registry',
     routes: [
       {
         meta: {
-          title: 'Расходы',
+          title: t('expenses.install.extensionName'),
           icon: 'receipt_long',
           roles: [],
         },
@@ -45,7 +47,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             name: 'expenses-registry',
             component: markRaw(ExpensesRegistryPage),
             meta: {
-              title: 'Реестр расходов',
+              title: t('expenses.install.registryNavTitle'),
               icon: 'receipt_long',
               roles: [],
               agreements: agreementsBase,
@@ -58,7 +60,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             name: 'expenses-admin-approve',
             component: markRaw(ExpensesAdminApprovePage),
             meta: {
-              title: 'На одобрение председателя',
+              title: t('expenses.install.adminApproveNavTitle'),
               icon: 'gavel',
               roles: ['chairman'],
               agreements: agreementsBase,
@@ -71,7 +73,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             name: 'expenses-cashier',
             component: markRaw(CashierPage),
             meta: {
-              title: 'Касса',
+              title: t('expenses.install.cashierNavTitle'),
               icon: 'payments',
               roles: ['chairman'],
               agreements: agreementsBase,
@@ -84,7 +86,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             name: 'expenses-my-advances',
             component: markRaw(MyAdvancesPage),
             meta: {
-              title: 'Мои авансы',
+              title: t('expenses.install.myAdvancesNavTitle'),
               icon: 'account_balance_wallet',
               roles: [],
               agreements: agreementsBase,
@@ -97,7 +99,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             name: 'expenses-detail',
             component: markRaw(ExpenseDetailPage),
             meta: {
-              title: 'Расход',
+              title: t('expenses.install.singleExpenseNavTitle'),
               roles: [],
               agreements: agreementsBase,
               requiresAuth: true,

@@ -1,7 +1,7 @@
 <template lang="pug">
 BaseDialog(
   :model-value='modelValue',
-  title='Пополнение пула программных расходов',
+  :title='$t("capital.topupProgramExpensePoolDialog.title")',
   size='sm',
   @update:model-value='$emit("update:modelValue", $event)'
 )
@@ -9,22 +9,22 @@ BaseDialog(
     .topup-form__field
       AmountInput(
         v-model='amount',
-        label='Сумма пополнения',
+        :label='$t("capital.topupProgramExpensePoolDialog.amountLabel")',
         :symbol='symbol',
         :precision='precision',
         :placeholder='placeholder'
       )
-    .topup-form__note.t-sm.t-muted Деньги переводятся из свободных инвестиций программы в пул, из которого оплачиваются программные расходы.
+    .topup-form__note.t-sm.t-muted {{ $t('capital.topupProgramExpensePoolDialog.description') }}
 
   template(#footer)
     .topup-form__actions
-      BaseButton(variant='ghost', @click='close') Отмена
+      BaseButton(variant='ghost', @click='close') {{ $t('common.action.cancel') }}
       BaseButton(
         variant='primary',
         :loading='submitting',
         :disabled='!canSubmit',
         @click='submit'
-      ) Пополнить
+      ) {{ $t('capital.topupProgramExpensePoolDialog.submit') }}
 </template>
 
 <script setup lang="ts">
@@ -35,6 +35,7 @@ import { BaseDialog } from 'src/shared/ui/base/BaseDialog';
 import { BaseButton } from 'src/shared/ui/base/BaseButton';
 import { AmountInput } from 'src/shared/ui/domain/AmountInput';
 import { useTopupProgramExpensePool } from '../model';
+import { t } from '../../../../i18n';
 
 defineProps<{ modelValue: boolean }>();
 const emit = defineEmits<{
@@ -63,7 +64,7 @@ async function submit(): Promise<void> {
   try {
     submitting.value = true;
     await submitTopup(String(amount.value));
-    SuccessAlert('Пул пополнен — средства переведены в пул программных расходов');
+    SuccessAlert(t('capital.topupProgramExpensePoolDialog.success'));
     emit('topped-up');
     amount.value = null;
     close();

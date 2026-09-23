@@ -1,0 +1,183 @@
+{
+  "chairman": {
+    "agendaPresets": {
+      "proposalCreatedMessage": "Предложение повестки успешно создано"
+    },
+    "agendaPresetsPage": {
+      "agendaQuestionLabel": "Вопрос на повестке",
+      "createProposalLabel": "Создать предложение",
+      "decisionDraftLabel": "Проект решения",
+      "dialogTitle": "Предложение повестки",
+      "generateLabel": "Сгенерировать",
+      "pageSubtitle": "Генерация документов для предложения повестки совета",
+      "pageTitle": "Пресеты предложений повестки"
+    },
+    "approval": {
+      "status": {
+        "approved": "Одобрено",
+        "declined": "Отклонено",
+        "pending": "Ожидает"
+      }
+    },
+    "approvalActionLabels": {
+      "blagorostInvestmentApplication": "Заявление на инвестицию в проект по приложению Благороста",
+      "blagorostProjectAccess": "Допуск к проекту по приложению Благороста",
+      "blagorostRidContribution": "Внесение РИД по проекту Благороста",
+      "blagorostUhdContract": "Договор УХД по приложению Благороста",
+      "unitChairmanLiabilityContract": "Договор о материальной ответственности председателя участка",
+      "unitChairmanPowerOfAttorney": "Доверенность председателю кооперативного участка"
+    },
+    "approvalsPage": {
+      "allStatusesOption": "Все статусы",
+      "loadError": "Ошибка загрузки одобрений",
+      "statusFilterLabel": "Статус",
+      "statusFilterPlaceholder": "без фильтра"
+    },
+    "approvalsTableWidget": {
+      "column": {
+        "action": "Действие",
+        "actions": "Действия",
+        "createdAt": "Дата создания",
+        "status": "Статус",
+        "user": "Пользователь"
+      },
+      "emptyLabel": "У председателя нет запросов предварительных одобрений"
+    },
+    "blagorostPreset": {
+      "description": "Утверждение Положения о целевой потребительской программе «БЛАГОРОСТ»",
+      "title": "Положение о ЦПП «БЛАГОРОСТ»"
+    },
+    "confirmApprovalButton": {
+      "approveLabel": "Одобрить",
+      "cancelLabel": "Отменить",
+      "confirmText": "Вы уверены, что хотите одобрить документ?",
+      "successMessage": "Одобрение подтверждено",
+      "title": "Подтверждение одобрения"
+    },
+    "declineApprovalButton": {
+      "cancelLabel": "Отменить",
+      "confirmText": "Вы уверены, что хотите отклонить одобрение?",
+      "declineLabel": "Отклонить",
+      "errorMessage": "Возникла ошибка: {message}",
+      "reasonLabel": "Причина отклонения",
+      "reasonRequiredHint": "Причина обязательна",
+      "successMessage": "Одобрение отклонено",
+      "title": "Отклонение одобрения"
+    },
+    "defaultPagesForm": {
+      "authDesktopLabel": "Рабочий стол для авторизованных пользователей",
+      "authPageLabel": "Страница для авторизованных пользователей",
+      "desktopPlaceholder": "Выберите рабочий стол",
+      "guestDesktopLabel": "Рабочий стол для неавторизованных пользователей",
+      "guestPageLabel": "Страница для неавторизованных пользователей",
+      "loginPageName": "Вход",
+      "pagePlaceholder": "Выберите страницу",
+      "registerPageName": "Регистрация пайщика",
+      "resetLabel": "Сбросить",
+      "successMessage": "Настройки сохранены успешно"
+    },
+    "error": {
+      "noGeneratedDocument": "Нет сгенерированного документа",
+      "projectCreateFailed": "Не удалось создать проект решения"
+    },
+    "install": {
+      "agendaPresetsNavTitle": "Пресеты предложений",
+      "appCatalogNavTitle": "Каталог приложений",
+      "appInstallNavTitle": "Установка приложения",
+      "appSettingsNavTitle": "Настройки приложения",
+      "approvalsNavTitle": "Запросы одобрений",
+      "cooperativeContactsNavTitle": "Контакты кооператива",
+      "cooperativeKeyNavTitle": "Ключ кооператива",
+      "cooperativeUnitsNavTitle": "Кооперативные Участки",
+      "councilMembersNavTitle": "Члены совета",
+      "defaultPagesNavTitle": "Стартовые страницы",
+      "extensionName": "Стол председателя",
+      "extensionNavTitle": "Расширение",
+      "installedAppsNavTitle": "Установленные приложения",
+      "marketplaceNavTitle": "Витрина",
+      "notificationsLogNavTitle": "Журнал уведомлений",
+      "onboardingNavTitle": "Онбординг",
+      "paymentProviderNavTitle": "Провайдер платежей",
+      "registrationFeesNavTitle": "Регистрационные взносы"
+    },
+    "onboarding": {
+      "importMembersHint": "Необязательный шаг. Если у вас уже есть пайщики кооператива — загрузите их списком через CSV-файл. Если нет — просто двигайтесь дальше.",
+      "importMembersTitle": "Импорт пайщиков (опционально)",
+      "meetingCreatedMessage": "Общее собрание создано и шаг отмечен.",
+      "proposalCreatedMessage": "Предложение создано и шаг отмечен."
+    },
+    "onboardingCelebration": {
+      "decisionsSubtitle": "Все необходимые решения совета приняты",
+      "decisionsTitle": "Решения приняты",
+      "hideLabel": "Скрыть онбординг",
+      "meetingSubtitle": "Общее собрание пайщиков состоялось",
+      "meetingTitle": "Общее собрание проведено",
+      "readySubtitle": "Все системы настроены и функционируют",
+      "readyTitle": "Цифровой Кооператив готов к работе",
+      "subtitle": "Поздравляем! Процесс подключения цифрового кооператива успешно завершен.",
+      "title": "Онбординг завершен!"
+    },
+    "onboardingExpire": {
+      "countdownFormat": "{days}д {hours}ч {minutes}м",
+      "expiredLabel": "срок истёк"
+    },
+    "onboardingPresets": {
+      "generalMeet": {
+        "description": "Сформировать предложение повестки общего собрания пайщиков о вступлении в союз.",
+        "title": "Объявить общее собрание"
+      },
+      "participantApplication": {
+        "description": "О утверждении форм заявлений на вступление.",
+        "title": "Утверждение форм заявлений на вступление"
+      },
+      "privacyAgreement": {
+        "description": "О утверждении политики конфиденциальности.",
+        "title": "Утверждение политики конфиденциальности"
+      },
+      "signatureAgreement": {
+        "description": "О утверждении положения о простой электронной подписи.",
+        "title": "Утверждение положения о простой электронной подписи"
+      },
+      "userAgreement": {
+        "description": "О утверждении пользовательского соглашения.",
+        "title": "Утверждение пользовательского соглашения"
+      },
+      "voskhodMembership": {
+        "description": "О вступлении в ПК «Восход»",
+        "title": "О вступлении в ПК «Восход»"
+      },
+      "walletAgreement": {
+        "description": "О утверждении соглашения о ЦПП \"Цифровой Кошелёк\".",
+        "title": "Утверждение соглашения о ЦПП \"Цифровой Кошелёк\""
+      }
+    },
+    "onboardingStepsCard": {
+      "agendaProposalTitle": "Предложение повестки",
+      "agendaQuestionLabel": "Вопрос на повестке",
+      "announceCouncilMeeting": "Объявить собрание совета",
+      "announceGeneralMeeting": "Объявить общее собрание",
+      "announceSubmitLabel": "Объявить",
+      "awaitingCouncilText": "Ожидаем решение совета",
+      "awaitingGeneralMeetingText": "Ожидаем решение общего собрания пайщиков",
+      "deadlineLabel": "Срок адаптации: {countdown}",
+      "deadlinePendingLabel": "Отсчёт появится после получения данных",
+      "decisionDraftLabel": "Проект решения",
+      "importMembersLabel": "Импорт пайщиков",
+      "loadingText": "Загрузка данных онбординга...",
+      "pendingCouncilHint": "Для продолжения примите решения советом",
+      "title": "Адаптируйте кооператив к работе на платформе"
+    },
+    "paymentProviderForm": {
+      "cancelLabel": "Отменить",
+      "providerLabel": "Провайдер входящих платежей",
+      "providerPlaceholder": "Выберите провайдера",
+      "qrProviderHint": "Пайщик получает реквизиты для оплаты по QR-коду, который можно отсканировать любым банковским приложением. Обработка платежей производится вручную в разделе \"Реестр платежей\" кассиром.",
+      "qrProviderName": "Банковский платеж по QR-коду",
+      "successMessage": "Провайдер платежей сохранен успешно"
+    },
+    "paymentProviderPage": {
+      "hint": "Этот провайдер будет использоваться для создания и обработки платежей пайщиков.",
+      "intro": "Выберите провайдера входящих платежей по умолчанию для вашего кооператива."
+    }
+  }
+}

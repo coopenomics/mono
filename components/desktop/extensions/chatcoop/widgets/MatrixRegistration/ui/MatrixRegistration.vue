@@ -4,7 +4,7 @@ div.matrix-registration
     .registration-header
       .widget-icon
         i.fas.fa-comments
-    h2.registration-title Создать аккаунт
+    h2.registration-title {{ $t('chatcoop.matrixRegistration.title') }}
 
     form.registration-form(@submit.prevent="handleSubmit")
       .form-group
@@ -14,18 +14,18 @@ div.matrix-registration
           readonly,
           outlined,
           dense,
-          placeholder="Ваш email",
+          :placeholder="$t('chatcoop.matrixRegistration.emailPlaceholder')",
           autocomplete="off",
           class="matrix-input"
         )
 
       .form-group
-        label.form-label Имя пользователя
+        label.form-label {{ $t('chatcoop.matrixRegistration.usernameLabel') }}
         q-input(
           v-model="username",
           outlined,
           dense,
-          placeholder="Введите имя пользователя (минимум 3 символа)",
+          :placeholder="$t('chatcoop.matrixRegistration.usernamePlaceholder')",
           autocomplete="off",
           lazy-rules,
           no-error-icon,
@@ -36,13 +36,13 @@ div.matrix-registration
         )
 
       .form-group
-        label.form-label Пароль
+        label.form-label {{ $t('chatcoop.matrixRegistration.passwordLabel') }}
         q-input(
           v-model="password",
           type="password",
           outlined,
           dense,
-          placeholder="Введите пароль (минимум 6 символов, буквы, цифры и символы)",
+          :placeholder="$t('chatcoop.matrixRegistration.passwordPlaceholder')",
           autocomplete="off",
           lazy-rules,
           no-error-icon,
@@ -51,13 +51,13 @@ div.matrix-registration
         )
 
       .form-group
-        label.form-label Повторите пароль
+        label.form-label {{ $t('chatcoop.matrixRegistration.repeatPasswordLabel') }}
         q-input(
           v-model="confirmPassword",
           type="password",
           outlined,
           dense,
-          placeholder="Повторите пароль",
+          :placeholder="$t('chatcoop.matrixRegistration.repeatPasswordLabel')",
           autocomplete="off",
           lazy-rules,
           no-error-icon,
@@ -80,8 +80,8 @@ div.matrix-registration
         class="registration-btn"
       )
         template(#loading)
-          | Создание аккаунта...
-        | Продолжить
+          | {{ $t('chatcoop.matrixRegistration.creatingLabel') }}
+        | {{ $t('chatcoop.matrixRegistration.continueLabel') }}
 </template>
 
 <script lang="ts" setup>
@@ -89,6 +89,7 @@ import { computed } from 'vue';
 import { useMatrixRegistration } from '../model/useMatrixRegistration';
 import { useCreateMatrixAccount } from '../../../pages/ChatCoopPage/features/CreateMatrixAccount/model/useCreateMatrixAccount';
 import { useSessionStore } from 'src/entities/Session/model/store';
+import { t } from '../../../i18n';
 
 const sessionStore = useSessionStore();
 
@@ -113,7 +114,7 @@ const {
 // Валидация пароля: минимум 6 символов, буквы, цифры и символы
 const validatePassword = (val: string): string | boolean => {
   if (!val || val.length < 6) {
-    return 'Пароль должен содержать минимум 6 символов';
+    return t('chatcoop.matrixRegistration.passwordMinLengthError');
   }
 
   const hasLetter = /[a-zA-Zа-яА-Я]/.test(val);
@@ -121,15 +122,15 @@ const validatePassword = (val: string): string | boolean => {
   const hasSpecial = /[!@#$%^&*()_+\-=\[\]{}|;':",./<>?`~]/.test(val);
 
   if (!hasLetter) {
-    return 'Пароль должен содержать хотя бы одну букву';
+    return t('chatcoop.matrixRegistration.passwordLetterError');
   }
 
   if (!hasDigit) {
-    return 'Пароль должен содержать хотя бы одну цифру';
+    return t('chatcoop.matrixRegistration.passwordDigitError');
   }
 
   if (!hasSpecial) {
-    return 'Пароль должен содержать хотя бы один специальный символ (!@#$%^&*()_+-=[]{}|;":,./<>?`~)';
+    return t('chatcoop.matrixRegistration.passwordSpecialCharError');
   }
 
   return true;
@@ -138,11 +139,11 @@ const validatePassword = (val: string): string | boolean => {
 // Валидация совпадения паролей
 const validateConfirmPassword = (val: string): string | boolean => {
   if (!val) {
-    return 'Повторите пароль';
+    return t('chatcoop.matrixRegistration.repeatPasswordLabel');
   }
 
   if (val !== password.value) {
-    return 'Пароли не совпадают';
+    return t('chatcoop.matrixRegistration.passwordMismatchError');
   }
 
   return true;

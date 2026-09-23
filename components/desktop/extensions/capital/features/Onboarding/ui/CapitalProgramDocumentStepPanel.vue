@@ -9,7 +9,7 @@
         @click='emit("refresh")'
       )
         q-icon(name='refresh' size='18px')
-        span.q-ml-xs {{ previewHtml ? 'Обновить предпросмотр' : 'Сформировать предпросмотр' }}
+        span.q-ml-xs {{ previewHtml ? $t('capital.capitalProgramDocumentStepPanel.refreshPreviewAction') : $t('capital.capitalProgramDocumentStepPanel.generatePreviewAction') }}
 
     CapitalProgramInlineDocumentPreview(
       v-if='previewHtml && !loading'
@@ -20,12 +20,12 @@
 
     .capital-doc-step__loading(v-else-if='loading')
       q-spinner(size='36px' color='primary')
-      p.t-body-sm.capital-doc-step__loading-text Формируем предпросмотр документа…
+      p.t-body-sm.capital-doc-step__loading-text {{ $t('capital.capitalProgramDocumentStepPanel.generatingText') }}
 
     EmptyState(
       v-else
-      title='Предпросмотр ещё не сформирован'
-      body='Нажмите «Сформировать предпросмотр», чтобы увидеть документ с редактируемыми полями.'
+      :title='$t("capital.capitalProgramDocumentStepPanel.emptyTitle")'
+      :body='$t("capital.capitalProgramDocumentStepPanel.emptyBody")'
     )
 </template>
 

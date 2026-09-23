@@ -5,8 +5,8 @@
 
   EmptyState(
     v-else-if='!loading && !rows.length',
-    title='Нет данных о голосах',
-    body='Этот участник ещё не распределил голосующую сумму.'
+    :title='$t("capital.segmentVotesWidget.emptyTitle")',
+    :body='$t("capital.segmentVotesWidget.emptyBody")'
   )
     template(#icon)
       q-icon(name='how_to_vote')
@@ -23,6 +23,7 @@ import { useVoteStore } from 'app/extensions/capital/entities/Vote/model';
 import { FailAlert } from 'src/shared/api';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { EmptyState } from 'src/shared/ui/base';
+import { t } from '../../i18n';
 
 interface Props {
   projectHash: string;
@@ -58,7 +59,7 @@ const loadVotes = async () => {
     votes.value = voteStore.votes;
   } catch (error) {
     console.error('Ошибка при загрузке голосов:', error);
-    FailAlert('Не удалось загрузить голоса участника');
+    FailAlert(t('capital.segmentVotesWidget.loadError'));
   } finally {
     loading.value = false;
   }

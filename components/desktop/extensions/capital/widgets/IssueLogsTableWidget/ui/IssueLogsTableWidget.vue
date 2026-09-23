@@ -21,8 +21,8 @@
 
     EmptyState(
       v-if='!logs.length && !loading',
-      title='История пуста',
-      body='Здесь появятся изменения задачи, коммиты и связанные действия.'
+      :title='$t("capital.issueLogsTableWidget.emptyTitle")',
+      :body='$t("capital.issueLogsTableWidget.emptyBody")'
     )
       template(#icon)
         q-icon(name='history', size='40px')
@@ -35,6 +35,7 @@ import { ActivityTimeline } from 'src/shared/ui/domain/ActivityTimeline';
 import { EmptyState } from 'src/shared/ui/base/EmptyState';
 import { FailAlert } from 'src/shared/api';
 import { mapCapitalLogToActivity } from 'app/extensions/capital/shared/lib/mapCapitalLogToActivity';
+import { t } from '../../../i18n';
 
 interface Props {
   issueHash: string;
@@ -79,7 +80,7 @@ async function loadLogs(page = 1, append = false) {
     hasMorePages.value = result.items.length === pageSize;
   } catch (error) {
     console.error('Ошибка при загрузке логов задачи:', error);
-    FailAlert('Не удалось загрузить историю задачи');
+    FailAlert(t('capital.issueLogsTableWidget.loadError'));
   } finally {
     loading.value = false;
     initialLoading.value = false;

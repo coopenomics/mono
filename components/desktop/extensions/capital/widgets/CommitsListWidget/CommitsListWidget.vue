@@ -31,14 +31,14 @@
           .commits-list__main
             .commits-list__title(
               @click.stop='navigateToComponent(row.project_hash)'
-            ) {{ row.project?.title || 'Компонент' }}
+            ) {{ row.project?.title || $t('capital.commitsListWidget.componentLabel') }}
             .commits-list__sub.t-sm.t-muted
               span.commits-list__parent(
                 v-if='row.project?.parent_title',
                 @click.stop='navigateToProject(row.project.parent_hash)'
               ) {{ row.project.parent_title }}
               span(v-if='row.project?.parent_title') ·
-              span {{ row.display_name || row.username || 'Неизвестный' }}
+              span {{ row.display_name || row.username || $t('capital.commitsListWidget.unknownLabel') }}
             .commits-list__hours.t-sm
               BaseBadge(:variant='getStatusVariant(row.status)') {{ getStatusLabel(row.status) }}
               BaseBadge(variant='info') {{ formatHours(Number(row.amounts?.creators_hours) || 0) }}
@@ -53,18 +53,18 @@
 
         //- Детали — только в развороте, через DataRow
         .commits-list__details(v-if='expanded[row.commit_hash]')
-          DataRow(label='Дата', :value='formatDate(row.created_at)')
+          DataRow(:label='$t("capital.commitsListWidget.columnDate")', :value='formatDate(row.created_at)')
           DataRow(
-            label='Стоимость часа',
-            :value='`${formatCurrency(row.amounts?.hour_cost)} / час`'
+            :label='$t("capital.commitsListWidget.columnHourCost")',
+            :value='$t(`capital.commitsListWidget.hourCostValue`, { amount: formatCurrency(row.amounts?.hour_cost) })'
           )
           DataRow(
-            label='Себестоимость',
+            :label='$t("capital.commitsListWidget.columnCost")',
             :value='formatCurrency(row.amounts?.creators_base_pool)'
           )
 
           .commits-list__feedback(v-if='getCommittedIssues(row.data).length')
-            .t-sm.t-muted Задачи
+            .t-sm.t-muted {{ $t('capital.commitsListWidget.tasksTab') }}
             ul.commits-list__issues
               li(v-for='issue in getCommittedIssues(row.data)', :key='issue.issue_hash')
                 a.commits-list__issue-link(
@@ -73,7 +73,7 @@
                 ) {{ issue.title }}
 
           .commits-list__feedback(v-if='getContributionFeedback(row.data)')
-            .t-sm.t-muted Отзыв и оценка работы
+            .t-sm.t-muted {{ $t('capital.commitsListWidget.reviewTab') }}
             q-rating(
               v-if='(getContributionFeedback(row.data)?.satisfaction_stars ?? 0) >= 1',
               :model-value='getContributionFeedback(row.data)?.satisfaction_stars ?? 1',
@@ -85,11 +85,11 @@
               | {{ getContributionFeedback(row.data)?.review_text }}
 
           .commits-list__feedback(v-if='row.description')
-            .t-sm.t-muted Сообщение коммита
+            .t-sm.t-muted {{ $t('capital.commitsListWidget.messageLabel') }}
             pre.commits-list__pre {{ row.description }}
 
           .commits-list__feedback(v-if='getGitData(row.data)?.url')
-            .t-sm.t-muted Ссылка
+            .t-sm.t-muted {{ $t('capital.commitsListWidget.linkLabel') }}
             a.commits-list__url(
               :href='getGitData(row.data)?.url',
               target='_blank',
@@ -97,7 +97,7 @@
             ) {{ getGitData(row.data)?.url }}
 
           .commits-list__feedback(v-if='getGitData(row.data)?.diff')
-            .t-sm.t-muted Изменения
+            .t-sm.t-muted {{ $t('capital.commitsListWidget.diffLabel') }}
             DiffViewer(:diff="getGitData(row.data)?.diff ?? ''")
 
     .commits-list__foot.t-sm.t-muted(v-if='pagination.rowsNumber > pagination.rowsPerPage')
@@ -107,13 +107,13 @@
         size='sm',
         :disabled='pagination.page <= 1',
         @click='goToPage(pagination.page - 1)'
-      ) Назад
+      ) {{ $t('common.action.back') }}
       BaseButton(
         variant='ghost',
         size='sm',
         :disabled='pagination.page * pagination.rowsPerPage >= pagination.rowsNumber',
         @click='goToPage(pagination.page + 1)'
-      ) Ещё
+      ) {{ $t('capital.commitsListWidget.moreButton') }}
 </template>
 
 <script lang="ts" setup>
@@ -135,6 +135,7 @@ import { Zeus } from '@coopenomics/sdk';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { formatHours } from 'src/shared/lib/utils';
 import { DiffViewer } from 'src/shared/ui/DiffViewer';
+import { t } from '../../i18n';
 
 const props = withDefaults(
   defineProps<{
@@ -144,9 +145,9 @@ const props = withDefaults(
     emptyBody?: string;
   }>(),
   {
-    emptyTitle: 'Коммитов пока нет',
+    emptyTitle: t('capital.commitsListWidget.emptyTitle'),
     emptyBody:
-      'Когда участники зафиксируют время по компонентам, коммиты появятся здесь для проверки.',
+      t('capital.commitsListWidget.emptyBody'),
   },
 );
 
@@ -185,7 +186,7 @@ const rangeLabel = computed(() => {
   if (!rowsNumber) return '';
   const from = (page - 1) * rowsPerPage + 1;
   const to = Math.min(page * rowsPerPage, rowsNumber);
-  return `${from}-${to} из ${rowsNumber}`;
+  return t('capital.commitsListWidget.paginationLabel', { from, to, total: rowsNumber });
 });
 
 watch(
@@ -231,7 +232,7 @@ const loadCommits = async (paginationData?: typeof pagination.value) => {
     );
   } catch (error) {
     console.error('Ошибка при загрузке коммитов:', error);
-    FailAlert('Не удалось загрузить список коммитов');
+    FailAlert(t('capital.commitsListWidget.loadError'));
   } finally {
     loading.value = false;
   }
@@ -283,13 +284,13 @@ const getStatusVariant = (status: string): BaseBadgeVariant => {
 const getStatusLabel = (status: string) => {
   switch (status) {
     case Zeus.CommitStatus.CREATED:
-      return 'Ожидает';
+      return t('capital.commitsListWidget.statusPending');
     case Zeus.CommitStatus.APPROVED:
-      return 'Одобрен';
+      return t('capital.commitsListWidget.statusApproved');
     case Zeus.CommitStatus.DECLINED:
-      return 'Отклонен';
+      return t('capital.commitsListWidget.statusRejected');
     case Zeus.CommitStatus.UNDEFINED:
-      return 'Не определен';
+      return t('capital.commitsListWidget.statusUndefined');
     default:
       return status;
   }

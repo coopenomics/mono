@@ -24,6 +24,7 @@ const fixPrivacyPolicyText = (html: string): string => {
       // Extract website from the document and create privacy URL
       const websiteMatch = html.match(/https?:\/\/([^\/]+)/);
       if (websiteMatch) {
+        // i18n-ignore: фрагмент текста политики конфиденциальности, официальный документ — подставляется regex-заменой
         return `по адресу https://${websiteMatch[1]}/privacy.`;
       }
       return match;

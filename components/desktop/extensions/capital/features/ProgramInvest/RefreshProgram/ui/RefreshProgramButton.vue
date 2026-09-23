@@ -3,7 +3,7 @@ q-btn(
   color='primary',
   @click='handleRefreshProgram',
   :loading='loading',
-  label='Обновить CRPS пайщика в программе'
+  :label='$t("capital.refreshProgramButton.label")'
 )
 </template>
 

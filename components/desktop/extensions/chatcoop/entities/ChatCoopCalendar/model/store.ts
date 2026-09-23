@@ -3,6 +3,7 @@ import { ref, type Ref } from 'vue'
 import { api } from '../api'
 import { useCalendarBoardPermissions } from '../../../shared/lib/useCalendarBoardPermissions'
 import type { IChatCoopCalendarEvent, IChatCoopCalendarRoomOption } from './types'
+import { t } from '../../../i18n';
 
 const namespace = 'chatCoopCalendarStore'
 
@@ -40,7 +41,7 @@ export const useChatCoopCalendarStore = defineStore(
         events.value = eventRows
       } catch (err: unknown) {
         console.error('ChatCoop calendar load failed:', err)
-        error.value = 'Не удалось загрузить календарь.'
+        error.value = t('chatcoop.calendarStore.loadError')
       } finally {
         isLoading.value = false
       }

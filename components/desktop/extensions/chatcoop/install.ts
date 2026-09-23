@@ -1,20 +1,22 @@
+import './i18n';
 import { markRaw } from 'vue';
 import { CalendarPage, ChatCoopPage, MobileClientPage, SecretaryRoomsPage, TranscriptionsPage, TranscriptionDetailPage } from './pages';
 import { agreementsBase } from 'src/shared/lib/consts/workspaces';
 import type { IWorkspaceConfig } from 'src/shared/lib/types/workspace';
+import { t } from './i18n';
 
 export default async function (): Promise<IWorkspaceConfig[]> {
   console.log('📨 [ChatCoop Install] Extension install function called');
   return [{
     workspace: 'chatcoop',
     extension_name: 'chatcoop',
-    title: 'Кооперативный мессенджер',
+    title: t('chatcoop.install.extensionName'),
     icon: 'fa-solid fa-comments',
     defaultRoute: 'chat', // Маршрут по умолчанию для рабочего стола чата
     routes: [
       {
         meta: {
-          title: 'Кооперативный мессенджер',
+          title: t('chatcoop.install.extensionName'),
           icon: 'fa-solid fa-comments',
           roles: ['chairman', 'member', 'user'],
         },
@@ -26,7 +28,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             name: 'chatcoop-chat',
             component: markRaw(ChatCoopPage),
             meta: {
-              title: 'Быстрый клиент',
+              title: t('chatcoop.install.quickClientNavTitle'),
               icon: 'fa-solid fa-comments',
               roles: ['chairman', 'member', 'user'],
               agreements: agreementsBase,
@@ -39,7 +41,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             name: 'chatcoop-mobile',
             component: markRaw(MobileClientPage),
             meta: {
-              title: 'Мобильный клиент',
+              title: t('chatcoop.install.mobileClientNavTitle'),
               icon: 'fa-solid fa-mobile-alt',
               roles: ['chairman', 'member', 'user'],
               agreements: agreementsBase,
@@ -52,7 +54,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             name: 'chatcoop-calendar',
             component: markRaw(CalendarPage),
             meta: {
-              title: 'Календарь событий',
+              title: t('chatcoop.install.calendarNavTitle'),
               icon: 'fa-solid fa-calendar-days',
               roles: ['chairman', 'member', 'user'],
               agreements: agreementsBase,
@@ -65,7 +67,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             name: 'chatcoop-transcriptions',
             component: markRaw(TranscriptionsPage),
             meta: {
-              title: 'Транскрипции звонков',
+              title: t('chatcoop.install.transcriptionsNavTitle'),
               icon: 'fa-solid fa-file-lines',
               roles: ['chairman', 'member', 'user'],
               agreements: agreementsBase,
@@ -78,7 +80,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             name: 'chatcoop-secretary-rooms',
             component: markRaw(SecretaryRoomsPage),
             meta: {
-              title: 'Комнаты секретаря',
+              title: t('chatcoop.install.secretaryRoomsNavTitle'),
               icon: 'fa-solid fa-user-shield',
               roles: ['chairman', 'member'],
               agreements: agreementsBase,
@@ -91,7 +93,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             name: 'chatcoop-transcription-detail',
             component: markRaw(TranscriptionDetailPage),
             meta: {
-              title: 'Транскрипция',
+              title: t('chatcoop.install.transcriptionDetailNavTitle'),
               icon: 'fa-solid fa-file-lines',
               roles: ['chairman', 'member', 'user'],
               agreements: agreementsBase,

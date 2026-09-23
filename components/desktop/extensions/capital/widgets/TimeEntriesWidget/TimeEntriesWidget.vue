@@ -8,8 +8,8 @@
     .time-entries__live-body
       .time-entries__live-clock.t-mono {{ clockLabel }}
       .time-entries__live-meta.t-sm.t-muted
-        | {{ openTimer.is_paused ? 'пауза' : 'идёт' }}
-        span(v-if='pendingFactLabel')  · накоплено {{ pendingFactLabel }}
+        | {{ openTimer.is_paused ? $t('capital.timeEntriesWidget.statusPaused') : $t('capital.timeEntriesWidget.statusRunning') }}
+        span(v-if='pendingFactLabel')  {{ $t('capital.timeEntriesWidget.accumulatedLabel', { hours: pendingFactLabel }) }}
 
   .time-entries__toolbar(v-if='canManageTime')
     BaseButton(
@@ -20,7 +20,7 @@
     )
       template(#icon-left)
         q-icon(name='add', size='16px')
-      | Добавить время
+      | {{ $t('capital.timeEntriesWidget.addTimeButton') }}
 
     BaseButton(
       size='sm'
@@ -30,7 +30,7 @@
     )
       template(#icon-left)
         q-icon(:name='timerActiveHere ? "stop" : "play_arrow"', size='16px')
-      | {{ timerActiveHere ? 'Остановить таймер' : 'Включить таймер' }}
+      | {{ timerActiveHere ? $t('capital.timeEntriesWidget.stopTimerTooltip') : $t('capital.timeEntriesWidget.startTimerTooltip') }}
 
     BaseButton(
       v-if='timerActiveHere && openTimer'
@@ -41,13 +41,13 @@
     )
       template(#icon-left)
         q-icon(:name='openTimer.is_paused ? "play_arrow" : "pause"', size='16px')
-      | {{ openTimer.is_paused ? 'Продолжить' : 'Пауза' }}
+      | {{ openTimer.is_paused ? $t('capital.timeEntriesWidget.resumeButton') : $t('capital.timeEntriesWidget.pauseButton') }}
 
     span.time-entries__timer-hint.t-sm.t-muted(v-if='openTimer && !timerActiveHere')
-      | Таймер уже идёт по другой задаче{{ openTimer.is_paused ? ' (пауза)' : '' }}
+      | {{ $t('capital.timeEntriesWidget.timerRunningElsewhereNotice', { pausedSuffix: openTimer.is_paused ? $t('capital.timeEntriesWidget.pausedSuffix') : '' }) }}
 
   .time-entries__empty.t-sm.t-muted(v-if="!loading && !rows.length")
-    | Записей рабочего времени пока нет
+    | {{ $t('capital.timeEntriesWidget.emptyText') }}
 
   .time-entries__list(v-else-if="rows.length")
     .time-entries__row(v-for="row in rows", :key="row._id")
@@ -67,28 +67,28 @@
 
   BaseDialog(
     v-model='showWorklogDialog',
-    title='Добавить время',
+    :title='$t("capital.timeEntriesWidget.addTimeDialogTitle")',
     size='sm'
   )
     BaseForm(:loading='worklogSaving', @submit='submitWorklog')
       BaseInput(
         v-model='worklogHours'
         type='number'
-        label='Часы'
-        hint='Фактические часы по этой задаче'
-        suffix='ч'
+        :label='$t("capital.timeEntriesWidget.hoursLabel")'
+        :hint='$t("capital.timeEntriesWidget.hoursHint")'
+        :suffix='$t("capital.timeEntriesWidget.hoursSuffix")'
         required
         :error='worklogError'
       )
     template(#footer)
-      BaseButton(variant='ghost', type='button', @click='closeWorklogDialog') Отменить
+      BaseButton(variant='ghost', type='button', @click='closeWorklogDialog') {{ $t('capital.timeEntriesWidget.cancelButton') }}
       BaseButton(
         variant='primary'
         type='button'
         :loading='worklogSaving'
         :disabled='!isWorklogValid'
         @click='submitWorklog'
-      ) Добавить
+      ) {{ $t('common.action.add') }}
 </template>
 
 <script lang="ts" setup>
@@ -101,6 +101,7 @@ import { useContributorStore } from 'app/extensions/capital/entities/Contributor
 import { useIssueTimeTracking } from 'app/extensions/capital/features/Issue/TrackTime'
 import { formatHours } from 'src/shared/lib/utils'
 import { BaseBadge, BaseButton, BaseDialog, BaseForm, BaseInput } from 'src/shared/ui/base'
+import { t } from '../../i18n';
 
 const props = defineProps<{
   issueHash: string
@@ -176,20 +177,20 @@ const contributorByHash = computed(() => {
 })
 
 const contributorLabel = (hash?: string) => {
-  if (!hash) return 'Участник'
+  if (!hash) return t('capital.timeEntriesWidget.memberColumnLabel')
   return contributorByHash.value.get(hash) || `${hash.slice(0, 8)}…`
 }
 
 const entryTypeLabel = (type?: unknown) => {
   switch (type) {
     case 'manual':
-      return 'вручную'
+      return t('capital.timeEntriesWidget.sourceManual')
     case 'timer':
-      return 'таймер'
+      return t('capital.timeEntriesWidget.sourceTimer')
     case 'estimate':
-      return 'оценка'
+      return t('capital.timeEntriesWidget.sourceEstimate')
     case 'hourly':
-      return 'учёт'
+      return t('capital.timeEntriesWidget.sourceTracked')
     default:
       return ''
   }
@@ -217,17 +218,17 @@ const closeWorklogDialog = () => {
 const submitWorklog = async () => {
   const hours = Number(String(worklogHours.value).replace(',', '.'))
   if (!Number.isFinite(hours) || hours <= 0) {
-    worklogError.value = 'Укажите положительное число часов'
+    worklogError.value = t('capital.timeEntriesWidget.positiveHoursError')
     return
   }
   worklogError.value = ''
   try {
     await addWorklog(hours)
-    SuccessAlert('Время добавлено')
+    SuccessAlert(t('capital.timeEntriesWidget.addedNotice'))
     closeWorklogDialog()
   } catch (error) {
     console.error(error)
-    FailAlert(error, 'Не удалось добавить время')
+    FailAlert(error, t('capital.timeEntriesWidget.addError'))
   }
 }
 
@@ -235,7 +236,7 @@ const onToggleTimer = async () => {
   const wasRunning = timerActiveHere.value
   try {
     await toggleTimer()
-    SuccessAlert(wasRunning ? 'Таймер остановлен' : 'Таймер включён')
+    SuccessAlert(wasRunning ? t('capital.timeEntriesWidget.stoppedNotice') : t('capital.timeEntriesWidget.startedNotice'))
   } catch (error) {
     console.error(error)
     FailAlert(error)
@@ -246,7 +247,7 @@ const onTogglePause = async () => {
   const wasPaused = isPaused.value
   try {
     await togglePause()
-    SuccessAlert(wasPaused ? 'Таймер продолжен' : 'Таймер на паузе')
+    SuccessAlert(wasPaused ? t('capital.timeEntriesWidget.resumedNotice') : t('capital.timeEntriesWidget.pausedNotice'))
   } catch (error) {
     console.error(error)
     FailAlert(error)
@@ -265,7 +266,7 @@ onMounted(async () => {
     await reload()
   } catch (error) {
     console.error('Ошибка при загрузке записей времени:', error)
-    FailAlert('Не удалось загрузить записи времени')
+    FailAlert(t('capital.timeEntriesWidget.loadError'))
   }
 })
 </script>

@@ -18,8 +18,9 @@ q-fab-action.bg-fab-accent-radial(
 import { ref, computed } from 'vue';
 import { CreateRequirementWithEditorDialog } from '../Dialog';
 import { formatCapitalFabLabel } from 'app/extensions/capital/shared/lib';
+import { t } from '../../../../../i18n';
 
-const fabLabel = formatCapitalFabLabel('Артефакт', 'requirement');
+const fabLabel = formatCapitalFabLabel(t('capital.createRequirementFabAction.label'), 'requirement');
 import type { IIssuePermissions } from 'app/extensions/capital/entities/Issue/model';
 import type { IProjectPermissions } from 'app/extensions/capital/entities/Project/model';
 

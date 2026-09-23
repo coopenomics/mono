@@ -12,7 +12,7 @@
   .loading(v-else)
     .q-pa-xl.text-center
       q-spinner(color='primary' size='3rem')
-      .q-mt-md Загрузка настроек...
+      .q-mt-md {{ $t('powerup.settingsPage.loadingText') }}
 </template>
 
 <script lang="ts" setup>
@@ -27,6 +27,7 @@ import {
   FailAlert,
   SuccessAlert,
 } from 'src/shared/api';
+import { t, t as i18nT } from '../../../i18n';
 
 const extStore = useExtensionStore();
 const myFormRef = ref();
@@ -47,7 +48,7 @@ const saveButton = computed(() => ({
     dense: isMobile.value,
     size: isMobile.value ? 'sm' : undefined,
     icon: isMobile.value ? 'save' : undefined,
-    label: isMobile.value ? undefined : 'Сохранить',
+    label: isMobile.value ? undefined : i18nT('common.action.save'),
     loading: isSaving.value,
     onClick: saveSettings,
   },
@@ -109,12 +110,12 @@ const saveSettings = async () => {
       extension.value.enabled ?? false,
       extension.value.config,
     );
-    SuccessAlert('Настройки сохранены');
+    SuccessAlert(t('powerup.settingsPage.saveSuccess'));
     // Перезагружаем данные расширения после сохранения
     await extStore.loadExtensions({ name: 'powerup' });
   } catch (e: unknown) {
     FailAlert(
-      `Ошибка сохранения настроек: ${extractGraphQLErrorMessages(e)}`,
+      t('powerup.settingsPage.saveError', { error: extractGraphQLErrorMessages(e) }),
     );
   } finally {
     isSaving.value = false;

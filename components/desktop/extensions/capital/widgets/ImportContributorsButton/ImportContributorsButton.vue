@@ -8,14 +8,14 @@ div
     :dense='isMobile',
     :size='isMobile ? "sm" : undefined',
     icon='file_upload',
-    :label='isMobile ? undefined : "Импорт из CSV"',
+    :label='isMobile ? undefined : $t("capital.importContributorsButton.triggerLabel")',
     no-wrap
   )
-    q-tooltip(v-if='isMobile') Импорт участников из CSV
+    q-tooltip(v-if='isMobile') {{ $t('capital.importContributorsButton.triggerTooltip') }}
 
   BaseDialog(
     v-model='showDialog',
-    title='Импорт участников',
+    :title='$t("capital.importContributorsButton.dialogTitle")',
     :maximized='true',
     @update:model-value='(v) => !v && clear()'
   )
@@ -25,10 +25,10 @@ div
           .row.items-center.q-gutter-sm
             q-icon(name='upload_file', size='24px')
             div
-              .text-h6 Импорт участников
-              .text-subtitle2 Загрузка участников из CSV файла
+              .text-h6 {{ $t('capital.importContributorsButton.dialogTitle') }}
+              .text-subtitle2 {{ $t('capital.importContributorsButton.uploadSubtitle') }}
             q-space
-            q-btn(flat color='primary' icon='download' @click='downloadSample') Скачать шаблон CSV
+            q-btn(flat color='primary' icon='download' @click='downloadSample') {{ $t('capital.importContributorsButton.downloadTemplateButton') }}
 
         q-separator
 
@@ -44,7 +44,7 @@ div
           q-card-section
             .row.items-center.q-gutter-sm.q-mb-md
               q-icon(name='table_chart', size='20px')
-              .text-subtitle1 Предварительный просмотр данных ({{ parsedData.length }} записей)
+              .text-subtitle1 {{ $t('capital.importContributorsButton.previewTitle', { count: parsedData.length }) }}
 
             q-table(
               :rows='parsedData',
@@ -67,30 +67,30 @@ div
           q-card-section
             .row.items-center.q-gutter-sm.q-mb-md
               q-icon(name='playlist_add_check', size='20px')
-              .text-subtitle1 Импорт данных
+              .text-subtitle1 {{ $t('capital.importContributorsButton.importSectionTitle') }}
 
             .row.justify-end.q-gutter-sm.q-mb-md
               q-btn(
                 color='primary',
                 :loading='isImporting',
                 @click='startImport',
-                label='Начать импорт',
+                :label='$t("capital.importContributorsButton.startButton")',
                 unelevated,
                 icon='play_arrow'
               )
 
             template(v-if='importProgress > 0')
               .q-mt-md
-                .text-body2.q-mb-sm Статистика
+                .text-body2.q-mb-sm {{ $t('capital.importContributorsButton.statsTitle') }}
                 .row.q-gutter-md
                   .col-auto
                     .text-weight-medium
                       q-icon.q-mr-xs(name='check_circle', color='positive')
-                      | Успешно: {{ successCount }}
+                      | {{ $t('capital.importContributorsButton.successCount', { count: successCount }) }}
                   .col-auto
                     .text-weight-medium
                       q-icon.q-mr-xs(name='error', color='negative')
-                      | Ошибок: {{ errorCount }}
+                      | {{ $t('capital.importContributorsButton.errorCount', { count: errorCount }) }}
 
         template(v-if='isImporting')
           q-separator
@@ -98,10 +98,10 @@ div
           q-card-section
             .row.items-center.q-gutter-sm.q-mb-md
               q-icon(name='sync', size='20px')
-              .text-subtitle1 Выполняется импорт данных
+              .text-subtitle1 {{ $t('capital.importContributorsButton.importingTitle') }}
 
             .q-mb-md
-              .text-body2.q-mb-sm Прогресс импорта: {{ importProgress }}/{{ parsedData.length }} ({{ progressPercent }}%)
+              .text-body2.q-mb-sm {{ $t('capital.importContributorsButton.progressLabel', { current: importProgress, total: parsedData.length, percent: progressPercent }) }}
               q-linear-progress(
                 :value='progressPercent / 100',
                 color='primary',
@@ -112,7 +112,7 @@ div
               q-btn(
                 color='negative',
                 @click='stopImport',
-                label='Остановить',
+                :label='$t("capital.importContributorsButton.stopButton")',
                 flat,
                 icon='stop'
               )
@@ -123,7 +123,7 @@ div
           q-card-section
             .row.items-center.q-gutter-sm.q-mb-md
               q-icon(name='table_chart', size='20px')
-              .text-subtitle1 Результаты импорта
+              .text-subtitle1 {{ $t('capital.importContributorsButton.resultsTitle') }}
 
             ImportResultsTable(
               :items='importResults',
@@ -138,8 +138,8 @@ div
           .row.items-center.q-gutter-sm
             q-icon(name='info', size='24px', color='info')
             div
-              .text-h6 Конфигурация уже установлена
-              .text-subtitle2 Импорт участников недоступен после установки конфигурации контракта.
+              .text-h6 {{ $t('capital.importContributorsButton.configSetTitle') }}
+              .text-subtitle2 {{ $t('capital.importContributorsButton.configSetBody') }}
 </template>
 
 <script setup lang="ts">
@@ -157,6 +157,7 @@ import { useConfigStore } from 'app/extensions/capital/entities/Config/model';
 import { useSystemStore } from 'src/entities/System/model';
 import { BaseDialog } from 'src/shared/ui/base/BaseDialog';
 import { useWindowSize } from 'src/shared/hooks';
+import { t } from '../../i18n';
 
 const { isMobile } = useWindowSize();
 
@@ -164,56 +165,56 @@ const { isMobile } = useWindowSize();
 const previewColumns: QTableProps['columns'] = [
   {
     name: 'username',
-    label: 'Имя пользователя',
+    label: t('capital.importContributorsButton.columnUsername'),
     align: 'left',
     field: 'username',
     sortable: true,
   },
   {
     name: 'contribution_amount',
-    label: 'Сумма вклада',
+    label: t('capital.importContributorsButton.columnContributionAmount'),
     align: 'left',
     field: 'contribution_amount',
     sortable: true,
   },
   {
     name: 'contributor_contract_number',
-    label: 'Номер договора',
+    label: t('capital.importContributorsButton.columnContractNumber'),
     align: 'left',
     field: 'contributor_contract_number',
     sortable: true,
   },
   {
     name: 'contributor_contract_created_at',
-    label: 'Дата договора',
+    label: t('capital.importContributorsButton.columnContractDate'),
     align: 'left',
     field: 'contributor_contract_created_at',
     sortable: true,
   },
   {
     name: 'blagorost_agreement_number',
-    label: 'Номер соглашения Благорост',
+    label: t('capital.importContributorsButton.columnBlagorostAgreementNumber'),
     align: 'left',
     field: 'blagorost_agreement_number',
     sortable: true,
   },
   {
     name: 'blagorost_agreement_created_at',
-    label: 'Дата соглашения Благорост',
+    label: t('capital.importContributorsButton.columnBlagorostAgreementDate'),
     align: 'left',
     field: 'blagorost_agreement_created_at',
     sortable: true,
   },
   {
     name: 'memo',
-    label: 'Примечание',
+    label: t('capital.importContributorsButton.columnMemo'),
     align: 'left',
     field: 'memo',
     sortable: false,
   },
   {
     name: 'status',
-    label: 'Статус',
+    label: t('capital.importContributorsButton.columnStatus'),
     align: 'center',
     field: 'status',
     sortable: true,
@@ -237,13 +238,13 @@ const getStatusColor = (status?: string) => {
 const getStatusText = (status?: string) => {
   switch (status) {
     case 'pending':
-      return 'Ожидает';
+      return t('capital.importContributorsButton.statusPending');
     case 'success':
-      return 'Успешно';
+      return t('capital.importContributorsButton.statusSuccess');
     case 'error':
-      return 'Ошибка';
+      return t('capital.importContributorsButton.statusError');
     default:
-      return 'Неизвестно';
+      return t('capital.importContributorsButton.statusUnknown');
   }
 };
 
@@ -291,7 +292,7 @@ const onCsvParsed = (data: ICsvContributor[]) => {
 
 const startImport = async () => {
   if (parsedData.value.length === 0) {
-    NotifyAlert('Нет данных для импорта');
+    NotifyAlert(t('capital.importContributorsButton.noDataNotice'));
     return;
   }
 
@@ -299,29 +300,29 @@ const startImport = async () => {
     await startBatchImport(parsedData.value);
     isImportCompleted.value = true;
     if (successCount.value > 0 && errorCount.value === 0) {
-      SuccessAlert(`Импорт завершен. Успешно: ${successCount.value}`);
+      SuccessAlert(t('capital.importContributorsButton.completedSuccessOnly', { count: successCount.value }));
     } else if (errorCount.value > 0) {
       SuccessAlert(
-        `Импорт завершен. Успешно: ${successCount.value}, Ошибок: ${errorCount.value}`,
+        t('capital.importContributorsButton.completedWithErrors', { successCount: successCount.value, errorCount: errorCount.value }),
       );
     } else {
-      SuccessAlert('Импорт завершен');
+      SuccessAlert(t('capital.importContributorsButton.completedNotice'));
     }
   } catch {
-    FailAlert('Произошла ошибка при импорте');
+    FailAlert(t('capital.importContributorsButton.importErrorNotice'));
   }
 };
 
 const stopImport = () => {
   batchStopImport();
-  NotifyAlert('Импорт остановлен');
+  NotifyAlert(t('capital.importContributorsButton.stoppedNotice'));
 };
 
 const retryImport = async (index: number) => {
   try {
     await batchRetryImport(index);
     if (importResults.value[index].status === 'success') {
-      SuccessAlert('Запись успешно импортирована');
+      SuccessAlert(t('capital.importContributorsButton.recordImportedNotice'));
     }
   } catch {
     // Ошибка уже обработана в batchRetryImport
@@ -337,13 +338,13 @@ const retryAllFailed = async () => {
     await retryImport(index);
   }
 
-  NotifyAlert('Повторная попытка для всех ошибок завершена');
+  NotifyAlert(t('capital.importContributorsButton.retryAllDoneNotice'));
 };
 
 const clearAll = () => {
   clearData();
   resetImport();
-  NotifyAlert('Данные очищены');
+  NotifyAlert(t('capital.importContributorsButton.dataClearedNotice'));
 };
 
 const downloadBlob = (content: string, name: string) => {
@@ -358,8 +359,11 @@ const downloadBlob = (content: string, name: string) => {
 const sampleTemplate = computed(() => {
   return [
     'username,contribution_amount,contributor_contract_number,contributor_contract_created_at,blagorost_agreement_number,blagorost_agreement_created_at,memo',
+    // i18n-ignore: пример-данные для скачиваемого CSV-шаблона, не текст интерфейса
     'ivanov_ivan,10000.0000 RUB,Д-001,15.01.2024,СБ-001,15.01.2024,Первый участник',
+    // i18n-ignore: пример-данные для скачиваемого CSV-шаблона, не текст интерфейса
     'petrov_petr,25000.0000 RUB,Д-002,20.01.2024,СБ-002,20.01.2024,Второй участник',
+    // i18n-ignore: пример-данные для скачиваемого CSV-шаблона, не текст интерфейса
     'sidorova_maria,5000.0000 RUB,Д-003,25.01.2024,СБ-003,25.01.2024,Третий участник',
   ].join('\n');
 });

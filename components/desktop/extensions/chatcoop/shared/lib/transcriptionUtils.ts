@@ -1,5 +1,6 @@
 import { Zeus } from '@coopenomics/sdk'
 import { uiLocale } from 'src/shared/i18n';
+import { t as i18nT } from '../../i18n';
 
 /** ISO-строка, timestamp (ms/s) или Date из ответа GraphQL / кэша Apollo */
 function toTimeMs(value: unknown): number | null {
@@ -48,9 +49,9 @@ export function formatDuration(startStr: unknown, endStr: unknown): string {
   const minutes = Math.floor(diffMs / 60000);
   const seconds = Math.floor((diffMs % 60000) / 1000);
   if (minutes > 0) {
-    return `${minutes} мин ${seconds} сек`;
+    return i18nT('chatcoop.transcriptionUtils.durationMinSecFormat', { minutes, seconds });
   }
-  return `${seconds} сек`;
+  return i18nT('chatcoop.transcriptionUtils.durationSecFormat', { seconds });
 }
 
 export function getStatusColor(status: unknown): string {
@@ -71,11 +72,11 @@ export function getStatusLabel(status: unknown): string {
   const s = String(status);
   switch (s) {
     case Zeus.TranscriptionStatus.ACTIVE:
-      return 'Активен';
+      return i18nT('chatcoop.transcription.status.active');
     case Zeus.TranscriptionStatus.COMPLETED:
-      return 'Завершён';
+      return i18nT('chatcoop.transcription.status.completed');
     case Zeus.TranscriptionStatus.FAILED:
-      return 'Ошибка';
+      return i18nT('chatcoop.transcription.status.error');
     default:
       return s;
   }
@@ -117,17 +118,17 @@ export function getSpeakerInitials(name: unknown): string {
 export function formatParticipantsCount(count: unknown): string {
   const n = Math.max(0, Math.floor(Number(count)));
   if (!Number.isFinite(n)) {
-    return '0 участников';
+    return i18nT('chatcoop.transcriptionUtils.participantsCountFallback');
   }
   const mod10 = n % 10;
   const mod100 = n % 100;
   let word: string;
   if (mod10 === 1 && mod100 !== 11) {
-    word = 'участник';
+    word = i18nT('chatcoop.transcriptionUtils.participantsWordOne');
   } else if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) {
-    word = 'участника';
+    word = i18nT('chatcoop.transcriptionUtils.participantsWordFew');
   } else {
-    word = 'участников';
+    word = i18nT('chatcoop.transcriptionUtils.participantsWordMany');
   }
   return `${n} ${word}`;
 }

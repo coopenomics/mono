@@ -1,21 +1,21 @@
 <template lang="pug">
 div
   .table-header
-    .table-title Результаты импорта ({{ items.length }} записей)
+    .table-title {{ $t('capital.importResultsTable.title', { count: items.length }) }}
     .table-actions
       q-btn(
         v-if='hasErrors',
         color='warning',
         icon='refresh',
         @click='$emit("retryAllFailed")',
-        label='Повторить все ошибки',
+        :label='$t("capital.importResultsTable.retryAllButton")',
         flat
       )
       q-btn(
         color='grey-7',
         icon='clear',
         @click='$emit("clear")',
-        label='Очистить',
+        :label='$t("capital.importResultsTable.clearButton")',
         flat
       )
 
@@ -46,7 +46,7 @@ div
             color='primary',
             icon='refresh',
             @click='$emit("retry", props.rowIndex)',
-            label='Повторить',
+            :label='$t("common.action.retry")',
             flat
           )
           q-tooltip(v-if='props.row.status === "error" && props.row.error') {{ props.row.error }}
@@ -60,22 +60,23 @@ div
   .table-footer(v-if='items.length > 0')
     .stats
       .stat-item
-        .stat-label Всего:
+        .stat-label {{ $t('capital.importResultsTable.totalLabel') }}
         .stat-value {{ items.length }}
       .stat-item
-        .stat-label Успешно:
+        .stat-label {{ $t('capital.importResultsTable.successLabel') }}
         .stat-value.success {{ successCount }}
       .stat-item
-        .stat-label Ошибок:
+        .stat-label {{ $t('capital.importResultsTable.errorLabel') }}
         .stat-value.error {{ errorCount }}
       .stat-item(v-if='isImporting')
-        .stat-label Прогресс:
+        .stat-label {{ $t('capital.importResultsTable.progressLabel') }}
         .stat-value {{ (currentIndex ?? 0) + 1 }}/{{ items.length }}
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue';
 import type { ICsvContributor } from 'app/extensions/capital/shared/lib/composables/useCsvParser';
+import { t } from '../../i18n';
 
 interface Props {
   items: ICsvContributor[];
@@ -95,47 +96,47 @@ defineEmits<Emits>();
 const columns = [
   {
     name: 'username',
-    label: 'Имя пользователя',
+    label: t('capital.importResultsTable.columnUsername'),
     align: 'left' as const,
     field: 'username',
     sortable: true,
   },
   {
     name: 'contribution_amount',
-    label: 'Сумма вклада',
+    label: t('capital.importResultsTable.columnContributionAmount'),
     align: 'left' as const,
     field: 'contribution_amount',
     sortable: true,
   },
   {
     name: 'contributor_hash',
-    label: 'Хэш участника',
+    label: t('capital.importResultsTable.columnContributorHash'),
     align: 'left' as const,
     field: 'contributor_hash',
     sortable: true,
   },
   {
     name: 'memo',
-    label: 'Примечание',
+    label: t('capital.importResultsTable.columnMemo'),
     align: 'left' as const,
     field: 'memo',
     sortable: true,
   },
   {
     name: 'status',
-    label: 'Статус',
+    label: t('capital.importResultsTable.columnStatus'),
     align: 'center' as const,
     field: 'status',
   },
   {
     name: 'actions',
-    label: 'Действия',
+    label: t('capital.importResultsTable.columnActions'),
     align: 'center' as const,
     field: 'actions',
   },
   {
     name: 'error',
-    label: 'Ошибка',
+    label: t('capital.importResultsTable.columnError'),
     align: 'left' as const,
     field: 'error',
   },
@@ -182,13 +183,13 @@ const getStatusIcon = (status: string) => {
 const getStatusLabel = (status: string) => {
   switch (status) {
     case 'success':
-      return 'Успешно';
+      return t('capital.importResultsTable.statusSuccess');
     case 'error':
-      return 'Ошибка';
+      return t('capital.importResultsTable.statusError');
     case 'pending':
-      return 'Ожидает';
+      return t('capital.importResultsTable.statusPending');
     default:
-      return 'Неизвестно';
+      return t('capital.importResultsTable.statusUnknown');
   }
 };
 

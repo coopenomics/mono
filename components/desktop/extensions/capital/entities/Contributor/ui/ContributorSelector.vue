@@ -67,6 +67,7 @@ import { ref, computed, watch } from 'vue';
 import { useContributorSearch } from './useContributorSearch';
 import { formatContributorName } from 'src/shared/lib/utils';
 import type { IContributor } from '../model/types';
+import { t } from '../../../i18n';
 
 interface Props {
   modelValue?: IContributor | IContributor[] | null;
@@ -95,8 +96,8 @@ interface Emits {
 const props = withDefaults(defineProps<Props>(), {
   modelValue: null,
   multiSelect: false,
-  placeholder: 'Поиск участника...',
-  label: 'Участник',
+  placeholder: t('capital.contributorSelector.searchPlaceholder'),
+  label: t('capital.contributorSelector.label'),
   dense: false,
   disable: false,
   readonly: false,
@@ -139,7 +140,7 @@ const displayValue = computed(() => {
 });
 
 // Текст для пустого состояния
-const noOptionText = ref('Загрузка...');
+const noOptionText = ref(t('capital.contributorSelector.loading'));
 
 // Предзагружаем участников
 preloadContributors();
@@ -148,7 +149,7 @@ preloadContributors();
 watch([isSearching, filteredContributors], ([searching, contributors]) => {
   if (!searching) {
     if (contributors.length === 0) {
-      noOptionText.value = 'Нет участников с допуском';
+      noOptionText.value = t('capital.contributorSelector.empty');
     } else {
       noOptionText.value = '';
     }
@@ -215,9 +216,9 @@ const clearSearch = () => {
 
 const onInputValue = (val: string) => {
   if (isSearching.value) {
-    noOptionText.value = 'Поиск...';
+    noOptionText.value = t('capital.contributorSelector.searching');
   } else if (val.length >= 2) {
-    noOptionText.value = 'Ничего не найдено';
+    noOptionText.value = t('capital.contributorSelector.noResults');
   }
   // Для коротких запросов (val.length < 2) текст обновляется через watcher
 };

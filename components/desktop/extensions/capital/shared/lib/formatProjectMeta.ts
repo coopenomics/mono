@@ -1,4 +1,5 @@
 import { uiLocale } from 'src/shared/i18n';
+import { t } from '../../i18n';
 /**
  * Компактное форматирование метрик проекта/компонента для строк списка
  * Мастерской: часы «факт / план» и привлечённые инвестиции.
@@ -29,7 +30,7 @@ export const formatHoursFactPlan = (
   fact?: string | number | null,
   plan?: string | number | null,
 ): string =>
-  `${hoursFormatter.format(parseAssetAmount(fact))}ч / ${hoursFormatter.format(parseAssetAmount(plan))}ч`;
+  t('capital.formatProjectMeta.hoursFactPlan', { factHours: hoursFormatter.format(parseAssetAmount(fact)), planHours: hoursFormatter.format(parseAssetAmount(plan)) });
 
 /** Инвестиции «факт / план» компактно */
 export const formatInvestFactPlan = (

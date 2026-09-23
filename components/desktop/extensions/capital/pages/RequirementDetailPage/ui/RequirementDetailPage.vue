@@ -24,6 +24,7 @@ import { useProjectStore } from 'app/extensions/capital/entities/Project/model';
 import type { IStory } from 'app/extensions/capital/entities/Story/model';
 import type { IProjectPermissions } from 'app/extensions/capital/entities/Project/model';
 import { EditRequirementPanel } from 'app/extensions/capital/features/Story/EditRequirement';
+import { t } from '../../../i18n';
 
 const route = useRoute();
 const projectStore = useProjectStore();
@@ -84,12 +85,12 @@ const load = async () => {
   try {
     const row = await StoryApi.loadStory({ story_hash: storyHash.value });
     if (!row) {
-      loadError.value = 'Артефакт не найден';
+      loadError.value = t('capital.requirementDetailPage.notFound');
       return;
     }
     const ok = await belongsToProjectContext(row, projectHash.value);
     if (!ok) {
-      loadError.value = 'Артефакт не относится к этому проекту';
+      loadError.value = t('capital.requirementDetailPage.wrongProject');
       return;
     }
     story.value = row;
@@ -99,7 +100,7 @@ const load = async () => {
 
   } catch (e) {
     console.error(e);
-    loadError.value = 'Не удалось загрузить артефакт';
+    loadError.value = t('capital.requirementDetailPage.loadError');
   } finally {
     permissionsLoaded.value = true;
     loading.value = false;

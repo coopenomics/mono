@@ -3,7 +3,7 @@
   template(v-if='loading')
     .rid-preview__loading
       q-spinner(color='primary', size='32px')
-      span.t-sm.t-muted Загрузка результата…
+      span.t-sm.t-muted {{ $t('capital.resultPreviewCard.loading') }}
 
   template(v-else-if='error')
     .banner.banner--neg
@@ -17,25 +17,25 @@
           q-icon.rid-doc__coop-icon(name='account_balance', size='20px')
           .rid-doc__coop-text
             .rid-doc__coop-name {{ cooperativeName }}
-            .rid-doc__coop-program.t-eyebrow Программа «Благорост»
-        .rid-doc__mark.t-eyebrow РИД
+            .rid-doc__coop-program.t-eyebrow {{ $t('capital.resultPreviewCard.programLabel') }}
+        .rid-doc__mark.t-eyebrow {{ $t('capital.resultPreviewCard.ridShort') }}
 
       .rid-doc__title-block
-        h1.rid-doc__title Результат интеллектуальной деятельности
+        h1.rid-doc__title {{ $t('capital.resultPreviewCard.ridFull') }}
         p.rid-doc__subtitle.t-sm.t-muted(v-if='objectLabel') {{ objectLabel }}
 
       .rid-doc__meta
         .rid-doc__meta-row(v-if='contributorName')
-          span.rid-doc__meta-label Заявитель
+          span.rid-doc__meta-label {{ $t('capital.resultPreviewCard.applicantLabel') }}
           span.rid-doc__meta-value {{ contributorName }}
         .rid-doc__meta-row(v-if='objectLabel')
-          span.rid-doc__meta-label Объект
+          span.rid-doc__meta-label {{ $t('capital.resultPreviewCard.objectLabel') }}
           span.rid-doc__meta-value {{ objectLabel }}
         .rid-doc__meta-row(v-if='formattedDate')
-          span.rid-doc__meta-label Дата
+          span.rid-doc__meta-label {{ $t('capital.resultPreviewCard.dateLabel') }}
           span.rid-doc__meta-value {{ formattedDate }}
         .rid-doc__meta-row(v-if='result.result_hash')
-          span.rid-doc__meta-label Хеш
+          span.rid-doc__meta-label {{ $t('capital.resultPreviewCard.hashLabel') }}
           span.rid-doc__meta-value.rid-doc__meta-value--hash.t-mono {{ result.result_hash }}
 
       .rid-doc__divider
@@ -60,14 +60,14 @@
           .rid-doc__html(v-html='sanitizeDocumentHtml(parsed.html)')
 
       footer.rid-doc__footer
-        span.t-meta Документ сформирован в ЦПП «Благорост»
+        span.t-meta {{ $t('capital.resultPreviewCard.generatedInText') }}
         span.t-meta.t-mono(v-if='shortHash') {{ shortHash }}
 
   template(v-else)
     .banner.banner--info
       q-icon.banner__icon(name='info', size='20px')
       .banner__body
-        | Текст результата ещё не сгенерирован. Нажмите кнопку «Пересчитать результат» для генерации.
+        | {{ $t('capital.resultPreviewCard.notGeneratedHint') }}
 </template>
 
 <script lang="ts" setup>
@@ -81,6 +81,7 @@ import { useSystemStore } from 'src/entities/System/model';
 import { Editor } from 'src/shared/ui/Editor';
 import { sanitizeDocumentHtml } from 'src/shared/lib/utils';
 import { parseCapitalResultData, type ParsedResultData } from 'app/extensions/capital/shared/lib/resultDocumentPayload';
+import { t } from '../../../../i18n';
 
 interface Props {
   username: string;
@@ -114,7 +115,7 @@ const cooperativeName = computed(() => {
   return (
     systemStore.cooperativeDisplayName ||
     systemStore.info?.contacts?.full_name ||
-    'Кооператив'
+    t('capital.resultPreviewCard.cooperativeLabel')
   );
 });
 
@@ -206,7 +207,7 @@ const loadResult = async () => {
     result.value = loaded;
   } catch (err: unknown) {
     console.error('Ошибка при загрузке результата:', err);
-    error.value = err instanceof Error ? err.message : 'Не удалось загрузить результат';
+    error.value = err instanceof Error ? err.message : t('capital.resultPreviewCard.loadError');
   } finally {
     loading.value = false;
   }

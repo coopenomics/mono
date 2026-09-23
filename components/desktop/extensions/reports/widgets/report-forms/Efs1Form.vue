@@ -132,14 +132,18 @@ const { header, doc, getByLocal, getText, padInn, formatDate, fmtZero } = useRep
   () => props.year,
 )
 
+// i18n-ignore: XML-идентификатор для поиска узла в отчёте, не текст интерфейса
 const ogrn = computed(() => getText('ОГРН'))
+// i18n-ignore: XML-идентификатор для поиска узла в отчёте, не текст интерфейса
 const fillDate = computed(() => getText('ДатаЗаполнения'))
+// i18n-ignore: XML-идентификатор для поиска узла в отчёте, не текст интерфейса
 const chairmanPosition = computed(() => getText('Должность'))
 
 const period = computed(() => {
   // В XML ЕФС-1 структура:
   //   <ОСС><Период><Код>03</Код><Год>2026</Год></Период></ОСС>
   // Простого attr нет — читаем текстом из вложенных узлов, уникальных для ОСС.
+  // i18n-ignore: XML-идентификатор для поиска узла в отчёте, не текст интерфейса
   const oss = getByLocal('ОСС')
   if (!oss) return { code: '', year: '' }
   // Внутри ОСС есть <Период>, внутри него <Код> и <Год>.
@@ -154,6 +158,7 @@ const period = computed(() => {
 })
 
 const chisl = computed(() => {
+  // i18n-ignore: XML-идентификатор для поиска узла в отчёте, не текст интерфейса
   const c = getByLocal('Численность')
   if (!c) return { srednesp: 0, rabObSocStrah: 0 }
   const num = (local: string) => {
@@ -161,12 +166,15 @@ const chisl = computed(() => {
     return Number(el?.textContent?.trim() ?? '0')
   }
   return {
+    // i18n-ignore: XML-идентификатор для поиска узла в отчёте, не текст интерфейса
     srednesp: num('Среднесписочная'),
+    // i18n-ignore: XML-идентификатор для поиска узла в отчёте, не текст интерфейса
     rabObSocStrah: num('РабПоОбСоцСтрах'),
   }
 })
 
 const rssv = computed(() => {
+  // i18n-ignore: XML-идентификатор для поиска узла в отчёте, не текст интерфейса
   const r = getByLocal('РССВ')
   if (!r) return { tariff: '', skidka: '', nadbavka: '', tarifUchet: '' }
   const txt = (local: string) => {
@@ -174,9 +182,13 @@ const rssv = computed(() => {
     return el?.textContent?.trim() ?? ''
   }
   return {
+    // i18n-ignore: XML-идентификатор для поиска узла в отчёте, не текст интерфейса
     tariff: txt('СтраховойТариф'),
+    // i18n-ignore: XML-идентификатор для поиска узла в отчёте, не текст интерфейса
     skidka: txt('СкидкаТариф'),
+    // i18n-ignore: XML-идентификатор для поиска узла в отчёте, не текст интерфейса
     nadbavka: txt('НадбавкаТариф'),
+    // i18n-ignore: XML-идентификатор для поиска узла в отчёте, не текст интерфейса
     tarifUchet: txt('ТарифУчСкидНадб'),
   }
 })
@@ -193,10 +205,13 @@ function vsegoSNachala(groupLocal: string): number {
   return Number(el?.textContent?.trim() ?? '0')
 }
 
+// i18n-ignore: XML-идентификатор для поиска узла в отчёте, не текст интерфейса
 const bazaWithStart = computed(() => vsegoSNachala('БазаИсч'))
+// i18n-ignore: XML-идентификатор для поиска узла в отчёте, не текст интерфейса
 const ischislWithStart = computed(() => vsegoSNachala('ИсчислСтрахВзн'))
 
 const rpo = computed(() => {
+  // i18n-ignore: XML-идентификатор для поиска узла в отчёте, не текст интерфейса
   const r = getByLocal('РПО')
   if (!r) return { obChisl: 0, proshChisl: 0, kolRabMest: 0 }
   const num = (path: string[]): number => {
@@ -208,8 +223,12 @@ const rpo = computed(() => {
     return Number(cur?.textContent?.trim() ?? '0')
   }
   return {
+    // i18n-ignore: XML-идентификатор для поиска узла в отчёте, не текст интерфейса
     obChisl: num(['ОбщЧисл']),
+    // i18n-ignore: XML-идентификатор для поиска узла в отчёте, не текст интерфейса
     proshChisl: num(['ПрошЧисл']),
+    // i18n-ignore: XML-идентификатор для поиска узла в отчёте, не текст интерфейса
+    // i18n-ignore: XML-идентификатор для поиска узла в отчёте, не текст интерфейса
     kolRabMest: num(['Результат', 'КоличРабМест']),
   }
 })
@@ -222,9 +241,13 @@ const fullSignerName = computed(() => {
 // СФР-коды периодов отличаются от ФНС: 03=I кв., 06=полугодие,
 // 09=9 мес., 0=год (IV квартал).
 const PERIOD_LABELS: Record<string, string> = {
+  // i18n-ignore: официальная форма
   '03': 'I квартал',
+  // i18n-ignore: официальная форма
   '06': 'полугодие',
+  // i18n-ignore: официальная форма
   '09': '9 месяцев',
+  // i18n-ignore: официальная форма
   '0': 'год',
 }
 function periodLabel(code: string): string {

@@ -3,27 +3,27 @@
   .axon-wallet-card__head
     .axon-wallet-card__icon
       i.fas.fa-wallet
-    .axon-wallet-card__title Кошелёк AXON
+    .axon-wallet-card__title {{ $t('powerup.axonWalletCard.title') }}
 
   .axon-wallet-card__balance
     .axon-wallet-card__balance-value {{ formattedBalance }}
-    .axon-wallet-card__balance-label Доступно
+    .axon-wallet-card__balance-label {{ $t('powerup.axonWalletCard.availableLabel') }}
 
   .axon-wallet-card__details
     .detail-row
-      span.detail-label Минимальных квот
+      span.detail-label {{ $t('powerup.axonWalletCard.minQuotasLabel') }}
       span.detail-value {{ minQuotasDays }} {{ minQuotasDaysText }}
     .detail-row
-      span.detail-label Новых пайщиков
+      span.detail-label {{ $t('powerup.axonWalletCard.newMembersLabel') }}
       span.detail-value {{ maxNewMembers }} {{ maxNewMembersText }}
 
   .axon-wallet-card__note
-    | AXON используется для аренды вычислительных ресурсов (минимум 5 AXON/день) и регистрации пайщиков (1 AXON/аккаунт). Курс: 1 AXON = 10 RUB.
+    | {{ $t('powerup.axonWalletCard.note') }}
 
   BaseButton.axon-wallet-card__action(variant="primary", size="sm", block, @click="goToReplenishment")
     template(#icon-left)
       q-icon(name="open_in_new", size="16px")
-    | Пополнить у оператора
+    | {{ $t('powerup.axonWalletCard.replenishButton') }}
 </template>
 
 <script setup lang="ts">
@@ -69,6 +69,7 @@ const maxNewMembersText = computed(() => {
 
 // Переход на сайт пополнения
 const goToReplenishment = () => {
+  // i18n-ignore: URL, не текст интерфейса
   window.open('https://лк.цифровой-кооператив.рф', '_blank');
 };
 </script>

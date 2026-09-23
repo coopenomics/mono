@@ -1,12 +1,12 @@
 <template lang="pug">
 div
   // Лоадер пока идет загрузка
-  WindowLoader(v-if="loading", text="Загрузка приглашения...")
+  WindowLoader(v-if="loading", :text="$t('capital.projectInvitePage.loadingText')")
 
   // Основной контент после загрузки
   div.q-pa-md(v-else)
     // Заголовок страницы
-    .text-h4.q-mb-md Приглашение в проект
+    .text-h4.q-mb-md {{ $t('capital.projectInvitePage.title') }}
 
     // Путь проекта
     ProjectPathWidget(
@@ -30,9 +30,9 @@ div
     template(v-else)
       // Заглушка если нет инвайта
       .text-center.q-pa-lg
-        .text-h6.q-mb-md Нет активного приглашения
+        .text-h6.q-mb-md {{ $t('capital.projectInvitePage.noActiveTitle') }}
         .text-body2.text-grey-6
-          | Для этого проекта нет активного приглашения или оно уже истекло
+          | {{ $t('capital.projectInvitePage.noActiveText') }}
 
 </template>
 
@@ -44,13 +44,14 @@ import { useProjectLoader } from 'app/extensions/capital/entities/Project/model'
 import { InviteWidget } from 'app/extensions/capital/widgets';
 import { ProjectPathWidget } from 'app/extensions/capital/widgets/ProjectPathWidget';
 import { MakeClearanceButton } from 'app/extensions/capital/features/Contributor/MakeClearance';
+import { t } from '../../../i18n';
 
 // Используем composable для загрузки проекта
 const { project, projectHash, loadProject } = useProjectLoader();
 
 // Настраиваем кнопку "Назад"
 useBackButton({
-  text: 'Назад',
+  text: t('common.action.back'),
   componentId: 'project-invite-' + projectHash.value,
 });
 

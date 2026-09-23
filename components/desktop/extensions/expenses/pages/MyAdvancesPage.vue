@@ -1,9 +1,9 @@
 <template lang="pug">
 .q-pa-md
   PageHead(
-    eyebrow='Шасси расходов · Личный кабинет',
-    title='Мои авансы',
-    subtitle='Служебные записки, где получатель аванса — я'
+    :eyebrow='$t("expenses.myAdvancesPage.eyebrow")',
+    :title='$t("expenses.myAdvancesPage.pageTitle")',
+    :subtitle='$t("expenses.myAdvancesPage.pageSubtitle")'
   )
 
   .my-advances
@@ -19,11 +19,11 @@
         table.table
           thead
             tr
-              th.col-date Дата создания
-              th.col-num Сумма (план)
-              th.col-num Сумма (факт)
-              th Статус
-              th Хеш
+              th.col-date {{ $t('expenses.myAdvancesPage.column.createdAt') }}
+              th.col-num {{ $t('expenses.myAdvancesPage.column.amountPlan') }}
+              th.col-num {{ $t('expenses.myAdvancesPage.column.amountFact') }}
+              th {{ $t('expenses.myAdvancesPage.column.status') }}
+              th {{ $t('expenses.myAdvancesPage.column.hash') }}
           tbody
             tr.data-row(
               v-for='row in items',
@@ -45,12 +45,12 @@
           size='sm',
           :loading='loading',
           @click='loadMore'
-        ) Загрузить ещё
+        ) {{ $t('expenses.myAdvancesPage.loadMoreLabel') }}
 
     EmptyState(
       v-else,
-      title='Авансов пока нет',
-      body='Здесь появятся ваши служебные записки на аванс. Создать новую можно из реестра расходов.'
+      :title='$t("expenses.myAdvancesPage.emptyTitle")',
+      :body='$t("expenses.myAdvancesPage.emptyHint")'
     )
       template(#icon)
         q-icon(name='savings', size='48px')
@@ -77,6 +77,7 @@ import {
   getExpenseProposalStatusLabel,
   getExpenseProposalStatusVariant,
 } from '../model';
+import { t } from '../i18n';
 
 type IProposalRow = NonNullable<IExpenseProposalsByMemberResult['items']>[number];
 
@@ -93,18 +94,18 @@ const totalCount = ref(0);
 const PAGE_LIMIT = 25;
 
 const skeletonColumns = computed<TableSkeletonColumn[]>(() => [
-  { label: 'Дата создания', cell: 'text', cellWidth: '120px' },
-  { label: 'Сумма (план)', class: 'col-num', cell: 'text', cellWidth: '110px' },
-  { label: 'Сумма (факт)', class: 'col-num', cell: 'text', cellWidth: '110px' },
-  { label: 'Статус', cell: 'badge' },
-  { label: 'Хеш', cell: 'text', cellWidth: '140px' },
+  { label: t('expenses.myAdvancesPage.column.createdAt'), cell: 'text', cellWidth: '120px' },
+  { label: t('expenses.myAdvancesPage.column.amountPlan'), class: 'col-num', cell: 'text', cellWidth: '110px' },
+  { label: t('expenses.myAdvancesPage.column.amountFact'), class: 'col-num', cell: 'text', cellWidth: '110px' },
+  { label: t('expenses.myAdvancesPage.column.status'), cell: 'badge' },
+  { label: t('expenses.myAdvancesPage.column.hash'), cell: 'text', cellWidth: '140px' },
 ]);
 
 const hasMore = computed(() => currentPage.value < totalPages.value);
 
 const rangeLabel = computed(() => {
   const shown = items.value.length;
-  return shown ? `1–${shown} из ${totalCount.value}` : `0 из ${totalCount.value}`;
+  return shown ? t('expenses.myAdvancesPage.rangeSummary', { shown, total: totalCount.value }) : t('expenses.myAdvancesPage.zeroRangeSummary', { total: totalCount.value });
 });
 
 function statusLabel(status?: Zeus.ExpenseProposalStatus | null): string {

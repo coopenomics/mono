@@ -20,6 +20,7 @@ import { useContributorStore } from 'app/extensions/capital/entities/Contributor
 import { useDataPoller } from 'src/shared/lib/composables';
 import { POLL_INTERVALS } from 'src/shared/lib/consts';
 import { useHeaderActions } from 'src/shared/hooks';
+import { t } from '../../../i18n';
 
 const contributorStore = useContributorStore();
 const systemStore = useSystemStore();
@@ -62,7 +63,7 @@ const loadContributors = async () => {
     pagination.value.rowsNumber = contributorStore.contributors?.totalCount || 0;
   } catch (error) {
     console.error('Ошибка при загрузке участников:', error);
-    FailAlert('Не удалось загрузить список участников');
+    FailAlert(t('capital.contributorsPage.loadError'));
   } finally {
     loading.value = false;
   }

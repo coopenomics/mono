@@ -1,10 +1,11 @@
+import { t } from '../../i18n';
 const approval_action_labels: Record<string, string> = {
-  'capital::apprvappndx': 'Допуск к проекту по приложению Благороста',
-  'capital::approvereg': 'Договор УХД по приложению Благороста',
-  'capital::approveinvst': 'Заявление на инвестицию в проект по приложению Благороста',
-  'capital::approverslt': 'Внесение РИД по проекту Благороста',
-  'branch::apprliab': 'Договор о материальной ответственности председателя участка',
-  'branch::apprauth': 'Доверенность председателю кооперативного участка',
+  'capital::apprvappndx': t('chairman.approvalActionLabels.blagorostProjectAccess'),
+  'capital::approvereg': t('chairman.approvalActionLabels.blagorostUhdContract'),
+  'capital::approveinvst': t('chairman.approvalActionLabels.blagorostInvestmentApplication'),
+  'capital::approverslt': t('chairman.approvalActionLabels.blagorostRidContribution'),
+  'branch::apprliab': t('chairman.approvalActionLabels.unitChairmanLiabilityContract'),
+  'branch::apprauth': t('chairman.approvalActionLabels.unitChairmanPowerOfAttorney'),
 };
 
 /**

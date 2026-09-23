@@ -6,25 +6,25 @@ div.transcription-detail-page
       dense
       no-caps
       icon="fa-solid fa-arrow-left"
-      label="К списку"
+      :label="$t('chatcoop.transcriptionDetailPage.backLabel')"
       @click="goBack"
       color="grey-7"
     )
 
-  WindowLoader(v-if="transcriptionStore.isLoadingDetail" text="Загрузка транскрипции...")
+  WindowLoader(v-if="transcriptionStore.isLoadingDetail" :text="$t('chatcoop.transcriptionDetailPage.loadingText')")
 
   div.tr-panel(v-else-if="transcriptionStore.error")
     p.tr-panel__error {{ transcriptionStore.error }}
-    q-btn(flat dense no-caps color="primary" @click="loadData") Повторить
+    q-btn(flat dense no-caps color="primary" @click="loadData") {{ $t('common.action.retry') }}
 
   div.tr-panel.tr-panel--empty(v-else-if="!transcription")
     q-icon.tr-empty__icon(name="fa-solid fa-file-lines" size="40px")
-    p.tr-empty__title Запись не найдена
+    p.tr-empty__title {{ $t('chatcoop.transcriptionDetailPage.notFoundTitle') }}
 
   template(v-else)
     header.detail-head
       div.detail-head__top
-        h1.detail-head__title {{ transcription.transcription.roomName || 'Звонок' }}
+        h1.detail-head__title {{ transcription.transcription.roomName || $t('chatcoop.transcriptionDetailPage.callLabel') }}
         q-badge.tr-badge(
           :color="getStatusColor(transcription.transcription.status)"
           :label="getStatusLabel(transcription.transcription.status)"
@@ -32,29 +32,29 @@ div.transcription-detail-page
         )
       dl.detail-meta
         div.detail-meta__item
-          dt Начало
+          dt {{ $t('chatcoop.transcriptionDetailPage.startLabel') }}
           dd {{ formatDateTime(transcription.transcription.startedAt) }}
         div.detail-meta__item(v-if="transcription.transcription.endedAt")
-          dt Окончание
+          dt {{ $t('chatcoop.transcriptionDetailPage.endLabel') }}
           dd {{ formatDateTime(transcription.transcription.endedAt) }}
         div.detail-meta__item(v-if="transcription.transcription.endedAt")
-          dt Длительность
+          dt {{ $t('chatcoop.transcriptionDetailPage.durationLabel') }}
           dd {{ formatDuration(transcription.transcription.startedAt, transcription.transcription.endedAt) }}
         div.detail-meta__item.detail-meta__item--people
           dt
             q-icon.detail-meta__icon(name="fa-solid fa-users" size="12px")
-            | Участники
+            | {{ $t('chatcoop.transcriptionDetailPage.participantsLabel') }}
           dd.detail-meta__value-num {{ transcription.transcription.participants?.length ?? 0 }}
 
     section.tr-section.tr-section--memo
-      h2.tr-section__label Заметка о звонке
+      h2.tr-section__label {{ $t('chatcoop.transcriptionDetailPage.memoTitle') }}
       TranscriptionMemoEditor(
         :transcription-id="transcription.transcription.id"
         :memo="transcription.transcription.memo ?? ''"
       )
 
     section.tr-section(v-if="transcription.transcription.participants?.length")
-      h2.tr-section__label Участники
+      h2.tr-section__label {{ $t('chatcoop.transcriptionDetailPage.participantsLabel') }}
       div.tr-chips
         span.tr-chip(
           v-for="(participant, pIdx) in transcription.transcription.participants"
@@ -62,9 +62,9 @@ div.transcription-detail-page
         ) {{ participant }}
 
     section.tr-section.tr-section--segments
-      h2.tr-section__label Текст
+      h2.tr-section__label {{ $t('chatcoop.transcriptionDetailPage.transcriptTextLabel') }}
       div.tr-segments(v-if="!transcription.segments?.length")
-        p.tr-segments__empty Транскрипция пока пуста
+        p.tr-segments__empty {{ $t('chatcoop.transcriptionDetailPage.emptyTranscriptText') }}
       div(v-else)
         article.tr-seg(
           v-for="segment in sortedSegments"

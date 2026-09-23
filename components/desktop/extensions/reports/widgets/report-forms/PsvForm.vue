@@ -128,6 +128,8 @@ const { header, doc, getAttr, padInn, formatDate, fmtZero } = useReportXml(
   () => props.year,
 )
 
+// i18n-ignore: XML-идентификатор для поиска узла в отчёте, не текст интерфейса
+// i18n-ignore: XML-идентификатор для поиска узла в отчёте, не текст интерфейса
 const poMestu = computed(() => getAttr('Документ', 'ПоМесту'))
 
 interface PersonRow {
@@ -142,15 +144,23 @@ interface PersonRow {
 const persons = computed<PersonRow[]>(() => {
   const d = doc.value
   if (!d) return []
+  // i18n-ignore: XML-идентификатор для поиска узла в отчёте, не текст интерфейса
   const nodes = Array.from(d.querySelectorAll('ПерсСвФЛ'))
   return nodes.map((n) => {
+    // i18n-ignore: XML-идентификатор для поиска узла в отчёте, не текст интерфейса
     const fio = n.querySelector('ФИО')
     return {
+      // i18n-ignore: XML-идентификатор для поиска узла в отчёте, не текст интерфейса
       lastName: fio?.getAttribute('Фамилия') ?? '',
+      // i18n-ignore: XML-идентификатор для поиска узла в отчёте, не текст интерфейса
       firstName: fio?.getAttribute('Имя') ?? '',
+      // i18n-ignore: XML-идентификатор для поиска узла в отчёте, не текст интерфейса
       middleName: fio?.getAttribute('Отчество') ?? '',
+      // i18n-ignore: XML-идентификатор для поиска узла в отчёте, не текст интерфейса
       inn: n.getAttribute('ИННФЛ') ?? '',
+      // i18n-ignore: XML-идентификатор для поиска узла в отчёте, не текст интерфейса
       snils: n.getAttribute('СНИЛС') ?? '',
+      // i18n-ignore: XML-идентификатор для поиска узла в отчёте, не текст интерфейса
       sumVypl: Number(n.getAttribute('СумВыпл') ?? '0'),
     }
   })

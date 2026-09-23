@@ -3,8 +3,8 @@
   //- Финансовый план — только кооперативные (блокчейн); LOCAL — только метрики
   .planning-page__section(v-if='project && !isLocalProject')
     .planning-page__head
-      .planning-page__title План · {{ project.title }}
-      .planning-page__sub.t-sm.t-muted План и факт по компоненту
+      .planning-page__title {{ $t('capital.componentPlanningPage.title', { projectTitle: project.title }) }}
+      .planning-page__sub.t-sm.t-muted {{ $t('capital.componentPlanningPage.subtitle') }}
     ProjectPlanningWidget(
       :project='project',
       :permissions='permissions'
@@ -32,6 +32,7 @@ import { ProjectPlanningWidget } from 'app/extensions/capital/widgets';
 import { FailAlert } from 'src/shared/api';
 import { ComponentMetricsPanel } from 'app/extensions/capital/features/Metric/ManageComponentMetrics';
 import { MetricSuperpositionPanel } from 'app/extensions/capital/features/Metric/ViewMetricSuperposition';
+import { t } from '../../../i18n';
 
 const route = useRoute();
 const projectStore = useProjectStore();
@@ -57,7 +58,7 @@ const loadProject = async () => {
       null;
   } catch (error) {
     console.error('Ошибка при загрузке компонента:', error);
-    FailAlert('Не удалось загрузить компонент');
+    FailAlert(t('capital.componentPlanningPage.loadError'));
   }
 };
 

@@ -15,7 +15,7 @@ q-page.expense-wallets-page
           :neutral='!entry.program',
           :title='entry.title',
           :subtitle='entry.subtitle',
-          balance-label='Доступно',
+          :balance-label='$t("expenses.expenseWalletsPage.availableLabel")',
           :balance='entry.balance',
           :symbol='entry.symbol',
           :icon='entry.icon',
@@ -24,8 +24,8 @@ q-page.expense-wallets-page
 
   .empty(v-else)
     EmptyState(
-      title='Кошельков расходов пока нет',
-      body='Ни одно расширение не подключило пул расходов на этом кооперативе.'
+      :title='$t("expenses.expenseWalletsPage.emptyTitle")',
+      :body='$t("expenses.expenseWalletsPage.emptyHint")'
     )
       template(#icon)
         q-icon(name='account_balance_wallet', size='48px')

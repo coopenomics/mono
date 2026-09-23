@@ -91,7 +91,7 @@
       template(#no-data)
         .list-empty
           q-icon(name='inbox', size='20px')
-          span {{ hasFiltersApplied ? 'Нет результатов по фильтрам' : 'Нет проектов' }}
+          span {{ hasFiltersApplied ? $t('capital.projectsListWidget.noFilterResults') : $t('capital.projectsListWidget.emptyText') }}
 </template>
 
 <script lang="ts" setup>
@@ -108,6 +108,7 @@ import { FavoriteStarButton } from 'app/extensions/capital/features/Favorite/Tog
 import { Zeus } from '@coopenomics/sdk';
 import { isProject } from 'app/extensions/capital/shared/lib/project-utils';
 import { PrivateShieldIcon } from 'app/extensions/capital/shared/ui';
+import { t } from '../../i18n';
 
 /**
  * Память списка между заходами (живёт на уровне модуля, переживает unmount).
@@ -267,7 +268,7 @@ const loadProjects = async (page = 1, append = false) => {
     emit('dataLoaded', projectHashes, totalComponents);
   } catch (error) {
     console.error('Ошибка при загрузке проектов:', error);
-    FailAlert('Не удалось загрузить список проектов');
+    FailAlert(t('capital.projectsListWidget.loadError'));
   } finally {
     loading.value = false;
   }

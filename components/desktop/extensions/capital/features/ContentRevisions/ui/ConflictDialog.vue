@@ -1,28 +1,28 @@
 <template lang="pug">
 BaseDialog(
   :model-value="modelValue"
-  title="Документ изменён параллельно"
+  :title="$t('capital.conflictDialog.title')"
   size="lg"
   @update:model-value="(v: boolean) => emit('update:modelValue', v)"
 )
   template(v-if="conflict")
     BaseBanner(variant="warn")
-      | Пока вы правили, документ сохранил кто-то ещё (редакция №{{ conflict.current_rev }}, вы начинали с №{{ conflict.base_rev }}),
-      | и правки пересеклись в одном месте — автоматически слить не получилось. Ничего не потеряно: выберите, что оставить.
+      | {{ $t('capital.conflictDialog.intro', { currentRev: conflict.current_rev, baseRev: conflict.base_rev }) }}
+      | {{ $t('capital.conflictDialog.description') }}
     .row.q-col-gutter-md.q-mt-sm
       .col-12.col-md-6
-        .text-subtitle2.q-mb-xs Моя версия
-        pre.conflict__pre {{ conflict.ours.description || '(пусто)' }}
+        .text-subtitle2.q-mb-xs {{ $t('capital.conflictDialog.mineLabel') }}
+        pre.conflict__pre {{ conflict.ours.description || $t('capital.conflictDialog.emptyPlaceholder') }}
       .col-12.col-md-6
-        .text-subtitle2.q-mb-xs Версия на сервере
-        pre.conflict__pre {{ conflict.theirs.description || '(пусто)' }}
+        .text-subtitle2.q-mb-xs {{ $t('capital.conflictDialog.serverLabel') }}
+        pre.conflict__pre {{ conflict.theirs.description || $t('capital.conflictDialog.emptyPlaceholder') }}
     .text-caption.text-grey-7.q-mt-sm(v-if="conflict.title_conflict")
-      | Заголовок тоже разошёлся: «{{ conflict.ours.title }}» против «{{ conflict.theirs.title }}».
+      | {{ $t('capital.conflictDialog.titleDiff', { oursTitle: conflict.ours.title, theirsTitle: conflict.theirs.title }) }}
   template(#footer)
-    BaseButton(variant="ghost" @click="emit('update:modelValue', false)") Отмена
-    BaseButton(v-if="conflict && conflict.marked" variant="secondary" @click="choose('marked')") Слить вручную (с маркерами)
-    BaseButton(variant="secondary" @click="choose('theirs')") Взять серверную
-    BaseButton(variant="primary" @click="choose('ours')") Оставить мою
+    BaseButton(variant="ghost" @click="emit('update:modelValue', false)") {{ $t('common.action.cancel') }}
+    BaseButton(v-if="conflict && conflict.marked" variant="secondary" @click="choose('marked')") {{ $t('capital.conflictDialog.mergeManualAction') }}
+    BaseButton(variant="secondary" @click="choose('theirs')") {{ $t('capital.conflictDialog.takeServerAction') }}
+    BaseButton(variant="primary" @click="choose('ours')") {{ $t('capital.conflictDialog.keepMineAction') }}
 </template>
 
 <script setup lang="ts">

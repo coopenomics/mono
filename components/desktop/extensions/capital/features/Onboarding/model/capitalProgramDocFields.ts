@@ -1,3 +1,4 @@
+import { t } from '../../../i18n';
 export type EditableFieldKey =
   | 'generator_program_purpose'
   | 'eoap_definition'
@@ -15,25 +16,25 @@ export const PREVIEW_PLACEHOLDER = '______';
 
 export const FIELD_LABELS: Record<EditableFieldKey, string> = {
   generator_program_purpose:
-    'Направление ЦПП: какую экосистему или сферу деятельности развивают пайщики (название, правовая основа, цель интеграции в экономику)',
+    t('capital.capitalProgramDocFields.directionHint'),
   eoap_definition:
-    'Определение Платформы: что это, из чего состоит, кто участники, на какой технологии и принципах работает',
+    t('capital.capitalProgramDocFields.platformDefinitionHint'),
   generator_task_goal:
-    'Главная задача ЦПП: чем Платформа должна стать для участников (центр привлечения чего и для чего)',
-  idea_unit_cost: 'Стоимость одной Идеи в рублях — только число',
-  idea_unit_cost_words: 'Та же стоимость Идеи прописью',
+    t('capital.capitalProgramDocFields.mainGoalHint'),
+  idea_unit_cost: t('capital.capitalProgramDocFields.ideaCostNumberHint'),
+  idea_unit_cost_words: t('capital.capitalProgramDocFields.ideaCostWordsHint'),
   blagorost_goal_expansion:
-    'Зачем расширять участие в Платформе: какая потребность участников закрывается при росте сообщества',
+    t('capital.capitalProgramDocFields.expandReasonHint'),
   blagorost_goal_reason:
-    'Причина роста числа участников: за счёт чего расширяется сообщество и на что это влияет',
+    t('capital.capitalProgramDocFields.growthCauseHint'),
   blagorost_task_expansion:
-    'Задача расширения: как описывается рост числа участников Платформы и их взаимодействия',
+    t('capital.capitalProgramDocFields.expansionTaskHint'),
   blagorost_task_development:
-    'Задача развития: как описывается привлечение инноваций, разработок и решений в Платформу',
+    t('capital.capitalProgramDocFields.developmentTaskHint'),
   return_source_description:
-    'Основной источник возврата взносов: что создаёт экономический эффект (инфраструктура, продукт, механизм)',
+    t('capital.capitalProgramDocFields.mainReturnSourceHint'),
   return_additional_source:
-    'Дополнительные источники возврата: взносы пользователей, продукты и приложения, передаваемые или создаваемые в Обществе',
+    t('capital.capitalProgramDocFields.extraReturnSourcesHint'),
 };
 
 export const GENERATOR_DOC_FIELDS: EditableFieldKey[] = [
@@ -62,10 +63,10 @@ export const ALL_DOC_FIELDS: EditableFieldKey[] = [
 export const DOCUMENT_SECTIONS = [
   {
     registryId: 994,
-    tabLabel: 'Положение ГЕНЕРАТОР',
+    tabLabel: t('capital.capitalProgramDocFields.generatorRegulationLabel'),
   },
   {
     registryId: 998,
-    tabLabel: 'Положение БЛАГОРОСТ',
+    tabLabel: t('capital.capitalProgramDocFields.blagorostRegulationLabel'),
   },
 ] as const;

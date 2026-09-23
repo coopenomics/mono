@@ -1,7 +1,7 @@
 <template lang="pug">
 div
   // Лоадер пока идет предзагрузка пользователя
-  WindowLoader(v-if="isLoading", text="Загрузка данных участника...")
+  WindowLoader(v-if="isLoading", :text="$t('capital.capitalBase.loadingText')")
 
   // Показываем онбординг если он не завершен и пользователь председатель
   CapitalOnboardingCard(
@@ -10,7 +10,7 @@ div
   // Показываем сообщение для обычных участников если контракт не активирован
   InfoCard(
     v-else-if="shouldShowContractNotActivatedMessage"
-    text="Программа еще не активирована. Только председатель может завершить настройку системы."
+    :text="$t('capital.capitalBase.notActivatedText')"
   )
   // Основной контент после загрузки
   router-view(v-else)

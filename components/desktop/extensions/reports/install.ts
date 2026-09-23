@@ -1,3 +1,4 @@
+import './i18n';
 import { markRaw } from 'vue';
 import { agreementsBase } from 'src/shared/lib/consts/workspaces';
 import type { IWorkspaceConfig } from 'src/shared/lib/types/workspace';
@@ -16,18 +17,19 @@ import {
   NdflPage,
   SettingsPage,
 } from './pages';
+import { t } from './i18n';
 
 export default async function (): Promise<IWorkspaceConfig[]> {
   return [{
     workspace: 'reports',
     extension_name: 'reports',
-    title: 'Стол бухгалтера',
+    title: t('reports.install.title'),
     icon: 'fa-solid fa-file-invoice',
     defaultRoute: 'reports-processes',
     routes: [
       {
         meta: {
-          title: 'Стол бухгалтера',
+          title: t('reports.install.title'),
           icon: 'fa-solid fa-file-invoice',
           roles: ['chairman'],
         },
@@ -42,7 +44,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             name: 'reports-processes',
             component: markRaw(ProcessesPage),
             meta: {
-              title: 'Реестр процессов',
+              title: t('reports.install.route.processesTitle'),
               icon: 'fa-solid fa-diagram-project',
               roles: ['chairman'],
               agreements: agreementsBase,
@@ -55,7 +57,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             name: 'reports-operations',
             component: markRaw(OperationsPage),
             meta: {
-              title: 'Реестр операций',
+              title: t('reports.install.route.operationsTitle'),
               icon: 'fa-solid fa-list-ul',
               roles: ['chairman'],
               agreements: agreementsBase,
@@ -68,7 +70,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             name: 'reports-postings',
             component: markRaw(PostingsPage),
             meta: {
-              title: 'Реестр проводок',
+              title: t('reports.install.route.postingsTitle'),
               icon: 'fa-solid fa-arrows-split-up-and-left',
               roles: ['chairman'],
               agreements: agreementsBase,
@@ -81,7 +83,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             name: 'reports-wallets',
             component: markRaw(WalletsPage),
             meta: {
-              title: 'Реестр кошельков',
+              title: t('reports.install.route.walletsTitle'),
               icon: 'fa-solid fa-wallet',
               roles: ['chairman'],
               agreements: agreementsBase,
@@ -96,7 +98,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
                 name: 'reports-wallets-coop',
                 component: markRaw(CoopWalletsPage),
                 meta: {
-                  title: 'Кооператив',
+                  title: t('reports.install.route.walletsCoopTitle'),
                   icon: 'fa-solid fa-building',
                   roles: ['chairman'],
                   agreements: agreementsBase,
@@ -109,7 +111,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
                 name: 'reports-wallets-participants',
                 component: markRaw(ParticipantWalletsPage),
                 meta: {
-                  title: 'Пайщики',
+                  title: t('reports.install.route.walletsParticipantsTitle'),
                   icon: 'fa-solid fa-users',
                   roles: ['chairman'],
                   agreements: agreementsBase,
@@ -124,7 +126,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             name: 'reports-accounts',
             component: markRaw(AccountsPage),
             meta: {
-              title: 'Реестр счетов',
+              title: t('reports.install.route.accountsTitle'),
               icon: 'fa-solid fa-sitemap',
               roles: ['chairman'],
               agreements: agreementsBase,
@@ -137,7 +139,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             name: 'reports-documents',
             component: markRaw(DocumentsPage),
             meta: {
-              title: 'Отчётность',
+              title: t('reports.install.route.documentsTitle'),
               icon: 'fa-solid fa-file-invoice',
               roles: ['chairman'],
               agreements: agreementsBase,
@@ -152,7 +154,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
                 name: 'reports-documents-calendar',
                 component: markRaw(DocumentsCalendarPage),
                 meta: {
-                  title: 'Календарь',
+                  title: t('reports.install.route.documentsCalendarTitle'),
                   icon: 'fa-solid fa-calendar-days',
                   roles: ['chairman'],
                   agreements: agreementsBase,
@@ -165,7 +167,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
                 name: 'reports-documents-forms',
                 component: markRaw(DocumentsFormsPage),
                 meta: {
-                  title: 'Список форм',
+                  title: t('reports.install.route.documentsFormsTitle'),
                   icon: 'fa-solid fa-list',
                   roles: ['chairman'],
                   agreements: agreementsBase,
@@ -178,7 +180,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
                 name: 'reports-documents-archive',
                 component: markRaw(DocumentsArchivePage),
                 meta: {
-                  title: 'Архив',
+                  title: t('reports.install.route.documentsArchiveTitle'),
                   icon: 'fa-solid fa-box-archive',
                   roles: ['chairman'],
                   agreements: agreementsBase,
@@ -196,7 +198,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             name: 'reports-ndfl',
             component: markRaw(NdflPage),
             meta: {
-              title: 'НДФЛ',
+              title: t('reports.install.route.ndflTitle'),
               icon: 'account_balance',
               roles: ['chairman'],
               agreements: agreementsBase,
@@ -209,7 +211,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             name: 'reports-settings',
             component: markRaw(SettingsPage),
             meta: {
-              title: 'Реквизиты',
+              title: t('reports.install.route.settingsTitle'),
               icon: 'fa-solid fa-gear',
               roles: ['chairman'],
               agreements: agreementsBase,

@@ -4,7 +4,7 @@
   //- проваливаются в деталь). Виден всегда, даже пока расход грузится.
   button.expense-back(type='button', @click='goBack')
     q-icon(name='arrow_back', size='18px')
-    span К реестру расходов
+    span {{ $t('expenses.expenseDetailPage.backLabel') }}
 
   q-inner-loading(:showing='loading && !proposal', color='primary')
 
@@ -17,23 +17,23 @@
       ) {{ proposalStatusLabel(proposal.status) }}
 
     .section
-      .t-eyebrow.t-muted Сводка
+      .t-eyebrow.t-muted {{ $t('expenses.expenseDetailPage.summaryTitle') }}
       BaseCard
         .summary
-          DataRow(label='Пайщик', :value='creatorName')
-          DataRow(label='Аккаунт', :value='proposal.username || "—"', mono, copyable)
-          DataRow(label='Кооператив', :value='proposal.coopname || "—"')
-          DataRow(label='Кошелёк (пул)', :value='walletLabel(proposal.source_wallet)')
-          DataRow(label='Сумма (план)', :value='formatAmount(proposal.total_planned)')
-          DataRow(label='Сумма (факт)', :value='formatAmount(proposal.total_actual)')
-          DataRow(label='Создана', :value='formatDate(proposal.created_at)')
-          DataRow(label='Обновлена', :value='formatDate(proposal.updated_at)')
-          DataRow(label='Хеш', :value='proposal.proposal_hash', mono, copyable, align='vertical')
+          DataRow(:label='$t("expenses.expenseDetailPage.memberLabel")', :value='creatorName')
+          DataRow(:label='$t("expenses.expenseDetailPage.accountLabel")', :value='proposal.username || "—"', mono, copyable)
+          DataRow(:label='$t("expenses.expenseDetailPage.coopLabel")', :value='proposal.coopname || "—"')
+          DataRow(:label='$t("expenses.expenseDetailPage.walletLabel")', :value='walletLabel(proposal.source_wallet)')
+          DataRow(:label='$t("expenses.expenseDetailPage.amountPlanLabel")', :value='formatAmount(proposal.total_planned)')
+          DataRow(:label='$t("expenses.expenseDetailPage.amountFactLabel")', :value='formatAmount(proposal.total_actual)')
+          DataRow(:label='$t("expenses.expenseDetailPage.createdLabel")', :value='formatDate(proposal.created_at)')
+          DataRow(:label='$t("expenses.expenseDetailPage.updatedLabel")', :value='formatDate(proposal.updated_at)')
+          DataRow(:label='$t("expenses.expenseDetailPage.hashLabel")', :value='proposal.proposal_hash', mono, copyable, align='vertical')
 
     //- Документы расхода — заявление (СЗ) и протокол решения совета. Клик по
     //- строке раскрывает сам документ во всплывашке (доменный канон шасси).
     .section
-      .t-eyebrow.t-muted Документы
+      .t-eyebrow.t-muted {{ $t('expenses.expenseDetailPage.documentsTitle') }}
       BaseCard
         ExpenseProposalDocuments(
           v-if='hasDocuments',
@@ -42,25 +42,25 @@
         )
         EmptyState(
           v-else,
-          title='Документы не сформированы',
-          body='Здесь появятся служебная записка и протокол решения совета.'
+          :title='$t("expenses.expenseDetailPage.noDocumentsTitle")',
+          :body='$t("expenses.expenseDetailPage.noDocumentsHint")'
         )
           template(#icon)
             q-icon(name='description', size='40px')
 
     .section
-      .t-eyebrow.t-muted Строки расходов
+      .t-eyebrow.t-muted {{ $t('expenses.expenseDetailPage.linesTitle') }}
       BaseCard
         .table-wrap(v-if='itemsCount')
           .table-scroll
             table.table
               thead
                 tr
-                  th Получатель
-                  th Способ
-                  th.col-num План
-                  th.col-num Факт
-                  th Статус
+                  th {{ $t('expenses.expenseDetailPage.column.recipient') }}
+                  th {{ $t('expenses.expenseDetailPage.column.method') }}
+                  th.col-num {{ $t('expenses.expenseDetailPage.column.plan') }}
+                  th.col-num {{ $t('expenses.expenseDetailPage.column.fact') }}
+                  th {{ $t('expenses.expenseDetailPage.column.status') }}
               tbody
                 tr(v-for='item in proposal.items', :key='item.item_hash')
                   td.cell-name {{ recipientLabel(item) }}
@@ -71,8 +71,8 @@
                     BaseBadge(:variant='itemStatusVariant(item.status)') {{ itemStatusLabel(item.status) }}
         EmptyState(
           v-else,
-          title='Нет строк',
-          body='У этой служебной записки нет позиций.'
+          :title='$t("expenses.expenseDetailPage.noLinesTitle")',
+          :body='$t("expenses.expenseDetailPage.noLinesHint")'
         )
           template(#icon)
             q-icon(name='list', size='40px')
@@ -83,9 +83,9 @@
     //- причина отклонения — внутри PaymentDetails. Клик ведёт на реестр
     //- платежей к этому конкретному платежу.
     .section(v-if='loadingPayments || linkedPayments.length')
-      .t-eyebrow.t-muted Платежи по расходу
+      .t-eyebrow.t-muted {{ $t('expenses.expenseDetailPage.paymentsTitle') }}
       BaseCard
-        .t-sm.t-muted(v-if='loadingPayments && !linkedPayments.length') Загрузка платежей…
+        .t-sm.t-muted(v-if='loadingPayments && !linkedPayments.length') {{ $t('expenses.expenseDetailPage.paymentsLoadingText') }}
         .pay-list(v-else)
           .pay-item(v-for='(pay, idx) in linkedPayments', :key='pay.hash ?? idx')
             .pay-item__head
@@ -98,13 +98,13 @@
             PaymentDetails(:payment='pay')
             button.pay-item__link(type='button', @click='openInRegistry(pay)')
               q-icon(name='open_in_new', size='15px')
-              span Открыть в реестре платежей
+              span {{ $t('expenses.expenseDetailPage.openInPaymentsRegistryLabel') }}
 
     //- Чеки/подтверждения — кликабельное имя файла открывает документ в новой
     //- вкладке (как на странице расхода программы: read_url короткоживущий,
     //- запрашиваем свежий по id в момент клика).
     .section(v-if='files.length')
-      .t-eyebrow.t-muted Чеки и подтверждения
+      .t-eyebrow.t-muted {{ $t('expenses.expenseDetailPage.receiptsTitle') }}
       BaseCard
         .files
           .file-row(v-for='file in files', :key='file.id')
@@ -124,14 +124,14 @@
     //- заявления/решения, загруженные документы, статус). Тот же виджет, что на
     //- странице расхода программы Благорост.
     .section(v-if='timeline.length')
-      .t-eyebrow.t-muted История состояний
+      .t-eyebrow.t-muted {{ $t('expenses.expenseDetailPage.historyTitle') }}
       BaseCard
         ActivityTimeline(:events='timeline', group-by-date)
 
   EmptyState(
     v-else-if='!loading && loaded',
-    title='Расход не найден',
-    body='Возможно, ссылка устарела или у вас нет доступа.'
+    :title='$t("expenses.expenseDetailPage.notFoundTitle")',
+    :body='$t("expenses.expenseDetailPage.notFoundHint")'
   )
     template(#icon)
       q-icon(name='error_outline', size='48px')
@@ -172,6 +172,7 @@ import {
   getExpenseItemStatusVariant,
   getExpenseMechanicsLabel,
 } from '../model';
+import { t } from '../i18n';
 
 type IProposal = NonNullable<IExpenseProposalResult>;
 type IFileRow = IExpenseFilesByProposalResult[number];
@@ -210,27 +211,27 @@ function paymentAmount(pay: IPayment): string {
 // Платёж → событие истории состояний. Тип/иконка/текст по текущему статусу:
 // исполнен (деньги ушли), оплачен кассой (ждём цепочку), создан, отклонён.
 function paymentTimelineEvent(pay: IPayment): ActivityEvent {
-  const label = pay.type_label || pay.type || 'Платёж';
+  const label = pay.type_label || pay.type || t('expenses.expenseDetailPage.paymentLabel');
   let type: ActivityEventType = 'transfer';
   let icon = pay.direction === Zeus.PaymentDirection.INCOMING ? 'south_west' : 'payments';
-  let title = `${label} — создан, ожидает кассу`;
+  let title = t('expenses.expenseDetailPage.paymentCreatedStatus', { label });
   switch (pay.status) {
     case Zeus.PaymentStatus.COMPLETED:
       type = 'sign';
-      title = `${label} — исполнен`;
+      title = t('expenses.expenseDetailPage.paymentExecutedStatus', { label });
       break;
     case Zeus.PaymentStatus.PAID:
-      title = `${label} — оплачен кассой, ждём подтверждения`;
+      title = t('expenses.expenseDetailPage.paymentPaidAwaitingConfirmStatus', { label });
       break;
     case Zeus.PaymentStatus.CANCELLED:
       type = 'reject';
       icon = 'block';
-      title = `${label} — отклонён`;
+      title = t('expenses.expenseDetailPage.paymentDeclinedStatus', { label });
       break;
     case Zeus.PaymentStatus.FAILED:
       type = 'reject';
       icon = 'error';
-      title = `${label} — ошибка`;
+      title = t('expenses.expenseDetailPage.paymentErrorStatus', { label });
       break;
     case Zeus.PaymentStatus.PENDING:
     case Zeus.PaymentStatus.PROCESSING:
@@ -400,7 +401,7 @@ function formatDate(value?: string | null): string {
 function fileLabel(file: IFileRow): string {
   if (file.original_filename) return file.original_filename;
   const date = file.uploaded_at ? new Date(String(file.uploaded_at)).toLocaleString(uiLocale()) : '';
-  return `документ от ${date}`;
+  return t('expenses.expenseDetailPage.documentDatedLabel', { date });
 }
 
 // История состояний собирается из фактов, которые уже есть в данных: дат СЗ,
@@ -420,7 +421,7 @@ const timeline = computed<ActivityEvent[]>(() => {
     {
       id: 'created',
       type: 'create',
-      title: 'Служебная записка создана',
+      title: t('expenses.expenseDetailPage.history.memoCreated'),
       actor: creatorName.value,
       date: p.created_at ?? '',
     },
@@ -431,7 +432,7 @@ const timeline = computed<ActivityEvent[]>(() => {
     events.push({
       id: 'statement',
       type: 'sign',
-      title: 'Заявление на расход подписано',
+      title: t('expenses.expenseDetailPage.history.applicationSigned'),
       actor: creatorName.value,
       date: statementSigned,
     });
@@ -444,8 +445,8 @@ const timeline = computed<ActivityEvent[]>(() => {
       id: 'decision',
       type: declined ? 'reject' : 'sign',
       title: declined
-        ? 'Совет отклонил расход'
-        : 'Совет утвердил расход — протокол решения подписан',
+        ? t('expenses.expenseDetailPage.history.councilDeclined')
+        : t('expenses.expenseDetailPage.history.councilApproved'),
       date: decisionSigned ?? p.updated_at ?? '',
     });
   }
@@ -454,7 +455,7 @@ const timeline = computed<ActivityEvent[]>(() => {
     events.push({
       id: `file-${f.id}`,
       type: 'update',
-      title: 'Приложен документ',
+      title: t('expenses.expenseDetailPage.history.documentAttached'),
       description: fileLabel(f),
       date: String(f.uploaded_at ?? p.updated_at ?? ''),
     });
@@ -471,7 +472,7 @@ const timeline = computed<ActivityEvent[]>(() => {
     events.push({
       id: 'report',
       type: 'system',
-      title: 'Отчёт по смете подан — ожидает закрытия расхода',
+      title: t('expenses.expenseDetailPage.history.reportSubmitted'),
       date: p.updated_at ?? '',
     });
   }
@@ -479,7 +480,7 @@ const timeline = computed<ActivityEvent[]>(() => {
     events.push({
       id: 'closed',
       type: 'system',
-      title: 'Расход закрыт — фактическая сумма капитализирована',
+      title: t('expenses.expenseDetailPage.history.closed'),
       date: p.updated_at ?? '',
     });
   }
@@ -496,7 +497,7 @@ async function openFile(file: IFileRow): Promise<void> {
   try {
     openingId.value = file.id;
     const url = await getExpenseFileReadUrl(file.id);
-    if (!url) throw new Error('Не удалось получить ссылку на файл');
+    if (!url) throw new Error(t('expenses.error.fileLinkFailed'));
     window.open(url, '_blank', 'noopener');
   } catch (e) {
     FailAlert(e);

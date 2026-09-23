@@ -3,9 +3,9 @@
   .banner.banner--info.q-mb-md(v-if='!dismissed')
     q-icon.banner__icon(name='info', size='20px')
     .banner__body
-      | Здесь каждое решение, которым занимался робот: чьи голоса он подал, набран ли кворум,
-      | подписан ли протокол и какими транзакциями это прошло. Ошибки и повторы тоже видны.
-    button.icon-btn(type='button', aria-label='Скрыть', @click='dismiss')
+      | {{ $t('robot.robotJournalPage.bannerLine1') }}
+      | {{ $t('robot.robotJournalPage.bannerLine2') }}
+    button.icon-btn(type='button', :aria-label='$t("robot.robotJournalPage.hideAriaLabel")', @click='dismiss')
       q-icon(name='close')
 
   BaseTable(
@@ -20,7 +20,7 @@
       .t-sm.t-muted {{ formatDate(row.created_at) }}
     template(#cell-stage='{ row }')
       BaseBadge(:variant='stageMeta(row.stage).variant') {{ stageMeta(row.stage).label }}
-      .t-sm.t-muted(v-if='row.waiting_for.length') ждём: {{ row.waiting_for.map(robotStore.shortMemberName).join(', ') }}
+      .t-sm.t-muted(v-if='row.waiting_for.length') {{ $t('robot.robotJournalPage.waitingForText', { members: row.waiting_for.map(robotStore.shortMemberName).join(', ') }) }}
     template(#cell-votes='{ row }')
       template(v-if='row.votes.length')
         div(v-for='vote in row.votes', :key='vote.member') {{ robotStore.shortMemberName(vote.member) }}
@@ -33,14 +33,14 @@
       span.t-muted(v-else) —
     template(#footer)
       .row.items-center.justify-between.q-pa-sm
-        .t-sm.t-muted Страница {{ page }} из {{ totalPages }}
+        .t-sm.t-muted {{ $t('robot.robotJournalPage.pageOfText', { page, total: totalPages }) }}
         .row.q-gutter-sm
-          BaseButton(variant='ghost', size='sm', :disabled='page <= 1 || loading', @click='goTo(page - 1)') Назад
-          BaseButton(variant='ghost', size='sm', :disabled='page >= totalPages || loading', @click='goTo(page + 1)') Вперёд
+          BaseButton(variant='ghost', size='sm', :disabled='page <= 1 || loading', @click='goTo(page - 1)') {{ $t('common.action.back') }}
+          BaseButton(variant='ghost', size='sm', :disabled='page >= totalPages || loading', @click='goTo(page + 1)') {{ $t('robot.robotJournalPage.forwardButton') }}
   EmptyState(
     v-if='!loading && !items.length',
-    title='Робот ещё не принимал решений',
-    body='Записи появятся, когда на повестку придёт решение делегированного типа.'
+    :title='$t("robot.robotJournalPage.emptyTitle")',
+    :body='$t("robot.robotJournalPage.emptyBody")'
   )
     template(#icon)
       q-icon(name='smart_toy', size='48px')
@@ -56,6 +56,7 @@ import type { BaseTableColumn } from 'src/shared/ui/base';
 import { useRobotStore } from '../../../entities/robot';
 import type { IRobotDecision } from '../../../entities/robot';
 import { robotStageMeta } from '../../../shared/stage';
+import { t } from '../../../i18n';
 
 const robotStore = useRobotStore();
 const { dismissed, dismiss } = useDismissibleBanner('robot:journal:banner-dismissed');
@@ -69,11 +70,11 @@ const items = computed<IRobotDecision[]>(() => robotStore.journal?.items ?? []);
 const totalPages = computed(() => robotStore.journal?.totalPages ?? 1);
 
 const columns: BaseTableColumn<IRobotDecision>[] = [
-  { key: 'decision', label: 'Решение' },
-  { key: 'stage', label: 'Этап', width: '170px' },
-  { key: 'votes', label: 'Голоса робота', width: '160px' },
-  { key: 'tx', label: 'Транзакции', width: '150px' },
-  { key: 'error', label: 'Ошибка' },
+  { key: 'decision', label: t('robot.robotJournalPage.decisionColumn') },
+  { key: 'stage', label: t('robot.robotJournalPage.stageColumn'), width: '170px' },
+  { key: 'votes', label: t('robot.robotJournalPage.votesColumn'), width: '160px' },
+  { key: 'tx', label: t('robot.robotJournalPage.txColumn'), width: '150px' },
+  { key: 'error', label: t('robot.robotJournalPage.errorColumn') },
 ];
 
 function typeTitle(type: string): string {

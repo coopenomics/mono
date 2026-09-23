@@ -13,7 +13,7 @@
     .drawio-story-embed-editor__overlay(v-if="!diagramVisible")
       .drawio-story-embed-editor__overlay-inner.column.items-center.q-gutter-sm
         q-spinner(color="primary" size="48px")
-        .text-body2.text-grey-7 Загрузка редактора диаграммы…
+        .text-body2.text-grey-7 {{ $t('capital.drawioStoryEmbedEditor.loading') }}
 </template>
 
 <script setup lang="ts">

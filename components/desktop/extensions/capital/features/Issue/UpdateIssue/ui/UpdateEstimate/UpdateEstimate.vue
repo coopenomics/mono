@@ -17,6 +17,7 @@ import { ref, watch, computed, inject } from 'vue'
 import { useRoute } from 'vue-router'
 import { useUpdateIssue } from '../../model'
 import { ISSUE_PAGE_KEY } from 'app/extensions/capital/pages/IssuePage/model/context'
+import { t } from '../../../../../i18n';
 
 interface Props {
   modelValue: number
@@ -30,7 +31,7 @@ interface Emits {
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  label: 'Оценка (часы)',
+  label: t('capital.updateEstimate.label'),
   readonly: false
 })
 

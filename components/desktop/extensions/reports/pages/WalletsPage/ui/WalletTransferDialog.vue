@@ -3,13 +3,13 @@ BaseDialog(
   :model-value='modelValue'
   @update:model-value='emit("update:modelValue", $event)'
   size='lg'
-  title='Перевод между кошельками'
+  :title='$t("reports.walletTransferDialog.title")'
   :close-on-backdrop='!loading'
   :close-on-escape='!loading'
 )
   p.transfer-dialog__lead
-    | Перевод между кошельками одного бухгалтерского счёта без изменения сальдо счёта.
-    | Доступен только председателю.
+    | {{ $t('reports.walletTransferDialog.descriptionLine1') }}
+    | {{ $t('reports.walletTransferDialog.descriptionLine2') }}
 
   q-form(@submit.prevent='submit' ref='formRef' greedy)
     q-select.q-mb-sm(
@@ -18,17 +18,17 @@ BaseDialog(
       option-label='label'
       option-value='id'
       emit-value map-options
-      label='Из кошелька'
+      :label='$t("reports.walletTransferDialog.fromWalletLabel")'
       outlined dense
       :disable='!!props.fixedFromWallet'
-      :rules='[(v) => !!v || "Выберите кошелёк-источник"]'
+      :rules='[(v) => !!v || $t("reports.walletTransferDialog.fromWalletRequiredError")]'
       @update:model-value='onFromChange'
     )
       template(#option='scope')
         q-item(v-bind='scope.itemProps')
           q-item-section
             q-item-label {{ scope.opt.label }}
-            q-item-label(caption) Доступно: {{ scope.opt.available }}
+            q-item-label(caption) {{ $t('reports.walletTransferDialog.optionAvailableLabel', { available: scope.opt.available }) }}
 
     q-select.q-mb-sm(
       v-model='form.toWallet'
@@ -36,52 +36,52 @@ BaseDialog(
       option-label='label'
       option-value='id'
       emit-value map-options
-      label='В кошелёк'
+      :label='$t("reports.walletTransferDialog.toWalletLabel")'
       outlined dense
       :disable='!form.fromWallet'
       :hint='toHint'
-      :rules='[(v) => !!v || "Выберите кошелёк-получатель", (v) => v !== form.fromWallet || "Источник и получатель не должны совпадать"]'
+      :rules='[(v) => !!v || $t("reports.walletTransferDialog.toWalletRequiredError"), (v) => v !== form.fromWallet || $t("reports.walletTransferDialog.sameWalletError")]'
     )
       template(#option='scope')
         q-item(v-bind='scope.itemProps')
           q-item-section
             q-item-label {{ scope.opt.label }}
-            q-item-label(caption) Доступно: {{ scope.opt.available }}
+            q-item-label(caption) {{ $t('reports.walletTransferDialog.optionAvailableLabel', { available: scope.opt.available }) }}
       //- Причина пустого списка важнее, чем «No results» по дефолту:
       //- walmove ходит ТОЛЬКО внутри одного бух.счёта, поэтому если у
       //- кооператива нет других кошельков на том же счёте — выбора нет.
       template(#no-option)
         q-item
           q-item-section.text-italic.caption-muted
-            | Нет других кошельков на бух.счёте {{ accountIdLabel }}.
-            | Перевод между разными счетами требует решения совета.
+            | {{ $t('reports.walletTransferDialog.noOtherWalletsText', { account: accountIdLabel }) }}
+            | {{ $t('reports.walletTransferDialog.crossAccountHint') }}
 
     .row.items-center.q-gutter-sm.q-mb-sm(v-if='form.fromWallet')
       .col
-        .text-caption.caption-muted Бух.счёт
+        .text-caption.caption-muted {{ $t('reports.walletTransferDialog.accountLabel') }}
         .text-body2.text-weight-medium {{ accountIdLabel }}
 
     q-input.q-mb-sm(
       v-model='form.amountStr'
-      label='Сумма (RUB)'
+      :label='$t("reports.walletTransferDialog.amountLabel")'
       outlined dense type='number' step='0.0001' min='0.0001'
       :rules='[validateAmount]'
-      hint='До 4 знаков после запятой'
+      :hint='$t("reports.walletTransferDialog.amountHint")'
     )
 
     q-input.q-mb-sm(
       v-model='form.memo'
-      label='Обоснование'
+      :label='$t("reports.walletTransferDialog.reasonLabel")'
       outlined dense type='textarea' rows='3' counter maxlength='255'
-      :rules='[(v) => (v && v.trim().length > 0) || "Обязательно — укажите причину перевода"]'
+      :rules='[(v) => (v && v.trim().length > 0) || $t("reports.walletTransferDialog.reasonRequiredError")]'
     )
 
   template(#footer)
-    BaseButton(variant='ghost' :disabled='loading' @click='close') Отмена
+    BaseButton(variant='ghost' :disabled='loading' @click='close') {{ $t('common.action.cancel') }}
     BaseButton(variant='primary' :loading='loading' @click='submit')
       template(#icon-left)
         q-icon.q-mr-xs(name='fa-solid fa-arrow-right-arrow-left' size='15px')
-      | Перевести
+      | {{ $t('reports.walletTransferDialog.submitLabel') }}
 </template>
 
 <script setup lang="ts">
@@ -92,6 +92,7 @@ import { useSystemStore } from 'src/entities/System/model'
 import { useLedger2Store, type ILedger2Wallet } from 'src/entities/Ledger2'
 import { BaseDialog } from 'src/shared/ui/base/BaseDialog'
 import { BaseButton } from 'src/shared/ui/base/BaseButton'
+import { t } from '../../../i18n';
 
 interface Props {
   modelValue: boolean
@@ -178,8 +179,8 @@ const toOptions = computed(() => {
 const toHint = computed(() => {
   if (!form.fromWallet) return ''
   const n = toOptions.value.length
-  if (n === 0) return 'На этом бух.счёте нет других кошельков'
-  return `Доступно ${n} ${n === 1 ? 'кошелёк' : n < 5 ? 'кошелька' : 'кошельков'} на счёте`
+  if (n === 0) return t('reports.walletTransferDialog.noWalletsHint')
+  return t('reports.walletTransferDialog.availableWalletsHint', { count: n, word: n === 1 ? 'кошелёк' : n < 5 ? 'кошелька' : 'кошельков' })
 })
 
 function onFromChange() {
@@ -189,12 +190,12 @@ function onFromChange() {
 
 function validateAmount(value: string): true | string {
   const n = Number(value)
-  if (!Number.isFinite(n) || n <= 0) return 'Сумма должна быть положительной'
+  if (!Number.isFinite(n) || n <= 0) return t('reports.walletTransferDialog.amountPositiveError')
   // Доступно у источника
   if (form.fromWallet) {
     const wallet = props.wallets.find((w) => w.id === form.fromWallet)
     const avail = wallet ? Number.parseFloat(String(wallet.available).split(' ')[0] ?? '0') : 0
-    if (n > avail) return `Недостаточно средств (доступно ${avail})`
+    if (n > avail) return t('reports.walletTransferDialog.insufficientFundsError', { available: avail })
   }
   return true
 }
@@ -219,7 +220,7 @@ async function submit() {
   if (!valid) return
   if (!form.fromWallet || !form.toWallet) return
   if (!sourceAccountId.value) {
-    FailAlert(new Error('Не удалось определить бух.счёт для выбранного кошелька'))
+    FailAlert(new Error(t('reports.error.walletAccountResolveFailed')))
     return
   }
   loading.value = true
@@ -233,7 +234,7 @@ async function submit() {
       quantity: `${Number(form.amountStr).toFixed(4)} RUB`,
       memo: form.memo.trim(),
     })
-    SuccessAlert('Перевод выполнен')
+    SuccessAlert(t('reports.walletTransferDialog.transferSuccess'))
     emit('success', { processHash: result.processHash })
     // Закрываем явно (не через close(), чтобы не цеплять guard на loading,
     // который ещё true до finally).

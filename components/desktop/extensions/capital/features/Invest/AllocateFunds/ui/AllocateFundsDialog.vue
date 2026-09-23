@@ -1,38 +1,38 @@
 <template lang="pug">
 BaseDialog(
   :model-value='modelValue',
-  title='Аллоцировать средства в компонент',
+  :title='$t("capital.allocateFundsDialog.title")',
   size='sm',
   @update:model-value='$emit("update:modelValue", $event)'
 )
   .allocate-form
     BaseSelect(
       v-model='projectHash',
-      label='Компонент',
-      placeholder='Выберите, куда направить средства',
+      :label='$t("capital.allocateFundsDialog.componentLabel")',
+      :placeholder='$t("capital.allocateFundsDialog.componentPlaceholder")',
       :options='options'
     )
     .allocate-form__field
       AmountInput(
         v-model='amount',
-        label='Сумма',
+        :label='$t("capital.allocateFundsDialog.amountLabel")',
         :symbol='symbol',
         :precision='DISPLAY_PRECISION',
         :balance='available',
         show-balance,
         show-max
       )
-    .allocate-form__note.t-sm.t-muted Средства уходят со свободного остатка программы и становятся бюджетом компонента. Неизрасходованный остаток вернётся в программу, когда проект завершится или будет удалён.
+    .allocate-form__note.t-sm.t-muted {{ $t('capital.allocateFundsDialog.description') }}
 
   template(#footer)
     .allocate-form__actions
-      BaseButton(variant='ghost', @click='close') Отмена
+      BaseButton(variant='ghost', @click='close') {{ $t('common.action.cancel') }}
       BaseButton(
         variant='primary',
         :loading='submitting',
         :disabled='!canSubmit',
         @click='submit'
-      ) Аллоцировать
+      ) {{ $t('capital.allocateFundsDialog.submit') }}
 </template>
 
 <script setup lang="ts">
@@ -45,6 +45,7 @@ import { BaseSelect } from 'src/shared/ui/base/BaseSelect';
 import type { BaseSelectOption } from 'src/shared/ui/base/BaseSelect';
 import { AmountInput } from 'src/shared/ui/domain/AmountInput';
 import { useAllocateFunds } from '../model';
+import { t } from '../../../../i18n';
 
 /**
  * Суммы показываем в рублях с копейками. Точность ассета цепи (4 знака) —
@@ -103,7 +104,7 @@ async function submit(): Promise<void> {
   try {
     submitting.value = true;
     await submitAllocation(projectHash.value, String(amount.value));
-    SuccessAlert('Средства аллоцированы в компонент');
+    SuccessAlert(t('capital.allocateFundsDialog.success'));
     emit('allocated');
     close();
   } catch (e) {
