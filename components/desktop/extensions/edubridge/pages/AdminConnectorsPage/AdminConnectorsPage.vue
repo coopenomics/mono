@@ -46,6 +46,8 @@ import { BaseBadge, BaseButton, BaseCard, BaseDialog, BaseForm, BaseInput, CardL
 import { DataRow, PageHint } from 'src/shared/ui/domain';
 import { CARRIER_LABELS } from '../../entities/Course';
 import { HEALTH_LABELS, checkConnector, fetchConnectors, setConnectorCredentials, setConnectorEnabled, type IConnector } from '../../entities/Admin';
+import { useLiveReload } from 'src/shared/lib/realtime';
+import { EduLive } from '../../shared/lib/live';
 
 /**
  * Площадки: карточка на носитель — состояние в шапке, свойства строками,
@@ -132,6 +134,9 @@ async function saveCredentials(): Promise<void> {
     savingCredentials.value = false;
   }
 }
+// Живое обновление: данные меняются в цепи и на столах других участников.
+useLiveReload([EduLive.connectors, EduLive.courses], load);
+
 onMounted(load);
 </script>
 

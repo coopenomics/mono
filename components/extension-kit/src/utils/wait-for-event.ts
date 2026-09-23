@@ -30,19 +30,22 @@ export function waitForEvent<T>(
   const promise = new Promise<T | null>((resolve) => {
     settle = resolve;
   });
+  let done = false;
+  let timer: ReturnType<typeof setTimeout> | undefined;
   const listener = (payload: T) => {
     if (match(payload)) finish(payload);
   };
-  // timing: timeout — предел ожидания чужого факта, дальше ответ как есть.
-  const timer = setTimeout(() => finish(null), timeoutMs);
-  let done = false;
   function finish(value: T | null) {
     if (done) return;
     done = true;
-    clearTimeout(timer);
+    if (timer) clearTimeout(timer);
     source.off(event, listener);
     settle(value);
   }
+  // Сначала подписка: если источник её не принял, таймер не заводится и не
+  // срабатывает потом в чужом контексте.
   source.on(event, listener);
+  // timing: timeout — предел ожидания чужого факта, дальше ответ как есть.
+  timer = setTimeout(() => finish(null), timeoutMs);
   return { promise, cancel: () => finish(null) };
 }

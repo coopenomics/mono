@@ -77,6 +77,8 @@ import { BaseBadge, BaseButton, BaseInput, BaseTable, EmptyState, type BaseTable
 import { DataRow, DetailsDrawer, IdentityCell, PageHint } from 'src/shared/ui/domain';
 import { ACCESS_STATE_LABELS } from '../../entities/Learner';
 import { TASK_KIND_LABELS, TASK_STATUS_LABELS, fetchMemberCard, fetchMembers, retryTask, type IMemberCard, type IMemberRow } from '../../entities/Admin';
+import { useLiveReload } from 'src/shared/lib/realtime';
+import { EduLive } from '../../shared/lib/live';
 
 /**
  * Ученики приложения: пайщик, который оформляет подписки, и его обучающиеся —
@@ -159,6 +161,16 @@ async function onRetry(task: IMemberCard['tasks'][number]): Promise<void> {
     retrying.value = null;
   }
 }
+
+/** Живое перечитывание: список и открытая карточка — выдача доступа идёт в фоне. */
+async function reloadMembers(): Promise<void> {
+  await load();
+  if (drawerOpen.value && card.value) card.value = await fetchMemberCard(card.value.username);
+}
+
+// Живое обновление: задачи выдачи доступа отрабатывают в фоне, записи и
+// ученики меняются на столах пайщиков — реестр узнаёт об этом по ленте.
+useLiveReload([EduLive.learners, EduLive.enrollments, EduLive.accessTasks], reloadMembers);
 
 onMounted(load);
 </script>

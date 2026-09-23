@@ -23,6 +23,7 @@ import {
 } from '@coopenomics/innercoop';
 import { EdubridgeApplicationModule } from './application/edubridge-application.module';
 import { EdubridgeExitBlockersService } from './application/services/edubridge-exit-blockers.service';
+import { EdubridgeLiveFeedService } from './application/services/edubridge-live-feed.service';
 import { EdubridgeConfigHolder } from './application/config/edubridge-config.holder';
 import { registerEdubridgeDocuments } from './application/onboarding/register-edubridge-documents';
 import { registerEdubridgeOnboardingSteps } from './application/onboarding/register-edubridge-onboarding-steps';
@@ -54,7 +55,8 @@ export class EdubridgeExtension extends BaseExtensionModule {
     @Optional() @Inject(REGISTRATION_REGISTRY_PORT) private readonly registration: IRegistrationRegistryPort | null = null,
     @Optional() @Inject(MEMBER_EXIT_REGISTRY_PORT) private readonly memberExit: IMemberExitRegistryPort | null = null,
     private readonly configHolder: EdubridgeConfigHolder,
-    private readonly exitBlockers: EdubridgeExitBlockersService
+    private readonly exitBlockers: EdubridgeExitBlockersService,
+    private readonly liveFeed: EdubridgeLiveFeedService
   ) {
     super();
     this.logger.setContext(EdubridgeExtension.name);
@@ -77,6 +79,9 @@ export class EdubridgeExtension extends BaseExtensionModule {
     await this.syncCoopAcceptanceFromOnboarding();
     this.registerInAgreementRegistry();
     this.registerExitBlockers();
+    // Живое обновление столов: таблицы в ленте изменений и состав персонала.
+    this.liveFeed.declareTables();
+    await this.liveFeed.refreshStaff(platformSettings().coopname);
     this.logger.info('edubridge-extension готов');
   }
 

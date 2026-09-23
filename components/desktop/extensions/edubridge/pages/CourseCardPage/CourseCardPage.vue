@@ -65,6 +65,8 @@ import { SubscribeDialog } from '../../features/Subscribe';
 import { LESSON_FORMS } from '../../shared/lib/courseMonths';
 import { FeeAmount } from '../../shared/ui/FeeAmount';
 import { CourseHero, CourseHeroFigure } from '../../widgets/CourseHero';
+import { useLiveReload } from 'src/shared/lib/realtime';
+import { EduLive } from '../../shared/lib/live';
 
 /**
  * Страница курса для посетителя: обложка, описание, учебная программа,
@@ -125,9 +127,17 @@ function onSubscribed(): void {
   void router.push({ name: 'edubridge-subscriptions', params: { coopname: route.params.coopname } });
 }
 
+/** Курс из каталога; живое перечитывание — без скелетона, курс остаётся на экране. */
+async function loadCourse(): Promise<void> {
+  course.value = await fetchCatalogCourse(String(route.params.id));
+}
+
+// Живое обновление: администратор правит курс — карточка показывает новое.
+useLiveReload([EduLive.courses], loadCourse);
+
 onMounted(async () => {
   try {
-    course.value = await fetchCatalogCourse(String(route.params.id));
+    await loadCourse();
     if (course.value) desktopStore.setPageTitleOverride('Курс');
   } catch (e) {
     FailAlert(e);

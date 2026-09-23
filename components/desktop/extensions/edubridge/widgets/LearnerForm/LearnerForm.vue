@@ -17,6 +17,7 @@ BaseForm(:loading="loading" @submit="submit")
 </template>
 
 <script setup lang="ts">
+// realtime: форма ученика — живое перечитывание затёрло бы ввод.
 import { computed, reactive, ref, watch } from 'vue';
 import { Zeus } from '@coopenomics/sdk';
 import { FailAlert, SuccessAlert } from 'src/shared/api';

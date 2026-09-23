@@ -136,6 +136,8 @@ import {
   type ITeacher,
   type ITeacherApproval,
 } from '../../entities/Teacher';
+import { useLiveReload } from 'src/shared/lib/realtime';
+import { EduLive } from '../../shared/lib/live';
 
 /**
  * Преподаватели кооператива: список людей, а не список бумаг. В строке — имя с
@@ -315,6 +317,24 @@ function patchCurrent(fn: (t: ITeacher) => ITeacher): void {
   current.value = updated;
   teachers.value = teachers.value.map((t) => (t.username === updated.username ? updated : t));
 }
+
+/** Живое перечитывание: список и открытая карточка берут свежие данные. */
+async function reloadTeachers(): Promise<void> {
+  await load();
+  const fresh = current.value && teachers.value.find((t) => t.username === current.value?.username);
+  if (fresh) current.value = fresh;
+}
+
+/** Одобрения открытой карточки — без очистки списка, чтобы он не мигал. */
+async function refreshApprovals(): Promise<void> {
+  const username = current.value?.username;
+  if (username) approvals.value = await fetchTeacherApprovals(username);
+}
+
+// Живое обновление: договоры подписывает председатель, назначения и курсы
+// меняют другие администраторы — стол узнаёт об этом по ленте изменений.
+useLiveReload([EduLive.teacherContracts, EduLive.assignments, EduLive.courses], reloadTeachers);
+useLiveReload([EduLive.approvals], refreshApprovals);
 
 onMounted(load);
 </script>

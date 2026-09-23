@@ -54,6 +54,8 @@ import { asDateInput, asText } from 'src/shared/lib/utils';
 import { BaseBadge, BaseCard, CardListSkeleton } from 'src/shared/ui/base';
 import { DataRow, IdentityPanel, PageHint, type Identity } from 'src/shared/ui/domain';
 import { ASSIGNMENT_STATUS_LABELS, fetchMyAssignments, fetchMyContract, type IAssignment, type IContract } from '../../entities/Teacher';
+import { useLiveReload } from 'src/shared/lib/realtime';
+import { EduLive } from '../../shared/lib/live';
 
 /**
  * Профиль преподавателя: кто он в кооперативе, чем подтверждено участие и какие
@@ -109,6 +111,9 @@ async function load(): Promise<void> {
     loading.value = false;
   }
 }
+
+// Живое обновление: данные меняются в цепи и на столах других участников.
+useLiveReload([EduLive.teacherContracts, EduLive.assignments], load);
 
 onMounted(load);
 </script>

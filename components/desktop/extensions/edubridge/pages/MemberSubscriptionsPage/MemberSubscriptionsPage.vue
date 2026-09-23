@@ -81,6 +81,8 @@ import {
 } from '../../entities/Learner';
 import { ReturnToShareCard } from '../../features/ReturnToShare';
 import { SubscribeDialog } from '../../features/Subscribe';
+import { useLiveReload } from 'src/shared/lib/realtime';
+import { EduLive } from '../../shared/lib/live';
 
 /**
  * «Мои подписки»: что оплачено, до какого числа и в каком состоянии доступ.
@@ -199,6 +201,9 @@ function onSubscribed(e: IEnrollment): void {
   if (i >= 0) enrollments.value[i] = e;
   else enrollments.value.push(e);
 }
+
+// Живое обновление: данные меняются в цепи и на столах других участников.
+useLiveReload([EduLive.enrollments, EduLive.learners, EduLive.courses, EduLive.returnRequests], load);
 
 onMounted(load);
 </script>

@@ -64,6 +64,8 @@ import {
   type IContribution,
   type ITeacher,
 } from '../../entities/Teacher';
+import { useLiveReload } from 'src/shared/lib/realtime';
+import { EduLive } from '../../shared/lib/live';
 
 /**
  * Взносы результатами работы — отдельной страницей: председатель разбирает их
@@ -175,6 +177,9 @@ async function onDecline(): Promise<void> {
     busy.value = false;
   }
 }
+
+// Живое обновление: данные меняются в цепи и на столах других участников.
+useLiveReload([EduLive.contributions, EduLive.teacherContracts], load);
 
 onMounted(load);
 </script>

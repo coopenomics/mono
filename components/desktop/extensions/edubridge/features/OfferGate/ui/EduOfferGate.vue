@@ -68,12 +68,6 @@ const route = useRoute();
 const router = useRouter();
 const desktopStore = useDesktopStore();
 
-/** Ожидание подписи: до 20 секунд с полусекундным шагом — столько идёт блок цепи и его разбор. */
-const OFFER_WAIT_ATTEMPTS = 40;
-const OFFER_WAIT_INTERVAL_MS = 500;
-/** Столько же ждём, пока стол перестанет выдавать право на шлюз подключения. */
-const DESK_WAIT_ATTEMPTS = 20;
-
 const state = ref<IEduOnboardingState | null>(null);
 const contract = ref<IContract | null>(null);
 const offerDoc = ref<DigitalDocument | null>(null);
@@ -143,23 +137,13 @@ function stepProps(key: string) {
       return offerDoc.value.data?.html ?? '';
     },
     sign: async () => {
+      // Сервер отвечает после разбора блока подписи: состояние в ответе уже
+      // с подписанной офертой — ждать и переспрашивать не нужно.
       state.value = await signOffer(props.kind, offerDoc.value ?? undefined);
-      // Подпись уходит в цепь, а признак в состоянии появляется из зеркала —
-      // это занимает секунду-другую. Без ожидания шаг оставался открытым, а
-      // следующий отвечал «сначала подпишите оферту».
-      await waitForOffer();
+      if (isTeacher.value && offerSigned.value && !contract.value) contract.value = await fetchMyContract();
       await onSigned(key);
     },
   };
-}
-
-/** Ждём, пока подпись оферты доедет из цепи в состояние подключения. */
-async function waitForOffer(): Promise<void> {
-  for (let attempt = 0; attempt < OFFER_WAIT_ATTEMPTS && !offerSigned.value; attempt++) {
-    await new Promise((resolve) => setTimeout(resolve, OFFER_WAIT_INTERVAL_MS));
-    state.value = await fetchOnboardingState();
-  }
-  if (isTeacher.value && offerSigned.value && !contract.value) contract.value = await fetchMyContract();
 }
 
 async function load(): Promise<void> {
@@ -184,18 +168,12 @@ async function onSigned(key: string): Promise<void> {
 }
 
 /**
- * Уходим на рабочую страницу, когда стол перестал выдавать право на шлюз:
- * пункт «Подключение» рисуется по этому праву, и без ожидания он оставался
- * в меню до следующего захода на страницу.
+ * Уходим на рабочую страницу, перечитав стол: пункт «Подключение» рисуется по
+ * праву на шлюз, а право снимается подписью, которая уже в базе узла (ответ
+ * подписи пришёл после разбора её блока), — одного перечитывания достаточно.
  */
 async function goToDesk(): Promise<void> {
-  const workspace = isTeacher.value ? 'edubridge-teacher' : 'edubridge-member';
-  const gateGrant = isTeacher.value ? 'Onboarding:teacher' : 'Onboarding:learner';
-  for (let attempt = 0; attempt < DESK_WAIT_ATTEMPTS; attempt++) {
-    await desktopStore.loadDesktop();
-    if (!desktopStore.hasGrant(workspace, gateGrant)) break;
-    await new Promise((resolve) => setTimeout(resolve, OFFER_WAIT_INTERVAL_MS));
-  }
+  await desktopStore.loadDesktop();
   void router.replace({ name: props.targetRoute, params: { coopname: route.params.coopname } });
 }
 

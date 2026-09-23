@@ -1,6 +1,8 @@
 import { markRaw, type Component } from 'vue';
-import { registerMenuBadge } from 'src/shared/lib/menuBadges';
-import { sharedAttention } from './entities/Admin';
+import { refreshMenuBadges, registerMenuBadge } from 'src/shared/lib/menuBadges';
+import { registerLiveReload } from 'src/shared/lib/realtime';
+import { invalidateAttention, sharedAttention } from './entities/Admin';
+import { EduLive } from './shared/lib/live';
 import { agreementsBase } from 'src/shared/lib/consts/workspaces';
 import type { IWorkspaceConfig, IWorkspaceRoute, IWorkspaceRouteMeta } from 'src/shared/lib/types/workspace';
 import {
@@ -123,5 +125,11 @@ export default async function (): Promise<IWorkspaceConfig[]> {
   // на подписи председателя и застрявшая выдача доступа ученикам.
   registerMenuBadge('edubridge-admin-teachers', async () => (await sharedAttention()).teachers);
   registerMenuBadge('edubridge-admin-registry', async () => (await sharedAttention()).learners);
+  // Числа меняются по факту — подпись председателя, выдача доступа в фоне, —
+  // и пункты меню узнают об этом по ленте изменений, а не опросом раз в минуту.
+  registerLiveReload([EduLive.approvals, EduLive.teacherContracts, EduLive.accessTasks], () => {
+    invalidateAttention();
+    return refreshMenuBadges(['edubridge-admin-teachers', 'edubridge-admin-registry']);
+  });
   return [adminWorkspace(), parentWorkspace(), teacherWorkspace()];
 }

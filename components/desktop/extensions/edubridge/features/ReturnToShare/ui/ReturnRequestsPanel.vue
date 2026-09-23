@@ -48,6 +48,8 @@ import { BaseBadge, BaseButton, BaseDialog, BaseForm, BaseInput, BaseTable, Empt
 import { IdentityCell } from 'src/shared/ui/domain';
 import { approveReturn, declineReturn, fetchReturnRequests } from '../api';
 import { RETURN_STATUS_LABELS, type IReturnRequest } from '../model';
+import { useLiveReload } from 'src/shared/lib/realtime';
+import { EduLive } from '../../../shared/lib/live';
 
 /**
  * Согласование заявлений о прекращении участия в программе: Положение ЦПП
@@ -131,6 +133,9 @@ async function onDecline(): Promise<void> {
     declineBusy.value = false;
   }
 }
+
+// Живое обновление: данные меняются в цепи и на столах других участников.
+useLiveReload([EduLive.returnRequests], load);
 
 onMounted(load);
 </script>

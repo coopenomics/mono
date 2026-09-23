@@ -39,6 +39,8 @@ import { PageHint } from 'src/shared/ui/domain';
 import { fetchMyLearners, type ILearner } from '../../entities/Learner';
 import { LearnerForm } from '../../widgets/LearnerForm';
 import AddLearnerHeaderButton from './AddLearnerHeaderButton.vue';
+import { useLiveReload } from 'src/shared/lib/realtime';
+import { EduLive } from '../../shared/lib/live';
 
 /**
  * «Обучающиеся»: кто занимается и на какой адрес выдаётся доступ. Курсы и сроки
@@ -78,6 +80,9 @@ function onLearnerSaved(l: ILearner): void {
   else learners.value.push(l);
   learnerDialogOpen.value = false;
 }
+
+// Живое обновление: данные меняются в цепи и на столах других участников.
+useLiveReload([EduLive.learners], load);
 
 onMounted(async () => {
   registerAction({ id: 'edubridge:add-learner', component: AddLearnerHeaderButton, props: { onClick: addLearnerOpen } });

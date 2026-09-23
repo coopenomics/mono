@@ -28,6 +28,8 @@ import { PageHint } from 'src/shared/ui/domain';
 import { fetchCourses, type ICourse } from '../../entities/Course';
 import { AdminCourseCard } from '../../widgets/AdminCourseCard';
 import AddCourseHeaderButton from './AddCourseHeaderButton.vue';
+import { useLiveReload } from 'src/shared/lib/realtime';
+import { EduLive } from '../../shared/lib/live';
 
 /**
  * Реестр курсов — владелец и администратор (EduCourse:manage). Курсы карточками,
@@ -66,6 +68,9 @@ function add(): void {
 function openCourse(id: string): void {
   void router.push({ name: 'edubridge-admin-course', params: { coopname: route.params.coopname, id } });
 }
+
+// Живое обновление: данные меняются в цепи и на столах других участников.
+useLiveReload([EduLive.courses, EduLive.enrollments], load);
 
 onMounted(() => {
   registerAction({ id: 'edubridge:add-course', component: AddCourseHeaderButton, props: { onClick: add } });

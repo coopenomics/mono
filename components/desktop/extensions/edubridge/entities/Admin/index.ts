@@ -50,6 +50,11 @@ export function sharedAttention(): Promise<IAttention> {
   return attentionCache.value;
 }
 
+/** Сводка изменилась (сигнал ленты) — следующий запрос идёт на сервер. */
+export function invalidateAttention(): void {
+  attentionCache = null;
+}
+
 export const fetchMembers = (search?: string) => q<IMemberRow[]>(Queries.Edubridge.Members.query, Queries.Edubridge.Members.name, { search });
 export const fetchMemberCard = (username: string) => q<IMemberCard>(Queries.Edubridge.MemberCard.query, Queries.Edubridge.MemberCard.name, { username });
 export const fetchQueue = (statuses?: Zeus.EduAccessTaskStatus[]) => q<IAccessTask[]>(Queries.Edubridge.Queue.query, Queries.Edubridge.Queue.name, { filter: statuses?.length ? { statuses } : undefined });

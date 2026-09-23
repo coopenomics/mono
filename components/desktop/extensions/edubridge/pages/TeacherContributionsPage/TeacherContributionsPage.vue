@@ -39,6 +39,8 @@ import {
   signAct,
   type IContribution,
 } from '../../entities/Teacher';
+import { useLiveReload } from 'src/shared/lib/realtime';
+import { EduLive } from '../../shared/lib/live';
 
 const items = ref<IContribution[]>([]);
 const loading = ref(false);
@@ -96,6 +98,9 @@ async function onSignAct(c: IContribution): Promise<void> {
     busy.value = null;
   }
 }
+
+// Живое обновление: данные меняются в цепи и на столах других участников.
+useLiveReload([EduLive.contributions], load);
 
 onMounted(load);
 </script>

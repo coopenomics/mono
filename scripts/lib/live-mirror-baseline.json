@@ -1,6 +1,6 @@
 {
   "_комментарий": "Экраны (pages/, widgets/), которые загружают данные при открытии или опрашивают по таймеру без живого обновления (scripts/check-live-mirror.mjs). Тронул файл — добавь useLiveReload; долг только снижается.",
-  "_commit": "14e4bad6bf369d9a5ca9b7d1bad4f61d8af8bd23",
+  "_commit": "210fb4672e35b7ff02742883b20efb630d62a193",
   "files": {
     "components/desktop/extensions/capital/pages/AllocationsPage/ui/AllocationsPage.vue": 1,
     "components/desktop/extensions/capital/pages/CapitalBase/ui/CapitalBase.vue": 1,
@@ -66,14 +66,6 @@
     "components/desktop/extensions/chatcoop/pages/SecretaryRoomsPage/ui/SecretaryRoomsPage.vue": 1,
     "components/desktop/extensions/chatcoop/pages/TranscriptionDetailPage/ui/TranscriptionDetailPage.vue": 1,
     "components/desktop/extensions/chatcoop/pages/TranscriptionsPage/ui/TranscriptionsPage.vue": 1,
-    "components/desktop/extensions/edubridge/pages/AdminAdminsPage/AdminAdminsPage.vue": 1,
-    "components/desktop/extensions/edubridge/pages/AdminCourseEditPage/AdminCourseEditPage.vue": 1,
-    "components/desktop/extensions/edubridge/pages/AdminCoursesPage/AdminCoursesPage.vue": 1,
-    "components/desktop/extensions/edubridge/pages/CatalogPage/CatalogPage.vue": 1,
-    "components/desktop/extensions/edubridge/pages/ConfigurePage/ConfigurePage.vue": 1,
-    "components/desktop/extensions/edubridge/pages/CourseCardPage/CourseCardPage.vue": 1,
-    "components/desktop/extensions/edubridge/pages/MemberLearnersPage/MemberLearnersPage.vue": 1,
-    "components/desktop/extensions/edubridge/pages/TeacherSettlementPage/TeacherSettlementPage.vue": 1,
     "components/desktop/extensions/expenses/pages/CashierPage.vue": 1,
     "components/desktop/extensions/expenses/pages/ExpenseDetailPage.vue": 1,
     "components/desktop/extensions/expenses/pages/ExpensesAdminApprovePage.vue": 1,

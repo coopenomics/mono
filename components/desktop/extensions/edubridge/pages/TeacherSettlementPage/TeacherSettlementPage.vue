@@ -24,6 +24,8 @@ import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { BaseButton, BaseCard, CardListSkeleton } from 'src/shared/ui/base';
 import { DataRow, PageHint } from 'src/shared/ui/domain';
 import { fetchMySettlement, type ISettlement } from '../../entities/Teacher';
+import { useLiveReload } from 'src/shared/lib/realtime';
+import { EduLive } from '../../shared/lib/live';
 
 const route = useRoute();
 const router = useRouter();
@@ -37,9 +39,16 @@ function goToWallet(): void {
   void router.push({ name: 'wallet', params: { coopname: route.params.coopname } });
 }
 
+async function loadSettlement(): Promise<void> {
+  settlement.value = await fetchMySettlement();
+}
+
+// Живое обновление: взносы по урокам и выплаты меняют расчёт без перезагрузки.
+useLiveReload([EduLive.contributions, EduLive.userWallets], loadSettlement);
+
 onMounted(async () => {
   try {
-    settlement.value = await fetchMySettlement();
+    await loadSettlement();
   } catch (e) {
     FailAlert(e);
   }

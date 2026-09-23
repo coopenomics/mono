@@ -13,6 +13,7 @@ q-page.edu-onboarding(role="region" aria-label="Подключение ЦПП О
 </template>
 
 <script setup lang="ts">
+// realtime: живое обновление шагов подключения — в useExtensionCooperativeOnboarding (ядро), общее для всех ЦПП.
 import { computed, onMounted, ref, watch } from 'vue';
 import { Queries, Zeus } from '@coopenomics/sdk';
 import { Cooperative } from 'cooptypes';

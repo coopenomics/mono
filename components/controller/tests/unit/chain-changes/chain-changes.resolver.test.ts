@@ -3,7 +3,8 @@
  *
  * Инварианты:
  *   - каналы выбирает сервер по праву пайщика, клиент выбрать чужие не может;
- *   - личная таблица: пайщику — только его строки, совету — все строки;
+ *   - личная таблица: пайщику — только его строки, персоналу — все строки;
+ *   - служебная таблица — только персоналу, остальным канала нет;
  *   - необъявленная таблица, чужой кооператив, соединение без пайщика — отказ;
  *   - без перечня таблиц — все таблицы ленты.
  */
@@ -15,7 +16,7 @@ jest.mock('~/config/config', () => ({
 import { ForbiddenException } from '@nestjs/common';
 import { ChainChangesResolver } from '~/application/chain-changes/resolvers/chain-changes.resolver';
 import {
-  chainChangesCouncilTopic,
+  chainChangesStaffTopic,
   chainChangesOwnerTopic,
   chainChangesTopic,
 } from '~/infrastructure/blockchain/chain-changes.service';
@@ -23,12 +24,18 @@ import {
 const TABLES = [
   { code: 'capital', table: 'projects' },
   { code: 'capital', table: 'contributors', owner_field: 'username' },
+  { code: 'edubridge', table: 'edubridge_access_tasks', staff_only: true },
 ];
+const STAFF: Record<string, string[]> = { edubridge: ['eduadmin'] };
 
 function build() {
   const feed = {
     declared: jest.fn(() => TABLES),
     tableOf: jest.fn((code: string, table: string) => TABLES.find((t) => t.code === code && t.table === table)),
+    isStaff: jest.fn(
+      (code: string, user: { username?: string; role?: string }) =>
+        ['chairman', 'member'].includes(String(user.role)) || Boolean(STAFF[code]?.includes(String(user.username)))
+    ),
   } as any;
   const iterator = {} as AsyncIterator<unknown>;
   const pubSub = { asyncIterator: jest.fn().mockReturnValue(iterator) } as any;
@@ -56,7 +63,7 @@ describe('ChainChangesResolver.chainChanges', () => {
 
       resolver.chainChanges({ username: 'boss', role }, input([{ code: 'capital', table: 'contributors' }]));
 
-      expect(pubSub.asyncIterator).toHaveBeenCalledWith([chainChangesCouncilTopic('voskhod', 'capital', 'contributors')]);
+      expect(pubSub.asyncIterator).toHaveBeenCalledWith([chainChangesStaffTopic('voskhod', 'capital', 'contributors')]);
     }
   });
 
@@ -84,5 +91,16 @@ describe('ChainChangesResolver.chainChanges', () => {
       ForbiddenException
     );
     expect(() => resolver.chainChanges({}, input())).toThrow(ForbiddenException);
+  });
+
+  it('служебная таблица: персоналу расширения — канал, пайщику — нет', () => {
+    const tables = [{ code: 'edubridge', table: 'edubridge_access_tasks' }];
+    const admin = build();
+    admin.resolver.chainChanges({ username: 'eduadmin', role: 'user' }, input(tables));
+    expect(admin.pubSub.asyncIterator).toHaveBeenCalledWith([chainChangesStaffTopic('voskhod', 'edubridge', 'edubridge_access_tasks')]);
+
+    const member = build();
+    member.resolver.chainChanges({ username: 'ant', role: 'user' }, input(tables));
+    expect(member.pubSub.asyncIterator).toHaveBeenCalledWith([]);
   });
 });

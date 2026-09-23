@@ -101,6 +101,8 @@ import { fetchCourseEconomy, type ICourseEconomy } from '../../entities/Economy'
 import { LESSON_FORMS } from '../../shared/lib/courseMonths';
 import { FeeAmount } from '../../shared/ui/FeeAmount';
 import { CourseHero, CourseHeroFigure } from '../../widgets/CourseHero';
+import { useLiveReload } from 'src/shared/lib/realtime';
+import { EduLive } from '../../shared/lib/live';
 
 /**
  * Курс глазами администратора на отдельной странице: открывается кликом по
@@ -204,6 +206,9 @@ async function setStatus(next: ICourse['status']): Promise<void> {
     busy.value = false;
   }
 }
+
+// Живое обновление: данные меняются в цепи и на столах других участников.
+useLiveReload([EduLive.courses, EduLive.enrollments], load);
 
 onMounted(load);
 onBeforeUnmount(() => desktopStore.clearPageTitleOverride());

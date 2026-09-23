@@ -15,6 +15,7 @@ import type { EduConnectorCredentialFieldDTO } from '../dto/edu-admin.dto';
 import { EduEnrollmentDTO } from '../dto/edu-enrollment.dto';
 import { EduLearnerDTO } from '../dto/edu-learner.dto';
 import { EdubridgeAccessOutboxService } from './edubridge-access-outbox.service';
+import { EdubridgeLiveFeedService } from './edubridge-live-feed.service';
 
 /** Административный контур: реестры, очередь, площадки, администраторы. */
 @Injectable()
@@ -30,7 +31,8 @@ export class EdubridgeAdminService {
     private readonly outbox: EdubridgeAccessOutboxService,
     private readonly config: EdubridgeConfigHolder,
     private readonly names: EdubridgeNamesService,
-    private readonly credentials: EdubridgeConnectorCredentialsStore
+    private readonly credentials: EdubridgeConnectorCredentialsStore,
+    private readonly liveFeed: EdubridgeLiveFeedService
   ) {}
 
   /** Ученики с ФИО; поиск — по ФИО или учётному имени. */
@@ -130,11 +132,14 @@ export class EdubridgeAdminService {
 
   async appoint(coopname: string, username: string, by: string): Promise<EduAdminDTO> {
     const a = await this.admins.appoint(coopname, username.trim(), by);
+    await this.liveFeed.refreshStaff(coopname);
     const names = await this.names.displayNames([a.username, a.appointed_by]);
     return new EduAdminDTO(a, { display_name: names.get(a.username), appointed_by_display_name: names.get(a.appointed_by) });
   }
 
-  dismiss(coopname: string, username: string) {
-    return this.admins.dismiss(coopname, username);
+  async dismiss(coopname: string, username: string) {
+    const removed = await this.admins.dismiss(coopname, username);
+    await this.liveFeed.refreshStaff(coopname);
+    return removed;
   }
 }

@@ -34,6 +34,8 @@ import { BaseButton, CardListSkeleton, EmptyState } from 'src/shared/ui/base';
 import { FilterBar, PageHint, type FilterDefinition, type FilterValues } from 'src/shared/ui/domain';
 import { fetchCatalog, fetchCatalogSubjects, type ICatalogCourse, type ICatalogSubject } from '../../entities/Course';
 import { CourseCard } from '../../widgets/CourseCard';
+import { useLiveReload } from 'src/shared/lib/realtime';
+import { EduLive } from '../../shared/lib/live';
 
 /**
  * Каталог курсов — витрина стола ученика, открытая посетителю до вступления.
@@ -99,6 +101,9 @@ function loadMore(): void {
 function openCourse(id: string): void {
   void router.push({ name: 'edubridge-catalog-course', params: { coopname: route.params.coopname, id } });
 }
+
+// Живое обновление: данные меняются в цепи и на столах других участников.
+useLiveReload([EduLive.courses], () => load(1));
 
 onMounted(async () => {
   try {

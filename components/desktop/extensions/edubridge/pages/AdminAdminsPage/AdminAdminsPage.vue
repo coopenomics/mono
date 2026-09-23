@@ -34,6 +34,8 @@ import { IdentityCell, PageHint } from 'src/shared/ui/domain';
 import { UserSearchSelector } from 'src/shared/ui/UserSearchSelector';
 import { appointAdmin, dismissAdmin, fetchAdmins, type IAdmin } from '../../entities/Admin';
 import AppointAdminHeaderButton from './AppointAdminHeaderButton.vue';
+import { useLiveReload } from 'src/shared/lib/realtime';
+import { EduLive } from '../../shared/lib/live';
 
 /** Администраторы приложения: список с ФИО, назначение — поиском пайщика по ФИО из шапки страницы. */
 const { registerAction } = useHeaderActions();
@@ -93,6 +95,9 @@ async function onDismiss(a: IAdmin): Promise<void> {
     busyDismiss.value = null;
   }
 }
+// Живое обновление: данные меняются в цепи и на столах других участников.
+useLiveReload([EduLive.admins], load);
+
 onMounted(() => {
   registerAction({ id: 'edubridge:appoint-admin', component: AppointAdminHeaderButton, props: { onClick: openDialog } });
   void load();

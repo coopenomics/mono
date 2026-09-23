@@ -36,6 +36,7 @@ q-page.edu-course-edit
 </template>
 
 <script setup lang="ts">
+// realtime: форма правки курса — живое перечитывание затёрло бы ввод администратора.
 import { computed, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { asText } from 'src/shared/lib/utils';

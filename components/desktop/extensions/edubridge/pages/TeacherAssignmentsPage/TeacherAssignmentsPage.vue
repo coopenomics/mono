@@ -25,6 +25,8 @@ import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { BaseBadge, BaseButton, BaseTable, EmptyState, type BaseTableColumn } from 'src/shared/ui/base';
 import { PageHint } from 'src/shared/ui/domain';
 import { ASSIGNMENT_STATUS_LABELS, fetchMyAssignments, fetchMyContract, signAnnex, type IAssignment, type IContract } from '../../entities/Teacher';
+import { useLiveReload } from 'src/shared/lib/realtime';
+import { EduLive } from '../../shared/lib/live';
 
 // Договор нужен для подписи приложений (его номер уходит в документ); показывается он в профиле.
 const contract = ref<IContract | null>(null);
@@ -71,6 +73,9 @@ async function onSignAnnex(a: IAssignment): Promise<void> {
     busy.value = null;
   }
 }
+
+// Живое обновление: данные меняются в цепи и на столах других участников.
+useLiveReload([EduLive.teacherContracts, EduLive.assignments], load);
 
 onMounted(load);
 </script>

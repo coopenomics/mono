@@ -50,6 +50,8 @@ import { asText } from 'src/shared/lib/utils';
 import { BaseButton, BaseDialog, BaseForm, BaseInput, BaseSelect, BaseTable, EmptyState, type BaseTableColumn } from 'src/shared/ui/base';
 import { PageHint } from 'src/shared/ui/domain';
 import { fetchMyAssignments, fetchMyLessons, reportLesson, type IAssignment, type ILesson } from '../../entities/Teacher';
+import { useLiveReload } from 'src/shared/lib/realtime';
+import { EduLive } from '../../shared/lib/live';
 
 /**
  * Журнал занятий преподавателя. Отчёт — это и есть подача взноса: сумму считает
@@ -129,6 +131,9 @@ async function onReport(): Promise<void> {
     busy.value = false;
   }
 }
+
+// Живое обновление: данные меняются в цепи и на столах других участников.
+useLiveReload([EduLive.lessons, EduLive.assignments], load);
 
 onMounted(load);
 </script>

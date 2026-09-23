@@ -44,6 +44,8 @@ import { BaseBadge, BaseButton, BaseCard, BaseDialog, BaseForm, BaseTable, type 
 import { DataRow } from 'src/shared/ui/domain';
 import { buildProgramAnnulment, fetchMyReturnRequests, fetchReturnBalance, requestReturn } from '../api';
 import { RETURN_STATUS_LABELS, type IReturnBalance, type IReturnRequest } from '../model';
+import { useLiveReload } from 'src/shared/lib/realtime';
+import { EduLive } from '../../../shared/lib/live';
 
 /**
  * Остаток кошелька программы и прекращение участия в программе. Членский взнос
@@ -91,6 +93,9 @@ async function onSubmit(): Promise<void> {
     busy.value = false;
   }
 }
+
+// Живое обновление: данные меняются в цепи и на столах других участников.
+useLiveReload([EduLive.returnRequests, EduLive.userWallets], load);
 
 onMounted(load);
 </script>

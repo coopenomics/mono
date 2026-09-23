@@ -27,12 +27,14 @@ export interface ChainChangeSignal {
   table: string;
   scope: string;
   primary_key: string;
+  /** Блок изменения; 0 — данные узла вне цепи. */
   block_num: number;
 }
 
 /**
- * Ссылка на таблицу по описанию контракта из cooptypes:
+ * Ссылка на таблицу цепи по описанию контракта из cooptypes:
  * `liveTable(Ledger2Contract, Ledger2Contract.Tables.UserWallets)`.
+ * Таблица базы узла — `{ code: <расширение>, table: <имя из @Entity> }`.
  */
 export function liveTable(
   contract: { contractName: { production: string } },
@@ -163,8 +165,9 @@ export function registerLiveReload(
   const consumer: LiveConsumer = {
     keys: new Set(tables.map((t) => keyOf(t.code, t.table))),
     onChange(signal) {
-      // Сигнал блока, который уже прочитан, нового не принесёт.
-      if (signal.block_num < freshThrough) return;
+      // Сигнал блока, который уже прочитан, нового не принесёт. Изменения
+      // базы узла вне цепи блока не имеют (0) и сравнению не подлежат.
+      if (signal.block_num > 0 && signal.block_num < freshThrough) return;
       if (signal.block_num > signalled) signalled = signal.block_num;
       schedule();
     },

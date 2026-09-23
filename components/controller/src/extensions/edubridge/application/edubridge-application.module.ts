@@ -63,6 +63,7 @@ import { EdubridgeEconomyService } from './services/edubridge-economy.service';
 import { EdubridgeExpenseService } from './services/edubridge-expense.service';
 import { EdubridgeCourseImagesService } from './services/edubridge-course-images.service';
 import { EdubridgeCatalogCourseFieldsResolver, EdubridgeCourseFieldsResolver } from './resolvers/edubridge-course-fields.resolver';
+import { EdubridgeLiveFeedService } from './services/edubridge-live-feed.service';
 
 /** Слой приложения: резолверы, сервисы, доступ, провайдер грантов, политики. */
 @Module({
@@ -70,6 +71,7 @@ import { EdubridgeCatalogCourseFieldsResolver, EdubridgeCourseFieldsResolver } f
   imports: [EdubridgeDatabaseModule, ScheduleModule.forRoot()],
   providers: [
     EdubridgeConfigHolder,
+    EdubridgeLiveFeedService,
     { provide: EDUBRIDGE_ROLE_FACTS_PORT, useClass: EdubridgeRoleFactsAdapter },
     EdubridgeUdataParametersAdapter,
     EdubridgeMembershipService,
@@ -140,6 +142,6 @@ import { EdubridgeCatalogCourseFieldsResolver, EdubridgeCourseFieldsResolver } f
     EdubridgeTeacherResolver,
     EdubridgeAdminResolver,
   ],
-  exports: [EDUBRIDGE_ROLE_FACTS_PORT, EdubridgeConfigHolder, EdubridgeMembershipService, EdubridgeExitBlockersService],
+  exports: [EDUBRIDGE_ROLE_FACTS_PORT, EdubridgeConfigHolder, EdubridgeMembershipService, EdubridgeExitBlockersService, EdubridgeLiveFeedService],
 })
 export class EdubridgeApplicationModule {}

@@ -10,16 +10,27 @@ title: Лента изменений цепи — живое обновлени�
 #
 # До этого живое обновление было у трёх подписок, а экраны держались на
 # загрузке при открытии, опросах по таймеру и паузах после мутаций.
+#
+# Правка 23.09.2026 (7DD-22): в ленту идут и таблицы базы узла — данные
+# расширений вне цепи. Расширение объявляет их (declareLocalTables), подписчик
+# TypeORM публикует сигнал после фиксации записи — вызовы после каждого
+# сохранения не нужны. Личные и служебные таблицы получает персонал: совет и
+# назначенные расширением (setStaff — список, не проверка). Первым переведён
+# стол образования целиком: администратор, ученик, преподаватель, бейджи меню,
+# одобрения председателя; подключение ЦПП — в общем composable ядра.
 
 sources:
   backend:
     - components/controller/src/infrastructure/blockchain/chain-changes.service.ts
     - components/controller/src/application/chain-changes/**
     - components/innercoop/src/core-ports/chain-changes.port.ts
+    - components/controller/src/infrastructure/blockchain/local-changes.subscriber.ts
+    - components/controller/src/extensions/edubridge/application/services/edubridge-live-feed.service.ts
   ui:
     - components/desktop/src/shared/lib/realtime/live-reload.ts
     - components/desktop/src/entities/System/model/chainChangesSubscription.ts
     - components/sdk/src/subscriptions/chain/**
+    - components/desktop/extensions/edubridge/shared/lib/live.ts
 
 cases:
   - id: rt.cc.happy.01
@@ -122,3 +133,46 @@ cases:
       переподключении и возврате вкладки перечитываются
     decision_needed: false
     status: missing
+
+  - id: rt.cc.happy.04
+    level: backend
+    kind: happy
+    scenario: Запись в объявленную таблицу базы узла внутри транзакции.
+    expect: >
+      сигнал с блоком 0 уходит после фиксации — со строкой (владелец) и ключом;
+      откат транзакции сигнала не даёт; запись вне транзакции — сигнал сразу
+    test: components/controller/tests/unit/chain-changes/local-changes.subscriber.test.ts
+    status: passing
+
+  - id: rt.cc.happy.05
+    level: backend
+    kind: happy
+    scenario: Личная и служебная таблица базы узла расширения.
+    expect: >
+      личная — владельцу строки и персоналу; служебная — только персоналу;
+      персонал — совет всегда и назначенные расширением только в своём расширении
+    test: components/controller/src/infrastructure/blockchain/chain-changes.service.spec.ts
+    status: passing
+
+  - id: rt.cc.side.05
+    level: backend
+    kind: side
+    scenario: Подписку открывает администратор образования вне совета и обычный пайщик.
+    expect: >
+      администратору — канал персонала служебной таблицы, пайщику — ничего
+    test: components/controller/tests/unit/chain-changes/chain-changes.resolver.test.ts
+    status: passing
+
+  - id: rt.cc.ui.04
+    level: ui
+    kind: happy
+    scenario: >
+      Председатель подписывает договор преподавателя; у администратора открыт
+      реестр преподавателей, у преподавателя — профиль; ученик записывается на
+      курс, выдача доступа отрабатывает в фоне.
+    expect: >
+      карточка преподавателя, список одобрений, бейджи меню, профиль
+      преподавателя, реестр учеников и подписки ученика обновляются сами, без
+      перезагрузки и опросов
+    status: missing
+

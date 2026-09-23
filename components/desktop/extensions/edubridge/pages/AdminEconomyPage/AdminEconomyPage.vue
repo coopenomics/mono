@@ -160,6 +160,8 @@ import {
   type IProgramFund,
 } from '../../entities/Economy';
 import { fetchTeachers, type ITeacher } from '../../entities/Teacher';
+import { useLiveReload } from 'src/shared/lib/realtime';
+import { EduLive } from '../../shared/lib/live';
 
 /**
  * Экономика программы. «Деньги» — где лежат средства кооператива по программе
@@ -309,6 +311,9 @@ async function onSaveRate(): Promise<void> {
     savingRate.value = false;
   }
 }
+
+// Живое обновление: данные меняются в цепи и на столах других участников.
+useLiveReload([EduLive.teacherContracts, EduLive.contributions, EduLive.userWallets], load);
 
 onMounted(load);
 </script>

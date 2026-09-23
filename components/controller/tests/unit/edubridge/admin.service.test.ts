@@ -22,7 +22,7 @@ function make() {
     isConfigured: jest.fn(async (_c: string, _k: string, fields: any[]) => fields.length === 0),
     setFlags: jest.fn(async (_c: string, _k: string, fields: any[]) => Object.fromEntries(fields.map((f: any) => [f.key, false]))),
   } as any;
-  return { service: new EdubridgeAdminService(admins, learners, enrollments, courses, tasks, bindings, connectors, outbox, config, names, credentials), admins, credentials, bindings, connectors };
+  return { service: new EdubridgeAdminService(admins, learners, enrollments, courses, tasks, bindings, connectors, outbox, config, names, credentials, { refreshStaff: jest.fn() } as any), admins, credentials, bindings, connectors };
 }
 
 describe('EdubridgeAdminService', () => {
