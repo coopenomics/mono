@@ -15,6 +15,7 @@
  * компонента. На сервере (SSR) язык тот же для всех запросов — единственный;
  * когда языков станет больше, язык запроса будет выбираться здесь же.
  */
+import { unref } from 'vue';
 import { createI18n } from 'vue-i18n';
 import {
   DEFAULT_LOCALE,
@@ -118,7 +119,10 @@ export function te(key: string): boolean {
 
 /** Текущий язык интерфейса (для `Intl` и заголовка `Accept-Language`). */
 export function currentLocale(): string {
-  return i18n.global.locale.value === PSEUDO_LOCALE ? DEFAULT_LOCALE : i18n.global.locale.value;
+  // У глобального переводчика в режиме Composition язык — ref; unref снимает
+  // разницу типов между режимами.
+  const locale = unref(i18n.global.locale as unknown as string);
+  return locale === PSEUDO_LOCALE ? DEFAULT_LOCALE : locale;
 }
 
 /**
