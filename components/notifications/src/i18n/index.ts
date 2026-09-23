@@ -34,6 +34,7 @@ function lookup(tree: unknown, key: string): unknown {
 /** Текст по ключу `<сценарий>.<поле>` на языке по умолчанию. */
 export function nt(key: string): string {
   const value = lookup(notificationTemplates[DEFAULT_NOTIFICATION_LOCALE], key);
+  // i18n-ignore: ошибка разработчика — ключ не заведён в словаре, падает при загрузке каталога
   if (typeof value !== 'string') throw new Error(`notifications i18n: нет текста «${key}»`);
   return value;
 }

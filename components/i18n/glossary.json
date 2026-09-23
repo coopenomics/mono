@@ -1,10 +1,23 @@
 {
-  "$comment": "Глоссарий словарей. forbidden — слова, которых в текстах платформы быть не должно; гейт `node scripts/check-i18n.mjs catalog` ищет их во всех сообщениях на русском. allow — ключи, где слово пока оставлено (перенос текста в словарь не правит формулировки), с вычиткой они уходят из списка.",
+  "$comment": "Глоссарий словарей. forbidden — слова, которых в текстах платформы быть не должно; гейт `node scripts/check-i18n.mjs catalog` ищет их во всех сообщениях на русском. allow — ключи, где слово пока оставлено (перенос текста в словарь не правит формулировки), с вычиткой они уходят из списка. Сейчас в allow — надписи capital, перенесённые из кода как были (23.09.2026); формулировку правит владелец текста.",
   "forbidden": [
     {
       "pattern": "(?<![а-яё])вклад(?!к)[а-яё]*",
       "reason": "«вклад» — банковский термин (депозит); в кооперации пайщик совершает паевой взнос",
-      "allow": []
+      "allow": [
+        "app.extensionsRegistry.capital.description",
+        "capital.fileFormat.segmentDescription.contributionAmount",
+        "capital.importContributorInput.contributionAmount.required",
+        "capital.importContributorInput.contributionAmount.string",
+        "capital.importContributorsButton.columnContributionAmount",
+        "capital.importResultsTable.columnContributionAmount",
+        "capital.makeClearanceButton.contributionLabel",
+        "capital.makeClearanceButton.contributionPlaceholder",
+        "capital.makeClearanceInput.contribution.string",
+        "errors.CAPITAL_ISSUE_METRIC_LINKS_LOCKED_DONE",
+        "errors.CAPITAL_METRIC_ARCHIVED_CONTRIBUTION_FORBIDDEN",
+        "marketplace.ledgerInvariants.i3Violation"
+      ]
     }
   ]
 }
