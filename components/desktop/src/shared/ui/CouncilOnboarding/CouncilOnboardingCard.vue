@@ -96,10 +96,15 @@ q-card.council-onboarding(flat, :class="{ 'council-onboarding--loading': loading
     div.q-mt-sm.q-pa-sm.rounded-borders
       div(v-if="dialogDecisionPrefix") {{ dialogDecisionPrefix }}
       DocumentHtmlReader(v-if="dialogDecision" :html="dialogDecision" profile="document")
+      BaseBanner.q-mt-sm(v-else-if="dialogDecisionError" variant="neg") {{ dialogDecisionError }}
+      //- Документ ещё формируется: текст подставится сам, как только придёт.
+      div.council-onboarding__decision-ghost(v-else aria-busy="true")
+        div.text-caption.text-grey-7 Формируем документ…
+        q-skeleton(v-for="(w, i) in ghostLines" :key="i" type="text" :width="w")
 
     template(#footer)
       BaseButton(variant='ghost' :disabled='submitting' @click='closeDialog') Отмена
-      BaseButton(variant='primary' :loading='submitting' @click='submitStep') Объявить
+      BaseButton(variant='primary' :disabled='!dialogDecision' :loading='submitting' @click='submitStep') Объявить
 </template>
 
 <script setup lang="ts">
@@ -108,6 +113,7 @@ import { DocumentHtmlReader } from 'src/shared/ui/DocumentHtmlReader';
 import { EmptyState } from 'src/shared/ui/base/EmptyState';
 import { BaseDialog } from 'src/shared/ui/base/BaseDialog';
 import { BaseButton } from 'src/shared/ui/base/BaseButton';
+import { BaseBanner } from 'src/shared/ui/base/BaseBanner';
 import type {
   ICouncilOnboardingStep,
   ICouncilOnboardingConfig,
@@ -152,13 +158,20 @@ const slots = useSlots();
 const hasStatusSlot = computed(() => Boolean(slots.status));
 
 const dialogOpen = ref(false);
-const currentStep = ref<ICouncilOnboardingStep | null>(null);
-const dialogTitle = ref('');
-const dialogQuestion = ref('');
-const dialogDecision = ref('');
-const dialogDecisionPrefix = ref('');
+const currentStepId = ref<string | null>(null);
 
 const steps = computed(() => props.config.steps);
+
+// Окно читает шаг из актуального конфига, а не из снимка на момент нажатия:
+// документ для проекта решения часто приходит позже, чем председатель
+// открывает окно, и должен появиться в нём сам.
+const currentStep = computed(() => steps.value.find((s) => s.id === currentStepId.value) ?? null);
+const dialogTitle = computed(() => currentStep.value?.title ?? '');
+const dialogQuestion = computed(() => currentStep.value?.question ?? '');
+const dialogDecision = computed(() => currentStep.value?.decision ?? '');
+const dialogDecisionPrefix = computed(() => currentStep.value?.decisionPrefix ?? '');
+const dialogDecisionError = computed(() => currentStep.value?.decisionError ?? '');
+const ghostLines = ['100%', '94%', '98%', '62%', '100%', '88%'];
 // Null-safe доступ к доп.шагам: prop опционален, дефолт — пустой список.
 const extraStepsList = computed(() => props.extraSteps ?? []);
 
@@ -209,25 +222,18 @@ const showAction = (index: number) => {
 };
 
 const handleStepClick = (step: ICouncilOnboardingStep) => {
-  currentStep.value = step;
-  dialogTitle.value = step.title;
-  dialogQuestion.value = step.question;
-  dialogDecision.value = step.decision;
-  dialogDecisionPrefix.value = step.decisionPrefix || '';
+  currentStepId.value = step.id;
   dialogOpen.value = true;
 };
 
 const closeDialog = () => {
   dialogOpen.value = false;
-  currentStep.value = null;
-  dialogTitle.value = '';
-  dialogQuestion.value = '';
-  dialogDecision.value = '';
-  dialogDecisionPrefix.value = '';
+  currentStepId.value = null;
 };
 
 const submitStep = () => {
-  if (!currentStep.value) return;
+  // Без документа в совет ушло бы решение из одной вводной фразы.
+  if (!currentStep.value || !dialogDecision.value) return;
   // Диалог здесь НЕ закрываем: реальная отправка проекта решения в Совет —
   // async-операция в родителе (handleStepSubmit). Пока она идёт, prop
   // `submitting` = true → кнопка «Объявить» крутит лоадер, диалог открыт и
@@ -271,6 +277,13 @@ watch(
 // Единый ритм шагов: одинаковый вертикальный отступ и хайрлайн-разделитель
 // у КАЖДОЙ строки (и шаги совета, и доп.шаги — в одном контейнере), чтобы не
 // было «гармошки» из-за разной высоты строк/разных секций.
+.council-onboarding__decision-ghost {
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-2);
+  padding-top: var(--p-2);
+}
+
 .council-onboarding__steps {
   display: flex;
   flex-direction: column;

@@ -11,9 +11,9 @@ import { EDU_ONBOARDING_STEPS } from '../../constants/edubridge-agreement-ids';
  *
  * Четыре документа (порядок = порядок утверждения советом):
  *  1. Положение ЦПП «Образование» (3000);
- *  2. Шаблон оферты родителя-слушателя (3001);
- *  3. Шаблон оферты преподавателя (3003);
- *  4. Шаблон договора участия в хозяйственной деятельности (3005).
+ *  2. Шаблон оферты родителя-слушателя (3002, в бланке);
+ *  3. Шаблон оферты преподавателя (3004, в бланке);
+ *  4. Шаблон договора участия в хозяйственной деятельности (3006, в бланке).
  */
 export function registerEdubridgeOnboardingSteps(port: IOnboardingStepRegistryPort): void {
   port.unregisterStepsByExtension(EDUBRIDGE_EXTENSION_NAME);

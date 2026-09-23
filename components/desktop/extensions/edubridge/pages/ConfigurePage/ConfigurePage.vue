@@ -50,7 +50,7 @@ const STEP_META: StepMeta[] = [
   },
   {
     id: 'education_parent_offer_template',
-    registryId: 3001,
+    registryId: 3002,
     title: 'Шаблон оферты родителя-слушателя',
     description: 'Утверждение шаблона оферты по присоединению родителей-слушателей к ЦПП «Образование»',
     question: 'Об утверждении шаблона оферты родителя-слушателя по ЦПП «Образование»',
@@ -58,7 +58,7 @@ const STEP_META: StepMeta[] = [
   },
   {
     id: 'education_teacher_offer_template',
-    registryId: 3003,
+    registryId: 3004,
     title: 'Шаблон оферты преподавателя',
     description: 'Утверждение шаблона оферты по присоединению преподавателей к ЦПП «Образование»',
     question: 'Об утверждении шаблона оферты преподавателя по ЦПП «Образование»',
@@ -66,7 +66,7 @@ const STEP_META: StepMeta[] = [
   },
   {
     id: 'education_contract_template',
-    registryId: 3005,
+    registryId: 3006,
     title: 'Шаблон договора участия в хозяйственной деятельности',
     description: 'Утверждение шаблона договора участия преподавателей в хозяйственной деятельности кооператива',
     question: 'Об утверждении шаблона договора участия в хозяйственной деятельности (образование)',
@@ -85,6 +85,7 @@ const initialLoading = computed(() => isLoading.value && !onboarding.steps.value
 
 const submitting = ref(false);
 const documentsHtml = ref<Record<string, string>>({});
+const documentErrors = ref<Record<string, string>>({});
 
 function statusOf(stepKey: string): ICouncilOnboardingStep['status'] {
   const step = onboarding.steps.value.find((s) => s.step_key === stepKey);
@@ -101,6 +102,7 @@ const config = computed<ICouncilOnboardingConfig>(() => ({
     question: meta.question,
     decision: documentsHtml.value[meta.id] || '',
     decisionPrefix: meta.decisionPrefix,
+    decisionError: documentErrors.value[meta.id] || null,
     status: statusOf(meta.id),
     hash: onboarding.steps.value.find((s) => s.step_key === meta.id)?.hash || null,
   })),
@@ -133,7 +135,7 @@ async function handleStepSubmit(step: ICouncilOnboardingStep): Promise<void> {
       step_key: step.id,
       title: step.title,
       question: step.question,
-      decision: documentsHtml.value[step.id] || step.decisionPrefix || '',
+      decision: documentsHtml.value[step.id] || '',
     });
     SuccessAlert('Проект решения создан и отправлен в Совет.');
   } catch (e) {
@@ -146,16 +148,20 @@ async function handleStepSubmit(step: ICouncilOnboardingStep): Promise<void> {
 onMounted(async () => {
   await systemStore.loadSystemInfo();
   await onboarding.load();
-  const entries = await Promise.all(
+  // Бланки грузятся после показа шагов: окно проекта решения подхватит
+  // документ сам, как только он придёт.
+  await Promise.all(
     STEP_META.map(async (meta) => {
       try {
-        return [meta.id, await renderDocument(meta.registryId)] as const;
-      } catch {
-        return [meta.id, ''] as const;
+        const html = await renderDocument(meta.registryId);
+        if (!html) throw new Error('пустой бланк');
+        documentsHtml.value = { ...documentsHtml.value, [meta.id]: html };
+      } catch (e) {
+        const reason = e instanceof Error ? e.message : String(e);
+        documentErrors.value = { ...documentErrors.value, [meta.id]: `Документ не удалось сформировать: ${reason}` };
       }
     }),
   );
-  documentsHtml.value = Object.fromEntries(entries);
 });
 </script>
 
