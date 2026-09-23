@@ -1,0 +1,12 @@
+{
+  "_комментарий": "Вызовы пауз после транзакции по файлам (scripts/check-transact-fact.mjs). transact уже дождался разбора блока — тронул файл, убери паузу; долг только снижается.",
+  "_commit": "14e4bad6bf369d9a5ca9b7d1bad4f61d8af8bd23",
+  "files": {
+    "components/controller/src/extensions/capital/application/syncers/contributor-sync.service.ts": 1,
+    "components/controller/src/extensions/capital/application/syncers/project-sync.service.ts": 1,
+    "components/controller/src/extensions/capital/application/syncers/result-sync.service.ts": 1,
+    "components/controller/src/extensions/capital/application/syncers/segment-sync.service.ts": 1,
+    "components/controller/src/extensions/capital/application/use-cases/participation-management.interactor.ts": 2,
+    "components/controller/src/infrastructure/blockchain/adapters/soviet-blockchain.adapter.ts": 1
+  }
+}
