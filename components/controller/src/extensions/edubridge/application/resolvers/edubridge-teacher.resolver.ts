@@ -24,6 +24,8 @@ import {
 import { EdubridgeAccessGuard } from '../guards/edubridge-access.guard';
 import type { IEdubridgeMembership } from '../membership/edubridge-membership.service';
 import { EdubridgeTeacherService } from '../services/edubridge-teacher.service';
+import { EdubridgeApprovalsService } from '../services/edubridge-approvals.service';
+import { EduApprovalDTO } from '../dto/edu-approval.dto';
 
 const coop = () => platformSettings().coopname;
 
@@ -35,7 +37,10 @@ function requireTeacherOffer(m: IEdubridgeMembership): void {
 @Resolver()
 @Injectable()
 export class EdubridgeTeacherResolver {
-  constructor(private readonly teachers: EdubridgeTeacherService) {}
+  constructor(
+    private readonly teachers: EdubridgeTeacherService,
+    private readonly approvals: EdubridgeApprovalsService
+  ) {}
 
   // ── Преподаватель ──────────────────────────────────────────────────────────
   // Договор — часть подключения: его подписывают до того, как роль
@@ -162,6 +167,16 @@ export class EdubridgeTeacherResolver {
   @RequireEduAccess('EduAssignment', 'read:all')
   edubridgeTeachers(): Promise<EduTeacherDTO[]> {
     return this.teachers.listTeachers(coop());
+  }
+
+  @Query(() => [EduApprovalDTO], {
+    name: 'edubridgeTeacherApprovals',
+    description: 'Договор и приложения преподавателя, которые ждут подписи председателя',
+  })
+  @UseGuards(GqlJwtAuthGuard, EdubridgeAccessGuard)
+  @RequireEduAccess('EduAssignment', 'read:all')
+  edubridgeTeacherApprovals(@Args('username', { type: () => String }) username: string): Promise<EduApprovalDTO[]> {
+    return this.approvals.pendingForTeacher(coop(), username);
   }
 
   @Query(() => [EduAssignmentDTO], { name: 'edubridgeAssignments', description: 'Назначения преподавателей кооператива' })

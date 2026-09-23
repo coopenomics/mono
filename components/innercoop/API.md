@@ -9,7 +9,7 @@
 экспорта, исчезнувший метод, новый обязательный параметр требуют major, а
 снятое старое — периода устаревания не меньше одного minor (INV-009).
 
-Всего экспортов: 294.
+Всего экспортов: 299.
 
 ## ACCOUNT_PORT
 
@@ -56,6 +56,12 @@
 `const` · core-ports
 
 - `Symbol.for('Innercoop.CorePort.ChainResources')`
+
+## CHAIRMAN_APPROVALS_PORT
+
+`const` · cross-plugin-ports
+
+- `Symbol.for('Innercoop.CrossPlugin.ChairmanApprovals')`
 
 ## CHATCOOP_CALENDAR_PORT
 
@@ -282,6 +288,12 @@
 
 - `getAccount(username: string): Promise<InnerChainAccountResources | null>`
 - `powerUp(username: string, quantity: string): Promise<string>`
+
+## IChairmanApprovalsPort
+
+`interface` · cross-plugin-ports
+
+- `list(query: InnerChairmanApprovalsQuery): Promise<InnerChairmanApproval[]>`
 
 ## IChatCoopCalendarPort
 
@@ -739,6 +751,32 @@
 - `elapsed: number`
 - `repeat?: boolean`
 - `created_at?: Date`
+
+## InnerChairmanApproval
+
+`interface` · cross-plugin-ports
+
+- `approval_hash: string`
+- `coopname: string`
+- `username: string`
+- `action: string`
+- `status: InnerChairmanApprovalStatus`
+- `created_at: string`
+
+## InnerChairmanApprovalsQuery
+
+`interface` · cross-plugin-ports
+
+- `coopname: string`
+- `actions: string[]`
+- `usernames?: string[]`
+- `statuses?: InnerChairmanApprovalStatus[]`
+
+## InnerChairmanApprovalStatus
+
+`type` · cross-plugin-ports
+
+- `'pending' | 'approved' | 'declined'`
 
 ## InnerCompletedCallTranscriptionHead
 

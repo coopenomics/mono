@@ -40,6 +40,7 @@ import { CHAIRMAN_BLOCKCHAIN_PORT } from './domain/interfaces/chairman-blockchai
 import { registerChairmanOnboardingSteps } from './application/onboarding/register-chairman-onboarding-steps';
 import { ONBOARDING_STEP_REGISTRY_PORT, type IOnboardingStepRegistryPort } from '@coopenomics/innercoop';
 import { computeOnboardingExpiresAt } from '@coopenomics/extension-kit';
+import { ChairmanInnercoopApprovalsAdapter } from './infrastructure/innercoop/chairman-innercoop-approvals.adapter';
 import { type DeserializedDescriptionOfExtension } from '@coopenomics/extension-kit';
 
 // Функция для описания полей в схеме конфигурации
@@ -257,6 +258,9 @@ export class ChairmanExtension extends BaseExtensionModule {
     // Use Cases
     ChairmanSyncInteractor,
 
+    // Порт одобрений для других столов — связывается в InnercoopBridgeModule.
+    ChairmanInnercoopApprovalsAdapter,
+
     // Utils
     DomainToBlockchainUtils,
 
@@ -264,7 +268,7 @@ export class ChairmanExtension extends BaseExtensionModule {
     ApprovalResolver,
     ChairmanOnboardingResolver,
   ],
-  exports: [ApprovalSyncService, ChairmanSyncInteractor],
+  exports: [ApprovalSyncService, ChairmanSyncInteractor, ChairmanInnercoopApprovalsAdapter],
 })
 export class ChairmanExtensionModule {
   constructor(private readonly chairmanExtension: ChairmanExtension) {}

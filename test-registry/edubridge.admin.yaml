@@ -14,9 +14,12 @@ sources:
     - components/controller/src/extensions/edubridge/application/dto/edu-admin.dto.ts
     - components/controller/src/extensions/edubridge/infrastructure/connectors/**
     - components/controller/src/extensions/edubridge/domain/connectors/**
+    - components/controller/src/extensions/edubridge/application/services/edubridge-approvals.service.ts
+    - components/controller/src/extensions/chairman/infrastructure/innercoop/**
   ui:
     - components/desktop/extensions/edubridge/pages/Admin*/**
     - components/desktop/extensions/edubridge/entities/Admin/**
+    - components/desktop/src/features/ChairmanApproval/**
 
 cases:
   - id: edu.admin.happy.01
@@ -96,3 +99,18 @@ cases:
     expect: "Ключи не выходят из бэкенда; коннекторы получают их через CONNECTOR_CREDENTIALS_SOURCE по кооперативу."
     test: components/controller/tests/unit/edubridge/connector-credentials.store.test.ts
     status: written
+  - id: edu.admin.side.15
+    level: backend
+    kind: side
+    scenario: "Карточка преподавателя: договор УХД и приложения на курс, ждущие подписи председателя (одобрения apprvcontr/apprvannex), берутся у председателя через порт одобрений; расширения председателя нет."
+    expect: "В ответе только документы этого преподавателя в состоянии «ждёт», с человеческим названием; без расширения председателя — пустой список, а не отказ."
+    test: components/controller/tests/unit/edubridge/approvals.service.test.ts
+    status: passing
+  - id: edu.admin.ui.05
+    level: ui
+    kind: happy
+    scenario: "Председатель открывает карточку преподавателя с договором на подписи и подписывает его прямо там; администратор без роли председателя видит «Ждёт подписи председателя»."
+    expect: "После подписи одобрение закрыто и в «Запросах одобрений» стола председателя; договор преподавателя становится действующим после разбора блока."
+    test: ~
+    status: missing
+

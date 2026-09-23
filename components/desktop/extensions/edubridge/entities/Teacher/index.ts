@@ -8,6 +8,7 @@ import { useGlobalStore } from 'src/shared/store';
 
 export type IContract = NonNullable<Queries.Edubridge.MyContract.IOutput['edubridgeMyContract']>;
 export type ITeacher = Queries.Edubridge.Teachers.IOutput['edubridgeTeachers'][number];
+export type ITeacherApproval = Queries.Edubridge.TeacherApprovals.IOutput['edubridgeTeacherApprovals'][number];
 export type IAssignment = Queries.Edubridge.MyAssignments.IOutput['edubridgeMyAssignments'][number];
 export type IContribution = Queries.Edubridge.MyContributions.IOutput['edubridgeMyContributions'][number];
 export type ISettlement = Queries.Edubridge.MySettlement.IOutput['edubridgeMySettlement'];
@@ -69,6 +70,9 @@ export const revokeContribution = (data: { contribution_id: string; reason: stri
 export const fetchMySettlement = () => q<ISettlement>(Queries.Edubridge.MySettlement.query, Queries.Edubridge.MySettlement.name);
 export const fetchAssignments = () => q<IAssignment[]>(Queries.Edubridge.Assignments.query, Queries.Edubridge.Assignments.name);
 export const fetchTeachers = () => q<ITeacher[]>(Queries.Edubridge.Teachers.query, Queries.Edubridge.Teachers.name);
+/** Договор и приложения преподавателя, которые ждут подписи председателя. */
+export const fetchTeacherApprovals = (username: string) =>
+  q<ITeacherApproval[]>(Queries.Edubridge.TeacherApprovals.query, Queries.Edubridge.TeacherApprovals.name, { username });
 export const fetchContributions = () => q<IContribution[]>(Queries.Edubridge.Contributions.query, Queries.Edubridge.Contributions.name);
 export const createAssignment = (data: IAssignmentInput) => m<IAssignment>(Mutations.Edubridge.CreateAssignment.mutation, Mutations.Edubridge.CreateAssignment.name, { data });
 export const closeAssignment = (id: string) => m<IAssignment>(Mutations.Edubridge.CloseAssignment.mutation, Mutations.Edubridge.CloseAssignment.name, { id });

@@ -1,0 +1,37 @@
+import { Inject, Injectable, Optional } from '@nestjs/common';
+import { CHAIRMAN_APPROVALS_PORT, type IChairmanApprovalsPort } from '@coopenomics/innercoop';
+import { EduApprovalDTO } from '../dto/edu-approval.dto';
+
+/**
+ * Одобрения образовательной программы — договор УХД преподавателя и приложения
+ * к нему на курс. Хранит их председатель; стол администратора показывает их в
+ * карточке преподавателя, чтобы подписать, не переходя на стол председателя.
+ * Одобрение одно: подпись здесь закрывает его и в «Запросах одобрений».
+ */
+export const EDU_APPROVAL_TITLES: Record<string, string> = {
+  apprvcontr: 'Договор участия в хозяйственной деятельности',
+  apprvannex: 'Приложение к договору на курс',
+};
+
+@Injectable()
+export class EdubridgeApprovalsService {
+  constructor(@Optional() @Inject(CHAIRMAN_APPROVALS_PORT) private readonly approvals: IChairmanApprovalsPort | null) {}
+
+  /** Документы преподавателя, которые ждут подписи председателя. */
+  async pendingForTeacher(coopname: string, username: string): Promise<EduApprovalDTO[]> {
+    if (!this.approvals) return [];
+    const found = await this.approvals.list({
+      coopname,
+      actions: Object.keys(EDU_APPROVAL_TITLES),
+      usernames: [username],
+      statuses: ['pending'],
+    });
+    return found.map((a) => ({
+      approval_hash: a.approval_hash,
+      username: a.username,
+      action: a.action,
+      title: EDU_APPROVAL_TITLES[a.action] ?? a.action,
+      created_at: new Date(a.created_at),
+    }));
+  }
+}

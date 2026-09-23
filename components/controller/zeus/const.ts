@@ -3190,6 +3190,9 @@ export const AllTypesProps: Record<string,any> = {
 		edubridgeReturnRequests:{
 			status:"EduReturnStatus"
 		},
+		edubridgeTeacherApprovals:{
+
+		},
 		expenseFile:{
 
 		},
@@ -4092,6 +4095,10 @@ export const AllTypesProps: Record<string,any> = {
 }
 
 export const ReturnTypes: Record<string,any> = {
+	auth:{
+		roles:"String",
+		self:"String"
+	},
 	AccessGrant:{
 		action:"String",
 		resource:"String"
@@ -5715,6 +5722,13 @@ export const ReturnTypes: Record<string,any> = {
 		created_at:"DateTime",
 		display_name:"String",
 		id:"ID",
+		username:"String"
+	},
+	EduApproval:{
+		action:"String",
+		approval_hash:"String",
+		created_at:"DateTime",
+		title:"String",
 		username:"String"
 	},
 	EduAssignment:{
@@ -8854,6 +8868,7 @@ export const ReturnTypes: Record<string,any> = {
 		edubridgeRefundPreview:"EduRefundPreview",
 		edubridgeReturnBalance:"EduReturnBalance",
 		edubridgeReturnRequests:"EduReturnRequest",
+		edubridgeTeacherApprovals:"EduApproval",
 		edubridgeTeacherOptions:"EduTeacherOption",
 		edubridgeTeachers:"EduTeacher",
 		expenseFile:"ExpenseFile",

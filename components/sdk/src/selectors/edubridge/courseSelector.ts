@@ -88,3 +88,7 @@ const _validatePlatformGroup: MakeAllFieldsRequired<ValueTypes['EduPlatformGroup
 const rawPlatformCourseSelector = { id: true, name: true, groups: rawPlatformGroupSelector }
 const _validatePlatformCourse: MakeAllFieldsRequired<ValueTypes['EduPlatformCourse']> = rawPlatformCourseSelector
 export const eduPlatformCourseSelector = Selector('EduPlatformCourse')(rawPlatformCourseSelector)
+
+const rawApprovalSelector = { approval_hash: true, username: true, action: true, title: true, created_at: true }
+const _validateApproval: MakeAllFieldsRequired<ValueTypes['EduApproval']> = rawApprovalSelector
+export const eduApprovalSelector = Selector('EduApproval')(rawApprovalSelector)

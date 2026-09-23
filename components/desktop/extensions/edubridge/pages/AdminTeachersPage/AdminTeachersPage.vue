@@ -42,6 +42,17 @@
           AccountBadge(:account-name="current.username")
           BaseBadge.q-mt-xs(:variant="contractStatusOf(current.contract_status).variant") {{ contractStatusOf(current.contract_status).label }}
 
+      //- Документы на подписи у председателя — здесь же, чтобы подписать, не
+      //- уходя на стол председателя. Одобрение одно: решение здесь закрывает
+      //- его и в «Запросах одобрений».
+      .edu-teachers__approvals(v-if="approvals.length")
+        .text-subtitle2.q-mb-xs На подписи у председателя
+        .edu-teachers__approval(v-for="a in approvals" :key="a.approval_hash")
+          div
+            .t-sm.text-weight-medium {{ a.title }}
+            .t-meta.t-muted Отправлен {{ formatDate(a.created_at) }}
+          ChairmanApprovalActions(:coopname="coopname" :approval-hash="a.approval_hash" :title="a.title" @decided="onApprovalDecided")
+
       PageTabs.q-mt-md(:tabs="tabs" :active-key="tab" @select="(t) => (tab = t.key)")
 
       template(v-if="tab === 'contract'")
@@ -107,6 +118,8 @@ import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { Avatar, BaseBadge, BaseButton, BaseForm, BaseInput, BaseSelect, BaseTable, EmptyState, type BaseTableColumn } from 'src/shared/ui/base';
 import { AccountBadge, DataRow, DetailsDrawer, PageHint } from 'src/shared/ui/domain';
 import { PageTabs, type PageTab } from 'src/shared/ui/layout';
+import { useSystemStore } from 'src/entities/System/model';
+import { ChairmanApprovalActions } from 'src/features/ChairmanApproval';
 import { courseSectionLabel, fetchCourses, type ICourse } from '../../entities/Course';
 import {
   ASSIGNMENT_STATUS_LABELS,
@@ -114,11 +127,13 @@ import {
   closeAssignment,
   createAssignment,
   fetchAssignments,
+  fetchTeacherApprovals,
   fetchTeachers,
   terminateContract,
   type IAssignment,
   type IAssignmentInput,
   type ITeacher,
+  type ITeacherApproval,
 } from '../../entities/Teacher';
 
 /**
@@ -136,6 +151,9 @@ const firstLoad = useFirstLoad(loading);
 const busy = ref(false);
 const cardOpen = ref(false);
 const current = ref<ITeacher | null>(null);
+const approvals = ref<ITeacherApproval[]>([]);
+const system = useSystemStore();
+const coopname = computed(() => system.info?.coopname ?? '');
 const tab = ref('contract');
 const assignFormOpen = ref(false);
 const terminateFormOpen = ref(false);
@@ -187,8 +205,28 @@ async function load(): Promise<void> {
   }
 }
 
+/** Документы преподавателя на подписи у председателя — при открытии карточки. */
+async function loadApprovals(username: string): Promise<void> {
+  approvals.value = [];
+  try {
+    approvals.value = await fetchTeacherApprovals(username);
+  } catch (e) {
+    FailAlert(e);
+  }
+}
+
+/** Решение принято: цепь закрыла одобрение, перечитываем список и договор. */
+async function onApprovalDecided(): Promise<void> {
+  if (!current.value) return;
+  const username = current.value.username;
+  await Promise.all([loadApprovals(username), load()]);
+  const fresh = teachers.value.find((t) => t.username === username);
+  if (fresh) current.value = fresh;
+}
+
 function openCard(row: ITeacher): void {
   current.value = row;
+  void loadApprovals(row.username);
   tab.value = 'contract';
   assignFormOpen.value = false;
   terminateFormOpen.value = false;
@@ -289,6 +327,19 @@ onMounted(load);
 }
 .edu-teachers__person-text {
   min-width: 0;
+}
+.edu-teachers__approvals {
+  margin-top: var(--p-4);
+  padding: var(--p-3) var(--p-4);
+  border-radius: var(--p-r-md);
+  background: var(--p-warn-soft);
+}
+.edu-teachers__approval {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--p-3);
+  padding: var(--p-2) 0;
 }
 .edu-teachers__head {
   display: flex;

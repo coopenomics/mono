@@ -120,6 +120,23 @@ export class ApprovalTypeormRepository
     return entities.map(ApprovalMapper.toDomain);
   }
 
+  async findByActions(query: {
+    coopname: string;
+    actions: string[];
+    usernames?: string[];
+    statuses?: string[];
+  }): Promise<ApprovalDomainEntity[]> {
+    if (!query.actions.length || (query.usernames && !query.usernames.length)) return [];
+    const qb = this.repository
+      .createQueryBuilder('approval')
+      .where('approval.coopname = :coopname', { coopname: query.coopname })
+      .andWhere('approval.callback_action_approve IN (:...actions)', { actions: query.actions });
+    if (query.usernames) qb.andWhere('approval.username IN (:...usernames)', { usernames: query.usernames });
+    if (query.statuses?.length) qb.andWhere('approval.status IN (:...statuses)', { statuses: query.statuses });
+    const entities = await qb.orderBy('approval.created_at', 'DESC').getMany();
+    return entities.map((entity) => ApprovalMapper.toDomain(entity));
+  }
+
   async findByApprovalHash(approvalHash: string): Promise<ApprovalDomainEntity | null> {
     const entity = await this.repository.findOne({
       where: { approval_hash: approvalHash.toLowerCase() },
