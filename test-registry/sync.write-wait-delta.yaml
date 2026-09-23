@@ -125,3 +125,11 @@ cases:
     expect: "afterTransact отвечает сразу, а не ждёт дельту, которая прошла раньше регистрации ожидания."
     test: components/controller/src/infrastructure/blockchain/chain-delta-waiter.service.spec.ts
     status: passing
+  - id: sync.wwd.break.03
+    level: backend
+    kind: break
+    scenario: "Необязательная зависимость (гейт разбора блока, лента изменений) объявлена типом X | null без явного токена."
+    expect: "Не бывает: у BlockchainService, ChainDeltaWaiterService и BlockchainConsumerService токен класса задан явно, иначе Nest молча подставил бы null и ожидание выключилось бы без ошибки. На старте журнал пишет «Транзакции отвечают после разбора своего блока»."
+    test: components/controller/tests/unit/blockchain/optional-deps-injection.test.ts
+    status: passing
+

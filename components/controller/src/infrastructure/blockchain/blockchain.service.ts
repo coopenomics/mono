@@ -77,8 +77,15 @@ export class BlockchainService implements BlockchainPort {
     private readonly rpcPool: RpcPool,
     @Inject(VAULT_DOMAIN_SERVICE) private readonly vaultDomainService: VaultDomainService,
     // Необязателен: мигратор собирает сервис руками, без потребителя цепи.
-    @Optional() private readonly blockProgress: ActionReleaseGate | null = null
-  ) {}
+    // Токен явно: тип-объединение с null метаданные внедрения стирают до
+    // Object, и Nest молча отдавал бы null — ожидание выключалось незаметно.
+    @Optional() @Inject(ActionReleaseGate) private readonly blockProgress: ActionReleaseGate | null = null
+  ) {
+    this.logger.setContext(BlockchainService.name);
+    // Видно при старте, включён ли ответ после разбора блока: без гейта
+    // мутации отвечают сразу после отправки, и заметить это иначе нечем.
+    if (blockProgress) this.logger.info('Транзакции отвечают после разбора своего блока');
+  }
 
   public initialize(username: string, wif: string): void {
     this.session = new Session(
@@ -227,9 +234,16 @@ export class BlockchainService implements BlockchainPort {
    * chain-dispatch-context.ts.
    */
   private async awaitBlockProcessed(result: TransactResult): Promise<void> {
-    if (!this.blockProgress || isInChainDispatch()) return;
+    if (!this.blockProgress) return;
+    if (isInChainDispatch()) {
+      this.logger.debug('Транзакция из разбора цепи — разбора блока не ждём');
+      return;
+    }
     const block = getAppliedBlockNum(result as never);
-    if (!block) return;
+    if (!block) {
+      this.logger.warn('Узел не сообщил блок транзакции — ответ без ожидания разбора');
+      return;
+    }
     const started = Date.now();
     const processed = await this.blockProgress.waitProcessed(block, config.blockchain.write_wait_delta_ms);
     const waited = Date.now() - started;

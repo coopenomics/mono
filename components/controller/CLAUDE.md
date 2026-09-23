@@ -70,6 +70,7 @@ _Критичные правила и паттерны для AI-агентов 
 **NestJS / DI:**
 - Декораторы `@DomainKey({ primary, sync })` + `@SyncBehaviour({ forkPolicy, dlq })` + `@Versioned({ strategy })` — на sync-service классе. Metadata читается через `Reflect.getMetadata('sync:config', target)`.
 - `@Inject(ENTITY_REPOSITORY)` token — symbol, определён в `domain/repositories/{entity}.repository.ts`.
+- **`@Optional()` с типом `X | null` — только с явным `@Inject(X)`.** Тип-объединение метаданные TypeScript стирают до `Object`, Nest не может его подставить, и `@Optional()` молча отдаёт `null` — без ошибки на старте. Так 23.09.2026 были выключены ожидание разбора блока в `transact` и лента изменений; страховка — `tests/unit/blockchain/optional-deps-injection.test.ts`.
 - Dynamic modules через `{Contract}SyncModule.forEntity(Entity, TypeormEntity, Mapper)` — одна строка регистрации в `{contract}.module.ts`.
 
 **TypeORM:**

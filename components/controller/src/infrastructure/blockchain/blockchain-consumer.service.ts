@@ -1,6 +1,6 @@
 // infrastructure/blockchain/blockchain-consumer.service.ts
 
-import { Injectable, OnModuleInit, OnModuleDestroy, Optional } from '@nestjs/common';
+import { Inject, Injectable, OnModuleInit, OnModuleDestroy, Optional } from '@nestjs/common';
 import { ChainDeltaWaiterService } from './chain-delta-waiter.service';
 import { ActionReleaseGate } from './action-release-gate.service';
 import { ParserClient, type ParserEvent } from '@coopenomics/parser2';
@@ -59,7 +59,7 @@ export class BlockchainConsumerService implements OnModuleInit, OnModuleDestroy 
     private readonly deltaWaiter: ChainDeltaWaiterService,
     private readonly actionGate: ActionReleaseGate,
     // Необязательна: тесты потребителя собирают его без ленты.
-    @Optional() private readonly chainChanges: ChainChangesService | null = null
+    @Optional() @Inject(ChainChangesService) private readonly chainChanges: ChainChangesService | null = null
   ) {
     this.logger.setContext(BlockchainConsumerService.name);
   }
@@ -97,6 +97,7 @@ export class BlockchainConsumerService implements OnModuleInit, OnModuleDestroy 
         this.client = undefined;
       }
       if (this.running) {
+        // timing: backoff — пауза перед переподключением упавшего потока parser2.
         await new Promise((r) => setTimeout(r, this.reconnectDelayMs));
         this.logger.warn('Переподключение к parser2…');
       }

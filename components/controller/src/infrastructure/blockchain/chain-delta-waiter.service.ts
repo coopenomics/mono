@@ -1,4 +1,4 @@
-import { Injectable, Optional } from '@nestjs/common';
+import { Inject, Injectable, Optional } from '@nestjs/common';
 import type { IDelta } from '@coopenomics/extension-kit/sync';
 import type { IChainDeltaWaitPort, InnerChainDelta, InnerChainDeltaWaitQuery, InnerChainTxWait } from '@coopenomics/innercoop';
 import { config } from '~/config';
@@ -23,7 +23,8 @@ interface Waiter {
 export class ChainDeltaWaiterService implements IChainDeltaWaitPort {
   private readonly waiters = new Map<string, Set<Waiter>>();
 
-  constructor(@Optional() private readonly blockProgress: ActionReleaseGate | null = null) {}
+  // Тип-объединение с null метаданные внедрения стирают до Object — токен явно.
+  constructor(@Optional() @Inject(ActionReleaseGate) private readonly blockProgress: ActionReleaseGate | null = null) {}
 
   blockOf(transactResult: unknown): number {
     const t = transactResult as { response?: { processed?: { block_num?: number } }; processed?: { block_num?: number } };
@@ -54,6 +55,7 @@ export class ChainDeltaWaiterService implements IChainDeltaWaitPort {
           bucket.delete(waiter);
           resolve(delta);
         },
+        // timing: timeout — предел ожидания дельты, дальше ответ без неё.
         timer: setTimeout(() => waiter.resolve(null), timeoutMs),
       };
       bucket.add(waiter);
