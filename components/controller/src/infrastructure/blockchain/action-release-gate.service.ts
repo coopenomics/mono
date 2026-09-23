@@ -2,11 +2,14 @@ import { Injectable, OnModuleDestroy } from '@nestjs/common';
 import Redis from 'ioredis';
 import { config } from '~/config';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
+import { runInChainDispatch } from './chain-dispatch-context';
 
 interface PendingAction {
   block_num: number;
   queued_at: number;
   release: () => void;
+  /** Ожидание транзакции: снимается своим пределом, страховка действий его не касается. */
+  waiter?: true;
 }
 
 /** Что сообщают parser2 и Redis о разборе потока — для решения «блок закончился». */
@@ -33,6 +36,10 @@ export interface StreamProgress {
  * Страховка по времени — только на случай, когда Redis не отвечает: действие
  * уходит с предупреждением в журнал, чтобы обработчики не встали насовсем.
  * Прежде вместо этого стояла пауза в 3 секунды на каждое действие.
+ *
+ * Тот же факт «блок разобран» ждёт и транзакция (`waitProcessed`): мутация
+ * отвечает, когда изменения её блока уже лежат в базе, — без пауз и без
+ * перечня таблиц у каждой мутации.
  */
 @Injectable()
 export class ActionReleaseGate implements OnModuleDestroy {
@@ -40,6 +47,10 @@ export class ActionReleaseGate implements OnModuleDestroy {
   private timer: ReturnType<typeof setInterval> | null = null;
   private redis: Redis | null = null;
   private checking = false;
+  /** До какого блока включительно всё разобрано — по факту, а не по времени. */
+  private processedThrough = 0;
+  /** Потребитель запущен: без него разбора не будет, и ждать нечего. */
+  private active = false;
 
   constructor(private readonly logger: WinstonLoggerService) {
     this.logger.setContext(ActionReleaseGate.name);
@@ -51,9 +62,55 @@ export class ActionReleaseGate implements OnModuleDestroy {
     this.ensureTicker();
   }
 
+  /** Потребитель запущен или остановлен. */
+  setActive(active: boolean): void {
+    this.active = active;
+  }
+
+  /** Блок уже разобран целиком. */
+  isProcessed(block_num: number): boolean {
+    return block_num <= this.processedThrough;
+  }
+
+  /**
+   * Дождаться, пока узел разберёт блок целиком: его дельты сохранены и их
+   * слушатели отработали. `true` — разобран, `false` — не дождались за
+   * `timeoutMs` либо потребитель не запущен.
+   */
+  waitProcessed(block_num: number, timeoutMs: number): Promise<boolean> {
+    if (this.isProcessed(block_num)) return Promise.resolve(true);
+    if (!this.active) return Promise.resolve(false);
+    return new Promise((resolve) => {
+      const entry: PendingAction = {
+        block_num,
+        queued_at: Date.now(),
+        waiter: true,
+        release: () => {
+          clearTimeout(timer);
+          resolve(true);
+        },
+      };
+      const timer = setTimeout(() => {
+        const i = this.queue.indexOf(entry);
+        if (i >= 0) this.queue.splice(i, 1);
+        resolve(false);
+      }, timeoutMs);
+      this.queue.push(entry);
+      this.ensureTicker();
+    });
+  }
+
+  /**
+   * Форк отменил блоки начиная с `block_num`: их номера займут новые блоки,
+   * и считать их разобранными больше нельзя.
+   */
+  onFork(block_num: number): void {
+    if (block_num - 1 < this.processedThrough) this.processedThrough = Math.max(0, block_num - 1);
+  }
+
   /** Потребитель взял событие блока — всё из более ранних блоков разобрано. */
   onBlockSeen(block_num: number): void {
-    this.releaseWhere((a) => a.block_num < block_num);
+    this.markProcessed(block_num - 1);
   }
 
   /** Сколько действий ждёт выпуска — для тестов и наблюдения. */
@@ -69,18 +126,23 @@ export class ActionReleaseGate implements OnModuleDestroy {
     if (!this.queue.length) return;
     const state = progress === undefined ? await this.readProgress() : progress;
     if (state && state.pending === 0 && state.lag === 0) {
-      this.releaseWhere((a) => a.block_num < state.parser_block);
+      this.markProcessed(state.parser_block - 1);
     }
     const maxWait = config.blockchain.action_release_max_wait_ms;
     const now = Date.now();
-    const overdue = this.queue.filter((a) => now - a.queued_at >= maxWait);
+    const overdue = this.queue.filter((a) => !a.waiter && now - a.queued_at >= maxWait);
     if (overdue.length) {
       this.logger.warn(
         `Действия блоков ${[...new Set(overdue.map((a) => a.block_num))].join(', ')} выпущены по страховке ${maxWait} мс: ` +
           `нет подтверждения, что блок разобран (${state ? `parser ${state.parser_block}, lag ${state.lag}, pending ${state.pending}` : 'Redis не ответил'})`
       );
-      this.releaseWhere((a) => now - a.queued_at >= maxWait);
+      this.releaseWhere((a) => !a.waiter && now - a.queued_at >= maxWait);
     }
+  }
+
+  private markProcessed(block_num: number): void {
+    if (block_num > this.processedThrough) this.processedThrough = block_num;
+    this.releaseWhere((a) => a.block_num <= this.processedThrough);
   }
 
   async onModuleDestroy(): Promise<void> {
@@ -97,7 +159,9 @@ export class ActionReleaseGate implements OnModuleDestroy {
       if (predicate(action)) {
         this.queue.splice(i, 1);
         try {
-          action.release();
+          // Обработчики выпущенных действий — тоже разбор цепи: их транзакции
+          // не ждут разбора блока (см. chain-dispatch-context.ts).
+          runInChainDispatch(() => action.release());
         } catch (error: any) {
           this.logger.error(`Выпуск действия блока ${action.block_num} упал: ${error?.message ?? error}`, error?.stack);
         }

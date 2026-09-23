@@ -65,5 +65,16 @@ describe('ChainDeltaWaiterService', () => {
   it('afterTransact без номера блока в ответе узла — не ждёт', async () => {
     await expect(new ChainDeltaWaiterService().afterTransact({}, [{ code: 'ledger2' }])).resolves.toBe(false);
   });
-});
 
+  it('блок транзакции уже разобран (transact дождался его сам) — afterTransact отвечает сразу, без ожидания', async () => {
+    const blockProgress = { isProcessed: jest.fn().mockReturnValue(true) } as any;
+    const waiter = new ChainDeltaWaiterService(blockProgress);
+    const started = Date.now();
+
+    await expect(
+      waiter.afterTransact({ response: { processed: { block_num: 100 } } }, [{ code: 'edubridge', table: 'educontracts' }])
+    ).resolves.toBe(true);
+    expect(blockProgress.isProcessed).toHaveBeenCalledWith(100);
+    expect(Date.now() - started).toBeLessThan(40);
+  });
+});

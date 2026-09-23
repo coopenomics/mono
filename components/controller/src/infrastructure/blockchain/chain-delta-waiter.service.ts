@@ -1,7 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import type { IDelta } from '@coopenomics/extension-kit/sync';
 import type { IChainDeltaWaitPort, InnerChainDelta, InnerChainDeltaWaitQuery, InnerChainTxWait } from '@coopenomics/innercoop';
 import { config } from '~/config';
+import { ActionReleaseGate } from './action-release-gate.service';
 
 interface Waiter {
   query: InnerChainDeltaWaitQuery;
@@ -22,6 +23,8 @@ interface Waiter {
 export class ChainDeltaWaiterService implements IChainDeltaWaitPort {
   private readonly waiters = new Map<string, Set<Waiter>>();
 
+  constructor(@Optional() private readonly blockProgress: ActionReleaseGate | null = null) {}
+
   blockOf(transactResult: unknown): number {
     const t = transactResult as { response?: { processed?: { block_num?: number } }; processed?: { block_num?: number } };
     return Number(t?.response?.processed?.block_num ?? t?.processed?.block_num ?? 0);
@@ -31,6 +34,10 @@ export class ChainDeltaWaiterService implements IChainDeltaWaitPort {
     const minBlockNum = this.blockOf(transactResult);
     // Блок не определить (ответ узла без processed) — ждать нечего, отвечаем сразу.
     if (!minBlockNum || !waits.length) return false;
+    // Транзакция уже дождалась разбора своего блока (BlockchainService.transact):
+    // её дельты прошли раньше, чем сюда зарегистрировалось бы ожидание, и оно
+    // простояло бы до предела впустую.
+    if (this.blockProgress?.isProcessed(minBlockNum)) return true;
     const applied = await Promise.all(waits.map((w) => this.waitForDelta({ ...w, minBlockNum })));
     return applied.every((d) => d !== null);
   }
