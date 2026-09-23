@@ -48,7 +48,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, onMounted, watch } from 'vue';
+import { computed, ref, onBeforeUnmount, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import type { RouteRecordRaw } from 'vue-router';
 import { Zeus } from '@coopenomics/sdk';
@@ -71,6 +71,7 @@ import { RailUserCard } from 'src/shared/ui/domain/RailUserCard';
 import { WorkspaceSwitcher } from 'src/widgets/Desktop/WorkspaceSwitcher';
 import { useUpdateWatch } from 'src/entities/AppVersion/model';
 import { useMarketplaceCartStore } from 'src/entities/MarketplaceCart';
+import { hasMenuBadge, menuBadgeOf, refreshMenuBadges } from 'src/shared/lib/menuBadges';
 
 const router = useRouter();
 const updateWatch = useUpdateWatch();
@@ -159,8 +160,9 @@ const filteredRoutes = computed<RouteRecordRaw[]>(() => {
 const CART_ROUTE = 'marketplace-cart';
 
 function badgeFor(routeName: string): string | number | undefined {
-  if (routeName !== CART_ROUTE) return undefined;
-  return cartStore.positionsCount || undefined;
+  if (routeName === CART_ROUTE) return cartStore.positionsCount || undefined;
+  // Остальные пункты — по числам, которые зарегистрировали расширения.
+  return menuBadgeOf(routeName);
 }
 
 const railItems = computed<RailItem[]>(() =>
@@ -194,6 +196,25 @@ watch(
   },
   { immediate: true },
 );
+
+/**
+ * Числа дел на пунктах: спрашиваем, когда пункты видны, при каждом переходе
+ * (дело на странице могли только что закрыть) и раз в минуту.
+ */
+const MENU_BADGE_POLL_MS = 60_000;
+const badgeRoutes = computed(() => filteredRoutes.value.map((r) => String(r.name)).filter(hasMenuBadge));
+function refreshBadges(): void {
+  if (badgeRoutes.value.length) void refreshMenuBadges(badgeRoutes.value);
+}
+watch(() => [badgeRoutes.value.join(','), router.currentRoute.value.fullPath], refreshBadges);
+let badgeTimer: ReturnType<typeof setInterval> | null = null;
+onMounted(() => {
+  refreshBadges();
+  badgeTimer = setInterval(refreshBadges, MENU_BADGE_POLL_MS);
+});
+onBeforeUnmount(() => {
+  if (badgeTimer) clearInterval(badgeTimer);
+});
 
 // --- Активный пункт через router -------------------------------------------
 

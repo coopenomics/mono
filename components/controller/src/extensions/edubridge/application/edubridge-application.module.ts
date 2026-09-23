@@ -53,6 +53,7 @@ import { EdubridgeTeacherResolver } from './resolvers/edubridge-teacher.resolver
 import { EdubridgeAdminService } from './services/edubridge-admin.service';
 import { EdubridgeTeacherService } from './services/edubridge-teacher.service';
 import { EdubridgeApprovalsService } from './services/edubridge-approvals.service';
+import { EdubridgeAttentionService } from './services/edubridge-attention.service';
 import { EdubridgeEnrollmentService } from './services/edubridge-enrollment.service';
 import { EdubridgeLearnerService } from './services/edubridge-learner.service';
 import { EdubridgeOnboardingService } from './services/edubridge-onboarding.service';
@@ -114,6 +115,7 @@ import { EdubridgeCatalogCourseFieldsResolver, EdubridgeCourseFieldsResolver } f
     EdubridgeAccessOutboxService,
     EdubridgeTeacherService,
     EdubridgeApprovalsService,
+    EdubridgeAttentionService,
     EdubridgeAdminService,
     EdubridgeExitBlockersService,
     // Воркеры и слушатели

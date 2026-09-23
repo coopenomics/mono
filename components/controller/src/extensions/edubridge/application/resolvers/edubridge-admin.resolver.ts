@@ -20,6 +20,8 @@ import { EduAccessCarrier } from '../../domain/enums';
 import { EdubridgeAccessGuard } from '../guards/edubridge-access.guard';
 import type { IEdubridgeMembership } from '../membership/edubridge-membership.service';
 import { EdubridgeAdminService } from '../services/edubridge-admin.service';
+import { EdubridgeAttentionService } from '../services/edubridge-attention.service';
+import { EduAttentionDTO } from '../dto/edu-attention.dto';
 
 const coop = () => platformSettings().coopname;
 
@@ -30,7 +32,17 @@ const coop = () => platformSettings().coopname;
 @Resolver()
 @Injectable()
 export class EdubridgeAdminResolver {
-  constructor(private readonly admin: EdubridgeAdminService) {}
+  constructor(
+    private readonly admin: EdubridgeAdminService,
+    private readonly attention: EdubridgeAttentionService
+  ) {}
+
+  // Права проверяются по каждому числу отдельно: недоступный раздел даёт ноль.
+  @Query(() => EduAttentionDTO, { name: 'edubridgeAttention', description: 'Сколько дел ждёт администратора — числа на пунктах меню' })
+  @UseGuards(GqlJwtAuthGuard, EdubridgeAccessGuard)
+  edubridgeAttention(@CurrentEduMember() m: IEdubridgeMembership): Promise<EduAttentionDTO> {
+    return this.attention.summary(coop(), m.roles);
+  }
 
   @Query(() => [EduMemberRowDTO], { name: 'edubridgeMembers', description: 'Ученики приложения: у каждого свои обучающиеся и подписки' })
   @UseGuards(GqlJwtAuthGuard, EdubridgeAccessGuard)

@@ -62,6 +62,11 @@ export class EdubridgeAccessTaskRepository {
     });
   }
 
+  /** Сколько задач кооператива в этих состояниях — для счётчика на пункте меню. */
+  countByStatuses(coopname: string, statuses: EduAccessTaskStatus[]): Promise<number> {
+    return this.repo.count({ where: { coopname, status: In(statuses) } });
+  }
+
   findByEnrollment(coopname: string, enrollmentId: string): Promise<EdubridgeAccessTaskEntity[]> {
     return this.repo.find({ where: { coopname, enrollment_id: enrollmentId }, order: { created_at: 'DESC' } });
   }

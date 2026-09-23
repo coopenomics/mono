@@ -6859,6 +6859,14 @@ export type ValueTypes = {
 };
 	/** Состояние назначения преподавателя */
 ["EduAssignmentStatus"]:EduAssignmentStatus;
+	["EduAttention"]: AliasType<{
+	/** Ученики: задачи выдачи или отзыва доступа, которые требуют вмешательства */
+	learners?:boolean | `@${string}`,
+	/** Преподаватели: договоры и приложения на подписи у председателя */
+	teachers?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on EduAttention']?: Omit<ValueTypes["EduAttention"], "...on EduAttention">
+}>;
 	["EduCatalogCourse"]: AliasType<{
 	/** На сколько взнос разом меньше суммы помесячных */
 	course_discount_amount?:boolean | `@${string}`,
@@ -15737,6 +15745,8 @@ edubridgeActSignablePayload?: [{	contribution_id: ValueTypes["ID"] | Variable<an
 	edubridgeAdmins?:ValueTypes["EduAdmin"],
 	/** Назначения преподавателей кооператива */
 	edubridgeAssignments?:ValueTypes["EduAssignment"],
+	/** Сколько дел ждёт администратора — числа на пунктах меню */
+	edubridgeAttention?:ValueTypes["EduAttention"],
 edubridgeCatalog?: [{	filter?: ValueTypes["EduCatalogFilterInput"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedEduCatalogCoursesPaginationResult"]],
 edubridgeCatalogCourse?: [{	id: ValueTypes["ID"] | Variable<any, string>},ValueTypes["EduCatalogCourse"]],
 	/** Предметы и классы каталога */
@@ -23946,6 +23956,13 @@ export type ResolverInputTypes = {
 };
 	/** Состояние назначения преподавателя */
 ["EduAssignmentStatus"]:EduAssignmentStatus;
+	["EduAttention"]: AliasType<{
+	/** Ученики: задачи выдачи или отзыва доступа, которые требуют вмешательства */
+	learners?:boolean | `@${string}`,
+	/** Преподаватели: договоры и приложения на подписи у председателя */
+	teachers?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
 	["EduCatalogCourse"]: AliasType<{
 	/** На сколько взнос разом меньше суммы помесячных */
 	course_discount_amount?:boolean | `@${string}`,
@@ -32539,6 +32556,8 @@ edubridgeActSignablePayload?: [{	contribution_id: ResolverInputTypes["ID"]},Reso
 	edubridgeAdmins?:ResolverInputTypes["EduAdmin"],
 	/** Назначения преподавателей кооператива */
 	edubridgeAssignments?:ResolverInputTypes["EduAssignment"],
+	/** Сколько дел ждёт администратора — числа на пунктах меню */
+	edubridgeAttention?:ResolverInputTypes["EduAttention"],
 edubridgeCatalog?: [{	filter?: ResolverInputTypes["EduCatalogFilterInput"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedEduCatalogCoursesPaginationResult"]],
 edubridgeCatalogCourse?: [{	id: ResolverInputTypes["ID"]},ResolverInputTypes["EduCatalogCourse"]],
 	/** Предметы и классы каталога */
@@ -40511,6 +40530,12 @@ export type ModelTypes = {
 	teacher_username: string
 };
 	["EduAssignmentStatus"]:EduAssignmentStatus;
+	["EduAttention"]: {
+		/** Ученики: задачи выдачи или отзыва доступа, которые требуют вмешательства */
+	learners: number,
+	/** Преподаватели: договоры и приложения на подписи у председателя */
+	teachers: number
+};
 	["EduCatalogCourse"]: {
 		/** На сколько взнос разом меньше суммы помесячных */
 	course_discount_amount?: string | undefined | null,
@@ -49151,6 +49176,8 @@ export type ModelTypes = {
 	edubridgeAdmins: Array<ModelTypes["EduAdmin"]>,
 	/** Назначения преподавателей кооператива */
 	edubridgeAssignments: Array<ModelTypes["EduAssignment"]>,
+	/** Сколько дел ждёт администратора — числа на пунктах меню */
+	edubridgeAttention: ModelTypes["EduAttention"],
 	/** Каталог опубликованных курсов */
 	edubridgeCatalog: ModelTypes["PaginatedEduCatalogCoursesPaginationResult"],
 	/** Карточка курса */
@@ -57497,6 +57524,14 @@ export type GraphQLTypes = {
 };
 	/** Состояние назначения преподавателя */
 ["EduAssignmentStatus"]: EduAssignmentStatus;
+	["EduAttention"]: {
+	__typename: "EduAttention",
+	/** Ученики: задачи выдачи или отзыва доступа, которые требуют вмешательства */
+	learners: number,
+	/** Преподаватели: договоры и приложения на подписи у председателя */
+	teachers: number,
+	['...on EduAttention']: Omit<GraphQLTypes["EduAttention"], "...on EduAttention">
+};
 	["EduCatalogCourse"]: {
 	__typename: "EduCatalogCourse",
 	/** На сколько взнос разом меньше суммы помесячных */
@@ -66827,6 +66862,8 @@ export type GraphQLTypes = {
 	edubridgeAdmins: Array<GraphQLTypes["EduAdmin"]>,
 	/** Назначения преподавателей кооператива */
 	edubridgeAssignments: Array<GraphQLTypes["EduAssignment"]>,
+	/** Сколько дел ждёт администратора — числа на пунктах меню */
+	edubridgeAttention: GraphQLTypes["EduAttention"],
 	/** Каталог опубликованных курсов */
 	edubridgeCatalog: GraphQLTypes["PaginatedEduCatalogCoursesPaginationResult"],
 	/** Карточка курса */

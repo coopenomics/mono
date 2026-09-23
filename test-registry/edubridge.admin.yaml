@@ -15,11 +15,13 @@ sources:
     - components/controller/src/extensions/edubridge/infrastructure/connectors/**
     - components/controller/src/extensions/edubridge/domain/connectors/**
     - components/controller/src/extensions/edubridge/application/services/edubridge-approvals.service.ts
+    - components/controller/src/extensions/edubridge/application/services/edubridge-attention.service.ts
     - components/controller/src/extensions/chairman/infrastructure/innercoop/**
   ui:
     - components/desktop/extensions/edubridge/pages/Admin*/**
     - components/desktop/extensions/edubridge/entities/Admin/**
     - components/desktop/src/features/ChairmanApproval/**
+    - components/desktop/src/shared/lib/menuBadges/**
 
 cases:
   - id: edu.admin.happy.01
@@ -111,6 +113,20 @@ cases:
     kind: happy
     scenario: "Председатель открывает карточку преподавателя с договором на подписи и подписывает его прямо там; администратор без роли председателя видит «Ждёт подписи председателя»."
     expect: "После подписи одобрение закрыто и в «Запросах одобрений» стола председателя; договор преподавателя становится действующим после разбора блока."
+    test: ~
+    status: missing
+  - id: edu.admin.side.16
+    level: backend
+    kind: side
+    scenario: "Сводка дел для пунктов меню: документы преподавателей на подписи председателя и задачи выдачи доступа в состояниях «требует внимания»/«сбой»; запрашивает пользователь без прав администратора."
+    expect: "Администратор получает оба числа; ученик и преподаватель — нули, чужие данные не считаются и не запрашиваются."
+    test: components/controller/tests/unit/edubridge/attention.service.test.ts
+    status: passing
+  - id: edu.admin.ui.06
+    level: ui
+    kind: happy
+    scenario: "Стол администратора: у пунктов «Преподаватели» и «Ученики» числа дел; председатель подписывает договор в карточке преподавателя, администратор повторяет застрявшую выдачу."
+    expect: "Число на пункте уменьшается сразу после действия, без перезагрузки; ноль бейджа не рисует; стол без прав администратора числа не запрашивает."
     test: ~
     status: missing
 

@@ -6,6 +6,7 @@ export type IMemberCard = Queries.Edubridge.MemberCard.IOutput['edubridgeMemberC
 export type IAccessTask = Queries.Edubridge.Queue.IOutput['edubridgeQueue'][number];
 export type IConnector = Queries.Edubridge.Connectors.IOutput['edubridgeConnectors'][number];
 export type IAdmin = Queries.Edubridge.Admins.IOutput['edubridgeAdmins'][number];
+export type IAttention = Queries.Edubridge.Attention.IOutput['edubridgeAttention'];
 
 // Ключи — имена enum'ов схемы (`Zeus.*`): именно их отдаёт и принимает GraphQL.
 export const TASK_STATUS_LABELS: Record<string, { label: string; variant: 'pos' | 'neg' | 'warn' | 'info' | 'neutral' }> = {
@@ -33,6 +34,20 @@ async function q<T>(query: any, name: string, variables?: Record<string, unknown
 async function m<T>(mutation: any, name: string, variables: Record<string, unknown>): Promise<T> {
   const res = await client.Mutation(mutation, { variables });
   return (res as Record<string, T>)[name] as T;
+}
+
+/** Сколько дел ждёт администратора — числа на пунктах меню. */
+export const fetchAttention = () => q<IAttention>(Queries.Edubridge.Attention.query, Queries.Edubridge.Attention.name);
+
+// Оба пункта меню берут числа из одной сводки: запросы в пределах пары секунд
+// делят один ответ, а не спрашивают сервер дважды.
+const ATTENTION_REUSE_MS = 2000;
+let attentionCache: { at: number; value: Promise<IAttention> } | null = null;
+export function sharedAttention(): Promise<IAttention> {
+  if (!attentionCache || Date.now() - attentionCache.at > ATTENTION_REUSE_MS) {
+    attentionCache = { at: Date.now(), value: fetchAttention() };
+  }
+  return attentionCache.value;
 }
 
 export const fetchMembers = (search?: string) => q<IMemberRow[]>(Queries.Edubridge.Members.query, Queries.Edubridge.Members.name, { search });

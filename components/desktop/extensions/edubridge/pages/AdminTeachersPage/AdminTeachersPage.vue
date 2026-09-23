@@ -120,6 +120,7 @@ import { AccountBadge, DataRow, DetailsDrawer, PageHint } from 'src/shared/ui/do
 import { PageTabs, type PageTab } from 'src/shared/ui/layout';
 import { useSystemStore } from 'src/entities/System/model';
 import { ChairmanApprovalActions } from 'src/features/ChairmanApproval';
+import { refreshMenuBadges } from 'src/shared/lib/menuBadges';
 import { courseSectionLabel, fetchCourses, type ICourse } from '../../entities/Course';
 import {
   ASSIGNMENT_STATUS_LABELS,
@@ -219,7 +220,7 @@ async function loadApprovals(username: string): Promise<void> {
 async function onApprovalDecided(): Promise<void> {
   if (!current.value) return;
   const username = current.value.username;
-  await Promise.all([loadApprovals(username), load()]);
+  await Promise.all([loadApprovals(username), load(), refreshMenuBadges(['edubridge-admin-teachers'])]);
   const fresh = teachers.value.find((t) => t.username === username);
   if (fresh) current.value = fresh;
 }

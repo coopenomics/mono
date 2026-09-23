@@ -24,6 +24,7 @@ export * as CourseEconomy from './courseEconomy'
 export * as TeacherOptions from './teacherOptions'
 export * as Teachers from './teachers'
 export * as TeacherApprovals from './teacherApprovals'
+export * as Attention from './attention'
 /** Курсы и группы на площадке кооператива — для привязки курса каталога */
 export * as PlatformCourses from './platformCourses'
 /** Подписаны ли оферты родителя-слушателя и преподавателя */

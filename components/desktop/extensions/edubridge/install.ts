@@ -1,4 +1,6 @@
 import { markRaw, type Component } from 'vue';
+import { registerMenuBadge } from 'src/shared/lib/menuBadges';
+import { sharedAttention } from './entities/Admin';
 import { agreementsBase } from 'src/shared/lib/consts/workspaces';
 import type { IWorkspaceConfig, IWorkspaceRoute, IWorkspaceRouteMeta } from 'src/shared/lib/types/workspace';
 import {
@@ -117,5 +119,9 @@ function teacherWorkspace(): IWorkspaceConfig {
 }
 
 export default async function (): Promise<IWorkspaceConfig[]> {
+  // Числа дел на пунктах меню стола администратора: документы преподавателей
+  // на подписи председателя и застрявшая выдача доступа ученикам.
+  registerMenuBadge('edubridge-admin-teachers', async () => (await sharedAttention()).teachers);
+  registerMenuBadge('edubridge-admin-registry', async () => (await sharedAttention()).learners);
   return [adminWorkspace(), parentWorkspace(), teacherWorkspace()];
 }

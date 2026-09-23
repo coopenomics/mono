@@ -17,6 +17,13 @@ export const EDU_APPROVAL_TITLES: Record<string, string> = {
 export class EdubridgeApprovalsService {
   constructor(@Optional() @Inject(CHAIRMAN_APPROVALS_PORT) private readonly approvals: IChairmanApprovalsPort | null) {}
 
+  /** Сколько документов преподавателей кооператива ждут подписи председателя. */
+  async pendingCount(coopname: string): Promise<number> {
+    if (!this.approvals) return 0;
+    const found = await this.approvals.list({ coopname, actions: Object.keys(EDU_APPROVAL_TITLES), statuses: ['pending'] });
+    return found.length;
+  }
+
   /** Документы преподавателя, которые ждут подписи председателя. */
   async pendingForTeacher(coopname: string, username: string): Promise<EduApprovalDTO[]> {
     if (!this.approvals) return [];

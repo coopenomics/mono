@@ -66,6 +66,7 @@
 </template>
 
 <script setup lang="ts">
+import { refreshMenuBadges } from 'src/shared/lib/menuBadges';
 import { onMounted, ref } from 'vue';
 import { debounce } from 'quasar';
 import { Zeus } from '@coopenomics/sdk';
@@ -151,6 +152,7 @@ async function onRetry(task: IMemberCard['tasks'][number]): Promise<void> {
     SuccessAlert('Выдача поставлена в работу');
     if (card.value) card.value = await fetchMemberCard(card.value.username);
     await load();
+    void refreshMenuBadges(['edubridge-admin-registry']);
   } catch (e) {
     FailAlert(e);
   } finally {

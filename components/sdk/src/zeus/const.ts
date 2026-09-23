@@ -5746,6 +5746,10 @@ export const ReturnTypes: Record<string,any> = {
 		status:"EduAssignmentStatus",
 		teacher_username:"String"
 	},
+	EduAttention:{
+		learners:"Int",
+		teachers:"Int"
+	},
 	EduCatalogCourse:{
 		course_discount_amount:"String",
 		course_months:"Int",
@@ -8839,6 +8843,7 @@ export const ReturnTypes: Record<string,any> = {
 		edubridgeActSignablePayload:"DocumentAggregate",
 		edubridgeAdmins:"EduAdmin",
 		edubridgeAssignments:"EduAssignment",
+		edubridgeAttention:"EduAttention",
 		edubridgeCatalog:"PaginatedEduCatalogCoursesPaginationResult",
 		edubridgeCatalogCourse:"EduCatalogCourse",
 		edubridgeCatalogSubjects:"EduCatalogSubject",
