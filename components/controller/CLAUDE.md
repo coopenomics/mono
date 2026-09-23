@@ -444,6 +444,7 @@ public readonly trusted: IndividualDTO[];
 - Emit pubsub **до** save в PG — **запрещено** (INV-12). Клиент получит "updated" event на несохранённое состояние.
 - Global channel `entityUpdated(contract, ...)` — **запрещено**. Per-contract isolation обязателен.
 - Emit raw delta в subscription payload — **запрещено**. Payload = domain entity, read из PG.
+- **Своё опознание пайщика в резолвере подписки — запрещено.** Резолвер подписки пишется как обычный запрос: `@CurrentUser()` отдаёт ту же учётную запись, что у HTTP (`username`, `role`, `status`), гарды (`GqlJwtAuthGuard`, `RolesGuard`, `ActiveUserStatusGuard`) судят так же. Обеспечивает это соединение, а не резолвер: `onConnect` опознаёт пайщика той же `JwtAuthStrategy.validate` и кладёт результат и токен в контекст (`infrastructure/graphql/ws-auth.registry.ts`). Дочитка имени по `sub`, чтение `connectionParams`, отдельная проверка сессии в резолвере — признак того, что сломан общий путь; чинить его. Кейс 23.09.2026: ws-контекст нёс только `{ sub }`, подписка кошелька с 14.09 отклонялась 403 на каждом соединении, Стол заказов обходил это сам.
 
 ### ⚠️ Edge cases — обязательно handle
 

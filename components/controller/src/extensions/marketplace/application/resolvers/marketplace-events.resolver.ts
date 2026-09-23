@@ -24,8 +24,8 @@ import { BRANCH_PORT, type IBranchPort,
 
 /**
  * Единственная подписка приложения marketplace: поток событий для пайщика.
- * Аутентификация соединения — в graphql-ws `onConnect` (см. graphql.module.ts),
- * который кладёт `sub` JWT в контекст; здесь по `sub` резолвится имя аккаунта.
+ * Аутентификация соединения — в graphql-ws `onConnect` ядра (ws-auth.registry.ts):
+ * в контексте та же учётная запись, что у HTTP-запроса.
  *
  * Соединение слушает топики по праву аккаунта: персональный (приватные события
  * заказчика/поставщика, выводится из токена — клиент НЕ может задать чужой),
@@ -51,14 +51,19 @@ export class MarketplaceEventsResolver {
     resolve: (payload: MarketplaceEventPayload) => payload,
   })
   async marketplaceEvents(
-    @CurrentUser() user: { sub?: string; username?: string },
+    @CurrentUser() user: { username?: string },
     @Args('input') input: MarketplaceEventsInputDTO
   ): Promise<AsyncIterator<MarketplaceEventPayload>> {
     if (input.coopname !== platformSettings().coopname) {
       throw new ForbiddenException('Подписка доступна только в рамках своего кооператива.');
     }
 
-    const username = user.username ?? (await this.resolveUsername(user.sub));
+    // Пайщик в контексте подписки — та же учётная запись, что у HTTP-запроса
+    // (ws-auth.registry.ts ядра), имя берётся как в любом резолвере.
+    const username = user.username;
+    if (!username) {
+      throw new ForbiddenException('Не удалось определить пайщика из токена подписки.');
+    }
     const memberTopic = marketplaceMemberTopic(platformSettings().coopname, username);
     const catalogTopic = marketplaceCatalogTopic(platformSettings().coopname);
     const topics = [memberTopic, catalogTopic];
@@ -84,7 +89,8 @@ export class MarketplaceEventsResolver {
    * Core-роль аккаунта (user/member/chairman) — определяет служебные каналы:
    * chairman → staff + moderation + board, member → board (та же логика, что
    * в `mapCoreRolesToMarketplaceRoles`). Роль читаем из записи пользователя в
-   * PG, а не из ws-контекста: graphql-ws кладёт в контекст только `sub`.
+   * PG в момент открытия подписки: в ws-контексте лежит снимок учётной записи
+   * на момент соединения, а оно живёт часами.
    * Ошибка проверки деградирует в «обычный пайщик» — служебные столы добирают
    * состояние resync'ом.
    */
@@ -119,13 +125,5 @@ export class MarketplaceEventsResolver {
       );
       return false;
     }
-  }
-
-  private async resolveUsername(sub: string | undefined): Promise<string> {
-    if (!sub) {
-      throw new ForbiddenException('Не удалось определить пайщика из токена подписки.');
-    }
-    const account = await this.userRepository.findBySubject(sub);
-    return account.username;
   }
 }

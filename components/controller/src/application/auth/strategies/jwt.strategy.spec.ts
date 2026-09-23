@@ -3,10 +3,10 @@ import { tokenTypes } from '~/types/token.types';
 import { JwtAuthStrategy } from './jwt.strategy';
 import { SessionAliveService } from '../services/session-alive.service';
 
-// Сервис живости сессии при создании отдаёт себя веб-сокету через реестр —
-// здесь проверяется стратегия HTTP, реестр ей не нужен.
-jest.mock('~/infrastructure/graphql/ws-session-check.registry', () => ({
-  registerWsSessionCheck: jest.fn(),
+// Стратегия при создании отдаёт своё опознание веб-сокету через реестр —
+// здесь проверяется сам validate, реестр ему не нужен.
+jest.mock('~/infrastructure/graphql/ws-auth.registry', () => ({
+  registerWsUserResolver: jest.fn(),
 }));
 
 /**
@@ -46,12 +46,7 @@ function setup(opts: { migrated?: boolean } = {}) {
   // Живость сессии стратегия спрашивает у общего сервиса — того же, что и
   // веб-сокет. Собираем его настоящим из тех же моков: проверки ниже смотрят,
   // как он ходит в хранилище сессий и vault, а не подменяют его ответ.
-  const sessionAlive = new SessionAliveService(
-    tokenRepository as never,
-    userRepository as never,
-    userDomainService as never,
-    vault as never,
-  );
+  const sessionAlive = new SessionAliveService(tokenRepository as never, vault as never);
   const strategy = new JwtAuthStrategy(
     userRepository as never,
     userDomainService as never,

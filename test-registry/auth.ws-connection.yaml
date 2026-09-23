@@ -1,0 +1,89 @@
+feature: auth.ws-connection
+title: Опознание пайщика в ws-соединении подписок — тем же путём, что HTTP-запрос
+
+# Подписки GraphQL идут по graphql-ws. Соединение опознаётся однократно в
+# onConnect: токен подписан, это access-токен — и пайщика опознаёт та же
+# JwtAuthStrategy.validate, что у HTTP (с проверкой живости сессии). В контекст
+# операции подписки ложится её результат и сам токен заголовком, поэтому
+# `@CurrentUser`, GqlJwtAuthGuard, RolesGuard и ActiveUserStatusGuard на
+# подписке работают как на запросе.
+#
+# Введено 23.09.2026 (7DD-22). До этого ws клал в контекст только `{ sub }`,
+# заголовков не было: подписка кошелька, написанная как обычный резолвер
+# (`@CurrentUser().username`), с 14.09 отклонялась на каждом соединении, а
+# Стол заказов обходил это своей дочиткой имени по `sub`. Обход снят, отдельный
+# мостик проверки сессии (ws-session-check.registry) заменён опознанием
+# стратегией целиком.
+
+sources:
+  backend:
+    - components/controller/src/infrastructure/graphql/ws-auth.registry.ts
+    - components/controller/src/infrastructure/graphql/graphql.module.ts
+    - components/controller/src/application/auth/strategies/jwt.strategy.ts
+    - components/controller/src/application/auth/services/session-alive.service.ts
+    - components/controller/src/extensions/marketplace/application/resolvers/marketplace-events.resolver.ts
+
+cases:
+  - id: auth.ws.happy.01
+    level: backend
+    kind: happy
+    scenario: Соединение пришло с годным access-токеном живой сессии.
+    expect: >
+      в контексте подписки ровно та учётная запись, которую вернул validate
+      стратегии HTTP (username, role, status), и тот же токен заголовком
+    test: components/controller/src/infrastructure/graphql/ws-auth.registry.spec.ts
+    status: passing
+
+  - id: auth.ws.side.01
+    level: backend
+    kind: side
+    scenario: Токен в connectionParams пришёл без префикса Bearer.
+    expect: принимается так же — клиенты Zeus шлют по-разному
+    test: components/controller/src/infrastructure/graphql/ws-auth.registry.spec.ts
+    status: passing
+
+  - id: auth.ws.break.01
+    level: backend
+    kind: break
+    scenario: Сессия токена завершена (выход, восстановление доступа, переход на пароль).
+    expect: >
+      соединение отклонено — опознание стратегией включает проверку живости
+      сессии, пустой пользователь в контекст не попадает
+    test: components/controller/src/infrastructure/graphql/ws-auth.registry.spec.ts
+    status: passing
+
+  - id: auth.ws.break.02
+    level: backend
+    kind: break
+    scenario: В соединение подан refresh-токен.
+    expect: отказ до опознания
+    test: components/controller/src/infrastructure/graphql/ws-auth.registry.spec.ts
+    status: passing
+
+  - id: auth.ws.break.03
+    level: backend
+    kind: break
+    scenario: Токен подписан чужим секретом либо отсутствует.
+    expect: отказ
+    test: components/controller/src/infrastructure/graphql/ws-auth.registry.spec.ts
+    status: passing
+
+  - id: auth.ws.break.04
+    level: backend
+    kind: break
+    scenario: Соединение пришло раньше, чем стратегия зарегистрировала опознание.
+    expect: отказ, а не пропуск всех
+    test: components/controller/src/infrastructure/graphql/ws-auth.registry.spec.ts
+    status: passing
+
+  - id: auth.ws.side.02
+    level: backend
+    kind: side
+    scenario: >
+      Подписка объявляет гарды, как обычный запрос (GqlJwtAuthGuard, RolesGuard).
+    expect: >
+      гарды получают тот же req — пользователя и заголовок авторизации — и
+      судят так же, как на HTTP: RolesGuard пускает председателя и отказывает
+      пайщику без роли
+    test: components/controller/src/infrastructure/graphql/ws-auth.registry.spec.ts
+    status: passing
