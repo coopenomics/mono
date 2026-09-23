@@ -204,6 +204,30 @@ CI: Actions работают на GitHub-зеркале; PR туда не поп
 
 **Не дёргать `Mutations.Auth.Login` напрямую** — `LoginInput` ждёт `{email, now, signature}`, генерация подписи внутри SDK Client. Refresh: `Mutations.Auth.Refresh.mutation` с `{access_token, refresh_token}`. Канон используется в `blago-cli/src/session/index.ts` (loginInteractive) и в EMP-коннекторе `connectors/cooperative-tsk-login-connector` (Story 11.5).
 
+## Ответ мутации — после факта из цепи, без пауз (ADR-009, переезд постепенный)
+
+Мутация, после которой стол сразу перечитывает данные, отвечает **после того,
+как изменения её транзакции пришли из цепи и легли в базу**, — одной строкой:
+
+```typescript
+const tx = await this.chain.createProgramInvest(data);
+await this.chainWait?.afterTransact(tx, [
+  { code: 'ledger2', table: 'userwallets', scope: coopname, match: byUser },
+]);
+return tx;   // стол перечитывает сразу
+```
+
+Порт `CHAIN_DELTA_WAIT_PORT` (innercoop) → `ChainDeltaWaiterService` (ядро);
+ждать таблицы, которые читает стол; не пришло за
+`BLOCKCHAIN_WRITE_WAIT_DELTA_MS` — ответ как есть. На столе после такой мутации
+перечитывать сразу: **никаких `setTimeout`/`sleep`, «оптимистичных» патчей и
+циклов ожидания перед чтением** — ни на сервере, ни на столе. Новые мутации —
+сразу по паттерну; старые паузы (`POST_CHAIN_REFETCH_MS`, `waitForStage`,
+`*_WAIT_ATTEMPTS`, `recentlySigned`) переводятся по одному, при касании.
+Подробности и порядок разбора событий — `components/controller/CLAUDE.md`,
+раздел «Write-mutation pattern». Канон: взнос в программу Благороста,
+решение председателя по одобрению (ветка `feat/edubridge-epic`, 23.09.2026).
+
 ## DRY — любое 2-кратное повторение выносится в общее (ОБЯЗАТЕЛЬНО)
 
 Любой кусок кода (валидация, маппинг, guard, построение payload, helper-логика), повторённый **второй раз**, обязан быть вынесен в общее: `shared/`-helper / util / базовый класс (controller) или соответствующий FSD-слой `shared/` (desktop). Это **обязательное правило**, не рекомендация — не «то тут то там стряпать одно и то же».
