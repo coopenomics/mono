@@ -5,6 +5,8 @@
   "sdk": 0,
   "controller": 0,
   "boot": 0,
+  "extension-kit": 0,
+  "innercoop": 0,
   "_desktop": "голым tsc; разметку .vue проверяет vue-tsc в CI",
   "desktop": 0
 }

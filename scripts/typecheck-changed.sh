@@ -39,6 +39,8 @@ PACKAGES=(
   "sdk|components/sdk|npx tsc --noEmit"
   "controller|components/controller|npx tsc --noEmit"
   "boot|components/boot|npx tsc --noEmit"
+  "extension-kit|components/extension-kit|npx tsc --noEmit"
+  "innercoop|components/innercoop|npx tsc --noEmit"
   "desktop|components/desktop|npx tsc --noEmit --skipLibCheck"
 )
 

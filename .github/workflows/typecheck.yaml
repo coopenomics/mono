@@ -139,3 +139,13 @@ jobs:
 
       - name: tsc --noEmit (boot)
         run: pnpm --filter @coopenomics/boot run typecheck
+
+      # Каркас и контракты расширений. До 23.09.2026 их не проверял никто:
+      # при переносе проверки валюты в extension-kit осталась ссылка на `config`
+      # контроллера, пакет собрался без единого предупреждения, и сверка суммы
+      # подписанного заявления падала на стенде «config is not defined».
+      - name: tsc --noEmit (extension-kit)
+        run: pnpm --filter @coopenomics/extension-kit run typecheck
+
+      - name: tsc --noEmit (innercoop)
+        run: pnpm --filter @coopenomics/innercoop run typecheck
