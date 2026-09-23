@@ -84,3 +84,38 @@ common.action.save
 
 Документация остаётся по-русски: описания GraphQL-схемы, комментарии и логи
 в словари не выносятся.
+
+## Как писать код
+
+| Где | Как |
+|---|---|
+| шаблон desktop | `{{ $t('wallet.deposit.title') }}`, `:label="$t('common.action.save')"` |
+| скрипт desktop | `import { t } from 'src/shared/i18n'` — ядро; `import { t } from '<расширение>/i18n'` — расширение |
+| отказ бэкенда | `throw DomainError.notFound('WALLET_NOT_FOUND', { username })` — из `@coopenomics/extension-kit` |
+| сообщение class-validator | `@IsNotEmpty({ message: validationMessage('account.form.emailRequired') })` — переводится в момент проверки |
+| надпись бэкенда | `import { t } from '~/i18n'` (ядро) или `'../i18n'` (расширение) |
+| клиентская библиотека (auth, sdk) | `import { lt } from '@coopenomics/i18n'`; приложение подставляет свой переводчик через `setLibraryTranslator` |
+| уведомление | тексты — `components/notifications/src/i18n/ru.json` (Liquid), в сценарии — `nt('<сценарий>.<канал>.<поле>')` |
+| отказ по коду на клиенте | `hasErrorCode(error, 'MEMBERSHIP_EXIT_PAYMENT_METHOD_REQUIRED')` из `src/shared/api/errors` — не по тексту |
+
+Строка, которая не является текстом интерфейса (данные, маски, имена XML-элементов
+официальных форм, сверка с текстом отказа контракта), помечается комментарием
+`// i18n-ignore: причина` на той же или предыдущей строке; файл-данные целиком —
+`// i18n-ignore-file: причина` в начале. Строки шаблонов, которые нельзя пометить
+комментарием, перечислены в `scripts/lib/i18n-ignore.json`.
+
+SSR-middleware (`src-ssr`) и сервис-воркер собираются без Vite и переводчик
+приложения не импортируют — гейт это проверяет.
+
+## Гейт и инструмент переноса
+
+`pnpm check:i18n` (входит в `pnpm check`) — хардкод кириллицы храповиком
+(`scripts/lib/i18n-hardcode-baseline.json`, сейчас 0), исправность словарей,
+подключение словарей расширений, типы ключей (`keys.generated.ts`), глоссарий
+(`glossary.json`), шаблоны уведомлений.
+
+`node scripts/i18n-extract.mjs scan <пути> --out work.json` → разметка ключей
+(`names.json`) → `node scripts/i18n-extract.mjs apply work.json names.json` —
+механический перенос строк: замена в шаблонах и скриптах, `DomainError` вместо
+исключений бэкенда, словари, импорты, подключение словаря расширения.
+После — `node scripts/check-i18n.mjs types --write` и `hardcode --update`.

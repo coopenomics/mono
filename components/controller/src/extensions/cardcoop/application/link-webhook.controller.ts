@@ -15,7 +15,7 @@
  * и ротация любого из них не трогает остальные. Ручного ввода ключей нет нигде:
  * это гарантированные опечатки, мёртвая ротация и канал для подделки.
  */
-import { Body, Controller, Headers, Inject, Post, HttpStatus } from '@nestjs/common';
+import { Body, Controller, Headers, Inject, Post } from '@nestjs/common';
 import canonicalize from 'canonicalize';
 import { Signature } from '@wharfkit/antelope';
 import { platformSettings, DomainError } from '@coopenomics/extension-kit';
@@ -265,7 +265,7 @@ export class CardcoopLinkWebhookController {
 
     const key = await this.credential.getPermissionKey(NETWORK_ACCOUNT, WEBHOOK_PERMISSION);
     if (!key) {
-      throw new DomainError('CARDCOOP_NETWORK_KEY_NOT_PUBLISHED', { permission: WEBHOOK_PERMISSION, account: NETWORK_ACCOUNT }, HttpStatus.SERVICE_UNAVAILABLE);
+      throw DomainError.serviceUnavailable('CARDCOOP_NETWORK_KEY_NOT_PUBLISHED', { permission: WEBHOOK_PERMISSION, account: NETWORK_ACCOUNT });
     }
 
     this.cachedKey = { value: key, readAt: Date.now() };

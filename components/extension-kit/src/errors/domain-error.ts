@@ -1,4 +1,5 @@
 import {
+  BadGatewayException,
   BadRequestException,
   ConflictException,
   ForbiddenException,
@@ -6,6 +7,7 @@ import {
   HttpStatus,
   InternalServerErrorException,
   NotFoundException,
+  ServiceUnavailableException,
   UnauthorizedException,
   UnprocessableEntityException,
 } from '@nestjs/common';
@@ -97,6 +99,38 @@ export class DomainError extends HttpException implements Branded {
 
   static internal(code: string, params: DomainErrorParams = {}): DomainError {
     return new DomainInternal(code, params) as unknown as DomainError;
+  }
+
+  static badGateway(code: string, params: DomainErrorParams = {}): DomainError {
+    return new DomainBadGateway(code, params) as unknown as DomainError;
+  }
+
+  static serviceUnavailable(code: string, params: DomainErrorParams = {}): DomainError {
+    return new DomainServiceUnavailable(code, params) as unknown as DomainError;
+  }
+}
+
+class DomainBadGateway extends BadGatewayException implements Branded {
+  code!: string;
+  params!: DomainErrorParams;
+  constructor(code: string, params: DomainErrorParams) {
+    super(body(code, params, HttpStatus.BAD_GATEWAY));
+    brand(this, code, params);
+  }
+  get messageKey(): string {
+    return `errors.${this.code}`;
+  }
+}
+
+class DomainServiceUnavailable extends ServiceUnavailableException implements Branded {
+  code!: string;
+  params!: DomainErrorParams;
+  constructor(code: string, params: DomainErrorParams) {
+    super(body(code, params, HttpStatus.SERVICE_UNAVAILABLE));
+    brand(this, code, params);
+  }
+  get messageKey(): string {
+    return `errors.${this.code}`;
   }
 }
 

@@ -1,4 +1,4 @@
-import { HttpStatus, Inject, Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { BlockchainService } from '../blockchain.service';
 import { GatewayContract, RegistratorContract, SovietContract, WalletContract } from 'cooptypes';
 import type { BlockchainAccountInterface } from '~/types/shared';
@@ -50,7 +50,7 @@ export class AccountBlockchainAdapter implements AccountBlockchainPort {
     }
 
     const wif = await this.vaultDomainService.getWif(config.coopname);
-    if (!wif) throw new DomainError('BLOCKCHAIN_PRIVATE_KEY_NOT_FOUND', {}, HttpStatus.BAD_GATEWAY);
+    if (!wif) throw DomainError.badGateway('BLOCKCHAIN_PRIVATE_KEY_NOT_FOUND');
 
     await this.blockchainService.initialize(config.coopname, wif);
 
@@ -212,7 +212,7 @@ export class AccountBlockchainAdapter implements AccountBlockchainPort {
 
   async exitCoop(data: import('~/domain/account/interfaces/account-blockchain.port').ExitCoopDomainInterface): Promise<void> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
-    if (!wif) throw new DomainError('BLOCKCHAIN_PRIVATE_KEY_NOT_FOUND', {}, HttpStatus.BAD_GATEWAY);
+    if (!wif) throw DomainError.badGateway('BLOCKCHAIN_PRIVATE_KEY_NOT_FOUND');
 
     await this.blockchainService.initialize(data.coopname, wif);
 
@@ -238,7 +238,7 @@ export class AccountBlockchainAdapter implements AccountBlockchainPort {
     // сервер не попадает. Полномочия верификатора проверены вызывающим сервисом,
     // а для участка их дополнительно проверяет контракт по таблице участка.
     const wif = await this.vaultDomainService.getWif(data.coopname);
-    if (!wif) throw new DomainError('BLOCKCHAIN_PRIVATE_KEY_NOT_FOUND', {}, HttpStatus.BAD_GATEWAY);
+    if (!wif) throw DomainError.badGateway('BLOCKCHAIN_PRIVATE_KEY_NOT_FOUND');
 
     await this.blockchainService.initialize(data.coopname, wif);
 
@@ -253,7 +253,7 @@ export class AccountBlockchainAdapter implements AccountBlockchainPort {
   // Отзыв верификации личности: решение председателя, подпись — кооператива.
   async unverifyAccount(data: RegistratorContract.Actions.UnverifyAccount.IUnverifyAccount): Promise<void> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
-    if (!wif) throw new DomainError('BLOCKCHAIN_PRIVATE_KEY_NOT_FOUND', {}, HttpStatus.BAD_GATEWAY);
+    if (!wif) throw DomainError.badGateway('BLOCKCHAIN_PRIVATE_KEY_NOT_FOUND');
 
     await this.blockchainService.initialize(data.coopname, wif);
 
@@ -268,7 +268,7 @@ export class AccountBlockchainAdapter implements AccountBlockchainPort {
   async addParticipantAccount(data: RegistratorContract.Actions.AddUser.IAddUser): Promise<void> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
 
-    if (!wif) throw new DomainError('BLOCKCHAIN_PRIVATE_KEY_NOT_FOUND', {}, HttpStatus.BAD_GATEWAY);
+    if (!wif) throw DomainError.badGateway('BLOCKCHAIN_PRIVATE_KEY_NOT_FOUND');
 
     await this.blockchainService.initialize(data.coopname, wif);
 

@@ -263,6 +263,8 @@ const EXCEPTION_FACTORY = {
   NotAcceptableException: 'badRequest',
   PreconditionFailedException: 'conflict',
   GoneException: 'notFound',
+  BadGatewayException: 'badGateway',
+  ServiceUnavailableException: 'serviceUnavailable',
   Error: 'internal',
 };
 
@@ -522,7 +524,7 @@ function applyCommand() {
       const paramsObj = exprs.length ? `, { ${exprs.map((e, i) => (e === paramNames[i] ? e : `${paramNames[i]}: ${e}`)).join(', ')} }` : '';
 
       // Отказ бэкенда: new XException('текст') → DomainError.x('КОД')
-      const STATUS_CLASS = { BadGatewayException: 'BAD_GATEWAY', ServiceUnavailableException: 'SERVICE_UNAVAILABLE', GatewayTimeoutException: 'GATEWAY_TIMEOUT' };
+      const STATUS_CLASS = { GatewayTimeoutException: 'GATEWAY_TIMEOUT' };
       const isError =
         owner.app === 'controller' &&
         f.origin !== 'template' &&
