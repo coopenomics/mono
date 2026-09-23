@@ -98,7 +98,9 @@ export function createMarketplaceEventsSubscription(): RealtimeSubscription {
       });
 
       return {
-        isAlive: () => alive,
+        // Жив и сокет, и сама операция: открытие сокета чужой подписки мёртвую
+        // операцию не оживляет — её канал переоткроет ядро.
+        isAlive: () => alive && stream.isActive(),
         close: () => {
           alive = false;
           if (catchUpTimer) {
