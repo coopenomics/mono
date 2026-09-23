@@ -39,7 +39,7 @@ q-page.edu-course-edit
 import { computed, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { asText } from 'src/shared/lib/utils';
-import { useFirstLoad } from 'src/shared/lib/composables';
+import { useFirstLoad, useFormDraft } from 'src/shared/lib/composables';
 import { FailAlert } from 'src/shared/api';
 import { BaseButton, CardListSkeleton, EmptyState } from 'src/shared/ui/base';
 import { VerticalStepper, type StepperStep } from 'src/shared/ui/domain';
@@ -63,7 +63,7 @@ const firstLoad = useFirstLoad(loading);
 const saving = ref(false);
 const formRef = ref<InstanceType<typeof CourseForm> | null>(null);
 
-provideCourseForm(() => course.value);
+const state = provideCourseForm(() => course.value);
 
 const steps: Array<StepperStep & { key: CourseFormSection }> = [
   { key: 'course', label: 'Курс', description: 'Название, предмет, расписание, описание и программа' },
@@ -107,8 +107,33 @@ function leave(): void {
 }
 
 function onSaved(saved: ICourse): void {
+  if (!isEdit.value) clearDraft();
   void router.push({ name: 'edubridge-admin-course', params: { coopname: route.params.coopname, id: asText(saved.id) } });
 }
+
+// Черновик нового курса: ушли со страницы или перезагрузили — введённое на
+// месте, вместе с шагом. Обложка не сохраняется: localStorage хранит только
+// текст. Стирается после добавления курса.
+const { clearDraft } = isEdit.value
+  ? { clearDraft: () => undefined }
+  : useFormDraft(
+      'edubridge:create-course-draft',
+      {
+        form: state.form,
+        lessonsPerMonth: state.lessonsPerMonth,
+        lessonsTotal: state.lessonsTotal,
+        lessonMinutes: state.lessonMinutes,
+        plannedRate: state.plannedRate,
+        guaranteeDays: state.guaranteeDays,
+        coursePayment: state.coursePayment,
+        courseDiscount: state.courseDiscount,
+        skillspaceCourseId: state.skillspaceCourseId,
+        skillspaceGroupId: state.skillspaceGroupId,
+        activeKey,
+        visited,
+      },
+      { restoreOnMount: true },
+    );
 
 onMounted(async () => {
   if (!isEdit.value) return;

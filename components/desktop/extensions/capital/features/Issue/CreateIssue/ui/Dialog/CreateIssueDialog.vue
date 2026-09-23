@@ -75,7 +75,8 @@ import { useRoute, useRouter } from 'vue-router';
 import { CreateDialog } from 'src/shared/ui/CreateDialog';
 import { BaseInput, BaseSelect, BaseCheckbox } from 'src/shared/ui/base';
 import { Zeus } from '@coopenomics/sdk';
-import { getIssueStatusLabel, capitalRouteName, useFormDraft, ISSUE_PRIORITY_OPTIONS } from 'app/extensions/capital/shared/lib';
+import { getIssueStatusLabel, capitalRouteName, ISSUE_PRIORITY_OPTIONS } from 'app/extensions/capital/shared/lib';
+import { useFormDraft } from 'src/shared/lib/composables';
 import { useCreateIssue, useIssueTargets, type ICreateIssueInput } from '../../model';
 import { FailAlert, SuccessAlert } from 'src/shared/api/alerts';
 
@@ -131,7 +132,7 @@ const estimateError = ref('');
 
 // Черновик переживает случайное закрытие диалога (клик мимо, Esc);
 // стирается только после успешного создания
-const { clearDraft } = useFormDraft('issue', {
+const { clearDraft } = useFormDraft('capital_form_draft_issue', {
   form: formData,
   component: selectedComponentHash,
 });

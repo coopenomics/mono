@@ -34,7 +34,7 @@ import { useSystemStore } from 'src/entities/System/model';
 import { generateUniqueHash } from 'src/shared/lib/utils/generateUniqueHash';
 import { CreateDialog } from 'src/shared/ui/CreateDialog';
 import { BaseInput } from 'src/shared/ui/base';
-import { useFormDraft } from 'app/extensions/capital/shared/lib';
+import { useFormDraft } from 'src/shared/lib/composables';
 import { useCreateProject, type ICreateProjectInput } from '../../model';
 import { FailAlert, SuccessAlert } from 'src/shared/api/alerts';
 
@@ -67,7 +67,7 @@ const titleError = ref('');
 // Черновик переживает случайное закрытие диалога (клик мимо, Esc);
 // стирается только после успешного создания
 const { clearDraft } = useFormDraft(
-  props.local ? 'project-local' : 'project',
+  props.local ? 'capital_form_draft_project-local' : 'capital_form_draft_project',
   { form: formData },
 );
 

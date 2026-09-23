@@ -204,7 +204,10 @@ function useAccess(form: CourseFormFields) {
     () => platformCourses.value.find((c) => c.id === skillspaceCourseId.value)?.groups.map((g) => ({ value: g.id, label: g.name })) ?? [],
   );
 
+  // Группа чужого курса сбрасывается, но только когда реестр школы уже пришёл:
+  // курс и группа из сохранённого курса или черновика ставятся раньше реестра.
   watch(skillspaceCourseId, () => {
+    if (!platformCourses.value.length) return;
     if (!platformGroupOptions.value.some((g) => g.value === skillspaceGroupId.value)) skillspaceGroupId.value = null;
   });
   watch([skillspaceCourseId, skillspaceGroupId], ([course, group]) => {

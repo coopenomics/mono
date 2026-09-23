@@ -19,6 +19,7 @@ sources:
     - components/desktop/extensions/edubridge/pages/AdminCoursesPage/**
     - components/desktop/extensions/edubridge/pages/CourseCardPage/**
     - components/desktop/extensions/edubridge/widgets/CourseForm/**
+    - components/desktop/extensions/edubridge/pages/AdminCourseEditPage/**
     - components/desktop/extensions/edubridge/entities/Course/**
 
 cases:
@@ -104,5 +105,12 @@ cases:
     kind: happy
     scenario: "Стол ученика: каталог с фильтрами предмет/класс, карточки с обложкой или заглушкой; страница курса с обложкой и условиями участия; конструктор курса (стол администратора) загружает обложку через FileUploader с превью и снятием; таблица курсов с миниатюрой без наезжающих колонок."
     expect: "Столы называются «Стол администратора», «Стол ученика», «Стол преподавателя»; каталог — в столе ученика."
+    test: ~
+    status: missing
+  - id: edu.catalog.ui.03
+    level: ui
+    kind: side
+    scenario: "Администратор заполняет новый курс (название, предмет, экономику, привязку Skillspace с группой), уходит со страницы или перезагружает её и возвращается на «Новый курс»."
+    expect: "Поля, привязка с группой и шаг на месте; обложку нужно выбрать заново; после «Добавить курс» черновик стирается, правка существующего курса черновик не пишет."
     test: ~
     status: missing
