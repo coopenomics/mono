@@ -6842,8 +6842,12 @@ export type ValueTypes = {
 	["EduAssignment"]: AliasType<{
 	/** Хеш подписанного приложения к договору */
 	annex_hash?:boolean | `@${string}`,
+	/** Описание курса */
+	course_description?:boolean | `@${string}`,
 	/** Курс */
 	course_id?:boolean | `@${string}`,
+	/** Учебная программа курса */
+	course_syllabus?:boolean | `@${string}`,
 	/** Название курса */
 	course_title?:boolean | `@${string}`,
 	created_at?:boolean | `@${string}`,
@@ -23966,8 +23970,12 @@ export type ResolverInputTypes = {
 	["EduAssignment"]: AliasType<{
 	/** Хеш подписанного приложения к договору */
 	annex_hash?:boolean | `@${string}`,
+	/** Описание курса */
+	course_description?:boolean | `@${string}`,
 	/** Курс */
 	course_id?:boolean | `@${string}`,
+	/** Учебная программа курса */
+	course_syllabus?:boolean | `@${string}`,
 	/** Название курса */
 	course_title?:boolean | `@${string}`,
 	created_at?:boolean | `@${string}`,
@@ -40567,8 +40575,12 @@ export type ModelTypes = {
 	["EduAssignment"]: {
 		/** Хеш подписанного приложения к договору */
 	annex_hash?: string | undefined | null,
+	/** Описание курса */
+	course_description: string,
 	/** Курс */
 	course_id: ModelTypes["ID"],
+	/** Учебная программа курса */
+	course_syllabus: string,
 	/** Название курса */
 	course_title: string,
 	created_at: ModelTypes["DateTime"],
@@ -57587,8 +57599,12 @@ export type GraphQLTypes = {
 	__typename: "EduAssignment",
 	/** Хеш подписанного приложения к договору */
 	annex_hash?: string | undefined | null,
+	/** Описание курса */
+	course_description: string,
 	/** Курс */
 	course_id: GraphQLTypes["ID"],
+	/** Учебная программа курса */
+	course_syllabus: string,
 	/** Название курса */
 	course_title: string,
 	created_at: GraphQLTypes["DateTime"],

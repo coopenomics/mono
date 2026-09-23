@@ -68,6 +68,8 @@ export class EduAssignmentDTO {
   @Field(() => String, { description: 'Преподаватель' }) teacher_username!: string;
   @Field(() => ID, { description: 'Курс' }) course_id!: string;
   @Field(() => String, { description: 'Название курса' }) course_title!: string;
+  @Field(() => String, { description: 'Описание курса' }) course_description!: string;
+  @Field(() => String, { description: 'Учебная программа курса' }) course_syllabus!: string;
   @Field(() => String, { description: 'Расписание' }) schedule!: string;
   @Field(() => String, { description: 'Ожидаемый результат' }) expected_result!: string;
   @Field(() => String, { description: 'Период сдачи — начало' }) period_from!: string;
@@ -78,11 +80,14 @@ export class EduAssignmentDTO {
   @Field(() => String, { description: 'Причина отказа председателя в подписи приложения (если отказал)' }) decline_reason!: string;
   @Field(() => Date) created_at!: Date;
 
-  constructor(e: EdubridgeTeacherAssignmentEntity, courseTitle: string) {
+  /** Курс назначения: преподаватель читает его программу, не переходя на стол ученика. */
+  constructor(e: EdubridgeTeacherAssignmentEntity, course: { title?: string; description?: string; syllabus?: string } | null | undefined) {
     this.id = e.id;
     this.teacher_username = e.teacher_username;
     this.course_id = e.course_id;
-    this.course_title = courseTitle;
+    this.course_title = course?.title ?? '';
+    this.course_description = course?.description ?? '';
+    this.course_syllabus = course?.syllabus ?? '';
     this.schedule = e.schedule;
     this.expected_result = e.expected_result;
     this.period_from = e.period_from;

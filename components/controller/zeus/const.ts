@@ -5749,7 +5749,9 @@ export const ReturnTypes: Record<string,any> = {
 	},
 	EduAssignment:{
 		annex_hash:"String",
+		course_description:"String",
 		course_id:"ID",
+		course_syllabus:"String",
 		course_title:"String",
 		created_at:"DateTime",
 		decline_reason:"String",

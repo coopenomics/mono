@@ -10,6 +10,8 @@ const rawAssignmentSelector = {
   teacher_username: true,
   course_id: true,
   course_title: true,
+  course_description: true,
+  course_syllabus: true,
   schedule: true,
   expected_result: true,
   period_from: true,

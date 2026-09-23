@@ -732,19 +732,29 @@ describe('Черновики назначений по списку «Курс �
 });
 
 describe('EduAssignmentDTO — назначение в ответе API', () => {
+  const course = { title: 'Алгебра', description: 'Про уравнения', syllabus: '1. Линейные уравнения' };
   const entity = { id: 'A1', teacher_username: 'teach', course_id: 'C1', schedule: 'Вт', expected_result: 'Занятия', period_from: '2026-09-23', period_to: '2027-05-22', annex_hash: null, minutes_per_month: 480, status: EduAssignmentStatus.DRAFT, created_at: new Date('2026-09-23') } as any;
 
   it('причина отказа всегда строка: пусто, пока председатель не отказывал, — иначе запрос назначений падал целиком', () => {
-    expect(new EduAssignmentDTO({ ...entity, decline_reason: '' }, 'Алгебра').decline_reason).toBe('');
-    expect(new EduAssignmentDTO({ ...entity, decline_reason: undefined }, 'Алгебра').decline_reason).toBe('');
-    expect(new EduAssignmentDTO({ ...entity, decline_reason: 'Не то расписание' }, 'Алгебра').decline_reason).toBe('Не то расписание');
+    expect(new EduAssignmentDTO({ ...entity, decline_reason: '' }, course).decline_reason).toBe('');
+    expect(new EduAssignmentDTO({ ...entity, decline_reason: undefined }, course).decline_reason).toBe('');
+    expect(new EduAssignmentDTO({ ...entity, decline_reason: 'Не то расписание' }, course).decline_reason).toBe('Не то расписание');
   });
 
   it('обязательные поля схемы назначения заполнены', () => {
-    const dto = new EduAssignmentDTO({ ...entity, decline_reason: '' }, 'Алгебра') as unknown as Record<string, unknown>;
-    for (const field of ['id', 'teacher_username', 'course_id', 'course_title', 'schedule', 'expected_result', 'period_from', 'period_to', 'minutes_per_month', 'status', 'decline_reason', 'created_at']) {
+    const dto = new EduAssignmentDTO({ ...entity, decline_reason: '' }, course) as unknown as Record<string, unknown>;
+    for (const field of ['id', 'teacher_username', 'course_id', 'course_title', 'course_description', 'course_syllabus', 'schedule', 'expected_result', 'period_from', 'period_to', 'minutes_per_month', 'status', 'decline_reason', 'created_at']) {
       expect(dto[field]).not.toBeUndefined();
     }
+  });
+
+  it('программа и описание курса — в назначении: преподаватель читает их на своём столе; курса нет — пусто', () => {
+    const dto = new EduAssignmentDTO({ ...entity, decline_reason: '' }, course);
+    expect(dto.course_title).toBe('Алгебра');
+    expect(dto.course_syllabus).toBe('1. Линейные уравнения');
+    expect(dto.course_description).toBe('Про уравнения');
+    const orphan = new EduAssignmentDTO({ ...entity, decline_reason: '' }, null);
+    expect([orphan.course_title, orphan.course_syllabus, orphan.course_description]).toEqual(['', '', '']);
   });
 });
 

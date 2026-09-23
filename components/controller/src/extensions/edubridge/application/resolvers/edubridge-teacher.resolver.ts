@@ -68,7 +68,7 @@ export class EdubridgeTeacherResolver {
   @RequireEduAccess('EduAssignment', 'read:own')
   async edubridgeMyAssignments(@CurrentEduMember() m: IEdubridgeMembership): Promise<EduAssignmentDTO[]> {
     const rows = await this.teachers.listAssignments(coop(), m.username as string);
-    return rows.map(({ assignment, course }) => new EduAssignmentDTO(assignment, course?.title ?? ''));
+    return rows.map(({ assignment, course }) => new EduAssignmentDTO(assignment, course));
   }
 
   @Mutation(() => EduAssignmentDTO, { name: 'edubridgeSignAnnex', description: 'Подписать приложение к договору по курсу' })
@@ -76,8 +76,9 @@ export class EdubridgeTeacherResolver {
   @RequireEduAccess('EduAssignment', 'read:own')
   async edubridgeSignAnnex(@CurrentEduMember() m: IEdubridgeMembership, @Args('data') data: EduSignAnnexInputDTO): Promise<EduAssignmentDTO> {
     const a = await this.teachers.signAnnex(coop(), m.username as string, data.assignment_id, data.document);
-    const [row] = await this.teachers.listAssignments(coop(), m.username as string);
-    return new EduAssignmentDTO(a, row?.course?.title ?? '');
+    // Курс — подписанного назначения, а не первого в списке преподавателя.
+    const rows = await this.teachers.listAssignments(coop(), m.username as string);
+    return new EduAssignmentDTO(a, rows.find((r) => r.assignment.id === a.id)?.course);
   }
 
   @Query(() => [EduContributionDTO], { name: 'edubridgeMyContributions', description: 'Мои взносы результатами работы' })
@@ -184,7 +185,7 @@ export class EdubridgeTeacherResolver {
   @RequireEduAccess('EduAssignment', 'read:all')
   async edubridgeAssignments(): Promise<EduAssignmentDTO[]> {
     const rows = await this.teachers.listAssignments(coop());
-    return rows.map(({ assignment, course }) => new EduAssignmentDTO(assignment, course?.title ?? ''));
+    return rows.map(({ assignment, course }) => new EduAssignmentDTO(assignment, course));
   }
 
   @Mutation(() => EduAssignmentDTO, { name: 'edubridgeCreateAssignment', description: 'Назначить преподавателю курс, расписание, ожидаемый результат и период сдачи' })
@@ -193,7 +194,7 @@ export class EdubridgeTeacherResolver {
   async edubridgeCreateAssignment(@Args('data') data: EduAssignmentInputDTO): Promise<EduAssignmentDTO> {
     const a = await this.teachers.createAssignment(coop(), data);
     const rows = await this.teachers.listAssignments(coop(), a.teacher_username);
-    return new EduAssignmentDTO(a, rows.find((r) => r.assignment.id === a.id)?.course?.title ?? '');
+    return new EduAssignmentDTO(a, rows.find((r) => r.assignment.id === a.id)?.course);
   }
 
   @Mutation(() => EduAssignmentDTO, { name: 'edubridgeCloseAssignment', description: 'Закрыть назначение' })
@@ -201,7 +202,8 @@ export class EdubridgeTeacherResolver {
   @RequireEduAccess('EduAssignment', 'manage')
   async edubridgeCloseAssignment(@Args('id', { type: () => ID }) id: string): Promise<EduAssignmentDTO> {
     const a = await this.teachers.closeAssignment(coop(), id);
-    return new EduAssignmentDTO(a, '');
+    const rows = await this.teachers.listAssignments(coop(), a.teacher_username);
+    return new EduAssignmentDTO(a, rows.find((r) => r.assignment.id === a.id)?.course);
   }
 
   @Mutation(() => EduTeacherContractDTO, {
