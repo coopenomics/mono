@@ -9,7 +9,7 @@ import { SegmentRepository, SEGMENT_REPOSITORY } from '../../domain/repositories
 import { SegmentDeltaMapper } from '../../infrastructure/blockchain/mappers/segment-delta.mapper';
 import type { ISegmentBlockchainData } from '../../domain/interfaces/segment-blockchain.interface';
 import { CapitalBlockchainPort, CAPITAL_BLOCKCHAIN_PORT } from '../../domain/interfaces/capital-blockchain.port';
-import { waitAfterTransactBeforeChainTableRead, getAppliedBlockNum } from '@coopenomics/extension-kit';
+import { getAppliedBlockNum } from '@coopenomics/extension-kit';
 
 /**
  * Сервис синхронизации сегментов с блокчейном
@@ -64,7 +64,6 @@ export class SegmentSyncService
     username: string,
     transactResult: InnerTransactResult
   ): Promise<SegmentDomainEntity | null> {
-    await waitAfterTransactBeforeChainTableRead();
     // Извлекаем данные сегмента из блокчейна по комбинированному индексу
     const blockchainSegment = await this.capitalBlockchainPort.getSegmentByProjectUser(coopname, projectHash, username);
 

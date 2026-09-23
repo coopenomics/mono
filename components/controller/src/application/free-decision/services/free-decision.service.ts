@@ -11,15 +11,6 @@ import type { GeneratedDocumentDTO } from '@coopenomics/extension-kit';
 import { AgendaService } from '~/application/agenda/services/agenda.service';
 import type { AgendaWithDocumentsDTO } from '~/application/agenda/dto/agenda-with-documents.dto';
 
-// Повестка собирается join'ом таблицы decisions из блокчейна (доступна сразу)
-// с проиндексированными парсером действием newsubmitted и документом-заявлением.
-// Решение появляется на чейне мгновенно, но индексация парсером action'а занимает
-// ~2 c — поэтому опрашиваем повестку короткими тиками, пока вопрос не соберётся,
-// и возвращаем его фронту немедленно (без ожидания общего поллинга страницы).
-const PUBLISH_FETCH_DELAY_MS = 400;
-const PUBLISH_FETCH_ATTEMPTS = 13; // ~5 c суммарно — запас над типичными ~2 c
-
-const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
 @Injectable()
 export class FreeDecisionService {
@@ -56,16 +47,10 @@ export class FreeDecisionService {
     // перепутать, и матч по doc_hash молча никогда не сработает.
     const hash = data.document.hash;
 
-    let item: AgendaWithDocumentsDTO | null = null;
-    for (let attempt = 0; attempt < PUBLISH_FETCH_ATTEMPTS; attempt++) {
-      item = await this.agendaService.getAgendaItemByHash(hash);
-      if (item) break;
-      await sleep(PUBLISH_FETCH_DELAY_MS);
-    }
-
-    // null допустим: если парсер не успел проиндексировать — фронт покажет вопрос
-    // на ближайшем тике поллинга (деградация, не ошибка).
-    return item;
+    // Публикация вернулась после разбора своего блока: решение в цепи, действие
+    // newsubmitted сохранено узлом — вопрос собирается одним чтением. null —
+    // только если узел не дождался блока в пределе; стол догонит по ленте.
+    return this.agendaService.getAgendaItemByHash(hash);
   }
 
   public async createProjectOfFreeDecision(data: CreateProjectFreeDecisionInputDTO): Promise<CreatedProjectFreeDecisionDTO> {

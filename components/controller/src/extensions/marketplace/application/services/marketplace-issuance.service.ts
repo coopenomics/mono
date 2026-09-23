@@ -23,7 +23,7 @@ import {
   type ISovietRobotPort,
   type ISignedDocument,
 } from '@coopenomics/innercoop';
-import { SignedDigitalDocumentInputDTO } from '@coopenomics/extension-kit';
+import { SignedDigitalDocumentInputDTO, waitForEvent } from '@coopenomics/extension-kit';
 import { MARKETPLACE_ASSET_CONFIG, type MarketplaceAssetConfig } from './marketplace-asset.config';
 import {
   MARKETPLACE_ORDER_REPOSITORY,
@@ -131,9 +131,6 @@ export interface MarketplaceIssuanceCloseInput {
 
 /** Сколько ждать робота решений совета у стойки, прежде чем отпустить мутацию в режим ожидания. */
 const ROBOT_WAIT_MS = 12_000;
-/** Сколько ждать материализации решения в цепи после issuestmt (парсер и узел). */
-const DECISION_LOOKUP_ATTEMPTS = 6;
-const DECISION_LOOKUP_DELAY_MS = 700;
 
 /**
  * Выдача имущества в паевой модели (компонент 68, задачи 99D-6/99D-7).
@@ -493,27 +490,24 @@ export class MarketplaceIssuanceService {
 
   /**
    * Номер решения совета по заявлению: читается из цепи по хэшу повестки
-   * (= order_hash) с короткими повторами — узел материализует строку в тот
-   * же блок, но чтение через парсер может отставать на секунду-другую.
+   * (= order_hash). Повестку ставит контракт инлайн в той же транзакции, а
+   * транзакция вернулась после разбора своего блока — одно чтение.
    * Сага → DECISION_PENDING. Без номера остаёмся в STATEMENT_SIGNED: сторож
    * дочитает позже.
    */
   async attachDecision(saga: MarketplaceIssuanceSagaDomainEntity): Promise<MarketplaceIssuanceSagaDomainEntity> {
     if (saga.stage !== MarketplaceIssuanceSagaStages.STATEMENT_SIGNED) return saga;
-    for (let i = 0; i < DECISION_LOOKUP_ATTEMPTS; i++) {
-      const decision = await this.chainPort.findCouncilDecisionByHash(saga.coopname, saga.order_hash).catch(() => null);
-      if (decision) {
-        const moved = await this.sagaRepo.transition(saga.id, MarketplaceIssuanceSagaStages.STATEMENT_SIGNED, {
-          stage: MarketplaceIssuanceSagaStages.DECISION_PENDING,
-          decision_id: String(decision.id),
-        });
-        if (moved) {
-          this.emitSagaUpdated(moved);
-          return moved;
-        }
-        return (await this.sagaRepo.findById(saga.id)) ?? saga;
+    const decision = await this.chainPort.findCouncilDecisionByHash(saga.coopname, saga.order_hash).catch(() => null);
+    if (decision) {
+      const moved = await this.sagaRepo.transition(saga.id, MarketplaceIssuanceSagaStages.STATEMENT_SIGNED, {
+        stage: MarketplaceIssuanceSagaStages.DECISION_PENDING,
+        decision_id: String(decision.id),
+      });
+      if (moved) {
+        this.emitSagaUpdated(moved);
+        return moved;
       }
-      await this.sleep(DECISION_LOOKUP_DELAY_MS);
+      return (await this.sagaRepo.findById(saga.id)) ?? saga;
     }
     this.logger.warn(`Сага ${saga.id}: решение совета по заявлению ещё не видно в цепи — дочитает сторож.`);
     return saga;
@@ -1203,15 +1197,30 @@ export class MarketplaceIssuanceService {
     }
   }
 
+  /**
+   * Ждём, пока сага дойдёт до одного из `stages`: робот совета решает своей
+   * транзакцией, обратный вызов переводит сагу и сообщает об этом событием.
+   * Подписка — до чтения, чтобы событие между чтением и подпиской не
+   * потерялось; по пределу — сага как есть.
+   */
   private async waitForStage(saga_id: string, stages: MarketplaceIssuanceSagaStage[], timeoutMs: number): Promise<MarketplaceIssuanceSagaDomainEntity> {
-    const deadline = Date.now() + timeoutMs;
-    let last = await this.sagaRepo.findById(saga_id);
-    while (last && !stages.includes(last.stage) && Date.now() < deadline) {
-      await this.sleep(500);
-      last = await this.sagaRepo.findById(saga_id);
+    const reached = waitForEvent<MarketplaceIssuanceSagaUpdatedEvent>(
+      this.eventBus,
+      MARKETPLACE_ISSUANCE_SAGA_UPDATED_EVENT,
+      (e) => e.saga_id === saga_id && stages.includes(e.stage as MarketplaceIssuanceSagaStage),
+      timeoutMs
+    );
+    const current = await this.sagaRepo.findById(saga_id);
+    if (!current) {
+      reached.cancel();
+      throw new NotFoundException('Сага выдачи не найдена.');
     }
-    if (!last) throw new NotFoundException('Сага выдачи не найдена.');
-    return last;
+    if (stages.includes(current.stage)) {
+      reached.cancel();
+      return current;
+    }
+    await reached.promise;
+    return (await this.sagaRepo.findById(saga_id)) ?? current;
   }
 
   private emitSagaUpdated(saga: MarketplaceIssuanceSagaDomainEntity): void {
@@ -1284,9 +1293,6 @@ export class MarketplaceIssuanceService {
     return err instanceof Error ? err.message : String(err);
   }
 
-  private sleep(ms: number): Promise<void> {
-    return new Promise((r) => setTimeout(r, ms));
-  }
 }
 
 export const MARKETPLACE_ISSUANCE_SERVICE = Symbol('MARKETPLACE_ISSUANCE_SERVICE');

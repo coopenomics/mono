@@ -65,8 +65,7 @@ export class MeetInteractor {
     // Вызов блокчейн порта для создания собрания
     await this.meetBlockchainPort.createMeet({ ...data, hash });
 
-    // Задержка синхронизации на 1 секунду, чтобы избежать ошибки "row not found"
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    // Транзакция вернулась после разбора своего блока — строка собрания уже в цепи.
     // Получаем обновленные данные из блокчейна
     const processingData = await this.meetBlockchainPort.getMeet({
       coopname: data.coopname,

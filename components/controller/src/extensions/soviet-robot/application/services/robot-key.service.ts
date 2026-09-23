@@ -116,6 +116,8 @@ export class RobotKeyService {
    */
   private async waitPermissionKeys(member: string, permission_name: string): Promise<string[]> {
     for (let attempt = 0; attempt < RobotKeyService.PERMISSION_READ_ATTEMPTS; attempt += 1) {
+      // timing: timeout — ждём чужую транзакцию: разрешение выпускает член совета
+      // из своего кошелька, узел событий о нём не даёт — короткие перечитывания.
       if (attempt > 0) await new Promise((resolve) => setTimeout(resolve, RobotKeyService.PERMISSION_READ_PAUSE_MS));
       const keys = await this.permissionKeys(member, permission_name);
       if (keys) return keys;

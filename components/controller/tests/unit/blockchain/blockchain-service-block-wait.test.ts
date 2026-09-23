@@ -27,7 +27,7 @@ const ACTION = { account: 'wallet', name: 'deposit', authorization: [{ actor: 'v
 const RESULT = { response: { processed: { block_num: 777 } } };
 
 function build(opts: { processed?: boolean; withGate?: boolean; result?: unknown } = {}) {
-  const logger = { debug: jest.fn(), warn: jest.fn(), setContext: jest.fn() } as any;
+  const logger = { debug: jest.fn(), info: jest.fn(), warn: jest.fn(), setContext: jest.fn() } as any;
   const gate = { waitProcessed: jest.fn().mockResolvedValue(opts.processed ?? true) } as any;
   const service = new BlockchainService(
     logger,

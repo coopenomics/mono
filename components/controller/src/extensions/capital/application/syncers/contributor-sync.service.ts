@@ -9,7 +9,7 @@ import { ContributorRepository, CONTRIBUTOR_REPOSITORY } from '../../domain/repo
 import { ContributorDeltaMapper } from '../../infrastructure/blockchain/mappers/contributor-delta.mapper';
 import type { IContributorBlockchainData } from '../../domain/interfaces/contributor-blockchain.interface';
 import { CapitalBlockchainPort, CAPITAL_BLOCKCHAIN_PORT } from '../../domain/interfaces/capital-blockchain.port';
-import { waitAfterTransactBeforeChainTableRead, getAppliedBlockNum } from '@coopenomics/extension-kit';
+import { getAppliedBlockNum } from '@coopenomics/extension-kit';
 
 /**
  * Сервис синхронизации участников с блокчейном
@@ -64,7 +64,6 @@ export class ContributorSyncService
     username: string,
     transactResult: InnerTransactResult
   ): Promise<ContributorDomainEntity | null> {
-    await waitAfterTransactBeforeChainTableRead();
     // Извлекаем данные участника из блокчейна
     const blockchainContributor = await this.capitalBlockchainPort.getContributor(coopname, username);
 

@@ -15,7 +15,7 @@ export * from './constants';
 export * from './payments';
 export * from './quantity.utils';
 export * from './date-utils';
-export * from './post-transact-chain-read-delay';
+export * from './wait-for-event';
 export * from './transact-block-num';
 export * from './hash.utils';
 export * from './currency-validation.utils';

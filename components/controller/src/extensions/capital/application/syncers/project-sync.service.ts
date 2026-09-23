@@ -15,7 +15,7 @@ import { ComponentMatrixAnnouncementService } from '../services/component-matrix
 import { ContentRevisionService } from '../services/content-revision.service';
 import { ContentEntityType } from '../../domain/enums/content-entity-type.enum';
 import { ContentRevisionOrigin } from '../../domain/enums/content-revision-origin.enum';
-import { waitAfterTransactBeforeChainTableRead, getAppliedBlockNum } from '@coopenomics/extension-kit';
+import { getAppliedBlockNum } from '@coopenomics/extension-kit';
 import { CAPITAL_PROJECT_CREATED_EVENT, type ICapitalProjectCreatedPayload } from '@coopenomics/innercoop';
 
 /**
@@ -103,7 +103,6 @@ export class ProjectSyncService
     project_hash: string,
     transactResult: InnerTransactResult
   ): Promise<ProjectDomainEntity | null> {
-    await waitAfterTransactBeforeChainTableRead();
     // Извлекаем данные проекта из блокчейна
     const blockchainProject = await this.capitalBlockchainPort.getProject(coopname, project_hash);
 

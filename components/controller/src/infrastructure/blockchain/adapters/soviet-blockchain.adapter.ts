@@ -5,7 +5,7 @@ import { TransactResult, UInt64 } from '@wharfkit/session';
 import { VaultDomainService, VAULT_DOMAIN_SERVICE } from '~/domain/vault/services/vault-domain.service';
 import { Inject } from '@nestjs/common';
 import httpStatus from 'http-status';
-import { HttpApiError, waitAfterTransactBeforeChainTableRead } from '@coopenomics/extension-kit';
+import { HttpApiError } from '@coopenomics/extension-kit';
 import type {
   EnsureProgramParams,
   EnsureProgramResult,
@@ -124,9 +124,7 @@ export class SovietBlockchainAdapter implements SovietBlockchainPort {
     });
 
     // program_id и шаблон оферты назначает сам контракт по своему реестру ЦПП —
-    // перечитываем. Пауза обязательна: на узле-последователе строка появляется
-    // в chain state позже ответа RPC.
-    await waitAfterTransactBeforeChainTableRead();
+    // перечитываем. transact вернулся после разбора блока: строка уже видна.
     const created = await this.getCoagreement(coopname, type);
     return { created: true, program_id: created ? Number(created.program_id) : 0 };
   }

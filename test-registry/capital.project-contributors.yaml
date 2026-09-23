@@ -26,6 +26,11 @@ title: Список участников проекта и компонента
 #
 # Тот же источник долей читает стол «Результаты» — но по участнику, а не по
 # проекту, и с контекстом проекта в строке (test-registry/capital.results-desk.yaml).
+#
+# Правка 23.09.2026 (7DD-22): пауза waitAfterTransactBeforeChainTableRead
+# (1 с перед чтением таблицы цепи после транзакции) снята — transact
+# возвращается после разбора своего блока, строка уже видна.
+
 sources:
   contract:
     - components/contracts/cpp/capital/app/project_managment/add_author/**
@@ -396,4 +401,10 @@ cases:
       через самообход
     test: components/controller/tests/unit/auth/roles-guard-allow-self.test.ts
     status: passing
-
+  - id: capital.pc.side.fact-01
+    level: backend
+    kind: side
+    scenario: "После транзакции строка сегмента читается из таблицы цепи."
+    expect: "Чтение сразу, без паузы: transact вернулся, когда узел разобрал блок транзакции."
+    test: components/controller/tests/unit/blockchain/blockchain-service-block-wait.test.ts
+    status: passing
