@@ -1,6 +1,20 @@
 /* eslint-disable node/prefer-global/process */
 import { Client } from 'pg'
 
+/**
+ * Таблицу создают миграции схемы контроллера, а не boot: засев только пишет
+ * строки. Скрипты перезапуска стенда накатывают схему до boot
+ * (`stack_migrate_schema`); запущенный отдельно boot без схемы говорит, что делать.
+ */
+async function requireTable(client: Client, table: string): Promise<void> {
+  const result = await client.query('SELECT to_regclass($1) AS relation', [`public.${table}`])
+  if (!result.rows[0]?.relation) {
+    throw new Error(
+      `Таблицы ${table} нет — сначала примените миграции схемы: pnpm -F @coopenomics/controller run schema:migrate`,
+    )
+  }
+}
+
 export async function initSystemStatus() {
   console.log('Инициализация статуса системы для coopname: voskhod')
 
@@ -16,30 +30,7 @@ export async function initSystemStatus() {
     await client.connect()
     console.log('Подключение к PostgreSQL установлено для initSystemStatus')
 
-    // Создаем enum тип для статуса системы
-    try {
-      await client.query(`
-        CREATE TYPE public.system_status_status_enum AS ENUM ('install', 'initialized', 'active', 'maintenance')
-      `)
-    }
-    catch (error) {
-      // Тип уже существует, продолжаем
-      console.log('Enum тип system_status_status_enum уже существует, пропускаем создание')
-    }
-
-    // Создаем таблицу system_status правильно, как в TypeORM entity
-    await client.query(`
-      CREATE TABLE IF NOT EXISTS public.system_status (
-        coopname varchar(12) NOT NULL,
-        install_code varchar(255) NULL,
-        install_code_expires_at timestamp NULL,
-        init_by_server bool NOT NULL DEFAULT false,
-        created_at timestamp NOT NULL DEFAULT now(),
-        updated_at timestamp NOT NULL DEFAULT now(),
-        status public.system_status_status_enum NOT NULL DEFAULT 'install'::system_status_status_enum,
-        CONSTRAINT system_status_pkey PRIMARY KEY (coopname)
-      )
-    `)
+    await requireTable(client, 'system_status')
 
     try {
     // Устанавливаем начальный статус для voskhod (active - система готова к работе)
@@ -95,28 +86,7 @@ export async function initUsersInPostgres(
     await client.connect()
     console.log('Подключение к PostgreSQL установлено для инициализации пользователей')
 
-    // Создаем таблицу users, если она не существует
-    await client.query(`
-      CREATE TABLE IF NOT EXISTS "users" (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        username VARCHAR(50) UNIQUE NOT NULL,
-        status VARCHAR(20) DEFAULT 'created',
-        message TEXT DEFAULT '',
-        is_registered BOOLEAN DEFAULT FALSE,
-        has_account BOOLEAN DEFAULT FALSE,
-        type VARCHAR(20) NOT NULL,
-        public_key TEXT DEFAULT '',
-        referer VARCHAR(100) DEFAULT '',
-        email VARCHAR(255),
-        role VARCHAR(20) DEFAULT 'user',
-        is_email_verified BOOLEAN DEFAULT FALSE,
-        subscriber_id VARCHAR(100) DEFAULT '',
-        subscriber_hash VARCHAR(255) DEFAULT '',
-        legacy_mongo_id VARCHAR(50),
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `)
+    await requireTable(client, 'users')
 
     // Создаем пользователей
     for (const user of users) {
@@ -256,22 +226,7 @@ export async function initVaultInPostgres() {
     await client.connect()
     console.log('Подключение к PostgreSQL установлено для инициализации vault')
 
-    // Создаем таблицу vaults, если она не существует
-    await client.query(`
-      CREATE TABLE IF NOT EXISTS "vaults" (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        username VARCHAR(50) NOT NULL,
-        permission VARCHAR(20) DEFAULT 'active',
-        wif TEXT NOT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        UNIQUE(username, permission)
-      )
-    `)
-
-    // Создаем индексы
-    await client.query(`CREATE INDEX IF NOT EXISTS idx_vaults_username ON "vaults"(username)`)
-    await client.query(`CREATE INDEX IF NOT EXISTS idx_vaults_username_permission ON "vaults"(username, permission)`)
+    await requireTable(client, 'vaults')
 
     // Сохраняем зашифрованный ключ в vault
     await client.query(`
@@ -308,21 +263,7 @@ export async function initExtensionsInPostgres() {
     await client.connect()
     console.log('Подключение к PostgreSQL установлено для инициализации extensions')
 
-    // Создаем таблицу extensions по аналогии с ExtensionEntity
-    await client.query(`
-      CREATE TABLE IF NOT EXISTS "extensions" (
-        name VARCHAR(12) PRIMARY KEY,
-        enabled BOOLEAN DEFAULT true,
-        config JSONB DEFAULT '{}',
-        schema_version INTEGER DEFAULT 1,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `)
-
-    // Создаем индексы
-    await client.query(`CREATE INDEX IF NOT EXISTS idx_extensions_name ON "extensions"(name)`)
-    await client.query(`CREATE INDEX IF NOT EXISTS idx_extensions_enabled ON "extensions"(enabled)`)
+    await requireTable(client, 'extensions')
 
     // Вставляем запись для capital extension
     const capitalConfig = {
