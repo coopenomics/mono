@@ -139,6 +139,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
+import { uiLocale } from 'src/shared/i18n';
 import { useRoute, useRouter } from 'vue-router';
 import { Zeus } from '@coopenomics/sdk';
 import { BaseBadge } from 'src/shared/ui/base/BaseBadge';
@@ -393,12 +394,12 @@ function formatDate(value?: string | null): string {
   if (!value) return '—';
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return value;
-  return d.toLocaleString('ru-RU', { dateStyle: 'short', timeStyle: 'short' });
+  return d.toLocaleString(uiLocale(), { dateStyle: 'short', timeStyle: 'short' });
 }
 
 function fileLabel(file: IFileRow): string {
   if (file.original_filename) return file.original_filename;
-  const date = file.uploaded_at ? new Date(String(file.uploaded_at)).toLocaleString('ru-RU') : '';
+  const date = file.uploaded_at ? new Date(String(file.uploaded_at)).toLocaleString(uiLocale()) : '';
   return `документ от ${date}`;
 }
 

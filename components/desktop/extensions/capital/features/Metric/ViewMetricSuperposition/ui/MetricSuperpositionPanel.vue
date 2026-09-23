@@ -115,6 +115,7 @@
 
 <script setup lang="ts">
 import { computed, ref, toRef } from 'vue';
+import { uiLocale } from 'src/shared/i18n';
 import { useQuasar } from 'quasar';
 import { BaseButton, EmptyState } from 'src/shared/ui/base';
 import { useMetricSuperposition } from '../model';
@@ -151,7 +152,7 @@ const frameLabel = computed(() => {
   const at = list[idx]?.at;
   if (!at) return '';
   const d = new Date(at);
-  return d.toLocaleDateString('ru-RU', {
+  return d.toLocaleDateString(uiLocale(), {
     day: '2-digit',
     month: 'short',
     year: 'numeric',

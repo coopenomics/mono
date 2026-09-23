@@ -118,6 +118,7 @@
 
 <script lang="ts" setup>
 import { ref, onMounted, watch, computed } from 'vue';
+import { uiLocale } from 'src/shared/i18n';
 import { useRouter } from 'vue-router';
 import { useSessionStore } from 'src/entities/Session';
 import { useSystemStore } from 'src/entities/System/model';
@@ -257,7 +258,7 @@ const canModerate = (row: Record<string, any>) =>
 
 const formatDate = (dateString: string) => {
   if (!dateString) return '—';
-  return new Date(dateString).toLocaleDateString('ru-RU', {
+  return new Date(dateString).toLocaleDateString(uiLocale(), {
     year: 'numeric',
     month: 'short',
     day: 'numeric',

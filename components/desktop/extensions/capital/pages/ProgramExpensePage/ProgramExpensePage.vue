@@ -119,6 +119,7 @@ q-page.program-expense-page
 
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
+import { uiLocale } from 'src/shared/i18n';
 import { useRoute, useRouter } from 'vue-router';
 import { Zeus } from '@coopenomics/sdk';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
@@ -280,7 +281,7 @@ function itemHasActual(item: IProgramExpenseItem): boolean {
 function formatDate(iso: string): string {
   if (!iso) return '—';
   try {
-    return new Date(iso).toLocaleString('ru-RU');
+    return new Date(iso).toLocaleString(uiLocale());
   } catch {
     return iso;
   }
@@ -289,7 +290,7 @@ function formatDate(iso: string): string {
 function fileLabel(file: IExpenseProposalFile): string {
   if (file.original_filename) return file.original_filename;
   const date = file.uploaded_at
-    ? new Date(String(file.uploaded_at)).toLocaleString('ru-RU')
+    ? new Date(String(file.uploaded_at)).toLocaleString(uiLocale())
     : '';
   return `документ от ${date}`;
 }

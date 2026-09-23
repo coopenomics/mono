@@ -31,6 +31,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
+import { uiLocale } from 'src/shared/i18n';
 import { readFileForUpload } from 'src/shared/lib/utils';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { useSystemStore } from 'src/entities/System/model';
@@ -70,7 +71,7 @@ async function refresh(): Promise<void> {
 
 function fileLabel(file: IPaymentFile): string {
   if (file.original_filename) return file.original_filename;
-  const date = file.uploaded_at ? new Date(String(file.uploaded_at)).toLocaleString('ru-RU') : '';
+  const date = file.uploaded_at ? new Date(String(file.uploaded_at)).toLocaleString(uiLocale()) : '';
   return `Чек от ${date}`;
 }
 

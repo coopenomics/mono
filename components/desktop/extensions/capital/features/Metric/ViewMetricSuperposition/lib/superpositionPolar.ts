@@ -1,3 +1,4 @@
+import { uiLocale } from 'src/shared/i18n';
 /**
  * Полярная мишень резонанса: ширина + радиус + радиальный градиент.
  * Цвета адаптируются к light/dark.
@@ -320,7 +321,7 @@ export function buildPolarSectors(
   if (!items.length) return [];
 
   const sorted = [...items].sort((a, b) =>
-    a.title.localeCompare(b.title, 'ru'),
+    a.title.localeCompare(b.title, uiLocale()),
   );
 
   const weights = sorted.map((i) => Math.max(i.amplitude, EPS));

@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue';
+import { uiLocale } from 'src/shared/i18n';
 import { useFirstLoad } from 'src/shared/lib/composables';
 import { debounce } from 'quasar';
 import { useRoute, useRouter } from 'vue-router';
@@ -180,7 +181,7 @@ const priceLabel = computed(() => {
     ? Number(defaultPackage.value.price)
     : Number(offer.value.price_per_unit);
   const withFee = applyMembershipFee(base, feePercent.value);
-  return `${withFee.toLocaleString('ru-RU')} ${system.governSymbol} / ${saleUnitLabel.value}`;
+  return `${withFee.toLocaleString(uiLocale())} ${system.governSymbol} / ${saleUnitLabel.value}`;
 });
 
 /** Компактная запись объёма: 0.5 → «0,5». */
@@ -197,7 +198,7 @@ const packageRows = computed(() =>
   (offer.value?.packages ?? []).map((p) => ({
     key: p.id,
     name: [`${formatSize(p.size)} ${unitShort.value}`, p.package_type].filter(Boolean).join(', '),
-    price: `${applyMembershipFee(Number(p.price), feePercent.value).toLocaleString('ru-RU')} ${system.governSymbol}`,
+    price: `${applyMembershipFee(Number(p.price), feePercent.value).toLocaleString(uiLocale())} ${system.governSymbol}`,
     stock: offer.value?.unlimited_flag
       ? 'без ограничения'
       : p.quantity_available > 0

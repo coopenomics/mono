@@ -92,6 +92,7 @@
 
 <script lang="ts" setup>
 import { onMounted, onBeforeUnmount, ref, computed, watch } from 'vue';
+import { uiLocale } from 'src/shared/i18n';
 import { useRoute, useRouter } from 'vue-router';
 import { useSystemStore } from 'src/entities/System/model';
 import { useExpandableState, useDataPoller } from 'src/shared/lib/composables';
@@ -172,7 +173,7 @@ function formatDeadline(deadline?: string) {
   if (!deadline) return '—';
   try {
     const date = new Date(deadline);
-    return date.toLocaleString('ru-RU', {
+    return date.toLocaleString(uiLocale(), {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',

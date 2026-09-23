@@ -32,6 +32,7 @@
 
 <script lang="ts" setup>
 import { computed, onBeforeUnmount, ref } from 'vue';
+import { uiLocale } from 'src/shared/i18n';
 import { TRUST_ANCHOR_ANO_CERT_PUBKEY, verifyOffline } from '@coopenomics/auth';
 import { BaseButton, BaseInput } from 'src/shared/ui/base';
 import { env } from 'src/shared/config';
@@ -153,7 +154,7 @@ async function verify(jws: string): Promise<void> {
         valid: true,
         name: fullName(claims.identification),
         coop: verdict.chain?.join(' → ') ?? claims.coopname,
-        until: new Date(claims.exp * 1000).toLocaleString('ru-RU'),
+        until: new Date(claims.exp * 1000).toLocaleString(uiLocale()),
       }
     : {
         valid: false,

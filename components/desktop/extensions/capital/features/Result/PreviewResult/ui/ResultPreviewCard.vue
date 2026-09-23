@@ -72,6 +72,7 @@
 
 <script lang="ts" setup>
 import { ref, onMounted, watch, computed } from 'vue';
+import { uiLocale } from 'src/shared/i18n';
 import { useResultStore } from 'app/extensions/capital/entities/Result/model';
 import type { IResult } from 'app/extensions/capital/entities/Result/model';
 import { useContributorStore } from 'app/extensions/capital/entities/Contributor/model';
@@ -128,7 +129,7 @@ const formattedDate = computed(() => {
   const raw = result.value?.created_at;
   if (!raw) return '';
   try {
-    return new Date(raw).toLocaleDateString('ru-RU', {
+    return new Date(raw).toLocaleDateString(uiLocale(), {
       day: '2-digit',
       month: 'long',
       year: 'numeric',

@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue';
+import { uiLocale } from 'src/shared/i18n';
 import { useFirstLoad } from 'src/shared/lib/composables';
 import { debounce, Dialog } from 'quasar';
 import { useRoute, useRouter } from 'vue-router';
@@ -53,7 +54,7 @@ function unitShort(u: string | null | undefined): string {
 }
 
 function money(value: string | number | null | undefined): string {
-  return Number(value ?? 0).toLocaleString('ru-RU');
+  return Number(value ?? 0).toLocaleString(uiLocale());
 }
 
 // Позиции корзины приходят с бэка без взноса (price_per_unit/line_total —

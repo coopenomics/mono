@@ -82,6 +82,7 @@ div.participant-wallets-page
 
 <script setup lang="ts">
 import { computed, h, onMounted, ref } from 'vue'
+import { uiLocale } from 'src/shared/i18n';
 import { QIcon, QTooltip } from 'quasar'
 import { FailAlert } from 'src/shared/api'
 import { useSystemStore } from 'src/entities/System/model'
@@ -224,7 +225,7 @@ async function reload(): Promise<void> {
       .sort((a, b) => {
         const an = (getName(a) || a.username).toLowerCase()
         const bn = (getName(b) || b.username).toLowerCase()
-        return an.localeCompare(bn, 'ru')
+        return an.localeCompare(bn, uiLocale())
       })
   } catch (e) {
     FailAlert(e, 'Не удалось загрузить кошельки пайщиков')

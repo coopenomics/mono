@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia';
+import { uiLocale } from 'src/shared/i18n';
 import { computed, ref } from 'vue';
 import { api } from '../api';
 import type { IRobotCouncil, IRobotDecisionType, IRobotJournal, IRobotJournalInput, IRobotKeyStatus } from './types';
@@ -19,7 +20,7 @@ export const useRobotStore = defineStore(namespace, () => {
 
   /** Реестр по алфавиту: все решения в нём одинаково доступны автоматизации. */
   const sortedRegistry = computed(() =>
-    [...registry.value].sort((a, b) => a.title.localeCompare(b.title, 'ru')),
+    [...registry.value].sort((a, b) => a.title.localeCompare(b.title, uiLocale())),
   );
 
   const titleByType = computed<Record<string, string>>(() =>

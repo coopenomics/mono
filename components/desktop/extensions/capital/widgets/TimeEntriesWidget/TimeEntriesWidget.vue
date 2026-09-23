@@ -93,6 +93,7 @@
 
 <script lang="ts" setup>
 import { ref, onMounted, computed } from 'vue'
+import { uiLocale } from 'src/shared/i18n';
 import { useSystemStore } from 'src/entities/System/model'
 import { useSessionStore } from 'src/entities/Session/model'
 import { FailAlert, SuccessAlert } from 'src/shared/api'
@@ -195,7 +196,7 @@ const entryTypeLabel = (type?: unknown) => {
 }
 
 const formatDate = (dateString: string) => {
-  return new Date(dateString).toLocaleDateString('ru-RU', {
+  return new Date(dateString).toLocaleDateString(uiLocale(), {
     day: 'numeric',
     month: 'short',
     year: 'numeric',

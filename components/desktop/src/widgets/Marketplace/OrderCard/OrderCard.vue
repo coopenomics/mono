@@ -173,6 +173,7 @@
 
 <script setup lang="ts">
 import { computed, type PropType } from 'vue'
+import { uiLocale } from 'src/shared/i18n';
 import { BaseCard, BaseBadge, BaseButton } from 'src/shared/ui/base'
 import type { OrderStatus, OrderRole, Order } from './OrderCard.types'
 
@@ -274,11 +275,11 @@ function actionVariant(a: OrderAction): 'primary' | 'danger' | 'ghost' {
 
 function formatDate(v: string | Date) {
   const d = typeof v === 'string' ? new Date(v) : v
-  return d.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' })
+  return d.toLocaleDateString(uiLocale(), { day: '2-digit', month: '2-digit', year: 'numeric' })
 }
 
 function formatPrice(v: number) {
-  return new Intl.NumberFormat('ru-RU', { minimumFractionDigits: 0 }).format(v) + ' ₽'
+  return new Intl.NumberFormat(uiLocale(), { minimumFractionDigits: 0 }).format(v) + ' ₽'
 }
 </script>
 

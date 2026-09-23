@@ -48,6 +48,7 @@ q-dialog(v-model='isOpen' position='top' transition-show='slide-down' transition
 
 <script setup lang="ts">
 import { ref, watch } from 'vue'
+import { uiLocale } from 'src/shared/i18n';
 import { client } from 'src/shared/api/client'
 import { BaseBadge } from 'src/shared/ui/base/BaseBadge'
 import { DocumentModel } from 'src/entities/Document'
@@ -124,7 +125,7 @@ function close() {
 function formatDate(dateStr: string): string {
   if (!dateStr) return ''
   try {
-    return new Date(dateStr).toLocaleDateString('ru-RU', {
+    return new Date(dateStr).toLocaleDateString(uiLocale(), {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',

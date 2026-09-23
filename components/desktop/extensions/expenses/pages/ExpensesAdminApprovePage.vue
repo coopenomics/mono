@@ -63,6 +63,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
+import { uiLocale } from 'src/shared/i18n';
 import { useRoute, useRouter } from 'vue-router';
 import { Zeus } from '@coopenomics/sdk';
 import { PageHead } from 'src/shared/ui/layout';
@@ -112,7 +113,7 @@ function formatCreatedAt(createdAt?: string | null): string {
   if (!createdAt) return '—';
   const date = new Date(createdAt);
   if (Number.isNaN(date.getTime())) return createdAt;
-  return date.toLocaleString('ru-RU', { dateStyle: 'short', timeStyle: 'short' });
+  return date.toLocaleString(uiLocale(), { dateStyle: 'short', timeStyle: 'short' });
 }
 
 function truncateHash(hash: string): string {

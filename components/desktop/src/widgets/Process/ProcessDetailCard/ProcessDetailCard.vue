@@ -129,6 +129,7 @@
 
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
+import { uiLocale } from 'src/shared/i18n';
 import { useRouter } from 'vue-router'
 import { copyToClipboard } from 'quasar'
 import { FailAlert, SuccessAlert } from 'src/shared/api'
@@ -219,7 +220,7 @@ const PST_SKELETON_COLUMNS: TableSkeletonColumn[] = [
 
 function formatDate(d: string | Date | null | undefined): string {
   if (!d) return '—'
-  return new Date(d).toLocaleString('ru-RU', {
+  return new Date(d).toLocaleString(uiLocale(), {
     day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit',
   })
 }

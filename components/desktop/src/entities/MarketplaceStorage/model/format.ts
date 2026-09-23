@@ -3,6 +3,7 @@ import type {
   MarketplacePlacement,
   MarketplaceStorageCellView,
 } from './types'
+import { uiLocale } from 'src/shared/i18n';
 
 /**
  * Позиция склада несёт только идентификаторы места (`container_id`/`cell_id`),
@@ -102,7 +103,7 @@ export function formatVolumeM3(value: string | number | null | undefined): strin
   if (!Number.isFinite(n) || n === 0) return '0 м³'
 
   const digits = n >= 0.01 ? 2 : Math.min(6, Math.ceil(-Math.log10(Math.abs(n))) + 1)
-  return `${n.toLocaleString('ru-RU', { maximumFractionDigits: digits })} м³`
+  return `${n.toLocaleString(uiLocale(), { maximumFractionDigits: digits })} м³`
 }
 
 /**

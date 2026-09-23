@@ -58,6 +58,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, reactive, watch } from 'vue'
+import { uiLocale } from 'src/shared/i18n';
 import { storeToRefs } from 'pinia'
 import { FailAlert } from 'src/shared/api'
 import {
@@ -117,7 +118,7 @@ const archiveTypeOptions = computed(() =>
 )
 
 function formatDate(d: string | Date) {
-  return new Date(d).toLocaleString('ru-RU', {
+  return new Date(d).toLocaleString(uiLocale(), {
     day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit',
   })
 }

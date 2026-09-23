@@ -63,6 +63,7 @@ div
 
 <script lang="ts" setup>
 import { onMounted, watch } from 'vue';
+import { uiLocale } from 'src/shared/i18n';
 import type { IApproval } from 'app/extensions/chairman/entities/Approval/model/types';
 import { ConfirmApprovalButton } from 'app/extensions/chairman/features/Approval/ConfirmApproval';
 import { DeclineApprovalButton } from 'app/extensions/chairman/features/Approval/DeclineApproval';
@@ -189,7 +190,7 @@ const getStatusLabel = (status: Zeus.ApprovalStatus) => {
 
 // Форматируем дату
 const formatDate = (date: string) => {
-  return new Date(date).toLocaleDateString('ru-RU');
+  return new Date(date).toLocaleDateString(uiLocale());
 };
 
 // Обработчик переключения развертывания

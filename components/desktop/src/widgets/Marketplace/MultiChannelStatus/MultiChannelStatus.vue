@@ -24,6 +24,7 @@
 
 <script setup lang="ts">
 import { type PropType } from 'vue'
+import { uiLocale } from 'src/shared/i18n';
 import type { ChannelKind, ChannelStatus, ChannelStatusEntry } from './MultiChannelStatus.types'
 
 defineProps({
@@ -65,7 +66,7 @@ function iconOf(k: ChannelKind): string {
 
 function formatTime(v: string | Date) {
   const d = typeof v === 'string' ? new Date(v) : v
-  return d.toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
+  return d.toLocaleString(uiLocale(), { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
 }
 </script>
 

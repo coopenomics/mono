@@ -34,6 +34,7 @@
 
 <script lang="ts" setup>
 import type { Zeus } from '@coopenomics/sdk';
+import { uiLocale } from 'src/shared/i18n';
 import { BaseChip } from 'src/shared/ui/base';
 
 type CapitalIssueLinkedGitCommit = Zeus.ModelTypes['CapitalIssueLinkedGitCommit'];
@@ -52,7 +53,7 @@ withDefaults(
 const shortSha = (sha: string) => (sha?.length > 7 ? sha.slice(0, 7) : sha);
 
 const formatCommitted = (d: string | Date) =>
-  new Date(d).toLocaleString('ru-RU', {
+  new Date(d).toLocaleString(uiLocale(), {
     year: 'numeric',
     month: 'short',
     day: 'numeric',

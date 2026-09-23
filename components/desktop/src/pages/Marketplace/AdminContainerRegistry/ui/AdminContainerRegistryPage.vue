@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue'
+import { uiLocale } from 'src/shared/i18n';
 import { useFirstLoad } from 'src/shared/lib/composables'
 import { debounce } from 'quasar'
 import { useRoute } from 'vue-router'
@@ -142,7 +143,7 @@ function branchAddress(braname: string): string {
 const branchOptions = computed<BaseSelectOption[]>(() => {
   const set = new Set(containers.value.map((c) => c.braname))
   return [...set]
-    .sort((a, b) => branchName(a).localeCompare(branchName(b), 'ru'))
+    .sort((a, b) => branchName(a).localeCompare(branchName(b), uiLocale()))
     .map((braname) => ({ value: braname, label: branchName(braname) }))
 })
 

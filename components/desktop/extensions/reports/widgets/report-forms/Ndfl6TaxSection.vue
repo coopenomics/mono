@@ -138,6 +138,7 @@
 
 <script lang="ts" setup>
 import { computed } from 'vue'
+import { uiLocale } from 'src/shared/i18n';
 import { BaseCard, BaseInput, BaseBadge, EmptyState } from 'src/shared/ui/base'
 import { AmountInput } from 'src/shared/ui/domain'
 import type { Ndfl6Edits, Ndfl6Certificate } from './ndfl6-edits'
@@ -198,7 +199,7 @@ function fullName(certificate: Ndfl6Certificate): string {
 }
 
 function formatMoney(value: number): string {
-  return value.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  return value.toLocaleString(uiLocale(), { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
 
 function toInt(value: unknown): number {

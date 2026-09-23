@@ -50,6 +50,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
+import { uiLocale } from 'src/shared/i18n';
 import { BaseBadge, EmptyState } from 'src/shared/ui/base';
 import {
   proposalStatusLabel,
@@ -75,7 +76,7 @@ const sortedRows = computed<ExpenseProposalListRow[]>(() => {
 function formatDate(iso: string): string {
   if (!iso) return '—';
   try {
-    return new Date(iso).toLocaleString('ru-RU', {
+    return new Date(iso).toLocaleString(uiLocale(), {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',

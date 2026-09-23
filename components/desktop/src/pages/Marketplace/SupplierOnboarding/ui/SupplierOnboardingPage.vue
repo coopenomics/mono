@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue';
+import { uiLocale } from 'src/shared/i18n';
 import { useRouter } from 'vue-router';
 import { FailAlert } from 'src/shared/api';
 import { useDesktopStore } from 'src/entities/Desktop/model';
@@ -56,7 +57,7 @@ function formatContractDate(value: string | null | undefined): string {
   const iso = /^(\d{4})-(\d{2})-(\d{2})/.exec(value);
   if (iso) return `${iso[3]}.${iso[2]}.${iso[1]}`;
   const parsed = new Date(value);
-  return Number.isNaN(parsed.getTime()) ? value : parsed.toLocaleDateString('ru-RU');
+  return Number.isNaN(parsed.getTime()) ? value : parsed.toLocaleDateString(uiLocale());
 }
 
 const contractLabel = computed((): string => {

@@ -9,6 +9,7 @@
  * Подтверждение и отказ выплат делает кассир кооператива — здесь только обзор.
  */
 import { computed, onMounted, ref } from 'vue';
+import { t, uiLocale } from 'src/shared/i18n';
 import { FailAlert } from 'src/shared/api';
 import { useFirstLoad } from 'src/shared/lib/composables';
 import { useQueryOverlay } from 'src/shared/lib/navigation';
@@ -100,11 +101,7 @@ const totals = computed(() => {
 
 /** «1 выплата», «2 выплаты», «5 выплат» — число в подвале читается вслух. */
 function payoutsCountLabel(count: number): string {
-  const mod10 = count % 10;
-  const mod100 = count % 100;
-  if (mod10 === 1 && mod100 !== 11) return `${count} выплата`;
-  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return `${count} выплаты`;
-  return `${count} выплат`;
+  return t('marketplace.boardPayouts.count', count);
 }
 
 function compareDates(a: unknown, b: unknown): number {
@@ -114,7 +111,7 @@ function compareDates(a: unknown, b: unknown): number {
 function formatDate(value: unknown): string {
   if (value === null || value === undefined) return '—';
   const parsed = new Date(String(value));
-  return Number.isNaN(parsed.getTime()) ? String(value) : parsed.toLocaleString('ru-RU');
+  return Number.isNaN(parsed.getTime()) ? String(value) : parsed.toLocaleString(uiLocale());
 }
 
 async function load(): Promise<void> {

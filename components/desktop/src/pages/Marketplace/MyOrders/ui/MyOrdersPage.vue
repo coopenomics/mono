@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue';
+import { uiLocale } from 'src/shared/i18n';
 import { useFirstLoad } from 'src/shared/lib/composables';
 import { useRoute, useRouter } from 'vue-router';
 import { debounce } from 'quasar';
@@ -108,13 +109,13 @@ const toCardModel = toOrderCardModel;
 const symbol = computed(() => system.governSymbol);
 
 function money(value: string | number): string {
-  return Number(value).toLocaleString('ru-RU');
+  return Number(value).toLocaleString(uiLocale());
 }
 
 function formatDate(iso: string): string {
   if (!iso) return '';
   const d = new Date(iso);
-  return Number.isNaN(d.getTime()) ? iso : d.toLocaleDateString('ru-RU');
+  return Number.isNaN(d.getTime()) ? iso : d.toLocaleDateString(uiLocale());
 }
 
 /**

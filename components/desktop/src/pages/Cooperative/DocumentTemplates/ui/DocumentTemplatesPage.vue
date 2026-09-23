@@ -88,6 +88,7 @@ q-page.document-templates
 
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue';
+import { uiLocale } from 'src/shared/i18n';
 import { useRouter } from 'vue-router';
 import { BaseBadge, BaseButton, BaseCard, BaseDialog, BaseTable, EmptyState } from 'src/shared/ui/base';
 import type { BaseTableColumn } from 'src/shared/ui/base/BaseTable/BaseTable.types';
@@ -181,7 +182,7 @@ const formatApprovedAt = (value: string | null | undefined): string => {
   if (!value) return '______';
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleDateString('ru-RU');
+  return date.toLocaleDateString(uiLocale());
 };
 
 const load = async () => {

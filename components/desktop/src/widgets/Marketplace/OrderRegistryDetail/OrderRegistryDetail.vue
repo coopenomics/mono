@@ -11,6 +11,7 @@
  * кооператива, ПВЗ — любой заказ своего участка.
  */
 import { computed, ref, watch } from 'vue';
+import { uiLocale } from 'src/shared/i18n';
 import { FailAlert } from 'src/shared/api';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { marketplaceOrderSaleUnit } from 'src/shared/lib/consts/marketplace-units';
@@ -89,7 +90,7 @@ function formatDate(d: unknown): string {
   const parsed = new Date(String(d));
   return Number.isNaN(parsed.getTime())
     ? String(d)
-    : parsed.toLocaleString('ru-RU', {
+    : parsed.toLocaleString(uiLocale(), {
         day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit',
       });
 }

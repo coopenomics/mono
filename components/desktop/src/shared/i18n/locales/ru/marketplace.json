@@ -1,0 +1,13 @@
+{
+  "marketplace": {
+    "boardPayouts": {
+      "count": "{n} выплата | {n} выплаты | {n} выплат"
+    },
+    "supplyParty": {
+      "orderCount": "{n} заказ | {n} заказа | {n} заказов"
+    },
+    "writeoff": {
+      "positions": "{n} позиция | {n} позиции | {n} позиций"
+    }
+  }
+}

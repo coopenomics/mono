@@ -1,4 +1,5 @@
 import { boot } from 'quasar/wrappers';
+import { currentLocale } from 'src/shared/i18n';
 import { useActionsStore } from 'src/shared/lib/stores/actions.store';
 import { useSessionStore } from 'src/entities/Session';
 import { useSystemStore } from 'src/entities/System/model';
@@ -23,7 +24,7 @@ export default boot(async ({ app }) => {
         baseUrl: 'https://support.coopenomics.world'
       },
       settings: {
-        locale: 'ru',
+        locale: currentLocale(),
         position: 'right',
         launcherTitle: '',
         hideMessageBubble: true

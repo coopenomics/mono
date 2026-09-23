@@ -20,6 +20,7 @@ import {
   DEFAULT_LOCALE,
   PSEUDO_LOCALE,
   coreMessages,
+  intlLocale,
   mergeMessages,
   pluralRules,
   pseudoLocalize,
@@ -118,4 +119,12 @@ export function te(key: string): boolean {
 /** Текущий язык интерфейса (для `Intl` и заголовка `Accept-Language`). */
 export function currentLocale(): string {
   return i18n.global.locale.value === PSEUDO_LOCALE ? DEFAULT_LOCALE : i18n.global.locale.value;
+}
+
+/**
+ * Тег языка для `Intl` и `toLocale*String` — даты и числа по правилам языка
+ * интерфейса: `value.toLocaleString(uiLocale())` вместо зашитого `'ru-RU'`.
+ */
+export function uiLocale(): string {
+  return intlLocale(currentLocale());
 }

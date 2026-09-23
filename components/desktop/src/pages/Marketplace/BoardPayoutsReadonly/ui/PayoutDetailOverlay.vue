@@ -93,6 +93,7 @@ DetailsDrawer(
 
 <script setup lang="ts">
 import { ref, watch } from 'vue';
+import { uiLocale } from 'src/shared/i18n';
 import { FailAlert } from 'src/shared/api';
 import { marketplaceQuantityLabel } from 'src/shared/lib/consts';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
@@ -123,7 +124,7 @@ const hasWithheld = ref(false);
 function formatDate(value: unknown): string {
   if (value === null || value === undefined) return '—';
   const parsed = new Date(String(value));
-  return Number.isNaN(parsed.getTime()) ? String(value) : parsed.toLocaleString('ru-RU');
+  return Number.isNaN(parsed.getTime()) ? String(value) : parsed.toLocaleString(uiLocale());
 }
 
 async function load(id: string): Promise<void> {

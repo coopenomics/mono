@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref, watch } from 'vue'
+import { uiLocale } from 'src/shared/i18n';
 import { useFirstLoad } from 'src/shared/lib/composables'
 import { useRoute } from 'vue-router'
 import { Zeus } from '@coopenomics/sdk'
@@ -305,7 +306,7 @@ const planSaving = ref(false)
 const addPlanOpen = ref(false)
 
 function planDueLabel(plan: ExpensePlanView): string {
-  return plan.due_date ? new Date(String(plan.due_date)).toLocaleDateString('ru-RU') : '—'
+  return plan.due_date ? new Date(String(plan.due_date)).toLocaleDateString(uiLocale()) : '—'
 }
 
 /** Подпись повторяемости под сроком; пусто — расход разовый. */

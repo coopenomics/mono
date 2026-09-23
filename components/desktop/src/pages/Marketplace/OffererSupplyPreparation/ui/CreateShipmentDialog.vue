@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
+import { uiLocale } from 'src/shared/i18n';
 import { Zeus } from '@coopenomics/sdk';
 import { SuccessAlert, FailAlert } from 'src/shared/api';
 import { BaseButton, BaseDialog, BaseInput, BaseRadioCard } from 'src/shared/ui/base';
@@ -182,7 +183,7 @@ const canSubmit = computed(
 );
 
 function formatPrice(v: number): string {
-  return new Intl.NumberFormat('ru-RU', { minimumFractionDigits: 0 }).format(v) + ' ₽';
+  return new Intl.NumberFormat(uiLocale(), { minimumFractionDigits: 0 }).format(v) + ' ₽';
 }
 
 // Число коробок строки = ceil(количество / штук_в_коробке). null — пока упаковка

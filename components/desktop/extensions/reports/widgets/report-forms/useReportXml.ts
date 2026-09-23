@@ -1,4 +1,5 @@
 import { computed, type ComputedRef } from 'vue'
+import { uiLocale } from 'src/shared/i18n';
 import type { IReportRequisitesView } from 'src/entities/Report'
 
 /**
@@ -195,12 +196,12 @@ export function useReportXml(
 
   function fmt(n?: number): string {
     if (n == null || n === 0) return '—'
-    return new Intl.NumberFormat('ru-RU').format(n)
+    return new Intl.NumberFormat(uiLocale()).format(n)
   }
 
   function fmtZero(n?: number): string {
     if (n == null) return '—'
-    return new Intl.NumberFormat('ru-RU').format(n)
+    return new Intl.NumberFormat(uiLocale()).format(n)
   }
 
   return { doc, header, getAttr, getNum, getByLocal, getAllByLocal, getText, padInn, formatDate, fmt, fmtZero }

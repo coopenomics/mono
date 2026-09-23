@@ -1,0 +1,11 @@
+{
+  "api": {
+    "error": {
+      "chainLoad": "Не удалось загрузить {name} из блокчейна",
+      "matrixEmailExists": "Аккаунт с таким email уже существует в Matrix",
+      "matrixUsernameExists": "Пользователь с таким именем уже существует",
+      "unknown": "Неизвестная ошибка",
+      "unknownOccurred": "Произошла неизвестная ошибка"
+    }
+  }
+}

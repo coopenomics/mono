@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue';
+import { uiLocale } from 'src/shared/i18n';
 import { debounce } from 'quasar';
 import { Zeus } from '@coopenomics/sdk';
 import { FailAlert } from 'src/shared/api';
@@ -224,7 +225,7 @@ function formatDate(value: string | null | undefined): string {
   if (!value) return '—';
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) return '—';
-  return parsed.toLocaleDateString('ru-RU');
+  return parsed.toLocaleDateString(uiLocale());
 }
 
 // Дата проекта для ленты: итоговая (исполнение/отказ) либо подачи в совет.

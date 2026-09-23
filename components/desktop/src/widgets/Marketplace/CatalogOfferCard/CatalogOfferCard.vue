@@ -94,6 +94,7 @@
 
 <script setup lang="ts">
 import { computed, type PropType } from 'vue'
+import { uiLocale } from 'src/shared/i18n';
 import { OfferGallery } from 'src/widgets/Marketplace/OfferGallery'
 import { applyMembershipFee } from 'src/shared/lib/marketplace'
 import type { CatalogOfferStatus, CatalogOffer } from './CatalogOfferCard.types'
@@ -217,7 +218,7 @@ const hiddenPackages = computed(() => Math.max(0, packageRows.value.length - PAC
 function formatPrice(v: number | string) {
   const n = typeof v === 'number' ? v : Number(v)
   if (Number.isNaN(n)) return String(v)
-  return new Intl.NumberFormat('ru-RU', { minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(n) + ' ₽'
+  return new Intl.NumberFormat(uiLocale(), { minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(n) + ' ₽'
 }
 
 function onClick() {

@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { computed } from 'vue';
+import { uiLocale } from 'src/shared/i18n';
 import { BaseCard } from 'src/shared/ui/base';
 import { TakeoverDialog } from 'src/widgets/Marketplace/TakeoverDialog';
 import { HandoffQr } from 'src/widgets/Marketplace/HandoffQr';
@@ -52,7 +53,7 @@ function formatDateTime(value: unknown): string {
   if (value === null || value === undefined) return '—';
   const parsed = new Date(String(value));
   if (Number.isNaN(parsed.getTime())) return '—';
-  return parsed.toLocaleString('ru-RU');
+  return parsed.toLocaleString(uiLocale());
 }
 </script>
 

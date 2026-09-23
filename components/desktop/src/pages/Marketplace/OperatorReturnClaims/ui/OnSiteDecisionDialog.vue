@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { computed, ref, watch } from 'vue';
+import { uiLocale } from 'src/shared/i18n';
 import { useGlobalStore } from 'src/shared/store';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { signDocument } from 'src/shared/lib/document';
@@ -82,7 +83,7 @@ function formatDateTime(value: unknown): string {
   if (value === null || value === undefined) return '—';
   const parsed = new Date(String(value));
   if (Number.isNaN(parsed.getTime())) return '—';
-  return parsed.toLocaleString('ru-RU');
+  return parsed.toLocaleString(uiLocale());
 }
 
 const claimQuantityLabel = computed(() => {

@@ -124,6 +124,7 @@ div.coop-wallets-page
 
 <script setup lang="ts">
 import { computed, markRaw, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
+import { uiLocale } from 'src/shared/i18n';
 import { storeToRefs } from 'pinia'
 import { copyToClipboard } from 'quasar'
 import { useWindowSize } from 'src/shared/hooks'
@@ -191,7 +192,7 @@ async function onTransferSuccess(): Promise<void> {
 }
 
 function formatDate(d: string | Date): string {
-  return new Date(d).toLocaleString('ru-RU', {
+  return new Date(d).toLocaleString(uiLocale(), {
     day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit',
   })
 }

@@ -204,6 +204,7 @@ q-dialog(
 
 <script setup lang="ts">
 import { reactive, computed, watch, ref } from 'vue';
+import { uiLocale } from 'src/shared/i18n';
 import type { QForm } from 'quasar';
 import { useAgendaPoints } from 'src/shared/hooks/useAgendaPoints';
 import {
@@ -384,7 +385,7 @@ function formatLocal(local: string | undefined): string {
   if (!local) return '—';
   const d = new Date(local);
   if (Number.isNaN(d.getTime())) return local;
-  return `${d.toLocaleString('ru-RU', {
+  return `${d.toLocaleString(uiLocale(), {
     day: '2-digit',
     month: '2-digit',
     year: 'numeric',

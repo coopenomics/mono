@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { computed } from 'vue';
+import { t } from 'src/shared/i18n';
 import { BaseBadge, BaseButton } from 'src/shared/ui/base';
 import { orderStatusDisplay, type DomainOrderStatus } from 'src/widgets/Marketplace/OrderCard';
 
@@ -77,9 +78,7 @@ const statusDisplay = computed(() => orderStatusDisplay(props.stageStatus));
 
 /** «2 заказа пайщиков» — состав партии всегда из чьих-то заказов. */
 const orderCountLabel = computed(() => {
-  const n = props.orderCount;
-  const tail = n % 10 === 1 && n % 100 !== 11 ? 'заказ' : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20) ? 'заказа' : 'заказов';
-  return `${n} ${tail}`;
+  return t('marketplace.supplyParty.orderCount', props.orderCount);
 });
 
 function onCardClick(): void {

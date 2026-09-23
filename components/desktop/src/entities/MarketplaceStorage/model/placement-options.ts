@@ -1,4 +1,5 @@
 import type { BaseSelectOption } from 'src/shared/ui/base'
+import { uiLocale } from 'src/shared/i18n';
 import { containerLabel, type StorageIndex } from './format'
 import type {
   MarketplaceContainerView,
@@ -37,7 +38,7 @@ export function buildPlacementOptions(input: PlacementOptionsInput): BaseSelectO
   if (input.containersEnabled) {
     const boxes = [...input.containers].sort((a, b) => {
       const diff = input.countOf(a.id) - input.countOf(b.id)
-      return diff !== 0 ? diff : a.code.localeCompare(b.code, 'ru')
+      return diff !== 0 ? diff : a.code.localeCompare(b.code, uiLocale())
     })
     for (const container of boxes) {
       const count = input.countOf(container.id)

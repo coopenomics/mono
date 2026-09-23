@@ -195,6 +195,7 @@
 
 <script lang="ts" setup>
 import { useSessionStore } from 'src/entities/Session';
+import { uiLocale } from 'src/shared/i18n';
 import { useSystemStore } from 'src/entities/System/model';
 import type {
   IEntrepreneurData,
@@ -328,7 +329,7 @@ const secondsLeft = computed(() => {
 const validUntil = computed(() => {
   const exp = (certificate.value?.exp ?? 0) * 1000;
   if (!exp) return '';
-  return new Date(exp).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+  return new Date(exp).toLocaleTimeString(uiLocale(), { hour: '2-digit', minute: '2-digit' });
 });
 
 const countdown = computed(() => {

@@ -47,6 +47,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
+import { uiLocale } from 'src/shared/i18n';
 import { useRoute, useRouter } from 'vue-router';
 import { useSessionStore } from 'src/entities/Session';
 import { useDismissibleBanner } from 'src/shared/hooks/useDismissibleBanner';
@@ -135,7 +136,7 @@ function keyReady(row: IRobotKeyStatus): boolean {
 /** Когда робот получил ключ — датой и временем, без секунд. */
 function formatWhen(value: string | Date): string {
   const at = new Date(value);
-  return Number.isNaN(at.getTime()) ? '—' : at.toLocaleString('ru-RU', { dateStyle: 'short', timeStyle: 'short' });
+  return Number.isNaN(at.getTime()) ? '—' : at.toLocaleString(uiLocale(), { dateStyle: 'short', timeStyle: 'short' });
 }
 
 const failedColumns: BaseTableColumn<IRobotDecision>[] = [

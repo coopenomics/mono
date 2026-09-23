@@ -45,6 +45,7 @@
 
 <script lang="ts" setup>
 import { ref, computed, onMounted, watch } from 'vue';
+import { uiLocale } from 'src/shared/i18n';
 import { useProjectStore } from '../../entities/Project/model';
 import { Zeus } from '@coopenomics/sdk';
 import { EmptyState, BaseBadge } from 'src/shared/ui/base';
@@ -93,7 +94,7 @@ const formatDeadline = (deadline?: string) => {
   if (!deadline) return '—';
   try {
     const date = new Date(deadline);
-    return date.toLocaleDateString('ru-RU', {
+    return date.toLocaleDateString(uiLocale(), {
       day: '2-digit',
       month: 'short',
       hour: '2-digit',

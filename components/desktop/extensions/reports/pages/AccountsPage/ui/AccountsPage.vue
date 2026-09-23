@@ -127,6 +127,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { uiLocale } from 'src/shared/i18n';
 import { copyToClipboard } from 'quasar'
 import { useWindowSize } from 'src/shared/hooks'
 import { formatAsset2Digits } from 'src/shared/lib/utils'
@@ -154,7 +155,7 @@ function displayId(id: number): string {
 }
 
 function formatDate(d: string | Date): string {
-  return new Date(d).toLocaleString('ru-RU', {
+  return new Date(d).toLocaleString(uiLocale(), {
     day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit',
   })
 }

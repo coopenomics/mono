@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { computed } from 'vue';
+import { uiLocale } from 'src/shared/i18n';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { marketplaceOrderSaleUnitLabel } from 'src/shared/lib/consts/marketplace-units';
 import { BaseDialog, BaseBadge, BaseCard, BaseTable } from 'src/shared/ui/base';
@@ -25,7 +26,7 @@ function itemQuantityLabel(it: { quantity: string; unit_of_measure?: string | nu
 function fmtDate(value: string | null | undefined): string {
   if (!value) return '—';
   const d = new Date(value);
-  return Number.isNaN(d.getTime()) ? '—' : d.toLocaleDateString('ru-RU');
+  return Number.isNaN(d.getTime()) ? '—' : d.toLocaleDateString(uiLocale());
 }
 
 function humanStatus(status: MarketplaceWriteoffProposalView['status']): string {

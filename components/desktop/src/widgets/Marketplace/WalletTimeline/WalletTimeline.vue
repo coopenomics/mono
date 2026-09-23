@@ -32,6 +32,7 @@
 
 <script setup lang="ts">
 import { type PropType } from 'vue'
+import { uiLocale } from 'src/shared/i18n';
 import type { WalletEntryKind, WalletEntry } from './WalletTimeline.types'
 
 defineProps({
@@ -85,12 +86,12 @@ function amountClass(e: WalletEntry): string {
 }
 
 function formatAmount(v: number): string {
-  return new Intl.NumberFormat('ru-RU').format(Math.abs(v))
+  return new Intl.NumberFormat(uiLocale()).format(Math.abs(v))
 }
 
 function formatDate(v: string | Date): string {
   const d = typeof v === 'string' ? new Date(v) : v
-  return d.toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+  return d.toLocaleString(uiLocale(), { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
 }
 </script>
 

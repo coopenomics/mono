@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { computed, ref, watch } from 'vue';
+import { uiLocale } from 'src/shared/i18n';
 import { useRoute, useRouter } from 'vue-router';
 import { FailAlert, NotifyAlert, SuccessAlert } from 'src/shared/api';
 import { useSystemStore } from 'src/entities/System/model';
@@ -88,7 +89,7 @@ function packageLabel(pkg: { size: number; package_type?: string | null }): stri
 
 function packagePrice(pkg: { price: string | number }): string {
   const value = applyMembershipFee(Number(pkg.price), props.feePercent);
-  return `${value.toLocaleString('ru-RU')} ${system.governSymbol}`;
+  return `${value.toLocaleString(uiLocale())} ${system.governSymbol}`;
 }
 
 // Подпись варианта: объём с тарой и цена. Название упаковки от поставщика
@@ -115,7 +116,7 @@ const saleLine = computed(() => {
     const pkg = selectedPackage.value;
     return pkg ? `${packageLabel(pkg)} — ${packagePrice(pkg)}` : '';
   }
-  return `${priceWithFee.value.toLocaleString('ru-RU')} ${system.governSymbol} за ${unitLabel.value}`;
+  return `${priceWithFee.value.toLocaleString(uiLocale())} ${system.governSymbol} за ${unitLabel.value}`;
 });
 
 /** Нечего заказывать: упаковочный товар, у которого свободной тары не осталось. */
@@ -218,8 +219,8 @@ async function onSubmit(): Promise<void> {
   // к моменту показа уже могут смениться.
   const addedLabel = [
     props.offer.product_name,
-    `${Number(quantity.value).toLocaleString('ru-RU')} ${saleUnitLabel.value}`,
-    `${totalSum.value.toLocaleString('ru-RU')} ${system.governSymbol}`,
+    `${Number(quantity.value).toLocaleString(uiLocale())} ${saleUnitLabel.value}`,
+    `${totalSum.value.toLocaleString(uiLocale())} ${system.governSymbol}`,
   ].join(' · ');
   try {
     await cartStore.addItem(
@@ -298,7 +299,7 @@ BaseDialog(
           | Уже в корзине: {{ alreadyInCart }} — добавление суммируется.
 
         .add-to-cart__total(v-if="offer")
-          | Итого: {{ totalSum.toLocaleString('ru-RU') }} {{ system.governSymbol }}
+          | Итого: {{ totalSum.toLocaleString(uiLocale()) }} {{ system.governSymbol }}
   template(#footer)
     BaseButton(variant="ghost", :disabled="submitting", @click="open = false") Отмена
     BaseButton(

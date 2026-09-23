@@ -322,6 +322,7 @@ q-dialog(
 
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
+import { uiLocale } from 'src/shared/i18n';
 import { useQuasar } from 'quasar'
 import { useRoute, useRouter } from 'vue-router'
 import { Zeus } from '@coopenomics/sdk'
@@ -626,7 +627,7 @@ const saveStatusLabel = computed(() => {
 })
 
 function formatTime(d: Date): string {
-  return d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+  return d.toLocaleTimeString(uiLocale(), { hour: '2-digit', minute: '2-digit', second: '2-digit' })
 }
 
 // Загрузка при открытии + реквизиты для paper-view.

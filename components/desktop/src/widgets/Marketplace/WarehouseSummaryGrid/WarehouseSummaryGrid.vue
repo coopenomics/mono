@@ -13,6 +13,7 @@
  * кнопке «Показать ещё» — иначе тысяча позиций рисуется в DOM разом.
  */
 import { computed, ref, watch, type PropType } from 'vue'
+import { uiLocale } from 'src/shared/i18n';
 import { BaseButton, BaseTable, EmptyState } from 'src/shared/ui/base'
 import type { BaseTableColumn } from 'src/shared/ui/base'
 import { FilterBar } from 'src/shared/ui/domain'
@@ -53,7 +54,7 @@ const pvzOptions = computed(() => {
   for (const r of props.rows) map.set(r.pvzBraname, pvzTitle(r))
   return [...map.entries()]
     .map(([value, label]) => ({ value, label }))
-    .sort((a, b) => a.label.localeCompare(b.label, 'ru'))
+    .sort((a, b) => a.label.localeCompare(b.label, uiLocale()))
 })
 
 const categoryOptions = computed(() => {
@@ -64,7 +65,7 @@ const categoryOptions = computed(() => {
   }
   return [...map.entries()]
     .map(([value, label]) => ({ value, label }))
-    .sort((a, b) => a.label.localeCompare(b.label, 'ru'))
+    .sort((a, b) => a.label.localeCompare(b.label, uiLocale()))
 })
 
 const filterDefs = computed<FilterDefinition[]>(() => {

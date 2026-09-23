@@ -1,5 +1,6 @@
 import { IBaseReadBlockchainErrors } from '../lib/types/errors';
 import { FailAlert } from '../api/alerts';
+import { t } from 'src/shared/i18n';
 
 export function createBaseReadBlockchainErrors(
   name: string
@@ -10,24 +11,24 @@ export function createBaseReadBlockchainErrors(
 }
 
 export function createBlockchainGetError(name: string) {
-  return `Не удалось загрузить ${name} из блокчейна`;
+  return t('api.error.chainLoad', { name });
 }
 
 export function handleException(e: unknown): void {
   if (e instanceof Error) {
     FailAlert(e);
   } else {
-    FailAlert('Произошла неизвестная ошибка');
+    FailAlert(t('api.error.unknownOccurred'));
   }
 }
 
 export function extractGraphQLErrorMessages(error: unknown): string {
   if (typeof error === 'string') return error;
-  if (!error || typeof error !== 'object') return 'Неизвестная ошибка';
+  if (!error || typeof error !== 'object') return t('api.error.unknown');
 
   // Проверяем, если ошибка уже является массивом
   if (Array.isArray(error)) {
-    return error.map((err: any) => err.message || 'Неизвестная ошибка').join('; ');
+    return error.map((err: any) => err.message || t('api.error.unknown')).join('; ');
   }
 
   // Объект с полем `errors`: так устроен GraphQLResponseError из SDK (исходный
@@ -36,20 +37,20 @@ export function extractGraphQLErrorMessages(error: unknown): string {
   // кто показывает текст отказа сервера.
   const errors = (error as any).errors;
   if (Array.isArray(errors)) {
-    return errors.map((err: any) => err.message || 'Неизвестная ошибка').join('; ');
+    return errors.map((err: any) => err.message || t('api.error.unknown')).join('; ');
   }
 
   // Обработка специфических ошибок Matrix
   const message = (error as any).message;
   if (message === 'MATRIX_USERNAME_EXISTS') {
-    return 'Пользователь с таким именем уже существует';
+    return t('api.error.matrixUsernameExists');
   }
   if (message === 'MATRIX_EMAIL_EXISTS') {
-    return 'Аккаунт с таким email уже существует в Matrix';
+    return t('api.error.matrixEmailExists');
   }
 
   // Обработка в случае, если ошибка — одиночная
-  return message || 'Неизвестная ошибка';
+  return message || t('api.error.unknown');
 }
 
 /**

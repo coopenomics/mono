@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
+import { uiLocale } from 'src/shared/i18n';
 import { Zeus } from '@coopenomics/sdk';
 // Напрямую из store, а не через бочку модели: индикатору незачем тянуть за
 // собой ws-подписку со всем её транспортом.
@@ -40,7 +41,7 @@ const liveBlock = useLiveBlockNumber(() =>
 );
 
 const blockLabel = computed(() =>
-  liveBlock.value === null ? '' : ` (блок № ${liveBlock.value.toLocaleString('ru-RU')})`,
+  liveBlock.value === null ? '' : ` (блок № ${liveBlock.value.toLocaleString(uiLocale())})`,
 );
 
 const hint = computed(() => {

@@ -290,6 +290,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, nextTick, reactive, ref } from 'vue'
+import { uiLocale } from 'src/shared/i18n';
 import { useRoute, useRouter } from 'vue-router'
 import { useWindowSize } from 'src/shared/hooks'
 import { useSystemStore } from 'src/entities/System/model'
@@ -729,7 +730,7 @@ async function loadChildOps(seq: string, processHash: string) {
 }
 
 function formatDate(d: string | Date): string {
-  return new Date(d).toLocaleString('ru-RU', {
+  return new Date(d).toLocaleString(uiLocale(), {
     day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit',
   })
 }

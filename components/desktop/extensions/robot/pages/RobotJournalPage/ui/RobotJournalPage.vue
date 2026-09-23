@@ -48,6 +48,7 @@
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { uiLocale } from 'src/shared/i18n';
 import { useDismissibleBanner } from 'src/shared/hooks/useDismissibleBanner';
 import { FailAlert } from 'src/shared/api';
 import { BaseBadge, BaseButton, BaseTable, EmptyState } from 'src/shared/ui/base';
@@ -89,7 +90,7 @@ function shortHash(hash: string): string {
 
 function formatDate(value: string | Date): string {
   const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleString('ru-RU');
+  return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleString(uiLocale());
 }
 
 async function load(silent = false) {

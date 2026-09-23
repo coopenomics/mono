@@ -150,6 +150,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue';
+import { uiLocale } from 'src/shared/i18n';
 import { useRoute } from 'vue-router';
 import { useUpdateIssue } from '../../model';
 import { useIssueStore } from 'app/extensions/capital/entities/Issue/model';
@@ -339,7 +340,7 @@ const entryTypeLabel = (type?: unknown) => {
 
 const formatEntryDate = (date?: string | null) => {
   if (!date) return '';
-  return new Date(date).toLocaleDateString('ru-RU', {
+  return new Date(date).toLocaleDateString(uiLocale(), {
     day: 'numeric',
     month: 'short',
   });

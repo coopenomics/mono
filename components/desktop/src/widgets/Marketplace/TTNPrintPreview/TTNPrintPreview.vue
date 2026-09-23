@@ -124,6 +124,7 @@
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch, type PropType } from 'vue'
+import { uiLocale } from 'src/shared/i18n';
 import QRCode from 'qrcode'
 import { BaseButton, BaseMarkupTable } from 'src/shared/ui/base'
 import { SuccessAlert } from 'src/shared/api'
@@ -213,11 +214,11 @@ const datesParts = computed(() => {
 function formatDate(v: string | Date) {
   const d = typeof v === 'string' ? new Date(v) : v
   if (isNaN(d.getTime())) return String(v)
-  return d.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' })
+  return d.toLocaleDateString(uiLocale(), { day: '2-digit', month: '2-digit', year: 'numeric' })
 }
 
 function formatPrice(v: number) {
-  return new Intl.NumberFormat('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(v) + ' ₽'
+  return new Intl.NumberFormat(uiLocale(), { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(v) + ' ₽'
 }
 
 /**

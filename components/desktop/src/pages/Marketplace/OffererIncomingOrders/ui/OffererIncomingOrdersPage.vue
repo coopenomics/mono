@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue';
+import { uiLocale } from 'src/shared/i18n';
 import { useFirstLoad } from 'src/shared/lib/composables';
 import { Dialog, debounce } from 'quasar';
 import { SuccessAlert, FailAlert, NotifyAlert } from 'src/shared/api';
@@ -390,7 +391,7 @@ function openPartyMap(p: SupplierParty): void {
 }
 
 function formatCost(value: number): string {
-  return new Intl.NumberFormat('ru-RU', {
+  return new Intl.NumberFormat(uiLocale(), {
     style: 'currency',
     currency: 'RUB',
     maximumFractionDigits: 2,

@@ -11,6 +11,7 @@
  * на каких участках и с какими сроками.
  */
 import { computed, ref, watch } from 'vue';
+import { uiLocale } from 'src/shared/i18n';
 import { FailAlert } from 'src/shared/api';
 import { useSystemStore } from 'src/entities/System/model';
 import { useDesktopStore } from 'src/entities/Desktop';
@@ -148,7 +149,7 @@ const priceLabel = computed(() => {
       ? Number(defaultPackage.value.price)
       : Number(offer.value.price_per_unit);
   const withFee = applyMembershipFee(base, feePercent.value);
-  return `${withFee.toLocaleString('ru-RU')} ${system.governSymbol} / ${saleUnitLabel.value}`;
+  return `${withFee.toLocaleString(uiLocale())} ${system.governSymbol} / ${saleUnitLabel.value}`;
 });
 
 const stockLabel = computed(() => {
@@ -166,7 +167,7 @@ const packageRows = computed(() =>
   (offer.value?.packages ?? []).map((p) => ({
     key: p.id,
     name: [`${formatSize(p.size)} ${unitShort.value}`, p.package_type].filter(Boolean).join(', '),
-    price: `${applyMembershipFee(Number(p.price), feePercent.value).toLocaleString('ru-RU')} ${system.governSymbol}`,
+    price: `${applyMembershipFee(Number(p.price), feePercent.value).toLocaleString(uiLocale())} ${system.governSymbol}`,
     stock: offer.value?.unlimited_flag ? 'без ограничения' : `${p.quantity_available} упак.`,
   })),
 );

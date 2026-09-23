@@ -59,6 +59,8 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
+import { intlLocale } from '@coopenomics/i18n';
+import { currentLocale, t } from 'src/shared/i18n';
 import { EmptyState } from 'src/shared/ui/base/EmptyState';
 import type {
   NotificationCategory,
@@ -116,29 +118,20 @@ function formatRelative(value: string | Date): string {
   const d = toDate(value);
   if (!Number.isFinite(d.getTime())) return '';
   const diff = (Date.now() - d.getTime()) / 1000;
-  if (diff < 60) return 'только что';
+  if (diff < 60) return t('ui.notificationCenter.justNow');
   if (diff < 3600) {
     const m = Math.floor(diff / 60);
-    return `${m} ${plural(m, 'мин', 'мин', 'мин')} назад`;
+    return t('ui.notificationCenter.minutesAgo', m);
   }
   if (diff < 86400) {
     const h = Math.floor(diff / 3600);
-    return `${h} ${plural(h, 'час', 'часа', 'часов')} назад`;
+    return t('ui.notificationCenter.hoursAgo', h);
   }
   if (diff < 7 * 86400) {
     const days = Math.floor(diff / 86400);
-    return `${days} ${plural(days, 'день', 'дня', 'дней')} назад`;
+    return t('ui.notificationCenter.daysAgo', days);
   }
-  return d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' });
-}
-
-function plural(n: number, one: string, few: string, many: string): string {
-  const mod10 = n % 10;
-  const mod100 = n % 100;
-  if (mod100 >= 11 && mod100 <= 14) return many;
-  if (mod10 === 1) return one;
-  if (mod10 >= 2 && mod10 <= 4) return few;
-  return many;
+  return d.toLocaleDateString(intlLocale(currentLocale()), { day: 'numeric', month: 'short' });
 }
 </script>
 

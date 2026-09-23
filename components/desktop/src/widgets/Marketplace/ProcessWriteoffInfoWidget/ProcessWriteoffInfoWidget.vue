@@ -36,6 +36,7 @@
 
 <script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue'
+import { uiLocale } from 'src/shared/i18n';
 import { useProcessStore, type IProcessSnapshot } from 'src/entities/Process'
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits'
 import { Loader } from 'src/shared/ui/Loader'
@@ -84,7 +85,7 @@ function formatDate(value: string): string {
   if (!value) return '—'
   const d = new Date(value)
   if (Number.isNaN(d.getTime())) return value
-  return d.toLocaleDateString('ru-RU')
+  return d.toLocaleDateString(uiLocale())
 }
 
 const deepLink = computed(() => ({

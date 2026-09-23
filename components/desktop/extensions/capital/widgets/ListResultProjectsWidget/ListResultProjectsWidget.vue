@@ -41,6 +41,7 @@
 
 <script lang="ts" setup>
 import { ref, computed, onMounted, watch } from 'vue';
+import { uiLocale } from 'src/shared/i18n';
 import { api as ProjectApi } from '../../entities/Project/api';
 import type { IProject } from '../../entities/Project/model';
 import { Zeus } from '@coopenomics/sdk';
@@ -81,7 +82,7 @@ const items = ref<IProject[]>([]);
 /** Порядок задаётся явно: сервер отдаёт строки в порядке, который меняется между запросами */
 const rows = computed(() =>
   [...items.value].sort((left, right) => {
-    const byTitle = (left.title || '').localeCompare(right.title || '', 'ru');
+    const byTitle = (left.title || '').localeCompare(right.title || '', uiLocale());
     if (byTitle !== 0) return byTitle;
     return left.project_hash.localeCompare(right.project_hash);
   }),

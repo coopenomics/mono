@@ -1,4 +1,5 @@
 import { Zeus } from '@coopenomics/sdk'
+import { uiLocale } from 'src/shared/i18n';
 
 /** ISO-строка, timestamp (ms/s) или Date из ответа GraphQL / кэша Apollo */
 function toTimeMs(value: unknown): number | null {
@@ -28,7 +29,7 @@ export function formatDateTime(dateStr: unknown): string {
     return '';
   }
   const date = new Date(ms);
-  return date.toLocaleDateString('ru-RU', {
+  return date.toLocaleDateString(uiLocale(), {
     day: '2-digit',
     month: '2-digit',
     year: 'numeric',

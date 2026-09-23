@@ -130,6 +130,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
+import { uiLocale } from 'src/shared/i18n';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { BaseBadge } from 'src/shared/ui/base/BaseBadge';
 import { BaseButton } from 'src/shared/ui/base/BaseButton';
@@ -217,7 +218,7 @@ function formatDateTime(value?: unknown): string {
   if (!value) return '—';
   const date = new Date(String(value));
   if (Number.isNaN(date.getTime())) return String(value);
-  return date.toLocaleString('ru-RU', { dateStyle: 'short', timeStyle: 'short' });
+  return date.toLocaleString(uiLocale(), { dateStyle: 'short', timeStyle: 'short' });
 }
 
 /** «Август · 1–22» плюс год: два периода одного месяца иначе не различить. */
