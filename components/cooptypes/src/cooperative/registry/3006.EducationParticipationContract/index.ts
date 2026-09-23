@@ -5,13 +5,13 @@ import {
   CONTRACT_STYLE,
   STORAGE_TERMS_HTML,
   contractBodyTranslations,
-} from '../3005.EducationParticipationContractTemplate/contract-body'
+} from './contract-body'
 
 export const registry_id = 3006
 
 /**
  * Экземпляр договора об участии преподавателя в хозяйственной деятельности
- * (УХД) по ЦПП «Образование». Текст — общий с рыбой 3005 (contract-body.ts);
+ * (УХД) по ЦПП «Образование». Текст договора — contract-body.ts;
  * здесь подставляются протокол утверждения рыбы, номер и дата договора,
  * реквизиты кооператива и пайщика. Подписывает преподаватель, вторую подпись
  * ставит председатель. Номер и дату договора вычисляет бэкенд edubridge.

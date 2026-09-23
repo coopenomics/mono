@@ -107,11 +107,8 @@ export * as BranchTrustedPowerOfAttorney from './330.BranchTrustedPowerOfAttorne
 
 // Edubridge — ЦПП «Образование»
 export * as EducationProgramTemplate from './3000.EducationProgramTemplate'
-export * as EducationParentOfferTemplate from './3001.EducationParentOfferTemplate'
 export * as EducationParentOffer from './3002.EducationParentOffer'
-export * as EducationTeacherOfferTemplate from './3003.EducationTeacherOfferTemplate'
 export * as EducationTeacherOffer from './3004.EducationTeacherOffer'
-export * as EducationParticipationContractTemplate from './3005.EducationParticipationContractTemplate'
 export * as EducationParticipationContract from './3006.EducationParticipationContract'
 export * as EducationCourseAnnex from './3007.EducationCourseAnnex'
 export * as EducationRidStatement from './3008.EducationRidStatement'

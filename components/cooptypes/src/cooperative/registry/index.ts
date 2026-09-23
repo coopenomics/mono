@@ -110,11 +110,8 @@ export * as BranchTrustedPowerOfAttorney from './330.BranchTrustedPowerOfAttorne
 
 // Edubridge — ЦПП «Образование»
 export * as EducationProgramTemplate from './3000.EducationProgramTemplate'
-export * as EducationParentOfferTemplate from './3001.EducationParentOfferTemplate'
 export * as EducationParentOffer from './3002.EducationParentOffer'
-export * as EducationTeacherOfferTemplate from './3003.EducationTeacherOfferTemplate'
 export * as EducationTeacherOffer from './3004.EducationTeacherOffer'
-export * as EducationParticipationContractTemplate from './3005.EducationParticipationContractTemplate'
 export * as EducationParticipationContract from './3006.EducationParticipationContract'
 export * as EducationCourseAnnex from './3007.EducationCourseAnnex'
 export * as EducationRidStatement from './3008.EducationRidStatement'
@@ -128,4 +125,8 @@ export * as EducationRidStorageAct from './3012.EducationRidStorageAct'
  * Генерации. Совет утверждает рабочий документ (996, 1001, 1000, 1102) в виде
  * бланка: те же шаблон и переводы, поля пайщика и события — прочерком. Номера
  * не переиспользовать: в действующих сетях их записи остаются.
+ *
+ * Так же выведены (23.09.2026) 3001, 3003, 3005 — двойники оферт родителя-слушателя
+ * и преподавателя и договора участия ЦПП «Образование»; совет утверждает рабочие
+ * 3002, 3004, 3006 в бланке.
  */

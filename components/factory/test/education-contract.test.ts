@@ -5,10 +5,11 @@ import { testDocumentGeneration } from './utils/testDocument'
 import { generator, mongoUri } from './utils'
 
 /**
- * Договор УХД преподавателя по ЦПП «Образование»: рыба 3005 (утверждает Совет)
- * и экземпляр 3006 (подписывает пайщик). Текст договора у них общий и обязан
- * совпадать дословно — различаются только шапка, реквизиты и подстановки.
+ * Договор УХД преподавателя по ЦПП «Образование». Совет утверждает его в бланке
+ * (двойник 3005 выведен), пайщик подписывает тот же шаблон со своими данными:
+ * текст договора в бланке и в экземпляре обязан совпадать дословно.
  */
+const CONTRACT = Cooperative.Registry.EducationParticipationContract.registry_id
 const CONTRACT_NUMBER = 'УХД-0007'
 const CONTRACT_DATE = '15.09.2026'
 const PROTOCOL = { protocol_number: 'СС-01-09-26', protocol_day_month_year: '01 сентября 2026 г.' }
@@ -29,6 +30,11 @@ async function generate(registry_id: number): Promise<IGeneratedDocument> {
   return generator.generate({ registry_id, coopname: 'voskhod', username: 'ant', lang: 'ru' })
 }
 
+/** Бланк договора — то, что видит и утверждает совет. */
+async function blank(): Promise<{ html: string }> {
+  return generator.generateBlank({ registry_id: CONTRACT, coopname: 'voskhod' })
+}
+
 describe('договор УХД преподавателя по ЦПП «Образование»', async () => {
   beforeAll(async () => {
     await generator.connect(mongoUri)
@@ -41,23 +47,19 @@ describe('договор УХД преподавателя по ЦПП «Обр�
     }
   })
 
-  it('рыба 3005 генерируется и воспроизводится с тем же хэшем', async () => {
-    await testDocumentGeneration({ registry_id: 3005, coopname: 'voskhod', username: 'ant', lang: 'ru' })
+  it('экземпляр договора генерируется и воспроизводится с тем же хэшем', async () => {
+    await testDocumentGeneration({ registry_id: CONTRACT, coopname: 'voskhod', username: 'ant', lang: 'ru' })
   })
 
-  it('экземпляр 3006 генерируется и воспроизводится с тем же хэшем', async () => {
-    await testDocumentGeneration({ registry_id: 3006, coopname: 'voskhod', username: 'ant', lang: 'ru' })
-  })
-
-  it('текст договора в рыбе и экземпляре совпадает дословно', async () => {
-    const template = contractBody((await generate(3005)).html)
-    const instance = contractBody((await generate(3006)).html)
+  it('текст договора в бланке и экземпляре совпадает дословно', async () => {
+    const template = contractBody((await blank()).html)
+    const instance = contractBody((await generate(CONTRACT)).html)
     expect(template.length).toBeGreaterThan(20000)
     expect(instance).toEqual(template)
   })
 
   it('договор содержит все 9 разделов, 12 терминов и 12 пунктов Дополнительных условий', async () => {
-    const text = plainText((await generate(3006)).html)
+    const text = plainText((await generate(CONTRACT)).html)
     for (const title of [
       '1. Термины и определения',
       '2. Предмет Договора',
@@ -79,7 +81,7 @@ describe('договор УХД преподавателя по ЦПП «Обр�
   })
 
   it('экземпляр подставляет номер, дату, протокол утверждения и пайщика; незаполненных мест нет', async () => {
-    const text = plainText((await generate(3006)).html)
+    const text = plainText((await generate(CONTRACT)).html)
     expect(text).toContain(`об участии в хозяйственной деятельности № ${CONTRACT_NUMBER}`)
     expect(text).toContain(`Протокол № ${PROTOCOL.protocol_number} от ${PROTOCOL.protocol_day_month_year}`)
     expect(text).toContain(`Договора об участии в хозяйственной деятельности № ${CONTRACT_NUMBER} от ${CONTRACT_DATE}`)
@@ -87,12 +89,11 @@ describe('договор УХД преподавателя по ЦПП «Обр�
     expect(text).not.toMatch(/undefined|null|______|\[ФИО\]|\{%|\{\{/)
   })
 
-  it('рыба не содержит данных пайщика: номер, дата, протокол и пайщик — прочерками', async () => {
-    const text = plainText((await generate(3005)).html)
-    expect(text).toContain('Протокол № ______________ от ______________')
-    expect(text).toContain('об участии в хозяйственной деятельности № ______________')
-    expect(text).toContain('и пайщик ______________, далее именуемый(-ая) «Пайщик»')
+  it('бланк не содержит данных пайщика: номер, дата и пайщик — прочерками', async () => {
+    const text = plainText((await blank()).html)
+    expect(text).toContain('______')
     expect(text).not.toContain(CONTRACT_NUMBER)
+    expect(text).not.toContain(CONTRACT_DATE)
     expect(text).not.toMatch(/undefined|null|\{%|\{\{/)
   })
 })

@@ -92,11 +92,8 @@ import * as MarketplaceReturnCancelStatement from './1116.MarketplaceReturnCance
 import * as MarketplaceReturnCancelDecision from './1117.MarketplaceReturnCancelDecision'
 import * as MarketplaceProgramTemplate from './1100.MarketplaceProgramTemplate'
 import * as EducationProgramTemplate from './3000.EducationProgramTemplate'
-import * as EducationParentOfferTemplate from './3001.EducationParentOfferTemplate'
 import * as EducationParentOffer from './3002.EducationParentOffer'
-import * as EducationTeacherOfferTemplate from './3003.EducationTeacherOfferTemplate'
 import * as EducationTeacherOffer from './3004.EducationTeacherOffer'
-import * as EducationParticipationContractTemplate from './3005.EducationParticipationContractTemplate'
 import * as EducationParticipationContract from './3006.EducationParticipationContract'
 import * as EducationCourseAnnex from './3007.EducationCourseAnnex'
 import * as EducationRidStatement from './3008.EducationRidStatement'
@@ -186,11 +183,8 @@ export const Registry = {
   2010: ExpenseProposalStatement,
   2011: ExpenseProposalDecision,
   3000: EducationProgramTemplate,
-  3001: EducationParentOfferTemplate,
   3002: EducationParentOffer,
-  3003: EducationTeacherOfferTemplate,
   3004: EducationTeacherOffer,
-  3005: EducationParticipationContractTemplate,
   3006: EducationParticipationContract,
   3007: EducationCourseAnnex,
   3008: EducationRidStatement,

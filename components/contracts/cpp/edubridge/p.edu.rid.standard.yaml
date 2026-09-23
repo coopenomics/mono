@@ -376,14 +376,14 @@ documents:
     registry_id: 3004
     signed_by: [teacher]
     stored_in: "реестр документов кооператива"
-    note: "Подписывается преподавателем при вступлении в программу. Шаблон оферты (3003) принимает совет. Источник правды — components/cooptypes/src/cooperative/registry/3004.EducationTeacherOffer"
+    note: "Подписывается преподавателем при вступлении в программу. Редакцию оферты совет принимает в бланке, с прочерками на месте данных пайщика. Источник правды — components/cooptypes/src/cooperative/registry/3004.EducationTeacherOffer"
 
   - action: null
     title: Договор участия в хозяйственной деятельности
     registry_id: 3006
     signed_by: [teacher]
     stored_in: "реестр документов кооператива"
-    note: "Подписывается преподавателем до начала работы по курсам. Шаблон договора (3005) принимает совет. Источник правды — components/cooptypes/src/cooperative/registry/3006.EducationParticipationContract"
+    note: "Подписывается преподавателем до начала работы по курсам. Редакцию договора совет принимает в бланке, с прочерками на месте данных пайщика. Источник правды — components/cooptypes/src/cooperative/registry/3006.EducationParticipationContract"
 
   - action: null
     title: Приложение к договору участия по курсу

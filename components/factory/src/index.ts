@@ -238,11 +238,8 @@ export class Generator implements IGenerator {
 
       // Edubridge — ЦПП «Образование»
       [Actions.EducationProgramTemplate.Template.registry_id]: new Actions.EducationProgramTemplate.Factory(this.storage), // 3000 — Положение ЦПП
-      [Actions.EducationParentOfferTemplate.Template.registry_id]: new Actions.EducationParentOfferTemplate.Factory(this.storage), // 3001
       [Actions.EducationParentOffer.Template.registry_id]: new Actions.EducationParentOffer.Factory(this.storage), // 3002
-      [Actions.EducationTeacherOfferTemplate.Template.registry_id]: new Actions.EducationTeacherOfferTemplate.Factory(this.storage), // 3003
       [Actions.EducationTeacherOffer.Template.registry_id]: new Actions.EducationTeacherOffer.Factory(this.storage), // 3004
-      [Actions.EducationParticipationContractTemplate.Template.registry_id]: new Actions.EducationParticipationContractTemplate.Factory(this.storage), // 3005
       [Actions.EducationParticipationContract.Template.registry_id]: new Actions.EducationParticipationContract.Factory(this.storage), // 3006
       [Actions.EducationCourseAnnex.Template.registry_id]: new Actions.EducationCourseAnnex.Factory(this.storage), // 3007
       [Actions.EducationRidStatement.Template.registry_id]: new Actions.EducationRidStatement.Factory(this.storage), // 3008
