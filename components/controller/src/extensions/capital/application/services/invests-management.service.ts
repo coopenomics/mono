@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Optional } from '@nestjs/common';
 import { InvestsManagementInteractor } from '../use-cases/invests-management.interactor';
 import type { CreateProjectInvestInputDTO } from '../dto/invests_management/create-project-invest-input.dto';
 import type { CreateProgramInvestInputDTO } from '../dto/invests_management/create-program-invest-input.dto';
@@ -14,9 +14,13 @@ import { InvestFilterInputDTO } from '../dto/invests_management/invest-filter.in
 import { PaginationInputDTO, PaginationResult, GenerateDocumentOptionsInputDTO, GeneratedDocumentDTO, AssetUtils, GenerateDocumentInputDTO,
   CurrencyValidationUtil,
 } from '@coopenomics/extension-kit';
-import { Cooperative } from 'cooptypes';
+import { CapitalContract, Cooperative, Ledger2Contract } from 'cooptypes';
 import { verifySignedDocumentAgainstStoredDraft } from '@coopenomics/extension-kit';
-import { DOCUMENT_PORT, type IDocumentPort,
+import {
+  CHAIN_DELTA_WAIT_PORT,
+  DOCUMENT_PORT,
+  type IChainDeltaWaitPort,
+  type IDocumentPort,
   type InnerTransactResult,
 } from '@coopenomics/innercoop';
 import { generateRandomHash } from '@coopenomics/extension-kit';
@@ -29,7 +33,8 @@ import { generateRandomHash } from '@coopenomics/extension-kit';
 export class InvestsManagementService {
   constructor(
     private readonly investsManagementInteractor: InvestsManagementInteractor,
-    @Inject(DOCUMENT_PORT) private readonly documentPort: IDocumentPort
+    @Inject(DOCUMENT_PORT) private readonly documentPort: IDocumentPort,
+    @Optional() @Inject(CHAIN_DELTA_WAIT_PORT) private readonly chainWait: IChainDeltaWaitPort | null = null
   ) {}
 
   /**
@@ -77,13 +82,22 @@ export class InvestsManagementService {
 
     const invest_hash = generateRandomHash();
 
-    return await this.investsManagementInteractor.createProgramInvest(
+    const tx = await this.investsManagementInteractor.createProgramInvest(
       {
         ...data,
         invest_hash,
       },
       currentUser
     );
+
+    // Ответ после факта из цепи (ADR-009): стол сразу перечитывает кошельки и
+    // взносы пайщика — ждём, пока обе таблицы транзакции лягут в базу.
+    const byUser = (d: { value?: Record<string, unknown> }) => d.value?.username === data.username;
+    await this.chainWait?.afterTransact(tx, [
+      { code: Ledger2Contract.contractName.production, table: Ledger2Contract.Tables.UserWallets.tableName, scope: data.coopname, match: byUser },
+      { code: CapitalContract.contractName.production, table: CapitalContract.Tables.Contributors.tableName, scope: data.coopname, match: byUser },
+    ]);
+    return tx;
   }
 
   /**

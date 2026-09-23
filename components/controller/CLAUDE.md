@@ -101,46 +101,47 @@ sync-arch sanitation-эпик: blast radius на 22 entity + потребите�
 `updateFromBlockchain`. Не вводить namespace частично на одной entity — двойной канон хуже единого
 старого.
 
-### Dispatch pipeline (ADR-002, ADR-009) — СТРОГО
+### Dispatch pipeline (ADR-002, ADR-009) — как устроено сейчас
 
-В `BlockchainParserAdapterService.dispatch`:
+Единая точка входа — `infrastructure/blockchain/blockchain-consumer.service.ts`:
 
 ```
-1. dedup check (event_id) → return если exists
-2. save sync (через syncer)
-3. dedup.mark
-4. wake waiters (sync_key + block_num match)
-5. emit internal bus (delta:: immediate / action:: delayed 3s)
-6. emit pubsub {Entity}Updated (с entity из PG, не из raw delta)
+delta:  принадлежность кооперативу → dedup (event_id) → saveDelta → dedup.mark
+        → emit `delta::<code>::<table>` С ОЖИДАНИЕМ слушателей (проекции в базе),
+          не дольше BLOCKCHAIN_DELTA_LISTENERS_BARRIER_MS
+        → ChainDeltaWaiterService.wake(delta) — будим мутации, ждущие эту дельту
+action: dedup → saveAction → dedup.mark → emit `action::<code>::<action>`
+        через BLOCKCHAIN_ACTION_EMIT_DELAY_MS (дельты того же блока успевают лечь)
 ```
 
-- **Никогда** emit pubsub до save (INV-12).
-- **Никогда** emit action immediate — только `setTimeout(emit, config.blockchain.actionEmitDelayMs)`.
-- **Никогда** swallow ошибку в dispatch — re-throw либо DLQ.
+- Ожидающие будятся **после** слушателей дельты, не одновременно с ними: иначе ответ мутации прочитал бы проекцию до записи.
+- Упавший или зависший слушатель событие не держит — ошибка в журнал, событие подтверждается.
+- Проекции, которые нужны для ответа мутации, строятся **из дельт** (`delta::`), а не из действий: действия приходят с задержкой.
 
-### Write-mutation pattern (ADR-009, ADR-012) — СТРОГО
+### Write-mutation pattern (ADR-009) — СТРОГО для нового кода, переезд постепенный
 
-Application service:
+Мутация отвечает **после факта из цепи**, а не после выдуманной паузы. Одна строка после транзакции:
+
 ```typescript
-// 1. Pre-computed sync_key (deterministic)
-const expectedHash = computeEntityHash(input);
+@Optional() @Inject(CHAIN_DELTA_WAIT_PORT) private readonly chainWait: IChainDeltaWaitPort | null = null
 
-// 2. Pre-gate: нет ли уже in-flight?
-const inflight = await this.pool.findActive(contract, table, expectedHash);
-if (inflight) return { status: 'conflict', existing_tx_hash: inflight.tx_hash, attempt: inflight.retry_count };
-
-// 3. Submit через pool (placeholder → submit → finalize)
-const tx = await this.pool.submitWithPool({ user_id, contract, table, sync_key: expectedHash, action_name }, input);
-
-// 4. Wait-for-delta
-const entity = await this.adapter.waitForDelta(contract, table, expectedHash, tx.applied_block, config.writeWaitDeltaMs);
-
-// 5. Discriminated return
-if (entity) return { entity, tx_hash: tx.tx_hash, status: 'applied' };
-return { tx_hash: tx.tx_hash, status: 'pending' };
+const tx = await this.chain.createProgramInvest(data);            // транзакция
+await this.chainWait?.afterTransact(tx, [                          // её изменения легли в базу
+  { code: Ledger2Contract.contractName.production, table: 'userwallets', scope: coopname, match: byUser },
+  { code: CapitalContract.contractName.production, table: 'contributors', scope: coopname, match: byUser },
+]);
+return tx;                                                         // стол перечитывает сразу
 ```
 
-**Никогда**: `chainPort.submitTx(...)` напрямую в resolver/service — только `pool.submitWithPool`.
+- Порт `CHAIN_DELTA_WAIT_PORT` (innercoop) → `ChainDeltaWaiterService` (ядро). Расширение объявляет его в `optional` своих портов.
+- Ждать те таблицы, которые **читает стол** после действия; блок берётся из результата `transact`; `match` — своя строка (хэш, пайщик).
+- Не пришло за `BLOCKCHAIN_WRITE_WAIT_DELTA_MS` (3000) — `afterTransact` вернёт `false`, ответ уходит как есть, стол догонит при следующем чтении.
+- На столе после такой мутации — **сразу перечитать**, без `setTimeout`, без «оптимистичных» патчей и без циклов ожидания.
+- Канон: `capital` `createProgramInvest`, `chairman` `confirmApprove` / `declineApprove` (одобрение + контракт-адресат).
+- **Переезд постепенный.** Новые мутации — сразу по паттерну. Старые места с паузами (`POST_CHAIN_REFETCH_MS`, `waitForStage`, циклы `*_WAIT_ATTEMPTS`, `recentlySigned`) переводятся по одному, при касании.
+- Следующий шаг (ADR-012, не сделано): пул транзакций с placeholder/`sync_key` и повторной отправкой после форка.
+
+**Никогда**: `setTimeout`/`sleep` перед чтением после мутации — ни на сервере, ни на столе.
 **Никогда**: `chainPort.getX(...)` в read-path — только `repository.findBySyncKey`.
 
 ### `forwardRef` — только с разобранным циклом (СТРОГО)
@@ -426,7 +427,7 @@ public readonly trusted: IndividualDTO[];
 
 ### ❌ Write-mutation anti-patterns
 
-- `chainPort.submitTx()` напрямую — **запрещено** (теряется pool tracking). Только через `pool.submitWithPool`.
+- Ответ мутации без `afterTransact` там, где стол сразу перечитывает данные, — **запрещено** в новом коде; пауза перед чтением — **запрещено** везде.
 - `hardcoded 3000` в setTimeout — **запрещено**. Только `config.blockchain.actionEmitDelayMs` / `writeWaitDeltaMs`.
 - Pre-gate отсутствует (два click'а пайщика создают duplicate submit) — **запрещено**. Всегда `pool.findActive` перед submit.
 
@@ -459,7 +460,7 @@ public readonly trusted: IndividualDTO[];
 
 - Reconciliation cron — sample N=100 rows, **не** full scan на hot path.
 - IPFS fetch для signed-doc — **lazy resolver вне consumer critical path**, не в mapper.
-- `waitForDelta` memory leak — timer cleanup обязателен (см. INV-T10).
+- Ожидание дельты держит таймер — снимать при любом исходе (INV-T10), так сделано в `ChainDeltaWaiterService`.
 
 ---
 

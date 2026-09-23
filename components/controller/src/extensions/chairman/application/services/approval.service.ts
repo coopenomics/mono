@@ -47,29 +47,23 @@ export class ApprovalService {
    */
   private async awaitDecisionApplied(tx: unknown, approval: ApprovalDomainEntity): Promise<void> {
     if (!this.chainWait) return;
-    const minBlockNum = this.chainWait.blockOf(tx);
-    if (!minBlockNum) return;
     const hash = approval.approval_hash.toLowerCase();
-    const waits = [
-      this.chainWait.waitForDelta({
+    const applied = await this.chainWait.afterTransact(tx, [
+      {
         code: SovietContract.contractName.production,
         table: SovietContract.Tables.Approvals.tableName,
         scope: approval.coopname,
-        minBlockNum,
         match: (d) => !d.value?.approval_hash || String(d.value.approval_hash).toLowerCase() === hash,
-      }),
-    ];
-    if (approval.callback_contract) {
-      waits.push(this.chainWait.waitForDelta({ code: approval.callback_contract, scope: approval.coopname, minBlockNum }));
-    }
-    const applied = await Promise.all(waits);
-    if (applied.some((d) => d === null)) {
+      },
+      ...(approval.callback_contract ? [{ code: approval.callback_contract, scope: approval.coopname }] : []),
+    ]);
+    if (!applied) {
       this.logger.warn('Решение по одобрению отправлено, но изменение из цепи не пришло в срок — ответ без ожидания', {
         approval_hash: hash,
-        block_num: minBlockNum,
       });
     }
   }
+
 
   /**
    * Получить все одобрения с пагинацией и фильтрацией

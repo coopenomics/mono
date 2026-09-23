@@ -1,6 +1,5 @@
 import { ref } from 'vue';
 import type { Mutations } from '@coopenomics/sdk';
-import { Zeus } from '@coopenomics/sdk';
 import { api } from '../api';
 
 import { useSystemStore } from 'src/entities/System/model';
@@ -14,9 +13,6 @@ export type ICreateProgramInvestInput =
   Mutations.Capital.CreateProgramInvest.IInput['data'];
 export type ICreateProgramInvestOutput =
   Mutations.Capital.CreateProgramInvest.IOutput[typeof Mutations.Capital.CreateProgramInvest.name];
-
-/** Задержка refetch после on-chain операции: parser → PG обычно 1–3с. */
-const POST_CHAIN_REFETCH_MS = 3500;
 
 export function useCreateProgramInvest() {
   const system = useSystemStore();
@@ -66,8 +62,6 @@ export function useCreateProgramInvest() {
   async function createProgramInvestWithGeneratedStatement(
     amount: string,
   ): Promise<ICreateProgramInvestOutput> {
-    let optimisticPatchId: string | null = null;
-
     try {
       isGenerating.value = true;
 
@@ -91,60 +85,16 @@ export function useCreateProgramInvest() {
         statement: signedDoc,
       };
 
-      // Оптимистичный update: списываем с ЦК (Zeus.ProgramType.MAIN),
-      // зачисляем в Благорост (Zeus.ProgramType.BLAGOROST). Обе суммы — в
-      // `available`, потому что Ledger2::apply(INVEST) делает TRANSFER
-      // w.wal.share → w.cap.blago: оба USER_SHARED, оба пишутся в .available
-      // (см. operations.hpp:INVEST). progwallets.blocked в десктоп-картах
-      // не отображается — UI читает available из L3 userwallets.
-      optimisticPatchId = walletStore.applyOptimisticPatch([
-        {
-          username: session.username,
-          program_type: Zeus.ProgramType.MAIN,
-          available_delta: `-${formattedAmount}`,
-        },
-        {
-          username: session.username,
-          program_type: Zeus.ProgramType.BLAGOROST,
-          available_delta: formattedAmount,
-        },
+      // Сервер отвечает после того, как изменения транзакции пришли из цепи и
+      // легли в базу (ADR-009), — поэтому перечитываем сразу, без пауз и без
+      // «оптимистичной» подмены баланса.
+      const result = await createProgramInvest(investData);
+      await Promise.all([
+        walletStore.loadUserWallet({ coopname: system.info.coopname, username: session.username }),
+        contributorStore.loadSelf({ username: session.username }),
       ]);
 
-      const result = await createProgramInvest(investData);
-
-      // Оптимистично обновим «Взносы по ролям → Инвестор» на профиле,
-      // чтобы не ждать parser. Через POST_CHAIN_REFETCH_MS придёт правда.
-      const self = contributorStore.self;
-      if (self) {
-        const prevRaw = String(self.contributed_as_investor || '0').trim();
-        const prevAmount = parseFloat(prevRaw.split(' ')[0] || '0') || 0;
-        const addAmount = parseFloat(amount) || 0;
-        const precision = system.info.symbols.root_govern_precision;
-        const symbol =
-          prevRaw.split(' ')[1] || system.info.symbols.root_govern_symbol;
-        contributorStore.updateSelf({
-          ...self,
-          contributed_as_investor: `${(prevAmount + addAmount).toFixed(precision)} ${symbol}`,
-        });
-      }
-
-      // НЕ ждём loadUserWallet / loadSelf синхронно: parser → PG обычно
-      // отстают от блока на 1–3с. Ранний refetch вернёт стейт ДО инвеста и
-      // сотрёт оптимистичный патч / покажет старые взносы. Откладываем.
-      setTimeout(() => {
-        void walletStore.loadUserWallet({
-          coopname: system.info.coopname,
-          username: session.username,
-        });
-        void contributorStore.loadSelf({ username: session.username });
-      }, POST_CHAIN_REFETCH_MS);
-
       return result;
-    } catch (e) {
-      if (optimisticPatchId) {
-        walletStore.revertOptimisticPatch(optimisticPatchId);
-      }
-      throw e;
     } finally {
       isGenerating.value = false;
     }

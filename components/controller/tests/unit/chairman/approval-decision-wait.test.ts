@@ -24,24 +24,22 @@ function make(chainWait: any) {
 }
 
 describe('ApprovalService — ответ после изменения из цепи', () => {
-  it('подтверждение ждёт одобрение совета и контракт-адресат из блока транзакции', async () => {
-    const chainWait = {
-      blockOf: jest.fn((tx: any) => tx.response.processed.block_num),
-      waitForDelta: jest.fn(async () => ({ block_num: 54696 })),
-    };
+  it('подтверждение ждёт одобрение совета и контракт-адресат транзакции', async () => {
+    const chainWait = { afterTransact: jest.fn(async () => true) };
     const { service } = make(chainWait);
     await service.confirmApprove({ coopname: 'voskhod', approval_hash: 'abc' } as any, 'ant');
 
-    const queries = chainWait.waitForDelta.mock.calls.map((c: any[]) => c[0]);
-    expect(queries).toHaveLength(2);
-    expect(queries[0]).toMatchObject({ code: 'soviet', table: 'approvals', scope: 'voskhod', minBlockNum: 54696 });
-    expect(queries[0].match({ value: { approval_hash: 'abc' } })).toBe(true);
-    expect(queries[0].match({ value: { approval_hash: 'other' } })).toBe(false);
-    expect(queries[1]).toMatchObject({ code: 'edubridge', scope: 'voskhod', minBlockNum: 54696 });
+    const [tx, waits] = (chainWait.afterTransact.mock.calls[0] as unknown) as [any, any[]];
+    expect(tx.response.processed.block_num).toBe(54696);
+    expect(waits).toHaveLength(2);
+    expect(waits[0]).toMatchObject({ code: 'soviet', table: 'approvals', scope: 'voskhod' });
+    expect(waits[0].match({ value: { approval_hash: 'abc' } })).toBe(true);
+    expect(waits[0].match({ value: { approval_hash: 'other' } })).toBe(false);
+    expect(waits[1]).toEqual({ code: 'edubridge', scope: 'voskhod' });
   });
 
   it('изменение не пришло в срок — ответ всё равно уходит, с предупреждением в журнал', async () => {
-    const chainWait = { blockOf: jest.fn(() => 54700), waitForDelta: jest.fn(async () => null) };
+    const chainWait = { afterTransact: jest.fn(async () => false) };
     const { service, logger } = make(chainWait);
     await expect(service.declineApprove({ coopname: 'voskhod', approval_hash: 'abc', reason: 'нет' } as any, 'ant')).resolves.toBeDefined();
     expect(logger.warn).toHaveBeenCalled();
