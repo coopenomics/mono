@@ -36,7 +36,8 @@ cases:
     level: contract
     kind: break
     scenario: в createproj пришло описание текстом
-    expect: цепь отказывает, текст в память не попадает
+    expect: >
+      во втором релизе цепь отказывает, текст в память не попадает. В первом релизе (TextDigest::PHASE2 = false) контракт текст ещё принимает — раскатка ставит контракты раньше контроллера; тест проверяет это переходное поведение и упадёт, когда PHASE2 включат, напомнив вернуть отказ.
     test: components/boot/src/tests/capital-text-digest.test.ts
     status: passing
 
@@ -44,7 +45,8 @@ cases:
     level: contract
     kind: break
     scenario: в editproj пришло приглашение текстом
-    expect: цепь отказывает; хеш того же приглашения принимается
+    expect: >
+      во втором релизе цепь отказывает; хеш того же приглашения принимается. В первом релизе (TextDigest::PHASE2 = false) контракт текст ещё принимает — раскатка ставит контракты раньше контроллера; тест проверяет это переходное поведение и упадёт, когда PHASE2 включат, напомнив вернуть отказ.
     test: components/boot/src/tests/capital-text-digest.test.ts
     status: passing
 
@@ -75,7 +77,9 @@ cases:
   - id: cap.texts.side.04
     level: contract
     kind: side
-    scenario: capital::migrate на цепи со старыми текстами и повторный прогон
+    scenario: >
+      capital::migrate на цепи со старыми текстами и повторный прогон — только
+      во втором релизе (TextDigest::PHASE2), в первом migrate тексты не трогает
     expect: >
       тексты заменены их sha256, пустые поля остались пустыми; повторный прогон
       строки не переписывает
