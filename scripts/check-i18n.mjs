@@ -232,9 +232,12 @@ function collectUsage(app) {
   const dynamic = new Map(); // prefix → файл
   const keyLike = new Set();
   const lineOf = (text, index) => text.slice(0, index).split('\n').length;
+  // Примеры вызовов в комментариях (`// t('wallet.x')`, JSDoc) — не ссылки.
+  const blankComments = (text) =>
+    text.replace(/^([ \t]*)(\/\/-?|\*|\/\*\*?).*$/gm, (line) => line.replace(/[^\n]/g, ' '));
   for (const rel of listScanFiles()) {
     if (appOf(rel) !== app) continue;
-    const text = readFileSync(join(REPO_ROOT, rel), 'utf8');
+    const text = blankComments(readFileSync(join(REPO_ROOT, rel), 'utf8'));
     for (const m of text.matchAll(CALL_RE)) {
       if (m[2]) {
         if (!exact.has(m[2])) exact.set(m[2], `${rel}:${lineOf(text, m.index)}`);
