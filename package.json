@@ -78,6 +78,7 @@
     "check:changed": "bash scripts/check.sh changed",
     "check:registry": "bash scripts/check.sh registry",
     "check:ledger2": "bash scripts/check.sh ledger2",
+    "check:i18n": "bash scripts/check.sh i18n",
     "typecheck:changed": "bash scripts/typecheck-changed.sh",
     "typecheck:all": "TYPECHECK_ALL=1 bash scripts/typecheck-changed.sh",
     "registry:audit": "node scripts/registry-audit.mjs",
