@@ -65,6 +65,7 @@
 #include "src/system/converttoaxn.cpp"
 #include "src/system/init.cpp"
 #include "src/system/migrate.cpp"
+#include "src/system/cleanup.cpp"
 
 #include "src/vote/cancelvote.cpp"
 #include "src/vote/voteagainst.cpp"

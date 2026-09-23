@@ -64,3 +64,34 @@ using namespace eosio;
   require_auth(_system);  
 };
 
+/**
+ * @brief Очистка отработавших записей кооперативных участков (lib/core/cleanup.hpp).
+ *
+ * Правило: заявки в доверенные и веса распределения участка, которого уже нет.
+ * Удаление участка их не трогало; заявку по такому участку не одобрить, а веса
+ * ожили бы при создании участка с тем же именем.
+ *
+ * @note Авторизация требуется от аккаунта: @p branch
+ */
+void branch::cleanup() {
+  require_auth(_branch);
+  Cleanup::budget budget;
+
+  for (const auto &coopname : Core::Registrator::get_cooperative_names()) {
+    if (budget.exhausted()) break;
+
+    branch_index branches(_branch, coopname.value);
+    auto branch_gone = [&](eosio::name braname) { return branches.find(braname.value) == branches.end(); };
+
+    trustreq_index trustreqs(_branch, coopname.value);
+    Cleanup::erase_where(trustreqs, budget, [&](const auto &request) { return branch_gone(request.braname); });
+
+    branch_weights_index weights(_branch, coopname.value);
+    Cleanup::erase_where(weights, budget, [&](const auto &weight) { return branch_gone(weight.braname); });
+
+    branch_weight_totals_index totals(_branch, coopname.value);
+    Cleanup::erase_where(totals, budget, [&](const auto &total) { return branch_gone(total.braname); });
+  }
+
+  Cleanup::report(_branch, budget);
+}

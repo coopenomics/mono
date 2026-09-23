@@ -45,7 +45,7 @@
 ## Authorization (MVP)
 
 - Все mutating actions: `<coopname>@active`.
-- `cleanup` — без auth (доброкачественная операция).
+- `cleanup` — `apps@active`, общая очистка по всем пакетам; вызывается раскаткой на каждом деплое.
 - `migrate` — `apps@active`.
 
 ## Authorization (план)

@@ -72,6 +72,9 @@ public:
 
     [[eosio::action]]
     void migrate();
+    /// Очистка отработавших записей по правилам контракта (lib/core/cleanup.hpp); плейбук вызывает её на каждом деплое.
+    [[eosio::action]]
+    void cleanup();
 
     // Создать проект
     [[eosio::action]]

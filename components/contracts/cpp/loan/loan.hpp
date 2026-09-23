@@ -39,6 +39,8 @@ public:
     using coop_contract::coop_contract;
 
     [[eosio::action]] void migrate();
+    /// Очистка отработавших записей по правилам контракта (lib/core/cleanup.hpp); плейбук вызывает её на каждом деплое.
+    [[eosio::action]] void cleanup();
 
     //создать долг
     [[eosio::action]] void createdebt(CREATEDEBT_SIGNATURE);

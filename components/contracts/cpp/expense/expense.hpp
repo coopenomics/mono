@@ -144,6 +144,9 @@ class [[eosio::contract("expense")]] expense : public coop_contract {
 public:
     using coop_contract::coop_contract;
 
+    /// Очистка отработавших записей по правилам контракта (lib/core/cleanup.hpp); плейбук вызывает её на каждом деплое.
+    [[eosio::action]] void cleanup();
+
     /**
      * @brief Создать и подать СЗ-расход.
      *

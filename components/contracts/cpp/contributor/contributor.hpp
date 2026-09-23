@@ -20,6 +20,9 @@ class [[eosio::contract]] contributor : public coop_contract {
 public:
     using coop_contract::coop_contract;
 
+    /// Очистка отработавших записей по правилам контракта (lib/core/cleanup.hpp); плейбук вызывает её на каждом деплое.
+    [[eosio::action]] void cleanup();
+
     /**
      * @brief Инициализирует контракт, устанавливая глобальное состояние.
      * \ingroup public_actions

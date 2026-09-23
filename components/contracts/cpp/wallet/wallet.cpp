@@ -22,3 +22,16 @@ using namespace eosio;
 void wallet::migrate(){
   require_auth(_wallet);
 };
+
+/**
+ * @brief Очистка отработавших записей (lib/core/cleanup.hpp).
+ *
+ * Правил нет: депозиты и выводы удаляются на терминальном шаге, соглашения пайщиков по программам — юридические записи.
+ *
+ * @note Авторизация требуется от аккаунта контракта.
+ */
+void wallet::cleanup() {
+  require_auth(get_self());
+  Cleanup::budget budget;
+  Cleanup::report(get_self(), budget);
+}

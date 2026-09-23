@@ -57,3 +57,30 @@ std::optional<Meet::meet> meet::get_meet(eosio::name coopname, const checksum256
 
     return *itr;
 }
+
+/**
+ * @brief Очистка отработавших записей собраний (lib/core/cleanup.hpp).
+ *
+ * Правило: вопрос повестки, чьего собрания уже нет. Вопросы удаляются при
+ * закрытии собрания, а отклонённое и удалённое собрание их оставляло; такой
+ * вопрос не читает ни голосование, ни контроллер. Закрытые собрания пока
+ * остаются: список собраний контроллер строит по строкам цепи.
+ *
+ * @note Авторизация требуется от аккаунта: @p meet
+ */
+void meet::cleanup() {
+  require_auth(_meet);
+  Cleanup::budget budget;
+
+  for (const auto &coopname : Core::Registrator::get_cooperative_names()) {
+    if (budget.exhausted()) break;
+
+    Meet::meets_index meets(_meet, coopname.value);
+    Meet::questions_index questions(_meet, coopname.value);
+    Cleanup::erase_where(questions, budget, [&](const auto &question) {
+      return meets.find(question.meet_id) == meets.end();
+    });
+  }
+
+  Cleanup::report(_meet, budget);
+}
