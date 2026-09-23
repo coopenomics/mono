@@ -17,6 +17,8 @@ class [[eosio::contract]] wallet : public coop_contract {
 public:
     using coop_contract::coop_contract;
     [[eosio::action]] void migrate();
+    /// Очистка отработавших записей по правилам контракта (lib/core/cleanup.hpp); плейбук вызывает её на каждом деплое.
+    [[eosio::action]] void cleanup();
     
     //паевой взнос
     [[eosio::action]] void createdpst(eosio::name coopname, eosio::name username, checksum256 deposit_hash, eosio::asset quantity);

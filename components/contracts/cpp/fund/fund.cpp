@@ -66,3 +66,29 @@ using namespace eosio;
                                          uint64_t id) {
   require_auth(_fund);
 };
+
+/**
+ * @brief Очистка отработавших записей фондов (lib/core/cleanup.hpp).
+ *
+ * Правило: завершённый вывод из фонда после срока хранения (`expired_at`,
+ * месяц от завершения). Решение совета по нему уже исполнено и удалено, а
+ * повторно провести завершённый вывод контракт не должен.
+ *
+ * @note Авторизация требуется от аккаунта: @p fund
+ */
+void fund::cleanup() {
+  require_auth(_fund);
+  Cleanup::budget budget;
+  const eosio::time_point_sec now(eosio::current_time_point());
+
+  for (const auto &coopname : Core::Registrator::get_cooperative_names()) {
+    if (budget.exhausted()) break;
+
+    fundwithdraws_index withdraws(_fund, coopname.value);
+    Cleanup::erase_where(withdraws, budget, [&](const auto &withdraw) {
+      return withdraw.status == "completed"_n && withdraw.expired_at <= now;
+    });
+  }
+
+  Cleanup::report(_fund, budget);
+}

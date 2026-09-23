@@ -429,3 +429,16 @@ void expense::overspendexp(name coopname, checksum256 proposal_hash, checksum256
                  processes::expense::PROPOSAL, overspend_amount,
                  item_recipient, proposal_hash, "expense:overspend");
 }
+
+/**
+ * @brief Очистка отработавших записей (lib/core/cleanup.hpp).
+ *
+ * Правил нет: закрытые и отклонённые предложения расхода остаются. Удаление строки заново запускает обработчики контроллера и переписывает дату оплаты — сначала правка контроллера.
+ *
+ * @note Авторизация требуется от аккаунта контракта.
+ */
+void expense::cleanup() {
+  require_auth(get_self());
+  Cleanup::budget budget;
+  Cleanup::report(get_self(), budget);
+}

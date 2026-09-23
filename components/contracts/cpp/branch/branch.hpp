@@ -61,6 +61,8 @@ public:
 
   [[eosio::action]] void init();
   [[eosio::action]] void migrate();
+  /// Очистка отработавших записей по правилам контракта (lib/core/cleanup.hpp); плейбук вызывает её на каждом деплое.
+  [[eosio::action]] void cleanup();
   
   [[eosio::action]] void createbranch(eosio::name coopname, eosio::name braname, eosio::name trustee);
   [[eosio::action]] void editbranch(eosio::name coopname, eosio::name braname, eosio::name trustee);

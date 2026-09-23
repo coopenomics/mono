@@ -59,6 +59,8 @@ public:
   
   void apply(uint64_t receiver, uint64_t code, uint64_t action);
   [[eosio::action]] void migrate();
+  /// Очистка отработавших записей по правилам контракта (lib/core/cleanup.hpp); плейбук вызывает её на каждом деплое.
+  [[eosio::action]] void cleanup();
 
   //income payments
   [[eosio::action]] void createinpay(eosio::name coopname, eosio::name username, checksum256 income_hash, eosio::asset quantity, eosio::name callback_contract, eosio::name confirm_callback, eosio::name decline_callback);

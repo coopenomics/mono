@@ -2,6 +2,7 @@
 
 #include "src/system/init.cpp"
 #include "src/system/migrate.cpp"
+#include "src/system/cleanup.cpp"
 
 #include "src/user/adduser.cpp"
 #include "src/user/confirmpay.cpp"

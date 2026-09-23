@@ -115,3 +115,29 @@ static void migrate_supplier_payables(eosio::name coopname) {
                    "Перенос открытых обязательств перед поставщиком на кошелёк к оплате, поставщик=" + supplier.to_string());
   }
 }
+
+/**
+ * @brief Очистка отработавших записей Стола заказов (lib/core/cleanup.hpp).
+ *
+ * Правило: признанная поставщиком претензия. Долг поставщика после признания
+ * живёт в кошельке долга и удерживается из выплат, строку претензии читает
+ * только проверка повтора при её заведении из возврата, а возврат к этому
+ * моменту закрыт.
+ *
+ * @note Авторизация требуется от аккаунта: @p marketplace
+ */
+void marketplace::cleanup() {
+  require_auth(_marketplace);
+  Cleanup::budget budget;
+
+  for (const auto &coopname : Core::Registrator::get_cooperative_names()) {
+    if (budget.exhausted()) break;
+
+    Marketplace::warranty_claims_index claims(_marketplace, coopname.value);
+    Cleanup::erase_where(claims, budget, [&](const auto &claim) {
+      return claim.status == Marketplace::ClaimStatus::ADMITTED;
+    });
+  }
+
+  Cleanup::report(_marketplace, budget);
+}
