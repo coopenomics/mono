@@ -75,6 +75,7 @@ import { ExtensionGrantsFilterModule } from './application/desktop/extension-gra
 import { MeetModule } from './application/meet/meet.module';
 import { GatewayModule } from './application/gateway/gateway.module';
 import { WalletModule } from './application/wallet/wallet.module';
+import { ChainChangesModule } from './application/chain-changes/chain-changes.module';
 import { NotificationModule } from './application/notification/notification.module';
 import { NotificationCenterModule } from './application/notification-center/notification-center.module';
 import { LedgerModule } from './application/ledger/ledger.module';
@@ -192,6 +193,7 @@ import { MarketplaceExtensionModule } from './extensions/marketplace/marketplace
     MeetModule,
     GatewayModule,
     WalletModule,
+    ChainChangesModule,
     NotificationModule,
     NotificationCenterModule,
     LedgerModule,

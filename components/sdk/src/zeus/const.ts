@@ -348,6 +348,12 @@ export const AllTypesProps: Record<string,any> = {
 	CategoryTypeInput:{
 
 	},
+	ChainChangesInput:{
+		tables:"ChainTableInput"
+	},
+	ChainTableInput:{
+
+	},
 	ChairmanOnboardingAgendaInput:{
 		step:"ChairmanOnboardingAgendaStep"
 	},
@@ -3926,6 +3932,9 @@ export const AllTypesProps: Record<string,any> = {
 		votes:"VoteDistributionInput"
 	},
 	Subscription:{
+		chainChanges:{
+			input:"ChainChangesInput"
+		},
 		marketplaceEvents:{
 			input:"MarketplaceEventsInput"
 		},
@@ -5431,6 +5440,13 @@ export const ReturnTypes: Record<string,any> = {
 		issued:"Boolean",
 		memberSince:"String",
 		state:"CardcoopAttestationState"
+	},
+	ChainChange:{
+		block_num:"Int",
+		code:"String",
+		primary_key:"String",
+		scope:"String",
+		table:"String"
 	},
 	ChairmanOnboardingState:{
 		general_meet_done:"Boolean",
@@ -9398,6 +9414,7 @@ export const ReturnTypes: Record<string,any> = {
 		documentAggregate:"DocumentAggregate"
 	},
 	Subscription:{
+		chainChanges:"ChainChange",
 		marketplaceEvents:"MarketplaceEvent",
 		nodeSyncState:"NodeSyncState",
 		walletEvents:"WalletChangedEvent"

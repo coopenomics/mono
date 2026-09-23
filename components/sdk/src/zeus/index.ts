@@ -5273,6 +5273,32 @@ export type ValueTypes = {
 	/** ID типа товара */
 	typeId: number | Variable<any, string>
 };
+	["ChainChange"]: AliasType<{
+	/** Блок, в котором строка изменилась; данные этого блока уже в базе узла. */
+	block_num?:boolean | `@${string}`,
+	/** Контракт, чья таблица изменилась. */
+	code?:boolean | `@${string}`,
+	/** Ключ изменившейся строки. */
+	primary_key?:boolean | `@${string}`,
+	/** Область таблицы — кооператив. */
+	scope?:boolean | `@${string}`,
+	/** Таблица контракта. */
+	table?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on ChainChange']?: Omit<ValueTypes["ChainChange"], "...on ChainChange">
+}>;
+	["ChainChangesInput"]: {
+	/** Кооператив; сверяется с кооперативом узла. */
+	coopname: string | Variable<any, string>,
+	/** Какие таблицы слушать. Не задано — все таблицы ленты, доступные пайщику. */
+	tables?: Array<ValueTypes["ChainTableInput"]> | undefined | null | Variable<any, string>
+};
+	["ChainTableInput"]: {
+	/** Контракт. */
+	code: string | Variable<any, string>,
+	/** Таблица контракта. */
+	table: string | Variable<any, string>
+};
 	["ChairmanOnboardingAgendaInput"]: {
 	decision: string | Variable<any, string>,
 	question: string | Variable<any, string>,
@@ -17432,6 +17458,7 @@ verificationReviews?: [{	data?: ValueTypes["VerificationReviewsInput"] | undefin
 	votes: Array<ValueTypes["VoteDistributionInput"]> | Variable<any, string>
 };
 	["Subscription"]: AliasType<{
+chainChanges?: [{	input: ValueTypes["ChainChangesInput"] | Variable<any, string>},ValueTypes["ChainChange"]],
 marketplaceEvents?: [{	input: ValueTypes["MarketplaceEventsInput"] | Variable<any, string>},ValueTypes["MarketplaceEvent"]],
 	/** Ход догона цепи узлом кооператива */
 	nodeSyncState?:ValueTypes["NodeSyncState"],
@@ -22406,6 +22433,31 @@ export type ResolverInputTypes = {
 	categoryId: number,
 	/** ID типа товара */
 	typeId: number
+};
+	["ChainChange"]: AliasType<{
+	/** Блок, в котором строка изменилась; данные этого блока уже в базе узла. */
+	block_num?:boolean | `@${string}`,
+	/** Контракт, чья таблица изменилась. */
+	code?:boolean | `@${string}`,
+	/** Ключ изменившейся строки. */
+	primary_key?:boolean | `@${string}`,
+	/** Область таблицы — кооператив. */
+	scope?:boolean | `@${string}`,
+	/** Таблица контракта. */
+	table?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["ChainChangesInput"]: {
+	/** Кооператив; сверяется с кооперативом узла. */
+	coopname: string,
+	/** Какие таблицы слушать. Не задано — все таблицы ленты, доступные пайщику. */
+	tables?: Array<ResolverInputTypes["ChainTableInput"]> | undefined | null
+};
+	["ChainTableInput"]: {
+	/** Контракт. */
+	code: string,
+	/** Таблица контракта. */
+	table: string
 };
 	["ChairmanOnboardingAgendaInput"]: {
 	decision: string,
@@ -34200,6 +34252,7 @@ verificationReviews?: [{	data?: ResolverInputTypes["VerificationReviewsInput"] |
 	votes: Array<ResolverInputTypes["VoteDistributionInput"]>
 };
 	["Subscription"]: AliasType<{
+chainChanges?: [{	input: ResolverInputTypes["ChainChangesInput"]},ResolverInputTypes["ChainChange"]],
 marketplaceEvents?: [{	input: ResolverInputTypes["MarketplaceEventsInput"]},ResolverInputTypes["MarketplaceEvent"]],
 	/** Ход догона цепи узлом кооператива */
 	nodeSyncState?:ResolverInputTypes["NodeSyncState"],
@@ -39034,6 +39087,30 @@ export type ModelTypes = {
 	categoryId: number,
 	/** ID типа товара */
 	typeId: number
+};
+	["ChainChange"]: {
+		/** Блок, в котором строка изменилась; данные этого блока уже в базе узла. */
+	block_num: number,
+	/** Контракт, чья таблица изменилась. */
+	code: string,
+	/** Ключ изменившейся строки. */
+	primary_key: string,
+	/** Область таблицы — кооператив. */
+	scope: string,
+	/** Таблица контракта. */
+	table: string
+};
+	["ChainChangesInput"]: {
+	/** Кооператив; сверяется с кооперативом узла. */
+	coopname: string,
+	/** Какие таблицы слушать. Не задано — все таблицы ленты, доступные пайщику. */
+	tables?: Array<ModelTypes["ChainTableInput"]> | undefined | null
+};
+	["ChainTableInput"]: {
+	/** Контракт. */
+	code: string,
+	/** Таблица контракта. */
+	table: string
 };
 	["ChairmanOnboardingAgendaInput"]: {
 	decision: string,
@@ -50921,7 +50998,9 @@ export type ModelTypes = {
 	votes: Array<ModelTypes["VoteDistributionInput"]>
 };
 	["Subscription"]: {
-		/** Поток событий пайщика в Столе заказов: личные и каталог. */
+		/** Изменения данных кооператива в цепи: сигнал к дочитке. Приходит, когда изменение уже в базе узла. */
+	chainChanges: ModelTypes["ChainChange"],
+	/** Поток событий пайщика в Столе заказов: личные и каталог. */
 	marketplaceEvents: ModelTypes["MarketplaceEvent"],
 	/** Ход догона цепи узлом кооператива */
 	nodeSyncState: ModelTypes["NodeSyncState"],
@@ -55937,6 +56016,32 @@ export type GraphQLTypes = {
 	categoryId: number,
 	/** ID типа товара */
 	typeId: number
+};
+	["ChainChange"]: {
+	__typename: "ChainChange",
+	/** Блок, в котором строка изменилась; данные этого блока уже в базе узла. */
+	block_num: number,
+	/** Контракт, чья таблица изменилась. */
+	code: string,
+	/** Ключ изменившейся строки. */
+	primary_key: string,
+	/** Область таблицы — кооператив. */
+	scope: string,
+	/** Таблица контракта. */
+	table: string,
+	['...on ChainChange']: Omit<GraphQLTypes["ChainChange"], "...on ChainChange">
+};
+	["ChainChangesInput"]: {
+		/** Кооператив; сверяется с кооперативом узла. */
+	coopname: string,
+	/** Какие таблицы слушать. Не задано — все таблицы ленты, доступные пайщику. */
+	tables?: Array<GraphQLTypes["ChainTableInput"]> | undefined | null
+};
+	["ChainTableInput"]: {
+		/** Контракт. */
+	code: string,
+	/** Таблица контракта. */
+	table: string
 };
 	["ChairmanOnboardingAgendaInput"]: {
 		decision: string,
@@ -68706,6 +68811,8 @@ export type GraphQLTypes = {
 };
 	["Subscription"]: {
 	__typename: "Subscription",
+	/** Изменения данных кооператива в цепи: сигнал к дочитке. Приходит, когда изменение уже в базе узла. */
+	chainChanges: GraphQLTypes["ChainChange"],
 	/** Поток событий пайщика в Столе заказов: личные и каталог. */
 	marketplaceEvents: GraphQLTypes["MarketplaceEvent"],
 	/** Ход догона цепи узлом кооператива */
@@ -70821,6 +70928,8 @@ type ZEUS_VARIABLES = {
 	["CardcoopEntryStatus"]: ValueTypes["CardcoopEntryStatus"];
 	["CardcoopRequestEntryDisclosureInput"]: ValueTypes["CardcoopRequestEntryDisclosureInput"];
 	["CategoryTypeInput"]: ValueTypes["CategoryTypeInput"];
+	["ChainChangesInput"]: ValueTypes["ChainChangesInput"];
+	["ChainTableInput"]: ValueTypes["ChainTableInput"];
 	["ChairmanOnboardingAgendaInput"]: ValueTypes["ChairmanOnboardingAgendaInput"];
 	["ChairmanOnboardingAgendaStep"]: ValueTypes["ChairmanOnboardingAgendaStep"];
 	["ChairmanOnboardingGeneralMeetInput"]: ValueTypes["ChairmanOnboardingGeneralMeetInput"];

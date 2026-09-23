@@ -1,4 +1,5 @@
-import { Module, Injectable, Inject } from '@nestjs/common';
+import { Module, Injectable, Inject, Optional } from '@nestjs/common';
+import { CapitalContract } from 'cooptypes';
 import { CapitalDesktopGrantsProvider } from './application/desktop/capital-desktop-grants.provider';
 import { BaseExtensionModule, EXTENSION_REPOSITORY, type ExtensionDomainRepository,
   platformSettings,
@@ -15,7 +16,7 @@ import { LOGGER_PORT, type ILoggerPort,
   type IIntegrationSettingsPort,
 } from '@coopenomics/innercoop';
 import { z } from 'zod';
-import { ONBOARDING_STEP_REGISTRY_PORT, type IOnboardingStepRegistryPort, DOCUMENT_DECLARATION_PORT, type IDocumentDeclarationPort } from '@coopenomics/innercoop';
+import { ONBOARDING_STEP_REGISTRY_PORT, type IOnboardingStepRegistryPort, DOCUMENT_DECLARATION_PORT, type IDocumentDeclarationPort, CHAIN_CHANGES_PORT, type IChainChangesPort } from '@coopenomics/innercoop';
 import { type DeserializedDescriptionOfExtension } from '@coopenomics/extension-kit';
 
 // Функция для проверки и сериализации FieldDescription
@@ -522,7 +523,9 @@ export class CapitalExtension extends BaseExtensionModule {
     @Inject(DOCUMENT_DECLARATION_PORT)
     private readonly documentDeclarations: IDocumentDeclarationPort,
     @Inject(COUNCIL_PORT) private readonly council: ICouncilPort,
-    private readonly onboardingService: CapitalOnboardingService
+    private readonly onboardingService: CapitalOnboardingService,
+    // Лента изменений цепи для столов; без неё столы Благороста живут дочиткой.
+    @Optional() @Inject(CHAIN_CHANGES_PORT) private readonly chainChanges: IChainChangesPort | null = null
   ) {
     super();
     this.logger.setContext(CapitalExtension.name);
@@ -737,6 +740,14 @@ export class CapitalExtension extends BaseExtensionModule {
     try {
       registerCapitalOnboardingSteps(this.onboardingStepRegistration);
       await registerCapitalDocuments(this.documentDeclarations);
+      // Столы Благороста перечитывают пайщика программы по ленте изменений.
+      this.chainChanges?.declareTables([
+        {
+          code: CapitalContract.contractName.production,
+          table: CapitalContract.Tables.Contributors.tableName,
+          owner_field: 'username',
+        },
+      ]);
       this.logger.log('[CAPITAL.ONBOARDING] зарегистрировано 5 шагов онбординга capital и документы реестра шаблонов');
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);

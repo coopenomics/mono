@@ -1,6 +1,6 @@
 // infrastructure/blockchain/blockchain-consumer.service.ts
 
-import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import { Injectable, OnModuleInit, OnModuleDestroy, Optional } from '@nestjs/common';
 import { ChainDeltaWaiterService } from './chain-delta-waiter.service';
 import { ActionReleaseGate } from './action-release-gate.service';
 import { ParserClient, type ParserEvent } from '@coopenomics/parser2';
@@ -13,6 +13,7 @@ import { computeActionEventId, computeDeltaEventId, computeForkEventId } from '.
 import { mapParserActionToIAction, mapParserDeltaToIDelta } from './parser2-event.mapper';
 import { isDeltaOwnedByCoop } from './delta-ownership';
 import { runInChainDispatch } from './chain-dispatch-context';
+import { ChainChangesService } from './chain-changes.service';
 import { config } from '~/config';
 
 // Выносим исключения в конфиг или отдельный файл
@@ -56,7 +57,9 @@ export class BlockchainConsumerService implements OnModuleInit, OnModuleDestroy 
     private readonly parserInteractor: ParserInteractor,
     private readonly forkRegistry: ForkRegistryService,
     private readonly deltaWaiter: ChainDeltaWaiterService,
-    private readonly actionGate: ActionReleaseGate
+    private readonly actionGate: ActionReleaseGate,
+    // Необязательна: тесты потребителя собирают его без ленты.
+    @Optional() private readonly chainChanges: ChainChangesService | null = null
   ) {
     this.logger.setContext(BlockchainConsumerService.name);
   }
@@ -343,6 +346,8 @@ export class BlockchainConsumerService implements OnModuleInit, OnModuleDestroy 
       this.logger.error(`Слушатель ${eventName} упал: ${error?.message ?? error}`, error?.stack);
     }
     this.deltaWaiter.wake(delta);
+    // Сигнал столам — после слушателей: по нему читают уже записанное.
+    await this.chainChanges?.publish(delta);
 
     this.logger.debug(`Дельта опубликована в событийную шину: ${eventName} с primary_key ${delta.primary_key}`);
   }

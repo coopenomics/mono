@@ -59,6 +59,7 @@ function makeService(overrides: {
   forkRegistry?: any;
   deltaWaiter?: any;
   actionGate?: any;
+  chainChanges?: any;
 }) {
   const logger = overrides.logger ?? makeLoggerStub();
   const events = overrides.events ?? makeEventsServiceStub();
@@ -66,8 +67,9 @@ function makeService(overrides: {
   const fork = overrides.forkRegistry ?? makeForkRegistryStub();
   const deltaWaiter = overrides.deltaWaiter ?? { wake: jest.fn() };
   const actionGate = overrides.actionGate ?? { enqueue: jest.fn(), onBlockSeen: jest.fn(), onFork: jest.fn(), setActive: jest.fn() };
-  const service = new BlockchainConsumerService(logger, events, parser, fork, deltaWaiter, actionGate);
-  return { service, logger, events, parser, fork, deltaWaiter, actionGate };
+  const chainChanges = overrides.chainChanges ?? null;
+  const service = new BlockchainConsumerService(logger, events, parser, fork, deltaWaiter, actionGate, chainChanges);
+  return { service, logger, events, parser, fork, deltaWaiter, actionGate, chainChanges };
 }
 
 describe('BlockchainConsumerService.processFork (Stories 4.1 + 4.2)', () => {
@@ -297,6 +299,25 @@ describe('BlockchainConsumerService.processAction/processDelta — markEventAppl
 
     expect(calls).toEqual(['listeners', 'wake']);
     expect(deltaWaiter.wake).toHaveBeenCalledWith(delta);
+  });
+
+  it('processDelta: сигнал в ленту изменений — после слушателей и после пробуждения мутаций, не раньше базы', async () => {
+    const calls: string[] = [];
+    const events = makeEventsServiceStub();
+    events.emitAsyncWithTimeout.mockImplementation(async () => {
+      calls.push('listeners');
+      return true;
+    });
+    const deltaWaiter = { wake: jest.fn(() => calls.push('wake')) };
+    const chainChanges = { publish: jest.fn(async () => void calls.push('feed')) };
+    const { service } = makeService({ events, deltaWaiter, chainChanges });
+    const { config } = await import('~/config');
+    const delta = { code: 'capital', table: 'contributors', primary_key: '1', value: { coopname: config.coopname }, scope: config.coopname, block_num: 9, present: true } as any;
+
+    await (service as any).processDeltaDelayed(delta);
+
+    expect(calls).toEqual(['listeners', 'wake', 'feed']);
+    expect(chainChanges.publish).toHaveBeenCalledWith(delta);
   });
 
   it('processDelta: упавший или зависший слушатель не держит событие — ожидающие всё равно будятся', async () => {
