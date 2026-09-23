@@ -18,6 +18,10 @@ import { CandidateEntity } from './entities/candidate.entity';
 import { CANDIDATE_REPOSITORY } from '~/domain/account/repository/candidate.repository';
 import { TypeOrmCandidateRepository } from './repositories/typeorm-candidate.repository';
 import { MeetProcessedEntity } from './entities/meet-processed.entity';
+import { ChainTextEntity } from './entities/chain-text.entity';
+import { TypeOrmChainTextRepository } from './repositories/typeorm-chain-text.repository';
+import { CHAIN_TEXT_REPOSITORY } from '~/domain/chain-text/chain-text.repository';
+import { ChainTextService } from '~/domain/chain-text/chain-text.service';
 import { MEET_PROCESSED_REPOSITORY } from '~/domain/meet/repositories/meet-processed.repository';
 import { TypeOrmMeetProcessedRepository } from './repositories/typeorm-meet-processed.repository';
 import { PaymentEntity } from './entities/payment.entity';
@@ -155,6 +159,7 @@ import { NotificationInboxTypeormEntity } from './entities/notification-inbox.ty
       LogExtensionEntity,
       MeetPreEntity,
       MeetProcessedEntity,
+      ChainTextEntity,
       MigrationEntity,
       CandidateEntity,
       PaymentEntity,
@@ -206,6 +211,11 @@ import { NotificationInboxTypeormEntity } from './entities/notification-inbox.ty
       provide: MEET_PROCESSED_REPOSITORY,
       useClass: TypeOrmMeetProcessedRepository,
     },
+    {
+      provide: CHAIN_TEXT_REPOSITORY,
+      useClass: TypeOrmChainTextRepository,
+    },
+    ChainTextService,
     {
       provide: MIGRATION_REPOSITORY,
       useClass: TypeOrmMigrationRepository,
@@ -328,6 +338,8 @@ import { NotificationInboxTypeormEntity } from './entities/notification-inbox.ty
     LOG_EXTENSION_REPOSITORY,
     MEET_REPOSITORY,
     MEET_PROCESSED_REPOSITORY,
+    CHAIN_TEXT_REPOSITORY,
+    ChainTextService,
     MIGRATION_REPOSITORY,
     CANDIDATE_REPOSITORY,
     PAYMENT_REPOSITORY,

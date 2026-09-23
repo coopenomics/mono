@@ -38,6 +38,7 @@ export * from './config/config-policy';
 export * from './config/platform-settings';
 export * from './document';
 export * from './blockchain/domain-to-blockchain.utils';
+export * from './blockchain/chain-text-digest';
 export * from './utils';
 export * from './errors/http-api-error';
 export * from './errors/chain-error';

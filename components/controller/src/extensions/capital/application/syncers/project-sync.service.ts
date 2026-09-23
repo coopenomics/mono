@@ -16,12 +16,11 @@ import { ContentRevisionService } from '../services/content-revision.service';
 import { ContentEntityType } from '../../domain/enums/content-entity-type.enum';
 import { ContentRevisionOrigin } from '../../domain/enums/content-revision-origin.enum';
 import {
-  chainTextDigest,
   chainTextMismatches,
   PROJECT_CHAIN_TEXT_FIELDS,
   type ProjectChainTexts,
 } from '../../domain/utils/chain-text-digest';
-import { waitAfterTransactBeforeChainTableRead, getAppliedBlockNum } from '@coopenomics/extension-kit';
+import { chainTextDigest, waitAfterTransactBeforeChainTableRead, getAppliedBlockNum } from '@coopenomics/extension-kit';
 import { CAPITAL_PROJECT_CREATED_EVENT, type ICapitalProjectCreatedPayload } from '@coopenomics/innercoop';
 
 /**

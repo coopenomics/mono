@@ -9,7 +9,7 @@ import type { IProjectDomainInterfaceBlockchainData } from '../interfaces/projec
 import type { IBlockchainSynchronizable } from '@coopenomics/extension-kit/sync';
 import { BaseDomainEntity, auditUnknownStatus, auditLogger } from '@coopenomics/extension-kit/sync';
 import { IssueIdGenerationService } from '../services/issue-id-generation.service';
-import { resolveChainText } from '../utils/chain-text-digest';
+import { resolveChainText } from '@coopenomics/extension-kit';
 
 /**
  * Доменная сущность проекта
@@ -121,7 +121,7 @@ export class ProjectDomainEntity
       this.master = blockchainData.master;
       this.title = blockchainData.title;
       // Строка из базы несёт текст, новая строка из цепи — хеш: текст к ней допишет
-      // syncProject из отправленного (см. chain-text-digest.ts).
+      // syncProject из отправленного (см. extension-kit, chain-text-digest.ts).
       this.description = resolveChainText(blockchainData.description, '');
       this.invite = resolveChainText(blockchainData.invite, '');
       this.data = blockchainData.data;
