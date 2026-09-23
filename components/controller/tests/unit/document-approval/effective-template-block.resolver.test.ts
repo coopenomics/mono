@@ -1,4 +1,7 @@
 import { EffectiveTemplateBlockResolver } from '~/infrastructure/generator/effective-template-block.resolver';
+import { Cooperative } from 'cooptypes';
+
+const R = Cooperative.Registry;
 
 jest.mock('~/config/config', () => ({ __esModule: true, default: { coopname: 'voskhod' } }));
 
@@ -17,38 +20,38 @@ function build(opts: {
 
 describe('EffectiveTemplateBlockResolver', () => {
   it('без утверждения читается текущее состояние', async () => {
-    const { resolver } = build({ approvals: [], current: { 3: { version: 4 } }, lastBlock: {} });
-    expect(await resolver.resolve(3)).toBeUndefined();
+    const { resolver } = build({ approvals: [], current: { [R.PrivacyPolicy.registry_id]: { version: 4 } }, lastBlock: {} });
+    expect(await resolver.resolve(R.PrivacyPolicy.registry_id)).toBeUndefined();
   });
 
   it('утверждённая редакция совпадает с сетевой — текущее состояние, правки без номера доезжают', async () => {
-    const { resolver, draftRegistry } = build({ approvals: [{ registry_id: 3, version: 4 }], current: { 3: { version: 4 } }, lastBlock: {} });
-    expect(await resolver.resolve(3)).toBeUndefined();
+    const { resolver, draftRegistry } = build({ approvals: [{ registry_id: R.PrivacyPolicy.registry_id, version: 4 }], current: { [R.PrivacyPolicy.registry_id]: { version: 4 } }, lastBlock: {} });
+    expect(await resolver.resolve(R.PrivacyPolicy.registry_id)).toBeUndefined();
     expect(draftRegistry.findLastBlockOfVersion).not.toHaveBeenCalled();
   });
 
   it('в сети редакция новее утверждённой — последний блок утверждённой редакции', async () => {
     const { resolver, draftRegistry } = build({
-      approvals: [{ registry_id: 3, version: 3 }],
-      current: { 3: { version: 4 } },
-      lastBlock: { '3:3': 777 },
+      approvals: [{ registry_id: R.PrivacyPolicy.registry_id, version: 3 }],
+      current: { [R.PrivacyPolicy.registry_id]: { version: 4 } },
+      lastBlock: { [`${R.PrivacyPolicy.registry_id}:3`]: 777 },
     });
-    expect(await resolver.resolve('3')).toBe(777);
-    expect(draftRegistry.findLastBlockOfVersion).toHaveBeenCalledWith(3, 3);
+    expect(await resolver.resolve(String(R.PrivacyPolicy.registry_id))).toBe(777);
+    expect(draftRegistry.findLastBlockOfVersion).toHaveBeenCalledWith(R.PrivacyPolicy.registry_id, 3);
   });
 
   it('истории утверждённой редакции в реестре нет — текущее состояние, а не падение', async () => {
-    const { resolver } = build({ approvals: [{ registry_id: 3, version: 2 }], current: { 3: { version: 4 } }, lastBlock: {} });
-    expect(await resolver.resolve(3)).toBeUndefined();
+    const { resolver } = build({ approvals: [{ registry_id: R.PrivacyPolicy.registry_id, version: 2 }], current: { [R.PrivacyPolicy.registry_id]: { version: 4 } }, lastBlock: {} });
+    expect(await resolver.resolve(R.PrivacyPolicy.registry_id)).toBeUndefined();
   });
 
   it('утверждения читаются из цепи один раз до события approve', async () => {
-    const { resolver, blockchainService } = build({ approvals: [], current: { 3: { version: 4 } }, lastBlock: {} });
-    await resolver.resolve(3);
-    await resolver.resolve(1);
+    const { resolver, blockchainService } = build({ approvals: [], current: { [R.PrivacyPolicy.registry_id]: { version: 4 } }, lastBlock: {} });
+    await resolver.resolve(R.PrivacyPolicy.registry_id);
+    await resolver.resolve(R.WalletAgreement.registry_id);
     expect(blockchainService.getAllRows).toHaveBeenCalledTimes(1);
     resolver.onApproved();
-    await resolver.resolve(3);
+    await resolver.resolve(R.PrivacyPolicy.registry_id);
     expect(blockchainService.getAllRows).toHaveBeenCalledTimes(2);
   });
 });

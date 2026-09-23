@@ -28,6 +28,7 @@ import { ProcessRegistryService } from '../../../src/domain/process-registry/ser
 import type { DeltaEntity } from '../../../src/infrastructure/database/typeorm/entities/delta.entity';
 import type { ActionEntity } from '../../../src/infrastructure/database/typeorm/entities/action.entity';
 import type { PaginationInputDTO } from '@coopenomics/extension-kit';
+import { Cooperative } from 'cooptypes';
 
 type AnyQB = any;
 
@@ -290,7 +291,7 @@ describe('ProcessRegistryService.getProcess', () => {
       hash: docHash,
       doc_hash: docHash,
       meta_hash: 'm'.repeat(64),
-      meta: '{"registry_id":1110}',
+      meta: JSON.stringify({ registry_id: Cooperative.Registry.MarketplaceConvertStatement.registry_id }),
       signatures: Array.from({ length: signatures }, (_, i) => ({ id: i + 1, signer: `signer${i}` })),
     });
 
@@ -303,7 +304,7 @@ describe('ProcessRegistryService.getProcess', () => {
         global_sequence: '10',
       });
 
-    test('(h1) заявление 1110 из marketplace::convert попадает в документы поставки', async () => {
+    test(`(h1) заявление ${Cooperative.Registry.MarketplaceConvertStatement.registry_id} из marketplace::convert попадает в документы поставки`, async () => {
       // Заявление о переводе паевого взноса в Стол заказов живёт только в
       // параметре convert: в строку заказа оно не пишется, а хэш заказа лежит
       // в targets. Раньше бухгалтер видел перевод, но не видел заявления.

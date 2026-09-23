@@ -2,6 +2,7 @@
 import { ProgramKey } from '@coopenomics/innercoop';
 import { registerEdubridgeInAgreementRegistry } from '~/extensions/edubridge/application/registration/register-edubridge-in-agreement-registry';
 import { EdubridgeRoleFactsAdapter } from '~/extensions/edubridge/application/membership/edubridge-role-facts.adapter';
+import { Cooperative } from 'cooptypes';
 
 describe('registerEdubridgeInAgreementRegistry', () => {
   it('регистрирует две оферты и две программы, оферты только через программы', () => {
@@ -17,7 +18,7 @@ describe('registerEdubridgeInAgreementRegistry', () => {
     expect(port.registerAgreement).toHaveBeenCalledTimes(2);
     expect(port.registerProgram).toHaveBeenCalledTimes(2);
     const agreements = port.registerAgreement.mock.calls.map((c) => c[0]);
-    expect(agreements.map((a) => a.registry_id)).toEqual([3002, 3004]);
+    expect(agreements.map((a) => a.registry_id)).toEqual([Cooperative.Registry.EducationParentOffer.registry_id, Cooperative.Registry.EducationTeacherOffer.registry_id]);
     expect(agreements.every((a) => a.applicable_account_types.length === 0)).toBe(true);
     expect(agreements.every((a) => a.agreement_type.length <= 12)).toBe(true);
     const programs = port.registerProgram.mock.calls.map((c) => c[0]);

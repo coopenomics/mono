@@ -1,6 +1,9 @@
 import { DocumentApprovalOnboardingAdapter } from '~/domain/document-approval/services/document-approval-onboarding.adapter';
 import { DocumentApprovalRequirement, DocumentApprovalState, DocumentKind } from '~/domain/document-approval/enums/document-approval.enums';
 import type { DocumentTemplateView } from '~/domain/document-approval/interfaces/document-template-view.interface';
+import { Cooperative } from 'cooptypes';
+
+const R = Cooperative.Registry;
 
 jest.mock('~/config/config', () => ({ __esModule: true, default: { coopname: 'voskhod' } }));
 
@@ -40,27 +43,27 @@ function build(templates: DocumentTemplateView[]) {
 
 describe('DocumentApprovalOnboardingAdapter', () => {
   it('шаг без объявленных документов фабрика не ведёт', async () => {
-    const { adapter } = build([template(100)]);
+    const { adapter } = build([template(R.ParticipantApplication.registry_id)]);
     expect(await adapter.proposeOnboardingStep({ extension_name: 'chairman', step_key: 'voskhod_membership', username: 'ant' })).toBeNull();
     expect(await adapter.isStepApproved('chairman', 'voskhod_membership')).toBe(false);
   });
 
   it('шаг председателя ищет документы ядра и выносит весь пакет одним решением с меткой шага', async () => {
-    const { adapter, proposal } = build([template(100), template(101)]);
+    const { adapter, proposal } = build([template(R.ParticipantApplication.registry_id), template(R.SelectBranchStatement.registry_id)]);
     const result = await adapter.proposeOnboardingStep({ extension_name: 'chairman', step_key: 'participant_application', username: 'ant', title: 'Формы' });
 
     expect(proposal.propose).toHaveBeenCalledWith({
       coopname: 'voskhod',
-      registry_ids: [100, 101],
+      registry_ids: [R.ParticipantApplication.registry_id, R.SelectBranchStatement.registry_id],
       username: 'ant',
       title: 'Формы',
       onboarding: { extension: 'chairman', step: 'participant_application' },
     });
-    expect(result).toEqual({ hash: 'HASH9', registry_ids: [100, 101], approved: false });
+    expect(result).toEqual({ hash: 'HASH9', registry_ids: [R.ParticipantApplication.registry_id, R.SelectBranchStatement.registry_id], approved: false });
   });
 
   it('документы шага уже в повестке — возвращается хэш повестки, новое решение не создаётся', async () => {
-    const { adapter, proposal } = build([template(100, { state: DocumentApprovalState.Pending, pending_hash: 'OLD' }), template(101, { state: DocumentApprovalState.Pending, pending_hash: 'OLD' })]);
+    const { adapter, proposal } = build([template(R.ParticipantApplication.registry_id, { state: DocumentApprovalState.Pending, pending_hash: 'OLD' }), template(R.SelectBranchStatement.registry_id, { state: DocumentApprovalState.Pending, pending_hash: 'OLD' })]);
     const result = await adapter.proposeOnboardingStep({ extension_name: 'chairman', step_key: 'participant_application', username: 'ant' });
     expect(result?.hash).toBe('OLD');
     expect(proposal.propose).not.toHaveBeenCalled();
@@ -68,22 +71,22 @@ describe('DocumentApprovalOnboardingAdapter', () => {
 
   it('документы шага утверждены (в том числе устаревшей редакцией) — шаг закрыт без решения', async () => {
     const { adapter, proposal } = build([
-      template(100, { state: DocumentApprovalState.Approved, approved_version: 2 }),
-      template(101, { state: DocumentApprovalState.Outdated, approved_version: 1 }),
+      template(R.ParticipantApplication.registry_id, { state: DocumentApprovalState.Approved, approved_version: 2 }),
+      template(R.SelectBranchStatement.registry_id, { state: DocumentApprovalState.Outdated, approved_version: 1 }),
     ]);
     const result = await adapter.proposeOnboardingStep({ extension_name: 'chairman', step_key: 'participant_application', username: 'ant' });
-    expect(result).toEqual({ hash: null, registry_ids: [100, 101], approved: true });
+    expect(result).toEqual({ hash: null, registry_ids: [R.ParticipantApplication.registry_id, R.SelectBranchStatement.registry_id], approved: true });
     expect(proposal.propose).not.toHaveBeenCalled();
     expect(await adapter.isStepApproved('chairman', 'participant_application')).toBe(true);
   });
 
   it('шаг не закрыт, пока хотя бы один документ пакета не утверждён', async () => {
-    const { adapter } = build([template(100, { state: DocumentApprovalState.Approved, approved_version: 2 }), template(101)]);
+    const { adapter } = build([template(R.ParticipantApplication.registry_id, { state: DocumentApprovalState.Approved, approved_version: 2 }), template(R.SelectBranchStatement.registry_id)]);
     expect(await adapter.isStepApproved('chairman', 'participant_application')).toBe(false);
   });
 
   it('шаги приложений ищут документы под именем самого приложения', async () => {
-    const { adapter, proposal } = build([template(1102, { extension_name: 'market', bundle: 'marketplace_offer_template', kind: DocumentKind.Agreement })]);
+    const { adapter, proposal } = build([template(R.MarketplaceOffer.registry_id, { extension_name: 'market', bundle: 'marketplace_offer_template', kind: DocumentKind.Agreement })]);
     await adapter.proposeOnboardingStep({ extension_name: 'market', step_key: 'marketplace_offer_template', username: 'ant' });
     expect(proposal.propose.mock.calls[0][0].onboarding).toEqual({ extension: 'market', step: 'marketplace_offer_template' });
   });

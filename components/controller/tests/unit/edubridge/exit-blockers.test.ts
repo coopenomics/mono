@@ -1,6 +1,7 @@
 /** Почему преподавателю рано выходить из кооператива: курсы на руках и незакрытый расчёт. */
 import { EdubridgeExitBlockersService } from '~/extensions/edubridge/application/services/edubridge-exit-blockers.service';
 import { EduAssignmentStatus, EduContributionStatus } from '~/extensions/edubridge/domain/enums';
+import { Cooperative } from 'cooptypes';
 
 jest.mock('@coopenomics/extension-kit', () => ({
   ...jest.requireActual('@coopenomics/extension-kit'),
@@ -74,7 +75,7 @@ describe('Запреты выхода из кооператива у Образ�
     expect(reasons[1]).toMatch(/заявлений в работе — 2/);
   });
 
-  it('возврат по действующим подпискам попадает в заявление 190 строкой кошелька программы', async () => {
+  it(`возврат по действующим подпискам попадает в заявление ${Cooperative.Registry.ProgramAgreementsAnnulmentStatement.registry_id} строкой кошелька программы`, async () => {
     const { service } = make({ subscriptions: 2, refunds: 750 });
     expect(await service.pendingReturns('voskhod', 'ant')).toEqual([
       expect.objectContaining({ wallet_name: 'w.edu.member', amount: '750.0000 RUB' }),

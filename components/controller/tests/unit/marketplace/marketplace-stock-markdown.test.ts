@@ -5,9 +5,10 @@
  */
 import { MarketplaceIssuanceSagaStages } from '~/extensions/marketplace/domain/entities/marketplace-issuance-saga.types';
 import { COOP, buildMocks, buildOrder, buildSaga, buildService, signedDoc, stubSignatureChecks } from './issuance-saga.fixture';
+import { Cooperative } from 'cooptypes';
 
 const ORDERER = 'orderer2';
-const ACT = { registry_id: 1115, order_hash: 'h-stock-1' };
+const ACT = { registry_id: Cooperative.Registry.MarketplaceShareReturnAct.registry_id, order_hash: 'h-stock-1' };
 
 /** Заказ из остатка: продавец — сам кооператив, цена прибытия 250 ₽. */
 function setup(reserved: number, issued_arrival_cost: string, fact: { quantity: number; price: string }) {

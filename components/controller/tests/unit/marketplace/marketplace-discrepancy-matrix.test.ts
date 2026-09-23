@@ -11,6 +11,9 @@
 import { MarketplaceIssuanceSagaStages } from '~/extensions/marketplace/domain/entities/marketplace-issuance-saga.types';
 import { MarketplaceUnitsOfMeasure } from '~/extensions/marketplace/domain/entities/marketplace-offer.types';
 import { COOP, buildMocks, buildOrder, buildSaga, buildService, signedDoc, stubSignatureChecks } from './issuance-saga.fixture';
+import { Cooperative } from 'cooptypes';
+
+const R = Cooperative.Registry;
 
 /**
  * `accepted` — сколько физически принято на склад по заказу. Недоприём
@@ -23,9 +26,9 @@ async function issueWith(accepted: number, actual_quantity: number, actual_unit_
   stubSignatureChecks(service);
   const { saga } = await service.fixFact({ coopname: COOP, operator_account: 'chairkrg', order_id: 'order-1', actual_quantity, actual_unit_price });
   // Доводим до закрытия: снапшот на заказе — то, что увидят заказчик и учёт.
-  const memberAct = signedDoc({ registry_id: 1115, order_hash: 'h-order-1' }, ['orderer1']);
+  const memberAct = signedDoc({ registry_id: R.MarketplaceShareReturnAct.registry_id, order_hash: 'h-order-1' }, ['orderer1']);
   m.sagaStore.set(saga.id, buildSaga({ ...(saga as any), stage: MarketplaceIssuanceSagaStages.ACT1_SIGNED, act1_document: memberAct }));
-  await service.closeIssuance({ coopname: COOP, operator_account: 'chairkrg', order_id: 'order-1', signed_act: signedDoc({ registry_id: 1115, order_hash: 'h-order-1' }, ['orderer1', 'chairkrg']) });
+  await service.closeIssuance({ coopname: COOP, operator_account: 'chairkrg', order_id: 'order-1', signed_act: signedDoc({ registry_id: R.MarketplaceShareReturnAct.registry_id, order_hash: 'h-order-1' }, ['orderer1', 'chairkrg']) });
   const [, patch] = m.orderRepo.applyIssuanceClosed.mock.calls[0];
   return patch.issuance_fact as { actual_quantity: number; fact_unit_price: string; fact_cost: string; diff_state: string };
 }

@@ -20,6 +20,7 @@ import { MARKETPLACE_OFFER_INSTANCE_REGISTRY_ID } from '~/extensions/marketplace
 import { MarketplaceOnboardingService } from '~/extensions/marketplace/application/onboarding/marketplace-onboarding.service';
 
 import { MarketplaceOnboardingSource } from '~/extensions/marketplace/application/dto/marketplace-onboarding-state.dto';
+import { Cooperative } from 'cooptypes';
 
 const PROGRAM_ID = 2;
 const SIGNED_AT = '2026-05-14T15:00:00Z';
@@ -43,7 +44,7 @@ const makeLogger = () =>
 
 // ЦПП заведена как программа: без program_id гейтить нечем и состояние
 // вырождается в `not_configured` независимо от подписи.
-const makeSovietPort = (coagreement: any = { program_id: PROGRAM_ID, draft_id: 1100 }) =>
+const makeSovietPort = (coagreement: any = { program_id: PROGRAM_ID, draft_id: Cooperative.Registry.MarketplaceProgramTemplate.registry_id }) =>
   ({
     getCoagreement: jest.fn().mockResolvedValue(coagreement),
   } as any);

@@ -72,7 +72,7 @@ describe('Факт у стойки (fixFact)', () => {
     await expect(fix(buildService(m), 1)).rejects.toBeInstanceOf(ConflictException);
   });
 
-  it('факт в пределах принятого → сага FACT_FIXED, заявление 1113 на фактическую сумму', async () => {
+  it(`факт в пределах принятого → сага FACT_FIXED, заявление ${STATEMENT_ID} на фактическую сумму`, async () => {
     const m = buildMocks({ warehouse: 10 });
     const { saga, statement } = await fix(buildService(m), 8, '90.0000');
     expect(saga.stage).toBe(MarketplaceIssuanceSagaStages.FACT_FIXED);

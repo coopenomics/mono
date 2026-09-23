@@ -7,9 +7,10 @@
  */
 import { MarketplaceIssuanceSagaStages } from '~/extensions/marketplace/domain/entities/marketplace-issuance-saga.types';
 import { COOP, buildMocks, buildOrder, buildSaga, buildService, signedDoc, stubSignatureChecks } from './issuance-saga.fixture';
+import { Cooperative } from 'cooptypes';
 
 const ORDERER = 'orderer1';
-const ACT = { registry_id: 1115, order_hash: 'h-order-1' };
+const ACT = { registry_id: Cooperative.Registry.MarketplaceShareReturnAct.registry_id, order_hash: 'h-order-1' };
 
 const fix = (service: any, actual_unit_price: string, actual_quantity = 10) =>
   service.fixFact({ coopname: COOP, operator_account: 'chairkrg', order_id: 'order-1', actual_quantity, actual_unit_price });

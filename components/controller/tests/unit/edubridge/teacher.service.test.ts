@@ -2,6 +2,9 @@
 import { DecisionEventType, DecisionTrackedEvent } from '@coopenomics/innercoop';
 import { EdubridgeTeacherService } from '~/extensions/edubridge/application/services/edubridge-teacher.service';
 import { EduAssignmentStatus, EduContractStatus, EduContributionStatus, EduCouncilOutcome } from '~/extensions/edubridge/domain/enums';
+import { Cooperative } from 'cooptypes';
+
+const R = Cooperative.Registry;
 
 jest.mock('@coopenomics/extension-kit', () => ({
   ...jest.requireActual('@coopenomics/extension-kit'),
@@ -269,12 +272,12 @@ describe('EdubridgeTeacherService', () => {
     // Председатель получает тот же документ и подписывает его вторым — без перегенерации.
     const payload = await service.actSignablePayload('voskhod', c.id);
     expect(payload.hash).toBe('ACT');
-    expect(documents.generate.mock.calls.filter((x: any) => x[0].data.registry_id === 3010).length).toBe(1);
+    expect(documents.generate.mock.calls.filter((x: any) => x[0].data.registry_id === R.EducationRidAct.registry_id).length).toBe(1);
 
     const bothSigned = { ...teacherAct, signatures: [{ signer: 'teach' }, { signer: 'ant' }] };
     const accepted = await service.acceptContribution('voskhod', 'ant', c.id, bothSigned);
     expect(chain.acceptRid).toHaveBeenCalledWith(expect.objectContaining({ rid_hash: c.rid_hash, act: expect.objectContaining({ hash: 'ACT' }) }));
-    expect(documents.generate.mock.calls.some((x: any) => x[0].data.registry_id === 3009 && x[0].data.decision_id === 17)).toBe(true);
+    expect(documents.generate.mock.calls.some((x: any) => x[0].data.registry_id === R.EducationRidDecision.registry_id && x[0].data.decision_id === 17)).toBe(true);
     expect(accepted.status).toBe(EduContributionStatus.ACCEPTED);
     // Цепь списала резерв преподавателям — обязательство по курсу уменьшается на стоимость результата.
     expect(funds.onSettled).toHaveBeenCalledWith('voskhod', 'C1', '1000.0000 RUB');
@@ -330,7 +333,7 @@ describe('EdubridgeTeacherService', () => {
     c.status = EduContributionStatus.COUNCIL_APPROVED;
     c.council_decision_id = '42';
     const declined = await service.decline('voskhod', c.id, 'Преподаватель отозвал результат');
-    expect(documents.generate).toHaveBeenLastCalledWith(expect.objectContaining({ data: expect.objectContaining({ registry_id: 3009, decision_id: 42 }) }));
+    expect(documents.generate).toHaveBeenLastCalledWith(expect.objectContaining({ data: expect.objectContaining({ registry_id: R.EducationRidDecision.registry_id, decision_id: 42 }) }));
     expect(chain.declineRid).toHaveBeenCalledWith(expect.objectContaining({ rid_hash: c.rid_hash }));
     expect(chain.recallRid).not.toHaveBeenCalled();
     expect(declined.status).toBe(EduContributionStatus.DECLINED);
@@ -499,7 +502,7 @@ describe('EdubridgeTeacherService — занятия и гарантийный �
     contribution.hold_until = new Date('2026-01-01');
     await service.storageAct('voskhod', 'teach', contribution.id);
     expect(Math.abs(contribution.hold_until.getTime() - (Date.now() + 14 * 86400_000))).toBeLessThan(60_000);
-    expect(documents.generate).toHaveBeenLastCalledWith(expect.objectContaining({ data: expect.objectContaining({ registry_id: 3012 }) }));
+    expect(documents.generate).toHaveBeenLastCalledWith(expect.objectContaining({ data: expect.objectContaining({ registry_id: R.EducationRidStorageAct.registry_id }) }));
     await service.holdContribution('voskhod', 'teach', contribution.id, signedBy('teach', 'HOLD'));
     expect(new Date(`${chain.holdRid.mock.calls[0][0].hold_until}Z`).getTime()).toBe(Math.floor(contribution.hold_until.getTime() / 1000) * 1000);
   });

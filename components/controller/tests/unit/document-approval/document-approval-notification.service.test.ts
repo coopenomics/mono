@@ -2,6 +2,9 @@ import { Workflows } from '@coopenomics/notifications';
 import { DocumentApprovalNotificationService } from '~/domain/document-approval/services/document-approval-notification.service';
 import { DocumentApprovalRequirement, DocumentApprovalState, DocumentKind } from '~/domain/document-approval/enums/document-approval.enums';
 import type { DocumentTemplateView } from '~/domain/document-approval/interfaces/document-template-view.interface';
+import { Cooperative } from 'cooptypes';
+
+const R = Cooperative.Registry;
 
 jest.mock('~/config/config', () => ({
   __esModule: true,
@@ -50,8 +53,8 @@ function build(templates: DocumentTemplateView[], chairman: any = { username: 'a
 
 describe('DocumentApprovalNotificationService', () => {
   it('новая редакция объявленного документа — уведомление председателю с названием и номером редакции', async () => {
-    const { service, notifications } = build([template(3, { title: 'Политика' })]);
-    await service.handleUpVersion({ data: { scope: 'draft', username: 'eosio', registry_id: '3' } } as any);
+    const { service, notifications } = build([template(R.PrivacyPolicy.registry_id, { title: 'Политика' })]);
+    await service.handleUpVersion({ data: { scope: 'draft', username: 'eosio', registry_id: String(R.PrivacyPolicy.registry_id) } } as any);
 
     expect(notifications.notify).toHaveBeenCalledTimes(1);
     const call = notifications.notify.mock.calls[0][0];
@@ -62,15 +65,15 @@ describe('DocumentApprovalNotificationService', () => {
   });
 
   it('редакция шаблона, не объявленного в кооперативе, или в чужой области — молчание', async () => {
-    const { service, notifications } = build([template(3)]);
-    await service.handleUpVersion({ data: { scope: 'draft', registry_id: '999' } } as any);
-    await service.handleUpVersion({ data: { scope: 'voskhod', registry_id: '3' } } as any);
+    const { service, notifications } = build([template(R.PrivacyPolicy.registry_id)]);
+    await service.handleUpVersion({ data: { scope: 'draft', registry_id: '9999' } } as any);
+    await service.handleUpVersion({ data: { scope: 'voskhod', registry_id: String(R.PrivacyPolicy.registry_id) } } as any);
     expect(notifications.notify).not.toHaveBeenCalled();
   });
 
   it('отклонённое решение — уведомление с названиями документов и причиной', async () => {
-    const { service, notifications } = build([template(3, { title: 'Политика' }), template(4, { title: 'Соглашение' })]);
-    await service.handleDeclined({ coopname: 'voskhod', registry_ids: [3, 4], decision_id: 55, reason: 'expired' });
+    const { service, notifications } = build([template(R.PrivacyPolicy.registry_id, { title: 'Политика' }), template(R.UserAgreement.registry_id, { title: 'Соглашение' })]);
+    await service.handleDeclined({ coopname: 'voskhod', registry_ids: [R.PrivacyPolicy.registry_id, R.UserAgreement.registry_id], decision_id: 55, reason: 'expired' });
 
     const call = notifications.notify.mock.calls[0][0];
     expect(call.workflowId).toBe(Workflows.DocumentApprovalDeclined.id);
@@ -79,24 +82,24 @@ describe('DocumentApprovalNotificationService', () => {
 
   it('напоминание уходит только когда есть документы без утверждённой текущей редакции', async () => {
     const waiting = build([
-      template(3, { state: DocumentApprovalState.Outdated }),
-      template(100, { state: DocumentApprovalState.NotApproved, kind: DocumentKind.Form }),
-      template(4, { state: DocumentApprovalState.Approved }),
-      template(600, { state: DocumentApprovalState.NotRequired, approval: DocumentApprovalRequirement.None }),
-      template(1, { state: DocumentApprovalState.Pending }),
+      template(R.PrivacyPolicy.registry_id, { state: DocumentApprovalState.Outdated }),
+      template(R.ParticipantApplication.registry_id, { state: DocumentApprovalState.NotApproved, kind: DocumentKind.Form }),
+      template(R.UserAgreement.registry_id, { state: DocumentApprovalState.Approved }),
+      template(R.FreeDecision.registry_id, { state: DocumentApprovalState.NotRequired, approval: DocumentApprovalRequirement.None }),
+      template(R.WalletAgreement.registry_id, { state: DocumentApprovalState.Pending }),
     ]);
     expect(await waiting.service.sendReminder()).toBe(2);
     expect(waiting.notifications.notify.mock.calls[0][0].workflowId).toBe(Workflows.DocumentEditionReminder.id);
     expect(waiting.notifications.notify.mock.calls[0][0].payload.count).toBe('2');
 
-    const calm = build([template(4, { state: DocumentApprovalState.Approved })]);
+    const calm = build([template(R.UserAgreement.registry_id, { state: DocumentApprovalState.Approved })]);
     expect(await calm.service.sendReminder()).toBe(0);
     expect(calm.notifications.notify).not.toHaveBeenCalled();
   });
 
   it('без председателя или его подписки уведомление не отправляется и ошибки нет', async () => {
-    const { service, notifications } = build([template(3)], null);
-    await service.handleUpVersion({ data: { scope: 'draft', registry_id: '3' } } as any);
+    const { service, notifications } = build([template(R.PrivacyPolicy.registry_id)], null);
+    await service.handleUpVersion({ data: { scope: 'draft', registry_id: String(R.PrivacyPolicy.registry_id) } } as any);
     expect(notifications.notify).not.toHaveBeenCalled();
     expect(logger.warn).toHaveBeenCalled();
   });

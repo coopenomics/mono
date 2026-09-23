@@ -17,6 +17,7 @@ import { PaymentType, PaymentDirection,
   type IDocumentPort,
 } from '@coopenomics/innercoop';
 import { platformSettings } from '@coopenomics/extension-kit';
+import { Cooperative } from 'cooptypes';
 
 // Символ/precision берём из конфига ноды — тесты расчёта разницы не зависят от
 // того, какой именно root_govern_symbol сконфигурирован в окружении CI.
@@ -108,7 +109,7 @@ describe('ExpensesMutationsService', () => {
     hash: overrides.hash ?? '0xhash',
     doc_hash: overrides.doc_hash ?? '0xdoc',
     meta_hash: overrides.meta_hash ?? '0xmeta',
-    meta: { title: 'Заявление', registry_id: 2010 },
+    meta: { title: 'Заявление', registry_id: Cooperative.Registry.ExpenseProposalStatement.registry_id },
     signatures: [
       {
         id: 0,
@@ -126,7 +127,7 @@ describe('ExpensesMutationsService', () => {
         hash: overrides.hash ?? '0xhash',
         doc_hash: overrides.doc_hash ?? '0xdoc',
         meta_hash: overrides.meta_hash ?? '0xmeta',
-        meta: JSON.stringify({ title: 'Заявление', registry_id: 2010 }),
+        meta: JSON.stringify({ title: 'Заявление', registry_id: Cooperative.Registry.ExpenseProposalStatement.registry_id }),
         signatures: this.signatures,
       }
     },

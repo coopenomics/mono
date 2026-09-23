@@ -8,6 +8,9 @@
  */
 
 import { KuService } from '~/extensions/ku/application/services/ku.service';
+import { Cooperative } from 'cooptypes';
+
+const R = Cooperative.Registry;
 
 const COOP = 'voskhod';
 const HASH = 'abc123';
@@ -289,48 +292,48 @@ describe('KuService — маппинг DTO', () => {
 });
 
 describe('KuService — генерация документов', () => {
-  it('generateBranchMeetingProposal проставляет registry_id 320', async () => {
+  it(`generateBranchMeetingProposal проставляет registry_id ${R.BranchMeetingProposal.registry_id}`, async () => {
     const { service, documentPort } = makeService();
 
     await service.generateBranchMeetingProposal({ coopname: COOP, username: 'alice' } as any);
 
     const { data } = documentPort.generate.mock.calls[0][0];
-    expect(data.registry_id).toBe(320);
+    expect(data.registry_id).toBe(R.BranchMeetingProposal.registry_id);
   });
 
-  it('generateBranchTrustedLiabilityAgreement проставляет registry_id 327', async () => {
+  it(`generateBranchTrustedLiabilityAgreement проставляет registry_id ${R.BranchTrustedLiabilityAgreement.registry_id}`, async () => {
     const { service, documentPort } = makeService();
 
     await service.generateBranchTrustedLiabilityAgreement({ coopname: COOP, username: 'alice' } as any);
 
     const { data } = documentPort.generate.mock.calls[0][0];
-    expect(data.registry_id).toBe(327);
+    expect(data.registry_id).toBe(R.BranchTrustedLiabilityAgreement.registry_id);
   });
 
-  it('generateBranchTrusteeLiabilityAgreement проставляет registry_id 328', async () => {
+  it(`generateBranchTrusteeLiabilityAgreement проставляет registry_id ${R.BranchTrusteeLiabilityAgreement.registry_id}`, async () => {
     const { service, documentPort } = makeService();
 
     await service.generateBranchTrusteeLiabilityAgreement({ coopname: COOP, username: 'alice' } as any);
 
     const { data } = documentPort.generate.mock.calls[0][0];
-    expect(data.registry_id).toBe(328);
+    expect(data.registry_id).toBe(R.BranchTrusteeLiabilityAgreement.registry_id);
   });
 
-  it('generateBranchTrusteePowerOfAttorney проставляет registry_id 329', async () => {
+  it(`generateBranchTrusteePowerOfAttorney проставляет registry_id ${R.BranchTrusteePowerOfAttorney.registry_id}`, async () => {
     const { service, documentPort } = makeService();
 
     await service.generateBranchTrusteePowerOfAttorney({ coopname: COOP, username: 'alice' } as any);
 
     const { data } = documentPort.generate.mock.calls[0][0];
-    expect(data.registry_id).toBe(329);
+    expect(data.registry_id).toBe(R.BranchTrusteePowerOfAttorney.registry_id);
   });
 
-  it('generateBranchTrustedPowerOfAttorney проставляет registry_id 330', async () => {
+  it(`generateBranchTrustedPowerOfAttorney проставляет registry_id ${R.BranchTrustedPowerOfAttorney.registry_id}`, async () => {
     const { service, documentPort } = makeService();
 
     await service.generateBranchTrustedPowerOfAttorney({ coopname: COOP, username: 'alice' } as any);
 
     const { data } = documentPort.generate.mock.calls[0][0];
-    expect(data.registry_id).toBe(330);
+    expect(data.registry_id).toBe(R.BranchTrustedPowerOfAttorney.registry_id);
   });
 });

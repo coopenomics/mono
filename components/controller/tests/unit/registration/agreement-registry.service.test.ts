@@ -21,6 +21,7 @@ import { AccountType } from '~/application/account/enum/account-type.enum';
 import { AgreementRegistryService } from '~/domain/registration/services/agreement-registry.service';
 import type { AgreementRegistrationSpec } from '~/domain/registration/dto/agreement-registration-spec.dto';
 import type { ProgramRegistrationSpec } from '~/domain/registration/dto/program-registration-spec.dto';
+import { Cooperative } from 'cooptypes';
 
 // ---------- helpers ----------
 
@@ -39,7 +40,7 @@ function makeAgreementSpec(
 ): AgreementRegistrationSpec {
   return {
     id: partial.id,
-    registry_id: partial.registry_id ?? 1000,
+    registry_id: partial.registry_id ?? Cooperative.Registry.BlagorostOffer.registry_id,
     agreement_type: partial.agreement_type ?? 'test-agreement',
     title: partial.title ?? 'Оферта',
     checkbox_text: partial.checkbox_text ?? 'Я прочитал и принимаю',

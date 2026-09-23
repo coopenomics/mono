@@ -11,6 +11,9 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 
 import { MarketplaceCoopAcceptanceService } from '~/extensions/marketplace/application/coop-acceptance/marketplace-coop-acceptance.service';
+import { Cooperative } from 'cooptypes';
+
+const R = Cooperative.Registry;
 
 const makeLogger = () =>
   ({
@@ -68,19 +71,19 @@ describe('MarketplaceCoopAcceptanceService', () => {
     const service = new MarketplaceCoopAcceptanceService(repo, makeLogger());
 
     const status = await service.accept({
-      document_registry_id: 1102,
+      document_registry_id: R.MarketplaceOffer.registry_id,
       accepted_by_board_decision_id: 'board-decision-42',
       accepted_at: '2026-05-14T12:00:00Z',
     });
 
     expect(status.status).toBe('active');
-    expect(status.document_registry_id).toBe(1102);
+    expect(status.document_registry_id).toBe(R.MarketplaceOffer.registry_id);
     expect(status.accepted_at).toBe('2026-05-14T12:00:00Z');
     expect(status.accepted_by_board_decision_id).toBe('board-decision-42');
     expect(repo.patchConfig).toHaveBeenCalledTimes(1);
     expect(repo._state.config.coopAcceptance).toEqual({
       accepted: true,
-      document_registry_id: 1102,
+      document_registry_id: R.MarketplaceOffer.registry_id,
       accepted_at: '2026-05-14T12:00:00Z',
       accepted_by_board_decision_id: 'board-decision-42',
     });
@@ -90,7 +93,7 @@ describe('MarketplaceCoopAcceptanceService', () => {
     const repo = makeRepo({
       coopAcceptance: {
         accepted: true,
-        document_registry_id: 100,
+        document_registry_id: R.ParticipantApplication.registry_id,
         accepted_at: '2026-05-13T00:00:00Z',
         accepted_by_board_decision_id: 'old-decision',
       },
@@ -98,12 +101,12 @@ describe('MarketplaceCoopAcceptanceService', () => {
     const service = new MarketplaceCoopAcceptanceService(repo, makeLogger());
 
     const status = await service.accept({
-      document_registry_id: 200,
+      document_registry_id: R.ParticipantExitApplication.registry_id,
       accepted_by_board_decision_id: 'new-decision',
       accepted_at: '2026-05-14T00:00:00Z',
     });
 
-    expect(status.document_registry_id).toBe(200);
+    expect(status.document_registry_id).toBe(R.ParticipantExitApplication.registry_id);
     expect(status.accepted_by_board_decision_id).toBe('new-decision');
     // Повторный приём не отказ: ЦПП остаётся принятой, а поля перезаписываются
     // данными нового решения совета. Ровно одна запись конфига — не дубликат.
@@ -117,7 +120,7 @@ describe('MarketplaceCoopAcceptanceService', () => {
     const repo = makeRepo({});
     const service = new MarketplaceCoopAcceptanceService(repo, makeLogger());
     const status = await service.accept({
-      document_registry_id: 1,
+      document_registry_id: R.WalletAgreement.registry_id,
       accepted_by_board_decision_id: 'x',
     });
     expect(status.accepted_at).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z$/);
@@ -132,7 +135,7 @@ describe('MarketplaceCoopAcceptanceService', () => {
 
     await expect(service.getStatus()).rejects.toThrow(NotFoundException);
     await expect(
-      service.accept({ document_registry_id: 1, accepted_by_board_decision_id: 'x' })
+      service.accept({ document_registry_id: R.WalletAgreement.registry_id, accepted_by_board_decision_id: 'x' })
     ).rejects.toThrow(NotFoundException);
   });
 });
@@ -157,7 +160,7 @@ describe('MarketplaceCoopAcceptanceService.accept: дата принятия', (
 
     await expect(
       service.accept({
-        document_registry_id: 1102,
+        document_registry_id: R.MarketplaceOffer.registry_id,
         accepted_by_board_decision_id: 'board-decision-42',
         accepted_at: 'вчера',
       })
@@ -172,7 +175,7 @@ describe('MarketplaceCoopAcceptanceService.accept: дата принятия', (
 
     await expect(
       service.accept({
-        document_registry_id: 1102,
+        document_registry_id: R.MarketplaceOffer.registry_id,
         accepted_by_board_decision_id: 'board-decision-42',
         accepted_at: future,
       })
@@ -186,7 +189,7 @@ describe('MarketplaceCoopAcceptanceService.accept: дата принятия', (
     const skewed = new Date(Date.now() + 30 * 1000).toISOString();
 
     const status = await service.accept({
-      document_registry_id: 1102,
+      document_registry_id: R.MarketplaceOffer.registry_id,
       accepted_by_board_decision_id: 'board-decision-42',
       accepted_at: skewed,
     });

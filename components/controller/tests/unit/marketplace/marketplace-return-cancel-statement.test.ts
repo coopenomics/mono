@@ -10,6 +10,9 @@
  * не та сделка или не та сумма.
  */
 import { MarketplaceReturnClaimService } from '~/extensions/marketplace/application/services/marketplace-return-claim.service';
+import { Cooperative } from 'cooptypes';
+
+const R = Cooperative.Registry;
 
 const COOP = 'voskhod';
 const ORDER_HASH = 'a'.repeat(64);
@@ -31,7 +34,7 @@ function claimApproved(overrides: Record<string, unknown> = {}) {
     fact_cost: '400.0000',
     fee_refund: '40.0000',
     photos: [],
-    statement: { hash: 'r-hash', doc_hash: 'r-doc', meta_hash: 'r-meta', meta: { registry_id: 1106 }, signatures: [{ signer: 'ekaterina' }] },
+    statement: { hash: 'r-hash', doc_hash: 'r-doc', meta_hash: 'r-meta', meta: { registry_id: R.MarketplaceReturnStatement.registry_id }, signatures: [{ signer: 'ekaterina' }] },
     ...overrides,
   };
 }
@@ -96,7 +99,7 @@ describe('Заявление оператора об отмене сделки: 
     const { data } = documentPort.generate.mock.calls[0][0] as { data: Record<string, unknown> };
     // Под вторую подпись оператора идёт исходная рекламация пайщика, не новый документ.
     expect(documentPort.buildAggregate).toHaveBeenCalledWith(expect.objectContaining({ hash: 'r-hash' }));
-    expect(data.registry_id).toBe(1116);
+    expect(data.registry_id).toBe(R.MarketplaceReturnCancelStatement.registry_id);
     expect(data.username).toBe('chairkrg');
     expect(data.operator).toBe('chairkrg');
     expect(data.orderer).toBe('ekaterina');
@@ -149,7 +152,7 @@ function signedCancel(meta: Record<string, unknown>) {
     doc_hash: 'd',
     meta_hash: 'm',
     meta: {
-      registry_id: 1116,
+      registry_id: R.MarketplaceReturnCancelStatement.registry_id,
       order_hash: ORDER_HASH,
       request_hash: REQUEST_HASH,
       operator: 'chairkrg',
@@ -183,12 +186,12 @@ describe('Приём имущества у стойки: контроль под
     expect(chainPort.accRetrn).not.toHaveBeenCalled();
   });
 
-  it('рекламация пайщика (1106) вместо заявления оператора отклоняется', async () => {
+  it(`рекламация пайщика (${R.MarketplaceReturnStatement.registry_id}) вместо заявления оператора отклоняется`, async () => {
     const { service, claimRepo, chainPort } = makeService();
     claimRepo.findById.mockResolvedValue(claimApproved());
 
     await expect(
-      service.acceptReturnAtVisit(acceptInput(signedCancel({ registry_id: 1106 })))
+      service.acceptReturnAtVisit(acceptInput(signedCancel({ registry_id: R.MarketplaceReturnStatement.registry_id })))
     ).rejects.toThrow('Подписан не тот документ');
     expect(chainPort.accRetrn).not.toHaveBeenCalled();
   });

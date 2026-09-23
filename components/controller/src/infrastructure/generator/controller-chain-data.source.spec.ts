@@ -1,4 +1,7 @@
 import { ControllerChainDataSource } from './controller-chain-data.source';
+import { Cooperative } from 'cooptypes';
+
+const R = Cooperative.Registry;
 
 /**
  * Источник данных цепи для фабрики документов заменил собой обозреватель
@@ -34,18 +37,18 @@ describe('ControllerChainDataSource', () => {
   });
 
   it('шаблон берётся из реестра на указанный блок', async () => {
-    findTemplateAt.mockResolvedValue({ registry_id: '100', title: 'Заявление' });
+    findTemplateAt.mockResolvedValue({ registry_id: String(R.ParticipantApplication.registry_id), title: 'Заявление' });
 
     const rows = await source.getTableRows({
       code: 'draft',
       scope: 'draft',
       table: 'drafts',
-      filter: { registry_id: '100' },
+      filter: { registry_id: String(R.ParticipantApplication.registry_id) },
       block_num: 500,
     });
 
-    expect(rows).toEqual([{ registry_id: '100', title: 'Заявление' }]);
-    expect(findTemplateAt).toHaveBeenCalledWith('100', 500);
+    expect(rows).toEqual([{ registry_id: String(R.ParticipantApplication.registry_id), title: 'Заявление' }]);
+    expect(findTemplateAt).toHaveBeenCalledWith(String(R.ParticipantApplication.registry_id), 500);
     // Журнал дельт для шаблонов не привлекается — у реестра своя история.
     expect(query).not.toHaveBeenCalled();
   });
@@ -57,14 +60,14 @@ describe('ControllerChainDataSource', () => {
       code: 'draft',
       scope: 'draft',
       table: 'translations',
-      filter: { draft_id: '100' },
+      filter: { draft_id: String(R.ParticipantApplication.registry_id) },
       block_num: 500,
     });
 
     expect(rows).toEqual([{ lang: 'ru' }, { lang: 'en' }]);
     const [sql, params] = query.mock.calls[0];
     expect(sql).toContain('DISTINCT ON (lang)');
-    expect(params).toEqual(['100', 500]);
+    expect(params).toEqual([String(R.ParticipantApplication.registry_id), 500]);
   });
 
   it('прочие таблицы читаются из журнала дельт с ограничением по блоку', async () => {

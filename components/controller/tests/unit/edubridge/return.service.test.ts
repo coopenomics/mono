@@ -5,6 +5,9 @@
  */
 import { EdubridgeReturnService } from '~/extensions/edubridge/application/services/edubridge-return.service';
 import { EduReturnStatus } from '~/extensions/edubridge/domain/enums';
+import { Cooperative } from 'cooptypes';
+
+const R = Cooperative.Registry;
 
 jest.mock('@coopenomics/extension-kit', () => ({
   ...jest.requireActual('@coopenomics/extension-kit'),
@@ -41,7 +44,7 @@ function make(opts: { available?: string; subscriptions?: number; refunds?: numb
 
 /** Заявление 190 без выхода из кооператива, в таблице одна программа — «Образование». */
 const signed = (signer = 'ant', hash = 'AABB', meta: Record<string, unknown> = {}) =>
-  ({ hash, meta: { registry_id: 190, programs: [{ program_id: 5 }], ...meta }, signatures: [{ signer }] }) as any;
+  ({ hash, meta: { registry_id: R.ProgramAgreementsAnnulmentStatement.registry_id, programs: [{ program_id: 5 }], ...meta }, signatures: [{ signer }] }) as any;
 
 describe('EdubridgeReturnService — прекращение участия в программе', () => {
   it('баланс показывает, что уйдёт в паевой сегодня: остаток плюс возврат по подпискам', async () => {
@@ -74,14 +77,14 @@ describe('EdubridgeReturnService — прекращение участия в п
   it('заявление без подписи пайщика и чужой документ не принимаются', async () => {
     const { service, requests } = make();
     await expect(service.request('voskhod', 'ant', signed('other'))).rejects.toThrow(/не подписано пайщиком/);
-    await expect(service.request('voskhod', 'ant', signed('ant', 'AA', { registry_id: 3011 }))).rejects.toThrow(/не тот документ/);
+    await expect(service.request('voskhod', 'ant', signed('ant', 'AA', { registry_id: R.EducationConvertStatement.registry_id }))).rejects.toThrow(/не тот документ/);
     // Мета может прийти строкой JSON.
-    const asString = { hash: 'EE', meta: JSON.stringify({ registry_id: 190, programs: [{ program_id: 5 }] }), signatures: [{ signer: 'ant' }] } as any;
+    const asString = { hash: 'EE', meta: JSON.stringify({ registry_id: R.ProgramAgreementsAnnulmentStatement.registry_id, programs: [{ program_id: 5 }] }), signatures: [{ signer: 'ant' }] } as any;
     await expect(service.request('voskhod', 'ant', asString)).resolves.toMatchObject({ status: EduReturnStatus.PENDING });
     expect(requests.save).toHaveBeenCalledTimes(1);
   });
 
-  it('заявление 190 при выходе из кооператива и с чужими программами в таблице здесь не принимается', async () => {
+  it(`заявление ${R.ProgramAgreementsAnnulmentStatement.registry_id} при выходе из кооператива и с чужими программами в таблице здесь не принимается`, async () => {
     const { service } = make();
     await expect(service.request('voskhod', 'ant', signed('ant', 'A1', { exit_hash: 'ff' }))).rejects.toThrow(/вместе с выходом/);
     await expect(service.request('voskhod', 'ant', signed('ant', 'A2', { programs: [{ program_id: 2 }] }))).rejects.toThrow(/одна программа/);

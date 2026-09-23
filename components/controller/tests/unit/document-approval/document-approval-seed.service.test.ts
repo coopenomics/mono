@@ -2,6 +2,9 @@ import { DocumentApprovalSeedService } from '~/domain/document-approval/services
 import { toChainTimePoint } from '~/domain/document-approval/services/decision-date';
 import { DocumentApprovalRequirement, DocumentApprovalState, DocumentKind } from '~/domain/document-approval/enums/document-approval.enums';
 import type { DocumentTemplateView } from '~/domain/document-approval/interfaces/document-template-view.interface';
+import { Cooperative } from 'cooptypes';
+
+const R = Cooperative.Registry;
 
 jest.mock('~/config/config', () => ({
   __esModule: true,
@@ -35,7 +38,7 @@ function build(templates: DocumentTemplateView[], vars: Record<string, unknown> 
     getCurrentTextHash: jest.fn(async () => 'c'.repeat(64)),
   } as any;
   const varsPort = { get: jest.fn(async () => vars) } as any;
-  const draftChain = { approveDraft: jest.fn(async (data: any) => { if (data.registry_id === 4) throw new Error('цепь недоступна'); return {}; }) } as any;
+  const draftChain = { approveDraft: jest.fn(async (data: any) => { if (data.registry_id === R.UserAgreement.registry_id) throw new Error('цепь недоступна'); return {}; }) } as any;
   return { service: new DocumentApprovalSeedService(state, varsPort, draftChain, logger), draftChain };
 }
 
@@ -50,24 +53,24 @@ describe('DocumentApprovalSeedService.plan', () => {
   it('переносит только документы с реквизитами протокола и без утверждения; номер не число — 0', async () => {
     const { service } = build(
       [
-        template(1, { vars_field: 'wallet_agreement' }),
-        template(3, { vars_field: 'privacy_agreement', current_version: 4 }),
-        template(4, { vars_field: 'user_agreement' }),
-        template(2, { vars_field: 'signature_agreement' }),
-        template(50, { vars_field: 'coopenomics_agreement', approved_version: 2, state: DocumentApprovalState.Approved }),
-        template(600, { approval: DocumentApprovalRequirement.None, state: DocumentApprovalState.NotRequired }),
-        template(100, { vars_field: 'wallet_agreement', current_version: null }),
+        template(R.WalletAgreement.registry_id, { vars_field: 'wallet_agreement' }),
+        template(R.PrivacyPolicy.registry_id, { vars_field: 'privacy_agreement', current_version: 4 }),
+        template(R.UserAgreement.registry_id, { vars_field: 'user_agreement' }),
+        template(R.RegulationElectronicSignature.registry_id, { vars_field: 'signature_agreement' }),
+        template(R.CoopenomicsAgreement.registry_id, { vars_field: 'coopenomics_agreement', approved_version: 2, state: DocumentApprovalState.Approved }),
+        template(R.FreeDecision.registry_id, { approval: DocumentApprovalRequirement.None, state: DocumentApprovalState.NotRequired }),
+        template(R.ParticipantApplication.registry_id, { vars_field: 'wallet_agreement', current_version: null }),
       ],
       vars
     );
     const plan = await service.plan('voskhod');
-    expect(plan.map((p) => p.registry_id)).toEqual([1, 3]);
+    expect(plan.map((p) => p.registry_id)).toEqual([R.WalletAgreement.registry_id, R.PrivacyPolicy.registry_id]);
     expect(plan[0]).toMatchObject({ version: 3, decision_id: 0, approved_at: '2024-04-10T00:00:00', protocol_number: '10-04-2024' });
     expect(plan[1]).toMatchObject({ version: 4, decision_id: 12, approved_at: '2026-02-09T10:24:00' });
   });
 
   it('без настроек кооператива план пуст', async () => {
-    const { service } = build([template(1, { vars_field: 'wallet_agreement' })], null);
+    const { service } = build([template(R.WalletAgreement.registry_id, { vars_field: 'wallet_agreement' })], null);
     expect(await service.plan('voskhod')).toEqual([]);
   });
 });
@@ -75,18 +78,18 @@ describe('DocumentApprovalSeedService.plan', () => {
 describe('DocumentApprovalSeedService.apply', () => {
   it('пишет утверждение каждой строки плана от имени кооператива; сбой одного документа не останавливает остальные', async () => {
     const { service, draftChain } = build(
-      [template(1, { vars_field: 'wallet_agreement' }), template(4, { vars_field: 'privacy_agreement' }), template(3, { vars_field: 'privacy_agreement' })],
+      [template(R.WalletAgreement.registry_id, { vars_field: 'wallet_agreement' }), template(R.UserAgreement.registry_id, { vars_field: 'privacy_agreement' }), template(R.PrivacyPolicy.registry_id, { vars_field: 'privacy_agreement' })],
       vars
     );
     const result = await service.apply('voskhod');
-    expect(result).toEqual({ planned: 3, applied: 2, failed: [4] });
+    expect(result).toEqual({ planned: 3, applied: 2, failed: [R.UserAgreement.registry_id] });
     expect(draftChain.approveDraft).toHaveBeenCalledWith(
-      expect.objectContaining({ coopname: 'voskhod', username: 'voskhod', registry_id: 1, version: 3, decision_id: 0, text_hash: 'c'.repeat(64) })
+      expect.objectContaining({ coopname: 'voskhod', username: 'voskhod', registry_id: R.WalletAgreement.registry_id, version: 3, decision_id: 0, text_hash: 'c'.repeat(64) })
     );
   });
 
   it('повторный запуск ничего не пишет: документы с утверждением в план не попадают', async () => {
-    const { service, draftChain } = build([template(1, { vars_field: 'wallet_agreement', approved_version: 3, state: DocumentApprovalState.Approved })], vars);
+    const { service, draftChain } = build([template(R.WalletAgreement.registry_id, { vars_field: 'wallet_agreement', approved_version: 3, state: DocumentApprovalState.Approved })], vars);
     expect(await service.apply('voskhod')).toEqual({ planned: 0, applied: 0, failed: [] });
     expect(draftChain.approveDraft).not.toHaveBeenCalled();
   });

@@ -1,6 +1,9 @@
 /** Документы ЦПП «Образование» в реестре шаблонов кооператива: состав, вид и порядок. */
 import { registerEdubridgeDocuments } from '~/extensions/edubridge/application/onboarding/register-edubridge-documents';
 import type { InnerDocumentDeclaration } from '@coopenomics/innercoop';
+import { Cooperative } from 'cooptypes';
+
+const R = Cooperative.Registry;
 
 function portSpy() {
   const registered: InnerDocumentDeclaration[] = [];
@@ -20,7 +23,16 @@ describe('Документы ЦПП «Образование» в реестре
     const { port, registered } = portSpy();
     await registerEdubridgeDocuments(port);
     expect(registered.map((d) => d.registry_id).sort((a, b) => a - b)).toEqual([
-      3000, 3002, 3004, 3006, 3007, 3008, 3009, 3010, 3011, 3012,
+      R.EducationProgramTemplate.registry_id,
+      R.EducationParentOffer.registry_id,
+      R.EducationTeacherOffer.registry_id,
+      R.EducationParticipationContract.registry_id,
+      R.EducationCourseAnnex.registry_id,
+      R.EducationRidStatement.registry_id,
+      R.EducationRidDecision.registry_id,
+      R.EducationRidAct.registry_id,
+      R.EducationConvertStatement.registry_id,
+      R.EducationRidStorageAct.registry_id,
     ]);
     expect(registered.every((d) => d.extension_name === 'edubridge')).toBe(true);
   });
@@ -38,18 +50,18 @@ describe('Документы ЦПП «Образование» в реестре
     const { port, registered } = portSpy();
     await registerEdubridgeDocuments(port);
     const byId = new Map(registered.map((d) => [d.registry_id, d]));
-    expect(byId.get(3000)).toMatchObject({ kind: 'provision', approval: 'required', vars_field: 'education_provision' });
-    expect(byId.get(3002)).toMatchObject({ kind: 'agreement', vars_field: 'education_parent_offer_template' });
-    expect(byId.get(3004)).toMatchObject({ kind: 'agreement', vars_field: 'education_teacher_offer_template' });
-    expect(byId.get(3006)).toMatchObject({ kind: 'agreement', vars_field: 'education_contract_template' });
+    expect(byId.get(R.EducationProgramTemplate.registry_id)).toMatchObject({ kind: 'provision', approval: 'required', vars_field: 'education_provision' });
+    expect(byId.get(R.EducationParentOffer.registry_id)).toMatchObject({ kind: 'agreement', vars_field: 'education_parent_offer_template' });
+    expect(byId.get(R.EducationTeacherOffer.registry_id)).toMatchObject({ kind: 'agreement', vars_field: 'education_teacher_offer_template' });
+    expect(byId.get(R.EducationParticipationContract.registry_id)).toMatchObject({ kind: 'agreement', vars_field: 'education_contract_template' });
   });
 
   it('акт ответственного хранения — бланк на утверждение, протокол совета утверждения не требует', async () => {
     const { port, registered } = portSpy();
     await registerEdubridgeDocuments(port);
     const byId = new Map(registered.map((d) => [d.registry_id, d]));
-    expect(byId.get(3012)).toMatchObject({ kind: 'form', approval: 'required', bundle: 'education_forms' });
-    expect(byId.get(3009)).toMatchObject({ kind: 'service', approval: 'none' });
+    expect(byId.get(R.EducationRidStorageAct.registry_id)).toMatchObject({ kind: 'form', approval: 'required', bundle: 'education_forms' });
+    expect(byId.get(R.EducationRidDecision.registry_id)).toMatchObject({ kind: 'service', approval: 'none' });
   });
 
   it('перед объявлением снимает прежние декларации расширения', async () => {

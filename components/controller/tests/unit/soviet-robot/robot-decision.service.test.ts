@@ -10,6 +10,9 @@ import { PrivateKey, KeyType } from '@wharfkit/antelope';
 (globalThis as any).window = { crypto: webcrypto };
 import { RobotDecisionService } from '~/extensions/soviet-robot/application/services/robot-decision.service';
 import { RobotDecisionStage } from '~/extensions/soviet-robot/domain/enums/robot-decision-stage.enum';
+import { Cooperative } from 'cooptypes';
+
+const R = Cooperative.Registry;
 
 const NO_EXPIRY = '1970-01-01T00:00:00';
 const LIMITS = { max_attempts: 3, retry_backoff_sec: 5, index_lag_attempts: 3, index_lag_pause_ms: 0 };
@@ -60,7 +63,7 @@ function makeDecision(overrides: Record<string, any> = {}) {
     votes_against: [],
     approved: false,
     authorized: false,
-    statement: { meta: JSON.stringify({ registry_id: 599, title: 'Проект', project_id: 'p-1', coopname: 'voskhod', username: 'ant' }) },
+    statement: { meta: JSON.stringify({ registry_id: R.ProjectFreeDecision.registry_id, title: 'Проект', project_id: 'p-1', coopname: 'voskhod', username: 'ant' }) },
     ...overrides,
   } as any;
 }
@@ -94,7 +97,7 @@ function build(opts: { decision: any; automations: any[]; keys: Record<string, s
       full_title: 'Протокол',
       html: '<p/>',
       hash: 'CD'.repeat(32),
-      meta: { title: 'Протокол', registry_id: 600, lang: 'ru', generator: 't', version: '1.0.0', coopname: 'voskhod', username: 'ant', created_at: 'x', block_num: 1, timezone: 'UTC', links: [] },
+      meta: { title: 'Протокол', registry_id: R.FreeDecision.registry_id, lang: 'ru', generator: 't', version: '1.0.0', coopname: 'voskhod', username: 'ant', created_at: 'x', block_num: 1, timezone: 'UTC', links: [] },
       binary: '',
     })),
   } as any;
@@ -169,7 +172,7 @@ describe('RobotDecisionService.process', () => {
     expect(result.last_error).toBeNull();
     expect(documents.generate).toHaveBeenCalledTimes(1);
     const data = documents.generate.mock.calls[0][0].data;
-    expect(data).toMatchObject({ registry_id: 600, coopname: 'voskhod', username: 'ant', decision_id: 7, project_id: 'p-1' });
+    expect(data).toMatchObject({ registry_id: R.FreeDecision.registry_id, coopname: 'voskhod', username: 'ant', decision_id: 7, project_id: 'p-1' });
     expect(data.title).toBeUndefined();
     expect(chain.authorizeAndExec).toHaveBeenCalledTimes(1);
     const [, chairman, decisionId, document, permission] = chain.authorizeAndExec.mock.calls[0];
@@ -306,15 +309,15 @@ describe('RobotDecisionService.protocolData', () => {
   const service = new RobotDecisionService({} as any, {} as any, {} as any, {} as any, {} as any, makeLogger());
 
   it('берёт прикладные поля заявления и отбрасывает служебные', () => {
-    const data = service.protocolData(600, 'voskhod', makeDecision());
-    expect(data).toMatchObject({ registry_id: 600, coopname: 'voskhod', username: 'ant', decision_id: 7, project_id: 'p-1' });
+    const data = service.protocolData(R.FreeDecision.registry_id, 'voskhod', makeDecision());
+    expect(data).toMatchObject({ registry_id: R.FreeDecision.registry_id, coopname: 'voskhod', username: 'ant', decision_id: 7, project_id: 'p-1' });
     expect(data.title).toBeUndefined();
     expect(data.receiver).toBe('ant');
   });
 
   it('выводит число позиций списания и хэш собрания', () => {
     const decision = makeDecision({ statement: { meta: JSON.stringify({ items: [{ a: 1 }, { a: 2 }], total_amount: '10.0000 RUB' }) } });
-    const data = service.protocolData(1107, 'voskhod', decision);
+    const data = service.protocolData(R.MarketplaceWriteoffProtocol.registry_id, 'voskhod', decision);
     expect(data.items_count).toBe(2);
     expect(data.meet_hash).toBe('AB'.repeat(32));
   });

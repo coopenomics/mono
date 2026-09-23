@@ -12,6 +12,9 @@
 import { BadRequestException } from '@nestjs/common';
 import { MarketplaceConvertService } from '../../../src/extensions/marketplace/application/services/marketplace-convert.service';
 import { COOP, buildMocks, buildOrder, buildSaga, buildService, stubSignatureChecks, signedDoc, toAsset, toUnits } from './issuance-saga.fixture';
+import { Cooperative } from 'cooptypes';
+
+const R = Cooperative.Registry;
 
 function buildConvertService(memberAvailable: string, walletName = 'w.mkt.member', shareAvailable = '0.0000 RUB'): MarketplaceConvertService {
   const walletRepo = {
@@ -71,7 +74,7 @@ describe('mkt.order.side.30 — план: членский кошелёк на �
   });
 });
 
-describe('mkt.order.side.31 — заявление 1110: только недостающее, членская часть уменьшена на остаток членского кошелька', () => {
+describe(`mkt.order.side.31 — заявление ${R.MarketplaceConvertStatement.registry_id}: только недостающее, членская часть уменьшена на остаток членского кошелька`, () => {
   it('в мете — якорь, сумма, членская часть; ничего лишнего', async () => {
     const svc = buildConvertService('10.0000 RUB', 'w.mkt.member', '30.0000 RUB');
     const balances = await svc.programBalances(COOP, 'orderer1');
@@ -84,7 +87,7 @@ describe('mkt.order.side.31 — заявление 1110: только недос
       amount_units: plan.transfer_units,
       fee_units: plan.fee_convert_units,
     });
-    expect(doc.meta).toMatchObject({ registry_id: 1110, order_hash: 'anchor-1', amount: '90.0000 RUB', membership_fee: '20.0000 RUB', skip_save: false });
+    expect(doc.meta).toMatchObject({ registry_id: R.MarketplaceConvertStatement.registry_id, order_hash: 'anchor-1', amount: '90.0000 RUB', membership_fee: '20.0000 RUB', skip_save: false });
     expect(Object.keys(doc.meta as object).sort()).toEqual(['amount', 'coopname', 'lang', 'membership_fee', 'order_hash', 'registry_id', 'skip_save', 'username']);
   });
 
@@ -98,7 +101,7 @@ describe('mkt.order.side.32 — подписанное заявление све
   const svc = buildConvertService('0.0000 RUB');
   const expected = { anchor_hash: 'anchor-1', amount_units: 120_0000n, fee_units: 20_0000n };
   const signed = (meta: Record<string, unknown>) => ({
-    ...signedDoc({ registry_id: 1110, order_hash: 'anchor-1', amount: '120.0000 RUB', membership_fee: '20.0000 RUB', ...meta }, ['orderer1']),
+    ...signedDoc({ registry_id: R.MarketplaceConvertStatement.registry_id, order_hash: 'anchor-1', amount: '120.0000 RUB', membership_fee: '20.0000 RUB', ...meta }, ['orderer1']),
   });
 
   it('заявления нет — «обновите оформление» с недостающей суммой', () => {
@@ -124,19 +127,19 @@ describe('mkt.order.side.32 — подписанное заявление све
   });
 
   it('чужая подпись на заявлении — отказ', () => {
-    const doc = signedDoc({ registry_id: 1110, order_hash: 'anchor-1', amount: '120.0000 RUB', membership_fee: '20.0000 RUB' }, ['someone']);
+    const doc = signedDoc({ registry_id: R.MarketplaceConvertStatement.registry_id, order_hash: 'anchor-1', amount: '120.0000 RUB', membership_fee: '20.0000 RUB' }, ['someone']);
     expect(() => svc.verifySigned(doc as never, expected, 'orderer1')).toThrow(/подписано учётной записью orderer1/);
   });
 });
 
-describe('mkt.iss.side.44 — довзнос по факту: заявление 1110 и перевод convert только когда членского кошелька не хватает', () => {
+describe(`mkt.iss.side.44 — довзнос по факту: заявление ${R.MarketplaceConvertStatement.registry_id} и перевод convert только когда членского кошелька не хватает`, () => {
   // Денежные поля заказа — голые десятичные строки, как в фикстуре: валюту
   // добавляет форматтер на выходе, а разбор сумм её не принимает.
   const orderWithFee = () => buildOrder({ total_cost: '100.0000', membership_fee: '30.0000' } as never);
   const bigFact = () => buildSaga({ fact: { actual_quantity: 12, actual_unit_price: '10.0000', fact_cost: '120.0000' } } as never);
   // Сумма в заявлении о выдаче — голая десятичная строка: она сверяется с
   // фактом через разбор числа, валюту такой разбор не принимает.
-  const stmt = (total: string) => signedDoc({ registry_id: 1113, order_hash: 'h-order-1', total_amount: total }, ['orderer1']) as never;
+  const stmt = (total: string) => signedDoc({ registry_id: R.MarketplaceShareReturnStatement.registry_id, order_hash: 'h-order-1', total_amount: total }, ['orderer1']) as never;
 
   it('факт меньше или равен заказу — довзноса нет, заявления нет', async () => {
     const m = buildMocks({ order: orderWithFee(), sagas: [buildSaga({ fact: { actual_quantity: 5, actual_unit_price: '10.0000', fact_cost: '50.0000' } } as never)] });
@@ -166,7 +169,7 @@ describe('mkt.iss.side.44 — довзнос по факту: заявление
     expect(doc?.meta).toMatchObject({ amount: '6.0000 RUB', membership_fee: '6.0000 RUB' });
   });
 
-  it('подача заявления о выдаче без заявления 1110 при нужном довзносе — отказ, цепь не трогаем', async () => {
+  it(`подача заявления о выдаче без заявления ${R.MarketplaceConvertStatement.registry_id} при нужном довзносе — отказ, цепь не трогаем`, async () => {
     const m = buildMocks({ order: orderWithFee(), sagas: [bigFact()], memberAvailableUnits: 0n, shareAvailableUnits: 0n });
     const service = buildService(m);
     stubSignatureChecks(service);
@@ -177,7 +180,7 @@ describe('mkt.iss.side.44 — довзнос по факту: заявление
     expect(m.chainPort.issueStmt).not.toHaveBeenCalled();
   });
 
-  it('заявление 1110 приложено — сначала convert с Цифрового кошелька на членскую часть, затем issuestmt без документа', async () => {
+  it(`заявление ${R.MarketplaceConvertStatement.registry_id} приложено — сначала convert с Цифрового кошелька на членскую часть, затем issuestmt без документа`, async () => {
     const m = buildMocks({ order: orderWithFee(), sagas: [bigFact()], memberAvailableUnits: 0n, shareAvailableUnits: 0n });
     const service = buildService(m);
     stubSignatureChecks(service);
@@ -186,7 +189,7 @@ describe('mkt.iss.side.44 — довзнос по факту: заявление
       member_account: 'orderer1',
       order_id: 'order-1',
       signed_statement: stmt('120.0000'),
-      signed_convert: signedDoc({ registry_id: 1110, order_hash: 'h-order-1', amount: '26.0000 RUB', membership_fee: '6.0000 RUB' }, ['orderer1']) as never,
+      signed_convert: signedDoc({ registry_id: R.MarketplaceConvertStatement.registry_id, order_hash: 'h-order-1', amount: '26.0000 RUB', membership_fee: '6.0000 RUB' }, ['orderer1']) as never,
     });
     expect(m.convertService.verifySigned).toHaveBeenCalledWith(expect.anything(), { anchor_hash: 'h-order-1', amount_units: 26_0000n, fee_units: 6_0000n }, 'orderer1');
     // Перевод адресован своему заказу: операция ложится в нитку этого заказа,

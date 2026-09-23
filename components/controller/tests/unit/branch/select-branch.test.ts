@@ -17,6 +17,7 @@ import { BadRequestException } from '@nestjs/common';
 import httpStatus from 'http-status';
 import { HttpApiError } from '@coopenomics/extension-kit';
 import { BranchInteractor } from '~/application/branch/use-cases/branch.interactor';
+import { Cooperative } from 'cooptypes';
 
 const COOP = 'voskhod';
 const BRANAME = 'axslcjrlmjaq';
@@ -30,7 +31,7 @@ function makeDocument(overrides: Record<string, any> = {}) {
     meta_hash: 'meta_hash',
     meta: {
       title: 'Заявление пайщика о выборе кооперативного участка',
-      registry_id: 101,
+      registry_id: Cooperative.Registry.SelectBranchStatement.registry_id,
       lang: 'ru',
       generator: 'coopjs',
       version: '2026.8.9',

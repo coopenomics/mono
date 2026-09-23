@@ -10,9 +10,10 @@
  */
 import { MarketplaceIssuanceSagaStages } from '~/extensions/marketplace/domain/entities/marketplace-issuance-saga.types';
 import { COOP, buildMocks, buildOrder, buildSaga, buildService, signedDoc, stubSignatureChecks } from './issuance-saga.fixture';
+import { Cooperative } from 'cooptypes';
 
 const ORDERER = 'ekaterina';
-const ACT = { registry_id: 1115, order_hash: 'h-order-1' };
+const ACT = { registry_id: Cooperative.Registry.MarketplaceShareReturnAct.registry_id, order_hash: 'h-order-1' };
 
 /** Заказ поставщика (не из остатка): 10 единиц, принято 9, выдаётся меньше. */
 function setup(actual_quantity: number) {

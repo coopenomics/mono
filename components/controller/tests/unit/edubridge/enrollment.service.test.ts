@@ -2,6 +2,7 @@
 import { EdubridgeEnrollmentService } from '~/extensions/edubridge/application/services/edubridge-enrollment.service';
 import { EduAccessState, EduCourseStatus, EduEnrollmentPeriod, EduEnrollmentStatus } from '~/extensions/edubridge/domain/enums';
 import { EDUBRIDGE_ENROLLMENT_EXTENDED_EVENT, EDUBRIDGE_ENROLLMENT_OPENED_EVENT } from '~/extensions/edubridge/application/events/edubridge.events';
+import { Cooperative } from 'cooptypes';
 
 const logger = { setContext: jest.fn(), info: jest.fn(), warn: jest.fn(), error: jest.fn() } as any;
 const learner = { id: 'L1', chain_ref: '7', member_username: 'ant', recipient_type: 'email', recipient_value: 'kid@x.ru' } as any;
@@ -197,11 +198,11 @@ describe('EdubridgeEnrollmentService', () => {
     expect(data.total).toBe('1000.0000 RUB');
   });
 
-  it('заявление о конвертации — документ 3011 с ключом подписки, суммой, курсом и периодом', async () => {
+  it(`заявление о конвертации — документ ${Cooperative.Registry.EducationConvertStatement.registry_id} с ключом подписки, суммой, курсом и периодом`, async () => {
     const { service, documents } = make();
     await service.statement('voskhod', 'ant', 'L1', 'C1', EduEnrollmentPeriod.MONTH);
     const data = documents.generate.mock.calls[0][0].data;
-    expect(data.registry_id).toBe(3011);
+    expect(data.registry_id).toBe(Cooperative.Registry.EducationConvertStatement.registry_id);
     expect(data.course_title).toBe('Алгебра');
     expect(data.period).toBe('month');
     expect(data.amount).toBe('1000.0000 RUB');
