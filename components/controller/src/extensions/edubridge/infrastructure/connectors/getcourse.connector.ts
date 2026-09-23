@@ -4,6 +4,7 @@ import type {
   AccessCarrierConnector,
   AccessRequest,
   ConnectorResult,
+  ConnectorPingResult,
   CourseCheckResult,
 } from '../../domain/connectors/access-carrier.connector';
 import { Inject } from '@nestjs/common';
@@ -99,6 +100,20 @@ export class GetCourseConnector implements AccessCarrierConnector {
 
   revoke(request: AccessRequest): Promise<ConnectorResult> {
     return this.addToGroup(request, `${request.course_ref}:revoked`);
+  }
+
+  /** Подключение: ключ аккаунта принимается — список групп читается. */
+  async ping(coopname: string): Promise<ConnectorPingResult> {
+    const { account, key } = await this.settings(coopname);
+    if (!account || !key) return { ok: false, message: 'GetCourse не настроен' };
+    try {
+      const res = await httpCall(`https://${account}.getcourse.ru/pl/api/account/groups?key=${encodeURIComponent(key)}`, { method: 'GET' });
+      if (!res.ok) return { ok: false, message: `HTTP ${res.status}` };
+      const count = ((res.body as { info?: { items?: unknown[] } })?.info?.items ?? []).length;
+      return { ok: true, message: `Ключ принят, групп в аккаунте — ${count}` };
+    } catch (e) {
+      return { ok: false, message: e instanceof Error ? e.message : String(e) };
+    }
   }
 
   async check(coopname: string, courseRef: string): Promise<CourseCheckResult> {

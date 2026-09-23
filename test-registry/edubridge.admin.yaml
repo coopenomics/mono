@@ -12,6 +12,8 @@ sources:
     - components/controller/src/extensions/edubridge/application/resolvers/edubridge-admin.resolver.ts
     - components/controller/src/extensions/edubridge/infrastructure/repositories/edubridge-admin.repository.ts
     - components/controller/src/extensions/edubridge/application/dto/edu-admin.dto.ts
+    - components/controller/src/extensions/edubridge/infrastructure/connectors/**
+    - components/controller/src/extensions/edubridge/domain/connectors/**
   ui:
     - components/desktop/extensions/edubridge/pages/Admin*/**
     - components/desktop/extensions/edubridge/entities/Admin/**
@@ -29,6 +31,20 @@ cases:
     kind: happy
     scenario: Состояние площадок.
     expect: Ключи в ответе отсутствуют, только configured/health/last_check.
+    test: components/controller/tests/unit/edubridge/admin.service.test.ts
+    status: passing
+  - id: edu.admin.side.13
+    level: backend
+    kind: side
+    scenario: "«Проверить» площадку с верными ключами, в каталоге ещё нет курсов (инцидент 23.09.2026: статус «Работает» и «У курса не задан идентификатор курса Skillspace»)."
+    expect: "Проверка идёт одним чтением с ключами (ping), курс-проба не участвует; в результат пишется итог площадки."
+    test: components/controller/tests/unit/edubridge/admin.service.test.ts
+    status: passing
+  - id: edu.admin.side.14
+    level: backend
+    kind: side
+    scenario: "«Проверить» площадку с неверным ключом."
+    expect: "Площадка помечается сбоящей, в результат пишется сообщение площадки."
     test: components/controller/tests/unit/edubridge/admin.service.test.ts
     status: passing
   - id: edu.admin.happy.03

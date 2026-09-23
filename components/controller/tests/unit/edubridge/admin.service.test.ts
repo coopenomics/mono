@@ -63,6 +63,27 @@ describe('EdubridgeAdminService', () => {
     expect(check).not.toHaveBeenCalled();
   });
 
+  it('проверка площадки без курсов в каталоге — проверяет ключи, а не курс-пробу', async () => {
+    const { service: s, credentials, connectors, bindings } = make();
+    const check = jest.fn();
+    const ping = jest.fn(async () => ({ ok: true, message: 'Ключ принят, курсов в школе — 3' }));
+    connectors.get = jest.fn(() => ({ carrier: EduAccessCarrier.SKILLSPACE, credentialFields: [{ key: 'api_key', label: 'Ключ', secret: true }], check, ping }));
+    credentials.isConfigured = jest.fn(async () => true);
+    await s.checkConnector('voskhod', EduAccessCarrier.SKILLSPACE);
+    expect(ping).toHaveBeenCalledWith('voskhod');
+    expect(check).not.toHaveBeenCalled();
+    expect(bindings.touch).toHaveBeenCalledWith('voskhod', EduAccessCarrier.SKILLSPACE, { code: 'ok', message: 'Ключ принят, курсов в школе — 3' });
+  });
+
+  it('проверка площадки с неверным ключом — площадка сбоит, сообщение площадки', async () => {
+    const { service: s, credentials, connectors, bindings } = make();
+    const ping = jest.fn(async () => ({ ok: false, message: 'Skillspace: неверный API-ключ школы' }));
+    connectors.get = jest.fn(() => ({ carrier: EduAccessCarrier.SKILLSPACE, credentialFields: [{ key: 'api_key', label: 'Ключ', secret: true }], ping }));
+    credentials.isConfigured = jest.fn(async () => true);
+    await s.checkConnector('voskhod', EduAccessCarrier.SKILLSPACE);
+    expect(bindings.touch).toHaveBeenCalledWith('voskhod', EduAccessCarrier.SKILLSPACE, { code: 'retryable', message: 'Skillspace: неверный API-ключ школы' });
+  });
+
   it('повтор задачи — через outbox, счётчик не сбрасывается', async () => {
     const { service: s } = make();
     const t = await s.retry('voskhod', 'T1');

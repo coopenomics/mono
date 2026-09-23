@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { EduAccessCarrier } from '../../domain/enums';
-import type { AccessCarrierConnector, AccessRequest, ConnectorResult, CourseCheckResult } from '../../domain/connectors/access-carrier.connector';
+import type { AccessCarrierConnector, AccessRequest, ConnectorPingResult, ConnectorResult, CourseCheckResult } from '../../domain/connectors/access-carrier.connector';
 
 /**
  * Очный формат: пропуск — запись в самом приложении (проверка на входе по коду
@@ -19,6 +19,10 @@ export class OnsiteConnector implements AccessCarrierConnector {
 
   async revoke(_request: AccessRequest): Promise<ConnectorResult> {
     return { code: 'ok' };
+  }
+
+  async ping(_coopname: string): Promise<ConnectorPingResult> {
+    return { ok: true, message: 'Очным занятиям ключи не нужны' };
   }
 
   async check(_coopname: string, courseRef: string): Promise<CourseCheckResult> {

@@ -4,6 +4,7 @@ import type {
   AccessCarrierConnector,
   AccessRequest,
   ConnectorResult,
+  ConnectorPingResult,
   CourseCheckResult,
 } from '../../domain/connectors/access-carrier.connector';
 import { Inject } from '@nestjs/common';
@@ -162,6 +163,16 @@ export class SkillspaceConnector implements AccessCarrierConnector {
     // уже удалён в школе — отзывать нечего, цель достигнута.
     if (result.code === 'fatal' && result.error_code === 'COURSE_NOT_FOUND') return { code: 'exists', message: 'Курса уже нет в школе' };
     return result;
+  }
+
+  /** Подключение: ключ школы принимается — список курсов читается. */
+  async ping(coopname: string): Promise<ConnectorPingResult> {
+    const token = await this.token(coopname);
+    if (!token) return { ok: false, message: 'Skillspace не настроен' };
+    const courses = await this.getJson<SkillspaceCourse[]>(`/school/course/list?token=${encodeURIComponent(token)}`);
+    if (!courses.ok) return { ok: false, message: courses.message };
+    const count = Array.isArray(courses.data) ? courses.data.length : 0;
+    return { ok: true, message: `Ключ принят, курсов в школе — ${count}` };
   }
 
   /** Сверка по реестрам школы: курс существует (и как называется), группа принадлежит курсу. */

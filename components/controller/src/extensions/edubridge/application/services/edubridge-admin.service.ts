@@ -85,16 +85,20 @@ export class EdubridgeAdminService {
     return this.stateOf(coopname, carrier);
   }
 
-  /** Проверить площадку сейчас: доступность аккаунта/курса-пробы. */
+  /**
+   * Проверить площадку сейчас: ключи рабочие, площадка отвечает. Курс здесь не
+   * участвует — привязку курса сверяет карточка курса. Раньше проверка брала
+   * первый курс каталога, и без курсов площадка с верными ключами показывала
+   * «У курса не задан идентификатор».
+   */
   async checkConnector(coopname: string, carrier: EduAccessCarrier): Promise<EduConnectorBindingDTO> {
     const connector = this.connectors.get(carrier);
     if (!connector) throw new NotFoundException('Носитель не поддерживается');
     if (!(await this.credentials.isConfigured(coopname, carrier, connector.credentialFields))) {
       throw new BadRequestException('Площадка не настроена: сначала задайте ключи подключения');
     }
-    const probe = (await this.courses.findPage(coopname, {}, { page: 1, limit: 1, sortOrder: 'ASC' } as never)).items.find((c) => c.carrier === carrier);
-    const check = await connector.check(coopname, probe?.external_ref ?? '');
-    await this.bindings.touch(coopname, carrier, check.unavailable ? { code: 'retryable', message: check.message } : { code: 'ok', message: check.message });
+    const ping = await connector.ping(coopname);
+    await this.bindings.touch(coopname, carrier, { code: ping.ok ? 'ok' : 'retryable', message: ping.message });
     return this.stateOf(coopname, carrier);
   }
 

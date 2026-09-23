@@ -37,6 +37,12 @@ export interface CourseCheckResult {
   message?: string;
 }
 
+/** Итог проверки подключения площадки: ключи рабочие, площадка отвечает. */
+export interface ConnectorPingResult {
+  ok: boolean;
+  message: string;
+}
+
 /**
  * Единый контракт носителя доступа. Добавление площадки — новый класс в
  * `infrastructure/connectors`, общий код выдачи не меняется.
@@ -48,6 +54,8 @@ export interface AccessCarrierConnector {
   grant(request: AccessRequest): Promise<ConnectorResult>;
   revoke(request: AccessRequest): Promise<ConnectorResult>;
   check(coopname: string, courseRef: string): Promise<CourseCheckResult>;
+  /** Проверка подключения без привязки к курсу — одно чтение с ключами кооператива. */
+  ping(coopname: string): Promise<ConnectorPingResult>;
 }
 
 export const ACCESS_CARRIER_CONNECTORS = Symbol('ACCESS_CARRIER_CONNECTORS');
