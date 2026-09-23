@@ -1,9 +1,19 @@
+import { Cooperative } from 'cooptypes';
+
+/**
+ * Положения программ, параметры которых председатель заполняет в мастере.
+ * Номера берутся из реестра документов cooptypes по имени: переименование или
+ * вывод документа из реестра сразу ломает сборку, а не подключение ЦПП.
+ */
+export const GENERATOR_PROGRAM_REGISTRY_ID = Cooperative.Registry.GeneratorProgramTemplate.registry_id;
+export const BLAGOROST_PROGRAM_REGISTRY_ID = Cooperative.Registry.BlagorostProgramTemplate.registry_id;
+
 export const DOC_WIZARD_STEP_GENERATOR = 'doc_generator';
 export const DOC_WIZARD_STEP_BLAGOROST = 'doc_blagorost';
 
 export const DOC_WIZARD_REGISTRY: Record<string, number> = {
-  [DOC_WIZARD_STEP_GENERATOR]: 994,
-  [DOC_WIZARD_STEP_BLAGOROST]: 998,
+  [DOC_WIZARD_STEP_GENERATOR]: GENERATOR_PROGRAM_REGISTRY_ID,
+  [DOC_WIZARD_STEP_BLAGOROST]: BLAGOROST_PROGRAM_REGISTRY_ID,
 };
 
 export const DOC_WIZARD_STEP_ORDER = [DOC_WIZARD_STEP_GENERATOR, DOC_WIZARD_STEP_BLAGOROST] as const;

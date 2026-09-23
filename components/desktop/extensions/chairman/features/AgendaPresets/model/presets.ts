@@ -1,4 +1,5 @@
 import { useSessionStore } from 'src/entities/Session'
+import { Cooperative } from 'cooptypes'
 import type { IDocumentPreset } from './types'
 import { useSystemStore } from 'src/entities/System/model'
 
@@ -9,7 +10,7 @@ export const useBlagorostPresets = (): IDocumentPreset[] => {
   return [
     {
       id: 'blagorost_program',
-      registry_id: 998,
+      registry_id: Cooperative.Registry.BlagorostProgramTemplate.registry_id,
       title: 'Положение о ЦПП «БЛАГОРОСТ»',
       description: 'Утверждение Положения о целевой потребительской программе «БЛАГОРОСТ»',
       question: 'О утверждении Положения о целевой потребительской программе «БЛАГОРОСТ»',
@@ -17,7 +18,7 @@ export const useBlagorostPresets = (): IDocumentPreset[] => {
       getData: () => ({
         coopname: systemStore.info?.coopname || '',
         username: sessionStore.username,
-        registry_id: 998,
+        registry_id: Cooperative.Registry.BlagorostProgramTemplate.registry_id,
       }),
     },
     // Пресета оферты «Благорост» здесь больше нет: шаблон-двойник 999 выведен из

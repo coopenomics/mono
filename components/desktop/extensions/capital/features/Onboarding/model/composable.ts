@@ -5,6 +5,7 @@ import { api, type CapitalOnboardingState } from '../api';
 import { Mutations, Queries, Zeus } from '@coopenomics/sdk';
 import type { ICouncilOnboardingConfig, ICouncilOnboardingStep } from 'src/shared/ui/CouncilOnboarding';
 import { client } from 'src/shared/api/client';
+import { Cooperative } from 'cooptypes';
 
 interface GeneratedDocument {
   hash: string;
@@ -27,13 +28,19 @@ export const useCapitalOnboarding = () => {
   // «для утверждения» (995, 997, 999) выведены: их тексты расходились с теми,
   // что подписывает пайщик (фабрика утверждений, компонент 66).
   const stepToRegistryId: Record<CapitalOnboardingStepId, number> = {
-    'generator_program_template': 994,
-    'generation_contract_template': 1001,
-    'generator_offer_template': 996,
-    'blagorost_program': 998,
-    'blagorost_offer_template': 1000,
+    'generator_program_template': Cooperative.Registry.GeneratorProgramTemplate.registry_id,
+    'generation_contract_template': Cooperative.Registry.GenerationContract.registry_id,
+    'generator_offer_template': Cooperative.Registry.GeneratorOffer.registry_id,
+    'blagorost_program': Cooperative.Registry.BlagorostProgramTemplate.registry_id,
+    'blagorost_offer_template': Cooperative.Registry.BlagorostOffer.registry_id,
   };
-  const capitalProgramDocDataRegistryIds = new Set([994, 996, 998, 1000]);
+  // Документы, в которые подставляются параметры программы из мастера.
+  const capitalProgramDocDataRegistryIds = new Set<number>([
+    Cooperative.Registry.GeneratorProgramTemplate.registry_id,
+    Cooperative.Registry.GeneratorOffer.registry_id,
+    Cooperative.Registry.BlagorostProgramTemplate.registry_id,
+    Cooperative.Registry.BlagorostOffer.registry_id,
+  ]);
 
   const isCapitalOnboardingStepId = (stepId: string): stepId is CapitalOnboardingStepId => {
     return stepId in stepToRegistryId;

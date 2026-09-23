@@ -14,8 +14,10 @@ import {
   type EditableFieldKey,
 } from './capitalProgramDocFields';
 import {
+  BLAGOROST_PROGRAM_REGISTRY_ID,
   DOC_WIZARD_STEP_BLAGOROST,
   DOC_WIZARD_STEP_GENERATOR,
+  GENERATOR_PROGRAM_REGISTRY_ID,
 } from './capitalOnboardingWizard';
 import {
   getCapitalProgramDocParamsDraftKey,
@@ -29,8 +31,8 @@ type PreviewState = {
 };
 
 const DOC_FIELDS_BY_REGISTRY: Record<number, EditableFieldKey[]> = {
-  994: GENERATOR_DOC_FIELDS,
-  998: BLAGOROST_DOC_FIELDS,
+  [GENERATOR_PROGRAM_REGISTRY_ID]: GENERATOR_DOC_FIELDS,
+  [BLAGOROST_PROGRAM_REGISTRY_ID]: BLAGOROST_DOC_FIELDS,
 };
 
 function createEmptyForm(): Record<EditableFieldKey, string> {
@@ -160,10 +162,10 @@ export function useCapitalProgramDocParams(options?: { onSaved?: (hash: string) 
     saving.value = true;
 
     try {
-      await loadPreview(994);
-      await loadPreview(998);
+      await loadPreview(GENERATOR_PROGRAM_REGISTRY_ID);
+      await loadPreview(BLAGOROST_PROGRAM_REGISTRY_ID);
 
-      const hash = previews[994]?.docDataHash ?? previews[998]?.docDataHash;
+      const hash = previews[GENERATOR_PROGRAM_REGISTRY_ID]?.docDataHash ?? previews[BLAGOROST_PROGRAM_REGISTRY_ID]?.docDataHash;
       if (!hash) {
         throw new Error('Не удалось получить хеш параметров документов');
       }
@@ -220,7 +222,7 @@ export function useCapitalProgramDocParams(options?: { onSaved?: (hash: string) 
 }
 
 export function getRegistryIdForDocWizardStep(stepKey: string): number | null {
-  if (stepKey === DOC_WIZARD_STEP_GENERATOR) return 994;
-  if (stepKey === DOC_WIZARD_STEP_BLAGOROST) return 998;
+  if (stepKey === DOC_WIZARD_STEP_GENERATOR) return GENERATOR_PROGRAM_REGISTRY_ID;
+  if (stepKey === DOC_WIZARD_STEP_BLAGOROST) return BLAGOROST_PROGRAM_REGISTRY_ID;
   return null;
 }

@@ -1,3 +1,4 @@
+import { BLAGOROST_PROGRAM_REGISTRY_ID, GENERATOR_PROGRAM_REGISTRY_ID } from './capitalOnboardingWizard';
 export type EditableFieldKey =
   | 'generator_program_purpose'
   | 'eoap_definition'
@@ -61,11 +62,11 @@ export const ALL_DOC_FIELDS: EditableFieldKey[] = [
 
 export const DOCUMENT_SECTIONS = [
   {
-    registryId: 994,
+    registryId: GENERATOR_PROGRAM_REGISTRY_ID,
     tabLabel: 'Положение ГЕНЕРАТОР',
   },
   {
-    registryId: 998,
+    registryId: BLAGOROST_PROGRAM_REGISTRY_ID,
     tabLabel: 'Положение БЛАГОРОСТ',
   },
 ] as const;

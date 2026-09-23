@@ -76,6 +76,7 @@ import {
   readCapitalProgramDocParamsDraft,
   writeCapitalProgramDocParamsDraft,
 } from '../model/useCapitalProgramDocParamsDraft';
+import { BLAGOROST_PROGRAM_REGISTRY_ID, GENERATOR_PROGRAM_REGISTRY_ID } from '../model/capitalOnboardingWizard';
 
 const emit = defineEmits<{
   saved: [hash: string];
@@ -85,7 +86,7 @@ const $q = useQuasar();
 const systemStore = useSystemStore();
 const sessionStore = useSessionStore();
 
-const activeTab = ref<number>(994);
+const activeTab = ref<number>(GENERATOR_PROGRAM_REGISTRY_ID);
 const saving = ref(false);
 const savedHash = ref('');
 const loadingRegistryId = ref<number | null>(null);
@@ -98,8 +99,8 @@ type PreviewState = {
 const previews = reactive<Partial<Record<number, PreviewState>>>({});
 
 const DOC_FIELDS_BY_REGISTRY: Record<number, EditableFieldKey[]> = {
-  994: GENERATOR_DOC_FIELDS,
-  998: BLAGOROST_DOC_FIELDS,
+  [GENERATOR_PROGRAM_REGISTRY_ID]: GENERATOR_DOC_FIELDS,
+  [BLAGOROST_PROGRAM_REGISTRY_ID]: BLAGOROST_DOC_FIELDS,
 };
 
 function createEmptyForm(): Record<EditableFieldKey, string> {
@@ -119,7 +120,7 @@ function restoreDraftFromStorage() {
   Object.assign(form, draft.form);
   savedHash.value = draft.savedHash;
   Object.assign(previews, draft.previews);
-  activeTab.value = draft.activeTab ?? 994;
+  activeTab.value = draft.activeTab ?? GENERATOR_PROGRAM_REGISTRY_ID;
 }
 
 function persistDraftToStorage() {
@@ -219,7 +220,7 @@ async function saveParams() {
       await loadPreview(section.registryId, { silent: true });
     }
 
-    const hash = previews[994]?.docDataHash ?? previews[998]?.docDataHash;
+    const hash = previews[GENERATOR_PROGRAM_REGISTRY_ID]?.docDataHash ?? previews[BLAGOROST_PROGRAM_REGISTRY_ID]?.docDataHash;
     if (!hash) {
       throw new Error('Не удалось получить хеш параметров документов');
     }

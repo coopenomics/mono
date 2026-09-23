@@ -104,6 +104,7 @@ import CapitalCouncilStepGroup from './CapitalCouncilStepGroup.vue';
 import { useCapitalOnboarding } from '../model';
 import { useCapitalProgramDocParams, getRegistryIdForDocWizardStep } from '../model/useCapitalProgramDocParams';
 import {
+  BLAGOROST_PROGRAM_REGISTRY_ID,
   COUNCIL_GROUP_FOUNDATION,
   COUNCIL_GROUP_OFFERS,
   COUNCIL_STEP_GROUP_ORDER,
@@ -111,6 +112,7 @@ import {
   DOC_WIZARD_STEP_BLAGOROST,
   DOC_WIZARD_STEP_GENERATOR,
   DOC_WIZARD_STEP_ORDER,
+  GENERATOR_PROGRAM_REGISTRY_ID,
   getCouncilStepIdsForGroup,
   isCouncilGroupStep,
   isDocWizardStep,
@@ -311,7 +313,7 @@ function onStepperChange(key: string) {
 
 async function goNext() {
   if (activeWizardStep.value === DOC_WIZARD_STEP_GENERATOR) {
-    const validationError = validateSection(994);
+    const validationError = validateSection(GENERATOR_PROGRAM_REGISTRY_ID);
     if (validationError) {
       $q.notify({ type: 'warning', message: validationError });
       return;
@@ -319,7 +321,7 @@ async function goNext() {
 
     advancing.value = true;
     try {
-      await ensurePreview(994);
+      await ensurePreview(GENERATOR_PROGRAM_REGISTRY_ID);
       setWizardStepKey(DOC_WIZARD_STEP_BLAGOROST);
     } finally {
       advancing.value = false;
@@ -328,7 +330,7 @@ async function goNext() {
   }
 
   if (activeWizardStep.value === DOC_WIZARD_STEP_BLAGOROST) {
-    const validationError = validateSection(998);
+    const validationError = validateSection(BLAGOROST_PROGRAM_REGISTRY_ID);
     if (validationError) {
       $q.notify({ type: 'warning', message: validationError });
       return;

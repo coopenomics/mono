@@ -15,6 +15,7 @@ q-page.edu-onboarding(role="region" aria-label="Подключение ЦПП О
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
 import { Queries, Zeus } from '@coopenomics/sdk';
+import { Cooperative } from 'cooptypes';
 import { client } from 'src/shared/api/client';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { useSystemStore } from 'src/entities/System/model';
@@ -42,7 +43,7 @@ interface StepMeta {
 const STEP_META: StepMeta[] = [
   {
     id: 'education_provision',
-    registryId: 3000,
+    registryId: Cooperative.Registry.EducationProgramTemplate.registry_id,
     title: 'Положение о ЦПП «Образование»',
     description: 'Утверждение Положения о целевой потребительской программе «Образование»',
     question: 'Об утверждении Положения о ЦПП «Образование»',
@@ -50,7 +51,7 @@ const STEP_META: StepMeta[] = [
   },
   {
     id: 'education_parent_offer_template',
-    registryId: 3002,
+    registryId: Cooperative.Registry.EducationParentOffer.registry_id,
     title: 'Шаблон оферты родителя-слушателя',
     description: 'Утверждение шаблона оферты по присоединению родителей-слушателей к ЦПП «Образование»',
     question: 'Об утверждении шаблона оферты родителя-слушателя по ЦПП «Образование»',
@@ -58,7 +59,7 @@ const STEP_META: StepMeta[] = [
   },
   {
     id: 'education_teacher_offer_template',
-    registryId: 3004,
+    registryId: Cooperative.Registry.EducationTeacherOffer.registry_id,
     title: 'Шаблон оферты преподавателя',
     description: 'Утверждение шаблона оферты по присоединению преподавателей к ЦПП «Образование»',
     question: 'Об утверждении шаблона оферты преподавателя по ЦПП «Образование»',
@@ -66,7 +67,7 @@ const STEP_META: StepMeta[] = [
   },
   {
     id: 'education_contract_template',
-    registryId: 3006,
+    registryId: Cooperative.Registry.EducationParticipationContract.registry_id,
     title: 'Шаблон договора участия в хозяйственной деятельности',
     description: 'Утверждение шаблона договора участия преподавателей в хозяйственной деятельности кооператива',
     question: 'Об утверждении шаблона договора участия в хозяйственной деятельности (образование)',

@@ -1,4 +1,5 @@
 import { computed, ref, watch } from 'vue';
+import { Cooperative } from 'cooptypes';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { useSystemStore } from 'src/entities/System/model';
 import { useDesktopStore } from 'src/entities/Desktop/model';
@@ -17,8 +18,8 @@ import {
  * L1-онбординг ЦПП «Стол заказов» на платформенном механизме онбординга.
  *
  * Два документа утверждаются Советом по очереди (free-decision):
- *  1. Положение ЦПП «Стол заказов»   — cooptypes 1100.MarketplaceProgramTemplate;
- *  2. Шаблон публичной оферты ЦПП     — бланк cooptypes 1102.MarketplaceOfferTemplate.
+ *  1. Положение ЦПП «Стол заказов»   — cooptypes MarketplaceProgramTemplate;
+ *  2. Шаблон публичной оферты ЦПП     — бланк cooptypes MarketplaceOffer.
  *
  * Статус каждого шага приходит с бэкенда (`done`/`hash`) и обновляется по
  * РЕАЛЬНОМУ ончейн-решению совета. Когда оба шага done — расширение
@@ -29,8 +30,8 @@ import {
 // Шаг → рабочий документ, который совет утверждает в бланке. Двойник оферты
 // 1101 выведен: совет утверждает саму оферту 1102 (фабрика утверждений).
 const stepToRegistryId: Record<string, number> = {
-  marketplace_provision: 1100,
-  marketplace_offer_template: 1102,
+  marketplace_provision: Cooperative.Registry.MarketplaceProgramTemplate.registry_id,
+  marketplace_offer_template: Cooperative.Registry.MarketplaceOffer.registry_id,
 };
 
 interface StepMeta {
