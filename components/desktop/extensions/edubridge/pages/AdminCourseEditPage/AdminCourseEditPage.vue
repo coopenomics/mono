@@ -112,14 +112,15 @@ function onSaved(saved: ICourse): void {
 }
 
 // Черновик нового курса: ушли со страницы или перезагрузили — введённое на
-// месте, вместе с шагом. Обложка не сохраняется: localStorage хранит только
-// текст. Стирается после добавления курса.
+// месте, вместе с шагом и обложкой (если она влезает в хранилище браузера).
+// Стирается после добавления курса.
 const { clearDraft } = isEdit.value
   ? { clearDraft: () => undefined }
   : useFormDraft(
       'edubridge:create-course-draft',
       {
         form: state.form,
+        cover: state.draftCover,
         lessonsPerMonth: state.lessonsPerMonth,
         lessonsTotal: state.lessonsTotal,
         lessonMinutes: state.lessonMinutes,

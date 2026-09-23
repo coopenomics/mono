@@ -52,22 +52,43 @@ function emptyForm(): CourseFormFields {
   });
 }
 
-/** Обложка: новый файл (превью — object URL), снятие, либо без изменений. */
-function useCover(course: CourseSource) {
-  const imageFile = ref<File | null>(null);
-  const imageRemoved = ref(false);
-  const objectUrl = ref<string | null>(null);
-  const fileInput = ref<HTMLInputElement | null>(null);
-  const previewUrl = computed(() => objectUrl.value ?? (imageRemoved.value ? null : (course()?.image_url ?? null)));
+/** Выбранная обложка в виде данных — так её можно показать, отправить и сохранить в черновике. */
+interface PickedImage {
+  base64: string;
+  mime_type: string;
+}
 
-  function releaseObjectUrl(): void {
-    if (objectUrl.value) URL.revokeObjectURL(objectUrl.value);
-    objectUrl.value = null;
-  }
+/**
+ * Бюджет обложки в черновике (длина base64). В localStorage около 5 МБ на
+ * сайт; обложка крупнее в черновик не идёт, чтобы не потерять из-за неё поля.
+ */
+const MAX_DRAFT_COVER_CHARS = 1_500_000;
+
+/**
+ * Обложка: новый файл, снятие, либо без изменений. Файл сразу читается в
+ * данные: превью строится из них, и они же переживают уход со страницы в
+ * черновике — объект File после перезагрузки не восстановить.
+ */
+function useCover(course: CourseSource) {
+  const picked = ref<PickedImage | null>(null);
+  const imageRemoved = ref(false);
+  const fileInput = ref<HTMLInputElement | null>(null);
+  const previewUrl = computed(() => {
+    if (picked.value) return `data:${picked.value.mime_type};base64,${picked.value.base64}`;
+    return imageRemoved.value ? null : (course()?.image_url ?? null);
+  });
+  // Для черновика: крупная обложка не сохраняется, остальное — как есть.
+  const draftCover = computed<PickedImage | null>({
+    get: () => (picked.value && picked.value.base64.length <= MAX_DRAFT_COVER_CHARS ? picked.value : null),
+    set: (v) => {
+      if (v?.base64 && v.mime_type) picked.value = v;
+    },
+  });
+
   function pickImage(): void {
     fileInput.value?.click();
   }
-  function onFilePicked(event: Event): void {
+  async function onFilePicked(event: Event): Promise<void> {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0] ?? null;
     input.value = '';
@@ -76,29 +97,28 @@ function useCover(course: CourseSource) {
       FailAlert(new Error(`Обложка больше ${Math.round(COURSE_IMAGE_MAX_BYTES / (1024 * 1024))} МБ — выберите файл поменьше`));
       return;
     }
-    releaseObjectUrl();
-    imageFile.value = file;
-    imageRemoved.value = false;
-    objectUrl.value = URL.createObjectURL(file);
+    try {
+      picked.value = { base64: await fileToBase64(file), mime_type: file.type };
+      imageRemoved.value = false;
+    } catch (e) {
+      FailAlert(e);
+    }
   }
   function removeImage(): void {
-    releaseObjectUrl();
-    imageFile.value = null;
+    picked.value = null;
     imageRemoved.value = true;
   }
   function resetImage(): void {
-    releaseObjectUrl();
-    imageFile.value = null;
+    picked.value = null;
     imageRemoved.value = false;
   }
-  async function imagePayload(): Promise<ICreateCourseInput['image']> {
-    if (imageFile.value) return { base64: await fileToBase64(imageFile.value), mime_type: imageFile.value.type };
+  function imagePayload(): ICreateCourseInput['image'] {
+    if (picked.value) return { ...picked.value };
     if (imageRemoved.value) return null;
     return undefined;
   }
-  onBeforeUnmount(releaseObjectUrl);
 
-  return { previewUrl, fileInput, pickImage, onFilePicked, removeImage, resetImage, imagePayload };
+  return { previewUrl, fileInput, pickImage, onFilePicked, removeImage, resetImage, imagePayload, draftCover, imageRemoved };
 }
 
 /** Параметры занятий — числами в полях; ставка уходит asset-строкой «1000.0000 RUB». */
@@ -374,7 +394,7 @@ export function createCourseFormState(course: CourseSource) {
     try {
       const data: ICreateCourseInput = {
         ...form,
-        image: await cover.imagePayload(),
+        image: cover.imagePayload(),
         external_ref: access.isPlatform.value ? form.external_ref : '',
         guarantee_days: Number(economy.guaranteeDays.value || 0),
         ...economy.economyParams.value,
