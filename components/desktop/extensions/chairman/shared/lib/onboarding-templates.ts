@@ -15,6 +15,7 @@ const fixPrivacyPolicyText = (html: string): string => {
   // Fix point 1.2: replace the entire website reference paragraph
   html = html.replace(
     /посетителях веб-сайта\s+"([^"]+)"\s+https?:\/\/[^.]+\.[^.]+\.[^.]+\./g,
+    // i18n-ignore: правка текста юридического документа (политика обработки данных)
     'посетителях сайта ПК "$1".'
   );
   // Fix point 8.3: replace placeholder with https://website/privacy

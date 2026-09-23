@@ -138,8 +138,8 @@ BaseDialog(
   //- Шаг 1: причина списания — одна на всю подборку.
   .submit-council__reason(v-else-if="!previewDoc")
     .t-muted
-      | Выбрано позиций: {{ items.length }} на сумму {{ formatAsset2Digits(String(totalAmount)) }}.
-      | Причина попадёт в Заявление и в протокол совета.
+      | {{ $t('marketplace.submitToCouncil.selectedSummary', { count: items.length, amount: formatAsset2Digits(String(totalAmount)) }) }}
+      | {{ $t('marketplace.submitToCouncil.reasonHint') }}
     BaseInput(
       v-model="reason",
       :label="$t('marketplace.submitToCouncilDialog.reasonLabel')",

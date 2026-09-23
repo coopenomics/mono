@@ -300,8 +300,8 @@ q-page.mp-role-offerer.offer-wizard(role='region', :aria-label='$t("marketplace.
         //- ───────── Шаг 5: Изображения ─────────
         .offer-wizard__step(v-else-if='step.key === "images"')
           p.offer-wizard__hint
-            | До {{ MAX_IMAGES }} изображений, каждое до {{ MAX_MB }} МБ (JPEG, PNG или WEBP).
-            | Нажмите на снимок, чтобы сделать его обложкой карточки; крестик — удалить.
+            | {{ $t('marketplace.createOffer.imagesLimitHint', { maxImages: MAX_IMAGES, maxMb: MAX_MB }) }}
+            | {{ $t('marketplace.createOffer.coverHint') }}
 
           .offer-wizard__grid(v-if='gallery.length')
             .offer-wizard__thumb(
@@ -626,10 +626,7 @@ function onWithdraw(): void {
   if (!editId.value) return;
   Dialog.create({
     title: t('marketplace.createOffer.unpublishConfirmTitle'),
-    message:
-      'Предложение перестанет показываться в каталоге и не будет принимать новые ' +
-      'заказы. Вернуть его на публикацию можно в любой момент кнопкой ' +
-      '«Опубликовать снова» — без повторной модерации, если не менять содержимое.',
+    message: t('marketplace.createOffer.unpublishConfirmMessage'),
     cancel: { label: t('common.action.cancel'), flat: true, noCaps: true },
     ok: { label: t('marketplace.createOffer.unpublishButton'), color: 'negative', unelevated: true, noCaps: true },
     persistent: true,

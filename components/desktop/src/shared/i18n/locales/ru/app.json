@@ -11,25 +11,11 @@
       "pageMarket": "Маркет",
       "siteDescription": "Токенизация бизнеса"
     },
-    "customServiceWorker": {
-      "body": "У вас есть новое уведомление",
-      "title": "Новое уведомление"
-    },
     "error": {
-      "allFetchAttemptsFailed": "Все попытки fetch неудачны",
       "authErrorRelogin": "Ошибка авторизации. Войдите повторно.",
-      "fetchApiUnavailable": "Fetch API недоступен в этом окружении",
       "privateKeyNotSet": "Приватный ключ не установлен",
       "signatureNotVerified": "Подпись не верифицирована",
-      "signingKeyNotFound": "ключ не найден",
-      "tabActiveTimeout": "Таймаут ожидания активности вкладки"
-    },
-    "generateConfig": {
-      "defaultAppTitle": "Цифровой Кооператив"
-    },
-    "networkUtils": {
-      "networkIssueBody": "Некоторые запросы были заблокированы. Попробуйте обновить страницу.",
-      "networkIssueTitle": "Проблема с сетью"
+      "signingKeyNotFound": "ключ не найден"
     },
     "registerServiceWorker": {
       "offlineBody": "Приложение работает в автономном режиме",

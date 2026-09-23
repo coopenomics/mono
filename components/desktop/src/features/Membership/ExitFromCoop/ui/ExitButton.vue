@@ -73,6 +73,7 @@ div
 
 <script setup lang="ts">
 import { ref, watch } from 'vue';
+import { hasErrorCode } from 'src/shared/api/errors';
 import { useRoute, useRouter } from 'vue-router';
 import { BaseButton } from 'src/shared/ui/base/BaseButton';
 import { BaseDialog } from 'src/shared/ui/base/BaseDialog';
@@ -185,7 +186,7 @@ const handlerSubmit = async (): Promise<void> => {
   } catch (e: any) {
     // Авторитетный гейт реквизитов — на бэкенде. Если он отклонил подачу из-за
     // отсутствия реквизитов, переключаем диалог на экран-баннер с кнопкой.
-    if (JSON.stringify(e ?? '').includes('установите реквизиты')) {
+    if (hasErrorCode(e, 'MEMBERSHIP_EXIT_PAYMENT_METHOD_REQUIRED')) {
       requisitesOk.value = false;
     } else {
       FailAlert(e);

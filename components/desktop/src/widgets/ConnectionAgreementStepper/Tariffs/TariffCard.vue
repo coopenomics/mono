@@ -72,7 +72,7 @@ div.tariff-card-container
     .tariff-footer
       .tariff-price
         .price-display {{ tariff.price }}
-        .price-period(v-if="tariff.price !== 'Бесплатно'") {{ $t('connectionAgreementStepper.tariffCard.perMonthSuffix') }}
+        .price-period(v-if="tariff.price !== $t('connectionAgreementStepper.tariffCard.free')") {{ $t('connectionAgreementStepper.tariffCard.perMonthSuffix') }}
       .select-hint.text-caption.text-grey-6
         | {{ $t('connectionAgreementStepper.tariffCard.selectHint') }}
 </template>

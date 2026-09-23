@@ -147,9 +147,12 @@ const period = computed(() => {
   const oss = getByLocal('ОСС')
   if (!oss) return { code: '', year: '' }
   // Внутри ОСС есть <Период>, внутри него <Код> и <Год>.
+  // i18n-ignore: имя элемента XML официальной формы ЕФС-1
   const per = Array.from(oss.children).find((c) => c.localName === 'Период')
   if (!per) return { code: '', year: '' }
+  // i18n-ignore: имя элемента XML официальной формы ЕФС-1
   const codeEl = Array.from(per.children).find((c) => c.localName === 'Код')
+  // i18n-ignore: имя элемента XML официальной формы ЕФС-1
   const yearEl = Array.from(per.children).find((c) => c.localName === 'Год')
   return {
     code: codeEl?.textContent?.trim() ?? '',
@@ -201,6 +204,7 @@ function vsegoSNachala(groupLocal: string): number {
   if (!d) return 0
   const group = Array.from(d.getElementsByTagNameNS('*', groupLocal))[0]
   if (!group) return 0
+  // i18n-ignore: имя элемента XML официальной формы ЕФС-1
   const el = Array.from(group.children).find((x) => x.localName === 'ВсегоСНачала')
   return Number(el?.textContent?.trim() ?? '0')
 }

@@ -135,6 +135,7 @@ function factCeiling(r: EnrichedRow): number | undefined {
 // шаг 0.001 (граммы/миллилитры), чтобы браузер не блокировал дробное значение.
 function stepFor(r: EnrichedRow): string {
   if (r.packaged) return '1';
+  // i18n-ignore: единица измерения из данных предложения, не надпись
   return r.unit === 'шт' || r.unit === 'шт.' ? '1' : '0.001';
 }
 

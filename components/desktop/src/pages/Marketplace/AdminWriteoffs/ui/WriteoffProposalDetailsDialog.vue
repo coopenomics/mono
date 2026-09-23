@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import { computed } from 'vue';
-import { uiLocale, t } from 'src/shared/i18n';
+import { uiLocale, t, t as i18nT } from 'src/shared/i18n';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { marketplaceOrderSaleUnitLabel } from 'src/shared/lib/consts/marketplace-units';
 import { BaseDialog, BaseBadge, BaseCard, BaseTable } from 'src/shared/ui/base';
@@ -36,7 +36,7 @@ function humanStatus(status: MarketplaceWriteoffProposalView['status']): string 
     case 'ON_AGENDA':
       return t('marketplace.writeoffDetailsDialog.status.onAgendaFull');
     case 'AUTHORIZED':
-      return 'Утверждено советом';
+      return i18nT('marketplace.writeoffProposalDetails.approvedStatus');
     case 'PENDING_CONFIRMATION':
       return t('marketplace.writeoff.status.pendingWarehouse');
     case 'EXECUTING':

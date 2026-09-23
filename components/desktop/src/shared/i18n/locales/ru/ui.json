@@ -78,7 +78,8 @@
       "navigateHint": "для навигации",
       "searchAriaLabel": "Поиск рабочих столов и страниц",
       "searchPlaceholder": "Поиск рабочих столов и страниц…",
-      "selectHint": "для выбора"
+      "selectHint": "для выбора",
+      "workspaceKeyword": "стол"
     },
     "complexDocument": {
       "decisionLabel": "Решение",
@@ -611,6 +612,7 @@
     "userSearchSelector": {
       "emptyText": "Ничего не найдено",
       "entrepreneurInnText": "ИП • ИНН: {inn}",
+      "notAvailable": "н/д",
       "organizationInnText": "Организация • ИНН: {inn}",
       "placeholderText": "Выберите пользователя",
       "startTypingText": "Начните вводить для поиска"

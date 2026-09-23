@@ -62,7 +62,7 @@ q-select(
 import { ref, watch, computed, onMounted } from 'vue';
 import { useUserSearch } from './composables/useUserSearch';
 import type { UserSearchResult } from './model/types';
-import { t } from 'src/shared/i18n';
+import { t, t as i18nT } from 'src/shared/i18n';
 
 // Пропсы компонента
 const props = defineProps<{
@@ -231,11 +231,11 @@ const getAdditionalInfo = (
     switch (user.type) {
       case 'entrepreneur': {
         const data = user.data as any;
-        return t('ui.userSearchSelector.entrepreneurInnText', { inn: data.details?.inn || 'н/д' });
+        return t('ui.userSearchSelector.entrepreneurInnText', { inn: data.details?.inn || i18nT('ui.userSearchSelector.notAvailable') });
       }
       case 'organization': {
         const data = user.data as any;
-        return t('ui.userSearchSelector.organizationInnText', { inn: data.details?.inn || 'н/д' });
+        return t('ui.userSearchSelector.organizationInnText', { inn: data.details?.inn || i18nT('ui.userSearchSelector.notAvailable') });
       }
       default:
         return '';

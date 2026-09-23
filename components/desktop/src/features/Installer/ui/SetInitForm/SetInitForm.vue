@@ -77,7 +77,7 @@ import { useInstallCooperative } from '../../model';
 import { CreateOrganizationDataForm, type ICreateOrganizationData } from 'src/shared/ui/UserDataForm/CreateOrganizationDataForm';
 import Loader from 'src/shared/ui/Loader/Loader.vue';
 import { FailAlert } from 'src/shared/api';
-import { extractGraphQLErrorMessages } from 'src/shared/api/errors';
+import { hasErrorCode } from 'src/shared/api/errors';
 import { useSystemStore } from 'src/entities/System/model';
 import { notEmpty } from 'src/shared/lib/utils';
 import { stripLegacyBankKpp } from 'src/shared/lib/utils/stripLegacyBankKpp';
@@ -192,9 +192,8 @@ const loadData = async () => {
       installStore.organization_data = stripLegacyBankKpp(organizationData);
     }
   } catch (error: any) {
-    const errorMessage = extractGraphQLErrorMessages(error);
     // Если код истек или невалиден - возвращаемся на шаг ввода ключа
-    if (errorMessage.includes('истекший') || errorMessage.includes('Неверный')) {
+    if (hasErrorCode(error, 'SYSTEM_INSTALL_CODE_INVALID', 'SYSTEM_INSTALL_CODE_INVALID_RESTART')) {
       FailAlert(t('installer.setInitForm.installCodeExpired'));
       installStore.current_step = 'key';
       installStore.install_code = undefined;

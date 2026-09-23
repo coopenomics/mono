@@ -1,3 +1,4 @@
+// i18n-ignore-file: названия колонок CSV-файла импорта пайщиков — формат входных данных, с ними сверяются заголовки файла
 import { Zeus } from '@coopenomics/sdk';
 import moment from 'src/shared/lib/utils/dates/moment';
 import { ref } from 'vue';

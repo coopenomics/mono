@@ -61,10 +61,10 @@ export function useOfferModeration(opts: UseOfferModerationOptions = {}) {
           : t('marketplace.offerModeration.noShelfLifeHint');
     Dialog.create({
       title: t('marketplace.offerModeration.approveConfirmTitle'),
-      message:
-        `«${offer.product_name}» появится в публичном каталоге кооператива. ` +
-        'Укажите гарантийный срок возврата (дней): в течение него пайщик сможет ' +
-        `вернуть имущество. 0 — возврат недоступен.${shelfLifeText}`,
+      message: t('marketplace.offerModeration.approveConfirmMessage', {
+        productName: offer.product_name,
+        shelfLife: shelfLifeText,
+      }),
       prompt: {
         model: '0',
         type: 'number',

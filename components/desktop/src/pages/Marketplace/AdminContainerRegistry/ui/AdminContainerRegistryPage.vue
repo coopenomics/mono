@@ -372,11 +372,7 @@ q-page.boxreg(role='region', :aria-label='$t("marketplace.containerRegistry.page
   //- Канон: одна подсказка на страницу, над полосой разделов. Оба раздела —
   //- про одну и ту же тару, поэтому и текст один.
   PageHint(storage-key='mp:admin-containers:banner-dismissed')
-    | Вся тара кооператива: где стоит бокс, какого он типа и чем занят. Объём
-    | суммируется по текущей выборке — по нему считается, сколько места займёт
-    | перевозка боксов между участками. Сами боксы заводит участок на своём
-    | столе, а типы тары — общие: габариты задаются здесь один раз на весь
-    | кооператив, и участок при заведении боксов выбирает готовый тип.
+    | {{ $t('marketplace.adminContainerRegistry.intro') }}
 
   PageTabs(:tabs='tabs', :active-key='tab', @select='onSelectTab')
 
@@ -476,9 +472,7 @@ q-page.boxreg(role='region', :aria-label='$t("marketplace.containerRegistry.page
   BaseDialog(v-model='typeOpen', :title='$t("marketplace.containerRegistry.createTypeDialogTitle")', size='sm')
     .boxreg__form
       .boxreg__note
-        | Габариты задаются в сантиметрах — так тару меряют на месте. По ним
-        | считается объём в кубометрах: он показывает, какая машина увезёт
-        | партию боксов между участками.
+        | {{ $t('marketplace.adminContainerRegistry.dimensionsHint') }}
       BaseInput(v-model='typeForm.name', :label='$t("marketplace.containerRegistry.formNameLabel")', :placeholder='$t("marketplace.containerRegistry.namePlaceholder")')
       .boxreg__dims
         BaseInput(v-model.number='typeForm.length_cm', type='number', :label='$t("marketplace.containerRegistry.lengthLabel")')

@@ -180,7 +180,7 @@ const toHint = computed(() => {
   if (!form.fromWallet) return ''
   const n = toOptions.value.length
   if (n === 0) return t('reports.walletTransferDialog.noWalletsHint')
-  return t('reports.walletTransferDialog.availableWalletsHint', { count: n, word: n === 1 ? 'кошелёк' : n < 5 ? 'кошелька' : 'кошельков' })
+  return t('reports.walletTransferDialog.availableWalletsHint', { count: n, word: t('reports.walletTransferDialog.walletWord', n) })
 })
 
 function onFromChange() {

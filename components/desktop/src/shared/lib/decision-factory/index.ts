@@ -1,5 +1,5 @@
 import type { DecisionHandlersRegistry, IDecisionHandler, IGenerateDecisionData } from '../types/decision-factory'
-import { t } from 'src/shared/i18n';
+import { t, t as i18nT } from 'src/shared/i18n';
 
 /**
  * Фабрика обработчиков решений
@@ -53,7 +53,7 @@ class DecisionFactory {
       return await handler.generateHandler(data)
     } catch (error) {
       console.error(`Ошибка при генерации документа решения типа ${decisionType}:`, error)
-      throw new Error(t('decisionFactory.error.generateError', { message: error instanceof Error ? error.message : 'Неизвестная ошибка' }))
+      throw new Error(t('decisionFactory.error.generateError', { message: error instanceof Error ? error.message : i18nT('api.error.unknown') }))
     }
   }
 

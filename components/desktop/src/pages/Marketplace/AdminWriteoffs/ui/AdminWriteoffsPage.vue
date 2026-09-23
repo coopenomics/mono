@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue';
-import { uiLocale, t } from 'src/shared/i18n';
+import { uiLocale, t, t as i18nT } from 'src/shared/i18n';
 import { debounce } from 'quasar';
 import { Zeus } from '@coopenomics/sdk';
 import { FailAlert } from 'src/shared/api';
@@ -192,9 +192,9 @@ function humanStatus(status: MarketplaceWriteoffProposalView['status']): string 
     case 'DRAFT':
       return t('marketplace.writeoff.status.draft');
     case 'ON_AGENDA':
-      return 'На повестке';
+      return i18nT('marketplace.adminWriteoffs.stageOnAgenda');
     case 'AUTHORIZED':
-      return 'Утверждено советом';
+      return i18nT('marketplace.adminWriteoffs.stageApproved');
     case 'PENDING_CONFIRMATION':
       return t('marketplace.writeoff.status.pendingWarehouse');
     case 'EXECUTING':

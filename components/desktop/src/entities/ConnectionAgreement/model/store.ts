@@ -159,6 +159,7 @@ export const useConnectionAgreementStore = defineStore(namespace, () => {
       currentInstanceError.value = extractGraphQLErrorMessages(error)
 
       // Не устанавливаем Bad Gateway для ошибки "Инстанс не найден"
+      // i18n-ignore: сверка с текстом ответа внешнего сервиса провайдера, кода у него нет
       if (!currentInstanceError.value?.includes('Инстанс не найден')) {
         isBadGateway.value = true
       }

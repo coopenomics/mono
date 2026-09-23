@@ -15,14 +15,7 @@ OnboardingCompletionCelebration(
   .onboarding__head
     h2.onboarding__title {{ $t('chairman.onboardingStepsCard.title') }}
     p.onboarding__lead
-      | Чтобы кооператив начал работать в цифровом контуре платформы, совет
-      | принимает несколько решений в электронной форме — по одному на каждый
-      | шаг ниже. Сначала утверждаются положения о цифровых сервисах и формы
-      | документов кооператива, затем оформляется вступление в Потребительский
-      | кооператив «Восход». После этого вы импортируете пайщиков и объявляете
-      | общее собрание. Для каждого шага платформа сформирует проект повестки и
-      | зафиксирует принятое решение — пройдите все шаги до окончания срока
-      | адаптации.
+      | {{ $t('chairman.onboardingStepsCard.intro') }}
     .onboarding__deadline
       q-icon(name="fa-regular fa-clock" size="15px")
       span {{ countdownLabel ? $t(`chairman.onboardingStepsCard.deadlineLabel`, { countdown: countdownLabel }) : $t('chairman.onboardingStepsCard.deadlinePendingLabel') }}

@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import { computed, ref, watch } from 'vue';
-import { uiLocale, t } from 'src/shared/i18n';
+import { uiLocale, t, t as i18nT } from 'src/shared/i18n';
 import { useRoute, useRouter } from 'vue-router';
 import { FailAlert, NotifyAlert, SuccessAlert } from 'src/shared/api';
 import { useSystemStore } from 'src/entities/System/model';
@@ -184,7 +184,7 @@ function onQuantityInput(value: string | number | null): void {
   const max = maxQuantity.value;
   if (max !== null && next > max) {
     next = max;
-    NotifyAlert(t('marketplace.addToCartDialog.maxAvailableWarning', { max, unit: isPackaged.value ? 'упак.' : unitLabel.value }));
+    NotifyAlert(t('marketplace.addToCartDialog.maxAvailableWarning', { max, unit: isPackaged.value ? i18nT('marketplace.addToCart.packUnit') : unitLabel.value }));
   }
   // Если клампинг возвращает то же значение, что уже лежит в quantity (типовой
   // случай — пользователь допечатал цифру сверх ранее заклампленного числа),
@@ -291,7 +291,7 @@ BaseDialog(
           :min="0",
           :max="maxQuantity ?? undefined",
           :label="isPackaged ? $t('marketplace.addToCartDialog.packageCountLabel') : $t(`marketplace.addToCartDialog.quantityLabel`, { unit: unitLabel })",
-          :hint="maxQuantity !== null ? $t(`marketplace.addToCartDialog.availableHint`, { max: maxQuantity, unit: isPackaged ? 'упак.' : unitLabel }) : $t('marketplace.addToCartDialog.unlimitedStockHint')",
+          :hint="maxQuantity !== null ? $t(`marketplace.addToCartDialog.availableHint`, { max: maxQuantity, unit: isPackaged ? $t('marketplace.addToCart.packUnit') : unitLabel }) : $t('marketplace.addToCartDialog.unlimitedStockHint')",
           @update:model-value="onQuantityInput"
         )
 

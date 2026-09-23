@@ -171,10 +171,7 @@ onMounted(load);
 <template lang="pug">
 q-page.categories(role='region', :aria-label='$t("marketplace.categoryWhitelist.pageAriaLabel")')
   PageHint(storage-key='mp:category-whitelist:banner-dismissed')
-    | Категории, в которых пайщики могут публиковать предложения. По умолчанию
-    | доступны все. Выключите ненужные, чтобы ограничить список, — или добавьте
-    | собственную категорию кооператива. Базовые категории нельзя удалить, только
-    | выключить.
+    | {{ $t('marketplace.chairmanCategoryWhitelist.intro') }}
 
   //- Действие страницы — в шапке (канон): добавить свою категорию.
   Teleport(to='#header-actions-host', defer)

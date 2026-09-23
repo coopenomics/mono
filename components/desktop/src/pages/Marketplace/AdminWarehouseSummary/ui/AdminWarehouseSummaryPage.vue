@@ -231,9 +231,7 @@ function onRowClick(row: WarehouseRow): void {
 <template lang="pug">
 q-page.warehouse-summary(role='region', :aria-label='$t("marketplace.warehouseSummary.pageAriaLabel")')
   PageHint(storage-key='mp:admin-warehouse-summary:banner-dismissed')
-    | Склад кооператива: что принято, выдано и списано по каждому пункту выдачи.
-    | Только для чтения — операции выполняются на столах ПВЗ. Нажмите на
-    | наименование, чтобы открыть предложение, по которому имущество пришло.
+    | {{ $t('marketplace.adminWarehouseSummary.intro') }}
 
   .warehouse-summary__stats
     .warehouse-summary__stat(v-for='s in stats', :key='s.key')

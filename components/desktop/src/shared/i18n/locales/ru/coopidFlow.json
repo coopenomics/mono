@@ -1,5 +1,8 @@
 {
   "coopidFlow": {
+    "coopidFlowPage": {
+      "serviceFallback": "Сервис"
+    },
     "flowAutosubmit": {
       "lead": "Продолжаем…"
     },

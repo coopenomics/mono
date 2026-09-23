@@ -120,7 +120,7 @@ const rules = computed(() => {
       if (!s) return true
       return (
         expected.includes(s.length) ||
-        t('reports.requisiteField.lengthError', { digits: expected.join(' или ') })
+        t('reports.requisiteField.lengthError', { digits: expected.join(` ${t('reports.requisiteField.or')} `) })
       )
     })
   }

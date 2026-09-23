@@ -271,6 +271,7 @@ const PRINT_CSS = `
 function buildPrintableHtml(): string {
   const sheet = sheetRef.value?.outerHTML ?? ''
   return '<!doctype html><html lang="ru"><head><meta charset="utf-8">'
+    // i18n-ignore: служебная разметка окна печати ТТН, заголовок — номер документа
     + `<title>ТТН № ${props.data.number}</title><style>${PRINT_CSS}</style></head>`
     + `<body>${sheet}</body></html>`
 }

@@ -34,7 +34,7 @@ import {
   OPEN_RETURN_CLAIM_STATUSES,
   type MarketplaceReturnClaimView,
 } from '../../OrdererReturnClaims';
-import { t } from 'src/shared/i18n';
+import { t, t as i18nT } from 'src/shared/i18n';
 
 /**
  * Детальная страница заказа заказчика. Открывается кликом по карточке на
@@ -105,7 +105,7 @@ const cancelDialogOpen = ref(false);
 const cancelMessage = computed(() => {
   const o = order.value;
   if (!o) return '';
-  return t('marketplace.ordererOrderDetailPage.cancelConfirmText', { orderId: o.id.slice(0, 8), units: orderSaleUnit.value.units, unitLabel: orderSaleUnit.value.unitLabel || 'ед.', amount: formatPrice(o.total_cost_with_fee) });
+  return t('marketplace.ordererOrderDetailPage.cancelConfirmText', { orderId: o.id.slice(0, 8), units: orderSaleUnit.value.units, unitLabel: orderSaleUnit.value.unitLabel || i18nT('marketplace.ordererOrderDetail.unitFallback'), amount: formatPrice(o.total_cost_with_fee) });
 });
 
 // Заявление подаётся только по выданному заказу (RECEIVED) в пределах окна

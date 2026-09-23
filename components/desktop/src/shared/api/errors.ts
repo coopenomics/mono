@@ -54,6 +54,21 @@ export function extractGraphQLErrorMessages(error: unknown): string {
 }
 
 /**
+ * Коды отказа из ответа сервера (`extensions.code` каждой ошибки GraphQL).
+ * Отказ различается по коду, а не по тексту: текст переводится на язык запроса.
+ */
+export function extractErrorCodes(error: unknown): string[] {
+  if (!error || typeof error !== 'object') return [];
+  const list = Array.isArray(error) ? error : Array.isArray((error as any).errors) ? (error as any).errors : [error];
+  return list.map((e: any) => e?.extensions?.code).filter((c: unknown): c is string => typeof c === 'string');
+}
+
+/** Есть ли в ответе сервера отказ с одним из кодов. */
+export function hasErrorCode(error: unknown, ...codes: string[]): boolean {
+  return extractErrorCodes(error).some((c) => codes.includes(c));
+}
+
+/**
  * Проверяет, содержит ли ошибка GraphQL указанные параметры
  * @param error - ошибка GraphQL (может быть массивом или объектом)
  * @param options - параметры для проверки

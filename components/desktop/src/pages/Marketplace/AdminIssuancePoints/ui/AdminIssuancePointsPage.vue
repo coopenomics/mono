@@ -247,10 +247,7 @@ onMounted(() => {
 <template lang="pug">
 q-page.admin-pvz
   PageHint(storage-key='mp:admin-pvz:banner-dismissed')
-    | Пункты выдачи заказов — это кооперативные участки, подключённые к Столу
-    | заказов. Участки создаются на столе совета; здесь председатель делает их
-    | пунктами выдачи, указывая фактический адрес, контакты и режим работы.
-    | Адрес геокодируется автоматически для карты.
+    | {{ $t('marketplace.adminIssuancePoints.intro') }}
 
   .admin-pvz__toolbar
     .admin-pvz__counter(v-if='!firstLoad && rows.length')

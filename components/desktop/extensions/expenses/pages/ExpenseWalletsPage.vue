@@ -4,8 +4,7 @@ q-page.expense-wallets-page
     .banner__icon
       q-icon(name='info', size='20px')
     .banner__body
-      | Кошельки-пулы, из которых кооператив ведёт расходы. Каждый пул подключает
-      | своё расширение: нажмите на карточку, чтобы открыть реестр расходов пула.
+      | {{ $t('expenses.expenseWalletsPage.intro') }}
 
   .row.q-col-gutter-md(v-if='entries.length')
     .col-12.col-md-6.col-lg-4(v-for='entry in walletRows', :key='entry.wallet')

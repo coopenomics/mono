@@ -99,7 +99,7 @@ import {
   FlowPrompt,
   FlowSessionEnd,
 } from 'src/features/CoopidFlow/ui';
-import { t } from 'src/shared/i18n';
+import { t, t as i18nT } from 'src/shared/i18n';
 
 const route = useRoute();
 const router = useRouter();
@@ -130,7 +130,7 @@ const title = computed(() => {
   const c = current.value;
   if (c?.component === FlowStage.Consent && (c.permissions?.length ?? 0) > 0) {
     const app = c.flow_info?.title?.replace(/^Redirecting to\s+/i, '').replace(/\s+запрашивает доступ$/i, '').trim();
-    return t('registrator.coopidFlowPage.consentRequestTitle', { appName: app || 'Сервис' });
+    return t('registrator.coopidFlowPage.consentRequestTitle', { appName: app || i18nT('coopidFlow.coopidFlowPage.serviceFallback') });
   }
   return c?.flow_info?.title ?? t('registrator.coopidFlowPage.defaultTitle');
 });

@@ -36,7 +36,8 @@
     "tariffCard": {
       "additionalCostsTitle": "Дополнительные расходы:",
       "perMonthSuffix": "в месяц",
-      "selectHint": "Нажмите для выбора"
+      "selectHint": "Нажмите для выбора",
+      "free": "Бесплатно"
     },
     "tariffSelector": {
       "costDaily": "5 AXON в день списывается со счёта кооператива",

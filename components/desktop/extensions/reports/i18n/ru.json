@@ -506,6 +506,7 @@
     "requisiteField": {
       "formatError": "Некорректный формат",
       "lengthError": "Допустимая длина: {digits} цифр",
+      "or": "или",
       "requiredError": "Обязательное поле"
     },
     "settingsPage": {
@@ -624,7 +625,8 @@
       "title": "Перевод между кошельками",
       "toWalletLabel": "В кошелёк",
       "toWalletRequiredError": "Выберите кошелёк-получатель",
-      "transferSuccess": "Перевод выполнен"
+      "transferSuccess": "Перевод выполнен",
+      "walletWord": "кошелёк | кошелька | кошельков"
     },
     "walletsPage": {
       "tab": {

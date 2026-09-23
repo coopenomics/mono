@@ -100,6 +100,7 @@ q-dialog(
 
 <script setup lang="ts">
 import { computed, nextTick, ref, watch } from 'vue';
+import { t } from 'src/shared/i18n';
 import { EmptyState } from 'src/shared/ui/base/EmptyState';
 import type {
   CommandPalettePage,
@@ -160,7 +161,7 @@ const flatSearchResults = computed<FlatEntry[]>(() => {
   if (!q) return [];
 
   const isSearchingWorkspaces =
-    q.includes('стол') ||
+    q.includes(t('ui.commandPalette.workspaceKeyword')) ||
     q.includes('workspace') ||
     props.workspaces.some(
       (ws) =>

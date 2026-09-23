@@ -103,12 +103,7 @@ onMounted(() => {
 <template lang="pug">
 q-page.admin-economy
   PageHint(storage-key='mp:admin-economy:banner-dismissed')
-    | Целевой членский взнос добавляется к стоимости каждого заказа Стола заказов и
-    | после исполнения заказа распределяется кооперативному участку выдачи.
-    | Целевой членский взнос идёт на обеспечение хозяйственной деятельности кооператива и
-    | един для всех участков и категорий — так исключаются
-    | спекуляции и переток заказов между участками. Изменение действует на
-    | заказы, созданные после установки.
+    | {{ $t('marketplace.marketEconomy.intro') }}
 
   .admin-economy__card
     .admin-economy__stat
@@ -136,9 +131,7 @@ q-page.admin-economy
 
   BaseDialog(v-model='dialogOpen', :title='$t("marketplace.marketEconomy.feeLabel")', size='sm')
     p.admin-economy__dialog-hint
-      | Целевой членский взнос идёт на обеспечение хозяйственной деятельности кооператива.
-      | Новое значение применится к заказам, созданным после сохранения. Уже
-      | оформленные заказы не пересчитываются.
+      | {{ $t('marketplace.marketEconomy.dialogHint') }}
     AmountInput(
       v-model='draftPercent',
       :label='$t("marketplace.marketEconomy.feeLabel")',

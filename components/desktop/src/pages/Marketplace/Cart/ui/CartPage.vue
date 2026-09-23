@@ -379,8 +379,7 @@ q-page.mp-cart.mp-role-orderer(role="region", :aria-label="$t('marketplace.cart.
     .mp-cart__insufficient
       p.mp-cart__insufficient-text {{ insufficientMessage }}
       p.mp-cart__insufficient-hint
-        | Внесите паевой взнос — деньги попадут в главный кошелёк, и заказ можно
-        | будет оформить тем же составом. Корзина сохранится.
+        | {{ $t('marketplace.cart.topUpHint') }}
     template(#footer)
       BaseButton(variant="ghost", @click="insufficientOpen = false") {{ $t('common.action.close') }}
       DepositButton
