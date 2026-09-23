@@ -16,11 +16,18 @@ title: Кошелёк пайщика — событийное обновлени
 # подписки SDK получил isActive() — операция мертва после ошибки или
 # завершения, чужое открытие сокета её не оживляет; каналы кошелька, узла и
 # Стола заказов считают себя живыми, только пока жива их операция.
+#
+# Правка 2026-09-23 (7DD-22), вторая: сама подписка кошелька не открывалась ни
+# разу с момента появления. Резолвер читал `user.username`, а graphql-ws кладёт в
+# контекст соединения только `sub` — каждое открытие отклонялось 403 «Подписка
+# доступна только пайщику», сигнал с дельты публиковался в пустой топик. Имя
+# пайщика теперь выводится из `sub`, как у подписки Стола заказов.
 
 sources:
   backend:
     - components/controller/src/application/wallet/services/wallet-events.service.ts
     - components/controller/src/application/wallet/dto/wallet-event.dto.ts
+    - components/controller/src/application/wallet/resolvers/wallet.resolver.ts
   ui:
     - components/desktop/src/entities/Wallet/model/walletEventsSubscription.ts
     - components/desktop/src/entities/System/model/nodeSyncSubscription.ts
@@ -85,7 +92,20 @@ cases:
       отказ по праву; топик выводится из токена соединения, клиент выбрать его
       не может
     decision_needed: false
-    status: missing
+    test: components/controller/tests/unit/wallet/wallet-events.resolver.test.ts
+    status: passing
+
+  - id: wallet.realtime.happy.02
+    level: backend
+    kind: happy
+    scenario: >
+      Подписку открывает ws-соединение: в его контексте только `sub` токена,
+      имени пайщика нет.
+    expect: >
+      имя пайщика выводится из `sub`, подписка открывается на его
+      персональный топик
+    test: components/controller/tests/unit/wallet/wallet-events.resolver.test.ts
+    status: passing
 
   - id: wallet.realtime.side.05
     level: ui
