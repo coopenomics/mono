@@ -45,6 +45,7 @@ import { useRouter } from 'vue-router';
 import { useDesktopStore } from 'src/entities/Desktop/model';
 import { useSystemStore } from 'src/entities/System/model';
 import logoSvg from 'src/assets/logo.svg?raw';
+import { t } from 'src/shared/i18n';
 
 // Шаблон двухкорневой (кнопка + Teleport для затемнения), поэтому
 // автонаследование атрибутов отключаем и вручную направляем class и
@@ -80,14 +81,14 @@ const coopBrand = computed<string>(() => {
   if (abbr && name) return `${abbr} «${name}»`;
   if (name) return name;
   if (abbr) return abbr;
-  return system.info.coopname || 'Кооператив';
+  return system.info.coopname || t('desktop.workspaceSwitcher.defaultCoopName');
 });
 
 const currentTitle = computed<string>(() => {
   const active = workspaces.value.find(
     (ws) => ws.workspaceName === activeWorkspaceName.value,
   );
-  return active?.title || 'Рабочий стол';
+  return active?.title || t('desktop.workspaceSwitcher.defaultDesktopTitle');
 });
 
 function onSelect(name: string): void {

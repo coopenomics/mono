@@ -1,5 +1,5 @@
 <template lang="pug">
-q-btn.full-width(color='primary', unelevated, no-caps, @click='openSettings') Настройки
+q-btn.full-width(color='primary', unelevated, no-caps, @click='openSettings') {{ $t('extension.settingsButton.label') }}
 </template>
 
 <script setup lang="ts">

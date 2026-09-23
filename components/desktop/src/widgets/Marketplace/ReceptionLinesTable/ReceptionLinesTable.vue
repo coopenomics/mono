@@ -30,19 +30,19 @@ const total = computed(() => props.rows.reduce((acc, r) => acc + lineSum(r), 0))
 <template lang="pug">
 .mp-reception-lines
   .mp-reception-lines__head
-    .mp-reception-lines__cell.mp-reception-lines__cell--title Позиция
-    .mp-reception-lines__cell.mp-reception-lines__cell--num Кол-во
-    .mp-reception-lines__cell.mp-reception-lines__cell--num Цена/ед.
-    .mp-reception-lines__cell.mp-reception-lines__cell--num Сумма
+    .mp-reception-lines__cell.mp-reception-lines__cell--title {{ $t('marketplace.receptionLinesTable.column.item') }}
+    .mp-reception-lines__cell.mp-reception-lines__cell--num {{ $t('marketplace.receptionLinesTable.column.quantity') }}
+    .mp-reception-lines__cell.mp-reception-lines__cell--num {{ $t('marketplace.receptionLinesTable.column.unitPrice') }}
+    .mp-reception-lines__cell.mp-reception-lines__cell--num {{ $t('marketplace.receptionLinesTable.column.amount') }}
 
   .mp-reception-lines__row(v-for='(row, i) in rows', :key='i')
-    .mp-reception-lines__cell.mp-reception-lines__cell--title {{ row.product_name || 'Товар по предложению' }}
+    .mp-reception-lines__cell.mp-reception-lines__cell--title {{ row.product_name || $t('marketplace.receptionLinesTable.productFallback') }}
     .mp-reception-lines__cell.mp-reception-lines__cell--num {{ qtyLabel(row) }}
     .mp-reception-lines__cell.mp-reception-lines__cell--num {{ formatAsset2Digits(row.fact_unit_price ?? '0') }} ₽
     .mp-reception-lines__cell.mp-reception-lines__cell--num {{ formatAsset2Digits(String(lineSum(row))) }} ₽
 
   .mp-reception-lines__total
-    .mp-reception-lines__cell.mp-reception-lines__cell--title Итого
+    .mp-reception-lines__cell.mp-reception-lines__cell--title {{ $t('marketplace.receptionLinesTable.totalLabel') }}
     .mp-reception-lines__cell.mp-reception-lines__cell--num.mp-reception-lines__cell--strong {{ formatAsset2Digits(String(total)) }} ₽
 </template>
 

@@ -25,7 +25,7 @@ ol.vertical-stepper
         @click='onClick(step)'
       )
         span {{ step.label }}
-        span.vertical-stepper__optional(v-if='step.optional') (опционально)
+        span.vertical-stepper__optional(v-if='step.optional') {{ $t('ui.verticalStepper.optionalLabel') }}
       .vertical-stepper__desc(v-if='step.description') {{ step.description }}
       .vertical-stepper__slot(v-if='step.key === activeKey && hasActiveSlot')
         slot(name='active', :step='step')

@@ -10,6 +10,7 @@ import {
   type MarketplaceOrderListView,
 } from 'src/entities/MarketplaceOrder'
 import { getEconomyConfig, setMembershipFee } from '../api'
+import { t } from 'src/shared/i18n';
 
 /**
  * Стол администратора → «Экономика» (requirement b6): единая ставка
@@ -38,7 +39,7 @@ async function load(): Promise<void> {
     const config = await getEconomyConfig()
     currentPercent.value = config.membership_fee_percent
   } catch (e) {
-    FailAlert(e, 'Не удалось загрузить целевой членский взнос')
+    FailAlert(e, t('marketplace.marketEconomy.loadFailedError'))
   } finally {
     loading.value = false
   }
@@ -55,9 +56,9 @@ async function onSave(): Promise<void> {
     const config = await setMembershipFee({ membership_fee_percent: Number(draftPercent.value) })
     currentPercent.value = config.membership_fee_percent
     dialogOpen.value = false
-    SuccessAlert('Целевой членский взнос установлен')
+    SuccessAlert(t('marketplace.marketEconomy.setSuccess'))
   } catch (e) {
-    FailAlert(e, 'Не удалось установить ставку')
+    FailAlert(e, t('marketplace.marketEconomy.setFailedError'))
   } finally {
     saving.value = false
   }
@@ -87,7 +88,7 @@ async function loadTurnover(): Promise<void> {
     inventory.value = inventoryRows
     orders.value = orderRows
   } catch (e) {
-    FailAlert(e, 'Не удалось загрузить оборот')
+    FailAlert(e, t('marketplace.marketEconomy.loadTurnoverFailedError'))
   } finally {
     turnoverLoading.value = false
   }
@@ -111,11 +112,11 @@ q-page.admin-economy
 
   .admin-economy__card
     .admin-economy__stat
-      .admin-economy__label Целевой членский взнос
+      .admin-economy__label {{ $t('marketplace.marketEconomy.feeLabel') }}
       .admin-economy__value
         span.admin-economy__amount {{ displayValue }}
         span.admin-economy__unit %
-      .admin-economy__caption на обеспечение хозяйственной деятельности
+      .admin-economy__caption {{ $t('marketplace.marketEconomy.statSubtitle') }}
     BaseButton.admin-economy__edit(
       variant='secondary',
       size='sm',
@@ -124,7 +125,7 @@ q-page.admin-economy
     )
       template(#icon-left)
         q-icon(name='edit', size='16px')
-      | Изменить
+      | {{ $t('marketplace.marketEconomy.editButton') }}
 
   TurnoverTop(
     v-model='periodDays',
@@ -133,14 +134,14 @@ q-page.admin-economy
     :loading='turnoverLoading'
   )
 
-  BaseDialog(v-model='dialogOpen', title='Целевой членский взнос', size='sm')
+  BaseDialog(v-model='dialogOpen', :title='$t("marketplace.marketEconomy.feeLabel")', size='sm')
     p.admin-economy__dialog-hint
       | Целевой членский взнос идёт на обеспечение хозяйственной деятельности кооператива.
       | Новое значение применится к заказам, созданным после сохранения. Уже
       | оформленные заказы не пересчитываются.
     AmountInput(
       v-model='draftPercent',
-      label='Целевой членский взнос',
+      :label='$t("marketplace.marketEconomy.feeLabel")',
       symbol='%',
       :precision='2',
       :min='0',
@@ -148,13 +149,13 @@ q-page.admin-economy
       :disabled='saving'
     )
     template(#footer)
-      BaseButton(variant='ghost', :disabled='saving', @click='dialogOpen = false') Отмена
+      BaseButton(variant='ghost', :disabled='saving', @click='dialogOpen = false') {{ $t('common.action.cancel') }}
       BaseButton(
         variant='primary',
         :loading='saving',
         :disabled='!changed',
         @click='onSave'
-      ) Сохранить
+      ) {{ $t('common.action.save') }}
 </template>
 
 <style scoped lang="scss">

@@ -6,6 +6,7 @@
  * (Благорост сейчас, кооперативный участок — следующим).
  */
 import { Zeus } from '@coopenomics/sdk';
+import { t } from 'src/shared/i18n';
 
 export type ExpenseBadgeVariant =
   | 'neutral'
@@ -17,13 +18,13 @@ export type ExpenseBadgeVariant =
 
 export function proposalStatusLabel(status: Zeus.ExpenseProposalStatus): string {
   const map: Record<Zeus.ExpenseProposalStatus, string> = {
-    [Zeus.ExpenseProposalStatus.CREATED]: 'Создан',
-    [Zeus.ExpenseProposalStatus.AUTHORIZED]: 'Авторизован',
-    [Zeus.ExpenseProposalStatus.PARTIALLY_PAID]: 'Частично оплачен',
-    [Zeus.ExpenseProposalStatus.REPORT_SUBMITTED]: 'Отчёт подан',
-    [Zeus.ExpenseProposalStatus.CLOSED]: 'Закрыт',
-    [Zeus.ExpenseProposalStatus.DECLINED]: 'Отклонён',
-    [Zeus.ExpenseProposalStatus.UNDEFINED]: 'Неизвестно',
+    [Zeus.ExpenseProposalStatus.CREATED]: t('payment.expenseProposal.status.created'),
+    [Zeus.ExpenseProposalStatus.AUTHORIZED]: t('payment.expenseProposal.status.authorized'),
+    [Zeus.ExpenseProposalStatus.PARTIALLY_PAID]: t('payment.expenseProposal.status.partiallyPaid'),
+    [Zeus.ExpenseProposalStatus.REPORT_SUBMITTED]: t('payment.expenseProposal.status.reportSubmitted'),
+    [Zeus.ExpenseProposalStatus.CLOSED]: t('payment.expenseProposal.status.closed'),
+    [Zeus.ExpenseProposalStatus.DECLINED]: t('payment.expenseProposal.status.declined'),
+    [Zeus.ExpenseProposalStatus.UNDEFINED]: t('payment.expenseProposal.status.unknown'),
   };
   return map[status] ?? status;
 }
@@ -50,8 +51,8 @@ export function proposalStatusVariant(
 
 export function mechanicsLabel(mechanics: Zeus.ExpenseMechanics): string {
   return mechanics === Zeus.ExpenseMechanics.DIRECT
-    ? 'Оплата по счёту'
-    : 'Аванс под отчёт';
+    ? t('payment.expenseMechanics.kind.direct')
+    : t('payment.expenseMechanics.kind.advance');
 }
 
 export function itemStatusLabel(
@@ -60,17 +61,17 @@ export function itemStatusLabel(
 ): string {
   switch (status) {
     case Zeus.ExpenseItemStatus.APPROVED:
-      return 'Ожидает оплаты';
+      return t('payment.expenseItem.status.approved');
     case Zeus.ExpenseItemStatus.PAID:
       return mechanics === Zeus.ExpenseMechanics.ADVANCE
-        ? 'Аванс выдан — ожидает отчёта'
-        : 'Оплачена';
+        ? t('payment.expenseItem.status.paidAdvance')
+        : t('payment.expenseItem.status.paidDirect');
     case Zeus.ExpenseItemStatus.REPORTED:
-      return 'Отчёт получен';
+      return t('payment.expenseItem.status.reported');
     case Zeus.ExpenseItemStatus.RETURNED:
-      return 'Аванс возвращён';
+      return t('payment.expenseItem.status.returned');
     case Zeus.ExpenseItemStatus.OVERSPENT:
-      return 'Перерасход';
+      return t('payment.expenseItem.status.overspent');
     default:
       return status;
   }
@@ -96,15 +97,15 @@ export function itemStatusVariant(
 export function fileKindLabel(kind: Zeus.ExpenseFileKind): string {
   switch (kind) {
     case Zeus.ExpenseFileKind.PAYMENT_PROOF:
-      return 'Чек об оплате';
+      return t('payment.expenseFile.kind.paymentProof');
     case Zeus.ExpenseFileKind.REPORT_FILE:
-      return 'Чек';
+      return t('payment.expenseFile.kind.reportFile');
     case Zeus.ExpenseFileKind.RETURN_PROOF:
-      return 'Возврат';
+      return t('payment.expenseFile.kind.returnProof');
     case Zeus.ExpenseFileKind.CLOSING_DOC:
-      return 'Закрывающий документ';
+      return t('payment.expenseFile.kind.closingDoc');
     default:
-      return 'Файл';
+      return t('payment.expenseFile.kind.default');
   }
 }
 
@@ -124,11 +125,11 @@ export enum ExpenseReportState {
 export function reportStateLabel(state: ExpenseReportState): string {
   switch (state) {
     case ExpenseReportState.AWAITING:
-      return 'Требуется отчёт';
+      return t('payment.expenseReport.state.awaiting');
     case ExpenseReportState.SETTLEMENT_PENDING:
-      return 'Отчёт подан, ждём расчёт';
+      return t('payment.expenseReport.state.settlementPending');
     case ExpenseReportState.CLOSED:
-      return 'Отчёт принят';
+      return t('payment.expenseReport.state.closed');
     default:
       return '';
   }

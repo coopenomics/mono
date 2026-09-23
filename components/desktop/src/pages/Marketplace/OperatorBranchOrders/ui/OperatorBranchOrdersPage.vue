@@ -22,6 +22,7 @@ import { useHeaderActions } from 'src/shared/hooks';
 import { OrderRegistryOverlay } from 'src/widgets/Marketplace/OrderRegistryOverlay';
 import { useQueryOverlay } from 'src/shared/lib/navigation';
 import { fetchBranchOrders } from '../api';
+import { t } from 'src/shared/i18n';
 
 const route = useRoute();
 const store = useOperatorBranchStore();
@@ -58,7 +59,7 @@ async function load(): Promise<void> {
     items.value = resp.items ?? [];
     pagination.value.rowsNumber = resp.totalCount ?? 0;
   } catch (e) {
-    if (myId === lastRequestId) FailAlert(e, 'Не удалось загрузить реестр заказов участка');
+    if (myId === lastRequestId) FailAlert(e, t('marketplace.operatorBranchOrders.loadError'));
   } finally {
     if (myId === lastRequestId) loading.value = false;
   }
@@ -109,15 +110,15 @@ q-page.operator-orders
 
   EmptyState(
     v-if='store.loaded && !store.isOperator',
-    title='Вы не оператор кооперативного участка',
-    body='Реестр заказов участка доступен оператору участка и его доверенным.'
+    :title='$t("marketplace.operatorBranchOrders.notOperatorTitle")',
+    :body='$t("marketplace.operatorBranchOrders.notOperatorBody")'
   )
     template(#icon)
       q-icon(name='receipt_long', size='48px')
 
   template(v-else)
     PageHint(storage-key="mp:operator-orders:banner-dismissed")
-      | Заказы, идущие на ваш пункт выдачи, с текущими статусами. Откройте заказ, чтобы увидеть его состояние, документы и операции — например, по ссылке из движения в «Экономике участка».
+      | {{ $t('marketplace.operatorBranchOrders.hintText') }}
 
     OrdersRegistryTable(
       :items="items",

@@ -13,7 +13,7 @@
  * дать ссылку из «Экономики участка» и вернуться назад.
  */
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
-import { uiLocale } from 'src/shared/i18n';
+import { uiLocale, t } from 'src/shared/i18n';
 import { marketplaceOrderSaleUnit } from 'src/shared/lib/consts/marketplace-units';
 import { BaseBadge, BaseTable, EmptyState, TablePager } from 'src/shared/ui/base';
 import type { BaseTableColumn } from 'src/shared/ui/base';
@@ -46,14 +46,14 @@ const emit = defineEmits<{
 // Состоянию хватает 150px — подписи в него укладываются, а высвобожденное
 // место уходит товару и участникам сделки.
 const columns: BaseTableColumn<OrderRegistryView>[] = [
-  { key: 'status', label: 'Статус', width: '150px' },
-  { key: 'order', label: 'Заказ', width: '110px' },
-  { key: 'total', label: 'Сумма', width: '130px', numeric: true },
-  { key: 'product', label: 'Товар', width: '220px' },
-  { key: 'quantity', label: 'Кол-во', width: '110px', numeric: true },
-  { key: 'orderer', label: 'Заказчик', width: '170px' },
-  { key: 'supplier', label: 'Поставщик', width: '170px' },
-  { key: 'created', label: 'Создан', width: '150px', nowrap: true },
+  { key: 'status', label: t('marketplace.ordersRegistryTable.column.status'), width: '150px' },
+  { key: 'order', label: t('marketplace.ordersRegistryTable.column.order'), width: '110px' },
+  { key: 'total', label: t('marketplace.ordersRegistryTable.column.amount'), width: '130px', numeric: true },
+  { key: 'product', label: t('marketplace.ordersRegistryTable.column.product'), width: '220px' },
+  { key: 'quantity', label: t('marketplace.ordersRegistryTable.column.quantity'), width: '110px', numeric: true },
+  { key: 'orderer', label: t('marketplace.ordersRegistryTable.column.orderer'), width: '170px' },
+  { key: 'supplier', label: t('marketplace.ordersRegistryTable.column.supplier'), width: '170px' },
+  { key: 'created', label: t('marketplace.ordersRegistryTable.column.createdAt'), width: '150px', nowrap: true },
 ];
 
 function statusLabel(s: string): string {
@@ -118,7 +118,7 @@ function goToPage(page: number): void {
 </script>
 
 <template lang="pug">
-.orders-registry(role="region", aria-label="Реестр заказов")
+.orders-registry(role="region", :aria-label="$t('marketplace.ordersRegistryTable.regionAriaLabel')")
   BaseTable(
     v-if="props.loading || props.items.length",
     :columns="columns",
@@ -138,14 +138,14 @@ function goToPage(page: number): void {
         EntityIdBadge(:rawId="shortId(row.id)", copy-on-click)
     template(#cell-product="{ row }")
       .orders-registry__product
-        span {{ row.product_name || 'Товар по предложению' }}
+        span {{ row.product_name || $t('marketplace.ordersRegistryTable.productTitleFallback') }}
         q-icon.orders-registry__offer(
           v-if="props.showOfferLink && row.offer_id",
           name="open_in_new",
           size="16px",
           @click.stop="goToOffer(row)"
         )
-          q-tooltip Открыть предложение
+          q-tooltip {{ $t('marketplace.ordersRegistryTable.openOfferButton') }}
     template(#cell-orderer="{ row }")
       | {{ ordererTitle(row) }}
     template(#cell-supplier="{ row }")
@@ -159,7 +159,7 @@ function goToPage(page: number): void {
 
     template(#footer)
       TablePager(
-        label="Заказы",
+        :label="$t('marketplace.ordersRegistryTable.filterLabel')",
         :page="props.pagination.page",
         :rows-per-page="props.pagination.rowsPerPage",
         :rows-number="props.pagination.rowsNumber",
@@ -168,8 +168,8 @@ function goToPage(page: number): void {
 
   EmptyState(
     v-else,
-    title="Заказов нет",
-    body="Заказов по выбранным фильтрам не найдено."
+    :title="$t('marketplace.ordersRegistryTable.emptyTitle')",
+    :body="$t('marketplace.ordersRegistryTable.emptyBody')"
   )
     template(#icon)
       q-icon(name="receipt_long", size="48px")

@@ -6,7 +6,7 @@
     //- Номер вопроса на зелёной плашке — он же идентификатор: клик копирует.
     button.question-card__id-avatar(type='button', @click.stop='copyId')
       | {{ agenda.table.id }}
-      q-tooltip Скопировать № {{ agenda.table.id }}
+      q-tooltip {{ $t('questions.questionCard.copyIdTooltip', { id: agenda.table.id }) }}
 
     .question-card__main
       .question-card__title {{ documentTitle }}
@@ -27,11 +27,11 @@
   //- Нижняя полоска: срок слева, действия справа — «Подробнее» у всех,
   //- утверждение или отклонение у председателя.
   .question-card__footer(@click.stop)
-    span.question-card__expires Истекает {{ formatToFromNow(agenda.table.expired_at) }}
+    span.question-card__expires {{ $t('questions.questionCard.expiresIn', { fromNow: formatToFromNow(agenda.table.expired_at) }) }}
     .question-card__actions
       BaseButton(variant='ghost', size='sm', @click='openDetails')
         q-icon.q-mr-xs(name='open_in_new', size='16px')
-        | Подробнее
+        | {{ $t('questions.questionCard.details') }}
       ChairmanDecisionButton
 
   //- Подробности вопроса: сведения по нему (например, что заявитель рассказал
@@ -39,7 +39,7 @@
   //- рисуется только открытым: сведения грузятся по первому открытию.
   DetailsDrawer(
     v-model='detailsOpen',
-    :title='`Вопрос № ${agenda.table.id}`',
+    :title='$t(`questions.questionCard.detailsTitle`, { id: agenda.table.id })',
     :width='720'
   )
     .question-card__details
@@ -83,6 +83,7 @@ import { DetailsDrawer } from 'src/shared/ui/domain';
 import { copyToClipboard, QTooltip } from 'quasar';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { decisionFactory } from 'src/shared/lib/decision-factory';
+import { t } from 'src/shared/i18n';
 
 const props = defineProps({
   agenda: {
@@ -144,7 +145,7 @@ const ChairmanDecisionButton = defineComponent({
         return h(
           BaseButton,
           { variant: 'negative', size: 'sm', loading: props.isProcessing, onClick: () => emit('decline') },
-          () => 'Отклонить'
+          () => t('questions.questionCard.decline')
         );
       }
       const approved = Boolean(props.agenda.table.approved);
@@ -158,9 +159,9 @@ const ChairmanDecisionButton = defineComponent({
             loading: props.isProcessing,
             onClick: () => emit('authorize'),
           },
-          () => 'Утвердить'
+          () => t('questions.questionCard.approve')
         ),
-        approved ? null : h(QTooltip, null, () => 'Для утверждения решение должно быть принято советом'),
+        approved ? null : h(QTooltip, null, () => t('questions.questionCard.approveDisabledHint')),
       ]);
     };
   },
@@ -170,9 +171,9 @@ const ChairmanDecisionButton = defineComponent({
 const copyId = async () => {
   try {
     await copyToClipboard(String(props.agenda.table.id));
-    SuccessAlert('Скопировано');
+    SuccessAlert(t('questions.questionCard.copied'));
   } catch {
-    FailAlert('Не удалось скопировать');
+    FailAlert(t('questions.questionCard.copyFailed'));
   }
 };
 
@@ -213,7 +214,7 @@ function getDocumentTitle() {
     }
   }
 
-  return 'Вопрос без заголовка';
+  return t('questions.questionCard.untitledQuestion');
 }
 
 // Получение имени заявителя
@@ -222,7 +223,7 @@ const getApplicantName = () => {
   if (certificate) {
     return getShortNameFromCertificate(certificate);
   }
-  return `Аккаунт: ${props.agenda.table.username}`;
+  return t('questions.questionCard.accountFallback', { username: props.agenda.table.username });
 };
 </script>
 

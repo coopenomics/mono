@@ -1,3 +1,4 @@
+import { t } from 'src/shared/i18n';
 export {}
 // Импортируем workbox (v6 API)
 import { precacheAndRoute } from 'workbox-precaching';
@@ -129,8 +130,8 @@ self.addEventListener('push', (event: PushEvent) => {
       console.log('Нет данных в push событии, используем fallback');
       // Fallback уведомление
       notificationData = {
-        title: 'Новое уведомление',
-        body: 'У вас есть новое уведомление',
+        title: t('app.customServiceWorker.title'),
+        body: t('app.customServiceWorker.body'),
         icon: '/icons/icon-192x192.png',
         badge: '/icons/icon-192x192.png',
       };
@@ -138,8 +139,8 @@ self.addEventListener('push', (event: PushEvent) => {
   } catch (error) {
     console.error('Ошибка парсинга push данных:', error);
     notificationData = {
-      title: 'Новое уведомление',
-      body: 'У вас есть новое уведомление',
+      title: t('app.customServiceWorker.title'),
+      body: t('app.customServiceWorker.body'),
       icon: '/icons/icon-192x192.png',
       badge: '/icons/icon-192x192.png',
     };

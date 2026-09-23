@@ -1,6 +1,7 @@
 import { Zeus } from '@coopenomics/sdk';
 import type { BaseBadgeVariant } from 'src/shared/ui/base';
 import type { IAccount } from '../types';
+import { t } from 'src/shared/i18n';
 
 export interface AccountStatusBadge {
   label: string;
@@ -23,9 +24,9 @@ export function getAccountStatusBadge(account: IAccount): AccountStatusBadge {
   const participant = account.participant_account;
   if (participant) {
     if (participant.status === 'blocked') {
-      return { label: 'Заблокирован', variant: 'neg' };
+      return { label: t('account.accountStatus.blocked'), variant: 'neg' };
     }
-    return { label: 'Активный пайщик', variant: 'pos' };
+    return { label: t('account.accountStatus.active'), variant: 'pos' };
   }
 
   // 1b. Вышел из кооператива: запись пайщика удалена (delpartcpnt), а аккаунт в
@@ -33,7 +34,7 @@ export function getAccountStatusBadge(account: IAccount): AccountStatusBadge {
   //     уже нет — ловим терминал по user_account.status, иначе воронка ниже
   //     показала бы «Активный пайщик» (provider-статус остаётся Active).
   if (String(account.user_account?.status) === 'blocked') {
-    return { label: 'Вышел из кооператива', variant: 'neutral' };
+    return { label: t('account.accountStatus.exited'), variant: 'neutral' };
   }
 
   const status = account.provider_account?.status;
@@ -45,28 +46,28 @@ export function getAccountStatusBadge(account: IAccount): AccountStatusBadge {
     status === Zeus.UserStatus.Registered &&
     (payment === Zeus.PaymentStatus.REFUNDED || payment === Zeus.PaymentStatus.PROCESSING)
   ) {
-    return { label: 'Отклонён советом', variant: 'neg' };
+    return { label: t('account.accountStatus.rejectedByBoard'), variant: 'neg' };
   }
 
   // 3. Регистрационная воронка MONO.
   switch (status) {
     case Zeus.UserStatus.Created:
-      return { label: 'Черновик', variant: 'neutral' };
+      return { label: t('account.accountStatus.draft'), variant: 'neutral' };
     case Zeus.UserStatus.Joined:
-      return { label: 'Заявление подано', variant: 'info' };
+      return { label: t('account.accountStatus.applied'), variant: 'info' };
     case Zeus.UserStatus.Payed:
-      return { label: 'Взнос оплачен', variant: 'info' };
+      return { label: t('account.accountStatus.paid'), variant: 'info' };
     case Zeus.UserStatus.Registered:
-      return { label: 'Ожидает решения совета', variant: 'warn' };
+      return { label: t('account.accountStatus.pendingBoard'), variant: 'warn' };
     case Zeus.UserStatus.Active:
-      return { label: 'Активный пайщик', variant: 'pos' };
+      return { label: t('account.accountStatus.active'), variant: 'pos' };
     case Zeus.UserStatus.Failed:
-      return { label: 'Ошибка регистрации', variant: 'neg' };
+      return { label: t('account.accountStatus.registrationFailed'), variant: 'neg' };
     case Zeus.UserStatus.Refunded:
-      return { label: 'Взнос возвращён', variant: 'neutral' };
+      return { label: t('account.accountStatus.refunded'), variant: 'neutral' };
     case Zeus.UserStatus.Blocked:
-      return { label: 'Заблокирован', variant: 'neg' };
+      return { label: t('account.accountStatus.blocked'), variant: 'neg' };
     default:
-      return { label: 'Неизвестно', variant: 'neutral' };
+      return { label: t('account.accountStatus.unknown'), variant: 'neutral' };
   }
 }

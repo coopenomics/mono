@@ -8,13 +8,13 @@
     .card-layout(v-if='loading')
       q-skeleton.card-layout__visual(type='rect', height='224px')
       .card-layout__rows
-        DataRow(label='Номер карты')
+        DataRow(:label='$t("user.cardcoopPage.cardNumberLabel")')
           template(#value-override)
             q-skeleton(type='text', width='180px')
-        DataRow(label='Членство')
+        DataRow(:label='$t("user.cardcoopPage.membershipLabel")')
           template(#value-override)
             q-skeleton(type='QChip', width='160px')
-        DataRow(label='Участие с')
+        DataRow(:label='$t("user.cardcoopPage.memberSinceLabel")')
           template(#value-override)
             q-skeleton(type='text', width='96px')
 
@@ -30,45 +30,45 @@
           .member-card__number {{ formattedNumber }}
           .member-card__foot
             div
-              .member-card__cap Держатель
-              .member-card__val {{ holderName || 'Пайщик' }}
+              .member-card__cap {{ $t('user.cardcoopPage.holderCaption') }}
+              .member-card__val {{ holderName || $t('user.cardcoopPage.defaultHolderName') }}
             .member-card__right
-              .member-card__cap Кооператив
+              .member-card__cap {{ $t('user.cardcoopPage.coopCaption') }}
               .member-card__val {{ coopName }}
 
       .card-layout__rows
         DataRow(
           v-if='card.cardNumber',
-          label='Номер карты',
+          :label='$t("user.cardcoopPage.cardNumberLabel")',
           :value='formattedNumber',
           mono,
           copyable
         )
-        DataRow(label='Членство')
+        DataRow(:label='$t("user.cardcoopPage.membershipLabel")')
           template(#value-override)
             BaseChip(:variant='status.variant') {{ status.label }}
         DataRow(
           v-if='card.memberSince',
-          label='Участие с',
+          :label='$t("user.cardcoopPage.memberSinceLabel")',
           :value='formatDocumentDate(card.memberSince)'
         )
-        DataRow(label='Сеть карт', :value='networkHost')
+        DataRow(:label='$t("user.cardcoopPage.networkLabel")', :value='networkHost')
 
     EmptyState(
       v-else,
-      title='Карта ещё не выпущена',
-      body='Нажмите «Выпустить карту кооператора» — вы перейдёте в сеть карт и войдёте через кооператив, анкету заново заполнять не нужно.'
+      :title='$t("user.cardcoopPage.emptyTitle")',
+      :body='$t("user.cardcoopPage.emptyBody")'
     )
       template(#icon)
         q-icon(name='badge', size='28px')
 
   //- Для чего карта — отдельной карточкой, а не подсказкой: страница без объяснения
   //- была почти пустой, и человек не понимал, что за карта и зачем её выпускать.
-  BaseCard(title='Что даёт карта')
+  BaseCard(:title='$t("user.cardcoopPage.purposeTitle")')
     .purpose
       p.purpose__lead
-        | Карта кооператора одна на всю кооперативную экономику. Она хранит членства,
-        | подтверждённые кооперативами, и заменяет анкету там, где вас ещё не знают.
+        | {{ $t('user.cardcoopPage.purposeLeadLine1') }}
+        | {{ $t('user.cardcoopPage.purposeLeadLine2') }}
       .purpose__items
         .purpose__item(v-for='item in PURPOSE', :key='item.title')
           q-icon.purpose__icon(:name='item.icon', size='22px')
@@ -90,6 +90,7 @@ import { formatDocumentDate } from 'src/shared/lib/utils/dates';
 import type { BaseChipVariant } from 'src/shared/ui/base/BaseChip/BaseChip.types';
 import { cardcoopHeaderState } from '../model/header';
 import CardcoopHeaderActions from './CardcoopHeaderActions.vue';
+import { t } from 'src/shared/i18n';
 
 /**
  * Карта кооператора в столе кооператива (story 7.4 / 3B5-32, FR-E4).
@@ -113,14 +114,14 @@ const system = useSystemStore();
  * ключами чип показывал «Состояние неизвестно» при подтверждённом членстве (03.09.2026).
  */
 const STATUS: Record<string, { label: string; variant: BaseChipVariant }> = {
-  Active: { label: 'Подтверждено кооперативом', variant: 'pos' },
-  Pending: { label: 'Подтверждается', variant: 'warn' },
-  Revoked: { label: 'Прекращено', variant: 'neutral' },
-  Rejected: { label: 'Отклонено сетью', variant: 'neg' },
+  Active: { label: t('user.cardcoopPage.status.active'), variant: 'pos' },
+  Pending: { label: t('user.cardcoopPage.status.pending'), variant: 'warn' },
+  Revoked: { label: t('user.cardcoopPage.status.revoked'), variant: 'neutral' },
+  Rejected: { label: t('user.cardcoopPage.status.rejected'), variant: 'neg' },
 };
 
 const status = computed(
-  () => STATUS[card.value?.state ?? ''] ?? { label: 'Состояние неизвестно', variant: 'neutral' as BaseChipVariant }
+  () => STATUS[card.value?.state ?? ''] ?? { label: t('user.cardcoopPage.status.unknown'), variant: 'neutral' as BaseChipVariant }
 );
 
 /** Номер показывается четырьмя блоками — так его читают вслух и переписывают. */
@@ -147,7 +148,7 @@ const profile = computed(
     null
 );
 const { displayName, isIP } = useDisplayName(profile.value);
-const holderName = computed(() => (isIP.value ? 'ИП ' : '') + (displayName.value || ''));
+const holderName = computed(() => (isIP.value ? t('user.cardcoopPage.ipPrefix') : '') + (displayName.value || ''));
 
 /** Печать в углу — первая буква имени; у безымянного держателя печати нет. */
 const seal = computed(() => holderName.value.trim().charAt(0).toUpperCase());
@@ -158,18 +159,18 @@ const coopName = computed(() => system.cooperativeDisplayName || system.info.coo
 const PURPOSE = [
   {
     icon: 'login',
-    title: 'Вход в другие кооперативы',
-    text: 'В кооперативах сети, где включён вход по карте, вы входите по ней — без нового аккаунта и пароля.',
+    title: t('user.cardcoopPage.purpose.loginTitle'),
+    text: t('user.cardcoopPage.purpose.loginText'),
   },
   {
     icon: 'how_to_reg',
-    title: 'Быстрое вступление',
-    text: 'При вступлении в другой кооператив анкету не заполняют заново: сведения уже подтверждены вашим кооперативом.',
+    title: t('user.cardcoopPage.purpose.joinTitle'),
+    text: t('user.cardcoopPage.purpose.joinText'),
   },
   {
     icon: 'apps',
-    title: 'Сервисы вокруг кооперации',
-    text: 'Сервисы кооперативной экономики, которые допускают вход с картой кооператора, узнают вас по ней.',
+    title: t('user.cardcoopPage.purpose.servicesTitle'),
+    text: t('user.cardcoopPage.purpose.servicesText'),
   },
 ] as const;
 

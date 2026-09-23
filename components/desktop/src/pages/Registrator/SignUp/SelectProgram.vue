@@ -1,7 +1,7 @@
 <template lang="pug">
 div(v-show='registratorStore.isStep("SelectProgram")')
     .programs(v-if='programs.length > 0')
-      p.programs__hint Выберите программу, в которой вы хотите участвовать
+      p.programs__hint {{ $t('registrator.selectProgram.hint') }}
       .programs__list
         BaseRadioCard(
           v-for='program in programs',
@@ -15,18 +15,18 @@ div(v-show='registratorStore.isStep("SelectProgram")')
         )
 
     .programs--empty(v-else)
-      p Доступных программ не найдено
+      p {{ $t('registrator.selectProgram.empty') }}
 
     .row.q-gutter-md.q-mt-lg.q-mb-lg
       BaseButton(variant='ghost', @click='registratorStore.prev()')
         q-icon(name='arrow_back')
-        span.q-ml-md назад
+        span.q-ml-md {{ $t('registrator.selectProgram.back') }}
 
       BaseButton(
         variant='primary',
         :disabled='!registratorStore.state.selectedProgramKey',
         @click='registratorStore.next()'
-      ) Продолжить
+      ) {{ $t('registrator.selectProgram.submit') }}
 </template>
 
 <script lang="ts" setup>

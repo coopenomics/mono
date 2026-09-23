@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue'
-import { uiLocale } from 'src/shared/i18n';
+import { uiLocale, t as i18nT } from 'src/shared/i18n';
 import { useFirstLoad } from 'src/shared/lib/composables'
 import { debounce } from 'quasar'
 import { useRoute } from 'vue-router'
@@ -70,8 +70,8 @@ function onSelectTab(selected: PageTab): void {
 }
 
 const tabs = computed<PageTab[]>(() => [
-  { key: 'containers', label: 'Боксы', count: containers.value.length },
-  { key: 'types', label: 'Типы боксов', count: types.value.length },
+  { key: 'containers', label: i18nT('marketplace.containerRegistry.tab.boxes'), count: containers.value.length },
+  { key: 'types', label: i18nT('marketplace.containerRegistry.tab.types'), count: types.value.length },
 ])
 
 const containers = ref<MarketplaceContainerView[]>([])
@@ -196,32 +196,32 @@ const filledCount = computed(
 const columns = computed<BaseTableColumn<MarketplaceContainerView>[]>(() => [
   {
     key: 'branch',
-    label: 'Участок',
+    label: i18nT('marketplace.containerRegistry.column.branch'),
     width: '260px',
     sortable: true,
     field: (row) => branchName(row.braname),
   },
-  { key: 'code', label: 'Код', width: '150px', sortable: true, field: 'code' },
+  { key: 'code', label: i18nT('marketplace.containerRegistry.column.code'), width: '150px', sortable: true, field: 'code' },
   {
     key: 'type',
-    label: 'Тип',
+    label: i18nT('marketplace.containerRegistry.column.type'),
     width: '200px',
     sortable: true,
     field: (row) => typeNameOf(row),
   },
   {
     key: 'volume',
-    label: 'Объём',
+    label: i18nT('marketplace.containerRegistry.column.volume'),
     width: '110px',
     numeric: true,
     nowrap: true,
     sortable: true,
     field: (row) => volumeM3Of(typeById.value.get(row.container_type_id)?.volume_m3),
   },
-  { key: 'cell', label: 'Ячейка', width: '120px', field: (row) => cellCodeOf(row) },
+  { key: 'cell', label: i18nT('marketplace.containerRegistry.column.cell'), width: '120px', field: (row) => cellCodeOf(row) },
   {
     key: 'count',
-    label: 'Заполнен',
+    label: i18nT('marketplace.containerRegistry.column.filled'),
     width: '130px',
     sortable: true,
     field: (row) => countByContainer.value.get(row.id) ?? 0,
@@ -229,21 +229,21 @@ const columns = computed<BaseTableColumn<MarketplaceContainerView>[]>(() => [
 ])
 
 const typeColumns = computed<BaseTableColumn<MarketplaceContainerTypeView>[]>(() => [
-  { key: 'name', label: 'Название', sortable: true, field: 'name' },
-  { key: 'dims', label: 'Габариты, см', width: '200px', nowrap: true },
+  { key: 'name', label: i18nT('marketplace.containerRegistry.column.name'), sortable: true, field: 'name' },
+  { key: 'dims', label: i18nT('marketplace.containerRegistry.column.dimensions'), width: '200px', nowrap: true },
   {
     key: 'volume',
-    label: 'Объём',
+    label: i18nT('marketplace.containerRegistry.column.volume'),
     width: '110px',
     numeric: true,
     nowrap: true,
     sortable: true,
     field: (row) => volumeM3Of(row.volume_m3),
   },
-  { key: 'weight', label: 'Макс. вес', width: '120px', nowrap: true },
+  { key: 'weight', label: i18nT('marketplace.containerRegistry.column.maxWeight'), width: '120px', nowrap: true },
   {
     key: 'boxes',
-    label: 'Боксов',
+    label: i18nT('marketplace.containerRegistry.column.boxesCount'),
     width: '100px',
     numeric: true,
     sortable: true,
@@ -301,11 +301,11 @@ async function submitType(): Promise<void> {
       height_cm: Math.trunc(Number(typeForm.value.height_cm)),
       max_weight_kg: typeForm.value.max_weight_kg.trim() || null,
     })
-    SuccessAlert('Тип боксов заведён')
+    SuccessAlert(i18nT('marketplace.containerRegistry.typeCreatedSuccess'))
     typeOpen.value = false
     await load()
   } catch (e) {
-    FailAlert(e, 'Не удалось завести тип боксов')
+    FailAlert(e, i18nT('marketplace.containerRegistry.createTypeFailedError'))
   } finally {
     typeSaving.value = false
   }
@@ -325,7 +325,7 @@ async function load(): Promise<void> {
     types.value = nextTypes
     inventory.value = nextInventory
   } catch (e) {
-    FailAlert(e, 'Не удалось загрузить реестр боксов')
+    FailAlert(e, i18nT('marketplace.containerRegistry.loadFailedError'))
   } finally {
     loading.value = false
   }
@@ -357,7 +357,7 @@ onMounted(async () => {
 </script>
 
 <template lang="pug">
-q-page.boxreg(role='region', aria-label='Боксы кооператива')
+q-page.boxreg(role='region', :aria-label='$t("marketplace.containerRegistry.pageAriaLabel")')
   Teleport(to='#header-actions-host', defer)
     BaseButton(
       v-if='tab === "types" && canManageTypes',
@@ -367,7 +367,7 @@ q-page.boxreg(role='region', aria-label='Боксы кооператива')
     )
       template(#icon-left)
         q-icon(name='add', size='16px')
-      | Тип боксов
+      | {{ $t('marketplace.containerRegistry.addTypeButton') }}
 
   //- Канон: одна подсказка на страницу, над полосой разделов. Оба раздела —
   //- про одну и ту же тару, поэтому и текст один.
@@ -385,13 +385,13 @@ q-page.boxreg(role='region', aria-label='Боксы кооператива')
       BaseInput.boxreg__search.field-flush(
         v-model='search',
         type='search',
-        placeholder='Поиск: код бокса, адрес, тип, участок',
+        :placeholder='$t("marketplace.containerRegistry.searchPlaceholder")',
         clearable
       )
       BaseSelect.boxreg__branch.field-flush(
         v-model='branchFilter',
         :options='branchOptions',
-        placeholder='Все участки'
+        :placeholder='$t("marketplace.containerRegistry.allBranchesPlaceholder")'
       )
 
     BaseTable(
@@ -419,16 +419,16 @@ q-page.boxreg(role='region', aria-label='Боксы кооператива')
         | {{ volumeOf(row) }}
       template(#cell-count='{ row }')
         BaseBadge(v-if='countByContainer.get(row.id)', variant='info')
-          | {{ countByContainer.get(row.id) }} поз.
-        BaseBadge(v-else, variant='neutral') Пусто
+          | {{ $t('marketplace.containerRegistry.positionsCount', { count: countByContainer.get(row.id) }) }}
+        BaseBadge(v-else, variant='neutral') {{ $t('marketplace.containerRegistry.emptyBoxLabel') }}
       template(#footer)
         span
-          | Боксов: {{ rows.length }} · заполнено {{ filledCount }} · суммарный объём {{ totalVolume }}
+          | {{ $t('marketplace.containerRegistry.summaryLine', { total: rows.length, filledCount, totalVolume }) }}
 
     EmptyState(
       v-else,
-      title='Боксы не найдены',
-      body='В кооперативе ещё не заведена тара, либо ничего не подходит под фильтр. Боксы заводит участок на своём столе — в разделе «Склад».'
+      :title='$t("marketplace.containerRegistry.emptyTitle")',
+      :body='$t("marketplace.containerRegistry.emptyBody")'
     )
       template(#icon)
         q-icon(name='inbox', size='48px')
@@ -451,12 +451,12 @@ q-page.boxreg(role='region', aria-label='Боксы кооператива')
       template(#cell-volume='{ row }')
         | {{ formatVolumeM3(row.volume_m3) }}
       template(#cell-weight='{ row }')
-        | {{ row.max_weight_kg ? `${row.max_weight_kg} кг` : '—' }}
+        | {{ row.max_weight_kg ? $t(`marketplace.containerRegistry.maxWeightValue`, { weight: row.max_weight_kg }) : '—' }}
 
     EmptyState(
       v-else,
-      title='Типы боксов не заведены',
-      body='Тип задаёт габариты и объём тары. Заведите его первым — дальше участки создают боксы партиями одного типа.'
+      :title='$t("marketplace.containerRegistry.typesEmptyTitle")',
+      :body='$t("marketplace.containerRegistry.typesEmptyBody")'
     )
       template(#icon)
         q-icon(name='straighten', size='48px')
@@ -473,28 +473,28 @@ q-page.boxreg(role='region', aria-label='Боксы кооператива')
   )
 
   //- ─────────────────────── Диалог: тип боксов ───────────────────────
-  BaseDialog(v-model='typeOpen', title='Тип боксов', size='sm')
+  BaseDialog(v-model='typeOpen', :title='$t("marketplace.containerRegistry.createTypeDialogTitle")', size='sm')
     .boxreg__form
       .boxreg__note
         | Габариты задаются в сантиметрах — так тару меряют на месте. По ним
         | считается объём в кубометрах: он показывает, какая машина увезёт
         | партию боксов между участками.
-      BaseInput(v-model='typeForm.name', label='Название', placeholder='Ящик 60×40×30')
+      BaseInput(v-model='typeForm.name', :label='$t("marketplace.containerRegistry.formNameLabel")', :placeholder='$t("marketplace.containerRegistry.namePlaceholder")')
       .boxreg__dims
-        BaseInput(v-model.number='typeForm.length_cm', type='number', label='Длина, см')
-        BaseInput(v-model.number='typeForm.width_cm', type='number', label='Ширина, см')
-        BaseInput(v-model.number='typeForm.height_cm', type='number', label='Высота, см')
-      BaseInput(v-model='typeForm.max_weight_kg', label='Предельный вес, кг', placeholder='Необязательно')
-      .boxreg__note(v-if='typeVolumePreview') Полезный объём: {{ typeVolumePreview }}
+        BaseInput(v-model.number='typeForm.length_cm', type='number', :label='$t("marketplace.containerRegistry.lengthLabel")')
+        BaseInput(v-model.number='typeForm.width_cm', type='number', :label='$t("marketplace.containerRegistry.widthLabel")')
+        BaseInput(v-model.number='typeForm.height_cm', type='number', :label='$t("marketplace.containerRegistry.heightLabel")')
+      BaseInput(v-model='typeForm.max_weight_kg', :label='$t("marketplace.containerRegistry.maxWeightLabel")', :placeholder='$t("marketplace.containerRegistry.optionalPlaceholder")')
+      .boxreg__note(v-if='typeVolumePreview') {{ $t('marketplace.containerRegistry.volumePreview', { volume: typeVolumePreview }) }}
     template(#footer)
-      BaseButton(variant='ghost', size='sm', :disabled='typeSaving', @click='typeOpen = false') Отмена
+      BaseButton(variant='ghost', size='sm', :disabled='typeSaving', @click='typeOpen = false') {{ $t('common.action.cancel') }}
       BaseButton(
         variant='primary',
         size='sm',
         :loading='typeSaving',
         :disabled='!typeValid',
         @click='submitType'
-      ) Завести
+      ) {{ $t('marketplace.containerRegistry.createTypeConfirm') }}
 </template>
 
 <style scoped lang="scss">

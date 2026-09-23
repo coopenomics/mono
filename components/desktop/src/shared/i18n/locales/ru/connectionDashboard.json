@@ -1,0 +1,28 @@
+{
+  "connectionDashboard": {
+    "domainCard": {
+      "cancelTooltip": "Отменить",
+      "coopDataError": "Не удалось получить данные кооператива",
+      "delegateWarningLine1": "⚠️ Убедитесь, что домен делегирован IP-адрес: {serverIp}.",
+      "delegateWarningLine2": "Обновление домена перезагрузит цифровой кооператив.",
+      "delegateWarningLine3": "Все данные будут сохранены.",
+      "delegatedLabel": "Домен делегирован",
+      "domainEmptyError": "Домен не может быть пустым",
+      "domainPlaceholder": "Введите домен",
+      "domainRequired": "Домен обязателен",
+      "domainUpdateError": "Ошибка при обновлении домена: {errorMessage}",
+      "domainUpdateSuccess": "Домен успешно обновлен",
+      "editTooltip": "Редактировать домен",
+      "title": "Подключение",
+      "updatingStatus": "Обновляем"
+    },
+    "subscriptionsCard": {
+      "emptyHint": "Подписки появятся после подключения услуг платформы",
+      "emptyTitle": "Нет активных подписок",
+      "loadError": "Ошибка загрузки подписок",
+      "loadingText": "Загрузка подписок...",
+      "perMonthPrice": "{currencySymbol}/месяц",
+      "title": "Подписки"
+    }
+  }
+}

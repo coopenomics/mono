@@ -28,6 +28,7 @@ import { Zeus } from '@coopenomics/sdk';
 import { republishOffer } from 'src/entities/MarketplaceOffer';
 import { fetchMyOffers } from '../api';
 import type { MarketplaceOfferStatusView, MarketplaceOfferView } from '../types';
+import { t } from 'src/shared/i18n';
 
 /**
  * Эпик 3 / Story 3.4: offerer-стол «Мои предложения».
@@ -99,11 +100,11 @@ const STATUS_FILTER_OPTIONS: Array<{
   value: MarketplaceOfferStatusView | null;
   slug: string;
 }> = [
-  { label: 'Все', value: null, slug: 'all' },
-  { label: 'На модерации', value: 'PENDING_MODERATION', slug: 'moderation' },
-  { label: 'Опубликовано', value: 'ACTIVE', slug: 'published' },
-  { label: 'Отклонено', value: 'REJECTED', slug: 'rejected' },
-  { label: 'Сняты', value: 'WITHDRAWN', slug: 'withdrawn' },
+  { label: t('marketplace.offererMyOffersPage.filterAll'), value: null, slug: 'all' },
+  { label: t('marketplace.offererMyOffersPage.filterModeration'), value: 'PENDING_MODERATION', slug: 'moderation' },
+  { label: t('marketplace.offererMyOffersPage.filterPublished'), value: 'ACTIVE', slug: 'published' },
+  { label: t('marketplace.offererMyOffersPage.filterRejected'), value: 'REJECTED', slug: 'rejected' },
+  { label: t('marketplace.offererMyOffersPage.filterWithdrawn'), value: 'WITHDRAWN', slug: 'withdrawn' },
 ];
 
 // Вкладки-фильтры: ключом служит slug статуса, он же уходит в адресную строку
@@ -194,8 +195,8 @@ async function onRepublish(card: OfferCard): Promise<void> {
     const status = await republishOffer(String(card.id));
     SuccessAlert(
       status === Zeus.MarketplaceOfferStatus.ACTIVE
-        ? 'Предложение снова опубликовано.'
-        : 'Предложение отправлено на модерацию.',
+        ? t('marketplace.offererMyOffersPage.republishedMessage')
+        : t('marketplace.offererMyOffersPage.sentToModerationMessage'),
     );
     await load(1, false);
   } catch (e) {
@@ -267,17 +268,17 @@ useMarketplaceRealtime(
 </script>
 
 <template lang="pug">
-q-page.my-offers(role="region", aria-label="Мои предложения")
+q-page.my-offers(role="region", :aria-label="$t('marketplace.offererMyOffersPage.ariaLabel')")
   .my-offers__col
     PageHint(storage-key="mp:my-offers:banner-dismissed")
-      | Все ваши предложения в кооперативе и их статус. Нажмите на карточку,
-      | чтобы открыть предложение — изменить цену и остаток, отредактировать
-      | описание или снять с публикации. Цена и количество меняются без
-      | повторной модерации.
+      | {{ $t('marketplace.offererMyOffersPage.bannerHintIntro') }}
+      | {{ $t('marketplace.offererMyOffersPage.bannerHintEdit') }}
+      | {{ $t('marketplace.offererMyOffersPage.bannerHintNoModeration') }}
+      | {{ $t('marketplace.offererMyOffersPage.bannerHintNoModerationTail') }}
 
     FilterBar(
       v-model:search="search",
-      search-placeholder="Поиск по названию",
+      :search-placeholder="$t('marketplace.offererMyOffersPage.searchPlaceholder')",
       hide-reset
     )
 
@@ -297,8 +298,8 @@ q-page.my-offers(role="region", aria-label="Мои предложения")
 
     EmptyState(
       v-if="!firstLoad && filtered.length === 0",
-      title="Нет предложений в этом фильтре",
-      body="Если у вас нет ни одного предложения — создайте первое на странице «Создать предложение»."
+      :title="$t('marketplace.offererMyOffersPage.emptyTitle')",
+      :body="$t('marketplace.offererMyOffersPage.emptyBody')"
     )
 
     template(v-if="filtered.length > 0")
@@ -318,10 +319,10 @@ q-page.my-offers(role="region", aria-label="Мои предложения")
             )
               template(#icon-left)
                 q-icon(name="publish", size="16px")
-              | Опубликовать снова
+              | {{ $t('marketplace.offererMyOffersPage.republishAction') }}
 
       .my-offers__more(v-if="hasMore")
-        BaseButton(variant="ghost", :loading="loading", @click="loadMore") Показать ещё
+        BaseButton(variant="ghost", :loading="loading", @click="loadMore") {{ $t('marketplace.offererMyOffersPage.showMoreAction') }}
 </template>
 
 <style scoped lang="scss">

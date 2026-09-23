@@ -17,9 +17,9 @@ div(v-show='store.isStep("IntakeStep")')
     .intake__actions
       BaseButton(variant='ghost', @click='store.prev()')
         q-icon(name='arrow_back')
-        span.q-ml-md назад
+        span.q-ml-md {{ $t('registrator.intakeStep.backAction') }}
 
-      BaseButton(variant='primary', :disabled='!store.isIntakeComplete', @click='proceed') Продолжить
+      BaseButton(variant='primary', :disabled='!store.isIntakeComplete', @click='proceed') {{ $t('registrator.intakeStep.submitAction') }}
 </template>
 
 <script lang="ts" setup>

@@ -1,7 +1,7 @@
 <template lang="pug">
 q-step(
   :name="0"
-  title="Членство в союзе"
+  :title="$t('connectionAgreementStepper.unionMembershipStep.title')"
   icon="group"
   :done="isDone"
 )
@@ -10,73 +10,73 @@ q-step(
     //- Основная информационная карточка
     .membership-info-card.q-mb-xl
       .card-header
-        .text-h6.membership-title Членство в Союзе Потребительских Обществ
+        .text-h6.membership-title {{ $t('connectionAgreementStepper.unionMembershipStep.heading') }}
         .subtitle.text-body2.text-grey-7.q-mt-sm
-          | Необходимый шаг для полноценной работы на платформе Кооперативной Экономики
+          | {{ $t('connectionAgreementStepper.unionMembershipStep.subtitle') }}
 
       //- Что будет сделано
       .membership-benefits.q-mb-lg
         .benefit-section
           .section-title
             q-icon(name="check_circle" size="20px" color="positive").q-mr-sm
-            span.text-subtitle1.text-weight-medium Подключение к платформе
+            span.text-subtitle1.text-weight-medium {{ $t('connectionAgreementStepper.unionMembershipStep.benefitConnectTitle') }}
 
           .benefit-description.text-body2.q-mt-sm.q-ml-lg
-            | Ваш кооператив будет подключен к платформе. Вы получите полный доступ ко всем сервисам цифрового кооператива.
+            | {{ $t('connectionAgreementStepper.unionMembershipStep.benefitConnectText') }}
 
         .benefit-section.q-mt-md
           .section-title
             q-icon(name="group_add" size="20px" color="primary").q-mr-sm
-            span.text-subtitle1.text-weight-medium Импорт участников и цифровые подписи
+            span.text-subtitle1.text-weight-medium {{ $t('connectionAgreementStepper.unionMembershipStep.benefitImportTitle') }}
 
           .benefit-description.text-body2.q-mt-sm.q-ml-lg
-            | Вы сможете импортировать пайщиков и пригласите их для выпуска цифровых подписей.
+            | {{ $t('connectionAgreementStepper.unionMembershipStep.benefitImportText') }}
 
         .benefit-section.q-mt-md
           .section-title
             q-icon(name="event_available" size="20px" color="secondary").q-mr-sm
-            span.text-subtitle1.text-weight-medium 30 дней на организацию
+            span.text-subtitle1.text-weight-medium {{ $t('connectionAgreementStepper.unionMembershipStep.benefitDeadlineTitle') }}
 
           .benefit-description.text-body2.q-mt-sm.q-ml-lg
-            | После подключения у вас будет 30 дней для проведения необходимых решений совета и общего собрания пайщиков в соответствии с требованиями союза.
+            | {{ $t('connectionAgreementStepper.unionMembershipStep.benefitDeadlineText') }}
 
       //- Требование членства
       .membership-requirement.q-mt-lg
         .requirement-card
           .requirement-header
             q-icon(name="verified_user" size="24px" color="warning").q-mr-sm
-            .text-subtitle1.text-weight-medium Членство в союзе
+            .text-subtitle1.text-weight-medium {{ $t('connectionAgreementStepper.unionMembershipStep.requirementTitle') }}
 
           .requirement-description.text-body2.q-mt-sm
-            | Членство в Союзе Потребительских Обществ является обязательным условием для работы на платформе. Союз обеспечивает стандартизацию вашего документооборота и приводит его в соответствие с требованиями законодательства, исключая проблемы с проверками и регуляторами.
-            | Для связи с представителем союза и координации процесса подключения вам потребуется аккаунт в кооперативном мессенджере.
+            | {{ $t('connectionAgreementStepper.unionMembershipStep.requirementText') }}
+            | {{ $t('connectionAgreementStepper.unionMembershipStep.requirementContactNote') }}
 
     //- Информационная карточка если аккаунт уже есть
     .matrix-account-info-card.q-mb-xl(v-if="hasMatrixAccount")
       .card-header
-        .text-h6.account-title У вас есть аккаунт
+        .text-h6.account-title {{ $t('connectionAgreementStepper.unionMembershipStep.accountTitle') }}
         .subtitle.text-body2.text-grey-7.q-mt-sm
-          | Ваш аккаунт в кооперативном мессенджере активен
+          | {{ $t('connectionAgreementStepper.unionMembershipStep.accountSubtitle') }}
 
       .account-info.q-mb-lg
         .info-section
           .section-title
             q-icon(name="message" size="20px" color="primary").q-mr-sm
-            span.text-subtitle1.text-weight-medium Связь с представителем союза
+            span.text-subtitle1.text-weight-medium {{ $t('connectionAgreementStepper.unionMembershipStep.contactSectionTitle') }}
 
           .info-description.text-body2.q-mt-sm.q-ml-lg
-            | Для связи с представителем союза перейдите на страницу
+            | {{ $t('connectionAgreementStepper.unionMembershipStep.contactInstructionText') }}
             q-btn.q-pa-none.q-ma-none.text-primary.text-weight-medium(
               flat
               dense
               no-caps
-              label="Быстрый клиент"
+              :label="$t('connectionAgreementStepper.unionMembershipStep.quickClientButton')"
               @click="goToQuickClient"
             ).q-ml-sm
             |  .
 
           .info-description.text-body2.q-mt-sm.q-ml-lg
-            | Там вы сможете начать общение и получить всю необходимую помощь в процессе подключения.
+            | {{ $t('connectionAgreementStepper.unionMembershipStep.contactFootnote') }}
 
     //- Регистрация в мессенджере (показываем только если аккаунта нет)
     .q-mt-xl(v-if="!hasMatrixAccount")
@@ -85,12 +85,12 @@ q-step(
 
   q-stepper-navigation.q-gutter-sm.q-pa-md
     .text-body2.text-grey-7(v-if="isActive")
-      span(v-if="hasMatrixAccount") Отлично, связь установлена — можем продолжить подключение.
-      span(v-else) Создайте аккаунт в кооперативном мессенджере, чтобы продолжить.
+      span(v-if="hasMatrixAccount") {{ $t('connectionAgreementStepper.unionMembershipStep.connectedNote') }}
+      span(v-else) {{ $t('connectionAgreementStepper.unionMembershipStep.needAccountNote') }}
     q-btn(
       v-if="isActive"
       color="primary"
-      label="Продолжить"
+      :label="$t('connectionAgreementStepper.unionMembershipStep.continueSubmit')"
       :disable="!hasMatrixAccount"
       @click="handleContinue"
     )

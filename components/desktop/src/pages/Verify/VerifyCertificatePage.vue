@@ -1,7 +1,7 @@
 <template lang="pug">
 .verify
   .verify__head
-    h1.verify__title Проверка удостоверения
+    h1.verify__title {{ $t('verification.verifyCertificatePage.title') }}
     .verify__sub {{ coopTitle }}
 
   //- Камера. Разбор кода делает сам браузер: отдельной библиотеки распознавания
@@ -12,27 +12,27 @@
     .verify__placeholder(v-if='!scanning')
       q-icon(name='qr_code_scanner', size='64px')
       .verify__hint {{ hint }}
-    BaseButton(v-if='!scanning', @click='startScan') Включить камеру
+    BaseButton(v-if='!scanning', @click='startScan') {{ $t('verification.verifyCertificatePage.enableCamera') }}
 
     //- Ручной ввод: без камеры (или где браузер не умеет разбирать код) проверку
     //- всё равно надо чем-то делать.
     .verify__manual
-      BaseInput(v-model='manual', label='Или вставьте содержимое кода', type='textarea')
-      BaseButton(variant='secondary', :disabled='!manual', @click='verify(manual)') Проверить
+      BaseInput(v-model='manual', :label='$t("verification.verifyCertificatePage.pasteLabel")', type='textarea')
+      BaseButton(variant='secondary', :disabled='!manual', @click='verify(manual)') {{ $t('verification.verifyCertificatePage.submit') }}
 
   //- Итог проверки: первым делом крупно — пускать или нет.
   .verify__result(v-else, :class='result.valid ? "verify__result--ok" : "verify__result--no"')
     q-icon(:name='result.valid ? "check_circle" : "cancel"', size='72px')
-    .verify__verdict {{ result.valid ? 'Добро пожаловать' : 'Не подтверждено' }}
+    .verify__verdict {{ result.valid ? $t('verification.verifyCertificatePage.welcome') : $t('verification.verifyCertificatePage.notConfirmed') }}
     .verify__name(v-if='result.name') {{ result.name }}
-    .verify__meta(v-if='result.valid') {{ result.coop }} · действует до {{ result.until }}
+    .verify__meta(v-if='result.valid') {{ $t('verification.verifyCertificatePage.resultLine', { coop: result.coop, until: result.until }) }}
     .verify__meta(v-else) {{ result.reason }}
-    BaseButton(@click='reset') Проверить следующего
+    BaseButton(@click='reset') {{ $t('verification.verifyCertificatePage.checkNext') }}
 </template>
 
 <script lang="ts" setup>
 import { computed, onBeforeUnmount, ref } from 'vue';
-import { uiLocale } from 'src/shared/i18n';
+import { uiLocale, t as i18nT } from 'src/shared/i18n';
 import { TRUST_ANCHOR_ANO_CERT_PUBKEY, verifyOffline } from '@coopenomics/auth';
 import { BaseButton, BaseInput } from 'src/shared/ui/base';
 import { env } from 'src/shared/config';
@@ -61,7 +61,7 @@ const coopTitle = computed(() => system.cooperativeDisplayName || system.info.co
 const videoEl = ref<HTMLVideoElement | null>(null);
 const scanning = ref(false);
 const manual = ref('');
-const hint = ref('Наведите камеру на код удостоверения');
+const hint = ref(i18nT('verification.verifyCertificatePage.scanHint'));
 
 interface VerifyView {
   valid: boolean;
@@ -76,30 +76,30 @@ let stream: MediaStream | null = null;
 let timer: ReturnType<typeof setInterval> | null = null;
 
 const REASONS: Record<string, string> = {
-  expired: 'Срок удостоверения истёк',
-  malformed_certificate: 'Код не является удостоверением пайщика',
-  unsupported_alg: 'Удостоверение выпущено неизвестным способом',
-  no_trust_anchor: 'Считыватель не настроен: не задан корневой ключ проверки',
-  not_endorsed: 'Кооператив не подтверждён: заверения в удостоверении нет',
-  broken_chain: 'Цепочка подтверждения разорвана',
-  endorsement_expired: 'Подтверждение кооператива просрочено',
-  endorsement_invalid: 'Подтверждение кооператива не сходится — цепочка поддельна',
-  foreign_chain: 'Удостоверение выпущено в другой сети',
-  issuer_mismatch: 'Удостоверение выпущено не тем, кого подтверждает цепочка',
-  signature_mismatch: 'Подпись не сходится — удостоверение подделано или изменено',
-  unsupported_schema_version: 'Удостоверение устаревшего образца',
+  expired: i18nT('verification.verifyCertificatePage.expiredError'),
+  malformed_certificate: i18nT('verification.verifyCertificatePage.notCertificateError'),
+  unsupported_alg: i18nT('verification.verifyCertificatePage.unknownMethodError'),
+  no_trust_anchor: i18nT('verification.verifyCertificatePage.noRootKeyError'),
+  not_endorsed: i18nT('verification.verifyCertificatePage.coopNotConfirmedError'),
+  broken_chain: i18nT('verification.verifyCertificatePage.chainBrokenError'),
+  endorsement_expired: i18nT('verification.verifyCertificatePage.coopConfirmationExpiredError'),
+  endorsement_invalid: i18nT('verification.verifyCertificatePage.chainForgedError'),
+  foreign_chain: i18nT('verification.verifyCertificatePage.wrongNetworkError'),
+  issuer_mismatch: i18nT('verification.verifyCertificatePage.issuerMismatchError'),
+  signature_mismatch: i18nT('verification.verifyCertificatePage.signatureMismatchError'),
+  unsupported_schema_version: i18nT('verification.verifyCertificatePage.legacyFormatError'),
 };
 
 async function startScan(): Promise<void> {
   const detector = barcodeDetector();
   if (!detector) {
-    hint.value = 'Этот браузер не умеет читать коды — вставьте содержимое вручную';
+    hint.value = i18nT('verification.verifyCertificatePage.browserUnsupportedError');
     return;
   }
   try {
     stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
   } catch {
-    hint.value = 'Камера недоступна — вставьте содержимое кода вручную';
+    hint.value = i18nT('verification.verifyCertificatePage.cameraUnavailableError');
     return;
   }
   scanning.value = true;
@@ -159,7 +159,7 @@ async function verify(jws: string): Promise<void> {
     : {
         valid: false,
         name: fullName(claims.identification),
-        reason: REASONS[verdict.reason ?? ''] ?? 'Удостоверение не подтверждено',
+        reason: REASONS[verdict.reason ?? ''] ?? i18nT('verification.verifyCertificatePage.notConfirmedError'),
       };
 }
 

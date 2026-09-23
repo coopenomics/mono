@@ -1,5 +1,6 @@
 import { api } from '../api';
 import emailRegex from 'email-regex';
+import { t } from 'src/shared/i18n';
 const emailValidator = emailRegex({ exact: true });
 
 import { IGeneratedAccount } from 'src/shared/lib/types/user';
@@ -64,7 +65,7 @@ export function useCreateUser() {
 
     const accountType = store.userData.type;
     if (!accountType) {
-      throw new Error('Тип аккаунта не определён');
+      throw new Error(t('user.error.accountTypeMissing'));
     }
 
     // Преобразуем строковый тип в Zeus.AccountType
@@ -76,7 +77,7 @@ export function useCreateUser() {
     } else if (accountType === Zeus.AccountType.entrepreneur) {
       zeusAccountType = Zeus.AccountType.entrepreneur;
     } else {
-      throw new Error(`Неизвестный тип аккаунта: ${accountType}`);
+      throw new Error(t('user.error.unknownAccountType', { accountType }));
     }
 
     // Загружаем документы через Registration store (использует SDK внутри)
@@ -99,7 +100,7 @@ export function useCreateUser() {
 
     for (const doc of docs) {
       if (onProgress) {
-        onProgress(`Подписываем ${doc.title}`);
+        onProgress(t('user.createUser.signingProgress', { docTitle: doc.title }));
       }
 
       const digitalDocument = new DigitalDocument(doc.document);

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
-import { uiLocale } from 'src/shared/i18n';
+import { uiLocale, t } from 'src/shared/i18n';
 import { Zeus } from '@coopenomics/sdk';
 import { SuccessAlert, FailAlert } from 'src/shared/api';
 import { BaseButton, BaseDialog, BaseInput, BaseRadioCard } from 'src/shared/ui/base';
@@ -86,19 +86,19 @@ interface TtnField {
  */
 const TTN_GROUPS: Array<{ title: string; fields: TtnField[] }> = [
   {
-    title: 'Перевозчик',
+    title: t('marketplace.createShipmentDialog.carrierNameLabel'),
     fields: [
-      { key: 'expeditor_full_name', label: 'ФИО экспедитора', placeholder: 'Иванов Иван Иванович' },
-      { key: 'expeditor_phone', label: 'Телефон экспедитора', type: 'tel', placeholder: '+7 900 000-00-00' },
-      { key: 'vehicle_number', label: 'Гос. номер ТС', placeholder: 'А123ВС 777' },
+      { key: 'expeditor_full_name', label: t('marketplace.createShipmentDialog.expeditorNameLabel'), placeholder: t('marketplace.createShipmentDialog.expeditorNamePlaceholder') },
+      { key: 'expeditor_phone', label: t('marketplace.createShipmentDialog.expeditorPhoneLabel'), type: 'tel', placeholder: '+7 900 000-00-00' },
+      { key: 'vehicle_number', label: t('marketplace.createShipmentDialog.vehiclePlateLabel'), placeholder: t('marketplace.createShipmentDialog.vehiclePlatePlaceholder') },
     ],
   },
   {
-    title: 'Погрузка и доставка',
+    title: t('marketplace.createShipmentDialog.loadingDeliveryTitle'),
     fields: [
-      { key: 'loading_address', label: 'Адрес погрузки', placeholder: 'Москва, ул. Складская, 5' },
-      { key: 'loading_datetime', label: 'Дата погрузки', type: 'date' },
-      { key: 'delivery_datetime_estimate', label: 'Ожидаемая дата доставки', type: 'date' },
+      { key: 'loading_address', label: t('marketplace.createShipmentDialog.loadingAddressLabel'), placeholder: t('marketplace.createShipmentDialog.loadingAddressPlaceholder') },
+      { key: 'loading_datetime', label: t('marketplace.createShipmentDialog.loadingDateLabel'), type: 'date' },
+      { key: 'delivery_datetime_estimate', label: t('marketplace.createShipmentDialog.expectedDeliveryDateLabel'), type: 'date' },
     ],
   },
 ];
@@ -172,7 +172,7 @@ const ttnSummary = computed(() => {
     .filter(Boolean);
   if (named.length) return named.join(' · ');
   const filled = Object.values(ttn.value).filter((v) => String(v).trim() !== '').length;
-  return filled ? `заполнено полей: ${filled}` : 'Не заполнено — необязательно';
+  return filled ? t('marketplace.createShipmentDialog.filledFieldsLabel', { filled }) : t('marketplace.createShipmentDialog.notFilledOptionalLabel');
 });
 
 // Поля ТТН необязательны (правка 2026-06-07): партию можно сформировать с тем,
@@ -198,7 +198,7 @@ function boxesFor(line: { id: string; quantity: number }): number | null {
 // ряд не прыгает): расчётное число коробок либо призыв заполнить.
 function packHint(line: { id: string; quantity: number }): string {
   const b = boxesFor(line);
-  return b != null ? `≈ ${b} кор.` : 'укажите упаковку';
+  return b != null ? t('marketplace.createShipmentDialog.approxBoxesLabel', { boxes: b }) : t('marketplace.createShipmentDialog.specifyPackagingHint');
 }
 
 function close(): void {
@@ -250,7 +250,7 @@ async function submit(): Promise<void> {
       created += result.shipments.length;
     }
 
-    SuccessAlert(created > 1 ? `Сформировано партий: ${created}` : 'Партия сформирована');
+    SuccessAlert(created > 1 ? t('marketplace.createShipmentDialog.createdPartiesLabel', { count: created }) : t('marketplace.createShipmentDialog.partyCreatedMessage'));
     emit('created');
     close();
   } catch (e) {
@@ -264,31 +264,31 @@ async function submit(): Promise<void> {
 <template lang="pug">
 BaseDialog(
   :model-value='modelValue',
-  title='Сформировать партию',
+  :title='$t("marketplace.createShipmentDialog.formPartyLabel")',
   maximized,
   @update:model-value='emit("update:modelValue", $event)'
 )
   .create-shipment(v-if='buckets.length')
     //- Шаг 1: способ доставки.
     .create-shipment__step
-      .create-shipment__step-title Способ доставки
+      .create-shipment__step-title {{ $t('marketplace.createShipmentDialog.deliveryMethodLabel') }}
       .create-shipment__variants
         BaseRadioCard(
           v-model='variant',
           :value='SELF',
-          title='Самоввоз',
-          description='Привезу сам на пункт выдачи — без ТТН'
+          :title='$t("marketplace.createShipmentDialog.selfDeliveryTitle")',
+          :description='$t("marketplace.createShipmentDialog.selfDeliveryDescription")'
         )
         BaseRadioCard(
           v-model='variant',
           :value='EXPEDITOR',
-          title='Через экспедитора',
-          description='Передам по товарно-транспортной накладной (с QR приёмки)'
+          :title='$t("marketplace.createShipmentDialog.viaExpeditorTitle")',
+          :description='$t("marketplace.createShipmentDialog.viaExpeditorDescription")'
         )
 
     //- Шаг 2: кооперативный участок.
     .create-shipment__step
-      .create-shipment__step-title Кооперативный участок
+      .create-shipment__step-title {{ $t('marketplace.createShipmentDialog.kuLabel') }}
       .create-shipment__ku-list
         .create-shipment__ku-row(
           v-for='b in buckets',
@@ -306,38 +306,38 @@ BaseDialog(
 
     //- Шаг 3: dual-list заказов выбранного КУ.
     .create-shipment__step(v-if='activeBucket')
-      .create-shipment__step-title Что грузим в партию
+      .create-shipment__step-title {{ $t('marketplace.createShipmentDialog.whatToLoadTitle') }}
       .create-shipment__hint
-        | Перенесите заказы в партию. Грузим всё, что справа; остальное останется
-        | акцептованным для следующей партии. Количество в заказе не дробим.
+        | {{ $t('marketplace.createShipmentDialog.whatToLoadHintIntro') }}
+        | {{ $t('marketplace.createShipmentDialog.whatToLoadHintTail') }}
         span(v-if='isExpeditor')
-          |  У каждого заказа в партии укажите, сколько единиц кладёте в одну
-          | коробку — число коробок посчитается само и попадёт в накладную.
+          |  {{ $t('marketplace.createShipmentDialog.boxHintIntro') }}
+          | {{ $t('marketplace.createShipmentDialog.boxHintTail') }}
       .create-shipment__transfer
         .create-shipment__col
           .create-shipment__col-head
-            span Доступно ({{ availableLines.length }})
+            span {{ $t('marketplace.createShipmentDialog.availableColumnTitle', { count: availableLines.length }) }}
             BaseButton(variant='ghost', size='sm', :disabled='!availableLines.length', @click='includeAll')
-              | Переместить всё →
+              | {{ $t('marketplace.createShipmentDialog.moveAllRightAction') }}
           .create-shipment__col-body
-            .create-shipment__empty(v-if='!availableLines.length') Все заказы в партии
+            .create-shipment__empty(v-if='!availableLines.length') {{ $t('marketplace.createShipmentDialog.allOrdersInPartyMessage') }}
             .create-shipment__line(v-for='l in availableLines', :key='l.id')
               .create-shipment__line-info
                 .create-shipment__line-title {{ l.title }}
                 .create-shipment__line-meta {{ l.units }} {{ l.unitLabel }} · {{ formatPrice(l.sum) }}
-              BaseButton(variant='ghost', size='sm', icon-only, aria-label='В партию', @click='include(l.id)')
+              BaseButton(variant='ghost', size='sm', icon-only, :aria-label='$t("marketplace.createShipmentDialog.moveToPartyAriaLabel")', @click='include(l.id)')
                 template(#icon-left)
                   q-icon(name='chevron_right', size='18px')
 
         .create-shipment__col
           .create-shipment__col-head
-            span В партии ({{ includedLines.length }})
+            span {{ $t('marketplace.createShipmentDialog.inPartyColumnTitle', { count: includedLines.length }) }}
             BaseButton(variant='ghost', size='sm', :disabled='!includedLines.length', @click='excludeAll')
-              | ← Убрать всё
+              | {{ $t('marketplace.createShipmentDialog.removeAllAction') }}
           .create-shipment__col-body
-            .create-shipment__empty(v-if='!includedLines.length') Перенесите заказы сюда
+            .create-shipment__empty(v-if='!includedLines.length') {{ $t('marketplace.createShipmentDialog.dropOrdersHereHint') }}
             .create-shipment__line.create-shipment__line--in(v-for='l in includedLines', :key='l.id')
-              BaseButton(variant='ghost', size='sm', icon-only, aria-label='Откатить', @click='exclude(l.id)')
+              BaseButton(variant='ghost', size='sm', icon-only, :aria-label='$t("marketplace.createShipmentDialog.revertAriaLabel")', @click='exclude(l.id)')
                 template(#icon-left)
                   q-icon(name='chevron_left', size='18px')
               .create-shipment__line-info
@@ -347,16 +347,16 @@ BaseDialog(
                 v-if='isExpeditor',
                 v-model='packaging[l.id]',
                 type='number',
-                label='В коробке, шт',
+                :label='$t("marketplace.createShipmentDialog.unitsPerBoxLabel")',
                 :hint='packHint(l)'
               )
       .create-shipment__total(v-if='includedLines.length')
-        | Итого партии: {{ formatPrice(includedSum) }}
+        | {{ $t('marketplace.createShipmentDialog.partyTotalLabel', { amount: formatPrice(includedSum) }) }}
 
     //- Шаг 4: данные ТТН (только экспедитор). Свёрнут по умолчанию — все поля
     //- необязательные, и раскрытыми они спорили за внимание с переносом заказов.
     .create-shipment__step(v-if='activeBucket && isExpeditor')
-      .create-shipment__step-title Данные ТТН
+      .create-shipment__step-title {{ $t('marketplace.createShipmentDialog.ttnDataTitle') }}
       .create-shipment__ttn
         .create-shipment__ttn-head(
           role='button',
@@ -367,13 +367,13 @@ BaseDialog(
           @keydown.space.prevent='ttnOpen = !ttnOpen'
         )
           span.create-shipment__ttn-summary {{ ttnSummary }}
-          span.create-shipment__ttn-toggle {{ ttnOpen ? 'Свернуть' : 'Заполнить' }}
+          span.create-shipment__ttn-toggle {{ ttnOpen ? $t('marketplace.createShipmentDialog.collapseAction') : $t('marketplace.createShipmentDialog.fillAction') }}
           q-icon.create-shipment__ttn-chev(:name='ttnOpen ? "expand_less" : "expand_more"', size='20px')
 
         .create-shipment__ttn-body(v-if='ttnOpen')
           .create-shipment__hint
-            | Заполните, что известно о перевозчике. ТТН можно сформировать и с
-            | минимумом данных, а незаполненное просто не попадёт в документ.
+            | {{ $t('marketplace.createShipmentDialog.ttnHintIntro') }}
+            | {{ $t('marketplace.createShipmentDialog.ttnHintTail') }}
           .create-shipment__ttn-group(v-for='g in TTN_GROUPS', :key='g.title')
             .create-shipment__ttn-group-title {{ g.title }}
             .create-shipment__ttn-grid
@@ -390,17 +390,17 @@ BaseDialog(
               )
 
   .create-shipment__nodata(v-else)
-    | Нет акцептованных заказов для формирования партии. Примите заказы во
-    | «Входящих заказах» — они появятся здесь.
+    | {{ $t('marketplace.createShipmentDialog.noOrdersHintIntro') }}
+    | {{ $t('marketplace.createShipmentDialog.noOrdersHintTail') }}
 
   template(#footer)
-    BaseButton(variant='ghost', :disabled='submitting', @click='close') Отмена
+    BaseButton(variant='ghost', :disabled='submitting', @click='close') {{ $t('common.action.cancel') }}
     BaseButton(
       variant='primary',
       :loading='submitting',
       :disabled='!canSubmit',
       @click='submit'
-    ) Сформировать партию
+    ) {{ $t('marketplace.createShipmentDialog.formPartyLabel') }}
 </template>
 
 <style scoped lang="scss">

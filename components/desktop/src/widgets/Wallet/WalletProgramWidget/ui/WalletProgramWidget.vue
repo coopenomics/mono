@@ -8,11 +8,11 @@
     v-if='minimumBalance',
     neutral,
     icon='savings',
-    title='Минимальный неснижаемый остаток',
-    subtitle='Возвращается при выходе из кооператива',
+    :title='$t("wallet.walletProgramWidget.minBalanceTitle")',
+    :subtitle='$t("wallet.walletProgramWidget.minBalanceSubtitle")',
     :balance='minimumBalance.amount',
     :symbol='minimumBalance.symbol',
-    balance-label='Зарезервировано'
+    :balance-label='$t("wallet.walletProgramWidget.reservedLabel")'
   )
 
   WalletCard(
@@ -29,8 +29,8 @@
 
 EmptyState(
   v-else,
-  title='Нет кошельков',
-  body='У вас пока нет кошельков на столе пайщика.'
+  :title='$t("wallet.walletProgramWidget.emptyTitle")',
+  :body='$t("wallet.walletProgramWidget.emptyBody")'
 )
   template(#icon)
     q-icon(name='inbox', size='48px')

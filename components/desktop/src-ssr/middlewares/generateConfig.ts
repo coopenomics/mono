@@ -1,5 +1,6 @@
 import { ssrMiddleware } from 'quasar/wrappers';
 import { EnvVars } from '../../src/shared/config/Environment';
+import { t } from 'src/shared/i18n';
 
 /**
  * SSR middleware для инъекции переменных окружения
@@ -46,6 +47,7 @@ export default ssrMiddleware(({ app }) => {
     const envForClient = getEnvForClient();
 
     // Создаем скрипт, который добавит переменные в window.__APP_CONFIG__
+    // i18n-ignore: сгенерированный код с console.log для отладки SSR, не текст интерфейса
     const script = `
     <script>
       window.__APP_CONFIG__ = ${JSON.stringify(envForClient)};
@@ -71,7 +73,7 @@ export default ssrMiddleware(({ app }) => {
         // а не из manifest. Build-time значение generic — подставляем имя коопа
         // из env в рантайме (idempotent: replace если тег есть, иначе insert).
         const appleTitle =
-          (process.env.COOP_SHORT_NAME as string) || 'Цифровой Кооператив';
+          (process.env.COOP_SHORT_NAME as string) || t('app.generateConfig.defaultAppTitle');
         const appleMeta = `<meta name="apple-mobile-web-app-title" content="${appleTitle}">`;
         if (/<meta name="apple-mobile-web-app-title"[^>]*>/.test(html)) {
           html = html.replace(/<meta name="apple-mobile-web-app-title"[^>]*>/, appleMeta);
@@ -92,6 +94,7 @@ export default ssrMiddleware(({ app }) => {
     const envForClient = getEnvForClient();
 
     // Создаем JavaScript файл с конфигурацией
+    // i18n-ignore: сгенерированный код с console.log для отладки SSR, не текст интерфейса
     const configScript = `
 // Конфигурация переменных окружения для клиента (PWA fallback)
 // Автоматически сгенерировано SSR middleware

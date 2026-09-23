@@ -7,13 +7,13 @@
     //- Отчёт уже подан — форма недоступна (повторный отчёт запрещён и на бэке),
     //- остаётся только загрузка дополнительных документов.
     template(v-if='reportSubmitted')
-      .t-sm.t-muted(v-if='pendingSettlement') Отчёт подан{{ reportedAmountLabel }} — ждём подтверждения расчёта кассой, после него позиция закроется. Дополнительные документы можно приложить ниже.
-      .t-sm.t-muted(v-else) Отчёт по авансу принят — дополнительные документы дополнят его автоматически.
+      .t-sm.t-muted(v-if='pendingSettlement') {{ $t('payment.reportExpenseAdvancePanel.submittedHint', { reportedAmountLabel }) }}
+      .t-sm.t-muted(v-else) {{ $t('payment.reportExpenseAdvancePanel.acceptedHint') }}
     template(v-else)
       .t-sm.report-advance__lead(v-if='onBehalf')
         q-icon(name='assignment_ind', size='16px')
-        span Чеки получены от пайщика лично. Укажите фактически потраченную сумму и приложите чек — отчёт уйдёт от его имени.
-      .t-sm.t-muted(v-else) Выданный аванс: {{ advanceLabel }}. Укажите фактически потраченную сумму и приложите чек.
+        span {{ $t('payment.reportExpenseAdvancePanel.onBehalfHint') }}
+      .t-sm.t-muted(v-else) {{ $t('payment.reportExpenseAdvancePanel.advanceIssuedHint', { advanceLabel }) }}
 
     //- Сначала сумма (с ней видна разница), затем чек — и только тогда кнопка.
     template(v-if='canReport')
@@ -23,7 +23,7 @@
           :symbol='advanceSymbol',
           :precision='2',
           :min='0',
-          label='Фактически потрачено по чекам',
+          :label='$t("payment.reportExpenseAdvancePanel.spentAmountLabel")',
           :disabled='reporting'
         )
       .t-sm.t-warning(v-if='deltaHint') {{ deltaHint }}
@@ -33,8 +33,8 @@
       v-model='pending',
       accept='image/jpeg,image/png,image/webp,image/heic,application/pdf',
       :max-size='20 * 1024 * 1024',
-      :title='canReport ? "Приложите чек" : "Приложите дополнительный документ"',
-      hint='Изображение или PDF до 20 МБ — добавится сразу',
+      :title='canReport ? $t("payment.reportExpenseAdvancePanel.attachReceipt") : $t("payment.reportExpenseAdvancePanel.attachAdditionalDocument")',
+      :hint='$t("payment.reportExpenseAdvancePanel.uploadHint")',
       :disabled='uploading || reporting'
     )
 
@@ -56,12 +56,12 @@
       :loading='reporting',
       :disabled='!files.length || reporting',
       @click='submitReport'
-    ) {{ onBehalf ? 'Отчитаться за пайщика' : 'Отчитаться по авансу' }}
+    ) {{ onBehalf ? $t('payment.reportExpenseAdvancePanel.reportOnBehalf') : $t('payment.reportExpenseAdvancePanel.reportAdvance') }}
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
-import { uiLocale } from 'src/shared/i18n';
+import { uiLocale, t } from 'src/shared/i18n';
 import { Zeus } from '@coopenomics/sdk';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { useSystemStore } from 'src/entities/System/model';
@@ -134,8 +134,8 @@ const deltaHint = computed(() => {
     `${diff.toFixed(advance.value.precision)} ${advance.value.symbol}`,
   );
   return diffMinor < 0
-    ? `Недорасход ${diffLabel}: будет создан платёж возврата — его нужно оплатить кооперативу.`
-    : `Перерасход ${diffLabel}: будет создан платёж доплаты — кооператив выплатит разницу.`;
+    ? t('payment.reportExpenseAdvancePanel.underspentNotice', { diffLabel })
+    : t('payment.reportExpenseAdvancePanel.overspentNotice', { diffLabel });
 });
 
 // Панель — только для аванса под отчёт: по счёту (DIRECT) отчётный документ
@@ -190,7 +190,7 @@ const reportSubmitted = computed(
   () => isReported.value || pendingSettlement.value || closedByState.value,
 );
 const reportedAmountLabel = computed(() =>
-  props.reportedAmount ? ` на ${formatAsset2Digits(props.reportedAmount)}` : '',
+  props.reportedAmount ? t('payment.reportExpenseAdvancePanel.onAmountSuffix', { amount: formatAsset2Digits(props.reportedAmount) }) : '',
 );
 
 // "1000.0000 RUB" → { num, symbol, precision }.
@@ -207,7 +207,7 @@ function fileLabel(file: IExpenseFile): string {
   const date = file.uploaded_at
     ? new Date(String(file.uploaded_at)).toLocaleString(uiLocale())
     : '';
-  return `Чек от ${date}`;
+  return t('payment.reportExpenseAdvancePanel.receiptFromLabel', { date });
 }
 
 // Списочные запросы файлов отдают записи без read_url (он короткоживущий) —
@@ -217,7 +217,7 @@ async function openFile(file: IExpenseFile): Promise<void> {
   try {
     openingId.value = file.id;
     const url = await attachExpenseProofApi.getExpenseFileReadUrl(file.id);
-    if (!url) throw new Error('Не удалось получить ссылку на файл');
+    if (!url) throw new Error(t('payment.error.fileLinkError'));
     window.open(url, '_blank', 'noopener');
   } catch (e) {
     FailAlert(e);
@@ -266,14 +266,14 @@ async function submitReport(): Promise<void> {
       : '';
     if (result?.outcome === Zeus.ExpenseReportOutcome.RETURN_PENDING) {
       SuccessAlert(
-        `Заведён платёж возврата на ${settlementLabel}. Оплатите его кооперативу — после подтверждения кассой отчёт закроется.`,
+        t('payment.reportExpenseAdvancePanel.refundPaymentCreated', { settlementLabel }),
       );
     } else if (result?.outcome === Zeus.ExpenseReportOutcome.OVERSPEND_PENDING) {
       SuccessAlert(
-        `Заведён платёж доплаты на ${settlementLabel}. Кооператив выплатит разницу — после подтверждения кассой отчёт закроется.`,
+        t('payment.reportExpenseAdvancePanel.topUpPaymentCreated', { settlementLabel }),
       );
     } else {
-      SuccessAlert('Отчёт по авансу принят');
+      SuccessAlert(t('payment.reportExpenseAdvancePanel.acceptedSuccess'));
     }
     await refresh();
     emit('reported', result?.settlement_payment_hash ?? undefined);
@@ -290,7 +290,7 @@ watch(pending, async (file) => {
   if (!file || uploading.value) return;
   const uploaded = await upload();
   if (!uploaded) return;
-  SuccessAlert('Документ приложен');
+  SuccessAlert(t('payment.reportExpenseAdvancePanel.attachSuccess'));
   await refresh();
 });
 

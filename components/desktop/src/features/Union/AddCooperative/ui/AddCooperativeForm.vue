@@ -1,25 +1,25 @@
 <template lang="pug">
 div
   template(v-if="isSubmitting")
-    Loader(:text="'Создаем кооператив...'")
+    Loader(:text="$t('union.addCooperativeForm.submittingText')")
   template(v-else)
-    Form(:handler-submit="addNow" :showCancel="false" :button-cancel-txt="'Отменить'" :button-submit-txt="'Продолжить'" @cancel="clear").q-gutter-md
+    Form(:handler-submit="addNow" :showCancel="false" :button-cancel-txt="$t('union.addCooperativeForm.cancel')" :button-submit-txt="$t('union.addCooperativeForm.submitLabel')" @cancel="clear").q-gutter-md
       //- q-input(standout="bg-teal text-white" label="Имя аккаунта" v-model="data.coopname" :rules="[val => notEmpty(val)]")
-      q-input(standout="bg-teal text-white" hint="domovoy.com или coop.domovoy.com" label="Домен или поддомен для запуска" v-model="data.params.announce" :rules="[val => notEmpty(val), val => isDomain(val)]")
+      q-input(standout="bg-teal text-white" :hint="$t('union.addCooperativeForm.domainHint')" :label="$t('union.addCooperativeForm.domainLabel')" v-model="data.params.announce" :rules="[val => notEmpty(val), val => isDomain(val)]")
 
-      q-input(standout="bg-teal text-white" hint="100 RUB" label="Вступительный взнос для физлиц и ИП" v-model="data.params.initial" type="number" :min="0" :rules="[val => notEmpty(val)]")
+      q-input(standout="bg-teal text-white" hint="100 RUB" :label="$t('union.addCooperativeForm.initialIndividualLabel')" v-model="data.params.initial" type="number" :min="0" :rules="[val => notEmpty(val)]")
         template(#append)
           span.text-overline {{currency}}
 
-      q-input(standout="bg-teal text-white" hint="Минимальный паевый взнос для физлиц и ИП" v-model="data.params.minimum" type="number" :min="0" :rules="[val => notEmpty(val)]")
+      q-input(standout="bg-teal text-white" :hint="$t('union.addCooperativeForm.minimumIndividualHint')" v-model="data.params.minimum" type="number" :min="0" :rules="[val => notEmpty(val)]")
         template(#append)
           span.text-overline {{currency}}
 
-      q-input(standout="bg-teal text-white" hint="1000 RUB" label="Вступительный взнос для организаций" v-model="data.params.org_initial" type="number" :min="0" :rules="[val => notEmpty(val)]")
+      q-input(standout="bg-teal text-white" hint="1000 RUB" :label="$t('union.addCooperativeForm.initialOrgLabel')" v-model="data.params.org_initial" type="number" :min="0" :rules="[val => notEmpty(val)]")
         template(#append)
           span.text-overline {{currency}}
 
-      q-input(standout="bg-teal text-white" hint="3000 RUB" label="Минимальный паевый взнос для организаций" v-model="data.params.org_minimum" type="number" :min="0"  :rules="[val => notEmpty(val)]")
+      q-input(standout="bg-teal text-white" hint="3000 RUB" :label="$t('union.addCooperativeForm.minimumOrgLabel')" v-model="data.params.org_minimum" type="number" :min="0"  :rules="[val => notEmpty(val)]")
         template(#append)
           span.text-overline {{currency}}
 
@@ -35,6 +35,7 @@ import { RegistratorContract } from 'cooptypes';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import type { IDocument } from 'src/shared/lib/types/document';
 import { env } from 'src/shared/config';
+import { t } from 'src/shared/i18n';
 
 const emit = defineEmits(['finish'])
 
@@ -114,7 +115,7 @@ const addNow = async () => {
     isSubmitting.value = true
     data.value.document = {...document.value, meta: JSON.stringify(document.value.meta)}
     await addCooperative(data.value)
-    SuccessAlert('Заявка на создание кооператива отправлена!')
+    SuccessAlert(t('union.addCooperativeForm.submitSuccess'))
 
     // После успешной отправки переходим к следующему шагу
     clear()

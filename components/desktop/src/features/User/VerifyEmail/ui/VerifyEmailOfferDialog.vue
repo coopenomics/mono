@@ -7,29 +7,29 @@
 //- молча, а закрытие трактуется как «Позже» — пайщик призыва просто не увидит.
 BaseDialog(
   v-model='visible',
-  title='Подтвердите электронную почту',
+  :title='$t("user.verifyEmailOfferDialog.title")',
   size='sm',
   :close-on-route-change='false'
 )
   .verify-offer
     p.verify-offer__text
-      | Подтверждение нужно, чтобы вы могли вернуть доступ к кабинету, если
-      | забудете пароль, и получать уведомления кооператива.
+      | {{ $t('user.verifyEmailOfferDialog.textLine1') }}
+      | {{ $t('user.verifyEmailOfferDialog.textLine2') }}
 
     template(v-if='started')
       EmailCodeForm(:email='email', @verified='onVerified')
     template(v-else)
       p.verify-offer__text.verify-offer__text--muted
-        | Код придёт на адрес
+        | {{ $t('user.verifyEmailOfferDialog.codeWillArrive') }}
         |
         strong {{ email }}
 
   template(#footer)
-    BaseButton(variant='secondary', @click='postpone') Позже
+    BaseButton(variant='secondary', @click='postpone') {{ $t('user.verifyEmailOfferDialog.postpone') }}
     BaseButton(v-if='!started', variant='primary', @click='started = true')
       template(#icon-left)
         q-icon(name='mark_email_read', size='18px')
-      | Выслать код
+      | {{ $t('user.verifyEmailOfferDialog.sendCode') }}
 </template>
 
 <script lang="ts" setup>
@@ -40,6 +40,7 @@ import { useSessionStore } from 'src/entities/Session';
 import { loadUserContext } from 'src/processes/init-wallet/loadUserContext';
 import { useAccountEmail, verifyEmailOfferDismissed as dismissed } from '../model';
 import EmailCodeForm from './EmailCodeForm.vue';
+import { t } from 'src/shared/i18n';
 
 const session = useSessionStore();
 const { email, isVerified } = useAccountEmail();
@@ -77,7 +78,7 @@ function postpone(): void {
 
 async function onVerified(): Promise<void> {
   dismissed.value = true;
-  SuccessAlert('Электронная почта подтверждена');
+  SuccessAlert(t('user.verifyEmailOfferDialog.success'));
   try {
     await loadUserContext();
   } catch (e) {

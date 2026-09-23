@@ -19,6 +19,7 @@ import { formatDateToLocalTimezone } from 'src/shared/lib/utils/dates'
 import { marketplaceOrderSaleUnit } from 'src/shared/lib/consts/marketplace-units'
 import type { MarketplaceContainerView } from 'src/entities/MarketplaceStorage'
 import type { MarketplaceInventoryItemView } from 'src/entities/MarketplaceInventory'
+import { t } from 'src/shared/i18n';
 
 const props = defineProps<{
   modelValue: boolean
@@ -43,11 +44,11 @@ const emit = defineEmits<{
 }>()
 
 const STATUS: Record<string, { label: string; variant: BaseBadgeVariant }> = {
-  [Zeus.MarketplaceInventoryStatus.RECEIVED]: { label: 'Принято', variant: 'neutral' },
-  [Zeus.MarketplaceInventoryStatus.LABELED]: { label: 'Промаркировано', variant: 'info' },
-  [Zeus.MarketplaceInventoryStatus.ISSUED]: { label: 'Выдано', variant: 'pos' },
-  [Zeus.MarketplaceInventoryStatus.RETURNED]: { label: 'Возврат на склад', variant: 'warn' },
-  [Zeus.MarketplaceInventoryStatus.WRITTEN_OFF]: { label: 'Списано', variant: 'neg' },
+  [Zeus.MarketplaceInventoryStatus.RECEIVED]: { label: t('marketplace.containerContentsDrawer.statusReceived'), variant: 'neutral' },
+  [Zeus.MarketplaceInventoryStatus.LABELED]: { label: t('marketplace.containerContentsDrawer.statusLabeled'), variant: 'info' },
+  [Zeus.MarketplaceInventoryStatus.ISSUED]: { label: t('marketplace.containerContentsDrawer.statusHandedOut'), variant: 'pos' },
+  [Zeus.MarketplaceInventoryStatus.RETURNED]: { label: t('marketplace.containerContentsDrawer.statusReturnedToStock'), variant: 'warn' },
+  [Zeus.MarketplaceInventoryStatus.WRITTEN_OFF]: { label: t('marketplace.containerContentsDrawer.statusWrittenOff'), variant: 'neg' },
 }
 
 function statusLabel(status: string): string {
@@ -76,15 +77,15 @@ function formatDate(value: unknown): string {
 }
 
 const columns: BaseTableColumn<MarketplaceInventoryItemView>[] = [
-  { key: 'product', label: 'Позиция', width: '200px', field: 'product_name_snapshot' },
-  { key: 'qty', label: 'Кол-во', width: '110px', numeric: true, nowrap: true },
-  { key: 'orderer', label: 'Заказчик', width: '180px' },
-  { key: 'status', label: 'Состояние', width: '150px' },
-  { key: 'expiry', label: 'Годен до', width: '120px', nowrap: true },
+  { key: 'product', label: t('marketplace.containerContentsDrawer.column.item'), width: '200px', field: 'product_name_snapshot' },
+  { key: 'qty', label: t('marketplace.containerContentsDrawer.column.quantity'), width: '110px', numeric: true, nowrap: true },
+  { key: 'orderer', label: t('marketplace.containerContentsDrawer.column.orderer'), width: '180px' },
+  { key: 'status', label: t('marketplace.containerContentsDrawer.column.state'), width: '150px' },
+  { key: 'expiry', label: t('marketplace.containerContentsDrawer.column.expiry'), width: '120px', nowrap: true },
 ]
 
 const title = computed(() =>
-  props.container ? `Бокс ${props.container.code}` : 'Бокс',
+  props.container ? t('marketplace.containerContentsDrawer.title', { code: props.container.code }) : t('marketplace.containerContentsDrawer.titleFallback'),
 )
 
 /** Сводка по боксу: сколько позиций и сколько единиц имущества внутри. */
@@ -103,12 +104,12 @@ DetailsDrawer(
 )
   .box-contents(v-if='container')
     .box-contents__facts
-      DataRow(v-if='branchName', label='Участок', :value='branchName')
-      DataRow(v-if='branchAddress', label='Адрес участка', :value='branchAddress')
-      DataRow(v-if='typeName', label='Тип тары', :value='typeName')
-      DataRow(v-if='volume', label='Объём', :value='volume')
-      DataRow(label='Ячейка', :value='cellCode || "Без адреса"')
-      DataRow(v-if='container.label', label='Подпись партии', :value='container.label')
+      DataRow(v-if='branchName', :label='$t("marketplace.containerContentsDrawer.branchLabel")', :value='branchName')
+      DataRow(v-if='branchAddress', :label='$t("marketplace.containerContentsDrawer.branchAddressLabel")', :value='branchAddress')
+      DataRow(v-if='typeName', :label='$t("marketplace.containerContentsDrawer.containerTypeLabel")', :value='typeName')
+      DataRow(v-if='volume', :label='$t("marketplace.containerContentsDrawer.volumeLabel")', :value='volume')
+      DataRow(:label='$t("marketplace.containerContentsDrawer.cellLabel")', :value='cellCode || $t("marketplace.containerContentsDrawer.noAddressLabel")')
+      DataRow(v-if='container.label', :label='$t("marketplace.containerContentsDrawer.batchSignatureLabel")', :value='container.label')
 
     BaseTable(
       v-if='items.length',
@@ -127,12 +128,12 @@ DetailsDrawer(
       template(#cell-expiry='{ row }')
         | {{ formatDate(row.expiry_date) }}
       template(#footer)
-        span Позиций: {{ summary.positions }} · единиц: {{ summary.units }}
+        span {{ $t('marketplace.containerContentsDrawer.summaryText', { positions: summary.positions, units: summary.units }) }}
 
     EmptyState(
       v-else,
-      title='Бокс пуст',
-      body='В этом боксе сейчас ничего не лежит. Имущество кладёт в него оператор участка при раскладке.'
+      :title='$t("marketplace.containerContentsDrawer.emptyTitle")',
+      :body='$t("marketplace.containerContentsDrawer.emptyBody")'
     )
       template(#icon)
         q-icon(name='inbox', size='48px')

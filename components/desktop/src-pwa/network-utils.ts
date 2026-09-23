@@ -1,3 +1,4 @@
+import { t } from 'src/shared/i18n';
 /**
  * Утилиты для обработки сетевых ошибок и проблем с background throttling
  */
@@ -15,7 +16,7 @@ export function createRobustFetch(
     init?: RequestInit,
   ): Promise<Response> {
     if (typeof fetch === 'undefined') {
-      throw new Error('Fetch API недоступен в этом окружении');
+      throw new Error(t('app.error.fetchApiUnavailable'));
     }
 
     let lastError: Error | null = null;
@@ -64,7 +65,7 @@ export function createRobustFetch(
     }
 
     // Если все попытки неудачны, выбрасываем последнюю ошибку
-    throw lastError || new Error('Все попытки fetch неудачны');
+    throw lastError || new Error(t('app.error.allFetchAttemptsFailed'));
   };
 }
 
@@ -94,7 +95,7 @@ export function waitForTabActive(timeout = 30000): Promise<void> {
 
     const timeoutId = setTimeout(() => {
       document.removeEventListener('visibilitychange', handler);
-      reject(new Error('Таймаут ожидания активности вкладки'));
+      reject(new Error(t('app.error.tabActiveTimeout')));
     }, timeout);
 
     const handler = () => {
@@ -117,7 +118,7 @@ export async function backgroundAwareFetch(
   init?: RequestInit,
 ): Promise<Response> {
   if (typeof fetch === 'undefined') {
-    throw new Error('Fetch API недоступен в этом окружении');
+    throw new Error(t('app.error.fetchApiUnavailable'));
   }
 
   // Если вкладка в фоне, ждём активации
@@ -152,8 +153,8 @@ export function setupServiceWorkerErrorHandling() {
           'Notification' in window &&
           Notification.permission === 'granted'
         ) {
-          new Notification('Проблема с сетью', {
-            body: 'Некоторые запросы были заблокированы. Попробуйте обновить страницу.',
+          new Notification(t('app.networkUtils.networkIssueTitle'), {
+            body: t('app.networkUtils.networkIssueBody'),
             icon: '/icons/icon-192x192.png',
           });
         }

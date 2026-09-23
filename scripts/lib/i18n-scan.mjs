@@ -215,8 +215,12 @@ function scanTextWithInterpolation(text, base, origin) {
     last = m.index + m[0].length;
   }
   staticText += text.slice(last);
+  // Текст с русским вокруг вставок переносится целиком одним сообщением;
+  // строки внутри вставок тогда не выдаются отдельно — их диапазоны лежат
+  // внутри текста, и две замены наложились бы. Они станут видны следующим
+  // сканированием — уже как строки в параметрах сообщения.
   if (CYRILLIC.test(staticText)) {
-    found.unshift({ kind: 'tpl-text', origin, start: base, end: base + text.length, text });
+    return [{ kind: 'tpl-text', origin, start: base, end: base + text.length, text, nested: found.length }];
   }
   return found;
 }
@@ -360,6 +364,9 @@ function markIgnored(src, found, filePath) {
  */
 export function scanSource(src, filePath) {
   if (!CYRILLIC.test(src)) return { found: [] };
+  // Файл-данные целиком (таблица транслитерации, справочник): пометка
+  // `i18n-ignore-file: причина` в первых строках.
+  if (/i18n-ignore-file:/.test(src.slice(0, 2000))) return { found: [] };
   if (filePath.endsWith('.vue')) {
     let descriptor;
     try {

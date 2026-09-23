@@ -27,7 +27,7 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue';
-import { uiLocale } from 'src/shared/i18n';
+import { uiLocale, t } from 'src/shared/i18n';
 import { BaseDialog } from 'src/shared/ui/base/BaseDialog';
 import { BaseDocument } from 'src/shared/ui/BaseDocument';
 import { DocumentRow } from '../DocumentRow';
@@ -77,8 +77,8 @@ const docs = computed<DocEntry[]>(() => {
       },
     });
   };
-  add(props.statement, 'Служебная записка', 'statement');
-  add(props.decision, 'Протокол решения совета', 'decision');
+  add(props.statement, t('ui.expenseProposalDocuments.memoLabel'), 'statement');
+  add(props.decision, t('ui.expenseProposalDocuments.protocolLabel'), 'decision');
   return out;
 });
 

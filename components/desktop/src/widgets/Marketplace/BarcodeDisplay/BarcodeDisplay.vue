@@ -5,7 +5,7 @@
       :viewBox="`0 0 ${totalWidth} ${barHeight}`"
       :width="totalWidth"
       :height="barHeight"
-      :aria-label="`Штрих-код ${code}`"
+      :aria-label="$t(`marketplace.barcodeDisplay.label`, { code })"
       role="img"
     >
       <rect

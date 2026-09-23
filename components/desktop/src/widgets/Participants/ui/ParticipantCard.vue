@@ -9,18 +9,18 @@
         .participant-card__name {{ getName(participant) }}
         .participant-card__account
           q-icon.participant-card__field-icon(name='badge', size='14px')
-            q-tooltip Имя аккаунта
+            q-tooltip {{ $t('participants.participantCard.accountNameLabel') }}
           span.participant-card__field-text {{ participant.username }}
           q-icon.participant-card__copy(
             name='content_copy',
             size='14px',
             @click.stop='copyText(participant.username)'
           )
-            q-tooltip Скопировать
+            q-tooltip {{ $t('participants.participantCard.copyLabel') }}
         .participant-card__email
           q-icon.participant-card__field-icon(name='mail', size='14px')
             q-tooltip Email
-          span.participant-card__field-text {{ participant.provider_account?.email || 'Email не указан' }}
+          span.participant-card__field-text {{ participant.provider_account?.email || $t('participants.participantCard.emailMissing') }}
       q-icon.participant-card__chevron(name='chevron_right', size='20px')
     //- Статус, дата и удаление — отдельной строкой под идентификацией, чтобы
     //- широкий бейдж («Ожидает решения совета») не сжимал имя/аккаунт/email
@@ -39,6 +39,7 @@ import moment from 'src/shared/lib/utils/dates/moment';
 import { getName } from 'src/shared/lib/utils';
 import { getAccountStatusBadge } from 'src/entities/Account';
 import type { IAccount } from 'src/entities/Account/types';
+import { t } from 'src/shared/i18n';
 
 defineProps<{
   participant: IAccount;
@@ -52,9 +53,9 @@ async function copyText(text: string): Promise<void> {
   if (!text) return;
   try {
     await copyToClipboard(text);
-    Notify.create({ type: 'positive', message: 'Скопировано', timeout: 1200, position: 'top' });
+    Notify.create({ type: 'positive', message: t('participants.participantCard.copiedSuccess'), timeout: 1200, position: 'top' });
   } catch {
-    Notify.create({ type: 'negative', message: 'Не удалось скопировать', timeout: 2000, position: 'top' });
+    Notify.create({ type: 'negative', message: t('participants.participantCard.copyError'), timeout: 2000, position: 'top' });
   }
 }
 
@@ -68,9 +69,9 @@ const asDateInput = (value: unknown): string | Date | undefined =>
 
 const formatDate = (date?: unknown) => {
   const input = asDateInput(date);
-  if (!input) return 'Дата не указана';
+  if (!input) return t('participants.participantCard.dateMissing');
   const formatted = moment(input).format('DD.MM.YY');
-  return formatted === 'Invalid date' ? 'Дата не указана' : formatted;
+  return formatted === 'Invalid date' ? t('participants.participantCard.dateMissing') : formatted;
 };
 
 // Дата вступления: приём советом (participant_account), у вышедших запись стёрта —

@@ -21,6 +21,7 @@ import { useMarketplaceRealtime } from 'src/shared/lib/marketplace'
 // глобальный `Map` (используется в `rows`).
 import { Map as MapView } from 'src/shared/ui/Map'
 import { MarketplaceDetailKUDialog } from 'src/features/MarketplaceDetailKU'
+import { t } from 'src/shared/i18n';
 
 /**
  * Эпик 2: admin-стол «Пункты выдачи заказов».
@@ -73,18 +74,18 @@ const rows = computed<IssuancePointRow[]>(() => {
 const connectedCount = computed(() => rows.value.filter((r) => r.details).length)
 
 const STATUS_LABEL: Record<KuDetailsStatus, { label: string; variant: BaseBadgeVariant }> = {
-  ACTIVE: { label: 'Активен', variant: 'pos' },
-  INACTIVE: { label: 'Деактивирован', variant: 'neutral' },
+  ACTIVE: { label: t('marketplace.issuancePoints.status.active'), variant: 'pos' },
+  INACTIVE: { label: t('marketplace.issuancePoints.status.inactive'), variant: 'neutral' },
 }
 
 const GEOCODE_LABEL: Record<GeocodeStatus, { label: string; variant: BaseBadgeVariant }> = {
-  OK: { label: 'Координаты есть', variant: 'pos' },
-  PENDING: { label: 'Определяются…', variant: 'warn' },
-  FAILED: { label: 'Ошибка геокода', variant: 'neg' },
+  OK: { label: t('marketplace.issuancePoints.status.geocoded'), variant: 'pos' },
+  PENDING: { label: t('marketplace.issuancePoints.status.geocoding'), variant: 'warn' },
+  FAILED: { label: t('marketplace.issuancePoints.status.geocodeError'), variant: 'neg' },
 }
 
 function statusOf(row: IssuancePointRow): { label: string; variant: BaseBadgeVariant } {
-  if (!row.details) return { label: 'Не подключён', variant: 'neutral' }
+  if (!row.details) return { label: t('marketplace.issuancePoints.status.notConnected'), variant: 'neutral' }
   return STATUS_LABEL[row.details.status]
 }
 
@@ -106,8 +107,8 @@ const mapOpen = ref(false)
 const mapRow = ref<IssuancePointRow | null>(null)
 const mapTitle = computed(() =>
   mapRow.value
-    ? `Карта — ${mapRow.value.branch.short_name || mapRow.value.branch.full_name || mapRow.value.branch.braname}`
-    : 'Карта',
+    ? t('marketplace.issuancePoints.mapDialogTitle', { branchName: mapRow.value.branch.short_name || mapRow.value.branch.full_name || mapRow.value.branch.braname })
+    : t('marketplace.issuancePoints.mapButton'),
 )
 
 function hasCoords(row: IssuancePointRow): boolean {
@@ -141,12 +142,12 @@ function pointRowKey(row: IssuancePointRow): string {
 }
 
 const columns: BaseTableColumn<IssuancePointRow>[] = [
-  { key: 'ku', label: 'Участок', width: '240px', sortable: true, field: (row) => branchName(row) },
-  { key: 'city', label: 'Город', width: '140px', sortable: true, field: (row) => row.branch.city ?? '' },
-  { key: 'address', label: 'Адрес', width: '300px', field: (row) => addressOf(row) },
-  { key: 'status', label: 'Статус', width: '160px', sortable: true, field: (row) => statusOf(row).label },
-  { key: 'geo', label: 'Геокод', width: '190px' },
-  { key: 'actions', label: 'Действия', width: '200px' },
+  { key: 'ku', label: t('marketplace.issuancePoints.column.branch'), width: '240px', sortable: true, field: (row) => branchName(row) },
+  { key: 'city', label: t('marketplace.issuancePoints.column.city'), width: '140px', sortable: true, field: (row) => row.branch.city ?? '' },
+  { key: 'address', label: t('marketplace.issuancePoints.column.address'), width: '300px', field: (row) => addressOf(row) },
+  { key: 'status', label: t('marketplace.issuancePoints.column.status'), width: '160px', sortable: true, field: (row) => statusOf(row).label },
+  { key: 'geo', label: t('marketplace.issuancePoints.column.geocode'), width: '190px' },
+  { key: 'actions', label: t('marketplace.issuancePoints.column.actions'), width: '200px' },
 ]
 
 async function load(): Promise<void> {
@@ -157,7 +158,7 @@ async function load(): Promise<void> {
       kuStore.load({ coopname: coopname.value, onlyActive: false }),
     ])
   } catch (e) {
-    FailAlert(e, 'Не удалось загрузить участки и пункты выдачи')
+    FailAlert(e, t('marketplace.issuancePoints.loadFailedError'))
   } finally {
     loading.value = false
   }
@@ -203,9 +204,9 @@ async function onSaved(): Promise<void> {
 async function setStatus(row: IssuancePointRow, status: KuDetailsStatus): Promise<void> {
   try {
     await kuStore.setStatus({ coopname: coopname.value, coreBraname: row.branch.braname, status })
-    SuccessAlert(status === KuDetailsStatus.ACTIVE ? 'Пункт выдачи активирован' : 'Пункт выдачи деактивирован')
+    SuccessAlert(status === KuDetailsStatus.ACTIVE ? t('marketplace.issuancePoints.activatedSuccess') : t('marketplace.issuancePoints.deactivatedSuccess'))
   } catch (e) {
-    FailAlert(e, 'Не удалось изменить статус пункта выдачи')
+    FailAlert(e, t('marketplace.issuancePoints.toggleFailedError'))
   }
 }
 
@@ -214,16 +215,16 @@ async function retryGeocode(row: IssuancePointRow): Promise<void> {
   try {
     const updated = await kuStore.retryGeocode(coopname.value, row.branch.braname)
     if (updated.geocodeStatus === GeocodeStatus.OK) {
-      SuccessAlert('Координаты определены')
+      SuccessAlert(t('marketplace.issuancePoints.geocodedSuccess'))
     } else if (updated.geocodeStatus === GeocodeStatus.FAILED) {
       FailAlert(
-        new Error(updated.geocodeErrorMessage || 'Не удалось определить координаты'),
+        new Error(updated.geocodeErrorMessage || t('marketplace.issuancePoints.geocodeFailedError')),
       )
     } else {
-      SuccessAlert('Геокодинг запущен — статус обновится автоматически')
+      SuccessAlert(t('marketplace.issuancePoints.geocodingStartedInfo'))
     }
   } catch (e) {
-    FailAlert(e, 'Не удалось перезапустить геокодинг')
+    FailAlert(e, t('marketplace.issuancePoints.geocodeRetryFailedError'))
   } finally {
     const next = new Set(geocodingBranames.value)
     next.delete(row.branch.braname)
@@ -253,7 +254,7 @@ q-page.admin-pvz
 
   .admin-pvz__toolbar
     .admin-pvz__counter(v-if='!firstLoad && rows.length')
-      | Подключено пунктов выдачи: {{ connectedCount }} из {{ rows.length }}
+      | {{ $t('marketplace.issuancePoints.connectedSummary', { connected: connectedCount, total: rows.length }) }}
 
   BaseTable(
     v-if='loading || rows.length',
@@ -295,7 +296,7 @@ q-page.admin-pvz
           variant='ghost',
           icon-only,
           size='sm',
-          aria-label='Открыть карту',
+          :aria-label='$t("marketplace.issuancePoints.openMapAriaLabel")',
           @click='openMap(row)'
         )
           template(#icon-left)
@@ -311,13 +312,13 @@ q-page.admin-pvz
         )
           template(#icon-left)
             q-icon(name='add_location_alt', size='16px')
-          | Сделать ПВЗ
+          | {{ $t('marketplace.issuancePoints.makeIssuancePointButton') }}
         .admin-pvz__actions(v-else)
           BaseButton(
             variant='ghost',
             icon-only,
             size='sm',
-            aria-label='Изменить',
+            :aria-label='$t("marketplace.issuancePoints.editAriaLabel")',
             @click='openEdit(row)'
           )
             template(#icon-left)
@@ -327,7 +328,7 @@ q-page.admin-pvz
             variant='ghost',
             icon-only,
             size='sm',
-            aria-label='Определить координаты',
+            :aria-label='$t("marketplace.issuancePoints.geocodeAriaLabel")',
             :loading='isGeocodingRow(row)',
             :disabled='isGeocodingRow(row)',
             @click='retryGeocode(row)'
@@ -339,7 +340,7 @@ q-page.admin-pvz
             variant='ghost',
             icon-only,
             size='sm',
-            aria-label='Деактивировать',
+            :aria-label='$t("marketplace.issuancePoints.deactivateAriaLabel")',
             @click='setStatus(row, KuDetailsStatus.INACTIVE)'
           )
             template(#icon-left)
@@ -349,7 +350,7 @@ q-page.admin-pvz
             variant='ghost',
             icon-only,
             size='sm',
-            aria-label='Активировать',
+            :aria-label='$t("marketplace.issuancePoints.activateAriaLabel")',
             @click='setStatus(row, KuDetailsStatus.ACTIVE)'
           )
             template(#icon-left)
@@ -358,8 +359,8 @@ q-page.admin-pvz
 
   EmptyState(
     v-else,
-    title='Кооперативных участков нет',
-    body='Создайте кооперативный участок на столе совета — после этого его можно будет подключить как пункт выдачи заказов.'
+    :title='$t("marketplace.issuancePoints.emptyTitle")',
+    :body='$t("marketplace.issuancePoints.emptyBody")'
   )
     template(#icon)
       q-icon(name='pin_drop', size='48px')

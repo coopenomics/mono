@@ -2,7 +2,7 @@
 DetailsDrawer(
   :model-value='overlay.isOpen.value',
   :width='760',
-  title='Предложение',
+  :title='$t("marketplace.offerRegistryOverlay.title")',
   @update:model-value='(v) => !v && overlay.close()'
 )
   template(#actions)
@@ -12,12 +12,12 @@ DetailsDrawer(
       v-if='showFullPage',
       variant='ghost',
       size='sm',
-      aria-label='Открыть предложение на отдельной странице',
+      :aria-label='$t("marketplace.offerRegistryOverlay.openFullPageAriaLabel")',
       @click='openFullPage'
     )
       template(#icon-left)
         q-icon(name='open_in_full', size='16px')
-      | Открыть страницу
+      | {{ $t('marketplace.offerRegistryOverlay.openFullPageButton') }}
 
   OfferRegistryDetail(
     v-if='overlay.value.value',

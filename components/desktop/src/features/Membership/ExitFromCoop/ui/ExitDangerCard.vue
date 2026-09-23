@@ -1,53 +1,53 @@
 <template lang="pug">
 BaseCard(
-  title='Выход из кооператива',
-  subtitle='Прекращение участия с возвратом паевого взноса.'
+  :title='$t("membership.exitDangerCard.title")',
+  :subtitle='$t("membership.exitDangerCard.subtitle")'
 )
   .exit-danger
     p.exit-danger__hint
-      | Действие необратимо: после одобрения Советом участие прекращается, а для
-      | возобновления потребуется пройти регистрацию заново.
+      | {{ $t('membership.exitDangerCard.irreversibleHintLine1') }}
+      | {{ $t('membership.exitDangerCard.irreversibleHintLine2') }}
     .exit-danger__actions
       BaseButton(variant='danger', @click='infoOpen = true')
         template(#icon-left)
           q-icon(name='group_remove', size='18px')
-        | Выйти из кооператива
+        | {{ $t('membership.exitDangerCard.exitButtonLabel') }}
 
   //- Шаг 1: как проходит выход (бывшая отдельная страница, свёрнута в диалог).
   //- Шаг 2 — заявление и подпись — открывает ExitButton своим диалогом поверх.
-  BaseDialog(v-model='infoOpen', title='Как проходит выход', size='md')
+  BaseDialog(v-model='infoOpen', :title='$t("membership.exitDangerCard.infoDialogTitle")', size='md')
     .exit-danger__info
       BaseBanner(variant='warn')
-        | Участие в кооперативе добровольное — так же, как вступление, так и выход.
-        | Вы вправе прекратить участие, подав заявление; после одобрения Советом
-        | паевой взнос возвращается в срок, установленный Уставом.
+        | {{ $t('membership.exitDangerCard.infoVoluntaryLine1') }}
+        | {{ $t('membership.exitDangerCard.infoVoluntaryLine2') }}
+        | {{ $t('membership.exitDangerCard.infoVoluntaryLine3') }}
 
       ul.exit-points
         li
           q-icon(name='description', size='18px')
           span
-            | Выход оформляется вашим заявлением. Система подготовит его автоматически —
-            | вам нужно внимательно прочитать текст и подписать простой электронной подписью.
+            | {{ $t('membership.exitDangerCard.infoStep1Line1') }}
+            | {{ $t('membership.exitDangerCard.infoStep1Line2') }}
         li
           q-icon(name='mark_email_unread', size='18px')
           span
-            | Запуск процедуры подтверждается по ссылке из письма. Совет рассмотрит
-            | заявление; до принятия решения доступ к кабинету будет ограничен.
+            | {{ $t('membership.exitDangerCard.infoStep2Line1') }}
+            | {{ $t('membership.exitDangerCard.infoStep2Line2') }}
         li
           q-icon(name='payments', size='18px')
           span
-            | Паевой взнос вернётся на ваши реквизиты
-            | в срок, установленный Уставом кооператива.
+            | {{ $t('membership.exitDangerCard.infoStep3Line1') }}
+            | {{ $t('membership.exitDangerCard.infoStep3Line2') }}
         li.exit-points__note
           q-icon(name='block', size='18px')
           span
-            | После выхода вернуться к участию нельзя — для возобновления участия
-            | потребуется пройти регистрацию заново.
+            | {{ $t('membership.exitDangerCard.infoStep4Line1') }}
+            | {{ $t('membership.exitDangerCard.infoStep4Line2') }}
 
     template(#footer)
-      BaseButton(variant='secondary', @click='infoOpen = false') Отмена
+      BaseButton(variant='secondary', @click='infoOpen = false') {{ $t('common.action.cancel') }}
       ExitButton(
-        label='Написать заявление',
+        :label='$t("membership.exitDangerCard.infoWriteApplicationLabel")',
         variant='danger',
         icon='edit_note'
       )

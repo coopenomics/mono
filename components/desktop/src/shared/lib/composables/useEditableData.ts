@@ -1,5 +1,6 @@
 import { ref, watch } from 'vue';
 import isEqual from 'lodash/isEqual';
+import { t } from 'src/shared/i18n';
 
 export function useEditableData<T extends Record<string, any>>(
   initialData: T,
@@ -31,7 +32,7 @@ export function useEditableData<T extends Record<string, any>>(
 
   const saveChanges = async () => {
     if (isDisabled.value) {
-      throw new Error('Нельзя сохранить: форма невалидна');
+      throw new Error(t('composables.error.formInvalid'));
     }
     originalData.value = JSON.parse(JSON.stringify(editableData.value));
     onSaveCallback(editableData.value as T); // Передаем данные в коллбек

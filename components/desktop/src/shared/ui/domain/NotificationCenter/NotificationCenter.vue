@@ -1,13 +1,13 @@
 <template lang="pug">
-.notification-center(role='dialog', aria-label='Уведомления')
+.notification-center(role='dialog', :aria-label='$t("ui.notificationCenter.ariaLabel")')
   header.notification-center__header
-    h3.notification-center__title Уведомления
+    h3.notification-center__title {{ $t('ui.notificationCenter.title') }}
       span.notification-center__count(v-if='unreadCount') {{ unreadCount }}
     button.notification-center__mark-all(
       v-if='unreadCount',
       type='button',
       @click="emit('markAllRead')"
-    ) Прочитать все
+    ) {{ $t('ui.notificationCenter.markAllReadLabel') }}
 
   .notification-center__body
     template(v-if='loading')
@@ -21,7 +21,7 @@
 
     template(v-else-if='!notifications.length')
       .notification-center__empty
-        EmptyState(title='Нет уведомлений', body='Здесь появятся системные и финансовые события')
+        EmptyState(:title='$t("ui.notificationCenter.emptyTitle")', :body='$t("ui.notificationCenter.emptyBody")')
 
     template(v-else)
       ul.notification-center__list
@@ -53,14 +53,14 @@
     a.notification-center__view-all(
       :href='viewAllHref ?? "/notifications"',
       @click.prevent="emit('viewAll')"
-    ) {{ viewAllLabel ?? 'Показать все' }}
+    ) {{ viewAllLabel ?? $t('ui.notificationCenter.showAllLabel') }}
       q-icon.notification-center__view-all-icon(name='arrow_forward', size='16px')
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue';
 import { intlLocale } from '@coopenomics/i18n';
-import { currentLocale, t } from 'src/shared/i18n';
+import { currentLocale, t, t as i18nT } from 'src/shared/i18n';
 import { EmptyState } from 'src/shared/ui/base/EmptyState';
 import type {
   NotificationCategory,
@@ -82,10 +82,10 @@ const emit = defineEmits<{
 const CATEGORY_ORDER: NotificationCategory[] = ['system', 'financial', 'voting', 'message'];
 
 const categoryLabels: Record<NotificationCategory, string> = {
-  system: 'Системные',
-  financial: 'Финансовые',
-  voting: 'Голосования',
-  message: 'Сообщения',
+  system: i18nT('ui.notificationCenter.categorySystem'),
+  financial: i18nT('ui.notificationCenter.categoryFinance'),
+  voting: i18nT('ui.notificationCenter.categoryVoting'),
+  message: i18nT('ui.notificationCenter.categoryMessages'),
 };
 
 const unreadCount = computed(() => props.notifications.filter((n) => !n.read).length);

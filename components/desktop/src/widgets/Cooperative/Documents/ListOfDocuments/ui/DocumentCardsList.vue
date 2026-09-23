@@ -14,7 +14,7 @@
       template(#actions)
         button.icon-btn(
           type='button',
-          aria-label='Скачать пакет',
+          :aria-label='$t("cooperative.documentCardsList.downloadPackageAriaLabel")',
           :disabled='downloadingPackages.get(packageKey(doc))',
           @click='downloadPackage(doc)'
         )
@@ -22,8 +22,8 @@
 
   EmptyState(
     v-else,
-    title='Документы не найдены',
-    body='Здесь появятся ваши документы и подписанные соглашения.'
+    :title='$t("cooperative.documentCardsList.emptyTitle")',
+    :body='$t("cooperative.documentCardsList.emptyBody")'
   )
     template(#icon)
       q-icon(name='description', size='48px')
@@ -36,7 +36,7 @@
       size='sm',
       :loading='loading',
       @click='$emit("load")'
-    ) Загрузить ещё
+    ) {{ $t('cooperative.documentCardsList.loadMoreLabel') }}
 </template>
 
 <script setup lang="ts">
@@ -52,6 +52,7 @@ import {
 } from 'src/shared/lib/document';
 import { DocumentModel } from 'src/entities/Document';
 import type { IDocumentPackageAggregate } from 'src/entities/Document/model';
+import { t } from 'src/shared/i18n';
 
 interface IPagination {
   totalCount: number;
@@ -88,7 +89,7 @@ function getDocumentTitle(row: IDocumentPackageAggregate): string {
     getMeta(row)?.title ||
     row.statement?.documentAggregate?.rawDocument?.full_title ||
     row.decision?.documentAggregate?.rawDocument?.full_title ||
-    'Документ без заголовка'
+    t('cooperative.documentCardsList.untitledDocument')
   );
 }
 
@@ -141,7 +142,7 @@ function toRowDoc(row: IDocumentPackageAggregate): DocumentRowDoc {
     title: getDocumentTitle(row),
     date: getDocumentDate(row) || undefined,
     author: signers.length ? signers.join(', ') : undefined,
-    description: related > 0 ? `+ связанные документы: ${related}` : undefined,
+    description: related > 0 ? t('cooperative.documentCardsList.relatedDocumentsLabel', { related }) : undefined,
   };
 }
 
@@ -157,7 +158,7 @@ const hasMore = computed(
 const rangeLabel = computed(() => {
   const total = props.pagination?.totalCount ?? props.documents.length;
   const shown = props.documents.length;
-  return shown ? `1–${shown} из ${total}` : `0 из ${total}`;
+  return shown ? t('cooperative.documentCardsList.rangeLabel', { shown, total }) : t('cooperative.documentCardsList.rangeEmptyLabel', { total });
 });
 
 // Ключ для индикатора скачивания — global_sequence пакета (как в таблице).
@@ -182,7 +183,7 @@ const downloadPackage = async (
     document.body.removeChild(link);
   } catch (error) {
     console.error('Ошибка при скачивании пакета документов:', error);
-    FailAlert('Не удалось подготовить архив пакета документов');
+    FailAlert(t('cooperative.documentCardsList.downloadArchiveError'));
   } finally {
     downloadingPackages.delete(key);
   }

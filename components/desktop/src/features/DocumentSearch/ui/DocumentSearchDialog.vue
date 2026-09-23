@@ -6,7 +6,7 @@ q-dialog(v-model='isOpen' position='top' transition-show='slide-down' transition
         q-icon(name='search' size='24px' color='primary')
         q-input.col(
           v-model='searchQuery'
-          placeholder='Поиск по документам...'
+          :placeholder='$t("documentSearch.documentSearchDialog.placeholder")'
           dense
           borderless
           autofocus
@@ -39,11 +39,11 @@ q-dialog(v-model='isOpen' position='top' transition-show='slide-down' transition
     q-card-section(v-else-if='searchQuery.length >= 2 && !loading')
       .text-center.text-grey-6(style='padding: 24px')
         q-icon(name='search_off' size='48px')
-        .q-mt-sm Ничего не найдено
+        .q-mt-sm {{ $t('documentSearch.documentSearchDialog.empty') }}
 
     q-card-section(v-else)
       .text-center.text-grey-5(style='padding: 24px')
-        | Введите запрос для поиска по документам
+        | {{ $t('documentSearch.documentSearchDialog.hint') }}
 </template>
 
 <script setup lang="ts">

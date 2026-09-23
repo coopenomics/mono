@@ -1,5 +1,5 @@
 <template lang="pug">
-q-page.mp-role-offerer.offer-wizard(role='region', aria-label='Создание предложения')
+q-page.mp-role-offerer.offer-wizard(role='region', :aria-label='$t("marketplace.createOffer.pageAriaLabel")')
   .offer-wizard__col
     //- Заголовок страницы — в топбаре (route.meta.title), на странице не
     //- дублируется. Верхняя строка режима редактирования: статус слева,
@@ -14,7 +14,7 @@ q-page.mp-role-offerer.offer-wizard(role='region', aria-label='Создание 
         @click='onWithdraw'
       )
         q-icon(name='visibility_off', size='16px')
-        span.q-ml-sm Снять с публикации
+        span.q-ml-sm {{ $t('marketplace.createOffer.unpublishButton') }}
       BaseButton(
         v-else-if='canRepublish',
         variant='primary',
@@ -23,27 +23,27 @@ q-page.mp-role-offerer.offer-wizard(role='region', aria-label='Создание 
         @click='onRepublish'
       )
         q-icon(name='publish', size='16px')
-        span.q-ml-sm Опубликовать снова
+        span.q-ml-sm {{ $t('marketplace.createOffer.republishButton') }}
 
     //- Отклонённая оферта: показываем причину председателя. Поставщик правит
     //- карточку и переотправляет — пересоздавать заново не нужно.
     .banner.banner--neg(v-if='isEdit && currentStatus === "REJECTED"')
       q-icon.banner__icon(name='cancel', size='18px')
       .banner__body
-        .text-weight-medium Предложение отклонено модератором
-        .q-mt-xs(v-if='rejectReason') Причина: {{ rejectReason }}
-        .q-mt-xs Исправьте указанное и нажмите «Отправить на модерацию» — предложение уйдёт на повторную проверку с тем же содержимым.
+        .text-weight-medium {{ $t('marketplace.createOffer.rejectedNotice') }}
+        .q-mt-xs(v-if='rejectReason') {{ $t('marketplace.createOffer.rejectReasonLine', { reason: rejectReason }) }}
+        .q-mt-xs {{ $t('marketplace.createOffer.rejectedHint') }}
 
     //- Гейт публикации: предложение нельзя опубликовать без реквизитов для
     //- выплат (backend отклонит) — объясняем и ведём в настройку.
     .banner.banner--warn(v-if='payoutBlocked')
       q-icon.banner__icon(name='warning_amber', size='18px')
       .banner__body
-        .text-weight-medium Укажите реквизиты для выплат
-        .q-mt-xs Выплаты по актам приёмки приходят на ваши реквизиты. Пока они не указаны, опубликовать предложение нельзя.
+        .text-weight-medium {{ $t('marketplace.createOffer.requisitesNoticeTitle') }}
+        .q-mt-xs {{ $t('marketplace.createOffer.requisitesNoticeText') }}
         BaseButton.q-mt-sm(variant='primary', size='sm', @click='goToPayouts')
           q-icon(name='payments', size='16px')
-          span.q-ml-sm Указать реквизиты
+          span.q-ml-sm {{ $t('marketplace.createOffer.requisitesButton') }}
 
     //- Канон-подсказка (одна на страницу, закрывается крестиком): заполнение +
     //- правила модерации. Для отклонённой показываем баннер причины выше — этот
@@ -77,8 +77,8 @@ q-page.mp-role-offerer.offer-wizard(role='region', aria-label='Создание 
         .offer-wizard__step(v-if='step.key === "basics"')
           BaseInput(
             v-model='form.product_name',
-            label='Название товара',
-            hint='Как товар увидят заказчики в каталоге',
+            :label='$t("marketplace.createOffer.nameLabel")',
+            :hint='$t("marketplace.createOffer.nameHint")',
             maxlength='200',
             counter,
             :error='fieldError("basics", "product_name")'
@@ -86,26 +86,26 @@ q-page.mp-role-offerer.offer-wizard(role='region', aria-label='Создание 
           BaseSelect(
             v-model='form.category_id',
             :options='categoryOptions',
-            label='Категория',
+            :label='$t("marketplace.createOffer.categoryLabel")',
             searchable,
             :error='fieldError("basics", "category_id")'
           )
           BaseInput(
             v-model='form.description',
-            label='Описание (необязательно)',
+            :label='$t("marketplace.createOffer.descriptionLabel")',
             type='textarea',
             :rows='3',
             autogrow,
             maxlength='2000',
             counter,
-            hint='Состав, производитель, особенности — всё, что поможет заказчику'
+            :hint='$t("marketplace.createOffer.descriptionHint")'
           )
           AmountInput(
             :model-value='form.shelf_life_days',
             :precision='0',
-            symbol='дн.',
-            label='Срок годности',
-            hint='Сколько дней имущество остаётся годным после приёмки на склад участка. Ноль — товар не портится и по сроку не списывается.',
+            :symbol='$t("marketplace.createOffer.daysSymbol")',
+            :label='$t("marketplace.createOffer.shelfLifeLabel")',
+            :hint='$t("marketplace.createOffer.shelfLifeHint")',
             @update:model-value='onShelfLifeInput'
           )
 
@@ -114,25 +114,25 @@ q-page.mp-role-offerer.offer-wizard(role='region', aria-label='Создание 
           BaseSelect(
             v-model='form.unit_of_measure',
             :options='unitOptions',
-            label='Единица измерения',
-            hint='В ней ведутся цена, содержимое упаковок и остаток'
+            :label='$t("marketplace.createOffer.unitLabel")',
+            :hint='$t("marketplace.createOffer.unitHint")'
           )
 
           .offer-wizard__choice
-            .offer-wizard__choice-title Способ отпуска
+            .offer-wizard__choice-title {{ $t('marketplace.createOffer.saleModeTitle') }}
             .offer-wizard__choice-cards
               BaseRadioCard(
                 :model-value='form.sale_form',
                 :value='MarketplaceSaleForm.BY_MEASURE',
-                title='По мере',
-                :description='`Заказчик берёт столько, сколько ему нужно. Цена — за ${orderUnitLabel}.`',
+                :title='$t("marketplace.createOffer.saleModeByMeasureTitle")',
+                :description='$t(`marketplace.createOffer.saleModeByMeasureDescription`, { unit: orderUnitLabel })',
                 @update:model-value='onSelectSaleForm'
               )
               BaseRadioCard(
                 :model-value='form.sale_form',
                 :value='MarketplaceSaleForm.PACKAGED',
-                title='Упаковкой',
-                description='Товар отпускается целыми упаковками. У каждой упаковки свой объём и своя цена.',
+                :title='$t("marketplace.createOffer.saleModeByPackageTitle")',
+                :description='$t("marketplace.createOffer.saleModeByPackageDescription")',
                 @update:model-value='onSelectSaleForm'
               )
 
@@ -152,19 +152,19 @@ q-page.mp-role-offerer.offer-wizard(role='region', aria-label='Создание 
             .offer-wizard__pkg(v-for='(pkg, i) in form.packages', :key='i')
               header.offer-wizard__pkg-head
                 span.offer-wizard__pkg-title {{ packageTitle(pkg, i) }}
-                BaseChip(v-if='pkg.is_default', variant='accent', size='sm') Основная
+                BaseChip(v-if='pkg.is_default', variant='accent', size='sm') {{ $t('marketplace.createOffer.primaryPackageBadge') }}
                 q-space
                 BaseButton(
                   v-if='!pkg.is_default',
                   variant='ghost',
                   size='sm',
                   @click='setDefaultPackage(i)'
-                ) Сделать основной
+                ) {{ $t('marketplace.createOffer.makePrimaryButton') }}
                 BaseButton(
                   variant='ghost',
                   icon-only,
                   size='sm',
-                  aria-label='Убрать упаковку',
+                  :aria-label='$t("marketplace.createOffer.removePackageAriaLabel")',
                   :disabled='form.packages.length <= 1',
                   @click='removePackage(i)'
                 )
@@ -175,39 +175,39 @@ q-page.mp-role-offerer.offer-wizard(role='region', aria-label='Создание 
                   :model-value='pkg.size',
                   :precision='sizePrecision',
                   :symbol='orderUnitLabel',
-                  label='Содержимое',
+                  :label='$t("marketplace.createOffer.packageContentLabel")',
                   :error='fieldError("pricing", `pkg.${i}.size`)',
                   @update:model-value='(v) => (pkg.size = v)'
                 )
                 BaseInput(
                   v-model='pkg.package_type',
-                  label='Вид упаковки',
-                  placeholder='стекло, пластик, корзинка',
+                  :label='$t("marketplace.createOffer.packageKindLabel")',
+                  :placeholder='$t("marketplace.createOffer.packageKindPlaceholder")',
                   stack-label,
                   :error='fieldError("pricing", `pkg.${i}.package_type`)'
                 )
                 AmountInput(
                   :model-value='pkg.price',
                   :symbol='governSymbol',
-                  label='Цена упаковки',
+                  :label='$t("marketplace.createOffer.packagePriceLabel")',
                   :error='fieldError("pricing", `pkg.${i}.price`)',
                   @update:model-value='(v) => onPackagePriceInput(pkg, v)'
                 )
                 BaseInput(
                   v-model='pkg.label',
-                  label='Подпись (необязательно)',
-                  placeholder='Бутылка 0,5 л',
+                  :label='$t("marketplace.createOffer.packageSignatureLabel")',
+                  :placeholder='$t("marketplace.createOffer.packageSignaturePlaceholder")',
                   stack-label
                 )
               .offer-wizard__pkg-note(v-if='packageNote(pkg)')
                 q-icon(name='calculate', size='14px')
                 span {{ packageNote(pkg) }}
             .offer-wizard__hint(v-if='form.packages.length > 1')
-              | Основная упаковка стоит в карточке каталога первой — её цену заказчик видит до открытия предложения.
+              | {{ $t('marketplace.createOffer.primaryPackageHint') }}
             BaseButton.offer-wizard__pkg-add(variant='secondary', size='sm', @click='addPackage')
               template(#icon-left)
                 q-icon(name='add', size='16px')
-              span.q-ml-sm Добавить упаковку
+              span.q-ml-sm {{ $t('marketplace.createOffer.addPackageButton') }}
 
         //- ───────── Шаг 3: Наличие ─────────
         .offer-wizard__step(v-else-if='step.key === "stock"')
@@ -216,15 +216,15 @@ q-page.mp-role-offerer.offer-wizard(role='region', aria-label='Создание 
               BaseRadioCard(
                 :model-value='stockMode',
                 value='limited',
-                title='Ограниченное количество',
-                description='Заказы принимаются, пока не разберут указанный остаток.',
+                :title='$t("marketplace.createOffer.limitedQuantityTitle")',
+                :description='$t("marketplace.createOffer.limitedQuantityDescription")',
                 @update:model-value='onSelectStockMode'
               )
               BaseRadioCard(
                 :model-value='stockMode',
                 value='unlimited',
-                title='Без ограничения',
-                description='Остаток не считается — берёте столько заказов, сколько придёт.',
+                :title='$t("marketplace.createOffer.unlimitedQuantityTitle")',
+                :description='$t("marketplace.createOffer.unlimitedQuantityDescription")',
                 @update:model-value='onSelectStockMode'
               )
           template(v-if='!form.unlimited_flag')
@@ -233,7 +233,7 @@ q-page.mp-role-offerer.offer-wizard(role='region', aria-label='Создание 
               :model-value='form.quantity_available',
               :precision='sizePrecision',
               :symbol='orderUnitLabel',
-              label='Доступное количество',
+              :label='$t("marketplace.createOffer.availableQuantityLabel")',
               :hint='stockHint',
               :error='fieldError("stock", "quantity_available")',
               @update:model-value='(v) => (form.quantity_available = v)'
@@ -244,14 +244,14 @@ q-page.mp-role-offerer.offer-wizard(role='region', aria-label='Создание 
               .offer-wizard__card(v-for='(pkg, i) in form.packages', :key='i')
                 header.offer-wizard__card-head
                   span.offer-wizard__card-title {{ packageTitle(pkg, i) }}
-                  BaseChip(v-if='pkg.is_default', variant='accent', size='sm') Основная
+                  BaseChip(v-if='pkg.is_default', variant='accent', size='sm') {{ $t('marketplace.createOffer.primaryPackageBadge') }}
                   q-space
                   span.offer-wizard__card-note(v-if='packageNote(pkg)') {{ packageNote(pkg) }}
                 AmountInput.offer-wizard__card-field(
                   :model-value='pkg.quantity_available',
                   :precision='0',
-                  symbol='упак.',
-                  label='Доступно',
+                  :symbol='$t("marketplace.createOffer.packageSymbol")',
+                  :label='$t("marketplace.createOffer.availableLabel")',
                   :error='fieldError("stock", `pkg.${i}.quantity_available`)',
                   @update:model-value='(v) => (pkg.quantity_available = v)'
                 )
@@ -259,9 +259,9 @@ q-page.mp-role-offerer.offer-wizard(role='region', aria-label='Создание 
         //- ───────── Шаг 4: КУ поставки и минимальный объём ─────────
         .offer-wizard__step(v-else-if='step.key === "supply"')
           p.offer-wizard__hint
-            | Отметьте кооперативные участки, на которые готовы обеспечить доставку, и укажите объём поставки на каждый.
-          .offer-wizard__hint(v-if='kuLoading') Загрузка участков…
-          .offer-wizard__hint(v-else-if='!kuOptions.length') Нет доступных кооперативных участков.
+            | {{ $t('marketplace.createOffer.branchesHint') }}
+          .offer-wizard__hint(v-if='kuLoading') {{ $t('marketplace.createOffer.branchesLoading') }}
+          .offer-wizard__hint(v-else-if='!kuOptions.length') {{ $t('marketplace.createOffer.branchesEmpty') }}
           .offer-wizard__cards
             .offer-wizard__card(
               v-for='ku in kuOptions',
@@ -282,7 +282,7 @@ q-page.mp-role-offerer.offer-wizard(role='region', aria-label='Создание 
                   variant='ghost',
                   icon-only,
                   size='sm',
-                  aria-label='Открыть карту',
+                  :aria-label='$t("marketplace.createOffer.openMapAriaLabel")',
                   @click='openKuMap(ku)'
                 )
                   template(#icon-left)
@@ -290,7 +290,7 @@ q-page.mp-role-offerer.offer-wizard(role='region', aria-label='Создание 
               AmountInput.offer-wizard__card-field(
                 v-if='isKuSelected(ku.braname)',
                 :model-value='kuMinVolume(ku.braname)',
-                label='Минимальный объём поставки',
+                :label='$t("marketplace.createOffer.minSupplyVolumeLabel")',
                 :precision='0',
                 :min='1',
                 :symbol='orderUnitLabel',
@@ -308,28 +308,28 @@ q-page.mp-role-offerer.offer-wizard(role='region', aria-label='Создание 
               v-for='(img, i) in gallery',
               :key='img.uid',
               :class='{ "offer-wizard__thumb--cover": i === coverIndex }',
-              :title='i === coverIndex ? "Это обложка" : "Сделать обложкой"',
+              :title='i === coverIndex ? $t("marketplace.createOffer.isCoverLabel") : $t("marketplace.createOffer.makeCoverLabel")',
               role='button',
               tabindex='0',
               @click='setCover(i)',
               @keydown.enter='setCover(i)'
             )
               q-img.offer-wizard__img(:src='img.url', ratio='1')
-              span.offer-wizard__cover(v-if='i === coverIndex') Обложка
-              span.offer-wizard__set(v-else) Сделать обложкой
+              span.offer-wizard__cover(v-if='i === coverIndex') {{ $t('marketplace.createOffer.coverBadge') }}
+              span.offer-wizard__set(v-else) {{ $t('marketplace.createOffer.makeCoverLabel') }}
               q-btn.offer-wizard__remove(
                 round,
                 unelevated,
                 size='sm',
                 icon='close',
                 color='negative',
-                aria-label='Удалить изображение',
+                :aria-label='$t("marketplace.createOffer.removeImageAriaLabel")',
                 @click.stop='removeImage(i)'
               )
 
           q-file(
             v-model='picked',
-            label='Добавить изображения',
+            :label='$t("marketplace.createOffer.addImagesLabel")',
             outlined,
             dense,
             multiple,
@@ -343,7 +343,7 @@ q-page.mp-role-offerer.offer-wizard(role='region', aria-label='Создание 
         //- ───────── Шаг 6: Проверка (карточка-предпросмотр) ─────────
         .offer-wizard__step(v-else-if='step.key === "review"')
           p.offer-wizard__hint
-            | Так предложение увидят заказчики в каталоге после одобрения модератором.
+            | {{ $t('marketplace.createOffer.previewHint') }}
 
           article.offer-preview
             q-carousel.offer-preview__carousel(
@@ -366,35 +366,35 @@ q-page.mp-role-offerer.offer-wizard(role='region', aria-label='Создание 
                 q-img.offer-preview__slideimg(:src='img.url', :ratio='1', fit='cover')
             .offer-preview__placeholder(v-else)
               q-icon(name='image', size='52px')
-              span Без изображения
+              span {{ $t('marketplace.createOffer.noImageLabel') }}
 
             .offer-preview__info
               header.offer-preview__head
-                h2.offer-preview__name {{ form.product_name || 'Без названия' }}
+                h2.offer-preview__name {{ form.product_name || $t('marketplace.createOffer.noNameLabel') }}
                 BaseChip(variant='neutral', size='sm') {{ selectedCategoryLabel }}
               .offer-preview__pricebox
                 span.offer-preview__price {{ formattedPrice }}
-                span.offer-preview__per за {{ previewUnitLabel }}
+                span.offer-preview__per {{ $t('marketplace.createOffer.perUnitLabel', { unit: previewUnitLabel }) }}
               p.offer-preview__fee(v-if='priceWithFeeHint') {{ priceWithFeeHint }}
               //- Наличие: по мере — одной строкой, упаковкой — по строке на
               //- упаковку: одно число на все упаковки заказчику ничего не говорит.
               .offer-preview__stock
                 BaseChip(v-if='!previewStockRows.length', :variant='stockEmpty ? "neg" : "pos"', size='sm') {{ stockLabel }}
                 template(v-else)
-                  .offer-preview__stock-title В наличии
+                  .offer-preview__stock-title {{ $t('marketplace.createOffer.inStockLabel') }}
                   .offer-preview__stock-row(v-for='row in previewStockRows', :key='row.key')
                     span.offer-preview__stock-name {{ row.name }}
                     span.offer-preview__stock-count {{ row.count }}
               p.offer-preview__desc(v-if='form.description') {{ form.description }}
               section.offer-preview__specs
-                .offer-preview__specs-title Характеристики
+                .offer-preview__specs-title {{ $t('marketplace.createOffer.characteristicsTitle') }}
                 dl.offer-preview__specs-list
                   .offer-preview__spec(v-if='form.delivery_points.length')
-                    dt Участки поставки
+                    dt {{ $t('marketplace.createOffer.supplyBranchesTitle') }}
                     dd {{ deliveryPointsPreview }}
                   .offer-preview__spec(v-if='form.shelf_life_days > 0')
-                    dt Срок годности
-                    dd {{ form.shelf_life_days }} дн.
+                    dt {{ $t('marketplace.createOffer.shelfLifeLabel') }}
+                    dd {{ $t('marketplace.createOffer.shelfLifeDaysValue', { days: form.shelf_life_days }) }}
 
     //- ───────── Навигация ─────────
     footer.offer-wizard__foot
@@ -403,13 +403,13 @@ q-page.mp-role-offerer.offer-wizard(role='region', aria-label='Создание 
         variant='ghost',
         :disabled='submitting',
         @click='onCancel'
-      ) Отменить
+      ) {{ $t('marketplace.createOffer.cancelButton') }}
       BaseButton(v-else, variant='ghost', :disabled='submitting', @click='goBack')
         q-icon(name='arrow_back', size='16px')
-        span.q-ml-sm Назад
+        span.q-ml-sm {{ $t('common.action.back') }}
       q-space
       BaseButton(v-if='activeKey !== "review"', variant='primary', @click='goNext')
-        span.q-mr-sm Далее
+        span.q-mr-sm {{ $t('common.action.next') }}
         q-icon(name='arrow_forward', size='16px')
       BaseButton(
         v-else,
@@ -476,6 +476,7 @@ import type {
 // Значения (не только типы) — реальные GraphQL-enum'ы, используются в
 // шаблоне и коде как MarketplaceSaleForm.PACKAGED/MarketplaceUnitOfMeasure.KG.
 import { MarketplaceSaleForm, MarketplaceUnitOfMeasure } from '../types';
+import { t } from 'src/shared/i18n';
 
 /**
  * Story 3.2 / 4.7: многошаговый мастер публикации Offer'а (по канону
@@ -518,9 +519,9 @@ const feePercent = ref(0);
 // precision сам (MARKETPLACE_ASSET_CONFIG).
 function priceError(raw: string): string | null {
   const value = (raw ?? '').trim().replace(',', '.');
-  if (!value) return 'Укажите цену';
+  if (!value) return t('marketplace.createOffer.priceRequiredError');
   const n = Number(value);
-  if (!Number.isFinite(n) || n <= 0) return 'Цена должна быть больше нуля';
+  if (!Number.isFinite(n) || n <= 0) return t('marketplace.createOffer.pricePositiveError');
   return null;
 }
 
@@ -559,19 +560,19 @@ function goToPayouts(): void {
 // прочих — что цена/остаток применяются сразу, а контент уходит на модерацию.
 const infoText = computed(() => {
   if (!isEdit.value) {
-    return 'Заполните карточку товара по шагам. После публикации предложение уходит на модерацию администратору — до одобрения оно не появится в каталоге.';
+    return t('marketplace.createOffer.step1Description');
   }
   if (currentStatus.value === 'WITHDRAWN') {
-    return 'Доработайте карточку снятого предложения. Пока вы не вернёте его на публикацию, оно остаётся снятым и в каталоге не показывается. При возврате изменённое содержимое снова пройдёт модерацию, неизменное — опубликуется сразу.';
+    return t('marketplace.createOffer.editUnpublishedHint');
   }
-  return 'Заполните карточку товара по шагам. Цена, количество, упаковки и пункты выдачи применяются сразу. Изменение названия, описания, категории, единицы измерения или фотографий снова отправит предложение на модерацию — до одобрения оно будет недоступно в каталоге.';
+  return t('marketplace.createOffer.editPublishedHint');
 });
 const submitLabel = computed(() => {
-  if (!isEdit.value) return 'Опубликовать на модерацию';
+  if (!isEdit.value) return t('marketplace.createOffer.publishButton');
   // Отклонённую правят, чтобы переотправить — подпись честно говорит, что
   // сохранение снова отправит оферту на модерацию.
-  if (currentStatus.value === 'REJECTED') return 'Отправить на модерацию';
-  return 'Сохранить изменения';
+  if (currentStatus.value === 'REJECTED') return t('marketplace.createOffer.resubmitButton');
+  return t('marketplace.createOffer.saveChangesButton');
 });
 
 // ===== Управление офертой (только режим редактирования) =====
@@ -583,10 +584,10 @@ const rejectReason = ref<string | null>(null);
 const withdrawing = ref(false);
 
 const STATUS_META: Record<OfferStatus, { label: string; variant: 'neutral' | 'pos' | 'neg' | 'warn' }> = {
-  PENDING_MODERATION: { label: 'На модерации', variant: 'warn' },
-  ACTIVE: { label: 'Опубликовано', variant: 'pos' },
-  REJECTED: { label: 'Отклонено', variant: 'neg' },
-  WITHDRAWN: { label: 'Снято', variant: 'neutral' },
+  PENDING_MODERATION: { label: t('marketplace.offer.status.pending'), variant: 'warn' },
+  ACTIVE: { label: t('marketplace.offer.status.published'), variant: 'pos' },
+  REJECTED: { label: t('marketplace.offer.status.rejected'), variant: 'neg' },
+  WITHDRAWN: { label: t('marketplace.createOffer.unpublishedBadge'), variant: 'neutral' },
 };
 const statusLabel = computed(() => (currentStatus.value ? STATUS_META[currentStatus.value].label : ''));
 const statusVariant = computed(() =>
@@ -609,12 +610,12 @@ function onRepublish(): void {
       const status = await republishOffer(editId.value as string);
       SuccessAlert(
         status === Zeus.MarketplaceOfferStatus.ACTIVE
-          ? 'Предложение снова опубликовано.'
-          : 'Предложение отправлено на модерацию.',
+          ? t('marketplace.createOffer.republishedSuccess')
+          : t('marketplace.createOffer.resubmittedSuccess'),
       );
       void router.push({ name: 'marketplace-my-offers' });
     } catch (e) {
-      FailAlert(e, 'Не удалось вернуть предложение на публикацию');
+      FailAlert(e, t('marketplace.createOffer.republishFailedError'));
     } finally {
       republishing.value = false;
     }
@@ -624,22 +625,22 @@ function onRepublish(): void {
 function onWithdraw(): void {
   if (!editId.value) return;
   Dialog.create({
-    title: 'Снять предложение с публикации?',
+    title: t('marketplace.createOffer.unpublishConfirmTitle'),
     message:
       'Предложение перестанет показываться в каталоге и не будет принимать новые ' +
       'заказы. Вернуть его на публикацию можно в любой момент кнопкой ' +
       '«Опубликовать снова» — без повторной модерации, если не менять содержимое.',
-    cancel: { label: 'Отмена', flat: true, noCaps: true },
-    ok: { label: 'Снять с публикации', color: 'negative', unelevated: true, noCaps: true },
+    cancel: { label: t('common.action.cancel'), flat: true, noCaps: true },
+    ok: { label: t('marketplace.createOffer.unpublishButton'), color: 'negative', unelevated: true, noCaps: true },
     persistent: true,
   }).onOk(async () => {
     withdrawing.value = true;
     try {
       await withdrawOffer(editId.value as string);
-      SuccessAlert('Предложение снято с публикации.');
+      SuccessAlert(t('marketplace.createOffer.unpublishedSuccess'));
       void router.push({ name: 'marketplace-my-offers' });
     } catch (e) {
-      FailAlert(e, 'Не удалось снять предложение');
+      FailAlert(e, t('marketplace.createOffer.unpublishFailedError'));
     } finally {
       withdrawing.value = false;
     }
@@ -648,12 +649,12 @@ function onWithdraw(): void {
 
 // ===== Шаги =====
 const steps: StepperStep[] = [
-  { key: 'basics', label: 'Товар', description: 'Название, категория, срок годности' },
-  { key: 'pricing', label: 'Цена', description: 'Способ отпуска и стоимость' },
-  { key: 'stock', label: 'Наличие', description: 'Сколько готовы отдать заказчикам' },
-  { key: 'supply', label: 'Условия поставки', description: 'Участки и объём поставки' },
-  { key: 'images', label: 'Изображения', description: 'Фотографии товара' },
-  { key: 'review', label: 'Проверка и публикация', description: 'Сверьте карточку перед отправкой' },
+  { key: 'basics', label: t('marketplace.createOffer.stepProductTitle'), description: t('marketplace.createOffer.stepProductSubtitle') },
+  { key: 'pricing', label: t('marketplace.createOffer.stepPriceTitle'), description: t('marketplace.createOffer.stepPriceSubtitle') },
+  { key: 'stock', label: t('marketplace.createOffer.stepStockTitle'), description: t('marketplace.createOffer.stepStockSubtitle') },
+  { key: 'supply', label: t('marketplace.createOffer.stepSupplyTitle'), description: t('marketplace.createOffer.stepSupplySubtitle') },
+  { key: 'images', label: t('marketplace.createOffer.stepImagesTitle'), description: t('marketplace.createOffer.stepImagesSubtitle') },
+  { key: 'review', label: t('marketplace.createOffer.stepReviewTitle'), description: t('marketplace.createOffer.stepReviewSubtitle') },
 ];
 const firstStepKey = steps[0].key;
 const activeKey = ref<string>('basics');
@@ -683,7 +684,7 @@ const kuLoading = ref(false);
 // Карта участка — всплывашка с точкой по координатам геокодера (как в админке ПВЗ).
 const mapOpen = ref(false);
 const mapKu = ref<KuOption | null>(null);
-const mapTitle = computed(() => (mapKu.value ? `Карта — ${mapKu.value.name}` : 'Карта'));
+const mapTitle = computed(() => (mapKu.value ? t('marketplace.createOffer.mapDialogTitle', { branchName: mapKu.value.name }) : t('marketplace.createOffer.mapButton')));
 function kuHasCoords(ku: KuOption): boolean {
   return ku.lat != null && ku.lng != null;
 }
@@ -745,7 +746,7 @@ const selectedCategoryLabel = computed(
 // Подпись базовой единицы измерения: «кг», «л», «шт» (Эпик 17: количество и
 // цена ведутся прямо в базовой единице, «фасовки» нет).
 const orderUnitLabel = computed(() => marketplaceOrderUnitLabel(form.value.unit_of_measure));
-const priceLabel = computed(() => `Цена за ${orderUnitLabel.value}`);
+const priceLabel = computed(() => t('marketplace.createOffer.priceForUnitLabel', { unit: orderUnitLabel.value }));
 
 // Эпик 18: точность количества — штука неделима (0 знаков), вес и объём
 // ведутся до граммов и миллилитров (3 знака). Поля ввода сами не дают набрать
@@ -766,7 +767,7 @@ function packageTitle(pkg: MarketplaceOfferPackageForm, index: number): string {
   if (pkg.size) parts.push(`${formatQuantity(pkg.size)} ${orderUnitLabel.value}`);
   const kind = pkg.package_type.trim();
   if (kind) parts.push(kind);
-  return parts.length ? parts.join(', ') : `Упаковка ${index + 1}`;
+  return parts.length ? parts.join(', ') : t('marketplace.createOffer.packageNumberLabel', { index: index + 1 });
 }
 
 /**
@@ -779,7 +780,7 @@ function packageNote(pkg: MarketplaceOfferPackageForm): string {
   const price = Number((pkg.price ?? '').trim().replace(',', '.'));
   if (size <= 0 || !Number.isFinite(price) || price <= 0) return '';
   const perUnit = formatAsset2Digits(`${price / size} ${governSymbol.value}`);
-  return `${perUnit} за ${orderUnitLabel.value}`;
+  return t('marketplace.createOffer.pricePerUnitValue', { price: perUnit, unit: orderUnitLabel.value });
 }
 
 // Поля денег и количеств отдают число (или пусто) — модель формы хранит цену
@@ -802,8 +803,8 @@ function onSelectStockMode(value: string | number): void {
 }
 const stockHint = computed(() =>
   form.value.sale_form === MarketplaceSaleForm.PACKAGED
-    ? 'Сколько упаковок каждого вида готовы отдать — остаток ведётся по упаковкам, а не общим объёмом'
-    : `Столько ${orderUnitLabel.value} готовы отдать заказчикам`
+    ? t('marketplace.createOffer.packageStockHint')
+    : t('marketplace.createOffer.byMeasureStockHint', { unit: orderUnitLabel.value })
 );
 
 function setDefaultPackage(index: number): void {
@@ -848,7 +849,7 @@ const deliveryPointsPreview = computed(() =>
   form.value.delivery_points
     .map((d) => {
       const name = kuOptions.value.find((k) => k.braname === d.braname)?.name ?? d.braname;
-      return `${name} (от ${d.min_supply_volume} ${orderUnitLabel.value})`;
+      return t('marketplace.createOffer.branchOptionLabel', { name, minVolume: d.min_supply_volume, unit: orderUnitLabel.value });
     })
     .join(', ')
 );
@@ -896,7 +897,7 @@ async function loadKuOptions(): Promise<void> {
       lng: k.geocodeStatus === GeocodeStatus.OK && k.lng != null ? Number(k.lng) : null,
     }));
   } catch (e) {
-    FailAlert(e, 'Не удалось загрузить кооперативные участки');
+    FailAlert(e, t('marketplace.createOffer.loadBranchesFailedError'));
   } finally {
     kuLoading.value = false;
   }
@@ -928,7 +929,7 @@ const previewPriceStr = computed(() =>
 const previewUnitLabel = computed(() => {
   if (form.value.sale_form !== MarketplaceSaleForm.PACKAGED) return orderUnitLabel.value;
   const size = defaultPackage.value?.size;
-  return size ? `упак. ${String(size).replace('.', ',')} ${orderUnitLabel.value}` : orderUnitLabel.value;
+  return size ? t('marketplace.createOffer.packageSizeLabel', { size: String(size).replace('.', ','), unit: orderUnitLabel.value }) : orderUnitLabel.value;
 });
 
 // Цена с учётом взноса — то, что реально увидит и заплатит пайщик.
@@ -948,7 +949,7 @@ const formattedPrice = computed(() => {
 const priceWithFeeHint = computed(() => {
   if (priceWithFee.value == null || feePercent.value <= 0) return '';
   const formatted = formatAsset2Digits(`${priceWithFee.value} ${governSymbol.value}`);
-  return `Цена для заказчика: ${formatted} за ${previewUnitLabel.value}`;
+  return t('marketplace.createOffer.customerPriceLabel', { price: formatted, unit: previewUnitLabel.value });
 });
 
 // Остаток при отпуске упаковкой — на каждой упаковке; в превью показываем по
@@ -965,12 +966,12 @@ const stockEmpty = computed(() => {
   return (form.value.quantity_available ?? 0) <= 0;
 });
 const stockLabel = computed(() => {
-  if (form.value.unlimited_flag) return 'В наличии';
-  if (stockEmpty.value) return 'Нет в наличии';
+  if (form.value.unlimited_flag) return t('marketplace.createOffer.inStockLabel');
+  if (stockEmpty.value) return t('marketplace.createOffer.outOfStockLabel');
   if (isPackaged.value) {
-    return `В наличии: ${marketplacePackageStockLabel(stockPackages.value, form.value.unit_of_measure)}`;
+    return t('marketplace.createOffer.inStockWithValue', { value: marketplacePackageStockLabel(stockPackages.value, form.value.unit_of_measure) });
   }
-  return `В наличии: ${form.value.quantity_available} ${orderUnitLabel.value}`;
+  return t('marketplace.createOffer.inStockQuantity', { quantity: form.value.quantity_available, unit: orderUnitLabel.value });
 });
 
 /**
@@ -987,7 +988,7 @@ const previewStockRows = computed<Array<{ key: string; name: string; count: stri
     .map((p, i) => ({
       key: p.id ?? String(i),
       name: packageTitle(p, i),
-      count: `${p.quantity_available ?? 0} упак.`,
+      count: t('marketplace.createOffer.packagesCountValue', { count: p.quantity_available ?? 0 }),
     }));
 });
 
@@ -1120,15 +1121,15 @@ async function onPickFiles(files: readonly File[] | null): Promise<void> {
   );
   for (const file of fresh) {
     if (gallery.value.length >= MAX_IMAGES) {
-      FailAlert(new Error(`Можно добавить не более ${MAX_IMAGES} изображений.`));
+      FailAlert(new Error(t('marketplace.error.maxImagesExceeded', { max: MAX_IMAGES })));
       break;
     }
     if (!ALLOWED_MIME.includes(file.type)) {
-      FailAlert(new Error(`Файл «${file.name}»: поддерживаются только JPEG, PNG, WEBP.`));
+      FailAlert(new Error(t('marketplace.error.unsupportedImageFormat', { fileName: file.name })));
       continue;
     }
     if (file.size > MAX_BYTES) {
-      FailAlert(new Error(`Файл «${file.name}» больше ${MAX_MB} МБ.`));
+      FailAlert(new Error(t('marketplace.error.imageFileTooLarge', { fileName: file.name, maxMb: MAX_MB })));
       continue;
     }
     const base64 = await fileToBase64(file);
@@ -1173,9 +1174,9 @@ const validated = ref<Record<string, boolean>>({});
 const basicsErrors = computed<Record<string, string>>(() => {
   const errors: Record<string, string> = {};
   const f = form.value;
-  if (!f.product_name.trim()) errors.product_name = 'Укажите название товара';
-  if (f.category_id === null) errors.category_id = 'Выберите категорию';
-  if (f.shelf_life_days < 0) errors.shelf_life_days = 'Срок годности не может быть отрицательным';
+  if (!f.product_name.trim()) errors.product_name = t('marketplace.createOffer.nameRequiredError');
+  if (f.category_id === null) errors.category_id = t('marketplace.createOffer.categoryRequiredError');
+  if (f.shelf_life_days < 0) errors.shelf_life_days = t('marketplace.createOffer.shelfLifeNegativeError');
   return errors;
 });
 
@@ -1188,13 +1189,13 @@ const pricingErrors = computed<Record<string, string>>(() => {
     return errors;
   }
   if (f.packages.length === 0) {
-    errors.packages = 'Добавьте хотя бы одну упаковку';
+    errors.packages = t('marketplace.createOffer.packageRequiredError');
     return errors;
   }
   const precision = sizePrecision.value;
   f.packages.forEach((pkg, i) => {
     if (!pkg.size || pkg.size <= 0) {
-      errors[`pkg.${i}.size`] = 'Укажите содержимое больше нуля';
+      errors[`pkg.${i}.size`] = t('marketplace.createOffer.contentPositiveError');
     } else {
       // Содержимое, пришедшее из уже сохранённого предложения, могло быть
       // задано при другой единице измерения: 0,5 штуки отпустить нельзя.
@@ -1202,14 +1203,14 @@ const pricingErrors = computed<Record<string, string>>(() => {
       if (Math.abs(scaled - Math.round(scaled)) > 1e-9) {
         errors[`pkg.${i}.size`] =
           precision === 0
-            ? 'В штуках содержимое целое — для веса или объёма выберите единицу «кг» или «литр»'
-            : `Не больше ${precision} знаков после запятой`;
+            ? t('marketplace.createOffer.contentIntegerError')
+            : t('marketplace.createOffer.precisionError', { precision });
       }
     }
     // Вид упаковки заказчик видит в карточке и в корзине — без него непонятно,
     // в чём приедет товар.
     if (!pkg.package_type.trim()) {
-      errors[`pkg.${i}.package_type`] = 'Назовите тару: стекло, пластик, корзинка';
+      errors[`pkg.${i}.package_type`] = t('marketplace.createOffer.packageKindRequiredError');
     }
     const err = priceError(pkg.price);
     if (err) errors[`pkg.${i}.price`] = err;
@@ -1226,19 +1227,19 @@ const stockErrors = computed<Record<string, string>>(() => {
     f.packages.forEach((pkg, i) => {
       const qty = pkg.quantity_available ?? null;
       if (qty === null) {
-        errors[`pkg.${i}.quantity_available`] = 'Укажите, сколько упаковок свободно';
+        errors[`pkg.${i}.quantity_available`] = t('marketplace.createOffer.packageStockRequiredError');
       } else if (qty < 0) {
-        errors[`pkg.${i}.quantity_available`] = 'Не может быть отрицательным';
+        errors[`pkg.${i}.quantity_available`] = t('marketplace.createOffer.negativeValueError');
       } else if (!Number.isInteger(qty)) {
-        errors[`pkg.${i}.quantity_available`] = 'Целое число упаковок';
+        errors[`pkg.${i}.quantity_available`] = t('marketplace.createOffer.packageIntegerError');
       }
     });
     return errors;
   }
   if (f.quantity_available === null) {
-    errors.quantity_available = 'Укажите количество или снимите ограничение';
+    errors.quantity_available = t('marketplace.createOffer.quantityRequiredError');
   } else if (f.quantity_available < 0) {
-    errors.quantity_available = 'Количество не может быть отрицательным';
+    errors.quantity_available = t('marketplace.createOffer.quantityNegativeError');
   }
   return errors;
 });
@@ -1275,10 +1276,10 @@ function firstFormError(): { step: string; message: string } | null {
 function validateSupply(): string | null {
   const points = form.value.delivery_points;
   if (!points.length) {
-    return 'Отметьте хотя бы один кооперативный участок поставки.';
+    return t('marketplace.createOffer.branchRequiredError');
   }
   if (points.some((d) => !Number.isInteger(d.min_supply_volume) || d.min_supply_volume < 1)) {
-    return 'Минимальный объём на каждом участке должен быть целым числом от 1.';
+    return t('marketplace.createOffer.minVolumeError');
   }
   return null;
 }
@@ -1396,21 +1397,21 @@ async function onSubmit(): Promise<void> {
       await updateOffer({ id: editId.value, ...payload });
       SuccessAlert(
         wasRejected
-          ? 'Исправления отправлены на повторную модерацию.'
-          : 'Изменения сохранены.'
+          ? t('marketplace.createOffer.correctionsSubmittedSuccess')
+          : t('marketplace.createOffer.changesSavedSuccess')
       );
       void router.push({ name: 'marketplace-my-offers' });
     } else {
       await createOffer(payload);
       clearDraft();
-      SuccessAlert('Предложение создано и отправлено на модерацию администратору.');
+      SuccessAlert(t('marketplace.createOffer.createdSuccess'));
       // Поставщика возвращаем на его стол «Мои предложения» — там он сразу
       // видит только что созданную оферту в статусе «На модерации», а не в
       // каталог заказчика.
       void router.push({ name: 'marketplace-my-offers' });
     }
   } catch (e) {
-    FailAlert(e, isEdit.value ? 'Не удалось сохранить предложение' : 'Не удалось создать предложение');
+    FailAlert(e, isEdit.value ? t('marketplace.createOffer.saveFailedError') : t('marketplace.createOffer.createFailedError'));
   } finally {
     submitting.value = false;
   }
@@ -1421,7 +1422,7 @@ async function prefillForEdit(id: string): Promise<void> {
   try {
     const offer = await fetchMyOfferById(id);
     if (!offer) {
-      FailAlert(new Error('Предложение не найдено или вам не принадлежит.'));
+      FailAlert(new Error(t('marketplace.error.offerNotFound')));
       void router.push({ name: 'marketplace-my-offers' });
       return;
     }
@@ -1463,7 +1464,7 @@ async function prefillForEdit(id: string): Promise<void> {
     currentStatus.value = offer.status;
     rejectReason.value = offer.reject_reason ?? null;
   } catch (e) {
-    FailAlert(e, 'Не удалось загрузить предложение');
+    FailAlert(e, t('marketplace.createOffer.loadFailedError'));
   } finally {
     prefilling.value = false;
   }
@@ -1484,7 +1485,7 @@ onMounted(async () => {
   try {
     categories.value = await fetchCategories();
   } catch (e) {
-    FailAlert(e, 'Не удалось загрузить категории');
+    FailAlert(e, t('marketplace.createOffer.loadCategoriesFailedError'));
   }
   await loadKuOptions();
   if (editId.value) {

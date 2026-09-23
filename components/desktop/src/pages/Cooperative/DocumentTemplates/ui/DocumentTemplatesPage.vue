@@ -3,16 +3,16 @@ q-page.document-templates
   .banner.banner--info.q-mb-md
     q-icon.banner__icon(name='info', size='20px')
     .banner__body
-      | Здесь все шаблоны документов, которыми пользуется кооператив: базовый набор и документы установленных приложений.
-      | Пайщикам предъявляется только редакция, утверждённая советом. Когда оператор платформы выпускает новую редакцию,
-      | её нужно вынести на совет — до решения кооператив продолжает работать по прежней.
+      | {{ $t('cooperative.documentTemplatesPage.bannerLine1') }}
+      | {{ $t('cooperative.documentTemplatesPage.bannerLine2') }}
+      | {{ $t('cooperative.documentTemplatesPage.bannerLine3') }}
 
   template(v-if='firstLoad')
-    BaseCard(variant='flat', title='Кооператив')
+    BaseCard(variant='flat', :title='$t("cooperative.documentTemplatesPage.cardTitle")')
       BaseTable(:columns='columns', :rows='[]', row-key='registry_id', loading)
 
   template(v-else-if='!groups.length')
-    EmptyState(title='Шаблонов пока нет', body='Ни одно установленное приложение не объявило своих документов')
+    EmptyState(:title='$t("cooperative.documentTemplatesPage.emptyTitle")', :body='$t("cooperative.documentTemplatesPage.emptyBody")')
       template(#icon)
         q-icon(name='description', size='40px')
 
@@ -22,16 +22,16 @@ q-page.document-templates
         template(#cell-title='{ row }')
           .document-templates__title
             span.text-weight-medium {{ row.title }}
-            span.t-sm.t-muted {{ KIND_LABEL[row.kind] ?? row.kind }}{{ row.bundle && row.kind === DocumentKind.Form ? ' · пакет «' + bundleLabel(row.bundle) + '»' : '' }}
+            span.t-sm.t-muted {{ KIND_LABEL[row.kind] ?? row.kind }}{{ row.bundle && row.kind === DocumentKind.Form ? $t('cooperative.documentTemplatesPage.bundleLabelPrefix') + bundleLabel(row.bundle) + '»' : '' }}
         template(#cell-approved='{ row }')
           .document-templates__edition(v-if='row.approved_version')
-            span Редакция № {{ row.approved_version }}
-            span.t-sm.t-muted протокол № {{ row.approved_decision_id }} от {{ formatApprovedAt(row.approved_at) }}
-          span.t-sm.t-muted(v-else-if='row.state === DocumentApprovalState.NotRequired') утверждение не требуется
-          span.t-sm.t-muted(v-else) ещё не утверждалась
+            span {{ $t('cooperative.documentTemplatesPage.approvedVersionLabel', { version: row.approved_version }) }}
+            span.t-sm.t-muted {{ $t('cooperative.documentTemplatesPage.approvedProtocolLabel', { decisionId: row.approved_decision_id, approvedAt: formatApprovedAt(row.approved_at) }) }}
+          span.t-sm.t-muted(v-else-if='row.state === DocumentApprovalState.NotRequired') {{ $t('cooperative.documentTemplatesPage.approvalNotRequiredLabel') }}
+          span.t-sm.t-muted(v-else) {{ $t('cooperative.documentTemplatesPage.neverApprovedLabel') }}
         template(#cell-current_version='{ row }')
-          span(v-if='row.current_version') Редакция № {{ row.current_version }}
-          span.t-sm.t-muted(v-else) нет в сети
+          span(v-if='row.current_version') {{ $t('cooperative.documentTemplatesPage.currentVersionLabel', { version: row.current_version }) }}
+          span.t-sm.t-muted(v-else) {{ $t('cooperative.documentTemplatesPage.notOnChainLabel') }}
         template(#cell-state='{ row }')
           BaseBadge(:variant='stateView(row).variant') {{ stateView(row).label }}
         template(#cell-actions='{ row }')
@@ -45,7 +45,7 @@ q-page.document-templates
             )
               template(#icon-left)
                 q-icon.q-mr-xs(name='verified', size='16px')
-              | Утверждённая
+              | {{ $t('cooperative.documentTemplatesPage.approvedTabLabel') }}
             BaseButton(
               v-if='showsCurrent(row)',
               variant='secondary',
@@ -64,7 +64,7 @@ q-page.document-templates
             )
               template(#icon-left)
                 q-icon.q-mr-xs(name='how_to_vote', size='16px')
-              | К повестке
+              | {{ $t('cooperative.documentTemplatesPage.toAgendaLabel') }}
             BaseButton(
               v-if='session.isChairman && needsCouncil(row)',
               variant='primary',
@@ -82,13 +82,13 @@ q-page.document-templates
     //- у бланка нет — агрегат минимальный, блок подписей скрыт.
     BaseDocument(v-if='viewerAggregate', :document-aggregate='viewerAggregate')
     .t-sm.t-muted.q-mt-md(v-if='viewer.text_hash')
-      | Хэш текста:&nbsp;
+      | {{ $t('cooperative.documentTemplatesPage.textHashLabel') }}
       span.t-mono-sm {{ viewer.text_hash }}
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue';
-import { uiLocale } from 'src/shared/i18n';
+import { uiLocale, t as i18nT } from 'src/shared/i18n';
 import { useRouter } from 'vue-router';
 import { BaseBadge, BaseButton, BaseCard, BaseDialog, BaseTable, EmptyState } from 'src/shared/ui/base';
 import type { BaseTableColumn } from 'src/shared/ui/base/BaseTable/BaseTable.types';
@@ -132,11 +132,11 @@ const viewerAggregate = computed(() =>
 );
 
 const columns: BaseTableColumn<IDocumentTemplate>[] = [
-  { key: 'title', label: 'Документ' },
-  { key: 'approved', label: 'Утверждена советом', width: '230px' },
-  { key: 'current_version', label: 'Выпущена оператором', width: '170px', nowrap: true },
-  { key: 'state', label: 'Состояние', width: '150px', nowrap: true },
-  { key: 'actions', label: 'Действия', align: 'right', nowrap: true },
+  { key: 'title', label: i18nT('cooperative.documentTemplatesPage.column.title') },
+  { key: 'approved', label: i18nT('cooperative.documentTemplatesPage.column.approved'), width: '230px' },
+  { key: 'current_version', label: i18nT('cooperative.documentTemplatesPage.column.currentVersion'), width: '170px', nowrap: true },
+  { key: 'state', label: i18nT('cooperative.documentTemplatesPage.column.state'), width: '150px', nowrap: true },
+  { key: 'actions', label: i18nT('cooperative.documentTemplatesPage.column.actions'), align: 'right', nowrap: true },
 ];
 
 /** Текущую редакцию сети показываем, пока она не совпала с утверждённой, — и для документов без утверждения. */
@@ -145,9 +145,9 @@ const showsCurrent = (row: IDocumentTemplate): boolean =>
   (row.state !== DocumentApprovalState.Approved || !row.approved_version);
 
 const currentLabel = (row: IDocumentTemplate): string => {
-  if (row.state === DocumentApprovalState.Outdated) return `Новая редакция № ${row.current_version}`;
-  if (row.state === DocumentApprovalState.Pending) return 'На рассмотрении';
-  return 'Открыть текст';
+  if (row.state === DocumentApprovalState.Outdated) return i18nT('cooperative.documentTemplatesPage.newEditionLabel', { version: row.current_version });
+  if (row.state === DocumentApprovalState.Pending) return i18nT('cooperative.documentTemplatesPage.underReviewLabel');
+  return i18nT('cooperative.documentTemplatesPage.openTextLabel');
 };
 
 /** Документы по владельцам: базовый набор кооператива первым, дальше приложения. */
@@ -175,7 +175,7 @@ const bundleLabel = (bundle: string): string => {
 
 const proposeLabel = (row: IDocumentTemplate): string => {
   const pack = bundleToPropose(templates.value, row);
-  return pack.length > 1 ? `Вынести пакет (${pack.length})` : 'Вынести на совет';
+  return pack.length > 1 ? i18nT('cooperative.documentTemplatesPage.proposeBundleLabel', { count: pack.length }) : i18nT('cooperative.documentTemplatesPage.proposeLabel');
 };
 
 const formatApprovedAt = (value: string | null | undefined): string => {
@@ -202,7 +202,7 @@ const propose = async (row: IDocumentTemplate) => {
   try {
     proposing.value = row.registry_id;
     await api.proposeDocumentApproval({ coopname: info.coopname, registry_ids: pack.map((t) => t.registry_id) });
-    SuccessAlert(pack.length > 1 ? 'Пакет документов вынесен на совет' : 'Документ вынесен на совет');
+    SuccessAlert(pack.length > 1 ? i18nT('cooperative.documentTemplatesPage.proposeBundleSuccess') : i18nT('cooperative.documentTemplatesPage.proposeSuccess'));
     await load();
     emit('changed');
   } catch (e: unknown) {
@@ -216,7 +216,7 @@ const openBlank = async (row: IDocumentTemplate, edition: IDocumentTemplateEditi
   try {
     opening.value = `${row.registry_id}:${edition}`;
     const blank = await api.loadDocumentTemplateBlank({ coopname: info.coopname, registry_id: row.registry_id, edition });
-    viewer.title = `${blank.title} — редакция № ${edition === DocumentTemplateEdition.Approved ? row.approved_version : row.current_version}`;
+    viewer.title = i18nT('cooperative.documentTemplatesPage.viewerTitle', { blankTitle: blank.title, version: edition === DocumentTemplateEdition.Approved ? row.approved_version : row.current_version });
     viewer.html = blank.html;
     viewer.text_hash = blank.text_hash;
     viewer.open = true;

@@ -3,7 +3,7 @@ import type {
   MarketplacePlacement,
   MarketplaceStorageCellView,
 } from './types'
-import { uiLocale } from 'src/shared/i18n';
+import { uiLocale, t } from 'src/shared/i18n';
 
 /**
  * Позиция склада несёт только идентификаторы места (`container_id`/`cell_id`),
@@ -42,10 +42,10 @@ export function locationLabel(placement: MarketplacePlacement, index: StorageInd
   const cellId = container?.cell_id ?? placement.cell_id ?? null
   const cell = cellId ? index.cellById.get(cellId) ?? null : null
 
-  if (container && cell) return `Бокс ${container.code} · ${cell.code}`
-  if (container) return `Бокс ${container.code}`
-  if (cell) return `Ячейка ${cell.code}`
-  return 'Без места'
+  if (container && cell) return t('marketplaceStorage.format.boxAndCellLabel', { containerCode: container.code, cellCode: cell.code })
+  if (container) return t('marketplaceStorage.format.boxLabel', { containerCode: container.code })
+  if (cell) return t('marketplaceStorage.format.cellLabel', { cellCode: cell.code })
+  return t('marketplaceStorage.format.noLocation')
 }
 
 /** Адрес бокса для списков: «BX-0007 · A-02» либо «BX-0007» без адреса. */
@@ -100,10 +100,10 @@ export function volumeM3Of(value: string | null | undefined): number {
  */
 export function formatVolumeM3(value: string | number | null | undefined): string {
   const n = typeof value === 'number' ? value : volumeM3Of(value)
-  if (!Number.isFinite(n) || n === 0) return '0 м³'
+  if (!Number.isFinite(n) || n === 0) return t('marketplaceStorage.format.zeroVolume')
 
   const digits = n >= 0.01 ? 2 : Math.min(6, Math.ceil(-Math.log10(Math.abs(n))) + 1)
-  return `${n.toLocaleString(uiLocale(), { maximumFractionDigits: digits })} м³`
+  return t('marketplaceStorage.format.volumeLabel', { value: n.toLocaleString(uiLocale(), { maximumFractionDigits: digits }) })
 }
 
 /**

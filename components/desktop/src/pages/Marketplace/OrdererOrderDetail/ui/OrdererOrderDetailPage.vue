@@ -34,6 +34,7 @@ import {
   OPEN_RETURN_CLAIM_STATUSES,
   type MarketplaceReturnClaimView,
 } from '../../OrdererReturnClaims';
+import { t } from 'src/shared/i18n';
 
 /**
  * Детальная страница заказа заказчика. Открывается кликом по карточке на
@@ -104,7 +105,7 @@ const cancelDialogOpen = ref(false);
 const cancelMessage = computed(() => {
   const o = order.value;
   if (!o) return '';
-  return `Заказ № ${o.id.slice(0, 8)} (${orderSaleUnit.value.units} ${orderSaleUnit.value.unitLabel || 'ед.'}, ${formatPrice(o.total_cost_with_fee)}) будет отменён.`;
+  return t('marketplace.ordererOrderDetailPage.cancelConfirmText', { orderId: o.id.slice(0, 8), units: orderSaleUnit.value.units, unitLabel: orderSaleUnit.value.unitLabel || 'ед.', amount: formatPrice(o.total_cost_with_fee) });
 });
 
 // Заявление подаётся только по выданному заказу (RECEIVED) в пределах окна
@@ -158,14 +159,14 @@ const returnHeroIcon = computed(() => {
   return 'event_busy';
 });
 const returnPrimaryText = computed(() => {
-  if (displayedReturnClaim.value) return 'Заявление на возврат';
-  if (canSubmitReturn.value) return 'Гарантийный возврат доступен';
-  return warrantyUntil.value ? 'Гарантийный срок истёк' : 'Гарантийный возврат не предусмотрен';
+  if (displayedReturnClaim.value) return t('marketplace.ordererOrderDetailPage.returnClaimLabel');
+  if (canSubmitReturn.value) return t('marketplace.ordererOrderDetailPage.warrantyAvailable');
+  return warrantyUntil.value ? t('marketplace.ordererOrderDetailPage.warrantyExpired') : t('marketplace.ordererOrderDetailPage.warrantyNotProvided');
 });
 const returnSecondaryText = computed(() => {
   if (!warrantyRowValue.value) return '';
   return displayedReturnClaim.value || canSubmitReturn.value
-    ? `Гарантийный срок — до ${warrantyRowValue.value}`
+    ? t('marketplace.ordererOrderDetailPage.warrantyUntil', { date: warrantyRowValue.value })
     : warrantyRowValue.value;
 });
 
@@ -214,13 +215,13 @@ const timelineEvents = computed<ActivityEvent[]>(() => {
       events.push({ id, type, icon, title, date: String(date) });
     }
   };
-  add('created', 'create', 'shopping_cart', 'Заказ оформлен', o.created_at);
-  add('accepted', 'sign', 'inventory_2', 'Ожидает отгрузки', o.accepted_at);
+  add('created', 'create', 'shopping_cart', t('marketplace.ordererOrderDetailPage.statusPlaced'), o.created_at);
+  add('accepted', 'sign', 'inventory_2', t('marketplace.ordererOrderDetailPage.statusAwaitingShipment'), o.accepted_at);
   // Выдача начинается с подписи заявления заказчиком; отметки подписей
   // членской модели сняты вместе с ней.
-  add('opened', 'system', 'lock_open', 'Заявление о выдаче подписано', o.issue_statement_at);
-  add('received', 'sign', 'check_circle', 'Заказ получен', o.received_at);
-  add('cancelled', 'reject', 'cancel', 'Заказ отменён', o.cancelled_at);
+  add('opened', 'system', 'lock_open', t('marketplace.ordererOrderDetailPage.statusHandoffSigned'), o.issue_statement_at);
+  add('received', 'sign', 'check_circle', t('marketplace.ordererOrderDetailPage.statusReceived'), o.received_at);
+  add('cancelled', 'reject', 'cancel', t('marketplace.ordererOrderDetailPage.statusCancelled'), o.cancelled_at);
 
   // Гарантийный возврат — часть истории заказа, не только текущий статус в
   // карточке выше: подача заявления и каждое решение председателя тоже
@@ -230,7 +231,7 @@ const timelineEvents = computed<ActivityEvent[]>(() => {
       `return-submitted-${claim.id}`,
       'create',
       'assignment_return',
-      'Заявление на гарантийный возврат подано',
+      t('marketplace.ordererOrderDetailPage.statusReturnClaimSubmitted'),
       claim.created_at,
     );
     for (const entry of claim.decision_log) {
@@ -282,7 +283,7 @@ async function load(): Promise<void> {
     order.value = fetched;
     if (fetched?.offer_id && !offerImages.value.length) void loadImages(fetched.offer_id);
   } catch (e) {
-    FailAlert(e, 'Не удалось загрузить заказ');
+    FailAlert(e, t('marketplace.ordererOrderDetailPage.loadError'));
   } finally {
     loading.value = false;
   }
@@ -351,18 +352,18 @@ useMarketplaceRealtime(
 </script>
 
 <template lang="pug">
-q-page.order-detail(role="region", aria-label="Заказ")
+q-page.order-detail(role="region", :aria-label="$t('marketplace.ordererOrderDetailPage.pageAriaLabel')")
   Teleport(to="#header-actions-host", defer)
     BaseButton(variant="secondary", size="sm", @click="goReceive")
       template(#icon-left)
         q-icon(name="qr_code_2", size="16px")
-      | Показать QR
+      | {{ $t('marketplace.ordererOrderDetailPage.showQrButton') }}
 
   .order-detail__col
     BaseButton.order-detail__back(variant="ghost", size="sm", @click="goBack")
       template(#icon-left)
         q-icon(name="arrow_back", size="16px")
-      | К моим заказам
+      | {{ $t('marketplace.ordererOrderDetailPage.myOrdersLink') }}
 
     q-inner-loading(:showing="loading && !order")
       q-spinner(color="primary", size="2em")
@@ -371,11 +372,11 @@ q-page.order-detail(role="region", aria-label="Заказ")
       BaseCard.order-detail__card
         .order-detail__hero
           .order-detail__cover
-            OfferGallery(:images="offerImages", :alt="order.product_name || 'Товар'", height="100%", placeholder-icon-size="40px")
+            OfferGallery(:images="offerImages", :alt="order.product_name || $t('marketplace.ordererOrderDetailPage.productLabelFallback')", height="100%", placeholder-icon-size="40px")
 
           .order-detail__hero-info
             .order-detail__hero-top
-              .t-h2.order-detail__title {{ order.product_name || 'Товар по предложению' }}
+              .t-h2.order-detail__title {{ order.product_name || $t('marketplace.ordererOrderDetailPage.productByOfferLabel') }}
               BaseBadge(v-if="status", :variant="status.variant") {{ status.label }}
             .order-detail__sub
               span.order-detail__num №&nbsp;{{ order.id.slice(0, 8) }}
@@ -384,9 +385,9 @@ q-page.order-detail(role="region", aria-label="Заказ")
 
             .order-detail__progress(v-if="progress !== undefined")
               .order-detail__progress-label
-                | коллективный заказ · {{ Math.round(progress * 100) }}%
+                | {{ $t('marketplace.ordererOrderDetailPage.groupOrderProgress', { percent: Math.round(progress * 100) }) }}
                 q-icon(name="help_outline", size="14px", class="order-detail__progress-help")
-                  q-tooltip Заказ копится вместе с другими пайщиками до минимального объёма поставки на этот пункт выдачи.
+                  q-tooltip {{ $t('marketplace.ordererOrderDetailPage.groupOrderHint') }}
               q-linear-progress.order-detail__progress-bar(
                 :value="progress",
                 rounded,
@@ -397,21 +398,21 @@ q-page.order-detail(role="region", aria-label="Заказ")
 
             .order-detail__facts
               .order-detail__fact
-                .order-detail__fact-label Сумма заказа
+                .order-detail__fact-label {{ $t('marketplace.ordererOrderDetailPage.orderAmountLabel') }}
                 .order-detail__fact-value--money {{ formatPrice(String(totalWithFee)) }}
               .order-detail__fact
-                .order-detail__fact-label Количество
+                .order-detail__fact-label {{ $t('marketplace.ordererOrderDetailPage.column.quantity') }}
                 .order-detail__fact-value {{ orderSaleUnit.units }} {{ orderSaleUnit.unitLabel }}
               .order-detail__fact
-                .order-detail__fact-label Цена за единицу
+                .order-detail__fact-label {{ $t('marketplace.ordererOrderDetailPage.unitPriceLabel') }}
                 .order-detail__fact-value {{ formatPrice(String(unitPriceWithFee)) }}
 
             .order-detail__hero-cancel(v-if="cancellable")
-              BaseButton(variant="danger", size="sm", @click="openCancelDialog") Отменить заказ
+              BaseButton(variant="danger", size="sm", @click="openCancelDialog") {{ $t('marketplace.ordererOrderDetailPage.cancelOrderButton') }}
 
       BaseCard.order-detail__card(v-if="pvzName || pvzAddress")
         template(#head)
-          .t-h3 Где забрать
+          .t-h3 {{ $t('marketplace.ordererOrderDetailPage.pickupLocationLabel') }}
         .order-detail__pvz(:class="{ 'q-mb-sm': hasMap }")
           q-icon(name="place", size="18px")
           .order-detail__pvz-text
@@ -421,26 +422,26 @@ q-page.order-detail(role="region", aria-label="Заказ")
 
       BaseCard.order-detail__card(v-if="issuanceFact")
         template(#head)
-          .t-h3 Факт выдачи
+          .t-h3 {{ $t('marketplace.ordererOrderDetailPage.handoffFactLabel') }}
         table.order-detail__table
           thead
             tr
               th
-              th.text-right Заказ
-              th.text-right Факт
+              th.text-right {{ $t('marketplace.ordererOrderDetailPage.column.order') }}
+              th.text-right {{ $t('marketplace.ordererOrderDetailPage.column.fact') }}
           tbody
             tr
-              td Количество
+              td {{ $t('marketplace.ordererOrderDetailPage.column.quantity') }}
               td.text-right {{ order.quantity }} {{ unitShort }}
               td.text-right {{ issuanceFact.actual_quantity }} {{ unitShort }}
             tr
-              td Сумма
+              td {{ $t('marketplace.ordererOrderDetailPage.column.amount') }}
               td.text-right {{ formatPrice(String(totalWithFee)) }}
               td.text-right {{ formatPrice(String(factCostWithFee)) }}
 
       BaseCard.order-detail__card(v-if="order.status === 'RECEIVED'")
         template(#head)
-          .t-h3 Гарантийный возврат
+          .t-h3 {{ $t('marketplace.ordererOrderDetailPage.warrantyReturnLabel') }}
         .order-detail__return
           .order-detail__return-hero
             q-icon.order-detail__return-icon(:name="returnHeroIcon", size="24px")
@@ -454,7 +455,7 @@ q-page.order-detail(role="region", aria-label="Заказ")
               | {{ returnClaimStatusLabel(displayedReturnClaim.status) }}
 
           .order-detail__return-actions(v-if="displayedReturnClaim || canSubmitReturn")
-            BaseButton(v-if="displayedReturnClaim", variant="ghost", size="sm", @click="openReturnDetails(displayedReturnClaim)") Подробнее
+            BaseButton(v-if="displayedReturnClaim", variant="ghost", size="sm", @click="openReturnDetails(displayedReturnClaim)") {{ $t('marketplace.ordererOrderDetailPage.detailsLink') }}
             BaseButton(
               v-if="canSubmitReturn"
               :variant="displayedReturnClaim ? 'secondary' : 'primary'"
@@ -463,11 +464,11 @@ q-page.order-detail(role="region", aria-label="Заказ")
             )
               template(#icon-left)
                 q-icon(name="assignment", size="16px")
-              | {{ displayedReturnClaim ? 'Подать новое заявление' : 'Подать заявление на возврат' }}
+              | {{ displayedReturnClaim ? $t('marketplace.ordererOrderDetailPage.submitNewClaimButton') : $t('marketplace.ordererOrderDetailPage.submitClaimButton') }}
 
       BaseCard.order-detail__card(v-if="timelineEvents.length")
         template(#head)
-          .t-h3 Хронология
+          .t-h3 {{ $t('marketplace.ordererOrderDetailPage.timelineTitle') }}
         ActivityTimeline(:events="timelineEvents", group-by-date)
 
     HandoffCodeDialog(v-model="receiveDialogOpen", :coopname="coopname", :kind="HandoffTokenKind.Receive")

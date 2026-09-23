@@ -6,7 +6,7 @@ q-btn.full-width(
   no-caps,
   @click='save',
   :loading='isSaving'
-) Сохранить
+) {{ $t('common.action.save') }}
 </template>
 
 <script setup lang="ts">
@@ -18,6 +18,7 @@ import {
   FailAlert,
   SuccessAlert,
 } from 'src/shared/api';
+import { t } from 'src/shared/i18n';
 
 interface Props {
   extensionName: string;
@@ -49,11 +50,11 @@ const save = async () => {
       props.extensionEnabled,
       props.config,
     );
-    SuccessAlert('Расширение обновлено');
+    SuccessAlert(t('extension.saveButton.updatedSuccess'));
     router.push({ name: 'one-extension' });
   } catch (e: unknown) {
     FailAlert(
-      `Ошибка сохранения расширения: ${extractGraphQLErrorMessages(e)}`,
+      t('extension.saveButton.saveError', { errorMessage: extractGraphQLErrorMessages(e) }),
     );
   } finally {
     isSaving.value = false;

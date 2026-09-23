@@ -18,6 +18,7 @@ import { PrivacyPage } from 'src/pages/Privacy';
 import { TermsPage } from 'src/pages/Terms';
 import { CoopidFlowPage } from 'src/pages/Registrator/CoopidFlow';
 import { defineComponent, h } from 'vue';
+import { t } from 'src/shared/i18n';
 
 // Dynamic layout wrapper, который определяет layout в runtime
 const DynamicLayoutWrapper = defineComponent({
@@ -66,11 +67,11 @@ const baseRoutes: RouteRecordRaw[] = [
         children: [],
         meta: {
           authSplit: true,
-          title: 'Вход',
+          title: t('app.routes.login'),
           icon: 'login',
           requiresAuth: false,
           widget: {
-            title: 'Вход',
+            title: t('app.routes.login'),
             hideHeader: true,
             hideFooter: true,
           },
@@ -84,10 +85,10 @@ const baseRoutes: RouteRecordRaw[] = [
         meta: {
           // Экран живёт в оболочке AuthSplit: без общей шапки и футера, панель до верха.
           authSplit: true,
-          title: 'Вход',
+          title: t('app.routes.login'),
           icon: 'fa-solid fa-sign-in-alt',
           widget: {
-            title: 'Вход',
+            title: t('app.routes.login'),
             hideHeader: true,
             hideFooter: true,
           },
@@ -101,10 +102,10 @@ const baseRoutes: RouteRecordRaw[] = [
         meta: {
           // Экран живёт в оболочке AuthSplit: без общей шапки и футера, панель до верха.
           authSplit: true,
-          title: 'Восстановление ключа',
+          title: t('app.routes.keyRecovery'),
           icon: 'fa-solid fa-key',
           widget: {
-            title: 'Восстановление ключа',
+            title: t('app.routes.keyRecovery'),
             hideHeader: true,
           },
         },
@@ -117,10 +118,10 @@ const baseRoutes: RouteRecordRaw[] = [
         meta: {
           // Экран живёт в оболочке AuthSplit: без общей шапки и футера, панель до верха.
           authSplit: true,
-          title: 'Сброс ключа',
+          title: t('app.routes.keyReset'),
           icon: 'fa-solid fa-key',
           widget: {
-            title: 'Сброс ключа',
+            title: t('app.routes.keyReset'),
             hideHeader: true,
           },
         },
@@ -134,10 +135,10 @@ const baseRoutes: RouteRecordRaw[] = [
         meta: {
           // Экран живёт в оболочке AuthSplit: без общей шапки и футера, панель до верха.
           authSplit: true,
-          title: 'Восстановление доступа',
+          title: t('app.routes.accessRecovery'),
           icon: 'key',
           widget: {
-            title: 'Восстановление доступа',
+            title: t('app.routes.accessRecovery'),
             hideHeader: true,
           },
         },
@@ -151,10 +152,10 @@ const baseRoutes: RouteRecordRaw[] = [
         children: [],
         meta: {
           authSplit: true,
-          title: 'Защита аккаунта',
+          title: t('app.routes.permissionDenied'),
           icon: 'security',
           widget: {
-            title: 'Защита аккаунта',
+            title: t('app.routes.permissionDenied'),
             hideHeader: true,
           },
         },
@@ -168,10 +169,10 @@ const baseRoutes: RouteRecordRaw[] = [
         meta: {
           // Экран живёт в оболочке AuthSplit: без общей шапки и футера, панель до верха.
           authSplit: true,
-          title: 'Восстановление доступа',
+          title: t('app.routes.accessRecovery'),
           icon: 'key',
           widget: {
-            title: 'Восстановление доступа',
+            title: t('app.routes.accessRecovery'),
             hideHeader: true,
           },
         },
@@ -183,10 +184,10 @@ const baseRoutes: RouteRecordRaw[] = [
         children: [],
         meta: {
           authSplit: true,
-          title: 'Приглашение',
+          title: t('app.routes.invitation'),
           icon: 'fa-solid fa-envelope',
           widget: {
-            title: 'Приглашение',
+            title: t('app.routes.invitation'),
             hideHeader: true,
           },
         },
@@ -198,10 +199,10 @@ const baseRoutes: RouteRecordRaw[] = [
         children: [],
         meta: {
           authSplit: true,
-          title: 'Вход по карте',
+          title: t('app.routes.cardLogin'),
           icon: 'fa-solid fa-id-card',
           widget: {
-            title: 'Вход по карте',
+            title: t('app.routes.cardLogin'),
             hideHeader: true,
             hideFooter: true,
           },
@@ -215,10 +216,10 @@ const baseRoutes: RouteRecordRaw[] = [
         meta: {
           // Экран живёт в оболочке AuthSplit: без общей шапки и футера, панель до верха.
           authSplit: true,
-          title: 'Регистрация',
+          title: t('app.routes.registration'),
           icon: 'fa-solid fa-user-plus',
           widget: {
-            title: 'Регистрация',
+            title: t('app.routes.registration'),
             hideHeader: true,
             hideFooter: true,
           },
@@ -231,11 +232,11 @@ const baseRoutes: RouteRecordRaw[] = [
         meta: {
           authSplit: true,
           layout: 'default',
-          title: 'Вход для доступа к содержимому',
+          title: t('app.routes.contentAccessLogin'),
           icon: 'fa-solid fa-lock',
           roles: [],
           widget: {
-            title: 'Авторизация',
+            title: t('app.routes.contentAccessAuthorization'),
             hideHeader: false,
           },
         },
@@ -245,7 +246,7 @@ const baseRoutes: RouteRecordRaw[] = [
         name: 'privacy',
         component: PrivacyPage,
         meta: {
-          title: 'Политика конфиденциальности',
+          title: t('app.routes.privacyPolicy'),
           icon: 'fa-solid fa-shield-alt',
         },
       },
@@ -254,7 +255,7 @@ const baseRoutes: RouteRecordRaw[] = [
         name: 'terms',
         component: TermsPage,
         meta: {
-          title: 'Пользовательское соглашение',
+          title: t('app.routes.termsOfUse'),
           icon: 'fa-solid fa-file-contract',
         },
       },
@@ -282,7 +283,7 @@ if (process.env.DEV) {
     path: '/_dev/ui',
     name: 'dev-ui-showcase',
     component: () => import('src/pages/_dev/ui/index.vue'),
-    meta: { title: 'MONO v2 — базовые компоненты', icon: 'fa-solid fa-flask' },
+    meta: { title: t('app.routes.devUiShowcase'), icon: 'fa-solid fa-flask' },
   });
 }
 
@@ -293,7 +294,7 @@ baseRoutes.push({
   path: '/verify',
   name: 'verify-certificate',
   component: () => import('src/pages/Verify/VerifyCertificatePage.vue'),
-  meta: { title: 'Проверка удостоверения', icon: 'verified_user' },
+  meta: { title: t('app.routes.verifyCertificate'), icon: 'verified_user' },
 });
 
 const rs = baseRoutes;

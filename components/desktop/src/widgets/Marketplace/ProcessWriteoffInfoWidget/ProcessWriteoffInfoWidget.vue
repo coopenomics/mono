@@ -1,42 +1,42 @@
 <template lang="pug">
 .process-writeoff-info
-  Loader(v-if='loading', text='Загрузка проекта решения…')
+  Loader(v-if='loading', :text='$t("marketplace.processWriteoffInfo.loadingText")')
   div(v-else-if='snapshot')
     .row.q-col-gutter-md
       .col-12.col-sm-6
-        .text-caption.text-grey-7 Тип процесса
-        .text-body2.text-weight-medium Списание скоропорта
+        .text-caption.text-grey-7 {{ $t('marketplace.processWriteoffInfo.processTypeLabel') }}
+        .text-body2.text-weight-medium {{ $t('marketplace.processWriteoffInfo.processTypeValue') }}
       .col-12.col-sm-6
-        .text-caption.text-grey-7 Источник проекта
+        .text-caption.text-grey-7 {{ $t('marketplace.processWriteoffInfo.sourceLabel') }}
         .text-body2 {{ triggerLabel }}
       .col-12.col-sm-6
-        .text-caption.text-grey-7 Состояние решения
+        .text-caption.text-grey-7 {{ $t('marketplace.processWriteoffInfo.statusLabel') }}
         .text-body2 {{ statusLabel }}
       .col-12.col-sm-6
-        .text-caption.text-grey-7 Расчётный цикл начат
+        .text-caption.text-grey-7 {{ $t('marketplace.processWriteoffInfo.cycleStartedLabel') }}
         .text-body2 {{ formatDate(field('cycle_started_at')) }}
       .col-12.col-sm-6
-        .text-caption.text-grey-7 Итоговая сумма
+        .text-caption.text-grey-7 {{ $t('marketplace.processWriteoffInfo.totalAmountLabel') }}
         .text-body2.font-monospace {{ field('total_amount') ? formatAsset2Digits(field('total_amount')) : '—' }}
       .col-12.col-sm-6
-        .text-caption.text-grey-7 Решение совета
-        .text-body2 {{ field('decision_id') || 'не зарегистрировано' }}
+        .text-caption.text-grey-7 {{ $t('marketplace.processWriteoffInfo.councilDecisionLabel') }}
+        .text-body2 {{ field('decision_id') || $t('marketplace.processWriteoffInfo.notRegistered') }}
     .row.q-mt-md
       q-btn(
         flat
         no-caps
         color='primary'
         icon='fa-solid fa-up-right-from-square'
-        label='Открыть проект на столе списания скоропорта'
+        :label='$t("marketplace.processWriteoffInfo.openAtWriteoffDeskButton")'
         :to='deepLink'
       )
   div(v-else)
-    .text-caption.text-grey-7 Содержание проекта ещё не доступно.
+    .text-caption.text-grey-7 {{ $t('marketplace.processWriteoffInfo.contentUnavailable') }}
 </template>
 
 <script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue'
-import { uiLocale } from 'src/shared/i18n';
+import { uiLocale, t } from 'src/shared/i18n';
 import { useProcessStore, type IProcessSnapshot } from 'src/entities/Process'
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits'
 import { Loader } from 'src/shared/ui/Loader'
@@ -59,22 +59,22 @@ function field(name: string): string {
 
 const triggerLabel = computed(() => {
   const v = field('trigger')
-  if (v === 'cron') return 'Автоматический (ежемесячный)'
-  if (v === 'manual') return 'Ручной (по инициативе председателя)'
+  if (v === 'cron') return t('marketplace.processWriteoffInfo.sourceAutomatic')
+  if (v === 'manual') return t('marketplace.processWriteoffInfo.sourceManual')
   return '—'
 })
 
 // Подписи статусов проекта списания — согласованы с админ-столом
 // (AdminWriteoffs) и столом ПВЗ (PvzWriteoffs).
 const WRITEOFF_STATUS_LABEL: Record<string, string> = {
-  DRAFT: 'Черновик',
-  PROPOSED: 'На повестке совета',
-  ON_AGENDA: 'На повестке совета',
-  AUTHORIZED: 'Одобрено советом',
-  EXECUTING: 'Идёт списание',
-  EXECUTED: 'Исполнено',
-  REJECTED: 'Отклонено',
-  DECLINED: 'Отклонено',
+  DRAFT: t('marketplace.writeoff.status.draft'),
+  PROPOSED: t('marketplace.writeoff.status.onAgenda'),
+  ON_AGENDA: t('marketplace.writeoff.status.onAgenda'),
+  AUTHORIZED: t('marketplace.writeoff.status.approved'),
+  EXECUTING: t('marketplace.writeoff.status.inProgress'),
+  EXECUTED: t('marketplace.writeoff.status.executed'),
+  REJECTED: t('marketplace.writeoff.status.rejected'),
+  DECLINED: t('marketplace.writeoff.status.rejected'),
 }
 const statusLabel = computed(() => {
   const raw = field('status')

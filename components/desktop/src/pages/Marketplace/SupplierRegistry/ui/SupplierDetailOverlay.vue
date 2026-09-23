@@ -2,7 +2,7 @@
 DetailsDrawer(
   :model-value='isOpen',
   :width='560',
-  title='Поставщик',
+  :title='$t("marketplace.supplierDetailOverlay.title")',
   @update:model-value='(v) => !v && overlay.close()'
 )
   .supplier-detail(v-if='supplier')
@@ -15,14 +15,14 @@ DetailsDrawer(
       BaseBadge(:variant='SUPPLIER_STATUS_VARIANT[supplier.status] || "neutral"')
         | {{ SUPPLIER_STATUS_LABEL[supplier.status] || supplier.status }}
 
-    DataRow(label='Модель', :value='SUPPLIER_MODEL_LABEL[supplier.model] || supplier.model')
-    DataRow(label='Договор', :value='contractLabel')
+    DataRow(:label='$t("marketplace.supplierDetailOverlay.modelLabel")', :value='SUPPLIER_MODEL_LABEL[supplier.model] || supplier.model')
+    DataRow(:label='$t("marketplace.supplierDetailOverlay.contractLabel")', :value='contractLabel')
     DataRow(
       v-if='supplier.contract_date',
-      label='Дата договора',
+      :label='$t("marketplace.supplierDetailOverlay.contractDateLabel")',
       :value='supplier.contract_date'
     )
-    DataRow(label='Аккаунт пайщика', :value='supplier.member_account', copyable, mono)
+    DataRow(:label='$t("marketplace.supplierDetailOverlay.accountLabel")', :value='supplier.member_account', copyable, mono)
 
     //- Решение председателя по заявке — здесь же, не возвращаясь в реестр
     .supplier-detail__actions(v-if='canModerate')
@@ -30,12 +30,12 @@ DetailsDrawer(
         variant='primary',
         :loading='acting',
         @click='emit("approve", supplier)'
-      ) Одобрить
+      ) {{ $t('marketplace.supplierDetailOverlay.approveButton') }}
       BaseButton(
         variant='ghost',
         :disabled='acting',
         @click='emit("reject", supplier)'
-      ) Отклонить
+      ) {{ $t('marketplace.supplierDetailOverlay.rejectButton') }}
 </template>
 
 <script setup lang="ts">

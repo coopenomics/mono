@@ -299,17 +299,63 @@ function unconnectedProblems(app) {
       }
       continue;
     }
+    // Словарь расширения подключает его модуль i18n/index.ts (импорт ./ru.json
+    // и регистрация), а сам модуль — точка входа расширения (install.ts на
+    // рабочем столе, *.module.ts в контроллере) импортом './i18n'.
     const extDir = file.replace(/\/i18n\/[^/]+$/, '/');
-    const connected = files.some(
-      (rel) => rel.startsWith(extDir) && /i18n\/ru\.json['"]/.test(readFileSync(join(REPO_ROOT, rel), 'utf8')),
+    const indexPath = join(REPO_ROOT, extDir, 'i18n/index.ts');
+    const moduleOk =
+      existsSync(indexPath) &&
+      /from '\.\/ru\.json'/.test(readFileSync(indexPath, 'utf8')) &&
+      /registerMessages\(/.test(readFileSync(indexPath, 'utf8'));
+    const entryOk = files.some(
+      (rel) =>
+        rel.startsWith(extDir) &&
+        /(^|\/)(install\.ts|[^/]*\.module\.ts)$/.test(rel) &&
+        /import '\.\/i18n';/.test(readFileSync(join(REPO_ROOT, rel), 'utf8')),
     );
+    const connected = moduleOk && entryOk;
     if (!connected) problems.push(`${file}: словарь не подключён — импортируйте его в коде расширения и зарегистрируйте (registerMessages)`);
   }
   return problems;
 }
 
+// Уведомления: шаблоны Liquid в components/notifications/src/i18n/<язык>.json.
+// Каждый nt('…') в сценариях есть в словаре, каждый шаблон разбирается Liquid —
+// тем же движком, что отрисовывает письма в контроллере.
+function notificationProblems() {
+  const dictPath = join(REPO_ROOT, 'components/notifications/src/i18n/ru.json');
+  if (!existsSync(dictPath)) return { problems: [], size: 0 };
+  const problems = [];
+  const tree = JSON.parse(readFileSync(dictPath, 'utf8'));
+  const leaves = flatten(tree);
+  const controllerRequire = createRequire(join(REPO_ROOT, 'components/controller/package.json'));
+  const { Liquid } = controllerRequire('liquidjs');
+  const liquid = new Liquid({ strictVariables: false, strictFilters: false });
+  for (const [key, template] of leaves) {
+    try {
+      liquid.parse(template);
+    } catch (e) {
+      problems.push(`components/notifications/src/i18n/ru.json: ${key} — шаблон не разбирается Liquid (${e.message.split('\n')[0]})`);
+    }
+  }
+  for (const rel of listScanFiles().filter((f) => f.startsWith('components/notifications/src/'))) {
+    const text = readFileSync(join(REPO_ROOT, rel), 'utf8');
+    for (const m of text.matchAll(/\bnt\(\s*'([^']+)'/g)) {
+      if (!leaves.has(m[1])) problems.push(`${rel}: текста уведомления «${m[1]}» нет в словаре`);
+    }
+  }
+  return { problems, size: leaves.size };
+}
+
 function gateCatalog() {
   let failed = 0;
+  {
+    const { problems, size } = notificationProblems();
+    if (size) console.log(`  notifications: ${size} шаблонов`);
+    for (const p of problems) console.log(`    ✗ ${p}`);
+    if (problems.length) failed = 1;
+  }
   for (const app of ['desktop', 'controller']) {
     const problems = [];
     const messages = loadApp(app, problems);

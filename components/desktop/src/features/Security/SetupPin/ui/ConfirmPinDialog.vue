@@ -10,13 +10,13 @@ BaseDialog(v-model='open', :title='title', size='sm')
       @complete='onSubmit'
     )
   template(#footer)
-    BaseButton(variant='secondary', :disabled='checking', @click='open = false') Отмена
+    BaseButton(variant='secondary', :disabled='checking', @click='open = false') {{ $t('common.action.cancel') }}
     BaseButton(
       variant='primary',
       :loading='checking',
       :disabled='!canSubmit',
       @click='onSubmit'
-    ) Подтвердить
+    ) {{ $t('common.action.confirm') }}
 </template>
 
 <script lang="ts" setup>
@@ -24,6 +24,7 @@ import { computed, ref, watch } from 'vue';
 import { BaseButton, BaseDialog } from 'src/shared/ui/base';
 import { PinPad } from 'src/shared/ui/domain';
 import { useSessionStore } from 'src/entities/Session';
+import { t } from 'src/shared/i18n';
 
 /**
  * Подтверждение действия текущим PIN-кодом.
@@ -69,7 +70,7 @@ async function onSubmit(): Promise<void> {
   try {
     const ok = await session.verifyPin(pin.value);
     if (!ok) {
-      error.value = 'Неверный PIN-код';
+      error.value = t('security.confirmPinDialog.wrongPin');
       pin.value = '';
       return;
     }

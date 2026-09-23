@@ -13,7 +13,7 @@
  * кнопке «Показать ещё» — иначе тысяча позиций рисуется в DOM разом.
  */
 import { computed, ref, watch, type PropType } from 'vue'
-import { uiLocale } from 'src/shared/i18n';
+import { uiLocale, t } from 'src/shared/i18n';
 import { BaseButton, BaseTable, EmptyState } from 'src/shared/ui/base'
 import type { BaseTableColumn } from 'src/shared/ui/base'
 import { FilterBar } from 'src/shared/ui/domain'
@@ -41,10 +41,10 @@ const visibleCount = ref(PAGE_SIZE)
 
 /** Состояние позиции — что именно администратор ищет на складе. */
 const STATE_OPTIONS = [
-  { label: 'Есть остаток', value: 'in_stock' },
-  { label: 'Остаток нулевой', value: 'empty' },
-  { label: 'Просрочено', value: 'expired' },
-  { label: 'Без штрих-кода', value: 'unlabeled' },
+  { label: t('marketplace.warehouse.status.inStock'), value: 'in_stock' },
+  { label: t('marketplace.warehouse.status.zero'), value: 'empty' },
+  { label: t('marketplace.warehouse.status.expired'), value: 'expired' },
+  { label: t('marketplace.warehouse.status.noBarcode'), value: 'unlabeled' },
 ]
 
 // Списки участков и категорий строим по тому, что реально лежит на складе:
@@ -61,7 +61,7 @@ const categoryOptions = computed(() => {
   const map = new Map<number, string>()
   for (const r of props.rows) {
     if (r.categoryId == null) continue
-    map.set(r.categoryId, r.categoryName ?? `Категория ${r.categoryId}`)
+    map.set(r.categoryId, r.categoryName ?? t('marketplace.warehouseSummaryGrid.categoryFallback', { categoryId: r.categoryId }))
   }
   return [...map.entries()]
     .map(([value, label]) => ({ value, label }))
@@ -71,12 +71,12 @@ const categoryOptions = computed(() => {
 const filterDefs = computed<FilterDefinition[]>(() => {
   const defs: FilterDefinition[] = []
   if (pvzOptions.value.length > 1) {
-    defs.push({ key: 'braname', label: 'Пункт выдачи', type: 'select', options: pvzOptions.value })
+    defs.push({ key: 'braname', label: t('marketplace.warehouseSummaryGrid.column.deliveryPoint'), type: 'select', options: pvzOptions.value })
   }
   if (categoryOptions.value.length > 1) {
-    defs.push({ key: 'category', label: 'Категория', type: 'select', options: categoryOptions.value })
+    defs.push({ key: 'category', label: t('marketplace.warehouseSummaryGrid.categoryFilterLabel'), type: 'select', options: categoryOptions.value })
   }
-  defs.push({ key: 'state', label: 'Состояние', type: 'select', options: STATE_OPTIONS })
+  defs.push({ key: 'state', label: t('marketplace.warehouseSummaryGrid.stateFilterLabel'), type: 'select', options: STATE_OPTIONS })
   return defs
 })
 
@@ -133,14 +133,14 @@ function showMore(): void {
 }
 
 const columns = computed<BaseTableColumn<WarehouseRow>[]>(() => [
-  { key: 'product', label: 'Позиция', width: '260px', sortable: true, field: 'title' },
-  { key: 'pvz', label: 'Пункт выдачи', width: '260px', sortable: true, field: (row) => pvzTitle(row) },
-  { key: 'incoming', label: 'Принято', width: '104px', numeric: true, sortable: true, field: 'incoming' },
-  { key: 'issued', label: 'Выдано', width: '104px', numeric: true, sortable: true, field: 'issued' },
-  { key: 'writtenOff', label: 'Списано', width: '104px', numeric: true, sortable: true, field: 'writtenOff' },
-  { key: 'balance', label: 'Остаток', width: '112px', numeric: true, sortable: true, field: 'balance' },
-  { key: 'unit', label: 'Ед.', width: '72px' },
-  { key: 'expiry', label: 'Годен до', width: '128px', nowrap: true, sortable: true, field: (row) => row.expiryAt ?? 0 },
+  { key: 'product', label: t('marketplace.warehouseSummaryGrid.column.item'), width: '260px', sortable: true, field: 'title' },
+  { key: 'pvz', label: t('marketplace.warehouseSummaryGrid.column.deliveryPoint'), width: '260px', sortable: true, field: (row) => pvzTitle(row) },
+  { key: 'incoming', label: t('marketplace.warehouseSummaryGrid.column.incoming'), width: '104px', numeric: true, sortable: true, field: 'incoming' },
+  { key: 'issued', label: t('marketplace.warehouseSummaryGrid.column.issued'), width: '104px', numeric: true, sortable: true, field: 'issued' },
+  { key: 'writtenOff', label: t('marketplace.warehouseSummaryGrid.column.writtenOff'), width: '104px', numeric: true, sortable: true, field: 'writtenOff' },
+  { key: 'balance', label: t('marketplace.warehouseSummaryGrid.column.balance'), width: '112px', numeric: true, sortable: true, field: 'balance' },
+  { key: 'unit', label: t('marketplace.warehouseSummaryGrid.column.unit'), width: '72px' },
+  { key: 'expiry', label: t('marketplace.warehouseSummaryGrid.column.expiry'), width: '128px', nowrap: true, sortable: true, field: (row) => row.expiryAt ?? 0 },
 ])
 
 function pvzTitle(row: WarehouseRow): string {
@@ -166,7 +166,7 @@ function onRowClick(row: WarehouseRow): void {
   FilterBar.warehouse-grid__filter(
     v-model:search='search',
     v-model='filters',
-    search-placeholder='Поиск: товар, категория, пункт выдачи, адрес',
+    :search-placeholder='$t("marketplace.warehouseSummaryGrid.searchPlaceholder")',
     :filters='filterDefs'
   )
 
@@ -201,13 +201,13 @@ function onRowClick(row: WarehouseRow): void {
 
     template(#footer)
       .warehouse-grid__foot
-        span Показано {{ pageRows.length }} из {{ filteredRows.length }}
-        BaseButton(v-if='hasMore', variant='ghost', size='sm', @click='showMore') Показать ещё
+        span {{ $t('marketplace.warehouseSummaryGrid.shownCountLabel', { shown: pageRows.length, total: filteredRows.length }) }}
+        BaseButton(v-if='hasMore', variant='ghost', size='sm', @click='showMore') {{ $t('marketplace.warehouseSummaryGrid.showMoreButton') }}
 
   EmptyState(
     v-else,
-    title='На складе пусто',
-    body='Здесь появятся принятые на пункты выдачи позиции. Измените поиск или фильтры, если ожидали увидеть товар.'
+    :title='$t("marketplace.warehouseSummaryGrid.emptyTitle")',
+    :body='$t("marketplace.warehouseSummaryGrid.emptyBody")'
   )
     template(#icon)
       q-icon(name='inventory_2', size='48px')

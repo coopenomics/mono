@@ -42,13 +42,13 @@ const {
 
 <template lang="pug">
 q-form(ref="form")
-  q-input(readonly dense v-model="data.braname" standout="bg-teal text-white" label="Имя аккаунта участка" hint="" autocomplete="off")
-  q-input(dense v-model="data.trustee.username" standout="bg-teal text-white" label="Имя аккаунта председателя" hint="" autocomplete="off")
+  q-input(readonly dense v-model="data.braname" standout="bg-teal text-white" :label="$t('branchCard.branchCard.branchUsernameLabel')" hint="" autocomplete="off")
+  q-input(dense v-model="data.trustee.username" standout="bg-teal text-white" :label="$t('branchCard.branchCard.trusteeUsernameLabel')" hint="" autocomplete="off")
   q-input(
     dense
     v-model="data.phone"
     standout="bg-teal text-white"
-    label="Номер телефона участка"
+    :label="$t('branchCard.branchCard.phoneLabel')"
     mask="+7 (###) ###-##-##"
     fill-mask
     hint=""
@@ -59,28 +59,28 @@ q-form(ref="form")
     dense
     v-model="data.email"
     standout="bg-teal text-white"
-    label="Email участка"
+    :label="$t('branchCard.branchCard.emailLabel')"
     :rules="[val => validEmail(val)]"
   )
   q-input(
     dense
     v-model="data.short_name"
     standout="bg-teal text-white"
-    label="Краткое наименование"
+    :label="$t('branchCard.branchCard.shortNameLabel')"
     :rules="[val => notEmpty(val)]"
   )
   q-input(
     dense
     v-model="data.full_name"
     standout="bg-teal text-white"
-    label="Полное наименование"
+    :label="$t('branchCard.branchCard.fullNameLabel')"
     :rules="[val => notEmpty(val)]"
   )
   q-input(
     dense
     v-model="data.fact_address"
     standout="bg-teal text-white"
-    label="Фактический адрес"
+    :label="$t('branchCard.branchCard.addressLabel')"
     type="textarea"
     rows="2"
     :rules="[val => notEmpty(val)]"
@@ -89,7 +89,7 @@ q-form(ref="form")
     dense
     v-model="data.represented_by.based_on"
     standout="bg-teal text-white"
-    label="Председатель действует на основании"
+    :label="$t('branchCard.branchCard.basedOnLabel')"
     :rules="[val => notEmpty(val)]"
   )
 

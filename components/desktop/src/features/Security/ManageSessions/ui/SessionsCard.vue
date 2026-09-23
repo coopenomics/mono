@@ -1,7 +1,7 @@
 <template lang="pug">
 BaseCard(
-  title='Активные сессии и устройства',
-  subtitle='Где выполнен вход в ваш кабинет. Незнакомую сессию можно завершить.'
+  :title='$t("security.sessionsCard.title")',
+  :subtitle='$t("security.sessionsCard.subtitle")'
 )
   //- Скелетон первой загрузки (без спиннера-оверлея — канон).
   .sessions__skel(v-if='loading && !sessions.length')
@@ -14,7 +14,7 @@ BaseCard(
         .session-row__info
           .session-row__head
             span.session-row__device {{ deviceLabel(s.device) }}
-            BaseChip(v-if='s.current', variant='pos') Текущая
+            BaseChip(v-if='s.current', variant='pos') {{ $t('security.sessionsCard.currentBadge') }}
           .session-row__meta {{ metaLine(s) }}
         BaseButton(
           v-if='!s.current',
@@ -22,7 +22,7 @@ BaseCard(
           size='sm',
           :loading='busyId === s.id',
           @click='onRevoke(s.id)'
-        ) Завершить
+        ) {{ $t('security.sessionsCard.revoke') }}
 
       //- Массовое завершение — только если есть что завершать кроме текущей.
       .sessions__foot(v-if='hasOthers')
@@ -33,25 +33,25 @@ BaseCard(
         )
           template(#icon-left)
             q-icon(name='logout', size='18px')
-          | Завершить все остальные
+          | {{ $t('security.sessionsCard.revokeAllOthers') }}
 
     EmptyState(
       v-else,
-      title='Активных сессий нет',
-      body='Здесь появятся устройства, с которых вы вошли в кабинет.'
+      :title='$t("security.sessionsCard.emptyTitle")',
+      :body='$t("security.sessionsCard.emptyBody")'
     )
       template(#icon)
         q-icon(name='devices', size='32px')
 
   BaseDialog(
     v-model='confirmAll',
-    title='Завершить все остальные сессии?',
+    :title='$t("security.sessionsCard.confirmRevokeAllTitle")',
     size='sm'
   )
-    p.sessions__confirm Все устройства, кроме текущего, будут разлогинены. Это безопасно, если вы заметили незнакомый вход.
+    p.sessions__confirm {{ $t('security.sessionsCard.confirmRevokeAllBody') }}
     template(#footer)
-      BaseButton(variant='secondary', @click='confirmAll = false') Отмена
-      BaseButton(variant='danger', :loading='revokingAll', @click='onRevokeAll') Завершить все
+      BaseButton(variant='secondary', @click='confirmAll = false') {{ $t('common.action.cancel') }}
+      BaseButton(variant='danger', :loading='revokingAll', @click='onRevokeAll') {{ $t('security.sessionsCard.revokeAllSubmit') }}
 </template>
 
 <script lang="ts" setup>
@@ -60,6 +60,7 @@ import { BaseButton, BaseCard, BaseChip, BaseDialog, EmptyState } from 'src/shar
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { formatToFromNow } from 'src/shared/lib/utils/dates/formatToFromNow';
 import { type IAccountSession, useManageSessions } from '../model';
+import { t } from 'src/shared/i18n';
 
 const { sessions, loading, load, revoke, revokeAllOthers } = useManageSessions();
 
@@ -75,7 +76,7 @@ onMounted(() => {
 
 /** Человекочитаемое имя устройства из User-Agent (грубый разбор, без библиотек). */
 function deviceLabel(ua: string): string {
-  if (!ua || ua === 'unknown') return 'Неизвестное устройство';
+  if (!ua || ua === 'unknown') return t('security.sessionsCard.unknownDevice');
   const os = /Windows/i.test(ua)
     ? 'Windows'
     : /Android/i.test(ua)
@@ -95,8 +96,8 @@ function deviceLabel(ua: string): string {
         ? 'Firefox'
         : /Safari\//i.test(ua)
           ? 'Safari'
-          : 'Браузер';
-  return [browser, os].filter(Boolean).join(' · ') || 'Устройство';
+          : t('security.sessionsCard.browserLabel');
+  return [browser, os].filter(Boolean).join(' · ') || t('security.sessionsCard.deviceLabel');
 }
 
 function deviceIcon(ua: string): string {
@@ -108,15 +109,15 @@ function deviceIcon(ua: string): string {
 function metaLine(s: IAccountSession): string {
   const parts: string[] = [];
   if (s.ip && s.ip !== 'unknown') parts.push(s.ip);
-  if (s.last_seen_at) parts.push(`активность ${formatToFromNow(s.last_seen_at)}`);
-  return parts.join(' · ') || 'нет данных';
+  if (s.last_seen_at) parts.push(t('security.sessionsCard.lastSeen', { fromNow: formatToFromNow(s.last_seen_at) }));
+  return parts.join(' · ') || t('security.sessionsCard.noData');
 }
 
 async function onRevoke(sessionId: string): Promise<void> {
   busyId.value = sessionId;
   try {
     await revoke(sessionId);
-    SuccessAlert('Сессия завершена');
+    SuccessAlert(t('security.sessionsCard.revokedOne'));
   } catch (e) {
     FailAlert(e);
   } finally {
@@ -128,7 +129,7 @@ async function onRevokeAll(): Promise<void> {
   revokingAll.value = true;
   try {
     const revoked = await revokeAllOthers();
-    SuccessAlert(`Завершено сессий: ${revoked}`);
+    SuccessAlert(t('security.sessionsCard.revokedCount', { count: revoked }));
     confirmAll.value = false;
   } catch (e) {
     FailAlert(e);

@@ -5,14 +5,14 @@ div(v-if="canEdit").row.justify-center.q-gutter-sm
     flat
     size="sm"
     color="negative"
-    label="Отменить"
+    :label="$t('ui.descriptionSaveButtons.cancelLabel')"
     :disable="!hasChanges"
     @click="$emit('reset')"
   )
   q-btn(
     size="sm"
     color="primary"
-    label="Сохранить"
+    :label="$t('common.action.save')"
     :loading="isSaving"
     :disable="!hasChanges"
     @click="$emit('save')"

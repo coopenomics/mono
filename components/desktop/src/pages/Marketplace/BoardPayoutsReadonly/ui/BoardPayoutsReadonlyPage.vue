@@ -9,7 +9,7 @@
  * Подтверждение и отказ выплат делает кассир кооператива — здесь только обзор.
  */
 import { computed, onMounted, ref } from 'vue';
-import { t, uiLocale } from 'src/shared/i18n';
+import { t, uiLocale, t as i18nT } from 'src/shared/i18n';
 import { FailAlert } from 'src/shared/api';
 import { useFirstLoad } from 'src/shared/lib/composables';
 import { useQueryOverlay } from 'src/shared/lib/navigation';
@@ -38,7 +38,7 @@ const statusFilter = ref<string[]>([]);
 const columns: BaseTableColumn<MarketplaceOutgoingPaymentView>[] = [
   {
     key: 'created_at',
-    label: 'Дата',
+    label: i18nT('marketplace.boardPayouts.column.date'),
     field: (row) => formatDate(row.created_at),
     width: '180px',
     nowrap: true,
@@ -47,7 +47,7 @@ const columns: BaseTableColumn<MarketplaceOutgoingPaymentView>[] = [
   },
   {
     key: 'payee',
-    label: 'Поставщик',
+    label: i18nT('marketplace.boardPayouts.column.supplier'),
     // ФИО физлица/ИП или наименование организации; логин аккаунта — запасной
     // вариант, если имя в профиле ещё не заполнено.
     field: (row) => row.payee_name ?? row.payee_account,
@@ -55,7 +55,7 @@ const columns: BaseTableColumn<MarketplaceOutgoingPaymentView>[] = [
   },
   {
     key: 'amount',
-    label: 'Сумма',
+    label: i18nT('marketplace.boardPayouts.column.amount'),
     field: (row) => `${formatAsset2Digits(String(row.amount))} ${row.symbol}`,
     numeric: true,
     nowrap: true,
@@ -64,8 +64,8 @@ const columns: BaseTableColumn<MarketplaceOutgoingPaymentView>[] = [
     sort: (_a, _b, rowA, rowB) =>
       Number.parseFloat(String(rowA.amount)) - Number.parseFloat(String(rowB.amount)),
   },
-  { key: 'status', label: 'Статус', width: '160px', sortable: true, field: (row) => row.status },
-  { key: 'purpose', label: 'Назначение', field: (row) => row.purpose },
+  { key: 'status', label: i18nT('marketplace.boardPayouts.column.status'), width: '160px', sortable: true, field: (row) => row.status },
+  { key: 'purpose', label: i18nT('marketplace.boardPayouts.column.purpose'), field: (row) => row.purpose },
 ];
 
 const filteredRows = computed(() => {
@@ -119,7 +119,7 @@ async function load(): Promise<void> {
   try {
     items.value = await listOutgoingPayments();
   } catch (e) {
-    FailAlert(e, 'Не удалось загрузить ленту выплат');
+    FailAlert(e, i18nT('marketplace.boardPayouts.loadFailedError'));
   } finally {
     loading.value = false;
   }
@@ -158,15 +158,15 @@ onMounted(() => {
 </script>
 
 <template lang="pug">
-q-page.board-payouts(role="region", aria-label="Выплаты поставщикам")
+q-page.board-payouts(role="region", :aria-label="$t('marketplace.boardPayouts.pageAriaLabel')")
   PageHint(storage-key="mp:board-payouts:banner-dismissed")
-    | Лента выплат поставщикам по всему кооперативу. Подтверждение и отказ выплат выполняет кассир кооператива — для совета это обзор только для чтения. Откройте выплату, чтобы увидеть, за какой заказ платили и чем оплата подтверждена.
+    | {{ $t('marketplace.boardPayouts.pageHint') }}
 
   //- Поиск — одним полем, без карточки-обёртки: единственный фильтр в
   //- собственной рамке поверх рамки контейнера читался как чужая врезка.
   BaseInput.board-payouts__search(
     v-model="supplierSearch",
-    placeholder="Поиск по ФИО или наименованию организации",
+    :placeholder="$t('marketplace.boardPayouts.searchPlaceholder')",
     clearable
   )
     template(#prepend)
@@ -194,8 +194,8 @@ q-page.board-payouts(role="region", aria-label="Выплаты поставщи�
 
   EmptyState(
     v-if="isEmpty",
-    title="Выплат нет",
-    body="Выплат по выбранным фильтрам не найдено."
+    :title="$t('marketplace.boardPayouts.emptyTitle')",
+    :body="$t('marketplace.boardPayouts.emptyBody')"
   )
     template(#icon)
       q-icon(name="payments", size="48px")

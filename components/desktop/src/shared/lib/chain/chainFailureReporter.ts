@@ -30,6 +30,7 @@ function reportChainFailure(failure: ChainFailure): void {
 
   console.error(`[chain] отказ узла: ${description}`);
 
+  // i18n-ignore: техническое сообщение для отчёта об ошибке в Sentry/GlitchTip, не видит пользователь
   Sentry.captureException(new Error(`Узел цепи отказал: ${description}`), {
     tags: {
       chain_path: failure.path,

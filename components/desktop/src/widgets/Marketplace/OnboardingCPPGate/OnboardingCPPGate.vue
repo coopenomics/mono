@@ -16,18 +16,18 @@ BaseCard.mp-onboarding-gate
         BaseCheckbox(v-model="accepted[d.id]", :disabled="d.required && d.locked")
       q-item-section
         q-item-label
-          BaseChip.q-mr-xs(v-if="d.required", variant="warn", size="sm") Обязательно
+          BaseChip.q-mr-xs(v-if="d.required", variant="warn", size="sm") {{ $t('marketplace.onboardingCPPGate.requiredChip') }}
           | {{ d.title }}
         q-item-label(caption, v-if="d.description") {{ d.description }}
       q-item-section(side, v-if="d.url")
-        BaseButton(variant="ghost", icon-only, aria-label="Открыть документ", @click.prevent="openDoc(d)")
+        BaseButton(variant="ghost", icon-only, :aria-label="$t('marketplace.onboardingCPPGate.openDocAriaLabel')", @click.prevent="openDoc(d)")
           template(#icon-left)
             q-icon(name="visibility")
 
   q-separator.q-my-md
 
   .mp-onboarding-gate__actions
-    BaseButton(variant="ghost", @click="$emit('decline')") Отказаться
+    BaseButton(variant="ghost", @click="$emit('decline')") {{ $t('marketplace.onboardingCPPGate.declineButton') }}
     BaseButton(
       variant="primary",
       :disabled="!allRequiredAccepted || confirmDisabled || busy",
@@ -40,13 +40,14 @@ BaseCard.mp-onboarding-gate
 import { computed, reactive, type PropType } from 'vue'
 import { BaseCard, BaseButton, BaseCheckbox, BaseChip } from 'src/shared/ui/base'
 import type { CPPDocument } from './OnboardingCPPGate.types'
+import { t } from 'src/shared/i18n';
 
 const props = defineProps({
   title: { type: String, required: true },
   subtitle: { type: String, default: '' },
-  leadText: { type: String, default: 'Ознакомьтесь с пакетом документов и подтвердите согласие.' },
+  leadText: { type: String, default: t('marketplace.onboardingCPPGate.leadTextDefault') },
   documents: { type: Array as PropType<CPPDocument[]>, required: true },
-  confirmLabel: { type: String, default: 'Принять и продолжить' },
+  confirmLabel: { type: String, default: t('marketplace.onboardingCPPGate.confirmLabelDefault') },
   busy: { type: Boolean, default: false },
   // Внешнее условие блокировки подтверждения (помимо согласия с документами):
   // напр., пока заказчик не выбрал КУ на экране присоединения (Story 16.4).

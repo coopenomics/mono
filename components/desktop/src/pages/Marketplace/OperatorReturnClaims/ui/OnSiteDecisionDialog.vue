@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import { computed, ref, watch } from 'vue';
-import { uiLocale } from 'src/shared/i18n';
+import { uiLocale, t } from 'src/shared/i18n';
 import { useGlobalStore } from 'src/shared/store';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { signDocument } from 'src/shared/lib/document';
@@ -119,21 +119,21 @@ async function acceptWithStatement(
   });
   SuccessAlert(
     result.claim.status === 'ACCEPTED_BY_COUNCIL'
-      ? `Совет отменил сделку: заказчику восстановлено ${formatAsset2Digits(result.claim.total_refund)} ₽.`
+      ? t('marketplace.onSiteDecisionDialog.boardCancelledMessage', { amount: formatAsset2Digits(result.claim.total_refund) })
       : result.claim.status === 'DECLINED_BY_COUNCIL'
-        ? 'Совет отказал — имущество остаётся на участке, выдайте его пайщику обратно.'
-        : 'Имущество принято, заявление на повестке совета. Решение придёт само — пайщик может идти.',
+        ? t('marketplace.onSiteDecisionDialog.boardDeclinedMessage')
+        : t('marketplace.onSiteDecisionDialog.acceptedPendingBoardMessage'),
   );
 }
 
 async function confirm(): Promise<void> {
   if (!props.claim) return;
   if (!inspectionResult.value.trim()) {
-    FailAlert(new Error('Опишите результат очного осмотра.'));
+    FailAlert(new Error(t('marketplace.error.returnClaimInspectionResultRequired')));
     return;
   }
   if (!props.braname.trim()) {
-    FailAlert(new Error('Не выбран кооперативный участок.'));
+    FailAlert(new Error(t('marketplace.error.returnClaimBranchNotSelected')));
     return;
   }
   submitting.value = true;
@@ -153,12 +153,12 @@ async function confirm(): Promise<void> {
         inspection_result: inspectionResult.value.trim(),
         inspection_photos: inspectionPhotos.length > 0 ? inspectionPhotos : undefined,
       });
-      SuccessAlert('Возврат отклонён на месте. Имущество остаётся у заказчика.');
+      SuccessAlert(t('marketplace.onSiteDecisionDialog.declinedOnSiteMessage'));
     }
     emit('decided');
     emit('update:modelValue', false);
   } catch (e) {
-    FailAlert(e, 'Не удалось зафиксировать решение в блокчейне');
+    FailAlert(e, t('marketplace.onSiteDecisionDialog.chainError'));
   } finally {
     submitting.value = false;
   }
@@ -173,25 +173,25 @@ const kind = computed<'success' | 'danger'>(() =>
 );
 const confirmLabel = computed(() =>
   decision.value === DECISION_ACCEPT
-    ? 'Принять имущество и подать заявление в совет'
-    : 'Отказать на месте',
+    ? t('marketplace.onSiteDecisionDialog.acceptSubmit')
+    : t('marketplace.onSiteDecisionDialog.declineOnSiteSubmit'),
 );
 const confirmDisabled = computed(() => submitting.value || !inspectionResult.value.trim());
 
 const decisionOptions = [
-  { label: 'Принять имущество и подать в совет заявление об отмене сделки', value: DECISION_ACCEPT, color: 'positive' },
-  { label: 'Не принимать (имущество остаётся у заказчика)', value: DECISION_REJECT, color: 'negative' },
+  { label: t('marketplace.onSiteDecisionDialog.acceptConfirmText'), value: DECISION_ACCEPT, color: 'positive' },
+  { label: t('marketplace.onSiteDecisionDialog.declineConfirmText'), value: DECISION_REJECT, color: 'negative' },
 ];
 </script>
 
 <template lang="pug">
 TakeoverDialog(
   :model-value="modelValue"
-  :title="claim ? `Очный осмотр по заявлению ${claim.id.slice(0, 8)}` : 'Очный осмотр'"
-  :lead-text="claim ? `Заказ ${claim.order_id.slice(0, 8)} · заказчик ${claim.orderer_name || claim.orderer_account} · возврат на ${formatAsset2Digits(claim.fact_cost)} ₽` : ''"
+  :title="claim ? $t(`marketplace.onSiteDecisionDialog.title`, { claimId: claim.id.slice(0, 8) }) : $t('marketplace.onSiteDecisionDialog.titleFallback')"
+  :lead-text="claim ? $t(`marketplace.onSiteDecisionDialog.subtitle`, { orderId: claim.order_id.slice(0, 8), ordererName: claim.orderer_name || claim.orderer_account, amount: formatAsset2Digits(claim.fact_cost) }) : ''"
   :kind="kind"
   :confirm-label="confirmLabel"
-  cancel-label="Закрыть"
+  :cancel-label="$t('common.action.close')"
   :loading="submitting"
   :disable-confirm="confirmDisabled"
   @update:model-value="(v: boolean) => emit('update:modelValue', v)"
@@ -202,54 +202,54 @@ TakeoverDialog(
     .mp-return-onsite
       q-card(flat bordered).q-mb-md
         q-card-section
-          .text-subtitle1.q-mb-sm Что осматриваем
+          .text-subtitle1.q-mb-sm {{ $t('marketplace.onSiteDecisionDialog.subjectTitle') }}
           .mp-return-onsite__facts
             .mp-return-onsite__fact(v-if="claim.product_name")
-              .mp-return-onsite__fact-label Товар
+              .mp-return-onsite__fact-label {{ $t('marketplace.onSiteDecisionDialog.productLabel') }}
               .mp-return-onsite__fact-value {{ claim.product_name }} · {{ claimQuantityLabel }}
             .mp-return-onsite__fact(v-if="claim.warranty_until")
-              .mp-return-onsite__fact-label Гарантийный срок возврата до
+              .mp-return-onsite__fact-label {{ $t('marketplace.onSiteDecisionDialog.warrantyUntilLabel') }}
               .mp-return-onsite__fact-value {{ formatDateTime(claim.warranty_until) }}
             .mp-return-onsite__fact
-              .mp-return-onsite__fact-label Причина обращения пайщика
+              .mp-return-onsite__fact-label {{ $t('marketplace.onSiteDecisionDialog.reasonLabel') }}
               .mp-return-onsite__fact-value {{ claim.reason_text }}
             .mp-return-onsite__fact(v-if="claim.defect_category")
-              .mp-return-onsite__fact-label Категория дефекта
+              .mp-return-onsite__fact-label {{ $t('marketplace.onSiteDecisionDialog.defectCategoryLabel') }}
               .mp-return-onsite__fact-value {{ defectCategoryLabel(claim.defect_category) }}
           .row.q-mt-md.q-gutter-sm(v-if="claim.photos.length > 0")
             a.mp-return-onsite__thumb(
               v-for="(p, i) in claim.photos" :key="p.content_hash"
               :href="p.url" target="_blank" rel="noopener"
             )
-              img(:src="p.url" :alt="`Фото ${i + 1}`")
+              img(:src="p.url" :alt="$t(`marketplace.onSiteDecisionDialog.photoLabel`, { index: i + 1 })")
 
       q-card(flat bordered).q-mb-md
         q-card-section
-          .text-subtitle1 1. Результат осмотра
+          .text-subtitle1 {{ $t('marketplace.onSiteDecisionDialog.stepResultTitle') }}
           BaseInput.q-mt-sm(
             v-model="inspectionResult"
             type="textarea"
             autogrow
             counter
             maxlength="2000"
-            label="Что обнаружено при очном осмотре"
+            :label="$t('marketplace.onSiteDecisionDialog.resultLabel')"
           )
 
       q-card(flat bordered).q-mb-md
         q-card-section
-          .text-subtitle1.q-mb-sm 2. Фото очного осмотра (опционально)
+          .text-subtitle1.q-mb-sm {{ $t('marketplace.onSiteDecisionDialog.stepPhotosTitle') }}
           FileUploader(
             v-model="selectedFiles"
             multiple
             accept="image/jpeg,image/png,image/webp"
             :max-size="10 * 1024 * 1024"
             :max-files="10"
-            title="Перетащите фото или нажмите для выбора"
+            :title="$t('marketplace.onSiteDecisionDialog.photoDropHint')"
             @error="onUploadError"
           )
 
       q-card(flat bordered).q-pa-md
-        .text-subtitle1.q-mb-sm 3. Решение
+        .text-subtitle1.q-mb-sm {{ $t('marketplace.onSiteDecisionDialog.stepDecisionTitle') }}
         q-option-group(
           v-model="decision"
           :options="decisionOptions"
@@ -257,10 +257,10 @@ TakeoverDialog(
         )
         .banner.banner--pos.q-mt-md(v-if="decision === DECISION_ACCEPT")
           q-icon.banner__icon(name="check_circle", size="20px")
-          .banner__body Имущество принимается на участок под вашу ответственность, в совет уходит ваше заявление об отмене сделки. При согласии сделка отменяется и заказчику вернётся {{ formatAsset2Digits(claim.total_refund) }} ₽ (паевой и членский взносы), имущество зачислится в остаток; при отказе имущество выдадите обратно.
+          .banner__body {{ $t('marketplace.onSiteDecisionDialog.acceptExplanation', { amount: formatAsset2Digits(claim.total_refund) }) }}
         .banner.banner--warn.q-mt-md(v-else)
           q-icon.banner__icon(name="info", size="20px")
-          .banner__body Имущество остаётся у заказчика. Движений по средствам нет.
+          .banner__body {{ $t('marketplace.onSiteDecisionDialog.declineExplanation') }}
 </template>
 
 <style scoped lang="scss">

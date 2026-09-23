@@ -9,6 +9,7 @@ import { BaseBadge, BaseButton, BaseDialog, BaseTable, EmptyState } from 'src/sh
 import type { BaseBadgeVariant, BaseTableColumn } from 'src/shared/ui/base'
 import { PageHint } from 'src/shared/ui/domain'
 import { UserSearchSelector } from 'src/shared/ui'
+import { t as i18nT } from 'src/shared/i18n';
 
 /**
  * Стол ПВЗ → «Доверенные лица». Председатель кооперативного участка (trustee)
@@ -32,11 +33,11 @@ const canManage = computed(() => session.isChairman ?? false)
 // Колонка действий появляется только у председателя: снимать доверенных может
 // он один, а пустой столбец у остальных только съедал бы ширину.
 const columns = computed<BaseTableColumn<PersonRow>[]>(() => [
-  { key: 'name', label: 'Лицо', width: '320px', sortable: true, field: 'name' },
-  { key: 'account', label: 'Аккаунт', width: '200px', sortable: true, field: 'username' },
-  { key: 'role', label: 'Роль', width: '190px', sortable: true, field: 'isTrustee' },
+  { key: 'name', label: i18nT('marketplace.operatorTrustedPersonsPage.column.person'), width: '320px', sortable: true, field: 'name' },
+  { key: 'account', label: i18nT('marketplace.operatorTrustedPersonsPage.column.account'), width: '200px', sortable: true, field: 'username' },
+  { key: 'role', label: i18nT('marketplace.operatorTrustedPersonsPage.column.role'), width: '190px', sortable: true, field: 'isTrustee' },
   ...(canManage.value
-    ? [{ key: 'actions', label: 'Действия', width: '130px' } as BaseTableColumn<PersonRow>]
+    ? [{ key: 'actions', label: i18nT('marketplace.operatorTrustedPersonsPage.column.actions'), width: '130px' } as BaseTableColumn<PersonRow>]
     : []),
 ])
 
@@ -69,8 +70,8 @@ const trustedCount = computed(() => rows.value.filter((r) => !r.isTrustee).lengt
 
 function roleBadge(row: PersonRow): { label: string; variant: BaseBadgeVariant } {
   return row.isTrustee
-    ? { label: 'Председатель КУ', variant: 'pos' }
-    : { label: 'Доверенное лицо', variant: 'neutral' }
+    ? { label: i18nT('marketplace.operatorTrustedPersonsPage.roleChairman'), variant: 'pos' }
+    : { label: i18nT('marketplace.operatorTrustedPersonsPage.roleTrusted'), variant: 'neutral' }
 }
 
 // ─── Добавление ───
@@ -90,11 +91,11 @@ async function onAdd(): Promise<void> {
       braname: store.activeBraname,
       trusted: newUsername.value!.trim(),
     })
-    SuccessAlert('Доверенное лицо добавлено')
+    SuccessAlert(i18nT('marketplace.operatorTrustedPersonsPage.addSuccess'))
     newUsername.value = ''
     await store.load(coopname.value)
   } catch (e) {
-    FailAlert(e, 'Не удалось добавить доверенное лицо')
+    FailAlert(e, i18nT('marketplace.operatorTrustedPersonsPage.addError'))
   } finally {
     adding.value = false
   }
@@ -120,12 +121,12 @@ async function onRemove(): Promise<void> {
       braname: store.activeBraname,
       trusted: target.username,
     })
-    SuccessAlert('Доверенное лицо снято')
+    SuccessAlert(i18nT('marketplace.operatorTrustedPersonsPage.removeSuccess'))
     removeOpen.value = false
     removeTarget.value = null
     await store.load(coopname.value)
   } catch (e) {
-    FailAlert(e, 'Не удалось снять доверенное лицо')
+    FailAlert(e, i18nT('marketplace.operatorTrustedPersonsPage.removeError'))
   } finally {
     removing.value = false
   }
@@ -142,23 +143,23 @@ q-page.trusted
 
   EmptyState(
     v-if='store.loaded && !store.isOperator',
-    title='Вы не оператор кооперативного участка',
-    body='Стол ПВЗ доступен оператору участка и его доверенным лицам. Управление доверенными лицами появится, когда вы станете оператором КУ.'
+    :title='$t("marketplace.operatorTrustedPersonsPage.notOperatorTitle")',
+    :body='$t("marketplace.operatorTrustedPersonsPage.notOperatorBody")'
   )
     template(#icon)
       q-icon(name='group_off', size='48px')
 
   template(v-else)
     PageHint(storage-key='mp:operator-trusted:banner-dismissed')
-      | Доверенные лица получают те же права на этом пункте выдачи, что и
-      | оператор участка: приёмка партий, маркировка, выдача заказов,
-      | гарантийные возвраты и склад. Добавляйте только тех пайщиков, кому
-      | доверяете операции от имени участка.
+      | {{ $t('marketplace.operatorTrustedPersonsPage.introText1') }}
+      | {{ $t('marketplace.operatorTrustedPersonsPage.introText2') }}
+      | {{ $t('marketplace.operatorTrustedPersonsPage.introText3') }}
+      | {{ $t('marketplace.operatorTrustedPersonsPage.introText4') }}
 
     .trusted__add(v-if='canManage')
       UserSearchSelector.trusted__add-input(
         v-model='newUsername',
-        label='Пайщик (поиск по ФИО)',
+        :label='$t("marketplace.operatorTrustedPersonsPage.searchLabel")',
         outlined,
         dense
       )
@@ -170,15 +171,15 @@ q-page.trusted
       )
         template(#icon-left)
           q-icon(name='person_add', size='16px')
-        | Добавить
+        | {{ $t('common.action.add') }}
 
     .banner.banner--info(v-else-if='!branch')
       q-icon.banner__icon(name='info', size='18px')
       .banner__body
-        | Список доверенных лиц участка доступен председателю кооператива.
+        | {{ $t('marketplace.operatorTrustedPersonsPage.listVisibilityHint') }}
 
     .trusted__counter(v-if='rows.length')
-      | Доверенных лиц: {{ trustedCount }}
+      | {{ $t('marketplace.operatorTrustedPersonsPage.countLabel', { count: trustedCount }) }}
 
     BaseTable(
       v-if='!store.loaded || rows.length',
@@ -202,7 +203,7 @@ q-page.trusted
           variant='ghost',
           icon-only,
           size='sm',
-          aria-label='Снять доверенное лицо',
+          :aria-label='$t("marketplace.operatorTrustedPersonsPage.removeAction")',
           @click='askRemove(row)'
         )
           template(#icon-left)
@@ -211,26 +212,26 @@ q-page.trusted
 
     EmptyState(
       v-else-if='store.loaded && branch',
-      title='Доверенных лиц пока нет',
-      body='Добавьте доверенных лиц, которым доверяете операции на этом пункте выдачи.'
+      :title='$t("marketplace.operatorTrustedPersonsPage.emptyTitle")',
+      :body='$t("marketplace.operatorTrustedPersonsPage.emptyBody")'
     )
       template(#icon)
         q-icon(name='group', size='48px')
 
   BaseDialog(
     v-model='removeOpen',
-    title='Снять доверенное лицо',
+    :title='$t("marketplace.operatorTrustedPersonsPage.removeAction")',
     size='sm'
   )
     .trusted__confirm(v-if='removeTarget')
-      | Снять доверенное лицо «{{ removeTarget.name }}» с этого пункта выдачи?
-      | Пайщик потеряет операционные права по участку.
+      | {{ $t('marketplace.operatorTrustedPersonsPage.removeConfirmText', { name: removeTarget.name }) }}
+      | {{ $t('marketplace.operatorTrustedPersonsPage.removeConfirmHint') }}
     template(#footer)
-      BaseButton(variant='ghost', :disabled='removing', @click='removeOpen = false') Отмена
+      BaseButton(variant='ghost', :disabled='removing', @click='removeOpen = false') {{ $t('common.action.cancel') }}
       BaseButton(variant='primary', :loading='removing', @click='onRemove')
         template(#icon-left)
           q-icon(name='person_remove', size='16px')
-        | Снять
+        | {{ $t('marketplace.operatorTrustedPersonsPage.removeConfirmSubmit') }}
 </template>
 
 <style scoped lang="scss">

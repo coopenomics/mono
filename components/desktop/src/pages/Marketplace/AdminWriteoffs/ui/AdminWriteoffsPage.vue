@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue';
-import { uiLocale } from 'src/shared/i18n';
+import { uiLocale, t } from 'src/shared/i18n';
 import { debounce } from 'quasar';
 import { Zeus } from '@coopenomics/sdk';
 import { FailAlert } from 'src/shared/api';
@@ -50,9 +50,9 @@ const selectedCandidates = ref<MarketplaceWriteoffCandidateView[]>([]);
 
 const activeKey = ref<'candidates' | 'council' | 'archive'>('candidates');
 const tabs = computed<PageTab[]>(() => [
-  { key: 'candidates', label: 'Кандидаты', count: candidates.value.length },
-  { key: 'council', label: 'На повестке', count: inCouncil.value.length },
-  { key: 'archive', label: 'Архив', count: archive.value.length },
+  { key: 'candidates', label: t('marketplace.writeoffs.tab.candidates'), count: candidates.value.length },
+  { key: 'council', label: t('marketplace.writeoffs.tab.onAgenda'), count: inCouncil.value.length },
+  { key: 'archive', label: t('marketplace.writeoffs.tab.archive'), count: archive.value.length },
 ]);
 function onSelectTab(tab: PageTab): void {
   activeKey.value = tab.key as typeof activeKey.value;
@@ -64,19 +64,19 @@ const proposalsList = computed(() =>
 );
 
 const candidateColumns: BaseTableColumn<MarketplaceWriteoffCandidateView>[] = [
-  { key: 'asset_title', label: 'Наименование', width: '260px', sortable: true, field: 'asset_title' },
-  { key: 'branch_name', label: 'Пункт выдачи', width: '220px', sortable: true, field: 'branch_name' },
-  { key: 'quantity', label: 'Кол-во', width: '140px', numeric: true },
-  { key: 'state', label: 'Состояние', width: '200px' },
-  { key: 'expiry_date', label: 'Годен до', width: '130px', nowrap: true, sortable: true, field: 'expiry_date' },
-  { key: 'amount', label: 'Сумма', width: '140px', numeric: true, sortable: true, field: (row) => Number.parseFloat(row.amount) || 0 },
+  { key: 'asset_title', label: t('marketplace.writeoffs.column.name'), width: '260px', sortable: true, field: 'asset_title' },
+  { key: 'branch_name', label: t('marketplace.writeoffs.column.issuancePoint'), width: '220px', sortable: true, field: 'branch_name' },
+  { key: 'quantity', label: t('marketplace.writeoffs.column.quantity'), width: '140px', numeric: true },
+  { key: 'state', label: t('marketplace.writeoffs.column.condition'), width: '200px' },
+  { key: 'expiry_date', label: t('marketplace.writeoffs.column.expiryDate'), width: '130px', nowrap: true, sortable: true, field: 'expiry_date' },
+  { key: 'amount', label: t('marketplace.writeoffs.column.amount'), width: '140px', numeric: true, sortable: true, field: (row) => Number.parseFloat(row.amount) || 0 },
 ];
 
 const proposalColumns: BaseTableColumn<MarketplaceWriteoffProposalView>[] = [
-  { key: 'title', label: 'Проект', width: '320px' },
-  { key: 'total', label: 'Сумма', width: '150px', numeric: true },
-  { key: 'status', label: 'Статус', width: '260px' },
-  { key: 'date', label: 'Дата', width: '130px', nowrap: true },
+  { key: 'title', label: t('marketplace.writeoffs.column.project'), width: '320px' },
+  { key: 'total', label: t('marketplace.writeoffs.column.amount'), width: '150px', numeric: true },
+  { key: 'status', label: t('marketplace.writeoffs.column.status'), width: '260px' },
+  { key: 'date', label: t('marketplace.writeoffs.column.date'), width: '130px', nowrap: true },
 ];
 
 const submitDialogOpen = ref(false);
@@ -127,7 +127,7 @@ async function load(): Promise<void> {
       selectedCandidates.value = selectedCandidates.value.filter((c) => present.has(c.key));
     }
   } catch (e) {
-    FailAlert(e, 'Не удалось загрузить проекты списания');
+    FailAlert(e, t('marketplace.writeoffs.loadProjectsFailedError'));
   } finally {
     loading.value = false;
   }
@@ -153,8 +153,8 @@ const pickedAmount = computed(() =>
 function openSubmit(): void {
   if (picked.value.length === 0) {
     FailAlert(
-      new Error('Нет позиций с известной стоимостью'),
-      'Выделите позиции с ненулевой суммой списания',
+      new Error(t('marketplace.error.noCostItems')),
+      t('marketplace.writeoffs.selectNonZeroWarning'),
     );
     return;
   }
@@ -190,19 +190,19 @@ function statusVariant(status: MarketplaceWriteoffProposalView['status']): BaseB
 function humanStatus(status: MarketplaceWriteoffProposalView['status']): string {
   switch (status) {
     case 'DRAFT':
-      return 'Черновик';
+      return t('marketplace.writeoff.status.draft');
     case 'ON_AGENDA':
       return 'На повестке';
     case 'AUTHORIZED':
       return 'Утверждено советом';
     case 'PENDING_CONFIRMATION':
-      return 'Ожидает подтверждения склада';
+      return t('marketplace.writeoff.status.pendingWarehouse');
     case 'EXECUTING':
-      return 'Идёт списание';
+      return t('marketplace.writeoff.status.inProgress');
     case 'EXECUTED':
-      return 'Исполнено';
+      return t('marketplace.writeoff.status.done');
     case 'REJECTED':
-      return 'Отклонено';
+      return t('marketplace.writeoff.status.rejected');
     default:
       return String(status);
   }
@@ -239,8 +239,8 @@ function proposalDate(p: MarketplaceWriteoffProposalView): string | null | undef
 //  · дата прошла → «Просрочен» — первоочередной авто-кандидат;
 //  · дата в будущем → «Годен» — ещё в сроке гарантии.
 function candidateStateLabel(c: MarketplaceWriteoffCandidateView): string {
-  if (!c.expiry_date) return 'Без гарантии';
-  return c.is_expired ? 'Просрочен' : 'Годен';
+  if (!c.expiry_date) return t('marketplace.writeoffs.condition.noWarranty');
+  return c.is_expired ? t('marketplace.writeoffs.condition.expired') : t('marketplace.writeoffs.condition.valid');
 }
 function candidateStateVariant(c: MarketplaceWriteoffCandidateView): BaseBadgeVariant {
   if (!c.expiry_date) return 'neutral';
@@ -271,9 +271,9 @@ onMounted(() => {
 </script>
 
 <template lang="pug">
-q-page.writeoffs(role="region", aria-label="Списания скоропорта")
+q-page.writeoffs(role="region", :aria-label="$t('marketplace.writeoffs.pageAriaLabel')")
   PageHint(storage-key="mp:admin-writeoffs:banner-dismissed")
-    | Выделите имущество на складах к списанию, укажите причину и одной кнопкой подпишите Заявление — проект сразу выносится на повестку совета. Совет утверждает списание протоколом, после чего оператор участка подтверждает выбытие со склада.
+    | {{ $t('marketplace.writeoffs.pageHint') }}
 
   //- Главное действие страницы — в шапку (канон: CTA в топбаре). Только на
   //- вкладке «Кандидаты»: открыть окно отправки по текущему выбору.
@@ -287,7 +287,7 @@ q-page.writeoffs(role="region", aria-label="Списания скоропорт�
     )
       template(#icon-left)
         q-icon(name="send", size="18px")
-      | Отправить{{ picked.length ? ` (${picked.length})` : '' }}
+      | {{ $t('marketplace.writeoffs.submitButton', { countSuffix: picked.length ? ` (${picked.length})` : '' }) }}
 
   PageTabs(:tabs="tabs", :active-key="activeKey", @select="onSelectTab")
 
@@ -309,27 +309,27 @@ q-page.writeoffs(role="region", aria-label="Списания скоропорт�
     )
       template(#cell-asset_title="{ row }")
         .writeoffs__title {{ row.asset_title }}
-        .t-muted.t-sm(v-if="row.lots_count > 1") {{ row.lots_count }} партии на складе
+        .t-muted.t-sm(v-if="row.lots_count > 1") {{ $t('marketplace.writeoffs.lotsCount', { count: row.lots_count }) }}
       template(#cell-quantity="{ row }")
         | {{ candidateQuantityLabel(row) }}
       template(#cell-state="{ row }")
         .writeoffs__state
           BaseBadge(:variant="candidateStateVariant(row)") {{ candidateStateLabel(row) }}
-          BaseBadge(v-if="row.origin === 'WARRANTY_RETURN'", variant="warn") Гарантийный возврат
+          BaseBadge(v-if="row.origin === 'WARRANTY_RETURN'", variant="warn") {{ $t('marketplace.writeoffs.warrantyReturnLabel') }}
       template(#cell-expiry_date="{ row }")
         | {{ row.expiry_date ? formatDate(row.expiry_date) : '—' }}
       template(#cell-amount="{ row }")
         | {{ formatAsset2Digits(row.amount) }}
       template(#footer)
         .writeoffs__foot
-          span Позиций на складах: {{ candidates.length }}
+          span {{ $t('marketplace.writeoffs.candidatesCount', { count: candidates.length }) }}
           span(v-if="picked.length")
-            | Выбрано {{ picked.length }} на сумму {{ formatAsset2Digits(String(pickedAmount)) }}
+            | {{ $t('marketplace.writeoffs.selectedSummary', { count: picked.length, amount: formatAsset2Digits(String(pickedAmount)) }) }}
 
     EmptyState(
       v-else,
-      title="Списывать нечего",
-      body="На складах участков нет имущества, которое можно вынести на списание."
+      :title="$t('marketplace.writeoffs.emptyTitle')",
+      :body="$t('marketplace.writeoffs.emptyBody')"
     )
       template(#icon)
         q-icon(name="inventory_2", size="48px")
@@ -350,7 +350,7 @@ q-page.writeoffs(role="region", aria-label="Списания скоропорт�
       template(#cell-title="{ row }")
         .writeoffs__title {{ proposalTitle(row) }}
         .t-muted.t-sm {{ positionsLabel(row.items.length) }}
-        .t-muted.t-sm(v-if="row.reject_reason") Причина отказа: {{ row.reject_reason }}
+        .t-muted.t-sm(v-if="row.reject_reason") {{ $t('marketplace.writeoffs.rejectReasonLine', { reason: row.reject_reason }) }}
       template(#cell-total="{ row }")
         | {{ formatAsset2Digits(row.total_amount) }}
       template(#cell-status="{ row }")
@@ -364,14 +364,14 @@ q-page.writeoffs(role="region", aria-label="Списания скоропорт�
           )
             template(#icon-left)
               q-icon(name="inventory_2", size="16px")
-            | Подтвердить на складе
+            | {{ $t('marketplace.writeoffs.confirmAtWarehouse') }}
       template(#cell-date="{ row }")
         | {{ formatDate(proposalDate(row)) }}
 
     EmptyState(
       v-else,
-      :title="activeKey === 'council' ? 'Нет проектов на повестке' : 'Архив пуст'",
-      :body="activeKey === 'council' ? 'Выделите имущество на вкладке «Кандидаты» и отправьте проект в совет.' : 'Здесь появятся исполненные и отклонённые проекты списания.'"
+      :title="activeKey === 'council' ? $t('marketplace.writeoffs.emptyAgenda') : $t('marketplace.writeoffs.emptyArchive')",
+      :body="activeKey === 'council' ? $t('marketplace.writeoffs.emptyAgendaHint') : $t('marketplace.writeoffs.emptyArchiveHint')"
     )
       template(#icon)
         q-icon(name="inventory_2", size="48px")

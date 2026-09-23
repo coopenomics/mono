@@ -1,0 +1,29 @@
+{
+  "webPushNotifications": {
+    "error": {
+      "webpushBrowserSubscriptionNotFound": "Браузерная подписка не найдена",
+      "webpushNotSupported": "Push уведомления не поддерживаются",
+      "webpushPermissionTimeout": "Пользователь не ответил на запрос разрешения в течение 30 секунд",
+      "webpushServiceWorkerNotFound": "Service Worker не найден",
+      "webpushServiceWorkerTimeout": "Service Worker не готов в течение 5 секунд",
+      "webpushStoreSubscriptionNotFound": "Соответствующая подписка в store не найдена",
+      "webpushSubscriptionKeysError": "Не удалось получить ключи подписки",
+      "webpushVapidKeyMissing": "VAPID_PUBLIC_KEY не найден в конфигурации"
+    },
+    "model": {
+      "notificationsApiUnsupported": "Notifications API не поддерживается",
+      "permissionDenied": "Разрешение на уведомления отклонено",
+      "permissionGranted": "Разрешение на уведомления получено",
+      "permissionRequestError": "Ошибка запроса разрешения: {error}",
+      "permissionReset": "Разрешение сброшено. Теперь можно запросить новое разрешение.",
+      "pushApiUnsupported": "Push API не поддерживается",
+      "pushUnsupported": "Push уведомления не поддерживаются",
+      "serviceWorkerUnsupported": "Service Worker не поддерживается",
+      "subscribeError": "Ошибка создания подписки",
+      "subscribeSuccess": "Подписка на уведомления успешно создана",
+      "subscriptionsLoadError": "Ошибка загрузки подписок: {error}",
+      "supportCheckError": "Ошибка проверки поддержки: {error}",
+      "unsubscribeSuccess": "Подписка на уведомления отключена"
+    }
+  }
+}

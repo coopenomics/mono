@@ -6,7 +6,7 @@
 .signup-page
   AuthSplit(
     :eyebrow='coopTitle',
-    title='Вступление в пайщики',
+    :title='$t("registrator.signUp.title")',
     :lead='paneLead',
     :steps='paneSteps',
     :active-key='activeStepKey',
@@ -19,14 +19,14 @@
       AuthActions
 
     template(#pane-foot)
-      | Уже пайщик?
+      | {{ $t('registrator.signUp.alreadyMemberText') }}
       |
-      a.auth-link(href='#', @click.prevent='goToSignIn') Войти
+      a.auth-link(href='#', @click.prevent='goToSignIn') {{ $t('registrator.signUp.signInLink') }}
 
     template(v-if='isRegistrationClosed')
       EmptyState.signup-page__closed(
-        title='Регистрация временно недоступна',
-        body='Кооператив завершает подготовку к приёму новых пайщиков. Пожалуйста, зайдите позже.'
+        :title='$t("registrator.signUp.closedTitle")',
+        :body='$t("registrator.signUp.closedBody")'
       )
 
     //- Совет принял: шаги свою работу сделали, вместо них — состояние входа в
@@ -90,6 +90,7 @@ import { useInitWalletProcess } from 'src/processes/init-wallet';
 import { useDesktopStore } from 'src/entities/Desktop';
 import { Zeus } from '@coopenomics/sdk';
 import { updateOpenReplayUser } from 'src/shared/config';
+import { t } from 'src/shared/i18n';
 
 const session = useSessionStore();
 const router = useRouter();
@@ -231,16 +232,16 @@ const STATUS_POLL_MS = 3_000;
 const RETRY_AFTER_ERROR_MS = 5_000;
 
 const cabinetEntryTitle = computed(() =>
-  cabinetEntry.value === 'error' ? 'Нет связи с сервером' : 'Совет принял вас в пайщики',
+  cabinetEntry.value === 'error' ? t('registrator.signUp.cabinetErrorTitle') : t('registrator.signUp.cabinetSuccessTitle'),
 );
 const cabinetEntryCaption = computed(() => {
   switch (cabinetEntry.value) {
     case 'waiting-status':
-      return 'Статус пайщика обновляется, это займёт несколько секунд.';
+      return t('registrator.signUp.cabinetWaitingCaption');
     case 'error':
-      return 'Кабинет откроется сам, как только связь восстановится.';
+      return t('registrator.signUp.cabinetErrorCaption');
     default:
-      return 'Открываем кабинет.';
+      return t('registrator.signUp.cabinetOpeningCaption');
   }
 });
 
@@ -255,17 +256,17 @@ type StepName = keyof typeof steps;
  * это итог, а не шаг.
  */
 const STEP_TEXT: Record<StepName, { label: string; heading: string }> = {
-  EmailInput: { label: 'Электронная почта', heading: 'Электронная почта' },
-  SetUserData: { label: 'Заявление', heading: 'Заявление на вступление' },
-  SelectProgram: { label: 'Программа участия', heading: 'Программа участия' },
-  IntakeStep: { label: 'Сведения о себе', heading: 'Расскажите о себе' },
-  GenerateAccount: { label: 'Пароль для входа', heading: 'Пароль для входа' },
-  SelectBranch: { label: 'Кооперативный участок', heading: 'Кооперативный участок' },
-  ReadStatement: { label: 'Проверка заявления', heading: 'Проверьте заявление' },
-  SignStatement: { label: 'Подпись', heading: 'Подпишите заявление' },
-  PayInitial: { label: 'Вступительный взнос', heading: 'Вступительный взнос' },
-  WaitingRegistration: { label: 'Решение совета', heading: 'Решение совета' },
-  Welcome: { label: 'Добро пожаловать', heading: 'Добро пожаловать' },
+  EmailInput: { label: t('registrator.signUp.step.emailInput.label'), heading: t('registrator.signUp.step.emailInput.heading') },
+  SetUserData: { label: t('registrator.signUp.step.setUserData.label'), heading: t('registrator.signUp.step.setUserData.heading') },
+  SelectProgram: { label: t('registrator.signUp.step.selectProgram.label'), heading: t('registrator.signUp.step.selectProgram.heading') },
+  IntakeStep: { label: t('registrator.signUp.step.intakeStep.label'), heading: t('registrator.signUp.step.intakeStep.heading') },
+  GenerateAccount: { label: t('registrator.signUp.step.generateAccount.label'), heading: t('registrator.signUp.step.generateAccount.heading') },
+  SelectBranch: { label: t('registrator.signUp.step.selectBranch.label'), heading: t('registrator.signUp.step.selectBranch.heading') },
+  ReadStatement: { label: t('registrator.signUp.step.readStatement.label'), heading: t('registrator.signUp.step.readStatement.heading') },
+  SignStatement: { label: t('registrator.signUp.step.signStatement.label'), heading: t('registrator.signUp.step.signStatement.heading') },
+  PayInitial: { label: t('registrator.signUp.step.payInitial.label'), heading: t('registrator.signUp.step.payInitial.heading') },
+  WaitingRegistration: { label: t('registrator.signUp.step.waitingRegistration.label'), heading: t('registrator.signUp.step.waitingRegistration.heading') },
+  Welcome: { label: t('registrator.signUp.step.welcome.label'), heading: t('registrator.signUp.step.welcome.heading') },
 };
 
 const visibleStepNames = computed(() => registratorStore.filteredSteps as readonly StepName[]);
@@ -282,18 +283,18 @@ const completedStepKeys = computed(() =>
 );
 const paneLead = computed(() => {
   const n = paneStepNames.value.length;
-  return `${n} коротких шагов: заявление, подпись и взнос. Обычно занимает десять минут.`;
+  return t('registrator.signUp.stepsLead', { stepsCount: n });
 });
 const workEyebrow = computed(() => {
-  if (cabinetEntry.value) return 'Приём завершён';
-  if (activeStepName.value === 'Welcome') return 'Готово';
+  if (cabinetEntry.value) return t('registrator.signUp.workEyebrowDone');
+  if (activeStepName.value === 'Welcome') return t('registrator.signUp.workEyebrowReady');
   const idx = paneStepNames.value.indexOf(activeStepName.value);
-  return idx >= 0 ? `Шаг ${idx + 1} из ${paneStepNames.value.length}` : '';
+  return idx >= 0 ? t('registrator.signUp.stepProgress', { stepNumber: idx + 1, stepsTotal: paneStepNames.value.length }) : '';
 });
 const workHeading = computed(() => {
-  if (isRegistrationClosed.value) return 'Регистрация закрыта';
+  if (isRegistrationClosed.value) return t('registrator.signUp.workHeadingClosed');
   if (cabinetEntry.value) return cabinetEntryTitle.value;
-  if (activeStepName.value === 'Welcome') return `Добро пожаловать в ${coopTitle.value}`;
+  if (activeStepName.value === 'Welcome') return t('registrator.signUp.welcomeHeading', { coopName: coopTitle.value });
   return STEP_TEXT[activeStepName.value].heading;
 });
 

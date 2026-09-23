@@ -1,0 +1,162 @@
+{
+  "meet": {
+    "basicStatus": {
+      "authorized": "Утверждено",
+      "closed": "Закрыто",
+      "created": "Ожидание решения совета",
+      "preclosed": "На закрытии"
+    },
+    "closeMeetWithDecision": {
+      "success": "Собрание успешно закрыто"
+    },
+    "createMeetButton": {
+      "label": "Созвать собрание",
+      "success": "Собрание успешно создано"
+    },
+    "createMeetForm": {
+      "addQuestion": "Добавить вопрос",
+      "agendaCount": "Повестка ({count})",
+      "agendaEmpty": "Добавьте хотя бы один вопрос повестки.",
+      "agendaEmptyValidation": "Добавьте хотя бы один вопрос повестки",
+      "agendaPointNumber": "Вопрос {index}",
+      "closeAtLabel": "Закрытие ({timezone})",
+      "closeAtRequired": "Укажите дату закрытия",
+      "closeAtReviewLabel": "Закрытие",
+      "contextLabel": "Приложения (необязательно)",
+      "contextReviewLabel": "Приложения",
+      "decisionLabel": "Проект решения",
+      "decisionRequired": "Укажите проект решения",
+      "detailsHint": "Например: ссылка на трансляцию, как участвовать",
+      "detailsLabel": "Доп. информация для пайщиков (необязательно)",
+      "detailsMaxLength": "Не более {max} символов",
+      "detailsReviewLabel": "Доп. информация",
+      "introLine1": "При созыве собрания формируется документ повестки и направляется",
+      "introLine2": "в совет на решение. После принятия решения собрание планируется,",
+      "introLine3": "а пайщики получают уведомление с предложением ознакомиться с повесткой",
+      "introLine4": "и подписать его.",
+      "openAtLabel": "Открытие (мин. через 15 дней, {timezone})",
+      "openAtRequired": "Укажите дату открытия",
+      "openAtReviewLabel": "Открытие",
+      "presiderLabel": "Председатель собрания",
+      "presiderRequired": "Укажите председателя",
+      "presiderReviewLabel": "Председатель",
+      "questionLabel": "Вопрос",
+      "questionRequired": "Сформулируйте вопрос",
+      "removeQuestion": "Удалить вопрос",
+      "secretaryLabel": "Секретарь собрания",
+      "secretaryRequired": "Укажите секретаря",
+      "secretaryReviewLabel": "Секретарь",
+      "stepAgendaDescription": "Вопросы и проекты решений",
+      "stepAgendaLabel": "Повестка",
+      "stepBasicsDescription": "Тип, председатель, секретарь и сроки",
+      "stepBasicsLabel": "Параметры собрания",
+      "stepReviewDescription": "Сверьте данные перед отправкой в совет",
+      "stepReviewLabel": "Проверка и созыв",
+      "submit": "Объявить собрание",
+      "title": "Созыв общего собрания",
+      "typeLabel": "Тип собрания",
+      "typeOptionExtraordinary": "Внеочередное собрание",
+      "typeOptionRegular": "Очередное собрание",
+      "typeRequired": "Выберите тип собрания"
+    },
+    "createMeetModel": {
+      "mskSuffix": "{formattedDate} (Мск)"
+    },
+    "error": {
+      "agendaFetchFailed": "Не удалось получить вопросы собрания",
+      "decision1DocumentNotFound": "Подписанный документ решения секретаря (document) не найден",
+      "decision1NotFound": "Документ решения секретаря (decision1) не найден",
+      "decision1RawDocumentNotFound": "Сырой документ решения секретаря (rawDocument) не найден",
+      "decisionIdRequired": "Необходимо указать ID решения совета (decision_id)",
+      "hashRequired": "Необходимо указать хеш собрания (meet_hash)",
+      "hashRequiredForNotification": "Параметр meet_hash обязателен для генерации документа уведомления",
+      "notFoundInStore": "Собрание не найдено в store"
+    },
+    "meetCardsList": {
+      "emptyBody": "У кооператива пока нет предстоящих или проведённых общих собраний.",
+      "emptyTitle": "Нет общих собраний"
+    },
+    "meetDetailsActions": {
+      "approveProtocol": "Утвердить протокол",
+      "signProtocol": "Подписать протокол"
+    },
+    "meetDetailsAgenda": {
+      "contextLabel": "Приложения",
+      "decisionLabel": "Проект решения",
+      "title": "Повестка"
+    },
+    "meetDetailsResults": {
+      "abstainedLabel": "Воздержались",
+      "accepted": "Принято",
+      "againstLabel": "Против",
+      "decisionLabel": "Решение",
+      "forLabel": "За",
+      "protocolTitle": "Протокол решения общего собрания пайщиков",
+      "rejected": "Отклонено",
+      "title": "Результаты"
+    },
+    "meetDetailsVoting": {
+      "abstainOption": "ВОЗДЕРЖАЛСЯ",
+      "againstOption": "ПРОТИВ",
+      "alreadyVoted": "Вы уже приняли участие в голосовании.",
+      "decisionLabel": "Проект решения",
+      "forOption": "ЗА",
+      "submit": "Голосовать",
+      "title": "Голосование",
+      "voteSuccess": "Ваш голос успешно отправлен",
+      "yourVoteLabel": "Ваш голос"
+    },
+    "meetsTable": {
+      "actionsColumn": "Действия",
+      "closeAtColumn": "Дата закрытия",
+      "details": "Подробнее",
+      "noDataLabel": "Собрания не найдены",
+      "openAtColumn": "Дата открытия",
+      "statusColumn": "Статус",
+      "typeColumn": "Тип"
+    },
+    "restartMeet": {
+      "label": "Перезапустить собрание"
+    },
+    "restartMeetForm": {
+      "agendaEmpty": "Вопросы повестки не найдены",
+      "agendaListTitle": "Пункты повестки для перезапуска:",
+      "closeAtLabel": "Новая дата и время закрытия ({timezone})",
+      "contextLabel": "Приложения",
+      "decisionLabel": "Проект решения",
+      "detailsLabel": "Дополнительная информация для пайщиков (для нового слота; необязательно)",
+      "detailsMaxLength": "Не более {max} символов",
+      "introLine1": "При перезапуске собрания будут использованы существующие пункты повестки.",
+      "introLine2": "Собрание будет назначено на новые даты с новыми ответственными лицами.",
+      "introLine3": "Выберите новые даты и ответственных для собрания",
+      "openAtLabel": "Новая дата и время открытия (мин. через 15 дней, {timezone})",
+      "presiderLabel": "Председатель собрания",
+      "requiredField": "Обязательное поле",
+      "secretaryLabel": "Секретарь собрания",
+      "submit": "Перезапустить",
+      "title": "Перезапустить собрание"
+    },
+    "restartMeetModel": {
+      "success": "Собрание успешно перезапущено"
+    },
+    "signNotificationButton": {
+      "label": "Подписать уведомление"
+    },
+    "signNotificationModel": {
+      "error": "Не удалось подписать уведомление",
+      "success": "Уведомление успешно подписано и отправлено"
+    },
+    "status": {
+      "authorized": "Дата общего собрания утверждена. Ожидаем начала собрания.",
+      "closed": "Собрание успешно завершено",
+      "created": "Собрание создано. Ожидаем утверждения даты проведения.",
+      "expiredNoQuorum": "Кворум собрания не собран. Ожидаем предложения даты нового собрания.",
+      "none": "Неопределенное состояние",
+      "onrestart": "Получено предложение новой даты общего собрания. Ожидаем утверждения.",
+      "preclosed": "Получена подпись секретаря собрания на протоколе. Ожидаем подписи председателя.",
+      "votingCompleted": "Собрание успешно завершено. Ожидаем подписи секретаря на протоколе.",
+      "votingInProgress": "Собрание идет и завершится",
+      "waitingForOpening": "Собрание открывается"
+    }
+  }
+}

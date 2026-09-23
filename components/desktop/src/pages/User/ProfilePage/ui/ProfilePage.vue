@@ -3,7 +3,7 @@
   //- Удостоверение — одна форма: кто это (фото, имя, роль) и код, которым это
   //- проверяется. Раньше личность и удостоверение были двумя разными карточками,
   //- и предъявить их вместе было нечем.
-  BaseCard(title='Удостоверение пайщика')
+  BaseCard(:title='$t("user.profilePage.certCardTitle")')
     .cert
       //- Левая колонка — профиль: сверху имя с фотографией, под ним всё остальное.
       //- Панель идёт без рамки: своя рамка внутри карточки читается как «карточка
@@ -19,15 +19,15 @@
         //- выпущено» — пайщик успевал прочитать, что удостоверения у него нет,
         //- и только потом оно возникало.
         template(v-if='certLoading')
-          DataRow(label='Цепочка подписей')
+          DataRow(:label='$t("user.profilePage.chainLabel")')
             template(#value-override)
               q-skeleton(type='QChip', width='180px')
-          DataRow(label='Уровень верификации')
+          DataRow(:label='$t("user.profilePage.verificationLevelLabel")')
             template(#value-override)
               q-skeleton(type='QChip', width='96px')
 
         template(v-else-if='certificate')
-          DataRow(label='Цепочка подписей')
+          DataRow(:label='$t("user.profilePage.chainLabel")')
             template(#value-override)
               .cert__chain-cell
                 .cert__chips
@@ -38,8 +38,8 @@
                       name='arrow_forward',
                       size='16px'
                     )
-                .cert__warn(v-if='!isEndorsed') Удостоверение не утверждено АНО
-          DataRow(v-if='verificationLevel', label='Уровень верификации')
+                .cert__warn(v-if='!isEndorsed') {{ $t('user.profilePage.notEndorsedWarning') }}
+          DataRow(v-if='verificationLevel', :label='$t("user.profilePage.verificationLevelLabel")')
             template(#value-override)
               BaseChip(:variant='verificationLevel.variant') {{ verificationLevel.label }}
                 q-tooltip {{ verificationLevel.title }}
@@ -54,7 +54,7 @@
         BaseButton(variant='ghost', size='sm', @click='openQr')
           template(#icon-left)
             q-icon(name='fullscreen', size='18px')
-          | Показать
+          | {{ $t('user.profilePage.showCert') }}
 
     //- Прежний текст звал войти в кооператив — но карточка видна только тому, кто
     //- уже вошёл, и совет читался как издевательство. Удостоверение выпускается
@@ -62,8 +62,8 @@
     //- а удостоверения не будет.
     EmptyState(
       v-if='!certLoading && !certificate',
-      title='Удостоверение ещё не выпущено',
-      body='Кооператив пока не может заверить удостоверение. Оно появится здесь автоматически, как только заверение станет доступно.'
+      :title='$t("user.profilePage.certEmptyTitle")',
+      :body='$t("user.profilePage.certEmptyBody")'
     )
 
   //- Показ во весь экран: код должен читаться сканером с чужого устройства, а
@@ -76,17 +76,17 @@
       //- Годность кода: проверяющий должен видеть, что предъявляемое свежее, а
       //- предъявляющий — сколько у него осталось времени.
       .cert-show__validity
-        span.cert-show__until Годен до {{ validUntil }}
+        span.cert-show__until {{ $t('user.profilePage.validUntil', { validUntil }) }}
         span.cert-show__left(:class='{ "cert-show__left--low": secondsLeft <= 60 }') {{ countdown }}
-      .cert-show__hint Поднесите код к сканеру проверяющего
+      .cert-show__hint {{ $t('user.profilePage.scanHint') }}
 
   //- Учётная запись: имя аккаунта и публичный ключ — копируемые,
   //- моноширинные (это технические идентификаторы блокчейн-аккаунта).
-  BaseCard(title='Учётная запись')
-    DataRow(label='Имя аккаунта', :value='session.username', copyable, mono)
-    DataRow(label='Публичный ключ', :value='publicKey', copyable, mono)
+  BaseCard(:title='$t("user.profilePage.accountCardTitle")')
+    DataRow(:label='$t("user.profilePage.usernameLabel")', :value='session.username', copyable, mono)
+    DataRow(:label='$t("user.profilePage.publicKeyLabel")', :value='publicKey', copyable, mono)
 
-  BaseCard(title='Личные данные')
+  BaseCard(:title='$t("user.profilePage.personalCardTitle")')
     //- Почта — единственная строка профиля с действием: подтверждение адреса
     //- нужно, чтобы пайщик мог вернуть доступ и получать уведомления.
     DataRow(label='Email')
@@ -94,100 +94,100 @@
         .profile-page__email
           span {{ currentProfile.email }}
           VerifyEmailAction(show-status)
-    DataRow(label='Телефон', :value='currentProfile.phone')
+    DataRow(:label='$t("user.profilePage.phoneLabel")', :value='currentProfile.phone')
     DataRow(
       v-if='hasBirthdate',
-      label='Дата рождения',
+      :label='$t("user.profilePage.birthdateLabel")',
       :value='formatDocumentDate(getBirthdate())'
     )
     DataRow(
       v-if='currentProfile.full_address',
-      label='Адрес',
+      :label='$t("user.profilePage.addressLabel")',
       :value='currentProfile.full_address'
     )
     template(v-if='organizationProfile')
       DataRow(
         v-if='organizationProfile.type',
-        label='Тип организации',
+        :label='$t("user.profilePage.orgTypeLabel")',
         :value='getOrganizationType(organizationProfile.type)'
       )
       DataRow(
         v-if='organizationProfile.short_name',
-        label='Краткое наименование',
+        :label='$t("user.profilePage.shortNameLabel")',
         :value='organizationProfile.short_name'
       )
 
-  BaseCard(v-if='hasRequisites', title='Документы и реквизиты')
+  BaseCard(v-if='hasRequisites', :title='$t("user.profilePage.documentsCardTitle")')
     //- Паспортные данные — физическое лицо
     template(v-if='individualProfile?.passport')
-      DataRow(label='Серия и номер паспорта', :value='passportSeriesNumber')
+      DataRow(:label='$t("user.profilePage.passportSeriesNumberLabel")', :value='passportSeriesNumber')
       DataRow(
-        label='Дата выдачи',
+        :label='$t("user.profilePage.passportIssuedAtLabel")',
         :value='formatDocumentDate(individualProfile.passport.issued_at)'
       )
-      DataRow(label='Код подразделения', :value='individualProfile.passport.code')
+      DataRow(:label='$t("user.profilePage.passportCodeLabel")', :value='individualProfile.passport.code')
       DataRow(
         v-if='individualProfile.passport.issued_by',
-        label='Кем выдан',
+        :label='$t("user.profilePage.passportIssuedByLabel")',
         :value='individualProfile.passport.issued_by'
       )
     //- Реквизиты индивидуального предпринимателя
     template(v-if='entrepreneurProfile?.details')
       DataRow(
         v-if='entrepreneurProfile.details.inn',
-        label='ИНН',
+        :label='$t("user.profilePage.innLabel")',
         :value='entrepreneurProfile.details.inn',
         copyable,
         mono
       )
       DataRow(
         v-if='entrepreneurProfile.details.ogrn',
-        label='ОГРН',
+        :label='$t("user.profilePage.ogrnLabel")',
         :value='entrepreneurProfile.details.ogrn',
         copyable,
         mono
       )
       DataRow(
         v-if='entrepreneurProfile.city',
-        label='Город',
+        :label='$t("user.profilePage.cityLabel")',
         :value='entrepreneurProfile.city'
       )
     //- Реквизиты организации
     template(v-if='organizationProfile')
       DataRow(
         v-if='organizationProfile.details?.inn',
-        label='ИНН',
+        :label='$t("user.profilePage.innLabel")',
         :value='organizationProfile.details.inn',
         copyable,
         mono
       )
       DataRow(
         v-if='organizationProfile.details?.ogrn',
-        label='ОГРН',
+        :label='$t("user.profilePage.ogrnLabel")',
         :value='organizationProfile.details.ogrn',
         copyable,
         mono
       )
       DataRow(
         v-if='organizationProfile.fact_address',
-        label='Фактический адрес',
+        :label='$t("user.profilePage.factAddressLabel")',
         :value='organizationProfile.fact_address'
       )
       DataRow(
         v-if='organizationProfile.represented_by',
-        label='Представитель',
+        :label='$t("user.profilePage.representativeLabel")',
         :value='getRepresentativeName(organizationProfile.represented_by)'
       )
       DataRow(
         v-if='organizationProfile.represented_by?.position',
-        label='Должность',
+        :label='$t("user.profilePage.positionLabel")',
         :value='organizationProfile.represented_by.position'
       )
 
 .profile-page(v-else)
   EmptyState(
-    title='Профиль не заполнен',
-    body='Обратитесь к администратору для заполнения профиля'
+    :title='$t("user.profilePage.emptyTitle")',
+    :body='$t("user.profilePage.emptyBody")'
   )
     template(#icon)
       q-icon(name='badge', size='48px')
@@ -195,7 +195,7 @@
 
 <script lang="ts" setup>
 import { useSessionStore } from 'src/entities/Session';
-import { uiLocale } from 'src/shared/i18n';
+import { uiLocale, t } from 'src/shared/i18n';
 import { useSystemStore } from 'src/entities/System/model';
 import type {
   IEntrepreneurData,
@@ -257,7 +257,7 @@ const TRUST_ANCHOR_ACCOUNT = 'ano';
 // Полное имя, а не аббревиатура: рядом стоит «ПК Восход», и «АНО» одиноким
 // сокращением читалось бы как обрезанное название.
 const CHAIN_LABELS: Record<string, string> = {
-  [TRUST_ANCHOR_ACCOUNT]: 'АНО Кооперативная Экономика',
+  [TRUST_ANCHOR_ACCOUNT]: t('user.profilePage.trustAnchorLabel'),
 };
 function chainLabel(account: string): string {
   if (CHAIN_LABELS[account]) return CHAIN_LABELS[account];
@@ -289,7 +289,7 @@ const chainSteps = computed<{ label: string; variant: BaseChipVariant }[]>(() =>
   // Первое звено называет и заверяющего, и заверённого; дальше каждое добавляет
   // только заверённого — иначе имена шли бы парами и повторялись.
   const names = links.length ? [links[0].issuer, ...links.map((l) => l.subject)] : [];
-  return [...names.map((n) => ({ label: chainLabel(n), variant })), { label: 'Вы', variant }];
+  return [...names.map((n) => ({ label: chainLabel(n), variant })), { label: t('user.profilePage.selfChainLabel'), variant }];
 });
 
 // Уровень верификации в удостоверении: один чип — тот, до которого пайщик
@@ -334,10 +334,10 @@ const validUntil = computed(() => {
 
 const countdown = computed(() => {
   const left = secondsLeft.value;
-  if (left <= 0) return 'обновляем…';
+  if (left <= 0) return t('user.profilePage.countdownRefreshing');
   const m = Math.floor(left / 60);
   const sec = left % 60;
-  return `осталось ${m}:${String(sec).padStart(2, '0')}`;
+  return t('user.profilePage.countdownRemaining', { minutes: m, seconds: String(sec).padStart(2, '0') });
 });
 
 /**
@@ -438,14 +438,14 @@ const currentProfile = computed(() => {
 const { displayName, isIP } = useDisplayName(currentProfile.value);
 
 const role = computed(() => {
-  if (session.isChairman) return 'Председатель совета';
-  else if (session.isMember) return 'Член совета';
-  else return 'Пайщик';
+  if (session.isChairman) return t('user.profilePage.role.chairman');
+  else if (session.isMember) return t('user.profilePage.role.member');
+  else return t('user.profilePage.role.participant');
 });
 
 // Шапка-удостоверение: имя/наименование пайщика (с пометкой ИП) + роль.
 const identity = computed<Identity>(() => ({
-  fullName: (isIP.value ? 'ИП ' : '') + (displayName.value || ''),
+  fullName: (isIP.value ? t('user.profilePage.ipPrefix') : '') + (displayName.value || ''),
   role: role.value,
 }));
 
@@ -497,11 +497,11 @@ const getBirthdate = () => {
 
 const getOrganizationType = (type: string | undefined) => {
   const types: Record<string, string> = {
-    coop: 'Потребительский кооператив',
-    prodcoop: 'Производственный кооператив',
-    ooo: 'ООО',
+    coop: t('user.profilePage.orgType.coop'),
+    prodcoop: t('user.profilePage.orgType.prodcoop'),
+    ooo: t('user.profilePage.orgType.ooo'),
   };
-  return types[type || ''] || type || 'Не указан';
+  return types[type || ''] || type || t('user.profilePage.orgType.unspecified');
 };
 
 const getRepresentativeName = (representative: any) => {

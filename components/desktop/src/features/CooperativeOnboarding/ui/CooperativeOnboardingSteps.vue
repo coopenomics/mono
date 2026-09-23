@@ -25,6 +25,7 @@
 
 <script lang="ts" setup>
 import type { IExtensionOnboardingStepState } from '../model/types'
+import { t } from 'src/shared/i18n';
 
 withDefaults(
   defineProps<{
@@ -32,7 +33,7 @@ withDefaults(
     proposeLabel?: string
   }>(),
   {
-    proposeLabel: 'Создать предложение совету',
+    proposeLabel: t('cooperativeOnboarding.cooperativeOnboardingSteps.proposeLabelDefault'),
   }
 )
 

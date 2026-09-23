@@ -3,6 +3,7 @@ import { Zeus } from '@coopenomics/sdk';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import type { BaseBadgeVariant } from 'src/shared/ui/base/BaseBadge';
 import { api, type IVerificationReview, type IVerificationReviewPhoto } from '../api';
+import { t } from 'src/shared/i18n';
 
 /** Как называется состояние проверки на экране и каким цветом его показать. */
 export interface VerificationReviewStatusView {
@@ -11,10 +12,10 @@ export interface VerificationReviewStatusView {
 }
 
 const STATUS_VIEW: Record<string, VerificationReviewStatusView> = {
-  [Zeus.VerificationReviewStatus.Pending]: { label: 'На проверке', variant: 'info' },
-  [Zeus.VerificationReviewStatus.Approved]: { label: 'Подтверждена', variant: 'pos' },
-  [Zeus.VerificationReviewStatus.Rejected]: { label: 'Отклонена', variant: 'neg' },
-  [Zeus.VerificationReviewStatus.Revoked]: { label: 'Отозвана', variant: 'neutral' },
+  [Zeus.VerificationReviewStatus.Pending]: { label: t('verification.review.status.pending'), variant: 'info' },
+  [Zeus.VerificationReviewStatus.Approved]: { label: t('verification.review.status.approved'), variant: 'pos' },
+  [Zeus.VerificationReviewStatus.Rejected]: { label: t('verification.review.status.rejected'), variant: 'neg' },
+  [Zeus.VerificationReviewStatus.Revoked]: { label: t('verification.review.status.revoked'), variant: 'neutral' },
 };
 
 export function verificationReviewStatusView(status: string): VerificationReviewStatusView {
@@ -59,7 +60,7 @@ export function useVerificationReviews() {
     try {
       deciding.value = reviewId;
       await api.approveVerification({ review_id: reviewId });
-      SuccessAlert('Сверка подтверждена. Фотографии удалены');
+      SuccessAlert(t('verification.reviewModel.approveSuccess'));
       await load();
       return true;
     } catch (error: any) {
@@ -74,7 +75,7 @@ export function useVerificationReviews() {
     try {
       deciding.value = reviewId;
       await api.rejectVerification({ review_id: reviewId, reason });
-      SuccessAlert('Сверка отклонена. Верификация пайщика отозвана');
+      SuccessAlert(t('verification.reviewModel.rejectSuccess'));
       await load();
       return true;
     } catch (error: any) {

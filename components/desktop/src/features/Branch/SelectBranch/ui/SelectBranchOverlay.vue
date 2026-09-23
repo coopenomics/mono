@@ -12,8 +12,8 @@ BaseDialog(
 
       div(v-if="step === 1")
         p.q-mt-lg
-          | Кооператив перешёл на двухэтапную систему управления на основании общего собрания уполномоченных председателей кооперативных участков...
-        Loader(v-if="branchesLoading" text="Загружаем список кооперативных участков...")
+          | {{ $t('branch.selectBranchOverlay.intro') }}
+        Loader(v-if="branchesLoading" :text="$t('branch.selectBranchOverlay.loadingBranches')")
         Form#select-branch-form(
           v-else
           :handler-submit="next"
@@ -27,7 +27,7 @@ BaseDialog(
           ).q-mb-md
 
       div(v-else-if="step === 2")
-        Loader(v-if="isLoading" :text="`Формируем документ...`")
+        Loader(v-if="isLoading" :text="$t(`branch.selectBranchOverlay.generatingDocument`)")
         DocumentHtmlReader(v-else :html="document.html")
 
   template(#footer)
@@ -38,14 +38,14 @@ BaseDialog(
         form='select-branch-form',
         :loading='isLoading',
         :disabled='!selectedBranch || isLoading',
-      ) Продолжить
+      ) {{ $t('branch.selectBranchOverlay.continueLabel') }}
     .select-branch-overlay__actions(v-else-if="step === 2 && !isLoading")
-      BaseButton(variant='ghost', @click='back') назад
+      BaseButton(variant='ghost', @click='back') {{ $t('branch.selectBranchOverlay.backLabel') }}
       BaseButton(
         variant='primary',
         :loading='isSubmitting',
         @click='sign'
-      ) подписать
+      ) {{ $t('branch.selectBranchOverlay.signLabel') }}
 </template>
 
 <script setup lang="ts">

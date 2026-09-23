@@ -4,7 +4,7 @@
   .banner
     q-icon.banner__icon(name='fa-solid fa-circle-info' size='18px')
     .banner__body
-      | Состав членов совета должен быть утверждён общим собранием пайщиков.
+      | {{ $t('cooperative.membersPage.hint') }}
 
   CooperativeMembers
 </template>

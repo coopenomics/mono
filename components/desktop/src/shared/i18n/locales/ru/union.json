@@ -1,0 +1,95 @@
+{
+  "union": {
+    "addCooperativeForm": {
+      "cancel": "Отменить",
+      "domainHint": "domovoy.com или coop.domovoy.com",
+      "domainLabel": "Домен или поддомен для запуска",
+      "initialIndividualLabel": "Вступительный взнос для физлиц и ИП",
+      "initialOrgLabel": "Вступительный взнос для организаций",
+      "minimumIndividualHint": "Минимальный паевый взнос для физлиц и ИП",
+      "minimumOrgLabel": "Минимальный паевый взнос для организаций",
+      "submitLabel": "Продолжить",
+      "submitSuccess": "Заявка на создание кооператива отправлена!",
+      "submittingText": "Создаем кооператив..."
+    },
+    "connectionAgreementPage": {
+      "description": "Для запуска вашего Цифрового Кооператива и подключения к платформе Кооперативной Экономики обратитесь в ПК ВОСХОД.",
+      "goToSiteLabel": "Перейти на сайт",
+      "loadingText": "Загрузка данных подключения...",
+      "maintenanceText": "технические работы...",
+      "title": "Подключение к Кооперативной Экономике"
+    },
+    "cooperativeDataForm": {
+      "continueLabel": "Продолжить",
+      "domainHint": "domovoy.com или coop.domovoy.com",
+      "domainLabel": "Домен или поддомен для запуска",
+      "domainSectionDescription": "Укажите домен или поддомен, на котором будет работать ваш кооператив",
+      "domainSectionTitle": "Домен кооператива",
+      "financialSectionDescription": "Введите вступительные и минимальные паевые взносы пайщиков. Эти параметры будут должны быть указаны в уставных документах кооператива.",
+      "financialSectionTitle": "Финансовые параметры",
+      "individualSectionTitle": "Для физических лиц и ИП",
+      "initialIndividualLabel": "Вступительный взнос",
+      "initialOrgLabel": "Вступительный взнос",
+      "minimumIndividualLabel": "Минимальный паевый взнос",
+      "minimumOrgLabel": "Минимальный паевый взнос",
+      "orgSectionTitle": "Для организаций"
+    },
+    "installCooperativePage": {
+      "doneHintLine1": "Всем членам совета отправлены приглашения на электронные почты со",
+      "doneHintLine2": "ссылками для получения цифровых подписей. Перейдите по своей ссылке из",
+      "doneHintLine3": "письма, получите ключ председателя и используйте его для входа в систему.",
+      "doneSubtitle": "Ваш Цифровой Кооператив готов к работе",
+      "doneTitle": "Установка завершена",
+      "keyStepIntro": "Введите ключ, который был выдан вам при регистрации в качестве пайщика.",
+      "signInLabel": "Войти в систему",
+      "sovietStepIntroLine1": "Укажите председателя и членов совета. Каждому будет создан аккаунт пайщика",
+      "sovietStepIntroLine2": "и отправлено приглашение на электронную почту.",
+      "stepInitDescription": "Реквизиты для документооборота с пайщиками",
+      "stepInitLabel": "Данные организации",
+      "stepKeyDescription": "Ключ, выданный при регистрации пайщиком",
+      "stepKeyLabel": "Ключ установки",
+      "stepSovietDescription": "Председатель и члены совета — им создадутся аккаунты",
+      "stepSovietLabel": "Члены совета",
+      "stepVarsDescription": "Постоянные параметры для генерации документов",
+      "stepVarsLabel": "Настройка фабрики документов",
+      "subtitle": "Пошаговая настройка вашего кооператива",
+      "title": "Установка Цифрового Кооператива",
+      "varsStepIntroLine1": "Задайте постоянные параметры, по которым фабрика генерирует",
+      "varsStepIntroLine2": "документы кооператива."
+    },
+    "installationCompletedPage": {
+      "blockchainNodeLabel": "Блокчейн-узел",
+      "blockchainNodeStatus": "Развернут, синхронизирован и подключен к сети",
+      "dashboardStepText": "Перейдите к управлению подключением, где сможете просматривать статус подключения, управлять подписками и настраивать параметры платформы.",
+      "databaseLabel": "База данных",
+      "databaseStatus": "Инициализирована и готова к работе",
+      "goToDashboardLabel": "Перейти к управлению подключением",
+      "goToSiteLabel": "Перейти на сайт кооператива",
+      "monitoringLabel": "Мониторинг кооператива",
+      "monitoringStatus": "Запущен и функционирует",
+      "nextStepsTitle": "Что дальше?",
+      "serverInfraLabel": "Серверная инфраструктура",
+      "serverInfraStatus": "Полностью настроена",
+      "setupStepText": "Завершите начальную настройку вашего Цифрового Кооператива на сайте.",
+      "subtitle": "Ваш Цифровой Кооператив успешно развернут и подключен к платформе",
+      "title": "Поставка завершена!"
+    },
+    "unionPageListOfCooperatives": {
+      "actionsLabel": "действия",
+      "activateAction": "Активировать",
+      "activateSuccess": "Кооператив активирован",
+      "blockAction": "Заблокировать",
+      "blockSuccess": "Кооператив заблокирован",
+      "column": {
+        "announce": "Сайт",
+        "createdAt": "Дата заявки",
+        "status": "Статус",
+        "username": "Аккаунт"
+      },
+      "noDataLabel": "Нет кооперативов",
+      "statusActive": "активен",
+      "statusBlocked": "заблокирован",
+      "statusPending": "на рассмотрении"
+    }
+  }
+}

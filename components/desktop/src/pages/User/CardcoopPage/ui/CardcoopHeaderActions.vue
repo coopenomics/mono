@@ -3,12 +3,12 @@
   BaseButton(
     :variant='state.issued ? "secondary" : "primary"',
     size='sm',
-    :aria-label='state.issued ? "Открыть карту кооператора" : "Выпустить карту кооператора"',
+    :aria-label='state.issued ? $t("user.cardcoopHeaderActions.openLabel") : $t("user.cardcoopHeaderActions.issueLabel")',
     @click='state.onOpen'
   )
     template(#icon-left)
       q-icon(:name='state.issued ? "open_in_new" : "badge"', size='18px')
-    | {{ state.issued ? 'Открыть карту' : 'Выпустить карту кооператора' }}
+    | {{ state.issued ? $t('user.cardcoopHeaderActions.openShort') : $t('user.cardcoopHeaderActions.issueLabel') }}
 </template>
 
 <script lang="ts" setup>

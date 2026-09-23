@@ -1,0 +1,10 @@
+{
+  "cooperativeOnboarding": {
+    "cooperativeOnboardingGate": {
+      "loadError": "Не удалось загрузить состояние онбординга: {error}"
+    },
+    "cooperativeOnboardingSteps": {
+      "proposeLabelDefault": "Создать предложение совету"
+    }
+  }
+}

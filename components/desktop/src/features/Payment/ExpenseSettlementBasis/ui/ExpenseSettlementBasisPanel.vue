@@ -3,23 +3,23 @@
   .exp-step
     .exp-step__num
       q-icon(name='link', size='14px')
-    .exp-step__title Основание расчёта
-  .t-sm.t-muted Расчёт по авансу под отчёт{{ proposalLabel }}. {{ basisHint }}
+    .exp-step__title {{ $t('payment.expenseSettlementBasisPanel.title') }}
+  .t-sm.t-muted {{ $t('payment.expenseSettlementBasisPanel.description', { proposalLabel, basisHint }) }}
 
   button.settlement-basis__link(type='button', @click='emit("open-source", itemHash)')
     q-icon(name='open_in_new', size='15px')
-    span Открыть платёж выдачи аванса
+    span {{ $t('payment.expenseSettlementBasisPanel.openAdvancePayment') }}
 
   .settlement-basis__rows
-    DataRow(label='Что оплачивали', :value='descriptionLabel')
-    DataRow(label='Выдано авансом', :value='advanceLabel', mono)
-    DataRow(label='Заявлено по чекам', :value='reportedLabel', mono)
+    DataRow(:label='$t("payment.expenseSettlementBasisPanel.subjectLabel")', :value='descriptionLabel')
+    DataRow(:label='$t("payment.expenseSettlementBasisPanel.advanceIssuedLabel")', :value='advanceLabel', mono)
+    DataRow(:label='$t("payment.expenseSettlementBasisPanel.reportedByReceiptsLabel")', :value='reportedLabel', mono)
     DataRow(:label='settlementRowLabel', :value='settlementLabel', mono)
 
   .settlement-basis__docs
-    .t-sm.t-muted(v-if='loadingFiles') Загрузка подтверждающих документов…
+    .t-sm.t-muted(v-if='loadingFiles') {{ $t('payment.expenseSettlementBasisPanel.loadingDocuments') }}
     template(v-else-if='files.length')
-      .t-sm.t-muted Подтверждающие документы пайщика:
+      .t-sm.t-muted {{ $t('payment.expenseSettlementBasisPanel.documentsTitle') }}
       .files
         button.file-link(
           v-for='file in files',
@@ -31,12 +31,12 @@
           q-icon(name='attach_file', size='16px')
           span {{ fileLabel(file) }}
           q-spinner(v-if='openingId === file.id', size='14px')
-    .t-sm.t-warning(v-else) Подтверждающие документы пайщик ещё не приложил.
+    .t-sm.t-warning(v-else) {{ $t('payment.expenseSettlementBasisPanel.documentsEmpty') }}
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
-import { uiLocale } from 'src/shared/i18n';
+import { uiLocale, t } from 'src/shared/i18n';
 import { Zeus } from '@coopenomics/sdk';
 import { FailAlert } from 'src/shared/api';
 import { useSystemStore } from 'src/entities/System/model';
@@ -76,12 +76,12 @@ const files = ref<IExpenseFile[]>([]);
 const loadingFiles = ref(true);
 
 const proposalLabel = computed(() =>
-  props.proposalHash ? ` по СЗ № ${shortExpenseId(props.proposalHash)}` : '',
+  props.proposalHash ? t('payment.expenseSettlementBasisPanel.proposalNumberSuffix', { proposalNumber: shortExpenseId(props.proposalHash) }) : '',
 );
 const basisHint = computed(() =>
   props.isReturn
-    ? 'Пайщик отчитался на меньшую сумму — возвращает разницу кооперативу.'
-    : 'Пайщик отчитался на большую сумму — кооператив доплачивает разницу.',
+    ? t('payment.expenseSettlementBasisPanel.underspentHint')
+    : t('payment.expenseSettlementBasisPanel.overspentHint'),
 );
 const descriptionLabel = computed(
   () => props.description || item.value?.description || '—',
@@ -104,7 +104,7 @@ const reportedLabel = computed(() => {
   );
 });
 const settlementRowLabel = computed(() =>
-  props.isReturn ? 'К возврату кооперативу' : 'К доплате пайщику',
+  props.isReturn ? t('payment.expenseSettlementBasisPanel.toReturnLabel') : t('payment.expenseSettlementBasisPanel.toPayLabel'),
 );
 const settlementLabel = computed(() =>
   props.settlementAmount ? formatAsset2Digits(props.settlementAmount) : '—',
@@ -124,7 +124,7 @@ function fileLabel(file: IExpenseFile): string {
   const date = file.uploaded_at
     ? new Date(String(file.uploaded_at)).toLocaleString(uiLocale())
     : '';
-  return `Чек от ${date}`;
+  return t('payment.expenseSettlementBasisPanel.receiptFromLabel', { date });
 }
 
 const openingId = ref<number | null>(null);
@@ -132,7 +132,7 @@ async function openFile(file: IExpenseFile): Promise<void> {
   try {
     openingId.value = file.id;
     const url = await attachExpenseProofApi.getExpenseFileReadUrl(file.id);
-    if (!url) throw new Error('Не удалось получить ссылку на файл');
+    if (!url) throw new Error(t('payment.error.fileLinkError'));
     window.open(url, '_blank', 'noopener');
   } catch (e) {
     FailAlert(e);

@@ -26,7 +26,7 @@
           round
           dense
           icon="close"
-          aria-label="Закрыть"
+          :aria-label="$t('common.action.close')"
           @click="emit('update:modelValue', false)"
         />
       </q-card-section>

@@ -1,6 +1,6 @@
 <template lang="pug">
 .notification-bell
-  button.icon-btn(type='button', aria-label='Уведомления')
+  button.icon-btn(type='button', :aria-label='$t("notificationCenter.notificationCenter.ariaLabel")')
     q-icon(name='notifications')
     BaseBadge.notification-bell__count(
       v-if='store.unreadCount',
@@ -42,11 +42,11 @@
             size='sm',
             :loading='isProcessing',
             @click='onPushAction'
-          ) {{ isThisDeviceSubscribed ? 'Переподписать' : 'Включить на устройстве' }}
+          ) {{ isThisDeviceSubscribed ? $t('notificationCenter.notificationCenter.resubscribe') : $t('notificationCenter.notificationCenter.enableOnDevice') }}
         .push-strip(v-else-if='session.isAuth && !pushSupport.isSupported')
           .push-strip__status
             q-icon.push-strip__icon(name='notifications_off', size='18px')
-            span.push-strip__text Браузер не поддерживает push-уведомления
+            span.push-strip__text {{ $t('notificationCenter.notificationCenter.browserUnsupported') }}
 </template>
 
 <script setup lang="ts">
@@ -59,6 +59,7 @@ import { NotificationCenter as NotificationPanel } from 'src/shared/ui/domain/No
 import { useWebPushNotifications } from 'src/features/WebPushNotifications';
 import { useSessionStore } from 'src/entities/Session';
 import { useNotificationInboxStore } from './model';
+import { t } from 'src/shared/i18n';
 
 const store = useNotificationInboxStore();
 const session = useSessionStore();
@@ -76,11 +77,11 @@ const badgeLabel = computed(() => (store.unreadCount > 99 ? '99+' : String(store
 
 const pushStatusText = computed(() => {
   if (pushSupport.value.permission === 'denied') {
-    return 'Уведомления заблокированы в браузере';
+    return t('notificationCenter.notificationCenter.blockedInBrowser');
   }
   return isThisDeviceSubscribed.value
-    ? 'Push включён на этом устройстве'
-    : 'Push не включён на этом устройстве';
+    ? t('notificationCenter.notificationCenter.enabledOnDevice')
+    : t('notificationCenter.notificationCenter.disabledOnDevice');
 });
 
 const pushStatusIcon = computed(() => {

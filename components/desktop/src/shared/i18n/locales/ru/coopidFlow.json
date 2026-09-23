@@ -1,0 +1,72 @@
+{
+  "coopidFlow": {
+    "flowAutosubmit": {
+      "lead": "Продолжаем…"
+    },
+    "flowCode": {
+      "authenticatorLead": "Введите код из приложения-аутентификатора.",
+      "resend": "Отправить код ещё раз",
+      "sendingLead": "Отправляем код на {email}…",
+      "sentLead": "Код отправлен на {email}. Введите шесть цифр из письма.",
+      "submit": "Войти",
+      "wrongCodeError": "Код не подошёл. Проверьте цифры или запросите новый."
+    },
+    "flowConsent": {
+      "accessLead": "Сервис просит доступ к вашим данным в кооперативе.",
+      "allowAction": "Разрешить",
+      "confirmLead": "Подтвердите действие.",
+      "scope": {
+        "apiAccess": "Доступ к API",
+        "emailAddress": "Адрес почты",
+        "profile": "Основные сведения профиля"
+      }
+    },
+    "flowDenied": {
+      "backAction": "Вернуться ко входу",
+      "deniedText": "Доступ закрыт. Если вы считаете, что это ошибка, обратитесь в кооператив.",
+      "deniedTitle": "Вход не разрешён.",
+      "enteredAction": "Открыть стол",
+      "enteredText": "Входить заново не нужно. Откройте стол.",
+      "enteredTitle": "Вы уже вошли.",
+      "failedText": "Что-то сломалось на стороне входа. Попробуйте ещё раз; если повторится — сообщите нам.",
+      "failedTitle": "Вход не удался."
+    },
+    "flowEmail": {
+      "resend": "Отправить письмо ещё раз",
+      "resendCountdown": "Отправить ещё раз · {seconds} с",
+      "text": "Откройте ссылку из письма, чтобы продолжить. Письмо приходит в течение минуты; загляните и в «Спам».",
+      "title": "Письмо отправлено."
+    },
+    "flowIdentification": {
+      "continueAction": "Продолжить",
+      "divider": "или",
+      "emailLabel": "Электронная почта",
+      "forgotPassword": "Не помню пароль",
+      "loginAction": "Войти",
+      "noAccount": "Нет учётной записи?",
+      "passwordLabel": "Пароль",
+      "sourceAction": "Войти через {sourceName}",
+      "usernameLabel": "Имя аккаунта"
+    },
+    "flowPassword": {
+      "forgotPassword": "Не помню пароль",
+      "notMeAction": "Это не я",
+      "passwordLabel": "Пароль",
+      "submit": "Войти",
+      "whoLabel": "Входите как"
+    },
+    "flowPrompt": {
+      "submit": "Продолжить"
+    },
+    "flowRunner": {
+      "unavailableError": "Вход не отвечает"
+    },
+    "flowSessionEnd": {
+      "backAction": "Вернуться в «{application}»",
+      "defaultApplicationName": "сервис",
+      "openDeskAction": "Открыть стол",
+      "text": "Сеанс в «{application}» завершён.",
+      "title": "Вы вышли."
+    }
+  }
+}

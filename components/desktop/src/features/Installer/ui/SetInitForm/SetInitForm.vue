@@ -4,9 +4,9 @@
     //- Если данные установлены сервером — показываем readonly
     div(v-if='installationStatus.init_by_server')
       .install-note
-        | Вам предустановлены данные кооператива. Пожалуйста, проверьте их, и
-        | в случае обнаружения ошибок обратитесь к вашему оператору для внесения
-        | изменений.
+        | {{ $t('installer.setInitForm.presetNoticeLine1') }}
+        | {{ $t('installer.setInitForm.presetNoticeLine2') }}
+        | {{ $t('installer.setInitForm.presetNoticeLine3') }}
 
       CreateOrganizationDataForm(
         :data='installationStatus.organization_data || installStore.organization_data',
@@ -17,16 +17,16 @@
       .set-init__actions
         BaseButton(variant='ghost', @click='back')
           q-icon(name='arrow_back', size='16px')
-          span.q-ml-sm Назад
+          span.q-ml-sm {{ $t('common.action.back') }}
         BaseButton(variant='primary', :loading='saving', @click='next')
-          span.q-mr-sm Далее
+          span.q-mr-sm {{ $t('common.action.next') }}
           q-icon(name='arrow_forward', size='16px')
 
     //- Если данных нет или они введены пользователем — форма для ввода/редактирования
     div(v-else)
       .install-note
-        | Заполните данные кооператива. Они будут использоваться для организации
-        | документооборота с пайщиками.
+        | {{ $t('installer.setInitForm.fillNoticeLine1') }}
+        | {{ $t('installer.setInitForm.fillNoticeLine2') }}
 
       CreateOrganizationDataForm(
         :data='installStore.organization_data',
@@ -40,7 +40,7 @@
             dense,
             color='primary',
             v-model='organizationEmail',
-            label='Email организации',
+            :label='$t("installer.setInitForm.orgEmailLabel")',
             type='email',
             :rules='[val => notEmpty(val)]',
             autocomplete='off'
@@ -49,25 +49,25 @@
       .set-init__actions
         BaseButton(variant='ghost', @click='back')
           q-icon(name='arrow_back', size='16px')
-          span.q-ml-sm Назад
+          span.q-ml-sm {{ $t('common.action.back') }}
         BaseButton(
           variant='primary',
           :loading='saving',
           :disabled='!isValidData',
           @click='saveAndNext'
         )
-          span.q-mr-sm Продолжить
+          span.q-mr-sm {{ $t('installer.setInitForm.continueSubmit') }}
           q-icon(name='arrow_forward', size='16px')
 
   div(v-else-if='loading')
-    Loader(text='Загрузка данных...')
+    Loader(:text='$t("installer.setInitForm.loadingText")')
 
   .set-init__error(v-else)
     q-icon(name='error', size='48px', color='negative')
-    p.set-init__error-text Ошибка загрузки данных
+    p.set-init__error-text {{ $t('installer.setInitForm.loadError') }}
     BaseButton(variant='secondary', @click='loadData')
       q-icon(name='refresh', size='16px')
-      span.q-ml-sm Повторить
+      span.q-ml-sm {{ $t('common.action.retry') }}
 </template>
 
 <script setup lang="ts">
@@ -83,6 +83,7 @@ import { notEmpty } from 'src/shared/lib/utils';
 import { stripLegacyBankKpp } from 'src/shared/lib/utils/stripLegacyBankKpp';
 import { Zeus } from '@coopenomics/sdk';
 import { BaseButton } from 'src/shared/ui/base/BaseButton';
+import { t } from 'src/shared/i18n';
 
 defineEmits<{
   next: []
@@ -166,7 +167,7 @@ const isValidData = computed(() => {
 
 const loadData = async () => {
   if (!installStore.install_code) {
-    FailAlert('Код установки не найден');
+    FailAlert(t('installer.setInitForm.installCodeNotFound'));
     installStore.current_step = 'key';
     return;
   }
@@ -194,7 +195,7 @@ const loadData = async () => {
     const errorMessage = extractGraphQLErrorMessages(error);
     // Если код истек или невалиден - возвращаемся на шаг ввода ключа
     if (errorMessage.includes('истекший') || errorMessage.includes('Неверный')) {
-      FailAlert('Код установки истек или невалиден. Пожалуйста, введите ключ заново.');
+      FailAlert(t('installer.setInitForm.installCodeExpired'));
       installStore.current_step = 'key';
       installStore.install_code = undefined;
     } else {
@@ -233,7 +234,7 @@ const saveAndNext = async () => {
 
     next();
   } catch (error: any) {
-    FailAlert(error.message || 'Ошибка инициализации');
+    FailAlert(error.message || t('installer.setInitForm.initError'));
   } finally {
     saving.value = false;
   }

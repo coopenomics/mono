@@ -18,6 +18,7 @@ import {
   signOnboardingOffer,
   type MarketplaceOnboardingStateView,
 } from '../api';
+import { t } from 'src/shared/i18n';
 
 /**
  * Эпик 1 / Story 1.4 + 1.11: L3 онбординг пайщика — присоединение к Столу заказов.
@@ -206,7 +207,7 @@ async function proceedToDesk(): Promise<void> {
     // маршрутом (marketplace-catalog может требовать тот же ещё не выданный
     // грант) — честно просим обновить страницу чуть позже.
     redirecting.value = false;
-    NotifyAlert('Подключение завершено, но права ещё синхронизируются. Обновите страницу через несколько секунд.');
+    NotifyAlert(t('marketplace.onboardingMemberPickCppPage.syncPendingMessage'));
     return;
   }
 
@@ -219,7 +220,7 @@ async function proceedToDesk(): Promise<void> {
   // пользователя с вечным спиннером без объяснения.
   if (router.currentRoute.value.name === ONBOARDING_ROUTE_NAME) {
     redirecting.value = false;
-    NotifyAlert('Подключение завершено, но переход на стол не удался. Обновите страницу.');
+    NotifyAlert(t('marketplace.onboardingMemberPickCppPage.navigateFailedMessage'));
   }
 }
 
@@ -268,7 +269,7 @@ async function onSign(): Promise<void> {
       // Синк не успел за отведённое окно — крайне редко; даём пользователю
       // явный сигнал перезагрузить страницу.
       redirecting.value = false;
-      NotifyAlert('Подпись принята блокчейном и синхронизируется. Обновите страницу через несколько секунд.');
+      NotifyAlert(t('marketplace.onboardingMemberPickCppPage.signSyncingMessage'));
     }
   } catch (e) {
     redirecting.value = false;
@@ -282,7 +283,7 @@ onMounted(load);
 </script>
 
 <template lang="pug">
-q-page.mp-role-orderer.mp-member-cpp(role="region", aria-label="Подключение к Столу заказов")
+q-page.mp-role-orderer.mp-member-cpp(role="region", :aria-label="$t('marketplace.onboardingMemberPickCppPage.ariaLabel')")
   //- Спиннер на весь экран — ТОЛЬКО на первичной загрузке состояния и на короткой
   //- фазе перехода (redirecting, после подтверждения подписи). На самой подписи
   //- (поллинг синка ~15с) оверлея НЕТ — спиннер на кнопке + блокировка полей.
@@ -300,8 +301,8 @@ q-page.mp-role-orderer.mp-member-cpp(role="region", aria-label="Подключе
         .mp-member-cpp__head-icon
           q-icon(name="location_on", size="22px")
         .mp-member-cpp__head-text
-          .text-subtitle1.text-weight-medium Выберите пункт выдачи заказов
-          .text-body2.text-grey-7 Выбирайте участок, где вам удобно забирать заказы, — сменить его можно в любой момент.
+          .text-subtitle1.text-weight-medium {{ $t('marketplace.onboardingMemberPickCppPage.pageTitle') }}
+          .text-body2.text-grey-7 {{ $t('marketplace.onboardingMemberPickCppPage.pageSubtitle') }}
         BaseChip.mp-member-cpp__picked(v-if="selectedName", variant="pos", size="sm")
           q-icon(name="check", size="14px")
           | {{ selectedName }}
@@ -318,44 +319,44 @@ q-page.mp-role-orderer.mp-member-cpp(role="region", aria-label="Подключе
         :disabled="loading",
         @update:model-value="(v) => (agreed = v)"
       )
-        | Я ознакомлен(а) с&nbsp;
-        span.mp-member-cpp__offer-link(@click.stop="openOffer") офертой на присоединение к ЦПП «Стол заказов» и Положением ЦПП
-        |  и согласен(на) с условиями участия.
+        | {{ $t('marketplace.onboardingMemberPickCppPage.consentPrefix') }}
+        span.mp-member-cpp__offer-link(@click.stop="openOffer") {{ $t('marketplace.onboardingMemberPickCppPage.consentLinkText') }}
+        |  {{ $t('marketplace.onboardingMemberPickCppPage.consentSuffix') }}
       //- Уже подписал при регистрации — подпись не нужна, лишь выбор КУ.
       .mp-member-cpp__consent.text-body2.text-grey-7(v-else-if="alreadySigned")
-        | Оферта ЦПП «Стол заказов» уже подписана при регистрации — выберите пункт выдачи, чтобы продолжить.
+        | {{ $t('marketplace.onboardingMemberPickCppPage.alreadySignedHint') }}
       //- Кооператив не довёл подключение ЦПП до конца: подписывать нечего, и
       //- выбор пункта выдачи ничего не откроет. Честно говорим об этом, а не
       //- выдаём отсутствие подписи за состоявшуюся.
       BaseBanner.mp-member-cpp__consent(v-else, variant="warn")
         template(#icon)
           q-icon(name="info")
-        | Кооператив ещё не завершил подключение ЦПП «Стол заказов» — подписать оферту сейчас нельзя. Обратитесь к председателю: присоединение станет доступно, как только программа будет открыта.
+        | {{ $t('marketplace.onboardingMemberPickCppPage.notReadyHint') }}
       .mp-member-cpp__action
         BaseButton.mp-member-cpp__sign(
           variant="primary",
           :loading="loading",
           :disabled="!canContinue",
           @click="onContinue"
-        ) Продолжить
+        ) {{ $t('marketplace.onboardingMemberPickCppPage.continueAction') }}
         //- Подсказка-зачем кнопка неактивна: согласие (если нужно) есть, но ПВЗ не выбран.
         .mp-member-cpp__why(v-if="!cppNotConfigured && (!requiresGate || agreed) && !selectedBraname")
           q-icon(name="info", size="14px")
-          span Чтобы продолжить, выберите пункт выдачи — щёлкните по его названию или адресу в списке либо отметьте точку на карте.
+          span {{ $t('marketplace.onboardingMemberPickCppPage.selectPvzHint') }}
 
   //- Диалог ознакомления: сгенерированный HTML оферты. «Подтвердить» = согласие.
   BaseDialog(
     v-model="offerDialogOpen",
-    title="Оферта на присоединение к ЦПП «Стол заказов»",
+    :title="$t('marketplace.onboardingMemberPickCppPage.offerDialogTitle')",
     :maximized="true"
   )
     .mp-member-cpp__offer-body
-      Loader(v-if="offerLoading", text="Генерируем оферту…")
+      Loader(v-if="offerLoading", :text="$t('marketplace.onboardingMemberPickCppPage.generatingOfferLoadingText')")
       //- eslint-disable-next-line vue/no-v-html
       div(v-else, v-html="sanitizeDocumentHtml(offerHtml)").statement
     template(#footer)
-      BaseButton(variant="ghost", @click="offerDialogOpen = false") Закрыть
-      BaseButton(variant="primary", :disabled="offerLoading", @click="confirmOfferRead") Прочитал(а), согласен(на)
+      BaseButton(variant="ghost", @click="offerDialogOpen = false") {{ $t('common.action.close') }}
+      BaseButton(variant="primary", :disabled="offerLoading", @click="confirmOfferRead") {{ $t('marketplace.onboardingMemberPickCppPage.agreeAction') }}
 </template>
 
 <style scoped lang="scss">

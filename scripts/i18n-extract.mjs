@@ -147,10 +147,16 @@ function previewOf(parts) {
     .trim();
 }
 
-function messageOf(parts, names) {
+/**
+ * Текст сообщения. Текст шаблона сжимается так же, как его сжимает Vue
+ * (пробелы и переносы — в один пробел, края остаются снаружи {{ }}); строки
+ * скриптов и атрибутов переносятся как есть — ведущий пробел в ' (пауза)' и
+ * перенос строки в подсказке значимы.
+ */
+function messageOf(parts, names, condense = false) {
   let i = 0;
   const raw = parts.map((p) => (p.text !== undefined ? escapeMessage(p.text) : `{${names[i++]}}`)).join('');
-  return raw.replace(/\s+/g, ' ').trim();
+  return condense ? raw.replace(/\s+/g, ' ').trim() : raw;
 }
 
 // ─── scan ───────────────────────────────────────────────────────────────────
@@ -281,10 +287,17 @@ function declaresT(code) {
 /** Вставить именованный импорт в блок кода (или дополнить существующий). */
 function ensureImport(code, name, from) {
   const sf = ts.createSourceFile('x.ts', code, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
+  // Новый импорт — сразу за первым сплошным блоком импортов: в CommonJS
+  // (контроллер) require выполняется в порядке текста, и импорт после кода,
+  // который уже зовёт t() при загрузке модуля, дал бы TDZ-ошибку.
   let lastImportEnd = -1;
+  let leadingBlock = true;
   for (const st of sf.statements) {
-    if (!ts.isImportDeclaration(st)) continue;
-    lastImportEnd = st.getEnd();
+    if (!ts.isImportDeclaration(st)) {
+      leadingBlock = false;
+      continue;
+    }
+    if (leadingBlock) lastImportEnd = st.getEnd();
     const spec = st.moduleSpecifier.text;
     const named = st.importClause?.namedBindings;
     if (spec === from && named && ts.isNamedImports(named) && !st.importClause.isTypeOnly) {
@@ -330,7 +343,12 @@ function dropUnusedImports(code, names, from) {
 }
 
 function writeJsonSorted(path, tree) {
-  const sort = (x) => (typeof x === 'object' && x !== null ? Object.fromEntries(Object.keys(x).sort().map((k) => [k, sort(x[k])])) : x);
+  const sort = (x) =>
+    Array.isArray(x)
+      ? x.map(sort)
+      : typeof x === 'object' && x !== null
+        ? Object.fromEntries(Object.keys(x).sort().map((k) => [k, sort(x[k])]))
+        : x;
   mkdirSync(dirname(path), { recursive: true });
   writeFileSync(path, JSON.stringify(sort(tree), null, 2) + '\n');
 }
@@ -362,6 +380,7 @@ function setLeaf(tree, key, value) {
 function ensureExtensionModule(owner, created) {
   const indexPath = join(REPO_ROOT, owner.extRoot, 'i18n', 'index.ts');
   if (existsSync(indexPath)) return;
+  mkdirSync(dirname(indexPath), { recursive: true });
   if (owner.app === 'desktop') {
     writeFileSync(
       indexPath,
@@ -378,11 +397,8 @@ registerMessages('extension:${owner.ext}', ru);
 export { t, te } from 'src/shared/i18n';
 `,
     );
-    const install = join(REPO_ROOT, owner.extRoot, 'install.ts');
-    if (existsSync(install)) {
-      const code = readFileSync(install, 'utf8');
-      if (!code.includes("'./i18n'")) writeFileSync(install, `import './i18n';\n` + code);
-    }
+    // Импорт './i18n' в install.ts ставится в конце apply (connectEntries):
+    // install.ts может сам быть в порции, и его запись затёрла бы импорт.
   } else {
     writeFileSync(
       indexPath,
@@ -399,12 +415,7 @@ registerMessages('ru', ru, 'extension:${owner.ext}');
 export { t, te, currentLocale } from '@coopenomics/i18n/server';
 `,
     );
-    const moduleFile = readdirSync(join(REPO_ROOT, owner.extRoot)).find((f) => /(-extension)?\.module\.ts$/.test(f));
-    if (moduleFile) {
-      const mp = join(REPO_ROOT, owner.extRoot, moduleFile);
-      const code = readFileSync(mp, 'utf8');
-      if (!code.includes("'./i18n'")) writeFileSync(mp, `import './i18n';\n` + code);
-    }
+    // Импорт './i18n' в модуль расширения — в конце apply (connectEntries).
   }
   created.push(relative(REPO_ROOT, indexPath));
 }
@@ -568,7 +579,7 @@ function applyCommand() {
         continue;
       }
       const first = key.split('.')[0];
-      if (owner.ns && first !== owner.ns) {
+      if (owner.ns && first !== owner.ns && first !== 'common') {
         skip(`ключ расширения должен начинаться с «${owner.ns}.»`);
         continue;
       }
@@ -576,7 +587,7 @@ function applyCommand() {
         skip(`раздел «${first}» принадлежит пакету @coopenomics/i18n`);
         continue;
       }
-      const message = messageOf(parts, paramNames);
+      const message = messageOf(parts, paramNames, f.kind === 'tpl-text');
       if (!CYRILLIC.test(message)) {
         skip('после сборки сообщения не осталось текста');
         continue;
@@ -671,6 +682,17 @@ function applyCommand() {
   }
 
   for (const [rel, tree] of dicts) writeJsonSorted(join(REPO_ROOT, rel), tree);
+
+  // Точка входа расширения импортирует его словарь — после записи всех файлов.
+  for (const extRoot of new Set([...report.dicts].map((d) => d.replace(/\/i18n\/ru\.json$/, '')).filter((d) => d.includes('/extensions/')))) {
+    const abs = join(REPO_ROOT, extRoot);
+    const entry = existsSync(join(abs, 'install.ts'))
+      ? join(abs, 'install.ts')
+      : readdirSync(abs).filter((f) => /\.module\.ts$/.test(f)).map((f) => join(abs, f))[0];
+    if (!entry) continue;
+    const code = readFileSync(entry, 'utf8');
+    if (!code.includes("import './i18n';")) writeFileSync(entry, `import './i18n';\n` + code);
+  }
   if (Object.keys(allowlist).length) writeJsonSorted(allowlistPath, allowlist);
 
   // Словари ядра контроллера подключаются явным импортом.

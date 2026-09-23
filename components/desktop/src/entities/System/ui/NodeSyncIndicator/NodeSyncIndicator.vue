@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import { uiLocale } from 'src/shared/i18n';
+import { uiLocale, t } from 'src/shared/i18n';
 import { Zeus } from '@coopenomics/sdk';
 // Напрямую из store, а не через бочку модели: индикатору незачем тянуть за
 // собой ws-подписку со всем её транспортом.
@@ -41,19 +41,19 @@ const liveBlock = useLiveBlockNumber(() =>
 );
 
 const blockLabel = computed(() =>
-  liveBlock.value === null ? '' : ` (блок № ${liveBlock.value.toLocaleString(uiLocale())})`,
+  liveBlock.value === null ? '' : t('system.nodeSyncIndicator.blockSuffix', { blockNumber: liveBlock.value.toLocaleString(uiLocale()) }),
 );
 
 const hint = computed(() => {
   switch (state.value?.status) {
     case Zeus.NodeSyncStatus.SYNCED:
-      return `Данные кооператива синхронизированы${blockLabel.value}`;
+      return t('system.nodeSyncIndicator.syncedStatus', { blockSuffix: blockLabel.value });
     case Zeus.NodeSyncStatus.LAGGING:
-      return `Идёт синхронизация с блокчейном${blockLabel.value}`;
+      return t('system.nodeSyncIndicator.laggingStatus', { blockSuffix: blockLabel.value });
     // Узел молчит — для пайщика это технические работы, а не поломка связи
     // у него самого. Причину обрыва разбирает оператор по журналу узла.
     case Zeus.NodeSyncStatus.DISCONNECTED:
-      return 'Техническое обслуживание';
+      return t('system.nodeSyncIndicator.disconnectedStatus');
     default:
       return '';
   }

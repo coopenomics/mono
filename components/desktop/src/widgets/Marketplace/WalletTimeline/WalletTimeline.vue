@@ -22,17 +22,15 @@
       <div v-if="e.note" class="mp-wallet-timeline__note">{{ e.note }}</div>
     </q-timeline-entry>
 
-    <q-timeline-entry v-if="!entries.length" subtitle="История пуста" title="Операций пока нет">
-      <div class="mp-wallet-timeline__empty">
-        Когда вы заказываете товар или получаете выплату — записи появятся здесь.
-      </div>
+    <q-timeline-entry v-if="!entries.length" :subtitle="$t('marketplace.walletTimeline.emptySubtitle')" :title="$t('marketplace.walletTimeline.emptyTitle')">
+      <div class="mp-wallet-timeline__empty"> {{ $t('marketplace.walletTimeline.emptyBody') }} </div>
     </q-timeline-entry>
   </q-timeline>
 </template>
 
 <script setup lang="ts">
 import { type PropType } from 'vue'
-import { uiLocale } from 'src/shared/i18n';
+import { uiLocale, t } from 'src/shared/i18n';
 import type { WalletEntryKind, WalletEntry } from './WalletTimeline.types'
 
 defineProps({
@@ -41,12 +39,12 @@ defineProps({
 })
 
 const kindLabel: Record<WalletEntryKind, string> = {
-  deposit:  'Пополнение',
-  block:    'Блокировка',
-  unblock:  'Разблокировка',
-  charge:   'Списание',
-  refund:   'Возврат',
-  payout:   'Выплата',
+  deposit:  t('marketplace.walletTimeline.operation.topUp'),
+  block:    t('marketplace.walletTimeline.operation.hold'),
+  unblock:  t('marketplace.walletTimeline.operation.release'),
+  charge:   t('marketplace.walletTimeline.operation.writeoff'),
+  refund:   t('marketplace.walletTimeline.operation.refund'),
+  payout:   t('marketplace.walletTimeline.operation.payout'),
 }
 
 type ChipKind = 'info' | 'success' | 'warning' | 'error' | 'neutral'

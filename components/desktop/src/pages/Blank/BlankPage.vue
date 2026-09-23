@@ -1,12 +1,12 @@
 <template lang="pug">
 StatusPage(
   icon='search_off',
-  title='Страница не найдена',
-  body='Такого адреса в кабинете нет: ссылка устарела или в ней опечатка. Вернитесь на главную или на предыдущую страницу.'
+  :title='$t("blank.blankPage.title")',
+  :body='$t("blank.blankPage.body")'
 )
   template(#actions)
-    BaseButton(variant='primary', @click='goHome') На главную
-    BaseButton(v-if='canGoBack', variant='ghost', @click='router.back()') Назад
+    BaseButton(variant='primary', @click='goHome') {{ $t('blank.blankPage.homeLabel') }}
+    BaseButton(v-if='canGoBack', variant='ghost', @click='router.back()') {{ $t('common.action.back') }}
 </template>
 
 <script lang="ts" setup>

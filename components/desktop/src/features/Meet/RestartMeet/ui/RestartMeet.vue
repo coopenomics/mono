@@ -4,7 +4,7 @@ div
     v-if="showButton"
     color="primary"
     icon="fa-solid fa-rotate"
-    label="Перезапустить собрание"
+    :label="$t('meet.restartMeet.label')"
     @click="showRestartDialog = true"
     :loading="loading || isProcessing"
   )

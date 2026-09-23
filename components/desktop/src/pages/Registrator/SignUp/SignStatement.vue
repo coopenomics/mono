@@ -10,15 +10,15 @@ div(v-show='store.isStep("SignStatement")')
         ref='around'
         :class='{ "signature-started": signatureStarted }'
       )
-        p.signature-hint Оставьте собственноручную подпись в рамке
+        p.signature-hint {{ $t('registrator.signStatement.hint') }}
       .row.q-gutter-md.q-mt-lg.q-mb-lg
         BaseButton(variant='ghost', @click='store.prev()')
           q-icon(name='arrow_back')
-          span.q-ml-md назад
+          span.q-ml-md {{ $t('registrator.signStatement.back') }}
 
-        BaseButton(variant='ghost', @click='clearCanvas') очистить
+        BaseButton(variant='ghost', @click='clearCanvas') {{ $t('registrator.signStatement.clear') }}
 
-        BaseButton(variant='primary', @click='setSignature') Продолжить
+        BaseButton(variant='primary', @click='setSignature') {{ $t('registrator.signStatement.submit') }}
 </template>
 
 <script lang="ts" setup>
@@ -32,6 +32,7 @@ import { BaseButton } from 'src/shared/ui/base/BaseButton';
 // Импортируем класс
 import { Classes } from '@coopenomics/sdk';
 import { client } from 'src/shared/api/client';
+import { t } from 'src/shared/i18n';
 
 const store = useRegistratorStore();
 const createUser = useCreateUser();
@@ -118,7 +119,7 @@ const clearCanvas = () => {
  */
 const setSignature = async () => {
   if (!canvasClass) {
-    FailAlert('Пожалуйста, оставьте собственноручную подпись в окне');
+    FailAlert(t('registrator.signStatement.signatureRequiredError'));
     return;
   }
 
@@ -130,7 +131,7 @@ const setSignature = async () => {
   const isEmpty = !data.some((channel) => channel !== 0);
 
   if (!sign || isEmpty) {
-    FailAlert('Пожалуйста, оставьте собственноручную подпись в окне');
+    FailAlert(t('registrator.signStatement.signatureRequiredError'));
     return;
   }
 
@@ -146,7 +147,7 @@ const setSignature = async () => {
       loadingText.value = msg;
     });
 
-    loadingText.value = 'Подписываем заявление';
+    loadingText.value = t('registrator.signStatement.signingLoading');
     await createUser.signStatement();
 
     // Отправка

@@ -45,6 +45,7 @@ import {
   type ChairmanPlacement,
   type MarketplaceAplReceptionView,
 } from '../api';
+import { t } from 'src/shared/i18n';
 
 /**
  * Закрывающая подпись председателя КУ на СВОДНОЙ поставке (on-chain `signchair`)
@@ -104,10 +105,10 @@ const kuName = computed(() => {
 });
 
 const VARIANT_LABEL: Record<string, string> = {
-  IN_PERSON: 'Очная приёмка',
-  EXPEDITOR: 'Через экспедитора',
-  A: 'Очная приёмка',
-  B: 'Через экспедитора',
+  IN_PERSON: t('marketplace.receptionVariant.status.inPerson'),
+  EXPEDITOR: t('marketplace.receptionVariant.status.viaExpeditor'),
+  A: t('marketplace.receptionVariant.status.inPerson'),
+  B: t('marketplace.receptionVariant.status.viaExpeditor'),
 };
 const variantLabel = computed(() =>
   props.group ? (VARIANT_LABEL[props.group.variant] ?? props.group.variant) : '',
@@ -129,14 +130,14 @@ const placementRequired = computed(
 );
 
 const STEP_TITLES: Record<ReceptionStep, string> = {
-  check: 'Закрывающая подпись поставки',
-  posting: 'Оприходование принятого',
+  check: t('marketplace.signAplReceptionChairman.stepCheckTitle'),
+  posting: t('marketplace.signAplReceptionChairman.stepPostingTitle'),
 };
 const dialogTitle = computed(() => STEP_TITLES[step.value]);
 
 const steps = computed(() => [
-  { key: 'check' as const, label: 'Сверка' },
-  { key: 'posting' as const, label: 'Оприходование' },
+  { key: 'check' as const, label: t('marketplace.signAplReceptionChairman.stepCheckLabel') },
+  { key: 'posting' as const, label: t('marketplace.signAplReceptionChairman.stepPostingLabel') },
 ]);
 
 function stepState(key: ReceptionStep): 'done' | 'active' | 'todo' {
@@ -165,7 +166,7 @@ async function loadStorage(): Promise<void> {
     }
     inventoryCountByContainer.value = counts;
   } catch (e) {
-    FailAlert(e, 'Не удалось загрузить боксы и ячейки участка');
+    FailAlert(e, t('marketplace.signAplReceptionChairman.loadStorageError'));
   }
 }
 
@@ -189,8 +190,8 @@ const units = computed<PostingUnit[]>(() =>
     .flatMap((r) => r.fact_quantity_per_order)
     .map((f) => ({
       orderId: f.order_id,
-      productName: f.product_name || 'Товар по предложению',
-      orderer: f.orderer_name?.trim() || f.orderer_account || 'Заказчик',
+      productName: f.product_name || t('marketplace.signAplReceptionChairman.productOfferFallback'),
+      orderer: f.orderer_name?.trim() || f.orderer_account || t('marketplace.signAplReceptionChairman.ordererFallback'),
       quantity: Number(f.fact_quantity),
       unit: f.unit_of_measure ?? '',
       packageSize: f.package_size ?? null,
@@ -389,7 +390,7 @@ function onLabelScanned(raw: string): void {
   if (!/^\d{13}$/.test(code)) {
     FailAlert(
       new Error(
-        `«${code}» не похоже на этикетку: нужны 13 цифр. Отсканируйте штрихкод с листа этикеток, а не QR бокса.`,
+        t('marketplace.error.labelFormatInvalid', { code }),
       ),
     );
     return;
@@ -402,7 +403,7 @@ function onLabelScanned(raw: string): void {
     (x) => x.barcode === code && !(x.orderId === target.orderId && x.index === target.index),
   );
   if (takenBy) {
-    FailAlert(new Error(`Этикетка ${code} уже наклеена на другую единицу этой поставки.`));
+    FailAlert(new Error(t('marketplace.error.labelAlreadyUsed', { code })));
     return;
   }
 
@@ -589,7 +590,7 @@ async function onBoxScanned(raw: string): Promise<void> {
   if (resolvingCode.value) return;
   const token = decodeScannedCode(raw, coopname.value);
   if (!token || token.kind !== HandoffTokenKind.Container || !token.container_code) {
-    FailAlert(new Error('Это не QR-код бокса. Отсканируйте этикетку на таре.'));
+    FailAlert(new Error(t('marketplace.error.notBoxQr')));
     return;
   }
   resolvingCode.value = true;
@@ -597,7 +598,7 @@ async function onBoxScanned(raw: string): Promise<void> {
     const container = await resolveContainerByCode({ code: token.container_code });
     if (container.braname !== props.group?.braname) {
       FailAlert(
-        new Error(`Бокс ${container.code} числится за другим участком — принять в него нельзя.`),
+        new Error(t('marketplace.error.foreignBoxReception', { code: container.code })),
       );
       return;
     }
@@ -605,14 +606,14 @@ async function onBoxScanned(raw: string): Promise<void> {
     const target = boxScanTarget.value;
     if (target) {
       setPlacement(target.orderId, target.index, value);
-      SuccessAlert(`Место: бокс ${container.code}`);
+      SuccessAlert(t('marketplace.signAplReceptionChairman.placeBoxText', { code: container.code }));
     } else {
       setPlacementForAll(value);
-      SuccessAlert(`Всё принятое ляжет в бокс ${container.code}`);
+      SuccessAlert(t('marketplace.signAplReceptionChairman.allInBoxNote', { code: container.code }));
     }
     boxScannerOpen.value = false;
   } catch (e) {
-    FailAlert(e, 'Бокс по этому коду не найден');
+    FailAlert(e, t('marketplace.signAplReceptionChairman.boxNotFoundError'));
   } finally {
     resolvingCode.value = false;
   }
@@ -663,7 +664,7 @@ async function loadPreview(): Promise<void> {
     }
     previewHtml.value = parts.join('<hr/>');
   } catch (e) {
-    FailAlert(e, 'Не удалось сформировать акты приёмки');
+    FailAlert(e, t('marketplace.signAplReceptionChairman.buildActsError'));
   } finally {
     previewLoading.value = false;
   }
@@ -673,7 +674,7 @@ async function confirm(): Promise<void> {
   if (!props.group || !props.group.receptions.length) return;
 
   // Акты подписываются параллельно — ключ отпираем один раз до старта.
-  if (!(await ensureSigningUnlocked('Не удалось получить ключ оператора для подписи'))) return;
+  if (!(await ensureSigningUnlocked(t('marketplace.signAplReceptionChairman.getOperatorKeyError')))) return;
 
   signing.value = true;
   done.value = 0;
@@ -691,13 +692,13 @@ async function confirm(): Promise<void> {
     );
 
     for (const { receptionId, error } of errors) {
-      FailAlert(error, `Не удалось закрыть один из актов поставки (${receptionId.slice(0, 8)})`);
+      FailAlert(error, t('marketplace.signAplReceptionChairman.closeActError', { id: receptionId.slice(0, 8) }));
     }
 
     if (errors.length > 0) {
       FailAlert(
         new Error(
-          `Подписано ${done.value} из ${deliveriesCount.value}; по ${errors.length} осталась ошибка — повторите.`,
+          t('marketplace.error.partialSignError', { done: done.value, total: deliveriesCount.value, errCount: errors.length }),
         ),
       );
       emit('signed');
@@ -708,8 +709,8 @@ async function confirm(): Promise<void> {
     clearDraft();
     SuccessAlert(
       done.value > 1
-        ? `Поставка принята в кооператив: подписано актов — ${done.value}.`
-        : 'Акт приёмки закрыт подписью оператора. Партия принята в кооператив.',
+        ? t('marketplace.signAplReceptionChairman.acceptedMessage', { count: done.value })
+        : t('marketplace.signAplReceptionChairman.actClosedMessage'),
     );
     emit('signed');
     emit('update:modelValue', false);
@@ -753,8 +754,8 @@ BaseDialog(
         .sign-apl__meta
           BaseBadge(variant="neutral") {{ variantLabel }}
           span.sign-apl__sub
-            | КУ {{ kuName }}
-            template(v-if="group.ttnNumbers.length")  · ТТН {{ group.ttnNumbers.join(', ') }}
+            | {{ $t('marketplace.signAplReceptionChairman.kuNameText', { ku: kuName }) }}
+            template(v-if="group.ttnNumbers.length")  {{ $t('marketplace.signAplReceptionChairman.ttnListText', { ttn: group.ttnNumbers.join(', ') }) }}
 
       //- Шаги видны только там, где они есть: без адресного хранения
       //- оприходование это одна подпись, и полоска шагов врала бы.
@@ -772,9 +773,9 @@ BaseDialog(
       table.act-table(v-if="!showActs")
         thead
           tr
-            th Товар
-            th.num Кол-во
-            th.num Сумма
+            th {{ $t('marketplace.signAplReceptionChairman.tableProductHeader') }}
+            th.num {{ $t('marketplace.signAplReceptionChairman.tableQtyHeader') }}
+            th.num {{ $t('marketplace.signAplReceptionChairman.tableAmountHeader') }}
         tbody
           tr(v-for="l in group.lines", :key="l.key")
             td {{ l.productName }}
@@ -782,7 +783,7 @@ BaseDialog(
             td.num {{ formatAsset2Digits(l.amount.toFixed(4)) }} ₽
         tfoot
           tr
-            td Итого к приёмке
+            td {{ $t('marketplace.signAplReceptionChairman.totalToReceiveLabel') }}
             td.num
             td.num {{ formatAsset2Digits(group.totalAmount) }} ₽
 
@@ -800,25 +801,25 @@ BaseDialog(
     //- иначе не понять, что из разложенного кому принадлежит.
     template(v-else)
       .sign-apl__lead
-        | По каждой позиции: наклейте этикетку и привяжите её сканером, затем
-        | укажите бокс — сканом или выбором из списка. Если в один бокс не
-        | помещается, добавьте «Ещё место» и укажите, сколько кладёте в каждое.
+        | {{ $t('marketplace.signAplReceptionChairman.instructionLine1') }}
+        | {{ $t('marketplace.signAplReceptionChairman.instructionLine2') }}
+        | {{ $t('marketplace.signAplReceptionChairman.instructionLine3') }}
 
       //- Тары нет. Дальше два разных положения, и путать их нельзя: при
       //- обязательном месте приёмку не закрыть, пока не заведён бокс, — обещать
       //- «подпишите как есть» здесь значит подвести оператора под отказ сервера
       //- уже после подписи документов.
       BaseBanner(v-if="placementImpossible", variant="neg")
-        | На участке ещё не заведена тара, а кооператив требует указывать место
-        | хранения при приёмке. Заведите бокс на столе «Боксы» и вернитесь сюда —
-        | без места приёмку подписать нельзя. Если место указывать не нужно,
-        | председатель снимает «Требовать указание места при приёмке» в настройках
-        | Стола заказов.
+        | {{ $t('marketplace.signAplReceptionChairman.noBoxesRequiredHintLine1') }}
+        | {{ $t('marketplace.signAplReceptionChairman.noBoxesRequiredHintLine2') }}
+        | {{ $t('marketplace.signAplReceptionChairman.noBoxesRequiredHintLine3') }}
+        | {{ $t('marketplace.signAplReceptionChairman.noBoxesRequiredHintLine4') }}
+        | {{ $t('marketplace.signAplReceptionChairman.noBoxesRequiredHintLine5') }}
 
       BaseBanner(v-else-if="!hasPlacementTargets", variant="warn")
-        | На участке ещё не заведена тара. Подпишите приёмку как есть — имущество
-        | встанет на склад без места. Затем заведите боксы на столе «Боксы» и
-        | разложите принятое на столе «Раскладка и маркировка».
+        | {{ $t('marketplace.signAplReceptionChairman.noBoxesOptionalHintLine1') }}
+        | {{ $t('marketplace.signAplReceptionChairman.noBoxesOptionalHintLine2') }}
+        | {{ $t('marketplace.signAplReceptionChairman.noBoxesOptionalHintLine3') }}
 
       template(v-else)
         //- Панель над таблицей: групповые действия слева, итог справа. Обе
@@ -835,20 +836,20 @@ BaseDialog(
             )
               template(#icon-left)
                 q-icon(name="qr_code_scanner", size="18px")
-              | Всё в один бокс
+              | {{ $t('marketplace.signAplReceptionChairman.allInOneBoxButton') }}
             BaseButton(variant="secondary", size="sm", @click="printLabels")
               template(#icon-left)
                 q-icon(name="print", size="18px")
-              | Напечатать этикетки
+              | {{ $t('marketplace.signAplReceptionChairman.printLabelsButton') }}
           .sign-apl__counter(:class="{ 'is-bad': placementInputInvalid }")
             template(v-if="placementInputInvalid")
-              | Укажите количество в каждом месте — не больше принятого
+              | {{ $t('marketplace.signAplReceptionChairman.qtyPerPlaceHint') }}
             template(v-else)
-              | Размещено: {{ placedCount }} / {{ units.length }} · этикеток: {{ labeledCount }}
+              | {{ $t('marketplace.signAplReceptionChairman.placedProgressText', { placed: placedCount, total: units.length, labeled: labeledCount }) }}
               //- Требование места — не ошибка, а условие подписи: красить им
               //- весь счётчик значит кричать на оператора цифрами, которые в
               //- порядке. Выделяем только само требование.
-              span.sign-apl__counter-note(v-if="placementRequired")  · место обязательно
+              span.sign-apl__counter-note(v-if="placementRequired")  {{ $t('marketplace.signAplReceptionChairman.placeRequiredNote') }}
 
         //- Таблица позиций. Заголовок и строки держат одну сетку: позиция,
         //- этикетка, место, и — только когда что-то разложено по нескольким
@@ -857,11 +858,11 @@ BaseDialog(
         //- собранным из разных наборов.
         .sign-apl__table(:class="{ 'is-split': hasSplitRows }")
           .sign-apl__cols
-            span Позиция
-            span Этикетка
-            span Место
+            span {{ $t('marketplace.signAplReceptionChairman.positionColumnHeader') }}
+            span {{ $t('marketplace.signAplReceptionChairman.labelColumnHeader') }}
+            span {{ $t('marketplace.signAplReceptionChairman.placeColumnHeader') }}
             template(v-if="hasSplitRows")
-              span Кол-во
+              span {{ $t('marketplace.signAplReceptionChairman.unitQtyColumnHeader') }}
               span
 
           .sign-apl__unit(v-for="u in units", :key="u.orderId")
@@ -870,7 +871,7 @@ BaseDialog(
               .sign-apl__unit-meta {{ unitQuantityLabel(u) }}
               .sign-apl__unit-meta {{ u.orderer }}
               .sign-apl__unit-rest(v-if="rowsOf(u.orderId).length > 1 && !isFullyPlaced(u)")
-                | Без места: {{ restQuantityOf(u) }}
+                | {{ $t('marketplace.signAplReceptionChairman.restQuantityText', { qty: restQuantityOf(u) }) }}
 
             //- Мест может быть несколько: что не влезло в один бокс, кладут в
             //- следующий. Пока место одно, количество не спрашиваем — это всё
@@ -893,23 +894,23 @@ BaseDialog(
                       variant="ghost",
                       size="sm",
                       icon-only,
-                      aria-label="Снять этикетку",
+                      :aria-label="$t('marketplace.signAplReceptionChairman.removeLabelHint')",
                       @click="setRowBarcode(u.orderId, i, null)"
                     )
                       template(#icon-left)
                         q-icon(name="close", size="16px")
-                        q-tooltip Снять этикетку
+                        q-tooltip {{ $t('marketplace.signAplReceptionChairman.removeLabelHint') }}
                   BaseButton.sign-apl__place-label-btn(
                     v-else,
                     variant="secondary",
                     block,
-                    aria-label="Привязать этикетку",
+                    :aria-label="$t('marketplace.signAplReceptionChairman.bindLabelAriaLabel')",
                     @click="openLabelScanner(u.orderId, i)"
                   )
                     template(#icon-left)
                       q-icon(name="new_label", size="18px")
-                      q-tooltip Наклейте этикетку на эту часть и привяжите её сканером
-                    | Привязать
+                      q-tooltip {{ $t('marketplace.signAplReceptionChairman.bindLabelTooltip') }}
+                    | {{ $t('marketplace.signAplReceptionChairman.bindLabelButton') }}
 
                 //- Поле места и его сканер — одна группа: кнопка примыкает к
                 //- полю, потому что заполняет его же, только сканом.
@@ -917,7 +918,7 @@ BaseDialog(
                   BaseSelect.sign-apl__place-select.field-flush(
                     :model-value="row.key",
                     :options="placementOptions",
-                    placeholder="Выберите место",
+                    :placeholder="$t('marketplace.signAplReceptionChairman.placeSelectPlaceholder')",
                     searchable,
                     clearable,
                     @update:model-value="(v: string | number | null) => setPlacement(u.orderId, i, v === null ? null : String(v))"
@@ -926,32 +927,32 @@ BaseDialog(
                     v-if="containersEnabled",
                     variant="secondary",
                     :loading="isResolvingRow(u.orderId, i)",
-                    aria-label="Отсканировать бокс для этой части",
+                    :aria-label="$t('marketplace.signAplReceptionChairman.scanBoxForPartAriaLabel')",
                     @click="openBoxScanner({ orderId: u.orderId, index: i })"
                   )
                     template(#icon-left)
                       q-icon(name="qr_code_scanner", size="18px")
-                      q-tooltip Отсканировать бокс для этой части
-                    | Сканировать
+                      q-tooltip {{ $t('marketplace.signAplReceptionChairman.scanBoxForPartTooltip') }}
+                    | {{ $t('marketplace.signAplReceptionChairman.scanButton') }}
 
                 BaseInput.sign-apl__place-qty.field-flush(
                   v-if="rowsOf(u.orderId).length > 1",
                   :model-value="row.quantity === null ? '' : String(row.quantity)",
                   type="number",
                   :placeholder="String(u.quantity)",
-                  aria-label="Количество в этом месте",
+                  :aria-label="$t('marketplace.signAplReceptionChairman.qtyInPlaceAriaLabel')",
                   @update:model-value="(v: string | number) => setPlacementQuantity(u.orderId, i, v === '' ? null : Number(v))"
                 )
                 BaseButton.sign-apl__place-remove(
                   v-if="rowsOf(u.orderId).length > 1",
                   variant="ghost",
                   icon-only,
-                  aria-label="Убрать это место",
+                  :aria-label="$t('marketplace.signAplReceptionChairman.removePlaceHint')",
                   @click="removePlacementRow(u, i)"
                 )
                   template(#icon-left)
                     q-icon(name="close", size="18px")
-                    q-tooltip Убрать это место
+                    q-tooltip {{ $t('marketplace.signAplReceptionChairman.removePlaceHint') }}
 
               BaseButton.sign-apl__place-add(
                 variant="ghost",
@@ -961,31 +962,31 @@ BaseDialog(
               )
                 template(#icon-left)
                   q-icon(name="add", size="16px")
-                | Ещё место
+                | {{ $t('marketplace.signAplReceptionChairman.addPlaceButton') }}
 
   template(#footer)
     //- Шаг 1: сверка. Дальше идём, если есть куда: при выключенном адресном
     //- хранении маркировать и раскладывать нечего, и подпись ставится сразу.
     template(v-if="step === 'check'")
-      BaseButton(variant="ghost", :disabled="signing", @click="cancel") Отмена
+      BaseButton(variant="ghost", :disabled="signing", @click="cancel") {{ $t('common.action.cancel') }}
       BaseButton(variant="ghost", :loading="previewLoading", :disabled="!group", @click="toggleActs")
         template(#icon-left)
           q-icon(name="description", size="18px")
-        | {{ showActs ? 'Скрыть акты' : 'Показать акты' }}
+        | {{ showActs ? $t('marketplace.signAplReceptionChairman.hideActsButton') : $t('marketplace.signAplReceptionChairman.showActsButton') }}
       BaseButton(v-if="placementEnabled", variant="primary", :disabled="!group", @click="goNext")
         template(#icon-right)
           q-icon(name="arrow_forward", size="18px")
-        | Продолжить
+        | {{ $t('marketplace.signAplReceptionChairman.continueButton') }}
       BaseButton(v-else, variant="primary", :loading="signing", :disabled="!group", @click="confirm")
         template(#icon-left)
           q-icon(name="draw", size="18px")
-        span(v-if="signing && group") Подписано {{ done }}/{{ deliveriesCount }}…
-        span(v-else) Подписать и оприходовать
+        span(v-if="signing && group") {{ $t('marketplace.signAplReceptionChairman.signingProgressText', { done, total: deliveriesCount }) }}
+        span(v-else) {{ $t('marketplace.signAplReceptionChairman.signAndPostButton') }}
 
     //- Шаг 2: подпись. Здесь же держится требование указать место — до подписи,
     //- потому что после неё поставка уходит из ленты ожидаемых.
     template(v-else)
-      BaseButton(variant="ghost", :disabled="signing", @click="goBack") Назад
+      BaseButton(variant="ghost", :disabled="signing", @click="goBack") {{ $t('common.action.back') }}
       BaseButton(
         variant="primary",
         :loading="signing",
@@ -994,31 +995,31 @@ BaseDialog(
       )
         template(#icon-left)
           q-icon(name="draw", size="18px")
-        span(v-if="signing && group") Подписано {{ done }}/{{ deliveriesCount }}…
-        span(v-else-if="placementImpossible") Сначала заведите бокс
-        span(v-else-if="signBlocked") Укажите место хранения
-        span(v-else) Подписать и оприходовать
+        span(v-if="signing && group") {{ $t('marketplace.signAplReceptionChairman.signingProgressText', { done, total: deliveriesCount }) }}
+        span(v-else-if="placementImpossible") {{ $t('marketplace.signAplReceptionChairman.needBoxFirstLabel') }}
+        span(v-else-if="signBlocked") {{ $t('marketplace.signAplReceptionChairman.needPlaceLabel') }}
+        span(v-else) {{ $t('marketplace.signAplReceptionChairman.signAndPostButton') }}
 
   ScannerDialog(
     v-model="boxScannerOpen",
-    :title="boxScanTarget ? 'Бокс для этой части' : 'Бокс для всего принятого'",
-    idle-caption="Наведите камеру на QR-этикетку бокса",
-    frame-hint="Поместите QR-код в рамку",
-    manual-label="Или введите код бокса",
+    :title="boxScanTarget ? $t('marketplace.signAplReceptionChairman.boxScanTitleForPart') : $t('marketplace.signAplReceptionChairman.boxScanTitleForAll')",
+    :idle-caption="$t('marketplace.signAplReceptionChairman.boxScanIdleCaption')",
+    :frame-hint="$t('marketplace.signAplReceptionChairman.boxScanFrameHint')",
+    :manual-label="$t('marketplace.signAplReceptionChairman.boxScanManualLabel')",
     manual-placeholder="BX-0001",
-    manual-button="Применить",
+    :manual-button="$t('marketplace.signAplReceptionChairman.boxScanManualButton')",
     @scanned="onBoxScanned"
   )
 
   ScannerDialog(
     v-model="labelScannerOpen",
-    title="Привязать этикетку",
+    :title="$t('marketplace.signAplReceptionChairman.labelScanDialogTitle')",
     :formats="BARCODE_FORMATS",
-    idle-caption="Наведите камеру на этикетку имущества",
-    frame-hint="Поместите этикетку в рамку",
-    manual-label="Или введите номер этикетки",
+    :idle-caption="$t('marketplace.signAplReceptionChairman.labelScanIdleCaption')",
+    :frame-hint="$t('marketplace.signAplReceptionChairman.labelScanFrameHint')",
+    :manual-label="$t('marketplace.signAplReceptionChairman.labelScanManualLabel')",
     manual-placeholder="4600000000000",
-    manual-button="Привязать",
+    :manual-button="$t('marketplace.signAplReceptionChairman.bindLabelButton')",
     @scanned="onLabelScanned"
   )
 </template>

@@ -2,7 +2,7 @@
 DetailsDrawer(
   :model-value='overlay.isOpen.value',
   :width='640',
-  title='Выплата',
+  :title='$t("marketplace.payoutDetail.overlayTitle")',
   @update:model-value='(v) => !v && overlay.close()'
 )
   .payout-detail(v-if='detail')
@@ -10,90 +10,90 @@ DetailsDrawer(
       .payout-detail__amount.t-mono {{ amountLabel }}
       BaseBadge(:variant='statusVariant(detail.payment.status)') {{ statusLabel(detail.payment.status) }}
 
-    DataRow(label='Поставщик', :value='detail.payment.payee_name ?? detail.payment.payee_account')
-    DataRow(label='Назначение', :value='detail.payment.purpose')
-    DataRow(label='Создана', :value='formatDate(detail.payment.created_at)')
+    DataRow(:label='$t("marketplace.payoutDetail.supplierLabel")', :value='detail.payment.payee_name ?? detail.payment.payee_account')
+    DataRow(:label='$t("marketplace.payoutDetail.purposeLabel")', :value='detail.payment.purpose')
+    DataRow(:label='$t("marketplace.payoutDetail.createdLabel")', :value='formatDate(detail.payment.created_at)')
     DataRow(
       v-if='detail.payment.completed_at',
-      label='Оплачена',
+      :label='$t("marketplace.payoutDetail.paidLabel")',
       :value='formatDate(detail.payment.completed_at)'
     )
     DataRow(
       v-if='detail.payment.payout_destination',
-      label='Куда переведено',
+      :label='$t("marketplace.payoutDetail.transferDestinationLabel")',
       :value='detail.payment.payout_destination'
     )
     DataRow(
       v-if='hasWithheld',
-      label='Удержано в счёт долга',
+      :label='$t("marketplace.payoutDetail.heldForDebtLabel")',
       :value='formatAsset2Digits(String(detail.payment.withheld_amount))'
     )
     DataRow(
       v-if='detail.payment.decline_reason',
-      label='Причина отказа',
+      :label='$t("marketplace.payoutDetail.rejectReasonLabel")',
       :value='detail.payment.decline_reason'
     )
 
     //- Что оплачивали. Без заказа выплата — просто сумма, поэтому предмет
     //- поставки идёт сразу под реквизитами платежа, а не в конце.
     template(v-if='detail.order')
-      .payout-detail__section Заказ
-      DataRow(label='Товар', :value='detail.order.product_name ?? "—"')
-      DataRow(label='Объём', :value='volumeLabel')
-      DataRow(label='Стоимость заказа', :value='formatAsset2Digits(String(detail.order.total_cost))')
+      .payout-detail__section {{ $t('marketplace.payoutDetail.orderSectionTitle') }}
+      DataRow(:label='$t("marketplace.payoutDetail.productLabel")', :value='detail.order.product_name ?? "—"')
+      DataRow(:label='$t("marketplace.payoutDetail.volumeLabel")', :value='volumeLabel')
+      DataRow(:label='$t("marketplace.payoutDetail.orderCostLabel")', :value='formatAsset2Digits(String(detail.order.total_cost))')
       DataRow(
         v-if='detail.order.accepted_cost && detail.order.accepted_cost !== detail.order.total_cost',
-        label='Принято на сумму',
+        :label='$t("marketplace.payoutDetail.acceptedAmountLabel")',
         :value='formatAsset2Digits(String(detail.order.accepted_cost))'
       )
-      DataRow(label='Состояние заказа', :value='orderStatusDisplay(detail.order.status).label')
+      DataRow(:label='$t("marketplace.payoutDetail.orderStateLabel")', :value='orderStatusDisplay(detail.order.status).label')
       DataRow(
         v-if='detail.order.delivery_point_name',
-        label='Участок доставки',
+        :label='$t("marketplace.payoutDetail.deliveryBranchLabel")',
         :value='detail.order.delivery_point_name'
       )
       DataRow(
         v-if='detail.order.orderer_name',
-        label='Заказчик',
+        :label='$t("marketplace.payoutDetail.customerLabel")',
         :value='detail.order.orderer_name'
       )
 
     //- Подтверждение оплаты: запись кассирского реестра и проводка в цепи.
-    .payout-detail__section Подтверждение оплаты
+    .payout-detail__section {{ $t('marketplace.payoutDetail.paymentConfirmationTitle') }}
     template(v-if='detail.core_payment')
-      DataRow(label='Платёж кооператива', :value='paymentStatusLabel(detail.core_payment.status)')
+      DataRow(:label='$t("marketplace.payoutDetail.cooperativePaymentLabel")', :value='paymentStatusLabel(detail.core_payment.status)')
       DataRow(
         v-if='detail.core_payment.completed_at',
-        label='Проведён',
+        :label='$t("marketplace.payoutDetail.processedLabel")',
         :value='formatDate(detail.core_payment.completed_at)'
       )
       DataRow(
         v-if='detail.core_payment.message',
-        label='Комментарий кассира',
+        :label='$t("marketplace.payoutDetail.cashierCommentLabel")',
         :value='detail.core_payment.message'
       )
       DataRow(
         v-if='detail.core_payment.id',
-        label='Платёж №',
+        :label='$t("marketplace.payoutDetail.paymentNumberLabel")',
         :value='detail.core_payment.id',
         copyable,
         mono
       )
-    .payout-detail__muted(v-else) Платёж в реестре кассира ещё не заведён.
+    .payout-detail__muted(v-else) {{ $t('marketplace.payoutDetail.paymentNotRegisteredHint') }}
     DataRow(
       v-if='detail.payment.payout_tx_hash',
-      label='Транзакция в цепи',
+      :label='$t("marketplace.payoutDetail.chainTransactionLabel")',
       :value='detail.payment.payout_tx_hash',
       copyable,
       mono
     )
 
-  .payout-detail__muted(v-else-if='!loading') Выплата не найдена.
+  .payout-detail__muted(v-else-if='!loading') {{ $t('marketplace.payoutDetail.notFoundHint') }}
 </template>
 
 <script setup lang="ts">
 import { ref, watch } from 'vue';
-import { uiLocale } from 'src/shared/i18n';
+import { uiLocale, t } from 'src/shared/i18n';
 import { FailAlert } from 'src/shared/api';
 import { marketplaceQuantityLabel } from 'src/shared/lib/consts';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
@@ -141,7 +141,7 @@ async function load(id: string): Promise<void> {
     hasWithheld.value = !!d && Number.parseFloat(String(d.payment.withheld_amount)) > 0;
   } catch (e) {
     detail.value = null;
-    FailAlert(e, 'Не удалось загрузить выплату');
+    FailAlert(e, t('marketplace.payoutDetail.loadFailedError'));
   } finally {
     loading.value = false;
   }

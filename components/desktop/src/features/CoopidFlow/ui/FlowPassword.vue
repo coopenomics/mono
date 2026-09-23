@@ -4,13 +4,13 @@
   //- я» стояли в абзаце как текст, и кнопка ничего не делала: план потока в сессии
   //- authentik не сбрасывался (03.09.2026).
   .flow-password__who(v-if='challenge.pending_user')
-    span.flow-password__who-label Входите как
+    span.flow-password__who-label {{ $t('coopidFlow.flowPassword.whoLabel') }}
     span.flow-password__who-name {{ challenge.pending_user }}
-    BaseButton(variant='ghost', size='sm', :disabled='sending', @click='emit("restart")') Это не я
+    BaseButton(variant='ghost', size='sm', :disabled='sending', @click='emit("restart")') {{ $t('coopidFlow.flowPassword.notMeAction') }}
   BaseForm(:loading='sending', @submit='submit')
     BaseInput(
       v-model='password',
-      label='Пароль',
+      :label='$t("coopidFlow.flowPassword.passwordLabel")',
       type='password',
       :error='error',
       autocomplete='current-password',
@@ -19,9 +19,9 @@
       autofocus
     )
     .flow-stage__actions
-      BaseButton(variant='primary', type='submit', :loading='sending') Войти
+      BaseButton(variant='primary', type='submit', :loading='sending') {{ $t('coopidFlow.flowPassword.submit') }}
   .flow-stage__links(v-if='challenge.recovery_url')
-    BaseButton(variant='ghost', size='sm', @click='emit("flow", challenge.recovery_url)') Не помню пароль
+    BaseButton(variant='ghost', size='sm', @click='emit("flow", challenge.recovery_url)') {{ $t('coopidFlow.flowPassword.forgotPassword') }}
 </template>
 
 <script lang="ts" setup>

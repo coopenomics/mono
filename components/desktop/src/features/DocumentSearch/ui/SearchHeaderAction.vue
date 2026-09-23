@@ -8,10 +8,10 @@ q-btn(
   :dense='isMobile'
   :size='isMobile ? "sm" : undefined'
   icon='search'
-  :label='isMobile ? undefined : "Поиск"'
+  :label='isMobile ? undefined : $t("common.action.search")'
   @click='showSearch = true'
 )
-  q-tooltip(v-if='isMobile') Поиск
+  q-tooltip(v-if='isMobile') {{ $t('common.action.search') }}
 
 DocumentSearchDialog(v-model='showSearch')
 </template>

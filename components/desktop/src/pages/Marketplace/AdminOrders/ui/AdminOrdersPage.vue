@@ -21,6 +21,7 @@ import { OfferRegistryOverlay } from 'src/widgets/Marketplace/OfferRegistryOverl
 import { useQueryOverlay } from 'src/shared/lib/navigation';
 import { fetchAllOrders } from '../api';
 import type { AdminOrderView } from '../types';
+import { t } from 'src/shared/i18n';
 
 const { info } = useSystemStore();
 const { registerAction } = useHeaderActions();
@@ -53,7 +54,7 @@ async function load(): Promise<void> {
     items.value = resp.items ?? [];
     pagination.value.rowsNumber = resp.totalCount ?? 0;
   } catch (e) {
-    if (myId === lastRequestId) FailAlert(e, 'Не удалось загрузить реестр заказов');
+    if (myId === lastRequestId) FailAlert(e, t('marketplace.orders.loadFailedError'));
   } finally {
     if (myId === lastRequestId) loading.value = false;
   }
@@ -105,7 +106,7 @@ onMounted(() => {
 <template lang="pug">
 q-page.admin-orders
   PageHint(storage-key="mp:admin-orders:banner-dismissed")
-    | Реестр всех заказов кооператива с текущими статусами. Откройте заказ, чтобы увидеть его состояние, документы, операции и проводки процесса.
+    | {{ $t('marketplace.orders.pageHint') }}
 
   OrdersRegistryTable(
     :items="items",

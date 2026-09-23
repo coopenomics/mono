@@ -27,6 +27,7 @@ import {
 } from 'src/widgets/Marketplace/WarehouseSummaryGrid'
 import { fetchCategoryNames } from 'src/entities/MarketplaceOffer'
 import { listInventory, type MarketplaceInventoryItemView } from 'src/entities/MarketplaceInventory'
+import { t as i18nT } from 'src/shared/i18n';
 
 const { info } = useSystemStore()
 const offerOverlay = useQueryOverlay('offer')
@@ -42,7 +43,7 @@ async function load(): Promise<void> {
   try {
     items.value = await listInventory()
   } catch (e) {
-    FailAlert(e, 'Не удалось загрузить склад')
+    FailAlert(e, i18nT('marketplace.warehouseSummary.loadFailedError'))
   } finally {
     loading.value = false
   }
@@ -194,26 +195,26 @@ const stats = computed<WarehouseStat[]>(() => {
   const inStock = rows.filter((r) => r.balance > 0)
   const now = Date.now()
   return [
-    { key: 'positions', label: 'Позиций на складе', value: inStock.length },
+    { key: 'positions', label: i18nT('marketplace.warehouseSummary.statPositions'), value: inStock.length },
     {
       key: 'units',
-      label: 'Единиц на остатке',
+      label: i18nT('marketplace.warehouseSummary.statUnits'),
       value: inStock.reduce((sum, r) => sum + r.balance, 0),
     },
     {
       key: 'points',
-      label: 'Пунктов выдачи',
+      label: i18nT('marketplace.warehouseSummary.statIssuancePoints'),
       value: new Set(inStock.map((r) => r.pvzBraname)).size,
     },
     {
       key: 'expired',
-      label: 'Позиций с истёкшим сроком',
+      label: i18nT('marketplace.warehouseSummary.statExpired'),
       value: inStock.filter((r) => r.expiryAt !== null && r.expiryAt < now).length,
       alarm: true,
     },
     {
       key: 'unlabeled',
-      label: 'Единиц без штрих-кода',
+      label: i18nT('marketplace.warehouseSummary.statNoBarcode'),
       value: inStock.reduce((sum, r) => sum + r.unlabeled, 0),
     },
   ]
@@ -228,7 +229,7 @@ function onRowClick(row: WarehouseRow): void {
 </script>
 
 <template lang="pug">
-q-page.warehouse-summary(role='region', aria-label='Склад кооператива')
+q-page.warehouse-summary(role='region', :aria-label='$t("marketplace.warehouseSummary.pageAriaLabel")')
   PageHint(storage-key='mp:admin-warehouse-summary:banner-dismissed')
     | Склад кооператива: что принято, выдано и списано по каждому пункту выдачи.
     | Только для чтения — операции выполняются на столах ПВЗ. Нажмите на

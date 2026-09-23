@@ -6,6 +6,7 @@ import { NotifyAlert } from 'src/shared/api';
 import { navigateToPath } from 'src/shared/lib/navigation';
 import { api } from '../api';
 import { categoryFromWorkflowId, type IInboxNotification } from './types';
+import { t } from 'src/shared/i18n';
 
 export * from './types';
 
@@ -127,7 +128,7 @@ export const useNotificationInboxStore = defineStore(namespace, () => {
         // Тост должен не только сообщать, но и вести к действию: у уведомлений
         // безопасности — сразу к активным сессиям. Роутер в сторе недоступен —
         // переходим helper'ом, знающим режим роутера (hash в dev, history в проде).
-        link ? { label: 'Открыть', handler: () => navigateToPath(link) } : undefined,
+        link ? { label: t('common.action.open'), handler: () => navigateToPath(link) } : undefined,
       );
     }
   }

@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue';
-import { uiLocale } from 'src/shared/i18n';
+import { uiLocale, t } from 'src/shared/i18n';
 import { useFirstLoad } from 'src/shared/lib/composables';
 import { useRoute, useRouter } from 'vue-router';
 import { debounce } from 'quasar';
@@ -72,22 +72,22 @@ const receiveDialogOpen = ref(false);
 // «Готовятся» — принят → готовится → принят кооперативом (для заказчика это
 // единый этап «в работе»); «Отменены» — отмены, истёкшие циклы и возвраты.
 const FILTERS: Array<{ key: string; label: string; statuses: MarketplaceOrderStatusView[] | null }> = [
-  { key: 'all', label: 'Все', statuses: null },
-  { key: 'active', label: 'Активные', statuses: ['ACTIVE'] },
+  { key: 'all', label: t('marketplace.myOrdersPage.filterAll'), statuses: null },
+  { key: 'active', label: t('marketplace.myOrdersPage.filterActive'), statuses: ['ACTIVE'] },
   {
     key: 'pending-supplier',
-    label: 'Ждут поставщика',
+    label: t('marketplace.myOrdersPage.filterAwaitingSupplier'),
     statuses: ['ACCEPTED_PENDING_SUPPLIER', 'ACCEPTED_PENDING_SUPPLIER_INDIVIDUAL'],
   },
   {
     key: 'in-progress',
-    label: 'В работе',
+    label: t('marketplace.myOrdersPage.filterInProgress'),
     statuses: ['ACCEPTED', 'SUPPLY_PREPARED', 'ACCEPTED_TO_COOP', 'READY_TO_RECEIVE', 'ISSUE_PENDING', 'ISSUE_AUTHORIZED', 'ISSUE_ACT1'],
   },
-  { key: 'received', label: 'Получены', statuses: ['RECEIVED'] },
+  { key: 'received', label: t('marketplace.myOrdersPage.filterReceived'), statuses: ['RECEIVED'] },
   {
     key: 'closed',
-    label: 'Отменены',
+    label: t('marketplace.myOrdersPage.filterCancelled'),
     statuses: [
       'CANCELLED_BY_ORDERER',
       'CANCELLED_BY_SUPPLIER',
@@ -217,7 +217,7 @@ function openMap(order: OrderCardModel): void {
   mapTarget.value = {
     lat: order.pvzLat,
     lng: order.pvzLng,
-    name: order.pvzName || order.pvz || 'Пункт выдачи',
+    name: order.pvzName || order.pvz || t('marketplace.myOrdersPage.pvzFilterLabel'),
   };
   mapOpen.value = true;
 }
@@ -287,7 +287,7 @@ useMarketplaceRealtime(
 </script>
 
 <template lang="pug">
-q-page.orders(role="region", aria-label="Мои заказы")
+q-page.orders(role="region", :aria-label="$t('marketplace.myOrdersPage.ariaLabel')")
   //- Действия — в шапку (канон Teleport). «Показать QR» дублируем здесь и
   //- на детали заказа, чтобы код выдачи был под рукой везде, не только на
   //- отдельной странице.
@@ -295,12 +295,12 @@ q-page.orders(role="region", aria-label="Мои заказы")
     BaseButton(variant="secondary", size="sm", @click="goReceive")
       template(#icon-left)
         q-icon(name="qr_code_2", size="16px")
-      | Показать QR
+      | {{ $t('marketplace.myOrdersPage.showQrAction') }}
 
   PageHint(storage-key="mp:my-orders:banner-dismissed")
-    | Здесь все ваши заказы — от оформления до получения на пункте выдачи.
-    | Отменить заказ можно, пока его не принял поставщик. Получение оформит
-    | оператор на месте — акт вы подпишете там же.
+    | {{ $t('marketplace.myOrdersPage.bannerHintIntro') }}
+    | {{ $t('marketplace.myOrdersPage.bannerHintCancelWindow') }}
+    | {{ $t('marketplace.myOrdersPage.bannerHintOperatorSign') }}
 
   PageTabs.orders__tabs(:tabs="tabs", :active-key="activeKey", @select="onSelectTab")
 
@@ -309,8 +309,8 @@ q-page.orders(role="region", aria-label="Мои заказы")
 
   EmptyState(
     v-if="!items.length && !firstLoad",
-    title="У вас пока нет заказов",
-    body="Перейдите в каталог, чтобы оформить первый заказ."
+    :title="$t('marketplace.myOrdersPage.emptyTitle')",
+    :body="$t('marketplace.myOrdersPage.emptyBody')"
   )
     template(#icon)
       q-icon(name="shopping_cart", size="48px")
@@ -323,8 +323,8 @@ q-page.orders(role="region", aria-label="Мои заказы")
       .orders__group(v-if="row.type === 'group'")
         .orders__group-head
           q-icon(name="receipt_long", size="18px", color="primary")
-          .orders__group-title Заказ от {{ formatDate(row.group.createdAt) }} · {{ row.group.deliveryName }}
-          .orders__group-meta {{ row.group.count }} поз. · {{ money(row.group.totalCost) }} {{ symbol }}
+          .orders__group-title {{ $t('marketplace.myOrdersPage.orderGroupTitle', { date: formatDate(row.group.createdAt), deliveryName: row.group.deliveryName }) }}
+          .orders__group-meta {{ $t('marketplace.myOrdersPage.orderGroupSummary', { count: row.group.count, amount: money(row.group.totalCost), symbol }) }}
         .orders__grid
           OrderCard(
             v-for="o in row.group.orders",
@@ -349,12 +349,12 @@ q-page.orders(role="region", aria-label="Мои заказы")
         )
 
   .row.justify-center.q-my-md(v-if="hasMore")
-    BaseButton(variant="ghost", :loading="loading", @click="onLoadMore") Загрузить ещё
+    BaseButton(variant="ghost", :loading="loading", @click="onLoadMore") {{ $t('marketplace.myOrdersPage.loadMoreAction') }}
 
   HandoffCodeDialog(v-model="receiveDialogOpen", :coopname="coopname", :kind="HandoffTokenKind.Receive")
 
   //- Карта пункта выдачи «куда ехать» — по клику на геопозицию карточки.
-  BaseDialog(v-model="mapOpen", :title="mapTarget?.name || 'Пункт выдачи'")
+  BaseDialog(v-model="mapOpen", :title="mapTarget?.name || $t('marketplace.myOrdersPage.pvzFilterLabel')")
     MapView(v-if="mapTarget", :lat="mapTarget.lat", :long="mapTarget.lng")
 </template>
 

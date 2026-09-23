@@ -10,6 +10,7 @@ import type {
   EntrepreneurCsvRow,
   IndividualCsvRow,
 } from '../model/types';
+import { t } from 'src/shared/i18n';
 
 interface ParserOptions {
   coopSymbol: () => string;
@@ -157,11 +158,11 @@ const normalizeOrgType = (value?: string): Zeus.OrganizationType => {
 const typeLabelShort = (type: ParticipantType) => {
   switch (type) {
     case 'individual':
-      return 'Физлицо';
+      return t('user.csvParser.typeIndividualShort');
     case 'entrepreneur':
-      return 'ИП';
+      return t('user.csvParser.typeEntrepreneurShort');
     case 'organization':
-      return 'Юрлицо';
+      return t('user.csvParser.typeOrganizationShort');
     default:
       return type;
   }
@@ -170,22 +171,22 @@ const typeLabelShort = (type: ParticipantType) => {
 const typeLabelFull = (type: ParticipantType) => {
   switch (type) {
     case 'individual':
-      return 'Физические лица';
+      return t('user.csvParser.typeIndividualFull');
     case 'entrepreneur':
-      return 'Индивидуальные предприниматели';
+      return t('user.csvParser.typeEntrepreneurFull');
     case 'organization':
-      return 'Юридические лица';
+      return t('user.csvParser.typeOrganizationFull');
     default:
       return '';
   }
 };
 
 const validatePastDate = (value?: string) => {
-  if (!value) return { error: 'Не указана дата вступления' };
+  if (!value) return { error: t('user.csvParser.missingJoinDateError') };
   const parsed = moment(value);
-  if (!parsed.isValid()) return { error: 'Некорректная дата вступления' };
+  if (!parsed.isValid()) return { error: t('user.csvParser.invalidJoinDateError') };
   if (parsed.isAfter(moment())) {
-    return { error: 'Дата вступления должна быть в прошлом' };
+    return { error: t('user.csvParser.futureJoinDateError') };
   }
   return { value: convertToEOSDate(parsed.format('YYYY/MM/DD HH:mm')) };
 };
@@ -233,7 +234,7 @@ const buildPassport = (row: Record<string, string>): Zeus.ModelTypes['PassportIn
 };
 
 const requiredError = (missing: string[]) =>
-  missing.length ? `Отсутствуют обязательные поля: ${missing.join(', ')}` : '';
+  missing.length ? t('user.csvParser.missingFieldsError', { missingFields: missing.join(', ') }) : '';
 
 const normalizeHeaders = (header: string) =>
   header.replace(/"/g, '').trim().toLowerCase();
@@ -262,7 +263,7 @@ export function useParticipantCsvParser(options: ParserOptions) {
     const text = await new Promise<string>((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = () => resolve((reader.result as string) ?? '');
-      reader.onerror = () => reject(new Error('Ошибка чтения файла'));
+      reader.onerror = () => reject(new Error(t('user.error.csvReadFailed')));
       reader.readAsText(file, 'utf-8');
     });
 
@@ -272,7 +273,7 @@ export function useParticipantCsvParser(options: ParserOptions) {
       .filter(Boolean);
 
     if (!lines.length) {
-      throw new Error('Файл пуст');
+      throw new Error(t('user.error.csvEmptyFile'));
     }
 
     const delimiter = pickDelimiter(lines[0]);
@@ -290,52 +291,94 @@ export function useParticipantCsvParser(options: ParserOptions) {
     const requiredHeaders =
       type === 'individual'
         ? [
+            // i18n-ignore: строка-идентификатор для сравнения с заголовками CSV, не текст интерфейса
             'почта',
+            // i18n-ignore: строка-идентификатор для сравнения с заголовками CSV, не текст интерфейса
             'фамилия',
+            // i18n-ignore: строка-идентификатор для сравнения с заголовками CSV, не текст интерфейса
             'имя',
+            // i18n-ignore: строка-идентификатор для сравнения с заголовками CSV, не текст интерфейса
             'телефон',
+            // i18n-ignore: строка-идентификатор для сравнения с заголовками CSV, не текст интерфейса
             'дата рождения',
+            // i18n-ignore: строка-идентификатор для сравнения с заголовками CSV, не текст интерфейса
             'адрес',
+            // i18n-ignore: строка-идентификатор для сравнения с заголовками CSV, не текст интерфейса
             'дата вступления',
           ]
         : type === 'entrepreneur'
           ? [
+              // i18n-ignore: строка-идентификатор для сравнения с заголовками CSV, не текст интерфейса
               'почта',
+              // i18n-ignore: строка-идентификатор для сравнения с заголовками CSV, не текст интерфейса
               'фамилия',
+              // i18n-ignore: строка-идентификатор для сравнения с заголовками CSV, не текст интерфейса
               'имя',
+              // i18n-ignore: строка-идентификатор для сравнения с заголовками CSV, не текст интерфейса
               'телефон',
+              // i18n-ignore: строка-идентификатор для сравнения с заголовками CSV, не текст интерфейса
               'дата рождения',
+              // i18n-ignore: строка-идентификатор для сравнения с заголовками CSV, не текст интерфейса
               'страна',
+              // i18n-ignore: строка-идентификатор для сравнения с заголовками CSV, не текст интерфейса
               'город',
+              // i18n-ignore: строка-идентификатор для сравнения с заголовками CSV, не текст интерфейса
               'адрес',
+              // i18n-ignore: строка-идентификатор для сравнения с заголовками CSV, не текст интерфейса
               'инн',
+              // i18n-ignore: строка-идентификатор для сравнения с заголовками CSV, не текст интерфейса
               'огрн',
+              // i18n-ignore: строка-идентификатор для сравнения с заголовками CSV, не текст интерфейса
               'банк',
+              // i18n-ignore: строка-идентификатор для сравнения с заголовками CSV, не текст интерфейса
               'расчетный счет',
+              // i18n-ignore: строка-идентификатор для сравнения с заголовками CSV, не текст интерфейса
               'бик',
+              // i18n-ignore: строка-идентификатор для сравнения с заголовками CSV, не текст интерфейса
               'корр счет',
+              // i18n-ignore: строка-идентификатор для сравнения с заголовками CSV, не текст интерфейса
               'дата вступления',
             ]
           : [
+              // i18n-ignore: строка-идентификатор для сравнения с заголовками CSV, не текст интерфейса
               'почта',
+              // i18n-ignore: строка-идентификатор для сравнения с заголовками CSV, не текст интерфейса
               'краткое название',
+              // i18n-ignore: строка-идентификатор для сравнения с заголовками CSV, не текст интерфейса
               'полное название',
+              // i18n-ignore: строка-идентификатор для сравнения с заголовками CSV, не текст интерфейса
               'телефон',
+              // i18n-ignore: строка-идентификатор для сравнения с заголовками CSV, не текст интерфейса
               'страна',
+              // i18n-ignore: строка-идентификатор для сравнения с заголовками CSV, не текст интерфейса
               'город',
+              // i18n-ignore: строка-идентификатор для сравнения с заголовками CSV, не текст интерфейса
               'юрадрес',
+              // i18n-ignore: строка-идентификатор для сравнения с заголовками CSV, не текст интерфейса
               'фактический адрес',
+              // i18n-ignore: строка-идентификатор для сравнения с заголовками CSV, не текст интерфейса
               'представитель фамилия',
+              // i18n-ignore: строка-идентификатор для сравнения с заголовками CSV, не текст интерфейса
               'представитель имя',
+              // i18n-ignore: строка-идентификатор для сравнения с заголовками CSV, не текст интерфейса
               'должность представителя',
+              // i18n-ignore: строка-идентификатор для сравнения с заголовками CSV, не текст интерфейса
               'основание полномочий',
+              // i18n-ignore: строка-идентификатор для сравнения с заголовками CSV, не текст интерфейса
               'инн',
+              // i18n-ignore: строка-идентификатор для сравнения с заголовками CSV, не текст интерфейса
               'огрн',
+              // i18n-ignore: строка-идентификатор для сравнения с заголовками CSV, не текст интерфейса
               'кпп',
+              // i18n-ignore: строка-идентификатор для сравнения с заголовками CSV, не текст интерфейса
               'банк',
+              // i18n-ignore: строка-идентификатор для сравнения с заголовками CSV, не текст интерфейса
               'расчетный счет',
+              // i18n-ignore: строка-идентификатор для сравнения с заголовками CSV, не текст интерфейса
               'бик',
+              // i18n-ignore: строка-идентификатор для сравнения с заголовками CSV, не текст интерфейса
               'корр счет',
+              // i18n-ignore: строка-идентификатор для сравнения с заголовками CSV, не текст интерфейса
               'дата вступления',
             ];
 
@@ -346,7 +389,7 @@ export function useParticipantCsvParser(options: ParserOptions) {
 
     if (missingHeaders.length) {
       throw new Error(
-        `Отсутствуют столбцы: ${missingHeaders.join(', ')}`,
+        t('user.error.csvMissingColumns', { missingColumns: missingHeaders.join(', ') }),
       );
     }
 

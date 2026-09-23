@@ -4,27 +4,27 @@ div
     slot(name='top')
 
     .user-data-form__type(v-if='showTypeButtons')
-      p.user-data-form__type-title Выберите тип аккаунта
+      p.user-data-form__type-title {{ $t('ui.userDataForm.chooseAccountTypeTitle') }}
       .user-data-form__type-list
         BaseRadioCard(
           :model-value='userData.type ?? null',
           value='individual',
-          title='Физлицо',
-          description='Гражданин — частное лицо',
+          :title='$t("ui.userDataForm.individualTitle")',
+          :description='$t("ui.userDataForm.individualDescription")',
           @update:model-value='selectType("individual")'
         )
         BaseRadioCard(
           :model-value='userData.type ?? null',
           value='entrepreneur',
-          title='ИП',
-          description='Индивидуальный предприниматель',
+          :title='$t("ui.userDataForm.entrepreneurTitle")',
+          :description='$t("ui.userDataForm.entrepreneurDescription")',
           @update:model-value='selectType("entrepreneur")'
         )
         BaseRadioCard(
           :model-value='userData.type ?? null',
           value='organization',
-          title='Организация',
-          description='Юридическое лицо (ООО, кооператив и др.)',
+          :title='$t("ui.userDataForm.organizationTitle")',
+          :description='$t("ui.userDataForm.organizationDescription")',
           @update:model-value='selectType("organization")'
         )
 
@@ -53,6 +53,7 @@ import { OrganizationDataForm } from '../OrganizationDataForm';
 import { EntrepreneurDataForm } from '../EntrepreneurDataForm';
 import { BaseButton } from 'src/shared/ui/base/BaseButton';
 import { BaseRadioCard } from 'src/shared/ui/base/BaseRadioCard';
+import { t } from 'src/shared/i18n';
 
 const props = defineProps<{ userData: IUserData }>();
 const emit = defineEmits<{
@@ -80,13 +81,13 @@ const changeAccountType = () => {
 const getSelectedTypeLabel = () => {
   switch (userData.value.type) {
     case 'individual':
-      return 'Физлицо';
+      return t('ui.userDataForm.individualTitle');
     case 'entrepreneur':
-      return 'Предприниматель';
+      return t('ui.userDataForm.entrepreneurLabel');
     case 'organization':
-      return 'Организация';
+      return t('ui.userDataForm.organizationTitle');
     default:
-      return 'Выбрать тип';
+      return t('ui.userDataForm.selectTypeLabel');
   }
 };
 

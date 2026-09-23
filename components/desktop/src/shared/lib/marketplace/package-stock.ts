@@ -1,4 +1,5 @@
 import { marketplaceOrderUnitLabel } from 'src/shared/lib/consts/marketplace-units';
+import { t } from 'src/shared/i18n';
 
 /** Упаковка предложения в той части, что нужна подписи остатка. */
 export interface PackageStockLike {
@@ -19,7 +20,7 @@ export function marketplacePackageStockLabel(
 ): string {
   const unitLabel = marketplaceOrderUnitLabel(unit);
   return packages
-    .map((p) => `${p.quantity_available} упак. ${String(p.size).replace('.', ',')} ${unitLabel}`)
+    .map((p) => t('marketplace.packageStock.packagesAvailable', { count: p.quantity_available, size: String(p.size).replace('.', ','), unit: unitLabel }))
     .join(' · ');
 }
 
@@ -116,5 +117,5 @@ export function offerCardUnitCost(offer: OfferCardSource): number {
 export function offerCardUnitLabel(offer: OfferCardSource): string {
   const unitLabel = marketplaceOrderUnitLabel(offer.unit_of_measure);
   const pkg = defaultPackage(offer);
-  return pkg ? `упак. ${String(pkg.size).replace('.', ',')} ${unitLabel}` : unitLabel;
+  return pkg ? t('marketplace.packageStock.packageSize', { size: String(pkg.size).replace('.', ','), unit: unitLabel }) : unitLabel;
 }

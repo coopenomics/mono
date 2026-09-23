@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue';
-import { uiLocale } from 'src/shared/i18n';
+import { uiLocale, t } from 'src/shared/i18n';
 import { useFirstLoad } from 'src/shared/lib/composables';
 import { Dialog, debounce } from 'quasar';
 import { SuccessAlert, FailAlert, NotifyAlert } from 'src/shared/api';
@@ -107,19 +107,19 @@ const showSkeleton = computed(() => firstLoad.value);
 // переходит в ACCEPTED и попадает в партию (cycle_id). READY_TO_RECEIVE для
 // поставщика — продолжение «у кооператива»; EXPIRED_*/RETURNED — терминальные.
 const FILTERS: Array<{ key: string; label: string; statuses: MarketplaceOrderStatusView[] | null }> = [
-  { key: 'all', label: 'Все', statuses: null },
-  { key: 'pending-accept', label: 'Ждут акцепта', statuses: ['ACTIVE'] },
-  { key: 'accepted', label: 'Приняты', statuses: ['ACCEPTED'] },
-  { key: 'supply-prepared', label: 'Собраны к отгрузке', statuses: ['SUPPLY_PREPARED'] },
+  { key: 'all', label: t('marketplace.offererIncomingOrdersPage.filterAll'), statuses: null },
+  { key: 'pending-accept', label: t('marketplace.offererIncomingOrdersPage.filterAwaitingAcceptance'), statuses: ['ACTIVE'] },
+  { key: 'accepted', label: t('marketplace.offererIncomingOrdersPage.filterAccepted'), statuses: ['ACCEPTED'] },
+  { key: 'supply-prepared', label: t('marketplace.offererIncomingOrdersPage.filterReadyToShip'), statuses: ['SUPPLY_PREPARED'] },
   {
     key: 'accepted-to-coop',
-    label: 'У кооператива',
+    label: t('marketplace.offererIncomingOrdersPage.filterAtCoop'),
     statuses: ['ACCEPTED_TO_COOP', 'READY_TO_RECEIVE'],
   },
-  { key: 'received', label: 'Получены', statuses: ['RECEIVED'] },
+  { key: 'received', label: t('marketplace.offererIncomingOrdersPage.filterReceived'), statuses: ['RECEIVED'] },
   {
     key: 'closed',
-    label: 'Отменены',
+    label: t('marketplace.offererIncomingOrdersPage.filterCancelled'),
     statuses: ['CANCELLED_BY_ORDERER', 'CANCELLED_BY_SUPPLIER', 'RETURNED'],
   },
 ];
@@ -260,7 +260,7 @@ const parties = computed<SupplierParty[]>(() => {
         kind: collecting ? 'collecting' : 'formed',
         cycle_id: collecting ? null : (o.cycle_id ?? null),
         offer_id: o.offer_id,
-        productName: o.product_name || 'Товар по предложению',
+        productName: o.product_name || t('marketplace.offererIncomingOrdersPage.fallbackProductTitle'),
         imageUrl: o.image_url ?? null,
         deliveryBraname: o.delivery_braname,
         pvzName: o.delivery_point_name || o.delivery_braname,
@@ -376,8 +376,8 @@ function partyBreakdown(p: SupplierParty): Array<{
         label:
           row.size > 0
             ? marketplacePackageLabel(row.size, p.unitOfMeasure, meta?.package_type ?? null)
-            : 'По мере',
-        units: row.size > 0 ? `${saleUnit.units} упак.` : marketplaceQuantityLabel(row.qty, p.unitOfMeasure),
+            : t('marketplace.offererIncomingOrdersPage.packageSizeByVolumeLabel'),
+        units: row.size > 0 ? t('marketplace.offererIncomingOrdersPage.packageUnitsCount', { units: saleUnit.units }) : marketplaceQuantityLabel(row.qty, p.unitOfMeasure),
         volume: marketplaceQuantityLabel(row.qty, p.unitOfMeasure),
         cost: formatCost(row.cost),
       };
@@ -386,7 +386,7 @@ function partyBreakdown(p: SupplierParty): Array<{
 
 function openPartyMap(p: SupplierParty): void {
   if (p.pvzLat == null || p.pvzLng == null) return;
-  mapTarget.value = { lat: p.pvzLat, lng: p.pvzLng, name: `КУ «${p.pvzName}»` };
+  mapTarget.value = { lat: p.pvzLat, lng: p.pvzLng, name: t('marketplace.offererIncomingOrdersPage.kuMapLabel', { pvzName: p.pvzName }) };
   mapOpen.value = true;
 }
 
@@ -450,7 +450,7 @@ async function onAcceptParty(p: SupplierParty): Promise<void> {
     // Эпик 15: принять партию целиком одним массивом order_id. min — цель сбора,
     // не порог: принять можно и меньшего объёма (кнопка доступна всегда).
     await acceptOrdersBatch(p.orders.map((o) => o.id));
-    SuccessAlert('Заказ принят к поставке.');
+    SuccessAlert(t('marketplace.offererIncomingOrdersPage.orderAcceptedMessage'));
     await load(1, false);
   } catch (e) {
     FailAlert(e);
@@ -461,17 +461,17 @@ async function onAcceptParty(p: SupplierParty): Promise<void> {
 
 function onDeclineParty(p: SupplierParty): void {
   Dialog.create({
-    title: 'Отказ от заказа',
-    message: `Отказ от заказа на КУ «${p.pvzName}». Укажите причину — она будет показана пайщикам.`,
+    title: t('marketplace.offererIncomingOrdersPage.declineOrderTitle'),
+    message: t('marketplace.offererIncomingOrdersPage.declineOrderPrompt', { pvzName: p.pvzName }),
     prompt: { model: '', type: 'textarea', isValid: (val: string) => val.trim().length > 0 },
-    cancel: { label: 'Отмена', flat: true, noCaps: true },
-    ok: { label: 'Отказать', color: 'negative', noCaps: true },
+    cancel: { label: t('common.action.cancel'), flat: true, noCaps: true },
+    ok: { label: t('marketplace.offererIncomingOrdersPage.declineAction'), color: 'negative', noCaps: true },
     persistent: true,
   }).onOk(async (reason: string) => {
     loading.value = true;
     try {
       await declineOrdersBatch(p.orders.map((o) => o.id), reason.trim());
-      NotifyAlert('Заказы партии отклонены');
+      NotifyAlert(t('marketplace.offererIncomingOrdersPage.partyDeclinedMessage'));
       await load(1, false);
     } catch (e) {
       FailAlert(e);
@@ -520,16 +520,16 @@ useMarketplaceRealtime(
 </script>
 
 <template lang="pug">
-q-page.incoming-orders(role='region', aria-label='Входящие заказы поставщика')
+q-page.incoming-orders(role='region', :aria-label='$t("marketplace.offererIncomingOrdersPage.ariaLabel")')
   .incoming-orders__col
     PageHint(storage-key='mp:offerer-incoming:banner-dismissed')
-      | Заказы пайщиков сгруппированы в партии по кооперативному участку. Партия
-      | копится до минимального объёма поставки — это ориентир, а не порог:
-      | принять партию можно в любой момент и меньшего объёма. После приёма —
-      | «Подготовка отгрузки». Когда партия принята на пункте выдачи, здесь же
-      | на её карточке появится «Подписать передачу»: этой подписью вы
-      | подтверждаете факт приёмки, дальше акт уходит на закрывающую подпись
-      | оператора участка.
+      | {{ $t('marketplace.offererIncomingOrdersPage.partyHintIntro') }}
+      | {{ $t('marketplace.offererIncomingOrdersPage.partyHintThreshold') }}
+      | {{ $t('marketplace.offererIncomingOrdersPage.partyHintAcceptAnytime') }}
+      | {{ $t('marketplace.offererIncomingOrdersPage.partyHintPrepStage') }}
+      | {{ $t('marketplace.offererIncomingOrdersPage.partyHintSignButton') }}
+      | {{ $t('marketplace.offererIncomingOrdersPage.partyHintConfirmReceipt') }}
+      | {{ $t('marketplace.offererIncomingOrdersPage.partyHintOperatorSign') }}
 
     PageTabs.incoming-orders__tabs(:tabs='tabs', :active-key='activeKey', @select='onSelectTab')
 
@@ -542,8 +542,8 @@ q-page.incoming-orders(role='region', aria-label='Входящие заказы 
 
     EmptyState(
       v-if='!firstLoad && !hasParties',
-      title='Нет партий в этом фильтре',
-      body='Когда пайщики оформят заказ на ваше предложение — он появится здесь партией по участку.'
+      :title='$t("marketplace.offererIncomingOrdersPage.emptyTitle")',
+      :body='$t("marketplace.offererIncomingOrdersPage.emptyBody")'
     )
       template(#icon)
         q-icon(name='inbox', size='48px')
@@ -567,16 +567,16 @@ q-page.incoming-orders(role='region', aria-label='Входящие заказы 
         :bar-color='barColor(p)',
         :show-progress='p.kind === "collecting" && hasTarget(p)',
         :breakdown='partyBreakdown(p)',
-        total-label='Итого партии',
+        :total-label='$t("marketplace.offererIncomingOrdersPage.totalLabel")',
         :total-value='formatCost(p.totalCost)',
         :total-units='totalUnitsLabel(p)',
         @map='openPartyMap(p)'
       )
         template(#actions)
           template(v-if='p.kind === "collecting"')
-            BaseButton(variant='ghost', @click='onDeclineParty(p)') Отклонить
+            BaseButton(variant='ghost', @click='onDeclineParty(p)') {{ $t('marketplace.offererIncomingOrdersPage.rejectAction') }}
             BaseButton(variant='primary', :loading='loading', @click='onAcceptParty(p)')
-              | Принять заказ
+              | {{ $t('marketplace.offererIncomingOrdersPage.acceptOrderAction') }}
           //- Партия принята на ПВЗ и ждёт первой подписи поставщика: акт
           //- приёмки найден по cycle_id этой же партии.
           BaseButton(
@@ -587,10 +587,10 @@ q-page.incoming-orders(role='region', aria-label='Входящие заказы 
           )
             template(#icon-left)
               q-icon(name='draw', size='18px')
-            | Подписать передачу
+            | {{ $t('marketplace.offererIncomingOrdersPage.signHandoffAction') }}
 
       .incoming-orders__more(v-if='hasMore')
-        BaseButton(variant='ghost', :loading='loading', @click='loadMore') Показать ещё
+        BaseButton(variant='ghost', :loading='loading', @click='loadMore') {{ $t('marketplace.offererIncomingOrdersPage.showMoreAction') }}
 
   SignAplReceptionDialog(
     v-model='signDialog',
@@ -599,7 +599,7 @@ q-page.incoming-orders(role='region', aria-label='Входящие заказы 
   )
 
   //- Карта участка «куда везти» — по кнопке на карточке партии.
-  BaseDialog(v-model='mapOpen', :title="mapTarget?.name || 'Кооперативный участок'")
+  BaseDialog(v-model='mapOpen', :title="mapTarget?.name || $t('marketplace.offererIncomingOrdersPage.kuLabel')")
     MapView(v-if='mapTarget', :lat='mapTarget.lat', :long='mapTarget.lng')
 </template>
 

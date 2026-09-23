@@ -1,5 +1,5 @@
 import type { MarketplaceWriteoffProposalView } from '../api';
-import { t, uiLocale } from 'src/shared/i18n';
+import { t, uiLocale, t as i18nT } from 'src/shared/i18n';
 
 // Русское склонение «позиция / позиции / позиций».
 export function positionsLabel(n: number): string {
@@ -14,5 +14,5 @@ function formatDate(value: string | null | undefined): string {
 
 // Человеческое имя проекта списания — по дате подачи/цикла, не «N позиций».
 export function proposalTitle(p: MarketplaceWriteoffProposalView): string {
-  return `Списание от ${formatDate(p.submitted_at ?? p.cycle_started_at ?? p.updated_at)}`;
+  return i18nT('marketplace.writeoffProposalDisplay.title', { date: formatDate(p.submitted_at ?? p.cycle_started_at ?? p.updated_at) });
 }

@@ -10,8 +10,8 @@
 
   EmptyState(
     v-else-if='!decisions.length',
-    title='Нет вопросов на повестке',
-    body='Вопросы появляются автоматически при участии пайщиков в цифровых целевых потребительских программах кооператива. Добавить вопрос вручную можно кнопкой «Предложить повестку».'
+    :title='$t("questions.questionsTable.emptyTitle")',
+    :body='$t("questions.questionsTable.emptyBody")'
   )
     template(#icon)
       q-icon(name='how_to_vote', size='48px')

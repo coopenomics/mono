@@ -3,7 +3,7 @@
 //- Документы пайщика живут в отдельном «Реестре документов», здесь не дублируются.
 .participant-details
   .participant-details__verification
-    .participant-details__verification-title.t-sm.t-muted Верификация личности
+    .participant-details__verification-title.t-sm.t-muted {{ $t('participants.participantDetails.verificationTitle') }}
     template(v-if='currentLevel')
       .participant-details__verification-row
         BaseBadge(:variant='verificationBadgeVariant(currentLevel.type)') {{ currentLevel.short }}
@@ -16,8 +16,8 @@
         :key='level.type'
       ) {{ level.label }}{{ level.hint ? ` — ${level.hint}` : '' }}
     .participant-details__verification-row(v-else)
-      BaseBadge(variant='neutral') Не верифицирован
-      span.t-sm.t-muted Личность подтверждает председатель совета или кооперативный участок при предъявлении паспорта
+      BaseBadge(variant='neutral') {{ $t('participants.participantDetails.notVerified') }}
+      span.t-sm.t-muted {{ $t('participants.participantDetails.verificationHint') }}
     VerifyIdentityActions(
       :participant='participant',
       @changed='emit("verification-changed")'

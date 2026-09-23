@@ -27,6 +27,7 @@ import { useDecisionProcessor } from 'src/processes/process-decisions';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { QuestionsTable } from 'src/widgets/Questions';
 import { useHeaderActions } from 'src/shared/hooks';
+import { t } from 'src/shared/i18n';
 
 const route = useRoute();
 const session = useSessionStore();
@@ -119,7 +120,7 @@ const onAuthorizeDecision = async (row) => {
 
   // Оптимистично прячем пункт и обновляем список тихо (без скелетонов).
   actedDecisionIds.value.add(decision_id);
-  SuccessAlert('Решение принято и исполнено');
+  SuccessAlert(t('cooperative.listOfAgendaQuestions.approvedSuccess'));
   setProcessing(decision_id, false);
   await refreshAgendaQuietly();
 };
@@ -138,7 +139,7 @@ const onDeclineDecision = async (row) => {
 
   // Отклонённое решение стирается контрактом — прячем пункт и тихо обновляем.
   actedDecisionIds.value.add(decision_id);
-  SuccessAlert('Решение отклонено');
+  SuccessAlert(t('cooperative.listOfAgendaQuestions.rejectedSuccess'));
   setProcessing(decision_id, false);
   await refreshAgendaQuietly();
 };
@@ -159,7 +160,7 @@ const submitVote = async (row, cast: typeof voteForDecision) => {
 
   // Голос НЕ убирает пункт из повестки — он остаётся неутверждённым, лишь
   // помечается отметкой голоса. Обновляем список тихо (без скелетонов).
-  SuccessAlert('Голос принят');
+  SuccessAlert(t('cooperative.listOfAgendaQuestions.voteAcceptedSuccess'));
   await refreshAgendaQuietly();
 
   // Держим загрузку ещё VOTE_SETTLE_MS, чтобы «Утвердить» нельзя было нажать

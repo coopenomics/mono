@@ -4,12 +4,12 @@
 BaseButton(
   variant='primary',
   size='sm',
-  aria-label='Объявить собрание',
+  :aria-label='$t("ku.createKuMeetingButton.action")',
   @click='emit("click")'
 )
   template(#icon-left)
     q-icon(name='add', size='18px')
-  | Объявить собрание
+  | {{ $t('ku.createKuMeetingButton.action') }}
 </template>
 
 <script setup lang="ts">

@@ -2,7 +2,7 @@
 q-card(flat).expandable-document.q-mb-md
   q-expansion-item(
     switch-toggle-side
-    :label="title || 'Электронный документ'"
+    :label="title || $t('ui.expandableDocument.defaultTitle')"
     icon="article"
     header-class="document-header"
     expand-icon-class="text-primary"
@@ -18,6 +18,7 @@ q-card(flat).expandable-document.q-mb-md
 <script setup lang="ts">
 import { BaseDocument } from '../BaseDocument'
 import type { IDocumentAggregate } from 'src/entities/Document/model'
+import { t } from 'src/shared/i18n';
 
 defineProps({
   documentAggregate: {
@@ -26,7 +27,7 @@ defineProps({
   },
   title: {
     type: String,
-    default: 'Документ собрания'
+    default: t('ui.expandableDocument.meetDocumentTitle')
   }
 })
 </script>

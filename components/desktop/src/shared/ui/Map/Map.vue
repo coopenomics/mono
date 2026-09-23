@@ -100,7 +100,7 @@ onBeforeUnmount(() => {
 .ya-map(v-if="apiKey" ref="mapContainer")
 .banner.banner--warn(v-else)
   q-icon.banner__icon(name="warning" size="18px")
-  .banner__body Карта недоступна: не задан ключ Яндекс.Карт.
+  .banner__body {{ $t('ui.map.unavailableText') }}
 </template>
 
 <style scoped lang="scss">

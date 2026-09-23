@@ -1,5 +1,5 @@
 <template lang="pug">
-aside.rail(role='navigation', aria-label='Главная навигация')
+aside.rail(role='navigation', :aria-label='$t("ui.appDrawer.navAriaLabel")')
   //- Бренд: иконка + ПК «Название» / подпись расширения
   .rail__top
     slot(name='brand')
@@ -7,7 +7,7 @@ aside.rail(role='navigation', aria-label='Главная навигация')
         slot(name='brand-icon')
           q-icon(name='dashboard')
       .rail__name
-        strong {{ coopName ?? 'Кооператив' }}
+        strong {{ coopName ?? $t('ui.appDrawer.cooperativeLabel') }}
         span(v-if='coopMeta') {{ coopMeta }}
 
   //- ⌘K поиск — отдельным блоком после rail__top, выровнен с .rail__nav
@@ -15,11 +15,11 @@ aside.rail(role='navigation', aria-label='Главная навигация')
     v-if='showCmdk',
     type='button',
     :style='cmdkStyle',
-    :title="cmdkHint ?? 'Поиск'",
+    :title="cmdkHint ?? $t('common.action.search')",
     @click="emit('cmdk')"
   )
     q-icon(name='search', :style="{ color: 'var(--p-ink-3)' }")
-    span(:style="{ color: 'var(--p-ink-2)', flex: 1, textAlign: 'left' }") {{ cmdkLabel ?? 'Найти' }}
+    span(:style="{ color: 'var(--p-ink-2)', flex: 1, textAlign: 'left' }") {{ cmdkLabel ?? $t('ui.appDrawer.findLabel') }}
     span(:style="{ display: 'inline-flex', gap: '2px' }")
       span.kbd ⌘
       span.kbd K

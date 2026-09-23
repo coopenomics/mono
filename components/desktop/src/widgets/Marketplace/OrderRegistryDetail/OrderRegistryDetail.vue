@@ -11,7 +11,7 @@
  * кооператива, ПВЗ — любой заказ своего участка.
  */
 import { computed, ref, watch } from 'vue';
-import { uiLocale } from 'src/shared/i18n';
+import { uiLocale, t } from 'src/shared/i18n';
 import { FailAlert } from 'src/shared/api';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { marketplaceOrderSaleUnit } from 'src/shared/lib/consts/marketplace-units';
@@ -52,7 +52,7 @@ async function load(): Promise<void> {
   } catch (e) {
     order.value = null;
     notFound.value = true;
-    FailAlert(e, 'Не удалось загрузить заказ');
+    FailAlert(e, t('marketplace.orderRegistryDetail.loadError'));
   } finally {
     loading.value = false;
   }
@@ -105,25 +105,25 @@ const events = computed<ActivityEvent[]>(() => {
   const ev: ActivityEvent[] = [];
   const placed = o.blocked_at ?? o.created_at;
   if (placed) {
-    ev.push({ id: 'placed', type: 'create', icon: 'shopping_cart', title: 'Заказ размещён', date: formatDate(placed) });
+    ev.push({ id: 'placed', type: 'create', icon: 'shopping_cart', title: t('marketplace.orderRegistryDetail.eventPlaced'), date: formatDate(placed) });
   }
   if (o.accepted_at) {
-    ev.push({ id: 'accepted', type: 'update', icon: 'inventory_2', title: 'Поставщик принял заказ', actor: supplierTitle.value, date: formatDate(o.accepted_at) });
+    ev.push({ id: 'accepted', type: 'update', icon: 'inventory_2', title: t('marketplace.orderRegistryDetail.eventAccepted'), actor: supplierTitle.value, date: formatDate(o.accepted_at) });
   }
   // Веха выдачи — момент, когда заказчик подписал заявление о возврате паевого
   // взноса имуществом: с него начинается решение совета и акт. Прежние отметки
   // подписей председателя и заказчика жили в членской модели и вместе с ней
   // сняты, отдельного времени приёмки у заказа больше нет.
   if (o.issue_statement_at) {
-    ev.push({ id: 'issue-statement', type: 'sign', title: 'Заказчик подписал заявление о выдаче', actor: ordererTitle.value, date: formatDate(o.issue_statement_at) });
+    ev.push({ id: 'issue-statement', type: 'sign', title: t('marketplace.orderRegistryDetail.eventIssueStatement'), actor: ordererTitle.value, date: formatDate(o.issue_statement_at) });
   }
   if (o.received_at) {
-    ev.push({ id: 'issued', type: 'sign', title: 'Получен заказчиком по акту', actor: ordererTitle.value, date: formatDate(o.received_at) });
+    ev.push({ id: 'issued', type: 'sign', title: t('marketplace.orderRegistryDetail.eventReceived'), actor: ordererTitle.value, date: formatDate(o.received_at) });
   }
   if (o.cancelled_at) {
     ev.push({ id: 'cancelled', type: 'reject', title: orderStatusDisplay(o.status).label, description: o.last_status_reason || undefined, date: formatDate(o.cancelled_at) });
   } else if (o.last_status_reason) {
-    ev.push({ id: 'reason', type: 'comment', title: 'Комментарий к статусу', description: o.last_status_reason, date: formatDate(o.updated_at) });
+    ev.push({ id: 'reason', type: 'comment', title: t('marketplace.orderRegistryDetail.eventStatusComment'), description: o.last_status_reason, date: formatDate(o.updated_at) });
   }
   return ev;
 });
@@ -135,15 +135,15 @@ function goToOffer(): void {
 </script>
 
 <template lang="pug">
-.order-registry-detail(role="region", aria-label="Заказ")
+.order-registry-detail(role="region", :aria-label="$t('marketplace.orderRegistryDetail.title')")
   //- Канон: каркас, а не спиннер поверх пустоты — по кружку не видно, что
   //- именно грузится и сколько там будет содержимого.
   CardListSkeleton(v-if="loading && !order", :count="2")
 
   EmptyState(
     v-if="notFound && !loading",
-    title="Заказ не найден",
-    body="Заказ удалён или недоступен на этом столе."
+    :title="$t('marketplace.orderRegistryDetail.notFoundTitle')",
+    :body="$t('marketplace.orderRegistryDetail.notFoundBody')"
   )
     template(#icon)
       q-icon(name="receipt_long", size="48px")
@@ -154,14 +154,14 @@ function goToOffer(): void {
         .order-registry-detail__cover
           OfferGallery(
             :images="coverImages",
-            :alt="order.product_name || 'Товар'",
+            :alt="order.product_name || $t('marketplace.orderRegistryDetail.productAltFallback')",
             height="100%",
             placeholder-icon-size="40px"
           )
 
         .order-registry-detail__info
           .order-registry-detail__top
-            .t-h2.order-registry-detail__title {{ order.product_name || 'Товар по предложению' }}
+            .t-h2.order-registry-detail__title {{ order.product_name || $t('marketplace.orderRegistryDetail.productTitleFallback') }}
             BaseBadge(v-if="status", :variant="status.variant") {{ status.label }}
 
           .order-registry-detail__sub
@@ -171,35 +171,35 @@ function goToOffer(): void {
 
           .order-registry-detail__facts
             .order-registry-detail__fact
-              .order-registry-detail__fact-label Сумма заказа
+              .order-registry-detail__fact-label {{ $t('marketplace.orderRegistryDetail.totalLabel') }}
               .order-registry-detail__fact-value--money {{ totalWithFee }}
             .order-registry-detail__fact
-              .order-registry-detail__fact-label Количество
+              .order-registry-detail__fact-label {{ $t('marketplace.orderRegistryDetail.quantityLabel') }}
               .order-registry-detail__fact-value {{ saleUnit.units }} {{ saleUnit.unitLabel }}
             .order-registry-detail__fact
-              .order-registry-detail__fact-label Цена за единицу
+              .order-registry-detail__fact-label {{ $t('marketplace.orderRegistryDetail.unitPriceLabel') }}
               .order-registry-detail__fact-value {{ formatAsset2Digits(order.price_per_unit) }}
 
           .order-registry-detail__actions(v-if="props.showOfferLink && order.offer_id")
             BaseButton(variant="secondary", size="sm", @click="goToOffer")
               template(#icon-left)
                 q-icon(name="open_in_new", size="16px")
-              | Открыть предложение
+              | {{ $t('marketplace.orderRegistryDetail.openOfferButton') }}
 
     BaseCard.order-registry-detail__card
       template(#head)
-        .t-h3 Стороны заказа
-      DataRow(label="Заказчик", :value="ordererTitle")
-      DataRow(label="Поставщик", :value="supplierTitle")
+        .t-h3 {{ $t('marketplace.orderRegistryDetail.partiesTitle') }}
+      DataRow(:label="$t('marketplace.orderRegistryDetail.ordererLabel')", :value="ordererTitle")
+      DataRow(:label="$t('marketplace.orderRegistryDetail.supplierLabel')", :value="supplierTitle")
       DataRow(
         v-if="order.delivery_point_name || order.delivery_point_address",
-        label="Пункт выдачи",
+        :label="$t('marketplace.orderRegistryDetail.deliveryPointLabel')",
         :value="[order.delivery_point_name, order.delivery_point_address].filter(Boolean).join(', ')"
       )
 
     BaseCard.order-registry-detail__card(v-if="events.length")
       template(#head)
-        .t-h3 Состояние заказа
+        .t-h3 {{ $t('marketplace.orderRegistryDetail.timelineTitle') }}
       ActivityTimeline(:events="events")
 
     //- Документы + операции + проводки процесса заказа (общий виджет).
@@ -210,7 +210,7 @@ function goToOffer(): void {
       :process-hash="order.order_hash",
       :process-type="SUPPLY_PROCESS_TYPE"
     )
-    .text-body2.text-grey-7(v-else) Хэш процесса заказа недоступен
+    .text-body2.text-grey-7(v-else) {{ $t('marketplace.orderRegistryDetail.processHashUnavailable') }}
 </template>
 
 <style scoped lang="scss">

@@ -9,7 +9,7 @@
     <BaseInput
       v-if="mode === 'login'"
       v-model="email"
-      label="Электронная почта"
+      :label="$t('user.loginForm.emailLabel')"
       type="email"
       autocomplete="email"
       required
@@ -19,7 +19,7 @@
     <template v-if="mode === 'login'">
       <BaseInput
         v-model="secret"
-        label="Пароль или ключ доступа"
+        :label="$t('user.loginForm.secretLabel')"
         type="password"
         autocomplete="current-password"
         required
@@ -30,9 +30,7 @@
         block
         :loading="loading"
         :disabled="!secret || !email"
-      >
-        Войти
-      </BaseButton>
+      > {{ $t('user.loginForm.submit') }} </BaseButton>
       <!-- Вход по карте кооператора (карта кооператора, story 9.2): карта опознаёт человека и ведёт
            пайщика к его аккаунту, кандидата — в быструю регистрацию. Кнопка появляется только
            когда кооператив подключён к сети: кнопка, ведущая в отказ, хуже её отсутствия. -->
@@ -42,9 +40,7 @@
         block
         :disabled="loading"
         @click="startCardcoopEntry"
-      >
-        Войти с помощью карты кооператора
-      </BaseButton>
+      > {{ $t('user.loginForm.cardcoopLogin') }} </BaseButton>
     </template>
 
     <!-- Шаг 2FA: пароль и ключ приняты, сервер ждёт код второго фактора -->
@@ -67,7 +63,7 @@
           :disabled="resendCooldown > 0 || loading"
           @click="resendEmail"
         >
-          {{ resendCooldown > 0 ? `Отправить код повторно (${resendCooldown} с)` : 'Отправить код повторно' }}
+          {{ resendCooldown > 0 ? $t(`user.loginForm.resendWithCooldown`, { resendCooldown }) : $t('user.loginForm.resend') }}
         </BaseButton>
       </div>
       <BaseButton
@@ -76,12 +72,8 @@
         block
         :loading="loading"
         :disabled="otp.length !== 6"
-      >
-        Подтвердить
-      </BaseButton>
-      <BaseButton variant="secondary" block :disabled="loading" @click="backToLogin">
-        Назад ко входу
-      </BaseButton>
+      > {{ $t('common.action.confirm') }} </BaseButton>
+      <BaseButton variant="secondary" block :disabled="loading" @click="backToLogin"> {{ $t('user.loginForm.backToLogin') }} </BaseButton>
     </template>
 
     <!-- Шаг миграции: вошли по ключу — обязательная установка пароля.
@@ -90,7 +82,7 @@
       <MigrationExplainer :in-session="false" />
       <BaseInput
         v-model="newPassword"
-        label="Новый пароль"
+        :label="$t('user.loginForm.newPasswordLabel')"
         type="password"
         autocomplete="new-password"
         :hint="PASSWORD_POLICY_HINT"
@@ -99,7 +91,7 @@
       />
       <BaseInput
         v-model="repeatPassword"
-        label="Повторите пароль"
+        :label="$t('user.loginForm.repeatPasswordLabel')"
         type="password"
         autocomplete="new-password"
         :error="repeatError"
@@ -111,9 +103,7 @@
         block
         :loading="loading"
         :disabled="!canMigrate"
-      >
-        Задать пароль и войти
-      </BaseButton>
+      > {{ $t('user.loginForm.setPasswordSubmit') }} </BaseButton>
     </template>
   </BaseForm>
 </template>
@@ -145,6 +135,7 @@ import {
   warmUpAuthentik,
   type LoginFactorKind,
 } from '@coopenomics/auth';
+import { t } from 'src/shared/i18n';
 
 // Шаг формы наружу: заголовок карточки принадлежит не форме, а тому, кто её
 // показывает, — а меняться он обязан вместе с шагом.
@@ -206,8 +197,8 @@ const currentFactor = computed<LoginFactorKind | null>(
 );
 const currentFactorLabel = computed(() =>
   currentFactor.value === 'email'
-    ? 'Код из письма, отправленного на вашу почту'
-    : 'Код из приложения-аутентификатора',
+    ? t('user.loginForm.factorEmailLabel')
+    : t('user.loginForm.factorAppLabel'),
 );
 
 function startResendCooldown(): void {
@@ -238,7 +229,7 @@ const passwordError = computed(() =>
 );
 const repeatError = computed(() =>
   repeatPassword.value && repeatPassword.value !== newPassword.value
-    ? 'Пароли не совпадают'
+    ? t('user.loginForm.passwordMismatch')
     : '',
 );
 const canMigrate = computed(

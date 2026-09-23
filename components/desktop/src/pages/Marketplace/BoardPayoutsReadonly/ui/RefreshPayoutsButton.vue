@@ -5,12 +5,12 @@ BaseButton(
   variant='ghost',
   size='sm',
   :loading='props.loading',
-  aria-label='Обновить ленту выплат',
+  :aria-label='$t("marketplace.refreshPayoutsButton.ariaLabel")',
   @click='props.onClick?.()'
 )
   template(#icon-left)
     q-icon(name='refresh', size='18px')
-  | Обновить
+  | {{ $t('marketplace.refreshPayoutsButton.label') }}
 </template>
 
 <script setup lang="ts">

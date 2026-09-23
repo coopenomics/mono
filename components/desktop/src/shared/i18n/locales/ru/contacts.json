@@ -1,0 +1,13 @@
+{
+  "contacts": {
+    "contactsPage": {
+      "addressLabel": "Адрес",
+      "chairmanLabel": "Председатель совета",
+      "defaultOrgName": "Организация",
+      "eyebrow": "Контактные данные",
+      "innLabel": "ИНН",
+      "ogrnLabel": "ОГРН",
+      "phoneLabel": "Телефон"
+    }
+  }
+}

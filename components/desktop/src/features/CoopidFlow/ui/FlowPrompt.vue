@@ -18,7 +18,7 @@ BaseForm(:loading='sending', @submit='submit')
     :readonly='readonly(row.field)'
   )
   .flow-stage__actions
-    BaseButton(variant='primary', type='submit', :loading='sending') Продолжить
+    BaseButton(variant='primary', type='submit', :loading='sending') {{ $t('coopidFlow.flowPrompt.submit') }}
 </template>
 
 <script lang="ts" setup>

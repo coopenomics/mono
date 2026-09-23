@@ -31,18 +31,18 @@ div
       template(#cell-actions='{ row }')
         BaseButton(variant='ghost', size='sm', @click.stop='openDetails(row)')
           q-icon.q-mr-xs(name='open_in_new', size='16px')
-          | Подробнее
+          | {{ $t('participants.participantsTable.detailsLink') }}
 
       template(v-if='showPager', #footer)
         TablePager(
-          label='Пайщики',
+          :label='$t("participants.participantsTable.emptyLabel")',
           :page='pagination.page',
           :rows-per-page='pagination.rowsPerPage',
           :rows-number='pagination.rowsNumber',
           @update:page='(page) => emit("update:page", page)'
         )
 
-    EmptyState(v-else, title='Пайщиков не найдено', body='Под выбранный фильтр никто не подходит, или в кооперативе пока нет пайщиков.')
+    EmptyState(v-else, :title='$t("participants.participantsTable.emptyTitle")', :body='$t("participants.participantsTable.emptyBody")')
       template(#icon)
         q-icon(name='groups', size='32px')
 
@@ -58,13 +58,13 @@ div
       )
       TablePager(
         v-if='showPager',
-        label='Пайщики',
+        :label='$t("participants.participantsTable.emptyLabel")',
         :page='pagination.page',
         :rows-per-page='pagination.rowsPerPage',
         :rows-number='pagination.rowsNumber',
         @update:page='(page) => emit("update:page", page)'
       )
-    EmptyState(v-else, title='Пайщиков не найдено', body='Под выбранный фильтр никто не подходит, или в кооперативе пока нет пайщиков.')
+    EmptyState(v-else, :title='$t("participants.participantsTable.emptyTitle")', :body='$t("participants.participantsTable.emptyBody")')
       template(#icon)
         q-icon(name='groups', size='32px')
 
@@ -72,7 +72,7 @@ div
   //- вступлении, редактируемая анкета. На телефоне дроуэр во весь экран.
   DetailsDrawer(
     v-model='detailsOpen',
-    :title='selected ? getName(selected) : "Пайщик"',
+    :title='selected ? getName(selected) : $t("participants.participantsTable.defaultDrawerTitle")',
     :width='640'
   )
     ParticipantDetails(
@@ -116,6 +116,7 @@ import {
   type IOrganizationData,
   type IEntrepreneurData,
 } from 'src/entities/Account/types';
+import { t } from 'src/shared/i18n';
 
 // Props
 const props = defineProps<{
@@ -174,17 +175,17 @@ const showPager = computed(() => props.pagination.rowsNumber > props.pagination.
 // min-width таблицы (1460px) — остаток достаётся колонке ФИО; без этого запаса
 // она схлопывалась в ноль и буквы шли столбиком.
 const columns: BaseTableColumn<IAccount>[] = [
-  { key: 'name', label: 'ФИО / Наименование', field: (row) => getName(row) },
-  { key: 'username', label: 'Аккаунт', field: 'username', width: '140px', nowrap: true },
+  { key: 'name', label: t('participants.participantsTable.column.name'), field: (row) => getName(row) },
+  { key: 'username', label: t('participants.participantsTable.column.username'), field: 'username', width: '140px', nowrap: true },
   {
     key: 'email',
     label: 'Email',
-    field: (row) => row.provider_account?.email || 'Не указан',
+    field: (row) => row.provider_account?.email || t('participants.participantsTable.emailMissing'),
     width: '220px',
   },
   {
     key: 'created_at',
-    label: 'Добавлен',
+    label: t('participants.participantsTable.column.createdAt'),
     field: (row) => addedDate(row),
     width: '170px',
     nowrap: true,
@@ -192,14 +193,14 @@ const columns: BaseTableColumn<IAccount>[] = [
   },
   {
     key: 'joined_at',
-    label: 'Дата вступления',
+    label: t('participants.participantsTable.column.joinedAt'),
     field: (row) => joinDate(row),
     width: '190px',
     nowrap: true,
     sortable: true,
   },
-  { key: 'status', label: 'Статус', field: (row) => getAccountStatusBadge(row).label, width: '200px' },
-  { key: 'verification', label: 'Верификация', field: (row) => verificationCell(row).short, width: '170px' },
+  { key: 'status', label: t('participants.participantsTable.column.status'), field: (row) => getAccountStatusBadge(row).label, width: '200px' },
+  { key: 'verification', label: t('participants.participantsTable.column.verification'), field: (row) => verificationCell(row).short, width: '170px' },
   { key: 'actions', label: '', width: '140px', align: 'right' },
 ];
 
@@ -210,8 +211,8 @@ const columns: BaseTableColumn<IAccount>[] = [
 // которого Vue-шаблону не даёт вызов функции.
 const NOT_VERIFIED_CELL = {
   variant: 'neutral' as BaseBadgeVariant,
-  short: 'Не верифицирован',
-  tooltip: 'Личность не подтверждена: паспорт сверяет председатель совета или кооперативный участок',
+  short: t('participants.participantsTable.notVerified'),
+  tooltip: t('participants.participantsTable.notVerifiedTooltip'),
 };
 
 const verificationCell = (row: IAccount) => {
@@ -244,13 +245,13 @@ const formatDate = (date?: unknown) => {
 // заведённых председателем — дата заведения. Есть у всех.
 const addedDate = (row: IAccount): string => {
   const raw = row.provider_account?.created_at;
-  return raw ? formatDate(raw) : 'отсутствует';
+  return raw ? formatDate(raw) : t('participants.participantsTable.missingValue');
 };
 
 const joinDate = (row: IAccount): string => {
   const raw = row.participant_account?.created_at || row.user_account?.registered_at;
   const f = formatDate(raw);
-  return f === '' ? 'отсутствует' : f;
+  return f === '' ? t('participants.participantsTable.missingValue') : f;
 };
 
 // События

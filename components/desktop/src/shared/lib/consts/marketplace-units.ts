@@ -1,4 +1,5 @@
 import { Zeus } from '@coopenomics/sdk';
+import { t } from 'src/shared/i18n';
 
 /**
  * Единицы измерения и способ отпуска товара Стола заказов — единый источник
@@ -30,9 +31,9 @@ interface MarketplaceUnitDef {
 }
 
 const MARKETPLACE_UNITS: readonly MarketplaceUnitDef[] = [
-  { value: MarketplaceUnitOfMeasure.PIECE, label: 'шт.', short: 'шт' },
-  { value: MarketplaceUnitOfMeasure.KG, label: 'кг', short: 'кг' },
-  { value: MarketplaceUnitOfMeasure.LITER, label: 'литр', short: 'л' },
+  { value: MarketplaceUnitOfMeasure.PIECE, label: t('consts.marketplaceUnits.pieceLabel'), short: t('consts.marketplaceUnits.pieceShort') },
+  { value: MarketplaceUnitOfMeasure.KG, label: t('consts.marketplaceUnits.kgLabel'), short: t('consts.marketplaceUnits.kgShort') },
+  { value: MarketplaceUnitOfMeasure.LITER, label: t('consts.marketplaceUnits.literLabel'), short: t('consts.marketplaceUnits.literShort') },
 ];
 
 /** Опции для q-select при создании/редактировании оферты. */
@@ -46,13 +47,13 @@ export const MARKETPLACE_UNIT_OPTIONS: Array<{ label: string; value: Marketplace
  * исходное, чем потерять.
  */
 export function marketplaceUnitShort(value: string | null | undefined): string {
-  if (!value) return 'ед.';
+  if (!value) return t('consts.marketplaceUnits.unitShortFallback');
   return MARKETPLACE_UNITS.find((u) => u.value === value)?.short ?? value;
 }
 
 /** Полная русская подпись единицы (для подробных экранов). */
 export function marketplaceUnitLabel(value: string | null | undefined): string {
-  if (!value) return 'ед.';
+  if (!value) return t('consts.marketplaceUnits.unitLabelFallback');
   return MARKETPLACE_UNITS.find((u) => u.value === value)?.label ?? value;
 }
 
@@ -109,7 +110,7 @@ export function marketplaceSaleUnitLabel(
 ): string {
   const baseLabel = marketplaceUnitShort(unit);
   if (packageSize && packageSize > 0) {
-    return `упак. ${String(packageSize).replace('.', ',')} ${baseLabel}`;
+    return t('consts.marketplaceUnits.packageLabel', { packageSize: String(packageSize).replace('.', ','), baseLabel });
   }
   return baseLabel;
 }
@@ -123,7 +124,7 @@ export function marketplaceOrderSaleUnit(
   if (packageSize && packageSize > 0) {
     return {
       units: Number((quantity / packageSize).toFixed(0)),
-      unitLabel: `упак. ${String(packageSize).replace('.', ',')} ${baseLabel}`,
+      unitLabel: t('consts.marketplaceUnits.packageLabel', { packageSize: String(packageSize).replace('.', ','), baseLabel }),
     };
   }
   return { units: Number(trimNumber(quantity)), unitLabel: baseLabel };

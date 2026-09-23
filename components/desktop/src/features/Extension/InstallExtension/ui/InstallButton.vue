@@ -1,5 +1,5 @@
 <template lang="pug">
-q-btn.full-width(color='primary', unelevated, no-caps, @click='install', :loading='isInstalling') Включить
+q-btn.full-width(color='primary', unelevated, no-caps, @click='install', :loading='isInstalling') {{ $t('extension.installButton.submit') }}
 </template>
 
 <script setup lang="ts">
@@ -14,6 +14,7 @@ import {
   FailAlert,
   SuccessAlert,
 } from 'src/shared/api';
+import { t } from 'src/shared/i18n';
 
 interface Props {
   extensionName: string;
@@ -66,9 +67,9 @@ const install = async () => {
     } else {
       router.push({ name: 'one-extension' });
     }
-    SuccessAlert('Расширение установлено');
+    SuccessAlert(t('extension.installButton.installedSuccess'));
   } catch (e: unknown) {
-    FailAlert(`Ошибка установки расширения: ${extractGraphQLErrorMessages(e)}`);
+    FailAlert(t('extension.installButton.installError', { errorMessage: extractGraphQLErrorMessages(e) }));
   } finally {
     isInstalling.value = false;
   }
