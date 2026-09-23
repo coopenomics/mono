@@ -1,0 +1,55 @@
+feature: capital.onboarding-l1
+title: Подключение ЦПП «Генератор» и «Благорост» — решения совета и параметры положений
+
+# Подключение кооперативом (L1): совет утверждает положения и оферты
+# «Генератора» и «Благороста» и шаблон договора — на решение выносится бланк
+# рабочего документа (прочерки на месте данных пайщика, параметры положений по
+# doc_data_hash), а не отдельный документ-двойник. Параметры положений задаёт
+# председатель в мастере подключения.
+#
+# Правило (7DD-22, 23.09.2026): подключение завершено, когда приняты решения
+# совета И заданы параметры положений (isCapitalL1Complete) — одно правило на
+# сервер (оферты во вступлении, событие завершения, сверка отметок) и стол.
+# Инцидент: утверждения перенесены в цепь из прежних протоколов vars, параметры
+# не заданы — стол повёл председателя на регистрацию, документы регистрации не
+# собрались («Параметры документов ЦПП не заполнены»).
+
+sources:
+  backend:
+    - components/controller/src/extensions/capital/application/onboarding/capital-l1.ts
+    - components/controller/src/extensions/capital/application/services/onboarding.service.ts
+    - components/controller/src/extensions/capital/application/services/onboarding-events.service.ts
+    - components/controller/src/extensions/capital/application/registration/register-capital-in-agreement-registry.ts
+  ui:
+    - components/desktop/extensions/capital/features/Onboarding/**
+    - components/desktop/extensions/capital/pages/CapitalBase/**
+
+cases:
+  - id: cap.l1.side.01
+    level: backend
+    kind: side
+    scenario: "Все решения совета есть (в том числе перенесены из прежних протоколов), параметры положений не заданы."
+    expect: "Подключение не завершено: оферты во вступлении не регистрируются, события завершения нет."
+    test: components/controller/tests/unit/capital/capital-onboarding-reconcile.test.ts
+    status: passing
+  - id: cap.l1.happy.01
+    level: backend
+    kind: happy
+    scenario: "Решения совета приняты, председатель сохраняет параметры положений последними."
+    expect: "Сохранение параметров завершает подключение (ONBOARDING_COMPLETED) — расширение перезапускается и предлагает программы; повторное сохранение параметров завершения не повторяет."
+    test: components/controller/tests/unit/capital/capital-onboarding-reconcile.test.ts
+    status: passing
+  - id: cap.l1.side.02
+    level: backend
+    kind: side
+    scenario: "Последнее решение совета приходит, параметров нет; оферты регистрируются только при заданных параметрах."
+    expect: "Событие завершения не шлётся; registerCapitalInAgreementRegistry без параметров возвращает false и ничего не регистрирует."
+    test: components/controller/tests/unit/capital/capital-plugin-register.test.ts
+    status: passing
+  - id: cap.l1.ui.01
+    level: ui
+    kind: side
+    scenario: "Председатель открывает стол Благороста: решения совета есть, параметров нет."
+    expect: "Показывается мастер подключения на шаге параметров, а не страница регистрации; после сохранения параметров стол открывается."
+    test: ~
+    status: missing

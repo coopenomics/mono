@@ -11,6 +11,7 @@ import { IDecisionTrackingPort, DECISION_TRACKING_PORT, DecisionEventType } from
 import { IFreeDecisionPort, FREE_DECISION_PORT } from '@coopenomics/innercoop';
 import { IDocumentApprovalPort, DOCUMENT_APPROVAL_PORT } from '@coopenomics/innercoop';
 import { LOGGER_PORT, type ILoggerPort, ONBOARDING_COMPLETED_EVENT } from '@coopenomics/innercoop';
+import { isCapitalL1Complete } from '../onboarding/capital-l1';
 import { computeOnboardingExpiresAt } from '@coopenomics/extension-kit';
 
 type OnboardingFlagKey =
@@ -201,8 +202,8 @@ export class CapitalOnboardingService {
 
     // Дописана последняя отметка — подключение завершено; расширение
     // перезапустится и зарегистрирует свои программы во вступлении.
-    const allDone = Object.values(CapitalOnboardingStepEnum).every((step) => Boolean(updated.config[this.mapStepToFlag(step)]));
-    if (allDone) {
+    // Параметры положений входят в подключение: без них завершения нет.
+    if (isCapitalL1Complete(updated.config)) {
       this.eventEmitter.emit(ONBOARDING_COMPLETED_EVENT, { extension_name: 'capital' });
     }
     return updated.config;
@@ -213,7 +214,7 @@ export class CapitalOnboardingService {
   }
 
   public async saveProgramDocDataHash(docDataHash: string): Promise<CapitalOnboardingStateDTO> {
-    await this.loadExtension();
+    const wasComplete = isCapitalL1Complete((await this.loadExtension()).config);
     const normalizedHash = docDataHash.trim();
 
     if (!normalizedHash) {
@@ -223,6 +224,13 @@ export class CapitalOnboardingService {
     const updated = await this.extensionRepository.patchConfig('capital', {
       capital_program_doc_data_hash: normalizedHash,
     } as Partial<CapitalOnboardingConfig>);
+
+    // Решения совета уже приняты (или перенесены из прежних протоколов), а
+    // параметры задали последними — подключение завершается сейчас: расширение
+    // перезапустится и предложит свои программы вступающим.
+    if (!wasComplete && isCapitalL1Complete(updated.config)) {
+      this.eventEmitter.emit(ONBOARDING_COMPLETED_EVENT, { extension_name: 'capital' });
+    }
 
     return this.buildState(updated.config as CapitalOnboardingConfig);
   }

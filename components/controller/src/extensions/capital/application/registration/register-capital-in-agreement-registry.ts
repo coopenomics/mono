@@ -15,6 +15,7 @@ import {
   generatorIntakeJsonSchema,
 } from './generator-intake.schema';
 import type { IConfig } from '../../capital-extension.module';
+import { isCapitalL1Complete } from '../onboarding/capital-l1';
 import { type IRegistrationRegistryPort,
   InnerAccountType,
 } from '@coopenomics/innercoop';
@@ -91,14 +92,8 @@ export function registerCapitalInAgreementRegistry(
   extensionConfig: IConfig,
   resolveDocDataHash?: () => Promise<string | undefined>
 ): boolean {
-  const onboardingDone =
-    extensionConfig.onboarding_generator_program_template_done &&
-    extensionConfig.onboarding_generation_contract_template_done &&
-    extensionConfig.onboarding_generator_offer_template_done &&
-    extensionConfig.onboarding_blagorost_provision_done &&
-    extensionConfig.onboarding_blagorost_offer_template_done;
-
-  if (!onboardingDone) {
+  // Без параметров положений оферту вступающему не собрать — ждём и их.
+  if (!isCapitalL1Complete(extensionConfig)) {
     return false;
   }
 

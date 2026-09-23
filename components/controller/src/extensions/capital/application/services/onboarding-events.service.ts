@@ -13,6 +13,7 @@ import { ContributorStatus } from '../../domain/enums/contributor-status.enum';
 import { ONBOARDING_COMPLETED_EVENT, type InnerOnboardingCompletedPayload } from '@coopenomics/innercoop';
 import { generateRandomHash } from '@coopenomics/extension-kit';
 import { GENERATOR_INTAKE_FORM_ID } from '../../constants/capital-agreement-ids';
+import { isCapitalL1Complete } from '../onboarding/capital-l1';
 import type { GeneratorIntakeAnswer } from '../registration/generator-intake.schema';
 
 @Injectable()
@@ -27,17 +28,6 @@ export class CapitalOnboardingEventsService {
     this.logger.setContext(CapitalOnboardingEventsService.name);
   }
 
-  /**
-   * Все 5 шагов L1-онбординга capital, по чьим _done флагам определяется
-   * завершённость L1 в кооперативе.
-   */
-  private static readonly L1_DONE_FLAGS: ReadonlyArray<keyof IConfig> = [
-    'onboarding_generator_program_template_done',
-    'onboarding_generation_contract_template_done',
-    'onboarding_generator_offer_template_done',
-    'onboarding_blagorost_provision_done',
-    'onboarding_blagorost_offer_template_done',
-  ];
 
   @OnEvent(DecisionTrackedEvent.eventName)
   async handleDecisionTracked(event: DecisionTrackedEvent): Promise<void> {
@@ -237,7 +227,7 @@ export class CapitalOnboardingEventsService {
    * Проверка: все 5 шагов L1-онбординга capital завершены.
    */
   private isL1Complete(cfg: IConfig): boolean {
-    return CapitalOnboardingEventsService.L1_DONE_FLAGS.every((flag) => !!(cfg as any)[flag]);
+    return isCapitalL1Complete(cfg);
   }
 
   /**

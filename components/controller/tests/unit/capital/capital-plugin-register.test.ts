@@ -32,6 +32,7 @@ const allDoneConfig = {
   onboarding_generator_offer_template_done: true,
   onboarding_blagorost_provision_done: true,
   onboarding_blagorost_offer_template_done: true,
+  capital_program_doc_data_hash: 'PARAMS_HASH',
 } as any;
 
 function makePortStub() {
@@ -140,4 +141,11 @@ describe('registerCapitalInAgreementRegistry', () => {
     expect(port.registerAgreement).toHaveBeenCalledTimes(4);
     expect(port.registerProgram).toHaveBeenCalledTimes(4);
   });
+
+  it('решения совета приняты, а параметры положений не заданы — оферты не предлагаются (их не собрать)', () => {
+    const port = makePortStub();
+    expect(registerCapitalInAgreementRegistry(port as any, { ...allDoneConfig, capital_program_doc_data_hash: '' })).toBe(false);
+    expect(port.registerAgreement).not.toHaveBeenCalled();
+  });
 });
+

@@ -158,8 +158,13 @@ export const useCapitalOnboarding = () => {
     return Number.isNaN(date.getTime()) ? null : date;
   });
 
+  // Подключение завершено, когда приняты решения совета И заданы параметры
+  // положений: без параметров не собрать ни оферты вступающих, ни документы
+  // регистрации участника. Решения могли прийти переносом прежних протоколов —
+  // тогда председатель попадает прямо на ввод параметров (то же правило, что
+  // на сервере — isCapitalL1Complete).
   const isOnboardingCompleted = computed(() => {
-    return stepsConfig.value.every(step => step.status === 'completed');
+    return stepsConfig.value.every(step => step.status === 'completed') && Boolean(onboardingState.value?.capital_program_doc_data_hash);
   });
 
   const hasPendingCouncilDecisions = computed(() =>

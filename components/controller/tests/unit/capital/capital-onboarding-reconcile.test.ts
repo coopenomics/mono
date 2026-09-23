@@ -62,7 +62,7 @@ describe('CapitalOnboardingService.reconcileFlags', () => {
   });
 
   it('последняя отметка не встала, а документ утверждён — дописывает её и объявляет подключение завершённым', async () => {
-    const repo = makeRepo({ ...allFlags(true), onboarding_generator_program_template_done: false });
+    const repo = makeRepo({ ...allFlags(true), onboarding_generator_program_template_done: false, capital_program_doc_data_hash: 'PARAMS_HASH' });
     const { service, approvals, emitter } = makeService(repo, ['generator_program']);
 
     const config = await service.reconcileFlags();
@@ -72,6 +72,43 @@ describe('CapitalOnboardingService.reconcileFlags', () => {
     expect(repo.patchConfig).toHaveBeenCalledWith('capital', { onboarding_generator_program_template_done: true });
     expect((config as any).onboarding_generator_program_template_done).toBe(true);
     expect(emitter.emit).toHaveBeenCalledWith(ONBOARDING_COMPLETED_EVENT, { extension_name: 'capital' });
+  });
+
+  // Стенд 23.09.2026: утверждения перенесены в цепь из прежних протоколов
+  // (vars), параметры положений не заданы — стол счёл подключение завершённым
+  // и повёл на регистрацию, а документы регистрации не собрались.
+  it('все отметки дописаны по утверждениям, но параметров нет — подключение не завершено', async () => {
+    const repo = makeRepo({ ...allFlags(false), capital_program_doc_data_hash: '' });
+    const { service, emitter } = makeService(repo, [
+      'generator_program',
+      'generation_contract_template',
+      'generator_offer_template',
+      'blagorost_program',
+      'blagorost_offer_template',
+    ]);
+
+    await service.reconcileFlags();
+
+    expect(emitter.emit).not.toHaveBeenCalled();
+  });
+
+  it('параметры заданы последними, решения уже приняты — подключение завершается сохранением параметров', async () => {
+    const repo = makeRepo({ ...allFlags(true), capital_program_doc_data_hash: '' });
+    const { service, emitter } = makeService(repo, []);
+
+    await service.saveProgramDocDataHash('PARAMS_HASH');
+
+    expect(repo.patchConfig).toHaveBeenCalledWith('capital', { capital_program_doc_data_hash: 'PARAMS_HASH' });
+    expect(emitter.emit).toHaveBeenCalledWith(ONBOARDING_COMPLETED_EVENT, { extension_name: 'capital' });
+  });
+
+  it('параметры меняются после завершения — повторного завершения нет', async () => {
+    const repo = makeRepo({ ...allFlags(true), capital_program_doc_data_hash: 'OLD' });
+    const { service, emitter } = makeService(repo, []);
+
+    await service.saveProgramDocDataHash('NEW');
+
+    expect(emitter.emit).not.toHaveBeenCalled();
   });
 
   it('дописана не последняя отметка — подключение завершённым не объявляется', async () => {
