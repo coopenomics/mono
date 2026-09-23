@@ -5,7 +5,7 @@ BaseCard.edu-course-card(variant="default" role="link" tabindex="0" @click="emit
     .edu-course-card__placeholder(v-else)
       q-icon(name="school" size="32px")
   .edu-course-card__body
-    .t-eyebrow.ellipsis {{ course.subject }} · {{ course.grade }}
+    .t-eyebrow.ellipsis {{ courseSectionLabel(course.subject, course.grade) }}
     .edu-course-card__title {{ course.title }}
     .edu-course-card__facts
       .edu-course-card__fact(v-if="course.schedule")
@@ -29,12 +29,12 @@ BaseCard.edu-course-card(variant="default" role="link" tabindex="0" @click="emit
 import { computed } from 'vue';
 import { pluralize } from 'src/shared/lib/utils';
 import { BaseCard } from 'src/shared/ui/base';
-import type { ICatalogCourse } from '../../entities/Course';
+import { courseSectionLabel, type ICatalogCourse } from '../../entities/Course';
 import { courseMonthsLabel } from '../../shared/lib/courseMonths';
 import { FeeAmount } from '../../shared/ui/FeeAmount';
 
 /**
- * Карточка курса в каталоге: обложка (или заглушка), предмет и класс, название,
+ * Карточка курса в каталоге: обложка (или заглушка), раздел и уровень, название,
  * расписание, нагрузка в месяц, членский взнос за месяц и год. Тип направления и
  * площадка посетителю не показываются — суть курса читается из заголовка.
  */

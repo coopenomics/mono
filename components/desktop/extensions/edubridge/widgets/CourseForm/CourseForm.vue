@@ -1,17 +1,29 @@
 <template lang="pug">
 BaseForm.edu-course-form(ref="formEl" :loading="loading" :error="error" @submit="submit")
-  //- Форма идёт разделами сверху вниз, поля — в одну колонку с подсказкой под
-  //- каждым: так читается, что от чего зависит. Пары коротких полей встают
-  //- рядом только когда места хватает, поэтому подсказки не обрезаются.
+  //- Форма идёт разделами сверху вниз, поля — в одну колонку. Пояснение к полю —
+  //- значок «?» справа, текст всплывает при наведении; строка под полем
+  //- остаётся для ошибки ввода. Пары коротких полей встают рядом, когда места хватает.
   section.edu-course-form__section(v-if="show('course')")
     .edu-course-form__legend(v-if="!section") Курс
-    BaseInput(v-model="form.title" label="Название курса" hint="Как курс увидят в каталоге" required)
+    BaseInput(v-model="form.title" label="Название курса" required)
+      template(#append)
+        FieldHelp(:text="COURSE_FORM_HELP.title")
     .edu-course-form__pair
-      BaseInput(v-model="form.subject" label="Предмет" required)
-      BaseInput(v-model="form.grade" label="Класс" placeholder="7 класс" required)
-    BaseInput(v-model="form.schedule" label="Расписание" placeholder="Вт, Чт 17:00–18:30" hint="Дни и время занятий — строкой, как их видит ученик")
+      BaseSelect(v-model="form.subject" label="Раздел" :options="sectionOptions" creatable required)
+        template(#append)
+          FieldHelp(:text="COURSE_FORM_HELP.subject")
+      BaseSelect(:model-value="form.grade" label="Уровень" :options="levelOptions" creatable clearable @update:model-value="(v) => (form.grade = v ? String(v) : '')")
+        template(#append)
+          FieldHelp(:text="COURSE_FORM_HELP.grade")
+    BaseInput(v-model="form.schedule" label="Расписание" placeholder="Вт, Чт 17:00–18:30")
+      template(#append)
+        FieldHelp(:text="COURSE_FORM_HELP.schedule")
     BaseInput(v-model="form.description" label="Описание" type="textarea" :rows="3" autogrow)
+      template(#append)
+        FieldHelp(:text="COURSE_FORM_HELP.description")
     BaseInput(v-model="form.syllabus" label="Учебная программа" type="textarea" :rows="5" autogrow)
+      template(#append)
+        FieldHelp(:text="COURSE_FORM_HELP.syllabus")
 
   section.edu-course-form__section(v-if="show('cover')")
     .edu-course-form__legend(v-if="!section") Обложка
@@ -39,13 +51,21 @@ BaseForm.edu-course-form(ref="formEl" :loading="loading" :error="error" @submit=
     .edu-course-form__group
       .edu-course-form__group-title Занятия
       .edu-course-form__pair
-        BaseInput(v-model="lessonsPerMonth" label="Занятий в месяц" type="number" hint="По расписанию курса" required)
+        BaseInput(v-model="lessonsPerMonth" label="Занятий в месяц" type="number" required)
+          template(#append)
+            FieldHelp(:text="COURSE_FORM_HELP.lessonsPerMonth")
         BaseInput(v-model="lessonMinutes" label="Длительность занятия, минут" type="number" required)
-      BaseInput(v-model="lessonsTotal" label="Занятий в программе" type="number" hint="Всего занятий курса — от них считается его длительность" required)
+          template(#append)
+            FieldHelp(:text="COURSE_FORM_HELP.lessonMinutes")
+      BaseInput(v-model="lessonsTotal" label="Занятий в программе" type="number" required)
+        template(#append)
+          FieldHelp(:text="COURSE_FORM_HELP.lessonsTotal")
 
     .edu-course-form__group
       .edu-course-form__group-title Ставка
-      BaseInput(v-model="plannedRate" label="Ставка часа" type="number" :suffix="symbol" hint="Плановая ставка преподавателя: из неё складывается взнос" required)
+      BaseInput(v-model="plannedRate" label="Ставка часа" type="number" :suffix="symbol" required)
+        template(#append)
+          FieldHelp(:text="COURSE_FORM_HELP.plannedRate")
 
     .edu-course-form__group
       .edu-course-form__group-title Сроки
@@ -55,31 +75,35 @@ BaseForm.edu-course-form(ref="formEl" :loading="loading" :error="error" @submit=
           label="Дата начала занятий"
           type="date"
           stack-label
-          hint="От неё отсчитывается гарантийный срок курса"
         )
+          template(#append)
+            FieldHelp(:text="COURSE_FORM_HELP.startsAt")
         BaseInput(
           v-model="guaranteeDays"
           label="Гарантийный срок, дней"
           type="number"
-          hint="Столько дней ученик может вернуть взнос"
         )
+          template(#append)
+            FieldHelp(:text="COURSE_FORM_HELP.guaranteeDays")
 
     //- Взнос вносят помесячно либо разом за весь курс. Поле скидки стоит на месте
     //- всегда и лишь включается — форма не прыгает при переключении.
     .edu-course-form__group
       .edu-course-form__group-title Взнос за весь курс
       .edu-course-form__switch
-        BaseCheckbox(v-model="coursePayment" block)
-          | Принимать взнос за весь курс разом
-        .t-meta.t-muted {{ coursePaymentHint }}
+        .edu-course-form__check
+          BaseCheckbox(v-model="coursePayment")
+            | Принимать взнос за весь курс разом
+          FieldHelp(:text="coursePaymentHint")
       BaseInput(
         v-model="courseDiscount"
         label="Скидка за взнос разом, %"
         type="number"
         :disabled="!coursePayment"
-        :hint="discountHint"
         :error="discountError"
       )
+        template(#append)
+          FieldHelp(:text="discountHint")
 
     //- Итог расчёта — отдельной плашкой во всю ширину под полями: он меняется
     //- на глазах и читается как результат, а не как ещё одно поле.
@@ -111,27 +135,35 @@ BaseForm.edu-course-form(ref="formEl" :loading="loading" :error="error" @submit=
   section.edu-course-form__section(v-if="show('access')")
     .edu-course-form__legend(v-if="!section") Выдача доступа
     .edu-course-form__pair
-      BaseSelect(v-model="form.direction" label="Тип направления" :options="directionOptions" hint="Внутренний признак, ученику не виден" required)
+      BaseSelect(v-model="form.direction" label="Тип направления" :options="directionOptions" required)
+        template(#append)
+          FieldHelp(:text="COURSE_FORM_HELP.direction")
       BaseSelect(v-model="form.carrier" label="Носитель доступа" :options="carrierOptions" required)
+        template(#append)
+          FieldHelp(:text="COURSE_FORM_HELP.carrier")
     template(v-if="isSkillspace")
       BaseSelect(
         v-model="skillspaceCourseId"
         label="Курс в школе Skillspace"
         :options="platformCourseOptions"
         :disabled="!platformCourses.length"
-        :hint="platformCourses.length ? 'Реестр курсов школы по API-ключу кооператива' : 'Реестр школы пуст или ключ Skillspace не задан'"
         searchable
         required
       )
+        template(#append)
+          FieldHelp(:text="platformCourses.length ? COURSE_FORM_HELP.skillspaceCourse : COURSE_FORM_HELP.skillspaceCourseEmpty")
       BaseSelect(
         v-model="skillspaceGroupId"
         label="Группа курса"
         :options="platformGroupOptions"
         :disabled="!platformGroupOptions.length"
-        :hint="platformGroupOptions.length ? 'Без группы обучающийся зачисляется на курс напрямую' : 'У курса нет групп — зачисление на курс напрямую'"
         clearable
       )
-    BaseInput(v-else-if="isPlatform" v-model="form.external_ref" label="Идентификатор курса на площадке" mono :hint="externalRefHint" required)
+        template(#append)
+          FieldHelp(:text="platformGroupOptions.length ? COURSE_FORM_HELP.skillspaceGroup : COURSE_FORM_HELP.skillspaceGroupEmpty")
+    BaseInput(v-else-if="isPlatform" v-model="form.external_ref" label="Идентификатор курса на площадке" mono required)
+      template(#append)
+        FieldHelp(:text="COURSE_FORM_HELP.externalRef")
 
   //- Назначенные преподаватели идут списком имён, а выбор — строкой под ним.
   section.edu-course-form__section(v-if="show('teachers')")
@@ -150,10 +182,11 @@ BaseForm.edu-course-form(ref="formEl" :loading="loading" :error="error" @submit=
       label="Назначить преподавателя"
       :options="teacherOptions"
       :disabled="!teacherOptions.length"
-      :hint="teacherHint"
       searchable
       @update:model-value="addTeacher"
     )
+      template(#append)
+        FieldHelp(:text="teacherHint")
 
   template(v-if="!hideFooter" #footer)
     .row.justify-end.q-gutter-sm
@@ -164,10 +197,11 @@ BaseForm.edu-course-form(ref="formEl" :loading="loading" :error="error" @submit=
 <script setup lang="ts">
 import { ref } from 'vue';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
-import { BaseButton, BaseCheckbox, BaseForm, BaseInput, BaseSelect } from 'src/shared/ui/base';
+import { BaseButton, BaseCheckbox, BaseForm, BaseInput, BaseSelect, FieldHelp } from 'src/shared/ui/base';
 import { IdentityCell } from 'src/shared/ui/domain';
 import { COURSE_IMAGE_ACCEPT, type ICourse } from '../../entities/Course';
 import { createCourseFormState, injectCourseForm, type CourseFormSection } from './model/useCourseForm';
+import { COURSE_FORM_HELP } from './model/courseFormHelp';
 
 /**
  * Конструктор курса. На полной странице правки каждый раздел — отдельный шаг,
@@ -214,9 +248,10 @@ const {
   carrierOptions,
   isPlatform,
   isSkillspace,
-  externalRefHint,
   platformCourseOptions,
   platformGroupOptions,
+  sectionOptions,
+  levelOptions,
   teacherOptions,
   teacherName,
   teacherHint,
@@ -287,6 +322,11 @@ defineExpose({ submit: requestSubmit, validate });
   display: flex;
   flex-direction: column;
   gap: var(--p-1);
+}
+.edu-course-form__check {
+  display: flex;
+  align-items: center;
+  gap: var(--p-2);
 }
 /* Пара коротких полей встаёт в ряд, только когда хватает ширины: иначе
    подсказка под одним полем обрезается высотой соседнего. */

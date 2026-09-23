@@ -5,9 +5,9 @@ BaseCard.edu-admin-course(variant="default" role="link" tabindex="0" @click="emi
     .edu-admin-course__placeholder(v-else)
       q-icon(name="school" size="32px")
   .edu-admin-course__body
-    //- Предмет с классом слева, состояние курса справа — одной строкой над названием.
+    //- Раздел с уровнем слева, состояние курса справа — одной строкой над названием.
     .edu-admin-course__meta
-      .t-eyebrow.ellipsis {{ course.subject }} · {{ course.grade }}
+      .t-eyebrow.ellipsis {{ courseSectionLabel(course.subject, course.grade) }}
       BaseBadge(:variant="status.variant") {{ status.label }}
     .edu-admin-course__title {{ course.title }}
     .edu-admin-course__facts
@@ -32,7 +32,7 @@ BaseCard.edu-admin-course(variant="default" role="link" tabindex="0" @click="emi
 <script setup lang="ts">
 import { computed } from 'vue';
 import { BaseBadge, BaseCard } from 'src/shared/ui/base';
-import { COURSE_STATUS_LABELS, type ICourse } from '../../entities/Course';
+import { COURSE_STATUS_LABELS, courseSectionLabel, type ICourse } from '../../entities/Course';
 import { courseMonthsLabel } from '../../shared/lib/courseMonths';
 import { FeeAmount } from '../../shared/ui/FeeAmount';
 

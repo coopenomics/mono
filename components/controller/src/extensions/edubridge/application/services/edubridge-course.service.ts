@@ -105,7 +105,9 @@ export class EdubridgeCourseService {
     const map = new Map<string, string[]>();
     for (const r of rows) {
       const grades = map.get(r.subject) ?? [];
-      grades.push(r.grade);
+      // Уровень необязателен: курс без уровня виден в разделе, но пустого
+      // пункта в фильтре уровней нет.
+      if (r.grade) grades.push(r.grade);
       map.set(r.subject, grades);
     }
     return [...map.entries()].map(([subject, grades]) => ({ subject, grades }));

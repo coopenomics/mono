@@ -7,7 +7,7 @@ BaseCard.edu-hero(variant="default")
   .edu-hero__body
     .edu-hero__head
       .edu-hero__text
-        .edu-hero__subject {{ subject }}, {{ grade }}
+        .edu-hero__subject {{ courseSectionLabel(subject, grade, ', ') }}
         h1.edu-hero__title {{ title }}
         .edu-hero__facts(v-if="$slots.facts")
           slot(name="facts")
@@ -19,6 +19,7 @@ BaseCard.edu-hero(variant="default")
 
 <script setup lang="ts">
 import { BaseCard } from 'src/shared/ui/base';
+import { courseSectionLabel } from '../../entities/Course';
 
 defineProps<{
   title: string;

@@ -1,7 +1,7 @@
 <template lang="pug">
 .q-pa-md
   PageHint.q-mb-md(storage-key="edu:catalog:banner-dismissed")
-    | Каталог курсов кооператива. Выберите предмет и класс, откройте карточку —
+    | Каталог курсов кооператива. Выберите раздел и уровень, откройте карточку —
     | там расписание, преподаватель, размер членского взноса и учебная программа.
 
   FilterBar.q-mb-md(hide-search :filters="filters" :model-value="filterValues" @update:model-value="onFilters" @reset="onFilters({})")
@@ -11,7 +11,7 @@
   EmptyState(
     v-else-if="!items.length"
     title="Курсов пока нет"
-    body="Как только кооператив опубликует курсы по выбранным предмету и классу, они появятся здесь."
+    body="Как только кооператив опубликует курсы в выбранном разделе и уровне, они появятся здесь."
   )
     template(#icon)
       q-icon(name="school" size="40px")
@@ -37,8 +37,8 @@ import { CourseCard } from '../../widgets/CourseCard';
 
 /**
  * Каталог курсов — витрина стола ученика, открытая посетителю до вступления.
- * Иерархия предмет → класс — двумя фильтрами поверх одного списка: бэкенд
- * отдаёт пары «предмет/класс», по которым есть опубликованные курсы.
+ * Иерархия раздел → уровень — двумя фильтрами поверх одного списка: бэкенд
+ * отдаёт пары «раздел/уровень», по которым есть опубликованные курсы.
  */
 const PAGE_SIZE = 24;
 
@@ -55,10 +55,10 @@ const currentPage = ref(1);
 const totalPages = ref(0);
 
 const filters = computed<FilterDefinition[]>(() => [
-  { key: 'subject', label: 'Предмет', type: 'select', options: subjects.value.map((s) => ({ value: s.subject, label: s.subject })) },
+  { key: 'subject', label: 'Раздел', type: 'select', options: subjects.value.map((s) => ({ value: s.subject, label: s.subject })) },
   {
     key: 'grade',
-    label: 'Класс',
+    label: 'Уровень',
     type: 'select',
     options: (subjects.value.find((s) => s.subject === subject.value)?.grades ?? []).map((g) => ({ value: g, label: g })),
   },
@@ -83,7 +83,7 @@ async function load(page: number): Promise<void> {
   }
 }
 
-// Класс имеет смысл только внутри предмета: сменили предмет — класс сбрасывается.
+// Уровень имеет смысл только внутри раздела: сменили раздел — уровень сбрасывается.
 function onFilters(values: FilterValues): void {
   const nextSubject = (values.subject as string | null | undefined) ?? null;
   const nextGrade = (values.grade as string | null | undefined) ?? null;

@@ -23,10 +23,10 @@ export class EduCatalogCourseDTO {
   @Field(() => String, { description: 'Название курса' })
   title!: string;
 
-  @Field(() => String, { description: 'Предмет' })
+  @Field(() => String, { description: 'Раздел каталога — область знаний: «Математика», «Духовные практики»' })
   subject!: string;
 
-  @Field(() => String, { description: 'Класс' })
+  @Field(() => String, { description: 'Уровень внутри раздела: «7 класс», «Ступень 1»' })
   grade!: string;
 
   @Field(() => String, { description: 'Описание курса' })
@@ -156,21 +156,21 @@ export class EduCourseDTO extends EduCatalogCourseDTO {
 
 @ObjectType('EduCatalogSubject')
 export class EduCatalogSubjectDTO {
-  @Field(() => String, { description: 'Предмет' })
+  @Field(() => String, { description: 'Раздел каталога — область знаний: «Математика», «Духовные практики»' })
   subject!: string;
 
-  @Field(() => [String], { description: 'Классы, по которым есть курсы' })
+  @Field(() => [String], { description: 'Уровни раздела, по которым есть курсы; курсы без уровня сюда не входят' })
   grades!: string[];
 }
 
 @InputType('EduCatalogFilterInput')
 export class EduCatalogFilterInputDTO {
-  @Field(() => String, { nullable: true, description: 'Предмет' })
+  @Field(() => String, { nullable: true, description: 'Раздел каталога — область знаний: «Математика», «Духовные практики»' })
   @IsOptional()
   @IsString()
   subject?: string;
 
-  @Field(() => String, { nullable: true, description: 'Класс' })
+  @Field(() => String, { nullable: true, description: 'Уровень внутри раздела: «7 класс», «Ступень 1»' })
   @IsOptional()
   @IsString()
   grade?: string;
@@ -216,14 +216,14 @@ export class EduCourseInputDTO {
   @Length(1, 255)
   title!: string;
 
-  @Field(() => String, { description: 'Предмет' })
+  @Field(() => String, { description: 'Раздел каталога — область знаний: «Математика», «Духовные практики»' })
   @IsString()
   @Length(1, 120)
   subject!: string;
 
-  @Field(() => String, { description: 'Класс' })
+  @Field(() => String, { description: 'Уровень внутри раздела: «7 класс», «Ступень 1»; пусто — без уровня' })
   @IsString()
-  @Length(1, 60)
+  @Length(0, 60)
   grade!: string;
 
   @Field(() => String, { nullable: true, description: 'Описание курса' })

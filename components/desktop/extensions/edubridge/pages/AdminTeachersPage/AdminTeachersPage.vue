@@ -107,7 +107,7 @@ import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { Avatar, BaseBadge, BaseButton, BaseForm, BaseInput, BaseSelect, BaseTable, EmptyState, type BaseTableColumn } from 'src/shared/ui/base';
 import { AccountBadge, DataRow, DetailsDrawer, PageHint } from 'src/shared/ui/domain';
 import { PageTabs, type PageTab } from 'src/shared/ui/layout';
-import { fetchCourses, type ICourse } from '../../entities/Course';
+import { courseSectionLabel, fetchCourses, type ICourse } from '../../entities/Course';
 import {
   ASSIGNMENT_STATUS_LABELS,
   CONTRACT_STATUS_LABELS,
@@ -159,7 +159,7 @@ const columns: BaseTableColumn<ITeacher>[] = [
   { key: 'signed_at', label: 'Подписан', width: '130px', nowrap: true },
 ];
 
-const courseOptions = computed(() => courses.value.map((c) => ({ value: asText(c.id), label: `${c.title} · ${c.subject}, ${c.grade}` })));
+const courseOptions = computed(() => courses.value.map((c) => ({ value: asText(c.id), label: `${c.title} · ${courseSectionLabel(c.subject, c.grade, ', ')}` })));
 const ownAssignments = computed(() => assignments.value.filter((a) => a.teacher_username === current.value?.username));
 
 const contractStatusOf = (s: string) => CONTRACT_STATUS_LABELS[s] ?? { label: s, variant: 'neutral' as const };

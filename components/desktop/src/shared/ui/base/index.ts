@@ -12,6 +12,7 @@ export * from './BaseDialog';
 export * from './BaseBanner';
 export * from './BaseForm';
 export * from './EmptyState';
+export * from './FieldHelp';
 export * from './TableSkeleton';
 export * from './TablePager';
 export * from './CardListSkeleton';

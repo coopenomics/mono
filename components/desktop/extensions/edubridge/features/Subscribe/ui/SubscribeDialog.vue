@@ -55,7 +55,7 @@ import { BaseBanner, BaseButton, BaseDialog, BaseRadioCard, BaseSelect } from 's
 import { DataRow } from 'src/shared/ui/domain';
 import type { DigitalDocument } from 'src/shared/lib/document';
 import { fetchQuote, type IEnrollment, type ILearner, type IQuote } from '../../../entities/Learner';
-import type { ICatalogCourse } from '../../../entities/Course';
+import { courseSectionLabel, type ICatalogCourse } from '../../../entities/Course';
 import { LearnerForm } from '../../../widgets/LearnerForm';
 import { courseMonthsLabel } from '../../../shared/lib/courseMonths';
 import { FeeAmount } from '../../../shared/ui/FeeAmount';
@@ -101,7 +101,7 @@ const busy = ref(false);
 const statement = ref<DigitalDocument | null>(null);
 
 const learnerOptions = computed(() => pool.value.map((l) => ({ value: asText(l.id), label: l.is_self ? `${l.display_name} (я)` : l.display_name })));
-const courseOptions = computed(() => props.courses.map((c) => ({ value: asText(c.id), label: `${c.title} · ${c.subject}, ${c.grade}` })));
+const courseOptions = computed(() => props.courses.map((c) => ({ value: asText(c.id), label: `${c.title} · ${courseSectionLabel(c.subject, c.grade, ', ')}` })));
 const courseTitle = computed(() => props.courses.find((c) => c.id === courseId.value)?.title ?? '');
 
 function formatDate(value: unknown): string {

@@ -11,6 +11,7 @@ import {
   DIRECTION_LABELS,
   PLATFORM_CARRIERS,
   createCourse,
+  fetchCourses,
   fetchPlatformCourses,
   fetchTeacherOptions,
   updateCourse,
@@ -19,6 +20,7 @@ import {
   type IPlatformCourse,
   type ITeacherOption,
 } from '../../../entities/Course';
+import { COURSE_FORM_HELP } from './courseFormHelp';
 
 /** Разделы формы курса: на полной странице каждый — отдельный шаг. */
 export type CourseFormSection = 'course' | 'cover' | 'price' | 'access' | 'teachers';
@@ -149,7 +151,9 @@ function useFeePreview(economy: ReturnType<typeof useEconomyFields>) {
     return n > 0 ? `${n} ${pluralize(n, ['месяц', 'месяца', 'месяцев'])}` : '';
   });
   const coursePaymentHint = computed(() =>
-    courseMonthsLabel.value ? `Курс длится ${courseMonthsLabel.value} — по программе и нагрузке в месяц. Иначе взнос только помесячный.` : 'Иначе взнос только помесячный.',
+    courseMonthsLabel.value
+      ? `${COURSE_FORM_HELP.coursePayment} Курс длится ${courseMonthsLabel.value} — по программе и нагрузке в месяц.`
+      : COURSE_FORM_HELP.coursePayment,
   );
   const courseFeeShown = computed(() => coursePayment.value && (fee.value?.course_months ?? 0) > 0);
   const courseFeeLabel = computed(() => (courseFeeShown.value ? `Взнос за весь курс, ${courseMonthsLabel.value}` : 'Взнос за весь курс'));
@@ -183,7 +187,6 @@ function useFeePreview(economy: ReturnType<typeof useEconomyFields>) {
 }
 
 const directionOptions = Object.entries(DIRECTION_LABELS).map(([value, label]) => ({ value, label }));
-const externalRefHint = 'Идентификатор группы GetCourse, в которую попадает обучающийся';
 
 /**
  * Выдача доступа. Носитель зависит от направления: онлайн-платформа —
@@ -251,11 +254,34 @@ function useAccess(form: CourseFormFields) {
     carrierOptions,
     isPlatform,
     isSkillspace,
-    externalRefHint,
     platformCourseOptions,
     platformGroupOptions,
     fillAccess,
   };
+}
+
+/**
+ * Разделы и уровни каталога — из курсов кооператива, включая черновики.
+ * Раздел выбирают из списка, а новый добавляют вводом: так один предмет не
+ * расходится на два написания. Уровни предлагаются внутри выбранного раздела.
+ */
+function useTaxonomy(form: CourseFormFields) {
+  const known = ref<Array<{ subject: string; grade: string }>>([]);
+  const toOptions = (values: string[]) =>
+    [...new Set(values.map((v) => v.trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'ru')).map((v) => ({ value: v, label: v }));
+  const sectionOptions = computed(() => toOptions(known.value.map((c) => c.subject)));
+  const levelOptions = computed(() => toOptions(known.value.filter((c) => c.subject === form.subject).map((c) => c.grade)));
+
+  onMounted(async () => {
+    try {
+      const page = await fetchCourses({ options: { page: 1, limit: 200, sortBy: 'sort_order', sortOrder: 'ASC' } });
+      known.value = page.items.map((c) => ({ subject: c.subject, grade: c.grade }));
+    } catch (e) {
+      FailAlert(e);
+    }
+  });
+
+  return { sectionOptions, levelOptions };
 }
 
 /** Преподаватели — пайщики с подписанным договором УХД, их может быть несколько. */
@@ -271,8 +297,8 @@ function useTeachers(form: CourseFormFields) {
   const teacherName = (username: string) => teachers.value.find((t) => t.username === username)?.display_name || null;
   const teacherHint = computed(() =>
     teachers.value.length
-      ? 'Пайщики с подписанным договором участия в хозяйственной деятельности'
-      : 'Пока никто не подписал договор участия в хозяйственной деятельности',
+      ? 'В списке пайщики с подписанным договором участия в хозяйственной деятельности. Преподавателей у курса может быть несколько.'
+      : 'Пока никто не подписал договор участия в хозяйственной деятельности. Курс можно сохранить и назначить преподавателя позже.',
   );
 
   function addTeacher(value: string | number | null): void {
@@ -328,6 +354,7 @@ export function createCourseFormState(course: CourseSource) {
   const feePreview = useFeePreview(economy);
   const access = useAccess(form);
   const teachers = useTeachers(form);
+  const taxonomy = useTaxonomy(form);
 
   watch(
     () => course(),
@@ -364,7 +391,7 @@ export function createCourseFormState(course: CourseSource) {
     }
   }
 
-  return { symbol, loading, error, form, ...cover, ...economy, ...feePreview, ...access, ...teachers, submit };
+  return { symbol, loading, error, form, ...cover, ...economy, ...feePreview, ...access, ...teachers, ...taxonomy, submit };
 }
 
 export type CourseFormState = ReturnType<typeof createCourseFormState>;

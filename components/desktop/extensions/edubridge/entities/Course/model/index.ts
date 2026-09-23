@@ -52,3 +52,11 @@ export const PLATFORM_CARRIERS: Zeus.EduAccessCarrier[] = [Zeus.EduAccessCarrier
 /** Обложка курса: те же пределы, что у bucket'а `edubridge:images` на сервере. */
 export const COURSE_IMAGE_ACCEPT = 'image/jpeg,image/png,image/webp';
 export const COURSE_IMAGE_MAX_BYTES = 10 * 1024 * 1024;
+
+/**
+ * Раздел с уровнем одной строкой: «Математика · 7 класс». Уровень
+ * необязателен — без него остаётся раздел, без висящего разделителя.
+ */
+export function courseSectionLabel(subject: string, grade: string | null | undefined, separator = ' · '): string {
+  return [subject, grade].map((v) => (v ?? '').trim()).filter(Boolean).join(separator);
+}

@@ -156,6 +156,28 @@ describe('EdubridgeCourseService — конструктор курса', () => {
   });
 });
 
+describe('EdubridgeCourseService — раздел и уровень каталога', () => {
+  it('курс без уровня сохраняется: уровень необязателен', async () => {
+    const { service, saved } = make();
+    const course = await service.create('voskhod', 'ant', { ...base, subject: 'Духовные практики', grade: '' });
+    expect(course.grade).toBe('');
+    expect(saved).toHaveLength(1);
+  });
+
+  it('фильтр каталога: уровни внутри раздела, курсы без уровня пустого пункта не дают', async () => {
+    const { service, courses } = make();
+    courses.listSubjects = jest.fn(async () => [
+      { subject: 'Духовные практики', grade: '' },
+      { subject: 'Духовные практики', grade: 'Ступень 1' },
+      { subject: 'Математика', grade: '7 класс' },
+    ]);
+    await expect(service.subjects('voskhod')).resolves.toEqual([
+      { subject: 'Духовные практики', grades: ['Ступень 1'] },
+      { subject: 'Математика', grades: ['7 класс'] },
+    ]);
+  });
+});
+
 describe('EdubridgeCourseService — обложка курса', () => {
   const png = Buffer.from('png-bytes').toString('base64');
 
