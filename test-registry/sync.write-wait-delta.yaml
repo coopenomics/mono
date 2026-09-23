@@ -19,6 +19,7 @@ sources:
   backend:
     - components/controller/src/infrastructure/blockchain/chain-delta-waiter.service.ts
     - components/controller/src/infrastructure/blockchain/blockchain-consumer.service.ts
+    - components/controller/src/infrastructure/blockchain/action-release-gate.service.ts
     - components/controller/src/extensions/chairman/application/services/approval.service.ts
     - components/controller/src/extensions/edubridge/application/listeners/edubridge-contract-delta.listener.ts
     - components/innercoop/src/core-ports/chain-delta-wait.port.ts
@@ -66,3 +67,18 @@ cases:
     expect: "Сразу после ответа карточка показывает «Действует» и дату подписи председателя, без перезагрузки и пауз на стороне стола."
     test: ~
     status: missing
+  - id: sync.wwd.happy.04
+    level: backend
+    kind: happy
+    scenario: "Действие блока N сохранено; приходит событие блока N+1 либо цепь простаивает (parser2 дочитал дальше, у группы lag = 0 и pending = 0)."
+    expect: "Действие уходит в шину сразу по факту разбора блока — без паузы в 3 секунды; своё блоковое событие действие не выпускает."
+    test: components/controller/src/infrastructure/blockchain/action-release-gate.service.spec.ts
+    status: passing
+  - id: sync.wwd.side.03
+    level: backend
+    kind: side
+    scenario: "В потоке есть непрочитанное или неподтверждённое; Redis не отвечает; обработчик одного действия падает."
+    expect: "Пока поток не разобран — ждёт; при молчании Redis — выпуск по страховке с предупреждением; упавший обработчик не мешает остальным."
+    test: components/controller/src/infrastructure/blockchain/action-release-gate.service.spec.ts
+    status: passing
+

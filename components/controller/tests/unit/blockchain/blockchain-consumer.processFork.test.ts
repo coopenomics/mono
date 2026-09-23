@@ -58,14 +58,16 @@ function makeService(overrides: {
   parserInteractor?: any;
   forkRegistry?: any;
   deltaWaiter?: any;
+  actionGate?: any;
 }) {
   const logger = overrides.logger ?? makeLoggerStub();
   const events = overrides.events ?? makeEventsServiceStub();
   const parser = overrides.parserInteractor ?? makeParserInteractorStub();
   const fork = overrides.forkRegistry ?? makeForkRegistryStub();
   const deltaWaiter = overrides.deltaWaiter ?? { wake: jest.fn() };
-  const service = new BlockchainConsumerService(logger, events, parser, fork, deltaWaiter);
-  return { service, logger, events, parser, fork, deltaWaiter };
+  const actionGate = overrides.actionGate ?? { enqueue: jest.fn(), onBlockSeen: jest.fn() };
+  const service = new BlockchainConsumerService(logger, events, parser, fork, deltaWaiter, actionGate);
+  return { service, logger, events, parser, fork, deltaWaiter, actionGate };
 }
 
 describe('BlockchainConsumerService.processFork (Stories 4.1 + 4.2)', () => {
@@ -309,4 +311,27 @@ describe('BlockchainConsumerService.processAction/processDelta — markEventAppl
     expect(parser.markEventApplied).toHaveBeenCalled();
     expect(deltaWaiter.wake).toHaveBeenCalledWith(delta);
   });
+
+  it('processAction: действие уходит в очередь выпуска со своим блоком, а не по таймеру', async () => {
+    const actionGate = { enqueue: jest.fn(), onBlockSeen: jest.fn() };
+    const events = makeEventsServiceStub();
+    const { service } = makeService({ actionGate, events });
+    const { config } = await import('~/config');
+    const action = {
+      account: 'capital',
+      receiver: 'capital',
+      name: 'createpinv',
+      block_num: 55,
+      global_sequence: '1',
+      data: { coopname: config.coopname },
+    } as any;
+
+    await (service as any).processActionDelayed(action);
+
+    expect(actionGate.enqueue).toHaveBeenCalledWith(55, expect.any(Function));
+    expect(events.emit).not.toHaveBeenCalled();
+    actionGate.enqueue.mock.calls[0][1]();
+    expect(events.emit).toHaveBeenCalledWith('action::capital::createpinv', action);
+  });
 });
+

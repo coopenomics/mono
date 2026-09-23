@@ -2,6 +2,7 @@
 
 import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { ChainDeltaWaiterService } from './chain-delta-waiter.service';
+import { ActionReleaseGate } from './action-release-gate.service';
 import { ParserClient, type ParserEvent } from '@coopenomics/parser2';
 import { IAction, IDelta } from '~/types/common';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
@@ -53,7 +54,8 @@ export class BlockchainConsumerService implements OnModuleInit, OnModuleDestroy 
     private readonly eventsService: EventsService,
     private readonly parserInteractor: ParserInteractor,
     private readonly forkRegistry: ForkRegistryService,
-    private readonly deltaWaiter: ChainDeltaWaiterService
+    private readonly deltaWaiter: ChainDeltaWaiterService,
+    private readonly actionGate: ActionReleaseGate
   ) {
     this.logger.setContext(BlockchainConsumerService.name);
   }
@@ -153,6 +155,11 @@ export class BlockchainConsumerService implements OnModuleInit, OnModuleDestroy 
    * action/delta: save → mark, иначе сбой между save и mark = silent loss).
    */
   private async handleEvent(event: ParserEvent): Promise<void> {
+    // События идут строго по порядку блоков: взяли событие блока B — всё из
+    // более ранних блоков уже разобрано, их действия можно выпускать в шину.
+    const blockNum = (event as { block_num?: number }).block_num;
+    if (typeof blockNum === 'number') this.actionGate.onBlockSeen(blockNum);
+
     switch (event.kind) {
       case 'action':
         return this.processAction(mapParserActionToIAction(event));
@@ -185,7 +192,7 @@ export class BlockchainConsumerService implements OnModuleInit, OnModuleDestroy 
    * с задержкой публикует событие во внутреннюю шину.
    *
    * Порядок writes: сохранение → ACK (по возврату из handleEvent) →
-   * отложенный emit события через ACTION_EMIT_DELAY_MS. Задержка нужна
+   * отложенный emit — когда блок действия разобран целиком (ActionReleaseGate). Отложен он
    * чтобы дельты, попавшие в стрим из того же блока что и action, успели
    * пройти обработчики и прописаться в БД ДО того, как обработчики action
    * полезут читать состояние (например, ClearanceManagementInteractor по
@@ -241,18 +248,19 @@ export class BlockchainConsumerService implements OnModuleInit, OnModuleDestroy 
     // block_num пишем для последующего deleteAfterBlock на форке (Story 4.1).
     await this.parserInteractor.markEventApplied(eventId, action.block_num);
 
-    // Публикуем событие с задержкой — пусть сначала прокатятся дельты этого же блока
-    // (capital_appendixes, capital_projects, ...), чтобы обработчики action видели
-    // уже персистентное состояние. saveAction уже выполнен, так что данные не
-    // потеряем; задерживаем только emit. Задержка вынесена в конфиг (DEC-007).
+    // Публикуем, когда блок действия разобран целиком: обработчики action читают
+    // состояние, которое пишут дельты того же блока (capital_appendixes,
+    // capital_projects, …). Прежде вместо этого стояла пауза в 3 секунды
+    // (DEC-007); теперь — по факту следующего блока или простоя потока.
+    // saveAction уже выполнен, так что данные не потеряем; откладываем только emit.
     const eventName = `action::${action.account}::${action.name}`;
-    const delayMs = config.blockchain.action_emit_delay_ms;
-    setTimeout(() => {
+    const queuedAt = Date.now();
+    this.actionGate.enqueue(action.block_num, () => {
       this.eventsService.emit(eventName, action);
       this.logger.debug(
-        `Действие опубликовано в событийную шину: ${eventName} с sequence ${action.global_sequence} (delay ${delayMs}ms)`
+        `Действие опубликовано в событийную шину: ${eventName} с sequence ${action.global_sequence} (через ${Date.now() - queuedAt} мс)`
       );
-    }, delayMs);
+    });
   }
 
   private isActionException(account: string, actionName: string): boolean {
