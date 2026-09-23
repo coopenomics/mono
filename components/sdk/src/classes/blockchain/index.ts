@@ -1,5 +1,6 @@
 import type { TransactResult } from '@wharfkit/session'
 import type { BlockchainConfig, IndexPosition } from '../../types/blockchain/blockchain.types'
+import { lt } from '@coopenomics/i18n'
 import { Action, type API, APIClient, PrivateKey } from '@wharfkit/antelope'
 import { ContractKit, Table } from '@wharfkit/contract'
 import { Session } from '@wharfkit/session'
@@ -69,7 +70,7 @@ export class Blockchain {
    */
   public async transact(actionOrActions: any | any[], broadcast = true): Promise<TransactResult> {
     if (!this.session)
-      throw new Error('Сессия не инициализирована.')
+      throw new Error(lt('sdkClient.error.sessionNotInitialized'))
 
     const actions = Array.isArray(actionOrActions)
       ? await Promise.all(actionOrActions.map(action => this.formActionFromAbi(action)))
@@ -172,7 +173,7 @@ export class Blockchain {
   private async getAbi(account: string): Promise<any> {
     const { abi } = await this.apiClient.v1.chain.get_abi(account)
     if (!abi)
-      throw new Error(`ABI для аккаунта "${account}" не найден.`)
+      throw new Error(lt('sdkClient.error.abiNotFound', { account }))
     return abi
   }
 

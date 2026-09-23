@@ -40,6 +40,9 @@
       "retryDelayLabel": "Пауза между попытками (в секундах)",
       "retryDelayNote": "Умножается на номер попытки",
       "retryDelayPrepend": "Через"
+    },
+    "robotKey": {
+      "noPermissionsSeen": "ничего"
     }
   }
 }

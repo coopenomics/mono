@@ -229,7 +229,7 @@ function checkAccountUsage(params: {
     if (!allowed) {
       violations.push({
         processHash: r.processHash as string,
-        message: i18nT('marketplace.ledgerInvariants.accountUsageViolation', { side: side === 'debit' ? 'дебет' : 'кредит', accountId, quantity: r.quantity ?? '∅', missing: rule.missing, threadCodes: threadCodes.join(', ') }),
+        message: i18nT('marketplace.ledgerInvariants.accountUsageViolation', { side: side === 'debit' ? i18nT('marketplace.ledgerInvariants.side.debit') : i18nT('marketplace.ledgerInvariants.side.credit'), accountId, quantity: r.quantity ?? '∅', missing: rule.missing, threadCodes: threadCodes.join(', ') }),
       })
     }
   }

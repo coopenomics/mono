@@ -8,6 +8,7 @@ import {
   type ILoggerPort,
   type ISecretCipherPort,
 } from '@coopenomics/innercoop';
+import { t } from '../../i18n';
 import { ROBOT_PERMISSION } from '../../domain/constants';
 import { ROBOT_KEY_REPOSITORY, type RobotKeyRepository } from '../../domain/repositories/robot-key.repository';
 import { RobotChainService } from './robot-chain.service';
@@ -121,7 +122,7 @@ export class RobotKeyService {
       const keys = await this.permissionKeys(member, permission_name);
       if (keys) return keys;
     }
-    throw DomainError.internal('SOVIET_ROBOT_PERMISSION_NOT_ISSUED', { account: member, permission: permission_name, seenPermissions: this.lastSeenPermissions.join(', ') || 'ничего' });
+    throw DomainError.internal('SOVIET_ROBOT_PERMISSION_NOT_ISSUED', { account: member, permission: permission_name, seenPermissions: this.lastSeenPermissions.join(', ') || t('sovietRobot.robotKey.noPermissionsSeen') });
   }
 
   async revokeKey(coopname: string, member: string): Promise<boolean> {

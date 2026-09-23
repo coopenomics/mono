@@ -112,9 +112,13 @@ export class Fss4Generator implements IReportGenerator {
     // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
     const edsfr = doc.ele('ЭДСФР', {
       xmlns: EFS_NS.default,
+      // i18n-ignore: префикс пространства имён XML официальной формы ЕФС-1
       'xmlns:АФ8': EFS_NS.АФ8,
+      // i18n-ignore: префикс пространства имён XML официальной формы ЕФС-1
       'xmlns:УТ8': EFS_NS.УТ8,
+      // i18n-ignore: префикс пространства имён XML официальной формы ЕФС-1
       'xmlns:ВС8': EFS_NS.ВС8,
+      // i18n-ignore: префикс пространства имён XML официальной формы ЕФС-1
       'xmlns:ЕФС8': EFS_NS.ЕФС8,
       'xmlns:ns1': EFS_NS.ns1,
       'xmlns:sig': EFS_NS.sig,

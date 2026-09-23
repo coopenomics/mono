@@ -1,8 +1,7 @@
 import { Field, InputType } from '@nestjs/graphql';
 import { IsNotEmpty, IsString } from 'class-validator';
 import { Type } from 'class-transformer';
-import { SignedDigitalDocumentInputDTO } from '@coopenomics/extension-kit';
-import { t } from '../../../i18n';
+import { SignedDigitalDocumentInputDTO, validationMessage } from '@coopenomics/extension-kit';
 
 /**
  * GraphQL DTO для подписания приложения CAPITAL контракта
@@ -11,18 +10,18 @@ import { t } from '../../../i18n';
 @InputType('MakeClearanceInput')
 export class MakeClearanceInputDTO {
   @Field(() => String, { description: 'Имя аккаунта кооператива' })
-  @IsNotEmpty({ message: t('capital.makeClearanceInput.coopname.required') })
-  @IsString({ message: t('capital.makeClearanceInput.coopname.string') })
+  @IsNotEmpty({ message: validationMessage('capital.makeClearanceInput.coopname.required') })
+  @IsString({ message: validationMessage('capital.makeClearanceInput.coopname.string') })
   coopname!: string;
 
   @Field(() => String, { description: 'Имя пользователя' })
-  @IsNotEmpty({ message: t('capital.makeClearanceInput.username.required') })
-  @IsString({ message: t('capital.makeClearanceInput.username.string') })
+  @IsNotEmpty({ message: validationMessage('capital.makeClearanceInput.username.required') })
+  @IsString({ message: validationMessage('capital.makeClearanceInput.username.string') })
   username!: string;
 
   @Field(() => String, { description: 'Хэш проекта' })
-  @IsNotEmpty({ message: t('capital.makeClearanceInput.projectHash.required') })
-  @IsString({ message: t('capital.makeClearanceInput.projectHash.string') })
+  @IsNotEmpty({ message: validationMessage('capital.makeClearanceInput.projectHash.required') })
+  @IsString({ message: validationMessage('capital.makeClearanceInput.projectHash.string') })
   project_hash!: string;
 
   @Field(() => SignedDigitalDocumentInputDTO, { description: 'Подписанный документ' })
@@ -30,6 +29,6 @@ export class MakeClearanceInputDTO {
   document!: SignedDigitalDocumentInputDTO;
 
   @Field(() => String, { description: 'Вклад участника (текстовое описание)', nullable: true })
-  @IsString({ message: t('capital.makeClearanceInput.contribution.string') })
+  @IsString({ message: validationMessage('capital.makeClearanceInput.contribution.string') })
   contribution?: string;
 }

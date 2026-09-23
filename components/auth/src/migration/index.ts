@@ -1,3 +1,5 @@
+import type { EncryptedVaultBlob, VaultSubject } from '../vault'
+import { lt } from '@coopenomics/i18n'
 /**
  * Миграция действующего пайщика «ключ → пароль» (Story 11.4), клиентская сторона.
  *
@@ -24,7 +26,6 @@
  */
 import { AuthV2Error, AuthV2ErrorCode } from '../errors'
 import { coopIdApiUrl } from '../oidc/client'
-import type { EncryptedVaultBlob, VaultSubject } from '../vault'
 import { encryptPrivateKey } from '../vault'
 import { saveLocalVault, type StorageAdapter } from '../wallet'
 
@@ -124,7 +125,7 @@ async function migrateOnce(
     signature = PrivateKey.from(params.privateKey).signMessage(new TextEncoder().encode(message)).toString()
   }
   catch {
-    throw new AuthV2Error(AuthV2ErrorCode.InvalidCredentials, 'Некорректный приватный ключ')
+    throw new AuthV2Error(AuthV2ErrorCode.InvalidCredentials, lt('authClient.migration.invalidPrivateKey'))
   }
 
   // Блоб едет в самом запросе всегда: сервер кладёт его только после проверки
@@ -151,20 +152,20 @@ async function migrateOnce(
     })
   }
   catch (e) {
-    throw new AuthV2Error(AuthV2ErrorCode.NetworkError, `Сеть недоступна при миграции: ${e instanceof Error ? e.message : String(e)}`)
+    throw new AuthV2Error(AuthV2ErrorCode.NetworkError, lt('authClient.migration.networkError', { error: e instanceof Error ? e.message : String(e) }))
   }
   if (!res.ok)
-    throw await authErrorFromResponse(res, AuthV2ErrorCode.InvalidCredentials, `Миграция отклонена (HTTP ${res.status})`)
+    throw await authErrorFromResponse(res, AuthV2ErrorCode.InvalidCredentials, lt('authClient.migration.rejected', { status: res.status }))
 
   const body = (await res.json()) as { username?: string, rotated?: boolean }
   if (!body?.username)
-    throw new AuthV2Error(AuthV2ErrorCode.ChainVerificationFailed, 'Миграция не вернула username')
+    throw new AuthV2Error(AuthV2ErrorCode.ChainVerificationFailed, lt('authClient.migration.noUsername'))
 
   if (rotation) {
     // Сервер обязан был подтвердить ротацию: без подтверждения старый ключ жив,
     // а в vault лежал бы новый — рассинхрон, при котором вход по паролю невозможен.
     if (!body.rotated)
-      throw new AuthV2Error(AuthV2ErrorCode.ChainVerificationFailed, 'Сервер не подтвердил ротацию ключа — обновите платформу кооператива')
+      throw new AuthV2Error(AuthV2ErrorCode.ChainVerificationFailed, lt('authClient.migration.rotationNotConfirmed'))
   }
 
   // Сервер уже сохранил блоб; локальная копия — под вернувшимся username.

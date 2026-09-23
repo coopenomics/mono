@@ -1,18 +1,18 @@
 import { Field, InputType } from '@nestjs/graphql';
+import { validationMessage } from '@coopenomics/extension-kit';
 import { IsNotEmpty } from 'class-validator';
-import { t } from '~/i18n';
 
 @InputType('LoginInput')
 export class LoginInputDTO {
   @Field({ description: 'Электронная почта' })
-  @IsNotEmpty({ message: t('auth.loginInputDto.fieldEmailRequired') })
+  @IsNotEmpty({ message: validationMessage('auth.loginInputDto.fieldEmailRequired') })
   email!: string;
 
   @Field({ description: 'Метка времени в строковом формате ISO' })
-  @IsNotEmpty({ message: t('auth.loginInputDto.fieldNowRequired') })
+  @IsNotEmpty({ message: validationMessage('auth.loginInputDto.fieldNowRequired') })
   now!: string;
 
   @Field({ description: 'Цифровая подпись метки времени' })
-  @IsNotEmpty({ message: t('auth.loginInputDto.fieldSignatureRequired') })
+  @IsNotEmpty({ message: validationMessage('auth.loginInputDto.fieldSignatureRequired') })
   signature!: string;
 }

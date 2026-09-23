@@ -1322,6 +1322,13 @@
     },
     "waveMarkup": {
       "disclaimer": "Рабочая разметка, пересматривается с каждой новой точкой — не установленный факт."
+    },
+    "currencyField": {
+      "investmentAmount": "сумме инвестирования",
+      "investAmount": "сумме инвестиции",
+      "programInvestAmount": "сумме программной инвестиции",
+      "allocatedAmount": "сумме направляемых средств",
+      "returnedAmount": "сумме возвращаемых средств"
     }
   },
   "errors": {

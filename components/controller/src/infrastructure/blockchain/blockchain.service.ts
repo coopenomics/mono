@@ -51,6 +51,7 @@ function isMissingAccount(e: unknown): boolean {
   const message = String(err?.message ?? '');
   return message.includes('account_query_exception')
     || message.includes('Account Query Exception')
+    // i18n-ignore: сверка с текстом ответа узла цепи
     || message.includes('ABI контракта');
 }
 

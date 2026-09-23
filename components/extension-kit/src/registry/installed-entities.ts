@@ -20,6 +20,7 @@ let entities: ReadonlyArray<ExtensionEntityClass> | undefined;
 export function registerExtensionEntities(list: ReadonlyArray<ExtensionEntityClass>): void {
   if (entities) {
     throw new Error(
+      // i18n-ignore: ошибка сборки приложения при старте, до пайщика не доходит
       'Состав таблиц расширений уже объявлен: registerExtensionEntities() вызывается один раз при старте'
     );
   }

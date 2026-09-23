@@ -40,7 +40,8 @@ export class PassportChangeListener {
       // Сверку провёл другой кооператив: снять её мы не вправе, и нашей
       // записи о ней нет — менять данные это не мешает.
       const message = error instanceof Error ? error.message : String(error);
-      if (message.includes('проведённая вашим кооперативом, не найдена')) return;
+      // i18n-ignore: сверка с текстом отказа контракта — у контракта пока нет кодов
+    if (message.includes('проведённая вашим кооперативом, не найдена')) return;
       throw error;
     }
   }

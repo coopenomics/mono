@@ -8,6 +8,7 @@ import {
   registerDecorator,
   ValidationOptions,
 } from 'class-validator';
+import { validationMessage } from '@coopenomics/extension-kit';
 import { Field, InputType } from '@nestjs/graphql';
 import { BankAccountInputDTO } from './bank-account-input.dto';
 import { SBPDataInputDTO } from './sbp-account.input.dto';
@@ -40,7 +41,7 @@ function IsOnlyOnePaymentMethod(validationOptions?: ValidationOptions) {
 @InputType('AddPaymentMethodInput')
 export class AddPaymentMethodInputDTO {
   @Field(() => String, { description: 'Имя аккаунта пользователя' })
-  @IsNotEmpty({ message: t('paymentMethod.addPaymentMethodInput.usernameRequired') })
+  @IsNotEmpty({ message: validationMessage('paymentMethod.addPaymentMethodInput.usernameRequired') })
   @IsString()
   username!: string;
 

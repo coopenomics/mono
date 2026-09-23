@@ -1,4 +1,5 @@
 import { Field, InputType, Int, Float } from '@nestjs/graphql';
+import { validationMessage } from '@coopenomics/extension-kit';
 import {
   ArrayMaxSize,
   ArrayMinSize,
@@ -20,7 +21,6 @@ import {
   ZeroReportSignerEditsInputDTO,
 } from './zero-report-edits.dto';
 import { DATE_DDMMYYYY_PATTERN } from '../../domain/patterns';
-import { t } from '../../i18n';
 
 /**
  * DTO 6-НДФЛ — зеркало `Ndfl6EditsShape`. Шапка, реквизиты и подписант общие
@@ -109,7 +109,7 @@ export class Ndfl6CertificateEditsInputDTO {
   @Field(() => String, {
     description: 'Номер корректировки справки: «00» первичная, «99» аннулирующая',
   })
-  @Matches(/^\d{2}$/, { message: t('reports.ndfl6Edits.correctionNumberFormat') })
+  @Matches(/^\d{2}$/, { message: validationMessage('reports.ndfl6Edits.correctionNumberFormat') })
   correctionNumber!: string;
 
   @Field(() => String, { description: 'Фамилия получателя' })
@@ -129,21 +129,21 @@ export class Ndfl6CertificateEditsInputDTO {
   middleName!: string | null;
 
   @Field(() => String, { description: 'Дата рождения, ДД.ММ.ГГГГ' })
-  @Matches(DATE_DDMMYYYY_PATTERN, { message: t('reports.ndfl6Edits.birthDateFormat') })
+  @Matches(DATE_DDMMYYYY_PATTERN, { message: validationMessage('reports.ndfl6Edits.birthDateFormat') })
   birthDate!: string;
 
   @Field(() => String, { description: 'Код статуса налогоплательщика: 1 — резидент РФ' })
-  @Matches(/^\d$/, { message: t('reports.ndfl6Edits.taxpayerStatusFormat') })
+  @Matches(/^\d$/, { message: validationMessage('reports.ndfl6Edits.taxpayerStatusFormat') })
   taxpayerStatus!: string;
 
   @Field(() => String, { description: 'Гражданство, код страны по ОКСМ: 643 — Россия' })
-  @Matches(/^\d{3}$/, { message: t('reports.ndfl6Edits.citizenshipCodeFormat') })
+  @Matches(/^\d{3}$/, { message: validationMessage('reports.ndfl6Edits.citizenshipCodeFormat') })
   citizenshipCode!: string;
 
   @Field(() => String, {
     description: 'Код вида документа, удостоверяющего личность: 21 — паспорт РФ',
   })
-  @Matches(/^\d{2}$/, { message: t('reports.ndfl6Edits.documentTypeCodeFormat') })
+  @Matches(/^\d{2}$/, { message: validationMessage('reports.ndfl6Edits.documentTypeCodeFormat') })
   documentTypeCode!: string;
 
   @Field(() => String, { description: 'Серия и номер документа' })

@@ -1,10 +1,11 @@
-import { CanActivate, ExecutionContext, ForbiddenException, Inject, Injectable, UnauthorizedException } from '@nestjs/common';
+import { CanActivate, ExecutionContext, Inject, Injectable } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { GqlExecutionContext } from '@nestjs/graphql';
 import { AuthGuard } from '@nestjs/passport';
 import type { Observable } from 'rxjs';
 import { hasServerSecret } from './server-secret';
 import { ROLES_ANY_STATUS_KEY, ROLES_DENY_SELF_KEY } from './decorators';
+import { DomainError } from '../errors/domain-error';
 
 /**
  * Статус пайщика, дающий доступ. Литерал, а не enum домена: каркас расширения
@@ -89,7 +90,7 @@ export class OptionalGqlJwtAuthGuard extends AuthGuard('jwt') {
     // Истёкший или испорченный токен passport отказом не считает — только «нет
     // пользователя». Формулировка та же, что у стратегии: клиент узнаёт потерю
     // доступа по слову «авторизац» и сам уводит на вход.
-    throw new UnauthorizedException('Сессия завершена, требуется повторная авторизация');
+    throw DomainError.unauthorized('KIT_SESSION_ENDED');
   }
 }
 
@@ -166,12 +167,12 @@ export class RolesGuard implements CanActivate {
     if (allowedRoles.includes(user.role)) {
       const anyStatus = this.reflector.get<boolean>(ROLES_ANY_STATUS_KEY, context.getHandler()) === true;
       if (user.role === PARTICIPANT_ROLE && !anyStatus && user.status !== ACTIVE_USER_STATUS) {
-        throw new ForbiddenException('Доступ только для пайщиков кооператива');
+        throw DomainError.forbidden('KIT_MEMBERS_ONLY');
       }
       return true;
     }
 
-    throw new UnauthorizedException(`Недостаточно прав доступа`);
+    throw DomainError.unauthorized('KIT_INSUFFICIENT_RIGHTS');
   }
 }
 
@@ -191,13 +192,11 @@ export class ActiveUserStatusGuard implements CanActivate {
 
     const user = request.user as { status?: string } | undefined;
     if (!user?.status) {
-      throw new ForbiddenException('Требуется авторизованный пользователь');
+      throw DomainError.forbidden('KIT_AUTHORIZED_USER_REQUIRED');
     }
 
     if (user.status !== ACTIVE_USER_STATUS) {
-      throw new ForbiddenException(
-        'Доступ только для пайщиков в статусе «active»',
-      );
+      throw DomainError.forbidden('KIT_ACTIVE_MEMBERS_ONLY');
     }
 
     return true;

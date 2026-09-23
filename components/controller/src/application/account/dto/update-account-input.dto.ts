@@ -1,15 +1,15 @@
 import { InputType, Field } from '@nestjs/graphql';
+import { validationMessage } from '@coopenomics/extension-kit';
 import { IsNotEmpty, IsOptional, ValidateIf, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 import { UpdateEntrepreneurDataInputDTO } from './update-entrepreneur-data-input.dto';
 import { UpdateIndividualDataInputDTO } from './update-individual-data-input.dto';
 import { UpdateOrganizationDataInputDTO } from './update-organization-data-input.dto';
-import { t } from '~/i18n';
 
 @InputType('UpdateAccountInput')
 export class UpdateAccountInputDTO {
   @Field({ description: 'Имя пользователя' })
-  @IsNotEmpty({ message: t('account.updateAccountInput.fieldUsernameRequired') })
+  @IsNotEmpty({ message: validationMessage('account.updateAccountInput.fieldUsernameRequired') })
   username!: string;
 
   @Field({ nullable: true, description: 'Имя аккаунта реферера' })
@@ -40,7 +40,7 @@ export class UpdateAccountInputDTO {
 
   @ValidateIf((o: UpdateAccountInputDTO) => !o.entrepreneur_data && !o.individual_data && !o.organization_data)
   @IsNotEmpty({
-    message: t('account.updateAccountInput.atLeastOneDataRequired'),
+    message: validationMessage('account.updateAccountInput.atLeastOneDataRequired'),
   })
   validateOneTypePresent!: boolean;
 }

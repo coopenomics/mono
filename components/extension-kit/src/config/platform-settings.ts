@@ -80,6 +80,7 @@ export function configurePlatformSettings(value: PlatformSettings): void {
 export function platformSettings(): PlatformSettings {
   if (!settings) {
     throw new Error(
+      // i18n-ignore: ошибка сборки приложения при старте, до пайщика не доходит
       'Настройки контура не заданы: composition root обязан вызвать configurePlatformSettings() при старте'
     );
   }

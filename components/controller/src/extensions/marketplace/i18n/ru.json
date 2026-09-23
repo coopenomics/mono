@@ -601,7 +601,11 @@
       "receiptRepeatedIssue": "приёмка проведена {count} раза на {amount}",
       "settlementMismatchIssue": "выплата {payoutAmount} и удержание {deductAmount} не закрывают принятую стоимость {acceptedAmount}",
       "threadsSummary": "ниток: {total}, закрытых: {closed}",
-      "unlockWithoutReserveIssue": "unlock без резерва (lock / lockp) — невозможно снять резерв, который не вносился."
+      "unlockWithoutReserveIssue": "unlock без резерва (lock / lockp) — невозможно снять резерв, который не вносился.",
+      "side": {
+        "debit": "дебет",
+        "credit": "кредит"
+      }
     },
     "memberWallet": {
       "membershipFeeLabel": "Членский взнос {'|'} Стол Заказов",

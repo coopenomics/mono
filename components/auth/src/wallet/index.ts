@@ -1,5 +1,6 @@
 import type { EncryptedVaultBlob } from '../vault/types'
 import type { StorageAdapter } from './storage-adapter'
+import { lt } from '@coopenomics/i18n'
 /**
  * Кошелёк (Story 2.2): разблокировка после логина, доступ к публичному «виду»
  * ключа в памяти, запирание на logout. Приватный ключ живёт ТОЛЬКО в keystore
@@ -38,7 +39,7 @@ async function derivePublicKey(privateKey: string): Promise<string> {
     return PrivateKey.from(privateKey).toPublic().toString()
   }
   catch {
-    throw new AuthV2Error(AuthV2ErrorCode.VaultDecryptionFailed, 'Расшифрованное значение не является валидным приватным ключом')
+    throw new AuthV2Error(AuthV2ErrorCode.VaultDecryptionFailed, lt('authClient.wallet.invalidPrivateKey'))
   }
 }
 
@@ -49,10 +50,10 @@ export async function fetchVaultBlob(apiUrl: string, subjectId: string): Promise
     res = await fetch(`${apiUrl.replace(/\/$/, '')}/coop/vault/participant/${encodeURIComponent(subjectId)}`)
   }
   catch (e) {
-    throw new AuthV2Error(AuthV2ErrorCode.NetworkError, `Сеть недоступна при запросе vault: ${e instanceof Error ? e.message : e}`)
+    throw new AuthV2Error(AuthV2ErrorCode.NetworkError, lt('authClient.wallet.vaultNetworkError', { error: e instanceof Error ? e.message : e }))
   }
   if (!res.ok)
-    throw new AuthV2Error(AuthV2ErrorCode.NetworkError, `Не удалось получить vault (HTTP ${res.status})`)
+    throw new AuthV2Error(AuthV2ErrorCode.NetworkError, lt('authClient.wallet.vaultRequestFailed', { status: res.status }))
   return res.json() as Promise<EncryptedVaultBlob>
 }
 

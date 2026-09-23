@@ -8,6 +8,7 @@ import type {
   DeallocationLimitInputDTO,
   DeallocationLimitOutputDTO,
 } from '../dto/invests_management/deallocation-limit.dto';
+import { t } from '../../i18n';
 import type { IMonoAccount } from '@coopenomics/innercoop';
 import { InvestOutputDTO } from '../dto/invests_management/invest.dto';
 import { InvestFilterInputDTO } from '../dto/invests_management/invest-filter.input';
@@ -39,7 +40,7 @@ export class InvestsManagementService {
     data: CreateProjectInvestInputDTO,
     currentUser: IMonoAccount
   ): Promise<InnerTransactResult> {
-    CurrencyValidationUtil.validateCurrencySymbol(data.amount, 'сумме инвестиции');
+    CurrencyValidationUtil.validateCurrencySymbol(data.amount, t('capital.currencyField.investAmount'));
     await verifySignedDocumentAgainstStoredDraft(
       (docHash) => this.documentPort.getByHash(docHash),
       data.statement,
@@ -68,7 +69,7 @@ export class InvestsManagementService {
     data: CreateProgramInvestInputDTO,
     currentUser: IMonoAccount
   ): Promise<InnerTransactResult> {
-    CurrencyValidationUtil.validateCurrencySymbol(data.amount, 'сумме программной инвестиции');
+    CurrencyValidationUtil.validateCurrencySymbol(data.amount, t('capital.currencyField.programInvestAmount'));
     await verifySignedDocumentAgainstStoredDraft(
       (docHash) => this.documentPort.getByHash(docHash),
       data.statement,
@@ -90,7 +91,7 @@ export class InvestsManagementService {
    * Направление средств программы в проект или компонент (allocate)
    */
   async allocateFunds(data: AllocateFundsInputDTO): Promise<InnerTransactResult> {
-    CurrencyValidationUtil.validateCurrencySymbol(data.amount, 'сумме направляемых средств');
+    CurrencyValidationUtil.validateCurrencySymbol(data.amount, t('capital.currencyField.allocatedAmount'));
 
     return await this.investsManagementInteractor.allocateFunds(data);
   }
@@ -99,7 +100,7 @@ export class InvestsManagementService {
    * Возврат ранее направленных средств из компонента в программу
    */
   async deallocateFunds(data: DeallocateFundsInputDTO): Promise<InnerTransactResult> {
-    CurrencyValidationUtil.validateCurrencySymbol(data.amount, 'сумме возвращаемых средств');
+    CurrencyValidationUtil.validateCurrencySymbol(data.amount, t('capital.currencyField.returnedAmount'));
 
     return await this.investsManagementInteractor.deallocateFunds(data);
   }

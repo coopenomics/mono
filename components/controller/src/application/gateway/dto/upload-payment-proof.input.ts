@@ -1,6 +1,6 @@
 import { Field, InputType } from '@nestjs/graphql';
+import { validationMessage } from '@coopenomics/extension-kit';
 import { IsBase64, IsIn, IsInt, IsNotEmpty, IsOptional, IsString, Matches, Max, Min } from 'class-validator';
-import { t } from '~/i18n';
 
 const ALLOWED_MIME = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'application/pdf'] as const;
 
@@ -24,7 +24,7 @@ export class UploadPaymentProofInputDTO {
   payment_hash!: string;
 
   @Field(() => String, { description: 'MIME-тип содержимого.' })
-  @IsIn([...ALLOWED_MIME], { message: t('gateway.uploadPaymentProofInput.mimeTypeInvalid') })
+  @IsIn([...ALLOWED_MIME], { message: validationMessage('gateway.uploadPaymentProofInput.mimeTypeInvalid') })
   mime_type!: string;
 
   @Field(() => String, { nullable: true, description: 'Оригинальное имя файла — для отображения и поиска.' })
@@ -39,7 +39,7 @@ export class UploadPaymentProofInputDTO {
   size_bytes!: number;
 
   @Field(() => String, { description: 'SHA-256 содержимого, hex-lowercase (64 hex-символа).' })
-  @Matches(/^[a-f0-9]{64}$/, { message: t('gateway.uploadPaymentProofInput.checksumInvalidFormat') })
+  @Matches(/^[a-f0-9]{64}$/, { message: validationMessage('gateway.uploadPaymentProofInput.checksumInvalidFormat') })
   checksum_sha256!: string;
 
   @Field(() => String, { description: 'Содержимое файла, base64 без префикса data:.' })

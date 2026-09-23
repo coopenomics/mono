@@ -1,6 +1,6 @@
 import { Field, InputType } from '@nestjs/graphql'
 import { IsNotEmpty, IsString, Matches } from 'class-validator'
-import { t } from '../../i18n';
+import { validationMessage } from '@coopenomics/extension-kit';
 
 /**
  * Input для action `expense::overspendexp` — доплата при перерасходе (ADVANCE-механика).
@@ -30,7 +30,7 @@ export class OverspendExpenseItemInputDTO {
   })
   @IsNotEmpty()
   @Matches(/^\d+\.\d{1,8} [A-Z]{1,7}$/, {
-    message: t('expenses.overspendExpenseItem.amountFormatHint'),
+    message: validationMessage('expenses.overspendExpenseItem.amountFormatHint'),
   })
   overspend_amount!: string
 }

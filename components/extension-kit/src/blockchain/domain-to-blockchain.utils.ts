@@ -15,6 +15,7 @@ import { Name } from '@wharfkit/antelope';
 import type { Cooperative } from 'cooptypes';
 import moment from 'moment';
 import { platformSettings } from '../config/platform-settings';
+import { DomainError } from '../errors/domain-error';
 
 @Injectable()
 export class DomainToBlockchainUtils {
@@ -69,14 +70,14 @@ export class DomainToBlockchainUtils {
   formatQuantityWithPrecision(quantity: string): string {
     const parts = quantity.split(' ');
     if (parts.length !== 2) {
-      throw new Error(`Неверный формат quantity: ${quantity}. Ожидается "число символ"`);
+      throw DomainError.internal('KIT_QUANTITY_FORMAT_INVALID', { quantity });
     }
 
     const [amount, symbol] = parts;
     const numericAmount = parseFloat(amount);
 
     if (isNaN(numericAmount)) {
-      throw new Error(`Некорректное числовое значение в quantity: ${amount}`);
+      throw DomainError.internal('KIT_QUANTITY_AMOUNT_INVALID', { amount });
     }
 
     const { rootSymbol, rootPrecision, rootGovernSymbol, rootGovernPrecision } = platformSettings().blockchain;
@@ -87,7 +88,7 @@ export class DomainToBlockchainUtils {
     } else if (symbol === rootGovernSymbol) {
       precision = rootGovernPrecision;
     } else {
-      throw new Error(`Неподдерживаемый символ: ${symbol}. Поддерживаются только: ${rootSymbol}, ${rootGovernSymbol}`);
+      throw DomainError.internal('KIT_SYMBOL_UNSUPPORTED', { symbol, rootSymbol, rootGovernSymbol });
     }
 
     return `${numericAmount.toFixed(precision)} ${symbol}`;
@@ -98,11 +99,11 @@ export class DomainToBlockchainUtils {
     const numericValue = parseFloat(numericString);
 
     if (isNaN(numericValue)) {
-      throw new Error(`Некорректное числовое значение: ${numericString}`);
+      throw DomainError.internal('KIT_NUMBER_INVALID', { value: numericString });
     }
 
     if (numericValue < 0) {
-      throw new Error(`Значение не может быть отрицательным: ${numericString}`);
+      throw DomainError.internal('KIT_NUMBER_NEGATIVE', { value: numericString });
     }
 
     return `${numericValue.toFixed(precision)} ${symbol}`;

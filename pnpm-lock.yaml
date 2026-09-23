@@ -87,6 +87,9 @@ importers:
 
   components/auth:
     dependencies:
+      '@coopenomics/i18n':
+        specifier: workspace:*
+        version: link:../i18n
       '@noble/hashes':
         specifier: ^1.8.0
         version: 1.8.0
@@ -1486,6 +1489,9 @@ importers:
 
   components/sdk:
     dependencies:
+      '@coopenomics/i18n':
+        specifier: workspace:*
+        version: link:../i18n
       '@wharfkit/antelope':
         specifier: ^1.1.1
         version: 1.2.0

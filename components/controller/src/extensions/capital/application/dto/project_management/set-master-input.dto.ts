@@ -1,7 +1,7 @@
 import { Field, InputType } from '@nestjs/graphql';
+import { validationMessage } from '@coopenomics/extension-kit';
 import { IsNotEmpty, IsString } from 'class-validator';
 import type { SetMasterDomainInput } from '../../../domain/actions/set-master-domain-input.interface';
-import { t } from '../../../i18n';
 
 /**
  * GraphQL DTO для установки мастера проекта CAPITAL контракта
@@ -9,16 +9,16 @@ import { t } from '../../../i18n';
 @InputType('SetMasterInput')
 export class SetMasterInputDTO implements SetMasterDomainInput {
   @Field(() => String, { description: 'Имя аккаунта кооператива' })
-  @IsNotEmpty({ message: t('capital.setMasterInput.coopname.required') })
-  @IsString({ message: t('capital.setMasterInput.coopname.string') })
+  @IsNotEmpty({ message: validationMessage('capital.setMasterInput.coopname.required') })
+  @IsString({ message: validationMessage('capital.setMasterInput.coopname.string') })
   coopname!: string;
 
   @Field(() => String, { description: 'Хэш проекта' })
-  @IsNotEmpty({ message: t('capital.setMasterInput.projectHash.required') })
-  @IsString({ message: t('capital.setMasterInput.projectHash.string') })
+  @IsNotEmpty({ message: validationMessage('capital.setMasterInput.projectHash.required') })
+  @IsString({ message: validationMessage('capital.setMasterInput.projectHash.string') })
   project_hash!: string;
 
   @Field(() => String, { description: 'Имя мастера проекта' })
-  @IsString({ message: t('capital.setMasterInput.master.string') })
+  @IsString({ message: validationMessage('capital.setMasterInput.master.string') })
   master!: string;
 }

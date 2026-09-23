@@ -1,14 +1,14 @@
 import { ObjectType, Field } from '@nestjs/graphql';
+import { validationMessage } from '@coopenomics/extension-kit';
 import type { BankAccountDomainInterface } from '../../../domain/common/interfaces/bank-account-domain.interface';
 import { BankAccountDetailsDTO } from './bank-account-details.dto';
 import { IsJSON, IsNotEmpty, IsString } from 'class-validator';
-import { t } from '~/i18n';
 
 @ObjectType('BankAccount')
 export class BankAccountDTO implements BankAccountDomainInterface {
   @Field(() => String, { description: 'Валюта счета' })
   @IsString()
-  @IsNotEmpty({ message: t('paymentMethod.bankAccount.currencyRequired') })
+  @IsNotEmpty({ message: validationMessage('paymentMethod.bankAccount.currencyRequired') })
   currency: string;
 
   @Field(() => String, { nullable: true, description: 'Номер карты' })
@@ -17,16 +17,16 @@ export class BankAccountDTO implements BankAccountDomainInterface {
 
   @Field(() => String, { description: 'Название банка' })
   @IsString()
-  @IsNotEmpty({ message: t('paymentMethod.bankAccount.bankNameRequired') })
+  @IsNotEmpty({ message: validationMessage('paymentMethod.bankAccount.bankNameRequired') })
   bank_name: string;
 
   @Field(() => String, { description: 'Номер банковского счета' })
   @IsString()
-  @IsNotEmpty({ message: t('paymentMethod.bankAccount.accountNumberRequired') })
+  @IsNotEmpty({ message: validationMessage('paymentMethod.bankAccount.accountNumberRequired') })
   account_number: string;
 
   @Field(() => BankAccountDetailsDTO, { description: 'Детали счета' })
-  @IsNotEmpty({ message: t('paymentMethod.bankAccount.detailsRequired') })
+  @IsNotEmpty({ message: validationMessage('paymentMethod.bankAccount.detailsRequired') })
   @IsJSON()
   details: BankAccountDetailsDTO;
 

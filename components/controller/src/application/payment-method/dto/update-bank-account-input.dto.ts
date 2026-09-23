@@ -1,30 +1,30 @@
 // payment-method.dto.ts
 import { IsNotEmpty, IsString, IsDefined, IsBoolean } from 'class-validator';
+import { validationMessage } from '@coopenomics/extension-kit';
 import { BankAccountInputDTO } from './bank-account-input.dto';
 import { Field, InputType } from '@nestjs/graphql';
-import { t } from '~/i18n';
 
 @InputType('UpdateBankAccountInput')
 export class UpdateBankAccountInputDTO {
   @Field(() => String, { description: 'Имя аккаунта пользователя' })
-  @IsNotEmpty({ message: t('paymentMethod.updateBankAccountInput.usernameRequired') })
+  @IsNotEmpty({ message: validationMessage('paymentMethod.updateBankAccountInput.usernameRequired') })
   @IsString()
   username!: string;
 
   @Field(() => String, { description: 'Идентификатор платежного метода' })
-  @IsNotEmpty({ message: t('paymentMethod.updateBankAccountInput.idRequired') })
+  @IsNotEmpty({ message: validationMessage('paymentMethod.updateBankAccountInput.idRequired') })
   @IsString()
   method_id!: string;
 
   @Field(() => Boolean, {
     description: 'Флаг основного метода платежа, который отображается в документах',
   })
-  @IsNotEmpty({ message: t('paymentMethod.updateBankAccountInput.isMainFlagRequired') })
+  @IsNotEmpty({ message: validationMessage('paymentMethod.updateBankAccountInput.isMainFlagRequired') })
   @IsBoolean()
   is_default!: boolean;
 
   @Field(() => BankAccountInputDTO, { description: 'Данные банковского счёта' })
-  @IsDefined({ message: t('paymentMethod.updateBankAccountInput.detailsRequired') })
+  @IsDefined({ message: validationMessage('paymentMethod.updateBankAccountInput.detailsRequired') })
   data!: BankAccountInputDTO;
 }
 

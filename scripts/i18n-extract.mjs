@@ -54,6 +54,18 @@ function ownerOf(rel) {
   if (m) return { app: 'desktop', ext: m[1], ns: extensionNamespace(m[1]), extRoot: `components/desktop/extensions/${m[1]}` };
   m = /^components\/controller\/src\/extensions\/([^/]+)\//.exec(rel);
   if (m) return { app: 'controller', ext: m[1], ns: extensionNamespace(m[1]), extRoot: `components/controller/src/extensions/${m[1]}` };
+  // Клиентские библиотеки: тексты — в словарях пакета @coopenomics/i18n,
+  // перевод — lt() (переводчик приложения или словари пакета).
+  m = /^components\/(auth|sdk)\/src\//.exec(rel);
+  if (m) {
+    const ns = m[1] === 'auth' ? 'authClient' : 'sdkClient';
+    return { app: 'lib', ns, lib: true, dict: `components/i18n/src/messages/ru/${ns}.json` };
+  }
+  // Каркас расширений: работает на сервере, отказы — DomainError, тексты — в
+  // словаре пакета kit.json; DomainError берётся из самого каркаса.
+  if (rel.startsWith('components/extension-kit/src/')) {
+    return { app: 'controller', kit: true, ns: 'kit', dict: 'components/i18n/src/messages/ru/kit.json' };
+  }
   if (rel.startsWith('components/desktop/')) return { app: 'desktop' };
   if (rel.startsWith('components/controller/')) return { app: 'controller' };
   return { app: 'other' };
@@ -85,6 +97,7 @@ function componentHint(rel) {
 
 function dictionaryFor(owner, key) {
   const first = key.split('.')[0];
+  if (owner.lib || owner.kit) return owner.dict;
   if (owner.app === 'desktop') {
     return owner.ext
       ? `${owner.extRoot}/i18n/ru.json`
@@ -464,6 +477,7 @@ function applyCommand() {
     }
     const blockOf = (offset) => blocks.find((b) => offset >= b.start && offset <= b.end);
     const tName = (() => {
+      if (owner.lib) return 'lt';
       const scripts = blocks.map((b) => src.slice(b.start, b.end)).join('\n');
       return declaresT(scripts) ? 'i18nT' : 't';
     })();
@@ -540,9 +554,11 @@ function applyCommand() {
         }
         key = `errors.${code}`;
         const dictDomain = decision.dict ?? item.domainHint ?? entry.domainHint;
-        const dictRel = owner.ext
-          ? `${owner.extRoot}/i18n/ru.json`
-          : `components/controller/src/i18n/locales/ru/${dictDomain}.json`;
+        const dictRel = owner.kit
+          ? owner.dict
+          : owner.ext
+            ? `${owner.extRoot}/i18n/ru.json`
+            : `components/controller/src/i18n/locales/ru/${dictDomain}.json`;
         const message = messageOf(parts, paramNames);
         const tree = loadDict(dictRel);
         const prev = getLeaf(tree, key);
@@ -552,7 +568,7 @@ function applyCommand() {
         }
         setLeaf(tree, key, message);
         report.dicts.add(dictRel);
-        if (!owner.ext) coreControllerDicts.add(dictDomain);
+        if (!owner.ext && !owner.kit) coreControllerDicts.add(dictDomain);
         const paramsArg = exprs.length ? `, { ${exprs.map((e, i) => (e === paramNames[i] ? e : `${paramNames[i]}: ${e}`)).join(', ')} }` : '';
         if (statusArg && !factory) {
           edits.push({ start: f.newStart, end: f.newEnd, text: `new DomainError('${code}', ${exprs.length ? paramsArg.slice(2) : '{}'}, ${statusArg})` });
@@ -567,7 +583,7 @@ function applyCommand() {
       }
 
       // Отказ в desktop (throw new Error('…')) размечен кодом: ключ — <область>.error.<код>.
-      if (owner.app === 'desktop' && (decision.code || key?.startsWith('errors.'))) {
+      if ((owner.app === 'desktop' || owner.lib) && (decision.code || key?.startsWith('errors.'))) {
         const code = decision.code ?? key.slice(7);
         const domain = owner.ns ?? decision.dict ?? entry.domainHint;
         const prefix = domain.replace(/([a-z0-9])([A-Z])/g, '$1_$2').toUpperCase() + '_';
@@ -616,7 +632,7 @@ function applyCommand() {
           continue;
         }
         report.dicts.add(dictRel);
-        if (owner.app === 'controller' && !owner.ext) coreControllerDicts.add(first);
+        if (owner.app === 'controller' && !owner.ext && !owner.kit) coreControllerDicts.add(first);
       }
 
       // Замена в коде
@@ -646,7 +662,9 @@ function applyCommand() {
 
     // Импорты. Блоки скрипта сдвинулись — ищем их заново.
     const importFrom = (() => {
+      if (owner.lib) return '@coopenomics/i18n';
       if (owner.app === 'desktop') return owner.ext ? relImport(rel, `${owner.extRoot}/i18n`) : 'src/shared/i18n';
+      if (owner.kit) return '@coopenomics/i18n/server';
       if (owner.app === 'controller') return owner.ext ? relImport(rel, `${owner.extRoot}/i18n`) : '~/i18n';
       return undefined;
     })();
@@ -664,12 +682,13 @@ function applyCommand() {
       src = src.slice(0, b.loc.start.offset) + content + src.slice(b.loc.end.offset);
     };
     if (scriptNeedsT.size && importFrom) {
-      const spec = tName === 't' ? 't' : 't as i18nT';
+      const spec = tName === 'i18nT' ? 't as i18nT' : tName;
       patchBlocks((code) => ensureImport(code, spec, importFrom));
     }
     if (needsDomainError) {
       patchBlocks((code) => {
-        let c = ensureImport(code, 'DomainError', '@coopenomics/extension-kit');
+        const domainErrorFrom = owner.kit ? relImport(rel, 'components/extension-kit/src/errors/domain-error') : '@coopenomics/extension-kit';
+        let c = ensureImport(code, 'DomainError', domainErrorFrom);
         if (needsHttpStatus) c = ensureImport(c, 'HttpStatus', '@nestjs/common');
         c = dropUnusedImports(c, [...droppedExceptions], '@nestjs/common');
         c = dropUnusedImports(c, [...droppedExceptions], '@coopenomics/extension-kit');

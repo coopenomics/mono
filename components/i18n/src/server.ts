@@ -11,7 +11,7 @@
  * по умолчанию.
  */
 import { AsyncLocalStorage } from 'node:async_hooks';
-import { coreMessages } from './index';
+import { coreMessages } from './core';
 import { DEFAULT_LOCALE, isSupportedLocale, type Locale } from './locales';
 import { mergeMessages, type MessageTree } from './messages';
 import { createTranslator, type MessageParams, type Translator } from './translator';

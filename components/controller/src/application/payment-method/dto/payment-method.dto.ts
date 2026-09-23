@@ -1,4 +1,5 @@
 import { Field, ObjectType, createUnionType } from '@nestjs/graphql';
+import { validationMessage } from '@coopenomics/extension-kit';
 import { IsNotEmpty, IsString, IsBoolean, ValidateNested, IsDefined } from 'class-validator';
 import { Type } from 'class-transformer';
 import { SBPDataDTO } from './sbp-account.dto';
@@ -9,7 +10,6 @@ import type {
   SBPDataDomainInterface,
 } from '~/domain/payment-method/interfaces/payment-methods-domain.interface';
 import type { PaymentMethodDomainInterface } from '~/domain/payment-method/interfaces/payment-method-domain.interface';
-import { t } from '~/i18n';
 
 /**
  * Общий Union Type для данных метода оплаты
@@ -34,24 +34,24 @@ export const PaymentMethodDataUnion = createUnionType({
 @ObjectType('PaymentMethod')
 export class PaymentMethodDTO implements PaymentMethodDomainInterface {
   @Field(() => String, { description: 'Имя пользователя, к которому привязан метод оплаты' })
-  @IsNotEmpty({ message: t('paymentMethod.paymentMethodDto.usernameRequired') })
+  @IsNotEmpty({ message: validationMessage('paymentMethod.paymentMethodDto.usernameRequired') })
   @IsString()
   username!: string;
 
   @Field(() => Boolean, {
     description: 'Флаг основного метода платежа, который отображается в документах',
   })
-  @IsNotEmpty({ message: t('paymentMethod.paymentMethodDto.isMainFlagRequired') })
+  @IsNotEmpty({ message: validationMessage('paymentMethod.paymentMethodDto.isMainFlagRequired') })
   @IsBoolean()
   is_default!: boolean;
 
   @Field(() => String, { description: 'Тип метода оплаты (например, sbp, bank_transfer)' })
-  @IsNotEmpty({ message: t('paymentMethod.paymentMethodDto.typeRequired') })
+  @IsNotEmpty({ message: validationMessage('paymentMethod.paymentMethodDto.typeRequired') })
   @IsString()
   method_type!: 'sbp' | 'bank_transfer';
 
   @Field(() => PaymentMethodDataUnion, { description: 'Данные метода оплаты' })
-  @IsDefined({ message: t('paymentMethod.paymentMethodDto.detailsRequired') })
+  @IsDefined({ message: validationMessage('paymentMethod.paymentMethodDto.detailsRequired') })
   @ValidateNested()
   @Type((options) => {
     const object = options?.object as PaymentMethodDTO;
@@ -65,7 +65,7 @@ export class PaymentMethodDTO implements PaymentMethodDomainInterface {
   data!: SBPDataDTO | BankAccountDTO;
 
   @Field(() => String, { description: 'Идентификатор метода оплаты' })
-  @IsNotEmpty({ message: t('paymentMethod.paymentMethodDto.idRequired') })
+  @IsNotEmpty({ message: validationMessage('paymentMethod.paymentMethodDto.idRequired') })
   @IsString()
   method_id!: string;
 

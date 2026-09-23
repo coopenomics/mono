@@ -1,14 +1,14 @@
 import { InputType, Field } from '@nestjs/graphql';
+import { validationMessage } from '@coopenomics/extension-kit';
 import { IsNotEmpty, IsOptional, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 import { PassportInputDTO } from './passport-input.dto';
 import { NoMarkup } from '~/shared/validators/no-markup.decorator';
-import { t } from '~/i18n';
 
 @InputType('CreateIndividualDataInput')
 export class CreateIndividualDataInputDTO {
   @Field({ description: 'Дата рождения' })
-  @IsNotEmpty({ message: t('account.createIndividualDataInput.fieldBirthdateRequired') })
+  @IsNotEmpty({ message: validationMessage('account.createIndividualDataInput.fieldBirthdateRequired') })
   @NoMarkup()
   birthdate!: string;
 
@@ -17,22 +17,22 @@ export class CreateIndividualDataInputDTO {
   email!: string;
 
   @Field({ description: 'Имя' })
-  @IsNotEmpty({ message: t('account.createIndividualDataInput.fieldFirstNameRequired') })
+  @IsNotEmpty({ message: validationMessage('account.createIndividualDataInput.fieldFirstNameRequired') })
   @NoMarkup()
   first_name!: string;
 
   @Field({ description: 'Полный адрес' })
-  @IsNotEmpty({ message: t('account.createIndividualDataInput.fieldFullAddressRequired') })
+  @IsNotEmpty({ message: validationMessage('account.createIndividualDataInput.fieldFullAddressRequired') })
   @NoMarkup()
   full_address!: string;
 
   @Field({ description: 'Фамилия' })
-  @IsNotEmpty({ message: t('account.createIndividualDataInput.fieldLastNameRequired') })
+  @IsNotEmpty({ message: validationMessage('account.createIndividualDataInput.fieldLastNameRequired') })
   @NoMarkup()
   last_name!: string;
 
   @Field({ description: 'Отчество' })
-  @IsNotEmpty({ message: t('account.createIndividualDataInput.fieldMiddleNameRequired') })
+  @IsNotEmpty({ message: validationMessage('account.createIndividualDataInput.fieldMiddleNameRequired') })
   @NoMarkup()
   middle_name!: string;
 
@@ -43,7 +43,7 @@ export class CreateIndividualDataInputDTO {
   passport?: PassportInputDTO;
 
   @Field({ description: 'Телефон' })
-  @IsNotEmpty({ message: t('account.createIndividualDataInput.fieldPhoneRequired') })
+  @IsNotEmpty({ message: validationMessage('account.createIndividualDataInput.fieldPhoneRequired') })
   @NoMarkup()
   phone!: string;
 }
@@ -51,7 +51,7 @@ export class CreateIndividualDataInputDTO {
 @InputType('CreateSovietIndividualDataInput')
 export class CreateSovietIndividualDataInputDTO extends CreateIndividualDataInputDTO {
   @Field({ description: 'Email адрес' })
-  @IsNotEmpty({ message: t('account.createIndividualDataInput.fieldEmailRequired') })
+  @IsNotEmpty({ message: validationMessage('account.createIndividualDataInput.fieldEmailRequired') })
   @NoMarkup()
   email!: string;
 }

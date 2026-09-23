@@ -1,6 +1,6 @@
 import { Field, InputType } from '@nestjs/graphql';
+import { validationMessage } from '@coopenomics/extension-kit';
 import { IsNotEmpty, IsString, Matches } from 'class-validator';
-import { t } from '../../i18n';
 
 /**
  * Input для action `expense::payexp` — выдача аванса (ADVANCE) или прямая оплата (DIRECT).
@@ -26,6 +26,6 @@ export class PayExpenseItemInputDTO {
 
   @Field(() => String, { description: 'Фактическая сумма оплаты (asset, например "100.0000 RUB").' })
   @IsNotEmpty()
-  @Matches(/^\d+\.\d{1,8} [A-Z]{1,7}$/, { message: t('expenses.payExpenseItem.amountFormatHint') })
+  @Matches(/^\d+\.\d{1,8} [A-Z]{1,7}$/, { message: validationMessage('expenses.payExpenseItem.amountFormatHint') })
   actual_amount!: string;
 }

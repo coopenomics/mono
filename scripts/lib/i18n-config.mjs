@@ -121,8 +121,9 @@ export function dictionariesOf(app, locale = 'ru') {
 
 /** Какому потребителю принадлежит файл кода (для проверки ключей). */
 export function appOf(rel) {
-  if (rel.startsWith('components/desktop/')) return 'desktop';
-  if (/^components\/(controller|extension-kit|notifications|auth)\//.test(rel)) return 'controller';
+  // Клиентские библиотеки переводятся словарями пакета — они входят в словарь desktop.
+  if (rel.startsWith('components/desktop/') || /^components\/(auth|sdk)\//.test(rel)) return 'desktop';
+  if (/^components\/(controller|extension-kit|notifications)\//.test(rel)) return 'controller';
   return undefined;
 }
 

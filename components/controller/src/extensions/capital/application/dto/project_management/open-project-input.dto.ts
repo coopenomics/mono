@@ -1,7 +1,7 @@
 import { Field, InputType } from '@nestjs/graphql';
+import { validationMessage } from '@coopenomics/extension-kit';
 import { IsNotEmpty, IsString } from 'class-validator';
 import type { OpenProjectDomainInput } from '../../../domain/actions/open-project-domain-input.interface';
-import { t } from '../../../i18n';
 
 /**
  * GraphQL DTO для открытия проекта для инвестиций CAPITAL контракта
@@ -9,12 +9,12 @@ import { t } from '../../../i18n';
 @InputType('OpenProjectInput')
 export class OpenProjectInputDTO implements OpenProjectDomainInput {
   @Field(() => String, { description: 'Имя аккаунта кооператива' })
-  @IsNotEmpty({ message: t('capital.openProjectInput.coopname.required') })
-  @IsString({ message: t('capital.openProjectInput.coopname.string') })
+  @IsNotEmpty({ message: validationMessage('capital.openProjectInput.coopname.required') })
+  @IsString({ message: validationMessage('capital.openProjectInput.coopname.string') })
   coopname!: string;
 
   @Field(() => String, { description: 'Хэш проекта' })
-  @IsNotEmpty({ message: t('capital.openProjectInput.projectHash.required') })
-  @IsString({ message: t('capital.openProjectInput.projectHash.string') })
+  @IsNotEmpty({ message: validationMessage('capital.openProjectInput.projectHash.required') })
+  @IsString({ message: validationMessage('capital.openProjectInput.projectHash.string') })
   project_hash!: string;
 }

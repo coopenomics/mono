@@ -1,6 +1,6 @@
 import { Field, InputType } from '@nestjs/graphql';
+import { validationMessage } from '@coopenomics/extension-kit';
 import { IsNotEmpty, IsOptional, IsString, Matches } from 'class-validator';
-import { t } from '../../i18n';
 
 /**
  * Input для отчёта пайщика по строке-авансу (ADVANCE).
@@ -36,6 +36,6 @@ export class ReportExpenseItemInputDTO {
   })
   @IsOptional()
   @IsString()
-  @Matches(/^\d+\.\d{1,8} [A-Z]{1,7}$/, { message: t('expenses.reportExpenseItem.amountFormatHint') })
+  @Matches(/^\d+\.\d{1,8} [A-Z]{1,7}$/, { message: validationMessage('expenses.reportExpenseItem.amountFormatHint') })
   actual_amount?: string;
 }

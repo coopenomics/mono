@@ -221,7 +221,7 @@ function compileProblems(messages) {
   return problems;
 }
 
-const CALL_RE = /(?<![\w$])(?:\$t|t|te|tc|tm)\(\s*(?:(['"])([^'"\n]+?)\1|`([^`]*)`)/g;
+const CALL_RE = /(?<![\w$])(?:\$t|t|te|tc|tm|lt|i18nT|validationMessage)\(\s*(?:(['"])([^'"\n]+?)\1|`([^`]*)`)/g;
 const KEY_PROP_RE = /\b\w*Key\s*[:=]\s*(['"])([a-z][\w-]*(?:\.[\w-]+)+)\1/g;
 const ERROR_CODE_RE = /\b(?:DomainError(?:\.\w+)?\(\s*|errorCode\s*[:=]\s*)(['"])([A-Z][A-Z0-9_]+)\1/g;
 const KEYLIKE_RE = /(['"`])([a-z][A-Za-z0-9]*(?:\.[A-Za-z0-9_-]+)+)\1/g;
@@ -348,8 +348,27 @@ function notificationProblems() {
   return { problems, size: leaves.size };
 }
 
+// SSR-сервер (src-ssr) и сервис-воркер собираются esbuild, без Vite:
+// import.meta.glob словарей там не работает, и импорт переводчика приложения
+// роняет сервер при старте. Их строки — значения по умолчанию из окружения
+// и служебные уведомления, помечаются i18n-ignore.
+function standaloneBundleProblems() {
+  const problems = [];
+  for (const rel of listScanFiles()) {
+    if (!/^components\/desktop\/(src-ssr\/|src-pwa\/(custom-service-worker|network-utils))/.test(rel)) continue;
+    if (/from 'src\/shared\/i18n'/.test(readFileSync(join(REPO_ROOT, rel), 'utf8'))) {
+      problems.push(`${rel}: собирается без Vite — переводчик приложения (src/shared/i18n) здесь недоступен`);
+    }
+  }
+  return problems;
+}
+
 function gateCatalog() {
   let failed = 0;
+  for (const p of standaloneBundleProblems()) {
+    console.log(`    ✗ ${p}`);
+    failed = 1;
+  }
   {
     const { problems, size } = notificationProblems();
     if (size) console.log(`  notifications: ${size} шаблонов`);

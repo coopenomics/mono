@@ -260,7 +260,8 @@ export class GatewayInteractor implements GatewayInteractorPort {
       } catch (e: any) {
         const message = e?.message ?? String(e);
         // переходный период до 30.07.2026: on-chain объекта нет — старый путь
-        if (message.includes('Объект возврата не существует')) {
+        // i18n-ignore: сверка с текстом отказа контракта — у контракта пока нет кодов
+    if (message.includes('Объект возврата не существует')) {
           if (payment.id) {
             await this.paymentRepository.update(payment.id, { status: PaymentStatusEnum.COMPLETED });
           }

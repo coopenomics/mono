@@ -32,6 +32,7 @@ import {
   type IssueLinkedGitCommitRepository,
   type IssueLinkedGitCommitRow,
 } from '../../domain/repositories/issue-linked-git-commit.repository';
+import { t } from '../../i18n';
 import { CommitOutputDTO } from '../dto/generation/commit.dto';
 import { CycleOutputDTO } from '../dto/generation/cycle.dto';
 import { PaginationInputDTO, PaginationResult, platformSettings, GenerateDocumentOptionsInputDTO, GeneratedDocumentDTO, EMPTY_HASH, CurrencyValidationUtil, DomainError } from '@coopenomics/extension-kit';
@@ -1573,7 +1574,7 @@ export class GenerationService {
     data: ProgramCapitalizationMoneyInvestStatementGenerateDocumentInputDTO,
     options: GenerateDocumentOptionsInputDTO
   ): Promise<GeneratedDocumentDTO> {
-    CurrencyValidationUtil.validateCurrencySymbol(data.amount, 'сумме инвестирования');
+    CurrencyValidationUtil.validateCurrencySymbol(data.amount, t('capital.currencyField.investmentAmount'));
 
     const document = await this.documentPort.generate({
       data: {

@@ -1,7 +1,7 @@
 import { Field, InputType } from '@nestjs/graphql';
+import { validationMessage } from '@coopenomics/extension-kit';
 import { IsNotEmpty, IsString } from 'class-validator';
 import type { FundProgramDomainInput } from '../../../domain/actions/fund-program-domain-input.interface';
-import { t } from '../../../i18n';
 
 /**
  * GraphQL DTO для финансирования программы CAPITAL контракта
@@ -9,17 +9,17 @@ import { t } from '../../../i18n';
 @InputType('FundProgramInput')
 export class FundProgramInputDTO implements FundProgramDomainInput {
   @Field(() => String, { description: 'Имя аккаунта кооператива' })
-  @IsNotEmpty({ message: t('capital.fundProgramInput.coopname.required') })
-  @IsString({ message: t('capital.fundProgramInput.coopname.string') })
+  @IsNotEmpty({ message: validationMessage('capital.fundProgramInput.coopname.required') })
+  @IsString({ message: validationMessage('capital.fundProgramInput.coopname.string') })
   coopname!: string;
 
   @Field(() => String, { description: 'Сумма финансирования' })
-  @IsNotEmpty({ message: t('capital.fundProgramInput.amount.required') })
-  @IsString({ message: t('capital.fundProgramInput.amount.string') })
+  @IsNotEmpty({ message: validationMessage('capital.fundProgramInput.amount.required') })
+  @IsString({ message: validationMessage('capital.fundProgramInput.amount.string') })
   amount!: string;
 
   @Field(() => String, { description: 'Memo' })
-  @IsNotEmpty({ message: t('capital.fundProgramInput.memo.required') })
-  @IsString({ message: t('capital.fundProgramInput.memo.string') })
+  @IsNotEmpty({ message: validationMessage('capital.fundProgramInput.memo.required') })
+  @IsString({ message: validationMessage('capital.fundProgramInput.memo.string') })
   memo!: string;
 }

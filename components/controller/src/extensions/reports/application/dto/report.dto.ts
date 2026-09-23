@@ -1,4 +1,5 @@
 import { ObjectType, Field, InputType, Int, Float, registerEnumType } from '@nestjs/graphql';
+import { validationMessage } from '@coopenomics/extension-kit';
 import {
   IsString,
   IsInt,
@@ -15,7 +16,6 @@ import {
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ReportType, ReportPeriodType } from '../../domain/enums/report-type.enum';
-import { t } from '../../i18n';
 
 registerEnumType(ReportType, { name: 'ReportType' });
 registerEnumType(ReportPeriodType, { name: 'ReportPeriodType' });
@@ -173,7 +173,7 @@ export class OrganizationDataInputDTO {
   @Field(() => String, { nullable: true })
   @IsOptional()
   @IsString()
-  @Matches(/^(\d{10}|\d{12})$/, { message: t('reports.report.innFormat') })
+  @Matches(/^(\d{10}|\d{12})$/, { message: validationMessage('reports.report.innFormat') })
   inn?: string;
 
   // XSD ФНС: КПП = 9 симв., позиции 5-6 могут быть A-Z (иностранные
@@ -181,7 +181,7 @@ export class OrganizationDataInputDTO {
   @Field(() => String, { nullable: true })
   @IsOptional()
   @IsString()
-  @Matches(/^\d{4}[0-9A-Z]{2}\d{3}$/, { message: t('reports.requisites.status.kppFullFormat') })
+  @Matches(/^\d{4}[0-9A-Z]{2}\d{3}$/, { message: validationMessage('reports.requisites.status.kppFullFormat') })
   kpp?: string;
 
   @Field(() => String, { nullable: true })
@@ -193,31 +193,31 @@ export class OrganizationDataInputDTO {
   @Field(() => String, { nullable: true })
   @IsOptional()
   @IsString()
-  @Matches(/^(\d{13}|\d{15})$/, { message: t('reports.report.ogrnFormat') })
+  @Matches(/^(\d{13}|\d{15})$/, { message: validationMessage('reports.report.ogrnFormat') })
   ogrn?: string;
 
   @Field(() => String, { nullable: true, description: 'ОКВЭД — напр. 94.99, 46.73.7' })
   @IsOptional()
   @IsString()
-  @Matches(/^\d{2}(\.\d{1,2}){0,2}$/, { message: t('reports.requisites.status.okvedFormat') })
+  @Matches(/^\d{2}(\.\d{1,2}){0,2}$/, { message: validationMessage('reports.requisites.status.okvedFormat') })
   okved?: string;
 
   @Field(() => String, { nullable: true })
   @IsOptional()
   @IsString()
-  @Matches(/^\d{8}(\d{3})?$/, { message: t('reports.requisites.status.oktmoFormat') })
+  @Matches(/^\d{8}(\d{3})?$/, { message: validationMessage('reports.requisites.status.oktmoFormat') })
   oktmo?: string;
 
   @Field(() => String, { nullable: true, description: 'ОКФС — 1-3 цифры' })
   @IsOptional()
   @IsString()
-  @Matches(/^\d{1,3}$/, { message: t('reports.requisites.status.okfsFormat') })
+  @Matches(/^\d{1,3}$/, { message: validationMessage('reports.requisites.status.okfsFormat') })
   okfs?: string;
 
   @Field(() => String, { nullable: true, description: 'ОКОПФ — 5 цифр' })
   @IsOptional()
   @IsString()
-  @Matches(/^\d{5}$/, { message: t('reports.requisites.status.okopfFormat') })
+  @Matches(/^\d{5}$/, { message: validationMessage('reports.requisites.status.okopfFormat') })
   okopf?: string;
 
   @Field(() => String, { nullable: true })
@@ -238,7 +238,7 @@ export class OrganizationDataInputDTO {
   @Field(() => String, { nullable: true, description: 'ОКПО — 8 или 10 цифр (ФНС принимает 10)' })
   @IsOptional()
   @IsString()
-  @Matches(/^\d{8}(\d{2})?$/, { message: t('reports.requisites.status.okpoFormat') })
+  @Matches(/^\d{8}(\d{2})?$/, { message: validationMessage('reports.requisites.status.okpoFormat') })
   okpo?: string;
 
   @Field(() => String, { nullable: true })
@@ -279,7 +279,7 @@ export class OrganizationDataInputDTO {
   @Field(() => String, { nullable: true, description: 'СНИЛС — XXX-XXX-XXX YY или 11 цифр' })
   @IsOptional()
   @IsString()
-  @Matches(/^(\d{3}-\d{3}-\d{3} \d{2}|\d{11})$/, { message: t('reports.requisites.status.snilsFormat') })
+  @Matches(/^(\d{3}-\d{3}-\d{3} \d{2}|\d{11})$/, { message: validationMessage('reports.requisites.status.snilsFormat') })
   signerSnils?: string;
 
   @Field(() => String, {
@@ -288,7 +288,7 @@ export class OrganizationDataInputDTO {
   })
   @IsOptional()
   @IsString()
-  @Matches(/^\d{3}-\d{3}-\d{6}$/, { message: t('reports.report.sfrRegNumber14Format') })
+  @Matches(/^\d{3}-\d{3}-\d{6}$/, { message: validationMessage('reports.report.sfrRegNumber14Format') })
   sfrRegNumber?: string;
 
   @Field(() => String, {

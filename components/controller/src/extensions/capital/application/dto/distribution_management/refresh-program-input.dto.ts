@@ -1,7 +1,7 @@
 import { Field, InputType } from '@nestjs/graphql';
+import { validationMessage } from '@coopenomics/extension-kit';
 import { IsNotEmpty, IsString } from 'class-validator';
 import type { RefreshProgramDomainInput } from '../../../domain/actions/refresh-program-domain-input.interface';
-import { t } from '../../../i18n';
 
 /**
  * GraphQL DTO для обновления CRPS пайщика в программе CAPITAL контракта
@@ -9,12 +9,12 @@ import { t } from '../../../i18n';
 @InputType('RefreshProgramInput')
 export class RefreshProgramInputDTO implements RefreshProgramDomainInput {
   @Field(() => String, { description: 'Имя аккаунта кооператива' })
-  @IsNotEmpty({ message: t('capital.refreshProgramInput.coopname.required') })
-  @IsString({ message: t('capital.refreshProgramInput.coopname.string') })
+  @IsNotEmpty({ message: validationMessage('capital.refreshProgramInput.coopname.required') })
+  @IsString({ message: validationMessage('capital.refreshProgramInput.coopname.string') })
   coopname!: string;
 
   @Field(() => String, { description: 'Имя пользователя' })
-  @IsNotEmpty({ message: t('capital.refreshProgramInput.username.required') })
-  @IsString({ message: t('capital.refreshProgramInput.username.string') })
+  @IsNotEmpty({ message: validationMessage('capital.refreshProgramInput.username.required') })
+  @IsString({ message: validationMessage('capital.refreshProgramInput.username.string') })
   username!: string;
 }

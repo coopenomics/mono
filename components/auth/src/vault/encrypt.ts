@@ -1,6 +1,7 @@
+import type { EncryptedVaultBlob, VaultSubject } from './types'
+import { lt } from '@coopenomics/i18n'
 import { AuthV2Error, AuthV2ErrorCode } from '../errors'
 import { deriveKey } from './kdf'
-import type { EncryptedVaultBlob, VaultSubject } from './types'
 
 const CIPHER_VERSION = 'aes-256-gcm-v1'
 const KDF_VERSION = 'argon2id-v1'
@@ -94,8 +95,9 @@ export async function decryptWithPassword(
       buf(sealed),
     )
     return new TextDecoder().decode(plain)
-  } catch {
-    throw new AuthV2Error(AuthV2ErrorCode.VaultDecryptionFailed, 'Не удалось расшифровать: неверный пароль или повреждённые данные')
+  }
+  catch {
+    throw new AuthV2Error(AuthV2ErrorCode.VaultDecryptionFailed, lt('authClient.encrypt.decryptFailed'))
   }
 }
 

@@ -1,4 +1,5 @@
 import { Field, InputType, Int, ObjectType, registerEnumType } from '@nestjs/graphql';
+import { validationMessage } from '@coopenomics/extension-kit';
 import {
   IsEnum,
   IsInt,
@@ -26,7 +27,6 @@ import {
   SNILS_PATTERN,
   DATE_DDMMYYYY_PATTERN,
 } from '../../domain/patterns';
-import { t } from '../../i18n';
 
 /**
  * DTO для «нулёвок»: NDFL6, RSV, PSV, DUSN, UUSN, FSS4/ЕФС-1.
@@ -61,7 +61,7 @@ export class ZeroReportHeaderEditsInputDTO {
   versProgram!: string;
 
   @Field(() => String)
-  @Matches(DATE_DDMMYYYY_PATTERN, { message: t('reports.requisites.status.docDateFormat') })
+  @Matches(DATE_DDMMYYYY_PATTERN, { message: validationMessage('reports.requisites.status.docDateFormat') })
   docDate!: string;
 
   @Field(() => Int)
@@ -113,41 +113,41 @@ export class ZeroReportOrganizationEditsInputDTO {
   orgName!: string;
 
   @Field(() => String)
-  @Matches(INN_UL_PATTERN, { message: t('reports.requisites.status.innUlFormat') })
+  @Matches(INN_UL_PATTERN, { message: validationMessage('reports.requisites.status.innUlFormat') })
   inn!: string;
 
   @Field(() => String)
-  @Matches(KPP_PATTERN, { message: t('reports.zeroReportEdits.kppShortFormat') })
+  @Matches(KPP_PATTERN, { message: validationMessage('reports.zeroReportEdits.kppShortFormat') })
   kpp!: string;
 
   @Field(() => String, { nullable: true })
   @IsOptional()
-  @Matches(OKTMO_PATTERN, { message: t('reports.requisites.status.oktmoFormat') })
+  @Matches(OKTMO_PATTERN, { message: validationMessage('reports.requisites.status.oktmoFormat') })
   oktmo!: string | null;
 
   @Field(() => String, { nullable: true })
   @IsOptional()
-  @Matches(OKVED_PATTERN, { message: t('reports.requisites.status.okvedFormat') })
+  @Matches(OKVED_PATTERN, { message: validationMessage('reports.requisites.status.okvedFormat') })
   okved!: string | null;
 
   @Field(() => String, { nullable: true })
   @IsOptional()
-  @Matches(OKFS_PATTERN, { message: t('reports.requisites.status.okfsFormat') })
+  @Matches(OKFS_PATTERN, { message: validationMessage('reports.requisites.status.okfsFormat') })
   okfs!: string | null;
 
   @Field(() => String, { nullable: true })
   @IsOptional()
-  @Matches(OKOPF_PATTERN, { message: t('reports.requisites.status.okopfFormat') })
+  @Matches(OKOPF_PATTERN, { message: validationMessage('reports.requisites.status.okopfFormat') })
   okopf!: string | null;
 
   @Field(() => String, { nullable: true })
   @IsOptional()
-  @Matches(OKPO_PATTERN, { message: t('reports.requisites.status.okpoFormat') })
+  @Matches(OKPO_PATTERN, { message: validationMessage('reports.requisites.status.okpoFormat') })
   okpo!: string | null;
 
   @Field(() => String, { nullable: true })
   @IsOptional()
-  @Matches(OGRN_UL_PATTERN, { message: t('reports.zeroReportEdits.ogrnUlFormat') })
+  @Matches(OGRN_UL_PATTERN, { message: validationMessage('reports.zeroReportEdits.ogrnUlFormat') })
   ogrn!: string | null;
 
   @Field(() => String, { nullable: true })
@@ -212,22 +212,22 @@ export class ZeroReportSignerEditsInputDTO {
 
   @Field(() => String, { nullable: true })
   @IsOptional()
-  @Matches(SNILS_PATTERN, { message: t('reports.requisites.status.snilsFormat') })
+  @Matches(SNILS_PATTERN, { message: validationMessage('reports.requisites.status.snilsFormat') })
   snils!: string | null;
 
   @Field(() => String, { nullable: true })
   @IsOptional()
-  @Matches(INN_FL_PATTERN, { message: t('reports.requisites.status.signerInn12Format') })
+  @Matches(INN_FL_PATTERN, { message: validationMessage('reports.requisites.status.signerInn12Format') })
   inn!: string | null;
 
   @Field(() => String, { nullable: true })
   @IsOptional()
-  @Matches(SFR_REG_NUMBER_PATTERN, { message: t('reports.zeroReportEdits.sfrRegNumberFormat') })
+  @Matches(SFR_REG_NUMBER_PATTERN, { message: validationMessage('reports.zeroReportEdits.sfrRegNumberFormat') })
   sfrRegNumber!: string | null;
 
   @Field(() => String, { nullable: true })
   @IsOptional()
-  @Matches(PFR_REG_NUMBER_PATTERN, { message: t('reports.zeroReportEdits.pfrRegNumberFormat') })
+  @Matches(PFR_REG_NUMBER_PATTERN, { message: validationMessage('reports.zeroReportEdits.pfrRegNumberFormat') })
   pfrRegNumber!: string | null;
 
   @Field(() => String, { nullable: true })

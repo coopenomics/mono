@@ -1,4 +1,5 @@
 import { InputType, Field } from '@nestjs/graphql';
+import { validationMessage } from '@coopenomics/extension-kit';
 import { AccountType } from '../enum/account-type.enum';
 import { CreateEntrepreneurDataInputDTO } from './create-entrepreneur-data-input.dto';
 import { CreateIndividualDataInputDTO } from './create-individual-data-input.dto';
@@ -6,12 +7,11 @@ import { CreateOrganizationDataInputDTO } from './create-organization-data-input
 import { IsNotEmpty, IsOptional, IsString, ValidateIf, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 import type { RegisterAccountDomainInterface } from '~/domain/account/interfaces/register-account-input.interface';
-import { t } from '~/i18n';
 
 @InputType('RegisterAccountInput')
 export class RegisterAccountInputDTO implements RegisterAccountDomainInterface {
   @Field({ description: 'Электронная почта' })
-  @IsNotEmpty({ message: t('account.registerAccountInput.fieldEmailRequired') })
+  @IsNotEmpty({ message: validationMessage('account.registerAccountInput.fieldEmailRequired') })
   email!: string;
 
   @Field({ nullable: true, description: 'Имя аккаунта реферера' })
@@ -19,11 +19,11 @@ export class RegisterAccountInputDTO implements RegisterAccountDomainInterface {
   referer?: string;
 
   @Field(() => AccountType, { description: 'Тип аккаунта' })
-  @IsNotEmpty({ message: t('account.registerAccountInput.fieldTypeRequired') })
+  @IsNotEmpty({ message: validationMessage('account.registerAccountInput.fieldTypeRequired') })
   type!: AccountType;
 
   @Field({ description: 'Имя пользователя' })
-  @IsNotEmpty({ message: t('account.registerAccountInput.fieldUsernameRequired') })
+  @IsNotEmpty({ message: validationMessage('account.registerAccountInput.fieldUsernameRequired') })
   username!: string;
 
   @Field({ description: 'Публичный ключ' })
@@ -50,7 +50,7 @@ export class RegisterAccountInputDTO implements RegisterAccountDomainInterface {
 
   @ValidateIf((o: RegisterAccountInputDTO) => !o.entrepreneur_data && !o.individual_data && !o.organization_data)
   @IsNotEmpty({
-    message: t('account.registerAccountInput.atLeastOneDataRequired'),
+    message: validationMessage('account.registerAccountInput.atLeastOneDataRequired'),
   })
   validateOneTypePresent!: boolean;
 }

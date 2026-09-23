@@ -1,20 +1,20 @@
 // payment-method.dto.ts
 import { IsNotEmpty, IsString, IsBoolean } from 'class-validator';
+import { validationMessage } from '@coopenomics/extension-kit';
 import { Field, InputType } from '@nestjs/graphql';
 import { BankAccountInputDTO } from './bank-account-input.dto';
-import { t } from '~/i18n';
 
 @InputType('CreateBankAccountInput')
 export class CreateBankAccountInputDTO {
   @Field(() => String, { description: 'Имя аккаунта пользователя' })
-  @IsNotEmpty({ message: t('paymentMethod.createBankAccountInput.usernameRequired') })
+  @IsNotEmpty({ message: validationMessage('paymentMethod.createBankAccountInput.usernameRequired') })
   @IsString()
   username!: string;
 
   @Field(() => Boolean, {
     description: 'Флаг основного метода платежа, который отображается в документах',
   })
-  @IsNotEmpty({ message: t('paymentMethod.createBankAccountInput.isMainFlagRequired') })
+  @IsNotEmpty({ message: validationMessage('paymentMethod.createBankAccountInput.isMainFlagRequired') })
   @IsBoolean()
   is_default!: boolean;
 

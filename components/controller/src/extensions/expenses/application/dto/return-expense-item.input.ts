@@ -1,6 +1,6 @@
 import { Field, InputType } from '@nestjs/graphql';
+import { validationMessage } from '@coopenomics/extension-kit';
 import { IsNotEmpty, IsString, Matches } from 'class-validator';
-import { t } from '../../i18n';
 
 /**
  * Input для action `expense::returnexp` — возврат неиспользованного аванса (ADVANCE).
@@ -24,6 +24,6 @@ export class ReturnExpenseItemInputDTO {
 
   @Field(() => String, { description: 'Возвращаемая сумма (asset, например "50.0000 RUB").' })
   @IsNotEmpty()
-  @Matches(/^\d+\.\d{1,8} [A-Z]{1,7}$/, { message: t('expenses.returnExpenseItem.amountFormatHint') })
+  @Matches(/^\d+\.\d{1,8} [A-Z]{1,7}$/, { message: validationMessage('expenses.returnExpenseItem.amountFormatHint') })
   return_amount!: string;
 }

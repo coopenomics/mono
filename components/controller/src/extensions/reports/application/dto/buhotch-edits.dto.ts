@@ -1,4 +1,5 @@
 import { Field, InputType, Int, ObjectType, registerEnumType } from '@nestjs/graphql';
+import { validationMessage } from '@coopenomics/extension-kit';
 import {
   IsBoolean,
   IsEnum,
@@ -20,7 +21,6 @@ import {
   OKPO_PATTERN,
   DATE_DDMMYYYY_PATTERN,
 } from '../../domain/patterns';
-import { t } from '../../i18n';
 
 /**
  * Редактируемое состояние формы БУХОТЧ (КНД 0710096, ВерсФорм 5.04, НКО-профиль).
@@ -103,7 +103,7 @@ export class BuhotchHeaderEditsInputDTO {
 
   /** `<Документ ДатаДок="DD.MM.YYYY">`. */
   @Field(() => String)
-  @Matches(DATE_DDMMYYYY_PATTERN, { message: t('reports.requisites.status.docDateFormat') })
+  @Matches(DATE_DDMMYYYY_PATTERN, { message: validationMessage('reports.requisites.status.docDateFormat') })
   docDate!: string;
 
   /** `<Документ ОтчетГод="...">`. */
@@ -154,11 +154,11 @@ export class BuhotchOrganizationEditsInputDTO {
   orgName!: string;
 
   @Field(() => String)
-  @Matches(INN_UL_PATTERN, { message: t('reports.requisites.status.innUlFormat') })
+  @Matches(INN_UL_PATTERN, { message: validationMessage('reports.requisites.status.innUlFormat') })
   inn!: string;
 
   @Field(() => String)
-  @Matches(KPP_PATTERN, { message: t('reports.requisites.status.kppFullFormat') })
+  @Matches(KPP_PATTERN, { message: validationMessage('reports.requisites.status.kppFullFormat') })
   kpp!: string;
 
   @Field(() => String, { nullable: true })
@@ -169,15 +169,15 @@ export class BuhotchOrganizationEditsInputDTO {
 
   @Field(() => String, { nullable: true })
   @IsOptional()
-  @Matches(OKPO_PATTERN, { message: t('reports.requisites.status.okpoFormat') })
+  @Matches(OKPO_PATTERN, { message: validationMessage('reports.requisites.status.okpoFormat') })
   okpo?: string | null;
 
   @Field(() => String)
-  @Matches(OKFS_PATTERN, { message: t('reports.requisites.status.okfsFormat') })
+  @Matches(OKFS_PATTERN, { message: validationMessage('reports.requisites.status.okfsFormat') })
   okfs!: string;
 
   @Field(() => String)
-  @Matches(OKOPF_PATTERN, { message: t('reports.requisites.status.okopfFormat') })
+  @Matches(OKOPF_PATTERN, { message: validationMessage('reports.requisites.status.okopfFormat') })
   okopf!: string;
 }
 

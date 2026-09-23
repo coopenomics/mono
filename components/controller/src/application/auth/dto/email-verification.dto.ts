@@ -1,24 +1,24 @@
 import { Field, InputType, Int, ObjectType } from '@nestjs/graphql';
+import { validationMessage } from '@coopenomics/extension-kit';
 import { IsEmail, IsNotEmpty, IsString, Length } from 'class-validator';
-import { t } from '~/i18n';
 
 @InputType()
 export class RequestEmailVerificationInputDTO {
   @Field(() => String, { description: 'Адрес электронной почты, который подтверждается' })
-  @IsEmail({}, { message: t('auth.emailVerificationDto.invalidEmailMessage') })
+  @IsEmail({}, { message: validationMessage('auth.emailVerificationDto.invalidEmailMessage') })
   email!: string;
 }
 
 @InputType()
 export class ConfirmEmailVerificationInputDTO {
   @Field(() => String, { description: 'Адрес электронной почты, который подтверждается' })
-  @IsEmail({}, { message: t('auth.emailVerificationDto.invalidEmailMessage') })
+  @IsEmail({}, { message: validationMessage('auth.emailVerificationDto.invalidEmailMessage') })
   email!: string;
 
   @Field(() => String, { description: 'Код подтверждения из письма (6 цифр)' })
   @IsNotEmpty()
   @IsString()
-  @Length(6, 6, { message: t('auth.emailVerificationDto.codeFormatMessage') })
+  @Length(6, 6, { message: validationMessage('auth.emailVerificationDto.codeFormatMessage') })
   code!: string;
 }
 
