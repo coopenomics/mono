@@ -13,9 +13,9 @@ struct [[eosio::table, eosio::contract(MEET)]] question {
     name coopname;                               ///< Имя кооператива
     uint64_t meet_id;                            ///< Идентификатор общего собрания
     
-    std::string title;                           ///< Текст вопроса
-    std::string context;                         ///< Контекст вопроса
-    std::string decision;                        ///< Проект решения по вопросу
+    std::string title;                           ///< sha256 текста вопроса (текст — в базе контроллера)
+    std::string context;                         ///< sha256 контекста вопроса или пустая строка
+    std::string decision;                        ///< sha256 проекта решения по вопросу
     
     uint64_t counter_votes_for;                  ///< Счётчик голосов за
     uint64_t counter_votes_against;              ///< Счётчик голосов против

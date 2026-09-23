@@ -14,9 +14,11 @@ title: Тексты проектов Благороста хранятся в б
 
 sources:
   contract:
+    - components/contracts/cpp/lib/core/text_digest.hpp
     - components/contracts/cpp/capital/domain/entities/projects.hpp
     - components/contracts/cpp/capital/app/contract_managment/migrate/migrate.cpp
   backend:
+    - components/extension-kit/src/blockchain/chain-text-digest.ts
     - components/controller/src/extensions/capital/domain/utils/chain-text-digest.ts
     - components/controller/src/extensions/capital/application/syncers/project-sync.service.ts
     - components/controller/src/extensions/capital/domain/entities/project.entity.ts

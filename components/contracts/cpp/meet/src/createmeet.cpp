@@ -66,6 +66,10 @@ void meet::createmeet(name coopname, checksum256 hash, eosio::name initiator, na
   for (const auto& point : agenda) {
     check(!point.title.empty(), "Вопрос должен содержать заголовок (title)");
     check(!point.decision.empty(), "Вопрос должен содержать проект решения (decision)");
+    // Формулировки хранятся в базе контроллера, в цепи — их хеши (lib/core/text_digest.hpp).
+    TextDigest::check_digest(point.title, "title");
+    TextDigest::check_digest(point.decision, "decision");
+    TextDigest::check_digest(point.context, "context");
 
     number++;
     eosio::check(number <= 10, "Не больше 10 вопросов на повестке собрания");

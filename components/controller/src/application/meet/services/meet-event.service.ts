@@ -8,6 +8,7 @@ import type { MeetDecisionDomainInterface } from '~/domain/meet/interfaces/meet-
 import { MeetContract } from 'cooptypes';
 import type { IAction } from '~/types';
 import { DomainToBlockchainUtils } from '@coopenomics/extension-kit';
+import { ChainTextService } from '~/domain/chain-text/chain-text.service';
 
 /**
  * Сервис обработки событий собраний
@@ -15,7 +16,11 @@ import { DomainToBlockchainUtils } from '@coopenomics/extension-kit';
  */
 @Injectable()
 export class MeetEventService {
-  constructor(private readonly meetInteractor: MeetInteractor, private readonly logger: WinstonLoggerService) {
+  constructor(
+    private readonly meetInteractor: MeetInteractor,
+    private readonly logger: WinstonLoggerService,
+    private readonly chainTextService: ChainTextService
+  ) {
     this.logger.setContext(MeetEventService.name);
   }
 
@@ -36,14 +41,18 @@ export class MeetEventService {
         ...chainDecision,
         signed_ballots: Number(event.data.signed_ballots),
         quorum_percent: Number(event.data.quorum_percent),
-        results: event.data.results.map((item: any) => ({
-          ...item,
-          question_id: Number(item.question_id),
-          number: Number(item.number),
-          votes_for: Number(item.votes_for),
-          votes_against: Number(item.votes_against),
-          votes_abstained: Number(item.votes_abstained),
-        })),
+        // Формулировки вопросов в цепи лежат хешами — в итоги собрания кладём тексты.
+        results: await this.chainTextService.resolveFields(
+          event.data.results.map((item: any) => ({
+            ...item,
+            question_id: Number(item.question_id),
+            number: Number(item.number),
+            votes_for: Number(item.votes_for),
+            votes_against: Number(item.votes_against),
+            votes_abstained: Number(item.votes_abstained),
+          })),
+          ['title', 'context', 'decision'] as const
+        ),
         decision: decisionDocument, // Документ решения из блокчейна
       };
 

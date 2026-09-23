@@ -7,13 +7,12 @@ import type { IContributorBlockchainData } from '../../../domain/interfaces/cont
 import type { IAppendixBlockchainData } from '../../../domain/interfaces/appendix-blockchain.interface';
 import { ContributorDeltaMapper } from '../mappers/contributor-delta.mapper';
 import { AppendixDeltaMapper } from '../mappers/appendix-delta.mapper';
-import { DomainToBlockchainUtils, HttpApiError } from '@coopenomics/extension-kit';
+import { chainTextDigest, DomainToBlockchainUtils, HttpApiError } from '@coopenomics/extension-kit';
 import { VAULT_PORT, type IVaultPort,
   CHAIN_PORT,
   type IChainPort,
   type InnerTransactResult,
 } from '@coopenomics/innercoop';
-import { chainTextDigest } from '../../../domain/utils/chain-text-digest';
 
 /** Описание и приглашение уходят в цепь хешем, текст остаётся в базе контроллера. */
 function withChainTextDigests<T extends { description: string; invite: string }>(data: T): T {
