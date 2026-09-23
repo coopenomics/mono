@@ -90,6 +90,8 @@ export class EduAssignmentDTO {
     this.annex_hash = e.annex_hash;
     this.minutes_per_month = e.minutes_per_month;
     this.status = e.status;
+    // Поле обязательное в схеме: без него любой запрос назначений падал целиком.
+    this.decline_reason = e.decline_reason ?? '';
     this.created_at = e.created_at;
   }
 }

@@ -3,6 +3,7 @@ import { DecisionEventType, DecisionTrackedEvent } from '@coopenomics/innercoop'
 import { EdubridgeTeacherService, coursePeriod, rateCoverageError } from '~/extensions/edubridge/application/services/edubridge-teacher.service';
 import { EduAssignmentStatus, EduContractStatus, EduContributionStatus, EduCouncilOutcome } from '~/extensions/edubridge/domain/enums';
 import { Cooperative } from 'cooptypes';
+import { EduAssignmentDTO } from '~/extensions/edubridge/application/dto/edu-teacher.dto';
 
 const R = Cooperative.Registry;
 
@@ -727,6 +728,23 @@ describe('Черновики назначений по списку «Курс �
     expect(rateCoverageError('1200.0000 RUB', '1000.0000 RUB')).toContain('выше плановой ставки курса');
     expect(rateCoverageError('1000.0000 RUB', '1000.0000 RUB')).toBeNull();
     expect(rateCoverageError(undefined, '1000.0000 RUB')).toBeNull();
+  });
+});
+
+describe('EduAssignmentDTO — назначение в ответе API', () => {
+  const entity = { id: 'A1', teacher_username: 'teach', course_id: 'C1', schedule: 'Вт', expected_result: 'Занятия', period_from: '2026-09-23', period_to: '2027-05-22', annex_hash: null, minutes_per_month: 480, status: EduAssignmentStatus.DRAFT, created_at: new Date('2026-09-23') } as any;
+
+  it('причина отказа всегда строка: пусто, пока председатель не отказывал, — иначе запрос назначений падал целиком', () => {
+    expect(new EduAssignmentDTO({ ...entity, decline_reason: '' }, 'Алгебра').decline_reason).toBe('');
+    expect(new EduAssignmentDTO({ ...entity, decline_reason: undefined }, 'Алгебра').decline_reason).toBe('');
+    expect(new EduAssignmentDTO({ ...entity, decline_reason: 'Не то расписание' }, 'Алгебра').decline_reason).toBe('Не то расписание');
+  });
+
+  it('обязательные поля схемы назначения заполнены', () => {
+    const dto = new EduAssignmentDTO({ ...entity, decline_reason: '' }, 'Алгебра') as unknown as Record<string, unknown>;
+    for (const field of ['id', 'teacher_username', 'course_id', 'course_title', 'schedule', 'expected_result', 'period_from', 'period_to', 'minutes_per_month', 'status', 'decline_reason', 'created_at']) {
+      expect(dto[field]).not.toBeUndefined();
+    }
   });
 });
 
