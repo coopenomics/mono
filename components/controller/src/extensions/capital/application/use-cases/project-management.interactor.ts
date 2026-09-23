@@ -73,7 +73,11 @@ export class ProjectManagementInteractor {
 
     try {
       // Синхронизируем данные проекта с блокчейном
-      await this.projectSyncService.syncProject(data.coopname, data.project_hash, transactResult);
+      // В цепь ушли хеши текстов — сами тексты кладём в базу отсюда.
+      await this.projectSyncService.syncProject(data.coopname, data.project_hash, transactResult, {
+        description: data.description,
+        invite: data.invite,
+      });
     } catch (error: any) {
       // Логируем ошибку, но не прерываем выполнение, так как проект уже создан в блокчейне
       this.logger.error(`Ошибка при сохранении проекта ${data.project_hash} в базу данных: ${error.message}`, error.stack);
@@ -205,7 +209,11 @@ export class ProjectManagementInteractor {
     }
 
     try {
-      await this.projectSyncService.syncProject(data.coopname, data.project_hash, transactResult);
+      // Описание уже в базе (prepareWrite); приглашение редакций не ведёт и приходит отсюда.
+      await this.projectSyncService.syncProject(data.coopname, data.project_hash, transactResult, {
+        description: merged.description,
+        invite: merged.invite,
+      });
     } catch (error: any) {
       this.logger.error(
         `Ошибка при синхронизации проекта ${data.project_hash} в базу после редактирования: ${error.message}`,

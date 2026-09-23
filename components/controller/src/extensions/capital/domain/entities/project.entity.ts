@@ -9,6 +9,7 @@ import type { IProjectDomainInterfaceBlockchainData } from '../interfaces/projec
 import type { IBlockchainSynchronizable } from '@coopenomics/extension-kit/sync';
 import { BaseDomainEntity, auditUnknownStatus, auditLogger } from '@coopenomics/extension-kit/sync';
 import { IssueIdGenerationService } from '../services/issue-id-generation.service';
+import { resolveChainText } from '../utils/chain-text-digest';
 
 /**
  * Доменная сущность проекта
@@ -119,8 +120,10 @@ export class ProjectDomainEntity
       this.is_planed = blockchainData.is_planed;
       this.master = blockchainData.master;
       this.title = blockchainData.title;
-      this.description = blockchainData.description;
-      this.invite = blockchainData.invite;
+      // Строка из базы несёт текст, новая строка из цепи — хеш: текст к ней допишет
+      // syncProject из отправленного (см. chain-text-digest.ts).
+      this.description = resolveChainText(blockchainData.description, '');
+      this.invite = resolveChainText(blockchainData.invite, '');
       this.data = blockchainData.data;
       this.meta = blockchainData.meta;
       this.authorization = blockchainData.authorization;
@@ -180,8 +183,12 @@ export class ProjectDomainEntity
     this.block_num = blockNum;
     this.present = present;
 
-    // Обновляем специфичные поля из блокчейна
+    // Обновляем специфичные поля из блокчейна; хеш текста из цепи текст в базе не заменяет.
+    const description = resolveChainText(blockchainData.description, this.description);
+    const invite = resolveChainText(blockchainData.invite, this.invite);
     Object.assign(this, blockchainData);
+    this.description = description;
+    this.invite = invite;
     this.blockchain_status = blockchainData.status;
     this.status = this.mapStatusToDomain(blockchainData.status);
 
