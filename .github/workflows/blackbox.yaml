@@ -114,6 +114,10 @@ jobs:
         timeout-minutes: 20
         run: bash scripts/blackbox/stack.sh app
 
+      - name: Стенд — засев Стола заказов
+        timeout-minutes: 20
+        run: bash scripts/blackbox/stack.sh seed
+
       - name: Внешние тесты
         timeout-minutes: 60
         run: bash scripts/blackbox/stack.sh tests

@@ -12,7 +12,7 @@
 #   - контейнеры работают под uid раннера (docker-compose.blackbox.yml);
 #   - каждая фаза — отдельный подкоманд, чтобы workflow видел время каждой.
 #
-# Использование: scripts/blackbox/stack.sh <env|image|infra|boot|app|tests|collect|summary>
+# Использование: scripts/blackbox/stack.sh <env|image|infra|boot|app|seed|tests|collect|summary>
 
 set -euo pipefail
 
@@ -154,6 +154,13 @@ cmd_app() {
   stack_summary
 }
 
+# Засев Стола заказов (участники-фикстуры docs-harness и фазы seed-marketplace):
+# без него наборы маркетплейса не находят своих пайщиков и не запускаются.
+cmd_seed() {
+  load_stack
+  node scripts/blackbox/seed.mjs
+}
+
 cmd_tests() {
   load_stack
   CHAIN_ID="$(chain_id)"
@@ -237,8 +244,9 @@ case "${1:-}" in
   infra) cmd_infra ;;
   boot) cmd_boot ;;
   app) cmd_app ;;
+  seed) cmd_seed ;;
   tests) cmd_tests ;;
   collect) cmd_collect ;;
   summary) cmd_summary ;;
-  *) echo "использование: $0 <env|image|infra|boot|app|tests|collect|summary>" >&2; exit 2 ;;
+  *) echo "использование: $0 <env|image|infra|boot|app|seed|tests|collect|summary>" >&2; exit 2 ;;
 esac
