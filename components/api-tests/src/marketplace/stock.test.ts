@@ -194,8 +194,11 @@ describe('Стол заказов: остаток кооператива', () =>
 
 describe('Стол заказов: остаток кооператива упаковками', () => {
   const member = ROLES.member()
-  const buyer = ROLES.otherMember()
-  const supplier = ROLES.supplier()
+  // Сид заводит витрину sidorov десятью предложениями, и лимит «10 новых в
+  // час на поставщика» у него исчерпан. Второй поставщик реестра —
+  // ivanpetrov (фаза засева 04), своих предложений у него нет.
+  const supplier = ROLES.otherMember()
+  const buyer = ROLES.supplier()
   const operator = ROLES.branchChairman()
 
   const BOX = 10
