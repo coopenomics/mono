@@ -3,6 +3,9 @@ import {
   CANDIDATE_PORT,
   CHAIN_PORT,
   CHAIN_RESOURCES_PORT,
+  CHAIRMAN_APPROVALS_PORT,
+  CHAIN_DELTA_WAIT_PORT,
+  CHAIN_CHANGES_PORT,
   CHATCOOP_CALENDAR_PORT,
   ACCOUNT_PORT,
   AGREEMENT_CATALOG_PORT,
@@ -120,6 +123,10 @@ import { DocumentDomainModule } from '~/domain/document/document.module';
 import { DocumentModule } from '~/application/document/document.module';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 import { ChatCoopExtensionModule } from './chatcoop/chatcoop-extension.module';
+import { ChairmanExtensionModule } from './chairman/chairman-extension.module';
+import { ChairmanInnercoopApprovalsAdapter } from './chairman/infrastructure/innercoop/chairman-innercoop-approvals.adapter';
+import { ChainDeltaWaiterService } from '~/infrastructure/blockchain/chain-delta-waiter.service';
+import { ChainChangesService } from '~/infrastructure/blockchain/chain-changes.service';
 import { CapitalExtensionModule } from './capital/capital-extension.module';
 import { ExpensesExtensionModule } from './expenses/expenses-extension.module';
 import { SovietRobotExtensionModule } from '~/extensions/soviet-robot/soviet-robot-extension.module';
@@ -148,6 +155,8 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
   imports: [
     CapitalExtensionModule,
     ChatCoopExtensionModule,
+    // Одобрения председателя другим столам — через порт одобрений.
+    ChairmanExtensionModule,
     ExpensesExtensionModule,
     SovietRobotExtensionModule,
     Ledger2Module,
@@ -223,6 +232,23 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
     {
       provide: CHATCOOP_CALENDAR_PORT,
       useExisting: ChatcoopInnercoopChatCoopCalendarAdapter,
+    },
+    {
+      // Ответ мутации после факта из цепи (ADR-009): ожидание живёт в ядре,
+      // будит его единый потребитель событий индексатора.
+      provide: CHAIN_DELTA_WAIT_PORT,
+      useExisting: ChainDeltaWaiterService,
+    },
+    {
+      // Лента изменений цепи для столов: расширения объявляют свои таблицы.
+      provide: CHAIN_CHANGES_PORT,
+      useExisting: ChainChangesService,
+    },
+    {
+      // Стол, чей процесс завёл одобрение (договор преподавателя и т. п.),
+      // показывает его у себя; одобрение одно — подпись закрывает его везде.
+      provide: CHAIRMAN_APPROVALS_PORT,
+      useExisting: ChairmanInnercoopApprovalsAdapter,
     },
     {
       provide: PROJECT_CAPITAL_CLEARANCE_PORT,
@@ -446,6 +472,9 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
     PROJECT_COMMUNICATION_ARTIFACTS_PORT,
     SOVIET_ROBOT_PORT,
     MATRIX_ROOM_MESSAGING_PORT,
+    CHAIRMAN_APPROVALS_PORT,
+    CHAIN_DELTA_WAIT_PORT,
+    CHAIN_CHANGES_PORT,
     CHATCOOP_CALENDAR_PORT,
     PROJECT_CAPITAL_CLEARANCE_PORT,
     EXPENSE_CHASSIS_PORT,

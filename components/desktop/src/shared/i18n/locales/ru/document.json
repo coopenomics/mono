@@ -1,5 +1,17 @@
 {
   "document": {
+    "chairmanApprovalActions": {
+      "awaitingChairman": "Ждёт подписи председателя",
+      "cancel": "Отменить",
+      "decline": "Отклонить",
+      "declineConfirmText": "Документ «{documentTitle}» вернётся пайщику с причиной отказа.",
+      "declineDialogTitle": "Отклонить документ",
+      "declineReasonLabel": "Причина отказа",
+      "declinedSuccess": "Документ отклонён",
+      "signConfirmText": "Документ «{documentTitle}» будет подписан вашей подписью.",
+      "signDialogTitle": "Подписать документ",
+      "signedSuccess": "Документ подписан"
+    },
     "error": {
       "archiveEmpty": "Не найдено ни одного документа для архивации",
       "binaryNotFound": "Бинарные данные документа не найдены",

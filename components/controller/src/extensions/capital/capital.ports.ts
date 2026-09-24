@@ -13,6 +13,7 @@
 import {
   ACCOUNT_PORT,
   CANDIDATE_PORT,
+  CHAIN_DELTA_WAIT_PORT,
   CHAIN_PORT,
   COUNCIL_PORT,
   DECISION_TRACKING_PORT,
@@ -25,6 +26,7 @@ import {
   MATRIX_ROOM_MESSAGING_PORT,
   MUTATION_LOG_PORT,
   DOCUMENT_DECLARATION_PORT,
+  CHAIN_CHANGES_PORT,
   ONBOARDING_STEP_REGISTRY_PORT,
   PROGRAM_WALLET_PORT,
   PROJECT_COMMUNICATION_ARTIFACTS_PORT,
@@ -61,6 +63,10 @@ export const capitalPorts = {
     VAULT_PORT,
   ],
   optional: [
+    // Ответ мутаций после факта из цепи (ADR-009); без порта — сразу, как раньше.
+    CHAIN_DELTA_WAIT_PORT,
+    // Лента изменений цепи для столов; без неё столы живут дочиткой.
+    CHAIN_CHANGES_PORT,
     MATRIX_ROOM_MESSAGING_PORT,
     PROJECT_COMMUNICATION_ARTIFACTS_PORT,
   ],

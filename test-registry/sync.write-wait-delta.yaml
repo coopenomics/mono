@@ -1,0 +1,128 @@
+feature: sync.write-wait-delta
+title: Ответ мутации после факта из цепи — ожидание дельты своей транзакции
+
+# Паттерн ADR-009 / DEC-T10 (требования «Синхронизация узла с блокчейном v1»
+# и «Интеграция контроллера с parser2 v1», задача C28-15). Мутация отправляет
+# транзакцию и ждёт, пока изменение её блока придёт от индексатора и ляжет в
+# базу узла; ответ собирается из свежих данных. Задержка — фактическая, а не
+# выдуманная пауза; не пришло за BLOCKCHAIN_WRITE_WAIT_DELTA_MS — ответ без
+# ожидания, интерфейс догонит при следующем чтении.
+#
+# Введено 23.09.2026 (7DD-22) экспериментом на подписи председателя: договор
+# преподавателя в карточке показывался «ждёт подписи» ещё 3 секунды после
+# подписи — статус обновлялся по событию действия, которое шина задерживает.
+# Потребитель теперь ждёт слушателей дельты (не дольше барьера) и только потом
+# будит ожидающих; Образование проецирует договор из дельты educontracts.
+# Остальные места с паузами переводятся на порт постепенно.
+#
+# Правка 23.09.2026 (7DD-22), решение владельца: ожидание перенесено в саму
+# отправку. BlockchainService.transact возвращается, когда узел разобрал блок
+# транзакции целиком (тот же факт, что выпускает действия, — ActionReleaseGate),
+# поэтому после факта отвечают все мутации сразу, без перечня таблиц у каждой.
+# Изнутри разбора цепи транзакции не ждут (взаимная блокировка с барьером
+# слушателей). afterTransact для уже разобранного блока отвечает сразу.
+
+sources:
+  backend:
+    - components/controller/src/infrastructure/blockchain/chain-delta-waiter.service.ts
+    - components/controller/src/infrastructure/blockchain/blockchain-consumer.service.ts
+    - components/controller/src/infrastructure/blockchain/action-release-gate.service.ts
+    - components/controller/src/extensions/chairman/application/services/approval.service.ts
+    - components/controller/src/extensions/edubridge/application/listeners/edubridge-contract-delta.listener.ts
+    - components/innercoop/src/core-ports/chain-delta-wait.port.ts
+    - components/controller/src/infrastructure/blockchain/blockchain.service.ts
+    - components/controller/src/infrastructure/blockchain/chain-dispatch-context.ts
+
+cases:
+  - id: sync.wwd.happy.01
+    level: backend
+    kind: happy
+    scenario: "Мутация ждёт дельту своей таблицы и области из блока транзакции."
+    expect: "Ожидание будится этой дельтой и получает её; номер блока берётся из результата transact."
+    test: components/controller/src/infrastructure/blockchain/chain-delta-waiter.service.spec.ts
+    status: passing
+  - id: sync.wwd.side.01
+    level: backend
+    kind: side
+    scenario: "Приходят дельты раньшего блока, чужой таблицы, чужой области, чужой строки; нужная не приходит."
+    expect: "Ожидание не будится ими; по таймауту — null, ожидание и таймер не остаются в памяти."
+    test: components/controller/src/infrastructure/blockchain/chain-delta-waiter.service.spec.ts
+    status: passing
+  - id: sync.wwd.side.02
+    level: backend
+    kind: side
+    scenario: "Потребитель разбирает дельту, у которой есть слушатели-проекции; слушатель падает или зависает."
+    expect: "Ожидающие будятся после слушателей, не одновременно с ними; упавший или зависший дольше барьера слушатель событие не держит — оно подтверждается, ожидающие будятся."
+    test: components/controller/tests/unit/blockchain/blockchain-consumer.processFork.test.ts
+    status: passing
+  - id: sync.wwd.happy.02
+    level: backend
+    kind: happy
+    scenario: "Председатель подтверждает или отклоняет одобрение."
+    expect: "Ответ уходит после дельты самого одобрения (soviet::approvals по хэшу) и дельты контракта-адресата из блока транзакции; без порта или по таймауту — ответ сразу, с предупреждением в журнал."
+    test: components/controller/tests/unit/chairman/approval-decision-wait.test.ts
+    status: passing
+  - id: sync.wwd.ui.01
+    level: ui
+    kind: happy
+    scenario: "Председатель подписывает договор в карточке преподавателя."
+    expect: "Сразу после ответа карточка показывает «Действует» и дату подписи председателя, без перезагрузки и пауз на стороне стола."
+    test: ~
+    status: missing
+  - id: sync.wwd.happy.04
+    level: backend
+    kind: happy
+    scenario: "Действие блока N сохранено; приходит событие блока N+1 либо цепь простаивает (parser2 дочитал дальше, у группы lag = 0 и pending = 0)."
+    expect: "Действие уходит в шину сразу по факту разбора блока — без паузы в 3 секунды; своё блоковое событие действие не выпускает."
+    test: components/controller/src/infrastructure/blockchain/action-release-gate.service.spec.ts
+    status: passing
+  - id: sync.wwd.side.03
+    level: backend
+    kind: side
+    scenario: "В потоке есть непрочитанное или неподтверждённое; Redis не отвечает; обработчик одного действия падает."
+    expect: "Пока поток не разобран — ждёт; при молчании Redis — выпуск по страховке с предупреждением; упавший обработчик не мешает остальным."
+    test: components/controller/src/infrastructure/blockchain/action-release-gate.service.spec.ts
+    status: passing
+  - id: sync.wwd.happy.05
+    level: backend
+    kind: happy
+    scenario: "Любая мутация отправляет транзакцию через BlockchainService.transact."
+    expect: "Ответ уходит, когда узел разобрал блок транзакции (событие следующего блока или простой потока), не дольше BLOCKCHAIN_WRITE_WAIT_DELTA_MS; уже разобранный блок — сразу."
+    test: components/controller/tests/unit/blockchain/blockchain-service-block-wait.test.ts
+    status: passing
+  - id: sync.wwd.side.04
+    level: backend
+    kind: side
+    scenario: "Блок не разобран за предел; потребитель не запущен; транзакция без broadcast или без номера блока; сервис собран без гейта (мигратор)."
+    expect: "Ответ уходит без ожидания (при пределе — с предупреждением), ожидание не остаётся в очереди; страховка действий ожидание транзакции не выпускает."
+    test: components/controller/src/infrastructure/blockchain/action-release-gate.service.spec.ts
+    status: passing
+  - id: sync.wwd.break.01
+    level: backend
+    kind: break
+    scenario: "Транзакцию отправляет обработчик дельты или действия — изнутри разбора цепи."
+    expect: "Разбора блока не ждёт: иначе обработчик ждал бы блок, который потребитель не возьмёт, пока обработчик не закончит."
+    test: components/controller/tests/unit/blockchain/blockchain-service-block-wait.test.ts
+    status: passing
+  - id: sync.wwd.break.02
+    level: backend
+    kind: break
+    scenario: "Форк отменил блоки, которые уже считались разобранными."
+    expect: "Номера отменённых блоков снова не разобраны — транзакции в новых блоках с теми же номерами ждут заново."
+    test: components/controller/src/infrastructure/blockchain/action-release-gate.service.spec.ts
+    status: passing
+  - id: sync.wwd.side.05
+    level: backend
+    kind: side
+    scenario: "Мутация зовёт afterTransact после transact, который уже дождался своего блока."
+    expect: "afterTransact отвечает сразу, а не ждёт дельту, которая прошла раньше регистрации ожидания."
+    test: components/controller/src/infrastructure/blockchain/chain-delta-waiter.service.spec.ts
+    status: passing
+  - id: sync.wwd.break.03
+    level: backend
+    kind: break
+    scenario: "Необязательная зависимость (гейт разбора блока, лента изменений) объявлена типом X | null без явного токена."
+    expect: "Не бывает: у BlockchainService, ChainDeltaWaiterService и BlockchainConsumerService токен класса задан явно, иначе Nest молча подставил бы null и ожидание выключилось бы без ошибки. На старте журнал пишет «Транзакции отвечают после разбора своего блока»."
+    test: components/controller/tests/unit/blockchain/optional-deps-injection.test.ts
+    status: passing
+

@@ -49,6 +49,8 @@ export class WalletResolver {
     if (input.coopname !== config.coopname) {
       throw DomainError.forbidden('WALLET_SUBSCRIPTION_OWN_COOPERATIVE_ONLY');
     }
+    // Пайщик в контексте подписки — та же учётная запись, что у HTTP-запроса
+    // (ws-auth.registry.ts), поэтому имя берётся как в любом резолвере.
     const username = user?.username;
     if (!username) {
       throw DomainError.forbidden('WALLET_SUBSCRIPTION_MEMBER_ONLY');

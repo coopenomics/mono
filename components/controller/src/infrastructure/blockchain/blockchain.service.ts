@@ -14,7 +14,10 @@ import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 import type { GetInfoResult } from '~/types/shared/blockchain.types';
 import type { BlockchainAccountInterface } from '~/types/shared';
 import { VaultDomainService, VAULT_DOMAIN_SERVICE } from '~/domain/vault/services/vault-domain.service';
-import { Inject } from '@nestjs/common';
+import { Inject, Optional } from '@nestjs/common';
+import { ActionReleaseGate } from './action-release-gate.service';
+import { isInChainDispatch } from './chain-dispatch-context';
+import { getAppliedBlockNum } from '@coopenomics/extension-kit';
 import { normalizeAbiFloats } from './abi-float.normalizer';
 import { type ChainFailure, createChainFetch, describeChainFailure } from '@coopenomics/sdk';
 import * as Sentry from '@sentry/nestjs';
@@ -72,8 +75,17 @@ export class BlockchainService implements BlockchainPort {
   constructor(
     private readonly logger: WinstonLoggerService,
     private readonly rpcPool: RpcPool,
-    @Inject(VAULT_DOMAIN_SERVICE) private readonly vaultDomainService: VaultDomainService
-  ) {}
+    @Inject(VAULT_DOMAIN_SERVICE) private readonly vaultDomainService: VaultDomainService,
+    // Необязателен: мигратор собирает сервис руками, без потребителя цепи.
+    // Токен явно: тип-объединение с null метаданные внедрения стирают до
+    // Object, и Nest молча отдавал бы null — ожидание выключалось незаметно.
+    @Optional() @Inject(ActionReleaseGate) private readonly blockProgress: ActionReleaseGate | null = null
+  ) {
+    this.logger.setContext(BlockchainService.name);
+    // Видно при старте, включён ли ответ после разбора блока: без гейта
+    // мутации отвечают сразу после отправки, и заметить это иначе нечем.
+    if (blockProgress) this.logger.info('Транзакции отвечают после разбора своего блока');
+  }
 
   public initialize(username: string, wif: string): void {
     this.session = new Session(
@@ -191,7 +203,7 @@ export class BlockchainService implements BlockchainPort {
     // транзакций, срезанных лимитами CPU/NET на пике нагрузки (chain-retry.ts).
     // Такая транзакция в блок не попадает, поэтому повтор дублей не даёт, а
     // пайщик вместо красной ошибки получает обычный ответ со второй попытки.
-    return retryOnChainExhaustion(
+    const result = await retryOnChainExhaustion(
       () =>
         Array.isArray(actionOrActions)
           ? this.sendActions(session, actionOrActions, broadcast)
@@ -205,6 +217,41 @@ export class BlockchainService implements BlockchainPort {
           ),
       }
     );
+    if (broadcast) await this.awaitBlockProcessed(result);
+    return result;
+  }
+
+  /**
+   * Ответ после факта из цепи (ADR-009). Транзакция возвращается, когда узел
+   * разобрал её блок целиком: дельты сохранены, их слушатели отработали,
+   * проекции в базе свежие. Поэтому любая мутация отвечает уже изменёнными
+   * данными, и стол перечитывает их сразу — без пауз и без перечня таблиц у
+   * каждой мутации. Прежде так ждали две мутации из ста шестидесяти, остальные
+   * отвечали раньше базы, а столы прятали это паузами.
+   *
+   * Не дождались за BLOCKCHAIN_WRITE_WAIT_DELTA_MS — ответ уходит как есть,
+   * стол догонит по ленте изменений. Из разбора цепи не ждём вовсе — см.
+   * chain-dispatch-context.ts.
+   */
+  private async awaitBlockProcessed(result: TransactResult): Promise<void> {
+    if (!this.blockProgress) return;
+    if (isInChainDispatch()) {
+      this.logger.debug('Транзакция из разбора цепи — разбора блока не ждём');
+      return;
+    }
+    const block = getAppliedBlockNum(result as never);
+    if (!block) {
+      this.logger.warn('Узел не сообщил блок транзакции — ответ без ожидания разбора');
+      return;
+    }
+    const started = Date.now();
+    const processed = await this.blockProgress.waitProcessed(block, config.blockchain.write_wait_delta_ms);
+    const waited = Date.now() - started;
+    if (processed) {
+      this.logger.debug(`Блок ${block} транзакции разобран через ${waited} мс`);
+    } else {
+      this.logger.warn(`Блок ${block} транзакции не разобран за ${waited} мс — ответ без ожидания`);
+    }
   }
 
   private async formActionFromAbi(action: any): Promise<any> {

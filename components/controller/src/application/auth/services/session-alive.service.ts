@@ -1,10 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { TOKEN_REPOSITORY, TokenRepository } from '~/domain/token/repositories/token.repository';
 import { VaultService } from '~/application/auth-v2/vault/vault.service';
-import { USER_REPOSITORY, UserRepository } from '~/domain/user/repositories/user.repository';
-import { UserDomainService, USER_DOMAIN_SERVICE } from '~/domain/user/services/user-domain.service';
-import { resolveUserBySub } from '~/application/auth/utils/resolve-user-by-sub';
-import { registerWsSessionCheck } from '~/infrastructure/graphql/ws-session-check.registry';
 
 /**
  * С этого момента токен без `sid` доступа не открывает ни у кого.
@@ -37,9 +33,8 @@ const MIGRATED_CACHE_MS = 60_000;
  * `pgrzosdeyuwg` 08.09.2026 просидел так несколько часов — меню на месте,
  * кошелька и кнопки выхода нет, по центру предложение вступить в пайщики.
  *
- * Поэтому проверка одна на всех, а её потребители — стратегия HTTP и `onConnect`
- * веб-сокета (через {@link registerWsSessionCheck}: `GraphQLModule.forRoot`
- * статичен и провайдера в себя не инжектит).
+ * Поэтому проверка одна на всех, а её потребитель — `JwtAuthStrategy`: через неё
+ * опознаются и HTTP-запрос, и ws-соединение (см. `ws-auth.registry.ts`).
  */
 @Injectable()
 export class SessionAliveService {
@@ -47,33 +42,8 @@ export class SessionAliveService {
 
   constructor(
     @Inject(TOKEN_REPOSITORY) private readonly tokenRepository: TokenRepository,
-    @Inject(USER_REPOSITORY) private readonly userRepository: UserRepository,
-    @Inject(USER_DOMAIN_SERVICE) private readonly userDomainService: UserDomainService,
     private readonly vault: VaultService
-  ) {
-    // Отдаём проверку веб-сокету. Регистрация в конструкторе, а не в onModuleInit:
-    // соединение может прийти раньше полной инициализации приложения, и до
-    // регистрации ws пускал бы всех — ровно то поведение, которое чиним.
-    registerWsSessionCheck((sessionId, sub) => this.aliveUsernameBySub(sessionId, sub));
-  }
-
-  /**
-   * То же для входа, у которого на руках только `sub` токена, — веб-сокета.
-   * Резолв нужен именно здесь: `sub` это идентификатор учётной записи, а признак
-   * перехода на пароль (vault-блоб) хранится по имени аккаунта пайщика.
-   * Возвращает имя аккаунта живой сессии — веб-сокет кладёт его в соединение,
-   * и подписки строят по нему персональные топики. Пайщика по `sub` не нашли
-   * или сессия не жива — `null`.
-   */
-  async aliveUsernameBySub(sessionId: unknown, sub: unknown): Promise<string | null> {
-    if (typeof sub !== 'string' || !sub) return null;
-    try {
-      const user = await resolveUserBySub(sub, this.userRepository, this.userDomainService);
-      return (await this.isAlive(sessionId, user.username)) ? user.username : null;
-    } catch {
-      return null;
-    }
-  }
+  ) {}
 
   /**
    * Токен несёт claim `sid` — id строки refresh-токена, то есть самой сессии.

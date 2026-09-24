@@ -12,6 +12,8 @@
  */
 import {
   ACCOUNT_PORT,
+  CHAIN_DELTA_WAIT_PORT,
+  CHAIN_CHANGES_PORT,
   CHAIN_PORT,
   COOPERATIVE_VARS_PORT,
   COUNCIL_PORT,
@@ -43,5 +45,10 @@ export const chairmanPorts = {
     VAULT_PORT,
   ],
   optional: [
+    // Ответ на решение по одобрению — после того, как изменение пришло из цепи
+    // и легло в базу (ADR-009). Без порта ответ уходит сразу, как раньше.
+    CHAIN_DELTA_WAIT_PORT,
+    // Лента изменений: одобрения обновляются на столах сами.
+    CHAIN_CHANGES_PORT,
   ],
 };

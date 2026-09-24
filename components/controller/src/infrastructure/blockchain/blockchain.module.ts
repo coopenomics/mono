@@ -2,6 +2,10 @@ import { Module, Global } from '@nestjs/common';
 import { BlockchainService } from './blockchain.service';
 import { RpcPool } from './rpc-pool.service';
 import { BlockchainConsumerService } from './blockchain-consumer.service';
+import { ChainDeltaWaiterService } from './chain-delta-waiter.service';
+import { ActionReleaseGate } from './action-release-gate.service';
+import { ChainChangesService } from './chain-changes.service';
+import { LocalChangesSubscriber } from './local-changes.subscriber';
 import { DraftRegistrySyncService } from './services/draft-registry-sync.service';
 import { BlockchainRepeatService } from './services/blockchain-repeat.service';
 import { RedisModule } from '../redis/redis.module';
@@ -42,6 +46,14 @@ import { BlockchainArchiveRetentionService } from '~/shared/sync/services/blockc
     RpcPool,
     BlockchainService,
     BlockchainConsumerService,
+    // Ожидание изменения из цепи для ответов мутаций (ADR-009).
+    ChainDeltaWaiterService,
+    // Выпуск действий в шину по факту разбора блока, а не по таймеру.
+    ActionReleaseGate,
+    // Лента изменений цепи для столов — сигнал «перечитай» после разбора дельты.
+    ChainChangesService,
+    // Сигналы ленты для таблиц базы узла — после фиксации записи.
+    LocalChangesSubscriber,
     DraftRegistrySyncService,
     BlockchainRepeatService,
     {
@@ -100,6 +112,8 @@ import { BlockchainArchiveRetentionService } from '~/shared/sync/services/blockc
     BlockchainArchiveRetentionService,
   ],
   exports: [
+    ChainDeltaWaiterService,
+    ChainChangesService,
     RpcPool,
     BlockchainService,
     BlockchainConsumerService,

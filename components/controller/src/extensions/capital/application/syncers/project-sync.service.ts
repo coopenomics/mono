@@ -20,7 +20,7 @@ import {
   PROJECT_CHAIN_TEXT_FIELDS,
   type ProjectChainTexts,
 } from '../../domain/utils/chain-text-digest';
-import { chainTextDigest, waitAfterTransactBeforeChainTableRead, getAppliedBlockNum } from '@coopenomics/extension-kit';
+import { chainTextDigest, getAppliedBlockNum } from '@coopenomics/extension-kit';
 import { CAPITAL_PROJECT_CREATED_EVENT, type ICapitalProjectCreatedPayload } from '@coopenomics/innercoop';
 
 /**
@@ -144,7 +144,6 @@ export class ProjectSyncService
     transactResult: InnerTransactResult,
     sentTexts?: ProjectChainTexts
   ): Promise<ProjectDomainEntity | null> {
-    await waitAfterTransactBeforeChainTableRead();
     // Извлекаем данные проекта из блокчейна
     const blockchainProject = await this.capitalBlockchainPort.getProject(coopname, project_hash);
 

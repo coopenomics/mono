@@ -15,7 +15,7 @@ import {
 } from 'graphql';
 import { fieldAuthDirectiveTransformer } from './directives/fieldAuth.directive';
 import logger from '~/config/logger';
-import { authenticateWsConnection } from './ws-connection-auth';
+import { authenticateWsConnection, buildWsContext } from './ws-auth.registry';
 
 /**
  * Объявление директивы `@auth`, которую ставит декоратор `AuthRoles`.
@@ -68,33 +68,20 @@ function describeOperation(error: unknown): { operation: string | null; operatio
       // context: ({ req }) => req,
       playground: { endpoint: '/v1/graphql', settings: { 'request.credentials': 'same-origin' } },
       path: '/v1/graphql', // здесь можно задать другой путь, когда потребуется,
-      // Realtime-подписки поверх graphql-ws на том же пути. Аутентификация
-      // соединения — однократно в onConnect: верифицируем access-JWT из
-      // connectionParams и кладём `sub` с именем аккаунта в `extra`, чтобы операции читали юзера
-      // из контекста. Невалидный/отсутствующий токен → соединение отклоняется.
+      // Realtime-подписки поверх graphql-ws на том же пути. Соединение
+      // опознаётся однократно в onConnect тем же путём, что HTTP-запрос
+      // (JwtAuthStrategy), а контекст операции подписки повторяет форму
+      // HTTP-запроса — см. ws-auth.registry.ts. Для HTTP context — { req, res }
+      // как есть.
       subscriptions: {
         'graphql-ws': {
           path: '/v1/graphql',
-          onConnect: async (context: any) => {
-            const auth = await authenticateWsConnection(context?.connectionParams, config.jwt.secret);
-            if (!auth.ok) {
-              logger.warn(`[mp-ws] onConnect ОТКЛОНЁН: ${auth.reason}`);
-              return false;
-            }
-            context.extra = context.extra ?? {};
-            context.extra.user = auth.user;
-            logger.info(`[mp-ws] onConnect ✅ принят: ${auth.user.username}`);
-            return true;
-          },
+          onConnect: authenticateWsConnection,
         },
       },
-      // Единый context для HTTP и WS. Для ws (graphql-ws Context содержит
-      // `extra`) прокидываем аутентифицированного юзера в req.user, чтобы
-      // существующие @CurrentUser/декораторы работали без изменений. Для HTTP
-      // возвращаем { req, res } как есть.
       context: (ctx: any) => {
         if (ctx && typeof ctx === 'object' && 'extra' in ctx) {
-          return { req: { user: ctx.extra?.user ?? null, headers: {} } };
+          return buildWsContext(ctx);
         }
         return ctx;
       },

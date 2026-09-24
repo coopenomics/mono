@@ -9,6 +9,7 @@ import { UserDomainService, USER_DOMAIN_SERVICE } from '~/domain/user/services/u
 import { resolveUserBySub } from '~/application/auth/utils/resolve-user-by-sub';
 import { SessionAliveService } from '~/application/auth/services/session-alive.service';
 import { USER_ACTIVITY_PORT, type UserActivityPort } from '~/domain/metrics/ports/user-activity.port';
+import { registerWsUserResolver } from '~/infrastructure/graphql/ws-auth.registry';
 import { DomainError } from '@coopenomics/extension-kit';
 
 @Injectable()
@@ -23,6 +24,10 @@ export class JwtAuthStrategy extends PassportStrategy(JwtStrategy) {
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       secretOrKey: config.jwt.secret,
     });
+    // ws-соединение опознаёт пайщика этим же validate: пользователь в контексте
+    // подписки — тот же объект, что у HTTP-запроса. Регистрация в конструкторе,
+    // а не в onModuleInit: соединение может прийти раньше полной инициализации.
+    registerWsUserResolver((payload) => this.validate(payload));
   }
 
   async validate(payload: any) {

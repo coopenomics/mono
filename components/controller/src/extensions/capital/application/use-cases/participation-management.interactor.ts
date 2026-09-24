@@ -41,7 +41,7 @@ import type { CompleteCapitalRegistrationDomainInput } from '../../domain/action
 import { EXTENSION_REPOSITORY, type ExtensionDomainRepository, PaginationInputDTO, PaginationResult, platformSettings, DomainError } from '@coopenomics/extension-kit';
 import type { IConfig } from '../../capital-extension.module';
 import { DomainToBlockchainUtils } from '@coopenomics/extension-kit';
-import { EMPTY_HASH, waitAfterTransactBeforeChainTableRead, getAppliedBlockNum } from '@coopenomics/extension-kit';
+import { EMPTY_HASH, getAppliedBlockNum } from '@coopenomics/extension-kit';
 import { generateRandomHash, generateUniqueHash } from '@coopenomics/extension-kit';
 
 /**
@@ -261,7 +261,6 @@ export class ParticipationManagementInteractor {
       blockchainAction
     );
 
-    await waitAfterTransactBeforeChainTableRead();
     // Получаем данные участника из блокчейна после регистрации
     const blockchainData = await this.capitalBlockchainPort.getContributor(
       data.coopname,
@@ -382,7 +381,6 @@ export class ParticipationManagementInteractor {
         ),
     });
 
-    await waitAfterTransactBeforeChainTableRead();
     // ШАГ 3: Получаем данные appendix из блокчейна после makeClearance
     const blockchainData = await this.capitalBlockchainPort.getAppendix(
       data.coopname,

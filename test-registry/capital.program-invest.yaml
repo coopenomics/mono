@@ -24,6 +24,14 @@ title: Паевой взнос в программу «Благорост»
 # прежние, набор случаев этой фичи не менялся. Правило плательщика покрыто
 # отдельно — test-registry/contracts.ram-payer.yaml.
 
+#
+# Правка 2026-09-23 (7DD-22): взнос отвечает после факта из цепи (ADR-009) —
+# сервис ждёт дельты ledger2::userwallets и capital::contributors пайщика из
+# блока транзакции; стол перечитывает кошельки и взносы сразу, без паузы
+# POST_CHAIN_REFETCH_MS и без «оптимистичного» патча баланса.
+# Кнопка «Инвестировать» крутится весь путь (заявление → подпись → транзакция →
+# изменения из цепи): генерация заявления гасила общий флаг раньше времени.
+
 sources:
   contract:
     - components/contracts/cpp/capital/app/invests_managment/invest_in_program/invest_to_program/createpinv.cpp
@@ -184,6 +192,21 @@ cases:
       проверен на самом коротком пути — заявлении о вступлении
     test: components/boot/src/tests/document-signature.test.ts
     status: passing
+  - id: cap.pinv.side.10
+    level: backend
+    kind: side
+    scenario: "Пайщик вносит паевой взнос в программу; стол сразу после ответа перечитывает кошельки и взносы."
+    expect: "Ответ уходит после дельт ledger2::userwallets и capital::contributors этого пайщика из блока транзакции; без порта ожидания — сразу, как раньше."
+    test: components/controller/tests/unit/capital/program-invest-wait.test.ts
+    status: passing
+  - id: cap.pinv.ui.02
+    level: ui
+    kind: happy
+    scenario: "«Инвестировать» в программу несколько раз подряд."
+    expect: "После каждого взноса баланс Благороста и главного кошелька и «Взносы по ролям → Инвестор» обновлены сразу по ответу, без паузы и без отката подменённого значения."
+    test: ~
+    status: missing
+
 
 # 2026-09-23 (EEA-6…EEA-9): тексты интерфейса, отказов и уведомлений фичи вынесены из
 # кода в словари i18n, отказы бэкенда переведены на DomainError с кодом — текст

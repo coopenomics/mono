@@ -4,7 +4,7 @@ div
   //- (.topbar__actions .base-btn__label), и кнопка без иконки осталась бы пустой
   BaseButton(
     variant='primary',
-    :loading='isGenerating',
+    :loading='isSubmitting',
     :aria-label='$t("capital.createProgramInvestButton.ariaLabel")',
     @click='showDialog = true'
   )
@@ -18,7 +18,7 @@ div
     size='md',
     @update:model-value='(v) => !v && clear()'
   )
-    BaseForm(:loading='isGenerating', @submit='handleInvest')
+    BaseForm(:loading='isSubmitting', @submit='handleInvest')
       AmountInput(
         v-model='quantity',
         :label='$t("capital.createProgramInvestButton.amountLabel")',
@@ -33,7 +33,7 @@ div
         BaseButton(
           variant='primary',
           type='submit',
-          :loading='isGenerating',
+          :loading='isSubmitting',
           :disabled='!isValidAmount'
         ) {{ $t('capital.createProgramInvestButton.label') }}
 </template>
@@ -47,7 +47,7 @@ import { FailAlert, SuccessAlert } from 'src/shared/api/alerts';
 import { useSystemStore } from 'src/entities/System/model';
 import { t } from '../../../../i18n';
 
-const { createProgramInvestWithGeneratedStatement, isGenerating } =
+const { createProgramInvestWithGeneratedStatement, isSubmitting } =
   useCreateProgramInvest();
 const system = useSystemStore();
 

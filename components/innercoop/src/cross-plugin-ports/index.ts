@@ -3,6 +3,7 @@
  * Адаптер живёт в расширении-владельце (`<owner>/infrastructure/innercoop/*.adapter.ts`, ADR-10).
  * Если владелец не установлен — bridge регистрирует `null`, потребитель обязан это пережить (INV-013).
  */
+export * from './chairman-approvals.port';
 export * from './chatcoop-calendar.port';
 export * from './coop-calendar-event-notification.port';
 export * from './expense-chassis.port';

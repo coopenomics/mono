@@ -75,10 +75,6 @@ interface RenderedBlank {
   text_hash: string;
 }
 
-/** Сколько раз и с какой паузой искать номер решения по хэшу после публикации повестки. */
-const DECISION_LOOKUP_ATTEMPTS = 5;
-const DECISION_LOOKUP_DELAY_MS = 2_000;
-
 /** Повторы записи утверждения в цепь, если она не прошла с первого раза. */
 const APPROVE_ATTEMPTS = 3;
 const APPROVE_RETRY_DELAY_MS = 3_000;
@@ -368,14 +364,14 @@ export class DocumentApprovalProposalService {
     return generated.hash;
   }
 
-  /** Номер решения по хэшу повестки: парсер догоняет цепь не мгновенно. */
+  /**
+   * Номер решения по хэшу повестки. Публикация вернулась после разбора своего
+   * блока, поэтому строка решения уже в цепи — одно чтение, без повторов.
+   */
   private async lookupDecisionId(coopname: string, hash: string): Promise<number | undefined> {
-    for (let attempt = 0; attempt < DECISION_LOOKUP_ATTEMPTS; attempt++) {
-      const decisions = await this.sovietChain.getDecisions(coopname);
-      const found = decisions.find((d) => String((d as any).hash ?? '').toLowerCase() === hash.toLowerCase());
-      if (found) return Number(found.id);
-      await sleep(DECISION_LOOKUP_DELAY_MS);
-    }
+    const decisions = await this.sovietChain.getDecisions(coopname);
+    const found = decisions.find((d) => String((d as any).hash ?? '').toLowerCase() === hash.toLowerCase());
+    if (found) return Number(found.id);
     this.logger.warn(`Решение по хэшу ${hash} в цепи не найдено — отклонение по номеру отслеживаться не будет`);
     return undefined;
   }
@@ -391,6 +387,7 @@ export class DocumentApprovalProposalService {
         this.logger.error(
           `Не удалось записать утверждение документа ${data.registry_id} (попытка ${attempt}/${APPROVE_ATTEMPTS}): ${message}`
         );
+        // timing: backoff — повтор записи утверждения после отказа цепи.
         if (attempt < APPROVE_ATTEMPTS) await sleep(APPROVE_RETRY_DELAY_MS);
       }
     }

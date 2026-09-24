@@ -70,6 +70,7 @@ _Критичные правила и паттерны для AI-агентов 
 **NestJS / DI:**
 - Декораторы `@DomainKey({ primary, sync })` + `@SyncBehaviour({ forkPolicy, dlq })` + `@Versioned({ strategy })` — на sync-service классе. Metadata читается через `Reflect.getMetadata('sync:config', target)`.
 - `@Inject(ENTITY_REPOSITORY)` token — symbol, определён в `domain/repositories/{entity}.repository.ts`.
+- **`@Optional()` с типом `X | null` — только с явным `@Inject(X)`.** Тип-объединение метаданные TypeScript стирают до `Object`, Nest не может его подставить, и `@Optional()` молча отдаёт `null` — без ошибки на старте. Так 23.09.2026 были выключены ожидание разбора блока в `transact` и лента изменений; страховка — `tests/unit/blockchain/optional-deps-injection.test.ts`.
 - Dynamic modules через `{Contract}SyncModule.forEntity(Entity, TypeormEntity, Mapper)` — одна строка регистрации в `{contract}.module.ts`.
 
 **TypeORM:**
@@ -103,46 +104,45 @@ sync-arch sanitation-эпик: blast radius на 22 entity + потребите�
 `updateFromBlockchain`. Не вводить namespace частично на одной entity — двойной канон хуже единого
 старого.
 
-### Dispatch pipeline (ADR-002, ADR-009) — СТРОГО
+### Dispatch pipeline (ADR-002, ADR-009) — как устроено сейчас
 
-В `BlockchainParserAdapterService.dispatch`:
+Единая точка входа — `infrastructure/blockchain/blockchain-consumer.service.ts`:
 
 ```
-1. dedup check (event_id) → return если exists
-2. save sync (через syncer)
-3. dedup.mark
-4. wake waiters (sync_key + block_num match)
-5. emit internal bus (delta:: immediate / action:: delayed 3s)
-6. emit pubsub {Entity}Updated (с entity из PG, не из raw delta)
+delta:  принадлежность кооперативу → dedup (event_id) → saveDelta → dedup.mark
+        → emit `delta::<code>::<table>` С ОЖИДАНИЕМ слушателей (проекции в базе),
+          не дольше BLOCKCHAIN_DELTA_LISTENERS_BARRIER_MS
+        → ChainDeltaWaiterService.wake(delta) — будим мутации, ждущие эту дельту
+action: dedup → saveAction → dedup.mark → в очередь ActionReleaseGate; emit
+        `action::<code>::<action>`, когда блок разобран целиком — пришло событие
+        следующего блока ИЛИ поток простаивает (parser2 дочитал дальше, у группы
+        lag = 0 и pending = 0). Таймеров нет; страховка
+        BLOCKCHAIN_ACTION_RELEASE_MAX_WAIT_MS — только если Redis не ответил
 ```
 
-- **Никогда** emit pubsub до save (INV-12).
-- **Никогда** emit action immediate — только `setTimeout(emit, config.blockchain.actionEmitDelayMs)`.
-- **Никогда** swallow ошибку в dispatch — re-throw либо DLQ.
+- Ожидающие будятся **после** слушателей дельты, не одновременно с ними: иначе ответ мутации прочитал бы проекцию до записи.
+- Упавший или зависший слушатель событие не держит — ошибка в журнал, событие подтверждается.
+- Проекции, которые нужны для ответа мутации, строятся **из дельт** (`delta::`), а не из действий: действия приходят с задержкой.
 
-### Write-mutation pattern (ADR-009, ADR-012) — СТРОГО
+### Write-mutation pattern (ADR-009) — ожидание встроено в отправку
 
-Application service:
+Мутация отвечает **после факта из цепи**, а не после выдуманной паузы. Писать для этого ничего не нужно: `BlockchainService.transact` — единственная отправка в цепь — возвращается, когда узел разобрал блок транзакции целиком (дельты сохранены, их слушатели отработали, проекции в базе свежие). Факт «блок разобран» — тот же, что выпускает действия в шину (`ActionReleaseGate`): событие следующего блока либо простой потока.
+
 ```typescript
-// 1. Pre-computed sync_key (deterministic)
-const expectedHash = computeEntityHash(input);
-
-// 2. Pre-gate: нет ли уже in-flight?
-const inflight = await this.pool.findActive(contract, table, expectedHash);
-if (inflight) return { status: 'conflict', existing_tx_hash: inflight.tx_hash, attempt: inflight.retry_count };
-
-// 3. Submit через pool (placeholder → submit → finalize)
-const tx = await this.pool.submitWithPool({ user_id, contract, table, sync_key: expectedHash, action_name }, input);
-
-// 4. Wait-for-delta
-const entity = await this.adapter.waitForDelta(contract, table, expectedHash, tx.applied_block, config.writeWaitDeltaMs);
-
-// 5. Discriminated return
-if (entity) return { entity, tx_hash: tx.tx_hash, status: 'applied' };
-return { tx_hash: tx.tx_hash, status: 'pending' };
+const tx = await this.chain.createProgramInvest(data);   // вернулся — изменения уже в базе
+return tx;                                                // стол перечитывает сразу
 ```
 
-**Никогда**: `chainPort.submitTx(...)` напрямую в resolver/service — только `pool.submitWithPool`.
+- Предел — `BLOCKCHAIN_WRITE_WAIT_DELTA_MS` (3000). Не дождались — ответ уходит как есть с предупреждением в журнал, стол догонит по ленте изменений.
+- **Изнутри разбора цепи транзакция не ждёт** (`chain-dispatch-context.ts`): обработчик дельты, ждущий свой же блок, держал бы потребителя. Такие транзакции отправляет автоматика, отвечать ей некому.
+- `transact(..., broadcast=false)` и мигратор (сервис без гейта) не ждут.
+- `afterTransact` (порт `CHAIN_DELTA_WAIT_PORT`) нужен, только когда ждётся изменение **из другой, более поздней транзакции**. Для блока своей транзакции он отвечает сразу — блок уже разобран.
+- На столе после мутации — **сразу перечитать**, без `setTimeout`, без «оптимистичных» патчей и без циклов ожидания. Старые паузы (`POST_CHAIN_REFETCH_MS`, `waitForStage`, `*_WAIT_ATTEMPTS`, `recentlySigned`, `waitAfterTransactBeforeChainTableRead`) удаляются при касании — это ловит гейт «пауза вместо факта».
+- Экраны живут по ленте изменений цепи (`ChainChangesService` → подписка `chainChanges` → `useLiveReload` на столе). Таблицу, которую читает экран, объявить в ленте: ядро — `CORE_TABLES` в `chain-changes.service.ts`, расширение — `CHAIN_CHANGES_PORT.declareTables` в `initialize()`; личная таблица — с `owner_field`.
+- Держат это гейты яруса F (`pnpm check:fact`, «тронул — перевёл»): «пауза вместо факта», «транзакция мимо факта», «экран без зеркала». Подробности — корневой `CLAUDE.md`.
+- Следующий шаг (ADR-012, не сделано): пул транзакций с placeholder/`sync_key` и повторной отправкой после форка.
+
+**Никогда**: `setTimeout`/`sleep` перед чтением после мутации — ни на сервере, ни на столе.
 **Никогда**: `chainPort.getX(...)` в read-path — только `repository.findBySyncKey`.
 
 ### `forwardRef` — только с разобранным циклом (СТРОГО)
@@ -429,7 +429,7 @@ public readonly trusted: IndividualDTO[];
 
 ### ❌ Write-mutation anti-patterns
 
-- `chainPort.submitTx()` напрямую — **запрещено** (теряется pool tracking). Только через `pool.submitWithPool`.
+- Ответ мутации без `afterTransact` там, где стол сразу перечитывает данные, — **запрещено** в новом коде; пауза перед чтением — **запрещено** везде.
 - `hardcoded 3000` в setTimeout — **запрещено**. Только `config.blockchain.actionEmitDelayMs` / `writeWaitDeltaMs`.
 - Pre-gate отсутствует (два click'а пайщика создают duplicate submit) — **запрещено**. Всегда `pool.findActive` перед submit.
 
@@ -462,7 +462,7 @@ public readonly trusted: IndividualDTO[];
 
 - Reconciliation cron — sample N=100 rows, **не** full scan на hot path.
 - IPFS fetch для signed-doc — **lazy resolver вне consumer critical path**, не в mapper.
-- `waitForDelta` memory leak — timer cleanup обязателен (см. INV-T10).
+- Ожидание дельты держит таймер — снимать при любом исходе (INV-T10), так сделано в `ChainDeltaWaiterService`.
 
 ---
 

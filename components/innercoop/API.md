@@ -9,7 +9,7 @@
 экспорта, исчезнувший метод, новый обязательный параметр требуют major, а
 снятое старое — периода устаревания не меньше одного minor (INV-009).
 
-Всего экспортов: 279.
+Всего экспортов: 292.
 
 ## ACCOUNT_PORT
 
@@ -45,6 +45,18 @@
 `const` · cross-plugin-ports
 
 
+## CHAIN_CHANGES_PORT
+
+`const` · core-ports
+
+- `Symbol.for('Innercoop.CorePort.ChainChanges')`
+
+## CHAIN_DELTA_WAIT_PORT
+
+`const` · core-ports
+
+- `Symbol.for('Innercoop.CorePort.ChainDeltaWait')`
+
 ## CHAIN_PORT
 
 `const` · core-ports
@@ -56,6 +68,12 @@
 `const` · core-ports
 
 - `Symbol.for('Innercoop.CorePort.ChainResources')`
+
+## CHAIRMAN_APPROVALS_PORT
+
+`const` · cross-plugin-ports
+
+- `Symbol.for('Innercoop.CrossPlugin.ChairmanApprovals')`
 
 ## CHATCOOP_CALENDAR_PORT
 
@@ -254,6 +272,22 @@
 - `project_hash: string`
 - `matrix_room_id: string`
 
+## IChainChangesPort
+
+`interface` · core-ports
+
+- `declareTables(tables: InnerChainChangesTable[]): void`
+- `declareLocalTables(tables: InnerChainChangesTable[]): void`
+- `setStaff(code: string, usernames: string[]): void`
+
+## IChainDeltaWaitPort
+
+`interface` · core-ports
+
+- `afterTransact(transactResult: unknown, waits: InnerChainTxWait[]): Promise<boolean>`
+- `blockOf(transactResult: unknown): number`
+- `waitForDelta(query: InnerChainDeltaWaitQuery): Promise<InnerChainDelta | null>`
+
 ## IChainPort
 
 `interface` · core-ports
@@ -276,6 +310,12 @@
 
 - `getAccount(username: string): Promise<InnerChainAccountResources | null>`
 - `powerUp(username: string, quantity: string): Promise<string>`
+
+## IChairmanApprovalsPort
+
+`interface` · cross-plugin-ports
+
+- `list(query: InnerChairmanApprovalsQuery): Promise<InnerChairmanApproval[]>`
 
 ## IChatCoopCalendarPort
 
@@ -712,6 +752,70 @@
 - `elapsed: number`
 - `repeat?: boolean`
 - `created_at?: Date`
+
+## InnerChainChangesTable
+
+`interface` · core-ports
+
+- `code: string`
+- `table: string`
+- `owner_field?: string`
+- `staff_only?: boolean`
+
+## InnerChainDelta
+
+`interface` · core-ports
+
+- `code: string`
+- `scope: string`
+- `table: string`
+- `primary_key: string`
+- `block_num: number`
+- `present: boolean`
+- `value?: Record<string, unknown>`
+
+## InnerChainDeltaWaitQuery
+
+`interface` · core-ports
+
+- `code: string`
+- `table?: string`
+- `scope?: string`
+- `minBlockNum: number`
+- `match?: (delta: InnerChainDelta) => boolean`
+- `timeoutMs?: number`
+
+## InnerChainTxWait
+
+`type` · core-ports
+
+- `Omit<InnerChainDeltaWaitQuery, 'minBlockNum'>`
+
+## InnerChairmanApproval
+
+`interface` · cross-plugin-ports
+
+- `approval_hash: string`
+- `coopname: string`
+- `username: string`
+- `action: string`
+- `status: InnerChairmanApprovalStatus`
+- `created_at: string`
+
+## InnerChairmanApprovalsQuery
+
+`interface` · cross-plugin-ports
+
+- `coopname: string`
+- `actions: string[]`
+- `usernames?: string[]`
+- `statuses?: InnerChairmanApprovalStatus[]`
+
+## InnerChairmanApprovalStatus
+
+`type` · cross-plugin-ports
+
+- `'pending' | 'approved' | 'declined'`
 
 ## InnerCompletedCallTranscriptionHead
 

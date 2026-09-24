@@ -228,13 +228,10 @@ export class InstallInteractor {
         users.push(user);
       }
 
-      // Лаг p2p-репликации на не-producer nodeos (например на dev-loop'е
-      // partner-coopback соединён со своим p2p-репликой) — после accept'а
-      // adduser в local state может ещё не быть soviet::participants[N]
-      // к моменту push'а createBoard. Контракт soviet::createboard падает
-      // «Один из аккаунтов не найден в реестре пайщиков». 2с гарантированно
-      // перекрывают prod-задержку (~50ms) и dev-loop (1-3с).
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      // Пайщики уже в soviet::participants: transact возвращается, когда узел
+      // разобрал блок транзакции, а parser2 читает блоки с того же узла, куда
+      // уходят транзакции, — createboard их видит. Прежде здесь стояла пауза
+      // 2 с на лаг p2p-реплики.
 
       // Создаём доску совета
       await this.blockchainPort.createBoard({

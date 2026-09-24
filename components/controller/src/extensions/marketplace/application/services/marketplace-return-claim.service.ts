@@ -70,7 +70,7 @@ import {
 import type { MarketplaceOrderDomainEntity } from '../../domain/entities/marketplace-order.entity';
 import type { MarketplaceReturnStatementSignedInputDTO } from '../documents-dto/marketplace-return-statement-document.dto';
 import type { MarketplaceReturnCancelStatementSignedInputDTO } from '../documents-dto/marketplace-return-cancel-statement-document.dto';
-import { SignedDigitalDocumentInputDTO, DomainError } from '@coopenomics/extension-kit';
+import { SignedDigitalDocumentInputDTO, waitForEvent, DomainError } from '@coopenomics/extension-kit';
 import {
   MARKETPLACE_RETURN_CLAIM_SUBMITTED_EVENT,
   MARKETPLACE_RETURN_CLAIM_DECIDED_EVENT,
@@ -100,9 +100,6 @@ type CancelStatementMeta = {
 
 /** Сколько ждать робота решений совета у стойки, прежде чем отпустить мутацию в режим ожидания. */
 const ROBOT_WAIT_MS = 12_000;
-/** Сколько ждать материализации решения в цепи после accretrn (парсер и узел). */
-const DECISION_LOOKUP_ATTEMPTS = 6;
-const DECISION_LOOKUP_DELAY_MS = 700;
 
 export interface MarketplaceReturnClaimImageUploadDTO {
   /** Содержимое файла в base64. */
@@ -735,18 +732,15 @@ export class MarketplaceReturnClaimService {
   // ── Совет: номер решения, робот, ожидание ────────────────────────────
 
   /**
-   * Номер решения совета по хэшу повестки (= request_hash) — с короткими
-   * повторами: узел материализует строку в тот же блок, чтение через парсер
-   * может отставать. Без номера остаёмся как есть — дочитает сторож.
+   * Номер решения совета по хэшу повестки (= request_hash). Повестку ставит
+   * контракт в той же транзакции, а она вернулась после разбора своего блока —
+   * одно чтение. Без номера остаёмся как есть — дочитает сторож.
    */
   async attachCouncilDecision(claim: MarketplaceReturnClaimDomainEntity): Promise<MarketplaceReturnClaimDomainEntity> {
     if (claim.status !== MarketplaceReturnClaimStatuses.PENDING_COUNCIL || claim.council_decision_id) return claim;
-    for (let i = 0; i < DECISION_LOOKUP_ATTEMPTS; i++) {
-      const decision = await this.chainPort.findCouncilDecisionByHash(claim.coopname, claim.request_hash).catch(() => null);
-      if (decision) {
-        return this.claimRepo.patchCouncil(claim.id, { council_decision_id: String(decision.id) });
-      }
-      await this.sleep(DECISION_LOOKUP_DELAY_MS);
+    const decision = await this.chainPort.findCouncilDecisionByHash(claim.coopname, claim.request_hash).catch(() => null);
+    if (decision) {
+      return this.claimRepo.patchCouncil(claim.id, { council_decision_id: String(decision.id) });
     }
     this.logger.warn(`Заявление ${claim.id}: решение совета ещё не видно в цепи — дочитает сторож.`);
     return claim;
@@ -1474,20 +1468,33 @@ export class MarketplaceReturnClaimService {
     this.eventBus.emit(MARKETPLACE_RETURN_COUNCIL_DECIDED_EVENT, event);
   }
 
-  /** Ждём, пока слушатель обратных вызовов уведёт заявление из `status`; по таймауту — как есть. */
+  /**
+   * Ждём, пока обратный вызов решения совета уведёт заявление из `status`: он
+   * сообщает об этом событием. Подписка — до чтения, чтобы событие между
+   * чтением и подпиской не потерялось; по пределу — заявление как есть.
+   */
   private async waitForLeaving(
     claim_id: string,
     status: MarketplaceReturnClaimStatus,
     timeoutMs: number
   ): Promise<MarketplaceReturnClaimDomainEntity> {
-    const deadline = Date.now() + timeoutMs;
-    let last = await this.claimRepo.findById(claim_id);
-    while (last && last.status === status && Date.now() < deadline) {
-      await this.sleep(500);
-      last = await this.claimRepo.findById(claim_id);
+    const decided = waitForEvent<MarketplaceReturnCouncilDecidedEvent>(
+      this.eventBus,
+      MARKETPLACE_RETURN_COUNCIL_DECIDED_EVENT,
+      (e) => e.claim_id === claim_id,
+      timeoutMs
+    );
+    const current = await this.claimRepo.findById(claim_id);
+    if (!current) {
+      decided.cancel();
+      throw DomainError.notFound('MARKETPLACE_RETURN_CLAIM_NOT_FOUND_GENERIC');
     }
-    if (!last) throw DomainError.notFound('MARKETPLACE_RETURN_CLAIM_NOT_FOUND_GENERIC');
-    return last;
+    if (current.status !== status) {
+      decided.cancel();
+      return current;
+    }
+    await decided.promise;
+    return (await this.claimRepo.findById(claim_id)) ?? current;
   }
 
   /** Номер решения из инлайн-действия `soviet::newsubmitted` в трассе транзакции. */
@@ -1516,9 +1523,6 @@ export class MarketplaceReturnClaimService {
     return claim.decision_log[claim.decision_log.length - 1]?.tx_hash ?? claim.submretrn_tx_hash;
   }
 
-  private sleep(ms: number): Promise<void> {
-    return new Promise((resolve) => setTimeout(resolve, ms));
-  }
 
 
   /**

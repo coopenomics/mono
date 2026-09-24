@@ -57,13 +57,19 @@ function makeService(overrides: {
   events?: any;
   parserInteractor?: any;
   forkRegistry?: any;
+  deltaWaiter?: any;
+  actionGate?: any;
+  chainChanges?: any;
 }) {
   const logger = overrides.logger ?? makeLoggerStub();
   const events = overrides.events ?? makeEventsServiceStub();
   const parser = overrides.parserInteractor ?? makeParserInteractorStub();
   const fork = overrides.forkRegistry ?? makeForkRegistryStub();
-  const service = new BlockchainConsumerService(logger, events, parser, fork);
-  return { service, logger, events, parser, fork };
+  const deltaWaiter = overrides.deltaWaiter ?? { wake: jest.fn() };
+  const actionGate = overrides.actionGate ?? { enqueue: jest.fn(), onBlockSeen: jest.fn(), onFork: jest.fn(), setActive: jest.fn() };
+  const chainChanges = overrides.chainChanges ?? null;
+  const service = new BlockchainConsumerService(logger, events, parser, fork, deltaWaiter, actionGate, chainChanges);
+  return { service, logger, events, parser, fork, deltaWaiter, actionGate, chainChanges };
 }
 
 describe('BlockchainConsumerService.processFork (Stories 4.1 + 4.2)', () => {
@@ -100,11 +106,12 @@ describe('BlockchainConsumerService.processFork (Stories 4.1 + 4.2)', () => {
     const parser = makeParserInteractorStub();
     const fork = makeForkRegistryStub();
     const events = makeEventsServiceStub();
-    const { service } = makeService({ events, parserInteractor: parser, forkRegistry: fork });
-
+    const { service, actionGate } = makeService({ events, parserInteractor: parser, forkRegistry: fork });
     await (service as any).processFork(12345);
 
     expect(fork.runAll).toHaveBeenCalledWith(12345, undefined);
+    // Отменённые блоки больше не разобраны — транзакции в них ждут заново.
+    expect(actionGate.onFork).toHaveBeenCalledWith(12345);
     expect(parser.deleteDedupAfterBlock).toHaveBeenCalledWith(12345);
     expect(parser.saveFork).toHaveBeenCalledWith(expect.objectContaining({ block_num: 12345 }));
     // Story 4.2: никакого broadcast'а `fork::*` через EventEmitter.
@@ -275,4 +282,78 @@ describe('BlockchainConsumerService.processAction/processDelta — markEventAppl
 
     expect(parser.markEventApplied).toHaveBeenCalledWith(expect.any(String), 12345);
   });
+
+  it('processDelta: ожидающие мутации будятся после слушателей дельты, а не одновременно с ними (ADR-009)', async () => {
+    const calls: string[] = [];
+    const events = makeEventsServiceStub();
+    events.emitAsyncWithTimeout.mockImplementation(async () => {
+      calls.push('listeners');
+      return true;
+    });
+    const deltaWaiter = { wake: jest.fn(() => calls.push('wake')) };
+    const { service } = makeService({ events, deltaWaiter });
+    const { config } = await import('~/config');
+    const delta = { code: 'edubridge', table: 'educontracts', primary_key: '1', value: { coopname: config.coopname }, scope: config.coopname, block_num: 7, present: true } as any;
+
+    await (service as any).processDeltaDelayed(delta);
+
+    expect(calls).toEqual(['listeners', 'wake']);
+    expect(deltaWaiter.wake).toHaveBeenCalledWith(delta);
+  });
+
+  it('processDelta: сигнал в ленту изменений — после слушателей и после пробуждения мутаций, не раньше базы', async () => {
+    const calls: string[] = [];
+    const events = makeEventsServiceStub();
+    events.emitAsyncWithTimeout.mockImplementation(async () => {
+      calls.push('listeners');
+      return true;
+    });
+    const deltaWaiter = { wake: jest.fn(() => calls.push('wake')) };
+    const chainChanges = { publish: jest.fn(async () => void calls.push('feed')) };
+    const { service } = makeService({ events, deltaWaiter, chainChanges });
+    const { config } = await import('~/config');
+    const delta = { code: 'capital', table: 'contributors', primary_key: '1', value: { coopname: config.coopname }, scope: config.coopname, block_num: 9, present: true } as any;
+
+    await (service as any).processDeltaDelayed(delta);
+
+    expect(calls).toEqual(['listeners', 'wake', 'feed']);
+    expect(chainChanges.publish).toHaveBeenCalledWith(delta);
+  });
+
+  it('processDelta: упавший или зависший слушатель не держит событие — ожидающие всё равно будятся', async () => {
+    const events = makeEventsServiceStub();
+    events.emitAsyncWithTimeout.mockImplementation(async () => {
+      throw new Error('слушатель упал');
+    });
+    const { service, parser, deltaWaiter } = makeService({ events });
+    const { config } = await import('~/config');
+    const delta = { code: 'edubridge', table: 'educontracts', primary_key: '1', value: { coopname: config.coopname }, scope: config.coopname, block_num: 8, present: true } as any;
+
+    await expect((service as any).processDeltaDelayed(delta)).resolves.toBeUndefined();
+    expect(parser.markEventApplied).toHaveBeenCalled();
+    expect(deltaWaiter.wake).toHaveBeenCalledWith(delta);
+  });
+
+  it('processAction: действие уходит в очередь выпуска со своим блоком, а не по таймеру', async () => {
+    const actionGate = { enqueue: jest.fn(), onBlockSeen: jest.fn(), onFork: jest.fn(), setActive: jest.fn() };
+    const events = makeEventsServiceStub();
+    const { service } = makeService({ actionGate, events });
+    const { config } = await import('~/config');
+    const action = {
+      account: 'capital',
+      receiver: 'capital',
+      name: 'createpinv',
+      block_num: 55,
+      global_sequence: '1',
+      data: { coopname: config.coopname },
+    } as any;
+
+    await (service as any).processActionDelayed(action);
+
+    expect(actionGate.enqueue).toHaveBeenCalledWith(55, expect.any(Function));
+    expect(events.emit).not.toHaveBeenCalled();
+    actionGate.enqueue.mock.calls[0][1]();
+    expect(events.emit).toHaveBeenCalledWith('action::capital::createpinv', action);
+  });
 });
+

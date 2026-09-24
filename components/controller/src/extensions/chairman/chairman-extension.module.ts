@@ -1,5 +1,5 @@
 import './i18n';
-import { Inject, Module } from '@nestjs/common';
+import { Inject, Module, Optional } from '@nestjs/common';
 import { BaseExtensionModule, EXTENSION_REPOSITORY, type ExtensionDomainRepository, LOG_EXTENSION_REPOSITORY, LogExtensionDomainRepository, DomainToBlockchainUtils, DomainError } from '@coopenomics/extension-kit';
 import { LOGGER_PORT, type ILoggerPort,
   COUNCIL_PORT,
@@ -39,8 +39,10 @@ import { ChairmanOnboardingResolver } from './application/resolvers/onboarding.r
 import { APPROVAL_REPOSITORY } from './domain/repositories/approval.repository';
 import { CHAIRMAN_BLOCKCHAIN_PORT } from './domain/interfaces/chairman-blockchain.port';
 import { registerChairmanOnboardingSteps } from './application/onboarding/register-chairman-onboarding-steps';
-import { ONBOARDING_STEP_REGISTRY_PORT, type IOnboardingStepRegistryPort } from '@coopenomics/innercoop';
+import { ONBOARDING_STEP_REGISTRY_PORT, type IOnboardingStepRegistryPort, CHAIN_CHANGES_PORT, type IChainChangesPort } from '@coopenomics/innercoop';
+import { EntityName as ApprovalEntityName } from './infrastructure/entities/approval-typeorm.entity';
 import { computeOnboardingExpiresAt } from '@coopenomics/extension-kit';
+import { ChairmanInnercoopApprovalsAdapter } from './infrastructure/innercoop/chairman-innercoop-approvals.adapter';
 import { type DeserializedDescriptionOfExtension } from '@coopenomics/extension-kit';
 import { t } from './i18n';
 
@@ -193,7 +195,9 @@ export class ChairmanExtension extends BaseExtensionModule {
     @Inject(ONBOARDING_STEP_REGISTRY_PORT)
     private readonly onboardingStepRegistration: IOnboardingStepRegistryPort,
     private readonly decisionExpiredNotificationService: DecisionExpiredNotificationService,
-    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
+    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort,
+    // Лента изменений: одобрения обновляются на столах сами.
+    @Optional() @Inject(CHAIN_CHANGES_PORT) private readonly chainChanges: IChainChangesPort | null = null
   ) {
     super();
     this.logger.setContext(ChairmanExtension.name);
@@ -208,6 +212,9 @@ export class ChairmanExtension extends BaseExtensionModule {
   async initialize() {
     const extensionData = await this.extensionRepository.findByName(this.name);
     if (!extensionData) throw DomainError.internal('CHAIRMAN_CONFIG_NOT_FOUND');
+
+    // Одобрения — личная таблица: сигнал тому, кто просил одобрения, и совету.
+    this.chainChanges?.declareLocalTables([{ code: this.name, table: ApprovalEntityName, owner_field: 'username' }]);
 
     // Применяем глубокий мердж дефолтных параметров с существующими
     this.extension = {
@@ -276,6 +283,9 @@ export class ChairmanExtension extends BaseExtensionModule {
     // Use Cases
     ChairmanSyncInteractor,
 
+    // Порт одобрений для других столов — связывается в InnercoopBridgeModule.
+    ChairmanInnercoopApprovalsAdapter,
+
     // Utils
     DomainToBlockchainUtils,
 
@@ -283,7 +293,7 @@ export class ChairmanExtension extends BaseExtensionModule {
     ApprovalResolver,
     ChairmanOnboardingResolver,
   ],
-  exports: [ApprovalSyncService, ChairmanSyncInteractor],
+  exports: [ApprovalSyncService, ChairmanSyncInteractor, ChairmanInnercoopApprovalsAdapter],
 })
 export class ChairmanExtensionModule {
   constructor(private readonly chairmanExtension: ChairmanExtension) {}
