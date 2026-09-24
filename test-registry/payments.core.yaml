@@ -1,0 +1,259 @@
+feature: payments.core
+title: Платежи ядра — паевой платёж, статус, чеки об оплате, реквизиты
+
+# Ядро шлюза платежей (gateway): пайщик заводит паевой платёж, совет меняет
+# его статус (PAID проводит приход в цепь и завершает платёж), кассир
+# прикладывает чек об оплате, пайщик и председатель ведут реквизиты.
+# Таблицы: payments, payment_files (TypeORM), payment_state и ipn (служебные
+# таблицы провайдеров), реквизиты — в хранилище генератора документов.
+#
+# Заведено 24.09.2026 (C28-80): каждая таблица репозитория прикрыта внешним
+# тестом до перевода слоя данных на Kysely (C28-81). Правки прав, которые
+# закрывают случаи: 59d8b7349bc (статус меняет только совет, реквизиты —
+# владелец или председатель), 3f22ba9d792 (платежи пайщика по точному имени).
+
+sources:
+  backend:
+    - components/controller/src/application/gateway/resolvers/*.ts
+    - components/controller/src/application/gateway/services/gateway.service.ts
+    - components/controller/src/application/gateway/services/payment-files.service.ts
+    - components/controller/src/application/gateway/interactors/gateway.interactor.ts
+    - components/controller/src/application/gateway/dto/*.ts
+    - components/controller/src/application/payment-method/**/*.ts
+    - components/controller/src/domain/gateway/**/*.ts
+    - components/controller/src/infrastructure/database/typeorm/repositories/typeorm-payment*.ts
+    - components/controller/src/infrastructure/database/typeorm/repositories/typeorm-ipn.repository.ts
+    - components/controller/src/infrastructure/database/typeorm/entities/payment*.ts
+    - components/controller/src/infrastructure/database/typeorm/entities/ipn.entity.ts
+    - components/controller/src/infrastructure/database/generator-repositories/repositories/payment-method-generator.repository.ts
+
+cases:
+  - id: pay.core.happy.01
+    level: backend
+    kind: happy
+    scenario: пайщик создаёт свой паевой платёж деньгами
+    expect: платёж PENDING, входящий, DEPOSIT, с реквизитами оплаты; пайщик находит его в своём списке по хэшу
+    test: components/api-tests/src/payments/payments.core.test.ts
+    api: components/api-tests/src/payments/payments.core.test.ts
+    status: passing
+
+  - id: pay.core.side.01
+    level: backend
+    kind: side
+    scenario: повторное создание паевого платежа той же суммы, пока первый ожидает оплаты (двойной клик)
+    expect: возвращается ожидающий платёж, второй не заводится
+    test: components/api-tests/src/payments/payments.core.test.ts
+    api: components/api-tests/src/payments/payments.core.test.ts
+    status: passing
+
+  - id: pay.core.side.02
+    level: backend
+    kind: side
+    scenario: гость создаёт паевой платёж
+    expect: отказ 401
+    test: components/api-tests/src/payments/payments.core.test.ts
+    api: components/api-tests/src/payments/payments.core.test.ts
+    status: passing
+
+  - id: pay.core.side.03
+    level: backend
+    kind: side
+    scenario: пайщик создаёт паевой платёж за другого пайщика
+    expect: отказ KIT_INSUFFICIENT_RIGHTS, платёж не заводится
+    test: components/api-tests/src/payments/payments.core.test.ts
+    api: components/api-tests/src/payments/payments.core.test.ts
+    status: passing
+
+  - id: pay.core.side.04
+    level: backend
+    kind: side
+    scenario: паевой платёж в валюте, которой нет у кооператива
+    expect: отказ KIT_SYMBOL_UNSUPPORTED
+    test: components/api-tests/src/payments/payments.core.test.ts
+    api: components/api-tests/src/payments/payments.core.test.ts
+    status: passing
+
+  - id: pay.core.side.05
+    level: backend
+    kind: side
+    scenario: чужой пайщик запрашивает платежи пайщика по имени или по хэшу; гость запрашивает платежи
+    expect: отказ KIT_INSUFFICIENT_RIGHTS пайщику и 401 гостю; совет платёж видит
+    test: components/api-tests/src/payments/payments.core.test.ts
+    api: components/api-tests/src/payments/payments.core.test.ts
+    status: passing
+
+  - id: pay.core.side.06
+    level: backend
+    kind: side
+    scenario: имя пайщика входит в имя другого (ekaterina / ekaterinaXYZ), пайщик и совет выбирают платежи по имени
+    expect: в выдаче только платежи этого пайщика, платёж двойника не попадает (3f22ba9d792)
+    test: components/api-tests/src/payments/payments.core.test.ts
+    api: components/api-tests/src/payments/payments.core.test.ts
+    status: passing
+
+  - id: pay.core.side.07
+    level: backend
+    kind: side
+    scenario: пайщик отмечает собственный паевой платёж оплаченным
+    expect: отказ KIT_INSUFFICIENT_RIGHTS, платёж остаётся PENDING (59d8b7349bc)
+    test: components/api-tests/src/payments/payments.core.test.ts
+    api: components/api-tests/src/payments/payments.core.test.ts
+    status: passing
+
+  - id: pay.core.happy.02
+    level: backend
+    kind: happy
+    scenario: председатель отмечает паевой платёж оплаченным
+    expect: приход проводится в цепь, платёж COMPLETED и финальный, кошельки пайщика прибавили сумму платежа
+    test: components/api-tests/src/payments/payments.core.test.ts
+    api: components/api-tests/src/payments/payments.core.test.ts
+    status: passing
+
+  - id: pay.core.side.08
+    level: backend
+    kind: side
+    scenario: повторная смена статуса завершённого платежа
+    expect: отказ, платёж остаётся COMPLETED
+    test: components/api-tests/src/payments/payments.core.test.ts
+    api: components/api-tests/src/payments/payments.core.test.ts
+    status: passing
+
+  - id: pay.core.side.09
+    level: backend
+    kind: side
+    scenario: смена статуса несуществующего платежа
+    expect: отказ GATEWAY_PAYMENT_NOT_FOUND
+    test: components/api-tests/src/payments/payments.core.test.ts
+    api: components/api-tests/src/payments/payments.core.test.ts
+    status: passing
+
+  - id: pay.core.happy.03
+    level: backend
+    kind: happy
+    scenario: член совета отменяет ожидающий платёж и указывает причину
+    expect: платёж CANCELLED, причина сохранена и видна пайщику, статус больше не меняется
+    test: components/api-tests/src/payments/payments.core.test.ts
+    api: components/api-tests/src/payments/payments.core.test.ts
+    status: passing
+
+  - id: pay.core.happy.04
+    level: backend
+    kind: happy
+    scenario: председатель прикладывает чек об оплате к платежу
+    expect: запись чека с хэшем содержимого и ссылкой на скачивание; пайщик-плательщик видит чек в списке и по номеру; в платеже proof_count = 1
+    test: components/api-tests/src/payments/payments.core.test.ts
+    api: components/api-tests/src/payments/payments.core.test.ts
+    status: passing
+
+  - id: pay.core.side.10
+    level: backend
+    kind: side
+    scenario: пайщик прикладывает чек к своему платежу
+    expect: отказ KIT_INSUFFICIENT_RIGHTS
+    test: components/api-tests/src/payments/payments.core.test.ts
+    api: components/api-tests/src/payments/payments.core.test.ts
+    status: passing
+
+  - id: pay.core.side.11
+    level: backend
+    kind: side
+    scenario: чужой пайщик запрашивает чеки чужого платежа списком и по номеру
+    expect: отказ GATEWAY_PAYMENT_FILE_ACCESS_FORBIDDEN
+    test: components/api-tests/src/payments/payments.core.test.ts
+    api: components/api-tests/src/payments/payments.core.test.ts
+    status: passing
+
+  - id: pay.core.side.12
+    level: backend
+    kind: side
+    scenario: тот же чек (то же содержимое) прикладывается второй раз
+    expect: отказ GATEWAY_PAYMENT_FILE_DUPLICATE, запись одна
+    test: components/api-tests/src/payments/payments.core.test.ts
+    api: components/api-tests/src/payments/payments.core.test.ts
+    status: passing
+
+  - id: pay.core.side.13
+    level: backend
+    kind: side
+    scenario: чек с хэшем или размером, не совпадающим с содержимым
+    expect: отказ GATEWAY_PAYMENT_FILE_CHECKSUM_MISMATCH / GATEWAY_PAYMENT_FILE_SIZE_MISMATCH
+    test: components/api-tests/src/payments/payments.core.test.ts
+    api: components/api-tests/src/payments/payments.core.test.ts
+    status: passing
+
+  - id: pay.core.side.14
+    level: backend
+    kind: side
+    scenario: чек к несуществующему платежу; запрос несуществующего чека
+    expect: отказ GATEWAY_PAYMENT_NOT_FOUND_BY_HASH / GATEWAY_PAYMENT_FILE_NOT_FOUND
+    test: components/api-tests/src/payments/payments.core.test.ts
+    api: components/api-tests/src/payments/payments.core.test.ts
+    status: passing
+
+  - id: pay.core.happy.05
+    level: backend
+    kind: happy
+    scenario: пайщик добавляет свои реквизиты СБП
+    expect: реквизиты записаны на пайщика и видны ему в списке
+    test: components/api-tests/src/payments/payments.core.test.ts
+    api: components/api-tests/src/payments/payments.core.test.ts
+    status: passing
+
+  - id: pay.core.side.15
+    level: backend
+    kind: side
+    scenario: чужой пайщик читает, добавляет, меняет и удаляет реквизиты пайщика; гость читает реквизиты
+    expect: отказ KIT_INSUFFICIENT_RIGHTS на каждую операцию, 401 гостю; реквизиты пайщика не изменились (59d8b7349bc)
+    test: components/api-tests/src/payments/payments.core.test.ts
+    api: components/api-tests/src/payments/payments.core.test.ts
+    status: passing
+
+  - id: pay.core.happy.06
+    level: backend
+    kind: happy
+    scenario: пайщик добавляет банковский счёт, меняет его и удаляет реквизиты СБП
+    expect: в списке новая редакция счёта, удалённые реквизиты пропали, счёт остался
+    test: components/api-tests/src/payments/payments.core.test.ts
+    api: components/api-tests/src/payments/payments.core.test.ts
+    status: passing
+
+  - id: pay.core.happy.07
+    level: backend
+    kind: happy
+    scenario: председатель добавляет реквизиты пайщику
+    expect: реквизиты записаны на пайщика, их видят председатель и пайщик
+    test: components/api-tests/src/payments/payments.core.test.ts
+    api: components/api-tests/src/payments/payments.core.test.ts
+    status: passing
+
+  - id: pay.core.side.16
+    level: backend
+    kind: side
+    scenario: паевой платёж нулевой или отрицательной суммы
+    expect: отказ, платёж не заводится
+    test: ~
+    status: missing
+
+  - id: pay.core.side.17
+    level: backend
+    kind: side
+    scenario: повторная смена статуса завершённого платежа — код отказа
+    expect: отказ кодом GATEWAY_PAYMENT_STATUS_CHANGE_FORBIDDEN (сейчас любой сбой setPaymentStatus подменяется кодом GATEWAY_PAYMENT_NOT_FOUND)
+    test: ~
+    status: missing
+
+  - id: pay.core.side.18
+    level: backend
+    kind: side
+    scenario: уведомление провайдера об оплате (ipn) — запись в журнал уведомлений и перевод платежа в PAID
+    expect: уведомление без подтверждения провайдером платёж не меняет; повтор того же уведомления не обрабатывается второй раз
+    test: ~
+    status: missing
+
+  - id: pay.core.side.19
+    level: backend
+    kind: side
+    scenario: опрос банковской выписки провайдером (payment_state) — запоминание последней обработанной выписки
+    expect: повторный опрос той же выписки платежи второй раз не проводит
+    test: ~
+    status: missing
