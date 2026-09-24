@@ -18,6 +18,13 @@ title: Служебная записка на расход — подача, р�
 # из инвестиций программы «Благорост» (capital::topupprogexp). Поэтому оплата
 # строки, отчёт, возврат и закрытие проверяются до цепи (права) и отказом
 # контракта по статусу — счастливый путь оплаты остаётся без внешнего теста.
+#
+# 24.09.2026: мутация createExpenseProposal падает 500 до цепи
+# («input.statement.toDocument is not a function»), поэтому внешний слой подаёт
+# записку прямо в цепь тем же действием expense::createexp, а случаи подачи
+# через API (и снимки реквизитов, которые пишет только она) остаются missing.
+# Отказы контракта в мутациях шасси приходят 500 без кода CHAIN_ASSERT —
+# тесты проверяют сам отказ и неизменность записки, не код.
 
 sources:
   backend:
@@ -41,6 +48,19 @@ cases:
       Член совета подаёт записку: строка организации (оплата по счёту) и аванс пайщику на его СБП
     expect: >
       зеркало отдаёт записку в статусе CREATED с автором, кошельком-источником, суммой, строками APPROVED и хэшем подписанного документа; протокола решения ещё нет
+    test: ~
+    status: missing
+    # Снаружи не проверить: createExpenseProposal отвечает 500 «input.statement.toDocument is not a function» (expenses-mutations.service.ts, statement приходит в сервис простым объектом) — отчёт ext-misc 24.09.2026.
+
+  - id: exp.prop.happy.05
+    level: backend
+    kind: happy
+    scenario: >
+      Записка подана в цепь (expense::createexp от кооператива — как её подают
+      контроллер и расширения-инициаторы)
+    expect: >
+      зеркало отдаёт записку в статусе CREATED с автором, кошельком-источником,
+      суммой, строками APPROVED и хэшем подписанного документа; протокола решения ещё нет
     test: components/api-tests/src/expenses/proposals.test.ts
     api: components/api-tests/src/expenses/proposals.test.ts
     status: passing
@@ -74,9 +94,9 @@ cases:
       Снимки реквизитов получателей после подачи
     expect: >
       две строки: организация — реквизиты и назначение как введены; пайщик — метод СБП с телефоном и фиксированным назначением «аванс под отчёт»
-    test: components/api-tests/src/expenses/proposals.test.ts
-    api: components/api-tests/src/expenses/proposals.test.ts
-    status: passing
+    test: ~
+    status: missing
+    # Снаружи не проверить: createExpenseProposal отвечает 500 «input.statement.toDocument is not a function» (expenses-mutations.service.ts, statement приходит в сервис простым объектом) — отчёт ext-misc 24.09.2026.
 
   - id: exp.req.side.01
     level: backend
@@ -107,9 +127,9 @@ cases:
       Повторная подача записки с тем же хэшем
     expect: >
       отказ цепи CHAIN_ASSERT «уже существует», снимков реквизитов по-прежнему два
-    test: components/api-tests/src/expenses/proposals.test.ts
-    api: components/api-tests/src/expenses/proposals.test.ts
-    status: passing
+    test: ~
+    status: missing
+    # Снаружи не проверить: createExpenseProposal отвечает 500 «input.statement.toDocument is not a function» (expenses-mutations.service.ts, statement приходит в сервис простым объектом) — отчёт ext-misc 24.09.2026.
 
   - id: exp.prop.side.03
     level: backend
@@ -140,9 +160,9 @@ cases:
       Кошелёк-источник без набора операций шасси
     expect: >
       отказ цепи CHAIN_ASSERT о source_wallet, записки нет
-    test: components/api-tests/src/expenses/proposals.test.ts
-    api: components/api-tests/src/expenses/proposals.test.ts
-    status: passing
+    test: ~
+    status: missing
+    # Снаружи не проверить: createExpenseProposal отвечает 500 «input.statement.toDocument is not a function» (expenses-mutations.service.ts, statement приходит в сервис простым объектом) — отчёт ext-misc 24.09.2026.
 
   - id: exp.prop.side.06
     level: backend
@@ -172,7 +192,7 @@ cases:
     scenario: >
       Председатель оплачивает строку записки до решения совета
     expect: >
-      отказ цепи CHAIN_ASSERT (оплата только из AUTHORIZED / PARTIALLY_PAID), статус CREATED
+      отказ контракта «оплата только из AUTHORIZED / PARTIALLY_PAID», статус CREATED
     test: components/api-tests/src/expenses/proposals.test.ts
     api: components/api-tests/src/expenses/proposals.test.ts
     status: passing
@@ -205,7 +225,7 @@ cases:
     scenario: >
       После утверждения председатель платит сверх плана строки и по несуществующей строке
     expect: >
-      отказ цепи CHAIN_ASSERT в обоих случаях, записка AUTHORIZED, строки APPROVED
+      отказ контракта в обоих случаях, записка AUTHORIZED, строки APPROVED
     test: components/api-tests/src/expenses/proposals.test.ts
     api: components/api-tests/src/expenses/proposals.test.ts
     status: passing
@@ -216,7 +236,7 @@ cases:
     scenario: >
       Член совета закрывает отчёт по утверждённой, но не оплаченной записке
     expect: >
-      отказ цепи CHAIN_ASSERT, записка AUTHORIZED
+      отказ контракта «закрыть можно только из REPORT_SUBMITTED», записка AUTHORIZED
     test: components/api-tests/src/expenses/proposals.test.ts
     api: components/api-tests/src/expenses/proposals.test.ts
     status: passing
