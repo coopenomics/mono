@@ -192,6 +192,12 @@ cmd_collect() {
 cmd_summary() {
   local summary="${GITHUB_STEP_SUMMARY:-$OUT/summary.md}"
   {
+    if [ "${SEED_OUTCOME:-}" = "failure" ]; then
+      echo "> ⚠️ **Засев Стола заказов упал.** Шаг помечен зелёным (continue-on-error),"
+      echo "> но наборы маркетплейса шли на неполном стенде — их падения сначала смотреть"
+      echo "> в логе шага «Стенд — засев Стола заказов»."
+      echo
+    fi
     echo "## Black-box: время фаз"
     echo
     if [ -n "${GITHUB_RUN_ID:-}" ] && command -v gh >/dev/null; then
