@@ -386,6 +386,7 @@ cases:
       проекта и признаком отданного голоса — строку списка можно построить
       одним запросом
     test: components/controller/tests/unit/capital/segment-mapper-context.test.ts
+    api: components/api-tests/src/capital/results-desk.test.ts
     status: passing
 
   - id: cap.resdesk.side.09
@@ -396,6 +397,7 @@ cases:
       название проекта заполнено, название и хэш родителя пустые — по ним
       и отличается компонент от проекта верхнего уровня
     test: components/controller/tests/unit/capital/segment-mapper-context.test.ts
+    api: components/api-tests/src/capital/results-desk.test.ts
     status: passing
 
   - id: cap.resdesk.side.10
@@ -417,6 +419,7 @@ cases:
       признак голоса приходит отрицательным, а не пустым: поле обязательное,
       и пустое значение уронило бы ответ целиком
     test: components/controller/tests/unit/capital/segment-mapper-context.test.ts
+    api: components/api-tests/src/capital/results-desk.test.ts
     status: passing
 
   - id: cap.resdesk.side.16
@@ -445,6 +448,7 @@ cases:
       состав участников, подача результата) и они нужны любому участнику
       проекта. Решение владельца, зафиксировано 2026-08-20
     test: components/controller/tests/unit/capital/segments-role.test.ts
+    api: components/api-tests/src/capital/results-desk.test.ts
     status: passing
 
   - id: cap.res.ui.01
