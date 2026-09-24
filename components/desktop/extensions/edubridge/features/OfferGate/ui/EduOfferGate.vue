@@ -8,8 +8,8 @@
     BaseBanner(v-if="offer?.source === 'NOT_CONFIGURED'" variant="warn")
       template(#icon)
         q-icon(name="info")
-      | Кооператив ещё не завершил подключение ЦПП «Образование» — подписать оферту пока нельзя.
-      | Обратитесь к председателю.
+      | {{ $t('edubridge.eduOfferGate.notConfiguredNotice') }}
+      | {{ $t('edubridge.eduOfferGate.contactChairmanHint') }}
 
     CardListSkeleton(v-else-if="!activeStep" :count="1")
 
@@ -20,13 +20,13 @@
             template(v-if="step.key === 'contract'" #before-agree)
               BaseInput(
                 v-model="hourlyRate"
-                label="Ваша ставка за час"
+                :label="$t('edubridge.eduOfferGate.hourlyRateLabel')"
                 type="number"
                 :suffix="symbol"
                 required
               )
                 template(#append)
-                  FieldHelp(text="Стоимость часа вашей работы преподавателем. Из ставки и часов занятий складывается взнос за курс. Дальше ставку меняет администратор кооператива в разделе «Экономика».")
+                  FieldHelp(:text="$t('edubridge.eduOfferGate.hourlyRateHint')")
       EduGateDocumentStep(v-else :key="activeStep.key" v-bind="stepProps(activeStep.key)")
 </template>
 
@@ -44,6 +44,7 @@ import type { DigitalDocument } from 'src/shared/lib/document';
 import { buildContractDocument, fetchMyContract, signContract, type IContract, type IContractDraft } from '../../../entities/Teacher';
 import { buildOfferDocument, fetchOnboardingState, signOffer, type EduOfferKind, type IEduOnboardingState } from '../api';
 import EduGateDocumentStep from './EduGateDocumentStep.vue';
+import { t } from '../../../i18n';
 
 /**
  * Шлюз стола. Пока подключение не завершено, бэкенд выдаёт маркер
@@ -88,10 +89,10 @@ const contractSigned = computed(() => Boolean(contract.value) && !RESIGNABLE.inc
 const steps = computed<StepperStep[]>(() =>
   isTeacher.value
     ? [
-        { key: 'offer', label: 'Оферта преподавателя', description: 'Условия участия в ЦПП «Образование»' },
-        { key: 'contract', label: 'Договор участия в хозяйственной деятельности', description: 'Подписывают вы и председатель совета' },
+        { key: 'offer', label: t('edubridge.eduOfferGate.step.teacherOffer.label'), description: t('edubridge.eduOfferGate.step.teacherOffer.description') },
+        { key: 'contract', label: t('edubridge.eduOfferGate.step.contract.label'), description: t('edubridge.eduOfferGate.step.contract.description') },
       ]
-    : [{ key: 'offer', label: 'Оферта родителя-слушателя' }],
+    : [{ key: 'offer', label: t('edubridge.eduOfferGate.step.parentOffer.label') }],
 );
 const completedKeys = computed(() => {
   const done: string[] = [];
@@ -109,12 +110,14 @@ function stepProps(key: string) {
       stepKey: key,
       description: props.contractDescription,
       notice: declined
-        ? `Председатель отказал в подписи договора${contract.value?.decline_reason ? `: ${contract.value.decline_reason}` : ''}. Прочитайте и подпишите договор заново.`
+        ? (contract.value?.decline_reason
+          ? t('edubridge.eduOfferGate.contractDeclinedNoticeWithReason', { reason: contract.value.decline_reason })
+          : t('edubridge.eduOfferGate.contractDeclinedNotice'))
         : terminated
-          ? 'Прежний договор прекращён. Чтобы снова вести занятия, прочитайте и подпишите договор заново.'
+          ? t('edubridge.eduOfferGate.contractTerminatedNotice')
           : undefined,
-      agreeLabel: 'Я прочитал(а) договор участия в хозяйственной деятельности и согласен(на) с его условиями.',
-      actionLabel: 'Подписать договор',
+      agreeLabel: t('edubridge.eduOfferGate.contractAgreeLabel'),
+      actionLabel: t('edubridge.eduOfferGate.signContract'),
       build: async () => {
         contractDraft.value = await buildContractDocument();
         return contractDraft.value.document.data?.html ?? '';
@@ -130,8 +133,8 @@ function stepProps(key: string) {
   return {
     stepKey: key,
     description: props.offerDescription,
-    agreeLabel: `Я ознакомлен(а) с ${props.offerTitle} и согласен(на) с условиями участия.`,
-    actionLabel: isTeacher.value ? 'Подписать и продолжить' : 'Подписать оферту',
+    agreeLabel: t('edubridge.eduOfferGate.offerAgreeLabel', { offerTitle: props.offerTitle }),
+    actionLabel: isTeacher.value ? t('edubridge.eduOfferGate.signAndContinue') : t('edubridge.eduOfferGate.signOffer'),
     build: async () => {
       offerDoc.value = await buildOfferDocument(props.kind);
       return offerDoc.value.data?.html ?? '';
@@ -163,7 +166,7 @@ async function load(): Promise<void> {
  * уже никто не слышит — страница оставалась на скелетоне, не уходя на стол.
  */
 async function onSigned(key: string): Promise<void> {
-  SuccessAlert(key === 'contract' ? 'Договор подписан — ждёт подписи председателя совета' : 'Оферта подписана');
+  SuccessAlert(key === 'contract' ? t('edubridge.eduOfferGate.contractSignedSuccess') : t('edubridge.eduOfferGate.offerSignedSuccess'));
   if (!activeStep.value) await goToDesk();
 }
 

@@ -1,6 +1,6 @@
-import { ForbiddenException, Injectable, UseGuards } from '@nestjs/common';
+import { Injectable, UseGuards } from '@nestjs/common';
 import { Args, ID, Mutation, Query, Resolver } from '@nestjs/graphql';
-import { DocumentAggregateDTO, GeneratedDocumentDTO, GqlJwtAuthGuard, platformSettings } from '@coopenomics/extension-kit';
+import { DocumentAggregateDTO, GeneratedDocumentDTO, GqlJwtAuthGuard, platformSettings, DomainError } from '@coopenomics/extension-kit';
 import { CurrentEduMember } from '../decorators/current-edu-member.decorator';
 import { RequireEduAccess } from '../decorators/edubridge-access.decorator';
 import {
@@ -30,7 +30,7 @@ import { EduApprovalDTO } from '../dto/edu-approval.dto';
 const coop = () => platformSettings().coopname;
 
 function requireTeacherOffer(m: IEdubridgeMembership): void {
-  if (!m.facts.hasTeacherOffer) throw new ForbiddenException('Сначала подпишите оферту преподавателя по ЦПП «Образование»');
+  if (!m.facts.hasTeacherOffer) throw DomainError.forbidden('EDUBRIDGE_TEACHER_OFFER_REQUIRED');
 }
 
 /** Стол преподавателя и управление назначениями/взносами администратором. */

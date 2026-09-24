@@ -1,8 +1,8 @@
 <template lang="pug">
-BaseButton(variant="primary" size="sm" :icon-only="isCompact" aria-label="Назначить администратора" @click="emit('click')")
+BaseButton(variant="primary" size="sm" :icon-only="isCompact" :aria-label="$t('edubridge.appointAdminHeaderButton.label')" @click="emit('click')")
   template(#icon-left)
     q-icon(name="person_add" size="18px")
-  | Назначить администратора
+  | {{ $t('edubridge.appointAdminHeaderButton.label') }}
 </template>
 
 <script setup lang="ts">

@@ -1,5 +1,5 @@
-import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common';
-import { EXTENSION_REPOSITORY, type ExtensionDomainRepository, platformSettings } from '@coopenomics/extension-kit';
+import { Inject, Injectable } from '@nestjs/common';
+import { EXTENSION_REPOSITORY, type ExtensionDomainRepository, platformSettings, DomainError } from '@coopenomics/extension-kit';
 import {
   LEDGER2_HISTORY_PORT,
   USER_WALLET_PORT,
@@ -26,6 +26,7 @@ import type {
   EduProgramFundDTO,
   EduProgramWalletDTO,
 } from '../dto/edu-economy.dto';
+import { t as i18nT } from '../../i18n';
 
 /** Кошельки программы «Образование» в реестре ledger2. */
 const FUND_WALLET = 'w.edu.fund';
@@ -89,31 +90,31 @@ export class EdubridgeEconomyService {
     const wallets: EduProgramWalletDTO[] = [
       {
         id: FUND_WALLET,
-        name: fund?.name ?? 'Фонд ЦПП «Образование»',
+        name: fund?.name ?? i18nT('edubridge.economy.wallet.fund.name'),
         available: fundBalance,
-        summary: 'Свободные средства программы',
-        hint: 'Из фонда идут расходы программы. Сюда попадает только то, что ученики уже не вправе потребовать назад, за вычетом обязательства перед преподавателями.',
+        summary: i18nT('edubridge.economy.wallet.fund.summary'),
+        hint: i18nT('edubridge.economy.wallet.fund.hint'),
       },
       {
         id: ESCROW_WALLET,
-        name: escrow?.name ?? 'Удержано до конца гарантийного срока',
+        name: escrow?.name ?? i18nT('edubridge.economy.wallet.escrow.name'),
         available: escrow?.available ?? `0.0000 ${symbol}`,
-        summary: 'Взносы, которые ученики могут вернуть',
-        hint: 'Пока у ученика идёт гарантийный срок, его взнос удержан целиком; после срока удержана сумма возврата по Положению на сегодня. На расходы эти средства не идут, освобождённое переходит в фонд.',
+        summary: i18nT('edubridge.economy.wallet.escrow.summary'),
+        hint: i18nT('edubridge.economy.wallet.escrow.hint'),
       },
       {
         id: RESERVE_WALLET,
-        name: reserve?.name ?? 'Резерв выплат преподавателям',
+        name: reserve?.name ?? i18nT('edubridge.economy.wallet.reserve.name'),
         available: reserve?.available ?? `0.0000 ${symbol}`,
-        summary: 'Обязательство перед преподавателями',
-        hint: 'Стоимость часов курсов по плановой ставке за оплаченное учениками время, за вычетом уже выплаченного. Наполняется из освобождённых взносов, уменьшается, когда результат преподавателя принят. На расходы программы не идёт.',
+        summary: i18nT('edubridge.economy.wallet.reserve.summary'),
+        hint: i18nT('edubridge.economy.wallet.reserve.hint'),
       },
       {
         id: MEMBER_WALLET,
-        name: 'Членские взносы учеников',
+        name: i18nT('edubridge.economy.wallet.members.name'),
         available: formatMinor(membersMinor, symbol),
-        summary: 'Остатки на кошельках программы учеников',
-        hint: 'Внесено учениками и ещё не списано в фонд: возвраты по отменённым подпискам и взносы до подключения подписки. Идут на новые подписки; в паевой взнос возвращаются только с прекращением участия в программе.',
+        summary: i18nT('edubridge.economy.wallet.members.summary'),
+        hint: i18nT('edubridge.economy.wallet.members.hint'),
       },
     ];
 
@@ -151,7 +152,7 @@ export class EdubridgeEconomyService {
    */
   async setTeacherRate(coopname: string, username: string, hourlyRate: string): Promise<string> {
     const contract = await this.teachers.findContract(coopname, username);
-    if (!contract) throw new NotFoundException('У преподавателя нет договора участия в хозяйственной деятельности');
+    if (!contract) throw DomainError.notFound('EDUBRIDGE_TEACHER_CONTRACT_NOT_FOUND');
     contract.hourly_rate = hourlyRate;
     await this.teachers.saveContract(contract);
     return hourlyRate;
@@ -173,14 +174,12 @@ export class EdubridgeEconomyService {
     const calc = this.calculate(input, markup);
     if (!input.course_payment_enabled) return { fee_month: calc.fee_month };
     if (calc.course_months === 0) {
-      throw new BadRequestException('Взнос за весь курс считается от программы — укажите, сколько в ней занятий');
+      throw DomainError.badRequest('EDUBRIDGE_COURSE_LESSONS_TOTAL_REQUIRED');
     }
     const limit = maxCourseDiscountPercent(markup);
     const discount = input.course_discount_percent ?? 0;
     if (discount > limit) {
-      throw new BadRequestException(
-        `Скидка ${discount}% больше целевого членского взноса: при взносе ${markup}% взнос за курс опустится ниже себестоимости. Предельная скидка — ${limit}%`
-      );
+      throw DomainError.badRequest('EDUBRIDGE_COURSE_DISCOUNT_TOO_HIGH', { discount, markup, limit });
     }
     return { fee_month: calc.fee_month };
   }
@@ -191,7 +190,7 @@ export class EdubridgeEconomyService {
    */
   async courseEconomy(coopname: string, courseId: string): Promise<EduCourseEconomyDTO> {
     const course = await this.courses.findById(coopname, courseId);
-    if (!course) throw new NotFoundException('Курс не найден');
+    if (!course) throw DomainError.notFound('EDUBRIDGE_COURSE_NOT_FOUND');
 
     const markup = (await this.config.load()).markup_percent;
     const plan = this.calculate(this.paramsOf(course), markup);
@@ -258,18 +257,18 @@ export class EdubridgeEconomyService {
 
 /** Подписи движений — языком выписки, без кодов операций. */
 const MOVEMENT_TITLES: Record<string, { title: string; direction: string }> = {
-  'o.edu.conv': { title: 'Ученик внёс членский взнос', direction: 'in' },
-  'o.edu.fee': { title: 'Взнос за курс списан в фонд программы', direction: 'in' },
-  'o.edu.lock': { title: 'Взнос удержан до конца гарантийного срока курса', direction: 'out' },
-  'o.edu.unlock': { title: 'Взнос разблокирован: гарантийный срок истёк либо подписка закрыта', direction: 'in' },
-  'o.edu.allot': { title: 'Себестоимость взноса выделена в резерв выплат преподавателям', direction: 'out' },
-  'o.edu.free': { title: 'Резерв высвобожден в фонд: подписка отменена', direction: 'in' },
-  'o.edu.settle': { title: 'Расчёт с преподавателем за счёт резерва', direction: 'out' },
-  'o.edu.refund': { title: 'Взнос возвращён ученику', direction: 'out' },
+  'o.edu.conv': { title: i18nT('edubridge.economy.movement.conv'), direction: 'in' },
+  'o.edu.fee': { title: i18nT('edubridge.economy.movement.fee'), direction: 'in' },
+  'o.edu.lock': { title: i18nT('edubridge.economy.movement.lock'), direction: 'out' },
+  'o.edu.unlock': { title: i18nT('edubridge.economy.movement.unlock'), direction: 'in' },
+  'o.edu.allot': { title: i18nT('edubridge.economy.movement.allot'), direction: 'out' },
+  'o.edu.free': { title: i18nT('edubridge.economy.movement.free'), direction: 'in' },
+  'o.edu.settle': { title: i18nT('edubridge.economy.movement.settle'), direction: 'out' },
+  'o.edu.refund': { title: i18nT('edubridge.economy.movement.refund'), direction: 'out' },
 };
 
 function toMovement(op: InnerLedger2Operation, symbol: string): EduFundMovementDTO {
-  const known = MOVEMENT_TITLES[op.operationCode ?? ''] ?? { title: op.memo ?? 'Движение средств', direction: 'in' };
+  const known = MOVEMENT_TITLES[op.operationCode ?? ''] ?? { title: op.memo ?? i18nT('edubridge.economy.movement.fallback'), direction: 'in' };
   return {
     id: op.globalSequence,
     at: op.createdAt,

@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { EdubridgeContract } from 'cooptypes';
 import httpStatus from 'http-status';
-import { HttpApiError } from '@coopenomics/extension-kit';
+import { DomainError } from '@coopenomics/extension-kit';
 import {
   CHAIN_PORT,
   VAULT_PORT,
@@ -25,7 +25,7 @@ export class EdubridgeChainAdapter implements EdubridgeChainPort {
 
   private async prepare(coopname: string): Promise<void> {
     const wif = await this.vault.getWif(coopname);
-    if (!wif) throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ кооператива для действий edubridge');
+    if (!wif) throw new DomainError('EDUBRIDGE_COOP_PRIVATE_KEY_NOT_FOUND', {}, httpStatus.BAD_GATEWAY);
     this.chain.initialize(coopname, wif);
   }
 

@@ -1,16 +1,16 @@
 <template lang="pug">
 .q-pa-md
   PageHint.q-mb-md(storage-key="user:programs:banner-dismissed")
-    | Целевые потребительские программы, в которых вы участвуете. Средства программ
-    | живут на их кошельках: ими оплачивается участие, а деньгами они возвращаются
-    | при выходе из кооператива.
+    | {{ $t('user.userProgramsPage.hintLine1') }}
+    | {{ $t('user.userProgramsPage.hintLine2') }}
+    | {{ $t('user.userProgramsPage.hintLine3') }}
 
   CardListSkeleton(v-if="loading" :count="2")
 
   EmptyState(
     v-else-if="!programs.length"
-    title="Вы пока не участвуете в программах"
-    body="Программы кооператива открываются на своих столах — там же подписывается соглашение об участии."
+    :title="$t('user.userProgramsPage.emptyTitle')"
+    :body="$t('user.userProgramsPage.emptyBody')"
   )
     template(#icon)
       q-icon(name="handshake" size="40px")
@@ -22,8 +22,8 @@
           template(#head)
             div
               .user-program__title {{ program.title }}
-              .t-sm.t-muted(v-if="program.agreement_signed_at") Соглашение от {{ formatDate(program.agreement_signed_at) }}
-              .t-sm.t-muted(v-else) Соглашение об участии не подписано
+              .t-sm.t-muted(v-if="program.agreement_signed_at") {{ $t('user.userProgramsPage.agreementDate', { date: formatDate(program.agreement_signed_at) }) }}
+              .t-sm.t-muted(v-else) {{ $t('user.userProgramsPage.agreementNotSigned') }}
           .user-program__wallets(v-if="program.wallets.length")
             DataRow(
               v-for="wallet in program.wallets"
@@ -33,27 +33,27 @@
               :hint="walletHint(wallet)"
               align="spread"
             )
-          .t-sm.t-muted(v-else) На кошельках программы пусто.
+          .t-sm.t-muted(v-else) {{ $t('user.userProgramsPage.walletsEmpty') }}
           q-separator.q-my-md
-          DataRow(label="Вернётся при выходе" :value="formatAsset2Digits(program.refund)" align="spread")
+          DataRow(:label="$t('user.userProgramsPage.refundOnExitLabel')" :value="formatAsset2Digits(program.refund)" align="spread")
 
     //- Деньгами средства программ забираются одним путём — через выход из
     //- кооператива: так требует Положение каждой программы.
-    BaseCard.q-mt-md(variant="default" title="Получить средства программ деньгами")
+    BaseCard.q-mt-md(variant="default" :title="$t('user.userProgramsPage.cashOutTitle')")
       .t-sm
-        | Остатки кошельков, возвратные по Положениям программ, возвращаются при выходе
-        | из кооператива: они собираются на главный паевой кошелёк и выплачиваются на
-        | ваши реквизиты после решения Совета. Заявление об аннулировании соглашений
-        | подписывается вместе с заявлением о выходе — по одному на все программы.
+        | {{ $t('user.userProgramsPage.cashOutTextLine1') }}
+        | {{ $t('user.userProgramsPage.cashOutTextLine2') }}
+        | {{ $t('user.userProgramsPage.cashOutTextLine3') }}
+        | {{ $t('user.userProgramsPage.cashOutTextLine4') }}
       BaseBanner.q-mt-md(v-if="blockers.length" variant="warn")
         template(#icon)
           q-icon(name="block")
         div
-          p.q-mb-sm Сейчас выйти нельзя:
+          p.q-mb-sm {{ $t('user.userProgramsPage.blockersTitle') }}
           ul.user-program__blockers
             li(v-for="reason in blockers" :key="reason") {{ reason }}
       .q-mt-md
-        BaseButton(variant="secondary" @click="goToSettings") Перейти к выходу из кооператива
+        BaseButton(variant="secondary" @click="goToSettings") {{ $t('user.userProgramsPage.goToExit') }}
 </template>
 
 <script setup lang="ts">
@@ -64,6 +64,9 @@ import { DataRow, PageHint } from 'src/shared/ui/domain';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { FailAlert } from 'src/shared/api';
 import { useMembershipExit, type IMembershipExitReturnPreview } from 'src/features/Membership/ExitFromCoop';
+import { t, uiLocale } from 'src/shared/i18n';
+import { Ledger2Contract } from 'cooptypes';
+import { liveTable, useLiveReload } from 'src/shared/lib/realtime';
 
 /**
  * Участие пайщика в целевых потребительских программах: по карточке на
@@ -80,19 +83,19 @@ const programs = ref<IMembershipExitReturnPreview['programs']>([]);
 const blockers = ref<string[]>([]);
 
 const formatDate = (value: unknown): string =>
-  value ? new Date(String(value)).toLocaleDateString('ru-RU') : '______';
+  value ? new Date(String(value)).toLocaleDateString(uiLocale()) : '______';
 
 function walletHint(wallet: IMembershipExitReturnPreview['programs'][number]['wallets'][number]): string {
-  if (wallet.returns) return 'Возвращается при выходе из кооператива';
-  if (wallet.policy === 'BLOCKER') return 'Остаток держит выход: сначала завершите обязательство';
-  return 'Остаётся кооперативу по условиям Положения программы';
+  if (wallet.returns) return t('user.userProgramsPage.walletHint.returns');
+  if (wallet.policy === 'BLOCKER') return t('user.userProgramsPage.walletHint.blocker');
+  return t('user.userProgramsPage.walletHint.kept');
 }
 
 function goToSettings(): void {
   void router.push({ name: 'user-settings', params: { coopname: route.params.coopname } });
 }
 
-onMounted(async () => {
+async function load(): Promise<void> {
   try {
     const preview = await getReturnPreview();
     // Кошельки вне программ (минимальный паевой) показывает кошелёк пайщика.
@@ -103,7 +106,12 @@ onMounted(async () => {
   } finally {
     loading.value = false;
   }
-});
+}
+
+// Остатки программ живут в кошельках пайщика: взнос или возврат меняет их без перезахода.
+useLiveReload([liveTable(Ledger2Contract, Ledger2Contract.Tables.UserWallets)], load);
+
+onMounted(load);
 </script>
 
 <style scoped>

@@ -1,8 +1,8 @@
 <template lang="pug">
 .q-pa-md
   PageHint.q-mb-md(storage-key="edu:catalog:banner-dismissed")
-    | Каталог курсов кооператива. Выберите раздел и уровень, откройте карточку —
-    | там расписание, преподаватель, размер членского взноса и учебная программа.
+    | {{ $t('edubridge.catalogPage.hint.line1') }}
+    | {{ $t('edubridge.catalogPage.hint.line2') }}
 
   FilterBar.q-mb-md(hide-search :filters="filters" :model-value="filterValues" @update:model-value="onFilters" @reset="onFilters({})")
 
@@ -10,8 +10,8 @@
 
   EmptyState(
     v-else-if="!items.length"
-    title="Курсов пока нет"
-    body="Как только кооператив опубликует курсы в выбранном разделе и уровне, они появятся здесь."
+    :title="$t('edubridge.catalogPage.emptyTitle')"
+    :body="$t('edubridge.catalogPage.emptyBody')"
   )
     template(#icon)
       q-icon(name="school" size="40px")
@@ -21,7 +21,7 @@
       CourseCard(:course="course" @open="openCourse(asText(course.id))")
 
   .row.justify-center.q-mt-lg(v-if="hasMore")
-    BaseButton(variant="secondary" :loading="loading" @click="loadMore") Показать ещё
+    BaseButton(variant="secondary" :loading="loading" @click="loadMore") {{ $t('edubridge.catalogPage.loadMore') }}
 </template>
 
 <script setup lang="ts">
@@ -37,6 +37,7 @@ import { fetchSections, type ISection } from '../../entities/Section';
 import { CourseCard } from '../../widgets/CourseCard';
 import { useLiveReload } from 'src/shared/lib/realtime';
 import { EduLive } from '../../shared/lib/live';
+import { t } from '../../i18n';
 
 /**
  * Каталог курсов — витрина стола ученика, открытая посетителю до вступления.
@@ -59,10 +60,10 @@ const currentPage = ref(1);
 const totalPages = ref(0);
 
 const filters = computed<FilterDefinition[]>(() => [
-  { key: 'section_id', label: 'Раздел', type: 'select', options: sections.value.map((sec) => ({ value: String(sec.id), label: sec.title })) },
+  { key: 'section_id', label: t('edubridge.catalogPage.filters.section'), type: 'select', options: sections.value.map((sec) => ({ value: String(sec.id), label: sec.title })) },
   {
     key: 'level_id',
-    label: 'Уровень',
+    label: t('edubridge.catalogPage.filters.level'),
     type: 'select',
     options: (sections.value.find((sec) => sec.id === sectionId.value)?.levels ?? []).map((l) => ({ value: String(l.id), label: l.title })),
   },

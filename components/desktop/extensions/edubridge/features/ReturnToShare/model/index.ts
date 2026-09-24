@@ -1,4 +1,5 @@
 import { Zeus, type Mutations, type Queries } from '@coopenomics/sdk';
+import { t } from '../../../i18n';
 
 export type IReturnBalance = Queries.Edubridge.ReturnBalance.IOutput['edubridgeReturnBalance'];
 export type IReturnRequest = Queries.Edubridge.MyReturnRequests.IOutput['edubridgeMyReturnRequests'][number];
@@ -12,7 +13,7 @@ export type IProgramAnnulmentDocument =
 export const EDU_LEARNER_PROGRAM_ID = 5;
 
 export const RETURN_STATUS_LABELS: Record<string, { label: string; variant: 'pos' | 'neg' | 'warn' | 'info' | 'neutral' }> = {
-  [Zeus.EduReturnStatus.PENDING]: { label: 'Ждёт согласования', variant: 'info' },
-  [Zeus.EduReturnStatus.APPROVED]: { label: 'Участие прекращено', variant: 'pos' },
-  [Zeus.EduReturnStatus.DECLINED]: { label: 'Отклонено', variant: 'neg' },
+  [Zeus.EduReturnStatus.PENDING]: { label: t('edubridge.returnRequest.status.PENDING'), variant: 'info' },
+  [Zeus.EduReturnStatus.APPROVED]: { label: t('edubridge.returnRequest.status.APPROVED'), variant: 'pos' },
+  [Zeus.EduReturnStatus.DECLINED]: { label: t('edubridge.returnRequest.status.DECLINED'), variant: 'neg' },
 };

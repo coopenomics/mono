@@ -3,7 +3,7 @@ import { WorkflowBuilder } from '../../base/workflow-builder';
 import { z } from 'zod';
 import { BaseWorkflowPayload } from '../../types';
 import { createEmailStep, createInAppStep, createPushStep } from '../../base/defaults';
-import { slugify } from '../../utils';
+import { nt } from '../../i18n';
 
 export const payloadSchema = z.object({
   courseTitle: z.string(),
@@ -16,19 +16,34 @@ export type IPayload = z.infer<typeof payloadSchema>;
 
 export interface IWorkflow extends BaseWorkflowPayload, IPayload {}
 
-export const name = 'Выдача доступа требует вмешательства';
-export const id = slugify(name);
+export const name = nt('edubridgeAccessNeedsAttention.name');
+// Идентификатор закреплён: раньше он вычислялся из названия, и правка
+// или перевод названия меняли бы его. Не менять — на него ссылаются подписки.
+export const id = 'vydacha-dostupa-trebuet-vmeshatelstva';
 
 export const workflow: WorkflowDefinition<IWorkflow> = WorkflowBuilder
   .create<IWorkflow>()
   .name(name)
   .workflowId(id)
-  .description('Уведомление владельцу приложения: задача выдачи или отзыва доступа не выполнена автоматически — площадка отказала или курс рассогласован.')
+  .i18nKey('edubridgeAccessNeedsAttention')
+  .description(nt('edubridgeAccessNeedsAttention.description'))
   .payloadSchema(payloadSchema)
   .tags(['edubridge', 'owner'])
   .addSteps([
-    createEmailStep('edubridge-access-needs-attention-email', 'Выдача доступа требует вмешательства', 'Задача выдачи доступа по курсу «{{payload.courseTitle}}» требует вмешательства: {{payload.reason}}.<br><br>Очередь выдачи: {{payload.deepLinkUrl}}'),
-    createInAppStep('edubridge-access-needs-attention-notification', 'Выдача доступа требует вмешательства', 'Курс «{{payload.courseTitle}}»: {{payload.reason}}'),
-    createPushStep('edubridge-access-needs-attention-push', 'Выдача доступа требует вмешательства', 'Выдача доступа требует вмешательства: {{payload.reason}}'),
+    createEmailStep(
+      'edubridge-access-needs-attention-email',
+      nt('edubridgeAccessNeedsAttention.email.subject'),
+      nt('edubridgeAccessNeedsAttention.email.body')
+    ),
+    createInAppStep(
+      'edubridge-access-needs-attention-notification',
+      nt('edubridgeAccessNeedsAttention.inApp.subject'),
+      nt('edubridgeAccessNeedsAttention.inApp.body')
+    ),
+    createPushStep(
+      'edubridge-access-needs-attention-push',
+      nt('edubridgeAccessNeedsAttention.push.subject'),
+      nt('edubridgeAccessNeedsAttention.push.body')
+    ),
   ])
   .build();

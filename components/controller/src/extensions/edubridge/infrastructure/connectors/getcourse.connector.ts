@@ -10,6 +10,7 @@ import type {
 import { Inject } from '@nestjs/common';
 import { CONNECTOR_CREDENTIALS_SOURCE, type ConnectorCredentialField, type IConnectorCredentialsSource } from '../../domain/connectors/connector-credentials';
 import { classifyHttpFailure, classifyStatus, httpCall } from './http-carrier.base';
+import { t } from '../../i18n';
 
 /**
  * GetCourse — официальный API (getcourse.ru/help/api):
@@ -56,8 +57,8 @@ export class GetCourseConnector implements AccessCarrierConnector {
   readonly carrier = EduAccessCarrier.GETCOURSE;
 
   readonly credentialFields: ConnectorCredentialField[] = [
-    { key: 'account', label: 'Аккаунт GetCourse', secret: false, note: 'Поддомен школы: <аккаунт>.getcourse.ru' },
-    { key: 'api_key', label: 'API-ключ', secret: true, note: 'Настройки → Интеграции → API' },
+    { key: 'account', label: t('edubridge.getcourseConnector.field.account.label'), secret: false, note: t('edubridge.getcourseConnector.field.account.note') },
+    { key: 'api_key', label: t('edubridge.getcourseConnector.field.apiKey.label'), secret: true, note: t('edubridge.getcourseConnector.field.apiKey.note') },
   ];
 
   constructor(@Inject(CONNECTOR_CREDENTIALS_SOURCE) private readonly credentials: IConnectorCredentialsSource) {}
@@ -69,9 +70,9 @@ export class GetCourseConnector implements AccessCarrierConnector {
 
   private async addToGroup(request: AccessRequest, group: string): Promise<ConnectorResult> {
     const { account, key } = await this.settings(request.coopname);
-    if (!account || !key) return { code: 'fatal', message: 'GetCourse не настроен: укажите аккаунт и API-ключ', error_code: 'NOT_CONFIGURED' };
+    if (!account || !key) return { code: 'fatal', message: t('edubridge.getcourseConnector.notConfiguredFull'), error_code: 'NOT_CONFIGURED' };
     if (request.recipient.type !== EduRecipientType.EMAIL) {
-      return { code: 'fatal', message: 'GetCourse принимает только почту обучающегося', error_code: 'UNSUPPORTED_RECIPIENT' };
+      return { code: 'fatal', message: t('edubridge.getcourseConnector.emailOnly'), error_code: 'UNSUPPORTED_RECIPIENT' };
     }
     const params = Buffer.from(
       JSON.stringify({
@@ -105,12 +106,12 @@ export class GetCourseConnector implements AccessCarrierConnector {
   /** Подключение: ключ аккаунта принимается — список групп читается. */
   async ping(coopname: string): Promise<ConnectorPingResult> {
     const { account, key } = await this.settings(coopname);
-    if (!account || !key) return { ok: false, message: 'GetCourse не настроен' };
+    if (!account || !key) return { ok: false, message: t('edubridge.getcourseConnector.notConfigured') };
     try {
       const res = await httpCall(`https://${account}.getcourse.ru/pl/api/account/groups?key=${encodeURIComponent(key)}`, { method: 'GET' });
       if (!res.ok) return { ok: false, message: `HTTP ${res.status}` };
       const count = ((res.body as { info?: { items?: unknown[] } })?.info?.items ?? []).length;
-      return { ok: true, message: `Ключ принят, групп в аккаунте — ${count}` };
+      return { ok: true, message: t('edubridge.getcourseConnector.pingOk', { count }) };
     } catch (e) {
       return { ok: false, message: e instanceof Error ? e.message : String(e) };
     }
@@ -118,13 +119,13 @@ export class GetCourseConnector implements AccessCarrierConnector {
 
   async check(coopname: string, courseRef: string): Promise<CourseCheckResult> {
     const { account, key } = await this.settings(coopname);
-    if (!account || !key) return { found: false, unavailable: true, message: 'GetCourse не настроен' };
+    if (!account || !key) return { found: false, unavailable: true, message: t('edubridge.getcourseConnector.notConfigured') };
     try {
       const res = await httpCall(`https://${account}.getcourse.ru/pl/api/account/groups?key=${encodeURIComponent(key)}`, { method: 'GET' });
       if (!res.ok) return { found: false, unavailable: true, message: `HTTP ${res.status}` };
       const groups = ((res.body as { info?: { items?: Array<{ id: number; name: string }> } })?.info?.items ?? []) as Array<{ id: number; name: string }>;
       const group = groups.find((g) => g.name === courseRef || String(g.id) === courseRef);
-      return group ? { found: true, title: group.name } : { found: false, message: 'Группа не найдена в аккаунте GetCourse' };
+      return group ? { found: true, title: group.name } : { found: false, message: t('edubridge.getcourseConnector.groupNotFound') };
     } catch (e) {
       return { found: false, unavailable: true, message: e instanceof Error ? e.message : String(e) };
     }

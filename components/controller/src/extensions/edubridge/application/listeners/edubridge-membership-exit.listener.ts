@@ -4,6 +4,7 @@ import { RegistratorContract } from 'cooptypes';
 import { LOGGER_PORT, type ILoggerPort, type InnerChainActionRecord } from '@coopenomics/innercoop';
 import { EdubridgeEnrollmentService } from '../services/edubridge-enrollment.service';
 import { EdubridgeTeacherService } from '../services/edubridge-teacher.service';
+import { t } from '../../i18n';
 
 /**
  * Выход пайщика из кооператива (`registrator::exitcoop` — заявление подано):
@@ -33,7 +34,7 @@ export class EdubridgeMembershipExitListener {
     if (!data?.coopname || !data?.username) return;
     await this.enrollments.cancelAllForMember(String(data.coopname), String(data.username), `exitcoop ${action.transaction_id}`);
     try {
-      await this.teachers.terminateContract(String(data.coopname), String(data.username), 'выход преподавателя из кооператива');
+      await this.teachers.terminateContract(String(data.coopname), String(data.username), t('edubridge.membershipExitListener.teacherExitReason'));
     } catch (e) {
       this.logger.error(`[EDU.TEACH] выход ${data.username}: договор УХД не прекращён — ${(e as Error)?.message ?? e}`);
     }

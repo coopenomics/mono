@@ -22,6 +22,8 @@ import {
   EDUBRIDGE_ACCESS_NEEDS_ATTENTION_EVENT,
   EDUBRIDGE_ACCESS_REVOKED_EVENT,
 } from '../events/edubridge.events';
+import { t } from '../../i18n';
+import { DomainError } from '@coopenomics/extension-kit';
 
 /** Сколько попыток до «требует вмешательства». */
 export const OUTBOX_MAX_ATTEMPTS = 10;
@@ -36,10 +38,10 @@ interface TaskContext {
 
 /** Чем сверка не сошлась: `retry` — площадка недоступна, иначе — курс не тот; `null` — всё сходится. */
 function courseCheckProblem(check: CourseCheckResult, course: EdubridgeCourseEntity): { message: string; retry?: boolean } | null {
-  if (check.unavailable) return { message: check.message ?? 'Площадка недоступна', retry: true };
-  if (!check.found) return { message: check.message ?? 'Курс не найден на площадке' };
+  if (check.unavailable) return { message: check.message ?? t('edubridge.accessOutbox.reason.platformUnavailable'), retry: true };
+  if (!check.found) return { message: check.message ?? t('edubridge.accessOutbox.reason.courseNotFoundOnPlatform') };
   if (check.title && course.external_title_seen && check.title !== course.external_title_seen) {
-    return { message: `Курс на площадке переименован: «${course.external_title_seen}» → «${check.title}»` };
+    return { message: t('edubridge.accessOutbox.reason.courseRenamed', { seenTitle: course.external_title_seen, currentTitle: check.title }) };
   }
   return null;
 }
@@ -130,7 +132,7 @@ export class EdubridgeAccessOutboxService {
   /** Исход площадки → состояние задачи: успех/«уже есть» — done, отказ — вмешательство, остальное — повтор. */
   private settle(task: EdubridgeAccessTaskEntity, enrollment: EdubridgeEnrollmentEntity, result: ConnectorResult): Promise<void> {
     if (result.code === 'ok' || result.code === 'exists') return this.done(task, enrollment, result);
-    if (result.code === 'fatal') return this.attention(task, result.message ?? 'Отказ площадки', undefined, result.error_code);
+    if (result.code === 'fatal') return this.attention(task, result.message ?? t('edubridge.accessOutbox.reason.platformRejected'), undefined, result.error_code);
     return this.fail(task, result);
   }
 
@@ -138,7 +140,7 @@ export class EdubridgeAccessOutboxService {
   private async loadContext(task: EdubridgeAccessTaskEntity): Promise<TaskContext | null> {
     const enrollment = await this.enrollments.findById(task.coopname, task.enrollment_id);
     if (!enrollment) {
-      await this.attention(task, 'Подписка не найдена');
+      await this.attention(task, t('edubridge.accessOutbox.reason.subscriptionNotFound'));
       return null;
     }
     const [learner, course] = await Promise.all([
@@ -146,12 +148,12 @@ export class EdubridgeAccessOutboxService {
       this.courses.findById(task.coopname, enrollment.course_id),
     ]);
     if (!learner || !course) {
-      await this.attention(task, 'Обучающийся или курс не найдены');
+      await this.attention(task, t('edubridge.accessOutbox.reason.learnerOrCourseNotFound'));
       return null;
     }
     const connector = this.connectors.get(task.carrier);
     if (!connector) {
-      await this.attention(task, `Носитель доступа ${task.carrier} не поддерживается`);
+      await this.attention(task, t('edubridge.accessOutbox.reason.carrierUnsupported', { carrier: task.carrier }));
       return null;
     }
     return { enrollment, learner, course, connector };
@@ -210,7 +212,7 @@ export class EdubridgeAccessOutboxService {
     task.last_result = result.code;
     task.last_error = result.message ?? null;
     if (task.attempts >= OUTBOX_MAX_ATTEMPTS) {
-      return this.attention(task, `Исчерпаны попытки (${task.attempts}): ${result.message ?? ''}`.trim(), undefined, result.error_code, true);
+      return this.attention(task, t('edubridge.accessOutbox.reason.attemptsExhausted', { attempts: task.attempts, message: result.message ?? '' }).trim(), undefined, result.error_code, true);
     }
     task.status = EduAccessTaskStatus.PENDING;
     task.next_attempt_at = new Date(Date.now() + backoffMinutes(task.attempts) * 60_000);
@@ -237,7 +239,7 @@ export class EdubridgeAccessOutboxService {
   /** Ручной повтор из очереди администратора: задача снова pending, счётчик не сбрасываем. */
   async retry(coopname: string, taskId: string): Promise<EdubridgeAccessTaskEntity> {
     const task = await this.tasks.findById(coopname, taskId);
-    if (!task) throw new Error('Задача не найдена');
+    if (!task) throw DomainError.internal('EDUBRIDGE_ACCESS_TASK_NOT_FOUND');
     task.status = EduAccessTaskStatus.PENDING;
     task.next_attempt_at = new Date();
     task.last_error = null;

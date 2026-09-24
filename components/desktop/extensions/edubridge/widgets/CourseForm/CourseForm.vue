@@ -4,85 +4,85 @@ BaseForm.edu-course-form(ref="formEl" :loading="loading" :error="error" @submit=
   //- значок «?» справа, текст всплывает при наведении; строка под полем
   //- остаётся для ошибки ввода. Пары коротких полей встают рядом, когда места хватает.
   section.edu-course-form__section(v-if="show('course')")
-    .edu-course-form__legend(v-if="!section") Курс
-    BaseInput(v-model="form.title" label="Название курса" required)
+    .edu-course-form__legend(v-if="!section") {{ $t('edubridge.courseForm.section.course') }}
+    BaseInput(v-model="form.title" :label="$t('edubridge.courseForm.titleLabel')" required)
       template(#append)
         FieldHelp(:text="COURSE_FORM_HELP.title")
     .edu-course-form__pair
-      BaseSelect(:model-value="form.section_id || null" label="Раздел" :options="sectionOptions" creatable required @update:model-value="pickSection")
+      BaseSelect(:model-value="form.section_id || null" :label="$t('edubridge.courseForm.sectionLabel')" :options="sectionOptions" creatable required @update:model-value="pickSection")
         template(#append)
           FieldHelp(:text="COURSE_FORM_HELP.section")
-      BaseSelect(:model-value="form.level_id" label="Уровень" :options="levelOptions" creatable clearable :disabled="!form.section_id" @update:model-value="pickLevel")
+      BaseSelect(:model-value="form.level_id" :label="$t('edubridge.courseForm.levelLabel')" :options="levelOptions" creatable clearable :disabled="!form.section_id" @update:model-value="pickLevel")
         template(#append)
           FieldHelp(:text="COURSE_FORM_HELP.level")
-    BaseInput(v-model="form.schedule" label="Расписание" placeholder="Вт, Чт 17:00–18:30")
+    BaseInput(v-model="form.schedule" :label="$t('edubridge.courseForm.scheduleLabel')" :placeholder="$t('edubridge.courseForm.schedulePlaceholder')")
       template(#append)
         FieldHelp(:text="COURSE_FORM_HELP.schedule")
-    BaseInput(v-model="form.description" label="Описание" type="textarea" :rows="3" autogrow)
+    BaseInput(v-model="form.description" :label="$t('edubridge.courseForm.descriptionLabel')" type="textarea" :rows="3" autogrow)
       template(#append)
         FieldHelp(:text="COURSE_FORM_HELP.description")
-    BaseInput(v-model="form.syllabus" label="Учебная программа" type="textarea" :rows="5" autogrow)
+    BaseInput(v-model="form.syllabus" :label="$t('edubridge.courseForm.syllabusLabel')" type="textarea" :rows="5" autogrow)
       template(#append)
         FieldHelp(:text="COURSE_FORM_HELP.syllabus")
 
   section.edu-course-form__section(v-if="show('cover')")
-    .edu-course-form__legend(v-if="!section") Обложка
+    .edu-course-form__legend(v-if="!section") {{ $t('edubridge.courseForm.section.cover') }}
     //- Обложка во всю ширину, в тех же пропорциях, что и в каталоге; замена и
     //- удаление — строкой под снимком, всегда на виду.
     template(v-if="previewUrl")
       .edu-course-form__cover
         q-img(:src="previewUrl" :ratio="16 / 9" fit="cover" no-spinner)
       .edu-course-form__cover-actions
-        span.t-meta.t-muted JPEG, PNG или WEBP до 10 МБ, лучше 1600 × 900
+        span.t-meta.t-muted {{ $t('edubridge.courseForm.coverHint') }}
         q-space
-        BaseButton(variant="ghost" size="sm" type="button" @click="removeImage") Убрать
-        BaseButton(variant="secondary" size="sm" type="button" @click="pickImage") Заменить
+        BaseButton(variant="ghost" size="sm" type="button" @click="removeImage") {{ $t('edubridge.courseForm.coverRemove') }}
+        BaseButton(variant="secondary" size="sm" type="button" @click="pickImage") {{ $t('edubridge.courseForm.coverReplace') }}
     .edu-course-form__picker(v-else role="button" tabindex="0" @click="pickImage" @keydown.enter="pickImage")
       q-icon(name="add_photo_alternate" size="24px")
-      .t-sm.text-weight-medium Загрузить обложку
-      .t-meta.t-muted JPEG, PNG или WEBP до 10 МБ, лучше 1600 × 900
+      .t-sm.text-weight-medium {{ $t('edubridge.courseForm.coverUpload') }}
+      .t-meta.t-muted {{ $t('edubridge.courseForm.coverHint') }}
     input.edu-course-form__file(ref="fileInput" type="file" :accept="COURSE_IMAGE_ACCEPT" @change="onFilePicked")
 
   //- Взнос не вводится руками: он складывается из часов занятий по ставке
   //- преподавателя и целевого членского взноса кооператива. Так оплата ученика покрывает
   //- обязательства перед теми, кто курс ведёт.
   section.edu-course-form__section(v-if="show('price')")
-    .edu-course-form__legend(v-if="!section") Стоимость
+    .edu-course-form__legend(v-if="!section") {{ $t('edubridge.courseForm.section.price') }}
     .edu-course-form__group
-      .edu-course-form__group-title Занятия
+      .edu-course-form__group-title {{ $t('edubridge.courseForm.group.lessons') }}
       .edu-course-form__pair
-        BaseInput(v-model="lessonsPerMonth" label="Занятий в месяц" type="number" required)
+        BaseInput(v-model="lessonsPerMonth" :label="$t('edubridge.courseForm.lessonsPerMonthLabel')" type="number" required)
           template(#append)
             FieldHelp(:text="COURSE_FORM_HELP.lessonsPerMonth")
-        BaseInput(v-model="lessonMinutes" label="Длительность занятия, минут" type="number" required)
+        BaseInput(v-model="lessonMinutes" :label="$t('edubridge.courseForm.lessonMinutesLabel')" type="number" required)
           template(#append)
             FieldHelp(:text="COURSE_FORM_HELP.lessonMinutes")
-      BaseInput(v-model="lessonsTotal" label="Занятий в программе" type="number" required)
+      BaseInput(v-model="lessonsTotal" :label="$t('edubridge.courseForm.lessonsTotalLabel')" type="number" required)
         template(#append)
           FieldHelp(:text="COURSE_FORM_HELP.lessonsTotal")
 
     .edu-course-form__group
-      .edu-course-form__group-title Ставка
-      BaseInput(v-model="plannedRate" label="Ставка преподавателя за час" type="number" :suffix="symbol" required)
+      .edu-course-form__group-title {{ $t('edubridge.courseForm.group.rate') }}
+      BaseInput(v-model="plannedRate" :label="$t('edubridge.courseForm.plannedRateLabel')" type="number" :suffix="symbol" required)
         template(#append)
           FieldHelp(:text="COURSE_FORM_HELP.plannedRate")
 
     //- Целевой членский взнос один на кооператив: здесь он только виден, а
     //- меняется в «Экономике» — кнопка ведёт туда, черновик курса сохраняется.
     .edu-course-form__group
-      .edu-course-form__group-title Целевой членский взнос
+      .edu-course-form__group-title {{ $t('edubridge.courseForm.group.membershipFee') }}
       .edu-course-form__fee-line
-        span.t-sm {{ markupPercent === null ? '______' : `${markupPercent}% сверх себестоимости курса` }}
+        span.t-sm {{ markupPercent === null ? '______' : $t(`edubridge.courseForm.markupPercentLine`, { percent: markupPercent }) }}
         FieldHelp(:text="COURSE_FORM_HELP.membershipFee")
         q-space
-        BaseButton(variant="ghost" size="sm" type="button" @click="openEconomySettings") Редактировать
+        BaseButton(variant="ghost" size="sm" type="button" @click="openEconomySettings") {{ $t('common.action.edit') }}
 
     .edu-course-form__group
-      .edu-course-form__group-title Сроки
+      .edu-course-form__group-title {{ $t('edubridge.courseForm.group.terms') }}
       .edu-course-form__pair
         BaseInput(
           v-model="form.starts_at"
-          label="Дата начала занятий"
+          :label="$t('edubridge.courseForm.startsAtLabel')"
           type="date"
           stack-label
         )
@@ -90,7 +90,7 @@ BaseForm.edu-course-form(ref="formEl" :loading="loading" :error="error" @submit=
             FieldHelp(:text="COURSE_FORM_HELP.startsAt")
         BaseInput(
           v-model="guaranteeDays"
-          label="Гарантийный срок, дней"
+          :label="$t('edubridge.courseForm.guaranteeDaysLabel')"
           type="number"
         )
           template(#append)
@@ -99,15 +99,15 @@ BaseForm.edu-course-form(ref="formEl" :loading="loading" :error="error" @submit=
     //- Взнос вносят помесячно либо разом за весь курс. Поле скидки стоит на месте
     //- всегда и лишь включается — форма не прыгает при переключении.
     .edu-course-form__group
-      .edu-course-form__group-title Взнос за весь курс
+      .edu-course-form__group-title {{ $t('edubridge.courseForm.group.courseFee') }}
       .edu-course-form__switch
         .edu-course-form__check
           BaseCheckbox(v-model="coursePayment")
-            | Принимать взнос за весь курс разом
+            | {{ $t('edubridge.courseForm.coursePaymentCheckbox') }}
           FieldHelp(:text="coursePaymentHint")
       BaseInput(
         v-model="courseDiscount"
-        label="Скидка за взнос разом, %"
+        :label="$t('edubridge.courseForm.courseDiscountLabel')"
         type="number"
         :disabled="!coursePayment"
         :error="discountError"
@@ -120,7 +120,7 @@ BaseForm.edu-course-form(ref="formEl" :loading="loading" :error="error" @submit=
     .edu-course-form__total(v-if="fee")
       .edu-course-form__total-main
         div
-          .t-sm.t-muted Взнос в месяц
+          .t-sm.t-muted {{ $t('edubridge.courseForm.total.feeMonth') }}
           .edu-course-form__amount.t-num {{ formatAsset2Digits(fee.fee_month) }}
         div
           .t-sm.t-muted {{ courseFeeLabel }}
@@ -128,33 +128,33 @@ BaseForm.edu-course-form(ref="formEl" :loading="loading" :error="error" @submit=
           .edu-course-form__amount.t-muted(v-else) ______
       .edu-course-form__total-rows
         .edu-course-form__total-row
-          span.t-sm.t-muted Себестоимость в месяц
+          span.t-sm.t-muted {{ $t('edubridge.courseForm.total.costMonth') }}
           span.t-sm.t-num {{ formatAsset2Digits(fee.cost_month) }}
         .edu-course-form__total-row
-          span.t-sm.t-muted Целевой членский взнос, {{ fee.markup_percent }}%
+          span.t-sm.t-muted {{ $t('edubridge.courseForm.total.markup', { percent: fee.markup_percent }) }}
           span.t-sm.t-num {{ formatAsset2Digits(fee.markup_month) }}
         template(v-if="courseFeeShown")
           .edu-course-form__total-row
-            span.t-sm.t-muted Помесячно за весь курс
+            span.t-sm.t-muted {{ $t('edubridge.courseForm.total.feeCourseBase') }}
             span.t-sm.t-num {{ formatAsset2Digits(fee.fee_course_base) }}
           .edu-course-form__total-row
-            span.t-sm.t-muted Скидка за взнос разом
+            span.t-sm.t-muted {{ $t('edubridge.courseForm.total.courseDiscount') }}
             span.t-sm.t-num {{ formatAsset2Digits(fee.course_discount_amount) }}
-    .t-sm.t-muted(v-else) Заполните параметры занятий — взнос посчитается сам.
+    .t-sm.t-muted(v-else) {{ $t('edubridge.courseForm.total.empty') }}
 
   section.edu-course-form__section(v-if="show('access')")
-    .edu-course-form__legend(v-if="!section") Выдача доступа
+    .edu-course-form__legend(v-if="!section") {{ $t('edubridge.courseForm.section.access') }}
     .edu-course-form__pair
-      BaseSelect(v-model="form.direction" label="Тип направления" :options="directionOptions" required)
+      BaseSelect(v-model="form.direction" :label="$t('edubridge.courseForm.directionLabel')" :options="directionOptions" required)
         template(#append)
           FieldHelp(:text="COURSE_FORM_HELP.direction")
-      BaseSelect(v-model="form.carrier" label="Носитель доступа" :options="carrierOptions" required)
+      BaseSelect(v-model="form.carrier" :label="$t('edubridge.courseForm.carrierLabel')" :options="carrierOptions" required)
         template(#append)
           FieldHelp(:text="COURSE_FORM_HELP.carrier")
     template(v-if="isSkillspace")
       BaseSelect(
         v-model="skillspaceCourseId"
-        label="Курс в школе Skillspace"
+        :label="$t('edubridge.courseForm.skillspaceCourseLabel')"
         :options="platformCourseOptions"
         :disabled="!platformCourses.length"
         searchable
@@ -164,32 +164,32 @@ BaseForm.edu-course-form(ref="formEl" :loading="loading" :error="error" @submit=
           FieldHelp(:text="platformCourses.length ? COURSE_FORM_HELP.skillspaceCourse : COURSE_FORM_HELP.skillspaceCourseEmpty")
       BaseSelect(
         v-model="skillspaceGroupId"
-        label="Группа курса"
+        :label="$t('edubridge.courseForm.skillspaceGroupLabel')"
         :options="platformGroupOptions"
         :disabled="!platformGroupOptions.length"
         clearable
       )
         template(#append)
           FieldHelp(:text="platformGroupOptions.length ? COURSE_FORM_HELP.skillspaceGroup : COURSE_FORM_HELP.skillspaceGroupEmpty")
-    BaseInput(v-else-if="isPlatform" v-model="form.external_ref" label="Идентификатор курса на площадке" mono required)
+    BaseInput(v-else-if="isPlatform" v-model="form.external_ref" :label="$t('edubridge.courseForm.externalRefLabel')" mono required)
       template(#append)
         FieldHelp(:text="COURSE_FORM_HELP.externalRef")
 
   //- Назначенные преподаватели идут списком имён, а выбор — строкой под ним.
   section.edu-course-form__section(v-if="show('teachers')")
-    .edu-course-form__legend(v-if="!section") Преподаватели
+    .edu-course-form__legend(v-if="!section") {{ $t('edubridge.courseForm.section.teachers') }}
     q-list.edu-course-form__teachers(v-if="form.teacher_usernames.length" separator)
       q-item(v-for="t in form.teacher_usernames" :key="t")
         q-item-section
           IdentityCell(:account-name="t" :full-name="teacherName(t)")
         q-item-section(side)
-          BaseButton(variant="ghost" size="sm" icon-only type="button" :aria-label="`Убрать ${teacherName(t) || t}`" @click="removeTeacher(t)")
+          BaseButton(variant="ghost" size="sm" icon-only type="button" :aria-label="$t(`edubridge.courseForm.removeTeacherAriaLabel`, { teacherName: teacherName(t) || t })" @click="removeTeacher(t)")
             template(#icon-left)
               q-icon(name="close" size="16px")
-    .t-sm.t-muted(v-else) Курс можно сохранить и назначить преподавателей позже.
+    .t-sm.t-muted(v-else) {{ $t('edubridge.courseForm.noTeachersEmpty') }}
     BaseSelect(
       :model-value="null"
-      label="Назначить преподавателя"
+      :label="$t('edubridge.courseForm.addTeacherLabel')"
       :options="teacherOptions"
       :disabled="!teacherOptions.length"
       searchable
@@ -200,8 +200,8 @@ BaseForm.edu-course-form(ref="formEl" :loading="loading" :error="error" @submit=
 
   template(v-if="!hideFooter" #footer)
     .row.justify-end.q-gutter-sm
-      BaseButton(variant="ghost" type="button" :disabled="loading" @click="emit('cancel')") Отменить
-      BaseButton(variant="primary" type="submit" :loading="loading") {{ course ? 'Сохранить' : 'Добавить курс' }}
+      BaseButton(variant="ghost" type="button" :disabled="loading" @click="emit('cancel')") {{ $t('edubridge.courseForm.cancel') }}
+      BaseButton(variant="primary" type="submit" :loading="loading") {{ course ? $t('common.action.save') : $t('edubridge.courseForm.createSubmit') }}
 </template>
 
 <script setup lang="ts">

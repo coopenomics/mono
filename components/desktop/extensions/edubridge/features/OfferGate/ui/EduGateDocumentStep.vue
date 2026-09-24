@@ -12,7 +12,7 @@
       q-icon(name="error_outline")
     | {{ loadError }}
     .q-mt-sm
-      BaseButton(variant="ghost" size="sm" @click="load") Попробовать снова
+      BaseButton(variant="ghost" size="sm" @click="load") {{ $t('edubridge.eduGateDocumentStep.retry') }}
   template(v-else)
     //- Документ разворачивается целиком, как на подключении «Благороста»: сначала читают, потом соглашаются.
     .edu-gate-step__doc
@@ -32,6 +32,7 @@ import { onMounted, ref, watch } from 'vue';
 import { FailAlert } from 'src/shared/api';
 import { DocumentHtmlReader } from 'src/shared/ui/DocumentHtmlReader';
 import { BaseBanner, BaseButton, BaseCheckbox, CardListSkeleton } from 'src/shared/ui/base';
+import { t } from '../../../i18n';
 
 /**
  * Один шаг шлюза: документ целиком на странице, галочка согласия и кнопка,
@@ -67,7 +68,7 @@ async function load(): Promise<void> {
   try {
     html.value = await props.build();
   } catch (e) {
-    loadError.value = (e as Error)?.message || 'Не удалось сформировать документ';
+    loadError.value = (e as Error)?.message || t('edubridge.eduGateDocumentStep.buildError');
   }
 }
 

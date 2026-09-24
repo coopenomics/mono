@@ -1,3 +1,4 @@
+import './i18n';
 import { markRaw, type Component } from 'vue';
 import { refreshMenuBadges, registerMenuBadge } from 'src/shared/lib/menuBadges';
 import { registerLiveReload } from 'src/shared/lib/realtime';
@@ -30,6 +31,7 @@ import {
   TeacherProfilePage,
   TeacherSettlementPage,
 } from './pages';
+import { t } from './i18n';
 
 /**
  * Столы «Образовательного моста» — три, как в PRD (границы продукта):
@@ -83,43 +85,43 @@ function workspace(name: string, title: string, icon: string, defaultRoute: stri
 
 /** «Стол администратора»: владелец и администратор; каталог здесь не нужен — он в столе ученика. */
 function adminWorkspace(): IWorkspaceConfig {
-  return workspace('edubridge', 'Стол администратора', 'admin_panel_settings', 'edubridge-admin-courses', [
-    memberPage('configure', 'edubridge-configure', ConfigurePage, { title: 'Подключение', icon: 'settings', requires: 'Extension:configure', gate: true }),
-    memberPage('courses', 'edubridge-admin-courses', AdminCoursesPage, { title: 'Курсы', icon: 'library_books', requires: 'EduCourse:manage' }),
-    memberPage('courses/new', 'edubridge-admin-course-new', AdminCourseEditPage, { title: 'Новый курс', icon: 'library_books', requires: 'EduCourse:manage', hidden: true, menuKey: 'edubridge-admin-courses' }),
-    memberPage('courses/:id/edit', 'edubridge-admin-course-edit', AdminCourseEditPage, { title: 'Изменить курс', icon: 'library_books', requires: 'EduCourse:manage', hidden: true, menuKey: 'edubridge-admin-courses' }),
-    memberPage('courses/:id', 'edubridge-admin-course', AdminCoursePage, { title: 'Курс', icon: 'library_books', requires: 'EduCourse:manage', hidden: true, menuKey: 'edubridge-admin-courses' }),
-    memberPage('sections', 'edubridge-admin-sections', AdminSectionsPage, { title: 'Разделы и уровни', icon: 'category', requires: 'EduCourse:manage' }),
-    memberPage('teachers', 'edubridge-admin-teachers', AdminTeachersPage, { title: 'Преподаватели', icon: 'co_present', requires: 'EduAssignment:manage' }),
-    memberPage('contributions', 'edubridge-admin-contributions', AdminContributionsPage, { title: 'Взносы преподавателей', icon: 'workspace_premium', requires: 'EduContribution:decide' }),
-    memberPage('economy', 'edubridge-admin-economy', AdminEconomyPage, { title: 'Экономика', icon: 'payments', requires: 'EduEconomy:manage' }),
-    memberPage('members', 'edubridge-admin-registry', AdminMembersPage, { title: 'Ученики', icon: 'groups', requires: 'EduRegistry:read' }),
-    memberPage('platforms', 'edubridge-admin-connectors', AdminConnectorsPage, { title: 'Площадки', icon: 'hub', requires: 'EduConnector:manage' }),
-    memberPage('admins', 'edubridge-admin-admins', AdminAdminsPage, { title: 'Администраторы', icon: 'admin_panel_settings', requires: 'EduAdmin:manage' }),
+  return workspace('edubridge', t('edubridge.install.adminWorkspaceTitle'), 'admin_panel_settings', 'edubridge-admin-courses', [
+    memberPage('configure', 'edubridge-configure', ConfigurePage, { title: t('edubridge.install.configureRouteTitle'), icon: 'settings', requires: 'Extension:configure', gate: true }),
+    memberPage('courses', 'edubridge-admin-courses', AdminCoursesPage, { title: t('edubridge.install.coursesRouteTitle'), icon: 'library_books', requires: 'EduCourse:manage' }),
+    memberPage('courses/new', 'edubridge-admin-course-new', AdminCourseEditPage, { title: t('edubridge.install.courseNewRouteTitle'), icon: 'library_books', requires: 'EduCourse:manage', hidden: true, menuKey: 'edubridge-admin-courses' }),
+    memberPage('courses/:id/edit', 'edubridge-admin-course-edit', AdminCourseEditPage, { title: t('edubridge.install.courseEditRouteTitle'), icon: 'library_books', requires: 'EduCourse:manage', hidden: true, menuKey: 'edubridge-admin-courses' }),
+    memberPage('courses/:id', 'edubridge-admin-course', AdminCoursePage, { title: t('edubridge.install.courseRouteTitle'), icon: 'library_books', requires: 'EduCourse:manage', hidden: true, menuKey: 'edubridge-admin-courses' }),
+    memberPage('sections', 'edubridge-admin-sections', AdminSectionsPage, { title: t('edubridge.install.sectionsRouteTitle'), icon: 'category', requires: 'EduCourse:manage' }),
+    memberPage('teachers', 'edubridge-admin-teachers', AdminTeachersPage, { title: t('edubridge.install.teachersRouteTitle'), icon: 'co_present', requires: 'EduAssignment:manage' }),
+    memberPage('contributions', 'edubridge-admin-contributions', AdminContributionsPage, { title: t('edubridge.install.adminContributionsRouteTitle'), icon: 'workspace_premium', requires: 'EduContribution:decide' }),
+    memberPage('economy', 'edubridge-admin-economy', AdminEconomyPage, { title: t('edubridge.install.economyRouteTitle'), icon: 'payments', requires: 'EduEconomy:manage' }),
+    memberPage('members', 'edubridge-admin-registry', AdminMembersPage, { title: t('edubridge.install.membersRouteTitle'), icon: 'groups', requires: 'EduRegistry:read' }),
+    memberPage('platforms', 'edubridge-admin-connectors', AdminConnectorsPage, { title: t('edubridge.install.connectorsRouteTitle'), icon: 'hub', requires: 'EduConnector:manage' }),
+    memberPage('admins', 'edubridge-admin-admins', AdminAdminsPage, { title: t('edubridge.install.adminsRouteTitle'), icon: 'admin_panel_settings', requires: 'EduAdmin:manage' }),
   ]);
 }
 
 /** «Стол ученика»: каталог (гостю — витрина), обучающиеся, подписки. Подписка
     оформляется в карточке курса, поэтому кнопок «получить доступ» на столе нет. */
 function parentWorkspace(): IWorkspaceConfig {
-  return workspace('edubridge-member', 'Стол ученика', 'family_restroom', 'edubridge-catalog', [
-    publicPage('catalog', 'edubridge-catalog', CatalogPage, { title: 'Каталог курсов', icon: 'school', requires: 'EduCatalog:read' }),
-    publicPage('catalog/:id', 'edubridge-catalog-course', CourseCardPage, { title: 'Курс', icon: 'school', requires: 'EduCatalog:read', hidden: true, menuKey: 'edubridge-catalog' }),
-    memberPage('onboarding', 'edubridge-member-onboarding', MemberOnboardingPage, { title: 'Подключение', icon: 'how_to_reg', requires: 'Onboarding:learner', gate: true }),
-    memberPage('learners', 'edubridge-learners', MemberLearnersPage, { title: 'Обучающиеся', icon: 'family_restroom', requires: 'EduLearner:read:own' }),
-    memberPage('subscriptions', 'edubridge-subscriptions', MemberSubscriptionsPage, { title: 'Мои подписки', icon: 'card_membership', requires: 'EduEnrollment:read:own' }),
+  return workspace('edubridge-member', t('edubridge.install.memberWorkspaceTitle'), 'family_restroom', 'edubridge-catalog', [
+    publicPage('catalog', 'edubridge-catalog', CatalogPage, { title: t('edubridge.install.catalogRouteTitle'), icon: 'school', requires: 'EduCatalog:read' }),
+    publicPage('catalog/:id', 'edubridge-catalog-course', CourseCardPage, { title: t('edubridge.install.catalogCourseRouteTitle'), icon: 'school', requires: 'EduCatalog:read', hidden: true, menuKey: 'edubridge-catalog' }),
+    memberPage('onboarding', 'edubridge-member-onboarding', MemberOnboardingPage, { title: t('edubridge.install.memberOnboardingRouteTitle'), icon: 'how_to_reg', requires: 'Onboarding:learner', gate: true }),
+    memberPage('learners', 'edubridge-learners', MemberLearnersPage, { title: t('edubridge.install.learnersRouteTitle'), icon: 'family_restroom', requires: 'EduLearner:read:own' }),
+    memberPage('subscriptions', 'edubridge-subscriptions', MemberSubscriptionsPage, { title: t('edubridge.install.subscriptionsRouteTitle'), icon: 'card_membership', requires: 'EduEnrollment:read:own' }),
   ]);
 }
 
 /** «Стол преподавателя»: назначения, взносы результатами работы, расчёт. */
 function teacherWorkspace(): IWorkspaceConfig {
-  return workspace('edubridge-teacher', 'Стол преподавателя', 'co_present', 'edubridge-teacher-profile', [
-    memberPage('onboarding', 'edubridge-teacher-onboarding', TeacherOnboardingPage, { title: 'Подключение', icon: 'how_to_reg', requires: 'Onboarding:teacher', gate: true }),
-    memberPage('profile', 'edubridge-teacher-profile', TeacherProfilePage, { title: 'Профиль', icon: 'badge', requires: 'EduAssignment:read:own' }),
-    memberPage('assignments', 'edubridge-assignments', TeacherAssignmentsPage, { title: 'Назначения', icon: 'assignment', requires: 'EduAssignment:read:own' }),
-    memberPage('lessons', 'edubridge-lessons', TeacherLessonsPage, { title: 'Занятия', icon: 'event_available', requires: 'EduContribution:create:own' }),
-    memberPage('contributions', 'edubridge-contributions', TeacherContributionsPage, { title: 'Взносы результатами работы', icon: 'workspace_premium', requires: 'EduContribution:read:own' }),
-    memberPage('settlement', 'edubridge-settlement', TeacherSettlementPage, { title: 'Расчёт', icon: 'account_balance_wallet', requires: 'EduTeacherWallet:read:own' }),
+  return workspace('edubridge-teacher', t('edubridge.install.teacherWorkspaceTitle'), 'co_present', 'edubridge-teacher-profile', [
+    memberPage('onboarding', 'edubridge-teacher-onboarding', TeacherOnboardingPage, { title: t('edubridge.install.teacherOnboardingRouteTitle'), icon: 'how_to_reg', requires: 'Onboarding:teacher', gate: true }),
+    memberPage('profile', 'edubridge-teacher-profile', TeacherProfilePage, { title: t('edubridge.install.teacherProfileRouteTitle'), icon: 'badge', requires: 'EduAssignment:read:own' }),
+    memberPage('assignments', 'edubridge-assignments', TeacherAssignmentsPage, { title: t('edubridge.install.assignmentsRouteTitle'), icon: 'assignment', requires: 'EduAssignment:read:own' }),
+    memberPage('lessons', 'edubridge-lessons', TeacherLessonsPage, { title: t('edubridge.install.lessonsRouteTitle'), icon: 'event_available', requires: 'EduContribution:create:own' }),
+    memberPage('contributions', 'edubridge-contributions', TeacherContributionsPage, { title: t('edubridge.install.teacherContributionsRouteTitle'), icon: 'workspace_premium', requires: 'EduContribution:read:own' }),
+    memberPage('settlement', 'edubridge-settlement', TeacherSettlementPage, { title: t('edubridge.install.settlementRouteTitle'), icon: 'account_balance_wallet', requires: 'EduTeacherWallet:read:own' }),
   ]);
 }
 

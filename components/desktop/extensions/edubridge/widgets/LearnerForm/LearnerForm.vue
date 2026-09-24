@@ -1,7 +1,7 @@
 <template lang="pug">
 BaseForm(:loading="loading" @submit="submit")
-  BaseInput(v-model="form.display_name" label="Имя обучающегося" required)
-  BaseSelect(v-model="form.recipient_type" label="Как доставить пропуск" :options="recipientOptions" required)
+  BaseInput(v-model="form.display_name" :label="$t('edubridge.learnerForm.displayNameLabel')" required)
+  BaseSelect(v-model="form.recipient_type" :label="$t('edubridge.learnerForm.recipientTypeLabel')" :options="recipientOptions" required)
   BaseInput(
     v-model="form.recipient_value"
     :label="recipientLabel"
@@ -9,11 +9,11 @@ BaseForm(:loading="loading" @submit="submit")
     :hint="recipientHint"
     required
   )
-  BaseCheckbox(:model-value="form.is_self" block @update:model-value="(v) => (form.is_self = v)") Обучаюсь я сам(а)
+  BaseCheckbox(:model-value="form.is_self" block @update:model-value="(v) => (form.is_self = v)") {{ $t('edubridge.learnerForm.isSelfCheckbox') }}
   template(#footer)
     .row.justify-end.q-gutter-sm
-      BaseButton(variant="ghost" type="button" :disabled="loading" @click="emit('cancel')") Отменить
-      BaseButton(variant="primary" type="submit" :loading="loading") {{ learner ? 'Сохранить' : 'Добавить' }}
+      BaseButton(variant="ghost" type="button" :disabled="loading" @click="emit('cancel')") {{ $t('edubridge.learnerForm.cancel') }}
+      BaseButton(variant="primary" type="submit" :loading="loading") {{ learner ? $t('common.action.save') : $t('common.action.add') }}
 </template>
 
 <script setup lang="ts">
@@ -23,6 +23,7 @@ import { Zeus } from '@coopenomics/sdk';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { BaseButton, BaseCheckbox, BaseForm, BaseInput, BaseSelect } from 'src/shared/ui/base';
 import { addLearner, RECIPIENT_LABELS, updateLearner, type ILearner, type ILearnerInput } from '../../entities/Learner';
+import { t } from '../../i18n';
 
 const props = withDefaults(defineProps<{ learner?: ILearner | null; defaultSelf?: boolean }>(), { defaultSelf: false });
 const emit = defineEmits<{ saved: [learner: ILearner]; cancel: [] }>();
@@ -41,20 +42,20 @@ watch(
 
 const recipientOptions = Object.entries(RECIPIENT_LABELS).map(([value, label]) => ({ value, label }));
 const RECIPIENT_FIELD_LABELS: Record<string, string> = {
-  [Zeus.EduRecipientType.EMAIL]: 'Почта обучающегося',
-  [Zeus.EduRecipientType.TELEGRAM]: 'Telegram обучающегося',
-  [Zeus.EduRecipientType.ONSITE]: 'Код пропуска',
+  [Zeus.EduRecipientType.EMAIL]: t('edubridge.learnerForm.recipientLabel.EMAIL'),
+  [Zeus.EduRecipientType.TELEGRAM]: t('edubridge.learnerForm.recipientLabel.TELEGRAM'),
+  [Zeus.EduRecipientType.ONSITE]: t('edubridge.learnerForm.recipientLabel.ONSITE'),
 };
-const recipientLabel = computed(() => RECIPIENT_FIELD_LABELS[form.recipient_type] ?? 'Контакт');
+const recipientLabel = computed(() => RECIPIENT_FIELD_LABELS[form.recipient_type] ?? t('edubridge.learnerForm.recipientLabelDefault'));
 const recipientHint = computed(() =>
-  form.recipient_type === Zeus.EduRecipientType.EMAIL ? 'Площадке передаётся только этот адрес — ни ФИО, ни телефон.' : 'Площадке передаётся только этот контакт.',
+  form.recipient_type === Zeus.EduRecipientType.EMAIL ? t('edubridge.learnerForm.emailHint') : t('edubridge.learnerForm.contactHint'),
 );
 
 async function submit(): Promise<void> {
   loading.value = true;
   try {
     const saved = props.learner ? await updateLearner({ ...form, id: props.learner.id }) : await addLearner({ ...form });
-    SuccessAlert(props.learner ? 'Обучающийся сохранён' : 'Обучающийся добавлен');
+    SuccessAlert(props.learner ? t('edubridge.learnerForm.savedSuccess') : t('edubridge.learnerForm.createdSuccess'));
     emit('saved', saved);
   } catch (e) {
     FailAlert(e);

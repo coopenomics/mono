@@ -1,8 +1,8 @@
 <template lang="pug">
-BaseButton(variant="primary" size="sm" :icon-only="isCompact" aria-label="Добавить обучающегося" @click="emit('click')")
+BaseButton(variant="primary" size="sm" :icon-only="isCompact" :aria-label="$t('edubridge.addLearnerHeaderButton.label')" @click="emit('click')")
   template(#icon-left)
     q-icon(name="person_add" size="18px")
-  | Добавить обучающегося
+  | {{ $t('edubridge.addLearnerHeaderButton.label') }}
 </template>
 
 <script setup lang="ts">

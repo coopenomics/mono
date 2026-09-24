@@ -1,7 +1,7 @@
 import { Field, Float, ID, InputType, Int, ObjectType } from '@nestjs/graphql';
 import { ArrayUnique, IsArray, IsBoolean, IsDateString, IsEnum, IsInt, IsNotEmpty, IsNumber, IsOptional, IsString, IsUUID, Length, Matches, Max, Min, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
-import { createPaginationResult } from '@coopenomics/extension-kit';
+import { createPaginationResult, validationMessage } from '@coopenomics/extension-kit';
 import { courseMonths, feeForMonths } from '../../domain/economy/course-fee.calculator';
 import { EduAccessCarrier, EduCourseDirection, EduCourseStatus } from '../../domain/enums';
 import type { EdubridgeCourseEntity } from '../../infrastructure/entities';
@@ -281,7 +281,7 @@ export class EduCourseInputDTO {
   lesson_minutes!: number;
 
   @Field(() => String, { description: 'Плановая ставка часа по программе («1000.0000 RUB»)' })
-  @Matches(ASSET_PATTERN, { message: 'Ставка должна быть в формате «1000.0000 RUB»' })
+  @Matches(ASSET_PATTERN, { message: validationMessage('edubridge.eduCourseInput.plannedHourlyRate.format') })
   planned_hourly_rate!: string;
 
   @Field(() => Int, { nullable: true, description: 'Гарантийный срок на материалы занятия, дней' })

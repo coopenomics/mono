@@ -1,4 +1,5 @@
 import { Zeus, type Mutations, type Queries } from '@coopenomics/sdk';
+import { t } from '../../../i18n';
 
 export type ICatalogCourse = Queries.Edubridge.Catalog.IOutput['edubridgeCatalog']['items'][number];
 export type ICourse = Queries.Edubridge.Courses.IOutput['edubridgeCourses']['items'][number];
@@ -16,23 +17,23 @@ export type IPlatformCourse = Queries.Edubridge.PlatformCourses.IOutput['edubrid
  * (`Zeus.*`): GraphQL отдаёт и принимает именно их, а не внутренние значения.
  */
 export const COURSE_STATUS_LABELS: Record<string, { label: string; variant: 'pos' | 'neutral' | 'warn' }> = {
-  [Zeus.EduCourseStatus.DRAFT]: { label: 'Черновик', variant: 'neutral' },
-  [Zeus.EduCourseStatus.PUBLISHED]: { label: 'Опубликован', variant: 'pos' },
-  [Zeus.EduCourseStatus.ARCHIVED]: { label: 'В архиве', variant: 'warn' },
+  [Zeus.EduCourseStatus.DRAFT]: { label: t('edubridge.course.status.DRAFT'), variant: 'neutral' },
+  [Zeus.EduCourseStatus.PUBLISHED]: { label: t('edubridge.course.status.PUBLISHED'), variant: 'pos' },
+  [Zeus.EduCourseStatus.ARCHIVED]: { label: t('edubridge.course.status.ARCHIVED'), variant: 'warn' },
 };
 
 export const CARRIER_LABELS: Record<string, string> = {
   [Zeus.EduAccessCarrier.SKILLSPACE]: 'Skillspace',
   [Zeus.EduAccessCarrier.GETCOURSE]: 'GetCourse',
   [Zeus.EduAccessCarrier.TELEGRAM]: 'Telegram',
-  [Zeus.EduAccessCarrier.VK]: 'ВКонтакте',
-  [Zeus.EduAccessCarrier.ONSITE]: 'Очно',
+  [Zeus.EduAccessCarrier.VK]: t('edubridge.course.carrier.VK'),
+  [Zeus.EduAccessCarrier.ONSITE]: t('edubridge.course.carrier.ONSITE'),
 };
 
 export const DIRECTION_LABELS: Record<string, string> = {
-  [Zeus.EduCourseDirection.ONLINE_PLATFORM]: 'Онлайн-платформа',
-  [Zeus.EduCourseDirection.CLOSED_COMMUNITY]: 'Закрытое сообщество',
-  [Zeus.EduCourseDirection.ONSITE]: 'Очное обучение',
+  [Zeus.EduCourseDirection.ONLINE_PLATFORM]: t('edubridge.course.direction.ONLINE_PLATFORM'),
+  [Zeus.EduCourseDirection.CLOSED_COMMUNITY]: t('edubridge.course.direction.CLOSED_COMMUNITY'),
+  [Zeus.EduCourseDirection.ONSITE]: t('edubridge.course.direction.ONSITE'),
 };
 
 /**

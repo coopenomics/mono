@@ -1,7 +1,7 @@
 <template lang="pug">
 button.avatar-upload(
   type="button"
-  :aria-label="src ? 'Заменить фотографию' : 'Загрузить фотографию'"
+  :aria-label="src ? $t('user.avatarUpload.replacePhoto') : $t('user.avatarUpload.uploadPhoto')"
   :disabled="busy"
   @click="onClick"
 )
@@ -9,13 +9,13 @@ button.avatar-upload(
   span.avatar-upload__veil
     q-spinner(v-if="busy" size="20px")
     q-icon(v-else name="photo_camera" size="20px")
-  q-tooltip(v-if="!busy") {{ src ? 'Заменить фотографию' : 'Загрузить фотографию' }}
+  q-tooltip(v-if="!busy") {{ src ? $t('user.avatarUpload.replacePhoto') : $t('user.avatarUpload.uploadPhoto') }}
   q-menu(v-if="src && !busy" auto-close anchor="bottom middle" self="top middle")
     q-list(dense style="min-width: 190px")
       q-item(clickable @click="pick")
-        q-item-section Заменить фотографию
+        q-item-section {{ $t('user.avatarUpload.replacePhoto') }}
       q-item(clickable @click="remove")
-        q-item-section Убрать
+        q-item-section {{ $t('user.avatarUpload.remove') }}
   input.avatar-upload__input(ref="fileInput" type="file" :accept="ACCEPT" @click.stop @change="onPicked")
 </template>
 
@@ -26,6 +26,7 @@ import { useSessionStore } from 'src/entities/Session';
 import { fileToBase64 } from 'src/shared/lib/utils';
 import { Avatar, type AvatarSize } from 'src/shared/ui/base';
 import { removeAvatar, uploadAvatar } from '../api';
+import { t } from 'src/shared/i18n';
 
 /**
  * Фотография пайщика: одна на аккаунт, хранится ядром. Узел ставится и в
@@ -63,7 +64,7 @@ async function onPicked(event: Event): Promise<void> {
   input.value = '';
   if (!file) return;
   if (file.size > MAX_BYTES) {
-    FailAlert('Фотография больше 5 МБ — выберите файл поменьше');
+    FailAlert(t('user.avatarUpload.fileTooLarge'));
     return;
   }
   busy.value = true;
@@ -72,7 +73,7 @@ async function onPicked(event: Event): Promise<void> {
     // Снимок кладётся в аккаунт сессии: столы читают его оттуда и показывают
     // новую фотографию сразу, без перезагрузки кабинета.
     session.setAvatarUrl(url);
-    SuccessAlert('Фотография обновлена');
+    SuccessAlert(t('user.avatarUpload.updatedSuccess'));
     emit('changed', url);
   } catch (e) {
     FailAlert(e);
@@ -86,7 +87,7 @@ async function remove(): Promise<void> {
   try {
     await removeAvatar();
     session.setAvatarUrl(null);
-    SuccessAlert('Фотография убрана');
+    SuccessAlert(t('user.avatarUpload.removedSuccess'));
     emit('changed', null);
   } catch (e) {
     FailAlert(e);

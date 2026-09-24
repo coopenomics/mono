@@ -6,6 +6,7 @@ import { EduAssignmentStatus, EduContributionStatus } from '../../domain/enums';
 import { EdubridgeTeacherRepository } from '../../infrastructure/repositories/edubridge-teacher.repository';
 import { EdubridgeCourseRepository } from '../../infrastructure/repositories/edubridge-course.repository';
 import { EdubridgeEnrollmentService } from './edubridge-enrollment.service';
+import { t } from '../../i18n';
 
 /** Кошелёк членских взносов программы — на него ложится возврат по подпискам. */
 const MEMBER_WALLET = 'w.edu.member';
@@ -36,7 +37,7 @@ export class EdubridgeExitBlockersService implements InnerExitBlockersProvider {
     return [
       {
         wallet_name: MEMBER_WALLET,
-        human_name: `Возврат членских взносов по действующим подпискам на курсы (${subscriptions}) по Положению программы`,
+        human_name: t('edubridge.exitBlockers.pendingReturnName', { subscriptions }),
         amount: `${refunds.toFixed(4)} ${platformSettings().blockchain.rootGovernSymbol}`,
       },
     ];
@@ -50,8 +51,8 @@ export class EdubridgeExitBlockersService implements InnerExitBlockersProvider {
     );
     for (const assignment of assignments) {
       const course = await this.courses.findById(coopname, assignment.course_id);
-      const title = course?.title ?? 'курс';
-      reasons.push(`вы ведёте курс «${title}» — передайте его другому преподавателю либо дождитесь окончания программы`);
+      const title = course?.title ?? t('edubridge.exitBlockers.courseFallbackTitle');
+      reasons.push(t('edubridge.exitBlockers.teachingCourse', { title }));
     }
 
     // Заявление на удержании ещё может быть снято рекламацией, а поданное —
@@ -70,12 +71,12 @@ export class EdubridgeExitBlockersService implements InnerExitBlockersProvider {
     const unsigned = pending.filter((c) => c.status === EduContributionStatus.HELD && !c.statement_document);
     if (unsigned.length > 0) {
       reasons.push(
-        `материалы ваших занятий на ответственном хранении без заявления о паевом взносе — ${unsigned.length}: подпишите заявление на столе преподавателя`
+        t('edubridge.exitBlockers.unsignedStatements', { count: unsigned.length })
       );
     }
     const inWork = pending.length - unsigned.length;
     if (inWork > 0) {
-      reasons.push(`по вашим занятиям не закрыт расчёт: заявлений в работе — ${inWork}, дождитесь их прохождения`);
+      reasons.push(t('edubridge.exitBlockers.statementsInWork', { count: inWork }));
     }
 
     return reasons;

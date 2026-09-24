@@ -39,6 +39,7 @@ export function createChainChangesSubscription(): RealtimeSubscription {
       // Пока сокет молчал, данные могли измениться — открытые экраны дочитывают.
       stream.open(() => {
         alive = true;
+        // i18n-ignore: служебная метка причины дочитки, передаётся в код, до пайщика не доходит
         resyncLiveConsumers('реконнект', true);
       });
 
@@ -58,6 +59,7 @@ export function createChainChangesSubscription(): RealtimeSubscription {
       };
     },
     resync(reason) {
+      // i18n-ignore: служебная метка причины дочитки, передаётся в код, до пайщика не доходит
       resyncLiveConsumers(reason ?? 'дочитка', alive);
     },
   };

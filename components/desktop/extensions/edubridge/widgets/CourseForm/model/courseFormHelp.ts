@@ -1,31 +1,32 @@
+import { t } from '../../../i18n';
 /**
  * Пояснения к полям конструктора курса — всплывают у значка «?» рядом с
  * полем. Пишем, что вводить и на что поле влияет: курсы заводят и для
  * школьников, и для взрослых, поэтому примеры даём для обоих.
  */
 export const COURSE_FORM_HELP = {
-  title: 'Так курс называется в каталоге и в документах ученика. Коротко и по сути: «Математика, 7 класс», «Медитация для начинающих».',
+  title: t('edubridge.courseFormHelp.title'),
   section:
-    'Область знаний, по которой каталог группирует курсы: «Математика», «Английский язык», «Духовные практики». Выберите из списка; нового нет — введите, он добавится в справочник «Разделы и уровни».',
+    t('edubridge.courseFormHelp.section'),
   level:
-    'Ступень внутри раздела: «7 класс», «Ступень 1», «Для начинающих». Порядок уровней задаётся в справочнике «Разделы и уровни». Необязательно — курс без уровня виден в разделе целиком.',
-  schedule: 'Дни и время занятий так, как их прочтёт ученик: «Вт, Чт 17:00–18:30». В каталоге строка показывается как есть.',
-  description: 'О чём курс и кому он подойдёт. Ученик читает это первым в карточке курса.',
-  syllabus: 'Темы и занятия по порядку. Ученик видит программу до записи на курс.',
-  lessonsPerMonth: 'Сколько занятий проходит за месяц по расписанию. Вместе с длительностью занятия даёт часы, из которых считается взнос.',
-  lessonMinutes: 'Сколько минут длится одно занятие.',
-  lessonsTotal: 'Всего занятий за курс. Длительность курса в месяцах — занятий в программе, делённое на занятия в месяц.',
-  plannedRate: 'Плановая ставка преподавателя за час занятий. Взнос в месяц — часы занятий по этой ставке плюс целевой членский взнос кооператива.',
-  startsAt: 'С этой даты идёт гарантийный срок. Ученику, пришедшему позже, срок считается с его вступления в курс.',
-  guaranteeDays: 'Столько дней ученик может отказаться от курса и вернуть взнос. Пока срок идёт, взнос удерживается и на расходы программы не тратится.',
-  direction: 'Как проходит курс: на онлайн-платформе, в закрытом сообществе или очно. От этого зависит выбор носителя доступа. Ученику не виден.',
-  carrier: 'Где ученик проходит курс после взноса — туда кооператив выдаёт ему доступ.',
-  skillspaceCourse: 'Курс вашей школы Skillspace, куда зачисляется ученик после взноса. Список берётся из школы по ключу кооператива со страницы «Площадки».',
-  skillspaceCourseEmpty: 'Список курсов школы пуст или ключ Skillspace не задан — проверьте страницу «Площадки».',
-  skillspaceGroup: 'Группа внутри курса школы. Без группы ученик зачисляется на курс напрямую.',
-  skillspaceGroupEmpty: 'У курса в школе нет групп — ученик зачисляется на курс напрямую.',
-  externalRef: 'Идентификатор группы GetCourse, в которую попадает ученик после взноса.',
+    t('edubridge.courseFormHelp.level'),
+  schedule: t('edubridge.courseFormHelp.schedule'),
+  description: t('edubridge.courseFormHelp.description'),
+  syllabus: t('edubridge.courseFormHelp.syllabus'),
+  lessonsPerMonth: t('edubridge.courseFormHelp.lessonsPerMonth'),
+  lessonMinutes: t('edubridge.courseFormHelp.lessonMinutes'),
+  lessonsTotal: t('edubridge.courseFormHelp.lessonsTotal'),
+  plannedRate: t('edubridge.courseFormHelp.plannedRate'),
+  startsAt: t('edubridge.courseFormHelp.startsAt'),
+  guaranteeDays: t('edubridge.courseFormHelp.guaranteeDays'),
+  direction: t('edubridge.courseFormHelp.direction'),
+  carrier: t('edubridge.courseFormHelp.carrier'),
+  skillspaceCourse: t('edubridge.courseFormHelp.skillspaceCourse'),
+  skillspaceCourseEmpty: t('edubridge.courseFormHelp.skillspaceCourseEmpty'),
+  skillspaceGroup: t('edubridge.courseFormHelp.skillspaceGroup'),
+  skillspaceGroupEmpty: t('edubridge.courseFormHelp.skillspaceGroupEmpty'),
+  externalRef: t('edubridge.courseFormHelp.externalRef'),
   membershipFee:
-    'Доля кооператива сверх себестоимости курса: идёт на ведение программы, издержки и возвраты по Положению ЦПП. Один на все курсы — меняется в разделе «Экономика».',
-  coursePayment: 'Ученик сможет внести взнос за весь курс сразу, со скидкой. Без этого взнос только помесячный.',
+    t('edubridge.courseFormHelp.membershipFee'),
+  coursePayment: t('edubridge.courseFormHelp.coursePayment'),
 } as const;

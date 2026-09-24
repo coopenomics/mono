@@ -1,44 +1,44 @@
 <template lang="pug">
 .q-pa-md
   PageHint.q-mb-md(storage-key="edu:teacher-lessons:banner-dismissed")
-    | После занятия приложите его материалы — запись, конспект, задания. По ним считается ваш паевой взнос:
-    | часы занятия по вашей ставке. Заявление подписывается один раз и уходит в совет само, когда пройдёт
-    | гарантийный срок курса.
+    | {{ $t('edubridge.teacherLessonsPage.hintMaterials') }}
+    | {{ $t('edubridge.teacherLessonsPage.hintRate') }}
+    | {{ $t('edubridge.teacherLessonsPage.hintGuarantee') }}
 
   .row.justify-end.q-mb-md
     BaseButton(variant="primary" @click="openReport")
       template(#icon-left)
         q-icon(name="add" size="18px")
-      | Отчитаться о занятии
+      | {{ $t('edubridge.teacherLessonsPage.reportButton') }}
 
   BaseTable(v-if="loading || lessons.length" :columns="columns" :rows="lessons" row-key="id" :loading="firstLoad" min-width="820px")
     template(#cell-lesson_number="{ row }") № {{ row.lesson_number }}
     template(#cell-held_at="{ row }") {{ formatDate(row.held_at) }}
-    template(#cell-duration_minutes="{ row }") {{ row.duration_minutes }} мин
+    template(#cell-duration_minutes="{ row }") {{ $t('edubridge.teacherLessonsPage.durationMinutes', { minutes: row.duration_minutes }) }}
     template(#cell-materials="{ row }")
       .column
         a.t-sm(v-for="link in row.materials" :key="link" :href="link" target="_blank" rel="noopener") {{ link }}
         .t-muted.t-sm(v-if="!row.materials.length") ______
 
-  EmptyState(v-if="!firstLoad && !lessons.length" title="Занятий пока нет" body="Первый отчёт появится здесь после проведённого занятия.")
+  EmptyState(v-if="!firstLoad && !lessons.length" :title="$t('edubridge.teacherLessonsPage.emptyTitle')" :body="$t('edubridge.teacherLessonsPage.emptyBody')")
     template(#icon)
       q-icon(name="event_available" size="32px")
 
-  BaseDialog(v-model="reportOpen" title="Отчёт о занятии" size="md")
+  BaseDialog(v-model="reportOpen" :title="$t('edubridge.teacherLessonsPage.dialogTitle')" size="md")
     BaseForm(:loading="busy" @submit="onReport")
-      BaseSelect(v-model="form.assignment_id" label="Курс" :options="assignmentOptions" required)
+      BaseSelect(v-model="form.assignment_id" :label="$t('edubridge.teacherLessonsPage.courseLabel')" :options="assignmentOptions" required)
       .row.q-col-gutter-md
         .col-6
-          BaseInput(v-model="lessonNumber" label="Номер занятия" type="number" required)
+          BaseInput(v-model="lessonNumber" :label="$t('edubridge.teacherLessonsPage.lessonNumberLabel')" type="number" required)
         .col-6
-          BaseInput(v-model="heldAt" label="Дата занятия" type="date" stack-label required)
-      BaseInput(v-model="form.topic" label="Тема занятия")
-      BaseInput(v-model="materialsText" label="Материалы занятия" type="textarea" :rows="3" hint="По одной ссылке на строку" required)
-      BaseInput(v-model="duration" label="Длительность, минут" type="number" hint="Без значения — из расписания курса")
+          BaseInput(v-model="heldAt" :label="$t('edubridge.teacherLessonsPage.heldAtLabel')" type="date" stack-label required)
+      BaseInput(v-model="form.topic" :label="$t('edubridge.teacherLessonsPage.topicLabel')")
+      BaseInput(v-model="materialsText" :label="$t('edubridge.teacherLessonsPage.materialsLabel')" type="textarea" :rows="3" :hint="$t('edubridge.teacherLessonsPage.materialsHint')" required)
+      BaseInput(v-model="duration" :label="$t('edubridge.teacherLessonsPage.durationLabel')" type="number" :hint="$t('edubridge.teacherLessonsPage.durationHint')")
       template(#footer)
         .row.justify-end.q-gutter-sm
-          BaseButton(variant="ghost" type="button" @click="reportOpen = false") Отменить
-          BaseButton(variant="primary" type="submit" :loading="busy") Отчитаться
+          BaseButton(variant="ghost" type="button" @click="reportOpen = false") {{ $t('edubridge.teacherLessonsPage.cancel') }}
+          BaseButton(variant="primary" type="submit" :loading="busy") {{ $t('edubridge.teacherLessonsPage.submit') }}
 </template>
 
 <script setup lang="ts">
@@ -52,6 +52,7 @@ import { PageHint } from 'src/shared/ui/domain';
 import { fetchMyAssignments, fetchMyLessons, reportLesson, type IAssignment, type ILesson } from '../../entities/Teacher';
 import { useLiveReload } from 'src/shared/lib/realtime';
 import { EduLive } from '../../shared/lib/live';
+import { t } from '../../i18n';
 
 /**
  * Журнал занятий преподавателя. Отчёт — это и есть подача взноса: сумму считает
@@ -71,12 +72,12 @@ const materialsText = ref('');
 const form = reactive({ assignment_id: '', topic: '' });
 
 const columns: BaseTableColumn<ILesson>[] = [
-  { key: 'course_title', label: 'Курс' },
-  { key: 'lesson_number', label: 'Занятие', width: '110px', nowrap: true },
-  { key: 'topic', label: 'Тема' },
-  { key: 'held_at', label: 'Проведено', width: '130px', nowrap: true },
-  { key: 'duration_minutes', label: 'Длительность', width: '130px', nowrap: true },
-  { key: 'materials', label: 'Материалы', width: '260px' },
+  { key: 'course_title', label: t('edubridge.teacherLessonsPage.column.course') },
+  { key: 'lesson_number', label: t('edubridge.teacherLessonsPage.column.lesson'), width: '110px', nowrap: true },
+  { key: 'topic', label: t('edubridge.teacherLessonsPage.column.topic') },
+  { key: 'held_at', label: t('edubridge.teacherLessonsPage.column.heldAt'), width: '130px', nowrap: true },
+  { key: 'duration_minutes', label: t('edubridge.teacherLessonsPage.column.duration'), width: '130px', nowrap: true },
+  { key: 'materials', label: t('edubridge.teacherLessonsPage.column.materials'), width: '260px' },
 ];
 
 const assignmentOptions = computed(() =>
@@ -124,7 +125,7 @@ async function onReport(): Promise<void> {
     } as never);
     lessons.value = [created, ...lessons.value];
     reportOpen.value = false;
-    SuccessAlert('Занятие записано — материалы ждут передачи на хранение');
+    SuccessAlert(t('edubridge.teacherLessonsPage.reportSuccess'));
   } catch (e) {
     FailAlert(e);
   } finally {

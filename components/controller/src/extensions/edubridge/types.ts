@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { type DeserializedDescriptionOfExtension } from '@coopenomics/extension-kit';
+import { t } from './i18n';
 
 // Человекочитаемое описание поля для формы установки расширения
 // (тот же механизм, что у capital и market).
@@ -58,7 +59,9 @@ export const Schema = z.object({
     .default({ accepted: false, accepted_at: '' })
     .describe(
       describeField({
+        // i18n-ignore: скрытое служебное поле конфигурации (visible: false), пайщику не показывается
         label: 'Принятие положения ЦПП',
+        // i18n-ignore: скрытое служебное поле конфигурации (visible: false), пайщику не показывается
         note: 'Системное состояние: заполняется решением совета при подключении ЦПП «Образование».',
         visible: false,
       })
@@ -68,20 +71,28 @@ export const Schema = z.object({
       skillspace_api_key: z
         .string()
         .default('')
+        // i18n-ignore: скрытое служебное поле конфигурации (visible: false), пайщику не показывается
+        // i18n-ignore: скрытое служебное поле конфигурации (visible: false), пайщику не показывается
         .describe(describeField({ label: 'Skillspace: API-ключ', note: 'Ключ интеграции площадки Skillspace. Виден только владельцу.', password: true })),
       getcourse_account: z
         .string()
         .default('')
+        // i18n-ignore: скрытое служебное поле конфигурации (visible: false), пайщику не показывается
+        // i18n-ignore: скрытое служебное поле конфигурации (visible: false), пайщику не показывается
         .describe(describeField({ label: 'GetCourse: аккаунт', note: 'Имя аккаунта GetCourse (поддомен).' })),
       getcourse_api_key: z
         .string()
         .default('')
+        // i18n-ignore: скрытое служебное поле конфигурации (visible: false), пайщику не показывается
+        // i18n-ignore: скрытое служебное поле конфигурации (visible: false), пайщику не показывается
         .describe(describeField({ label: 'GetCourse: API-ключ', note: 'Ключ интеграции площадки GetCourse. Виден только владельцу.', password: true })),
     })
     .default({ skillspace_api_key: '', getcourse_account: '', getcourse_api_key: '' })
     .describe(
       describeField({
+        // i18n-ignore: скрытое служебное поле конфигурации (visible: false), пайщику не показывается
         label: 'Площадки (устарело)',
+        // i18n-ignore: скрытое служебное поле конфигурации (visible: false), пайщику не показывается
         note: 'Ключи площадок задаются на странице «Площадки» стола администратора; здесь — только прежние значения.',
         visible: false,
       })
@@ -93,8 +104,8 @@ export const Schema = z.object({
     .default(3)
     .describe(
       describeField({
-        label: 'Предупреждать об окончании доступа, дней',
-        note: 'За сколько дней до конца оплаченного периода пайщик получает уведомление, если продления нет.',
+        label: t('edubridge.edubridgeExtension.field.expiryNoticeDays.label'),
+        note: t('edubridge.edubridgeExtension.field.expiryNoticeDays.hint'),
       })
     ),
   outbox_interval_sec: z
@@ -105,7 +116,9 @@ export const Schema = z.object({
     .default(30)
     .describe(
       describeField({
+        // i18n-ignore: скрытое служебное поле конфигурации (visible: false), пайщику не показывается
         label: 'Интервал очереди выдачи доступа, сек',
+        // i18n-ignore: скрытое служебное поле конфигурации (visible: false), пайщику не показывается
         note: 'Как часто проверяется очередь задач выдачи и отзыва доступа на площадках.',
         visible: false,
       })
@@ -115,8 +128,8 @@ export const Schema = z.object({
     .default(true)
     .describe(
       describeField({
-        label: 'Связать с Благоростом',
-        note: 'Если включено и Благорост установлен: его столы видят только преподаватели, его оферты при вступлении не предлагаются.',
+        label: t('edubridge.edubridgeExtension.field.capitalIntegration.label'),
+        note: t('edubridge.edubridgeExtension.field.capitalIntegration.hint'),
       })
     ),
   markup_percent: z
@@ -126,7 +139,9 @@ export const Schema = z.object({
     .default(30)
     .describe(
       describeField({
+        // i18n-ignore: скрытое служебное поле конфигурации (visible: false), пайщику не показывается
         label: 'Целевой членский взнос, %',
+        // i18n-ignore: скрытое служебное поле конфигурации (visible: false), пайщику не показывается
         note: 'Добавляется к себестоимости курса — часам преподавателей по их ставкам. Задаётся в разделе «Экономика» стола администратора.',
         visible: false,
       })

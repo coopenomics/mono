@@ -1,4 +1,4 @@
-import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { createHash } from 'crypto';
 import { Cooperative } from 'cooptypes';
@@ -30,6 +30,7 @@ import {
 import { EdubridgeFundsService } from './edubridge-funds.service';
 import { EdubridgeLearnerService } from './edubridge-learner.service';
 import { refundOf } from './edubridge-refund';
+import { DomainError } from '@coopenomics/extension-kit';
 
 /** Главный паевой кошелёк — источник конвертации. */
 const SHARE_WALLET = 'w.wal.share';
@@ -129,7 +130,7 @@ export class EdubridgeEnrollmentService {
     // Снятый с публикации курс новых участников не принимает, но действующие
     // подписки на нём продлеваются.
     if (!course || (course.status !== EduCourseStatus.PUBLISHED && !isExtension)) {
-      throw new NotFoundException('Курс не найден или не опубликован');
+      throw DomainError.notFound('EDUBRIDGE_COURSE_NOT_FOUND_OR_UNPUBLISHED');
     }
 
     const symbol = course.fee_month.split(' ')[1] ?? '';
@@ -163,14 +164,14 @@ export class EdubridgeEnrollmentService {
       return { months: 1, paidUntil: addMonths(from, 1), baseAmount: fee.base, discountAmount: fee.discount, amount: fee.amount };
     }
     if (period !== EduEnrollmentPeriod.COURSE) {
-      throw new BadRequestException('Взнос за год больше не принимается: выберите взнос помесячно или за весь курс');
+      throw DomainError.badRequest('EDUBRIDGE_ENROLLMENT_YEAR_PERIOD_DISABLED');
     }
     const total = courseMonths(course.lessons_per_month, course.lessons_total);
     if (!course.course_payment_enabled || total === 0) {
-      throw new BadRequestException('Взнос за весь курс разом по этому курсу не принимается — доступен помесячный взнос');
+      throw DomainError.badRequest('EDUBRIDGE_ENROLLMENT_COURSE_PAYMENT_DISABLED');
     }
     const rest = remainingCoursePeriod(course.starts_at ? new Date(course.starts_at) : null, total, from);
-    if (!rest) throw new BadRequestException('Курс уже оплачен до конца программы');
+    if (!rest) throw DomainError.badRequest('EDUBRIDGE_ENROLLMENT_COURSE_FULLY_PAID');
     const fee = feeForMonths(course.fee_month, rest.months, course.course_discount_bp / BP_IN_PERCENT);
     return { months: rest.months, paidUntil: rest.paid_until, baseAmount: fee.base, discountAmount: fee.discount, amount: fee.amount };
   }
@@ -230,10 +231,11 @@ export class EdubridgeEnrollmentService {
     const funding = await this.planFunding(coopname, member, plan);
     this.assertStatementMatches(document, plan, funding);
     if (!funding.enough) {
-      throw new BadRequestException(
-        `Недостаточно средств: нужно ${plan.amount}, на кошельке программы ${funding.fromProgram}, ` +
-          `на главном паевом ${funding.available}. Пополните главный кошелёк.`
-      );
+      throw DomainError.badRequest('EDUBRIDGE_INSUFFICIENT_FUNDS', {
+        amount: plan.amount,
+        programBalance: funding.fromProgram,
+        mainBalance: funding.available,
+      });
     }
 
     const result = await this.sendPayment(coopname, member, plan, period, funding, document);
@@ -283,7 +285,7 @@ export class EdubridgeEnrollmentService {
    */
   async cancel(coopname: string, member: string, enrollmentId: string): Promise<EdubridgeEnrollmentEntity> {
     const enrollment = await this.enrollments.findById(coopname, enrollmentId);
-    if (!enrollment || enrollment.member_username !== member) throw new NotFoundException('Подписка не найдена');
+    if (!enrollment || enrollment.member_username !== member) throw DomainError.notFound('EDUBRIDGE_SUBSCRIPTION_NOT_FOUND');
     return this.cancelOne(coopname, enrollment, false);
   }
 
@@ -295,9 +297,9 @@ export class EdubridgeEnrollmentService {
    */
   async cancelCourse(coopname: string, courseId: string): Promise<EdubridgeEnrollmentEntity[]> {
     const course = await this.courses.findById(coopname, courseId);
-    if (!course) throw new NotFoundException('Курс не найден');
+    if (!course) throw DomainError.notFound('EDUBRIDGE_COURSE_NOT_FOUND');
     if (course.starts_at && new Date(course.starts_at) <= new Date()) {
-      throw new BadRequestException('Занятия по курсу уже начались — отмена по недобору невозможна');
+      throw DomainError.badRequest('EDUBRIDGE_UNDERFILL_CANCEL_COURSE_STARTED');
     }
     // Курс снимается с публикации первым: пока идут возвраты, на отменённый
     // курс никто не должен успеть подписаться.
@@ -318,9 +320,7 @@ export class EdubridgeEnrollmentService {
     }
     this.logger.info(`[EDU.SUB] курс ${courseId} отменён по недобору: возвращено подписок ${cancelled.length}, с ошибкой ${failed.length}`);
     if (failed.length) {
-      throw new BadRequestException(
-        `Возвращено подписок: ${cancelled.length}, не удалось: ${failed.length}. Повторите отмену — она продолжит с оставшихся`
-      );
+      throw DomainError.badRequest('EDUBRIDGE_UNDERFILL_CANCEL_PARTIAL', { cancelled: cancelled.length, failed: failed.length });
     }
     return cancelled;
   }
@@ -350,9 +350,9 @@ export class EdubridgeEnrollmentService {
 
   /** Общая часть отмены: расчёт по Положению, движение в цепи, закрытие записи. */
   private async cancelOne(coopname: string, enrollment: EdubridgeEnrollmentEntity, underfilled: boolean): Promise<EdubridgeEnrollmentEntity> {
-    if (!isCancellable(enrollment)) throw new BadRequestException('Подписка уже отменена или закрыта');
+    if (!isCancellable(enrollment)) throw DomainError.badRequest('EDUBRIDGE_SUBSCRIPTION_ALREADY_CLOSED');
     const course = await this.courses.findById(coopname, enrollment.course_id);
-    if (!course) throw new NotFoundException('Курс не найден');
+    if (!course) throw DomainError.notFound('EDUBRIDGE_COURSE_NOT_FOUND');
 
     const refund = this.refundFor(enrollment, course, underfilled);
     await this.chain.cancelSubscription({
@@ -390,9 +390,9 @@ export class EdubridgeEnrollmentService {
   /** Что вернут при отмене — стол показывает это до нажатия кнопки. */
   async refundPreview(coopname: string, member: string, enrollmentId: string): Promise<RefundCalculation> {
     const enrollment = await this.enrollments.findById(coopname, enrollmentId);
-    if (!enrollment || enrollment.member_username !== member) throw new NotFoundException('Подписка не найдена');
+    if (!enrollment || enrollment.member_username !== member) throw DomainError.notFound('EDUBRIDGE_SUBSCRIPTION_NOT_FOUND');
     const course = await this.courses.findById(coopname, enrollment.course_id);
-    if (!course) throw new NotFoundException('Курс не найден');
+    if (!course) throw DomainError.notFound('EDUBRIDGE_COURSE_NOT_FOUND');
     return this.refundFor(enrollment, course, false);
   }
 
@@ -473,7 +473,7 @@ export class EdubridgeEnrollmentService {
       String(meta.total ?? '') === plan.amount &&
       String(meta.amount ?? '') === funding.toConvert;
     if (!matches) {
-      throw new BadRequestException('Условия оплаты изменились с момента формирования заявления — сформируйте и подпишите его заново');
+      throw DomainError.badRequest('EDUBRIDGE_ENROLLMENT_STATEMENT_STALE');
     }
   }
 

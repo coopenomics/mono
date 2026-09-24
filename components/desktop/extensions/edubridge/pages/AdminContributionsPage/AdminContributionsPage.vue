@@ -1,10 +1,7 @@
 <template lang="pug">
 .q-pa-md
   PageHint.q-mb-md(storage-key="edu:admin-contributions:banner-dismissed")
-    | Взносы результатами работы: преподаватель подаёт результат по действующему назначению, решение принимает
-    | совет в повестке. Здесь председатель подписывает акт приёма-передачи — после этого взнос попадает
-    | в паевой фонд — либо отклоняет взнос с причиной. Когда совет отклонил вопрос либо не принял решение в срок,
-    | у взноса появляется пометка: отклоните его, и материалы вернутся преподавателю.
+    | {{ $t('edubridge.adminContributionsPage.hint') }}
 
   BaseTable(v-if="loading || contributions.length" :columns="columns" :rows="contributions" row-key="id" :loading="firstLoad" min-width="920px")
     template(#cell-teacher_username="{ row }")
@@ -17,31 +14,31 @@
       .t-meta.text-negative(v-if="councilOutcome(row)") {{ councilOutcome(row) }}
     template(#cell-actions="{ row }")
       .row.no-wrap.justify-end.q-gutter-xs
-        BaseButton(v-if="row.status === Zeus.EduContributionStatus.ACT_SIGNED" variant="primary" size="sm" :loading="busyId === row.id" @click="onAccept(row)") Подписать акт
-        BaseButton(v-if="row.status === Zeus.EduContributionStatus.HELD" variant="ghost" size="sm" @click="openRevoke(row)") Снять по рекламации
-        BaseButton(v-if="canDecline(row)" variant="ghost" size="sm" @click="openDecline(row)") Отклонить
+        BaseButton(v-if="row.status === Zeus.EduContributionStatus.ACT_SIGNED" variant="primary" size="sm" :loading="busyId === row.id" @click="onAccept(row)") {{ $t('edubridge.adminContributionsPage.signActButton') }}
+        BaseButton(v-if="row.status === Zeus.EduContributionStatus.HELD" variant="ghost" size="sm" @click="openRevoke(row)") {{ $t('edubridge.adminContributionsPage.revokeButton') }}
+        BaseButton(v-if="canDecline(row)" variant="ghost" size="sm" @click="openDecline(row)") {{ $t('edubridge.adminContributionsPage.declineButton') }}
 
-  EmptyState(v-if="!firstLoad && !contributions.length" title="Взносов нет" body="Взнос появляется, когда преподаватель подаёт результат работы по действующему назначению.")
+  EmptyState(v-if="!firstLoad && !contributions.length" :title="$t('edubridge.adminContributionsPage.emptyTitle')" :body="$t('edubridge.adminContributionsPage.emptyBody')")
     template(#icon)
       q-icon(name="workspace_premium" size="32px")
 
   //- Подтверждённая рекламация в гарантийный срок: заявление снимается до
   //- совета, материал остаётся за преподавателем.
-  BaseDialog(v-model="revokeOpen" title="Снять заявление по рекламации" size="sm")
+  BaseDialog(v-model="revokeOpen" :title="$t('edubridge.adminContributionsPage.revokeDialogTitle')" size="sm")
     BaseForm(:loading="busy" @submit="onRevoke")
-      BaseInput(v-model="revokeReason" label="Подтверждённая рекламация" type="textarea" :rows="3" required)
+      BaseInput(v-model="revokeReason" :label="$t('edubridge.adminContributionsPage.revokeReasonLabel')" type="textarea" :rows="3" required)
       template(#footer)
         .row.justify-end.q-gutter-sm
-          BaseButton(variant="ghost" type="button" @click="revokeOpen = false") Отменить
-          BaseButton(variant="danger" type="submit" :loading="busy") Снять заявление
+          BaseButton(variant="ghost" type="button" @click="revokeOpen = false") {{ $t('edubridge.adminContributionsPage.cancel') }}
+          BaseButton(variant="danger" type="submit" :loading="busy") {{ $t('edubridge.adminContributionsPage.revokeSubmit') }}
 
-  BaseDialog(v-model="declineOpen" title="Отклонить взнос" size="sm")
+  BaseDialog(v-model="declineOpen" :title="$t('edubridge.adminContributionsPage.declineDialogTitle')" size="sm")
     BaseForm(:loading="busy" @submit="onDecline")
-      BaseInput(v-model="declineReason" label="Причина" type="textarea" :rows="3" required)
+      BaseInput(v-model="declineReason" :label="$t('edubridge.adminContributionsPage.declineReasonLabel')" type="textarea" :rows="3" required)
       template(#footer)
         .row.justify-end.q-gutter-sm
-          BaseButton(variant="ghost" type="button" @click="declineOpen = false") Отменить
-          BaseButton(variant="danger" type="submit" :loading="busy") Отклонить
+          BaseButton(variant="ghost" type="button" @click="declineOpen = false") {{ $t('edubridge.adminContributionsPage.cancel') }}
+          BaseButton(variant="danger" type="submit" :loading="busy") {{ $t('edubridge.adminContributionsPage.declineSubmit') }}
 </template>
 
 <script setup lang="ts">
@@ -66,6 +63,7 @@ import {
 } from '../../entities/Teacher';
 import { useLiveReload } from 'src/shared/lib/realtime';
 import { EduLive } from '../../shared/lib/live';
+import { t as i18nT } from '../../i18n';
 
 /**
  * Взносы результатами работы — отдельной страницей: председатель разбирает их
@@ -87,11 +85,11 @@ const revokeTarget = ref<IContribution | null>(null);
 const revokeReason = ref('');
 
 const columns: BaseTableColumn<IContribution>[] = [
-  { key: 'teacher_username', label: 'Преподаватель', width: '240px' },
-  { key: 'rid_type', label: 'Тип', width: '160px' },
-  { key: 'description', label: 'Описание' },
-  { key: 'amount', label: 'Сумма', numeric: true, width: '130px', nowrap: true },
-  { key: 'status', label: 'Состояние', width: '190px' },
+  { key: 'teacher_username', label: i18nT('edubridge.adminContributionsPage.columnTeacher'), width: '240px' },
+  { key: 'rid_type', label: i18nT('edubridge.adminContributionsPage.columnType'), width: '160px' },
+  { key: 'description', label: i18nT('edubridge.adminContributionsPage.columnDescription') },
+  { key: 'amount', label: i18nT('edubridge.adminContributionsPage.columnAmount'), numeric: true, width: '130px', nowrap: true },
+  { key: 'status', label: i18nT('edubridge.adminContributionsPage.columnStatus'), width: '190px' },
   { key: 'actions', label: '', align: 'right', width: '200px' },
 ];
 
@@ -120,7 +118,7 @@ async function onAccept(c: IContribution): Promise<void> {
   try {
     const updated = await acceptContributionAsChairman(c);
     contributions.value = contributions.value.map((x) => (x.id === updated.id ? updated : x));
-    SuccessAlert('Акт подписан — взнос принят в паевой фонд');
+    SuccessAlert(i18nT('edubridge.adminContributionsPage.actSignedSuccess'));
   } catch (e) {
     FailAlert(e);
   } finally {
@@ -141,7 +139,7 @@ async function onRevoke(): Promise<void> {
     const updated = await revokeContribution({ contribution_id: asText(revokeTarget.value.id), reason: revokeReason.value.trim() });
     contributions.value = contributions.value.map((x) => (x.id === updated.id ? updated : x));
     revokeOpen.value = false;
-    SuccessAlert('Заявление снято — взнос не оформляется');
+    SuccessAlert(i18nT('edubridge.adminContributionsPage.revokeSuccess'));
   } catch (e) {
     FailAlert(e);
   } finally {
@@ -150,8 +148,8 @@ async function onRevoke(): Promise<void> {
 }
 
 const COUNCIL_OUTCOME_LABELS: Record<string, string> = {
-  [Zeus.EduCouncilOutcome.DECLINED]: 'Совет отклонил вопрос',
-  [Zeus.EduCouncilOutcome.EXPIRED]: 'Совет не принял решение в срок',
+  [Zeus.EduCouncilOutcome.DECLINED]: i18nT('edubridge.adminContributionsPage.councilOutcome.DECLINED'),
+  [Zeus.EduCouncilOutcome.EXPIRED]: i18nT('edubridge.adminContributionsPage.councilOutcome.EXPIRED'),
 };
 /** Пометка нужна, только пока взнос ждёт совета: после отклонения она уже сказана причиной. */
 const councilOutcome = (c: IContribution) =>

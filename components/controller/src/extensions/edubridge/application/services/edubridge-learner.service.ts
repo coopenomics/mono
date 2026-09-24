@@ -1,4 +1,4 @@
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { EduEnrollmentStatus } from '../../domain/enums';
 import type { EdubridgeLearnerEntity } from '../../infrastructure/entities';
@@ -6,6 +6,7 @@ import { EdubridgeEnrollmentRepository } from '../../infrastructure/repositories
 import { EdubridgeLearnerRepository } from '../../infrastructure/repositories/edubridge-learner.repository';
 import type { EduLearnerInputDTO, EduUpdateLearnerInputDTO } from '../dto/edu-learner.dto';
 import { EDUBRIDGE_LEARNER_RECIPIENT_CHANGED_EVENT, type IEduLearnerRecipientChangedPayload } from '../events/edubridge.events';
+import { DomainError } from '@coopenomics/extension-kit';
 
 @Injectable()
 export class EdubridgeLearnerService {
@@ -21,8 +22,8 @@ export class EdubridgeLearnerService {
 
   async getOwned(coopname: string, member: string, id: string): Promise<EdubridgeLearnerEntity> {
     const learner = await this.learners.findById(coopname, id);
-    if (!learner) throw new NotFoundException('Обучающийся не найден');
-    if (learner.member_username !== member) throw new ForbiddenException('Обучающийся принадлежит другому пайщику');
+    if (!learner) throw DomainError.notFound('EDUBRIDGE_LEARNER_NOT_FOUND');
+    if (learner.member_username !== member) throw DomainError.forbidden('EDUBRIDGE_LEARNER_FOREIGN');
     return learner;
   }
 
@@ -30,10 +31,10 @@ export class EdubridgeLearnerService {
     const existing = await this.learners.findByMember(coopname, member);
     const value = input.recipient_value.trim();
     if (existing.some((l) => l.recipient_type === input.recipient_type && l.recipient_value.toLowerCase() === value.toLowerCase())) {
-      throw new BadRequestException('У вас уже есть обучающийся с таким контактом — у каждого обучающегося свой адрес');
+      throw DomainError.badRequest('EDUBRIDGE_LEARNER_CONTACT_DUPLICATE');
     }
     if (input.is_self && existing.some((l) => l.is_self)) {
-      throw new BadRequestException('Вы уже добавлены как обучающийся');
+      throw DomainError.badRequest('EDUBRIDGE_LEARNER_SELF_ALREADY_ADDED');
     }
     const entity = this.learners.create({
       coopname,
@@ -79,7 +80,7 @@ export class EdubridgeLearnerService {
     const active = (await this.enrollments.findByLearner(coopname, id)).filter(
       (e) => e.status === EduEnrollmentStatus.ACTIVE || e.status === EduEnrollmentStatus.PENDING
     );
-    if (active.length) throw new BadRequestException('У обучающегося есть действующие подписки — дождитесь окончания периода');
+    if (active.length) throw DomainError.badRequest('EDUBRIDGE_LEARNER_HAS_ACTIVE_SUBSCRIPTIONS');
     await this.learners.remove(learner);
     return true;
   }

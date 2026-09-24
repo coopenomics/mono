@@ -2,7 +2,7 @@
 .q-pa-md
   CardListSkeleton(v-if="loading" :count="1")
 
-  EmptyState(v-else-if="!course" title="Курс не найден" body="Возможно, курс снят с публикации.")
+  EmptyState(v-else-if="!course" :title="$t('edubridge.courseCardPage.notFoundTitle')" :body="$t('edubridge.courseCardPage.notFoundBody')")
     template(#icon)
       q-icon(name="search_off" size="40px")
 
@@ -10,33 +10,33 @@
     CourseHero(:title="course.title" :section="course.section_title" :level="course.level_title" :image-url="course.image_url")
       template(#facts)
         span(v-if="course.schedule") {{ course.schedule }}
-        span(v-if="course.starts_at") занятия с {{ formatDate(course.starts_at) }}
+        span(v-if="course.starts_at") {{ $t('edubridge.courseCardPage.startsFrom', { date: formatDate(course.starts_at) }) }}
       template(#actions)
-        BaseButton(variant="primary" @click="getAccess") Получить доступ
-        .edu-course__guest(v-if="!session.isAuth") Для записи нужно вступить в кооператив
+        BaseButton(variant="primary" @click="getAccess") {{ $t('edubridge.courseCardPage.getAccess') }}
+        .edu-course__guest(v-if="!session.isAuth") {{ $t('edubridge.courseCardPage.guestHint') }}
       //- Обе полные суммы рядом: скидка видна как разница в рублях, а не как
       //- цена «от …», которую участник ни разу не вносит.
-      CourseHeroFigure(caption="взнос в месяц")
+      CourseHeroFigure(:caption="$t('edubridge.courseCardPage.feeMonthCaption')")
         FeeAmount(:value="course.fee_month" size="lg")
-      CourseHeroFigure(v-if="course.fee_course" caption="за весь курс разом")
+      CourseHeroFigure(v-if="course.fee_course" :caption="$t('edubridge.courseCardPage.feeCourseCaption')")
         FeeAmount(:value="course.fee_course" size="lg")
-      CourseHeroFigure(:value="course.lessons_per_month" :caption="`${pluralize(Number(course.lessons_per_month), LESSON_FORMS)} в месяц по ${course.lesson_minutes} мин`")
-      CourseHeroFigure(:value="course.lessons_total" :caption="`${pluralize(Number(course.lessons_total), LESSON_FORMS)} в программе`")
+      CourseHeroFigure(:value="course.lessons_per_month" :caption="$t('edubridge.course.lessonsPerMonthCaption', { minutes: course.lesson_minutes }, Number(course.lessons_per_month))")
+      CourseHeroFigure(:value="course.lessons_total" :caption="$t('edubridge.course.lessonsTotalCaption', Number(course.lessons_total))")
 
     .row.q-col-gutter-md
       .col-12(:class="course.teacher_usernames.length ? 'col-md-8' : ''")
         BaseCard.edu-course__about(variant="default")
           section
-            .edu-course__section-title О курсе
+            .edu-course__section-title {{ $t('edubridge.courseCardPage.aboutTitle') }}
             .edu-course__text(v-if="course.description") {{ course.description }}
-            .t-muted.t-sm(v-else) Описание курса появится позже.
+            .t-muted.t-sm(v-else) {{ $t('edubridge.courseCardPage.descriptionEmpty') }}
           section
-            .edu-course__section-title Учебная программа
+            .edu-course__section-title {{ $t('edubridge.courseCardPage.syllabusTitle') }}
             .edu-course__text(v-if="course.syllabus") {{ course.syllabus }}
-            .t-muted.t-sm(v-else) Программа будет опубликована позже.
+            .t-muted.t-sm(v-else) {{ $t('edubridge.courseCardPage.syllabusEmpty') }}
 
       .col-12.col-md-4(v-if="course.teacher_usernames.length")
-        BaseCard(variant="default" :title="course.teacher_usernames.length > 1 ? 'Курс ведут' : 'Курс ведёт'")
+        BaseCard(variant="default" :title="course.teacher_usernames.length > 1 ? $t('edubridge.courseCardPage.teachersTitleMany') : $t('edubridge.courseCardPage.teachersTitleOne')")
           .edu-course__teachers
             .edu-course__teacher(v-for="username in course.teacher_usernames" :key="username") {{ fioCache.get(username) || username }}
 
@@ -53,7 +53,7 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { asText, pluralize } from 'src/shared/lib/utils';
+import { asText } from 'src/shared/lib/utils';
 import { FailAlert } from 'src/shared/api';
 import { useDesktopStore } from 'src/entities/Desktop/model';
 import { useSessionStore } from 'src/entities/Session';
@@ -62,11 +62,11 @@ import { BaseButton, BaseCard, CardListSkeleton, EmptyState } from 'src/shared/u
 import { fetchCatalogCourse, type ICatalogCourse } from '../../entities/Course';
 import { fetchMyLearners, type ILearner } from '../../entities/Learner';
 import { SubscribeDialog } from '../../features/Subscribe';
-import { LESSON_FORMS } from '../../shared/lib/courseMonths';
 import { FeeAmount } from '../../shared/ui/FeeAmount';
 import { CourseHero, CourseHeroFigure } from '../../widgets/CourseHero';
 import { useLiveReload } from 'src/shared/lib/realtime';
 import { EduLive } from '../../shared/lib/live';
+import { t } from '../../i18n';
 
 /**
  * Страница курса для посетителя: обложка, описание, учебная программа,
@@ -138,7 +138,7 @@ useLiveReload([EduLive.courses], loadCourse);
 onMounted(async () => {
   try {
     await loadCourse();
-    if (course.value) desktopStore.setPageTitleOverride('Курс');
+    if (course.value) desktopStore.setPageTitleOverride(t('edubridge.courseCardPage.pageTitle'));
   } catch (e) {
     FailAlert(e);
   } finally {

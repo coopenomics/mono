@@ -17,16 +17,16 @@ BaseCard.edu-admin-course(variant="default" role="link" tabindex="0" @click="emi
       .edu-admin-course__fact
         q-icon(name="co_present" size="16px")
         span.ellipsis(v-if="teachers.length") {{ teachers.join(', ') }}
-        span.ellipsis.t-muted(v-else) Преподаватель не назначен
+        span.ellipsis.t-muted(v-else) {{ $t('edubridge.adminCourseCard.noTeacher') }}
     //- Помесячный взнос — главная строка: столько участник вносит на самом деле.
     //- Ниже длительность курса и взнос разом, если кооператив его принимает.
     .edu-admin-course__fees
-      FeeAmount(:value="course.fee_month" size="md" per="в месяц")
+      FeeAmount(:value="course.fee_month" size="md" :per="$t('edubridge.adminCourseCard.perMonth')")
       .edu-admin-course__full(v-if="months")
         span {{ months }}
         template(v-if="course.fee_course")
           span ·
-          span за курс разом
+          span {{ $t('edubridge.adminCourseCard.courseFeeOnce') }}
           FeeAmount(:value="course.fee_course" size="sm")
 </template>
 <script setup lang="ts">

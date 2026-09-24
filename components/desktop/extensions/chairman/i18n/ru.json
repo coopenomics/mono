@@ -24,6 +24,8 @@
       "blagorostProjectAccess": "Допуск к проекту по приложению Благороста",
       "blagorostRidContribution": "Внесение РИД по проекту Благороста",
       "blagorostUhdContract": "Договор УХД по приложению Благороста",
+      "eduCourseAnnex": "Приложение к договору УХД преподавателя на курс",
+      "eduTeacherContract": "Договор УХД преподавателя по программе «Образование»",
       "unitChairmanLiabilityContract": "Договор о материальной ответственности председателя участка",
       "unitChairmanPowerOfAttorney": "Доверенность председателю кооперативного участка"
     },
@@ -34,14 +36,33 @@
       "statusFilterPlaceholder": "без фильтра"
     },
     "approvalsTableWidget": {
+      "approveConfirm": "Одобрить {n} документ? | Одобрить {n} документа? | Одобрить {n} документов?",
+      "approveConfirmOne": "Одобрить документ?",
+      "approveSelected": "Одобрить отмеченные",
+      "approvedCount": "Одобрено: {count}",
       "column": {
         "action": "Действие",
         "actions": "Действия",
+        "created": "Создан",
         "createdAt": "Дата создания",
+        "member": "Пайщик",
+        "state": "Состояние",
         "status": "Статус",
-        "user": "Пользователь"
+        "user": "Пользователь",
+        "username": "Учётное имя"
       },
-      "emptyLabel": "У председателя нет запросов предварительных одобрений"
+      "declineConfirm": "Отклонить {n} документ? | Отклонить {n} документа? | Отклонить {n} документов?",
+      "declineConfirmOne": "Отклонить документ?",
+      "declineConfirmTitle": "Подтверждение отказа",
+      "declineReasonLabel": "Причина отказа",
+      "declineSelected": "Отклонить отмеченные",
+      "declinedCount": "Отклонено: {count}",
+      "detailsDefaultTitle": "Запрос одобрения",
+      "emptyBody": "Здесь появятся документы на подпись председателя.",
+      "emptyLabel": "У председателя нет запросов предварительных одобрений",
+      "emptyTitle": "Запросов нет",
+      "pagerLabel": "Запросы",
+      "selectedCount": "Отмечено запросов: {count}"
     },
     "blagorostPreset": {
       "description": "Утверждение Положения о целевой потребительской программе «БЛАГОРОСТ»",

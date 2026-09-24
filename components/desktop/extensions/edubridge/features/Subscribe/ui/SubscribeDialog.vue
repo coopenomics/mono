@@ -1,45 +1,45 @@
 <template lang="pug">
-BaseDialog(:model-value="modelValue" title="Получить доступ" size="md" @update:model-value="(v) => emit('update:modelValue', v)")
+BaseDialog(:model-value="modelValue" :title="$t('edubridge.subscribeDialog.getAccess')" size="md" @update:model-value="(v) => emit('update:modelValue', v)")
   .q-gutter-md
-    BaseSelect(v-model="learnerId" label="Обучающийся" :options="learnerOptions" required)
+    BaseSelect(v-model="learnerId" :label="$t('edubridge.subscribeDialog.learnerLabel')" :options="learnerOptions" required)
       template(#after)
-        BaseButton(variant="ghost" size="sm" icon-only aria-label="Добавить обучающегося" @click="learnerFormOpen = true")
+        BaseButton(variant="ghost" size="sm" icon-only :aria-label="$t('edubridge.subscribeDialog.addLearnerAriaLabel')" @click="learnerFormOpen = true")
           template(#icon-left)
             q-icon(name="add" size="18px")
-    BaseSelect(v-model="courseId" label="Курс" :options="courseOptions" :disabled="Boolean(lockedCourseId)" required)
+    BaseSelect(v-model="courseId" :label="$t('edubridge.subscribeDialog.courseLabel')" :options="courseOptions" :disabled="Boolean(lockedCourseId)" required)
 
     //- Два способа внести взнос — рядом, с полными суммами: скидка за взнос
     //- разом видна как разница в рублях. Второй способ есть не у каждого курса.
     .edu-subscribe__options(v-if="monthQuote")
-      BaseRadioCard(v-model="period" :value="Zeus.EduEnrollmentPeriod.MONTH" title="Помесячно")
-        FeeAmount(:value="monthQuote.amount" size="md" per="в месяц")
+      BaseRadioCard(v-model="period" :value="Zeus.EduEnrollmentPeriod.MONTH" :title="$t('edubridge.subscribeDialog.periodMonthTitle')")
+        FeeAmount(:value="monthQuote.amount" size="md" :per="$t('edubridge.subscribeDialog.perMonth')")
         template(v-if="courseQuote" #meta)
-          | за {{ monthsLabel }} — {{ formatAsset2Digits(courseQuote.base_amount) }}
-      BaseRadioCard(v-if="courseQuote" v-model="period" :value="Zeus.EduEnrollmentPeriod.COURSE" title="За весь курс разом")
+          | {{ $t('edubridge.subscribeDialog.courseTotalMeta', { months: monthsLabel, amount: formatAsset2Digits(courseQuote.base_amount) }) }}
+      BaseRadioCard(v-if="courseQuote" v-model="period" :value="Zeus.EduEnrollmentPeriod.COURSE" :title="$t('edubridge.subscribeDialog.periodCourseTitle')")
         FeeAmount(:value="courseQuote.amount" size="md")
         template(#meta)
-          | за {{ monthsLabel }} · меньше на {{ formatAsset2Digits(courseQuote.discount_amount) }}
+          | {{ $t('edubridge.subscribeDialog.courseDiscountMeta', { months: monthsLabel, discount: formatAsset2Digits(courseQuote.discount_amount) }) }}
 
     template(v-if="quote")
       //- Взнос сначала берётся с кошелька программы: возвращённые средства
       //- идут в дело, а с паевого конвертируется только недостача.
-      DataRow(v-if="hasProgramFunds" label="Зачтётся с кошелька программы" :value="formatAsset2Digits(quote.from_program)")
-      DataRow(v-if="hasProgramFunds" label="Конвертируется с паевого" :value="formatAsset2Digits(quote.to_convert)")
-      DataRow(label="Доступно паевого в главном кошельке" :value="formatAsset2Digits(quote.available)")
-      DataRow(:label="quote.is_extension ? 'Будет продлено до' : 'Будет оплачено до'" :value="formatDate(quote.paid_until)")
+      DataRow(v-if="hasProgramFunds" :label="$t('edubridge.subscribeDialog.fromProgramLabel')" :value="formatAsset2Digits(quote.from_program)")
+      DataRow(v-if="hasProgramFunds" :label="$t('edubridge.subscribeDialog.fromShareLabel')" :value="formatAsset2Digits(quote.to_convert)")
+      DataRow(:label="$t('edubridge.subscribeDialog.availableShareLabel')" :value="formatAsset2Digits(quote.available)")
+      DataRow(:label="quote.is_extension ? $t('edubridge.subscribeDialog.extendedUntilLabel') : $t('edubridge.subscribeDialog.paidUntilLabel')" :value="formatDate(quote.paid_until)")
 
       BaseBanner(v-if="!quote.enough" variant="warn")
         template(#icon)
           q-icon(name="account_balance_wallet")
-        | Не хватает {{ formatAsset2Digits(quote.shortfall) }}. Пополните паевой взнос в главном кошельке — после зачисления вернитесь сюда.
+        | {{ $t('edubridge.subscribeDialog.notEnoughFunds', { shortfall: formatAsset2Digits(quote.shortfall) }) }}
         .q-mt-sm
-          BaseButton(variant="secondary" size="sm" @click="goToWallet") Пополнить кошелёк
+          BaseButton(variant="secondary" size="sm" @click="goToWallet") {{ $t('edubridge.subscribeDialog.topUpWallet') }}
 
   template(#footer)
-    BaseButton(variant="ghost" :disabled="busy" @click="emit('update:modelValue', false)") Отменить
-    BaseButton(variant="primary" :disabled="!quote?.enough" :loading="busy" @click="submit") Получить доступ
+    BaseButton(variant="ghost" :disabled="busy" @click="emit('update:modelValue', false)") {{ $t('edubridge.subscribeDialog.cancel') }}
+    BaseButton(variant="primary" :disabled="!quote?.enough" :loading="busy" @click="submit") {{ $t('edubridge.subscribeDialog.getAccess') }}
 
-  BaseDialog(v-model="learnerFormOpen" title="Новый обучающийся" size="md")
+  BaseDialog(v-model="learnerFormOpen" :title="$t('edubridge.subscribeDialog.newLearnerTitle')" size="md")
     LearnerForm(:default-self="!pool.length" @saved="onLearnerAdded" @cancel="learnerFormOpen = false")
 
 </template>
@@ -60,6 +60,7 @@ import { LearnerForm } from '../../../widgets/LearnerForm';
 import { courseMonthsLabel } from '../../../shared/lib/courseMonths';
 import { FeeAmount } from '../../../shared/ui/FeeAmount';
 import { buildConvertStatement, subscribe } from '../api';
+import { t } from '../../../i18n';
 
 /**
  * «Получить доступ»: выбор обучающегося, курса и способа взноса (помесячно
@@ -100,7 +101,7 @@ const hasProgramFunds = computed(() => parseFloat(String(quote.value?.from_progr
 const busy = ref(false);
 const statement = ref<DigitalDocument | null>(null);
 
-const learnerOptions = computed(() => pool.value.map((l) => ({ value: asText(l.id), label: l.is_self ? `${l.display_name} (я)` : l.display_name })));
+const learnerOptions = computed(() => pool.value.map((l) => ({ value: asText(l.id), label: l.is_self ? t('edubridge.subscribeDialog.selfLearnerLabel', { name: l.display_name }) : l.display_name })));
 const courseOptions = computed(() => props.courses.map((c) => ({ value: asText(c.id), label: `${c.title} · ${courseSectionLabel(c.section_title, c.level_title, ', ')}` })));
 const courseTitle = computed(() => props.courses.find((c) => c.id === courseId.value)?.title ?? '');
 
@@ -178,7 +179,7 @@ function onLearnerAdded(learner: ILearner): void {
 
 async function ensureStatement(): Promise<DigitalDocument> {
   if (statement.value) return statement.value;
-  if (!quote.value) throw new Error('Нет котировки');
+  if (!quote.value) throw new Error(t('edubridge.error.quoteMissing'));
   const doc = await buildConvertStatement(quote.value, courseTitle.value, period.value);
   statement.value = doc;
   return doc;
@@ -194,7 +195,7 @@ async function submit(): Promise<void> {
   try {
     const doc = await ensureStatement();
     const enrollment = await subscribe({ learner_id: learnerId.value, course_id: courseId.value, period: period.value }, doc);
-    SuccessAlert('Членский взнос внесён, доступ оформляется');
+    SuccessAlert(t('edubridge.subscribeDialog.success'));
     emit('subscribed', enrollment);
     emit('update:modelValue', false);
   } catch (e) {

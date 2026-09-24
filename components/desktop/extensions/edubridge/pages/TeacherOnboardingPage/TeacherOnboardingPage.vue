@@ -1,10 +1,10 @@
 <template lang="pug">
 EduOfferGate(
   :kind="Zeus.EduOfferKind.TEACHER"
-  hint="Чтобы преподавать в кооперативе, подпишите оферту преподавателя и договор участия в хозяйственной деятельности. Договор подписывают двое: вы, затем председатель совета от лица кооператива."
-  offer-description="Оферта преподавателя определяет условия участия в хозяйственной деятельности кооператива: назначения на курсы, взнос результатами работы и расчёт по нему."
-  offer-title="офертой преподавателя по ЦПП «Образование»"
-  contract-description="Договор участия в хозяйственной деятельности заключается один раз. На каждый курс к нему оформляется приложение с расписанием, ожидаемым результатом и сроком сдачи."
+  :hint="$t('edubridge.teacherOnboardingPage.hint')"
+  :offer-description="$t('edubridge.teacherOnboardingPage.offerDescription')"
+  :offer-title="$t('edubridge.teacherOnboardingPage.offerTitle')"
+  :contract-description="$t('edubridge.teacherOnboardingPage.contractDescription')"
   target-route="edubridge-teacher-profile"
 )
 </template>

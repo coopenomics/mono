@@ -1,15 +1,14 @@
 <template lang="pug">
 .q-pa-md
   PageHint.q-mb-md(storage-key="edu:admin-courses:banner-dismissed")
-    | Курсы кооператива. Добавьте курс, привяжите его к курсу на площадке и опубликуйте —
-    | опубликованные курсы видны в каталоге всем посетителям.
+    | {{ $t('edubridge.adminCoursesPage.hint') }}
 
   CardListSkeleton(v-if="firstLoad" :count="3")
   .row.q-col-gutter-md(v-else-if="items.length")
     .col-12.col-sm-6.col-md-4.col-xl-3(v-for="course in items" :key="asText(course.id)")
       AdminCourseCard(:course="course" :teacher-names="teacherNames" @open="openCourse(asText(course.id))")
 
-  EmptyState(v-if="!firstLoad && !items.length" title="Курсов пока нет" body="Добавьте первый курс кнопкой в правом верхнем углу.")
+  EmptyState(v-if="!firstLoad && !items.length" :title="$t('edubridge.adminCoursesPage.emptyTitle')" :body="$t('edubridge.adminCoursesPage.emptyBody')")
     template(#icon)
       q-icon(name="library_books" size="40px")
 

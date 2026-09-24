@@ -66,30 +66,30 @@ div
           template(#icon)
             q-icon(name='block')
           div
-            p.q-mb-sm Сейчас выйти нельзя:
+            p.q-mb-sm {{ $t('membership.exitButton.blockersTitle') }}
             ul.exit-blockers
               li(v-for='reason in blockers', :key='reason') {{ reason }}
 
         //- Что закрывается и сколько вернётся: по строке на программу, с
         //- отметкой, какие остатки остаются кооперативу.
         div.exit-programs(v-if='programs.length')
-          .exit-programs__title Участие в программах
+          .exit-programs__title {{ $t('membership.exitButton.programsTitle') }}
           .exit-program(v-for='program in programs', :key='program.program_id')
             .exit-program__head
               span.exit-program__name {{ program.title }}
               span.exit-program__refund.t-num {{ formatAsset2Digits(program.refund) }}
-            .exit-program__note(v-if='program.agreement_signed_at') Соглашение от {{ formatDate(program.agreement_signed_at) }}
+            .exit-program__note(v-if='program.agreement_signed_at') {{ $t('membership.exitButton.agreementDate', { date: formatDate(program.agreement_signed_at) }) }}
             .exit-program__wallet(v-for='wallet in program.wallets', :key='wallet.wallet_name', :class='{ "exit-program__wallet--kept": !wallet.returns }')
               span {{ wallet.human_name }}
               span.t-num {{ formatAsset2Digits(wallet.balance) }}
-              span.exit-program__policy(v-if='!wallet.returns') остаётся кооперативу
+              span.exit-program__policy(v-if='!wallet.returns') {{ $t('membership.exitButton.walletKeptLabel') }}
 
         div.exit-doc.q-mt-md(v-if='documents')
           //- Заявлений два, и подпись под ними одна: читаются друг за другом.
-          .exit-doc__title(v-if='documents.annulment') Заявление о выходе
+          .exit-doc__title(v-if='documents.annulment') {{ $t('membership.exitButton.applicationDocTitle') }}
           DocumentHtmlReader(:html='documents.application.html')
           template(v-if='documents.annulment')
-            .exit-doc__title.q-mt-md Заявление об аннулировании соглашений
+            .exit-doc__title.q-mt-md {{ $t('membership.exitButton.annulmentDocTitle') }}
             DocumentHtmlReader(:html='documents.annulment.html')
 
         //- Итог к возврату — soft-панель под документом, читается как подбивка
@@ -122,7 +122,7 @@ import {
 } from '../model';
 
 import type { BaseButtonVariant } from 'src/shared/ui/base/BaseButton/BaseButton.types';
-import { t } from 'src/shared/i18n';
+import { t, t as i18nT } from 'src/shared/i18n';
 
 interface Props {
   micro?: boolean;
@@ -188,7 +188,7 @@ watch(showDialog, async (opened) => {
     documents.value = await prepareExitDocuments(preview.value);
   } catch (error) {
     console.error('Ошибка формирования заявлений о выходе:', error);
-    FailAlert('Не удалось сформировать заявления о выходе');
+    FailAlert(i18nT('membership.exitButton.buildDocumentsError'));
   } finally {
     loading.value = false;
   }
@@ -213,12 +213,12 @@ const handlerSubmit = async (): Promise<void> => {
   if (!documents.value) return;
 
   const agreed = await confirm({
-    title: 'Выйти из кооператива?',
+    title: i18nT('membership.exitButton.confirmExitTitle'),
     message: documents.value.annulment
-      ? 'Ваше участие в программах прекратится, а средства вернутся после решения Совета. Вернуться назад нельзя.'
-      : 'Членство прекратится, паевой взнос вернётся после решения Совета. Вернуться назад нельзя.',
-    note: 'Заявления подписываются вашей электронной подписью прямо сейчас.',
-    confirmLabel: 'Подписать и подать',
+      ? i18nT('membership.exitButton.confirmExitWithProgramsMessage')
+      : i18nT('membership.exitButton.confirmExitMessage'),
+    note: i18nT('membership.exitButton.confirmSignNote'),
+    confirmLabel: i18nT('membership.exitButton.confirmSubmitLabel'),
     danger: true,
   });
   if (!agreed) return;

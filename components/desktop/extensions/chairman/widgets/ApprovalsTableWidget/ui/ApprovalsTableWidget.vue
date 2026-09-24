@@ -3,10 +3,10 @@ div
   //- Пачкой одобряют, когда ждут несколько запросов: отметил нужные — одно
   //- подтверждение на всю пачку вместо десяти одинаковых нажатий.
   .row.items-center.justify-between.q-mb-md(v-if="selectedPending.length")
-    .t-sm.t-muted Отмечено запросов: {{ selectedPending.length }}
+    .t-sm.t-muted {{ $t('chairman.approvalsTableWidget.selectedCount', { count: selectedPending.length }) }}
     .row.q-gutter-sm
-      BaseButton(variant="secondary" size="sm" :loading="bulkBusy" @click="askBulk('approve')") Одобрить отмеченные
-      BaseButton(variant="ghost" size="sm" :loading="bulkBusy" @click="askBulk('decline')") Отклонить отмеченные
+      BaseButton(variant="secondary" size="sm" :loading="bulkBusy" @click="askBulk('approve')") {{ $t('chairman.approvalsTableWidget.approveSelected') }}
+      BaseButton(variant="ghost" size="sm" :loading="bulkBusy" @click="askBulk('decline')") {{ $t('chairman.approvalsTableWidget.declineSelected') }}
 
   BaseTable(
     :columns="columns"
@@ -27,14 +27,14 @@ div
     template(#cell-created_at="{ row }") {{ formatDate(row.created_at) }}
     template(v-if="pagination && pagination.rowsNumber > pagination.rowsPerPage" #footer)
       TablePager(
-        label="Запросы"
+        :label="$t('chairman.approvalsTableWidget.pagerLabel')"
         :page="pagination.page"
         :rows-per-page="pagination.rowsPerPage"
         :rows-number="pagination.rowsNumber"
         @update:page="(page) => emit('update:page', page)"
       )
 
-  EmptyState(v-if="!loading && !approvals.length" title="Запросов нет" body="Здесь появятся документы на подпись председателя.")
+  EmptyState(v-if="!loading && !approvals.length" :title="$t('chairman.approvalsTableWidget.emptyTitle')" :body="$t('chairman.approvalsTableWidget.emptyBody')")
     template(#icon)
       q-icon(name="inbox" size="32px")
 
@@ -42,18 +42,18 @@ div
   //- принимается не закрывая панель.
   DetailsDrawer(v-model="detailsOpen" :title="detailsTitle" :width="720")
     template(v-if="current")
-      DataRow(label="Пайщик" :value="fioCache.get(current.username) || current.username")
-      DataRow(label="Учётное имя" :value="current.username" mono copyable)
-      DataRow(label="Действие" :value="actionLabel(current)")
-      DataRow(label="Создан" :value="formatDate(current.created_at)")
-      DataRow(label="Состояние")
+      DataRow(:label="$t('chairman.approvalsTableWidget.column.member')" :value="fioCache.get(current.username) || current.username")
+      DataRow(:label="$t('chairman.approvalsTableWidget.column.username')" :value="current.username" mono copyable)
+      DataRow(:label="$t('chairman.approvalsTableWidget.column.action')" :value="actionLabel(current)")
+      DataRow(:label="$t('chairman.approvalsTableWidget.column.created')" :value="formatDate(current.created_at)")
+      DataRow(:label="$t('chairman.approvalsTableWidget.column.state')")
         template(#value-override)
           BaseBadge(:variant="statusOf(current.status).variant") {{ statusOf(current.status).label }}
       ComplexDocument.q-mt-md(v-if="current.document" :document="current.document" collapsible)
     template(#footer)
       .row.justify-end.q-gutter-sm(v-if="current && current.status === 'PENDING'")
-        BaseButton(variant="ghost" :loading="singleBusy" @click="askSingle('decline')" v-if="declinable(current)") Отклонить
-        BaseButton(variant="primary" :loading="singleBusy" @click="askSingle('approve')") Одобрить
+        BaseButton(variant="ghost" :loading="singleBusy" @click="askSingle('decline')" v-if="declinable(current)") {{ $t('chairman.declineApprovalButton.declineLabel') }}
+        BaseButton(variant="primary" :loading="singleBusy" @click="askSingle('approve')") {{ $t('chairman.confirmApprovalButton.approveLabel') }}
 
   BaseDialog(v-model="confirmOpen" :title="confirmTitle" size="sm")
     p {{ confirmText }}
@@ -61,19 +61,19 @@ div
     BaseInput.q-mt-sm(
       v-if="confirmKind === 'decline'"
       v-model="declineReason"
-      label="Причина отказа"
+      :label="$t('chairman.approvalsTableWidget.declineReasonLabel')"
       type="textarea"
       :rows="2"
       required
     )
     template(#footer)
-      BaseButton(variant="ghost" :disabled="bulkBusy || singleBusy" @click="confirmOpen = false") Отменить
+      BaseButton(variant="ghost" :disabled="bulkBusy || singleBusy" @click="confirmOpen = false") {{ $t('chairman.confirmApprovalButton.cancelLabel') }}
       BaseButton(
         :variant="confirmKind === 'approve' ? 'primary' : 'secondary'"
         :disabled="confirmKind === 'decline' && !declineReason.trim()"
         :loading="bulkBusy || singleBusy"
         @click="runConfirmed"
-      ) {{ confirmKind === 'approve' ? 'Одобрить' : 'Отклонить' }}
+      ) {{ confirmKind === 'approve' ? $t('chairman.confirmApprovalButton.approveLabel') : $t('chairman.declineApprovalButton.declineLabel') }}
 </template>
 
 <script lang="ts" setup>
@@ -109,16 +109,16 @@ const props = withDefaults(defineProps<Props>(), { approvals: () => [], loading:
 const emit = defineEmits<{ 'update:page': [page: number] }>();
 
 const STATUS_LABELS: Record<string, { label: string; variant: 'pos' | 'warn' | 'neg' | 'neutral' }> = {
-  PENDING: { label: 'Ожидает', variant: 'warn' },
-  APPROVED: { label: 'Одобрено', variant: 'pos' },
-  DECLINED: { label: 'Отклонено', variant: 'neg' },
+  PENDING: { label: t('chairman.approval.status.pending'), variant: 'warn' },
+  APPROVED: { label: t('chairman.approval.status.approved'), variant: 'pos' },
+  DECLINED: { label: t('chairman.approval.status.declined'), variant: 'neg' },
 };
 
 const columns: BaseTableColumn<Approval>[] = [
-  { key: 'username', label: 'Пайщик', width: '260px' },
-  { key: 'action', label: 'Действие' },
-  { key: 'status', label: 'Состояние', width: '140px', nowrap: true },
-  { key: 'created_at', label: 'Создан', width: '130px', nowrap: true },
+  { key: 'username', label: t('chairman.approvalsTableWidget.column.member'), width: '260px' },
+  { key: 'action', label: t('chairman.approvalsTableWidget.column.action') },
+  { key: 'status', label: t('chairman.approvalsTableWidget.column.state'), width: '140px', nowrap: true },
+  { key: 'created_at', label: t('chairman.approvalsTableWidget.column.created'), width: '130px', nowrap: true },
 ];
 
 const { fioCache, enrichFio } = useFioCache();
@@ -136,12 +136,14 @@ const bulkBusy = ref(false);
 const singleBusy = ref(false);
 
 const selectedPending = computed(() => selected.value.filter((a) => a.status === 'PENDING'));
-const detailsTitle = computed(() => (current.value ? actionLabel(current.value) : 'Запрос одобрения'));
-const confirmTitle = computed(() => (confirmKind.value === 'approve' ? 'Подтверждение одобрения' : 'Подтверждение отказа'));
+const detailsTitle = computed(() => (current.value ? actionLabel(current.value) : t('chairman.approvalsTableWidget.detailsDefaultTitle')));
+const confirmTitle = computed(() => (confirmKind.value === 'approve' ? t('chairman.confirmApprovalButton.title') : t('chairman.approvalsTableWidget.declineConfirmTitle')));
 const confirmText = computed(() => {
   const n = confirmScope.value === 'bulk' ? selectedPending.value.length : 1;
-  const what = n === 1 ? 'документ' : `${n} документов`;
-  return confirmKind.value === 'approve' ? `Одобрить ${what}?` : `Отклонить ${what}?`;
+  if (confirmKind.value === 'approve') {
+    return n === 1 ? t('chairman.approvalsTableWidget.approveConfirmOne') : t('chairman.approvalsTableWidget.approveConfirm', n);
+  }
+  return n === 1 ? t('chairman.approvalsTableWidget.declineConfirmOne') : t('chairman.approvalsTableWidget.declineConfirm', n);
 });
 
 const statusOf = (s: string) => STATUS_LABELS[s] ?? { label: s, variant: 'neutral' as const };
@@ -149,8 +151,8 @@ const actionLabel = (a: Approval) => get_approval_action_label(a.callback_contra
 const declinable = (a: Approval) => is_approval_declinable(a.callback_contract, a.callback_action_approve);
 // Дата приходит из SDK и строкой, и объектом, а тип у неё в схеме неизвестный.
 const formatDate = (date: unknown) => {
-  if (date instanceof Date) return date.toLocaleDateString('ru-RU');
-  return typeof date === 'string' ? new Date(date).toLocaleDateString('ru-RU') : '______';
+  if (date instanceof Date) return date.toLocaleDateString(uiLocale());
+  return typeof date === 'string' ? new Date(date).toLocaleDateString(uiLocale()) : '______';
 };
 
 function openDetails(row: Approval): void {
@@ -189,7 +191,7 @@ function pendingScope(): { items: Approval[]; busy: Ref<boolean> } {
 
 /** Итог пачки одним сообщением: сколько решений прошло. */
 function reportDone(kind: 'approve' | 'decline', done: number): void {
-  if (done) SuccessAlert(kind === 'approve' ? `Одобрено: ${done}` : `Отклонено: ${done}`);
+  if (done) SuccessAlert(kind === 'approve' ? t('chairman.approvalsTableWidget.approvedCount', { count: done }) : t('chairman.approvalsTableWidget.declinedCount', { count: done }));
 }
 
 async function runConfirmed(): Promise<void> {

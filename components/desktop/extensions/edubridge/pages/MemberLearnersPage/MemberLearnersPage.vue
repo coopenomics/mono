@@ -1,30 +1,30 @@
 <template lang="pug">
 .q-pa-md
   PageHint.q-mb-md(storage-key="edu:member-learners:banner-dismissed")
-    | Обучающийся — это тот, кто занимается: вы сами или ребёнок. У каждого свой адрес: именно на него
-    | площадка выдаёт доступ к курсу. Записать обучающегося на курс можно на странице «Мои подписки».
+    | {{ $t('edubridge.memberLearnersPage.hint.line1') }}
+    | {{ $t('edubridge.memberLearnersPage.hint.line2') }}
 
-  BaseCard(variant="default" title="Обучающиеся")
+  BaseCard(variant="default" :title="$t('edubridge.memberLearnersPage.title')")
     CardListSkeleton(v-if="firstLoad" :count="2")
-    EmptyState(v-else-if="!learners.length" title="Обучающихся пока нет" body="Добавьте первого обучающегося — себя или ребёнка.")
+    EmptyState(v-else-if="!learners.length" :title="$t('edubridge.memberLearnersPage.emptyTitle')" :body="$t('edubridge.memberLearnersPage.emptyBody')")
       template(#icon)
         q-icon(name="family_restroom" size="32px")
       template(#action)
-        BaseButton.q-mt-md(variant="primary" @click="addLearnerOpen()") Добавить обучающегося
+        BaseButton.q-mt-md(variant="primary" @click="addLearnerOpen()") {{ $t('edubridge.memberLearnersPage.addLearner') }}
     q-list(v-else separator)
       q-item(v-for="l in learners" :key="asText(l.id)")
         q-item-section
           .text-weight-medium {{ l.display_name }}
-            BaseChip.q-ml-sm(v-if="l.is_self" variant="neutral" size="sm") я
+            BaseChip.q-ml-sm(v-if="l.is_self" variant="neutral" size="sm") {{ $t('edubridge.memberLearnersPage.selfChip') }}
           .t-muted.t-sm.t-mono {{ l.recipient_value }}
         q-item-section(side)
-          BaseButton(variant="ghost" size="sm" icon-only aria-label="Изменить" @click="editLearner(l)")
+          BaseButton(variant="ghost" size="sm" icon-only :aria-label="$t('edubridge.memberLearnersPage.editAriaLabel')" @click="editLearner(l)")
             template(#icon-left)
               q-icon(name="edit" size="18px")
     .q-mt-md(v-if="learners.length")
-      BaseButton(variant="secondary" block @click="addLearnerOpen()") Добавить обучающегося
+      BaseButton(variant="secondary" block @click="addLearnerOpen()") {{ $t('edubridge.memberLearnersPage.addLearner') }}
 
-  BaseDialog(v-model="learnerDialogOpen" :title="editingLearner ? 'Изменить обучающегося' : 'Новый обучающийся'" size="md")
+  BaseDialog(v-model="learnerDialogOpen" :title="editingLearner ? $t('edubridge.memberLearnersPage.editDialogTitle') : $t('edubridge.memberLearnersPage.newDialogTitle')" size="md")
     LearnerForm(:learner="editingLearner" @saved="onLearnerSaved" @cancel="learnerDialogOpen = false")
 </template>
 

@@ -203,6 +203,54 @@
     },
     "name": "Редакции документов ждут утверждения совета"
   },
+  "edubridgeAccessExpiring": {
+    "description": "Заблаговременное предупреждение пайщику: оплаченный период подходит к концу, без следующего взноса доступ будет отозван.",
+    "email": {
+      "body": "Оплаченный период доступа {{payload.learnerName}} к курсу «{{payload.courseTitle}}» заканчивается {{payload.paidUntil}}.<br><br>Чтобы доступ не прервался, продлите подписку: {{payload.deepLinkUrl}}",
+      "subject": "Срок доступа к курсу заканчивается"
+    },
+    "inApp": {
+      "body": "Доступ {{payload.learnerName}} к курсу «{{payload.courseTitle}}» заканчивается {{payload.paidUntil}} — продлите подписку.",
+      "subject": "Срок доступа к курсу заканчивается"
+    },
+    "name": "Срок доступа к курсу заканчивается",
+    "push": {
+      "body": "Доступ к «{{payload.courseTitle}}» заканчивается {{payload.paidUntil}}.",
+      "subject": "Срок доступа к курсу заканчивается"
+    }
+  },
+  "edubridgeAccessGranted": {
+    "description": "Уведомление пайщику: членский взнос принят, доступ обучающегося на площадке выдан.",
+    "email": {
+      "body": "Членский взнос принят. Для {{payload.learnerName}} открыт доступ к курсу «{{payload.courseTitle}}» до {{payload.paidUntil}}.<br><br>Приглашение отправлено на указанный адрес. Моё обучение: {{payload.deepLinkUrl}}",
+      "subject": "Доступ к курсу открыт"
+    },
+    "inApp": {
+      "body": "Для {{payload.learnerName}} открыт доступ к курсу «{{payload.courseTitle}}» до {{payload.paidUntil}}.",
+      "subject": "Доступ к курсу открыт"
+    },
+    "name": "Доступ к курсу открыт",
+    "push": {
+      "body": "Доступ к курсу «{{payload.courseTitle}}» открыт до {{payload.paidUntil}}.",
+      "subject": "Доступ к курсу открыт"
+    }
+  },
+  "edubridgeAccessNeedsAttention": {
+    "description": "Уведомление владельцу приложения: задача выдачи или отзыва доступа не выполнена автоматически — площадка отказала или курс рассогласован.",
+    "email": {
+      "body": "Задача выдачи доступа по курсу «{{payload.courseTitle}}» требует вмешательства: {{payload.reason}}.<br><br>Очередь выдачи: {{payload.deepLinkUrl}}",
+      "subject": "Выдача доступа требует вмешательства"
+    },
+    "inApp": {
+      "body": "Курс «{{payload.courseTitle}}»: {{payload.reason}}",
+      "subject": "Выдача доступа требует вмешательства"
+    },
+    "name": "Выдача доступа требует вмешательства",
+    "push": {
+      "body": "Выдача доступа требует вмешательства: {{payload.reason}}",
+      "subject": "Выдача доступа требует вмешательства"
+    }
+  },
   "emailVerification": {
     "description": "Верификация email адреса пользователя",
     "email": {

@@ -6,6 +6,7 @@ import { useSystemStore } from 'src/entities/System/model';
 import { DigitalDocument } from 'src/shared/lib/document';
 import { programsForAnnulment } from 'src/features/Membership/ExitFromCoop/model';
 import { EDU_LEARNER_PROGRAM_ID, type IDeclineReturnInput, type IProgramAnnulmentDocument, type IRequestReturnInput } from '../model';
+import { t } from '../../../i18n';
 
 export async function fetchReturnBalance() {
   const { [Queries.Edubridge.ReturnBalance.name]: result } = await client.Query(Queries.Edubridge.ReturnBalance.query);
@@ -34,7 +35,7 @@ export async function buildProgramAnnulment(): Promise<IProgramAnnulmentDocument
   const session = useSessionStore();
   const system = useSystemStore();
   const username = session.username;
-  if (!username) throw new Error('Пайщик не авторизован');
+  if (!username) throw new Error(t('edubridge.error.notAuthorized'));
   const coopname = system.info.coopname;
 
   const { [Queries.MembershipExit.MembershipExitReturnPreview.name]: preview } = await client.Query(
@@ -42,7 +43,7 @@ export async function buildProgramAnnulment(): Promise<IProgramAnnulmentDocument
     { variables: { coopname, username } },
   );
   const programs = programsForAnnulment(preview).filter((p) => p.program_id === EDU_LEARNER_PROGRAM_ID);
-  if (!programs.length) throw new Error('Соглашение об участии в программе «Образование» не найдено');
+  if (!programs.length) throw new Error(t('edubridge.error.programAgreementNotFound'));
 
   const { [Mutations.MembershipExit.GenerateProgramAgreementsAnnulment.name]: document } = await client.Mutation(
     Mutations.MembershipExit.GenerateProgramAgreementsAnnulment.mutation,
@@ -59,7 +60,7 @@ export async function buildProgramAnnulment(): Promise<IProgramAnnulmentDocument
 export async function requestReturn(document: IProgramAnnulmentDocument) {
   const session = useSessionStore();
   const username = session.username;
-  if (!username) throw new Error('Пайщик не авторизован');
+  if (!username) throw new Error(t('edubridge.error.notAuthorized'));
   const signed = await new DigitalDocument(document).sign<Cooperative.Registry.ProgramAgreementsAnnulmentStatement.Meta>(username);
   const data: IRequestReturnInput = { document: signed };
   const { [Mutations.Edubridge.RequestReturn.name]: result } = await client.Mutation(Mutations.Edubridge.RequestReturn.mutation, {

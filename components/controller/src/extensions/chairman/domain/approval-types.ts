@@ -1,4 +1,4 @@
-import { t } from '../i18n';
+import { t, t as i18nT } from '../i18n';
 /**
  * Маппинг типов одобрений на заголовки и описания для уведомлений
  */
@@ -32,12 +32,12 @@ export const APPROVAL_TYPE_MAP = {
     description: t('chairman.approvalTypes.result.description'),
   },
   apprvcontr: {
-    title: 'Договор УХД преподавателя',
-    description: 'Требуется подпись председателя на договоре участия преподавателя в хозяйственной деятельности по программе «Образование».',
+    title: i18nT('chairman.approvalTypes.teacherContract.title'),
+    description: i18nT('chairman.approvalTypes.teacherContract.description'),
   },
   apprvannex: {
-    title: 'Приложение к договору УХД на курс',
-    description: 'Требуется подпись председателя на приложении к договору преподавателя — допуск к ведению курса.',
+    title: i18nT('chairman.approvalTypes.courseAnnex.title'),
+    description: i18nT('chairman.approvalTypes.courseAnnex.description'),
   },
 } as const;
 

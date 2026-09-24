@@ -99,7 +99,7 @@ q-card.council-onboarding(flat, :class="{ 'council-onboarding--loading': loading
       BaseBanner.q-mt-sm(v-else-if="dialogDecisionError" variant="neg") {{ dialogDecisionError }}
       //- Документ ещё формируется: текст подставится сам, как только придёт.
       div.council-onboarding__decision-ghost(v-else aria-busy="true")
-        div.text-caption.text-grey-7 Формируем документ…
+        div.text-caption.text-grey-7 {{ $t('ui.councilOnboardingCard.generatingDocumentText') }}
         q-skeleton(v-for="(w, i) in ghostLines" :key="i" type="text" :width="w")
 
     template(#footer)

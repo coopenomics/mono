@@ -1,7 +1,7 @@
-import { CanActivate, ExecutionContext, ForbiddenException, Inject, Injectable } from '@nestjs/common';
+import { CanActivate, ExecutionContext, Inject, Injectable } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { GqlExecutionContext } from '@nestjs/graphql';
-import { hasServerSecret, platformSettings } from '@coopenomics/extension-kit';
+import { hasServerSecret, platformSettings, DomainError } from '@coopenomics/extension-kit';
 import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import { canAccess } from '../access/edubridge-access-matrix';
 import { EDUBRIDGE_ACCESS_METADATA_KEY, type IEdubridgeAccessRequirement } from '../decorators/edubridge-access.decorator';
@@ -49,6 +49,6 @@ export class EdubridgeAccessGuard implements CanActivate {
         Array.isArray(required.action) ? required.action.join('|') : required.action
       } в ${context.getClass()?.name}.${context.getHandler()?.name}`
     );
-    throw new ForbiddenException('Недостаточно прав доступа');
+    throw DomainError.forbidden('EDUBRIDGE_INSUFFICIENT_RIGHTS');
   }
 }

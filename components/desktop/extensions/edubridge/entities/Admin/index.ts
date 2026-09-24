@@ -1,5 +1,6 @@
 import { Mutations, Queries, Zeus } from '@coopenomics/sdk';
 import { client } from 'src/shared/api/client';
+import { t } from '../../i18n';
 
 export type IMemberRow = Queries.Edubridge.Members.IOutput['edubridgeMembers'][number];
 export type IMemberCard = Queries.Edubridge.MemberCard.IOutput['edubridgeMemberCard'];
@@ -10,21 +11,21 @@ export type IAttention = Queries.Edubridge.Attention.IOutput['edubridgeAttention
 
 // Ключи — имена enum'ов схемы (`Zeus.*`): именно их отдаёт и принимает GraphQL.
 export const TASK_STATUS_LABELS: Record<string, { label: string; variant: 'pos' | 'neg' | 'warn' | 'info' | 'neutral' }> = {
-  [Zeus.EduAccessTaskStatus.PENDING]: { label: 'В очереди', variant: 'info' },
-  [Zeus.EduAccessTaskStatus.RUNNING]: { label: 'Выполняется', variant: 'info' },
-  [Zeus.EduAccessTaskStatus.DONE]: { label: 'Выполнена', variant: 'pos' },
-  [Zeus.EduAccessTaskStatus.FAILED]: { label: 'Ошибка', variant: 'neg' },
-  [Zeus.EduAccessTaskStatus.NEEDS_ATTENTION]: { label: 'Требует вмешательства', variant: 'warn' },
+  [Zeus.EduAccessTaskStatus.PENDING]: { label: t('edubridge.accessTask.status.PENDING'), variant: 'info' },
+  [Zeus.EduAccessTaskStatus.RUNNING]: { label: t('edubridge.accessTask.status.RUNNING'), variant: 'info' },
+  [Zeus.EduAccessTaskStatus.DONE]: { label: t('edubridge.accessTask.status.DONE'), variant: 'pos' },
+  [Zeus.EduAccessTaskStatus.FAILED]: { label: t('edubridge.accessTask.status.FAILED'), variant: 'neg' },
+  [Zeus.EduAccessTaskStatus.NEEDS_ATTENTION]: { label: t('edubridge.accessTask.status.NEEDS_ATTENTION'), variant: 'warn' },
 };
 export const TASK_KIND_LABELS: Record<string, string> = {
-  [Zeus.EduAccessTaskKind.GRANT]: 'Выдача',
-  [Zeus.EduAccessTaskKind.REVOKE]: 'Отзыв',
+  [Zeus.EduAccessTaskKind.GRANT]: t('edubridge.accessTask.kind.GRANT'),
+  [Zeus.EduAccessTaskKind.REVOKE]: t('edubridge.accessTask.kind.REVOKE'),
 };
 export const HEALTH_LABELS: Record<string, { label: string; variant: 'pos' | 'neg' | 'warn' | 'neutral' }> = {
-  [Zeus.EduConnectorHealth.UNKNOWN]: { label: 'Не проверялась', variant: 'neutral' },
-  [Zeus.EduConnectorHealth.OK]: { label: 'Работает', variant: 'pos' },
-  [Zeus.EduConnectorHealth.FAILING]: { label: 'Сбоит', variant: 'neg' },
-  [Zeus.EduConnectorHealth.LICENSE_LIMIT]: { label: 'Лимит лицензии', variant: 'warn' },
+  [Zeus.EduConnectorHealth.UNKNOWN]: { label: t('edubridge.connector.health.UNKNOWN'), variant: 'neutral' },
+  [Zeus.EduConnectorHealth.OK]: { label: t('edubridge.connector.health.OK'), variant: 'pos' },
+  [Zeus.EduConnectorHealth.FAILING]: { label: t('edubridge.connector.health.FAILING'), variant: 'neg' },
+  [Zeus.EduConnectorHealth.LICENSE_LIMIT]: { label: t('edubridge.connector.health.LICENSE_LIMIT'), variant: 'warn' },
 };
 
 async function q<T>(query: any, name: string, variables?: Record<string, unknown>): Promise<T> {

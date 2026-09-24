@@ -1,11 +1,11 @@
 <template lang="pug">
-q-page.edu-onboarding(role="region" aria-label="Подключение ЦПП Образование")
+q-page.edu-onboarding(role="region" :aria-label="$t('edubridge.configurePage.ariaLabel')")
   CouncilOnboardingCard(
     :config="config"
     :loading="initialLoading"
     :submitting="submitting"
-    title="Подключение ЦПП «Образование»"
-    subtitle="Совет кооператива утверждает положение о программе, шаблоны оферт родителя-слушателя и преподавателя и шаблон договора участия в хозяйственной деятельности. После этого пайщики смогут вступать по офертам и записываться на курсы."
+    :title="$t('edubridge.configurePage.title')"
+    :subtitle="$t('edubridge.configurePage.subtitle')"
     :completion-title="config.completionTitle"
     :completion-message="config.completionMessage"
     @step-submit="handleStepSubmit"
@@ -23,6 +23,7 @@ import { useSystemStore } from 'src/entities/System/model';
 import { useDesktopStore } from 'src/entities/Desktop/model';
 import { useExtensionCooperativeOnboarding } from 'src/features/CooperativeOnboarding';
 import { CouncilOnboardingCard, type ICouncilOnboardingConfig, type ICouncilOnboardingStep } from 'src/shared/ui/CouncilOnboarding';
+import { t } from '../../i18n';
 
 /**
  * L1 — подключение кооперативом ЦПП «Образование» на платформенном механизме
@@ -45,34 +46,34 @@ const STEP_META: StepMeta[] = [
   {
     id: 'education_provision',
     registryId: Cooperative.Registry.EducationProgramTemplate.registry_id,
-    title: 'Положение о ЦПП «Образование»',
-    description: 'Утверждение Положения о целевой потребительской программе «Образование»',
-    question: 'Об утверждении Положения о ЦПП «Образование»',
-    decisionPrefix: 'Утвердить Положение о ЦПП «Образование»:',
+    title: t('edubridge.configurePage.steps.provision.title'),
+    description: t('edubridge.configurePage.steps.provision.description'),
+    question: t('edubridge.configurePage.steps.provision.question'),
+    decisionPrefix: t('edubridge.configurePage.steps.provision.decisionPrefix'),
   },
   {
     id: 'education_parent_offer_template',
     registryId: Cooperative.Registry.EducationParentOffer.registry_id,
-    title: 'Шаблон оферты родителя-слушателя',
-    description: 'Утверждение шаблона оферты по присоединению родителей-слушателей к ЦПП «Образование»',
-    question: 'Об утверждении шаблона оферты родителя-слушателя по ЦПП «Образование»',
-    decisionPrefix: 'Утвердить шаблон оферты родителя-слушателя по ЦПП «Образование»:',
+    title: t('edubridge.configurePage.steps.parentOffer.title'),
+    description: t('edubridge.configurePage.steps.parentOffer.description'),
+    question: t('edubridge.configurePage.steps.parentOffer.question'),
+    decisionPrefix: t('edubridge.configurePage.steps.parentOffer.decisionPrefix'),
   },
   {
     id: 'education_teacher_offer_template',
     registryId: Cooperative.Registry.EducationTeacherOffer.registry_id,
-    title: 'Шаблон оферты преподавателя',
-    description: 'Утверждение шаблона оферты по присоединению преподавателей к ЦПП «Образование»',
-    question: 'Об утверждении шаблона оферты преподавателя по ЦПП «Образование»',
-    decisionPrefix: 'Утвердить шаблон оферты преподавателя по ЦПП «Образование»:',
+    title: t('edubridge.configurePage.steps.teacherOffer.title'),
+    description: t('edubridge.configurePage.steps.teacherOffer.description'),
+    question: t('edubridge.configurePage.steps.teacherOffer.question'),
+    decisionPrefix: t('edubridge.configurePage.steps.teacherOffer.decisionPrefix'),
   },
   {
     id: 'education_contract_template',
     registryId: Cooperative.Registry.EducationParticipationContract.registry_id,
-    title: 'Шаблон договора участия в хозяйственной деятельности',
-    description: 'Утверждение шаблона договора участия преподавателей в хозяйственной деятельности кооператива',
-    question: 'Об утверждении шаблона договора участия в хозяйственной деятельности (образование)',
-    decisionPrefix: 'Утвердить шаблон договора участия в хозяйственной деятельности (образование):',
+    title: t('edubridge.configurePage.steps.contract.title'),
+    description: t('edubridge.configurePage.steps.contract.description'),
+    question: t('edubridge.configurePage.steps.contract.question'),
+    decisionPrefix: t('edubridge.configurePage.steps.contract.decisionPrefix'),
   },
 ];
 
@@ -108,8 +109,8 @@ const config = computed<ICouncilOnboardingConfig>(() => ({
     status: statusOf(meta.id),
     hash: onboarding.steps.value.find((s) => s.step_key === meta.id)?.hash || null,
   })),
-  completionTitle: 'ЦПП «Образование» подключена!',
-  completionMessage: 'Совет утвердил положение, шаблоны оферт и договора. Пайщики могут вступать по офертам и записываться на курсы.',
+  completionTitle: t('edubridge.configurePage.completionTitle'),
+  completionMessage: t('edubridge.configurePage.completionMessage'),
 }));
 
 // Подключение завершилось → гранты изменились: перечитываем столы без перезагрузки.
@@ -139,7 +140,7 @@ async function handleStepSubmit(step: ICouncilOnboardingStep): Promise<void> {
       question: step.question,
       decision: documentsHtml.value[step.id] || '',
     });
-    SuccessAlert('Проект решения создан и отправлен в Совет.');
+    SuccessAlert(t('edubridge.configurePage.draftSentSuccess'));
   } catch (e) {
     FailAlert(e);
   } finally {
@@ -156,11 +157,11 @@ onMounted(async () => {
     STEP_META.map(async (meta) => {
       try {
         const html = await renderDocument(meta.registryId);
-        if (!html) throw new Error('пустой бланк');
+        if (!html) throw new Error(t('edubridge.error.documentBlankEmpty'));
         documentsHtml.value = { ...documentsHtml.value, [meta.id]: html };
       } catch (e) {
         const reason = e instanceof Error ? e.message : String(e);
-        documentErrors.value = { ...documentErrors.value, [meta.id]: `Документ не удалось сформировать: ${reason}` };
+        documentErrors.value = { ...documentErrors.value, [meta.id]: t('edubridge.configurePage.documentBuildError', { reason }) };
       }
     }),
   );

@@ -5,6 +5,7 @@ import { useSessionStore } from 'src/entities/Session';
 import { useSystemStore } from 'src/entities/System/model';
 import { DigitalDocument } from 'src/shared/lib/document';
 import type { IQuote } from '../../../entities/Learner';
+import { t } from '../../../i18n';
 
 export type ISubscribeInput = Mutations.Edubridge.Subscribe.IInput['data'];
 
@@ -16,7 +17,7 @@ export async function buildConvertStatement(quote: IQuote, courseTitle: string, 
   const session = useSessionStore();
   const system = useSystemStore();
   const username = session.username;
-  if (!username) throw new Error('Пайщик не авторизован');
+  if (!username) throw new Error(t('edubridge.error.notAuthorized'));
   const document = new DigitalDocument();
   await document.generate({
     registry_id: Cooperative.Registry.EducationConvertStatement.registry_id,
@@ -37,9 +38,9 @@ export async function buildConvertStatement(quote: IQuote, courseTitle: string, 
 export async function subscribe(input: Omit<ISubscribeInput, 'document'>, statement: DigitalDocument) {
   const session = useSessionStore();
   const username = session.username;
-  if (!username) throw new Error('Пайщик не авторизован');
+  if (!username) throw new Error(t('edubridge.error.notAuthorized'));
   await statement.sign(username);
-  if (!statement.signedDocument) throw new Error('Не удалось подписать заявление');
+  if (!statement.signedDocument) throw new Error(t('edubridge.error.statementSignFailed'));
   const { [Mutations.Edubridge.Subscribe.name]: result } = await client.Mutation(Mutations.Edubridge.Subscribe.mutation, {
     variables: { data: { ...input, document: statement.signedDocument } },
   });

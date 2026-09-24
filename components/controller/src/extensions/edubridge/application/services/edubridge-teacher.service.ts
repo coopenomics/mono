@@ -1,8 +1,8 @@
-import { BadRequestException, ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import { createHash, randomUUID } from 'crypto';
 import { Cooperative } from 'cooptypes';
-import { platformSettings } from '@coopenomics/extension-kit';
+import { platformSettings, DomainError } from '@coopenomics/extension-kit';
 import {
   COUNCIL_PORT,
   DECISION_TRACKING_PORT,
@@ -53,6 +53,7 @@ import {
   EDUBRIDGE_CONTRIBUTION_DECIDED_EVENT,
   EDUBRIDGE_CONTRIBUTION_SUBMITTED_EVENT,
 } from '../events/edubridge.events';
+import { t } from '../../i18n';
 
 const SHARE_WALLET = 'w.wal.share';
 /** Одно поле vars под все решения о РИД — ядро пишет туда номер и дату последнего решения. */
@@ -122,13 +123,13 @@ export class EdubridgeTeacherService {
   async signContract(coopname: string, teacher: string, document: ISignedDocument, number: string, hourlyRate: string) {
     const existing = await this.teachers.findContract(coopname, teacher);
     if (existing && !RESIGNABLE_CONTRACT.includes(existing.status)) return existing;
-    if (!document.signatures?.some((s) => s.signer === teacher)) throw new BadRequestException('Договор не подписан преподавателем');
+    if (!document.signatures?.some((s) => s.signer === teacher)) throw DomainError.badRequest('EDUBRIDGE_CONTRACT_NOT_SIGNED_BY_TEACHER');
     // Ставку преподаватель называет один раз при подключении. Дальше она
     // определяет и себестоимость курса, и его собственный взнос за занятие,
     // поэтому менять её в одиночку он не может — это делает администратор.
     // Прекращённый договор ставку не держит: новый договор — новые условия.
     if (existing && existing.status !== EduContractStatus.TERMINATED && isPositiveRate(existing.hourly_rate) && existing.hourly_rate !== hourlyRate) {
-      throw new BadRequestException('Ставка часа уже задана: её меняет администратор кооператива');
+      throw DomainError.badRequest('EDUBRIDGE_TEACHER_RATE_ALREADY_SET');
     }
 
     await this.chain.signContract({ coopname, username: teacher, contract_hash: document.hash, contract: document as never });
@@ -208,18 +209,18 @@ export class EdubridgeTeacherService {
   async terminateContract(coopname: string, teacher: string, reason: string): Promise<EdubridgeTeacherContractEntity | null> {
     const c = await this.teachers.findContract(coopname, teacher);
     if (!c || RESIGNABLE_CONTRACT.includes(c.status)) return c;
-    if (!reason?.trim()) throw new BadRequestException('Укажите основание прекращения договора');
+    if (!reason?.trim()) throw DomainError.badRequest('EDUBRIDGE_CONTRACT_TERMINATION_REASON_REQUIRED');
 
     const openAssignments = (await this.teachers.listAssignments(coopname, { teacher })).filter(
       (a) => a.status === EduAssignmentStatus.ACTIVE || a.status === EduAssignmentStatus.PENDING_APPROVAL
     );
-    if (openAssignments.length) throw new BadRequestException('Преподаватель ведёт курсы — сначала закройте его назначения');
+    if (openAssignments.length) throw DomainError.badRequest('EDUBRIDGE_TEACHER_HAS_OPEN_ASSIGNMENTS');
     const openContributions = await this.teachers.listContributions(coopname, { teacher, statuses: OPEN_CONTRIBUTIONS });
-    if (openContributions.length) throw new BadRequestException('По занятиям преподавателя не закрыт расчёт — договор прекращается после него');
+    if (openContributions.length) throw DomainError.badRequest('EDUBRIDGE_TEACHER_HAS_OPEN_CONTRIBUTIONS');
 
     // Ожидающий договор в цепи снимает только отказ председателя.
     if (c.status === EduContractStatus.PENDING_APPROVAL) {
-      throw new BadRequestException('Договор ждёт подписи председателя — прекратить можно действующий договор');
+      throw DomainError.badRequest('EDUBRIDGE_CONTRACT_PENDING_APPROVAL_TERMINATE');
     }
     await this.chain.terminateContract({ coopname, username: teacher, contract_hash: c.contract_hash, reason: reason.trim() });
     c.status = EduContractStatus.TERMINATED;
@@ -231,10 +232,10 @@ export class EdubridgeTeacherService {
 
   private async requireContract(coopname: string, teacher: string): Promise<EdubridgeTeacherContractEntity> {
     const c = await this.teachers.findContract(coopname, teacher);
-    if (!c) throw new BadRequestException('Сначала подпишите договор участия в хозяйственной деятельности');
-    if (c.status === EduContractStatus.PENDING_APPROVAL) throw new BadRequestException('Договор ещё не подписан председателем совета');
-    if (c.status === EduContractStatus.TERMINATED) throw new BadRequestException('Договор прекращён — подпишите его заново');
-    if (c.status !== EduContractStatus.ACTIVE) throw new BadRequestException('Договор отклонён председателем — подпишите его заново');
+    if (!c) throw DomainError.badRequest('EDUBRIDGE_CONTRACT_REQUIRED');
+    if (c.status === EduContractStatus.PENDING_APPROVAL) throw DomainError.badRequest('EDUBRIDGE_CONTRACT_NOT_APPROVED');
+    if (c.status === EduContractStatus.TERMINATED) throw DomainError.badRequest('EDUBRIDGE_CONTRACT_TERMINATED');
+    if (c.status !== EduContractStatus.ACTIVE) throw DomainError.badRequest('EDUBRIDGE_CONTRACT_DECLINED');
     return c;
   }
 
@@ -277,8 +278,8 @@ export class EdubridgeTeacherService {
 
   async createAssignment(coopname: string, input: EduAssignmentInputDTO): Promise<EdubridgeTeacherAssignmentEntity> {
     const course = await this.courses.findById(coopname, input.course_id);
-    if (!course) throw new NotFoundException('Курс не найден');
-    if (input.period_to < input.period_from) throw new BadRequestException('Конец периода раньше начала');
+    if (!course) throw DomainError.notFound('EDUBRIDGE_COURSE_NOT_FOUND');
+    if (input.period_to < input.period_from) throw DomainError.badRequest('EDUBRIDGE_ASSIGNMENT_PERIOD_INVALID');
     await this.assertRateCovered(coopname, input.teacher_username.trim(), course);
     const entity = this.teachers.createAssignment({
       coopname,
@@ -304,7 +305,7 @@ export class EdubridgeTeacherService {
   private async assertRateCovered(coopname: string, teacher: string, course: EdubridgeCourseEntity): Promise<void> {
     const contract = await this.teachers.findContract(coopname, teacher);
     const error = rateCoverageError(contract?.hourly_rate, course.planned_hourly_rate);
-    if (error) throw new BadRequestException(error);
+    if (error) throw error;
   }
 
   /**
@@ -324,7 +325,7 @@ export class EdubridgeTeacherService {
         teacher_username: teacher,
         course_id: course.id,
         schedule: course.schedule ?? '',
-        expected_result: `Проведение занятий курса «${course.title}» по его учебной программе`,
+        expected_result: t('edubridge.teacher.assignmentExpectedResult', { courseTitle: course.title }),
         period_from: period.from,
         period_to: period.to,
       } as EduAssignmentInputDTO);
@@ -352,7 +353,7 @@ export class EdubridgeTeacherService {
 
   async closeAssignment(coopname: string, id: string): Promise<EdubridgeTeacherAssignmentEntity> {
     const a = await this.teachers.findAssignment(coopname, id);
-    if (!a) throw new NotFoundException('Назначение не найдено');
+    if (!a) throw DomainError.notFound('EDUBRIDGE_ASSIGNMENT_NOT_FOUND');
     a.status = EduAssignmentStatus.CLOSED;
     return this.teachers.saveAssignment(a);
   }
@@ -365,14 +366,14 @@ export class EdubridgeTeacherService {
   async signAnnex(coopname: string, teacher: string, assignmentId: string, document: ISignedDocument): Promise<EdubridgeTeacherAssignmentEntity> {
     await this.requireContract(coopname, teacher);
     const a = await this.teachers.findAssignment(coopname, assignmentId);
-    if (!a) throw new NotFoundException('Назначение не найдено');
-    if (a.teacher_username !== teacher) throw new ForbiddenException('Назначение выдано другому преподавателю');
+    if (!a) throw DomainError.notFound('EDUBRIDGE_ASSIGNMENT_NOT_FOUND');
+    if (a.teacher_username !== teacher) throw DomainError.forbidden('EDUBRIDGE_ASSIGNMENT_FOREIGN');
     if (a.status !== EduAssignmentStatus.DRAFT && a.status !== EduAssignmentStatus.DECLINED) {
-      throw new BadRequestException('Приложение по этому назначению уже подписано');
+      throw DomainError.badRequest('EDUBRIDGE_ANNEX_ALREADY_SIGNED');
     }
-    if (!document.signatures?.some((s) => s.signer === teacher)) throw new BadRequestException('Приложение не подписано преподавателем');
+    if (!document.signatures?.some((s) => s.signer === teacher)) throw DomainError.badRequest('EDUBRIDGE_ANNEX_NOT_SIGNED_BY_TEACHER');
     const course = await this.courses.findById(coopname, a.course_id);
-    if (!course) throw new NotFoundException('Курс назначения не найден');
+    if (!course) throw DomainError.notFound('EDUBRIDGE_ASSIGNMENT_COURSE_NOT_FOUND');
 
     await this.chain.signAnnex({
       coopname,
@@ -451,7 +452,7 @@ export class EdubridgeTeacherService {
         rid_hash: ridHash,
         rid_type: EduRidType.LESSON_RECORDING,
         links: lesson.materials,
-        description: lesson.topic || `Занятие № ${lesson.lesson_number} курса «${course.title}»`,
+        description: lesson.topic || t('edubridge.teacher.lessonContributionDescription', { lessonNumber: lesson.lesson_number, courseTitle: course.title }),
         amount,
         lesson_id: lesson.id,
         // Гарантийный срок — один на курс, от даты начала занятий: пока он
@@ -478,15 +479,15 @@ export class EdubridgeTeacherService {
   private async lessonContext(coopname: string, teacher: string, input: EduLessonReportInputDTO) {
     const contract = await this.requireContract(coopname, teacher);
     const assignment = await this.teachers.findAssignment(coopname, input.assignment_id);
-    if (!assignment || assignment.teacher_username !== teacher) throw new NotFoundException('Назначение не найдено');
+    if (!assignment || assignment.teacher_username !== teacher) throw DomainError.notFound('EDUBRIDGE_ASSIGNMENT_NOT_FOUND');
     if (assignment.status !== EduAssignmentStatus.ACTIVE) {
-      throw new BadRequestException('Назначение не активно — подпишите приложение к договору');
+      throw DomainError.badRequest('EDUBRIDGE_ASSIGNMENT_NOT_ACTIVE');
     }
 
     const course = await this.courses.findById(coopname, assignment.course_id);
-    if (!course) throw new NotFoundException('Курс не найден');
+    if (!course) throw DomainError.notFound('EDUBRIDGE_COURSE_NOT_FOUND');
     if (input.lesson_number < 1 || input.lesson_number > course.lessons_total) {
-      throw new BadRequestException(`Занятие вне плана курса: в программе ${course.lessons_total} занятий`);
+      throw DomainError.badRequest('EDUBRIDGE_LESSON_OUT_OF_PLAN', { lessonsTotal: course.lessons_total });
     }
     this.assertLessonReport(input, course, assignment);
 
@@ -503,7 +504,7 @@ export class EdubridgeTeacherService {
     if (!lesson) return null;
     const contribution = lesson.contribution_id ? await this.teachers.findContribution(coopname, lesson.contribution_id) : null;
     if (contribution && contribution.status !== EduContributionStatus.DECLINED) {
-      throw new BadRequestException(`Отчёт по занятию № ${lessonNumber} уже подан`);
+      throw DomainError.badRequest('EDUBRIDGE_LESSON_REPORT_ALREADY_SUBMITTED', { lessonNumber });
     }
     return { lesson, contribution };
   }
@@ -512,12 +513,12 @@ export class EdubridgeTeacherService {
   private assertLessonReport(input: EduLessonReportInputDTO, course: EdubridgeCourseEntity, assignment: EdubridgeTeacherAssignmentEntity): void {
     const maxMinutes = course.lesson_minutes * MAX_LESSON_STRETCH;
     if (input.duration_minutes && input.duration_minutes > maxMinutes) {
-      throw new BadRequestException(`Занятие по курсу длится ${course.lesson_minutes} мин — в отчёте не больше ${maxMinutes} мин`);
+      throw DomainError.badRequest('EDUBRIDGE_LESSON_DURATION_TOO_LONG', { lessonMinutes: course.lesson_minutes, maxMinutes });
     }
     if (input.held_at) {
       const heldAt = new Date(input.held_at);
-      if (heldAt.getTime() > Date.now() + CLOCK_SKEW_MS) throw new BadRequestException('Отчёт подаётся после занятия: дата занятия ещё не наступила');
-      if (heldAt < new Date(assignment.period_from)) throw new BadRequestException('Дата занятия раньше начала периода назначения');
+      if (heldAt.getTime() > Date.now() + CLOCK_SKEW_MS) throw DomainError.badRequest('EDUBRIDGE_LESSON_REPORT_TOO_EARLY');
+      if (heldAt < new Date(assignment.period_from)) throw DomainError.badRequest('EDUBRIDGE_LESSON_BEFORE_ASSIGNMENT_PERIOD');
     }
   }
 
@@ -552,7 +553,7 @@ export class EdubridgeTeacherService {
    */
   async storageAct(coopname: string, teacher: string, contributionId: string): Promise<InnerGeneratedDocument> {
     const c = await this.ownContribution(coopname, teacher, contributionId);
-    if (c.status !== EduContributionStatus.DRAFT) throw new BadRequestException('Материалы занятия уже приняты на ответственное хранение');
+    if (c.status !== EduContributionStatus.DRAFT) throw DomainError.badRequest('EDUBRIDGE_CONTRIBUTION_ALREADY_HELD');
     const { lesson, course } = await this.holdContext(coopname, c);
     // Акт называет конец гарантийного срока курса — дату, с которой согласился
     // преподаватель; она же уйдёт в цепь.
@@ -585,13 +586,13 @@ export class EdubridgeTeacherService {
    */
   async holdContribution(coopname: string, teacher: string, contributionId: string, document: ISignedDocument): Promise<EdubridgeContributionEntity> {
     const c = await this.ownContribution(coopname, teacher, contributionId);
-    if (c.status !== EduContributionStatus.DRAFT) throw new BadRequestException('Материалы занятия уже приняты на ответственное хранение');
+    if (c.status !== EduContributionStatus.DRAFT) throw DomainError.badRequest('EDUBRIDGE_CONTRIBUTION_ALREADY_HELD');
     const { course } = await this.holdContext(coopname, c);
     const holdUntil = c.hold_until ?? this.guaranteeEnd(course);
     // Акт называет другую дату, чем срок курса сейчас: курс активировали либо
     // сдвинули после формирования акта.
     if (Math.abs(this.guaranteeEnd(course).getTime() - holdUntil.getTime()) > DAY_MS) {
-      throw new BadRequestException('Акт передачи материалов устарел — сформируйте и подпишите его заново');
+      throw DomainError.badRequest('EDUBRIDGE_TRANSFER_ACT_STALE');
     }
 
     await this.chain.holdRid({
@@ -614,11 +615,11 @@ export class EdubridgeTeacherService {
 
   /** Занятие и курс, по которым оформлены материалы. */
   private async holdContext(coopname: string, c: EdubridgeContributionEntity) {
-    if (!c.lesson_id) throw new BadRequestException('Взнос оформлен вне журнала занятий');
+    if (!c.lesson_id) throw DomainError.badRequest('EDUBRIDGE_CONTRIBUTION_WITHOUT_LESSON');
     const lesson = await this.lessons.findById(coopname, c.lesson_id);
-    if (!lesson) throw new NotFoundException('Занятие не найдено');
+    if (!lesson) throw DomainError.notFound('EDUBRIDGE_LESSON_NOT_FOUND');
     const course = await this.courses.findById(coopname, lesson.course_id);
-    if (!course) throw new NotFoundException('Курс не найден');
+    if (!course) throw DomainError.notFound('EDUBRIDGE_COURSE_NOT_FOUND');
     return { lesson, course };
   }
 
@@ -644,13 +645,11 @@ export class EdubridgeTeacherService {
   async submitContribution(coopname: string, teacher: string, contributionId: string, document: ISignedDocument): Promise<EdubridgeContributionEntity> {
     const c = await this.ownContribution(coopname, teacher, contributionId);
     if (c.status !== EduContributionStatus.HELD) {
-      throw new BadRequestException(
-        c.status === EduContributionStatus.DRAFT
-          ? 'Материалы занятия ещё не приняты на ответственное хранение'
-          : 'Взнос уже подан'
+      throw DomainError.badRequest(
+        c.status === EduContributionStatus.DRAFT ? 'EDUBRIDGE_CONTRIBUTION_NOT_HELD' : 'EDUBRIDGE_CONTRIBUTION_ALREADY_SUBMITTED'
       );
     }
-    if (c.statement_document) throw new BadRequestException('Заявление по этим материалам уже подписано');
+    if (c.statement_document) throw DomainError.badRequest('EDUBRIDGE_STATEMENT_ALREADY_SIGNED');
 
     // Гарантийный срок материалов ещё идёт: подписанное заявление держится
     // здесь и уходит в совет само по истечении срока. Преподаватель подписывает
@@ -705,12 +704,12 @@ export class EdubridgeTeacherService {
     // Решение совета — платформенный проект свободного решения; по принятию ядро
     // эмитит DecisionTrackedEvent с нашими метаданными.
     const projectId = randomUUID();
-    const title = `Приём паевого взноса РИД преподавателя ${teacher} на ${c.amount}`;
+    const title = t('edubridge.teacher.ridDecision.title', { teacher, amount: c.amount });
     await this.freeDecisions.createProjectOfFreeDecision({
       id: projectId,
       title,
-      question: `О приёме паевого взноса результатом интеллектуальной деятельности от ${teacher}`,
-      decision: `Принять паевой взнос результатом интеллектуальной деятельности (${c.rid_type}) от ${teacher} на сумму ${c.amount} по заявлению ${c.statement_hash}.`,
+      question: t('edubridge.teacher.ridDecision.question', { teacher }),
+      decision: t('edubridge.teacher.ridDecision.decision', { ridType: c.rid_type, teacher, amount: c.amount, statementHash: c.statement_hash }),
     });
     const project = await this.freeDecisions.generateProjectOfFreeDecisionDocument(
       { project_id: projectId, coopname, username: await this.chairman(coopname), registry_id: Cooperative.Registry.ProjectFreeDecision.registry_id, title },
@@ -744,9 +743,9 @@ export class EdubridgeTeacherService {
    */
   async revokeHeldContribution(coopname: string, contributionId: string, reason: string): Promise<EdubridgeContributionEntity> {
     const c = await this.teachers.findContribution(coopname, contributionId);
-    if (!c) throw new NotFoundException('Взнос не найден');
+    if (!c) throw DomainError.notFound('EDUBRIDGE_CONTRIBUTION_NOT_FOUND');
     if (c.status !== EduContributionStatus.HELD && c.status !== EduContributionStatus.DRAFT) {
-      throw new BadRequestException('Заявление уже отправлено в совет — снять его нельзя');
+      throw DomainError.badRequest('EDUBRIDGE_STATEMENT_ALREADY_IN_COUNCIL');
     }
 
     // Материалы на ответственном хранении снимаются проводкой (Дт 76 / Кт 08):
@@ -833,7 +832,7 @@ export class EdubridgeTeacherService {
   /** Акт приёма-передачи (3010) без подписи — после решения совета. */
   async act(coopname: string, teacher: string, contributionId: string): Promise<InnerGeneratedDocument> {
     const c = await this.ownContribution(coopname, teacher, contributionId);
-    if (c.status !== EduContributionStatus.COUNCIL_APPROVED) throw new BadRequestException('Акт доступен после решения совета');
+    if (c.status !== EduContributionStatus.COUNCIL_APPROVED) throw DomainError.badRequest('EDUBRIDGE_ACT_BEFORE_COUNCIL_DECISION');
     const action: Cooperative.Registry.EducationRidAct.Action = {
       registry_id: Cooperative.Registry.EducationRidAct.registry_id,
       coopname,
@@ -850,8 +849,8 @@ export class EdubridgeTeacherService {
   /** Преподаватель подписал акт: сохраняем документ и ждём подпись председателя на нём же. */
   async signAct(coopname: string, teacher: string, contributionId: string, act: ISignedDocument): Promise<EdubridgeContributionEntity> {
     const c = await this.ownContribution(coopname, teacher, contributionId);
-    if (c.status !== EduContributionStatus.COUNCIL_APPROVED) throw new BadRequestException('Акт доступен после решения совета');
-    if (!act.signatures?.some((s) => s.signer === teacher)) throw new BadRequestException('Акт не подписан преподавателем');
+    if (c.status !== EduContributionStatus.COUNCIL_APPROVED) throw DomainError.badRequest('EDUBRIDGE_ACT_BEFORE_COUNCIL_DECISION');
+    if (!act.signatures?.some((s) => s.signer === teacher)) throw DomainError.badRequest('EDUBRIDGE_ACT_NOT_SIGNED_BY_TEACHER');
     c.act_hash = act.hash.toLowerCase();
     c.act_signed = act as unknown as Record<string, unknown>;
     c.status = EduContributionStatus.ACT_SIGNED;
@@ -863,10 +862,10 @@ export class EdubridgeTeacherService {
   /** Агрегат акта для второй подписи: тот же документ, без перегенерации. */
   async actSignablePayload(coopname: string, contributionId: string): Promise<InnerDocumentAggregate> {
     const c = await this.teachers.findContribution(coopname, contributionId);
-    if (!c) throw new NotFoundException('Взнос не найден');
-    if (c.status !== EduContributionStatus.ACT_SIGNED || !c.act_signed) throw new BadRequestException('Акт ещё не подписан преподавателем');
+    if (!c) throw DomainError.notFound('EDUBRIDGE_CONTRIBUTION_NOT_FOUND');
+    if (c.status !== EduContributionStatus.ACT_SIGNED || !c.act_signed) throw DomainError.badRequest('EDUBRIDGE_ACT_NOT_YET_SIGNED_BY_TEACHER');
     const aggregate = await this.documents.buildAggregate(c.act_signed as unknown as ISignedDocument);
-    if (!aggregate) throw new NotFoundException('Акт не найден в реестре документов');
+    if (!aggregate) throw DomainError.notFound('EDUBRIDGE_ACT_NOT_IN_REGISTRY');
     return aggregate;
   }
 
@@ -876,12 +875,12 @@ export class EdubridgeTeacherService {
    */
   async acceptContribution(coopname: string, chairman: string, contributionId: string, act: ISignedDocument): Promise<EdubridgeContributionEntity> {
     const c = await this.teachers.findContribution(coopname, contributionId);
-    if (!c) throw new NotFoundException('Взнос не найден');
-    if (c.status !== EduContributionStatus.ACT_SIGNED) throw new BadRequestException('Акт ещё не подписан преподавателем');
-    if (act.hash.toLowerCase() !== c.act_hash) throw new BadRequestException('Подписан другой документ: хэш акта не совпадает');
+    if (!c) throw DomainError.notFound('EDUBRIDGE_CONTRIBUTION_NOT_FOUND');
+    if (c.status !== EduContributionStatus.ACT_SIGNED) throw DomainError.badRequest('EDUBRIDGE_ACT_NOT_YET_SIGNED_BY_TEACHER');
+    if (act.hash.toLowerCase() !== c.act_hash) throw DomainError.badRequest('EDUBRIDGE_ACT_HASH_MISMATCH');
     const signers = new Set((act.signatures ?? []).map((s) => s.signer));
     if (!signers.has(c.teacher_username) || !signers.has(chairman)) {
-      throw new BadRequestException('На акте должны быть подписи преподавателя и председателя');
+      throw DomainError.badRequest('EDUBRIDGE_ACT_SIGNATURES_REQUIRED');
     }
     const decision = await this.documents.generate({
       data: {
@@ -922,11 +921,11 @@ export class EdubridgeTeacherService {
 
   async decline(coopname: string, contributionId: string, reason: string): Promise<EdubridgeContributionEntity> {
     const c = await this.teachers.findContribution(coopname, contributionId);
-    if (!c) throw new NotFoundException('Взнос не найден');
+    if (!c) throw DomainError.notFound('EDUBRIDGE_CONTRIBUTION_NOT_FOUND');
     if (![EduContributionStatus.SUBMITTED, EduContributionStatus.COUNCIL_APPROVED, EduContributionStatus.ACT_SIGNED].includes(c.status)) {
-      throw new BadRequestException('Отклонить можно только поданный взнос');
+      throw DomainError.badRequest('EDUBRIDGE_CONTRIBUTION_DECLINE_NOT_SUBMITTED');
     }
-    if (!reason?.trim()) throw new BadRequestException('Укажите основание отказа');
+    if (!reason?.trim()) throw DomainError.badRequest('EDUBRIDGE_CONTRIBUTION_DECLINE_REASON_REQUIRED');
     if (c.council_decision_id) {
       // Решение совета есть, приём не состоялся: заявление закрывается его протоколом.
       const decision = await this.documents.generate({
@@ -946,7 +945,7 @@ export class EdubridgeTeacherService {
     } else {
       // Совет решения не принял — отрицательного протокола у него не бывает.
       // Материалы снимаются с хранения с основанием (Дт 76 / Кт 08).
-      await this.chain.recallRid({ coopname, rid_hash: c.rid_hash, reason: `совет не принял решение о приёме: ${reason.trim()}` } as never);
+      await this.chain.recallRid({ coopname, rid_hash: c.rid_hash, reason: t('edubridge.teacher.ridRecallReason', { reason: reason.trim() }) } as never);
     }
     c.decline_reason = reason;
     c.status = EduContributionStatus.DECLINED;
@@ -972,8 +971,8 @@ export class EdubridgeTeacherService {
 
   private async ownContribution(coopname: string, teacher: string, id: string): Promise<EdubridgeContributionEntity> {
     const c = await this.teachers.findContribution(coopname, id);
-    if (!c) throw new NotFoundException('Взнос не найден');
-    if (c.teacher_username !== teacher) throw new ForbiddenException('Взнос принадлежит другому преподавателю');
+    if (!c) throw DomainError.notFound('EDUBRIDGE_CONTRIBUTION_NOT_FOUND');
+    if (c.teacher_username !== teacher) throw DomainError.forbidden('EDUBRIDGE_CONTRIBUTION_FOREIGN');
     return c;
   }
 
@@ -1001,9 +1000,15 @@ function chainAssignmentId(c: EdubridgeContributionEntity): number {
  * плановой ставки курса, и ставка выше неё резервом выплат не обеспечена.
  * Текст отказа либо `null`. Одна проверка для назначения и для формы курса.
  */
-export function rateCoverageError(contractRate: string | null | undefined, plannedRate: string | null | undefined): string | null {
+export function rateCoverageError(
+  contractRate: string | null | undefined,
+  plannedRate: string | null | undefined,
+  teacher?: string
+): DomainError | null {
   if (rateValue(contractRate) <= rateValue(plannedRate)) return null;
-  return `Ставка преподавателя ${contractRate} выше плановой ставки курса ${plannedRate}: взносы учеников её не покрывают. Поднимите плановую ставку курса либо назначьте преподавателя с меньшей ставкой`;
+  return teacher
+    ? DomainError.badRequest('EDUBRIDGE_COURSE_TEACHER_RATE_NOT_COVERED', { teacher, contractRate, plannedRate })
+    : DomainError.badRequest('EDUBRIDGE_TEACHER_RATE_NOT_COVERED', { contractRate, plannedRate });
 }
 
 /**

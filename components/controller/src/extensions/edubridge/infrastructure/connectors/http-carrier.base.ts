@@ -1,4 +1,5 @@
 import type { ConnectorResult } from '../../domain/connectors/access-carrier.connector';
+import { t } from '../../i18n';
 
 /** Таймаут одного обращения к площадке. */
 export const CARRIER_HTTP_TIMEOUT_MS = 15_000;
@@ -17,6 +18,7 @@ export interface HttpCallResult {
  */
 export async function httpCall(url: string, init: RequestInit): Promise<HttpCallResult> {
   const controller = new AbortController();
+  // timing: timeout — предел ожидания ответа площадки, зависший запрос обрывается.
   const timer = setTimeout(() => controller.abort(), CARRIER_HTTP_TIMEOUT_MS);
   try {
     const res = await fetch(url, { ...init, signal: controller.signal });
@@ -35,7 +37,7 @@ export async function httpCall(url: string, init: RequestInit): Promise<HttpCall
 
 export function classifyHttpFailure(e: unknown): ConnectorResult {
   const message = e instanceof Error ? e.message : String(e);
-  return { code: 'retryable', message: `Площадка недоступна: ${message}` };
+  return { code: 'retryable', message: t('edubridge.httpCarrier.platformUnavailable', { message }) };
 }
 
 export function classifyStatus(status: number, text: string): ConnectorResult {

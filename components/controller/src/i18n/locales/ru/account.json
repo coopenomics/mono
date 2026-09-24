@@ -106,9 +106,17 @@
       "fieldShortNameRequired": "Поле \"short_name\" обязательно для заполнения.",
       "fieldTypeRequired": "Поле \"type\" обязательно для заполнения.",
       "fieldUsernameRequired": "Поле \"username\" обязательно для заполнения."
+    },
+    "uploadAvatarInput": {
+      "contentRequired": "Файл фотографии пуст",
+      "mimeTypeInvalid": "Фотография принимается в JPEG, PNG или WEBP"
     }
   },
   "errors": {
+    "ACCOUNT_AVATAR_EMPTY": "Пустой файл фотографии",
+    "ACCOUNT_AVATAR_MEMBER_NOT_FOUND": "Пайщик {username} не найден",
+    "ACCOUNT_AVATAR_TOO_LARGE": "Фотография больше {maxMegabytes} МБ",
+    "ACCOUNT_AVATAR_UNSUPPORTED_TYPE": "Фотография принимается в JPEG, PNG или WEBP",
     "ACCOUNT_BLOCKCHAIN_REGISTRATION_FAILED": "Ошибка при регистрации в блокчейне: {errorMessage}",
     "ACCOUNT_CANDIDATE_NOT_FOUND": "Кандидат с именем {username} не найден",
     "ACCOUNT_DATA_CHANGED_AFTER_SIGNING": "Данные пайщика изменены после подписания заявления. Пожалуйста, переподпишите заявление перед регистрацией.",

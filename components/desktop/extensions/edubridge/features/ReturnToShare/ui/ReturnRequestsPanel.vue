@@ -17,24 +17,24 @@ div
       .t-meta.t-muted(v-if="row.decline_reason") {{ row.decline_reason }}
     template(#cell-actions="{ row }")
       .row.no-wrap.justify-end.q-gutter-xs(v-if="isPending(row)")
-        BaseButton(variant="primary" size="sm" :loading="busyId === row.id" @click="onApprove(row)") Согласовать
-        BaseButton(variant="ghost" size="sm" :disabled="busyId === row.id" @click="openDecline(row)") Отклонить
+        BaseButton(variant="primary" size="sm" :loading="busyId === row.id" @click="onApprove(row)") {{ $t('edubridge.returnRequestsPanel.approve') }}
+        BaseButton(variant="ghost" size="sm" :disabled="busyId === row.id" @click="openDecline(row)") {{ $t('edubridge.returnRequestsPanel.decline') }}
 
   EmptyState(
     v-if="!firstLoad && !requests.length"
-    title="Заявлений нет"
-    body="Здесь появляются заявления пайщиков о прекращении участия в программе."
+    :title="$t('edubridge.returnRequestsPanel.emptyTitle')"
+    :body="$t('edubridge.returnRequestsPanel.emptyBody')"
   )
     template(#icon)
       q-icon(name="undo" size="32px")
 
-  BaseDialog(v-model="declineOpen" title="Отклонить заявление" size="sm")
+  BaseDialog(v-model="declineOpen" :title="$t('edubridge.returnRequestsPanel.declineDialogTitle')" size="sm")
     BaseForm(:loading="declineBusy" @submit="onDecline")
-      BaseInput(v-model="declineReason" label="Причина отказа" type="textarea" :rows="2" required)
+      BaseInput(v-model="declineReason" :label="$t('edubridge.returnRequestsPanel.declineReasonLabel')" type="textarea" :rows="2" required)
       template(#footer)
         .row.justify-end.q-gutter-sm
-          BaseButton(variant="ghost" type="button" :disabled="declineBusy" @click="declineOpen = false") Отменить
-          BaseButton(variant="danger" type="submit" :loading="declineBusy") Отклонить
+          BaseButton(variant="ghost" type="button" :disabled="declineBusy" @click="declineOpen = false") {{ $t('edubridge.returnRequestsPanel.cancel') }}
+          BaseButton(variant="danger" type="submit" :loading="declineBusy") {{ $t('edubridge.returnRequestsPanel.decline') }}
 </template>
 
 <script setup lang="ts">
@@ -50,6 +50,7 @@ import { approveReturn, declineReturn, fetchReturnRequests } from '../api';
 import { RETURN_STATUS_LABELS, type IReturnRequest } from '../model';
 import { useLiveReload } from 'src/shared/lib/realtime';
 import { EduLive } from '../../../shared/lib/live';
+import { t } from '../../../i18n';
 
 /**
  * Согласование заявлений о прекращении участия в программе: Положение ЦПП
@@ -70,10 +71,10 @@ const declineTarget = ref<IReturnRequest | null>(null);
 const { confirm } = useConfirm();
 
 const columns: BaseTableColumn<IReturnRequest>[] = [
-  { key: 'created_at', label: 'Подано', width: '120px', nowrap: true },
-  { key: 'member_username', label: 'Пайщик' },
-  { key: 'amount', label: 'В паевой', numeric: true, width: '150px', nowrap: true },
-  { key: 'status', label: 'Состояние', width: '220px' },
+  { key: 'created_at', label: t('edubridge.returnRequestsPanel.columns.submitted'), width: '120px', nowrap: true },
+  { key: 'member_username', label: t('edubridge.returnRequestsPanel.columns.member') },
+  { key: 'amount', label: t('edubridge.returnRequestsPanel.columns.amount'), numeric: true, width: '150px', nowrap: true },
+  { key: 'status', label: t('edubridge.returnRequestsPanel.columns.status'), width: '220px' },
   { key: 'actions', label: '', align: 'right', width: '230px' },
 ];
 
@@ -99,15 +100,15 @@ function replace(updated: IReturnRequest): void {
 
 async function onApprove(row: IReturnRequest): Promise<void> {
   const ok = await confirm({
-    title: 'Согласовать прекращение участия?',
-    message: `Подписки пайщика закроются с возвратом по Положению, весь остаток кошелька программы перейдёт в его паевой взнос (на день подачи — ${formatAsset2Digits(row.amount)}).`,
-    confirmLabel: 'Согласовать',
+    title: t('edubridge.returnRequestsPanel.approveConfirmTitle'),
+    message: t('edubridge.returnRequestsPanel.approveConfirmMessage', { amount: formatAsset2Digits(row.amount) }),
+    confirmLabel: t('edubridge.returnRequestsPanel.approve'),
   });
   if (!ok) return;
   busyId.value = asText(row.id);
   try {
     replace(await approveReturn(asText(row.id)));
-    SuccessAlert('Участие прекращено, остаток переведён в паевой взнос');
+    SuccessAlert(t('edubridge.returnRequestsPanel.approveSuccess'));
   } catch (e) {
     FailAlert(e);
   } finally {

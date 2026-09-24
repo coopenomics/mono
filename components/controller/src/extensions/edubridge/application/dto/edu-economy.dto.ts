@@ -1,5 +1,6 @@
 import { Field, Float, InputType, Int, ObjectType } from '@nestjs/graphql';
 import { IsBoolean, IsInt, IsNumber, IsOptional, IsString, Length, Matches, Max, Min } from 'class-validator';
+import { validationMessage } from '@coopenomics/extension-kit';
 
 /** Сумма в формате цепи: «1000.0000 RUB». */
 const ASSET_PATTERN = /^\d+\.\d{4} [A-Z]{1,7}$/;
@@ -31,7 +32,7 @@ export class EduSetTeacherRateInputDTO {
   username!: string;
 
   @Field(() => String, { description: 'Ставка часа («1000.0000 RUB»)' })
-  @Matches(ASSET_PATTERN, { message: 'Ставка должна быть в формате «1000.0000 RUB»' })
+  @Matches(ASSET_PATTERN, { message: validationMessage('edubridge.eduSetTeacherRateInput.hourlyRate.format') })
   hourly_rate!: string;
 }
 
@@ -57,7 +58,7 @@ export class EduCourseEconomyInputDTO {
   lesson_minutes!: number;
 
   @Field(() => String, { description: 'Плановая ставка часа по программе («1000.0000 RUB»)' })
-  @Matches(ASSET_PATTERN, { message: 'Ставка должна быть в формате «1000.0000 RUB»' })
+  @Matches(ASSET_PATTERN, { message: validationMessage('edubridge.eduCourseEconomyInput.plannedHourlyRate.format') })
   planned_hourly_rate!: string;
 
   @Field(() => Boolean, { nullable: true, description: 'Принимать взнос за весь курс разом; иначе взнос только помесячный' })

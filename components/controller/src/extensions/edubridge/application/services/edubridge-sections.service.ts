@@ -1,7 +1,9 @@
-import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import type { EdubridgeLevelEntity, EdubridgeSectionEntity } from '../../infrastructure/entities';
 import { EdubridgeSectionRepository } from '../../infrastructure/repositories/edubridge-section.repository';
 import type { EduReorderInputDTO, EduSaveLevelInputDTO, EduSaveSectionInputDTO, EduSectionsFilterInputDTO } from '../dto/edu-section.dto';
+import { t } from '../../i18n';
+import { DomainError } from '@coopenomics/extension-kit';
 
 export interface SectionWithLevels {
   section: EdubridgeSectionEntity;
@@ -35,15 +37,15 @@ export class EdubridgeSectionsService {
 
   async saveSection(coopname: string, input: EduSaveSectionInputDTO): Promise<SectionWithLevels> {
     const title = clean(input.title);
-    if (!title) throw new BadRequestException('Название раздела пустое');
+    if (!title) throw DomainError.badRequest('EDUBRIDGE_SECTION_TITLE_EMPTY');
     const same = await this.repo.findSectionByTitle(coopname, title);
     if (same && same.id !== input.id) {
       if (!input.id) return this.withLevels(same); // ввод существующего названия — тот же раздел
-      throw new ConflictException(`Раздел «${same.title}» уже есть`);
+      throw DomainError.conflict('EDUBRIDGE_SECTION_ALREADY_EXISTS', { title: same.title });
     }
     if (input.id) {
       const section = await this.repo.findSection(coopname, input.id);
-      if (!section) throw new NotFoundException('Раздел не найден');
+      if (!section) throw DomainError.notFound('EDUBRIDGE_SECTION_NOT_FOUND');
       section.title = title;
       return this.withLevels(await this.repo.saveSection(section));
     }
@@ -53,17 +55,17 @@ export class EdubridgeSectionsService {
 
   async saveLevel(coopname: string, input: EduSaveLevelInputDTO): Promise<EdubridgeLevelEntity> {
     const title = clean(input.title);
-    if (!title) throw new BadRequestException('Название уровня пустое');
+    if (!title) throw DomainError.badRequest('EDUBRIDGE_LEVEL_TITLE_EMPTY');
     const section = await this.repo.findSection(coopname, input.section_id);
-    if (!section) throw new NotFoundException('Раздел не найден');
+    if (!section) throw DomainError.notFound('EDUBRIDGE_SECTION_NOT_FOUND');
     const same = await this.repo.findLevelByTitle(section.id, title);
     if (same && same.id !== input.id) {
       if (!input.id) return same;
-      throw new ConflictException(`Уровень «${same.title}» в разделе «${section.title}» уже есть`);
+      throw DomainError.conflict('EDUBRIDGE_LEVEL_ALREADY_EXISTS', { title: same.title, sectionTitle: section.title });
     }
     if (input.id) {
       const level = await this.repo.findLevel(coopname, input.id);
-      if (!level || level.section_id !== section.id) throw new NotFoundException('Уровень не найден');
+      if (!level || level.section_id !== section.id) throw DomainError.notFound('EDUBRIDGE_LEVEL_NOT_FOUND');
       level.title = title;
       return this.repo.saveLevel(level);
     }
@@ -74,14 +76,14 @@ export class EdubridgeSectionsService {
   async reorder(coopname: string, input: EduReorderInputDTO): Promise<SectionWithLevels[]> {
     if (input.section_id) {
       const levels = await this.repo.levelsOf(input.section_id);
-      assertSameSet(levels.map((l) => l.id), input.ids, 'уровни раздела');
+      assertSameSet(levels.map((l) => l.id), input.ids, t('edubridge.sections.reorderItems.levels'));
       for (const [i, id] of input.ids.entries()) {
         const level = levels.find((l) => l.id === id)!;
         if (level.sort_order !== i) await this.repo.saveLevel({ ...level, sort_order: i });
       }
     } else {
       const sections = await this.repo.list(coopname);
-      assertSameSet(sections.map((s) => s.id), input.ids, 'разделы');
+      assertSameSet(sections.map((s) => s.id), input.ids, t('edubridge.sections.reorderItems.sections'));
       for (const [i, id] of input.ids.entries()) {
         const section = sections.find((s) => s.id === id)!;
         if (section.sort_order !== i) await this.repo.saveSection({ id: section.id, coopname, title: section.title, sort_order: i, archived: section.archived });
@@ -92,14 +94,14 @@ export class EdubridgeSectionsService {
 
   async archiveSection(coopname: string, id: string, archived: boolean): Promise<SectionWithLevels> {
     const section = await this.repo.findSection(coopname, id);
-    if (!section) throw new NotFoundException('Раздел не найден');
+    if (!section) throw DomainError.notFound('EDUBRIDGE_SECTION_NOT_FOUND');
     section.archived = archived;
     return this.withLevels(await this.repo.saveSection(section));
   }
 
   async archiveLevel(coopname: string, id: string, archived: boolean): Promise<EdubridgeLevelEntity> {
     const level = await this.repo.findLevel(coopname, id);
-    if (!level) throw new NotFoundException('Уровень не найден');
+    if (!level) throw DomainError.notFound('EDUBRIDGE_LEVEL_NOT_FOUND');
     level.archived = archived;
     return this.repo.saveLevel(level);
   }
@@ -110,12 +112,12 @@ export class EdubridgeSectionsService {
    */
   async assertForCourse(coopname: string, sectionId: string, levelId: string | null | undefined, current?: { section_id: string | null; level_id: string | null }): Promise<void> {
     const section = await this.repo.findSection(coopname, sectionId);
-    if (!section) throw new BadRequestException('Раздел не найден в справочнике');
-    if (section.archived && current?.section_id !== sectionId) throw new BadRequestException(`Раздел «${section.title}» в архиве`);
+    if (!section) throw DomainError.badRequest('EDUBRIDGE_SECTION_NOT_IN_CATALOG');
+    if (section.archived && current?.section_id !== sectionId) throw DomainError.badRequest('EDUBRIDGE_SECTION_ARCHIVED', { title: section.title });
     if (!levelId) return;
     const level = await this.repo.findLevel(coopname, levelId);
-    if (!level || level.section_id !== sectionId) throw new BadRequestException('Уровень не принадлежит разделу');
-    if (level.archived && current?.level_id !== levelId) throw new BadRequestException(`Уровень «${level.title}» в архиве`);
+    if (!level || level.section_id !== sectionId) throw DomainError.badRequest('EDUBRIDGE_LEVEL_NOT_IN_SECTION');
+    if (level.archived && current?.level_id !== levelId) throw DomainError.badRequest('EDUBRIDGE_LEVEL_ARCHIVED', { title: level.title });
   }
 
   /**
@@ -144,6 +146,6 @@ function clean(title: string): string {
 
 function assertSameSet(existing: string[], next: string[], what: string): void {
   if (existing.length !== next.length || !existing.every((id) => next.includes(id))) {
-    throw new BadRequestException(`Новый порядок должен перечислять все ${what} ровно по разу`);
+    throw DomainError.badRequest('EDUBRIDGE_REORDER_INCOMPLETE', { items: what });
   }
 }

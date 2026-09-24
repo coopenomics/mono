@@ -1,24 +1,24 @@
 <template lang="pug">
 .q-pa-md
   PageHint.q-mb-md(storage-key="edu:teacher-profile:banner-dismissed")
-    | Профиль преподавателя открывается договором участия в хозяйственной деятельности. Учётное имя из профиля
-    | администратор указывает, назначая вас на курс; курсы и взносы ведутся отдельными страницами стола.
+    | {{ $t('edubridge.teacherProfilePage.hintContract') }}
+    | {{ $t('edubridge.teacherProfilePage.hintUsername') }}
 
   CardListSkeleton(v-if="firstLoad" :count="2")
 
   .row.q-col-gutter-md(v-else)
     .col-12.col-md-7
-      BaseCard(variant="default" title="Преподаватель")
+      BaseCard(variant="default" :title="$t('edubridge.teacherProfilePage.teacherTitle')")
         //- Фотография одна на пайщика: она же стоит в удостоверении пайщика.
         //- Загрузка открывается наведением на кружок, рядом с ним — ФИО и учётное имя.
         IdentityPanel(:identity="identity" flat)
           template(#avatar)
             AvatarUpload(:name="fullName || username" :src="avatarUrl" size="xl")
         q-separator.q-my-md
-        DataRow(label="Курсов ведётся" :value="String(activeAssignments)")
-        DataRow(label="Назначений всего" :value="String(assignments.length)")
+        DataRow(:label="$t('edubridge.teacherProfilePage.activeCoursesLabel')" :value="String(activeAssignments)")
+        DataRow(:label="$t('edubridge.teacherProfilePage.assignmentsTotalLabel')" :value="String(assignments.length)")
 
-      BaseCard.q-mt-md(variant="default" title="Курсы")
+      BaseCard.q-mt-md(variant="default" :title="$t('edubridge.teacherProfilePage.coursesTitle')")
         q-list(v-if="assignments.length" separator)
           q-item(v-for="a in assignments" :key="asText(a.id)")
             q-item-section
@@ -27,21 +27,21 @@
             q-item-section(side)
               BaseBadge(:variant="statusOf(a.status).variant") {{ statusOf(a.status).label }}
               //- Черновик назначения — подпись приложения на странице «Назначения».
-              BaseButton.q-mt-xs(v-if="awaitsTeacherSignature(a)" variant="ghost" size="sm" @click="goSign") Подписать
-        .t-muted.t-sm(v-else) Назначений пока нет — администратор ещё не поставил вас на курс.
+              BaseButton.q-mt-xs(v-if="awaitsTeacherSignature(a)" variant="ghost" size="sm" @click="goSign") {{ $t('common.action.sign') }}
+        .t-muted.t-sm(v-else) {{ $t('edubridge.teacherProfilePage.noAssignmentsEmpty') }}
 
     .col-12.col-md-5
-      BaseCard(variant="default" title="Договор участия в хозяйственной деятельности")
+      BaseCard(variant="default" :title="$t('edubridge.teacherProfilePage.contractTitle')")
         template(v-if="contract")
-          DataRow(label="Номер" :value="contract.contract_number" mono copyable)
-          DataRow(label="Подписан вами" :value="formatDate(contract.signed_at)")
-          DataRow(label="Подписан председателем" :value="contract.approved_at ? formatDate(contract.approved_at) : '______'")
-          DataRow(label="Состояние")
+          DataRow(:label="$t('edubridge.teacherProfilePage.contractNumberLabel')" :value="contract.contract_number" mono copyable)
+          DataRow(:label="$t('edubridge.teacherProfilePage.signedAtLabel')" :value="formatDate(contract.signed_at)")
+          DataRow(:label="$t('edubridge.teacherProfilePage.approvedAtLabel')" :value="contract.approved_at ? formatDate(contract.approved_at) : '______'")
+          DataRow(:label="$t('edubridge.teacherProfilePage.contractStatusLabel')")
             template(#value-override)
               BaseBadge(:variant="contractStatus.variant") {{ contractStatus.label }}
-          .t-muted.t-meta.q-mt-sm(v-if="pendingApproval") Договор ждёт подписи председателя совета. До неё назначения не активируются.
-          .t-muted.t-meta.q-mt-sm(v-else-if="declined && contract.decline_reason") Причина отказа: {{ contract.decline_reason }}
-        .t-muted.t-sm(v-else) Договор не подписан.
+          .t-muted.t-meta.q-mt-sm(v-if="pendingApproval") {{ $t('edubridge.teacherProfilePage.pendingApprovalNotice') }}
+          .t-muted.t-meta.q-mt-sm(v-else-if="declined && contract.decline_reason") {{ $t('edubridge.teacherProfilePage.declineReason', { reason: contract.decline_reason }) }}
+        .t-muted.t-sm(v-else) {{ $t('edubridge.teacherProfilePage.noContract') }}
 </template>
 
 <script setup lang="ts">
@@ -59,6 +59,7 @@ import { DataRow, IdentityPanel, PageHint, type Identity } from 'src/shared/ui/d
 import { ASSIGNMENT_STATUS_LABELS, awaitsTeacherSignature, fetchMyAssignments, fetchMyContract, type IAssignment, type IContract } from '../../entities/Teacher';
 import { useLiveReload } from 'src/shared/lib/realtime';
 import { EduLive } from '../../shared/lib/live';
+import { t } from '../../i18n';
 
 /**
  * Профиль преподавателя: кто он в кооперативе, чем подтверждено участие и какие
@@ -67,10 +68,10 @@ import { EduLive } from '../../shared/lib/live';
  * назначений. Учётное имя отсюда администратор указывает при назначении на курс.
  */
 const CONTRACT_STATUS_LABELS: Record<string, { label: string; variant: 'pos' | 'warn' | 'neg' | 'neutral' }> = {
-  [Zeus.EduContractStatus.PENDING_APPROVAL]: { label: 'Ждёт председателя', variant: 'warn' },
-  [Zeus.EduContractStatus.ACTIVE]: { label: 'Действует', variant: 'pos' },
-  [Zeus.EduContractStatus.DECLINED]: { label: 'Председатель отказал', variant: 'neg' },
-  [Zeus.EduContractStatus.TERMINATED]: { label: 'Прекращён', variant: 'neg' },
+  [Zeus.EduContractStatus.PENDING_APPROVAL]: { label: t('edubridge.teacherProfilePage.contractStatus.PENDING_APPROVAL'), variant: 'warn' },
+  [Zeus.EduContractStatus.ACTIVE]: { label: t('edubridge.teacherProfilePage.contractStatus.ACTIVE'), variant: 'pos' },
+  [Zeus.EduContractStatus.DECLINED]: { label: t('edubridge.teacherProfilePage.contractStatus.DECLINED'), variant: 'neg' },
+  [Zeus.EduContractStatus.TERMINATED]: { label: t('edubridge.teacherProfilePage.contractStatus.TERMINATED'), variant: 'neg' },
 };
 
 const session = useSessionStore();

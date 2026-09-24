@@ -26,6 +26,7 @@ import { MembershipExitResultDTO } from '../dto/membership-exit-result.dto';
 import { MembershipExitProgramDTO, MembershipExitReturnPreviewDTO } from '../dto/membership-exit-return-preview.dto';
 import { MembershipExitDTO } from '../dto/membership-exit.dto';
 import { MembershipExitStatus } from '../enums/membership-exit-status.enum';
+import { t } from '~/i18n';
 
 @Injectable()
 export class MembershipExitService {
@@ -80,6 +81,38 @@ export class MembershipExitService {
     return document as unknown as GeneratedDocumentDTO;
   }
 
+  /** Выход уже идёт в цепи либо ждёт подтверждения заявления по письму. */
+  private async assertNoExitInProgress(data: CreateMembershipExitInputDTO): Promise<void> {
+    const onchain = await this.accountBlockchainPort.getExit(data.coopname, data.username);
+    if (onchain) {
+      throw DomainError.badRequest('MEMBERSHIP_EXIT_ALREADY_SUBMITTED');
+    }
+    const existing = await this.exitRequestRepository.findOne({
+      where: { coopname: data.coopname, username: data.username },
+    });
+    if (existing) {
+      throw DomainError.badRequest('MEMBERSHIP_EXIT_PENDING_CONFIRMATION');
+    }
+  }
+
+  /**
+   * Выход закрывает участие пайщика в программах, и основание для этого — его
+   * заявление (registry 190); без программных соглашений аннулировать нечего.
+   * Расширения называют свои причины подождать: пайщик ведёт курс, не сдал
+   * отчёт, не закрыл обязательство.
+   */
+  private async assertProgramsSettled(data: CreateMembershipExitInputDTO): Promise<void> {
+    const agreements = await this.userAgreementRepository.findByUsername(data.coopname, data.username);
+    const programCount = agreements?.programs?.length ?? 0;
+    if (programCount > 0 && !data.annulment) {
+      throw DomainError.badRequest('MEMBERSHIP_EXIT_ANNULMENT_REQUIRED');
+    }
+    const blockers = await this.memberExitRegistry.collectBlockers(data.coopname, data.username);
+    if (blockers.length > 0) {
+      throw DomainError.badRequest('MEMBERSHIP_EXIT_BLOCKED', { reasons: blockers.join('; ') });
+    }
+  }
+
   /**
    * Подача заявления на выход. Заявление подписывается пайщиком на клиенте и
    * сразу принимается: сохраняется off-chain и требует подтверждения по ссылке
@@ -119,35 +152,9 @@ export class MembershipExitService {
       throw DomainError.badRequest('MEMBERSHIP_EXIT_PAYMENT_METHOD_REQUIRED');
     }
 
-    // Выход закрывает участие пайщика в программах, и основание для этого — его
-    // заявление (registry 190). Без программных соглашений аннулировать нечего.
-    const agreements = await this.userAgreementRepository.findByUsername(data.coopname, data.username);
-    const programCount = agreements?.programs?.length ?? 0;
-    if (programCount > 0 && !data.annulment) {
-      throw new BadRequestException(
-        'К заявлению на выход приложите заявление об аннулировании соглашений об участии в программах.'
-      );
-    }
+    await this.assertProgramsSettled(data);
 
-    // Причины расширений: пайщик ведёт курс, не сдал отчёт, не закрыл обязательство.
-    const blockers = await this.memberExitRegistry.collectBlockers(data.coopname, data.username);
-    if (blockers.length > 0) {
-      throw new BadRequestException(`Выход из кооператива невозможен: ${blockers.join('; ')}`);
-    }
-
-    // Уже идёт выход on-chain?
-    const onchain = await this.accountBlockchainPort.getExit(data.coopname, data.username);
-    if (onchain) {
-      throw DomainError.badRequest('MEMBERSHIP_EXIT_ALREADY_SUBMITTED');
-    }
-
-    // Уже есть заявление, ожидающее подтверждения по email?
-    const existing = await this.exitRequestRepository.findOne({
-      where: { coopname: data.coopname, username: data.username },
-    });
-    if (existing) {
-      throw DomainError.badRequest('MEMBERSHIP_EXIT_PENDING_CONFIRMATION');
-    }
+    await this.assertNoExitInProgress(data);
 
     const user = await this.userDomainService.getUserByUsername(data.username);
     const confirmToken = await this.tokenApplicationService.generateConfirmExitToken(user.id);
@@ -383,7 +390,7 @@ export class MembershipExitService {
       const signed = signedByProgram.get(id);
       const created: MembershipExitProgramDTO = {
         program_id: id,
-        title: id === 0 ? 'Паевой взнос кооператива' : (titles.get(id) ?? `Программа № ${id}`),
+        title: id === 0 ? t('membershipExit.membershipExitService.shareContributionTitle') : (titles.get(id) ?? t('membershipExit.membershipExitService.programFallbackTitle', { programId: id })),
         agreement_signed_at: signed?.signed_at ?? null,
         agreement_hash: signed?.doc_hash ?? null,
         wallets: [],
@@ -437,7 +444,7 @@ export class MembershipExitService {
   private async programTitles(coopname: string): Promise<Map<number, string>> {
     try {
       const programs = await this.sovietBlockchainPort.getPrograms(coopname);
-      return new Map(programs.map((p) => [Number(p.id), String(p.title ?? `Программа № ${p.id}`)]));
+      return new Map(programs.map((p) => [Number(p.id), String(p.title ?? t('membershipExit.membershipExitService.programFallbackTitle', { programId: p.id }))]));
     } catch (e) {
       this.logger.warn(`Не удалось прочитать программы кооператива: ${(e as Error)?.message ?? e}`);
       return new Map();

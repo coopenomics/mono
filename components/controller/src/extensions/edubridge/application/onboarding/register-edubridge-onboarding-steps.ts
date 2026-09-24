@@ -1,6 +1,7 @@
 import type { IOnboardingStepRegistryPort } from '@coopenomics/innercoop';
 import { EDUBRIDGE_EXTENSION_NAME } from '../../constants/edubridge.constants';
 import { EDU_ONBOARDING_STEPS } from '../../constants/edubridge-agreement-ids';
+import { t } from '../../i18n';
 
 /**
  * Шаги L1-онбординга кооператива на ЦПП «Образование» — платформенный механизм,
@@ -19,10 +20,10 @@ export function registerEdubridgeOnboardingSteps(port: IOnboardingStepRegistryPo
   port.unregisterStepsByExtension(EDUBRIDGE_EXTENSION_NAME);
 
   const steps: Array<{ key: string; title: string; order: number }> = [
-    { key: EDU_ONBOARDING_STEPS.PROVISION, title: 'Утверждение Положения ЦПП «Образование»', order: 10 },
-    { key: EDU_ONBOARDING_STEPS.PARENT_OFFER_TEMPLATE, title: 'Утверждение шаблона оферты родителя-слушателя', order: 20 },
-    { key: EDU_ONBOARDING_STEPS.TEACHER_OFFER_TEMPLATE, title: 'Утверждение шаблона оферты преподавателя', order: 30 },
-    { key: EDU_ONBOARDING_STEPS.CONTRACT_TEMPLATE, title: 'Утверждение шаблона договора участия в хозяйственной деятельности', order: 40 },
+    { key: EDU_ONBOARDING_STEPS.PROVISION, title: t('edubridge.onboardingSteps.provision.title'), order: 10 },
+    { key: EDU_ONBOARDING_STEPS.PARENT_OFFER_TEMPLATE, title: t('edubridge.onboardingSteps.parentOfferTemplate.title'), order: 20 },
+    { key: EDU_ONBOARDING_STEPS.TEACHER_OFFER_TEMPLATE, title: t('edubridge.onboardingSteps.teacherOfferTemplate.title'), order: 30 },
+    { key: EDU_ONBOARDING_STEPS.CONTRACT_TEMPLATE, title: t('edubridge.onboardingSteps.contractTemplate.title'), order: 40 },
   ];
 
   for (const step of steps) {

@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { EduAccessCarrier, EduConnectorHealth, type EduAccessTaskStatus } from '../../domain/enums';
 import { AccessCarrierRegistry } from '../../infrastructure/connectors/access-carrier.registry';
 import { EdubridgeAccessTaskRepository } from '../../infrastructure/repositories/edubridge-access-task.repository';
@@ -16,6 +16,7 @@ import { EduEnrollmentDTO } from '../dto/edu-enrollment.dto';
 import { EduLearnerDTO } from '../dto/edu-learner.dto';
 import { EdubridgeAccessOutboxService } from './edubridge-access-outbox.service';
 import { EdubridgeLiveFeedService } from './edubridge-live-feed.service';
+import { DomainError } from '@coopenomics/extension-kit';
 
 /** Административный контур: реестры, очередь, площадки, администраторы. */
 @Injectable()
@@ -47,7 +48,7 @@ export class EdubridgeAdminService {
   /** Сводная карточка: обучающиеся, курсы, оплаты, состояние выдачи. Контакты — по флагу `showContacts`. */
   async memberCard(coopname: string, username: string, showContacts: boolean): Promise<EduMemberCardDTO> {
     const [learners, enrollments] = await Promise.all([this.learners.findByMember(coopname, username), this.enrollments.findByMember(coopname, username)]);
-    if (!learners.length && !enrollments.length) throw new NotFoundException('Пайщик в приложении не найден');
+    if (!learners.length && !enrollments.length) throw DomainError.notFound('EDUBRIDGE_MEMBER_NOT_FOUND');
     const tasks = (await Promise.all(enrollments.map((e) => this.tasks.findByEnrollment(coopname, e.id)))).flat();
     const cards: EduEnrollmentDTO[] = [];
     for (const e of enrollments) cards.push(new EduEnrollmentDTO(e, await this.courses.findById(coopname, e.course_id)));
@@ -77,10 +78,10 @@ export class EdubridgeAdminService {
   /** Владелец задаёт ключи площадки здесь, а не в настройках расширения: значения шифруются, наружу не выходят. */
   async setConnectorCredentials(coopname: string, carrier: EduAccessCarrier, values: Array<{ key: string; value: string }>): Promise<EduConnectorBindingDTO> {
     const connector = this.connectors.get(carrier);
-    if (!connector) throw new NotFoundException('Носитель не поддерживается');
+    if (!connector) throw DomainError.notFound('EDUBRIDGE_CARRIER_NOT_SUPPORTED');
     const known = new Set(connector.credentialFields.map((f) => f.key));
     const strangers = values.filter((v) => !known.has(v.key)).map((v) => v.key);
-    if (strangers.length) throw new BadRequestException(`Неизвестные поля подключения: ${strangers.join(', ')}`);
+    if (strangers.length) throw DomainError.badRequest('EDUBRIDGE_CONNECTOR_UNKNOWN_FIELDS', { fields: strangers.join(', ') });
     await this.credentials.set(coopname, carrier, Object.fromEntries(values.map((v) => [v.key, v.value])));
     // Ключи сменились — прежний результат проверки ничего не значит.
     await this.bindings.setHealth(coopname, carrier, EduConnectorHealth.UNKNOWN, null);
@@ -95,9 +96,9 @@ export class EdubridgeAdminService {
    */
   async checkConnector(coopname: string, carrier: EduAccessCarrier): Promise<EduConnectorBindingDTO> {
     const connector = this.connectors.get(carrier);
-    if (!connector) throw new NotFoundException('Носитель не поддерживается');
+    if (!connector) throw DomainError.notFound('EDUBRIDGE_CARRIER_NOT_SUPPORTED');
     if (!(await this.credentials.isConfigured(coopname, carrier, connector.credentialFields))) {
-      throw new BadRequestException('Площадка не настроена: сначала задайте ключи подключения');
+      throw DomainError.badRequest('EDUBRIDGE_CONNECTOR_NOT_CONFIGURED');
     }
     const ping = await connector.ping(coopname);
     await this.bindings.touch(coopname, carrier, { code: ping.ok ? 'ok' : 'retryable', message: ping.message });

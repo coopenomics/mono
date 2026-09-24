@@ -1,9 +1,10 @@
-import { BadRequestException, Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { createHash } from 'crypto';
 import type { InnerFileStorageBucket, IUserAvatarPort } from '@coopenomics/innercoop';
 import { InjectBucket, UseBucket } from '~/infrastructure/file-storage';
 import { AVATAR_BUCKET, type AvatarAllowedMime } from '~/domain/user/constants/avatar-bucket';
 import { USER_REPOSITORY, type UserRepository } from '~/domain/user/repositories/user.repository';
+import { DomainError } from '@coopenomics/extension-kit';
 
 const EXTENSION_BY_MIME: Record<string, string> = {
   'image/jpeg': 'jpg',
@@ -32,16 +33,16 @@ export class UserAvatarService implements IUserAvatarPort {
   /** Загрузка снимка: сам файл в хранилище, в аккаунте остаётся ключ. */
   async upload(username: string, contentBase64: string, mimeType: string): Promise<string> {
     if (!EXTENSION_BY_MIME[mimeType]) {
-      throw new BadRequestException('Фотография принимается в JPEG, PNG или WEBP');
+      throw DomainError.badRequest('ACCOUNT_AVATAR_UNSUPPORTED_TYPE');
     }
     const body = Buffer.from(contentBase64, 'base64');
-    if (!body.byteLength) throw new BadRequestException('Пустой файл фотографии');
+    if (!body.byteLength) throw DomainError.badRequest('ACCOUNT_AVATAR_EMPTY');
     if (body.byteLength > AVATAR_BUCKET.maxBytes) {
-      throw new BadRequestException(`Фотография больше ${Math.round(AVATAR_BUCKET.maxBytes / (1024 * 1024))} МБ`);
+      throw DomainError.badRequest('ACCOUNT_AVATAR_TOO_LARGE', { maxMegabytes: Math.round(AVATAR_BUCKET.maxBytes / (1024 * 1024)) });
     }
 
     const user = await this.users.findByUsername(username);
-    if (!user) throw new BadRequestException(`Пайщик ${username} не найден`);
+    if (!user) throw DomainError.badRequest('ACCOUNT_AVATAR_MEMBER_NOT_FOUND', { username });
 
     const hash = createHash('sha256').update(body).digest('hex');
     const key = `avatars/${username}/${hash}.${EXTENSION_BY_MIME[mimeType]}`;

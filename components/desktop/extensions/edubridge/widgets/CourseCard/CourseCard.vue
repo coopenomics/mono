@@ -17,20 +17,20 @@ BaseCard.edu-course-card(variant="default" role="link" tabindex="0" @click="emit
     //- Помесячный взнос — главная строка: столько участник вносит на самом деле.
     //- Ниже длительность курса и взнос разом, если кооператив его принимает.
     .edu-course-card__fees
-      FeeAmount(:value="course.fee_month" size="md" per="в месяц")
+      FeeAmount(:value="course.fee_month" size="md" :per="$t('edubridge.courseCard.perMonth')")
       .edu-course-card__full(v-if="months")
         span {{ months }}
         template(v-if="course.fee_course")
           span ·
-          span за курс разом
+          span {{ $t('edubridge.courseCard.courseFeeOnce') }}
           FeeAmount(:value="course.fee_course" size="sm")
 </template>
 <script setup lang="ts">
 import { computed } from 'vue';
-import { pluralize } from 'src/shared/lib/utils';
 import { BaseCard } from 'src/shared/ui/base';
 import { courseSectionLabel, type ICatalogCourse } from '../../entities/Course';
 import { courseMonthsLabel } from '../../shared/lib/courseMonths';
+import { t } from '../../i18n';
 import { FeeAmount } from '../../shared/ui/FeeAmount';
 
 /**
@@ -43,7 +43,7 @@ const emit = defineEmits<{ open: [] }>();
 
 const lessons = computed(() => {
   const n = Number(props.course.lessons_per_month);
-  return `${n} ${pluralize(n, ['занятие', 'занятия', 'занятий'])} в месяц по ${props.course.lesson_minutes} мин`;
+  return t('edubridge.courseCard.lessonsPerMonth', { minutes: props.course.lesson_minutes }, n);
 });
 
 const months = computed(() => courseMonthsLabel(props.course.course_months));

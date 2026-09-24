@@ -1,18 +1,18 @@
 <template lang="pug">
 .q-pa-md
   PageHint.q-mb-md(storage-key="edu:teacher-settlement:banner-dismissed")
-    | Принятые советом взносы результатами работы зачисляются в ваш главный паевой кошелёк правом требования.
-    | Возврат паевого взноса оформляется в кошельке — штатным механизмом кооператива.
+    | {{ $t('edubridge.teacherSettlementPage.hintAccrual') }}
+    | {{ $t('edubridge.teacherSettlementPage.hintReturn') }}
   .row.q-col-gutter-md
     .col-12.col-md-6
-      BaseCard(variant="default" title="Расчёт")
+      BaseCard(variant="default" :title="$t('edubridge.teacherSettlementPage.title')")
         CardListSkeleton(v-if="!settlement" :count="1")
         template(v-else)
-          DataRow(label="Принято взносов на сумму" :value="formatAsset2Digits(settlement.accepted_total)")
-          DataRow(label="Доступно в главном кошельке" :value="formatAsset2Digits(settlement.available)")
-          DataRow(label="Последний принятый взнос" :value="settlement.last_accepted_at ? formatDate(settlement.last_accepted_at) : '______'")
+          DataRow(:label="$t('edubridge.teacherSettlementPage.acceptedTotalLabel')" :value="formatAsset2Digits(settlement.accepted_total)")
+          DataRow(:label="$t('edubridge.teacherSettlementPage.availableLabel')" :value="formatAsset2Digits(settlement.available)")
+          DataRow(:label="$t('edubridge.teacherSettlementPage.lastAcceptedLabel')" :value="settlement.last_accepted_at ? formatDate(settlement.last_accepted_at) : '______'")
           .q-mt-md
-            BaseButton(variant="primary" @click="goToWallet") Получить возврат в кошельке
+            BaseButton(variant="primary" @click="goToWallet") {{ $t('edubridge.teacherSettlementPage.walletReturnButton') }}
 </template>
 
 <script setup lang="ts">

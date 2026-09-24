@@ -1,15 +1,15 @@
 <template lang="pug">
 .q-pa-md
   PageHint.q-mb-md(storage-key="edu:admin-sections:banner-dismissed")
-    | Разделы и уровни каталога. Курсы ссылаются на них: переименование и порядок сразу меняются у всех курсов
-    | и в каталоге. Порядок уровней внутри раздела — их последовательность. Архивное не предлагается новым
-    | курсам и в каталоге, у прежних курсов остаётся.
+    | {{ $t('edubridge.adminSectionsPage.hint.line1') }}
+    | {{ $t('edubridge.adminSectionsPage.hint.line2') }}
+    | {{ $t('edubridge.adminSectionsPage.hint.line3') }}
 
   .row.justify-end.q-mb-md(v-if="hasArchived")
-    q-toggle(v-model="showArchived" label="Показывать архив")
+    q-toggle(v-model="showArchived" :label="$t('edubridge.adminSectionsPage.showArchived')")
 
   CardListSkeleton(v-if="firstLoad" :count="2")
-  EmptyState(v-else-if="!visible.length" title="Разделов пока нет" body="Добавьте раздел кнопкой в правом верхнем углу либо прямо в форме курса — он появится здесь.")
+  EmptyState(v-else-if="!visible.length" :title="$t('edubridge.adminSectionsPage.emptyTitle')" :body="$t('edubridge.adminSectionsPage.emptyBody')")
     template(#icon)
       q-icon(name="category" size="32px")
 
@@ -17,16 +17,16 @@
     .edu-sections__head
       .edu-sections__title
         .t-h3 {{ section.title }}
-        BaseBadge(v-if="section.archived" variant="neutral") в архиве
+        BaseBadge(v-if="section.archived" variant="neutral") {{ $t('edubridge.adminSectionsPage.archivedBadge') }}
       .edu-sections__actions
-        BaseButton(variant="ghost" size="sm" icon-only aria-label="Раздел выше" :disabled="si === 0 || busy" @click="moveSection(si, -1)")
+        BaseButton(variant="ghost" size="sm" icon-only :aria-label="$t('edubridge.adminSectionsPage.sectionUp')" :disabled="si === 0 || busy" @click="moveSection(si, -1)")
           template(#icon-left)
             q-icon(name="arrow_upward" size="18px")
-        BaseButton(variant="ghost" size="sm" icon-only aria-label="Раздел ниже" :disabled="si === visible.length - 1 || busy" @click="moveSection(si, 1)")
+        BaseButton(variant="ghost" size="sm" icon-only :aria-label="$t('edubridge.adminSectionsPage.sectionDown')" :disabled="si === visible.length - 1 || busy" @click="moveSection(si, 1)")
           template(#icon-left)
             q-icon(name="arrow_downward" size="18px")
-        BaseButton(variant="ghost" size="sm" :disabled="busy" @click="openRename('section', section.id, section.title)") Переименовать
-        BaseButton(variant="ghost" size="sm" :disabled="busy" @click="toggleSection(section)") {{ section.archived ? 'Вернуть' : 'В архив' }}
+        BaseButton(variant="ghost" size="sm" :disabled="busy" @click="openRename('section', section.id, section.title)") {{ $t('edubridge.adminSectionsPage.rename') }}
+        BaseButton(variant="ghost" size="sm" :disabled="busy" @click="toggleSection(section)") {{ section.archived ? $t('edubridge.adminSectionsPage.unarchive') : $t('edubridge.adminSectionsPage.archive') }}
 
     q-list.q-mt-sm(v-if="levelsOf(section).length" separator)
       q-item(v-for="(level, li) in levelsOf(section)" :key="String(level.id)")
@@ -35,28 +35,28 @@
         q-item-section
           .row.items-center.q-gutter-sm
             span {{ level.title }}
-            BaseBadge(v-if="level.archived" variant="neutral") в архиве
+            BaseBadge(v-if="level.archived" variant="neutral") {{ $t('edubridge.adminSectionsPage.archivedBadge') }}
         q-item-section(side)
           .edu-sections__actions
-            BaseButton(variant="ghost" size="sm" icon-only aria-label="Уровень раньше" :disabled="li === 0 || busy" @click="moveLevel(section, li, -1)")
+            BaseButton(variant="ghost" size="sm" icon-only :aria-label="$t('edubridge.adminSectionsPage.levelUp')" :disabled="li === 0 || busy" @click="moveLevel(section, li, -1)")
               template(#icon-left)
                 q-icon(name="arrow_upward" size="18px")
-            BaseButton(variant="ghost" size="sm" icon-only aria-label="Уровень позже" :disabled="li === levelsOf(section).length - 1 || busy" @click="moveLevel(section, li, 1)")
+            BaseButton(variant="ghost" size="sm" icon-only :aria-label="$t('edubridge.adminSectionsPage.levelDown')" :disabled="li === levelsOf(section).length - 1 || busy" @click="moveLevel(section, li, 1)")
               template(#icon-left)
                 q-icon(name="arrow_downward" size="18px")
-            BaseButton(variant="ghost" size="sm" :disabled="busy" @click="openRename('level', level.id, level.title, section.id)") Переименовать
-            BaseButton(variant="ghost" size="sm" :disabled="busy" @click="toggleLevel(level)") {{ level.archived ? 'Вернуть' : 'В архив' }}
-    .t-muted.t-sm.q-mt-sm(v-else) Уровней нет — курсы раздела видны в нём целиком.
+            BaseButton(variant="ghost" size="sm" :disabled="busy" @click="openRename('level', level.id, level.title, section.id)") {{ $t('edubridge.adminSectionsPage.rename') }}
+            BaseButton(variant="ghost" size="sm" :disabled="busy" @click="toggleLevel(level)") {{ level.archived ? $t('edubridge.adminSectionsPage.unarchive') : $t('edubridge.adminSectionsPage.archive') }}
+    .t-muted.t-sm.q-mt-sm(v-else) {{ $t('edubridge.adminSectionsPage.noLevels') }}
 
     .edu-sections__add.q-mt-md(v-if="!section.archived")
-      BaseInput(v-model="newLevel[String(section.id)]" label="Новый уровень" placeholder="«7 класс», «Ступень 1»" @keyup.enter="addLevel(section)")
-      BaseButton(variant="secondary" :disabled="!newLevel[String(section.id)]?.trim() || busy" @click="addLevel(section)") Добавить
+      BaseInput(v-model="newLevel[String(section.id)]" :label="$t('edubridge.adminSectionsPage.newLevelLabel')" :placeholder="$t('edubridge.adminSectionsPage.newLevelPlaceholder')" @keyup.enter="addLevel(section)")
+      BaseButton(variant="secondary" :disabled="!newLevel[String(section.id)]?.trim() || busy" @click="addLevel(section)") {{ $t('common.action.add') }}
 
   BaseDialog(v-model="dialog.open" :title="dialogTitle" size="sm")
-    BaseInput(v-model="dialog.title" :label="dialog.kind === 'level' ? 'Название уровня' : 'Название раздела'" autofocus @keyup.enter="submitDialog")
+    BaseInput(v-model="dialog.title" :label="dialog.kind === 'level' ? $t('edubridge.adminSectionsPage.dialog.levelTitleLabel') : $t('edubridge.adminSectionsPage.dialog.sectionTitleLabel')" autofocus @keyup.enter="submitDialog")
     template(#footer)
-      BaseButton(variant="ghost" :disabled="busy" @click="dialog.open = false") Отменить
-      BaseButton(variant="primary" :disabled="!dialog.title.trim()" :loading="busy" @click="submitDialog") Сохранить
+      BaseButton(variant="ghost" :disabled="busy" @click="dialog.open = false") {{ $t('edubridge.adminSectionsPage.dialog.cancel') }}
+      BaseButton(variant="primary" :disabled="!dialog.title.trim()" :loading="busy" @click="submitDialog") {{ $t('common.action.save') }}
 </template>
 
 <script setup lang="ts">
@@ -80,6 +80,7 @@ import {
 import AddSectionHeaderButton from './AddSectionHeaderButton.vue';
 import { useLiveReload } from 'src/shared/lib/realtime';
 import { EduLive } from '../../shared/lib/live';
+import { t } from '../../i18n';
 
 /**
  * Справочник разделов и уровней каталога (7DD-23). Разделы — карточками в их
@@ -98,8 +99,8 @@ const hasArchived = computed(() => sections.value.some((s) => s.archived || s.le
 const visible = computed(() => sections.value.filter((s) => showArchived.value || !s.archived));
 const levelsOf = (s: ISection): ILevel[] => s.levels.filter((l) => showArchived.value || !l.archived);
 const dialogTitle = computed(() => {
-  if (dialog.kind === 'level') return dialog.id ? 'Переименовать уровень' : 'Новый уровень';
-  return dialog.id ? 'Переименовать раздел' : 'Новый раздел';
+  if (dialog.kind === 'level') return dialog.id ? t('edubridge.adminSectionsPage.dialog.renameLevelTitle') : t('edubridge.adminSectionsPage.dialog.newLevelTitle');
+  return dialog.id ? t('edubridge.adminSectionsPage.dialog.renameSectionTitle') : t('edubridge.adminSectionsPage.dialog.newSectionTitle');
 });
 
 async function load(): Promise<void> {

@@ -1,9 +1,9 @@
 <template lang="pug">
 .q-pa-md
   PageHint.q-mb-md(storage-key="edu:admin-economy:banner-dismissed")
-    | Взнос ученика удерживается, пока он вправе потребовать его назад, затем покрывает обязательство
-    | перед преподавателями, а остаток становится свободными средствами фонда. Стоимость курса складывается
-    | снизу — часы занятий по ставке преподавателя плюс целевой членский взнос, один на весь кооператив.
+    | {{ $t('edubridge.adminEconomyPage.hint.line1') }}
+    | {{ $t('edubridge.adminEconomyPage.hint.line2') }}
+    | {{ $t('edubridge.adminEconomyPage.hint.line3') }}
 
   PageTabs.q-mb-md(:tabs="tabs" :active-key="tab" @select="(t) => (tab = t.key)")
 
@@ -16,13 +16,13 @@
           :hint="w.hint"
           :balance="splitAsset2Digits(w.available).amount"
           :symbol="splitAsset2Digits(w.available).symbol || symbol"
-          balance-label="Остаток"
+          :balance-label="$t('edubridge.adminEconomyPage.wallet.balanceLabel')"
           icon="savings"
           stacked
           :loading="firstLoad"
         )
 
-    .text-subtitle1.q-mt-lg.q-mb-sm Движение средств
+    .text-subtitle1.q-mt-lg.q-mb-sm {{ $t('edubridge.adminEconomyPage.movementsTitle') }}
 
     BaseTable(
       v-if="loading || movements.length"
@@ -40,8 +40,8 @@
 
     EmptyState(
       v-if="!firstLoad && !movements.length"
-      title="Движений пока нет"
-      body="Здесь появятся взносы учеников и расходы программы, как только они пройдут."
+      :title="$t('edubridge.adminEconomyPage.movementsEmptyTitle')"
+      :body="$t('edubridge.adminEconomyPage.movementsEmptyBody')"
     )
       template(#icon)
         q-icon(name="receipt_long" size="32px")
@@ -56,18 +56,18 @@
       BaseButton(variant="primary" @click="expenseOpen = true")
         template(#icon-left)
           q-icon(name="add" size="18px")
-        | Подать расход
+        | {{ $t('edubridge.adminEconomyPage.submitExpense') }}
 
     ExpenseProposalList(
       :rows="expenseRows"
       :loading="firstLoad"
-      empty-title="Расходов пока нет"
-      empty-body="Расход оплачивается из фонда программы: подайте служебную записку, решение примет совет."
+      :empty-title="$t('edubridge.adminEconomyPage.expensesEmptyTitle')"
+      :empty-body="$t('edubridge.adminEconomyPage.expensesEmptyBody')"
     )
 
     ExpenseCreateDialog(
       v-model="expenseOpen"
-      title="Расход программы «Образование»"
+      :title="$t('edubridge.adminEconomyPage.expenseDialogTitle')"
       :source-wallet="EDU_EXPENSE_WALLET"
       draft-key="edu:admin-economy:create-expense:draft"
       :submit="submitExpense"
@@ -77,11 +77,11 @@
   template(v-else)
     .row.q-col-gutter-md
       .col-12.col-md-5
-        BaseCard(title="Целевой членский взнос")
+        BaseCard(:title="$t('edubridge.adminEconomyPage.markupCardTitle')")
           BaseForm(:loading="savingMarkup" @submit="onSaveMarkup")
             BaseInput(
               v-model="markup"
-              label="Целевой членский взнос, %"
+              :label="$t('edubridge.adminEconomyPage.markupLabel')"
               type="number"
               required
             )
@@ -89,16 +89,16 @@
                 FieldHelp(:text="markupHelp")
             template(#footer)
               .row.justify-end
-                BaseButton(variant="primary" type="submit" :loading="savingMarkup") Сохранить
+                BaseButton(variant="primary" type="submit" :loading="savingMarkup") {{ $t('common.action.save') }}
       .col-12.col-md-7
-        BaseCard(title="Как считается взнос")
-          DataRow(label="Себестоимость месяца" value="часы занятий × ставка преподавателя")
-          DataRow(label="Взнос за месяц" value="себестоимость + целевой членский взнос кооператива")
-          DataRow(label="Длительность курса" value="занятий в программе ÷ занятий в месяц, неполный месяц считается месяцем")
-          DataRow(label="Взнос за весь курс разом" value="месячный × месяцы курса со скидкой; в середине курса — за оставшиеся месяцы")
-          DataRow(label="Предел скидки" :value="`${maxDiscount}% — ниже себестоимости взнос не опускается`")
+        BaseCard(:title="$t('edubridge.adminEconomyPage.formula.title')")
+          DataRow(:label="$t('edubridge.adminEconomyPage.formula.monthCostLabel')" :value="$t('edubridge.adminEconomyPage.formula.monthCostValue')")
+          DataRow(:label="$t('edubridge.adminEconomyPage.formula.monthFeeLabel')" :value="$t('edubridge.adminEconomyPage.formula.monthFeeValue')")
+          DataRow(:label="$t('edubridge.adminEconomyPage.formula.durationLabel')" :value="$t('edubridge.adminEconomyPage.formula.durationValue')")
+          DataRow(:label="$t('edubridge.adminEconomyPage.formula.fullCourseFeeLabel')" :value="$t('edubridge.adminEconomyPage.formula.fullCourseFeeValue')")
+          DataRow(:label="$t('edubridge.adminEconomyPage.formula.maxDiscountLabel')" :value="$t(`edubridge.adminEconomyPage.formula.maxDiscountValue`, { maxDiscount })")
 
-    .text-subtitle1.q-mt-lg.q-mb-sm Ставки часа преподавателей
+    .text-subtitle1.q-mt-lg.q-mb-sm {{ $t('edubridge.adminEconomyPage.teacherRatesTitle') }}
 
     BaseTable(
       v-if="loading || teachers.length"
@@ -111,27 +111,27 @@
       template(#cell-teacher="{ row }")
         IdentityCell(:account-name="row.username" :full-name="row.display_name")
       template(#cell-hourly_rate="{ row }") {{ formatAsset2Digits(row.hourly_rate) }}
-      template(#cell-assignments="{ row }") {{ row.assignments_active }} из {{ row.assignments_total }}
+      template(#cell-assignments="{ row }") {{ $t('edubridge.adminEconomyPage.assignmentsCount', { active: row.assignments_active, total: row.assignments_total }) }}
       template(#cell-actions="{ row }")
         .row.no-wrap.justify-end
-          BaseButton(variant="ghost" size="sm" @click="openRate(row)") Изменить ставку
+          BaseButton(variant="ghost" size="sm" @click="openRate(row)") {{ $t('edubridge.adminEconomyPage.editRate') }}
 
     EmptyState(
       v-if="!firstLoad && !teachers.length"
-      title="Преподавателей нет"
-      body="Ставка появляется здесь, когда преподаватель подпишет договор участия в хозяйственной деятельности."
+      :title="$t('edubridge.adminEconomyPage.teachersEmptyTitle')"
+      :body="$t('edubridge.adminEconomyPage.teachersEmptyBody')"
     )
       template(#icon)
         q-icon(name="payments" size="32px")
 
-  BaseDialog(v-model="rateOpen" title="Ставка часа преподавателя" size="sm")
+  BaseDialog(v-model="rateOpen" :title="$t('edubridge.adminEconomyPage.rateDialog.title')" size="sm")
     BaseForm(:loading="savingRate" @submit="onSaveRate")
       .t-sm.t-muted.q-mb-md(v-if="rateTarget") {{ rateTarget.display_name || rateTarget.username }}
-      BaseInput(v-model="rate" label="Ставка часа" type="number" :suffix="symbol" required)
+      BaseInput(v-model="rate" :label="$t('edubridge.adminEconomyPage.rateDialog.rateLabel')" type="number" :suffix="symbol" required)
       template(#footer)
         .row.justify-end.q-gutter-sm
-          BaseButton(variant="ghost" type="button" @click="rateOpen = false") Отменить
-          BaseButton(variant="primary" type="submit" :loading="savingRate") Сохранить
+          BaseButton(variant="ghost" type="button" @click="rateOpen = false") {{ $t('edubridge.adminEconomyPage.rateDialog.cancel') }}
+          BaseButton(variant="primary" type="submit" :loading="savingRate") {{ $t('common.action.save') }}
 </template>
 
 <script setup lang="ts">
@@ -162,6 +162,7 @@ import {
 import { fetchTeachers, type ITeacher } from '../../entities/Teacher';
 import { useLiveReload } from 'src/shared/lib/realtime';
 import { EduLive } from '../../shared/lib/live';
+import { t as i18nT } from '../../i18n';
 
 /**
  * Экономика программы. «Деньги» — где лежат средства кооператива по программе
@@ -188,10 +189,10 @@ const expenses = ref<IExpense[]>([]);
 const expenseOpen = ref(false);
 
 const tabs: PageTab[] = [
-  { key: 'money', label: 'Деньги' },
-  { key: 'expenses', label: 'Расходы' },
-  { key: 'returns', label: 'Выход из программы' },
-  { key: 'settings', label: 'Настройки' },
+  { key: 'money', label: i18nT('edubridge.adminEconomyPage.tab.money') },
+  { key: 'expenses', label: i18nT('edubridge.adminEconomyPage.tab.expenses') },
+  { key: 'returns', label: i18nT('edubridge.adminEconomyPage.tab.returns') },
+  { key: 'settings', label: i18nT('edubridge.adminEconomyPage.tab.settings') },
 ];
 // Вкладку можно открыть ссылкой (?tab=settings) — так конструктор курса ведёт
 // к правке целевого членского взноса.
@@ -200,7 +201,7 @@ const requestedTab = String(route.query.tab ?? '');
 const tab = ref(tabs.some((t) => t.key === requestedTab) ? requestedTab : 'money');
 const markupHelp = computed(
   () =>
-    `Доля кооператива сверх себестоимости курса: идёт на ведение программы, издержки и возвраты по Положению ЦПП. Одна на все курсы. Предельная скидка за взнос разом за весь курс при этом взносе — ${maxDiscount.value}%.`,
+    i18nT('edubridge.adminEconomyPage.markupHelp', { maxDiscount: maxDiscount.value }),
 );
 
 const wallets = computed(() => fund.value?.wallets ?? []);
@@ -209,7 +210,7 @@ const wallets = computed(() => fund.value?.wallets ?? []);
 const expenseRows = computed<ExpenseProposalListRow[]>(() =>
   expenses.value.map((e) => ({
     expense_hash: asText(e.expense_hash),
-    title: e.items[0]?.description || 'Расход программы',
+    title: e.items[0]?.description || i18nT('edubridge.adminEconomyPage.expenseFallbackTitle'),
     status: e.status,
     total_planned: e.total_planned,
     creator_name: e.creator_name,
@@ -219,16 +220,16 @@ const expenseRows = computed<ExpenseProposalListRow[]>(() =>
 const movements = computed<IFundMovement[]>(() => fund.value?.movements ?? []);
 
 const movementColumns: BaseTableColumn<IFundMovement>[] = [
-  { key: 'at', label: 'Когда', width: '150px', nowrap: true },
-  { key: 'title', label: 'Что произошло' },
-  { key: 'username', label: 'Пайщик', width: '220px' },
-  { key: 'amount', label: 'Сумма', numeric: true, width: '150px', nowrap: true },
+  { key: 'at', label: i18nT('edubridge.adminEconomyPage.column.at'), width: '150px', nowrap: true },
+  { key: 'title', label: i18nT('edubridge.adminEconomyPage.column.title') },
+  { key: 'username', label: i18nT('edubridge.adminEconomyPage.column.username'), width: '220px' },
+  { key: 'amount', label: i18nT('edubridge.adminEconomyPage.column.amount'), numeric: true, width: '150px', nowrap: true },
 ];
 
 const columns: BaseTableColumn<ITeacher>[] = [
-  { key: 'teacher', label: 'Преподаватель' },
-  { key: 'hourly_rate', label: 'Ставка часа', numeric: true, width: '160px', nowrap: true },
-  { key: 'assignments', label: 'Назначений', width: '130px', nowrap: true },
+  { key: 'teacher', label: i18nT('edubridge.adminEconomyPage.column.teacher') },
+  { key: 'hourly_rate', label: i18nT('edubridge.adminEconomyPage.column.hourlyRate'), numeric: true, width: '160px', nowrap: true },
+  { key: 'assignments', label: i18nT('edubridge.adminEconomyPage.column.assignments'), width: '130px', nowrap: true },
   { key: 'actions', label: '', align: 'right', width: '180px' },
 ];
 
@@ -269,7 +270,7 @@ async function onSaveMarkup(): Promise<void> {
   try {
     const saved = await setEconomySettings({ markup_percent: Number(markup.value) });
     maxDiscount.value = saved.max_course_discount_percent;
-    SuccessAlert('Целевой членский взнос сохранён — он действует на все курсы кооператива');
+    SuccessAlert(i18nT('edubridge.adminEconomyPage.markupSaved'));
   } catch (e) {
     FailAlert(e);
   } finally {
@@ -304,7 +305,7 @@ async function onSaveRate(): Promise<void> {
     await setTeacherRate({ username: rateTarget.value.username, hourly_rate });
     teachers.value = teachers.value.map((t) => (t.username === rateTarget.value?.username ? { ...t, hourly_rate } : t));
     rateOpen.value = false;
-    SuccessAlert('Ставка сохранена');
+    SuccessAlert(i18nT('edubridge.adminEconomyPage.rateSaved'));
   } catch (e) {
     FailAlert(e);
   } finally {

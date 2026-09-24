@@ -10,6 +10,7 @@ import {
   EDU_TEACHER_OFFER_REGISTRY_ID,
   EDU_TEACHING_PROGRAM_KEY,
 } from '../../constants/edubridge-agreement-ids';
+import { t } from '../../i18n';
 
 /**
  * Витрина вступления: две программы — «Обучение» (родитель-слушатель) и
@@ -22,9 +23,9 @@ export function registerEdubridgeInAgreementRegistry(port: IRegistrationRegistry
     id: EDU_PARENT_OFFER_AGREEMENT_ID,
     registry_id: EDU_PARENT_OFFER_REGISTRY_ID,
     agreement_type: EDU_PARENT_AGREEMENT_TYPE,
-    title: 'Оферта родителя-слушателя по целевой потребительской программе «Образование»',
-    checkbox_text: 'Я прочитал и принимаю',
-    link_text: 'оферту родителя-слушателя по ЦПП «Образование»',
+    title: t('edubridge.agreementRegistry.parentOffer.title'),
+    checkbox_text: t('edubridge.agreementRegistry.parentOffer.checkboxText'),
+    link_text: t('edubridge.agreementRegistry.parentOffer.linkText'),
     applicable_account_types: [],
     order: 8,
     extension_name: EDUBRIDGE_EXTENSION_NAME,
@@ -34,9 +35,9 @@ export function registerEdubridgeInAgreementRegistry(port: IRegistrationRegistry
     id: EDU_TEACHER_OFFER_AGREEMENT_ID,
     registry_id: EDU_TEACHER_OFFER_REGISTRY_ID,
     agreement_type: EDU_TEACHER_AGREEMENT_TYPE,
-    title: 'Оферта преподавателя по целевой потребительской программе «Образование»',
-    checkbox_text: 'Я прочитал и принимаю',
-    link_text: 'оферту преподавателя по ЦПП «Образование»',
+    title: t('edubridge.agreementRegistry.teacherOffer.title'),
+    checkbox_text: t('edubridge.agreementRegistry.teacherOffer.checkboxText'),
+    link_text: t('edubridge.agreementRegistry.teacherOffer.linkText'),
     applicable_account_types: [],
     order: 9,
     extension_name: EDUBRIDGE_EXTENSION_NAME,
@@ -44,8 +45,8 @@ export function registerEdubridgeInAgreementRegistry(port: IRegistrationRegistry
 
   port.registerProgram({
     key: EDU_LEARNING_PROGRAM_KEY,
-    title: 'Обучение',
-    description: 'Записать себя или детей на курсы кооператива: членский взнос за выбранный период, доступ на образовательной площадке.',
+    title: t('edubridge.agreementRegistry.learningProgram.title'),
+    description: t('edubridge.agreementRegistry.learningProgram.description'),
     applicable_account_types: [InnerAccountType.individual, InnerAccountType.entrepreneur],
     agreement_ids: [EDU_PARENT_OFFER_AGREEMENT_ID],
     order: 4,
@@ -54,8 +55,8 @@ export function registerEdubridgeInAgreementRegistry(port: IRegistrationRegistry
 
   port.registerProgram({
     key: EDU_TEACHING_PROGRAM_KEY,
-    title: 'Преподавание',
-    description: 'Вести курсы кооператива и вносить паевой взнос результатами работы по договору участия в хозяйственной деятельности.',
+    title: t('edubridge.agreementRegistry.teachingProgram.title'),
+    description: t('edubridge.agreementRegistry.teachingProgram.description'),
     applicable_account_types: [InnerAccountType.individual, InnerAccountType.entrepreneur],
     agreement_ids: [EDU_TEACHER_OFFER_AGREEMENT_ID],
     order: 5,

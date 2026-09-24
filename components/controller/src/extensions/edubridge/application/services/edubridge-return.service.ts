@@ -1,4 +1,4 @@
-import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { Cooperative } from 'cooptypes';
 import {
   LOGGER_PORT,
@@ -7,7 +7,7 @@ import {
   type ISignedDocument,
   type IUserWalletPort,
 } from '@coopenomics/innercoop';
-import { platformSettings } from '@coopenomics/extension-kit';
+import { platformSettings, DomainError } from '@coopenomics/extension-kit';
 import { EduReturnStatus } from '../../domain/enums';
 import { EDUBRIDGE_CHAIN_PORT, type EdubridgeChainPort } from '../../domain/ports/edubridge-chain.port';
 import type { EdubridgeReturnRequestEntity } from '../../infrastructure/entities';
@@ -82,7 +82,7 @@ export class EdubridgeReturnService {
 
   /** Пайщик подал подписанное заявление — оно ждёт согласования кооперативом. */
   async request(coopname: string, member: string, document: ISignedDocument): Promise<EdubridgeReturnRequestEntity> {
-    if (!document.signatures?.some((s) => s.signer === member)) throw new BadRequestException('Заявление не подписано пайщиком');
+    if (!document.signatures?.some((s) => s.signer === member)) throw DomainError.badRequest('EDUBRIDGE_RETURN_STATEMENT_NOT_SIGNED');
     assertProgramAnnulment(metaOf(document));
     await this.assertNoPending(coopname, member);
 
@@ -112,10 +112,11 @@ export class EdubridgeReturnService {
 
     // Остаток до закрытия подписок: возвраты по ним лягут сверху, книга ещё не успела их отразить.
     const before = await this.walletAvailable(coopname, member);
+    // i18n-ignore: текст журнала (причина уходит только в logger), до пайщика не доходит
     const cancelled = await this.enrollments.cancelAllForMember(coopname, member, 'прекращение участия в программе');
     const left = await this.enrollments.refundsOnExit(coopname, member);
     if (left.subscriptions > 0) {
-      throw new BadRequestException(`Не удалось закрыть подписок: ${left.subscriptions}. Повторите согласование — закрытые уже не тронутся`);
+      throw DomainError.badRequest('EDUBRIDGE_RETURN_CLOSE_PARTIAL', { left: left.subscriptions });
     }
     const refunds = cancelled.reduce((sum, e) => sum + (Number.parseFloat(e.refunded_amount ?? '0') || 0), 0);
     const amount = `${(before + refunds).toFixed(4)} ${symbol}`;
@@ -133,7 +134,7 @@ export class EdubridgeReturnService {
 
   /** Кооператив отклонил заявление — участие продолжается, остаток на кошельке программы. */
   async decline(coopname: string, id: string, actor: string, reason: string): Promise<EdubridgeReturnRequestEntity> {
-    if (!reason?.trim()) throw new BadRequestException('Укажите причину отказа');
+    if (!reason?.trim()) throw DomainError.badRequest('EDUBRIDGE_RETURN_DECLINE_REASON_REQUIRED');
     const r = await this.pending(coopname, id);
     r.status = EduReturnStatus.DECLINED;
     r.decline_reason = reason.trim();
@@ -144,8 +145,8 @@ export class EdubridgeReturnService {
 
   private async pending(coopname: string, id: string): Promise<EdubridgeReturnRequestEntity> {
     const r = await this.requests.findById(coopname, id);
-    if (!r) throw new NotFoundException('Заявление не найдено');
-    if (r.status !== EduReturnStatus.PENDING) throw new BadRequestException('По заявлению уже принято решение');
+    if (!r) throw DomainError.notFound('EDUBRIDGE_RETURN_REQUEST_NOT_FOUND');
+    if (r.status !== EduReturnStatus.PENDING) throw DomainError.badRequest('EDUBRIDGE_RETURN_REQUEST_ALREADY_DECIDED');
     return r;
   }
 
@@ -155,7 +156,7 @@ export class EdubridgeReturnService {
 
   private async assertNoPending(coopname: string, member: string): Promise<void> {
     if (await this.hasPending(coopname, member)) {
-      throw new BadRequestException('Заявление о прекращении участия уже подано и ждёт согласования');
+      throw DomainError.badRequest('EDUBRIDGE_RETURN_REQUEST_ALREADY_PENDING');
     }
   }
 
@@ -175,14 +176,14 @@ function toNumber(asset: string | null | undefined): number {
  */
 function assertProgramAnnulment(meta: Record<string, unknown>): void {
   if (Number(meta.registry_id) !== Cooperative.Registry.ProgramAgreementsAnnulmentStatement.registry_id) {
-    throw new BadRequestException('Подписан не тот документ: нужно заявление об аннулировании соглашения об участии в программе');
+    throw DomainError.badRequest('EDUBRIDGE_RETURN_WRONG_DOCUMENT');
   }
   if (meta.exit_hash) {
-    throw new BadRequestException('Заявление подписано вместе с выходом из кооператива — его рассматривает совет при выходе');
+    throw DomainError.badRequest('EDUBRIDGE_RETURN_SIGNED_WITH_EXIT');
   }
   const programs = Array.isArray(meta.programs) ? (meta.programs as Array<{ program_id?: unknown }>) : [];
   if (programs.length !== 1 || Number(programs[0]?.program_id) !== EDU_LEARNER_PROGRAM_ID) {
-    throw new BadRequestException('В заявлении должна быть одна программа — «Образование»');
+    throw DomainError.badRequest('EDUBRIDGE_RETURN_SINGLE_PROGRAM_REQUIRED');
   }
 }
 

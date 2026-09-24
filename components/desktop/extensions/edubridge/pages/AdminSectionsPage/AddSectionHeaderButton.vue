@@ -1,8 +1,8 @@
 <template lang="pug">
-BaseButton(variant="primary" size="sm" :icon-only="isCompact" aria-label="Добавить раздел" @click="emit('click')")
+BaseButton(variant="primary" size="sm" :icon-only="isCompact" :aria-label="$t('edubridge.addSectionHeaderButton.label')" @click="emit('click')")
   template(#icon-left)
     q-icon(name="add" size="18px")
-  | Добавить раздел
+  | {{ $t('edubridge.addSectionHeaderButton.label') }}
 </template>
 
 <script setup lang="ts">

@@ -349,7 +349,7 @@ import PsvForm from 'extensions/reports/widgets/report-forms/PsvForm.vue'
 import Efs1Form from 'extensions/reports/widgets/report-forms/Efs1Form.vue'
 import UusnForm from 'extensions/reports/widgets/report-forms/UusnForm.vue'
 import { exportFormToPdf, makePdfFileName } from 'extensions/reports/widgets/report-forms/pdf-export'
-import { t } from '../../../i18n';
+import { t, t as i18nT } from '../../../i18n';
 
 // Набор типов отчётов, для которых у нас есть paper-view для PDF-экспорта.
 // 5 MVP-форм; ДУСН/УУСН/УВ_Взносы скрыты в HIDDEN_IN_MVP и сюда не попадают.
@@ -636,6 +636,7 @@ function formatTime(d: Date): string {
 // immediate: true — DocumentsPage монтирует этот диалог через v-if, поэтому
 // на момент create() props.modelValue уже true и классический watcher
 // false→true никогда не сработает (компонент просто стоит пустой).
+// realtime: нет источника — редактор черновика отчёта: живое перечитывание затёрло бы ввод пайщика.
 watch(
   () => props.modelValue,
   async (open) => {
@@ -776,7 +777,7 @@ const { confirm } = useConfirm()
 
 async function applyMark(nextMark: CurrentMark, confirmMsg: string): Promise<void> {
   if (!props.reportType || markLoading.value) return
-  if (!(await confirm({ title: 'Подтвердите отметку', message: confirmMsg, confirmLabel: 'Отметить' }))) return
+  if (!(await confirm({ title: i18nT('reports.reportEditorDialog.markConfirmTitle'), message: confirmMsg, confirmLabel: i18nT('reports.reportEditorDialog.markConfirmLabel') }))) return
   markLoading.value = true
   try {
     const sdkMark =

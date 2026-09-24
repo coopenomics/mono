@@ -4,6 +4,7 @@ import { client } from 'src/shared/api/client';
 import { useSessionStore } from 'src/entities/Session';
 import { useSystemStore } from 'src/entities/System/model';
 import { DigitalDocument } from 'src/shared/lib/document';
+import { t } from '../../../i18n';
 
 export type IEduOnboardingState = Queries.Edubridge.OnboardingState.IOutput['edubridgeOnboardingState'];
 export type EduOfferKind = Mutations.Edubridge.SignOffer.IInput['input']['kind'];
@@ -27,9 +28,9 @@ export async function buildOfferDocument(kind: EduOfferKind): Promise<DigitalDoc
   const session = useSessionStore();
   const system = useSystemStore();
   const username = session.username;
-  if (!username) throw new Error('Пайщик не авторизован');
+  if (!username) throw new Error(t('edubridge.error.notAuthorized'));
   const coopname = system.info.coopname;
-  if (!coopname) throw new Error('Не определён кооператив');
+  if (!coopname) throw new Error(t('edubridge.error.coopnameMissing'));
 
   const rnd = new Uint8Array(8);
   crypto.getRandomValues(rnd);
@@ -53,10 +54,10 @@ export async function buildOfferDocument(kind: EduOfferKind): Promise<DigitalDoc
 export async function signOffer(kind: EduOfferKind, prepared?: DigitalDocument): Promise<IEduOnboardingState> {
   const session = useSessionStore();
   const username = session.username;
-  if (!username) throw new Error('Пайщик не авторизован');
+  if (!username) throw new Error(t('edubridge.error.notAuthorized'));
   const document = prepared ?? (await buildOfferDocument(kind));
   await document.sign(username);
-  if (!document.signedDocument) throw new Error('Не удалось подписать оферту');
+  if (!document.signedDocument) throw new Error(t('edubridge.error.offerSignFailed'));
   const { [Mutations.Edubridge.SignOffer.name]: result } = await client.Mutation(Mutations.Edubridge.SignOffer.mutation, {
     variables: { input: { kind, document: document.signedDocument } },
   });

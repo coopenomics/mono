@@ -1,24 +1,23 @@
 <template lang="pug">
 .q-pa-md
   PageHint.q-mb-md(storage-key="edu:admin-connectors:banner-dismissed")
-    | Площадки — носители доступа. Ключи подключения задаются здесь и хранятся зашифрованными; видны они только вам,
-    | администраторам недоступны. После смены ключей площадка проверяется заново.
+    | {{ $t('edubridge.adminConnectorsPage.hint') }}
   CardListSkeleton(v-if="firstLoad" :count="3")
   .row.q-col-gutter-md(v-else)
     .col-12.col-md-6.col-xl-4(v-for="c in items" :key="c.carrier")
       BaseCard.edu-connector(variant="default" :title="carrierLabel(c.carrier)")
         template(#actions)
           BaseBadge(:variant="stateOf(c).variant") {{ stateOf(c).label }}
-        DataRow(label="Подключение" :value="c.enabled ? 'включена' : 'выключена'")
-        DataRow(v-if="c.credential_fields.length" label="Ключи" :value="c.configured ? 'заданы' : 'не заданы'")
-        DataRow(label="Последняя проверка" :value="c.last_check_at ? formatDateTime(c.last_check_at) : '______'")
-        DataRow(v-if="c.last_check_message" label="Результат" :value="c.last_check_message")
+        DataRow(:label="$t('edubridge.adminConnectorsPage.enabledLabel')" :value="c.enabled ? $t('edubridge.adminConnectorsPage.enabledOn') : $t('edubridge.adminConnectorsPage.enabledOff')")
+        DataRow(v-if="c.credential_fields.length" :label="$t('edubridge.adminConnectorsPage.credentialsLabel')" :value="c.configured ? $t('edubridge.adminConnectorsPage.credentialsSet') : $t('edubridge.adminConnectorsPage.credentialsNotSet')")
+        DataRow(:label="$t('edubridge.adminConnectorsPage.lastCheckLabel')" :value="c.last_check_at ? formatDateTime(c.last_check_at) : '______'")
+        DataRow(v-if="c.last_check_message" :label="$t('edubridge.adminConnectorsPage.lastCheckResultLabel')" :value="c.last_check_message")
         .edu-connector__actions
-          BaseButton(v-if="c.credential_fields.length" variant="ghost" size="sm" @click="openCredentials(c)") {{ c.configured ? 'Ключи' : 'Задать ключи' }}
-          BaseButton(variant="ghost" size="sm" :loading="busy === c.carrier + ':toggle'" @click="toggle(c)") {{ c.enabled ? 'Выключить' : 'Включить' }}
-          BaseButton(variant="secondary" size="sm" :disabled="!c.configured" :loading="busy === c.carrier" @click="check(c)") Проверить
+          BaseButton(v-if="c.credential_fields.length" variant="ghost" size="sm" @click="openCredentials(c)") {{ c.configured ? $t('edubridge.adminConnectorsPage.editCredentialsButton') : $t('edubridge.adminConnectorsPage.setCredentialsButton') }}
+          BaseButton(variant="ghost" size="sm" :loading="busy === c.carrier + ':toggle'" @click="toggle(c)") {{ c.enabled ? $t('edubridge.adminConnectorsPage.disableButton') : $t('edubridge.adminConnectorsPage.enableButton') }}
+          BaseButton(variant="secondary" size="sm" :disabled="!c.configured" :loading="busy === c.carrier" @click="check(c)") {{ $t('edubridge.adminConnectorsPage.checkButton') }}
 
-  BaseDialog(v-model="credentialsOpen" :title="editing ? `Ключи: ${carrierLabel(editing.carrier)}` : 'Ключи'" size="md")
+  BaseDialog(v-model="credentialsOpen" :title="editing ? $t(`edubridge.adminConnectorsPage.credentialsDialogTitleFor`, { carrier: carrierLabel(editing.carrier) }) : $t('edubridge.adminConnectorsPage.credentialsDialogTitle')" size="md")
     BaseForm(v-if="editing" :loading="savingCredentials" @submit="saveCredentials")
       BaseInput(
         v-for="f in editing.credential_fields"
@@ -26,14 +25,14 @@
         v-model="credentialValues[f.key]"
         :label="f.label"
         :type="f.secret ? 'password' : 'text'"
-        :hint="f.is_set ? `${f.note ? f.note + '. ' : ''}Задано — оставьте пустым, чтобы не менять` : (f.note ?? undefined)"
+        :hint="f.is_set ? (f.note ? $t('edubridge.adminConnectorsPage.credentialKeepHintWithNote', { note: f.note }) : $t('edubridge.adminConnectorsPage.credentialKeepHint')) : (f.note ?? undefined)"
         :required="!f.is_set"
         mono
       )
       template(#footer)
         .row.justify-end.q-gutter-sm
-          BaseButton(variant="ghost" type="button" :disabled="savingCredentials" @click="credentialsOpen = false") Отменить
-          BaseButton(variant="primary" type="submit" :loading="savingCredentials") Сохранить и проверить
+          BaseButton(variant="ghost" type="button" :disabled="savingCredentials" @click="credentialsOpen = false") {{ $t('edubridge.adminConnectorsPage.cancel') }}
+          BaseButton(variant="primary" type="submit" :loading="savingCredentials") {{ $t('edubridge.adminConnectorsPage.saveAndCheckSubmit') }}
 </template>
 
 <script setup lang="ts">
@@ -48,6 +47,7 @@ import { CARRIER_LABELS } from '../../entities/Course';
 import { HEALTH_LABELS, checkConnector, fetchConnectors, setConnectorCredentials, setConnectorEnabled, type IConnector } from '../../entities/Admin';
 import { useLiveReload } from 'src/shared/lib/realtime';
 import { EduLive } from '../../shared/lib/live';
+import { t } from '../../i18n';
 
 /**
  * Площадки: карточка на носитель — состояние в шапке, свойства строками,
@@ -70,8 +70,8 @@ const formatDateTime = (v: unknown) => {
   return input ? new Date(input).toLocaleString('ru-RU') : '______';
 };
 function stateOf(c: IConnector): { label: string; variant: 'pos' | 'neg' | 'warn' | 'neutral' } {
-  if (c.credential_fields.length && !c.configured) return { label: 'Не настроена', variant: 'warn' };
-  if (!c.enabled) return { label: 'Выключена', variant: 'neutral' };
+  if (c.credential_fields.length && !c.configured) return { label: t('edubridge.adminConnectorsPage.state.notConfigured'), variant: 'warn' };
+  if (!c.enabled) return { label: t('edubridge.adminConnectorsPage.state.disabled'), variant: 'neutral' };
   return HEALTH_LABELS[c.health] ?? { label: c.health, variant: 'neutral' };
 }
 
@@ -126,7 +126,7 @@ async function saveCredentials(): Promise<void> {
     const saved = await setConnectorCredentials(editing.value.carrier, values);
     replace(saved);
     credentialsOpen.value = false;
-    SuccessAlert('Ключи сохранены');
+    SuccessAlert(t('edubridge.adminConnectorsPage.credentialsSaved'));
     if (saved.configured) await check(saved);
   } catch (e) {
     FailAlert(e);

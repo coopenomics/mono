@@ -1,7 +1,7 @@
 import { Field, ID, InputType, Int, ObjectType } from '@nestjs/graphql';
 import { IsArray, IsDateString, IsEnum, IsInt, IsOptional, IsString, IsUUID, Length, Matches, Max, Min, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
-import { SignedDigitalDocumentInputDTO } from '@coopenomics/extension-kit';
+import { SignedDigitalDocumentInputDTO, validationMessage } from '@coopenomics/extension-kit';
 import { EduAssignmentStatus, EduContractStatus, EduContributionStatus, EduCouncilOutcome, EduRidType } from '../../domain/enums';
 import type {
   EdubridgeContributionEntity,
@@ -126,7 +126,7 @@ export class EduSignContractInputDTO {
   @ValidateNested() @Type(() => SignedDigitalDocumentInputDTO) document!: SignedDigitalDocumentInputDTO;
   @Field(() => String, { description: 'Номер договора из подписанного экземпляра' }) @IsString() @Length(1, 32) contract_number!: string;
   @Field(() => String, { description: 'Ставка часа преподавателя («1000.0000 RUB»)' })
-  @Matches(ASSET_PATTERN, { message: 'Ставка должна быть в формате «1000.0000 RUB»' })
+  @Matches(ASSET_PATTERN, { message: validationMessage('edubridge.eduSignContractInput.hourlyRate.format') })
   hourly_rate!: string;
 }
 

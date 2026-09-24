@@ -12,8 +12,8 @@ BaseDialog(
       q-icon(name="warning_amber")
     | {{ state.options.note }}
   .row.justify-end.q-gutter-sm.q-mt-lg
-    BaseButton(variant="ghost" @click="answer(false)") {{ state.options.cancelLabel || 'Отмена' }}
-    BaseButton(:variant="state.options.danger ? 'danger' : 'primary'" @click="answer(true)") {{ state.options.confirmLabel || 'Подтвердить' }}
+    BaseButton(variant="ghost" @click="answer(false)") {{ state.options.cancelLabel || $t('common.action.cancel') }}
+    BaseButton(:variant="state.options.danger ? 'danger' : 'primary'" @click="answer(true)") {{ state.options.confirmLabel || $t('common.action.confirm') }}
 </template>
 
 <script setup lang="ts">

@@ -3,7 +3,7 @@ q-page.edu-course-edit
   .edu-course-edit__col
     CardListSkeleton(v-if="isEdit && firstLoad" :count="1")
 
-    EmptyState(v-else-if="isEdit && !course" title="Курс не найден" body="Возможно, курс удалён из реестра.")
+    EmptyState(v-else-if="isEdit && !course" :title="$t('edubridge.adminCourseEditPage.notFoundTitle')" :body="$t('edubridge.adminCourseEditPage.notFoundBody')")
       template(#icon)
         q-icon(name="search_off" size="40px")
 
@@ -22,17 +22,17 @@ q-page.edu-course-edit
             CourseForm(ref="formRef" :section="sectionOf(step.key)" hide-footer @saved="onSaved" @busy="(v) => (saving = v)")
 
       footer.edu-course-edit__foot
-        BaseButton(v-if="index === 0" variant="ghost" :disabled="saving" @click="leave") Отменить
+        BaseButton(v-if="index === 0" variant="ghost" :disabled="saving" @click="leave") {{ $t('edubridge.adminCourseEditPage.cancel') }}
         BaseButton(v-else variant="ghost" :disabled="saving" @click="goTo(steps[index - 1].key)")
           template(#icon-left)
             q-icon(name="arrow_back" size="16px")
-          | Назад
+          | {{ $t('common.action.back') }}
         q-space
         BaseButton(v-if="!isLast" :variant="isEdit ? 'secondary' : 'primary'" :disabled="saving" @click="next")
-          | Далее
+          | {{ $t('common.action.next') }}
           template(#icon-right)
             q-icon(name="arrow_forward" size="16px")
-        BaseButton(v-if="isEdit || isLast" variant="primary" :loading="saving" @click="save") {{ isEdit ? 'Сохранить' : 'Добавить курс' }}
+        BaseButton(v-if="isEdit || isLast" variant="primary" :loading="saving" @click="save") {{ isEdit ? $t('common.action.save') : $t('edubridge.adminCourseEditPage.addCourseSubmit') }}
 </template>
 
 <script setup lang="ts">
@@ -46,6 +46,7 @@ import { BaseButton, CardListSkeleton, EmptyState } from 'src/shared/ui/base';
 import { VerticalStepper, type StepperStep } from 'src/shared/ui/domain';
 import { fetchCourse, type ICourse } from '../../entities/Course';
 import { CourseForm, provideCourseForm, type CourseFormSection } from '../../widgets/CourseForm';
+import { t } from '../../i18n';
 
 /**
  * Полная страница курса: новый курс и правка существующего. Разделы идут шагами;
@@ -67,11 +68,11 @@ const formRef = ref<InstanceType<typeof CourseForm> | null>(null);
 const state = provideCourseForm(() => course.value);
 
 const steps: Array<StepperStep & { key: CourseFormSection }> = [
-  { key: 'course', label: 'Курс', description: 'Название, раздел, расписание, описание и программа' },
-  { key: 'cover', label: 'Обложка', description: 'Снимок для каталога (рекомендуемый размер: 1600 × 900)', optional: true },
-  { key: 'price', label: 'Стоимость и сроки', description: 'Занятия, ставка, гарантийный срок и взнос' },
-  { key: 'access', label: 'Выдача доступа', description: 'Где ученик проходит курс' },
-  { key: 'teachers', label: 'Преподаватели', description: 'Кто ведёт курс', optional: true },
+  { key: 'course', label: t('edubridge.adminCourseEditPage.step.course.label'), description: t('edubridge.adminCourseEditPage.step.course.description') },
+  { key: 'cover', label: t('edubridge.adminCourseEditPage.step.cover.label'), description: t('edubridge.adminCourseEditPage.step.cover.description'), optional: true },
+  { key: 'price', label: t('edubridge.adminCourseEditPage.step.price.label'), description: t('edubridge.adminCourseEditPage.step.price.description') },
+  { key: 'access', label: t('edubridge.adminCourseEditPage.step.access.label'), description: t('edubridge.adminCourseEditPage.step.access.description') },
+  { key: 'teachers', label: t('edubridge.adminCourseEditPage.step.teachers.label'), description: t('edubridge.adminCourseEditPage.step.teachers.description'), optional: true },
 ];
 
 const activeKey = ref<CourseFormSection>('course');

@@ -3,23 +3,23 @@
 //- председатель; остальным видно, что документ ждёт его подписи.
 .chairman-approval-actions
   template(v-if="session.isChairman")
-    BaseButton(variant="ghost" size="sm" :disabled="busy" @click="ask('decline')") Отклонить
-    BaseButton(variant="primary" size="sm" :loading="busy && kind === 'approve'" @click="ask('approve')") Подписать
-  span.t-meta.t-muted(v-else) Ждёт подписи председателя
+    BaseButton(variant="ghost" size="sm" :disabled="busy" @click="ask('decline')") {{ $t('document.chairmanApprovalActions.decline') }}
+    BaseButton(variant="primary" size="sm" :loading="busy && kind === 'approve'" @click="ask('approve')") {{ $t('common.action.sign') }}
+  span.t-meta.t-muted(v-else) {{ $t('document.chairmanApprovalActions.awaitingChairman') }}
 
-  BaseDialog(v-model="open" :title="kind === 'approve' ? 'Подписать документ' : 'Отклонить документ'" size="sm")
-    p(v-if="kind === 'approve'") Документ «{{ title }}» будет подписан вашей подписью.
+  BaseDialog(v-model="open" :title="kind === 'approve' ? $t('document.chairmanApprovalActions.signDialogTitle') : $t('document.chairmanApprovalActions.declineDialogTitle')" size="sm")
+    p(v-if="kind === 'approve'") {{ $t('document.chairmanApprovalActions.signConfirmText', { documentTitle: title }) }}
     template(v-else)
-      p Документ «{{ title }}» вернётся пайщику с причиной отказа.
-      BaseInput.q-mt-sm(v-model="reason" label="Причина отказа" type="textarea" :rows="2" required)
+      p {{ $t('document.chairmanApprovalActions.declineConfirmText', { documentTitle: title }) }}
+      BaseInput.q-mt-sm(v-model="reason" :label="$t('document.chairmanApprovalActions.declineReasonLabel')" type="textarea" :rows="2" required)
     template(#footer)
-      BaseButton(variant="ghost" :disabled="busy" @click="open = false") Отменить
+      BaseButton(variant="ghost" :disabled="busy" @click="open = false") {{ $t('document.chairmanApprovalActions.cancel') }}
       BaseButton(
         :variant="kind === 'approve' ? 'primary' : 'secondary'"
         :disabled="kind === 'decline' && !reason.trim()"
         :loading="busy"
         @click="run"
-      ) {{ kind === 'approve' ? 'Подписать' : 'Отклонить' }}
+      ) {{ kind === 'approve' ? $t('common.action.sign') : $t('document.chairmanApprovalActions.decline') }}
 </template>
 
 <script setup lang="ts">
@@ -28,6 +28,7 @@ import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { useSessionStore } from 'src/entities/Session/model';
 import { BaseButton, BaseDialog, BaseInput } from 'src/shared/ui/base';
 import { useChairmanApprovalDecision } from '../model';
+import { t } from 'src/shared/i18n';
 
 const props = defineProps<{
   coopname: string;
@@ -55,7 +56,7 @@ async function run(): Promise<void> {
   try {
     if (kind.value === 'approve') await approve(props.coopname, props.approvalHash);
     else await decline(props.coopname, props.approvalHash, reason.value.trim());
-    SuccessAlert(kind.value === 'approve' ? 'Документ подписан' : 'Документ отклонён');
+    SuccessAlert(kind.value === 'approve' ? t('document.chairmanApprovalActions.signedSuccess') : t('document.chairmanApprovalActions.declinedSuccess'));
     open.value = false;
     emit('decided', kind.value);
   } catch (e) {

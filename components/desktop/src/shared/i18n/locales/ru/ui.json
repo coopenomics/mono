@@ -111,6 +111,7 @@
       "completedTitle": "Онбординг завершен!",
       "draftDecisionLabel": "Проект решения",
       "expiredText": "Время истекло",
+      "generatingDocumentText": "Формируем документ…",
       "loadingText": "Загрузка данных онбординга...",
       "remainingDaysHours": "Осталось {days} дн. {hours} ч.",
       "remainingHours": "Осталось {hours} ч.",

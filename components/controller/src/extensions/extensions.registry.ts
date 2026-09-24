@@ -67,7 +67,7 @@ import {
   registerExtensionEntities,
   type IRegistryExtension,
 } from '@coopenomics/extension-kit';
-import { t } from '~/i18n';
+import { t, t as i18nT } from '~/i18n';
 
 // Форма записи реестра, enum доступности и её вычисление живут в @coopenomics/extension-kit —
 // расширению нужен этот контракт, чтобы типизировать свою запись. Здесь остаётся сам реестр:
@@ -479,12 +479,12 @@ export const AppRegistry: INamedExtension = {
     // (EdubridgeDesktopGrantsProvider): гость видит каталог, до принятия ЦПП
     // советом у председателя только Extension:configure.
     desktops: [
-      { name: 'edubridge', title: 'Стол администратора', icon: 'admin_panel_settings' },
-      { name: 'edubridge-member', title: 'Стол ученика', icon: 'family_restroom' },
-      { name: 'edubridge-teacher', title: 'Стол преподавателя', icon: 'co_present' },
+      { name: 'edubridge', title: i18nT('app.extensionsRegistry.edubridge.windowTitleAdmin'), icon: 'admin_panel_settings' },
+      { name: 'edubridge-member', title: i18nT('app.extensionsRegistry.edubridge.windowTitleMember'), icon: 'family_restroom' },
+      { name: 'edubridge-teacher', title: i18nT('app.extensionsRegistry.edubridge.windowTitleTeacher'), icon: 'co_present' },
     ],
-    title: 'Образовательный мост',
-    description: 'Курсы кооператива на образовательных площадках: каталог, членские взносы, автоматический доступ.',
+    title: i18nT('app.extensionsRegistry.edubridge.title'),
+    description: i18nT('app.extensionsRegistry.edubridge.description'),
     image: 'https://i.ibb.co/84SRvtR3/Chat-GPT-Image-15-2025-11-33-17.png',
     class: EdubridgeExtensionModule,
     extensionClass: EdubridgeExtension,
@@ -495,7 +495,7 @@ export const AppRegistry: INamedExtension = {
       'connectors.skillspace_api_key': { secret: true, suppliedBy: ExtensionConfigSuppliedBy.COOPERATIVE },
       'connectors.getcourse_api_key': { secret: true, suppliedBy: ExtensionConfigSuppliedBy.COOPERATIVE },
     },
-    tags: ['стол', 'образование'],
+    tags: [i18nT('app.extensionsRegistry.edubridge.tagDesk'), i18nT('app.extensionsRegistry.edubridge.tagEducation')],
     readme: getReadmeContent('./edubridge'),
     instructions: getInstructionsContent('./edubridge'),
     get is_desktop() {

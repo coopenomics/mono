@@ -1,6 +1,6 @@
 {
   "_комментарий": "Таймеры без пометки `// timing: <вид>` по файлам (scripts/check-timing.mjs). Тронул файл — пометь таймер или убери паузу; долг только снижается.",
-  "_commit": "1cad9f185f552e27d6210677a47b7dddb1e5fc7d",
+  "_commit": "8e6b06e1bb37820fade8155b2289c50e16766dc0",
   "files": {
     "components/controller/src/domain/document-approval/services/document-approval-seed.service.ts": 1,
     "components/controller/src/extensions/capital/application/services/component-matrix-announcement.service.ts": 1,
@@ -15,7 +15,6 @@
     "components/controller/src/extensions/chatcoop/application/services/secretary-agent.service.ts": 3,
     "components/controller/src/extensions/chatcoop/application/services/whisper-stt.service.ts": 1,
     "components/controller/src/extensions/chatcoop/chatcoop-extension.module.ts": 2,
-    "components/controller/src/extensions/edubridge/infrastructure/connectors/http-carrier.base.ts": 1,
     "components/controller/src/extensions/marketplace/infrastructure/adapters/yandex-geocoder.adapter.ts": 2,
     "components/controller/src/extensions/participant/notification-sender.service.ts": 6,
     "components/controller/src/infrastructure/blockchain/action-release-gate.service.ts": 2,

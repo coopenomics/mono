@@ -1,9 +1,9 @@
 <template lang="pug">
 .q-pa-md
   PageHint.q-mb-md(storage-key="edu:admin-teachers:banner-dismissed")
-    | Преподаватели кооператива — пайщики с подписанным договором участия в хозяйственной деятельности.
-    | Нажмите на строку, чтобы открыть карточку с договором и назначениями: назначение действует, когда
-    | приложение к договору подписали преподаватель и председатель совета.
+    | {{ $t('edubridge.adminTeachersPage.hint.line1') }}
+    | {{ $t('edubridge.adminTeachersPage.hint.line2') }}
+    | {{ $t('edubridge.adminTeachersPage.hint.line3') }}
 
   BaseTable(
     v-if="loading || teachers.length"
@@ -24,16 +24,16 @@
     template(#cell-contract_status="{ row }")
       BaseBadge(:variant="contractStatusOf(row.contract_status).variant") {{ contractStatusOf(row.contract_status).label }}
     template(#cell-hourly_rate="{ row }") {{ formatAsset2Digits(row.hourly_rate) }}
-    template(#cell-assignments="{ row }") {{ row.assignments_active }} из {{ row.assignments_total }}
+    template(#cell-assignments="{ row }") {{ $t('edubridge.adminTeachersPage.assignmentsCount', { active: row.assignments_active, total: row.assignments_total }) }}
     template(#cell-signed_at="{ row }") {{ formatDate(row.signed_at) }}
 
-  EmptyState(v-if="!firstLoad && !teachers.length" title="Преподавателей нет" body="Преподаватель появляется здесь, когда подпишет договор участия в хозяйственной деятельности на своём столе.")
+  EmptyState(v-if="!firstLoad && !teachers.length" :title="$t('edubridge.adminTeachersPage.emptyTitle')" :body="$t('edubridge.adminTeachersPage.emptyBody')")
     template(#icon)
       q-icon(name="co_present" size="32px")
 
   //- Карточка преподавателя: кто он и что за ним закреплено. Назначения ведутся
   //- здесь же — отдельного реестра назначений нет, он читался в отрыве от людей.
-  DetailsDrawer(v-model="cardOpen" :title="current?.display_name || current?.username || 'Преподаватель'" :width="640")
+  DetailsDrawer(v-model="cardOpen" :title="current?.display_name || current?.username || $t('edubridge.adminTeachersPage.cardFallbackTitle')" :width="640")
     template(v-if="current")
       .edu-teachers__head
         Avatar(:name="current.display_name || current.username" :src="current.avatar_url || undefined" size="xl")
@@ -46,34 +46,34 @@
       //- уходя на стол председателя. Одобрение одно: решение здесь закрывает
       //- его и в «Запросах одобрений».
       .edu-teachers__approvals(v-if="approvals.length")
-        .text-subtitle2.q-mb-xs На подписи у председателя
+        .text-subtitle2.q-mb-xs {{ $t('edubridge.adminTeachersPage.approvalsTitle') }}
         .edu-teachers__approval(v-for="a in approvals" :key="a.approval_hash")
           div
             .t-sm.text-weight-medium {{ a.title }}
-            .t-meta.t-muted Отправлен {{ formatDate(a.created_at) }}
+            .t-meta.t-muted {{ $t('edubridge.adminTeachersPage.approvalSentAt', { date: formatDate(a.created_at) }) }}
           ChairmanApprovalActions(:coopname="coopname" :approval-hash="a.approval_hash" :title="a.title" @decided="onApprovalDecided")
 
       PageTabs.q-mt-md(:tabs="tabs" :active-key="tab" @select="(t) => (tab = t.key)")
 
       template(v-if="tab === 'contract'")
-        DataRow(label="Номер договора" :value="current.contract_number" mono copyable)
+        DataRow(:label="$t('edubridge.adminTeachersPage.contract.numberLabel')" :value="current.contract_number" mono copyable)
         //- Ставка часа в документы не попадает: она живёт в договоре расширения
         //- и правится в разделе «Экономика».
-        DataRow(label="Ставка часа" :value="formatAsset2Digits(current.hourly_rate)")
-        DataRow(label="Подписан преподавателем" :value="formatDate(current.signed_at)")
-        DataRow(label="Подписан председателем" :value="current.approved_at ? formatDate(current.approved_at) : '______'")
-        DataRow(label="Назначений действует" :value="String(current.assignments_active)")
-        DataRow(label="Назначений всего" :value="String(current.assignments_total)")
+        DataRow(:label="$t('edubridge.adminTeachersPage.contract.hourlyRateLabel')" :value="formatAsset2Digits(current.hourly_rate)")
+        DataRow(:label="$t('edubridge.adminTeachersPage.contract.signedByTeacherLabel')" :value="formatDate(current.signed_at)")
+        DataRow(:label="$t('edubridge.adminTeachersPage.contract.signedByChairmanLabel')" :value="current.approved_at ? formatDate(current.approved_at) : '______'")
+        DataRow(:label="$t('edubridge.adminTeachersPage.contract.assignmentsActiveLabel')" :value="String(current.assignments_active)")
+        DataRow(:label="$t('edubridge.adminTeachersPage.contract.assignmentsTotalLabel')" :value="String(current.assignments_total)")
 
         //- Прекращение по соглашению сторон: основание уходит в цепь вместе с действием.
         template(v-if="current.contract_status === Zeus.EduContractStatus.ACTIVE")
-          BaseButton.q-mt-md(v-if="!terminateFormOpen" variant="ghost" size="sm" @click="openTerminateForm") Прекратить договор
+          BaseButton.q-mt-md(v-if="!terminateFormOpen" variant="ghost" size="sm" @click="openTerminateForm") {{ $t('edubridge.adminTeachersPage.terminate.open') }}
           BaseForm.q-mt-md(v-else :loading="busy" @submit="onTerminate")
-            BaseInput(v-model="terminateReason" label="Основание прекращения" type="textarea" :rows="2" required)
+            BaseInput(v-model="terminateReason" :label="$t('edubridge.adminTeachersPage.terminate.reasonLabel')" type="textarea" :rows="2" required)
             template(#footer)
               .row.justify-end.q-gutter-sm
-                BaseButton(variant="ghost" type="button" :disabled="busy" @click="terminateFormOpen = false") Отменить
-                BaseButton(variant="danger" type="submit" :loading="busy") Прекратить договор
+                BaseButton(variant="ghost" type="button" :disabled="busy" @click="terminateFormOpen = false") {{ $t('edubridge.adminTeachersPage.cancel') }}
+                BaseButton(variant="danger" type="submit" :loading="busy") {{ $t('edubridge.adminTeachersPage.terminate.submit') }}
 
       template(v-else)
         q-list.q-mb-md(v-if="ownAssignments.length" separator)
@@ -85,27 +85,27 @@
             q-item-section(side)
               .row.items-center.q-gutter-sm
                 BaseBadge(:variant="assignmentStatusOf(a.status).variant") {{ assignmentStatusOf(a.status).label }}
-                BaseButton(v-if="a.status !== Zeus.EduAssignmentStatus.CLOSED" variant="ghost" size="sm" @click="onClose(a)") Закрыть
-        .t-muted.t-sm.q-mb-md(v-else) Курсы за преподавателем пока не закреплены.
+                BaseButton(v-if="a.status !== Zeus.EduAssignmentStatus.CLOSED" variant="ghost" size="sm" @click="onClose(a)") {{ $t('edubridge.adminTeachersPage.assignment.close') }}
+        .t-muted.t-sm.q-mb-md(v-else) {{ $t('edubridge.adminTeachersPage.assignment.empty') }}
 
         BaseButton(v-if="!assignFormOpen" variant="secondary" size="sm" @click="openAssignForm")
           template(#icon-left)
             q-icon(name="add" size="18px")
-          | Назначить курс
+          | {{ $t('edubridge.adminTeachersPage.assignment.open') }}
 
         BaseForm(v-else :loading="busy" @submit="onCreate")
-          BaseSelect(v-model="form.course_id" label="Курс" :options="courseOptions" required)
-          BaseInput(v-model="form.schedule" label="Расписание")
-          BaseInput(v-model="form.expected_result" label="Ожидаемый результат" type="textarea" :rows="2")
+          BaseSelect(v-model="form.course_id" :label="$t('edubridge.adminTeachersPage.assignment.courseLabel')" :options="courseOptions" required)
+          BaseInput(v-model="form.schedule" :label="$t('edubridge.adminTeachersPage.assignment.scheduleLabel')")
+          BaseInput(v-model="form.expected_result" :label="$t('edubridge.adminTeachersPage.assignment.expectedResultLabel')" type="textarea" :rows="2")
           .row.q-col-gutter-md
             .col-6
-              BaseInput(v-model="form.period_from" label="Период с" type="date" stack-label required)
+              BaseInput(v-model="form.period_from" :label="$t('edubridge.adminTeachersPage.assignment.periodFromLabel')" type="date" stack-label required)
             .col-6
-              BaseInput(v-model="form.period_to" label="Период по" type="date" stack-label required)
+              BaseInput(v-model="form.period_to" :label="$t('edubridge.adminTeachersPage.assignment.periodToLabel')" type="date" stack-label required)
           template(#footer)
             .row.justify-end.q-gutter-sm
-              BaseButton(variant="ghost" type="button" :disabled="busy" @click="assignFormOpen = false") Отменить
-              BaseButton(variant="primary" type="submit" :loading="busy") Назначить
+              BaseButton(variant="ghost" type="button" :disabled="busy" @click="assignFormOpen = false") {{ $t('edubridge.adminTeachersPage.cancel') }}
+              BaseButton(variant="primary" type="submit" :loading="busy") {{ $t('edubridge.adminTeachersPage.assignment.submit') }}
 </template>
 
 <script setup lang="ts">
@@ -138,6 +138,7 @@ import {
 } from '../../entities/Teacher';
 import { useLiveReload } from 'src/shared/lib/realtime';
 import { EduLive } from '../../shared/lib/live';
+import { t as i18nT } from '../../i18n';
 
 /**
  * Преподаватели кооператива: список людей, а не список бумаг. В строке — имя с
@@ -164,8 +165,8 @@ const terminateReason = ref('');
 const { confirm } = useConfirm();
 
 const tabs: PageTab[] = [
-  { key: 'contract', label: 'Договор' },
-  { key: 'assignments', label: 'Назначения' },
+  { key: 'contract', label: i18nT('edubridge.adminTeachersPage.tab.contract') },
+  { key: 'assignments', label: i18nT('edubridge.adminTeachersPage.tab.assignments') },
 ];
 
 const form = reactive<IAssignmentInput>({ teacher_username: '', course_id: '', schedule: '', expected_result: '', period_from: '', period_to: '' });
@@ -173,11 +174,11 @@ const form = reactive<IAssignmentInput>({ teacher_username: '', course_id: '', s
 // Номер договора — длинный ключ, в полосе он занимает место и ничего не решает:
 // его читают внутри карточки, когда нужен именно он.
 const columns: BaseTableColumn<ITeacher>[] = [
-  { key: 'teacher', label: 'Преподаватель' },
-  { key: 'contract_status', label: 'Договор', width: '210px' },
-  { key: 'hourly_rate', label: 'Ставка часа', numeric: true, width: '150px', nowrap: true },
-  { key: 'assignments', label: 'Назначений', width: '130px', nowrap: true },
-  { key: 'signed_at', label: 'Подписан', width: '130px', nowrap: true },
+  { key: 'teacher', label: i18nT('edubridge.adminTeachersPage.column.teacher') },
+  { key: 'contract_status', label: i18nT('edubridge.adminTeachersPage.column.contractStatus'), width: '210px' },
+  { key: 'hourly_rate', label: i18nT('edubridge.adminTeachersPage.column.hourlyRate'), numeric: true, width: '150px', nowrap: true },
+  { key: 'assignments', label: i18nT('edubridge.adminTeachersPage.column.assignments'), width: '130px', nowrap: true },
+  { key: 'signed_at', label: i18nT('edubridge.adminTeachersPage.column.signedAt'), width: '130px', nowrap: true },
 ];
 
 const courseOptions = computed(() => courses.value.map((c) => ({ value: asText(c.id), label: `${c.title} · ${courseSectionLabel(c.section_title, c.level_title, ', ')}` })));
@@ -255,7 +256,7 @@ async function onCreate(): Promise<void> {
     assignments.value = [created, ...assignments.value];
     bumpCounters(1);
     assignFormOpen.value = false;
-    SuccessAlert('Назначение создано — преподаватель подпишет приложение');
+    SuccessAlert(i18nT('edubridge.adminTeachersPage.assignment.created'));
   } catch (e) {
     FailAlert(e);
   } finally {
@@ -285,9 +286,9 @@ function openTerminateForm(): void {
 async function onTerminate(): Promise<void> {
   if (!current.value) return;
   const ok = await confirm({
-    title: 'Прекратить договор?',
-    message: 'Преподаватель не сможет вести занятия и отчитываться по ним, пока не подпишет договор заново.',
-    confirmLabel: 'Прекратить договор',
+    title: i18nT('edubridge.adminTeachersPage.terminate.confirmTitle'),
+    message: i18nT('edubridge.adminTeachersPage.terminate.confirmMessage'),
+    confirmLabel: i18nT('edubridge.adminTeachersPage.terminate.confirmLabel'),
     danger: true,
   });
   if (!ok) return;
@@ -296,7 +297,7 @@ async function onTerminate(): Promise<void> {
     const contract = await terminateContract(current.value.username, terminateReason.value.trim());
     if (contract) patchCurrent((t) => ({ ...t, contract_status: contract.status }));
     terminateFormOpen.value = false;
-    SuccessAlert('Договор прекращён');
+    SuccessAlert(i18nT('edubridge.adminTeachersPage.terminate.success'));
   } catch (e) {
     FailAlert(e);
   } finally {

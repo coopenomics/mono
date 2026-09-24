@@ -32,7 +32,7 @@ import { BaseDocument } from '../BaseDocument';
 import { DocumentRow, type DocumentRowDoc } from 'src/shared/ui/domain/DocumentRow';
 import type { IDocumentPackageAggregate } from 'src/entities/Document/model/types'
 import type { IDocumentAggregate } from 'src/entities/Document/model'
-import { t } from 'src/shared/i18n';
+import { t, t as i18nT } from 'src/shared/i18n';
 
 const props = defineProps({
   documents: {
@@ -75,7 +75,7 @@ const toRow = (aggregate: IDocumentAggregate, fallbackTitle: string): DocumentRo
 // Порядок прежний: заявление, решение, затем связанные документы — и последние
 // только при наличии заявления, как было.
 const items = computed<IPackageItem[]>(() => {
-  if (props.document) return [{ key: 'single', aggregate: props.document, row: toRow(props.document, 'Документ') }]
+  if (props.document) return [{ key: 'single', aggregate: props.document, row: toRow(props.document, i18nT('ui.complexDocument.documentLabel')) }]
   const pack = props.documents
   const list: IPackageItem[] = []
   if (!pack) return list

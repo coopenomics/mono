@@ -2,6 +2,8 @@
   "errors": {
     "MEMBERSHIP_EXIT_ALREADY_EXITED": "Вы уже вышли из кооператива — повторный выход невозможен.",
     "MEMBERSHIP_EXIT_ALREADY_SUBMITTED": "Процесс выхода уже запущен и отправлен в блокчейн",
+    "MEMBERSHIP_EXIT_ANNULMENT_REQUIRED": "К заявлению на выход приложите заявление об аннулировании соглашений об участии в программах.",
+    "MEMBERSHIP_EXIT_BLOCKED": "Выход из кооператива невозможен: {reasons}",
     "MEMBERSHIP_EXIT_CALCULATION_SELF_ONLY": "Доступен только собственный расчёт возврата",
     "MEMBERSHIP_EXIT_CANCEL_SELF_ONLY": "Отменить выход можно только за себя",
     "MEMBERSHIP_EXIT_NO_PENDING_REQUEST": "Нет заявления на выход, ожидающего подтверждения",
@@ -17,6 +19,10 @@
     },
     "membershipExitAuthorizationListener": {
       "refundMemo": "Возврат паевого взноса при выходе из кооператива №{hashPrefix}. {vatExemptNote}"
+    },
+    "membershipExitService": {
+      "programFallbackTitle": "Программа № {programId}",
+      "shareContributionTitle": "Паевой взнос кооператива"
     }
   }
 }

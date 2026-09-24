@@ -1,6 +1,7 @@
 import { Inject, Injectable, Optional } from '@nestjs/common';
 import { CHAIRMAN_APPROVALS_PORT, type IChairmanApprovalsPort } from '@coopenomics/innercoop';
 import { EduApprovalDTO } from '../dto/edu-approval.dto';
+import { t } from '../../i18n';
 
 /**
  * Одобрения образовательной программы — договор УХД преподавателя и приложения
@@ -9,8 +10,8 @@ import { EduApprovalDTO } from '../dto/edu-approval.dto';
  * Одобрение одно: подпись здесь закрывает его и в «Запросах одобрений».
  */
 export const EDU_APPROVAL_TITLES: Record<string, string> = {
-  apprvcontr: 'Договор участия в хозяйственной деятельности',
-  apprvannex: 'Приложение к договору на курс',
+  apprvcontr: t('edubridge.approvals.title.apprvcontr'),
+  apprvannex: t('edubridge.approvals.title.apprvannex'),
 };
 
 @Injectable()

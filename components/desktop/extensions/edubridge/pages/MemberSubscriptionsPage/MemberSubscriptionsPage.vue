@@ -1,14 +1,14 @@
 <template lang="pug">
 .q-pa-md
   PageHint.q-mb-md(storage-key="edu:member-subscriptions:banner-dismissed")
-    | Подписка открывается в каталоге: выберите курс и нажмите «Получить доступ». Членский взнос вносится
-    | из паевого по заявлению о конвертации, доступ на площадке выдаётся автоматически. Здесь — что оплачено и до какого числа.
-    | Взнос, возвращённый при отмене, остаётся на кошельке программы и зачитывается при следующей подписке.
-    | Вернуть его в паевой взнос можно по заявлению — в карточке «Кошелёк программы» ниже; остаток также возвращается
-    | при выходе из кооператива —
-    |#[a.edu-subscriptions__link(href="#" @click.prevent="goToPrograms") в разделе «Участие в программах»].
+    | {{ $t('edubridge.memberSubscriptionsPage.hint.line1') }}
+    | {{ $t('edubridge.memberSubscriptionsPage.hint.line2') }}
+    | {{ $t('edubridge.memberSubscriptionsPage.hint.line3') }}
+    | {{ $t('edubridge.memberSubscriptionsPage.hint.line4') }}
+    | {{ $t('edubridge.memberSubscriptionsPage.hint.line5') }}
+    |#[a.edu-subscriptions__link(href="#" @click.prevent="goToPrograms") {{ $t('edubridge.memberSubscriptionsPage.hint.programsLink') }}].
 
-  BaseCard(variant="default" title="Мои подписки")
+  BaseCard(variant="default" :title="$t('edubridge.memberSubscriptionsPage.title')")
     BaseTable(v-if="loading || enrollments.length" :columns="columns" :rows="enrollments" row-key="id" :loading="firstLoad" min-width="820px")
       template(#cell-learner="{ row }") {{ learnerName(row.learner_id) }}
       template(#cell-period="{ row }") {{ periodLabel(row.period) }}
@@ -19,31 +19,31 @@
         BaseBadge(:variant="accessOf(row.access_state).variant") {{ accessOf(row.access_state).label }}
       template(#cell-actions="{ row }")
         .row.no-wrap.justify-end.q-gutter-xs
-          BaseButton(v-if="isActive(row)" variant="secondary" size="sm" @click="extend(row)") Продлить
-          BaseButton(v-if="isActive(row)" variant="ghost" size="sm" @click="openCancel(row)") Отменить
+          BaseButton(v-if="isActive(row)" variant="secondary" size="sm" @click="extend(row)") {{ $t('edubridge.memberSubscriptionsPage.extend') }}
+          BaseButton(v-if="isActive(row)" variant="ghost" size="sm" @click="openCancel(row)") {{ $t('edubridge.memberSubscriptionsPage.cancel') }}
           .t-meta.t-muted(v-else-if="row.refund_reason") {{ refundReason(row.refund_reason) }}
-    EmptyState(v-else title="Подписок пока нет" body="Выберите курс в каталоге и нажмите «Получить доступ».")
+    EmptyState(v-else :title="$t('edubridge.memberSubscriptionsPage.emptyTitle')" :body="$t('edubridge.memberSubscriptionsPage.emptyBody')")
       template(#icon)
         q-icon(name="school" size="32px")
       template(#action)
-        BaseButton.q-mt-md(variant="primary" @click="goToCatalog") Перейти в каталог
+        BaseButton.q-mt-md(variant="primary" @click="goToCatalog") {{ $t('edubridge.memberSubscriptionsPage.goToCatalog') }}
 
   ReturnToShareCard.q-mt-md(:key="walletRev")
 
   //- Отмена подписки: сумма возврата считается по Положению ЦПП на сервере,
   //- поэтому ученик видит её до нажатия, а не после.
-  BaseDialog(v-model="cancelOpen" title="Отменить подписку" size="sm")
+  BaseDialog(v-model="cancelOpen" :title="$t('edubridge.memberSubscriptionsPage.cancelSubscription')" size="sm")
     .t-sm.t-muted.q-mb-md(v-if="cancelTarget") {{ cancelTarget.course_title }}
     CardListSkeleton(v-if="!refund" :count="1")
     template(v-else)
-      DataRow(label="Уплачено" :value="formatAsset2Digits(cancelTarget?.paid_amount ?? '')")
-      DataRow(label="Занятий прошло" :value="`${refund.lessons_used} из ${refund.lessons_paid}`")
-      DataRow(label="Вернётся" :value="formatAsset2Digits(refund.refund)")
-      DataRow(label="Останется программе" :value="formatAsset2Digits(refund.withheld)")
+      DataRow(:label="$t('edubridge.memberSubscriptionsPage.cancelDialog.paidLabel')" :value="formatAsset2Digits(cancelTarget?.paid_amount ?? '')")
+      DataRow(:label="$t('edubridge.memberSubscriptionsPage.cancelDialog.lessonsUsedLabel')" :value="$t(`edubridge.memberSubscriptionsPage.cancelDialog.lessonsUsedValue`, { lessonsUsed: refund.lessons_used, lessonsPaid: refund.lessons_paid })")
+      DataRow(:label="$t('edubridge.memberSubscriptionsPage.cancelDialog.refundLabel')" :value="formatAsset2Digits(refund.refund)")
+      DataRow(:label="$t('edubridge.memberSubscriptionsPage.cancelDialog.withheldLabel')" :value="formatAsset2Digits(refund.withheld)")
       .t-sm.t-muted.q-mt-sm {{ refundReason(refund.reason) }}
     .row.justify-end.q-gutter-sm.q-mt-md
-      BaseButton(variant="ghost" :disabled="cancelBusy" @click="cancelOpen = false") Закрыть
-      BaseButton(variant="danger" :loading="cancelBusy" :disabled="!refund" @click="confirmCancel") Отменить подписку
+      BaseButton(variant="ghost" :disabled="cancelBusy" @click="cancelOpen = false") {{ $t('common.action.close') }}
+      BaseButton(variant="danger" :loading="cancelBusy" :disabled="!refund" @click="confirmCancel") {{ $t('edubridge.memberSubscriptionsPage.cancelSubscription') }}
 
   SubscribeDialog(
     v-model="extendOpen"
@@ -83,6 +83,7 @@ import { ReturnToShareCard } from '../../features/ReturnToShare';
 import { SubscribeDialog } from '../../features/Subscribe';
 import { useLiveReload } from 'src/shared/lib/realtime';
 import { EduLive } from '../../shared/lib/live';
+import { t } from '../../i18n';
 
 /**
  * «Мои подписки»: что оплачено, до какого числа и в каком состоянии доступ.
@@ -118,12 +119,12 @@ const walletRev = ref(0);
  * иначе курс схлопывается и длинное название наезжает на соседей.
  */
 const columns: BaseTableColumn<IEnrollment>[] = [
-  { key: 'course_title', label: 'Курс' },
-  { key: 'learner', label: 'Обучающийся', width: '140px' },
-  { key: 'period', label: 'Взнос', width: '90px', nowrap: true },
-  { key: 'paid_until', label: 'Оплачено до', width: '120px', nowrap: true },
-  { key: 'status', label: 'Подписка', width: '120px', nowrap: true },
-  { key: 'access_state', label: 'Доступ', width: '130px', nowrap: true },
+  { key: 'course_title', label: t('edubridge.memberSubscriptionsPage.columns.course') },
+  { key: 'learner', label: t('edubridge.memberSubscriptionsPage.columns.learner'), width: '140px' },
+  { key: 'period', label: t('edubridge.memberSubscriptionsPage.columns.period'), width: '90px', nowrap: true },
+  { key: 'paid_until', label: t('edubridge.memberSubscriptionsPage.columns.paidUntil'), width: '120px', nowrap: true },
+  { key: 'status', label: t('edubridge.memberSubscriptionsPage.columns.status'), width: '120px', nowrap: true },
+  { key: 'access_state', label: t('edubridge.memberSubscriptionsPage.columns.accessState'), width: '130px', nowrap: true },
   { key: 'actions', label: '', align: 'right', width: '110px' },
 ];
 
@@ -182,7 +183,7 @@ async function confirmCancel(): Promise<void> {
     enrollments.value = enrollments.value.map((e) => (e.id === updated.id ? updated : e));
     cancelOpen.value = false;
     walletRev.value += 1;
-    SuccessAlert(`Подписка отменена, возврат ${formatAsset2Digits(updated.refunded_amount ?? '')}`);
+    SuccessAlert(t('edubridge.memberSubscriptionsPage.cancelSuccess', { refundAmount: formatAsset2Digits(updated.refunded_amount ?? '') }));
   } catch (e) {
     FailAlert(e);
   } finally {

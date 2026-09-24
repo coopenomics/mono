@@ -2,7 +2,8 @@ import { computed, inject, onBeforeUnmount, onMounted, provide, reactive, ref, w
 import { Zeus } from '@coopenomics/sdk';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { useSystemStore } from 'src/entities/System/model';
-import { fileToBase64, formatToAsset, pluralize } from 'src/shared/lib/utils';
+import { fileToBase64, formatToAsset } from 'src/shared/lib/utils';
+import { courseMonthsLabel as courseMonthsText } from '../../../shared/lib/courseMonths';
 import { fetchCourseFeePreview, fetchEconomySettings, type ICourseFee } from '../../../entities/Economy';
 import {
   CARRIER_LABELS,
@@ -24,6 +25,7 @@ import { COURSE_FORM_HELP } from './courseFormHelp';
 import { fetchSections, saveLevel, saveSection, type ISection } from '../../../entities/Section';
 import { useLiveReload } from 'src/shared/lib/realtime';
 import { EduLive } from '../../../shared/lib/live';
+import { t as i18nT } from '../../../i18n';
 
 /** Разделы формы курса: на полной странице каждый — отдельный шаг. */
 export type CourseFormSection = 'course' | 'cover' | 'price' | 'access' | 'teachers';
@@ -97,7 +99,7 @@ function useCover(course: CourseSource) {
     input.value = '';
     if (!file) return;
     if (file.size > COURSE_IMAGE_MAX_BYTES) {
-      FailAlert(new Error(`Обложка больше ${Math.round(COURSE_IMAGE_MAX_BYTES / (1024 * 1024))} МБ — выберите файл поменьше`));
+      FailAlert(new Error(i18nT('edubridge.error.courseCoverTooLarge', { maxMegabytes: Math.round(COURSE_IMAGE_MAX_BYTES / (1024 * 1024)) })));
       return;
     }
     try {
@@ -162,24 +164,21 @@ function useFeePreview(economy: ReturnType<typeof useEconomyFields>) {
   const fee = ref<ICourseFee | null>(null);
   const discountError = computed(() =>
     coursePayment.value && fee.value && Number(courseDiscount.value || 0) > fee.value.max_course_discount_percent
-      ? 'Скидка больше целевого членского взноса — взнос за курс опустится ниже себестоимости'
+      ? i18nT('edubridge.useCourseForm.discountTooLargeError')
       : '',
   );
   const discountHint = computed(() =>
-    fee.value ? `Скидка тем, кто вносит взнос за весь курс сразу. Предельная скидка при целевом членском взносе ${fee.value.markup_percent}% — ${fee.value.max_course_discount_percent}%.` : 'Скидка тем, кто вносит взнос за весь курс сразу',
+    fee.value ? i18nT('edubridge.useCourseForm.discountHintWithLimit', { markupPercent: fee.value.markup_percent, maxDiscountPercent: fee.value.max_course_discount_percent }) : i18nT('edubridge.useCourseForm.discountHint'),
   );
   /** Длительность курса следует из программы: занятий в программе на занятий в месяц. */
-  const courseMonthsLabel = computed(() => {
-    const n = fee.value?.course_months ?? 0;
-    return n > 0 ? `${n} ${pluralize(n, ['месяц', 'месяца', 'месяцев'])}` : '';
-  });
+  const courseMonthsLabel = computed(() => courseMonthsText(fee.value?.course_months));
   const coursePaymentHint = computed(() =>
     courseMonthsLabel.value
-      ? `${COURSE_FORM_HELP.coursePayment} Курс длится ${courseMonthsLabel.value} — по программе и нагрузке в месяц.`
+      ? i18nT('edubridge.useCourseForm.coursePaymentHintWithMonths', { coursePaymentHelp: COURSE_FORM_HELP.coursePayment, courseMonths: courseMonthsLabel.value })
       : COURSE_FORM_HELP.coursePayment,
   );
   const courseFeeShown = computed(() => coursePayment.value && (fee.value?.course_months ?? 0) > 0);
-  const courseFeeLabel = computed(() => (courseFeeShown.value ? `Взнос за весь курс, ${courseMonthsLabel.value}` : 'Взнос за весь курс'));
+  const courseFeeLabel = computed(() => (courseFeeShown.value ? i18nT('edubridge.useCourseForm.courseFeeLabelWithMonths', { courseMonths: courseMonthsLabel.value }) : i18nT('edubridge.useCourseForm.courseFeeLabel')));
 
   let previewTimer: ReturnType<typeof setTimeout> | null = null;
   watch(
@@ -381,13 +380,13 @@ function useTeachers(form: CourseFormFields) {
   const teacherOptions = computed(() =>
     teachers.value
       .filter((t) => !form.teacher_usernames.includes(t.username))
-      .map((t) => ({ value: t.username, label: `${t.display_name || t.username}, договор № ${t.contract_number}` })),
+      .map((t) => ({ value: t.username, label: i18nT('edubridge.useCourseForm.teacherOption', { teacherName: t.display_name || t.username, contractNumber: t.contract_number }) })),
   );
   const teacherName = (username: string) => teachers.value.find((t) => t.username === username)?.display_name || null;
   const teacherHint = computed(() =>
     teachers.value.length
-      ? 'В списке пайщики с подписанным договором участия в хозяйственной деятельности. Преподавателей у курса может быть несколько.'
-      : 'Пока никто не подписал договор участия в хозяйственной деятельности. Курс можно сохранить и назначить преподавателя позже.',
+      ? i18nT('edubridge.useCourseForm.teacherHint')
+      : i18nT('edubridge.useCourseForm.noTeachersHint'),
   );
 
   function addTeacher(value: string | number | null): void {
@@ -471,7 +470,7 @@ export function createCourseFormState(course: CourseSource) {
       };
       const current = course();
       const saved = current ? await updateCourse({ ...data, id: current.id }) : await createCourse(data);
-      SuccessAlert(current ? 'Курс сохранён' : 'Курс добавлен');
+      SuccessAlert(current ? i18nT('edubridge.useCourseForm.savedSuccess') : i18nT('edubridge.useCourseForm.createdSuccess'));
       return saved;
     } catch (e) {
       FailAlert(e);

@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { createHash } from 'crypto';
 import type { InnerFileStorageBucket } from '@coopenomics/innercoop';
-import { InjectBucket, UseBucket } from '@coopenomics/extension-kit';
+import { InjectBucket, UseBucket, DomainError } from '@coopenomics/extension-kit';
 import type { EduCourseImage } from '../../infrastructure/entities/edubridge-course.entity';
 
 const MB = 1024 * 1024;
@@ -39,9 +39,9 @@ export class EdubridgeCourseImagesService {
 
   async putImage(input: EduCourseImageUpload): Promise<EduCourseImage> {
     if (!(EDU_COURSE_IMAGE_MIME as readonly string[]).includes(input.contentType)) {
-      throw new Error(`Поддерживаются только изображения JPEG, PNG и WEBP; получен ${input.contentType}.`);
+      throw DomainError.badRequest('EDUBRIDGE_COURSE_IMAGE_TYPE_UNSUPPORTED', { contentType: input.contentType });
     }
-    if (!input.bytes?.length) throw new Error('Пустой файл изображения — загружать нечего.');
+    if (!input.bytes?.length) throw DomainError.badRequest('EDUBRIDGE_COURSE_IMAGE_EMPTY_FILE');
 
     const content_hash = createHash('sha256').update(input.bytes).digest('hex');
     const key = `courses/${input.coopname}/${content_hash}.${this.ext(input.contentType)}`;

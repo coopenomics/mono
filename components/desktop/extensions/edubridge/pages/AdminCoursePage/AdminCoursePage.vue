@@ -2,7 +2,7 @@
 .q-pa-md
   CardListSkeleton(v-if="firstLoad" :count="1")
 
-  EmptyState(v-else-if="!course" title="Курс не найден" body="Возможно, курс удалён из реестра.")
+  EmptyState(v-else-if="!course" :title="$t('edubridge.adminCoursePage.notFoundTitle')" :body="$t('edubridge.adminCoursePage.notFoundBody')")
     template(#icon)
       q-icon(name="search_off" size="40px")
 
@@ -10,69 +10,69 @@
     BaseButton.edu-course__back(variant="ghost" size="sm" @click="goBack")
       template(#icon-left)
         q-icon(name="arrow_back" size="16px")
-      | К реестру курсов
+      | {{ $t('edubridge.adminCoursePage.backToRegistry') }}
 
     CourseHero(:title="course.title" :section="course.section_title" :level="course.level_title" :image-url="course.image_url")
       template(#facts)
         BaseBadge(:variant="status.variant") {{ status.label }}
         span(v-if="course.schedule") {{ course.schedule }}
-        span(v-if="course.starts_at") занятия с {{ formatDate(course.starts_at) }}
+        span(v-if="course.starts_at") {{ $t('edubridge.adminCoursePage.startsAtFact', { date: formatDate(course.starts_at) }) }}
       template(#actions)
         .edu-course__buttons
-          BaseButton(v-if="published" variant="secondary" :loading="busy" @click="unpublish") Снять с публикации
-          BaseButton(v-else variant="secondary" :loading="busy" @click="setStatus(Zeus.EduCourseStatus.PUBLISHED)") Опубликовать
-          BaseButton(variant="primary" @click="edit") Изменить
+          BaseButton(v-if="published" variant="secondary" :loading="busy" @click="unpublish") {{ $t('edubridge.adminCoursePage.unpublishButton') }}
+          BaseButton(v-else variant="secondary" :loading="busy" @click="setStatus(Zeus.EduCourseStatus.PUBLISHED)") {{ $t('edubridge.adminCoursePage.publishButton') }}
+          BaseButton(variant="primary" @click="edit") {{ $t('edubridge.adminCoursePage.editButton') }}
           //- Отмена набора — решение с последствиями, поэтому она лежит под
           //- кнопкой «ещё», а не рядом с обычными действиями.
-          BaseButton(v-if="!started" variant="ghost" icon-only aria-label="Ещё действия")
+          BaseButton(v-if="!started" variant="ghost" icon-only :aria-label="$t('edubridge.adminCoursePage.moreActionsAriaLabel')")
             template(#icon-left)
               q-icon(name="more_horiz" size="20px")
             q-menu(anchor="bottom right" self="top right")
               q-list.edu-course__menu(dense)
                 q-item(clickable v-close-popup :disable="cancelling" @click="cancelUnderfilled")
-                  q-item-section.text-negative Отменить по недобору
-      CourseHeroFigure(caption="взнос в месяц")
+                  q-item-section.text-negative {{ $t('edubridge.adminCoursePage.cancelUnderfilledMenuItem') }}
+      CourseHeroFigure(:caption="$t('edubridge.adminCoursePage.feeMonthCaption')")
         FeeAmount(:value="course.fee_month" size="lg")
-      CourseHeroFigure(:value="course.lessons_per_month" :caption="`${pluralize(Number(course.lessons_per_month), LESSON_FORMS)} в месяц по ${course.lesson_minutes} мин`")
-      CourseHeroFigure(:value="course.lessons_total" :caption="`${pluralize(Number(course.lessons_total), LESSON_FORMS)} в программе`")
+      CourseHeroFigure(:value="course.lessons_per_month" :caption="$t('edubridge.course.lessonsPerMonthCaption', { minutes: course.lesson_minutes }, Number(course.lessons_per_month))")
+      CourseHeroFigure(:value="course.lessons_total" :caption="$t('edubridge.course.lessonsTotalCaption', Number(course.lessons_total))")
 
     .row.q-col-gutter-md
       .col-12.col-md-8
         BaseCard.edu-course__about(variant="default")
           .edu-course__about-body
             section
-              .edu-course__section-title О курсе
+              .edu-course__section-title {{ $t('edubridge.adminCoursePage.aboutTitle') }}
               .edu-course__text(v-if="course.description") {{ course.description }}
-              .t-muted.t-sm(v-else) Описание не заполнено — в каталоге его место останется пустым.
+              .t-muted.t-sm(v-else) {{ $t('edubridge.adminCoursePage.descriptionEmpty') }}
             section
-              .edu-course__section-title Учебная программа
+              .edu-course__section-title {{ $t('edubridge.adminCoursePage.syllabusTitle') }}
               .edu-course__text(v-if="course.syllabus") {{ course.syllabus }}
-              .t-muted.t-sm(v-else) Программа не заполнена.
+              .t-muted.t-sm(v-else) {{ $t('edubridge.adminCoursePage.syllabusEmpty') }}
 
       .col-12.col-md-4
         .edu-course__side
           //- Из чего сложился взнос и покрывает ли он обязательства перед теми,
           //- кто курс ведёт: плановый расчёт против ставок преподавателей.
-          BaseCard(v-if="economy" variant="default" title="Экономика курса")
-            DataRow(label="Себестоимость в месяц" :value="formatAsset2Digits(economy.plan.cost_month)" align="spread")
-            DataRow(:label="`Целевой членский взнос, ${economy.plan.markup_percent}%`" :value="formatAsset2Digits(economy.plan.markup_month)" align="spread")
-            DataRow(label="Ставка часа по программе" :value="formatAsset2Digits(course.planned_hourly_rate)" align="spread")
-            DataRow(label="По ставкам преподавателей" :value="formatAsset2Digits(economy.actual_cost_month)" align="spread")
+          BaseCard(v-if="economy" variant="default" :title="$t('edubridge.adminCoursePage.economyTitle')")
+            DataRow(:label="$t('edubridge.adminCoursePage.costMonthLabel')" :value="formatAsset2Digits(economy.plan.cost_month)" align="spread")
+            DataRow(:label="$t(`edubridge.adminCoursePage.markupLabel`, { percent: economy.plan.markup_percent })" :value="formatAsset2Digits(economy.plan.markup_month)" align="spread")
+            DataRow(:label="$t('edubridge.adminCoursePage.plannedHourlyRateLabel')" :value="formatAsset2Digits(course.planned_hourly_rate)" align="spread")
+            DataRow(:label="$t('edubridge.adminCoursePage.actualCostMonthLabel')" :value="formatAsset2Digits(economy.actual_cost_month)" align="spread")
             BaseBanner.q-mt-sm(v-if="economy.over_fee" variant="warn")
               template(#icon)
                 q-icon(name="warning_amber")
-              | Обязательства перед преподавателями больше собранного взноса — поднимите ставку часа или пересмотрите нагрузку.
+              | {{ $t('edubridge.adminCoursePage.overFeeWarning') }}
 
-          BaseCard(variant="default" title="Курс ведут")
+          BaseCard(variant="default" :title="$t('edubridge.adminCoursePage.teachersTitle')")
             .edu-course__teachers(v-if="course.teacher_usernames.length")
               IdentityCell(v-for="username in course.teacher_usernames" :key="username" :account-name="username" :full-name="fioCache.get(username) || null")
-            .t-muted.t-sm(v-else) Преподаватели не назначены — назначения оформляются на странице «Преподаватели».
+            .t-muted.t-sm(v-else) {{ $t('edubridge.adminCoursePage.teachersEmpty') }}
 
-          BaseCard(variant="default" title="Выдача доступа")
-            DataRow(label="Направление" :value="directionLabel" align="spread")
-            DataRow(label="Площадка" :value="carrierLabel" align="spread")
-            DataRow(label="Гарантийный срок" :value="`${course.guarantee_days} ${pluralizeDays(Number(course.guarantee_days))}`" align="spread")
-            DataRow(v-if="course.external_ref" label="Курс на площадке" :value="course.external_ref" align="vertical" mono copyable)
+          BaseCard(variant="default" :title="$t('edubridge.adminCoursePage.accessTitle')")
+            DataRow(:label="$t('edubridge.adminCoursePage.directionLabel')" :value="directionLabel" align="spread")
+            DataRow(:label="$t('edubridge.adminCoursePage.carrierLabel')" :value="carrierLabel" align="spread")
+            DataRow(:label="$t('edubridge.adminCoursePage.guaranteeLabel')" :value="`${course.guarantee_days} ${pluralizeDays(Number(course.guarantee_days))}`" align="spread")
+            DataRow(v-if="course.external_ref" :label="$t('edubridge.adminCoursePage.externalRefLabel')" :value="course.external_ref" align="vertical" mono copyable)
 
 </template>
 
@@ -80,7 +80,7 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { Zeus } from '@coopenomics/sdk';
-import { asText, pluralize, pluralizeDays } from 'src/shared/lib/utils';
+import { asText, pluralizeDays } from 'src/shared/lib/utils';
 import { useConfirm, useFirstLoad } from 'src/shared/lib/composables';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { useDesktopStore } from 'src/entities/Desktop/model';
@@ -98,11 +98,11 @@ import {
   type ICourse,
 } from '../../entities/Course';
 import { fetchCourseEconomy, type ICourseEconomy } from '../../entities/Economy';
-import { LESSON_FORMS } from '../../shared/lib/courseMonths';
 import { FeeAmount } from '../../shared/ui/FeeAmount';
 import { CourseHero, CourseHeroFigure } from '../../widgets/CourseHero';
 import { useLiveReload } from 'src/shared/lib/realtime';
 import { EduLive } from '../../shared/lib/live';
+import { t } from '../../i18n';
 
 /**
  * Курс глазами администратора на отдельной странице: открывается кликом по
@@ -144,9 +144,9 @@ function edit(): void {
 async function unpublish(): Promise<void> {
   if (!course.value) return;
   const agreed = await confirm({
-    title: 'Снять курс с публикации?',
-    message: `Курс «${course.value.title}» пропадёт из каталога, новые подписки на него станут недоступны. Действующие подписки продолжат работать.`,
-    confirmLabel: 'Снять с публикации',
+    title: t('edubridge.adminCoursePage.unpublishConfirmTitle'),
+    message: t('edubridge.adminCoursePage.unpublishConfirmMessage', { courseTitle: course.value.title }),
+    confirmLabel: t('edubridge.adminCoursePage.unpublishConfirmButton'),
   });
   if (agreed) await setStatus(Zeus.EduCourseStatus.DRAFT);
 }
@@ -155,7 +155,7 @@ async function load(): Promise<void> {
   loading.value = true;
   try {
     course.value = await fetchCourse(String(route.params.id));
-    if (course.value) desktopStore.setPageTitleOverride('Курс');
+    if (course.value) desktopStore.setPageTitleOverride(t('edubridge.adminCoursePage.pageTitle'));
     economy.value = await fetchCourseEconomy(String(route.params.id));
   } catch (e) {
     FailAlert(e);
@@ -176,17 +176,17 @@ watch(
 async function cancelUnderfilled(): Promise<void> {
   if (!course.value) return;
   const agreed = await confirm({
-    title: 'Отменить курс по недобору?',
-    message: `Подписки участников курса «${course.value.title}» закроются, взносы вернутся им на паевой, доступ к материалам будет отозван.`,
-    note: 'Отменить это решение нельзя — участникам придётся подписаться заново.',
-    confirmLabel: 'Отменить курс',
+    title: t('edubridge.adminCoursePage.cancelUnderfilledConfirmTitle'),
+    message: t('edubridge.adminCoursePage.cancelUnderfilledConfirmMessage', { courseTitle: course.value.title }),
+    note: t('edubridge.adminCoursePage.cancelUnderfilledConfirmNote'),
+    confirmLabel: t('edubridge.adminCoursePage.cancelUnderfilledConfirmButton'),
     danger: true,
   });
   if (!agreed) return;
   cancelling.value = true;
   try {
     const count = await cancelCourseUnderfilled(asText(course.value.id));
-    SuccessAlert(count > 0 ? `Курс отменён, возвращено подписок: ${count}` : 'Курс отменён — подписок не было');
+    SuccessAlert(count > 0 ? t('edubridge.adminCoursePage.cancelledWithRefunds', { count }) : t('edubridge.adminCoursePage.cancelledNoSubscriptions'));
   } catch (e) {
     FailAlert(e);
   } finally {
@@ -199,7 +199,7 @@ async function setStatus(next: ICourse['status']): Promise<void> {
   busy.value = true;
   try {
     course.value = await setCourseStatus({ id: course.value.id, status: next });
-    SuccessAlert(next === Zeus.EduCourseStatus.PUBLISHED ? 'Курс опубликован' : 'Курс снят с публикации');
+    SuccessAlert(next === Zeus.EduCourseStatus.PUBLISHED ? t('edubridge.adminCoursePage.publishedSuccess') : t('edubridge.adminCoursePage.unpublishedSuccess'));
   } catch (e) {
     FailAlert(e);
   } finally {

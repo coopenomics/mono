@@ -36,8 +36,8 @@ BaseCard(
         li
           q-icon(name='handshake', size='18px')
           span
-            | Вместе с заявлением вы подписываете аннулирование соглашений об участии
-            | в целевых потребительских программах — одно на все программы сразу.
+            | {{ $t('membership.exitDangerCard.infoAnnulmentLine1') }}
+            | {{ $t('membership.exitDangerCard.infoAnnulmentLine2') }}
         li
           q-icon(name='payments', size='18px')
           span

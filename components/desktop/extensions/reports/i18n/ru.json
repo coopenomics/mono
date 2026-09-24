@@ -425,6 +425,8 @@
       "formValidLabel": "Форма валидна",
       "goToRequisitesLabel": "Перейти к реквизитам",
       "hideLabel": "Скрыть",
+      "markConfirmLabel": "Отметить",
+      "markConfirmTitle": "Подтвердите отметку",
       "markNotRequiredConfirm": "Отметить период как «не надо сдавать»? В календаре ячейка станет серой.",
       "markNotRequiredHint": "Отметить, что этот период сдавать не нужно — ячейка станет серой",
       "markNotRequiredLabel": "Не надо сдавать",

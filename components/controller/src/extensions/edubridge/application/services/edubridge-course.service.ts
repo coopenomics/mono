@@ -1,5 +1,5 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { PaginationInputDTO, type PaginationResult } from '@coopenomics/extension-kit';
+import { Injectable } from '@nestjs/common';
+import { PaginationInputDTO, type PaginationResult, DomainError } from '@coopenomics/extension-kit';
 import { CARRIERS_BY_DIRECTION, EduAccessCarrier, EduContractStatus, EduCourseStatus, PLATFORM_CARRIERS } from '../../domain/enums';
 import type { EdubridgeCourseEntity } from '../../infrastructure/entities';
 import type { EduCourseImage } from '../../infrastructure/entities/edubridge-course.entity';
@@ -44,11 +44,11 @@ function economyParams(input: EduCourseInputDTO): EduCourseEconomyInputDTO {
  */
 function validatePlatformRef(carrier: EduAccessCarrier, ref: string): void {
   if (!PLATFORM_CARRIERS.includes(carrier)) return;
-  if (!ref.trim()) throw new BadRequestException('Для площадки нужен идентификатор курса на площадке');
+  if (!ref.trim()) throw DomainError.badRequest('EDUBRIDGE_COURSE_PLATFORM_REF_REQUIRED');
   if (carrier !== EduAccessCarrier.SKILLSPACE) return;
   const { course, group } = splitSkillspaceRef(ref);
   if (!UUID_PATTERN.test(course) || (group && !UUID_PATTERN.test(group))) {
-    throw new BadRequestException('Для Skillspace нужен UUID курса из реестра школы (и UUID группы, если она есть) — числовой номер из адреса конструктора площадка не знает');
+    throw DomainError.badRequest('EDUBRIDGE_COURSE_SKILLSPACE_REF_INVALID');
   }
 }
 
@@ -99,7 +99,7 @@ export class EdubridgeCourseService {
 
   async catalogCourse(coopname: string, id: string): Promise<EdubridgeCourseEntity> {
     const course = await this.courses.findById(coopname, id);
-    if (!course || course.status !== EduCourseStatus.PUBLISHED) throw new NotFoundException('Курс не найден');
+    if (!course || course.status !== EduCourseStatus.PUBLISHED) throw DomainError.notFound('EDUBRIDGE_COURSE_NOT_FOUND');
     return course;
   }
 
@@ -111,7 +111,7 @@ export class EdubridgeCourseService {
 
   async get(coopname: string, id: string): Promise<EdubridgeCourseEntity> {
     const course = await this.courses.findById(coopname, id);
-    if (!course) throw new NotFoundException('Курс не найден');
+    if (!course) throw DomainError.notFound('EDUBRIDGE_COURSE_NOT_FOUND');
     return course;
   }
 
@@ -146,7 +146,7 @@ export class EdubridgeCourseService {
     if (course.starts_at && new Date(course.starts_at) <= new Date()) {
       const next = input.starts_at ? new Date(input.starts_at) : null;
       if (!next || next < new Date(course.starts_at)) {
-        throw new BadRequestException('Занятия уже начались: дату активации можно только сдвинуть вперёд');
+        throw DomainError.badRequest('EDUBRIDGE_COURSE_START_ONLY_FORWARD');
       }
     }
     const fee = await this.economy.feeForCourse(economyParams(input));
@@ -185,16 +185,17 @@ export class EdubridgeCourseService {
     if (input === undefined) return current;
     if (input === null) return null;
     if (input.bucket_key) {
-      if (current?.bucket_key !== input.bucket_key) throw new BadRequestException('Ключ изображения не принадлежит этому курсу');
+      if (current?.bucket_key !== input.bucket_key) throw DomainError.badRequest('EDUBRIDGE_COURSE_IMAGE_KEY_FOREIGN');
       return current;
     }
-    if (!input.base64 || !input.mime_type) throw new BadRequestException('Пустое изображение: нет содержимого файла или его типа');
+    if (!input.base64 || !input.mime_type) throw DomainError.badRequest('EDUBRIDGE_COURSE_IMAGE_EMPTY');
     const bytes = Buffer.from(input.base64, 'base64');
-    if (!bytes.length) throw new BadRequestException('Не удалось декодировать изображение');
+    if (!bytes.length) throw DomainError.badRequest('EDUBRIDGE_COURSE_IMAGE_DECODE_FAILED');
     try {
       return await this.images.putImage({ bytes, contentType: input.mime_type, coopname, ownerAccount: actor });
     } catch (e) {
-      throw new BadRequestException((e as Error)?.message || 'Не удалось сохранить изображение');
+      if (e instanceof DomainError) throw e;
+      throw DomainError.badRequest('EDUBRIDGE_COURSE_IMAGE_SAVE_FAILED');
     }
   }
 
@@ -213,7 +214,7 @@ export class EdubridgeCourseService {
     // Раздел и уровень — из справочника; архивное — только если уже стоит у курса.
     await this.sections.assertForCourse(coopname, input.section_id, input.level_id, current && { section_id: current.section_id, level_id: current.level_id });
     if (!CARRIERS_BY_DIRECTION[input.direction].includes(input.carrier)) {
-      throw new BadRequestException(`Носитель «${input.carrier}» недопустим для направления «${input.direction}»`);
+      throw DomainError.badRequest('EDUBRIDGE_COURSE_CARRIER_NOT_ALLOWED', { carrier: input.carrier, direction: input.direction });
     }
     validatePlatformRef(input.carrier, input.external_ref ?? '');
     await this.validateTeachers(coopname, input.teacher_usernames ?? [], input.planned_hourly_rate);
@@ -235,11 +236,11 @@ export class EdubridgeCourseService {
     );
     const strangers = teachers.filter((t) => !contracts.has(t));
     if (strangers.length) {
-      throw new BadRequestException(`Нет договора участия в хозяйственной деятельности: ${strangers.join(', ')}`);
+      throw DomainError.badRequest('EDUBRIDGE_COURSE_TEACHERS_WITHOUT_CONTRACT', { teachers: strangers.join(', ') });
     }
     for (const t of teachers) {
-      const error = rateCoverageError(contracts.get(t)?.hourly_rate, plannedRate);
-      if (error) throw new BadRequestException(`${t}: ${error}`);
+      const error = rateCoverageError(contracts.get(t)?.hourly_rate, plannedRate, t);
+      if (error) throw error;
     }
   }
 

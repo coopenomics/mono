@@ -725,7 +725,7 @@ describe('Черновики назначений по списку «Курс �
   });
 
   it('ставка преподавателя выше плановой ставки курса — отказ с объяснением; не выше — пусто', () => {
-    expect(rateCoverageError('1200.0000 RUB', '1000.0000 RUB')).toContain('выше плановой ставки курса');
+    expect(rateCoverageError('1200.0000 RUB', '1000.0000 RUB')?.message).toContain('выше плановой ставки курса');
     expect(rateCoverageError('1000.0000 RUB', '1000.0000 RUB')).toBeNull();
     expect(rateCoverageError(undefined, '1000.0000 RUB')).toBeNull();
   });

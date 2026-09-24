@@ -3,7 +3,8 @@
     "chairmanMenu": {
       "memberItem": "Пайщик",
       "requisitesItem": "Реквизиты",
-      "settingsItem": "Настройки"
+      "settingsItem": "Настройки",
+      "programsItem": "Участие в программах"
     },
     "leftDrawerMenu": {
       "defaultCoopName": "Кооператив",
@@ -24,7 +25,8 @@
       "cardItem": "Карта кооператора",
       "memberItem": "Пайщик",
       "requisitesItem": "Реквизиты",
-      "settingsItem": "Настройки"
+      "settingsItem": "Настройки",
+      "programsItem": "Участие в программах"
     },
     "setupMenu": {
       "memberItem": "Пайщик",

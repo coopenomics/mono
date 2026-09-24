@@ -1,13 +1,11 @@
 <template lang="pug">
-BaseCard(variant="default" title="Кошелёк программы")
-  DataRow(label="Остаток" :value="formatAsset2Digits(balance?.available ?? '')" align="spread")
+BaseCard(variant="default" :title="$t('edubridge.returnToShareCard.title')")
+  DataRow(:label="$t('edubridge.returnToShareCard.balanceLabel')" :value="formatAsset2Digits(balance?.available ?? '')" align="spread")
   .t-sm.t-muted.q-mt-sm
-    | Остаток засчитывается при следующей подписке. В паевой взнос членский взнос программы
-    | возвращается с прекращением участия в программе: подписки закрываются с возвратом по Положению,
-    | и весь остаток переходит в Цифровой Кошелёк после согласования кооперативом.
+    | {{ $t('edubridge.returnToShareCard.balanceHint') }}
   .row.justify-end.q-mt-md
-    BaseButton(variant="secondary" size="sm" :disabled="!canRequest" @click="dialogOpen = true") Прекратить участие в программе
-  .t-meta.t-muted.q-mt-sm(v-if="balance?.has_pending") Заявление о прекращении участия ждёт согласования кооперативом.
+    BaseButton(variant="secondary" size="sm" :disabled="!canRequest" @click="dialogOpen = true") {{ $t('edubridge.returnToShareCard.stopParticipation') }}
+  .t-meta.t-muted.q-mt-sm(v-if="balance?.has_pending") {{ $t('edubridge.returnToShareCard.pendingNotice') }}
 
   BaseTable.q-mt-md(v-if="requests.length" :columns="columns" :rows="requests" row-key="id" min-width="480px")
     template(#cell-created_at="{ row }") {{ formatDate(row.created_at) }}
@@ -16,24 +14,23 @@ BaseCard(variant="default" title="Кошелёк программы")
       BaseBadge(:variant="statusOf(row.status).variant") {{ statusOf(row.status).label }}
       .t-meta.t-muted(v-if="row.decline_reason") {{ row.decline_reason }}
 
-  BaseDialog(v-model="dialogOpen" title="Прекратить участие в программе" size="sm")
+  BaseDialog(v-model="dialogOpen" :title="$t('edubridge.returnToShareCard.stopParticipation')" size="sm")
     BaseForm(:loading="busy" @submit="onSubmit")
-      DataRow(label="Остаток кошелька программы" :value="formatAsset2Digits(balance?.available ?? '')" align="spread")
+      DataRow(:label="$t('edubridge.returnToShareCard.programBalanceLabel')" :value="formatAsset2Digits(balance?.available ?? '')" align="spread")
       DataRow(
         v-if="(balance?.subscriptions ?? 0) > 0"
-        :label="`Возврат по подпискам (${balance?.subscriptions})`"
+        :label="$t(`edubridge.returnToShareCard.subscriptionRefundsLabel`, { count: balance?.subscriptions })"
         :value="formatAsset2Digits(balance?.refunds ?? '')"
         align="spread"
       )
-      DataRow(label="В паевой взнос, оценка на сегодня" :value="formatAsset2Digits(balance?.total ?? '')" align="spread")
+      DataRow(:label="$t('edubridge.returnToShareCard.shareEstimateLabel')" :value="formatAsset2Digits(balance?.total ?? '')" align="spread")
       .t-sm.t-muted.q-mt-sm
-        | Вы подпишете заявление об аннулировании соглашения об участии в программе «Образование». После согласования
-        | кооперативом подписки закроются с возвратом по Положению, весь остаток перейдёт в паевой взнос.
-        | Точная сумма считается в день согласования. Чтобы снова учиться, понадобится подписать оферту программы заново.
+        | {{ $t('edubridge.returnToShareCard.dialogIntro') }}
+        | {{ $t('edubridge.returnToShareCard.exactAmountHint') }}
       template(#footer)
         .row.justify-end.q-gutter-sm
-          BaseButton(variant="ghost" type="button" :disabled="busy" @click="dialogOpen = false") Отменить
-          BaseButton(variant="primary" type="submit" :loading="busy") Подписать заявление
+          BaseButton(variant="ghost" type="button" :disabled="busy" @click="dialogOpen = false") {{ $t('edubridge.returnToShareCard.cancel') }}
+          BaseButton(variant="primary" type="submit" :loading="busy") {{ $t('edubridge.returnToShareCard.signStatement') }}
 </template>
 
 <script setup lang="ts">
@@ -46,6 +43,7 @@ import { buildProgramAnnulment, fetchMyReturnRequests, fetchReturnBalance, reque
 import { RETURN_STATUS_LABELS, type IReturnBalance, type IReturnRequest } from '../model';
 import { useLiveReload } from 'src/shared/lib/realtime';
 import { EduLive } from '../../../shared/lib/live';
+import { t } from '../../../i18n';
 
 /**
  * Остаток кошелька программы и прекращение участия в программе. Членский взнос
@@ -58,9 +56,9 @@ const dialogOpen = ref(false);
 const busy = ref(false);
 
 const columns: BaseTableColumn<IReturnRequest>[] = [
-  { key: 'created_at', label: 'Подано', width: '120px', nowrap: true },
-  { key: 'amount', label: 'В паевой', numeric: true, width: '140px', nowrap: true },
-  { key: 'status', label: 'Состояние' },
+  { key: 'created_at', label: t('edubridge.returnToShareCard.columns.submitted'), width: '120px', nowrap: true },
+  { key: 'amount', label: t('edubridge.returnToShareCard.columns.amount'), numeric: true, width: '140px', nowrap: true },
+  { key: 'status', label: t('edubridge.returnToShareCard.columns.status') },
 ];
 
 const canRequest = computed(() => Boolean(balance.value) && !balance.value?.has_pending);
@@ -86,7 +84,7 @@ async function onSubmit(): Promise<void> {
     requests.value = [created, ...requests.value];
     balance.value = await fetchReturnBalance();
     dialogOpen.value = false;
-    SuccessAlert('Заявление подано — кооператив согласует прекращение участия');
+    SuccessAlert(t('edubridge.returnToShareCard.submitSuccess'));
   } catch (e) {
     FailAlert(e);
   } finally {

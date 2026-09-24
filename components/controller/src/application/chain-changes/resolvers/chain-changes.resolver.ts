@@ -1,7 +1,7 @@
 import { Args, Resolver, Subscription } from '@nestjs/graphql';
-import { ForbiddenException, Inject } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
 import type { PubSub } from 'graphql-subscriptions';
-import { CurrentUser } from '@coopenomics/extension-kit';
+import { CurrentUser, DomainError } from '@coopenomics/extension-kit';
 import { PUB_SUB } from '~/infrastructure/pubsub/pubsub.module';
 import {
   ChainChangesService,
@@ -36,11 +36,11 @@ export class ChainChangesResolver {
     @Args('input') input: ChainChangesInputDTO
   ): AsyncIterator<{ chainChanges: ChainChangeDTO }> {
     if (input.coopname !== config.coopname) {
-      throw new ForbiddenException('Подписка доступна только в рамках своего кооператива.');
+      throw DomainError.forbidden('BLOCKCHAIN_CHANGES_FOREIGN_COOPERATIVE');
     }
     const username = user?.username;
     if (!username) {
-      throw new ForbiddenException('Подписка доступна только пайщику своего кооператива.');
+      throw DomainError.forbidden('BLOCKCHAIN_CHANGES_MEMBER_ONLY');
     }
     const requested = input.tables?.length ? input.tables : this.feed.declared();
 
@@ -48,7 +48,7 @@ export class ChainChangesResolver {
     for (const ref of requested) {
       const declared = this.feed.tableOf(ref.code, ref.table);
       if (!declared) {
-        throw new ForbiddenException(`Таблица ${ref.code}::${ref.table} не входит в ленту изменений.`);
+        throw DomainError.forbidden('BLOCKCHAIN_CHANGES_TABLE_NOT_IN_FEED', { contract: ref.code, table: ref.table });
       }
       const staff = this.feed.isStaff(ref.code, user);
       if (declared.staff_only) {

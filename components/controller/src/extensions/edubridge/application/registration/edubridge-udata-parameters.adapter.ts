@@ -49,6 +49,7 @@ class ParentOfferParameters extends EdubridgeOfferParametersBase {
   readonly programKey = EDU_LEARNING_PROGRAM_KEY;
   protected readonly numberKey = UdataKey.EDUCATION_PARENT_AGREEMENT_NUMBER;
   protected readonly createdAtKey = UdataKey.EDUCATION_PARENT_AGREEMENT_CREATED_AT;
+  // i18n-ignore: текст журнала (подставляется только в logger.info), до пайщика не доходит
   protected readonly human = 'оферты родителя-слушателя';
 }
 
@@ -56,6 +57,7 @@ class TeacherOfferParameters extends EdubridgeOfferParametersBase {
   readonly programKey = EDU_TEACHING_PROGRAM_KEY;
   protected readonly numberKey = UdataKey.EDUCATION_TEACHER_AGREEMENT_NUMBER;
   protected readonly createdAtKey = UdataKey.EDUCATION_TEACHER_AGREEMENT_CREATED_AT;
+  // i18n-ignore: текст журнала (подставляется только в logger.info), до пайщика не доходит
   protected readonly human = 'оферты преподавателя';
 }
 

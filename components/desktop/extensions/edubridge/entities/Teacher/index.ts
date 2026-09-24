@@ -5,6 +5,7 @@ import { useSessionStore } from 'src/entities/Session';
 import { useSystemStore } from 'src/entities/System/model';
 import { DigitalDocument } from 'src/shared/lib/document';
 import { useGlobalStore } from 'src/shared/store';
+import { t } from '../../i18n';
 
 export type IContract = NonNullable<Queries.Edubridge.MyContract.IOutput['edubridgeMyContract']>;
 export type ITeacher = Queries.Edubridge.Teachers.IOutput['edubridgeTeachers'][number];
@@ -18,37 +19,37 @@ export type IAssignmentInput = Mutations.Edubridge.CreateAssignment.IInput['data
 
 // Ключи — имена enum'ов схемы (`Zeus.*`): именно их отдаёт и принимает GraphQL.
 export const RID_TYPE_LABELS: Record<string, string> = {
-  [Zeus.EduRidType.LESSON_RECORDING]: 'Запись занятия',
-  [Zeus.EduRidType.METHODICAL_MATERIAL]: 'Методический материал',
-  [Zeus.EduRidType.COURSE_PROGRAM]: 'Программа курса',
-  [Zeus.EduRidType.ASSESSMENT_MATERIAL]: 'Контрольные материалы',
-  [Zeus.EduRidType.OTHER]: 'Другое',
+  [Zeus.EduRidType.LESSON_RECORDING]: t('edubridge.rid.type.LESSON_RECORDING'),
+  [Zeus.EduRidType.METHODICAL_MATERIAL]: t('edubridge.rid.type.METHODICAL_MATERIAL'),
+  [Zeus.EduRidType.COURSE_PROGRAM]: t('edubridge.rid.type.COURSE_PROGRAM'),
+  [Zeus.EduRidType.ASSESSMENT_MATERIAL]: t('edubridge.rid.type.ASSESSMENT_MATERIAL'),
+  [Zeus.EduRidType.OTHER]: t('edubridge.rid.type.OTHER'),
 };
 
 export const CONTRIBUTION_STATUS_LABELS: Record<string, { label: string; variant: 'pos' | 'neg' | 'warn' | 'info' | 'neutral' }> = {
-  [Zeus.EduContributionStatus.DRAFT]: { label: 'Черновик', variant: 'neutral' },
-  [Zeus.EduContributionStatus.HELD]: { label: 'На ответственном хранении', variant: 'warn' },
-  [Zeus.EduContributionStatus.SUBMITTED]: { label: 'На рассмотрении совета', variant: 'info' },
-  [Zeus.EduContributionStatus.COUNCIL_APPROVED]: { label: 'Ждёт подписи акта', variant: 'warn' },
-  [Zeus.EduContributionStatus.ACT_SIGNED]: { label: 'Ждёт подписи председателя', variant: 'info' },
-  [Zeus.EduContributionStatus.ACCEPTED]: { label: 'Принят', variant: 'pos' },
-  [Zeus.EduContributionStatus.DECLINED]: { label: 'Отклонён', variant: 'neg' },
+  [Zeus.EduContributionStatus.DRAFT]: { label: t('edubridge.contribution.status.DRAFT'), variant: 'neutral' },
+  [Zeus.EduContributionStatus.HELD]: { label: t('edubridge.contribution.status.HELD'), variant: 'warn' },
+  [Zeus.EduContributionStatus.SUBMITTED]: { label: t('edubridge.contribution.status.SUBMITTED'), variant: 'info' },
+  [Zeus.EduContributionStatus.COUNCIL_APPROVED]: { label: t('edubridge.contribution.status.COUNCIL_APPROVED'), variant: 'warn' },
+  [Zeus.EduContributionStatus.ACT_SIGNED]: { label: t('edubridge.contribution.status.ACT_SIGNED'), variant: 'info' },
+  [Zeus.EduContributionStatus.ACCEPTED]: { label: t('edubridge.contribution.status.ACCEPTED'), variant: 'pos' },
+  [Zeus.EduContributionStatus.DECLINED]: { label: t('edubridge.contribution.status.DECLINED'), variant: 'neg' },
 };
 
 export const ASSIGNMENT_STATUS_LABELS: Record<string, { label: string; variant: 'pos' | 'neg' | 'warn' | 'info' | 'neutral' }> = {
-  [Zeus.EduAssignmentStatus.DRAFT]: { label: 'Ждёт подписи приложения', variant: 'warn' },
-  [Zeus.EduAssignmentStatus.PENDING_APPROVAL]: { label: 'Ждёт подписи председателя', variant: 'info' },
-  [Zeus.EduAssignmentStatus.ACTIVE]: { label: 'Действует', variant: 'pos' },
-  [Zeus.EduAssignmentStatus.DECLINED]: { label: 'Отклонено председателем', variant: 'neg' },
-  [Zeus.EduAssignmentStatus.CLOSED]: { label: 'Закрыто', variant: 'neutral' },
+  [Zeus.EduAssignmentStatus.DRAFT]: { label: t('edubridge.assignment.status.DRAFT'), variant: 'warn' },
+  [Zeus.EduAssignmentStatus.PENDING_APPROVAL]: { label: t('edubridge.assignment.status.PENDING_APPROVAL'), variant: 'info' },
+  [Zeus.EduAssignmentStatus.ACTIVE]: { label: t('edubridge.assignment.status.ACTIVE'), variant: 'pos' },
+  [Zeus.EduAssignmentStatus.DECLINED]: { label: t('edubridge.assignment.status.DECLINED'), variant: 'neg' },
+  [Zeus.EduAssignmentStatus.CLOSED]: { label: t('edubridge.assignment.status.CLOSED'), variant: 'neutral' },
 };
 
 /** Договор УХД: первая подпись — преподаватель, вторая — председатель совета со стола «Запросы одобрений». */
 export const CONTRACT_STATUS_LABELS: Record<string, { label: string; variant: 'pos' | 'neg' | 'info' }> = {
-  [Zeus.EduContractStatus.PENDING_APPROVAL]: { label: 'Ждёт подписи председателя', variant: 'info' },
-  [Zeus.EduContractStatus.ACTIVE]: { label: 'Действует', variant: 'pos' },
-  [Zeus.EduContractStatus.DECLINED]: { label: 'Отклонён председателем', variant: 'neg' },
-  [Zeus.EduContractStatus.TERMINATED]: { label: 'Прекращён', variant: 'neg' },
+  [Zeus.EduContractStatus.PENDING_APPROVAL]: { label: t('edubridge.contract.status.PENDING_APPROVAL'), variant: 'info' },
+  [Zeus.EduContractStatus.ACTIVE]: { label: t('edubridge.contract.status.ACTIVE'), variant: 'pos' },
+  [Zeus.EduContractStatus.DECLINED]: { label: t('edubridge.contract.status.DECLINED'), variant: 'neg' },
+  [Zeus.EduContractStatus.TERMINATED]: { label: t('edubridge.contract.status.TERMINATED'), variant: 'neg' },
 };
 
 async function q<T>(query: any, name: string, variables?: Record<string, unknown>): Promise<T> {
@@ -85,7 +86,7 @@ export const declineContribution = (contribution_id: string, reason: string) =>
 function who() {
   const session = useSessionStore();
   const system = useSystemStore();
-  if (!session.username) throw new Error('Пайщик не авторизован');
+  if (!session.username) throw new Error(t('edubridge.error.notAuthorized'));
   return { username: session.username, coopname: system.info.coopname };
 }
 
@@ -128,7 +129,7 @@ export async function signContract(hourly_rate: string, prepared?: IContractDraf
   const { username } = who();
   const { document, contract_number } = prepared ?? (await buildContractDocument());
   await document.sign(username);
-  if (!document.signedDocument) throw new Error('Не удалось подписать договор');
+  if (!document.signedDocument) throw new Error(t('edubridge.error.contractSignFailed'));
   return m<IContract>(Mutations.Edubridge.SignContract.mutation, Mutations.Edubridge.SignContract.name, {
     data: { document: document.signedDocument, contract_number, hourly_rate },
   });
@@ -159,7 +160,7 @@ export async function buildAnnexDocument(a: IAssignment, contractNumber: string)
 export async function signAnnex(a: IAssignment, doc: DigitalDocument): Promise<IAssignment> {
   const { username } = who();
   await doc.sign(username);
-  if (!doc.signedDocument) throw new Error('Не удалось подписать приложение');
+  if (!doc.signedDocument) throw new Error(t('edubridge.error.annexSignFailed'));
   return m<IAssignment>(Mutations.Edubridge.SignAnnex.mutation, Mutations.Edubridge.SignAnnex.name, { data: { assignment_id: a.id, document: doc.signedDocument } });
 }
 
@@ -184,7 +185,7 @@ export async function holdContribution(c: IContribution): Promise<IContribution>
   const generated = await m<{ hash: string; html: string; full_title: string; binary: string }>(Mutations.Edubridge.RidStorageAct.mutation, Mutations.Edubridge.RidStorageAct.name, { contribution_id: c.id });
   const doc = new DigitalDocument(generated as never);
   await doc.sign(username);
-  if (!doc.signedDocument) throw new Error('Не удалось подписать акт передачи материалов');
+  if (!doc.signedDocument) throw new Error(t('edubridge.error.materialsTransferActSignFailed'));
   return m<IContribution>(Mutations.Edubridge.HoldContribution.mutation, Mutations.Edubridge.HoldContribution.name, { data: { contribution_id: c.id, document: doc.signedDocument } });
 }
 
@@ -194,7 +195,7 @@ export async function submitContribution(c: IContribution): Promise<IContributio
   const generated = await m<{ hash: string; html: string; full_title: string; binary: string }>(Mutations.Edubridge.RidStatement.mutation, Mutations.Edubridge.RidStatement.name, { contribution_id: c.id });
   const doc = new DigitalDocument(generated as never);
   await doc.sign(username);
-  if (!doc.signedDocument) throw new Error('Не удалось подписать заявление');
+  if (!doc.signedDocument) throw new Error(t('edubridge.error.statementSignFailed'));
   return m<IContribution>(Mutations.Edubridge.SubmitContribution.mutation, Mutations.Edubridge.SubmitContribution.name, { data: { contribution_id: c.id, document: doc.signedDocument } });
 }
 
@@ -204,7 +205,7 @@ export async function signAct(c: IContribution): Promise<IContribution> {
   const generated = await m<{ hash: string; html: string; full_title: string; binary: string }>(Mutations.Edubridge.RidAct.mutation, Mutations.Edubridge.RidAct.name, { contribution_id: c.id });
   const doc = new DigitalDocument(generated as never);
   await doc.sign(username);
-  if (!doc.signedDocument) throw new Error('Не удалось подписать акт');
+  if (!doc.signedDocument) throw new Error(t('edubridge.error.actSignFailed'));
   return m<IContribution>(Mutations.Edubridge.SignAct.mutation, Mutations.Edubridge.SignAct.name, { data: { contribution_id: c.id, document: doc.signedDocument } });
 }
 
@@ -217,9 +218,9 @@ export async function acceptContributionAsChairman(c: IContribution): Promise<IC
   const { username } = who();
   const globalStore = useGlobalStore();
   const wif = globalStore.wif?.toString();
-  if (!wif) throw new Error('Приватный ключ не установлен');
+  if (!wif) throw new Error(t('edubridge.error.privateKeyMissing'));
   const aggregate = await q<{ hash: string; document: any; rawDocument: any }>(Queries.Edubridge.ActSignablePayload.query, Queries.Edubridge.ActSignablePayload.name, { contribution_id: c.id });
-  if (!aggregate?.rawDocument) throw new Error('Акт не найден в реестре документов');
+  if (!aggregate?.rawDocument) throw new Error(t('edubridge.error.actNotFoundInRegistry'));
   const signer = new Classes.Document(wif);
   const signed = await signer.signDocument(aggregate.rawDocument, username, 2, [aggregate.document]);
   return m<IContribution>(Mutations.Edubridge.AcceptContribution.mutation, Mutations.Edubridge.AcceptContribution.name, { data: { contribution_id: c.id, document: signed } });

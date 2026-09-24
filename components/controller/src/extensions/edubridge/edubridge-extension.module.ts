@@ -1,12 +1,7 @@
+import './i18n';
 import { Inject, Module, Optional } from '@nestjs/common';
 import { merge } from 'lodash';
-import {
-  BaseExtensionModule,
-  EXTENSION_REPOSITORY,
-  platformSettings,
-  type ExtensionDomainEntity,
-  type ExtensionDomainRepository,
-} from '@coopenomics/extension-kit';
+import { BaseExtensionModule, EXTENSION_REPOSITORY, platformSettings, type ExtensionDomainEntity, type ExtensionDomainRepository, DomainError } from '@coopenomics/extension-kit';
 import {
   COUNCIL_PORT,
   DOCUMENT_DECLARATION_PORT,
@@ -38,6 +33,7 @@ import {
 } from './constants/edubridge-agreement-ids';
 import { EdubridgeDatabaseModule } from './infrastructure/database/edubridge-database.module';
 import { defaultConfig, type IConfig, Schema } from './types';
+import { t } from './i18n';
 
 /**
  * Расширение «Образовательный мост» (edubridge).
@@ -73,7 +69,7 @@ export class EdubridgeExtension extends BaseExtensionModule {
 
   async initialize(): Promise<void> {
     const extensionData = await this.extensionRepository.findByName(this.name);
-    if (!extensionData) throw new Error('Конфиг расширения edubridge не найден');
+    if (!extensionData) throw DomainError.internal('EDUBRIDGE_EXTENSION_CONFIG_NOT_FOUND');
     this.extension = { ...extensionData, config: merge({}, defaultConfig, extensionData.config) };
     this.configHolder.set(this.extension.config);
 
@@ -100,8 +96,8 @@ export class EdubridgeExtension extends BaseExtensionModule {
   private async ensurePrograms(): Promise<void> {
     const coopname = platformSettings().coopname;
     for (const [type, title] of [
-      [EDU_PARENT_AGREEMENT_TYPE, 'ЦПП «Образование» — обучение'],
-      [EDU_TEACHER_AGREEMENT_TYPE, 'ЦПП «Образование» — преподавание'],
+      [EDU_PARENT_AGREEMENT_TYPE, t('edubridge.edubridgeExtension.program.learningTitle')],
+      [EDU_TEACHER_AGREEMENT_TYPE, t('edubridge.edubridgeExtension.program.teachingTitle')],
     ] as const) {
       try {
         const { created, program_id } = await this.council.ensureProgram({ coopname, type, title });

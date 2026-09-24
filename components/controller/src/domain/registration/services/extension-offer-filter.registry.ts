@@ -32,10 +32,12 @@ export class ExtensionOfferFilterRegistry implements IRegistrationOfferFilterReg
   }
 
   narrowPrograms<T extends InnerProgramRegistration>(programs: T[], ctx: InnerRegistrationOfferFilterContext): T[] {
+    // i18n-ignore: подстановка в текст журнала, до пайщика не доходит
     return this.narrow(programs, ctx, (f, foreign) => f.filterPrograms(foreign, ctx), (p) => p.key, 'программ');
   }
 
   narrowAgreements<T extends InnerAgreementRegistration>(agreements: T[], ctx: InnerRegistrationOfferFilterContext): T[] {
+    // i18n-ignore: подстановка в текст журнала, до пайщика не доходит
     return this.narrow(agreements, ctx, (f, foreign) => f.filterAgreements(foreign, ctx), (a) => a.id, 'оферт');
   }
 

@@ -1216,7 +1216,8 @@
       "orCreateNewText": "или создайте новый",
       "selectProcessText": "Выберите процесс",
       "stepNamePrompt": "Название шага:",
-      "title": "Процессы"
+      "title": "Процессы",
+      "deleteConfirmMessage": "Описание процесса «{title}» будет удалено."
     },
     "programExpensePage": {
       "actualSpentLabel": "Фактически израсходовано",

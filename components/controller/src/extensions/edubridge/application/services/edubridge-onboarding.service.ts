@@ -1,4 +1,4 @@
-import { BadRequestException, Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import {
   COUNCIL_PORT,
   LOGGER_PORT,
@@ -16,10 +16,12 @@ import {
 } from '../../constants/edubridge-agreement-ids';
 import { EdubridgeConfigHolder } from '../config/edubridge-config.holder';
 import { EduOfferKind, EduOfferStateDTO, EduOnboardingSource, EduOnboardingStateDTO } from '../dto/edu-onboarding.dto';
+import { t } from '../../i18n';
+import { DomainError } from '@coopenomics/extension-kit';
 
 const OFFERS: Record<EduOfferKind, { type: string; registryId: number; human: string }> = {
-  [EduOfferKind.PARENT]: { type: EDU_PARENT_AGREEMENT_TYPE, registryId: EDU_PARENT_OFFER_REGISTRY_ID, human: 'родителя-слушателя' },
-  [EduOfferKind.TEACHER]: { type: EDU_TEACHER_AGREEMENT_TYPE, registryId: EDU_TEACHER_OFFER_REGISTRY_ID, human: 'преподавателя' },
+  [EduOfferKind.PARENT]: { type: EDU_PARENT_AGREEMENT_TYPE, registryId: EDU_PARENT_OFFER_REGISTRY_ID, human: t('edubridge.onboarding.offerKind.parent') },
+  [EduOfferKind.TEACHER]: { type: EDU_TEACHER_AGREEMENT_TYPE, registryId: EDU_TEACHER_OFFER_REGISTRY_ID, human: t('edubridge.onboarding.offerKind.teacher') },
 };
 
 /**
@@ -50,15 +52,15 @@ export class EdubridgeOnboardingService {
   async signOffer(coopname: string, username: string, kind: EduOfferKind, document: ISignedDocument): Promise<EduOnboardingStateDTO> {
     const offer = OFFERS[kind];
     if (!(await this.config.load()).coopAcceptance.accepted) {
-      throw new BadRequestException('ЦПП «Образование» ещё не принята советом кооператива: подписание оферты невозможно');
+      throw DomainError.badRequest('EDUBRIDGE_PROGRAM_NOT_ACCEPTED');
     }
     const programId = await this.programId(coopname, offer.type);
     if (programId <= 0) {
-      throw new BadRequestException(`Программа ЦПП «Образование» (${offer.human}) не открыта в кооперативе`);
+      throw DomainError.badRequest('EDUBRIDGE_PROGRAM_NOT_OPENED', { offerKind: offer.human });
     }
     const programs = await this.council.getPrograms(coopname);
     const program = programs.find((p) => Number(p.id) === programId);
-    if (!program) throw new BadRequestException(`Программа ${programId} не найдена в кооперативе ${coopname}`);
+    if (!program) throw DomainError.badRequest('EDUBRIDGE_PROGRAM_NOT_FOUND_IN_COOP', { programId, coopname });
 
     this.logger.info(`[EDU.L3] подпись оферты ${offer.human}: ${coopname}/${username} program_id=${programId} draft_id=${program.draft_id}`);
     await this.programAgreements.signProgramAgreement({
