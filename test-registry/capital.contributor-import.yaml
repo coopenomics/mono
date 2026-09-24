@@ -46,6 +46,7 @@ title: Импорт пайщика с бумажными договорами
 sources:
   contract:
     - components/contracts/cpp/capital/app/participation_management/import_contributor/importcontr.cpp
+    - components/contracts/cpp/capital/app/participation_management/register_contributor/regcontrib.cpp
     - components/contracts/cpp/wallet/src/agreement/importagree.cpp
   backend:
     - components/controller/src/extensions/capital/application/use-cases/participation-management.interactor.ts
@@ -162,3 +163,31 @@ cases:
 # 2026-09-23 (EEA-6…EEA-9): тексты интерфейса, отказов и уведомлений фичи вынесены из
 # кода в словари i18n, отказы бэкенда переведены на DomainError с кодом — текст
 # и HTTP-статус ответа прежние. Сценарии фичи и её проверки не менялись.
+
+# 2026-09-24 (C28-82): регистрация вкладчика договором УХД (capital::regcontrib)
+# стоит рядом с импортом — у неё есть ветка завершения регистрации
+# импортированного пайщика. Восстановлена пропущенная с сентября 2025 проверка
+# повторной регистрации.
+  - id: cap.cimp.side.05
+    level: contract
+    kind: side
+    scenario: >
+      Пайщику с действующим договором УХД повторно отправляют регистрацию
+      вкладчика с новым хэшем.
+    expect: >
+      отказ «Пайщик уже обладает подписанным договором УХД»; запись вкладчика и
+      её хэш прежние
+    test: components/boot/src/tests/capital.test.ts
+    status: written
+
+  - id: cap.cimp.side.06
+    level: contract
+    kind: side
+    scenario: >
+      Новый пайщик регистрируется вкладчиком с хэшем, который уже закреплён за
+      другим вкладчиком.
+    expect: >
+      отказ «Контрибьютор с данным хэшем уже зарегистрирован»; вкладчик не
+      создаётся
+    test: components/boot/src/tests/capital.test.ts
+    status: written
