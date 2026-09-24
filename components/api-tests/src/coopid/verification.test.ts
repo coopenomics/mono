@@ -229,7 +229,7 @@ describe('coopid.verification: уровни верификации и данны
       await joinMarketplace(who, token)
 
       const supplier = ROLES.supplier()
-      const offer = await pickOffer(token, supplier.account, KRG, 'Мёд цветочный')
+      const offer = await pickOffer(supplier.account, KRG, 'Мёд цветочный')
       const price = amount(offer.price_per_unit)
       await ensureShareFunds(who.account, price * 4 + 1_000, token)
       const { orderId } = await placeOrder({ who, offerId: offer.id, quantity: 1 })
