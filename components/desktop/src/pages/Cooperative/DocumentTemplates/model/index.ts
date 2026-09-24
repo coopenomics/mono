@@ -56,3 +56,5 @@ export const bundleToPropose = (all: IDocumentTemplate[], target: IDocumentTempl
   if (!target.bundle) return [target];
   return all.filter((t) => t.extension_name === target.extension_name && t.bundle === target.bundle && needsCouncil(t));
 };
+
+export { DOCUMENT_TEMPLATES_LIVE_TABLES } from './live';

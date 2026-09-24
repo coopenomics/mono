@@ -3,6 +3,9 @@ import { ref, type Ref } from 'vue'
 import { api } from '../api'
 import type { DocumentType, IGetDocuments, IPagination, IDocumentPackageAggregate } from './types'
 import { FailAlert } from 'src/shared/api'
+import { liveWindow } from 'src/shared/lib/realtime'
+
+const PAGE_SIZE = 10
 
 const namespace = 'documentStore'
 
@@ -15,6 +18,7 @@ interface IDocumentStore {
   changeDocumentType: (type: DocumentType, username: string, filter: Record<string, any>) => Promise<void>
   loadDocument: (username: string, hash: string) => Promise<IDocumentPackageAggregate | null>
   resetDocuments: () => void
+  reloadLoaded: (username: string, filter: Record<string, any>) => Promise<void>
 }
 /**
  * Хранилище для работы с документами
@@ -67,7 +71,7 @@ export const useDocumentStore = defineStore(namespace, (): IDocumentStore => {
         filter,
         type: documentType.value,
         page: page,
-        limit: 10
+        limit: PAGE_SIZE
       }
 
       const result = await api.loadDocuments(data)
@@ -128,6 +132,32 @@ export const useDocumentStore = defineStore(namespace, (): IDocumentStore => {
     return result.items[0] ?? null
   }
 
+  /**
+   * Перечитать уже показанные страницы одним запросом и заменить список:
+   * так список живёт по ленте изменений — новый документ встаёт на место,
+   * решения и аннулирования обновляются. Тихо: без индикатора и без
+   * всплывающей ошибки, следующий сигнал повторит.
+   */
+  const reloadLoaded = async (username: string, filter: Record<string, any>): Promise<void> => {
+    const window = liveWindow(pagination.value.currentPage, PAGE_SIZE)
+    try {
+      const result = await api.loadDocuments({
+        username,
+        filter,
+        type: documentType.value,
+        ...window.options,
+      })
+      documents.value = result.items
+      pagination.value = {
+        totalCount: result.totalCount,
+        totalPages: Math.max(1, Math.ceil(result.totalCount / PAGE_SIZE)),
+        currentPage: window.pages,
+      }
+    } catch (error) {
+      console.warn('[documents] фоновое перечитывание не удалось', error)
+    }
+  }
+
   return {
     documents,
     loading,
@@ -136,6 +166,7 @@ export const useDocumentStore = defineStore(namespace, (): IDocumentStore => {
     changePage,
     changeDocumentType,
     loadDocument,
-    resetDocuments
+    resetDocuments,
+    reloadLoaded
   }
 })

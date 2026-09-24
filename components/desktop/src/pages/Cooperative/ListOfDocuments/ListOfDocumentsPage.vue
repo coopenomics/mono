@@ -26,7 +26,8 @@ import { ListOfDocumentsWidget } from 'src/widgets/Cooperative/Documents/ListOfD
 import { SearchHeaderAction } from 'src/features/DocumentSearch';
 import { useHeaderActions } from 'src/shared/hooks';
 import { PageTabs, type PageTab } from 'src/shared/ui/layout/PageTabs';
-import { documentTemplatesApi } from 'src/pages/Cooperative/DocumentTemplates';
+import { documentTemplatesApi, DOCUMENT_TEMPLATES_LIVE_TABLES } from 'src/pages/Cooperative/DocumentTemplates';
+import { useLiveReload } from 'src/shared/lib/realtime';
 import type { DocumentType } from 'src/entities/Document/model/types';
 import { t } from 'src/shared/i18n';
 
@@ -49,6 +50,9 @@ const loadAttention = async () => {
     attention.value = 0;
   }
 };
+
+// Счётчик живёт по тем же таблицам, что и реестр шаблонов.
+useLiveReload(DOCUMENT_TEMPLATES_LIVE_TABLES, loadAttention);
 
 const tabs = computed((): PageTab[] => [
   { key: 'documents', label: t('cooperative.listOfDocumentsPage.documentsTab'), routeName: 'documents' },

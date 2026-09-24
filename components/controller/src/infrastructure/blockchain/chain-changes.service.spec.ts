@@ -89,6 +89,21 @@ describe('ChainChangesService', () => {
     expect(pubSub.publish).not.toHaveBeenCalled();
   });
 
+  it('принадлежность — по правилу потребителя цепи: coopname в строке и общий реестр шаблонов', async () => {
+    const { service, pubSub } = build();
+    service.declareTables([{ code: 'draft', table: 'drafts' }]);
+
+    // Строка своего кооператива в чужой области — сигнал есть.
+    await service.publish(delta({ scope: 'registrator', value: { coopname: 'voskhod' } }));
+    // Реестр шаблонов платформы (область draft) принадлежит всем кооперативам.
+    await service.publish(delta({ code: 'draft', table: 'drafts', scope: 'draft', value: { registry_id: 1 } }));
+    // Строка чужого кооператива — тишина, даже в области своего.
+    await service.publish(delta({ value: { coopname: 'other' } }));
+
+    const tables = pubSub.publish.mock.calls.map(([, payload]: any) => payload.chainChanges.table);
+    expect(tables).toEqual(['projects', 'drafts']);
+  });
+
   it('кошельки пайщиков ядро объявляет само, как личную таблицу', () => {
     const { service } = build();
 

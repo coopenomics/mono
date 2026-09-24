@@ -24,6 +24,7 @@
 
 <script setup lang="ts">
 import { onMounted, ref, computed, onUnmounted, watch } from 'vue';
+import { useLiveReload } from 'src/shared/lib/realtime';
 import { useRoute, useRouter } from 'vue-router';
 import { ComplexDocument } from 'src/shared/ui/ComplexDocument';
 import { EmptyState } from 'src/shared/ui/base/EmptyState';
@@ -73,26 +74,30 @@ const goBack = (): void => {
   });
 };
 
-const loadDocument = async (): Promise<void> => {
-  loading.value = true;
+const loadDocument = async (silent = false): Promise<void> => {
+  if (!silent) loading.value = true;
   try {
     document.value = await documentStore.loadDocument(
       scopeUsername.value,
       documentHash.value,
     );
   } catch (error: any) {
-    FailAlert(error);
+    if (!silent) FailAlert(error);
   } finally {
     loading.value = false;
   }
 };
+
+// Решение совета, подпись и аннулирование пишут реестр signed_documents —
+// открытый документ перечитывается сам.
+useLiveReload([{ code: 'core', table: 'signed_documents' }], () => loadDocument(true));
 
 // Наименование документа держим в заголовке шапки, пока открыта страница.
 watch(documentTitle, (title) => desktopStore.setPageTitleOverride(title), {
   immediate: true,
 });
 
-onMounted(loadDocument);
+onMounted(() => loadDocument());
 
 onUnmounted(() => desktopStore.clearPageTitleOverride());
 </script>

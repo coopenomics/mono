@@ -2,10 +2,11 @@ import { Inject, Injectable } from '@nestjs/common';
 import type { PubSub } from 'graphql-subscriptions';
 import type { IDelta } from '@coopenomics/extension-kit/sync';
 import type { IChainChangesPort, InnerChainChangesTable } from '@coopenomics/innercoop';
-import { Ledger2Contract, MeetContract, SovietContract } from 'cooptypes';
+import { DraftContract, Ledger2Contract, MeetContract, SovietContract } from 'cooptypes';
 import { PUB_SUB } from '~/infrastructure/pubsub/pubsub.module';
 import { config } from '~/config';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
+import { isDeltaOwnedByCoop } from './delta-ownership';
 
 /** Сигнал ленты: где и в каком блоке изменилась строка. Данных строки нет. */
 export interface ChainChangeSignal {
@@ -45,6 +46,9 @@ const CORE_TABLES: InnerChainChangesTable[] = [
     table: SovietContract.Tables.Participants.tableName,
     owner_field: 'username',
   },
+  // Шаблоны документов: редакции платформы (реестр draft) и утверждения совета.
+  { code: DraftContract.contractName.production, table: DraftContract.Tables.Drafts.tableName },
+  { code: DraftContract.contractName.production, table: DraftContract.Tables.Approvals.tableName },
 ];
 
 /**
@@ -65,6 +69,10 @@ const CORE_LOCAL_TABLES: InnerChainChangesTable[] = [
   { code: 'core', table: 'candidates', owner_field: 'username' },
   // Журнал сверок пишется в другой базе сырым SQL — сигнал шлёт его репозиторий.
   { code: 'core', table: 'verification_reviews', owner_field: 'username' },
+  // Реестр подписанных документов: пайщику — его, совету — все.
+  { code: 'core', table: 'signed_documents', owner_field: 'username' },
+  // Вопросы повестки, которые узел отслеживает (утверждение редакций и т. п.) — совету.
+  { code: 'core', table: 'tracking_rules', staff_only: true },
 ];
 
 /** Роли совета: персонал любого расширения. */
@@ -145,12 +153,15 @@ export class ChainChangesService implements IChainChangesPort {
 
   /**
    * Опубликовать изменение строки цепи. Необъявленная таблица и чужой
-   * кооператив — молчим. Снятая строка личной таблицы значения не несёт,
+   * кооператив — молчим. Принадлежность — то же правило, что у потребителя
+   * цепи (`isDeltaOwnedByCoop`): не только область кооператива, но и
+   * `coopname` в строке, общие таблицы платформы (реестр шаблонов) и реестр
+   * кооперативов сети по своему полю. Снятая строка личной таблицы значения не несёт,
    * владельца не назвать — её видит только персонал.
    */
   async publish(delta: IDelta): Promise<void> {
     const declared = this.tableOf(delta.code, delta.table);
-    if (!declared || delta.scope !== config.coopname) return;
+    if (!declared || !isDeltaOwnedByCoop(delta, config.coopname)) return;
     const owner = delta.present !== false ? (delta.value as Record<string, unknown> | undefined)?.[declared.owner_field ?? ''] : undefined;
     await this.route(declared, {
       code: delta.code,
