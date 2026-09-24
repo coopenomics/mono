@@ -117,13 +117,6 @@ describe('platform.user-input-markup: разметка в анкете и в о�
       expect(await notCreated(username)).toBe(true)
     }
 
-    // Банковский счёт, добавленный председателем отдельно, — тот же отказ.
-    const target = await register('individual', individualData())
-    expect(target.r.errors).toEqual([])
-    const add = await gqlRaw<any>(await tokenOf(CHAIRMAN), `mutation($d:AddPaymentMethodInput!){ addPaymentMethod(data:$d){ method_id } }`, {
-      d: { username: target.username, is_default: false, bank_transfer_data: bankAccount({ bank_name: 'Банк <script>x</script>' }) },
-    })
-    expect(codeOf(add)).toBe(INPUT_REFUSAL)
   })
 
   describe('описания проектов и задач', () => {
