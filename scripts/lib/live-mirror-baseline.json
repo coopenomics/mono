@@ -1,6 +1,6 @@
 {
   "_комментарий": "Экраны (pages/, widgets/), которые загружают данные при открытии или опрашивают по таймеру без живого обновления (scripts/check-live-mirror.mjs). Тронул файл — добавь useLiveReload; долг только снижается.",
-  "_commit": "210fb4672e35b7ff02742883b20efb630d62a193",
+  "_commit": "d641875059ab277987fc93e973c02836a2d64840",
   "files": {
     "components/desktop/extensions/capital/pages/AllocationsPage/ui/AllocationsPage.vue": 1,
     "components/desktop/extensions/capital/pages/CapitalBase/ui/CapitalBase.vue": 1,

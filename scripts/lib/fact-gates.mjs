@@ -116,15 +116,22 @@ function git(args) {
   return execFileSync('git', args, { cwd: REPO_ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
 }
 
-/** Файлы, изменённые после коммита (включая незакоммиченное и новое). */
+/**
+ * Файлы, которые ветка сама тронула после коммита снимка: её собственные
+ * коммиты (линия первого родителя, без коммитов слияния) плюс незакоммиченное
+ * и новое. Код, влитый слиянием из другой ветки, тронутым не считается —
+ * иначе каждое слияние dev требовало бы переводить чужие файлы.
+ */
 export function changedSince(commit) {
   const files = new Set();
+  const add = (out) => out.split('\n').filter(Boolean).forEach((f) => files.add(f));
   try {
-    git(['diff', '--name-only', '--diff-filter=ACMR', commit]).split('\n').filter(Boolean).forEach((f) => files.add(f));
+    add(git(['log', '--first-parent', '--no-merges', '--format=', '--name-only', '--diff-filter=ACMR', `${commit}..HEAD`]));
   } catch {
     return null; // коммита снимка нет в истории — сравнивать не с чем
   }
-  git(['ls-files', '--others', '--exclude-standard']).split('\n').filter(Boolean).forEach((f) => files.add(f));
+  add(git(['diff', '--name-only', '--diff-filter=ACMR', 'HEAD']));
+  add(git(['ls-files', '--others', '--exclude-standard']));
   return files;
 }
 

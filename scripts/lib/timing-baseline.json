@@ -1,6 +1,6 @@
 {
   "_комментарий": "Таймеры без пометки `// timing: <вид>` по файлам (scripts/check-timing.mjs). Тронул файл — пометь таймер или убери паузу; долг только снижается.",
-  "_commit": "210fb4672e35b7ff02742883b20efb630d62a193",
+  "_commit": "d641875059ab277987fc93e973c02836a2d64840",
   "files": {
     "components/controller/src/domain/document-approval/services/document-approval-seed.service.ts": 1,
     "components/controller/src/extensions/capital/application/services/component-matrix-announcement.service.ts": 1,
@@ -47,7 +47,6 @@
     "components/desktop/extensions/capital/widgets/ProjectsListWidget/ProjectsListWidget.vue": 1,
     "components/desktop/extensions/chairman/features/Onboarding/ui/OnboardingCompletionCelebration.vue": 1,
     "components/desktop/extensions/chatcoop/pages/ChatCoopPage/ui/ChatCoopPage.vue": 1,
-    "components/desktop/extensions/edubridge/widgets/CourseForm/model/useCourseForm.ts": 1,
     "components/desktop/extensions/robot/pages/RobotJournalPage/ui/RobotJournalPage.vue": 1,
     "components/desktop/src/app/App.vue": 2,
     "components/desktop/src/app/layouts/widget.vue": 1,

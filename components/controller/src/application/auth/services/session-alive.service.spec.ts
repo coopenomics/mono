@@ -1,9 +1,5 @@
 import { LEGACY_SESSION_CUTOFF, SessionAliveService } from './session-alive.service';
 
-jest.mock('~/infrastructure/graphql/ws-session-check.registry', () => ({
-  registerWsSessionCheck: jest.fn(),
-}));
-
 /**
  * Один ответ на вопрос «жива ли сессия» для обоих входов — HTTP и веб-сокета.
  * До 08.09.2026 ws проверял только подпись токена, и отозванный доступ оставался
@@ -12,15 +8,8 @@ jest.mock('~/infrastructure/graphql/ws-session-check.registry', () => ({
 describe('SessionAliveService', () => {
   function setup(opts: { session?: unknown; vaultBlob?: unknown; username?: string } = {}) {
     const tokenRepository = { findById: jest.fn().mockResolvedValue(opts.session ?? null) };
-    const userRepository = {};
-    const userDomainService = {};
     const vault = { retrieve: jest.fn().mockResolvedValue(opts.vaultBlob ?? null) };
-    const service = new SessionAliveService(
-      tokenRepository as never,
-      userRepository as never,
-      userDomainService as never,
-      vault as never
-    );
+    const service = new SessionAliveService(tokenRepository as never, vault as never);
     return { service, tokenRepository, vault };
   }
 
