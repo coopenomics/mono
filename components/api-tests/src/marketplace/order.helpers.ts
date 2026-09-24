@@ -11,9 +11,12 @@ import crypto from 'node:crypto'
 import type { Who } from '../core/auth'
 import { tokenOf } from '../core/auth'
 import { gql, gqlRaw } from '../core/client'
+import { transact } from '../core/chain'
 import { signDocument } from '../core/documents'
+import { COOP } from '../core/env'
+import { CHAIRMAN } from '../core/roles'
 import { waitFor } from '../core/wait'
-import { amount } from '../core/wallet'
+import { COOP_SIGNER, amount, availableShare, rub } from '../core/wallet'
 import { KRG } from './flow'
 
 /** Метка прогона в названиях предложений — свои строки ищутся по ней. */
@@ -54,8 +57,13 @@ export async function createApprovedOffer(supplier: Who, moderator: Who, input: 
   return getOffer(await tokenOf(supplier), id)
 }
 
-/** Активное предложение поставщика по названию (сид витрины). */
-export async function findActiveOffer(token: string, supplierAccount: string, productName: string): Promise<any> {
+/**
+ * Активное предложение поставщика по названию (сид витрины). Лента всех
+ * предложений — право администратора (Offer:read:all), поэтому читает
+ * председатель.
+ */
+export async function findActiveOffer(supplierAccount: string, productName: string): Promise<any> {
+  const token = await tokenOf(CHAIRMAN)
   return waitFor(async () => {
     const d = await gql<any>(token, `query($i:MarketplaceListAllOffersInput){ marketplaceListAllOffers(input:$i){ items{ ${OFFER_FIELDS} } } }`, {
       i: { supplier_account: supplierAccount, statuses: ['ACTIVE'], limit: 100, page: 1 },
@@ -184,4 +192,28 @@ export function unitsOfRub(n: number): bigint {
 
 export function minU(a: bigint, b: bigint): bigint {
   return a < b ? a : b
+}
+
+// ── Деньги пайщика ─────────────────────────────────────────────────────────
+
+/**
+ * Паевой взнос деньгами: заявка на приход (wallet::createdpst) и его
+ * исполнение шлюзом (gateway::incomplete) от имени кооператива. Своя копия,
+ * потому что core/wallet.deposit зовёт действие createdeposit, которого у
+ * контракта wallet нет (см. отчёт mkt-order).
+ */
+export async function depositShare(username: string, sum: number): Promise<void> {
+  const hash = crypto.randomBytes(32).toString('hex')
+  await transact(COOP_SIGNER, [{ account: 'wallet', name: 'createdpst', data: { coopname: COOP, username, deposit_hash: hash, quantity: rub(sum) } }])
+  await transact(COOP_SIGNER, [{ account: 'gateway', name: 'incomplete', data: { coopname: COOP, income_hash: hash } }])
+}
+
+/** Довести Цифровой кошелёк до минимума и дождаться, пока его увидит зеркало контроллера. */
+export async function ensureDigitalWallet(who: Who, minimumRub: number): Promise<void> {
+  const have = await availableShare(who.account)
+  if (have < minimumRub)
+    await depositShare(who.account, Math.ceil(minimumRub - have) + 10_000)
+  const token = await tokenOf(who)
+  await waitFor(async () => ((await wallets(token))['w.wal.share'] ?? 0) >= minimumRub ? true : null,
+    { timeoutMs: 120_000, intervalMs: 2_000, label: `зеркало Цифрового кошелька ${who.account} ≥ ${minimumRub} RUB` })
 }

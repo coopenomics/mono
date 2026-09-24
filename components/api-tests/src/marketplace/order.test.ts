@@ -13,7 +13,7 @@
  */
 import crypto from 'node:crypto'
 import { beforeAll, describe, expect, it } from 'vitest'
-import { CHAIRMAN, ROLES, caseName, ensureShareFunds, fixture, gql, gqlError, gqlRaw, signDocument, tokenOf } from '../core'
+import { CHAIRMAN, ROLES, caseName, fixture, gql, gqlError, gqlRaw, signDocument, tokenOf } from '../core'
 import type { Who } from '../core'
 import { docMeta } from '../core/documents'
 import { amount } from '../core/wallet'
@@ -25,6 +25,7 @@ import {
   checkoutSigned,
   clearCart,
   createApprovedOffer,
+  ensureDigitalWallet,
   fillCart,
   findActiveOffer,
   getCart,
@@ -102,10 +103,10 @@ beforeAll(async () => {
   st = await tokenOf(seedSupplier)
   opt = await tokenOf(operator)
 
-  await ensureShareFunds(member.account, 60_000, mt)
+  await ensureDigitalWallet(member, 60_000)
 
-  potato = await findActiveOffer(mt, seedSupplier.account, 'Картофель деревенский')
-  honey = await findActiveOffer(mt, seedSupplier.account, 'Мёд цветочный')
+  potato = await findActiveOffer(seedSupplier.account, 'Картофель деревенский')
+  honey = await findActiveOffer(seedSupplier.account, 'Мёд цветочный')
 
   limited = await createApprovedOffer(other, CHAIRMAN, {
     product_name: `Тест ${RUN_TAG} остаток 5 кг`,
@@ -568,7 +569,7 @@ describe('заказ: отказ цепи в общей транзакции', (
   it(caseName('mkt.order.break.02', 'цепь отказала в заказе общей транзакции — отказ целиком, брони сняты, перевод откатился, корзина не тронута'), async () => {
     const buyer = fixture('orderer2')
     const bt = await tokenOf(buyer)
-    await ensureShareFunds(buyer.account, 30_000, bt)
+    await ensureDigitalWallet(buyer, 30_000)
     try {
       await clearCart(bt)
       await gql(bt, SET_POINT, { i: { delivery_braname: MISSING_KU } })
