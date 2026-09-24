@@ -91,6 +91,7 @@ cases:
     scenario: список запрашивается с сортировкой по колонке сущности
     expect: сортировка применяется по этой колонке
     test: components/controller/tests/unit/capital/list-sort-column.test.ts
+    api: components/api-tests/src/capital/list-filters-sort.test.ts
     status: written
 
   - id: cap.lists.side.01
@@ -99,6 +100,7 @@ cases:
     scenario: поле сортировки не передано
     expect: список сортируется умолчанием, отказа нет
     test: components/controller/tests/unit/capital/list-sort-column.test.ts
+    api: components/api-tests/src/capital/list-filters-sort.test.ts
     status: written
 
   - id: cap.lists.side.02
@@ -107,6 +109,7 @@ cases:
     scenario: клиент прислал имя поля, которого у сущности нет (устаревшая ссылка, опечатка)
     expect: список отдаётся, сортировка падает на умолчание
     test: components/controller/tests/unit/capital/list-sort-column.test.ts
+    api: components/api-tests/src/capital/list-filters-sort.test.ts
     status: written
 
   - id: cap.lists.break.01
@@ -195,6 +198,7 @@ cases:
     scenario: задачи запрашиваются без указания компонента пайщиком без допуска к чужому проекту
     expect: чужие задачи не попадают в выборку и не считаются в totalCount
     test: components/controller/tests/unit/capital/artifact-and-communication-access.test.ts
+    api: components/api-tests/src/capital/list-filters-sort.test.ts
     status: written
 
 # 2026-08-18: в ComponentListRow исправлено имя события перехода к родительскому

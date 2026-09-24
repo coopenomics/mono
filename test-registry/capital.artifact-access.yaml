@@ -56,6 +56,7 @@ cases:
     scenario: ведущий проекта запрашивает документы и переписку своего проекта
     expect: доступно и то, и другое
     test: components/controller/tests/unit/capital/artifact-and-communication-access.test.ts
+    api: components/api-tests/src/capital/artifact-access.test.ts
     status: passing
 
   - id: cap.access.happy.02
@@ -64,6 +65,7 @@ cases:
     scenario: пайщик с подтверждённым допуском запрашивает документы проекта
     expect: документы доступны
     test: components/controller/tests/unit/capital/artifact-and-communication-access.test.ts
+    api: components/api-tests/src/capital/artifact-access.test.ts
     status: passing
 
   - id: cap.access.side.01
@@ -72,6 +74,7 @@ cases:
     scenario: пайщик с допуском запрашивает переписку проекта
     expect: отказ — допуск к работам переписку не открывает
     test: components/controller/tests/unit/capital/artifact-and-communication-access.test.ts
+    api: components/api-tests/src/capital/artifact-access.test.ts
     status: passing
 
   - id: cap.access.side.02
@@ -80,6 +83,7 @@ cases:
     scenario: соавтор проекта запрашивает документы и переписку
     expect: документы доступны, переписка — нет
     test: components/controller/tests/unit/capital/artifact-and-communication-access.test.ts
+    api: components/api-tests/src/capital/artifact-access.test.ts
     status: passing
 
   - id: cap.access.side.03
@@ -88,6 +92,7 @@ cases:
     scenario: член совета без допуска запрашивает переписку чужого проекта
     expect: доступно — совет видит всё
     test: components/controller/tests/unit/capital/artifact-and-communication-access.test.ts
+    api: components/api-tests/src/capital/artifact-access.test.ts
     status: passing
 
   - id: cap.access.break.01
@@ -96,6 +101,7 @@ cases:
     scenario: посторонний пайщик запрашивает документы и переписку проекта
     expect: отказ по обоим
     test: components/controller/tests/unit/capital/artifact-and-communication-access.test.ts
+    api: components/api-tests/src/capital/artifact-access.test.ts
     status: passing
 
   # ── Каскад по иерархии ────────────────────────────────────────────────────
@@ -106,6 +112,7 @@ cases:
     scenario: ведущий проекта запрашивает переписку компонента этого проекта
     expect: доступно — роль на проекте распространяется на компоненты
     test: components/controller/tests/unit/capital/artifact-and-communication-access.test.ts
+    api: components/api-tests/src/capital/artifact-access.test.ts
     status: passing
 
   - id: cap.access.side.05
@@ -114,6 +121,7 @@ cases:
     scenario: пайщик с допуском к проекту запрашивает документы и переписку компонента
     expect: документы доступны, переписка — нет
     test: components/controller/tests/unit/capital/artifact-and-communication-access.test.ts
+    api: components/api-tests/src/capital/artifact-access.test.ts
     status: passing
 
   - id: cap.access.break.02
@@ -122,6 +130,7 @@ cases:
     scenario: запрос переписки по несуществующему проекту от ведущего другого проекта
     expect: отказ, а не пустой ответ «как будто проект есть и пуст»
     test: components/controller/tests/unit/capital/artifact-and-communication-access.test.ts
+    api: components/api-tests/src/capital/artifact-access.test.ts
     status: passing
 
   # ── Общие списки без указания проекта (синхронизация рабочей копии) ───────
@@ -132,6 +141,7 @@ cases:
     scenario: председатель запрашивает общий список задач и требований кооператива
     expect: ограничения не ставится, виден весь кооператив
     test: components/controller/tests/unit/capital/artifact-and-communication-access.test.ts
+    api: components/api-tests/src/capital/artifact-access.test.ts
     status: passing
 
   - id: cap.access.side.06
@@ -140,6 +150,7 @@ cases:
     scenario: ведущий запрашивает общий список без указания проекта
     expect: область сужается до его проектов и их компонентов
     test: components/controller/tests/unit/capital/artifact-and-communication-access.test.ts
+    api: components/api-tests/src/capital/artifact-access.test.ts
     status: passing
 
   - id: cap.access.side.07
@@ -148,6 +159,7 @@ cases:
     scenario: область доступа к переписке для пайщика с допуском
     expect: пустая — по этой роли переписка не открывается
     test: components/controller/tests/unit/capital/artifact-and-communication-access.test.ts
+    api: components/api-tests/src/capital/artifact-access.test.ts
     status: passing
 
   - id: cap.access.break.03
@@ -156,6 +168,7 @@ cases:
     scenario: запрос общего списка без авторизации
     expect: пустая область, а не «ограничения нет»
     test: components/controller/tests/unit/capital/artifact-and-communication-access.test.ts
+    api: components/api-tests/src/capital/artifact-access.test.ts
     status: passing
 
   - id: cap.access.break.04
@@ -194,6 +207,7 @@ cases:
       отказ — доступ проверяется по комнате и её проекту, а не по тому, что
       комната названа в запросе
     test: components/controller/tests/unit/chatcoop/chatcoop-room-access.test.ts
+    api: components/api-tests/src/capital/artifact-access.test.ts
     status: passing
 
   - id: cap.access.break.06
@@ -202,6 +216,7 @@ cases:
     scenario: пайщик запрашивает комнаты пайщиков, совета или секретаря
     expect: пустой список — эти комнаты к проектам не привязаны и читаются только советом
     test: components/controller/tests/unit/chatcoop/chatcoop-room-access.test.ts
+    api: components/api-tests/src/capital/artifact-access.test.ts
     status: passing
 
   - id: cap.access.break.07
@@ -210,6 +225,7 @@ cases:
     scenario: пайщик запрашивает список записей звонков без указания комнаты
     expect: возвращаются только записи комнат, которые ему доступны
     test: components/controller/tests/unit/chatcoop/transcription-room-access.test.ts
+    api: components/api-tests/src/capital/artifact-access.test.ts
     status: passing
 
   - id: cap.access.side.09
@@ -220,6 +236,7 @@ cases:
       разрешено — заметку правит тот же круг, что и читает запись; раньше это
       мог только совет
     test: components/controller/tests/unit/chatcoop/transcription-room-access.test.ts
+    api: components/api-tests/src/capital/artifact-access.test.ts
     status: passing
 
   - id: cap.access.happy.04
@@ -230,6 +247,7 @@ cases:
       расшифровкой по репликам
     expect: доступно обоим
     test: components/controller/tests/unit/chatcoop/transcription-room-access.test.ts
+    api: components/api-tests/src/capital/artifact-access.test.ts
     status: passing
 
   - id: cap.access.break.09
@@ -243,6 +261,7 @@ cases:
       идентификатору комнаты звонка комната не ищется — иначе отказ получает
       даже председатель
     test: components/controller/tests/unit/chatcoop/transcription-room-access.test.ts
+    api: components/api-tests/src/capital/artifact-access.test.ts
     status: passing
 
   - id: cap.access.break.10
@@ -251,6 +270,7 @@ cases:
     scenario: запись звонка комнаты, которой нет в реестре комнат кооператива
     expect: отказ всем, включая совет — читать нечего и права считать не от чего
     test: components/controller/tests/unit/chatcoop/transcription-room-access.test.ts
+    api: components/api-tests/src/capital/artifact-access.test.ts
     status: passing
 
   # ── Кэш справочных чтений ─────────────────────────────────────────────────
@@ -286,6 +306,7 @@ cases:
       браузере. Разметка, таблицы и схемы BPMN остаются нетронутыми. Общее
       описание — platform.user-input-markup, задача C28-74
     test: components/cooptypes/test/sanitize-editor-text.test.ts
+    api: components/api-tests/src/capital/artifact-access.test.ts
     status: passing
 
 # 2026-09-23 (EEA-6…EEA-9): тексты интерфейса, отказов и уведомлений фичи вынесены из
