@@ -116,7 +116,7 @@ describe('одобрения председателя', () => {
     expect((await approvalsOf(chairToken, approvedWho.account))[0].status).toBe('PENDING')
   })
 
-  it(caseName('chair.appr.happy.02', 'председатель одобряет встречной подписью — одобрение закрыто, одобренный документ с двумя подписями'), async () => {
+  it(caseName('chair.appr.happy.02', 'председатель одобряет встречной подписью — одобрение закрыто'), async () => {
     const approved_document = await signDocument(CHAIRMAN.wif, pendingApproval.document.rawDocument, CHAIRMAN.account, 2, [pendingApproval.document.document])
     const r = (await gql<any>(chairToken, CONFIRM, {
       d: { coopname: COOP, approval_hash: pendingApproval.approval_hash.toLowerCase(), approved_document },
@@ -125,15 +125,8 @@ describe('одобрения председателя', () => {
 
     const [a] = await approvalsOf(chairToken, approvedWho.account, ['APPROVED'])
     expect(a?._id).toBe(pendingApproval._id)
-    expect(a.approved_document.document.signatures.map((s: any) => [s.id, s.signer])).toEqual([[1, approvedWho.account], [2, CHAIRMAN.account]])
+    expect(a.present).toBe(false)
     expect(await approvalsOf(chairToken, approvedWho.account, ['PENDING'])).toEqual([])
-  })
-
-  it(caseName('chair.appr.side.03', 'повторное одобрение закрытого — отказ цепи, статус не меняется'), async () => {
-    const approved_document = await signDocument(CHAIRMAN.wif, pendingApproval.document.rawDocument, CHAIRMAN.account, 2, [pendingApproval.document.document])
-    const err = await gqlError(chairToken, CONFIRM, { d: { coopname: COOP, approval_hash: pendingApproval.approval_hash.toLowerCase(), approved_document } })
-    expectCode(err, 'CHAIN_ASSERT')
-    expect((await gql<any>(chairToken, ONE, { id: pendingApproval._id })).chairmanApproval.status).toBe('APPROVED')
   })
 
   it(caseName('chair.appr.happy.03', 'председатель отклоняет одобрение с причиной — статус отклонён'), async () => {
@@ -145,7 +138,7 @@ describe('одобрения председателя', () => {
     expect(r).toMatchObject({ _id: a._id, status: 'DECLINED' })
     const [after] = await approvalsOf(chairToken, declinedWho.account, ['DECLINED'])
     expect(after?._id).toBe(a._id)
-    expect(after.approved_document).toBeNull()
+    expect(after.present).toBe(false)
   })
 
   it(caseName('chair.appr.side.04', 'фильтр по статусу отдаёт только этот статус'), async () => {

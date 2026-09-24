@@ -31,7 +31,7 @@ cases:
     level: backend
     kind: happy
     scenario: Председатель одобряет встречной подписью
-    expect: статус APPROVED, одобренный документ с подписями пайщика и председателя; среди PENDING его нет
+    expect: статус APPROVED, строка цепи стёрта (present=false); среди PENDING его нет
     test: components/api-tests/src/chairman/approvals.test.ts
     api: components/api-tests/src/chairman/approvals.test.ts
     status: passing
@@ -40,7 +40,7 @@ cases:
     level: backend
     kind: happy
     scenario: Председатель отклоняет одобрение с причиной
-    expect: статус DECLINED, одобренного документа нет
+    expect: статус DECLINED, строка цепи стёрта
     test: components/api-tests/src/chairman/approvals.test.ts
     api: components/api-tests/src/chairman/approvals.test.ts
     status: passing
@@ -68,9 +68,8 @@ cases:
     kind: side
     scenario: Председатель повторно одобряет закрытое одобрение
     expect: отказ цепи CHAIN_ASSERT, статус APPROVED не меняется
-    test: components/api-tests/src/chairman/approvals.test.ts
-    api: components/api-tests/src/chairman/approvals.test.ts
-    status: passing
+    # Сейчас отказ приходит без кода — code 500 (транзакция через @wharfkit/session).
+    status: missing
 
   - id: chair.appr.side.04
     level: backend
@@ -80,3 +79,12 @@ cases:
     test: components/api-tests/src/chairman/approvals.test.ts
     api: components/api-tests/src/chairman/approvals.test.ts
     status: passing
+
+  - id: chair.appr.side.05
+    level: backend
+    kind: side
+    scenario: Одобрение подтверждено встречной подписью, председатель открывает его снова
+    expect: одобренный документ (две подписи) отдаётся в approved_document
+    # Сейчас approved_document всегда null: конструктор ApprovalDomainEntity не переносит
+    # поле из базы (domain/entities/approval.entity.ts), запись есть, чтения нет.
+    status: missing

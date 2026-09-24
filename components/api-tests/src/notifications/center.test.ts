@@ -8,13 +8,17 @@
  * контроллера (тик в несколько секунд), поэтому появление строки в инбоксе
  * и смена статуса в журнале ожидаются опросом: это запись мимо мутации.
  *
- * Получатель — свежий пайщик: его инбокс и подписки больше никто не трогает,
- * поэтому счётчики сверяются точно.
+ * Получатель уведомлений — член совета anna: у свежих пайщиков стенда нет
+ * идентификатора подписчика (их заводит скрипт мимо регистрации контроллера,
+ * а догоняет его фоновая задача раз в полчаса). Её инбокс могут пополнять и
+ * другие события прогона, поэтому свои строки ищутся по decision_id, а счётчик
+ * непрочитанных сверяется с лентой в тот же момент, а не с числом «до».
+ * Роль «пайщик» и веб-пуш подписки проверяются на свежем пайщике.
  */
 import crypto from 'node:crypto'
 import { beforeAll, describe, expect, it } from 'vitest'
 import type { Who } from '../core'
-import { CHAIRMAN, COOP, COUNCIL, ROLES, caseName, freshMember, gql, gqlError, login, tokenOf, waitFor } from '../core'
+import { CHAIRMAN, COOP, COUNCIL, COUNCIL_2, ROLES, caseName, freshMember, gql, gqlError, login, tokenOf, waitFor } from '../core'
 import type { GqlError } from '../core'
 
 /** Тип уведомления с шагами email + in_app + push (каталог @coopenomics/notifications). */
@@ -59,14 +63,25 @@ async function unread(token: string): Promise<number> {
   return d.getUnreadNotificationsCount.count
 }
 
+/** Счётчик непрочитанных совпадает с числом непрочитанных строк ленты. */
+async function expectUnreadConsistent(token: string): Promise<number> {
+  const [count, items] = [await unread(token), await inbox(token)]
+  expect(count).toBe(items.filter(i => !i.isRead).length)
+  return count
+}
+
 async function journal(token: string, filter: Record<string, unknown>): Promise<any[]> {
   const d = await gql<any>(token, JOURNAL, { f: { coopname: COOP, ...filter }, p: PAGE })
   return d.getNotifications.items
 }
 
+/** Получатель уведомлений (член совета с идентификатором подписчика). */
+const recipient: Who = COUNCIL_2
+let recipientToken: string
+let subscriberId: string
+/** Свежий пайщик (роль user): отказы по роли и веб-пуш подписки. */
 let member: Who
 let memberToken: string
-let subscriberId: string
 let chairToken: string
 let councilToken: string
 let otherToken: string
@@ -84,36 +99,36 @@ function mine(items: any[]): any[] {
 beforeAll(async () => {
   member = freshMember({ prefix: 'ntf' })
   memberToken = await login(member)
+  recipientToken = await tokenOf(recipient)
   chairToken = await tokenOf(CHAIRMAN)
   councilToken = await tokenOf(COUNCIL)
   otherToken = await tokenOf(ROLES.otherMember())
-  const acc = await gql<any>(memberToken, 'query($d:GetAccountInput!){ getAccount(data:$d){ provider_account{ subscriber_id } } }', { d: { username: member.account } })
+  const acc = await gql<any>(recipientToken, 'query($d:GetAccountInput!){ getAccount(data:$d){ provider_account{ subscriber_id } } }', { d: { username: recipient.account } })
   subscriberId = acc.getAccount.provider_account.subscriber_id
-  expect(subscriberId, 'у свежего пайщика есть идентификатор подписчика').toBeTruthy()
+  expect(subscriberId, 'у получателя есть идентификатор подписчика').toBeTruthy()
 })
 
 describe('центр уведомлений: очередь, журнал, инбокс', () => {
   it(caseName('ntf.center.side.01', 'поставить уведомление может только председатель'), async () => {
-    const data = { d: { name: WORKFLOW, to: [{ username: member.account }], payload: { decision_id: 'x' } } }
+    const data = { d: { name: WORKFLOW, to: [{ username: recipient.account }], payload: { decision_id: 'x' } } }
     expectCode(await gqlError(councilToken, TRIGGER, data), 'KIT_INSUFFICIENT_RIGHTS')
     expectCode(await gqlError(memberToken, TRIGGER, data), 'KIT_INSUFFICIENT_RIGHTS')
     expectAuthDenied(await gqlError(null, TRIGGER, data))
-    expect(mine(await inbox(memberToken))).toEqual([])
+    expect(mine(await inbox(recipientToken))).toEqual([])
   })
 
-  it(caseName('ntf.center.happy.01', 'председатель ставит уведомление — пайщик получает его в инбоксе непрочитанным'), async () => {
-    const before = await unread(memberToken)
+  it(caseName('ntf.center.happy.01', 'председатель ставит уведомление — получатель видит его в инбоксе непрочитанным'), async () => {
     const r = await gql<any>(chairToken, TRIGGER, {
       d: {
         name: WORKFLOW,
-        to: [{ username: member.account }],
+        to: [{ username: recipient.account }],
         payload: { userName: 'Тест', decisionTitle, coopname: COOP, decision_id: decisionId },
       },
     })
     expect(r.triggerNotificationWorkflow).toBe(true)
 
     const [item] = await waitFor(async () => {
-      const found = mine(await inbox(memberToken))
+      const found = mine(await inbox(recipientToken))
       return found.length ? found : null
     }, { timeoutMs: 90_000, intervalMs: 1_500, label: 'уведомление в инбоксе пайщика' })
     inboxItemId = item.id
@@ -122,7 +137,7 @@ describe('центр уведомлений: очередь, журнал, ин�
     expect(item.body).toContain(decisionTitle)
     expect(item.isRead).toBe(false)
     expect(item.readAt).toBeNull()
-    expect(await unread(memberToken)).toBe(before + 1)
+    expect(await expectUnreadConsistent(recipientToken)).toBeGreaterThanOrEqual(1)
   })
 
   it(caseName('ntf.center.happy.02', 'журнал председателя: строка in_app доставлена, попытка записана с номером строки инбокса'), async () => {
@@ -131,7 +146,7 @@ describe('центр уведомлений: очередь, журнал, ин�
       const rows = await journal(chairToken, { recipientSubscriberId: subscriberId, workflowId: WORKFLOW, channel: 'IN_APP' })
       return rows.find(r => r.status === 'SENT') ?? null
     }, { timeoutMs: 30_000, intervalMs: 1_000, label: 'строка in_app отмечена доставленной' })
-    expect(inApp.recipientUsername).toBe(member.account)
+    expect(inApp.recipientUsername).toBe(recipient.account)
     expect(inApp.attempts).toBe(1)
     inAppOutboxId = inApp.id
 
@@ -167,30 +182,29 @@ describe('центр уведомлений: очередь, журнал, ин�
     expectCode(await gqlError(memberToken, DETAIL, { id: inAppOutboxId }), 'KIT_INSUFFICIENT_RIGHTS')
   })
 
-  it(caseName('ntf.center.side.04', 'чужой пайщик не отмечает и не видит уведомление из чужого инбокса'), async () => {
+  it(caseName('ntf.center.side.04', 'чужой пайщик не отмечает и не видит уведомление из чужого инбокса, гостю инбокс закрыт'), async () => {
     expectCode(await gqlError(otherToken, MARK, { id: inboxItemId }), 'NOTIFICATION_CENTER_INBOX_ITEM_NOT_FOUND')
     const otherInbox = await inbox(otherToken)
     expect(otherInbox.some(i => i.id === inboxItemId)).toBe(false)
-    const [still] = mine(await inbox(memberToken))
+    const [still] = mine(await inbox(recipientToken))
     expect(still.isRead).toBe(false)
     expectAuthDenied(await gqlError(null, INBOX, { c: COOP, p: PAGE }))
     expectAuthDenied(await gqlError(null, MARK, { id: inboxItemId }))
   })
 
-  it(caseName('ntf.center.happy.03', 'пайщик отмечает уведомление прочитанным; повторная отметка ничего не меняет'), async () => {
-    const before = await unread(memberToken)
-    const first = (await gql<any>(memberToken, MARK, { id: inboxItemId })).markNotificationRead
+  it(caseName('ntf.center.happy.03', 'получатель отмечает уведомление прочитанным; повторная отметка ничего не меняет'), async () => {
+    const first = (await gql<any>(recipientToken, MARK, { id: inboxItemId })).markNotificationRead
     expect(first).toMatchObject({ id: inboxItemId, isRead: true })
     expect(first.readAt).toBeTruthy()
-    expect(await unread(memberToken)).toBe(before - 1)
+    expect(mine(await inbox(recipientToken))[0]).toMatchObject({ id: inboxItemId, isRead: true, readAt: first.readAt })
+    await expectUnreadConsistent(recipientToken)
 
-    const again = (await gql<any>(memberToken, MARK, { id: inboxItemId })).markNotificationRead
+    const again = (await gql<any>(recipientToken, MARK, { id: inboxItemId })).markNotificationRead
     expect(again.readAt).toBe(first.readAt)
-    expect(await unread(memberToken)).toBe(before - 1)
-    expectCode(await gqlError(memberToken, MARK, { id: crypto.randomUUID() }), 'NOTIFICATION_CENTER_INBOX_ITEM_NOT_FOUND')
+    expectCode(await gqlError(recipientToken, MARK, { id: crypto.randomUUID() }), 'NOTIFICATION_CENTER_INBOX_ITEM_NOT_FOUND')
   })
 
-  it(caseName('ntf.center.happy.04', 'переотправка: новая строка очереди, пайщик получает уведомление второй раз'), async () => {
+  it(caseName('ntf.center.happy.04', 'переотправка: новая строка очереди, получатель получает уведомление второй раз'), async () => {
     expectCode(await gqlError(councilToken, RESEND, { id: inAppOutboxId }), 'KIT_INSUFFICIENT_RIGHTS')
     expectCode(await gqlError(chairToken, RESEND, { id: crypto.randomUUID() }), 'NOTIFICATION_CENTER_JOURNAL_ITEM_NOT_FOUND')
 
@@ -199,7 +213,7 @@ describe('центр уведомлений: очередь, журнал, ин�
     expect(resent).toMatchObject({ status: 'PENDING', attempts: 0, channel: 'IN_APP', recipientSubscriberId: subscriberId, workflowId: WORKFLOW })
 
     const copies = await waitFor(async () => {
-      const found = mine(await inbox(memberToken))
+      const found = mine(await inbox(recipientToken))
       return found.length >= 2 ? found : null
     }, { timeoutMs: 90_000, intervalMs: 1_500, label: 'второе уведомление в инбоксе после переотправки' })
     expect(copies).toHaveLength(2)
@@ -213,15 +227,15 @@ describe('центр уведомлений: очередь, журнал, ин�
   })
 
   it(caseName('ntf.center.happy.05', 'отметить всё прочитанным: счётчик в ноль, все строки инбокса прочитаны'), async () => {
-    expect(await unread(memberToken)).toBeGreaterThan(0)
-    const r = (await gql<any>(memberToken, MARK_ALL, { c: COOP })).markAllNotificationsRead
+    expect(await expectUnreadConsistent(recipientToken)).toBeGreaterThan(0)
+    const r = (await gql<any>(recipientToken, MARK_ALL, { c: COOP })).markAllNotificationsRead
     expect(r.count).toBe(0)
-    expect(await unread(memberToken)).toBe(0)
-    const items = await inbox(memberToken)
-    expect(items.length).toBeGreaterThan(0)
+    expect(await unread(recipientToken)).toBe(0)
+    const items = mine(await inbox(recipientToken))
+    expect(items).toHaveLength(2)
     expect(items.every(i => i.isRead && i.readAt)).toBe(true)
     // повтор на пустом — не ошибка
-    expect((await gql<any>(memberToken, MARK_ALL, { c: COOP })).markAllNotificationsRead.count).toBe(0)
+    expect((await gql<any>(recipientToken, MARK_ALL, { c: COOP })).markAllNotificationsRead.count).toBe(0)
   })
 })
 
