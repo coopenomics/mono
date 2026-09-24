@@ -93,7 +93,8 @@ describe('общее собрание: созыв и чтение', () => {
 
     expect(created.pre).toMatchObject({ coopname: COOP, initiator: CHAIRMAN.account, presider: CHAIRMAN.account, secretary: CHAIRMAN.account, details })
     expect(created.pre.agenda).toEqual(agenda)
-    expect(new Date(created.pre.open_at).getTime()).toBe(Math.floor(openAt.getTime() / 1000) * 1000)
+    expect(new Date(created.pre.open_at).getTime()).toBe(openAt.getTime())
+    expect(new Date(created.pre.close_at).getTime()).toBe(closeAt.getTime())
 
     expect(created.processing.meet.status).toBe('created')
     expect(created.processing.extendedStatus).toBe('CREATED')

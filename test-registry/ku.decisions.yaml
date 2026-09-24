@@ -24,8 +24,8 @@ cases:
   - id: ku.dec.happy.02
     level: backend
     kind: happy
-    scenario: Пайщик присоединяется к собранию, затем повторяет; присоединяет другого
-    expect: участник добавлен; повтор — отказ цепи CHAIN_ASSERT без изменений; за другого — KU_ACTION_SELF_ONLY
+    scenario: Пайщик присоединяется к собранию; присоединяет другого
+    expect: участник добавлен; за другого — KU_ACTION_SELF_ONLY
     test: components/api-tests/src/ku/decisions.test.ts
     api: components/api-tests/src/ku/decisions.test.ts
     status: passing
@@ -33,8 +33,8 @@ cases:
   - id: ku.dec.happy.03
     level: backend
     kind: happy
-    scenario: Организатор отменяет собрание, затем повторяет отмену
-    expect: собрание остаётся в истории со статусом CANCELLED и без вопросов повестки; повтор — CHAIN_ASSERT
+    scenario: Организатор отменяет собрание
+    expect: собрание остаётся в истории со статусом CANCELLED и без вопросов повестки
     test: components/api-tests/src/ku/decisions.test.ts
     api: components/api-tests/src/ku/decisions.test.ts
     status: passing
@@ -57,6 +57,15 @@ cases:
     api: components/api-tests/src/ku/decisions.test.ts
     status: passing
 
+  - id: ku.dec.side.03
+    level: backend
+    kind: side
+    scenario: Повторное присоединение к собранию, повторная отмена собрания, повторное отклонение заявки доверенного
+    expect: отказ цепи с кодом CHAIN_ASSERT, состояние не меняется
+    # Сейчас отказ цепи приходит без кода — code 500 («assertion failure with message: …»):
+    # транзакции идут через @wharfkit/session, фильтр GraphQL узнаёт только RpcError eosjs.
+    status: missing
+
   - id: ku.dec.happy.04
     level: backend
     kind: happy
@@ -77,8 +86,8 @@ cases:
   - id: ku.trust.happy.02
     level: backend
     kind: happy
-    scenario: Председатель участка отклоняет заявку, затем повторяет
-    expect: заявка закрыта, пайщик не в доверенных; повтор — CHAIN_ASSERT
+    scenario: Председатель участка отклоняет заявку
+    expect: заявка закрыта, пайщик не в доверенных
     test: components/api-tests/src/ku/decisions.test.ts
     api: components/api-tests/src/ku/decisions.test.ts
     status: passing
@@ -86,7 +95,7 @@ cases:
   - id: ku.trust.happy.03
     level: backend
     kind: happy
-    scenario: Повторная заявка одобряется встречной подписью председателя участка
+    scenario: Заявка одобряется встречной подписью председателя участка
     expect: заявка закрыта, пайщик в доверенных лицах участка
     test: components/api-tests/src/ku/decisions.test.ts
     api: components/api-tests/src/ku/decisions.test.ts
@@ -126,5 +135,17 @@ cases:
     expect: договор о материальной ответственности и доверенность заявителя (паспорт, адрес, телефон) видят только заявитель, председатель участка и совет
     # Сейчас kuTrustRequests открыт роли user целиком и отдаёт rawDocument.html
     # обоих документов (KuService.getTrustRequests). Нужен ответ владельца.
+    status: missing
+    decision_needed: true
+
+  - id: ku.trust.side.05
+    level: backend
+    kind: side
+    scenario: Пайщик подаёт две заявки (или пакет перегенерирован) в одну и ту же минуту, председатель одобряет вторую
+    expect: встречная подпись ложится на документ именно этой заявки
+    # Сейчас сборка агрегата ищет исходник по хешу документа, а html договора 327 не
+    # зависит от хеша заявки и несёт время с точностью до минуты: обе генерации дают
+    # один doc_hash, в заявке приходит исходник первой, подпись падает на сверке
+    # meta_hash (SDK: «Хэш метаданных не совпадает…»).
     status: missing
     decision_needed: true

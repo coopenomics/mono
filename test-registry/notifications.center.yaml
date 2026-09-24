@@ -23,8 +23,8 @@ cases:
   - id: ntf.center.happy.01
     level: backend
     kind: happy
-    scenario: Председатель ставит уведомление пайщику (тип с каналами email, in-app, push)
-    expect: обработчик очереди доставляет in-app — в инбоксе пайщика строка с отрендеренным заголовком и телом, непрочитанная, счётчик непрочитанных вырос на одну
+    scenario: Председатель ставит уведомление получателю (тип с каналами email, in-app, push)
+    expect: обработчик очереди доставляет in-app — в инбоксе получателя строка с отрендеренным заголовком и телом, непрочитанная; счётчик непрочитанных совпадает с лентой
     test: components/api-tests/src/notifications/center.test.ts
     api: components/api-tests/src/notifications/center.test.ts
     status: passing
@@ -41,8 +41,8 @@ cases:
   - id: ntf.center.happy.03
     level: backend
     kind: happy
-    scenario: Пайщик отмечает уведомление прочитанным, затем повторяет отметку
-    expect: строка прочитана, время прочтения проставлено, счётчик уменьшился на одну; повтор ничего не меняет; чужой или несуществующий id — NOTIFICATION_CENTER_INBOX_ITEM_NOT_FOUND
+    scenario: Получатель отмечает уведомление прочитанным, затем повторяет отметку
+    expect: строка прочитана, время прочтения проставлено, счётчик совпадает с лентой; повтор ничего не меняет; чужой или несуществующий id — NOTIFICATION_CENTER_INBOX_ITEM_NOT_FOUND
     test: components/api-tests/src/notifications/center.test.ts
     api: components/api-tests/src/notifications/center.test.ts
     status: passing
@@ -51,7 +51,7 @@ cases:
     level: backend
     kind: happy
     scenario: Председатель переотправляет доставленное уведомление
-    expect: в очереди новая строка PENDING с тем же получателем и каналом, пайщик получает уведомление второй раз; исходная строка и её журнал не меняются
+    expect: в очереди новая строка PENDING с тем же получателем и каналом, получатель получает уведомление второй раз; исходная строка и её журнал не меняются
     test: components/api-tests/src/notifications/center.test.ts
     api: components/api-tests/src/notifications/center.test.ts
     status: passing
@@ -59,7 +59,7 @@ cases:
   - id: ntf.center.happy.05
     level: backend
     kind: happy
-    scenario: Пайщик отмечает весь инбокс прочитанным, затем повторяет на пустом
+    scenario: Получатель отмечает весь инбокс прочитанным, затем повторяет на пустом
     expect: счётчик непрочитанных ноль, все строки прочитаны; повтор не ошибка
     test: components/api-tests/src/notifications/center.test.ts
     api: components/api-tests/src/notifications/center.test.ts
@@ -169,5 +169,16 @@ cases:
     scenario: Член совета подписывает устройство на имя другого пайщика, читает или деактивирует чужие подписки
     expect: отказ — подписка принадлежит пайщику, иначе совет получает чужие пуш-уведомления
     # Сейчас проходит: роль member открывает все три операции без сверки владельца.
+    status: missing
+    decision_needed: true
+
+  - id: ntf.center.side.06
+    level: backend
+    kind: side
+    scenario: Пайщик заведён мимо регистрации контроллера (нет идентификатора подписчика), ему ставят уведомление
+    expect: уведомление доходит — идентификатор подписчика заводится при первой нужде, а не фоновой задачей раз в 30 минут
+    # Сейчас triggerNotificationWorkflow отвечает false (Subscriber ID not found), до
+    # прохода NotificationSubscriberSyncService пайщик уведомлений не получает. Так живут
+    # все пайщики стенда из add-plain-participant. Нужен ответ: норма это или нет.
     status: missing
     decision_needed: true
