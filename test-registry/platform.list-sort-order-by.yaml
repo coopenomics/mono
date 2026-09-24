@@ -52,3 +52,11 @@ cases:
     expect: журнал расширений сортирует по убыванию, строка клиента в запрос не попадает
     test: components/controller/tests/unit/shared/list-sort-order-by.test.ts
     status: passing
+
+  - id: platform.sort.side.01
+    level: backend
+    kind: side
+    scenario: реестр пайщиков шлёт поле вместе с направлением — created_at:desc
+    expect: запрос принимается; после двоеточия допустимо только asc или desc
+    test: components/controller/tests/unit/shared/list-sort-order-by.test.ts
+    status: written
