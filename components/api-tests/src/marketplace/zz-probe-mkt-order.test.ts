@@ -9,7 +9,7 @@ describe('probe mkt-order', () => {
     try {
       const m = ROLES.member()
       const mt = await tokenOf(m)
-      const potato = await findActiveOffer(mt, 'sidorov', 'Картофель деревенский')
+      const potato = await findActiveOffer('sidorov', 'Картофель деревенский')
       await fillCart(mt, [{ offer_id: potato.id, quantity: 1.5 }])
       log('fractional-preview', await gqlRaw(mt, PREVIEW_QUERY))
       log('fractional-checkout', await gqlRaw(mt, 'mutation{ marketplaceCheckoutCart{ fully_completed failed_lines{ reason } created_orders{ id } } }'))
