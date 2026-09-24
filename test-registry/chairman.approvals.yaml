@@ -31,7 +31,7 @@ cases:
     level: backend
     kind: happy
     scenario: Председатель одобряет встречной подписью
-    expect: статус APPROVED, строка цепи стёрта (present=false); среди PENDING его нет
+    expect: статус APPROVED; среди PENDING его нет
     test: components/api-tests/src/chairman/approvals.test.ts
     api: components/api-tests/src/chairman/approvals.test.ts
     status: passing
@@ -40,7 +40,7 @@ cases:
     level: backend
     kind: happy
     scenario: Председатель отклоняет одобрение с причиной
-    expect: статус DECLINED, строка цепи стёрта
+    expect: статус DECLINED
     test: components/api-tests/src/chairman/approvals.test.ts
     api: components/api-tests/src/chairman/approvals.test.ts
     status: passing
@@ -87,4 +87,14 @@ cases:
     expect: одобренный документ (две подписи) отдаётся в approved_document
     # Сейчас approved_document всегда null: конструктор ApprovalDomainEntity не переносит
     # поле из базы (domain/entities/approval.entity.ts), запись есть, чтения нет.
+    status: missing
+
+  - id: chair.appr.side.06
+    level: backend
+    kind: side
+    scenario: Одобрение подтверждено или отклонено — контракт стирает строку одобрения
+    expect: одобрение отдаётся с present=false (строки в цепи больше нет)
+    # Сейчас present остаётся true: сервис читает одобрение до транзакции, разбор дельты
+    # стирания ставит present=false, а затем approvalRepository.save(approval) пишет
+    # устаревший объект поверх (approval.service.ts confirmApprove/declineApprove).
     status: missing

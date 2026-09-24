@@ -8,7 +8,8 @@
  * контроллера (тик в несколько секунд), поэтому появление строки в инбоксе
  * и смена статуса в журнале ожидаются опросом: это запись мимо мутации.
  *
- * Получатель уведомлений — член совета anna: у свежих пайщиков стенда нет
+ * Получатель уведомлений — участник совета с идентификатором подписчика
+ * (председатель, заведённый установкой кооператива): у свежих пайщиков стенда нет
  * идентификатора подписчика (их заводит скрипт мимо регистрации контроллера,
  * а догоняет его фоновая задача раз в полчаса). Её инбокс могут пополнять и
  * другие события прогона, поэтому свои строки ищутся по decision_id, а счётчик
@@ -75,8 +76,8 @@ async function journal(token: string, filter: Record<string, unknown>): Promise<
   return d.getNotifications.items
 }
 
-/** Получатель уведомлений (член совета с идентификатором подписчика). */
-const recipient: Who = COUNCIL_2
+/** Получатель уведомлений — первый участник совета, у которого есть идентификатор подписчика. */
+let recipient: Who
 let recipientToken: string
 let subscriberId: string
 /** Свежий пайщик (роль user): отказы по роли и веб-пуш подписки. */
@@ -99,13 +100,22 @@ function mine(items: any[]): any[] {
 beforeAll(async () => {
   member = freshMember({ prefix: 'ntf' })
   memberToken = await login(member)
-  recipientToken = await tokenOf(recipient)
   chairToken = await tokenOf(CHAIRMAN)
   councilToken = await tokenOf(COUNCIL)
   otherToken = await tokenOf(ROLES.otherMember())
-  const acc = await gql<any>(recipientToken, 'query($d:GetAccountInput!){ getAccount(data:$d){ provider_account{ subscriber_id } } }', { d: { username: recipient.account } })
-  subscriberId = acc.getAccount.provider_account.subscriber_id
-  expect(subscriberId, 'у получателя есть идентификатор подписчика').toBeTruthy()
+  const seen: Record<string, string> = {}
+  for (const who of [COUNCIL_2, COUNCIL, CHAIRMAN]) {
+    const token = await tokenOf(who)
+    const acc = await gql<any>(token, 'query($d:GetAccountInput!){ getAccount(data:$d){ provider_account{ subscriber_id } } }', { d: { username: who.account } })
+    seen[who.account] = acc.getAccount.provider_account?.subscriber_id ?? ''
+    if (seen[who.account]) {
+      recipient = who
+      recipientToken = token
+      subscriberId = seen[who.account]
+      break
+    }
+  }
+  expect(subscriberId, `у кого-то из совета есть идентификатор подписчика: ${JSON.stringify(seen)}`).toBeTruthy()
 })
 
 describe('центр уведомлений: очередь, журнал, инбокс', () => {
