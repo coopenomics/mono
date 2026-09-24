@@ -151,8 +151,15 @@ function main() {
     }
     return cov.get(key)
   }
+  // Партиции (audit_events_2026_09, …_default) — не отдельные таблицы:
+  // запросы идут к родителю, он и учитывается.
+  const names = new Set(tables.map(t => `${t.db}.${t.table}`))
+  const isPartition = t => {
+    const m = /^(.+)_(?:\d{4}_\d{2}|default)$/.exec(t.table)
+    return !!m && names.has(`${t.db}.${m[1]}`)
+  }
   for (const t of tables) {
-    if (!SKIP_TABLES.has(t.table)) rowOf(t.db, t.table)
+    if (!SKIP_TABLES.has(t.table) && !isPartition(t)) rowOf(t.db, t.table)
   }
 
   const known = new Set(tables.map(t => `${t.db}.${t.table}`))
@@ -161,6 +168,7 @@ function main() {
       for (const [table, kind] of refsOf(s.query)) {
         // Имена из запроса, которых нет среди таблиц базы, — CTE и алиасы.
         if (known.size && !known.has(`${s.db}.${table}`)) continue
+        if (isPartition({ db: s.db, table })) continue
         const r = rowOf(s.db, table)
         r[kind][phase] = (r[kind][phase] ?? 0) + Number(s.calls)
       }
@@ -170,14 +178,20 @@ function main() {
   const rows = [...cov.values()].sort((a, b) => a.domain.localeCompare(b.domain) || a.table.localeCompare(b.table))
   fs.writeFileSync(path.join(OUT, 'db-coverage.json'), JSON.stringify({ phases, tables: rows }, null, 2))
 
-  const touched = (r, kind) => Object.keys(r[kind]).length > 0
+  // Матрица прав зовёт операции с чужими аргументами и поведения не
+  // проверяет: её касание таблицы — не покрытие. Покрытие считают сценарии
+  // (все фазы, кроме rights); матрица показана отдельной колонкой.
+  const scenario = phases.filter(p => p !== 'rights')
+  const touched = (r, kind, ph = scenario) => ph.some(p => r[kind][p])
   const byDomain = new Map()
   for (const r of rows) {
-    const d = byDomain.get(r.domain) ?? { total: 0, read: 0, write: 0, none: [] }
+    const d = byDomain.get(r.domain) ?? { total: 0, read: 0, write: 0, rightsOnly: 0, none: [] }
     d.total++
+    const any = touched(r, 'read') || touched(r, 'write')
     if (touched(r, 'read')) d.read++
     if (touched(r, 'write')) d.write++
-    if (!touched(r, 'read') && !touched(r, 'write')) d.none.push(r.table)
+    if (!any && (touched(r, 'read', ['rights']) || touched(r, 'write', ['rights']))) d.rightsOnly++
+    if (!any) d.none.push(r.table)
     byDomain.set(r.domain, d)
   }
 
@@ -187,13 +201,13 @@ function main() {
   const lines = []
   lines.push('## База: покрытие таблиц внешним слоем')
   lines.push('')
-  lines.push(`Фазы: ${phases.join(', ') || '—'}. Таблиц ${total}, тронуто ${anyTouched}, пишется ${written}, не тронуто ${total - anyTouched}.`)
+  lines.push(`Сценарии (${scenario.join(', ') || '—'}): таблиц ${total}, тронуто ${anyTouched}, пишется ${written}, не тронуто сценариями ${total - anyTouched}.`)
   lines.push('')
-  lines.push('| домен | таблиц | читается | пишется | не тронуто |')
-  lines.push('|---|---:|---:|---:|---|')
+  lines.push('| домен | таблиц | читается | пишется | только матрицей прав | не тронуто сценариями |')
+  lines.push('|---|---:|---:|---:|---:|---|')
   for (const [domain, d] of [...byDomain].sort((a, b) => b[1].none.length - a[1].none.length)) {
     const none = d.none.length ? `${d.none.length}: ${d.none.slice(0, 8).join(', ')}${d.none.length > 8 ? ', …' : ''}` : '—'
-    lines.push(`| ${domain} | ${d.total} | ${d.read} | ${d.write} | ${none} |`)
+    lines.push(`| ${domain} | ${d.total} | ${d.read} | ${d.write} | ${d.rightsOnly} | ${none} |`)
   }
   const md = lines.join('\n') + '\n'
   fs.writeFileSync(path.join(OUT, 'db-coverage.md'), md)
