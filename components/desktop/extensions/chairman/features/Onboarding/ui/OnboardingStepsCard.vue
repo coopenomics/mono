@@ -134,6 +134,9 @@ OnboardingCompletionCelebration(
 
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
+import { SovietContract } from 'cooptypes';
+import { liveTable, useLiveReload } from 'src/shared/lib/realtime';
+import { MEET_LIVE_TABLES } from 'src/entities/Meet';
 import { CreateMeetForm } from 'src/features/Meet/CreateMeet/ui';
 import { ParticipantsImportDialog } from 'src/features/User/ImportParticipants/ui';
 import { DocumentHtmlReader } from 'src/shared/ui/DocumentHtmlReader';
@@ -154,6 +157,7 @@ const {
   meetPreset,
   agendaDialog,
   init,
+  loadState,
   openAgendaDialog,
   closeAgendaDialog,
   submitAgenda,
@@ -221,6 +225,19 @@ const stepClass = (index: number) => {
 };
 
 onMounted(init);
+
+// Шаги запуска кооператива живут по ленте: решение совета по повестке,
+// созыв собрания, принятые пайщики и переменные кооператива закрывают шаг
+// без перезагрузки.
+useLiveReload(
+  [
+    liveTable(SovietContract, SovietContract.Tables.Decisions),
+    liveTable(SovietContract, SovietContract.Tables.Participants),
+    ...MEET_LIVE_TABLES,
+    { code: 'core', table: 'settings' },
+  ],
+  loadState,
+);
 </script>
 
 <style scoped lang="scss">

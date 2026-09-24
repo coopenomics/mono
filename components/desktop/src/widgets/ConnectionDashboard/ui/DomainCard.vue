@@ -94,6 +94,8 @@
 
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
+import { RegistratorContract } from 'cooptypes'
+import { liveTable, useLiveReload } from 'src/shared/lib/realtime'
 import { useConnectionAgreementStore } from 'src/entities/ConnectionAgreement'
 import { useCooperativeStore } from 'src/entities/Cooperative'
 import { useUpdateCoop } from 'src/features/Cooperative/UpdateCoop'
@@ -135,6 +137,10 @@ const isDelegatingLoading = ref(false)
 
 // Загружаем данные кооператива при монтировании
 coop.loadPublicCooperativeData(session.username)
+
+// Домен кооператива в реестре сети живёт по ленте; состояние сервера — у
+// провайдера, его карточка читает при действиях.
+useLiveReload([liveTable(RegistratorContract, RegistratorContract.Tables.Cooperatives)], () => coop.loadPublicCooperativeData(session.username))
 
 // Синхронизируем значение домена при изменении данных кооператива
 watch(() => coop?.publicCooperativeData?.announce, (newAnnounce) => {

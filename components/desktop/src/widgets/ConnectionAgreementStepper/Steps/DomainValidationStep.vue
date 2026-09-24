@@ -97,6 +97,7 @@ const loadCoopIfNeeded = async () => {
   }
 }
 
+// realtime: нет источника — проверку домена и состояние сервера ведёт провайдер (другой узел), в ленте кооператива их нет.
 onMounted(async () => {
   await loadCoopIfNeeded()
 })

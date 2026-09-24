@@ -175,6 +175,7 @@ export const useConnectionAgreementStore = defineStore(namespace, () => {
   const startInstanceAutoRefresh = async (intervalMs = 30000) => { // 30 секунд по умолчанию
     await loadCurrentInstance() // Первая загрузка
 
+    // timing: schedule — состояние сервера ведёт провайдер (другой узел), сигнала в ленте кооператива нет
     const interval = setInterval(() => {
       loadCurrentInstance()
     }, intervalMs)

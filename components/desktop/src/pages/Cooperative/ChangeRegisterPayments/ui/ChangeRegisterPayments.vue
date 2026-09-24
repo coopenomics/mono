@@ -13,6 +13,7 @@ import { t } from 'src/shared/i18n';
 const { info } = useSystemStore();
 const currency = computed(() => env.CURRENCY);
 const coop = useCooperativeStore();
+// realtime: нет источника — форма взносов при вступлении: поля заполняются из карточки кооператива, живое перечитывание затёрло бы ввод; меняет их только этот экран.
 coop.loadPublicCooperativeData(info.coopname);
 
 const localCoop = ref({

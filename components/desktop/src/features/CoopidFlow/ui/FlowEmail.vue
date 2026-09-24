@@ -34,8 +34,10 @@ const resend = (): void => {
   emit('answer', { component: props.challenge.component });
 };
 
+// realtime: нет источника — шаг входа по письму: счётчик повторной отправки, данных с сервера не читает.
 onMounted(() => {
   if (!sentAt()) localStorage.setItem(key.value, String(Date.now()));
+  // timing: ui — обратный отсчёт до повторной отправки письма
   timer = setInterval(() => (now.value = Date.now()), 1000);
 });
 onBeforeUnmount(() => {

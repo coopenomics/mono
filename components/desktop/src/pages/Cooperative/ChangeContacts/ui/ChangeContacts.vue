@@ -36,6 +36,8 @@
 
 <script lang="ts" setup>
 import { ref, watch } from 'vue';
+import { RegistratorContract } from 'cooptypes';
+import { liveTable, useLiveReload } from 'src/shared/lib/realtime';
 import { useUpdateMeta } from 'src/features/User/UpdateMeta';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { useSystemStore } from 'src/entities/System/model';
@@ -59,6 +61,10 @@ watch(
 );
 
 coop.loadPublicCooperativeData(info.coopname);
+
+// Карточка кооператива в реестре сети живёт по ленте; поля формы берутся из
+// сведений о кооперативе и перечитыванием не затираются.
+useLiveReload([liveTable(RegistratorContract, RegistratorContract.Tables.Cooperatives)], () => coop.loadPublicCooperativeData(info.coopname));
 
 const update = async () => {
   const { updateMeta } = useUpdateMeta();

@@ -110,7 +110,11 @@ export class SovietRobotExtension extends BaseExtensionModule {
     if (!extensionData) throw DomainError.internal('SOVIET_ROBOT_CONFIG_NOT_FOUND');
     this.extension = { ...extensionData, config: merge({}, defaultConfig, extensionData.config) };
     // Решения робота — служебная таблица: журнал видит только совет.
-    this.chainChanges?.declareLocalTables([{ code: this.name, table: 'soviet_robot_decisions', staff_only: true }]);
+    // Журнал решений робота и ключи членов совета — совету.
+    this.chainChanges?.declareLocalTables([
+      { code: this.name, table: 'soviet_robot_decisions', staff_only: true },
+      { code: this.name, table: 'soviet_robot_keys', staff_only: true },
+    ]);
     this.logger.info(`Инициализация ${this.name} с конфигурацией`, this.extension.config);
   }
 }

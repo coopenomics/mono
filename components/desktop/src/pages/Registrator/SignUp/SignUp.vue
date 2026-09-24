@@ -63,6 +63,8 @@
 
 <script lang="ts" setup>
 import { watch, onMounted, onBeforeUnmount, computed, ref } from 'vue';
+import { SovietContract } from 'cooptypes';
+import { liveTable, useLiveReload } from 'src/shared/lib/realtime';
 import EmailInput from './EmailInput.vue';
 import GenerateAccount from './GenerateAccount.vue';
 import SetUserData from './SetUserData.vue';
@@ -223,12 +225,12 @@ const goToCabinet = (): void => {
  * `participant_account` читается из таблицы цепи и появляется сразу, а
  * `users.status = active` выставляет слушатель события `soviet::addpartcpnt`,
  * которое контроллер эмитит с задержкой (`action_emit_delay_ms`). В этом
- * промежутке опрашиваем аккаунт, а не уходим с отставшим статусом.
+ * промежутке ждём сигнала ленты: запись в `users` перечитывает аккаунт
+ * (userContextLive), и вход продолжается сам — без опроса.
  */
 type CabinetEntryState = 'loading' | 'waiting-status' | 'error';
 const cabinetEntry = ref<CabinetEntryState | null>(null);
 
-const STATUS_POLL_MS = 3_000;
 const RETRY_AFTER_ERROR_MS = 5_000;
 
 const cabinetEntryTitle = computed(() =>
@@ -298,6 +300,12 @@ const workHeading = computed(() => {
   return STEP_TEXT[activeStepName.value].heading;
 });
 
+// Соглашения кооператива, которые подписывает вступающий, живут по ленте:
+// новая редакция, утверждённая советом, приходит в форму сама.
+useLiveReload([liveTable(SovietContract, SovietContract.Tables.CoopAgreements)], () =>
+  info.coopname ? agreementer.loadCooperativeAgreements(info.coopname) : undefined,
+);
+
 const goToSignIn = (): void => {
   void router.push({ name: 'signin', params: { coopname: info.coopname } });
 };
@@ -309,6 +317,7 @@ let isUnmounted = false;
 const scheduleCabinetEntry = (delayMs: number): void => {
   if (isUnmounted) return;
   if (cabinetEntryTimer) clearTimeout(cabinetEntryTimer);
+  // timing: backoff — повтор входа в кабинет после сбоя узла
   cabinetEntryTimer = setTimeout(() => {
     cabinetEntryTimer = null;
     void enterCabinet();
@@ -326,7 +335,6 @@ const enterCabinet = async (): Promise<void> => {
     if (isUnmounted) return;
     if (!session.isFullyActive) {
       cabinetEntry.value = 'waiting-status';
-      scheduleCabinetEntry(STATUS_POLL_MS);
       return;
     }
     cabinetEntry.value = 'loading';
@@ -346,6 +354,7 @@ const enterCabinet = async (): Promise<void> => {
     desktops.selectDefaultWorkspace(true);
     goToCabinet();
 
+    // timing: ui — диалог разрешения уведомлений открываем, когда кабинет отрисован
     setTimeout(() => {
       showDialog();
     }, 1000);
@@ -357,6 +366,14 @@ const enterCabinet = async (): Promise<void> => {
     cabinetEntryRunning = false;
   }
 };
+
+// Статус пайщика догнал запись в цепи — продолжаем вход в кабинет.
+watch(
+  () => session.isFullyActive,
+  (active) => {
+    if (active && cabinetEntry.value === 'waiting-status') void enterCabinet();
+  },
+);
 
 // Узел снова отвечает — не ждём таймера повтора.
 watch(

@@ -118,6 +118,7 @@ watch(email, () => {
  */
 const cardcoopEntryAvailable = ref(false);
 
+// realtime: нет источника — шаг ввода почты открыт гостю, лента доступна только вошедшему пайщику; доступность входа по карте читается один раз.
 onMounted(async () => {
   try {
     const { [Queries.Cardcoop.GetEntryAvailable.name]: available } = await client.Query(

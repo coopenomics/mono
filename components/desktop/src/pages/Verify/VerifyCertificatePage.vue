@@ -73,6 +73,7 @@ interface VerifyView {
 const result = ref<VerifyView | null>(null);
 
 let stream: MediaStream | null = null;
+// realtime: нет источника — проверка удостоверения идёт офлайн по подписи и корню доверия, с сервера страница ничего не читает.
 let timer: ReturnType<typeof setInterval> | null = null;
 
 const REASONS: Record<string, string> = {
@@ -107,6 +108,7 @@ async function startScan(): Promise<void> {
     videoEl.value.srcObject = stream;
     await videoEl.value.play().catch(() => undefined);
   }
+  // timing: schedule — кадры камеры разбираются на QR несколько раз в секунду, пока идёт сканирование
   timer = setInterval(async () => {
     if (!videoEl.value) return;
     const codes = await detector.detect(videoEl.value).catch(() => []);

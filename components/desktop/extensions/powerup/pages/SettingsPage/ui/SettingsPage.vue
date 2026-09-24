@@ -66,6 +66,7 @@ const loadExtensionData = async () => {
   await extStore.loadExtensions({ name: 'powerup' });
 };
 
+// realtime: нет источника — форма настроек расширения: живое перечитывание затёрло бы ввод; меняет их только этот экран.
 onMounted(async () => {
   await loadExtensionData();
   registerHeaderAction(saveButton.value);

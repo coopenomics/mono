@@ -62,6 +62,7 @@ const {
 const { info } = useSystemStore()
 
 // Загружаем подписки при монтировании
+// realtime: нет источника — подписки кооператива ведёт сервер провайдера (другой узел), в ленте кооператива их нет.
 onMounted(async () => {
   await loadSubscriptions()
 })
