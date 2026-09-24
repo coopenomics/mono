@@ -11,7 +11,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@coopenomics/sdk": "workspace:*"
+    "@coopenomics/sdk": "workspace:*",
+    "cooptypes": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^20.12.12",

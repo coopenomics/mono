@@ -3,6 +3,9 @@ import { defineConfig } from 'vitest/config'
 export default defineConfig({
   test: {
     include: ['src/**/*.test.ts'],
+    // Вернуть стенду предустановки, которые прежние наборы boot в том же
+    // прогоне оставили другими (робот совета) — src/stand/global-setup.ts.
+    globalSetup: ['src/stand/global-setup.ts'],
     testTimeout: 240_000,
     hookTimeout: 240_000,
     // Все файлы пишут в одну цепь и одну базу стенда: параллельный запуск
