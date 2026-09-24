@@ -1,25 +1,26 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { TariffCard, type ITariff } from './index'
+import { t as i18nT } from 'src/shared/i18n';
 
 // Доступные тарифы
 const availableTariffs: ITariff[] = [
   {
     id: 'test',
-    name: 'Тестовый',
-    description: 'Единственный тариф на период бета-тестирования платформы',
+    name: i18nT('connectionAgreementStepper.tariffSelector.testTariffName'),
+    description: i18nT('connectionAgreementStepper.tariffSelector.testTariffDescription'),
     price: '1500 RUB',
     features: [
-      '150 AXON на счёт кооператива',
-      'достаточно для 100 пакетов документов',
-      'и 50 регистраций пайщиков',
-      'Хостинг на изолированном сервере',
-      'Техническая поддержка'
+      i18nT('connectionAgreementStepper.tariffSelector.featureAxon'),
+      i18nT('connectionAgreementStepper.tariffSelector.featureDocPackages'),
+      i18nT('connectionAgreementStepper.tariffSelector.featureRegistrations'),
+      i18nT('connectionAgreementStepper.tariffSelector.featureHosting'),
+      i18nT('connectionAgreementStepper.tariffSelector.featureSupport')
     ],
     additionalCosts: [
-      '5 AXON в день списывается со счёта кооператива',
-      '1 AXON списывается за каждый пакет документов',
-      '1 AXON списывается за регистрацию нового пайщика',
+      i18nT('connectionAgreementStepper.tariffSelector.costDaily'),
+      i18nT('connectionAgreementStepper.tariffSelector.costPerDocPackage'),
+      i18nT('connectionAgreementStepper.tariffSelector.costPerRegistration'),
     ]
   }
 ]
@@ -66,7 +67,7 @@ defineExpose({
 div
   .text-center.q-mb-lg
     //- h5.text-h5.q-mb-sm Выберите тариф
-    p.text-body2.text-grey-7 Выберите подходящий тариф для вашего кооператива
+    p.text-body2.text-grey-7 {{ $t('connectionAgreementStepper.tariffSelector.subtitle') }}
 
   .tariff-grid
     div(v-for="tariff in availableTariffs" :key="tariff.id")

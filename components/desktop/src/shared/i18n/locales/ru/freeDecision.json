@@ -1,0 +1,11 @@
+{
+  "freeDecision": {
+    "createProjectFreeDecisionButton": {
+      "decisionLabel": "Предлагаемое решение вопроса для голосования",
+      "openButton": "предложить повестку",
+      "questionLabel": "Вопрос на повестку дня",
+      "success": "Вопрос добавлен на повестку для голосования",
+      "title": "Предложить повестку"
+    }
+  }
+}

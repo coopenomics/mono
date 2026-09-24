@@ -16,8 +16,8 @@ router-view(v-if='!isResultsRoot')
         :coopname='info.coopname',
         :current-username='username',
         :loading='isSegmentsLoading',
-        empty-title='Сейчас от вас ничего не требуется',
-        empty-body='Здесь появятся результаты, по которым идёт голосование или приёмка с вашим участием.',
+        :empty-title='$t("capital.projectsResultsPage.actionEmptyTitle")',
+        :empty-body='$t("capital.projectsResultsPage.actionEmptyBody")',
         @updated='reloadMySegments'
       )
 
@@ -28,8 +28,8 @@ router-view(v-if='!isResultsRoot')
         :coopname='info.coopname',
         :current-username='username',
         :loading='isSegmentsLoading',
-        empty-title='Результатов пока нет',
-        empty-body='Доли в объектах авторских прав появятся здесь после завершения работ по компонентам.',
+        :empty-title='$t("capital.projectsResultsPage.myResultsEmptyTitle")',
+        :empty-body='$t("capital.projectsResultsPage.myResultsEmptyBody")',
         @updated='reloadMySegments'
       )
 
@@ -41,8 +41,8 @@ router-view(v-if='!isResultsRoot')
         :current-username='username',
         :loading='isToSignLoading',
         show-owner,
-        empty-title='Актов на подпись нет',
-        empty-body='Здесь появятся акты приёма-передачи, подписанные пайщиками и ожидающие вашей подписи.',
+        :empty-title='$t("capital.projectsResultsPage.signEmptyTitle")',
+        :empty-body='$t("capital.projectsResultsPage.signEmptyBody")',
         @updated='reloadSegmentsToSign'
       )
 
@@ -54,8 +54,8 @@ router-view(v-if='!isResultsRoot')
         :current-username='username',
         :loading='isAllLoading',
         show-owner,
-        empty-title='Результатов пока нет',
-        empty-body='Здесь появятся доли участников в объектах авторских прав по всем компонентам кооператива.',
+        :empty-title='$t("capital.projectsResultsPage.allResultsEmptyTitle")',
+        :empty-body='$t("capital.projectsResultsPage.allResultsEmptyBody")',
         @updated='reloadAllSegments'
       )
 </template>
@@ -77,6 +77,7 @@ import {
   getSegmentOwnerAction,
   isSegmentOnAcceptance,
 } from 'app/extensions/capital/shared/lib/segmentStatus';
+import { t } from '../../../i18n';
 
 type ResultsTab = 'pending' | 'mine' | 'sign' | 'all';
 
@@ -168,22 +169,22 @@ const tabs = computed<PageTab[]>(() => {
   const list: PageTab[] = [
     {
       key: 'pending',
-      label: 'На приёмке',
+      label: t('capital.projectsResultsPage.actionTabLabel'),
       count: pendingActionCount.value || undefined,
     },
-    { key: 'mine', label: 'Мои результаты' },
+    { key: 'mine', label: t('capital.projectsResultsPage.myResultsTabLabel') },
   ];
 
   if (isChairman.value) {
     list.push({
       key: 'sign',
-      label: 'На подпись',
+      label: t('capital.projectsResultsPage.signTabLabel'),
       count: segmentsToSign.value.length || undefined,
     });
   }
 
   if (canSeeAll.value) {
-    list.push({ key: 'all', label: 'Все результаты' });
+    list.push({ key: 'all', label: t('capital.projectsResultsPage.allResultsTabLabel') });
   }
 
   return list;

@@ -1,4 +1,5 @@
 import { InputType, Field } from '@nestjs/graphql';
+import { validationMessage } from '@coopenomics/extension-kit';
 import { AccountType } from '../enum/account-type.enum';
 import { CreateEntrepreneurDataInputDTO } from './create-entrepreneur-data-input.dto';
 import { CreateIndividualDataInputDTO } from './create-individual-data-input.dto';
@@ -10,7 +11,7 @@ import type { RegisterAccountDomainInterface } from '~/domain/account/interfaces
 @InputType('RegisterAccountInput')
 export class RegisterAccountInputDTO implements RegisterAccountDomainInterface {
   @Field({ description: 'Электронная почта' })
-  @IsNotEmpty({ message: 'Поле "email" обязательно для заполнения.' })
+  @IsNotEmpty({ message: validationMessage('account.registerAccountInput.fieldEmailRequired') })
   email!: string;
 
   @Field({ nullable: true, description: 'Имя аккаунта реферера' })
@@ -18,11 +19,11 @@ export class RegisterAccountInputDTO implements RegisterAccountDomainInterface {
   referer?: string;
 
   @Field(() => AccountType, { description: 'Тип аккаунта' })
-  @IsNotEmpty({ message: 'Поле "type" обязательно для заполнения.' })
+  @IsNotEmpty({ message: validationMessage('account.registerAccountInput.fieldTypeRequired') })
   type!: AccountType;
 
   @Field({ description: 'Имя пользователя' })
-  @IsNotEmpty({ message: 'Поле "username" обязательно для заполнения.' })
+  @IsNotEmpty({ message: validationMessage('account.registerAccountInput.fieldUsernameRequired') })
   username!: string;
 
   @Field({ description: 'Публичный ключ' })
@@ -49,7 +50,7 @@ export class RegisterAccountInputDTO implements RegisterAccountDomainInterface {
 
   @ValidateIf((o: RegisterAccountInputDTO) => !o.entrepreneur_data && !o.individual_data && !o.organization_data)
   @IsNotEmpty({
-    message: 'Необходимо указать хотя бы одно из полей: "entrepreneur_data", "individual_data" или "organization_data".',
+    message: validationMessage('account.registerAccountInput.atLeastOneDataRequired'),
   })
   validateOneTypePresent!: boolean;
 }

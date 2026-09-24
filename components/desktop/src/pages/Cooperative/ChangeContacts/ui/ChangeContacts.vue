@@ -3,20 +3,20 @@
   .banner
     q-icon.banner__icon(name='fa-solid fa-circle-info' size='18px')
     .banner__body
-      | Эти контакты показываются всем — в разделе «Контакты кооператива»
-      | пайщикам и в подвале сайта незарегистрированным посетителям.
-      | Держите их актуальными.
+      | {{ $t('cooperative.changeContacts.bannerLine1') }}
+      | {{ $t('cooperative.changeContacts.bannerLine2') }}
+      | {{ $t('cooperative.changeContacts.bannerLine3') }}
 
   q-card.surface-card(flat)
-    .section-title Публичные контакты
-    .section-note Данные для связи с кооперативом.
+    .section-title {{ $t('cooperative.changeContacts.sectionTitle') }}
+    .section-note {{ $t('cooperative.changeContacts.sectionNote') }}
 
     q-input(
       v-model="phone"
       outlined
       color="primary"
       dense
-      label="Телефон"
+      :label="$t('cooperative.changeContacts.phoneLabel')"
       type="tel"
     )
     q-input(
@@ -24,14 +24,14 @@
       outlined
       color="primary"
       dense
-      label="Электронная почта"
+      :label="$t('cooperative.changeContacts.emailLabel')"
       type="email"
     )
 
     .action-row
       q-btn(@click='update' color="primary" unelevated size="md")
         q-icon(name="save").q-mr-sm
-        span Сохранить контакты
+        span {{ $t('cooperative.changeContacts.submitLabel') }}
 </template>
 
 <script lang="ts" setup>
@@ -40,6 +40,7 @@ import { useUpdateMeta } from 'src/features/User/UpdateMeta';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { useSystemStore } from 'src/entities/System/model';
 import { useCooperativeStore } from 'src/entities/Cooperative';
+import { t } from 'src/shared/i18n';
 
 const { info } = useSystemStore();
 const coop = useCooperativeStore();
@@ -68,9 +69,9 @@ const update = async () => {
       email: email.value || '',
     });
 
-    SuccessAlert('Контакты успешно обновлены');
+    SuccessAlert(t('cooperative.changeContacts.updateSuccess'));
   } catch (e: any) {
-    FailAlert(`Возникла ошибка при обновлении: ${e.message}`);
+    FailAlert(t('cooperative.changeContacts.updateError', { message: e.message }));
   }
 };
 </script>

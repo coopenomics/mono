@@ -44,6 +44,7 @@ import {
 import { toMarkdown } from 'src/shared/lib/utils';
 import { SuccessAlert } from 'src/shared/api/alerts';
 import { Zeus } from '@coopenomics/sdk';
+import { t } from '../../../i18n';
 
 defineProps<{
   placeholder: string;
@@ -125,8 +126,8 @@ const save = async () => {
   await loadProject();
   baseRevOverride.value = null;
   const merged = (project.value?.description || '') !== sent;
-  saveNote.value = merged ? 'Сохранено и слито с параллельными правками' : 'Сохранено';
-  SuccessAlert(merged ? 'Сохранено; текст слит с параллельными правками' : 'Описание сохранено');
+  saveNote.value = merged ? t('capital.projectDescriptionEditor.savedAndMergedNotice') : t('capital.projectDescriptionEditor.savedNotice');
+  SuccessAlert(merged ? t('capital.projectDescriptionEditor.savedTextMergedNotice') : t('capital.projectDescriptionEditor.descriptionSavedNotice'));
 };
 
 /** Выбор в диалоге конфликта: кладём текст в редактор, дальнейшее сохранение — относительно серверной редакции */

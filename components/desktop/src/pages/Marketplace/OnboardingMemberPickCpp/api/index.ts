@@ -4,6 +4,7 @@ import { DigitalDocument } from 'src/shared/lib/document';
 import { client } from 'src/shared/api/client';
 import { useSessionStore } from 'src/entities/Session/model';
 import { useSystemStore } from 'src/entities/System/model';
+import { t } from 'src/shared/i18n';
 
 /**
  * Эпик 1 / Story 1.4 + фоллоуап: L3 онбординг пайщика на стол заказов.
@@ -36,9 +37,9 @@ export async function buildOnboardingOfferDocument(): Promise<DigitalDocument> {
   const session = useSessionStore();
   const system = useSystemStore();
   const username = session.username;
-  if (!username) throw new Error('Пайщик не авторизован');
+  if (!username) throw new Error(t('marketplace.error.memberNotAuthorized'));
   const coopname = system.info.coopname;
-  if (!coopname) throw new Error('Не определён кооператив');
+  if (!coopname) throw new Error(t('marketplace.error.coopNotDefined'));
 
   // Номер соглашения — по канону Благороста (capital
   // `UdataDocumentParametersService.generateDocumentNumber`): 16 hex-символов в
@@ -85,13 +86,13 @@ export async function signOnboardingOffer(
 ): Promise<MarketplaceOnboardingStateView> {
   const session = useSessionStore();
   const username = session.username;
-  if (!username) throw new Error('Пайщик не авторизован');
+  if (!username) throw new Error(t('marketplace.error.memberNotAuthorized'));
 
   const document = prepared ?? (await buildOnboardingOfferDocument());
   await document.sign(username);
 
   if (!document.signedDocument) {
-    throw new Error('Не удалось подписать оферту');
+    throw new Error(t('marketplace.error.offerSignFailed'));
   }
 
   const { [Mutations.Marketplace.MarketplaceSignOnboardingOffer.name]: result } = await client.Mutation(

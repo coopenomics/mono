@@ -15,10 +15,10 @@
  * и ротация любого из них не трогает остальные. Ручного ввода ключей нет нигде:
  * это гарантированные опечатки, мёртвая ротация и канал для подделки.
  */
-import { Body, Controller, ForbiddenException, Headers, Inject, Post, ServiceUnavailableException } from '@nestjs/common';
+import { Body, Controller, Headers, Inject, Post } from '@nestjs/common';
 import canonicalize from 'canonicalize';
 import { Signature } from '@wharfkit/antelope';
-import { platformSettings } from '@coopenomics/extension-kit';
+import { platformSettings, DomainError } from '@coopenomics/extension-kit';
 import {
   ACCOUNT_PORT,
   COOP_CREDENTIAL_PORT,
@@ -118,11 +118,11 @@ export class CardcoopLinkWebhookController {
     if (notification.event !== LINK_CREATED) return { accepted: true };
     if (notification.coopname !== platformSettings().coopname) {
       // Чужое уведомление — свидетельствовать о пайщике другого кооператива мы не вправе.
-      throw new ForbiddenException('Уведомление адресовано другому кооперативу');
+      throw DomainError.forbidden('CARDCOOP_NOTIFICATION_FOREIGN_COOP');
     }
 
     const { card_id: cardId, card_number: cardNumber, external_subject: subject } = notification;
-    if (!cardId || !subject) throw new ForbiddenException('В уведомлении нет карты или учётной записи');
+    if (!cardId || !subject) throw DomainError.forbidden('CARDCOOP_NOTIFICATION_MISSING_FIELDS');
 
     void this.issue(cardId, subject, cardNumber ?? null);
     return { accepted: true };
@@ -234,22 +234,22 @@ export class CardcoopLinkWebhookController {
    * действительно чужая — второе чтение вернёт тот же ключ, и последует отказ.
    */
   private async verify(notification: LinkCreatedNotification, signature?: string): Promise<void> {
-    if (!signature) throw new ForbiddenException('Уведомление без подписи');
+    if (!signature) throw DomainError.forbidden('CARDCOOP_NOTIFICATION_UNSIGNED');
 
     const canonical = canonicalize(notification);
-    if (canonical === undefined) throw new ForbiddenException('Уведомление не является строгим JSON');
+    if (canonical === undefined) throw DomainError.forbidden('CARDCOOP_NOTIFICATION_NOT_CANONICAL_JSON');
 
     let signer: string;
     try {
       signer = Signature.from(signature).recoverMessage(Buffer.from(canonical, 'utf8')).toString();
     } catch {
-      throw new ForbiddenException('Подпись уведомления не разбирается');
+      throw DomainError.forbidden('CARDCOOP_NOTIFICATION_SIGNATURE_UNPARSABLE');
     }
 
     if (signer === (await this.networkKey(false))) return;
     if (signer === (await this.networkKey(true))) return;
 
-    throw new ForbiddenException('Подпись уведомления не сходится с ключом сети');
+    throw DomainError.forbidden('CARDCOOP_NOTIFICATION_SIGNATURE_MISMATCH');
   }
 
   /**
@@ -265,9 +265,7 @@ export class CardcoopLinkWebhookController {
 
     const key = await this.credential.getPermissionKey(NETWORK_ACCOUNT, WEBHOOK_PERMISSION);
     if (!key) {
-      throw new ServiceUnavailableException(
-        `Ключ уведомлений сети не опубликован в цепи (разрешение ${WEBHOOK_PERMISSION} аккаунта ${NETWORK_ACCOUNT})`
-      );
+      throw DomainError.serviceUnavailable('CARDCOOP_NETWORK_KEY_NOT_PUBLISHED', { permission: WEBHOOK_PERMISSION, account: NETWORK_ACCOUNT });
     }
 
     this.cachedKey = { value: key, readAt: Date.now() };

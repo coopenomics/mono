@@ -1,0 +1,104 @@
+{
+  "errors": {
+    "GATEWAY_ACCOUNT_TYPE_UNKNOWN": "Не удалось определить тип аккаунта для пользователя {username}",
+    "GATEWAY_EXPENSE_PAYMENT_MISSING_HASH": "У платежа расхода {hash} отсутствует proposal_hash в blockchain_data",
+    "GATEWAY_PAYMENT_CREATE_MISSING_ID": "Не удалось создать платеж - отсутствует ID",
+    "GATEWAY_PAYMENT_FILE_ACCESS_FORBIDDEN": "Чек платежа доступен совету и самому плательщику",
+    "GATEWAY_PAYMENT_FILE_CHECKSUM_MISMATCH": "checksum_sha256 не совпадает с реальным SHA-256 содержимого.",
+    "GATEWAY_PAYMENT_FILE_DUPLICATE": "Файл с таким SHA-256 уже зарегистрирован в этом кооперативе (id={id}).",
+    "GATEWAY_PAYMENT_FILE_NOT_FOUND": "Файл платежа #{fileId} не найден.",
+    "GATEWAY_PAYMENT_FILE_SIZE_MISMATCH": "size_bytes ({declaredSize}) не совпадает с фактическим размером base64-контента ({actualSize}).",
+    "GATEWAY_PAYMENT_HASH_DUPLICATE": "Платеж с хешем {hash} уже существует. Возможно, заявка была создана ранее.",
+    "GATEWAY_PAYMENT_METHOD_NOT_FOUND": "Платежный метод {methodId} для пользователя {username} не найден. Невозможно создать исходящий платеж.",
+    "GATEWAY_PAYMENT_NOT_FOUND": "Не удалось найти платеж с ID {id}",
+    "GATEWAY_PAYMENT_NOT_FOUND_BY_HASH": "Платёж {hash} не найден.",
+    "GATEWAY_PAYMENT_STATUS_CHANGE_FORBIDDEN": "Невозможно изменить статус платежа с текущим статусом: {status}",
+    "GATEWAY_PROVIDER_NOT_FOUND": "Провайдер {provider} не найден",
+    "GATEWAY_REFUND_PAYMENT_MISSING_HASH": "У платежа возврата {hash} нет proposal_hash/item_hash в blockchain_data",
+    "GATEWAY_SURCHARGE_PAYMENT_MISSING_HASH": "У платежа доплаты {hash} нет proposal_hash/item_hash в blockchain_data",
+    "GATEWAY_SYSTEM_PAYMENT_CREATE_MISSING_ID": "createSystemOutgoingPayment: не удалось создать платёж — отсутствует ID",
+    "GATEWAY_UPDATED_PAYMENT_NOT_FOUND": "Не удалось найти обновленный платеж с ID {id}"
+  },
+  "gateway": {
+    "createDepositPaymentInput": {
+      "quantityMustBeNumber": "Поле \"quantity\" должно быть числом",
+      "symbolMustBeString": "Поле \"symbol\" должно быть строкой",
+      "usernameMustBeString": "Поле \"username\" должно быть строкой"
+    },
+    "createInitialPaymentInput": {
+      "usernameMustBeString": "Поле \"username\" должно быть строкой"
+    },
+    "gatewayInteractor": {
+      "entryAndMinShareMemo": "Вступительный и минимальный паевой взносы №{hashPrefix}. {vatExemptNote}",
+      "paymentCreationErrorMessage": "Ошибка создания платежа: {errorMessage}",
+      "shareRefundMemo": "Возврат паевого взноса №{hashPrefix}. {vatExemptNote}",
+      "walletCppShareMemo": "Паевой взнос по соглашению о ЦПП \"Цифровой Кошелёк\" №{hashPrefix}. {vatExemptNote}"
+    },
+    "payment": {
+      "direction": {
+        "incoming": "Входящий",
+        "outgoing": "Исходящий"
+      },
+      "status": {
+        "cancelled": "Отменен",
+        "completed": "Завершен",
+        "error": "Ошибка",
+        "expired": "Истек",
+        "inProgress": "В процессе",
+        "paid": "Оплачен",
+        "pendingCouncil": "Ожидает решения совета",
+        "pendingProcessing": "Ожидает обработки",
+        "rejected": "Отклонен"
+      },
+      "type": {
+        "advanceOverspendSurcharge": "Доплата по перерасходу аванса",
+        "advanceUnusedRefund": "Возврат неиспользованного аванса под отчёт",
+        "contributionRefund": "Возврат взноса",
+        "entryAndMinShareRefund": "Возврат вступит. и мин.паевого взноса",
+        "expenseReportPayment": "Оплата расхода по служебной записке",
+        "financialAid": "Материальная помощь",
+        "ndflTransfer": "Перечисление удержанного НДФЛ",
+        "payment": "Оплата",
+        "registrationFee": "Регистрационный взнос",
+        "shareContribution": "Паевой взнос",
+        "shareRefundOnExit": "Возврат паевого взноса при выходе из кооператива"
+      }
+    },
+    "paymentStatus": {
+      "status": {
+        "cancelled": "Отменен",
+        "expired": "Истек",
+        "failed": "Не удался",
+        "paid": "Оплачен",
+        "pendingCouncil": "Ожидает решения совета",
+        "pendingPayment": "Ожидает оплаты",
+        "processed": "Обработан",
+        "processing": "Обрабатывается",
+        "rejected": "Отклонен"
+      }
+    },
+    "paymentType": {
+      "direction": {
+        "incoming": "Входящий",
+        "outgoing": "Исходящий"
+      },
+      "type": {
+        "advanceOverspendSurcharge": "Доплата по перерасходу аванса",
+        "advanceUnusedRefund": "Возврат неиспользованного аванса под отчёт",
+        "entryAndMinShare": "Вступительный и мин. паевой взносы",
+        "entryAndMinShareRefund": "Возврат вступит. и мин.паевого взноса",
+        "expenseReportPayment": "Оплата расхода по служебной записке",
+        "financialAid": "Материальная помощь",
+        "ndflTransfer": "Перечисление удержанного НДФЛ",
+        "payment": "Оплата",
+        "shareContribution": "Паевой взнос",
+        "shareContributionRefund": "Возврат паевого взноса",
+        "shareRefundOnExit": "Возврат паевого взноса при выходе из кооператива"
+      }
+    },
+    "uploadPaymentProofInput": {
+      "checksumInvalidFormat": "checksum_sha256 должен быть 64-символьным lowercase hex.",
+      "mimeTypeInvalid": "mime_type должен быть одним из allowed."
+    }
+  }
+}

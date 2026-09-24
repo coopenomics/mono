@@ -2,10 +2,10 @@
   <div class="cardcoop-entry-page">
     <AuthSplit
       :eyebrow="coopTitle"
-      title="Карта кооператора"
-      lead="Карта опознаёт вас в сети кооперативов и переносит анкету туда, куда вы вступаете."
-      quote="Анкета передаётся с вашего согласия и напрямую, минуя сеть."
-      step-eyebrow="Вход по карте"
+      :title="$t('registrator.cardcoopEntryPage.title')"
+      :lead="$t('registrator.cardcoopEntryPage.lead')"
+      :quote="$t('registrator.cardcoopEntryPage.quote')"
+      :step-eyebrow="$t('registrator.cardcoopEntryPage.stepEyebrow')"
       :heading="title"
       :text="subtitle"
     >
@@ -14,13 +14,10 @@
       </template>
       <!-- Ошибка входа: человек передумал на card.coop либо обмен не удался -->
       <template v-if="failed">
-        <BaseBanner variant="info">
-          Вход по карте не завершился. Ничего не потеряно: войдите обычным способом или
-          зарегистрируйтесь — карту можно будет связать позже.
-        </BaseBanner>
+        <BaseBanner variant="info"> {{ $t('registrator.cardcoopEntryPage.failedHint') }} </BaseBanner>
         <div class="cardcoop-entry-page__actions">
-          <BaseButton variant="primary" block @click="goSignIn">Войти обычным способом</BaseButton>
-          <BaseButton variant="secondary" block @click="goSignUp">Зарегистрироваться</BaseButton>
+          <BaseButton variant="primary" block @click="goSignIn">{{ $t('registrator.cardcoopEntryPage.signInNormalAction') }}</BaseButton>
+          <BaseButton variant="secondary" block @click="goSignUp">{{ $t('registrator.cardcoopEntryPage.signUpAction') }}</BaseButton>
         </div>
       </template>
 
@@ -32,24 +29,18 @@
 
       <!-- Карта опознала пайщика этого кооператива -->
       <template v-else-if="entry.username">
-        <BaseBanner variant="info">
-          Карта опознала вас: учётная запись
-          <span class="t-mono">{{ entry.username }}</span
-          >. Войдите паролем — или восстановите доступ, если пароль утерян.
-        </BaseBanner>
+        <BaseBanner variant="info"> {{ $t('registrator.cardcoopEntryPage.recognizedPrefix') }} <span class="t-mono">{{ entry.username }}</span
+          >{{ $t('registrator.cardcoopEntryPage.recognizedSuffix') }} </BaseBanner>
         <div class="cardcoop-entry-page__actions">
-          <BaseButton variant="primary" block @click="goSignIn">Войти</BaseButton>
-          <BaseButton variant="secondary" block @click="goRecover">Восстановить доступ</BaseButton>
+          <BaseButton variant="primary" block @click="goSignIn">{{ $t('registrator.cardcoopEntryPage.signInAction') }}</BaseButton>
+          <BaseButton variant="secondary" block @click="goRecover">{{ $t('registrator.cardcoopEntryPage.recoverAccessAction') }}</BaseButton>
         </div>
       </template>
 
       <template v-else>
         <!-- Выбор кооператива-источника -->
         <template v-if="pickingSource && entry.memberships.length > 0">
-          <BaseBanner variant="info">
-            Анкету можно перенести из кооператива, где вас уже верифицировали, — с вашего
-            согласия и напрямую, минуя сеть. Выберите кооператив-источник.
-          </BaseBanner>
+          <BaseBanner variant="info"> {{ $t('registrator.cardcoopEntryPage.sourceSelectionHint') }} </BaseBanner>
           <div class="cardcoop-entry-page__sources">
             <label
               v-for="membership in entry.memberships"
@@ -58,8 +49,7 @@
             >
               <q-radio v-model="selectedSource" :val="membership.coopname" dense />
               <span class="cardcoop-entry-page__source-name">{{ membership.displayName }}</span>
-              <span v-if="membership.memberSince" class="cardcoop-entry-page__source-since">
-                пайщик с {{ membership.memberSince }}
+              <span v-if="membership.memberSince" class="cardcoop-entry-page__source-since"> {{ $t('registrator.cardcoopEntryPage.memberSincePrefix') }} {{ membership.memberSince }}
               </span>
             </label>
           </div>
@@ -70,49 +60,35 @@
               :loading="requesting"
               :disabled="!selectedSource"
               @click="requestDisclosure"
-            >
-              Запросить перенос анкеты
-            </BaseButton>
-            <BaseButton variant="secondary" block @click="goSignUp">Заполнить анкету вручную</BaseButton>
-            <BaseButton variant="ghost" block @click="goSignIn">У меня уже есть учётная запись</BaseButton>
+            > {{ $t('registrator.cardcoopEntryPage.requestTransferAction') }} </BaseButton>
+            <BaseButton variant="secondary" block @click="goSignUp">{{ $t('registrator.cardcoopEntryPage.fillManuallyAction') }}</BaseButton>
+            <BaseButton variant="ghost" block @click="goSignIn">{{ $t('registrator.cardcoopEntryPage.haveAccountAction') }}</BaseButton>
           </div>
         </template>
 
         <!-- Членств нет: переносить неоткуда -->
         <template v-else-if="entry.status === Zeus.CardcoopEntryStatus.Started">
-          <BaseBanner variant="info">
-            У карты пока нет подтверждённых членств — анкету перенести неоткуда.
-            Зарегистрируйтесь обычным порядком: карта будет связана по ходу вступления.
-          </BaseBanner>
+          <BaseBanner variant="info"> {{ $t('registrator.cardcoopEntryPage.noMembershipsHint') }} </BaseBanner>
           <div class="cardcoop-entry-page__actions">
-            <BaseButton variant="primary" block @click="goSignUp">Продолжить регистрацию</BaseButton>
-            <BaseButton variant="ghost" block @click="goSignIn">У меня уже есть учётная запись</BaseButton>
+            <BaseButton variant="primary" block @click="goSignUp">{{ $t('registrator.cardcoopEntryPage.continueSignUpAction') }}</BaseButton>
+            <BaseButton variant="ghost" block @click="goSignIn">{{ $t('registrator.cardcoopEntryPage.haveAccountAction') }}</BaseButton>
           </div>
         </template>
 
         <!-- Ждём решения держателя на стороне сети -->
         <template v-else-if="entry.status === Zeus.CardcoopEntryStatus.AwaitingConsent">
-          <BaseBanner variant="warn">
-            Откройте кабинет card.coop и подтвердите перенос анкеты. Эта страница продолжит
-            сама, как только вы разрешите.
-          </BaseBanner>
+          <BaseBanner variant="warn"> {{ $t('registrator.cardcoopEntryPage.awaitingConsentHint') }} </BaseBanner>
           <div class="cardcoop-entry-page__actions">
-            <BaseButton variant="primary" block @click="openCardcoop">Открыть card.coop</BaseButton>
-            <BaseButton variant="ghost" block @click="goSignUp">Не ждать — заполнить вручную</BaseButton>
+            <BaseButton variant="primary" block @click="openCardcoop">{{ $t('registrator.cardcoopEntryPage.openCardcoopAction') }}</BaseButton>
+            <BaseButton variant="ghost" block @click="goSignUp">{{ $t('registrator.cardcoopEntryPage.skipWaitingAction') }}</BaseButton>
           </div>
         </template>
 
         <!-- Анкета пришла и проверена -->
         <template v-else-if="entry.status === Zeus.CardcoopEntryStatus.ProfileReady">
-          <BaseBanner variant="pos">
-            Анкета получена от кооператива и подписана его ключом. Проверьте данные в форме
-            вступления, подпишите заявление и оплатите взнос — совет рассмотрит его обычным
-            порядком.
-          </BaseBanner>
+          <BaseBanner variant="pos"> {{ $t('registrator.cardcoopEntryPage.profileReadyHint') }} </BaseBanner>
           <div class="cardcoop-entry-page__actions">
-            <BaseButton variant="primary" block :loading="taking" @click="continueWithProfile">
-              Продолжить с перенесённой анкетой
-            </BaseButton>
+            <BaseButton variant="primary" block :loading="taking" @click="continueWithProfile"> {{ $t('registrator.cardcoopEntryPage.continueWithProfileAction') }} </BaseButton>
           </div>
         </template>
 
@@ -120,15 +96,13 @@
         <template v-else>
           <BaseBanner variant="warn">{{ outcomeText }}</BaseBanner>
           <div class="cardcoop-entry-page__actions">
-            <BaseButton variant="primary" block @click="goSignUp">Заполнить анкету вручную</BaseButton>
+            <BaseButton variant="primary" block @click="goSignUp">{{ $t('registrator.cardcoopEntryPage.fillManuallyAction') }}</BaseButton>
             <BaseButton
               v-if="entry.memberships.length > 0"
               variant="secondary"
               block
               @click="pickAnotherSource"
-            >
-              Попробовать ещё раз
-            </BaseButton>
+            > {{ $t('registrator.cardcoopEntryPage.retryAction') }} </BaseButton>
           </div>
         </template>
       </template>
@@ -147,6 +121,7 @@ import { AuthSplit } from 'src/shared/ui/layout/AuthSplit';
 import { AuthActions } from 'src/widgets/Registrator/AuthActions';
 import { useSystemStore } from 'src/entities/System/model';
 import { BaseBanner, BaseButton } from 'src/shared/ui/base';
+import { t } from 'src/shared/i18n';
 
 /**
  * Страница входа по карте кооператора (карта кооператора, story 9.2/9.3).
@@ -189,9 +164,9 @@ const POLL_LIMIT_MS = 16 * 60 * 1000;
 let pollStartedAt = 0;
 
 const title = computed(() => {
-  if (failed.value) return 'Вход по карте';
-  if (entry.value?.username) return 'Мы вас узнали';
-  return 'Быстрая регистрация по карте';
+  if (failed.value) return t('registrator.cardcoopEntryPage.titleFailed');
+  if (entry.value?.username) return t('registrator.cardcoopEntryPage.titleRecognized');
+  return t('registrator.cardcoopEntryPage.titleDefault');
 });
 
 /** Показывать ли выбор кооператива-источника: в начале либо по просьбе повторить. */
@@ -202,10 +177,10 @@ const pickingSource = computed(
 /** Чем закончилась ветка переноса — тремя разными исходами, а не одним «отклонено». */
 const outcomeText = computed(() => {
   if (entry.value?.status === Zeus.CardcoopEntryStatus.Denied)
-    return 'Перенос анкеты отклонён. Это не мешает вступлению — заполните анкету вручную.';
+    return t('registrator.cardcoopEntryPage.outcomeDenied');
   if (entry.value?.status === Zeus.CardcoopEntryStatus.Expired)
-    return 'Согласие не подтверждено вовремя — запрос погас. Можно попросить заново или заполнить анкету вручную.';
-  return 'Перенести анкету не удалось. Можно попробовать ещё раз или заполнить её вручную — на вступление это не влияет.';
+    return t('registrator.cardcoopEntryPage.outcomeExpired');
+  return t('registrator.cardcoopEntryPage.outcomeFailed');
 });
 
 /**
@@ -217,7 +192,7 @@ const outcomeText = computed(() => {
  */
 const subtitle = computed(() => {
   const digits = (entry.value?.cardNumber ?? '').replace(/\D/g, '');
-  return digits ? `Карта ${digits.replace(/(.{4})(?=.)/g, '$1 ')}` : undefined;
+  return digits ? t('registrator.cardcoopEntryPage.subtitleCardNumber', { cardNumber: digits.replace(/(.{4})(?=.)/g, '$1 ') }) : undefined;
 });
 
 async function load(): Promise<void> {

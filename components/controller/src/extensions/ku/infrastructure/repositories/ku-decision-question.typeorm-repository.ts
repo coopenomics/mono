@@ -57,6 +57,7 @@ export class KuDecisionQuestionTypeormRepository
 
     const updatedEntity = await this.repository.findOne({ where: { _id: entity._id } });
     if (!updatedEntity) {
+      // i18n-ignore: внутренний инвариант согласованности после обновления записи в БД, до пайщика не доходит
       throw new Error(`Вопрос повестки ${entity.id} не найден после обновления`);
     }
 

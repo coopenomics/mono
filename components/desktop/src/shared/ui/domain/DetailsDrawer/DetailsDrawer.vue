@@ -17,7 +17,7 @@ q-dialog(
       button.details-drawer__close(
         v-if='closable',
         type='button',
-        aria-label='Закрыть',
+        :aria-label='$t("common.action.close")',
         @click='close'
       )
         q-icon(name='close', size='20px')

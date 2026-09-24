@@ -1,0 +1,36 @@
+{
+  "participants": {
+    "participantCard": {
+      "accountNameLabel": "Имя аккаунта",
+      "copiedSuccess": "Скопировано",
+      "copyError": "Не удалось скопировать",
+      "copyLabel": "Скопировать",
+      "dateMissing": "Дата не указана",
+      "emailMissing": "Email не указан"
+    },
+    "participantDetails": {
+      "notVerified": "Не верифицирован",
+      "verificationHint": "Личность подтверждает председатель совета или кооперативный участок при предъявлении паспорта",
+      "verificationTitle": "Верификация личности"
+    },
+    "participantsTable": {
+      "column": {
+        "createdAt": "Добавлен",
+        "joinedAt": "Дата вступления",
+        "name": "ФИО / Наименование",
+        "status": "Статус",
+        "username": "Аккаунт",
+        "verification": "Верификация"
+      },
+      "defaultDrawerTitle": "Пайщик",
+      "detailsLink": "Подробнее",
+      "emailMissing": "Не указан",
+      "emptyBody": "Под выбранный фильтр никто не подходит, или в кооперативе пока нет пайщиков.",
+      "emptyLabel": "Пайщики",
+      "emptyTitle": "Пайщиков не найдено",
+      "missingValue": "отсутствует",
+      "notVerified": "Не верифицирован",
+      "notVerifiedTooltip": "Личность не подтверждена: паспорт сверяет председатель совета или кооперативный участок"
+    }
+  }
+}

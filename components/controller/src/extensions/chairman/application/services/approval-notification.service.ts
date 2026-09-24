@@ -6,6 +6,7 @@ import { Workflows } from '@coopenomics/notifications';
 import { SovietContract } from 'cooptypes';
 import { ApprovalInfo, APPROVAL_TYPE_MAP } from '../../domain/approval-types';
 import type { IDelta } from '@coopenomics/extension-kit/sync';
+import { t } from '../../i18n';
 
 /**
  * Сервис для отправки уведомлений по одобрениям председателя
@@ -77,8 +78,8 @@ export class ApprovalNotificationService implements OnModuleInit {
 
       // Получаем заголовок и описание на основе типа одобрения
       const approvalInfo: ApprovalInfo | undefined = APPROVAL_TYPE_MAP[approvalData.type as keyof typeof APPROVAL_TYPE_MAP];
-      const requestTitle = approvalInfo?.title || 'Новый запрос на одобрение';
-      const requestDescription = approvalInfo?.description || 'Требуется одобрение действия';
+      const requestTitle = approvalInfo?.title || t('chairman.approvalNotification.defaultTitle');
+      const requestDescription = approvalInfo?.description || t('chairman.approvalNotification.defaultDescription');
 
       // Формируем данные для workflow (без приватных данных)
       const payload: Workflows.ApprovalRequest.IPayload = {

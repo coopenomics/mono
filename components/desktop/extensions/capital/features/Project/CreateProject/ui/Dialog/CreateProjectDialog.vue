@@ -1,8 +1,8 @@
 <template lang="pug">
 CreateDialog(
   ref="dialogRef"
-  :title="props.local ? 'Создать персональный проект' : 'Создать проект'"
-  submit-text="Создать"
+  :title="props.local ? $t('capital.createProjectDialog.personalTitle') : $t('capital.createProjectDialog.title')"
+  :submit-text="$t('common.action.create')"
   dialog-style="width: 600px; max-width: 100% !important;"
   :is-submitting="isSubmitting"
   @submit="handleSubmit"
@@ -12,7 +12,7 @@ CreateDialog(
     .create-form
       BaseInput(
         v-model='formData.title'
-        label='Название проекта'
+        :label='$t("capital.createProjectDialog.nameLabel")'
         autocomplete='off'
         required
         :error='titleError'
@@ -20,8 +20,8 @@ CreateDialog(
 
       BaseInput(
         v-model='formData.description'
-        label='Описание проекта'
-        placeholder='Опишите проект...'
+        :label='$t("capital.createProjectDialog.descriptionLabel")'
+        :placeholder='$t("capital.createProjectDialog.descriptionPlaceholder")'
         type='textarea'
         autogrow
         :rows='3'
@@ -37,6 +37,7 @@ import { BaseInput } from 'src/shared/ui/base';
 import { useFormDraft } from 'app/extensions/capital/shared/lib';
 import { useCreateProject, type ICreateProjectInput } from '../../model';
 import { FailAlert, SuccessAlert } from 'src/shared/api/alerts';
+import { t } from '../../../../../i18n';
 
 const props = defineProps<{
   /** Персональный проект — только PostgreSQL, без блокчейна */
@@ -93,7 +94,7 @@ const clear = () => {
 };
 
 const handleSubmit = async () => {
-  titleError.value = formData.value.title ? '' : 'Это поле обязательно для заполнения';
+  titleError.value = formData.value.title ? '' : t('capital.createProjectDialog.requiredFieldError');
   if (titleError.value) return;
 
   isSubmitting.value = true;
@@ -113,10 +114,10 @@ const handleSubmit = async () => {
 
     if (props.local) {
       await createLocalProject(inputData);
-      SuccessAlert('Персональный проект создан');
+      SuccessAlert(t('capital.createProjectDialog.personalSuccess'));
     } else {
       await createProject(inputData);
-      SuccessAlert('Проект успешно создан');
+      SuccessAlert(t('capital.createProjectDialog.success'));
     }
 
     // Закрываем диалог после успешного создания; черновик больше не нужен

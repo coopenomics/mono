@@ -1,7 +1,7 @@
-import { ForbiddenException, Inject, Injectable, UseGuards } from '@nestjs/common';
+import { Inject, Injectable, UseGuards } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 
-import { GqlJwtAuthGuard, platformSettings } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, platformSettings, DomainError } from '@coopenomics/extension-kit';
 
 import { CurrentMarketplaceMember } from '../decorators/current-marketplace-member.decorator';
 import { RequireMarketplaceAccess } from '../decorators/marketplace-access.decorator';
@@ -169,9 +169,7 @@ export class MarketplaceSupplierResolver {
    */
   private assertChairman(currentMember: IMarketplaceCurrentMember): void {
     if (!currentMember.core_roles.includes('Chairman')) {
-      throw new ForbiddenException(
-        'Одобрять и отклонять заявки поставщиков может только председатель кооператива.'
-      );
+      throw DomainError.forbidden('MARKETPLACE_SUPPLIER_APPROVAL_FORBIDDEN');
     }
   }
 }

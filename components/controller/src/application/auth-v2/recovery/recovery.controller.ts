@@ -1,15 +1,4 @@
-import {
-  BadRequestException,
-  Body,
-  Controller,
-  Get,
-  HttpCode,
-  Param,
-  Post,
-  Req,
-  UseFilters,
-  UseGuards,
-} from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Param, Post, Req, UseFilters, UseGuards } from '@nestjs/common';
 import type { Request } from 'express';
 import { normalizeUserEmail } from '~/utils/normalize-user-email';
 import { AuthV2ErrorCode } from '~/domain/auth-v2/errors/auth-v2.error';
@@ -21,6 +10,8 @@ import { ESCALATING_LOCKOUT, LOGIN_ACCOUNT_RULE, LOGIN_IP_RULE, MAGIC_LINK_RULE 
 import { RecoveryService } from './recovery.service';
 import { RecoveryConfirmService } from './recovery-confirm.service';
 import { OfflineRecoveryService } from './offline-recovery.service';
+import { t } from '~/i18n';
+import { DomainError } from '@coopenomics/extension-kit';
 
 interface RecoveryRequestBody {
   email?: string;
@@ -45,7 +36,7 @@ interface RecoveryCancelBody {
 
 const TOO_MANY_RECOVERY = {
   code: AuthV2ErrorCode.TooManyRecoveryAttempts,
-  message: 'Слишком много попыток подтверждения. Попробуйте позже.',
+  message: t('authV2.recoveryController.tooManyConfirmAttemptsMessage'),
 };
 
 /**
@@ -75,12 +66,12 @@ export class RecoveryController {
     account: { ...MAGIC_LINK_RULE, escalating: ESCALATING_LOCKOUT, key: (req) => keyFromEmail(req) },
     error: {
       code: AuthV2ErrorCode.TooManyRecoveryAttempts,
-      message: 'Слишком много запросов на восстановление. Попробуйте позже.',
+      message: t('authV2.recoveryController.tooManyRequestsMessage'),
     },
   })
   async request(@Body() body: RecoveryRequestBody, @Req() req: Request): Promise<void> {
     const email = body?.email;
-    if (!email || typeof email !== 'string') throw new BadRequestException('Требуется email');
+    if (!email || typeof email !== 'string') throw DomainError.badRequest('AUTH_V2_EMAIL_REQUIRED');
     // Исход константен (всегда 202): сервис сам решает, слать письмо или нет.
     await this.recovery.requestByEmail(email, req.ip ?? null);
   }
@@ -148,7 +139,7 @@ export class RecoveryController {
     const newPassword = requireString(body?.password, 'password');
     const vaultBlob = body?.vault;
     if (!vaultBlob || typeof vaultBlob !== 'object') {
-      throw new BadRequestException('Требуется зашифрованный vault-блоб');
+      throw DomainError.badRequest('AUTH_V2_VAULT_BLOB_REQUIRED');
     }
     // Возвращаем username (резолвнут из токена) — клиент скачает по нему новый
     // vault-блоб и расшифрует при повторном входе; отдельный whoami-by-token не нужен.
@@ -176,7 +167,7 @@ export class RecoveryController {
 
 /** Достать непустую строку из тела или 400. */
 function requireString(value: unknown, field: string): string {
-  if (!value || typeof value !== 'string') throw new BadRequestException(`Требуется ${field}`);
+  if (!value || typeof value !== 'string') throw DomainError.badRequest('AUTH_V2_FIELD_REQUIRED', { field });
   return value;
 }
 

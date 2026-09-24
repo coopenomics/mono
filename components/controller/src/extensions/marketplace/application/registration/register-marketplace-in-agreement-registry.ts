@@ -8,6 +8,7 @@ import {
 import { ProgramKey, type IRegistrationRegistryPort,
   InnerAccountType,
 } from '@coopenomics/innercoop';
+import { t } from '../../i18n';
 
 /**
  * Регистрация ЦПП «Стол заказов» в платформенном AgreementRegistry как
@@ -41,9 +42,9 @@ export function registerMarketplaceInAgreementRegistry(
     id: MARKETPLACE_OFFER_AGREEMENT_ID,
     registry_id: MARKETPLACE_OFFER_INSTANCE_REGISTRY_ID,
     agreement_type: MARKETPLACE_AGREEMENT_TYPE,
-    title: 'Оферта по целевой потребительской программе «Стол заказов»',
-    checkbox_text: 'Я прочитал и принимаю',
-    link_text: 'оферту по целевой потребительской программе «Стол заказов»',
+    title: t('marketplace.agreementRegistry.offerTitle'),
+    checkbox_text: t('marketplace.agreementRegistry.acceptCheckboxLabel'),
+    link_text: t('marketplace.agreementRegistry.offerObjectLabel'),
     // Пусто: подтягивается только через выбор программы ниже, не как дефолтная.
     applicable_account_types: [],
     order: 7,
@@ -52,9 +53,9 @@ export function registerMarketplaceInAgreementRegistry(
 
   port.registerProgram({
     key: MARKETPLACE_PROGRAM_KEY,
-    title: 'Стол заказов',
+    title: t('marketplace.agreementRegistry.programName'),
     description:
-      'Совместная закупка имущества Обществом у поставщиков и распределение его пайщикам в рамках целевой потребительской программы.',
+      t('marketplace.agreementRegistry.programDescription'),
     applicable_account_types: [
       InnerAccountType.individual,
       InnerAccountType.entrepreneur,

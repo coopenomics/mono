@@ -27,6 +27,7 @@ import moment from 'src/shared/lib/utils/dates/moment'
 import { QTableProps } from 'quasar'
 import ActionCell from './ActionCell.vue'
 import DataCell from './DataCell.vue'
+import { t } from 'src/shared/i18n';
 
 const props = defineProps<{
   username: string
@@ -54,7 +55,7 @@ const columns: QTableProps['columns'] = [
   {
     name: 'timestamp',
     required: true,
-    label: 'Дата',
+    label: t('accountActions.accountActionsPage.column.date'),
     align: 'center',
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     field: (row: any) => moment(row.timestamp).format('DD.MM.YY HH:mm:ss'),
@@ -62,7 +63,7 @@ const columns: QTableProps['columns'] = [
   {
     name: 'action',
     required: true,
-    label: 'Действие',
+    label: t('accountActions.accountActionsPage.column.action'),
     align: 'center',
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     field: (row: any) => row,
@@ -70,7 +71,7 @@ const columns: QTableProps['columns'] = [
   {
     name: 'data',
     required: true,
-    label: 'Данные',
+    label: t('accountActions.accountActionsPage.column.data'),
     align: 'center',
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     field: (row: any) => row.data,

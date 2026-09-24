@@ -12,7 +12,7 @@ BaseDialog(
     :handler-submit='handleSubmit',
     :is-submitting='props.isSubmitting',
     :button-submit-txt='props.submitText',
-    :button-cancel-txt='"Отмена"',
+    :button-cancel-txt='$t("common.action.cancel")',
     :disabled='props.disabled',
     @cancel='clear'
   )

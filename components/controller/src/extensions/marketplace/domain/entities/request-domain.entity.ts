@@ -2,6 +2,7 @@ import type { CategoryDomainEntity } from './category-domain.entity';
 import type { TypeDomainEntity } from './type-domain.entity';
 import type { RequestAttributeValueDomainEntity } from './request-attribute-value-domain.entity';
 import type { RequestImageDomainEntity } from './request-image-domain.entity';
+import { t } from '../../i18n';
 
 /**
  * Типы заявок (соответствует смарт-контракту)
@@ -415,42 +416,42 @@ export class RequestDomainEntity {
     const errors: string[] = [];
 
     // Проверка основных полей
-    if (!this.name.trim()) errors.push('Название товара обязательно');
-    if (!this.articleNumber.trim()) errors.push('Артикул обязателен');
-    if (this.unitCost <= 0) errors.push('Цена должна быть больше 0');
-    if (this.units <= 0) errors.push('Количество должно быть больше 0');
+    if (!this.name.trim()) errors.push(t('marketplace.requestDomainEntity.titleRequired'));
+    if (!this.articleNumber.trim()) errors.push(t('marketplace.requestDomainEntity.articleRequired'));
+    if (this.unitCost <= 0) errors.push(t('marketplace.requestDomainEntity.priceMustBePositive'));
+    if (this.units <= 0) errors.push(t('marketplace.requestDomainEntity.quantityMustBePositive'));
 
     // Проверка специфичных для типа заявки полей
     if (this.isParent() && this.type === RequestType.OFFER) {
       if (!this.productLifecycleSecs || this.productLifecycleSecs <= 0) {
-        errors.push('Гарантийный срок возврата для имущества должен быть установлен');
+        errors.push(t('marketplace.requestDomainEntity.warrantyRequired'));
       }
     }
 
     // Проверка габаритов
     if (!this.width || !this.height || !this.depth) {
-      errors.push('Габариты товара обязательны');
+      errors.push(t('marketplace.requestDomainEntity.dimensionsRequired'));
     }
     if (!this.weight) {
-      errors.push('Вес товара обязателен');
+      errors.push(t('marketplace.requestDomainEntity.weightRequired'));
     }
 
     // Проверка категории и типа
     if (this.category.disabled) {
-      errors.push('Выбранная категория недоступна');
+      errors.push(t('marketplace.requestDomainEntity.categoryUnavailable'));
     }
     if (this.productType.disabled) {
-      errors.push('Выбранный тип товара недоступен');
+      errors.push(t('marketplace.requestDomainEntity.typeUnavailable'));
     }
 
     // Проверка обязательных атрибутов
     if (!this.hasAllRequiredAttributes()) {
-      errors.push('Не заполнены все обязательные характеристики');
+      errors.push(t('marketplace.requestDomainEntity.requiredAttributesMissing'));
     }
 
     // Проверка изображений
     if (this.images.length === 0 && !this.primaryImageUrl) {
-      errors.push('Необходимо добавить хотя бы одно изображение');
+      errors.push(t('marketplace.requestDomainEntity.imageRequired'));
     }
 
     return {

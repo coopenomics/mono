@@ -1,4 +1,5 @@
 import { Field, InputType } from '@nestjs/graphql';
+import { validationMessage } from '@coopenomics/extension-kit';
 import { IsNotEmpty, IsString } from 'class-validator';
 import type { CreateProjectInvestDomainInput } from '../../../domain/actions/create-project-invest-domain-input.interface';
 import { Type } from 'class-transformer';
@@ -10,23 +11,23 @@ import { GenerationMoneyInvestStatementSignedDocumentInputDTO } from '../../docu
 @InputType('CreateProjectInvestInput')
 export class CreateProjectInvestInputDTO implements Omit<CreateProjectInvestDomainInput, 'invest_hash'> {
   @Field(() => String, { description: 'Имя аккаунта кооператива' })
-  @IsNotEmpty({ message: 'Имя аккаунта кооператива не должно быть пустым' })
-  @IsString({ message: 'Имя аккаунта кооператива должно быть строкой' })
+  @IsNotEmpty({ message: validationMessage('capital.createProjectInvestInput.coopname.required') })
+  @IsString({ message: validationMessage('capital.createProjectInvestInput.coopname.string') })
   coopname!: string;
 
   @Field(() => String, { description: 'Хэш проекта' })
-  @IsNotEmpty({ message: 'Хэш проекта не должен быть пустым' })
-  @IsString({ message: 'Хэш проекта должен быть строкой' })
+  @IsNotEmpty({ message: validationMessage('capital.createProjectInvestInput.projectHash.required') })
+  @IsString({ message: validationMessage('capital.createProjectInvestInput.projectHash.string') })
   project_hash!: string;
 
   @Field(() => String, { description: 'Имя инвестора' })
-  @IsNotEmpty({ message: 'Имя инвестора не должно быть пустым' })
-  @IsString({ message: 'Имя инвестора должно быть строкой' })
+  @IsNotEmpty({ message: validationMessage('capital.createProjectInvestInput.username.required') })
+  @IsString({ message: validationMessage('capital.createProjectInvestInput.username.string') })
   username!: string;
 
   @Field(() => String, { description: 'Сумма инвестиции' })
-  @IsNotEmpty({ message: 'Сумма инвестиции не должна быть пустой' })
-  @IsString({ message: 'Сумма инвестиции должна быть строкой' })
+  @IsNotEmpty({ message: validationMessage('capital.createProjectInvestInput.amount.required') })
+  @IsString({ message: validationMessage('capital.createProjectInvestInput.amount.string') })
   amount!: string;
 
   @Field(() => GenerationMoneyInvestStatementSignedDocumentInputDTO, { description: 'Заявление на инвестирование' })

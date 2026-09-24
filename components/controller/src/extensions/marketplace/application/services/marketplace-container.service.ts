@@ -1,10 +1,4 @@
-import {
-  BadRequestException,
-  ConflictException,
-  Inject,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import type {
   MarketplaceContainerDomainEntity,
   MarketplaceContainerTypeDomainEntity,
@@ -29,6 +23,8 @@ import {
   MARKETPLACE_STORAGE_CELL_REPOSITORY,
   type MarketplaceStorageCellDomainRepository,
 } from '../../domain/repositories/marketplace-storage-cell.repository';
+import { t as i18nT } from '../../i18n';
+import { DomainError } from '@coopenomics/extension-kit';
 
 /** Потолок на одну партию боксов — защита от опечатки в количестве. */
 const MAX_CONTAINERS_PER_BATCH = 200;
@@ -91,16 +87,16 @@ export class MarketplaceContainerService {
 
   async createType(input: CreateContainerTypeInput): Promise<MarketplaceContainerTypeDomainEntity> {
     for (const [label, value] of [
-      ['Длина', input.length_cm],
-      ['Ширина', input.width_cm],
-      ['Высота', input.height_cm],
+      [i18nT('marketplace.container.lengthLabel'), input.length_cm],
+      [i18nT('marketplace.container.widthLabel'), input.width_cm],
+      [i18nT('marketplace.container.heightLabel'), input.height_cm],
     ] as const) {
       if (!Number.isFinite(value) || value <= 0) {
-        throw new BadRequestException(`${label} должна быть больше нуля.`);
+        throw DomainError.badRequest('MARKETPLACE_CONTAINER_DIMENSION_MUST_BE_POSITIVE', { label });
       }
     }
     if (!input.name.trim()) {
-      throw new BadRequestException('Укажите название типа боксов.');
+      throw DomainError.badRequest('MARKETPLACE_CONTAINER_TYPE_NAME_REQUIRED');
     }
     return this.typeRepo.create({
       coopname: input.coopname,
@@ -130,16 +126,14 @@ export class MarketplaceContainerService {
    */
   async createContainers(input: CreateContainersInput): Promise<MarketplaceContainerDomainEntity[]> {
     if (!Number.isInteger(input.count) || input.count < 1) {
-      throw new BadRequestException('Количество боксов задаётся целым числом от 1.');
+      throw DomainError.badRequest('MARKETPLACE_CONTAINER_COUNT_INVALID');
     }
     if (input.count > MAX_CONTAINERS_PER_BATCH) {
-      throw new BadRequestException(
-        `За один раз можно завести не больше ${MAX_CONTAINERS_PER_BATCH} боксов (запрошено ${input.count}).`
-      );
+      throw DomainError.badRequest('MARKETPLACE_CONTAINER_BATCH_LIMIT_EXCEEDED', { maxPerBatch: MAX_CONTAINERS_PER_BATCH, requestedCount: input.count });
     }
     const type = await this.typeRepo.findById(input.container_type_id);
     if (!type || type.coopname !== input.coopname) {
-      throw new NotFoundException('Тип боксов не найден.');
+      throw DomainError.notFound('MARKETPLACE_CONTAINER_TYPE_NOT_FOUND');
     }
 
     for (let attempt = 1; attempt <= CODE_ALLOCATION_ATTEMPTS; attempt++) {
@@ -159,9 +153,7 @@ export class MarketplaceContainerService {
         return await this.containerRepo.createBatch(batch);
       } catch (error) {
         if (attempt === CODE_ALLOCATION_ATTEMPTS) {
-          throw new ConflictException(
-            'Не удалось выделить коды боксов — попробуйте ещё раз.'
-          );
+          throw DomainError.conflict('MARKETPLACE_CONTAINER_CODE_ALLOCATION_FAILED');
         }
       }
     }
@@ -184,7 +176,7 @@ export class MarketplaceContainerService {
   async getById(coopname: string, id: string): Promise<MarketplaceContainerDomainEntity> {
     const container = await this.containerRepo.findById(id);
     if (!container || container.coopname !== coopname) {
-      throw new NotFoundException('Бокс не найден.');
+      throw DomainError.notFound('MARKETPLACE_CONTAINER_NOT_FOUND');
     }
     return container;
   }
@@ -193,7 +185,7 @@ export class MarketplaceContainerService {
   async getByCode(coopname: string, code: string): Promise<MarketplaceContainerDomainEntity> {
     const container = await this.containerRepo.findByCode(coopname, code);
     if (!container) {
-      throw new NotFoundException(`Бокс с кодом «${code}» не найден.`);
+      throw DomainError.notFound('MARKETPLACE_CONTAINER_NOT_FOUND_BY_CODE', { code });
     }
     return container;
   }
@@ -208,22 +200,20 @@ export class MarketplaceContainerService {
     if (input.cell_id !== null) {
       const cell = await this.cellRepo.findById(input.cell_id);
       if (!cell || cell.coopname !== input.coopname) {
-        throw new NotFoundException('Ячейка не найдена.');
+        throw DomainError.notFound('MARKETPLACE_CELL_NOT_FOUND');
       }
       // Бокс и ячейка обязаны быть на одном участке: иначе имущество
       // «переехало» бы между КУ мимо процесса передачи.
       if (cell.braname !== container.braname) {
-        throw new ConflictException(
-          `Бокс числится за участком ${container.braname}, а ячейка «${cell.code}» — за ${cell.braname}.`
-        );
+        throw DomainError.conflict('MARKETPLACE_CONTAINER_CELL_BRANCH_MISMATCH', { containerBranch: container.braname, cellCode: cell.code, cellBranch: cell.braname });
       }
       if (!cell.is_active) {
-        throw new ConflictException(`Ячейка «${cell.code}» выведена из оборота.`);
+        throw DomainError.conflict('MARKETPLACE_CELL_DECOMMISSIONED', { cellCode: cell.code });
       }
     }
 
     const updated = await this.containerRepo.update(input.container_id, { cell_id: input.cell_id });
-    if (!updated) throw new NotFoundException('Бокс не найден.');
+    if (!updated) throw DomainError.notFound('MARKETPLACE_CONTAINER_NOT_FOUND');
     return updated;
   }
 
@@ -238,9 +228,7 @@ export class MarketplaceContainerService {
         container.id
       );
       if (occupied > 0) {
-        throw new ConflictException(
-          `В боксе «${container.code}» лежит имущество (позиций: ${occupied}). Переложите его, прежде чем выводить бокс из оборота.`
-        );
+        throw DomainError.conflict('MARKETPLACE_CONTAINER_NOT_EMPTY', { containerCode: container.code, occupiedCount: occupied });
       }
     }
 
@@ -248,7 +236,7 @@ export class MarketplaceContainerService {
       label: input.label,
       is_active: input.is_active,
     });
-    if (!updated) throw new NotFoundException('Бокс не найден.');
+    if (!updated) throw DomainError.notFound('MARKETPLACE_CONTAINER_NOT_FOUND');
     return updated;
   }
 

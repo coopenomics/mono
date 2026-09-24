@@ -4,12 +4,10 @@
       <template #actions>
         <AuthActions />
       </template>
-      <template #pane-foot>
-        Вспомнили пароль?
-        <a class="auth-link" href="#" @click.prevent="goToSignIn">Войти</a>
+      <template #pane-foot> {{ $t('registrator.recoverConfirmPage.rememberedPasswordPrompt') }} <a class="auth-link" href="#" @click.prevent="goToSignIn">{{ $t('registrator.recoverConfirmPage.signInAction') }}</a>
       </template>
       <template #footer>
-        <a class="auth-link" href="#" @click.prevent="goToSignIn">Вернуться ко входу</a>
+        <a class="auth-link" href="#" @click.prevent="goToSignIn">{{ $t('registrator.recoverConfirmPage.backToSignInAction') }}</a>
       </template>
     </RecoverConfirm>
   </div>

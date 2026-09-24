@@ -40,7 +40,9 @@ export const BucketRegistry = {
     const existing = REGISTERED.get(cls);
     if (existing && existing.name !== spec.name) {
       throw new Error(
+        // i18n-ignore: ошибка регистрации бакета при старте, до пайщика не доходит
         `BucketRegistry: класс ${cls.name} уже зарегистрирован под бакетом '${existing.name}', ` +
+          // i18n-ignore: ошибка регистрации бакета при старте, до пайщика не доходит
           `повторная регистрация под '${spec.name}' запрещена`
       );
     }

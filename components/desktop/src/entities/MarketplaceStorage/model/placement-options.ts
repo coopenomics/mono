@@ -1,4 +1,5 @@
 import type { BaseSelectOption } from 'src/shared/ui/base'
+import { uiLocale, t } from 'src/shared/i18n';
 import { containerLabel, type StorageIndex } from './format'
 import type {
   MarketplaceContainerView,
@@ -37,7 +38,7 @@ export function buildPlacementOptions(input: PlacementOptionsInput): BaseSelectO
   if (input.containersEnabled) {
     const boxes = [...input.containers].sort((a, b) => {
       const diff = input.countOf(a.id) - input.countOf(b.id)
-      return diff !== 0 ? diff : a.code.localeCompare(b.code, 'ru')
+      return diff !== 0 ? diff : a.code.localeCompare(b.code, uiLocale())
     })
     for (const container of boxes) {
       const count = input.countOf(container.id)
@@ -46,8 +47,8 @@ export function buildPlacementOptions(input: PlacementOptionsInput): BaseSelectO
       // становилось не прочесть (09.09.2026).
       out.push({
         value: `${CONTAINER_PREFIX}${container.id}`,
-        label: `Бокс ${containerLabel(container, input.index)}`,
-        caption: count ? `${count} поз.` : 'пусто',
+        label: t('marketplaceStorage.placementOptions.boxOption', { containerLabel: containerLabel(container, input.index) }),
+        caption: count ? t('marketplaceStorage.placementOptions.positionsCount', { count }) : t('marketplaceStorage.placementOptions.emptyCaption'),
       })
     }
   }
@@ -56,8 +57,8 @@ export function buildPlacementOptions(input: PlacementOptionsInput): BaseSelectO
     for (const cell of input.cells) {
       out.push({
         value: `${CELL_PREFIX}${cell.id}`,
-        label: `Ячейка ${cell.code}`,
-        caption: 'негабарит',
+        label: t('marketplaceStorage.placementOptions.cellOption', { cellCode: cell.code }),
+        caption: t('marketplaceStorage.placementOptions.oversizedCaption'),
       })
     }
   }

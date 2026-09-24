@@ -8,8 +8,8 @@
         q-select(
           v-model='filters.statuses'
           :options='statusOptions'
-          label='Статус'
-          placeholder='без фильтра'
+          :label='$t("chairman.approvalsPage.statusFilterLabel")'
+          :placeholder='$t("chairman.approvalsPage.statusFilterPlaceholder")'
           dense
           outlined
           color="primary"
@@ -34,6 +34,7 @@ import { ApprovalsTableWidget } from 'app/extensions/chairman/widgets/ApprovalsT
 import { useApprovalStore } from 'app/extensions/chairman/entities/Approval/model';
 
 import { Zeus } from '@coopenomics/sdk';
+import { t } from '../../../i18n';
 
 const approvalStore = useApprovalStore();
 const route = useRoute();
@@ -42,15 +43,15 @@ const loading = ref(false);
 
 // Фильтры
 const filters = ref({
-  statuses: { label: 'Ожидает', value: Zeus.ApprovalStatus.PENDING },
+  statuses: { label: t('chairman.approval.status.pending'), value: Zeus.ApprovalStatus.PENDING },
 });
 
 // Опции статусов
 const statusOptions = [
-  { label: 'Все статусы', value: null},
-  { label: 'Ожидает', value: Zeus.ApprovalStatus.PENDING},
-  { label: 'Одобрено', value: Zeus.ApprovalStatus.APPROVED},
-  { label: 'Отклонено', value: Zeus.ApprovalStatus.DECLINED},
+  { label: t('chairman.approvalsPage.allStatusesOption'), value: null},
+  { label: t('chairman.approval.status.pending'), value: Zeus.ApprovalStatus.PENDING},
+  { label: t('chairman.approval.status.approved'), value: Zeus.ApprovalStatus.APPROVED},
+  { label: t('chairman.approval.status.declined'), value: Zeus.ApprovalStatus.DECLINED},
 ];
 
 // Пагинация
@@ -88,7 +89,7 @@ const loadApprovals = async () => {
     pagination.value.rowsNumber = approvalStore.approvals?.totalCount || 0;
   } catch (error) {
     console.error('Ошибка загрузки одобрений:', error);
-    FailAlert('Ошибка загрузки одобрений');
+    FailAlert(t('chairman.approvalsPage.loadError'));
   } finally {
     loading.value = false;
   }

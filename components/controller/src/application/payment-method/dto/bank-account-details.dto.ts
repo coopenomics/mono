@@ -1,14 +1,15 @@
 import { ObjectType, Field } from '@nestjs/graphql';
+import { validationMessage } from '@coopenomics/extension-kit';
 import { IsNotEmpty, IsString } from 'class-validator';
 
 @ObjectType('BankAccountDetails')
 export class BankAccountDetailsDTO {
   @Field(() => String, { description: 'БИК банка' })
-  @IsNotEmpty({ message: 'БИК банка обязателен обязателен' })
+  @IsNotEmpty({ message: validationMessage('paymentMethod.bankAccountDetails.bikRequired') })
   bik: string;
 
   @Field(() => String, { description: 'Корреспондентский счет' })
-  @IsNotEmpty({ message: 'Корр. счет обязателен' })
+  @IsNotEmpty({ message: validationMessage('paymentMethod.bankAccountDetails.corrAccountRequired') })
   @IsString()
   corr: string;
 

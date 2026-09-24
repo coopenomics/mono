@@ -22,30 +22,30 @@ q-card(v-if='contributorStore.self' flat)
         .col-12.col-sm-6.q-pa-sm
           EditRatePerHourInput(@rate-updated="handleFieldUpdated")
 
-    .text-body2.text-grey-7.text-weight-bold.q-mb-lg.q-ml-md Взносы по ролям
+    .text-body2.text-grey-7.text-weight-bold.q-mb-lg.q-ml-md {{ $t('capital.contributorInfoWidget.contributionsByRoleTitle') }}
     // Общая сумма вкладов
     .row.q-mb-md
       .col-12
         ColorCard(color='purple').text-center
-          .card-label Сумма взносов
+          .card-label {{ $t('capital.contributorInfoWidget.totalContributionLabel') }}
           .card-value {{ totalContributions }}
 
     .row
         .col-6.col-sm-4.col-md-3.col-lg-2.q-pa-sm
           ColorCard(color='green')
-            .card-label.text-center Инвестор
+            .card-label.text-center {{ $t('capital.contributorInfoWidget.investorRole') }}
             .card-value {{ formattedInvestor }}
         .col-6.col-sm-4.col-md-3.col-lg-2.q-pa-sm
           ColorCard(color='green')
-            .card-label.text-center Исполнитель
+            .card-label.text-center {{ $t('capital.contributorInfoWidget.performerRole') }}
             .card-value {{ formattedCreator }}
         .col-6.col-sm-4.col-md-3.col-lg-2.q-pa-sm
           ColorCard(color='green')
-            .card-label.text-center Соавтор
+            .card-label.text-center {{ $t('capital.contributorInfoWidget.coauthorRole') }}
             .card-value {{ formattedAuthor }}
         .col-6.col-sm-4.col-md-3.col-lg-2.q-pa-sm
           ColorCard(color='green')
-            .card-label.text-center Координатор
+            .card-label.text-center {{ $t('capital.contributorInfoWidget.coordinatorRole') }}
             .card-value {{ formattedCoordinator }}
         //- .col-6.col-sm-4.col-md-3.col-lg-2
         //-   ColorCard(color='green')

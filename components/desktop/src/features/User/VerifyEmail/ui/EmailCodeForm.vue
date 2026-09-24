@@ -3,12 +3,12 @@
 //- профиле и в призыве кабинета. Отличается только то, что вокруг неё.
 .email-code
   p.email-code__lead(v-if='sent')
-    | Код отправлен на
+    | {{ $t('user.emailCodeForm.sentTo') }}
     |
     strong {{ email }}
-    | . Введите шесть цифр из письма.
+    | {{ $t('user.emailCodeForm.enterDigitsSuffix') }}
   p.email-code__lead(v-else)
-    | Отправляем код на
+    | {{ $t('user.emailCodeForm.sendingTo') }}
     |
     strong {{ email }}
     | …
@@ -29,7 +29,7 @@
       :loading='sending',
       :disabled='!canResend || confirming',
       @click='send'
-    ) {{ canResend ? 'Отправить код повторно' : `Отправить повторно через ${cooldown} с` }}
+    ) {{ canResend ? $t('user.emailCodeForm.resend') : $t(`user.emailCodeForm.resendCooldown`, { cooldown }) }}
 
     BaseButton(
       v-if='changeable',
@@ -37,7 +37,7 @@
       size='sm',
       :disabled='confirming',
       @click='onChangeEmail'
-    ) Изменить адрес
+    ) {{ $t('user.emailCodeForm.changeEmail') }}
 
   BaseButton(
     variant='primary',
@@ -45,7 +45,7 @@
     :disabled='code.length !== EMAIL_CODE_LENGTH || !sent',
     block,
     @click='onConfirm'
-  ) Подтвердить почту
+  ) {{ $t('user.emailCodeForm.confirm') }}
 </template>
 
 <script lang="ts" setup>

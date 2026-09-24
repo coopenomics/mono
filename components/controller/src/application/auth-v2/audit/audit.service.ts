@@ -31,6 +31,7 @@ export function assertContextHasNoSecrets(context: Record<string, unknown>, path
   for (const [key, value] of Object.entries(context)) {
     const lower = key.toLowerCase();
     if (SECRET_KEY_PATTERNS.some((p) => lower.includes(p)))
+      // i18n-ignore: внутренняя проверка audit-записи на утечку секрета, не пользовательский сценарий
       throw new Error(`AuditService: ключ «${path}${key}» похож на секрет — запись в audit_events запрещена`);
     if (value && typeof value === 'object' && !Array.isArray(value))
       assertContextHasNoSecrets(value as Record<string, unknown>, `${path}${key}.`);

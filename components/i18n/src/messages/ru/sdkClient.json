@@ -1,0 +1,43 @@
+{
+  "sdkClient": {
+    "error": {
+      "abiNotFound": "ABI для аккаунта \"{account}\" не найден.",
+      "canvasNotSupported": "Canvas не поддерживается",
+      "cryptoNotSupported": "Криптографические функции не поддерживаются в этом окружении",
+      "docHashMismatch": "Хэш документа не совпадает с существующим подписанным документом: {existingHash} !== {newHash}",
+      "documentNoSignatures": "Документ не содержит подписей",
+      "invalidSignature": "Недействительная подпись от {signer} с ID {signatureId}",
+      "invalidSigners": "Недействительные подписи от следующих пользователей: {signers}",
+      "keyNotSet": "Ключ не установлен, выполните вызов метода setWif перед подписью документа",
+      "metaHashMismatch": "Хэш метаданных не совпадает с существующим подписанным документом: {existingHash} !== {newHash}",
+      "metaNotSerializable": "JCS: значение meta не сериализуемо (undefined/function/symbol)",
+      "missingSigners": "Отсутствуют подписи от следующих пользователей: {signers}",
+      "requiredSignersEmpty": "Список требуемых подписантов не может быть пустым",
+      "sessionNotInitialized": "Сессия не инициализирована.",
+      "signatureAlreadyExists": "Подпись с ID {signatureId} уже существует",
+      "signatureVerificationFailed": "Ошибка проверки подписи",
+      "signerSignatureNotFound": "Подпись от пользователя {signer} не найдена",
+      "unknownAlgorithmVersion": "Неизвестная версия алгоритма: {version}",
+      "voteKeyNotSet": "Ключ не установлен, выполните вызов метода setWif перед подписью голоса",
+      "wifUsernameRequiredTogether": "wif и username должны быть указаны одновременно"
+    },
+    "patterns": {
+      "dateDdMmYyyy": "Дата — DD.MM.YYYY",
+      "inn": "ИНН — 10 или 12 цифр",
+      "innFl": "ИНН физлица — 12 цифр",
+      "innUl": "ИНН ЮЛ — 10 цифр",
+      "kbk": "КБК — 20 цифр",
+      "kpp": "КПП — 4 цифры + 2 [0-9A-Z] + 3 цифры",
+      "length": "Длина {min}..{max} символов",
+      "ogrn": "ОГРН — 13 цифр, ОГРНИП — 15",
+      "okfs": "ОКФС — 1-3 цифры",
+      "okopf": "ОКОПФ — 5 цифр",
+      "okpo": "ОКПО — 8 или 10 цифр",
+      "oktmo": "ОКТМО — 8 или 11 цифр",
+      "okved": "ОКВЭД — XX / XX.X / XX.XX / XX.XX.X / XX.XX.XX",
+      "pfrRegNumber": "Рег. номер ПФР — XXX-XXX-XXXXXX",
+      "sfrRegNumber": "Рег. номер СФР — 10 цифр",
+      "snils": "СНИЛС — XXX-XXX-XXX YY или 11 цифр"
+    }
+  }
+}

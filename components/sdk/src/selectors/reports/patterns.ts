@@ -1,3 +1,4 @@
+import { lt } from '@coopenomics/i18n'
 /**
  * Regex-паттерны реквизитов ФНС/СФР для frontend-валидации.
  *
@@ -9,52 +10,52 @@
  */
 
 /** ИНН: 10 (ЮЛ) или 12 (ФЛ/ИП) цифр. */
-export const INN_PATTERN = /^(\d{10}|\d{12})$/;
+export const INN_PATTERN = /^(\d{10}|\d{12})$/
 
 /** ИНН юрлица (БУХОТЧ, ЕФС-1 УТ8). */
-export const INN_UL_PATTERN = /^\d{10}$/;
+export const INN_UL_PATTERN = /^\d{10}$/
 
 /** ИНН физлица (ПСВ ПерсСвФЛ @ИННФЛ). */
-export const INN_FL_PATTERN = /^\d{12}$/;
+export const INN_FL_PATTERN = /^\d{12}$/
 
 /** КПП: 9 символов — 4 цифры + 2 [0-9A-Z] + 3 цифры. */
-export const KPP_PATTERN = /^\d{4}[0-9A-Z]{2}\d{3}$/;
+export const KPP_PATTERN = /^\d{4}[0-9A-Z]{2}\d{3}$/
 
 /** ОГРН ЮЛ (13), ОГРНИП (15). */
-export const OGRN_PATTERN = /^(\d{13}|\d{15})$/;
+export const OGRN_PATTERN = /^(\d{13}|\d{15})$/
 
 /** ОГРН только ЮЛ: ровно 13 цифр. */
-export const OGRN_UL_PATTERN = /^\d{13}$/;
+export const OGRN_UL_PATTERN = /^\d{13}$/
 
 /** ОКВЭД: XX, XX.X, XX.XX, XX.XX.X, XX.XX.XX. */
-export const OKVED_PATTERN = /^\d{2}(\.\d{1,2}){0,2}$/;
+export const OKVED_PATTERN = /^\d{2}(\.\d{1,2}){0,2}$/
 
 /** ОКТМО: 8 или 11 цифр. */
-export const OKTMO_PATTERN = /^\d{8}(\d{3})?$/;
+export const OKTMO_PATTERN = /^\d{8}(\d{3})?$/
 
 /** ОКФС: 1-3 цифры. */
-export const OKFS_PATTERN = /^\d{1,3}$/;
+export const OKFS_PATTERN = /^\d{1,3}$/
 
 /** ОКОПФ: 5 цифр (ОК 011-2014). */
-export const OKOPF_PATTERN = /^\d{5}$/;
+export const OKOPF_PATTERN = /^\d{5}$/
 
 /** ОКПО: 8 (ЮЛ) или 10 (ИП) цифр. */
-export const OKPO_PATTERN = /^\d{8}(\d{2})?$/;
+export const OKPO_PATTERN = /^\d{8}(\d{2})?$/
 
 /** СНИЛС: XXX-XXX-XXX YY или 11 цифр подряд. */
-export const SNILS_PATTERN = /^(\d{3}-\d{3}-\d{3} \d{2}|\d{11})$/;
+export const SNILS_PATTERN = /^(\d{3}-\d{3}-\d{3} \d{2}|\d{11})$/
 
 /** Регистрационный номер страхователя в СФР: 10 цифр без разделителей (унифицированный номер). */
-export const SFR_REG_NUMBER_PATTERN = /^\d{10}$/;
+export const SFR_REG_NUMBER_PATTERN = /^\d{10}$/
 
 /** Регистрационный номер страхователя в ПФР: XXX-XXX-XXXXXX (3-3-6, 12 цифр с тире) — отдельное поле от SFR_REG_NUMBER_PATTERN, требуется для ЕФС-1. */
-export const PFR_REG_NUMBER_PATTERN = /^\d{3}-\d{3}-\d{6}$/;
+export const PFR_REG_NUMBER_PATTERN = /^\d{3}-\d{3}-\d{6}$/
 
 /** Дата в формате DD.MM.YYYY (ФНС). */
-export const DATE_DDMMYYYY_PATTERN = /^\d{2}\.\d{2}\.\d{4}$/;
+export const DATE_DDMMYYYY_PATTERN = /^\d{2}\.\d{2}\.\d{4}$/
 
 /** КБК — 20 цифр (налоговый/страховой код бюджетной классификации). */
-export const KBK_PATTERN = /^\d{20}$/;
+export const KBK_PATTERN = /^\d{20}$/
 
 /**
  * Удобный shorthand: готовые Quasar-совместимые rules-функции.
@@ -66,37 +67,38 @@ export const KBK_PATTERN = /^\d{20}$/;
  * ```
  */
 export const reportRules = {
-  inn: (message = 'ИНН — 10 или 12 цифр') => (v: unknown) => INN_PATTERN.test(String(v ?? '')) || message,
-  innUl: (message = 'ИНН ЮЛ — 10 цифр') => (v: unknown) => INN_UL_PATTERN.test(String(v ?? '')) || message,
-  innFl: (message = 'ИНН физлица — 12 цифр') => (v: unknown) => INN_FL_PATTERN.test(String(v ?? '')) || message,
-  kpp: (message = 'КПП — 4 цифры + 2 [0-9A-Z] + 3 цифры') => (v: unknown) => KPP_PATTERN.test(String(v ?? '')) || message,
-  ogrn: (message = 'ОГРН — 13 цифр, ОГРНИП — 15') => (v: unknown) => OGRN_PATTERN.test(String(v ?? '')) || message,
-  okved: (message = 'ОКВЭД — XX / XX.X / XX.XX / XX.XX.X / XX.XX.XX') => (v: unknown) => OKVED_PATTERN.test(String(v ?? '')) || message,
-  oktmo: (message = 'ОКТМО — 8 или 11 цифр') => (v: unknown) => OKTMO_PATTERN.test(String(v ?? '')) || message,
-  okfs: (message = 'ОКФС — 1-3 цифры') => (v: unknown) => OKFS_PATTERN.test(String(v ?? '')) || message,
-  okopf: (message = 'ОКОПФ — 5 цифр') => (v: unknown) => OKOPF_PATTERN.test(String(v ?? '')) || message,
-  okpo: (message = 'ОКПО — 8 или 10 цифр') => (v: unknown) => OKPO_PATTERN.test(String(v ?? '')) || message,
-  snils: (message = 'СНИЛС — XXX-XXX-XXX YY или 11 цифр') => (v: unknown) => SNILS_PATTERN.test(String(v ?? '')) || message,
-  sfrRegNumber: (message = 'Рег. номер СФР — 10 цифр') => (v: unknown) => SFR_REG_NUMBER_PATTERN.test(String(v ?? '')) || message,
-  pfrRegNumber: (message = 'Рег. номер ПФР — XXX-XXX-XXXXXX') => (v: unknown) => PFR_REG_NUMBER_PATTERN.test(String(v ?? '')) || message,
-  dateDdMmYyyy: (message = 'Дата — DD.MM.YYYY') => (v: unknown) => DATE_DDMMYYYY_PATTERN.test(String(v ?? '')) || message,
-  kbk: (message = 'КБК — 20 цифр') => (v: unknown) => KBK_PATTERN.test(String(v ?? '')) || message,
+  inn: (message = lt('sdkClient.patterns.inn')) => (v: unknown) => INN_PATTERN.test(String(v ?? '')) || message,
+  innUl: (message = lt('sdkClient.patterns.innUl')) => (v: unknown) => INN_UL_PATTERN.test(String(v ?? '')) || message,
+  innFl: (message = lt('sdkClient.patterns.innFl')) => (v: unknown) => INN_FL_PATTERN.test(String(v ?? '')) || message,
+  kpp: (message = lt('sdkClient.patterns.kpp')) => (v: unknown) => KPP_PATTERN.test(String(v ?? '')) || message,
+  ogrn: (message = lt('sdkClient.patterns.ogrn')) => (v: unknown) => OGRN_PATTERN.test(String(v ?? '')) || message,
+  okved: (message = lt('sdkClient.patterns.okved')) => (v: unknown) => OKVED_PATTERN.test(String(v ?? '')) || message,
+  oktmo: (message = lt('sdkClient.patterns.oktmo')) => (v: unknown) => OKTMO_PATTERN.test(String(v ?? '')) || message,
+  okfs: (message = lt('sdkClient.patterns.okfs')) => (v: unknown) => OKFS_PATTERN.test(String(v ?? '')) || message,
+  okopf: (message = lt('sdkClient.patterns.okopf')) => (v: unknown) => OKOPF_PATTERN.test(String(v ?? '')) || message,
+  okpo: (message = lt('sdkClient.patterns.okpo')) => (v: unknown) => OKPO_PATTERN.test(String(v ?? '')) || message,
+  snils: (message = lt('sdkClient.patterns.snils')) => (v: unknown) => SNILS_PATTERN.test(String(v ?? '')) || message,
+  sfrRegNumber: (message = lt('sdkClient.patterns.sfrRegNumber')) => (v: unknown) => SFR_REG_NUMBER_PATTERN.test(String(v ?? '')) || message,
+  pfrRegNumber: (message = lt('sdkClient.patterns.pfrRegNumber')) => (v: unknown) => PFR_REG_NUMBER_PATTERN.test(String(v ?? '')) || message,
+  dateDdMmYyyy: (message = lt('sdkClient.patterns.dateDdMmYyyy')) => (v: unknown) => DATE_DDMMYYYY_PATTERN.test(String(v ?? '')) || message,
+  kbk: (message = lt('sdkClient.patterns.kbk')) => (v: unknown) => KBK_PATTERN.test(String(v ?? '')) || message,
   /** Непустая строка длиной от `min` до `max` символов. */
   length:
     (min: number, max: number, message?: string) =>
-    (v: unknown) => {
-      const s = String(v ?? '');
-      if (s.length < min || s.length > max) {
-        return message ?? `Длина ${min}..${max} символов`;
-      }
-      return true;
-    },
+      (v: unknown) => {
+        const s = String(v ?? '')
+        if (s.length < min || s.length > max) {
+          return message ?? lt('sdkClient.patterns.length', { min, max })
+        }
+        return true
+      },
   /** Опциональное поле: пустое значение проходит, иначе — проверка regex. */
   optionalRegex:
     (pattern: RegExp, message: string) =>
-    (v: unknown) => {
-      const s = String(v ?? '');
-      if (!s) return true;
-      return pattern.test(s) || message;
-    },
-};
+      (v: unknown) => {
+        const s = String(v ?? '')
+        if (!s)
+          return true
+        return pattern.test(s) || message
+      },
+}

@@ -4,8 +4,8 @@ q-form(ref="form")
     dense
     v-model="data.data.bank_name"
     standout="bg-teal text-white"
-    label="Наименование банка"
-    placeholder="ПАО Сбербанк"
+    :label="$t('bankDetailsCard.bankDetailsCard.bankNameLabel')"
+    :placeholder="$t('bankDetailsCard.bankDetailsCard.bankNamePlaceholder')"
     :rules="[val => notEmpty(val)]"
     autocomplete="off"
   )
@@ -14,9 +14,9 @@ q-form(ref="form")
     v-model="data.data.details.corr"
     standout="bg-teal text-white"
     mask="####################"
-    label="Корреспондентский счет"
-    placeholder="20 цифр"
-    :rules="[val => notEmpty(val), val => val.length === 20 || 'Корреспондентский счет должен содержать 20 цифр']"
+    :label="$t('bankDetailsCard.bankDetailsCard.corrAccountLabel')"
+    :placeholder="$t('bankDetailsCard.bankDetailsCard.placeholder20Digits')"
+    :rules="[val => notEmpty(val), val => val.length === 20 || $t('bankDetailsCard.bankDetailsCard.corrAccountLengthError')]"
     autocomplete="off"
   )
   q-input(
@@ -24,9 +24,9 @@ q-form(ref="form")
     v-model="data.data.details.bik"
     standout="bg-teal text-white"
     mask="#########"
-    label="БИК"
-    placeholder="9 цифр"
-    :rules="[val => notEmpty(val), val => val.length === 9 || 'БИК должен содержать 9 цифр']"
+    :label="$t('bankDetailsCard.bankDetailsCard.bikLabel')"
+    :placeholder="$t('bankDetailsCard.bankDetailsCard.placeholder9Digits')"
+    :rules="[val => notEmpty(val), val => val.length === 9 || $t('bankDetailsCard.bankDetailsCard.bikLengthError')]"
     autocomplete="off"
   )
   q-input(
@@ -34,15 +34,15 @@ q-form(ref="form")
     v-model="data.data.account_number"
     standout="bg-teal text-white"
     mask="####################"
-    label="Номер счета"
-    placeholder="20 цифр"
-    :rules="[val => notEmpty(val), val => val.length === 20 || 'Номер счета должен содержать 20 цифр']"
+    :label="$t('bankDetailsCard.bankDetailsCard.accountNumberLabel')"
+    :placeholder="$t('bankDetailsCard.bankDetailsCard.placeholder20Digits')"
+    :rules="[val => notEmpty(val), val => val.length === 20 || $t('bankDetailsCard.bankDetailsCard.accountNumberLengthError')]"
     autocomplete="off"
   )
   q-select(
     dense
     v-model="data.data.currency"
-    label="Валюта счёта"
+    :label="$t('bankDetailsCard.bankDetailsCard.currencyLabel')"
     standout="bg-teal text-white"
     :options="[{ label: 'RUB', value: 'RUB' }]"
     emit-value

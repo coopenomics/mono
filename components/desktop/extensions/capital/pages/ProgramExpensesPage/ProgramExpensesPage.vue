@@ -14,8 +14,8 @@ q-page.program-expenses-page(v-else)
       no-wrap
     )
       q-icon(name='add')
-      span.q-ml-sm(v-if='!isMobile') Создать расход
-      q-tooltip(v-if='isMobile') Создать расход
+      span.q-ml-sm(v-if='!isMobile') {{ $t('capital.programExpensesPage.createLabel') }}
+      q-tooltip(v-if='isMobile') {{ $t('capital.programExpensesPage.createLabel') }}
     q-btn(
       @click='openTopup',
       color='primary',
@@ -25,16 +25,16 @@ q-page.program-expenses-page(v-else)
       no-wrap
     )
       q-icon(name='account_balance_wallet')
-      span.q-ml-sm(v-if='!isMobile') Пополнить пул
-      q-tooltip(v-if='isMobile') Пополнить пул
+      span.q-ml-sm(v-if='!isMobile') {{ $t('capital.programExpensesPage.replenishLabel') }}
+      q-tooltip(v-if='isMobile') {{ $t('capital.programExpensesPage.replenishLabel') }}
 
   .pools.row.q-col-gutter-md
     .col-12.col-md-6
       WalletCard(
         neutral,
-        title='Инвест-пул',
-        subtitle='Источник пополнения',
-        balance-label='Доступно к распределению',
+        :title='$t("capital.programExpensesPage.investPoolTitle")',
+        :subtitle='$t("capital.programExpensesPage.investPoolSubtitle")',
+        :balance-label='$t("capital.programExpensesPage.investPoolBalanceLabel")',
         :balance='globalPool.amount',
         :symbol='globalPool.symbol',
         icon='savings',
@@ -43,9 +43,9 @@ q-page.program-expenses-page(v-else)
     .col-12.col-md-6
       WalletCard(
         program='blagorost',
-        title='Пул расходов',
-        subtitle='Кошелёк, с которого оплачиваются программные расходы',
-        balance-label='Доступно',
+        :title='$t("capital.programExpensesPage.expensePoolTitle")',
+        :subtitle='$t("capital.programExpensesPage.expensePoolSubtitle")',
+        :balance-label='$t("capital.programExpensesPage.expensePoolBalanceLabel")',
         :balance='expensePool.amount',
         :symbol='expensePool.symbol',
         icon='receipt_long',
@@ -56,7 +56,7 @@ q-page.program-expenses-page(v-else)
   ExpenseProposalList(
     :rows='listRows',
     :loading='loading',
-    empty-title='Программных расходов пока нет',
+    :empty-title='$t("capital.programExpensesPage.emptyTitle")',
     @open='openExpense'
   )
 

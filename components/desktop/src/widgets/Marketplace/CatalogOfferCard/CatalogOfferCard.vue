@@ -28,7 +28,7 @@
 
       <div v-if="offer.coopStock" class="mp-catalog-offer-card__supplier">
         <q-icon name="warehouse" size="13px" />
-        <span>Со склада кооператива — выдача сразу</span>
+        <span>{{ $t('marketplace.catalogOfferCard.fromStockBadge') }}</span>
       </div>
       <div v-else-if="offer.supplierName" class="mp-catalog-offer-card__supplier">
         <q-icon name="storefront" size="13px" />
@@ -59,8 +59,7 @@
             {{ formatPrice(row.price) }}<template v-if="row.remain"> · {{ row.remain }}</template>
           </span>
         </li>
-        <li v-if="hiddenPackages" class="mp-catalog-offer-card__package mp-catalog-offer-card__package--more">
-          и ещё {{ hiddenPackages }} {{ hiddenPackages === 1 ? 'упаковка' : 'упаковки' }}
+        <li v-if="hiddenPackages" class="mp-catalog-offer-card__package mp-catalog-offer-card__package--more"> {{ $t('marketplace.catalogOfferCard.andMoreText') }} {{ hiddenPackages }} {{ hiddenPackages === 1 ? $t('marketplace.catalogOfferCard.packageUnitSingular') : $t('marketplace.catalogOfferCard.packageUnitFew') }}
         </li>
       </ul>
 
@@ -69,8 +68,7 @@
       </div>
 
       <!-- На столе поставщика/админа: своя цена сверху, ниже — сколько заплатит пайщик. -->
-      <div v-if="hasFee && showFeeNote" class="mp-catalog-offer-card__fee-note">
-        Цена для заказчика {{ formatPrice(unitCostWithFee) }}
+      <div v-if="hasFee && showFeeNote" class="mp-catalog-offer-card__fee-note"> {{ $t('marketplace.catalogOfferCard.priceForOrdererLabel') }} {{ formatPrice(unitCostWithFee) }}
         <span class="mp-catalog-offer-card__unit">/ {{ unitLabel }}</span>
       </div>
 
@@ -94,6 +92,7 @@
 
 <script setup lang="ts">
 import { computed, type PropType } from 'vue'
+import { uiLocale, t } from 'src/shared/i18n';
 import { OfferGallery } from 'src/widgets/Marketplace/OfferGallery'
 import { applyMembershipFee } from 'src/shared/lib/marketplace'
 import type { CatalogOfferStatus, CatalogOffer } from './CatalogOfferCard.types'
@@ -123,19 +122,19 @@ const images = computed<string[]>(() => {
   if (props.offer.images?.length) return props.offer.images
   return props.offer.preview ? [props.offer.preview] : []
 })
-const unitLabel = computed(() => props.offer.unitLabel ?? 'ед.')
+const unitLabel = computed(() => props.offer.unitLabel ?? t('marketplace.catalogOfferCard.unitShort'))
 const status = computed(() => props.offer.status)
 
 type StatusKind = 'info' | 'success' | 'warning' | 'error' | 'neutral'
 
 const STATUS_MAP: Record<CatalogOfferStatus, { label: string; kind: StatusKind }> = {
-  draft:      { label: 'Черновик',      kind: 'neutral' },
-  moderation: { label: 'На модерации',  kind: 'warning' },
-  published:  { label: 'Опубликовано',  kind: 'success' },
-  paused:     { label: 'Приостановлено', kind: 'warning' },
-  'sold-out': { label: 'Закончилось',   kind: 'neutral' },
-  completed:  { label: 'Завершено',     kind: 'neutral' },
-  withdrawn:  { label: 'Снято с публикации', kind: 'neutral' },
+  draft:      { label: t('marketplace.catalogOfferCard.statusDraft'),      kind: 'neutral' },
+  moderation: { label: t('marketplace.catalogOfferCard.statusModeration'),  kind: 'warning' },
+  published:  { label: t('marketplace.catalogOfferCard.statusPublished'),  kind: 'success' },
+  paused:     { label: t('marketplace.catalogOfferCard.statusPaused'), kind: 'warning' },
+  'sold-out': { label: t('marketplace.catalogOfferCard.statusSoldOut'),   kind: 'neutral' },
+  completed:  { label: t('marketplace.catalogOfferCard.statusCompleted'),     kind: 'neutral' },
+  withdrawn:  { label: t('marketplace.catalogOfferCard.statusUnpublished'), kind: 'neutral' },
 }
 
 const statusLabel = computed(() => (status.value ? STATUS_MAP[status.value].label : ''))
@@ -159,9 +158,9 @@ const shortDescription = computed(() => {
 const isUnlimited = computed(() => props.offer.remainUnits == null)
 const isEmpty = computed(() => !isUnlimited.value && (props.offer.remainUnits ?? 0) <= 0)
 const stockLabel = computed(() => {
-  if (isUnlimited.value) return 'Без ограничений'
+  if (isUnlimited.value) return t('marketplace.catalogOfferCard.noLimitLabel')
   return isEmpty.value
-    ? 'Нет в наличии'
+    ? t('marketplace.catalogOfferCard.outOfStockLabel')
     : `${props.offer.remainUnits} ${unitLabel.value}`
 })
 
@@ -201,7 +200,7 @@ const packageRows = computed(() =>
     price: hasFee.value && !props.showFeeNote
       ? applyMembershipFee(Number(p.price), props.feePercent)
       : p.price,
-    remain: p.remain == null ? 'без ограничения' : `${p.remain} упак.`,
+    remain: p.remain == null ? t('marketplace.catalogOfferCard.noLimitInlineLabel') : t('marketplace.catalogOfferCard.remainingPackages', { count: p.remain }),
   })),
 )
 
@@ -217,7 +216,7 @@ const hiddenPackages = computed(() => Math.max(0, packageRows.value.length - PAC
 function formatPrice(v: number | string) {
   const n = typeof v === 'number' ? v : Number(v)
   if (Number.isNaN(n)) return String(v)
-  return new Intl.NumberFormat('ru-RU', { minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(n) + ' ₽'
+  return new Intl.NumberFormat(uiLocale(), { minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(n) + ' ₽'
 }
 
 function onClick() {

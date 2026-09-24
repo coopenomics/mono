@@ -156,6 +156,7 @@ export class ReportEditsBuilderService {
     return {
       header: {
         idFile: this.generateBuhotchFileName(inn, kpp),
+        // i18n-ignore: официальная форма — значение поля ВерсПрог/programVersion в XSD
         programVersion: 'Платформа отчётности кооператива 1.0',
         docDate: formatDate(new Date()),
         reportYear: year,
@@ -216,6 +217,7 @@ export class ReportEditsBuilderService {
           merged.kpp.value ?? '',
           merged.pfrRegNumber.value,
         ),
+        // i18n-ignore: официальная форма — значение поля ВерсПрог/programVersion в XSD
         versProgram: 'Платформа отчётности кооператива 1.0',
         docDate: formatDate(new Date()),
         reportYear: year,
@@ -327,6 +329,7 @@ export class ReportEditsBuilderService {
       // сверяют этот сегмент со своим профилем организации и отклоняют файл,
       // если он не совпадает ни с известным им номером ПФР, ни с номером
       // СФР. См. также <ЕФС8:РегНомер> в fss4.generator.ts — то же значение.
+      // i18n-ignore: техническое имя файла отчёта, не текст интерфейса
       return `СФР_${pfrRegNumber || '0000000000'}_ЕФС-1_${dateStr}_${uuid}`;
     }
     return `${prefix}_${tax}_${tax}_${unit}_${dateStr}_${uuid}`;

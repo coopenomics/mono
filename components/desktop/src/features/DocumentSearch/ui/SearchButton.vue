@@ -7,7 +7,7 @@ q-btn(
   icon='search'
   @click='showSearch = true'
 )
-  q-tooltip Поиск по документам
+  q-tooltip {{ $t('documentSearch.searchButton.tooltip') }}
 
 DocumentSearchDialog(v-model='showSearch')
 </template>

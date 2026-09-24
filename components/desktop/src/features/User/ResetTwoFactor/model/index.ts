@@ -2,6 +2,7 @@ import { ref } from 'vue';
 import type { Queries } from '@coopenomics/sdk';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { api } from '../api';
+import { t } from 'src/shared/i18n';
 
 /** Состояние подтверждения входа у пайщика — тип из SDK end-to-end. */
 export type IParticipantLoginSecurity =
@@ -34,8 +35,8 @@ export function useResetTwoFactor() {
       const wasReset = await api.resetParticipantTwoFactor(username);
       SuccessAlert(
         wasReset
-          ? 'Приложение-аутентификатор снято. Пайщик войдёт по паролю и подключит его заново'
-          : 'У пайщика приложение-аутентификатор не подключено',
+          ? t('user.resetTwoFactor.resetSuccess')
+          : t('user.resetTwoFactor.notEnrolled'),
       );
       await load(username);
       return wasReset;

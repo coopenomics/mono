@@ -5,7 +5,7 @@
  * введённую пайщиком сумму, а не сбой сервера: наружу уходит понятный отказ 400,
  * запись о платеже не создаётся. Прочие ошибки цепи пробрасываются как были.
  */
-import { HttpApiError } from '@coopenomics/extension-kit';
+import { DomainError } from '@coopenomics/extension-kit';
 
 jest.mock('~/infrastructure/generator/generator.service', () => ({
   GeneratorInfrastructureService: class {},
@@ -49,7 +49,7 @@ describe('WalletInteractor.createWithdraw — сумма больше остат
 
     const failure = await interactor.createWithdraw(input as never).catch((e) => e);
 
-    expect(failure).toBeInstanceOf(HttpApiError);
+    expect(failure).toBeInstanceOf(DomainError);
     expect(failure.getStatus()).toBe(400);
     expect(failure.message).toMatch(/больше доступного остатка/);
     expect(gateway.persistWithdraw).not.toHaveBeenCalled();

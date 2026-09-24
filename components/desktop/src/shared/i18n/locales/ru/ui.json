@@ -1,0 +1,646 @@
+{
+  "ui": {
+    "accountBadge": {
+      "copiedText": "Скопировано",
+      "copyAriaLabel": "Скопировать имя аккаунта",
+      "copyErrorText": "Не удалось скопировать"
+    },
+    "activityTimeline": {
+      "todayLabel": "Сегодня",
+      "yesterdayLabel": "Вчера"
+    },
+    "amountInput": {
+      "balanceLabel": "Баланс:",
+      "maxLabel": "макс"
+    },
+    "appDrawer": {
+      "cooperativeLabel": "Кооператив",
+      "findLabel": "Найти",
+      "navAriaLabel": "Главная навигация"
+    },
+    "appHeader": {
+      "menuAriaLabel": "Меню"
+    },
+    "authSplit": {
+      "stepText": "Шаг {step} из {total}"
+    },
+    "autoSaveIndicator": {
+      "error": "Ошибка сохранения",
+      "saving": "Авто-сохранение..."
+    },
+    "axonWalletDisplay": {
+      "availableLabel": "Доступно",
+      "description": "AXON используется для оплаты пакетов документов. Минимально 5 AXON в день, по факту - от использования.",
+      "title": "Кошелек AXON"
+    },
+    "bank": {
+      "accountNumberLabel": "Номер счёта",
+      "amountLabel": "Сумма",
+      "bankNameLabel": "Банк получателя",
+      "bikLabel": "БИК",
+      "copiedText": "Скопировано в буфер обмена",
+      "copyAllLabel": "Скопировать всё",
+      "corrAccountLabel": "Корреспондентский счёт",
+      "detailsCopyText": "\nИНН Получателя: {payeeInn}\nПолучатель: {recipientName}\nБИК: {bic}\nБанк получателя: {bankName}\nКПП: {kpp}\nКорреспондентский счёт: {corrAccount}\nНомер счёта: {accountNumber}\nСумма платежа: {amount}\nНазначение платежа: {purpose}\n  ",
+      "downloadQrLabel": "Скачать QR",
+      "kppLabel": "КПП",
+      "payeeInnLabel": "ИНН получателя",
+      "paymentAmountLabel": "Сумма платежа",
+      "paymentPurposeLabel": "Назначение платежа",
+      "purposeShortLabel": "Назначение",
+      "recipientLabel": "Получатель",
+      "showDetailsLabel": "Показать реквизиты",
+      "showQrLabel": "Показать QR"
+    },
+    "baseDocument": {
+      "archiveError": "Не удалось подготовить архив документа",
+      "compareFailText": "Сверка прошла безуспешно: аналогичный документ невозможно получить из исходных данных",
+      "compareSuccessText": "Сверка прошла успешно: аналогичный документ восстановлен из исходных данных",
+      "generatingLabel": "Формируем документ{titleSuffix}…",
+      "unknownSigner": "Неизвестный подписант"
+    },
+    "blockchainStatusBar": {
+      "blockNumberLabel": "блок №",
+      "noConnectionBottom": "соединения",
+      "noConnectionTop": "нет"
+    },
+    "branchSelector": {
+      "label": "Кооперативный участок"
+    },
+    "cardListSkeleton": {
+      "loadingLabel": "Загрузка данных"
+    },
+    "commandPalette": {
+      "activeLabel": "Активный",
+      "closeHint": "для закрытия",
+      "emptyBody": "Попробуйте другой запрос",
+      "emptyTitle": "Ничего не найдено",
+      "navigateHint": "для навигации",
+      "searchAriaLabel": "Поиск рабочих столов и страниц",
+      "searchPlaceholder": "Поиск рабочих столов и страниц…",
+      "selectHint": "для выбора",
+      "workspaceKeyword": "стол"
+    },
+    "complexDocument": {
+      "decisionLabel": "Решение",
+      "documentLabel": "Документ",
+      "statementLabel": "Заявление"
+    },
+    "contactSheet": {
+      "addressLabel": "Адрес",
+      "copiedText": "Скопировано",
+      "copyErrorText": "Не удалось скопировать",
+      "copyValueAriaLabel": "Скопировать значение",
+      "phoneLabel": "Телефон",
+      "verifiedAriaLabel": "Подтверждённый контакт",
+      "websiteLabel": "Сайт"
+    },
+    "contacts": {
+      "privacyPolicyLabel": "Политика конфиденциальности",
+      "termsLabel": "Пользовательское соглашение"
+    },
+    "copyableInput": {
+      "copiedText": "Скопировано в буфер обмена",
+      "copyErrorText": "Не удалось скопировать"
+    },
+    "councilOnboardingCard": {
+      "agendaQuestionLabel": "Вопрос на повестке",
+      "announceButton": "Объявить",
+      "announceMeetLabel": "Объявить собрание совета",
+      "completedText": "Все необходимые документы утверждены.",
+      "completedTitle": "Онбординг завершен!",
+      "draftDecisionLabel": "Проект решения",
+      "expiredText": "Время истекло",
+      "loadingText": "Загрузка данных онбординга...",
+      "remainingDaysHours": "Осталось {days} дн. {hours} ч.",
+      "remainingHours": "Осталось {hours} ч.",
+      "subtitleText": "Адаптация к работе на платформе",
+      "waitingDecisionText": "Ожидаем решение совета"
+    },
+    "createEntrepreneurDataForm": {
+      "accountNumberError": "Номер счёта должен содержать 20 цифр",
+      "accountNumberLabel": "Номер счёта (20 цифр)",
+      "addressLabel": "Адрес регистрации (как в паспорте)",
+      "bankNameLabel": "Наименование банка",
+      "bikError": "БИК должен содержать 9 цифр",
+      "bikLabel": "БИК (9 цифр)",
+      "birthDateLabel": "Дата рождения (год/месяц/день)",
+      "cityLabel": "Город",
+      "corrAccountError": "Корреспондентский счёт должен содержать 20 цифр",
+      "corrAccountLabel": "Корреспондентский счёт (20 цифр)",
+      "countryLabel": "Страна",
+      "currencyLabel": "Валюта счёта",
+      "firstNameLabel": "Имя",
+      "innError": "ИНН должен содержать 10 или 12 цифр",
+      "innLabel": "ИНН предпринимателя (10 или 12 цифр)",
+      "lastNameLabel": "Фамилия",
+      "middleNameLabel": "Отчество",
+      "ogrnipError": "ОГРНИП должен содержать 13 или 15 цифр",
+      "ogrnipLabel": "ОГРНИП (13 или 15 цифр)",
+      "phoneLabel": "Номер телефона",
+      "russiaOptionLabel": "Россия"
+    },
+    "createIndividualDataForm": {
+      "addressLabel": "Адрес регистрации (как в паспорте)",
+      "birthDateLabel": "Дата рождения (год/месяц/день)",
+      "firstNameLabel": "Имя",
+      "lastNameLabel": "Фамилия",
+      "middleNameLabel": "Отчество",
+      "phoneLabel": "Номер телефона"
+    },
+    "createOrganizationDataForm": {
+      "accountNumberError": "Номер счета должен содержать 20 цифр",
+      "accountNumberLabel": "Номер счета (20 цифр)",
+      "actualAddressLabel": "Фактический адрес",
+      "bankNameLabel": "Наименование банка",
+      "bankNamePlaceholder": "ПАО Сбербанк",
+      "basisLabel": "Представитель действует на основании",
+      "basisPlaceholder": "решения общего собрания №... от ... г",
+      "bikError": "БИК должен содержать 9 цифр",
+      "bikLabel": "БИК (9 цифр)",
+      "cityLabel": "Город",
+      "corrAccountError": "Корреспондентский счет должен содержать 20 цифр",
+      "corrAccountLabel": "Корреспондентский счет (20 цифр)",
+      "countryLabel": "Страна",
+      "currencyLabel": "Валюта счёта",
+      "fullNameLabel": "Полное наименование организации",
+      "fullNamePlaceholder": "Потребительский Кооператив \"Ромашка\"",
+      "innError": "ИНН должен содержать 10 или 12 цифр",
+      "innLabel": "ИНН организации (10 или 12 цифр)",
+      "kppError": "КПП должен содержать 9 цифр",
+      "kppLabel": "КПП организации (9 цифр)",
+      "legalAddressLabel": "Юридический адрес регистрации",
+      "ogrnError": "ОГРН должен содержать 13 или 15 цифр",
+      "ogrnLabel": "ОГРН организации (13 или 15 цифр)",
+      "repFirstNameLabel": "Имя представителя",
+      "repLastNameLabel": "Фамилия представителя",
+      "repMiddleNameLabel": "Отчество представителя",
+      "repPhoneLabel": "Номер телефона представителя",
+      "repPositionLabel": "Должность представителя",
+      "repPositionPlaceholder": "Председатель совета",
+      "russiaOptionLabel": "Россия",
+      "sameAsLegalLabel": "совпадает",
+      "shortNameLabel": "Краткое наименование организации",
+      "shortNamePlaceholder": "ПК \"Ромашка\"",
+      "typeConsumerOption": "Потребительский Кооператив",
+      "typeLabel": "Выберите тип организации",
+      "typeLlcOption": "ООО",
+      "typeProductionOption": "Производственный Кооператив"
+    },
+    "dataRow": {
+      "copiedText": "Скопировано",
+      "copyErrorText": "Не удалось скопировать",
+      "copyValueAriaLabel": "Скопировать значение"
+    },
+    "descriptionSaveButtons": {
+      "cancelLabel": "Отменить"
+    },
+    "documentPreview": {
+      "loadErrorText": "Не удалось загрузить документ.",
+      "loadingText": "Загрузка документа…",
+      "pdfAltText": "PDF превью",
+      "unsupportedTypeText": "Превью для типа «{docType}» недоступно"
+    },
+    "documentRow": {
+      "status": {
+        "draft": "Черновик",
+        "pending": "Ожидает",
+        "rejected": "Отклонено",
+        "signed": "Подписано"
+      }
+    },
+    "documentSignatures": {
+      "checksumCheckingText": "Проверяем контрольную сумму…",
+      "checksumLabel": "Контрольная сумма",
+      "checksumMismatchText": "Локально пересчитанный хеш не совпадает",
+      "downloadLabel": "скачать",
+      "notVerifiedText": "Не верифицирована",
+      "publicKeyLabel": "Публичный ключ",
+      "signatureItemTitle": "Подпись {index}: {signerName}",
+      "signatureLabel": "Цифровая подпись",
+      "signaturesCountTitle": "Подписи ({count})",
+      "signerLabel": "Подписант",
+      "statusLabel": "Статус",
+      "unknownSigner": "неизвестный подписант",
+      "verifiedText": "Верифицирована",
+      "verifyLabel": "сверить"
+    },
+    "documentViewerDialog": {
+      "unavailableText": "Документ недоступен"
+    },
+    "editableActions": {
+      "cancelLabel": "Отменить"
+    },
+    "editableEntrepreneurCard": {
+      "addressLabel": "Адрес регистрации",
+      "birthDateLabel": "Дата рождения",
+      "birthDatePlaceholder": "Формат: год/месяц/день",
+      "cityLabel": "Город",
+      "countryLabel": "Страна",
+      "firstNameLabel": "Имя",
+      "innError": "ИНН должен содержать 10 или 12 цифр",
+      "innLabel": "ИНН предпринимателя",
+      "lastNameLabel": "Фамилия",
+      "middleNameLabel": "Отчество",
+      "ogrnipError": "ОГРНИП должен содержать 13 или 15 цифр",
+      "ogrnipLabel": "ОГРНИП",
+      "phoneLabel": "Номер телефона",
+      "russiaOptionLabel": "Российская Федерация",
+      "updatedText": "Данные аккаунта обновлены"
+    },
+    "editableIndividualCard": {
+      "addressLabel": "Адрес регистрации",
+      "birthDateLabel": "Дата рождения",
+      "birthDatePlaceholder": "Формат: год/месяц/день",
+      "deptCodeError": "Код подразделения состоит из 6 цифр и тире (xxx-xxx)",
+      "deptCodeLabel": "Код подразделения",
+      "firstNameLabel": "Имя",
+      "issueDateLabel": "Дата выдачи",
+      "issuedByLabel": "Кем выдан",
+      "lastNameLabel": "Фамилия",
+      "middleNameLabel": "Отчество",
+      "passportNumberError": "Номер паспорта должен состоять из 6 цифр",
+      "passportNumberLabel": "Номер паспорта",
+      "passportSeriesError": "Серия должна состоять из 4 цифр",
+      "passportSeriesLabel": "Серия паспорта",
+      "phoneLabel": "Телефон",
+      "updatedText": "Данные аккаунта обновлены"
+    },
+    "editableOrganizationCard": {
+      "actualAddressLabel": "Фактический адрес",
+      "basisLabel": "На основании",
+      "cityLabel": "Город",
+      "countryLabel": "Страна",
+      "fullNameLabel": "Полное наименование",
+      "innError": "ИНН должен содержать 10 или 12 цифр",
+      "innLabel": "ИНН",
+      "kppError": "КПП должен содержать 9 цифр",
+      "kppLabel": "КПП",
+      "legalAddressLabel": "Юридический адрес",
+      "ogrnError": "ОГРН должен содержать 13 или 15 цифр",
+      "ogrnLabel": "ОГРН",
+      "phoneLabel": "Телефон",
+      "repFirstNameLabel": "Имя представителя",
+      "repLastNameLabel": "Фамилия представителя",
+      "repMiddleNameLabel": "Отчество представителя",
+      "repPositionLabel": "Должность представителя",
+      "shortNameLabel": "Краткое наименование",
+      "typeConsumerOption": "Потребительский Кооператив",
+      "typeLabel": "Тип организации",
+      "typeLlcOption": "ООО",
+      "typeProductionOption": "Производственный Кооператив",
+      "updatedText": "Данные аккаунта обновлены"
+    },
+    "editor": {
+      "initError": "Ошибка инициализации редактора",
+      "placeholder": "Начните писать...",
+      "previewOnlyLabel": "Только превью"
+    },
+    "entityIdBadge": {
+      "copiedText": "Скопировано",
+      "copyErrorText": "Не удалось скопировать",
+      "copyLabel": "Скопировать"
+    },
+    "entrepreneurDataForm": {
+      "accountNumberError": "Номер счёта должен содержать 20 цифр",
+      "accountNumberLabel": "Номер счёта (20 цифр)",
+      "addressLabel": "Адрес регистрации (как в паспорте)",
+      "bankNameLabel": "Наименование банка",
+      "bankNamePlaceholder": "ПАО \"Сбербанк\"",
+      "bikError": "БИК должен содержать 9 цифр",
+      "bikLabel": "БИК (9 цифр)",
+      "birthDateLabel": "Дата рождения (год/месяц/день)",
+      "cityLabel": "Город",
+      "corrAccountError": "Корреспондентский счёт должен содержать 20 цифр",
+      "corrAccountLabel": "Корреспондентский счёт (20 цифр)",
+      "countryLabel": "Страна",
+      "currencyLabel": "Валюта счёта",
+      "firstNameLabel": "Имя",
+      "innError": "ИНН должен содержать 10 или 12 цифр",
+      "innLabel": "ИНН предпринимателя (10 или 12 цифр)",
+      "lastNameLabel": "Фамилия",
+      "middleNameLabel": "Отчество",
+      "ogrnipError": "ОГРНИП должен содержать 13 или 15 цифр",
+      "ogrnipLabel": "ОГРНИП (13 или 15 цифр)",
+      "phoneLabel": "Номер телефона",
+      "russiaOptionLabel": "Россия"
+    },
+    "error": {
+      "expenseDueDateRequired": "Укажите срок исполнения — дату, к которой расход должен быть оплачен",
+      "expenseRecipientAccountRequired": "Для получателя-пайщика укажите его аккаунт"
+    },
+    "estimation": {
+      "daysText": "{days}д",
+      "hoursText": "{hours}ч",
+      "progressNoPlanText": "Отработано {factHours} (плана нет)",
+      "progressWithPlanText": "Отработано {factHours} из {plannedHours} запланированных",
+      "zeroHoursText": "0ч"
+    },
+    "expandableDocument": {
+      "defaultTitle": "Электронный документ",
+      "meetDocumentTitle": "Документ собрания"
+    },
+    "expenseCreateDialog": {
+      "addItemLabel": "Добавить позицию",
+      "detailsFixedText": "Реквизиты фиксируются на момент подачи",
+      "detailsHint": "Реквизиты фиксируются на момент подачи — на них придёт выплата",
+      "dueDateLabel": "Срок исполнения (в срок до)",
+      "emptyItemsBody": "Добавьте хотя бы одну строку расхода: получатель, способ оплаты и сумма.",
+      "emptyItemsTitle": "Нет позиций",
+      "itemNumberTitle": "Позиция №{index}",
+      "itemPurposeLabel": "Что оплачиваем",
+      "itemPurposePlaceholder": "Своими словами: что это за расход и зачем",
+      "itemsSectionTitle": "Строки расходов",
+      "noSavedDetailsText": "У выбранного пайщика нет сохранённых реквизитов.",
+      "paymentMethodAdvanceOption": "Аванс под отчёт",
+      "paymentMethodInvoiceOption": "Оплата по счету",
+      "paymentMethodLabel": "Способ оплаты",
+      "paymentPurposeLabel": "Назначение платежа",
+      "paymentPurposePlaceholder": "Например: «Оплата по счёту № 814 от 01.06.2026 за аренду серверов»",
+      "plannedAmountLabel": "Сумма (план)",
+      "purposeLabel": "Цель расходов",
+      "purposePlaceholder": "Например: «Закупка хостинга и канцелярии на июнь»",
+      "purposeSectionTitle": "Цель и параметры",
+      "recipientDetailsLabel": "Реквизиты получателя",
+      "recipientDetailsPlaceholder": "ИНН, р/с, БИК",
+      "recipientMemberLabel": "Пайщик-получатель (по ФИО)",
+      "recipientOrgNameLabel": "Название организации",
+      "recipientOrgNamePlaceholder": "Например: ООО «Хостинг-центр»",
+      "recipientTypeLabel": "Тип получателя",
+      "recipientTypeMemberOption": "Пайщик",
+      "recipientTypeOrgOption": "Организация/ИП",
+      "recipientTypeSelfOption": "Я сам",
+      "removeItemAriaLabel": "Удалить позицию",
+      "selectRecipientFirstDotText": "Сначала укажите аккаунт пайщика-получателя.",
+      "selectRecipientFirstText": "Сначала укажите аккаунт пайщика-получателя",
+      "submitLabel": "Подать на одобрение",
+      "submittedText": "Расход подан — заявление подписано и передано в совет",
+      "title": "Создание расхода",
+      "totalPlanLabel": "план",
+      "totalTitle": "Итого по позициям"
+    },
+    "expenseProposalDocuments": {
+      "memoLabel": "Служебная записка",
+      "protocolLabel": "Протокол решения совета"
+    },
+    "expenseProposalList": {
+      "amountLabel": "Сумма",
+      "createdLabel": "Создан",
+      "emptyBody": "Создайте первый расход через кнопку «Создать расход» в шапке.",
+      "emptyTitle": "Расходов пока нет",
+      "noDescriptionText": "— без описания —"
+    },
+    "fileUploader": {
+      "dropzoneText": "Перетащите файлы или нажмите для выбора",
+      "fileTooLargeError": "Файл больше {maxSize}: {fileName}",
+      "formatsHint": "Форматы: {accept}",
+      "maxFilesHint": "не более {maxFiles} файлов",
+      "maxSizeHint": "до {maxSize}",
+      "removeFileText": "Удалить {fileName}",
+      "sizeBytesText": "{bytes} Б",
+      "sizeGbText": "{gb} ГБ",
+      "sizeKbText": "{kb} КБ",
+      "sizeMbText": "{mb} МБ",
+      "tooManyFilesError": "Можно загрузить не более {maxFiles} файлов",
+      "typeNotAllowedError": "Тип файла не разрешён: {fileName}"
+    },
+    "filterBar": {
+      "resetFilterAriaText": "Сбросить фильтр {filterLabel}",
+      "resetLabel": "Сбросить"
+    },
+    "form": {
+      "cancelLabel": "Отменить",
+      "continueLabel": "Продолжить"
+    },
+    "formatPaymentMethod": {
+      "bankAccountText": "Банковский счёт ***{last4}",
+      "sbpText": "СБП ({masked})"
+    },
+    "identityPanel": {
+      "status": {
+        "active": "Активен",
+        "blocked": "Заблокирован",
+        "pending": "Ожидает"
+      }
+    },
+    "individualDataForm": {
+      "addressLabel": "Адрес регистрации (как в паспорте)",
+      "birthDateLabel": "Дата рождения (год/месяц/день)",
+      "firstNameLabel": "Имя",
+      "lastNameLabel": "Фамилия",
+      "middleNameLabel": "Отчество",
+      "phoneLabel": "Номер телефона"
+    },
+    "map": {
+      "unavailableText": "Карта недоступна: не задан ключ Яндекс.Карт."
+    },
+    "meetCompactCard": {
+      "closingLabel": "Закрытие",
+      "detailsLabel": "Подробнее",
+      "openingLabel": "Открытие",
+      "titleWithNumber": "Общее собрание № {meetId}"
+    },
+    "meetInfoCard": {
+      "attendanceLabel": "Явка",
+      "attendanceQuorumLabel": "Явка и кворум",
+      "chairmanLabel": "Председатель собрания",
+      "closingLabel": "Закрытие",
+      "datesLabel": "Даты проведения",
+      "hostsLabel": "Ведущие",
+      "notAssignedText": "Не назначен",
+      "openingLabel": "Открытие",
+      "quorumLabel": "Кворум",
+      "quorumRequirementText": "Собрание состоится при явке не менее {quorumPercent}% пайщиков",
+      "secretaryLabel": "Секретарь собрания"
+    },
+    "meetStatusBanner": {
+      "unknownStatus": "Неизвестный статус"
+    },
+    "notificationCenter": {
+      "ariaLabel": "Уведомления",
+      "categoryFinance": "Финансовые",
+      "categoryMessages": "Сообщения",
+      "categorySystem": "Системные",
+      "categoryVoting": "Голосования",
+      "daysAgo": "{n} день назад | {n} дня назад | {n} дней назад",
+      "emptyBody": "Здесь появятся системные и финансовые события",
+      "emptyTitle": "Нет уведомлений",
+      "hoursAgo": "{n} час назад | {n} часа назад | {n} часов назад",
+      "justNow": "только что",
+      "markAllReadLabel": "Прочитать все",
+      "minutesAgo": "{n} мин назад",
+      "showAllLabel": "Показать все",
+      "title": "Уведомления"
+    },
+    "organizationDataForm": {
+      "accountNumberError": "Номер счета должен содержать 20 цифр",
+      "accountNumberLabel": "Номер счета (20 цифр)",
+      "actualAddressLabel": "Фактический адрес",
+      "bankNameLabel": "Наименование банка",
+      "bankNamePlaceholder": "ПАО \"Сбербанк\"",
+      "basisLabel": "Представитель действует на основании",
+      "basisPlaceholder": "решения общего собрания №... от ... г",
+      "bikError": "БИК должен содержать 9 цифр",
+      "bikLabel": "БИК (9 цифр)",
+      "cityLabel": "Город",
+      "corrAccountError": "Корреспондентский счет должен содержать 20 цифр",
+      "corrAccountLabel": "Корреспондентский счет (20 цифр)",
+      "countryLabel": "Страна",
+      "currencyLabel": "Валюта счёта",
+      "fullNameLabel": "Полное наименование организации",
+      "fullNamePlaceholder": "Потребительский Кооператив \"Ромашка\"",
+      "innError": "ИНН должен содержать 10 или 12 цифр",
+      "innLabel": "ИНН организации (10 или 12 цифр)",
+      "kppError": "КПП должен содержать 9 цифр",
+      "kppLabel": "КПП организации (9 цифр)",
+      "legalAddressLabel": "Юридический адрес регистрации",
+      "ogrnError": "ОГРН должен содержать 13 или 15 цифр",
+      "ogrnLabel": "ОГРН организации (13 или 15 цифр)",
+      "repFirstNameLabel": "Имя представителя",
+      "repLastNameLabel": "Фамилия представителя",
+      "repMiddleNameLabel": "Отчество представителя",
+      "repPhoneLabel": "Номер телефона представителя",
+      "repPositionLabel": "Должность представителя",
+      "repPositionPlaceholder": "Председатель совета",
+      "russiaOptionLabel": "Россия",
+      "sameAsLegalLabel": "совпадает",
+      "shortNameLabel": "Краткое наименование организации",
+      "shortNamePlaceholder": "ПК \"Ромашка\"",
+      "typeConsumerOption": "Потребительский Кооператив",
+      "typeLabel": "Выберите тип организации",
+      "typeLlcOption": "ООО",
+      "typeProductionOption": "Производственный Кооператив"
+    },
+    "otpInput": {
+      "ariaLabel": "Код подтверждения, {length} цифр",
+      "digitAriaLabel": "Цифра {index}"
+    },
+    "pageHint": {
+      "hideAriaLabel": "Скрыть подсказку"
+    },
+    "paymentDetails": {
+      "accountNumberLabel": "Номер счета",
+      "amountLabel": "Сумма к переводу",
+      "bankLabel": "Банк получателя",
+      "bikLabel": "БИК",
+      "cardNumberLabel": "Номер карты",
+      "corrAccountLabel": "Корреспондентский счет",
+      "currencyLabel": "Валюта",
+      "detailsLabel": "Реквизиты",
+      "feeLabel": "Комиссия",
+      "noExtraInfoText": "нет дополнительной информации",
+      "purposeLabel": "Назначение платежа",
+      "purposeShortLabel": "Что оплачиваем",
+      "reasonNotSpecifiedText": "причина не указана",
+      "recipientLabel": "Получатель",
+      "rejectedReasonLabel": "Платёж отклонён. Причина:",
+      "sbpPhoneLabel": "Телефон (СБП)"
+    },
+    "paymentMethodSelect": {
+      "emptyText": "Нет доступных реквизитов",
+      "label": "Реквизиты получателя",
+      "loadError": "Не удалось загрузить реквизиты получателя",
+      "noDetailsHint": "У получателя нет сохранённых реквизитов. Добавьте способ получения средств в профиле.",
+      "placeholder": "Выберите способ получения средств"
+    },
+    "pinPad": {
+      "backspaceAriaLabel": "Стереть последнюю цифру",
+      "digitAriaLabel": "Цифра {key}",
+      "digitZeroAriaLabel": "Цифра 0",
+      "keypadAriaLabel": "Клавиатура PIN-кода"
+    },
+    "railUserCard": {
+      "availableLabel": "Доступно",
+      "blockWalletLabel": "Заблокировать кошелёк",
+      "blockedLabel": "Заблокировано",
+      "collapseWalletLabel": "Свернуть кошелёк",
+      "expandWalletLabel": "Развернуть кошелёк",
+      "logoutLabel": "Выйти из кабинета",
+      "topUpLabel": "Пополнить",
+      "unblockWalletLabel": "Разблокировать кошелёк"
+    },
+    "referralLinkCard": {
+      "copiedText": "Ссылка скопирована в буфер обмена",
+      "titleText": "Ссылка для приглашений"
+    },
+    "signatureCard": {
+      "hashLabel": "Хэш подписи",
+      "rejectedText": "Подпись отклонена.",
+      "status": {
+        "pending": "Ожидает подписи",
+        "rejected": "Отклонено",
+        "signed": "Подписано"
+      }
+    },
+    "statusFilterButton": {
+      "ariaLabel": "{buttonLabel}: выбор состояний",
+      "defaultLabel": "Фильтр",
+      "showAllLabel": "Показать все"
+    },
+    "tablePager": {
+      "nextLabel": "Вперёд",
+      "rangeText": "{label} {from}–{to} из {rowsNumber}",
+      "rowsLabel": "Строки"
+    },
+    "tableSkeleton": {
+      "loadingLabel": "Загрузка данных"
+    },
+    "tabsScrollArrow": {
+      "scrollLeftAriaLabel": "Прокрутить вкладки влево",
+      "scrollRightAriaLabel": "Прокрутить вкладки вправо"
+    },
+    "themeToggle": {
+      "darkThemeLabel": "Тёмная тема",
+      "dayModeLabel": "ДНЕВНОЙ РЕЖИМ",
+      "lightThemeLabel": "Светлая тема",
+      "nightModeLabel": "НОЧНОЙ РЕЖИМ"
+    },
+    "useUserSearch": {
+      "searchError": "Ошибка при поиске пользователей"
+    },
+    "userDataForm": {
+      "chooseAccountTypeTitle": "Выберите тип аккаунта",
+      "entrepreneurDescription": "Индивидуальный предприниматель",
+      "entrepreneurLabel": "Предприниматель",
+      "entrepreneurTitle": "ИП",
+      "individualDescription": "Гражданин — частное лицо",
+      "individualTitle": "Физлицо",
+      "organizationDescription": "Юридическое лицо (ООО, кооператив и др.)",
+      "organizationTitle": "Организация",
+      "selectTypeLabel": "Выбрать тип"
+    },
+    "userSearchSelector": {
+      "emptyText": "Ничего не найдено",
+      "entrepreneurInnText": "ИП • ИНН: {inn}",
+      "notAvailable": "н/д",
+      "organizationInnText": "Организация • ИНН: {inn}",
+      "placeholderText": "Выберите пользователя",
+      "startTypingText": "Начните вводить для поиска"
+    },
+    "verificationConfirmDialog": {
+      "confirmedText": "Личность подтверждена",
+      "title": "Проверка личности"
+    },
+    "verticalStepper": {
+      "optionalLabel": "(опционально)"
+    },
+    "walletCard": {
+      "availableLabel": "Доступно",
+      "blagorostName": "Благорост",
+      "blockedLabel": "Заблокировано",
+      "generatorName": "Генератор",
+      "mainWalletName": "Главный кошелёк"
+    },
+    "wrappedEditor": {
+      "placeholder": "Начните писать..."
+    },
+    "zodForm": {
+      "copiedText": "Значение скопировано в буфер обмена",
+      "maxLengthError": "Максимальная длина: {maxLength}",
+      "minLengthError": "Минимальная длина: {minLength}",
+      "requiredError": "Заполните поле",
+      "ruleError": "Значение должно удовлетворять правилу: {rule}",
+      "urlError": "Нужна ссылка вида https://…"
+    }
+  }
+}

@@ -28,6 +28,7 @@ export class YandexGeocoderAdapter implements GeocoderPort {
     const apiKey = this.settings.api_key;
     if (!apiKey) {
       this.logger.warn('GEOCODER_API_KEY не задан — Yandex-геокодинг пропущен');
+      // i18n-ignore: техническое сообщение диагностики геокодера, не интерфейс пайщика
       return { status: 'FAILED', errorMessage: 'GEOCODER_API_KEY не задан в окружении' };
     }
 
@@ -50,16 +51,19 @@ export class YandexGeocoderAdapter implements GeocoderPort {
       const body = (await response.json()) as YandexGeocoderResponse;
       const member = body.response?.GeoObjectCollection?.featureMember;
       if (!member || member.length === 0) {
+        // i18n-ignore: техническое сообщение диагностики геокодера, не интерфейс пайщика
         return { status: 'FAILED', errorMessage: 'Geocoder вернул пустой результат' };
       }
       const pos = member[0]?.GeoObject?.Point?.pos;
       if (!pos) {
+        // i18n-ignore: техническое сообщение диагностики геокодера, не интерфейс пайщика
         return { status: 'FAILED', errorMessage: 'Geocoder вернул featureMember без pos' };
       }
       const [lngStr, latStr] = pos.split(' ');
       const lat = Number(latStr);
       const lng = Number(lngStr);
       if (Number.isNaN(lat) || Number.isNaN(lng)) {
+        // i18n-ignore: техническое сообщение диагностики геокодера, не интерфейс пайщика
         return { status: 'FAILED', errorMessage: `Geocoder вернул нечисловой pos="${pos}"` };
       }
       return { status: 'OK', lat, lng };

@@ -1,5 +1,6 @@
-import { SetMetadata, applyDecorators, createParamDecorator, ExecutionContext, UnauthorizedException } from '@nestjs/common';
+import { SetMetadata, applyDecorators, createParamDecorator, ExecutionContext } from '@nestjs/common';
 import { Directive, GqlExecutionContext } from '@nestjs/graphql';
+import { DomainError } from '../errors/domain-error';
 
 /**
  * Пути внутри объекта, по которым пайщик признаётся «своим» для поля.
@@ -79,7 +80,7 @@ export const CurrentUser = createParamDecorator((data: unknown, context: Executi
   const request = ctx.getContext().req;
 
   if (!request?.user) {
-    throw new UnauthorizedException('Пользователь не авторизован');
+    throw DomainError.unauthorized('KIT_USER_NOT_AUTHORIZED');
   }
   return request?.user;
 });

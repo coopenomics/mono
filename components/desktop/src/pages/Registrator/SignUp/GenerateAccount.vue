@@ -4,11 +4,11 @@ div(v-show='store.isStep("GenerateAccount")')
       //- Ключ доступа больше не показывается и не выдаётся на руки: он создаётся
       //- здесь же, шифруется этим паролем и хранится в защищённом хранилище
       //- кооператива. Пайщик знает только пароль — им и входит.
-      p.generate__hint Пароль понадобится для входа в кооператив с любого устройства. Цифровая подпись создаётся автоматически и хранится в зашифрованном виде — доступ к ней открывает только ваш пароль.
+      p.generate__hint {{ $t('registrator.generateAccount.passwordHint') }}
 
       BaseInput(
         v-model='password',
-        label='Пароль',
+        :label='$t("registrator.generateAccount.passwordLabel")',
         type='password',
         autocomplete='new-password',
         :hint='PASSWORD_POLICY_HINT',
@@ -19,7 +19,7 @@ div(v-show='store.isStep("GenerateAccount")')
       BaseInput(
         ref='repeatRef',
         v-model='repeatPassword',
-        label='Повторите пароль',
+        :label='$t("registrator.generateAccount.repeatPasswordLabel")',
         type='password',
         autocomplete='new-password',
         :error='repeatError',
@@ -30,7 +30,7 @@ div(v-show='store.isStep("GenerateAccount")')
       .generate__actions
         BaseButton(variant='ghost', @click='store.prev()')
           q-icon(name='arrow_back')
-          span.q-ml-md назад
+          span.q-ml-md {{ $t('registrator.generateAccount.backAction') }}
 
         BaseButton(
           variant='primary',
@@ -38,7 +38,7 @@ div(v-show='store.isStep("GenerateAccount")')
           :loading='isLoading',
           @click='setAccount'
         )
-          | Продолжить
+          | {{ $t('registrator.generateAccount.submitAction') }}
 </template>
 <script lang="ts" setup>
 import { ref, computed, watch } from 'vue';
@@ -51,6 +51,7 @@ import { useSystemStore } from 'src/entities/System/model';
 import { BaseButton } from 'src/shared/ui/base/BaseButton';
 import { BaseInput } from 'src/shared/ui/base/BaseInput';
 import { FailAlert } from 'src/shared/api';
+import { t } from 'src/shared/i18n';
 
 const store = useRegistratorStore();
 const system = useSystemStore();
@@ -92,7 +93,7 @@ const passwordError = computed(() => {
 });
 const repeatError = computed(() =>
   repeatPassword.value && repeatPassword.value !== password.value
-    ? 'Пароли не совпадают'
+    ? t('registrator.generateAccount.passwordMismatchError')
     : '',
 );
 const canContinue = computed(

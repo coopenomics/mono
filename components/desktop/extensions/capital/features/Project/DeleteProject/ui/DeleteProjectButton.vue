@@ -4,7 +4,7 @@ q-btn(
   color='negative',
   @click='handleDeleteProject',
   :loading='loading',
-  label='Удалить проект'
+  :label='$t("capital.deleteProjectButton.label")'
 )
 </template>
 

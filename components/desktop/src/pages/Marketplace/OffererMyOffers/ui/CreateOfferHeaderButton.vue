@@ -3,12 +3,12 @@ BaseButton(
   variant="primary",
   size="sm",
   :icon-only="isCompact",
-  aria-label="Создать предложение",
+  :aria-label="$t('marketplace.createOfferHeaderButton.label')",
   @click="goCreate"
 )
   template(#icon-left)
     q-icon(name="add", size="18px")
-  | Создать предложение
+  | {{ $t('marketplace.createOfferHeaderButton.label') }}
 </template>
 
 <script setup lang="ts">

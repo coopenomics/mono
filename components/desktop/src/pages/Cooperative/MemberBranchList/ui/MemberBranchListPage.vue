@@ -3,8 +3,8 @@
   .banner
     q-icon.banner__icon(name='fa-solid fa-circle-info' size='18px')
     .banner__body
-      p.q-mt-none.q-mb-sm Создание кооперативных участков сейчас происходит за пределами цифровой системы. Здесь добавляются уже созданные и юридически оформленные участки с их председателями.
-      p.q-my-none При добавлении трёх участков кооператив автоматически переходит на мажоритарную систему управления. Действующим пайщикам будет предложено выбрать участок и делегировать голос его председателю. Новые пайщики делают выбор при регистрации.
+      p.q-mt-none.q-mb-sm {{ $t('cooperative.memberBranchListPage.bannerLine1') }}
+      p.q-my-none {{ $t('cooperative.memberBranchListPage.bannerLine2') }}
 
   q-table(
     flat
@@ -45,21 +45,21 @@
         q-td(colspan="100%")
           div.row
             div.col-md-4.col-xs-12.q-pa-sm
-              p.text-center.text-overline карточка участка
+              p.text-center.text-overline {{ $t('cooperative.memberBranchListPage.branchCardCaption') }}
               BranchCard(:branch="props.row")
             div.col-md-4.col-xs-12.q-pa-sm
-              p.text-center.text-overline карточка счёта
+              p.text-center.text-overline {{ $t('cooperative.memberBranchListPage.accountCardCaption') }}
               BankDetailsCard(:bankDetails="props.row.bank_account")
             div.col-md-4.col-xs-12.q-pa-sm
-              p.text-center.text-overline карточка председателя
+              p.text-center.text-overline {{ $t('cooperative.memberBranchListPage.trusteeCardCaption') }}
               EditableIndividualCard(:participantData="props.row.trustee" :readonly="true").q-mt-sm
               div.text-wrap
-                p.t-muted для замены председателя участка — измените его имя аккаунта в карточке участка на аккаунт одного из пайщиков.
+                p.t-muted {{ $t('cooperative.memberBranchListPage.trusteeHint') }}
               div.q-mt-md.flex.justify-center
                 DeleteBranchButton(:branch="props.row")
           div.row
             div.col-12.q-pa-sm
-              p.text-center.text-overline доступ к участку
+              p.text-center.text-overline {{ $t('cooperative.memberBranchListPage.accessCaption') }}
               BranchPrivacyManager(:branch="props.row")
 </template>
 
@@ -76,6 +76,7 @@ import { EditableIndividualCard } from 'src/shared/ui/EditableIndividualCard';
 import { BankDetailsCard } from 'src/widgets/BankDetailsCard';
 import { useSystemStore } from 'src/entities/System/model';
 import { useHeaderActions } from 'src/shared/hooks';
+import { t } from 'src/shared/i18n';
 
 const { info } = useSystemStore();
 const branchStore = useBranchStore();
@@ -90,8 +91,8 @@ const onLoading = ref(false);
 const branches = computed(() => branchStore.branches);
 
 const columns = [
-  { name: 'short_name', label: 'Название', align: 'left', field: 'short_name', sortable: true },
-  { name: 'trustee', label: 'Председатель', align: 'left', field: 'trustee', sortable: true },
+  { name: 'short_name', label: t('cooperative.memberBranchListPage.column.name'), align: 'left', field: 'short_name', sortable: true },
+  { name: 'trustee', label: t('cooperative.memberBranchListPage.column.trustee'), align: 'left', field: 'trustee', sortable: true },
 ] as any;
 
 const rowKey = 'braname';

@@ -5,7 +5,7 @@
     BaseInput.extension-logs__date(
       v-model="dateFrom"
       type="date"
-      label="Дата от"
+      :label="$t('extensionLogsList.extensionLogsList.dateFromLabel')"
       clearable
       @clear="handleFilterChange"
       @update:model-value="handleFilterChange"
@@ -13,7 +13,7 @@
     BaseInput.extension-logs__date(
       v-model="dateTo"
       type="date"
-      label="Дата до"
+      :label="$t('extensionLogsList.extensionLogsList.dateToLabel')"
       clearable
       @clear="handleFilterChange"
       @update:model-value="handleFilterChange"
@@ -50,13 +50,13 @@
         size="sm",
         :loading="loading",
         @click="loadMore"
-      ) Загрузить ещё
+      ) {{ $t('extensionLogsList.extensionLogsList.loadMore') }}
 
   //- Пусто
   EmptyState(
     v-else,
-    title="Логи не найдены",
-    body="За выбранный период записей нет."
+    :title="$t('extensionLogsList.extensionLogsList.emptyTitle')",
+    :body="$t('extensionLogsList.extensionLogsList.emptyBody')"
   )
     template(#icon)
       q-icon(name="receipt_long", size="48px")
@@ -69,6 +69,7 @@ import { BaseButton } from 'src/shared/ui/base/BaseButton'
 import { BaseInput } from 'src/shared/ui/base/BaseInput'
 import { EmptyState } from 'src/shared/ui/base/EmptyState'
 import { date } from 'quasar'
+import { t } from 'src/shared/i18n';
 
 interface Props {
   extensionName?: string
@@ -94,7 +95,7 @@ const totalCount = ref(0)
 const hasMore = computed(() => logs.value.length < totalCount.value)
 
 const rangeLabel = computed(() =>
-  logs.value.length ? `1–${logs.value.length} из ${totalCount.value}` : `0 из ${totalCount.value}`,
+  logs.value.length ? t('extensionLogsList.extensionLogsList.rangeLabel', { count: logs.value.length, total: totalCount.value }) : t('extensionLogsList.extensionLogsList.zeroRangeLabel', { total: totalCount.value }),
 )
 
 const formatDate = (dateString: string) => {

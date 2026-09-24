@@ -19,7 +19,7 @@
           rel='noopener noreferrer nofollow'
         ) {{ row.value }}
         span.intake-answers__value(v-else, :class='{ "intake-answers__value--multiline": row.multiline }') {{ row.value }}
-    .intake-answers__date.t-sm.t-muted Подано {{ formatDate(answer.submitted_at) }}
+    .intake-answers__date.t-sm.t-muted {{ $t('registration.intakeAnswersView.submittedAt', { date: formatDate(answer.submitted_at) }) }}
 </template>
 
 <script setup lang="ts">
@@ -27,6 +27,7 @@ import { date } from 'quasar';
 import { DataRow } from 'src/shared/ui/domain/DataRow';
 import { isWebLink, type IIntakeSchema, type IIntakeSchemaProperty } from 'src/shared/lib/intake-schema';
 import type { ICandidateIntakeAnswer } from '../model';
+import { t } from 'src/shared/i18n';
 
 const props = defineProps<{
   answers: ICandidateIntakeAnswer[];
@@ -42,7 +43,7 @@ interface IAnswerRow {
 }
 
 const display = (value: unknown): string => {
-  if (typeof value === 'boolean') return value ? 'Да' : 'Нет';
+  if (typeof value === 'boolean') return value ? t('common.answer.yes') : t('common.answer.no');
   if (Array.isArray(value)) return value.map(String).join(', ');
   return String(value);
 };

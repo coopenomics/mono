@@ -14,7 +14,7 @@ import type {
 } from '~/domain/wallet/ports/wallet-blockchain.port';
 import type { ISignedDocument } from '@coopenomics/innercoop';
 import type { IProgramWalletBlockchainData } from '~/domain/wallet/interfaces/program-wallet-blockchain.interface';
-import { DomainToBlockchainUtils, HttpApiError } from '@coopenomics/extension-kit';
+import { DomainToBlockchainUtils, DomainError } from '@coopenomics/extension-kit';
 
 /**
  * Блокчейн адаптер для wallet
@@ -35,7 +35,7 @@ export class WalletBlockchainAdapter implements WalletBlockchainPort {
    */
   async createWithdraw(data: CreateWithdrawDomainInterface): Promise<TransactionResult> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
-    if (!wif) throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ для совершения операции');
+    if (!wif) throw new DomainError('BLOCKCHAIN_PRIVATE_KEY_NOT_FOUND', {}, httpStatus.BAD_GATEWAY);
 
     this.blockchainService.initialize(data.coopname, wif);
 
@@ -69,7 +69,7 @@ export class WalletBlockchainAdapter implements WalletBlockchainPort {
    */
   async signProgramAgreement(data: SignProgramAgreementDomainInterface): Promise<TransactionResult> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
-    if (!wif) throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ для совершения операции');
+    if (!wif) throw new DomainError('BLOCKCHAIN_PRIVATE_KEY_NOT_FOUND', {}, httpStatus.BAD_GATEWAY);
 
     this.blockchainService.initialize(data.coopname, wif);
 
@@ -100,6 +100,7 @@ export class WalletBlockchainAdapter implements WalletBlockchainPort {
   async generateReturnStatement(_data: GenerateReturnStatementDomainInterface): Promise<ISignedDocument> {
     // TODO: Реализовать генерацию заявления через документный сервис
     // Пока возвращаем заглушку
+    // i18n-ignore: метод-заглушка generateReturnStatement не реализован — разработческое сообщение, до пайщика не доходит
     throw new Error('Метод generateReturnStatement еще не реализован');
   }
 

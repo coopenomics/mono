@@ -38,18 +38,23 @@ const envVarsSchema = z.object({
   BACKEND_URL: z
     .string()
     .min(1)
+    // i18n-ignore: описание/валидация переменной окружения для схемы конфигурации при старте, до пайщика не доходит
     .describe('Публичный базовый URL API (GraphQL/REST), без завершающего слэша; ICS-лента, интеграции'),
   FRONTEND_URL: z
     .string()
     .min(1)
+    // i18n-ignore: описание/валидация переменной окружения для схемы конфигурации при старте, до пайщика не доходит
     .describe('Публичный базовый URL рабочего стола (SPA); ссылки в письмах и deep links'),
   SERVER_SECRET: z.string(),
   LOG_LEVEL: z
     .enum(['error', 'warn', 'info', 'http', 'verbose', 'debug', 'silly'])
     .optional()
     .describe(
+      // i18n-ignore: описание/валидация переменной окружения для схемы конфигурации при старте, до пайщика не доходит
       'Уровень логов winston. По умолчанию info на проде и debug в разработке. ' +
+        // i18n-ignore: описание/валидация переменной окружения для схемы конфигурации при старте, до пайщика не доходит
         'На debug в лог попадают успешные HTTP-запросы с временем ответа (morgan successHandler) — ' +
+        // i18n-ignore: описание/валидация переменной окружения для схемы конфигурации при старте, до пайщика не доходит
         'без этого в логе видны только ответы 4xx/5xx, и латентность по логам не измерить',
     ),
   PORT: z
@@ -90,44 +95,61 @@ const envVarsSchema = z.object({
   // POST'ом на релей вместо прямого SMTP (хостинг кооператива может резать порты).
   EMAIL_RELAY_URL: z.string().default(''),
   EMAIL_RELAY_TOKEN: z.string().default(''),
+  // i18n-ignore: описание/валидация переменной окружения для схемы конфигурации при старте, до пайщика не доходит
   COOPNAME: z.string().min(1, { message: 'Не должно быть пустым' }).default('voskhod'), // Задаём дефолтное значение, пустая строка невалидна
+  // i18n-ignore: описание/валидация переменной окружения для схемы конфигурации при старте, до пайщика не доходит
   TIMEZONE: z.string().min(1, { message: 'Не должно быть пустым' }).default('Europe/Moscow'), // Пустая строка невалидна
   GRAPHQL_SERVICE: z
     .string()
+    // i18n-ignore: описание/валидация переменной окружения для схемы конфигурации при старте, до пайщика не доходит
     .min(1, { message: 'Не должно быть пустым' })
     .default('http://localhost:4090')
+    // i18n-ignore: описание/валидация переменной окружения для схемы конфигурации при старте, до пайщика не доходит
     .describe('адрес сервиса GRAPHQL'),
+  // i18n-ignore: описание/валидация переменной окружения для схемы конфигурации при старте, до пайщика не доходит
   PROVIDER_BASE_URL: z.string().default('').describe('базовый URL сервиса провайдера'),
 
   // Параметры союза кооперативов
   UNION_LINK: z
     .string()
+    // i18n-ignore: описание/валидация переменной окружения для схемы конфигурации при старте, до пайщика не доходит
     .default('https://союз-русь.рф/anketa')
+    // i18n-ignore: описание/валидация переменной окружения для схемы конфигурации при старте, до пайщика не доходит
     .describe('ссылка на анкету для получения членства в союзе кооперативов'),
   IS_UNIONED: z
     .string()
     .default('true')
     .transform((v) => v === 'true')
+    // i18n-ignore: описание/валидация переменной окружения для схемы конфигурации при старте, до пайщика не доходит
     .describe('флаг, указывающий что требуется членство в союзе для подключения к кооперативной экономике'),
+  // i18n-ignore: описание/валидация переменной окружения для схемы конфигурации при старте, до пайщика не доходит
   MATRIX_UNION_PERSON_ID: z.string().optional().describe('Matrix userId представителя союза для связи с кооперативами'),
+  // i18n-ignore: описание/валидация переменной окружения для схемы конфигурации при старте, до пайщика не доходит
+  // i18n-ignore: описание/валидация переменной окружения для схемы конфигурации при старте, до пайщика не доходит
   MATRIX_UNION_NAME: z.string().default('СПО РУСЬ').describe('Название союза для подписания комнат связи'),
 
   // Новые переменные для PostgreSQL
+  // i18n-ignore: описание/валидация переменной окружения для схемы конфигурации при старте, до пайщика не доходит
   POSTGRES_HOST: z.string().min(1, { message: 'Не должно быть пустым' }).default('127.0.0.1'),
   POSTGRES_PORT: z
     .string()
     .default('5432')
     .transform((val) => parseInt(val, 10)),
+  // i18n-ignore: описание/валидация переменной окружения для схемы конфигурации при старте, до пайщика не доходит
   POSTGRES_USERNAME: z.string().min(1, { message: 'Не должно быть пустым' }),
+  // i18n-ignore: описание/валидация переменной окружения для схемы конфигурации при старте, до пайщика не доходит
   POSTGRES_PASSWORD: z.string().min(1, { message: 'Не должно быть пустым' }),
+  // i18n-ignore: описание/валидация переменной окружения для схемы конфигурации при старте, до пайщика не доходит
   POSTGRES_DATABASE: z.string().min(1, { message: 'Не должно быть пустым' }),
 
+  // i18n-ignore: описание/валидация переменной окружения для схемы конфигурации при старте, до пайщика не доходит
   REDIS_HOST: z.string().min(1, { message: 'Не должно быть пустым' }),
   REDIS_PORT: z
     .string()
     .default('6379')
     .transform((val) => parseInt(val, 10)),
   REDIS_PASSWORD: z.string(),
+  // i18n-ignore: описание/валидация переменной окружения для схемы конфигурации при старте, до пайщика не доходит
   BLOCKCHAIN_RPC: z.string().min(1, { message: 'Не должно быть пустым' }),
   // CSV-список RPC-endpoint'ов COOPOS (CoopID, Story 1.3): на prod ≥2 для
   // failover (механика — Story 9.4). Не задан — используется [BLOCKCHAIN_RPC].
@@ -135,6 +157,7 @@ const envVarsSchema = z.object({
     .string()
     .optional()
     .transform(v => (v ? [...new Set(v.split(',').map(s => s.trim()).filter(Boolean))] : []))
+    // i18n-ignore: описание/валидация переменной окружения для схемы конфигурации при старте, до пайщика не доходит
     .pipe(z.array(z.string().url({ message: 'Каждый элемент BLOCKCHAIN_RPC_LIST — валидный URL' }))),
   // Устойчивость COOPOS RPC (CoopID, Эпик 9). Интервал health-check каждого узла
   // (get_info); 0 — отключить фоновую проверку (Story 9.4).
@@ -158,6 +181,7 @@ const envVarsSchema = z.object({
   // его last_updated не позже (время LIB − запас) — компенсирует оценку времени LIB
   // (Story 9.6).
   BLOCKCHAIN_FINALITY_MARGIN_MS: z.coerce.number().default(500),
+  // i18n-ignore: описание/валидация переменной окружения для схемы конфигурации при старте, до пайщика не доходит
   CHAIN_ID: z.string().min(1, { message: 'Не должно быть пустым' }),
   // coop_domain_db (CoopID, Story 1.4): отдельная БД в общем сервисе postgres.
   // Пароль — значением или файлом (*_FILE приоритетнее; путь /run/secrets/... в контейнере).
@@ -300,7 +324,9 @@ const envVarsSchema = z.object({
     .transform((val) => parseInt(val, 10)),
 
   // Параметры VAPID для web push
+  // i18n-ignore: описание/валидация переменной окружения для схемы конфигурации при старте, до пайщика не доходит
   VAPID_PUBLIC_KEY: z.string().min(1, { message: 'VAPID_PUBLIC_KEY не должен быть пустым' }),
+  // i18n-ignore: описание/валидация переменной окружения для схемы конфигурации при старте, до пайщика не доходит
   VAPID_PRIVATE_KEY: z.string().min(1, { message: 'VAPID_PRIVATE_KEY не должен быть пустым' }),
   VAPID_SUBJECT: z.string().default('mailto:admin@coopenomics.world'),
 
@@ -324,54 +350,70 @@ const envVarsSchema = z.object({
   MATRIX_COMMON_ROOM_ID: z.string().optional(),
 
   // Параметры Sentry для отслеживания ошибок
+  // i18n-ignore: описание/валидация переменной окружения для схемы конфигурации при старте, до пайщика не доходит
   SENTRY_DSN: z.string().optional().describe('Sentry DSN для отслеживания ошибок'),
 
   // Параметры GitHub
+  // i18n-ignore: описание/валидация переменной окружения для схемы конфигурации при старте, до пайщика не доходит
   GITHUB_TOKEN: z.string().optional().describe('GitHub токен для доступа к API'),
 
   // Клиент card.coop в CoopID кооператива (карта кооператора, story 7.0/7.6). Те же значения
   // получает блюпринт coopid-cardcoop-client через окружение authentik; расширение доносит
   // их в реестр сети подписанным документом. Пустой секрет = подключение не отправляется.
+  // i18n-ignore: описание/валидация переменной окружения для схемы конфигурации при старте, до пайщика не доходит
   CARDCOOP_CLIENT_ID: z.string().optional().describe('client_id клиента card.coop в CoopID кооператива'),
+  // i18n-ignore: описание/валидация переменной окружения для схемы конфигурации при старте, до пайщика не доходит
   CARDCOOP_CLIENT_SECRET: z.string().optional().describe('client_secret того же клиента'),
   CARDCOOP_OIDC_ISSUER: z
     .string()
     .optional()
+    // i18n-ignore: описание/валидация переменной окружения для схемы конфигурации при старте, до пайщика не доходит
     .describe('Issuer OIDC-провайдера cardcoop в CoopID кооператива — точно как в токенах'),
 
   // Параметры LiveKit для секретаря-агента
   LIVEKIT_URL: z.string().optional().describe('LiveKit server URL (ws://livekit:7880)'),
+  // i18n-ignore: описание/валидация переменной окружения для схемы конфигурации при старте, до пайщика не доходит
   LIVEKIT_API_KEY: z.string().optional().describe('LiveKit API key для генерации токенов'),
+  // i18n-ignore: описание/валидация переменной окружения для схемы конфигурации при старте, до пайщика не доходит
   LIVEKIT_API_SECRET: z.string().optional().describe('LiveKit API secret для генерации токенов'),
 
   // Параметры геокодера (провайдер-агностично; реализация выбирается через GEOCODER_PROVIDER)
   GEOCODER_PROVIDER: z
     .enum(['yandex', 'noop'])
     .default('noop')
+    // i18n-ignore: описание/валидация переменной окружения для схемы конфигурации при старте, до пайщика не доходит
     .describe('Провайдер геокодинга адресов: yandex | noop (отключён). Будущие: google, maps.me'),
   GEOCODER_API_KEY: z
     .string()
     .optional()
+    // i18n-ignore: описание/валидация переменной окружения для схемы конфигурации при старте, до пайщика не доходит
     .describe('API ключ выбранного провайдера геокодинга'),
   GEOCODER_BASE_URL: z
     .string()
     .optional()
+    // i18n-ignore: описание/валидация переменной окружения для схемы конфигурации при старте, до пайщика не доходит
     .describe('Базовый URL HTTP API геокодера (пусто — дефолт провайдера)'),
   GEOCODER_RATE_LIMIT_RPS: z
     .string()
     .default('10')
     .transform((val) => parseInt(val, 10))
+    // i18n-ignore: описание/валидация переменной окружения для схемы конфигурации при старте, до пайщика не доходит
     .describe('Локальный rate-limit на запросы к провайдеру геокодинга (req/sec)'),
   GEOCODER_TIMEOUT_MS: z
     .string()
     .default('5000')
     .transform((val) => parseInt(val, 10))
+    // i18n-ignore: описание/валидация переменной окружения для схемы конфигурации при старте, до пайщика не доходит
     .describe('Таймаут одиночного HTTP-запроса к провайдеру геокодинга (ms)'),
 
   // Параметры OpenAI Whisper для STT
+  // i18n-ignore: описание/валидация переменной окружения для схемы конфигурации при старте, до пайщика не доходит
   OPENAI_API_KEY: z.string().optional().describe('OpenAI API ключ для Whisper STT'),
+  // i18n-ignore: описание/валидация переменной окружения для схемы конфигурации при старте, до пайщика не доходит
   OPENAI_BASE_URL: z.string().optional().describe('Базовый URL для Whisper API (через chatcoop-proxy nginx)'),
+  // i18n-ignore: описание/валидация переменной окружения для схемы конфигурации при старте, до пайщика не доходит
   WHISPER_MODEL: z.string().default('whisper-1').describe('Модель Whisper для STT'),
+  // i18n-ignore: описание/валидация переменной окружения для схемы конфигурации при старте, до пайщика не доходит
   WHISPER_LANGUAGE: z.string().default('ru').describe('Язык для Whisper STT'),
 
   // Файловое хранилище (MinIO в dev/контуре кооператива; S3 в проде по плану E59-N).
@@ -380,24 +422,31 @@ const envVarsSchema = z.object({
   MINIO_ENDPOINT: z
     .string()
     .optional()
+    // i18n-ignore: описание/валидация переменной окружения для схемы конфигурации при старте, до пайщика не доходит
     .describe('Endpoint S3-совместимого бэкенда; в compose — service name. Пусто = file storage отключён.'),
+  // i18n-ignore: описание/валидация переменной окружения для схемы конфигурации при старте, до пайщика не доходит
   MINIO_ACCESS_KEY: z.string().default('minioadmin').describe('Access-key для MinIO/S3'),
+  // i18n-ignore: описание/валидация переменной окружения для схемы конфигурации при старте, до пайщика не доходит
   MINIO_SECRET_KEY: z.string().default('minioadmin').describe('Secret-key для MinIO/S3'),
   MINIO_BUCKET: z
     .string()
     .optional()
+    // i18n-ignore: описание/валидация переменной окружения для схемы конфигурации при старте, до пайщика не доходит
     .describe('Имя физического бакета; по умолчанию `coop-${COOPNAME}`'),
   FILE_STORAGE_SIGNING_SECRET: z
     .string()
     .optional()
+    // i18n-ignore: описание/валидация переменной окружения для схемы конфигурации при старте, до пайщика не доходит
     .describe('HMAC-секрет для подписи read-URL; пусто — берётся SERVER_SECRET'),
   FILE_STORAGE_PUBLIC_BASE_URL: z
     .string()
     .optional()
+    // i18n-ignore: описание/валидация переменной окружения для схемы конфигурации при старте, до пайщика не доходит
     .describe('База публичного URL контроллера для read-URL; пусто — берётся BACKEND_URL'),
   MIN_SOVIET_MEMBERS_COUNT: z
     .string()
     .optional()
+    // i18n-ignore: описание/валидация переменной окружения для схемы конфигурации при старте, до пайщика не доходит
     .describe('Минимум членов совета при install; пусто — 3 на production, 1 на development/test'),
 });
 
@@ -411,10 +460,12 @@ if (!envVars.success) {
 
   const errorMessages = Object.keys(formattedErrors)
     .filter((key) => key !== '_errors')
+    // i18n-ignore: описание/валидация переменной окружения для схемы конфигурации при старте, до пайщика не доходит
     .map((key) => `${key}: параметр не установлен`)
     .join('\n');
 
   const hint = isSchemaGeneration
+    // i18n-ignore: описание/валидация переменной окружения для схемы конфигурации при старте, до пайщика не доходит
     ? '\n(Режим CONTROLLER_SCHEMA_GEN: проверьте, что новые обязательные поля добавлены в PLACEHOLDER_ENV_DEFAULTS в src/config/placeholder-env.ts.)\n'
     : '\n';
   console.error('❌ Ошибка конфигурации:\n', errorMessages, hint);
@@ -444,6 +495,7 @@ export default {
         try {
           return fs.readFileSync(file, 'utf-8').trim();
         } catch (e) {
+          // i18n-ignore: описание/валидация переменной окружения для схемы конфигурации при старте, до пайщика не доходит
           throw new Error(`COOP_DOMAIN_DB_PASSWORD_FILE недоступен (${file}): ${e instanceof Error ? e.message : e}`);
         }
       }

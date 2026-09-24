@@ -101,6 +101,7 @@ export class WidgetMode {
 
     // Убираем лишние элементы UI
     const style = document.createElement('style');
+    // i18n-ignore: CSS-стили, не текст интерфейса
     style.textContent = `
       /* Widget Mode Styles */
       body.widget-mode {

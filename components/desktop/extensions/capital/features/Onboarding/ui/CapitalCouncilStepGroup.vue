@@ -13,12 +13,12 @@
           v-if='step.status === "completed"'
           variant='pos'
           size='sm'
-        ) Утверждено советом
+        ) {{ $t('capital.capitalCouncilStepGroup.approvedStatus') }}
         BaseChip(
           v-else-if='step.status === "in_progress"'
           variant='warn'
           size='sm'
-        ) Ожидаем решение совета
+        ) {{ $t('capital.capitalCouncilStepGroup.pendingStatus') }}
 
     p.capital-council-group__desc.t-body2 {{ step.description }}
 
@@ -28,7 +28,7 @@
       size='sm'
       :disable='busy'
       @click='emit("declare", step.id)'
-    ) Объявить собрание совета
+    ) {{ $t('capital.capitalCouncilStepGroup.announceAction') }}
 
     q-separator.capital-council-group__sep(v-if='index < steps.length - 1')
 </template>

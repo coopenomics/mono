@@ -7,13 +7,13 @@ div(v-if='store', v-show='store.isStep("SelectBranch")')
     .row.q-gutter-md.q-mt-lg.q-mb-lg
       BaseButton(variant='ghost', @click='store.prev()')
         q-icon(name='arrow_back')
-        span.q-ml-md назад
+        span.q-ml-md {{ $t('registrator.selectBranch.back') }}
 
       BaseButton(
         variant='primary',
         :disabled='!store.state.selectedBranch',
         @click='store.next()'
-      ) Продолжить
+      ) {{ $t('registrator.selectBranch.submit') }}
 
 </template>
 

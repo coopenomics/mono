@@ -5,12 +5,12 @@ span(:class='{ "create-host--row": row }')
     v-if='row',
     role='button',
     tabindex='0',
-    aria-label='Добавить задачу',
+    :aria-label='$t("capital.createIssueButton.addLabel")',
     @click.stop='dialogRef?.openDialog()',
     @keydown.enter.prevent='dialogRef?.openDialog()'
   )
     q-icon(name='add', size='14px')
-    span Добавить задачу
+    span {{ $t('capital.createIssueButton.addLabel') }}
 
   BaseButton(
     v-else,
@@ -18,13 +18,13 @@ span(:class='{ "create-host--row": row }')
     :size='size ?? (mini ? "sm" : "md")',
     :loading='loading',
     :icon-only='mini',
-    aria-label='Создать задачу',
+    :aria-label='$t("capital.createIssueButton.createLabel")',
     @click.stop='dialogRef?.openDialog()'
   )
     template(#icon-left)
       q-icon(name='add', size='18px')
     template(v-if='!mini', #default)
-      | {{ label ?? 'Создать задачу' }}
+      | {{ label ?? $t('capital.createIssueButton.createLabel') }}
 
   CreateIssueDialog(
     ref='dialogRef',

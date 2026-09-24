@@ -2,7 +2,7 @@ import { BRANCH_BLOCKCHAIN_PORT, BranchBlockchainPort } from '~/domain/branch/in
 import type { GetBranchesDomainInput } from '~/domain/branch/interfaces/get-branches-domain-input.interface';
 import { BranchDomainEntity } from '~/domain/branch/entities/branch-domain.entity';
 import { ORGANIZATION_REPOSITORY, OrganizationRepository } from '~/domain/common/repositories/organization.repository';
-import { BadRequestException, Inject, Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import type { CreateBranchDomainInput } from '~/domain/branch/interfaces/create-branch-domain-input.interface';
 import httpStatus from 'http-status';
 import type { EditBranchDomainInput } from '~/domain/branch/interfaces/edit-branch-domain-input.interface';
@@ -25,7 +25,7 @@ import { Cooperative } from 'cooptypes';
 import { DOCUMENT_REPOSITORY, DocumentRepository } from '~/domain/document/repository/document.repository';
 import { DocumentInteractor } from '~/application/document/interactors/document.interactor';
 import { DocumentDomainEntity } from '~/domain/document/entity/document-domain.entity';
-import { HttpApiError } from '@coopenomics/extension-kit';
+import { DomainError } from '@coopenomics/extension-kit';
 
 @Injectable()
 export class BranchInteractor {
@@ -63,7 +63,7 @@ export class BranchInteractor {
     const branch = await this.branchBlockchainPort.getBranch(coopname, braname);
 
     if (!branch) {
-      throw new HttpApiError(httpStatus.BAD_REQUEST, 'Кооперативный участок не найден');
+      throw DomainError.badRequest('BRANCH_NOT_FOUND');
     }
 
     const databaseData = await this.organizationRepository.findByUsername(braname);
@@ -150,7 +150,7 @@ export class BranchInteractor {
     const existingBranch = await this.branchBlockchainPort.getBranch(data.coopname, data.braname);
 
     if (existingBranch) {
-      throw new HttpApiError(httpStatus.BAD_REQUEST, 'Кооперативный участок уже создан');
+      throw DomainError.badRequest('BRANCH_ALREADY_CREATED');
     }
 
     // извлекаем информацию о кооперативе
@@ -159,7 +159,7 @@ export class BranchInteractor {
     //извлекаем информацию о председателе
     const trustee = new IndividualDomainEntity(await this.individualRepository.findByUsername(data.trustee));
 
-    if (!cooperative) throw new HttpApiError(httpStatus.BAD_REQUEST, 'Кооперативный участок не найден');
+    if (!cooperative) throw DomainError.badRequest('BRANCH_NOT_FOUND');
 
     // комбинируем с входящими данными о КУ
     const combinedData = new OrganizationDomainEntity({
@@ -170,6 +170,7 @@ export class BranchInteractor {
         last_name: trustee.last_name,
         middle_name: trustee.middle_name,
         based_on: data.based_on,
+        // i18n-ignore: должность в реквизитах документа участка — данные заявления, не текст интерфейса
         position: 'председатель кооперативного участка',
       },
       username: data.braname,
@@ -209,14 +210,14 @@ export class BranchInteractor {
     const existingBranch = await this.branchBlockchainPort.getBranch(data.coopname, data.braname);
 
     if (!existingBranch) {
-      throw new HttpApiError(httpStatus.BAD_REQUEST, 'Кооперативный участок не найден');
+      throw DomainError.badRequest('BRANCH_NOT_FOUND');
     }
 
     // Извлекаем информацию о кооперативе
     const cooperative = await this.organizationRepository.findByUsername(data.coopname);
 
     if (!cooperative) {
-      throw new HttpApiError(httpStatus.BAD_REQUEST, 'Кооператив не найден');
+      throw DomainError.badRequest('BRANCH_COOP_NOT_FOUND');
     }
     const organizationEntity = new OrganizationDomainEntity(cooperative);
 
@@ -224,7 +225,7 @@ export class BranchInteractor {
     const trustee = new IndividualDomainEntity(await this.individualRepository.findByUsername(data.trustee));
 
     if (!trustee) {
-      throw new HttpApiError(httpStatus.BAD_REQUEST, 'Председатель не найден');
+      throw DomainError.badRequest('BRANCH_CHAIRMAN_NOT_FOUND');
     }
 
     // Комбинируем с новыми данными о КУ
@@ -236,6 +237,7 @@ export class BranchInteractor {
         last_name: trustee.last_name,
         middle_name: trustee.middle_name,
         based_on: data.based_on,
+        // i18n-ignore: должность в реквизитах документа участка — данные заявления, не текст интерфейса
         position: 'председатель кооперативного участка',
       },
       username: data.braname,
@@ -260,7 +262,7 @@ export class BranchInteractor {
     const existingBranch = await this.branchBlockchainPort.getBranch(data.coopname, data.braname);
 
     if (!existingBranch) {
-      throw new HttpApiError(httpStatus.BAD_REQUEST, 'Кооперативный участок не найден');
+      throw DomainError.badRequest('BRANCH_NOT_FOUND');
     }
 
     // Уведомляем блокчейн через порт
@@ -277,7 +279,7 @@ export class BranchInteractor {
     const existingBranch = await this.branchBlockchainPort.getBranch(data.coopname, data.braname);
 
     if (!existingBranch) {
-      throw new HttpApiError(httpStatus.BAD_REQUEST, 'Кооперативный участок не найден');
+      throw DomainError.badRequest('BRANCH_NOT_FOUND');
     }
 
     // Уведомляем блокчейн через порт
@@ -295,7 +297,7 @@ export class BranchInteractor {
     const existingBranch = await this.branchBlockchainPort.getBranch(data.coopname, data.braname);
 
     if (!existingBranch) {
-      throw new HttpApiError(httpStatus.BAD_REQUEST, 'Кооперативный участок не найден');
+      throw DomainError.badRequest('BRANCH_NOT_FOUND');
     }
 
     // Уведомляем блокчейн через порт
@@ -312,7 +314,7 @@ export class BranchInteractor {
     const existingBranch = await this.branchBlockchainPort.getBranch(data.coopname, data.braname);
 
     if (!existingBranch) {
-      throw new HttpApiError(httpStatus.BAD_REQUEST, 'Кооперативный участок не найден');
+      throw DomainError.badRequest('BRANCH_NOT_FOUND');
     }
 
     await this.branchBlockchainPort.setBranchPrivate({
@@ -328,7 +330,7 @@ export class BranchInteractor {
     const existingBranch = await this.branchBlockchainPort.getBranch(data.coopname, data.braname);
 
     if (!existingBranch) {
-      throw new HttpApiError(httpStatus.BAD_REQUEST, 'Кооперативный участок не найден');
+      throw DomainError.badRequest('BRANCH_NOT_FOUND');
     }
 
     await this.branchBlockchainPort.addBranchWhitelist({
@@ -344,7 +346,7 @@ export class BranchInteractor {
     const existingBranch = await this.branchBlockchainPort.getBranch(data.coopname, data.braname);
 
     if (!existingBranch) {
-      throw new HttpApiError(httpStatus.BAD_REQUEST, 'Кооперативный участок не найден');
+      throw DomainError.badRequest('BRANCH_NOT_FOUND');
     }
 
     await this.branchBlockchainPort.deleteBranchWhitelist({
@@ -360,25 +362,25 @@ export class BranchInteractor {
     // Заявление о выборе участка пайщик подаёт только за себя: контракт
     // авторизует кооператив целиком, поэтому сверка подателя — обязанность backend.
     if (currentUsername && currentUsername !== data.username)
-      throw new HttpApiError(httpStatus.FORBIDDEN, 'Действие доступно только от своего имени');
+      throw DomainError.forbidden('BRANCH_ACTION_SELF_ONLY');
 
     // TODO move it to separate document domain service for validate
     const document = await this.documentRepository.findByHash(data.document.doc_hash);
-    if (!document) throw new BadRequestException('Документ не найден');
+    if (!document) throw DomainError.badRequest('BRANCH_DOCUMENT_NOT_FOUND');
 
     if (data.document.meta.registry_id != Cooperative.Registry.SelectBranchStatement.registry_id)
-      throw new BadRequestException('Неверный registry_id в переданном документе, ожидается registry_id == 101');
+      throw DomainError.badRequest('BRANCH_DOCUMENT_REGISTRY_ID_INVALID');
 
     // подписанное заявление должно быть выписано на того же пайщика,
     // иначе на цепь уедет документ одного пайщика с участком другого
     if (data.document.meta.username !== data.username)
-      throw new BadRequestException('Пайщик в документе не совпадает с пайщиком заявления');
+      throw DomainError.badRequest('BRANCH_DOCUMENT_PARTICIPANT_MISMATCH');
 
     if (data.document.meta.braname !== data.braname)
-      throw new BadRequestException('Кооперативный участок в документе не совпадает с выбранным');
+      throw DomainError.badRequest('BRANCH_DOCUMENT_BRANCH_MISMATCH');
 
     if (data.coopname != config.coopname)
-      throw new HttpApiError(httpStatus.BAD_REQUEST, 'Указанное имя аккаунта кооператива не обслуживается здесь');
+      throw DomainError.badRequest('BRANCH_COOP_NOT_SERVICED_HERE');
 
     await this.branchBlockchainPort.selectBranch({
       coopname: data.coopname,

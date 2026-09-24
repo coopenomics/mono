@@ -1,4 +1,5 @@
 import { Zeus } from '@coopenomics/sdk';
+import { t } from '../../i18n';
 
 /**
  * Получение цвета статуса участника
@@ -28,17 +29,17 @@ export const getContributorStatusColor = (status: string) => {
 export const getContributorStatusLabel = (status: string) => {
   switch (status) {
     case Zeus.ContributorStatus.IMPORT:
-      return 'Импорт';
+      return t('capital.contributor.status.import');
     case Zeus.ContributorStatus.ACTIVE:
-      return 'Активный';
+      return t('capital.contributor.status.active');
     case Zeus.ContributorStatus.APPROVED:
-      return 'Одобрен';
+      return t('capital.contributor.status.approved');
     case Zeus.ContributorStatus.PENDING:
-      return 'Ожидает';
+      return t('capital.contributor.status.pending');
     case Zeus.ContributorStatus.INACTIVE:
-      return 'Неактивный';
+      return t('capital.contributor.status.inactive');
     case Zeus.ContributorStatus.UNDEFINED:
-      return 'Неопределен';
+      return t('capital.contributor.status.undefined');
     default:
       return status;
   }

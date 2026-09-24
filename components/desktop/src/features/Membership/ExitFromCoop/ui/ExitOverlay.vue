@@ -1,7 +1,7 @@
 <template lang="pug">
 BaseDialog(
   :model-value='isExitActive',
-  title='Выход из кооператива',
+  :title='$t("membership.exitOverlay.title")',
   :maximized='true',
   :hide-close-button='true',
   :close-on-backdrop='false',
@@ -25,7 +25,7 @@ BaseDialog(
           :variant='paymentChip.variant',
           size='sm'
         ) {{ paymentChip.label }}
-      p.exit-note.t-sm.t-muted(v-if='view.canCancel') Пока вы не перешли по ссылке, заявление можно отменить.
+      p.exit-note.t-sm.t-muted(v-if='view.canCancel') {{ $t('membership.exitOverlay.cancelHint') }}
 
       //- Футер: действия (отделён бордером внутри AuthCard).
       template(#footer)
@@ -37,7 +37,7 @@ BaseDialog(
             :loading='cancelling',
             @click='onCancel'
           )
-            | Отменить выход
+            | {{ $t('membership.exitOverlay.cancelExit') }}
           BaseButton(
             variant='ghost',
             :block='true',
@@ -46,7 +46,7 @@ BaseDialog(
           )
             template(#icon-left)
               q-icon(name='logout', size='18px')
-            | Выйти из личного кабинета
+            | {{ $t('membership.exitOverlay.signOut') }}
 </template>
 
 <script setup lang="ts">
@@ -62,6 +62,7 @@ import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { useLogoutUser } from 'src/features/User/Logout/model';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { useExitGate } from '../model';
+import { t } from 'src/shared/i18n';
 
 const route = useRoute();
 const router = useRouter();
@@ -82,15 +83,15 @@ const isCompleted = computed(
 
 // Статус исходящего платежа возврата → чип у суммы (виден кассиру и пайщику).
 const PAYMENT_CHIPS: Record<string, { label: string; variant: BaseChipVariant }> = {
-  [Zeus.PaymentStatus.PENDING]: { label: 'Ожидает оплаты', variant: 'warn' },
-  [Zeus.PaymentStatus.PROCESSING]: { label: 'Оплачивается', variant: 'info' },
-  [Zeus.PaymentStatus.PAID]: { label: 'Оплачивается', variant: 'info' },
-  [Zeus.PaymentStatus.COMPLETED]: { label: 'Оплачено', variant: 'pos' },
-  [Zeus.PaymentStatus.FAILED]: { label: 'Ошибка выплаты', variant: 'neg' },
-  [Zeus.PaymentStatus.EXPIRED]: { label: 'Истёк', variant: 'neg' },
-  [Zeus.PaymentStatus.CANCELLED]: { label: 'Отменён', variant: 'neutral' },
-  [Zeus.PaymentStatus.REFUNDED]: { label: 'Отклонён', variant: 'neutral' },
-  [Zeus.PaymentStatus.AWAITING_AUTHORIZATION]: { label: 'Ожидает решения Совета', variant: 'neutral' },
+  [Zeus.PaymentStatus.PENDING]: { label: t('membership.exitOverlay.status.pending'), variant: 'warn' },
+  [Zeus.PaymentStatus.PROCESSING]: { label: t('membership.exitOverlay.status.processing'), variant: 'info' },
+  [Zeus.PaymentStatus.PAID]: { label: t('membership.exitOverlay.status.processing'), variant: 'info' },
+  [Zeus.PaymentStatus.COMPLETED]: { label: t('membership.exitOverlay.status.completed'), variant: 'pos' },
+  [Zeus.PaymentStatus.FAILED]: { label: t('membership.exitOverlay.status.failed'), variant: 'neg' },
+  [Zeus.PaymentStatus.EXPIRED]: { label: t('membership.exitOverlay.status.expired'), variant: 'neg' },
+  [Zeus.PaymentStatus.CANCELLED]: { label: t('membership.exitOverlay.status.cancelled'), variant: 'neutral' },
+  [Zeus.PaymentStatus.REFUNDED]: { label: t('membership.exitOverlay.status.refunded'), variant: 'neutral' },
+  [Zeus.PaymentStatus.AWAITING_AUTHORIZATION]: { label: t('membership.exitOverlay.status.awaitingAuthorization'), variant: 'neutral' },
 };
 
 const paymentChip = computed(() =>
@@ -103,9 +104,9 @@ const view = computed(() => {
     return {
       icon: 'check_circle',
       tone: 'pos',
-      title: 'Вы вышли из кооператива',
-      body: 'Возврат паевого взноса оплачен — дождитесь поступления средств на указанные реквизиты. Аккаунт заблокирован. Благодарим за участие в кооперативе.',
-      amountLabel: 'Сумма возврата',
+      title: t('membership.exitOverlay.completedTitle'),
+      body: t('membership.exitOverlay.completedBody'),
+      amountLabel: t('membership.exitOverlay.completedAmountLabel'),
       canCancel: false,
     };
   }
@@ -113,9 +114,9 @@ const view = computed(() => {
     return {
       icon: 'mark_email_unread',
       tone: 'primary',
-      title: 'Подтвердите выход по ссылке из письма',
-      body: 'Мы отправили письмо на вашу электронную почту — перейдите по ссылке в нём, чтобы подтвердить выход и запустить возврат паевого взноса. Письмо могло попасть в папку «Спам».',
-      amountLabel: 'Сумма к возврату',
+      title: t('membership.exitOverlay.pendingEmailTitle'),
+      body: t('membership.exitOverlay.pendingEmailBody'),
+      amountLabel: t('membership.exitOverlay.refundAmountLabel'),
       canCancel: true,
     };
   }
@@ -123,18 +124,18 @@ const view = computed(() => {
     return {
       icon: 'payments',
       tone: 'pos',
-      title: 'Совет одобрил выход',
-      body: 'Возврат паевого взноса будет совершён в срок, установленный Уставом кооператива. Аккаунт заблокирован — дождитесь поступления средств.',
-      amountLabel: 'Сумма к возврату',
+      title: t('membership.exitOverlay.councilApprovedTitle'),
+      body: t('membership.exitOverlay.councilApprovedBody'),
+      amountLabel: t('membership.exitOverlay.refundAmountLabel'),
       canCancel: false,
     };
   }
   return {
     icon: 'hourglass_top',
     tone: 'primary',
-    title: 'Заявление на рассмотрении Совета',
-    body: 'Ваше заявление о выходе передано в Совет кооператива. Кабинет заблокирован на время процедуры — дождитесь решения Совета.',
-    amountLabel: 'Сумма к возврату',
+    title: t('membership.exitOverlay.councilPendingTitle'),
+    body: t('membership.exitOverlay.councilPendingBody'),
+    amountLabel: t('membership.exitOverlay.refundAmountLabel'),
     canCancel: false,
   };
 });
@@ -146,7 +147,7 @@ const onCancel = async (): Promise<void> => {
   cancelling.value = true;
   try {
     await cancelExit();
-    SuccessAlert('Заявление на выход отменено.');
+    SuccessAlert(t('membership.exitOverlay.cancelSuccess'));
   } catch (e: any) {
     FailAlert(e);
   } finally {
@@ -164,7 +165,7 @@ const onLogout = async (): Promise<void> => {
     await loadExitStatus();
     await router.push({ name: 'signin', params: { coopname: route.params.coopname } });
   } catch (e: any) {
-    FailAlert('Ошибка при выходе: ' + (e?.message ?? e));
+    FailAlert(t('membership.exitOverlay.cancelErrorPrefix') + (e?.message ?? e));
   } finally {
     loggingOut.value = false;
   }

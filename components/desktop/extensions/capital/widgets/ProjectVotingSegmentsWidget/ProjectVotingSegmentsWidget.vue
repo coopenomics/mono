@@ -3,27 +3,27 @@
   .banner.banner--info(v-if='!isVotingCompleted && !isVotingParticipant')
     q-icon.banner__icon(name='info', size='20px')
     .banner__body
-      | В голосовании принимают участие только авторы и исполнители проекта.
+      | {{ $t('capital.projectVotingSegmentsWidget.eligibilityHint') }}
 
   .voting-segments__skel(v-if='loading && !rows.length')
     .skel(v-for='i in 3', :key='i')
 
   EmptyState(
     v-else-if='!loading && !rows.length',
-    :title='hasVoted ? "Вы уже проголосовали" : "Нет участников голосования"',
-    :body='hasVoted ? "Ожидайте завершения голосования остальными участниками." : "Участники появятся после формирования сегментов с правом голоса."'
+    :title='hasVoted ? $t("capital.projectVotingSegmentsWidget.alreadyVotedTitle") : $t("capital.projectVotingSegmentsWidget.noParticipantsTitle")',
+    :body='hasVoted ? $t("capital.projectVotingSegmentsWidget.alreadyVotedBody") : $t("capital.projectVotingSegmentsWidget.noParticipantsBody")'
   )
     template(#icon)
       q-icon(:name='hasVoted ? "hourglass_empty" : "group"')
 
   template(v-else)
     .voting-segments__tools(v-if='canDistribute')
-      span.t-sm.t-muted Распределите голосующую сумму между участниками — остаток должен стать нулевым
+      span.t-sm.t-muted {{ $t('capital.projectVotingSegmentsWidget.distributeHint') }}
       .voting-segments__tools-actions
         BaseButton(variant='ghost', size='sm', @click='splitEqually')
           template(#icon-left)
             q-icon(name='balance', size='16px')
-          | Поровну
+          | {{ $t('capital.projectVotingSegmentsWidget.equalSplitButton') }}
         BaseButton(
           variant='ghost',
           size='sm',
@@ -32,7 +32,7 @@
         )
           template(#icon-left)
             q-icon(name='restart_alt', size='16px')
-          | Сбросить
+          | {{ $t('capital.projectVotingSegmentsWidget.resetButton') }}
 
     .voting-segments__items
       .voting-segments__item(v-for='segment in rows', :key='segment.username')
@@ -46,13 +46,13 @@
             @click='handleToggleExpand(segment.username)'
           )
             q-tooltip(v-if='!isResultStatus')
-              | Результаты голосования каждого участника станут доступны после завершения голосования
+              | {{ $t('capital.projectVotingSegmentsWidget.resultsHiddenHint') }}
 
           .voting-segments__main
             .voting-segments__name {{ segment.display_name }}
             .voting-segments__roles
-              BaseBadge(v-if='segment.is_author', variant='info') Соавтор
-              BaseBadge(v-if='segment.is_creator', variant='neutral') Исполнитель
+              BaseBadge(v-if='segment.is_author', variant='info') {{ $t('capital.projectVotingSegmentsWidget.coauthorRole') }}
+              BaseBadge(v-if='segment.is_creator', variant='neutral') {{ $t('capital.projectVotingSegmentsWidget.performerRole') }}
 
           .voting-segments__side(@click.stop)
             //- До завершения: ввод голоса / ожидание / нельзя за себя
@@ -69,21 +69,21 @@
                 )
               .voting-segments__hint(v-else-if='hasVoted')
                 q-icon(name='hourglass_empty', size='16px')
-                span Голосование ещё идёт
+                span {{ $t('capital.projectVotingSegmentsWidget.votingInProgressBadge') }}
               .voting-segments__hint.voting-segments__hint--self(
                 v-else-if='isCurrentUser(segment.username)'
               )
                 q-icon(name='block', size='16px')
-                span Нельзя голосовать за себя
+                span {{ $t('capital.projectVotingSegmentsWidget.cannotVoteForSelfHint') }}
               .voting-segments__hint(v-else)
                 q-icon(name='visibility_off', size='16px')
-                span Только для участников
+                span {{ $t('capital.projectVotingSegmentsWidget.onlyForParticipantsHint') }}
 
             //- После завершения
             template(v-else)
               .voting-segments__hint(v-if='!isResultStatus')
                 q-icon(name='hourglass_empty', size='16px')
-                span Голосование ещё идёт
+                span {{ $t('capital.projectVotingSegmentsWidget.votingInProgressBadge') }}
               .voting-segments__result(v-else-if='segment.is_votes_calculated === false')
                 CalculateVotesButton(
                   :coopname='coopname',
@@ -93,7 +93,7 @@
               .voting-segments__result(v-else)
                 span.t-mono.voting-segments__bonus
                   | {{ formatAsset2Digits(segment.voting_bonus || '0.0000 RUB') }}
-                span.t-sm.t-muted Результат
+                span.t-sm.t-muted {{ $t('capital.projectVotingSegmentsWidget.resultLabel') }}
 
         //- Ползунок во всю ширину: шкала всегда равна голосующей сумме,
         //- поэтому чужие ручки не сдвигаются, когда двигаешь свою.
@@ -115,8 +115,8 @@
           )
           .voting-segments__vote-foot
             span.t-sm.t-muted(v-if='innerMaxUnits(segment.username) === 0')
-              | Запас исчерпан — уменьшите долю у других участников
-            span.t-sm.t-muted(v-else) {{ sharePercent(segment.username) }}% голосующей суммы
+              | {{ $t('capital.projectVotingSegmentsWidget.poolExhaustedHint') }}
+            span.t-sm.t-muted(v-else) {{ $t('capital.projectVotingSegmentsWidget.sharePercentLabel', { percent: sharePercent(segment.username) }) }}
             BaseButton(
               variant='ghost',
               size='sm',
@@ -125,7 +125,7 @@
             )
               template(#icon-left)
                 q-icon(name='add', size='16px')
-              | Отдать остаток
+              | {{ $t('capital.projectVotingSegmentsWidget.giveRestButton') }}
 
         .voting-segments__details(
           v-if='isResultStatus && expanded[segment.username]'
@@ -141,7 +141,7 @@
     )
       .voting-segments__remain(v-if='poolUnits > 0')
         .voting-segments__remain-head
-          span.t-sm.t-muted Осталось распределить
+          span.t-sm.t-muted {{ $t('capital.projectVotingSegmentsWidget.remainingToDistributeLabel') }}
           span.t-mono.voting-segments__remain-value(
             :class='{ "voting-segments__remain-value--done": remainingUnits === 0 }'
           ) {{ remainingLabel }}
@@ -173,6 +173,7 @@ import { Zeus } from '@coopenomics/sdk';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { ExpandToggleButton } from 'src/shared/ui/ExpandToggleButton';
 import { EmptyState, BaseBadge, BaseInput, BaseButton } from 'src/shared/ui/base';
+import { t } from '../../i18n';
 
 interface Props {
   projectHash: string;
@@ -410,7 +411,7 @@ const loadSegments = async () => {
     emit('data-loaded', usernames);
   } catch (error) {
     console.error('Ошибка при загрузке сегментов:', error);
-    FailAlert('Не удалось загрузить участников голосования');
+    FailAlert(t('capital.projectVotingSegmentsWidget.loadError'));
   } finally {
     loading.value = false;
   }

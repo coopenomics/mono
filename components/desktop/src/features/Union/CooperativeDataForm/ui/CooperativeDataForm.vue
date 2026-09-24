@@ -1,20 +1,20 @@
 <template lang="pug">
 div
-  Form(:handler-submit="saveData" :showCancel="true" :button-cancel-txt="'Назад'" :button-submit-txt="'Продолжить'" @cancel="handleBack").q-gutter-md
+  Form(:handler-submit="saveData" :showCancel="true" :button-cancel-txt="$t('common.action.back')" :button-submit-txt="$t('union.cooperativeDataForm.continueLabel')" @cancel="handleBack").q-gutter-md
 
     //- Домен кооператива
     .form-section.q-mb-lg
       .section-header.q-mb-md
         .section-title
           q-icon(name="domain" size="20px" color="primary").q-mr-sm
-          span.text-subtitle1.text-weight-medium Домен кооператива
+          span.text-subtitle1.text-weight-medium {{ $t('union.cooperativeDataForm.domainSectionTitle') }}
         .section-description.text-body2.q-mt-sm
-          | Укажите домен или поддомен, на котором будет работать ваш кооператив
+          | {{ $t('union.cooperativeDataForm.domainSectionDescription') }}
 
       q-input.form-input(
         standout="bg-teal text-white"
-        hint="domovoy.com или coop.domovoy.com"
-        label="Домен или поддомен для запуска"
+        :hint="$t('union.cooperativeDataForm.domainHint')"
+        :label="$t('union.cooperativeDataForm.domainLabel')"
         v-model="formData.announce"
         :rules="[val => notEmpty(val), val => isDomain(val)]"
       )
@@ -24,18 +24,18 @@ div
       .section-header.q-mb-md
         .section-title
           q-icon(name="account_balance_wallet" size="20px" color="secondary").q-mr-sm
-          span.text-subtitle1.text-weight-medium Финансовые параметры
+          span.text-subtitle1.text-weight-medium {{ $t('union.cooperativeDataForm.financialSectionTitle') }}
         .section-description.text-body2.q-mt-sm
-          | Введите вступительные и минимальные паевые взносы пайщиков. Эти параметры будут должны быть указаны в уставных документах кооператива.
+          | {{ $t('union.cooperativeDataForm.financialSectionDescription') }}
 
       .financial-grid
         .grid-section.q-mb-md
-          .subsection-title.text-body1.text-weight-medium.q-mb-sm Для физических лиц и ИП
+          .subsection-title.text-body1.text-weight-medium.q-mb-sm {{ $t('union.cooperativeDataForm.individualSectionTitle') }}
           .input-row.q-mb-sm
             q-input.form-input(
               standout="bg-teal text-white"
               placeholder="100"
-              label="Вступительный взнос"
+              :label="$t('union.cooperativeDataForm.initialIndividualLabel')"
               v-model="formData.initial"
               type="number"
               :min="0"
@@ -46,7 +46,7 @@ div
           .input-row
             q-input.form-input(
               standout="bg-teal text-white"
-              label="Минимальный паевый взнос"
+              :label="$t('union.cooperativeDataForm.minimumIndividualLabel')"
               placeholder="300"
               v-model="formData.minimum"
               type="number"
@@ -57,12 +57,12 @@ div
                 span.text-overline RUB
 
         .grid-section
-          .subsection-title.text-body1.text-weight-medium.q-mb-sm Для организаций
+          .subsection-title.text-body1.text-weight-medium.q-mb-sm {{ $t('union.cooperativeDataForm.orgSectionTitle') }}
           .input-row.q-mb-sm
             q-input.form-input(
               standout="bg-teal text-white"
               placeholder="1000"
-              label="Вступительный взнос"
+              :label="$t('union.cooperativeDataForm.initialOrgLabel')"
               v-model="formData.org_initial"
               type="number"
               :min="0"
@@ -74,7 +74,7 @@ div
             q-input.form-input(
               standout="bg-teal text-white"
               placeholder="3000"
-              label="Минимальный паевый взнос"
+              :label="$t('union.cooperativeDataForm.minimumOrgLabel')"
               v-model="formData.org_minimum"
               type="number"
               :min="0"

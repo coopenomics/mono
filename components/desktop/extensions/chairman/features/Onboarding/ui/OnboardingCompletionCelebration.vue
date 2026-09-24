@@ -9,35 +9,35 @@ div.row.q-pa-md
             .sparkle.sparkle-1
             .sparkle.sparkle-2
             .sparkle.sparkle-3
-          .completion-title.text-h5.text-positive.q-mt-lg Онбординг завершен!
+          .completion-title.text-h5.text-positive.q-mt-lg {{ $t('chairman.onboardingCelebration.title') }}
           .completion-subtitle.text-body1.text-grey-7.q-mt-sm
-          | Поздравляем! Процесс подключения цифрового кооператива успешно завершен.
+          | {{ $t('chairman.onboardingCelebration.subtitle') }}
 
         .completion-details.q-mt-xl
           .detail-item
             q-icon(name="check_circle" color="positive" size="24px").q-mr-md
             .detail-text
-              .text-body2.text-weight-medium Решения приняты
-              .text-caption.text-grey-6 Все необходимые решения совета приняты
+              .text-body2.text-weight-medium {{ $t('chairman.onboardingCelebration.decisionsTitle') }}
+              .text-caption.text-grey-6 {{ $t('chairman.onboardingCelebration.decisionsSubtitle') }}
 
           .detail-item.q-mt-md
             q-icon(name="check_circle" color="positive" size="24px").q-mr-md
             .detail-text
-              .text-body2.text-weight-medium Общее собрание проведено
-              .text-caption.text-grey-6 Общее собрание пайщиков состоялось
+              .text-body2.text-weight-medium {{ $t('chairman.onboardingCelebration.meetingTitle') }}
+              .text-caption.text-grey-6 {{ $t('chairman.onboardingCelebration.meetingSubtitle') }}
 
           .detail-item.q-mt-md
             q-icon(name="check_circle" color="positive" size="24px").q-mr-md
             .detail-text
-              .text-body2.text-weight-medium Цифровой Кооператив готов к работе
-              .text-caption.text-grey-6 Все системы настроены и функционируют
+              .text-body2.text-weight-medium {{ $t('chairman.onboardingCelebration.readyTitle') }}
+              .text-caption.text-grey-6 {{ $t('chairman.onboardingCelebration.readySubtitle') }}
 
         .q-mt-xl
 
           q-btn(
             color="primary"
             size="lg"
-            label="Скрыть онбординг"
+            :label="$t('chairman.onboardingCelebration.hideLabel')"
             @click="hideOnboarding"
           )
 </template>

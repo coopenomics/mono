@@ -4,12 +4,13 @@ button.create-account-button(
   :disabled="isLoading || !password",
   type="button"
 )
-  span(v-if="isLoading") Создание аккаунта...
-  span(v-else) Создать аккаунт Matrix
+  span(v-if="isLoading") {{ $t('chatcoop.createMatrixAccountButton.loadingLabel') }}
+  span(v-else) {{ $t('chatcoop.createMatrixAccountButton.createLabel') }}
 </template>
 
 <script lang="ts" setup>
 import { useCreateMatrixAccount } from '../model/useCreateMatrixAccount';
+import { t } from '../../../../../i18n';
 
 const props = defineProps<{
   username: string;
@@ -29,7 +30,7 @@ const handleCreateAccount = async () => {
   if (success) {
     emit('success');
   } else {
-    emit('error', error.value || 'Не удалось создать аккаунт');
+    emit('error', error.value || t('chatcoop.createMatrixAccountButton.createError'));
   }
 };
 </script>

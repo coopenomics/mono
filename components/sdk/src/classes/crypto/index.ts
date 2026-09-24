@@ -1,3 +1,4 @@
+import { lt } from '@coopenomics/i18n'
 /**
  * Класс Crypto предоставляет универсальные методы для работы с криптографией.
  * В частности, реализован статический метод для получения sha256-хэша.
@@ -34,7 +35,7 @@ export class Crypto {
       }
       catch (error) {
         console.warn('Node.js crypto модуль недоступен', error)
-        throw new Error('Криптографические функции не поддерживаются в этом окружении')
+        throw new Error(lt('sdkClient.error.cryptoNotSupported'))
       }
     }
   }

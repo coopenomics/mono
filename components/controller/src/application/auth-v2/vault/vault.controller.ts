@@ -1,10 +1,11 @@
-import { Controller, Get, NotFoundException, Param, UseFilters, UseGuards } from '@nestjs/common';
+import { Controller, Get, Param, UseFilters, UseGuards } from '@nestjs/common';
 import type { EncryptedVaultBlob } from '~/domain/auth-v2/vault/vault.types';
 import { AuthV2ExceptionFilter } from '../exceptions/auth-v2-exception.filter';
 import { AuthRateLimit } from '../rate-limit/auth-rate-limit.decorator';
 import { AuthRateLimitGuard } from '../rate-limit/auth-rate-limit.guard';
 import { LOGIN_IP_RULE } from '../rate-limit/auth-rate-limit.types';
 import { VaultService } from './vault.service';
+import { DomainError } from '@coopenomics/extension-kit';
 
 /**
  * Чтение зашифрованного блоба пайщика. Запись здесь не принимается: без
@@ -40,7 +41,7 @@ export class VaultController {
   async retrieveParticipant(@Param('subject_id') subjectId: string): Promise<EncryptedVaultBlob> {
     const blob = await this.vault.retrieve({ subject_type: 'participant', subject_id: subjectId });
     if (!blob)
-      throw new NotFoundException('vault не найден');
+      throw DomainError.notFound('AUTH_V2_VAULT_NOT_FOUND');
     return blob;
   }
 }

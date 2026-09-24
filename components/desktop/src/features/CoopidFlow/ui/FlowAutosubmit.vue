@@ -1,6 +1,6 @@
 <template lang="pug">
 .flow-autosubmit
-  p.flow-stage__lead Продолжаем…
+  p.flow-stage__lead {{ $t('coopidFlow.flowAutosubmit.lead') }}
   form(ref='form', :action='challenge.url', method='post')
     input(v-for='[name, value] in fields', :key='name', type='hidden', :name='name', :value='value')
 </template>

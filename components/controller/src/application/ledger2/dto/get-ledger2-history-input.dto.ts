@@ -1,4 +1,5 @@
 import { Field, Int, InputType } from '@nestjs/graphql';
+import { validationMessage } from '@coopenomics/extension-kit';
 import {
   IsString,
   IsOptional,
@@ -70,7 +71,7 @@ export class GetLedger2HistoryInputDTO {
   // проводки, считая их ниткой своего процесса. Отсутствие фильтра теперь
   // выражается только отсутствием поля.
   @Matches(/^[0-9a-fA-F]{64}$/, {
-    message: 'process_hash должен быть hex-строкой длиной 64 символа',
+    message: validationMessage('ledger2.getLedger2HistoryInput.processHashInvalidFormat'),
   })
   processHash?: string;
 

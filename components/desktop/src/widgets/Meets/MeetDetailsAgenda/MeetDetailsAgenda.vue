@@ -2,7 +2,7 @@
 .meet-agenda
   .meet-agenda__head
     q-icon(name='list_alt', size='18px')
-    span.meet-agenda__title Повестка
+    span.meet-agenda__title {{ $t('meet.meetDetailsAgenda.title') }}
 
   .meet-agenda__intro(v-if='meetDetailsHtml')
     .meet-agenda__intro-text(v-html='meetDetailsHtml')
@@ -13,10 +13,10 @@
         AgendaNumberAvatar(:number='index + 1')
         span.meet-agenda-card__title {{ item.title }}
       .meet-agenda-card__field
-        span.meet-agenda-card__label Проект решения
+        span.meet-agenda-card__label {{ $t('meet.meetDetailsAgenda.decisionLabel') }}
         span.meet-agenda-card__value {{ item.decision }}
       .meet-agenda-card__field
-        span.meet-agenda-card__label Приложения
+        span.meet-agenda-card__label {{ $t('meet.meetDetailsAgenda.contextLabel') }}
         span.meet-agenda-card__value(
           v-if='item.context',
           v-html='parseLinks(item.context)'

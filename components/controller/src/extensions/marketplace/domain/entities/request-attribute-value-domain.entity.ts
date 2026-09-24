@@ -1,5 +1,6 @@
 import type { AttributeDomainEntity } from './attribute-domain.entity';
 import type { RequestDomainEntity } from './request-domain.entity';
+import { t } from '../../i18n';
 
 /**
  * Доменная сущность значения атрибута заявки для marketplace расширения
@@ -91,7 +92,7 @@ export class RequestAttributeValueDomainEntity {
 
     // Проверка на пустое значение для обязательного атрибута
     if (this.attribute.isRequired && (!this.value || this.value.trim() === '')) {
-      errors.push(`Атрибут "${this.attribute.name}" обязателен для заполнения`);
+      errors.push(t('marketplace.requestAttributeValue.required', { attributeName: this.attribute.name }));
     }
 
     // Валидация по типу атрибута
@@ -99,25 +100,25 @@ export class RequestAttributeValueDomainEntity {
       case 'number':
       case 'integer':
         if (this.value && isNaN(Number(this.value))) {
-          errors.push(`Атрибут "${this.attribute.name}" должен содержать число`);
+          errors.push(t('marketplace.requestAttributeValue.mustBeNumber', { attributeName: this.attribute.name }));
         }
         break;
 
       case 'boolean':
         if (this.value && !['true', 'false', '1', '0'].includes(this.value.toLowerCase())) {
-          errors.push(`Атрибут "${this.attribute.name}" должен содержать булево значение`);
+          errors.push(t('marketplace.requestAttributeValue.mustBeBoolean', { attributeName: this.attribute.name }));
         }
         break;
 
       case 'url':
         if (this.value && !this.isValidUrl(this.value)) {
-          errors.push(`Атрибут "${this.attribute.name}" должен содержать корректный URL`);
+          errors.push(t('marketplace.requestAttributeValue.mustBeUrl', { attributeName: this.attribute.name }));
         }
         break;
 
       case 'date':
         if (this.value && isNaN(Date.parse(this.value))) {
-          errors.push(`Атрибут "${this.attribute.name}" должен содержать корректную дату`);
+          errors.push(t('marketplace.requestAttributeValue.mustBeDate', { attributeName: this.attribute.name }));
         }
         break;
     }
@@ -126,7 +127,7 @@ export class RequestAttributeValueDomainEntity {
     if (this.attribute.maxValueCount > 0) {
       const valuesCount = this.attribute.isCollection ? this.value.split(',').length : 1;
       if (valuesCount > this.attribute.maxValueCount) {
-        errors.push(`Атрибут "${this.attribute.name}" может содержать максимум ${this.attribute.maxValueCount} значений`);
+        errors.push(t('marketplace.requestAttributeValue.maxValues', { attributeName: this.attribute.name, maxCount: this.attribute.maxValueCount }));
       }
     }
 

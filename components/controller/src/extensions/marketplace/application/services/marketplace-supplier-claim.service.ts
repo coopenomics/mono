@@ -1,10 +1,4 @@
-import {
-  ConflictException,
-  ForbiddenException,
-  Inject,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { createHash } from 'crypto';
 import {
@@ -37,6 +31,7 @@ import {
   MARKETPLACE_SUPPLIER_CLAIM_ISSUED_EVENT,
   type MarketplaceSupplierClaimIssuedEvent,
 } from '../events/marketplace-notification.events';
+import { DomainError } from '@coopenomics/extension-kit';
 
 export const MARKETPLACE_SUPPLIER_CLAIM_SERVICE = Symbol('MARKETPLACE_SUPPLIER_CLAIM_SERVICE');
 
@@ -154,7 +149,7 @@ export class MarketplaceSupplierClaimService {
   async findById(coopname: string, id: string): Promise<MarketplaceSupplierClaimDomainEntity> {
     const claim = await this.claimRepo.findById(id);
     if (!claim || claim.coopname !== coopname) {
-      throw new NotFoundException(`Гарантийная претензия ${id} не найдена.`);
+      throw DomainError.notFound('MARKETPLACE_SUPPLIER_CLAIM_NOT_FOUND', { id });
     }
     return claim;
   }
@@ -232,10 +227,10 @@ export class MarketplaceSupplierClaimService {
   private async requirePendingOwn(coopname: string, claim_id: string, supplier: string): Promise<MarketplaceSupplierClaimDomainEntity> {
     const claim = await this.findById(coopname, claim_id);
     if (claim.supplier_account !== supplier) {
-      throw new ForbiddenException('Отвечать по претензии может только поставщик, которому она выставлена.');
+      throw DomainError.forbidden('MARKETPLACE_SUPPLIER_CLAIM_NOT_ADDRESSEE');
     }
     if (claim.status !== MarketplaceSupplierClaimStatuses.PENDING) {
-      throw new ConflictException('Претензия уже признана.');
+      throw DomainError.conflict('MARKETPLACE_SUPPLIER_CLAIM_ALREADY_ACKNOWLEDGED');
     }
     return claim;
   }

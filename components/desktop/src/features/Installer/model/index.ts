@@ -3,6 +3,7 @@ import { useInstallCooperativeStore } from 'src/entities/Installer/model'
 import { stripLegacyBankKpp } from 'src/shared/lib/utils/stripLegacyBankKpp';
 import { getMinSovietMembersCount } from '../lib';
 import { api } from '../api'
+import { t } from 'src/shared/i18n';
 
 export type IInstallInput = Mutations.System.InstallSystem.IInput['data']
 export type IInstallOutput = Mutations.System.InstallSystem.IOutput[typeof Mutations.System.InstallSystem.name]
@@ -51,15 +52,15 @@ export const useInstallCooperative = (): {
 
   async function install(): Promise<IInstallOutput> {
     if (!store.vars)
-      throw new Error('Переменные не установлены')
+      throw new Error(t('installer.error.varsNotSet'))
 
     const minSovietMembers = getMinSovietMembersCount();
 
     if (!store.soviet || store.soviet.length < minSovietMembers) {
       throw new Error(
         minSovietMembers === 1
-          ? 'Совет не установлен'
-          : `Совет должен включать не менее ${minSovietMembers} человек (председатель и члены совета)`,
+          ? t('installer.install.sovietNotSet')
+          : t('installer.install.sovietMinMembers', { minSovietMembers }),
       );
     }
 

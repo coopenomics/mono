@@ -1,11 +1,11 @@
 <template lang="pug">
 .flow-email
   BaseBanner(variant='info')
-    strong Письмо отправлено.
-    |  Откройте ссылку из письма, чтобы продолжить. Письмо приходит в течение минуты; загляните и в «Спам».
+    strong {{ $t('coopidFlow.flowEmail.title') }}
+    |  {{ $t('coopidFlow.flowEmail.text') }}
   .flow-stage__actions
     BaseButton(variant='secondary', :disabled='sending || secondsLeft > 0', :loading='sending', @click='resend')
-      | {{ secondsLeft > 0 ? `Отправить ещё раз · ${secondsLeft} с` : 'Отправить письмо ещё раз' }}
+      | {{ secondsLeft > 0 ? $t(`coopidFlow.flowEmail.resendCountdown`, { seconds: secondsLeft }) : $t('coopidFlow.flowEmail.resend') }}
 </template>
 
 <script lang="ts" setup>

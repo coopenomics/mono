@@ -1,13 +1,7 @@
+import './i18n';
 
 import { Inject, Module } from '@nestjs/common';
-import {
-  EXTENSION_REPOSITORY,
-  type ExtensionDomainRepository,
-  platformSettings,
-  getAmountPlusFee,
-  PaymentProvider,
-  type PaymentDetails,
-} from '@coopenomics/extension-kit';
+import { EXTENSION_REPOSITORY, type ExtensionDomainRepository, platformSettings, getAmountPlusFee, PaymentProvider, type PaymentDetails, DomainError } from '@coopenomics/extension-kit';
 import {
   LOGGER_PORT,
   type ILoggerPort,
@@ -24,6 +18,7 @@ import {
 import type { ExtensionDomainEntity } from '@coopenomics/extension-kit';
 import { z } from 'zod';
 import type { Cooperative } from 'cooptypes';
+import { t } from './i18n';
 
 // Дефолтные параметры конфигурации
 export const defaultConfig = {};
@@ -61,7 +56,7 @@ export class QrPayExtension extends PaymentProvider {
 
   async initialize(): Promise<void> {
     const extensionData = await this.extensionRepository.findByName(this.name);
-    if (!extensionData) throw new Error('Конфиг не найден');
+    if (!extensionData) throw DomainError.internal('QRPAY_CONFIG_NOT_FOUND');
 
     this.extension = extensionData;
 
@@ -76,7 +71,7 @@ export class QrPayExtension extends PaymentProvider {
     const payment = await this.payments.findByHash(hash);
 
     if (!payment) {
-      throw new Error(`Платеж с hash ${hash} не найден`);
+      throw DomainError.internal('QRPAY_PAYMENT_NOT_FOUND', { hash });
     }
 
     const amount = payment.quantity;
@@ -95,7 +90,7 @@ export class QrPayExtension extends PaymentProvider {
 
     const bankAccount = paymentMethod.data as InnerBankTransferData;
 
-    const description = payment.memo || `Платеж для ${payment.username}`;
+    const description = payment.memo || t('qrpay.payment.defaultDescription', { username: payment.username });
 
     const invoice = `ST00012|Name=${cooperative?.full_name}|PersonalAcc=${bankAccount.account_number}|BankName=${
       bankAccount.bank_name

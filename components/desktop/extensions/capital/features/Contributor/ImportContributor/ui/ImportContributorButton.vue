@@ -9,36 +9,36 @@ div
     :size='isMobile ? "sm" : undefined',
     :loading='loading',
     icon='add',
-    :label='isMobile ? undefined : "Добавить"',
+    :label='isMobile ? undefined : $t("common.action.add")',
     no-wrap
   )
-    q-tooltip(v-if='isMobile') Добавить участника
+    q-tooltip(v-if='isMobile') {{ $t('capital.importContributorButton.buttonLabel') }}
 
   BaseDialog(
     v-model='showDialog',
-    title='Импорт участника',
+    :title='$t("capital.importContributorButton.dialogTitle")',
     size='md',
     @update:model-value='(v) => !v && clear()'
   )
     Form.q-pa-md(
       :handler-submit='handleImportContributor',
       :is-submitting='isSubmitting',
-      :button-submit-txt='"Импортировать"',
-      :button-cancel-txt='"Отмена"',
+      :button-submit-txt='$t("capital.importContributorButton.submit")',
+      :button-cancel-txt='$t("common.action.cancel")',
       @cancel='clear'
       style="width: 600px; max-width: 100% !important;"
     )
       q-input(
         v-model='formData.username'
-        label='Имя пользователя'
-        :rules='[(val) => !!val || "Имя пользователя обязательно"]'
+        :label='$t("capital.importContributorButton.usernameLabel")'
+        :rules='[(val) => !!val || $t("capital.importContributorButton.usernameRequired")]'
         outlined
       )
 
       q-input(
         v-model='formData.contribution_amount'
-        label='Сумма взноса'
-        :rules='[(val) => !!val || "Сумма взноса обязательна"]'
+        :label='$t("capital.importContributorButton.amountLabel")'
+        :rules='[(val) => !!val || $t("capital.importContributorButton.amountRequired")]'
         outlined
       )
         template(#append)
@@ -46,35 +46,35 @@ div
 
       q-input(
         v-model='formData.contributor_contract_number'
-        label='Номер договора'
-        :rules='[(val) => !!val || "Номер договора обязателен"]'
+        :label='$t("capital.importContributorButton.contractNumberLabel")'
+        :rules='[(val) => !!val || $t("capital.importContributorButton.contractNumberRequired")]'
         outlined
       )
 
       q-input(
         v-model='formData.contributor_contract_created_at'
-        label='Дата договора (ДД.ММ.ГГГГ)'
-        :rules='[(val) => !!val || "Дата договора обязательна"]'
+        :label='$t("capital.importContributorButton.contractDateLabel")'
+        :rules='[(val) => !!val || $t("capital.importContributorButton.contractDateRequired")]'
         outlined
       )
 
       q-input(
         v-model='formData.blagorost_agreement_number'
-        label='Номер соглашения Благорост'
-        :rules='[(val) => !!val || "Номер соглашения Благорост обязателен"]'
+        :label='$t("capital.importContributorButton.agreementNumberLabel")'
+        :rules='[(val) => !!val || $t("capital.importContributorButton.agreementNumberRequired")]'
         outlined
       )
 
       q-input(
         v-model='formData.blagorost_agreement_created_at'
-        label='Дата соглашения Благорост (ДД.ММ.ГГГГ)'
-        :rules='[(val) => !!val || "Дата соглашения Благорост обязательна"]'
+        :label='$t("capital.importContributorButton.agreementDateLabel")'
+        :rules='[(val) => !!val || $t("capital.importContributorButton.agreementDateRequired")]'
         outlined
       )
 
       q-input(
         v-model='formData.memo'
-        label='Примечание'
+        :label='$t("capital.importContributorButton.noteLabel")'
         outlined
       )
 </template>
@@ -87,6 +87,7 @@ import { BaseDialog } from 'src/shared/ui/base/BaseDialog';
 import { Form } from 'src/shared/ui/Form';
 import { useSystemStore } from 'src/entities/System/model';
 import { useWindowSize } from 'src/shared/hooks';
+import { t } from '../../../../i18n';
 
 const { importContributor } = useImportContributor();
 const { info } = useSystemStore();
@@ -134,7 +135,7 @@ const handleImportContributor = async () => {
     };
 
     await importContributor(data);
-    SuccessAlert('Участник успешно импортирован');
+    SuccessAlert(t('capital.importContributorButton.success'));
     clear();
   } catch (error) {
     FailAlert(error);

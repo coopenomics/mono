@@ -1,4 +1,5 @@
 import { computed, ref, type ComputedRef, type Ref } from 'vue';
+import { t } from 'src/shared/i18n';
 
 export type LoginStep = 'login' | 'migrate' | 'twofactor';
 
@@ -25,13 +26,13 @@ export function useLoginStepHeading(login: { title: string; subtitle?: string })
   const step = ref<LoginStep>('login');
 
   const title = computed(() => {
-    if (step.value === 'migrate') return 'Придумайте пароль';
-    if (step.value === 'twofactor') return 'Подтвердите вход';
+    if (step.value === 'migrate') return t('user.loginStepHeading.migrateTitle');
+    if (step.value === 'twofactor') return t('user.loginStepHeading.twofactorTitle');
     return login.title;
   });
   const subtitle = computed(() => {
-    if (step.value === 'migrate') return 'Вход по ключу доступа больше не понадобится';
-    if (step.value === 'twofactor') return 'Пароль принят — остался код подтверждения';
+    if (step.value === 'migrate') return t('user.loginStepHeading.migrateSubtitle');
+    if (step.value === 'twofactor') return t('user.loginStepHeading.twofactorSubtitle');
     return login.subtitle;
   });
 
@@ -43,7 +44,7 @@ export function useLoginStepHeading(login: { title: string; subtitle?: string })
  * вход и вход с переадресацией показывают одну и ту же панель.
  */
 export const LOGIN_PANE = {
-  title: 'С возвращением',
-  lead: 'Личный кабинет пайщика: приложения целевых потребительских программ и общие собрания пайщиков кооператива.',
-  quote: 'Общее собрание пайщиков — высший орган управления кооперативом.',
+  title: t('user.loginStepHeading.paneTitle'),
+  lead: t('user.loginStepHeading.paneLead'),
+  quote: t('user.loginStepHeading.paneQuote'),
 } as const;

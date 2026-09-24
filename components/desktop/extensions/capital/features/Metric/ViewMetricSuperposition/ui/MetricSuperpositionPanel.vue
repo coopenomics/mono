@@ -2,13 +2,13 @@
 .superposition
   .superposition__head
     .superposition__head-left
-      .superposition__title Метрика резонанса
+      .superposition__title {{ $t('capital.metricSuperpositionPanel.title') }}
       BaseButton.superposition__help-btn(
         variant='ghost',
         size='sm',
         :icon-only='true',
         type='button',
-        aria-label='Справка о резонансе',
+        :aria-label='$t("capital.metricSuperpositionPanel.helpAriaLabel")',
         @click='helpOpen = true'
       )
         template(#icon-left)
@@ -44,7 +44,7 @@
             :name='STAT_ICONS.score',
             size='14px'
           )
-          span Резонанс
+          span {{ $t('capital.metricSuperpositionPanel.resonanceLabel') }}
           q-icon.superposition__stat-help(
             name='help_outline',
             size='14px'
@@ -100,10 +100,10 @@
         :label='frameLabel'
       )
       .superposition__footer-spacer(v-else)
-      .superposition__scale.t-sm.t-muted Дни
+      .superposition__scale.t-sm.t-muted {{ $t('capital.metricSuperpositionPanel.daysLabel') }}
 
   .superposition__empty(v-else-if='!isLoading')
-    EmptyState(title='Нет активных метрик для резонанса')
+    EmptyState(:title='$t("capital.metricSuperpositionPanel.emptyHint")')
       template(#icon)
         q-icon(name='hub', size='28px')
 
@@ -115,6 +115,7 @@
 
 <script setup lang="ts">
 import { computed, ref, toRef } from 'vue';
+import { uiLocale } from 'src/shared/i18n';
 import { useQuasar } from 'quasar';
 import { BaseButton, EmptyState } from 'src/shared/ui/base';
 import { useMetricSuperposition } from '../model';
@@ -128,6 +129,7 @@ import SuperpositionHelpDialog from './SuperpositionHelpDialog.vue';
 import SuperpositionHistoryChart from './SuperpositionHistoryChart.vue';
 import SuperpositionTargetChart from './SuperpositionTargetChart.vue';
 import SuperpositionTimelineScrubber from './SuperpositionTimelineScrubber.vue';
+import { t } from '../../../../i18n';
 
 const props = defineProps<{
   projectHash: string;
@@ -151,7 +153,7 @@ const frameLabel = computed(() => {
   const at = list[idx]?.at;
   if (!at) return '';
   const d = new Date(at);
-  return d.toLocaleDateString('ru-RU', {
+  return d.toLocaleDateString(uiLocale(), {
     day: '2-digit',
     month: 'short',
     year: 'numeric',
@@ -205,7 +207,7 @@ const score = computed(() => {
 });
 
 const scoreHint =
-  'Сводный резонанс системы: живое согласованное движение к целям. Растёт, когда есть движение, рост не ниже нуля и баланс близок к 100%. Ноль — нет живого согласованного продвижения.';
+  t('capital.metricSuperpositionPanel.resonanceTooltip');
 
 const coreFill = computed(() =>
   softHeatColor(Math.min(1, Math.max(glow.value, score.value) * 0.75 + 0.2), isDark.value),
@@ -241,26 +243,26 @@ const stats = computed(() => {
     {
       key: 'balance',
       icon: STAT_ICONS.balance,
-      label: 'Баланс',
+      label: t('capital.metricSuperpositionPanel.balanceLabel'),
       value: pct(d.balance),
       hint:
-        'Согласованность направлений: метрики в одной фазе усиливают друг друга, в противофазе — гасят. 100% — все тянут в одну сторону (или тишина, когда никто не тянет). Ниже — часть идёт к цели, часть от неё.',
+        t('capital.metricSuperpositionPanel.balanceTooltip'),
     },
     {
       key: 'growth',
       icon: STAT_ICONS.growth,
-      label: 'Рост',
+      label: t('capital.metricSuperpositionPanel.growthLabel'),
       value: pct(d.growth),
       hint:
-        'Доля движения к целям. 0% — к целям сейчас не продвигаемся. Чем выше — тем сильнее общее движение вперёд.',
+        t('capital.metricSuperpositionPanel.growthTooltip'),
     },
     {
       key: 'activity',
       icon: STAT_ICONS.activity,
-      label: 'Движение',
+      label: t('capital.metricSuperpositionPanel.activityLabel'),
       value: pct(d.activity),
       hint:
-        'Есть ли сейчас изменения по метрикам. 0% — тишина. Выше — метрики менялись: зелёный сектор — к цели, красный — от цели.',
+        t('capital.metricSuperpositionPanel.activityTooltip'),
     },
   ];
 });
@@ -276,17 +278,17 @@ const showSectorTip = (sector: PolarSector) => {
     rows: [
       {
         icon: STAT_ICONS.activity,
-        label: 'Движение',
+        label: t('capital.metricSuperpositionPanel.activityLabel'),
         value: pct(sector.amplitude),
       },
       {
         icon: STAT_ICONS.growth,
-        label: 'Рост',
-        value: sector.isCorrection ? 'от цели' : 'к цели',
+        label: t('capital.metricSuperpositionPanel.growthLabel'),
+        value: sector.isCorrection ? t('capital.metricSuperpositionPanel.fromTargetTag') : t('capital.metricSuperpositionPanel.toTargetTag'),
       },
       {
         icon: STAT_ICONS.force,
-        label: 'Сила влияния',
+        label: t('capital.metricSuperpositionPanel.strengthLabel'),
         value: `${Math.round(sector.share * 100)}%`,
       },
     ],
@@ -300,26 +302,26 @@ const showCoreTip = () => {
     return;
   }
   tip.value = {
-    title: 'Сводка среза',
+    title: t('capital.metricSuperpositionPanel.summaryLabel'),
     rows: [
       {
         icon: STAT_ICONS.score,
-        label: 'Резонанс',
+        label: t('capital.metricSuperpositionPanel.resonanceLabel'),
         value: pct(score.value),
       },
       {
         icon: STAT_ICONS.balance,
-        label: 'Баланс',
+        label: t('capital.metricSuperpositionPanel.balanceLabel'),
         value: pct(d.balance),
       },
       {
         icon: STAT_ICONS.growth,
-        label: 'Рост',
+        label: t('capital.metricSuperpositionPanel.growthLabel'),
         value: pct(d.growth),
       },
       {
         icon: STAT_ICONS.activity,
-        label: 'Движение',
+        label: t('capital.metricSuperpositionPanel.activityLabel'),
         value: pct(d.activity),
       },
     ],
@@ -340,8 +342,8 @@ const hideTip = () => {
 
 const ariaLabel = computed(() => {
   const d = data.value;
-  if (!d) return 'Мишень резонанса';
-  return `Резонанс ${pct(score.value)}. Баланс ${pct(d.balance)}, рост ${pct(d.growth)}, движение ${pct(d.activity)}`;
+  if (!d) return t('capital.metricSuperpositionPanel.targetChartLabel');
+  return t('capital.metricSuperpositionPanel.summaryText', { resonance: pct(score.value), balance: pct(d.balance), growth: pct(d.growth), activity: pct(d.activity) });
 });
 </script>
 

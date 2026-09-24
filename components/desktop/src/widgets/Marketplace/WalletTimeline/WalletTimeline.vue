@@ -22,16 +22,15 @@
       <div v-if="e.note" class="mp-wallet-timeline__note">{{ e.note }}</div>
     </q-timeline-entry>
 
-    <q-timeline-entry v-if="!entries.length" subtitle="История пуста" title="Операций пока нет">
-      <div class="mp-wallet-timeline__empty">
-        Когда вы заказываете товар или получаете выплату — записи появятся здесь.
-      </div>
+    <q-timeline-entry v-if="!entries.length" :subtitle="$t('marketplace.walletTimeline.emptySubtitle')" :title="$t('marketplace.walletTimeline.emptyTitle')">
+      <div class="mp-wallet-timeline__empty"> {{ $t('marketplace.walletTimeline.emptyBody') }} </div>
     </q-timeline-entry>
   </q-timeline>
 </template>
 
 <script setup lang="ts">
 import { type PropType } from 'vue'
+import { uiLocale, t } from 'src/shared/i18n';
 import type { WalletEntryKind, WalletEntry } from './WalletTimeline.types'
 
 defineProps({
@@ -40,12 +39,12 @@ defineProps({
 })
 
 const kindLabel: Record<WalletEntryKind, string> = {
-  deposit:  'Пополнение',
-  block:    'Блокировка',
-  unblock:  'Разблокировка',
-  charge:   'Списание',
-  refund:   'Возврат',
-  payout:   'Выплата',
+  deposit:  t('marketplace.walletTimeline.operation.topUp'),
+  block:    t('marketplace.walletTimeline.operation.hold'),
+  unblock:  t('marketplace.walletTimeline.operation.release'),
+  charge:   t('marketplace.walletTimeline.operation.writeoff'),
+  refund:   t('marketplace.walletTimeline.operation.refund'),
+  payout:   t('marketplace.walletTimeline.operation.payout'),
 }
 
 type ChipKind = 'info' | 'success' | 'warning' | 'error' | 'neutral'
@@ -85,12 +84,12 @@ function amountClass(e: WalletEntry): string {
 }
 
 function formatAmount(v: number): string {
-  return new Intl.NumberFormat('ru-RU').format(Math.abs(v))
+  return new Intl.NumberFormat(uiLocale()).format(Math.abs(v))
 }
 
 function formatDate(v: string | Date): string {
   const d = typeof v === 'string' ? new Date(v) : v
-  return d.toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+  return d.toLocaleString(uiLocale(), { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
 }
 </script>
 

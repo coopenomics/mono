@@ -3,7 +3,7 @@
   //- Canon back-link под шапкой, слева (вместо кнопки «Назад» в топбаре).
   button.meet-back(type='button', @click='goBack')
     q-icon(name='arrow_back', size='18px')
-    span К списку собраний
+    span {{ $t('cooperative.meetDetailsPage.backLabel') }}
 
   div(v-if='loading')
     q-skeleton.q-mb-md.rounded-borders(type='rect', height='220px')
@@ -11,8 +11,8 @@
 
   EmptyState(
     v-else-if='!meet',
-    title='Собрание не найдено',
-    body='Проверьте правильность ссылки или вернитесь к списку собраний.'
+    :title='$t("cooperative.meetDetailsPage.notFoundTitle")',
+    :body='$t("cooperative.meetDetailsPage.notFoundBody")'
   )
     template(#icon)
       q-icon(name='search_off', size='48px')
@@ -57,6 +57,7 @@ import { useDesktopStore } from 'src/entities/Desktop';
 import { useVoteOnMeet } from 'src/features/Meet/VoteOnMeet';
 import { Zeus } from '@coopenomics/sdk';
 import { FailAlert } from 'src/shared/api';
+import { t } from 'src/shared/i18n';
 
 const route = useRoute();
 const router = useRouter();
@@ -72,7 +73,7 @@ const loading = ref(true);
 // Название собрания — в заголовок шапки (вместо «Детали собрания»).
 const meetTitle = computed(() => {
   const id = meet.value?.processing?.meet?.id;
-  return id ? `Общее собрание № ${id}` : 'Детали собрания';
+  return id ? t('cooperative.meetDetailsPage.titleWithId', { id }) : t('cooperative.meetDetailsPage.defaultTitle');
 });
 
 const isProcessed = computed(() => !!meet.value?.processed);

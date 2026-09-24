@@ -5,8 +5,8 @@
 
   EmptyState(
     v-else-if='!meets.length',
-    title='Нет общих собраний',
-    body='У кооператива пока нет предстоящих или проведённых общих собраний.'
+    :title='$t("meet.meetCardsList.emptyTitle")',
+    :body='$t("meet.meetCardsList.emptyBody")'
   )
     template(#icon)
       q-icon(name='event_busy', size='48px')

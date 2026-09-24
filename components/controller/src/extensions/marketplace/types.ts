@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { type DeserializedDescriptionOfExtension } from '@coopenomics/extension-kit';
+import { t } from './i18n';
 
 // Сериализация человекочитаемого описания поля для формы установки расширения
 // (тот же механизм, что в capital-extension.module.ts).
@@ -132,8 +133,8 @@ export const Schema = z.object({
         .default(4)
         .describe(
           describeField({
-            label: 'Одновременно подаваемых заявлений при выдаче',
-            note: 'Сколько позиций бандла выдачи отправляются в цепь и на решение совета одновременно. Больше — быстрее выдача большого бандла, но выше разовая нагрузка на узел.',
+            label: t('marketplace.types.batchSizeLabel'),
+            note: t('marketplace.types.batchSizeHint'),
             rules: ['val >= 1', 'val <= 16'],
           })
         ),
@@ -141,8 +142,8 @@ export const Schema = z.object({
     .default({ parallel_statements: 4 })
     .describe(
       describeField({
-        label: 'Выдача имущества',
-        note: 'Настройки выдачи имущества из бандла у стойки.',
+        label: t('marketplace.types.issueSectionTitle'),
+        note: t('marketplace.types.issueSectionHint'),
       })
     ),
   coopAcceptance: z
@@ -160,8 +161,8 @@ export const Schema = z.object({
     })
     .describe(
       describeField({
-        label: 'Принятие положения ЦПП',
-        note: 'Системное состояние: заполняется решением совета при подключении ЦПП «Стол заказов».',
+        label: t('marketplace.types.agreementAcceptedLabel'),
+        note: t('marketplace.types.agreementAcceptedHint'),
         visible: false,
       })
     ),
@@ -172,8 +173,8 @@ export const Schema = z.object({
         .default(true)
         .describe(
           describeField({
-            label: 'Автоматически формировать проект списания',
-            note: 'Если включено, раз в месяц собирается проект списания товаров с истёкшим сроком годности и отправляется председателю на ревью. Если выключено — приходит только напоминание.',
+            label: t('marketplace.types.autoWriteoffLabel'),
+            note: t('marketplace.types.autoWriteoffHint'),
           })
         ),
       post_expiry_grace_days: z
@@ -183,18 +184,18 @@ export const Schema = z.object({
         .default(7)
         .describe(
           describeField({
-            label: 'Списывать спустя (после истечения срока)',
-            note: 'Сколько дней товар должен пролежать после истечения срока годности, прежде чем попадёт в проект списания. Свежепросроченное ещё может быть забрано получателем — списываем только окончательно испорченное.',
+            label: t('marketplace.types.writeoffDelayLabel'),
+            note: t('marketplace.types.writeoffDelayHint'),
             rules: ['val >= 0'],
-            append: 'дн.',
+            append: t('marketplace.types.daysUnitLabel'),
           })
         ),
     })
     .default({ auto_proposal_enabled: true, post_expiry_grace_days: 7 })
     .describe(
       describeField({
-        label: 'Списание скоропорта',
-        note: 'Настройки автоматического списания товаров с истёкшим сроком годности.',
+        label: t('marketplace.types.writeoffSectionTitle'),
+        note: t('marketplace.types.writeoffSectionHint'),
       })
     ),
   warehouse: z
@@ -204,8 +205,8 @@ export const Schema = z.object({
         .default(false)
         .describe(
           describeField({
-            label: 'Использовать боксы',
-            note: 'Имущество складывается в боксы — тару со своим QR-кодом. Бокс можно поставить в ячейку, а можно оставить без адреса. Выключено — раздел боксов недоступен.',
+            label: t('marketplace.types.useContainersLabel'),
+            note: t('marketplace.types.useContainersHint'),
           })
         ),
       cells_enabled: z
@@ -213,8 +214,8 @@ export const Schema = z.object({
         .default(false)
         .describe(
           describeField({
-            label: 'Использовать координатные ячейки',
-            note: 'Склад адресуется координатами «секция × ярус» и читается как таблица — место находится по адресу. Нужно там, где склад работает на выдачу. Выключено — понятий секции и яруса в интерфейсе нет.',
+            label: t('marketplace.types.useCellsLabel'),
+            note: t('marketplace.types.useCellsHint'),
           })
         ),
       posting_on_reception_required: z
@@ -222,8 +223,8 @@ export const Schema = z.object({
         .default(false)
         .describe(
           describeField({
-            label: 'Требовать указание места при приёмке',
-            note: 'Председатель указывает место хранения прямо при закрывающей подписи акта приёмки и не может подписать, пока размещено не всё. Выключено — принятое попадает на склад без места, разложить можно позже.',
+            label: t('marketplace.types.requireLocationOnReceiptLabel'),
+            note: t('marketplace.types.requireLocationOnReceiptHint'),
           })
         ),
     })
@@ -234,8 +235,8 @@ export const Schema = z.object({
     })
     .describe(
       describeField({
-        label: 'Адресное хранение на складе',
-        note: 'Боксы и координатные ячейки на складах кооперативных участков. Кооперативной закупке нужны, небольшому кооперативному кафе будут мешать.',
+        label: t('marketplace.types.addressedStorageSectionTitle'),
+        note: t('marketplace.types.addressedStorageSectionHint'),
       })
     ),
 });

@@ -1,0 +1,30 @@
+{
+  "marketplaceDetailKU": {
+    "marketplaceDetailKUDialog": {
+      "addressLabel": "Адрес",
+      "bannerHint1": "Наименование, адрес и контакты участка задаются на столе председателя",
+      "bannerHint2": "в разделе «Кооперативные участки» и едины для всего кооператива. Здесь",
+      "bannerHint3": "вы отмечаете участок как пункт выдачи и настраиваете режим его работы.",
+      "branchLabel": "Участок",
+      "closeTimeLabel": "Закрытие",
+      "contactsLabel": "Контакты",
+      "day": {
+        "fri": "Пт",
+        "mon": "Пн",
+        "sat": "Сб",
+        "sun": "Вс",
+        "thu": "Чт",
+        "tue": "Вт",
+        "wed": "Ср"
+      },
+      "descriptionAriaLabel": "Описание пункта выдачи",
+      "descriptionLabel": "Описание (опционально)",
+      "openTimeLabel": "Открытие",
+      "saveError": "Не удалось сохранить пункт выдачи",
+      "saveSuccess": "Пункт выдачи сохранён. Адрес геокодируется автоматически.",
+      "scheduleTitle": "Режим работы",
+      "timeFormatError": "Время в формате ЧЧ:ММ",
+      "title": "Детализация ПВЗ — {branchName}"
+    }
+  }
+}

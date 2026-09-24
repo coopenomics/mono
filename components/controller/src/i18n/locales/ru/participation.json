@@ -1,0 +1,27 @@
+{
+  "errors": {
+    "PARTICIPATION_ACCOUNT_TYPE_MISMATCH": "Тип аккаунта в заявлении ({statementType}) не совпадает с типом зарегистрированного кандидата ({candidateType})",
+    "PARTICIPATION_ALREADY_JOINED": "Пользователь уже вступил в кооператив",
+    "PARTICIPATION_CANDIDATE_NOT_FOUND": "Кандидат не найден",
+    "PARTICIPATION_DOCUMENT_VALIDATION_FAILED": "Ошибка валидации документов: {errors}",
+    "PARTICIPATION_INVALID_SIGNATURE": "Недействительная подпись",
+    "PARTICIPATION_MISSING_AGREEMENTS": "Отсутствуют обязательные соглашения для типа аккаунта \"{accountType}\": {missingAgreements}",
+    "PARTICIPATION_MISSING_DOCUMENT_LINKS": "В заявлении отсутствуют ссылки на следующие документы: {missingLinks}",
+    "PARTICIPATION_PUBLIC_KEY_MISMATCH": "Несовпадение публичных ключей",
+    "PARTICIPATION_USER_NOT_FOUND": "Пользователь не найден"
+  },
+  "participation": {
+    "addParticipantInput": {
+      "atLeastOneDataRequired": "Необходимо указать хотя бы одно из полей: \"entrepreneur_data\", \"individual_data\" или \"organization_data\".",
+      "fieldCreatedAtRequired": "Поле \"created_at\" обязательно для заполнения.",
+      "fieldEmailRequired": "Поле \"email\" обязательно для заполнения.",
+      "fieldInitialRequired": "Поле \"initial\" обязательно для заполнения.",
+      "fieldMinimumRequired": "Поле \"minimum\" обязательно для заполнения.",
+      "fieldSpreadInitialRequired": "Поле \"spread_initial\" обязательно для заполнения.",
+      "fieldTypeRequired": "Поле \"type\" обязательно для заполнения."
+    },
+    "participantNotificationService": {
+      "entryAndMinShareLabel": "Вступительный и минимальный паевой взнос"
+    }
+  }
+}

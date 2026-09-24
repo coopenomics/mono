@@ -5,10 +5,7 @@ import { MatrixUserManagementService } from '../../domain/services/matrix-user-m
 import { UnionChatService } from '../../domain/services/union-chat.service';
 import { MatrixApiService } from './matrix-api.service';
 import { MatrixAccountStatusResponseDTO } from '../dto/matrix-account-status.dto';
-import {
-  ExtensionDomainRepository,
-  EXTENSION_REPOSITORY,
-} from '@coopenomics/extension-kit';
+import { ExtensionDomainRepository, EXTENSION_REPOSITORY, DomainError } from '@coopenomics/extension-kit';
 import { IConfig } from '../../chatcoop-extension.module';
 import {
   CHATCOOP_MANAGED_MATRIX_ROOM_REPOSITORY,
@@ -228,7 +225,7 @@ export class ChatCoopApplicationService {
     // Проверяем, не существует ли уже аккаунт
     const existingUser = await this.matrixUserManagementService.getMatrixUserByCoopUsername(coopUsername);
     if (existingUser) {
-      throw new Error('Matrix аккаунт уже существует для данного пользователя');
+      throw DomainError.internal('CHATCOOP_MATRIX_ACCOUNT_ALREADY_EXISTS');
     }
 
     // Получаем данные аккаунта и кооператива
@@ -280,7 +277,7 @@ export class ChatCoopApplicationService {
       return true;
     } catch (error) {
       console.error('Failed to create Matrix account:', error);
-      throw new Error('Не удалось создать Matrix аккаунт');
+      throw DomainError.internal('CHATCOOP_MATRIX_ACCOUNT_CREATE_FAILED');
     }
   }
 

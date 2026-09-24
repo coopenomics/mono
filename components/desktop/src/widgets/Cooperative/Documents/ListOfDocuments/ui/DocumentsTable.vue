@@ -17,17 +17,17 @@
           tr
             th.col-toggle
             th.col-id ID
-            th.col-sort.col-date(@click='toggleSort') Дата {{ sortMark }}
-            th Документ
-            th.col-signers Подписи
-            th.col-action Действия
+            th.col-sort.col-date(@click='toggleSort') {{ $t('cooperative.documentsTable.dateHeader', { sortMark }) }}
+            th {{ $t('cooperative.documentsTable.documentHeader') }}
+            th.col-signers {{ $t('cooperative.documentsTable.signersHeader') }}
+            th.col-action {{ $t('cooperative.documentsTable.actionsHeader') }}
         tbody
           template(v-for='row in sortedDocuments', :key='rowId(row)')
             tr.data-row(@click='toggleExpand(rowId(row))')
               td.col-toggle
                 button.icon-btn(
                   type='button',
-                  :aria-label='expanded.get(rowId(row)) ? "Свернуть" : "Развернуть"',
+                  :aria-label='expanded.get(rowId(row)) ? $t("cooperative.documentsTable.collapseAriaLabel") : $t("cooperative.documentsTable.expandAriaLabel")',
                   @click.stop='toggleExpand(rowId(row))'
                 )
                   q-icon(:name='expanded.get(rowId(row)) ? "expand_more" : "chevron_right"')
@@ -43,7 +43,7 @@
                 //- Заявление — инициирующий документ сделки: показываем, что
                 //- внутри пакета есть решение совета, акты и связанные бумаги.
                 //- Иначе протокол считают пропавшим (прогон 12.08).
-                .doc-related(v-if='relatedCount(row)') + связанные документы: {{ relatedCount(row) }}
+                .doc-related(v-if='relatedCount(row)') {{ $t('cooperative.documentsTable.relatedDocumentsLabel', { relatedCount: relatedCount(row) }) }}
               td.col-signers
                 .signers(v-if='getSigners(row).length')
                   BaseBadge(
@@ -55,7 +55,7 @@
               td.col-action(@click.stop)
                 button.icon-btn(
                   type='button',
-                  aria-label='Скачать пакет',
+                  :aria-label='$t("cooperative.documentsTable.downloadPackageAriaLabel")',
                   :disabled='downloadingPackages.get(rowId(row))',
                   @click='downloadPackage(row)'
                 )
@@ -73,12 +73,12 @@
         size='sm',
         :loading='loading',
         @click='$emit("load")'
-      ) Загрузить ещё
+      ) {{ $t('cooperative.documentsTable.loadMoreLabel') }}
 
   EmptyState(
     v-else,
-    title='Документы не найдены',
-    body='Здесь появятся ваши документы и подписанные соглашения.'
+    :title='$t("cooperative.documentsTable.emptyTitle")',
+    :body='$t("cooperative.documentsTable.emptyBody")'
   )
     template(#icon)
       q-icon(name='description', size='48px')
@@ -99,6 +99,7 @@ import {
   getSignersListFromDocumentPackage,
 } from 'src/shared/lib/document';
 import type { IDocumentPackageAggregate } from 'src/entities/Document/model';
+import { t } from 'src/shared/i18n';
 
 interface IPagination {
   totalCount: number;
@@ -122,10 +123,10 @@ const emit = defineEmits<{
 const skeletonColumns: TableSkeletonColumn[] = [
   { class: 'col-toggle', cell: 'icon' },
   { label: 'ID', class: 'col-id', cell: 'badge' },
-  { label: 'Дата', class: 'col-date', cell: 'text', cellWidth: '84px' },
-  { label: 'Документ', cell: 'text' },
-  { label: 'Подписи', class: 'col-signers', cell: 'badge' },
-  { label: 'Действия', class: 'col-action', cell: 'icon' },
+  { label: t('cooperative.documentsTable.column.date'), class: 'col-date', cell: 'text', cellWidth: '84px' },
+  { label: t('cooperative.documentsTable.column.document'), cell: 'text' },
+  { label: t('cooperative.documentsTable.column.signers'), class: 'col-signers', cell: 'badge' },
+  { label: t('cooperative.documentsTable.column.actions'), class: 'col-action', cell: 'icon' },
 ];
 
 const expanded = reactive(new Map<string, boolean>());
@@ -153,7 +154,7 @@ function getDocumentTitle(row: IDocumentPackageAggregate): string {
     getMeta(row)?.title ||
     row.statement?.documentAggregate?.rawDocument?.full_title ||
     row.decision?.documentAggregate?.rawDocument?.full_title ||
-    'Документ без заголовка'
+    t('cooperative.documentsTable.untitledDocument')
   );
 }
 
@@ -213,7 +214,7 @@ const hasMore = computed(
 const rangeLabel = computed(() => {
   const total = props.pagination?.totalCount ?? props.documents.length;
   const shown = props.documents.length;
-  return shown ? `1–${shown} из ${total}` : `0 из ${total}`;
+  return shown ? t('cooperative.documentsTable.rangeLabel', { shown, total }) : t('cooperative.documentsTable.rangeEmptyLabel', { total });
 });
 
 const toggleExpand = (id: string): void => {
@@ -242,7 +243,7 @@ const downloadPackage = async (
     document.body.removeChild(link);
   } catch (error) {
     console.error('Ошибка при скачивании пакета документов:', error);
-    FailAlert('Не удалось подготовить архив пакета документов');
+    FailAlert(t('cooperative.documentsTable.downloadArchiveError'));
   } finally {
     downloadingPackages.delete(String(packageId));
   }

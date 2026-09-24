@@ -29,6 +29,7 @@ ColorCard(:transparent="true")
 import { copyToClipboard as copy } from 'quasar';
 import { ColorCard } from 'src/shared/ui';
 import { SuccessAlert } from 'src/shared/api';
+import { t } from 'src/shared/i18n';
 
 interface Props {
   link: string;
@@ -36,13 +37,13 @@ interface Props {
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  label: 'Ссылка для приглашений',
+  label: t('ui.referralLinkCard.titleText'),
 });
 
 const copyToClipboard = async () => {
   try {
     await copy(props.link);
-    SuccessAlert('Ссылка скопирована в буфер обмена');
+    SuccessAlert(t('ui.referralLinkCard.copiedText'));
   } catch (error) {
     console.error('Ошибка при копировании:', error);
   }

@@ -26,6 +26,7 @@ import {
   type MarketplaceReturnClaimDomainRepository,
 } from '../../domain/repositories/marketplace-return-claim.repository';
 import { MARKETPLACE_RETURN_CLAIM_SERVICE, type MarketplaceReturnClaimService } from './marketplace-return-claim.service';
+import { t } from '../../i18n';
 
 /** Сколько заказов с недоведённой уценкой берём за прогон — защита от лавины сабмитов. */
 const MARKDOWN_BATCH_LIMIT = 100;
@@ -121,7 +122,7 @@ export class MarketplaceChainRetryCronService {
             coopname,
             request_hash: claim.request_hash,
             tx_hash: '',
-            comment: 'По данным цепи взнос по заявлению уже доведён либо заявка закрыта.',
+            comment: t('marketplace.chainRetryCron.alreadySettledNote'),
           });
           continue;
         }

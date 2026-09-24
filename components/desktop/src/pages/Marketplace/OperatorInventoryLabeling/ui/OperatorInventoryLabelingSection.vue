@@ -51,6 +51,7 @@ import {
   splitInventory,
   type MarketplaceInventoryItemView,
 } from 'src/entities/MarketplaceInventory'
+import { t } from 'src/shared/i18n';
 
 /**
  * Стол ПВЗ, «Раскладка и маркировка».
@@ -148,9 +149,9 @@ const inboxItems = computed(() =>
  * мог подготовить ячейки заранее.
  */
 const inboxEmptyLabel = computed(() => {
-  if (!boardItems.value.length) return 'Пока ничего не поступало'
-  if (!placementEnabled.value) return 'Ничего не найдено'
-  return 'Всё разложено'
+  if (!boardItems.value.length) return t('marketplace.operatorInventoryLabeling.inboxEmptyNoItems')
+  if (!placementEnabled.value) return t('marketplace.operatorInventoryLabeling.inboxEmptyNoMatch')
+  return t('marketplace.operatorInventoryLabeling.inboxEmptyAllPlaced')
 })
 
 function containersInCell(cellId: string): MarketplaceContainerView[] {
@@ -259,7 +260,7 @@ async function load(): Promise<void> {
     ])
     items.value = list
   } catch (e) {
-    FailAlert(e, 'Не удалось загрузить склад участка')
+    FailAlert(e, t('marketplace.operatorInventoryLabeling.loadError'))
   } finally {
     loading.value = false
   }
@@ -299,7 +300,7 @@ async function movePlacement(
     })
   } catch (e) {
     patchItem(item.id, before)
-    FailAlert(e, 'Не удалось переложить позицию')
+    FailAlert(e, t('marketplace.operatorInventoryLabeling.moveError'))
   }
 }
 
@@ -307,10 +308,10 @@ async function movePlacement(
 async function removeLabel(item: MarketplaceInventoryItemView): Promise<void> {
   try {
     await clearInventoryLabel({ inventory_id: item.id })
-    SuccessAlert('Этикетка снята — позицию можно переклеить')
+    SuccessAlert(t('marketplace.operatorInventoryLabeling.labelRemovedMessage'))
     await load()
   } catch (e) {
-    FailAlert(e, 'Не удалось снять этикетку')
+    FailAlert(e, t('marketplace.operatorInventoryLabeling.labelRemoveError'))
   }
 }
 
@@ -403,17 +404,17 @@ const dragTargetLabel = computed(() => {
 
   if (key.startsWith('box:')) {
     const box = storage.index.containerById.get(key.slice(4))
-    return box ? `В бокс ${box.code}` : ''
+    return box ? t('marketplace.operatorInventoryLabeling.dropIntoBoxLabel', { code: box.code }) : ''
   }
   if (key.startsWith('cell:')) {
     const cell = storage.index.cellById.get(key.slice(5))
-    return cell ? `В ячейку ${cell.code}` : ''
+    return cell ? t('marketplace.operatorInventoryLabeling.dropIntoCellLabel', { code: cell.code }) : ''
   }
   if (key === '__inbox__') {
-    return dragKind.value === 'container' ? 'Снять бокс с адреса' : 'Снять с места'
+    return dragKind.value === 'container' ? t('marketplace.operatorInventoryLabeling.dropRemoveAddressLabel') : t('marketplace.operatorInventoryLabeling.dropRemoveLabel')
   }
   if (key === '__unplaced__') {
-    return dragKind.value === 'container' ? 'Снять бокс с адреса' : ''
+    return dragKind.value === 'container' ? t('marketplace.operatorInventoryLabeling.dropRemoveAddressLabel') : ''
   }
   return ''
 })
@@ -519,7 +520,7 @@ async function placeContainer(containerId: string, cellId: string | null): Promi
     storage.applyContainer(moved)
   } catch (e) {
     storage.patchContainer(containerId, { cell_id: before })
-    FailAlert(e, 'Не удалось переставить бокс')
+    FailAlert(e, t('marketplace.operatorInventoryLabeling.relocateBoxError'))
   }
 }
 
@@ -562,7 +563,7 @@ async function onBoxScanned(raw: string): Promise<void> {
   if (resolvingBox.value) return
   const token = decodeScannedCode(raw, coopname.value)
   if (!token || token.kind !== HandoffTokenKind.Container || !token.container_code) {
-    FailAlert(new Error('Это не QR-код бокса. Отсканируйте этикетку на таре.'))
+    FailAlert(new Error(t('marketplace.error.notBoxQr')))
     return
   }
   resolvingBox.value = true
@@ -570,7 +571,7 @@ async function onBoxScanned(raw: string): Promise<void> {
     const container = await resolveContainerByCode({ code: token.container_code })
     if (container.braname !== braname.value.trim()) {
       FailAlert(
-        new Error(`Бокс ${container.code} числится за другим участком — его содержимое здесь не показать.`),
+        new Error(t('marketplace.error.foreignBoxLabeling', { code: container.code })),
       )
       return
     }
@@ -579,7 +580,7 @@ async function onBoxScanned(raw: string): Promise<void> {
     boxScanOpen.value = false
     openBox(container)
   } catch (e) {
-    FailAlert(e, 'Бокс по этому коду не найден')
+    FailAlert(e, t('marketplace.operatorInventoryLabeling.boxNotFoundError'))
   } finally {
     resolvingBox.value = false
   }
@@ -619,7 +620,7 @@ async function growGrid(
     onlyNonEmpty.value = false
     search.value = ''
   } catch (e) {
-    FailAlert(e, 'Не удалось завести ячейки')
+    FailAlert(e, t('marketplace.operatorInventoryLabeling.createCellsError'))
   } finally {
     growing.value = false
   }
@@ -708,7 +709,7 @@ async function commitSectionRename(): Promise<void> {
     })
     storage.applyCells(renamed)
   } catch (e) {
-    FailAlert(e, 'Не удалось переименовать секцию')
+    FailAlert(e, t('marketplace.operatorInventoryLabeling.renameSectionError'))
   }
 }
 
@@ -716,9 +717,9 @@ async function retireSection(section: string): Promise<void> {
   try {
     const retired = await retireStorageCells({ braname: braname.value.trim(), section })
     storage.applyCells(retired)
-    SuccessAlert(`Секция «${section}» удалена со склада`)
+    SuccessAlert(t('marketplace.operatorInventoryLabeling.sectionDeletedMessage', { section }))
   } catch (e) {
-    FailAlert(e, 'Не удалось удалить секцию')
+    FailAlert(e, t('marketplace.operatorInventoryLabeling.deleteSectionError'))
   }
 }
 
@@ -726,9 +727,9 @@ async function retireLevel(level: number): Promise<void> {
   try {
     const retired = await retireStorageCells({ braname: braname.value.trim(), level })
     storage.applyCells(retired)
-    SuccessAlert(`Ярус ${level} удалён со склада`)
+    SuccessAlert(t('marketplace.operatorInventoryLabeling.levelDeletedMessage', { level }))
   } catch (e) {
-    FailAlert(e, 'Не удалось удалить ярус')
+    FailAlert(e, t('marketplace.operatorInventoryLabeling.deleteLevelError'))
   }
 }
 
@@ -768,12 +769,12 @@ async function submitScan(raw: string): Promise<void> {
   binding.value = true
   try {
     await bindInventoryBarcode({ inventory_id: item.id, barcode_value: code })
-    SuccessAlert(`Этикетка ${code} привязана к позиции`)
+    SuccessAlert(t('marketplace.operatorInventoryLabeling.labelBoundMessage', { code }))
     scanDialogOpen.value = false
     scanTarget.value = null
     await load()
   } catch (e) {
-    FailAlert(e, 'Не удалось привязать этикетку')
+    FailAlert(e, t('marketplace.operatorInventoryLabeling.bindLabelError'))
   } finally {
     binding.value = false
   }
@@ -832,13 +833,13 @@ async function applySplit(): Promise<void> {
     })
     SuccessAlert(
       splitRows.value.length > 1
-        ? `Заказ разложен на ${splitRows.value.length} мест(а)`
-        : 'Заказ собран на одном месте',
+        ? t('marketplace.operatorInventoryLabeling.splitDoneMessage', { count: splitRows.value.length })
+        : t('marketplace.operatorInventoryLabeling.splitMergedMessage'),
     )
     splitDialogOpen.value = false
     await load()
   } catch (e) {
-    FailAlert(e, 'Не удалось разложить позицию')
+    FailAlert(e, t('marketplace.operatorInventoryLabeling.splitError'))
   } finally {
     splitting.value = false
   }
@@ -874,11 +875,11 @@ onMounted(async () => {
 <template lang="pug">
 //- Секция стола «Склад моего КУ»: шапка участка и полоса разделов — на
 //- странице-обёртке, здесь только содержимое раздела.
-.place(role='region', aria-label='Раскладка и маркировка')
+.place(role='region', :aria-label='$t("marketplace.operatorInventoryLabeling.ariaLabel")')
   EmptyState(
     v-if='branchStore.loaded && !branchStore.isOperator',
-    title='Вы не оператор кооперативного участка',
-    body='Раскладка имущества доступна оператору участка и его доверенным лицам.'
+    :title='$t("marketplace.operatorInventoryLabeling.notOperatorTitle")',
+    :body='$t("marketplace.operatorInventoryLabeling.notOperatorBody")'
   )
     template(#icon)
       q-icon(name='storefront', size='48px')
@@ -895,27 +896,27 @@ onMounted(async () => {
         )
           template(#icon-left)
             q-icon(name='qr_code_scanner', size='16px')
-          | Сканировать бокс
+          | {{ $t('marketplace.operatorInventoryLabeling.scanBoxButton') }}
         BaseButton(variant='secondary', size='sm', @click='openPrintDialog')
           template(#icon-left)
             q-icon(name='print', size='16px')
-          | Печать этикеток
+          | {{ $t('marketplace.operatorInventoryLabeling.printLabelsButton') }}
 
     PageHint(storage-key='mp:operator-labeling:banner-dismissed')
       template(v-if='cellsEnabled')
-        | Склад адресный: столбцы — секции, строки — ярусы, на пересечении ячейка
-        | со своим адресом. Перетащите позицию в бокс или прямо в ячейку, если она
-        | негабаритная. Бокс тоже перетаскивается — целиком, вместе с содержимым;
-        | обратно в «Боксы без адреса» он возвращается тем же перетаскиванием.
-        | Сетка достраивается плюсами по краям карты: секция вправо, ярус вверх.
+        | {{ $t('marketplace.operatorInventoryLabeling.hintCellsLine1') }}
+        | {{ $t('marketplace.operatorInventoryLabeling.hintCellsLine2') }}
+        | {{ $t('marketplace.operatorInventoryLabeling.hintCellsLine3') }}
+        | {{ $t('marketplace.operatorInventoryLabeling.hintCellsLine4') }}
+        | {{ $t('marketplace.operatorInventoryLabeling.hintCellsLine5') }}
       template(v-else-if='containersEnabled')
-        | Разложите принятое имущество по боксам — при выдаче заказчику сразу
-        | видно, в какой таре что лежит. Адрес боксу не обязателен: наполнили и
-        | поставили. Этикетка — по желанию, для поиска сканером.
+        | {{ $t('marketplace.operatorInventoryLabeling.hintContainersLine1') }}
+        | {{ $t('marketplace.operatorInventoryLabeling.hintContainersLine2') }}
+        | {{ $t('marketplace.operatorInventoryLabeling.hintContainersLine3') }}
       template(v-else)
-        | Наклейте на принятое имущество этикетки и привяжите их сканером —
-        | тогда при выдаче позиция находится за секунду. Адресное хранение
-        | (боксы и ячейки) выключено в настройках расширения.
+        | {{ $t('marketplace.operatorInventoryLabeling.hintLabelsLine1') }}
+        | {{ $t('marketplace.operatorInventoryLabeling.hintLabelsLine2') }}
+        | {{ $t('marketplace.operatorInventoryLabeling.hintLabelsLine3') }}
 
     //- Канон загрузки: скелетон, а не спиннер.
     CardListSkeleton(v-if='firstLoad', :count='3')
@@ -931,13 +932,13 @@ onMounted(async () => {
         BaseInput.place__search.field-flush(
           v-model='search',
           type='search',
-          placeholder='Поиск: адрес, бокс, товар, заказчик',
+          :placeholder='$t("marketplace.operatorInventoryLabeling.searchPlaceholder")',
           clearable
         )
         BaseCheckbox(
           v-if='cellsEnabled',
           v-model='onlyNonEmpty',
-          label='Только непустые ячейки'
+          :label='$t("marketplace.operatorInventoryLabeling.onlyNonEmptyLabel")'
         )
 
       .place__layout
@@ -950,7 +951,7 @@ onMounted(async () => {
         )
           .place__col-head
             q-icon(name='inbox', size='18px')
-            span.place__col-title Поступило
+            span.place__col-title {{ $t('marketplace.operatorInventoryLabeling.inboxColumnTitle') }}
             BaseBadge(variant='neutral') {{ inboxItems.length }}
 
           .place__col-body
@@ -962,32 +963,32 @@ onMounted(async () => {
               :key='item.id',
               :draggable='placementEnabled',
               :class='{ "is-dragging": dragId === item.id }',
-              @dragstart='onDragStart("item", item.id, $event, item.product_name_snapshot || "Товар", `${item.quantity_per_label} ед. · ${ordererLabel(item)}`)',
+              @dragstart='onDragStart("item", item.id, $event, item.product_name_snapshot || $t("marketplace.operatorInventoryLabeling.productFallback"), $t(`marketplace.operatorInventoryLabeling.itemMetaText`, { quantity: item.quantity_per_label, orderer: ordererLabel(item) }))',
               @dragend='onDragEnd'
             )
               .place__card-top
                 .place__card-info
-                  .place__card-name {{ item.product_name_snapshot || 'Товар по предложению' }}
-                  .place__card-meta {{ item.quantity_per_label }} ед. · {{ ordererLabel(item) }}
+                  .place__card-name {{ item.product_name_snapshot || $t('marketplace.operatorInventoryLabeling.productOfferFallback') }}
+                  .place__card-meta {{ $t('marketplace.operatorInventoryLabeling.itemMetaText', { quantity: item.quantity_per_label, orderer: ordererLabel(item) }) }}
                 .place__card-actions
                   BaseButton(
                     v-if='!item.barcode_value',
                     variant='ghost',
                     size='sm',
                     icon-only,
-                    aria-label='Привязать этикетку сканером',
+                    :aria-label='$t("marketplace.operatorInventoryLabeling.bindLabelHint")',
                     @click='openScan(item)'
                   )
                     template(#icon-left)
                       q-icon(name='qr_code_scanner', size='18px')
-                      q-tooltip Привязать этикетку сканером
-                  BaseButton(variant='ghost', size='sm', icon-only, aria-label='Действия')
+                      q-tooltip {{ $t('marketplace.operatorInventoryLabeling.bindLabelHint') }}
+                  BaseButton(variant='ghost', size='sm', icon-only, :aria-label='$t("marketplace.operatorInventoryLabeling.actionsAriaLabel")')
                     template(#icon-left)
                       q-icon(name='more_vert', size='18px')
                       q-menu(anchor='bottom right', self='top right')
                         q-list(dense, style='min-width: 240px')
                           template(v-if='placementEnabled')
-                            q-item-label(header) Положить
+                            q-item-label(header) {{ $t('marketplace.operatorInventoryLabeling.placeMenuHeader') }}
                             q-item(
                               v-for='opt in placementOptions',
                               :key='opt.value',
@@ -1007,7 +1008,7 @@ onMounted(async () => {
                           )
                             q-item-section(avatar)
                               q-icon(name='call_split', size='18px')
-                            q-item-section Разложить по количеству
+                            q-item-section {{ $t('marketplace.operatorInventoryLabeling.splitByQuantityAction') }}
                           q-item(
                             v-if='item.barcode_value',
                             clickable,
@@ -1016,11 +1017,11 @@ onMounted(async () => {
                           )
                             q-item-section(avatar)
                               q-icon(name='label_off', size='18px')
-                            q-item-section Снять этикетку
+                            q-item-section {{ $t('marketplace.operatorInventoryLabeling.removeLabelAction') }}
 
               .place__card-badges
-                BaseBadge(v-if='item.barcode_value', variant='pos') Промаркировано
-                BaseBadge(v-else, variant='neutral') Без этикетки
+                BaseBadge(v-if='item.barcode_value', variant='pos') {{ $t('marketplace.operatorInventoryLabeling.labeledBadge') }}
+                BaseBadge(v-else, variant='neutral') {{ $t('marketplace.operatorInventoryLabeling.unlabeledBadge') }}
 
               BarcodeDisplay(v-if='item.barcode_value', :code='item.barcode_value', size='sm')
 
@@ -1028,8 +1029,8 @@ onMounted(async () => {
         .place__grid-wrap(v-if='cellsEnabled')
           EmptyState(
             v-if='!storage.activeCells.length',
-            title='Сетка склада не заведена',
-            body='Начните с трёх секций по три яруса — дальше правьте по месту.'
+            :title='$t("marketplace.operatorInventoryLabeling.gridEmptyTitle")',
+            :body='$t("marketplace.operatorInventoryLabeling.gridEmptyBody")'
           )
             template(#icon)
               q-icon(name='grid_view', size='48px')
@@ -1037,12 +1038,12 @@ onMounted(async () => {
               BaseButton(variant='primary', size='sm', :loading='growing', @click='startGrid')
                 template(#icon-left)
                   q-icon(name='grid_view', size='16px')
-                | Завести стартовую сетку
+                | {{ $t('marketplace.operatorInventoryLabeling.createGridButton') }}
 
           EmptyState(
             v-else-if='!visibleSections.length',
-            title='Ничего не найдено',
-            body='Ни одна ячейка не подходит под поиск или фильтр.'
+            :title='$t("marketplace.operatorInventoryLabeling.searchEmptyTitle")',
+            :body='$t("marketplace.operatorInventoryLabeling.searchEmptyBody")'
           )
             template(#icon)
               q-icon(name='search_off', size='48px')
@@ -1069,8 +1070,8 @@ onMounted(async () => {
                 //- (ярусы). Одна подпись «Ярус» заставляла гадать, чем же тогда
                 //- подписаны столбцы.
                 th.place__grid-corner
-                  span.place__grid-corner-cols Секции
-                  span.place__grid-corner-rows Ярусы
+                  span.place__grid-corner-cols {{ $t('marketplace.operatorInventoryLabeling.sectionsHeader') }}
+                  span.place__grid-corner-rows {{ $t('marketplace.operatorInventoryLabeling.levelsHeader') }}
                 //- Заголовок секции правится на месте: имя стеллажа выясняется
                 //- по ходу дела, и гонять оператора в отдельное окно ради
                 //- слова «Холодильник» незачем.
@@ -1080,14 +1081,14 @@ onMounted(async () => {
                     v-model='sectionDraft',
                     flat,
                     autofocus,
-                    placeholder='Название секции',
+                    :placeholder='$t("marketplace.operatorInventoryLabeling.sectionNamePlaceholder")',
                     @keydown.enter='commitSectionRename',
                     @keydown.esc='cancelSectionRename',
                     @blur='commitSectionRename'
                   )
                   .place__section(v-else)
                     span.place__section-name {{ section }}
-                    BaseButton(variant='ghost', size='sm', icon-only, :aria-label='`Секция ${section}`')
+                    BaseButton(variant='ghost', size='sm', icon-only, :aria-label='$t(`marketplace.operatorInventoryLabeling.sectionAriaLabel`, { section })')
                       template(#icon-left)
                         q-icon(name='more_vert', size='16px')
                         q-menu(anchor='bottom right', self='top right')
@@ -1095,11 +1096,11 @@ onMounted(async () => {
                             q-item(clickable, v-close-popup, @click='startSectionRename(section)')
                               q-item-section(avatar)
                                 q-icon(name='edit', size='18px')
-                              q-item-section Переименовать
+                              q-item-section {{ $t('marketplace.operatorInventoryLabeling.renameAction') }}
                             q-item(clickable, v-close-popup, @click='retireSection(section)')
                               q-item-section(avatar)
                                 q-icon(name='delete_outline', size='18px')
-                              q-item-section Удалить секцию
+                              q-item-section {{ $t('marketplace.operatorInventoryLabeling.deleteSectionAction') }}
                 //- Плюс справа от последнего столбца — новая секция на всех
                 //- ярусах сразу.
                 th.place__grid-add
@@ -1107,12 +1108,12 @@ onMounted(async () => {
                     variant='ghost',
                     size='sm',
                     :loading='growing',
-                    aria-label='Добавить секцию',
+                    :aria-label='$t("marketplace.operatorInventoryLabeling.addSectionAriaLabel")',
                     @click='openSectionDialog'
                   )
                     template(#icon-left)
                       q-icon(name='add', size='18px')
-                      q-tooltip Добавить секцию
+                      q-tooltip {{ $t('marketplace.operatorInventoryLabeling.addSectionButton') }}
             tbody
               //- Плюс яруса стоит в столбце ярусов — симметрично плюсу секции в
               //- строке заголовков. Ярусы растут вверх, поэтому и кнопка сверху.
@@ -1122,12 +1123,12 @@ onMounted(async () => {
                     variant='ghost',
                     size='sm',
                     :loading='growing',
-                    aria-label='Добавить ярус',
+                    :aria-label='$t("marketplace.operatorInventoryLabeling.addLevelAriaLabel")',
                     @click='addLevelUp'
                   )
                     template(#icon-left)
                       q-icon(name='add', size='18px')
-                      q-tooltip Добавить ярус {{ maxLevel + 1 }}
+                      q-tooltip {{ $t('marketplace.operatorInventoryLabeling.addLevelTooltip', { level: maxLevel + 1 }) }}
                 td(v-for='section in visibleSections', :key='section')
                 td.place__grid-add
 
@@ -1135,7 +1136,7 @@ onMounted(async () => {
                 th.place__grid-level
                   .place__level
                     span {{ row.level }}
-                    BaseButton(variant='ghost', size='sm', icon-only, :aria-label='`Ярус ${row.level}`')
+                    BaseButton(variant='ghost', size='sm', icon-only, :aria-label='$t(`marketplace.operatorInventoryLabeling.levelAriaLabel`, { level: row.level })')
                       template(#icon-left)
                         q-icon(name='more_vert', size='16px')
                         q-menu(anchor='bottom left', self='top left')
@@ -1143,7 +1144,7 @@ onMounted(async () => {
                             q-item(clickable, v-close-popup, @click='retireLevel(row.level)')
                               q-item-section(avatar)
                                 q-icon(name='delete_outline', size='18px')
-                              q-item-section Удалить ярус
+                              q-item-section {{ $t('marketplace.operatorInventoryLabeling.deleteLevelAction') }}
                 td(v-for='slot in row.slots', :key='slot.section')
                     .place__cell(
                       v-if='slot.cell',
@@ -1160,7 +1161,7 @@ onMounted(async () => {
                           :key='box.id',
                           draggable='true',
                           :class='{ "is-dragging": dragId === box.id, "is-over": dragOverKey === `box:${box.id}` }',
-                          @dragstart.stop='onDragStart("container", box.id, $event, `Бокс ${box.code}`, `${itemsInContainer(box.id).length} поз.`)',
+                          @dragstart.stop='onDragStart("container", box.id, $event, $t(`marketplace.operatorInventoryLabeling.boxLabel`, { code: box.code }), $t(`marketplace.operatorInventoryLabeling.boxPositionsCount`, { count: itemsInContainer(box.id).length }))',
                           @dragend='onDragEnd',
                           @dragover.prevent.stop='onDragOver(`box:${box.id}`, $event)',
                           @dragleave.stop='onDragLeave(`box:${box.id}`, $event)',
@@ -1179,10 +1180,10 @@ onMounted(async () => {
                           :key='item.id',
                           draggable='true',
                           :class='{ "is-dragging": dragId === item.id }',
-                          @dragstart='onDragStart("item", item.id, $event, item.product_name_snapshot || "Товар", `${item.quantity_per_label} ед.`)',
+                          @dragstart='onDragStart("item", item.id, $event, item.product_name_snapshot || $t("marketplace.operatorInventoryLabeling.productFallback"), $t(`marketplace.operatorInventoryLabeling.itemQtyText`, { quantity: item.quantity_per_label }))',
                           @dragend='onDragEnd'
                         )
-                          span.place__mini-name {{ item.product_name_snapshot || 'Товар' }}
+                          span.place__mini-name {{ item.product_name_snapshot || $t('marketplace.operatorInventoryLabeling.productFallback') }}
                           span.place__mini-qty {{ item.quantity_per_label }}
                 td.place__grid-add
 
@@ -1195,12 +1196,12 @@ onMounted(async () => {
                     variant='ghost',
                     size='sm',
                     :loading='growing',
-                    aria-label='Вернуть нижний ярус',
+                    :aria-label='$t("marketplace.operatorInventoryLabeling.restoreLowerLevelAriaLabel")',
                     @click='addLevelDown'
                   )
                     template(#icon-left)
                       q-icon(name='add', size='18px')
-                      q-tooltip Добавить ярус {{ minLevel - 1 }}
+                      q-tooltip {{ $t('marketplace.operatorInventoryLabeling.addLevelTooltip', { level: minLevel - 1 }) }}
                 td(v-for='section in visibleSections', :key='section')
                 td.place__grid-add
 
@@ -1215,11 +1216,11 @@ onMounted(async () => {
         )
           .place__col-head
             q-icon(name='inbox', size='18px')
-            span.place__col-title {{ cellsEnabled ? 'Боксы без адреса' : 'Боксы участка' }}
+            span.place__col-title {{ cellsEnabled ? $t('marketplace.operatorInventoryLabeling.unplacedBoxesTitleAddressed') : $t('marketplace.operatorInventoryLabeling.unplacedBoxesTitlePlain') }}
             BaseBadge(variant='neutral') {{ unplacedContainers.length }}
 
           .place__empty-drop(v-if='!unplacedContainers.length')
-            | {{ cellsEnabled ? 'Все боксы расставлены' : 'Боксы не заведены — заведите их на столе «Боксы»' }}
+            | {{ cellsEnabled ? $t('marketplace.operatorInventoryLabeling.boxesAllPlacedMessage') : $t('marketplace.operatorInventoryLabeling.boxesNotCreatedMessage') }}
 
           .place__box-list
             .place__box.place__box--wide(
@@ -1227,7 +1228,7 @@ onMounted(async () => {
               :key='box.id',
               draggable='true',
               :class='{ "is-dragging": dragId === box.id, "is-over": dragOverKey === `box:${box.id}` }',
-              @dragstart='onDragStart("container", box.id, $event, `Бокс ${box.code}`, `${itemsInContainer(box.id).length} поз.`)',
+              @dragstart='onDragStart("container", box.id, $event, $t(`marketplace.operatorInventoryLabeling.boxLabel`, { code: box.code }), $t(`marketplace.operatorInventoryLabeling.boxPositionsCount`, { count: itemsInContainer(box.id).length }))',
               @dragend='onDragEnd',
               @dragover.prevent.stop='onDragOver(`box:${box.id}`, $event)',
               @dragleave.stop='onDragLeave(`box:${box.id}`, $event)',
@@ -1249,65 +1250,65 @@ onMounted(async () => {
     span {{ dragTargetLabel }}
 
   //- ─────────────────────── Содержимое бокса ───────────────────────
-  BaseDialog(v-model='boxDialogOpen', :title='boxTarget ? `Бокс ${boxTarget.code}` : "Бокс"', size='md')
+  BaseDialog(v-model='boxDialogOpen', :title='boxTarget ? $t(`marketplace.operatorInventoryLabeling.boxLabel`, { code: boxTarget.code }) : $t("marketplace.operatorInventoryLabeling.boxDialogTitleFallback")', size='md')
     .place__box-dialog(v-if='boxTarget')
-      .place__note {{ containerLabel(boxTarget, storage.index) }} · позиций: {{ boxItems.length }}
+      .place__note {{ $t('marketplace.operatorInventoryLabeling.boxDialogSubtitle', { label: containerLabel(boxTarget, storage.index), count: boxItems.length }) }}
 
-      EmptyState(v-if='!boxItems.length', title='Бокс пуст', body='Перетащите в него позицию из «Поступило».')
+      EmptyState(v-if='!boxItems.length', :title='$t("marketplace.operatorInventoryLabeling.boxEmptyTitle")', :body='$t("marketplace.operatorInventoryLabeling.boxEmptyBody")')
         template(#icon)
           q-icon(name='inbox', size='40px')
 
       .place__box-row(v-for='item in boxItems', :key='item.id')
         .place__card-info
-          .place__card-name {{ item.product_name_snapshot || 'Товар' }}
-          .place__card-meta {{ item.quantity_per_label }} ед. · {{ ordererLabel(item) }}
+          .place__card-name {{ item.product_name_snapshot || $t('marketplace.operatorInventoryLabeling.productFallback') }}
+          .place__card-meta {{ $t('marketplace.operatorInventoryLabeling.itemMetaText', { quantity: item.quantity_per_label, orderer: ordererLabel(item) }) }}
         BaseButton(variant='secondary', size='sm', @click='movePlacement(item, {})')
           template(#icon-left)
             q-icon(name='logout', size='16px')
-          | Вынуть
+          | {{ $t('marketplace.operatorInventoryLabeling.removeItemAction') }}
     template(#footer)
-      BaseButton(variant='ghost', size='sm', @click='boxDialogOpen = false') Закрыть
+      BaseButton(variant='ghost', size='sm', @click='boxDialogOpen = false') {{ $t('common.action.close') }}
 
   //- ─────────────────────── Новая секция склада ───────────────────────
-  BaseDialog(v-model='sectionDialogOpen', title='Новая секция', size='sm')
+  BaseDialog(v-model='sectionDialogOpen', :title='$t("marketplace.operatorInventoryLabeling.newSectionDialogTitle")', size='sm')
     .place__form
       .place__note
-        | Секция — это столбец склада: стеллаж, холодильник, зона. Ячейки
-        | заведутся на всех существующих ярусах сразу.
+        | {{ $t('marketplace.operatorInventoryLabeling.newSectionNoteLine1') }}
+        | {{ $t('marketplace.operatorInventoryLabeling.newSectionNoteLine2') }}
       BaseInput(
         v-model='newSectionName',
-        label='Название секции',
-        placeholder='A или «Холодильник»',
+        :label='$t("marketplace.operatorInventoryLabeling.newSectionNameLabel")',
+        :placeholder='$t("marketplace.operatorInventoryLabeling.newSectionNamePlaceholder")',
         autofocus,
         @keydown.enter='submitSection'
       )
       .place__note(v-if='newSectionName.trim() && !newSectionValid')
-        | Такая секция на складе уже есть.
+        | {{ $t('marketplace.operatorInventoryLabeling.sectionExistsError') }}
     template(#footer)
-      BaseButton(variant='ghost', size='sm', :disabled='growing', @click='sectionDialogOpen = false') Отмена
+      BaseButton(variant='ghost', size='sm', :disabled='growing', @click='sectionDialogOpen = false') {{ $t('common.action.cancel') }}
       BaseButton(
         variant='primary',
         size='sm',
         :loading='growing',
         :disabled='!newSectionValid',
         @click='submitSection'
-      ) Завести
+      ) {{ $t('marketplace.operatorInventoryLabeling.createSectionSubmit') }}
 
   //- ─────────────────────── Раскладка по количеству ───────────────────────
-  BaseDialog(v-model='splitDialogOpen', title='Разложить по местам', size='md')
+  BaseDialog(v-model='splitDialogOpen', :title='$t("marketplace.operatorInventoryLabeling.splitDialogTitle")', size='md')
     .place__split(v-if='splitTarget')
       .place__split-head
-        | {{ splitTarget.product_name_snapshot || 'Товар' }} — всего {{ splitPoolTotal }} ед.
+        | {{ $t('marketplace.operatorInventoryLabeling.splitHeadText', { productName: splitTarget.product_name_snapshot || $t('marketplace.operatorInventoryLabeling.productFallback'), totalQty: splitPoolTotal }) }}
       .place__note
-        | Распределите весь заказ по местам. Чтобы собрать обратно в одно место —
-        | удалите лишние строки; чтобы разложить иначе — измените количества и места.
+        | {{ $t('marketplace.operatorInventoryLabeling.splitNoteLine1') }}
+        | {{ $t('marketplace.operatorInventoryLabeling.splitNoteLine2') }}
       .place__split-row(v-for='(row, idx) in splitRows', :key='idx')
-        BaseInput.place__split-qty(v-model.number='row.quantity', type='number', label='Кол-во')
+        BaseInput.place__split-qty(v-model.number='row.quantity', type='number', :label='$t("marketplace.operatorInventoryLabeling.splitQtyLabel")')
         BaseSelect.place__split-place(
           v-if='placementEnabled',
           v-model='row.placement',
           :options='placementOptions',
-          label='Место',
+          :label='$t("marketplace.operatorInventoryLabeling.splitPlaceLabel")',
           searchable
         )
         BaseButton(
@@ -1315,7 +1316,7 @@ onMounted(async () => {
           size='sm',
           icon-only,
           :disabled='splitRows.length <= 1',
-          aria-label='Удалить долю',
+          :aria-label='$t("marketplace.operatorInventoryLabeling.removeSplitRowAriaLabel")',
           @click='removeSplitRow(idx)'
         )
           template(#icon-left)
@@ -1324,60 +1325,59 @@ onMounted(async () => {
         BaseButton(variant='ghost', size='sm', @click='addSplitRow')
           template(#icon-left)
             q-icon(name='add', size='16px')
-          | Ещё доля
+          | {{ $t('marketplace.operatorInventoryLabeling.addSplitRowButton') }}
         span.place__split-total(:class='{ "place__split-total--bad": splitTotal !== splitPoolTotal }')
-          | Сумма: {{ splitTotal }} / {{ splitPoolTotal }}
+          | {{ $t('marketplace.operatorInventoryLabeling.splitSumText', { sum: splitTotal, total: splitPoolTotal }) }}
     template(#footer)
-      BaseButton(variant='ghost', size='sm', @click='splitDialogOpen = false') Отмена
-      BaseButton(variant='primary', size='sm', :loading='splitting', :disabled='!splitValid', @click='applySplit') Разложить
+      BaseButton(variant='ghost', size='sm', @click='splitDialogOpen = false') {{ $t('common.action.cancel') }}
+      BaseButton(variant='primary', size='sm', :loading='splitting', :disabled='!splitValid', @click='applySplit') {{ $t('marketplace.operatorInventoryLabeling.splitSubmitButton') }}
 
   //- ─────────────────────── Печать штрих-кодов ───────────────────────
-  BaseDialog(v-model='printDialogOpen', title='Печать этикеток', size='sm')
+  BaseDialog(v-model='printDialogOpen', :title='$t("marketplace.operatorInventoryLabeling.printDialogTitle")', size='sm')
     .place__form
       .place__note
-        | Сколько этикеток напечатать? Распечатайте лист, разрежьте и наклейте
-        | этикетки на имущество — затем привяжите их к позициям сканером.
+        | {{ $t('marketplace.operatorInventoryLabeling.printNoteLine1') }}
+        | {{ $t('marketplace.operatorInventoryLabeling.printNoteLine2') }}
       BaseInput(
         v-model.number='printCount',
         type='number',
-        label='Количество этикеток',
+        :label='$t("marketplace.operatorInventoryLabeling.printCountLabel")',
         @keydown.enter='doPrint'
       )
     template(#footer)
-      BaseButton(variant='ghost', size='sm', @click='printDialogOpen = false') Отмена
-      BaseButton(variant='primary', size='sm', :disabled='!printCount || printCount < 1', @click='doPrint') Печать
+      BaseButton(variant='ghost', size='sm', @click='printDialogOpen = false') {{ $t('common.action.cancel') }}
+      BaseButton(variant='primary', size='sm', :disabled='!printCount || printCount < 1', @click='doPrint') {{ $t('marketplace.operatorInventoryLabeling.printSubmitButton') }}
 
   //- ─────────────────────── Привязка штрих-кода ───────────────────────
   //- Считанный код привязывается сразу, отдельной кнопки «Привязать» не нужно.
-  BaseDialog(v-model='scanDialogOpen', title='Привязать этикетку', size='sm')
+  BaseDialog(v-model='scanDialogOpen', :title='$t("marketplace.operatorInventoryLabeling.bindLabelDialogTitle")', size='sm')
     .place__form
       .place__note(v-if='scanTarget')
-        | {{ scanTarget.product_name_snapshot || 'Товар' }} — наведите камеру на
-        | наклеенную этикетку, либо введите её номер вручную. Код привяжется сразу.
+        | {{ $t('marketplace.operatorInventoryLabeling.bindLabelNote', { productName: scanTarget.product_name_snapshot || $t('marketplace.operatorInventoryLabeling.productFallback') }) }}
       CodeScanner(
         :formats='BARCODE_FORMATS',
-        idle-caption='Наведите камеру на этикетку имущества',
-        frame-hint='Поместите этикетку в рамку',
-        start-label='Включить камеру',
-        manual-label='Или введите номер этикетки',
+        :idle-caption='$t("marketplace.operatorInventoryLabeling.bindLabelIdleCaption")',
+        :frame-hint='$t("marketplace.operatorInventoryLabeling.bindLabelFrameHint")',
+        :start-label='$t("marketplace.operatorInventoryLabeling.bindLabelStartLabel")',
+        :manual-label='$t("marketplace.operatorInventoryLabeling.bindLabelManualLabel")',
         manual-placeholder='4600000000000',
-        manual-button='Привязать',
+        :manual-button='$t("marketplace.operatorInventoryLabeling.bindLabelManualButton")',
         @scanned='submitScan'
       )
     template(#footer)
-      BaseButton(variant='ghost', size='sm', :disabled='binding', @click='scanDialogOpen = false') Закрыть
+      BaseButton(variant='ghost', size='sm', :disabled='binding', @click='scanDialogOpen = false') {{ $t('common.action.close') }}
 
   //- ─────────────────────── Сканирование бокса ───────────────────────
   //- Не приёмка и не выдача: скан просто открывает карточку бокса, чтобы
   //- посмотреть содержимое, не вскрывая тару.
   ScannerDialog(
     v-model='boxScanOpen',
-    title='Сканировать бокс',
-    idle-caption='Наведите камеру на QR-этикетку бокса',
-    frame-hint='Поместите QR-код в рамку',
-    manual-label='Или введите код бокса',
+    :title='$t("marketplace.operatorInventoryLabeling.scanBoxDialogTitle")',
+    :idle-caption='$t("marketplace.operatorInventoryLabeling.scanBoxIdleCaption")',
+    :frame-hint='$t("marketplace.operatorInventoryLabeling.scanBoxFrameHint")',
+    :manual-label='$t("marketplace.operatorInventoryLabeling.scanBoxManualLabel")',
     manual-placeholder='BX-0001',
-    manual-button='Показать',
+    :manual-button='$t("marketplace.operatorInventoryLabeling.scanBoxManualButton")',
     @scanned='onBoxScanned'
   )
 </template>

@@ -11,6 +11,7 @@ import {
 } from '../dto/secretary-room.dto';
 import type { ChatcoopManagedMatrixRoomKind } from '../../domain/entities/managed-matrix-room.entity';
 import type { ManagedMatrixRoomDomainEntity } from '../../domain/entities/managed-matrix-room.entity';
+import { t } from '../../i18n';
 
 function mapManagedKind(kind: ChatcoopManagedMatrixRoomKind): ManagedRoomKindGql {
   switch (kind) {
@@ -28,7 +29,7 @@ function mapManagedKind(kind: ChatcoopManagedMatrixRoomKind): ManagedRoomKindGql
 function toDto(room: ManagedMatrixRoomDomainEntity): ChatcoopSecretaryRoomDTO {
   return {
     id: room.id,
-    displayLabel: room.displayLabel || 'Без названия',
+    displayLabel: room.displayLabel || t('chatcoop.secretaryRooms.untitled'),
     kind: mapManagedKind(room.kind),
     encrypted: room.encrypted,
     secretaryInRoom: room.secretaryInRoom,

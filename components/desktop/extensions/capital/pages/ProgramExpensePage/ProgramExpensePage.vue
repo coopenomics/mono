@@ -4,7 +4,7 @@ q-page.program-expense-page
   .program-expense-page__bar
     button.expense-back(type='button', @click='goBack')
       q-icon(name='arrow_back', size='18px')
-      span К расходам
+      span {{ $t('capital.programExpensePage.backToExpensesLabel') }}
 
   .program-expense-page__content
     template(v-if='loading && !expense')
@@ -24,24 +24,24 @@ q-page.program-expense-page
           size='sm',
           :loading='closing',
           @click='closeExpense'
-        ) Закрыть расход
+        ) {{ $t('capital.programExpensePage.closeExpenseLabel') }}
 
       BaseCard
         .summary
-          DataRow(label='№ служебной записки', :value='shortExpenseId(expense.expense_hash)', mono, copyable)
-          DataRow(label='Инициатор', :value='expense.creator_name')
-          DataRow(label='Создан', :value='formatDate(expense.created_at)')
-          DataRow(label='Сумма по смете', :value='formatAsset2Digits(expense.total_planned)')
+          DataRow(:label='$t("capital.programExpensePage.memoNumberLabel")', :value='shortExpenseId(expense.expense_hash)', mono, copyable)
+          DataRow(:label='$t("capital.programExpensePage.initiatorLabel")', :value='expense.creator_name')
+          DataRow(:label='$t("capital.programExpensePage.createdLabel")', :value='formatDate(expense.created_at)')
+          DataRow(:label='$t("capital.programExpensePage.plannedAmountLabel")', :value='formatAsset2Digits(expense.total_planned)')
           DataRow(
             v-if='hasActual',
-            label='Фактически израсходовано',
+            :label='$t("capital.programExpensePage.actualSpentLabel")',
             :value='formatAsset2Digits(expense.total_actual)'
           )
 
       //- Документы расхода — заявление (СЗ) и протокол решения совета. Клик
       //- открывает документ во всплывающем окне (доменный канон шасси).
       .section(v-if='hasDocuments')
-        .t-eyebrow.t-muted Документы
+        .t-eyebrow.t-muted {{ $t('capital.programExpensePage.documentsTitle') }}
         BaseCard
           ExpenseProposalDocuments(
             :statement='proposal?.statement_doc',
@@ -49,32 +49,32 @@ q-page.program-expense-page
           )
 
       .section
-        .t-eyebrow.t-muted Позиции расхода
+        .t-eyebrow.t-muted {{ $t('capital.programExpensePage.itemsTitle') }}
         .items
           BaseCard(v-for='(item, idx) in itemRows', :key='item.item_hash')
             .item
               .item__head
-                .item__title Позиция №{{ idx + 1 }} — {{ item.description }}
+                .item__title {{ $t('capital.programExpensePage.itemTitle', { index: idx + 1, description: item.description }) }}
                 //- У отклонённой СЗ позиции ничего не «ожидают» — оплат не будет.
-                BaseChip(v-if='isDeclined', variant='neutral') Не будет оплачена
+                BaseChip(v-if='isDeclined', variant='neutral') {{ $t('capital.programExpensePage.notPaidChip') }}
                 BaseChip(v-else, :variant='itemStatusVariant(item.status)') {{ itemStatusLabel(item.status, item.mechanics) }}
               .item__rows
-                DataRow(label='Получатель', :value='item.recipient_name')
-                DataRow(label='Способ оплаты', :value='mechanicsLabel(item.mechanics)')
-                DataRow(label='Сумма (план)', :value='formatAsset2Digits(item.planned_amount)')
-                DataRow(v-if='itemHasActual(item)', label='Фактически', :value='formatAsset2Digits(item.actual_amount)')
+                DataRow(:label='$t("capital.programExpensePage.recipientLabel")', :value='item.recipient_name')
+                DataRow(:label='$t("capital.programExpensePage.paymentMethodLabel")', :value='mechanicsLabel(item.mechanics)')
+                DataRow(:label='$t("capital.programExpensePage.itemPlannedAmountLabel")', :value='formatAsset2Digits(item.planned_amount)')
+                DataRow(v-if='itemHasActual(item)', :label='$t("capital.programExpensePage.itemActualAmountLabel")', :value='formatAsset2Digits(item.actual_amount)')
                 DataRow(
                   v-if='item.requisite',
-                  label='Реквизиты получателя',
+                  :label='$t("capital.programExpensePage.recipientDetailsLabel")',
                   :value='item.requisite.requisites'
                 )
                 DataRow(
                   v-if='item.requisite?.payment_purpose',
-                  label='Назначение платежа',
+                  :label='$t("capital.programExpensePage.paymentPurposeLabel")',
                   :value='item.requisite.payment_purpose'
                 )
               .item__files(v-if='item.files.length')
-                .t-sm.t-muted Подтверждающие документы
+                .t-sm.t-muted {{ $t('capital.programExpensePage.supportingDocsTitle') }}
                 button.file-link(
                   v-for='file in item.files',
                   :key='file.id',
@@ -89,7 +89,7 @@ q-page.program-expense-page
       //- Документы, не привязанные к конкретной позиции (или с потерянной
       //- привязкой) — чтобы любой приложенный файл можно было открыть со страницы.
       .section(v-if='unmatchedFiles.length')
-        .t-eyebrow.t-muted Прочие документы
+        .t-eyebrow.t-muted {{ $t('capital.programExpensePage.otherDocsTitle') }}
         BaseCard
           .item__files.item__files--flat
             button.file-link(
@@ -104,14 +104,14 @@ q-page.program-expense-page
               q-spinner(v-if='openingId === file.id', size='14px')
 
       .section
-        .t-eyebrow.t-muted История состояний
+        .t-eyebrow.t-muted {{ $t('capital.programExpensePage.statusHistoryTitle') }}
         BaseCard
           ActivityTimeline(:events='timeline', group-by-date)
 
     .empty(v-else)
       EmptyState(
-        title='Расход не найден',
-        body='Служебная записка с таким номером отсутствует или ещё не синхронизирована.'
+        :title='$t("capital.programExpensePage.notFoundTitle")',
+        :body='$t("capital.programExpensePage.notFoundBody")'
       )
         template(#icon)
           q-icon(name='receipt_long', size='48px')
@@ -119,6 +119,7 @@ q-page.program-expense-page
 
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
+import { uiLocale } from 'src/shared/i18n';
 import { useRoute, useRouter } from 'vue-router';
 import { Zeus } from '@coopenomics/sdk';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
@@ -149,6 +150,7 @@ import {
   type IExpenseRequisite,
   type IProgramExpenseItem,
 } from 'app/extensions/capital/entities/ProgramExpense/model';
+import { t } from '../../i18n';
 
 const route = useRoute();
 const router = useRouter();
@@ -197,7 +199,7 @@ onMounted(refresh);
 watch(
   expense,
   (value) => {
-    if (value) desktopStore.setPageTitleOverride(`Расход № ${shortExpenseId(value.expense_hash)}`);
+    if (value) desktopStore.setPageTitleOverride(t('capital.programExpensePage.pageTitle', { expenseId: shortExpenseId(value.expense_hash) }));
   },
   { immediate: true },
 );
@@ -231,7 +233,7 @@ async function closeExpense(): Promise<void> {
   try {
     closing.value = true;
     await api.closeExpenseProposal(system.info.coopname, expenseHash.value);
-    SuccessAlert('Расход закрыт — отчёт по смете утверждён');
+    SuccessAlert(t('capital.programExpensePage.historyClosedReport'));
     await refresh();
   } catch (e) {
     FailAlert(e);
@@ -280,7 +282,7 @@ function itemHasActual(item: IProgramExpenseItem): boolean {
 function formatDate(iso: string): string {
   if (!iso) return '—';
   try {
-    return new Date(iso).toLocaleString('ru-RU');
+    return new Date(iso).toLocaleString(uiLocale());
   } catch {
     return iso;
   }
@@ -289,9 +291,9 @@ function formatDate(iso: string): string {
 function fileLabel(file: IExpenseProposalFile): string {
   if (file.original_filename) return file.original_filename;
   const date = file.uploaded_at
-    ? new Date(String(file.uploaded_at)).toLocaleString('ru-RU')
+    ? new Date(String(file.uploaded_at)).toLocaleString(uiLocale())
     : '';
-  return `документ от ${date}`;
+  return t('capital.programExpensePage.docDateLabel', { date });
 }
 
 // Списочные запросы файлов отдают записи без read_url (он короткоживущий) —
@@ -301,7 +303,7 @@ async function openFile(file: IExpenseProposalFile): Promise<void> {
   try {
     openingId.value = file.id;
     const url = await api.getExpenseFileReadUrl(file.id);
-    if (!url) throw new Error('Не удалось получить ссылку на файл');
+    if (!url) throw new Error(t('capital.error.expenseFileUrlUnavailable'));
     window.open(url, '_blank', 'noopener');
   } catch (e) {
     FailAlert(e);
@@ -329,7 +331,7 @@ const timeline = computed<ActivityEvent[]>(() => {
     {
       id: 'created',
       type: 'create',
-      title: 'Служебная записка создана',
+      title: t('capital.programExpensePage.historyMemoCreated'),
       actor: e.creator_name,
       date: e.created_at,
     },
@@ -340,7 +342,7 @@ const timeline = computed<ActivityEvent[]>(() => {
     events.push({
       id: 'statement',
       type: 'sign',
-      title: 'Заявление на расход подписано',
+      title: t('capital.programExpensePage.historyStatementSigned'),
       actor: e.creator_name,
       date: statementSigned,
     });
@@ -353,8 +355,8 @@ const timeline = computed<ActivityEvent[]>(() => {
       id: 'decision',
       type: declined ? 'reject' : 'sign',
       title: declined
-        ? 'Совет отклонил расход'
-        : 'Совет утвердил расход — протокол решения подписан',
+        ? t('capital.programExpensePage.historyRejected')
+        : t('capital.programExpensePage.historyApproved'),
       date: decisionSigned ?? e.updated_at,
     });
   }
@@ -363,7 +365,7 @@ const timeline = computed<ActivityEvent[]>(() => {
     events.push({
       id: `file-${f.id}`,
       type: 'update',
-      title: 'Приложен документ',
+      title: t('capital.programExpensePage.historyDocAttached'),
       description: fileLabel(f),
       date: String(f.uploaded_at),
     });
@@ -373,7 +375,7 @@ const timeline = computed<ActivityEvent[]>(() => {
     events.push({
       id: 'report',
       type: 'system',
-      title: 'Отчёт по смете подан — ожидает закрытия расхода',
+      title: t('capital.programExpensePage.historyReportSubmitted'),
       date: e.updated_at,
     });
   }
@@ -381,7 +383,7 @@ const timeline = computed<ActivityEvent[]>(() => {
     events.push({
       id: 'closed',
       type: 'system',
-      title: 'Расход закрыт — фактическая сумма капитализирована',
+      title: t('capital.programExpensePage.historyClosedCapitalized'),
       date: e.updated_at,
     });
   }

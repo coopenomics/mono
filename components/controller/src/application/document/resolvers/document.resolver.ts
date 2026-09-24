@@ -1,11 +1,11 @@
 import { Resolver, Query, Mutation, Args } from '@nestjs/graphql';
 import { GetDocumentsInputDTO } from '../dto/get-documents-input.dto';
-import { createPaginationResult, AuthRoles, GqlJwtAuthGuard, RolesGuard, CurrentUser, GeneratedDocumentDTO } from '@coopenomics/extension-kit';
+import { createPaginationResult, AuthRoles, GqlJwtAuthGuard, RolesGuard, CurrentUser, GeneratedDocumentDTO, DomainError } from '@coopenomics/extension-kit';
 import { DocumentPackageAggregateDTO } from '~/application/agenda/dto/document-package-aggregate.dto';
 import { DocumentService } from '../services/document.service';
 import type { PaginationResultDomainInterface } from '~/domain/common/interfaces/pagination.interface';
 import type { DocumentPackageAggregateDomainInterface } from '~/domain/document/interfaces/document-package-aggregate-domain.interface';
-import { UseGuards, UnauthorizedException } from '@nestjs/common';
+import { UseGuards } from '@nestjs/common';
 import { GenerateAnyDocumentInputDTO } from '../dto/generate-any-document-input.dto';
 import { GetPublicProvisionInputDTO, PublicProvisionDTO } from '../dto/public-provision.dto';
 import { PublicProvisionService } from '../services/public-provision.service';
@@ -51,12 +51,12 @@ export class DocumentResolver {
   ): Promise<GeneratedDocumentDTO> {
     // Проверяем, что пользователь авторизован
     if (!currentUser?.username) {
-      throw new UnauthorizedException('Пользователь не авторизован');
+      throw DomainError.unauthorized('DOCUMENT_USER_NOT_AUTHORIZED');
     }
 
     // Проверяем, что username в input.data соответствует текущему пользователю
     if (!input.data.username || input.data.username !== currentUser.username) {
-      throw new UnauthorizedException('Недостаточно прав доступа для генерации документа');
+      throw DomainError.unauthorized('DOCUMENT_GENERATION_FORBIDDEN');
     }
 
     return this.documentService.generateAnyDocument(input);

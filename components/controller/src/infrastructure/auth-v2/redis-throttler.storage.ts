@@ -80,6 +80,7 @@ return { totalHits, timeToExpire, blocked ~= false and 1 or 0, timeToBlockExpire
   // KEYS[1] — счётчик попыток, KEYS[2] — block-ключ, KEYS[3] — счётчик страйков.
   // ARGV: [1] ttl(ms), [2] limit, [3] memoryTtl(ms страйков), [4..] длительности тиров(ms).
   // Возврат: [totalHits, timeToExpire, isBlocked, timeToBlockExpire, newlyBlocked, strike].
+  // i18n-ignore: исходный код Lua-скрипта для throttler в Redis, не текст интерфейса
   private static readonly INCREMENT_ESCALATING_LUA = `
 local totalHits = redis.call('INCR', KEYS[1])
 local timeToExpire = redis.call('PTTL', KEYS[1])

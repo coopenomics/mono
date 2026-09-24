@@ -9,18 +9,18 @@ const coopname = computed(() => String(route.params.coopname ?? ''))
 </script>
 
 <template lang="pug">
-q-page.ecosystem(role="region", aria-label="Экосистема кооперативов")
+q-page.ecosystem(role="region", :aria-label="$t('marketplace.ecosystemRegistryPage.ariaLabel')")
   PageHint(storage-key="mp:ecosystem:banner-dismissed")
-    | Кооперативы экосистемы, подключившие расширение «Стол заказов». Межкооперативная торговля между ними включится позже.
+    | {{ $t('marketplace.ecosystemRegistryPage.bannerHint') }}
 
-  BaseCard(title="Текущий кооператив")
+  BaseCard(:title="$t('marketplace.ecosystemRegistryPage.currentCoopTitle')")
     .t-muted
-      | Кооператив #[strong {{ coopname || '—' }}] установил расширение «Стол заказов».
+      | {{ $t('marketplace.ecosystemRegistryPage.currentCoopPrefix') }} #[strong {{ coopname || '—' }}] {{ $t('marketplace.ecosystemRegistryPage.currentCoopSuffix') }}
 
-  BaseCard(title="Другие кооперативы с расширением «Стол заказов»")
+  BaseCard(:title="$t('marketplace.ecosystemRegistryPage.otherCoopsTitle')")
     EmptyState(
-      title="Межкооперативная торговля включится позже",
-      body="Когда соседние кооперативы подключатся к Столу заказов, они появятся здесь."
+      :title="$t('marketplace.ecosystemRegistryPage.comingSoonTitle')",
+      :body="$t('marketplace.ecosystemRegistryPage.comingSoonBody')"
     )
       template(#icon)
         q-icon(name="hub", size="48px")

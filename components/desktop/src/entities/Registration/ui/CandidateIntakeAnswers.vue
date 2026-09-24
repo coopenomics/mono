@@ -4,9 +4,9 @@
 //- заголовка.
 .candidate-intake(v-if='(failed && !quiet) || hasContent')
   .candidate-intake__title.t-sm.t-muted {{ title }}
-  .candidate-intake__error.t-sm.t-muted(v-if='failed') Сведения заявителя недоступны
+  .candidate-intake__error.t-sm.t-muted(v-if='failed') {{ $t('registration.candidateIntakeAnswers.error') }}
   template(v-else)
-    DataRow(v-if='programTitle', label='Программа при вступлении', :value='programTitle')
+    DataRow(v-if='programTitle', :label='$t("registration.candidateIntakeAnswers.programLabel")', :value='programTitle')
     IntakeAnswersView(v-if='intake?.answers.length', :answers='intake.answers')
 </template>
 
@@ -16,6 +16,7 @@ import { DataRow } from 'src/shared/ui/domain/DataRow';
 import { api } from '../api';
 import { registrationProgramTitle, type ICandidateIntake } from '../model';
 import IntakeAnswersView from './IntakeAnswersView.vue';
+import { t } from 'src/shared/i18n';
 
 const props = withDefaults(
   defineProps<{
@@ -26,7 +27,7 @@ const props = withDefaults(
     /** Не сообщать о недоступности сведений — там, где блок лишь дополнение. */
     quiet?: boolean;
   }>(),
-  { title: 'Сведения при вступлении', withProgram: false, quiet: false },
+  { title: t('registration.candidateIntakeAnswers.title'), withProgram: false, quiet: false },
 );
 
 const intake = ref<ICandidateIntake | null>(null);

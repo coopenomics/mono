@@ -7,6 +7,7 @@ import type {
   ReportRequisitesRepository,
   UpsertReportRequisitesInput,
 } from '../../domain/repositories/report-requisites.repository';
+import { DomainError } from '@coopenomics/extension-kit';
 
 @Injectable()
 export class ReportRequisitesTypeormRepository implements ReportRequisitesRepository {
@@ -54,7 +55,7 @@ export class ReportRequisitesTypeormRepository implements ReportRequisitesReposi
     });
     const reloaded = await this.repository.findOne({ where: { coopname: input.coopname } });
     if (!reloaded) {
-      throw new Error('report_requisites upsert: запись не найдена после upsert');
+      throw DomainError.internal('REPORTS_REQUISITES_UPSERT_NOT_FOUND');
     }
     return this.toRecord(reloaded);
   }

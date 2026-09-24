@@ -14,6 +14,7 @@ import {
   listStockProposals,
   type MarketplaceStockProposalView,
 } from 'src/pages/Marketplace/OperatorIssuance/api';
+import { t } from 'src/shared/i18n';
 
 
 /**
@@ -75,7 +76,7 @@ function unitLabel(offer: CoopStockOffer): string {
 function packageOptions(offer: CoopStockOffer): Array<{ value: string; label: string }> {
   return offer.packages.map((p) => {
     const sizeLabel = `${String(p.size).replace('.', ',')} ${unitLabel(offer)}`;
-    return { value: p.id, label: p.label ? `${p.label} — ${sizeLabel}` : `Упаковка ${sizeLabel}` };
+    return { value: p.id, label: p.label ? `${p.label} — ${sizeLabel}` : t('marketplace.stockRestockPanel.packageLabel', { size: sizeLabel }) };
   });
 }
 
@@ -187,7 +188,7 @@ async function sendProposal(): Promise<void> {
       member_account: props.memberAccount,
       items,
     });
-    SuccessAlert('Предложение отправлено — у пайщика всплыло окно решения.');
+    SuccessAlert(t('marketplace.stockRestockPanel.proposalSentSuccess'));
     quantities.value = {};
     await loadProposals();
   } catch (e) {
@@ -200,7 +201,7 @@ async function sendProposal(): Promise<void> {
 async function withdraw(p: MarketplaceStockProposalView): Promise<void> {
   try {
     await cancelStockProposal(p.id);
-    SuccessAlert('Предложение отозвано — можно переформировать.');
+    SuccessAlert(t('marketplace.stockRestockPanel.proposalWithdrawnSuccess'));
     await loadProposals();
   } catch (e) {
     FailAlert(e);
@@ -237,16 +238,16 @@ watch(
 .restock(v-if='offers.length || activeProposals.length')
   .restock__title
     q-icon(name='add_shopping_cart', size='18px')
-    span Доложить со склада кооператива
+    span {{ $t('marketplace.stockRestockPanel.restockButton') }}
 
   //- Уже отправленное предложение: live-статус + отзыв до решения пайщика.
   .restock__pending(v-for='p in activeProposals', :key='p.id')
     .restock__pending-info
-      span.restock__pending-label Ожидает решения пайщика
+      span.restock__pending-label {{ $t('marketplace.stockRestockPanel.pendingMemberDecision') }}
       span.restock__pending-items
         | {{ p.items.map((i) => `${i.product_name} ×${i.quantity}${i.package_label ? ' ' + i.package_label : ''}`).join(', ') }}
       span.restock__pending-total {{ formatAsset2Digits(p.total_cost) }} ₽
-    BaseButton(variant='ghost', size='sm', @click='withdraw(p)') Отозвать
+    BaseButton(variant='ghost', size='sm', @click='withdraw(p)') {{ $t('marketplace.stockRestockPanel.withdrawButton') }}
 
   //- Накидка нового предложения из опубликованного остатка этого КУ.
   template(v-if='!activeProposals.length')
@@ -254,15 +255,15 @@ watch(
       .restock__offer-info
         span.restock__offer-name {{ o.product_name }}
         span.restock__offer-meta(v-if='!isPackaged(o)')
-          | {{ formatAsset2Digits(o.price_per_unit) }} ₽ · свободно {{ o.quantity_available }} {{ unitLabel(o) }}
+          | {{ $t('marketplace.stockRestockPanel.priceAvailabilityLabel', { price: formatAsset2Digits(o.price_per_unit), available: o.quantity_available, unit: unitLabel(o) }) }}
         span.restock__offer-meta(v-else-if='selectedPackage(o)')
-          | {{ formatAsset2Digits(selectedPackage(o)?.price ?? '0') }} ₽ за упак. · свободно {{ maxQty(o) }} упак.
+          | {{ $t('marketplace.stockRestockPanel.packagePriceAvailabilityLabel', { price: formatAsset2Digits(selectedPackage(o)?.price ?? '0'), available: maxQty(o) }) }}
 
       BaseSelect(
         v-if='isPackaged(o)',
         :model-value='selectedPackageId[o.id] ?? null',
         :options='packageOptions(o)',
-        label='Упаковка',
+        :label='$t("marketplace.stockRestockPanel.packageFieldLabel")',
         @update:model-value='(v) => onPackageChange(o, v)'
       )
 
@@ -279,14 +280,14 @@ watch(
           q-icon(name='add', size='16px')
 
     .restock__send(v-if='composedLines.length')
-      span.restock__send-total Итого: {{ formatAsset2Digits(composedTotal) }} ₽
+      span.restock__send-total {{ $t('marketplace.stockRestockPanel.totalLabel', { amount: formatAsset2Digits(composedTotal) }) }}
       BaseButton(variant='primary', size='sm', :loading='sending', @click='sendProposal')
         template(#icon-left)
           q-icon(name='send', size='16px')
-        | Предложить пайщику
+        | {{ $t('marketplace.stockRestockPanel.offerToMemberButton') }}
 
   .restock__hint(v-if='!offers.length && !activeProposals.length && !offersLoading')
-    BaseBadge(variant='neutral', size='sm') Опубликованного остатка на этом пункте нет
+    BaseBadge(variant='neutral', size='sm') {{ $t('marketplace.stockRestockPanel.noStockPublished') }}
 </template>
 
 <style scoped lang="scss">

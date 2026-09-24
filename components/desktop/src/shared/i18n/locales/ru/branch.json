@@ -1,0 +1,50 @@
+{
+  "branch": {
+    "branchPrivacyManager": {
+      "madePrivateSuccess": "Участок сделан приватным",
+      "madePublicSuccess": "Участок сделан публичным",
+      "memberAddedSuccess": "Пайщик добавлен в белый список участка",
+      "memberRemovedSuccess": "Пайщик удалён из белого списка участка",
+      "privateToggleLabel": "Приватный участок — выбрать его при вступлении или смене может только пайщик из белого списка",
+      "removeAriaLabel": "Удалить из белого списка",
+      "searchLabel": "Начните ввод ФИО пайщика",
+      "whitelistEmpty": "Белый список пуст — добавьте пайщиков, которым разрешён выбор этого участка.",
+      "whitelistTitle": "Белый список пайщиков"
+    },
+    "createBranchButton": {
+      "addError": "Ошибка при создании: {message}",
+      "addLabel": "Добавить участок",
+      "addSuccess": "Кооперативный участок добавлен",
+      "addressLabel": "Фактический адрес участка",
+      "basedOnLabel": "Председатель действует на основании",
+      "basedOnPlaceholder": "решение собрания совета №СС-10-04-2025 от 10 апреля 2025 г",
+      "dialogTitle": "Создать кооперативный участок",
+      "emailLabel": "Email-адрес участка",
+      "nameLabel": "Наименование участка",
+      "namePlaceholder": "РОМАШКА",
+      "phoneLabel": "Номер телефона участка",
+      "trusteeLabel": "Председатель участка"
+    },
+    "createBranchModel": {
+      "fullNameTemplate": "Кооперативный Участок \"{shortName}\""
+    },
+    "deleteBranchButton": {
+      "cancel": "Отменить",
+      "confirmDetail": "Это действие необратимо. Все пайщики будут отключены от участка и увидят приглашение выбрать новый участок.",
+      "confirmText": "Вы уверены, что хотите удалить кооперативный участок {shortName}?",
+      "dialogTitle": "Удаление кооперативного участка",
+      "triggerLabel": "Удалить участок"
+    },
+    "deleteBranchModel": {
+      "deleteSuccess": "Кооперативный участок \"{shortName}\" успешно удален"
+    },
+    "selectBranchOverlay": {
+      "backLabel": "назад",
+      "continueLabel": "Продолжить",
+      "generatingDocument": "Формируем документ...",
+      "intro": "Кооператив перешёл на двухэтапную систему управления на основании общего собрания уполномоченных председателей кооперативных участков...",
+      "loadingBranches": "Загружаем список кооперативных участков...",
+      "signLabel": "подписать"
+    }
+  }
+}

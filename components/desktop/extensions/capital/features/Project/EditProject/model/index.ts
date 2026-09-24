@@ -4,6 +4,7 @@ import { api } from '../api';
 import { FailAlert } from 'src/shared/api/alerts';
 import type { IProject } from 'app/extensions/capital/entities/Project/model';
 import { extractContentConflict, type IContentConflict } from 'app/extensions/capital/features/ContentRevisions';
+import { t } from '../../../../i18n';
 
 export type IEditProjectInput = Mutations.Capital.EditProject.IInput['data'];
 
@@ -58,7 +59,7 @@ export function useEditProject() {
         conflict.value = c;
         return { ok: false, conflict: c };
       }
-      saveError.value = 'Ошибка сохранения';
+      saveError.value = t('capital.editProject.saveError');
       FailAlert(error);
       throw error;
     } finally {
@@ -70,7 +71,7 @@ export function useEditProject() {
   async function saveImmediately(data: IEditProjectInput) {
     const result = await save(data);
     if (!result.ok) {
-      throw new Error('Документ изменён параллельно: обновите страницу и повторите');
+      throw new Error(t('capital.error.projectConcurrentEditConflict'));
     }
   }
 

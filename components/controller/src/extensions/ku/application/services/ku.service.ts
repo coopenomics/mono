@@ -37,8 +37,7 @@ import { DOCUMENT_PORT, type IDocumentPort, type InnerGeneratedDocument, ACCOUNT
   type IBranchPort,
   InnerAccountType,
 } from '@coopenomics/innercoop';
-import { TransactionDTO } from '@coopenomics/extension-kit';
-import { HttpApiError } from '@coopenomics/extension-kit';
+import { TransactionDTO, DomainError } from '@coopenomics/extension-kit';
 import { DocumentAggregateDTO } from '@coopenomics/extension-kit';
 
 /**
@@ -64,14 +63,14 @@ export class KuService {
 
   private assertSameUser(currentUser: IMonoAccount, username: string): void {
     if (currentUser.username !== username) {
-      throw new HttpApiError(httpStatus.FORBIDDEN, 'Действие доступно только от своего имени');
+      throw DomainError.forbidden('KU_ACTION_SELF_ONLY');
     }
   }
 
   private async getDecisionOrFail(hash: string): Promise<KuDecisionDomainEntity> {
     const decision = await this.decisionRepository.findByHash(hash);
     if (!decision) {
-      throw new HttpApiError(httpStatus.NOT_FOUND, 'Решение собрания участка не найдено');
+      throw DomainError.notFound('KU_DECISION_NOT_FOUND');
     }
     return decision;
   }
@@ -79,30 +78,30 @@ export class KuService {
   private async assertIsDecisionChairman(currentUser: IMonoAccount, hash: string): Promise<void> {
     const decision = await this.getDecisionOrFail(hash);
     if (decision.chairman !== currentUser.username) {
-      throw new HttpApiError(httpStatus.FORBIDDEN, 'Действие доступно только председателю собрания');
+      throw DomainError.forbidden('KU_ACTION_CHAIRMAN_ONLY');
     }
   }
 
   private async assertIsDecisionInitiator(currentUser: IMonoAccount, hash: string): Promise<void> {
     const decision = await this.getDecisionOrFail(hash);
     if (decision.initiator !== currentUser.username) {
-      throw new HttpApiError(httpStatus.FORBIDDEN, 'Действие доступно только инициатору собрания');
+      throw DomainError.forbidden('KU_ACTION_INITIATOR_ONLY');
     }
   }
 
   private async assertIsBranchTrustee(currentUser: IMonoAccount, requestHash: string): Promise<void> {
     const request = await this.trustRequestRepository.findByHash(requestHash);
     if (!request?.braname) {
-      throw new HttpApiError(httpStatus.NOT_FOUND, 'Заявка доверенного не найдена');
+      throw DomainError.notFound('KU_TRUST_REQUEST_NOT_FOUND');
     }
 
     const branch = await this.branchBlockchainPort.getBranch(request.coopname as string, request.braname);
     if (!branch) {
-      throw new HttpApiError(httpStatus.NOT_FOUND, 'Кооперативный участок не найден');
+      throw DomainError.notFound('KU_BRANCH_NOT_FOUND');
     }
 
     if (branch.trustee !== currentUser.username) {
-      throw new HttpApiError(httpStatus.FORBIDDEN, 'Действие доступно только председателю кооперативного участка');
+      throw DomainError.forbidden('KU_ACTION_BRANCH_CHAIRMAN_ONLY');
     }
   }
 
@@ -150,22 +149,19 @@ export class KuService {
 
     const decision = await this.getDecisionOrFail(data.hash);
     if (!(decision.participants ?? []).includes(data.chairman)) {
-      throw new HttpApiError(httpStatus.BAD_REQUEST, 'Председатель должен быть участником собрания');
+      throw DomainError.badRequest('KU_CHAIRMAN_MUST_BE_PARTICIPANT');
     }
     if (decision.type === 'createbranch' && !data.branch_name) {
-      throw new HttpApiError(httpStatus.BAD_REQUEST, 'Укажите наименование кооперативного участка');
+      throw DomainError.badRequest('KU_BRANCH_NAME_REQUIRED');
     }
     // контакты нужны для добавления участка как подразделения после решения совета
     if (decision.type === 'createbranch' && (!data.branch_email || !data.branch_phone)) {
-      throw new HttpApiError(httpStatus.BAD_REQUEST, 'Укажите email и телефон кооперативного участка');
+      throw DomainError.badRequest('KU_BRANCH_CONTACTS_REQUIRED');
     }
     if (decision.type === 'createbranch') {
       const chairmanAccount = await this.accountPort.getAccount(data.chairman);
       if (chairmanAccount.private_account?.type !== InnerAccountType.individual) {
-        throw new HttpApiError(
-          httpStatus.BAD_REQUEST,
-          'Председателем кооперативного участка может быть только физическое лицо'
-        );
+        throw DomainError.badRequest('KU_BRANCH_CHAIRMAN_MUST_BE_INDIVIDUAL');
       }
     }
 

@@ -1,9 +1,10 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { NotificationInboxTypeormEntity } from '~/infrastructure/database/typeorm/entities/notification-inbox.typeorm-entity';
 import type { PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
 import type { InboxNotificationDTO } from './graphql/inbox-notification.dto';
+import { DomainError } from '@coopenomics/extension-kit';
 
 /**
  * Личный инбокс пайщика (read-side канала In-app, эпик 6.6).
@@ -52,7 +53,7 @@ export class NotificationInboxService {
   /** Отметить одно уведомление прочитанным. Ownership: только собственная строка получателя. */
   async markRead(id: string, subscriberId: string): Promise<InboxNotificationDTO> {
     const row = await this.inboxRepository.findOne({ where: { id, recipientSubscriberId: subscriberId } });
-    if (!row) throw new NotFoundException(`Уведомление инбокса '${id}' не найдено`);
+    if (!row) throw DomainError.notFound('NOTIFICATION_CENTER_INBOX_ITEM_NOT_FOUND', { id });
 
     if (!row.isRead) {
       row.isRead = true;

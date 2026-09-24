@@ -14,14 +14,14 @@ div
 
   BaseDialog(
     v-model='showDialog',
-    title='Выход из кооператива',
+    :title='$t("membership.exitButton.title")',
     size='lg',
     @update:model-value='(v) => !v && clear()'
   )
     //- Проверка реквизитов
     div.exit-loading(v-if='checkingRequisites')
       q-spinner(size='32px', color='primary')
-      span.exit-loading__text Проверяем реквизиты…
+      span.exit-loading__text {{ $t('membership.exitButton.checkingRequisites') }}
 
     //- Нет реквизитов — выход заблокирован, ведём на страницу реквизитов
     div(v-else-if='requisitesOk === false')
@@ -29,13 +29,13 @@ div
         template(#icon)
           q-icon(name='warning')
         div
-          p.q-mb-sm Для выхода из кооператива установите реквизиты для получения возврата паевого взноса.
-          p.q-mb-none Без реквизитов кооператив не сможет вернуть вам паевой взнос.
+          p.q-mb-sm {{ $t('membership.exitButton.requisitesRequiredHint') }}
+          p.q-mb-none {{ $t('membership.exitButton.requisitesRequiredWarning') }}
       div.q-mt-md.flex.justify-end
         BaseButton(variant='primary', @click='goToRequisites')
           template(#icon-left)
             q-icon(name='account_balance', size='18px')
-          span.q-ml-sm Установить реквизиты
+          span.q-ml-sm {{ $t('membership.exitButton.setRequisites') }}
 
     //- Реквизиты есть — показываем заявление и форму подписи
     Form(
@@ -43,21 +43,21 @@ div
       :handler-submit='handlerSubmit',
       :is-submitting='isSubmitting',
       :disabled='!document || loading',
-      :button-cancel-txt='"Отменить"',
-      :button-submit-txt='"Подписать и подать заявление"',
+      :button-cancel-txt='$t("membership.exitButton.cancel")',
+      :button-submit-txt='$t("membership.exitButton.signAndSubmit")',
       @cancel='clear'
     )
       BaseBanner(variant='warn')
         template(#icon)
           q-icon(name='warning')
         div
-          p.q-mb-sm Внимательно прочитайте заявление. Выход из кооператива — необратимое действие.
-          p.q-mb-none После подписания и подтверждения по ссылке из письма кабинет блокируется и запускается процесс выхода: получение решения Совета и возврат паевого взноса в срок, установленный Уставом кооператива.
+          p.q-mb-sm {{ $t('membership.exitButton.readCarefullyWarning') }}
+          p.q-mb-none {{ $t('membership.exitButton.processDescription') }}
 
       //- Единый лоадер на подготовку заявления и расчёт суммы (грузим параллельно).
       div.exit-loading(v-if='loading')
         q-spinner(size='32px', color='primary')
-        span.exit-loading__text Готовим заявление и сумму к возврату…
+        span.exit-loading__text {{ $t('membership.exitButton.preparing') }}
 
       template(v-else)
         div.exit-doc.q-mt-md(v-if='document')
@@ -67,12 +67,13 @@ div
         //- к заявлению (а не «висящий» текст снизу). Сумма авторитетная: собирается
         //- по сету паевых кошельков (тот же, что обходит контракт при возврате).
         div.exit-summary(v-if='preview')
-          span.exit-summary__label Сумма к возврату
+          span.exit-summary__label {{ $t('membership.exitButton.refundAmountLabel') }}
           span.exit-summary__value {{ formatAsset2Digits(preview.total) }}
 </template>
 
 <script setup lang="ts">
 import { ref, watch } from 'vue';
+import { hasErrorCode } from 'src/shared/api/errors';
 import { useRoute, useRouter } from 'vue-router';
 import { BaseButton } from 'src/shared/ui/base/BaseButton';
 import { BaseDialog } from 'src/shared/ui/base/BaseDialog';
@@ -91,6 +92,7 @@ import {
 } from '../model';
 
 import type { BaseButtonVariant } from 'src/shared/ui/base/BaseButton/BaseButton.types';
+import { t } from 'src/shared/i18n';
 
 interface Props {
   micro?: boolean;
@@ -101,7 +103,7 @@ interface Props {
 
 withDefaults(defineProps<Props>(), {
   micro: false,
-  label: 'Выход из кооператива',
+  label: t('membership.exitButton.buttonLabel'),
   variant: 'danger',
   icon: 'logout',
 });
@@ -144,7 +146,7 @@ watch(showDialog, async (opened) => {
       document.value = doc.value;
     } else {
       console.error('Ошибка формирования заявления о выходе:', doc.reason);
-      FailAlert('Не удалось сформировать заявление о выходе');
+      FailAlert(t('membership.exitButton.buildError'));
     }
     if (prev.status === 'fulfilled') {
       preview.value = prev.value;
@@ -179,12 +181,12 @@ const handlerSubmit = async (): Promise<void> => {
     await submitSignedApplication(document.value);
     // Подтягиваем статус — overlay заблокирует кабинет и покажет экран ожидания письма.
     await loadExitStatus();
-    SuccessAlert('Заявление подписано. Перейдите по ссылке из письма, чтобы подтвердить выход.');
+    SuccessAlert(t('membership.exitButton.signedSuccess'));
     clear();
   } catch (e: any) {
     // Авторитетный гейт реквизитов — на бэкенде. Если он отклонил подачу из-за
     // отсутствия реквизитов, переключаем диалог на экран-баннер с кнопкой.
-    if (JSON.stringify(e ?? '').includes('установите реквизиты')) {
+    if (hasErrorCode(e, 'MEMBERSHIP_EXIT_PAYMENT_METHOD_REQUIRED')) {
       requisitesOk.value = false;
     } else {
       FailAlert(e);

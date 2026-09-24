@@ -11,7 +11,7 @@ import { IContributorDatabaseData } from '../../domain/interfaces/contributor-da
 import type { ContributorFilterInputDTO } from '../../application/dto/participation_management/contributor-filter.input';
 import type { ContributorStatus } from '../../domain/enums/contributor-status.enum';
 import { AppendixStatus } from '../../domain/enums/appendix-status.enum';
-import { PaginationInputDTO, PaginationResult, PaginationUtils, resolveSortColumn } from '@coopenomics/extension-kit';
+import { PaginationInputDTO, PaginationResult, PaginationUtils, resolveSortColumn, DomainError } from '@coopenomics/extension-kit';
 
 @Injectable()
 export class ContributorTypeormRepository
@@ -79,7 +79,7 @@ export class ContributorTypeormRepository
   }): Promise<ContributorDomainEntity | null> {
     // Проверяем наличие хотя бы одного критерия поиска
     if (!criteria._id && !criteria.username && !criteria.contributor_hash) {
-      throw new Error('Необходимо указать хотя бы одно из полей: _id, username или contributor_hash');
+      throw DomainError.internal('CAPITAL_CONTRIBUTOR_LOOKUP_FIELD_REQUIRED');
     }
 
     // Строим query builder для поиска с AND условиями

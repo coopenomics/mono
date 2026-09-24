@@ -1,0 +1,10 @@
+{
+  "provider": {
+    "providerModel": {
+      "convertError": "Не удалось выполнить конвертацию",
+      "convertSuccess": "Конвертация успешно выполнена",
+      "loadSubscriptionsError": "Ошибка загрузки подписок",
+      "notAvailableError": "Функционал провайдера не доступен"
+    }
+  }
+}

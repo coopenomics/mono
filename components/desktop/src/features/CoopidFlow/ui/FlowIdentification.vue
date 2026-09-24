@@ -14,7 +14,7 @@
     BaseInput(
       v-if='asksPassword',
       v-model='password',
-      label='Пароль',
+      :label='$t("coopidFlow.flowIdentification.passwordLabel")',
       type='password',
       :error='passwordError',
       autocomplete='current-password',
@@ -24,22 +24,22 @@
     .flow-stage__actions
       BaseButton(variant='primary', type='submit', :loading='sending') {{ action }}
   template(v-if='sources.length')
-    .flow-stage__divider или
+    .flow-stage__divider {{ $t('coopidFlow.flowIdentification.divider') }}
     .flow-stage__stack
       BaseButton(
         v-for='source in sources',
         :key='source.name',
         :variant='source.promoted ? "primary" : "secondary"',
         @click='emit("source", source.challenge)'
-      ) Войти через {{ source.name }}
+      ) {{ $t('coopidFlow.flowIdentification.sourceAction', { sourceName: source.name }) }}
   //- Вторые дороги. Поток отдаёт свои адреса, только если кооперативу назначены потоки
   //- регистрации и восстановления; у CoopID их нет — вступление и восстановление живут
   //- страницами стола. Без ссылок экран был тупиком для забывшего пароль (03.09.2026).
   .flow-stage__links
-    BaseButton(v-if='challenge.enroll_url', variant='ghost', size='sm', @click='emit("flow", challenge.enroll_url)') Нет учётной записи?
-    BaseButton(v-else, variant='ghost', size='sm', @click='goDesk("signup")') Нет учётной записи?
-    BaseButton(v-if='challenge.recovery_url', variant='ghost', size='sm', @click='emit("flow", challenge.recovery_url)') Не помню пароль
-    BaseButton(v-else, variant='ghost', size='sm', @click='goDesk("recover")') Не помню пароль
+    BaseButton(v-if='challenge.enroll_url', variant='ghost', size='sm', @click='emit("flow", challenge.enroll_url)') {{ $t('coopidFlow.flowIdentification.noAccount') }}
+    BaseButton(v-else, variant='ghost', size='sm', @click='goDesk("signup")') {{ $t('coopidFlow.flowIdentification.noAccount') }}
+    BaseButton(v-if='challenge.recovery_url', variant='ghost', size='sm', @click='emit("flow", challenge.recovery_url)') {{ $t('coopidFlow.flowIdentification.forgotPassword') }}
+    BaseButton(v-else, variant='ghost', size='sm', @click='goDesk("recover")') {{ $t('coopidFlow.flowIdentification.forgotPassword') }}
 </template>
 
 <script lang="ts" setup>
@@ -54,6 +54,7 @@ import { useRouter } from 'vue-router';
 import { useSystemStore } from 'src/entities/System/model';
 import { BaseButton, BaseForm, BaseInput } from 'src/shared/ui/base';
 import { fieldError, type FlowChallenge, type FlowSource } from 'src/shared/api/authentik-flow';
+import { t } from 'src/shared/i18n';
 
 const router = useRouter();
 const system = useSystemStore();
@@ -69,12 +70,12 @@ const password = ref('');
 const asksEmail = computed(() => props.challenge.user_fields?.includes('email') ?? false);
 // Подпись та же, что в форме входа стола: человек проходит два экрана подряд и не должен
 // гадать, одно ли это поле (замечание владельца 03.09.2026).
-const label = computed(() => (asksEmail.value ? 'Электронная почта' : 'Имя аккаунта'));
+const label = computed(() => (asksEmail.value ? t('coopidFlow.flowIdentification.emailLabel') : t('coopidFlow.flowIdentification.usernameLabel')));
 const error = computed(() => fieldError(props.challenge, 'uid_field'));
 const passwordError = computed(() => fieldError(props.challenge, 'password'));
 const asksPassword = computed(() => props.challenge.password_fields === true);
 // Надпись своя: поток присылает английское «Log in», а у стола кнопка входа — «Войти».
-const action = computed(() => (asksPassword.value ? 'Войти' : 'Продолжить'));
+const action = computed(() => (asksPassword.value ? t('coopidFlow.flowIdentification.loginAction') : t('coopidFlow.flowIdentification.continueAction')));
 const byPromoted = (a: FlowSource, b: FlowSource): number => Number(b.promoted ?? false) - Number(a.promoted ?? false);
 const sources = computed(() => [...(props.challenge.sources ?? [])].sort(byPromoted));
 

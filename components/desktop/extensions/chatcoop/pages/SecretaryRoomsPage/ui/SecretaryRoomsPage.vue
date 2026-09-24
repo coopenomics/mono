@@ -2,17 +2,17 @@
 q-page.secretary-rooms-page(padding)
   header.sr-head
     div.sr-head__text
-      h1.sr-head__title Комнаты секретаря
+      h1.sr-head__title {{ $t('chatcoop.secretaryRoomsPage.pageTitle') }}
       p.sr-head__subtitle
-        | Создавайте комнаты для звонков с секретарём — он подключается сразу и ведёт транскрипцию.
-        | Системные и проектные комнаты показаны для справки и не удаляются.
+        | {{ $t('chatcoop.secretaryRoomsPage.pageSubtitle') }}
+        | {{ $t('chatcoop.secretaryRoomsPage.pageHint') }}
     .sr-head__actions
       q-btn(
         unelevated
         no-caps
         color="primary"
         icon="fa-solid fa-plus"
-        label="Создать комнату"
+        :label="$t('chatcoop.secretaryRoomsPage.createRoomLabel')"
         @click="openCreateDialog"
       )
       q-btn.sr-head__refresh(
@@ -22,9 +22,9 @@ q-page.secretary-rooms-page(padding)
         icon="fa-solid fa-rotate-right"
         @click="handleRefresh"
         :loading="store.isLoading"
-        aria-label="Обновить список"
+        :aria-label="$t('chatcoop.secretaryRoomsPage.refreshAriaLabel')"
       )
-        q-tooltip Обновить
+        q-tooltip {{ $t('chatcoop.secretaryRoomsPage.refreshLabel') }}
 
   q-banner.sr-error(v-if="store.error" dense rounded class="bg-red-1 text-red-9 q-mb-md")
     | {{ store.error }}
@@ -38,7 +38,7 @@ q-page.secretary-rooms-page(padding)
     :loading="store.isLoading"
     :rows-per-page-options="[0]"
     hide-pagination
-    no-data-label="Комнат пока нет"
+    :no-data-label="$t('chatcoop.secretaryRoomsPage.emptyLabel')"
   )
     template(#body-cell-displayLabel="props")
       q-td(:props="props")
@@ -53,14 +53,14 @@ q-page.secretary-rooms-page(padding)
           :color="props.row.secretaryInRoom ? 'positive' : 'grey-5'"
           size="18px"
         )
-          q-tooltip {{ props.row.secretaryInRoom ? 'Секретарь в комнате' : 'Секретаря нет' }}
+          q-tooltip {{ props.row.secretaryInRoom ? $t('chatcoop.secretaryRoomsPage.secretaryPresentLabel') : $t('chatcoop.secretaryRoomsPage.secretaryAbsentLabel') }}
         q-icon.q-ml-sm(
           v-if="props.row.encrypted"
           name="fa-solid fa-lock"
           color="orange-8"
           size="16px"
         )
-          q-tooltip Зашифрованная комната — транскрипция недоступна
+          q-tooltip {{ $t('chatcoop.secretaryRoomsPage.encryptedRoomHint') }}
     template(#body-cell-actions="props")
       q-td(:props="props" align="right")
         q-btn(
@@ -70,7 +70,7 @@ q-page.secretary-rooms-page(padding)
           no-caps
           color="negative"
           icon="fa-solid fa-trash"
-          label="Удалить"
+          :label="$t('common.action.delete')"
           @click="confirmRemove(props.row)"
         )
         span.text-grey-5(v-else) —
@@ -79,17 +79,17 @@ q-page.secretary-rooms-page(padding)
   q-dialog(v-model="createDialog")
     q-card.sr-dialog
       q-card-section
-        .text-h6 Новая комната секретаря
+        .text-h6 {{ $t('chatcoop.secretaryRoomsPage.createDialogTitle') }}
       q-card-section.q-pt-none
         q-input(
           v-model="form.displayName"
-          label="Название комнаты"
+          :label="$t('chatcoop.secretaryRoomsPage.nameLabel')"
           autofocus
-          :rules="[(v) => !!v && v.trim().length > 0 || 'Введите название']"
+          :rules="[(v) => !!v && v.trim().length > 0 || $t('chatcoop.secretaryRoomsPage.namePlaceholder')]"
           maxlength="240"
         )
         .sr-type.q-mt-md
-          .text-subtitle2.q-mb-xs Тип комнаты
+          .text-subtitle2.q-mb-xs {{ $t('chatcoop.secretaryRoomsPage.typeLabel') }}
           q-option-group(
             v-model="form.isPublic"
             :options="typeOptions"
@@ -97,14 +97,14 @@ q-page.secretary-rooms-page(padding)
             type="radio"
           )
           .text-caption.text-grey-7.q-mt-xs
-            | {{ form.isPublic ? 'Публичная: войти может любой пайщик.' : 'Приватная: участников приглашаете вы (в клиенте мессенджера).' }}
+            | {{ form.isPublic ? $t('chatcoop.secretaryRoomsPage.publicTypeHint') : $t('chatcoop.secretaryRoomsPage.privateTypeHint') }}
       q-card-actions(align="right")
-        q-btn(flat no-caps label="Отмена" v-close-popup :disable="store.isMutating")
+        q-btn(flat no-caps :label="$t('common.action.cancel')" v-close-popup :disable="store.isMutating")
         q-btn(
           unelevated
           no-caps
           color="primary"
-          label="Создать"
+          :label="$t('common.action.create')"
           :loading="store.isMutating"
           @click="submitCreate"
         )
@@ -115,6 +115,7 @@ import { onMounted, ref } from 'vue';
 import { useQuasar } from 'quasar';
 import { useSecretaryRoomStore } from '../../../entities/SecretaryRoom';
 import type { ISecretaryRoom } from '../../../entities/SecretaryRoom';
+import { t, t as i18nT } from '../../../i18n';
 
 const $q = useQuasar();
 const store = useSecretaryRoomStore();
@@ -126,33 +127,33 @@ const form = ref<{ displayName: string; isPublic: boolean }>({
 });
 
 const typeOptions = [
-  { label: 'Приватная (по приглашению)', value: false },
-  { label: 'Публичная (открытый вход)', value: true },
+  { label: t('chatcoop.secretaryRoomsPage.privateTypeOption'), value: false },
+  { label: t('chatcoop.secretaryRoomsPage.publicTypeOption'), value: true },
 ];
 
 const columns = [
   {
     name: 'displayLabel',
-    label: 'Комната',
+    label: t('chatcoop.secretaryRoomsPage.column.room'),
     field: 'displayLabel',
     align: 'left' as const,
     style: 'min-width: 320px;',
   },
-  { name: 'kind', label: 'Тип', field: 'kind', align: 'left' as const },
-  { name: 'secretary', label: 'Секретарь', field: 'secretaryInRoom', align: 'left' as const },
+  { name: 'kind', label: t('chatcoop.secretaryRoomsPage.column.kind'), field: 'kind', align: 'left' as const },
+  { name: 'secretary', label: t('chatcoop.secretaryRoomsPage.column.secretary'), field: 'secretaryInRoom', align: 'left' as const },
   { name: 'actions', label: '', field: 'actions', align: 'right' as const },
 ];
 
 function kindLabel(kind: ISecretaryRoom['kind']): string {
   switch (kind) {
     case 'MEMBERS':
-      return 'Пайщики';
+      return t('chatcoop.secretaryRoom.status.members');
     case 'COUNCIL':
-      return 'Совет';
+      return t('chatcoop.secretaryRoom.status.council');
     case 'CAPITAL_PROJECT':
-      return 'Проект';
+      return t('chatcoop.secretaryRoom.status.capitalProject');
     case 'SECRETARY':
-      return 'Секретарь';
+      return t('chatcoop.secretaryRoom.status.secretary');
     default:
       return String(kind);
   }
@@ -183,7 +184,7 @@ async function submitCreate(): Promise<void> {
   try {
     await store.createRoom({ displayName: name, isPublic: form.value.isPublic });
     createDialog.value = false;
-    $q.notify({ type: 'positive', message: 'Комната создана, секретарь подключён' });
+    $q.notify({ type: 'positive', message: t('chatcoop.secretaryRoomsPage.createdMessage') });
   } catch (err) {
     $q.notify({ type: 'negative', message: extractError(err) });
   }
@@ -191,15 +192,15 @@ async function submitCreate(): Promise<void> {
 
 function confirmRemove(room: ISecretaryRoom): void {
   $q.dialog({
-    title: 'Удалить комнату секретаря?',
-    message: `Секретарь выйдет из «${room.displayLabel}», комната перестанет транскрибироваться и синхронизироваться.`,
-    cancel: { label: 'Отмена', flat: true, noCaps: true },
-    ok: { label: 'Удалить', color: 'negative', noCaps: true, unelevated: true },
+    title: t('chatcoop.secretaryRoomsPage.deleteConfirmTitle'),
+    message: t('chatcoop.secretaryRoomsPage.deleteConfirmMessage', { roomName: room.displayLabel }),
+    cancel: { label: i18nT('common.action.cancel'), flat: true, noCaps: true },
+    ok: { label: i18nT('common.action.delete'), color: 'negative', noCaps: true, unelevated: true },
     persistent: true,
   }).onOk(async () => {
     try {
       await store.removeRoom(room.id);
-      $q.notify({ type: 'positive', message: 'Комната удалена' });
+      $q.notify({ type: 'positive', message: t('chatcoop.secretaryRoomsPage.deletedMessage') });
     } catch (err) {
       $q.notify({ type: 'negative', message: extractError(err) });
     }
@@ -210,7 +211,7 @@ function extractError(err: unknown): string {
   if (err instanceof Error) {
     return err.message;
   }
-  return 'Не удалось выполнить операцию';
+  return t('chatcoop.secretaryRoomsPage.operationError');
 }
 
 async function handleRefresh(): Promise<void> {

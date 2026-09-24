@@ -1,4 +1,5 @@
 import { registerDecorator, type ValidationArguments, type ValidationOptions } from 'class-validator';
+import { t } from '~/i18n';
 
 /** Угловые скобки: с них начинается любая разметка. */
 const MARKUP_CHARS = /[<>]/;
@@ -29,7 +30,7 @@ export function NoMarkup(validationOptions?: ValidationOptions) {
           return typeof value !== 'string' || !MARKUP_CHARS.test(value);
         },
         defaultMessage(args: ValidationArguments): string {
-          return `Поле «${args.property}» не должно содержать символы < и >.`;
+          return t('app.noMarkupDecorator.noAngleBrackets', { property: args.property });
         },
       },
     });

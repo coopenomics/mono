@@ -1,8 +1,9 @@
-import { BadRequestException, Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { NOT_ME_TOKEN_STORE } from '~/domain/auth-v2/ports/not-me-token-store.port';
 import type { INotMeTokenStore } from '~/domain/auth-v2/ports/not-me-token-store.port';
 import { SessionsService } from '../sessions/sessions.service';
 import { AuditService } from '../audit/audit.service';
+import { DomainError } from '@coopenomics/extension-kit';
 
 /** Откуда пришёл сигнал «Это не я» — для аудита (не секрет). */
 export type SuspiciousReportSource = 'settings' | 'one_click';
@@ -62,7 +63,7 @@ export class SecurityIncidentService {
   /** One-click путь: потребить токен из письма → subjectId → отчёт. */
   async reportByToken(token: string, ip: string | null): Promise<ReportSuspiciousResult> {
     const subjectId = await this.notMeTokens.consume(token);
-    if (!subjectId) throw new BadRequestException('Ссылка недействительна или уже использована');
+    if (!subjectId) throw DomainError.badRequest('AUTH_V2_LINK_INVALID_OR_USED');
     return this.report({ subjectId, ip, source: 'one_click' });
   }
 

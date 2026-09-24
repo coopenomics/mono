@@ -29,6 +29,7 @@ export class MarketplaceSupplierClaimDomainEntity {
 
   constructor(props: MarketplaceSupplierClaimProps) {
     if (!props.id || !props.coopname || !props.claim_hash || !props.supplier_account) {
+      // i18n-ignore: внутренний инвариант сущности, до пайщика не доходит
       throw new Error('MarketplaceSupplierClaimDomainEntity: обязательные поля отсутствуют.');
     }
     this.id = props.id;

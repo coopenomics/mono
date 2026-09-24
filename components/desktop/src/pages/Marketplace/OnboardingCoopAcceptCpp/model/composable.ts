@@ -12,6 +12,7 @@ import {
   generateDocument,
   type MarketplaceOnboardingState,
 } from '../api';
+import { t } from 'src/shared/i18n';
 
 /**
  * L1-онбординг ЦПП «Стол заказов» на платформенном механизме онбординга.
@@ -44,21 +45,21 @@ interface StepMeta {
 const STEP_META: StepMeta[] = [
   {
     id: 'marketplace_provision',
-    title: 'Положение о ЦПП «Стол заказов»',
+    title: t('marketplace.composable.stepProvisionTitle'),
     description:
-      'Утверждение Положения о целевой потребительской программе «Стол заказов»',
-    question: 'Об утверждении Положения о ЦПП «Стол заказов»',
-    decisionPrefix: 'Утвердить Положение о ЦПП «Стол заказов»:',
+      t('marketplace.composable.stepProvisionDescription'),
+    question: t('marketplace.composable.stepProvisionQuestion'),
+    decisionPrefix: t('marketplace.composable.stepProvisionDecisionPrefix'),
   },
   {
     id: 'marketplace_offer_template',
-    title: 'Шаблон публичной оферты ЦПП «Стол заказов»',
+    title: t('marketplace.composable.stepOfferTemplateTitle'),
     description:
-      'Утверждение шаблона публичной оферты по присоединению пайщиков к ЦПП «Стол заказов»',
+      t('marketplace.composable.stepOfferTemplateDescription'),
     question:
-      'Об утверждении шаблона публичной оферты по присоединению к ЦПП «Стол заказов»',
+      t('marketplace.composable.stepOfferTemplateQuestion'),
     decisionPrefix:
-      'Утвердить шаблон публичной оферты по присоединению к ЦПП «Стол заказов»:',
+      t('marketplace.composable.stepOfferTemplateDecisionPrefix'),
   },
 ];
 
@@ -102,12 +103,12 @@ export const useMarketplaceOnboarding = () => {
     steps: stepsConfig.value,
     // Счётчик срока адаптации на Столе заказов не показываем — подключение
     // ЦПП не привязано к дедлайну онбординга платформы.
-    completionTitle: 'ЦПП «Стол заказов» подключена!',
+    completionTitle: t('marketplace.composable.connectedTitle'),
     completionMessage:
-      'Совет утвердил Положение и шаблон оферты — Стол заказов подключён. ' +
-      'Дальше добавьте кооперативные участки на столе председателя и отметьте ' +
-      'нужные из них пунктами выдачи заказов: без этого пайщикам некуда ' +
-      'получать заказы. Эта страница больше не понадобится и из меню уйдёт.',
+      t('marketplace.composable.connectedMessage') +
+      t('marketplace.composable.nextStepsHintIntro') +
+      t('marketplace.composable.nextStepsHintPvz') +
+      t('marketplace.composable.nextStepsHintTail'),
   }));
 
   const isCompleted = computed(
@@ -168,7 +169,7 @@ export const useMarketplaceOnboarding = () => {
         decision: documentsHtml.value[step.id] || step.decisionPrefix || '',
       });
       onboardingState.value = state;
-      SuccessAlert('Проект решения создан и отправлен в Совет.');
+      SuccessAlert(t('marketplace.composable.draftSentMessage'));
     } catch (error) {
       FailAlert(error);
     } finally {

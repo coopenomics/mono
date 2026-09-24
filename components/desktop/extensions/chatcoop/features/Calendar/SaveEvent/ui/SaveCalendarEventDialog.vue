@@ -2,7 +2,7 @@
 q-dialog(v-model="dialogOpen", persistent)
   q-card(style="min-width: 360px; max-width: 520px")
     q-card-section.row.items-center
-      .text-h6 {{ editingId ? 'Изменить событие' : 'Новое событие' }}
+      .text-h6 {{ editingId ? $t('chatcoop.saveCalendarEventDialog.editTitle') : $t('chatcoop.saveCalendarEventDialog.createTitle') }}
       q-space
       q-btn(icon="close", flat, round, dense, v-close-popup)
     q-separator
@@ -14,25 +14,25 @@ q-dialog(v-model="dialogOpen", persistent)
         option-label="label",
         emit-value,
         map-options,
-        label="Комната",
+        :label="$t('chatcoop.saveCalendarEventDialog.roomLabel')",
         outlined,
         dense
       )
-      q-input.q-mt-sm(v-model="form.title", label="Заголовок", outlined, dense)
-      q-input.q-mt-sm(v-model="form.description", label="Описание", type="textarea", outlined, dense, autogrow)
+      q-input.q-mt-sm(v-model="form.title", :label="$t('chatcoop.saveCalendarEventDialog.titleLabel')", outlined, dense)
+      q-input.q-mt-sm(v-model="form.description", :label="$t('chatcoop.saveCalendarEventDialog.descriptionLabel')", type="textarea", outlined, dense, autogrow)
       q-input.q-mt-sm(
         v-model="form.startsAtLocal",
-        label="Начало",
+        :label="$t('chatcoop.saveCalendarEventDialog.startLabel')",
         type="datetime-local",
         outlined,
         dense
       )
-      q-input.q-mt-sm(v-model="form.endsAtLocal", label="Окончание (необязательно)", type="datetime-local", outlined, dense)
+      q-input.q-mt-sm(v-model="form.endsAtLocal", :label="$t('chatcoop.saveCalendarEventDialog.endLabel')", type="datetime-local", outlined, dense)
       .text-caption.text-grey-7.q-mt-xs
-        | Укажите время в вашем местном часовом поясе; у других участников оно отобразится по их поясу.
+        | {{ $t('chatcoop.saveCalendarEventDialog.timezoneHint') }}
     q-card-actions(align="right")
-      q-btn(flat, label="Отмена", v-close-popup)
-      q-btn(color="primary", :label="editingId ? 'Сохранить' : 'Создать'", :loading="saving", @click="submitForm")
+      q-btn(flat, :label="$t('common.action.cancel')", v-close-popup)
+      q-btn(color="primary", :label="editingId ? $t('common.action.save') : $t('common.action.create')", :loading="saving", @click="submitForm")
 </template>
 
 <script lang="ts" setup>

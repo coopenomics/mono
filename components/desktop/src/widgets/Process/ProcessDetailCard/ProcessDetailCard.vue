@@ -3,31 +3,31 @@
   .op-header.q-mb-md(:style='{ borderLeftColor: processAccentColor(processType) }')
     .text-h6.text-weight-medium {{ processTypeLabel(processType) }}
     .row.items-center.q-gutter-sm.q-mb-xs
-      .text-caption.text-grey-7 ID процесса:
+      .text-caption.text-grey-7 {{ $t('process.processDetailCard.processIdLabel') }}
       EntityIdBadge(:rawId='processHash' copy-on-click)
 
   //- Загрузка: каркас на местах документов, операций и проводок. Спиннер
   //- крутился у левого края под шапкой — по нему не видно ни что грузится, ни
   //- сколько там будет содержимого (канон: скелетон, не спиннер).
   template(v-if='loading')
-    BaseCard.q-mb-md(variant='flat', title='Документы')
+    BaseCard.q-mb-md(variant='flat', :title='$t("process.processDetailCard.documentsTitle")')
       CardListSkeleton(:count='2')
 
     .row.q-col-gutter-md
       .col-12
-        BaseCard(variant='flat', title='Операции')
+        BaseCard(variant='flat', :title='$t("process.processDetailCard.operationsTitle")')
           TableSkeleton(:columns='OP_SKELETON_COLUMNS', :rows='4')
       .col-12
-        BaseCard(variant='flat', title='Проводки')
+        BaseCard(variant='flat', :title='$t("process.processDetailCard.postingsTitle")')
           TableSkeleton(:columns='PST_SKELETON_COLUMNS', :rows='3')
   template(v-else)
     //- Документы процесса (наименование / дата / подписанты). Открываются во
     //- всплывающем окне без переадресации — агрегат уже загружен в getProcess.
     q-card.q-mb-md(flat bordered)
       q-card-section.q-pb-none
-        .text-subtitle2 Документы
+        .text-subtitle2 {{ $t('process.processDetailCard.documentsTitle') }}
       q-card-section.q-pt-sm
-        .text-body2.text-grey-7(v-if='!documents.length') Документы не приложены
+        .text-body2.text-grey-7(v-if='!documents.length') {{ $t('process.processDetailCard.documentsEmpty') }}
         .column.q-gutter-xs(v-else)
           DocumentRow(
             v-for='d in documents'
@@ -44,9 +44,9 @@
       .col-12
         q-card(flat bordered)
           q-card-section.q-pb-none
-            .text-subtitle2 Операции
+            .text-subtitle2 {{ $t('process.processDetailCard.operationsTitle') }}
           q-card-section.q-pt-sm
-            .text-body2.text-grey-7(v-if='!operations.length') Операций нет
+            .text-body2.text-grey-7(v-if='!operations.length') {{ $t('process.processDetailCard.operationsEmpty') }}
             q-table(
               v-else
               flat dense
@@ -65,7 +65,7 @@
                     :rawId='cp.row.globalSequence'
                     @click='goToOperation(cp.row.globalSequence)'
                   )
-                    q-tooltip Открыть в реестре операций
+                    q-tooltip {{ $t('process.processDetailCard.openInOperationsRegistry') }}
                   EntityIdBadge(v-else :rawId='cp.row.globalSequence' copy-on-click)
               template(#body-cell-label='cp')
                 q-td(:props='cp')
@@ -81,9 +81,9 @@
       .col-12
         q-card(flat bordered)
           q-card-section.q-pb-none
-            .text-subtitle2 Проводки
+            .text-subtitle2 {{ $t('process.processDetailCard.postingsTitle') }}
           q-card-section.q-pt-sm
-            .text-body2.text-grey-7(v-if='!postings.length') Проводок нет
+            .text-body2.text-grey-7(v-if='!postings.length') {{ $t('process.processDetailCard.postingsEmpty') }}
             q-table(
               v-else
               flat dense
@@ -102,7 +102,7 @@
                     :rawId='cp.row.debitGlobalSequence'
                     @click='goToPosting(cp.row.debitGlobalSequence)'
                   )
-                    q-tooltip Открыть в реестре проводок
+                    q-tooltip {{ $t('process.processDetailCard.openInPostingsRegistry') }}
                   EntityIdBadge(
                     v-else-if='cp.row.debitGlobalSequence'
                     :rawId='cp.row.debitGlobalSequence'
@@ -129,6 +129,7 @@
 
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
+import { uiLocale, t } from 'src/shared/i18n';
 import { useRouter } from 'vue-router'
 import { copyToClipboard } from 'quasar'
 import { FailAlert, SuccessAlert } from 'src/shared/api'
@@ -186,40 +187,40 @@ const viewerDoc = ref<IDocumentAggregate | null>(null)
 const viewerTitle = ref('')
 
 const opColumns = [
-  { name: 'date', align: 'left' as const, label: 'Дата', field: 'createdAt' },
-  { name: 'op', align: 'left' as const, label: '№ операции', field: 'globalSequence' },
-  { name: 'label', align: 'left' as const, label: 'Операция', field: 'operationCode' },
-  { name: 'amount', align: 'right' as const, label: 'Сумма', field: 'quantity' },
+  { name: 'date', align: 'left' as const, label: t('process.processDetailCard.dateColumn'), field: 'createdAt' },
+  { name: 'op', align: 'left' as const, label: t('process.processDetailCard.opNumberColumn'), field: 'globalSequence' },
+  { name: 'label', align: 'left' as const, label: t('process.processDetailCard.operationColumn'), field: 'operationCode' },
+  { name: 'amount', align: 'right' as const, label: t('process.processDetailCard.amountColumn'), field: 'quantity' },
 ]
 
 const pstColumns = [
-  { name: 'date', align: 'left' as const, label: 'Дата', field: 'createdAt' },
-  { name: 'posting', align: 'left' as const, label: '№ проводки', field: 'debitGlobalSequence' },
-  { name: 'debit', align: 'center' as const, label: 'Дебет', field: 'debitAccountId' },
-  { name: 'credit', align: 'center' as const, label: 'Кредит', field: 'creditAccountId' },
-  { name: 'amount', align: 'right' as const, label: 'Сумма', field: 'quantity' },
+  { name: 'date', align: 'left' as const, label: t('process.processDetailCard.dateColumn'), field: 'createdAt' },
+  { name: 'posting', align: 'left' as const, label: t('process.processDetailCard.postingNumberColumn'), field: 'debitGlobalSequence' },
+  { name: 'debit', align: 'center' as const, label: t('process.processDetailCard.debitColumn'), field: 'debitAccountId' },
+  { name: 'credit', align: 'center' as const, label: t('process.processDetailCard.creditColumn'), field: 'creditAccountId' },
+  { name: 'amount', align: 'right' as const, label: t('process.processDetailCard.amountColumn'), field: 'quantity' },
 ]
 
 // Каркас повторяет шапки тех же таблиц: при подстановке данных заголовки и
 // колонки остаются на месте, содержимое просто заполняет готовую сетку.
 const OP_SKELETON_COLUMNS: TableSkeletonColumn[] = [
-  { label: 'Дата', width: '150px' },
-  { label: '№ операции', width: '120px', cell: 'badge' },
-  { label: 'Операция', cell: 'badge' },
-  { label: 'Сумма', width: '120px', class: 'col-num' },
+  { label: t('process.processDetailCard.dateColumn'), width: '150px' },
+  { label: t('process.processDetailCard.opNumberColumn'), width: '120px', cell: 'badge' },
+  { label: t('process.processDetailCard.operationColumn'), cell: 'badge' },
+  { label: t('process.processDetailCard.amountColumn'), width: '120px', class: 'col-num' },
 ]
 
 const PST_SKELETON_COLUMNS: TableSkeletonColumn[] = [
-  { label: 'Дата', width: '150px' },
-  { label: '№ проводки', width: '120px', cell: 'badge' },
-  { label: 'Дебет', width: '90px', cell: 'badge' },
-  { label: 'Кредит', width: '90px', cell: 'badge' },
-  { label: 'Сумма', width: '120px', class: 'col-num' },
+  { label: t('process.processDetailCard.dateColumn'), width: '150px' },
+  { label: t('process.processDetailCard.postingNumberColumn'), width: '120px', cell: 'badge' },
+  { label: t('process.processDetailCard.debitColumn'), width: '90px', cell: 'badge' },
+  { label: t('process.processDetailCard.creditColumn'), width: '90px', cell: 'badge' },
+  { label: t('process.processDetailCard.amountColumn'), width: '120px', class: 'col-num' },
 ]
 
 function formatDate(d: string | Date | null | undefined): string {
   if (!d) return '—'
-  return new Date(d).toLocaleString('ru-RU', {
+  return new Date(d).toLocaleString(uiLocale(), {
     day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit',
   })
 }
@@ -241,7 +242,7 @@ function toDocRow(d: IProcessDocument): DocumentRowDoc {
     : []
   return {
     type: 'pdf',
-    title: doc?.meta?.title || raw?.full_title || 'Документ',
+    title: doc?.meta?.title || raw?.full_title || t('process.processDetailCard.documentFallbackTitle'),
     date: doc?.meta?.created_at || undefined,
     author: signers.length ? signers.join(', ') : undefined,
   }
@@ -252,7 +253,7 @@ function toDocRow(d: IProcessDocument): DocumentRowDoc {
 function openDoc(d: IProcessDocument) {
   const doc = d.document as any
   viewerDoc.value = { document: d.document, rawDocument: d.raw } as unknown as IDocumentAggregate
-  viewerTitle.value = doc?.meta?.title || (d.raw as any)?.full_title || 'Документ'
+  viewerTitle.value = doc?.meta?.title || (d.raw as any)?.full_title || t('process.processDetailCard.documentFallbackTitle')
   viewerOpen.value = true
 }
 
@@ -269,9 +270,9 @@ async function copyText(text: string | null | undefined) {
   if (!text) return
   try {
     await copyToClipboard(text)
-    SuccessAlert('Скопировано')
+    SuccessAlert(t('process.processDetailCard.copied'))
   } catch {
-    FailAlert('Не удалось скопировать')
+    FailAlert(t('process.processDetailCard.copyFailed'))
   }
 }
 // Утилита доступна для расширения (копирование произвольных значений детали).

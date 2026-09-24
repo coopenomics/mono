@@ -64,7 +64,7 @@ div.tariff-card-container
 
       template(v-if="tariff.additionalCosts && tariff.additionalCosts.length")
         .tariff-additional.q-mt-md
-          p.text-subtitle2.text-grey-8 Дополнительные расходы:
+          p.text-subtitle2.text-grey-8 {{ $t('connectionAgreementStepper.tariffCard.additionalCostsTitle') }}
           .additional-item(v-for="cost in tariff.additionalCosts" :key="cost")
             q-icon(name="add_circle_outline" size="14px" color="info").q-mr-xs
             span.text-caption {{ cost }}
@@ -72,9 +72,9 @@ div.tariff-card-container
     .tariff-footer
       .tariff-price
         .price-display {{ tariff.price }}
-        .price-period(v-if="tariff.price !== 'Бесплатно'") в месяц
+        .price-period(v-if="tariff.price !== $t('connectionAgreementStepper.tariffCard.free')") {{ $t('connectionAgreementStepper.tariffCard.perMonthSuffix') }}
       .select-hint.text-caption.text-grey-6
-        | Нажмите для выбора
+        | {{ $t('connectionAgreementStepper.tariffCard.selectHint') }}
 </template>
 
 <style scoped>

@@ -41,6 +41,7 @@ import {
   listInventory,
   type MarketplaceInventoryItemView,
 } from 'src/entities/MarketplaceInventory'
+import { t as i18nT } from 'src/shared/i18n';
 
 const props = defineProps<{
   /** Какой раздел показывать: имущество на складе или обезличенный остаток. */
@@ -132,14 +133,14 @@ watch(
 )
 
 const columns = computed<BaseTableColumn<MarketplaceInventoryItemView>[]>(() => [
-  { key: 'place', label: 'Место', width: '240px', field: (row) => placeLabel(row) },
-  { key: 'product', label: 'Имущество', width: '240px', sortable: true, field: 'product_name_snapshot' },
-  { key: 'orderer', label: 'Заказчик', width: '200px', sortable: true, field: (row) => ordererName(row) },
-  { key: 'qty', label: 'Кол-во', width: '130px', numeric: true, nowrap: true },
-  { key: 'barcode', label: 'Штрих-код', width: '150px' },
-  { key: 'status', label: 'Состояние', width: '140px', sortable: true, field: 'status' },
-  { key: 'expiry', label: 'Годен до', width: '120px', nowrap: true, sortable: true, field: (row) => timeOf(row.expiry_date) },
-  { key: 'received', label: 'Принято', width: '160px', nowrap: true, sortable: true, field: (row) => timeOf(row.received_at) },
+  { key: 'place', label: i18nT('marketplace.operatorOwnWarehouse.column.place'), width: '240px', field: (row) => placeLabel(row) },
+  { key: 'product', label: i18nT('marketplace.operatorOwnWarehouse.column.product'), width: '240px', sortable: true, field: 'product_name_snapshot' },
+  { key: 'orderer', label: i18nT('marketplace.operatorOwnWarehouse.column.orderer'), width: '200px', sortable: true, field: (row) => ordererName(row) },
+  { key: 'qty', label: i18nT('marketplace.operatorOwnWarehouse.column.qty'), width: '130px', numeric: true, nowrap: true },
+  { key: 'barcode', label: i18nT('marketplace.operatorOwnWarehouse.column.barcode'), width: '150px' },
+  { key: 'status', label: i18nT('marketplace.operatorOwnWarehouse.column.status'), width: '140px', sortable: true, field: 'status' },
+  { key: 'expiry', label: i18nT('marketplace.operatorOwnWarehouse.column.expiry'), width: '120px', nowrap: true, sortable: true, field: (row) => timeOf(row.expiry_date) },
+  { key: 'received', label: i18nT('marketplace.operatorOwnWarehouse.column.received'), width: '160px', nowrap: true, sortable: true, field: (row) => timeOf(row.received_at) },
 ])
 
 // Строка открывает предложение, по которому имущество попало на участок: с него
@@ -180,7 +181,7 @@ async function load(): Promise<void> {
     ])
     items.value = list
   } catch (e) {
-    FailAlert(e, 'Не удалось загрузить склад участка')
+    FailAlert(e, i18nT('marketplace.operatorOwnWarehouse.loadError'))
   } finally {
     loading.value = false
   }
@@ -268,9 +269,9 @@ async function commitPlacement(
       cell_id,
     })
     applyUpdated(updated)
-    SuccessAlert('Место обновлено')
+    SuccessAlert(i18nT('marketplace.operatorOwnWarehouse.placeUpdatedMessage'))
   } catch (e) {
-    FailAlert(e, 'Не удалось сохранить место')
+    FailAlert(e, i18nT('marketplace.operatorOwnWarehouse.placeUpdateError'))
   } finally {
     savingPlaceId.value = null
   }
@@ -283,9 +284,9 @@ async function issueBarcode(row: MarketplaceInventoryItemView): Promise<void> {
   try {
     const updated = await generateInventoryLabel({ inventory_id: row.id })
     applyUpdated(updated)
-    SuccessAlert('Штрих-код выпущен')
+    SuccessAlert(i18nT('marketplace.operatorOwnWarehouse.barcodeIssuedMessage'))
   } catch (e) {
-    FailAlert(e, 'Не удалось выпустить штрих-код')
+    FailAlert(e, i18nT('marketplace.operatorOwnWarehouse.barcodeIssueError'))
   } finally {
     issuingBarcodeId.value = null
   }
@@ -294,15 +295,15 @@ async function issueBarcode(row: MarketplaceInventoryItemView): Promise<void> {
 function humanStatus(status: string): string {
   switch (status) {
     case Zeus.MarketplaceInventoryStatus.RECEIVED:
-      return 'Принято'
+      return i18nT('marketplace.inventory.status.received')
     case Zeus.MarketplaceInventoryStatus.LABELED:
-      return 'Промаркировано'
+      return i18nT('marketplace.inventory.status.labeled')
     case Zeus.MarketplaceInventoryStatus.ISSUED:
-      return 'Выдано пайщику'
+      return i18nT('marketplace.inventory.status.issued')
     case Zeus.MarketplaceInventoryStatus.RETURNED:
-      return 'Возврат на склад'
+      return i18nT('marketplace.inventory.status.returned')
     case Zeus.MarketplaceInventoryStatus.WRITTEN_OFF:
-      return 'Списано'
+      return i18nT('marketplace.inventory.status.writtenOff')
     default:
       return status
   }
@@ -348,11 +349,11 @@ function isExpired(value: unknown): boolean {
 <template lang="pug">
 //- Секция стола «Склад моего КУ»: шапка участка и полоса разделов — на
 //- странице-обёртке. Какой из двух разделов показывать, говорит проп.
-.warehouse(role='region', aria-label='Склад участка')
+.warehouse(role='region', :aria-label='$t("marketplace.operatorOwnWarehouse.ariaLabel")')
   EmptyState(
     v-if='store.loaded && !store.isOperator',
-    title='Вы не оператор кооперативного участка',
-    body='Склад участка доступен оператору участка и его доверенным лицам.'
+    :title='$t("marketplace.operatorOwnWarehouse.notOperatorTitle")',
+    :body='$t("marketplace.operatorOwnWarehouse.notOperatorBody")'
   )
     template(#icon)
       q-icon(name='storefront', size='48px')
@@ -364,14 +365,14 @@ function isExpired(value: unknown): boolean {
       v-if='activeTab === "warehouse"',
       storage-key='mp:operator-warehouse:banner-dismissed'
     )
-      | Имущество, принятое на ваш пункт выдачи: что лежит на складе, в каком
-      | месте, заказчик и состояние. Место можно переназначить, а штрих-код
-      | выпустить прямо в строке. Штрих-код есть не у всех позиций — он опционален.
+      | {{ $t('marketplace.operatorOwnWarehouse.hintLine1') }}
+      | {{ $t('marketplace.operatorOwnWarehouse.hintLine2') }}
+      | {{ $t('marketplace.operatorOwnWarehouse.hintLine3') }}
 
     PageHint(v-else, storage-key='mp:operator-coop-stock:banner-dismissed')
-      | Обезличенный остаток кооператива: имущество, которое заказчик не забрал
-      | или от которого отказался. Оно уже не закреплено ни за кем — его можно
-      | опубликовать в каталог предложением от кооператива.
+      | {{ $t('marketplace.operatorOwnWarehouse.unassignedHintLine1') }}
+      | {{ $t('marketplace.operatorOwnWarehouse.unassignedHintLine2') }}
+      | {{ $t('marketplace.operatorOwnWarehouse.unassignedHintLine3') }}
 
     template(v-if='activeTab === "warehouse"')
       //- Поиск — отдельной строкой (не в одном ряду с чипами: их высоты разные и
@@ -379,7 +380,7 @@ function isExpired(value: unknown): boolean {
       BaseInput.warehouse__search.field-flush(
         v-model='search',
         type='search',
-        placeholder='Поиск: заказчик, имущество, бокс, адрес, штрих-код',
+        :placeholder='$t("marketplace.operatorOwnWarehouse.searchPlaceholder")',
         clearable
       )
 
@@ -404,7 +405,7 @@ function isExpired(value: unknown): boolean {
             v-if='placementEnabled',
             :model-value='placementValue(row)',
             :options='placementOptions',
-            placeholder='Указать место',
+            :placeholder='$t("marketplace.operatorOwnWarehouse.placeInputPlaceholder")',
             searchable,
             :disabled='savingPlaceId === row.id',
             @update:model-value='(v: string | number | null) => commitPlacement(row, v)'
@@ -431,7 +432,7 @@ function isExpired(value: unknown): boolean {
           )
             template(#icon-left)
               q-icon(name='label', size='16px')
-            | Выпустить
+            | {{ $t('marketplace.operatorOwnWarehouse.issueBarcodeButton') }}
 
         template(#cell-status='{ row }')
           BaseBadge(:variant='statusVariant(row.status)') {{ humanStatus(row.status) }}
@@ -443,12 +444,12 @@ function isExpired(value: unknown): boolean {
           | {{ formatDateTime(row.received_at) }}
 
         template(#footer)
-          span Позиций: {{ filteredRows.length }}
+          span {{ $t('marketplace.operatorOwnWarehouse.positionsCountFooter', { count: filteredRows.length }) }}
 
       EmptyState(
         v-else,
-        title='На складе пусто',
-        body='Здесь появятся принятые позиции участка. Проверьте поиск.'
+        :title='$t("marketplace.operatorOwnWarehouse.emptyTitle")',
+        :body='$t("marketplace.operatorOwnWarehouse.emptyBody")'
       )
         template(#icon)
           q-icon(name='inventory_2', size='48px')

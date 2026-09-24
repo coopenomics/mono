@@ -19,6 +19,7 @@ import {
   type MarketplaceSupplierClaimView,
 } from '../api';
 import DisagreeClaimDialog from './DisagreeClaimDialog.vue';
+import { t } from 'src/shared/i18n';
 
 /**
  * Стол поставщика «Гарантийные возвраты» (99D-13). Две сводки по кошелькам
@@ -58,7 +59,7 @@ async function load(): Promise<void> {
     items.value = list;
     summary.value = sum;
   } catch (e) {
-    FailAlert(e, 'Не удалось загрузить гарантийные возвраты');
+    FailAlert(e, t('marketplace.offererWarrantyClaimsPage.loadClaimsFailedMessage'));
   } finally {
     loading.value = false;
   }
@@ -73,10 +74,10 @@ async function admit(c: MarketplaceSupplierClaimView): Promise<void> {
   admitting.value = c.id;
   try {
     await admitSupplierClaim(c.id);
-    SuccessAlert(`Претензия признана: ${formatAsset2Digits(c.amount)} ₽ будут удержаны из следующих выплат.`);
+    SuccessAlert(t('marketplace.offererWarrantyClaimsPage.claimAgreedDetailsMessage', { amount: formatAsset2Digits(c.amount) }));
     await load();
   } catch (e) {
-    FailAlert(e, 'Не удалось признать претензию');
+    FailAlert(e, t('marketplace.offererWarrantyClaimsPage.agreeClaimFailedMessage'));
   } finally {
     admitting.value = null;
   }
@@ -95,37 +96,37 @@ onMounted(() => {
 <template lang="pug">
 q-page.offerer-claims
   PageHint(storage-key='mp:offerer-claims:banner-dismissed')
-    | Гарантийные претензии по вашему товару: пайщик вернул имущество, кооператив
-    | принял его на участке, совет отменил сделку. Пока вы не согласились, сумма
-    | считается непризнанной и из выплат не удерживается, но кооператив вправе
-    | обратиться с ней в суд. Согласие переводит сумму в долг, который гасится
-    | из ваших следующих выплат. Имущество можно забрать на участке, где оно принято.
+    | {{ $t('marketplace.offererWarrantyClaimsPage.bannerHintIntro') }}
+    | {{ $t('marketplace.offererWarrantyClaimsPage.bannerHintAccepted') }}
+    | {{ $t('marketplace.offererWarrantyClaimsPage.bannerHintNotAgreed') }}
+    | {{ $t('marketplace.offererWarrantyClaimsPage.bannerHintCourt') }}
+    | {{ $t('marketplace.offererWarrantyClaimsPage.bannerHintRepayment') }}
 
   .offerer-claims__cards
     WalletCard(
       neutral,
       icon='gavel',
-      title='Не признано'
-      subtitle='Претензии, с которыми вы не согласились'
+      :title='$t("marketplace.offererWarrantyClaimsPage.notAgreedTitle")'
+      :subtitle='$t("marketplace.offererWarrantyClaimsPage.notAgreedSubtitle")'
       :balance='summary ? formatAsset2Digits(summary.not_admitted_total) : "0.00"',
       :symbol='summary?.symbol ?? ""',
-      balance-label='Спорная сумма'
+      :balance-label='$t("marketplace.offererWarrantyClaimsPage.disputedAmountLabel")'
       :loading='loading && !summary'
     )
     WalletCard(
       program='wallet',
       icon='request_quote',
-      title='Признанный долг',
-      subtitle='Гасится из следующих выплат'
+      :title='$t("marketplace.offererWarrantyClaimsPage.agreedDebtTitle")',
+      :subtitle='$t("marketplace.offererWarrantyClaimsPage.agreedDebtSubtitle")'
       :balance='summary ? formatAsset2Digits(summary.admitted_debt) : "0.00"',
       :symbol='summary?.symbol ?? ""',
-      balance-label='К удержанию'
+      :balance-label='$t("marketplace.offererWarrantyClaimsPage.toWithholdLabel")'
       :loading='loading && !summary'
     )
 
   .offerer-claims__title
-    .t-h2 Претензии
-    BaseBadge(v-if='pendingCount', variant='warn') Не признано: {{ pendingCount }}
+    .t-h2 {{ $t('marketplace.offererWarrantyClaimsPage.claimsTitle') }}
+    BaseBadge(v-if='pendingCount', variant='warn') {{ $t('marketplace.offererWarrantyClaimsPage.notAgreedCountLabel', { count: pendingCount }) }}
 
   CardListSkeleton(v-if='firstLoad', :count='3')
   .offerer-claims__list(v-else-if='items.length')
@@ -133,8 +134,8 @@ q-page.offerer-claims
       .claim-card
         .claim-card__top
           .claim-card__product
-            .claim-card__name {{ c.product_name || 'Товар по заказу' }}
-            .claim-card__meta {{ quantityLabel(c) }} · участок {{ c.delivery_branch_name || c.delivery_braname }}
+            .claim-card__name {{ c.product_name || $t('marketplace.offererWarrantyClaimsPage.productByOrderLabel') }}
+            .claim-card__meta {{ $t('marketplace.offererWarrantyClaimsPage.claimSummaryLabel', { quantity: quantityLabel(c), kuName: c.delivery_branch_name || c.delivery_braname }) }}
           BaseBadge(:variant='supplierClaimStatusVariant(c.status)') {{ supplierClaimStatusLabel(c.status) }}
         .claim-card__row
           .claim-card__amount {{ formatAsset2Digits(c.amount) }} ₽
@@ -143,21 +144,21 @@ q-page.offerer-claims
           BaseButton(variant='ghost', size='sm', @click='open(c)')
             template(#icon-left)
               q-icon(name='open_in_new', size='16px')
-            | Открыть
+            | {{ $t('common.action.open') }}
           template(v-if='c.status === "PENDING"')
             BaseButton(variant='primary', size='sm', :loading='admitting === c.id', @click='admit(c)')
               template(#icon-left)
                 q-icon(name='check_circle', size='16px')
-              | Согласен
+              | {{ $t('marketplace.offererWarrantyClaimsPage.agreeAction') }}
             BaseButton(variant='secondary', size='sm', :disabled='admitting === c.id', @click='disagree(c)')
               template(#icon-left)
                 q-icon(name='cancel', size='16px')
-              | Не согласен
+              | {{ $t('marketplace.offererWarrantyClaimsPage.disagreeAction') }}
 
   EmptyState(
     v-else,
-    title='Гарантийных претензий нет',
-    body='Здесь появятся претензии по вашему товару, если пайщик вернёт его по гарантии и совет отменит сделку.'
+    :title='$t("marketplace.offererWarrantyClaimsPage.emptyTitle")',
+    :body='$t("marketplace.offererWarrantyClaimsPage.emptyBody")'
   )
     template(#icon)
       q-icon(name='assignment_return', size='48px')

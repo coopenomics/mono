@@ -9,6 +9,7 @@ import {
   defectCategoryLabel,
   type MarketplaceReturnClaimView,
 } from '../api';
+import { t } from 'src/shared/i18n';
 
 /**
  * Story 7.2 / FR31: full-screen takeover для удалённого решения председателя.
@@ -54,11 +55,11 @@ watch(
 async function confirm(): Promise<void> {
   if (!props.claim) return;
   if (decision.value === DECISION_REJECT && !comment.value.trim()) {
-    FailAlert(new Error('Укажите причину отказа: пайщик её увидит в уведомлении.'));
+    FailAlert(new Error(t('marketplace.error.returnClaimDeclineReasonRequired')));
     return;
   }
   if (!props.braname.trim()) {
-    FailAlert(new Error('Не выбран кооперативный участок.'));
+    FailAlert(new Error(t('marketplace.error.returnClaimBranchNotSelected')));
     return;
   }
   submitting.value = true;
@@ -69,19 +70,19 @@ async function confirm(): Promise<void> {
         braname: props.braname.trim(),
         comment: comment.value.trim(),
       });
-      SuccessAlert('Заказчик приглашён на очный осмотр. Уведомление отправлено.');
+      SuccessAlert(t('marketplace.remoteDecisionDialog.invitedMessage'));
     } else {
       await rejectReturnRemote({
         claim_id: props.claim.id,
         braname: props.braname.trim(),
         comment: comment.value.trim(),
       });
-      SuccessAlert('Заявление отклонено удалённо. Уведомление отправлено.');
+      SuccessAlert(t('marketplace.remoteDecisionDialog.declinedMessage'));
     }
     emit('decided');
     emit('update:modelValue', false);
   } catch (e) {
-    FailAlert(e, 'Не удалось зафиксировать решение в блокчейне');
+    FailAlert(e, t('marketplace.remoteDecisionDialog.chainError'));
   } finally {
     submitting.value = false;
   }
@@ -95,28 +96,28 @@ const kind = computed<'info' | 'warning'>(() =>
   decision.value === DECISION_APPROVE ? 'info' : 'warning',
 );
 const confirmLabel = computed(() =>
-  decision.value === DECISION_APPROVE ? 'Пригласить на очный осмотр' : 'Отказать удалённо',
+  decision.value === DECISION_APPROVE ? t('marketplace.remoteDecisionDialog.inviteSubmit') : t('marketplace.remoteDecisionDialog.declineSubmit'),
 );
 // Мотивировать нужно только отказ — приглашение на очный осмотр самодостаточно.
 const commentRequired = computed(() => decision.value === DECISION_REJECT);
 const commentLabel = computed(() =>
-  commentRequired.value ? 'Комментарий для пайщика (обязательно)' : 'Комментарий для пайщика (необязательно)',
+  commentRequired.value ? t('marketplace.remoteDecisionDialog.commentRequiredLabel') : t('marketplace.remoteDecisionDialog.commentOptionalLabel'),
 );
 
 const decisionOptions = [
-  { label: 'Пригласить заказчика на очный осмотр на КУ', value: DECISION_APPROVE, color: 'primary' },
-  { label: 'Отказать удалённо (без очного визита)', value: DECISION_REJECT, color: 'warning' },
+  { label: t('marketplace.remoteDecisionDialog.inviteConfirmText'), value: DECISION_APPROVE, color: 'primary' },
+  { label: t('marketplace.remoteDecisionDialog.declineConfirmText'), value: DECISION_REJECT, color: 'warning' },
 ];
 </script>
 
 <template lang="pug">
 TakeoverDialog(
   :model-value="modelValue"
-  :title="claim ? `Удалённое решение по заявлению ${claim.id.slice(0, 8)}` : 'Заявление'"
-  :lead-text="claim ? `Заказ ${claim.order_id.slice(0, 8)} · заказчик ${claim.orderer_name || claim.orderer_account} · ${formatAsset2Digits(claim.fact_cost)} ₽` : ''"
+  :title="claim ? $t(`marketplace.remoteDecisionDialog.title`, { claimId: claim.id.slice(0, 8) }) : $t('marketplace.remoteDecisionDialog.titleFallback')"
+  :lead-text="claim ? $t(`marketplace.remoteDecisionDialog.subtitle`, { orderId: claim.order_id.slice(0, 8), ordererName: claim.orderer_name || claim.orderer_account, amount: formatAsset2Digits(claim.fact_cost) }) : ''"
   :kind="kind"
   :confirm-label="confirmLabel"
-  cancel-label="Закрыть"
+  :cancel-label="$t('common.action.close')"
   :loading="submitting"
   :disable-confirm="(commentRequired && !comment.trim()) || submitting"
   @update:model-value="(v: boolean) => emit('update:modelValue', v)"
@@ -127,23 +128,23 @@ TakeoverDialog(
     .mp-return-remote
       q-card(flat bordered).q-mb-md
         q-card-section
-          .text-subtitle1 Обращение пайщика
+          .text-subtitle1 {{ $t('marketplace.remoteDecisionDialog.requestSectionTitle') }}
           .q-mt-sm {{ claim.reason_text }}
           .q-mt-sm.text-caption.text-grey(v-if="claim.defect_category")
-            | Категория дефекта: {{ defectCategoryLabel(claim.defect_category) }}
+            | {{ $t('marketplace.remoteDecisionDialog.defectCategoryText', { category: defectCategoryLabel(claim.defect_category) }) }}
 
       q-card(flat bordered).q-mb-md
         q-card-section
-          .text-subtitle1 Фотографии товара
+          .text-subtitle1 {{ $t('marketplace.remoteDecisionDialog.photosSectionTitle') }}
           .row.q-mt-sm.q-gutter-sm
             a.mp-return-remote__thumb(
               v-for="(p, i) in claim.photos" :key="p.content_hash"
               :href="p.url" target="_blank" rel="noopener"
             )
-              img(:src="p.url" :alt="`Фото ${i + 1}`")
+              img(:src="p.url" :alt="$t(`marketplace.remoteDecisionDialog.photoLabel`, { index: i + 1 })")
 
       q-card(flat bordered).q-pa-md
-        .text-subtitle1.q-mb-sm Решение
+        .text-subtitle1.q-mb-sm {{ $t('marketplace.remoteDecisionDialog.decisionSectionTitle') }}
         q-option-group(
           v-model="decision"
           :options="decisionOptions"
@@ -158,7 +159,7 @@ TakeoverDialog(
           counter
           maxlength="500"
           :label="commentLabel"
-          :placeholder="decision === DECISION_APPROVE ? 'Например: приходите с продукцией в часы работы участка.' : 'Например: гарантийный срок возврата не покрывает данный тип повреждений.'"
+          :placeholder="decision === DECISION_APPROVE ? $t('marketplace.remoteDecisionDialog.invitePlaceholder') : $t('marketplace.remoteDecisionDialog.declinePlaceholder')"
         )
 </template>
 

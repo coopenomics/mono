@@ -1,0 +1,14 @@
+{
+  "composables": {
+    "error": {
+      "formInvalid": "Нельзя сохранить: форма невалидна"
+    },
+    "useMeetStatus": {
+      "closed": "Собрание завершилось {closedAt}",
+      "started": "Собрание началось {startedAt}",
+      "unknownStatus": "Неизвестный статус",
+      "willClose": "Собрание завершится {closesAt}",
+      "willStart": "Собрание начнется {startsAt}"
+    }
+  }
+}

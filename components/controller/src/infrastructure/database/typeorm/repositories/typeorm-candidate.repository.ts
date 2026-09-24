@@ -6,6 +6,7 @@ import type { CandidateRepository } from '~/domain/account/repository/candidate.
 import type { CandidateDomainInterface } from '~/domain/account/interfaces/candidate-domain.interface';
 import type { ISignedDocument } from '@coopenomics/innercoop';
 import { DocumentType, ProgramKey, CandidateStatus } from '~/domain/registration/enum';
+import { DomainError } from '@coopenomics/extension-kit';
 
 @Injectable()
 export class TypeOrmCandidateRepository implements CandidateRepository {
@@ -97,7 +98,7 @@ export class TypeOrmCandidateRepository implements CandidateRepository {
   ): Promise<void> {
     const candidate = await this.candidateRepository.findOneBy({ username });
     if (!candidate) {
-      throw new Error(`Кандидат с username ${username} не найден`);
+      throw DomainError.internal('DATABASE_CANDIDATE_NOT_FOUND', { username });
     }
 
     switch (documentType) {
@@ -134,7 +135,7 @@ export class TypeOrmCandidateRepository implements CandidateRepository {
   ): Promise<void> {
     const candidate = await this.candidateRepository.findOneBy({ username });
     if (!candidate) {
-      throw new Error(`Кандидат с username ${username} не найден`);
+      throw DomainError.internal('DATABASE_CANDIDATE_NOT_FOUND', { username });
     }
 
     candidate.program_agreements = {

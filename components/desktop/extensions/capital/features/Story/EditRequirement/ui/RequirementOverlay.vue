@@ -33,6 +33,7 @@ import { api as IssueApi } from 'app/extensions/capital/entities/Issue/api';
 import { useProjectStore } from 'app/extensions/capital/entities/Project/model';
 import type { IStory } from 'app/extensions/capital/entities/Story/model';
 import EditRequirementPanel from './EditRequirementPanel.vue';
+import { t } from '../../../../i18n';
 
 /**
  * Артефакт в оверлее поверх текущей страницы.
@@ -110,11 +111,11 @@ async function fetchStory(hash: string): Promise<IStory | null> {
   if (local) return local;
   try {
     const row = await StoryApi.loadStory({ story_hash: hash });
-    if (!row) FailAlert('Артефакт не найден или недоступен');
+    if (!row) FailAlert(t('capital.requirementOverlay.notFoundError'));
     return row ?? null;
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
-    FailAlert('Не удалось загрузить артефакт: ' + msg);
+    FailAlert(t('capital.requirementOverlay.loadError') + msg);
     return null;
   }
 }

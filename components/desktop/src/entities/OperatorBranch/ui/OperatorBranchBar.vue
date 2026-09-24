@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import { BaseBadge, BaseSelect } from 'src/shared/ui/base'
 import type { BaseBadgeVariant, BaseSelectOption } from 'src/shared/ui/base'
 import { useOperatorBranchStore } from '../model'
+import { t } from 'src/shared/i18n';
 
 /**
  * Шапка-контекст Стола ПВЗ: показывает активный кооперативный участок
@@ -14,20 +15,20 @@ const store = useOperatorBranchStore()
 const active = computed(() => store.activeBranch)
 
 const title = computed(
-  () => active.value?.name || active.value?.address || 'Пункт выдачи заказов',
+  () => active.value?.name || active.value?.address || t('operatorBranch.operatorBranchBar.defaultTitle'),
 )
 const subtitle = computed(() => (active.value?.name ? active.value.address : ''))
 
 const status = computed<{ label: string; variant: BaseBadgeVariant }>(() => {
   const d = active.value?.details
-  if (!d) return { label: 'КУ не подключён как ПВЗ', variant: 'warn' }
+  if (!d) return { label: t('operatorBranch.operatorBranchBar.statusNotConnected'), variant: 'warn' }
   return d.status === 'ACTIVE'
-    ? { label: 'ПВЗ активен', variant: 'pos' }
-    : { label: 'ПВЗ деактивирован', variant: 'neutral' }
+    ? { label: t('operatorBranch.operatorBranchBar.statusActive'), variant: 'pos' }
+    : { label: t('operatorBranch.operatorBranchBar.statusDeactivated'), variant: 'neutral' }
 })
 
 const options = computed<BaseSelectOption[]>(() =>
-  store.branches.map((b) => ({ value: b.braname, label: b.name || b.address || 'Участок' })),
+  store.branches.map((b) => ({ value: b.braname, label: b.name || b.address || t('operatorBranch.operatorBranchBar.branchLabel') })),
 )
 </script>
 
@@ -42,7 +43,7 @@ const options = computed<BaseSelectOption[]>(() =>
     v-if='store.hasMultiple',
     :model-value='store.activeBraname',
     :options='options',
-    label='Участок',
+    :label='$t("operatorBranch.operatorBranchBar.branchLabel")',
     :hint='subtitle',
     @update:model-value='store.setActive(String($event))'
   )

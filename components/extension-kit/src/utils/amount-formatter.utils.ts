@@ -1,3 +1,4 @@
+import { DomainError } from '../errors/domain-error';
 /**
  * Утилиты для форматирования сумм в человекочитаемый вид
  * (уведомления, печатные документы, UI-тексты).
@@ -16,12 +17,12 @@ export class AmountFormatterUtils {
    */
   static formatAmount(amountStr: string): string {
     if (!amountStr || typeof amountStr !== 'string') {
-      throw new Error(`Неверный формат суммы: ${amountStr}. Ожидается "число" или "число валюта"`);
+      throw DomainError.internal('KIT_AMOUNT_FORMAT_INVALID', { amount: amountStr });
     }
 
     const parts = amountStr.trim().split(/\s+/);
     if (parts.length < 1 || !parts[0]) {
-      throw new Error(`Неверный формат суммы: ${amountStr}. Ожидается "число" или "число валюта"`);
+      throw DomainError.internal('KIT_AMOUNT_FORMAT_INVALID', { amount: amountStr });
     }
 
     const amountPart = parts[0].replace(',', '.');
@@ -29,7 +30,7 @@ export class AmountFormatterUtils {
     const amount = parseFloat(amountPart);
 
     if (isNaN(amount)) {
-      throw new Error(`Некорректное числовое значение в сумме: ${parts[0]}`);
+      throw DomainError.internal('KIT_AMOUNT_NUMBER_INVALID', { value: parts[0] });
     }
 
     const formattedAmount = amount.toLocaleString('ru-RU', {

@@ -9,6 +9,7 @@ import type { IRecoveryFinalization } from '~/domain/auth-v2/ports/recovery-fina
 import type { EncryptedVaultBlob } from '~/domain/auth-v2/vault/vault.types';
 import { AuditService } from '../audit/audit.service';
 import { passwordPolicyErrors } from '../password-policy';
+import { t } from '~/i18n';
 
 /** Вход confirm: токен magic-link + второй фактор (TOTP) + новый ключевой материал. */
 export interface RecoveryConfirmInput {
@@ -59,7 +60,7 @@ export class RecoveryConfirmService {
     // 0. Парольная политика — ДО потребления токена: слабый пароль не сжигает ссылку.
     const policyErrors = passwordPolicyErrors(input.newPassword ?? '');
     if (policyErrors.length > 0)
-      throw new AuthV2Error(AuthV2ErrorCode.WeakPassword, `Пароль слишком простой: ${policyErrors.join(', ').toLowerCase()}`);
+      throw new AuthV2Error(AuthV2ErrorCode.WeakPassword, t('authV2.recoveryConfirmService.weakPasswordMessage', { reasons: policyErrors.join(', ').toLowerCase() }));
 
     // 1. Неразрушающее чтение: кому принадлежит токен (без потребления).
     const payload = await this.tokenStore.peek(input.token);
@@ -77,7 +78,7 @@ export class RecoveryConfirmService {
       if (!codeOk) {
         throw new AuthV2Error(
           AuthV2ErrorCode.InvalidTwoFactorCode,
-          'Неверный код из приложения-аутентификатора.',
+          t('authV2.recoveryConfirmService.invalidTotpCodeMessage'),
         );
       }
     }
@@ -145,7 +146,7 @@ export class RecoveryConfirmService {
   private invalidToken(): AuthV2Error {
     return new AuthV2Error(
       AuthV2ErrorCode.InvalidRecoveryToken,
-      'Ссылка восстановления недействительна или истекла. Запросите восстановление заново.',
+      t('authV2.recoveryConfirmService.invalidRecoveryLinkMessage'),
     );
   }
 }

@@ -15,8 +15,9 @@ q-fab-action.bg-fab-accent-radial(
 import { ref } from 'vue';
 import { CreateProjectDialog } from '../Dialog';
 import { formatCapitalFabLabel } from 'app/extensions/capital/shared/lib';
+import { t } from '../../../../../i18n';
 
-const fabLabel = formatCapitalFabLabel('Проект', 'project');
+const fabLabel = formatCapitalFabLabel(t('capital.createProjectFabAction.label'), 'project');
 
 const emit = defineEmits<{
   actionCompleted: [];

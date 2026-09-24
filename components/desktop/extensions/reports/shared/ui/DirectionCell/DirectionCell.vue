@@ -22,15 +22,16 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { t } from '../../../i18n';
 
 const props = defineProps<{
   direction: 'in' | 'out' | 'move'
 }>()
 
 const label = computed(() => {
-  if (props.direction === 'in') return 'Входящий'
-  if (props.direction === 'out') return 'Исходящий'
-  return 'Перевод'
+  if (props.direction === 'in') return t('reports.directionCell.direction.incoming')
+  if (props.direction === 'out') return t('reports.directionCell.direction.outgoing')
+  return t('reports.directionCell.direction.transfer')
 })
 </script>
 

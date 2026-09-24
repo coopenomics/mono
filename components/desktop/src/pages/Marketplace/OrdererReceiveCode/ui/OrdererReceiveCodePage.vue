@@ -22,7 +22,7 @@ const coopname = computed(() => String(route.params.coopname ?? ''));
 </script>
 
 <template lang="pug">
-q-page.receive(role="region", aria-label="Код для получения заказа")
+q-page.receive(role="region", :aria-label="$t('marketplace.ordererReceiveCodePage.pageAriaLabel')")
   HandoffCodeContent(:coopname="coopname", :kind="HandoffTokenKind.Receive")
 </template>
 

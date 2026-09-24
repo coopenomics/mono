@@ -1,5 +1,6 @@
 import { MARKETPLACE_EXTENSION_NAME } from '../../constants/marketplace-agreement-ids';
 import { ONBOARDING_STEP_REGISTRY_PORT, ONBOARDING_COMPLETED_EVENT, type IOnboardingStepRegistryPort } from '@coopenomics/innercoop';
+import { t } from '../../i18n';
 
 /**
  * Шаги L1-онбординга кооператива на ЦПП «Стол заказов».
@@ -35,7 +36,7 @@ export function registerMarketplaceOnboardingSteps(
     event_type: 'SOVIET_DECISION',
     vars_field: 'marketplace_provision',
     generator: 'free_decision',
-    default_title: 'Утверждение Положения ЦПП «Стол заказов»',
+    default_title: t('marketplace.onboardingSteps.approveRegulationTitle'),
     order: 10,
   });
   port.registerStep({
@@ -44,7 +45,7 @@ export function registerMarketplaceOnboardingSteps(
     event_type: 'SOVIET_DECISION',
     vars_field: 'marketplace_offer_template',
     generator: 'free_decision',
-    default_title: 'Утверждение шаблона публичной оферты ЦПП «Стол заказов»',
+    default_title: t('marketplace.onboardingSteps.approveOfferTemplateTitle'),
     order: 20,
   });
 }

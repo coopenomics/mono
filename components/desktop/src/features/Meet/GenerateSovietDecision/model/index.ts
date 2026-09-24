@@ -1,6 +1,7 @@
 import { client } from 'src/shared/api/client';
 import { Mutations } from '@coopenomics/sdk';
 import { useSystemStore } from 'src/entities/System/model'
+import { t } from 'src/shared/i18n';
 
 export type IGenerateSovietDecisionInput = Mutations.Meet.GenerateSovietDecisionOnAnnualMeetDocument.IInput['data'];
 export type IGenerateSovietDecisionResult = Mutations.Meet.GenerateSovietDecisionOnAnnualMeetDocument.IOutput[typeof Mutations.Meet.GenerateSovietDecisionOnAnnualMeetDocument.name];
@@ -30,11 +31,11 @@ export function useGenerateSovietDecisionOnAnnualMeet() {
   ): Promise<IGenerateSovietDecisionResult> {
     // Здесь необходимо убедиться, что переданы все обязательные параметры согласно DTO
     if (!data.decision_id) {
-      throw new Error('Необходимо указать ID решения совета (decision_id)')
+      throw new Error(t('meet.error.decisionIdRequired'))
     }
 
     if (!data.meet_hash) {
-      throw new Error('Необходимо указать хеш собрания (meet_hash)')
+      throw new Error(t('meet.error.hashRequired'))
     }
 
     const { [Mutations.Meet.GenerateSovietDecisionOnAnnualMeetDocument.name]: result } = await client.Mutation(

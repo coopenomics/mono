@@ -5,6 +5,7 @@ import type {
   MarketplaceAplReceptionView,
   SignedDocumentInput,
 } from 'src/entities/MarketplaceAplReception';
+import { t } from 'src/shared/i18n';
 
 export type { MarketplaceAplReceptionView, SignedDocumentInput } from 'src/entities/MarketplaceAplReception';
 
@@ -142,7 +143,7 @@ export async function signReceptionGroupAsChairman(
       try {
         const aggregates = await fetchChairmanSignablePayloads({ apl_reception_id: r.id });
         if (aggregates.length === 0) {
-          throw new Error('Backend не вернул ни одного акта для закрывающей подписи.');
+          throw new Error(t('marketplace.error.receptionNoActs'));
         }
         const signed_documents: SignedDocumentInput[] = [];
         for (const aggregate of aggregates) {

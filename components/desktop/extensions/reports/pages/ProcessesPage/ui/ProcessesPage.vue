@@ -18,7 +18,7 @@ div.processes-page
           text-color='white'
           icon='person'
           @remove='clearUsernameFilter'
-        ) Пайщик {{ fioCache.get(filters.username) || filters.username }}
+        ) {{ $t('reports.processesPage.chip.participant', { name: fioCache.get(filters.username) || filters.username }) }}
         q-chip(
           v-if='filters.processHash'
           removable
@@ -27,7 +27,7 @@ div.processes-page
           icon='fingerprint'
           class='font-monospace'
           @remove='clearProcessHashFilter'
-        ) Процесс {{ filters.processHash.slice(0, 8) }}
+        ) {{ $t('reports.processesPage.chip.process', { hash: filters.processHash.slice(0, 8) }) }}
       .row.q-gutter-sm.items-end
         q-select.col-md-4.col-12(
           v-model='filters.processType'
@@ -39,12 +39,12 @@ div.processes-page
           dense
           outlined
           clearable
-          label='Тип процесса'
+          :label='$t("reports.processesPage.processTypeFilterLabel")'
           @update:model-value='reload'
         )
         q-input.col-md-3.col-12(
           v-model='usernameInput'
-          label='Поиск (пайщик)'
+          :label='$t("reports.processesPage.searchLabel")'
           dense
           outlined
           clearable
@@ -57,7 +57,7 @@ div.processes-page
           v-if='hasAnyFilter'
           flat
           icon='refresh'
-          label='Сбросить'
+          :label='$t("reports.processesPage.resetLabel")'
           @click='resetFilters'
         )
 
@@ -71,7 +71,7 @@ div.processes-page
       :loading='loading'
       v-model:pagination='pagination'
       :rows-per-page-options='[25, 50, 100, 200]'
-      :no-data-label='"Процессы не найдены"'
+      :no-data-label='$t("reports.processesPage.emptyLabel")'
       @request='onRequest'
     )
       template(#body='props')
@@ -93,7 +93,7 @@ div.processes-page
               :rawId='shortHash(props.row.processHash)'
               @click='copyText(props.row.processHash)'
             )
-              q-tooltip Клик — копировать полный хэш
+              q-tooltip {{ $t('reports.processesPage.copyFullHashHintLabel') }}
           q-td
             span {{ subjectName(props.row.username) }}
             q-chip.q-ml-xs(
@@ -103,9 +103,9 @@ div.processes-page
               size='sm'
               color='orange-1'
               text-color='orange-9'
-              label='КУ'
+              :label='$t("reports.processesPage.kuLabel")'
             )
-              q-tooltip Кооперативный участок
+              q-tooltip {{ $t('reports.processesPage.kuTooltip') }}
           q-td.text-right.font-monospace {{ formatProcessAmount(props.row.amount) }}
           q-td {{ formatDate(props.row.firstSeenAt) }}
           q-td {{ formatDate(props.row.lastSeenAt) }}
@@ -137,9 +137,9 @@ div.processes-page
                 .text-body2.text-weight-medium {{ processTypeLabel(props.row.processType) }}
               .col-auto.text-body2.font-monospace(v-if='props.row.amount') {{ formatProcessAmount(props.row.amount) }}
               .col-12.text-caption.text-grey-7
-                | {{ isBranch(props.row.username) ? 'Участок' : 'Пайщик' }}: {{ subjectName(props.row.username) }}
+                | {{ isBranch(props.row.username) ? $t('reports.processesPage.subjectType.branch') : $t('reports.processesPage.subjectType.participant') }}: {{ subjectName(props.row.username) }}
               .col-12.row.q-gutter-xs.q-mt-xs.items-center
-                .text-caption.text-grey-7 ID процесса
+                .text-caption.text-grey-7 {{ $t('reports.processesPage.processIdLabel') }}
                 EntityIdBadge(
                   :rawId='shortHash(props.row.processHash)'
                   @click='copyText(props.row.processHash)'
@@ -148,6 +148,7 @@ div.processes-page
 
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
+import { uiLocale } from 'src/shared/i18n';
 import { useRoute, useRouter } from 'vue-router'
 import { useWindowSize } from 'src/shared/hooks'
 import { useSystemStore } from 'src/entities/System/model'
@@ -166,6 +167,7 @@ import {
 } from 'src/shared/lib/ledger2'
 import { Ledger2 } from 'cooptypes'
 import { Zeus } from '@coopenomics/sdk'
+import { t } from '../../../i18n';
 
 const { info } = useSystemStore()
 const { isMobile } = useWindowSize()
@@ -219,15 +221,15 @@ async function copyText(text: string | null | undefined) {
   if (!text) return
   try {
     await copyToClipboard(text)
-    SuccessAlert('Скопировано')
+    SuccessAlert(t('reports.processesPage.copySuccess'))
   } catch {
-    FailAlert('Не удалось скопировать')
+    FailAlert(t('reports.processesPage.copyError'))
   }
 }
 
 function formatDate(d: string | Date | null | undefined): string {
   if (!d) return '—'
-  return new Date(d).toLocaleString('ru-RU', {
+  return new Date(d).toLocaleString(uiLocale(), {
     day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit',
   })
 }
@@ -238,12 +240,12 @@ const hasAnyFilter = computed(
 
 const columns = [
   { name: 'expand', align: 'left' as const, label: '', field: 'expand', sortable: false },
-  { name: 'processType', align: 'left' as const, label: 'Тип процесса', field: 'processType' },
-  { name: 'processHash', align: 'left' as const, label: 'ID процесса', field: 'processHash' },
-  { name: 'username', align: 'left' as const, label: 'Пайщик', field: 'username' },
-  { name: 'amount', align: 'right' as const, label: 'Сумма', field: 'amount' },
-  { name: 'firstSeenAt', align: 'left' as const, label: 'Создан', field: 'firstSeenAt' },
-  { name: 'lastSeenAt', align: 'left' as const, label: 'Последнее событие', field: 'lastSeenAt' },
+  { name: 'processType', align: 'left' as const, label: t('reports.processesPage.column.processType'), field: 'processType' },
+  { name: 'processHash', align: 'left' as const, label: t('reports.processesPage.processIdLabel'), field: 'processHash' },
+  { name: 'username', align: 'left' as const, label: t('reports.processesPage.column.participant'), field: 'username' },
+  { name: 'amount', align: 'right' as const, label: t('reports.processesPage.column.amount'), field: 'amount' },
+  { name: 'firstSeenAt', align: 'left' as const, label: t('reports.processesPage.column.createdAt'), field: 'firstSeenAt' },
+  { name: 'lastSeenAt', align: 'left' as const, label: t('reports.processesPage.column.lastEvent'), field: 'lastSeenAt' },
 ]
 
 // =====================================================================

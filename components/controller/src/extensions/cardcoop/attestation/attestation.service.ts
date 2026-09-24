@@ -20,7 +20,7 @@ import {
   LOGGER_PORT,
   type ILoggerPort,
 } from '@coopenomics/innercoop';
-import { platformSettings } from '@coopenomics/extension-kit';
+import { platformSettings, DomainError } from '@coopenomics/extension-kit';
 import { CardcoopIdentityService } from '../identity/identity.service';
 import {
   CardcoopAttestationType,
@@ -29,6 +29,7 @@ import {
   type CardcoopRevocationPayload,
   type CardcoopSignedEnvelope,
 } from './attestation.types';
+import { t } from '../i18n';
 
 /** Сколько раз пытаться доставить документ, включая первую попытку. */
 const DELIVERY_ATTEMPTS = 5;
@@ -163,7 +164,7 @@ export class CardcoopAttestationService {
     payload: TPayload
   ): Promise<CardcoopSignedEnvelope<TPayload>> {
     const canonical = canonicalize(payload);
-    if (canonical === undefined) throw new Error('Документ подтверждения не сериализуется в строгий JSON');
+    if (canonical === undefined) throw DomainError.internal('CARDCOOP_ATTESTATION_NOT_CANONICAL_JSON');
 
     const signature = await this.credential.signWithCertKey(Buffer.from(canonical, 'utf8'));
     const chain = await this.credential.getTrustChain();
@@ -195,7 +196,7 @@ export class CardcoopAttestationService {
     envelope: CardcoopSignedEnvelope<CardcoopDocumentPayload>
   ): Promise<AttestationDeliveryResult> {
     let lastStatus: number | null = null;
-    let lastReason = 'сеть недоступна';
+    let lastReason = t('cardcoop.delivery.status.networkUnavailable');
 
     for (let attempt = 1; attempt <= DELIVERY_ATTEMPTS; attempt += 1) {
       try {
@@ -269,7 +270,7 @@ const readSuccessBody = async (
 const readReason = async (response: Response): Promise<string> => {
   try {
     const text = await response.text();
-    if (!text) return `сеть ответила ${response.status}`;
+    if (!text) return t('cardcoop.delivery.status.networkResponded', { status: response.status });
     try {
       const parsed = JSON.parse(text) as { message?: unknown; error?: unknown };
       const message = parsed.message ?? parsed.error;
@@ -278,6 +279,6 @@ const readReason = async (response: Response): Promise<string> => {
       return text;
     }
   } catch {
-    return `сеть ответила ${response.status}`;
+    return t('cardcoop.delivery.status.networkResponded', { status: response.status });
   }
 };

@@ -6,6 +6,7 @@ import { useAccountStore } from 'src/entities/Account/model';
 import { Queries, Mutations } from '@coopenomics/sdk';
 import { signDocument } from 'src/shared/lib/document';
 import { SuccessAlert, FailAlert } from 'src/shared/api';
+import { t } from 'src/shared/i18n';
 
 /**
  * Специфичные данные для подписки на хостинг
@@ -71,7 +72,7 @@ export function useProviderSubscriptions() {
     // Проверяем доступность провайдера
     console.log('system.info', system.info);
     if (!system.info.is_providered) {
-      error.value = 'Функционал провайдера не доступен';
+      error.value = t('provider.providerModel.notAvailableError');
       return;
     }
 
@@ -81,7 +82,7 @@ export function useProviderSubscriptions() {
       subscriptions.value = await loadProviderSubscriptions();
       console.log('subscriptions', subscriptions.value);
     } catch (err: any) {
-      error.value = err.message || 'Ошибка загрузки подписок';
+      error.value = err.message || t('provider.providerModel.loadSubscriptionsError');
       console.error('Error loading provider subscriptions:', err);
     } finally {
       isLoading.value = false;
@@ -167,10 +168,10 @@ export function useProviderAxonConvert() {
         session.setCurrentUserAccount(updatedAccount);
       }
 
-      SuccessAlert('Конвертация успешно выполнена');
+      SuccessAlert(t('provider.providerModel.convertSuccess'));
       return true;
     } catch (error: any) {
-      FailAlert(error || 'Не удалось выполнить конвертацию');
+      FailAlert(error || t('provider.providerModel.convertError'));
       return false;
     } finally {
       loading.value = false;

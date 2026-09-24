@@ -2,7 +2,7 @@
 
 import { Injectable } from '@nestjs/common';
 import { ExtensionDomainService } from '~/domain/extension/services/extension-domain.service';
-import { ExtensionDomainEntity } from '@coopenomics/extension-kit';
+import { ExtensionDomainEntity, DomainError } from '@coopenomics/extension-kit';
 import { ExtensionLifecycleDomainService } from '~/domain/extension/services/extension-lifecycle-domain.service';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 
@@ -86,7 +86,7 @@ export class ExtensionInteractor<TConfig = any> {
 
   // Установка нового приложения
   async uninstallApp(appData: Partial<ExtensionDomainEntity<TConfig>>): Promise<boolean> {
-    if (!appData.name) throw new Error('Имя у приложения должно быть задано');
+    if (!appData.name) throw DomainError.internal('APPSTORE_EXTENSION_NAME_REQUIRED');
 
     // удаление приложения
     const result = await this.extensionDomainService.uninstallApp(appData);
@@ -100,7 +100,7 @@ export class ExtensionInteractor<TConfig = any> {
     const defaultApps = this.extensionDomainService.getDefaultApps();
 
     for (const app of defaultApps) {
-      if (!app.name) throw new Error('Имя у приложения должно быть задано');
+      if (!app.name) throw DomainError.internal('APPSTORE_EXTENSION_NAME_REQUIRED');
       const a = await this.extensionDomainService.getAppByName(app.name);
       if (!a) await this.extensionDomainService.installApp(app);
     }

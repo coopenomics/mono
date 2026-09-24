@@ -5,8 +5,8 @@
 
   EmptyState(
     v-else-if='!loading && !rows.length',
-    title='Нет проектов на голосовании',
-    body='Когда компоненты перейдут к этапу голосования, они появятся в этом списке.'
+    :title='$t("capital.listVotingProjectWidget.emptyTitle")',
+    :body='$t("capital.listVotingProjectWidget.emptyBody")'
   )
     template(#icon)
       q-icon(name='how_to_vote')
@@ -33,10 +33,10 @@
 
       .voting-projects__meta
         .voting-projects__meta-item(v-if='project.voting?.voting_deadline')
-          span.voting-projects__meta-label.t-eyebrow До
+          span.voting-projects__meta-label.t-eyebrow {{ $t('capital.listVotingProjectWidget.untilLabel') }}
           span.voting-projects__meta-value {{ formatDeadline(project.voting.voting_deadline) }}
         .voting-projects__meta-item
-          span.voting-projects__meta-label.t-eyebrow Пул
+          span.voting-projects__meta-label.t-eyebrow {{ $t('capital.listVotingProjectWidget.poolLabel') }}
           span.voting-projects__meta-value.t-mono {{ formatPool(project) }}
 
       .voting-projects__go
@@ -45,11 +45,13 @@
 
 <script lang="ts" setup>
 import { ref, computed, onMounted, watch } from 'vue';
+import { uiLocale } from 'src/shared/i18n';
 import { useProjectStore } from '../../entities/Project/model';
 import { Zeus } from '@coopenomics/sdk';
 import { EmptyState, BaseBadge } from 'src/shared/ui/base';
 import type { BaseBadgeVariant } from 'src/shared/ui/base';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
+import { t } from '../../i18n';
 
 interface Props {
   coopname: string;
@@ -77,9 +79,9 @@ const rows = computed(() => projects.value?.items || []);
 
 const getVotingStatusText = (status: string) => {
   const projectStatus = status as Zeus.ProjectStatus;
-  if (projectStatus === Zeus.ProjectStatus.VOTING) return 'Активно';
-  if (projectStatus === Zeus.ProjectStatus.RESULT) return 'Завершено';
-  return 'Неизвестно';
+  if (projectStatus === Zeus.ProjectStatus.VOTING) return t('capital.listVotingProjectWidget.statusActive');
+  if (projectStatus === Zeus.ProjectStatus.RESULT) return t('capital.listVotingProjectWidget.statusCompleted');
+  return t('capital.listVotingProjectWidget.statusUnknown');
 };
 
 const getVotingStatusVariant = (status: string): BaseBadgeVariant => {
@@ -93,7 +95,7 @@ const formatDeadline = (deadline?: string) => {
   if (!deadline) return '—';
   try {
     const date = new Date(deadline);
-    return date.toLocaleDateString('ru-RU', {
+    return date.toLocaleDateString(uiLocale(), {
       day: '2-digit',
       month: 'short',
       hour: '2-digit',

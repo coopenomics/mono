@@ -1,37 +1,37 @@
 <template lang="pug">
 div.mobile-client-page
   // Лоадер пока получаем статус аккаунта
-  WindowLoader(v-if="chatcoopStore.isLoading", text="Проверка статуса аккаунта...")
+  WindowLoader(v-if="chatcoopStore.isLoading", :text="$t('chatcoop.mobileClientPage.checkingStatusText')")
 
   // Сообщение об ошибке
   div(v-else-if="chatcoopStore.error", class="error-message")
     p {{ chatcoopStore.error }}
-    button(@click="retryLoadStatus", class="retry-button") Повторить попытку
+    button(@click="retryLoadStatus", class="retry-button") {{ $t('chatcoop.mobileClientPage.retryLabel') }}
 
   // Сообщение для пользователей без аккаунта
   div(v-else-if="!chatcoopStore.accountStatus || !chatcoopStore.accountStatus.hasAccount", class="no-account-message")
     div.no-account-icon
       i.fas.fa-mobile-alt
-    h2 Нет аккаунта кооперативного мессенджера
-    p У кооперативного мессенджера есть мобильное приложение Element X.
-    p Для подключения вам нужен аккаунт кооперативного мессенджера.
-    p Зарегистрируйте аккаунт на главной странице и получите инструкцию для мобильного приложения.
+    h2 {{ $t('chatcoop.mobileClientPage.noAccountTitle') }}
+    p {{ $t('chatcoop.mobileClientPage.noAccountHint1') }}
+    p {{ $t('chatcoop.mobileClientPage.noAccountHint2') }}
+    p {{ $t('chatcoop.mobileClientPage.noAccountHint3') }}
     q-btn(@click="goToRegistration", class="register-button")
       i.fas.fa-arrow-left.q-mr-sm
-      | Перейти к регистрации
+      | {{ $t('chatcoop.mobileClientPage.goToRegistrationLabel') }}
 
   // Инструкции для пользователей с аккаунтом
   div(v-else-if="chatcoopStore.accountStatus?.hasAccount && chatcoopStore.accountStatus?.matrixUsername", class="mobile-instructions")
     div.header
-      h1 Мобильный клиент
-      p Подключитесь к кооперативному мессенджеру через мобильное приложение Element X
+      h1 {{ $t('chatcoop.mobileClientPage.pageTitle') }}
+      p {{ $t('chatcoop.mobileClientPage.pageSubtitle') }}
 
     div.instruction-steps
       div.step
         div.step-number 1
         div.step-content
-          h3 Скачайте приложение Element X
-          p Выберите версию для вашей платформы:
+          h3 {{ $t('chatcoop.mobileClientPage.step1Title') }}
+          p {{ $t('chatcoop.mobileClientPage.step1Hint') }}
           div.download-links
             a(href="https://play.google.com/store/apps/details?id=io.element.android.x", target="_blank", class="download-link")
               i.fab.fa-google-play
@@ -41,24 +41,24 @@ div.mobile-client-page
               | App Store
             a(href="https://element.io/download", target="_blank", class="download-link")
               i.fas.fa-globe
-              | Другие платформы
+              | {{ $t('chatcoop.mobileClientPage.otherPlatformsLabel') }}
 
       div.step
         div.step-number 2
         div.step-content
-          h3 Войдите вручную
-          p Запустите приложение и нажмите кнопку "Войти вручную" (или "Sign in manually")
+          h3 {{ $t('chatcoop.mobileClientPage.step2Title') }}
+          p {{ $t('chatcoop.mobileClientPage.step2Hint') }}
 
       div.step
         div.step-number 3
         div.step-content
-          h3 Смените поставщика учетной записи
-          p Нажмите на ссылку "Сменить поставщика учетной записи" (или "Change homeserver")
+          h3 {{ $t('chatcoop.mobileClientPage.step3Title') }}
+          p {{ $t('chatcoop.mobileClientPage.step3Hint') }}
 
       div.step
         div.step-number 4
         div.step-content
-          h3 Введите адрес сервера
+          h3 {{ $t('chatcoop.mobileClientPage.step4Title') }}
           div.server-input
             input(
               id="homeserver",
@@ -69,26 +69,26 @@ div.mobile-client-page
             )
             button(@click="copyToClipboard", class="copy-button")
               i.fas.fa-copy
-              | Копировать
+              | {{ $t('common.action.copy') }}
 
       div.step
         div.step-number 5
         div.step-content
-          h3 Войдите под своими учетными данными
-          p Используйте данные вашего аккаунта кооперативного мессенджера:
+          h3 {{ $t('chatcoop.mobileClientPage.step5Title') }}
+          p {{ $t('chatcoop.mobileClientPage.step5Hint') }}
           ul.credentials-list
             li
-              strong Имя пользователя:
-              |  {{ chatcoopStore.accountStatus?.matrixUsername || 'Загружается...' }}
+              strong {{ $t('chatcoop.mobileClientPage.usernameLabel') }}
+              |  {{ chatcoopStore.accountStatus?.matrixUsername || $t('chatcoop.mobileClientPage.loadingLabel') }}
             li
-              strong Пароль:
-              |  Получен при регистрации аккаунта
+              strong {{ $t('chatcoop.mobileClientPage.passwordLabel') }}
+              |  {{ $t('chatcoop.mobileClientPage.passwordHint') }}
 
   // Сообщение если аккаунт есть, но нет matrixUsername
   div(v-else-if="chatcoopStore.accountStatus?.hasAccount && !chatcoopStore.accountStatus?.matrixUsername", class="error-message")
-    p У вас есть аккаунт кооперативного мессенджера, но отсутствуют данные для входа в мобильное приложение.
-    p Попробуйте обновить страницу или обратитесь в поддержку.
-    button(@click="retryLoadStatus", class="retry-button") Обновить данные
+    p {{ $t('chatcoop.mobileClientPage.missingCredentialsHint') }}
+    p {{ $t('chatcoop.mobileClientPage.missingCredentialsRetryHint') }}
+    button(@click="retryLoadStatus", class="retry-button") {{ $t('chatcoop.mobileClientPage.refreshDataLabel') }}
 </template>
 
 <script lang="ts" setup>
@@ -97,6 +97,7 @@ import { useRouter } from 'vue-router';
 import { WindowLoader } from 'src/shared/ui/Loader';
 import { SuccessAlert } from 'src/shared/api';
 import { useChatCoopChatStore } from '../../../entities/ChatCoopChat/model';
+import { t } from '../../../i18n';
 
 const chatcoopStore = useChatCoopChatStore();
 const router = useRouter();
@@ -117,7 +118,7 @@ async function retryLoadStatus() {
 async function copyToClipboard() {
   try {
     await navigator.clipboard.writeText(homeserverUrl.value);
-    SuccessAlert('Адрес сервера скопирован в буфер обмена');
+    SuccessAlert(t('chatcoop.mobileClientPage.copiedMessage'));
   } catch (err) {
     console.error('Failed to copy to clipboard:', err);
   }

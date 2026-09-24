@@ -1,0 +1,8 @@
+{
+  "ledger2": {
+    "processDisplay": {
+      "revertFallback": "Откат операции",
+      "walletTransferFallback": "Перевод между кошельками"
+    }
+  }
+}

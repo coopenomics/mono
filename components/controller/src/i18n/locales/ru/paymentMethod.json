@@ -1,0 +1,61 @@
+{
+  "errors": {
+    "PAYMENT_METHOD_TYPE_REQUIRED": "Не указан тип платежного метода"
+  },
+  "paymentMethod": {
+    "addPaymentMethodInput": {
+      "exactlyOneMethodRequired": "Необходимо указать ровно один метод оплаты: либо банковский перевод, либо СБП",
+      "usernameRequired": "Имя аккаунта пользователя обязательно"
+    },
+    "bankAccount": {
+      "accountNumberRequired": "Номер банковского счёта обязателен",
+      "bankNameRequired": "Название банка обязательно",
+      "currencyRequired": "Указание валюты счета обязательно",
+      "detailsRequired": "Детали счёта обязательны"
+    },
+    "bankAccountDetails": {
+      "bikRequired": "БИК банка обязателен обязателен",
+      "corrAccountRequired": "Корр. счет обязателен"
+    },
+    "bankAccountDetailsInput": {
+      "bikRequired": "БИК банка обязателен обязателен",
+      "corrAccountRequired": "Корр. счет обязателен"
+    },
+    "bankAccountInput": {
+      "accountNumberRequired": "Номер банковского счёта обязателен",
+      "bankNameRequired": "Название банка обязательно",
+      "currencyRequired": "Указание валюты счета обязательно",
+      "detailsRequired": "Детали счёта обязательны"
+    },
+    "bankPaymentMethod": {
+      "detailsRequired": "Данные метода оплаты обязательны",
+      "idRequired": "Идентификатор метода обязателен",
+      "isMainFlagRequired": "Флаг основного метода платежа должен быть установлен",
+      "typeRequired": "Тип метода оплаты обязателен",
+      "usernameRequired": "Имя пользователя обязательно"
+    },
+    "createBankAccountInput": {
+      "isMainFlagRequired": "Флаг основного метода платежа должен быть установлен",
+      "usernameRequired": "Имя аккаунта пользователя обязательно"
+    },
+    "paymentMethodDto": {
+      "detailsRequired": "Данные метода оплаты обязательны",
+      "idRequired": "Идентификатор метода обязателен",
+      "isMainFlagRequired": "Флаг основного метода платежа должен быть установлен",
+      "typeRequired": "Тип метода оплаты обязателен",
+      "usernameRequired": "Имя пользователя обязательно"
+    },
+    "sbpAccount": {
+      "phoneRequired": "Телефон обязателен для метода СБП"
+    },
+    "sbpAccountInput": {
+      "phoneRequired": "Телефон обязателен для метода СБП"
+    },
+    "updateBankAccountInput": {
+      "detailsRequired": "Данные метода обязательны",
+      "idRequired": "Идентификатор метода обязателен",
+      "isMainFlagRequired": "Флаг основного метода платежа должен быть установлен",
+      "usernameRequired": "Имя аккаунта пользователя обязательно"
+    }
+  }
+}

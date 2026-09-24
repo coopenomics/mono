@@ -4,8 +4,7 @@ q-page.expense-wallets-page
     .banner__icon
       q-icon(name='info', size='20px')
     .banner__body
-      | Кошельки-пулы, из которых кооператив ведёт расходы. Каждый пул подключает
-      | своё расширение: нажмите на карточку, чтобы открыть реестр расходов пула.
+      | {{ $t('expenses.expenseWalletsPage.intro') }}
 
   .row.q-col-gutter-md(v-if='entries.length')
     .col-12.col-md-6.col-lg-4(v-for='entry in walletRows', :key='entry.wallet')
@@ -15,7 +14,7 @@ q-page.expense-wallets-page
           :neutral='!entry.program',
           :title='entry.title',
           :subtitle='entry.subtitle',
-          balance-label='Доступно',
+          :balance-label='$t("expenses.expenseWalletsPage.availableLabel")',
           :balance='entry.balance',
           :symbol='entry.symbol',
           :icon='entry.icon',
@@ -24,8 +23,8 @@ q-page.expense-wallets-page
 
   .empty(v-else)
     EmptyState(
-      title='Кошельков расходов пока нет',
-      body='Ни одно расширение не подключило пул расходов на этом кооперативе.'
+      :title='$t("expenses.expenseWalletsPage.emptyTitle")',
+      :body='$t("expenses.expenseWalletsPage.emptyHint")'
     )
       template(#icon)
         q-icon(name='account_balance_wallet', size='48px')

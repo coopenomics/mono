@@ -1,3 +1,4 @@
+import { DomainError } from '@coopenomics/extension-kit';
 import { isSamePassport } from '~/domain/account/interfaces/account-passport-changed.event';
 import { VerificationType } from '~/domain/auth-v2/verification/verification.types';
 import { PassportChangeListener } from './passport-change.listener';
@@ -32,8 +33,15 @@ describe('PassportChangeListener', () => {
 
   it('сверку провёл другой кооператив — изменение данных не блокируется', async () => {
     onsite.unverify.mockRejectedValue(
-      new Error('assertion failure with message: Верификация по этой процедуре, проведённая вашим кооперативом, не найдена'),
+      new Error(
+        'assertion failure with message: REGISTRATOR_VERIFICATION_NOT_OURS: Верификация по этой процедуре, проведённая вашим кооперативом, не найдена',
+      ),
     );
+    await expect(listener.onPassportChanged(event)).resolves.toBeUndefined();
+  });
+
+  it('тот же отказ контракта, уже превращённый в DomainError, узнаётся по коду', async () => {
+    onsite.unverify.mockRejectedValue(DomainError.badRequest('REGISTRATOR_VERIFICATION_NOT_OURS'));
     await expect(listener.onPassportChanged(event)).resolves.toBeUndefined();
   });
 

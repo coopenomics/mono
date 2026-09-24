@@ -1,7 +1,7 @@
 <template lang="pug">
 BaseCard(
-  title='PIN-код устройства',
-  subtitle='Дополнительный барьер от посторонних на этом устройстве.'
+  :title='$t("security.pinCard.title")',
+  :subtitle='$t("security.pinCard.subtitle")'
 )
   //- PIN применим только к входу по паролю (ключ хранится в keystore CoopID).
   template(v-if='session.isCoopIdSession')
@@ -11,30 +11,30 @@ BaseCard(
         size='22px'
       )
       .pin-card__text
-        .pin-card__title(v-if='session.hasCustomPin') PIN-код установлен
-        .pin-card__title(v-else) PIN-код не установлен
+        .pin-card__title(v-if='session.hasCustomPin') {{ $t('security.pinCard.setLabel') }}
+        .pin-card__title(v-else) {{ $t('security.pinCard.notSetLabel') }}
         .pin-card__hint(v-if='session.hasCustomPin')
-          | Запрашивается при снятии замка с кошелька, при подписи после 30 минут
-          | бездействия и при перезагрузке.
+          | {{ $t('security.pinCard.requestedLine1') }}
+          | {{ $t('security.pinCard.requestedLine2') }}
         .pin-card__hint(v-else)
-          | Вход на этом устройстве сейчас прозрачный (без запроса PIN), и запереть
-          | кошелёк замком тоже не выйдет — отпереть его смог бы любой.
+          | {{ $t('security.pinCard.transparentLine1') }}
+          | {{ $t('security.pinCard.transparentLine2') }}
 
     .pin-card__actions
       template(v-if='session.hasCustomPin')
-        BaseButton(variant='secondary', @click='askCurrentPin("change")') Сменить PIN
+        BaseButton(variant='secondary', @click='askCurrentPin("change")') {{ $t('security.pinCard.change') }}
         BaseButton(
           variant='ghost',
           :loading='removing',
           @click='askCurrentPin("remove")'
-        ) Снять PIN
+        ) {{ $t('security.pinCard.remove') }}
       BaseButton(v-else, variant='primary', @click='openSet')
         template(#icon-left)
           q-icon(name='lock', size='18px')
-        | Установить PIN
+        | {{ $t('security.pinCard.set') }}
 
   BaseBanner(v-else, variant='info')
-    | PIN-код станет доступен после перехода на вход по паролю.
+    | {{ $t('security.pinCard.unavailableNote') }}
 
   SetPinDialog(v-model='setOpen')
 
@@ -42,8 +42,8 @@ BaseCard(
   //- любой, кто сел за незапертое устройство, снимал бы его одним нажатием.
   ConfirmPinDialog(
     v-model='confirmOpen',
-    :title='pending === "remove" ? "Снятие PIN-кода" : "Смена PIN-кода"',
-    :lead='pending === "remove" ? "Введите текущий PIN-код, чтобы снять защиту." : "Введите текущий PIN-код, чтобы задать новый."',
+    :title='pending === "remove" ? $t("security.pinCard.removeDialogTitle") : $t("security.pinCard.changeDialogTitle")',
+    :lead='pending === "remove" ? $t("security.pinCard.removeHint") : $t("security.pinCard.changeHint")',
     @confirmed='onConfirmed'
   )
 </template>
@@ -55,6 +55,7 @@ import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { useSessionStore } from 'src/entities/Session';
 import SetPinDialog from './SetPinDialog.vue';
 import ConfirmPinDialog from './ConfirmPinDialog.vue';
+import { t } from 'src/shared/i18n';
 
 const session = useSessionStore();
 
@@ -87,7 +88,7 @@ async function removePin(): Promise<void> {
   removing.value = true;
   try {
     await session.removeCustomPin();
-    SuccessAlert('PIN-код снят');
+    SuccessAlert(t('security.pinCard.removed'));
   } catch (e) {
     FailAlert(e);
   } finally {

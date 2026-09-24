@@ -1,4 +1,5 @@
 import type { RequestDomainEntity } from './request-domain.entity';
+import { t } from '../../i18n';
 
 /**
  * Типы изображений заявки
@@ -82,7 +83,7 @@ export class RequestImageDomainEntity {
     const errors: string[] = [];
 
     if (!this.imageUrl || this.imageUrl.trim() === '') {
-      errors.push('URL изображения не может быть пустым');
+      errors.push(t('marketplace.requestImageDomain.urlRequired'));
       return { valid: false, errors };
     }
 
@@ -92,7 +93,7 @@ export class RequestImageDomainEntity {
 
       // Проверка протокола (должен быть http или https)
       if (!['http:', 'https:'].includes(url.protocol)) {
-        errors.push('URL изображения должен использовать протокол HTTP или HTTPS');
+        errors.push(t('marketplace.requestImageDomain.urlProtocolInvalid'));
       }
 
       // Проверка расширения файла
@@ -100,10 +101,10 @@ export class RequestImageDomainEntity {
       const hasValidExtension = validExtensions.some((ext) => url.pathname.toLowerCase().endsWith(ext));
 
       if (!hasValidExtension) {
-        errors.push('Изображение должно иметь допустимое расширение: ' + validExtensions.join(', '));
+        errors.push(t('marketplace.requestImageDomain.extensionInvalid') + validExtensions.join(', '));
       }
     } catch {
-      errors.push('Некорректный URL изображения');
+      errors.push(t('marketplace.requestImageDomain.urlInvalid'));
     }
 
     return {
@@ -162,15 +163,15 @@ export class RequestImageDomainEntity {
   getTypeDescription(): string {
     switch (this.imageType) {
       case RequestImageType.PRIMARY:
-        return 'Главное изображение';
+        return t('marketplace.requestImageDomain.typeMain');
       case RequestImageType.COLOR_SAMPLE:
-        return 'Образец цвета';
+        return t('marketplace.requestImageDomain.typeColorSample');
       case RequestImageType.IMAGE_360:
-        return 'Изображение 360°';
+        return t('marketplace.requestImageDomain.type360');
       case RequestImageType.REGULAR:
-        return 'Обычное изображение';
+        return t('marketplace.requestImageDomain.typeRegular');
       default:
-        return 'Неизвестный тип';
+        return t('marketplace.requestImageDomain.typeUnknown');
     }
   }
 }

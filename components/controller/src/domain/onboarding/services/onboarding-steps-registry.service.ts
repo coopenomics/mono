@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import type { IExtensionOnboardingStepSpec } from '../dto/extension-onboarding-step-spec';
 import type { OnboardingStepRegistrationPort } from '../ports/onboarding-step-registration.port';
 import type { OnboardingStepQueryPort } from '../ports/onboarding-step-query.port';
+import { DomainError } from '@coopenomics/extension-kit';
 
 @Injectable()
 export class OnboardingStepsRegistryService
@@ -15,9 +16,7 @@ export class OnboardingStepsRegistryService
         s.extension_name === spec.extension_name && s.step_key === spec.step_key
     );
     if (duplicate) {
-      throw new Error(
-        `Шаг онбординга уже зарегистрирован: ${spec.extension_name}/${spec.step_key}`
-      );
+      throw DomainError.internal('ONBOARDING_STEP_ALREADY_REGISTERED', { extensionName: spec.extension_name, stepKey: spec.step_key });
     }
     this.steps.push({ ...spec });
   }

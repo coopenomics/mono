@@ -1,17 +1,8 @@
+import './i18n';
 import { Module, Inject } from '@nestjs/common';
 import { YooCheckout } from '@a2seven/yoo-checkout';
 import { z } from 'zod';
-import {
-  ExtensionDomainEntity,
-  EXTENSION_REPOSITORY,
-  type ExtensionDomainRepository,
-  platformSettings,
-  checkPaymentAmount,
-  checkPaymentSymbol,
-  getAmountPlusFee,
-  IPNProvider,
-  type PaymentDetails,
-} from '@coopenomics/extension-kit';
+import { ExtensionDomainEntity, EXTENSION_REPOSITORY, type ExtensionDomainRepository, platformSettings, checkPaymentAmount, checkPaymentSymbol, getAmountPlusFee, IPNProvider, type PaymentDetails, DomainError } from '@coopenomics/extension-kit';
 import {
   LOGGER_PORT,
   type ILoggerPort,
@@ -26,6 +17,7 @@ import {
   PaymentStatus,
   PaymentDirection,
 } from '@coopenomics/innercoop';
+import { t } from './i18n';
 
 export const Schema = z.object({
   client: z.string(),
@@ -121,7 +113,7 @@ export class YookassaExtension extends IPNProvider {
 
   async initialize(): Promise<void> {
     const extensionData = await this.extensionRepository.findByName(this.name);
-    if (!extensionData) throw new Error('Конфиг не найден');
+    if (!extensionData) throw DomainError.internal('YOOKASSA_CONFIG_NOT_FOUND');
 
     this.extension = extensionData;
 
@@ -277,14 +269,14 @@ export class YookassaExtension extends IPNProvider {
    */
   private async verifyNotice(notice: IIpnRequest): Promise<IIpnRequest> {
     const id = notice?.object?.id;
-    if (!id || typeof id !== 'string') throw new Error('Уведомление ЮKassa без идентификатора платежа');
+    if (!id || typeof id !== 'string') throw DomainError.internal('YOOKASSA_NOTICE_MISSING_PAYMENT_ID');
 
     const checkout = new YooCheckout({
       shopId: this.extension.config.client,
       secretKey: this.extension.config.secret,
     });
     const actual = await checkout.getPayment(id);
-    if (!actual || actual.id !== id) throw new Error(`ЮKassa не подтвердила платёж ${id}`);
+    if (!actual || actual.id !== id) throw DomainError.internal('YOOKASSA_PAYMENT_NOT_CONFIRMED', { id });
 
     const event =
       actual.status === 'succeeded' ? 'payment.succeeded' : actual.status === 'canceled' ? 'payment.failed' : `payment.${actual.status}`;
@@ -313,7 +305,7 @@ export class YookassaExtension extends IPNProvider {
     const payment = await this.payments.findByHash(hash);
 
     if (!payment) {
-      throw new Error(`Платеж с hash ${hash} не найден`);
+      throw DomainError.internal('YOOKASSA_PAYMENT_NOT_FOUND', { hash });
     }
 
     // Используем QuantityUtils для парсинга quantity
@@ -321,7 +313,7 @@ export class YookassaExtension extends IPNProvider {
     const amount = payment.quantity;
 
     if (!payment.secret) {
-      throw new Error(`У платежа ${hash} отсутствует secret`);
+      throw DomainError.internal('YOOKASSA_PAYMENT_SECRET_MISSING', { hash });
     }
 
     const checkout = new YooCheckout({
@@ -335,7 +327,7 @@ export class YookassaExtension extends IPNProvider {
     // Фактический процент комиссии
     const fact_fee_percent = Math.round((parseFloat(fee_amount) / amount) * 100 * 100) / 100;
 
-    const description = payment.memo || `Платеж для ${payment.username}`;
+    const description = payment.memo || t('yookassa.payment.defaultDescription', { username: payment.username });
 
     const payment_result = await checkout.createPayment(
       {

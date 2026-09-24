@@ -4,7 +4,7 @@
     :title="LOGIN_PANE.title"
     :lead="LOGIN_PANE.lead"
     :quote="LOGIN_PANE.quote"
-    step-eyebrow="Вход"
+    :step-eyebrow="$t('registrator.signIn.stepEyebrow')"
     :heading="title"
     :text="subtitle"
   >
@@ -27,12 +27,13 @@ import { LoginForm } from 'src/features/User/LoginUser/ui/LoginForm';
 import { LOGIN_PANE, useLoginStepHeading } from 'src/features/User/LoginUser';
 import { useSystemStore } from 'src/entities/System/model';
 import { AuthSplit } from 'src/shared/ui/layout/AuthSplit';
+import { t } from 'src/shared/i18n';
 
 const systemStore = useSystemStore();
 const coopTitle = computed(() => systemStore.cooperativeDisplayName);
 
 const { step, title, subtitle } = useLoginStepHeading({
-  title: 'Вход для пайщиков',
-  subtitle: 'Введите почту и пароль или ключ доступа.',
+  title: t('registrator.signIn.title'),
+  subtitle: t('registrator.signIn.subtitle'),
 });
 </script>

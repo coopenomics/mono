@@ -46,7 +46,7 @@ const handleContinue = () => {
 <template lang="pug">
 q-step(
   :name="1"
-  title="Выбор тарифа подключения"
+  :title="$t('connectionAgreementStepper.introStep.title')"
   icon="info"
   :done="isDone"
 )
@@ -64,14 +64,14 @@ q-step(
       v-if="isActive && system.info.is_unioned"
       color="grey-6"
       flat
-      label="Назад"
+      :label="$t('common.action.back')"
       @click="handleBack"
     )
     q-btn(
       v-if="isActive"
       color="primary"
       :disable="!canContinue"
-      label="Продолжить"
+      :label="$t('connectionAgreementStepper.introStep.continueSubmit')"
       @click="handleContinue"
     )
 </template>

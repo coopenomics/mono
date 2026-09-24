@@ -1,4 +1,4 @@
-import { BadRequestException, ForbiddenException, Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Cooperative, Ledger2 } from 'cooptypes';
@@ -7,7 +7,7 @@ import { config } from '~/config';
 import { ParticipantInteractor } from '~/application/participant/interactors/participant.interactor';
 import { TokenApplicationService } from '~/application/token/services/token-application.service';
 import { NotificationSenderService } from '~/application/notification/services/notification-sender.service';
-import { GeneratedDocumentDTO } from '@coopenomics/extension-kit';
+import { GeneratedDocumentDTO, DomainError } from '@coopenomics/extension-kit';
 import { ACCOUNT_BLOCKCHAIN_PORT, type AccountBlockchainPort } from '~/domain/account/interfaces/account-blockchain.port';
 import { USER_WALLET_REPOSITORY, type UserWalletRepository } from '~/domain/wallet/repositories/user-wallet.repository';
 import { BLOCKCHAIN_PORT, type BlockchainPort } from '~/domain/common/ports/blockchain.port';
@@ -78,7 +78,7 @@ export class MembershipExitService {
   ): Promise<MembershipExitResultDTO> {
     const isOperator = currentUser.role === 'chairman' || currentUser.role === 'member';
     if (!isOperator && data.username !== currentUser.username) {
-      throw new ForbiddenException('Подать заявление на выход можно только за себя');
+      throw DomainError.forbidden('MEMBERSHIP_EXIT_SELF_ONLY');
     }
 
     // Гард повторного выхода: вышедший пайщик заблокирован on-chain (completexit →
@@ -87,7 +87,7 @@ export class MembershipExitService {
     // черновик и не доводить пайщика до провала на шаге подтверждения по ссылке.
     const account = await this.accountBlockchainPort.getUserAccount(data.username);
     if (String(account?.status) === 'blocked') {
-      throw new BadRequestException('Вы уже вышли из кооператива — повторный выход невозможен.');
+      throw DomainError.badRequest('MEMBERSHIP_EXIT_ALREADY_EXITED');
     }
 
     // Гейт реквизитов: выход нельзя запускать, пока у пайщика нет реквизитов для
@@ -100,15 +100,13 @@ export class MembershipExitService {
       sortOrder: 'DESC',
     });
     if (!methods || methods.items.length === 0) {
-      throw new BadRequestException(
-        'Для выхода из кооператива установите реквизиты для получения возврата паевого взноса.'
-      );
+      throw DomainError.badRequest('MEMBERSHIP_EXIT_PAYMENT_METHOD_REQUIRED');
     }
 
     // Уже идёт выход on-chain?
     const onchain = await this.accountBlockchainPort.getExit(data.coopname, data.username);
     if (onchain) {
-      throw new BadRequestException('Процесс выхода уже запущен и отправлен в блокчейн');
+      throw DomainError.badRequest('MEMBERSHIP_EXIT_ALREADY_SUBMITTED');
     }
 
     // Уже есть заявление, ожидающее подтверждения по email?
@@ -116,9 +114,7 @@ export class MembershipExitService {
       where: { coopname: data.coopname, username: data.username },
     });
     if (existing) {
-      throw new BadRequestException(
-        'Заявление на выход уже подано и ожидает подтверждения по ссылке из письма'
-      );
+      throw DomainError.badRequest('MEMBERSHIP_EXIT_PENDING_CONFIRMATION');
     }
 
     const user = await this.userDomainService.getUserByUsername(data.username);
@@ -169,7 +165,7 @@ export class MembershipExitService {
 
     const request = await this.exitRequestRepository.findOne({ where: { token } });
     if (!request) {
-      throw new NotFoundException('Заявление на выход не найдено или уже подтверждено');
+      throw DomainError.notFound('MEMBERSHIP_EXIT_REQUEST_NOT_FOUND');
     }
 
     await this.accountBlockchainPort.exitCoop({
@@ -200,12 +196,12 @@ export class MembershipExitService {
   ): Promise<boolean> {
     const isOperator = currentUser.role === 'chairman' || currentUser.role === 'member';
     if (!isOperator && username !== currentUser.username) {
-      throw new ForbiddenException('Отменить выход можно только за себя');
+      throw DomainError.forbidden('MEMBERSHIP_EXIT_CANCEL_SELF_ONLY');
     }
 
     const request = await this.exitRequestRepository.findOne({ where: { coopname, username } });
     if (!request) {
-      throw new BadRequestException('Нет заявления на выход, ожидающего подтверждения');
+      throw DomainError.badRequest('MEMBERSHIP_EXIT_NO_PENDING_REQUEST');
     }
 
     await this.exitRequestRepository.delete({ id: request.id });

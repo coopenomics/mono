@@ -1,3 +1,4 @@
+import { DomainError } from '@coopenomics/extension-kit';
 /**
  * Утилиты для сравнения сумм с валютами
  */
@@ -11,14 +12,14 @@ export class AmountComparisonUtils {
   static parseAmountAndCurrency(amountStr: string): { amount: number; currency: string } {
     const parts = amountStr.split(' ');
     if (parts.length !== 2) {
-      throw new Error(`Неверный формат суммы: ${amountStr}. Ожидается "число валюта"`);
+      throw DomainError.internal('AMOUNT_FORMAT_INVALID', { amountStr });
     }
 
     const [amountPart, currency] = parts;
     const amount = parseFloat(amountPart);
 
     if (isNaN(amount)) {
-      throw new Error(`Некорректное числовое значение в сумме: ${amountPart}`);
+      throw DomainError.internal('AMOUNT_VALUE_INVALID', { amountPart });
     }
 
     return { amount, currency };
@@ -36,12 +37,12 @@ export class AmountComparisonUtils {
 
     // Сравниваем числа
     if (data1.amount !== data2.amount) {
-      throw new Error('Сумма в документе не совпадает с переданной суммой');
+      throw DomainError.internal('AMOUNT_DOCUMENT_MISMATCH');
     }
 
     // Сравниваем валюты
     if (data1.currency !== data2.currency) {
-      throw new Error('Валюта в документе не совпадает с переданной валютой');
+      throw DomainError.internal('AMOUNT_CURRENCY_MISMATCH');
     }
   }
 

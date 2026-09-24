@@ -39,6 +39,7 @@ export class ExpenseFileTypeormEntity {
   @Column({ type: 'varchar', length: 512 })
   storage_key!: string;
 
+  // i18n-ignore: комментарий к колонке БД, не текст интерфейса
   @Column({ type: 'varchar', length: 255, nullable: true, comment: 'Оригинальное имя загруженного файла — для отображения и поиска' })
   original_filename!: string | null;
 

@@ -1,0 +1,8 @@
+{
+  "decisionFactory": {
+    "error": {
+      "generateError": "Ошибка при генерации документа решения: {message}",
+      "handlerNotFound": "Не найден обработчик для типа решения: {decisionType}"
+    }
+  }
+}

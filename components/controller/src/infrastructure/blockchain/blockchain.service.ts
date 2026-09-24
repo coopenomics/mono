@@ -18,6 +18,7 @@ import { Inject } from '@nestjs/common';
 import { normalizeAbiFloats } from './abi-float.normalizer';
 import { type ChainFailure, createChainFetch, describeChainFailure } from '@coopenomics/sdk';
 import * as Sentry from '@sentry/nestjs';
+import { DomainError } from '@coopenomics/extension-kit';
 
 /**
  * Индекс реестра кооперативов «по оператору». Третий по счёту после первичного:
@@ -48,9 +49,8 @@ function isMissingAccount(e: unknown): boolean {
   const err = e as { error?: { name?: string; code?: number }; message?: string };
   if (err?.error?.name === 'account_query_exception' || err?.error?.code === 3060002) return true;
   const message = String(err?.message ?? '');
-  return message.includes('account_query_exception')
-    || message.includes('Account Query Exception')
-    || message.includes('ABI контракта');
+  if (e instanceof DomainError && e.code === 'BLOCKCHAIN_ABI_NOT_FOUND') return true;
+  return message.includes('account_query_exception') || message.includes('Account Query Exception');
 }
 
 export type IndexPosition =
@@ -126,7 +126,7 @@ export class BlockchainService implements BlockchainPort {
       chain_response: failure.raw,
     });
 
-    Sentry.captureException(new Error(`Узел цепи отказал: ${describeChainFailure(failure)}`), {
+    Sentry.captureException(DomainError.internal('BLOCKCHAIN_NODE_FAILURE', { reason: describeChainFailure(failure) }), {
       tags: {
         chain_path: failure.path,
         chain_error_code: failure.code ? String(failure.code) : 'unknown',
@@ -230,7 +230,7 @@ export class BlockchainService implements BlockchainPort {
   public async getAllRows<T = any>(code: string, scope: string, tableName: string): Promise<any[]> {
     return this.rpcPool.read(async (client) => {
       const { abi } = await client.v1.chain.get_abi(code);
-      if (!abi) throw new Error(`ABI контракта ${code} не найден`);
+      if (!abi) throw DomainError.internal('BLOCKCHAIN_ABI_NOT_FOUND', { code });
 
       const table = new Table({
         abi,
@@ -260,7 +260,7 @@ export class BlockchainService implements BlockchainPort {
 
     return this.rpcPool.read(async (client) => {
       const { abi } = await client.v1.chain.get_abi(code);
-      if (!abi) throw new Error(`ABI контракта ${code} не найден`);
+      if (!abi) throw DomainError.internal('BLOCKCHAIN_ABI_NOT_FOUND', { code });
 
       const table = new Table({
         abi,
@@ -290,7 +290,7 @@ export class BlockchainService implements BlockchainPort {
   ): Promise<T | null> {
     return this.rpcPool.read(async (client) => {
       const { abi } = await client.v1.chain.get_abi(code);
-      if (!abi) throw new Error(`ABI контракта ${code} не найден`);
+      if (!abi) throw DomainError.internal('BLOCKCHAIN_ABI_NOT_FOUND', { code });
 
       const table = new Table({
         abi,
@@ -349,7 +349,7 @@ export class BlockchainService implements BlockchainPort {
     const signerAccount = signer ?? account;
     const signerWif = await this.vaultDomainService.getWif(signerAccount);
     if (!signerWif)
-      throw new Error(`Нет ключа кооператива ${signerAccount} — опубликовать право заверения нечем`);
+      throw DomainError.internal('BLOCKCHAIN_COOPERATIVE_KEY_MISSING_FOR_CERTIFICATION', { signerAccount });
 
     this.initialize(signerAccount, signerWif);
     await this.transact({
@@ -439,7 +439,7 @@ export class BlockchainService implements BlockchainPort {
   public async publishEndorsement(endorsement: EndorsementRecord, signer?: string): Promise<void> {
     const signerAccount = signer ?? endorsement.issuer;
     const signerWif = await this.vaultDomainService.getWif(signerAccount);
-    if (!signerWif) throw new Error(`Нет ключа ${signerAccount} — подписать заверение нечем`);
+    if (!signerWif) throw DomainError.internal('BLOCKCHAIN_KEY_MISSING_FOR_CERTIFICATION_SIGNING', { signerAccount });
 
     this.initialize(signerAccount, signerWif);
     await this.transact({
@@ -525,7 +525,7 @@ export class BlockchainService implements BlockchainPort {
   public async changeKey(data: RegistratorContract.Actions.ChangeKey.IChangeKey): Promise<void> {
     // Инициализируем сессию перед транзакцией
     const wif = await this.vaultDomainService.getWif(config.coopname);
-    if (!wif) throw new Error(`Не найден приватный ключ для кооператива ${config.coopname}`);
+    if (!wif) throw DomainError.internal('BLOCKCHAIN_PRIVATE_KEY_NOT_FOUND_FOR_COOPERATIVE', { coopname: config.coopname });
 
     this.initialize(config.coopname, wif);
 
@@ -559,7 +559,7 @@ export class BlockchainService implements BlockchainPort {
   public async powerUp(username: string, quantity: string): Promise<string> {
     // Инициализируем сессию перед транзакцией
     const wif = await this.vaultDomainService.getWif(username);
-    if (!wif) throw new Error(`Не найден приватный ключ для аккаунта ${username}`);
+    if (!wif) throw DomainError.internal('BLOCKCHAIN_PRIVATE_KEY_NOT_FOUND_FOR_ACCOUNT', { username });
 
     this.initialize(username, wif);
 
@@ -592,7 +592,7 @@ export class BlockchainService implements BlockchainPort {
   public async addUser(data: RegistratorContract.Actions.AddUser.IAddUser): Promise<void> {
     // Инициализируем сессию перед транзакцией
     const wif = await this.vaultDomainService.getWif(config.coopname);
-    if (!wif) throw new Error(`Не найден приватный ключ для кооператива ${config.coopname}`);
+    if (!wif) throw DomainError.internal('BLOCKCHAIN_PRIVATE_KEY_NOT_FOUND_FOR_COOPERATIVE', { coopname: config.coopname });
 
     this.initialize(config.coopname, wif);
 
@@ -616,7 +616,7 @@ export class BlockchainService implements BlockchainPort {
   public async createBoard(data: SovietContract.Actions.Boards.CreateBoard.ICreateboard): Promise<void> {
     // Инициализируем сессию перед транзакцией
     const wif = await this.vaultDomainService.getWif(config.coopname);
-    if (!wif) throw new Error(`Не найден приватный ключ для кооператива ${config.coopname}`);
+    if (!wif) throw DomainError.internal('BLOCKCHAIN_PRIVATE_KEY_NOT_FOUND_FOR_COOPERATIVE', { coopname: config.coopname });
 
     this.initialize(config.coopname, wif);
 

@@ -1,0 +1,18 @@
+{
+  "ledger": {
+    "chartOfAccounts": {
+      "account": {
+        "checkingAccount": "Расчетный счет",
+        "cooperationDevelopmentFund": "Фонд развития потребительской кооперации",
+        "entryFees": "Вступительные взносы",
+        "indivisibleFund": "Неделимый фонд",
+        "mutualAidFund": "Фонд взаимного обеспечения",
+        "operatingFund": "Фонд обеспечения хозяйственной деятельности",
+        "reserveFund": "Резервный фонд",
+        "shareFund": "Паевой фонд (складочный капитал)",
+        "targetedContributions": "Целевые поступления",
+        "unknownAccount": "Неизвестный счет"
+      }
+    }
+  }
+}

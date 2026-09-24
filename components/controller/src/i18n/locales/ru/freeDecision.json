@@ -1,0 +1,24 @@
+{
+  "freeDecision": {
+    "createProjectFreeDecision": {
+      "agendaQuestionRequired": "Вопрос повестки не должен быть пустым",
+      "draftMustBeString": "Проект решения должен быть строкой",
+      "titleMustBeString": "Заголовок документа должен быть строкой",
+      "titleTooLong": "Заголовок документа должен быть не длиннее 200 символов"
+    },
+    "createdProjectFreeDecision": {
+      "agendaQuestionRequired": "Вопрос повестки не должен быть пустым",
+      "draftMustBeString": "Проект решения должен быть строкой",
+      "idMustBeString": "Идентификатор проекта свободного решения должен быть строкой",
+      "idRequired": "Идентификатор проекта свободного решения не должен быть пустым",
+      "titleMustBeString": "Заголовок документа должен быть строкой",
+      "titleTooLong": "Заголовок документа должен быть не длиннее 200 символов"
+    },
+    "publishProjectFreeDecisionInput": {
+      "coopnameMustBeString": "Имя аккаунта кооператива должно быть строкой",
+      "coopnameRequired": "Имя аккаунта кооператива не должно быть пустым",
+      "metaMustBeString": "Мета-информация свободного решения должна быть строкой",
+      "usernameRequired": "Имя аккаунта пользователя не должно быть пустым"
+    }
+  }
+}

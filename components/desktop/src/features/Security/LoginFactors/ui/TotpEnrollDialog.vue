@@ -1,33 +1,33 @@
 <template lang="pug">
-BaseDialog(v-model='visible', title='Подключение приложения-аутентификатора', size='sm')
+BaseDialog(v-model='visible', :title='$t("security.totpEnrollDialog.title")', size='sm')
   .totp-enroll
     template(v-if='loadingChallenge')
       .totp-enroll__loading
         q-spinner(size='24px')
-        span Готовим секрет…
+        span {{ $t('security.totpEnrollDialog.preparing') }}
 
     template(v-else-if='challenge')
       p.totp-enroll__hint
-        | Отсканируйте QR-код приложением (Google Authenticator, Aegis, 1Password …)
-        | или введите секрет вручную, затем подтвердите первым кодом.
+        | {{ $t('security.totpEnrollDialog.scanHint') }}
+        | {{ $t('security.totpEnrollDialog.manualHint') }}
       .totp-enroll__qr(v-if='qrDataUrl')
-        img(:src='qrDataUrl', alt='QR-код для приложения-аутентификатора', width='180', height='180')
+        img(:src='qrDataUrl', :alt='$t("security.totpEnrollDialog.qrAlt")', width='180', height='180')
       .totp-enroll__secret
-        span.totp-enroll__secret-label Секрет для ручного ввода
+        span.totp-enroll__secret-label {{ $t('security.totpEnrollDialog.secretLabel') }}
         code.totp-enroll__secret-value {{ challenge.secret }}
       .totp-enroll__code
-        span.totp-enroll__secret-label Код из приложения
+        span.totp-enroll__secret-label {{ $t('security.totpEnrollDialog.codeLabel') }}
         //- Шестая цифра подтверждает сама — тянуться к кнопке не нужно.
         OtpInput(v-model='code', :length='6', :error='codeError', @complete='onActivate')
 
   template(#footer)
-    BaseButton(variant='secondary', :disabled='activating', @click='visible = false') Отмена
+    BaseButton(variant='secondary', :disabled='activating', @click='visible = false') {{ $t('common.action.cancel') }}
     BaseButton(
       variant='primary',
       :loading='activating',
       :disabled='code.length !== 6 || !challenge',
       @click='onActivate'
-    ) Подтвердить
+    ) {{ $t('common.action.confirm') }}
 </template>
 
 <script lang="ts" setup>
@@ -38,6 +38,7 @@ import { OtpInput } from 'src/shared/ui/domain/OtpInput';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { api } from '../api';
 import type { ITwoFactorEnrollment } from '../model';
+import { t } from 'src/shared/i18n';
 
 const props = defineProps<{ modelValue: boolean }>();
 const emit = defineEmits<{
@@ -86,11 +87,11 @@ async function onActivate(): Promise<void> {
   codeError.value = '';
   try {
     await api.activateTwoFactor(code.value);
-    SuccessAlert('Приложение подключено — код будет запрашиваться при входе');
+    SuccessAlert(t('security.totpEnrollDialog.success'));
     emit('activated');
     visible.value = false;
   } catch (e: any) {
-    codeError.value = e?.message || 'Неверный код';
+    codeError.value = e?.message || t('security.totpEnrollDialog.wrongCode');
   } finally {
     activating.value = false;
   }

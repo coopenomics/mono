@@ -11,7 +11,7 @@
   )
     template(#icon-left)
       q-icon(name='how_to_reg', size='16px')
-    | Подтвердить личность
+    | {{ $t('user.verifyIdentityActions.verify') }}
   BaseButton(
     v-else,
     variant='ghost',
@@ -21,7 +21,7 @@
   )
     template(#icon-left)
       q-icon(name='person_off', size='16px')
-    | Отозвать верификацию
+    | {{ $t('user.verifyIdentityActions.revoke') }}
 
   VerifyIdentityDialog(
     v-model='confirmOpen',
@@ -30,16 +30,16 @@
     @verified='emit("changed")'
   )
 
-  BaseDialog(v-model='revokeOpen', title='Отзыв верификации', size='sm')
+  BaseDialog(v-model='revokeOpen', :title='$t("user.verifyIdentityActions.confirmTitle")', size='sm')
     .verify-identity__revoke
       .verify-identity__revoke-name(v-if='fullName') {{ fullName }}
       .verify-identity__revoke-hint
-        | Подтверждение личности будет снято, и пайщику снова понадобится
-        | предъявить паспорт. Отзывайте, если верификация проведена ошибочно
-        | или данные скомпрометированы.
+        | {{ $t('user.verifyIdentityActions.confirmLine1') }}
+        | {{ $t('user.verifyIdentityActions.confirmLine2') }}
+        | {{ $t('user.verifyIdentityActions.confirmLine3') }}
       .verify-identity__revoke-actions
-        BaseButton(variant='ghost', :disabled='loading', @click='revokeOpen = false') Отмена
-        BaseButton(variant='danger', :loading='loading', @click='onUnverify') Отозвать
+        BaseButton(variant='ghost', :disabled='loading', @click='revokeOpen = false') {{ $t('common.action.cancel') }}
+        BaseButton(variant='danger', :loading='loading', @click='onUnverify') {{ $t('user.verifyIdentityActions.confirmRevoke') }}
 </template>
 
 <script setup lang="ts">

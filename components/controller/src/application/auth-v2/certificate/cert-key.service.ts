@@ -8,6 +8,7 @@ import { CERT_KEY_CRYPTO_PORT } from '~/domain/auth-v2/ports/cert-key-crypto.por
 import type { ICertKeyCrypto } from '~/domain/auth-v2/ports/cert-key-crypto.port';
 import { VAULT_DOMAIN_SERVICE, VaultDomainService } from '~/domain/vault/services/vault-domain.service';
 import { wifPermissions } from '~/domain/vault/types/vault.types';
+import { DomainError } from '@coopenomics/extension-kit';
 
 /**
  * Аккаунт АНО — якорь доверия всей сети: он заверяет кооперативы, а те заверяют
@@ -205,9 +206,7 @@ export class CertKeyService implements OnApplicationBootstrap {
    */
   async reissue(): Promise<{ publicKey: string }> {
     if (config.authV2.certKey) {
-      throw new Error(
-        'Ключ заверения задан секретом поставки — перевыпустить его можно только там, где этот секрет заводится',
-      );
+      throw DomainError.internal('AUTH_V2_CERT_KEY_FIXED_BY_SUPPLY_SECRET');
     }
     const wif = await this.issueAndStore();
     const publicKey = this.crypto.publicKeyOf(wif);
@@ -223,7 +222,7 @@ export class CertKeyService implements OnApplicationBootstrap {
 
     const wif = await this.loadStoredKey();
     if (!wif)
-      throw new Error('Ключ заверения не найден: ни секрета поставки, ни собственного выпуска');
+      throw DomainError.internal('AUTH_V2_CERT_KEY_NOT_FOUND');
     this.signingKey = this.crypto.toSigningKey(wif);
     return this.signingKey;
   }
@@ -236,7 +235,7 @@ export class CertKeyService implements OnApplicationBootstrap {
   async getSigningKeyFor(account: string): Promise<KeyObject> {
     if (account === config.coopname) return this.getSigningKey();
     const wif = await this.vault.getWif(account, wifPermissions.Cert);
-    if (!wif) throw new Error(`Ключа заверения ${account} нет — подписать нечем`);
+    if (!wif) throw DomainError.internal('AUTH_V2_CERT_KEY_MISSING_FOR_ACCOUNT', { account });
     return this.crypto.toSigningKey(wif);
   }
 
@@ -255,7 +254,7 @@ export class CertKeyService implements OnApplicationBootstrap {
    */
   async signChainMessage(message: Uint8Array): Promise<string> {
     const wif = await this.loadStoredKey();
-    if (!wif) throw new Error('Ключ заверения не найден: ни секрета поставки, ни собственного выпуска');
+    if (!wif) throw DomainError.internal('AUTH_V2_CERT_KEY_NOT_FOUND');
     return this.crypto.signChainMessage(wif, message);
   }
 
@@ -280,7 +279,7 @@ export class CertKeyService implements OnApplicationBootstrap {
       wif,
       permission: wifPermissions.Cert,
     });
-    if (!saved) throw new Error('Не удалось сохранить ключ заверения');
+    if (!saved) throw DomainError.internal('AUTH_V2_CERT_KEY_SAVE_FAILED');
     this.signingKey = null;
     return wif;
   }

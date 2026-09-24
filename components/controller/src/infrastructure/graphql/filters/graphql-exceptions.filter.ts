@@ -6,13 +6,20 @@ import { RpcError } from 'eosjs';
 import * as Sentry from '@sentry/nestjs';
 import logger from '../../../config/logger';
 import { config } from '~/config';
-import { HttpApiError } from '@coopenomics/extension-kit';
+import { DomainError, HttpApiError, domainErrorMessage, parseChainAssert } from '@coopenomics/extension-kit';
+import { runWithLocale, t, type DomainErrorParamsLike } from '~/i18n';
+import { resolveRequestLocale } from '~/i18n/request-locale';
 
 @Catch()
 export class GraphQLExceptionFilter implements GqlExceptionFilter {
   catch(exception: any, host: ExecutionContext) {
     let statusCode = HttpStatus.INTERNAL_SERVER_ERROR;
     let message = 'Internal Server Error';
+    // Код отказа для клиента (`extensions.code`) и его параметры. Есть у
+    // DomainError и у отказа цепи; у прочих ошибок код — HTTP-статус, как раньше.
+    let errorCode: string | undefined;
+    let errorParams: DomainErrorParamsLike | undefined;
+    let request: any;
 
     const contextType = host.getType() as string;
     let user;
@@ -29,6 +36,7 @@ export class GraphQLExceptionFilter implements GqlExceptionFilter {
     if (contextType === 'graphql') {
       const gqlContext = GqlExecutionContext.create(host);
       const context = gqlContext.getContext();
+      request = context?.req;
       user = context?.req?.user;
 
       const args = gqlContext.getArgs<Record<string, any>>();
@@ -50,14 +58,26 @@ export class GraphQLExceptionFilter implements GqlExceptionFilter {
     } else if (contextType === 'http') {
       const ctx = host.switchToHttp();
       const req = ctx.getRequest();
+      request = req;
       user = req.user;
       operationName = `${req.method} ${req.url}`;
       path = req.path;
     }
 
+    // Текст ответа — на языке запроса. Язык берётся из самого запроса, а не
+    // только из контекста: фильтр может выполняться вне цепочки middleware.
+    const locale = resolveRequestLocale(request);
+    const tr = (key: string, params?: DomainErrorParamsLike) => runWithLocale(locale, () => t(key, params));
+
     // Обработка ValidationPipe ошибок
     let originalMessage = message; // Сохраняем оригинальное сообщение для логов
-    if (exception instanceof HttpException) {
+    if (exception instanceof DomainError) {
+      statusCode = exception.getStatus();
+      errorCode = exception.code;
+      errorParams = exception.params;
+      message = runWithLocale(locale, () => domainErrorMessage(exception.code, exception.params));
+      originalMessage = `${exception.code}: ${message}`;
+    } else if (exception instanceof HttpException) {
       const response = exception.getResponse();
 
       if (typeof response === 'object' && response['message']) {
@@ -72,25 +92,15 @@ export class GraphQLExceptionFilter implements GqlExceptionFilter {
       // Проверяем isOperational для HttpApiError
       if (exception instanceof HttpApiError && !exception.isOperational) {
         // Для неоперационных ошибок показываем стандартное сообщение
-        switch (statusCode) {
-          case HttpStatus.BAD_REQUEST:
-            message = 'Неверный запрос';
-            break;
-          case HttpStatus.UNAUTHORIZED:
-            message = 'Не авторизован';
-            break;
-          case HttpStatus.FORBIDDEN:
-            message = 'Доступ запрещен';
-            break;
-          case HttpStatus.NOT_FOUND:
-            message = 'Ресурс не найден';
-            break;
-          case HttpStatus.CONFLICT:
-            message = 'Конфликт данных';
-            break;
-          default:
-            message = 'Внутренняя ошибка сервера';
-        }
+        const generic: Partial<Record<number, string>> = {
+          [HttpStatus.BAD_REQUEST]: 'COMMON_BAD_REQUEST',
+          [HttpStatus.UNAUTHORIZED]: 'COMMON_UNAUTHORIZED',
+          [HttpStatus.FORBIDDEN]: 'COMMON_FORBIDDEN',
+          [HttpStatus.NOT_FOUND]: 'COMMON_NOT_FOUND',
+          [HttpStatus.CONFLICT]: 'COMMON_CONFLICT',
+        };
+        errorCode = generic[statusCode] ?? 'COMMON_INTERNAL';
+        message = tr(`errors.${errorCode}`);
       }
     }
 
@@ -136,8 +146,11 @@ export class GraphQLExceptionFilter implements GqlExceptionFilter {
     }
     // Обработка конкретных типов исключений
     else if (exception instanceof RpcError) {
-      message = exception.json.error.details[0].message.replace('assertion failure with message: ', '');
+      const parsed = parseChainAssert(exception.json.error.details[0].message);
       statusCode = exception.json.code;
+      errorCode = parsed.code ?? 'CHAIN_ASSERT';
+      errorParams = { message: parsed.text };
+      message = runWithLocale(locale, () => domainErrorMessage(errorCode as string, errorParams));
     } else if (exception instanceof mongoose.Error) {
       statusCode = HttpStatus.BAD_REQUEST;
       message = exception.message;
@@ -202,9 +215,11 @@ export class GraphQLExceptionFilter implements GqlExceptionFilter {
 
     // Логирование ошибки - используем оригинальное сообщение для детального логирования
     const logMessage = exception instanceof HttpApiError && !exception.isOperational ? originalMessage : message;
+    // В журнал DomainError пишется с кодом: по нему отказ ищется в логах.
+    const journalMessage = exception instanceof DomainError ? originalMessage : logMessage;
 
     const logData = {
-      message: `${logMessage}`,
+      message: `${journalMessage}`,
       statusCode,
       stack: exception.stack,
       username: user?.username || null,
@@ -234,6 +249,7 @@ export class GraphQLExceptionFilter implements GqlExceptionFilter {
         statusCode,
         message: logMessage,
         error: exception instanceof Error ? exception.constructor.name : 'Error',
+        ...(errorCode && { code: errorCode, params: errorParams ?? {} }),
       });
     }
 
@@ -242,9 +258,14 @@ export class GraphQLExceptionFilter implements GqlExceptionFilter {
     // сохраняют их: клиент различает такие ошибки по code и читает payload.
     const domainExtensions =
       exception instanceof GraphQLError && exception.extensions ? exception.extensions : {};
+    // `code` — код отказа, если он есть (DomainError, отказ цепи), иначе
+    // HTTP-статус, как было; `status` — всегда HTTP-статус. Клиент различает
+    // отказы по коду, а текст `message` уже переведён на язык запроса.
     return new GraphQLError(message, {
       extensions: {
-        code: statusCode,
+        code: errorCode ?? statusCode,
+        status: statusCode,
+        ...(errorCode && { params: errorParams ?? {} }),
         isExecutionError: true, // Флаг для отличия execution ошибок от validation ошибок
         ...(process.env.NODE_ENV === 'development' && { stacktrace: exception.stack }),
         ...domainExtensions,

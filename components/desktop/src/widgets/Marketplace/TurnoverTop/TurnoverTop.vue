@@ -21,6 +21,7 @@ import {
   type TurnoverOrder,
   type TurnoverRow,
 } from 'src/shared/lib/marketplace'
+import { t } from 'src/shared/i18n';
 
 const TOP_LIMIT = 10
 
@@ -63,15 +64,15 @@ type TurnoverTableRow = TurnoverRow & { rank: number }
 const columns = computed<BaseTableColumn<TurnoverTableRow>[]>(() => {
   const list: BaseTableColumn<TurnoverTableRow>[] = [
     { key: 'rank', label: '№', width: '56px', numeric: true },
-    { key: 'title', label: 'Позиция', width: '240px' },
+    { key: 'title', label: t('marketplace.turnoverTop.column.item'), width: '240px' },
   ]
   if (props.showBranch) {
-    list.push({ key: 'branch', label: 'Пункт выдачи', width: '240px' })
+    list.push({ key: 'branch', label: t('marketplace.turnoverTop.column.deliveryPoint'), width: '240px' })
   }
   list.push(
-    { key: 'accepted', label: 'Принято', width: '170px', numeric: true },
-    { key: 'issued', label: 'Выдано', width: '170px', numeric: true },
-    { key: 'fee', label: 'Целевой членский взнос', width: '200px', numeric: true },
+    { key: 'accepted', label: t('marketplace.turnoverTop.column.accepted'), width: '170px', numeric: true },
+    { key: 'issued', label: t('marketplace.turnoverTop.column.issued'), width: '170px', numeric: true },
+    { key: 'fee', label: t('marketplace.turnoverTop.column.fee'), width: '200px', numeric: true },
   )
   return list
 })
@@ -87,24 +88,24 @@ function units(value: number, row: TurnoverRow): string {
 const totals = computed(() => [
   {
     key: 'accepted',
-    label: 'Принято на склад',
+    label: t('marketplace.turnoverTop.totalAcceptedLabel'),
     value: money(turnover.value.totals.acceptedAmount),
   },
-  { key: 'issued', label: 'Выдано пайщикам', value: money(turnover.value.totals.issuedAmount) },
-  { key: 'fee', label: 'Целевой членский взнос с выданного', value: money(turnover.value.totals.feeAmount) },
+  { key: 'issued', label: t('marketplace.turnoverTop.totalIssuedLabel'), value: money(turnover.value.totals.issuedAmount) },
+  { key: 'fee', label: t('marketplace.turnoverTop.totalFeeLabel'), value: money(turnover.value.totals.feeAmount) },
 ])
 </script>
 
 <template lang="pug">
 section.turnover
   .turnover__head
-    .t-h3 Топ позиций по обороту
-    BaseSelect.turnover__period(v-model='period', :options='TURNOVER_PERIODS', label='Период')
+    .t-h3 {{ $t('marketplace.turnoverTop.title') }}
+    BaseSelect.turnover__period(v-model='period', :options='TURNOVER_PERIODS', :label='$t("marketplace.turnoverTop.periodFieldLabel")')
 
   .turnover__note
-    | Приход считается по дате приёмки имущества кооперативом, выдача — по дате
-    | получения заказчиком {{ periodLabel }}. Целевой членский взнос — доход кооператива с
-    | выданного за тот же срок.
+    | {{ $t('marketplace.turnoverTop.descriptionPart1') }}
+    | {{ $t('marketplace.turnoverTop.descriptionPart2', { period: periodLabel }) }}
+    | {{ $t('marketplace.turnoverTop.descriptionPart3') }}
 
   .turnover__totals
     .turnover__total(v-for='t in totals', :key='t.key')
@@ -136,8 +137,8 @@ section.turnover
 
   EmptyState(
     v-else,
-    title='Оборота за период нет',
-    body='Здесь появится рейтинг позиций по суммам прихода и выдачи. Выберите период подлиннее, если приёмок и выдач давно не было.'
+    :title='$t("marketplace.turnoverTop.emptyTitle")',
+    :body='$t("marketplace.turnoverTop.emptyBody")'
   )
     template(#icon)
       q-icon(name='leaderboard', size='48px')

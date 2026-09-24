@@ -9,7 +9,7 @@
     :icon-only='true',
     type='button',
     :disabled='modelValue <= 0',
-    aria-label='Шаг назад по времени',
+    :aria-label='$t("capital.superpositionTimelineScrubber.stepBackAriaLabel")',
     @click='step(-1)'
   )
     template(#icon-left)
@@ -43,7 +43,7 @@
     :icon-only='true',
     type='button',
     :disabled='modelValue >= maxIndex',
-    aria-label='Шаг вперёд по времени',
+    :aria-label='$t("capital.superpositionTimelineScrubber.stepForwardAriaLabel")',
     @click='step(1)'
   )
     template(#icon-left)
@@ -53,6 +53,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import { BaseButton } from 'src/shared/ui/base';
+import { t as i18nT } from '../../../../i18n';
 
 const props = defineProps<{
   modelValue: number;
@@ -81,7 +82,7 @@ const floatIndex = ref(props.modelValue);
 /** Последние сэмплы dx/dt для флика (не гасим скорость на pointerup) */
 const samples: { t: number; x: number }[] = [];
 
-const ariaLabel = 'Таймлайн резонанса';
+const ariaLabel = i18nT('capital.superpositionTimelineScrubber.label');
 
 const maxIndex = computed(() => Math.max(0, props.maxIndex));
 

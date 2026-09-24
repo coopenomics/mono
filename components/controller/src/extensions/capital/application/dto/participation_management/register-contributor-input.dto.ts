@@ -1,4 +1,5 @@
 import { Field, InputType } from '@nestjs/graphql';
+import { validationMessage } from '@coopenomics/extension-kit';
 import { IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator';
 import { Type } from 'class-transformer';
 import type { RegisterContributorDomainInput } from '../../../domain/actions/register-contributor-domain-input.interface';
@@ -10,33 +11,33 @@ import { GenerationContractSignedDocumentInputDTO } from '../../documents-dto/ge
 @InputType('RegisterContributorInput')
 export class RegisterContributorInputDTO implements RegisterContributorDomainInput {
   @Field(() => String, { description: 'Имя аккаунта кооператива' })
-  @IsNotEmpty({ message: 'Имя аккаунта кооператива не должно быть пустым' })
-  @IsString({ message: 'Имя аккаунта кооператива должно быть строкой' })
+  @IsNotEmpty({ message: validationMessage('capital.registerContributorInput.coopname.required') })
+  @IsString({ message: validationMessage('capital.registerContributorInput.coopname.string') })
   coopname!: string;
 
   @Field(() => String, { description: 'Имя пользователя' })
-  @IsNotEmpty({ message: 'Имя пользователя не должно быть пустым' })
-  @IsString({ message: 'Имя пользователя должно быть строкой' })
+  @IsNotEmpty({ message: validationMessage('capital.registerContributorInput.username.required') })
+  @IsString({ message: validationMessage('capital.registerContributorInput.username.string') })
   username!: string;
 
   @Field(() => String, { description: 'Хэш участника для верификации документа' })
-  @IsNotEmpty({ message: 'Хэш участника не должен быть пустым' })
-  @IsString({ message: 'Хэш участника должен быть строкой' })
+  @IsNotEmpty({ message: validationMessage('capital.registerContributorInput.contributorHash.required') })
+  @IsString({ message: validationMessage('capital.registerContributorInput.contributorHash.string') })
   contributor_hash!: string;
 
   @Field(() => String, { description: 'О себе', nullable: true })
   @IsOptional()
-  @IsString({ message: 'О себе должно быть строкой' })
+  @IsString({ message: validationMessage('capital.registerContributorInput.about.string') })
   about?: string;
 
   @Field(() => String, { description: 'Ставка за час работы', nullable: true })
   @IsOptional()
-  @IsString({ message: 'Ставка за час работы должна быть строкой' })
+  @IsString({ message: validationMessage('capital.registerContributorInput.ratePerHour.string') })
   rate_per_hour?: string;
 
   @Field(() => Number, { description: 'Часов в день', nullable: true })
   @IsOptional()
-  @IsNumber({}, { message: 'Часов в день должно быть числом' })
+  @IsNumber({}, { message: validationMessage('capital.registerContributorInput.hoursPerDay.number') })
   @Type(() => Number)
   hours_per_day?: number;
 

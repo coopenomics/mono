@@ -18,6 +18,7 @@ import type { IConfig } from '../../capital-extension.module';
 import { type IRegistrationRegistryPort,
   InnerAccountType,
 } from '@coopenomics/innercoop';
+import { t } from '../../i18n';
 
 /**
  * Анкета «Генератора»: без сопроводительного письма заявку в программу ядро не
@@ -42,9 +43,9 @@ function registerGeneratorIntakeForm(port: IRegistrationRegistryPort): void {
 function registerCapitalPrograms(port: IRegistrationRegistryPort): void {
   port.registerProgram({
     key: GENERATION_PROGRAM_KEY,
-    title: 'Программа Генерация',
+    title: t('capital.agreementRegistry.generationProgram.title'),
     description:
-      'Участвовать в производстве Кооперативной Экономики через паевой взнос временем, имуществом или деньгами в конкретные проекты.',
+      t('capital.agreementRegistry.generationProgram.description'),
     applicable_account_types: [InnerAccountType.individual, InnerAccountType.entrepreneur],
     agreement_ids: [GENERATOR_OFFER_AGREEMENT_ID],
     intake_form_ids: [GENERATOR_INTAKE_FORM_ID],
@@ -54,9 +55,9 @@ function registerCapitalPrograms(port: IRegistrationRegistryPort): void {
 
   port.registerProgram({
     key: CAPITALIZATION_PROGRAM_KEY,
-    title: 'Программа Благорост',
+    title: t('capital.agreementRegistry.capitalizationProgram.title'),
     description:
-      'Участвовать в производстве Кооперативной Экономики через паевой взнос имуществом или денег в систему. Минимальный паевой взнос 100 000 руб в течение 14 дней.',
+      t('capital.agreementRegistry.capitalizationProgram.description'),
     applicable_account_types: [InnerAccountType.individual, InnerAccountType.entrepreneur],
     agreement_ids: [BLAGOROST_OFFER_AGREEMENT_ID],
     order: 2,
@@ -106,9 +107,9 @@ export function registerCapitalInAgreementRegistry(
     id: GENERATOR_OFFER_AGREEMENT_ID,
     registry_id: Cooperative.Registry.GeneratorOffer.registry_id,
     agreement_type: GENERATOR_AGREEMENT_TYPE,
-    title: 'Оферта по целевой потребительской программе "Генератор"',
-    checkbox_text: 'Я прочитал и принимаю',
-    link_text: 'оферту по целевой потребительской программе "Генератор"',
+    title: t('capital.agreementRegistry.generatorOffer.title'),
+    checkbox_text: t('capital.agreementRegistry.generatorOffer.checkboxText'),
+    link_text: t('capital.agreementRegistry.generatorOffer.linkText'),
     applicable_account_types: [],
     order: 6,
     extension_name: CAPITAL_EXTENSION_NAME,
@@ -119,9 +120,9 @@ export function registerCapitalInAgreementRegistry(
     id: BLAGOROST_OFFER_AGREEMENT_ID,
     registry_id: Cooperative.Registry.BlagorostOffer.registry_id,
     agreement_type: BLAGOROST_AGREEMENT_TYPE,
-    title: 'Оферта по целевой потребительской программе "Благорост"',
-    checkbox_text: 'Я прочитал и принимаю',
-    link_text: 'оферту по целевой потребительской программе "Благорост"',
+    title: t('capital.agreementRegistry.blagorostOffer.title'),
+    checkbox_text: t('capital.agreementRegistry.blagorostOffer.checkboxText'),
+    link_text: t('capital.agreementRegistry.blagorostOffer.linkText'),
     // applicable_account_types: пусто — оферта подтягивается ТОЛЬКО через
     // программу CAPITALIZATION (agreement_ids ниже), не как дефолтная
     // для individual. Иначе при выборе GENERATION бэк попытался бы

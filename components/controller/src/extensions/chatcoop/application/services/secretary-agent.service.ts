@@ -10,6 +10,8 @@ import {
 import { Room, RoomEvent, TrackKind, AudioStream, AudioResampler } from '@livekit/rtc-node';
 import { AccessToken } from 'livekit-server-sdk';
 import { INTEGRATION_SETTINGS_PORT, type IIntegrationSettingsPort } from '@coopenomics/innercoop';
+import { t } from '../../i18n';
+import { DomainError } from '@coopenomics/extension-kit';
 
 // Параметры VAD (Voice Activity Detection)
 const VAD_THRESHOLD = 0.01; // RMS порог для определения речи
@@ -121,12 +123,12 @@ export class SecretaryAgentService implements OnModuleDestroy {
     const raw = st.secretaryMatrixUserId;
     if (typeof raw === 'string' && raw.trim().length > 0) {
       const mxid = raw.trim().startsWith('@') ? raw.trim() : `@${raw.trim()}`;
-      return { identity: mxid, name: 'Секретарь' };
+      return { identity: mxid, name: t('chatcoop.secretaryAgent.defaultName') };
     }
     this.logger.warn(
       'secretaryMatrixUserId нет в chatcoop_state — LiveKit identity=fallback secretary-agent'
     );
-    return { identity: 'secretary-agent', name: 'Секретарь' };
+    return { identity: 'secretary-agent', name: t('chatcoop.secretaryAgent.defaultName') };
   }
 
   /**
@@ -169,7 +171,7 @@ export class SecretaryAgentService implements OnModuleDestroy {
       // Наличие ключей проверено выше (`isConfigured`): без них до сюда не доходим.
       const livekit = this.livekit;
       if (!livekit?.api_key || !livekit.api_secret) {
-        throw new Error('Видеосвязь не настроена в контуре: нет ключей LiveKit');
+        throw DomainError.internal('CHATCOOP_LIVEKIT_NOT_CONFIGURED');
       }
       const token = new AccessToken(livekit.api_key, livekit.api_secret, {
         identity: secretaryLiveKitIdentity,
@@ -311,7 +313,7 @@ export class SecretaryAgentService implements OnModuleDestroy {
       try {
         await this.sendMatrixMessage(
           matrixRoomId,
-          `🤖 Секретарь подключился к звонку и начал запись транскрипции.`
+          t('chatcoop.secretaryAgent.joinedMessage')
         );
       } catch (error) {
         this.logger.warn(`Не удалось отправить сообщение о подключении секретаря: ${error}`);
@@ -666,7 +668,7 @@ export class SecretaryAgentService implements OnModuleDestroy {
       try {
         await this.sendMatrixMessage(
           activeRoom.matrixRoomId,
-          `🤖 Секретарь отключился от звонка. Транскрипция завершена и сохранена.`
+          t('chatcoop.secretaryAgent.leftMessage')
         );
         this.logger.log(`Matrix: сообщение об отключении секретаря отправлено (${activeRoom.matrixRoomId})`);
       } catch (error) {

@@ -36,7 +36,7 @@ const emit = defineEmits<{
 <template lang="pug">
 BaseDialog(
   :model-value='modelValue',
-  :title='title ?? "Сканировать QR"',
+  :title='title ?? $t("marketplace.scannerDialog.title")',
   size='sm',
   @update:model-value='emit("update:modelValue", $event)'
 )

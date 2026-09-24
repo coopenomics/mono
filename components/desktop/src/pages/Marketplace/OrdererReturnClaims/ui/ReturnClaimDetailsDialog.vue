@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { computed } from 'vue';
+import { uiLocale } from 'src/shared/i18n';
 import { BaseCard } from 'src/shared/ui/base';
 import { TakeoverDialog } from 'src/widgets/Marketplace/TakeoverDialog';
 import { HandoffQr } from 'src/widgets/Marketplace/HandoffQr';
@@ -52,18 +53,18 @@ function formatDateTime(value: unknown): string {
   if (value === null || value === undefined) return '—';
   const parsed = new Date(String(value));
   if (Number.isNaN(parsed.getTime())) return '—';
-  return parsed.toLocaleString('ru-RU');
+  return parsed.toLocaleString(uiLocale());
 }
 </script>
 
 <template lang="pug">
 TakeoverDialog(
   :model-value="modelValue"
-  :title="claim ? `Заявление ${claim.id.slice(0, 8)} — ${returnClaimStatusLabel(claim.status)}` : 'Заявление'"
-  :lead-text="claim ? `Заказ ${claim.order_id.slice(0, 8)} · ${claim.actual_quantity} ед. · ${formatAsset2Digits(claim.total_refund)} ₽` : ''"
+  :title="claim ? $t(`marketplace.returnClaimDetailsDialog.title`, { claimId: claim.id.slice(0, 8), status: returnClaimStatusLabel(claim.status) }) : $t('marketplace.returnClaimDetailsDialog.titleFallback')"
+  :lead-text="claim ? $t(`marketplace.returnClaimDetailsDialog.subtitle`, { orderId: claim.order_id.slice(0, 8), quantity: claim.actual_quantity, amount: formatAsset2Digits(claim.total_refund) }) : ''"
   :kind="statusKind"
-  cancel-label="Закрыть"
-  confirm-label="Готово"
+  :cancel-label="$t('common.action.close')"
+  :confirm-label="$t('marketplace.returnClaimDetailsDialog.confirmLabel')"
   :disable-confirm="false"
   @update:model-value="(v: boolean) => emit('update:modelValue', v)"
   @confirm="close"
@@ -73,72 +74,72 @@ TakeoverDialog(
     .mp-return-details
       BaseCard.q-mb-md(v-if="claim.status === 'APPROVED_FOR_VISIT'")
         .flex.flex-center.column
-          .text-subtitle1.q-mb-sm Покажите этот код на пункте выдачи
+          .text-subtitle1.q-mb-sm {{ $t('marketplace.returnClaimDetailsDialog.showCodeHint') }}
           HandoffQr(
             :value="encodeReturnClaimCode(claim.coopname, claim.id)"
-            caption="Оператор пункта выдачи отсканирует его на очном осмотре — так он сразу откроет решение по вашей заявке."
+            :caption="$t('marketplace.returnClaimDetailsDialog.scanCaption')"
           )
 
       BaseCard.q-mb-md
-        .text-subtitle1 Причина обращения
+        .text-subtitle1 {{ $t('marketplace.returnClaimDetailsDialog.reasonLabel') }}
         .q-mt-sm {{ claim.reason_text }}
         .q-mt-sm.text-caption.text-grey(v-if="claim.defect_category")
-          | Категория дефекта: {{ defectCategoryLabel(claim.defect_category) }}
+          | {{ $t('marketplace.returnClaimDetailsDialog.defectCategoryText', { category: defectCategoryLabel(claim.defect_category) }) }}
 
       BaseCard.q-mb-md
-        .text-subtitle1 Приложенные фотографии
+        .text-subtitle1 {{ $t('marketplace.returnClaimDetailsDialog.photosTitle') }}
         .row.q-mt-sm.q-gutter-sm
           a.mp-return-details__thumb(
             v-for="(p, i) in claim.photos" :key="p.content_hash"
             :href="p.url" target="_blank" rel="noopener"
           )
-            img(:src="p.url" :alt="`Фото ${i + 1}`")
+            img(:src="p.url" :alt="$t(`marketplace.returnClaimDetailsDialog.photoLabel`, { index: i + 1 })")
 
       BaseCard.q-mb-md(v-if="claim.decision_log.length > 0")
-        .text-subtitle1 История решений по заявлению
+        .text-subtitle1 {{ $t('marketplace.returnClaimDetailsDialog.historyTitle') }}
         q-timeline(layout="dense" color="primary").q-mt-sm
           q-timeline-entry(
             v-for="entry in claim.decision_log" :key="entry.tx_hash"
             :title="returnClaimDecisionLabel(entry.decision)"
-            :subtitle="`${entry.by_chairman_name || entry.by_chairman_account} · КУ ${entry.braname_name || entry.braname} · ${formatDateTime(entry.at)}`"
+            :subtitle="$t(`marketplace.returnClaimDetailsDialog.historyEntry`, { chairmanName: entry.by_chairman_name || entry.by_chairman_account, branchName: entry.braname_name || entry.braname, date: formatDateTime(entry.at) })"
             :color="entry.decision === 'council_authorized' ? 'positive' : entry.decision === 'reject_remote' || entry.decision === 'reject_at_visit' || entry.decision === 'council_declined' ? 'negative' : 'primary'"
           )
             | {{ entry.comment }}
 
       BaseCard.q-mb-md(v-if="claim.on_site_inspection")
-        .text-subtitle1 Результат очного осмотра
+        .text-subtitle1 {{ $t('marketplace.returnClaimDetailsDialog.inspectionResultTitle') }}
         .q-mt-sm {{ claim.on_site_inspection.result_text }}
         .q-mt-sm.text-caption.text-grey(v-if="claim.on_site_inspection.scanned_barcode")
-          | Сканированный штрих-код: {{ claim.on_site_inspection.scanned_barcode }}
+          | {{ $t('marketplace.returnClaimDetailsDialog.scannedBarcodeText', { barcode: claim.on_site_inspection.scanned_barcode }) }}
         .row.q-mt-sm.q-gutter-sm(v-if="claim.on_site_inspection.photos.length > 0")
           a.mp-return-details__thumb(
             v-for="(p, i) in claim.on_site_inspection.photos" :key="p.content_hash"
             :href="p.url" target="_blank" rel="noopener"
           )
-            img(:src="p.url" :alt="`Фото осмотра ${i + 1}`")
+            img(:src="p.url" :alt="$t(`marketplace.returnClaimDetailsDialog.inspectionPhotoLabel`, { index: i + 1 })")
 
       BaseCard.q-mb-md(v-if="claim.status === 'PENDING_COUNCIL'")
-        .text-subtitle1 Имущество принято — ждём решение совета
+        .text-subtitle1 {{ $t('marketplace.returnClaimDetailsDialog.acceptedPendingBoardTitle') }}
         .q-mt-sm
-          | Делать ничего не нужно. Совет рассмотрит заявление оператора участка об отмене
-          | сделки; мы сообщим, когда решение будет принято. При согласии сделка отменяется:
-          | стоимость имущества вернётся на паевой кошелёк Стола заказов, членский взнос
-          | за него — на членский.
+          | {{ $t('marketplace.returnClaimDetailsDialog.pendingBoardText1') }}
+          | {{ $t('marketplace.returnClaimDetailsDialog.pendingBoardText2') }}
+          | {{ $t('marketplace.returnClaimDetailsDialog.pendingBoardText3') }}
+          | {{ $t('marketplace.returnClaimDetailsDialog.pendingBoardText4') }}
 
       BaseCard.q-mb-md(v-if="claim.status === 'DECLINED_BY_COUNCIL'")
-        .text-subtitle1 Совет не принял имущество
+        .text-subtitle1 {{ $t('marketplace.returnClaimDetailsDialog.boardDeclinedTitle') }}
         .q-mt-sm
-          | Средства не восстанавливаются. Имущество ждёт вас на участке — заберите его при следующем визите.
+          | {{ $t('marketplace.returnClaimDetailsDialog.boardDeclinedText') }}
 
       BaseCard.bg-positive.text-white(v-if="claim.ledger_snapshot")
-        .text-subtitle1 Совет принял имущество как паевой взнос
+        .text-subtitle1 {{ $t('marketplace.returnClaimDetailsDialog.boardAcceptedTitle') }}
         .q-mt-sm
-          | Восстановлено на Стол заказов (стоимость имущества и членский взнос):
+          | {{ $t('marketplace.returnClaimDetailsDialog.boardAcceptedRefundLabel') }}
           strong.q-ml-xs {{ formatAsset2Digits(claim.ledger_snapshot.amount) }} ₽
         .text-caption.q-mt-sm
-          | Транзакция решения совета: {{ claim.ledger_snapshot.tx_hash }}
+          | {{ $t('marketplace.returnClaimDetailsDialog.boardDecisionTxText', { txHash: claim.ledger_snapshot.tx_hash }) }}
         .text-caption
-          | Средства доступны для следующего заказа; их можно отозвать в Кошелёк из окна кошелька Стола заказов.
+          | {{ $t('marketplace.returnClaimDetailsDialog.refundAvailableHint') }}
 </template>
 
 <style scoped lang="scss">

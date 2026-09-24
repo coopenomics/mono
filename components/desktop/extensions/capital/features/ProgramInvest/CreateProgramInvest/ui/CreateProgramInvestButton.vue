@@ -5,23 +5,23 @@ div
   BaseButton(
     variant='primary',
     :loading='isGenerating',
-    aria-label='Инвестировать в программу',
+    :aria-label='$t("capital.createProgramInvestButton.ariaLabel")',
     @click='showDialog = true'
   )
     template(#icon-left)
       q-icon(name='savings', size='18px')
-    | Инвестировать
+    | {{ $t('capital.createProgramInvestButton.label') }}
 
   BaseDialog(
     v-model='showDialog',
-    title='Инвестирование в программу',
+    :title='$t("capital.createProgramInvestButton.dialogTitle")',
     size='md',
     @update:model-value='(v) => !v && clear()'
   )
     BaseForm(:loading='isGenerating', @submit='handleInvest')
       AmountInput(
         v-model='quantity',
-        label='Сумма',
+        :label='$t("capital.createProgramInvestButton.amountLabel")',
         placeholder='0,00',
         :symbol='currency',
         :precision='2',
@@ -29,13 +29,13 @@ div
         :error='amountError'
       )
       template(#footer)
-        BaseButton(variant='ghost', @click='clear') Отменить
+        BaseButton(variant='ghost', @click='clear') {{ $t('capital.createProgramInvestButton.cancel') }}
         BaseButton(
           variant='primary',
           type='submit',
           :loading='isGenerating',
           :disabled='!isValidAmount'
-        ) Инвестировать
+        ) {{ $t('capital.createProgramInvestButton.label') }}
 </template>
 
 <script setup lang="ts">
@@ -45,6 +45,7 @@ import { AmountInput } from 'src/shared/ui/domain/AmountInput';
 import { useCreateProgramInvest } from '../model';
 import { FailAlert, SuccessAlert } from 'src/shared/api/alerts';
 import { useSystemStore } from 'src/entities/System/model';
+import { t } from '../../../../i18n';
 
 const { createProgramInvestWithGeneratedStatement, isGenerating } =
   useCreateProgramInvest();
@@ -63,7 +64,7 @@ const isValidAmount = computed(() => Number(quantity.value) > 0);
 // Ошибку показываем только после ввода, чтобы пустой диалог не открывался красным
 const amountError = computed(() =>
   quantity.value != null && quantity.value !== '' && !isValidAmount.value
-    ? 'Сумма должна быть положительной'
+    ? t('capital.createProgramInvestButton.amountPositiveError')
     : undefined,
 );
 
@@ -76,7 +77,7 @@ const handleInvest = async (): Promise<void> => {
   if (!isValidAmount.value) return;
   try {
     await createProgramInvestWithGeneratedStatement(quantity.value!.toString());
-    SuccessAlert('Инвестиция принята');
+    SuccessAlert(t('capital.createProgramInvestButton.success'));
     clear();
   } catch (e: unknown) {
     FailAlert(e);

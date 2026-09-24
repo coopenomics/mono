@@ -1,4 +1,5 @@
 import { register } from 'register-service-worker';
+import { t } from 'src/shared/i18n';
 
 // Логирование только в production или при явном включении PWA в dev
 const isVerbose =
@@ -105,6 +106,7 @@ if (!shouldRegisterSW) {
 
   // Тост «Обновить» всё равно должен делать hard reload (не soft location.reload)
   window.applyUpdate = () => {
+    // i18n-ignore: причина для внутреннего console.log, пользователю не видна
     reloadOnce('SW отключён');
   };
   window.checkForUpdate = () => {
@@ -137,8 +139,10 @@ if (!shouldRegisterSW) {
     if (registrationInstance && registrationInstance.waiting) {
       registrationInstance.waiting.postMessage({ type: 'SKIP_WAITING' });
       // На случай если controllerchange не придёт — fallback через короткое ожидание
+      // i18n-ignore: причина для внутреннего console.log, пользователю не видна
       window.setTimeout(() => reloadOnce('fallback после SKIP_WAITING'), 1500);
     } else {
+      // i18n-ignore: причина для внутреннего console.log, пользователю не видна
       reloadOnce('waiting-SW нет');
     }
   };
@@ -303,8 +307,8 @@ if (!shouldRegisterSW) {
 
       // Показываем уведомление об офлайн режиме
       if ('Notification' in window && Notification.permission === 'granted') {
-        new Notification('Офлайн режим', {
-          body: 'Приложение работает в автономном режиме',
+        new Notification(t('app.registerServiceWorker.offlineTitle'), {
+          body: t('app.registerServiceWorker.offlineBody'),
           icon: '/icons/icon-192x192.png',
         });
       }

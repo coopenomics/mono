@@ -1,4 +1,5 @@
 import { Field, InputType } from '@nestjs/graphql';
+import { validationMessage } from '@coopenomics/extension-kit';
 import { IsString, MaxLength, MinLength, Matches, Length } from 'class-validator';
 
 /**
@@ -33,12 +34,12 @@ export class WalmoveInputDTO {
 
   @Field(() => String, { description: 'Сумма с символом, например "100.0000 RUB"' })
   @IsString()
-  @Matches(/^\d+(\.\d+)?\s+[A-Z]{1,7}$/, { message: 'Формат "<amount> <SYMBOL>", например "100.0000 RUB"' })
+  @Matches(/^\d+(\.\d+)?\s+[A-Z]{1,7}$/, { message: validationMessage('ledger2.walmoveInput.amountFormatHint') })
   quantity!: string;
 
   @Field(() => String, { description: 'Обязательное обоснование корректировки' })
   @IsString()
-  @MinLength(1, { message: 'memo обязателен — укажите обоснование корректировки' })
+  @MinLength(1, { message: validationMessage('ledger2.walmoveInput.memoRequired') })
   @MaxLength(255)
   memo!: string;
 }

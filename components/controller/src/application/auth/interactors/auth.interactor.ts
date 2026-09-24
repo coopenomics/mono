@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException, Inject, Logger } from '@nestjs/common';
+import { Injectable, Inject, Logger } from '@nestjs/common';
 import type { RegisteredAccountDomainInterface } from '~/domain/account/interfaces/registeted-account.interface';
 import { AccountDomainService } from '~/domain/account/services/account-domain.service';
 import { AuthDomainService } from '~/domain/auth/services/auth-domain.service';
@@ -17,6 +17,7 @@ import { Workflows } from '@coopenomics/notifications';
 import { normalizeUserEmail } from '~/utils/normalize-user-email';
 import { LoginTwoFactorService } from '~/application/auth-v2/login-2fa/login-two-factor.service';
 import { VaultService } from '~/application/auth-v2/vault/vault.service';
+import { DomainError } from '@coopenomics/extension-kit';
 
 @Injectable()
 export class AuthInteractor {
@@ -43,18 +44,14 @@ export class AuthInteractor {
     // этим гейтом не задеваются — у них строки vault нет.
     const migrated = await this.vault.retrieve({ subject_type: 'participant', subject_id: user.username });
     if (migrated) {
-      throw new UnauthorizedException(
-        'Для аккаунта установлен пароль — вход по подписи ключа отключён, войдите по email и паролю.'
-      );
+      throw DomainError.unauthorized('AUTH_PASSWORD_SET_KEY_LOGIN_DISABLED');
     }
 
     // 2FA-гейт: легаси-вход по подписи не умеет второй фактор, а выпуск токенов
     // мимо него обесценил бы защиту (пароль → расшифровка ключа → подпись).
     // Пайщик с включённым подтверждением входа входит только новым контуром.
     if (await this.loginTwoFactor.hasEnabledFactorSettings(user.id)) {
-      throw new UnauthorizedException(
-        'Для аккаунта включено подтверждение входа (2FA) — вход по подписи недоступен, войдите по паролю.'
-      );
+      throw DomainError.unauthorized('AUTH_2FA_ENABLED_KEY_LOGIN_DISABLED');
     }
 
     const tokens = await this.tokenApplicationService.generateAuthTokens(user.id);
@@ -111,7 +108,7 @@ export class AuthInteractor {
       }
 
       if (!user) {
-        throw new UnauthorizedException('Пользователь не найден');
+        throw DomainError.unauthorized('AUTH_USER_NOT_FOUND');
       }
 
       await this.blockchainPort.changeKey({
@@ -126,7 +123,7 @@ export class AuthInteractor {
       await this.tokenApplicationService.deleteTokens({ userId: user.id, type: tokenTypes.RESET_KEY });
     } catch (error: any) {
       this.logger.error(`Ошибка сброса ключа: ${error.message}`, error.stack);
-      throw new UnauthorizedException('Возникла ошибка при сбросе ключа');
+      throw DomainError.unauthorized('AUTH_KEY_RESET_ERROR');
     }
   }
 
@@ -145,7 +142,7 @@ export class AuthInteractor {
       }
 
       if (!user) {
-        throw new UnauthorizedException('Пользователь не найден');
+        throw DomainError.unauthorized('AUTH_USER_NOT_FOUND');
       }
 
       await this.tokenApplicationService.findOneAndDelete(data.refresh_token, tokenTypes.REFRESH);
@@ -158,7 +155,7 @@ export class AuthInteractor {
         tokens,
       };
     } catch (error) {
-      throw new UnauthorizedException('Возникла неизвестная ошибка при обновлении');
+      throw DomainError.unauthorized('AUTH_UPDATE_UNKNOWN_ERROR');
     }
   }
 

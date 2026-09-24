@@ -8,6 +8,7 @@ import { DEFAULT_RECOVERY_STRATEGY, RecoveryStrategy } from '~/domain/auth-v2/re
 import { SecurityEventKind } from '~/domain/auth-v2/security-events/security-event.types';
 import { AuditService } from '../audit/audit.service';
 import { SecurityEventNotificationService } from '../security-events/security-event-notification.service';
+import { t } from '~/i18n';
 
 /**
  * Управление стратегией восстановления (CoopID, Story 3.5). Активна ровно одна
@@ -43,12 +44,12 @@ export class RecoveryStrategyService {
     if (!enabled) {
       throw new AuthV2Error(
         AuthV2ErrorCode.TwoFactorNotEnrolled,
-        'Смена способа восстановления требует кода из приложения-аутентификатора, но он не подключён.',
+        t('authV2.recoveryStrategyService.totpRequiredMessage'),
       );
     }
     const codeOk = await this.twoFactor.verify(subjectId, totpCode);
     if (!codeOk) {
-      throw new AuthV2Error(AuthV2ErrorCode.InvalidTwoFactorCode, 'Неверный код из приложения-аутентификатора.');
+      throw new AuthV2Error(AuthV2ErrorCode.InvalidTwoFactorCode, t('authV2.recoveryStrategyService.invalidTotpCodeMessage'));
     }
 
     await this.repo.set(subjectId, strategy);

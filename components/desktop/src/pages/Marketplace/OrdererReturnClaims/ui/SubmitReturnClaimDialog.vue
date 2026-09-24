@@ -14,6 +14,7 @@ import {
   getReturnClaimSignablePayload,
   type ICreateReturnClaimInput,
 } from '../api';
+import { t } from 'src/shared/i18n';
 
 type ReturnClaimPhotoUploadInput = ICreateReturnClaimInput['photos'][number];
 
@@ -81,8 +82,8 @@ const maxQuantityLabel = computed(() =>
 const quantityError = computed(() => {
   const q = actualQuantity.value;
   if (q === null) return '';
-  if (q <= 0) return 'Должно быть больше нуля.';
-  if (q > props.maxQuantity) return `Нельзя больше выданного — ${maxQuantityLabel.value}.`;
+  if (q <= 0) return t('marketplace.submitReturnClaimDialog.quantityPositiveError');
+  if (q > props.maxQuantity) return t('marketplace.submitReturnClaimDialog.quantityMaxError', { max: maxQuantityLabel.value });
   return '';
 });
 
@@ -126,7 +127,7 @@ async function loadPreview(): Promise<void> {
     previewHtml.value = doc.html;
     signableDocument.value = doc;
   } catch (e) {
-    FailAlert(e, 'Не удалось сформировать предварительное заявление');
+    FailAlert(e, t('marketplace.submitReturnClaimDialog.draftBuildError'));
     step.value = STEP_PHOTOS;
   } finally {
     previewLoading.value = false;
@@ -135,11 +136,11 @@ async function loadPreview(): Promise<void> {
 
 function goToPhotos(): void {
   if (!reasonText.value.trim()) {
-    FailAlert(new Error('Опишите причину возврата.'));
+    FailAlert(new Error(t('marketplace.error.returnClaimReasonRequired')));
     return;
   }
   if (reasonText.value.length > 2000) {
-    FailAlert(new Error('Причина возврата не должна превышать 2000 символов.'));
+    FailAlert(new Error(t('marketplace.error.returnClaimReasonTooLong')));
     return;
   }
   if (quantityError.value) {
@@ -151,7 +152,7 @@ function goToPhotos(): void {
 
 async function goToSign(): Promise<void> {
   if (selectedFiles.value.length === 0) {
-    FailAlert(new Error('Приложите хотя бы одну фотографию товара.'));
+    FailAlert(new Error(t('marketplace.error.returnClaimPhotoRequired')));
     return;
   }
   step.value = STEP_SIGN;
@@ -168,7 +169,7 @@ async function confirm(): Promise<void> {
     return;
   }
   if (!signableDocument.value) {
-    FailAlert(new Error('Заявление ещё формируется, подождите.'));
+    FailAlert(new Error(t('marketplace.error.returnClaimDraftPending')));
     return;
   }
   submitting.value = true;
@@ -189,11 +190,11 @@ async function confirm(): Promise<void> {
       photos,
     });
 
-    SuccessAlert('Заявление подано. Обращение рассмотрит оператор пункта выдачи.');
+    SuccessAlert(t('marketplace.submitReturnClaimDialog.submitSuccessMessage'));
     emit('submitted');
     emit('update:modelValue', false);
   } catch (e) {
-    FailAlert(e, 'Не удалось подать заявление на возврат');
+    FailAlert(e, t('marketplace.submitReturnClaimDialog.submitError'));
   } finally {
     submitting.value = false;
   }
@@ -209,9 +210,9 @@ function backStep(): void {
 }
 
 const confirmLabel = computed(() => {
-  if (step.value === STEP_DESCRIBE) return 'К загрузке фото';
-  if (step.value === STEP_PHOTOS) return 'К подписи заявления';
-  return 'Подписать и подать';
+  if (step.value === STEP_DESCRIBE) return t('marketplace.submitReturnClaimDialog.stepPhotosLabel');
+  if (step.value === STEP_PHOTOS) return t('marketplace.submitReturnClaimDialog.stepSignLabel');
+  return t('marketplace.submitReturnClaimDialog.submitButton');
 });
 
 const confirmDisabled = computed(() => {
@@ -225,10 +226,10 @@ const confirmDisabled = computed(() => {
 <template lang="pug">
 TakeoverDialog(
   :model-value="modelValue"
-  title="Заявление на гарантийный возврат"
+  :title="$t('marketplace.submitReturnClaimDialog.dialogTitle')"
   kind="info"
   :confirm-label="confirmLabel"
-  cancel-label="Закрыть"
+  :cancel-label="$t('common.action.close')"
   :loading="submitting"
   :disable-confirm="confirmDisabled"
   @update:model-value="(v: boolean) => emit('update:modelValue', v)"
@@ -242,15 +243,15 @@ TakeoverDialog(
         flat bordered animated
         active-color="primary" done-color="positive"
       )
-        q-step(:name="STEP_DESCRIBE" title="Описание" icon="edit" :done="step !== STEP_DESCRIBE")
+        q-step(:name="STEP_DESCRIBE" :title="$t('marketplace.submitReturnClaimDialog.stepDescriptionTitle')" icon="edit" :done="step !== STEP_DESCRIBE")
           .banner.banner--info.q-mb-md
             q-icon.banner__icon(name="info", size="20px")
             .banner__body
-              | Опишите, что не так с полученным товаром. Это сообщение увидит оператор пункта выдачи при удалённом рассмотрении.
+              | {{ $t('marketplace.submitReturnClaimDialog.descriptionHint') }}
           BaseInput.mp-return-submit__reason(
             v-model="reasonText"
             type="textarea"
-            label="Причина возврата"
+            :label="$t('marketplace.submitReturnClaimDialog.reasonLabel')"
             counter
             maxlength="2000"
             autogrow
@@ -260,38 +261,38 @@ TakeoverDialog(
             @update:model-value="onQuantityInput"
             type="number"
             :error="quantityError"
-            :label="`Возвращаемое количество, ${unitLabel} (опционально)`"
-            :hint="`Если пусто — возвращается всё выданное. Максимум: ${maxQuantityLabel}.`"
+            :label="$t(`marketplace.submitReturnClaimDialog.quantityLabel`, { unitLabel })"
+            :hint="$t(`marketplace.submitReturnClaimDialog.quantityHint`, { max: maxQuantityLabel })"
           )
 
-        q-step(:name="STEP_PHOTOS" title="Фото" icon="image" :done="step === STEP_SIGN")
+        q-step(:name="STEP_PHOTOS" :title="$t('marketplace.submitReturnClaimDialog.stepPhotoTitle')" icon="image" :done="step === STEP_SIGN")
           .banner.banner--info.q-mb-md
             q-icon.banner__icon(name="info", size="20px")
             .banner__body
-              | Приложите от 1 до 10 фотографий товара (JPEG, PNG, WEBP, до 10 МБ каждое). Хеши файлов будут записаны в блокчейн как доказательная база.
+              | {{ $t('marketplace.submitReturnClaimDialog.photoHint') }}
           FileUploader(
             v-model="selectedFiles"
             multiple
             accept="image/jpeg,image/png,image/webp"
             :max-size="10 * 1024 * 1024"
             :max-files="10"
-            title="Перетащите фото или нажмите для выбора"
+            :title="$t('marketplace.submitReturnClaimDialog.photoDropHint')"
             @error="onUploadError"
           )
           .row.q-mt-md
-            BaseButton(variant="ghost" @click="backStep") Назад к описанию
+            BaseButton(variant="ghost" @click="backStep") {{ $t('marketplace.submitReturnClaimDialog.backToDescription') }}
 
-        q-step(:name="STEP_SIGN" title="Подпись" icon="draw")
+        q-step(:name="STEP_SIGN" :title="$t('marketplace.submitReturnClaimDialog.stepSignTitle')" icon="draw")
           BaseCard.mp-return-submit__preview-card(v-if="previewLoading")
             .mp-return-submit__loading
               q-spinner(color="primary" size="32px")
-              span Формирую предварительное заявление…
+              span {{ $t('marketplace.submitReturnClaimDialog.draftBuildingText') }}
           BaseCard.mp-return-submit__preview(v-else-if="previewHtml")
             div(v-html="sanitizeDocumentHtml(previewHtml)")
           BaseCard.mp-return-submit__preview-card(v-else)
-            .t-muted Не удалось сформировать предварительный документ.
+            .t-muted {{ $t('marketplace.submitReturnClaimDialog.draftDocumentError') }}
           .row.q-mt-md
-            BaseButton(variant="ghost" @click="backStep") Назад к фото
+            BaseButton(variant="ghost" @click="backStep") {{ $t('marketplace.submitReturnClaimDialog.backToPhotos') }}
 </template>
 
 <style scoped lang="scss">

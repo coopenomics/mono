@@ -7,6 +7,7 @@ import { useWalletStore, type ILoadUserWallet } from 'src/entities/Wallet';
 import { useSessionStore } from 'src/entities/Session';
 import { useSystemStore } from 'src/entities/System/model';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
+import { t } from 'src/shared/i18n';
 
 /**
  * Кошелёк в шапке стола заказов (правка 2026-08-13).
@@ -68,24 +69,24 @@ const WALLET_CARDS = [
   {
     name: MARKET_WALLET,
     icon: 'savings',
-    title: 'Свободный паевой Стола заказов',
-    subtitle: 'Паевой взнос после выдачи и отказов',
+    title: t('marketplace.walletHeaderButton.freeShareWalletLabel'),
+    subtitle: t('marketplace.walletHeaderButton.freeShareWalletHint'),
     neutral: false,
     showLocked: true,
   },
   {
     name: MEMBER_WALLET,
     icon: 'card_membership',
-    title: 'Членский взнос Стола заказов',
-    subtitle: 'Зачитывается в счёт взноса участка по следующему заказу',
+    title: t('marketplace.walletHeaderButton.membershipWalletLabel'),
+    subtitle: t('marketplace.walletHeaderButton.membershipWalletHint'),
     neutral: false,
     showLocked: false,
   },
   {
     name: SHARE_WALLET,
     icon: 'account_balance_wallet',
-    title: 'Главный паевой кошелёк',
-    subtitle: 'Отсюда паевой взнос резервируется под заказ',
+    title: t('marketplace.walletHeaderButton.mainShareWalletLabel'),
+    subtitle: t('marketplace.walletHeaderButton.mainShareWalletHint'),
     neutral: true,
     showLocked: false,
   },
@@ -140,14 +141,14 @@ Teleport(to="#header-actions-host", defer)
     v-if="session.username",
     variant="secondary",
     size="sm",
-    aria-label="Кошелёк Стола заказов",
+    :aria-label="$t('marketplace.walletHeaderButton.walletTitle')",
     @click="openDialog"
   )
     template(#icon-left)
       q-icon(name="account_balance_wallet", size="16px")
     | {{ totalAmount }}
 
-BaseDialog(v-model="dialogOpen", title="Кошелёк Стола заказов", size="sm")
+BaseDialog(v-model="dialogOpen", :title="$t('marketplace.walletHeaderButton.walletTitle')", size="sm")
   //- Сумма — отдельной строкой под названием (`stacked`): в узком окне длинные
   //- заголовки кошельков иначе жмутся к сумме, и соседние карточки ломаются
   //- по-разному — одна в две строки с суммой сбоку, другая с суммой внизу.
@@ -167,12 +168,12 @@ BaseDialog(v-model="dialogOpen", title="Кошелёк Стола заказов
       :loading="loading"
     )
     .mp-wallet__hint
-      | Имущество оплачивается паевым взносом из главного паевого кошелька.
-      | Членский взнос участка переходит из паевого в членский по заявлению о
-      | конвертации при оформлении и уходит участку при выдаче; его
-      | неиспользованная часть возвращается на членский кошелёк и зачитывается
-      | при следующем заказе. После выдачи и отказов паевой взнос возвращается
-      | на свободный паевой Стола заказов и идёт на оплату следующих заказов.
+      | {{ $t('marketplace.walletHeaderButton.explainPart1') }}
+      | {{ $t('marketplace.walletHeaderButton.explainPart2') }}
+      | {{ $t('marketplace.walletHeaderButton.explainPart3') }}
+      | {{ $t('marketplace.walletHeaderButton.explainPart4') }}
+      | {{ $t('marketplace.walletHeaderButton.explainPart5') }}
+      | {{ $t('marketplace.walletHeaderButton.explainPart6') }}
   template(#footer)
     DepositButton
 </template>

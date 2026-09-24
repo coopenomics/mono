@@ -1,5 +1,6 @@
 import type { BaseBadgeVariant } from 'src/shared/ui/base';
 import type { StatusFilterOption } from 'src/shared/ui/domain';
+import { t } from 'src/shared/i18n';
 
 /**
  * Статус выплаты поставщику (marketplace) → подпись и вариант бейджа.
@@ -7,9 +8,9 @@ import type { StatusFilterOption } from 'src/shared/ui/domain';
  * начинают называть одно состояние по-разному.
  */
 const PAYMENT_STATUS_LABEL: Record<string, string> = {
-  PENDING: 'Ожидает оплаты',
-  COMPLETED: 'Оплачено',
-  DECLINED: 'Отклонено',
+  PENDING: t('marketplace.payout.status.pending'),
+  COMPLETED: t('marketplace.payout.status.paid'),
+  DECLINED: t('marketplace.payout.status.rejected'),
 };
 
 const PAYMENT_STATUS_VARIANT: Record<string, BaseBadgeVariant> = {
@@ -28,7 +29,7 @@ export function statusVariant(status: string): BaseBadgeVariant {
 
 /** Пункты фильтра по состоянию — в порядке жизненного цикла выплаты. */
 export const PAYOUT_STATUS_FILTERS: StatusFilterOption[] = [
-  { key: 'pending', label: 'Ожидают оплаты', statuses: ['PENDING'] },
-  { key: 'completed', label: 'Оплачены', statuses: ['COMPLETED'] },
-  { key: 'declined', label: 'Отклонены', statuses: ['DECLINED'] },
+  { key: 'pending', label: t('marketplace.payout.status.pendingMany'), statuses: ['PENDING'] },
+  { key: 'completed', label: t('marketplace.payout.status.paidMany'), statuses: ['COMPLETED'] },
+  { key: 'declined', label: t('marketplace.payout.status.rejectedMany'), statuses: ['DECLINED'] },
 ];

@@ -1,0 +1,16 @@
+{
+  "errors": {
+    "NOTIFICATION_AUTH_KEY_REQUIRED": "auth ключ обязателен и должен быть строкой",
+    "NOTIFICATION_ENDPOINT_REQUIRED": "endpoint обязателен и должен быть строкой",
+    "NOTIFICATION_KEYS_REQUIRED": "keys обязательны и должны быть объектом",
+    "NOTIFICATION_P256DH_KEY_REQUIRED": "p256dh ключ обязателен и должен быть строкой",
+    "NOTIFICATION_RECIPIENT_BUILD_FAILED": "Не удалось сформировать получателя для {username}: нет subscriber_id в профиле",
+    "NOTIFICATION_SUBSCRIPTION_REQUIRED": "subscription обязателен и должен быть объектом",
+    "NOTIFICATION_USERNAME_REQUIRED": "username обязателен и должен быть строкой"
+  },
+  "notification": {
+    "subscriptionService": {
+      "subscriptionCreatedSuccess": "Подписка успешно создана"
+    }
+  }
+}

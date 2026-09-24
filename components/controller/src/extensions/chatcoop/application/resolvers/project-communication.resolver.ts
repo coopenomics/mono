@@ -159,6 +159,7 @@ export class ProjectCommunicationResolver {
 
   private ensureComm(): void {
     if (!this.comm) {
+      // i18n-ignore: внутренняя проверка конфигурации (не подключён DI-порт PROJECT_COMMUNICATION_ARTIFACTS_PORT), сообщение только для разработчика
       throw new Error('Порт артефактов переписки Capital (PROJECT_COMMUNICATION_ARTIFACTS_PORT) недоступен');
     }
   }

@@ -6,6 +6,7 @@ import type {
 import type { UvNdflEditsShape } from '../../domain/edits-shapes/uv-ndfl-edits.shape';
 import { getNdflParams } from '../../domain/services/ndfl-reference';
 import { createXmlDoc, formatDate, getTaxOfficeCode } from './xml-utils';
+import { t } from '../../i18n';
 
 /**
  * Уведомление об исчисленных суммах НДФЛ. КНД 1110355, ВерсФорм 5.03 —
@@ -34,7 +35,7 @@ export class UvNdflGenerator implements IReportGenerator {
       return { reportType: this.reportType, xml, fileName, errors, isValid: true };
     } catch (e) {
       errors.push(
-        `Ошибка генерации уведомления по НДФЛ: ${e instanceof Error ? e.message : String(e)}`,
+        t('reports.uvNdfl.generationErrorMessage', { message: e instanceof Error ? e.message : String(e) }),
       );
       return { reportType: this.reportType, xml: '', fileName, errors, isValid: false };
     }
@@ -47,8 +48,8 @@ export class UvNdflGenerator implements IReportGenerator {
     const period = header.period ?? 1;
     if (!Number.isInteger(period) || period < 1 || period > UV_NDFL_PERIODS_PER_YEAR) {
       throw new Error(
-        `uv-ndfl: период должен быть целым от 1 до ${UV_NDFL_PERIODS_PER_YEAR} ` +
-          `(получено: ${header.period})`,
+        t('reports.uvNdfl.periodInvalidPrefix', { periodsPerYear: UV_NDFL_PERIODS_PER_YEAR }) +
+          t('reports.uvNdfl.periodInvalidSuffix', { period: header.period }),
       );
     }
     const { month, secondHalf } = splitUvNdflPeriod(period);
@@ -59,38 +60,64 @@ export class UvNdflGenerator implements IReportGenerator {
     const monthCode = String((secondHalf ? 10 : 0) + monthInQuarter).padStart(2, '0');
 
     const doc = createXmlDoc()
+      // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
       .ele('Файл')
+        // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
         .att('ИдФайл', header.idFile)
+        // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
         .att('ВерсПрог', header.versProgram)
+        // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
         .att('ВерсФорм', '5.03');
 
+    // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
     const dokument = doc.ele('Документ')
+      // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
       .att('КНД', '1110355')
+      // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
       .att('ДатаДок', header.docDate ?? formatDate(new Date()))
+      // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
       .att('КодНО', kodNO);
 
+    // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
     dokument.ele('СвНП')
+      // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
       .ele('НПЮЛ')
+        // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
         .att('ИННЮЛ', organization.inn)
+        // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
         .att('КПП', organization.kpp)
       .up()
     .up();
 
+    // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
+    // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
     const sig = dokument.ele('Подписант').att('ПрПодп', '1');
+    // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
     const fio = sig.ele('ФИО')
+      // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
       .att('Фамилия', signer.lastName)
+      // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
       .att('Имя', signer.firstName);
+    // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
     if (signer.middleName) fio.att('Отчество', signer.middleName);
     fio.up();
     sig.up();
 
+    // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
     dokument.ele('УвИсчСумНалог')
+      // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
       .att('КППДекл', organization.kpp)
+      // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
       .att('ОКТМО', organization.oktmo ?? '')
+      // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
       .att('КБК', getNdflParams(header.reportYear).kbk)
+      // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
       .att('СумНалогАванс', String(Math.round(edits.payment?.amount ?? 0)))
+      // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
       .att('Период', quarterCode[quarter])
+      // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
       .att('НомерМесКварт', monthCode)
+      // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
       .att('Год', String(header.reportYear))
     .up();
 

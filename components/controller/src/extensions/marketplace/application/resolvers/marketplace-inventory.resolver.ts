@@ -1,6 +1,6 @@
-import { ForbiddenException, Inject, Injectable, UseGuards } from '@nestjs/common';
+import { Inject, Injectable, UseGuards } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
-import { GqlJwtAuthGuard, platformSettings } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, platformSettings, DomainError } from '@coopenomics/extension-kit';
 import { CurrentMarketplaceMember } from '../decorators/current-marketplace-member.decorator';
 import { RequireMarketplaceAccess } from '../decorators/marketplace-access.decorator';
 import { MarketplaceMembershipGuard } from '../guards/marketplace-membership.guard';
@@ -194,9 +194,7 @@ export class MarketplaceInventoryResolver {
       }
       if (data?.braname) {
         if (!ownBranames.includes(data.braname)) {
-          throw new ForbiddenException(
-            'Склад доступен только по участку, на котором вы являетесь председателем или доверенным лицом.'
-          );
+          throw DomainError.forbidden('MARKETPLACE_INVENTORY_NOT_TRUSTEE');
         }
         branameFilter = data.braname;
       } else {

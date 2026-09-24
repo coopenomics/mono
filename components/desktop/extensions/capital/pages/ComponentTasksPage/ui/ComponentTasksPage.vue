@@ -23,6 +23,7 @@ import { IssuesListWidget } from 'app/extensions/capital/widgets/IssuesListWidge
 import { IssueOverlay } from 'app/extensions/capital/features/Issue/IssueOverlay';
 import { useQueryOverlay } from 'src/shared/lib/navigation';
 import type { IIssue } from 'app/extensions/capital/entities/Issue/model';
+import { t } from '../../../i18n';
 
 const route = useRoute();
 const projectStore = useProjectStore();
@@ -49,7 +50,7 @@ const loadProject = async () => {
       project.value = (loaded as IProject | undefined) ?? null;
     } catch (error) {
       console.error('Ошибка при загрузке компонента:', error);
-      FailAlert('Не удалось загрузить компонент');
+      FailAlert(t('capital.componentTasksPage.loadError'));
     }
   }
 };

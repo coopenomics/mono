@@ -8,12 +8,12 @@ div(v-show='store.isStep("EmailInput")')
     //- краю и одинаковы по ширине. Раньше кнопки были разного размера и «или» висело
     //- посередине пустоты (замечание владельца 03.09.2026).
     .email-input(v-if='!confirming')
-      p.email-input__lead Добро пожаловать в {{ coopTitle }}! Для начала регистрации введите вашу электронную почту.
+      p.email-input__lead {{ $t('registrator.emailInput.welcomeLead', { coopTitle }) }}
 
       BaseInput(
         :model-value='email',
         type='email',
-        label='Электронная почта',
+        :label='$t("registrator.emailInput.emailLabel")',
         :readonly='inLoading',
         :error='emailError',
         autocomplete='email',
@@ -27,26 +27,26 @@ div(v-show='store.isStep("EmailInput")')
         :disabled='!isValidEmail || isEmailExist',
         :loading='inLoading',
         @click='setEmail'
-      ) Продолжить
+      ) {{ $t('registrator.emailInput.submitAction') }}
 
       //- Регистрация по карте кооператора — здесь, а не отдельным шагом в середине пути
       //- (решение владельца 03.09.2026). Смысл карты в том, чтобы не заполнять анкету
       //- заново: предлагать её после того, как человек ввёл всё руками, поздно.
       template(v-if='cardcoopEntryAvailable')
         .email-input__divider
-          span.email-input__divider-word или
+          span.email-input__divider-word {{ $t('registrator.emailInput.orDivider') }}
 
         BaseButton(variant='secondary', block, :disabled='inLoading', @click='startCardcoopEntry')
           template(#icon-left)
             q-icon(name='badge', size='18px')
-          | Зарегистрироваться по карте кооператора
+          | {{ $t('registrator.emailInput.cardcoopSignUpAction') }}
 
-        p.email-input__note Анкета перенесётся из кооператива, где вас уже приняли: останется проверить данные и подписать заявление.
+        p.email-input__note {{ $t('registrator.emailInput.cardcoopNote') }}
 
     //- Вход по карте кооператора ведёт на card.coop и возвращается уже с анкетой —
     //- почту там подтверждает сам эмитент карты, и эта фаза до него не доходит.
     .email-input(v-else)
-      p.email-input__lead Мы отправили код на указанный адрес — так мы убеждаемся, что письма кооператива до вас дойдут.
+      p.email-input__lead {{ $t('registrator.emailInput.codeSentLead') }}
 
       EmailCodeForm(
         :email='email',
@@ -67,6 +67,7 @@ import { Queries } from '@coopenomics/sdk';
 import { BaseInput } from 'src/shared/ui/base/BaseInput';
 import { BaseButton } from 'src/shared/ui/base/BaseButton';
 import { EmailCodeForm } from 'src/features/User/VerifyEmail';
+import { t } from 'src/shared/i18n';
 
 const store = useRegistratorStore();
 const api = useCreateUser();
@@ -87,9 +88,9 @@ const isValidEmail = computed(() => api.emailIsValid(email.value));
 
 const emailError = computed<string | undefined>(() => {
   if (!touched.value || !email.value) return undefined;
-  if (!isValidEmail.value) return 'Введите корректный email';
+  if (!isValidEmail.value) return t('registrator.emailInput.invalidEmailError');
   if (isEmailExist.value)
-    return 'Пользователь с таким email уже существует. Войдите.';
+    return t('registrator.emailInput.emailExistsError');
   return undefined;
 });
 

@@ -1,0 +1,15 @@
+{
+  "notificationPermissionDialog": {
+    "notificationPermissionDialog": {
+      "allow": "Разрешить",
+      "announcementsItem": "Важные объявления",
+      "dismiss": "Не сейчас",
+      "etcItem": "И прочее...",
+      "intro": "Мы хотели бы присылать вам важные уведомления о событиях в кооперативе:",
+      "meetingsItem": "Уведомления о собраниях",
+      "settingsHint": "Вы сможете настроить типы уведомлений или отключить их в любое время.",
+      "statusUpdatesItem": "Статус ваших заявок и документов",
+      "title": "Разрешить уведомления?"
+    }
+  }
+}

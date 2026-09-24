@@ -28,9 +28,9 @@
         type='button',
         :disabled='disabled || readonly',
         @click='applyMax'
-      ) макс
+      ) {{ $t('ui.amountInput.maxLabel') }}
   .amount-input__balance(v-if='showBalance && balance != null')
-    span.amount-input__balance-label Баланс:
+    span.amount-input__balance-label {{ $t('ui.amountInput.balanceLabel') }}
     span.amount-input__balance-value {{ formatNumber(toNumber(balance)) }}
     span.amount-input__balance-symbol(v-if='symbol') {{ symbol }}
 </template>

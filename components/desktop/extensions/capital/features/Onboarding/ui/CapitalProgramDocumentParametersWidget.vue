@@ -1,7 +1,7 @@
 <template lang="pug">
-BaseCard.capital-doc-params(title='Параметры документов ЦПП')
+BaseCard.capital-doc-params(:title='$t("capital.capitalProgramDocumentParametersWidget.title")')
   p.t-body-sm.capital-doc-params__intro
-    | Заполните параметры положений «ГЕНЕРАТОР» и «БЛАГОРОСТ» прямо в тексте документа.
+    | {{ $t('capital.capitalProgramDocumentParametersWidget.hint') }}
 
   q-tabs(v-model='activeTab' dense align='left' class='capital-doc-params__tabs')
     q-tab(
@@ -27,7 +27,7 @@ BaseCard.capital-doc-params(title='Параметры документов ЦП�
           @click='loadPreview(section.registryId)'
         )
           q-icon(name='refresh' class='q-mr-xs')
-          | {{ previews[section.registryId] ? 'Обновить предпросмотр' : 'Сформировать предпросмотр' }}
+          | {{ previews[section.registryId] ? $t('capital.capitalProgramDocumentParametersWidget.refreshPreviewAction') : $t('capital.capitalProgramDocumentParametersWidget.generatePreviewAction') }}
 
       q-inner-loading(:showing='loadingRegistryId === section.registryId')
 
@@ -40,7 +40,7 @@ BaseCard.capital-doc-params(title='Параметры документов ЦП�
       )
 
       p.t-caption.text-grey-6.q-mt-md(v-else)
-        | Нажмите «Сформировать предпросмотр», чтобы увидеть документ с редактируемыми полями.
+        | {{ $t('capital.capitalProgramDocumentParametersWidget.emptyHint') }}
 
   .capital-doc-params__footer
     BaseButton(
@@ -49,7 +49,7 @@ BaseCard.capital-doc-params(title='Параметры документов ЦП�
       :disable='!!loadingRegistryId'
       @click='saveParams'
     )
-      | Сохранить параметры
+      | {{ $t('capital.capitalProgramDocumentParametersWidget.saveAction') }}
 </template>
 
 <script setup lang="ts">
@@ -76,6 +76,7 @@ import {
   readCapitalProgramDocParamsDraft,
   writeCapitalProgramDocParamsDraft,
 } from '../model/useCapitalProgramDocParamsDraft';
+import { t } from '../../../i18n';
 
 const emit = defineEmits<{
   saved: [hash: string];
@@ -164,7 +165,7 @@ function validatePayload(): string | null {
     .map(({ label }) => label);
 
   if (missing.length) {
-    return `Заполните все параметры в документах: ${missing.join(', ')}`;
+    return t('capital.capitalProgramDocumentParametersWidget.fillAllParamsError', { missing: missing.join(', ') });
   }
 
   return null;
@@ -194,7 +195,7 @@ async function loadPreview(registryId: number, options?: { silent?: boolean }) {
     if (!options?.silent) {
       $q.notify({
         type: 'negative',
-        message: error instanceof Error ? error.message : 'Не удалось сформировать предпросмотр',
+        message: error instanceof Error ? error.message : t('capital.capitalProgramDocumentParametersWidget.previewError'),
       });
     }
     throw error;
@@ -221,7 +222,7 @@ async function saveParams() {
 
     const hash = previews[994]?.docDataHash ?? previews[998]?.docDataHash;
     if (!hash) {
-      throw new Error('Не удалось получить хеш параметров документов');
+      throw new Error(t('capital.error.onboardingParamsHashFailed'));
     }
 
     await api.saveProgramDocDataHash({ doc_data_hash: hash });
@@ -231,12 +232,12 @@ async function saveParams() {
 
     $q.notify({
       type: 'positive',
-      message: 'Параметры документов ЦПП сохранены',
+      message: t('capital.capitalProgramDocumentParametersWidget.saveSuccess'),
     });
   } catch (error) {
     $q.notify({
       type: 'negative',
-      message: error instanceof Error ? error.message : 'Не удалось сохранить параметры',
+      message: error instanceof Error ? error.message : t('capital.capitalProgramDocumentParametersWidget.saveError'),
     });
   } finally {
     saving.value = false;

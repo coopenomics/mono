@@ -17,6 +17,7 @@ import { ref } from 'vue';
 import { AddAuthorDialog } from '../Dialog';
 import type { IProject } from 'app/extensions/capital/entities/Project/model';
 import { formatCapitalFabLabel } from 'app/extensions/capital/shared/lib';
+import { t } from '../../../../../i18n';
 
 defineProps<{ project: IProject | null | undefined }>();
 
@@ -24,7 +25,7 @@ const emit = defineEmits<{
   actionCompleted: [];
 }>();
 
-const fabLabel = formatCapitalFabLabel('Соавтор', 'author');
+const fabLabel = formatCapitalFabLabel(t('capital.addAuthorFabAction.label'), 'author');
 
 const dialogRef = ref();
 

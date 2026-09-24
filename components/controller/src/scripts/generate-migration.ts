@@ -53,6 +53,7 @@ const fileName = `V${newVersion}__${migrationName}.ts`;
 const filePath = path.join(migrationsDir, fileName);
 
 // Шаблон миграции
+// i18n-ignore: шаблон генерируемого файла миграции — исходный код, не текст интерфейса
 const template = `import { DataSource } from 'typeorm';
 import config from '../src/config/config';
 

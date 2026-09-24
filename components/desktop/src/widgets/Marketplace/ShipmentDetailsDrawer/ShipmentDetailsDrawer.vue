@@ -21,6 +21,7 @@ import type {
   ShipmentDetailsOrderLine,
   ShipmentDetailsSummary,
 } from './ShipmentDetailsDrawer.types'
+import { t } from 'src/shared/i18n';
 
 const props = defineProps<{
   modelValue: boolean
@@ -58,7 +59,7 @@ const itemsTotal = computed(() =>
   items.value.reduce((sum, o) => sum + (Number.parseFloat(String(o.total_cost)) || 0), 0),
 )
 
-const title = computed(() => 'Партия отгрузки')
+const title = computed(() => t('marketplace.shipmentDetailsDrawer.drawerTitle'))
 
 function formatDate(value: unknown): string {
   return formatDateToLocalTimezone(value, 'DD.MM.YYYY HH:mm') || '—'
@@ -79,10 +80,10 @@ function ordererName(order: ShipmentDetailsOrderLine): string {
 }
 
 const columns: BaseTableColumn<ShipmentDetailsOrderLine>[] = [
-  { key: 'product', label: 'Товар', width: '220px', field: 'product_name' },
-  { key: 'orderer', label: 'Заказчик', width: '190px' },
-  { key: 'quantity', label: 'Кол-во', width: '120px', numeric: true },
-  { key: 'cost', label: 'Сумма', width: '130px', numeric: true },
+  { key: 'product', label: t('marketplace.shipmentDetailsDrawer.column.product'), width: '220px', field: 'product_name' },
+  { key: 'orderer', label: t('marketplace.shipmentDetailsDrawer.column.orderer'), width: '190px' },
+  { key: 'quantity', label: t('marketplace.shipmentDetailsDrawer.column.quantity'), width: '120px', numeric: true },
+  { key: 'cost', label: t('marketplace.shipmentDetailsDrawer.column.amount'), width: '130px', numeric: true },
 ]
 
 /** Данные накладной показываем только когда они есть — у самовывоза их нет. */
@@ -117,7 +118,7 @@ DetailsDrawer(
     )
       template(#icon-left)
         q-icon(name='print', size='16px')
-      | Накладная
+      | {{ $t('marketplace.shipmentDetailsDrawer.waybillTitle') }}
 
   .shipment-details(v-if='shipment')
     .shipment-details__head
@@ -132,32 +133,32 @@ DetailsDrawer(
     .shipment-details__next(v-if='nextStep') {{ nextStep }}
 
     .shipment-details__facts
-      DataRow(v-if='branchName', label='Пункт назначения', :value='branchName')
-      DataRow(v-if='branchAddress', label='Адрес участка', :value='branchAddress')
-      DataRow(v-if='deliveryLabel', label='Способ доставки', :value='deliveryLabel')
-      DataRow(label='Сумма партии', :value='`${formatAsset2Digits(shipment.total_amount)} ₽`')
-      DataRow(label='Сформирована', :value='formatDate(shipment.created_at)')
-      DataRow(v-if='shipment.ttn_number', label='Накладная №', :value='shipment.ttn_number')
+      DataRow(v-if='branchName', :label='$t("marketplace.shipmentDetailsDrawer.destinationLabel")', :value='branchName')
+      DataRow(v-if='branchAddress', :label='$t("marketplace.shipmentDetailsDrawer.kuAddressLabel")', :value='branchAddress')
+      DataRow(v-if='deliveryLabel', :label='$t("marketplace.shipmentDetailsDrawer.deliveryMethodLabel")', :value='deliveryLabel')
+      DataRow(:label='$t("marketplace.shipmentDetailsDrawer.partyAmountLabel")', :value='`${formatAsset2Digits(shipment.total_amount)} ₽`')
+      DataRow(:label='$t("marketplace.shipmentDetailsDrawer.formedAtLabel")', :value='formatDate(shipment.created_at)')
+      DataRow(v-if='shipment.ttn_number', :label='$t("marketplace.shipmentDetailsDrawer.waybillNumberLabel")', :value='shipment.ttn_number')
 
     template(v-if='hasTtnDetails && ttn')
-      .t-h3.shipment-details__section Перевозка
+      .t-h3.shipment-details__section {{ $t('marketplace.shipmentDetailsDrawer.transportTitle') }}
       .shipment-details__facts
-        DataRow(v-if='ttn.expeditor_full_name', label='Экспедитор', :value='ttn.expeditor_full_name')
-        DataRow(v-if='ttn.expeditor_phone', label='Телефон', :value='ttn.expeditor_phone')
-        DataRow(v-if='ttn.vehicle_number', label='Машина', :value='ttn.vehicle_number')
-        DataRow(v-if='ttn.loading_address', label='Адрес погрузки', :value='ttn.loading_address')
+        DataRow(v-if='ttn.expeditor_full_name', :label='$t("marketplace.shipmentDetailsDrawer.forwarderLabel")', :value='ttn.expeditor_full_name')
+        DataRow(v-if='ttn.expeditor_phone', :label='$t("marketplace.shipmentDetailsDrawer.phoneLabel")', :value='ttn.expeditor_phone')
+        DataRow(v-if='ttn.vehicle_number', :label='$t("marketplace.shipmentDetailsDrawer.vehicleLabel")', :value='ttn.vehicle_number')
+        DataRow(v-if='ttn.loading_address', :label='$t("marketplace.shipmentDetailsDrawer.loadingAddressLabel")', :value='ttn.loading_address')
         DataRow(
           v-if='ttn.loading_datetime',
-          label='Погрузка',
+          :label='$t("marketplace.shipmentDetailsDrawer.loadingDateLabel")',
           :value='formatDate(ttn.loading_datetime)'
         )
         DataRow(
           v-if='ttn.delivery_datetime_estimate',
-          label='Доставка ожидается',
+          :label='$t("marketplace.shipmentDetailsDrawer.deliveryEtaLabel")',
           :value='formatDate(ttn.delivery_datetime_estimate)'
         )
 
-    .t-h3.shipment-details__section Состав партии
+    .t-h3.shipment-details__section {{ $t('marketplace.shipmentDetailsDrawer.compositionTitle') }}
 
     BaseTable(
       v-if='loading || items.length',
@@ -177,13 +178,13 @@ DetailsDrawer(
         | {{ formatAsset2Digits(row.total_cost) }} ₽
       template(#footer)
         .shipment-details__foot
-          span Заказов: {{ items.length }}
+          span {{ $t('marketplace.shipmentDetailsDrawer.ordersCountLabel', { count: items.length }) }}
           span {{ formatAsset2Digits(String(itemsTotal)) }} ₽
 
     EmptyState(
       v-else,
-      title='Состав не найден',
-      body='Заказы этой партии не попали в выборку стола — возможно, они старше последних загруженных.'
+      :title='$t("marketplace.shipmentDetailsDrawer.emptyTitle")',
+      :body='$t("marketplace.shipmentDetailsDrawer.emptyBody")'
     )
       template(#icon)
         q-icon(name='local_shipping', size='48px')

@@ -4,14 +4,14 @@ span
     variant='primary',
     :size='isMobile ? "sm" : "md"',
     :icon-only='isMobile',
-    aria-label='Аллоцировать средства',
+    :aria-label='$t("capital.allocateFundsButton.label")',
     @click='open = true'
   )
     template(#icon-left)
       q-icon(name='savings', size='18px')
     template(v-if='!isMobile', #default)
-      | Аллоцировать средства
-    q-tooltip(v-if='isMobile') Аллоцировать средства
+      | {{ $t('capital.allocateFundsButton.label') }}
+    q-tooltip(v-if='isMobile') {{ $t('capital.allocateFundsButton.label') }}
 
   AllocateFundsDialog(
     v-model='open',

@@ -1,5 +1,5 @@
 <template lang="pug">
-ProjectDescriptionEditor(:placeholder='descriptionPlaceholder || "Введите описание..."')
+ProjectDescriptionEditor(:placeholder='descriptionPlaceholder || $t("capital.projectDescriptionPage.placeholder")')
 </template>
 
 <script lang="ts" setup>

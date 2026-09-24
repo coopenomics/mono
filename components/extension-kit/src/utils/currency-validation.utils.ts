@@ -1,4 +1,6 @@
 import { platformSettings } from '../config/platform-settings';
+import { t } from '@coopenomics/i18n/server';
+import { DomainError } from '../errors/domain-error';
 
 /**
  * Утилитарный класс для валидации валютных сумм
@@ -25,10 +27,10 @@ export class CurrencyValidationUtil {
    * @param fieldName Название поля для сообщения об ошибке (по умолчанию "сумма")
    * @throws Error если символ валюты неправильный
    */
-  static validateCurrencySymbol(amount: string, fieldName = 'сумма'): void {
+  static validateCurrencySymbol(amount: string, fieldName = t('kit.currency.defaultFieldName')): void {
     if (!this.hasValidCurrencySymbol(amount)) {
       const expectedSymbol = platformSettings().blockchain.rootGovernSymbol;
-      throw new Error(`Неверный символ валюты в ${fieldName}. Ожидался: ${expectedSymbol}`);
+      throw DomainError.internal('KIT_CURRENCY_SYMBOL_INVALID', { fieldName, expectedSymbol });
     }
   }
 

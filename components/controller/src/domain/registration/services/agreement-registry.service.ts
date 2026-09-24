@@ -46,7 +46,9 @@ export class AgreementRegistryService implements AgreementRegistrationPort {
     const existing = this.agreementMap.get(spec.id);
     if (existing && existing.extension_name !== spec.extension_name) {
       throw new ConflictException(
+        // i18n-ignore: конфликт регистрации id соглашения между расширениями — ошибка конфигурации, до пайщика не доходит
         `Agreement id "${spec.id}" уже зарегистрирована расширением "${existing.extension_name}", ` +
+          // i18n-ignore: продолжение сообщения о конфликте регистрации соглашения, до пайщика не доходит
           `повторная регистрация из "${spec.extension_name}" отклонена`
       );
     }
@@ -73,7 +75,9 @@ export class AgreementRegistryService implements AgreementRegistrationPort {
     const existing = this.programMap.get(spec.key);
     if (existing && existing.extension_name !== spec.extension_name) {
       throw new ConflictException(
+        // i18n-ignore: конфликт регистрации program key между расширениями — ошибка конфигурации, до пайщика не доходит
         `Program key "${spec.key}" уже зарегистрирована расширением "${existing.extension_name}", ` +
+          // i18n-ignore: продолжение сообщения о конфликте регистрации program key, до пайщика не доходит
           `повторная регистрация из "${spec.extension_name}" отклонена`
       );
     }
@@ -103,7 +107,9 @@ export class AgreementRegistryService implements AgreementRegistrationPort {
     const existing = this.intakeFormMap.get(spec.id);
     if (existing && existing.extension_name !== spec.extension_name) {
       throw new ConflictException(
+        // i18n-ignore: конфликт регистрации id анкеты между расширениями — ошибка конфигурации, до пайщика не доходит
         `Intake form id "${spec.id}" уже зарегистрирована расширением "${existing.extension_name}", ` +
+          // i18n-ignore: продолжение сообщения о конфликте регистрации анкеты, до пайщика не доходит
           `повторная регистрация из "${spec.extension_name}" отклонена`
       );
     }

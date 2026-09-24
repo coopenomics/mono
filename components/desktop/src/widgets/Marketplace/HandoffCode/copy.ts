@@ -1,4 +1,5 @@
 import { HandoffTokenKind } from 'src/shared/lib/marketplace';
+import { t } from 'src/shared/i18n';
 
 /**
  * Account-bound сценарии кода передачи (привязка к личности пайщика). Shipment
@@ -21,15 +22,15 @@ interface HandoffCodeCopy {
  */
 export const HANDOFF_CODE_COPY: Record<AccountHandoffKind, HandoffCodeCopy> = {
   [HandoffTokenKind.Receive]: {
-    dialogTitle: 'Показать QR',
+    dialogTitle: t('marketplace.handoffCopy.showQrButton'),
     caption:
-      'Покажите этот код оператору на том пункте выдачи, куда пришёл ваш заказ — он выдаст по нему всё, что готово к получению. Код можно показать с экрана телефона или с распечатки.',
-    emptyBody: 'Войдите в кооператив, чтобы получить персональный код выдачи.',
+      t('marketplace.handoffCopy.receiveHint'),
+    emptyBody: t('marketplace.handoffCopy.receiveLoginHint'),
   },
   [HandoffTokenKind.Pickup]: {
-    dialogTitle: 'Показать QR',
+    dialogTitle: t('marketplace.handoffCopy.showQrButton'),
     caption:
-      'Покажите этот код оператору на пункте приёмки — он примет разом всё, что вы привезли (и сформированные партии, и самовывоз по факту). Код можно показать с экрана телефона или с распечатки.',
-    emptyBody: 'Войдите в кооператив, чтобы получить персональный код приёмки.',
+      t('marketplace.handoffCopy.deliveryHint'),
+    emptyBody: t('marketplace.handoffCopy.deliveryLoginHint'),
   },
 };

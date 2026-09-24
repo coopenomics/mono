@@ -1,3 +1,4 @@
+import './i18n';
 import { markRaw } from 'vue'
 import type { DesktopWalletCard } from 'src/shared/lib/types/desktop-wallet'
 import { MarketplaceCatalogPage } from 'src/pages/Marketplace/MarketplaceCatalog'
@@ -51,6 +52,7 @@ import {
   createMarketplaceEventsSubscription,
 } from 'src/widgets/Marketplace/OnsiteSignatureGate'
 import { registerMarketplaceProcessInfoHandlers } from './app/extensions'
+import { t } from './i18n';
 
 /**
  * Расширение «Стол заказов» предоставляет ЧЕТЫРЕ отдельных рабочих стола
@@ -113,13 +115,13 @@ export default async function (): Promise<IWorkspaceConfig[]> {
     {
       workspace: 'market',
       extension_name: 'market',
-      title: 'Стол заказчика',
+      title: t('market.install.ordererTitle'),
       icon: 'fa-solid fa-cart-shopping',
       defaultRoute: 'marketplace-catalog',
       routes: [
         {
           meta: {
-            title: 'Стол заказчика',
+            title: t('market.install.ordererTitle'),
             icon: 'fa-solid fa-cart-shopping',
           },
           path: '/:coopname/market',
@@ -140,7 +142,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               name: 'marketplace-onboarding-member-cpp',
               component: markRaw(OnboardingMemberPickCppPage),
               meta: {
-                title: 'Подключение к Столу заказов',
+                title: t('market.install.ordererOnboardingTitle'),
                 icon: 'handshake',
                 requires: 'Onboarding:orderer',
                 gate: true,
@@ -154,7 +156,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               name: 'marketplace-catalog',
               component: markRaw(MarketplaceCatalogPage),
               meta: {
-                title: 'Каталог',
+                title: t('market.install.catalogTitle'),
                 icon: 'fa-solid fa-store',
                 // Рабочие страницы стола заказчика гейтятся подпиской оферты
                 // ЦПП: требуем orderer-эксклюзивный грант `Order:create`. Его
@@ -179,7 +181,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               name: 'marketplace-offer-detail',
               component: markRaw(MarketplaceOfferDetailPage),
               meta: {
-                title: 'Предложение',
+                title: t('market.install.offerDetailTitle'),
                 icon: 'fa-solid fa-box',
                 requires: 'Order:create',
                 requiresAuth: true,
@@ -200,7 +202,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               name: 'marketplace-cart',
               component: markRaw(CartPage),
               meta: {
-                title: 'Корзина',
+                title: t('market.install.cartTitle'),
                 icon: 'shopping_cart',
                 requires: 'Order:create',
                 requiresAuth: true,
@@ -217,7 +219,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               name: 'marketplace-order-confirmation',
               component: markRaw(OrderConfirmationPage),
               meta: {
-                title: 'Заказ оформлен',
+                title: t('market.install.orderConfirmedTitle'),
                 icon: 'task_alt',
                 requires: 'Order:create',
                 requiresAuth: true,
@@ -231,7 +233,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               name: 'marketplace-my-orders',
               component: markRaw(MyOrdersPage),
               meta: {
-                title: 'Мои заказы',
+                title: t('market.install.myOrdersTitle'),
                 icon: 'fa-solid fa-cart-shopping',
                 requires: 'Order:create',
                 requiresAuth: true,
@@ -249,7 +251,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               name: 'marketplace-receive-code',
               component: markRaw(OrdererReceiveCodePage),
               meta: {
-                title: 'Показать QR',
+                title: t('market.install.orderReceiveQrTitle'),
                 icon: 'qr_code',
                 requires: 'Order:create',
                 requiresAuth: true,
@@ -267,7 +269,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               name: 'marketplace-order-detail',
               component: markRaw(OrdererOrderDetailPage),
               meta: {
-                title: 'Заказ',
+                title: t('market.install.orderDetailTitle'),
                 icon: 'fa-solid fa-receipt',
                 requires: 'Order:create',
                 requiresAuth: true,
@@ -288,13 +290,13 @@ export default async function (): Promise<IWorkspaceConfig[]> {
     {
       workspace: 'market-supplier',
       extension_name: 'market',
-      title: 'Стол поставщика',
+      title: t('market.install.supplierTitle'),
       icon: 'fa-solid fa-store',
       defaultRoute: 'marketplace-my-offers',
       routes: [
         {
           meta: {
-            title: 'Стол поставщика',
+            title: t('market.install.supplierTitle'),
             icon: 'fa-solid fa-store',
           },
           path: '/:coopname/market-supplier',
@@ -310,7 +312,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               name: 'marketplace-onboarding-supplier',
               component: markRaw(SupplierOnboardingPage),
               meta: {
-                title: 'Подключение к Столу поставщика',
+                title: t('market.install.supplierOnboardingTitle'),
                 icon: 'storefront',
                 requires: 'Onboarding:offerer',
                 gate: true,
@@ -328,7 +330,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               name: 'marketplace-my-offers',
               component: markRaw(OffererMyOffersPage),
               meta: {
-                title: 'Мои предложения',
+                title: t('market.install.myOffersTitle'),
                 icon: 'fa-solid fa-clipboard-list',
                 requires: 'Offer:create:own',
                 requiresAuth: true,
@@ -344,7 +346,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               name: 'marketplace-create-offer',
               component: markRaw(CreateMarketplaceOfferPage),
               meta: {
-                title: 'Создать предложение',
+                title: t('market.install.createOfferTitle'),
                 icon: 'fa-solid fa-plus-circle',
                 requires: 'Offer:create:own',
                 requiresAuth: true,
@@ -360,7 +362,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               name: 'marketplace-edit-offer',
               component: markRaw(CreateMarketplaceOfferPage),
               meta: {
-                title: 'Редактирование предложения',
+                title: t('market.install.editOfferTitle'),
                 icon: 'fa-solid fa-pen',
                 requires: 'Offer:create:own',
                 requiresAuth: true,
@@ -376,7 +378,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               name: 'marketplace-incoming-orders',
               component: markRaw(OffererIncomingOrdersPage),
               meta: {
-                title: 'Входящие заказы',
+                title: t('market.install.incomingOrdersTitle'),
                 icon: 'fa-solid fa-inbox',
                 requires: 'Offer:create:own',
                 requiresAuth: true,
@@ -392,7 +394,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               name: 'marketplace-supply-prep',
               component: markRaw(OffererSupplyPreparationPage),
               meta: {
-                title: 'Подготовка отгрузки',
+                title: t('market.install.supplyPreparationTitle'),
                 icon: 'fa-solid fa-truck-ramp-box',
                 requires: 'Offer:create:own',
                 requiresAuth: true,
@@ -411,7 +413,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               name: 'marketplace-ship-party',
               component: markRaw(OffererShipPartyPage),
               meta: {
-                title: 'Показать QR',
+                title: t('market.install.shipQrTitle'),
                 icon: 'qr_code',
                 requires: 'Offer:create:own',
                 requiresAuth: true,
@@ -431,7 +433,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               name: 'marketplace-supplier-claims',
               component: markRaw(OffererWarrantyClaimsPage),
               meta: {
-                title: 'Гарантийные возвраты',
+                title: t('market.install.supplierWarrantyClaimsTitle'),
                 icon: 'fa-solid fa-rotate-left',
                 requires: 'Offer:create:own',
                 requiresAuth: true,
@@ -444,7 +446,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               name: 'marketplace-supplier-claim-detail',
               component: markRaw(OffererWarrantyClaimDetailPage),
               meta: {
-                title: 'Гарантийная претензия',
+                title: t('market.install.warrantyClaimDetailTitle'),
                 icon: 'fa-solid fa-rotate-left',
                 requires: 'Offer:create:own',
                 requiresAuth: true,
@@ -464,7 +466,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               name: 'marketplace-payments',
               component: markRaw(OffererPaymentHistoryPage),
               meta: {
-                title: 'Выплаты',
+                title: t('market.install.supplierPaymentsTitle'),
                 icon: 'fa-solid fa-money-bill-transfer',
                 requires: 'Offer:create:own',
                 requiresAuth: true,
@@ -481,7 +483,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
     {
       workspace: 'market-pvz',
       extension_name: 'market',
-      title: 'Стол ПВЗ',
+      title: t('market.install.pvzTitle'),
       icon: 'fa-solid fa-map-location-dot',
       defaultRoute: 'marketplace-pvz-reception',
       routes: [
@@ -495,7 +497,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
           // на столе администратора (AdminIssuancePoints), не здесь.
           // Гейтинг — через grants, отдельный per-route guard не нужен.
           meta: {
-            title: 'Стол ПВЗ',
+            title: t('market.install.pvzTitle'),
             icon: 'fa-solid fa-map-location-dot',
           },
           path: '/:coopname/market-pvz',
@@ -512,7 +514,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               name: 'marketplace-pvz-reception',
               component: markRaw(OperatorReceptionPage),
               meta: {
-                title: 'Ожидаемые поставки',
+                title: t('market.install.expectedDeliveriesTitle'),
                 icon: 'fa-solid fa-truck-arrow-right',
                 requires: 'Warehouse:read:own-KU',
                 requiresAuth: true,
@@ -533,7 +535,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               name: 'marketplace-pvz-warehouse',
               component: markRaw(OperatorWarehouseDeskPage),
               meta: {
-                title: 'Склад',
+                title: t('market.install.pvzWarehouseTitle'),
                 icon: 'fa-solid fa-boxes-stacked',
                 requires: 'Warehouse:read:own-KU',
                 requiresAuth: true,
@@ -546,7 +548,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               name: 'marketplace-issuance',
               component: markRaw(OperatorIssuancePage),
               meta: {
-                title: 'Выдача заказов',
+                title: t('market.install.issuanceTitle'),
                 icon: 'fa-solid fa-handshake',
                 requires: 'Warehouse:read:own-KU',
                 requiresAuth: true,
@@ -559,7 +561,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               name: 'marketplace-pvz-returns',
               component: markRaw(OperatorReturnClaimsPage),
               meta: {
-                title: 'Гарантийные возвраты',
+                title: t('market.install.operatorReturnClaimsTitle'),
                 icon: 'fa-solid fa-clipboard-check',
                 requires: 'Warehouse:read:own-KU',
                 requiresAuth: true,
@@ -578,7 +580,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               name: 'marketplace-pvz-return-detail',
               component: markRaw(OperatorReturnClaimDetailPage),
               meta: {
-                title: 'Гарантийный возврат',
+                title: t('market.install.returnClaimDetailTitle'),
                 icon: 'fa-solid fa-clipboard-check',
                 requires: 'Warehouse:read:own-KU',
                 requiresAuth: true,
@@ -622,7 +624,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               name: 'marketplace-pvz-economy',
               component: markRaw(OperatorBranchEconomyPage),
               meta: {
-                title: 'Экономика участка',
+                title: t('market.install.branchEconomyTitle'),
                 icon: 'savings',
                 requires: 'Economy:read:own-KU',
                 requiresAuth: true,
@@ -638,7 +640,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               name: 'marketplace-pvz-orders',
               component: markRaw(OperatorBranchOrdersPage),
               meta: {
-                title: 'История заказов',
+                title: t('market.install.branchOrdersHistoryTitle'),
                 icon: 'receipt_long',
                 requires: 'Order:read:own-KU',
                 requiresAuth: true,
@@ -653,7 +655,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               name: 'marketplace-pvz-order-detail',
               component: markRaw(OperatorBranchOrderDetailPage),
               meta: {
-                title: 'Заказ участка',
+                title: t('market.install.branchOrderDetailTitle'),
                 icon: 'receipt_long',
                 requires: 'Order:read:own-KU',
                 requiresAuth: true,
@@ -676,7 +678,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               path: 'scan',
               name: 'marketplace-pvz-scan',
               meta: {
-                title: 'Сканировать QR',
+                title: t('market.install.scanQrTitle'),
                 icon: 'qr_code_scanner',
                 action: 'marketplaceUniversalScan',
                 requires: 'Warehouse:read:own-KU',
@@ -694,7 +696,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
     {
       workspace: 'market-admin',
       extension_name: 'market',
-      title: 'Стол администратора',
+      title: t('market.install.adminTitle'),
       icon: 'fa-solid fa-shield-halved',
       // Реестр всех заказов кооператива — центральный обзорный экран стола;
       // открывается первым.
@@ -702,7 +704,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
       routes: [
         {
           meta: {
-            title: 'Стол администратора',
+            title: t('market.install.adminTitle'),
             icon: 'fa-solid fa-shield-halved',
           },
           path: '/:coopname/market-admin',
@@ -719,7 +721,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               name: 'marketplace-admin-orders',
               component: markRaw(AdminOrdersPage),
               meta: {
-                title: 'Реестр заказов',
+                title: t('market.install.adminOrdersRegistryTitle'),
                 icon: 'receipt_long',
                 requires: 'Order:read:all',
                 requiresAuth: true,
@@ -735,7 +737,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               name: 'marketplace-admin-order-detail',
               component: markRaw(AdminOrderDetailPage),
               meta: {
-                title: 'Заказ',
+                title: t('market.install.adminOrderDetailTitle'),
                 icon: 'receipt_long',
                 requires: 'Order:read:all',
                 requiresAuth: true,
@@ -754,7 +756,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               name: 'marketplace-moderation',
               component: markRaw(ChairmanModerationPage),
               meta: {
-                title: 'Модерация',
+                title: t('market.install.moderationTitle'),
                 icon: 'fa-solid fa-clipboard-check',
                 requires: 'Order:read:all',
                 requiresAuth: true,
@@ -772,7 +774,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               name: 'marketplace-admin-offers',
               component: markRaw(AdminOffersPage),
               meta: {
-                title: 'Реестр предложений',
+                title: t('market.install.adminOffersRegistryTitle'),
                 icon: 'sell',
                 requires: 'Offer:read:all',
                 requiresAuth: true,
@@ -791,7 +793,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               name: 'marketplace-admin-offer-detail',
               component: markRaw(MarketplaceOfferDetailPage),
               meta: {
-                title: 'Предложение',
+                title: t('market.install.offerDetailTitle'),
                 icon: 'fa-solid fa-box',
                 requires: 'Order:read:all',
                 requiresAuth: true,
@@ -813,7 +815,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               name: 'marketplace-suppliers',
               component: markRaw(SupplierRegistryPage),
               meta: {
-                title: 'Реестр поставщиков',
+                title: t('market.install.supplierRegistryTitle'),
                 icon: 'storefront',
                 requires: 'Supplier:manage',
                 requiresAuth: true,
@@ -830,7 +832,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               name: 'marketplace-warehouse-summary',
               component: markRaw(AdminWarehouseSummaryPage),
               meta: {
-                title: 'Склад',
+                title: t('market.install.adminWarehouseTitle'),
                 icon: 'warehouse',
                 requires: 'Order:read:all',
                 requiresAuth: true,
@@ -848,7 +850,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               name: 'marketplace-admin-containers',
               component: markRaw(AdminContainerRegistryPage),
               meta: {
-                title: 'Боксы кооператива',
+                title: t('market.install.containerRegistryTitle'),
                 icon: 'inbox',
                 requires: 'Container:read:all',
                 requiresAuth: true,
@@ -862,7 +864,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               name: 'marketplace-writeoffs',
               component: markRaw(AdminWriteoffsPage),
               meta: {
-                title: 'Списания скоропорта',
+                title: t('market.install.writeoffsTitle'),
                 icon: 'fa-solid fa-trash-can-arrow-up',
                 requires: 'Order:read:all',
                 requiresAuth: true,
@@ -877,7 +879,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               name: 'marketplace-admin-economy',
               component: markRaw(AdminMarketEconomyPage),
               meta: {
-                title: 'Экономика',
+                title: t('market.install.adminEconomyTitle'),
                 icon: 'percent',
                 requires: 'Economy:set-fee',
                 requiresAuth: true,
@@ -891,7 +893,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               name: 'marketplace-board-payouts',
               component: markRaw(BoardPayoutsReadonlyPage),
               meta: {
-                title: 'Выплаты поставщикам',
+                title: t('market.install.supplierPayoutsTitle'),
                 icon: 'fa-solid fa-coins',
                 requires: 'Order:read:all',
                 requiresAuth: true,
@@ -910,7 +912,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               name: 'marketplace-issuance-points',
               component: markRaw(AdminIssuancePointsPage),
               meta: {
-                title: 'Пункты выдачи заказов',
+                title: t('market.install.issuancePointsTitle'),
                 icon: 'pin_drop',
                 requires: 'Order:read:all',
                 requiresAuth: true,
@@ -923,7 +925,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               name: 'marketplace-category-whitelist',
               component: markRaw(ChairmanCategoryWhitelistPage),
               meta: {
-                title: 'Доступные категории',
+                title: t('market.install.categoryWhitelistTitle'),
                 icon: 'fa-solid fa-filter',
                 requires: 'Whitelist:manage',
                 requiresAuth: true,
@@ -938,7 +940,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               name: 'marketplace-ecosystem',
               component: markRaw(EcosystemRegistryPage),
               meta: {
-                title: 'Экосистема',
+                title: t('market.install.ecosystemTitle'),
                 icon: 'fa-solid fa-network-wired',
                 requires: 'Order:read:all',
                 requiresAuth: true,
@@ -965,7 +967,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               name: 'marketplace-onboarding-coop-cpp',
               component: markRaw(OnboardingCoopAcceptCppPage),
               meta: {
-                title: 'Подключение ЦПП',
+                title: t('market.install.cppOnboardingTitle'),
                 icon: 'handshake',
                 // Маркер видимости выдаётся только пока ЦПП не принята
                 // Советом: после подключения страница из меню уходит.
@@ -995,15 +997,15 @@ export default async function (): Promise<IWorkspaceConfig[]> {
 export const walletCards: DesktopWalletCard[] = [
   {
     wallet_name: 'w.mkt.share',
-    label: 'Свободный паевой',
-    description: 'Стол заказов',
+    label: t('market.install.walletShareLabel'),
+    description: t('market.install.walletDescription'),
     accent: 'wallet',
     icon: 'savings',
   },
   {
     wallet_name: 'w.mkt.member',
-    label: 'Членский взнос',
-    description: 'Стол заказов',
+    label: t('market.install.walletMemberLabel'),
+    description: t('market.install.walletDescription'),
     accent: 'wallet',
     icon: 'card_membership',
   },

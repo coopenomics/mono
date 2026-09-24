@@ -2,6 +2,7 @@ import type { CandidateIntakeAnswerDomainInterface } from '~/domain/account/inte
 import type { IntakeFormAnswerDomainInterface } from '~/domain/participant/interfaces/register-participant-domain.interface';
 import type { RegisteredIntakeForm } from '../services/agreement-registry.service';
 import { intakeFieldLabel, validateIntakeValues } from './intake-schema.utils';
+import { t } from '~/i18n';
 
 export interface IntakeAnswersCheck {
   /** Ответы в виде, готовом к хранению; заполнен, только если замечаний нет. */
@@ -18,7 +19,7 @@ function checkForm(
 ): { stored?: CandidateIntakeAnswerDomainInterface; problems: string[] } {
   // Заголовок анкеты сам говорит, что это анкета («Анкета программы …»),
   // поэтому в сообщении его не оборачиваем словом «анкета» ещё раз.
-  if (!answer) return { problems: [`${form.title}: не заполнена`] };
+  if (!answer) return { problems: [t('registration.intakeAnswers.formNotFilled', { formTitle: form.title })] };
 
   const { data, issues } = validateIntakeValues(form.json_schema, answer.values);
   if (issues.length > 0) {
@@ -59,7 +60,7 @@ export function checkIntakeAnswers(
 
   const unknown = given.filter((answer) => !requiredForms.some((form) => form.id === answer.form_id));
   if (unknown.length > 0) {
-    problems.push(`Для этой заявки не предусмотрены анкеты: ${unknown.map((answer) => answer.form_id).join(', ')}`);
+    problems.push(t('registration.intakeAnswers.unknownForms', { formIds: unknown.map((answer) => answer.form_id).join(', ') }));
   }
 
   for (const form of requiredForms) {

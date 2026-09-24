@@ -10,12 +10,12 @@ q-btn(
   no-wrap
 )
   q-icon(name='fa-solid fa-plus')
-  span.q-ml-sm(v-if='!isMobile') Предложить
-  q-tooltip(v-if='isMobile') Предложить повестку
+  span.q-ml-sm(v-if='!isMobile') {{ $t('decision.createProjectButton.submit') }}
+  q-tooltip(v-if='isMobile') {{ $t('decision.createProjectButton.title') }}
 
 BaseDialog(
   v-model='show',
-  title='Предложить повестку',
+  :title='$t("decision.createProjectButton.title")',
   :maximized='true',
   :close-on-backdrop='false',
   :close-on-escape='false'
@@ -25,7 +25,7 @@ BaseDialog(
     :is-submitting='isSubmitting',
     :showSubmit='!isLoading',
     :showCancel='true',
-    :button-submit-txt='"Предложить"',
+    :button-submit-txt='$t("decision.createProjectButton.submit")',
     @cancel='clear'
   )
     q-input(
@@ -33,33 +33,33 @@ BaseDialog(
       v-model='createProjectInput.title',
       standout='bg-teal text-white',
       placeholder='',
-      label='Заголовок документа',
+      :label='$t("decision.createProjectButton.titleLabel")',
       counter,
       :maxlength='200',
       autocomplete='off',
-      hint='Кратко опишите суть предложения (до 200 символов)'
+      :hint='$t("decision.createProjectButton.titleHint")'
     ).q-mb-md
     q-input(
       dense,
       v-model='createProjectInput.question',
       standout='bg-teal text-white',
       placeholder='',
-      label='Вопрос на повестке дня',
+      :label='$t("decision.createProjectButton.questionLabel")',
       :rules='[(val) => notEmpty(val)]',
       autocomplete='off',
       type='textarea'
-      hint="Сформулируйте вопрос к обсуждению на повестке голосования"
+      :hint="$t('decision.createProjectButton.questionHint')"
     ).q-mb-md
     q-input(
       dense,
       v-model='createProjectInput.decision',
       standout='bg-teal text-white',
       placeholder='',
-      label='Предлагаемое решение вопроса для голосования',
+      :label='$t("decision.createProjectButton.decisionLabel")',
       :rules='[(val) => notEmpty(val)]',
       autocomplete='off',
       type='textarea'
-      hint="Сформулируйте проект решения по поставленному вопросу"
+      :hint="$t('decision.createProjectButton.decisionHint')"
     )
 </template>
 
@@ -78,6 +78,7 @@ import { useSessionStore } from 'src/entities/Session';
 import { useSystemStore } from 'src/entities/System/model';
 import { useAgendaStore } from 'src/entities/Agenda/model';
 import { useWindowSize } from 'src/shared/hooks';
+import { t } from 'src/shared/i18n';
 
 const { isMobile } = useWindowSize();
 const show = ref(false);
@@ -94,7 +95,7 @@ const create = async () => {
     const createdItem = await createProject(system.info.coopname, session.username);
     isSubmitting.value = false;
     show.value = false;
-    SuccessAlert('Вопрос добавлен на повестку для голосования');
+    SuccessAlert(t('decision.createProjectButton.success'));
     createProjectInput.value.title = '';
     createProjectInput.value.question = '';
     createProjectInput.value.decision = '';
@@ -104,7 +105,7 @@ const create = async () => {
     if (createdItem) agendaStore.insertCreated(createdItem);
   } catch (e) {
     isSubmitting.value = false;
-    FailAlert(`Ошибка: ${extractGraphQLErrorMessages(e)}`);
+    FailAlert(t('decision.createProjectButton.error', { message: extractGraphQLErrorMessages(e) }));
   }
 };
 

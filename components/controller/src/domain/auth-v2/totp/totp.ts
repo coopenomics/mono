@@ -1,4 +1,5 @@
 import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
+import { DomainError } from '@coopenomics/extension-kit';
 
 /**
  * TOTP (RFC 6238) для второго фактора CoopID — совместимо с Google Authenticator
@@ -29,7 +30,7 @@ function base32Decode(secret: string): Buffer {
   let bits = '';
   for (const ch of clean) {
     const idx = BASE32_ALPHABET.indexOf(ch);
-    if (idx === -1) throw new Error('Невалидный символ Base32 в TOTP-секрете');
+    if (idx === -1) throw DomainError.internal('AUTH_V2_TOTP_SECRET_INVALID_BASE32');
     bits += idx.toString(2).padStart(5, '0');
   }
   const bytes: number[] = [];

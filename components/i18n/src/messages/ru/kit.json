@@ -1,0 +1,48 @@
+{
+  "errors": {
+    "KIT_ACTIVE_MEMBERS_ONLY": "Доступ только для пайщиков в статусе «active»",
+    "KIT_AMOUNT_FORMAT_INVALID": "Неверный формат суммы: {amount}. Ожидается \"число\" или \"число валюта\"",
+    "KIT_AMOUNT_NUMBER_INVALID": "Некорректное числовое значение в сумме: {value}",
+    "KIT_AUTHORIZED_USER_REQUIRED": "Требуется авторизованный пользователь",
+    "KIT_CURRENCY_SYMBOL_INVALID": "Неверный символ валюты в {fieldName}. Ожидался: {expectedSymbol}",
+    "KIT_DOCUMENT_AMOUNT_FORMAT_INVALID": "Некорректный формат суммы в поле «{field}» или в ожидаемом значении.",
+    "KIT_DOCUMENT_COMPARE_MODE_UNKNOWN": "Неизвестный режим сравнения meta: {mode}",
+    "KIT_DOCUMENT_DRAFT_MISMATCH": "Сверка подписанного документа с черновиком не прошла: {differences}. Возможна подмена документа.",
+    "KIT_DOCUMENT_FIELD_MISMATCH": "Значение поля «{field}» в документе ({actual}) не совпадает с ожидаемым ({expected}). Возможна подмена документа.",
+    "KIT_DOCUMENT_META_FIELD_MISSING": "В метаданных документа отсутствует поле «{field}», требуемое для сверки.",
+    "KIT_GENERATED_DOCUMENT_NOT_FOUND": "Сгенерированный документ с хешем {docHash} не найден. Сначала сгенерируйте документ.",
+    "KIT_INSUFFICIENT_RIGHTS": "Недостаточно прав доступа",
+    "KIT_MEMBERS_ONLY": "Доступ только для пайщиков кооператива",
+    "KIT_NUMBER_INVALID": "Некорректное числовое значение: {value}",
+    "KIT_NUMBER_NEGATIVE": "Значение не может быть отрицательным: {value}",
+    "KIT_PAGE_LIMIT_INVALID": "Количество элементов на странице должно быть от 1 до 1000",
+    "KIT_PAGE_NUMBER_INVALID": "Номер страницы должен быть больше 0",
+    "KIT_QUANTITY_AMOUNT_INVALID": "Некорректное числовое значение в quantity: {amount}",
+    "KIT_QUANTITY_FORMAT_INVALID": "Неверный формат quantity: {quantity}. Ожидается \"число символ\"",
+    "KIT_SESSION_ENDED": "Сессия завершена, требуется повторная авторизация",
+    "KIT_SORT_FIELD_INVALID": "Недопустимое поле сортировки",
+    "KIT_SORT_ORDER_INVALID": "Направление сортировки должно быть ASC или DESC",
+    "KIT_SYMBOL_UNSUPPORTED": "Неподдерживаемый символ: {symbol}. Поддерживаются только: {rootSymbol}, {rootGovernSymbol}",
+    "KIT_USER_NOT_AUTHORIZED": "Пользователь не авторизован"
+  },
+  "kit": {
+    "currency": {
+      "defaultFieldName": "сумма"
+    },
+    "documentVerification": {
+      "fieldDifference": "{field}: ожидалось \"{expected}\", получено \"{actual}\""
+    },
+    "expenseStatement": {
+      "dueDateFormat": "Укажите срок исполнения расхода в формате ДД.ММ.ГГГГ"
+    },
+    "pagination": {
+      "invalidSortField": "Недопустимое поле сортировки"
+    },
+    "payments": {
+      "insufficientFunds": "Недостаточно средств, поступило: {income}, ожидается: {expected}"
+    },
+    "syncAudit": {
+      "notSpecified": "не указано"
+    }
+  }
+}

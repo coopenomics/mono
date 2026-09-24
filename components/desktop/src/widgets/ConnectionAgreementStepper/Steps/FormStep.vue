@@ -34,7 +34,7 @@ const handleBack = () => {
 <template lang="pug">
 q-step(
   :name="2"
-  title="Параметры кооператива"
+  :title="$t('connectionAgreementStepper.formStep.title')"
   icon="settings"
   :done="isDone"
 )
@@ -42,9 +42,9 @@ q-step(
 
     //- Заголовок шага
     .step-header.q-mb-xl
-      .text-h6.form-title Настройка параметров кооператива
+      .text-h6.form-title {{ $t('connectionAgreementStepper.formStep.heading') }}
       .subtitle.text-body2.text-grey-7.q-mt-sm
-        | Заполните основные параметры для запуска вашего Цифрового Кооператива
+        | {{ $t('connectionAgreementStepper.formStep.subtitle') }}
 
     //- Форма ввода данных
     CooperativeDataForm(

@@ -1,4 +1,5 @@
 import type { IGeneratedDocument, ISignatureInfo, ISignatureInfoInput, ISignedChainDocument, ISignedDocument } from '../../types/document'
+import { lt } from '@coopenomics/i18n'
 import { PrivateKey, PublicKey, Signature } from '@wharfkit/antelope'
 import canonicalize from 'canonicalize'
 import { Crypto } from '../crypto'
@@ -81,14 +82,14 @@ export class Document {
       // Остальная цепочка (hash, signed_hash) и регистры — идентичны 1.0.0; меняется только источник meta_hash.
       const canonicalMeta = canonicalize(meta)
       if (canonicalMeta === undefined)
-        throw new Error('JCS: значение meta не сериализуемо (undefined/function/symbol)')
+        throw new Error(lt('sdkClient.error.metaNotSerializable'))
       const meta_hash = await Crypto.sha256(canonicalMeta)
       const hash = await Crypto.sha256(meta_hash + documentHash)
       const signed_hash = await Crypto.sha256(hash + signed_at)
       return { meta_hash, hash, signed_hash }
     }
 
-    throw new Error(`Неизвестная версия алгоритма: ${version}`)
+    throw new Error(lt('sdkClient.error.unknownAlgorithmVersion', { version }))
   }
 
   /**
@@ -108,7 +109,7 @@ export class Document {
     const version = CURRENT_DOCUMENT_VERSION
 
     if (!this.wif)
-      throw new Error(`Ключ не установлен, выполните вызов метода setWif перед подписью документа`)
+      throw new Error(lt('sdkClient.error.keyNotSet'))
 
     // Текущая дата в формате EOSIO
     const now = new Date()
@@ -124,17 +125,17 @@ export class Document {
       for (const existingDoc of existingSignedDocuments) {
         // Проверяем совместимость хэшей
         if (existingDoc.doc_hash.toUpperCase() !== document.hash.toUpperCase()) {
-          throw new Error(`Хэш документа не совпадает с существующим подписанным документом: ${existingDoc.doc_hash.toUpperCase()} !== ${document.hash.toUpperCase()}`)
+          throw new Error(lt('sdkClient.error.docHashMismatch', { existingHash: existingDoc.doc_hash.toUpperCase(), newHash: document.hash.toUpperCase() }))
         }
 
         if (existingDoc.meta_hash.toUpperCase() !== meta_hash.toUpperCase()) {
-          throw new Error(`Хэш метаданных не совпадает с существующим подписанным документом: ${existingDoc.meta_hash.toUpperCase()} !== ${meta_hash.toUpperCase()}`)
+          throw new Error(lt('sdkClient.error.metaHashMismatch', { existingHash: existingDoc.meta_hash.toUpperCase(), newHash: meta_hash.toUpperCase() }))
         }
 
         // Верифицируем существующие подписи
         for (const existingSignature of existingDoc.signatures) {
           if (!Document.validateSignature(existingSignature)) {
-            throw new Error(`Недействительная подпись от ${existingSignature.signer} с ID ${existingSignature.id}`)
+            throw new Error(lt('sdkClient.error.invalidSignature', { signer: existingSignature.signer, signatureId: existingSignature.id }))
           }
         }
 
@@ -150,7 +151,7 @@ export class Document {
     // Проверяем, что signatureId не дублируется
     const existingIds = allSignatures.map(sig => sig.id)
     if (existingIds.includes(signatureId)) {
-      throw new Error(`Подпись с ID ${signatureId} уже существует`)
+      throw new Error(lt('sdkClient.error.signatureAlreadyExists', { signatureId }))
     }
 
     // Подпись хэша документа
@@ -190,7 +191,7 @@ export class Document {
    */
   private signDigest(digest: string): IMessageSignature {
     if (!this.wif)
-      throw new Error(`Ключ не установлен, выполните вызов метода setWif перед подписью документа`)
+      throw new Error(lt('sdkClient.error.keyNotSet'))
 
     // Подпись хэша документа
     const signed = this.wif.signDigest(digest)
@@ -198,7 +199,7 @@ export class Document {
     const verified = signed.verifyDigest(digest, this.wif.toPublic())
 
     if (!verified) {
-      throw new Error('Ошибка проверки подписи')
+      throw new Error(lt('sdkClient.error.signatureVerificationFailed'))
     }
 
     return {
@@ -445,11 +446,11 @@ export class Document {
    */
   public static assertDocumentSignatures(document: ISignedDocument, requiredSigners: string[]): void {
     if (!document || !document.signatures) {
-      throw new Error('Документ не содержит подписей')
+      throw new Error(lt('sdkClient.error.documentNoSignatures'))
     }
 
     if (!requiredSigners || requiredSigners.length === 0) {
-      throw new Error('Список требуемых подписантов не может быть пустым')
+      throw new Error(lt('sdkClient.error.requiredSignersEmpty'))
     }
 
     // Получаем уникальные username из подписей документа
@@ -458,7 +459,7 @@ export class Document {
     // Проверяем наличие всех требуемых подписей
     const missingSigners = requiredSigners.filter(signer => !documentSigners.has(signer))
     if (missingSigners.length > 0) {
-      throw new Error(`Отсутствуют подписи от следующих пользователей: ${missingSigners.join(', ')}`)
+      throw new Error(lt('sdkClient.error.missingSigners', { signers: missingSigners.join(', ') }))
     }
 
     // Проверяем валидность подписей от требуемых пользователей
@@ -469,7 +470,7 @@ export class Document {
       const signerSignatures = document.signatures.filter(sig => sig.signer === requiredSigner)
 
       if (signerSignatures.length === 0) {
-        throw new Error(`Подпись от пользователя ${requiredSigner} не найдена`)
+        throw new Error(lt('sdkClient.error.signerSignatureNotFound', { signer: requiredSigner }))
       }
 
       // Проверяем валидность каждой подписи от этого пользователя
@@ -482,7 +483,7 @@ export class Document {
     }
 
     if (invalidSignatures.length > 0) {
-      throw new Error(`Недействительные подписи от следующих пользователей: ${invalidSignatures.join(', ')}`)
+      throw new Error(lt('sdkClient.error.invalidSigners', { signers: invalidSignatures.join(', ') }))
     }
   }
 }

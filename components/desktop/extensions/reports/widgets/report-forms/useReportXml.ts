@@ -1,4 +1,5 @@
 import { computed, type ComputedRef } from 'vue'
+import { uiLocale } from 'src/shared/i18n';
 import type { IReportRequisitesView } from 'src/entities/Report'
 
 /**
@@ -127,27 +128,78 @@ export function useReportXml(
     // через CSS-селектор; ЕФС-1 теги с namespace — туда заглядываем через
     // localName, в itself-значениях будут textContent.
     const h: BaseHeader = {
+      // i18n-ignore: XML-идентификатор для чтения отчёта, не текст интерфейса
+      // i18n-ignore: XML-идентификатор для чтения отчёта, не текст интерфейса
+      // i18n-ignore: XML-идентификатор для чтения отчёта, не текст интерфейса
       inn: getAttr('НПЮЛ', 'ИННЮЛ') || getText('ИНН'),
+      // i18n-ignore: XML-идентификатор для чтения отчёта, не текст интерфейса
+      // i18n-ignore: XML-идентификатор для чтения отчёта, не текст интерфейса
+      // i18n-ignore: XML-идентификатор для чтения отчёта, не текст интерфейса
       kpp: getAttr('НПЮЛ', 'КПП') || getText('КПП'),
+      // i18n-ignore: XML-идентификатор для чтения отчёта, не текст интерфейса
+      // i18n-ignore: XML-идентификатор для чтения отчёта, не текст интерфейса
+      // i18n-ignore: XML-идентификатор для чтения отчёта, не текст интерфейса
       orgName: getAttr('НПЮЛ', 'НаимОрг') || getText('Наименование'),
+      // i18n-ignore: XML-идентификатор для чтения отчёта, не текст интерфейса
+      // i18n-ignore: XML-идентификатор для чтения отчёта, не текст интерфейса
       address: getAttr('НПЮЛ', 'АдрМН'),
+      // i18n-ignore: XML-идентификатор для чтения отчёта, не текст интерфейса
+      // i18n-ignore: XML-идентификатор для чтения отчёта, не текст интерфейса
       okpo: getAttr('СвНП', 'ОКПО'),
+      // i18n-ignore: XML-идентификатор для чтения отчёта, не текст интерфейса
+      // i18n-ignore: XML-идентификатор для чтения отчёта, не текст интерфейса
       okfs: getAttr('СвНП', 'ОКФС'),
+      // i18n-ignore: XML-идентификатор для чтения отчёта, не текст интерфейса
+      // i18n-ignore: XML-идентификатор для чтения отчёта, не текст интерфейса
       okopf: getAttr('СвНП', 'ОКОПФ'),
+      // i18n-ignore: XML-идентификатор для чтения отчёта, не текст интерфейса
       okved: getText('КодПоОКВЭД'),
+      // i18n-ignore: XML-идентификатор для чтения отчёта, не текст интерфейса
+      // i18n-ignore: XML-идентификатор для чтения отчёта, не текст интерфейса
       oktmo: getAttr('СвНП', 'ОКТМО'),
+      // i18n-ignore: XML-идентификатор для чтения отчёта, не текст интерфейса
+      // i18n-ignore: XML-идентификатор для чтения отчёта, не текст интерфейса
       okei: getAttr('Документ', 'ОКЕИ'),
+      // i18n-ignore: XML-идентификатор для чтения отчёта, не текст интерфейса
+      // i18n-ignore: XML-идентификатор для чтения отчёта, не текст интерфейса
+      // i18n-ignore: XML-идентификатор для чтения отчёта, не текст интерфейса
       period: getAttr('Документ', 'Период') || getText('Код'),
+      // i18n-ignore: XML-идентификатор для чтения отчёта, не текст интерфейса
+      // i18n-ignore: XML-идентификатор для чтения отчёта, не текст интерфейса
+      // i18n-ignore: XML-идентификатор для чтения отчёта, не текст интерфейса
       year: Number(getAttr('Документ', 'ОтчетГод') || getText('Год')) || (yearGetter() ?? new Date().getFullYear()),
+      // i18n-ignore: XML-идентификатор для чтения отчёта, не текст интерфейса
+      // i18n-ignore: XML-идентификатор для чтения отчёта, не текст интерфейса
+      // i18n-ignore: XML-идентификатор для чтения отчёта, не текст интерфейса
       correctionNumber: getAttr('Документ', 'НомКорр') || getText('НомерКорректировки') || '0',
+      // i18n-ignore: XML-идентификатор для чтения отчёта, не текст интерфейса
+      // i18n-ignore: XML-идентификатор для чтения отчёта, не текст интерфейса
       kodNO: getAttr('Документ', 'КодНО'),
+      // i18n-ignore: XML-идентификатор для чтения отчёта, не текст интерфейса
+      // i18n-ignore: XML-идентификатор для чтения отчёта, не текст интерфейса
       docDate: getAttr('Документ', 'ДатаДок'),
+      // i18n-ignore: XML-идентификатор для чтения отчёта, не текст интерфейса
+      // i18n-ignore: XML-идентификатор для чтения отчёта, не текст интерфейса
       signerType: getAttr('Подписант', 'ПрПодп') === '2' ? 'representative' : 'chairman',
+      // i18n-ignore: XML-идентификатор для чтения отчёта, не текст интерфейса
+      // i18n-ignore: XML-идентификатор для чтения отчёта, не текст интерфейса
+      // i18n-ignore: XML-идентификатор для чтения отчёта, не текст интерфейса
       signerLastName: getAttr('Подписант ФИО', 'Фамилия') || getText('Фамилия'),
+      // i18n-ignore: XML-идентификатор для чтения отчёта, не текст интерфейса
+      // i18n-ignore: XML-идентификатор для чтения отчёта, не текст интерфейса
+      // i18n-ignore: XML-идентификатор для чтения отчёта, не текст интерфейса
       signerFirstName: getAttr('Подписант ФИО', 'Имя') || getText('Имя'),
+      // i18n-ignore: XML-идентификатор для чтения отчёта, не текст интерфейса
+      // i18n-ignore: XML-идентификатор для чтения отчёта, не текст интерфейса
+      // i18n-ignore: XML-идентификатор для чтения отчёта, не текст интерфейса
       signerMiddleName: getAttr('Подписант ФИО', 'Отчество') || getText('Отчество'),
+      // i18n-ignore: XML-идентификатор для чтения отчёта, не текст интерфейса
+      // i18n-ignore: XML-идентификатор для чтения отчёта, не текст интерфейса
       signerRepDoc: getAttr('Подписант СвПред', 'НаимДок'),
+      // i18n-ignore: XML-идентификатор для чтения отчёта, не текст интерфейса
+      // i18n-ignore: XML-идентификатор для чтения отчёта, не текст интерфейса
       signerSnils: getAttr('ПерсСвФЛ', 'СНИЛС'),
+      // i18n-ignore: XML-идентификатор для чтения отчёта, не текст интерфейса
       pfrRegNumber: getText('РегНомер'),
     }
     return withRequisites(h)
@@ -195,12 +247,12 @@ export function useReportXml(
 
   function fmt(n?: number): string {
     if (n == null || n === 0) return '—'
-    return new Intl.NumberFormat('ru-RU').format(n)
+    return new Intl.NumberFormat(uiLocale()).format(n)
   }
 
   function fmtZero(n?: number): string {
     if (n == null) return '—'
-    return new Intl.NumberFormat('ru-RU').format(n)
+    return new Intl.NumberFormat(uiLocale()).format(n)
   }
 
   return { doc, header, getAttr, getNum, getByLocal, getAllByLocal, getText, padInn, formatDate, fmt, fmtZero }

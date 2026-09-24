@@ -1,6 +1,6 @@
-import { ForbiddenException, Inject, Injectable, UseGuards } from '@nestjs/common';
+import { Inject, Injectable, UseGuards } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
-import { GqlJwtAuthGuard, platformSettings, GeneratedDocumentDTO, DocumentAggregateDTO } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, platformSettings, GeneratedDocumentDTO, DocumentAggregateDTO, DomainError } from '@coopenomics/extension-kit';
 import { CurrentMarketplaceMember } from '../decorators/current-marketplace-member.decorator';
 import { RequireMarketplaceAccess } from '../decorators/marketplace-access.decorator';
 import { MarketplaceMembershipGuard } from '../guards/marketplace-membership.guard';
@@ -149,7 +149,7 @@ export class MarketplaceIssuanceResolver {
     const coopname = platformSettings().coopname;
     await this.assertOperatorOfOrder(member, data.order_id);
     const saga = await this.service.getSagaByOrder(coopname, data.order_id);
-    if (!saga) throw new ForbiddenException('Выдача по заказу не начата.');
+    if (!saga) throw DomainError.forbidden('MARKETPLACE_ISSUANCE_NOT_STARTED');
     const aggregate = await this.service.getCloseSignablePayload(coopname, data.order_id);
     return { saga: toMarketplaceIssuanceSagaDTO(saga), act_aggregate: new DocumentAggregateDTO(aggregate) };
   }
@@ -310,13 +310,13 @@ export class MarketplaceIssuanceResolver {
     if (canAccess(roles, 'Issuance', 'read:all')) return;
     const own = await this.kuChairmanService.listBranamesForMember(platformSettings().coopname, member.username);
     if (!own.includes(braname)) {
-      throw new ForbiddenException('Действие доступно только на участке, где вы являетесь председателем или доверенным лицом.');
+      throw DomainError.forbidden('MARKETPLACE_ACTION_NOT_TRUSTEE');
     }
   }
 
   private async assertOperatorOfOrder(member: IMarketplaceCurrentMember, order_id: string): Promise<void> {
     const order = await this.orderRepo.findById(order_id);
-    if (!order || order.coopname !== platformSettings().coopname) throw new ForbiddenException(`Заказ ${order_id} не найден.`);
+    if (!order || order.coopname !== platformSettings().coopname) throw DomainError.forbidden('MARKETPLACE_ORDER_NOT_FOUND_BY_ID', { orderId: order_id });
     await this.assertBranameAllowed(member, order.delivery_braname);
   }
 }

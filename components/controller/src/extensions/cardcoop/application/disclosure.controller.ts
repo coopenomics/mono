@@ -19,6 +19,7 @@ import { CardcoopExtension } from '../cardcoop.extension';
 import { CardcoopDisclosureService } from '../disclosure/disclosure.service';
 import { CardcoopGrantRejected } from '../disclosure/grant-verifier.service';
 import type { CardcoopDisclosureEnvelope } from '../disclosure/disclosure.types';
+import { DomainError } from '@coopenomics/extension-kit';
 
 /** Что предъявляет кооператив-получатель. */
 interface DiscloseRequest {
@@ -56,19 +57,20 @@ export class CardcoopDisclosureController {
   @Throttle({ default: { limit: 30, ttl: 60_000 } })
   async disclose(@Body() body: DiscloseRequest): Promise<CardcoopDisclosureEnvelope> {
     try {
+      // i18n-ignore: внутренняя причина (CardcoopGrantRejected) — уходит только в лог, пайщику показывается общий текст ForbiddenException ниже
       if (!body.grant) throw new CardcoopGrantRejected('грант не предъявлен');
 
       return await this.disclosures.disclose(this.extension.config.api_url, body.grant);
     } catch (error) {
       if (error instanceof CardcoopGrantRejected) {
         this.logger.warn(`Раскрытие анкеты отклонено: ${error.message}`);
-        throw new ForbiddenException('Грант раскрытия не принят');
+        throw DomainError.forbidden('CARDCOOP_DISCLOSURE_GRANT_REJECTED');
       }
 
       this.logger.error(
         `Раскрытие анкеты не состоялось: ${error instanceof Error ? error.message : String(error)}`
       );
-      throw new ForbiddenException('Грант раскрытия не принят');
+      throw DomainError.forbidden('CARDCOOP_DISCLOSURE_GRANT_REJECTED');
     }
   }
 }

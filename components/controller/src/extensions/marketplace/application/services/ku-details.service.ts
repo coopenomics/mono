@@ -1,4 +1,4 @@
-import { Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { BRANCH_PORT, type IBranchPort } from '@coopenomics/innercoop';
 import {
   GeocodeStatuses,
@@ -16,7 +16,7 @@ import { KuDetailsDTO } from '../dto/ku-details.dto';
 import type { ListMarketplaceKUInputDTO } from '../dto/list-marketplace-ku-input.dto';
 import type { SetKUStatusInputDTO } from '../dto/deactivate-ku-input.dto';
 import { ORGANIZATION_PORT, type IOrganizationPort } from '@coopenomics/innercoop';
-import { platformSettings } from '@coopenomics/extension-kit';
+import { platformSettings, DomainError } from '@coopenomics/extension-kit';
 
 /**
  * Application-сервис marketplace-детализации существующих в core КУ
@@ -102,9 +102,7 @@ export class KuDetailsService {
     this.assertCurrentCoop(input.coopname);
     const updated = await this.repo.setStatus(input.coopname, input.coreBraname, input.status);
     if (!updated) {
-      throw new NotFoundException(
-        `marketplace_ku_details не найдена для (${input.coopname}, ${input.coreBraname})`
-      );
+      throw DomainError.notFound('MARKETPLACE_KU_DETAILS_NOT_FOUND', { coopname: input.coopname, coreBraname: input.coreBraname });
     }
     return KuDetailsDTO.fromDomain(updated);
   }
@@ -126,11 +124,11 @@ export class KuDetailsService {
     this.assertCurrentCoop(coopname);
     const existing = await this.repo.findByCoreBraname(coopname, coreBraname);
     if (!existing) {
-      throw new NotFoundException(`marketplace_ku_details не найдена для (${coopname}, ${coreBraname})`);
+      throw DomainError.notFound('MARKETPLACE_KU_DETAILS_NOT_FOUND', { coopname, coreBraname });
     }
     const orgAddress = await this.resolveOrgAddress(coreBraname);
     if (!orgAddress) {
-      throw new NotFoundException(`У организации участка "${coreBraname}" не задан адрес для геокодинга`);
+      throw DomainError.notFound('MARKETPLACE_KU_ADDRESS_MISSING', { coreBraname });
     }
     await this.runGeocodeAndPersist(coopname, coreBraname, orgAddress);
     const reread = await this.repo.findByCoreBraname(coopname, coreBraname);
@@ -169,7 +167,7 @@ export class KuDetailsService {
   private async assertBranchExists(coopname: string, braname: string): Promise<void> {
     const alive = await this.aliveBranames(coopname);
     if (alive && !alive.has(braname)) {
-      throw new NotFoundException(`Кооперативный участок "${braname}" не найден в кооперативе "${coopname}"`);
+      throw DomainError.notFound('MARKETPLACE_BRANCH_NOT_FOUND', { braname, coopname });
     }
   }
 
@@ -226,9 +224,7 @@ export class KuDetailsService {
 
   private assertCurrentCoop(coopname: string): void {
     if (coopname !== platformSettings().coopname) {
-      throw new NotFoundException(
-        `Controller обслуживает кооператив "${platformSettings().coopname}", запрос для "${coopname}" отклонён`
-      );
+      throw DomainError.notFound('MARKETPLACE_FOREIGN_COOP_REQUEST_REJECTED', { servedCoopname: platformSettings().coopname, requestedCoopname: coopname });
     }
   }
 }

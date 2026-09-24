@@ -1,0 +1,12 @@
+{
+  "errors": {
+    "WALLET_REFUND_AMOUNT_EXCEEDS_BALANCE": "Сумма возврата больше доступного остатка паевого взноса. Уменьшите сумму и подайте заявление снова.",
+    "WALLET_SUBSCRIPTION_MEMBER_ONLY": "Подписка доступна только пайщику своего кооператива.",
+    "WALLET_SUBSCRIPTION_OWN_COOPERATIVE_ONLY": "Подписка доступна только в рамках своего кооператива."
+  },
+  "wallet": {
+    "walletNotification": {
+      "paymentTypeShareContribution": "Паевой взнос по соглашению о ЦПП \"Цифровой Кошелёк\""
+    }
+  }
+}

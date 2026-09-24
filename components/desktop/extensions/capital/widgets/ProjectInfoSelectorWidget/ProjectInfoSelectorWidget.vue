@@ -7,14 +7,14 @@ div(ref="widgetRootRef")
       size="md"
       :outline="activeTab !== 'description'",
       color="primary",
-      label="Описание",
+      :label="$t('capital.projectInfoSelectorWidget.descriptionTabLabel')",
       @click="activeTab = 'description'"
     )
     q-btn(
       size="md"
       :outline="activeTab !== 'invite'",
       color="primary",
-      label="Приглашение",
+      :label="$t('capital.projectInfoSelectorWidget.inviteTabLabel')",
       @click="activeTab = 'invite'"
     )
 
@@ -22,14 +22,14 @@ div(ref="widgetRootRef")
       size="md"
       :outline="activeTab !== 'planning'",
       color="primary",
-      label="Финансирование",
+      :label="$t('capital.projectInfoSelectorWidget.fundingTabLabel')",
       @click="activeTab = 'planning'"
     )
     q-btn(
       size="md"
       :outline="activeTab !== 'contributors'"
       color="primary"
-      label="Участники"
+      :label="$t('capital.projectInfoSelectorWidget.contributorsTabLabel')"
       @click="activeTab = 'contributors'"
     )
 
@@ -40,7 +40,7 @@ div(ref="widgetRootRef")
       :min-height="descriptionEditorMinHeight"
       v-if="project"
       v-model='description',
-      :placeholder='descriptionPlaceholder || "Введите описание..."',
+      :placeholder='descriptionPlaceholder || $t("capital.projectInfoSelectorWidget.descriptionPlaceholder")',
       :readonly="!permissions?.can_edit_project",
       :padded="false"
       :show-focus-ring="true"
@@ -53,7 +53,7 @@ div(ref="widgetRootRef")
       :min-height="inviteEditorMinHeight"
       v-if="project"
       v-model='invite',
-      :placeholder='invitePlaceholder || "Введите приглашение..."',
+      :placeholder='invitePlaceholder || $t("capital.projectInfoSelectorWidget.invitePlaceholder")',
       :readonly="!permissions?.can_edit_project",
       :padded="false"
       :show-focus-ring="true"

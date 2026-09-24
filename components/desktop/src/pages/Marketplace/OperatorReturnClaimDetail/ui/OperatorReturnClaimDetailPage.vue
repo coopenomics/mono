@@ -20,6 +20,7 @@ import { RETURN_CLAIM_NEGATIVE_DECISIONS } from '../../OrdererReturnClaims/api';
 import RemoteDecisionDialog from '../../OperatorReturnClaims/ui/RemoteDecisionDialog.vue';
 import OnSiteDecisionDialog from '../../OperatorReturnClaims/ui/OnSiteDecisionDialog.vue';
 import { fetchReturnClaim } from '../api';
+import { t } from 'src/shared/i18n';
 
 /**
  * Универсальная детальная страница заявления на гарантийный возврат — стол ПВЗ.
@@ -57,10 +58,10 @@ async function handBack(): Promise<void> {
   handingBack.value = true;
   try {
     await handBackReturn({ claim_id: c.id, braname: c.delivery_braname });
-    SuccessAlert('Имущество выдано пайщику обратно — заявление закрыто.');
+    SuccessAlert(t('marketplace.operatorReturnClaimDetail.handBackDoneMessage'));
     await load();
   } catch (e) {
-    FailAlert(e, 'Не удалось выдать имущество обратно');
+    FailAlert(e, t('marketplace.operatorReturnClaimDetail.handBackError'));
   } finally {
     handingBack.value = false;
   }
@@ -90,7 +91,7 @@ const timelineEvents = computed<ActivityEvent[]>(() => {
     id: 'submitted',
     type: 'create',
     icon: 'assignment_return',
-    title: 'Заявление подано',
+    title: t('marketplace.operatorReturnClaimDetail.timelineCreatedTitle'),
     date: String(c.created_at),
   });
   for (const entry of c.decision_log) {
@@ -112,7 +113,7 @@ async function load(): Promise<void> {
   try {
     claim.value = await fetchReturnClaim(claimId.value);
   } catch (e) {
-    FailAlert(e, 'Не удалось загрузить заявление на возврат');
+    FailAlert(e, t('marketplace.operatorReturnClaimDetail.loadError'));
   } finally {
     loading.value = false;
   }
@@ -155,12 +156,12 @@ useMarketplaceRealtime(
 </script>
 
 <template lang="pug">
-q-page.return-detail(role='region', aria-label='Заявление на гарантийный возврат')
+q-page.return-detail(role='region', :aria-label='$t("marketplace.operatorReturnClaimDetail.ariaLabel")')
   .return-detail__col
     BaseButton.return-detail__back(variant='ghost', size='sm', @click='goBack')
       template(#icon-left)
         q-icon(name='arrow_back', size='16px')
-      | К гарантийным возвратам
+      | {{ $t('marketplace.operatorReturnClaimDetail.backToClaimsButton') }}
 
     q-inner-loading(:showing='loading && !claim')
       q-spinner(color='primary', size='2em')
@@ -170,7 +171,7 @@ q-page.return-detail(role='region', aria-label='Заявление на гара
         .return-detail__head
           q-icon.return-detail__icon(name='assignment_return', size='24px')
           .return-detail__head-text
-            .t-h2.return-detail__title Заказ {{ claim.order_id.slice(0, 8) }} · заказчик {{ claim.orderer_name || claim.orderer_account }}
+            .t-h2.return-detail__title {{ $t('marketplace.operatorReturnClaimDetail.orderOrdererText', { orderShort: claim.order_id.slice(0, 8), orderer: claim.orderer_name || claim.orderer_account }) }}
             .return-detail__sub
               span.return-detail__num №&nbsp;{{ claim.id.slice(0, 8) }}
               span(aria-hidden='true') ·
@@ -186,51 +187,51 @@ q-page.return-detail(role='region', aria-label='Заявление на гара
               target='_blank',
               rel='noopener'
             )
-              img(:src='p.url', :alt='`Фото ${i + 1}`')
+              img(:src='p.url', :alt='$t(`marketplace.operatorReturnClaimDetail.photoLabel`, { index: i + 1 })')
 
           .return-detail__facts
             .return-detail__fact
-              .return-detail__fact-label Количество к возврату
+              .return-detail__fact-label {{ $t('marketplace.operatorReturnClaimDetail.quantityLabel') }}
               .return-detail__fact-value {{ claimQuantityLabel(claim) }}
             .return-detail__fact
-              .return-detail__fact-label Сумма возврата
+              .return-detail__fact-label {{ $t('marketplace.operatorReturnClaimDetail.refundAmountLabel') }}
               .return-detail__fact-value.return-detail__fact-value--money {{ formatAsset2Digits(claim.fact_cost) }} ₽
             .return-detail__fact
-              .return-detail__fact-label Причина возврата
+              .return-detail__fact-label {{ $t('marketplace.operatorReturnClaimDetail.reasonLabel') }}
               .return-detail__fact-value {{ claim.reason_text }}
             .return-detail__fact(v-if='claim.defect_category')
-              .return-detail__fact-label Категория дефекта
+              .return-detail__fact-label {{ $t('marketplace.operatorReturnClaimDetail.defectCategoryLabel') }}
               .return-detail__fact-value {{ defectCategoryLabel(claim.defect_category) }}
             .return-detail__fact(v-if='isApprovedForVisit && lastDecisionAt')
-              .return-detail__fact-label Одобрено
+              .return-detail__fact-label {{ $t('marketplace.operatorReturnClaimDetail.approvedLabel') }}
               .return-detail__fact-value {{ formatDate(lastDecisionAt) }}
             .return-detail__fact(v-if='claim.ledger_snapshot')
-              .return-detail__fact-label Восстановлено пайщику
+              .return-detail__fact-label {{ $t('marketplace.operatorReturnClaimDetail.restoredToMemberLabel') }}
               .return-detail__fact-value.return-detail__fact-value--money {{ formatAsset2Digits(claim.ledger_snapshot.amount) }} ₽
 
         .return-detail__note(v-if='isPendingCouncil')
           q-icon(name='schedule', size='16px')
-          span Имущество принято, заявление на повестке совета. Решение придёт сюда само — торопить его не нужно.
+          span {{ $t('marketplace.operatorReturnClaimDetail.pendingBoardNote') }}
         .return-detail__note(v-if='isDeclinedByCouncil')
           q-icon(name='info', size='16px')
-          span Совет отказал. Имущество ждёт пайщика — выдайте его обратно при визите.
+          span {{ $t('marketplace.operatorReturnClaimDetail.declinedNote') }}
         .return-detail__actions(v-if='isPendingReview || isApprovedForVisit || canHandBack')
           BaseButton(v-if='isPendingReview', variant='primary', size='sm', @click='startRemote')
             template(#icon-left)
               q-icon(name='gavel', size='16px')
-            | Принять решение
+            | {{ $t('marketplace.operatorReturnClaimDetail.decideButton') }}
           BaseButton(v-if='isApprovedForVisit', variant='secondary', size='sm', @click='startOnSite')
             template(#icon-left)
               q-icon(name='fact_check', size='16px')
-            | Приём имущества
+            | {{ $t('marketplace.operatorReturnClaimDetail.acceptPropertyButton') }}
           BaseButton(v-if='canHandBack', variant='secondary', size='sm', :loading='handingBack', @click='handBack')
             template(#icon-left)
               q-icon(name='undo', size='16px')
-            | Выдать обратно
+            | {{ $t('marketplace.operatorReturnClaimDetail.handBackButton') }}
 
       BaseCard.return-detail__card(v-if='timelineEvents.length')
         template(#head)
-          .t-h3 Хронология
+          .t-h3 {{ $t('marketplace.operatorReturnClaimDetail.timelineHeader') }}
         ActivityTimeline(:events='timelineEvents', group-by-date)
 
     RemoteDecisionDialog(

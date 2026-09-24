@@ -11,6 +11,7 @@ import {
   normalizeDescription,
   type ContentSnapshot,
 } from '../../domain/utils/content-merge.util';
+import { DomainError } from '@coopenomics/extension-kit';
 
 /** Таблица и колонка-ключ каждой сущности с историей редакций. */
 const ENTITY_TABLES: Record<ContentEntityType, { table: string; hashColumn: string; hasFormat: boolean }> = {
@@ -95,9 +96,7 @@ export class ContentRevisionService {
       }
       if (baseRev !== undefined && baseRev !== null && baseRev !== currentRev) {
         if (baseRev > currentRev) {
-          throw new Error(
-            `Редакция ${baseRev} клиента новее серверной ${currentRev} для ${input.entity_type} ${input.entity_hash}: обновите данные`
-          );
+          throw DomainError.internal('CAPITAL_CONTENT_REVISION_STALE', { baseRev, currentRev, entityType: input.entity_type, entityHash: input.entity_hash });
         }
         const baseRow = await em.findOne(ContentRevisionTypeormEntity, {
           where: { entity_type: input.entity_type, entity_hash: input.entity_hash, rev: baseRev },
@@ -310,7 +309,7 @@ export class ContentRevisionService {
       );
     const row = rows[0];
     if (!row) {
-      throw new Error(`Сущность ${entityType} ${entityHash} не найдена`);
+      throw DomainError.internal('CAPITAL_CONTENT_ENTITY_NOT_FOUND', { entityType, entityHash });
     }
     return {
       title: row.title ?? '',

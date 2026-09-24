@@ -1,34 +1,35 @@
+import { t } from '../i18n';
 /**
  * Маппинг типов одобрений на заголовки и описания для уведомлений
  */
 export const APPROVAL_TYPE_MAP = {
   approvecmmt: {
-    title: 'Одобрение коммита',
-    description: 'Требуется одобрение коммита в проект',
+    title: t('chairman.approvalTypes.commit.title'),
+    description: t('chairman.approvalTypes.commit.description'),
   },
   approvepjprp: {
-    title: 'Одобрение проектного имущественного взноса',
-    description: 'Требуется одобрение проектного имущественного взноса',
+    title: t('chairman.approvalTypes.projectContribution.title'),
+    description: t('chairman.approvalTypes.projectContribution.description'),
   },
   approvepgprp: {
-    title: 'Одобрение программного имущественного взноса',
-    description: 'Требуется одобрение программного имущественного взноса',
+    title: t('chairman.approvalTypes.programContribution.title'),
+    description: t('chairman.approvalTypes.programContribution.description'),
   },
   approvereg: {
-    title: 'Одобрение регистрации участника',
-    description: 'Требуется одобрение регистрации нового участника',
+    title: t('chairman.approvalTypes.registration.title'),
+    description: t('chairman.approvalTypes.registration.description'),
   },
   approveinvst: {
-    title: 'Одобрение инвестиции',
-    description: 'Требуется одобрение инвестиции',
+    title: t('chairman.approvalTypes.investment.title'),
+    description: t('chairman.approvalTypes.investment.description'),
   },
   apprvappndx: {
-    title: 'Одобрение допуска к проекту',
-    description: 'Требуется одобрение приложения к договору участия в хозяйственной деятельности по проекту.',
+    title: t('chairman.approvalTypes.projectAccess.title'),
+    description: t('chairman.approvalTypes.projectAccess.description'),
   },
   approverslt: {
-    title: 'Одобрение результата',
-    description: 'Требуется одобрение результата интеллектуальной деятельности для приёмки',
+    title: t('chairman.approvalTypes.result.title'),
+    description: t('chairman.approvalTypes.result.description'),
   },
 } as const;
 

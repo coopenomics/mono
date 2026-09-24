@@ -1,9 +1,7 @@
 import { Args, Mutation, Resolver } from '@nestjs/graphql';
 import { ForbiddenException, UseGuards } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
-import { GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser, GeneratedDocumentDTO, GenerateDocumentOptionsInputDTO, TransactionDTO,
-  ExpenseProposalStatementGenerateDocumentInputDTO,
-} from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser, GeneratedDocumentDTO, GenerateDocumentOptionsInputDTO, TransactionDTO, ExpenseProposalStatementGenerateDocumentInputDTO, DomainError } from '@coopenomics/extension-kit';
 import type { IMonoAccount } from '@coopenomics/innercoop';
 import { ExpenseProposalDecisionGenerateDocumentInputDTO } from '../documents-dto/expense-proposal-decision-document.dto';
 import { ExpensesMutationsService } from '../services/expenses-mutations.service';
@@ -15,6 +13,7 @@ import { ExpenseReportResultDTO } from '../dto/report-expense-item.output';
 import { ReturnExpenseItemInputDTO } from '../dto/return-expense-item.input';
 import { OverspendExpenseItemInputDTO } from '../dto/overspend-expense-item.input';
 import { SubmitExpenseReportInputDTO } from '../dto/submit-expense-report.input';
+import { t } from '../../i18n';
 
 /**
  * GraphQL Mutation-резолвер контракта `expense`.
@@ -106,7 +105,7 @@ export class ExpenseMutationsResolver {
     // от роли — здесь это сломало бы ограничение «СЗ подаёт совет», поэтому роль
     // проверяется явно.
     if (user.role !== 'chairman' && user.role !== 'member') {
-      throw new ForbiddenException('Создавать служебные записки на расход могут только председатель и члены совета');
+      throw DomainError.forbidden('EXPENSES_PROPOSAL_FORBIDDEN');
     }
     return this.expensesMutations.createExpenseProposal(data);
   }
@@ -133,7 +132,7 @@ export class ExpenseMutationsResolver {
     @Args('data', { type: () => ReportExpenseItemInputDTO }) data: ReportExpenseItemInputDTO,
     @CurrentUser() user: IMonoAccount
   ): Promise<ExpenseReportResultDTO> {
-    await this.assertOwnsItem(user, data.proposal_hash, data.item_hash, 'Отчитаться по авансу может только его получатель');
+    await this.assertOwnsItem(user, data.proposal_hash, data.item_hash, t('expenses.expenseMutations.reportOwnerOnlyMessage'));
     return this.expensesMutations.reportExpenseItem(data);
   }
 
@@ -147,7 +146,7 @@ export class ExpenseMutationsResolver {
     @Args('data', { type: () => ReturnExpenseItemInputDTO }) data: ReturnExpenseItemInputDTO,
     @CurrentUser() user: IMonoAccount
   ): Promise<TransactionDTO> {
-    await this.assertOwnsItem(user, data.proposal_hash, data.item_hash, 'Вернуть остаток аванса может только его получатель');
+    await this.assertOwnsItem(user, data.proposal_hash, data.item_hash, t('expenses.expenseMutations.returnOwnerOnlyMessage'));
     return this.expensesMutations.returnExpenseItem(data);
   }
 

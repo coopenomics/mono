@@ -1,8 +1,8 @@
 <template lang="pug">
 q-page.personnel-page
   BaseBanner.personnel-page__hint(variant='info')
-    | Назначайте пайщикам роли — наборы возможностей (например «Бухгалтер», «Кассир»).
-    | Роль открывает доступ к соответствующим столам и страницам кооператива.
+    | {{ $t('cooperative.personnelPage.hintLine1') }}
+    | {{ $t('cooperative.personnelPage.hintLine2') }}
 
   .personnel-page__card
     q-table.personnel-table(
@@ -14,14 +14,14 @@ q-page.personnel-page
       :pagination='pagination',
       :rows-per-page-options='[10, 20, 50]',
       :loading='onLoading',
-      :no-data-label='"У кооператива нет пайщиков"'
+      :no-data-label='$t("cooperative.personnelPage.noDataLabel")'
     )
       template(#body-cell-actions='props')
         q-td(:props='props')
           BaseButton(variant='ghost', size='sm', @click='openRoles(props.row)')
             template(#icon-left)
               q-icon(name='manage_accounts', size='18px')
-            | Роли
+            | {{ $t('cooperative.personnelPage.rolesButtonLabel') }}
 
       template(#item='props')
         .personnel-card
@@ -31,7 +31,7 @@ q-page.personnel-page
           BaseButton(variant='ghost', size='sm', @click='openRoles(props.row)')
             template(#icon-left)
               q-icon(name='manage_accounts', size='18px')
-            | Роли
+            | {{ $t('cooperative.personnelPage.rolesButtonLabel') }}
 
   BaseDialog(
     :model-value='dialogOpen',
@@ -40,7 +40,7 @@ q-page.personnel-page
     @update:model-value='onDialog'
   )
     .personnel-roles
-      .personnel-roles__label.t-sm Назначенные роли
+      .personnel-roles__label.t-sm {{ $t('cooperative.personnelPage.assignedRolesLabel') }}
       .personnel-roles__chips(v-if='assignments.length')
         BaseChip(v-for='a in assignments', :key='a.set_key', variant='accent')
           | {{ titleOf(a.set_key) }}
@@ -48,24 +48,24 @@ q-page.personnel-page
             name='close',
             size='14px',
             role='button',
-            aria-label='Снять роль',
+            :aria-label='$t("cooperative.personnelPage.revokeAriaLabel")',
             @click='onRevoke(a.set_key)'
           )
       EmptyState(
         v-else,
-        title='Ролей пока нет',
-        caption='Добавьте роль из списка ниже'
+        :title='$t("cooperative.personnelPage.emptyTitle")',
+        :caption='$t("cooperative.personnelPage.emptyCaption")'
       )
 
       .personnel-roles__add
         BaseSelect(
           v-model='selectedSet',
           :options='addableOptions',
-          label='Добавить роль',
-          placeholder='Выберите набор возможностей'
+          :label='$t("cooperative.personnelPage.addRoleLabel")',
+          :placeholder='$t("cooperative.personnelPage.addRolePlaceholder")'
         )
         .personnel-roles__grants(v-if='selectedGrants.length')
-          span.t-sm.t-muted Эта роль открывает:
+          span.t-sm.t-muted {{ $t('cooperative.personnelPage.grantsIntro') }}
           .personnel-roles__grant-chips
             BaseChip(
               v-for='g in selectedGrants',
@@ -75,13 +75,13 @@ q-page.personnel-page
             ) {{ g.action }} · {{ g.resource }}
 
     template(#footer)
-      BaseButton(variant='ghost', @click='dialogOpen = false') Закрыть
+      BaseButton(variant='ghost', @click='dialogOpen = false') {{ $t('common.action.close') }}
       BaseButton(
         variant='primary',
         :disabled='!selectedSet',
         :loading='saving',
         @click='onAssign'
-      ) Назначить
+      ) {{ $t('cooperative.personnelPage.assignLabel') }}
 </template>
 
 <script setup lang="ts">
@@ -92,6 +92,7 @@ import { SuccessAlert, FailAlert } from 'src/shared/api';
 import { useAccountStore } from 'src/entities/Account/model';
 import { useCapabilitySets } from 'src/features/Personnel';
 import type { IAccount } from 'src/entities/Account/types';
+import { t } from 'src/shared/i18n';
 
 const accountStore = useAccountStore();
 const onLoading = ref(false);
@@ -106,7 +107,7 @@ const selectedSet = ref<string>('');
 const saving = ref(false);
 
 const dialogTitle = computed(() =>
-  target.value ? `Роли пайщика: ${getName(target.value)}` : 'Роли пайщика',
+  target.value ? t('cooperative.personnelPage.dialogTitleWithName', { name: getName(target.value) }) : t('cooperative.personnelPage.dialogTitleDefault'),
 );
 
 const titleOf = (setKey: string): string =>
@@ -125,8 +126,8 @@ const selectedGrants = computed(
 );
 
 const columns: any[] = [
-  { name: 'name', align: 'left', label: 'ФИО / Наименование', field: 'name', sortable: true },
-  { name: 'username', align: 'left', label: 'Аккаунт', field: 'username', sortable: true },
+  { name: 'name', align: 'left', label: t('cooperative.personnelPage.column.name'), field: 'name', sortable: true },
+  { name: 'username', align: 'left', label: t('cooperative.personnelPage.column.username'), field: 'username', sortable: true },
   { name: 'actions', align: 'right', label: '', field: 'actions' },
 ];
 
@@ -150,7 +151,7 @@ const onAssign = async (): Promise<void> => {
   try {
     saving.value = true;
     await assign(target.value.username, selectedSet.value);
-    SuccessAlert('Роль назначена');
+    SuccessAlert(t('cooperative.personnelPage.assignSuccess'));
     selectedSet.value = '';
   } catch (e: any) {
     FailAlert(e);
@@ -163,7 +164,7 @@ const onRevoke = async (setKey: string): Promise<void> => {
   if (!target.value) return;
   try {
     await revoke(target.value.username, setKey);
-    SuccessAlert('Роль снята');
+    SuccessAlert(t('cooperative.personnelPage.revokeSuccess'));
   } catch (e: any) {
     FailAlert(e);
   }

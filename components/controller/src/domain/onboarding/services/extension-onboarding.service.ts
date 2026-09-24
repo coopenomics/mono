@@ -3,10 +3,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { ONBOARDING_COMPLETED_EVENT } from '@coopenomics/innercoop';
 import { v4 as uuid } from 'uuid';
 import { Cooperative } from 'cooptypes';
-import {
-  EXTENSION_REPOSITORY,
-  type ExtensionDomainRepository,
-} from '@coopenomics/extension-kit';
+import { EXTENSION_REPOSITORY, type ExtensionDomainRepository, DomainError } from '@coopenomics/extension-kit';
 import type { ISignedDocument } from '@coopenomics/innercoop';
 import { computeOnboardingExpiresAt } from '../constants/onboarding-ttl';
 import {
@@ -81,7 +78,7 @@ export class ExtensionOnboardingService {
   private async loadExtension(extension_name: string) {
     const extension = await this.extensionRepository.findByName(extension_name);
     if (!extension) {
-      throw new Error(`Расширение не найдено: ${extension_name}`);
+      throw DomainError.internal('ONBOARDING_EXTENSION_NOT_FOUND', { extensionName: extension_name });
     }
     const extensionConfig: Record<string, unknown> = { ...extension.config };
     let needUpdate = false;
@@ -168,9 +165,7 @@ export class ExtensionOnboardingService {
       input.step_key
     );
     if (!spec) {
-      throw new Error(
-        `Шаг онбординга не зарегистрирован: ${input.extension_name}/${input.step_key}`
-      );
+      throw DomainError.internal('ONBOARDING_STEP_NOT_REGISTERED', { extensionName: input.extension_name, stepKey: input.step_key });
     }
 
     const extension = await this.loadExtension(input.extension_name);
@@ -198,9 +193,7 @@ export class ExtensionOnboardingService {
     if (spec.generator === 'meet') {
       return this.runMeetGenerator(spec, input);
     }
-    throw new Error(
-      `Неизвестный generator шага онбординга: ${String(spec.generator)}`
-    );
+    throw DomainError.internal('ONBOARDING_UNKNOWN_STEP_GENERATOR', { generator: String(spec.generator) });
   }
 
   private async runFreeDecisionGenerator(
@@ -212,9 +205,7 @@ export class ExtensionOnboardingService {
     if (viaFactory !== null) return viaFactory;
 
     if (!input.question || !input.decision) {
-      throw new Error(
-        `Шаг ${spec.extension_name}/${spec.step_key} (generator='free_decision') требует question и decision`
-      );
+      throw DomainError.internal('ONBOARDING_FREE_DECISION_STEP_MISCONFIGURED', { extensionName: spec.extension_name, stepKey: spec.step_key });
     }
     const normalizedTitle =
       input.title?.trim().substring(0, 200) || spec.default_title;
@@ -302,9 +293,7 @@ export class ExtensionOnboardingService {
     input: ICompleteExtensionOnboardingStepInput
   ): Promise<string> {
     if (!input.proposal_hash) {
-      throw new Error(
-        `Шаг ${spec.extension_name}/${spec.step_key} (generator='meet') требует proposal_hash`
-      );
+      throw DomainError.internal('ONBOARDING_MEET_STEP_MISCONFIGURED', { extensionName: spec.extension_name, stepKey: spec.step_key });
     }
     await this.decisionTrackingPort.registerTrackingRule({
       hash: input.proposal_hash,

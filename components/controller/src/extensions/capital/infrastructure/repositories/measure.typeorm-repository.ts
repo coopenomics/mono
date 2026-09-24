@@ -6,6 +6,7 @@ import { MeasureDomainEntity } from '../../domain/entities/measure.entity';
 import { MetricStatus } from '../../domain/enums/metric-status.enum';
 import { MeasureTypeormEntity } from '../entities/measure.typeorm-entity';
 import { MeasureMapper } from '../mappers/measure.mapper';
+import { DomainError } from '@coopenomics/extension-kit';
 
 @Injectable()
 export class MeasureTypeormRepository implements MeasureRepository {
@@ -78,7 +79,7 @@ export class MeasureTypeormRepository implements MeasureRepository {
     await this.repo.save(MeasureMapper.toEntity(measure));
     const updated = await this.repo.findOne({ where: { _id: measure._id } });
     if (!updated) {
-      throw new Error(`Мера ${measure.measure_hash} не найдена после обновления`);
+      throw DomainError.internal('CAPITAL_MEASURE_NOT_FOUND_AFTER_UPDATE', { hash: measure.measure_hash });
     }
     return MeasureMapper.toDomain(updated);
   }

@@ -1,5 +1,6 @@
 import { Zeus, type Mutations, type Queries } from '@coopenomics/sdk';
 import type { BaseBadgeVariant } from 'src/shared/ui/base/BaseBadge/BaseBadge.types';
+import { t as i18nT } from 'src/shared/i18n';
 
 export type IDocumentTemplate =
   Queries.DocumentApprovals.DocumentTemplates.IOutput[typeof Queries.DocumentApprovals.DocumentTemplates.name][number];
@@ -18,26 +19,26 @@ export const DocumentTemplateEdition = Zeus.DocumentTemplateEdition;
 
 /** Подпись и цвет состояния документа в кооперативе. */
 export const STATE_VIEW: Record<string, { label: string; variant: BaseBadgeVariant }> = {
-  [DocumentApprovalState.NotRequired]: { label: 'Не требуется', variant: 'neutral' },
-  [DocumentApprovalState.NotApproved]: { label: 'Не утверждён', variant: 'warn' },
-  [DocumentApprovalState.Pending]: { label: 'В повестке', variant: 'info' },
-  [DocumentApprovalState.Approved]: { label: 'Утверждён', variant: 'pos' },
-  [DocumentApprovalState.Outdated]: { label: 'Новая редакция', variant: 'warn' },
+  [DocumentApprovalState.NotRequired]: { label: i18nT('cooperative.documentTemplatesModel.stateNotRequired'), variant: 'neutral' },
+  [DocumentApprovalState.NotApproved]: { label: i18nT('cooperative.documentTemplatesModel.stateNotApproved'), variant: 'warn' },
+  [DocumentApprovalState.Pending]: { label: i18nT('cooperative.documentTemplatesModel.statePending'), variant: 'info' },
+  [DocumentApprovalState.Approved]: { label: i18nT('cooperative.documentTemplatesModel.stateApproved'), variant: 'pos' },
+  [DocumentApprovalState.Outdated]: { label: i18nT('cooperative.documentTemplatesModel.stateOutdated'), variant: 'warn' },
 };
 
 export const KIND_LABEL: Record<string, string> = {
-  [DocumentKind.Agreement]: 'Соглашение',
-  [DocumentKind.Provision]: 'Положение',
-  [DocumentKind.Form]: 'Форма',
-  [DocumentKind.Service]: 'Служебный',
+  [DocumentKind.Agreement]: i18nT('cooperative.documentTemplatesModel.kindAgreement'),
+  [DocumentKind.Provision]: i18nT('cooperative.documentTemplatesModel.kindProvision'),
+  [DocumentKind.Form]: i18nT('cooperative.documentTemplatesModel.kindForm'),
+  [DocumentKind.Service]: i18nT('cooperative.documentTemplatesModel.kindService'),
 };
 
 /** Человеческие названия владельцев документов; неизвестное приложение показывается своим имением. */
 export const OWNER_LABEL: Record<string, string> = {
-  core: 'Кооператив',
-  capital: 'Капитал',
-  market: 'Стол заказов',
-  chairman: 'Совет',
+  core: i18nT('cooperative.documentTemplatesModel.ownerCore'),
+  capital: i18nT('cooperative.documentTemplatesModel.ownerCapital'),
+  market: i18nT('cooperative.documentTemplatesModel.ownerMarket'),
+  chairman: i18nT('cooperative.documentTemplatesModel.ownerChairman'),
 };
 
 export const ownerLabel = (extension_name: string): string => OWNER_LABEL[extension_name] ?? extension_name;

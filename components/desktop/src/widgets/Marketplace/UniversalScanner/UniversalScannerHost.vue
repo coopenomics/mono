@@ -8,6 +8,7 @@ import { BARCODE_FORMATS } from 'src/widgets/Marketplace/CodeScanner';
 import { ScannerDialog } from 'src/widgets/Marketplace/ScannerDialog';
 import { resolveHandoffTarget, useMarketplaceHandoffSignal } from 'src/shared/lib/marketplace';
 import { useUniversalScanner } from './useUniversalScanner';
+import { t } from 'src/shared/i18n';
 
 /**
  * Невидимый держатель всплывающего УНИВЕРСАЛЬНОГО сканера стола ПВЗ. Смонтирован
@@ -34,7 +35,7 @@ function onScanned(code: string): void {
   if (!target) {
     FailAlert(
       new Error(
-        'Нераспознанный код. Отсканируйте код передачи поставщика, QR с ТТН экспедитора или код получения заказчика.',
+        t('marketplace.error.scannerUnrecognizedCode'),
       ),
     );
     return;
@@ -54,11 +55,11 @@ onBeforeUnmount(() => actions.removeAction(ACTION));
 <template lang="pug">
 ScannerDialog(
   v-model='isOpen',
-  title='Сканировать QR',
+  :title='$t("marketplace.universalScannerHost.title")',
   :formats='BARCODE_FORMATS',
-  idle-caption='Наведите камеру на QR поставщика, ТТН или код получения заказчика',
-  frame-hint='Поместите код в рамку',
-  manual-label='Или введите код вручную',
+  :idle-caption='$t("marketplace.universalScannerHost.idleCaption")',
+  :frame-hint='$t("marketplace.universalScannerHost.frameHint")',
+  :manual-label='$t("marketplace.universalScannerHost.manualLabel")',
   @scanned='onScanned'
 )
 </template>

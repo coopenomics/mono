@@ -1,4 +1,5 @@
 import { Field, InputType } from '@nestjs/graphql';
+import { validationMessage } from '@coopenomics/extension-kit';
 import { IsNotEmpty, IsString } from 'class-validator';
 import type { CreateProjectPropertyDomainInput } from '../../../domain/actions/create-project-property-domain-input.interface';
 
@@ -8,32 +9,32 @@ import type { CreateProjectPropertyDomainInput } from '../../../domain/actions/c
 @InputType('CreateProjectPropertyInput')
 export class CreateProjectPropertyInputDTO implements CreateProjectPropertyDomainInput {
   @Field(() => String, { description: 'Имя аккаунта кооператива' })
-  @IsNotEmpty({ message: 'Имя аккаунта кооператива не должно быть пустым' })
-  @IsString({ message: 'Имя аккаунта кооператива должно быть строкой' })
+  @IsNotEmpty({ message: validationMessage('capital.createProjectPropertyInput.coopname.required') })
+  @IsString({ message: validationMessage('capital.createProjectPropertyInput.coopname.string') })
   coopname!: string;
 
   @Field(() => String, { description: 'Имя пользователя' })
-  @IsNotEmpty({ message: 'Имя пользователя не должно быть пустым' })
-  @IsString({ message: 'Имя пользователя должно быть строкой' })
+  @IsNotEmpty({ message: validationMessage('capital.createProjectPropertyInput.username.required') })
+  @IsString({ message: validationMessage('capital.createProjectPropertyInput.username.string') })
   username!: string;
 
   @Field(() => String, { description: 'Хэш проекта' })
-  @IsNotEmpty({ message: 'Хэш проекта не должен быть пустым' })
-  @IsString({ message: 'Хэш проекта должен быть строкой' })
+  @IsNotEmpty({ message: validationMessage('capital.createProjectPropertyInput.projectHash.required') })
+  @IsString({ message: validationMessage('capital.createProjectPropertyInput.projectHash.string') })
   project_hash!: string;
 
   @Field(() => String, { description: 'Хэш имущества' })
-  @IsNotEmpty({ message: 'Хэш имущества не должен быть пустым' })
-  @IsString({ message: 'Хэш имущества должен быть строкой' })
+  @IsNotEmpty({ message: validationMessage('capital.createProjectPropertyInput.propertyHash.required') })
+  @IsString({ message: validationMessage('capital.createProjectPropertyInput.propertyHash.string') })
   property_hash!: string;
 
   @Field(() => String, { description: 'Сумма имущества' })
-  @IsNotEmpty({ message: 'Сумма имущества не должна быть пустой' })
-  @IsString({ message: 'Сумма имущества должна быть строкой' })
+  @IsNotEmpty({ message: validationMessage('capital.createProjectPropertyInput.propertyAmount.required') })
+  @IsString({ message: validationMessage('capital.createProjectPropertyInput.propertyAmount.string') })
   property_amount!: string;
 
   @Field(() => String, { description: 'Описание имущества' })
-  @IsNotEmpty({ message: 'Описание имущества не должно быть пустым' })
-  @IsString({ message: 'Описание имущества должно быть строкой' })
+  @IsNotEmpty({ message: validationMessage('capital.createProjectPropertyInput.propertyDescription.required') })
+  @IsString({ message: validationMessage('capital.createProjectPropertyInput.propertyDescription.string') })
   property_description!: string;
 }

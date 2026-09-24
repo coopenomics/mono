@@ -20,7 +20,7 @@ import { MeetProcessedDomainEntity } from '~/domain/meet/entities/meet-processed
 import { NotifyOnAnnualGeneralMeetInputDomainInterface } from '~/domain/meet/interfaces/notify-on-annual-general-meet-input-domain.interface';
 import { generateUniqueHash } from '~/utils/generate-hash.util';
 import httpStatus from 'http-status';
-import { HttpApiError } from '@coopenomics/extension-kit';
+import { DomainError } from '@coopenomics/extension-kit';
 
 @Injectable()
 export class MeetInteractor {
@@ -190,7 +190,7 @@ export class MeetInteractor {
     });
 
     if (!processingData) {
-      throw new HttpApiError(httpStatus.NOT_FOUND, 'Собрание после перезапуска не найдено в блокчейне');
+      throw DomainError.notFound('MEET_NOT_FOUND_AFTER_RESTART');
     }
 
     const proposalAggregate = await this.documentAggregator.buildDocumentAggregate(data.newproposal);

@@ -11,12 +11,13 @@
 import { computed } from 'vue';
 import { useRoute } from 'vue-router';
 import { PageTabs } from 'src/shared/ui/layout';
+import { t } from 'src/shared/i18n';
 
 // Shell-страница «Каталог приложений»: канон-меню второго уровня
 // (Витрина / Установленные) вместо кнопок в топбаре.
 const tabs = [
-  { key: 'extstore-showcase', routeName: 'extstore-showcase', label: 'Витрина', icon: 'storefront' },
-  { key: 'appstore-installed', routeName: 'appstore-installed', label: 'Установленные', icon: 'check_circle' },
+  { key: 'extstore-showcase', routeName: 'extstore-showcase', label: t('extensionStore.extensionsManagement.showcaseTab'), icon: 'storefront' },
+  { key: 'appstore-installed', routeName: 'appstore-installed', label: t('extensionStore.extensionsManagement.installedTab'), icon: 'check_circle' },
 ];
 
 const route = useRoute();

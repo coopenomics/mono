@@ -1,0 +1,1901 @@
+{
+  "capital": {
+    "activeTimerWidget": {
+      "emptyBody": "Выберите задачу в мастерской и включите таймер на ней.",
+      "emptyTitle": "Сейчас ничего не учитывается",
+      "issueLabel": "Задача {issueHash}…",
+      "pauseButton": "Пауза",
+      "pausedNotice": "Таймер на паузе",
+      "resumeButton": "Продолжить",
+      "resumedNotice": "Таймер продолжен",
+      "statusPaused": "пауза",
+      "statusRunning": "идёт",
+      "stopButton": "Стоп",
+      "stoppedNotice": "Таймер остановлен",
+      "title": "Таймер"
+    },
+    "addAuthorButton": {
+      "addedCountSuccess": "Добавлено соавторов: {count}",
+      "ariaLabel": "Добавить соавтора",
+      "cancel": "Отменить",
+      "dialogTitle": "Добавить соавторов",
+      "label": "Соавтор",
+      "missingUsernameError": "У некоторых выбранных участников отсутствует имя пользователя",
+      "selectAtLeastOneError": "Выберите хотя бы одного соавтора",
+      "selectLabel": "Соавторы",
+      "selectPlaceholder": "Выберите соавторов...",
+      "selectedCount": "Выбрано соавторов: {count}",
+      "singleAddedSuccess": "Соавтор добавлен",
+      "warningText": "⚠️ После добавления соавторов их удаление будет невозможно. Для добавления соавторов они должны предварительно получить допуск на участие в проекте."
+    },
+    "addAuthorDialog": {
+      "addedCountSuccess": "Добавлено соавторов: {count}",
+      "missingUsernameError": "У некоторых выбранных участников отсутствует имя пользователя",
+      "selectAtLeastOneError": "Выберите хотя бы одного соавтора",
+      "selectLabel": "Соавторы",
+      "selectPlaceholder": "Выберите соавторов...",
+      "selectedCount": "Выбрано соавторов: {count}",
+      "singleAddedSuccess": "Соавтор добавлен",
+      "title": "Добавить соавторов",
+      "warningText": "⚠️ После добавления соавторов их удаление будет невозможно. Для добавления соавторов они должны предварительно получить допуск на участие в проекте."
+    },
+    "addAuthorFabAction": {
+      "label": "Соавтор"
+    },
+    "allocateFundsButton": {
+      "label": "Аллоцировать средства"
+    },
+    "allocateFundsDialog": {
+      "amountLabel": "Сумма",
+      "componentLabel": "Компонент",
+      "componentPlaceholder": "Выберите, куда направить средства",
+      "description": "Средства уходят со свободного остатка программы и становятся бюджетом компонента. Неизрасходованный остаток вернётся в программу, когда проект завершится или будет удалён.",
+      "submit": "Аллоцировать",
+      "success": "Средства аллоцированы в компонент",
+      "title": "Аллоцировать средства в компонент"
+    },
+    "allocationsPage": {
+      "allocatedBalanceLabel": "Всего",
+      "allocatedSubtitle": "Средства программы, ставшие бюджетом компонентов",
+      "allocatedTitle": "Аллоцировано в компоненты",
+      "column": {
+        "allocated": "Аллоцировано",
+        "component": "Компонент",
+        "project": "Проект",
+        "status": "Статус",
+        "used": "Использовано"
+      },
+      "emptyBody": "Здесь появятся компоненты, получившие бюджет программы.",
+      "emptyTitle": "Средства пока не аллоцированы",
+      "freeFundsBalanceLabel": "Доступно",
+      "freeFundsSubtitle": "Остаток, который можно аллоцировать в компоненты",
+      "freeFundsTitle": "Свободные средства программы"
+    },
+    "approveCommitButton": {
+      "approve": "Одобрить",
+      "success": "Коммит успешно одобрен"
+    },
+    "artifactsAccessPlaceholder": {
+      "componentDeniedBody": "Чтобы открыть артефакты этого компонента, получите допуск к нему или к родительскому проекту.",
+      "componentDeniedTitle": "Артефакты компонента доступны участникам",
+      "pendingComponentBody": "Когда мастер компонента или председатель подтвердит ваш запрос на допуск, артефакты этого компонента станут видны.",
+      "pendingProjectBody": "Когда мастер проекта или председатель подтвердит ваш запрос на допуск, артефакты проекта и его компонентов станут видны.",
+      "pendingTitle": "Запрос на допуск рассматривается",
+      "projectDeniedBody": "Чтобы открыть артефакты проекта и его компонентов, получите допуск к проекту.",
+      "projectDeniedTitle": "Артефакты проекта доступны участникам"
+    },
+    "artifactsListPage": {
+      "emptyText": "Нет доступных артефактов",
+      "loadError": "Не удалось загрузить артефакты: "
+    },
+    "calculateVotesButton": {
+      "label": "Рассчитать голоса"
+    },
+    "capitalBase": {
+      "loadingText": "Загрузка данных участника...",
+      "notActivatedText": "Программа еще не активирована. Только председатель может завершить настройку системы."
+    },
+    "capitalCouncilStepGroup": {
+      "announceAction": "Объявить собрание совета",
+      "approvedStatus": "Утверждено советом",
+      "pendingStatus": "Ожидаем решение совета"
+    },
+    "capitalOnboardingCard": {
+      "agendaProposalTitle": "Предложение повестки",
+      "agendaQuestionLabel": "Вопрос на повестке",
+      "announceAction": "Объявить",
+      "blagorostParamsSubtitle": "Переменные положения о целевой программе «БЛАГОРОСТ»",
+      "blagorostParamsTitle": "Параметры «БЛАГОРОСТ»",
+      "continueAction": "Продолжить",
+      "draftDecisionLabel": "Проект решения",
+      "generatingText": "Генерация документа...",
+      "generatorParamsSubtitle": "Переменные положения о целевой программе «ГЕНЕРАТОР»",
+      "generatorParamsTitle": "Параметры «ГЕНЕРАТОР»",
+      "hintPost": "совета для утверждения документов ЦПП.",
+      "hintPre": "Сначала заполните параметры положений «ГЕНЕРАТОР» и «БЛАГОРОСТ», затем объявите собрания",
+      "loadingText": "Загрузка данных онбординга...",
+      "saveAndContinueAction": "Сохранить и продолжить"
+    },
+    "capitalOnboardingWizard": {
+      "approveOffersStepDescription": "Оферты «ГЕНЕРАТОР» и «БЛАГОРОСТ» для пайщиков",
+      "approveOffersStepTitle": "Утверждение оферт ЦПП",
+      "approveRegulationsStepDescription": "Положение «ГЕНЕРАТОР», шаблон договора участия в хозяйственной деятельности и положение «БЛАГОРОСТ»",
+      "approveRegulationsStepTitle": "Утверждение положений и шаблонов ЦПП"
+    },
+    "capitalProfilePage": {
+      "coauthorRole": "Соавтор",
+      "contributionsByRoleTitle": "Взносы по ролям",
+      "coordinatorRole": "Координатор",
+      "executorRole": "Исполнитель",
+      "investorRole": "Инвестор",
+      "participationParamsTitle": "Параметры участия",
+      "totalContributionsLabel": "Общая сумма взносов"
+    },
+    "capitalProgramDocFields": {
+      "blagorostRegulationLabel": "Положение БЛАГОРОСТ",
+      "developmentTaskHint": "Задача развития: как описывается привлечение инноваций, разработок и решений в Платформу",
+      "directionHint": "Направление ЦПП: какую экосистему или сферу деятельности развивают пайщики (название, правовая основа, цель интеграции в экономику)",
+      "expandReasonHint": "Зачем расширять участие в Платформе: какая потребность участников закрывается при росте сообщества",
+      "expansionTaskHint": "Задача расширения: как описывается рост числа участников Платформы и их взаимодействия",
+      "extraReturnSourcesHint": "Дополнительные источники возврата: взносы пользователей, продукты и приложения, передаваемые или создаваемые в Обществе",
+      "generatorRegulationLabel": "Положение ГЕНЕРАТОР",
+      "growthCauseHint": "Причина роста числа участников: за счёт чего расширяется сообщество и на что это влияет",
+      "ideaCostNumberHint": "Стоимость одной Идеи в рублях — только число",
+      "ideaCostWordsHint": "Та же стоимость Идеи прописью",
+      "mainGoalHint": "Главная задача ЦПП: чем Платформа должна стать для участников (центр привлечения чего и для чего)",
+      "mainReturnSourceHint": "Основной источник возврата взносов: что создаёт экономический эффект (инфраструктура, продукт, механизм)",
+      "platformDefinitionHint": "Определение Платформы: что это, из чего состоит, кто участники, на какой технологии и принципах работает"
+    },
+    "capitalProgramDocumentParametersWidget": {
+      "emptyHint": "Нажмите «Сформировать предпросмотр», чтобы увидеть документ с редактируемыми полями.",
+      "fillAllParamsError": "Заполните все параметры в документах: {missing}",
+      "generatePreviewAction": "Сформировать предпросмотр",
+      "hint": "Заполните параметры положений «ГЕНЕРАТОР» и «БЛАГОРОСТ» прямо в тексте документа.",
+      "previewError": "Не удалось сформировать предпросмотр",
+      "refreshPreviewAction": "Обновить предпросмотр",
+      "saveAction": "Сохранить параметры",
+      "saveError": "Не удалось сохранить параметры",
+      "saveSuccess": "Параметры документов ЦПП сохранены",
+      "title": "Параметры документов ЦПП"
+    },
+    "capitalProgramDocumentStepPanel": {
+      "emptyBody": "Нажмите «Сформировать предпросмотр», чтобы увидеть документ с редактируемыми полями.",
+      "emptyTitle": "Предпросмотр ещё не сформирован",
+      "generatePreviewAction": "Сформировать предпросмотр",
+      "generatingText": "Формируем предпросмотр документа…",
+      "refreshPreviewAction": "Обновить предпросмотр"
+    },
+    "capitalRegistrationPage": {
+      "blagorostDocTitle": "{index}. Соглашение о программе Благорост",
+      "contactSupportText": "Уточните порядок и сумму в поддержке:",
+      "contractDocTitle": "{index}. Договор об участии в хозяйственной деятельности",
+      "docsNotReadyBody": "Если загрузка затянулась — обновите страницу или повторите генерацию.",
+      "docsNotReadyTitle": "Документы пока не готовы",
+      "earlyParticipantsText": "Перед продолжением нужно начислить дополнительный паевой взнос за раннее участие.",
+      "earlyParticipantsTitle": "Ранним участникам.",
+      "generateError": "Не удалось сгенерировать документы регистрации",
+      "generateFailedText": "Не удалось сформировать документы. Попробуйте ещё раз.",
+      "generatorDocTitle": "{index}. Оферта о программе Генератор",
+      "orChatText": "или через чат на сайте.",
+      "preparingDocsText": "Готовим документы…",
+      "reviewDocsText": "Ознакомьтесь с документами ниже и подпишите их.",
+      "signSubmitLabel": "Подписать и отправить",
+      "signSuccess": "Документы успешно подписаны и отправлены",
+      "storageDocTitle": "{index}. Соглашение о хранении имущества"
+    },
+    "capitalWalletsCardsWidget": {
+      "blagorostTitle": "Получено в Благорост",
+      "growthLabel": "Прирост",
+      "totalLabel": "Всего"
+    },
+    "commitsListWidget": {
+      "columnCost": "Себестоимость",
+      "columnDate": "Дата",
+      "columnHourCost": "Стоимость часа",
+      "componentLabel": "Компонент",
+      "diffLabel": "Изменения",
+      "emptyBody": "Когда участники зафиксируют время по компонентам, коммиты появятся здесь для проверки.",
+      "emptyTitle": "Коммитов пока нет",
+      "hourCostValue": "{amount} / час",
+      "linkLabel": "Ссылка",
+      "loadError": "Не удалось загрузить список коммитов",
+      "messageLabel": "Сообщение коммита",
+      "moreButton": "Ещё",
+      "paginationLabel": "{from}-{to} из {total}",
+      "reviewTab": "Отзыв и оценка работы",
+      "statusApproved": "Одобрен",
+      "statusPending": "Ожидает",
+      "statusRejected": "Отклонен",
+      "statusUndefined": "Не определен",
+      "tasksTab": "Задачи",
+      "unknownLabel": "Неизвестный"
+    },
+    "componentContributorsPage": {
+      "loadError": "Не удалось загрузить компонент"
+    },
+    "componentDescriptionPage": {
+      "placeholder": "Введите описание компонента..."
+    },
+    "componentHistoryPage": {
+      "title": "История компонента"
+    },
+    "componentInvestFabAction": {
+      "label": "Инвестировать",
+      "notAcceptingHint": "Компонент на данный момент инвестиции не принимает. Решение об открытии приема инвестиций принимает мастер совместно с советом кооператива.",
+      "plannedOnlyHint": "Инвестирование доступно только для запланированных проектов",
+      "shortLabel": "Инвестиция"
+    },
+    "componentInvitePage": {
+      "placeholder": "Введите приглашение..."
+    },
+    "componentMetricsPanel": {
+      "archiveTag": "архив",
+      "changesLabel": "Изменения",
+      "emptyHint": "Цели по мерам не заданы — откройте «План»",
+      "levelLabel": "Уровень",
+      "title": "Цели по мерам"
+    },
+    "componentPage": {
+      "artifactsTabLabel": "Артефакты",
+      "componentTabLabel": "Компонент",
+      "contributorsTabLabel": "Участники",
+      "descriptionTabLabel": "Описание",
+      "historyTabLabel": "История",
+      "issueTabLabel": "Задача",
+      "planTabLabel": "План",
+      "resultsTabLabel": "Результаты",
+      "tasksTabLabel": "Задачи",
+      "unavailableBody": "Он удалён или закрыт для вас. Ссылку из избранного можно снять звёздочкой в списке.",
+      "unavailableTitle": "Компонент недоступен",
+      "votingTabLabel": "Голосование"
+    },
+    "componentPlanningPage": {
+      "loadError": "Не удалось загрузить компонент",
+      "subtitle": "План и факт по компоненту",
+      "title": "План · {projectTitle}"
+    },
+    "componentResultsPage": {
+      "backToResultsLabel": "К результатам",
+      "blagorostCostTitle": "Стоимость Благороста",
+      "contributorsLabel": "Участники",
+      "generatorCostTitle": "Стоимость Генерации",
+      "loadingText": "Загрузка данных результатов...",
+      "notReadyBody": "Результаты можно отправить после завершения голосования и расчёта. Следите за статусом на странице описания.",
+      "notReadyTitle": "Проект ещё не готов к приёмке результатов",
+      "oapCostTitle": "Стоимость ОАП",
+      "submissionLabel": "Внесение результатов"
+    },
+    "componentSidebarWidget": {
+      "entityLabel": "компонент"
+    },
+    "componentTasksPage": {
+      "loadError": "Не удалось загрузить компонент"
+    },
+    "componentToProjectPathWidget": {
+      "loadingText": "Загрузка проекта..."
+    },
+    "componentVotingPage": {
+      "backToResultsLabel": "К результатам",
+      "deadlineBalanceLabel": "срок",
+      "deadlineTitle": "Голосование до",
+      "distributionTitle": "Распределение голосов",
+      "loadingText": "Загрузка данных голосования...",
+      "myVoteBalanceLabel": "ваш голос",
+      "myVoteTitle": "Голосующая сумма",
+      "notStartedBody": "Голосование будет доступно после завершения работы над проектом. Следите за статусом на странице описания.",
+      "notStartedTitle": "Голосование ещё не началось",
+      "participationLabel": "Участие",
+      "poolBalanceLabel": "пул",
+      "poolTitle": "На распределении",
+      "resultsTitle": "Результаты голосования",
+      "statusActive": "Активно",
+      "statusFinished": "Завершено",
+      "statusUnknown": "Неизвестно",
+      "summaryLabel": "Итоги"
+    },
+    "componentsListWidget": {
+      "emptyText": "Нет компонентов"
+    },
+    "componentsTreeWidget": {
+      "emptyText": "Нет компонентов",
+      "loadError": "Не удалось загрузить список компонентов",
+      "noFilterResults": "Нет результатов по фильтрам"
+    },
+    "composable": {
+      "blagorostOfferAgendaTitle": "Утверждение пользовательского соглашения (оферты) по присоединению к ЦПП «БЛАГОРОСТ»",
+      "blagorostOfferDecisionText": "Утвердить пользовательское соглашение (оферту) по присоединению к ЦПП «БЛАГОРОСТ»:",
+      "blagorostOfferDecisionTitle": "О утверждении пользовательского соглашения (оферты) по присоединению к ЦПП «БЛАГОРОСТ»",
+      "blagorostOfferDocTitle": "Пользовательское соглашение (оферта) по ЦПП «БЛАГОРОСТ»",
+      "blagorostRegulationAgendaTitle": "Утверждение Положения о целевой потребительской программе «БЛАГОРОСТ»",
+      "blagorostRegulationDecisionText": "Утвердить Положение о целевой потребительской программе «БЛАГОРОСТ»:",
+      "blagorostRegulationDecisionTitle": "О утверждении Положения о целевой потребительской программе «БЛАГОРОСТ»",
+      "blagorostRegulationDocTitle": "Положение о ЦПП «БЛАГОРОСТ»",
+      "contractTemplateAgendaTitle": "Утверждение шаблона договора участия в хозяйственной деятельности для работы по программе",
+      "contractTemplateDecisionText": "Утвердить шаблон договора участия в хозяйственной деятельности:",
+      "contractTemplateDecisionTitle": "О утверждении шаблона договора участия в хозяйственной деятельности",
+      "contractTemplateDocTitle": "Шаблон договора участия в хозяйственной деятельности",
+      "generatorOfferAgendaTitle": "Утверждение шаблона публичной оферты по ЦПП \"ГЕНЕРАТОР\" для пайщика",
+      "generatorOfferDecisionText": "Утвердить шаблон пользовательского соглашения (оферты) по участию в целевой потребительской программе \"ГЕНЕРАТОР\":",
+      "generatorOfferDecisionTitle": "О утверждении шаблона пользовательского соглашения (оферты) по участию в целевой потребительской программе \"ГЕНЕРАТОР\"",
+      "generatorOfferDocTitle": "Шаблон пользовательского соглашения (оферты) по участию в целевой потребительской программе \"ГЕНЕРАТОР\"",
+      "generatorRegulationAgendaTitle": "Утверждение Положения о целевой потребительской программе «ГЕНЕРАТОР»",
+      "generatorRegulationDecisionText": "Утвердить Положение о целевой потребительской программе «ГЕНЕРАТОР»:",
+      "generatorRegulationDecisionTitle": "О утверждении Положения о целевой потребительской программе «ГЕНЕРАТОР»",
+      "generatorRegulationDocTitle": "Положение о целевой потребительской программе \"ГЕНЕРАТОР\"",
+      "onboardingCompleteText": "Все необходимые документы для работы с программой утверждены.",
+      "onboardingCompleteTitle": "Онбординг ЦПП «БЛАГОРОСТ» завершен!",
+      "proposalCreatedSuccess": "Предложение создано и шаг отмечен."
+    },
+    "composables": {
+      "loadProjectError": "Не удалось загрузить проект"
+    },
+    "conflictDialog": {
+      "description": "и правки пересеклись в одном месте — автоматически слить не получилось. Ничего не потеряно: выберите, что оставить.",
+      "emptyPlaceholder": "(пусто)",
+      "intro": "Пока вы правили, документ сохранил кто-то ещё (редакция №{currentRev}, вы начинали с №{baseRev}),",
+      "keepMineAction": "Оставить мою",
+      "mergeManualAction": "Слить вручную (с маркерами)",
+      "mineLabel": "Моя версия",
+      "serverLabel": "Версия на сервере",
+      "takeServerAction": "Взять серверную",
+      "title": "Документ изменён параллельно",
+      "titleDiff": "Заголовок тоже разошёлся: «{oursTitle}» против «{theirsTitle}»."
+    },
+    "contributor": {
+      "status": {
+        "active": "Активный",
+        "approved": "Одобрен",
+        "import": "Импорт",
+        "inactive": "Неактивный",
+        "pending": "Ожидает",
+        "undefined": "Неопределен"
+      }
+    },
+    "contributorGamificationWidget": {
+      "levelLabel": "Уровень {level} ·",
+      "nextLevelHint": "До следующего уровня: {amount} {symbol}"
+    },
+    "contributorInfoWidget": {
+      "coauthorRole": "Соавтор",
+      "contributionsByRoleTitle": "Взносы по ролям",
+      "coordinatorRole": "Координатор",
+      "investorRole": "Инвестор",
+      "performerRole": "Исполнитель",
+      "totalContributionLabel": "Сумма взносов"
+    },
+    "contributorResultsListWidget": {
+      "componentLabel": "Компонент",
+      "ownShareTooltip": "Ваша доля в объекте авторских прав",
+      "projectLabel": "Проект",
+      "sharePercent": "{percent}% объекта",
+      "shareTooltip": "Доля участника в объекте авторских прав",
+      "voteButton": "Голосовать",
+      "votingLoadError": "Не удалось загрузить данные голосования",
+      "votingLoading": "Загружаем голосование…"
+    },
+    "contributorSelector": {
+      "empty": "Нет участников с допуском",
+      "label": "Участник",
+      "loading": "Загрузка...",
+      "noResults": "Ничего не найдено",
+      "searchPlaceholder": "Поиск участника...",
+      "searching": "Поиск..."
+    },
+    "contributorsListWidget": {
+      "aboutLabel": "О себе",
+      "blagorostAgreementLabel": "Соглашение Благорост",
+      "coauthorRole": "Соавтор",
+      "collapseAction": "Свернуть",
+      "columnBlagorost": "Благорост",
+      "columnGeneration": "Генерация",
+      "columnHoursPerDay": "Часы/день {sortMark}",
+      "columnMainWallet": "Главный кошелёк",
+      "columnRatePerHour": "Ставка/час {sortMark}",
+      "columnStatus": "Статус {sortMark}",
+      "columnUsername": "ФИО {sortMark}",
+      "contributionsByRoleTitle": "Взносы по ролям",
+      "coordinatorRole": "Координатор",
+      "documentNumberDate": "{number} от {date}",
+      "documentParamsTitle": "Параметры документов",
+      "emptyBody": "У кооператива ещё нет участников программы «Благорост».",
+      "emptyTitle": "Участников пока нет",
+      "expandAction": "Развернуть",
+      "generatorAgreementLabel": "Соглашение Генератор",
+      "investorRole": "Инвестор",
+      "memberRole": "Участник",
+      "moreButton": "Ещё",
+      "noInfo": "Информация отсутствует",
+      "paginationEmpty": "0 из 0",
+      "paginationLabel": "{from}–{to} из {total}",
+      "performerRole": "Исполнитель",
+      "storageAgreementLabel": "Соглашение о хранении",
+      "totalContributionLabel": "Общий взнос",
+      "uhdContractLabel": "Договор УХД"
+    },
+    "contributorsPage": {
+      "loadError": "Не удалось загрузить список участников"
+    },
+    "convertSegmentButton": {
+      "label": "Получить долю в ОАП"
+    },
+    "convertSegmentDialog": {
+      "allToBlagorostHint": "Все средства автоматически направляются в программу «Благорост»",
+      "blagorostBalanceLabel": "получите",
+      "blagorostTitle": "Программа «Благорост»",
+      "description": "Распределите средства между главным кошельком и кошельком программы «Благорост».",
+      "mainWalletBalanceLabel": "получите",
+      "mainWalletTitle": "Главный кошелёк",
+      "sliderHint": "0% — всё доступное в главный кошелёк · 100% — всё в программу «Благорост»",
+      "submit": "Получить",
+      "success": "Доля в объекте интеллектуальной собственности успешно получена",
+      "title": "Получить долю в объекте авторских прав",
+      "totalBalanceLabel": "сумма",
+      "totalTitle": "Всего к получению"
+    },
+    "createCommitButton": {
+      "buttonTitle": "Зафиксировать взнос",
+      "componentLabel": "Компонент проекта",
+      "costLabel": "Себестоимость",
+      "feedbackLabel": "Отзыв (необязательно)",
+      "feedbackPlaceholder": "Например, что сработало хорошо или что стоит учесть дальше…",
+      "noRateHint": "Укажите стоимость часа в профиле участника — без ставки коммит зафиксировать нельзя.",
+      "notSpecified": "не указано",
+      "remainingAfterCommitHint": "После фиксации в накоплении останется {remainingHours}.",
+      "satisfactionLabel": "Удовлетворение результатом",
+      "submit": "Зафиксировать",
+      "success": "Коммит успешно создан",
+      "timeLabel": "Время",
+      "title": "Коммит"
+    },
+    "createComponentButton": {
+      "addAriaLabel": "Добавить компонент",
+      "addLabel": "Добавить компонент",
+      "createAriaLabel": "Создать компонент",
+      "label": "Компонент"
+    },
+    "createComponentDialog": {
+      "descriptionLabel": "Описание компонента",
+      "descriptionPlaceholder": "Опишите компонент подробно...",
+      "nameLabel": "Название компонента",
+      "projectLabel": "Проект",
+      "projectPlaceholder": "Выберите проект",
+      "requiredFieldError": "Это поле обязательно для заполнения",
+      "selectProjectError": "Выберите проект",
+      "success": "Компонент успешно создан",
+      "title": "Создать компонент"
+    },
+    "createComponentFabAction": {
+      "label": "Компонент"
+    },
+    "createComponentHeaderButton": {
+      "ariaLabel": "Создать компонент",
+      "label": "Компонент"
+    },
+    "createCycleButton": {
+      "label": "Создать цикл"
+    },
+    "createDebtButton": {
+      "label": "Создать долг"
+    },
+    "createExpenseButton": {
+      "label": "Создать расход"
+    },
+    "createIssueButton": {
+      "addLabel": "Добавить задачу",
+      "createLabel": "Создать задачу"
+    },
+    "createIssueDialog": {
+      "componentLabel": "Компонент",
+      "componentPlaceholder": "Без компонента",
+      "createAnotherLabel": "Создать ещё одну задачу",
+      "descriptionLabel": "Описание задачи",
+      "descriptionPlaceholder": "Опишите задачу подробно...",
+      "estimateLabel": "Оценка (часы)",
+      "negativeEstimateError": "Оценка не может быть отрицательной",
+      "priorityLabel": "Приоритет",
+      "requiredError": "Это поле обязательно для заполнения",
+      "statusLabel": "Статус",
+      "success": "Задача {issueId} успешно создана",
+      "title": "Создать задачу",
+      "titleLabel": "Название задачи"
+    },
+    "createIssueFabAction": {
+      "label": "Задача"
+    },
+    "createIssueHeaderButton": {
+      "ariaLabel": "Создать задачу",
+      "label": "Задача"
+    },
+    "createProgramExpenseDialog": {
+      "title": "Создание программного расхода"
+    },
+    "createProgramInvestButton": {
+      "amountLabel": "Сумма",
+      "amountPositiveError": "Сумма должна быть положительной",
+      "ariaLabel": "Инвестировать в программу",
+      "cancel": "Отменить",
+      "dialogTitle": "Инвестирование в программу",
+      "label": "Инвестировать",
+      "success": "Инвестиция принята"
+    },
+    "createProjectButton": {
+      "label": "Проект"
+    },
+    "createProjectDialog": {
+      "descriptionLabel": "Описание проекта",
+      "descriptionPlaceholder": "Опишите проект...",
+      "nameLabel": "Название проекта",
+      "personalSuccess": "Персональный проект создан",
+      "personalTitle": "Создать персональный проект",
+      "requiredFieldError": "Это поле обязательно для заполнения",
+      "success": "Проект успешно создан",
+      "title": "Создать проект"
+    },
+    "createProjectFabAction": {
+      "label": "Проект"
+    },
+    "createProjectHeaderButton": {
+      "ariaLabel": "Создать проект",
+      "label": "Проект"
+    },
+    "createProjectInvestButton": {
+      "amountLabel": "Сумма",
+      "ariaLabel": "Инвестировать в проект",
+      "cancel": "Отменить",
+      "dialogTitle": "Инвестирование в проект",
+      "label": "Инвестиция",
+      "positiveAmountError": "Сумма инвестиций должна быть положительной",
+      "projectMissingError": "Не указан проект",
+      "submit": "Инвестировать",
+      "success": "Инвестиция принята"
+    },
+    "createProjectInvestDialog": {
+      "amountPlaceholder": "Введите сумму инвестиций",
+      "positiveAmountError": "Сумма инвестиций должна быть положительной",
+      "projectMissingError": "Не указан проект",
+      "submit": "Инвестировать",
+      "success": "Инвестиция принята успешно",
+      "title": "Инвестирование в проект"
+    },
+    "createRequirementButton": {
+      "ariaLabel": "Создать артефакт",
+      "label": "Артефакт"
+    },
+    "createRequirementDialog": {
+      "createAnotherLabel": "Создать ещё один артефакт",
+      "essenceHint": "Коротко опишите ожидаемое поведение или результат — детали можно добавить позже. Ctrl+Enter или ⌘+Enter — создать.",
+      "essenceLabel": "Суть артефакта",
+      "formatHint": "Markdown, BPMN, Draw.io или Mermaid — формат задаётся до сохранения.",
+      "formatLabel": "Формат содержимого",
+      "requiredFieldError": "Это поле обязательно для заполнения",
+      "success": "Артефакт успешно создан",
+      "title": "Создать артефакт"
+    },
+    "createRequirementFabAction": {
+      "label": "Артефакт"
+    },
+    "createRequirementWithEditorDialog": {
+      "success": "Артефакт успешно создан",
+      "title": "Создать артефакт",
+      "titleFieldLabel": "Заголовок",
+      "titleFieldPlaceholder": "Кратко сформулируйте артефакт"
+    },
+    "createResultDecisionInfoWidget": {
+      "applicantLabel": "Заявитель",
+      "componentLabel": "Компонент",
+      "hideResultText": "Скрыть текст результата",
+      "loadError": "Не удалось загрузить детали результата",
+      "loanRepaymentLabel": "Погашаемая ссуда",
+      "projectLabel": "Проект",
+      "resultHashLabel": "Хеш результата",
+      "resultTextEmpty": "Текст результата ещё не сформирован.",
+      "resultTitle": "Результат интеллектуальной деятельности",
+      "shareContributionLabel": "Паевой взнос",
+      "shareLabel": "Доля в результате",
+      "showResultText": "Показать текст результата",
+      "tasksTitle": "Задачи в результате",
+      "title": "Детальная информация"
+    },
+    "createStoryButton": {
+      "label": "Создать артефакт"
+    },
+    "csvUploader": {
+      "chooseFileButton": "выберите файл",
+      "dragHint": "Перетащите файл сюда или",
+      "invalidTypeError": "Пожалуйста, выберите CSV файл",
+      "parseError": "Ошибка при разборе файла: {error}",
+      "parsedSuccess": "Файл успешно разобран. Найдено {count} записей.",
+      "title": "Загрузите CSV файл с участниками",
+      "tooLargeError": "Файл слишком большой. Максимальный размер: 10MB"
+    },
+    "deallocateFundsButton": {
+      "ariaLabel": "Вернуть средства в программу",
+      "description": "Вернуть средства компонента в программу",
+      "label": "Вернуть"
+    },
+    "deallocateFundsDialog": {
+      "amountLabel": "Сумма",
+      "availableLabel": "Доступно к возврату",
+      "calculating": "Считаем…",
+      "componentLabel": "Компонент",
+      "debtHoldHint": "Часть средств удерживается под непогашенные ссуды участников — {amount}.",
+      "description": "Сумма вернётся в свободный остаток программы. Доли участников в компоненте пересчитаются: доступные им суммы уменьшатся пропорционально.",
+      "nothingToReturnError": "Возвращать нечего: средства компонента израсходованы.",
+      "submit": "Вернуть",
+      "success": "Средства возвращены в программу",
+      "title": "Вернуть средства в программу",
+      "unavailableVotingError": "Возврат недоступен: компонент уже ушёл на голосование или завершён."
+    },
+    "declineCommitButton": {
+      "buttonTitle": "Отклонить коммит",
+      "reasonLabel": "Причина отклонения",
+      "reasonPlaceholder": "Укажите причину отклонения...",
+      "reasonRequired": "Причина обязательна",
+      "success": "Коммит успешно отклонен",
+      "title": "Отклонить"
+    },
+    "deleteIssueButton": {
+      "ariaLabel": "Удалить задачу",
+      "cancel": "Отменить",
+      "confirmText": "Вы уверены, что хотите удалить задачу?",
+      "dialogTitle": "Удаление задачи",
+      "error": "Возникла ошибка при удалении",
+      "success": "Задача удалена"
+    },
+    "deleteProjectButton": {
+      "label": "Удалить проект"
+    },
+    "deleteProjectSidebarButton": {
+      "cancel": "Отменить",
+      "confirmText": "Вы уверены, что хотите удалить {entityLabel}?",
+      "dialogTitle": "Удаление {firstLetter}{rest}",
+      "entityLabel": "проект",
+      "error": "Возникла ошибка при удалении",
+      "success": "Удалено"
+    },
+    "deleteStoryButton": {
+      "cancel": "Отменить",
+      "confirmText": "Вы уверены, что хотите удалить?",
+      "dialogTitle": "Удаление",
+      "error": "Возникла ошибка при удалении",
+      "success": "Успешно удалено"
+    },
+    "drawioStoryEmbedEditor": {
+      "loading": "Загрузка редактора диаграммы…"
+    },
+    "editAboutInput": {
+      "editAriaLabel": "Редактировать информацию о себе",
+      "inputLabel": "Расскажите о себе и чем можете быть полезны кооперативу",
+      "label": "О себе",
+      "maxLengthHint": "Максимум 1000 символов",
+      "notSpecified": "Не указано",
+      "updateError": "Не удалось обновить информацию о себе",
+      "updateSuccess": "Информация о себе успешно обновлена"
+    },
+    "editHoursPerDayInput": {
+      "editAriaLabel": "Редактировать количество часов в день",
+      "label": "Часов в день",
+      "notSpecified": "Не указано",
+      "rangeHint": "От 1 до 8 часов",
+      "updateError": "Не удалось обновить количество часов",
+      "updateSuccess": "Количество часов успешно обновлено"
+    },
+    "editProject": {
+      "saveError": "Ошибка сохранения"
+    },
+    "editRatePerHourInput": {
+      "editAriaLabel": "Редактировать стоимость часа",
+      "invalidNumber": "Введите число",
+      "label": "Стоимость часа",
+      "notSpecified": "Не указано",
+      "rangeHint": "От 0 до 3000",
+      "updateError": "Не удалось обновить ставку за час",
+      "updateSuccess": "Ставка за час успешно обновлена"
+    },
+    "editRequirementPanel": {
+      "cancelChanges": "Отменить изменения",
+      "descriptionEmpty": "Описание отсутствует",
+      "descriptionPlaceholder": "Опишите артефакт подробно...",
+      "savedMergedFullSuccess": "Артефакт сохранён и слит с параллельными правками",
+      "savedMergedSuccess": "Сохранено и слито с параллельными правками",
+      "savedSuccess": "Сохранено",
+      "titleFieldLabel": "Артефакт",
+      "titleRequiredError": "Заголовок обязателен",
+      "unsavedCloseConfirm": "У вас есть несохранённые изменения. Вы уверены, что хотите закрыть?",
+      "unsavedLeaveConfirm": "У вас есть несохранённые изменения. Уйти со страницы?",
+      "updateError": "Не удалось обновить артефакт",
+      "updatedSuccess": "Артефакт успешно обновлён"
+    },
+    "editorSaveBar": {
+      "revisionLabel": "Редакция №{revision}",
+      "revisionsLabel": "Редакции",
+      "saving": "Сохранение…",
+      "unsavedHint": "Есть несохранённые изменения"
+    },
+    "error": {
+      "agreementDocumentMissing": "Документ соглашения не передан",
+      "agreementGenerateFailed": "Не удалось сгенерировать соглашение",
+      "clearanceParentProjectNotFound": "Родительский проект не найден для компонента",
+      "clearanceProjectHashNotFound": "Проект с хэшем {hash} не найден",
+      "clearanceProjectNotFound": "Проект не найден или некорректен",
+      "csvMissingColumns": "Отсутствуют обязательные столбцы: {columns}",
+      "csvReadError": "Ошибка чтения файла",
+      "expenseFileUrlUnavailable": "Не удалось получить ссылку на файл",
+      "invalidCreateexpMeta": "Некорректные метаданные заявления для решения createexp",
+      "investGenerateFailed": "Не удалось сгенерировать заявление",
+      "missingCreateexpMeta": "Отсутствуют метаданные заявления для решения createexp",
+      "missingCreateresultMeta": "Отсутствуют метаданные заявления для решения createresult",
+      "onboardingDocumentNotGenerated": "Документ не был сгенерирован",
+      "onboardingParamsHashFailed": "Не удалось получить хеш параметров документов",
+      "onboardingParamsNotFilled": "Сначала заполните параметры документов ЦПП и сформируйте предпросмотр",
+      "onboardingUnknownStep": "Неизвестный шаг онбординга: {stepId}",
+      "projectConcurrentEditConflict": "Документ изменён параллельно: обновите страницу и повторите",
+      "registerContributorDocumentMissing": "Документ не передан",
+      "registrationDocumentsNotGenerated": "Документы не сгенерированы",
+      "registrationRequiredDocumentsMissing": "Отсутствуют обязательные документы",
+      "resultDecisionApplicantMissing": "В решении не указан заявитель",
+      "resultNotFound": "Результат по заявлению не найден",
+      "segmentResultNotFound": "Объект результата не найден — внесение РИД не завершено (нужен signact2 от председателя).",
+      "segmentShareRefreshFailed": "Не удалось получить обновленную долю после конвертации",
+      "signActParticipantActMissing": "Акт от участника не найден. Участник должен сначала подписать акт.",
+      "signActRawDocumentMissing": "Сырой документ акта не найден. Невозможно наложить вторую подпись.",
+      "signActResultNotFound": "Результат не найден",
+      "signActUsernameMissing": "Имя пользователя не найдено",
+      "statementGenerationFailed": "Не удалось сгенерировать заявление"
+    },
+    "expandOptionsWidget": {
+      "expandAllLabel": "Развернуть всё"
+    },
+    "favoriteStarButton": {
+      "addTitle": "В избранное",
+      "removeTitle": "Убрать из избранного",
+      "updateError": "Не удалось обновить избранное: "
+    },
+    "filterDialog": {
+      "assigneeLabel": "Исполнитель",
+      "componentFiltersTitle": "Фильтры компонентов",
+      "componentMasterLabel": "Мастер компонента",
+      "componentPrioritiesLabel": "Приоритеты компонентов",
+      "componentStatusesLabel": "Статусы компонентов",
+      "issueFiltersTitle": "Фильтры задач",
+      "issuePrioritiesLabel": "Приоритеты задач",
+      "issueStatusesLabel": "Статусы задач",
+      "masterLabel": "Мастер",
+      "onlyMyIssuesLabel": "Только мои задачи",
+      "projectFiltersTitle": "Фильтры проектов",
+      "projectPrioritiesLabel": "Приоритеты проектов",
+      "projectStatusesLabel": "Статусы проектов",
+      "resetAction": "Сбросить",
+      "whereIAmMasterLabel": "Где я мастер"
+    },
+    "filterDialogWithButton": {
+      "ariaLabel": "Фильтры",
+      "title": "Фильтры"
+    },
+    "formatProjectMeta": {
+      "hoursFactPlan": "{factHours}ч / {planHours}ч"
+    },
+    "fundProgramButton": {
+      "label": "Финансировать программу"
+    },
+    "importContributorButton": {
+      "agreementDateLabel": "Дата соглашения Благорост (ДД.ММ.ГГГГ)",
+      "agreementDateRequired": "Дата соглашения Благорост обязательна",
+      "agreementNumberLabel": "Номер соглашения Благорост",
+      "agreementNumberRequired": "Номер соглашения Благорост обязателен",
+      "amountLabel": "Сумма взноса",
+      "amountRequired": "Сумма взноса обязательна",
+      "buttonLabel": "Добавить участника",
+      "contractDateLabel": "Дата договора (ДД.ММ.ГГГГ)",
+      "contractDateRequired": "Дата договора обязательна",
+      "contractNumberLabel": "Номер договора",
+      "contractNumberRequired": "Номер договора обязателен",
+      "dialogTitle": "Импорт участника",
+      "noteLabel": "Примечание",
+      "submit": "Импортировать",
+      "success": "Участник успешно импортирован",
+      "usernameLabel": "Имя пользователя",
+      "usernameRequired": "Имя пользователя обязательно"
+    },
+    "importContributorsButton": {
+      "columnBlagorostAgreementDate": "Дата соглашения Благорост",
+      "columnBlagorostAgreementNumber": "Номер соглашения Благорост",
+      "columnContractDate": "Дата договора",
+      "columnContractNumber": "Номер договора",
+      "columnContributionAmount": "Сумма вклада",
+      "columnMemo": "Примечание",
+      "columnStatus": "Статус",
+      "columnUsername": "Имя пользователя",
+      "completedNotice": "Импорт завершен",
+      "completedSuccessOnly": "Импорт завершен. Успешно: {count}",
+      "completedWithErrors": "Импорт завершен. Успешно: {successCount}, Ошибок: {errorCount}",
+      "configSetBody": "Импорт участников недоступен после установки конфигурации контракта.",
+      "configSetTitle": "Конфигурация уже установлена",
+      "dataClearedNotice": "Данные очищены",
+      "dialogTitle": "Импорт участников",
+      "downloadTemplateButton": "Скачать шаблон CSV",
+      "errorCount": "Ошибок: {count}",
+      "importErrorNotice": "Произошла ошибка при импорте",
+      "importSectionTitle": "Импорт данных",
+      "importingTitle": "Выполняется импорт данных",
+      "noDataNotice": "Нет данных для импорта",
+      "previewTitle": "Предварительный просмотр данных ({count} записей)",
+      "progressLabel": "Прогресс импорта: {current}/{total} ({percent}%)",
+      "recordImportedNotice": "Запись успешно импортирована",
+      "resultsTitle": "Результаты импорта",
+      "retryAllDoneNotice": "Повторная попытка для всех ошибок завершена",
+      "startButton": "Начать импорт",
+      "statsTitle": "Статистика",
+      "statusError": "Ошибка",
+      "statusPending": "Ожидает",
+      "statusSuccess": "Успешно",
+      "statusUnknown": "Неизвестно",
+      "stopButton": "Остановить",
+      "stoppedNotice": "Импорт остановлен",
+      "successCount": "Успешно: {count}",
+      "triggerLabel": "Импорт из CSV",
+      "triggerTooltip": "Импорт участников из CSV",
+      "uploadSubtitle": "Загрузка участников из CSV файла"
+    },
+    "importResultsTable": {
+      "clearButton": "Очистить",
+      "columnActions": "Действия",
+      "columnContributionAmount": "Сумма вклада",
+      "columnContributorHash": "Хэш участника",
+      "columnError": "Ошибка",
+      "columnMemo": "Примечание",
+      "columnStatus": "Статус",
+      "columnUsername": "Имя пользователя",
+      "errorLabel": "Ошибок:",
+      "progressLabel": "Прогресс:",
+      "retryAllButton": "Повторить все ошибки",
+      "statusError": "Ошибка",
+      "statusPending": "Ожидает",
+      "statusSuccess": "Успешно",
+      "statusUnknown": "Неизвестно",
+      "successLabel": "Успешно:",
+      "title": "Результаты импорта ({count} записей)",
+      "totalLabel": "Всего:"
+    },
+    "install": {
+      "activityFeedRouteTitle": "Лента",
+      "allocationsRouteTitle": "Аллокации",
+      "artifactsRouteTitle": "Артефакты",
+      "componentResultsRouteTitle": "Результаты",
+      "componentVotingRouteTitle": "Голосование",
+      "componentsRouteTitle": "Компоненты",
+      "contributorsRouteTitle": "Участники",
+      "expensePoolWalletSubtitle": "Программные расходы ЦПП «Благорост»",
+      "expensePoolWalletTitle": "Пул расходов программы «Благорост»",
+      "extensionTitle": "Благорост",
+      "invitationsRouteTitle": "Приглашения",
+      "issueCommitsRouteTitle": "Коммиты задачи",
+      "issueDescriptionRouteTitle": "Описание задачи",
+      "issueHistoryRouteTitle": "История задачи",
+      "issueRequirementsRouteTitle": "Артефакты задачи",
+      "issueRouteTitle": "Задача",
+      "masterCommitsRouteTitle": "Коммиты",
+      "measuresRouteTitle": "Меры",
+      "myProjectsRouteTitle": "Мои проекты",
+      "profileRouteTitle": "Профиль",
+      "programExpenseRouteTitle": "Расход",
+      "programExpensesRouteTitle": "Расходы",
+      "projectsResultsRouteTitle": "Результаты",
+      "projectsRouteTitle": "Проекты",
+      "projectsVotingRouteTitle": "Голосования",
+      "registrationRouteTitle": "Регистрация",
+      "tasksRouteTitle": "Задачи",
+      "templateRouteTitle": "Шаблон",
+      "trackerRouteTitle": "Время",
+      "walletLabel": "Благорост"
+    },
+    "invitationDetailsWidget": {
+      "blagorostReceivedLabel": "Получено по Благоросту",
+      "coauthorRole": "Соавтор",
+      "coordinatorRole": "Координатор",
+      "performerRole": "Исполнитель",
+      "propertyContributionsLabel": "Взносы имуществом"
+    },
+    "invitationsListWidget": {
+      "asInvestorLabel": "как инвестор",
+      "emptyBody": "Приглашайте новых участников по своей ссылке. При каждой регистрации создаётся связь на 30 дней: если в этот период приглашённый внесёт денежный взнос в проект, вы получите 5% от суммы в виде доли в ОАП того же проекта.",
+      "emptyTitle": "У вас пока нет приглашений",
+      "linkActive": "Связь активна",
+      "linkInactive": "Связь не активна",
+      "memberLabel": "Участник",
+      "moneyContributionsTitle": "Взносы деньгами",
+      "notRegisteredYet": "регистрация не завершена",
+      "otherContributionsTitle": "Прочие взносы",
+      "otherRolesLabel": "прочие роли",
+      "registeredAtLabel": "Дата регистрации: {date}"
+    },
+    "invitationsPage": {
+      "coordinatorPercentBalanceLabel": "от денежного взноса инвестора",
+      "coordinatorPercentTitle": "Процент координатора",
+      "copyError": "Не удалось скопировать ссылку: ",
+      "copyLinkTitle": "Нажмите, чтобы скопировать ссылку",
+      "copySuccess": "Ссылка скопирована в буфер обмена",
+      "daysSymbol": "дн.",
+      "linkLabel": "Ссылка для приглашений",
+      "linkTtlBalanceLabel": "после регистрации приглашённого",
+      "linkTtlTitle": "Срок активности связи",
+      "loadingText": "Загрузка моих приглашений..."
+    },
+    "inviteWidget": {
+      "emptyPlaceholder": "Нет инвайта"
+    },
+    "issue": {
+      "priority": {
+        "high": "Высокий",
+        "low": "Низкий",
+        "medium": "Средний",
+        "urgent": "Срочный"
+      },
+      "status": {
+        "backlog": "Бэклог",
+        "canceled": "Отменена",
+        "done": "Выполнена",
+        "inProgress": "В работе",
+        "onReview": "На проверке",
+        "todo": "К выполнению"
+      }
+    },
+    "issueCommitsPage": {
+      "emptyBody": "Привязанные коммиты появятся здесь после связи задачи с репозиторием.",
+      "emptyTitle": "Коммитов пока нет"
+    },
+    "issueControls": {
+      "factHoursLabel": "Факт (ч)",
+      "labelsLabel": "Метки",
+      "planHoursLabel": "План (ч)",
+      "priorityLabel": "Приоритет",
+      "statusLabel": "Статус"
+    },
+    "issueDescriptionPage": {
+      "label": "Описание задачи",
+      "placeholder": "Опишите задачу подробно...",
+      "timeHistoryTitle": "История рабочего времени"
+    },
+    "issueLinkedGitCommitsWidget": {
+      "countedInContributionBadge": "Учтён в взносе",
+      "notInBaseBranchHint": "Коммит ещё не дошёл до базовой ветки репозитория",
+      "title": "Связанные коммиты"
+    },
+    "issueLogsTableWidget": {
+      "emptyBody": "Здесь появятся изменения задачи, коммиты и связанные действия.",
+      "emptyTitle": "История пуста",
+      "loadError": "Не удалось загрузить историю задачи"
+    },
+    "issueOverlay": {
+      "descriptionLabel": "Описание задачи",
+      "descriptionPlaceholder": "Опишите задачу подробно...",
+      "loadError": "Не удалось загрузить задачу: ",
+      "notFoundError": "Задача не найдена или недоступна",
+      "openAriaLabel": "Открыть задачу на отдельной странице",
+      "openLabel": "Открыть задачу",
+      "title": "Задача"
+    },
+    "issuePage": {
+      "artifactLabel": "Артефакт",
+      "artifactsTabLabel": "Артефакты",
+      "commitsTabLabel": "Коммиты",
+      "createArtifactAriaLabel": "Создать артефакт",
+      "descriptionTabLabel": "Описание",
+      "historyTabLabel": "История",
+      "loadError": "Не удалось загрузить задачу",
+      "unavailableBody": "Она удалена или закрыта для вас. Ссылку из избранного можно снять звёздочкой в списке.",
+      "unavailableTitle": "Задача недоступна"
+    },
+    "issueRequirementsPage": {
+      "emptyBody": "Добавьте первый артефакт, чтобы зафиксировать требования к задаче.",
+      "emptyTitle": "Артефактов пока нет"
+    },
+    "issueStatusChip": {
+      "changeAction": "Сменить статус"
+    },
+    "issueTimeChip": {
+      "addError": "Не удалось добавить время",
+      "addSuccess": "Время добавлено",
+      "cancelAriaLabel": "Отменить",
+      "daysValue": "{days}д",
+      "entriesHint": "Записи времени добавляют исполнители задачи.",
+      "factHint": "Факт = сумма записей учёта времени (таймер / ручной ввод)",
+      "factLabel": "Факт, ч",
+      "factOfEstimate": "{fact} из {estimate}",
+      "factShortLabel": "Факт",
+      "hoursSuffix": "ч",
+      "hoursValue": "{hours}ч",
+      "pauseAction": "Пауза",
+      "pausedSuffix": " (пауза)",
+      "pausedTag": "пауза",
+      "planLabel": "План, ч",
+      "positiveHoursError": "Укажите положительное число часов",
+      "recentEntriesLabel": "Последние записи",
+      "resumeAction": "Продолжить",
+      "runningTag": "идёт",
+      "sourceEstimate": "оценка",
+      "sourceManual": "вручную",
+      "sourceTimer": "таймер",
+      "sourceTracking": "учёт",
+      "stopAction": "Стоп",
+      "timeInline": "Время: {time}",
+      "timeNotSet": "Время не задано",
+      "timerAction": "Таймер",
+      "timerPausedStatus": "Таймер на паузе",
+      "timerResumed": "Таймер продолжен",
+      "timerRunningElsewhere": "Таймер уже идёт по другой задаче{pausedSuffix}",
+      "timerRunningStatus": "Таймер идёт",
+      "timerStarted": "Таймер включён",
+      "timerStopped": "Таймер остановлен",
+      "title": "Время задачи",
+      "tooltipTitle": "Время задачи: план, факт, таймер",
+      "zeroHours": "0ч"
+    },
+    "issueTitleEditor": {
+      "cancelTooltip": "Отменить изменения",
+      "placeholder": "Задача",
+      "requiredError": "Название задачи обязательно",
+      "saveTooltip": "Сохранить изменения"
+    },
+    "issuesListWidget": {
+      "emptyText": "Нет задач",
+      "loadError": "Не удалось загрузить задачи компонента"
+    },
+    "listPreferences": {
+      "sortField": {
+        "createdAt": "Дата создания",
+        "priority": "Приоритет",
+        "status": "Статус",
+        "title": "Название",
+        "updatedAt": "Дата изменения"
+      }
+    },
+    "listResultProjectsWidget": {
+      "emptyBody": "Когда компоненты перейдут к приёмке результатов, они появятся в этом списке.",
+      "emptyTitle": "Нет проектов для результатов",
+      "oapLabel": "ОАП"
+    },
+    "listVotingProjectWidget": {
+      "emptyBody": "Когда компоненты перейдут к этапу голосования, они появятся в этом списке.",
+      "emptyTitle": "Нет проектов на голосовании",
+      "poolLabel": "Пул",
+      "statusActive": "Активно",
+      "statusCompleted": "Завершено",
+      "statusUnknown": "Неизвестно",
+      "untilLabel": "До"
+    },
+    "makeClearanceButton": {
+      "buttonTitle": "Откликнуться на приглашение",
+      "contributionLabel": "Опишите какой вклад вы можете внести в проект",
+      "contributionPlaceholder": "Опишите вклад, который можете внести в проект",
+      "error": "Не удалось отправить отклик",
+      "participateAction": "Принять участие",
+      "submit": "Отправить отклик",
+      "success": "Отклик отправлен успешно!",
+      "targetLabel": "Куда отклик"
+    },
+    "manageComponentMetrics": {
+      "archiveSuccess": "Метрика архивирована"
+    },
+    "mapCapitalLogToActivity": {
+      "defaultTitle": "Событие"
+    },
+    "masterCommitsPage": {
+      "availableBalanceLabel": "к коммиту по компонентам",
+      "availableTitle": "Доступно",
+      "confirmedBalanceLabel": "зафиксировано в учёте",
+      "confirmedTitle": "Подтверждено",
+      "emptyBody": "Зафиксируйте время по выполненным кооперативным задачам — коммиты появятся здесь.",
+      "emptyTitle": "Своих коммитов пока нет",
+      "hoursSymbol": "ч",
+      "itemsSymbol": "шт",
+      "myCommitsTabLabel": "Мои коммиты",
+      "myTimeTabLabel": "Моё время",
+      "pendingBalanceLabel": "ожидают выполнения задачи",
+      "pendingTitle": "В ожидании",
+      "reviewAmountBalanceLabel": "себестоимость ожидающих",
+      "reviewAmountTitle": "Сумма к проверке",
+      "reviewCountBalanceLabel": "коммитов на проверке",
+      "reviewCountTitle": "Ожидают",
+      "reviewEmptyBody": "Когда участники отправят время по вашим компонентам, коммиты появятся здесь.",
+      "reviewEmptyTitle": "Нет коммитов на проверке",
+      "reviewHoursBalanceLabel": "по ожидающим коммитам",
+      "reviewHoursTitle": "Часов к проверке",
+      "underReviewTabLabel": "На проверке"
+    },
+    "measuresPage": {
+      "activeStatus": "Активна",
+      "column": {
+        "actions": "Изменения",
+        "level": "Уровень",
+        "measure": "Мера",
+        "mode": "Режим",
+        "status": "Статус",
+        "unit": "Единица"
+      },
+      "disabledStatus": "Выключена",
+      "disabledSuccess": "Мера выключена",
+      "emptyBody": "Мера заводится сама, когда вы вписываете её в цели компонента.",
+      "emptyTitle": "Мер пока нет",
+      "enabledSuccess": "Мера включена",
+      "intro": "Меры кооператива — те, что вписаны при планировании компонентов. Здесь их можно временно выключить, чтобы не подсказывались в плане.",
+      "modePrefix": "Режим:",
+      "unitPrefix": "Единица:"
+    },
+    "mermaidStoryEditor": {
+      "previewLabel": "Предпросмотр (только чтение)",
+      "sourceLabel": "Исходник Mermaid"
+    },
+    "mermaidStoryPreview": {
+      "emptySource": "Пустой исходник"
+    },
+    "metricSeriesPanel": {
+      "accumulationTab": "Накопление",
+      "accumulationTooltip": "Накопление и прогноз к цели",
+      "changeSeries": "Изменение",
+      "daysLabel": "Дни",
+      "dynamicsTab": "Динамика",
+      "dynamicsTooltip": "Изменения и прогноз динамики",
+      "emptyHint": "Пока нет точек ряда — закройте задачу с привязкой метрики",
+      "factSeries": "Факт",
+      "levelTab": "Уровень",
+      "levelTooltip": "Уровень и прогноз к цели",
+      "planSeries": "План",
+      "targetSeries": "Цель {target}"
+    },
+    "metricSuperpositionPanel": {
+      "activityLabel": "Движение",
+      "activityTooltip": "Есть ли сейчас изменения по метрикам. 0% — тишина. Выше — метрики менялись: зелёный сектор — к цели, красный — от цели.",
+      "balanceLabel": "Баланс",
+      "balanceTooltip": "Согласованность направлений: метрики в одной фазе усиливают друг друга, в противофазе — гасят. 100% — все тянут в одну сторону (или тишина, когда никто не тянет). Ниже — часть идёт к цели, часть от неё.",
+      "daysLabel": "Дни",
+      "emptyHint": "Нет активных метрик для резонанса",
+      "fromTargetTag": "от цели",
+      "growthLabel": "Рост",
+      "growthTooltip": "Доля движения к целям. 0% — к целям сейчас не продвигаемся. Чем выше — тем сильнее общее движение вперёд.",
+      "helpAriaLabel": "Справка о резонансе",
+      "resonanceLabel": "Резонанс",
+      "resonanceTooltip": "Сводный резонанс системы: живое согласованное движение к целям. Растёт, когда есть движение, рост не ниже нуля и баланс близок к 100%. Ноль — нет живого согласованного продвижения.",
+      "strengthLabel": "Сила влияния",
+      "summaryLabel": "Сводка среза",
+      "summaryText": "Резонанс {resonance}. Баланс {balance}, рост {growth}, движение {activity}",
+      "targetChartLabel": "Мишень резонанса",
+      "title": "Метрика резонанса",
+      "toTargetTag": "к цели"
+    },
+    "moveIssueButton": {
+      "assignAriaLabel": "Назначить компонент задаче",
+      "assignError": "Не удалось назначить компонент",
+      "assignSubmit": "Назначить",
+      "assignSuccess": "Компонент назначен",
+      "assignTitle": "Назначить компонент",
+      "cancel": "Отменить",
+      "componentLabel": "Компонент",
+      "componentPlaceholder": "Компонент для переноса",
+      "loadError": "Не удалось загрузить список компонентов",
+      "moveAriaLabel": "Перенос задачи в другой компонент",
+      "moveError": "Не удалось перенести задачу",
+      "moveSubmit": "Перенести",
+      "moveSuccess": "Задача перенесена",
+      "moveTitle": "Переместить",
+      "selectRequired": "Выберите компонент"
+    },
+    "myTasksPage": {
+      "emptyFilteredText": "Нет задач по фильтрам",
+      "emptyText": "Нет доступных задач",
+      "loadError": "Не удалось загрузить задачи",
+      "noComponentLabel": "Без компонента",
+      "taskColumnLabel": "Задача"
+    },
+    "openCloseToggle": {
+      "acceptingLabel": "Принимает инвестиции",
+      "planRequiredError": "для объявления старта приёма инвестиций сперва установите план",
+      "startPermissionError": "у вас недостаточно прав для объявления старта приёма инвестиций",
+      "stopPermissionError": "у вас недостаточно прав для остановки приёма инвестиций"
+    },
+    "pendingClearanceButton": {
+      "label": "Запрос на рассмотрении"
+    },
+    "priorityControl": {
+      "changeTitle": "Сменить приоритет",
+      "currentLabel": "Приоритет: {priority}"
+    },
+    "privateShieldIcon": {
+      "tooltip": "Личное — видно только вам"
+    },
+    "processesPage": {
+      "activateLabel": "Активировать",
+      "addStepLabel": "Добавить шаг",
+      "componentHashLabel": "Хеш компонента",
+      "deleteConfirm": "Удалить процесс?",
+      "descriptionLabel": "Описание",
+      "emptyText": "Нет процессов",
+      "hoursValue": "{roundedHours}ч",
+      "nameLabel": "Название",
+      "newProcessLabel": "Новый процесс",
+      "orCreateNewText": "или создайте новый",
+      "selectProcessText": "Выберите процесс",
+      "stepNamePrompt": "Название шага:",
+      "title": "Процессы"
+    },
+    "programExpensePage": {
+      "actualSpentLabel": "Фактически израсходовано",
+      "backToExpensesLabel": "К расходам",
+      "closeExpenseLabel": "Закрыть расход",
+      "createdLabel": "Создан",
+      "docDateLabel": "документ от {date}",
+      "documentsTitle": "Документы",
+      "historyApproved": "Совет утвердил расход — протокол решения подписан",
+      "historyClosedCapitalized": "Расход закрыт — фактическая сумма капитализирована",
+      "historyClosedReport": "Расход закрыт — отчёт по смете утверждён",
+      "historyDocAttached": "Приложен документ",
+      "historyMemoCreated": "Служебная записка создана",
+      "historyRejected": "Совет отклонил расход",
+      "historyReportSubmitted": "Отчёт по смете подан — ожидает закрытия расхода",
+      "historyStatementSigned": "Заявление на расход подписано",
+      "initiatorLabel": "Инициатор",
+      "itemActualAmountLabel": "Фактически",
+      "itemPlannedAmountLabel": "Сумма (план)",
+      "itemTitle": "Позиция №{index} — {description}",
+      "itemsTitle": "Позиции расхода",
+      "memoNumberLabel": "№ служебной записки",
+      "notFoundBody": "Служебная записка с таким номером отсутствует или ещё не синхронизирована.",
+      "notFoundTitle": "Расход не найден",
+      "notPaidChip": "Не будет оплачена",
+      "otherDocsTitle": "Прочие документы",
+      "pageTitle": "Расход № {expenseId}",
+      "paymentMethodLabel": "Способ оплаты",
+      "paymentPurposeLabel": "Назначение платежа",
+      "plannedAmountLabel": "Сумма по смете",
+      "recipientDetailsLabel": "Реквизиты получателя",
+      "recipientLabel": "Получатель",
+      "statusHistoryTitle": "История состояний",
+      "supportingDocsTitle": "Подтверждающие документы"
+    },
+    "programExpensesPage": {
+      "createLabel": "Создать расход",
+      "emptyTitle": "Программных расходов пока нет",
+      "expensePoolBalanceLabel": "Доступно",
+      "expensePoolSubtitle": "Кошелёк, с которого оплачиваются программные расходы",
+      "expensePoolTitle": "Пул расходов",
+      "investPoolBalanceLabel": "Доступно к распределению",
+      "investPoolSubtitle": "Источник пополнения",
+      "investPoolTitle": "Инвест-пул",
+      "replenishLabel": "Пополнить пул"
+    },
+    "project": {
+      "status": {
+        "active": "Активен",
+        "finalized": "Завершен",
+        "pending": "Ожидает",
+        "result": "Приёмка",
+        "undefined": "Неопределен",
+        "voting": "Голосование"
+      }
+    },
+    "projectContributorsList": {
+      "coauthorRole": "Соавтор",
+      "contributionLabel": "Взнос",
+      "emptyBody": "Когда пайщики получат допуск к проекту или компоненту, они появятся в этом списке.",
+      "emptyTitle": "Участников пока нет",
+      "investorRole": "Инвестор",
+      "loadError": "Не удалось загрузить список участников",
+      "memberRole": "Участник",
+      "performerRole": "Исполнитель"
+    },
+    "projectControls": {
+      "priorityLabel": "Приоритет",
+      "statusLabel": "Статус"
+    },
+    "projectDescriptionEditor": {
+      "descriptionSavedNotice": "Описание сохранено",
+      "savedAndMergedNotice": "Сохранено и слито с параллельными правками",
+      "savedNotice": "Сохранено",
+      "savedTextMergedNotice": "Сохранено; текст слит с параллельными правками"
+    },
+    "projectDescriptionPage": {
+      "placeholder": "Введите описание..."
+    },
+    "projectHistoryPage": {
+      "title": "История проекта"
+    },
+    "projectInfoSelectorWidget": {
+      "contributorsTabLabel": "Участники",
+      "descriptionPlaceholder": "Введите описание...",
+      "descriptionTabLabel": "Описание",
+      "fundingTabLabel": "Финансирование",
+      "invitePlaceholder": "Введите приглашение...",
+      "inviteTabLabel": "Приглашение"
+    },
+    "projectInvestFabAction": {
+      "acknowledgeAction": "Понятно",
+      "goToComponentsAction": "Перейти к компонентам",
+      "hint": "Инвестиции в проект деньгами или результатами доступны только через их компоненты. Пожалуйста, выберите компонент из списка и инвестируйте во все или в некоторые из них по отдельности.",
+      "label": "Инвестировать",
+      "shortLabel": "Инвестиция",
+      "title": "Инвестирование в проект"
+    },
+    "projectInviteEditor": {
+      "conflictNotice": "Проект изменён параллельно: обновите страницу и повторите сохранение приглашения",
+      "savedNotice": "Приглашение сохранено",
+      "savedStatus": "Сохранено",
+      "savingStatus": "Сохранение…",
+      "unsavedStatus": "Есть несохранённые изменения"
+    },
+    "projectInviteEditorPage": {
+      "placeholder": "Введите приглашение..."
+    },
+    "projectInvitePage": {
+      "loadingText": "Загрузка приглашения...",
+      "noActiveText": "Для этого проекта нет активного приглашения или оно уже истекло",
+      "noActiveTitle": "Нет активного приглашения",
+      "title": "Приглашение в проект"
+    },
+    "projectLogsTableWidget": {
+      "emptyBody": "Здесь появится лента действий по проектам, инвестициям и результатам.",
+      "emptyTitle": "Записей пока нет",
+      "loadErrorComponent": "Не удалось загрузить историю компонента",
+      "loadErrorGeneric": "Не удалось загрузить ленту активности",
+      "loadErrorProject": "Не удалось загрузить историю проекта"
+    },
+    "projectMetricForecast": {
+      "label": "Прогноз"
+    },
+    "projectPage": {
+      "artifactsTabLabel": "Артефакты",
+      "componentsTabLabel": "Компоненты",
+      "contributorsTabLabel": "Участники",
+      "descriptionTabLabel": "Описание",
+      "historyTabLabel": "История",
+      "planTabLabel": "План",
+      "unavailableBody": "Он удалён или закрыт для вас. Ссылку из избранного можно снять звёздочкой в списке.",
+      "unavailableTitle": "Проект недоступен"
+    },
+    "projectPathWidget": {
+      "loadingText": "Загрузка..."
+    },
+    "projectPlanningPage": {
+      "componentSubtitle": "Собственный план и факт компонента",
+      "componentTitle": "Компонент · {componentTitle}",
+      "loadError": "Не удалось загрузить проект с компонентами",
+      "subtitle": "Агрегированные показатели из всех компонентов проекта",
+      "title": "Сводный план · {projectTitle}"
+    },
+    "projectPlanningWidget": {
+      "columnFact": "Факт",
+      "columnMetric": "Показатель",
+      "columnPlan": "План",
+      "notSetValue": "не установлено",
+      "rowAdditionalExpenses": "Дополнительные расходы",
+      "rowBlagorostAllocation": "Распределение на участников Благороста",
+      "rowCoauthorProfessionalCost": "Стоимость профессионального времени соавторов",
+      "rowCoauthorPublicCost": "Стоимость общественно-полезного времени соавторов",
+      "rowCoordinatorProfessionalCost": "Стоимость профессионального времени координаторов",
+      "rowInvestmentsRaised": "Привлекаемые инвестиции",
+      "rowPerformerHourCost": "Стоимость часа исполнителей",
+      "rowPerformerHoursRequired": "Требуемый ресурс времени исполнителей",
+      "rowPerformerProfessionalCost": "Стоимость профессионального времени исполнителей",
+      "rowPerformerPublicCost": "Стоимость общественно-полезного времени исполнителей",
+      "rowResultCost": "Стоимость результата интеллектуальной деятельности"
+    },
+    "projectPrioritySelect": {
+      "label": "Приоритет"
+    },
+    "projectSidebarWidget": {
+      "entityLabel": "проект"
+    },
+    "projectStatusChip": {
+      "changeTitle": "Сменить статус",
+      "tooltip": "Статус: {statusLabel}"
+    },
+    "projectTitleEditor": {
+      "cancelTooltip": "Отменить изменения",
+      "placeholder": "Проект",
+      "requiredError": "Название проекта обязательно",
+      "saveError": "Не удалось сохранить название проекта",
+      "saveTooltip": "Сохранить изменения",
+      "savedNotice": "Название проекта сохранено успешно"
+    },
+    "projectTreeChildren": {
+      "route": {
+        "component": "Компонент",
+        "componentContributors": "Участники компонента",
+        "componentDescription": "Описание компонента",
+        "componentHistory": "История компонента",
+        "componentPlanning": "Планирование компонента",
+        "componentRequirementDetail": "Артефакт",
+        "componentRequirements": "Артефакты компонента",
+        "componentResults": "Результаты компонента",
+        "componentTasks": "Задачи компонента",
+        "componentVoting": "Голосование компонента",
+        "issue": "Задача компонента",
+        "issueCommits": "Коммиты задачи",
+        "issueDescription": "Описание задачи",
+        "issueHistory": "История задачи",
+        "issueRequirements": "Артефакты задачи",
+        "project": "Проект",
+        "projectComponents": "Компоненты проекта",
+        "projectContributors": "Участники проекта",
+        "projectDescription": "Описание проекта",
+        "projectHistory": "История проекта",
+        "projectPlanning": "Планирование проекта",
+        "projectRequirementDetail": "Артефакт",
+        "projectRequirements": "Артефакты проекта"
+      }
+    },
+    "projectVotingSegmentsWidget": {
+      "alreadyVotedBody": "Ожидайте завершения голосования остальными участниками.",
+      "alreadyVotedTitle": "Вы уже проголосовали",
+      "cannotVoteForSelfHint": "Нельзя голосовать за себя",
+      "coauthorRole": "Соавтор",
+      "distributeHint": "Распределите голосующую сумму между участниками — остаток должен стать нулевым",
+      "eligibilityHint": "В голосовании принимают участие только авторы и исполнители проекта.",
+      "equalSplitButton": "Поровну",
+      "giveRestButton": "Отдать остаток",
+      "loadError": "Не удалось загрузить участников голосования",
+      "noParticipantsBody": "Участники появятся после формирования сегментов с правом голоса.",
+      "noParticipantsTitle": "Нет участников голосования",
+      "onlyForParticipantsHint": "Только для участников",
+      "performerRole": "Исполнитель",
+      "poolExhaustedHint": "Запас исчерпан — уменьшите долю у других участников",
+      "remainingToDistributeLabel": "Осталось распределить",
+      "resetButton": "Сбросить",
+      "resultLabel": "Результат",
+      "resultsHiddenHint": "Результаты голосования каждого участника станут доступны после завершения голосования",
+      "sharePercentLabel": "{percent}% голосующей суммы",
+      "votingInProgressBadge": "Голосование ещё идёт"
+    },
+    "projectsInvitesPage": {
+      "emptyText": "В данный момент нет проектов с активными приглашениями",
+      "loadError": "Не удалось загрузить проекты с инвайтами"
+    },
+    "projectsListWidget": {
+      "emptyText": "Нет проектов",
+      "loadError": "Не удалось загрузить список проектов",
+      "noFilterResults": "Нет результатов по фильтрам"
+    },
+    "projectsResultsPage": {
+      "actionEmptyBody": "Здесь появятся результаты, по которым идёт голосование или приёмка с вашим участием.",
+      "actionEmptyTitle": "Сейчас от вас ничего не требуется",
+      "actionTabLabel": "На приёмке",
+      "allResultsEmptyBody": "Здесь появятся доли участников в объектах авторских прав по всем компонентам кооператива.",
+      "allResultsEmptyTitle": "Результатов пока нет",
+      "allResultsTabLabel": "Все результаты",
+      "myResultsEmptyBody": "Доли в объектах авторских прав появятся здесь после завершения работ по компонентам.",
+      "myResultsEmptyTitle": "Результатов пока нет",
+      "myResultsTabLabel": "Мои результаты",
+      "signEmptyBody": "Здесь появятся акты приёма-передачи, подписанные пайщиками и ожидающие вашей подписи.",
+      "signEmptyTitle": "Актов на подпись нет",
+      "signTabLabel": "На подпись"
+    },
+    "pushResultButton": {
+      "amountBalanceLabel": "сумма",
+      "dialogTitle": "Внесение результата",
+      "label": "Внести результат",
+      "loanBalanceLabel": "ссуда",
+      "loanRepaymentTitle": "Погашаемая ссуда",
+      "shareContributionTitle": "Паевой взнос",
+      "success": "Заявление отправлено в совет на рассмотрение"
+    },
+    "refreshProgramButton": {
+      "label": "Обновить CRPS пайщика в программе"
+    },
+    "refreshSegmentButton": {
+      "ariaLabel": "Пересчитать результат",
+      "label": "Пересчитать результат"
+    },
+    "requirementDetailPage": {
+      "loadError": "Не удалось загрузить артефакт",
+      "notFound": "Артефакт не найден",
+      "wrongProject": "Артефакт не относится к этому проекту"
+    },
+    "requirementOverlay": {
+      "loadError": "Не удалось загрузить артефакт: ",
+      "notFoundError": "Артефакт не найден или недоступен"
+    },
+    "requirementsListWidget": {
+      "columnArtifact": "Артефакт",
+      "columnStatus": "Статус",
+      "columnType": "Тип",
+      "componentFallback": "[Компонент]",
+      "emptyBody": "Добавьте первый артефакт, чтобы зафиксировать требования и решения.",
+      "emptyTitle": "Артефактов пока нет",
+      "loadError": "Не удалось загрузить артефакты",
+      "projectFallback": "[Проект]"
+    },
+    "resultPreviewCard": {
+      "applicantLabel": "Заявитель",
+      "cooperativeLabel": "Кооператив",
+      "dateLabel": "Дата",
+      "generatedInText": "Документ сформирован в ЦПП «Благорост»",
+      "hashLabel": "Хеш",
+      "loadError": "Не удалось загрузить результат",
+      "loading": "Загрузка результата…",
+      "notGeneratedHint": "Текст результата ещё не сгенерирован. Нажмите кнопку «Пересчитать результат» для генерации.",
+      "objectLabel": "Объект",
+      "programLabel": "Программа «Благорост»",
+      "ridFull": "Результат интеллектуальной деятельности",
+      "ridShort": "РИД"
+    },
+    "resultSubmissionSegmentsWidget": {
+      "blagorostLabel": "Благорост",
+      "coauthorRole": "Соавтор",
+      "coordinatorRole": "Координатор",
+      "emptyBody": "Сегменты появятся после формирования результатов по проекту.",
+      "emptyTitle": "Нет участников",
+      "generationLabel": "Генерация",
+      "loadError": "Не удалось загрузить сегменты проекта",
+      "memberRole": "Участник",
+      "performerRole": "Исполнитель",
+      "totalLabel": "Всего"
+    },
+    "revisionsButton": {
+      "label": "Редакции"
+    },
+    "revisionsDialog": {
+      "charsDeltaTag": "· {sign}{count} симв.",
+      "currentTag": "текущая",
+      "diffTabLabel": "Отличия от текущей",
+      "emptyPlaceholder": "(пусто)",
+      "emptyTitle": "Редакций пока нет",
+      "matchesCurrentText": "Совпадает с текущим текстом",
+      "mergedTag": "· слито",
+      "restoreAction": "Вернуть эту редакцию",
+      "restoredMessage": "Возвращена редакция №{revision}",
+      "rollbackSourceLabel": "{base} к №{fromRevision}",
+      "selectHint": "Выберите редакцию слева",
+      "selectedRevisionLabel": "Редакция №{revision}",
+      "sourceChain": "из цепи",
+      "sourceInitialSnapshot": "первичный снимок",
+      "sourceRollback": "откат",
+      "sourceWeb": "веб",
+      "textTabLabel": "Текст",
+      "title": "Редакции"
+    },
+    "roleBadges": {
+      "coauthor": "Соавтор",
+      "coordinator": "Координатор",
+      "investor": "Инвестор",
+      "member": "Участник",
+      "performer": "Исполнитель"
+    },
+    "segment": {
+      "status": {
+        "act1": "Акт приёма-передачи подписан пайщиком, ожидаем подпись председателя",
+        "approved": "Одобрено председателем, ожидается решение совета о приёме",
+        "authorized": "Получено решение совета, ожидаем подпись пайщика на акте приёма-передачи доли в объекте авторских прав",
+        "completed": "Сегмент получен",
+        "contributed": "Результат интеллектуальной деятельности принят",
+        "finalized": "Доля в объекте авторских прав получена",
+        "generation": "Ожидаем пересчета стоимости результата интеллектуальной деятельности",
+        "ready": "Готов к внесению результата интеллектуальной деятельности",
+        "statement": "Заявление на предварительном рассмотрении председателя",
+        "unknown": "Неизвестный статус"
+      },
+      "statusShort": {
+        "act1": "Подпись председателя",
+        "approved": "Одобрен",
+        "authorized": "Подпись пайщика",
+        "completed": "Получен",
+        "contributed": "Принят",
+        "finalized": "Завершён",
+        "generation": "Расчёт",
+        "ready": "Готов",
+        "statement": "На рассмотрении"
+      }
+    },
+    "segmentResultInfoWidget": {
+      "coauthorRole": "Соавтор",
+      "compassResultLabel": "Результат голосования по системе «Компас»",
+      "coordinatorRole": "Координатор",
+      "loanReceivedLabel": "Займ получен",
+      "loanRepaidLabel": "Займ возвращён",
+      "loansTitle": "Займы",
+      "performerRole": "Исполнитель",
+      "professionalCostLabel": "Стоимость профессионального времени",
+      "publicCostLabel": "Стоимость общественно-полезного времени",
+      "votingTitle": "Голосование"
+    },
+    "segmentVotesWidget": {
+      "emptyBody": "Этот участник ещё не распределил голосующую сумму.",
+      "emptyTitle": "Нет данных о голосах",
+      "loadError": "Не удалось загрузить голоса участника"
+    },
+    "setCreatorAvatars": {
+      "forbiddenError": "У вас нет прав на назначение исполнителей задачи",
+      "label": "Исполнители",
+      "loadError": "Не удалось загрузить исполнителей задачи",
+      "searchPlaceholder": "поиск..."
+    },
+    "setCreatorButton": {
+      "forbiddenError": "У вас нет прав на назначение исполнителей задачи",
+      "label": "Исполнители",
+      "loadError": "Не удалось загрузить создателей задачи",
+      "missingUsernameError": "У некоторых выбранных участников отсутствует имя пользователя"
+    },
+    "setDevelopmentRepositoryUrl": {
+      "error": "Не удалось сохранить URL",
+      "label": "Репозиторий Git",
+      "success": "URL репозитория сохранён"
+    },
+    "setMasterAvatar": {
+      "assignLabel": "Назначить мастера",
+      "label": "Мастер",
+      "searchPlaceholder": "поиск...",
+      "tooltip": "Мастер: {masterName}"
+    },
+    "setMasterButton": {
+      "label": "Мастер",
+      "loadError": "Не удалось загрузить информацию о мастере проекта",
+      "missingUsernameError": "У выбранного участника отсутствует имя пользователя",
+      "noAccessText": "У вас нет прав доступа на изменение мастера",
+      "permissionError": "У вас нет прав на изменение мастера проекта"
+    },
+    "setPlanButton": {
+      "ariaLabel": "Установить план",
+      "label": "План"
+    },
+    "setPlanDialog": {
+      "editTargetsPermissionError": "У вас нет прав на редактирование целей по мерам",
+      "emptyTargetsHint": "Целей пока нет — нажмите «Добавить» и впишите меру своими словами.",
+      "expensesRequiredError": "Укажите расходы или очистите часы",
+      "extraExpensesLabel": "Дополнительные расходы",
+      "financialHint": "Необязательно. Если часы не заданы — в блокчейн не отправляется, можно сохранить только цели по мерам.",
+      "financialSectionTitle": "Финансовый план",
+      "fromOwnLabel": "Из своих",
+      "hourCostLabel": "Стоимость часа работы",
+      "hourCostRequiredError": "Укажите стоимость часа или очистите часы",
+      "hoursLabel": "Плановое количество часов исполнителей",
+      "hoursPositiveError": "Количество часов должно быть больше 0",
+      "hoursSuffix": "ч",
+      "incompleteTargetRowError": "Впишите меру, единицу измерения и цель — или удалите незаполненные строки",
+      "levelTypeOption": "Уровень",
+      "measureHint": "Мера пишется как удобно. Новая попадёт в меры кооператива — потом её можно взять кнопкой «Из своих».",
+      "measureLabel": "Мера",
+      "measurePlaceholder": "Например: ролики",
+      "measureTargetsTitle": "Цели по мерам",
+      "planOrTargetsRequiredError": "Укажите финансовый план (часы > 0) или цели по мерам",
+      "removeTargetAriaLabel": "Убрать цель",
+      "savedSuccess": "План сохранён",
+      "setPlanPermissionError": "У вас нет прав на установку плана",
+      "setSuccess": "План установлен",
+      "speedTypeOption": "Скорость",
+      "submit": "Сохранить план",
+      "targetLabel": "Цель",
+      "targetsRequiredError": "Укажите цели по мерам",
+      "targetsSavedSuccess": "Цели по мерам сохранены",
+      "title": "План",
+      "typeLabel": "Тип",
+      "unitLabel": "Ед. изм.",
+      "unitPlaceholder": "шт"
+    },
+    "setPlanFabAction": {
+      "label": "План"
+    },
+    "shortInviteWidget": {
+      "detailsLabel": "Подробности",
+      "emptyPlaceholder": "Нет инвайта"
+    },
+    "signActButton": {
+      "label": "Подписать акт",
+      "success": "Акт успешно подписан и отправлен"
+    },
+    "signActButtonByChairman": {
+      "label": "Подписать акт",
+      "success": "Акт успешно подписан председателем и отправлен"
+    },
+    "sortMenuButton": {
+      "ariaLabel": "Сортировка",
+      "ascending": "По возрастанию",
+      "descending": "По убыванию",
+      "fieldLabel": "Поле",
+      "orderLabel": "Порядок",
+      "title": "Сортировка"
+    },
+    "storiesWidget": {
+      "addButton": "Добавить артефакт",
+      "authRequiredNotice": "Необходимо авторизоваться",
+      "createError": "Не удалось создать историю",
+      "createdNotice": "История создана",
+      "emptyTitle": "Артефактов пока нет",
+      "loadError": "Не удалось загрузить истории",
+      "loadingText": "Загрузка артефактов...",
+      "statusUpdateError": "Не удалось обновить статус артефакта",
+      "statusUpdatedNotice": "Статус артефакта обновлён",
+      "titlePlaceholder": "Введите название артефакта..."
+    },
+    "submitVoteButton": {
+      "label": "Проголосовать",
+      "success": "Голос успешно отправлен"
+    },
+    "superpositionHelpDialog": {
+      "acknowledgeAction": "Понятно",
+      "alignedGrowth": "Когда движение согласовано, сила продвижения растёт.",
+      "alignedMovementGives": ". Согласованное движение даёт большую интенсивность продвижения к целям.",
+      "alignedResultMid": "усиливается. Если одна идёт вперёд, а другая назад — общий эффект слабее:",
+      "alignedResultPre": "Если несколько метрик движутся к целям согласованно, общий результат",
+      "alignedSumAriaLabel": "Согласованное сложение движений",
+      "balanceExplainPost": "(или тишина, когда никто не тянет). Ниже — часть идёт к цели, часть от неё, усилия гасятся.",
+      "balanceExplainPre": "— согласованы ли направления метрик. Сто процентов — все в одной фазе",
+      "balanceTowards100": "Баланс стремится к 100%",
+      "balanceTowards100Explain": "— направления согласованы, метрики не гасят друг друга.",
+      "balanceWord": "Баланс",
+      "centerExplain": "— сводка: резонанс и три составляющие. Наведите курсор.",
+      "centerLengthExplain": "— движение: насколько метрика сейчас активна. Короче — слабее пульс.",
+      "centerLengthLabel": "Длина от центра",
+      "centerWord": "Центр",
+      "circleSectorsIntro": "Круг — тот же общий эффект в удобном виде. Секторы",
+      "combinedEffectAligned": "Общий эффект при согласии",
+      "compareNotUnitsPost": ": идёт ли метрика к цели или отступает.",
+      "compareNotUnitsPre": "Мы сравниваем не единицы измерения, а",
+      "effortWasted": "усилия тратятся, но точка продвижения почти не углубляется.",
+      "exampleAriaLabel": "Пример мишени с неравными секторами",
+      "fourIndicatorsPre": "В одном ряду четыре показателя: баланс, рост, движение и выделенный",
+      "fromTargetLabel": "От цели",
+      "greenExplain": "— рост к цели.",
+      "greenWord": "Зелёный",
+      "growthExplainPost": "Выше — есть продвижение вперёд.",
+      "growthExplainPre": "— ведут ли эти изменения к целям. Ноль — к целям сейчас не продвигаемся.",
+      "growthNotBelowZero": "Рост не ниже нуля",
+      "growthNotBelowZeroExplain": "— есть продвижение к целям, а не откат.",
+      "growthWord": "Рост",
+      "howAlignedGrowthWord": "насколько рост согласован",
+      "intensityWeakens": "и общая интенсивность слабеет.",
+      "metricOwnPath": "У каждой метрики свой ход во времени: то ближе к цели, то дальше.",
+      "metricTypeIrrelevant": "Тип метрики не важен — деньги, сроки, охват или что угодно ещё.",
+      "mixedRhythmsLoss": "Когда ритмы разные — часть энергии не доходит до цели.",
+      "movementAboveZero": "Движение выше нуля",
+      "movementAboveZeroExplain": "— процесс живой, метрики меняются, а не стоят на месте.",
+      "movementCharacterWord": "характер движения",
+      "movementExplain": "— есть ли сейчас изменения. Ноль — тишина. Выше нуля — метрики менялись.",
+      "movementWord": "Движение",
+      "movementsSeparately": "Движения по отдельности",
+      "notOnlyGrowthPre": "Поэтому на экране важны не только «есть ли рост», но и",
+      "numbersAboveHeading": "Числа над мишенью",
+      "percentFrom0to100": "— единый процент от 0 до 100.",
+      "pressureImbalance": ": так видно давление и перекос баланса.",
+      "readTargetHeading": "Как читать мишень",
+      "redExplain": "— рост от цели (откат).",
+      "redWord": "Красный",
+      "resonanceExplain": "— сводный показатель из баланса, роста и движения.",
+      "resonanceIntroPost": ": ритмы согласованы и усиливают общее продвижение — или расходятся,",
+      "resonanceIntroPre": "Он показывает, входит ли движение к целям в",
+      "resonanceWord": "резонанс",
+      "resonanceWordGenitive": "резонанса",
+      "resonanceWordStandalone": "Резонанс",
+      "rhythmHeading": "Почему важен общий ритм",
+      "rollbackWord": "Откат",
+      "sectorWidthExplain": "— сила влияния. Шире — сильнее давит на общую картину.",
+      "sectorWidthLabel": "Ширина сектора",
+      "sourceHeading": "Откуда берётся картина",
+      "strivingHeading": "К чему стремиться",
+      "strongToTargetTag": "Сильная к цели",
+      "summaryIntro": "Это сводный показатель по всем метрикам компонента.",
+      "threeConditionsIntro": "Чтобы система входила в резонанс и держала его, ориентируйтесь на три условия:",
+      "title": "Метрика резонанса",
+      "toTargetLabel": "К цели",
+      "toTargetVaryingStrength": "К цели, разная сила",
+      "togetherHighPercentPost": ": живое согласованное движение вперёд и максимальная интенсивность продвижения к целям.",
+      "togetherHighPercentPre": "Вместе это даёт высокий процент",
+      "unequalWord": "неравные",
+      "visibleOnTarget": "На мишени это видно сразу по форме, цвету и трём числам сверху.",
+      "wavesAriaLabel": "Две волны движения",
+      "weakToTargetTag": "Слабая к цели"
+    },
+    "superpositionHistoryChart": {
+      "passedLabel": "Пройдено",
+      "resonanceLabel": "Резонанс",
+      "sliceLabel": "срез"
+    },
+    "superpositionTargetChart": {
+      "label": "Мишень резонанса"
+    },
+    "superpositionTimelineScrubber": {
+      "label": "Таймлайн резонанса",
+      "stepBackAriaLabel": "Шаг назад по времени",
+      "stepForwardAriaLabel": "Шаг вперёд по времени"
+    },
+    "timeEntriesWidget": {
+      "accumulatedLabel": "· накоплено {hours}",
+      "addError": "Не удалось добавить время",
+      "addTimeButton": "Добавить время",
+      "addTimeDialogTitle": "Добавить время",
+      "addedNotice": "Время добавлено",
+      "cancelButton": "Отменить",
+      "emptyText": "Записей рабочего времени пока нет",
+      "hoursHint": "Фактические часы по этой задаче",
+      "hoursLabel": "Часы",
+      "hoursSuffix": "ч",
+      "loadError": "Не удалось загрузить записи времени",
+      "memberColumnLabel": "Участник",
+      "pauseButton": "Пауза",
+      "pausedNotice": "Таймер на паузе",
+      "pausedSuffix": " (пауза)",
+      "positiveHoursError": "Укажите положительное число часов",
+      "resumeButton": "Продолжить",
+      "resumedNotice": "Таймер продолжен",
+      "sourceEstimate": "оценка",
+      "sourceManual": "вручную",
+      "sourceTimer": "таймер",
+      "sourceTracked": "учёт",
+      "startTimerTooltip": "Включить таймер",
+      "startedNotice": "Таймер включён",
+      "statusPaused": "пауза",
+      "statusRunning": "идёт",
+      "stopTimerTooltip": "Остановить таймер",
+      "stoppedNotice": "Таймер остановлен",
+      "timerRunningElsewhereNotice": "Таймер уже идёт по другой задаче{pausedSuffix}"
+    },
+    "timeIssuesWidget": {
+      "availableLabel": "{hours} доступно",
+      "committedLabel": "{hours} подтверждено",
+      "emptyText": "Нет задач с учётом времени в этом компоненте",
+      "loadError": "Не удалось загрузить задачи проекта",
+      "pendingLabel": "{hours} ожидание",
+      "zeroHoursLabel": "0 ч"
+    },
+    "timeStatsWidget": {
+      "availableLabel": "{hours} доступно",
+      "committedLabel": "{hours} подтверждено",
+      "emptyBody": "Когда вы учтёте часы по задачам компонентов, они появятся здесь.",
+      "emptyTitle": "Нет статистики времени",
+      "hoursValue": "{hours} ч",
+      "loadError": "Не удалось загрузить статистику времени",
+      "moreButton": "Ещё",
+      "paginationLabel": "{from}-{to} из {total}",
+      "pendingLabel": "{hours} ожидание"
+    },
+    "topupProgramExpensePoolDialog": {
+      "amountLabel": "Сумма пополнения",
+      "description": "Деньги переводятся из свободных инвестиций программы в пул, из которого оплачиваются программные расходы.",
+      "submit": "Пополнить",
+      "success": "Пул пополнен — средства переведены в пул программных расходов",
+      "title": "Пополнение пула программных расходов"
+    },
+    "trackerPage": {
+      "availableBalanceLabel": "к коммиту по всем компонентам",
+      "availableTitle": "Доступно",
+      "confirmedBalanceLabel": "зафиксировано в учёте",
+      "confirmedTitle": "Подтверждено",
+      "hideHintAriaLabel": "Скрыть подсказку",
+      "hintCommitAvailability": "Билеты времени становятся доступны для коммита после перевода задачи в статус «выполнена».",
+      "hintFractionalHours": "Дробная часть часа сохраняется в учёте до следующего накопления полного часа.",
+      "hoursSymbol": "ч",
+      "loadingText": "Загрузка данных трекера...",
+      "pendingBalanceLabel": "ожидают подтверждения",
+      "pendingTitle": "В ожидании"
+    },
+    "updateEstimate": {
+      "label": "Оценка (часы)"
+    },
+    "updateIssue": {
+      "autosaveError": "Ошибка авто-сохранения"
+    },
+    "updateLabels": {
+      "empty": "Нет меток",
+      "label": "Метки"
+    },
+    "updatePriority": {
+      "label": "Приоритет"
+    },
+    "updateProjectVideo": {
+      "label": "Встроить видео (iframe)"
+    },
+    "updateStatus": {
+      "label": "Статус"
+    },
+    "useBatchImport": {
+      "unknownError": "Неизвестная ошибка"
+    },
+    "useCapitalProgramDocParams": {
+      "fillAllFieldsError": "Заполните все поля документа: {missing}",
+      "fillAllParamsError": "Заполните все параметры в документах: {missing}",
+      "previewError": "Не удалось сформировать предпросмотр",
+      "saveError": "Не удалось сохранить параметры",
+      "saveSuccess": "Параметры документов ЦПП сохранены"
+    },
+    "useUnsavedGuard": {
+      "confirmText": "Есть несохранённые изменения. Уйти без сохранения?"
+    }
+  }
+}

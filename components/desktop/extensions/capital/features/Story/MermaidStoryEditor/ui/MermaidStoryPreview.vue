@@ -10,6 +10,7 @@
 <script setup lang="ts">
 import { ref, watch, onMounted, onBeforeUnmount } from 'vue';
 import debounce from 'lodash/debounce';
+import { t } from '../../../../i18n';
 
 const props = withDefaults(
   defineProps<{
@@ -46,7 +47,7 @@ const runRender = async (): Promise<void> => {
   if (!text) {
     const empty = document.createElement('span');
     empty.className = 'text-grey-6 text-body2';
-    empty.textContent = 'Пустой исходник';
+    empty.textContent = t('capital.mermaidStoryPreview.emptySource');
     el.appendChild(empty);
     return;
   }

@@ -2,19 +2,19 @@
 DetailsDrawer(
   :model-value='overlay.isOpen.value',
   :width='760',
-  title='Задача',
+  :title='$t("capital.issueOverlay.title")',
   @update:model-value='(v) => !v && overlay.close()'
 )
   template(#actions)
     BaseButton(
       variant='ghost',
       size='sm',
-      aria-label='Открыть задачу на отдельной странице',
+      :aria-label='$t("capital.issueOverlay.openAriaLabel")',
       @click='openFullPage'
     )
       template(#icon-left)
         q-icon(name='open_in_full', size='16px')
-      | Открыть задачу
+      | {{ $t('capital.issueOverlay.openLabel') }}
 
   .issue-overlay__body(v-if='issue')
     //- Заголовок правится тем же редактором, что на полной странице
@@ -56,8 +56,8 @@ DetailsDrawer(
     //- с редакциями и слиянием), общая через useIssueContentSave
     Editor(
       v-model='issue.description',
-      label='Описание задачи',
-      placeholder='Опишите задачу подробно...',
+      :label='$t("capital.issueOverlay.descriptionLabel")',
+      :placeholder='$t("capital.issueOverlay.descriptionPlaceholder")',
       :readonly='!issue.permissions?.can_edit_issue',
       :padded='false',
       @change='handleDescriptionChange'
@@ -92,6 +92,7 @@ import { useIssueStore, withLabels } from 'app/extensions/capital/entities/Issue
 import type { IIssue } from 'app/extensions/capital/entities/Issue/model';
 import { IssueSidebarWidget, IssueTitleEditor } from 'app/extensions/capital/widgets';
 import { capitalRouteName } from 'app/extensions/capital/shared/lib/capitalWorkspaceRoutes';
+import { t } from '../../../../i18n';
 
 /**
  * Задача в оверлее поверх списка (`?issue=<hash>`, см. useQueryOverlay):
@@ -137,14 +138,14 @@ async function fetchIssue(hash: string): Promise<void> {
   try {
     const row = await IssueApi.loadIssue({ issue_hash: hash });
     if (!row) {
-      FailAlert('Задача не найдена или недоступна');
+      FailAlert(t('capital.issueOverlay.notFoundError'));
       overlay.close();
       return;
     }
     issue.value = row;
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
-    FailAlert('Не удалось загрузить задачу: ' + msg);
+    FailAlert(t('capital.issueOverlay.loadError') + msg);
     overlay.close();
   }
 }

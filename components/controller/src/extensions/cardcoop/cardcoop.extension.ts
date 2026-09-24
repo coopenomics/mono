@@ -14,15 +14,10 @@
  * @packageDocumentation
  */
 import { Inject, Injectable } from '@nestjs/common';
-import {
-  BaseExtensionModule,
-  EXTENSION_REPOSITORY,
-  type DeserializedDescriptionOfExtension,
-  type ExtensionDomainEntity,
-  type ExtensionDomainRepository,
-} from '@coopenomics/extension-kit';
+import { BaseExtensionModule, EXTENSION_REPOSITORY, type DeserializedDescriptionOfExtension, type ExtensionDomainEntity, type ExtensionDomainRepository, DomainError } from '@coopenomics/extension-kit';
 import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import { z } from 'zod';
+import { t } from './i18n';
 
 /** Подпись поля в форме настроек: председатель видит человеческий текст, а не имя параметра. */
 const describeField = (description: DeserializedDescriptionOfExtension): string => JSON.stringify(description);
@@ -30,11 +25,11 @@ const describeField = (description: DeserializedDescriptionOfExtension): string 
 export const Schema = z.object({
   api_url: z
     .string()
-    .url('Адрес должен быть ссылкой вида https://id.card.coop')
+    .url(t('cardcoop.settings.apiUrlFormatHint'))
     .describe(
       describeField({
-        label: 'Адрес сети «Карта кооператора»',
-        note: 'Менять не требуется: значение по умолчанию рабочее. Поле оставлено для тестового контура.',
+        label: t('cardcoop.settings.apiUrlLabel'),
+        note: t('cardcoop.settings.apiUrlNote'),
       })
     ),
   // Вход в стол по карте сети (story 9.2). Кнопка появляется, когда сеть выдала установке
@@ -45,8 +40,8 @@ export const Schema = z.object({
     .default(true)
     .describe(
       describeField({
-        label: 'Вход с помощью карты кооператора',
-        note: 'Кнопка на форме входа: пайщик входит в стол картой сети. Выключите, чтобы оставить только вход по паролю и ключу.',
+        label: t('cardcoop.settings.cardLoginLabel'),
+        note: t('cardcoop.settings.cardLoginNote'),
       })
     ),
   // Юридическая половина подключения кооперативов (story 7.6) — функция установки оператора,
@@ -60,8 +55,8 @@ export const Schema = z.object({
     .default(false)
     .describe(
       describeField({
-        label: 'Я — оператор сети (ВОСХОД)',
-        note: 'Объявлять card.coop допуск кооперативов, активированных в цепи. Определяется именем кооператива.',
+        label: t('cardcoop.settings.operatorLabel'),
+        note: t('cardcoop.settings.operatorNote'),
         visible: false,
       })
     ),
@@ -97,7 +92,7 @@ export class CardcoopExtension extends BaseExtensionModule {
   /** Читает установленную запись расширения и запоминает конфиг. */
   async initialize(): Promise<void> {
     const extensionData = await this.extensionRepository.findByName(this.name);
-    if (!extensionData) throw new Error(`Конфигурация расширения ${this.name} не найдена`);
+    if (!extensionData) throw DomainError.internal('CARDCOOP_EXTENSION_CONFIG_NOT_FOUND', { name: this.name });
 
     this.extension = extensionData;
 

@@ -9,7 +9,7 @@
       <AuthActions />
     </template>
     <template #footer>
-      <a class="auth-link" href="#" @click.prevent="goToSignIn">Вернуться ко входу</a>
+      <a class="auth-link" href="#" @click.prevent="goToSignIn">{{ $t('registrator.resetKey.backToSignIn') }}</a>
     </template>
   </ResetKeyForm>
 </template>
@@ -23,6 +23,7 @@ import { FailAlert, SuccessAlert } from 'src/shared/api';
 import type { IGeneratedAccount } from 'src/shared/lib/types/user';
 import ResetKeyForm from './ResetKeyForm.vue';
 import { AuthActions } from 'src/widgets/Registrator/AuthActions';
+import { t } from 'src/shared/i18n';
 
 const route = useRoute();
 const router = useRouter();
@@ -51,7 +52,7 @@ async function onSubmit(): Promise<void> {
   loading.value = true;
   try {
     await resetKey({ token: token.value, public_key: account.value.public_key });
-    SuccessAlert('Ключ доступа успешно установлен');
+    SuccessAlert(t('registrator.resetKey.successMessage'));
     void router.push({ name: 'signin' });
   } catch (e) {
     FailAlert(e);

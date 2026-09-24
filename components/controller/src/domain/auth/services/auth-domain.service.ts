@@ -5,7 +5,7 @@ import { Bytes, Checksum256, Signature } from '@wharfkit/antelope';
 import { UserDomainService, USER_DOMAIN_SERVICE } from '~/domain/user/services/user-domain.service';
 import { BLOCKCHAIN_PORT, BlockchainPort } from '~/domain/common/ports/blockchain.port';
 import { TokenApplicationService } from '~/application/token/services/token-application.service';
-import { HttpApiError } from '@coopenomics/extension-kit';
+import { DomainError } from '@coopenomics/extension-kit';
 
 @Injectable()
 export class AuthDomainService {
@@ -20,7 +20,7 @@ export class AuthDomainService {
     const user = await this.userDomainService.getUserByEmail(email);
 
     if (!user) {
-      throw new HttpApiError(httpStatus.UNAUTHORIZED, 'Пользователь не найден');
+      throw DomainError.unauthorized('USER_NOT_FOUND');
     }
 
     const bytes = Bytes.fromString(now, 'utf8');
@@ -35,21 +35,21 @@ export class AuthDomainService {
     const differenceInSeconds = (blockchainDate - userData) / 1000;
 
     if (differenceInSeconds > 30) {
-      throw new HttpApiError(httpStatus.BAD_REQUEST, 'Время подписи и время блокчейна превышает допустимое расхождение');
+      throw DomainError.badRequest('AUTH_SIGNATURE_TIME_DRIFT_TOO_LARGE');
     }
 
     if (user.is_registered) {
       try {
         const blockchainAccount = await this.blockchainPort.getAccount(user.username);
         const hasKey = this.blockchainPort.hasActiveKey(blockchainAccount, publicKey.toString());
-        if (!hasKey) throw new HttpApiError(httpStatus.UNAUTHORIZED, 'Неверный приватный ключ');
+        if (!hasKey) throw DomainError.unauthorized('AUTH_INVALID_PRIVATE_KEY');
       } catch (e) {
-        throw new HttpApiError(httpStatus.UNAUTHORIZED, 'Неверный приватный ключ');
+        throw DomainError.unauthorized('AUTH_INVALID_PRIVATE_KEY');
       }
     } else {
       //если пользователь еще не зарегистрирован в блокчейне, то проверяем временный ключ, который установлен в объекте его аккаунта
       if (user.public_key != publicKey.toString())
-        throw new HttpApiError(httpStatus.UNAUTHORIZED, 'Неверный приватный ключ');
+        throw DomainError.unauthorized('AUTH_INVALID_PRIVATE_KEY');
     }
 
     return user;
@@ -76,10 +76,7 @@ export class AuthDomainService {
       })
       .catch((error: any) => {
         this.logger.warn(`verify-email: токен не принят — ${error?.message ?? error}`);
-        throw new HttpApiError(
-          httpStatus.UNAUTHORIZED,
-          'Ссылка подтверждения недействительна или истекла. Запросите новую в личном кабинете.'
-        );
+        throw DomainError.unauthorized('AUTH_CONFIRMATION_LINK_INVALID_OR_EXPIRED');
       });
 
     let user = await this.userDomainService.findUserById(verifyEmailTokenDoc.userId);
@@ -88,7 +85,7 @@ export class AuthDomainService {
     }
     if (!user) {
       this.logger.warn(`verify-email: пайщик по токену не найден (userId=${verifyEmailTokenDoc.userId})`);
-      throw new HttpApiError(httpStatus.UNAUTHORIZED, 'Пользователь по ссылке подтверждения не найден.');
+      throw DomainError.unauthorized('AUTH_CONFIRMATION_LINK_USER_NOT_FOUND');
     }
 
     // Одноразовость: все выпущенные ссылки гасим, включая ту, по которой пришли.

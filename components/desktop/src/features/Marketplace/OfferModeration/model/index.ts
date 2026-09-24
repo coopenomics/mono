@@ -2,6 +2,7 @@ import { ref } from 'vue';
 import { Dialog } from 'quasar';
 import { SuccessAlert, FailAlert } from 'src/shared/api';
 import { approveOffer, rejectOffer, setOfferWarranty } from '../api';
+import { t } from 'src/shared/i18n';
 
 /** Проверка ввода срока в днях: целое неотрицательное число. */
 function isValidDays(val: string): boolean {
@@ -56,28 +57,28 @@ export function useOfferModeration(opts: UseOfferModerationOptions = {}) {
       offer.shelf_life_days === undefined
         ? ''
         : offer.shelf_life_days > 0
-          ? ` Срок годности товара, указанный поставщиком: ${offer.shelf_life_days} дн. — ориентируйтесь на него.`
-          : ' Поставщик не указал срок годности (товар без срока годности).';
+          ? t('marketplace.offerModeration.shelfLifeDaysHint', { days: offer.shelf_life_days })
+          : t('marketplace.offerModeration.noShelfLifeHint');
     Dialog.create({
-      title: 'Одобрить предложение?',
-      message:
-        `«${offer.product_name}» появится в публичном каталоге кооператива. ` +
-        'Укажите гарантийный срок возврата (дней): в течение него пайщик сможет ' +
-        `вернуть имущество. 0 — возврат недоступен.${shelfLifeText}`,
+      title: t('marketplace.offerModeration.approveConfirmTitle'),
+      message: t('marketplace.offerModeration.approveConfirmMessage', {
+        productName: offer.product_name,
+        shelfLife: shelfLifeText,
+      }),
       prompt: {
         model: '0',
         type: 'number',
         isValid: isValidDays,
-        label: 'Гарантийный срок возврата (дней)',
+        label: t('marketplace.offerModeration.warrantyDaysLabel'),
       },
-      ok: { label: 'Одобрить', color: 'primary', unelevated: true, noCaps: true },
-      cancel: { label: 'Отмена', flat: true, noCaps: true },
+      ok: { label: t('marketplace.offerModeration.approveConfirm'), color: 'primary', unelevated: true, noCaps: true },
+      cancel: { label: t('common.action.cancel'), flat: true, noCaps: true },
       persistent: true,
     }).onOk(async (days: string) => {
       approving.value.add(offer.id);
       try {
         await approveOffer(offer.id, Number(days));
-        SuccessAlert(`Предложение «${offer.product_name}» одобрено`);
+        SuccessAlert(t('marketplace.offerModeration.approvedSuccess', { productName: offer.product_name }));
         opts.onApproved?.(offer.id);
       } catch (e) {
         FailAlert(e);
@@ -90,16 +91,16 @@ export function useOfferModeration(opts: UseOfferModerationOptions = {}) {
   /** Изменение гарантийного срока возврата уже одобренного предложения. */
   function confirmSetWarranty(offer: OfferModerationTarget, currentDays = 0): void {
     Dialog.create({
-      title: 'Гарантийный срок возврата',
-      message: `Укажите гарантийный срок возврата (дней) по «${offer.product_name}». 0 — возврат недоступен.`,
+      title: t('marketplace.offerModeration.warrantyDialogTitle'),
+      message: t('marketplace.offerModeration.warrantyDialogMessage', { productName: offer.product_name }),
       prompt: {
         model: String(currentDays),
         type: 'number',
         isValid: isValidDays,
-        label: 'Гарантийный срок возврата (дней)',
+        label: t('marketplace.offerModeration.warrantyDaysLabel'),
       },
-      ok: { label: 'Сохранить', color: 'primary', unelevated: true, noCaps: true },
-      cancel: { label: 'Отмена', flat: true, noCaps: true },
+      ok: { label: t('common.action.save'), color: 'primary', unelevated: true, noCaps: true },
+      cancel: { label: t('common.action.cancel'), flat: true, noCaps: true },
       // Окно закрывается нажатием мимо него: правка срока — мелкая и
       // необязательная, держать её на экране силой незачем (решение
       // владельца 14.09.2026). Одобрение и отказ остаются настойчивыми:
@@ -108,7 +109,7 @@ export function useOfferModeration(opts: UseOfferModerationOptions = {}) {
       settingWarranty.value.add(offer.id);
       try {
         await setOfferWarranty(offer.id, Number(days));
-        SuccessAlert(`Гарантийный срок возврата по «${offer.product_name}» обновлён`);
+        SuccessAlert(t('marketplace.offerModeration.warrantyUpdatedSuccess', { productName: offer.product_name }));
         opts.onWarrantyChanged?.(offer.id);
       } catch (e) {
         FailAlert(e);
@@ -120,24 +121,24 @@ export function useOfferModeration(opts: UseOfferModerationOptions = {}) {
 
   function confirmReject(offer: OfferModerationTarget): void {
     Dialog.create({
-      title: 'Отклонить предложение?',
-      message: `Укажите причину отказа по «${offer.product_name}» — она будет видна поставщику в «Мои предложения».`,
+      title: t('marketplace.offerModeration.rejectConfirmTitle'),
+      message: t('marketplace.offerModeration.rejectConfirmMessage', { productName: offer.product_name }),
       prompt: {
         model: '',
         type: 'textarea',
         isValid: (val: string) => val.trim().length > 0,
-        label: 'Причина отказа',
+        label: t('marketplace.offerModeration.rejectReasonLabel'),
         counter: true,
         maxlength: 1000,
       },
-      ok: { label: 'Отклонить', color: 'negative', unelevated: true, noCaps: true },
-      cancel: { label: 'Отмена', flat: true, noCaps: true },
+      ok: { label: t('marketplace.offerModeration.rejectConfirm'), color: 'negative', unelevated: true, noCaps: true },
+      cancel: { label: t('common.action.cancel'), flat: true, noCaps: true },
       persistent: true,
     }).onOk(async (reason: string) => {
       rejecting.value.add(offer.id);
       try {
         await rejectOffer(offer.id, reason.trim());
-        SuccessAlert(`Предложение «${offer.product_name}» отклонено`);
+        SuccessAlert(t('marketplace.offerModeration.rejectedSuccess', { productName: offer.product_name }));
         opts.onRejected?.(offer.id);
       } catch (e) {
         FailAlert(e);

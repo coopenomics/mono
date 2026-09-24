@@ -1,7 +1,7 @@
 <template lang="pug">
 div
-  .agreement-pending.t-body(v-if='isPending') Документ на утверждении советом.
-  .agreement-pending.t-body(v-else-if='isLoading') Загрузка политики конфиденциальности...
+  .agreement-pending.t-body(v-if='isPending') {{ $t('agreementer.staticPrivacyPolicy.pendingText') }}
+  .agreement-pending.t-body(v-else-if='isLoading') {{ $t('agreementer.staticPrivacyPolicy.loadingText') }}
   .agreement-pending.t-body(v-else-if='error') {{ error }}
   DocumentHtmlReader(v-else :html='html')
 </template>
@@ -12,6 +12,7 @@ import { useSystemStore } from 'src/entities/System/model';
 import { DocumentHtmlReader } from 'src/shared/ui/DocumentHtmlReader';
 import { Cooperative } from 'cooptypes';
 import { fetchPublicProvision } from '../api';
+import { t } from 'src/shared/i18n';
 
 const { info } = useSystemStore();
 
@@ -39,7 +40,7 @@ onMounted(async () => {
     const provision = await fetchPublicProvision({ registry_id: Cooperative.Registry.PrivacyPolicy.registry_id });
     html.value = provision.html;
   } catch (e: any) {
-    error.value = e?.message ?? 'Не удалось загрузить текст политики конфиденциальности';
+    error.value = e?.message ?? t('agreementer.staticPrivacyPolicy.loadError');
   } finally {
     isLoading.value = false;
   }

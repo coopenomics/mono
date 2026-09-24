@@ -18,6 +18,7 @@ import {
   type CreateStockProposalInput,
   type MarketplaceOrderIssuanceView,
 } from '../api';
+import { t } from 'src/shared/i18n';
 
 // Строки бандла — тип берём прямо из SDK-входа.
 type StockBundleStockLine = NonNullable<CreateStockProposalInput['items']>[number];
@@ -172,7 +173,7 @@ const correctionRows = computed<CorrectionRow[]>(() =>
     const packaged = (o.package_size ?? 0) > 0;
     return {
       sku: o.id.slice(0, 8),
-      title: o.product_name || 'Товар по предложению',
+      title: o.product_name || t('marketplace.issueActOpenDialog.productOfferFallback'),
       unit: marketplaceSaleUnitLabel(o.unit_of_measure, o.package_size ?? null),
       packaged,
       expected: saleUnitsOf(o, o.quantity),
@@ -265,19 +266,19 @@ const blockReason = computed<string | null>(() => {
     list.map((o) => o.product_name || o.id.slice(0, 8)).join(', ');
 
   if (includedOrders.value.length === 0) {
-    return 'Отметьте хотя бы одну позицию к выдаче. Невыбранные позиции останутся на складе.';
+    return t('marketplace.issueActOpenDialog.warnUnselectedText');
   }
   if (anyOverStock.value) {
     const over = includedOrders.value.filter((o) => (facts.value[o.id]?.qty ?? 0) > availableOf(o));
-    return `Факт больше принятого на склад по позиц.: ${names(over)}. Уменьшите количество до значения «Принято».`;
+    return t('marketplace.issueActOpenDialog.overStockError', { positions: names(over) });
   }
   const zeroQty = includedOrders.value.filter((o) => (facts.value[o.id]?.qty ?? 0) <= 0);
   if (zeroQty.length) {
-    return `Укажите фактическое количество больше нуля по позиц.: ${names(zeroQty)}.`;
+    return t('marketplace.issueActOpenDialog.zeroQtyError', { positions: names(zeroQty) });
   }
   const zeroPrice = includedOrders.value.filter((o) => (facts.value[o.id]?.price ?? 0) <= 0);
   if (zeroPrice.length) {
-    return `Укажите цену больше нуля по позиц.: ${names(zeroPrice)}.`;
+    return t('marketplace.issueActOpenDialog.zeroPriceError', { positions: names(zeroPrice) });
   }
   return null;
 });
@@ -336,11 +337,11 @@ function onCorrectionToggle(payload: { sku: string; included: boolean }): void {
 async function confirm(): Promise<void> {
   if (!props.orders.length) return;
   if (!allValid.value) {
-    FailAlert(new Error('Фактическое количество и цена должны быть больше нуля по всем позициям.'));
+    FailAlert(new Error(t('marketplace.error.issueFactsNotPositive')));
     return;
   }
   if (!recipientAccount.value || !issueBraname.value) {
-    FailAlert(new Error('Не определён получатель или пункт выдачи.'));
+    FailAlert(new Error(t('marketplace.error.issueRecipientMissing')));
     return;
   }
   signing.value = true;
@@ -385,12 +386,12 @@ async function confirm(): Promise<void> {
     signing.value = false;
     emit('opened');
     const total = order_items.length + items.length;
-    const tail = leftCount.value > 0 ? ` Осталось на складе позиц.: ${leftCount.value}.` : '';
-    SuccessAlert(`Отправлено пайщику на подпись (${total} позиц.) — дальше решение совета и акт.${tail}`);
+    const tail = leftCount.value > 0 ? t('marketplace.issueActOpenDialog.leftOnStockText', { count: leftCount.value }) : '';
+    SuccessAlert(t('marketplace.issueActOpenDialog.sentToMemberMessage', { count: total, note: tail }));
     emit('update:modelValue', false);
   } catch (e) {
     signing.value = false;
-    FailAlert(e, 'Не удалось отправить выдачу пайщику');
+    FailAlert(e, t('marketplace.issueActOpenDialog.sendError'));
   }
 }
 
@@ -402,7 +403,7 @@ function cancel(): void {
 <template lang="pug">
 BaseDialog(
   :model-value="modelValue"
-  title="Открытие выдачи пайщику"
+  :title="$t('marketplace.issueActOpenDialog.dialogTitle')"
   maximized
   @update:model-value="(v: boolean) => emit('update:modelValue', v)"
 )
@@ -413,29 +414,29 @@ BaseDialog(
       .issue-act__who(v-if="recipientName")
         span.issue-act__name {{ recipientName }}
         span.issue-act__meta
-          | К выдаче {{ includedCount }} из {{ positionsCount }}
+          | {{ $t('marketplace.issueActOpenDialog.selectedOfTotalText', { selected: includedCount, total: positionsCount }) }}
           |  · {{ formatAsset2Digits(totalFactCostWithFee.toFixed(4)) }} ₽
           template(v-if="issuanceDiff.refund > 0")
-            |  · вернётся в кошелёк {{ formatAsset2Digits(issuanceDiff.refund.toFixed(4)) }} ₽
+            |  {{ $t('marketplace.issueActOpenDialog.refundNote', { amount: formatAsset2Digits(issuanceDiff.refund.toFixed(4)) }) }}
 
     template(#lead)
-      | Сверьте имущество с заказами пайщика и отметьте галочкой то, что он
-      | забирает сейчас. «План» — сколько заказано, «Принято» — сколько на складе
-      | (выдать больше нельзя). Снятые позиции остаются на складе.
+      | {{ $t('marketplace.issueActOpenDialog.instructionLine1') }}
+      | {{ $t('marketplace.issueActOpenDialog.instructionLine2') }}
+      | {{ $t('marketplace.issueActOpenDialog.instructionLine3') }}
 
     //- Шапка панели: что в ней и сколько — слева, действие — справа. Одинокая
     //- кнопка над таблицей оставляла всю строку пустой.
     .issue-act__toolbar
-      span.issue-act__toolbar-title Позиции пайщика · {{ positionsCount }}
+      span.issue-act__toolbar-title {{ $t('marketplace.issueActOpenDialog.itemsHeader', { count: positionsCount }) }}
       BaseButton(variant="secondary", size="sm", @click="stockPickOpen = true")
         template(#icon-left)
           q-icon(name="add_shopping_cart", size="18px")
-        | Добавить со склада
+        | {{ $t('marketplace.issueActOpenDialog.addFromStockButton') }}
     CorrectionTable(:rows="correctionRows", selectable, @change="onCorrectionChange", @toggle="onCorrectionToggle")
 
     .issue-act__restock(v-if="restockLines.length")
       .issue-act__restock-head
-        BaseBadge(variant="info") Доложено со склада
+        BaseBadge(variant="info") {{ $t('marketplace.issueActOpenDialog.restockLabel') }}
       .issue-act__restock-row(v-for="l in restockLines", :key="l.offer_id")
         .issue-act__restock-info
           span.issue-act__restock-name {{ l.product_name }}
@@ -448,25 +449,25 @@ BaseDialog(
     template(#after)
       .issue-act__totals
         .issue-act__sum
-          span.issue-act__sum-label Себестоимость ({{ includedCount }} из {{ positionsCount }} позиц.)
+          span.issue-act__sum-label {{ $t('marketplace.issueActOpenDialog.costHeader', { included: includedCount, total: positionsCount }) }}
           span.issue-act__sum-value {{ formatAsset2Digits(totalFactCost) }} ₽
         .issue-act__sum(v-if="feePercent > 0")
-          span.issue-act__sum-label Целевой членский взнос ({{ feePercent }}%)
+          span.issue-act__sum-label {{ $t('marketplace.issueActOpenDialog.targetFeeHeader', { percent: feePercent }) }}
           span.issue-act__sum-value {{ formatAsset2Digits(membershipFeeAmount.toFixed(4)) }} ₽
         .issue-act__sum.issue-act__sum--total
-          span.issue-act__sum-label Итого к оплате
+          span.issue-act__sum-label {{ $t('marketplace.issueActOpenDialog.totalToPayLabel') }}
           span.issue-act__sum-value {{ formatAsset2Digits(totalFactCostWithFee.toFixed(4)) }} ₽
         .issue-act__sum(v-if="leftCount > 0")
-          span.issue-act__sum-label Остаётся на складе
-          span.issue-act__sum-value {{ leftCount }} позиц.
+          span.issue-act__sum-label {{ $t('marketplace.issueActOpenDialog.leftOnStockLabel') }}
+          span.issue-act__sum-value {{ $t('marketplace.issueActOpenDialog.leftCountText', { count: leftCount }) }}
         .issue-act__sum(v-if="issuanceDiff.refund > 0")
-          span.issue-act__sum-label Вернётся в кошелёк Стола заказов
+          span.issue-act__sum-label {{ $t('marketplace.issueActOpenDialog.refundToWalletLabel') }}
           span.issue-act__sum-value {{ formatAsset2Digits(issuanceDiff.refund.toFixed(4)) }} ₽
         .issue-act__sum(v-if="issuanceDiff.surcharge > 0")
-          span.issue-act__sum-label Доплата по факту (спишется с паевого)
+          span.issue-act__sum-label {{ $t('marketplace.issueActOpenDialog.surchargeLabel') }}
           span.issue-act__sum-value {{ formatAsset2Digits(issuanceDiff.surcharge.toFixed(4)) }} ₽
         .issue-act__sum(v-if="restockLines.length")
-          span.issue-act__sum-label Доложено со склада
+          span.issue-act__sum-label {{ $t('marketplace.issueActOpenDialog.restockLabel') }}
           span.issue-act__sum-value {{ formatAsset2Digits(restockTotal) }} ₽
 
       .issue-act__blocker(v-if="blockReason")
@@ -480,7 +481,7 @@ BaseDialog(
   )
 
   template(#footer)
-    BaseButton(variant="ghost", @click="cancel") Закрыть
+    BaseButton(variant="ghost", @click="cancel") {{ $t('common.action.close') }}
     BaseButton(
       variant="primary"
       :loading="signing"
@@ -489,7 +490,7 @@ BaseDialog(
     )
       template(#icon-left)
         q-icon(name="send", size="18px")
-      | Отправить пайщику на подпись
+      | {{ $t('marketplace.issueActOpenDialog.sendForSignatureButton') }}
 </template>
 
 <style scoped lang="scss">

@@ -25,10 +25,10 @@
       :offset='[0, 6]'
     )
       .time-popup(@click.stop)
-        .popup-header Время задачи
+        .popup-header {{ $t('capital.issueTimeChip.title') }}
 
         .popup-row
-          .popup-label План, ч
+          .popup-label {{ $t('capital.issueTimeChip.planLabel') }}
           BaseInput.popup-input(
             v-if='!isReadonly'
             v-model='estimateInput'
@@ -40,11 +40,11 @@
           .popup-readonly-value(v-else) {{ formatHours(displayEstimate) }}
 
         .popup-row
-          .popup-label Факт, ч
+          .popup-label {{ $t('capital.issueTimeChip.factLabel') }}
           .popup-readonly-value
             | {{ factDisplay }}
             span.popup-live(v-if='timerActiveHere')  +{{ clockLabel }}
-            q-tooltip Факт = сумма записей учёта времени (таймер / ручной ввод)
+            q-tooltip {{ $t('capital.issueTimeChip.factHint') }}
 
         .popup-progress(v-if='hasEstimate')
           q-linear-progress(
@@ -66,7 +66,7 @@
               :color='isPaused ? "warning" : "primary"'
             )
             .popup-timer-clock.t-mono {{ clockLabel }}
-            .popup-timer-state {{ isPaused ? 'пауза' : 'идёт' }}
+            .popup-timer-state {{ isPaused ? $t('capital.issueTimeChip.pausedTag') : $t('capital.issueTimeChip.runningTag') }}
 
           .popup-actions
             BaseButton(
@@ -78,7 +78,7 @@
             )
               template(#icon-left)
                 q-icon(:name='timerActiveHere ? "stop" : "play_arrow"', size='14px')
-              | {{ timerActiveHere ? 'Стоп' : 'Таймер' }}
+              | {{ timerActiveHere ? $t('capital.issueTimeChip.stopAction') : $t('capital.issueTimeChip.timerAction') }}
 
             BaseButton(
               v-if='timerActiveHere'
@@ -89,7 +89,7 @@
             )
               template(#icon-left)
                 q-icon(:name='isPaused ? "play_arrow" : "pause"', size='14px')
-              | {{ isPaused ? 'Продолжить' : 'Пауза' }}
+              | {{ isPaused ? $t('capital.issueTimeChip.resumeAction') : $t('capital.issueTimeChip.pauseAction') }}
 
             BaseButton(
               v-if='!addFormOpen'
@@ -99,10 +99,10 @@
             )
               template(#icon-left)
                 q-icon(name='add', size='14px')
-              | Факт
+              | {{ $t('capital.issueTimeChip.factShortLabel') }}
 
           .popup-hint(v-if='timerBusyElsewhere')
-            | Таймер уже идёт по другой задаче{{ isPaused ? ' (пауза)' : '' }}
+            | {{ $t('capital.issueTimeChip.timerRunningElsewhere', { pausedSuffix: isPaused ? $t('capital.issueTimeChip.pausedSuffix') : '' }) }}
 
           .popup-add(v-if='addFormOpen')
             BaseInput.popup-add-input(
@@ -110,7 +110,7 @@
               type='number'
               flat
               autofocus
-              suffix='ч'
+              :suffix='$t("capital.issueTimeChip.hoursSuffix")'
               @keydown.enter='submitWorklog'
             )
             BaseButton(
@@ -119,12 +119,12 @@
               :loading='worklogSaving'
               :disabled='!isWorklogValid'
               @click='submitWorklog'
-            ) Добавить
+            ) {{ $t('common.action.add') }}
             BaseButton(
               size='sm'
               variant='ghost'
               icon-only
-              aria-label='Отменить'
+              :aria-label='$t("capital.issueTimeChip.cancelAriaLabel")'
               @click='closeAddForm'
             )
               q-icon(name='close', size='14px')
@@ -134,7 +134,7 @@
         q-separator.popup-sep(v-if='recentEntries.length')
 
         .popup-entries(v-if='recentEntries.length')
-          .popup-entries-title Последние записи
+          .popup-entries-title {{ $t('capital.issueTimeChip.recentEntriesLabel') }}
           .popup-entry(v-for='entry in recentEntries', :key='entry._id')
             span.popup-entry-hours {{ formatHours(Number(entry.hours) || 0) }}
             span.popup-entry-sep ·
@@ -145,17 +145,19 @@
           q-spinner(color='primary', size='16px')
 
         .popup-hint(v-else-if='!canManageTime')
-          | Записи времени добавляют исполнители задачи.
+          | {{ $t('capital.issueTimeChip.entriesHint') }}
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue';
+import { uiLocale } from 'src/shared/i18n';
 import { useRoute } from 'vue-router';
 import { useUpdateIssue } from '../../model';
 import { useIssueStore } from 'app/extensions/capital/entities/Issue/model';
 import { useIssueTimeTracking } from 'app/extensions/capital/features/Issue/TrackTime';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { BaseButton, BaseInput } from 'src/shared/ui/base';
+import { t } from '../../../../../i18n';
 
 interface Props {
   issueHash: string;
@@ -266,13 +268,13 @@ const hasFact = computed(() => effectiveFact.value > 0);
 const hasAny = computed(() => hasEstimate.value || hasFact.value);
 
 function formatHours(h: number | null | undefined): string {
-  if (h == null || Number.isNaN(h) || h <= 0) return '0ч';
+  if (h == null || Number.isNaN(h) || h <= 0) return t('capital.issueTimeChip.zeroHours');
   if (h < 8) {
     const rounded = h % 1 === 0 ? h : parseFloat(h.toFixed(2));
-    return `${rounded}ч`;
+    return t('capital.issueTimeChip.hoursValue', { hours: rounded });
   }
   const days = Math.round((h / 8) * 10) / 10;
-  return `${days}д`;
+  return t('capital.issueTimeChip.daysValue', { days });
 }
 
 const inlineLabel = computed(() => {
@@ -305,18 +307,18 @@ const triggerIconColor = computed(() => {
 
 const progressLabel = computed(() => {
   if (!hasEstimate.value) return '';
-  return `${formatHours(effectiveFact.value)} из ${formatHours(Number(displayEstimate.value))}`;
+  return t('capital.issueTimeChip.factOfEstimate', { fact: formatHours(effectiveFact.value), estimate: formatHours(Number(displayEstimate.value)) });
 });
 
 const tooltipText = computed(() => {
   if (timerActiveHere.value) {
-    return isPaused.value ? 'Таймер на паузе' : 'Таймер идёт';
+    return isPaused.value ? t('capital.issueTimeChip.timerPausedStatus') : t('capital.issueTimeChip.timerRunningStatus');
   }
   if (isMenuDisabled.value) {
-    if (hasAny.value) return `Время: ${inlineLabel.value}`;
-    return 'Время не задано';
+    if (hasAny.value) return t('capital.issueTimeChip.timeInline', { time: inlineLabel.value });
+    return t('capital.issueTimeChip.timeNotSet');
   }
-  return 'Время задачи: план, факт, таймер';
+  return t('capital.issueTimeChip.tooltipTitle');
 });
 
 /** В строке списка достаточно трёх крайних записей — остальное на странице задачи. */
@@ -325,13 +327,13 @@ const recentEntries = computed(() => rows.value.slice(0, 3));
 const entryTypeLabel = (type?: unknown) => {
   switch (type) {
     case 'manual':
-      return 'вручную';
+      return t('capital.issueTimeChip.sourceManual');
     case 'timer':
-      return 'таймер';
+      return t('capital.issueTimeChip.sourceTimer');
     case 'estimate':
-      return 'оценка';
+      return t('capital.issueTimeChip.sourceEstimate');
     case 'hourly':
-      return 'учёт';
+      return t('capital.issueTimeChip.sourceTracking');
     default:
       return '';
   }
@@ -339,7 +341,7 @@ const entryTypeLabel = (type?: unknown) => {
 
 const formatEntryDate = (date?: string | null) => {
   if (!date) return '';
-  return new Date(date).toLocaleDateString('ru-RU', {
+  return new Date(date).toLocaleDateString(uiLocale(), {
     day: 'numeric',
     month: 'short',
   });
@@ -375,18 +377,18 @@ const refreshIssueFact = async () => {
 const submitWorklog = async () => {
   const hours = Number(String(worklogHours.value).replace(',', '.'));
   if (!Number.isFinite(hours) || hours <= 0) {
-    worklogError.value = 'Укажите положительное число часов';
+    worklogError.value = t('capital.issueTimeChip.positiveHoursError');
     return;
   }
   worklogError.value = '';
   try {
     await addWorklog(hours);
-    SuccessAlert('Время добавлено');
+    SuccessAlert(t('capital.issueTimeChip.addSuccess'));
     closeAddForm();
     await refreshIssueFact();
   } catch (error) {
     console.error(error);
-    FailAlert(error, 'Не удалось добавить время');
+    FailAlert(error, t('capital.issueTimeChip.addError'));
   }
 };
 
@@ -394,7 +396,7 @@ const onToggleTimer = async () => {
   const wasRunning = timerActiveHere.value;
   try {
     await toggleTimer();
-    SuccessAlert(wasRunning ? 'Таймер остановлен' : 'Таймер включён');
+    SuccessAlert(wasRunning ? t('capital.issueTimeChip.timerStopped') : t('capital.issueTimeChip.timerStarted'));
     if (wasRunning) await refreshIssueFact();
   } catch (error) {
     console.error(error);
@@ -406,7 +408,7 @@ const onTogglePause = async () => {
   const wasPaused = isPaused.value;
   try {
     await togglePause();
-    SuccessAlert(wasPaused ? 'Таймер продолжен' : 'Таймер на паузе');
+    SuccessAlert(wasPaused ? t('capital.issueTimeChip.timerResumed') : t('capital.issueTimeChip.timerPausedStatus'));
   } catch (error) {
     console.error(error);
     FailAlert(error);

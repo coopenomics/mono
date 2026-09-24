@@ -6,36 +6,36 @@
     .edit-field__main
       template(v-if='!isEditing')
         .edit-field__head
-          span.t-sm.t-muted О себе
+          span.t-sm.t-muted {{ $t('capital.editAboutInput.label') }}
           BaseButton(
             v-if='isOwnProfile',
             variant='ghost',
             size='sm',
             icon-only,
-            aria-label='Редактировать информацию о себе',
+            :aria-label='$t("capital.editAboutInput.editAriaLabel")',
             @click='startEditing'
           )
             template(#icon-left)
               q-icon(name='edit', size='16px')
-        .edit-field__value(:class='{ "t-muted": !hasAbout }') {{ hasAbout ? contributorStore.self?.about : 'Не указано' }}
+        .edit-field__value(:class='{ "t-muted": !hasAbout }') {{ hasAbout ? contributorStore.self?.about : $t('capital.editAboutInput.notSpecified') }}
       template(v-else)
         BaseForm(:loading='isSaving', @submit='saveAbout')
           BaseInput(
             v-model='localAbout',
             type='textarea',
             autogrow,
-            label='Расскажите о себе и чем можете быть полезны кооперативу',
+            :label='$t("capital.editAboutInput.inputLabel")',
             :error='aboutError'
           )
           template(#footer)
-            BaseButton(variant='ghost', size='sm', @click='cancelEditing') Отмена
+            BaseButton(variant='ghost', size='sm', @click='cancelEditing') {{ $t('common.action.cancel') }}
             BaseButton(
               variant='primary',
               size='sm',
               type='submit',
               :loading='isSaving',
               :disabled='!hasChanges || !!aboutError'
-            ) Сохранить
+            ) {{ $t('common.action.save') }}
 </template>
 
 <script setup lang="ts">
@@ -45,6 +45,7 @@ import { useEditContributor } from '../model';
 import { useContributorStore } from 'app/extensions/capital/entities/Contributor/model';
 import { useSessionStore } from 'src/entities/Session/model';
 import { BaseButton, BaseForm, BaseInput } from 'src/shared/ui/base';
+import { t } from '../../../../i18n';
 
 const emit = defineEmits<{
   'about-updated': [];
@@ -70,7 +71,7 @@ const hasAbout = computed(() => {
 
 // Валидация длины текста
 const aboutError = computed(() =>
-  localAbout.value.length > 1000 ? 'Максимум 1000 символов' : undefined,
+  localAbout.value.length > 1000 ? t('capital.editAboutInput.maxLengthHint') : undefined,
 );
 
 // Проверяем, есть ли изменения
@@ -104,14 +105,14 @@ const saveAbout = async () => {
       rate_per_hour: contributorStore.self?.rate_per_hour,
     });
 
-    SuccessAlert('Информация о себе успешно обновлена');
+    SuccessAlert(t('capital.editAboutInput.updateSuccess'));
     isEditing.value = false;
 
     // Уведомляем родительский компонент
     emit('about-updated');
   } catch (error) {
     console.error('Ошибка при обновлении информации о себе:', error);
-    FailAlert(error, 'Не удалось обновить информацию о себе');
+    FailAlert(error, t('capital.editAboutInput.updateError'));
   }
 };
 

@@ -3,10 +3,10 @@
   .banner.banner--info.q-mb-md(v-if='!dismissed')
     q-icon.banner__icon(name='info', size='20px')
     .banner__body
-      | Любой пайщик может объявить собрание для учреждения кооперативного участка:
-      | участники присоединяются по заявлению, голосуют бюллетенями, председатель
-      | собрания утверждает протокол, а совет — учреждение участка.
-    button.icon-btn(type='button', aria-label='Скрыть', @click='dismiss')
+      | {{ $t('ku.kuMeetingsPage.introLine1') }}
+      | {{ $t('ku.kuMeetingsPage.introLine2') }}
+      | {{ $t('ku.kuMeetingsPage.introLine3') }}
+    button.icon-btn(type='button', :aria-label='$t("ku.kuMeetingsPage.dismissBanner")', @click='dismiss')
       q-icon(name='close')
 
   TableSkeleton(v-if='loading && !decisions.length', :columns='skeletonColumns', :rows='5')
@@ -15,10 +15,10 @@
       table.table
         thead
           tr
-            th Участок
-            th Дата и время ({{ timezoneLabel }})
-            th Статус
-            th.t-num Участники
+            th {{ $t('ku.kuMeetingsPage.column.branch') }}
+            th {{ $t('ku.kuMeetingsPage.column.dateTime', { timezone: timezoneLabel }) }}
+            th {{ $t('ku.kuMeetingsPage.column.status') }}
+            th.t-num {{ $t('ku.kuMeetingsPage.column.participants') }}
             th.col-action
         tbody
           tr.data-row(
@@ -36,65 +36,65 @@
             td.col-action
               button.icon-btn(
                 type='button',
-                aria-label='Открыть собрание',
+                :aria-label='$t("ku.kuMeetingsPage.openMeetingAction")',
                 @click.stop='openDetails(decision.hash)'
               )
                 q-icon(name='chevron_right')
   EmptyState(
     v-else,
-    title='Собраний пока нет',
-    body='Объявите собрание пайщиков, чтобы учредить кооперативный участок.'
+    :title='$t("ku.kuMeetingsPage.emptyTitle")',
+    :body='$t("ku.kuMeetingsPage.emptyBody")'
   )
     template(#icon)
       q-icon(name='groups', size='48px')
 
-BaseDialog(v-model='isCreateOpen', title='Объявить собрание', size='md')
+BaseDialog(v-model='isCreateOpen', :title='$t("ku.kuMeetingsPage.createDialogTitle")', size='md')
   BaseForm(@submit='submitCreate')
     BaseSelect(
       v-model='form.type',
-      label='Тип собрания',
+      :label='$t("ku.kuMeetingsPage.typeLabel")',
       :options='meetingTypeOptions',
       required
     )
     BaseInput(
       v-model='form.meetPlace',
-      label='Место проведения собрания',
-      placeholder='город, улица, дом — или ссылка на онлайн-комнату',
+      :label='$t("ku.kuMeetingsPage.placeLabel")',
+      :placeholder='$t("ku.kuMeetingsPage.placePlaceholder")',
       required
     )
     BaseInput(
       v-model='form.meetAt',
-      :label='`Дата и время собрания (${timezoneLabel})`',
+      :label='$t(`ku.kuMeetingsPage.dateTimeLabel`, { timezone: timezoneLabel })',
       type='datetime-local',
       required
     )
 
     template(v-if='form.type === "createbranch"')
       .t-sm.t-muted.q-my-md
-        | Повестка стандартная: организация кооперативного участка и избрание его
-        | председателя. Решение о месте основания участка и его председателе будет
-        | принято на собрании. Место и время собрания видны только пайщикам.
+        | {{ $t('ku.kuMeetingsPage.createBranchAgendaHintLine1') }}
+        | {{ $t('ku.kuMeetingsPage.createBranchAgendaHintLine2') }}
+        | {{ $t('ku.kuMeetingsPage.createBranchAgendaHintLine3') }}
     template(v-else)
       .t-sm.t-muted.q-my-md
-        | Повестку определяете вы; на собрании её можно дополнить. Итог собрания —
-        | протокол решения пайщиков, в совет ничего не направляется.
+        | {{ $t('ku.kuMeetingsPage.freeAgendaHintLine1') }}
+        | {{ $t('ku.kuMeetingsPage.freeAgendaHintLine2') }}
       .q-mb-sm(v-for='(point, index) in freeAgenda', :key='index')
         .row.items-start.q-gutter-sm
           .col
-            BaseInput(v-model='point.title', :label='`Вопрос ${index + 1}`', required)
-            BaseInput(v-model='point.decision', label='Проект решения', required)
+            BaseInput(v-model='point.title', :label='$t(`ku.kuMeetingsPage.agendaQuestionLabel`, { number: index + 1 })', required)
+            BaseInput(v-model='point.decision', :label='$t("ku.kuMeetingsPage.decisionDraftLabel")', required)
           button.icon-btn.q-mt-sm(
             v-if='freeAgenda.length > 1',
             type='button',
-            aria-label='Убрать вопрос',
+            :aria-label='$t("ku.kuMeetingsPage.removeQuestionAction")',
             @click='removeFreeAgendaPoint(index)'
           )
             q-icon(name='close')
-      BaseButton.q-mt-sm(variant='secondary', size='sm', type='button', @click='addFreeAgendaPoint') Добавить вопрос
+      BaseButton.q-mt-sm(variant='secondary', size='sm', type='button', @click='addFreeAgendaPoint') {{ $t('ku.kuMeetingsPage.addQuestionAction') }}
 
     .row.justify-end.q-gutter-sm.q-mt-md
-      BaseButton(variant='secondary', type='button', @click='isCreateOpen = false') Отменить
-      BaseButton(variant='primary', type='submit', :loading='isSubmitting') Подписать и объявить
+      BaseButton(variant='secondary', type='button', @click='isCreateOpen = false') {{ $t('ku.kuMeetingsPage.cancelCreateAction') }}
+      BaseButton(variant='primary', type='submit', :loading='isSubmitting') {{ $t('ku.kuMeetingsPage.submitCreateAction') }}
 </template>
 
 <script setup lang="ts">
@@ -126,6 +126,7 @@ import {
 } from 'src/shared/ui/base';
 import type { TableSkeletonColumn } from 'src/shared/ui/base';
 import { CreateKuMeetingButton } from '../../shared/CreateKuMeetingButton';
+import { t } from 'src/shared/i18n';
 
 const router = useRouter();
 const kuStore = useKuStore();
@@ -145,8 +146,8 @@ const form = ref<{ type: 'createbranch' | 'free'; meetPlace: string; meetAt: str
 });
 
 const meetingTypeOptions = [
-  { label: 'Создание кооперативного участка', value: 'createbranch' },
-  { label: 'Произвольные вопросы', value: 'free' },
+  { label: t('ku.kuMeetingsPage.meetingTypeOption.createBranch'), value: 'createbranch' },
+  { label: t('ku.kuMeetingsPage.meetingTypeOption.free'), value: 'free' },
 ];
 
 // повестка собрания по произвольным вопросам — задаётся организатором
@@ -165,20 +166,20 @@ function removeFreeAgendaPoint(index: number) {
 const decisions = computed(() => kuStore.decisions);
 
 const skeletonColumns: TableSkeletonColumn[] = [
-  { label: 'Участок' },
-  { label: 'Дата и время' },
-  { label: 'Статус', cell: 'badge' },
-  { label: 'Участники', class: 't-num' },
+  { label: t('ku.kuMeetingsPage.column.branch') },
+  { label: t('ku.kuMeetingsPage.column.dateTimeSkeleton') },
+  { label: t('ku.kuMeetingsPage.column.status'), cell: 'badge' },
+  { label: t('ku.kuMeetingsPage.column.participants'), class: 't-num' },
   { label: '', class: 'col-action', cell: 'icon' },
 ];
 
 const statusMap: Record<Zeus.KuDecisionStatus, { label: string; variant: 'neutral' | 'pos' | 'neg' | 'warn' | 'info' }> = {
-  [Zeus.KuDecisionStatus.OPENED]: { label: 'Сбор участников', variant: 'info' },
-  [Zeus.KuDecisionStatus.VOTING]: { label: 'Голосование', variant: 'warn' },
-  [Zeus.KuDecisionStatus.APPROVED]: { label: 'Протокол утверждён', variant: 'pos' },
-  [Zeus.KuDecisionStatus.ONAPPROVAL]: { label: 'На утверждении советом', variant: 'info' },
-  [Zeus.KuDecisionStatus.COMPLETED]: { label: 'Завершено', variant: 'neutral' },
-  [Zeus.KuDecisionStatus.CANCELLED]: { label: 'Отменено', variant: 'neg' },
+  [Zeus.KuDecisionStatus.OPENED]: { label: t('ku.kuMeetingsPage.status.opened'), variant: 'info' },
+  [Zeus.KuDecisionStatus.VOTING]: { label: t('ku.kuMeetingsPage.status.voting'), variant: 'warn' },
+  [Zeus.KuDecisionStatus.APPROVED]: { label: t('ku.kuMeetingsPage.status.approved'), variant: 'pos' },
+  [Zeus.KuDecisionStatus.ONAPPROVAL]: { label: t('ku.kuMeetingsPage.status.onApproval'), variant: 'info' },
+  [Zeus.KuDecisionStatus.COMPLETED]: { label: t('ku.kuMeetingsPage.status.completed'), variant: 'neutral' },
+  [Zeus.KuDecisionStatus.CANCELLED]: { label: t('ku.kuMeetingsPage.status.cancelled'), variant: 'neg' },
 };
 
 function statusMeta(decision: IKuDecision) {
@@ -189,8 +190,8 @@ function statusMeta(decision: IKuDecision) {
 }
 
 function meetingTitle(decision: IKuDecision): string {
-  if (decision.type === Zeus.KuDecisionType.FREE) return 'Собрание пайщиков';
-  return decision.branch_name || decision.address || 'Учреждение участка';
+  if (decision.type === Zeus.KuDecisionType.FREE) return t('ku.kuMeetingsPage.defaultMeetingTitle');
+  return decision.branch_name || decision.address || t('ku.kuMeetingsPage.branchEstablishmentTitle');
 }
 
 const timezoneLabel = getTimezoneLabel();
@@ -215,19 +216,19 @@ function openCreateDialog() {
 // именем участка и кооператива подставляются при открытии голосования (см. startdec).
 function buildCreateBranchAgenda() {
   const coopName = system.info?.vars?.name ?? '';
-  const coopGenitive = system.info?.vars?.full_abbr_genitive ?? 'потребительского кооператива';
+  const coopGenitive = system.info?.vars?.full_abbr_genitive ?? t('ku.kuMeetingsPage.coopGenitiveFallback');
   const coopSuffix = coopName ? ` ${coopGenitive} «${coopName}»` : '';
-  const councilTarget = coopName ? `Совет ${coopGenitive} «${coopName}»` : 'Совет кооператива';
+  const councilTarget = coopName ? t('ku.kuMeetingsPage.councilTargetLabel', { coopGenitive, coopName }) : t('ku.kuMeetingsPage.councilFallbackLabel');
   return [
     {
-      title: `Об организации кооперативного участка${coopSuffix}`,
-      decision: `Организовать кооперативный участок${coopSuffix} по адресу, определённому собранием пайщиков`,
+      title: t('ku.kuMeetingsPage.agendaTitleCreateBranch', { coopSuffix }),
+      decision: t('ku.kuMeetingsPage.agendaDecisionCreateBranch', { coopSuffix }),
       context: '',
     },
     {
       // полномочие обратиться в совет входит во второй вопрос — отдельного третьего вопроса нет
-      title: `Об избрании председателя кооперативного участка${coopSuffix} и уполномочивании его обратиться в совет`,
-      decision: `Избрать председателем кооперативного участка${coopSuffix} пайщика, избранного собранием из числа участников, и уполномочить его обратиться в ${councilTarget} по организации кооперативного участка`,
+      title: t('ku.kuMeetingsPage.agendaTitleElectChairman', { coopSuffix }),
+      decision: t('ku.kuMeetingsPage.agendaDecisionElectChairman', { coopSuffix, councilTarget }),
       context: '',
     },
   ];
@@ -239,7 +240,7 @@ async function submitCreate() {
     ? buildCreateBranchAgenda()
     : freeAgenda.value.filter((point) => point.title.trim() && point.decision.trim());
   if (!agenda.length) {
-    FailAlert('Добавьте хотя бы один вопрос повестки');
+    FailAlert(t('ku.kuMeetingsPage.validationNoAgendaError'));
     return;
   }
   try {
@@ -253,7 +254,7 @@ async function submitCreate() {
       agenda,
     });
     isCreateOpen.value = false;
-    SuccessAlert('Собрание объявлено');
+    SuccessAlert(t('ku.kuMeetingsPage.meetingAnnouncedSuccess'));
     openDetails(hash);
   } catch (e: unknown) {
     FailAlert(e);

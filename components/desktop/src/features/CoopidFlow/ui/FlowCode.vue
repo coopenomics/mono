@@ -4,9 +4,9 @@
   BaseForm(:loading='sending', @submit='submit')
     OtpInput(v-model='code', :length='6', :error='error', :disabled='sending', autofocus, name='code', @complete='submit')
     .flow-stage__actions
-      BaseButton(variant='primary', type='submit', :loading='sending', :disabled='code.length < 6') Войти
+      BaseButton(variant='primary', type='submit', :loading='sending', :disabled='code.length < 6') {{ $t('coopidFlow.flowCode.submit') }}
     .flow-stage__links(v-if='emailDevice')
-      BaseButton(variant='ghost', size='sm', :disabled='sending', @click='choose') Отправить код ещё раз
+      BaseButton(variant='ghost', size='sm', :disabled='sending', @click='choose') {{ $t('coopidFlow.flowCode.resend') }}
 </template>
 
 <script lang="ts" setup>
@@ -20,6 +20,7 @@ import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import { BaseButton, BaseForm } from 'src/shared/ui/base';
 import { OtpInput } from 'src/shared/ui/domain';
 import { fieldError, FlowStage, type FlowChallenge } from 'src/shared/api/authentik-flow';
+import { t } from 'src/shared/i18n';
 
 const props = defineProps<{ challenge: FlowChallenge; sending: boolean }>();
 const emit = defineEmits<{ answer: [payload: Record<string, unknown>] }>();
@@ -33,16 +34,16 @@ const sent = computed(() => !validating.value || Boolean(props.challenge.respons
 
 const lead = computed(() => {
   if (emailDevice.value || !validating.value) {
-    return sent.value ? `Код отправлен на ${sentTo.value}. Введите шесть цифр из письма.` : `Отправляем код на ${sentTo.value}…`;
+    return sent.value ? t('coopidFlow.flowCode.sentLead', { email: sentTo.value }) : t('coopidFlow.flowCode.sendingLead', { email: sentTo.value });
   }
-  return 'Введите код из приложения-аутентификатора.';
+  return t('coopidFlow.flowCode.authenticatorLead');
 });
 
 const WRONG: ReadonlySet<string> = new Set(['Code does not match', 'Invalid Token']);
 const error = computed(() => {
   const raw = fieldError(props.challenge, 'code');
   if (!raw) return undefined;
-  return WRONG.has(raw) ? 'Код не подошёл. Проверьте цифры или запросите новый.' : raw;
+  return WRONG.has(raw) ? t('coopidFlow.flowCode.wrongCodeError') : raw;
 });
 
 const choose = (): void => {

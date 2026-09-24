@@ -7,6 +7,7 @@ import { GenerationConvertStatementGenerateDocumentInputDTO } from '../documents
 import type { IMonoAccount } from '@coopenomics/innercoop';
 import { Cooperative } from 'cooptypes';
 import type { InnerTransactResult } from '@coopenomics/innercoop';
+import { DomainError } from '@coopenomics/extension-kit';
 
 /**
  * Интерактор домена для распределения средств в CAPITAL контракте
@@ -48,7 +49,7 @@ export class DistributionManagementInteractor {
   ): Promise<Cooperative.Registry.GenerationConvertStatement.Action> {
     const projectHash = data.project_hash;
     if (!projectHash) {
-      throw new Error('project_hash обязателен для генерации заявления о конвертации');
+      throw DomainError.internal('CAPITAL_CONVERSION_PROJECT_HASH_REQUIRED');
     }
 
     const userAppendix = await this.appendixRepository.findConfirmedByUsernameAndProjectHash(
@@ -57,7 +58,7 @@ export class DistributionManagementInteractor {
     );
 
     if (!userAppendix) {
-      throw new Error(`Не найдено подтверждённое приложение пользователя ${currentUser.username} для проекта ${projectHash}`);
+      throw DomainError.internal('CAPITAL_CONFIRMED_APPENDIX_NOT_FOUND', { username: currentUser.username, projectHash });
     }
 
     return {

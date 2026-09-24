@@ -4,8 +4,8 @@
 //- где и когда сверял» ведёт сам кооператив, и история идёт с внедрения.
 .verifications
   BaseBanner(v-if='pending.length', variant='info')
-    | Сверок ждёт решения: {{ pending.length }}. Пайщик уже получает имущество —
-    | отклонение отзовёт подтверждение личности.
+    | {{ $t('verification.verificationsJournal.pendingBannerLine1', { count: pending.length }) }}
+    | {{ $t('verification.verificationsJournal.pendingBannerLine2') }}
 
   BaseTable(
     :columns='columns',
@@ -43,12 +43,12 @@
       )
         template(#icon-left)
           q-icon(name='fact_check', size='16px')
-        | Проверить
+        | {{ $t('verification.verificationsJournal.reviewAction') }}
 
   EmptyState(
     v-if='!loading && !reviews.length',
-    title='Журнал пуст',
-    body='Здесь появятся сверки личности, как только их проведут на кооперативных участках или в совете.'
+    :title='$t("verification.verificationsJournal.emptyTitle")',
+    :body='$t("verification.verificationsJournal.emptyBody")'
   )
 
   VerificationReviewDialog(
@@ -75,6 +75,7 @@ import type { VerificationNaming } from 'src/shared/lib/verification';
 import type { IVerificationReview } from '../api';
 import { useVerificationReviews, verificationReviewStatusView } from '../model';
 import VerificationReviewDialog from './VerificationReviewDialog.vue';
+import { t } from 'src/shared/i18n';
 
 const PENDING = Zeus.VerificationReviewStatus.Pending;
 
@@ -95,11 +96,11 @@ const reviewOpen = ref(false);
 const selected = ref<IVerificationReview | null>(null);
 
 const columns: BaseTableColumn<IVerificationReview>[] = [
-  { key: 'username', label: 'Пайщик', width: '220px' },
-  { key: 'place', label: 'Где сверяли', width: '180px' },
-  { key: 'verificator', label: 'Кто сверял', width: '180px' },
-  { key: 'created_at', label: 'Когда', width: '160px', sortable: true },
-  { key: 'status', label: 'Состояние', width: '200px' },
+  { key: 'username', label: t('verification.verificationsJournal.memberColumn'), width: '220px' },
+  { key: 'place', label: t('verification.verificationsJournal.placeColumn'), width: '180px' },
+  { key: 'verificator', label: t('verification.verificationsJournal.verificatorColumn'), width: '180px' },
+  { key: 'created_at', label: t('verification.verificationsJournal.whenColumn'), width: '160px', sortable: true },
+  { key: 'status', label: t('verification.verificationsJournal.statusColumn'), width: '200px' },
   { key: 'actions', label: '', width: '140px', align: 'right' },
 ];
 
@@ -108,7 +109,7 @@ const statusView = verificationReviewStatusView;
 const participantName = (username: string): string => props.naming?.attestorName?.(username) || '';
 
 const placeName = (braname: string): string =>
-  braname ? `Участок «${props.naming?.branchName?.(braname) || braname}»` : 'Совет кооператива';
+  braname ? t('verification.verificationsJournal.branchPlaceName', { branch: props.naming?.branchName?.(braname) || braname }) : t('verification.verificationsJournal.councilPlaceName');
 
 /** Строка решения: кто закрыл сверку и почему, если отклонил или отозвал. */
 const decisionLine = (review: IVerificationReview): string => {

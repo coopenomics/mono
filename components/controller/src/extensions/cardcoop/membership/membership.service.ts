@@ -19,6 +19,7 @@ import {
 import { CardcoopPendingExitTypeormEntity } from '../infrastructure/entities/cardcoop-pending-exit.typeorm-entity';
 import { CardcoopPendingLinkTypeormEntity } from '../infrastructure/entities/cardcoop-pending-link.typeorm-entity';
 import { CardcoopAttestationService, type AttestationDeliveryResult } from '../attestation/attestation.service';
+import { t } from '../i18n';
 
 /**
  * Пауза между проходами повтора недоставленного.
@@ -315,7 +316,7 @@ export class CardcoopMembershipService implements OnModuleDestroy {
       if (!record.attestationId) {
         record.state = CardcoopAttestationState.Revoked;
         record.revokedAt = new Date();
-        record.lastError = 'Сеть не назвала идентификатор подтверждения — отзыв нужно провести вручную';
+        record.lastError = t('cardcoop.membership.revokeMissingAttestationId');
         await this.attestations.save(record);
         this.logger.error(
           `Членство пайщика ${username} прекращено, но подтверждение в сети отозвать нечем: идентификатор неизвестен`

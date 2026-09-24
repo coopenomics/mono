@@ -9,6 +9,7 @@ import { DigitalDocument } from 'src/shared/lib/document';
 import type { IGeneratedDocumentOutput } from 'src/shared/lib/types/document';
 import { useWalletStore } from 'src/entities/Wallet';
 import { useContributorStore } from 'app/extensions/capital/entities/Contributor/model';
+import { t } from '../../../../i18n';
 
 export type ICreateProgramInvestInput =
   Mutations.Capital.CreateProgramInvest.IInput['data'];
@@ -73,7 +74,7 @@ export function useCreateProgramInvest() {
 
       const document = await generateProgramInvestStatement(amount);
       if (!document) {
-        throw new Error('Не удалось сгенерировать заявление');
+        throw new Error(t('capital.error.statementGenerationFailed'));
       }
 
       const digitalDocument = new DigitalDocument(document);

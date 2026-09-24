@@ -1,4 +1,5 @@
 import { marketplaceLineCost } from './line-cost';
+import { t } from 'src/shared/i18n';
 
 /**
  * Группировка актов приёмки (АПП) в сводную «поставку» для подписи одним
@@ -136,7 +137,7 @@ export function groupAplReceptions<T extends GroupableReception>(
         } else {
           lineMap.set(lk, {
             key: lk,
-            productName: f.product_name || 'Товар по предложению',
+            productName: f.product_name || t('marketplace.receptionGrouping.productByOfferLabel'),
             unit: f.unit_of_measure ?? '',
             packageSize,
             quantity: qty,

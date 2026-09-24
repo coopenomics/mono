@@ -1,8 +1,8 @@
 <template lang="pug">
 CreateDialog(
   ref="dialogRef"
-  title="Создать артефакт"
-  submit-text="Создать"
+  :title="$t('capital.createRequirementWithEditorDialog.title')"
+  :submit-text="$t('common.action.create')"
   dialog-style="width: 720px; max-width: 100% !important;"
   :is-submitting="isSubmitting"
   :disabled="!canCreate"
@@ -16,8 +16,8 @@ CreateDialog(
         BaseInput(
           autofocus
           v-model='formData.title'
-          label='Заголовок'
-          placeholder='Кратко сформулируйте артефакт'
+          :label='$t("capital.createRequirementWithEditorDialog.titleFieldLabel")'
+          :placeholder='$t("capital.createRequirementWithEditorDialog.titleFieldPlaceholder")'
           autocomplete='off'
           @keydown='handleTitleKeydown'
         )
@@ -54,6 +54,7 @@ import { useCreateStory } from '../../model';
 import { FailAlert, SuccessAlert } from 'src/shared/api/alerts';
 import { EditRequirementDialog } from 'app/extensions/capital/features/Story/EditRequirement';
 import type { IStory } from 'app/extensions/capital/entities/Story/model';
+import { t } from '../../../../../i18n';
 
 const props = defineProps<{
   filter?: {
@@ -136,7 +137,7 @@ const handleSubmit = async () => {
 
     const created = await createStory(inputData);
 
-    SuccessAlert('Артефакт успешно создан');
+    SuccessAlert(t('capital.createRequirementWithEditorDialog.success'));
 
     dialogRef.value?.clear();
     emit('success');

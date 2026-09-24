@@ -4,7 +4,7 @@ header.topbar(role='banner')
   button.icon-btn(
     v-if='showMenuButton',
     type='button',
-    aria-label='Меню',
+    :aria-label='$t("ui.appHeader.menuAriaLabel")',
     @click="emit('toggle-menu')"
   )
     q-icon(name='menu')

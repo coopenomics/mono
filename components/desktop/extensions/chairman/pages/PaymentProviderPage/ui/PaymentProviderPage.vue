@@ -3,8 +3,8 @@
   .banner
     q-icon.banner__icon(name='fa-solid fa-circle-info' size='18px')
     .banner__body
-      | Выберите провайдера входящих платежей по умолчанию для вашего кооператива.
-      | Этот провайдер будет использоваться для создания и обработки платежей пайщиков.
+      | {{ $t('chairman.paymentProviderPage.intro') }}
+      | {{ $t('chairman.paymentProviderPage.hint') }}
 
   q-card(flat)
     q-card-section

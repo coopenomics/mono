@@ -3,11 +3,11 @@ div
   template(v-if='project && project.origin !== "local"')
     UpdateStatus(
       :project='project'
-      label='Статус'
+      :label='$t("capital.projectControls.statusLabel")'
     ).q-mb-sm.full-width
     ProjectPrioritySelect(
       :project='project'
-      label='Приоритет'
+      :label='$t("capital.projectControls.priorityLabel")'
     ).q-mb-sm.full-width
     SetMasterButton(
       :project='project'
@@ -21,7 +21,7 @@ div
   ProjectPrioritySelect(
     v-if='project && project.origin === "local"'
     :project='project'
-    label='Приоритет'
+    :label='$t("capital.projectControls.priorityLabel")'
   ).q-mb-sm.full-width
 
   UpdateProjectVideo(v-if="project" :project="project")

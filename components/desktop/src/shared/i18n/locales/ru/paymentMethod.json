@@ -1,0 +1,30 @@
+{
+  "paymentMethod": {
+    "addPaymentButton": {
+      "accountNumberLabel": "Номер счета",
+      "bankNameLabel": "Наименование банка",
+      "bikLabel": "БИК",
+      "buttonLabel": "Добавить реквизиты",
+      "cancel": "Отменить",
+      "correspondentAccountLabel": "Корреспондентский счет",
+      "currencyLabel": "Валюта счёта",
+      "expect20DigitsError": "ожидаем 20 цифр",
+      "expect9DigitsError": "ожидаем 9 цифр",
+      "methodBankTransfer": "Банковский перевод",
+      "methodLabel": "Выберите способ получения платежа",
+      "methodSbp": "Система Быстрых Платежей (СБП)",
+      "phoneLabel": "Номер телефона",
+      "recipientNameHint": "Имя и фамилия получателя должны совпадать с теми, которые указаны в Удостоверении.",
+      "requiredFieldError": "Это поле обязательно для заполнения",
+      "submit": "Продолжить",
+      "title": "Добавить метод платежа"
+    },
+    "deletePaymentMethodButton": {
+      "cancel": "Отменить",
+      "confirm": "Продолжить",
+      "confirmText": "Вы уверены, что хотите удалить метод платежа?",
+      "deleteSuccess": "Метод платежа успешно удалён",
+      "label": "Удалить метод платежа"
+    }
+  }
+}

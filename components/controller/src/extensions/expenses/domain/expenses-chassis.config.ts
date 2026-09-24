@@ -1,3 +1,4 @@
+import { t } from '../i18n';
 /**
  * Параметры шасси расходов.
  *
@@ -8,12 +9,12 @@
  * материальной помощи и т.п.) задаётся через env EXPENSES_FUND_NAME.
  */
 export const EXPENSES_CHASSIS_CONFIG = {
-  fundNameDative: process.env.EXPENSES_FUND_NAME ?? 'Фонду хозяйственной деятельности',
+  fundNameDative: process.env.EXPENSES_FUND_NAME ?? t('expenses.chassisConfig.fundNameDative'),
   /**
    * Назначение платежа для выплат пайщику (SELF/MEMBER) — всегда одно и то же,
    * подставляется автоматически: в платёжке кассира неизменно «аванс под отчёт»,
    * а на что он — видно из описания позиции. Для организации/ИП назначение
    * вводится при создании расхода.
    */
-  advancePaymentPurpose: 'Аванс под отчёт',
+  advancePaymentPurpose: t('expenses.chassisConfig.advancePaymentPurpose'),
 };

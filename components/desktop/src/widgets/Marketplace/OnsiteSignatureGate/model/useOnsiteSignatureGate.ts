@@ -29,6 +29,7 @@ import {
   type IStockProposalAcceptPayload,
   type IStockSignedConvert,
 } from 'src/pages/Marketplace/OperatorIssuance/api';
+import { t } from 'src/shared/i18n';
 
 /**
  * Глобальный гейт «подпись на месте» (Фаза 2, на realtime-подписке).
@@ -238,6 +239,7 @@ const isVisible = computed(
  * Тихий опрос обоих источников. Запросы независимы: сбой одного не гасит другой
  * и не алертит — это фоновый poll, не действие пользователя.
  */
+// i18n-ignore: дефолт параметра source, виден только в console.info отладки
 async function refresh(source = 'ручной'): Promise<void> {
   // Авторизация — по сессии, не по ключу в памяти: ключ CoopID запирается
   // PIN-кодом по простою и после перезагрузки, но пайщик остаётся в кабинете и
@@ -296,7 +298,7 @@ async function refresh(source = 'ручной'): Promise<void> {
 }
 
 async function signSupplier(group: ReceptionGroup<MarketplaceAplReceptionView>): Promise<void> {
-  if (!(await ensureSigningUnlocked('Не удалось получить ключ поставщика для подписи'))) return;
+  if (!(await ensureSigningUnlocked(t('marketplace.onsiteSignatureGate.supplierKeyUnlockError')))) return;
   signingKey.value = group.key;
   try {
     const { errors } = await signReceptionGroupAsSupplier(group.receptions);
@@ -304,12 +306,12 @@ async function signSupplier(group: ReceptionGroup<MarketplaceAplReceptionView>):
       const allRejected = group.lines.every((l) => l.quantity <= 0);
       SuccessAlert(
         allRejected
-          ? 'Отказ в приёмке подтверждён. Заказчикам вернётся оплата.'
-          : 'Поставка подписана. Ожидается закрывающая подпись оператора участка.',
+          ? t('marketplace.onsiteSignatureGate.receptionRejectedSuccess')
+          : t('marketplace.onsiteSignatureGate.supplySignedSuccess'),
       );
     } else {
       for (const { receptionId, error } of errors) {
-        FailAlert(error, `Не удалось подписать один из актов поставки (${receptionId.slice(0, 8)})`);
+        FailAlert(error, t('marketplace.onsiteSignatureGate.actSignError', { receptionId: receptionId.slice(0, 8) }));
       }
     }
     await refresh();
@@ -364,23 +366,23 @@ async function signProposal(task: MarketplaceStockProposalView): Promise<void> {
       } catch (error) {
         // Кнопка по этому акту появится в гейте — как раз для такого случая.
         autoSignFailed.value = new Set([...autoSignFailed.value, saga.order_id]);
-        FailAlert(error, 'Заявление подано, но акт подписать не удалось — подпишите его кнопкой ниже');
+        FailAlert(error, t('marketplace.onsiteSignatureGate.autoSignFailed'));
       }
     }
     const pending = sagas.length - authorized.length - declined.length;
     if (actsSigned === sagas.length) {
       finishFlow('done');
       SuccessAlert(
-        `Совет согласовал выдачу, акт подписан по ${actsSigned} позиц. Имущество можно забирать.`,
+        t('marketplace.onsiteSignatureGate.issueDoneSuccess', { count: actsSigned }),
       );
     } else if (pending > 0) {
       finishFlow('pending');
       SuccessAlert(
-        `Заявления поданы: ${sagas.length} позиц. Совет ещё не принял решение. Мы сообщим, как только оно будет принято.`,
+        t('marketplace.onsiteSignatureGate.issuePendingSuccess', { count: sagas.length }),
       );
     } else if (declined.length) {
       finishFlow('declined');
-      FailAlert(new Error('Совет отказал в выдаче. Паевой взнос остался на Столе заказов.'));
+      FailAlert(new Error(t('marketplace.error.onsiteIssueDeclined')));
     } else {
       abortFlow();
     }
@@ -414,7 +416,7 @@ async function autoSignAuthorizedActs(): Promise<void> {
   autoSignRunning = true;
   // Ключ отпираем до серии: отказ от PIN-кода — один раз, и все акты очереди
   // остаются кнопками (по нажатию PIN-код спросится снова).
-  if (!(await ensureSigningUnlocked('Для подписи акта нужен PIN-код'))) {
+  if (!(await ensureSigningUnlocked(t('marketplace.onsiteSignatureGate.pinRequiredError')))) {
     autoSignFailed.value = new Set([...autoSignFailed.value, ...ready.map((s) => s.order_id)]);
     autoSignRunning = false;
     return;
@@ -424,7 +426,7 @@ async function autoSignAuthorizedActs(): Promise<void> {
     try {
       await signActFor(saga.order_id, global.username);
       SuccessAlert(
-        `Совет согласовал выдачу по заказу ${saga.order_id.slice(0, 8)}. Акт подписан, имущество выдаст оператор участка.`,
+        t('marketplace.onsiteSignatureGate.issueDoneForOrderSuccess', { orderId: saga.order_id.slice(0, 8) }),
       );
     } catch (error) {
       // Не алертим: акт выпадает из автоподписи и остаётся в гейте кнопкой —
@@ -436,6 +438,7 @@ async function autoSignAuthorizedActs(): Promise<void> {
     }
   }
   autoSignRunning = false;
+  // i18n-ignore: метка source='автоподпись акта', видна только в console.info отладки
   await refresh('автоподпись акта');
 }
 
@@ -482,13 +485,13 @@ async function signSaga(task: MarketplaceIssuanceSagaView): Promise<void> {
         await signActFor(task.order_id, global.username);
         setFlow({ signedActs: 1 });
         finishFlow('done');
-        SuccessAlert('Совет согласовал выдачу, акт подписан. Имущество можно забирать.');
+        SuccessAlert(t('marketplace.onsiteSignatureGate.issueDoneSingleSuccess'));
       } else if (saga.stage === Zeus.MarketplaceIssuanceSagaStage.DECLINED) {
         finishFlow('declined');
-        FailAlert(new Error('Совет отказал в выдаче. Паевой взнос остался на Столе заказов.'));
+        FailAlert(new Error(t('marketplace.error.onsiteIssueDeclined')));
       } else {
         finishFlow('pending');
-        SuccessAlert('Заявление подано. Совет ещё не принял решение — мы сообщим, как только оно будет принято.');
+        SuccessAlert(t('marketplace.onsiteSignatureGate.issuePendingSingleSuccess'));
       }
     } else {
       await signActFor(task.order_id, global.username);
@@ -496,7 +499,7 @@ async function signSaga(task: MarketplaceIssuanceSagaView): Promise<void> {
       const failed = new Set(autoSignFailed.value);
       failed.delete(task.order_id);
       autoSignFailed.value = failed;
-      SuccessAlert('Акт подписан. Имущество выдаст оператор участка при вашем визите.');
+      SuccessAlert(t('marketplace.onsiteSignatureGate.actSignedSuccess'));
     }
   } catch (error) {
     if (isStatement) abortFlow();
@@ -516,9 +519,9 @@ async function cancelSupplier(group: ReceptionGroup<MarketplaceAplReceptionView>
     for (const r of group.receptions) {
       await cancelAplReception({ apl_reception_id: r.id });
     }
-    SuccessAlert('Приёмка отменена. Оператор сформирует акт заново.');
+    SuccessAlert(t('marketplace.onsiteSignatureGate.receptionCancelledSuccess'));
   } catch (error) {
-    FailAlert(error, 'Не удалось отменить приёмку');
+    FailAlert(error, t('marketplace.onsiteSignatureGate.receptionCancelError'));
   } finally {
     signingKey.value = null;
     await refresh();
@@ -529,7 +532,7 @@ async function declineProposal(task: MarketplaceStockProposalView): Promise<void
   signingKey.value = task.id;
   try {
     await declineStockProposal(task.id);
-    SuccessAlert('Получение отменено. Оператор сформирует выдачу заново.');
+    SuccessAlert(t('marketplace.onsiteSignatureGate.issueCancelledSuccess'));
   } catch (error) {
     FailAlert(error);
   } finally {

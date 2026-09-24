@@ -1,20 +1,20 @@
 import { ProjectOrigin } from '../enums/project-origin.enum';
 import type { ProjectDomainEntity } from '../entities/project.entity';
+import { t } from '../../i18n';
+import { DomainError } from '@coopenomics/extension-kit';
 
 /**
  * Кооперативные (блокчейн) операции запрещены для персональных LOCAL-проектов.
  */
 export function assertBlockchainProject(
   project: ProjectDomainEntity | null | undefined,
-  actionLabel = 'это действие'
+  actionLabel = t('capital.assertBlockchainProject.actionLabel.default')
 ): asserts project is ProjectDomainEntity {
   if (!project) {
-    throw new Error('Проект не найден');
+    throw DomainError.internal('CAPITAL_BLOCKCHAIN_PROJECT_NOT_FOUND');
   }
   if (project.origin === ProjectOrigin.LOCAL) {
-    throw new Error(
-      `Персональный проект нельзя использовать для «${actionLabel}» — только кооперативные проекты из блокчейна`
-    );
+    throw DomainError.internal('CAPITAL_PERSONAL_PROJECT_NOT_ALLOWED', { action: actionLabel });
   }
 }
 

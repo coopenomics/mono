@@ -6,6 +6,7 @@ import { NotificationPort } from '~/domain/notification/interfaces/web-push-subs
 import type { WebPushSubscriptionDomainInterface } from '~/domain/notification/interfaces/web-push-subscription-domain.interface';
 import type { CreateWebPushSubscriptionDomainInterface } from '~/domain/notification/interfaces/create-web-push-subscription-domain.interface';
 import type { SubscriptionStatsDomainInterface } from '~/domain/notification/interfaces/subscription-stats-domain.interface';
+import { DomainError } from '@coopenomics/extension-kit';
 
 @Injectable()
 export class TypeOrmWebPushSubscriptionRepository implements NotificationPort {
@@ -126,7 +127,7 @@ export class TypeOrmWebPushSubscriptionRepository implements NotificationPort {
     const existingEntity = await this.ormRepo.findOne({ where: { endpoint } });
 
     if (!existingEntity) {
-      throw new Error('Подписка не найдена');
+      throw DomainError.internal('DATABASE_WEB_PUSH_SUBSCRIPTION_NOT_FOUND');
     }
 
     // Обновляем только переданные поля

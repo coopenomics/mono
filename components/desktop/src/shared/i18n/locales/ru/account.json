@@ -1,0 +1,17 @@
+{
+  "account": {
+    "accountStatus": {
+      "active": "Активный пайщик",
+      "applied": "Заявление подано",
+      "blocked": "Заблокирован",
+      "draft": "Черновик",
+      "exited": "Вышел из кооператива",
+      "paid": "Взнос оплачен",
+      "pendingBoard": "Ожидает решения совета",
+      "refunded": "Взнос возвращён",
+      "registrationFailed": "Ошибка регистрации",
+      "rejectedByBoard": "Отклонён советом",
+      "unknown": "Неизвестно"
+    }
+  }
+}

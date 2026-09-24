@@ -1,0 +1,146 @@
+{
+  "payment": {
+    "attachExpenseProofPanel": {
+      "attachSuccess": "Закрывающий документ приложен",
+      "documentFromLabel": "Документ от {date}",
+      "sectionTitle": "Закрывающие документы (акт, счёт-фактура, накладная)",
+      "uploadHint": "Можно несколько — каждый отправится сразу",
+      "uploadTitle": "Приложите закрывающий документ"
+    },
+    "attachPaymentProofPanel": {
+      "attachSuccess": "Чек об оплате приложен",
+      "emptyHint": "Кассир ещё не приложил чек",
+      "intro": "Приложите чек об оплате — подтверждение, что платёж исполнен.",
+      "receiptFromLabel": "Чек от {date}",
+      "sectionTitle": "Чек об оплате",
+      "uploadHint": "Изображение или PDF до 20 МБ — отправится сразу",
+      "uploadTitle": "Приложите чек об оплате"
+    },
+    "error": {
+      "fileLinkError": "Не удалось получить ссылку на файл"
+    },
+    "expenseFile": {
+      "kind": {
+        "closingDoc": "Закрывающий документ",
+        "default": "Файл",
+        "paymentProof": "Чек об оплате",
+        "reportFile": "Чек",
+        "returnProof": "Возврат"
+      }
+    },
+    "expenseItem": {
+      "status": {
+        "approved": "Ожидает оплаты",
+        "overspent": "Перерасход",
+        "paidAdvance": "Аванс выдан — ожидает отчёта",
+        "paidDirect": "Оплачена",
+        "reported": "Отчёт получен",
+        "returned": "Аванс возвращён"
+      }
+    },
+    "expenseMechanics": {
+      "kind": {
+        "advance": "Аванс под отчёт",
+        "direct": "Оплата по счёту"
+      }
+    },
+    "expenseProposal": {
+      "status": {
+        "authorized": "Авторизован",
+        "closed": "Закрыт",
+        "created": "Создан",
+        "declined": "Отклонён",
+        "partiallyPaid": "Частично оплачен",
+        "reportSubmitted": "Отчёт подан",
+        "unknown": "Неизвестно"
+      }
+    },
+    "expenseReport": {
+      "state": {
+        "awaiting": "Требуется отчёт",
+        "closed": "Отчёт принят",
+        "settlementPending": "Отчёт подан, ждём расчёт"
+      }
+    },
+    "expenseSettlementBasisPanel": {
+      "advanceIssuedLabel": "Выдано авансом",
+      "description": "Расчёт по авансу под отчёт{proposalLabel}. {basisHint}",
+      "documentsEmpty": "Подтверждающие документы пайщик ещё не приложил.",
+      "documentsTitle": "Подтверждающие документы пайщика:",
+      "loadingDocuments": "Загрузка подтверждающих документов…",
+      "openAdvancePayment": "Открыть платёж выдачи аванса",
+      "overspentHint": "Пайщик отчитался на большую сумму — кооператив доплачивает разницу.",
+      "proposalNumberSuffix": " по СЗ № {proposalNumber}",
+      "receiptFromLabel": "Чек от {date}",
+      "reportedByReceiptsLabel": "Заявлено по чекам",
+      "subjectLabel": "Что оплачивали",
+      "title": "Основание расчёта",
+      "toPayLabel": "К доплате пайщику",
+      "toReturnLabel": "К возврату кооперативу",
+      "underspentHint": "Пайщик отчитался на меньшую сумму — возвращает разницу кооперативу."
+    },
+    "paymentStatusDisplay": {
+      "status": {
+        "awaitingAuthorization": "Ожидает подтверждения",
+        "cancelled": "Отклонено кассиром",
+        "completed": "Выплачено",
+        "expired": "Истёк срок",
+        "failed": "Ошибка платежа",
+        "paid": "Переведено, ожидает подтверждения",
+        "pending": "Ожидает обработки",
+        "processing": "В обработке",
+        "refunded": "Возвращено",
+        "unknown": "Обрабатывается"
+      }
+    },
+    "reportExpenseAdvancePanel": {
+      "acceptedHint": "Отчёт по авансу принят — дополнительные документы дополнят его автоматически.",
+      "acceptedSuccess": "Отчёт по авансу принят",
+      "advanceIssuedHint": "Выданный аванс: {advanceLabel}. Укажите фактически потраченную сумму и приложите чек.",
+      "attachAdditionalDocument": "Приложите дополнительный документ",
+      "attachReceipt": "Приложите чек",
+      "attachSuccess": "Документ приложен",
+      "onAmountSuffix": " на {amount}",
+      "onBehalfHint": "Чеки получены от пайщика лично. Укажите фактически потраченную сумму и приложите чек — отчёт уйдёт от его имени.",
+      "overspentNotice": "Перерасход {diffLabel}: будет создан платёж доплаты — кооператив выплатит разницу.",
+      "receiptFromLabel": "Чек от {date}",
+      "refundPaymentCreated": "Заведён платёж возврата на {settlementLabel}. Оплатите его кооперативу — после подтверждения кассой отчёт закроется.",
+      "reportAdvance": "Отчитаться по авансу",
+      "reportOnBehalf": "Отчитаться за пайщика",
+      "spentAmountLabel": "Фактически потрачено по чекам",
+      "submittedHint": "Отчёт подан{reportedAmountLabel} — ждём подтверждения расчёта кассой, после него позиция закроется. Дополнительные документы можно приложить ниже.",
+      "topUpPaymentCreated": "Заведён платёж доплаты на {settlementLabel}. Кооператив выплатит разницу — после подтверждения кассой отчёт закроется.",
+      "underspentNotice": "Недорасход {diffLabel}: будет создан платёж возврата — его нужно оплатить кооперативу.",
+      "uploadHint": "Изображение или PDF до 20 МБ — добавится сразу"
+    },
+    "setOrderCompletedStatusButton": {
+      "cancel": "Отменить",
+      "confirm": "Продолжить",
+      "confirmText": "Вы уверены, что хотите отметить платеж обработанным? Отметка НЕ приводит к изменению лицевых счетов и не выполняет никаких действий по обработке платежа, а только заменяет статус платежа.",
+      "processedBadge": "обработан",
+      "title": "Отметить обработанным",
+      "updateError": "Возникла ошибка: {message}",
+      "updateSuccess": "Статус ордера обновлён"
+    },
+    "setOrderPaidStatusButton": {
+      "cancel": "Отменить",
+      "confirm": "Продолжить",
+      "confirmText": "Вы уверены, что хотите отметить счёт оплаченным? Система обработает платеж сразу после получения отметки: совет кооператива получит пакет документов для голосования о приёме нового пайщика, или, паевый взнос будет зачислен в кошелёк.",
+      "title": "Подтвердить платеж",
+      "updateError": "Возникла ошибка: {message}",
+      "updateSuccess": "Статус платежа обновлён"
+    },
+    "setOrderRefundedStatusButton": {
+      "cancel": "Отменить",
+      "confirm": "Продолжить",
+      "confirmText": "Вы уверены, что хотите отклонить платеж? При отклонении входящего платежа - верните средства пайщику. При отклонении исходящего платежа - система запустит соответствующую автоматическую цепочку обратных действий.",
+      "dialogTitle": "Отклонить платеж",
+      "reasonHint": "Причину увидит пайщик",
+      "reasonLabel": "Причина отклонения",
+      "reasonPlaceholder": "Например: средства не поступили или пришли с чужого счёта",
+      "title": "Отклонить",
+      "updateError": "Возникла ошибка: {message}",
+      "updateSuccess": "Статус платежа обновлён"
+    }
+  }
+}

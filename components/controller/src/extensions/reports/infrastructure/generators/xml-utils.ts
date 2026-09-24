@@ -28,10 +28,14 @@ export function addFio(
   parent: any,
   fio: { lastName: string; firstName: string; middleName?: string },
 ): any {
+  // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
   const el = parent.ele('ФИО')
+    // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
     .att('Фамилия', fio.lastName)
+    // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
     .att('Имя', fio.firstName);
   if (fio.middleName) {
+    // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
     el.att('Отчество', fio.middleName);
   }
   return el.up();
@@ -45,6 +49,8 @@ export function addSigner(
   parent: any,
   fio: { lastName: string; firstName: string; middleName?: string },
 ): any {
+  // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
+  // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
   const signer = parent.ele('Подписант').att('ПрПодп', '1');
   addFio(signer, fio);
   return signer.up();
@@ -63,11 +69,16 @@ export function addFlexibleSigner(
 ): any {
   const type = input.signerType ?? 'chairman';
   const prPodp = type === 'representative' ? '2' : '1';
+  // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
+  // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
   const signer = parent.ele('Подписант').att('ПрПодп', prPodp);
   addFio(signer, input.signerFio);
   if (type === 'representative') {
+    // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
+    // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
     const svPred = signer.ele('СвПред').att('НаимДок', input.signerRepDoc ?? '');
     if (options?.svPredNaimOrg) {
+      // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
       svPred.att('НаимОрг', input.orgName);
     }
     svPred.up();
@@ -103,15 +114,24 @@ export function addFlexibleSignerFromShape(
   options?: { svPredNaimOrg?: boolean; orgName?: string },
 ): any {
   const prPodp = signer.type === 'representative' ? '2' : '1';
+  // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
+  // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
   const sig = parent.ele('Подписант').att('ПрПодп', prPodp);
+  // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
   const fio = sig.ele('ФИО')
+    // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
     .att('Фамилия', signer.lastName)
+    // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
     .att('Имя', signer.firstName);
+  // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
   if (signer.middleName) fio.att('Отчество', signer.middleName);
   fio.up();
   if (signer.type === 'representative') {
+    // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
+    // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
     const svPred = sig.ele('СвПред').att('НаимДок', signer.repDoc ?? '');
     if (options?.svPredNaimOrg && options?.orgName) {
+      // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
       svPred.att('НаимОрг', options.orgName);
     }
     svPred.up();
@@ -131,10 +151,16 @@ export interface HeaderMeta {
 /** Проставить общий набор атрибутов в <Документ>. */
 export function addHeaderMeta(docEl: any, meta: HeaderMeta): void {
   docEl
+    // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
     .att('ДатаДок', meta.docDate)
+    // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
     .att('НомКорр', String(meta.correctionNumber))
+    // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
     .att('Период', meta.period)
+    // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
     .att('ОтчетГод', String(meta.year))
+    // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
     .att('КодНО', meta.kodNO)
+    // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
     .att('ПоМесту', meta.poMestu);
 }

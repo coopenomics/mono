@@ -10,6 +10,7 @@ import type { IGeneratedDocumentOutput } from 'src/shared/lib/types/document';
 import { CapitalProgramAgreementType } from 'app/extensions/capital/shared/lib';
 import { useSendAgreement, type ISendAgreementInput } from 'src/shared/composables/agreements';
 import { useWalletStore } from 'src/entities/Wallet';
+import { t } from '../../../../i18n';
 
 
 export function useSignCapitalProgramAgreement() {
@@ -62,7 +63,7 @@ export function useSignCapitalProgramAgreement() {
     isSigning.value = true;
     try {
       if (!document) {
-        throw new Error('Документ соглашения не передан');
+        throw new Error(t('capital.error.agreementDocumentMissing'));
       }
 
       console.log('🔐 Подписываем документ в модели, hash:', document.hash);
@@ -105,7 +106,7 @@ export function useSignCapitalProgramAgreement() {
       // Генерируем документ
       const document = await generateAgreement();
       if (!document) {
-        throw new Error('Не удалось сгенерировать соглашение');
+        throw new Error(t('capital.error.agreementGenerateFailed'));
       }
 
       // Используем новую функцию

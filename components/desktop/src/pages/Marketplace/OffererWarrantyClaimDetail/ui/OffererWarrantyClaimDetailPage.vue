@@ -17,6 +17,7 @@ import {
   type MarketplaceSupplierClaimView,
 } from '../../OffererWarrantyClaims/api';
 import DisagreeClaimDialog from '../../OffererWarrantyClaims/ui/DisagreeClaimDialog.vue';
+import { t } from 'src/shared/i18n';
 
 /**
  * Карточка гарантийной претензии на столе поставщика (99D-13): что вернули и
@@ -63,14 +64,14 @@ function historyEvents(c: MarketplaceSupplierClaimView): ActivityEvent[] {
 
 function claimEvents(c: MarketplaceSupplierClaimView): ActivityEvent[] {
   const events: ActivityEvent[] = [
-    { id: 'issued', type: 'create', icon: 'request_quote', title: 'Претензия выставлена поставщику', date: String(c.issued_at) },
+    { id: 'issued', type: 'create', icon: 'request_quote', title: t('marketplace.offererWarrantyClaimDetailPage.claimIssuedMessage'), date: String(c.issued_at) },
   ];
   if (c.decided_at) {
     events.push({
       id: 'decided',
       type: 'sign',
       icon: 'check_circle',
-      title: 'Поставщик согласился с претензией',
+      title: t('marketplace.offererWarrantyClaimDetailPage.claimAgreedMessage'),
       date: String(c.decided_at),
     });
   }
@@ -90,7 +91,7 @@ async function load(): Promise<void> {
   try {
     claim.value = await fetchSupplierClaim(claimId.value);
   } catch (e) {
-    FailAlert(e, 'Не удалось загрузить претензию');
+    FailAlert(e, t('marketplace.offererWarrantyClaimDetailPage.loadClaimFailedMessage'));
   } finally {
     loading.value = false;
   }
@@ -106,10 +107,10 @@ async function admit(): Promise<void> {
   admitting.value = true;
   try {
     await admitSupplierClaim(c.id);
-    SuccessAlert(`Претензия признана: ${formatAsset2Digits(c.amount)} ₽ будут удержаны из следующих выплат.`);
+    SuccessAlert(t('marketplace.offererWarrantyClaimDetailPage.claimAgreedDetailsMessage', { amount: formatAsset2Digits(c.amount) }));
     await load();
   } catch (e) {
-    FailAlert(e, 'Не удалось признать претензию');
+    FailAlert(e, t('marketplace.offererWarrantyClaimDetailPage.agreeClaimFailedMessage'));
   } finally {
     admitting.value = false;
   }
@@ -121,12 +122,12 @@ onMounted(() => {
 </script>
 
 <template lang="pug">
-q-page.claim-detail(role='region', aria-label='Гарантийная претензия')
+q-page.claim-detail(role='region', :aria-label='$t("marketplace.offererWarrantyClaimDetailPage.ariaLabel")')
   .claim-detail__col
     BaseButton.claim-detail__back(variant='ghost', size='sm', @click='goBack')
       template(#icon-left)
         q-icon(name='arrow_back', size='16px')
-      | К гарантийным возвратам
+      | {{ $t('marketplace.offererWarrantyClaimDetailPage.backToClaimsAction') }}
 
     q-inner-loading(:showing='loading && !claim')
       q-spinner(color='primary', size='2em')
@@ -136,7 +137,7 @@ q-page.claim-detail(role='region', aria-label='Гарантийная прете
         .claim-detail__head
           q-icon.claim-detail__icon(name='request_quote', size='24px')
           .claim-detail__head-text
-            .t-h2.claim-detail__title {{ claim.product_name || 'Товар по заказу' }} · {{ quantityLabel(claim) }}
+            .t-h2.claim-detail__title {{ claim.product_name || $t('marketplace.offererWarrantyClaimDetailPage.productByOrderLabel') }} · {{ quantityLabel(claim) }}
             .claim-detail__sub
               span.claim-detail__num №&nbsp;{{ claim.id.slice(0, 8) }}
               span(aria-hidden='true') ·
@@ -152,50 +153,50 @@ q-page.claim-detail(role='region', aria-label='Гарантийная прете
               target='_blank',
               rel='noopener'
             )
-              img(:src='p.url', :alt='`Фото ${i + 1}`')
+              img(:src='p.url', :alt='$t(`marketplace.offererWarrantyClaimDetailPage.photoLabel`, { index: i + 1 })')
 
           .claim-detail__facts
             .claim-detail__fact
-              .claim-detail__fact-label Сумма претензии
+              .claim-detail__fact-label {{ $t('marketplace.offererWarrantyClaimDetailPage.claimAmountLabel') }}
               .claim-detail__fact-value.claim-detail__fact-value--money {{ formatAsset2Digits(claim.amount) }} ₽
             .claim-detail__fact
-              .claim-detail__fact-label Где забрать имущество
-              .claim-detail__fact-value Кооперативный участок {{ claim.delivery_branch_name || claim.delivery_braname }}
+              .claim-detail__fact-label {{ $t('marketplace.offererWarrantyClaimDetailPage.pickupLocationLabel') }}
+              .claim-detail__fact-value {{ $t('marketplace.offererWarrantyClaimDetailPage.kuLabel', { kuName: claim.delivery_branch_name || claim.delivery_braname }) }}
             .claim-detail__fact
-              .claim-detail__fact-label Заказ
-              .claim-detail__fact-value {{ claim.order_id.slice(0, 8) }} · заказчик {{ claim.orderer_name || claim.orderer_account }}
+              .claim-detail__fact-label {{ $t('marketplace.offererWarrantyClaimDetailPage.orderLabel') }}
+              .claim-detail__fact-value {{ $t('marketplace.offererWarrantyClaimDetailPage.orderOrdererLabel', { orderId: claim.order_id.slice(0, 8), ordererName: claim.orderer_name || claim.orderer_account }) }}
             .claim-detail__fact
-              .claim-detail__fact-label Причина обращения пайщика
+              .claim-detail__fact-label {{ $t('marketplace.offererWarrantyClaimDetailPage.reasonLabel') }}
               .claim-detail__fact-value {{ claim.reason_text }}
             .claim-detail__fact(v-if='claim.inspection_result')
-              .claim-detail__fact-label Результат осмотра на участке
+              .claim-detail__fact-label {{ $t('marketplace.offererWarrantyClaimDetailPage.inspectionResultLabel') }}
               .claim-detail__fact-value {{ claim.inspection_result }}
 
         .claim-detail__note(v-if='isPending')
           q-icon(name='info', size='16px')
-          span Пока вы не согласились, сумма считается непризнанной и из выплат не удерживается; кооператив вправе обратиться с ней в суд.
+          span {{ $t('marketplace.offererWarrantyClaimDetailPage.notAgreedHint') }}
         .claim-detail__note(v-if='claim.status === "ADMITTED"')
           q-icon(name='info', size='16px')
-          span Сумма удерживается из ваших следующих выплат за поставки — переводить ничего не нужно.
+          span {{ $t('marketplace.offererWarrantyClaimDetailPage.agreedHint') }}
         .claim-detail__actions(v-if='isPending')
           BaseButton(variant='primary', size='sm', :loading='admitting', @click='admit')
             template(#icon-left)
               q-icon(name='check_circle', size='16px')
-            | Согласен
+            | {{ $t('marketplace.offererWarrantyClaimDetailPage.agreeAction') }}
           BaseButton(variant='secondary', size='sm', :disabled='admitting', @click='disagreeDialog = true')
             template(#icon-left)
               q-icon(name='cancel', size='16px')
-            | Не согласен
+            | {{ $t('marketplace.offererWarrantyClaimDetailPage.disagreeAction') }}
 
       BaseCard.claim-detail__card(v-if='claim.reclamation')
         template(#head)
-          .t-h3 Рекламация пайщика
-        .claim-detail__doc-hint Заявление о гарантийном возврате имущества с подписями пайщика и оператора участка, принявшего имущество.
+          .t-h3 {{ $t('marketplace.offererWarrantyClaimDetailPage.claimDocumentTitle') }}
+        .claim-detail__doc-hint {{ $t('marketplace.offererWarrantyClaimDetailPage.claimDocumentDescription') }}
         BaseDocument(:document-aggregate='claim.reclamation')
 
       BaseCard.claim-detail__card(v-if='timelineEvents.length')
         template(#head)
-          .t-h3 Как проходил возврат
+          .t-h3 {{ $t('marketplace.offererWarrantyClaimDetailPage.returnHistoryTitle') }}
         ActivityTimeline(:events='timelineEvents', group-by-date)
 
     DisagreeClaimDialog(v-model='disagreeDialog', :claim='claim')

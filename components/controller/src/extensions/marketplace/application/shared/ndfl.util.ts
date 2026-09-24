@@ -1,4 +1,5 @@
 import { getPersonalIncomeTax, toIsoDate } from '@coopenomics/jurisdictions';
+import { DomainError } from '@coopenomics/extension-kit';
 
 /** Юрисдикция удержания: налог удерживается по месту регистрации кооператива. */
 const NDFL_JURISDICTION = 'Russia';
@@ -41,9 +42,7 @@ const NDFL_JURISDICTION = 'Russia';
 export function ndflRatePercent(on: Date = new Date()): number {
   const params = getPersonalIncomeTax(NDFL_JURISDICTION, on);
   if (!params) {
-    throw new Error(
-      `Ставка НДФЛ на ${toIsoDate(on)} неизвестна: справочник юрисдикции не содержит параметров`
-    );
+    throw DomainError.internal('MARKETPLACE_NDFL_RATE_NOT_CONFIGURED', { date: toIsoDate(on) });
   }
   return params.ratePercent;
 }

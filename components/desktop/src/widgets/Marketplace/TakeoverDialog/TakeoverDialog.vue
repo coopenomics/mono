@@ -21,7 +21,7 @@
           round
           icon="fa-solid fa-xmark"
           class="mp-takeover__close"
-          aria-label="Закрыть"
+          :aria-label="$t('common.action.close')"
           @click="onCancel"
         />
         <q-icon v-if="kindIcon" :name="kindIcon" :class="`mp-takeover__icon mp-takeover__icon--${kind}`" />
@@ -60,14 +60,15 @@
 <script setup lang="ts">
 import { computed, useId, type PropType } from 'vue'
 import type { TakeoverKind } from './TakeoverDialog.types'
+import { t } from 'src/shared/i18n';
 
 const props = defineProps({
   modelValue: { type: Boolean, default: false },
   title: { type: String, required: true },
   leadText: { type: String, default: '' },
   kind: { type: String as PropType<TakeoverKind>, default: 'info' },
-  cancelLabel: { type: String, default: 'Отмена' },
-  confirmLabel: { type: String, default: 'Подтвердить' },
+  cancelLabel: { type: String, default: t('common.action.cancel') },
+  confirmLabel: { type: String, default: t('common.action.confirm') },
   loading: { type: Boolean, default: false },
   disableConfirm: { type: Boolean, default: false },
   // Полноширинный контент для takeover'ов с таблицами (сводная выдача,

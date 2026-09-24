@@ -3,6 +3,7 @@ import { ref } from 'vue';
 import { BaseDialog, BaseButton } from 'src/shared/ui/base';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { cancelOrder } from 'src/pages/Marketplace/MyOrders/api';
+import { t } from 'src/shared/i18n';
 
 /**
  * Подтверждение отмены заказа заказчиком (до акцепта поставщиком — окно
@@ -33,7 +34,7 @@ async function confirm(): Promise<void> {
   cancelling.value = true;
   try {
     const result = await cancelOrder(props.orderId);
-    SuccessAlert(`Заказ отменён. Средства разблокированы (tx ${result.tx_hash.slice(0, 8)}).`);
+    SuccessAlert(t('marketplace.cancelOrderDialog.cancelledMessage', { txHash: result.tx_hash.slice(0, 8) }));
     emit('update:modelValue', false);
     emit('cancelled');
   } catch (e) {
@@ -47,17 +48,17 @@ async function confirm(): Promise<void> {
 <template lang="pug">
 BaseDialog(
   :model-value="modelValue",
-  title="Отменить заказ?",
+  :title="$t('marketplace.cancelOrderDialog.dialogTitle')",
   size="sm",
   :close-on-backdrop="!cancelling",
   :close-on-escape="!cancelling",
   @update:model-value="(v) => (v ? undefined : close())"
 )
   template(#default)
-    p.cancel-order-dialog__message {{ message }} Средства разблокируются на кошельке Стола заказов.
+    p.cancel-order-dialog__message {{ $t('marketplace.cancelOrderDialog.confirmText', { message }) }}
   template(#footer)
-    BaseButton(variant="ghost", :disabled="cancelling", @click="close") Не отменять
-    BaseButton(variant="danger", :loading="cancelling", @click="confirm") Отменить заказ
+    BaseButton(variant="ghost", :disabled="cancelling", @click="close") {{ $t('marketplace.cancelOrderDialog.keepButton') }}
+    BaseButton(variant="danger", :loading="cancelling", @click="confirm") {{ $t('marketplace.cancelOrderDialog.cancelButton') }}
 </template>
 
 <style scoped lang="scss">

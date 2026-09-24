@@ -21,6 +21,7 @@ import { DocumentApprovalRequirement, DocumentApprovalState } from '../enums/doc
 import type { DocumentTemplateView } from '../interfaces/document-template-view.interface';
 import { DocumentApprovalStateService } from './document-approval-state.service';
 import { DOCUMENT_APPROVAL_DECLINED_EVENT, type DocumentApprovalDeclinedPayload } from './document-approval-proposal.service';
+import { t as i18nT } from '~/i18n';
 
 interface CoopNames {
   short_abbr: string;
@@ -88,7 +89,7 @@ export class DocumentApprovalNotificationService {
     try {
       const templates = await this.state.getTemplates(config.coopname);
       const titles = payload.registry_ids
-        .map((id) => templates.find((t) => t.registry_id === id)?.title ?? `документ ${id}`)
+        .map((id) => templates.find((t) => t.registry_id === id)?.title ?? i18nT('documentApproval.documentApprovalNotification.documentRef', { id }))
         .map((title) => `«${title}»`)
         .join(', ');
 
@@ -96,7 +97,7 @@ export class DocumentApprovalNotificationService {
         userName,
         documentTitles: titles,
         decision_id: String(payload.decision_id),
-        reasonText: payload.reason === 'declined' ? 'отклонено советом' : 'снято как не рассмотренное в срок',
+        reasonText: payload.reason === 'declined' ? i18nT('documentApproval.documentApprovalNotification.rejectedBySoviet') : i18nT('documentApproval.documentApprovalNotification.withdrawnOverdue'),
         coopname: config.coopname,
         ...names,
         templatesUrl: this.templatesUrl(),

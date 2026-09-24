@@ -27,6 +27,7 @@ import { authenticateWsConnection } from './ws-connection-auth';
  */
 const authDirective = new GraphQLDirective({
   name: 'auth',
+  // i18n-ignore: текст автогенерируемой GraphQL-документации директивы для разработчиков API, не интерфейс пайщика
   description: 'Роли кооператива и пути принадлежности, открывающие поле его владельцу',
   locations: [DirectiveLocation.FIELD_DEFINITION, DirectiveLocation.OBJECT],
   args: {

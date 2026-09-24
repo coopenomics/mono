@@ -11,6 +11,7 @@ import type { IProject } from 'app/extensions/capital/entities/Project/model';
 import { useProjectStore } from 'app/extensions/capital/entities/Project/model';
 import ProjectContributorsList from 'app/extensions/capital/widgets/ProjectInfoSelectorWidget/ProjectContributorsList.vue';
 import { FailAlert } from 'src/shared/api';
+import { t } from '../../../i18n';
 
 const route = useRoute();
 const projectStore = useProjectStore();
@@ -34,7 +35,7 @@ const loadProject = async () => {
       project.value = (loaded as typeof project.value) ?? null;
     } catch (error) {
       console.error('Ошибка при загрузке компонента:', error);
-      FailAlert('Не удалось загрузить компонент');
+      FailAlert(t('capital.componentContributorsPage.loadError'));
     }
   }
 };

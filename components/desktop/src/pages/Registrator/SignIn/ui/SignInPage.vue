@@ -4,13 +4,11 @@
       <template #actions>
         <AuthActions />
       </template>
-      <template #pane-foot>
-        Ещё не пайщик?
-        <a class="auth-link" href="#" @click.prevent="goToSignUp">Вступить в кооператив</a>
+      <template #pane-foot> {{ $t('registrator.signInPage.notMemberPrompt') }} <a class="auth-link" href="#" @click.prevent="goToSignUp">{{ $t('registrator.signInPage.joinCoopAction') }}</a>
       </template>
       <template #footer>
-        <a class="auth-link" href="#" @click.prevent="goToLostKey">Потеряли ключ?</a>
-        <a class="auth-link" href="#" @click.prevent="goToSignUp">Нет аккаунта?</a>
+        <a class="auth-link" href="#" @click.prevent="goToLostKey">{{ $t('registrator.signInPage.lostKeyPrompt') }}</a>
+        <a class="auth-link" href="#" @click.prevent="goToSignUp">{{ $t('registrator.signInPage.noAccountPrompt') }}</a>
       </template>
     </SignIn>
   </div>

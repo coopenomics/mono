@@ -45,6 +45,7 @@ function parseAsset(asset: string): IParsedAsset {
   const body = negative || positive ? trimmed.slice(1).trim() : trimmed;
   const [amountPart, symbol] = body.split(/\s+/);
   if (!amountPart || !symbol) {
+    // i18n-ignore: техническая ошибка парсинга внутреннего строкового формата asset, разработческий текст
     throw new Error(`Не удалось распарсить asset "${asset}"`);
   }
   const [intPart, fracPart = ''] = amountPart.split('.');
@@ -76,6 +77,7 @@ export function applyAssetDelta(asset: string, delta: string): string {
   const a = parseAsset(asset);
   const d = parseAsset(delta);
   if (a.symbol !== d.symbol) {
+    // i18n-ignore: техническая ошибка сравнения символов asset при пересчёте баланса, разработческий текст
     throw new Error(`Несовместимые символы asset: "${a.symbol}" vs "${d.symbol}"`);
   }
   const decimals = Math.max(a.decimals, d.decimals);

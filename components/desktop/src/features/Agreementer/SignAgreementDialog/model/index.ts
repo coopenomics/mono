@@ -2,6 +2,7 @@ import { DigitalDocument, type IGeneratedDocument } from 'src/shared/lib/documen
 import { api } from '../api';
 import { useSystemStore } from 'src/entities/System/model';
 import { useSessionStore } from 'src/entities/Session/model';
+import { t } from 'src/shared/i18n';
 
 export const useSignAgreement = () => {
   const { info } = useSystemStore()
@@ -12,7 +13,7 @@ export const useSignAgreement = () => {
     await document.sign(username);
 
     if (!document.signedDocument)
-      throw new Error('Ошибка подписи документа')
+      throw new Error(t('agreementer.error.agreementSignFailed'))
 
     // GraphQL `sendAgreement` принимает meta как объект (контроллер сам
     // сериализует в строку при сборке chain-action) — НЕ stringify здесь.

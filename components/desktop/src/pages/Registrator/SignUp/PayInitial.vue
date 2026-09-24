@@ -1,12 +1,12 @@
 <template lang="pug">
 div(v-show='store.isStep("PayInitial")')
 
-  Loader(v-if="isCreatingPayment" text="готовим данные для приёма взносов")
+  Loader(v-if="isCreatingPayment" :text="$t('registrator.payInitial.preparingText')")
   div(v-else-if='payment?.payment_details?.amount_without_fee').q-pa-sm
-    p Пожалуйста, совершите оплату регистрационного взноса {{ payment.payment_details.amount_without_fee }}. Комиссия провайдера {{ payment.payment_details.fact_fee_percent }}%, всего к оплате: {{ payment.payment_details.amount_plus_fee }}.
+    p {{ $t('registrator.payInitial.paymentInstructions', { amountWithoutFee: payment.payment_details.amount_without_fee, feePercent: payment.payment_details.fact_fee_percent, amountWithFee: payment.payment_details.amount_plus_fee }) }}
     .q-mt-md
-      span.text-bold Внимание!
-      span.q-ml-xs Оплату необходимо произвести с банковского счета пайщика, который вступает в кооператив. При поступлении средств с другого счета, оплата будет аннулирована, а вступление в кооператив приостановлено.
+      span.text-bold {{ $t('registrator.payInitial.attentionLabel') }}
+      span.q-ml-xs {{ $t('registrator.payInitial.attentionText') }}
     PayWithProvider(
       v-if='payment',
       :payment-order='payment',
@@ -20,6 +20,7 @@ import { computed, watch, ref, onBeforeUnmount } from 'vue';
 import { useCreateUser } from 'src/features/User/CreateUser';
 import { FailAlert } from 'src/shared/api';
 import { useSystemStore } from 'src/entities/System/model';
+import { t } from 'src/shared/i18n';
 const { info } = useSystemStore();
 
 import { useCooperativeStore } from 'src/entities/Cooperative';
@@ -95,7 +96,7 @@ const createInitialPayment = async () => {
     await api.createInitialPayment();
   } catch (e: any) {
     FailAlert(
-      'Возникла ошибка на этапе оплаты. Попробуйте позже или обратитесь в поддержку.',
+      t('registrator.payInitial.paymentError'),
     );
     console.error(e);
   } finally {
@@ -131,7 +132,7 @@ watch(
 
 const paymentFail = (): void => {
   FailAlert(
-    'Возникла ошибка на этапе оплаты. Попробуйте позже или обратитесь в поддержку.',
+    t('registrator.payInitial.paymentError'),
   );
 };
 

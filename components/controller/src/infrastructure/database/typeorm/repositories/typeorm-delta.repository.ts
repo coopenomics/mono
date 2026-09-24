@@ -303,6 +303,7 @@ export class TypeOrmDeltaRepository implements DeltaRepositoryPort {
   ): Promise<{ primary_key: string; value: any; present: boolean; block_num: number }[]> {
     const params: string[] = [filters.code, filters.scope, filters.table];
     const conditions = Object.entries(where).map(([field, value]) => {
+      // i18n-ignore: защита от подстановки в SQL — имена полей задаёт код, пайщик их не вводит
       if (!/^[a-z_][a-z0-9_]*$/.test(field)) throw new Error(`Недопустимое имя поля: ${field}`);
       params.push(value.toLowerCase());
       return `lower(value ->> '${field}') = $${params.length}`;

@@ -1,5 +1,5 @@
-import { rethrowChainError } from '@coopenomics/extension-kit';
-import { BadRequestException, ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { rethrowChainError, DomainError } from '@coopenomics/extension-kit';
+import { Inject, Injectable } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { createHash } from 'crypto';
 import { LOGGER_PORT, type ILoggerPort,
@@ -50,6 +50,7 @@ import {
   MarketplaceOfferStatuses,
   type MarketplaceUnitOfMeasure,
 } from '../../domain/entities/marketplace-offer.types';
+import { t } from '../../i18n';
 
 
 export interface MarketplaceOrderCreateInputDto {
@@ -183,7 +184,7 @@ export class MarketplaceOrderCreateService {
     try {
       const tx = await this.chainPort.createOrder(prepared.action);
       // fail-fast: без tx_hash запись заказа в базу сделает audit-trail фантомным.
-      result = normalizeChainTx(tx, 'Создание заказа: цепь не вернула tx_hash. Повторите попытку.');
+      result = normalizeChainTx(tx, t('marketplace.orderCreate.chainNoTxHash'));
     } catch (error: any) {
       this.logger.error(
         `MarketplaceOrderCreateService: chain submit createorder fail (compensating rollback counter) — ${error.message}`,
@@ -208,15 +209,13 @@ export class MarketplaceOrderCreateService {
     // ── 1. Guard: Offer existence + ACTIVE + quantity_available ────
     const offer = await this.offerRepo.findById(input.offer_id);
     if (!offer) {
-      throw new NotFoundException('Предложение не найдено.');
+      throw DomainError.notFound('MARKETPLACE_OFFER_NOT_FOUND');
     }
     if (offer.coopname !== input.coopname) {
-      throw new ForbiddenException('Предложение принадлежит другому кооперативу.');
+      throw DomainError.forbidden('MARKETPLACE_OFFER_FOREIGN_COOP');
     }
     if (offer.status !== MarketplaceOfferStatuses.ACTIVE) {
-      throw new BadRequestException(
-        `Предложение не активно (статус «${offer.status}»). Заказ оформить нельзя.`
-      );
+      throw DomainError.badRequest('MARKETPLACE_ORDER_OFFER_NOT_ACTIVE', { status: offer.status });
     }
     // Эпик 18: разрешаем способ отпуска в базовое количество/цену/упаковку.
     // По мере — quantity как базовое количество; упаковкой — quantity как число
@@ -225,9 +224,7 @@ export class MarketplaceOrderCreateService {
     // Нехватка проверяется по выбранной упаковке, а не по котлу базовых единиц.
     const shortfall = saleUnitShortfall(offer, resolved);
     if (shortfall) {
-      throw new BadRequestException(
-        `Доступно только ${shortfall.available} ${shortfall.unitLabel}; нельзя заказать ${shortfall.requested}.`
-      );
+      throw DomainError.badRequest('MARKETPLACE_ORDER_QUANTITY_UNAVAILABLE', { available: shortfall.available, unitLabel: shortfall.unitLabel, requested: shortfall.requested });
     }
     const packageDelta = packageDeltaOfSaleUnit(resolved);
 
@@ -360,13 +357,13 @@ export class MarketplaceOrderCreateService {
     // дробное) выполняется после загрузки Offer'а через assertValidQuantity;
     // здесь — только базовая проверка положительности.
     if (!(input.quantity > 0)) {
-      throw new BadRequestException('Количество должно быть больше нуля.');
+      throw DomainError.badRequest('MARKETPLACE_QUANTITY_MUST_BE_POSITIVE');
     }
     if (!input.delivery_braname || input.delivery_braname.length === 0) {
-      throw new BadRequestException('Не указан ПВЗ получения.');
+      throw DomainError.badRequest('MARKETPLACE_ORDER_BRANCH_REQUIRED');
     }
     if (!input.offer_id) {
-      throw new BadRequestException('Не указан offer_id.');
+      throw DomainError.badRequest('MARKETPLACE_OFFER_ID_REQUIRED');
     }
   }
 
@@ -395,7 +392,7 @@ export class MarketplaceOrderCreateService {
   ): string {
     const priceFloat = Number.parseFloat(resolved.unitPrice);
     if (Number.isNaN(priceFloat) || priceFloat <= 0) {
-      throw new BadRequestException(`Некорректная цена за единицу: "${resolved.unitPrice}"`);
+      throw DomainError.badRequest('MARKETPLACE_ORDER_UNIT_PRICE_INVALID', { unitPrice: resolved.unitPrice });
     }
     const total = calcCostAmount({
       quantity: resolved.baseQuantity,
@@ -408,9 +405,7 @@ export class MarketplaceOrderCreateService {
     // способно схлопнуться в ноль — контракт такой заказ отвергнет, и лучше
     // сказать об этом до отправки транзакции.
     if (Number.parseFloat(total) <= 0) {
-      throw new BadRequestException(
-        'Итоговая сумма заказа получилась нулевой — проверьте количество и цену.'
-      );
+      throw DomainError.badRequest('MARKETPLACE_ORDER_TOTAL_ZERO');
     }
     return total;
   }

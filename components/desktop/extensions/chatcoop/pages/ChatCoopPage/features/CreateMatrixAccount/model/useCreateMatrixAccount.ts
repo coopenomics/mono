@@ -1,6 +1,7 @@
 import { ref } from 'vue';
 import { client } from 'src/shared/api/client';
 import { Mutations } from '@coopenomics/sdk';
+import { t } from '../../../../../i18n';
 
 export function useCreateMatrixAccount() {
   const isLoading = ref(false);
@@ -23,7 +24,7 @@ export function useCreateMatrixAccount() {
       return result;
     } catch (err: any) {
       console.error('Failed to create Matrix account:', err);
-      error.value = err?.message || 'Не удалось создать аккаунт Matrix';
+      error.value = err?.message || t('chatcoop.createMatrixAccount.createError');
       return false;
     } finally {
       isLoading.value = false;

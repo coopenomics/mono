@@ -1,0 +1,16 @@
+{
+  "errors": {
+    "BLOCKCHAIN_ABI_NOT_FOUND": "ABI контракта {code} не найден",
+    "BLOCKCHAIN_CHAIRMAN_KEY_NOT_FOUND_FOR_ADJUSTMENT": "Не найден приватный ключ председателя для подписания корректировки",
+    "BLOCKCHAIN_COOPERATIVE_KEY_MISSING_FOR_CERTIFICATION": "Нет ключа кооператива {signerAccount} — опубликовать право заверения нечем",
+    "BLOCKCHAIN_DOCUMENT_NOT_FOUND": "Не найден документ: {title}",
+    "BLOCKCHAIN_KEY_MISSING_FOR_CERTIFICATION_SIGNING": "Нет ключа {signerAccount} — подписать заверение нечем",
+    "BLOCKCHAIN_MEMBERSHIP_APPLICATION_NOT_FOUND": "Не найдено заявление на вступление",
+    "BLOCKCHAIN_NODE_FAILURE": "Узел цепи отказал: {reason}",
+    "BLOCKCHAIN_PRIVATE_KEY_NOT_FOUND": "Не найден приватный ключ для совершения операции",
+    "BLOCKCHAIN_PRIVATE_KEY_NOT_FOUND_FOR_ACCOUNT": "Не найден приватный ключ для аккаунта {username}",
+    "BLOCKCHAIN_PRIVATE_KEY_NOT_FOUND_FOR_COOPERATIVE": "Не найден приватный ключ для кооператива {coopname}",
+    "BLOCKCHAIN_RPC_NO_NODES_AVAILABLE": "RpcPool: нет доступных RPC-узлов",
+    "BLOCKCHAIN_RPC_TIMEOUT": "RpcPool: таймаут RPC {ms}мс"
+  }
+}
