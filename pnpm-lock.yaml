@@ -40,6 +40,9 @@ importers:
       '@coopenomics/factory':
         specifier: workspace:*
         version: link:components/factory
+      '@coopenomics/i18n':
+        specifier: workspace:*
+        version: link:components/i18n
       '@coopenomics/innercoop':
         specifier: workspace:*
         version: link:components/innercoop
