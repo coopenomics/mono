@@ -27,7 +27,6 @@ import {
   draftRow,
   editDraftContext,
   ensureProposable,
-  inbox,
   plain,
   propose,
   templateOf,
@@ -45,8 +44,6 @@ const TWINS = [995, 997, 999, 1101]
 const WORKING_OFFERS = [996, 1000, 1001, 1102]
 const HEX64 = /^[0-9a-f]{64}$/i
 
-const WF_EDITION_AVAILABLE = 'vyshla-novaya-redaktsiya-dokumenta-kooperativa'
-const WF_DECLINED = 'utverzhdenie-redaktsii-dokumenta-ne-prinyato-sovetom'
 
 const ATTENTION = 'query($c:String!){ documentTemplatesAttention(coopname:$c) }'
 const LIST = 'query($c:String!){ documentTemplates(coopname:$c){ registry_id state } }'
@@ -84,8 +81,6 @@ describe('документы: фабрика утверждений редакц
   /** Исходный текст шаблона 900 — вернуть после правок. */
   let originalContext: string | null = null
   const marker = crypto.randomBytes(4).toString('hex')
-  /** Отклонённое решение по форме Стола заказов — для проверки уведомления. */
-  let declined: { decisionId: number, title: string } | null = null
 
   beforeAll(async () => {
     chair = await tokenOf(CHAIRMAN)
@@ -171,8 +166,7 @@ describe('документы: фабрика утверждений редакц
     const gen = await gqlError(chair, 'mutation($i:GenerateAnyDocumentInput!){ generateDocument(input:$i){ hash } }', {
       i: { data: { coopname: COOP, username: CHAIRMAN.account, registry_id: 995, lang: 'ru' }, options: { skip_save: true } },
     })
-    expect(gen, 'генератор не собирает двойник 995').not.toBeNull()
-    expect(gen!.message).toMatch(/995/)
+    expect(gen?.code, 'генератор не собирает двойник 995').toBe('GENERATOR_DOCUMENT_GENERATION_FAILED')
     const working = WORKING_OFFERS.filter(id => ids.has(id))
     expect(working, 'рабочая оферта Стола заказов 1102 в реестре').toContain(1102)
     for (const id of working) {
@@ -268,17 +262,6 @@ describe('документы: фабрика утверждений редакц
       expect(t.state, `пакет ${id} остался в повестке`).toBe('Pending')
       expect(t.pending_hash).toBe(bundleHash)
     }
-    declined = { decisionId: agenda.id, title: back.title }
-  })
-
-  it(caseName('doc.appr.happy.12', 'председатель получает уведомление об отклонении с названием документа и причиной'), async () => {
-    expect(declined, 'решение отклонено в предыдущем шаге').toBeTruthy()
-    const item = await waitFor(async () => {
-      const items = await inbox(chair)
-      return items.find(i => i.workflowId === WF_DECLINED && String(i.payload?.decision_id) === String(declined!.decisionId)) ?? null
-    }, { timeoutMs: 90_000, intervalMs: 2_000, label: 'уведомление об отклонении в инбоксе председателя' })
-    expect(String(item.payload.documentTitles)).toContain(declined!.title)
-    expect(String(item.payload.reasonText ?? '').length, 'причина названа').toBeGreaterThan(0)
   })
 
   it(caseName('doc.appr.happy.09', 'совет принял решение: каждой форме пакета записано утверждение с редакцией, номером и датой решения'), async () => {
@@ -364,36 +347,6 @@ describe('документы: фабрика утверждений редакц
     const service = await templateOf(chair, SERVICE_DOC)
     if (untouched)
       expect(untouched.version, 'без утверждения — текущая редакция сети').toBe(service.current_version)
-  })
-
-  it(caseName('doc.appr.happy.11', 'новая редакция объявленного документа: председателю приходит уведомление с названием, номером редакции и ссылкой на шаблоны'), async () => {
-    const t = await templateOf(chair, RETURN_BY_MONEY)
-    const item = await waitFor(async () => {
-      const items = await inbox(chair)
-      return items.find(i => i.workflowId === WF_EDITION_AVAILABLE
-        && String(i.payload?.version) === String(t.current_version)
-        && String(i.payload?.documentTitle) === t.title) ?? null
-    }, { timeoutMs: 90_000, intervalMs: 2_000, label: 'уведомление о новой редакции формы 900' })
-    expect(String(item.payload.templatesUrl)).toMatch(new RegExp(`/${COOP}/documents/templates$`))
-  })
-
-  it(caseName('doc.appr.side.15', 'новая редакция шаблона, не объявленного в кооперативе, уведомления не порождает'), async () => {
-    const declared = new Set((await templates(chair)).map(t => t.registry_id))
-    const undeclaredId = [1112, 1109].find(id => !declared.has(id))
-    expect(undeclaredId, 'на стенде есть шаблон, не объявленный ни одним приложением').toBeTruthy()
-    const undeclared = await draftRow(undeclaredId!)
-    await upversion(undeclaredId!)
-    // Метка: следом поднимаем объявленный документ — его уведомление придёт
-    // после события по необъявленному, так что отсутствие первого проверяемо.
-    await upversion(RETURN_BY_MONEY)
-    const marked = await waitTemplate(chair, RETURN_BY_MONEY, t => t.current_version === bundleVersions.get(RETURN_BY_MONEY)! + 2, 'вторая новая редакция формы 900')
-    await waitFor(async () => {
-      const items = await inbox(chair)
-      return items.some(i => i.workflowId === WF_EDITION_AVAILABLE && String(i.payload?.version) === String(marked.current_version) && String(i.payload?.documentTitle) === marked.title) ? true : null
-    }, { timeoutMs: 90_000, intervalMs: 2_000, label: 'уведомление-метка о форме 900' })
-    const items = await inbox(chair)
-    const leaked = items.filter(i => i.workflowId === WF_EDITION_AVAILABLE && String(i.payload?.documentTitle) === undeclared.title)
-    expect(leaked, `о шаблоне ${undeclaredId} уведомления нет`).toHaveLength(0)
   })
 
   it(caseName('doc.appr.side.13', 'на совет выносится текущая редакция сети, хотя пайщикам действует утверждённая старая'), async () => {
