@@ -148,6 +148,7 @@ cases:
       резолвер отдаёт оба уровня — coop_baseline из членства и passport_onsite
       с attested_by из записи участка
     test: components/controller/src/application/auth-v2/verification/verification-types.service.spec.ts
+    api: components/api-tests/src/coopid/verification.test.ts
     status: passing
 
   - id: cid.ver.side.05
@@ -156,6 +157,7 @@ cases:
     scenario: отозванная (is_verified=false) и незнакомая (online) процедуры в векторе
     expect: уровня не дают — резолвер их игнорирует
     test: components/controller/src/application/auth-v2/verification/verification-types.service.spec.ts
+    api: components/api-tests/src/coopid/verification.test.ts
     status: passing
 
   - id: cid.ver.side.06
@@ -182,6 +184,7 @@ cases:
       начальный из принятого членства, базовый из он-чейн записи passport с
       автором проверки; отозванные и незнакомые процедуры уровня не дают
     test: components/auth/test/certificate.test.ts
+    api: components/api-tests/src/coopid/verification.test.ts
     status: passing
 
   - id: cid.ver.happy.09
@@ -192,6 +195,7 @@ cases:
       отдаются ФИО, дата рождения и паспорт целиком с адресом регистрации;
       выдача пишется в аудит
     test: components/controller/src/application/auth-v2/verification/verification-identity.service.spec.ts
+    api: components/api-tests/src/coopid/verification.test.ts
     status: passing
 
   - id: cid.ver.side.12
@@ -200,6 +204,7 @@ cases:
     scenario: запрос данных пайщика, чья личность уже подтверждена
     expect: отказ — повод для выдачи исчерпан, аккаунт даже не читается
     test: components/controller/src/application/auth-v2/verification/verification-identity.service.spec.ts
+    api: components/api-tests/src/coopid/verification.test.ts
     status: passing
 
   - id: cid.ver.side.13
@@ -208,6 +213,7 @@ cases:
     scenario: запрос данных от того, кто не вправе сверять, и по пайщику чужого кооператива
     expect: отказ до чтения персональных данных
     test: components/controller/src/application/auth-v2/verification/verification-identity.service.spec.ts
+    api: components/api-tests/src/coopid/verification.test.ts
     status: passing
 
   - id: cid.ver.side.14
@@ -218,6 +224,7 @@ cases:
       на участке сверяют председатель участка и доверенные лица, без участка —
       председатель совета; остальным отказ, отзыв — только председателю совета
     test: components/controller/src/application/auth-v2/verification/verification-authority.service.spec.ts
+    api: components/api-tests/src/coopid/verification.test.ts
     status: passing
 
   - id: cid.ver.happy.07
@@ -228,6 +235,7 @@ cases:
       уровень получает источник «сверка советом», участок пустой; с участком —
       источник «сверка на участке» и имя участка рядом
     test: components/auth/test/certificate.test.ts
+    api: components/api-tests/src/coopid/verification.test.ts
     status: passing
 
   # ── Уровень UI ────────────────────────────────────────────────────────────

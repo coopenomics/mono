@@ -42,6 +42,7 @@ cases:
       снимок ложится в хранилище кооператива, запись журнала заводится со
       статусом «на проверке», уровень на цепи выдан сразу
     test: components/controller/src/application/auth-v2/verification/verification-review.service.spec.ts
+    api: components/api-tests/src/coopid/verification-review.test.ts
     status: passing
 
   - id: cid.vrev.break.01
@@ -50,6 +51,7 @@ cases:
     scenario: сверка на участке отправлена без единого снимка
     expect: отказ — совету потом не по чему решать
     test: components/controller/src/application/auth-v2/verification/verification-review.service.spec.ts
+    api: components/api-tests/src/coopid/verification-review.test.ts
     status: passing
 
   - id: cid.vrev.break.02
@@ -60,6 +62,7 @@ cases:
       отказ ДО записи в цепь — узнать о битом файле после verifyacc поздно,
       уровень уже выдан и его пришлось бы отзывать отдельным действием
     test: components/controller/src/application/auth-v2/verification/verification-review.service.spec.ts
+    api: components/api-tests/src/coopid/verification-review.test.ts
     status: passing
 
   - id: cid.vrev.break.03
@@ -68,6 +71,7 @@ cases:
     scenario: к одной сверке приложено больше пяти снимков
     expect: отказ с указанием предела
     test: components/controller/src/application/auth-v2/verification/verification-review.service.spec.ts
+    api: components/api-tests/src/coopid/verification-review.test.ts
     status: passing
 
   - id: cid.vrev.side.01
@@ -78,6 +82,7 @@ cases:
       снимки не требуются, запись сразу утверждённая — совет и есть
       проверяющая сторона и себя не проверяет
     test: components/controller/src/application/auth-v2/verification/verification-review.service.spec.ts
+    api: components/api-tests/src/coopid/verification-review.test.ts
     status: passing
 
   - id: cid.vrev.break.04
@@ -100,6 +105,7 @@ cases:
       снимки удалены из хранилища, статус «подтверждена», цепь не тронута —
       уровень там уже есть
     test: components/controller/src/application/auth-v2/verification/verification-review.service.spec.ts
+    api: components/api-tests/src/coopid/verification-review.test.ts
     status: passing
 
   - id: cid.vrev.happy.03
@@ -110,6 +116,7 @@ cases:
       верификация отозвана с цепи (unverifyacc), снимки удалены, статус
       «отклонена», причина сохранена
     test: components/controller/src/application/auth-v2/verification/verification-review.service.spec.ts
+    api: components/api-tests/src/coopid/verification-review.test.ts
     status: passing
 
   - id: cid.vrev.break.05
@@ -118,6 +125,7 @@ cases:
     scenario: решение принимается повторно по уже закрытой сверке
     expect: отказ, состояние не переписывается
     test: components/controller/src/application/auth-v2/verification/verification-review.service.spec.ts
+    api: components/api-tests/src/coopid/verification-review.test.ts
     status: passing
 
   - id: cid.vrev.break.06
@@ -128,6 +136,7 @@ cases:
       отказ на каждом из четырёх входов; оператор участка проверяемая сторона
       и своих снимков после отправки уже не видит
     test: components/controller/src/application/auth-v2/verification/verification-review.service.spec.ts
+    api: components/api-tests/src/coopid/verification-review.test.ts
     status: passing
 
   - id: cid.vrev.break.07
@@ -136,6 +145,7 @@ cases:
     scenario: запрошены снимки сверки, по которой решение уже принято
     expect: отказ — снимков больше нет, они удалены вместе с решением
     test: components/controller/src/application/auth-v2/verification/verification-review.service.spec.ts
+    api: components/api-tests/src/coopid/verification-review.test.ts
     status: passing
 
   - id: cid.vrev.side.02
@@ -166,6 +176,7 @@ cases:
       запись читается верно; иначе отзыв верификации падает уже после того,
       как цепь его провела, и повторить его контракт не даёт
     test: components/controller/src/infrastructure/auth-v2/postgres-verification-review.repository.spec.ts
+    api: components/api-tests/src/coopid/verification-review.test.ts
     status: passing
 
   - id: cid.vrev.side.08
@@ -188,6 +199,7 @@ cases:
       последняя запись журнала отмечается отозванной с автором и причиной —
       цепь истории не хранит, отзыв стирает запись подтверждения
     test: components/controller/src/application/auth-v2/verification/verification-review.service.spec.ts
+    api: components/api-tests/src/coopid/verification-review.test.ts
     status: passing
 
   - id: cid.vrev.side.04
@@ -196,6 +208,7 @@ cases:
     scenario: отзыв по пайщику, чья сверка уже отклонена или отозвана
     expect: журнал не переписывается повторно
     test: components/controller/src/application/auth-v2/verification/verification-review.service.spec.ts
+    api: components/api-tests/src/coopid/verification-review.test.ts
     status: passing
 
   # ── Интерфейс ─────────────────────────────────────────────────────────────
