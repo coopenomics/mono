@@ -16,7 +16,7 @@ function deferred() {
 }
 
 function build() {
-  const service = new BlockchainService({} as any, { read: jest.fn(), activeUrl: jest.fn() } as any, {} as any);
+  const service = new BlockchainService({ setContext: jest.fn() } as any, { read: jest.fn(), activeUrl: jest.fn() } as any, {} as any);
   const abiGate = deferred();
   jest.spyOn(service as any, 'formActionFromAbi').mockImplementation(async (action: unknown) => {
     await abiGate.promise;

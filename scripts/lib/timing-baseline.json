@@ -1,6 +1,6 @@
 {
   "_комментарий": "Таймеры без пометки `// timing: <вид>` по файлам (scripts/check-timing.mjs). Тронул файл — пометь таймер или убери паузу; долг только снижается.",
-  "_commit": "14e4bad6bf369d9a5ca9b7d1bad4f61d8af8bd23",
+  "_commit": "fb8a31c0686be03f3583b33dd0185de8341ed451",
   "files": {
     "components/controller/src/application/free-decision/services/free-decision.service.ts": 1,
     "components/controller/src/application/meet/interactors/meet.interactor.ts": 1,
@@ -27,8 +27,6 @@
     "components/controller/src/extensions/soviet-robot/application/services/robot-decision.service.ts": 1,
     "components/controller/src/extensions/soviet-robot/application/services/robot-key.service.ts": 1,
     "components/controller/src/infrastructure/blockchain/action-release-gate.service.ts": 2,
-    "components/controller/src/infrastructure/blockchain/blockchain-consumer.service.ts": 1,
-    "components/controller/src/infrastructure/blockchain/chain-delta-waiter.service.ts": 1,
     "components/controller/src/infrastructure/blockchain/chain-retry.ts": 1,
     "components/controller/src/infrastructure/blockchain/rpc-pool.service.ts": 2,
     "components/controller/src/infrastructure/events/events.service.ts": 1,
