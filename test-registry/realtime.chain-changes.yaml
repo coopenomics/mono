@@ -87,6 +87,7 @@ cases:
     scenario: Изменилась строка таблицы, открытой всем пайщикам.
     expect: сигнал в общий канал кооператива, без данных строки
     test: components/controller/src/infrastructure/blockchain/chain-changes.service.spec.ts
+    api: components/api-tests/src/platform/realtime.chain-changes.test.ts
     status: passing
 
   - id: rt.cc.happy.02
@@ -95,6 +96,7 @@ cases:
     scenario: Изменилась строка личной таблицы (кошелёк, пайщик программы).
     expect: сигнал владельцу строки и совету; в общий канал — нет
     test: components/controller/src/infrastructure/blockchain/chain-changes.service.spec.ts
+    api: components/api-tests/src/platform/realtime.chain-changes.test.ts
     status: passing
 
   - id: rt.cc.side.01
@@ -103,6 +105,7 @@ cases:
     scenario: Строка личной таблицы снята (present = false), владельца в ней нет.
     expect: сигнал только совету
     test: components/controller/src/infrastructure/blockchain/chain-changes.service.spec.ts
+    api: components/api-tests/src/platform/realtime.chain-changes.test.ts
     status: passing
 
   - id: rt.cc.side.02
@@ -111,6 +114,7 @@ cases:
     scenario: Дельта необъявленной таблицы или чужого кооператива.
     expect: сигнала нет
     test: components/controller/src/infrastructure/blockchain/chain-changes.service.spec.ts
+    api: components/api-tests/src/platform/realtime.chain-changes.test.ts
     status: passing
 
   - id: rt.cc.side.03
@@ -129,6 +133,7 @@ cases:
       сигнал уходит после слушателей дельты и после пробуждения мутаций — по нему
       читается уже записанное
     test: components/controller/tests/unit/blockchain/blockchain-consumer.processFork.test.ts
+    api: components/api-tests/src/platform/realtime.chain-changes.test.ts
     status: passing
 
   - id: rt.cc.happy.03
@@ -139,6 +144,7 @@ cases:
       каналы выбирает сервер: пайщику — общие таблицы и свои строки личных,
       совету — все строки личных; перечень таблиц сужает каналы
     test: components/controller/tests/unit/chain-changes/chain-changes.resolver.test.ts
+    api: components/api-tests/src/platform/realtime.chain-changes.test.ts
     status: passing
 
   - id: rt.cc.break.01
@@ -147,6 +153,7 @@ cases:
     scenario: Подписка на необъявленную таблицу, чужой кооператив, соединение без пайщика.
     expect: отказ по праву
     test: components/controller/tests/unit/chain-changes/chain-changes.resolver.test.ts
+    api: components/api-tests/src/platform/realtime.chain-changes.test.ts
     status: passing
 
   - id: rt.cc.ui.01
@@ -190,6 +197,7 @@ cases:
       сигнал с блоком 0 уходит после фиксации — со строкой (владелец) и ключом;
       откат транзакции сигнала не даёт; запись вне транзакции — сигнал сразу
     test: components/controller/tests/unit/chain-changes/local-changes.subscriber.test.ts
+    api: components/api-tests/src/platform/realtime.chain-changes.test.ts
     status: passing
 
   - id: rt.cc.happy.05
@@ -246,4 +254,5 @@ cases:
       оплаты и пользовательские данные — сигнал по своей таблице владельцу и совету,
       переменные кооператива — всем; прочие коллекции и узел без ленты — тишина без ошибок
     test: components/controller/tests/unit/chain-changes/raw-writes-feed.test.ts
+    api: components/api-tests/src/platform/realtime.chain-changes.test.ts
     status: written   # прогон — CI на полигоне ci/tests

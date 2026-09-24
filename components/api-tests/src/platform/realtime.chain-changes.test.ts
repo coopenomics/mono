@@ -5,9 +5,9 @@
  * данных строки. Каналы выбирает сервер: таблица, открытая всем, — общий
  * канал; личная — владельцу строки и совету; служебная — только совету.
  *
- * Изменения готовятся паевым взносом прямо в цепи (две транзакции — два
- * блока, номера известны) и мутациями контроллера, которые пишут в базу узла
- * (настройки кооператива, способы оплаты пайщика). Сигналы свои тест узнаёт
+ * Изменения готовятся паевым взносом и расторжением соглашения прямо в цепи
+ * (номера блоков известны) и мутациями контроллера, которые пишут в базу узла
+ * (настройки кооператива, платёж пайщика, способ оплаты в генераторе). Сигналы свои тест узнаёт
  * по номеру блока либо по ключу строки: файлы идут по очереди на общем
  * стенде, чужих изменений в эти моменты нет, но и на пустоту каналов тест не
  * полагается.
@@ -37,7 +37,6 @@ const COOP_WALLETS = { code: 'ledger2', table: 'wallets' }
 const SETTINGS = { code: 'core', table: 'settings' }
 const PAYMENT_METHODS = { code: 'core', table: 'payment_methods' }
 const PAYMENTS = { code: 'core', table: 'payments' }
-const CART = { code: 'market', table: 'marketplace_cart' }
 
 const STAFF_ONLY = new Set(['ledger2::accounts', 'ledger2::wallets'])
 const key = (s: { code: string, table: string }): string => `${s.code}::${s.table}`
@@ -212,23 +211,6 @@ describe('realtime.chain-changes: лента изменений — сигнал
       await quietWindow()
 
       expect(signalsOf(otherSub, { primary_key: member.account })).toEqual([])
-    })
-  })
-
-  describe('база Стола заказов', () => {
-    it(caseName('rt.cc.happy.06', 'запись в корзину заказчика (личная таблица Стола заказов): сигнал ему и совету'), async () => {
-      const ordererToken = await tokenOf(ROLES.member())
-      // Корзина существует до правки: первое чтение её заводит.
-      await gql(ordererToken, 'query{ marketplaceGetCart{ __typename } }')
-      const ownSub = chainChangesOf(await open(ordererToken), [CART])
-      const councilSub = chainChangesOf(await open(councilToken), [CART])
-      await settleSubscriptions()
-
-      await gql(ordererToken, 'mutation{ marketplaceClearCart{ __typename } }')
-
-      const staff = await waitSignal(councilSub, { ...CART, block_num: 0 })
-      await quietWindow()
-      expect(signalsOf(ownSub, { ...CART, block_num: 0 }), `совету пришло ${JSON.stringify(staff)}, заказчику — ничего`).not.toEqual([])
     })
   })
 

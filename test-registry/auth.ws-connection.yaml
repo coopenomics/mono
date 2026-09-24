@@ -36,6 +36,7 @@ cases:
       в контексте подписки ровно та учётная запись, которую вернул validate
       стратегии HTTP (username, role, status), и тот же токен заголовком
     test: components/controller/src/infrastructure/graphql/ws-auth.registry.spec.ts
+    api: components/api-tests/src/platform/auth.ws-connection.test.ts
     status: passing
 
   - id: auth.ws.side.01
@@ -44,6 +45,7 @@ cases:
     scenario: Токен в connectionParams пришёл без префикса Bearer.
     expect: принимается так же — клиенты Zeus шлют по-разному
     test: components/controller/src/infrastructure/graphql/ws-auth.registry.spec.ts
+    api: components/api-tests/src/platform/auth.ws-connection.test.ts
     status: passing
 
   - id: auth.ws.break.01
@@ -54,6 +56,7 @@ cases:
       соединение отклонено — опознание стратегией включает проверку живости
       сессии, пустой пользователь в контекст не попадает
     test: components/controller/src/infrastructure/graphql/ws-auth.registry.spec.ts
+    api: components/api-tests/src/platform/auth.ws-connection.test.ts
     status: passing
 
   - id: auth.ws.break.02
@@ -62,6 +65,7 @@ cases:
     scenario: В соединение подан refresh-токен.
     expect: отказ до опознания
     test: components/controller/src/infrastructure/graphql/ws-auth.registry.spec.ts
+    api: components/api-tests/src/platform/auth.ws-connection.test.ts
     status: passing
 
   - id: auth.ws.break.03
@@ -70,6 +74,7 @@ cases:
     scenario: Токен подписан чужим секретом либо отсутствует.
     expect: отказ
     test: components/controller/src/infrastructure/graphql/ws-auth.registry.spec.ts
+    api: components/api-tests/src/platform/auth.ws-connection.test.ts
     status: passing
 
   - id: auth.ws.break.04

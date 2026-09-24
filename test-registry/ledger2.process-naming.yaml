@@ -98,6 +98,7 @@ cases:
     expect: >
       имя читается дословно, историческая карта кодов операций не применяется
     test: components/controller/tests/unit/process-registry/process-registry.service.test.ts
+    api: components/api-tests/src/platform/ledger2.process-naming.test.ts
     status: passing
 
   - id: l2.pnam.side.03
@@ -152,6 +153,7 @@ cases:
     expect: >
       название совпадает — список и деталь применяют одно правило
     test: components/controller/tests/unit/process-registry/process-registry.service.test.ts
+    api: components/api-tests/src/platform/ledger2.process-naming.test.ts
     status: passing
 
   - id: l2.pnam.break.02
