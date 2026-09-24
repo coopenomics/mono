@@ -78,6 +78,7 @@ cases:
     scenario: Проект списания без указания причины
     expect: отказ — причина обязательна
     test: components/controller/tests/unit/marketplace/marketplace-writeoff-validation.test.ts
+    api: components/api-tests/src/marketplace/writeoff.test.ts
     status: passing
 
   - id: mkt.wof.side.02
@@ -86,6 +87,7 @@ cases:
     scenario: К списанию выбрано имущество чужого кооперативного участка
     expect: отказ доступа
     test: components/controller/tests/unit/marketplace/marketplace-writeoff-validation.test.ts
+    api: components/api-tests/src/marketplace/writeoff.test.ts
     status: passing
 
   - id: mkt.wof.side.03
@@ -117,6 +119,7 @@ cases:
     scenario: Проведение списания до утверждения советом
     expect: отказ — без протокола совета списание не проводится
     test: components/controller/tests/unit/marketplace/marketplace-writeoff-validation.test.ts
+    api: components/api-tests/src/marketplace/writeoff.test.ts
     status: passing
 
   - id: mkt.wof.side.05
@@ -225,6 +228,7 @@ cases:
       строкой со своим происхождением; партии одного происхождения по-прежнему
       складываются в одну строку с суммарным количеством
     test: components/controller/tests/unit/marketplace/marketplace-writeoff-candidates.test.ts
+    api: components/api-tests/src/marketplace/writeoff.test.ts
     status: passing
 
 # 2026-09-10 (задача 99D-15, решение владельца): списание скоропорта идёт
