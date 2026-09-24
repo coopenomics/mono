@@ -1,4 +1,5 @@
 import { Injectable, UnauthorizedException, Inject } from '@nestjs/common';
+import { randomUUID } from 'node:crypto';
 import jwt from 'jsonwebtoken';
 import moment from 'moment';
 import config from '~/config/config';
@@ -31,6 +32,11 @@ export class TokenDomainService {
       iat: moment().unix(),
       exp: Math.floor(input.expires.getTime() / 1000), // Конвертируем Date в timestamp
       type: input.type,
+      // Уникальность токена. Без jti токен — функция пользователя и секунды:
+      // два входа одного пайщика в одну секунду (двойной клик, два устройства)
+      // давали один и тот же токен, вторая запись нарушала UNIQUE(tokens.token),
+      // и вход отвечал 500. Маркером контура jti не является — он есть у всех.
+      jti: randomUUID(),
       // Только когда токен принадлежит конкретной сессии: сервисные токены и
       // одноразовые (сброс пароля, подтверждение почты) сессии не имеют.
       ...(input.sessionId ? { sid: input.sessionId } : {}),
