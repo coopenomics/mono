@@ -188,3 +188,19 @@ cases:
     expect: в выдаче только соглашения нужного статуса/типа (сейчас программные соглашения добавляются в выдачу без учёта statuses и type)
     test: ~
     status: missing
+
+  - id: wal.agr.side.12
+    level: backend
+    kind: side
+    scenario: совет читает журнал операций старого плана счетов
+    expect: у операции есть хэш пакета документов и пайщик (сейчас поля объявлены в схеме, но сервис их не передаёт — всегда null)
+    test: ~
+    status: missing
+
+  - id: wal.agr.side.13
+    level: backend
+    kind: side
+    scenario: повторная подача принятого соглашения — код отказа
+    expect: отказ доменным кодом (сейчас ассерт цепи уходит сырым текстом «assertion failure with message» с кодом 500)
+    test: ~
+    status: missing

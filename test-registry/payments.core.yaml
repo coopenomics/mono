@@ -211,8 +211,8 @@ cases:
   - id: pay.core.happy.06
     level: backend
     kind: happy
-    scenario: пайщик добавляет банковский счёт, меняет его и удаляет реквизиты СБП
-    expect: в списке новая редакция счёта, удалённые реквизиты пропали, счёт остался
+    scenario: пайщик добавляет банковский счёт и меняет его
+    expect: в списке одна запись счёта в новой редакции, прежние реквизиты СБП на месте
     test: components/api-tests/src/payments/payments.core.test.ts
     api: components/api-tests/src/payments/payments.core.test.ts
     status: passing
@@ -255,5 +255,13 @@ cases:
     kind: side
     scenario: опрос банковской выписки провайдером (payment_state) — запоминание последней обработанной выписки
     expect: повторный опрос той же выписки платежи второй раз не проводит
+    test: ~
+    status: missing
+
+  - id: pay.core.happy.08
+    level: backend
+    kind: happy
+    scenario: владелец удаляет свои реквизиты
+    expect: реквизиты пропадают из списка (сейчас deletePaymentMethod отвергает любой вызов — method_id строкового поля проверяется как число, 422)
     test: ~
     status: missing

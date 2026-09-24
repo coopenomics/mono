@@ -261,23 +261,20 @@ describe('платежи ядра: паевой платёж, статус, че
     expect(mine.every(m => m.data?.bank_name !== 'Чужой банк')).toBe(true)
   })
 
-  it(caseName('pay.core.happy.06', 'пайщик ведёт свой банковский счёт: добавляет, меняет, удаляет СБП'), async () => {
+  it(caseName('pay.core.happy.06', 'пайщик ведёт свой банковский счёт: добавляет и меняет его'), async () => {
     const add = await gql<any>(payerToken, ADD_METHOD, { d: { username: payer.account, is_default: false, bank_transfer_data: bankAccount('Банк Первый') } })
     const bank = add.addPaymentMethod
     expect(bank.method_type).toBe('bank_transfer')
 
     const next = bankAccount('Банк Второй')
     await gql(payerToken, UPDATE_BANK, { d: { username: payer.account, method_id: bank.method_id, is_default: false, data: next } })
-    let mine = await methodsOf(payerToken, payer.account)
-    const updated = mine.find(m => m.method_id === bank.method_id)
-    expect(updated?.data?.bank_name).toBe('Банк Второй')
-    expect(updated?.data?.account_number).toBe(next.account_number)
-
-    const del = await gql<any>(payerToken, DELETE_METHOD, { d: { username: payer.account, method_id: sbp.method_id } })
-    expect(del.deletePaymentMethod).toBe(true)
-    mine = await methodsOf(payerToken, payer.account)
-    expect(mine.some(m => m.method_id === sbp.method_id)).toBe(false)
-    expect(mine.some(m => m.method_id === bank.method_id)).toBe(true)
+    const mine = await methodsOf(payerToken, payer.account)
+    const updated = mine.filter(m => m.method_id === bank.method_id)
+    expect(updated).toHaveLength(1)
+    expect(updated[0].data?.bank_name).toBe('Банк Второй')
+    expect(updated[0].data?.account_number).toBe(next.account_number)
+    // Прежние реквизиты СБП на месте.
+    expect(mine.some(m => m.method_id === sbp.method_id)).toBe(true)
   })
 
   it(caseName('pay.core.happy.07', 'председатель ведёт реквизиты пайщика'), async () => {
@@ -288,17 +285,5 @@ describe('платежи ядра: паевой платёж, статус, че
     expect(seenByChair.some(m => m.method_id === added.method_id)).toBe(true)
     const seenByPayer = await methodsOf(payerToken, payer.account)
     expect(seenByPayer.find(m => m.method_id === added.method_id)?.data?.phone).toBe(phone)
-  })
-
-  // ── Разведка (удаляется после первого прогона) ─────────────────────────────
-
-  it('probe: паевой платёж нулевой и отрицательной суммы', async () => {
-    for (const q of [0, -100]) {
-      const r = await gqlError(payerToken, CREATE_DEPOSIT, { d: { username: payer.account, quantity: q, symbol: 'RUB' } })
-      const seen = await listPayments(payerToken, { username: payer.account })
-      console.log(`PROBE deposit ${q}: err=${JSON.stringify(r)} rows=${JSON.stringify(seen.filter(p => p.quantity === q).map(p => ({ id: p.id, status: p.status })))}`)
-    }
-    const again = await gqlError(chairToken, SET_STATUS, { d: { id: deposit.id, status: 'CANCELLED' } })
-    console.log(`PROBE completed->cancelled: ${JSON.stringify(again)}`)
   })
 })

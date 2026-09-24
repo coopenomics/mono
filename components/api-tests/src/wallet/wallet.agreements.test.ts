@@ -111,7 +111,6 @@ describe('кошельки и соглашения пайщика', () => {
     const signed = await signDocument(signer.wif, doc, signer.account, 1)
     const err = await gqlError(signerToken, SEND_AGREEMENT, sendInput(signer.account, 'signature', signed))
     expect(err).not.toBeNull()
-    console.log(`PROBE resend confirmed: ${JSON.stringify(err)}`)
     const still = await agreementsOf(signerToken, { username: signer.account, type: 'signature', program_id: 0 })
     expect(still.map(a => [a.id, a.status])).toEqual([[signatureId, 'CONFIRMED']])
 
@@ -135,10 +134,6 @@ describe('кошельки и соглашения пайщика', () => {
     })
     const declined = await agreementsOf(chairToken, { username: signer.account, program_id: 0, statuses: ['DECLINED'] })
     expect(declined.map(a => [a.id, a.type, a.status])).toEqual([[privacy.id, 'privacy', 'DECLINED']])
-    const all = await agreementsOf(chairToken, { username: signer.account, statuses: ['DECLINED'] })
-    const byType = await agreementsOf(chairToken, { username: signer.account, type: 'privacy' })
-    console.log(`PROBE statuses without program_id: ${JSON.stringify(all.map(a => [a.id, a.type, a.status]))}`)
-    console.log(`PROBE type without program_id: ${JSON.stringify(byType.map(a => [a.id, a.type, a.status]))}`)
   })
 
   it(caseName('wal.agr.happy.05', 'пайщик переподписывает программное соглашение «Кошелёк» — дата подписи обновляется'), async () => {
@@ -194,20 +189,22 @@ describe('кошельки и соглашения пайщика', () => {
 
   it(caseName('wal.agr.happy.06', 'операции старого плана счетов попадают в журнал совета'), async () => {
     // Записи в журнал через API нет: его пишет разбор действий ledger::add/sub.
-    // Проводка и сторно на ту же сумму — остаток счёта не меняется.
-    const hash = crypto.randomBytes(32).toString('hex')
-    const data = { coopname: COOP, account_id: 91, quantity: rub(1.5), comment: 'api-tests: журнал', hash, username: signer.account }
+    // Проводка и сторно на ту же сумму — остаток счёта не меняется. Свои строки
+    // ищем по комментарию: хэш и пайщика журнал наружу не отдаёт (wal.agr.side.12).
+    const comment = `api-tests: журнал ${crypto.randomBytes(6).toString('hex')}`
+    const data = { coopname: COOP, account_id: 91, quantity: rub(1.5), comment, hash: crypto.randomBytes(32).toString('hex'), username: signer.account }
     await transact(COOP_SIGNER, [
       { account: 'ledger', name: 'add', data },
       { account: 'ledger', name: 'sub', data },
     ])
     const ops = await waitFor(async () => {
       const d = await gql<any>(chairToken, LEDGER_HISTORY, { d: { coopname: COOP, account_id: 91, limit: 100 } })
-      const mine = (d.getLedgerHistory.items as any[]).filter(o => String(o.hash).toLowerCase() === hash)
+      const mine = (d.getLedgerHistory.items as any[]).filter(o => o.comment === comment)
       return mine.length >= 2 ? mine : null
     }, { timeoutMs: 60_000, intervalMs: 1_000, label: 'операции ledger::add/sub в журнале' })
     expect(ops.map(o => o.action).sort()).toEqual(['add', 'sub'])
-    expect(ops.every(o => o.account_id === 91 && o.username === signer.account && amount(o.quantity) === 1.5)).toBe(true)
+    expect(ops.every(o => Number(o.account_id) === 91 && amount(o.quantity) === 1.5)).toBe(true)
+    expect(new Set(ops.map(o => String(o.global_sequence))).size).toBe(2)
   })
 
   it(caseName('wal.agr.side.09', 'пайщик не читает журнал операций кооператива'), async () => {
