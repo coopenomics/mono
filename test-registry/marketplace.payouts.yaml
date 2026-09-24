@@ -38,6 +38,7 @@ cases:
       состоянием заказа и статус кассирского платежа; платёж ищется по
       order_hash — marketplace заводит его именно с этим payment_hash
     test: components/controller/tests/unit/marketplace/marketplace-outgoing-payment-detail.test.ts
+    api: components/api-tests/src/marketplace/payouts.test.ts
     status: passing
 
   - id: mkt.payouts.side.01
@@ -58,6 +59,7 @@ cases:
       Выплаты с таким идентификатором нет вовсе.
     expect: ответ null
     test: components/controller/tests/unit/marketplace/marketplace-outgoing-payment-detail.test.ts
+    api: components/api-tests/src/marketplace/payouts.test.ts
     status: passing
 
   - id: mkt.payouts.side.03
