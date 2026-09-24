@@ -4,11 +4,15 @@
  * остановиться на каждом этапе и вмешаться — чужой пайщик, подменённая
  * подпись, цена выше потолка. Здесь только действия и чтение, ассертов нет.
  */
+import crypto from 'node:crypto'
 import type { Who } from '../core/auth'
 import { tokenOf } from '../core/auth'
+import { transact } from '../core/chain'
 import { gql } from '../core/client'
 import { docMeta, signDocument } from '../core/documents'
-import { amount } from '../core/wallet'
+import { waitFor } from '../core/wait'
+import { COOP_SIGNER, amount, availableShare, rub } from '../core/wallet'
+import { COOP } from '../core/env'
 import { KRG, SAGA_FIELDS, acceptToCoop, ensureIdentityVerified, labelInventory, placeOrder } from './flow'
 
 export interface PreparedOrder {
@@ -145,11 +149,13 @@ export interface InventoryRow {
   origin: string
   quantity_per_label: number
   arrival_price: string | null
+  published_offer_id: string | null
+  reserved_order_id: string | null
 }
 
 export async function inventoryOfOrder(token: string, orderId: string): Promise<InventoryRow[]> {
   const d = await gql<any>(token, `query($d:MarketplaceListInventoryInput){
-    marketplaceListInventory(data:$d){ id order_id status ownership origin quantity_per_label arrival_price }
+    marketplaceListInventory(data:$d){ id order_id status ownership origin quantity_per_label arrival_price published_offer_id reserved_order_id }
   }`, { d: { order_id: orderId } })
   return (d.marketplaceListInventory as any[]).map(r => ({ ...r, quantity_per_label: Number(r.quantity_per_label) }))
 }
@@ -169,3 +175,28 @@ export function money(n: number): string {
 }
 
 export { amount }
+
+/**
+ * Паевой взнос деньгами до нужного остатка. Повторяет `ensureShareFunds` из
+ * ядра с верными именами действий: в ядре стоят `wallet::createdeposit` и
+ * `gateway::completeincome`, которых в контрактах нет (`createdpst`,
+ * `incomplete`), и пополнение падает «Unknown action».
+ */
+export async function fundShare(username: string, minimumRub: number, memberToken: string): Promise<void> {
+  const have = await availableShare(username)
+  if (have < minimumRub) {
+    const hash = crypto.randomBytes(32).toString('hex')
+    await transact(COOP_SIGNER, [{
+      account: 'wallet',
+      name: 'createdpst',
+      data: { coopname: COOP, username, deposit_hash: hash, quantity: rub(Math.ceil(minimumRub - have) + 10_000) },
+    }])
+    await transact(COOP_SIGNER, [{ account: 'gateway', name: 'incomplete', data: { coopname: COOP, income_hash: hash } }])
+  }
+  // Пополнение шло мимо контроллера — оформление проверяет остаток по зеркалу.
+  await waitFor(async () => {
+    const d = await gql<any>(memberToken, 'query{ marketplaceMemberWallet{ wallets{ name available } } }')
+    const row = d.marketplaceMemberWallet.wallets.find((w: any) => w.name === 'w.wal.share')
+    return row && amount(row.available) >= minimumRub ? true : null
+  }, { timeoutMs: 120_000, intervalMs: 2_000, label: `зеркало кошелька ${username} ≥ ${minimumRub} RUB` })
+}
