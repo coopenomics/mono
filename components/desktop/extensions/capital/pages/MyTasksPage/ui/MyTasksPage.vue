@@ -51,6 +51,8 @@ router-view(v-if='!isRoot')
 
 <script lang="ts" setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { useLiveReload } from 'src/shared/lib/realtime';
+import { CAPITAL_LIVE_TABLES } from 'app/extensions/capital/shared/lib/live';
 import { useRouter, useRoute } from 'vue-router';
 import { useSystemStore } from 'src/entities/System/model';
 import { useSessionStore } from 'src/entities/Session/model/store';
@@ -156,9 +158,12 @@ function isPrivateIssue(issue: IIssue): boolean {
   return originByHash.value[issue.project_hash] === 'local';
 }
 
-async function reload() {
+// Живой список задач — по ленте изменений Благороста, тихо.
+useLiveReload(CAPITAL_LIVE_TABLES, () => reload(true));
+
+async function reload(silent = false) {
   if (!isRoot.value) return;
-  loading.value = true;
+  if (!silent) loading.value = true;
   try {
     // Показываем все доступные задачи; «только мои» — обычный фильтр в шапке.
     // Что именно доступно, решает backend: совет видит всё, пайщик — свою
@@ -193,7 +198,7 @@ async function reload() {
     await resolveContexts(items.value);
   } catch (error) {
     console.error(error);
-    FailAlert(t('capital.myTasksPage.loadError'));
+    if (!silent) FailAlert(t('capital.myTasksPage.loadError'));
   } finally {
     loading.value = false;
   }

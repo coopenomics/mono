@@ -111,6 +111,7 @@ onBeforeMount(() => {
   };
 });
 
+// realtime: нет источника на странице — при открытии читается только раскрытие строк из браузера, данные грузит живой виджет списка.
 onMounted(() => {
   loadProjectsExpandedState();
   loadComponentsExpandedState();

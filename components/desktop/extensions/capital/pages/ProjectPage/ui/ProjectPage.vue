@@ -320,6 +320,7 @@ const handleProjectDeleted = () => {
   router.push({ name: listRoute.value, params: { coopname } });
 };
 
+// realtime: нет источника — карточка с редакторами и разрешением конфликтов правок (content_rev): живое перечитывание подменило бы редактируемый объект; чужие правки ловит проверка версии при сохранении.
 onMounted(async () => {
   // Загружаем сохраненную ширину sidebar
   loadSidebarWidth();
