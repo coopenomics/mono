@@ -33,7 +33,7 @@ export async function investInProject(
 
   const prevWalletWallet = await getUserProgramWallet(blockchain, coopname, investor, walletProgramId) || { blocked: '0.0000 RUB' }
   const prevUserWallet = await getUserProgramWallet(blockchain, coopname, investor, capitalProgramId) || { blocked: '0.0000 RUB' }
-  const prevProgramWallet = await getCoopProgramWallet(blockchain, coopname, capitalProgramId) || { blocked: '0.0000 RUB', share_contributions: '0.0000 RUB' }
+  const prevProgramWallet = await getCoopProgramWallet(blockchain, coopname, capitalProgramId) || { available: '0.0000 RUB', blocked: '0.0000 RUB', share_contributions: '0.0000 RUB' }
 
   console.log('📊 Балансы до инвестиции:')
   console.log('▶ Проект:', prevProject)
