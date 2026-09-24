@@ -1,9 +1,9 @@
 import './i18n';
-import { Inject, Module } from '@nestjs/common';
+import { Inject, Module, Optional } from '@nestjs/common';
 import { z } from 'zod';
 import { merge } from 'lodash';
 import { BaseExtensionModule, DomainToBlockchainUtils, EXTENSION_REPOSITORY, type DeserializedDescriptionOfExtension, type ExtensionDomainEntity, type ExtensionDomainRepository, DomainError } from '@coopenomics/extension-kit';
-import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
+import { CHAIN_CHANGES_PORT, LOGGER_PORT, type IChainChangesPort, type ILoggerPort } from '@coopenomics/innercoop';
 import { SovietRobotDatabaseModule } from './infrastructure/database/soviet-robot-database.module';
 import { ROBOT_DECISION_REPOSITORY } from './domain/repositories/robot-decision.repository';
 import { ROBOT_KEY_REPOSITORY } from './domain/repositories/robot-key.repository';
@@ -91,7 +91,9 @@ export type IConfig = z.infer<typeof Schema>;
 export class SovietRobotExtension extends BaseExtensionModule {
   constructor(
     @Inject(EXTENSION_REPOSITORY) private readonly extensionRepository: ExtensionDomainRepository<IConfig>,
-    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
+    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort,
+    // Лента изменений: журнал робота на столе совета обновляется сам.
+    @Optional() @Inject(CHAIN_CHANGES_PORT) private readonly chainChanges: IChainChangesPort | null = null
   ) {
     super();
     this.logger.setContext(SovietRobotExtension.name);
@@ -107,6 +109,8 @@ export class SovietRobotExtension extends BaseExtensionModule {
     const extensionData = await this.extensionRepository.findByName(this.name);
     if (!extensionData) throw DomainError.internal('SOVIET_ROBOT_CONFIG_NOT_FOUND');
     this.extension = { ...extensionData, config: merge({}, defaultConfig, extensionData.config) };
+    // Решения робота — служебная таблица: журнал видит только совет.
+    this.chainChanges?.declareLocalTables([{ code: this.name, table: 'soviet_robot_decisions', staff_only: true }]);
     this.logger.info(`Инициализация ${this.name} с конфигурацией`, this.extension.config);
   }
 }

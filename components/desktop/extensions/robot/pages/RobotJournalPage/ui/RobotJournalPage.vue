@@ -47,7 +47,9 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
+import { SovietContract } from 'cooptypes';
+import { useLiveReload, liveTable } from 'src/shared/lib/realtime';
 import { uiLocale } from 'src/shared/i18n';
 import { useDismissibleBanner } from 'src/shared/hooks/useDismissibleBanner';
 import { FailAlert } from 'src/shared/api';
@@ -64,7 +66,6 @@ const { dismissed, dismiss } = useDismissibleBanner('robot:journal:banner-dismis
 const loading = ref(true);
 const page = ref(1);
 const limit = 20;
-let refreshTimer: ReturnType<typeof setInterval> | undefined;
 
 const items = computed<IRobotDecision[]>(() => robotStore.journal?.items ?? []);
 const totalPages = computed(() => robotStore.journal?.totalPages ?? 1);
@@ -119,11 +120,12 @@ onMounted(async () => {
     // названия типов — украшение; журнал читается и без них
   }
   await load();
-  // журнал живёт секундами — обновляем молча, без спиннера
-  refreshTimer = setInterval(() => void load(true), 10000);
 });
 
-onBeforeUnmount(() => {
-  if (refreshTimer) clearInterval(refreshTimer);
-});
+// Журнал живёт по ленте изменений: решение робота, голос и подпись протокола
+// приходят сигналом и перечитываются молча (прежде — опрос раз в 10 секунд).
+useLiveReload(
+  [{ code: 'robot', table: 'soviet_robot_decisions' }, liveTable(SovietContract, SovietContract.Tables.Decisions)],
+  () => load(true),
+);
 </script>

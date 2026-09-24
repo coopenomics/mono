@@ -27,6 +27,11 @@ title: Робот решений совета — делегирование п�
 # (`migrations/database/*-baseline.ts`, объявлена в `soviet-robot.database-
 # migrations.ts`) вместо `synchronize`. Поведение и случаи не менялись.
 
+# Правка 24.09.2026 (C28-83): расширение объявляет в ленте изменений служебную
+# таблицу soviet_robot_decisions (совету) — журнал робота на столе совета
+# перечитывается по сигналу вместо опроса раз в 10 с. Поведение робота и набор
+# случаев не менялись.
+
 sources:
   contract:
     - components/contracts/cpp/soviet/src/automator/*
