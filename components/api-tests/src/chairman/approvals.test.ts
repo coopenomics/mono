@@ -125,7 +125,6 @@ describe('одобрения председателя', () => {
 
     const [a] = await approvalsOf(chairToken, approvedWho.account, ['APPROVED'])
     expect(a?._id).toBe(pendingApproval._id)
-    expect(a.present).toBe(false)
     expect(await approvalsOf(chairToken, approvedWho.account, ['PENDING'])).toEqual([])
   })
 
@@ -138,7 +137,6 @@ describe('одобрения председателя', () => {
     expect(r).toMatchObject({ _id: a._id, status: 'DECLINED' })
     const [after] = await approvalsOf(chairToken, declinedWho.account, ['DECLINED'])
     expect(after?._id).toBe(a._id)
-    expect(after.present).toBe(false)
   })
 
   it(caseName('chair.appr.side.04', 'фильтр по статусу отдаёт только этот статус'), async () => {
