@@ -168,9 +168,12 @@ describe('робот решений совета: сквозной сценар�
       expect(res.sovietRobotDelegateKey, `ключ ${who.account}`).toMatchObject({ member: who.account, has_key: true, chain_has_permission: true, chain_key_matches: true })
     }
 
-    const reg: any = await gqlAs(tokens.petr, 'query{ sovietRobotRegistry{ type serviceable vote_quorum{ delegated_count required_count reached } chairman{ username delegated has_key } my_vote } }')
+    // В реестре робота только решения с шаблоном протокола (AC9-5, 84ec5d6):
+    // признак «обслуживается» стал лишним и снят, его заменяет номер шаблона.
+    const reg: any = await gqlAs(tokens.petr, 'query{ sovietRobotRegistry{ type protocol_registry_id vote_quorum{ delegated_count required_count reached } chairman{ username delegated has_key } my_vote } }')
     const free = reg.sovietRobotRegistry.find((r: any) => r.type === FREE)
-    expect(free.serviceable).toBe(true)
+    expect(free, `свободное решение ${FREE} есть в реестре робота`).toBeDefined()
+    expect(free.protocol_registry_id, 'у свободного решения есть шаблон протокола').toBeGreaterThan(0)
     expect(free.vote_quorum).toMatchObject({ delegated_count: 3, required_count: 3, reached: true })
     expect(free.chairman).toMatchObject({ username: 'ant', delegated: true, has_key: true })
     expect(free.my_vote).toBe(true)

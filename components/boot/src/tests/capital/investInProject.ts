@@ -134,9 +134,11 @@ export async function investInProject(
   if (!finalUserWallet)
     throw new Error(`Кошелёк пайщика ${investor} в программе ${capitalProgramId} не найден после инвестиции`)
 
-  // Проверка изменения балансов
-  expect(parseFloat(finalUserWallet.blocked)).toBeCloseTo(parseFloat(prevUserWallet.blocked) + parseFloat(investAmount), 1)
-  expect(parseFloat(finalProgramWallet.blocked)).toBeCloseTo(parseFloat(prevProgramWallet.blocked) + parseFloat(investAmount), 1)
+  // Проверка изменения балансов. Инвестиция — o.cap.invest: перевод с паевого
+  // кошелька пайщика на кошелёк Благороста (w.cap.blago), сумма ложится в
+  // available. Субсчёт blocked упразднён 2026-05-24 (0969505) и всегда нулевой.
+  expect(parseFloat(finalUserWallet.available)).toBeCloseTo(parseFloat(prevUserWallet.available) + parseFloat(investAmount), 1)
+  expect(parseFloat(finalProgramWallet.available)).toBeCloseTo(parseFloat(prevProgramWallet.available) + parseFloat(investAmount), 1)
 
   console.log(`\n✅ Инвестирование на ${investAmount} завершено успешно!`)
 

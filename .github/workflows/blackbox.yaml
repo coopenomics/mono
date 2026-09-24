@@ -19,9 +19,9 @@ on:
     branches: [ci/blackbox]
   workflow_dispatch:
 
-concurrency:
-  group: blackbox-${{ github.ref }}
-  cancel-in-progress: true
+# Прогоны не отменяют друг друга: полигоны ci/tests и ci/blackbox общие для
+# нескольких агентов, и отмена прежнего прогона новым пушем обрывала чужую
+# проверку. Каждый пуш доводится до исхода.
 
 permissions:
   contents: read
@@ -113,6 +113,10 @@ jobs:
       - name: Стенд — индексер и контроллер
         timeout-minutes: 20
         run: bash scripts/blackbox/stack.sh app
+
+      - name: Стенд — засев Стола заказов
+        timeout-minutes: 20
+        run: bash scripts/blackbox/stack.sh seed
 
       - name: Внешние тесты
         timeout-minutes: 60

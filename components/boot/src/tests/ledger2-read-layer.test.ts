@@ -34,7 +34,7 @@ const ACCOUNTS_QUERY = `query($c:String!){
 }`
 
 const WALLETS_QUERY = `query($c:String!){
-  getLedger2Wallets(coopname:$c){ id name available blocked }
+  getLedger2Wallets(coopname:$c){ id name available }
 }`
 
 const HISTORY_QUERY = `query($i:GetLedger2HistoryInput!){
@@ -120,7 +120,7 @@ describe('Ledger2 read-layer (Story 1.23)', () => {
     }
   }, 30_000)
 
-  it('getLedger2Wallets: кошельки кооператива с актуальным available/blocked', async () => {
+  it('getLedger2Wallets: кошельки кооператива с актуальным available', async () => {
     const data = await gql<{ getLedger2Wallets: any[] }>(token, WALLETS_QUERY, { c: COOP })
     const wallets = data.getLedger2Wallets
     expect(Array.isArray(wallets)).toBe(true)
@@ -136,8 +136,8 @@ describe('Ledger2 read-layer (Story 1.23)', () => {
     for (const w of onchain) {
       const match = byId.get(String(w.id))
       if (!match) continue
+      // blocked упразднён 2026-05-24 (0969505): баланс кошелька = available.
       expect(parseAssetAmount(match.available)).toBeCloseTo(parseAssetAmount(w.available), 4)
-      expect(parseAssetAmount(match.blocked)).toBeCloseTo(parseAssetAmount(w.blocked), 4)
     }
   }, 30_000)
 

@@ -150,22 +150,23 @@ export async function processConvertSegment(
   if (capitalAmount !== '0.0000 RUB') {
     const capitalAmountValue = parseFloat(capitalAmount.split(' ')[0])
     const actualCapitalIncrease = capitalAmountValue
-    const beforeBlocked = capitalWalletBefore ? parseFloat(capitalWalletBefore.blocked.split(' ')[0]) : 0
-    const afterBlocked = capitalWalletAfter ? parseFloat(capitalWalletAfter.blocked.split(' ')[0]) : 0
-    const expectedIncrease = beforeBlocked + actualCapitalIncrease
-    console.log(`✅ Глобальный кошелек программы благороста: ${beforeBlocked} → ${afterBlocked} (+${actualCapitalIncrease})`)
-    expect(afterBlocked).toBeCloseTo(expectedIncrease, 1)
+    // o.cap.cnvbl — перевод на w.cap.blago, сумма ложится в available (blocked упразднён 2026-05-24).
+    const beforeAvailable = capitalWalletBefore ? parseFloat(capitalWalletBefore.available.split(' ')[0]) : 0
+    const afterAvailable = capitalWalletAfter ? parseFloat(capitalWalletAfter.available.split(' ')[0]) : 0
+    const expectedIncrease = beforeAvailable + actualCapitalIncrease
+    console.log(`✅ Глобальный кошелек программы благороста: ${beforeAvailable} → ${afterAvailable} (+${actualCapitalIncrease})`)
+    expect(afterAvailable).toBeCloseTo(expectedIncrease, 1)
   }
 
   // Проверяем кошелек пользователя в программе благороста (capital_amount)
   if (capitalAmount !== '0.0000 RUB') {
     const capitalAmountValue = parseFloat(capitalAmount.split(' ')[0])
     const actualCapitalIncrease = capitalAmountValue
-    const beforeBlocked = userCapitalWalletBefore ? parseFloat(userCapitalWalletBefore.blocked.split(' ')[0]) : 0
-    const afterBlocked = userCapitalWalletAfter ? parseFloat(userCapitalWalletAfter.blocked.split(' ')[0]) : 0
-    const expectedIncrease = beforeBlocked + actualCapitalIncrease
-    console.log(`✅ Кошелек пользователя в программе благороста: ${beforeBlocked} → ${afterBlocked} (+${actualCapitalIncrease})`)
-    expect(afterBlocked).toBeCloseTo(expectedIncrease, 1)
+    const beforeAvailable = userCapitalWalletBefore ? parseFloat(userCapitalWalletBefore.available.split(' ')[0]) : 0
+    const afterAvailable = userCapitalWalletAfter ? parseFloat(userCapitalWalletAfter.available.split(' ')[0]) : 0
+    const expectedIncrease = beforeAvailable + actualCapitalIncrease
+    console.log(`✅ Кошелек пользователя в программе благороста: ${beforeAvailable} → ${afterAvailable} (+${actualCapitalIncrease})`)
+    expect(afterAvailable).toBeCloseTo(expectedIncrease, 1)
   }
 
   // Проверяем кошелек проекта (project_amount)

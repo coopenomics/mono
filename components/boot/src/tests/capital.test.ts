@@ -1063,7 +1063,7 @@ describe('тест контракта CAPITAL', () => {
     const programWalletBefore = await getCoopProgramWallet(blockchain, 'voskhod', capitalProgramId)
   })
 
-  it('внести программный имущественный взнос на 10000 RUB от tester5 и проверить точное приращение блокированных средств и паевого фонда', async () => {
+  it('внести программный имущественный взнос на 10000 RUB от tester5 и проверить точное приращение кошелька программы и паевого фонда', async () => {
     const programWalletBefore = await getCoopProgramWallet(blockchain, 'voskhod', capitalProgramId)
     const ledgerShareBefore = await getLedgerAccountById(blockchain, 'voskhod', circulationAccountId)
 
@@ -1090,10 +1090,12 @@ describe('тест контракта CAPITAL', () => {
     // console.log('Ledger share before:', res.ledgerShareBefore)
     // console.log('Ledger share after:', res.ledgerShareAfter)
 
-    // Проверяем точное приращение: блокированные средства программы +10000.0000 RUB
-    const prevBlocked = parseFloat(res.programWalletBefore.blocked.split(' ')[0])
-    const afterBlocked = parseFloat(res.programWalletAfter.blocked.split(' ')[0])
-    expect(afterBlocked).toBe(prevBlocked + 10000)
+    // Проверяем точное приращение: кошелёк программы +10000.0000 RUB.
+    // Имущественный взнос — o.cap.actprp (ISSUE на w.cap.blago), сумма ложится
+    // в available; субсчёт blocked упразднён 2026-05-24 (0969505).
+    const programBefore = parseFloat(res.programWalletBefore.available.split(' ')[0])
+    const programAfter = parseFloat(res.programWalletAfter.available.split(' ')[0])
+    expect(programAfter).toBeCloseTo(programBefore + 10000, 4)
 
     // Проверяем точное приращение: паевой фонд в бухгалтерии +10000.0000 RUB
     const prevAvailable = parseFloat(res.ledgerShareBefore.available.split(' ')[0])

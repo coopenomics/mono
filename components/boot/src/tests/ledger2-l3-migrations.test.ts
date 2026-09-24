@@ -24,8 +24,26 @@ import { Ledger2, Ledger2Contract, WalletContract } from 'cooptypes'
 import Blockchain from '../blockchain'
 import config from '../configs'
 import { generateRandomSHA256 } from '../utils/randomHash'
+import { signedDocument } from './shared/fakeDocument'
+import { capitalDraftId, capitalProgramId } from './capital/consts'
 
 const COOP = 'voskhod'
+
+// Файл шлёт одни и те же действия много раз подряд (очистка перед случаем,
+// повтор для идемпотентности). При той же ссылке на блок и том же сроке
+// действия у повтора тот же id — цепь отвергает его как duplicate transaction,
+// и случай проверяет не контракт, а совпадение. Свой срок у каждой транзакции.
+let txSeq = 0
+function txOpts() {
+  txSeq = (txSeq + 1) % 600
+  return { blocksBehind: 3, expireSeconds: 30 + txSeq }
+}
+
+/** Черновик соглашения программы: signagree обязан ссылаться на него (wallet/signagree.cpp). */
+function draftIdOf(program_id: number): number {
+  if (program_id === capitalProgramId) return capitalDraftId
+  throw new Error(`черновик соглашения программы ${program_id} тесту неизвестен`)
+}
 const CHAIRMAN = 'ant'
 
 describe('cooptypes L3 sanity (Эпик 2 / Эпик 3)', () => {
@@ -82,15 +100,11 @@ describe('ledger2 L3 + wallet::users — integration (live blockchain)', () => {
       coopname: COOP,
       username: TEST_USERNAME,
       program_id: TEST_PROGRAM_ID_BLAGO,
-      document: {
-        version: '0',
-        hash: generateRandomSHA256(),
-        doc_hash: generateRandomSHA256(),
-        meta_hash: '0000000000000000000000000000000000000000000000000000000000000000',
-        meta: '',
-        signatures: [],
-      },
-      draft_id: 0,
+      // С 17.09.2026 контракт сверяет подпись документа с ключом пайщика, а
+      // черновик соглашения — с черновиком программы; пустой документ и
+      // draft_id=0 отклоняются.
+      document: signedDocument(generateRandomSHA256()),
+      draft_id: draftIdOf(TEST_PROGRAM_ID_BLAGO),
     }
 
     await bc.api.transact({
@@ -100,7 +114,7 @@ describe('ledger2 L3 + wallet::users — integration (live blockchain)', () => {
         authorization: [{ actor: COOP, permission: 'active' }],
         data,
       }],
-    }, { blocksBehind: 3, expireSeconds: 30 })
+    }, txOpts())
 
     const rows = await bc.getTableRows('wallet', COOP, 'users', 100)
     const userRow = (rows as Array<{ username: string; programs: Array<{ program_id: number | string }> }>)
@@ -129,7 +143,7 @@ describe('ledger2 L3 + wallet::users — integration (live blockchain)', () => {
         authorization: [{ actor: COOP, permission: 'active' }],
         data: dupData,
       }],
-    }, { blocksBehind: 3, expireSeconds: 30 })
+    }, txOpts())
 
     const rows = await bc.getTableRows('wallet', COOP, 'users', 100)
     const userRow = (rows as Array<{ username: string; programs: Array<{ program_id: number | string }> }>)
@@ -151,10 +165,10 @@ describe('ledger2 L3 + wallet::users — integration (live blockchain)', () => {
       actions: [{
         account: Ledger2Contract.contractName.production,
         name: Ledger2Contract.Actions.Migrate3.actionName,
-        authorization: [{ actor: COOP, permission: 'active' }],
+        authorization: [{ actor: Ledger2Contract.contractName.production, permission: 'active' }],
         data,
       }],
-    }, { blocksBehind: 3, expireSeconds: 30 })
+    }, txOpts())
 
     const rows = await bc.getTableRows('ledger2', COOP, 'userwallets', 100)
     const entry = (rows as Array<{ wallet_name: string; username: string; available: string }>)
@@ -176,10 +190,10 @@ describe('ledger2 L3 + wallet::users — integration (live blockchain)', () => {
       actions: [{
         account: Ledger2Contract.contractName.production,
         name: Ledger2Contract.Actions.Migrate3.actionName,
-        authorization: [{ actor: COOP, permission: 'active' }],
+        authorization: [{ actor: Ledger2Contract.contractName.production, permission: 'active' }],
         data,
       }],
-    }, { blocksBehind: 3, expireSeconds: 30 })
+    }, txOpts())
 
     const rows = await bc.getTableRows('ledger2', COOP, 'userwallets', 100)
     const entry = (rows as Array<{ wallet_name: string; username: string }>)
@@ -201,10 +215,10 @@ describe('ledger2 L3 + wallet::users — integration (live blockchain)', () => {
         actions: [{
           account: Ledger2Contract.contractName.production,
           name: Ledger2Contract.Actions.Migrate3.actionName,
-          authorization: [{ actor: COOP, permission: 'active' }],
+          authorization: [{ actor: Ledger2Contract.contractName.production, permission: 'active' }],
           data,
         }],
-      }, { blocksBehind: 3, expireSeconds: 30 })
+      }, txOpts())
     ).rejects.toThrow(/USER_SHARED/i)
   }, 60_000)
 
@@ -223,7 +237,7 @@ describe('ledger2 L3 + wallet::users — integration (live blockchain)', () => {
         authorization: [{ actor: COOP, permission: 'active' }],
         data,
       }],
-    }, { blocksBehind: 3, expireSeconds: 30 })
+    }, txOpts())
 
     const rows = await bc.getTableRows('wallet', COOP, 'users', 100)
     const userRow = (rows as Array<{ username: string; programs: any[] }>)
@@ -265,7 +279,7 @@ describe('wallet::users / ledger2::migrate3 — edge cases (live blockchain)', (
         authorization: [{ actor: COOP, permission: 'active' }],
         data: { coopname: COOP, username: TEST_USERNAME, program_id },
       }],
-    }, { blocksBehind: 3, expireSeconds: 30 })
+    }, txOpts())
   }
 
   async function signProgram(program_id: number): Promise<string> {
@@ -274,15 +288,8 @@ describe('wallet::users / ledger2::migrate3 — edge cases (live blockchain)', (
       coopname: COOP,
       username: TEST_USERNAME,
       program_id,
-      document: {
-        version: '0',
-        hash: doc_hash,
-        doc_hash,
-        meta_hash: '0000000000000000000000000000000000000000000000000000000000000000',
-        meta: '',
-        signatures: [],
-      },
-      draft_id: 0,
+      document: signedDocument(doc_hash),
+      draft_id: draftIdOf(program_id),
     }
     await bc.api.transact({
       actions: [{
@@ -291,7 +298,7 @@ describe('wallet::users / ledger2::migrate3 — edge cases (live blockchain)', (
         authorization: [{ actor: COOP, permission: 'active' }],
         data,
       }],
-    }, { blocksBehind: 3, expireSeconds: 30 })
+    }, txOpts())
     return doc_hash
   }
 
@@ -325,7 +332,7 @@ describe('wallet::users / ledger2::migrate3 — edge cases (live blockchain)', (
           authorization: [{ actor: COOP, permission: 'active' }],
           data: { coopname: COOP, username: TEST_USERNAME, program_id: TEST_PROGRAM_ID_BLAGO },
         }],
-      }, { blocksBehind: 3, expireSeconds: 30 })
+      }, txOpts())
     ).rejects.toThrow(/программных соглашений/i)
   }, 60_000)
 
@@ -341,7 +348,7 @@ describe('wallet::users / ledger2::migrate3 — edge cases (live blockchain)', (
           authorization: [{ actor: COOP, permission: 'active' }],
           data: { coopname: COOP, username: TEST_USERNAME, program_id: TEST_PROGRAM_ID_GEN },
         }],
-      }, { blocksBehind: 3, expireSeconds: 30 })
+      }, txOpts())
     ).rejects.toThrow(/не подписана/i)
 
     await ensureNoProgram(TEST_PROGRAM_ID_BLAGO)
@@ -357,7 +364,7 @@ describe('wallet::users / ledger2::migrate3 — edge cases (live blockchain)', (
       actions: [{
         account: Ledger2Contract.contractName.production,
         name: Ledger2Contract.Actions.Migrate3.actionName,
-        authorization: [{ actor: COOP, permission: 'active' }],
+        authorization: [{ actor: Ledger2Contract.contractName.production, permission: 'active' }],
         data: {
           coopname: COOP,
           wallet_name,
@@ -366,7 +373,7 @@ describe('wallet::users / ledger2::migrate3 — edge cases (live blockchain)', (
           blocked: '0.0000 RUB',
         },
       }],
-    }, { blocksBehind: 3, expireSeconds: 30 })
+    }, txOpts())
   }
 
   it('ledger2::migrate3 идемпотентность: два одинаковых вызова не падают и значения не дублируются', async () => {
@@ -383,18 +390,18 @@ describe('wallet::users / ledger2::migrate3 — edge cases (live blockchain)', (
       actions: [{
         account: Ledger2Contract.contractName.production,
         name: Ledger2Contract.Actions.Migrate3.actionName,
-        authorization: [{ actor: COOP, permission: 'active' }],
+        authorization: [{ actor: Ledger2Contract.contractName.production, permission: 'active' }],
         data,
       }],
-    }, { blocksBehind: 3, expireSeconds: 30 })
+    }, txOpts())
     await bc.api.transact({
       actions: [{
         account: Ledger2Contract.contractName.production,
         name: Ledger2Contract.Actions.Migrate3.actionName,
-        authorization: [{ actor: COOP, permission: 'active' }],
+        authorization: [{ actor: Ledger2Contract.contractName.production, permission: 'active' }],
         data,
       }],
-    }, { blocksBehind: 3, expireSeconds: 30 })
+    }, txOpts())
 
     const rows = await bc.getTableRows('ledger2', COOP, 'userwallets', 100)
     const matches = (rows as Array<{ wallet_name: string; username: string; available: string }>)
@@ -419,10 +426,10 @@ describe('wallet::users / ledger2::migrate3 — edge cases (live blockchain)', (
       actions: [{
         account: Ledger2Contract.contractName.production,
         name: Ledger2Contract.Actions.Migrate3.actionName,
-        authorization: [{ actor: COOP, permission: 'active' }],
+        authorization: [{ actor: Ledger2Contract.contractName.production, permission: 'active' }],
         data,
       }],
-    }, { blocksBehind: 3, expireSeconds: 30 })
+    }, txOpts())
 
     const rows = await bc.getTableRows('ledger2', COOP, 'userwallets', 100)
     const entry = (rows as Array<{ wallet_name: string; username: string; available: string; blocked: string }>)
@@ -448,10 +455,10 @@ describe('wallet::users / ledger2::migrate3 — edge cases (live blockchain)', (
       actions: [{
         account: Ledger2Contract.contractName.production,
         name: Ledger2Contract.Actions.Migrate3.actionName,
-        authorization: [{ actor: COOP, permission: 'active' }],
+        authorization: [{ actor: Ledger2Contract.contractName.production, permission: 'active' }],
         data,
       }],
-    }, { blocksBehind: 3, expireSeconds: 30 })
+    }, txOpts())
 
     const rows = await bc.getTableRows('ledger2', COOP, 'userwallets', 100)
     const exists = (rows as Array<{ wallet_name: string; username: string }>)

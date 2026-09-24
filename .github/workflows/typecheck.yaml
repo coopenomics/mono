@@ -41,14 +41,9 @@ on:
   workflow_call:
   workflow_dispatch:
 
-# Новый push в ветку отменяет ещё бегущий typecheck по той же ветке — иначе
-# при частых коммитах в dev 30-минутные прогоны копятся очередью и результат
-# приходит к уже неактуальному коду. Группа по head_ref (для PR/вызовов из
-# других workflow), для push fallback на ref. Отмена только своих же прежних
-# прогонов: dev, testnet и main друг друга не трогают.
-concurrency:
-  group: typecheck-${{ github.head_ref || github.ref }}
-  cancel-in-progress: true
+# Прогоны не отменяют друг друга: полигоны ci/tests и ci/blackbox общие для
+# нескольких агентов, и отмена прежнего прогона новым пушем обрывала чужую
+# проверку. Каждый пуш доводится до исхода.
 
 jobs:
   desktop:
