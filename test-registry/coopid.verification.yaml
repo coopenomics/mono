@@ -174,6 +174,7 @@ cases:
     scenario: оператор открывает выдачу заказа получателю без базовой верификации
     expect: отказ до подписи акта — «получатель не прошёл верификацию личности»
     test: components/controller/tests/unit/marketplace/marketplace-issuance-saga.test.ts
+    api: components/api-tests/src/coopid/verification.test.ts
     status: passing
 
   - id: cid.ver.happy.03

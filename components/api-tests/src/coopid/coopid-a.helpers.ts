@@ -8,10 +8,14 @@
  * claim'а `verification_types`, как его получает проверяющая сторона.
  */
 import crypto from 'node:crypto'
+import ecc from 'eosjs-ecc'
 import type { Who } from '../core/auth'
 import { tokenOf } from '../core/auth'
 import { type GqlResponse, gql, gqlRaw } from '../core/client'
+import { signDocument } from '../core/documents'
+import { API_URL, CHAIN_URL, COOP } from '../core/env'
 import { CHAIRMAN } from '../core/roles'
+import { waitFor } from '../core/wait'
 
 /** Кооперативный участок стенда: председатель — chairkrg. */
 export const BRANCH = 'krg'
@@ -198,3 +202,71 @@ export async function enrollTotp(token: string): Promise<string> {
 export const LOGIN_FACTORS = 'query{ getLoginFactors{ totp_enrolled totp_enabled } }'
 export const PARTICIPANT_LOGIN_SECURITY = 'query($d:ResetParticipantTwoFactorInput!){ getParticipantLoginSecurity(data:$d){ totp_enrolled totp_enabled } }'
 export const RESET_TWO_FACTOR = 'mutation($d:ResetParticipantTwoFactorInput!){ resetParticipantTwoFactor(data:$d) }'
+
+// ── Стол заказов для свежего пайщика ───────────────────────────────────────
+
+/** Шаблон оферты ЦПП «Стол заказов» (cooptypes 1102.MarketplaceOffer). */
+const MARKETPLACE_OFFER_REGISTRY_ID = 1102
+
+/**
+ * Свежий пайщик подключается к Столу заказов так, как это делает его стол:
+ * инстанс оферты → подпись ключом → marketplaceSignOnboardingOffer. Подпись
+ * программы доходит до зеркала из wallet::users с отставанием на блок.
+ */
+export async function joinMarketplace(who: Who, token: string): Promise<void> {
+  const now = new Date()
+  const pad = (n: number) => String(n).padStart(2, '0')
+  const d = await gql<any>(token, `mutation($i:GenerateAnyDocumentInput!){
+    generateDocument(input:$i){ full_title html hash meta binary }
+  }`, {
+    i: {
+      data: {
+        registry_id: MARKETPLACE_OFFER_REGISTRY_ID,
+        coopname: COOP,
+        username: who.account,
+        marketplace_agreement_number: crypto.randomBytes(8).toString('hex').toUpperCase(),
+        marketplace_agreement_created_at: `${pad(now.getDate())}.${pad(now.getMonth() + 1)}.${now.getFullYear()}`,
+      },
+    },
+  })
+  const signed = await signDocument(who.wif, d.generateDocument, who.account, 1)
+  await gql(token, `mutation($i:MarketplaceSignOnboardingOfferInput!){
+    marketplaceSignOnboardingOffer(input:$i){ requires_gate }
+  }`, { i: { document: signed } })
+  await waitFor(async () => {
+    const s = (await gql<any>(token, 'query{ marketplaceOnboardingState{ requires_gate } }')).marketplaceOnboardingState
+    return s.requires_gate === false ? true : null
+  }, { timeoutMs: 60_000, intervalMs: 1_000, label: `подпись оферты ${who.account}` })
+}
+
+// ── Пароль пайщика ─────────────────────────────────────────────────────────
+
+/**
+ * Пайщик ставит пароль так, как это делает его стол при переходе на вход по
+ * паролю (REST `coop/migration`, SDK migrate): подпись ключом канонического
+ * сообщения с хэшем пароля и зашифрованный блоб ключа. Это подготовка
+ * состояния — факторы входа надстраиваются только над паролем. Сервер блоб не
+ * расшифровывает, поэтому содержимое блоба в тесте условное.
+ *
+ * После установки пароля вход подписью закрыт: токен пайщика берётся ДО.
+ */
+export async function setPassword(who: Who): Promise<Response> {
+  const info: any = await (await fetch(`${CHAIN_URL}/v1/chain/get_info`)).json()
+  const ts = info.head_block_time as string
+  const password = `Api-tests-${crypto.randomBytes(6).toString('hex')}1!`
+  const pwHash = crypto.createHash('sha256').update(password, 'utf8').digest('hex')
+  const message = JSON.stringify({ pw_hash: pwHash, purpose: 'coopid-key-migration', ts })
+  const signature = ecc.sign(message, who.wif)
+  const b64 = (n: number) => crypto.randomBytes(n).toString('base64url')
+  return fetch(`${API_URL.replace(/\/v1\/graphql\/?$/, '')}/coop/migration`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      email: who.email,
+      timestamp: ts,
+      signature,
+      new_password: password,
+      vault: { cipher_version: 'v1', kdf_version: 'v1', salt: b64(16), nonce: b64(12), ciphertext: b64(64), auth_tag: b64(16) },
+    }),
+  })
+}

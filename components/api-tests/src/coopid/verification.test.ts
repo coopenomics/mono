@@ -12,8 +12,9 @@
  * свежего пайщика.
  */
 import { beforeAll, describe, expect, it } from 'vitest'
-import { CHAIRMAN, COOP, COOP_SIGNER, COUNCIL, ROLES, type Who, caseName, freshMember, randomAccount, tokenOf, transact } from '../core'
-import { AUTH_CODES, BRANCH, certificateLevels, chainVerifications, identityFor, photo, unverify, verifyOk, verifyOnsite } from './coopid-a.helpers'
+import { CHAIRMAN, COOP, COOP_SIGNER, COUNCIL, ROLES, type Who, amount, caseName, ensureShareFunds, freshMember, gqlRaw, login, randomAccount, tokenOf, transact } from '../core'
+import { KRG, acceptToCoop, labelInventory, pickOffer, placeOrder } from '../marketplace/flow'
+import { AUTH_CODES, BRANCH, certificateLevels, chainVerifications, identityFor, joinMarketplace, photo, unverify, verifyOk, verifyOnsite } from './coopid-a.helpers'
 
 const FIRST = 'Верификат'
 const LAST = 'Внешнийслой'
@@ -214,6 +215,37 @@ describe('coopid.verification: уровни верификации и данны
       const r = await identityFor(chairmanToken, randomAccount('cvx'))
       expect(r.data).toBeNull()
       expect(r.errors[0]?.code).toBe('AUTH_V2_PARTICIPANT_NOT_FOUND')
+    })
+  })
+
+  describe('выдача имущества без базовой верификации', () => {
+    const CREATE_BUNDLE = `mutation($d:MarketplaceCreateStockProposalInput!){
+      marketplaceCreateStockProposal(data:$d){ id status member_account braname }
+    }`
+
+    it(caseName('cid.ver.side.07', 'оператор фиксирует выдачу получателю без базового уровня — отказ до заявления и акта'), async () => {
+      const who = freshMember({ prefix: 'cvi' })
+      const token = await login(who)
+      await joinMarketplace(who, token)
+
+      const supplier = ROLES.supplier()
+      const offer = await pickOffer(token, supplier.account, KRG, 'Мёд цветочный')
+      const price = amount(offer.price_per_unit)
+      await ensureShareFunds(who.account, price * 4 + 1_000, token)
+      const { orderId } = await placeOrder({ who, offerId: offer.id, quantity: 1 })
+      await acceptToCoop({ supplier, operator: branchChairman, orderId, factQuantity: 1, factUnitPrice: price })
+      await labelInventory(branchToken, orderId)
+
+      const bundle = { d: { braname: KRG, member_account: who.account, order_items: [{ order_id: orderId, actual_quantity: 1, actual_unit_price: price.toFixed(4) }] } }
+      const refused = await gqlRaw(branchToken, CREATE_BUNDLE, bundle)
+      expect(refused.data).toBeNull()
+      expect(refused.errors[0]?.code).toBe('MARKETPLACE_ISSUANCE_IDENTITY_NOT_VERIFIED')
+
+      // Единственное, чего не хватало, — сверка личности: после неё тот же факт принимается.
+      await verifyOk(branchToken, who.account, { braname: BRANCH, photos: [photo()] })
+      const accepted = await gqlRaw<any>(branchToken, CREATE_BUNDLE, bundle)
+      expect(accepted.errors).toEqual([])
+      expect(accepted.data.marketplaceCreateStockProposal.member_account).toBe(who.account)
     })
   })
 })
