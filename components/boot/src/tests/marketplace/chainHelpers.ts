@@ -139,6 +139,8 @@ export const CHAIRMAN: Who = {
 
 export interface LedgerRow {
   action: string
+  globalSequence: string
+  parentApplyGlobalSequence: string | null
   operationCode: string | null
   processHash: string | null
   username: string | null
@@ -152,7 +154,7 @@ export interface LedgerRow {
 const HISTORY_QUERY = `query($i:GetLedger2HistoryInput!){
   getLedger2History(input:$i){
     totalCount
-    items { action operationCode processHash username accountId walletFrom walletTo quantity memo }
+    items { globalSequence parentApplyGlobalSequence action operationCode processHash username accountId walletFrom walletTo quantity memo }
   }
 }`
 
@@ -171,7 +173,17 @@ export async function historyOfProcess(token: string, processHash: string): Prom
   const d: any = await gqlAs(token, HISTORY_QUERY, {
     i: { coopname: COOP, processHash: processHash.toLowerCase(), limit: 200, page: 1 },
   })
-  return d.getLedger2History.items as LedgerRow[]
+  const rows = d.getLedger2History.items as LedgerRow[]
+  // Код операции в журнале есть только у apply; walletop, debit и credit
+  // ссылаются на свой apply через parentApplyGlobalSequence. Без этой связки
+  // фильтр «walletop с кодом o.mkt.x» всегда пуст, и проверки по нему шли
+  // вхолостую (цикл по пустому списку) либо падали (длина ≥ 1).
+  const codeOf = new Map(rows.filter(r => r.action === 'apply').map(r => [String(r.globalSequence), r.operationCode]))
+  for (const r of rows) {
+    if (!r.operationCode && r.parentApplyGlobalSequence)
+      r.operationCode = codeOf.get(String(r.parentApplyGlobalSequence)) ?? null
+  }
+  return rows
 }
 
 /** Только проводки (`apply`) нитки — по ним ассертятся коды операций и суммы. */
