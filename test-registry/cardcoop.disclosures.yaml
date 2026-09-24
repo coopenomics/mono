@@ -175,6 +175,7 @@ cases:
       наружу все четыре выглядят одним и тем же ответом — иначе по различию
       ответов чужой узнавал бы, состоит ли человек в кооперативе
     test: components/controller/tests/unit/cardcoop/cardcoop-disclosure.test.ts
+    api: components/api-tests/src/cardcoop/disclosures.test.ts
     status: passing
 
   - id: cc.disclose.break.08
@@ -186,6 +187,7 @@ cases:
       тот же отказ, и до анкеты дело не доходит — журнал и карточка пайщика при
       этом не читаются
     test: components/controller/tests/unit/cardcoop/cardcoop-disclosure.test.ts
+    api: components/api-tests/src/cardcoop/disclosures.test.ts
     status: passing
 
   - id: cc.disclose.side.09

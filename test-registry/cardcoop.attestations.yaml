@@ -154,6 +154,7 @@ cases:
       `registrator::accounts` — та существует и у кандидата, которого совет ещё
       не принимал, и её `registered_at` — момент создания аккаунта, а не приёма
     test: components/controller/tests/unit/cardcoop/cardcoop-link-webhook.test.ts
+    api: components/api-tests/src/cardcoop/attestations.test.ts
     status: passing
 
   - id: cc.att.break.03
@@ -165,6 +166,7 @@ cases:
       отказ во всех трёх случаях, подтверждение не выпускается: принять такое
       значило бы засвидетельствовать членство по чужой команде
     test: components/controller/tests/unit/cardcoop/cardcoop-link-webhook.test.ts
+    api: components/api-tests/src/cardcoop/attestations.test.ts
     status: passing
 
   - id: cc.att.break.04
@@ -175,6 +177,7 @@ cases:
     expect: >
       отказ — кооператив свидетельствует только о своих пайщиках
     test: components/controller/tests/unit/cardcoop/cardcoop-link-webhook.test.ts
+    api: components/api-tests/src/cardcoop/attestations.test.ts
     status: passing
 
   - id: cc.att.break.05
@@ -188,6 +191,7 @@ cases:
       непроверенное — значит выпускать свидетельства по чужой команде. Ручного
       ввода ключа в настройках нет вовсе — это запрещено архитектурно
     test: components/controller/tests/unit/cardcoop/cardcoop-link-webhook.test.ts
+    api: components/api-tests/src/cardcoop/attestations.test.ts
     status: passing
 
   - id: cc.att.happy.06
@@ -201,6 +205,7 @@ cases:
       уведомление, подписанное новым ключом, проходит — без простоя и без
       перенастройки кооперативов
     test: components/controller/tests/unit/cardcoop/cardcoop-link-webhook.test.ts
+    api: components/api-tests/src/cardcoop/attestations.test.ts
     status: passing
 
   - id: cc.att.side.03
@@ -224,6 +229,7 @@ cases:
       идентификатору, который выдавали нам; уведомление об удалении без карты
       ничего не стирает
     test: components/controller/tests/unit/cardcoop/cardcoop-link-webhook.test.ts
+    api: components/api-tests/src/cardcoop/attestations.test.ts
     status: passing
 
   - id: cc.att.break.06
