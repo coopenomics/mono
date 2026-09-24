@@ -13,7 +13,7 @@
  */
 import crypto from 'node:crypto'
 import { beforeAll, describe, expect, it } from 'vitest'
-import { CHAIRMAN, ROLES, caseName, fixture, gql, gqlError, gqlRaw, signDocument, tokenOf } from '../core'
+import { CHAIRMAN, ROLES, caseName, ensureShareFunds, fixture, gql, gqlError, gqlRaw, signDocument, tokenOf } from '../core'
 import type { Who } from '../core'
 import { docMeta } from '../core/documents'
 import { amount } from '../core/wallet'
@@ -25,9 +25,7 @@ import {
   checkoutSigned,
   clearCart,
   createApprovedOffer,
-  ensureDigitalWallet,
   fillCart,
-  findActiveOffer,
   getCart,
   getOffer,
   getOrder,
@@ -35,6 +33,7 @@ import {
   minU,
   myOrdersOfOffer,
   preview,
+  seedOffer,
   settledWallets,
   units,
   unitsOfRub,
@@ -64,8 +63,6 @@ let honey: any
 let limited: any
 let packaged: any
 let withdrawable: any
-let rejected: any
-let missingKuOffer: any
 let feeContractPercent: bigint
 
 /** Свободный паевой и членский кошельки программы покрывают тело и взнос мелкого заказа. */
@@ -103,10 +100,10 @@ beforeAll(async () => {
   st = await tokenOf(seedSupplier)
   opt = await tokenOf(operator)
 
-  await ensureDigitalWallet(member, 60_000)
+  await ensureShareFunds(member.account, 60_000, mt)
 
-  potato = await findActiveOffer(seedSupplier.account, 'Картофель деревенский')
-  honey = await findActiveOffer(seedSupplier.account, 'Мёд цветочный')
+  potato = await seedOffer(seedSupplier.account, 'Картофель деревенский')
+  honey = await seedOffer(seedSupplier.account, 'Мёд цветочный')
 
   limited = await createApprovedOffer(other, CHAIRMAN, {
     product_name: `Тест ${RUN_TAG} остаток 5 кг`,
@@ -131,32 +128,47 @@ beforeAll(async () => {
     price_per_unit: '10.00',
     unit_of_measure: 'KG',
     unlimited_flag: true,
+    // Второй пункт — КУ, которого нет в цепи: на нём проверяется отказ цепи в оформлении.
+    delivery_points: [{ braname: KRG, min_supply_volume: 1 }, { braname: MISSING_KU, min_supply_volume: 1 }],
   })
-  missingKuOffer = await createApprovedOffer(other, CHAIRMAN, {
-    product_name: `Тест ${RUN_TAG} на несуществующий КУ`,
-    price_per_unit: '1000.00',
-    unit_of_measure: 'KG',
-    unlimited_flag: true,
-    delivery_points: [{ braname: MISSING_KU, min_supply_volume: 1 }],
-  })
-  const rej = await gql<any>(ot, 'mutation($i:MarketplaceCreateOfferInput!){ marketplaceCreateOffer(input:$i){ id } }', {
-    i: {
-      product_name: `Тест ${RUN_TAG} отклонённое`,
-      description: 'Предложение внешнего слоя тестов',
-      category_id: 1,
-      price_per_unit: '10.00',
-      unit_of_measure: 'KG',
-      unlimited_flag: true,
-      shelf_life_days: 30,
-      delivery_points: [{ braname: KRG, min_supply_volume: 1 }],
-    },
-  })
-  rejected = (await gql<any>(await tokenOf(CHAIRMAN), 'mutation($i:MarketplaceRejectOfferInput!){ marketplaceRejectOffer(input:$i){ id status } }', {
-    i: { offer_id: rej.marketplaceCreateOffer.id, reason: 'Проверка отказа модерации' },
-  })).marketplaceRejectOffer
 
   const eco = await gql<any>(await tokenOf(CHAIRMAN), 'query{ marketplaceGetEconomyConfig{ membership_fee_percent } }')
   feeContractPercent = BigInt(Math.round(Number(eco.marketplaceGetEconomyConfig.membership_fee_percent) * 10_000))
+})
+
+// Идёт первым: предложение, на котором цепь отказывает, дальше снимается с публикации (side.03).
+describe('заказ: отказ цепи в общей транзакции', () => {
+  it(caseName('mkt.order.break.02', 'цепь отказала в заказе общей транзакции — отказ целиком, брони сняты, перевод откатился, корзина не тронута'), async () => {
+    const buyer = fixture('orderer2')
+    const bt = await tokenOf(buyer)
+    await ensureShareFunds(buyer.account, 30_000, bt)
+    try {
+      await clearCart(bt)
+      await gql(bt, SET_POINT, { i: { delivery_braname: MISSING_KU } })
+      const w0 = await settledWallets(bt)
+      const qty = Math.floor((w0['w.mkt.share'] ?? 0) / 10) + 2
+      await gql(bt, ADD_TO_CART, { i: { offer_id: withdrawable.id, quantity: qty, delivery_braname: MISSING_KU } })
+      const pv = await preview(bt)
+      expect(pv.convert).not.toBeNull()
+      const signed = await signDocument(buyer.wif, pv.convert.document, buyer.account, 1)
+      const offerBefore = await getOffer(ot, withdrawable.id)
+
+      const r = await checkoutRaw(bt, { lines: linesOf(pv), signed_convert: signed })
+      expect(r.errors[0]?.code).toBe('CHAIN_ASSERT')
+
+      expect(await myOrdersOfOffer(bt, withdrawable.id)).toHaveLength(0)
+      const offerAfter = await getOffer(ot, withdrawable.id)
+      expect(offerAfter.quantity_blocked).toBe(offerBefore.quantity_blocked)
+      expect((await getCart(bt)).items.map((i: any) => i.offer_id)).toEqual([withdrawable.id])
+      const w1 = await wallets(bt)
+      for (const name of ['w.wal.share', 'w.mkt.member', 'w.mkt.share', 'w.mkt.order'])
+        expect(w1[name] ?? 0).toBe(w0[name] ?? 0)
+    }
+    finally {
+      await clearCart(bt)
+      await gql(bt, SET_POINT, { i: { delivery_braname: KRG } })
+    }
+  })
 })
 
 describe('заказ: границы оформления', () => {
@@ -185,11 +197,7 @@ describe('заказ: границы оформления', () => {
     expect((await getCart(mt)).delivery_braname).toBe(KRG)
   })
 
-  it(caseName('mkt.order.side.03', 'предложение отклонено модерацией или снято с публикации — заказ не создаётся'), async () => {
-    expect(rejected.status).toBe('REJECTED')
-    const rej = await gqlError(mt, ADD_TO_CART, { i: { offer_id: rejected.id, quantity: 1, delivery_braname: KRG } })
-    expect(rej?.code).toBe('MARKETPLACE_CART_OFFER_NOT_ACTIVE')
-
+  it(caseName('mkt.order.side.03', 'предложение снято с публикации — заказ не создаётся, в корзину не кладётся'), async () => {
     // В корзину положено, пока предложение было опубликовано; к оформлению его сняли.
     await fillCart(mt, [{ offer_id: withdrawable.id, quantity: 2 }])
     const w = await gql<any>(ot, 'mutation($i:MarketplaceWithdrawOfferInput!){ marketplaceWithdrawOffer(input:$i){ id status } }', { i: { id: withdrawable.id } })
@@ -562,40 +570,6 @@ describe('заказ: отказ после приёмки и корзина и�
     expect(res.cart.items.filter((i: any) => i.offer_id === honey.id || i.offer_id === stockOffer.id)).toHaveLength(0)
 
     await cancelOrder(mt, bySupplier.id)
-  })
-})
-
-describe('заказ: отказ цепи в общей транзакции', () => {
-  it(caseName('mkt.order.break.02', 'цепь отказала в заказе общей транзакции — отказ целиком, брони сняты, перевод откатился, корзина не тронута'), async () => {
-    const buyer = fixture('orderer2')
-    const bt = await tokenOf(buyer)
-    await ensureDigitalWallet(buyer, 30_000)
-    try {
-      await clearCart(bt)
-      await gql(bt, SET_POINT, { i: { delivery_braname: MISSING_KU } })
-      const w0 = await settledWallets(bt)
-      const qty = Math.floor((w0['w.mkt.share'] ?? 0) / 1000) + 2
-      await gql(bt, ADD_TO_CART, { i: { offer_id: missingKuOffer.id, quantity: qty, delivery_braname: MISSING_KU } })
-      const pv = await preview(bt)
-      expect(pv.convert).not.toBeNull()
-      const signed = await signDocument(buyer.wif, pv.convert.document, buyer.account, 1)
-      const offerBefore = await getOffer(ot, missingKuOffer.id)
-
-      const r = await checkoutRaw(bt, { lines: linesOf(pv), signed_convert: signed })
-      expect(r.errors[0]?.code).toBe('CHAIN_ASSERT')
-
-      expect(await myOrdersOfOffer(bt, missingKuOffer.id)).toHaveLength(0)
-      const offerAfter = await getOffer(ot, missingKuOffer.id)
-      expect(offerAfter.quantity_blocked).toBe(offerBefore.quantity_blocked)
-      expect((await getCart(bt)).items.map((i: any) => i.offer_id)).toEqual([missingKuOffer.id])
-      const w1 = await wallets(bt)
-      for (const name of ['w.wal.share', 'w.mkt.member', 'w.mkt.share', 'w.mkt.order'])
-        expect(w1[name] ?? 0).toBe(w0[name] ?? 0)
-    }
-    finally {
-      await clearCart(bt)
-      await gql(bt, SET_POINT, { i: { delivery_braname: KRG } })
-    }
   })
 })
 

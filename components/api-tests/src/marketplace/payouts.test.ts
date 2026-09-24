@@ -6,11 +6,11 @@
  */
 import crypto from 'node:crypto'
 import { beforeAll, describe, expect, it } from 'vitest'
-import { CHAIRMAN, ROLES, caseName, gql, gqlRaw, tokenOf } from '../core'
+import { CHAIRMAN, ROLES, caseName, ensureShareFunds, gql, gqlRaw, tokenOf } from '../core'
 import type { Who } from '../core'
 import { amount } from '../core/wallet'
 import { acceptToCoop } from './flow'
-import { checkoutSigned, ensureDigitalWallet, fillCart, findActiveOffer, getOrder, settledWallets } from './order.helpers'
+import { checkoutSigned, fillCart, seedOffer, getOrder, settledWallets } from './order.helpers'
 
 const DETAIL = `query($id:String!){
   marketplaceGetOutgoingPayment(id:$id){
@@ -33,8 +33,8 @@ beforeAll(async () => {
   operator = ROLES.branchChairman()
   board = await tokenOf(CHAIRMAN)
   const mt = await tokenOf(member)
-  await ensureDigitalWallet(member, 5_000)
-  const potato = await findActiveOffer(supplier.account, 'Картофель деревенский')
+  await ensureShareFunds(member.account, 5_000, mt)
+  const potato = await seedOffer(supplier.account, 'Картофель деревенский')
   await settledWallets(mt)
   await fillCart(mt, [{ offer_id: potato.id, quantity: 2 }])
   const placed = await checkoutSigned(member)
