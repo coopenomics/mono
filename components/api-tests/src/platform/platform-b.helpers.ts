@@ -10,7 +10,7 @@ import type { Who } from '../core/auth'
 import { tokenOf } from '../core/auth'
 import { gql, gqlRaw } from '../core/client'
 import type { GqlResponse } from '../core/client'
-import { COOP } from '../core/env'
+import { API_URL, COOP } from '../core/env'
 
 interface TypeRef { kind: string, name: string | null, ofType: TypeRef | null }
 interface InputValue { name: string, type: TypeRef }
@@ -226,4 +226,125 @@ export async function callList(who: Who, list: SortableList, sortBy?: string, so
 export function codeOf(r: GqlResponse<any>): string | null {
   const c = r.errors[0]?.code
   return c === null || c === undefined ? null : String(c)
+}
+
+// ── Анкеты вступления ───────────────────────────────────────────────────────
+
+/** Ключ под анкету: регистрации нужен только публичный. */
+export async function freshKeyPair(): Promise<{ wif: string, publicKey: string }> {
+  const ecc = (await import('eosjs-ecc')).default
+  const wif = ecc.seedPrivate(`platform-b-${Date.now()}-${Math.random()}`)
+  return { wif, publicKey: ecc.privateToPublic(wif) }
+}
+
+/** Реквизиты банка, которые фабрика документов примет. */
+export function bankAccount(overrides: Record<string, unknown> = {}): Record<string, any> {
+  return {
+    account_number: '40703810500000000001',
+    bank_name: 'ПАО «Сбербанк»',
+    currency: 'RUB',
+    details: { bik: '044525225', corr: '30101810400000000225' },
+    ...overrides,
+  }
+}
+
+/**
+ * Анкета физлица с привычными знаками: дефис в фамилии, апостроф в имени,
+ * дробь и номер в адресе. Такие данные сервер обязан принять.
+ */
+export function individualData(overrides: Record<string, unknown> = {}): Record<string, any> {
+  return {
+    first_name: 'Д\'Артаньян',
+    last_name: 'Петрова-Водкина',
+    middle_name: 'Сергеевна',
+    birthdate: '1990/01/01',
+    phone: '+7 (900) 000-00-00',
+    full_address: 'г. Москва, ул. Садовая-Кудринская, д. 5/2, кв. 7 (вход со двора) №3',
+    passport: { series: 4510, number: 123456, issued_by: 'ОВД «Тверской» г. Москвы', issued_at: '2010/01/01', code: '770-001' },
+    ...overrides,
+  }
+}
+
+export function entrepreneurData(overrides: Record<string, unknown> = {}): Record<string, any> {
+  return {
+    first_name: 'Иван',
+    last_name: 'Римский-Корсаков',
+    middle_name: 'Петрович',
+    birthdate: '1985/05/05',
+    phone: '+7 (901) 111-22-33',
+    city: 'Санкт-Петербург',
+    country: 'Russia',
+    full_address: 'г. Санкт-Петербург, наб. реки Мойки, д. 12/1, лит. А',
+    details: { inn: '780000000001', ogrn: '304780000000001' },
+    bank_account: bankAccount(),
+    ...overrides,
+  }
+}
+
+export function organizationData(overrides: Record<string, unknown> = {}): Record<string, any> {
+  return {
+    short_name: 'ПК «Сад-Огород»',
+    full_name: 'Потребительский кооператив «Сад-Огород» (ПК \'СО\')',
+    type: 'COOP',
+    phone: '+7 (901) 123-45-67',
+    country: 'Россия',
+    city: 'Москва',
+    full_address: 'г. Москва, ул. Тестовая, д. 1/3, оф. 100',
+    fact_address: 'г. Москва, ул. Тестовая, д. 1/3, оф. 100',
+    details: { inn: '7700000001', ogrn: '1027700000001', kpp: '770001001' },
+    represented_by: {
+      first_name: 'Иван',
+      last_name: 'Иванов',
+      middle_name: 'Иванович',
+      based_on: 'решения общего собрания № 1 от 01.01.2026 г.',
+      position: 'Председатель совета',
+    },
+    bank_account: bankAccount(),
+    ...overrides,
+  }
+}
+
+export const REGISTER_ACCOUNT = `mutation($d:RegisterAccountInput!){
+  registerAccount(data:$d){ account{ username } }
+}`
+
+export type AccountKind = 'individual' | 'entrepreneur' | 'organization'
+
+/** Вход регистрации аккаунта с анкетой нужного вида. */
+export function registerInput(username: string, publicKey: string, kind: AccountKind, data: Record<string, unknown>): Record<string, unknown> {
+  return {
+    username,
+    email: `${username}@api-tests.coop`,
+    public_key: publicKey,
+    type: kind,
+    [`${kind}_data`]: data,
+  }
+}
+
+// ── Ответ сервера целиком ───────────────────────────────────────────────────
+
+/** Ошибка GraphQL как есть: текст и все extensions (code, status, params). */
+export interface RawGqlError { message: string, extensions: Record<string, any> }
+
+/**
+ * Вызов GraphQL с произвольными заголовками (язык запроса) и ответом целиком:
+ * общему клиенту ядра нужны только код и текст, здесь проверяются ещё статус
+ * и параметры отказа.
+ */
+export async function gqlFull(token: string | null, query: string, variables?: unknown, headers: Record<string, string> = {}): Promise<{ status: number, data: any, errors: RawGqlError[] }> {
+  const h: Record<string, string> = { 'Content-Type': 'application/json', ...headers }
+  if (token)
+    h.Authorization = `Bearer ${token}`
+  const res = await fetch(API_URL, { method: 'POST', headers: h, body: JSON.stringify({ query, variables }) })
+  const payload: any = await res.json()
+  return {
+    status: res.status,
+    data: payload.data ?? null,
+    errors: (payload.errors ?? []).map((e: any) => ({ message: String(e?.message ?? ''), extensions: e?.extensions ?? {} })),
+  }
+}
+
+/** Корень сервера (без /v1/graphql) — для REST-маршрутов. */
+export async function apiOrigin(): Promise<string> {
+  return new URL(API_URL).origin
 }
