@@ -7,13 +7,14 @@ import { navigateToPath } from 'src/shared/lib/navigation';
 import { api } from '../api';
 import { categoryFromWorkflowId, type IInboxNotification } from './types';
 import { t } from 'src/shared/i18n';
+import { registerLiveReload } from 'src/shared/lib/realtime';
 
 export * from './types';
 
 const namespace = 'notification-inbox';
 const PAGE_LIMIT = 20;
-/** Интервал поллинга непрочитанных. Live-подписки в репо нет — обновляем опросом. */
-const POLL_INTERVAL_MS = 30_000;
+/** Входящие пайщика в ленте изменений: новое уведомление и прочтение — сигнал. */
+const INBOX_TABLE = { code: 'core', table: 'notification_inbox' };
 
 /**
  * Тело уведомления шарится с email/push-шаблонами и несёт HTML (`<br>`, теги).
@@ -68,7 +69,7 @@ export const useNotificationInboxStore = defineStore(namespace, () => {
   const currentPage = ref(1);
   const totalPages = ref(1);
 
-  let pollTimer: ReturnType<typeof setInterval> | null = null;
+  let inboxWatch: { dispose: () => void } | null = null;
   /**
    * Первый опрос после загрузки страницы задаёт БАЗУ счётчика, а не «прирост».
    * Без этого флага любое накопленное непрочитанное выглядело как «пришло
@@ -175,17 +176,17 @@ export const useNotificationInboxStore = defineStore(namespace, () => {
     });
   }
 
-  function startPolling(): void {
-    if (pollTimer) return;
+  // Счётчик живёт по ленте изменений вместо опроса раз в 30 секунд: новое
+  // уведомление приходит сигналом, а после переподключения лента дочитывает сама.
+  function startWatching(): void {
+    if (inboxWatch) return;
     pollUnreadCount();
-    pollTimer = setInterval(pollUnreadCount, POLL_INTERVAL_MS);
+    inboxWatch = registerLiveReload([INBOX_TABLE], pollUnreadCount);
   }
 
-  function stopPolling(): void {
-    if (pollTimer) {
-      clearInterval(pollTimer);
-      pollTimer = null;
-    }
+  function stopWatching(): void {
+    inboxWatch?.dispose();
+    inboxWatch = null;
   }
 
   return {
@@ -199,7 +200,7 @@ export const useNotificationInboxStore = defineStore(namespace, () => {
     refreshUnreadCount,
     markRead,
     markAllRead,
-    startPolling,
-    stopPolling,
+    startWatching,
+    stopWatching,
   };
 });

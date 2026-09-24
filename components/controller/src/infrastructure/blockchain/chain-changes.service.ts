@@ -46,6 +46,12 @@ const CORE_TABLES: InnerChainChangesTable[] = [
   // Общие собрания видят все пайщики: созыв, вопросы, ход голосования.
   { code: MeetContract.contractName.production, table: MeetContract.Tables.Meets.tableName },
   { code: MeetContract.contractName.production, table: MeetContract.Tables.Questions.tableName },
+  // Выход пайщика из кооператива: заявление, решение, возврат — ему и совету.
+  {
+    code: RegistratorContract.contractName.production,
+    table: RegistratorContract.Tables.Exits.tableName,
+    owner_field: 'username',
+  },
   // Кооперативные участки: создание, правка, смена председателя участка.
   { code: BranchContract.contractName.production, table: BranchContract.Tables.Branches.tableName },
   // Пайщики кооператива в цепи: вступление, блокировка, выход.
@@ -81,6 +87,8 @@ const CORE_LOCAL_TABLES: InnerChainChangesTable[] = [
   { code: 'core', table: 'signed_documents', owner_field: 'username' },
   // Вопросы повестки, которые узел отслеживает (утверждение редакций и т. п.) — совету.
   { code: 'core', table: 'tracking_rules', staff_only: true },
+  // Входящие уведомления пайщика — ему (и совету).
+  { code: 'core', table: 'notification_inbox', owner_field: 'recipientUsername' },
   // Журнал уведомлений кооператива — совету.
   { code: 'core', table: 'notification_outbox', staff_only: true },
   { code: 'core', table: 'notification_deliveries', staff_only: true },
