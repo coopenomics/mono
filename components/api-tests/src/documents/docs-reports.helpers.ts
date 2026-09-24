@@ -456,7 +456,9 @@ export async function payAid(gross: number): Promise<AidPayout> {
       data: {
         registry_id: 1112,
         coopname: COOP,
-        username: decision.username,
+        // Генерация документа доступна только от своего имени — протокол
+        // собирает председатель, получатель указан отдельным полем.
+        username: CHAIRMAN.account,
         lang: 'ru',
         decision_id: decision.id,
         aid_hash: decision.statementMeta.aid_hash ?? aidHash,
