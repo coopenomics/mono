@@ -277,7 +277,8 @@ async function ensureFeePool(need: number): Promise<void> {
       return
     const member = ROLES.member()
     const token = await tokenOf(member)
-    const offer = await pickOffer(token, ROLES.supplier().account, KRG, 'Мёд цветочный')
+    // Каталог целиком видит председатель кооператива, пайщику — только витрина.
+    const offer = await pickOffer(await tokenOf(CHAIRMAN), ROLES.supplier().account, KRG, 'Мёд цветочный')
     const price = amount(offer.price_per_unit)
     const qty = Math.max(1, Math.ceil((need - pool) / (price * rate)) + 1)
     await ensureShareFunds(member.account, price * qty * 2 + 1_000, token)
