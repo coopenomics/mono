@@ -106,6 +106,8 @@ const CORE_LOCAL_TABLES: InnerChainChangesTable[] = [
   { code: 'core', table: 'signed_documents', owner_field: 'username' },
   // Вопросы повестки, которые узел отслеживает (утверждение редакций и т. п.) — совету.
   { code: 'core', table: 'tracking_rules', staff_only: true },
+  // Заявление о выходе из кооператива — пайщику и совету.
+  { code: 'core', table: 'membership_exit_requests', owner_field: 'username' },
   // Входящие уведомления пайщика — ему (и совету).
   { code: 'core', table: 'notification_inbox', owner_field: 'recipientUsername' },
   // Журнал уведомлений кооператива — совету.

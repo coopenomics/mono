@@ -16,7 +16,8 @@ import './i18n';
  * Реализует story 7.1 (каркас и конфиг). Отправка подтверждений — 7.2,
  * отзыв — 7.3, выдача анкеты по гранту — 7.8.
  */
-import { Module } from '@nestjs/common';
+import { Inject, Module, Optional } from '@nestjs/common';
+import { CHAIN_CHANGES_PORT, type IChainChangesPort } from '@coopenomics/innercoop';
 import { CardcoopExtension, Schema, defaultConfig, type IConfig } from './cardcoop.extension';
 import { CardcoopIdentityService } from './identity/identity.service';
 import { CardcoopAttestationService } from './attestation/attestation.service';
@@ -84,11 +85,18 @@ export class CardcoopExtensionModule {
     private readonly connect: CardcoopConnectService,
     private readonly operatorAnnounce: CardcoopOperatorAnnounceService,
     private readonly webhookKey: CardcoopWebhookKeyService,
-    private readonly membership: CardcoopMembershipService
+    private readonly membership: CardcoopMembershipService,
+    // Лента изменений: страница карты пайщика обновляется сама, когда сеть карт
+    // прислала выпуск карты или привязку (вебхук пишет эти таблицы).
+    @Optional() @Inject(CHAIN_CHANGES_PORT) private readonly chainChanges: IChainChangesPort | null = null
   ) {}
 
   async initialize() {
     await this.cardcoopExtension.initialize();
+    this.chainChanges?.declareLocalTables([
+      { code: 'cardcoop', table: 'cardcoop_attestations', owner_field: 'username' },
+      { code: 'cardcoop', table: 'cardcoop_pending_links', owner_field: 'username' },
+    ]);
 
     // Объявления допуска и самоподключение идут в фоне: старт кооператива не зависит от
     // доступности сети карт (NFR-3), а исходы видны в журнале и в таблицах. Порядок строгий:

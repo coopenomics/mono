@@ -40,6 +40,11 @@ title: Выпуск подтверждений членства в сеть ка
 # (`migrations/database/*-baseline.ts`, объявлена в `cardcoop.database-
 # migrations.ts`) вместо `synchronize`. Поведение и случаи не менялись.
 
+# Правка 24.09.2026 (C28-83): расширение объявляет в ленте изменений таблицы
+# cardcoop_attestations и cardcoop_pending_links (по username) — страница карты
+# пайщика перечитывается сама, когда вебхук сети карт записал выпуск или
+# привязку. Поведение расширения и набор случаев не менялись.
+
 sources:
   backend:
     - components/controller/src/extensions/cardcoop/**

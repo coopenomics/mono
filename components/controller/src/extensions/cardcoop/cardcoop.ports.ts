@@ -28,6 +28,7 @@
  */
 import {
   ACCOUNT_PORT,
+  CHAIN_CHANGES_PORT,
   CHAIN_PORT,
   COOP_CREDENTIAL_PORT,
   INDIVIDUAL_PORT,
@@ -50,5 +51,8 @@ export const cardcoopPorts = {
     USER_DIRECTORY_PORT,
     VAULT_PORT,
   ],
-  optional: [],
+  optional: [
+    // Лента изменений: карта пайщика обновляется на столе сама.
+    CHAIN_CHANGES_PORT,
+  ],
 };

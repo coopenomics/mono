@@ -35,7 +35,10 @@ export function useExitOverlayProcess() {
   const startWatching = () => {
     if (exitWatch) return;
     exitWatch = registerLiveReload(
-      [liveTable(RegistratorContract, RegistratorContract.Tables.Exits)],
+      [
+        liveTable(RegistratorContract, RegistratorContract.Tables.Exits),
+        { code: 'core', table: 'membership_exit_requests' },
+      ],
       () => loadExitStatus(),
     );
   };
